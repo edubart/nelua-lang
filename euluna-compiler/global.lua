@@ -11,7 +11,8 @@ end
 function dump_ast(ast)
   print(inspect(ast, {
     process = function(item, path)
-      if path[#path] ~= inspect.METATABLE then
+      local k = path[#path]
+      if k ~= inspect.METATABLE and k ~= 'pos' then
         return item
       end
     end

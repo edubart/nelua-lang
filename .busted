@@ -1,0 +1,10 @@
+return {
+  _all = {
+    --coverage = true
+  },
+  default = {
+    verbose = true,
+    pattern = 'test_',
+    ROOT = {"tests"},
+  }
+}
