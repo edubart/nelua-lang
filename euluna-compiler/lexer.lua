@@ -126,10 +126,7 @@ keyword_pattern = keyword_pattern:sub(1,-3)
 lexer.KEYWORD = T(keyword_pattern)
 
 -- identifier
-function lexer.to_identifier(pos, name)
-  return {tag = 'identifier', pos=pos, name=name}
-end
-lexer.IDENTIFIER = T"({} (!%KEYWORD {%IDPREFIX %IDSUFFIX*})) -> to_identifier"
+lexer.NAME    = T"!%KEYWORD {%IDPREFIX %IDSUFFIX*}"
 
 -- boolean
 function lexer.to_bool_false(pos) return {tag='boolean', pos=pos, value=false} end

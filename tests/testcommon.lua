@@ -22,8 +22,26 @@ local function restrict(t1, t2)
   end
 end
 
-function assert_ast(ast, expected_ast)
-  ast = restrict(expected_ast, ast)
+local function filter(t)
+  if type(t) == 'table' then
+    local out = {}
+    for k,_ in pairs(t) do
+      if k ~= 'pos' then
+        out[k] = filter(t[k])
+      end
+    end
+    return out
+  else
+    return t
+  end
+end
+
+function assert_ast(ast, expected_ast, restricted)
+  if restricted then
+    ast = restrict(expected_ast, ast)
+  else
+    ast = filter(ast)
+  end
   assert.are.same(expected_ast, ast)
 end
 
@@ -77,6 +95,10 @@ function assert_parse(str, expected_ast)
     --dump_ast(ast)
     assert_ast(ast, expected_ast)
   end
+end
+
+function assert_equivalent_parse(a, b)
+  assert_ast(assert_parse(a), assert_parse(b))
 end
 
 function assert_parse_error(code, expected_err)

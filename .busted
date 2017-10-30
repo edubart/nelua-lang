@@ -3,7 +3,7 @@ return {
     --coverage = true
   },
   default = {
-    verbose = true,
+    --verbose = true,
     pattern = 'test_',
     ROOT = {"tests"},
   }

@@ -16,6 +16,10 @@ local defs = tablex.copy(lexer)
 function defs.to_nil(pos) return {tag='nil', pos=pos} end
 function defs.to_ellipsis(pos) return {tag='ellipsis', pos=pos} end
 
+function defs.to_identifier(pos, name)
+  return {tag = 'identifier', pos=pos, name=name}
+end
+
 function defs.to_main_block(pos, block)
   block.tag = 'top_block'
   block.pos = pos
@@ -61,7 +65,7 @@ function defs.to_chain_index_or_call(pos, identifier, exprs)
   if exprs then
     local folded_expr = exprs[#exprs]
     for i=#exprs-1,1,-1 do
-      local expr = matches[i]
+      local expr = exprs[i]
       expr.expr = folded_expr
       folded_expr = expr
     end
@@ -82,7 +86,7 @@ function defs.to_method_call(pos, name, args)
   return {tag='method_call', pos=pos, name=name, args=args}
 end
 
-function defs.to_call(pos, name, args)
+function defs.to_call(pos, args)
   return {tag='call', pos=pos, args=args}
 end
 
@@ -133,13 +137,13 @@ local grammar = re.compile([==[
 
   suffixed_expr <-
     ({}
-      %IDENTIFIER
-      (index_expr / call_expr)*
+      identifier
+      {| (index_expr / call_expr)* |}
     )                                                -> to_chain_index_or_call
 
   index_expr <-
       ({} %DOT
-        (%IDENTIFIER / %{ExpectedIdentifier})
+        (%NAME / %{ExpectedIdentifier})
       )                                              -> to_dot_index
     / ({}
         %LBRACKET
@@ -150,13 +154,14 @@ local grammar = re.compile([==[
   call_expr <-
       ({}
         %COLON
-        (%IDENTIFIER / %{ExpectedMethodIdentifier})
+        (%NAME / %{ExpectedMethodIdentifier})
         (call_args / %{ExpectedCall})
       )                                               -> to_method_call
     / ({} call_args )                                 -> to_call
 
   call_args <- %LPAREN expr_list (%RPAREN / %{UnclosedParenthesis})
   expr_list <- {| (expr (%COMMA expr)*)? |}
+  identifier <- ({} %NAME) -> to_identifier
 
   op_or     <- %OR -> 'or'
   op_and    <- %AND -> 'and'

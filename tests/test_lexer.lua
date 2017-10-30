@@ -3,48 +3,67 @@ require 'busted.runner'()
 
 local lexer = require 'euluna-compiler.lexer'
 
-describe("euluna lexer", function()
-  it("Shebang", function()
+describe("Euluna lexer", function()
+  it("should parse shebang", function()
     assert_match_all(lexer.SHEBANG, {"#!/usr/env lua"})
     assert_match_non(lexer.SHEBANG, {"a#!/usr/env lua"})
   end)
 
-  it("Number", function()
-    assert_match_all(lexer.NUMBER, {
-      -- binary
-      ["0b0"] = { tag = "number", type = "binary", value = "0b0" },
-      ["0b0101"] = { tag = "number", type = "binary", value = "0b0101" },
+  describe("should parse number", function()
+    it("binary", function()
+      assert_match_all(lexer.NUMBER, {
+        ["0b0"] = { tag = "number", type = "binary", value = "0b0" },
+        ["0b0101"] = { tag = "number", type = "binary", value = "0b0101" },
+      })
+    end)
 
-      -- hexdecimal
-      ["0x0"] = { tag = "number", type = "hexdecimal", value = "0x0" },
-      ["0x0123456789abcdef"] = { tag = "number", type = "hexdecimal", value = "0x0123456789abcdef" },
+    it("hexdecimal", function()
+      assert_match_all(lexer.NUMBER, {
+        ["0x0"] = { tag = "number", type = "hexdecimal", value = "0x0" },
+        ["0x0123456789abcdef"] = { tag = "number", type = "hexdecimal", value = "0x0123456789abcdef" },
+      })
+    end)
 
-      -- integer
-      ["1"] = { tag = "number", type = "integer", value = "1" },
-      ["0123456789"] = { tag = "number", type = "integer", value = "0123456789" },
+    it("integer", function()
+      assert_match_all(lexer.NUMBER, {
+        ["1"] = { tag = "number", type = "integer", value = "1" },
+        ["0123456789"] = { tag = "number", type = "integer", value = "0123456789" },
+      })
+    end)
 
-      -- decimal
-      [".0"] = { tag = "number", type = "decimal", value = ".0" },
-      ["0."] = { tag = "number", type = "decimal", value = "0." },
-      ["123.456789"] = { tag = "number", type = "decimal", value = "123.456789" },
+    it("decimal", function()
+      assert_match_all(lexer.NUMBER, {
+        [".0"] = { tag = "number", type = "decimal", value = ".0" },
+        ["0."] = { tag = "number", type = "decimal", value = "0." },
+        ["123.456789"] = { tag = "number", type = "decimal", value = "123.456789" },
+      })
+    end)
 
-      -- exponential
-      ["1.2e-3"] = {tag = "number", type="exponential", value="1.2e-3"},
-      [".1e2"] = {tag = "number", type="exponential", value=".1e2"},
-      [".0e+2"] = {tag = "number", type="exponential", value=".0e+2"},
-      ["1e-2"] = {tag = "number", type="exponential", value="1e-2"},
-      ["1e+2"] = {tag = "number", type="exponential", value="1e+2"},
-      ["1.e3"] = {tag = "number", type="exponential", value="1.e3"},
-      ["1e1"] = {tag = "number", type="exponential", value="1e1"},
-      ["1.2e+6"] = { tag = "number", type = "exponential", value = "1.2e+6" },
+    it("exponential", function()
+      assert_match_all(lexer.NUMBER, {
+        ["1.2e-3"] = {tag = "number", type="exponential", value="1.2e-3"},
+        [".1e2"] = {tag = "number", type="exponential", value=".1e2"},
+        [".0e+2"] = {tag = "number", type="exponential", value=".0e+2"},
+        ["1e-2"] = {tag = "number", type="exponential", value="1e-2"},
+        ["1e+2"] = {tag = "number", type="exponential", value="1e+2"},
+        ["1.e3"] = {tag = "number", type="exponential", value="1.e3"},
+        ["1e1"] = {tag = "number", type="exponential", value="1e1"},
+        ["1.2e+6"] = { tag = "number", type = "exponential", value = "1.2e+6" },
+      })
+    end)
 
-      -- literal
-      ["12_f32"] = { tag = "number", type = "integer", value = "12", literal="f32" },
-    })
-    assert_match_err(lexer.NUMBER, "MalformedNumber", {"0b", "0b2", "0x", "0xG", "1e*2"})
+    it("literal", function()
+      assert_match_all(lexer.NUMBER, {
+        ["12_f32"] = { tag = "number", type = "integer", value = "12", literal="f32" },
+      })
+    end)
+
+    it("malformed", function()
+      assert_match_err(lexer.NUMBER, "MalformedNumber", {"0b", "0b2", "0x", "0xG", "1e*2"})
+    end)
   end)
 
-  it("Escape sequence", function()
+  it("should escape sequence", function()
     assert_match_err(lexer.ESCAPESEQUENCE, 'MalformedEscapeSequence', {
       "\\A",
       "\\u42",
@@ -69,72 +88,76 @@ describe("euluna lexer", function()
     })
   end)
 
-  it("Long string", function()
-    assert_match_err(lexer.STRING, 'UnclosedLongString', {
-      '[[','[=[]]','[[]'
-    })
-    assert_match_all(lexer.STRING, {
-      "[[]]", "[=[]=]", "[==[]==]",
-      "[[[]]", "[=[]]=]", "[==[]]]]==]",
-      "[[test]]", "[=[test]=]", "[==[test]==]",
-      "[[\nasd\n]]", "[=[\nasd\n]=]", "[==[\nasd\n]==]",
-      ["[[\nasd\n]]"] = {tag='string', value="asd\n"},
-      ["[==[\nasd\n]==]"] = {tag='string', value="asd\n"},
-    })
+  describe("should parse string", function()
+    it("long", function()
+      assert_match_err(lexer.STRING, 'UnclosedLongString', {
+        '[[','[=[]]','[[]'
+      })
+      assert_match_all(lexer.STRING, {
+        "[[]]", "[=[]=]", "[==[]==]",
+        "[[[]]", "[=[]]=]", "[==[]]]]==]",
+        "[[test]]", "[=[test]=]", "[==[test]==]",
+        "[[\nasd\n]]", "[=[\nasd\n]=]", "[==[\nasd\n]==]",
+        ["[[\nasd\n]]"] = {tag='string', value="asd\n"},
+        ["[==[\nasd\n]==]"] = {tag='string', value="asd\n"},
+      })
+    end)
+
+    it("short", function()
+      assert_match_err(lexer.STRING, 'UnclosedShortString', {
+        '"', "'", '"\\"', "'\\\"", '"\n"'
+      })
+      assert_match_all(lexer.STRING, {
+        ['""'] = {tag='string', value=''},
+        ["''"] = {tag='string', value=''},
+        ['"test"'] = {tag='string', value='test'},
+        ["'test'"] = {tag='string', value='test'},
+      })
+    end)
+
+    it("general", function()
+      assert_match_all(lexer.STRING, {
+        '"asd"', "'asd'", "[[asd]]", "[=[asd]=]"
+      })
+    end)
   end)
 
-  it("ShortString", function()
-    assert_match_err(lexer.STRING, 'UnclosedShortString', {
-      '"', "'", '"\\"', "'\\\"", '"\n"'
-    })
-    assert_match_all(lexer.STRING, {
-      ['""'] = {tag='string', value=''},
-      ["''"] = {tag='string', value=''},
-      ['"test"'] = {tag='string', value='test'},
-      ["'test'"] = {tag='string', value='test'},
-    })
+  describe("should parse comment", function()
+    it("short", function()
+      assert_match_non(lexer.SHORTCOMMENT, {
+        '--asd\nasd',
+      })
+      assert_match_all(lexer.SHORTCOMMENT, {
+        '--asd', '--asd\n'
+      })
+    end)
+
+    it("long", function()
+      assert_match_non(lexer.LONGCOMMENT, {
+        '--[[asd]]asd', '--[[asd]]\nasd',
+      })
+      assert_match_all(lexer.LONGCOMMENT, {
+        '--[[]]', '--[==[]==]', '--[[asd]=]]', '--[=[asd]]\nasd]=]'
+      })
+    end)
+
+    it("general", function()
+      assert_match_non(lexer.COMMENT, {'--[[asd]]asd', '--asd\nasd'})
+      assert_match_all(lexer.COMMENT, {'--[[asd]]', '--asd' })
+    end)
   end)
 
-  it("String", function()
-    assert_match_all(lexer.STRING, {
-      '"asd"', "'asd'", "[[asd]]", "[=[asd]=]"
-    })
-  end)
-
-  it("Short comment", function()
-    assert_match_non(lexer.SHORTCOMMENT, {
-      '--asd\nasd',
-    })
-    assert_match_all(lexer.SHORTCOMMENT, {
-      '--asd', '--asd\n'
-    })
-  end)
-
-  it("Long comment", function()
-    assert_match_non(lexer.LONGCOMMENT, {
-      '--[[asd]]asd', '--[[asd]]\nasd',
-    })
-    assert_match_all(lexer.LONGCOMMENT, {
-      '--[[]]', '--[==[]==]', '--[[asd]=]]', '--[=[asd]]\nasd]=]'
-    })
-  end)
-
-  it("Comment", function()
-    assert_match_non(lexer.COMMENT, {'--[[asd]]asd', '--asd\nasd'})
-    assert_match_all(lexer.COMMENT, {'--[[asd]]', '--asd' })
-  end)
-
-  it("Keyword", function()
+  it("should parse keyword", function()
     assert_match_non(lexer.KEYWORD, {'myvar', 'function_', '_function' })
     assert_match_all(lexer.KEYWORD, {'function', 'return' })
   end)
 
-  it("Identifier", function()
-    assert_match_non(lexer.IDENTIFIER, {'function', 'return'})
-    assert_match_all(lexer.IDENTIFIER, {'function_', '_function', 'myvar'})
+  it("should parse identifier name", function()
+    assert_match_non(lexer.NAME, {'function', 'return'})
+    assert_match_all(lexer.NAME, {'function_', '_function', 'myvar'})
   end)
 
-  it("Symbols", function()
+  it("should parse especial symbol", function()
     assert_match_all(lexer.ADD, {'+'}, {'+ \n\t\r\v'})
     assert_match_all(lexer.SUB, {'-'})
     assert_match_all(lexer.DIV, {'/'})
