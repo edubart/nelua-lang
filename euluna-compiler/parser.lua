@@ -90,6 +90,14 @@ function defs.to_call(pos, args)
   return {tag='call', pos=pos, args=args}
 end
 
+function defs.to_field_pair(pos, key, expr)
+  return {tag='pair',pos=pos,key=key,expr=expr}
+end
+
+function defs.to_table(pos, fields)
+  return {tag='table',pos=pos,fields=fields}
+end
+
 local grammar = re.compile([==[
   code <-
     %SHEBANG? %SKIP
@@ -131,7 +139,7 @@ local grammar = re.compile([==[
     / ({} %NIL)                                           -> to_nil
     / ({} %ELLIPSIS)                                      -> to_ellipsis
     -- function
-    -- table
+    / table
     / suffixed_expr
     / (%LPAREN expr %RPAREN)
 
@@ -161,6 +169,33 @@ local grammar = re.compile([==[
 
   call_args <- %LPAREN expr_list (%RPAREN / %{UnclosedParenthesis})
   expr_list <- {| (expr (%COMMA expr)*)? |}
+
+  table <-
+    ({}
+      %LCURLY
+        table_field_list
+      (%RCURLY / %{UnclosedCurly})
+    )                                                 -> to_table
+
+  table_field_list <-
+    {| (table_field (%SEPARATOR table_field)* %SEPARATOR?)? |}
+
+  table_field <- field_pair / expr
+
+  field_pair <-
+    ({}
+      field_key
+      %ASSIGN
+      (expr / %{ExpectedExpression})
+    )                                               -> to_field_pair
+
+  field_key <-
+    (   %LBRACKET
+          (expr / %{ExpectedExpression})
+        (%RBRACKET / %{UnclosedBracket})
+      / %NAME
+    ) & %ASSIGN
+
   identifier <- ({} %NAME) -> to_identifier
 
   op_or     <- %OR -> 'or'

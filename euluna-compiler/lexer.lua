@@ -169,6 +169,7 @@ lexer.RCURLY      = T"'}'"
 
 lexer.SEMICOLON   = T"';'"
 lexer.COMMA       = T"','"
+lexer.SEPARATOR   = T"[,;]"
 lexer.ELLIPSIS    = T"'...'"
 lexer.CONCAT      = T"!%ELLIPSIS '..'"
 lexer.DOT         = T"!%ELLIPSIS !%CONCAT !('.' %d) '.'"

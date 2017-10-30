@@ -104,6 +104,16 @@ describe("Euluna parser", function()
       )
     end)
 
+    it("table", function()
+      assert_parse("return {}",
+        { tag = 'top_block',
+          { tag = 'return_stat',
+            expr = { tag = 'table', fields={} }
+          }
+        }
+      )
+    end)
+
     it("ellipsis", function()
       assert_parse("return ...",
         { tag = 'top_block',
@@ -270,6 +280,121 @@ describe("Euluna parser", function()
           }
         }
       )
+    end)
+  end)
+
+  describe("should parse table", function()
+    it("empty", function()
+      assert_parse("return {}",
+        { tag = 'top_block',
+          { tag = 'return_stat',
+            expr = { tag = 'table', fields={} }
+          }
+        }
+      )
+    end)
+
+    it("with one value", function()
+      assert_parse("return {1}",
+        { tag = 'top_block',
+          { tag = 'return_stat',
+            expr = {
+              tag = 'table', 
+              fields ={
+                {tag='number', type='integer', value='1'} }
+              } } } )
+    end)
+
+    it("with one field", function()
+      assert_parse("return {a=1}",
+        { tag = 'top_block',
+          { tag = 'return_stat',
+            expr = {
+              tag = 'table',
+              fields ={
+                { tag='pair',
+                  key='a',
+                  expr={tag='number', type='integer', value='1' }
+              } } } } } )
+    end)
+
+    it("with multiple values", function()
+      assert_parse("return {1,2,3}",
+        { tag = 'top_block',
+          { tag = 'return_stat',
+            expr = {
+              tag = 'table',
+              fields ={
+                {tag='number', type='integer', value='1'},
+                {tag='number', type='integer', value='2'},
+                {tag='number', type='integer', value='3'}
+              } } } } )
+    end)
+
+    it("with multiple fields", function()
+      assert_parse([[return {
+        a=a, [a]=a, [nil]=nil, [true]=true,
+        ['mystr']='mystr', [1.0]=1.0, [func()]=func(),
+        [...]=...
+      }]],
+        { tag = 'top_block',
+          { tag = 'return_stat',
+            expr = {
+              tag = 'table',
+              fields ={
+                { tag='pair',
+                  key='a',
+                  expr={tag="identifier", name='a'} },
+                { tag='pair',
+                  key={tag="identifier", name='a'},
+                  expr={tag="identifier", name='a'} },
+                { tag='pair',
+                  key={tag="nil"},
+                  expr={tag="nil"} },
+                { tag='pair',
+                  key={tag="boolean", value=true},
+                  expr={tag="boolean", value=true} },
+                { tag='pair',
+                  key={tag="string", value='mystr'},
+                  expr={tag="string", value='mystr'} },
+                { tag='pair',
+                  key={tag="number", type='decimal', value='1.0'},
+                  expr={tag="number", type='decimal', value='1.0'} },
+                { tag='pair',
+                  key={tag="identifier", name='func', expr={tag='call', args={}}},
+                  expr={tag="identifier", name='func', expr={tag='call', args={}}} },
+                { tag='pair',
+                  key={tag="ellipsis"},
+                  expr={tag="ellipsis"} }
+              } } } } )
+    end)
+
+    it("with multiple values", function()
+      assert_parse("return {a,nil,true,'mystr',1.0,func(),...}",
+        { tag = 'top_block',
+          { tag = 'return_stat',
+            expr = {
+              tag = 'table',
+              fields ={
+                {tag="identifier", name='a'},
+                {tag="nil"},
+                {tag="boolean", value=true},
+                {tag="string", value='mystr'},
+                {tag="number", type='decimal', value='1.0'},
+                {tag="identifier", name='func', expr={tag='call', args={}}},
+                {tag="ellipsis"},
+              } } } } )
+    end)
+
+    it("nested", function()
+      assert_parse("return {{}}",
+        { tag = 'top_block',
+          { tag = 'return_stat',
+            expr = {
+              tag = 'table',
+              fields ={
+                { tag = 'table', fields={} }
+              } } } } )
     end)
   end)
 

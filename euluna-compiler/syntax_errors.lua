@@ -8,10 +8,13 @@ local errors = {
   { label = "UnclosedLongComment", msg = "unclosed long comment" },
   { label = "UnclosedParenthesis", msg = "unclosed parenthesis" },
   { label = "UnclosedBracket", msg = "unclosed bracket" },
+  { label = "UnclosedCurly", msg = "unclosed curly braces" },
   { label = "MalformedEscapeSequence", msg = "malformed escape sequence" },
   { label = "InvalidStatement", msg = "invalid statement"},
   { label = "ExpectedIdentifier", msg = "expected identifier" },
   { label = "ExpectedCall", msg = "expected call"},
+  { label = "ExpectedAssignment", msg = "expected assignment"},
+  { label = "ExpectedExpression", msg = "expected expression"},
   { label = "ExpectedMethodIdentifier", msg = "expected method identifier"},
   { label = "ExpectedEOF", msg = "unexpected character(s), expected EOF" },
 }
