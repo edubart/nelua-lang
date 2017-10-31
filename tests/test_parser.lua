@@ -7,7 +7,7 @@ describe("Euluna parser", function()
       assert_parse([[]], {tag="top_block"})
     end)
     it("for invalid statement", function()
-      assert_parse_error([[asdasd]], 'InvalidStatement')
+      assert_parse_error([[asdasd]], 'ExpectedEOF')
     end)
   end)
 
@@ -133,7 +133,7 @@ describe("Euluna parser", function()
               name = 'os',
               expr = {
                 tag = 'dot_index',
-                name = 'time'
+                index = 'time'
               }
             }
           }
@@ -150,7 +150,7 @@ describe("Euluna parser", function()
               name = 'os',
               expr = {
                 tag = 'array_index',
-                expr = {
+                index = {
                   tag = 'number',
                   type = 'integer',
                   value = '1'
@@ -213,7 +213,7 @@ describe("Euluna parser", function()
               name = 'os',
               expr = {
                 tag = 'dot_index',
-                name = 'time',
+                index = 'time',
                 expr = {
                   tag = 'call',
                   args = {}
@@ -395,6 +395,119 @@ describe("Euluna parser", function()
               fields ={
                 { tag = 'table', fields={} }
               } } } } )
+    end)
+  end)
+
+  describe("should parse anonymous function", function()
+    it("simple", function()
+      assert_parse("return function() end",
+        { tag = 'top_block',
+          { tag = 'return_stat',
+            expr = {
+              tag = 'anonymous_function',
+              args = {},
+              body = { tag='block' }
+            }
+          }
+        }
+      )
+    end)
+
+    it("with one argument and one return", function()
+      assert_parse("return function(a) return a+1 end",
+        { tag = 'top_block',
+          { tag = 'return_stat',
+            expr = {
+              tag = 'anonymous_function',
+              args = {
+                {tag="identifier", name='a'}
+              },
+              body = {
+                tag='block',
+                { tag = 'return_stat',
+                  expr = {
+                    tag = 'binary_op',
+                    op = "add",
+                    lhs = {tag='identifier', name="a"},
+                    rhs = {tag='number', type='integer', value="1"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse function call", function()
+    it("simple", function()
+      assert_parse("os()",
+        { tag = 'top_block',
+          { tag = 'identifier',
+            name = 'os',
+            expr = {
+              tag = 'call',
+              args = {}
+            }
+          }
+        }
+      )
+    end)
+
+    it("dot index", function()
+      assert_parse("os.time()",
+        { tag = 'top_block',
+          { tag = 'identifier',
+            name = 'os',
+            expr = {
+              tag = 'dot_index',
+              index = 'time',
+              expr = {
+                tag = 'call',
+                args = {}
+              }
+            }
+          }
+        }
+      )
+    end)
+
+    it("method", function()
+      assert_parse("os:time()",
+        { tag = 'top_block',
+          { tag = 'identifier',
+            name = 'os',
+            expr = {
+              tag = 'method_call',
+              name = 'time',
+              args = {}
+            }
+          }
+        }
+      )
+    end)
+
+    it("array index", function()
+      assert_parse("os[1]()",
+        { tag = 'top_block',
+          { tag = 'identifier',
+            name = 'os',
+            expr = {
+              tag = 'array_index',
+              index = {
+                tag = 'number',
+                type = 'integer',
+                value = '1',
+              },
+              expr = {
+                tag = 'call',
+                args = {}
+              }
+            }
+          }
+        }
+      )
     end)
   end)
 

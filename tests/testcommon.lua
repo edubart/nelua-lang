@@ -2,7 +2,10 @@ local lpeg = require "lpeglabel"
 local inspect = require 'inspect'
 local syntax_errors = require "euluna-compiler.syntax_errors"
 local parser = require 'euluna-compiler.parser'
+local cppgen = require 'euluna-compiler.cpp_generator'
+local cppcompiler = require 'euluna-compiler.cpp_compiler'
 local assert = require 'luassert'
+local stringx = require 'pl.stringx'
 require 'euluna-compiler.global'
 
 assert:set_parameter("TableFormatLevel", 16)
@@ -41,6 +44,7 @@ function assert_ast(ast, expected_ast, restricted)
     ast = restrict(expected_ast, ast)
   else
     ast = filter(ast)
+    expected_ast = filter(expected_ast)
   end
   assert.are.same(expected_ast, ast)
 end
@@ -92,9 +96,33 @@ function assert_parse(str, expected_ast)
   local ast, err = parser.parse(str)
   assert(ast, inspect(err))
   if expected_ast then
-    --dump_ast(ast)
     assert_ast(ast, expected_ast)
   end
+  return ast, err
+end
+
+function assert_generate_cpp(ast, expected_code)
+  local generated_code = stringx.strip(cppgen.generate(ast))
+  expected_code = stringx.strip(expected_code)
+  assert.is.same(expected_code, generated_code)
+end
+
+function assert_generate_cpp_and_run(ast, expected_output, expected_ret)
+  local generated_code = stringx.strip(cppgen.generate(ast))
+  expected_output = stringx.strip(expected_output)
+  local ok, ret, stdout, stderr = cppcompiler.compile_and_run(generated_code)
+  assert.is.same(expected_output, stdout)
+  if expected_ret then
+    assert.is.same(expected_ret, ret)
+  end
+  assert.is.same('', stderr)
+  assert.is_true(ok)
+end
+
+function assert_generate_cpp(ast, expected_code)
+  local generated_code = stringx.strip(cppgen.generate(ast))
+  expected_code = stringx.strip(expected_code)
+  assert.is.same(expected_code, generated_code)
 end
 
 function assert_equivalent_parse(a, b)
@@ -104,9 +132,5 @@ end
 function assert_parse_error(code, expected_err)
   expected_err = expected_err or ''
   local ast, err = parser.parse(code)
-  if err then
-    assert(err.label == expected_err)
-  else
-    assert(false, "expected error ".. expected_err)
-  end
+  assert.is.same(expected_err, err and err.label)
 end

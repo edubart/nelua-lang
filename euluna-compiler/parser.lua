@@ -3,7 +3,6 @@ local parser = {}
 require 'euluna-compiler.global'
 local lpeg = require "lpeglabel"
 local re = require "relabel"
-local ast = require "euluna-compiler.ast"
 local lexer = require "euluna-compiler.lexer"
 local syntax_errors = require "euluna-compiler.syntax_errors"
 local inspect = require "inspect"
@@ -74,12 +73,12 @@ function defs.to_chain_index_or_call(pos, identifier, exprs)
   return identifier
 end
 
-function defs.to_dot_index(pos, name)
-  return {tag="dot_index", pos=pos, name=name}
+function defs.to_dot_index(pos, index)
+  return {tag="dot_index", pos=pos, index=index}
 end
 
-function defs.to_array_index(pos, expr)
-  return {tag="array_index", pos=pos, expr=expr}
+function defs.to_array_index(pos, index)
+  return {tag="array_index", pos=pos, index=index}
 end
 
 function defs.to_method_call(pos, name, args)
@@ -98,6 +97,10 @@ function defs.to_table(pos, fields)
   return {tag='table',pos=pos,fields=fields}
 end
 
+function defs.to_anonymous_function(pos, args, body)
+  return {tag='anonymous_function',pos=pos,args=args,body=body}
+end
+
 local grammar = re.compile([==[
   code <-
     %SHEBANG? %SKIP
@@ -108,37 +111,35 @@ local grammar = re.compile([==[
     ({} {| stat* return_stat? |}) ->  to_block
 
   stat <-
-    %SEMICOLON
-    -- funccall
-    / (!blockend %{InvalidStatement})
-
-  blockend <-
-    %RETURN / !.
+    -- if
+    -- do
+    -- while
+    -- break
+    -- label
+    -- goto
+      call_stat
+    / assignment_stat
+    / %SEMICOLON
 
   return_stat <-
     ({} %RETURN expr? %SEMICOLON?) -> to_return_stat
 
-  expr      <- expr1
-  expr1     <- ({} {| expr2  (op_or       expr2 )* |})   -> to_chain_binary_op
-  expr2     <- ({} {| expr3  (op_and      expr3 )* |})   -> to_chain_binary_op
-  expr3     <- ({} {| expr4  (op_cmp      expr4 )* |})   -> to_chain_binary_op
-  expr4     <- ({} {| expr5  (op_bor      expr5 )* |})   -> to_chain_binary_op
-  expr5     <- ({} {| expr6  (op_xor      expr6 )* |})   -> to_chain_binary_op
-  expr6     <- ({} {| expr7  (op_band     expr7 )* |})   -> to_chain_binary_op
-  expr7     <- ({} {| expr8  (op_bshift   expr8 )* |})   -> to_chain_binary_op
-  expr8     <- ({}    expr9  (op_concat   expr8 )?   )   -> to_binary_op
-  expr9     <- ({} {| expr10 (op_add      expr10)* |})   -> to_chain_binary_op
-  expr10    <- ({} {| expr11 (op_mul      expr11)* |})   -> to_chain_binary_op
-  expr11    <- ({} {| op_unary* |} expr12)               -> to_chain_unary_op
-  expr12    <- ({} simple_expr (op_pow expr11)?)         -> to_binary_op
+  call_stat <-
+    ({}
+      identifier
+      {| ((index_expr+ & call_expr) / call_expr)+ |}
+    )                                                 -> to_chain_index_or_call
+
+  assignment_stat <-
+    !. .
 
   simple_expr <-
-      (%NUMBER)
-    / (%STRING)
-    / (%BOOLEAN)
-    / ({} %NIL)                                           -> to_nil
-    / ({} %ELLIPSIS)                                      -> to_ellipsis
-    -- function
+      %NUMBER
+    / %STRING
+    / %BOOLEAN
+    / nil
+    / varargs
+    / function
     / table
     / suffixed_expr
     / (%LPAREN expr %RPAREN)
@@ -147,17 +148,17 @@ local grammar = re.compile([==[
     ({}
       identifier
       {| (index_expr / call_expr)* |}
-    )                                                -> to_chain_index_or_call
+    )                                                 -> to_chain_index_or_call
 
   index_expr <-
       ({} %DOT
         (%NAME / %{ExpectedIdentifier})
-      )                                              -> to_dot_index
+      )                                               -> to_dot_index
     / ({}
         %LBRACKET
         expr
         (%RBRACKET / %{UnclosedBracket})
-      )                                              -> to_array_index
+      )                                               -> to_array_index
 
   call_expr <-
       ({}
@@ -169,6 +170,24 @@ local grammar = re.compile([==[
 
   call_args <- %LPAREN expr_list (%RPAREN / %{UnclosedParenthesis})
   expr_list <- {| (expr (%COMMA expr)*)? |}
+
+  function <-
+    ({} %FUNCTION
+      (function_body / %{ExpectedFunctionBody})
+    )                                                 -> to_anonymous_function
+
+  function_body <-
+    %LPAREN
+      body_args_list
+    (%RPAREN / %{UnclosedParenthesis})
+      block
+    (%END / %{UnclosedFunction})
+
+  body_args_list <-
+    {|
+      (identifier (%COMMA identifier)* (%COMMA varargs)?
+       / varargs)?
+    |}
 
   table <-
     ({}
@@ -187,7 +206,7 @@ local grammar = re.compile([==[
       field_key
       %ASSIGN
       (expr / %{ExpectedExpression})
-    )                                               -> to_field_pair
+    )                                                 -> to_field_pair
 
   field_key <-
     (   %LBRACKET
@@ -196,7 +215,9 @@ local grammar = re.compile([==[
       / %NAME
     ) & %ASSIGN
 
-  identifier <- ({} %NAME) -> to_identifier
+  identifier <- ({} %NAME)                -> to_identifier
+  varargs <- ({} %ELLIPSIS)               -> to_ellipsis
+  nil <- ({} %NIL)                        -> to_nil
 
   op_or     <- %OR -> 'or'
   op_and    <- %AND -> 'and'
@@ -225,9 +246,24 @@ local grammar = re.compile([==[
                %BNOT -> 'bnot'
   op_pow   <-  %POW -> 'pow'
 
+  expr      <- expr1
+  expr1     <- ({} {| expr2  (op_or       expr2 )* |})   -> to_chain_binary_op
+  expr2     <- ({} {| expr3  (op_and      expr3 )* |})   -> to_chain_binary_op
+  expr3     <- ({} {| expr4  (op_cmp      expr4 )* |})   -> to_chain_binary_op
+  expr4     <- ({} {| expr5  (op_bor      expr5 )* |})   -> to_chain_binary_op
+  expr5     <- ({} {| expr6  (op_xor      expr6 )* |})   -> to_chain_binary_op
+  expr6     <- ({} {| expr7  (op_band     expr7 )* |})   -> to_chain_binary_op
+  expr7     <- ({} {| expr8  (op_bshift   expr8 )* |})   -> to_chain_binary_op
+  expr8     <- ({}    expr9  (op_concat   expr8 )?   )   -> to_binary_op
+  expr9     <- ({} {| expr10 (op_add      expr10)* |})   -> to_chain_binary_op
+  expr10    <- ({} {| expr11 (op_mul      expr11)* |})   -> to_chain_binary_op
+  expr11    <- ({} {| op_unary* |} expr12)               -> to_chain_unary_op
+  expr12    <- ({} simple_expr (op_pow expr11)?)         -> to_binary_op
+
 ]==], defs)
 
 function parser.parse(input)
+  lpeg.setmaxstack(1000)
   local ast, errnum, suffix = grammar:match(input)
   if ast then
     return ast
