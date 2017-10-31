@@ -31,7 +31,7 @@ describe("Euluna parser", function()
     it("empty", function()
       assert_parse("return",
         { tag = 'top_block',
-          { tag = 'return_stat' }
+          { tag = 'Return' }
         }
       )
     end)
@@ -40,7 +40,7 @@ describe("Euluna parser", function()
     it("with semiclon", function()
       assert_parse("return;",
         { tag = 'top_block',
-          { tag = 'return_stat' }
+          { tag = 'Return' }
         }
       )
     end)
@@ -48,7 +48,7 @@ describe("Euluna parser", function()
     it("with value", function()
       assert_parse("return 0",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = { tag='number', type='integer', value="0" }
           }
         }
@@ -67,7 +67,7 @@ describe("Euluna parser", function()
     it("number", function()
       assert_parse("return 3.34e-50",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = { tag='number', type='exponential', value="3.34e-50" }
           }
         }
@@ -77,7 +77,7 @@ describe("Euluna parser", function()
     it("string", function()
       assert_parse("return 'mystr'",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = { tag='string', value="mystr" }
           }
         }
@@ -87,7 +87,7 @@ describe("Euluna parser", function()
     it("boolean", function()
       assert_parse("return true",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = { tag='boolean', value=true }
           }
         }
@@ -97,7 +97,7 @@ describe("Euluna parser", function()
     it("nil", function()
       assert_parse("return nil",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = { tag = 'nil' }
           }
         }
@@ -107,7 +107,7 @@ describe("Euluna parser", function()
     it("table", function()
       assert_parse("return {}",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = { tag = 'table', fields={} }
           }
         }
@@ -117,7 +117,7 @@ describe("Euluna parser", function()
     it("ellipsis", function()
       assert_parse("return ...",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = { tag = 'ellipsis' }
           }
         }
@@ -127,13 +127,13 @@ describe("Euluna parser", function()
     it("dot index", function()
       assert_parse("return os.time",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
-              tag = 'identifier',
-              name = 'os',
-              expr = {
-                tag = 'dot_index',
-                index = 'time'
+              tag = 'dot_index',
+              index = 'time',
+              what = {
+                tag = 'identifier',
+                name = 'os'
               }
             }
           }
@@ -144,17 +144,17 @@ describe("Euluna parser", function()
     it("array index", function()
       assert_parse("return os[1]",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
-              tag = 'identifier',
-              name = 'os',
-              expr = {
-                tag = 'array_index',
-                index = {
-                  tag = 'number',
-                  type = 'integer',
-                  value = '1'
-                }
+              tag = 'array_index',
+              index = {
+                tag = 'number',
+                type = 'integer',
+                value = '1'
+              },
+              what = {
+                tag = 'identifier',
+                name = 'os',
               }
             }
           }
@@ -165,13 +165,13 @@ describe("Euluna parser", function()
     it("global call", function()
       assert_parse("return os()",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
-              tag = 'identifier',
-              name = 'os',
-              expr = {
-                tag = 'call',
-                args = {}
+              tag = 'Call',
+              args = {},
+              what = {
+                tag = 'identifier',
+                name = 'os',
               }
             }
           }
@@ -182,21 +182,21 @@ describe("Euluna parser", function()
     it("global call with arguments", function()
       assert_parse("return os(a,nil,true,'mystr',1.0,func(),...)",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
-              tag = 'identifier',
-              name = 'os',
-              expr = {
-                tag = 'call',
-                args = {
-                  {tag="identifier", name='a'},
-                  {tag="nil"},
-                  {tag="boolean", value=true},
-                  {tag="string", value='mystr'},
-                  {tag="number", type='decimal', value='1.0'},
-                  {tag="identifier", name='func', expr={tag='call', args={}}},
-                  {tag="ellipsis"},
-                }
+              tag = 'Call',
+              args = {
+                {tag="identifier", name='a'},
+                {tag="nil"},
+                {tag="boolean", value=true},
+                {tag="string", value='mystr'},
+                {tag="number", type='decimal', value='1.0'},
+                {tag='Call', args={}, what={tag="identifier", name='func'}},
+                {tag="ellipsis"},
+              },
+              what = {
+                tag = 'identifier',
+                name = 'os'
               }
             }
           }
@@ -207,16 +207,16 @@ describe("Euluna parser", function()
     it("field call", function()
       assert_parse("return os.time()",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
-              tag = 'identifier',
-              name = 'os',
-              expr = {
+              tag = 'Call',
+              args = {},
+              what = {
                 tag = 'dot_index',
                 index = 'time',
-                expr = {
-                  tag = 'call',
-                  args = {}
+                what = {
+                  tag = 'identifier',
+                  name = 'os'
                 }
               }
             }
@@ -228,14 +228,14 @@ describe("Euluna parser", function()
     it("method call", function()
       assert_parse("return os:time()",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
-              tag = 'identifier',
-              name = 'os',
-              expr = {
-                tag = 'method_call',
-                name = 'time',
-                args = {}
+              tag = 'Invoke',
+              name = 'time',
+              args = {},
+              what = {
+                tag = 'identifier',
+                name = 'os',
               }
             }
           }
@@ -246,7 +246,7 @@ describe("Euluna parser", function()
     it("parethesis", function()
       assert_parse("return (0)",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = { tag='number', type='integer', value="0" }
           }
         }
@@ -256,7 +256,7 @@ describe("Euluna parser", function()
     it("simple binary operation", function()
       assert_parse("return 1 + 2",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'binary_op',
               op = "add",
@@ -271,7 +271,7 @@ describe("Euluna parser", function()
     it("simple unary operation", function()
       assert_parse("return -1",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'unary_op',
               op = "neg",
@@ -287,7 +287,7 @@ describe("Euluna parser", function()
     it("empty", function()
       assert_parse("return {}",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = { tag = 'table', fields={} }
           }
         }
@@ -297,7 +297,7 @@ describe("Euluna parser", function()
     it("with one value", function()
       assert_parse("return {1}",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'table', 
               fields ={
@@ -308,7 +308,7 @@ describe("Euluna parser", function()
     it("with one field", function()
       assert_parse("return {a=1}",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'table',
               fields ={
@@ -321,7 +321,7 @@ describe("Euluna parser", function()
     it("with multiple values", function()
       assert_parse("return {1,2,3}",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'table',
               fields ={
@@ -338,7 +338,7 @@ describe("Euluna parser", function()
         [...]=...
       }]],
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'table',
               fields ={
@@ -361,8 +361,8 @@ describe("Euluna parser", function()
                   key={tag="number", type='decimal', value='1.0'},
                   expr={tag="number", type='decimal', value='1.0'} },
                 { tag='pair',
-                  key={tag="identifier", name='func', expr={tag='call', args={}}},
-                  expr={tag="identifier", name='func', expr={tag='call', args={}}} },
+                  key={tag='Call', args={}, what={tag="identifier", name='func'}},
+                  expr={tag='Call', args={}, what={tag="identifier", name='func'}} },
                 { tag='pair',
                   key={tag="ellipsis"},
                   expr={tag="ellipsis"} }
@@ -372,7 +372,7 @@ describe("Euluna parser", function()
     it("with multiple values", function()
       assert_parse("return {a,nil,true,'mystr',1.0,func(),...}",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'table',
               fields ={
@@ -381,7 +381,7 @@ describe("Euluna parser", function()
                 {tag="boolean", value=true},
                 {tag="string", value='mystr'},
                 {tag="number", type='decimal', value='1.0'},
-                {tag="identifier", name='func', expr={tag='call', args={}}},
+                {tag='Call', args={}, what={tag="identifier", name='func'}},
                 {tag="ellipsis"},
               } } } } )
     end)
@@ -389,7 +389,7 @@ describe("Euluna parser", function()
     it("nested", function()
       assert_parse("return {{}}",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'table',
               fields ={
@@ -402,7 +402,7 @@ describe("Euluna parser", function()
     it("simple", function()
       assert_parse("return function() end",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'anonymous_function',
               args = {},
@@ -416,7 +416,7 @@ describe("Euluna parser", function()
     it("with one argument and one return", function()
       assert_parse("return function(a) return a+1 end",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'anonymous_function',
               args = {
@@ -424,7 +424,7 @@ describe("Euluna parser", function()
               },
               body = {
                 tag='block',
-                { tag = 'return_stat',
+                { tag = 'Return',
                   expr = {
                     tag = 'binary_op',
                     op = "add",
@@ -444,11 +444,11 @@ describe("Euluna parser", function()
     it("simple", function()
       assert_parse("os()",
         { tag = 'top_block',
-          { tag = 'identifier',
-            name = 'os',
-            expr = {
-              tag = 'call',
-              args = {}
+          { tag = 'Call',
+            args = {},
+            what = {
+              tag = 'identifier',
+              name = 'os'
             }
           }
         }
@@ -458,14 +458,14 @@ describe("Euluna parser", function()
     it("dot index", function()
       assert_parse("os.time()",
         { tag = 'top_block',
-          { tag = 'identifier',
-            name = 'os',
-            expr = {
+          { tag = 'Call',
+            args = {},
+            what = {
               tag = 'dot_index',
               index = 'time',
-              expr = {
-                tag = 'call',
-                args = {}
+              what = {
+                tag = 'identifier',
+                name = 'os',
               }
             }
           }
@@ -476,12 +476,12 @@ describe("Euluna parser", function()
     it("method", function()
       assert_parse("os:time()",
         { tag = 'top_block',
-          { tag = 'identifier',
-            name = 'os',
-            expr = {
-              tag = 'method_call',
-              name = 'time',
-              args = {}
+          { tag = 'Invoke',
+            name = 'time',
+            args = {},
+            what = {
+              tag = 'identifier',
+              name = 'os',
             }
           }
         }
@@ -491,18 +491,48 @@ describe("Euluna parser", function()
     it("array index", function()
       assert_parse("os[1]()",
         { tag = 'top_block',
-          { tag = 'identifier',
-            name = 'os',
-            expr = {
+          { tag = 'Call',
+            args = {},
+            what = {
               tag = 'array_index',
               index = {
                 tag = 'number',
                 type = 'integer',
                 value = '1',
               },
-              expr = {
-                tag = 'call',
-                args = {}
+              what = {
+                tag = 'identifier',
+                name = 'os',
+              }
+            }
+          }
+        }
+      )
+    end)
+
+    it("chain", function()
+      assert_parse("a.f().b.g()",
+        { tag = 'top_block',
+          { tag = 'Call',
+            args = {},
+            what = {
+              tag = 'dot_index',
+              index = 'g',
+              what = {
+                tag = 'dot_index',
+                index = 'b',
+                what = {
+                  tag = 'Call',
+                  args = {},
+                  what = {
+                    tag = 'dot_index',
+                    index = 'f',
+                    what = {
+                      tag = 'identifier',
+                      name = 'a'
+                    }
+                  }
+                }
               }
             }
           }
@@ -513,7 +543,7 @@ describe("Euluna parser", function()
 
   describe("should parse expression operators", function()
     it("for `or`", function() assert_parse("return a or b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
         tag = 'binary_op',
         op = 'or',
         lhs = { tag = 'identifier', name='a' },
@@ -521,7 +551,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `and`", function() assert_parse("return a and b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'and',
           lhs = { tag = 'identifier', name='a' },
@@ -529,7 +559,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `<`", function() assert_parse("return a < b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'lt',
           lhs = { tag = 'identifier', name='a' },
@@ -537,7 +567,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `>`", function() assert_parse("return a > b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'gt',
           lhs = { tag = 'identifier', name='a' },
@@ -545,7 +575,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `<=`", function() assert_parse("return a <= b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'le',
           lhs = { tag = 'identifier', name='a' },
@@ -553,7 +583,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `>=`", function() assert_parse("return a >= b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'ge',
           lhs = { tag = 'identifier', name='a' },
@@ -561,7 +591,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `~=`", function() assert_parse("return a ~= b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'ne',
           lhs = { tag = 'identifier', name='a' },
@@ -569,7 +599,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `==`", function() assert_parse("return a == b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'eq',
           lhs = { tag = 'identifier', name='a' },
@@ -577,7 +607,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `|`", function() assert_parse("return a | b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'bor',
           lhs = { tag = 'identifier', name='a' },
@@ -585,7 +615,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `~`", function() assert_parse("return a ~ b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'bxor',
           lhs = { tag = 'identifier', name='a' },
@@ -593,7 +623,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `&`", function() assert_parse("return a & b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'band',
           lhs = { tag = 'identifier', name='a' },
@@ -601,7 +631,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `<<`", function() assert_parse("return a << b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'shl',
           lhs = { tag = 'identifier', name='a' },
@@ -609,7 +639,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `>>`", function() assert_parse("return a >> b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'shr',
           lhs = { tag = 'identifier', name='a' },
@@ -617,7 +647,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `..`", function() assert_parse("return a .. b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'concat',
           lhs = { tag = 'identifier', name='a' },
@@ -625,7 +655,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `+`", function() assert_parse("return a + b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'add',
           lhs = { tag = 'identifier', name='a' },
@@ -633,7 +663,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `-`", function() assert_parse("return a - b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'sub',
           lhs = { tag = 'identifier', name='a' },
@@ -641,7 +671,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `*`", function() assert_parse("return a * b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'mul',
           lhs = { tag = 'identifier', name='a' },
@@ -649,7 +679,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `/`", function() assert_parse("return a / b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'div',
           lhs = { tag = 'identifier', name='a' },
@@ -657,7 +687,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `//`", function() assert_parse("return a // b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'idiv',
           lhs = { tag = 'identifier', name='a' },
@@ -665,7 +695,7 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `%`", function() assert_parse("return a % b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'mod',
           lhs = { tag = 'identifier', name='a' },
@@ -673,35 +703,35 @@ describe("Euluna parser", function()
     }}}) end)
 
     it("for `not`", function() assert_parse("return not a",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'unary_op',
           op = 'not',
           expr = { tag = 'identifier', name='a' }
     }}}) end)
 
     it("for `#`", function() assert_parse("return # a",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'unary_op',
           op = 'len',
           expr = { tag = 'identifier', name='a' }
     }}}) end)
 
     it("for `-`", function() assert_parse("return - a",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'unary_op',
           op = 'neg',
           expr = { tag = 'identifier', name='a' }
     }}}) end)
 
     it("for `~`", function() assert_parse("return ~ a",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'unary_op',
           op = 'bnot',
           expr = { tag = 'identifier', name='a' }
     }}}) end)
 
     it("for `^`", function() assert_parse("return a ^ b",
-      { tag = 'top_block', { tag = 'return_stat', expr = {
+      { tag = 'top_block', { tag = 'Return', expr = {
           tag = 'binary_op',
           op = 'pow',
           lhs = { tag = 'identifier', name='a' },
@@ -754,7 +784,7 @@ and `..´ (concatenation), which are right associative.
     it("for `and` and `or`", function()
       assert_parse("return a and b or c",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'binary_op',
               op = "or",
@@ -772,7 +802,7 @@ and `..´ (concatenation), which are right associative.
 
       assert_parse("return a or b and c",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'binary_op',
               op = "or",
@@ -792,7 +822,7 @@ and `..´ (concatenation), which are right associative.
     it("with forced priority", function()
       assert_parse("return a and (b or c)",
         { tag = 'top_block',
-          { tag = 'return_stat',
+          { tag = 'Return',
             expr = {
               tag = 'binary_op',
               op = "and",
@@ -908,7 +938,7 @@ and `..´ (concatenation), which are right associative.
             },
             tag = "binary_op"
           },
-          tag = "return_stat"
+          tag = "Return"
         },
         tag = "top_block"
       })
@@ -936,7 +966,7 @@ and `..´ (concatenation), which are right associative.
             },
             tag = "binary_op"
           },
-          tag = "return_stat"
+          tag = "Return"
         },
         tag = "top_block"
       })
@@ -964,7 +994,7 @@ and `..´ (concatenation), which are right associative.
             },
             tag = "binary_op"
           },
-          tag = "return_stat"
+          tag = "Return"
         },
         tag = "top_block"
       })
@@ -992,7 +1022,7 @@ and `..´ (concatenation), which are right associative.
             },
             tag = "binary_op"
           },
-          tag = "return_stat"
+          tag = "Return"
         },
         tag = "top_block"
       })

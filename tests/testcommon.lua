@@ -116,7 +116,9 @@ function assert_generate_cpp_and_run(ast, expected_output, expected_ret)
     assert.is.same(expected_ret, ret)
   end
   assert.is.same('', stderr)
-  assert.is_true(ok)
+  if expected_ret == 0 or expected_ret == nil then
+    assert.is_true(ok)
+  end
 end
 
 function assert_generate_cpp(ast, expected_code)

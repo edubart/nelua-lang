@@ -32,7 +32,7 @@ function defs.to_block(pos, block)
 end
 
 function defs.to_return_stat(pos, expr)
-  return { tag='return_stat', pos=pos, expr=expr }
+  return { tag='Return', pos=pos, expr=expr }
 end
 
 function defs.to_chain_binary_op(pos, matches)
@@ -60,17 +60,15 @@ function defs.to_chain_unary_op(pos, opnames, expr)
   return expr
 end
 
-function defs.to_chain_index_or_call(pos, identifier, exprs)
+function defs.to_chain_index_or_call(pos, primary_expr, exprs)
+  local last_expr = primary_expr
   if exprs then
-    local folded_expr = exprs[#exprs]
-    for i=#exprs-1,1,-1 do
-      local expr = exprs[i]
-      expr.expr = folded_expr
-      folded_expr = expr
+    for _,expr in ipairs(exprs) do
+      expr.what = last_expr
+      last_expr = expr
     end
-    identifier.expr = folded_expr
   end
-  return identifier
+  return last_expr
 end
 
 function defs.to_dot_index(pos, index)
@@ -81,12 +79,12 @@ function defs.to_array_index(pos, index)
   return {tag="array_index", pos=pos, index=index}
 end
 
-function defs.to_method_call(pos, name, args)
-  return {tag='method_call', pos=pos, name=name, args=args}
+function defs.to_invoke(pos, name, args)
+  return {tag='Invoke', pos=pos, name=name, args=args}
 end
 
 function defs.to_call(pos, args)
-  return {tag='call', pos=pos, args=args}
+  return {tag='Call', pos=pos, args=args}
 end
 
 function defs.to_field_pair(pos, key, expr)
@@ -126,7 +124,7 @@ local grammar = re.compile([==[
 
   call_stat <-
     ({}
-      identifier
+      primary_expr
       {| ((index_expr+ & call_expr) / call_expr)+ |}
     )                                                 -> to_chain_index_or_call
 
@@ -146,9 +144,13 @@ local grammar = re.compile([==[
 
   suffixed_expr <-
     ({}
-      identifier
+      primary_expr
       {| (index_expr / call_expr)* |}
     )                                                 -> to_chain_index_or_call
+
+  primary_expr <-
+    identifier /
+    %LPAREN expr (%RPAREN / %{UnclosedParenthesis})
 
   index_expr <-
       ({} %DOT
@@ -165,7 +167,7 @@ local grammar = re.compile([==[
         %COLON
         (%NAME / %{ExpectedMethodIdentifier})
         (call_args / %{ExpectedCall})
-      )                                               -> to_method_call
+      )                                               -> to_invoke
     / ({} call_args )                                 -> to_call
 
   call_args <- %LPAREN expr_list (%RPAREN / %{UnclosedParenthesis})
