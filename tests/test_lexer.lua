@@ -17,10 +17,10 @@ describe("Euluna lexer", function()
       })
     end)
 
-    it("hexdecimal", function()
+    it("hexadecimal", function()
       assert_match_all(lexer.NUMBER, {
-        ["0x0"] = { tag = "number", type = "hexdecimal", value = "0x0" },
-        ["0x0123456789abcdef"] = { tag = "number", type = "hexdecimal", value = "0x0123456789abcdef" },
+        ["0x0"] = { tag = "number", type = "hexadecimal", value = "0x0" },
+        ["0x0123456789abcdef"] = { tag = "number", type = "hexadecimal", value = "0x0123456789abcdef" },
       })
     end)
 

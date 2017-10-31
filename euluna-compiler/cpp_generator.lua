@@ -1,5 +1,6 @@
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
+local builtin_functions = require 'euluna-compiler/cpp_builtin_functions'
 local Scope = class()
 local Context = class()
 
@@ -145,19 +146,6 @@ function Scope:traverse_return(statement)
   end
 end
 
-local BultinFunctions = {
-  print = function(scope, args)
-    scope:add_include('<iostream>')
-    scope:inline_code('std::cout << ')
-    for _,arg in pairs(args) do
-      scope:traverse_expr(arg)
-      scope:inline_code(' << ')
-    end
-    scope:inline_code('std::endl;')
-    scope:add_newline()
-  end
-}
-
 function Scope:traverse_call(statement)
   self:add_indent()
 
@@ -165,7 +153,7 @@ function Scope:traverse_call(statement)
 
   -- try builit functions first
   if what.tag == 'identifier' then
-    local func = BultinFunctions[what.name]
+    local func = builtin_functions[what.name]
     if func then
       func(self, statement.args)
       return

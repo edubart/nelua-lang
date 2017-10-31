@@ -23,7 +23,6 @@ int main() {
     ]])
   end)
 
-  --[[
   it("should return the correct values", function()
     assert_generate_cpp_and_run(assert_parse(""), '', 0)
     assert_generate_cpp_and_run(assert_parse("return"), '', 0)
@@ -33,7 +32,6 @@ int main() {
   end)
 
   it("should print the correct values", function()
-    assert_generate_cpp_and_run(assert_parse("print('hello world')"), 'hello world')
+    assert_generate_cpp_and_run(assert_parse("print('hello world')"), 'hello world\n')
   end)
-  ]]
 end)

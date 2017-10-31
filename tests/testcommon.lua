@@ -110,8 +110,11 @@ end
 function assert_generate_cpp_and_run(ast, expected_output, expected_ret)
   local generated_code = stringx.strip(cppgen.generate(ast))
   expected_output = stringx.strip(expected_output)
-  local ok, ret, stdout, stderr = cppcompiler.compile_and_run(generated_code)
-  assert.is.same(expected_output, stdout)
+  local opts = {
+    quiet=true
+  }
+  local ok, ret, stdout, stderr = cppcompiler.compile_and_run(generated_code, nil, opts)
+  assert.is.same(expected_output, stringx.strip(stdout))
   if expected_ret then
     assert.is.same(expected_ret, ret)
   end

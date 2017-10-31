@@ -32,7 +32,7 @@ lexer.SKIP          = G"(%SPACE / %LONGCOMMENT / %SHORTCOMMENT)*"
 lexer.COMMENT       = T"%LONGCOMMENT / %SHORTCOMMENT"
 
 -- numbers
-function lexer.to_hexadecimal(num) return {tag='number', type='hexdecimal', value=num} end
+function lexer.to_hexadecimal(num) return {tag='number', type='hexadecimal', value=num} end
 function lexer.to_binary(num)  return {tag='number', type='binary', value=num} end
 function lexer.to_exponential(num) return {tag='number', type='exponential', value=num} end
 function lexer.to_decimal(num) return {tag='number', type='decimal', value=num} end
