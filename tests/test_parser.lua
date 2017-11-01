@@ -4,7 +4,7 @@ require 'busted.runner'()
 describe("Euluna parser", function()
   describe("should do basic parsing", function()
     it("for empty file", function()
-      assert_parse([[]], {tag="top_block"})
+      assert_parse([[]], {tag="TopBlock"})
     end)
     it("for invalid statement", function()
       assert_parse_error([[asdasd]], 'ExpectedEOF')
@@ -12,8 +12,8 @@ describe("Euluna parser", function()
   end)
 
   it("should parse shebang", function()
-    assert_parse([[#!/usr/bin/env lua]], {tag="top_block"})
-    assert_parse([[#!/usr/bin/env lua\n]], {tag="top_block"})
+    assert_parse([[#!/usr/bin/env lua]], {tag="TopBlock"})
+    assert_parse([[#!/usr/bin/env lua\n]], {tag="TopBlock"})
   end)
 
   describe("should parse comment", function()
@@ -23,14 +23,14 @@ describe("Euluna parser", function()
         --[[
           multiline comment
         ]]
-      ]=], {tag="top_block"})
+      ]=], {tag="TopBlock"})
     end)
   end)
 
   describe("should parse return", function()
     it("empty", function()
       assert_parse("return",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return' }
         }
       )
@@ -39,7 +39,7 @@ describe("Euluna parser", function()
     -- return with semiclon
     it("with semiclon", function()
       assert_parse("return;",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return' }
         }
       )
@@ -47,7 +47,7 @@ describe("Euluna parser", function()
 
     it("with value", function()
       assert_parse("return 0",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = { tag='number', type='integer', value="0" }
           }
@@ -66,7 +66,7 @@ describe("Euluna parser", function()
   describe("should parse expression", function()
     it("number", function()
       assert_parse("return 3.34e-50",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = { tag='number', type='exponential', value="3.34e-50" }
           }
@@ -76,7 +76,7 @@ describe("Euluna parser", function()
 
     it("string", function()
       assert_parse("return 'mystr'",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = { tag='string', value="mystr" }
           }
@@ -86,7 +86,7 @@ describe("Euluna parser", function()
 
     it("boolean", function()
       assert_parse("return true",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = { tag='boolean', value=true }
           }
@@ -96,7 +96,7 @@ describe("Euluna parser", function()
 
     it("nil", function()
       assert_parse("return nil",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = { tag = 'nil' }
           }
@@ -106,9 +106,9 @@ describe("Euluna parser", function()
 
     it("table", function()
       assert_parse("return {}",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
-            expr = { tag = 'table', fields={} }
+            expr = { tag = 'Table', fields={} }
           }
         }
       )
@@ -116,7 +116,7 @@ describe("Euluna parser", function()
 
     it("ellipsis", function()
       assert_parse("return ...",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = { tag = 'ellipsis' }
           }
@@ -126,10 +126,10 @@ describe("Euluna parser", function()
 
     it("dot index", function()
       assert_parse("return os.time",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'dot_index',
+              tag = 'DotIndex',
               index = 'time',
               what = {
                 tag = 'identifier',
@@ -143,10 +143,10 @@ describe("Euluna parser", function()
 
     it("array index", function()
       assert_parse("return os[1]",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'array_index',
+              tag = 'ArrayIndex',
               index = {
                 tag = 'number',
                 type = 'integer',
@@ -164,7 +164,7 @@ describe("Euluna parser", function()
 
     it("global call", function()
       assert_parse("return os()",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
               tag = 'Call',
@@ -181,7 +181,7 @@ describe("Euluna parser", function()
 
     it("global call with arguments", function()
       assert_parse("return os(a,nil,true,'mystr',1.0,func(),...)",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
               tag = 'Call',
@@ -206,13 +206,13 @@ describe("Euluna parser", function()
 
     it("field call", function()
       assert_parse("return os.time()",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
               tag = 'Call',
               args = {},
               what = {
-                tag = 'dot_index',
+                tag = 'DotIndex',
                 index = 'time',
                 what = {
                   tag = 'identifier',
@@ -227,7 +227,7 @@ describe("Euluna parser", function()
 
     it("method call", function()
       assert_parse("return os:time()",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
               tag = 'Invoke',
@@ -245,7 +245,7 @@ describe("Euluna parser", function()
 
     it("parethesis", function()
       assert_parse("return (0)",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = { tag='number', type='integer', value="0" }
           }
@@ -255,10 +255,10 @@ describe("Euluna parser", function()
 
     it("simple binary operation", function()
       assert_parse("return 1 + 2",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'binary_op',
+              tag = 'BinaryOp',
               op = "add",
               lhs = {tag='number', type='integer', value="1"},
               rhs = {tag='number', type='integer', value="2"}
@@ -270,10 +270,10 @@ describe("Euluna parser", function()
 
     it("simple unary operation", function()
       assert_parse("return -1",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'unary_op',
+              tag = 'UnaryOp',
               op = "neg",
               expr = {tag='number', type='integer', value="1"},
             }
@@ -286,9 +286,9 @@ describe("Euluna parser", function()
   describe("should parse table", function()
     it("empty", function()
       assert_parse("return {}",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
-            expr = { tag = 'table', fields={} }
+            expr = { tag = 'Table', fields={} }
           }
         }
       )
@@ -296,10 +296,10 @@ describe("Euluna parser", function()
 
     it("with one value", function()
       assert_parse("return {1}",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'table', 
+              tag = 'Table', 
               fields ={
                 {tag='number', type='integer', value='1'} }
               } } } )
@@ -307,10 +307,10 @@ describe("Euluna parser", function()
 
     it("with one field", function()
       assert_parse("return {a=1}",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'table',
+              tag = 'Table',
               fields ={
                 { tag='pair',
                   key='a',
@@ -320,10 +320,10 @@ describe("Euluna parser", function()
 
     it("with multiple values", function()
       assert_parse("return {1,2,3}",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'table',
+              tag = 'Table',
               fields ={
                 {tag='number', type='integer', value='1'},
                 {tag='number', type='integer', value='2'},
@@ -337,10 +337,10 @@ describe("Euluna parser", function()
         ['mystr']='mystr', [1.0]=1.0, [func()]=func(),
         [...]=...
       }]],
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'table',
+              tag = 'Table',
               fields ={
                 { tag='pair',
                   key='a',
@@ -371,10 +371,10 @@ describe("Euluna parser", function()
 
     it("with multiple values", function()
       assert_parse("return {a,nil,true,'mystr',1.0,func(),...}",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'table',
+              tag = 'Table',
               fields ={
                 {tag="identifier", name='a'},
                 {tag="nil"},
@@ -388,12 +388,12 @@ describe("Euluna parser", function()
 
     it("nested", function()
       assert_parse("return {{}}",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'table',
+              tag = 'Table',
               fields ={
-                { tag = 'table', fields={} }
+                { tag = 'Table', fields={} }
               } } } } )
     end)
   end)
@@ -401,10 +401,10 @@ describe("Euluna parser", function()
   describe("should parse anonymous function", function()
     it("simple", function()
       assert_parse("return function() end",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'anonymous_function',
+              tag = 'Function',
               args = {},
               body = { tag='block' }
             }
@@ -415,10 +415,10 @@ describe("Euluna parser", function()
 
     it("with one argument and one return", function()
       assert_parse("return function(a) return a+1 end",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'anonymous_function',
+              tag = 'Function',
               args = {
                 {tag="identifier", name='a'}
               },
@@ -426,7 +426,7 @@ describe("Euluna parser", function()
                 tag='block',
                 { tag = 'Return',
                   expr = {
-                    tag = 'binary_op',
+                    tag = 'BinaryOp',
                     op = "add",
                     lhs = {tag='identifier', name="a"},
                     rhs = {tag='number', type='integer', value="1"}
@@ -443,7 +443,7 @@ describe("Euluna parser", function()
   describe("should parse function call", function()
     it("simple", function()
       assert_parse("os()",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Call',
             args = {},
             what = {
@@ -457,11 +457,11 @@ describe("Euluna parser", function()
 
     it("dot index", function()
       assert_parse("os.time()",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Call',
             args = {},
             what = {
-              tag = 'dot_index',
+              tag = 'DotIndex',
               index = 'time',
               what = {
                 tag = 'identifier',
@@ -475,7 +475,7 @@ describe("Euluna parser", function()
 
     it("method", function()
       assert_parse("os:time()",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Invoke',
             name = 'time',
             args = {},
@@ -490,11 +490,11 @@ describe("Euluna parser", function()
 
     it("array index", function()
       assert_parse("os[1]()",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Call',
             args = {},
             what = {
-              tag = 'array_index',
+              tag = 'ArrayIndex',
               index = {
                 tag = 'number',
                 type = 'integer',
@@ -512,20 +512,20 @@ describe("Euluna parser", function()
 
     it("chain", function()
       assert_parse("a.f().b.g()",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Call',
             args = {},
             what = {
-              tag = 'dot_index',
+              tag = 'DotIndex',
               index = 'g',
               what = {
-                tag = 'dot_index',
+                tag = 'DotIndex',
                 index = 'b',
                 what = {
                   tag = 'Call',
                   args = {},
                   what = {
-                    tag = 'dot_index',
+                    tag = 'DotIndex',
                     index = 'f',
                     what = {
                       tag = 'identifier',
@@ -541,198 +541,441 @@ describe("Euluna parser", function()
     end)
   end)
 
+  describe("should parse assignment", function()
+    it("for simple variable", function()
+      assert_parse("a = 1",
+        { tag = 'TopBlock',
+          { tag = 'Assign',
+            vars = {
+              {tag='identifier', name='a'}
+            },
+            assigns = {
+              {tag='number', type='integer', value='1'}
+            }
+          }
+        }
+      )
+    end)
+
+    it("for multiple variables", function()
+      assert_parse("a, b = 1, 2",
+        { tag = 'TopBlock',
+          { tag = 'Assign',
+            vars = {
+              {tag='identifier', name='a'},
+              {tag='identifier', name='b'}
+            },
+            assigns = {
+              {tag='number', type='integer', value='1'},
+              {tag='number', type='integer', value='2'}
+            }
+          }
+        }
+      )
+    end)
+
+    it("with expressions", function()
+      assert_parse("a, b = f(1), 1+2",
+        { tag = 'TopBlock',
+          { tag = 'Assign',
+            vars = {
+              {tag='identifier', name='a'},
+              {tag='identifier', name='b'}
+            },
+            assigns = {
+              { tag='Call',
+                what={tag='identifier', name='f'},
+                args={{tag='number', type='integer', value='1'}} },
+              { tag='BinaryOp',
+                op='add',
+                lhs={tag='number', type='integer', value='1'},
+                rhs={tag='number', type='integer', value='2'} }
+            }
+          }
+        }
+      )
+    end)
+
+    it("on simple expression", function()
+      assert_parse("a.b = 1",
+        { tag = 'TopBlock',
+          { tag = 'Assign',
+            vars = {
+              { tag='DotIndex',
+                index='b',
+                what = {tag='identifier', name='a'}
+              }
+            },
+            assigns = {
+              {tag='number', type='integer', value='1'}
+            }
+          }
+        }
+      )
+    end)
+
+    it("on multiple expressions", function()
+      assert_parse("a[1], (f(1)).b, c = 1, 2, 3",
+        { tag = 'TopBlock',
+          { tag = 'Assign',
+            vars = {
+              { tag='ArrayIndex',
+                index= {tag='number', type='integer', value='1'},
+                what = {tag='identifier', name='a'}
+              },
+              { tag='DotIndex',
+                index='b',
+                what = {
+                  tag='Call',
+                  what={tag='identifier', name='f'},
+                  args={{tag='number', type='integer', value='1'}}
+                }
+              },
+              {tag='identifier', name='c'}
+            },
+            assigns = {
+              {tag='number', type='integer', value='1'},
+              {tag='number', type='integer', value='2'},
+              {tag='number', type='integer', value='3'},
+            }
+          }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse declaration for", function()
+    it("local variable", function()
+      assert_parse("local a",
+        { tag = "TopBlock",
+          { tag = "Decl",
+            vars = { "a" },
+            vartype = "local"
+          }
+        }
+      )
+    end)
+
+    it("multiple local variables", function()
+      assert_parse("local a, b",
+        { tag = "TopBlock",
+          { tag = "Decl",
+            vars = { "a", "b" },
+            vartype = "local"
+          }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse definition for", function()
+    it("local variable", function()
+      assert_parse("local a = 1",
+        { tag = 'TopBlock',
+          { tag = 'AssignDef',
+            vartype = 'local',
+            vars = {
+              'a'
+            },
+            assigns = {
+              {tag='number', type='integer', value='1'}
+            }
+          }
+        }
+      )
+    end)
+
+    it("multiple local variables", function()
+      assert_parse("local a, b = 1, 'str'",
+        { tag = 'TopBlock',
+          { tag = 'AssignDef',
+            vartype = 'local',
+            vars = { 'a', 'b' },
+            assigns = {
+              {tag='number', type='integer', value='1'},
+              {tag='string', value='str'}
+            }
+          }
+        }
+      )
+    end)
+
+    it("for local function with assign", function()
+      assert_parse("local a = function() end",
+        { tag = 'TopBlock',
+          { tag = 'AssignDef',
+            vartype = 'local',
+            vars = { 'a' },
+            assigns = {
+              { tag = "Function",
+                args = {},
+                body = {tag = "block"}
+              }
+            }
+          }
+        }
+      )
+    end)
+
+    it("for local function", function()
+      assert_parse("local function a() end",
+        { tag = 'TopBlock',
+          { tag = 'FunctionDef',
+            name ='a',
+            vartype = 'local',
+            args = {},
+            body = {tag = "block"}
+          }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse if statements", function()
+    it("simple", function()
+      assert_parse("if true then end",
+        { tag = 'TopBlock',
+          { tag = 'If',
+            ifs = {
+              { cond={tag='boolean', value=true}, block={tag='block'} }
+            }
+          }
+        }
+      )
+    end)
+
+    it("with multiple parts", function()
+      assert_parse("if a then x=1 elseif b then x=2 else x=3 end",
+        { tag = "TopBlock",
+          { tag = "If",
+            ifs = {
+              { cond = {
+                  tag = "identifier",
+                  name = "a"
+                },
+                block = {
+                  tag = "block",
+                  { tag = "Assign",
+                    assigns = {{tag = "number", type = "integer", value = "1"}},
+                    vars = {{tag = "identifier", name = "x"}}
+                } }
+              },
+              { cond = {
+                  tag = "identifier",
+                  name = "b"
+                },
+                block = {
+                  tag = "block",
+                  { assigns = {{tag = "number", type = "integer", value = "2"}},
+                    tag = "Assign",
+                    vars = { {tag = "identifier", name = "x"} }
+                } }
+              }
+            },
+            elseblock = {
+              tag = "block",
+              {  assigns = {{tag = "number", type = "integer", value = "3"}},
+                tag = "Assign",
+                vars = { { tag = "identifier", name = "x"} }
+            } }
+          },
+        }
+      )
+    end)
+  end)
+
   describe("should parse expression operators", function()
     it("for `or`", function() assert_parse("return a or b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-        tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+        tag = 'BinaryOp',
         op = 'or',
         lhs = { tag = 'identifier', name='a' },
         rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `and`", function() assert_parse("return a and b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'and',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `<`", function() assert_parse("return a < b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'lt',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `>`", function() assert_parse("return a > b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'gt',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `<=`", function() assert_parse("return a <= b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'le',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `>=`", function() assert_parse("return a >= b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'ge',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `~=`", function() assert_parse("return a ~= b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'ne',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `==`", function() assert_parse("return a == b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'eq',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `|`", function() assert_parse("return a | b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'bor',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `~`", function() assert_parse("return a ~ b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'bxor',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `&`", function() assert_parse("return a & b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'band',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `<<`", function() assert_parse("return a << b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'shl',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `>>`", function() assert_parse("return a >> b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'shr',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `..`", function() assert_parse("return a .. b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'concat',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `+`", function() assert_parse("return a + b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'add',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `-`", function() assert_parse("return a - b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'sub',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `*`", function() assert_parse("return a * b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'mul',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `/`", function() assert_parse("return a / b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'div',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `//`", function() assert_parse("return a // b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'idiv',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `%`", function() assert_parse("return a % b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'mod',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)
 
     it("for `not`", function() assert_parse("return not a",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'unary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'UnaryOp',
           op = 'not',
           expr = { tag = 'identifier', name='a' }
     }}}) end)
 
     it("for `#`", function() assert_parse("return # a",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'unary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'UnaryOp',
           op = 'len',
           expr = { tag = 'identifier', name='a' }
     }}}) end)
 
     it("for `-`", function() assert_parse("return - a",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'unary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'UnaryOp',
           op = 'neg',
           expr = { tag = 'identifier', name='a' }
     }}}) end)
 
     it("for `~`", function() assert_parse("return ~ a",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'unary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'UnaryOp',
           op = 'bnot',
           expr = { tag = 'identifier', name='a' }
     }}}) end)
 
     it("for `^`", function() assert_parse("return a ^ b",
-      { tag = 'top_block', { tag = 'Return', expr = {
-          tag = 'binary_op',
+      { tag = 'TopBlock', { tag = 'Return', expr = {
+          tag = 'BinaryOp',
           op = 'pow',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
@@ -783,13 +1026,13 @@ and `..´ (concatenation), which are right associative.
 
     it("for `and` and `or`", function()
       assert_parse("return a and b or c",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'binary_op',
+              tag = 'BinaryOp',
               op = "or",
               lhs = {
-                tag = 'binary_op',
+                tag = 'BinaryOp',
                 op = 'and',
                 lhs = { tag='identifier', name='a'},
                 rhs = { tag='identifier', name='b'},
@@ -801,14 +1044,14 @@ and `..´ (concatenation), which are right associative.
       )
 
       assert_parse("return a or b and c",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'binary_op',
+              tag = 'BinaryOp',
               op = "or",
               lhs = { tag = 'identifier', name='a' },
               rhs = {
-                tag = 'binary_op',
+                tag = 'BinaryOp',
                 op = 'and',
                 lhs = { tag='identifier', name='b'},
                 rhs = { tag='identifier', name='c'},
@@ -821,14 +1064,14 @@ and `..´ (concatenation), which are right associative.
 
     it("with forced priority", function()
       assert_parse("return a and (b or c)",
-        { tag = 'top_block',
+        { tag = 'TopBlock',
           { tag = 'Return',
             expr = {
-              tag = 'binary_op',
+              tag = 'BinaryOp',
               op = "and",
               lhs = { tag = 'identifier', name='a' },
               rhs = {
-                tag = 'binary_op',
+                tag = 'BinaryOp',
                 op = 'or',
                 lhs = { tag='identifier', name='b'},
                 rhs = { tag='identifier', name='c'},
@@ -914,33 +1157,33 @@ and `..´ (concatenation), which are right associative.
                                     tag = "identifier"
                                   },
                                   op = "len",
-                                  tag = "unary_op"
+                                  tag = "UnaryOp"
                                 },
-                                tag = "binary_op"
+                                tag = "BinaryOp"
                               },
-                              tag = "binary_op"
+                              tag = "BinaryOp"
                             },
-                            tag = "binary_op"
+                            tag = "BinaryOp"
                           },
-                          tag = "binary_op"
+                          tag = "BinaryOp"
                         },
-                        tag = "binary_op"
+                        tag = "BinaryOp"
                       },
-                      tag = "binary_op"
+                      tag = "BinaryOp"
                     },
-                    tag = "binary_op"
+                    tag = "BinaryOp"
                   },
-                  tag = "binary_op"
+                  tag = "BinaryOp"
                 },
-                tag = "binary_op"
+                tag = "BinaryOp"
               },
-              tag = "binary_op"
+              tag = "BinaryOp"
             },
-            tag = "binary_op"
+            tag = "BinaryOp"
           },
           tag = "Return"
         },
-        tag = "top_block"
+        tag = "TopBlock"
       })
 
       -- left associative
@@ -957,18 +1200,18 @@ and `..´ (concatenation), which are right associative.
                 name = "b",
                 tag = "identifier"
               },
-              tag = "binary_op"
+              tag = "BinaryOp"
             },
             op = "add",
             rhs = {
               name = "c",
               tag = "identifier"
             },
-            tag = "binary_op"
+            tag = "BinaryOp"
           },
           tag = "Return"
         },
-        tag = "top_block"
+        tag = "TopBlock"
       })
 
       -- right associative
@@ -990,13 +1233,13 @@ and `..´ (concatenation), which are right associative.
                 name = "c",
                 tag = "identifier"
               },
-              tag = "binary_op"
+              tag = "BinaryOp"
             },
-            tag = "binary_op"
+            tag = "BinaryOp"
           },
           tag = "Return"
         },
-        tag = "top_block"
+        tag = "TopBlock"
       })
 
       -- right associative
@@ -1018,13 +1261,13 @@ and `..´ (concatenation), which are right associative.
                 name = "c",
                 tag = "identifier"
               },
-              tag = "binary_op"
+              tag = "BinaryOp"
             },
-            tag = "binary_op"
+            tag = "BinaryOp"
           },
           tag = "Return"
         },
-        tag = "top_block"
+        tag = "TopBlock"
       })
     end)
   end)

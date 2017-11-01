@@ -20,7 +20,7 @@ function defs.to_identifier(pos, name)
 end
 
 function defs.to_main_block(pos, block)
-  block.tag = 'top_block'
+  block.tag = 'TopBlock'
   block.pos = pos
   return block
 end
@@ -29,6 +29,14 @@ function defs.to_block(pos, block)
   block.tag = 'block'
   block.pos = pos
   return block
+end
+
+function defs.to_if_stat(pos, ifparts, elseblock)
+  local ifs = {}
+  for i=1,math.floor(#ifparts / 2) do
+    ifs[i] = {cond=ifparts[i*2-1], block=ifparts[i*2]}
+  end
+  return {tag="If", pos=pos, ifs=ifs, elseblock=elseblock}
 end
 
 function defs.to_return_stat(pos, expr)
@@ -40,14 +48,14 @@ function defs.to_chain_binary_op(pos, matches)
   for i=2,#matches,2 do
     local opname = matches[i]
     local rhs = matches[i+1]
-    lhs = {tag="binary_op", pos=pos, lhs=lhs, op=opname, rhs=rhs}
+    lhs = {tag="BinaryOp", pos=pos, lhs=lhs, op=opname, rhs=rhs}
   end
   return lhs
 end
 
 function defs.to_binary_op(pos, lhs, opname, rhs)
   if rhs then
-    return {tag="binary_op", pos=pos, lhs=lhs, op=opname, rhs=rhs}
+    return {tag="BinaryOp", pos=pos, lhs=lhs, op=opname, rhs=rhs}
   end
   return lhs
 end
@@ -55,7 +63,7 @@ end
 function defs.to_chain_unary_op(pos, opnames, expr)
   for i=#opnames,1,-1 do
     local opname = opnames[i]
-    expr = {tag="unary_op", pos=pos, op=opname, expr=expr}
+    expr = {tag="UnaryOp", pos=pos, op=opname, expr=expr}
   end
   return expr
 end
@@ -72,11 +80,11 @@ function defs.to_chain_index_or_call(pos, primary_expr, exprs)
 end
 
 function defs.to_dot_index(pos, index)
-  return {tag="dot_index", pos=pos, index=index}
+  return {tag="DotIndex", pos=pos, index=index}
 end
 
 function defs.to_array_index(pos, index)
-  return {tag="array_index", pos=pos, index=index}
+  return {tag="ArrayIndex", pos=pos, index=index}
 end
 
 function defs.to_invoke(pos, name, args)
@@ -92,11 +100,40 @@ function defs.to_field_pair(pos, key, expr)
 end
 
 function defs.to_table(pos, fields)
-  return {tag='table',pos=pos,fields=fields}
+  return {tag='Table',pos=pos,fields=fields}
 end
 
-function defs.to_anonymous_function(pos, args, body)
-  return {tag='anonymous_function',pos=pos,args=args,body=body}
+function defs.to_function(pos, args, body)
+  return {tag='Function',pos=pos,args=args,body=body}
+end
+
+function defs.to_function_def(pos, identifier, args, body)
+  return {tag='FunctionDef',pos=pos,name=identifier.name,args=args,body=body}
+end
+
+function defs.to_assign(pos, vars, exprs)
+  return {tag='Assign', pos=pos, vars=vars, assigns=exprs}
+end
+
+function defs.to_assign_def(pos, vars, exprs)
+  local vardecls = {}
+  for i,var in ipairs(vars) do
+    vardecls[i] = vars[i].name
+  end
+  return {tag='AssignDef', pos=pos, vars=vardecls, assigns=exprs}
+end
+
+function defs.to_decl(pos, vars)
+  local vardecls = {}
+  for i,var in ipairs(vars) do
+    vardecls[i] = vars[i].name
+  end
+  return {tag='Decl', pos=pos, vars=vardecls}
+end
+
+function defs.to_local(node)
+  node.vartype = 'local'
+  return node
 end
 
 local grammar = re.compile([==[
@@ -106,30 +143,83 @@ local grammar = re.compile([==[
     (!. / %{ExpectedEOF})
 
   block <-
-    ({} {| stat* return_stat? |}) ->  to_block
+    ({} {| stat* return_stat? |}) -> to_block
 
   stat <-
-    -- if
-    -- do
-    -- while
-    -- break
-    -- label
-    -- goto
-      call_stat
+    if_stat
+    / for_stat
+    / vars_stat
+    / call_stat
     / assignment_stat
     / %SEMICOLON
 
+  if_stat <-
+    ({}
+      {|
+      %IF (expr / %{ExpectedExpression}) (%THEN / %{ExpectedThen}) block
+      (%ELSEIF (expr / %{ExpectedExpression}) (%THEN / %{ExpectedThen}) block)*
+      |} (%ELSE block)?
+      (%END / %{ExpectedEnd})
+    ) -> to_if_stat
+
+  for_stat <-
+    %FOR (for_num / for_in / %{ExpectedForRange}) (%DO / %{ExpectedDo})
+      block
+    (%END / %{ExpectedEnd})
+
+  for_num <-
+    identifier '='
+      (expr / %{ExpectedExpression})
+    %COMMA
+      (expr / %{ExpectedExpression})
+    (%COMMA (expr / %{ExpectedExpression}))?
+
+  for_in <- !. -- not implemented yet
+
+  vars_stat <-
+    (%LOCAL
+      (function_def / vars_def / vars_decl)
+    ) -> to_local
+
+  function_def <-
+    ({} %FUNCTION
+        (identifier / %{ExpectedIdentifier})
+        (function_body / %{ExpectedFunctionBody})
+    ) -> to_function_def
+
+  vars_def <-
+    ({} {| identifier_list |}
+        %ASSIGN
+        (expr_list / %{ExpectedExpression})
+    ) -> to_assign_def
+
+  vars_decl <-
+    ({} {| identifier_list |}
+    ) -> to_decl
+
   return_stat <-
-    ({} %RETURN expr? %SEMICOLON?) -> to_return_stat
+    ({} %RETURN expr? %SEMICOLON?
+    ) -> to_return_stat
 
   call_stat <-
-    ({}
-      primary_expr
-      {| ((index_expr+ & call_expr) / call_expr)+ |}
-    )                                                 -> to_chain_index_or_call
+    ({} primary_expr
+        {| ((index_expr+ & call_expr) / call_expr)+ |}
+    ) -> to_chain_index_or_call
 
   assignment_stat <-
-    !. .
+    ({} var_list
+        %ASSIGN
+        (expr_list / %{ExpectedExpression})
+    ) -> to_assign
+
+  var_list <- {| (var (%COMMA var)*)? |}
+
+  var <-
+    ({}
+      primary_expr
+      {| ((call_expr+ & index_expr) / index_expr)+ |}
+    ) -> to_chain_index_or_call
+    / identifier
 
   simple_expr <-
       %NUMBER
@@ -146,37 +236,39 @@ local grammar = re.compile([==[
     ({}
       primary_expr
       {| (index_expr / call_expr)* |}
-    )                                                 -> to_chain_index_or_call
+    ) -> to_chain_index_or_call
 
   primary_expr <-
     identifier /
     %LPAREN expr (%RPAREN / %{UnclosedParenthesis})
 
   index_expr <-
-      ({} %DOT
+    ({} %DOT
         (%NAME / %{ExpectedIdentifier})
-      )                                               -> to_dot_index
-    / ({}
-        %LBRACKET
+    ) -> to_dot_index
+    /
+    ({} %LBRACKET
         expr
         (%RBRACKET / %{UnclosedBracket})
-      )                                               -> to_array_index
+    ) -> to_array_index
 
   call_expr <-
-      ({}
-        %COLON
+    ({} %COLON
         (%NAME / %{ExpectedMethodIdentifier})
         (call_args / %{ExpectedCall})
-      )                                               -> to_invoke
-    / ({} call_args )                                 -> to_call
+    ) -> to_invoke
+    /
+    ({} call_args ) -> to_call
 
-  call_args <- %LPAREN expr_list (%RPAREN / %{UnclosedParenthesis})
-  expr_list <- {| (expr (%COMMA expr)*)? |}
+  call_args <-
+    %LPAREN
+      expr_list
+    (%RPAREN / %{UnclosedParenthesis})
 
   function <-
     ({} %FUNCTION
-      (function_body / %{ExpectedFunctionBody})
-    )                                                 -> to_anonymous_function
+        (function_body / %{ExpectedFunctionBody})
+    ) -> to_function
 
   function_body <-
     %LPAREN
@@ -186,17 +278,13 @@ local grammar = re.compile([==[
     (%END / %{UnclosedFunction})
 
   body_args_list <-
-    {|
-      (identifier (%COMMA identifier)* (%COMMA varargs)?
-       / varargs)?
-    |}
+    {| (identifier_list (%COMMA varargs)? / varargs)? |}
 
   table <-
-    ({}
-      %LCURLY
-        table_field_list
-      (%RCURLY / %{UnclosedCurly})
-    )                                                 -> to_table
+    ({} %LCURLY
+          table_field_list
+        (%RCURLY / %{UnclosedCurly})
+    ) -> to_table
 
   table_field_list <-
     {| (table_field (%SEPARATOR table_field)* %SEPARATOR?)? |}
@@ -204,11 +292,10 @@ local grammar = re.compile([==[
   table_field <- field_pair / expr
 
   field_pair <-
-    ({}
-      field_key
-      %ASSIGN
-      (expr / %{ExpectedExpression})
-    )                                                 -> to_field_pair
+    ({} field_key
+        %ASSIGN
+        (expr / %{ExpectedExpression})
+    ) -> to_field_pair
 
   field_key <-
     (   %LBRACKET
@@ -217,9 +304,11 @@ local grammar = re.compile([==[
       / %NAME
     ) & %ASSIGN
 
-  identifier <- ({} %NAME)                -> to_identifier
-  varargs <- ({} %ELLIPSIS)               -> to_ellipsis
-  nil <- ({} %NIL)                        -> to_nil
+  identifier_list <- identifier (%COMMA identifier)*
+  expr_list <- {| (expr (%COMMA expr)*)? |}
+  identifier <- ({} %NAME) -> to_identifier
+  varargs <- ({} %ELLIPSIS) -> to_ellipsis
+  nil <- ({} %NIL) -> to_nil
 
   op_or     <- %OR -> 'or'
   op_and    <- %AND -> 'and'
@@ -270,15 +359,11 @@ function parser.parse(input)
   if ast then
     return ast
   else
-    if errnum and suffix then
-      local pos = #input - #suffix + 1
-      local line, col = re.calcline(input, pos)
-      local label = syntax_errors.int_to_label[errnum]
-      local msg = syntax_errors.int_to_msg[errnum]
-      return false, { line=line, col=col, label=label, message=msg }
-    else
-      return false, "ast was nil"
-    end
+    local pos = #input - #suffix + 1
+    local line, col = re.calcline(input, pos)
+    local label = syntax_errors.int_to_label[errnum]
+    local msg = syntax_errors.int_to_msg[errnum]
+    return false, { line=line, col=col, label=label, message=msg }
   end
 end
 

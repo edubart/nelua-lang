@@ -19,6 +19,11 @@ local errors = {
   { label = "ExpectedExpression", msg = "expected expression"},
   { label = "ExpectedMethodIdentifier", msg = "expected method identifier"},
   { label = "ExpectedEOF", msg = "unexpected character(s), expected EOF" },
+  { label = "ExpectedThen", msg = "expected `then` keyword"},
+  { label = "ExpectedEnd", msg = "expected `end` keyword"},
+  { label = "ExpectedDo", msg = "expected `do` keyword"},
+  { label = "ExpectedIdentifier", msg = "expected identifier" },
+  { label = "ExpectedForRange", msg = "expected for range"},
 }
 
 syntax_errors.label_to_msg = {}

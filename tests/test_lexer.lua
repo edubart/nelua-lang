@@ -85,6 +85,10 @@ describe("Euluna lexer", function()
       ['\\65'] = 'A',
       ['\\x41'] = 'A',
       ['\\u{41}'] = 'A',
+      ['\\\n'] = '\n',
+      ['\\\r'] = '\n',
+      ['\\\r\n'] = '\n',
+      ['\\\n\r'] = '\n',
     })
   end)
 
@@ -112,6 +116,7 @@ describe("Euluna lexer", function()
         ["''"] = {tag='string', value=''},
         ['"test"'] = {tag='string', value='test'},
         ["'test'"] = {tag='string', value='test'},
+        ['"a\\t\\nb"'] = {tag='string', value='a\t\nb'},
       })
     end)
 

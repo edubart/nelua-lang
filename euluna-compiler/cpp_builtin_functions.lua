@@ -2,13 +2,15 @@ local builtins = {}
 
 function builtins.print(scope, args)
   scope:add_include('<iostream>')
-  scope:inline_code('std::cout << ')
-  for _,arg in pairs(args) do
+  scope:add('std::cout << ')
+  for i,arg in ipairs(args) do
+    if i > 1 then
+      scope:add("'\t' << ")
+    end
     scope:traverse_expr(arg)
-    scope:inline_code(' << ')
+    scope:add(' << ')
   end
-  scope:inline_code('std::endl;')
-  scope:add_newline()
+  scope:add_ln('std::endl;')
 end
 
 return builtins

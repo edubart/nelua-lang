@@ -46,7 +46,7 @@ function assert_ast(ast, expected_ast, restricted)
     ast = filter(ast)
     expected_ast = filter(expected_ast)
   end
-  assert.are.same(expected_ast, ast)
+  assert.same(expected_ast, ast)
 end
 
 function assert_match_all(pattern, strs)
@@ -62,7 +62,7 @@ function assert_match_all(pattern, strs)
     local ast, errnum, rest = pattern:match(str)
     if errnum then
       local errmsg = syntax_errors.int_to_label[errnum] or 'unknown error'
-      error("no full match for: " .. inspect(str) .. ' (' .. errmsg .. ')')
+      error("no full match for: " .. inspect(str) .. ' (' .. errmsg.. ')')
     end
     if expected_ast then
       assert_ast(ast, expected_ast)
@@ -101,33 +101,42 @@ function assert_parse(str, expected_ast)
   return ast, err
 end
 
-function assert_generate_cpp(ast, expected_code)
-  local generated_code = stringx.strip(cppgen.generate(ast))
-  expected_code = stringx.strip(expected_code)
-  assert.is.same(expected_code, generated_code)
-end
-
 function assert_generate_cpp_and_run(ast, expected_output, expected_ret)
+  if type(ast) == 'string' then
+    ast = assert_parse(ast)
+  end
+
   local generated_code = stringx.strip(cppgen.generate(ast))
-  expected_output = stringx.strip(expected_output)
   local opts = {
     quiet=true
   }
   local ok, ret, stdout, stderr = cppcompiler.compile_and_run(generated_code, nil, opts)
-  assert.is.same(expected_output, stringx.strip(stdout))
-  if expected_ret then
-    assert.is.same(expected_ret, ret)
+  if expected_output then
+    expected_output = stringx.strip(expected_output)
+    assert.same(expected_output, stringx.strip(stdout))
   end
-  assert.is.same('', stderr)
+  if expected_ret then
+    assert.same(expected_ret, ret)
+  end
+  assert.same('', stderr)
   if expected_ret == 0 or expected_ret == nil then
     assert.is_true(ok)
   end
 end
 
 function assert_generate_cpp(ast, expected_code)
-  local generated_code = stringx.strip(cppgen.generate(ast))
-  expected_code = stringx.strip(expected_code)
-  assert.is.same(expected_code, generated_code)
+  if type(ast) == 'string' then
+    ast = assert_parse(ast)
+  end
+
+  local generated_code = assert(cppgen.generate(ast))
+  if expected_code then
+    generated_code = stringx.strip(generated_code)
+    expected_code = stringx.strip(expected_code)
+    assert.same(expected_code, generated_code)
+  end
+
+  return generated_code
 end
 
 function assert_equivalent_parse(a, b)
@@ -137,5 +146,14 @@ end
 function assert_parse_error(code, expected_err)
   expected_err = expected_err or ''
   local ast, err = parser.parse(code)
-  assert.is.same(expected_err, err and err.label)
+  assert.same(expected_err, err and err.label)
+end
+
+function dump_parse(code)
+  dump_ast(assert_parse(code))
+end
+
+function dump_generate_cpp(code)
+  local generated_code = assert_generate_cpp(code)
+  print(generated_code)
 end

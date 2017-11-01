@@ -15,7 +15,7 @@ local function T(peg) return G(peg) * lexer.SKIP end
 
 -- spacing
 lexer.SPACE         = G"%s"
-lexer.LINEBREAK     = G"[%nl\r] / [\r%nl] / [%nl] / [\r]"
+lexer.LINEBREAK     = G"[%nl]'\r' / '\r'[%nl] / [%nl] / '\r'"
 
 -- shebang
 lexer.SHEBANG       = G"'#!' (!%LINEBREAK .)*"
@@ -60,26 +60,31 @@ lexer.NUMBER = T[[
 function lexer.to_char(str) return string.char(tonumber(str)) end
 function lexer.to_char_from_hex(str) return string.char(tonumber(str, 16)) end
 function lexer.to_unicode_from_hex(str) return (utf8 and utf8.char or string.char)(tonumber(str, 16)) end
-function lexer.to_backslash(str)
+function lexer.to_escaped_backslash(str)
   local Backslashes = {
-    ["a"] = "\a", ["b"] = "\b", ["f"] = "\f",
-    ["n"] = "\n", ["r"] = "\r",
-    ["t"] = "\t", ["v"] = "\v",
-    ["\\"] = "\\",
-    ["'"] = "'", ['"'] = '"',
+    ["a"] = "\a", -- audible bell
+    ["b"] = "\b", -- back feed
+    ["f"] = "\f", -- form feed
+    ["n"] = "\n", -- new line
+    ["r"] = "\r", -- carriege return
+    ["t"] = "\t", -- horizontal tab
+    ["v"] = "\v", -- vertical tab
+    ["\\"] = "\\", -- backslash
+    ["'"] = "'", -- single quote
+    ['"'] = '"', -- double quote
   }
   return Backslashes[str]
 end
 function lexer.to_new_line() return "\n" end
 
 lexer.ESCAPESEQUENCE = G[[
-  escape      <- '\' escapings
+  escape      <- {~ '\' -> '' escapings ~}
   escapings   <-
-    [abfnrtv\'"] -> to_backslash /
+    [abfnrtv\'"] -> to_escaped_backslash /
     %LINEBREAK -> to_new_line /
-    'z' %s* -> '' /
+    ('z' %s*) -> '' /
     (%d %d^-2) -> to_char /
-    'x' %x+ -> to_char_from_hex /
+    ('x' {%x+}) -> to_char_from_hex /
     ('u' '{' {%x+} '}') -> to_unicode_from_hex /
     %{MalformedEscapeSequence}
 ]]
@@ -95,7 +100,7 @@ lexer.STRING  = T[[
   long_open       <- '[' {:eq: '='*:} '[' %LINEBREAK?
   long_close      <- ']' =eq ']'
 
-  short_string    <- short_open ({short_content*} short_close / %{UnclosedShortString})
+  short_string    <- short_open ({~ short_content* ~} short_close / %{UnclosedShortString})
   short_content   <- %ESCAPESEQUENCE / !(=de / %LINEBREAK) .
   short_open      <- {:de: ['"] :}
   short_close     <- =de
