@@ -55,13 +55,27 @@ int main() {
   describe("should compile and run example", function()
     it("example1", function() 
       assert_generate_cpp_and_run([[
-        local a = 1
-        if a == 1 then
-          print('a=1')
-        elseif a == 2 then
-        else
+        for i=1,10 do
+          if i % 3 == 0 then
+            print(i .. ' is multiple of 3')
+          elseif i % 2 == 0 then
+            print(i .. ' is multiple of 2')
+          else
+            print(i .. ' is multiple of 1')
+          end
         end
-      ]], 'a=1')
+      ]], [[
+1 is multiple of 1
+2 is multiple of 2
+3 is multiple of 3
+4 is multiple of 2
+5 is multiple of 1
+6 is multiple of 3
+7 is multiple of 1
+8 is multiple of 2
+9 is multiple of 3
+10 is multiple of 2
+      ]])
     end)
   end)
 end)

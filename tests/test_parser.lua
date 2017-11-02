@@ -784,6 +784,72 @@ describe("Euluna parser", function()
     end)
   end)
 
+  describe("should parse for statements", function()
+    it("simple", function()
+      assert_parse("for i=1,10 do end",
+        { tag = "TopBlock",
+          { tag = "ForNum",
+            id = {
+              tag = "identifier",
+              name = "i"
+            },
+            begin_expr = {
+              tag = "number",
+              type = "integer",
+              value = "1"
+            },
+            cmp_op = 'le',
+            end_expr = {
+              tag = "number",
+              type = "integer",
+              value = "10"
+            },
+            add_expr = nil,
+            block = {
+              tag = "block"
+            },
+          }
+        }
+      )
+    end)
+
+    it("reverse with comparations", function()
+      assert_parse("for i=10,>0,-1 do end",
+        { tag = "TopBlock",
+          { tag = "ForNum",
+            id = {
+              tag = "identifier",
+              name = "i"
+            },
+            begin_expr = {
+              tag = "number",
+              type = "integer",
+              value = "10"
+            },
+            cmp_op = 'gt',
+            end_expr = {
+              tag = "number",
+              type = "integer",
+              value = "0"
+            },
+            add_expr = {
+              tag = 'UnaryOp',
+              op = 'neg',
+              expr = {
+                tag = "number",
+                type = "integer",
+                value = "1"
+              }
+            },
+            block = {
+              tag = "block"
+            },
+          }
+        }
+      )
+    end)
+  end)
+
   describe("should parse expression operators", function()
     it("for `or`", function() assert_parse("return a or b",
       { tag = 'TopBlock', { tag = 'Return', expr = {

@@ -39,6 +39,12 @@ function defs.to_if_stat(pos, ifparts, elseblock)
   return {tag="If", pos=pos, ifs=ifs, elseblock=elseblock}
 end
 
+function defs.to_for_num(pos, identifier, begin_expr, cmp_op, end_expr, add_expr, block)
+  return {tag="ForNum", pos=pos, id=identifier, block=block,
+          begin_expr=begin_expr, end_expr=end_expr, add_expr=add_expr,
+          cmp_op=cmp_op}
+end
+
 function defs.to_return_stat(pos, expr)
   return { tag='Return', pos=pos, expr=expr }
 end
@@ -136,6 +142,8 @@ function defs.to_local(node)
   return node
 end
 
+function defs.to_nothing() return nil end
+
 local grammar = re.compile([==[
   code <-
     %SHEBANG? %SKIP
@@ -163,16 +171,19 @@ local grammar = re.compile([==[
     ) -> to_if_stat
 
   for_stat <-
-    %FOR (for_num / for_in / %{ExpectedForRange}) (%DO / %{ExpectedDo})
-      block
-    (%END / %{ExpectedEnd})
+    %FOR (for_num / for_in / %{ExpectedForRange})
 
   for_num <-
-    identifier '='
-      (expr / %{ExpectedExpression})
-    %COMMA
-      (expr / %{ExpectedExpression})
-    (%COMMA (expr / %{ExpectedExpression}))?
+    ({}
+      identifier '='
+        (expr / %{ExpectedExpression})
+      %COMMA (op_cmp / '' -> 'le')
+        (expr / %{ExpectedExpression})
+      (%COMMA (expr / %{ExpectedExpression}) / capture_nil)
+      (%DO / %{ExpectedDo})
+        block
+      (%END / %{ExpectedEnd})
+    ) -> to_for_num
 
   for_in <- !. -- not implemented yet
 
@@ -309,6 +320,7 @@ local grammar = re.compile([==[
   identifier <- ({} %NAME) -> to_identifier
   varargs <- ({} %ELLIPSIS) -> to_ellipsis
   nil <- ({} %NIL) -> to_nil
+  capture_nil <- '' -> to_nothing
 
   op_or     <- %OR -> 'or'
   op_and    <- %AND -> 'and'

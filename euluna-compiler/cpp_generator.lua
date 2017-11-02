@@ -1,6 +1,7 @@
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
 local util = require 'euluna-compiler/util'
+local builtin_generator = require 'euluna-compiler/cpp_builtin_generator'
 local builtin_functions = require 'euluna-compiler/cpp_builtin_functions'
 local Scope = class()
 local Context = class()
@@ -50,6 +51,15 @@ function Scope:add_include(name)
   end
 end
 
+function Scope:add_bulitin_code(name)
+  local builtin_scope = self.context.builtin_scope
+  local builtins = builtin_scope.context.builtins
+  if not builtins[name] then
+    builtin_generator[name](builtin_scope)
+    builtins[name] = true
+  end
+end
+
 -- Context
 function Context:_init(args)
   self.args = args
@@ -58,41 +68,70 @@ function Context:_init(args)
 end
 
 function Context:generate_code()
+  if #self.code == 0 then return '' end
+
   local include_code =
     tablex.imap(function(v) return '#include ' .. v .. '\n' end, self.includes)
 
-  local heading = table.concat(include_code)
-  local code = table.concat(self.code)
-  return heading .. '\n' .. code
+  local allcode = {}
+  table.insert(allcode, table.concat(include_code))
+  table.insert(allcode, '\n')
+
+  if self.namespace then
+    table.insert(allcode, string.format('namespace %s {\n\n', self.namespace))
+  end
+  table.insert(allcode, table.concat(self.code))
+  if self.namespace then
+    table.insert(allcode, '\n}\n')
+  end
+
+  return table.concat(allcode)
+end
+
+-- BuiltinContext
+local BuiltinContext = class(Context)
+function BuiltinContext:_init(args)
+  self:super(args)
+  self.builtins = {}
+  self.namespace = 'euluna'
 end
 
 -- Generator
-local function translate_binary_op(opname)
-  if opname == 'or' then
-    return '||'
-  elseif opname == 'and' then
-    return '&&'
-  elseif opname == 'eq' then
-    return '=='
-  elseif opname == 'add' then
-    return '+'
-  elseif opname == 'sub' then
-    return '-'
-  elseif opname == 'mul' then
-    return '*'
-  elseif opname == 'div' then
-    return '/'
-  else
+local cpp_ops = {
+  ['or'] = '||',
+  ['and'] = '&&',
+  ['ne'] = '!=',
+  ['eq'] = '==',
+  ['le'] = '<=',
+  ['ge'] = '>=',
+  ['lt'] = '<',
+  ['gt'] = '>',
+  ['bor'] = '|',
+  ['bxor'] = '^',
+  ['band'] = '&',
+  ['shl'] = '<<',
+  ['shr'] = '>>',
+  --['concat'] = '+',
+  ['add'] = '+',
+  ['sub'] = '-',
+  ['mul'] = '*',
+  ['div'] = '/', -- TODO: should we promote integer division to floats?
+  ['idiv'] = '/',
+  ['mod'] = '%',
+  ['not'] = '!',
+  ['neg'] = '-',
+  ['bnot'] = '~',
+  -- TODO: what about these?
+  -- pow
+  -- len
+}
+
+local function translate_op(opname)
+  local op = cpp_ops[opname]
+  if not op then
     error('unknown binary op ' .. opname)
   end
-end
-
-local function translate_unary_op(opname)
-  if opname == 'neg' then
-    return '-'
-  else
-    error('unknown unary op ' .. opname)
-  end
+  return op
 end
 
 function Scope:traverse_number(num)
@@ -182,6 +221,43 @@ function Scope:traverse_string(stat)
   self:add('")')
 end
 
+function Scope:traverse_binaryop(expr, parenthesis)
+  if parenthesis then
+    self:add('(')
+  end
+  local op = expr.op
+  if op == 'concat' then
+    local convert_lhs = expr.lhs.tag ~= 'string' and expr.lhs.literal == nil
+    local convert_rhs = expr.rhs.tag ~= 'string' and expr.lhs.literal == nil
+    if convert_lhs then
+      self:add_bulitin_code('to_string')
+      self:add('euluna::to_string(')
+    end
+    self:traverse_expr(expr.lhs, true)
+    if convert_lhs then
+      self:add(')')
+    end
+    self:add(' + ')
+    if convert_rhs then
+      self:add_bulitin_code('to_string')
+      self:add('euluna::to_string(')
+    end
+    self:traverse_expr(expr.rhs, true)
+    if convert_rhs then
+      self:add(')')
+    end
+  else
+    self:traverse_expr(expr.lhs, true)
+    self:add(' ')
+    self:add(translate_op(expr.op))
+    self:add(' ')
+    self:traverse_expr(expr.rhs, true)
+  end
+  if parenthesis then
+    self:add(')')
+  end
+end
+
 function Scope:traverse_expr(expr, parenthesis)
   local tag = expr.tag
   if tag == 'nil' then
@@ -190,20 +266,10 @@ function Scope:traverse_expr(expr, parenthesis)
     self:traverse_number(expr)
   elseif tag == 'UnaryOp' then
     self:add(' ')
-    self:add(translate_unary_op(expr.op))
+    self:add(translate_op(expr.op))
     self:traverse_expr(expr.expr, true)
   elseif tag == 'BinaryOp' then
-    if parenthesis then
-      self:add('(')
-    end
-    self:traverse_expr(expr.lhs, true)
-    self:add(' ')
-    self:add(translate_binary_op(expr.op), true)
-    self:add(' ')
-    self:traverse_expr(expr.rhs, true)
-    if parenthesis then
-      self:add(')')
-    end
+    self:traverse_binaryop(expr, parenthesis)
   elseif tag == 'identifier' then
     self:add(expr.name)
   elseif tag == 'string' then
@@ -248,6 +314,26 @@ function Scope:traverse_if(statement)
     scope:traverse_block(statement.elseblock)
   end
 
+  self:add_indent_ln('}')
+end
+
+function Scope:traverse_fornum(statement)
+  local name = statement.id.name
+  self:add_indent(string.format('for(auto %s = ', name))
+  self:traverse_expr(statement.begin_expr)
+  self:add(string.format(', __end_%s = ', name))
+  self:traverse_expr(statement.end_expr)
+  local op = translate_op(statement.cmp_op)
+  self:add(string.format('; %s %s __end_%s; %s += ', name, op, name, name))
+  if add_expr then
+    self:traverse_expr(statement.add_expr)
+  else
+    self:add('1')
+  end
+  self:add_ln(') {')
+
+  local scope = Scope(self)
+  scope:traverse_block(statement.block)
   self:add_indent_ln('}')
 end
 
@@ -320,6 +406,8 @@ function Scope:traverse_block(block)
     local tag = statement.tag
     if tag == 'If' then
       self:traverse_if(statement)
+    elseif tag == 'ForNum' then
+      self:traverse_fornum(statement)
     elseif tag == 'Return' then
       self:traverse_return(statement)
     elseif tag == 'AssignDef' then
@@ -355,8 +443,15 @@ function cpp_generator.generate(ast, args)
   assert(type(ast) == "table")
   local context = Context(args)
   local main_scope = Scope(context)
+
+  local builtin_context = BuiltinContext(args)
+  local builtin_scope = Scope(builtin_context)
+  context.builtin_scope = builtin_scope
+
   main_scope:traverse_main_block(ast)
-  local code = context:generate_code()
+
+  local code = builtin_context:generate_code() .. context:generate_code()
+
   return code
 end
 
