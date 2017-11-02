@@ -117,7 +117,7 @@ local Keywords = {
   "function", "goto", "if", "in", "local", "nil", "not", "or",
   "repeat", "return", "then", "true", "until", "while",
   -- Euluna
-  --"block", "switch", "try", "catch", "case"
+  "global", "continue", "var", "let", "ref"
 }
 
 local keyword_pattern = ''
@@ -148,6 +148,7 @@ lexer.IDIV        = T"'//'"
 lexer.DIV         = T"!%IDIV '/'"
 lexer.POW         = T"'^'"
 lexer.LEN         = T"'#'"
+lexer.TOSTRING    = T"'$'"
 
 lexer.BAND        = T"'&'"
 lexer.BOR         = T"'|'"
@@ -155,7 +156,7 @@ lexer.SHL         = T"'<<'"
 lexer.SHR         = T"'>>'"
 
 lexer.EQ          = T"'=='"
-lexer.NE          = T"'~='"
+lexer.NE          = T"'~=' / '!='"
 lexer.LE          = T"'<='"
 lexer.GE          = T"'>='"
 lexer.LT          = T"!%SHL !%LE '<'"

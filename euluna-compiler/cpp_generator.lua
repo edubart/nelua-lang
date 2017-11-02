@@ -111,7 +111,6 @@ local cpp_ops = {
   ['band'] = '&',
   ['shl'] = '<<',
   ['shr'] = '>>',
-  --['concat'] = '+',
   ['add'] = '+',
   ['sub'] = '-',
   ['mul'] = '*',
@@ -121,9 +120,7 @@ local cpp_ops = {
   ['not'] = '!',
   ['neg'] = '-',
   ['bnot'] = '~',
-  -- TODO: what about these?
-  -- pow
-  -- len
+  -- manually implemented: concat, pow, len
 }
 
 local function translate_op(opname)
@@ -221,40 +218,73 @@ function Scope:traverse_string(stat)
   self:add('")')
 end
 
-function Scope:traverse_binaryop(expr, parenthesis)
-  if parenthesis then
-    self:add('(')
+function Scope:traverse_len(expr)
+  self:add_include('<iterator>')
+  self:add('std::size(')
+  self:traverse_expr(expr, true)
+  self:add(')')
+end
+
+function Scope:traverse_tostring(expr)
+  local convert = expr.tag ~= 'string' and expr.literal == nil
+  if convert then
+    self:add_bulitin_code('to_string')
+    self:add('euluna::to_string(')
   end
+  self:traverse_expr(expr, true)
+  if convert then
+    self:add(')')
+  end
+end
+
+function Scope:traverse_unaryop(expr)
+  local op = expr.op
+  if op == 'len' then
+    self:traverse_len(expr.expr)
+  elseif op == 'tostring' then
+    self:traverse_tostring(expr.expr)
+  else
+    self:add(translate_op(op))
+
+    local parenthesis = false
+    -- convert double negation from `--i` to `-(-i)`
+    if expr.op == 'neg' and expr.expr and expr.expr.op == 'neg' then
+      parenthesis = true
+    end
+
+    if parenthesis then self:add('(') end
+    self:traverse_expr(expr.expr, true)
+    if parenthesis then self:add(')') end
+  end
+end
+
+function Scope:traverse_concat(expr)
+  self:traverse_tostring(expr.lhs)
+  self:add(' + ')
+  self:traverse_tostring(expr.rhs)
+end
+
+function Scope:traverse_pow(expr)
+  self:add_include('<cmath>')
+  self:add('std::pow(')
+  self:traverse_expr(expr.lhs)
+  self:add(', ')
+  self:traverse_expr(expr.rhs)
+  self:add(')')
+end
+
+function Scope:traverse_binaryop(expr)
   local op = expr.op
   if op == 'concat' then
-    local convert_lhs = expr.lhs.tag ~= 'string' and expr.lhs.literal == nil
-    local convert_rhs = expr.rhs.tag ~= 'string' and expr.lhs.literal == nil
-    if convert_lhs then
-      self:add_bulitin_code('to_string')
-      self:add('euluna::to_string(')
-    end
-    self:traverse_expr(expr.lhs, true)
-    if convert_lhs then
-      self:add(')')
-    end
-    self:add(' + ')
-    if convert_rhs then
-      self:add_bulitin_code('to_string')
-      self:add('euluna::to_string(')
-    end
-    self:traverse_expr(expr.rhs, true)
-    if convert_rhs then
-      self:add(')')
-    end
+    self:traverse_concat(expr)
+  elseif op == 'pow' then
+    self:traverse_pow(expr)
   else
     self:traverse_expr(expr.lhs, true)
     self:add(' ')
     self:add(translate_op(expr.op))
     self:add(' ')
     self:traverse_expr(expr.rhs, true)
-  end
-  if parenthesis then
-    self:add(')')
   end
 end
 
@@ -265,11 +295,11 @@ function Scope:traverse_expr(expr, parenthesis)
   elseif tag == 'number' then
     self:traverse_number(expr)
   elseif tag == 'UnaryOp' then
-    self:add(' ')
-    self:add(translate_op(expr.op))
-    self:traverse_expr(expr.expr, true)
+    self:traverse_unaryop(expr)
   elseif tag == 'BinaryOp' then
-    self:traverse_binaryop(expr, parenthesis)
+    if parenthesis then self:add('(') end
+    self:traverse_binaryop(expr)
+    if parenthesis then self:add(')') end
   elseif tag == 'identifier' then
     self:add(expr.name)
   elseif tag == 'string' then
@@ -278,6 +308,8 @@ function Scope:traverse_expr(expr, parenthesis)
     self:add('"')
     self:add(tostring(expr.value))
     self:add('"')
+  elseif tag == 'Call' then
+    self:traverse_inline_call(expr)
   else
     error('unknown expression ' .. tag)
   end
@@ -317,18 +349,64 @@ function Scope:traverse_if(statement)
   self:add_indent_ln('}')
 end
 
+function Scope:traverse_do(statement)
+  self:add_indent_ln('{')
+  local scope = Scope(self)
+  scope:traverse_block(statement)
+  self:add_indent_ln('}')
+end
+
+function Scope:traverse_while(statement)
+  self:add_indent('while(')
+  self:traverse_expr(statement.cond_expr)
+  self:add_ln(') {')
+  local scope = Scope(self)
+  scope:traverse_block(statement.block)
+  self:add_indent_ln('}')
+end
+
+function Scope:traverse_repeat(statement)
+  self:add_indent_ln('do {')
+  local scope = Scope(self)
+  scope:traverse_block(statement.block)
+  self:add_indent('} while (!(')
+  self:traverse_expr(statement.cond_expr)
+  self:add_ln('));')
+end
+
 function Scope:traverse_fornum(statement)
   local name = statement.id.name
+  local complex_add_expr = statement.add_expr ~= nil and statement.add_expr.tag ~= 'number'
+  local complex_end_expr = statement.end_expr.tag ~= 'number'
   self:add_indent(string.format('for(auto %s = ', name))
   self:traverse_expr(statement.begin_expr)
-  self:add(string.format(', __end_%s = ', name))
-  self:traverse_expr(statement.end_expr)
-  local op = translate_op(statement.cmp_op)
-  self:add(string.format('; %s %s __end_%s; %s += ', name, op, name, name))
-  if add_expr then
+  if complex_end_expr then
+    self:add(string.format(', __end_%s = ', name))
+    self:traverse_expr(statement.end_expr)
+  end
+  if complex_add_expr then
+    self:add(string.format(', __add_%s = ', name))
     self:traverse_expr(statement.add_expr)
+  end
+
+  local op = translate_op(statement.cmp_op)
+  self:add(string.format('; %s %s ', name, op))
+
+  if complex_end_expr then
+    self:add(string.format('__end_%s', name))
   else
-    self:add('1')
+    self:traverse_expr(statement.end_expr)
+  end
+  self:add(string.format('; %s', name))
+  if complex_add_expr then
+    self:add(string.format(' += __add_%s', name))
+  else
+    if statement.add_expr then
+      self:add(' += ')
+      self:traverse_expr(statement.add_expr)
+    else
+      self:add('++')
+    end
   end
   self:add_ln(') {')
 
@@ -350,6 +428,23 @@ function Scope:traverse_return(statement)
       self:add_indent_ln('return;')
     end
   end
+end
+
+function Scope:traverse_lambda_function_def(statement)
+  self:add_indent('auto ')
+  self:add(statement.name)
+  self:add(' = [](')
+  for i,arg in ipairs(statement.args) do
+    if i > 1 then
+      self:add(', ')
+    end
+    self:add('auto ')
+    self:add(arg.name)
+  end
+  self:add_ln(') {')
+  local scope = Scope(self)
+  scope:traverse_block(statement.body)
+  self:add_indent_ln('};')
 end
 
 function Scope:traverse_assign_def(statement)
@@ -378,9 +473,7 @@ function Scope:traverse_assign(statement)
   end
 end
 
-function Scope:traverse_call(statement)
-  self:add_indent()
-
+function Scope:traverse_inline_call(statement)
   local what = statement.what
 
   -- try builit functions first
@@ -395,10 +488,20 @@ function Scope:traverse_call(statement)
   -- proceed as a normal function
   self:traverse_expr(what)
   self:add('(')
-  for _,arg in pairs(statement.args) do
+  local numargs = #statement.args
+  for i,arg in pairs(statement.args) do
     self:traverse_expr(arg)
+    if i < numargs then
+      self:add(', ')
+    end
   end
-  self:add_ln(');')
+  self:add(')')
+end
+
+function Scope:traverse_call(statement)
+  self:add_indent()
+  self:traverse_inline_call(statement)
+  self:add_ln(';')
 end
 
 function Scope:traverse_block(block)
@@ -406,10 +509,18 @@ function Scope:traverse_block(block)
     local tag = statement.tag
     if tag == 'If' then
       self:traverse_if(statement)
+    elseif tag == 'Do' then
+      self:traverse_do(statement)
+    elseif tag == 'While' then
+      self:traverse_while(statement)
+    elseif tag == 'Repeat' then
+      self:traverse_repeat(statement)
     elseif tag == 'ForNum' then
       self:traverse_fornum(statement)
     elseif tag == 'Return' then
       self:traverse_return(statement)
+    elseif tag == 'FunctionDef' then
+      self:traverse_lambda_function_def(statement)
     elseif tag == 'AssignDef' then
       self:traverse_assign_def(statement)
     elseif tag == 'Assign' then

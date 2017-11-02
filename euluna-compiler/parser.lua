@@ -31,6 +31,19 @@ function defs.to_block(pos, block)
   return block
 end
 
+function defs.to_do(block)
+  block.tag = 'Do'
+  return block
+end
+
+function defs.to_while(pos, cond_expr, block)
+  return {tag='While', pos=pos, cond_expr=cond_expr, block=block}
+end
+
+function defs.to_repeat(pos, block, cond_expr)
+  return {tag='Repeat', pos=pos, cond_expr=cond_expr, block=block}
+end
+
 function defs.to_if_stat(pos, ifparts, elseblock)
   local ifs = {}
   for i=1,math.floor(#ifparts / 2) do
@@ -138,11 +151,26 @@ function defs.to_decl(pos, vars)
 end
 
 function defs.to_local(node)
-  node.vartype = 'local'
+  node.varscope = 'local'
   return node
 end
 
+function defs.to_continue() return {tag='Continue'} end
+function defs.to_break() return {tag='Break'} end
+
 function defs.to_nothing() return nil end
+
+function defs.assign_vartype(varscope, vartype, node)
+  node.varscope = varscope
+  node.vartype = vartype
+  return node
+end
+
+function defs.assign_funcscope(varscope, node)
+  node.varscope = varscope
+  return node
+end
+
 
 local grammar = re.compile([==[
   code <-
@@ -154,9 +182,15 @@ local grammar = re.compile([==[
     ({} {| stat* return_stat? |}) -> to_block
 
   stat <-
-    if_stat
+      if_stat
+    / do_stat
+    / while_stat
+    / repeat_stat
     / for_stat
+    / break_stat
+    / continue_stat
     / vars_stat
+    / function_stat
     / call_stat
     / assignment_stat
     / %SEMICOLON
@@ -169,6 +203,29 @@ local grammar = re.compile([==[
       |} (%ELSE block)?
       (%END / %{ExpectedEnd})
     ) -> to_if_stat
+
+  do_stat <-
+    (%DO block (%END / %{ExpectedEnd})) -> to_do
+
+  while_stat <-
+    ({}
+      %WHILE (expr / %{ExpectedExpression}) (%DO / %{ExpectedDo})
+      block
+      (%END / %{ExpectedEnd})
+    ) -> to_while
+
+  repeat_stat <-
+    ({}
+      %REPEAT
+      block
+      %UNTIL (expr / %{ExpectedExpression})
+    ) -> to_repeat
+
+  break_stat <-
+    %BREAK -> to_break
+
+  continue_stat <-
+    %CONTINUE -> to_continue
 
   for_stat <-
     %FOR (for_num / for_in / %{ExpectedForRange})
@@ -188,9 +245,20 @@ local grammar = re.compile([==[
   for_in <- !. -- not implemented yet
 
   vars_stat <-
-    (%LOCAL
-      (function_def / vars_def / vars_decl)
-    ) -> to_local
+    ((var_scope (var_type / capture_nil) / capture_nil var_type)
+      (vars_def / vars_decl)
+    ) -> assign_vartype
+
+  var_scope <-
+    %LOCAL -> 'local' / %GLOBAL -> 'global'
+
+  var_type <-
+    %VAR -> 'var' / %REF -> 'ref' / %LET -> 'let'
+
+  function_stat <-
+    ((var_scope / capture_nil)
+      function_def
+    ) -> assign_funcscope
 
   function_def <-
     ({} %FUNCTION
@@ -346,7 +414,8 @@ local grammar = re.compile([==[
   op_unary  <- %NOT -> 'not' /
                %LEN -> 'len' /
                %NEG -> 'neg' /
-               %BNOT -> 'bnot'
+               %BNOT -> 'bnot' /
+               %TOSTRING -> 'tostring'
   op_pow   <-  %POW -> 'pow'
 
   expr      <- expr1

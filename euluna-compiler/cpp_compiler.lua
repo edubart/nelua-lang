@@ -11,7 +11,7 @@ local cache_dir = 'euluna_cache'
 local compilers = {
   gcc = {
     exe = "g++",
-    cppflags = "-Wall -Wextra -std=c++14",
+    cppflags = "-Wall -Wextra -std=c++17",
     compile_obj = "$(exe) $(cppflags) -o $(outfile) -c $(inputfile)",
     compile_program = "$(exe) $(cppflags) -o $(outfile) $(inputfile)"
   }

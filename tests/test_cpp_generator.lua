@@ -53,29 +53,92 @@ int main() {
   end)
 
   describe("should compile and run example", function()
-    it("example1", function() 
+    it("numeric fors", function()
+      assert_generate_cpp_and_run([[
+        local s = 0
+        for i=1,10 do
+          s = s + i
+        end
+        print(s)
+
+        s=0
+        for i=1,<10 do
+          s = s + i
+        end
+        print(s)
+
+        s=0
+        for i=1,~=10 do
+          s = s + i
+        end
+        print(s)
+
+        s=0
+        for i=10,>=0,-1 do
+          s = s + i
+        end
+        print(s)
+      ]], '55\n45\n45\n55')
+    end)
+
+    it("do blocks", function()
+      assert_generate_cpp_and_run([[
+        do
+          print('hello')
+        end
+      ]], 'hello')
+    end)
+
+    it("while loops", function()
+      assert_generate_cpp_and_run([[
+        local i = 0
+        while i < 10 do
+          i = i + 1
+        end
+        print(i)
+      ]], '10')
+    end)
+
+    it("repeat loops", function()
+      assert_generate_cpp_and_run([[
+        local i = 0
+        repeat
+          i = i + 1
+        until i==10
+        print(i)
+      ]], '10')
+    end)
+
+    it("binary operators", function()
+      assert_generate_cpp_and_run([[
+        local s = 1 .. 2 .. 3
+        local slen = #s
+        local d = 2 ^ 2
+        print(s, slen, d)
+      ]], "123\t3\t4")
+    end)
+
+    it("functions", function()
+      assert_generate_cpp_and_run([[
+        function sum(a, b)
+          return a+b
+        end
+        print(sum(1,2))
+      ]], "3")
+    end)
+
+    it("example1", function()
       assert_generate_cpp_and_run([[
         for i=1,10 do
           if i % 3 == 0 then
-            print(i .. ' is multiple of 3')
+            print(3)
           elseif i % 2 == 0 then
-            print(i .. ' is multiple of 2')
+            print(2)
           else
-            print(i .. ' is multiple of 1')
+            print(1)
           end
         end
-      ]], [[
-1 is multiple of 1
-2 is multiple of 2
-3 is multiple of 3
-4 is multiple of 2
-5 is multiple of 1
-6 is multiple of 3
-7 is multiple of 1
-8 is multiple of 2
-9 is multiple of 3
-10 is multiple of 2
-      ]])
+      ]], "1\n2\n3\n2\n1\n3\n1\n2\n3\n2")
     end)
   end)
 end)

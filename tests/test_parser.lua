@@ -650,7 +650,7 @@ describe("Euluna parser", function()
         { tag = "TopBlock",
           { tag = "Decl",
             vars = { "a" },
-            vartype = "local"
+            varscope = "local"
           }
         }
       )
@@ -661,7 +661,7 @@ describe("Euluna parser", function()
         { tag = "TopBlock",
           { tag = "Decl",
             vars = { "a", "b" },
-            vartype = "local"
+            varscope = "local"
           }
         }
       )
@@ -673,7 +673,7 @@ describe("Euluna parser", function()
       assert_parse("local a = 1",
         { tag = 'TopBlock',
           { tag = 'AssignDef',
-            vartype = 'local',
+            varscope = 'local',
             vars = {
               'a'
             },
@@ -689,7 +689,7 @@ describe("Euluna parser", function()
       assert_parse("local a, b = 1, 'str'",
         { tag = 'TopBlock',
           { tag = 'AssignDef',
-            vartype = 'local',
+            varscope = 'local',
             vars = { 'a', 'b' },
             assigns = {
               {tag='number', type='integer', value='1'},
@@ -704,7 +704,7 @@ describe("Euluna parser", function()
       assert_parse("local a = function() end",
         { tag = 'TopBlock',
           { tag = 'AssignDef',
-            vartype = 'local',
+            varscope = 'local',
             vars = { 'a' },
             assigns = {
               { tag = "Function",
@@ -722,7 +722,7 @@ describe("Euluna parser", function()
         { tag = 'TopBlock',
           { tag = 'FunctionDef',
             name ='a',
-            vartype = 'local',
+            varscope = 'local',
             args = {},
             body = {tag = "block"}
           }
@@ -731,7 +731,7 @@ describe("Euluna parser", function()
     end)
   end)
 
-  describe("should parse if statements", function()
+  describe("should parse if statement", function()
     it("simple", function()
       assert_parse("if true then end",
         { tag = 'TopBlock',
@@ -784,7 +784,7 @@ describe("Euluna parser", function()
     end)
   end)
 
-  describe("should parse for statements", function()
+  describe("should parse for statement", function()
     it("simple", function()
       assert_parse("for i=1,10 do end",
         { tag = "TopBlock",
@@ -844,6 +844,174 @@ describe("Euluna parser", function()
             block = {
               tag = "block"
             },
+          }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse while statement", function()
+    it("simple", function()
+      assert_parse("while true do end",
+        { tag = "TopBlock",
+          { tag = "While",
+            cond_expr = {
+              tag = 'boolean',
+              value = true
+            },
+            block = { tag='block' }
+          }
+        }
+      )
+    end)
+
+    it("with statments", function()
+      assert_parse("while a==1 do print() end",
+        { tag = "TopBlock",
+          { tag = "While",
+            cond_expr = {
+              tag = "BinaryOp",
+              op = "eq",
+              lhs = { tag = "identifier", name = "a" },
+              rhs = { tag = "number", type = "integer", value = "1" }
+            },
+            block = {
+              tag='block',
+              { tag = "Call",
+                args = {},
+                what = { tag = "identifier", name = "print" }
+              }
+            }
+          }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse repeat statement", function()
+    it("simple", function()
+      assert_parse("repeat until true",
+        { tag = "TopBlock",
+          { tag = "Repeat",
+            cond_expr = {
+              tag = 'boolean',
+              value = true
+            },
+            block = { tag='block' }
+          }
+        }
+      )
+    end)
+
+    it("with statments", function()
+      assert_parse("repeat print() until a==1",
+        { tag = "TopBlock",
+          { tag = "Repeat",
+            cond_expr = {
+              tag = "BinaryOp",
+              op = "eq",
+              lhs = { tag = "identifier", name = "a" },
+              rhs = { tag = "number", type = "integer", value = "1" }
+            },
+            block = {
+              tag='block',
+              { tag = "Call",
+                args = {},
+                what = { tag = "identifier", name = "print" }
+              }
+            }
+          }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse do statement", function()
+    it("simple", function()
+      assert_parse("do end",
+        { tag = "TopBlock",
+          { tag = "Do" }
+        }
+      )
+    end)
+
+    it("with statments", function()
+      assert_parse("do print() end",
+        { tag = "TopBlock",
+          { tag = "Do",
+            { tag = 'Call',
+              args = {},
+              what = {
+                tag = 'identifier',
+                name = 'print'
+              }
+            }
+          }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse loop statement", function()
+    it("break", function()
+      assert_parse("while true do break end",
+        { tag = "TopBlock",
+          { tag = "While",
+            cond_expr = {
+              tag = 'boolean',
+              value = true
+            },
+            block = {
+              tag='block',
+              {tag = 'Break'}
+            }
+          }
+        }
+      )
+    end)
+
+    it("continue", function()
+      assert_parse("while true do continue end",
+        { tag = "TopBlock",
+          { tag = "While",
+            cond_expr = {
+              tag = 'boolean',
+              value = true
+            },
+            block = {
+              tag='block',
+              {tag = 'Continue'}
+            }
+          }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse function statement", function()
+    it("simple", function()
+      assert_parse("function f() end",
+        { tag = "TopBlock",
+          { tag = "FunctionDef",
+            name = "f",
+            args = {},
+            body = {
+              tag='block',
+            }
+          }
+        }
+      )
+    end)
+    it("local", function()
+      assert_parse("local function f() end",
+        { tag = "TopBlock",
+          { tag = "FunctionDef",
+            name = "f",
+            args = {},
+            varscope = 'local',
+            body = {
+              tag='block',
+            }
           }
         }
       )

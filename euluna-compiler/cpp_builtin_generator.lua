@@ -4,14 +4,12 @@ function builtins.to_string(scope)
   scope:add_include('<string>')
   scope:add_include('<sstream>')
   scope:add[[
-const std::string& to_string(const std::string& str) {
-  return str;
-}
+inline const std::string& to_string(const std::string& s) { return s; }
 
 template<typename T>
-std::string to_string(const T& in) {
+inline std::string to_string(const T& v) {
   std::stringstream ss;
-  ss << in;
+  ss << v;
   return ss.str();
 }
 ]]
