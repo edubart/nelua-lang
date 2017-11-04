@@ -5,6 +5,7 @@ local builtin_generator = require 'euluna-compiler/cpp_builtin_generator'
 local builtin_functions = require 'euluna-compiler/cpp_builtin_functions'
 local Scope = class()
 local Context = class()
+local fmt = string.format
 
 -- Scope
 function Scope:_init(parent)
@@ -78,7 +79,7 @@ function Context:generate_code()
   table.insert(allcode, '\n')
 
   if self.namespace then
-    table.insert(allcode, string.format('namespace %s {\n\n', self.namespace))
+    table.insert(allcode, fmt('namespace %s {\n\n', self.namespace))
   end
   table.insert(allcode, table.concat(self.code))
   if self.namespace then
@@ -114,8 +115,7 @@ local cpp_ops = {
   ['add'] = '+',
   ['sub'] = '-',
   ['mul'] = '*',
-  ['div'] = '/', -- TODO: should we promote integer division to floats?
-  ['idiv'] = '/',
+  ['div'] = '/',
   ['mod'] = '%',
   ['not'] = '!',
   ['neg'] = '-',
@@ -202,7 +202,7 @@ local quoter = re.compile(" \
     [^%g%s] -> to_special_character -- other special characters \
 ", {
   to_special_character = function(s)
-    return '\\x' .. string.format('%.2x', string.byte(s))
+    return '\\x' .. fmt('%.2x', string.byte(s))
   end
 })
 
@@ -349,6 +349,32 @@ function Scope:traverse_if(statement)
   self:add_indent_ln('}')
 end
 
+function Scope:traverse_switch(statement)
+  self:add_indent('switch(')
+  self:traverse_expr(statement.what)
+  self:add_ln(') {')
+
+  for i,casestat in ipairs(statement.cases) do
+    self:add_indent('case ')
+    self:traverse_expr(casestat.cond)
+    self:add_ln(': {')
+    local scope = Scope(self)
+    scope:traverse_block(casestat.block)
+    scope:add_indent_ln('break;')
+    self:add_indent_ln('}')
+  end
+
+  if statement.elseblock then
+    self:add_indent_ln('default: {')
+    local scope = Scope(self)
+    scope:traverse_block(statement.elseblock)
+    scope:add_indent_ln('break;')
+    self:add_indent_ln('}')
+  end
+
+  self:add_indent_ln('}')
+end
+
 function Scope:traverse_do(statement)
   self:add_indent_ln('{')
   local scope = Scope(self)
@@ -376,34 +402,34 @@ end
 
 function Scope:traverse_fornum(statement)
   local name = statement.id.name
-  local complex_add_expr = statement.add_expr ~= nil and statement.add_expr.tag ~= 'number'
+  local complex_step_expr = statement.step_expr ~= nil and statement.step_expr.tag ~= 'number'
   local complex_end_expr = statement.end_expr.tag ~= 'number'
-  self:add_indent(string.format('for(auto %s = ', name))
+  self:add_indent(fmt('for(auto %s = ', name))
   self:traverse_expr(statement.begin_expr)
   if complex_end_expr then
-    self:add(string.format(', __end_%s = ', name))
+    self:add(fmt(', __end_%s = ', name))
     self:traverse_expr(statement.end_expr)
   end
-  if complex_add_expr then
-    self:add(string.format(', __add_%s = ', name))
-    self:traverse_expr(statement.add_expr)
+  if complex_step_expr then
+    self:add(fmt(', __step_%s = ', name))
+    self:traverse_expr(statement.step_expr)
   end
 
   local op = translate_op(statement.cmp_op)
-  self:add(string.format('; %s %s ', name, op))
+  self:add(fmt('; %s %s ', name, op))
 
   if complex_end_expr then
-    self:add(string.format('__end_%s', name))
+    self:add(fmt('__end_%s', name))
   else
     self:traverse_expr(statement.end_expr)
   end
-  self:add(string.format('; %s', name))
-  if complex_add_expr then
-    self:add(string.format(' += __add_%s', name))
+  self:add(fmt('; %s', name))
+  if complex_step_expr then
+    self:add(fmt(' += __step_%s', name))
   else
-    if statement.add_expr then
+    if statement.step_expr then
       self:add(' += ')
-      self:traverse_expr(statement.add_expr)
+      self:traverse_expr(statement.step_expr)
     else
       self:add('++')
     end
@@ -413,6 +439,31 @@ function Scope:traverse_fornum(statement)
   local scope = Scope(self)
   scope:traverse_block(statement.block)
   self:add_indent_ln('}')
+end
+
+
+function Scope:traverse_break(statement)
+  self:add_indent_ln('break;')
+end
+
+function Scope:traverse_continue(statement)
+  self:add_indent_ln('continue;')
+end
+
+function Scope:traverse_label(statement)
+  self:add_ln(fmt('%s:', statement.name))
+end
+
+function Scope:traverse_goto(statement)
+  self:add_indent_ln(fmt('goto %s;', statement.label))
+end
+
+function Scope:traverse_defer(statement)
+  self:add_bulitin_code('make_deferrer')
+  self:add_indent_ln(fmt('auto __defer_%d = euluna::make_deferrer([&]() {', statement.pos))
+  local scope = Scope(self)
+  scope:traverse_block(statement)
+  self:add_indent_ln('});')
 end
 
 function Scope:traverse_return(statement)
@@ -433,7 +484,7 @@ end
 function Scope:traverse_lambda_function_def(statement)
   self:add_indent('auto ')
   self:add(statement.name)
-  self:add(' = [](')
+  self:add(' = [&](')
   for i,arg in ipairs(statement.args) do
     if i > 1 then
       self:add(', ')
@@ -509,6 +560,8 @@ function Scope:traverse_block(block)
     local tag = statement.tag
     if tag == 'If' then
       self:traverse_if(statement)
+    elseif tag == 'Switch' then
+      self:traverse_switch(statement)
     elseif tag == 'Do' then
       self:traverse_do(statement)
     elseif tag == 'While' then
@@ -517,6 +570,16 @@ function Scope:traverse_block(block)
       self:traverse_repeat(statement)
     elseif tag == 'ForNum' then
       self:traverse_fornum(statement)
+    elseif tag== 'Break' then
+      self:traverse_break(statement)
+    elseif tag== 'Continue' then
+      self:traverse_continue(statement)
+    elseif tag== 'Defer' then
+      self:traverse_defer(statement)
+    elseif tag== 'Label' then
+      self:traverse_label(statement)
+    elseif tag== 'Goto' then
+      self:traverse_goto(statement)
     elseif tag == 'Return' then
       self:traverse_return(statement)
     elseif tag == 'FunctionDef' then

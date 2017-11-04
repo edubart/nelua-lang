@@ -52,9 +52,25 @@ function defs.to_if_stat(pos, ifparts, elseblock)
   return {tag="If", pos=pos, ifs=ifs, elseblock=elseblock}
 end
 
-function defs.to_for_num(pos, identifier, begin_expr, cmp_op, end_expr, add_expr, block)
+function defs.to_switch(pos, what, caseparts, elseblock)
+  local cases = {}
+  for i=1,math.floor(#caseparts / 2) do
+    cases[i] = {cond=caseparts[i*2-1], block=caseparts[i*2]}
+  end
+  return {tag="Switch", pos=pos, what=what, cases=cases, elseblock=elseblock}
+end
+
+function defs.to_throw(pos)
+  return {tag='Throw', pos=pos}
+end
+
+function defs.to_try(pos)
+  return {tag='Try', pos=pos}
+end
+
+function defs.to_for_num(pos, identifier, begin_expr, cmp_op, end_expr, step_expr, block)
   return {tag="ForNum", pos=pos, id=identifier, block=block,
-          begin_expr=begin_expr, end_expr=end_expr, add_expr=add_expr,
+          begin_expr=begin_expr, end_expr=end_expr, step_expr=step_expr,
           cmp_op=cmp_op}
 end
 
@@ -158,6 +174,14 @@ end
 function defs.to_continue() return {tag='Continue'} end
 function defs.to_break() return {tag='Break'} end
 
+function defs.to_defer(block)
+  block.tag = 'Defer'
+  return block
+end
+
+function defs.to_label(name) return {tag='Label',name=name} end
+function defs.to_goto(label) return {tag='Goto',label=label} end
+
 function defs.to_nothing() return nil end
 
 function defs.assign_vartype(varscope, vartype, node)
@@ -183,12 +207,18 @@ local grammar = re.compile([==[
 
   stat <-
       if_stat
+    / switch_stat
+    / try_stat
+    / throw_stat
     / do_stat
     / while_stat
     / repeat_stat
     / for_stat
     / break_stat
     / continue_stat
+    / defer_stat
+    / label_stat
+    / goto_stat
     / vars_stat
     / function_stat
     / call_stat
@@ -203,6 +233,31 @@ local grammar = re.compile([==[
       |} (%ELSE block)?
       (%END / %{ExpectedEnd})
     ) -> to_if_stat
+
+  switch_stat <-
+    ({}
+      %SWITCH (expr / %{ExpectedExpression})
+      {| ((%CASE (expr / %{ExpectedExpression}) (%THEN / %{ExpectedThen})
+        block)+ / %{ExpectedCase}) |}
+      (%ELSE block)?
+      (%END / %{ExpectedEnd})
+    ) -> to_switch
+
+  try_stat <-
+    ({}
+      %TRY
+        block
+      {| (%CATCH
+        %LPAREN
+          (identifier / %{ExpectedIdentifier})
+        (%RPAREN / %{UnclosedParenthesis})
+        block)* |}
+      ((%CATCH block) / capture_nil)
+      (%FINALLY block)?
+    ) -> to_try
+
+  throw_stat <-
+    ({} %THROW (expr / %{ExpectedExpression})) -> to_throw
 
   do_stat <-
     (%DO block (%END / %{ExpectedEnd})) -> to_do
@@ -226,6 +281,18 @@ local grammar = re.compile([==[
 
   continue_stat <-
     %CONTINUE -> to_continue
+
+  defer_stat <-
+    (%DEFER block (%END / %{ExpectedEnd})) -> to_defer
+
+  label_stat <-
+    ( %DBLCOLON
+      (%NAME / %{ExpectedIdentifier})
+      (%DBLCOLON / %{UnclosedLabel})
+    ) -> to_label
+
+  goto_stat <-
+    ( %GOTO (%NAME / %{ExpectedIdentifier}) ) -> to_goto
 
   for_stat <-
     %FOR (for_num / for_in / %{ExpectedForRange})
@@ -409,7 +476,6 @@ local grammar = re.compile([==[
                %SUB -> 'sub'
   op_mul    <- %MUL -> 'mul' /
                %DIV -> 'div' /
-               %IDIV -> 'idiv' /
                %MOD -> 'mod'
   op_unary  <- %NOT -> 'not' /
                %LEN -> 'len' /

@@ -92,6 +92,13 @@ describe("Euluna parser", function()
           }
         }
       )
+      assert_parse("return false",
+        { tag = 'TopBlock',
+          { tag = 'Return',
+            expr = { tag='boolean', value=false }
+          }
+        }
+      )
     end)
 
     it("nil", function()
@@ -784,6 +791,36 @@ describe("Euluna parser", function()
     end)
   end)
 
+  describe("should parse switch statement", function()
+    it("simple", function()
+      assert_parse("switch a case true then end",
+        { tag = 'TopBlock',
+          { tag = 'Switch',
+            what = {tag='identifier', name='a'},
+            cases = {
+              { cond={tag='boolean', value=true}, block={tag='block'} }
+            }
+          }
+        }
+      )
+    end)
+    it("mutiple cases and else", function()
+      assert_parse("switch a case true then case false then else end",
+        { tag = 'TopBlock',
+          { tag = 'Switch',
+            what = {tag='identifier', name='a'},
+            cases = {
+              { cond={tag='boolean', value=true}, block={tag='block'} },
+              { cond={tag='boolean', value=false}, block={tag='block'} }
+            },
+            elseblock = {tag='block'}
+          }
+        }
+      )
+    end)
+  end)
+
+
   describe("should parse for statement", function()
     it("simple", function()
       assert_parse("for i=1,10 do end",
@@ -804,7 +841,7 @@ describe("Euluna parser", function()
               type = "integer",
               value = "10"
             },
-            add_expr = nil,
+            step_expr = nil,
             block = {
               tag = "block"
             },
@@ -832,7 +869,7 @@ describe("Euluna parser", function()
               type = "integer",
               value = "0"
             },
-            add_expr = {
+            step_expr = {
               tag = 'UnaryOp',
               op = 'neg',
               expr = {
@@ -983,6 +1020,33 @@ describe("Euluna parser", function()
               {tag = 'Continue'}
             }
           }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse defer statement", function()
+    it("simple", function()
+      assert_parse("defer end",
+        { tag = "TopBlock",
+          { tag = "Defer" }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse goto statement", function()
+    it("label", function()
+      assert_parse("::mylabel::",
+        { tag = "TopBlock",
+          { tag = "Label", name='mylabel' }
+        }
+      )
+    end)
+    it("label", function()
+      assert_parse("goto mylabel",
+        { tag = "TopBlock",
+          { tag = "Goto", label='mylabel' }
         }
       )
     end)
@@ -1159,14 +1223,6 @@ describe("Euluna parser", function()
       { tag = 'TopBlock', { tag = 'Return', expr = {
           tag = 'BinaryOp',
           op = 'div',
-          lhs = { tag = 'identifier', name='a' },
-          rhs = { tag = 'identifier', name='b' }
-    }}}) end)
-
-    it("for `//`", function() assert_parse("return a // b",
-      { tag = 'TopBlock', { tag = 'Return', expr = {
-          tag = 'BinaryOp',
-          op = 'idiv',
           lhs = { tag = 'identifier', name='a' },
           rhs = { tag = 'identifier', name='b' }
     }}}) end)

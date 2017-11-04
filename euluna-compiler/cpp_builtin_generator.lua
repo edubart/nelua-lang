@@ -15,4 +15,16 @@ inline std::string to_string(const T& v) {
 ]]
 end
 
+function builtins.make_deferrer(scope)
+  scope:add[[
+template<class F>
+struct deferrer {
+    F f;
+    ~deferrer() { f(); }
+};
+template<class F>
+inline deferrer<F> make_deferrer(F&& f) { return {f}; }
+]]
+end
+
 return builtins

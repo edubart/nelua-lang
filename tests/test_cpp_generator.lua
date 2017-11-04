@@ -81,6 +81,39 @@ int main() {
       ]], '55\n45\n45\n55')
     end)
 
+    it("if statements", function()
+      assert_generate_cpp_and_run([[
+        for i=1,4 do
+          if i == 1 then
+            print('1')
+          elseif i == 2 then
+            print('2')
+          elseif i == 3 then
+            print('3')
+          else
+            print('else')
+          end
+        end
+      ]], '1\n2\n3\nelse')
+    end)
+
+    it("switch statements", function()
+      assert_generate_cpp_and_run([[
+        for i=1,4 do
+          switch i
+          case 1 then
+            print('1')
+          case 2 then
+            print('2')
+          case 3 then
+            print('3')
+          else
+            print('else')
+          end
+        end
+      ]], '1\n2\n3\nelse')
+    end)
+
     it("do blocks", function()
       assert_generate_cpp_and_run([[
         do
@@ -107,6 +140,42 @@ int main() {
         until i==10
         print(i)
       ]], '10')
+    end)
+
+    it("goto", function()
+      assert_generate_cpp_and_run([[
+        for i=0,<3 do
+          for j=0,<3 do
+            print(i .. j)
+            if i+j >= 3 then
+              goto endloop
+            end
+          end
+        end
+        ::endloop::
+      ]], '00\n01\n02\n10\n11\n12')
+    end)
+
+    it("breaking and continuing loops", function()
+      assert_generate_cpp_and_run([[
+        for i=1,10 do
+          if i > 5 then break end
+          print(i)
+        end
+        for i=1,10 do
+          if i <= 5 then continue end
+          print(i)
+        end
+      ]], '1\n2\n3\n4\n5\n6\n7\n8\n9\n10')
+    end)
+
+    it("defer", function()
+      assert_generate_cpp_and_run([[
+        defer
+          print('world')
+        end
+        print('hello')
+      ]], 'hello\nworld')
     end)
 
     it("binary operators", function()

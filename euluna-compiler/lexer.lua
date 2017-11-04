@@ -117,7 +117,9 @@ local Keywords = {
   "function", "goto", "if", "in", "local", "nil", "not", "or",
   "repeat", "return", "then", "true", "until", "while",
   -- Euluna
-  "global", "continue", "var", "let", "ref"
+  "export", "global", "continue", "var", "let", "ref",
+  "switch", "case", "try", "catch", "finally", "throw", "defer",
+  "enum", "object"
 }
 
 local keyword_pattern = ''
@@ -136,7 +138,7 @@ lexer.NAME    = T"!%KEYWORD {%IDPREFIX %IDSUFFIX*}"
 -- boolean
 function lexer.to_bool_false(pos) return {tag='boolean', pos=pos, value=false} end
 function lexer.to_bool_true(pos) return {tag='boolean', pos=pos, value=true} end
-lexer.BOOLEAN = T"({} (%FALSE -> to_bool_false / %TRUE)) -> to_bool_true"
+lexer.BOOLEAN = T"({} %FALSE) -> to_bool_false / ({} %TRUE) -> to_bool_true"
 
 -- symbols
 lexer.ADD         = T"'+'"
@@ -144,8 +146,7 @@ lexer.SUB         = T"!'--' '-'"
 lexer.NEG         = lexer.SUB
 lexer.MUL         = T"'*'"
 lexer.MOD         = T"'%'"
-lexer.IDIV        = T"'//'"
-lexer.DIV         = T"!%IDIV '/'"
+lexer.DIV         = T"'/'"
 lexer.POW         = T"'^'"
 lexer.LEN         = T"'#'"
 lexer.TOSTRING    = T"'$'"
