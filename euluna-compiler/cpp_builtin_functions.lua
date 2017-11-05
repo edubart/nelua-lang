@@ -7,7 +7,7 @@ function builtins.print(scope, args)
     if i > 1 then
       scope:add("'\\t' << ")
     end
-    scope:traverse_expr(arg)
+    scope:traverse_tostring(arg)
     scope:add(' << ')
   end
   scope:add('std::endl')

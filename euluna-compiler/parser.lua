@@ -12,16 +12,6 @@ re.setlabels(syntax_errors.label_to_int)
 
 local defs = tablex.copy(lexer)
 
-function defs.to_chain_binary_op(pos, matches)
-  local lhs = matches[1]
-  for i=2,#matches,2 do
-    local opname = matches[i]
-    local rhs = matches[i+1]
-    lhs = {tag="BinaryOp", pos=pos, opname, lhs, rhs}
-  end
-  return lhs
-end
-
 function defs.to_binary_op(pos, lhs, opname, rhs)
   if rhs then
     return {tag="BinaryOp", pos=pos, opname, lhs, rhs}
@@ -35,6 +25,27 @@ function defs.to_chain_unary_op(pos, opnames, expr)
     expr = {tag="UnaryOp", pos=pos, opname, expr}
   end
   return expr
+end
+
+function defs.to_chain_binary_op(pos, matches)
+  local lhs = matches[1]
+  for i=2,#matches,2 do
+    local opname = matches[i]
+    local rhs = matches[i+1]
+    lhs = {tag="BinaryOp", pos=pos, opname, lhs, rhs}
+  end
+  return lhs
+end
+
+function defs.to_chain_ternary_op(pos, matches)
+  local lhs = matches[1]
+  for i=2,#matches,3 do
+    local opname = matches[i]
+    local mid = matches[i+1]
+    local rhs = matches[i+2]
+    lhs = {tag="TernaryOp", pos=pos, opname, lhs, mid, rhs}
+  end
+  return lhs
 end
 
 function defs.to_chain_index_or_call(pos, primary_expr, exprs)
@@ -341,7 +352,8 @@ local grammar = re.compile([==[
                %TOSTRING -> 'tostring'
   op_pow   <-  %POW -> 'pow'
 
-  expr      <- expr1
+  expr      <- expr0
+  expr0     <- ({} {| expr1  (%IF -> 'if' expr1 %ELSE expr1)* |})-> to_chain_ternary_op
   expr1     <- ({} {| expr2  (op_or       expr2 )* |})   -> to_chain_binary_op
   expr2     <- ({} {| expr3  (op_and      expr3 )* |})   -> to_chain_binary_op
   expr3     <- ({} {| expr4  (op_cmp      expr4 )* |})   -> to_chain_binary_op

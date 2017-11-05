@@ -231,7 +231,7 @@ function Scope:traverse_tostring(expr)
     self:add_bulitin_code('to_string')
     self:add('euluna::to_string(')
   end
-  self:traverse_expr(expr, true)
+  self:traverse_expr(expr, not convert)
   if convert then
     self:add(')')
   end
@@ -291,15 +291,33 @@ function Scope:traverse_binaryop(expr)
   end
 end
 
+function Scope:traverse_ternaryif(lhs, mid, rhs)
+  self:traverse_expr(mid)
+  self:add(' ? ')
+  self:traverse_expr(lhs)
+  self:add(' : ')
+  self:traverse_expr(rhs)
+end
+
+function Scope:traverse_ternaryop(expr)
+  local op = expr[1]
+  local lhs = expr[2]
+  local mid = expr[3]
+  local rhs = expr[4]
+  if op == 'if' then
+    self:traverse_ternaryif(lhs, mid, rhs)
+  else
+    error('unknown ternary operation ' .. op)
+  end
+end
+
 function Scope:traverse_id(expr)
   local name = expr[1]
   self:add(name)
 end
 
 function Scope:traverse_boolean(expr)
-  self:add('"')
   self:add(tostring(expr.value))
-  self:add('"')
 end
 
 function Scope:traverse_expr(expr, parenthesis)
@@ -313,6 +331,10 @@ function Scope:traverse_expr(expr, parenthesis)
   elseif tag == 'BinaryOp' then
     if parenthesis then self:add('(') end
     self:traverse_binaryop(expr)
+    if parenthesis then self:add(')') end
+  elseif tag == 'TernaryOp' then
+    if parenthesis then self:add('(') end
+    self:traverse_ternaryop(expr)
     if parenthesis then self:add(')') end
   elseif tag == 'Id' then
     self:traverse_id(expr)

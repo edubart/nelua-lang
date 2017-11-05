@@ -94,7 +94,9 @@ int main() {
             print('else')
           end
         end
-      ]], '1\n2\n3\nelse')
+        print(1 if true else 2)
+        print(1 if false else 2)
+      ]], '1\n2\n3\nelse\n1\n2')
     end)
 
     it("switch statements", function()

@@ -1309,6 +1309,15 @@ describe("Euluna parser", function()
           { tag = 'Id', 'a' },
           { tag = 'Id', 'b' }
     }}}) end)
+
+    it("for terinary if", function() assert_parse("return a if c else b",
+      { tag = 'TopBlock', { tag = 'Return', {
+          tag = 'TernaryOp',
+          'if',
+          { tag = 'Id', 'a' },
+          { tag = 'Id', 'c' },
+          { tag = 'Id', 'b' }
+    }}}) end)
   end)
 
   describe("should parse expression operators following precedence rules", function()
