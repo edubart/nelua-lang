@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/edubart/euluna-lang.svg?branch=master)](https://travis-ci.org/edubart/euluna-lang)
+
 # Euluna
 
 **Warning this language a WIP (work in progress).**
@@ -38,7 +40,7 @@ First install GCC with C++17 support into your system.
 Next install Euluna compiler using LuaRocks:
 
 ```bash
-luarocks install euluna
+luarocks install --server=http://luarocks.org/dev euluna
 ```
 
 You can now run hello world demo from this repository with:

@@ -19,6 +19,7 @@ dependencies = {
   'lpeglabel',
   'luaossl',
   'inspect',
+  'argparse',
 }
 
 build = {
