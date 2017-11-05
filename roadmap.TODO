@@ -26,12 +26,12 @@
 ✔ const (constexpr) @done (11/5/2017, 5:33:15 PM)
 ✔ return multiple values @done (11/5/2017, 5:59:50 PM)
 ✔ assign multiple values (swap like a,b = b, a) @done (11/5/2017, 5:16:36 PM)
-☐ include
-☐ parse optional types
 ☐ pointerof
 ☐ deref
-☐ new
 ☐ delete
+☐ new
+☐ include
+☐ parse optional types
 ☐ as (type casting)
 ☐ export (modules)
 ☐ import (modules)
@@ -41,7 +41,7 @@
 ☐ object
 ☐ sugar for declaring object functions
 ☐ extends (object inheretance)
-☐ shared pointers
+☐ smart pointers
 ☐ varargs
 ☐ iterator
 ☐ emit asm/C++ code
@@ -49,6 +49,7 @@
 ☐ use const& only if is not a primitive (better performance on gcc godbolt)
 ☐ lazy declaration (needs type deduction preprocessing)
 ☐ libraries (math, io, string)
+☐ operator overloading
 
 think more:
   ☐ tuple
