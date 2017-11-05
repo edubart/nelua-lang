@@ -11,8 +11,7 @@ inline const std::string& to_string(const bool& b) {
   return b ? btrue : bfalse;
 }
 
-template<typename T>
-inline std::string to_string(const T& v) {
+inline std::string to_string(const auto& v) {
   std::stringstream ss;
   ss << v;
   return ss.str();
@@ -29,6 +28,19 @@ struct deferrer {
 };
 template<class F>
 inline deferrer<F> make_deferrer(F&& f) { return {f}; }
+]]
+end
+
+function builtins.iterator_items(scope)
+  scope:add[[
+inline void iterator_items(const auto& container, auto&& f) {
+    for(auto v : container)
+      f(v);
+}
+inline void iterator_mitems(auto& container, auto&& f) {
+    for(auto& v : container)
+      f(v);
+}
 ]]
 end
 

@@ -158,6 +158,16 @@ int main() {
       ]], '10')
     end)
 
+    it("for in loops", function()
+      assert_generate_cpp_and_run([[
+        local a = "123"
+        for c in items(a) do
+          print(c)
+        end
+      ]], '1\n2\n3')
+    end)
+
+
     it("goto", function()
       assert_generate_cpp_and_run([[
         for i=0,<3 do

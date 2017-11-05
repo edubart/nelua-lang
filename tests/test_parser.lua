@@ -866,7 +866,7 @@ describe("Euluna parser", function()
     end)
   end)
 
-  describe("should parse for statement", function()
+  describe("should parse statement for", function()
     it("simple", function()
       assert_parse("for i=1,10 do end",
         { tag = "TopBlock",
@@ -916,6 +916,23 @@ describe("Euluna parser", function()
                 type = "integer",
                 value = "1"
               }
+            },
+            {
+              tag = "block"
+            },
+          }
+        }
+      )
+    end)
+
+    it("in", function()
+      assert_parse("for i in iter do end",
+        { tag = "TopBlock",
+          { tag = "ForIn",
+            {"i"},
+            {
+              tag = "Id",
+              "iter"
             },
             {
               tag = "block"

@@ -145,7 +145,7 @@ local grammar = re.compile([==[
 
   while_stat <-
     ({} %WHILE -> 'While'
-      expr_expected (%DO / %{ExpectedDo})
+      expr_expected DO_expected
       block
       END_expected
     ) -> to_tag
@@ -166,12 +166,17 @@ local grammar = re.compile([==[
       %COMMA (op_cmp / '' -> 'le')
         expr_expected
       (%COMMA expr_expected / capture_nil)
-      (%DO / %{ExpectedDo})
+      DO_expected
         block
       END_expected
     ) -> to_tag
 
-  for_in <- !. -- not implemented yet
+  for_in <-
+    ({} '' -> 'ForIn'
+      {| name_list |} %IN expr_expected DO_expected
+        block
+      END_expected
+    ) -> to_tag
 
   break_stat <-
     ({} %BREAK -> 'Break') -> to_tag
@@ -321,6 +326,7 @@ local grammar = re.compile([==[
   expr_expected <- expr / %{ExpectedExpression}
 
   THEN_expected <- %THEN / %{ExpectedThen}
+  DO_expected <- %DO / %{ExpectedDo}
   END_expected <- %END / %{ExpectedEnd}
   NAME_expected <- %NAME / %{ExpectedName}
   RPAREN_expected <- %RPAREN / %{UnclosedParenthesis}

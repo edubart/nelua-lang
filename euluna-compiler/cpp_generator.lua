@@ -530,6 +530,46 @@ function Scope:traverse_fornum(statement)
   self:add_indent_ln('}')
 end
 
+function Scope:traverse_forin(statement)
+  local itvars = statement[1]
+  local iterator = statement[2]
+  local block = statement[3]
+
+  assert(iterator.tag == 'Call')
+  local iterwhat = iterator[1]
+  local iterargs = iterator[2]
+
+  -- try builin iterators first
+  local builtin = false
+  if iterwhat.tag == 'Id' then
+    local name = iterwhat[1]
+    if name == 'items' or name == 'mitems' then
+      self:add_bulitin_code('iterator_items')
+      self:add_indent(fmt('euluna::iterator_%s', name))
+      builtin = true
+    end
+  end
+
+  if not builtin then
+    self:traverse_expr(iterwhat)
+  end
+
+  self:add('(')
+  for i,iterarg in ipairs(iterargs) do
+    self:traverse_expr(iterarg)
+    self:add(', ')
+  end
+  self:add('[&](')
+  for i,varname in ipairs(itvars) do
+    if i > 1 then
+      self:add(', ')
+    end
+    self:add(fmt('auto& %s', varname))
+  end
+  self:add_ln(') {')
+  self:traverse_scoped_block(block)
+  self:add_indent_ln('});')
+end
 
 function Scope:traverse_break(statement)
   self:add_indent_ln('break;')
@@ -674,6 +714,8 @@ function Scope:traverse_block(block)
       self:traverse_repeat(statement)
     elseif tag == 'ForNum' then
       self:traverse_fornum(statement)
+    elseif tag == 'ForIn' then
+      self:traverse_forin(statement)
     elseif tag== 'Break' then
       self:traverse_break(statement)
     elseif tag== 'Continue' then
