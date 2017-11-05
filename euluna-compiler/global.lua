@@ -18,3 +18,14 @@ function dump_ast(ast)
     end
   }))
 end
+
+function izip(t1, t2)
+  local i = 0
+  return function()
+    i = i + 1
+    local a, b = t1[i], t2[i]
+    if a ~= nil or b ~= nil then
+      return a, b
+    end
+  end
+end

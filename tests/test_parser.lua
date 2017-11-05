@@ -803,6 +803,68 @@ describe("Euluna parser", function()
     end)
   end)
 
+  describe("should parse try statement", function()
+    it("simple", function()
+      assert_parse("try end",
+        { tag = 'TopBlock',
+          { tag = 'Try',
+            { tag = 'block' },
+            {}
+          }
+        }
+      )
+    end)
+
+    it("with catch all", function()
+      assert_parse("try catch end",
+        { tag = 'TopBlock',
+          { tag = 'Try',
+            { tag = 'block' },
+            {},
+            { tag = 'block' },
+          }
+        }
+      )
+    end)
+
+    it("with finally", function()
+      assert_parse("try finally end",
+        { tag = 'TopBlock',
+          { tag = 'Try',
+            { tag = 'block' },
+            {},
+            nil,
+            { tag = 'block' },
+          }
+        }
+      )
+    end)
+
+    it("with all catche, catch all and finally", function()
+      assert_parse("try catch(e) catch finally end",
+        { tag = 'TopBlock',
+          { tag = 'Try',
+            { tag = 'block' },
+            { {'e', { tag = 'block' }} },
+            { tag = 'block' },
+            { tag = 'block' },
+          }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse throw statement", function()
+    it("with all catche, catch all and finally", function()
+      assert_parse("throw 'hello'",
+        { tag = 'TopBlock',
+          { tag = 'Throw',
+            {tag = 'string', value = 'hello'}
+          }
+        }
+      )
+    end)
+  end)
 
   describe("should parse for statement", function()
     it("simple", function()

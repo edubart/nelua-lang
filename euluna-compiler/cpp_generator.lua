@@ -354,14 +354,12 @@ function Scope:traverse_if(statement)
     self:traverse_expr(cond)
     self:add_ln(') {')
 
-    local scope = Scope(self)
-    scope:traverse_block(block)
+    self:traverse_scoped_block(block)
   end
 
   if elseblock then
     self:add_indent_ln('} else {')
-    local scope = Scope(self)
-    scope:traverse_block(elseblock)
+    self:traverse_scoped_block(elseblock)
   end
 
   self:add_indent_ln('}')
@@ -382,16 +380,14 @@ function Scope:traverse_switch(statement)
     self:add_indent('case ')
     self:traverse_expr(cond)
     self:add_ln(': {')
-    local scope = Scope(self)
-    scope:traverse_block(block)
+    local scope = self:traverse_scoped_block(block)
     scope:add_indent_ln('break;')
     self:add_indent_ln('}')
   end
 
   if elseblock then
     self:add_indent_ln('default: {')
-    local scope = Scope(self)
-    scope:traverse_block(elseblock)
+    local scope = self:traverse_scoped_block(elseblock)
     scope:add_indent_ln('break;')
     self:add_indent_ln('}')
   end
@@ -399,10 +395,50 @@ function Scope:traverse_switch(statement)
   self:add_indent_ln('}')
 end
 
+
+function Scope:traverse_try(statement)
+  local tryblock = statement[1]
+  local catches = statement[2]
+  local catchall_block = statement[3]
+  local finally_block = statement[4]
+
+  local tryscope = self
+  if finally_block then
+    self:add_indent_ln('{')
+    tryscope = Scope(self)
+    tryscope:traverse_defer(finally_block)
+  end
+
+  tryscope:add_indent_ln('try {')
+
+  tryscope:traverse_scoped_block(tryblock)
+
+  if #catches > 0 then
+    -- TODO
+  end
+
+  if catchall_block then
+    tryscope:add_indent_ln('} catch(...) {')
+    tryscope:traverse_scoped_block(catchall_block)
+  end
+
+  tryscope:add_indent_ln('}')
+
+  if finally_block then
+    self:add_indent_ln('}')
+  end
+end
+
+function Scope:traverse_throw(statement)
+  local expr = statement[1]
+  self:add_indent('throw ')
+  self:traverse_expr(expr)
+  self:add_ln(';')
+end
+
 function Scope:traverse_do(statement)
   self:add_indent_ln('{')
-  local scope = Scope(self)
-  scope:traverse_block(statement)
+  self:traverse_scoped_block(statement)
   self:add_indent_ln('}')
 end
 
@@ -412,8 +448,7 @@ function Scope:traverse_while(statement)
   self:add_indent('while(')
   self:traverse_expr(cond_expr)
   self:add_ln(') {')
-  local scope = Scope(self)
-  scope:traverse_block(block)
+  self:traverse_scoped_block(block)
   self:add_indent_ln('}')
 end
 
@@ -421,8 +456,7 @@ function Scope:traverse_repeat(statement)
   local block = statement[1]
   local cond_expr = statement[2]
   self:add_indent_ln('do {')
-  local scope = Scope(self)
-  scope:traverse_block(block)
+  self:traverse_scoped_block(block)
   self:add_indent('} while (!(')
   self:traverse_expr(cond_expr)
   self:add_ln('));')
@@ -470,8 +504,7 @@ function Scope:traverse_fornum(statement)
   end
   self:add_ln(') {')
 
-  local scope = Scope(self)
-  scope:traverse_block(block)
+  self:traverse_scoped_block(block)
   self:add_indent_ln('}')
 end
 
@@ -497,8 +530,7 @@ end
 function Scope:traverse_defer(statement)
   self:add_bulitin_code('make_deferrer')
   self:add_indent_ln(fmt('auto __defer_%d = euluna::make_deferrer([&]() {', statement.pos))
-  local scope = Scope(self)
-  scope:traverse_block(statement)
+  self:traverse_scoped_block(statement)
   self:add_indent_ln('});')
 end
 
@@ -534,8 +566,7 @@ function Scope:traverse_lambda_function_def(statement)
     self:add(arg)
   end
   self:add_ln(') {')
-  local scope = Scope(self)
-  scope:traverse_block(body)
+  self:traverse_scoped_block(body)
   self:add_indent_ln('};')
 end
 
@@ -547,9 +578,7 @@ function Scope:traverse_vardecl(statement)
     assert(#vars == #assigns)
   end
   -- TODO: deduced declarations
-  for i=1,#vars do
-    local varid = vars[i]
-    local vardef = assigns[i]
+  for varid, vardef in izip(vars, assigns) do
     self:add_indent('auto ')
     self:add(varid)
     self:add(' = ')
@@ -562,9 +591,7 @@ function Scope:traverse_assign(statement)
   local vars = statement[1]
   local assigns = statement[2]
   assert(#vars == #assigns)
-  for i=1,#vars do
-    local varexpr = vars[i]
-    local vardef = assigns[i]
+  for varexpr, vardef in izip(vars, assigns) do
     self:add_indent()
     self:traverse_expr(varexpr)
     self:add(' = ')
@@ -613,6 +640,10 @@ function Scope:traverse_block(block)
       self:traverse_if(statement)
     elseif tag == 'Switch' then
       self:traverse_switch(statement)
+    elseif tag == 'Try' then
+      self:traverse_try(statement)
+    elseif tag == 'Throw' then
+      self:traverse_throw(statement)
     elseif tag == 'Do' then
       self:traverse_do(statement)
     elseif tag == 'While' then
@@ -645,6 +676,12 @@ function Scope:traverse_block(block)
       error('unknown statement "' .. tag .. '"')
     end
   end
+end
+
+function Scope:traverse_scoped_block(block)
+  local scope = Scope(self)
+  scope:traverse_block(block)
+  return scope
 end
 
 function Scope:traverse_main_block(block)

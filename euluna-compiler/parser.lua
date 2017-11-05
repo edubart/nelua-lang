@@ -116,13 +116,14 @@ local grammar = re.compile([==[
   try_stat <-
     ({} %TRY -> 'Try'
         block
-      {| (%CATCH
+      {| ({| %CATCH
         %LPAREN
           NAME_expected
         RPAREN_expected
-        block)* |}
+        block |})* |}
       ((%CATCH block) / capture_nil)
       (%FINALLY block)?
+      END_expected
     ) -> to_tag
 
   throw_stat <-

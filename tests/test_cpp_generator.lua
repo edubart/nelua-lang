@@ -114,6 +114,20 @@ int main() {
       ]], '1\n2\n3\nelse')
     end)
 
+    it("try and throw", function()
+      assert_generate_cpp_and_run([[
+        try
+          print('try')
+          throw 'err'
+          print('never runned')
+        catch
+          print('catchall')
+        finally
+          print('finally')
+        end
+      ]], 'try\ncatchall\nfinally')
+    end)
+
     it("do blocks", function()
       assert_generate_cpp_and_run([[
         do
