@@ -53,6 +53,14 @@ int main() {
   end)
 
   describe("should compile and run example", function()
+    it("swapping values", function()
+      assert_generate_cpp_and_run([[
+        local a, b, c = 1, 2, 3
+        a, c, b = c, a, c
+        print(a,b,c)
+      ]], "3\t3\t1")
+    end)
+
     it("numeric fors", function()
       assert_generate_cpp_and_run([[
         local s = 0
@@ -166,7 +174,6 @@ int main() {
         end
       ]], '1\n2\n3')
     end)
-
 
     it("goto", function()
       assert_generate_cpp_and_run([[

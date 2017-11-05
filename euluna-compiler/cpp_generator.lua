@@ -640,7 +640,7 @@ function Scope:traverse_vardecl(statement)
     assert(#vars == #assigns)
   end
   -- TODO: deduced declarations
-  for varid, vardef in izip(vars, assigns) do
+  for i, varid, vardef in izip(vars, assigns) do
     self:add_indent('auto ')
     self:add(varid)
     self:add(' = ')
@@ -653,12 +653,28 @@ function Scope:traverse_assign(statement)
   local vars = statement[1]
   local assigns = statement[2]
   assert(#vars == #assigns)
-  for varexpr, vardef in izip(vars, assigns) do
+  if #vars == 1 then
+    local varexpr, vardef = vars[1], assigns[1]
     self:add_indent()
     self:traverse_expr(varexpr)
     self:add(' = ')
     self:traverse_expr(vardef)
     self:add_ln(';')
+  else
+    self:add_include('<utility>')
+    self:add_indent_ln('{')
+    local scope = Scope(self)
+    for i, vardef in ipairs(assigns) do
+      scope:add_indent(fmt('auto __tmp_%d = ', i))
+      scope:traverse_expr(vardef)
+      scope:add_ln(';')
+    end
+    for i, varexpr in ipairs(vars) do
+      scope:add_indent()
+      scope:traverse_expr(varexpr)
+      scope:add_ln(fmt(' = std::move(__tmp_%d);', i))
+    end
+    self:add_indent_ln('}')
   end
 end
 

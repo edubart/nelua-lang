@@ -25,8 +25,7 @@ function izip(t1, t2)
     i = i + 1
     local a, b = t1[i], t2[i]
     if a ~= nil or b ~= nil then
-      return a, b
+      return i, a, b
     end
   end
 end
-
