@@ -101,7 +101,7 @@ local grammar = re.compile([==[
     / %SEMICOLON
 
   return_stat <-
-    ({} %RETURN -> 'Return' expr? %SEMICOLON?) -> to_tag
+    ({} %RETURN -> 'Return' (expr (%COMMA expr)*)? %SEMICOLON?) -> to_tag
 
   if_stat <-
     ({} %IF -> 'If'
@@ -198,7 +198,7 @@ local grammar = re.compile([==[
 
   vardecl_stat <-
     ({} '' -> 'VarDecl'
-      {| (var_scope? var_type) / var_scope '' -> 'var' |}
+      {| var_scope var_type? / capture_nil var_type |}
       {| name_list |}
       (%ASSIGN (expr_list / %{ExpectedExpression}))?
     ) -> to_tag
@@ -207,7 +207,7 @@ local grammar = re.compile([==[
     %LOCAL -> 'local' / %GLOBAL -> 'global' / %EXPORT -> 'export'
 
   var_type <-
-    %VAR -> 'var' / %REF -> 'ref' / %LET -> 'let'
+    %VAR -> 'var' / %REF -> 'ref' / %LET -> 'let' / %CONST -> 'const'
 
   functiondef_stat <-
     ({} '' -> 'FunctionDef' (var_scope / capture_nil)
@@ -269,7 +269,7 @@ local grammar = re.compile([==[
     ) -> to_tag
 
   call_expr <-
-    ({} %COLON -> 'Invoke'
+    ({} %COLON -> 'CallMethod'
         NAME_expected
         (call_args / %{ExpectedCall})
     ) -> to_tag

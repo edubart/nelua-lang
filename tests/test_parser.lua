@@ -237,7 +237,7 @@ describe("Euluna parser", function()
         { tag = 'TopBlock',
           { tag = 'Return',
             {
-              tag = 'Invoke',
+              tag = 'CallMethod',
               {
                 tag = 'Id',
                 'os',
@@ -475,7 +475,7 @@ describe("Euluna parser", function()
     it("method", function()
       assert_parse("os:time()",
         { tag = 'TopBlock',
-          { tag = 'Invoke',
+          { tag = 'CallMethod',
             {
               tag = 'Id',
               'os',
@@ -648,7 +648,7 @@ describe("Euluna parser", function()
       assert_parse("local a",
         { tag = "TopBlock",
           { tag = "VarDecl",
-            {"local", 'var'},
+            {"local"},
             { "a" }
           }
         }
@@ -659,7 +659,7 @@ describe("Euluna parser", function()
       assert_parse("local a, b",
         { tag = "TopBlock",
           { tag = "VarDecl",
-            {"local", 'var'},
+            {"local"},
             { "a", "b" }
           }
         }
@@ -672,7 +672,7 @@ describe("Euluna parser", function()
       assert_parse("local a = 1",
         { tag = 'TopBlock',
           { tag = 'VarDecl',
-            { 'local', 'var' },
+            { 'local'},
             { 'a' },
             {{tag='number', type='integer', value='1'}}
           }
@@ -684,7 +684,7 @@ describe("Euluna parser", function()
       assert_parse("local a, b = 1, 'str'",
         { tag = 'TopBlock',
           { tag = 'VarDecl',
-            { 'local', 'var' },
+            { 'local'},
             { 'a', 'b' },
             {
               {tag='number', type='integer', value='1'},
@@ -699,7 +699,7 @@ describe("Euluna parser", function()
       assert_parse("local a = function() end",
         { tag = 'TopBlock',
           { tag = 'VarDecl',
-            {'local', 'var'},
+            {'local'},
             { 'a' },
             {
               { tag = "Function",

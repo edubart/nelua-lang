@@ -61,6 +61,13 @@ int main() {
       ]], "3\t3\t1")
     end)
 
+    it("const expressions", function()
+      assert_generate_cpp_and_run([[
+        const a = 1 + 2 + 3
+        print(a)
+      ]], "6")
+    end)
+
     it("numeric fors", function()
       assert_generate_cpp_and_run([[
         local s = 0
@@ -227,6 +234,16 @@ int main() {
         end
         print(sum(1,2))
       ]], "3")
+    end)
+
+    it("return multiple values", function()
+      assert_generate_cpp_and_run([[
+        function f(i)
+          return i+1, i+2
+        end
+        local a, b = f(0)
+        print(a,b)
+      ]], "1\t2")
     end)
 
     it("example1", function()

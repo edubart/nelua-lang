@@ -349,16 +349,6 @@ function Scope:traverse_expr(expr, parenthesis)
   end
 end
 
-function Scope:traverse_exprlist(exprlist)
-  if exprlist.tag == 'exprlist' then
-    for _,expr in ipairs(exprlist) do
-      self:traverse_expr(expr)
-    end
-  else
-    self:traverse_expr(exprlist)
-  end
-end
-
 function Scope:traverse_if(statement)
   local ifs = statement[1]
   local elseblock = statement[2]
@@ -535,7 +525,7 @@ function Scope:traverse_forin(statement)
   local iterator = statement[2]
   local block = statement[3]
 
-  assert(iterator.tag == 'Call')
+  assert(iterator.tag:startswith('Call'))
   local iterwhat = iterator[1]
   local iterargs = iterator[2]
 
@@ -597,10 +587,20 @@ function Scope:traverse_defer(statement)
 end
 
 function Scope:traverse_return(statement)
-  local expr = statement[1]
-  if expr then
+  if #statement > 1 then
+    self:add_include('<tuple>')
+    self:add_indent('return std::make_tuple(')
+    for i,expr in ipairs(statement) do
+      if i > 1 then
+        self:add(', ')
+      end
+      self:traverse_expr(expr)
+    end
+    self:add_ln(');')
+  elseif #statement == 1 then
+    local expr = statement[1]
     self:add_indent('return ')
-    self:traverse_exprlist(expr)
+    self:traverse_expr(expr)
     self:add_ln(';')
   else
     if self.main then
@@ -634,18 +634,36 @@ end
 
 function Scope:traverse_vardecl(statement)
   local vartype = statement[1]
+  local mutability = vartype[2]
   local vars = statement[2]
   local assigns = statement[3]
-  if assigns then
-    assert(#vars == #assigns)
-  end
-  -- TODO: deduced declarations
-  for i, varid, vardef in izip(vars, assigns) do
-    self:add_indent('auto ')
-    self:add(varid)
-    self:add(' = ')
-    self:traverse_expr(vardef)
+  local is_multiple_return = assigns and #assigns == 1 and #vars > 1 and assigns[1].tag:startswith('Call')
+  if is_multiple_return then
+    local callexpr = assigns[1]
+    local pos = statement.pos
+    self:add_include('<tuple>')
+    self:add_indent(fmt('auto __tuple%d = ', pos))
+    self:traverse_inline_call(callexpr)
     self:add_ln(';')
+
+    for i, varid in ipairs(vars) do
+      self:add_indent_ln(fmt('auto& %s = std::get<%d>(__tuple%d);', varid, i-1, pos))
+    end
+  elseif assigns then
+    assert(#vars == #assigns)
+    for i, varid, vardef in izip(vars, assigns) do
+      self:add_indent()
+      if mutability == 'const' then
+        self:add('constexpr ')
+      end
+      self:add('auto ')
+      self:add(varid)
+      self:add(' = ')
+      self:traverse_expr(vardef)
+      self:add_ln(';')
+    end
+  else
+    -- TODO: deduced declarations
   end
 end
 

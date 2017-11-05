@@ -1,4 +1,6 @@
 local inspect = require('inspect')
+local stringx = require('pl.stringx')
+stringx.import()
 
 function dump(...)
   local args = {...}

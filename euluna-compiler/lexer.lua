@@ -117,7 +117,7 @@ local Keywords = {
   "function", "goto", "if", "in", "local", "nil", "not", "or",
   "repeat", "return", "then", "true", "until", "while",
   -- Euluna
-  "export", "global", "continue", "var", "let", "ref",
+  "export", "global", "continue", "var", "let", "ref", "const",
   "switch", "case", "try", "catch", "finally", "throw", "defer",
   "enum", "object"
 }
