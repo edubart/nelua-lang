@@ -238,59 +238,73 @@ function Scope:traverse_tostring(expr)
 end
 
 function Scope:traverse_unaryop(expr)
-  local op = expr.op
+  local op = expr[1]
+  local opexpr = expr[2]
   if op == 'len' then
-    self:traverse_len(expr.expr)
+    self:traverse_len(opexpr)
   elseif op == 'tostring' then
-    self:traverse_tostring(expr.expr)
+    self:traverse_tostring(opexpr)
   else
     self:add(translate_op(op))
 
     local parenthesis = false
     -- convert double negation from `--i` to `-(-i)`
-    if expr.op == 'neg' and expr.expr and expr.expr.op == 'neg' then
+    if op == 'neg' and opexpr and opexpr[1] == 'neg' then
       parenthesis = true
     end
 
     if parenthesis then self:add('(') end
-    self:traverse_expr(expr.expr, true)
+    self:traverse_expr(opexpr, true)
     if parenthesis then self:add(')') end
   end
 end
 
-function Scope:traverse_concat(expr)
-  self:traverse_tostring(expr.lhs)
+function Scope:traverse_concat(lhs, rhs)
+  self:traverse_tostring(lhs)
   self:add(' + ')
-  self:traverse_tostring(expr.rhs)
+  self:traverse_tostring(rhs)
 end
 
-function Scope:traverse_pow(expr)
+function Scope:traverse_pow(lhs, rhs)
   self:add_include('<cmath>')
   self:add('std::pow(')
-  self:traverse_expr(expr.lhs)
+  self:traverse_expr(lhs)
   self:add(', ')
-  self:traverse_expr(expr.rhs)
+  self:traverse_expr(rhs)
   self:add(')')
 end
 
 function Scope:traverse_binaryop(expr)
-  local op = expr.op
+  local op = expr[1]
+  local lhs = expr[2]
+  local rhs = expr[3]
   if op == 'concat' then
-    self:traverse_concat(expr)
+    self:traverse_concat(lhs, rhs)
   elseif op == 'pow' then
-    self:traverse_pow(expr)
+    self:traverse_pow(lhs, rhs)
   else
-    self:traverse_expr(expr.lhs, true)
+    self:traverse_expr(lhs, true)
     self:add(' ')
-    self:add(translate_op(expr.op))
+    self:add(translate_op(op))
     self:add(' ')
-    self:traverse_expr(expr.rhs, true)
+    self:traverse_expr(rhs, true)
   end
+end
+
+function Scope:traverse_id(expr)
+  local name = expr[1]
+  self:add(name)
+end
+
+function Scope:traverse_boolean(expr)
+  self:add('"')
+  self:add(tostring(expr.value))
+  self:add('"')
 end
 
 function Scope:traverse_expr(expr, parenthesis)
   local tag = expr.tag
-  if tag == 'nil' then
+  if tag == 'Nil' then
     self:add('nullptr')
   elseif tag == 'number' then
     self:traverse_number(expr)
@@ -300,14 +314,12 @@ function Scope:traverse_expr(expr, parenthesis)
     if parenthesis then self:add('(') end
     self:traverse_binaryop(expr)
     if parenthesis then self:add(')') end
-  elseif tag == 'identifier' then
-    self:add(expr.name)
+  elseif tag == 'Id' then
+    self:traverse_id(expr)
   elseif tag == 'string' then
     self:traverse_string(expr)
   elseif tag == 'boolean' then
-    self:add('"')
-    self:add(tostring(expr.value))
-    self:add('"')
+    self:traverse_boolean(expr)
   elseif tag == 'Call' then
     self:traverse_inline_call(expr)
   else
@@ -326,48 +338,60 @@ function Scope:traverse_exprlist(exprlist)
 end
 
 function Scope:traverse_if(statement)
-  for i,ifstat in ipairs(statement.ifs) do
+  local ifs = statement[1]
+  local elseblock = statement[2]
+
+  for i,ifstat in ipairs(ifs) do
+    local cond = ifstat[1]
+    local block = ifstat[2]
+
     if i==1 then
       self:add_indent('if(')
     else
       self:add_indent('} else if(')
     end
 
-    self:traverse_expr(ifstat.cond)
+    self:traverse_expr(cond)
     self:add_ln(') {')
 
     local scope = Scope(self)
-    scope:traverse_block(ifstat.block)
+    scope:traverse_block(block)
   end
 
-  if statement.elseblock then
+  if elseblock then
     self:add_indent_ln('} else {')
     local scope = Scope(self)
-    scope:traverse_block(statement.elseblock)
+    scope:traverse_block(elseblock)
   end
 
   self:add_indent_ln('}')
 end
 
 function Scope:traverse_switch(statement)
+  local what = statement[1]
+  local cases = statement[2]
+  local elseblock = statement[3]
+
   self:add_indent('switch(')
-  self:traverse_expr(statement.what)
+  self:traverse_expr(what)
   self:add_ln(') {')
 
-  for i,casestat in ipairs(statement.cases) do
+  for i,casestat in ipairs(cases) do
+    local cond = casestat[1]
+    local block = casestat[2]
     self:add_indent('case ')
-    self:traverse_expr(casestat.cond)
+    self:traverse_expr(cond)
     self:add_ln(': {')
     local scope = Scope(self)
-    scope:traverse_block(casestat.block)
+    scope:traverse_block(block)
     scope:add_indent_ln('break;')
     self:add_indent_ln('}')
   end
 
-  if statement.elseblock then
+  if elseblock then
     self:add_indent_ln('default: {')
     local scope = Scope(self)
-    scope:traverse_block(statement.elseblock)
+    scope:traverse_block(elseblock)
     scope:add_indent_ln('break;')
     self:add_indent_ln('}')
   end
@@ -383,53 +407,63 @@ function Scope:traverse_do(statement)
 end
 
 function Scope:traverse_while(statement)
+  local cond_expr = statement[1]
+  local block = statement[2]
   self:add_indent('while(')
-  self:traverse_expr(statement.cond_expr)
+  self:traverse_expr(cond_expr)
   self:add_ln(') {')
   local scope = Scope(self)
-  scope:traverse_block(statement.block)
+  scope:traverse_block(block)
   self:add_indent_ln('}')
 end
 
 function Scope:traverse_repeat(statement)
+  local block = statement[1]
+  local cond_expr = statement[2]
   self:add_indent_ln('do {')
   local scope = Scope(self)
-  scope:traverse_block(statement.block)
+  scope:traverse_block(block)
   self:add_indent('} while (!(')
-  self:traverse_expr(statement.cond_expr)
+  self:traverse_expr(cond_expr)
   self:add_ln('));')
 end
 
 function Scope:traverse_fornum(statement)
-  local name = statement.id.name
-  local complex_step_expr = statement.step_expr ~= nil and statement.step_expr.tag ~= 'number'
-  local complex_end_expr = statement.end_expr.tag ~= 'number'
+  local name = statement[1]
+  local begin_expr = statement[2]
+  local cmp_op = statement[3]
+  local end_expr = statement[4]
+  local step_expr = statement[5]
+  local block = statement[6]
+
+  local complex_step_expr = step_expr ~= nil and step_expr.tag ~= 'number'
+  local complex_end_expr = end_expr.tag ~= 'number'
   self:add_indent(fmt('for(auto %s = ', name))
-  self:traverse_expr(statement.begin_expr)
+  self:traverse_expr(begin_expr)
   if complex_end_expr then
     self:add(fmt(', __end_%s = ', name))
-    self:traverse_expr(statement.end_expr)
+    self:traverse_expr(end_expr)
   end
   if complex_step_expr then
     self:add(fmt(', __step_%s = ', name))
-    self:traverse_expr(statement.step_expr)
+    self:traverse_expr(step_expr)
   end
 
-  local op = translate_op(statement.cmp_op)
+  local op = translate_op(cmp_op)
   self:add(fmt('; %s %s ', name, op))
 
   if complex_end_expr then
     self:add(fmt('__end_%s', name))
   else
-    self:traverse_expr(statement.end_expr)
+    self:traverse_expr(end_expr)
   end
   self:add(fmt('; %s', name))
   if complex_step_expr then
     self:add(fmt(' += __step_%s', name))
   else
-    if statement.step_expr then
+    if step_expr then
       self:add(' += ')
-      self:traverse_expr(statement.step_expr)
+      self:traverse_expr(step_expr)
     else
       self:add('++')
     end
@@ -437,7 +471,7 @@ function Scope:traverse_fornum(statement)
   self:add_ln(') {')
 
   local scope = Scope(self)
-  scope:traverse_block(statement.block)
+  scope:traverse_block(block)
   self:add_indent_ln('}')
 end
 
@@ -451,11 +485,13 @@ function Scope:traverse_continue(statement)
 end
 
 function Scope:traverse_label(statement)
-  self:add_ln(fmt('%s:', statement.name))
+  local label = statement[1]
+  self:add_ln(fmt('%s:', label))
 end
 
 function Scope:traverse_goto(statement)
-  self:add_indent_ln(fmt('goto %s;', statement.label))
+  local label = statement[1]
+  self:add_indent_ln(fmt('goto %s;', label))
 end
 
 function Scope:traverse_defer(statement)
@@ -467,9 +503,10 @@ function Scope:traverse_defer(statement)
 end
 
 function Scope:traverse_return(statement)
-  if statement.expr then
+  local expr = statement[1]
+  if expr then
     self:add_indent('return ')
-    self:traverse_exprlist(statement.expr)
+    self:traverse_exprlist(expr)
     self:add_ln(';')
   else
     if self.main then
@@ -482,27 +519,37 @@ function Scope:traverse_return(statement)
 end
 
 function Scope:traverse_lambda_function_def(statement)
+  local scope = statement[1]
+  local name = statement[2]
+  local args = statement[3]
+  local body = statement[4]
   self:add_indent('auto ')
-  self:add(statement.name)
+  self:add(name)
   self:add(' = [&](')
-  for i,arg in ipairs(statement.args) do
+  for i,arg in ipairs(args) do
     if i > 1 then
       self:add(', ')
     end
     self:add('auto ')
-    self:add(arg.name)
+    self:add(arg)
   end
   self:add_ln(') {')
   local scope = Scope(self)
-  scope:traverse_block(statement.body)
+  scope:traverse_block(body)
   self:add_indent_ln('};')
 end
 
-function Scope:traverse_assign_def(statement)
-  assert(#statement.vars == #statement.assigns)
-  for i=1,#statement.vars do
-    local varid = statement.vars[i]
-    local vardef = statement.assigns[i]
+function Scope:traverse_vardecl(statement)
+  local vartype = statement[1]
+  local vars = statement[2]
+  local assigns = statement[3]
+  if assigns then
+    assert(#vars == #assigns)
+  end
+  -- TODO: deduced declarations
+  for i=1,#vars do
+    local varid = vars[i]
+    local vardef = assigns[i]
     self:add_indent('auto ')
     self:add(varid)
     self:add(' = ')
@@ -512,10 +559,12 @@ function Scope:traverse_assign_def(statement)
 end
 
 function Scope:traverse_assign(statement)
-  assert(#statement.vars == #statement.assigns)
-  for i=1,#statement.vars do
-    local varexpr = statement.vars[i]
-    local vardef = statement.assigns[i]
+  local vars = statement[1]
+  local assigns = statement[2]
+  assert(#vars == #assigns)
+  for i=1,#vars do
+    local varexpr = vars[i]
+    local vardef = assigns[i]
     self:add_indent()
     self:traverse_expr(varexpr)
     self:add(' = ')
@@ -525,13 +574,15 @@ function Scope:traverse_assign(statement)
 end
 
 function Scope:traverse_inline_call(statement)
-  local what = statement.what
+  local what = statement[1]
+  local args = statement[2]
 
   -- try builit functions first
-  if what.tag == 'identifier' then
-    local func = builtin_functions[what.name]
+  if what.tag == 'Id' then
+    local name = what[1]
+    local func = builtin_functions[name]
     if func then
-      func(self, statement.args)
+      func(self, args)
       return
     end
   end
@@ -539,8 +590,8 @@ function Scope:traverse_inline_call(statement)
   -- proceed as a normal function
   self:traverse_expr(what)
   self:add('(')
-  local numargs = #statement.args
-  for i,arg in pairs(statement.args) do
+  local numargs = #args
+  for i,arg in pairs(args) do
     self:traverse_expr(arg)
     if i < numargs then
       self:add(', ')
@@ -580,16 +631,16 @@ function Scope:traverse_block(block)
       self:traverse_label(statement)
     elseif tag== 'Goto' then
       self:traverse_goto(statement)
-    elseif tag == 'Return' then
-      self:traverse_return(statement)
+    elseif tag == 'VarDecl' then
+      self:traverse_vardecl(statement)
     elseif tag == 'FunctionDef' then
       self:traverse_lambda_function_def(statement)
-    elseif tag == 'AssignDef' then
-      self:traverse_assign_def(statement)
-    elseif tag == 'Assign' then
-      self:traverse_assign(statement)
     elseif tag == 'Call' then
       self:traverse_call(statement)
+    elseif tag == 'Assign' then
+      self:traverse_assign(statement)
+    elseif tag == 'Return' then
+      self:traverse_return(statement)
     else
       error('unknown statement "' .. tag .. '"')
     end

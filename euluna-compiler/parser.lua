@@ -12,85 +12,19 @@ re.setlabels(syntax_errors.label_to_int)
 
 local defs = tablex.copy(lexer)
 
-function defs.to_nil(pos) return {tag='nil', pos=pos} end
-function defs.to_ellipsis(pos) return {tag='ellipsis', pos=pos} end
-
-function defs.to_identifier(pos, name)
-  return {tag = 'identifier', pos=pos, name=name}
-end
-
-function defs.to_main_block(pos, block)
-  block.tag = 'TopBlock'
-  block.pos = pos
-  return block
-end
-
-function defs.to_block(pos, block)
-  block.tag = 'block'
-  block.pos = pos
-  return block
-end
-
-function defs.to_do(block)
-  block.tag = 'Do'
-  return block
-end
-
-function defs.to_while(pos, cond_expr, block)
-  return {tag='While', pos=pos, cond_expr=cond_expr, block=block}
-end
-
-function defs.to_repeat(pos, block, cond_expr)
-  return {tag='Repeat', pos=pos, cond_expr=cond_expr, block=block}
-end
-
-function defs.to_if_stat(pos, ifparts, elseblock)
-  local ifs = {}
-  for i=1,math.floor(#ifparts / 2) do
-    ifs[i] = {cond=ifparts[i*2-1], block=ifparts[i*2]}
-  end
-  return {tag="If", pos=pos, ifs=ifs, elseblock=elseblock}
-end
-
-function defs.to_switch(pos, what, caseparts, elseblock)
-  local cases = {}
-  for i=1,math.floor(#caseparts / 2) do
-    cases[i] = {cond=caseparts[i*2-1], block=caseparts[i*2]}
-  end
-  return {tag="Switch", pos=pos, what=what, cases=cases, elseblock=elseblock}
-end
-
-function defs.to_throw(pos)
-  return {tag='Throw', pos=pos}
-end
-
-function defs.to_try(pos)
-  return {tag='Try', pos=pos}
-end
-
-function defs.to_for_num(pos, identifier, begin_expr, cmp_op, end_expr, step_expr, block)
-  return {tag="ForNum", pos=pos, id=identifier, block=block,
-          begin_expr=begin_expr, end_expr=end_expr, step_expr=step_expr,
-          cmp_op=cmp_op}
-end
-
-function defs.to_return_stat(pos, expr)
-  return { tag='Return', pos=pos, expr=expr }
-end
-
 function defs.to_chain_binary_op(pos, matches)
   local lhs = matches[1]
   for i=2,#matches,2 do
     local opname = matches[i]
     local rhs = matches[i+1]
-    lhs = {tag="BinaryOp", pos=pos, lhs=lhs, op=opname, rhs=rhs}
+    lhs = {tag="BinaryOp", pos=pos, opname, lhs, rhs}
   end
   return lhs
 end
 
 function defs.to_binary_op(pos, lhs, opname, rhs)
   if rhs then
-    return {tag="BinaryOp", pos=pos, lhs=lhs, op=opname, rhs=rhs}
+    return {tag="BinaryOp", pos=pos, opname, lhs, rhs}
   end
   return lhs
 end
@@ -98,7 +32,7 @@ end
 function defs.to_chain_unary_op(pos, opnames, expr)
   for i=#opnames,1,-1 do
     local opname = opnames[i]
-    expr = {tag="UnaryOp", pos=pos, op=opname, expr=expr}
+    expr = {tag="UnaryOp", pos=pos, opname, expr}
   end
   return expr
 end
@@ -107,103 +41,33 @@ function defs.to_chain_index_or_call(pos, primary_expr, exprs)
   local last_expr = primary_expr
   if exprs then
     for _,expr in ipairs(exprs) do
-      expr.what = last_expr
+      table.insert(expr, 1, last_expr)
       last_expr = expr
     end
   end
   return last_expr
 end
 
-function defs.to_dot_index(pos, index)
-  return {tag="DotIndex", pos=pos, index=index}
+function defs.to_tag(pos, tag, ...)
+  return {tag=tag, pos=pos, ...}
 end
 
-function defs.to_array_index(pos, index)
-  return {tag="ArrayIndex", pos=pos, index=index}
-end
-
-function defs.to_invoke(pos, name, args)
-  return {tag='Invoke', pos=pos, name=name, args=args}
-end
-
-function defs.to_call(pos, args)
-  return {tag='Call', pos=pos, args=args}
-end
-
-function defs.to_field_pair(pos, key, expr)
-  return {tag='pair',pos=pos,key=key,expr=expr}
-end
-
-function defs.to_table(pos, fields)
-  return {tag='Table',pos=pos,fields=fields}
-end
-
-function defs.to_function(pos, args, body)
-  return {tag='Function',pos=pos,args=args,body=body}
-end
-
-function defs.to_function_def(pos, identifier, args, body)
-  return {tag='FunctionDef',pos=pos,name=identifier.name,args=args,body=body}
-end
-
-function defs.to_assign(pos, vars, exprs)
-  return {tag='Assign', pos=pos, vars=vars, assigns=exprs}
-end
-
-function defs.to_assign_def(pos, vars, exprs)
-  local vardecls = {}
-  for i,var in ipairs(vars) do
-    vardecls[i] = vars[i].name
-  end
-  return {tag='AssignDef', pos=pos, vars=vardecls, assigns=exprs}
-end
-
-function defs.to_decl(pos, vars)
-  local vardecls = {}
-  for i,var in ipairs(vars) do
-    vardecls[i] = vars[i].name
-  end
-  return {tag='Decl', pos=pos, vars=vardecls}
-end
-
-function defs.to_local(node)
-  node.varscope = 'local'
+function defs.to_retag(pos, tag, node)
+  node.pos = pos
+  node.tag = tag
   return node
 end
 
-function defs.to_continue() return {tag='Continue'} end
-function defs.to_break() return {tag='Break'} end
-
-function defs.to_defer(block)
-  block.tag = 'Defer'
-  return block
-end
-
-function defs.to_label(name) return {tag='Label',name=name} end
-function defs.to_goto(label) return {tag='Goto',label=label} end
-
-function defs.to_nothing() return nil end
-
-function defs.assign_vartype(varscope, vartype, node)
-  node.varscope = varscope
-  node.vartype = vartype
-  return node
-end
-
-function defs.assign_funcscope(varscope, node)
-  node.varscope = varscope
-  return node
-end
-
+function defs.to_nil() return nil end
 
 local grammar = re.compile([==[
   code <-
     %SHEBANG? %SKIP
-    ({} block) -> to_main_block
+    ({} '' -> 'TopBlock' block ) -> to_retag
     (!. / %{ExpectedEOF})
 
   block <-
-    ({} {| stat* return_stat? |}) -> to_block
+    ({} '' -> 'block' {| stat* return_stat? |}) -> to_retag
 
   stat <-
       if_stat
@@ -219,133 +83,121 @@ local grammar = re.compile([==[
     / defer_stat
     / label_stat
     / goto_stat
-    / vars_stat
-    / function_stat
+    / vardecl_stat
+    / functiondef_stat
     / call_stat
     / assignment_stat
     / %SEMICOLON
 
+  return_stat <-
+    ({} %RETURN -> 'Return' expr? %SEMICOLON?) -> to_tag
+
   if_stat <-
-    ({}
+    ({} %IF -> 'If'
       {|
-      %IF (expr / %{ExpectedExpression}) (%THEN / %{ExpectedThen}) block
-      (%ELSEIF (expr / %{ExpectedExpression}) (%THEN / %{ExpectedThen}) block)*
+      {| expr_expected THEN_expected block |}
+      ({| %ELSEIF expr_expected THEN_expected block |})*
       |} (%ELSE block)?
-      (%END / %{ExpectedEnd})
-    ) -> to_if_stat
+      END_expected
+    ) -> to_tag
 
   switch_stat <-
-    ({}
-      %SWITCH (expr / %{ExpectedExpression})
-      {| ((%CASE (expr / %{ExpectedExpression}) (%THEN / %{ExpectedThen})
-        block)+ / %{ExpectedCase}) |}
+    ({} %SWITCH -> 'Switch'
+      expr_expected
+      {|(
+        ({| %CASE expr_expected THEN_expected
+             block
+        |})+ / %{ExpectedCase})
+      |}
       (%ELSE block)?
-      (%END / %{ExpectedEnd})
-    ) -> to_switch
+      END_expected
+    ) -> to_tag
 
   try_stat <-
-    ({}
-      %TRY
+    ({} %TRY -> 'Try'
         block
       {| (%CATCH
         %LPAREN
-          (identifier / %{ExpectedIdentifier})
-        (%RPAREN / %{UnclosedParenthesis})
+          NAME_expected
+        RPAREN_expected
         block)* |}
       ((%CATCH block) / capture_nil)
       (%FINALLY block)?
-    ) -> to_try
+    ) -> to_tag
 
   throw_stat <-
-    ({} %THROW (expr / %{ExpectedExpression})) -> to_throw
+    ({} %THROW -> 'Throw' expr_expected) -> to_tag
 
   do_stat <-
-    (%DO block (%END / %{ExpectedEnd})) -> to_do
+    ({} %DO -> 'Do' block END_expected) -> to_retag
 
   while_stat <-
-    ({}
-      %WHILE (expr / %{ExpectedExpression}) (%DO / %{ExpectedDo})
+    ({} %WHILE -> 'While'
+      expr_expected (%DO / %{ExpectedDo})
       block
-      (%END / %{ExpectedEnd})
-    ) -> to_while
+      END_expected
+    ) -> to_tag
 
   repeat_stat <-
-    ({}
-      %REPEAT
+    ({} %REPEAT -> 'Repeat'
       block
-      %UNTIL (expr / %{ExpectedExpression})
-    ) -> to_repeat
-
-  break_stat <-
-    %BREAK -> to_break
-
-  continue_stat <-
-    %CONTINUE -> to_continue
-
-  defer_stat <-
-    (%DEFER block (%END / %{ExpectedEnd})) -> to_defer
-
-  label_stat <-
-    ( %DBLCOLON
-      (%NAME / %{ExpectedIdentifier})
-      (%DBLCOLON / %{UnclosedLabel})
-    ) -> to_label
-
-  goto_stat <-
-    ( %GOTO (%NAME / %{ExpectedIdentifier}) ) -> to_goto
+      %UNTIL expr_expected
+    ) -> to_tag
 
   for_stat <-
     %FOR (for_num / for_in / %{ExpectedForRange})
 
   for_num <-
-    ({}
-      identifier '='
-        (expr / %{ExpectedExpression})
+    ({} '' -> 'ForNum'
+      %NAME '='
+        expr_expected
       %COMMA (op_cmp / '' -> 'le')
-        (expr / %{ExpectedExpression})
-      (%COMMA (expr / %{ExpectedExpression}) / capture_nil)
+        expr_expected
+      (%COMMA expr_expected / capture_nil)
       (%DO / %{ExpectedDo})
         block
-      (%END / %{ExpectedEnd})
-    ) -> to_for_num
+      END_expected
+    ) -> to_tag
 
   for_in <- !. -- not implemented yet
 
-  vars_stat <-
-    ((var_scope (var_type / capture_nil) / capture_nil var_type)
-      (vars_def / vars_decl)
-    ) -> assign_vartype
+  break_stat <-
+    ({} %BREAK -> 'Break') -> to_tag
+
+  continue_stat <-
+    ({} %CONTINUE -> 'Continue') -> to_tag
+
+  defer_stat <-
+    ({} %DEFER -> 'Defer' block END_expected) -> to_retag
+
+  label_stat <-
+    ({} %DBLCOLON -> 'Label'
+      NAME_expected
+      (%DBLCOLON / %{UnclosedLabel})
+    ) -> to_tag
+
+  goto_stat <-
+    ({} %GOTO -> 'Goto' NAME_expected ) -> to_tag
+
+  vardecl_stat <-
+    ({} '' -> 'VarDecl'
+      {| (var_scope? var_type) / var_scope '' -> 'var' |}
+      {| name_list |}
+      (%ASSIGN (expr_list / %{ExpectedExpression}))?
+    ) -> to_tag
 
   var_scope <-
-    %LOCAL -> 'local' / %GLOBAL -> 'global'
+    %LOCAL -> 'local' / %GLOBAL -> 'global' / %EXPORT -> 'export'
 
   var_type <-
     %VAR -> 'var' / %REF -> 'ref' / %LET -> 'let'
 
-  function_stat <-
-    ((var_scope / capture_nil)
-      function_def
-    ) -> assign_funcscope
-
-  function_def <-
-    ({} %FUNCTION
-        (identifier / %{ExpectedIdentifier})
-        (function_body / %{ExpectedFunctionBody})
-    ) -> to_function_def
-
-  vars_def <-
-    ({} {| identifier_list |}
-        %ASSIGN
-        (expr_list / %{ExpectedExpression})
-    ) -> to_assign_def
-
-  vars_decl <-
-    ({} {| identifier_list |}
-    ) -> to_decl
-
-  return_stat <-
-    ({} %RETURN expr? %SEMICOLON?
-    ) -> to_return_stat
+  functiondef_stat <-
+    ({} '' -> 'FunctionDef' (var_scope / capture_nil)
+      %FUNCTION
+      NAME_expected
+      (function_body / %{ExpectedFunctionBody})
+    ) -> to_tag
 
   call_stat <-
     ({} primary_expr
@@ -353,10 +205,11 @@ local grammar = re.compile([==[
     ) -> to_chain_index_or_call
 
   assignment_stat <-
-    ({} var_list
+    ({} '' -> 'Assign'
+        var_list
         %ASSIGN
         (expr_list / %{ExpectedExpression})
-    ) -> to_assign
+    ) -> to_tag
 
   var_list <- {| (var (%COMMA var)*)? |}
 
@@ -376,7 +229,7 @@ local grammar = re.compile([==[
     / function
     / table
     / suffixed_expr
-    / (%LPAREN expr %RPAREN)
+    / (%LPAREN expr RPAREN_expected)
 
   suffixed_expr <-
     ({}
@@ -386,76 +239,79 @@ local grammar = re.compile([==[
 
   primary_expr <-
     identifier /
-    %LPAREN expr (%RPAREN / %{UnclosedParenthesis})
+    %LPAREN expr RPAREN_expected
 
   index_expr <-
-    ({} %DOT
-        (%NAME / %{ExpectedIdentifier})
-    ) -> to_dot_index
+    ({} %DOT -> 'DotIndex'
+        NAME_expected
+    ) -> to_tag
     /
-    ({} %LBRACKET
-        expr
+    ({} %LBRACKET -> 'ArrayIndex'
+        expr_expected
         (%RBRACKET / %{UnclosedBracket})
-    ) -> to_array_index
+    ) -> to_tag
 
   call_expr <-
-    ({} %COLON
-        (%NAME / %{ExpectedMethodIdentifier})
+    ({} %COLON -> 'Invoke'
+        NAME_expected
         (call_args / %{ExpectedCall})
-    ) -> to_invoke
+    ) -> to_tag
     /
-    ({} call_args ) -> to_call
+    ({} & %LPAREN '' -> 'Call' call_args ) -> to_tag
 
   call_args <-
     %LPAREN
       expr_list
-    (%RPAREN / %{UnclosedParenthesis})
+    RPAREN_expected
 
   function <-
-    ({} %FUNCTION
+    ({} %FUNCTION -> 'Function'
         (function_body / %{ExpectedFunctionBody})
-    ) -> to_function
+    ) -> to_tag
 
   function_body <-
     %LPAREN
-      body_args_list
-    (%RPAREN / %{UnclosedParenthesis})
+      {| (name_list (%COMMA varargs)? / varargs)? |}
+    RPAREN_expected
       block
-    (%END / %{UnclosedFunction})
-
-  body_args_list <-
-    {| (identifier_list (%COMMA varargs)? / varargs)? |}
+    END_expected
 
   table <-
-    ({} %LCURLY
+    ({} %LCURLY -> 'Table'
           table_field_list
         (%RCURLY / %{UnclosedCurly})
-    ) -> to_table
+    ) -> to_tag
 
   table_field_list <-
-    {| (table_field (%SEPARATOR table_field)* %SEPARATOR?)? |}
+    (table_field (%SEPARATOR table_field)* %SEPARATOR?)?
 
   table_field <- field_pair / expr
 
   field_pair <-
-    ({} field_key
+    ({} '' -> 'Pair' field_key
         %ASSIGN
-        (expr / %{ExpectedExpression})
-    ) -> to_field_pair
+        expr_expected
+    ) -> to_tag
 
   field_key <-
     (   %LBRACKET
-          (expr / %{ExpectedExpression})
+          expr_expected
         (%RBRACKET / %{UnclosedBracket})
       / %NAME
     ) & %ASSIGN
 
-  identifier_list <- identifier (%COMMA identifier)*
+  identifier <- ({} '' -> 'Id' %NAME) -> to_tag
+  name_list <- %NAME (%COMMA %NAME)*
   expr_list <- {| (expr (%COMMA expr)*)? |}
-  identifier <- ({} %NAME) -> to_identifier
-  varargs <- ({} %ELLIPSIS) -> to_ellipsis
-  nil <- ({} %NIL) -> to_nil
-  capture_nil <- '' -> to_nothing
+  varargs <- ({} %ELLIPSIS -> 'Ellipsis') -> to_tag
+  nil <- ({} %NIL -> 'Nil') -> to_tag
+  capture_nil <- '' -> to_nil
+  expr_expected <- expr / %{ExpectedExpression}
+
+  THEN_expected <- %THEN / %{ExpectedThen}
+  END_expected <- %END / %{ExpectedEnd}
+  NAME_expected <- %NAME / %{ExpectedName}
+  RPAREN_expected <- %RPAREN / %{UnclosedParenthesis}
 
   op_or     <- %OR -> 'or'
   op_and    <- %AND -> 'and'
