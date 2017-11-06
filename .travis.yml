@@ -41,7 +41,7 @@ before_install:
   - luarocks install luacov-coveralls
   - luarocks install busted
 install:
-  - luarocks install --only-deps rockspec/euluna-dev-0.rockspec
+  - luarocks install --only-deps rockspec/euluna-dev-1.rockspec
 script:
   - busted -c -r complete
   - luacheck euluna-compiler

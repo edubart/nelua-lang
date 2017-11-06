@@ -42,7 +42,7 @@ Next install Euluna compiler using LuaRocks:
 luarocks install --server=http://luarocks.org/dev euluna
 ```
 
-You can now run hello world demo from this repository with:
+You can now compiler and run hello world demo from this repository with:
 
 ```bash
 euluna examples/helloworld.euluna
@@ -51,9 +51,10 @@ euluna examples/helloworld.euluna
 You can specify a different C++ compiler binary exporting the CXX environment
 (for example `export CXX=clang++-5.0`).
 
-If you want you can read the generated C++ code inside "euluna_cache" folder.
+If you want you can read the generated C++ code inside `euluna_cache` folder
+or passing `--print-codegen` flag.
 
 ## Status
 
-Very new, being developing.
+Very new, being developed.
 Currently is coded in Lua 5.1, in the future it maybe coded using itself.

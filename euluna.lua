@@ -23,16 +23,11 @@ if options.print_ast then
   return
 end
 
-if options.print_ast then
-  print('\n=== Generated AST:')
-  dump_ast(ast)
-end
-
 local generated_code = cppcoder.generate(ast, options)
 
 if options.print_codegen then
-  print('\n=== Generated C++:')
   print(generated_code)
+  return
 end
 
 local outputfile = options.inputfile:gsub('.euluna', '')
