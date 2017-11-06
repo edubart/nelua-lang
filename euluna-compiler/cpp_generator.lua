@@ -1,6 +1,5 @@
 local class = require 'pl.class'
 local tablex = require 'pl.tablex'
-local util = require 'euluna-compiler/util'
 local builtin_generator = require 'euluna-compiler/cpp_builtin_generator'
 local builtin_functions = require 'euluna-compiler/cpp_builtin_functions'
 local Scope = class()
@@ -386,7 +385,7 @@ function Scope:traverse_switch(statement)
   self:traverse_expr(what)
   self:add_ln(') {')
 
-  for i,casestat in ipairs(cases) do
+  for _,casestat in ipairs(cases) do
     local cond = casestat[1]
     local block = casestat[2]
     self:add_indent('case ')
@@ -410,7 +409,7 @@ end
 
 function Scope:traverse_try(statement)
   local tryblock = statement[1]
-  local catches = statement[2]
+  --local catches = statement[2]
   local catchall_block = statement[3]
   local finally_block = statement[4]
 
@@ -425,9 +424,7 @@ function Scope:traverse_try(statement)
 
   tryscope:traverse_scoped_block(tryblock)
 
-  if #catches > 0 then
-    -- TODO
-  end
+  -- TODO catches
 
   if catchall_block then
     tryscope:add_indent_ln('} catch(...) {')
@@ -545,7 +542,7 @@ function Scope:traverse_forin(statement)
   end
 
   self:add('(')
-  for i,iterarg in ipairs(iterargs) do
+  for _,iterarg in ipairs(iterargs) do
     self:traverse_expr(iterarg)
     self:add(', ')
   end
@@ -561,11 +558,11 @@ function Scope:traverse_forin(statement)
   self:add_indent_ln('});')
 end
 
-function Scope:traverse_break(statement)
+function Scope:traverse_break()
   self:add_indent_ln('break;')
 end
 
-function Scope:traverse_continue(statement)
+function Scope:traverse_continue()
   self:add_indent_ln('continue;')
 end
 
@@ -613,7 +610,7 @@ function Scope:traverse_return(statement)
 end
 
 function Scope:traverse_lambda_function_def(statement)
-  local scope = statement[1]
+  --local varscope = statement[1]
   local name = statement[2]
   local args = statement[3]
   local body = statement[4]
@@ -651,7 +648,7 @@ function Scope:traverse_vardecl(statement)
     end
   elseif assigns then
     assert(#vars == #assigns)
-    for i, varid, vardef in izip(vars, assigns) do
+    for _, varid, vardef in izip(vars, assigns) do
       self:add_indent()
       if mutability == 'const' then
         self:add('constexpr ')
@@ -662,8 +659,8 @@ function Scope:traverse_vardecl(statement)
       self:traverse_expr(vardef)
       self:add_ln(';')
     end
-  else
-    -- TODO: deduced declarations
+  -- TODO: deduced declarations
+  --else
   end
 end
 

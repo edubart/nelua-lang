@@ -1,4 +1,3 @@
-local lpeg = require "lpeglabel"
 local re = require 'relabel'
 local syntax_errors = require "euluna-compiler.syntax_errors"
 

@@ -5,7 +5,6 @@ local lpeg = require "lpeglabel"
 local re = require "relabel"
 local lexer = require "euluna-compiler.lexer"
 local syntax_errors = require "euluna-compiler.syntax_errors"
-local inspect = require "inspect"
 local tablex = require "pl.tablex"
 
 re.setlabels(syntax_errors.label_to_int)
@@ -48,7 +47,7 @@ function defs.to_chain_ternary_op(pos, matches)
   return lhs
 end
 
-function defs.to_chain_index_or_call(pos, primary_expr, exprs)
+function defs.to_chain_index_or_call(primary_expr, exprs)
   local last_expr = primary_expr
   if exprs then
     for _,expr in ipairs(exprs) do
@@ -217,8 +216,8 @@ local grammar = re.compile([==[
     ) -> to_tag
 
   call_stat <-
-    ({} primary_expr
-        {| ((index_expr+ & call_expr) / call_expr)+ |}
+    ( primary_expr
+      {| ((index_expr+ & call_expr) / call_expr)+ |}
     ) -> to_chain_index_or_call
 
   assignment_stat <-
@@ -231,8 +230,7 @@ local grammar = re.compile([==[
   var_list <- {| (var (%COMMA var)*)? |}
 
   var <-
-    ({}
-      primary_expr
+    ( primary_expr
       {| ((call_expr+ & index_expr) / index_expr)+ |}
     ) -> to_chain_index_or_call
     / identifier
@@ -249,8 +247,7 @@ local grammar = re.compile([==[
     / (%LPAREN expr RPAREN_expected)
 
   suffixed_expr <-
-    ({}
-      primary_expr
+    ( primary_expr
       {| (index_expr / call_expr)* |}
     ) -> to_chain_index_or_call
 

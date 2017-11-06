@@ -15,6 +15,9 @@ env:
     - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
   matrix:
     - LUA="lua 5.1"
+    - LUA="lua 5.3"
+    - LUAJIT="luajit 2.0"
+    - LUAJIT="luajit 2.1"
 branches:
   only:
     - master
@@ -25,11 +28,13 @@ before_install:
   - export PATH=$PATH:~/hererocks/bin
   - eval $(luarocks path --bin)
   - luarocks install luacheck
+  - luarocks install luacov
   - luarocks install luacov-coveralls
   - luarocks install busted
 install:
   - luarocks install --only-deps rockspec/euluna-dev-0.rockspec
 script:
   - busted -c
+  - luacheck euluna-compiler
 after_success:
   - luacov-coveralls -v

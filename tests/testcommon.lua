@@ -67,7 +67,7 @@ function assert_match_all(pattern, strs)
     if expected_ast then
       assert_ast(ast, expected_ast)
     end
-    assert(rest == nil, msg)
+    assert(rest == nil)
   end
 end
 

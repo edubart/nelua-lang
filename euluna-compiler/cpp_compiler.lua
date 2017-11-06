@@ -58,7 +58,7 @@ function cpp_compiler.compile(code, outfile, options)
   end
 
   -- compile the file
-  local ok, ret, stdout, stderr = plutil.executeex(cmd)
+  local ok, ret, _, stderr = plutil.executeex(cmd)
   assert(stderr == '', stderr)
   assert(ok and ret == 0, "compilation failed")
 end
