@@ -7,12 +7,8 @@ function util.tohex(s)
 	end))
 end
 
-function util.sha1sum(s, raw)
-  local sum = digest.new('sha1'):final(s)
-  if not raw then
-    return util.tohex(sum)
-  end
-  return sum
+function util.sha1sum(s)
+  return util.tohex(digest.new('sha1'):final(s))
 end
 
 return util

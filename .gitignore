@@ -1,2 +1,3 @@
 euluna_cache
+*.out
 /build*

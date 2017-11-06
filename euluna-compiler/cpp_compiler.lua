@@ -14,14 +14,20 @@ local compilers = {
     cppflags = "-Wall -Wextra -std=c++17",
     compile_obj = "$(exe) $(cppflags) -o $(outfile) -c $(inputfile)",
     compile_program = "$(exe) $(cppflags) -o $(outfile) $(inputfile)"
+  },
+  clang = {
+    exe = "clang++",
+    cppflags = "-Wall -Wextra -std=c++17",
+    compile_obj = "$(exe) $(cppflags) -o $(outfile) -c $(inputfile)",
+    compile_program = "$(exe) $(cppflags) -o $(outfile) $(inputfile)"
   }
 }
 
 local function get_compile_command(inputfile, outfile, options)
   -- choose the compiler
   local compiler = compilers.gcc
-  if options.compiler and compilers[options.compiler] then
-    compiler = compilers[options.compiler]
+  if options.cc and compilers[options.cc] then
+    compiler = compilers[options.cc]
   end
 
   -- generate compile command
@@ -58,8 +64,13 @@ function cpp_compiler.compile(code, outfile, options)
   end
 
   -- compile the file
-  local ok, ret, _, stderr = plutil.executeex(cmd)
-  assert(stderr == '', stderr)
+  local ok, ret, stdout, stderr = plutil.executeex(cmd)
+  if stdout and not options.quiet then
+    if #stdout > 0 then io.stdout:write(stdout) end
+  end
+  if stderr and #stderr > 0 then
+    io.stderr:write(stderr)
+  end
   assert(ok and ret == 0, "compilation failed")
 end
 

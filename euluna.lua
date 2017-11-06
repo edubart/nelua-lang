@@ -10,33 +10,34 @@ local plfile = require('pl.file')
 
 local argparser = argparse("euluna", "Euluna Compiler v0.1")
 argparser:argument("inputfile", "Input source file")
+argparser:option('--cc', 'Compiler', 'gcc')
 argparser:flag('--print-ast', 'Print the AST')
 argparser:flag('--print-codegen', 'Print the generated code')
-local args = argparser:parse()
+local options = argparser:parse()
 
-local input = assert(plfile.read(args.inputfile))
-local ast = assert(parser.parse(input, args))
+local input = assert(plfile.read(options.inputfile))
+local ast = assert(parser.parse(input, options))
 
-if args.print_ast then
+if options.print_ast then
   dump_ast(ast)
   return
 end
 
-if args.print_ast then
+if options.print_ast then
   print('\n=== Generated AST:')
   dump_ast(ast)
 end
 
-local generated_code = cppcoder.generate(ast, args)
+local generated_code = cppcoder.generate(ast, options)
 
-if args.print_codegen then
+if options.print_codegen then
   print('\n=== Generated C++:')
   print(generated_code)
 end
 
-local outputfile = args.inputfile:gsub('.euluna', '')
+local outputfile = options.inputfile:gsub('.euluna', '')
 
-local ok, ret, stdout, stderr = cppcompiler.compile_and_run(generated_code, outputfile)
+local ok, ret, stdout, stderr = cppcompiler.compile_and_run(generated_code, outputfile, options)
 
 if stdout and #stdout > 0 then
   io.stdout:write(stdout)

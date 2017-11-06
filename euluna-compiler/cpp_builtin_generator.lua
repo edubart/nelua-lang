@@ -3,12 +3,17 @@ local builtins = {}
 function builtins.to_string(scope)
   scope:add_include('<string>')
   scope:add_include('<sstream>')
+  scope:add_include('<cstddef>')
   scope:add[[
+inline const std::string& to_string(const std::nullptr_t&) {
+  static std::string snil("nil");
+  return snil;
+}
 inline const std::string& to_string(const std::string& s) { return s; }
 inline const std::string& to_string(const bool& b) {
-  static std::string btrue("true");
-  static std::string bfalse("false");
-  return b ? btrue : bfalse;
+  static std::string strue("true");
+  static std::string sfalse("false");
+  return b ? strue : sfalse;
 }
 
 inline std::string to_string(const auto& v) {

@@ -1,10 +1,15 @@
 return {
   _all = {
-    --coverage = true
+    --coverage = true,
+    pattern = 'test_',
+    ROOT = {"tests"},
+    ['exclude-tags'] = {'compiler'},
   },
   default = {
     verbose = true,
-    pattern = 'test_',
-    ROOT = {"tests"},
-  }
+  },
+  complete = {
+    verbose = true,
+    ['exclude-tags'] = {},
+  },
 }

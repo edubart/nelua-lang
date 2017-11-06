@@ -1,3 +1,7 @@
 modules = {
-  ['euluna-compiler.*'] = 'euluna_compiler'
+  ['euluna-compiler.*'] = '.',
+  ['euluna'] = './euluna.lua'
+}
+exclude = {
+  'euluna%-compiler/global'
 }

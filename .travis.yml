@@ -4,15 +4,16 @@ sudo: required
 dist: trusty
 compiler:
   - gcc
+  - clang
 addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
+      - llvm-toolchain-trusty-5.0
     packages:
       - g++-7
+      - clang-5.0
 env:
-  global:
-    - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
   matrix:
     - LUA="lua 5.1"
     - LUA="lua 5.3"
@@ -22,19 +23,24 @@ branches:
   only:
     - master
 before_install:
-  - eval "${MATRIX_EVAL}"
+  - mkdir -p latest-gcc-symlinks
+  - ln -s /usr/bin/gcc-7 latest-gcc-symlinks/gcc
+  - ln -s /usr/bin/g++-7 latest-gcc-symlinks/g++
+  - ln -s /usr/bin/clang-5.0 latest-gcc-symlinks/clang
+  - ln -s /usr/bin/clang++-5.0 latest-gcc-symlinks/clang++
+  - export PATH=$PWD/latest-gcc-symlinks:$PATH
   - sudo pip install hererocks
   - hererocks ~/hererocks -r^ --$LUA --cflags=$LUA_CFLAGS
   - export PATH=$PATH:~/hererocks/bin
   - eval $(luarocks path --bin)
   - luarocks install luacheck
-  - luarocks install luacov
+  - luarocks install cluacov
   - luarocks install luacov-coveralls
   - luarocks install busted
 install:
   - luarocks install --only-deps rockspec/euluna-dev-0.rockspec
 script:
-  - busted -c
+  - busted -c -r complete
   - luacheck euluna-compiler
 after_success:
   - luacov-coveralls -v

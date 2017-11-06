@@ -32,27 +32,44 @@ int main() {
     assert_generate_cpp_and_run("return 1+2", '', 3)
   end)
 
-  it("should print the correct values", function()
-    assert_generate_cpp_and_run("print('hello world')", 'hello world\n')
-    assert_generate_cpp_and_run([[
-      local b = true
-      local i = 1234
-      local h = 0x123
-      local u = 1234_u64
-      local f = 1234.56_f
-      local d = 1234.56
-      local s1 = 's1'
-      local s2 = "s2"
-      local c = 65_c
-      print(b, i, h, u, f, d, s1, s2, c)
-    ]], "true\t1234\t291\t1234\t1234.56\t1234.56\ts1\ts2\tA")
-
-    assert_generate_cpp_and_run([[
-      print('\\ \a\b\f\n\r\t\v\'\"??!\x1\x2\x3\x0')
-    ]], '\\ \a\b\f\n\r\t\v\'\"??!\01\02\03')
-  end)
-
   describe("should compile and run example", function()
+    it("primitives", function()
+      assert_generate_cpp_and_run("print('hello world')", 'hello world\n')
+      assert_generate_cpp_and_run([[
+        local b = true
+        local i   = 1_i   + 1_int   + 1 + 0x1
+        local u   = 1_u   + 1_uint
+        local i8  = 1_i8  + 1_int8
+        local i16 = 1_i16 + 1_int16
+        local i32 = 1_i32 + 1_int32
+        local i64 = 1_i64 + 1_int64
+        local u8  = 1_u8  + 1_uint8
+        local u16 = 1_u16 + 1_uint16
+        local u32 = 1_u32 + 1_uint32
+        local u64 = 1_u64 + 1_uint64
+        local f = 0.1_f + 0.2_f32 + 0.4_float32 + 0.8_float + 0_f
+        local d = 0.1_d + 0.2_f64 + 0.4_float64 + 0.8_double + 0_d
+        local s = 's1' + "s2"
+        local c = 65_c
+        local n = nil
+        print(b, i, u, i8, i16, i32, i64, u8, u16, u32, u64, f, d, s, c, n)
+      ]], "true\t4\t2\t2\t2\t2\t2\t2\t2\t2\t2\t1.5\t1.5\ts1s2\tA\tnil")
+    end)
+
+    it("expressions", function()
+      assert_generate_cpp_and_run([[
+        local a = -(-1)
+        local s = $1 .. $2
+        print(a, s)
+      ]], '1\t12')
+    end)
+
+    it("escaped strings", function()
+      assert_generate_cpp_and_run([[
+        print('\\ \a\b\f\n\r\t\v\'\"??!\x1\x2\x3\x0')
+      ]], '\\ \a\b\f\n\r\t\v\'\"??!\01\02\03')
+    end)
+
     it("swapping values", function()
       assert_generate_cpp_and_run([[
         local a, b, c = 1, 2, 3
@@ -77,7 +94,7 @@ int main() {
         print(s)
 
         s=0
-        for i=1,<10 do
+        for i=1,<10,1 do
           s = s + i
         end
         print(s)
@@ -93,7 +110,14 @@ int main() {
           s = s + i
         end
         print(s)
-      ]], '55\n45\n45\n55')
+
+        function proxy(i) return i end
+        s=0
+        for i=10,>=proxy(0),-1 do
+          s = s + i
+        end
+        print(s)
+      ]], '55\n45\n45\n55\n55')
     end)
 
     it("if statements", function()
@@ -225,6 +249,17 @@ int main() {
         local d = 2 ^ 2
         print(s, slen, d)
       ]], "123\t3\t4")
+    end)
+
+    it("function early return", function()
+      assert_generate_cpp_and_run([[
+        function hello()
+          print('hello')
+          if true then return end
+          print('world')
+        end
+        hello()
+      ]], "hello")
     end)
 
     it("functions", function()
