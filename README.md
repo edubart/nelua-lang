@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/edubart/euluna-lang.svg?branch=master)](https://travis-ci.org/edubart/euluna-lang)
+[![Coverage Status](https://coveralls.io/repos/github/edubart/euluna-lang/badge.svg)](https://coveralls.io/github/edubart/euluna-lang)
 
 # Euluna
 

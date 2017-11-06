@@ -1,0 +1,3 @@
+modules = {
+  ['euluna-compiler.*'] = 'euluna_compiler'
+}
