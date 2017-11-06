@@ -1,4 +1,4 @@
-#!/usr/bin/luajit
+#!/usr/bin/env lua
 
 require('euluna-compiler.global')
 

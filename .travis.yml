@@ -4,7 +4,6 @@ sudo: required
 dist: trusty
 compiler:
   - gcc
-  - clang
 addons:
   apt:
     sources:
@@ -15,14 +14,16 @@ addons:
       - clang-5.0
 env:
   matrix:
-    - LUA="lua 5.1"
+    #- LUA="lua 5.1"
     - LUA="lua 5.3"
-    - LUA="luajit 2.0"
+    #- LUA="luajit 2.0"
     - LUA="luajit 2.1"
 branches:
   only:
     - master
 before_install:
+  - unset CXX
+  - unset CC
   - mkdir -p latest-gcc-symlinks
   - ln -s /usr/bin/gcc-7 latest-gcc-symlinks/gcc
   - ln -s /usr/bin/g++-7 latest-gcc-symlinks/g++
@@ -30,7 +31,7 @@ before_install:
   - ln -s /usr/bin/clang++-5.0 latest-gcc-symlinks/clang++
   - export PATH=$PWD/latest-gcc-symlinks:$PATH
   - sudo pip install hererocks
-  - hererocks ~/hererocks -r^ --$LUA --cflags=$LUA_CFLAGS
+  - hererocks ~/hererocks -r^ --$LUA
   - export PATH=$PATH:~/hererocks/bin
   - eval $(luarocks path --bin)
   - luarocks install luacheck
