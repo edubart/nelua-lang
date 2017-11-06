@@ -1,18 +1,25 @@
+os: linux
+language: cpp
 sudo: required
 dist: trusty
 compiler:
   - gcc
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-7
 env:
   global:
-    - LUAROCKS=2.3.0
-    - CC=gcc-7
-    - CXX=g++-7
+    - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
   matrix:
     - LUA="lua 5.1"
 branches:
   only:
     - master
 before_install:
+  - eval "${MATRIX_EVAL}"
   - sudo pip install hererocks
   - hererocks ~/hererocks -r^ --$LUA --cflags=$LUA_CFLAGS
   - export PATH=$PATH:~/hererocks/bin
