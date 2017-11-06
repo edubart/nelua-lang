@@ -1,5 +1,5 @@
 package = 'euluna'
-version = 'dev-0'
+version = 'dev-1'
 
 source = {
   url = "git://github.com/edubart/euluna-lang",
@@ -17,7 +17,7 @@ description = {
 dependencies = {
   'penlight',
   'lpeglabel',
-  'sha2',
+  'lsha2',
   'inspect',
   'argparse',
 }

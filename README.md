@@ -45,7 +45,7 @@ luarocks install --server=http://luarocks.org/dev euluna
 You can now run hello world demo from this repository with:
 
 ```bash
-./euluna.lua examples/helloworld.euluna
+euluna examples/helloworld.euluna
 ```
 
 You can specify a different C++ compiler binary exporting the CXX environment
