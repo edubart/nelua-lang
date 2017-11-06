@@ -4,6 +4,8 @@ sudo: required
 dist: trusty
 compiler:
   - gcc
+cache:
+  apt: true
 addons:
   apt:
     sources:

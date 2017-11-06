@@ -33,7 +33,8 @@ A quick overview of the language can be seen [here](https://edubart.github.io/eu
 
 ## Installing
 
-First install GCC with C++17 support into your system.
+First install gcc or clang with C++17 support into your system
+(such as gcc>=7 or clang>=5.0).
 
 Next install Euluna compiler using LuaRocks:
 
@@ -44,8 +45,11 @@ luarocks install --server=http://luarocks.org/dev euluna
 You can now run hello world demo from this repository with:
 
 ```bash
-euluna examples/helloworld.euluna
+./euluna.lua examples/helloworld.euluna
 ```
+
+You can specify a different C++ compiler binary exporting the CXX environment
+(for example `export CXX=clang++-5.0`).
 
 If you want you can read the generated C++ code inside "euluna_cache" folder.
 

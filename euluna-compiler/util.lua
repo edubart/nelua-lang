@@ -1,5 +1,4 @@
 local util = {}
-local digest = require 'openssl.digest'
 
 function util.tohex(s)
 	return (string.gsub(s, ".", function (c)
@@ -8,7 +7,7 @@ function util.tohex(s)
 end
 
 function util.sha1sum(s)
-  return util.tohex(digest.new('sha1'):final(s))
+  return require('lsha2').hash256(s)
 end
 
 return util

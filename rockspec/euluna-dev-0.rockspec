@@ -17,7 +17,7 @@ description = {
 dependencies = {
   'penlight',
   'lpeglabel',
-  'luaossl',
+  'sha2',
   'inspect',
   'argparse',
 }
