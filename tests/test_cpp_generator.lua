@@ -49,7 +49,7 @@ int main() {
 
     assert_generate_cpp_and_run([[
       print('\\ \a\b\f\n\r\t\v\'\"??!\x1\x2\x3\x0')
-    ]], '\\ \a\b\f\n\r\t\v\'\"??!\x01\x02\x03')
+    ]], '\\ \a\b\f\n\r\t\v\'\"??!\01\02\03')
   end)
 
   describe("should compile and run example", function()
