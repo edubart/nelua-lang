@@ -3,6 +3,8 @@
 
 # Euluna
 
+[![Join the chat at https://gitter.im/euluna-lang/Lobby](https://badges.gitter.im/euluna-lang/Lobby.svg)](https://gitter.im/euluna-lang/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 **Warning this language a WIP (work in progress).**
 
 An elegant efficient system and applications programming language. Statically
