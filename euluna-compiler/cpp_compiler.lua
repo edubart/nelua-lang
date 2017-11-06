@@ -26,6 +26,9 @@ local function get_compile_command(inputfile, outfile, options)
 
   -- generate compile command
   local env = {inputfile = inputfile, outfile = outfile}
+  if os.getenv('CXX') then
+    env.exe = os.getenv('CXX')
+  end
   setmetatable(env, {__index = compiler})
   local cmd = pltemplate.substitute(compiler.compile_program, env)
   return cmd
