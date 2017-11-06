@@ -51,9 +51,29 @@ int main() {
         local d = 0.1_d + 0.2_f64 + 0.4_float64 + 0.8_double + 0_d
         local s = 's1' + "s2"
         local c = 65_c
+        local a = [1, 2, 3]
         local n = nil
-        print(b, i, u, i8, i16, i32, i64, u8, u16, u32, u64, f, d, s, c, n)
-      ]], "true\t4\t2\t2\t2\t2\t2\t2\t2\t2\t2\t1.5\t1.5\ts1s2\tA\tnil")
+        print(b, i, u, i8, i16, i32, i64, u8, u16, u32, u64, f, d, s, c, a, n)
+      ]], "true\t4\t2\t2\t2\t2\t2\t2\t2\t2\t2\t1.5\t1.5\ts1s2\tA\t[1, 2, 3]\tnil")
+    end)
+
+    it("arrays", function()
+      assert_generate_cpp_and_run([[
+        local a = [1,2,3]
+        print(a)
+        print(#a)
+        print(a[0])
+        a[0] = 9
+        print(a[0])
+      ]], '[1, 2, 3]\n3\n1\n9')
+    end)
+
+    it("nested arrays", function()
+      assert_generate_cpp_and_run([=[
+        local a = [ [1],[2],[3] ]
+        print(a)
+        print(#a)
+      ]=], '[[1], [2], [3]]\n3')
     end)
 
     it("expressions", function()
@@ -265,6 +285,15 @@ int main() {
     it("functions", function()
       assert_generate_cpp_and_run([[
         function sum(a, b)
+          return a+b
+        end
+        print(sum(1,2))
+      ]], "3")
+    end)
+
+    it("function as value", function()
+      assert_generate_cpp_and_run([[
+        local sum = function(a, b)
           return a+b
         end
         print(sum(1,2))

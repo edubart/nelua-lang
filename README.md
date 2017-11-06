@@ -3,7 +3,7 @@
 **Warning this language a WIP (work in progress).**
 
 An elegant efficient system and applications programming language. Statically
-typed compiled and can be mixed with C++ and Lua code. 
+typed compiled and can be mixed with C++ and Lua code.
 
 ## Goals
 

@@ -243,6 +243,7 @@ local grammar = re.compile([==[
     / varargs
     / function
     / table
+    / array
     / suffixed_expr
     / (%LPAREN expr RPAREN_expected)
 
@@ -289,6 +290,12 @@ local grammar = re.compile([==[
     RPAREN_expected
       block
     END_expected
+
+  array <-
+    ({} %LBRACKET -> 'Array'
+      expr (%COMMA expr)*
+      (%RBRACKET / %{UnclosedBracket})
+    ) -> to_tag
 
   table <-
     ({} %LCURLY -> 'Table'

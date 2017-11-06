@@ -319,6 +319,44 @@ function Scope:traverse_boolean(expr)
   self:add(tostring(expr.value))
 end
 
+function Scope:traverse_array(expr)
+  assert(#expr >= 1)
+  self:add_include('<array>')
+  self:add('std::array<decltype(')
+  self:traverse_expr(expr[1])
+  self:add(fmt('), %d>{', #expr))
+  for i,elem_expr in ipairs(expr) do
+    if i > 1 then
+      self:add(', ')
+    end
+    self:traverse_expr(elem_expr)
+  end
+  self:add('}')
+end
+
+function Scope:traverse_array_index(expr)
+  local what = expr[1]
+  local index = expr[2]
+  self:traverse_expr(what)
+  self:add('[')
+  self:traverse_expr(index)
+  self:add(']')
+end
+
+function Scope:traverse_inline_lambda(args, body)
+  self:add('[&](')
+  for i,arg in ipairs(args) do
+    if i > 1 then
+      self:add(', ')
+    end
+    self:add('auto ')
+    self:add(arg)
+  end
+  self:add_ln(') {')
+  self:traverse_scoped_block(body)
+  self:add_indent_ln('}')
+end
+
 function Scope:traverse_expr(expr, parenthesis)
   local tag = expr.tag
   if tag == 'Nil' then
@@ -341,8 +379,14 @@ function Scope:traverse_expr(expr, parenthesis)
     self:traverse_string(expr)
   elseif tag == 'boolean' then
     self:traverse_boolean(expr)
+  elseif tag == 'Array' then
+    self:traverse_array(expr)
+  elseif tag == 'ArrayIndex' then
+    self:traverse_array_index(expr)
   elseif tag == 'Call' then
     self:traverse_inline_call(expr)
+  elseif tag == 'Function' then
+    self:traverse_inline_lambda(unpack(expr))
   else
     error('unknown expression ' .. tag)
   end
@@ -611,29 +655,19 @@ end
 
 function Scope:traverse_lambda_function_def(statement)
   --local varscope = statement[1]
-  local name = statement[2]
-  local args = statement[3]
-  local body = statement[4]
+  local name, args, body = statement[2], statement[3], statement[4]
   self:add_indent('auto ')
   self:add(name)
-  self:add(' = [&](')
-  for i,arg in ipairs(args) do
-    if i > 1 then
-      self:add(', ')
-    end
-    self:add('auto ')
-    self:add(arg)
-  end
-  self:add_ln(') {')
-  self:traverse_scoped_block(body)
-  self:add_indent_ln('};')
+  self:add(' = ')
+  self:traverse_inline_lambda(args, body)
+  self:add_ln(';')
 end
 
 function Scope:traverse_vardecl(statement)
   local vartype = statement[1]
-  local mutability = vartype[2]
   local vars = statement[2]
   local assigns = statement[3]
+  local mutability = vartype[2]
   local is_multiple_return = assigns and #assigns == 1 and #vars > 1 and assigns[1].tag:startswith('Call')
   if is_multiple_return then
     local callexpr = assigns[1]

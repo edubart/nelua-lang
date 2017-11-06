@@ -55,12 +55,17 @@ describe("Euluna parser", function()
       )
     end)
 
-    --[[
     it("with multiple values", function()
       assert_parse("return 1,2,3",
+        { tag = 'TopBlock',
+          { tag = 'Return',
+            { tag='number', type='integer', value="1" },
+            { tag='number', type='integer', value="2" },
+            { tag='number', type='integer', value="3" }
+          }
+        }
       )
     end)
-    ]]
   end)
 
   describe("should parse expression", function()
@@ -283,6 +288,21 @@ describe("Euluna parser", function()
               tag = 'UnaryOp',
               "neg",
               {tag='number', type='integer', value="1"},
+            }
+          }
+        }
+      )
+    end)
+  end)
+
+  describe("should parse array", function()
+    it("empty", function()
+      assert_parse("return [1, 2]",
+        { tag = 'TopBlock',
+          { tag = 'Return',
+            { tag = 'Array',
+              {tag='number', type='integer', value="1"},
+              {tag='number', type='integer', value="2"}
             }
           }
         }
