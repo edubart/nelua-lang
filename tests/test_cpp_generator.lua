@@ -52,9 +52,9 @@ int main() {
         local s = 's1' + "s2"
         local c = 65_c
         local a = [1, 2, 3]
-        local n = nil
-        print(b, i, u, i8, i16, i32, i64, u8, u16, u32, u64, f, d, s, c, a, n)
-      ]], "true\t4\t2\t2\t2\t2\t2\t2\t2\t2\t2\t1.5\t1.5\ts1s2\tA\t[1, 2, 3]\tnil")
+        --local n = nil
+        print(b, i, u, i8, i16, i32, i64, u8, u16, u32, u64, f, d, s, c, a)
+      ]], "true\t4\t2\t2\t2\t2\t2\t2\t2\t2\t2\t1.5\t1.5\ts1s2\tA\t[1, 2, 3]")
     end)
 
     it("arrays", function()
@@ -74,6 +74,20 @@ int main() {
         print(a)
         print(#a)
       ]=], '[[1], [2], [3]]\n3')
+    end)
+
+    it("tables", function()
+      assert_generate_cpp_and_run([=[
+        local t = {1, 2, a="a", b="b"}
+        print(t[1] as int)
+        t[1] = 9
+        print(t[1] as int)
+        print(#t)
+        print(t["a"] as string)
+        t["a"] = "X"
+        print(t["a"] as string)
+        table.insert(t, 3)
+      ]=], '1\n9\n2\na\nX')
     end)
 
     it("expressions", function()

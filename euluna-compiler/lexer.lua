@@ -46,7 +46,7 @@ lexer.NUMBER = T[[
                      exponential -> to_exponential /
                      decimal -> to_decimal /
                      integer -> to_integer
-  literal_number  <- (normal_number '_' {(%a %w* / %{MalformedNumber})}) -> to_literal
+  literal_number  <- (normal_number '_' {(%a %w* / %{MalformedLiteral})}) -> to_literal
 
   exponential     <- (decimal / integer) [eE] ([+-]? %d+ / %{MalformedNumber})
   decimal         <- %d+ '.' %d* / '.' %d+
@@ -89,10 +89,11 @@ lexer.ESCAPESEQUENCE = G[[
 ]]
 
 -- strings
-function lexer.to_string(pos, str) return {tag='string', pos=pos, value=str} end
+function lexer.to_string(pos, str, literal) return {tag='string', pos=pos, value=str, literal=literal} end
 
 lexer.STRING  = T[[
-  string          <- ({} (short_string / long_string)) -> to_string
+  string          <- ({} (short_string / long_string) literal?) -> to_string
+  literal         <- '_' {(%a %w* / %{MalformedLiteral})}
 
   long_string     <- long_open ({long_content*} long_close / %{UnclosedLongString})
   long_content    <- !long_close .
@@ -118,7 +119,7 @@ local Keywords = {
   -- Euluna
   "export", "global", "continue", "var", "let", "ref", "const",
   "switch", "case", "try", "catch", "finally", "throw", "defer",
-  "enum", "object"
+  "enum", "object", "as"
 }
 
 local keyword_pattern = ''

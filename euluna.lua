@@ -16,7 +16,12 @@ argparser:flag('--print-codegen', 'Print the generated code')
 local options = argparser:parse()
 
 local input = assert(plfile.read(options.inputfile))
-local ast = assert(parser.parse(input, options))
+local ast, err = parser.parse(input, options)
+
+if not ast then
+  io.stderr:write(err.message)
+  return 1
+end
 
 if options.print_ast then
   dump_ast(ast)

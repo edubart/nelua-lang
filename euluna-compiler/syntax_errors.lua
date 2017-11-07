@@ -3,6 +3,7 @@ local syntax_errors = {}
 local errors = {
   { label = "SyntaxError", msg = "syntax error" },
   { label = "MalformedNumber", msg = "malformed number" },
+  { label = "MalformedLiteral", msg = "malformed literal" },
   { label = "UnclosedLongString", msg = "unclosed long string" },
   { label = "UnclosedShortString", msg = "unclosed short string" },
   { label = "UnclosedLongComment", msg = "unclosed long comment" },

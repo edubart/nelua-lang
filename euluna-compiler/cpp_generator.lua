@@ -211,10 +211,27 @@ local function quote_string(str)
 end
 
 function Scope:traverse_string(stat)
-  self:add_include('<string>')
-  self:add('std::string("')
-  self:add(quote_string(stat.value))
-  self:add('")')
+  local str
+  local literal
+  if type(stat) == 'string' then
+    str = stat
+  else
+    str = stat.value
+    literal = stat.literal
+  end
+
+  if literal == 'c' or literal == 'char' then
+    self:add("'")
+    self:add(quote_string(str.sub(1,1)))
+    self:add("'")
+  elseif literal == nil then
+    self:add_include('<string>')
+    self:add('std::string("')
+    self:add(quote_string(str))
+    self:add('")')
+  else
+      error('unknown string literal ' .. literal)
+  end
 end
 
 function Scope:traverse_len(expr)
@@ -273,6 +290,23 @@ function Scope:traverse_pow(lhs, rhs)
   self:add(')')
 end
 
+function Scope:traverse_as(lhs, rhs)
+  assert(rhs.tag == 'Id')
+  local typename = rhs[1]
+  self:add_bulitin_code('as')
+  self:add('euluna::as<')
+  if typename == 'string' then
+    self:add('std::string')
+  elseif typename == 'any' then
+    self:add('std::any')
+  else
+    self:traverse_expr(rhs)
+  end
+  self:add('>(')
+  self:traverse_expr(lhs)
+  self:add(')')
+end
+
 function Scope:traverse_binaryop(expr)
   local op = expr[1]
   local lhs = expr[2]
@@ -281,6 +315,8 @@ function Scope:traverse_binaryop(expr)
     self:traverse_concat(lhs, rhs)
   elseif op == 'pow' then
     self:traverse_pow(lhs, rhs)
+  elseif op == 'as' then
+    self:traverse_as(lhs, rhs)
   else
     self:traverse_expr(lhs, true)
     self:add(' ')
@@ -334,6 +370,45 @@ function Scope:traverse_array(expr)
   self:add('}')
 end
 
+function Scope:traverse_table(items)
+  self:add_bulitin_code('table')
+
+  self:add('euluna::table({')
+
+  -- array part
+  local first = true
+  for i,item in ipairs(items) do
+    if item.tag ~= 'Pair' then
+      if not first then
+        self:add(', ')
+      end
+      self:traverse_expr(item)
+      first = false
+    end
+  end
+  self:add('}, {')
+
+  -- hashmap part
+  first = true
+  for i,item in ipairs(items) do
+    if item.tag == 'Pair' then
+      if not first then
+        self:add(', ')
+      end
+      local key_expr = item[1]
+      local val_expr = item[2]
+      self:add('{')
+      self:traverse_expr(key_expr)
+      self:add(',')
+      self:traverse_expr(val_expr)
+      self:add('}')
+      first = false
+    end
+  end
+
+  self:add('})')
+end
+
 function Scope:traverse_array_index(expr)
   local what = expr[1]
   local index = expr[2]
@@ -341,6 +416,15 @@ function Scope:traverse_array_index(expr)
   self:add('[')
   self:traverse_expr(index)
   self:add(']')
+end
+
+function Scope:traverse_dot_index(expr)
+  local what = expr[1]
+  local index = expr[2]
+  self:add('euluna::')
+  self:traverse_expr(what)
+  self:add('::')
+  self:add(index)
 end
 
 function Scope:traverse_inline_lambda(args, body)
@@ -360,7 +444,8 @@ end
 function Scope:traverse_expr(expr, parenthesis)
   local tag = expr.tag
   if tag == 'Nil' then
-    self:add('nullptr')
+    self:add_include('<any>')
+    self:add('std::any()')
   elseif tag == 'number' then
     self:traverse_number(expr)
   elseif tag == 'UnaryOp' then
@@ -375,7 +460,7 @@ function Scope:traverse_expr(expr, parenthesis)
     if parenthesis then self:add(')') end
   elseif tag == 'Id' then
     self:traverse_id(expr)
-  elseif tag == 'string' then
+  elseif tag == 'string' or type(expr) == 'string' then
     self:traverse_string(expr)
   elseif tag == 'boolean' then
     self:traverse_boolean(expr)
@@ -383,10 +468,14 @@ function Scope:traverse_expr(expr, parenthesis)
     self:traverse_array(expr)
   elseif tag == 'ArrayIndex' then
     self:traverse_array_index(expr)
+  elseif tag == 'DotIndex' then
+    self:traverse_dot_index(expr)
+  elseif tag == 'Table' then
+    self:traverse_table(expr)
   elseif tag == 'Call' then
     self:traverse_inline_call(expr)
   elseif tag == 'Function' then
-    self:traverse_inline_lambda(unpack(expr))
+    self:traverse_inline_lambda(expr[1], expr[2])
   else
     error('unknown expression ' .. tag)
   end
@@ -572,34 +661,45 @@ function Scope:traverse_forin(statement)
 
   -- try builin iterators first
   local builtin = false
+  local mutable = false
   if iterwhat.tag == 'Id' then
     local name = iterwhat[1]
     if name == 'items' or name == 'mitems' then
-      self:add_bulitin_code('iterator_items')
-      self:add_indent(fmt('euluna::iterator_%s', name))
       builtin = true
+      mutable = name == 'mitems'
+      assert(#iterargs == 1)
+      iterator = iterargs[1]
     end
   end
 
-  if not builtin then
-    self:traverse_expr(iterwhat)
+  if mutable then
+    self:add_indent('for(auto ')
+  else
+    self:add_indent('for(auto& ')
   end
 
-  self:add('(')
-  for _,iterarg in ipairs(iterargs) do
-    self:traverse_expr(iterarg)
-    self:add(', ')
+  if #itvars > 1 then
+    self:add('[')
   end
-  self:add('[&](')
+
   for i,varname in ipairs(itvars) do
     if i > 1 then
-      self:add(', ')
+      self:add(',')
     end
-    self:add(fmt('auto& %s', varname))
+    self:add(varname)
   end
+
+  if #itvars > 1 then
+    self:add(']')
+  end
+
+  self:add(' : ')
+
+  self:traverse_expr(iterator)
+
   self:add_ln(') {')
   self:traverse_scoped_block(block)
-  self:add_indent_ln('});')
+  self:add_indent_ln('}')
 end
 
 function Scope:traverse_break()
@@ -673,13 +773,22 @@ function Scope:traverse_vardecl(statement)
     local callexpr = assigns[1]
     local pos = statement.pos
     self:add_include('<tuple>')
-    self:add_indent(fmt('auto __tuple%d = ', pos))
+    self:add_indent(fmt('auto ', pos))
+    if #vars > 1 then
+      self:add('[')
+      for i, varid in ipairs(vars) do
+        if i > 1 then
+          self:add(',')
+        end
+        self:add(varid)
+      end
+      self:add(']')
+    else
+      self:add(vars[1])
+    end
+    self:add(' = ')
     self:traverse_inline_call(callexpr)
     self:add_ln(';')
-
-    for i, varid in ipairs(vars) do
-      self:add_indent_ln(fmt('auto& %s = std::get<%d>(__tuple%d);', varid, i-1, pos))
-    end
   elseif assigns then
     assert(#vars == #assigns)
     for _, varid, vardef in izip(vars, assigns) do

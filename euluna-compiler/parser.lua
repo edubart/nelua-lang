@@ -160,7 +160,7 @@ local grammar = re.compile([==[
 
   for_num <-
     ({} '' -> 'ForNum'
-      %NAME '='
+      %NAME %ASSIGN
         expr_expected
       %COMMA (op_cmp / '' -> 'le')
         expr_expected
@@ -335,6 +335,7 @@ local grammar = re.compile([==[
   NAME_expected <- %NAME / %{ExpectedName}
   RPAREN_expected <- %RPAREN / %{UnclosedParenthesis}
 
+  op_as     <- %AS -> 'as'
   op_or     <- %OR -> 'or'
   op_and    <- %AND -> 'and'
   op_cmp    <- %LT -> 'lt' /
@@ -374,8 +375,9 @@ local grammar = re.compile([==[
   expr8     <- ({}    expr9  (op_concat   expr8 )?   )   -> to_binary_op
   expr9     <- ({} {| expr10 (op_add      expr10)* |})   -> to_chain_binary_op
   expr10    <- ({} {| expr11 (op_mul      expr11)* |})   -> to_chain_binary_op
-  expr11    <- ({} {| op_unary* |} expr12)               -> to_chain_unary_op
-  expr12    <- ({} simple_expr (op_pow expr11)?)         -> to_binary_op
+  expr11    <- ({} {| expr12 (op_as      expr12)* |})    -> to_chain_binary_op
+  expr12    <- ({} {| op_unary* |} expr13)               -> to_chain_unary_op
+  expr13    <- ({} simple_expr (op_pow expr12)?)         -> to_binary_op
 
 ]==], defs)
 
