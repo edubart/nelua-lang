@@ -157,6 +157,12 @@ function Scope:traverse_number(num)
     elseif l == 'i8' or l == 'int8' then
       self:add_include('<cstdint>')
       self:add('int8_t(') self:add(num.value) self:add(')')
+    elseif l == 'isize' then
+      self:add_include('<cstddef>')
+      self:add('std::ptrdiff_t(') self:add(num.value) self:add(')')
+    elseif l == 'usize' then
+      self:add_include('<cstddef>')
+      self:add('std::size_t(') self:add(num.value) self:add(')')
     elseif l == 'f32' or l == 'f' or l == 'float32' or l == 'float' then
       if num.type == 'decimal' then
         self:add(num.value) self:add('f')
@@ -175,6 +181,10 @@ function Scope:traverse_number(num)
       self:add(num.value)
     elseif l == 'u' or l == 'uint' then
       self:add(num.value) self:add('u')
+    elseif l == 'l' or l == 'long' then
+      self:add(num.value) self:add('l')
+    elseif l == 'ul' or l == 'ulong' then
+      self:add(num.value) self:add('ul')
     else
       error('unknown number literal ' .. l)
     end
@@ -222,7 +232,7 @@ function Scope:traverse_string(stat)
 
   if literal == 'c' or literal == 'char' then
     self:add("'")
-    self:add(quote_string(str.sub(1,1)))
+    self:add(quote_string(str:sub(1,1)))
     self:add("'")
   elseif literal == nil then
     self:add_include('<string>')
@@ -377,7 +387,7 @@ function Scope:traverse_table(items)
 
   -- array part
   local first = true
-  for i,item in ipairs(items) do
+  for _,item in ipairs(items) do
     if item.tag ~= 'Pair' then
       if not first then
         self:add(', ')
@@ -390,7 +400,7 @@ function Scope:traverse_table(items)
 
   -- hashmap part
   first = true
-  for i,item in ipairs(items) do
+  for _,item in ipairs(items) do
     if item.tag == 'Pair' then
       if not first then
         self:add(', ')
@@ -438,7 +448,7 @@ function Scope:traverse_inline_lambda(args, body)
   end
   self:add_ln(') {')
   self:traverse_scoped_block(body)
-  self:add_indent_ln('}')
+  self:add_indent('}')
 end
 
 function Scope:traverse_expr(expr, parenthesis)
@@ -660,12 +670,10 @@ function Scope:traverse_forin(statement)
   local iterargs = iterator[2]
 
   -- try builin iterators first
-  local builtin = false
   local mutable = false
   if iterwhat.tag == 'Id' then
     local name = iterwhat[1]
     if name == 'items' or name == 'mitems' then
-      builtin = true
       mutable = name == 'mitems'
       assert(#iterargs == 1)
       iterator = iterargs[1]

@@ -47,14 +47,19 @@ int main() {
         local u16 = 1_u16 + 1_uint16
         local u32 = 1_u32 + 1_uint32
         local u64 = 1_u64 + 1_uint64
+        local l  = 1_l + 1_long
+        local ul  = 1_ul + 1_ulong
+        local is  = 1_isize
+        local us  = 1_usize
         local f = 0.1_f + 0.2_f32 + 0.4_float32 + 0.8_float + 0_f
         local d = 0.1_d + 0.2_f64 + 0.4_float64 + 0.8_double + 0_d
         local s = 's1' + "s2"
         local c = 65_c
+        local c2 = 'A'_c
         local a = [1, 2, 3]
-        --local n = nil
-        print(b, i, u, i8, i16, i32, i64, u8, u16, u32, u64, f, d, s, c, a)
-      ]], "true\t4\t2\t2\t2\t2\t2\t2\t2\t2\t2\t1.5\t1.5\ts1s2\tA\t[1, 2, 3]")
+        local n = nil
+        print(b, i, u, i8, i16, i32, i64, u8, u16, u32, u64, l, ul, is, us, f, d, s, c, c2, a)
+      ]], "true\t4\t2\t2\t2\t2\t2\t2\t2\t2\t2\t2\t2\t1\t1\t1.5\t1.5\ts1s2\tA\tA\t[1, 2, 3]")
     end)
 
     it("arrays", function()
