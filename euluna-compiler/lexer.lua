@@ -119,7 +119,7 @@ local Keywords = {
   -- Euluna
   "export", "global", "continue", "var", "let", "ref", "const",
   "switch", "case", "try", "catch", "finally", "throw", "defer",
-  "enum", "object", "as"
+  "enum", "object", "as", "of", "discard"
 }
 
 local keyword_pattern = ''

@@ -29,12 +29,14 @@ int main() {
     assert_generate_cpp_and_run("return", '', 0)
     assert_generate_cpp_and_run("return 0", '', 0)
     assert_generate_cpp_and_run("return 1", '', 1)
-    assert_generate_cpp_and_run("return 1+2", '', 3)
   end)
 
   describe("should compile and run example", function()
-    it("primitives", function()
+    it("hello world", function()
       assert_generate_cpp_and_run("print('hello world')", 'hello world\n')
+    end)
+
+    it("primitives", function()
       assert_generate_cpp_and_run([[
         local b = true
         local i   = 1_i   + 1_int   + 1 + 0x1
@@ -47,19 +49,26 @@ int main() {
         local u16 = 1_u16 + 1_uint16
         local u32 = 1_u32 + 1_uint32
         local u64 = 1_u64 + 1_uint64
-        local l  = 1_l + 1_long
-        local ul  = 1_ul + 1_ulong
         local is  = 1_isize
         local us  = 1_usize
-        local f = 0.1_f + 0.2_f32 + 0.4_float32 + 0.8_float + 0_f
-        local d = 0.1_d + 0.2_f64 + 0.4_float64 + 0.8_double + 0_d
+        local f = 0.2_f32 + 0.4_float32
+        local d = 0.2_f64 + 0.4_float64
         local s = 's1' + "s2"
         local c = 65_c
         local c2 = 'A'_c
         local a = [1, 2, 3]
         local n = nil
-        print(b, i, u, i8, i16, i32, i64, u8, u16, u32, u64, l, ul, is, us, f, d, s, c, c2, a)
-      ]], "true\t4\t2\t2\t2\t2\t2\t2\t2\t2\t2\t2\t2\t1\t1\t1.5\t1.5\ts1s2\tA\tA\t[1, 2, 3]")
+        discard n
+        print(b, i, u, i8, i16, i32, i64, u8, u16, u32, u64, is, us, f, d, s, c, c2, a)
+      ]], "true\t4\t2\t2\t2\t2\t2\t2\t2\t2\t2\t1\t1\t0.6\t0.6\ts1s2\tA\tA\t[1, 2, 3]")
+    end)
+
+    it("casting with as", function()
+      assert_generate_cpp_and_run([[
+        local b = 1 as bool
+        local i = 8.9 as int
+        print(b,i)
+      ]], "true\t8")
     end)
 
     it("arrays", function()
@@ -70,7 +79,10 @@ int main() {
         print(a[0])
         a[0] = 9
         print(a[0])
-      ]], '[1, 2, 3]\n3\n1\n9')
+
+        local b = [5] of double
+        print(b[0])
+      ]], '[1, 2, 3]\n3\n1\n9\n5')
     end)
 
     it("nested arrays", function()
@@ -83,16 +95,18 @@ int main() {
 
     it("tables", function()
       assert_generate_cpp_and_run([=[
-        local t = {1, 2, a="a", b="b"}
-        print(t[1] as int)
-        t[1] = 9
-        print(t[1] as int)
-        print(#t)
-        print(t["a"] as string)
-        t["a"] = "X"
-        print(t["a"] as string)
-        table.insert(t, 3)
-      ]=], '1\n9\n2\na\nX')
+        local a = {1, 2}
+        print(a[0])
+        a[0] = 9
+        print(a[0])
+        print(#a)
+        local m = {a="1", b="2"}
+        print(m["a"])
+        m["a"] = "X"
+        print(m["a"])
+
+        local a2 = {1,2} of double
+      ]=], '1\n9\n2\n1\nX')
     end)
 
     it("expressions", function()

@@ -355,6 +355,21 @@ describe("Euluna parser", function()
               } } } )
     end)
 
+    it("with `of` operator", function()
+      assert_parse("return {1,2,3} of double",
+        { tag = 'TopBlock',
+          { tag = 'Return',
+            { tag='BinaryOp',
+              'of',
+              { tag = 'Table',
+                {tag='number', type='integer', value='1'},
+                {tag='number', type='integer', value='2'},
+                {tag='number', type='integer', value='3'}
+              },
+              { tag = 'Id', 'double' }
+            } } } )
+    end)
+
     it("with multiple fields", function()
       assert_parse([[return {
         a=a, [a]=a, [nil]=nil, [true]=true,

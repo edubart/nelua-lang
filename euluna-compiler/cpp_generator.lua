@@ -163,13 +163,13 @@ function Scope:traverse_number(num)
     elseif l == 'usize' then
       self:add_include('<cstddef>')
       self:add('std::size_t(') self:add(num.value) self:add(')')
-    elseif l == 'f32' or l == 'f' or l == 'float32' or l == 'float' then
+    elseif l == 'f32' or l == 'float32' then
       if num.type == 'decimal' then
         self:add(num.value) self:add('f')
       else
         self:add('float(') self:add(num.value) self:add(')')
       end
-    elseif l == 'f64' or l == 'd' or l == 'float64' or l == 'double' then
+    elseif l == 'f64' or l == 'float64' then
       if num.type == 'decimal' then
         self:add(num.value)
       else
@@ -177,19 +177,18 @@ function Scope:traverse_number(num)
       end
     elseif l == 'c' or l == 'char' then
       self:add('char(') self:add(num.value) self:add(')')
-    elseif l == 'i' or l == 'int' then
+    elseif l == 'i' or l == 'int' or l == 'integer' then
       self:add(num.value)
-    elseif l == 'u' or l == 'uint' then
-      self:add(num.value) self:add('u')
-    elseif l == 'l' or l == 'long' then
-      self:add(num.value) self:add('l')
-    elseif l == 'ul' or l == 'ulong' then
-      self:add(num.value) self:add('ul')
+      self:add('l')
+    elseif l == 'u' or l == 'uint' or l == 'uinteger' then
+      self:add(num.value)
+      self:add('ul')
     else
       error('unknown number literal ' .. l)
     end
   else
     self:add(num.value)
+    self:add('l')
   end
 end
 
@@ -240,13 +239,13 @@ function Scope:traverse_string(stat)
     self:add(quote_string(str))
     self:add('")')
   else
-      error('unknown string literal ' .. literal)
+    error('unknown string literal ' .. literal)
   end
 end
 
 function Scope:traverse_len(expr)
   self:add_include('<iterator>')
-  self:add('std::size(')
+  self:add('(long)std::size(')
   self:traverse_expr(expr, true)
   self:add(')')
 end
@@ -307,6 +306,8 @@ function Scope:traverse_as(lhs, rhs)
   self:add('euluna::as<')
   if typename == 'string' then
     self:add('std::string')
+  elseif typename == 'variant' then
+    self:add('std::variant')
   elseif typename == 'any' then
     self:add('std::any')
   else
@@ -315,6 +316,16 @@ function Scope:traverse_as(lhs, rhs)
   self:add('>(')
   self:traverse_expr(lhs)
   self:add(')')
+end
+
+function Scope:traverse_of(lhs, rhs)
+  if lhs.tag == 'Table' then
+    self:traverse_table(lhs, rhs)
+  elseif lhs.tag == 'Array' then
+    self:traverse_array(lhs, rhs)
+  else
+    error('unknown what to do for operator `of` on tag ' .. lhs.tag)
+  end
 end
 
 function Scope:traverse_binaryop(expr)
@@ -327,6 +338,8 @@ function Scope:traverse_binaryop(expr)
     self:traverse_pow(lhs, rhs)
   elseif op == 'as' then
     self:traverse_as(lhs, rhs)
+  elseif op == 'of' then
+    self:traverse_of(lhs, rhs)
   else
     self:traverse_expr(lhs, true)
     self:add(' ')
@@ -365,12 +378,18 @@ function Scope:traverse_boolean(expr)
   self:add(tostring(expr.value))
 end
 
-function Scope:traverse_array(expr)
-  assert(#expr >= 1)
+function Scope:traverse_array(expr, typexpr)
   self:add_include('<array>')
-  self:add('std::array<decltype(')
-  self:traverse_expr(expr[1])
-  self:add(fmt('), %d>{', #expr))
+  self:add('std::array<')
+  if typexpr then
+    self:traverse_typexpr(typexpr)
+  else
+    self:add('decltype(')
+    assert(#expr >= 1)
+    self:traverse_expr(expr[1])
+    self:add(')')
+  end
+  self:add(fmt(', %d>{', #expr))
   for i,elem_expr in ipairs(expr) do
     if i > 1 then
       self:add(', ')
@@ -380,31 +399,83 @@ function Scope:traverse_array(expr)
   self:add('}')
 end
 
-function Scope:traverse_table(items)
-  self:add_bulitin_code('table')
+function Scope:traverse_typeid(expr)
+  local name = expr[1]
+  if name == 'vector' then
+    name = 'std::vector'
+  elseif name == 'string' then
+    name = 'std::string'
+  elseif name == 'int' or name == 'integer' then
+    name = 'long'
+  elseif name == 'uint' or name == 'uinteger' then
+    name = 'unsigned long'
+  end
+  self:add(name)
+end
 
-  self:add('euluna::table({')
+function Scope:traverse_typexpr(expr)
+  local tag = expr.tag
+  if tag == 'Id' then
+    self:traverse_typeid(expr)
+  elseif tag == 'BinaryOp' then
+    local op = expr[1]
+    local lhs = expr[2]
+    local rhs = expr[3]
+    assert(op == 'of')
+    self:traverse_typexpr(lhs)
+    self:add('<')
+    self:traverse_typexpr(rhs)
+    self:add('>')
+  else
+    error('unknown type expr ' .. tag)
+  end
+end
 
-  -- array part
-  local first = true
-  for _,item in ipairs(items) do
-    if item.tag ~= 'Pair' then
-      if not first then
-        self:add(', ')
-      end
-      self:traverse_expr(item)
-      first = false
+function Scope:traverse_table(items, typexpr)
+  local firstitem = items[1]
+  local isarray = #items == 0 or firstitem.tag ~= 'Pair'
+
+  if isarray then
+    self:add_include('<vector>')
+    self:add('std::vector')
+    if typexpr then
+      self:add('<')
+      self:traverse_typexpr(typexpr)
+      self:add('>')
+    elseif firstitem then
+      self:add('<decltype(')
+      self:traverse_expr(firstitem)
+      self:add(')>')
+    else
+      self:add('<long>')
+    end
+  else
+    self:add_include('<unordered_map>')
+    self:add('std::unordered_map')
+    if typexpr then
+      self:add('<')
+      self:traverse_typexpr(typexpr)
+      self:add('>')
+    else
+      self:add('<decltype(')
+      self:traverse_expr(firstitem[1])
+      self:add('),decltype(')
+      self:traverse_expr(firstitem[2])
+      self:add(')>')
     end
   end
-  self:add('}, {')
+  self:add('{')
 
-  -- hashmap part
-  first = true
-  for _,item in ipairs(items) do
-    if item.tag == 'Pair' then
-      if not first then
-        self:add(', ')
-      end
+  for i,item in ipairs(items) do
+    if i > 1 then
+      self:add(', ')
+    end
+
+    if isarray then
+      assert(item.tag ~= 'Pair', "can't mix array with hash map")
+      self:traverse_expr(item)
+    else
+      assert(item.tag == 'Pair', "can't mix array with hash map")
       local key_expr = item[1]
       local val_expr = item[2]
       self:add('{')
@@ -412,11 +483,9 @@ function Scope:traverse_table(items)
       self:add(',')
       self:traverse_expr(val_expr)
       self:add('}')
-      first = false
     end
   end
-
-  self:add('})')
+  self:add('}')
 end
 
 function Scope:traverse_array_index(expr)
@@ -728,6 +797,17 @@ function Scope:traverse_goto(statement)
   self:add_indent_ln(fmt('goto %s;', label))
 end
 
+function Scope:traverse_discard(statement)
+  local expr = statement[1]
+  self:add_indent('(void)(')
+  if type(expr) == 'string' then
+    self:add(expr)
+  else
+    self:travese_expr(expr)
+  end
+  self:add_ln(');')
+end
+
 function Scope:traverse_defer(statement)
   self:add_bulitin_code('make_deferrer')
   self:add_indent_ln(fmt('auto __defer_%d = euluna::make_deferrer([&]() {', statement.pos))
@@ -844,6 +924,18 @@ function Scope:traverse_assign(statement)
   end
 end
 
+function Scope:traverse_call_body(args)
+  self:add('(')
+  local numargs = #args
+  for i,arg in pairs(args) do
+    self:traverse_expr(arg)
+    if i < numargs then
+      self:add(', ')
+    end
+  end
+  self:add(')')
+end
+
 function Scope:traverse_inline_call(statement)
   local what = statement[1]
   local args = statement[2]
@@ -860,20 +952,22 @@ function Scope:traverse_inline_call(statement)
 
   -- proceed as a normal function
   self:traverse_expr(what)
-  self:add('(')
-  local numargs = #args
-  for i,arg in pairs(args) do
-    self:traverse_expr(arg)
-    if i < numargs then
-      self:add(', ')
-    end
-  end
-  self:add(')')
+  self:traverse_call_body(args)
 end
 
 function Scope:traverse_call(statement)
   self:add_indent()
   self:traverse_inline_call(statement)
+  self:add_ln(';')
+end
+
+function Scope:traverse_call_method(statement)
+  local what, method_name, args = statement[1], statement[2], statement[3]
+  self:add_indent()
+  self:traverse_expr(what)
+  self:add('.')
+  self:add(method_name)
+  self:traverse_call_body(args)
   self:add_ln(';')
 end
 
@@ -908,12 +1002,16 @@ function Scope:traverse_block(block)
       self:traverse_label(statement)
     elseif tag== 'Goto' then
       self:traverse_goto(statement)
+    elseif tag== 'Discard' then
+      self:traverse_discard(statement)
     elseif tag == 'VarDecl' then
       self:traverse_vardecl(statement)
     elseif tag == 'FunctionDef' then
       self:traverse_lambda_function_def(statement)
     elseif tag == 'Call' then
       self:traverse_call(statement)
+    elseif tag == 'CallMethod' then
+      self:traverse_call_method(statement)
     elseif tag == 'Assign' then
       self:traverse_assign(statement)
     elseif tag == 'Return' then

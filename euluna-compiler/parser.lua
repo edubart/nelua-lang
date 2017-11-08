@@ -93,6 +93,7 @@ local grammar = re.compile([==[
     / defer_stat
     / label_stat
     / goto_stat
+    / discard_stat
     / vardecl_stat
     / functiondef_stat
     / call_stat
@@ -194,6 +195,10 @@ local grammar = re.compile([==[
 
   goto_stat <-
     ({} %GOTO -> 'Goto' NAME_expected ) -> to_tag
+
+  discard_stat <-
+    ({} %DISCARD -> 'Discard'
+      (%NAME / expr_expected) ) -> to_tag
 
   vardecl_stat <-
     ({} '' -> 'VarDecl'
@@ -298,7 +303,9 @@ local grammar = re.compile([==[
     ) -> to_tag
 
   table <-
-    ({} %LCURLY -> 'Table'
+    ({} '' -> 'Table'
+        --(%NAME / capture_nil)
+        %LCURLY
           table_field_list
         (%RCURLY / %{UnclosedCurly})
     ) -> to_tag
@@ -336,6 +343,7 @@ local grammar = re.compile([==[
   RPAREN_expected <- %RPAREN / %{UnclosedParenthesis}
 
   op_as     <- %AS -> 'as'
+  op_of     <- %OF -> 'of'
   op_or     <- %OR -> 'or'
   op_and    <- %AND -> 'and'
   op_cmp    <- %LT -> 'lt' /
@@ -375,9 +383,10 @@ local grammar = re.compile([==[
   expr8     <- ({}    expr9  (op_concat   expr8 )?   )   -> to_binary_op
   expr9     <- ({} {| expr10 (op_add      expr10)* |})   -> to_chain_binary_op
   expr10    <- ({} {| expr11 (op_mul      expr11)* |})   -> to_chain_binary_op
-  expr11    <- ({} {| expr12 (op_as      expr12)* |})    -> to_chain_binary_op
+  expr11    <- ({} {| expr12 (op_as       expr12)* |})   -> to_chain_binary_op
   expr12    <- ({} {| op_unary* |} expr13)               -> to_chain_unary_op
-  expr13    <- ({} simple_expr (op_pow expr12)?)         -> to_binary_op
+  expr13    <- ({}    expr14 (op_pow      expr12)?   )   -> to_binary_op
+  expr14    <- ({}simple_expr(op_of       expr13)?   )   -> to_binary_op
 
 ]==], defs)
 
