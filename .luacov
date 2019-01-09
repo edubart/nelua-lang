@@ -1,0 +1,6 @@
+modules = {
+  ['euluna.*'] = '.',
+  ['spec.*'] = '.',
+}
+exclude = {
+}
