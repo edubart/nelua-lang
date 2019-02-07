@@ -1,3 +1,4 @@
+require 'compat53'
 local astnodes = {}
 local class = require 'pl.class'
 local ASTNode = class()
@@ -5,7 +6,7 @@ local ASTNode = class()
 local astcreate_by_name = {}
 
 function ASTNode:args()
-  return unpack(self)
+  return table.unpack(self)
 end
 
 local ASTNode_mt = { __index = ASTNode }

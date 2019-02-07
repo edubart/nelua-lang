@@ -13,7 +13,11 @@ local function colored_percent(value)
 end
 
 local function report_coverage(reportfile)
+  reportfile = reportfile or 'luacov.report.out'
   local reportdata = file.read(reportfile)
+  if not reportdata then
+    error('no coverage report found')
+  end
   local pat = re.compile([[
 body    <- (!heading .)* heading {| line+ |} footer
 footer  <- tbldiv {| 'Total' sp num num percent |} !.
