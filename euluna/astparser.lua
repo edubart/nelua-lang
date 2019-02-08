@@ -34,20 +34,42 @@ function ASTParser:add_grammar(name, peg, defs)
   grammars[name] = re.compile(peg, combine_grammars(grammars, defs))
 end
 
-function ASTParser:add_grammars(namedpegs, defs)
-  local grammars = self.grammars
-  local combined_grammars = combine_grammars(grammars, defs)
-  for name,peg in pairs(namedpegs) do
-    assert(grammars[name] == nil, 'grammar already exists')
-    grammars[name] = re.compile(peg, combined_grammars)
-  end
-end
-
 function ASTParser:add_token(name, peg, defs)
   local grammars = self.grammars
   assert(grammars.SKIP, 'cannot set token without a SKIP grammar')
   assert(grammars[name] == nil, 'token already exists')
   grammars[name] = re.compile(peg, combine_grammars(self.grammars, defs)) * grammars.SKIP
+end
+
+local combined_peg_pat = re.compile([[
+pegs       <- {| (comment/peg)+ |}
+peg        <- {| peg_head {peg_char*} |}
+peg_head   <- %s* '%' {[-_%w]+} %s* '<-' %s*
+peg_char   <- !next_peg .
+next_peg   <- linebreak %s* '%' [-_%w]+ %s* '<-' %s*
+comment    <- %s* '--' (!linebreak .)* linebreak?
+]] ..
+"linebreak <- [%nl]'\r' / '\r'[%nl] / [%nl] / '\r'"
+)
+
+function ASTParser:add_grammars(combined_peg, defs)
+  local pegs = combined_peg_pat:match(combined_peg)
+  assert(pegs, 'invalid multiple grammars syntax')
+  for _,pair in ipairs(pegs) do
+    local name, content = pair[1], pair[2]
+    local peg = string.format('%s <- %s', name, content)
+    self:add_grammar(name, peg, defs)
+  end
+end
+
+function ASTParser:add_tokens(combined_peg, defs)
+  local pegs = combined_peg_pat:match(combined_peg)
+  assert(pegs, 'invalid multiple grammars syntax')
+  for _,pair in ipairs(pegs) do
+    local name, content = pair[1], pair[2]
+    local peg = string.format('%s <- %s', name, content)
+    self:add_token(name, peg, defs)
+  end
 end
 
 function ASTParser:add_syntax_errors(syntax_errors)
@@ -84,7 +106,13 @@ function ASTParser:parse(input, name)
     return ast
   else
     local line, col = re.calcline(input, errpos)
-    local err = { pos=errpos, line=line, col=col, label=errlabel, msg=self.syntax_errors[errlabel] }
+    local err = {
+      pos=errpos,
+      line=line,
+      col=col,
+      label=errlabel,
+      msg=self.syntax_errors[errlabel]
+    }
     return nil, generate_pretty_error(input, err), err
   end
 end

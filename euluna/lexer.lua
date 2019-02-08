@@ -67,31 +67,32 @@ DOLLAR          $
 ]]
 
 -- space and new lines
-lexer:add_grammars {
-  SPACE = "%s",
-  LINEBREAK = "[%nl]'\r' / '\r'[%nl] / [%nl] / '\r'",
-}
+lexer:add_grammar("SPACE", "%s")
+lexer:add_grammar("LINEBREAK", "[%nl]'\r' / '\r'[%nl] / [%nl] / '\r'")
 
 -- shebang, e.g. "#!/usr/bin/euluna"
-lexer:add_grammar('SHEBANG', "'#!' (!%LINEBREAK .)*")
+lexer:add_grammar("SHEBANG", "'#!' (!%LINEBREAK .)*")
 
 -- comments
-lexer:add_grammar('LONGCOMMENT', [[
-  longcomment <- open (contents close / %{UnclosedLongComment})
-  contents    <- (!close .)*
-  open        <- '--[' {:eq: '='*:} '['
-  close       <- ']' =eq ']'
+lexer:add_grammars([[
+  %LONGCOMMENT  <- open (contents close / %{UnclosedLongComment})
+  contents      <- (!close .)*
+  open          <- '--[' {:eq: '='*:} '['
+  close         <- ']' =eq ']'
+
+  %SHORTCOMMENT <- '--' (!%LINEBREAK .)* %LINEBREAK?
+  %COMMENT <- %LONGCOMMENT / %SHORTCOMMENT
 ]])
-lexer:add_grammar('SHORTCOMMENT', "'--' (!%LINEBREAK .)* %LINEBREAK?")
-lexer:add_grammar('COMMENT', "%LONGCOMMENT / %SHORTCOMMENT")
 
 -- skip
 lexer:add_grammar('SKIP', "(%SPACE / %COMMENT)*")
 
 -- identifier parts
-lexer:add_grammar('IDPREFIX', "[_%a]")
-lexer:add_grammar('IDSUFFIX', "[_%w]")
-lexer:add_grammar('IDFORMAT', "%IDPREFIX %IDSUFFIX*")
+lexer:add_grammars([[
+  %IDPREFIX <- [_%a]
+  %IDSUFFIX <- [_%w]
+  %IDFORMAT <- %IDPREFIX %IDSUFFIX*
+]])
 
 -- keywords
 local KEYWORDS = {
@@ -111,8 +112,8 @@ lexer:add_token('KEYWORD', string.format('%%%s', table.concat(keyword_names, '/%
 lexer:add_token('cIDENTIFIER', '&%IDPREFIX !%KEYWORD {%IDFORMAT}')
 
 -- number
-lexer:add_token('cNUMBER', [[
-  number          <- ({} '' -> 'Number' number_types literal?) -> to_astnode
+lexer:add_tokens([[
+  %cNUMBER        <- ({} '' -> 'Number' number_types literal?) -> to_astnode
   number_types    <- '' -> 'hex' hexadecimal /
                      '' -> 'bin' binary /
                      '' -> 'exp' exponential /
@@ -139,9 +140,9 @@ local BACKLASHES_SPECIFIERS = {
   ["'"] = "'", -- single quote
   ['"'] = '"', -- double quote
 }
-lexer:add_grammar('cESCAPESEQUENCE', [[
-  escapeseq   <- {~ '\' -> '' escapings ~}
-  escapings   <-
+lexer:add_grammars([[
+  %cESCAPESEQUENCE   <- {~ '\' -> '' escapings ~}
+  escapings         <-
     [abfnrtv\'"] -> specifier2char /
     %LINEBREAK -> ln2ln /
     ('z' %s*) -> '' /
@@ -158,8 +159,8 @@ lexer:add_grammar('cESCAPESEQUENCE', [[
 })
 
 -- string
-lexer:add_token('cSTRING', [[
-  string          <- ({} '' -> 'String' (short_string / long_string) literal?) -> to_astnode
+lexer:add_tokens([[
+  %cSTRING        <- ({} '' -> 'String' (short_string / long_string) literal?) -> to_astnode
   short_string    <- short_open ({~ short_content* ~} short_close / %{UnclosedShortString})
   short_content   <- %cESCAPESEQUENCE / !(=de / %LINEBREAK) .
   short_open      <- {:de: ['"] :}
@@ -172,63 +173,63 @@ lexer:add_token('cSTRING', [[
 ]])
 
 -- boolean
-lexer:add_token('cBOOLEAN', [[
-  boolean <- ({} '' -> 'Boolean' ((%FALSE -> to_false) / (%TRUE -> to_true))) -> to_astnode
+lexer:add_tokens([[
+  %cBOOLEAN <- ({} '' -> 'Boolean' ((%FALSE -> to_false) / (%TRUE -> to_true))) -> to_astnode
 ]], {
   to_false = function() return false end,
   to_true = function() return true end
 })
 
+-- symbols
+lexer:add_tokens([[
 -- binary operators
-lexer:add_token('ADD',          "'+'")
-lexer:add_token('SUB',          "!'--' '-'")
-lexer:add_token('MUL',          "'*'")
-lexer:add_token('MOD',          "'%'")
-lexer:add_token('DIV',          "'/'")
-lexer:add_token('POW',          "'^'")
-
-lexer:add_token('BAND',         "'&'")
-lexer:add_token('BOR',          "'|'")
-lexer:add_token('SHL',          "'<<'")
-lexer:add_token('SHR',          "'>>'")
-
-lexer:add_token('EQ',           "'=='")
-lexer:add_token('NE',           "'~=' / '!='")
-lexer:add_token('LE',           "'<='")
-lexer:add_token('GE',           "'>='")
-lexer:add_token('LT',           "!%SHL !%LE '<'")
-lexer:add_token('GT',           "!%SHR !%GE '>'")
-
-lexer:add_token('BXOR',         "!%NE '~'")
-lexer:add_token('ASSIGN',       "!%EQ '='")
+%ADD          <- '+'
+%SUB          <- !'--' '-'
+%MUL          <- '*'
+%MOD          <- '%'
+%DIV          <- '/'
+%POW          <- '^'
+%BAND         <- '&'
+%BOR          <- '|'
+%SHL          <- '<<'
+%SHR          <- '>>'
+%EQ           <- '=='
+%NE           <- '~=' / '!='
+%LE           <- '<='
+%GE           <- '>='
+%LT           <- !%SHL !%LE '<'
+%GT           <- !%SHR !%GE '>'
+%BXOR         <- !%NE '~'
+%ASSIGN       <- !%EQ '='
 
 -- unary operators
-lexer:add_token('NEG',          "!'--' '-'")
-lexer:add_token('LEN',          "'#'")
-lexer:add_token('BNOT',         "!%NE '~'")
-lexer:add_token('TOSTRING',     "'$'")
+%NEG          <- !'--' '-'
+%LEN          <- '#'
+%BNOT         <- !%NE '~'
+%TOSTRING     <- '$'
 
 -- matching symbols
-lexer:add_token('LPAREN',       "'('")
-lexer:add_token('RPAREN',       "')'")
-lexer:add_token('LBRACKET',     "!('[' '='* '[') '['")
-lexer:add_token('RBRACKET',     "']'")
-lexer:add_token('LCURLY',       "'{'")
-lexer:add_token('RCURLY',       "'}'")
-lexer:add_token('LANGLE',       "'<'")
-lexer:add_token('RANGLE',       "'>'")
+%LPAREN       <- '('
+%RPAREN       <- ')'
+%LBRACKET     <- !('[' '='* '[') '['
+%RBRACKET     <- ']'
+%LCURLY       <- '{'
+%RCURLY       <- '}'
+%LANGLE       <- '<'
+%RANGLE       <- '>'
 
 -- other symbols
-lexer:add_token('SEMICOLON',    "';'")
-lexer:add_token('COMMA',        "','")
-lexer:add_token('SEPARATOR',    "[,;]")
-lexer:add_token('ELLIPSIS',     "'...'")
-lexer:add_token('CONCAT',       "!%ELLIPSIS '..'")
-lexer:add_token('DOT',          "!%ELLIPSIS !%CONCAT !('.' %d) '.'")
-lexer:add_token('DBLCOLON',     "'::'")
-lexer:add_token('COLON',        "!%DBLCOLON ':'")
-lexer:add_token('AT',           "'@'")
-lexer:add_token('DOLLAR',       "'$'")
+%SEMICOLON    <- ';'
+%COMMA        <- ','
+%SEPARATOR    <- [,;]
+%ELLIPSIS     <- '...'
+%CONCAT       <- !%ELLIPSIS '..'
+%DOT          <- !%ELLIPSIS !%CONCAT !('.' %d) '.'
+%DBLCOLON     <- '::'
+%COLON        <- !%DBLCOLON ':'
+%AT           <- '@'
+%DOLLAR       <- '$'
+]])
 
 -- syntax errors
 lexer:add_syntax_errors({
