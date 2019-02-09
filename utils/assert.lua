@@ -15,7 +15,7 @@ function assert.ast_equals(ast, expected_ast)
   assert.same(expected_ast, ast)
 end
 
-function assert.pattern_match_all(patt, subjects)
+function assert.peg_match_all(patt, subjects)
   for _,subject in ipairs(subjects) do
     local matchedpos = patt:match(subject)
     local slen = string.len(subject)
@@ -23,14 +23,14 @@ function assert.pattern_match_all(patt, subjects)
   end
 end
 
-function assert.pattern_capture_all(patt, subjects)
+function assert.peg_capture_all(peg, subjects)
   for subject,expected_ast in pairs(subjects) do
     if type(subject) == 'number' then
       subject = expected_ast
       expected_ast = nil
     end
 
-    local ast = patt:match(subject)
+    local ast = peg:match(subject)
     if expected_ast then
       assert.ast_equals(ast, expected_ast)
     else
@@ -39,24 +39,24 @@ function assert.pattern_capture_all(patt, subjects)
   end
 end
 
-function assert.pattern_error_all(patt, errname, subjects)
+function assert.peg_error_all(peg, errname, subjects)
   for _,subject in ipairs(subjects) do
-    local res, errlab = patt:match(subject)
+    local res, errlab = peg:match(subject)
     assert.same(errlab, errname)
     assert.same(res, nil)
   end
 end
 
-function assert.pattern_match_none(patt, subjects)
+function assert.peg_match_none(peg, subjects)
   for _,subject in pairs(subjects) do
-    local matchedpos = patt:match(subject)
+    local matchedpos = peg:match(subject)
     assert(matchedpos == nil, string.format('expected no match on "%s"', subject))
   end
 end
 
-function assert.parse_ast(input, expected_ast, parser)
+function assert.parse_ast(parser, input, expected_ast)
   if not parser then
-    parser = require 'euluna.parser'
+    parser = require 'euluna.langs.euluna_parser'
   end
   local ast = assert(parser:parse(input))
   if expected_ast then
@@ -66,7 +66,7 @@ function assert.parse_ast(input, expected_ast, parser)
   end
 end
 
-function assert.parse_ast_error(input, expected_error, parser)
+function assert.parse_ast_error(parser, input, expected_error)
   if not parser then
     parser = require 'euluna.parser'
   end

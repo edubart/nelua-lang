@@ -37,10 +37,15 @@ function astnodes.create(tag, ...)
   return astcreate(...)
 end
 
-astnodes.register('Number')
-astnodes.register('String')
-astnodes.register('Boolean')
-astnodes.register('Block')
-astnodes.register('Return')
+-- primitives
+astnodes.register('Number')       -- {value: string, literal?: string}
+astnodes.register('String')       -- {value: string, literal?: string}
+astnodes.register('Boolean')      -- {value: boolean}
+
+-- general
+astnodes.register('Block')        -- {...: table[node]}
+
+-- statements
+astnodes.register('Stat_Return')  -- {value?: node}
 
 return astnodes
