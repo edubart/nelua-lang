@@ -17,6 +17,7 @@ MAINTAINER edubart
 RUN sudo luarocks-5.1 install penlight
 RUN sudo luarocks-5.1 install lpeg
 RUN sudo luarocks-5.1 install lpeglabel
+RUN sudo luarocks-5.1 install tableshape
 RUN sudo luarocks-5.1 install lua-term
 RUN sudo luarocks-5.1 install inspect
 RUN sudo luarocks-5.1 install busted
@@ -29,6 +30,7 @@ RUN sudo luarocks-5.1 install compat53
 RUN sudo luarocks-5.3 install penlight
 RUN sudo luarocks-5.3 install lpeg
 RUN sudo luarocks-5.3 install lpeglabel
+RUN sudo luarocks-5.3 install tableshape
 RUN sudo luarocks-5.3 install lua-term
 RUN sudo luarocks-5.3 install inspect
 RUN sudo luarocks-5.3 install busted
