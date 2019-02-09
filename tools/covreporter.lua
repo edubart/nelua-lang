@@ -19,7 +19,13 @@ local function report_coverage(reportfile)
     error('no coverage report found')
   end
   local pat = re.compile([[
-body    <- (!heading .)* heading {| line+ |} footer
+body    <- {| sfile* |} summary
+sfile   <- {| {:name: '' -> 'file' :} '='+%s+!'Summary'{:file: [-/_.%w]+ :}%s+'='+%nl (miss / sline / eline)* |}
+miss    <- !div '*'+'0 '{[^%nl]+} %nl
+sline   <- !div ' '* %d* ' '* {''} [^%nl]+ %nl
+eline   <- [ ]* {''} %nl
+div     <- '==='+%s+[-/_.%w]+%s+'==='+%nl
+summary <- {| heading {| line+ |} footer |}
 footer  <- tbldiv {| 'Total' sp num num percent |} !.
 heading <- '='+%s+'Summary'%s+'='+%s+'File'%s+'Hits'%s+'Missed'%s+'Coverage'%s+'-'+%s+
 line    <- !tbldiv {| file num num percent |}
@@ -32,19 +38,35 @@ sp      <- %s+
   tonumber = tonumber
 })
 
-  local filelines, totalline = pat:match(reportdata)
-  assert(filelines and totalline, 'failed to parse luacov report output')
+  local sources, summary = pat:match(reportdata)
+  assert(sources and summary, 'failed to parse luacov report output')
 
+  local filelines, totalline = summary[1], summary[2]
   local total_coverage = totalline[3]
   print(colored_percent(total_coverage) .. ' coverage')
 
   if total_coverage < 100 then
-    print('\nnot fully covered files:')
+    print('\nNot fully covered files:')
   end
   for _,fileline in ipairs(filelines) do
     local filename, coverage = fileline[1], fileline[4]
     if coverage < 100 then
       print(colored_percent(coverage) .. ' ' .. filename)
+
+      for _,source in ipairs(sources) do
+        if source.file == filename then
+          local last = nil
+          for i,line in ipairs(source) do
+            if line ~= '' then
+              if last and last ~= i - 1 then
+                print()
+              end
+              print(colors.cyan(string.format('%6d\t',i)) .. line)
+              last = i
+            end
+          end
+        end
+      end
     end
   end
 
