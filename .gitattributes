@@ -1,2 +1,2 @@
 * text=auto
-*.lua text eol=crlf
+*.lua text eol=lf
