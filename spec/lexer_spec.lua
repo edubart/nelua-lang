@@ -292,6 +292,7 @@ it("operators and symbols", function()
   assert.peg_match_all(lexer_pegs.COLON, {':'})
   assert.peg_match_all(lexer_pegs.AT, {'@'})
   assert.peg_match_all(lexer_pegs.DOLLAR, {'$'})
+  assert.peg_match_all(lexer_pegs.QUESTION, {'?'})
 
   assert.peg_match_none(lexer_pegs.SUB, {'--'})
   assert.peg_match_none(lexer_pegs.LT, {'<<', '<='})

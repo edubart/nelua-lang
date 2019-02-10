@@ -81,10 +81,12 @@ end)
 --------------------------------------------------------------------------------
 describe("expression", function()
   it("number", function()
-    assert.parse_ast(euluna_parser, "return 3.34e-50",
+    assert.parse_ast(euluna_parser, "return 3.34e-50, 0xff, 0.1",
       AST('Block', {
         AST('Stat_Return', {
           AST('Number', 'exp', '3.34', '-50'),
+          AST('Number', 'hex', 'ff'),
+          AST('Number', 'dec', '0.1'),
     })}))
   end)
   it("string", function()
@@ -136,7 +138,7 @@ describe("expression", function()
           AST('Table', { AST('Pair', AST('Id', 'a'), AST('Id', 'b')) }),
     })}))
   end)
-  it("surrounded", function()
+  it("surrounded parethesis", function()
     assert.parse_ast(euluna_parser, "return (a)",
       AST('Block', {
         AST('Stat_Return', {
@@ -172,6 +174,64 @@ describe("expression", function()
           ))
     })}))
   end)
+  it("anonymous function", function()
+    assert.parse_ast(euluna_parser, "return function() end, function(a, b: B): C,D end",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('Function', nil, nil, AST('Block', {})),
+          AST('Function',
+            { AST('TypedId', 'a'), AST('TypedId', 'b', AST('Type', 'B')) },
+            { AST('Type', 'C'), AST('Type', 'D') },
+            AST('Block', {})
+          )
+    })}))
+  end)
+  it("call global", function()
+    assert.parse_ast(euluna_parser, "return a()",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('Call', {}, {}, AST('Id', 'a')),
+    })}))
+  end)
+  it("call with arguments", function()
+    assert.parse_ast(euluna_parser, "return a(a, 'b', 1, f(), ...)",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('Call', {}, {
+            AST('Id', 'a'),
+            AST('String', 'b'),
+            AST('Number', 'int', '1'),
+            AST('Call', {}, {}, AST('Id', 'f')),
+            AST('Varargs'),
+          }, AST('Id', 'a')),
+    })}))
+  end)
+  it("call field", function()
+    assert.parse_ast(euluna_parser, "return a.b()",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('Call', {}, {}, AST('DotIndex', 'b', AST('Id', 'a'))),
+    })}))
+  end)
+  it("call method", function()
+    assert.parse_ast(euluna_parser, "return a:b()",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('CallMethod', 'b', {}, {}, AST('Id', 'a')),
+    })}))
+  end)
+end)
+
+--------------------------------------------------------------------------------
+-- calls
+--------------------------------------------------------------------------------
+describe("call", function()
+end)
+
+--------------------------------------------------------------------------------
+-- functions
+--------------------------------------------------------------------------------
+describe("function", function()
 end)
 
 --------------------------------------------------------------------------------
@@ -339,6 +399,13 @@ describe("operator", function()
           AST('UnaryOp', 'bnot', AST('Id', 'a')
     )})}))
   end)
+  it("'$'", function()
+    assert.parse_ast(euluna_parser, "return $a",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('UnaryOp', 'tostring', AST('Id', 'a')
+    )})}))
+  end)
   it("'^'", function()
     assert.parse_ast(euluna_parser, "return a ^ b",
       AST('Block', {
@@ -385,29 +452,23 @@ end)
 --------------------------------------------------------------------------------
 describe("live grammar change for", function()
   it("return keyword", function()
-    euluna_parser:add_keyword("do_return")
-    euluna_grammar:set_pegs([[
+    local grammar = euluna_grammar:clone()
+    local parser = euluna_parser:clone()
+    parser:add_keyword("do_return")
+    grammar:set_pegs([[
       stat_return <-
         ({} %DO_RETURN -> 'Stat_Return' {| (expr (%COMMA expr)*)? |} %SEMICOLON?) -> to_astnode
     ]], nil, true)
-    euluna_parser:set_grammar('sourcecode', euluna_grammar)
-    euluna_parser:remove_keyword("return")
+    parser:set_peg('sourcecode', grammar:build())
+    parser:remove_keyword("return")
 
-    assert.parse_ast(euluna_parser, "do_return",
+    assert.parse_ast(parser, "do_return",
       AST('Block', {
         AST('Stat_Return', {})}))
-    assert.parse_ast_error(euluna_parser, "return", 'UnexpectedSyntaxAtEOF')
+    assert.parse_ast_error(parser, "return", 'UnexpectedSyntaxAtEOF')
   end)
 
   it("return keyword (revert)", function()
-    euluna_parser:add_keyword("return")
-    euluna_grammar:set_pegs([[
-      stat_return <-
-        ({} %RETURN -> 'Stat_Return' {| (expr (%COMMA expr)*)? |} %SEMICOLON?) -> to_astnode
-    ]], nil, true)
-    euluna_parser:set_grammar('sourcecode', euluna_grammar)
-    euluna_parser:remove_keyword("do_return")
-
     assert.parse_ast(euluna_parser, "return",
       AST('Block', {
         AST('Stat_Return', {})}))

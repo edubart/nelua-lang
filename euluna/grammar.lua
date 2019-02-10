@@ -5,7 +5,7 @@ local tablex = require 'pl.tablex'
 local Grammar = class()
 
 function Grammar:_init()
-  self.statements = {}
+  self.group_pegs = {}
   self.pegs = {}
   self.defs = {}
 end
@@ -18,17 +18,24 @@ local function merge_defs(self, defs)
   end
 end
 
-local function recompile_statement_peg(self)
-  local statement_patt = string.format('%s', table.concat(self.statements, '/'))
-  self:set_peg('statement', statement_patt)
+local function recompile_group_peg(self, groupname)
+  local group = self.group_pegs[groupname]
+  local patt = table.concat(group, '/')
+  self:set_peg(groupname, patt)
 end
 
-function Grammar:add_statement(name, patt, defs)
-  assert(tablex.find(self.statements, name) == nil, 'statement already exists')
-  table.insert(self.statements, name)
+function Grammar:add_group_peg(groupname, name, patt, defs)
+  local group = self.group_pegs[groupname]
+  if not group then
+    group = {}
+    self.group_pegs[groupname] = group
+  end
+  local fullname = string.format('%s_%s', groupname, name)
+  assert(tablex.find(group, fullname) == nil, 'group peg name already exists')
+  table.insert(group, fullname)
   merge_defs(self, defs)
-  recompile_statement_peg(self)
-  self:set_peg(name, patt)
+  recompile_group_peg(self, groupname)
+  self:set_peg(fullname, patt)
 end
 
 local combined_peg_pat = re.compile([[
@@ -67,7 +74,11 @@ function Grammar:build()
   local text = table.concat(tablex.imap(function(name)
     return string.format('%s <- %s', name, pegs[name])
   end, pegs), '\n')
-  return text
+  return text, self.defs
+end
+
+function Grammar:clone()
+  return tablex.deepcopy(self)
 end
 
 return Grammar

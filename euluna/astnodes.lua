@@ -69,26 +69,58 @@ astnodes.register('Boolean', types.shape {
   types.boolean, -- true or false
 })
 astnodes.register('Nil', types.shape {})
+
+-- varargs
 astnodes.register('Varargs', types.shape {})
+
+-- table
 astnodes.register('Table', types.shape {
-  types.array_of(ast_types.node)
+  types.array_of(ast_types.node) -- pair or exprs
 })
 astnodes.register('Pair', types.shape {
-  ast_types.node + types.string,
-  ast_types.node
+  ast_types.node + types.string, -- field name
+  ast_types.node -- field value expr
 })
+
+astnodes.register('Function', types.shape {
+  types.array_of(ast_types.node):is_optional(), -- typed arguments
+  types.array_of(ast_types.node):is_optional(), -- typed returns
+  ast_types.node -- block
+})
+
+-- variable/function/type names
 astnodes.register('Id', types.shape {
   types.string, -- name
+})
+astnodes.register('Type', types.shape {
+  types.string, -- type
+})
+astnodes.register('TypedId', types.shape {
+  types.string, -- name
+  ast_types.node:is_optional(), -- type
 })
 
 -- indexing
 astnodes.register('DotIndex', types.shape {
   types.string, -- name
-  ast_types.node
+  ast_types.node -- expr
 })
 astnodes.register('ArrayIndex', types.shape {
-  ast_types.node,
-  ast_types.node
+  ast_types.node, -- index expr
+  ast_types.node -- expr
+})
+
+-- calls
+astnodes.register('Call', types.shape {
+  types.array_of(ast_types.node), -- call types
+  types.array_of(ast_types.node), -- args exprs
+  ast_types.node, -- caller expr
+})
+astnodes.register('CallMethod', types.shape {
+  types.string, -- method name
+  types.array_of(ast_types.node), -- call types
+  types.array_of(ast_types.node), -- args exprs
+  ast_types.node, -- caller expr
 })
 
 -- general
@@ -98,24 +130,24 @@ astnodes.register('Block', types.shape {
 
 -- statements
 astnodes.register('Stat_Return', types.shape {
-  types.array_of(ast_types.node):is_optional()
+  types.array_of(ast_types.node)
 })
 
 -- operations
 astnodes.register('UnaryOp', types.shape {
-  types.string,
-  ast_types.node
+  types.string, -- type
+  ast_types.node -- right expr
 })
 astnodes.register('BinaryOp', types.shape {
-  types.string,
-  ast_types.node,
-  ast_types.node
+  types.string, -- type
+  ast_types.node, --- left expr
+  ast_types.node -- right expr
 })
 astnodes.register('TernaryOp', types.shape {
-  types.string,
-  ast_types.node,
-  ast_types.node,
-  ast_types.node
+  types.string, -- type
+  ast_types.node, -- left expr
+  ast_types.node, -- middle expr
+  ast_types.node -- right expr
 })
 
 return astnodes

@@ -1,12 +1,15 @@
 
 local assert = require 'luassert'
 
+-- upper table display limit
+assert:set_parameter("TableFormatLevel", 16)
+
 -- inject dump utility while testing
 _G.dump = require 'utils.dump'
 
 local function recursive_remove_pos(t)
   if type(t) == 'table' then
-    for _,v in ipairs(t) do
+    for _,v in pairs(t) do
       recursive_remove_pos(v)
     end
     t.pos = nil

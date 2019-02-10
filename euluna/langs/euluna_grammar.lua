@@ -11,14 +11,14 @@ grammar:set_pegs([==[
     (!. / %{UnexpectedSyntaxAtEOF})
 
   block <-
-    ({} '' -> 'Block' {| (statement / %SEMICOLON)* stat_return? |}) -> to_astnode
+    ({} '' -> 'Block' {| (stat / %SEMICOLON)* stat_return? |}) -> to_astnode
 
   stat_return <-
-    ({} %RETURN -> 'Stat_Return' {| (expr (%COMMA expr)*)? |} %SEMICOLON?) -> to_astnode
+    ({} %RETURN -> 'Stat_Return' {| expr_list |} %SEMICOLON?) -> to_astnode
 ]==])
 
 -- statements
-grammar:add_statement('stat_break',[[
+grammar:add_group_peg('stat', 'break', [[
   ({} %BREAK -> 'Stat_Break') -> to_astnode
 ]])
 
@@ -50,7 +50,7 @@ grammar:set_pegs([[
     / table
     / suffixed_expr
 
-  suffixed_expr <- (primary_expr {| index_expr* |}) -> to_chain_index
+  suffixed_expr <- (primary_expr {| (index_expr / call_expr)* |}) -> to_chain_index_or_call
 
   primary_expr <-
     %cID /
@@ -60,6 +60,13 @@ grammar:set_pegs([[
     {| {} %DOT -> 'DotIndex' ecNAME |} /
     {| {} %LBRACKET -> 'ArrayIndex' eexpr eRBRACKET |}
 
+  call_expr <-
+    {| {} %COLON -> 'CallMethod' ecNAME call_args |} /
+    {| {} & (%LPAREN / %LANGLE typexpr_list %RANGLE %LPAREN) '' -> 'Call' call_args |}
+  call_args <-
+    {| (%LANGLE typexpr_list? eRANGLE)? |}
+    eLPAREN {| expr_list |} eRPAREN
+
   table <- ({} '' -> 'Table' %LCURLY
       {| (table_row (%SEPARATOR table_row)* %SEPARATOR?)? |}
     eRCURLY) -> to_astnode
@@ -68,16 +75,21 @@ grammar:set_pegs([[
 
   function <- ({} %FUNCTION -> 'Function' function_body) -> to_astnode
   function_body <-
-    eLPAREN
-      {| (typed_idlist (%COMMA %cVARARGS)? / %cVARARGS)? |}
-    eRPAREN
-    (%COLON etypexpr / cnil)
-      --%block
+    eLPAREN (
+      {| typed_idlist (%COMMA %cVARARGS)? / %cVARARGS |} /
+      cnil
+    ) eRPAREN
+    (%COLON {| etypexpr_list |} / cnil)
+      block
     eEND
   typed_idlist <- typed_id (%COMMA typed_id)*
   typed_id <- ({} '' -> 'TypedId' %cNAME (%COLON etypexpr)?) -> to_astnode
 
   typexpr <- ({} '' -> 'Type' %cNAME) -> to_astnode
+  typexpr_list <- typexpr (%COMMA typexpr)*
+  etypexpr_list <- etypexpr (%COMMA typexpr)*
+
+  expr_list <- (expr (%COMMA expr)*)?
 
   cnil <- '' -> to_nil
 ]], {
@@ -114,7 +126,7 @@ grammar:set_pegs([[
     return lhs
   end,
 
-  to_chain_index = function(primary_expr, exprs)
+  to_chain_index_or_call = function(primary_expr, exprs)
     local last_expr = primary_expr
     if exprs then
       for _,expr in ipairs(exprs) do
@@ -133,28 +145,28 @@ grammar:set_pegs([[
   op_or     <- %OR -> 'or'
   op_and    <- %AND -> 'and'
   op_cmp    <- %LT -> 'lt' /
-                %NE -> 'ne' /
-                %GT -> 'gt' /
-                %LE -> 'le' /
-                %GE -> 'ge' /
-                %EQ -> 'eq'
+               %NE -> 'ne' /
+               %GT -> 'gt' /
+               %LE -> 'le' /
+               %GE -> 'ge' /
+               %EQ -> 'eq'
 
   op_bor    <- %BOR -> 'bor'
   op_xor    <- %BXOR -> 'bxor'
   op_band   <- %BAND -> 'band'
   op_bshift <- %SHL -> 'shl' /
-                %SHR -> 'shr'
+               %SHR -> 'shr'
   op_concat <- %CONCAT -> 'concat'
   op_add    <- %ADD -> 'add' /
-                %SUB -> 'sub'
+               %SUB -> 'sub'
   op_mul    <- %MUL -> 'mul' /
-                %DIV -> 'div' /
-                %MOD -> 'mod'
+               %DIV -> 'div' /
+               %MOD -> 'mod'
   op_unary  <- %NOT -> 'not' /
-                %LEN -> 'len' /
-                %NEG -> 'neg' /
-                %BNOT -> 'bnot' /
-                %TOSTRING -> 'tostring'
+               %LEN -> 'len' /
+               %NEG -> 'neg' /
+               %BNOT -> 'bnot' /
+               %TOSTRING -> 'tostring'
   op_pow   <-  %POW -> 'pow'
 ]])
 
@@ -163,11 +175,13 @@ grammar:set_pegs([[
   eRPAREN    <- %RPAREN    / %{UnclosedParenthesis}
   eRBRACKET  <- %RBRACKET  / %{UnclosedBracket}
   eRCURLY    <- %RCURLY    / %{UnclosedCurly}
+  eRANGLE    <- %RANGLE    / %{UnclosedAngle}
   eLPAREN    <- %LPAREN    / %{ExpectedParenthesis}
   eEND       <- %END       / %{ExpectedEnd}
   ecNAME     <- %cNAME     / %{ExpectedName}
   eexpr      <- expr       / %{ExpectedExpression}
   etypexpr   <- typexpr    / %{ExpectedTypeExpression}
+  ecall_args <- call_args  / %{ExpectedCall}
 ]])
 
 return grammar

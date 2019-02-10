@@ -84,10 +84,6 @@ function Parser:set_peg(name, patt, defs, modf)
   end
 end
 
-function Parser:set_grammar(name, grammar)
-  self:set_peg(name, grammar:build(), grammar.defs)
-end
-
 function Parser:remove_peg(name)
   assert(self.defs[name], 'cannot remove non existent peg')
   local refs = cascade_dependencies_for(self.pegdescs, name)
@@ -212,6 +208,10 @@ function Parser:parse(input, name)
     }
     return nil, generate_pretty_error(input, err), err
   end
+end
+
+function Parser:clone()
+  return tablex.deepcopy(self)
 end
 
 return Parser

@@ -167,6 +167,7 @@ lexer:set_token_pegs([[
 %COLON        <- !%DBLCOLON ':'
 %AT           <- '@'
 %DOLLAR       <- '$'
+%QUESTION     <- '?'
 ]])
 
 --- capture varargs values
