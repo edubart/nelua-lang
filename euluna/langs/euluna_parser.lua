@@ -12,6 +12,9 @@ parser:add_statement('stat_break',[[
 parser:set_pegs([[
   %eRPAREN    <- %RPAREN    / %{UnclosedParenthesis}
   %eRBRACKET  <- %RBRACKET  / %{UnclosedBracket}
+  %eRCURLY    <- %RCURLY    / %{UnclosedCurly}
+  %eLPAREN    <- %LPAREN    / %{ExpectedParenthesis}
+  %eEND       <- %END       / %{ExpectedEnd}
   %ecNAME     <- %cNAME     / %{ExpectedName}
 ]])
 
@@ -40,6 +43,8 @@ parser:set_pegs([[
     / %cBOOLEAN
     / %cNIL
     / %cVARARGS
+    / function
+    / table
     / suffixed_expr
 
   suffixed_expr <- (primary_expr {| index_expr* |}) -> to_chain_index
@@ -51,6 +56,29 @@ parser:set_pegs([[
   index_expr <-
     {| {} %DOT -> 'DotIndex' %ecNAME |} /
     {| {} %LBRACKET -> 'ArrayIndex' eexpr %eRBRACKET |}
+
+  table <- ({} '' -> 'Table' %LCURLY
+      {| (table_row (%SEPARATOR table_row)* %SEPARATOR?)? |}
+    %eRCURLY) -> to_astnode
+  table_row <- table_pair / expr
+  table_pair <- ({} '' -> 'Pair' (%LBRACKET eexpr %eRBRACKET / %cNAME) %ASSIGN eexpr) -> to_astnode
+
+
+  function <- ({} %FUNCTION -> 'Function' function_body) -> to_astnode
+  function_body <-
+    %eLPAREN
+      {| (typed_idlist (%COMMA %cVARARGS)? / %cVARARGS)? |}
+    %eRPAREN
+    (%COLON etypexpr / cnil)
+      --%block
+    %eEND
+  typed_idlist <- typed_id (%COMMA typed_id)*
+  typed_id <- ({} '' -> 'TypedId' %cNAME (%COLON etypexpr)?) -> to_astnode
+
+  typexpr <- ({} '' -> 'Type' %cNAME) -> to_astnode
+  etypexpr <- typexpr / %{ExpectedTypeExpression}
+
+  cnil <- '' -> to_nil
 
   op_or     <- %OR -> 'or'
   op_and    <- %AND -> 'and'
@@ -121,7 +149,9 @@ parser:set_pegs([[
       end
     end
     return last_expr
-  end
+  end,
+
+  to_nil = function() return nil end
 })
 
 -- source code body

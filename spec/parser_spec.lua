@@ -124,6 +124,17 @@ describe("expression", function()
           AST('Id', '_b'),
     })}))
   end)
+  it("table", function()
+    assert.parse_ast(euluna_parser, "return {}, {a}, {a,b}, {a=b}, {[a] = b}",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('Table', {}),
+          AST('Table', { AST('Id', 'a') }),
+          AST('Table', { AST('Id', 'a'), AST('Id', 'b') }),
+          AST('Table', { AST('Pair', 'a', AST('Id', 'b')) }),
+          AST('Table', { AST('Pair', AST('Id', 'a'), AST('Id', 'b')) }),
+    })}))
+  end)
   it("surrounded", function()
     assert.parse_ast(euluna_parser, "return (a)",
       AST('Block', {

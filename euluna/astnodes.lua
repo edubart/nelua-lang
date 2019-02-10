@@ -70,6 +70,13 @@ astnodes.register('Boolean', types.shape {
 })
 astnodes.register('Nil', types.shape {})
 astnodes.register('Varargs', types.shape {})
+astnodes.register('Table', types.shape {
+  types.array_of(ast_types.node)
+})
+astnodes.register('Pair', types.shape {
+  ast_types.node + types.string,
+  ast_types.node
+})
 astnodes.register('Id', types.shape {
   types.string, -- name
 })
