@@ -116,33 +116,256 @@ describe("expression", function()
           AST('Varargs'),
     })}))
   end)
+  it("identifier", function()
+    assert.parse_ast(euluna_parser, "return a, _b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('Id', 'a'),
+          AST('Id', '_b'),
+    })}))
+  end)
+  it("surrounded", function()
+    assert.parse_ast(euluna_parser, "return (a)",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('Id', 'a'),
+    })}))
+  end)
+  it("dot index", function()
+    assert.parse_ast(euluna_parser, "return a.b, a.b.c",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('DotIndex', 'b',
+            AST('Id', 'a')
+          ),
+          AST('DotIndex', 'c',
+            AST('DotIndex', 'b',
+              AST('Id', 'a')
+          ))
+    })}))
+  end)
+  it("array index", function()
+    assert.parse_ast(euluna_parser, "return a[b], a[b][c]",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('ArrayIndex',
+            AST('Id', 'b'),
+            AST('Id', 'a')
+          ),
+          AST('ArrayIndex',
+            AST('Id', 'c'),
+            AST('ArrayIndex',
+              AST('Id', 'b'),
+              AST('Id', 'a')
+          ))
+    })}))
+  end)
 end)
-
 
 --------------------------------------------------------------------------------
 -- operators
 --------------------------------------------------------------------------------
 describe("operator", function()
-  it("OR", function()
-    assert.parse_ast(euluna_parser, "return 1 or 2",
+  it("'or'", function()
+    assert.parse_ast(euluna_parser, "return a or b",
       AST('Block', {
         AST('Stat_Return', {
-          AST('BinaryOp',
-            'or',
-            AST('Number', 'int', '1'),
-            AST('Number', 'int', '2')
+          AST('BinaryOp', 'or', AST('Id', 'a'), AST('Id', 'b')
     )})}))
   end)
-  it("AND", function()
-    assert.parse_ast(euluna_parser, "return 1 and 2",
+  it("'and'", function()
+    assert.parse_ast(euluna_parser, "return a and b",
       AST('Block', {
         AST('Stat_Return', {
-          AST('BinaryOp',
-            'and',
-            AST('Number', 'int', '1'),
-            AST('Number', 'int', '2')
+          AST('BinaryOp', 'and', AST('Id', 'a'), AST('Id', 'b')
     )})}))
   end)
+  it("'<'", function()
+    assert.parse_ast(euluna_parser, "return a < b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'lt', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'>'", function()
+    assert.parse_ast(euluna_parser, "return a > b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'gt', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'<='", function()
+    assert.parse_ast(euluna_parser, "return a <= b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'le', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'>='", function()
+    assert.parse_ast(euluna_parser, "return a >= b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'ge', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'~='", function()
+    assert.parse_ast(euluna_parser, "return a ~= b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'ne', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'=='", function()
+    assert.parse_ast(euluna_parser, "return a == b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'eq', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'|'", function()
+    assert.parse_ast(euluna_parser, "return a | b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'bor', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'~'", function()
+    assert.parse_ast(euluna_parser, "return a ~ b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'bxor', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'&'", function()
+    assert.parse_ast(euluna_parser, "return a & b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'band', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'<<'", function()
+    assert.parse_ast(euluna_parser, "return a << b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'shl', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'>>'", function()
+    assert.parse_ast(euluna_parser, "return a >> b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'shr', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'..'", function()
+    assert.parse_ast(euluna_parser, "return a .. b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'concat', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'+'", function()
+    assert.parse_ast(euluna_parser, "return a + b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'add', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'-'", function()
+    assert.parse_ast(euluna_parser, "return a - b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'sub', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'*'", function()
+    assert.parse_ast(euluna_parser, "return a * b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'mul', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'/'", function()
+    assert.parse_ast(euluna_parser, "return a / b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'div', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'%'", function()
+    assert.parse_ast(euluna_parser, "return a % b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'mod', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'not'", function()
+    assert.parse_ast(euluna_parser, "return not a",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('UnaryOp', 'not', AST('Id', 'a')
+    )})}))
+  end)
+  it("'#'", function()
+    assert.parse_ast(euluna_parser, "return #a",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('UnaryOp', 'len', AST('Id', 'a')
+    )})}))
+  end)
+  it("'-'", function()
+    assert.parse_ast(euluna_parser, "return -a",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('UnaryOp', 'neg', AST('Id', 'a')
+    )})}))
+  end)
+  it("'~'", function()
+    assert.parse_ast(euluna_parser, "return ~a",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('UnaryOp', 'bnot', AST('Id', 'a')
+    )})}))
+  end)
+  it("'^'", function()
+    assert.parse_ast(euluna_parser, "return a ^ b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('BinaryOp', 'pow', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("ternary if", function()
+    assert.parse_ast(euluna_parser, "return a if c else b",
+      AST('Block', {
+        AST('Stat_Return', {
+          AST('TernaryOp', 'if', AST('Id', 'a'), AST('Id', 'c'), AST('Id', 'b')
+    )})}))
+  end)
+end)
+
+--------------------------------------------------------------------------------
+-- operators precedence rules
+--------------------------------------------------------------------------------
+--[[
+Operator precedence in Lua follows the table below, from lower
+to higher priority:
+  or
+  and
+  <     >     <=    >=    ~=    ==
+  |
+  ~
+  &
+  <<    >>
+  ..
+  +     -
+  *     /     //    %
+  unary operators (not   #     -     ~)
+  ^
+All binary operators are left associative, except for `^´ (exponentiation)
+and `..´ (concatenation), which are right associative.
+]]
+describe("operators following precedence rules for", function()
+  --TODO
 end)
 
 --------------------------------------------------------------------------------

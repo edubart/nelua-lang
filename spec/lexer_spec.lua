@@ -79,14 +79,17 @@ end)
 -- identifiers
 --------------------------------------------------------------------------------
 it("identifiers", function()
-  assert.peg_capture_all(lexer_pegs.cIDENTIFIER, {
+  assert.peg_capture_all(lexer_pegs.cNAME, {
     ['varname'] = 'varname',
     ['_if'] = '_if',
     ['if_'] = 'if_',
     ['var123'] = 'var123'
   })
-  assert.peg_match_none(lexer_pegs.cIDENTIFIER, {
-    '123a', 'if', '-varname',
+  assert.peg_capture_all(lexer_pegs.cID, {
+    ['_varname'] = AST('Id', '_varname')
+  })
+  assert.peg_match_none(lexer_pegs.cNAME, {
+    '123a', 'if', '-varname', 'if', 'else'
   })
 end)
 

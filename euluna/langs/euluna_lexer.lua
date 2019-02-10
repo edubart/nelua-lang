@@ -39,8 +39,10 @@ lexer:add_keywords({
   "repeat", "return", "then", "true", "until", "while",
 })
 
--- capture identifier name (names for variables, functions, etc)
-lexer:set_token_peg('cIDENTIFIER', '&%IDPREFIX !%KEYWORD {%IDFORMAT}')
+-- names and identifiers (names for variables, functions, etc)
+lexer:set_token_peg('NAME', '&%IDPREFIX !%KEYWORD %IDFORMAT')
+lexer:set_token_peg('cNAME', '&%IDPREFIX !%KEYWORD {%IDFORMAT}')
+lexer:set_token_peg('cID', "({} &%IDPREFIX !%KEYWORD '' -> 'Id' {%IDFORMAT}) -> to_astnode")
 
 -- capture numbers (hexdecimal, binary, exponential, decimal or integer)
 lexer:set_token_pegs([[
@@ -50,7 +52,7 @@ lexer:set_token_pegs([[
                      '' -> 'exp' exponential /
                      '' -> 'dec' decimal /
                      '' -> 'int' integer
-  literal         <- %cIDENTIFIER
+  literal         <- %cNAME
   exponential     <- (decimal / integer) [eE] ({[+-]? %d+} / %{MalformedExponentialNumber})
   decimal         <- {'-'? %d+ '.' %d* / '.' %d+}
   integer         <- {'-'? %d+}
@@ -100,7 +102,7 @@ lexer:set_token_pegs([[
   long_content    <- !long_close .
   long_open       <- '[' {:eq: '='*:} '[' %LINEBREAK?
   long_close      <- ']' =eq ']'
-  literal         <- %cIDENTIFIER
+  literal         <- %cNAME
 ]])
 
 -- capture boolean (true or false)

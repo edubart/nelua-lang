@@ -1,3 +1,5 @@
+require 'compat53'
+
 local parser = require 'euluna.langs.euluna_lexer'
 local to_astnode = require 'euluna.astnodes'.to_astnode
 
@@ -6,9 +8,17 @@ parser:add_statement('stat_break',[[
   ({} %BREAK -> 'Stat_Break') -> to_astnode
 ]])
 
+-- expected closing characters
+parser:set_pegs([[
+  %eRPAREN    <- %RPAREN    / %{UnclosedParenthesis}
+  %eRBRACKET  <- %RBRACKET  / %{UnclosedBracket}
+  %ecNAME     <- %cNAME     / %{ExpectedName}
+]])
+
 -- expressions
 parser:set_pegs([[
   %expr     <- expr0
+  eexpr     <- expr / %{ExpectedExpression}
 
   expr0     <- ({} {| expr1  (%IF -> 'if' expr1 %ELSE expr1)* |}) -> to_chain_ternary_op
   expr1     <- ({} {| expr2  (op_or       expr2 )* |})            -> to_chain_binary_op
@@ -23,6 +33,24 @@ parser:set_pegs([[
   expr10    <- ({} {| expr11 (op_mul      expr11)* |})            -> to_chain_binary_op
   expr11    <- ({} {| op_unary* |} expr12)                        -> to_chain_unary_op
   expr12    <- ({}    simple_expr (op_pow      expr11)?   )       -> to_binary_op
+
+  simple_expr <-
+      %cNUMBER
+    / %cSTRING
+    / %cBOOLEAN
+    / %cNIL
+    / %cVARARGS
+    / suffixed_expr
+
+  suffixed_expr <- (primary_expr {| index_expr* |}) -> to_chain_index
+
+  primary_expr <-
+    %cID /
+    %LPAREN eexpr %eRPAREN
+
+  index_expr <-
+    {| {} %DOT -> 'DotIndex' %ecNAME |} /
+    {| {} %LBRACKET -> 'ArrayIndex' eexpr %eRBRACKET |}
 
   op_or     <- %OR -> 'or'
   op_and    <- %AND -> 'and'
@@ -50,13 +78,6 @@ parser:set_pegs([[
                %BNOT -> 'bnot' /
                %TOSTRING -> 'tostring'
   op_pow   <-  %POW -> 'pow'
-
-  simple_expr <-
-      %cNUMBER
-    / %cSTRING
-    / %cBOOLEAN
-    / %cNIL
-    / %cVARARGS
 ]], {
   to_chain_unary_op = function(pos, opnames, expr)
     for i=#opnames,1,-1 do
@@ -89,6 +110,17 @@ parser:set_pegs([[
       lhs = to_astnode(pos, "TernaryOp", opname, lhs, mid, rhs)
     end
     return lhs
+  end,
+
+  to_chain_index = function(primary_expr, exprs)
+    local last_expr = primary_expr
+    if exprs then
+      for _,expr in ipairs(exprs) do
+        table.insert(expr, last_expr)
+        last_expr = to_astnode(table.unpack(expr))
+      end
+    end
+    return last_expr
   end
 })
 

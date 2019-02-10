@@ -70,6 +70,19 @@ astnodes.register('Boolean', types.shape {
 })
 astnodes.register('Nil', types.shape {})
 astnodes.register('Varargs', types.shape {})
+astnodes.register('Id', types.shape {
+  types.string, -- name
+})
+
+-- indexing
+astnodes.register('DotIndex', types.shape {
+  types.string, -- name
+  ast_types.node
+})
+astnodes.register('ArrayIndex', types.shape {
+  ast_types.node,
+  ast_types.node
+})
 
 -- general
 astnodes.register('Block', types.shape {
