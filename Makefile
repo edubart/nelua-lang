@@ -30,7 +30,7 @@ coverage:
 
 coverage-test:
 	@rm -f luacov.report.out luacov.stats.out
-	@busted --coverage
+	@busted --coverage --no-keep-going
 	@luacov
 	@luajit -e "require('tools.covreporter')()"
 	@rm -f luacov.report.out luacov.stats.out

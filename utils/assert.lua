@@ -1,6 +1,9 @@
 
 local assert = require 'luassert'
 
+-- inject dump utility while testing
+_G.dump = require 'utils.dump'
+
 local function recursive_remove_pos(t)
   if type(t) == 'table' then
     for _,v in ipairs(t) do
@@ -55,21 +58,15 @@ function assert.peg_match_none(peg, subjects)
 end
 
 function assert.parse_ast(parser, input, expected_ast)
-  if not parser then
-    parser = require 'euluna.langs.euluna_parser'
-  end
   local ast = assert(parser:parse(input))
-  if expected_ast then
+  --if expected_ast then
     assert.ast_equals(ast, expected_ast)
-  else
-    assert(ast, 'expected')
-  end
+  --else
+  --  assert(ast, 'expected')
+  --end
 end
 
 function assert.parse_ast_error(parser, input, expected_error)
-  if not parser then
-    parser = require 'euluna.parser'
-  end
   local ast, _, errdetails = parser:parse(input)
   assert(ast == nil and errdetails and errdetails.label == expected_error,
          string.format('expected error "%s" while parsing', expected_error))

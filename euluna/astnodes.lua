@@ -20,7 +20,10 @@ function astnodes.register(name, shape)
   local function astcreate(...)
     local self = {...}
     setmetatable(self, klass_mt)
-    assert(shape(self))
+    local ok, err = shape(self)
+    if not ok then
+      error(string.format('invalid shape while creating AST node "%s": %s', name, err))
+    end
     return self
   end
   klass.create = astcreate
@@ -36,9 +39,19 @@ function astnodes.create(tag, ...)
   return astcreate(...)
 end
 
+local astnodes_create = astnodes.create
+function astnodes.to_astnode(pos, tag, ...)
+  local ast = astnodes_create(tag, ...)
+  ast.pos = pos
+  return ast
+end
+
 local ast_types = {
   node = types.custom(function(val)
-    return type(val) == 'table' and val.is_a and val:is_a(ASTNode)
+    if type(val) == 'table' and val.is_a and val:is_a(ASTNode) then
+      return true
+    end
+    return nil, string.format('expected type "ASTNode", got "%s"', type(val))
   end)
 }
 
@@ -55,6 +68,8 @@ astnodes.register('String', types.shape {
 astnodes.register('Boolean', types.shape {
   types.boolean, -- true or false
 })
+astnodes.register('Nil', types.shape {})
+astnodes.register('Varargs', types.shape {})
 
 -- general
 astnodes.register('Block', types.shape {
@@ -63,7 +78,24 @@ astnodes.register('Block', types.shape {
 
 -- statements
 astnodes.register('Stat_Return', types.shape {
-  ast_types.node:is_optional() -- expr
+  types.array_of(ast_types.node):is_optional()
+})
+
+-- operations
+astnodes.register('UnaryOp', types.shape {
+  types.string,
+  ast_types.node
+})
+astnodes.register('BinaryOp', types.shape {
+  types.string,
+  ast_types.node,
+  ast_types.node
+})
+astnodes.register('TernaryOp', types.shape {
+  types.string,
+  ast_types.node,
+  ast_types.node,
+  ast_types.node
 })
 
 return astnodes

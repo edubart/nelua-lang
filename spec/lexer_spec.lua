@@ -8,6 +8,9 @@ local lexer_pegs = lexer.defs
 
 describe("Euluna lexer should parse", function()
 
+--------------------------------------------------------------------------------
+-- spaces
+--------------------------------------------------------------------------------
 it("spaces", function()
   assert.peg_match_all(lexer_pegs.SPACE, {
     ' ', '\t', '\n', '\r',
@@ -27,6 +30,9 @@ it("line breaks", function()
   })
 end)
 
+--------------------------------------------------------------------------------
+-- shebang
+--------------------------------------------------------------------------------
 it("shebang", function()
   assert.peg_match_all(lexer_pegs.SHEBANG, {
     "#!/usr/bin/euluna",
@@ -39,6 +45,9 @@ it("shebang", function()
   })
 end)
 
+--------------------------------------------------------------------------------
+-- comments
+--------------------------------------------------------------------------------
 it("comments", function()
   assert.peg_match_all(lexer_pegs.SHORTCOMMENT, {
     "-- a comment"
@@ -54,6 +63,9 @@ it("comments", function()
   })
 end)
 
+--------------------------------------------------------------------------------
+-- keywords
+--------------------------------------------------------------------------------
 it("keywords", function()
   assert.peg_match_all(lexer_pegs.KEYWORD, {
     'if', 'for', 'while'
@@ -63,6 +75,9 @@ it("keywords", function()
   })
 end)
 
+--------------------------------------------------------------------------------
+-- identifiers
+--------------------------------------------------------------------------------
 it("identifiers", function()
   assert.peg_capture_all(lexer_pegs.cIDENTIFIER, {
     ['varname'] = 'varname',
@@ -75,6 +90,9 @@ it("identifiers", function()
   })
 end)
 
+--------------------------------------------------------------------------------
+-- numbers
+--------------------------------------------------------------------------------
 describe("numbers", function()
   it("binary", function()
     assert.peg_capture_all(lexer_pegs.cNUMBER, {
@@ -139,6 +157,9 @@ describe("numbers", function()
   end)
 end)
 
+--------------------------------------------------------------------------------
+-- escape sequence
+--------------------------------------------------------------------------------
 it("escape sequence", function()
   assert.peg_error_all(lexer_pegs.cESCAPESEQUENCE, 'MalformedEscapeSequence', {
     "\\A",
@@ -168,6 +189,9 @@ it("escape sequence", function()
   })
 end)
 
+--------------------------------------------------------------------------------
+-- string
+--------------------------------------------------------------------------------
 describe("string", function()
   it("long", function()
     assert.peg_capture_all(lexer_pegs.cSTRING, {
@@ -205,6 +229,9 @@ describe("string", function()
   end)
 end)
 
+--------------------------------------------------------------------------------
+-- boolean
+--------------------------------------------------------------------------------
 it("boolean", function()
   assert.peg_capture_all(lexer_pegs.cBOOLEAN, {
     ["true"] = AST("Boolean", true),
@@ -215,6 +242,9 @@ it("boolean", function()
   })
 end)
 
+--------------------------------------------------------------------------------
+-- operators and symbols
+--------------------------------------------------------------------------------
 it("operators and symbols", function()
   assert.peg_match_all(lexer_pegs.ADD, {'+'})
   assert.peg_match_all(lexer_pegs.SUB, {'-'})

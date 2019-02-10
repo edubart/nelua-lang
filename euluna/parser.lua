@@ -3,18 +3,13 @@ local re = require 'relabel'
 local tablex = require 'pl.tablex'
 local Grammar = require 'euluna.grammar'
 local Parser = class(Grammar)
-
-local astnodes_create = require('euluna.astnodes').create
-local function to_astnode(pos, tag, ...)
-  local ast = astnodes_create(tag, ...)
-  ast.pos = pos
-  return ast
-end
+local to_astnode = require('euluna.astnodes').to_astnode
 
 function Parser:_init()
   self:super()
   self:set_peg_func('to_astnode', to_astnode)
   self.keywords = {}
+  self.statements = {}
   self.syntax_errors = {}
 end
 
@@ -41,6 +36,7 @@ end
 local function internal_add_keyword(self, keyword)
   local keyword_name = keyword:upper()
   assert(self.defs.IDSUFFIX, 'cannot add keyword without a IDSUFFIX peg')
+  assert(tablex.find(self.keywords, keyword) == nil, 'keyword already exists')
   table.insert(self.keywords, keyword)
   self:set_token_peg(keyword_name, string.format("'%s' !%%IDSUFFIX", keyword))
 end
@@ -57,6 +53,18 @@ function Parser:remove_keyword(keyword)
   table.remove(self.keywords, i)
   recompile_keyword_peg(self)
   self:remove_peg(keyword_name)
+end
+
+local function recompile_statement_peg(self)
+  local statement_patt = string.format('%%%s', table.concat(self.statements, '/%'))
+  self:set_token_peg('statement', statement_patt)
+end
+
+function Parser:add_statement(statement_name, patt, defs)
+  assert(tablex.find(self.statements, statement_name) == nil, 'statement already exists')
+  table.insert(self.statements, statement_name)
+  self:set_peg(statement_name, patt, defs)
+  recompile_statement_peg(self)
 end
 
 function Parser:add_keywords(keywords)

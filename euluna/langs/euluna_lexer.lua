@@ -111,6 +111,11 @@ lexer:set_token_pegs([[
   to_true = function() return true end
 })
 
+--- capture nil values
+lexer:set_token_pegs([[
+  %cNIL <- ({} %NIL -> 'Nil') -> to_astnode
+]])
+
 -- tokened symbols
 lexer:set_token_pegs([[
 -- binary operators
@@ -160,6 +165,11 @@ lexer:set_token_pegs([[
 %COLON        <- !%DBLCOLON ':'
 %AT           <- '@'
 %DOLLAR       <- '$'
+]])
+
+--- capture varargs values
+lexer:set_token_pegs([[
+  %cVARARGS <- ({} %ELLIPSIS -> 'Varargs') -> to_astnode
 ]])
 
 -- syntax errors
