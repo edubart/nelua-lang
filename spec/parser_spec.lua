@@ -4,6 +4,7 @@ local assert = require 'utils.assert'
 local astnodes = require 'euluna.astnodes'
 local AST = astnodes.create
 local euluna_parser = require 'euluna.langs.euluna_parser'
+local euluna_grammar = require 'euluna.langs.euluna_grammar'
 
 describe("Euluna should parse", function()
 
@@ -385,10 +386,11 @@ end)
 describe("live grammar change for", function()
   it("return keyword", function()
     euluna_parser:add_keyword("do_return")
-    euluna_parser:set_pegs([[
-      %stat_return <-
-        ({} %DO_RETURN -> 'Stat_Return' {| (%expr (%COMMA %expr)*)? |} %SEMICOLON?) -> to_astnode
-    ]])
+    euluna_grammar:set_pegs([[
+      stat_return <-
+        ({} %DO_RETURN -> 'Stat_Return' {| (expr (%COMMA expr)*)? |} %SEMICOLON?) -> to_astnode
+    ]], nil, true)
+    euluna_parser:set_grammar('sourcecode', euluna_grammar)
     euluna_parser:remove_keyword("return")
 
     assert.parse_ast(euluna_parser, "do_return",
@@ -399,10 +401,11 @@ describe("live grammar change for", function()
 
   it("return keyword (revert)", function()
     euluna_parser:add_keyword("return")
-    euluna_parser:set_pegs([[
-      %stat_return <-
-        ({} %RETURN -> 'Stat_Return' {| (%expr (%COMMA %expr)*)? |} %SEMICOLON?) -> to_astnode
-    ]])
+    euluna_grammar:set_pegs([[
+      stat_return <-
+        ({} %RETURN -> 'Stat_Return' {| (expr (%COMMA expr)*)? |} %SEMICOLON?) -> to_astnode
+    ]], nil, true)
+    euluna_parser:set_grammar('sourcecode', euluna_grammar)
     euluna_parser:remove_keyword("do_return")
 
     assert.parse_ast(euluna_parser, "return",
