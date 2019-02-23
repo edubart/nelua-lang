@@ -3,6 +3,7 @@ local types = require 'tableshape'.types
 local unpack = table.unpack or unpack
 
 local ASTNode = class()
+ASTNode.tag = 'Node'
 
 function ASTNode:args()
   return unpack(self)
@@ -10,9 +11,27 @@ end
 
 local ASTShape = class()
 
+local function get_astnode_shapetype(self, name)
+  local nodeklass = self.nodes[name]
+  return types.custom(function(val)
+    if type(val) == 'table' and val.is_a and val:is_a(nodeklass) then
+      return true
+    end
+    return nil, string.format('expected type "ASTNode", got "%s"', type(val))
+  end)
+end
+
 function ASTShape:_init()
-  self.nodes = {}
+  self.nodes = {
+    node = ASTNode
+  }
   self.creates = {}
+  self.types = {
+    ASTNode = get_astnode_shapetype(self)
+  }
+  setmetatable(self.types, {
+    __index = types
+  })
 end
 
 function ASTShape:register(name, shape)
@@ -31,6 +50,7 @@ function ASTShape:register(name, shape)
   end
   klass.create = node_create
   self.creates[name] = node_create
+  self.types['AST' .. name] = get_astnode_shapetype(self, name)
   return klass
 end
 
@@ -41,14 +61,5 @@ function ASTShape:create(tag, ...)
   end
   return create(...)
 end
-
-ASTShape.types = {
-  node = types.custom(function(val)
-    if type(val) == 'table' and val.is_a and val:is_a(ASTNode) then
-      return true
-    end
-    return nil, string.format('expected type "ASTNode", got "%s"', type(val))
-  end)
-}
 
 return ASTShape

@@ -21,7 +21,7 @@ end
 local function recompile_group_peg(self, groupname)
   local group = self.group_pegs[groupname]
   local patt = table.concat(group, '/')
-  self:set_peg(groupname, patt)
+  self:set_peg(groupname, patt, nil, true)
 end
 
 function Grammar:add_group_peg(groupname, name, patt, defs)

@@ -1,14 +1,13 @@
 local ASTShape = require 'euluna.astshape'
 local Parser = require 'euluna.parser'
 local Grammar = require 'euluna.grammar'
-local types = require 'tableshape'.types
-local ast_types = ASTShape.types
 
 --------------------------------------------------------------------------------
 -- AST definition
 --------------------------------------------------------------------------------
 
 local astshape = ASTShape()
+local types = astshape.types
 
 -- primitives
 astshape:register('Number', types.shape {
@@ -30,17 +29,17 @@ astshape:register('Varargs', types.shape {})
 
 -- table
 astshape:register('Table', types.shape {
-  types.array_of(ast_types.node) -- pair or exprs
+  types.array_of(types.ASTNode) -- pair or exprs
 })
 astshape:register('Pair', types.shape {
-  ast_types.node + types.string, -- field name
-  ast_types.node -- field value expr
+  types.ASTNode + types.string, -- field name (an expr or a string)
+  types.ASTNode -- field value expr
 })
 
 astshape:register('Function', types.shape {
-  types.array_of(ast_types.node):is_optional(), -- typed arguments
-  types.array_of(ast_types.node):is_optional(), -- typed returns
-  ast_types.node -- block
+  types.array_of(types.ASTNode):is_optional(), -- typed arguments
+  types.array_of(types.ASTNode):is_optional(), -- typed returns
+  types.ASTNode -- block
 })
 
 -- variable/function/type names
@@ -52,57 +51,57 @@ astshape:register('Type', types.shape {
 })
 astshape:register('TypedId', types.shape {
   types.string, -- name
-  ast_types.node:is_optional(), -- type
+  types.ASTType:is_optional(), -- type
 })
 
 -- indexing
 astshape:register('DotIndex', types.shape {
   types.string, -- name
-  ast_types.node -- expr
+  types.ASTNode -- expr
 })
 astshape:register('ArrayIndex', types.shape {
-  ast_types.node, -- index expr
-  ast_types.node -- expr
+  types.ASTNode, -- index expr
+  types.ASTNode -- expr
 })
 
 -- calls
 astshape:register('Call', types.shape {
-  types.array_of(ast_types.node), -- call types
-  types.array_of(ast_types.node), -- args exprs
-  ast_types.node, -- caller expr
+  types.array_of(types.ASTType), -- call types
+  types.array_of(types.ASTNode), -- args exprs
+  types.ASTNode, -- caller expr
 })
 astshape:register('CallMethod', types.shape {
   types.string, -- method name
-  types.array_of(ast_types.node), -- call types
-  types.array_of(ast_types.node), -- args exprs
-  ast_types.node, -- caller expr
+  types.array_of(types.ASTType), -- call types
+  types.array_of(types.ASTNode), -- args exprs
+  types.ASTNode, -- caller expr
 })
 
 -- general
 astshape:register('Block', types.shape {
-  types.array_of(ast_types.node)
+  types.array_of(types.ASTNode) -- statements
 })
 
 -- statements
-astshape:register('Stat_Return', types.shape {
-  types.array_of(ast_types.node)
+astshape:register('StatReturn', types.shape {
+  types.array_of(types.ASTNode) -- returned exprs
 })
 
 -- operations
 astshape:register('UnaryOp', types.shape {
   types.string, -- type
-  ast_types.node -- right expr
+  types.ASTNode -- right expr
 })
 astshape:register('BinaryOp', types.shape {
   types.string, -- type
-  ast_types.node, --- left expr
-  ast_types.node -- right expr
+  types.ASTNode, --- left expr
+  types.ASTNode -- right expr
 })
 astshape:register('TernaryOp', types.shape {
   types.string, -- type
-  ast_types.node, -- left expr
-  ast_types.node, -- middle expr
-  ast_types.node -- right expr
+  types.ASTNode, -- left expr
+  types.ASTNode, -- middle expr
+  types.ASTNode -- right expr
 })
 
 
@@ -315,12 +314,16 @@ grammar:set_pegs([==[
     ({} '' -> 'Block' {| (stat / %SEMICOLON)* stat_return? |}) -> to_astnode
 
   stat_return <-
-    ({} %RETURN -> 'Stat_Return' {| expr_list |} %SEMICOLON?) -> to_astnode
+    ({} %RETURN -> 'StatReturn' {| expr_list |} %SEMICOLON?) -> to_astnode
 ]==])
 
 -- statements
 grammar:add_group_peg('stat', 'break', [[
-  ({} %BREAK -> 'Stat_Break') -> to_astnode
+  ({} %BREAK -> 'StatBreak') -> to_astnode
+]])
+
+grammar:add_group_peg('stat', 'call', [[
+  (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |}) -> to_chain_index_or_call
 ]])
 
 -- expressions
