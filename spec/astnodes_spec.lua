@@ -1,8 +1,8 @@
 require 'busted.runner'()
 
-local astnodes = require 'euluna.astnodes'
+local astshape = require 'euluna.parsers.euluna_parser'.astshape
 local assert = require 'utils.assert'
-local AST = astnodes.create
+local AST = function(...) return astshape:create(...) end
 
 describe("Euluna AST should", function()
 

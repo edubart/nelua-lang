@@ -2,9 +2,17 @@ local class = require 'pl.class'
 local re = require 'relabel'
 local tablex = require 'pl.tablex'
 local Parser = class()
-local to_astnode = require('euluna.astnodes').to_astnode
 
-function Parser:_init()
+function Parser:_init(astshape)
+  local function to_astnode(pos, tag, ...)
+    local node = astshape:create(tag, ...)
+    node.pos = pos
+    return node
+  end
+
+  self.astshape = astshape
+  self.to_astnode = to_astnode
+
   self.keywords = {}
   self.syntax_errors = {}
   self.defs = {to_astnode = to_astnode}
@@ -211,7 +219,14 @@ function Parser:parse(input, name)
 end
 
 function Parser:clone()
-  return tablex.deepcopy(self)
+  local clone = Parser(self.astshape)
+  clone.keywords = tablex.deepcopy(self.keywords)
+  clone.syntax_errors = tablex.deepcopy(self.syntax_errors)
+  clone.defs = tablex.deepcopy(self.defs)
+  clone.pegdescs = tablex.deepcopy(self.pegdescs)
+  clone.to_astnode = self.to_astnode
+  clone.grammar = self.grammar
+  return clone
 end
 
 return Parser
