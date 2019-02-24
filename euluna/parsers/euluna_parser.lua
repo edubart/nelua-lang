@@ -130,6 +130,10 @@ astshape:register('StatVarDecl', types.shape {
   types.array_of(types.ASTTypedId), -- var names with types
   types.array_of(types.ASTNode):is_optional(), -- expr list, initial assignments values
 })
+astshape:register('StatAssign', types.shape {
+  types.array_of(types.ASTNode), -- expr list, assign variables
+  types.array_of(types.ASTNode), -- expr list, assign values
+})
 astshape:register('StatReturn', types.shape {
   types.array_of(types.ASTNode) -- returned exprs
 })
@@ -447,7 +451,15 @@ grammar:add_group_peg('stat', 'vardecl', [[
 ]])
 
 -- FuncDef
--- Assign
+
+grammar:add_group_peg('stat', 'assign', [[
+  ({} '' -> 'StatAssign' {| assignable_var_list |} %ASSIGN {| eexpr_list |}) -> to_astnode
+
+  assignable_var_list <- assignable_var (%COMMA assignable_var)*
+  assignable_var <-
+    (primary_expr {| ((call_expr+ & index_expr) / index_expr)+ |}) -> to_chain_index_or_call
+    / %cID
+]])
 
 grammar:add_group_peg('stat', 'call', [[
   (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |}) -> to_chain_index_or_call

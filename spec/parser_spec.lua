@@ -552,6 +552,39 @@ describe("statement variable declaration", function()
 end)
 
 --------------------------------------------------------------------------------
+-- assignment  statement
+--------------------------------------------------------------------------------
+describe("statement assignment", function()
+  it("simple", function()
+    assert.parse_ast(euluna_parser, "a = b",
+      AST('Block', {
+        AST('StatAssign',
+          { AST('Id', 'a') },
+          { AST('Id', 'b') }),
+    }))
+  end)
+  it("multiple", function()
+    assert.parse_ast(euluna_parser, "a,b,c = x,y,z",
+      AST('Block', {
+        AST('StatAssign',
+          { AST('Id', 'a'), AST('Id', 'b'), AST('Id', 'c') },
+          { AST('Id', 'x'), AST('Id', 'y'), AST('Id', 'z') }),
+    }))
+  end)
+  it("on indexes", function()
+    assert.parse_ast(euluna_parser, "a.b, a[b], a[b][c] = x,y,z",
+      AST('Block', {
+        AST('StatAssign',
+          { AST('DotIndex', 'b', AST('Id', 'a')),
+            AST('ArrayIndex', AST('Id', 'b'), AST('Id', 'a')),
+            AST('ArrayIndex', AST('Id', 'c'), AST('ArrayIndex', AST('Id', 'b'), AST('Id', 'a')))
+          },
+          { AST('Id', 'x'), AST('Id', 'y'), AST('Id', 'z') })
+    }))
+  end)
+end)
+
+--------------------------------------------------------------------------------
 -- functions
 --------------------------------------------------------------------------------
 describe("function", function()
