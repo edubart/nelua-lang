@@ -106,10 +106,9 @@ astshape:register('StatRepeat', types.shape {
 astshape:register('StatFor', types.shape {
   types.ASTTypedId, -- iterated var
   types.ASTNode, -- begin expr
-  types.string:is_optional(),
+  types.string, -- compare operator
   types.ASTNode, -- end expr
   types.ASTNode:is_optional(), -- increment expr
-
   types.ASTBlock, -- block
 })
 astshape:register('StatForIn', types.shape {
@@ -124,6 +123,12 @@ astshape:register('StatLabel', types.shape {
 })
 astshape:register('StatGoto', types.shape {
   types.string -- label name
+})
+astshape:register('StatVarDecl', types.shape {
+  types.string, -- scope (global/local)
+  types.string, -- mutability (var/let/ref/const)
+  types.array_of(types.ASTTypedId), -- var names with types
+  types.array_of(types.ASTNode):is_optional(), -- expr list, initial assignments values
 })
 astshape:register('StatReturn', types.shape {
   types.array_of(types.ASTNode) -- returned exprs
@@ -191,7 +196,7 @@ parser:add_keywords({
   "repeat", "return", "then", "true", "until", "while",
 
   -- euluna additional keywords
-  "switch", "case", "continue"
+  "switch", "case", "continue", "global", "var", "ref", "let", "const"
 })
 
 -- names and identifiers (names for variables, functions, etc)
@@ -403,7 +408,7 @@ grammar:add_group_peg('stat', 'for', [[
 
   for_num <-
     ({} '' -> 'StatFor'
-      typed_id %ASSIGN eexpr %COMMA (op_cmp / cnil) eexpr (%COMMA eexpr / cnil)
+      typed_id %ASSIGN eexpr %COMMA (op_cmp / '' -> 'le') eexpr (%COMMA eexpr / cnil)
       eDO block eEND
     ) -> to_astnode
 
@@ -427,7 +432,20 @@ grammar:add_group_peg('stat', 'goto', [[
   ({} %GOTO -> 'StatGoto' ecNAME) -> to_astnode
 ]])
 
--- VarDecl
+grammar:add_group_peg('stat', 'vardecl', [[
+  ({} '' -> 'StatVarDecl'
+    ((var_scope (var_mutability / '' -> 'var')) / ('' -> 'local' var_mutability))
+    {| typed_idlist |}
+    (%ASSIGN {| eexpr_list |})?
+  ) -> to_astnode
+
+  var_scope <-
+    %LOCAL -> 'local' / %GLOBAL -> 'global'
+
+  var_mutability <-
+    %VAR -> 'var' / %REF -> 'ref' / %LET -> 'let' / %CONST -> 'const'
+]])
+
 -- FuncDef
 -- Assign
 
@@ -503,6 +521,7 @@ grammar:set_pegs([[
   etypexpr_list <- etypexpr (%COMMA typexpr)*
 
   expr_list <- (expr (%COMMA expr)*)?
+  eexpr_list <- expr_list / %{ExpectedExpression}
 
   cnil <- '' -> to_nil
 ]], {

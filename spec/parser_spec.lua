@@ -428,7 +428,7 @@ describe("statement for", function()
         AST('StatFor',
           AST('TypedId', 'i'),
           AST('Number', 'int', '1'),
-          nil,
+          'le',
           AST('Number', 'int', '10'),
           nil,
           AST('Block', {}))
@@ -491,6 +491,62 @@ describe("statement goto", function()
         AST('StatLabel', 'mylabel'),
         AST('Call', {}, {}, AST('Id', 'f')),
         AST('StatIf', { {AST('Id', 'a'), AST('Block', {AST('StatGoto', 'mylabel')}) } })
+    }))
+  end)
+end)
+
+--------------------------------------------------------------------------------
+-- variable declaration statement
+--------------------------------------------------------------------------------
+describe("statement variable declaration", function()
+  it("local variable", function()
+    assert.parse_ast(euluna_parser, [[
+      local a
+      local a: integer
+    ]],
+      AST('Block', {
+        AST('StatVarDecl', 'local', 'var', { AST('TypedId', 'a') }),
+        AST('StatVarDecl', 'local', 'var', { AST('TypedId', 'a', AST('Type', 'integer')) })
+    }))
+  end)
+  it("local variable assignment", function()
+    assert.parse_ast(euluna_parser, [[
+      local a = b
+      local a: integer = b
+    ]],
+      AST('Block', {
+        AST('StatVarDecl', 'local', 'var', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
+        AST('StatVarDecl', 'local', 'var',
+          { AST('TypedId', 'a', AST('Type', 'integer')) },
+          { AST('Id', 'b') })
+    }))
+  end)
+  it("global variable", function()
+    assert.parse_ast(euluna_parser, "global a",
+      AST('Block', {
+        AST('StatVarDecl', 'global', 'var', { AST('TypedId', 'a') })
+    }))
+  end)
+  it("variable mutabilities", function()
+    assert.parse_ast(euluna_parser, [[
+      var a = b
+      let a = b
+      local ref a = b
+      global const a = b
+    ]],
+      AST('Block', {
+        AST('StatVarDecl', 'local', 'var', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
+        AST('StatVarDecl', 'local', 'let', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
+        AST('StatVarDecl', 'local', 'ref', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
+        AST('StatVarDecl', 'global', 'const', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
+    }))
+  end)
+  it("variable multiple assigments", function()
+    assert.parse_ast(euluna_parser, "local a,b,c = x,y,z",
+      AST('Block', {
+        AST('StatVarDecl', 'local', 'var',
+          { AST('TypedId', 'a'), AST('TypedId', 'b'), AST('TypedId', 'c') },
+          { AST('Id', 'x'), AST('Id', 'y'), AST('Id', 'z') }),
     }))
   end)
 end)
