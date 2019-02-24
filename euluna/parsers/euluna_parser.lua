@@ -1,4 +1,4 @@
-local ASTShape = require 'euluna.astshape'
+local Shaper = require 'euluna.shaper'
 local Parser = require 'euluna.parser'
 local Grammar = require 'euluna.grammar'
 
@@ -6,71 +6,71 @@ local Grammar = require 'euluna.grammar'
 -- AST definition
 --------------------------------------------------------------------------------
 
-local astshape = ASTShape()
-local types = astshape.types
+local shaper = Shaper()
+local types = shaper.types
 
 -- primitives
-astshape:register('Number', types.shape {
+shaper:register('Number', types.shape {
   types.one_of{"int", "dec", "bin", "exp", "hex"}, -- type
   types.string, -- value
   types.string:is_optional() -- literal
 })
-astshape:register('String', types.shape {
+shaper:register('String', types.shape {
   types.string, -- value
   types.string:is_optional() -- literal
 })
-astshape:register('Boolean', types.shape {
+shaper:register('Boolean', types.shape {
   types.boolean, -- true or false
 })
-astshape:register('Nil', types.shape {})
+shaper:register('Nil', types.shape {})
 
 -- varargs
-astshape:register('Varargs', types.shape {})
+shaper:register('Varargs', types.shape {})
 
 -- table
-astshape:register('Table', types.shape {
+shaper:register('Table', types.shape {
   types.array_of(types.ASTNode) -- pair or exprs
 })
-astshape:register('Pair', types.shape {
+shaper:register('Pair', types.shape {
   types.ASTNode + types.string, -- field name (an expr or a string)
   types.ASTNode -- field value expr
 })
 
-astshape:register('Function', types.shape {
+shaper:register('Function', types.shape {
   types.array_of(types.ASTNode):is_optional(), -- typed arguments
   types.array_of(types.ASTNode):is_optional(), -- typed returns
   types.ASTNode -- block
 })
 
 -- variable/function/type names
-astshape:register('Id', types.shape {
+shaper:register('Id', types.shape {
   types.string, -- name
 })
-astshape:register('Type', types.shape {
+shaper:register('Type', types.shape {
   types.string, -- type
 })
-astshape:register('TypedId', types.shape {
+shaper:register('TypedId', types.shape {
   types.string, -- name
   types.ASTType:is_optional(), -- type
 })
 
 -- indexing
-astshape:register('DotIndex', types.shape {
+shaper:register('DotIndex', types.shape {
   types.string, -- name
   types.ASTNode -- expr
 })
-astshape:register('ArrayIndex', types.shape {
+shaper:register('ArrayIndex', types.shape {
   types.ASTNode, -- index expr
   types.ASTNode -- expr
 })
 
 -- calls
-astshape:register('Call', types.shape {
+shaper:register('Call', types.shape {
   types.array_of(types.ASTType), -- call types
   types.array_of(types.ASTNode), -- args exprs
   types.ASTNode, -- caller expr
 })
-astshape:register('CallMethod', types.shape {
+shaper:register('CallMethod', types.shape {
   types.string, -- method name
   types.array_of(types.ASTType), -- call types
   types.array_of(types.ASTNode), -- args exprs
@@ -78,32 +78,32 @@ astshape:register('CallMethod', types.shape {
 })
 
 -- block
-astshape:register('Block', types.shape {
+shaper:register('Block', types.shape {
   types.array_of(types.ASTNode) -- statements
 })
 
 -- statements
-astshape:register('StatIf', types.shape {
+shaper:register('If', types.shape {
   types.array_of(types.shape{types.ASTNode, types.ASTBlock}), -- if list {expr, block}
   types.ASTBlock:is_optional() -- else block
 })
-astshape:register('StatSwitch', types.shape {
+shaper:register('Switch', types.shape {
   types.ASTNode, -- switch expr
   types.array_of(types.shape{types.ASTNode, types.ASTBlock}), -- case list {expr, block}
   types.ASTBlock:is_optional() -- else block
 })
-astshape:register('StatDo', types.shape {
+shaper:register('Do', types.shape {
   types.ASTBlock -- block
 })
-astshape:register('StatWhile', types.shape {
+shaper:register('While', types.shape {
   types.ASTNode, -- expr
   types.ASTBlock -- block
 })
-astshape:register('StatRepeat', types.shape {
+shaper:register('Repeat', types.shape {
   types.ASTBlock, -- block
   types.ASTNode -- expr
 })
-astshape:register('StatForNum', types.shape {
+shaper:register('ForNum', types.shape {
   types.ASTTypedId, -- iterated var
   types.ASTNode, -- begin expr
   types.string, -- compare operator
@@ -111,51 +111,51 @@ astshape:register('StatForNum', types.shape {
   types.ASTNode:is_optional(), -- increment expr
   types.ASTBlock, -- block
 })
-astshape:register('StatForIn', types.shape {
+shaper:register('ForIn', types.shape {
   types.array_of(types.ASTTypedId), -- iterated vars
   types.ASTNode, -- in expr
   types.ASTBlock -- block
 })
-astshape:register('StatBreak', types.shape {})
-astshape:register('StatContinue', types.shape {})
-astshape:register('StatLabel', types.shape {
+shaper:register('Break', types.shape {})
+shaper:register('Continue', types.shape {})
+shaper:register('Label', types.shape {
   types.string -- label name
 })
-astshape:register('StatGoto', types.shape {
+shaper:register('Goto', types.shape {
   types.string -- label name
 })
-astshape:register('StatVarDecl', types.shape {
+shaper:register('VarDecl', types.shape {
   types.string, -- scope (global/local)
   types.string, -- mutability (var/let/ref/const)
   types.array_of(types.ASTTypedId), -- var names with types
   types.array_of(types.ASTNode):is_optional(), -- expr list, initial assignments values
 })
-astshape:register('StatAssign', types.shape {
+shaper:register('Assign', types.shape {
   types.array_of(types.ASTNode), -- expr list, assign variables
   types.array_of(types.ASTNode), -- expr list, assign values
 })
-astshape:register('StatFuncDef', types.shape {
+shaper:register('FuncDef', types.shape {
   types.string:is_optional(), -- scope (global/local)
   types.string, -- name
   types.array_of(types.ASTNode):is_optional(), -- typed arguments
   types.array_of(types.ASTNode):is_optional(), -- typed returns
   types.ASTNode -- block
 })
-astshape:register('StatReturn', types.shape {
+shaper:register('Return', types.shape {
   types.array_of(types.ASTNode) -- returned exprs
 })
 
 -- operations
-astshape:register('UnaryOp', types.shape {
+shaper:register('UnaryOp', types.shape {
   types.string, -- type
   types.ASTNode -- right expr
 })
-astshape:register('BinaryOp', types.shape {
+shaper:register('BinaryOp', types.shape {
   types.string, -- type
   types.ASTNode, --- left expr
   types.ASTNode -- right expr
 })
-astshape:register('TernaryOp', types.shape {
+shaper:register('TernaryOp', types.shape {
   types.string, -- type
   types.ASTNode, -- left expr
   types.ASTNode, -- middle expr
@@ -167,7 +167,7 @@ astshape:register('TernaryOp', types.shape {
 -- Lexer
 --------------------------------------------------------------------------------
 
-local parser = Parser(astshape)
+local parser = Parser(shaper)
 
 -- spaces including new lines
 parser:set_peg("SPACE", "%s")
@@ -375,12 +375,12 @@ grammar:set_pegs([==[
     ({} '' -> 'Block' {| (stat / %SEMICOLON)* stat_return? |}) -> to_astnode
 
   stat_return <-
-    ({} %RETURN -> 'StatReturn' {| expr_list |} %SEMICOLON?) -> to_astnode
+    ({} %RETURN -> 'Return' {| expr_list |} %SEMICOLON?) -> to_astnode
 ]==])
 
 -- statements
 grammar:add_group_peg('stat', 'if', [[
-  ({} %IF -> 'StatIf'
+  ({} %IF -> 'If'
     {|
       {| eexpr eTHEN block |}
       ({| %ELSEIF eexpr eTHEN block |})*
@@ -390,7 +390,7 @@ grammar:add_group_peg('stat', 'if', [[
 ]])
 
 grammar:add_group_peg('stat', 'switch', [[
-  ({} %SWITCH -> 'StatSwitch' eexpr
+  ({} %SWITCH -> 'Switch' eexpr
       {|(
         ({| %CASE eexpr eTHEN block |})+ / %{ExpectedCase})
       |}
@@ -400,48 +400,48 @@ grammar:add_group_peg('stat', 'switch', [[
 ]])
 
 grammar:add_group_peg('stat', 'do', [[
-  ({} %DO -> 'StatDo' block eEND) -> to_astnode
+  ({} %DO -> 'Do' block eEND) -> to_astnode
 ]])
 
 grammar:add_group_peg('stat', 'while', [[
-  ({} %WHILE -> 'StatWhile' eexpr eDO block eEND) -> to_astnode
+  ({} %WHILE -> 'While' eexpr eDO block eEND) -> to_astnode
 ]])
 
 grammar:add_group_peg('stat', 'repeat', [[
-  ({} %REPEAT -> 'StatRepeat' block eUNTIL eexpr) -> to_astnode
+  ({} %REPEAT -> 'Repeat' block eUNTIL eexpr) -> to_astnode
 ]])
 
 grammar:add_group_peg('stat', 'for', [[
   %FOR (for_num / for_in / %{ExpectedForParams})
 
   for_num <-
-    ({} '' -> 'StatForNum'
+    ({} '' -> 'ForNum'
       typed_id %ASSIGN eexpr %COMMA (op_cmp / '' -> 'le') eexpr (%COMMA eexpr / cnil)
       eDO block eEND
     ) -> to_astnode
 
   for_in <-
-    ({} '' -> 'StatForIn' {| typed_idlist |} %IN eexpr eDO block eEND) -> to_astnode
+    ({} '' -> 'ForIn' {| typed_idlist |} %IN eexpr eDO block eEND) -> to_astnode
 ]])
 
 grammar:add_group_peg('stat', 'break', [[
-  ({} %BREAK -> 'StatBreak') -> to_astnode
+  ({} %BREAK -> 'Break') -> to_astnode
 ]])
 
 grammar:add_group_peg('stat', 'continue', [[
-  ({} %CONTINUE -> 'StatContinue') -> to_astnode
+  ({} %CONTINUE -> 'Continue') -> to_astnode
 ]])
 
 grammar:add_group_peg('stat', 'label', [[
-  ({} %DBLCOLON -> 'StatLabel' ecNAME eDBLCOLON) -> to_astnode
+  ({} %DBLCOLON -> 'Label' ecNAME eDBLCOLON) -> to_astnode
 ]])
 
 grammar:add_group_peg('stat', 'goto', [[
-  ({} %GOTO -> 'StatGoto' ecNAME) -> to_astnode
+  ({} %GOTO -> 'Goto' ecNAME) -> to_astnode
 ]])
 
 grammar:add_group_peg('stat', 'vardecl', [[
-  ({} '' -> 'StatVarDecl'
+  ({} '' -> 'VarDecl'
     ((var_scope (var_mutability / '' -> 'var')) / ('' -> 'local' var_mutability))
     {| typed_idlist |}
     (%ASSIGN {| eexpr_list |})?
@@ -449,7 +449,7 @@ grammar:add_group_peg('stat', 'vardecl', [[
 ]])
 
 grammar:add_group_peg('stat', 'funcdef', [[
-  ({} '' -> 'StatFuncDef' (var_scope / cnil) %FUNCTION ecNAME function_body) -> to_astnode
+  ({} '' -> 'FuncDef' (var_scope / cnil) %FUNCTION ecNAME function_body) -> to_astnode
 ]])
 
 grammar:add_group_peg('stat', 'call', [[
@@ -457,7 +457,7 @@ grammar:add_group_peg('stat', 'call', [[
 ]])
 
 grammar:add_group_peg('stat', 'assign', [[
-  ({} '' -> 'StatAssign' {| assignable_var_list |} %ASSIGN {| eexpr_list |}) -> to_astnode
+  ({} '' -> 'Assign' {| assignable_var_list |} %ASSIGN {| eexpr_list |}) -> to_astnode
 
   assignable_var_list <- assignable_var (%COMMA assignable_var)*
   assignable_var <-

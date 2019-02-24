@@ -2,8 +2,8 @@ require 'busted.runner'()
 
 local assert = require 'utils.assert'
 local euluna_parser = require 'euluna.parsers.euluna_parser'
-local euluna_astshape = euluna_parser.astshape
-local AST = function(...) return euluna_astshape:create(...) end
+local euluna_shaper = euluna_parser.shaper
+local AST = function(...) return euluna_shaper:create(...) end
 local pegs = euluna_parser.defs
 
 describe("Euluna parser should parse", function()

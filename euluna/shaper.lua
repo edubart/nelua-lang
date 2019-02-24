@@ -9,7 +9,7 @@ function ASTNode:args()
   return unpack(self)
 end
 
-local ASTShape = class()
+local Shaper = class()
 
 local function get_astnode_shapetype(self, name)
   local nodeklass = self.nodes[name]
@@ -21,7 +21,7 @@ local function get_astnode_shapetype(self, name)
   end)
 end
 
-function ASTShape:_init()
+function Shaper:_init()
   self.nodes = {
     node = ASTNode
   }
@@ -34,7 +34,7 @@ function ASTShape:_init()
   })
 end
 
-function ASTShape:register(name, shape)
+function Shaper:register(name, shape)
   local klass = class(ASTNode)
   self.nodes[name] = klass
   klass.tag = name
@@ -54,7 +54,7 @@ function ASTShape:register(name, shape)
   return klass
 end
 
-function ASTShape:create(tag, ...)
+function Shaper:create(tag, ...)
   local create = self.creates[tag]
   if not create then
     error(string.format("AST with name '%s' is not registered", tag))
@@ -62,4 +62,4 @@ function ASTShape:create(tag, ...)
   return create(...)
 end
 
-return ASTShape
+return Shaper

@@ -21,7 +21,7 @@ generator:register('Block', function(ast, coder, parent_scope)
   end
 end)
 
-generator:register('StatReturn', function(ast, coder, parent_scope)
+generator:register('Return', function(ast, coder, parent_scope)
   local rets = ast:args()
   coder:add_indent("return")
   for i,ret in ipairs(rets) do
@@ -35,7 +35,7 @@ generator:register('StatReturn', function(ast, coder, parent_scope)
   coder:add_ln()
 end)
 
-generator:register('StatDo', function(ast, coder, parent_scope)
+generator:register('Do', function(ast, coder, parent_scope)
   local block = ast:args()
   local scope = parent_scope:fork()
   coder:add_indent_ln("do")

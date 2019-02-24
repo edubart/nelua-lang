@@ -3,14 +3,14 @@ local re = require 'relabel'
 local tablex = require 'pl.tablex'
 local Parser = class()
 
-function Parser:_init(astshape)
+function Parser:_init(shaper)
   local function to_astnode(pos, tag, ...)
-    local node = astshape:create(tag, ...)
+    local node = shaper:create(tag, ...)
     node.pos = pos
     return node
   end
 
-  self.astshape = astshape
+  self.shaper = shaper
   self.to_astnode = to_astnode
 
   self.keywords = {}
@@ -219,7 +219,7 @@ function Parser:parse(input, name)
 end
 
 function Parser:clone()
-  local clone = Parser(self.astshape)
+  local clone = Parser(self.shaper)
   clone.keywords = tablex.deepcopy(self.keywords)
   clone.syntax_errors = tablex.deepcopy(self.syntax_errors)
   clone.defs = tablex.deepcopy(self.defs)
