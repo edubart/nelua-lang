@@ -425,7 +425,7 @@ describe("statement for", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "for i=1,10 do end",
       AST('Block', {
-        AST('StatFor',
+        AST('StatForNum',
           AST('TypedId', 'i'),
           AST('Number', 'int', '1'),
           'le',
@@ -437,7 +437,7 @@ describe("statement for", function()
   it("reverse with comparations", function()
     assert.parse_ast(euluna_parser, "for i:number=10,>0,-1 do end",
       AST('Block', {
-        AST('StatFor',
+        AST('StatForNum',
           AST('TypedId', 'i', AST('Type', 'number')),
           AST('Number', 'int', '10'),
           'gt',

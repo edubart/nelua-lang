@@ -62,11 +62,12 @@ end
 
 function assert.parse_ast(parser, input, expected_ast)
   local ast = assert(parser:parse(input))
-  --if expected_ast then
+  if expected_ast then
     assert.ast_equals(ast, expected_ast)
-  --else
-  --  assert(ast, 'expected')
-  --end
+  else
+    assert(ast, 'an valid ast was expected')
+  end
+  return ast
 end
 
 function assert.parse_ast_error(parser, input, expected_error)

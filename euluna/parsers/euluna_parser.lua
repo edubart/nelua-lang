@@ -103,7 +103,7 @@ astshape:register('StatRepeat', types.shape {
   types.ASTBlock, -- block
   types.ASTNode -- expr
 })
-astshape:register('StatFor', types.shape {
+astshape:register('StatForNum', types.shape {
   types.ASTTypedId, -- iterated var
   types.ASTNode, -- begin expr
   types.string, -- compare operator
@@ -399,9 +399,6 @@ grammar:add_group_peg('stat', 'switch', [[
   ) -> to_astnode
 ]])
 
--- Try
--- Throw
-
 grammar:add_group_peg('stat', 'do', [[
   ({} %DO -> 'StatDo' block eEND) -> to_astnode
 ]])
@@ -418,7 +415,7 @@ grammar:add_group_peg('stat', 'for', [[
   %FOR (for_num / for_in / %{ExpectedForParams})
 
   for_num <-
-    ({} '' -> 'StatFor'
+    ({} '' -> 'StatForNum'
       typed_id %ASSIGN eexpr %COMMA (op_cmp / '' -> 'le') eexpr (%COMMA eexpr / cnil)
       eDO block eEND
     ) -> to_astnode
