@@ -274,27 +274,27 @@ end)
 --------------------------------------------------------------------------------
 describe("call", function()
   it("simple", function()
-    assert.parse_ast(euluna_parser, "print()",
+    assert.parse_ast(euluna_parser, "a()",
       AST('Block', {
-        AST('Call', {}, {}, AST('Id', 'print')),
+        AST('Call', {}, {}, AST('Id', 'a')),
     }))
   end)
   it("dot index", function()
-    assert.parse_ast(euluna_parser, "os.time()",
+    assert.parse_ast(euluna_parser, "a.b()",
       AST('Block', {
-        AST('Call', {}, {}, AST('DotIndex', 'time', AST('Id', 'os')))
+        AST('Call', {}, {}, AST('DotIndex', 'b', AST('Id', 'a')))
     }))
   end)
   it("array index", function()
-    assert.parse_ast(euluna_parser, "os['time']()",
+    assert.parse_ast(euluna_parser, "a['b']()",
       AST('Block', {
-        AST('Call', {}, {}, AST('ArrayIndex', AST('Id', 'time'), AST('Id', 'os')))
+        AST('Call', {}, {}, AST('ArrayIndex', AST('Id', 'b'), AST('Id', 'a')))
     }))
   end)
   it("method", function()
-    assert.parse_ast(euluna_parser, "s:upper()",
+    assert.parse_ast(euluna_parser, "a:b()",
       AST('Block', {
-        AST('CallMethod', 'upper', {}, {}, AST('Id', 's'))
+        AST('CallMethod', 'b', {}, {}, AST('Id', 'a'))
     }))
   end)
   it("typed", function()
@@ -552,7 +552,7 @@ describe("statement variable declaration", function()
 end)
 
 --------------------------------------------------------------------------------
--- assignment  statement
+-- assignment statement
 --------------------------------------------------------------------------------
 describe("statement assignment", function()
   it("simple", function()
@@ -572,22 +572,38 @@ describe("statement assignment", function()
     }))
   end)
   it("on indexes", function()
-    assert.parse_ast(euluna_parser, "a.b, a[b], a[b][c] = x,y,z",
+    assert.parse_ast(euluna_parser, "a.b, a[b], a[b][c], f(a).b = x,y,z,w",
       AST('Block', {
         AST('StatAssign',
           { AST('DotIndex', 'b', AST('Id', 'a')),
             AST('ArrayIndex', AST('Id', 'b'), AST('Id', 'a')),
-            AST('ArrayIndex', AST('Id', 'c'), AST('ArrayIndex', AST('Id', 'b'), AST('Id', 'a')))
+            AST('ArrayIndex', AST('Id', 'c'), AST('ArrayIndex', AST('Id', 'b'), AST('Id', 'a'))),
+            AST('DotIndex', 'b', AST('Call', {}, {AST('Id', 'a')}, AST('Id', 'f'))),
           },
-          { AST('Id', 'x'), AST('Id', 'y'), AST('Id', 'z') })
+          { AST('Id', 'x'), AST('Id', 'y'), AST('Id', 'z'), AST('Id', 'w') })
     }))
   end)
 end)
 
 --------------------------------------------------------------------------------
--- functions
+-- function statement
 --------------------------------------------------------------------------------
-describe("function", function()
+describe("statement function", function()
+  it("simple", function()
+    assert.parse_ast(euluna_parser, "function f() end",
+      AST('Block', {
+        AST('StatFuncDef', nil, 'f', nil, nil, AST('Block', {}) )
+    }))
+  end)
+  it("local and typed", function()
+    assert.parse_ast(euluna_parser, "local function f(a, b: int): string end",
+      AST('Block', {
+        AST('StatFuncDef', 'local', 'f',
+          { AST('TypedId', 'a'), AST('TypedId', 'b', AST('Type', 'int')) },
+          { AST('Type', 'string') },
+          AST('Block', {}) )
+    }))
+  end)
 end)
 
 --------------------------------------------------------------------------------

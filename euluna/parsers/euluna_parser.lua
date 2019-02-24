@@ -134,6 +134,13 @@ astshape:register('StatAssign', types.shape {
   types.array_of(types.ASTNode), -- expr list, assign variables
   types.array_of(types.ASTNode), -- expr list, assign values
 })
+astshape:register('StatFuncDef', types.shape {
+  types.string:is_optional(), -- scope (global/local)
+  types.string, -- name
+  types.array_of(types.ASTNode):is_optional(), -- typed arguments
+  types.array_of(types.ASTNode):is_optional(), -- typed returns
+  types.ASTNode -- block
+})
 astshape:register('StatReturn', types.shape {
   types.array_of(types.ASTNode) -- returned exprs
 })
@@ -442,15 +449,15 @@ grammar:add_group_peg('stat', 'vardecl', [[
     {| typed_idlist |}
     (%ASSIGN {| eexpr_list |})?
   ) -> to_astnode
-
-  var_scope <-
-    %LOCAL -> 'local' / %GLOBAL -> 'global'
-
-  var_mutability <-
-    %VAR -> 'var' / %REF -> 'ref' / %LET -> 'let' / %CONST -> 'const'
 ]])
 
--- FuncDef
+grammar:add_group_peg('stat', 'funcdef', [[
+  ({} '' -> 'StatFuncDef' (var_scope / cnil) %FUNCTION ecNAME function_body) -> to_astnode
+]])
+
+grammar:add_group_peg('stat', 'call', [[
+  (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |}) -> to_chain_index_or_call
+]])
 
 grammar:add_group_peg('stat', 'assign', [[
   ({} '' -> 'StatAssign' {| assignable_var_list |} %ASSIGN {| eexpr_list |}) -> to_astnode
@@ -459,10 +466,6 @@ grammar:add_group_peg('stat', 'assign', [[
   assignable_var <-
     (primary_expr {| ((call_expr+ & index_expr) / index_expr)+ |}) -> to_chain_index_or_call
     / %cID
-]])
-
-grammar:add_group_peg('stat', 'call', [[
-  (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |}) -> to_chain_index_or_call
 ]])
 
 -- expressions
@@ -533,7 +536,10 @@ grammar:set_pegs([[
   etypexpr_list <- etypexpr (%COMMA typexpr)*
 
   expr_list <- (expr (%COMMA expr)*)?
-  eexpr_list <- expr_list / %{ExpectedExpression}
+  eexpr_list <- eexpr (%COMMA expr)*
+
+  var_scope <- %LOCAL -> 'local' / %GLOBAL -> 'global'
+  var_mutability <- %VAR -> 'var' / %REF -> 'ref' / %LET -> 'let' / %CONST -> 'const'
 
   cnil <- '' -> to_nil
 ]], {
