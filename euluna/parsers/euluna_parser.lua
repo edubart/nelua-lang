@@ -77,12 +77,54 @@ astshape:register('CallMethod', types.shape {
   types.ASTNode, -- caller expr
 })
 
--- general
+-- block
 astshape:register('Block', types.shape {
   types.array_of(types.ASTNode) -- statements
 })
 
 -- statements
+astshape:register('StatIf', types.shape {
+  types.array_of(types.shape{types.ASTNode, types.ASTBlock}), -- if list {expr, block}
+  types.ASTBlock:is_optional() -- else block
+})
+astshape:register('StatSwitch', types.shape {
+  types.ASTNode, -- switch expr
+  types.array_of(types.shape{types.ASTNode, types.ASTBlock}), -- case list {expr, block}
+  types.ASTBlock:is_optional() -- else block
+})
+astshape:register('StatDo', types.shape {
+  types.ASTBlock -- block
+})
+astshape:register('StatWhile', types.shape {
+  types.ASTNode, -- expr
+  types.ASTBlock -- block
+})
+astshape:register('StatRepeat', types.shape {
+  types.ASTBlock, -- block
+  types.ASTNode -- expr
+})
+astshape:register('StatFor', types.shape {
+  types.ASTTypedId, -- iterated var
+  types.ASTNode, -- begin expr
+  types.string:is_optional(),
+  types.ASTNode, -- end expr
+  types.ASTNode:is_optional(), -- increment expr
+
+  types.ASTBlock, -- block
+})
+astshape:register('StatForIn', types.shape {
+  types.array_of(types.ASTTypedId), -- iterated vars
+  types.ASTNode, -- in expr
+  types.ASTBlock -- block
+})
+astshape:register('StatBreak', types.shape {})
+astshape:register('StatContinue', types.shape {})
+astshape:register('StatLabel', types.shape {
+  types.string -- label name
+})
+astshape:register('StatGoto', types.shape {
+  types.string -- label name
+})
 astshape:register('StatReturn', types.shape {
   types.array_of(types.ASTNode) -- returned exprs
 })
@@ -147,6 +189,9 @@ parser:add_keywords({
   "and", "break", "do", "else", "elseif", "end", "for", "false",
   "function", "goto", "if", "in", "local", "nil", "not", "or",
   "repeat", "return", "then", "true", "until", "while",
+
+  -- euluna additional keywords
+  "switch", "case", "continue"
 })
 
 -- names and identifiers (names for variables, functions, etc)
@@ -318,9 +363,73 @@ grammar:set_pegs([==[
 ]==])
 
 -- statements
+grammar:add_group_peg('stat', 'if', [[
+  ({} %IF -> 'StatIf'
+    {|
+      {| eexpr eTHEN block |}
+      ({| %ELSEIF eexpr eTHEN block |})*
+    |}
+    (%ELSE block)?
+  eEND) -> to_astnode
+]])
+
+grammar:add_group_peg('stat', 'switch', [[
+  ({} %SWITCH -> 'StatSwitch' eexpr
+      {|(
+        ({| %CASE eexpr eTHEN block |})+ / %{ExpectedCase})
+      |}
+      (%ELSE block)?
+      eEND
+  ) -> to_astnode
+]])
+
+-- Try
+-- Throw
+
+grammar:add_group_peg('stat', 'do', [[
+  ({} %DO -> 'StatDo' block eEND) -> to_astnode
+]])
+
+grammar:add_group_peg('stat', 'while', [[
+  ({} %WHILE -> 'StatWhile' eexpr eDO block eEND) -> to_astnode
+]])
+
+grammar:add_group_peg('stat', 'repeat', [[
+  ({} %REPEAT -> 'StatRepeat' block eUNTIL eexpr) -> to_astnode
+]])
+
+grammar:add_group_peg('stat', 'for', [[
+  %FOR (for_num / for_in / %{ExpectedForParams})
+
+  for_num <-
+    ({} '' -> 'StatFor'
+      typed_id %ASSIGN eexpr %COMMA (op_cmp / cnil) eexpr (%COMMA eexpr / cnil)
+      eDO block eEND
+    ) -> to_astnode
+
+  for_in <-
+    ({} '' -> 'StatForIn' {| typed_idlist |} %IN eexpr eDO block eEND) -> to_astnode
+]])
+
 grammar:add_group_peg('stat', 'break', [[
   ({} %BREAK -> 'StatBreak') -> to_astnode
 ]])
+
+grammar:add_group_peg('stat', 'continue', [[
+  ({} %CONTINUE -> 'StatContinue') -> to_astnode
+]])
+
+grammar:add_group_peg('stat', 'label', [[
+  ({} %DBLCOLON -> 'StatLabel' ecNAME eDBLCOLON) -> to_astnode
+]])
+
+grammar:add_group_peg('stat', 'goto', [[
+  ({} %GOTO -> 'StatGoto' ecNAME) -> to_astnode
+]])
+
+-- VarDecl
+-- FuncDef
+-- Assign
 
 grammar:add_group_peg('stat', 'call', [[
   (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |}) -> to_chain_index_or_call
@@ -482,6 +591,10 @@ grammar:set_pegs([[
   eRANGLE    <- %RANGLE    / %{UnclosedAngle}
   eLPAREN    <- %LPAREN    / %{ExpectedParenthesis}
   eEND       <- %END       / %{ExpectedEnd}
+  eTHEN      <- %THEN      / %{ExpectedThen}
+  eUNTIL     <- %UNTIL     / %{ExpectedUntil}
+  eDO        <- %DO        / %{ExpectedDo}
+  eDBLCOLON  <- %DBLCOLON  / %{ExpectedDoubleColumn}
   ecNAME     <- %cNAME     / %{ExpectedName}
   eexpr      <- expr       / %{ExpectedExpression}
   etypexpr   <- typexpr    / %{ExpectedTypeExpression}

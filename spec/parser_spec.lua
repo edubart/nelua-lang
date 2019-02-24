@@ -319,6 +319,183 @@ describe("call", function()
 end)
 
 --------------------------------------------------------------------------------
+-- if statement
+--------------------------------------------------------------------------------
+describe("statement if", function()
+  it("simple", function()
+    assert.parse_ast(euluna_parser, "if true then end",
+      AST('Block', {
+        AST('StatIf', {
+          {AST('Boolean', true), AST('Block', {})}
+    })}))
+  end)
+  it("with elseifs and else", function()
+    assert.parse_ast(euluna_parser, "if a then return x elseif b then return y else return z end",
+      AST('Block', {
+        AST('StatIf', {
+          { AST('Id', 'a'), AST('Block', {AST('StatReturn', { AST('Id', 'x') })}) },
+          { AST('Id', 'b'), AST('Block', {AST('StatReturn', { AST('Id', 'y') })}) },
+        },
+        AST('Block', {AST('StatReturn', { AST('Id', 'z') })})
+    )}))
+  end)
+end)
+
+--------------------------------------------------------------------------------
+-- switch statement
+--------------------------------------------------------------------------------
+describe("statement switch", function()
+  it("simple", function()
+    assert.parse_ast(euluna_parser, "switch a case b then end",
+      AST('Block', {
+        AST('StatSwitch',
+          AST('Id', 'a'),
+          { {AST('Id', 'b'), AST('Block', {})} }
+    )}))
+  end)
+  it("multiple cases", function()
+    assert.parse_ast(euluna_parser, "switch a case b then case c then else end",
+      AST('Block', {
+        AST('StatSwitch',
+          AST('Id', 'a'),
+          { {AST('Id', 'b'), AST('Block', {})},
+            {AST('Id', 'c'), AST('Block', {})}
+          },
+          AST('Block', {})
+    )}))
+  end)
+end)
+
+--------------------------------------------------------------------------------
+-- do statement
+--------------------------------------------------------------------------------
+describe("statement do", function()
+  it("simple", function()
+    assert.parse_ast(euluna_parser, "do end",
+      AST('Block', {
+        AST('StatDo', AST('Block', {}))
+    }))
+  end)
+  it("with statements", function()
+    assert.parse_ast(euluna_parser, "do print() end",
+      AST('Block', {
+        AST('StatDo', AST('Block', { AST('Call', {}, {}, AST('Id', 'print')) }))
+    }))
+  end)
+end)
+
+--------------------------------------------------------------------------------
+-- simple loop statements
+--------------------------------------------------------------------------------
+describe("loop statement", function()
+  it("while", function()
+    assert.parse_ast(euluna_parser, "while a do end",
+      AST('Block', {
+        AST('StatWhile', AST('Id', 'a'), AST('Block', {}))
+    }))
+  end)
+  it("break and continue", function()
+    assert.parse_ast(euluna_parser, "while a do break end",
+      AST('Block', {
+        AST('StatWhile', AST('Id', 'a'), AST('Block', { AST('StatBreak') }))
+    }))
+    assert.parse_ast(euluna_parser, "while a do continue end",
+      AST('Block', {
+        AST('StatWhile', AST('Id', 'a'), AST('Block', { AST('StatContinue') }))
+    }))
+  end)
+  it("repeat", function()
+    assert.parse_ast(euluna_parser, "repeat until a",
+      AST('Block', {
+        AST('StatRepeat', AST('Block', {}), AST('Id', 'a'))
+    }))
+    assert.parse_ast(euluna_parser, "repeat print() until a==b",
+      AST('Block', {
+        AST('StatRepeat',
+          AST('Block', { AST('Call', {}, {}, AST('Id', 'print')) }),
+          AST('BinaryOp', 'eq', AST('Id', 'a'), AST('Id', 'b'))
+    )}))
+  end)
+end)
+
+--------------------------------------------------------------------------------
+-- for statement
+--------------------------------------------------------------------------------
+describe("statement for", function()
+  it("simple", function()
+    assert.parse_ast(euluna_parser, "for i=1,10 do end",
+      AST('Block', {
+        AST('StatFor',
+          AST('TypedId', 'i'),
+          AST('Number', 'int', '1'),
+          nil,
+          AST('Number', 'int', '10'),
+          nil,
+          AST('Block', {}))
+    }))
+  end)
+  it("reverse with comparations", function()
+    assert.parse_ast(euluna_parser, "for i:number=10,>0,-1 do end",
+      AST('Block', {
+        AST('StatFor',
+          AST('TypedId', 'i', AST('Type', 'number')),
+          AST('Number', 'int', '10'),
+          'gt',
+          AST('Number', 'int', '0'),
+          AST('UnaryOp', 'neg', AST('Number', 'int', '1')),
+          AST('Block', {}))
+    }))
+  end)
+  it("in", function()
+    assert.parse_ast(euluna_parser, "for i in iter do end",
+      AST('Block', {
+        AST('StatForIn',
+          { AST('TypedId', 'i') },
+          AST('Id', 'iter'),
+          AST('Block', {}))
+    }))
+  end)
+  it("in typed", function()
+    assert.parse_ast(euluna_parser, "for i:int8,j:int16,k:int32 in iter() do end",
+      AST('Block', {
+        AST('StatForIn',
+          { AST('TypedId', 'i', AST('Type', 'int8')),
+            AST('TypedId', 'j', AST('Type', 'int16')),
+            AST('TypedId', 'k', AST('Type', 'int32'))
+          },
+          AST('Call', {}, {}, AST('Id', 'iter')),
+          AST('Block', {}))
+    }))
+  end)
+end)
+
+--------------------------------------------------------------------------------
+-- goto statement
+--------------------------------------------------------------------------------
+describe("statement goto", function()
+  it("simple", function()
+    assert.parse_ast(euluna_parser, "goto mylabel",
+      AST('Block', {
+        AST('StatGoto', 'mylabel')
+    }))
+  end)
+  it("label", function()
+    assert.parse_ast(euluna_parser, "::mylabel::",
+      AST('Block', {
+        AST('StatLabel', 'mylabel')
+    }))
+  end)
+  it("complex", function()
+    assert.parse_ast(euluna_parser, "::mylabel:: f() if a then goto mylabel end",
+      AST('Block', {
+        AST('StatLabel', 'mylabel'),
+        AST('Call', {}, {}, AST('Id', 'f')),
+        AST('StatIf', { {AST('Id', 'a'), AST('Block', {AST('StatGoto', 'mylabel')}) } })
+    }))
+  end)
+end)
+
+--------------------------------------------------------------------------------
 -- functions
 --------------------------------------------------------------------------------
 describe("function", function()
