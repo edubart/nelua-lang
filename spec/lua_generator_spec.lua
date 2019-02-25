@@ -8,7 +8,7 @@ local function assert_generate_lua(euluna_code, lua_code)
   lua_code = lua_code or euluna_code
   local ast = assert.parse_ast(euluna_parser, euluna_code)
   local generated_code = assert(lua_generator:generate(ast))
-  assert.same(stringx.rstrip(generated_code), stringx.rstrip(lua_code))
+  assert.same(stringx.rstrip(lua_code), stringx.rstrip(generated_code))
 end
 
 describe("Euluna should parse and generate Lua", function()
@@ -77,7 +77,7 @@ it("for", function()
   assert_generate_lua("for i=1,10 do\nend")
   assert_generate_lua("for i=1,10,2 do\nend")
   assert_generate_lua("for i in f() do\nend")
-  assert_generate_lua("for i,j,k in f() do\nend")
+  assert_generate_lua("for i, j, k in f() do\nend")
 end)
 it("break", function()
   assert_generate_lua("while true do\n  break\nend")

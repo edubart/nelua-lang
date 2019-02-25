@@ -1,5 +1,5 @@
-local Traverser = require 'euluna.traverser'
-local generator = Traverser('Lua')
+local Generator = require 'euluna.generator'
+local generator = Generator()
 
 -- primitives
 generator:register('Number', function(ast, coder)
@@ -40,43 +40,29 @@ generator:register('Varargs', function(_, coder)
 end)
 
 -- table
-generator:register('Table', function(ast, coder, scope)
+generator:register('Table', function(ast, coder)
   local contents = ast:args()
-  coder:add('{')
-  for i,content in ipairs(contents) do
-    if i > 1 then coder:add(', ') end
-    generator:traverse(content, coder, scope)
-  end
-  coder:add('}')
+  coder:add('{', contents, '}')
 end)
 
-generator:register('Pair', function(ast, coder, scope)
+generator:register('Pair', function(ast, coder)
   local field, value = ast:args()
   if type(field) == 'string' then
     coder:add(field)
   else
-    coder:add('[')
-    generator:traverse(field, coder, scope)
-    coder:add(']')
+    coder:add('[', field, ']')
   end
-  coder:add(' = ')
-  generator:traverse(value, coder, scope)
+  coder:add(' = ', value)
 end)
 
 -- function
-generator:register('Function', function(ast, coder, scope)
+generator:register('Function', function(ast, coder)
   local args, rets, block = ast:args()
-  coder:add('function(')
-  for i,arg in ipairs(args) do
-    if i > 1 then coder:add(', ') end
-    generator:traverse(arg, coder, scope)
-  end
   if #block[1] == 0 then
-    coder:add(') end')
+    coder:add('function(', args, ') end')
   else
-    coder:add_ln(')')
-    generator:traverse(block, coder, scope)
-    coder:dec_indent()
+    coder:add_ln('function(', args, ')')
+    coder:add(block)
     coder:add_ln('end')
   end
 end)
@@ -93,132 +79,108 @@ generator:register('TypedId', function(ast, coder)
 end)
 
 -- indexing
-generator:register('DotIndex', function(ast, coder, scope)
+generator:register('DotIndex', function(ast, coder)
   local name, obj = ast:args()
-  generator:traverse(obj, coder, scope)
-  coder:add('.', name)
+  coder:add(obj, '.', name)
 end)
 
-generator:register('ArrayIndex', function(ast, coder, scope)
+generator:register('ArrayIndex', function(ast, coder)
   local index, obj = ast:args()
-  generator:traverse(obj, coder, scope)
-  coder:add('[')
-  generator:traverse(index, coder, scope)
-  coder:add(']')
+  coder:add(obj, '[', index, ']')
 end)
 
 -- calls
-generator:register('Call', function(ast, coder, scope)
+generator:register('Call', function(ast, coder)
   local argtypes, args, caller = ast:args()
-  generator:traverse(caller, coder, scope)
-  coder:add('(')
-  coder:add_traversal_list(generator, scope, args)
-  coder:add(')')
+  coder:add(caller, '(', args, ')')
 end)
 
-generator:register('CallMethod', function(ast, coder, scope)
+generator:register('CallMethod', function(ast, coder)
   local name, argtypes, args, caller = ast:args()
-  generator:traverse(caller, coder, scope)
-  coder:add(':', name, '(')
-  coder:add_traversal_list(generator, scope, args)
-  coder:add(')')
+  coder:add(caller, ':', name, '(', args, ')')
 end)
 
 -- block
-generator:register('Block', function(ast, coder, scope)
+generator:register('Block', function(ast, coder)
   local stats = ast:args()
-  local blockscope = scope:fork()
   coder:inc_indent()
-  coder:add_traversal_list(generator, blockscope, stats, '')
+  coder:push_scope()
+  coder:add_traversal_list(stats, '')
+  coder:pop_scope()
   coder:dec_indent()
 end)
 
 -- statements
-generator:register('Return', function(ast, coder, scope)
+generator:register('Return', function(ast, coder)
   local rets = ast:args()
   coder:add_indent("return")
   if #rets > 0 then
     coder:add(' ')
   end
-  coder:add_traversal_list(generator, scope, rets)
-  coder:add_ln()
+  coder:add_ln(rets)
 end)
 
-generator:register('If', function(ast, coder, scope)
+generator:register('If', function(ast, coder)
   local ifparts, elseblock = ast:args()
   for i,ifpart in ipairs(ifparts) do
     local cond, block = ifpart[1], ifpart[2]
     if i == 1 then
       coder:add_indent("if ")
-      generator:traverse(cond, coder, scope)
+      coder:add(cond)
       coder:add_ln(" then")
     else
       coder:add_indent("elseif ")
-      generator:traverse(cond, coder, scope)
+      coder:add(cond)
       coder:add_ln(" then")
     end
-    generator:traverse(block, coder, scope)
+    coder:add(block)
   end
   if elseblock then
     coder:add_indent_ln("else")
-    generator:traverse(elseblock, coder, scope)
+    coder:add(elseblock)
   end
   coder:add_indent_ln("end")
 end)
 
 -- TODO: Switch
 
-generator:register('Do', function(ast, coder, scope)
+generator:register('Do', function(ast, coder)
   local block = ast:args()
   coder:add_indent_ln("do")
-  generator:traverse(block, coder, scope)
+  coder:add(block)
   coder:add_indent_ln("end")
 end)
 
-generator:register('While', function(ast, coder, scope)
+generator:register('While', function(ast, coder)
   local cond, block = ast:args()
-  coder:add_indent("while ")
-  generator:traverse(cond, coder, scope)
-  coder:add_ln(' do')
-  generator:traverse(block, coder, scope)
+  coder:add_indent_ln("while ", cond, ' do')
+  coder:add(block)
   coder:add_indent_ln("end")
 end)
 
-generator:register('Repeat', function(ast, coder, scope)
+generator:register('Repeat', function(ast, coder)
   local block, cond = ast:args()
   coder:add_indent_ln("repeat")
-  generator:traverse(block, coder, scope)
-  coder:add_indent('until ')
-  generator:traverse(cond, coder, scope)
-  coder:add_ln()
+  coder:add(block)
+  coder:add_indent_ln('until ', cond)
 end)
 
-generator:register('ForNum', function(ast, coder, scope)
+generator:register('ForNum', function(ast, coder)
   local itervar, beginval, comp, endval, incrval, block  = ast:args()
   assert(comp == 'le', 'for comparators not supported in lua yet')
-  coder:add_indent("for ")
-  generator:traverse(itervar, coder, scope)
-  coder:add('=')
-  generator:traverse(beginval, coder, scope)
-  coder:add(',')
-  generator:traverse(endval, coder, scope)
+  coder:add_indent("for ", itervar, '=', beginval, ',', endval)
   if incrval then
-    coder:add(',')
-    generator:traverse(incrval, coder, scope)
+    coder:add(',', incrval)
   end
   coder:add_ln(' do')
-  generator:traverse(block, coder, scope)
+  coder:add(block)
   coder:add_indent_ln("end")
 end)
 
-generator:register('ForIn', function(ast, coder, scope)
+generator:register('ForIn', function(ast, coder)
   local itervars, iterator, block  = ast:args()
-  coder:add_indent("for ")
-  coder:add_traversal_list(generator, scope, itervars, ',')
-  coder:add(' in ')
-  generator:traverse(iterator, coder, scope)
-  coder:add_ln(' do')
-  generator:traverse(block, coder, scope)
+  coder:add_indent_ln("for ", itervars, ' in ', iterator, ' do')
+  coder:add(block)
   coder:add_indent_ln("end")
 end)
 
@@ -230,18 +192,15 @@ end)
 
 generator:register('Label', function(ast, coder)
   local name = ast:args()
-  coder:add_indent('::')
-  coder:add(name)
-  coder:add_ln('::')
+  coder:add_indent_ln('::', name, '::')
 end)
 
 generator:register('Goto', function(ast, coder)
   local labelname = ast:args()
-  coder:add_indent('goto ')
-  coder:add_ln(labelname)
+  coder:add_indent_ln('goto ', labelname)
 end)
 
-generator:register('VarDecl', function(ast, coder, scope)
+generator:register('VarDecl', function(ast, coder)
   local varscope, mutability, vars, vals = ast:args()
   assert(mutability == 'var', 'variable mutability not supported in lua')
   local is_local = (varscope == 'local')
@@ -249,12 +208,12 @@ generator:register('VarDecl', function(ast, coder, scope)
   if is_local then
     coder:add('local ')
   end
-  coder:add_traversal_list(generator, scope, vars)
+  coder:add(vars)
   if vals or not is_local then
     coder:add(' = ')
   end
   if vals then
-    coder:add_traversal_list(generator, scope, vals)
+    coder:add(vals)
   end
   if not is_local then
     local istart = 1
@@ -269,50 +228,39 @@ generator:register('VarDecl', function(ast, coder, scope)
   coder:add_ln()
 end)
 
-generator:register('Assign', function(ast, coder, scope)
+generator:register('Assign', function(ast, coder)
   local vars, vals = ast:args()
-  coder:add_indent()
-  coder:add_traversal_list(generator, scope, vars)
-  coder:add(' = ')
-  coder:add_traversal_list(generator, scope, vals)
-  coder:add_ln()
+  coder:add_indent_ln(vars, ' = ', vals)
 end)
 
-generator:register('FuncDef', function(ast, coder, scope)
+generator:register('FuncDef', function(ast, coder)
   local varscope, name, args, rets, block = ast:args()
   coder:add_indent()
   if varscope == 'local' then
     coder:add('local ')
   end
-  coder:add('function ', name, '(')
-  coder:add_traversal_list(generator, scope, args)
-  coder:add_ln(')')
-  generator:traverse(block, coder, scope)
+  coder:add_ln('function ', name, '(', args, ')')
+  coder:add(block)
   coder:add_indent_ln('end')
 end)
 
-local unary_ops = {
-  ['not'] = 'not',
+-- operators
+local LUA_UNARY_OPS = {
+  ['not'] = 'not ',
   ['neg'] = '-',
   ['bnot'] = '~',
 }
-generator:register('UnaryOp', function(ast, coder, scope)
+generator:register('UnaryOp', function(ast, coder)
   local opname, arg = ast:args()
   if opname == 'tostring' then
-    coder:add('tostring(')
-    generator:traverse(arg, coder, scope)
-    coder:add(')')
+    coder:add('tostring(', arg, ')')
   else
-    local op = assert(unary_ops[opname], 'unary op not found')
-    coder:add(op)
-    if opname == 'not' then
-      coder:add(' ')
-    end
-    generator:traverse(arg, coder, scope)
+    local op = assert(LUA_UNARY_OPS[opname], 'unary operator not found')
+    coder:add(op, arg)
   end
 end)
 
-local binary_ops = {
+local LUA_BINARY_OPS = {
   ['or'] = 'or',
   ['and'] = 'and',
   ['ne'] = '~=',
@@ -334,22 +282,16 @@ local binary_ops = {
   ['pow'] = '^',
   ['concat'] = '..'
 }
-generator:register('BinaryOp', function(ast, coder, scope)
+generator:register('BinaryOp', function(ast, coder)
   local opname, left_arg, right_arg = ast:args()
-  local op = assert(binary_ops[opname], 'binary op not found')
-  generator:traverse(left_arg, coder, scope)
-  coder:add(' ', op, ' ')
-  generator:traverse(right_arg, coder, scope)
+  local op = assert(LUA_BINARY_OPS[opname], 'binary operator not found')
+  coder:add(left_arg, ' ', op, ' ', right_arg)
 end)
 
-generator:register('TernaryOp', function(ast, coder, scope)
+generator:register('TernaryOp', function(ast, coder)
   local opname, left_arg, mid_arg, right_arg = ast:args()
   assert(opname == 'if', 'unknown ternary op ')
-  generator:traverse(mid_arg, coder, scope)
-  coder:add(' and ')
-  generator:traverse(left_arg, coder, scope)
-  coder:add(' or ')
-  generator:traverse(right_arg, coder, scope)
+  coder:add(mid_arg, ' and ', left_arg, ' or ', right_arg)
 end)
 
 return generator
