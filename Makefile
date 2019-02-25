@@ -38,7 +38,7 @@ coverage-test:
 
 check-duplication:
 	@simian \
-		-threshold=5 \
+		-threshold=6 \
 		-ignoreCharacterCase- \
 		-ignoreStringCase- \
 		-ignoreModifiers- \

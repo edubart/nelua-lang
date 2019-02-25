@@ -91,13 +91,21 @@ end)
 
 -- calls
 generator:register('Call', function(ast, coder)
-  local argtypes, args, caller = ast:args()
-  coder:add(caller, '(', args, ')')
+  local argtypes, args, caller, block_call = ast:args()
+  if block_call then
+    coder:add_indent_ln(caller, '(', args, ')')
+  else
+    coder:add(caller, '(', args, ')')
+  end
 end)
 
 generator:register('CallMethod', function(ast, coder)
-  local name, argtypes, args, caller = ast:args()
-  coder:add(caller, ':', name, '(', args, ')')
+  local name, argtypes, args, caller, block_call = ast:args()
+  if block_call then
+    coder:add_indent_ln(caller, ':', name, '(', args, ')')
+  else
+    coder:add(caller, ':', name, '(', args, ')')
+  end
 end)
 
 -- block
@@ -142,8 +150,6 @@ generator:register('If', function(ast, coder)
   coder:add_indent_ln("end")
 end)
 
--- TODO: Switch
-
 generator:register('Do', function(ast, coder)
   local block = ast:args()
   coder:add_indent_ln("do")
@@ -187,8 +193,6 @@ end)
 generator:register('Break', function(_, coder)
   coder:add_indent_ln('break')
 end)
-
--- Continue
 
 generator:register('Label', function(ast, coder)
   local name = ast:args()
@@ -293,5 +297,29 @@ generator:register('TernaryOp', function(ast, coder)
   assert(opname == 'if', 'unknown ternary op ')
   coder:add(mid_arg, ' and ', left_arg, ' or ', right_arg)
 end)
+
+generator:register('Switch', function(ast, coder)
+  local val, caseparts, switchelseblock = ast:args()
+  local varname = '__switchval' .. ast.pos
+  coder:add_indent_ln("local ", varname, " = ", val)
+  assert(#caseparts > 0)
+  for i,casepart in ipairs(caseparts) do
+    local caseval, caseblock = casepart[1], casepart[2]
+    if i == 1 then
+      coder:add_indent('if ')
+    else
+      coder:add_indent('elseif ')
+    end
+    coder:add_ln(varname, ' == ', caseval, ' then')
+    coder:add(caseblock)
+  end
+  if switchelseblock then
+    coder:add_indent_ln('else')
+    coder:add(switchelseblock)
+  end
+  coder:add_indent_ln("end")
+end)
+
+-- TODO: Continue
 
 return generator

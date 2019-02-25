@@ -55,8 +55,11 @@ it("indexing", function()
 end)
 it("call", function()
   assert_generate_lua("f()")
+  assert_generate_lua("return f()")
+  assert_generate_lua("f(g())")
   assert_generate_lua("f(a, 1)")
   assert_generate_lua("a:f()")
+  assert_generate_lua("return a:f()")
   assert_generate_lua("a:f(a, 1)")
 end)
 it("if", function()
@@ -127,6 +130,24 @@ it("binary operators", function()
 end)
 it("ternary operators", function()
   assert_generate_lua("return b if a else c", "return a and b or c")
+end)
+
+
+it("switch", function()
+  assert_generate_lua("switch a case b then else end", [[
+local __switchval1 = a
+if __switchval1 == b then
+else
+end]])
+  assert_generate_lua("switch a case b then f() case c then g() else h() end",[[
+local __switchval1 = a
+if __switchval1 == b then
+  f()
+elseif __switchval1 == c then
+  g()
+else
+  h()
+end]])
 end)
 
 end)

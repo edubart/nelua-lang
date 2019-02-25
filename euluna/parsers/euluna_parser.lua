@@ -68,12 +68,14 @@ shaper:register('Call', types.shape {
   types.array_of(types.ASTType), -- call types
   types.array_of(types.ASTNode), -- args exprs
   types.ASTNode, -- caller expr
+  types.boolean:is_optional(), -- is called from a block
 })
 shaper:register('CallMethod', types.shape {
   types.string, -- method name
   types.array_of(types.ASTType), -- call types
   types.array_of(types.ASTNode), -- args exprs
   types.ASTNode, -- caller expr
+  types.boolean:is_optional(), -- is called from a block
 })
 
 -- block
@@ -452,7 +454,7 @@ grammar:add_group_peg('stat', 'funcdef', [[
 ]])
 
 grammar:add_group_peg('stat', 'call', [[
-  (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |}) -> to_chain_index_or_call
+  (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |} ctrue) -> to_chain_index_or_call
 ]])
 
 grammar:add_group_peg('stat', 'assign', [[
@@ -537,6 +539,7 @@ grammar:set_pegs([[
   var_mutability <- %VAR -> 'var' / %REF -> 'ref' / %LET -> 'let' / %CONST -> 'const'
 
   cnil <- '' -> to_nil
+  ctrue <- '' -> to_true
 ]], {
   to_chain_unary_op = function(pos, opnames, expr)
     for i=#opnames,1,-1 do
@@ -571,7 +574,7 @@ grammar:set_pegs([[
     return lhs
   end,
 
-  to_chain_index_or_call = function(primary_expr, exprs)
+  to_chain_index_or_call = function(primary_expr, exprs, inblock)
     local last_expr = primary_expr
     if exprs then
       for _,expr in ipairs(exprs) do
@@ -579,10 +582,14 @@ grammar:set_pegs([[
         last_expr = to_astnode(unpack(expr))
       end
     end
+    if inblock then
+      table.insert(last_expr, true)
+    end
     return last_expr
   end,
 
-  to_nil = function() return nil end
+  to_nil = function() return nil end,
+  to_true = function() return true end
 })
 
 -- operators

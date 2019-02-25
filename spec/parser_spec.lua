@@ -276,25 +276,31 @@ describe("call", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "a()",
       AST('Block', {
-        AST('Call', {}, {}, AST('Id', 'a')),
+        AST('Call', {}, {}, AST('Id', 'a'), true),
     }))
   end)
   it("dot index", function()
     assert.parse_ast(euluna_parser, "a.b()",
       AST('Block', {
-        AST('Call', {}, {}, AST('DotIndex', 'b', AST('Id', 'a')))
+        AST('Call', {}, {}, AST('DotIndex', 'b', AST('Id', 'a')), true)
     }))
   end)
   it("array index", function()
     assert.parse_ast(euluna_parser, "a['b']()",
       AST('Block', {
-        AST('Call', {}, {}, AST('ArrayIndex', AST('Id', 'b'), AST('Id', 'a')))
+        AST('Call', {}, {}, AST('ArrayIndex', AST('Id', 'b'), AST('Id', 'a')), true)
     }))
   end)
   it("method", function()
     assert.parse_ast(euluna_parser, "a:b()",
       AST('Block', {
-        AST('CallMethod', 'b', {}, {}, AST('Id', 'a'))
+        AST('CallMethod', 'b', {}, {}, AST('Id', 'a'), true)
+    }))
+  end)
+  it("nested", function()
+    assert.parse_ast(euluna_parser, "a(b())",
+      AST('Block', {
+        AST('Call', {}, {AST('Call', {}, {}, AST('Id', 'b'))}, AST('Id', 'a'), true),
     }))
   end)
   it("typed", function()
@@ -303,7 +309,7 @@ describe("call", function()
         AST('Call',
           { AST('Type', 'string') },
           { AST('String', 'hi') },
-          AST('Id', 'print')),
+          AST('Id', 'print'), true),
     }))
   end)
   it("typed method", function()
@@ -313,7 +319,8 @@ describe("call", function()
           'substr',
           { AST('Type', 'number'), AST('Type', 'number') },
           { AST('Number', 'int', '1'), AST('Number', 'int', '2') },
-          AST('Id', 's')
+          AST('Id', 's'),
+          true
     )}))
   end)
 end)
@@ -353,6 +360,15 @@ describe("statement switch", function()
           { {AST('Id', 'b'), AST('Block', {})} }
     )}))
   end)
+  it("with else part", function()
+    assert.parse_ast(euluna_parser, "switch a case b then else end",
+      AST('Block', {
+        AST('Switch',
+          AST('Id', 'a'),
+          { {AST('Id', 'b'), AST('Block', {})} },
+          AST('Block', {})
+    )}))
+  end)
   it("multiple cases", function()
     assert.parse_ast(euluna_parser, "switch a case b then case c then else end",
       AST('Block', {
@@ -379,7 +395,7 @@ describe("statement do", function()
   it("with statements", function()
     assert.parse_ast(euluna_parser, "do print() end",
       AST('Block', {
-        AST('Do', AST('Block', { AST('Call', {}, {}, AST('Id', 'print')) }))
+        AST('Do', AST('Block', { AST('Call', {}, {}, AST('Id', 'print'), true) }))
     }))
   end)
 end)
@@ -412,7 +428,7 @@ describe("loop statement", function()
     assert.parse_ast(euluna_parser, "repeat print() until a==b",
       AST('Block', {
         AST('Repeat',
-          AST('Block', { AST('Call', {}, {}, AST('Id', 'print')) }),
+          AST('Block', { AST('Call', {}, {}, AST('Id', 'print'), true) }),
           AST('BinaryOp', 'eq', AST('Id', 'a'), AST('Id', 'b'))
     )}))
   end)
@@ -489,7 +505,7 @@ describe("statement goto", function()
     assert.parse_ast(euluna_parser, "::mylabel:: f() if a then goto mylabel end",
       AST('Block', {
         AST('Label', 'mylabel'),
-        AST('Call', {}, {}, AST('Id', 'f')),
+        AST('Call', {}, {}, AST('Id', 'f'), true),
         AST('If', { {AST('Id', 'a'), AST('Block', {AST('Goto', 'mylabel')}) } })
     }))
   end)
