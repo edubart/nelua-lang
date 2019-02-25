@@ -4,9 +4,10 @@ local unpack = table.unpack or unpack
 
 local ASTNode = class()
 ASTNode.tag = 'Node'
+ASTNode.nargs = 0
 
 function ASTNode:args()
-  return unpack(self)
+  return unpack(self, 1, self.nargs)
 end
 
 local Shaper = class()
@@ -38,6 +39,7 @@ function Shaper:register(name, shape)
   local klass = class(ASTNode)
   self.nodes[name] = klass
   klass.tag = name
+  klass.nargs = #shape.shape
   local klass_mt = getmetatable(klass())
   local function node_create(...)
     local node = {...}

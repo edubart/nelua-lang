@@ -84,7 +84,7 @@ describe("expression", function()
     assert.parse_ast(euluna_parser, "return 3.34e-50, 0xff, 0.1",
       AST('Block', {
         AST('Return', {
-          AST('Number', 'exp', '3.34', '-50'),
+          AST('Number', 'exp', {'3.34', '-50'}),
           AST('Number', 'hex', 'ff'),
           AST('Number', 'dec', '0.1'),
     })}))
@@ -178,7 +178,7 @@ describe("expression", function()
     assert.parse_ast(euluna_parser, "return function() end, function(a, b: B): C,D end",
       AST('Block', {
         AST('Return', {
-          AST('Function', nil, nil, AST('Block', {})),
+          AST('Function', {}, {}, AST('Block', {})),
           AST('Function',
             { AST('TypedId', 'a'), AST('TypedId', 'b', AST('Type', 'B')) },
             { AST('Type', 'C'), AST('Type', 'D') },
@@ -592,7 +592,7 @@ describe("statement function", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "function f() end",
       AST('Block', {
-        AST('FuncDef', nil, 'f', nil, nil, AST('Block', {}) )
+        AST('FuncDef', nil, 'f', {}, {}, AST('Block', {}) )
     }))
   end)
   it("local and typed", function()

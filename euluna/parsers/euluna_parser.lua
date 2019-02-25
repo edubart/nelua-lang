@@ -12,7 +12,7 @@ local types = shaper.types
 -- primitives
 shaper:register('Number', types.shape {
   types.one_of{"int", "dec", "bin", "exp", "hex"}, -- type
-  types.string, -- value
+  types.string + types.table, -- value, (table used in exp values)
   types.string:is_optional() -- literal
 })
 shaper:register('String', types.shape {
@@ -23,8 +23,6 @@ shaper:register('Boolean', types.shape {
   types.boolean, -- true or false
 })
 shaper:register('Nil', types.shape {})
-
--- varargs
 shaper:register('Varargs', types.shape {})
 
 -- table
@@ -36,13 +34,14 @@ shaper:register('Pair', types.shape {
   types.ASTNode -- field value expr
 })
 
+-- function
 shaper:register('Function', types.shape {
-  types.array_of(types.ASTNode):is_optional(), -- typed arguments
-  types.array_of(types.ASTNode):is_optional(), -- typed returns
+  types.array_of(types.ASTNode), -- typed arguments
+  types.array_of(types.ASTNode), -- typed returns
   types.ASTNode -- block
 })
 
--- variable/function/type names
+-- identifier and types
 shaper:register('Id', types.shape {
   types.string, -- name
 })
@@ -83,6 +82,9 @@ shaper:register('Block', types.shape {
 })
 
 -- statements
+shaper:register('Return', types.shape {
+  types.array_of(types.ASTNode) -- returned exprs
+})
 shaper:register('If', types.shape {
   types.array_of(types.shape{types.ASTNode, types.ASTBlock}), -- if list {expr, block}
   types.ASTBlock:is_optional() -- else block
@@ -137,12 +139,9 @@ shaper:register('Assign', types.shape {
 shaper:register('FuncDef', types.shape {
   types.string:is_optional(), -- scope (global/local)
   types.string, -- name
-  types.array_of(types.ASTNode):is_optional(), -- typed arguments
-  types.array_of(types.ASTNode):is_optional(), -- typed returns
+  types.array_of(types.ASTNode), -- typed arguments
+  types.array_of(types.ASTNode), -- typed returns
   types.ASTNode -- block
-})
-shaper:register('Return', types.shape {
-  types.array_of(types.ASTNode) -- returned exprs
 })
 
 -- operations
@@ -224,7 +223,7 @@ parser:set_token_pegs([[
                      '' -> 'dec' decimal /
                      '' -> 'int' integer
   literal         <- %cNAME
-  exponential     <- (decimal / integer) [eE] ({[+-]? %d+} / %{MalformedExponentialNumber})
+  exponential     <- {| (decimal / integer) [eE] ({[+-]? %d+} / %{MalformedExponentialNumber}) |}
   decimal         <- {'-'? %d+ '.' %d* / '.' %d+}
   integer         <- {'-'? %d+}
   binary          <- '0' [bB] ({[01]+} !%d / %{MalformedBinaryNumber})
@@ -519,10 +518,9 @@ grammar:set_pegs([[
   function <- ({} %FUNCTION -> 'Function' function_body) -> to_astnode
   function_body <-
     eLPAREN (
-      {| typed_idlist (%COMMA %cVARARGS)? / %cVARARGS |} /
-      cnil
+      {| (typed_idlist (%COMMA %cVARARGS)? / %cVARARGS)? |}
     ) eRPAREN
-    (%COLON {| etypexpr_list |} / cnil)
+    {| (%COLON etypexpr_list)? |}
       block
     eEND
   typed_idlist <- typed_id (%COMMA typed_id)*

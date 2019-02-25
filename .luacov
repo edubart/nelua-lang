@@ -1,5 +1,7 @@
 modules = {
   ['euluna.*'] = '.',
+  ['euluna.*.*'] = '.',
+  ['euluna.*.*.*'] = '.',
   ['spec.*'] = '.',
   ['utils.*'] = '.',
 }

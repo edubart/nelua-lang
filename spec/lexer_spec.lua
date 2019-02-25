@@ -126,14 +126,14 @@ describe("numbers", function()
   end)
   it("exponential", function()
     assert.peg_capture_all(pegs.cNUMBER, {
-      ["1.2e-3"] = AST("Number", "exp", "1.2" , "-3"),
-      [".1e2"] = AST("Number", "exp", ".1", "2"),
-      [".0e+2"] = AST("Number", "exp", ".0", "+2"),
-      ["1e-2"] = AST("Number", "exp", "1", "-2"),
-      ["1e+2"] = AST("Number", "exp", "1", "+2"),
-      ["1.e3"] = AST("Number", "exp", "1.", "3"),
-      ["1e1"] = AST("Number", "exp", "1", "1"),
-      ["1.2e+6"] = AST("Number", "exp", "1.2", "+6"),
+      ["1.2e-3"] = AST("Number", "exp", {"1.2" , "-3"}),
+      [".1e2"] = AST("Number", "exp", {".1", "2"}),
+      [".0e+2"] = AST("Number", "exp", {".0", "+2"}),
+      ["1e-2"] = AST("Number", "exp", {"1", "-2"}),
+      ["1e+2"] = AST("Number", "exp", {"1", "+2"}),
+      ["1.e3"] = AST("Number", "exp", {"1.", "3"}),
+      ["1e1"] = AST("Number", "exp", {"1", "1"}),
+      ["1.2e+6"] = AST("Number", "exp", {"1.2", "+6"}),
     })
   end)
   it("literal", function()
