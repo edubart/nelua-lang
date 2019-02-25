@@ -291,8 +291,65 @@ generator:register('FuncDef', function(ast, coder, scope)
   coder:add_indent_ln('end')
 end)
 
--- TODO: UnaryOp
--- TODO: BinaryOp
--- TODO: TernaryOp
+local unary_ops = {
+  ['not'] = 'not',
+  ['neg'] = '-',
+  ['bnot'] = '~',
+}
+generator:register('UnaryOp', function(ast, coder, scope)
+  local opname, arg = ast:args()
+  if opname == 'tostring' then
+    coder:add('tostring(')
+    generator:traverse(arg, coder, scope)
+    coder:add(')')
+  else
+    local op = assert(unary_ops[opname], 'unary op not found')
+    coder:add(op)
+    if opname == 'not' then
+      coder:add(' ')
+    end
+    generator:traverse(arg, coder, scope)
+  end
+end)
+
+local binary_ops = {
+  ['or'] = 'or',
+  ['and'] = 'and',
+  ['ne'] = '~=',
+  ['eq'] = '==',
+  ['le'] = '<=',
+  ['ge'] = '>=',
+  ['lt'] = '<',
+  ['gt'] = '>',
+  ['bor'] = '|',
+  ['bxor'] = '~',
+  ['band'] = '&',
+  ['shl'] = '<<',
+  ['shr'] = '>>',
+  ['add'] = '+',
+  ['sub'] = '-',
+  ['mul'] = '*',
+  ['div'] = '/',
+  ['mod'] = '%',
+  ['pow'] = '^',
+  ['concat'] = '..'
+}
+generator:register('BinaryOp', function(ast, coder, scope)
+  local opname, left_arg, right_arg = ast:args()
+  local op = assert(binary_ops[opname], 'binary op not found')
+  generator:traverse(left_arg, coder, scope)
+  coder:add(' ', op, ' ')
+  generator:traverse(right_arg, coder, scope)
+end)
+
+generator:register('TernaryOp', function(ast, coder, scope)
+  local opname, left_arg, mid_arg, right_arg = ast:args()
+  assert(opname == 'if', 'unknown ternary op ')
+  generator:traverse(mid_arg, coder, scope)
+  coder:add(' and ')
+  generator:traverse(left_arg, coder, scope)
+  coder:add(' or ')
+  generator:traverse(right_arg, coder, scope)
+end)
 
 return generator
