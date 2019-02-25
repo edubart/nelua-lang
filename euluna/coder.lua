@@ -76,16 +76,12 @@ local double_quoter = re.compile(
 
 function Coder:add_single_quoted(str)
   local quoted = single_quoter:match(str)
-  self:add("'")
-  self:add(quoted)
-  self:add("'")
+  self:add("'", quoted, "'")
 end
 
 function Coder:add_double_quoted(str)
   local quoted = double_quoter:match(str)
-  self:add('"')
-  self:add(quoted)
-  self:add('"')
+  self:add('"', quoted, '"')
 end
 
 function Coder:generate()

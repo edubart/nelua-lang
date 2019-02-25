@@ -112,10 +112,7 @@ generator:register('Call', function(ast, coder, scope)
   local argtypes, args, caller = ast:args()
   generator:traverse(caller, coder, scope)
   coder:add('(')
-  for i,arg in ipairs(args) do
-    if i > 1 then coder:add(', ') end
-    generator:traverse(arg, coder, scope)
-  end
+  coder:add_traversal_list(generator, scope, args)
   coder:add(')')
 end)
 
@@ -123,10 +120,7 @@ generator:register('CallMethod', function(ast, coder, scope)
   local name, argtypes, args, caller = ast:args()
   generator:traverse(caller, coder, scope)
   coder:add(':', name, '(')
-  for i,arg in ipairs(args) do
-    if i > 1 then coder:add(', ') end
-    generator:traverse(arg, coder, scope)
-  end
+  coder:add_traversal_list(generator, scope, args)
   coder:add(')')
 end)
 

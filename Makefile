@@ -36,11 +36,22 @@ coverage-test:
 	@rm -f luacov.report.out luacov.stats.out
 .PHONY: coverage-test
 
+check-duplication:
+	@simian \
+		-threshold=5 \
+		-ignoreCharacterCase- \
+		-ignoreStringCase- \
+		-ignoreModifiers- \
+		-balanceParentheses+ \
+		-balanceCurlyBraces+ \
+		-reportDuplicateText+ \
+		`find euluna -name '*.lua'` | tail +5 | head -n -2
+
 _clear-stdout:
 	@clear
 .PHONY: _clear-stdout
 
-devtest: _clear-stdout coverage-test check
+devtest: _clear-stdout coverage-test check check-duplication
 .PHONY: devtest
 
 fulltest: test coverage check
