@@ -463,11 +463,11 @@ describe("statement for", function()
     }))
   end)
   it("in", function()
-    assert.parse_ast(euluna_parser, "for i in iter do end",
+    assert.parse_ast(euluna_parser, "for i in a,b,c do end",
       AST('Block', {
         AST('ForIn',
           { AST('TypedId', 'i') },
-          AST('Id', 'iter'),
+          { AST('Id', 'a'), AST('Id', 'b'), AST('Id', 'c') },
           AST('Block', {}))
     }))
   end)
@@ -479,7 +479,7 @@ describe("statement for", function()
             AST('TypedId', 'j', AST('Type', 'int16')),
             AST('TypedId', 'k', AST('Type', 'int32'))
           },
-          AST('Call', {}, {}, AST('Id', 'iter')),
+          { AST('Call', {}, {}, AST('Id', 'iter')) },
           AST('Block', {}))
     }))
   end)

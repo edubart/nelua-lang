@@ -121,7 +121,7 @@ shaper:register('ForNum', types.shape {
 })
 shaper:register('ForIn', types.shape {
   types.array_of(types.ASTTypedId), -- iterated vars
-  types.ASTNode, -- in expr
+  types.array_of(types.ASTNode), -- in exprlist
   types.ASTBlock -- block
 })
 shaper:register('Break', types.shape {})
@@ -426,7 +426,7 @@ grammar:add_group_peg('stat', 'for', [[
     ) -> to_astnode
 
   for_in <-
-    ({} '' -> 'ForIn' {| typed_idlist |} %IN eexpr eDO block eEND) -> to_astnode
+    ({} '' -> 'ForIn' {| typed_idlist |} %IN {| eexpr_list |} eDO block eEND) -> to_astnode
 ]])
 
 grammar:add_group_peg('stat', 'break', [[
