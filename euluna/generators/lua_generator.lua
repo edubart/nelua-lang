@@ -95,22 +95,35 @@ generator:register('ArrayIndex', function(ast, coder)
 end)
 
 -- calls
+local function should_surround_caller(caller)
+  if caller.tag == 'Id' or
+     caller.tag == 'DotIndex' or
+     caller.tag == 'ArrayIndex' then
+     return false
+  end
+  return true
+end
+
 generator:register('Call', function(ast, coder)
   local argtypes, args, caller, block_call = ast:args()
-  if block_call then
-    coder:add_indent_ln(caller, '(', args, ')')
-  else
-    coder:add(caller, '(', args, ')')
-  end
+  local surround = should_surround_caller(caller)
+  if block_call then coder:add_indent() end
+  if surround then coder:add('(') end
+  coder:add(caller)
+  if surround then coder:add(')') end
+  coder:add('(', args, ')')
+  if block_call then coder:add_ln() end
 end)
 
 generator:register('CallMethod', function(ast, coder)
   local name, argtypes, args, caller, block_call = ast:args()
-  if block_call then
-    coder:add_indent_ln(caller, ':', name, '(', args, ')')
-  else
-    coder:add(caller, ':', name, '(', args, ')')
-  end
+  local surround = should_surround_caller(caller)
+  if block_call then coder:add_indent() end
+  if surround then coder:add('(') end
+  coder:add(caller)
+  if surround then coder:add(')') end
+  coder:add(':', name, '(', args, ')')
+  if block_call then coder:add_ln() end
 end)
 
 -- block
