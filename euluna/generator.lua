@@ -1,23 +1,13 @@
 local class = require 'pl.class'
 local re = require 'relabel'
 local Traverser = require 'euluna.traverser'
-local Scope = require 'euluna.scope'
-local GeneratorContext = class()
+local GeneratorContext = class(Traverser.Context)
 
 function GeneratorContext:_init(traverser)
   self.codes = {}
   self.depth = -1
   self.ident = '  '
-  self.scope = Scope()
-  self.traverser = traverser
-end
-
-function GeneratorContext:push_scope()
-  self.scope = self.scope:fork()
-end
-
-function GeneratorContext:pop_scope()
-  self.scope = self.scope.parent
+  self:super(traverser)
 end
 
 function GeneratorContext:inc_indent()
@@ -123,5 +113,7 @@ function Generator:generate(ast)
   local context = GeneratorContext(self)
   return context:generate(ast)
 end
+
+Generator.Context = GeneratorContext
 
 return Generator

@@ -608,16 +608,28 @@ describe("statement function", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "function f() end",
       AST('Block', {
-        AST('FuncDef', nil, 'f', {}, {}, AST('Block', {}) )
+        AST('FuncDef', nil, AST('Id', 'f'), {}, {}, AST('Block', {}) )
     }))
   end)
   it("local and typed", function()
     assert.parse_ast(euluna_parser, "local function f(a, b: int): string end",
       AST('Block', {
-        AST('FuncDef', 'local', 'f',
+        AST('FuncDef', 'local', AST('Id', 'f'),
           { AST('TypedId', 'a'), AST('TypedId', 'b', AST('Type', 'int')) },
           { AST('Type', 'string') },
           AST('Block', {}) )
+    }))
+  end)
+  it("with colon index", function()
+    assert.parse_ast(euluna_parser, "function a:f() end",
+      AST('Block', {
+        AST('FuncDef', nil, AST('ColonIndex', 'f', AST('Id', 'a')), {}, {}, AST('Block', {}) )
+    }))
+  end)
+  it("with dot index", function()
+    assert.parse_ast(euluna_parser, "function a.f() end",
+      AST('Block', {
+        AST('FuncDef', nil, AST('DotIndex', 'f', AST('Id', 'a')), {}, {}, AST('Block', {}) )
     }))
   end)
 end)

@@ -188,7 +188,7 @@ local function generate_pretty_error(input, err)
   local lineend = input:sub(pos, pos+NEARLENGTH):match('^[^\r\n]*')
   local linehelper = string.rep(' ', #linebegin) .. colors.bright(colors.green('^'))
   return string.format(
-    "%s%d:%d: %ssyntax error:%s %s%s\n%s%s\n%s",
+    "%s%d:%d: %ssyntax error:%s %s%s\n%s%s\n%s\n",
     tostring(colors.bright),
     err.line, err.col,
     tostring(colors.red),

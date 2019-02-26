@@ -1,5 +1,6 @@
 local class = require 'pl.class'
 local types = require 'tableshape'.types
+--local pretty = require 'pl.pretty'
 local unpack = table.unpack or unpack
 
 local ASTNode = class()
@@ -10,6 +11,12 @@ ASTNode.is_astnode = true
 function ASTNode:args()
   return unpack(self, 1, self.nargs)
 end
+
+--[[
+function ASTNode:tostring()
+  return pretty.write(self)
+end
+]]
 
 local Shaper = class()
 

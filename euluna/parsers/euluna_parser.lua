@@ -58,6 +58,10 @@ shaper:register('DotIndex', types.shape {
   types.string, -- name
   types.ASTNode -- expr
 })
+shaper:register('ColonIndex', types.shape {
+  types.string, -- name
+  types.ASTNode -- expr
+})
 shaper:register('ArrayIndex', types.shape {
   types.ASTNode, -- index expr
   types.ASTNode -- expr
@@ -140,7 +144,7 @@ shaper:register('Assign', types.shape {
 })
 shaper:register('FuncDef', types.shape {
   types.string:is_optional(), -- scope (global/local)
-  types.string, -- name
+  types.ASTId + types.ASTDotIndex + types.ASTColonIndex, -- name
   types.array_of(types.ASTNode), -- typed arguments
   types.array_of(types.ASTNode), -- typed returns
   types.ASTNode -- block
@@ -450,7 +454,8 @@ grammar:add_group_peg('stat', 'vardecl', [[
 ]])
 
 grammar:add_group_peg('stat', 'funcdef', [[
-  ({} '' -> 'FuncDef' (var_scope / cnil) %FUNCTION ecNAME function_body) -> to_astnode
+  ({} '' -> 'FuncDef' (var_scope / cnil) %FUNCTION func_name function_body) -> to_astnode
+  func_name <- (%cID {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
 ]])
 
 grammar:add_group_peg('stat', 'call', [[
@@ -500,16 +505,22 @@ grammar:set_pegs([[
     %cID /
     %LPAREN eexpr eRPAREN
 
-  index_expr <-
-    {| {} %DOT -> 'DotIndex' ecNAME |} /
-    {| {} %LBRACKET -> 'ArrayIndex' eexpr eRBRACKET |}
+  index_expr <- dot_index / array_index
+  dot_index <- {| {} %DOT -> 'DotIndex' ecNAME |}
+  array_index <- {| {} %LBRACKET -> 'ArrayIndex' eexpr eRBRACKET |}
+  colon_index <- {| {} %COLON -> 'ColonIndex' ecNAME |}
 
   call_expr <-
     {| {} %COLON -> 'CallMethod' ecNAME call_args |} /
-    {| {} & (%LPAREN / %LANGLE typexpr_list %RANGLE %LPAREN) '' -> 'Call' call_args |}
+    {| {} & (
+      %LPAREN /
+      %LCURLY /
+      %cSTRING /
+      %LANGLE typexpr_list %RANGLE %LPAREN
+    ) '' -> 'Call' call_args |}
   call_args <-
     {| (%LANGLE typexpr_list? eRANGLE)? |}
-    eLPAREN {| expr_list |} eRPAREN
+    {| (%LPAREN  expr_list eRPAREN / table / %cSTRING) |}
 
   table <- ({} '' -> 'Table' %LCURLY
       {| (table_row (%SEPARATOR table_row)* %SEPARATOR?)? |}

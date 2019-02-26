@@ -63,7 +63,7 @@ generator:register('Function', function(ast, coder)
   else
     coder:add_ln('function(', args, ')')
     coder:add(block)
-    coder:add_ln('end')
+    coder:add('end')
   end
 end)
 
@@ -82,6 +82,11 @@ end)
 generator:register('DotIndex', function(ast, coder)
   local name, obj = ast:args()
   coder:add(obj, '.', name)
+end)
+
+generator:register('ColonIndex', function(ast, coder)
+  local name, obj = ast:args()
+  coder:add(obj, ':', name)
 end)
 
 generator:register('ArrayIndex', function(ast, coder)
@@ -249,10 +254,21 @@ generator:register('FuncDef', function(ast, coder)
 end)
 
 -- operators
+local function is_in_operator(coder)
+  local parent_ast = coder:get_parent_ast()
+  if not parent_ast then return false end
+  local parent_ast_tag = parent_ast.tag
+  return
+    parent_ast_tag == 'UnaryOp' or
+    parent_ast_tag == 'BinaryOp' or
+    parent_ast_tag == 'TernaryOp'
+end
+
 local LUA_UNARY_OPS = {
   ['not'] = 'not ',
   ['neg'] = '-',
   ['bnot'] = '~',
+  ['len'] = '#'
 }
 generator:register('UnaryOp', function(ast, coder)
   local opname, arg = ast:args()
@@ -260,7 +276,10 @@ generator:register('UnaryOp', function(ast, coder)
     coder:add('tostring(', arg, ')')
   else
     local op = assert(LUA_UNARY_OPS[opname], 'unary operator not found')
+    local surround = is_in_operator(coder)
+    if surround then coder:add('(') end
     coder:add(op, arg)
+    if surround then coder:add(')') end
   end
 end)
 
@@ -289,13 +308,19 @@ local LUA_BINARY_OPS = {
 generator:register('BinaryOp', function(ast, coder)
   local opname, left_arg, right_arg = ast:args()
   local op = assert(LUA_BINARY_OPS[opname], 'binary operator not found')
-  coder:add(left_arg, ' ', op, ' ', right_arg)
+  local surround = is_in_operator(coder)
+  if surround then coder:add('(') end
+    coder:add(left_arg, ' ', op, ' ', right_arg)
+  if surround then coder:add(')') end
 end)
 
 generator:register('TernaryOp', function(ast, coder)
   local opname, left_arg, mid_arg, right_arg = ast:args()
   assert(opname == 'if', 'unknown ternary op ')
+  local surround = is_in_operator(coder)
+  if surround then coder:add('(') end
   coder:add(mid_arg, ' and ', left_arg, ' or ', right_arg)
+  if surround then coder:add(')') end
 end)
 
 generator:register('Switch', function(ast, coder)
