@@ -10,7 +10,9 @@ function TraverserContext:_init(traverser)
 end
 
 function TraverserContext:push_scope()
-  self.scope = self.scope:fork()
+  local scope = self.scope:fork()
+  self.scope = scope
+  return scope
 end
 
 function TraverserContext:pop_scope()

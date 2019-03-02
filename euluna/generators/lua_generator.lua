@@ -98,7 +98,9 @@ end)
 local function should_surround_caller(caller)
   if caller.tag == 'Id' or
      caller.tag == 'DotIndex' or
-     caller.tag == 'ArrayIndex' then
+     caller.tag == 'ArrayIndex' or
+     caller.tag == 'Call' or
+     caller.tag == 'CallMethod' then
      return false
   end
   return true

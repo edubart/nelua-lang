@@ -6,7 +6,6 @@ local GeneratorContext = class(Traverser.Context)
 function GeneratorContext:_init(traverser)
   self.codes = {}
   self.depth = -1
-  self.ident = '  '
   self:super(traverser)
 end
 
@@ -19,7 +18,7 @@ function GeneratorContext:dec_indent()
 end
 
 function GeneratorContext:add_indent(what, ...)
-  self:add(string.rep(self.ident, math.max(self.depth, 0)), what, ...)
+  self:add(string.rep(self.traverser.indent, math.max(self.depth, 0)), what, ...)
 end
 
 function GeneratorContext:add_indent_ln(what, ...)
@@ -106,7 +105,12 @@ end
 local Generator = class(Traverser)
 
 function Generator:_init()
+  self.indent = '  '
   self:super()
+end
+
+function Generator:set_indent(indent)
+  self.indent = indent
 end
 
 function Generator:generate(ast)
