@@ -133,8 +133,8 @@ shaper:register('Goto', types.shape {
   types.string -- label name
 })
 shaper:register('VarDecl', types.shape {
-  types.string, -- scope (global/local)
-  types.string, -- mutability (var/let/ref/const)
+  types.string:is_optional(), -- scope (local)
+  types.string, -- mutability (var&/var/let&/let/const)
   types.array_of(types.ASTTypedId), -- var names with types
   types.array_of(types.ASTNode):is_optional(), -- expr list, initial assignments values
 })
@@ -143,7 +143,7 @@ shaper:register('Assign', types.shape {
   types.array_of(types.ASTNode), -- expr list, assign values
 })
 shaper:register('FuncDef', types.shape {
-  types.string:is_optional(), -- scope (global/local)
+  types.string:is_optional(), -- scope (local)
   types.ASTId + types.ASTDotIndex + types.ASTColonIndex, -- name
   types.array_of(types.ASTNode), -- typed arguments
   types.array_of(types.ASTNode), -- typed returns
@@ -212,7 +212,7 @@ parser:add_keywords({
   "repeat", "return", "then", "true", "until", "while",
 
   -- euluna additional keywords
-  "switch", "case", "continue", "global", "var", "ref", "let", "const"
+  "switch", "case", "continue", "var", "let", "const"
 })
 
 -- names and identifiers (names for variables, functions, etc)
@@ -321,6 +321,8 @@ parser:set_token_pegs([[
 %LEN          <- '#'
 %BNOT         <- !%NE '~'
 %TOSTRING     <- '$'
+%REF          <- '&'
+%DEREF        <- '*'
 
 -- matching symbols
 %LPAREN       <- '('
@@ -447,7 +449,7 @@ grammar:add_group_peg('stat', 'goto', [[
 
 grammar:add_group_peg('stat', 'vardecl', [[
   ({} '' -> 'VarDecl'
-    ((var_scope (var_mutability / '' -> 'var')) / ('' -> 'local' var_mutability))
+    ((var_scope (var_mutability / '' -> 'var')) / (cnil var_mutability))
     {| typed_idlist |}
     (%ASSIGN {| eexpr_list |})?
   ) -> to_astnode
@@ -546,8 +548,8 @@ grammar:set_pegs([[
   expr_list <- (expr (%COMMA expr)*)?
   eexpr_list <- eexpr (%COMMA expr)*
 
-  var_scope <- %LOCAL -> 'local' / %GLOBAL -> 'global'
-  var_mutability <- %VAR -> 'var' / %REF -> 'ref' / %LET -> 'let' / %CONST -> 'const'
+  var_scope <- %LOCAL -> 'local'
+  var_mutability <- %VAR %BAND -> 'var&' / %VAR -> 'var' / %LET %BAND -> 'let&' / %LET -> 'let' / %CONST -> 'const'
 
   cnil <- '' -> to_nil
   ctrue <- '' -> to_true
@@ -629,7 +631,9 @@ grammar:set_pegs([[
                %LEN -> 'len' /
                %NEG -> 'neg' /
                %BNOT -> 'bnot' /
-               %TOSTRING -> 'tostring'
+               %TOSTRING -> 'tostring' /
+               %REF -> 'ref' /
+               %DEREF -> 'deref'
   op_pow   <-  %POW -> 'pow'
 ]])
 

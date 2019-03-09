@@ -224,10 +224,10 @@ generator:register('Goto', function(ast, coder)
   coder:add_indent_ln('goto ', labelname)
 end)
 
-generator:register('VarDecl', function(ast, coder)
+generator:register('VarDecl', function(ast, coder, scope)
   local varscope, mutability, vars, vals = ast:args()
   assert(mutability == 'var', 'variable mutability not supported in lua')
-  local is_local = (varscope == 'local')
+  local is_local = (varscope == 'local') or not scope:is_main()
   coder:add_indent()
   if is_local then
     coder:add('local ')

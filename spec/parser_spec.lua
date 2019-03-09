@@ -537,24 +537,26 @@ describe("statement variable declaration", function()
           { AST('Id', 'b') })
     }))
   end)
-  it("global variable", function()
-    assert.parse_ast(euluna_parser, "global a",
+  it("non local variable", function()
+    assert.parse_ast(euluna_parser, "var a",
       AST('Block', {
-        AST('VarDecl', 'global', 'var', { AST('TypedId', 'a') })
+        AST('VarDecl', nil, 'var', { AST('TypedId', 'a') })
     }))
   end)
   it("variable mutabilities", function()
     assert.parse_ast(euluna_parser, [[
       var a = b
       let a = b
-      local ref a = b
-      global const a = b
+      let& a = b
+      local var& a = b
+      const a = b
     ]],
       AST('Block', {
-        AST('VarDecl', 'local', 'var', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
-        AST('VarDecl', 'local', 'let', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
-        AST('VarDecl', 'local', 'ref', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
-        AST('VarDecl', 'global', 'const', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', nil, 'var', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', nil, 'let', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', nil, 'let&', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', 'local', 'var&', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', nil, 'const', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
     }))
   end)
   it("variable multiple assigments", function()
@@ -804,6 +806,20 @@ describe("operator", function()
       AST('Block', {
         AST('Return', {
           AST('UnaryOp', 'tostring', AST('Id', 'a')
+    )})}))
+  end)
+  it("'&'", function()
+    assert.parse_ast(euluna_parser, "return &a",
+      AST('Block', {
+        AST('Return', {
+          AST('UnaryOp', 'ref', AST('Id', 'a')
+    )})}))
+  end)
+  it("'*'", function()
+    assert.parse_ast(euluna_parser, "return *a",
+      AST('Block', {
+        AST('Return', {
+          AST('UnaryOp', 'deref', AST('Id', 'a')
     )})}))
   end)
   it("'^'", function()
