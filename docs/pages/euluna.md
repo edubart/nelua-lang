@@ -75,9 +75,9 @@ Both ways it will outputs  ```Hello world!```
 
 ## Learning more
 
-* Check out the language [overview](https://edubart.github.io/euluna-website/overview/)
+* Check out the language [overview](https://edubart.github.io/euluna-lang/overview/)
 to get a quick view of the language syntax, features and usage.
-* Check out the language [tutorial](https://edubart.github.io/euluna-website/tutorial/)
+* Check out the language [tutorial](https://edubart.github.io/euluna-lang/tutorial/)
 for learning the basics.
-* Check out the language [manual](https://edubart.github.io/euluna-website/manual/)
+* Check out the language [manual](https://edubart.github.io/euluna-lang/manual/)
 or learning the language whole design.

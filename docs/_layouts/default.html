@@ -80,7 +80,7 @@
         {% for post in sorted_pages %}
           {% if post.categories contains 'sidenav' %}
             {% if page.url == post.url %}
-              <div class="bd-toc-item active">{{ content | toc_only }}</div>
+              <div class="bd-toc-item active">{% include toc.html html=content %}</div>
             {% else %}
               <div class="bd-toc-item">
                 <ul><li><a href="{{ post.url | relative_url }}">{{ post.title }}</a></li></ul>
