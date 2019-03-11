@@ -1,1 +1,1 @@
-../euluna-website/pages/euluna.md
+docs/pages/euluna.md
