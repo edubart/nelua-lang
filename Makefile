@@ -54,7 +54,7 @@ _clear-stdout:
 devtest: _clear-stdout coverage-test check check-duplication
 .PHONY: devtest
 
-fulltest: test coverage check
+test-full: test coverage check
 .PHONY: fulltest
 
 livedev:
@@ -69,6 +69,14 @@ docker-test:
 	docker run --rm -it -v `pwd`:/euluna euluna make -s test
 .PHONY: docker-test
 
-docker-fulltest:
-	docker run --rm -it -v `pwd`:/euluna euluna make -s fulltest
+docker-test-rocks:
+	docker run --rm -it -v `pwd`:/euluna euluna sudo luarocks install rockspecs/euluna-dev-1.rockspec
+.PHONY: docker-test-rocks
+
+docker-test-full:
+	docker run --rm -it -v `pwd`:/euluna euluna make -s test-full
 .PHONY: docker-fulltest
+
+docker-term:
+	docker run --rm -it -v `pwd`:/euluna euluna /bin/bash
+.PHONY: docker-term

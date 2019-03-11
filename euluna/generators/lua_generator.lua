@@ -298,7 +298,7 @@ generator:register('UnaryOp', function(ast, coder)
   end
 end)
 
-local LUA_BINARY_OPS = {
+local BINARY_OPS = {
   ['or'] = 'or',
   ['and'] = 'and',
   ['ne'] = '~=',
@@ -322,7 +322,7 @@ local LUA_BINARY_OPS = {
 }
 generator:register('BinaryOp', function(ast, coder)
   local opname, left_arg, right_arg = ast:args()
-  local op = assert(LUA_BINARY_OPS[opname], 'binary operator not found')
+  local op = assert(BINARY_OPS[opname], 'binary operator not found')
   local surround = is_in_operator(coder)
   if surround then coder:add('(') end
     coder:add(left_arg, ' ', op, ' ', right_arg)

@@ -1,4 +1,4 @@
-local re = require 're'
+local re = require 'relabel'
 local file = require 'pl.file'
 local colors = require 'term.colors'
 
