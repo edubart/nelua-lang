@@ -1,0 +1,7 @@
+language: ruby
+services:
+  - docker
+before_install:
+  - make docker-image
+script:
+  - make docker-test-full

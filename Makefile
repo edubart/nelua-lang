@@ -55,7 +55,7 @@ devtest: _clear-stdout coverage-test check check-duplication
 .PHONY: devtest
 
 test-full: test coverage check
-.PHONY: fulltest
+.PHONY: test-full
 
 livedev:
 	@nodemon -e lua -q -x "make -Ss devtest || exit 1"
@@ -75,7 +75,7 @@ docker-test-rocks:
 
 docker-test-full:
 	docker run --rm -it -v `pwd`:/euluna euluna make -s test-full
-.PHONY: docker-fulltest
+.PHONY: docker-test-full
 
 docker-term:
 	docker run --rm -it -v `pwd`:/euluna euluna /bin/bash

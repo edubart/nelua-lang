@@ -1,10 +1,12 @@
 # Euluna
 
+[![Build Status](https://travis-ci.org/edubart/euluna-lang.svg?branch=master)](https://travis-ci.org/edubart/euluna-lang) [![Coverage Status](https://coveralls.io/repos/github/edubart/euluna-lang/badge.svg)](https://coveralls.io/github/edubart/euluna-lang) [![Join the chat at https://gitter.im/euluna-lang/Lobby](https://badges.gitter.im/euluna-lang/Lobby.svg)](https://gitter.im/euluna-lang/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Euluna is a minimalistic, performant, safe, optionally typed, meta programmable,
 systems programming language with syntax close to Lua language that works
 either dynamically or staticaly by compiling to Lua or C.
 
-**Warning this language a WIP (work in progress).**
+**Warning this language is currently highly experimental and a WIP (work in progress).**
 
 ## Goals
 
