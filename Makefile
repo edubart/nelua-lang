@@ -25,7 +25,6 @@ coverage:
 	@busted --coverage > /dev/null
 	@luacov
 	@luajit -e "require('tools.covreporter')()"
-	@rm -f luacov.report.out luacov.stats.out
 .PHONY: coverage
 
 coverage-test:
@@ -80,3 +79,12 @@ docker-test-full:
 docker-term:
 	docker run --rm -it -v `pwd`:/euluna euluna /bin/bash
 .PHONY: docker-term
+
+install-dev-deps:
+	luarocks install --lua-version=5.1 --only-deps rockspecs/euluna-dev-1.rockspec --local
+	luarocks install --lua-version=5.3 --only-deps rockspecs/euluna-dev-1.rockspec --local
+.PHONY: install-dev-deps
+
+clean:
+	rm -f luacov.report.out luacov.stats.out
+.PHONY: clean

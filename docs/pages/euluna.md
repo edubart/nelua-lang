@@ -1,6 +1,10 @@
 # Euluna
 
-[![Build Status](https://travis-ci.org/edubart/euluna-lang.svg?branch=master)](https://travis-ci.org/edubart/euluna-lang) [![Coverage Status](https://coveralls.io/repos/github/edubart/euluna-lang/badge.svg)](https://coveralls.io/github/edubart/euluna-lang) [![Join the chat at https://gitter.im/euluna-lang/Lobby](https://badges.gitter.im/euluna-lang/Lobby.svg)](https://gitter.im/euluna-lang/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](https://travis-ci.org/edubart/euluna-lang.svg?branch=master)](https://travis-ci.org/edubart/euluna-lang)
+[![Coverage Status](https://coveralls.io/repos/github/edubart/euluna-lang/badge.svg?branch=master)](https://coveralls.io/github/edubart/euluna-lang?branch=master)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?label=license)](https://opensource.org/licenses/MIT)
+[![Documentation](https://img.shields.io/website/https/edubart.github.io/euluna-lang.svg?label=docs&color=blue)](https://edubart.github.io/euluna-lang/overview/)
+[![Join the chat at Gitter](https://badges.gitter.im/euluna-lang/Lobby.svg)](https://gitter.im/euluna-lang/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Euluna is a minimalistic, performant, safe, optionally typed, meta programmable,
 systems programming language with syntax close to Lua language that works
@@ -9,8 +13,6 @@ either dynamically or staticaly by compiling to Lua or C.
 **Warning this language is currently highly experimental and a WIP (work in progress).**
 
 ## Goals
-
-Euluna has the following goals:
 
 * Be minimalistic with a small syntax, manual and API, but powerful
 * Be performant by compiling to native code
@@ -27,7 +29,7 @@ Euluna has the following goals:
 * Have an optional garbage collector
 * Allow us to go low level (C, assembly)
 * Allow us to go higher level (use Lua or extend the language)
-* Be modular, plugin in our out language syntaxes or features of your choice
+* Be modular, plugin in or out language syntaxes or features of your choice
 
 ## Why?
 
@@ -73,7 +75,7 @@ Runing by compiling to native code (requires a GCC compiler):
 euluna --backend=c helloworld.euluna
 ```
 
-Both ways it will outputs  ```Hello world!```
+Both ways it will output  ```Hello world!```
 
 ## Learning more
 
