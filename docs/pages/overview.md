@@ -243,7 +243,7 @@ typedef Weeks = enum {
   Saturday
 }
 
-local a: Weeks = Weeks.Sunday
+local a: Weeks = @Weeks.Sunday
 print(Weeks.Sunday) -- outputs 1
 print(tostring(Week.Sunday)) -- outputs Sunday
 
@@ -303,7 +303,7 @@ var a: *pointer
 
 ```euluna
 var a: tuple<integer, integer>
-a = tuple{1,2}
+a = @tuple{1,2}
 a[1] = 0
 ```
 

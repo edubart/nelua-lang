@@ -366,4 +366,6 @@ end)
 
 -- TODO: Continue
 
+generator.compiler = require('euluna.compilers.lua_compiler')
+
 return generator

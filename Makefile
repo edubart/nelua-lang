@@ -1,3 +1,8 @@
+UID=$(shell id -u $(USER))
+GID=$(shell id -g $(USER))
+PWD=$(shell pwd)
+DFLAGS=--rm -it -u $(UID):$(GID) -v "$(PWD):/euluna" euluna
+
 test: test-luajit test-lua5.3 test-lua5.1
 
 test-luajit:
@@ -45,27 +50,29 @@ check-duplication:
 _clear-stdout:
 	@clear
 
-devtest: _clear-stdout coverage-test check check-duplication
+devtest: _clear-stdout coverage-test check
 
 test-full: test coverage check
 
 livedev:
 	@nodemon -e lua -q -x "make -Ss devtest || exit 1"
 
+DOCKER_FLAGS="-u $(id -u ${USER}):$(id -g ${USER})"
 docker-image:
 	docker build -t "euluna" .
 
 docker-test:
-	docker run --rm -it -v `pwd`:/euluna euluna make -s test
+	docker run $(DFLAGS) make -s test
 
 docker-test-rocks:
-	docker run --rm -it -v `pwd`:/euluna euluna sudo luarocks install rockspecs/euluna-dev-1.rockspec
+	docker run $(DFLAGS) sudo luarocks install rockspecs/euluna-dev-1.rockspec
 
 docker-test-full:
-	docker run --rm -it -v `pwd`:/euluna euluna make -s test-full
+	$(MAKE) cache-clean
+	docker run $(DFLAGS) make -s test-full
 
 docker-term:
-	docker run --rm -it -v `pwd`:/euluna euluna /bin/bash
+	docker run $(DFLAGS) /bin/bash
 
 install-dev:
 	luarocks install --lua-version=5.3 --local rockspecs/euluna-dev-1.rockspec
@@ -84,4 +91,7 @@ docs-clean:
 docs-serve:
 	cd docs && bundle exec jekyll serve
 
-clean: coverage-clean docs-clean
+cache-clean:
+	rm -rf euluna_cache
+
+clean: cache-clean coverage-clean docs-clean

@@ -97,8 +97,7 @@ function GeneratorContext:add_double_quoted(str)
   self:add('"', quoted, '"')
 end
 
-function GeneratorContext:generate(ast)
-  self:add_traversal(ast)
+function GeneratorContext:generate_code()
   return table.concat(self.codes)
 end
 
@@ -115,7 +114,19 @@ end
 
 function Generator:generate(ast)
   local context = GeneratorContext(self)
-  return context:generate(ast)
+  local builtin_context = GeneratorContext(self)
+
+  context.builtin_context = builtin_context
+  context:add_traversal(ast)
+
+  local code = context:generate_code(ast)
+
+  local builtin_code = builtin_context:generate_code()
+  if builtin_code ~= '' then
+    code = builtin_code .. code
+  end
+
+  return code
 end
 
 Generator.Context = GeneratorContext

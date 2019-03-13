@@ -1,63 +1,57 @@
-local argparse = require 'argparse'
 local euluna_parser = require 'euluna.parsers.euluna_parser'
-local lua_generator = require 'euluna.generators.lua_generator'
-local lua_compiler = require 'euluna.compilers.lua_compiler'
 local plfile = require 'pl.file'
-
+local configer = require 'euluna.configer'
 local runner = {}
-
-runner.stderr = io.stderr
-runner.stdout = io.stdout
 
 function runner.run(...)
   local argv = nil
   if select(1, ...) then
     argv = {...}
   end
+  local ok, err = pcall(function()
+    local config = configer.parse(argv)
 
-  local argparser = argparse("euluna", "Euluna v0.1")
-  argparser:argument("input", "Input source file")
-  --argparser:flag('--print-ast', 'Print the AST only')
-  argparser:flag('-e --eval', 'Evaluate string code from input')
-  argparser:flag('-l --lint', 'Only check syntax errors')
-  argparser:flag('-g --print-code', 'Print the generated code only')
-  local options = argparser:parse(argv)
+    local input
+    local infile
+    if config.eval then
+      input = config.input
+    else
+      input = assert(plfile.read(config.input))
+      infile = config.input
+    end
 
-  local input
-  if options.eval then
-    input = options.input
-  else
-    input = assert(plfile.read(options.input))
-  end
+    local ast = assert(euluna_parser:parse(input))
 
-  local ast, err = euluna_parser:parse(input)
+    if config.lint then return end
 
-  if not ast then
-    runner.stderr:write(err)
+    --[[
+    if config.print_ast then
+      print(ast:tostring())
+      return
+    end
+    ]]
+
+    local generator = require('euluna.generators.' .. config.generator .. '_generator')
+    local code = generator:generate(ast)
+
+    if config.print_code then
+      print(code)
+      return 0
+    end
+
+    local compiler = generator.compiler
+    local ok,status,sout,serr = compiler.run(code, infile, config.output)
+    if sout then io.stdout:write(sout) end
+    if serr then io.stderr:write(serr) end
+    return status
+  end)
+
+  if not ok then
+    io.stderr:write(err .. '\n')
     return 1
   end
 
-  if options.lint then return end
-
-  --[[
-  if options.print_ast then
-    print(ast:tostring())
-    return
-  end
-  ]]
-
-  local code = lua_generator:generate(ast)
-
-  if options.print_code then
-    runner.stdout:write(code)
-    return 0
-  end
-
-  local ok,status,sout,serr = lua_compiler.run(code)
-
-  if sout then runner.stdout:write(sout) end
-  if serr then runner.stderr:write(serr) end
-  return status
+  return err
 end
 
 return runner

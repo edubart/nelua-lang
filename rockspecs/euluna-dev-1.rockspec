@@ -25,6 +25,7 @@ dependencies = {
   'inspect',
   'lua-term',
   'argparse',
+  'lsha2',
 
   -- dev dependencies only
   'busted',

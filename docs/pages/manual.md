@@ -94,24 +94,23 @@ enum struct
 
 
 
-## Variables
-
-There are many types of variables:
+## Variables mutabilities
 
 * **var** is a mutable variable
-* **local** is an alias to mutable variable
+* **var&** is a reference to a mutable variable
+* **var&&** is a rvalue
 * **let** is an immutable variable
-* **ref** is a referente to a variable
+* **let&** is a reference to a immutable variable
 * **const** is an immutable variable and it's expression is evoluated at compile time
 
 ## Primitives types
 
-| Type  | C++ Type  | Suffixes  |
+| Type  | C Type  | Suffixes  |
 |---|---|---|
 | `boolean` `bool` | `bool` | |
 | `integer` `int` | `long` | `_i` `_integer` |
 | `uinteger` `uint` | `unsigned long` | `_u` `_uinteger` |
-| `number` | `double` | `_number` |
+| `number` | `double` | `_d` `_number` |
 | `uint64` | `uint64_t` | `_u64` `_uint64` |
 | `uint32` | `uint32_t` | `_u32` `_uint32` |
 | `uint16` | `uint16_t` | `_u16` `_uint16` |

@@ -1,5 +1,6 @@
 local class = require 'pl.class'
 local Scope = require 'euluna.scope'
+local assertf = require 'euluna.utils'.assertf
 
 local TraverserContext = class()
 
@@ -43,7 +44,7 @@ end
 
 function Traverser:traverse(ast, context, scope)
   assert(scope, 'no scope in traversal')
-  local visitor_func = assert(self.visitors[ast.tag], 'visitor does not exist')
+  local visitor_func = assertf(self.visitors[ast.tag], "visitor '%s' does not exist", ast.tag)
   context:push_ast(ast)
   visitor_func(ast, context, scope)
   context:pop_ast()

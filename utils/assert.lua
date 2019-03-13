@@ -1,5 +1,9 @@
 
 local assert = require 'luassert'
+local runner = require 'euluna.runner'
+local stringx = require 'pl.stringx'
+local inspect = require 'inspect'
+local unpack = table.unpack or unpack
 
 -- upper table display limit
 assert:set_parameter("TableFormatLevel", 16)
@@ -74,6 +78,49 @@ function assert.parse_ast_error(parser, input, expected_error)
   local ast, _, errdetails = parser:parse(input)
   assert(ast == nil and errdetails and errdetails.label == expected_error,
          string.format('expected error "%s" while parsing', expected_error))
+end
+
+local stderr = io.stderr
+local stdout = io.stdout
+local print = _G.print
+
+local function run(args)
+  if type(args) == 'string' then
+    args = stringx.split(args)
+  end
+  local tmperr, tmpout = io.tmpfile(), io.tmpfile()
+  local function rprint(...)
+    return tmpout:write(table.concat({...}, "\t") .. "\n")
+  end
+  io.stderr, io.stdout, _G.print = tmperr, tmpout, rprint
+  local status = runner.run(unpack(args))
+  io.stderr, io.stdout, _G.print = stderr, stdout, print
+  tmperr:seek('set') tmpout:seek('set')
+  local serr, sout = tmperr:read("*a"), tmpout:read("*a")
+  tmperr:close() tmpout:close()
+  return status, sout, serr
+end
+
+function assert.contains(expected, passedin)
+  assert(passedin:find(expected, 1, true),
+    string.format("Expected string to contains.\nPassed in:\n%s\nExpected:\n%s",
+    passedin, expected))
+end
+
+function assert.run(args, expected_stdout)
+  local status, sout, serr = run(args)
+  assert(status == 0, string.format('expected success status on %s:\n%s', inspect(args), serr))
+  if expected_stdout then
+    assert.contains(expected_stdout, sout)
+  end
+end
+
+function assert.run_error(args, expected_stderr)
+  local status, sout, serr = run(args)
+  assert(status ~= 0, string.format('expected error status on %s:\n%s', inspect(args), sout))
+  if expected_stderr then
+    assert.contains(expected_stderr, serr)
+  end
 end
 
 return assert
