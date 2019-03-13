@@ -3,7 +3,6 @@ local assert = require 'luassert'
 local runner = require 'euluna.runner'
 local stringx = require 'pl.stringx'
 local inspect = require 'inspect'
-local unpack = table.unpack or unpack
 
 -- upper table display limit
 assert:set_parameter("TableFormatLevel", 16)
@@ -93,7 +92,15 @@ local function run(args)
     return tmpout:write(table.concat({...}, "\t") .. "\n")
   end
   io.stderr, io.stdout, _G.print = tmperr, tmpout, rprint
-  local status = runner.run(unpack(args))
+  local ok, err = pcall(function()
+    return runner.run(args)
+  end)
+  local status = 1
+  if not ok then
+    io.stderr:write(err .. '\n')
+  else
+    status = err
+  end
   io.stderr, io.stdout, _G.print = stderr, stdout, print
   tmperr:seek('set') tmpout:seek('set')
   local serr, sout = tmperr:read("*a"), tmpout:read("*a")

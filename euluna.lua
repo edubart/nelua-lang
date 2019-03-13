@@ -1,2 +1,2 @@
 #!/usr/bin/env lua
-require 'euluna.runner'.run()
+require 'euluna.runner'.run(arg)
