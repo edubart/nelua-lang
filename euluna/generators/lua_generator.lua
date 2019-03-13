@@ -77,6 +77,10 @@ generator:register('TypedId', function(ast, coder)
   local name, type = ast:args()
   coder:add(name)
 end)
+generator:register('FuncArg', function(ast, coder)
+  local name, mut, type = ast:args()
+  coder:add(name)
+end)
 
 -- indexing
 generator:register('DotIndex', function(ast, coder)
@@ -287,7 +291,7 @@ local LUA_UNARY_OPS = {
 }
 generator:register('UnaryOp', function(ast, coder)
   local opname, arg = ast:args()
-  if opname == 'tostring' then
+  if opname == 'tostr' then
     coder:add('tostring(', arg, ')')
   else
     local op = assert(LUA_UNARY_OPS[opname], 'unary operator not found')

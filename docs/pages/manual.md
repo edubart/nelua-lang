@@ -36,6 +36,64 @@ typedef
 enum struct
 ```
 
+## Operators
+
+| Name | Syntax | Type | Operation |
+|---|---|---|---|
+| or    | `a or b`      | binary   | conditional or           |
+| and   | `a and b`     | binary   | conditional and          |
+| lt    | `a < b`       | binary   | less than                |
+| ne    | `a ~= b`      | binary   | not equal                |
+| gt    | `a > b`       | binary   | greater than             |
+| le    | `a <= b`      | binary   | less or equal than       |
+| ge    | `a >= b`      | binary   | greater or equal than    |
+| eq    | `a == b`      | binary   | equal                    |
+| bor   | `a | b`       | binary   | bitwise or               |
+| band  | `a & b`       | binary   | bitwise and              |
+| bxor  | `a ~ b`       | binary   | bitwise xor              |
+| shl   | `a << b`      | binary   | bitwise sguft right      |
+| shr   | `a >> b`      | binary   | bitwise shift left       |
+| concat| `a .. b`      | binary   | concatenation operator   |
+| add   | `a + b`       | binary   | numeric add              |
+| sub   | `a - b`       | binary   | numeric subtract         |
+| mul   | `a * b`       | binary   | numeric multiply         |
+| div   | `a / b`       | binary   | numeric division         |
+| idiv  | `a // b`      | binary   | integer division         |
+| mod   | `a % b`       | binary   | numeric modulo           |
+| imod  | `a %% b`      | binary   | integer modulo           |
+| not   | `not a`       | unary    | boolean negation         |
+| len   | `#a`          | unary    | length operator          |
+| neg   | `-a`          | unary    | numeric negation         |
+| bnot  | `~a`          | unary    | bitwise not              |
+| tostr | `$a`          | unary    | stringification operator |
+| ref   | `&a`          | unary    | reference operator       |
+| deref | `*a`          | unary    | dereference operator     |
+| pow   | `a ^ b`       | unary    | numeric pow              |
+| if    | `a if c or b` | ternary  | ternary if operator      |
+
+## Other symbols used in the language syntax
+
+| Symbol| Syntax | Usage |
+|---|---|---|
+| `[]`  | array index |
+| `{}`  | listing |
+| `()`  | surrounding |
+| `<>`  | inner type definition |
+| `:`   | method acess |
+| `.`   | field index |
+| `...` | varargs |
+| `,`   | separator |
+| `;`   | line separator |
+| `""`  | string quoting |
+| `''`  | alternative string quoting |
+| `;`   | statement separator |
+| `@`   | type inference |
+| `::`  | label definition |
+| `--`  | comment |
+| `{: :}` | pragma |
+
+
+
 ## Variables
 
 There are many types of variables:
@@ -68,11 +126,43 @@ There are many types of variables:
 | `usize` | `std::size_t` | `_usize` |
 | `char` | `char` | `_c` `_char` |
 
-table
-struct
-any
-variant
-optional
-tuple
-function
-enum
+
+## Scope rules
+
+* `var` `let` `const` are local by default inside function blocks
+* in code scope all variables are exported unless it is declated as `local`
+
+```euluna
+-- variables are locally available
+local a
+local var a
+local let a = 1
+local var& a = b
+local const a = 1
+local function a() end
+
+-- variables are exported
+a = nil -- only in lua compatible mode
+var a
+let a = 1
+const a = 1
+function a() end
+
+function f()
+  -- variables are locally available
+  local a
+  local var a
+  local let a = 1
+  local const a = 1
+  local function a() end
+
+  var a
+  let a = 1
+  const a = 1
+end
+
+function f()
+  a = nil -- only in lua compatible mode
+  function a() end -- only in lua compatible mode
+end
+```

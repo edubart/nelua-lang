@@ -31,6 +31,7 @@ either dynamically or staticaly by compiling to Lua or C.
 * Allow us to go low level (C, assembly)
 * Allow us to go higher level (use Lua or extend the language)
 * Be modular, plugin in or out language syntaxes or features of your choice
+* Once stable, make euluna compile itself
 
 ## Why?
 

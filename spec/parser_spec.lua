@@ -180,7 +180,7 @@ describe("expression", function()
         AST('Return', {
           AST('Function', {}, {}, AST('Block', {})),
           AST('Function',
-            { AST('TypedId', 'a'), AST('TypedId', 'b', AST('Type', 'B')) },
+            { AST('FuncArg', 'a'), AST('FuncArg', 'b', nil, AST('Type', 'B')) },
             { AST('Type', 'C'), AST('Type', 'D') },
             AST('Block', {})
           )
@@ -617,7 +617,7 @@ describe("statement function", function()
     assert.parse_ast(euluna_parser, "local function f(a, b: int): string end",
       AST('Block', {
         AST('FuncDef', 'local', AST('Id', 'f'),
-          { AST('TypedId', 'a'), AST('TypedId', 'b', AST('Type', 'int')) },
+          { AST('FuncArg', 'a'), AST('FuncArg', 'b', nil, AST('Type', 'int')) },
           { AST('Type', 'string') },
           AST('Block', {}) )
     }))
@@ -805,7 +805,7 @@ describe("operator", function()
     assert.parse_ast(euluna_parser, "return $a",
       AST('Block', {
         AST('Return', {
-          AST('UnaryOp', 'tostring', AST('Id', 'a')
+          AST('UnaryOp', 'tostr', AST('Id', 'a')
     )})}))
   end)
   it("'&'", function()

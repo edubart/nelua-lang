@@ -34,13 +34,6 @@ shaper:register('Pair', types.shape {
   types.ASTNode -- field value expr
 })
 
--- function
-shaper:register('Function', types.shape {
-  types.array_of(types.ASTNode), -- typed arguments
-  types.array_of(types.ASTNode), -- typed returns
-  types.ASTNode -- block
-})
-
 -- identifier and types
 shaper:register('Id', types.shape {
   types.string, -- name
@@ -51,6 +44,18 @@ shaper:register('Type', types.shape {
 shaper:register('TypedId', types.shape {
   types.string, -- name
   types.ASTType:is_optional(), -- type
+})
+shaper:register('FuncArg', types.shape {
+  types.string, -- name
+  types.one_of{"var", "var&", "var&&", "let", "let&"}:is_optional(), -- mutability
+  types.ASTType:is_optional() -- type
+})
+
+-- function
+shaper:register('Function', types.shape {
+  types.array_of(types.ASTFuncArg + types.ASTVarargs), -- typed arguments
+  types.array_of(types.ASTType), -- typed returns
+  types.ASTNode -- block
 })
 
 -- indexing
@@ -133,8 +138,8 @@ shaper:register('Goto', types.shape {
   types.string -- label name
 })
 shaper:register('VarDecl', types.shape {
-  types.string:is_optional(), -- scope (local)
-  types.string, -- mutability (var&/var/let&/let/const)
+  types.one_of{"local"}:is_optional(), -- scope
+  types.one_of{"var", "var&", "let", "let&", "const"}, -- mutability
   types.array_of(types.ASTTypedId), -- var names with types
   types.array_of(types.ASTNode):is_optional(), -- expr list, initial assignments values
 })
@@ -143,7 +148,7 @@ shaper:register('Assign', types.shape {
   types.array_of(types.ASTNode), -- expr list, assign values
 })
 shaper:register('FuncDef', types.shape {
-  types.string:is_optional(), -- scope (local)
+  types.one_of{"local"}:is_optional(), -- scope
   types.ASTId + types.ASTDotIndex + types.ASTColonIndex, -- name
   types.array_of(types.ASTNode), -- typed arguments
   types.array_of(types.ASTNode), -- typed returns
@@ -302,13 +307,14 @@ parser:set_token_pegs([[
 %MUL          <- '*'
 %MOD          <- '%'
 %DIV          <- '/'
+%IDIV         <- !%DIV '//'
 %POW          <- '^'
 %BAND         <- '&'
 %BOR          <- '|'
 %SHL          <- '<<'
 %SHR          <- '>>'
 %EQ           <- '=='
-%NE           <- '~=' / '!='
+%NE           <- '~='
 %LE           <- '<='
 %GE           <- '>='
 %LT           <- !%SHL !%LE '<'
@@ -320,7 +326,7 @@ parser:set_token_pegs([[
 %NEG          <- !'--' '-'
 %LEN          <- '#'
 %BNOT         <- !%NE '~'
-%TOSTRING     <- '$'
+%TOSTR        <- '$'
 %REF          <- '&'
 %DEREF        <- '*'
 
@@ -363,7 +369,7 @@ parser:add_syntax_errors({
   UnclosedLongString = 'unclosed long string',
 })
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Grammar
 --------------------------------------------------------------------------------
 
@@ -533,11 +539,14 @@ grammar:set_pegs([[
   function <- ({} %FUNCTION -> 'Function' function_body) -> to_astnode
   function_body <-
     eLPAREN (
-      {| (typed_idlist (%COMMA %cVARARGS)? / %cVARARGS)? |}
+      {| (func_args (%COMMA %cVARARGS)? / %cVARARGS)? |}
     ) eRPAREN
     {| (%COLON etypexpr_list)? |}
       block
     eEND
+  func_args <- func_arg (%COMMA func_arg)*
+  func_arg <- ({} '' -> 'FuncArg' %cNAME
+    (%COLON (func_var_mutability (typexpr / cnil) / cnil etypexpr))?) -> to_astnode
   typed_idlist <- typed_id (%COMMA typed_id)*
   typed_id <- ({} '' -> 'TypedId' %cNAME (%COLON etypexpr)?) -> to_astnode
 
@@ -549,6 +558,8 @@ grammar:set_pegs([[
   eexpr_list <- eexpr (%COMMA expr)*
 
   var_scope <- %LOCAL -> 'local'
+  func_var_mutability <- %VAR %BAND -> 'var&&' / %VAR %BAND -> 'var&' / %VAR -> 'var' /
+                         %LET %BAND -> 'let&' / %LET -> 'let'
   var_mutability <- %VAR %BAND -> 'var&' / %VAR -> 'var' / %LET %BAND -> 'let&' / %LET -> 'let' / %CONST -> 'const'
 
   cnil <- '' -> to_nil
@@ -625,13 +636,14 @@ grammar:set_pegs([[
   op_add    <- %ADD -> 'add' /
                %SUB -> 'sub'
   op_mul    <- %MUL -> 'mul' /
+               %IDIV -> 'idiv' /
                %DIV -> 'div' /
                %MOD -> 'mod'
   op_unary  <- %NOT -> 'not' /
                %LEN -> 'len' /
                %NEG -> 'neg' /
                %BNOT -> 'bnot' /
-               %TOSTRING -> 'tostring' /
+               %TOSTR -> 'tostr' /
                %REF -> 'ref' /
                %DEREF -> 'deref'
   op_pow   <-  %POW -> 'pow'

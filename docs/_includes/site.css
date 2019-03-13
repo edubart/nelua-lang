@@ -2,7 +2,7 @@
 
 body {
   font-family: 'Source Sans Pro', 'Open Sans', sans-serif;
-  color: #526880;
+  color: #32475d;
   font-size: 1rem;
   padding-top: 64px;
 }
@@ -17,18 +17,23 @@ code {
 .bd-navbar {
   padding-top: 0;
   padding-bottom: 0;
-  min-height: 64px;
+  min-height: 3rem;
 }
 
 .bd-navbar .navbar-nav-svg {
   display: inline-block;
-  width: 2rem;
-  height: 2rem;
+  width: 1.5rem;
+  height: 1.5rem;
   vertical-align: text-top;
 }
 
 .euluna-brand {
-  line-height: 48px;
+  line-height: 2.8rem;
+}
+
+.euluna-brand svg {
+  width: 2.8rem;
+  height: 2.8rem;
 }
 
 .euluna-brand img {
@@ -41,7 +46,18 @@ code {
   font-family: 'Montserrat', sans-serif;
 }
 
+.euluna-subname {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .euluna-subname {
+    display: inline;
+  }
+}
+
 /* ANCHOR FIX */
+.bd-content h1[id]:before,
 .bd-content h2[id]:before,
 .bd-content h3[id]:before,
 .bd-content h4[id]:before,
@@ -52,6 +68,10 @@ code {
   margin-top: -4rem;
   height: 4rem;
   visibility: hidden;
+}
+
+.bd-content h1 {
+  pointer-events: none;
 }
 
 h1,h2,h3,h4,h5,h6 {
@@ -117,7 +137,7 @@ h1,h2,h3,h4,h5,h6 {
   padding: 1rem 15px;
   margin-right: -15px;
   margin-left: -15px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(128, 45, 45, 0.05);
 }
 
 .bd-search .form-control:focus {

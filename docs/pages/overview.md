@@ -40,6 +40,7 @@ Comments are just like in Lua:
 There are many types of variables:
 
 ```euluna
+local l = 0 -- variable of type integer, type automatically deduced
 var a = 2 -- variable of type integer, type automatically deduced
 var b: int -- variable of type integer, initialized to zero by default
 var c: int = 1 -- variable of type integer, initialized
@@ -59,47 +60,6 @@ Constant are evaluated at compile time.
 
 ```euluna
 const h = 1 + 2 -- constant variable evaluated at compile time
-```
-
-### Scope
-
-Rules:
-* `var` `let` `const` are local by default inside function blocks
-* in code scope all variables are exported unless it is declated as `local`
-
-```euluna
--- variables are locally available
-local a
-local var a
-local let a = 1
-local var& a = b
-local const a = 1
-local function a() end
-
--- variables are exported
-a = nil -- only in lua compatible mode
-var a
-let a = 1
-const a = 1
-function a() end
-
-function f()
-  -- variables are locally available
-  local a
-  local var a
-  local let a = 1
-  local const a = 1
-  local function a() end
-
-  var a
-  let a = 1
-  const a = 1
-end
-
-function f()
-  a = nil -- only in lua compatible mode
-  function a() end -- only in lua compatible mode
-end
 ```
 
 --------------------------------------------------------------------------------
@@ -123,28 +83,41 @@ end
 ### Parameters
 
 ```euluna
-function foo(var a: int, var& b: int, let c: int, d: int)
-  print(a,b,c)
-  a = 1
-  b = 2
-  -- `c` is a read only variables and assignment on it is not allowed
-  d = 4
+function foo(a: let int, b: let& int, c: int, d: var int, e: var& int)
+  print(a,b,c,d,e)
+  -- `a` and `b` are a read only variables and assignment on it is not allowed
+  c = 2
+  d = 3
+  e = 4
 end
 
-var a, b, c, d = 0, 0, 0, 0
-foo(a ,b, c, d)
-print(a, b, c, d) -- outputs 0 2 0 0
+var a, b, c, d, e = 0, 0, 0, 0, 0
+foo(a ,b, c, d, e)
+print(a, b, c, d, e) -- outputs 0 0 2 3 4
 ```
 
 By default function parameters are `var` unless changed.
+
+### Rvalues
+
+```euluna
+function foo(a: var&& integer)
+  a = 1
+  print(a)
+end
+
+local a = 1
+-- cannot call foo(a), because a is a lvalue
+foo(0)
+```
 
 ### Closures
 
 Closure are functions declared inside another function
 that captures variables in the scope, by default they
-capture values by shared references (this choice was
-made to make it work similiar to lua closures), but can they be captured
-by stack reference or by copy.
+capture values by shared references using the garbage collector
+(this choice was made to make it work similiar to lua closures),
+but can they be captured by stack reference, or garbage collected copy.
 
 
 ```euluna
@@ -163,7 +136,7 @@ main1()  -- outputs 2
 -- capture all values by copy
 function main2()
   local a = 1
-  local function foo[bycopy]()
+  local function foo[=a]()
     -- captured a by copy
     a = 2
   end
@@ -176,7 +149,7 @@ function main3()
   local a = 0
   local b = 0
   local c = 0
-  local function foo[bycopy a, byref b, byshare c]()
+  local function foo[=a, &b, c]()
     a = 1
     b = 2
     c = 3
@@ -204,26 +177,37 @@ print(1,2,3) -- outputs 1 2 3
 Value types are similiar to C with some changes:
 
 ```euluna
-var b = true -- boolean
-var i = 1234 -- integer
-var h = 0x123 -- hexadecimal integer
-var u = 1234_u64 -- unsigned integer of 64 bits
-var f = 1234.56_f -- float
-var d = 1234.56 -- double
-var c = 'a'_c -- character
-var p: pointer<integer> = nil -- pointer to integer type
-var str1 = "hello world" -- string
-var str2 = 'hello world' -- string
+local b = true -- boolean
+local i = 1234 -- integer
+local h = 0x123 -- hexadecimal integer
+local u = 1234_u64 -- unsigned integer of 64 bits
+local f = 1234.56_f -- float
+local d = 1234.56 -- double
+local c = 'a'_c -- character
+local s1 = "hello world" -- string
+local s2 = 'hello world' -- string
+local p: pointer<integer> = nil -- pointer to integer type
+```
+
+### Type inference
+To infer types for arbitrary values the `@` operator can be used.
+
+```euluna
+local a = @integer(1) -- a is an integer with value 1
+local p = @pointer<integer>() -- p is a pointer to an integer initialized to zeros
 ```
 
 ### Static arrays
 
 ```euluna
-var a: array<integer, 4> = {1,2,3,4}
-var b = @array<integer,4> {1,2,3,4}
-var c = @array<integer> {1,2,3,4}
-var c = @array {1,2,3,4}
+local a: array<integer, 4> = {1,2,3,4}
+local a = @array<integer,4> {1,2,3,4}
+local a = @array<integer> {1,2,3,4}
+local a = @array {1,2,3,4}
 
+-- syntax sugar
+local a = @integer[4] {1,2,3,4}
+local a = @integer[] {1,2,3,4}
 ```
 
 ### Tables
@@ -231,11 +215,16 @@ var c = @array {1,2,3,4}
 Similar to lua tables.
 
 ```euluna
-var t1 = {} -- empty table
-var t2: table -- empty table
-var t3 = {x = 1, y = 2} -- simple table
-var t4 = {1 , 2} -- simple table
-var t5 = {a = 1, [2] = "a", 1} -- complex table
+local t1 = {} -- empty table
+local t2: table -- empty table
+local t3 = {x = 1, y = 2} -- simple table
+local t4 = {1 , 2} -- simple table
+local t5 = {a = 1, [2] = "a", 1} -- complex table
+
+-- syntax sugar
+local t: {}
+local t: {integer}
+local t: {integer, integer}
 ```
 
 ### Enum
@@ -254,7 +243,7 @@ typedef Weeks = enum {
   Saturday
 }
 
-var a: Weeks = Weeks.Sunday
+local a: Weeks = Weeks.Sunday
 print(Weeks.Sunday) -- outputs 1
 print(tostring(Week.Sunday)) -- outputs Sunday
 
@@ -263,10 +252,10 @@ print(tostring(Week.Sunday)) -- outputs Sunday
 ### Variant
 
 ```euluna
-var a: variant<integer,string,nil>
+local a: variant<integer,string,nil>
 
 -- syntax sugar
-var b: (integer|string|nil)
+local b: (integer|string|nil)
 ```
 
 ### Optional
@@ -274,13 +263,13 @@ var b: (integer|string|nil)
 Optional types are used in variables to check if the variables is set.
 
 ```euluna
-var b: optional<integer, nil>
-var a: optional<integer, nil>
+local b: optional<integer, nil>
+local a: optional<integer, nil>
 a = 1
 print(a, b) -- outputs "1 nil"
 
 -- syntax sugar
-var b: integer?
+local b: integer?
 ```
 
 ### Struct
@@ -291,13 +280,13 @@ typedef Person = struct {
   age: integer
 }
 
-var a: Person
+local a: Person
 a.name = "John"
 a.age  = 20
 print(a.age)
 
 -- constructor
-var b = @Person {name = 1, age = 2}
+local b = @Person {name = 1, age = 2}
 print(b.age)
 ```
 
@@ -321,21 +310,21 @@ a[1] = 0
 ### Slices
 
 ```euluna
-var arr = @array<integer> {1,2,3,4}
+local arr = @array<integer> {1,2,3,4}
 print(arr[1:2]) -- outputs 1 2
 print(arr[2:]) -- outputs 2 3 4
 print(arr[:3]) -- outputs 1 2 3
 print(arr[:]) -- outputs 1 2 3 4
 
-var s: slice<integer>
+local s: slice<integer>
 ```
 
 ### Function
 
 ```euluna
-var f: function(a: integer, b: integer): boolean, boolean
+local f: function(a: integer, b: integer): boolean, boolean
 
-var f = function(args) end
+local f = function(args) end
 
 -- syntax sugar
 function f(args) end
@@ -350,11 +339,11 @@ typedef MyPair = tuple<integer, integer>
 ### Type conversions
 
 ```euluna
-var i = 1
-var d1 = cast(@float32, i)
-var d2 = @float32(i)
+local i = 1
+local d2 = @float32(i)
 ```
-Requires explicity conversions where data loss is possible.
+
+There is no automatic type conversion.
 
 --------------------------------------------------------------------------------
 ## Flow control
@@ -395,10 +384,10 @@ variable names, also useful to use in combination with defer statement:
 
 ```euluna
 do
-  var a = 0
+  local a = 0
 end
 do
-  var a = 1 -- can declare variable named a again
+  local a = 1 -- can declare variable named a again
 end
 ```
 
@@ -437,7 +426,7 @@ end
 Just like in Lua.
 
 ```euluna
-var a = 1
+local a = 1
 while a < 42 do
   a = a + 1
 end
@@ -560,7 +549,7 @@ local function get_a() -- private function
   return a
 end
 
-var b = 2 -- variable exported to the module
+local b = 2 -- variable exported to the module
 function foo()
   return get_a()
 end
@@ -618,17 +607,17 @@ foo()
 ### Ternary if statement
 
 ```euluna
-var a = 1 if true else 2
+local a = 1 if true else 2
 print(a) -- outputs 1
 ```
 
 ### Operator overloading
 ```euluna
-function `+=`(var& a: string, b: string)
+function `+=`(a: var& string, b: string)
   a = a .. b
 end
 
-var a = "hello"
+local a = "hello"
 a += "world"
 print(a) -- outputs hello world
 ```
@@ -676,9 +665,9 @@ end
 ```euluna
 import euluna.std.memory
 
-var a = 1
-var a_ptr: pointer<integer> = &a
-var& c: int = *a_ptr -- dereference is a shortcut for a_ptr[0]
+local a = 1
+local a_ptr: pointer<integer> = &a
+local& c: int = *a_ptr -- dereference is a shortcut for a_ptr[0]
 b = 2
 print(a) -- outputs 2
 a_ptr[0] = 3
@@ -690,7 +679,7 @@ print(a) -- outputs 3
 ```euluna
 import euluna.std.memory
 
-var a = new(@integer) -- a type is: pointer<integer>
+local a = new(@integer) -- a type is: pointer<integer>
 a[0] = 1
 *a = 1
 var& ra = *a; ra = 1
@@ -715,8 +704,8 @@ struct Person {
 
 alias PersonPtr = shared_pointer<Person>
 
-var a = PersonPtr(new(@Person))
-var b = a
+local a = PersonPtr(new(@Person))
+local b = a
 b.name = "John"
 print(a.name) -- outputs "John"
 ```
@@ -731,8 +720,8 @@ struct Person {
   age: int
 }
 
-var a = gcnew(@Person)
-var b = a
+local a = gcnew(@Person)
+local b = a
 b.name = "John"
 print(a.name) -- outputs "John"
 ```
@@ -754,7 +743,7 @@ function Person:set_age(age)
   self.age = age
 end
 
-var a = Person()
+local a = Person()
 a.name = "John"
 a:set_age(20)
 print(a.age)
@@ -780,7 +769,7 @@ struct Square {
   width: int,
   height: int
 }
-var squareTable: PolygonVTable
+local squareTable: PolygonVTable
 
 function squareTable:area()
   return self.width * self.height
@@ -794,22 +783,9 @@ end
 polygonTable.area = Polygon.area
 squareTable.area = Square.area
 
-var square = Square{2, 2}
+local square = Square{2, 2}
 var& polygon = cast<Polygon>(square)
 print(polygon:area()) -- outputs 4
-```
-
---------------------------------------------------------------------------------
-### Literals
-
-Literals are used to convert string or numbers into arbritary types.
-
-```euluna
-literal _f32(v)
-  return tofloat(v)
-end
-
-var a = "1234"_f32 -- a is float
 ```
 
 --------------------------------------------------------------------------------
@@ -821,16 +797,15 @@ generator.
 ### Global pragmas
 
 ```euluna
-@[cinclude('<stdio.h>')] -- include C header
-@[cppinclude('<iostream>')] -- include C++ header
-@[cppflags("-DSOMETHING")] -- compile flags passed to C++ compiler
-@[linkflags("-Lsomelib")] -- link a library
+{:cinclude '<stdio.h>':} -- include C header
+{:cppinclude '<iostream>', cppflags "-DSOMETHING":} -- include C++ header
+{:linkflags "-Lsomelib":} -- link a library
 ```
 
 ### Function pragmas
 
 ```euluna
-function sum(a, b) @[inline] -- inline function
+function sum(a, b) {:inline:} -- inline function
   return a + b
 end
 ```
@@ -838,9 +813,23 @@ end
 ### Variable pragmas
 
 ```euluna
-var @[noinit] a: int -- don't initialize variable
-var @[volatile] a = 1 -- C++ volatile variable
+local {:noinit:} a: int -- don't initialize variable
+local {:volatile:} a = 1 -- C volatile variable
 ```
+
+--------------------------------------------------------------------------------
+### Literals
+
+Literals are used to convert string or numbers into arbritary types.
+
+```euluna
+function _f32(v) {:literal:}
+  return tofloat(v)
+end
+
+local a = "1234"_f32 -- a is float
+```
+
 
 --------------------------------------------------------------------------------
 ## Meta programming
@@ -852,8 +841,8 @@ The language offers advanced features for metaprogramming.
 At compile time a Lua preprocessor is available to render arbritary code:
 
 ```euluna
-var a = 0
-var b = 0
+local a = 0
+local b = 0
 {% for i = 1,4 do %}
   a = a + 1 -- unroll this line 4 times
   b = b + {%=i%} -- will evalute "i" values: 1, 2, 3 and 4
@@ -880,7 +869,7 @@ template unroll(count: ASTNumber, body: ASTBlock)
   {% end %}
 end
 
-var a = 0
+local a = 0
 unroll(4, do
   a = a + 1
 end)
@@ -891,7 +880,7 @@ local template swap(a, b)
   a, b = b, a
 end
 
-var x,y = 1,2
+local x,y = 1,2
 swap(x,y)
 print(x,y)
 
@@ -919,8 +908,8 @@ template Point(T: ASTId)
   {% return PointT %}
 end
 
-var a: Point(@float32)
-var b = @Point(float32)
+local a: Point(@float32)
+local b = @Point(float32)
 ```
 
 ```euluna
@@ -969,9 +958,9 @@ function(A: has_area)
 ```euluna
 import euluna.std.vector
 
-var arr1 = @vector {1,2,3,4} -- dynamic array of integer
-var arr2 = @vector<int8> {1,2,3,4} -- dynamic array of int8
-var arr3: @vector<string> -- dynamic array of string
+local arr1 = @vector {1,2,3,4} -- dynamic array of integer
+local arr2 = @vector<int8> {1,2,3,4} -- dynamic array of int8
+local arr3: @vector<string> -- dynamic array of string
 ```
 
 ### Maps
@@ -979,9 +968,9 @@ var arr3: @vector<string> -- dynamic array of string
 ```euluna
 import euluna.std.map
 
-var m1 = @map {a = 1, b = 2} -- map of string -> integer
-var m2 = @map<string, integer>{} -- map of string -> integer
-var m3: @map<string, integer> -- map of string -> int
+local m1 = @map {a = 1, b = 2} -- map of string -> integer
+local m2 = @map<string, integer>{} -- map of string -> integer
+local m3: @map<string, integer> -- map of string -> int
 ```
 
 {% endraw %}
