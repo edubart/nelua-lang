@@ -2,6 +2,7 @@ UID=$(shell id -u $(USER))
 GID=$(shell id -g $(USER))
 PWD=$(shell pwd)
 DFLAGS=--rm -it -u $(UID):$(GID) -v "$(PWD):/euluna" euluna
+NODEMONFLAGS=-w euluna -w spec -w utils -w tools -w examples -e lua,euluna -q -x
 
 test: test-luajit test-lua5.3 test-lua5.1
 
@@ -55,7 +56,7 @@ devtest: _clear-stdout coverage-test check
 test-full: test coverage check
 
 livedev:
-	@nodemon -e lua -q -x "make -Ss devtest || exit 1"
+	@nodemon $(NODEMONFLAGS) "make -Ss devtest || exit 1"
 
 DOCKER_FLAGS="-u $(id -u ${USER}):$(id -g ${USER})"
 docker-image:

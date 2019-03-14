@@ -2,6 +2,11 @@ local assert = require 'utils.assert'
 
 describe("Euluna runner should", function()
 
+it("compile simple programs" , function()
+  assert.run('--compile examples/helloworld.euluna')
+  assert.run('--compile-binary examples/helloworld.euluna')
+end)
+
 it("run simple programs", function()
   assert.run('examples/helloworld.euluna', 'hello world')
   assert.run('examples/helloworld.euluna', 'hello world') -- second time, use cache
