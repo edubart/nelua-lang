@@ -212,8 +212,8 @@ describe("string", function()
 
   it("short", function()
     assert.peg_capture_all(pegs.cSTRING, {
-      ['""'] = {''},
-      ["''"] = {''},
+      ['""'] = AST('String', ''),
+      ["''"] = AST('String', ''),
       ['"test"'] = AST('String', 'test'),
       ["'test'"] = AST('String', 'test'),
       ['"a\\t\\nb"'] = AST('String', 'a\t\nb'),

@@ -4,7 +4,7 @@ local plutil = require 'pl.utils'
 local plpath = require 'pl.path'
 local pltemplate = require 'pl.template'
 local config = require 'euluna.configer'.get()
-local sha256 = require 'lsha2'.hash256
+local sha1 = require 'sha1'.sha1
 local assertf = require 'euluna.utils'.assertf
 local c_compiler = {}
 
@@ -19,7 +19,7 @@ local function get_compile_command(infile, outfile)
 end
 
 local function hash_compilation(code, cmd)
-  return sha256(code .. cmd)
+  return sha1(code .. cmd)
 end
 
 function c_compiler.compile(code, outfile)
@@ -58,15 +58,16 @@ end
 function c_compiler.run(code, infile, outfile) --, run_args)
   local skip_compilation = false
 
-  local prefix = 'dummy'
+  local prefix = ''
   if infile then
-    prefix = infile:gsub('%.[^.]+$','')
+    prefix = infile:gsub('%.[^.]+$','') .. '_'
   end
 
   -- generate an outfile name from a hash
   if outfile == nil then
     local dummycmd = get_compile_command(prefix .. '.c', prefix, config)
-    outfile = plpath.join(config.cache_dir, hash_compilation(code, dummycmd))
+    local hash = hash_compilation(code, dummycmd)
+    outfile = plpath.join(config.cache_dir, prefix .. hash)
 
     -- if the file with that hash already exists skip recompiling it
     if not config.no_cache and plpath.isfile(outfile) then

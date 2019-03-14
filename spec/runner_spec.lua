@@ -1,9 +1,8 @@
 local assert = require 'utils.assert'
 
-describe("Euluna runner should run", function()
+describe("Euluna runner should", function()
 
-it("simple program", function()
-  assert.run('--print-code examples/helloworld.euluna', 'print("hello world")')
+it("run simple programs", function()
   assert.run('examples/helloworld.euluna', 'hello world')
   assert.run('examples/helloworld.euluna', 'hello world') -- second time, use cache
   assert.run('--generator c examples/helloworld.euluna', 'hello world')
@@ -13,10 +12,33 @@ it("simple program", function()
   assert.run({'--generator', 'c', '--eval', ""})
 end)
 
-it("invalid program" , function()
+it("throw error parsing an invalid program" , function()
+  assert.run_error('--aninvalidflag', 'unknown option')
   assert.run_error('--lint --eval invalid')
   assert.run_error('--lint invalid', 'invalid: No such file or directory')
   assert.run_error({'--generator', 'c', '--eval', "f()"}, 'undefined reference')
+end)
+
+it("print correct generated AST" , function()
+  assert.run('--print-ast examples/helloworld.euluna', [[AST('Block',
+  { AST('Call',
+      {},
+      { AST('String',
+          "hello world",
+          nil
+        )
+      },
+      AST('Id',
+        "print"
+      ),
+      true
+    )
+  }
+)]])
+end)
+
+it("print correct generated code", function()
+  assert.run('--print-code examples/helloworld.euluna', 'print("hello world")')
 end)
 
 end)

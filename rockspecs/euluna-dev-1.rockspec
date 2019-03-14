@@ -19,19 +19,19 @@ either dynamically or staticaly by compiling to Lua or C.
 }
 
 dependencies = {
-  'penlight',
-  'lpeglabel',
-  'tableshape',
-  'inspect',
-  'lua-term',
-  'argparse',
-  'lsha2',
+  'penlight >= 1.5.4',
+  'lpeglabel >= 1.5.0',
+  'tableshape >= 2.0.0',
+  'inspect >= 3.1.1',
+  'lua-term >= 0.7',
+  'argparse >= 0.6.0',
+  'sha1 >= 0.6.0',
 
   -- dev dependencies only
-  'busted',
-  'luacheck',
-  'luacov',
-  'cluacov',
+  'busted >= 2.0rc13',
+  'luacheck >= 0.23.0',
+  'luacov >= 0.13.0',
+  'cluacov >= 0.1.1',
 }
 
 build = {
@@ -45,6 +45,7 @@ build = {
     ['euluna/shaper.lua'] = 'euluna/shaper.lua',
     ['euluna/traverser.lua'] = 'euluna/traverser.lua',
     ['euluna/compilers/lua_compiler.lua'] = 'euluna/compilers/lua_compiler.lua',
+    ['euluna/compilers/c_compiler.lua'] = 'euluna/compilers/c_compiler.lua',
     ['euluna/generators/c_generator.lua'] = 'euluna/generators/c_generator.lua',
     ['euluna/generators/lua_generator.lua'] = 'euluna/generators/lua_generator.lua',
     ['euluna/parsers/euluna_parser.lua'] = 'euluna/parsers/euluna_parser.lua',

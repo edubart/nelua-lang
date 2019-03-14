@@ -19,12 +19,10 @@ function runner.run(argv)
 
   if config.lint then return end
 
-  --[[
   if config.print_ast then
-    print(ast:tostring())
+    print(tostring(ast))
     return 0
   end
-  ]]
 
   local generator = require('euluna.generators.' .. config.generator .. '_generator')
   local code = generator:generate(ast)

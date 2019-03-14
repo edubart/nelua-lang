@@ -18,7 +18,7 @@ argparser:flag('--print-code', 'Print the generated code only')
 local config = {}
 
 function configer.parse(argv)
-  local options = argparser:parse(argv)
+  local ok, options = assert(argparser:pparse(argv))
   setmetatable(config, {__index = options})
   return config
 end

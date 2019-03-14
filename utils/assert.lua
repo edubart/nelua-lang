@@ -10,18 +10,8 @@ assert:set_parameter("TableFormatLevel", 16)
 -- inject dump utility while testing
 _G.dump = require 'utils.dump'
 
-local function recursive_remove_pos(t)
-  if type(t) == 'table' then
-    for _,v in pairs(t) do
-      recursive_remove_pos(v)
-    end
-    t.pos = nil
-  end
-end
-
-function assert.ast_equals(ast, expected_ast)
-  recursive_remove_pos(ast)
-  assert.same(expected_ast, ast)
+function assert.ast_equals(expected_ast, ast)
+  assert.same(tostring(expected_ast), tostring(ast))
 end
 
 function assert.peg_match_all(patt, subjects)
@@ -41,7 +31,7 @@ function assert.peg_capture_all(peg, subjects)
 
     local ast = peg:match(subject)
     if expected_ast then
-      assert.ast_equals(ast, expected_ast)
+      assert.ast_equals(expected_ast, ast)
     else
       assert(type(ast) == 'table', string.format('expected capture on "%s"', subject))
     end
@@ -66,7 +56,7 @@ end
 function assert.parse_ast(parser, input, expected_ast)
   local ast = assert(parser:parse(input))
   if expected_ast then
-    assert.ast_equals(ast, expected_ast)
+    assert.ast_equals(expected_ast, ast)
   else
     assert(ast, 'an valid ast was expected')
   end
@@ -91,6 +81,7 @@ local function run(args)
   local function rprint(...)
     return tmpout:write(table.concat({...}, "\t") .. "\n")
   end
+  -- hook print, stderr and stdout
   io.stderr, io.stdout, _G.print = tmperr, tmpout, rprint
   local ok, err = pcall(function()
     return runner.run(args)
@@ -101,6 +92,7 @@ local function run(args)
   else
     status = err
   end
+  -- remove hooks
   io.stderr, io.stdout, _G.print = stderr, stdout, print
   tmperr:seek('set') tmpout:seek('set')
   local serr, sout = tmperr:read("*a"), tmpout:read("*a")

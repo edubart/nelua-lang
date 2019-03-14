@@ -288,7 +288,7 @@ describe("call", function()
   it("array index", function()
     assert.parse_ast(euluna_parser, "a['b']()",
       AST('Block', {
-        AST('Call', {}, {}, AST('ArrayIndex', AST('Id', 'b'), AST('Id', 'a')), true)
+        AST('Call', {}, {}, AST('ArrayIndex', AST('String', 'b'), AST('Id', 'a')), true)
     }))
   end)
   it("method", function()
