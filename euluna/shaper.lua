@@ -1,6 +1,7 @@
 local class = require 'pl.class'
 local types = require 'tableshape'.types
 local inspect = require 'inspect'
+local assertf = require 'euluna.utils'.assertf
 local unpack = table.unpack or unpack
 
 local ASTNode = class()
@@ -89,9 +90,7 @@ function Shaper:register(name, shape)
     local node = {...}
     setmetatable(node, klass_mt)
     local ok, err = shape(node)
-    if not ok then
-      error(string.format('invalid shape while creating AST node "%s": %s', name, err))
-    end
+    assertf(ok, 'invalid shape while creating AST node "%s": %s', name, err)
     return node
   end
   klass.create = node_create
@@ -102,9 +101,7 @@ end
 
 function Shaper:create(tag, ...)
   local create = self.creates[tag]
-  if not create then
-    error(string.format("AST with name '%s' is not registered", tag))
-  end
+  assertf(create, "AST with name '%s' is not registered", tag)
   return create(...)
 end
 

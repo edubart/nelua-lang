@@ -203,7 +203,7 @@ describe("string", function()
       "[[test]]", "[=[test]=]", "[==[test]==]",
       "[[\nasd\n]]", "[=[\nasd\n]=]", "[==[\nasd\n]==]",
       ["[[\nasd\n]]"] = AST('String', "asd\n"),
-      ["[==[\nasd\n]==]"] = AST('String', "asd\n"),
+      ["[==[\nasd\n]==]"] = AST('String', "asd\n")
     })
     assert.peg_error_all(pegs.cSTRING, 'UnclosedLongString', {
       '[[', '[=[]]', '[[]',
@@ -216,7 +216,7 @@ describe("string", function()
       ["''"] = AST('String', ''),
       ['"test"'] = AST('String', 'test'),
       ["'test'"] = AST('String', 'test'),
-      ['"a\\t\\nb"'] = AST('String', 'a\t\nb'),
+      ['"a\\t\\nb"'] = AST('String', 'a\t\nb')
     })
     assert.peg_error_all(pegs.cSTRING, 'UnclosedShortString', {
       '"', "'", '"\\"', "'\\\"", '"\n"',

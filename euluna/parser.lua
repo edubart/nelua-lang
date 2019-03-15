@@ -1,6 +1,7 @@
 local class = require 'pl.class'
 local re = require 'relabel'
 local tablex = require 'pl.tablex'
+local assertf = require 'euluna.utils'.assertf
 local Parser = class()
 
 function Parser:_init(shaper)
@@ -93,9 +94,9 @@ function Parser:set_peg(name, patt, defs, modf)
 end
 
 function Parser:remove_peg(name)
-  assert(self.defs[name], 'cannot remove non existent peg')
+  assertf(self.defs[name], 'cannot remove non existent peg "%s"', name)
   local refs = cascade_dependencies_for(self.pegdescs, name)
-  assert(#refs == 0, 'cannot remove peg that has references')
+  assertf(#refs == 0, 'cannot remove peg "%s" that has references', name)
   self.defs[name] = nil
   self.pegdescs[name] = nil
 end
@@ -113,7 +114,7 @@ comment    <- %s* '--' (!linebreak .)* linebreak?
 
 function Parser:set_pegs(combined_patts, defs, modf)
   local pattdescs = combined_peg_pat:match(combined_patts)
-  assert(pattdescs, 'invalid multiple pegs patterns syntax')
+  assertf(pattdescs, 'invalid multiple pegs patterns syntax for:\n%s', combined_patts)
   for _,pattdesc in ipairs(pattdescs) do
     local name, content = pattdesc[1], pattdesc[2]
     local patt = string.format('%s <- %s', name, content)
@@ -123,7 +124,7 @@ end
 
 function Parser:match(name, input)
   local peg = self.defs[name]
-  assert(peg, 'cannot match an input to an inexistent peg in Parser')
+  assertf(peg, 'cannot match an input to inexistent peg "%s"', name)
   return peg:match(input)
 end
 
@@ -150,7 +151,7 @@ end
 local function internal_add_keyword(self, keyword)
   local keyword_name = keyword:upper()
   assert(self.defs.IDSUFFIX, 'cannot add keyword without a IDSUFFIX peg')
-  assert(tablex.find(self.keywords, keyword) == nil, 'keyword already exists')
+  assertf(tablex.find(self.keywords, keyword) == nil, 'keyword "%s" already exists', keyword)
   table.insert(self.keywords, keyword)
   self:set_token_peg(keyword_name, string.format("'%s' !%%IDSUFFIX", keyword))
 end
@@ -163,7 +164,7 @@ end
 function Parser:remove_keyword(keyword)
   local keyword_name = keyword:upper()
   local i = tablex.find(self.keywords, keyword)
-  assert(i, 'keyword to remove not found')
+  assertf(i, 'keyword "%s" to remove not found', keyword)
   table.remove(self.keywords, i)
   recompile_keyword_peg(self)
   self:remove_peg(keyword_name)

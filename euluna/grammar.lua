@@ -2,6 +2,7 @@
 local class = require 'pl.class'
 local re = require 'relabel'
 local tablex = require 'pl.tablex'
+local assertf = require 'euluna.utils'.assertf
 local Grammar = class()
 
 function Grammar:_init()
@@ -13,7 +14,7 @@ end
 local function merge_defs(self, defs)
   if not defs then return end
   for dname,def in pairs(defs) do
-    assert(self.defs[dname] == nil, 'conflict defs')
+    assertf(self.defs[dname] == nil, 'conflict defs for "%s"', dname)
     self.defs[dname] = def
   end
 end
@@ -31,7 +32,7 @@ function Grammar:add_group_peg(groupname, name, patt, defs)
     self.group_pegs[groupname] = group
   end
   local fullname = string.format('%s_%s', groupname, name)
-  assert(tablex.find(group, fullname) == nil, 'group peg name already exists')
+  assertf(tablex.find(group, fullname) == nil, 'group peg "%s" already exists', fullname)
   table.insert(group, fullname)
   merge_defs(self, defs)
   recompile_group_peg(self, groupname)
@@ -51,7 +52,7 @@ comment    <- %s* '--' (!linebreak .)* linebreak?
 
 function Grammar:set_peg(name, patt, defs, overwrite)
   local has_peg = self.pegs[name] ~= nil
-  assert(not has_peg or overwrite, 'cannot overwrite pegs')
+  assertf(not has_peg or overwrite, 'cannot overwrite peg "%s"', name)
   if not has_peg then
     table.insert(self.pegs, name)
   end
@@ -61,7 +62,7 @@ end
 
 function Grammar:set_pegs(combined_patts, defs, overwrite)
   local pattdescs = combined_peg_pat:match(combined_patts)
-  assert(pattdescs, 'invalid multiple pegs patterns syntax')
+  assertf(pattdescs, 'invalid multiple pegs patterns syntax: %s', combined_patts)
   for _,pattdesc in ipairs(pattdescs) do
     local name, patt = pattdesc[1], pattdesc[2]
     self:set_peg(name, patt, nil, overwrite)

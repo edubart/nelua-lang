@@ -34,7 +34,7 @@ end
 function GeneratorContext:add(what, ...)
   if not what then return end
   local typewhat = type(what)
-  assert(typewhat == 'string' or typewhat == 'table', 'cannot add this value')
+  assert(typewhat == 'string' or typewhat == 'table', 'cannot add non string or table value')
   if typewhat == 'string' then
     table.insert(self.codes, what)
   elseif typewhat == 'table' and what.is_astnode then
@@ -75,7 +75,7 @@ quotechar <- \
   '\v' -> '\\v' /   -- vertical tab \
 "
 local quote_patt_end = "\
-  ('??' {[=/'%(%)!<>%-]}) -> '?\\?%1' / -- C trigraphs \
+  -- ('??' {[=/'%(%)!<>%-]}) -> '?\\?%1' / -- C trigraphs \
   [^%g%s] -> to_special_character -- other special characters \
 "
 local single_quoter = re.compile(

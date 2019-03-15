@@ -1,5 +1,6 @@
 local Generator = require 'euluna.generator'
 local generator = Generator()
+local assertf = require 'euluna.utils'.assertf
 
 -- primitives
 generator:register('Number', function(ast, coder)
@@ -197,7 +198,7 @@ end)
 
 generator:register('ForNum', function(ast, coder)
   local itervar, beginval, comp, endval, incrval, block  = ast:args()
-  assert(comp == 'le', 'for comparators not supported in lua yet')
+  assert(comp == 'le', 'for comparator not supported in lua yet')
   coder:add_indent("for ", itervar, '=', beginval, ',', endval)
   if incrval then
     coder:add(',', incrval)
@@ -294,7 +295,7 @@ generator:register('UnaryOp', function(ast, coder)
   if opname == 'tostr' then
     coder:add('tostring(', arg, ')')
   else
-    local op = assert(LUA_UNARY_OPS[opname], 'unary operator not found')
+    local op = assertf(LUA_UNARY_OPS[opname], 'unary operator "%s" not found', opname)
     local surround = is_in_operator(coder)
     if surround then coder:add('(') end
     coder:add(op, arg)
@@ -326,7 +327,7 @@ local BINARY_OPS = {
 }
 generator:register('BinaryOp', function(ast, coder)
   local opname, left_arg, right_arg = ast:args()
-  local op = assert(BINARY_OPS[opname], 'binary operator not found')
+  local op = assertf(BINARY_OPS[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(coder)
   if surround then coder:add('(') end
     coder:add(left_arg, ' ', op, ' ', right_arg)
@@ -335,7 +336,7 @@ end)
 
 generator:register('TernaryOp', function(ast, coder)
   local opname, left_arg, mid_arg, right_arg = ast:args()
-  assert(opname == 'if', 'unknown ternary op ')
+  assertf(opname == 'if', 'unknown ternary operator "%s"', opname)
   local surround = is_in_operator(coder)
   if surround then coder:add('(') end
   coder:add(mid_arg, ' and ', left_arg, ' or ', right_arg)
@@ -346,7 +347,7 @@ generator:register('Switch', function(ast, coder)
   local val, caseparts, switchelseblock = ast:args()
   local varname = '__switchval' .. ast.pos
   coder:add_indent_ln("local ", varname, " = ", val)
-  assert(#caseparts > 0)
+  assert(#caseparts > 0, "switch must have case parts")
   for i,casepart in ipairs(caseparts) do
     local caseval, caseblock = casepart[1], casepart[2]
     if i == 1 then

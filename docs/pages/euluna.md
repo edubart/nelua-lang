@@ -63,17 +63,17 @@ luarocks install https://raw.githubusercontent.com/edubart/euluna-lang/master/ro
 
 Create a file named `helloworld.euluna` containing:
 
-```euluna
+```lua
 print 'Hello world!'
 ```
 
 Running by compiling to Lua and using your system Lua's interpreter:
-```bash
+```shell
 euluna helloworld.euluna
 ```
 
-Runing by compiling to C then to native code (requires a GCC compiler):
-```bash
+Running by compiling to C then to native code (requires a GCC compiler):
+```shell
 euluna -g c helloworld.euluna
 ```
 

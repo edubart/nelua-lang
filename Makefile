@@ -91,6 +91,9 @@ install-dev-deps:
 	luarocks install --lua-version=5.1 --only-deps rockspecs/euluna-dev-1.rockspec --local
 	luarocks install --lua-version=5.3 --only-deps rockspecs/euluna-dev-1.rockspec --local
 
+upload-dev-rocks:
+	luarocks upload --api-key=$(LUAROCKS_APIKEY) --force rockspecs/euluna-dev-1.rockspec
+
 docs:
 	cd docs && jekyll build
 .PHONY: docs
