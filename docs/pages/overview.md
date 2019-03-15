@@ -30,7 +30,7 @@ Comments are just like in Lua:
 --[=[
   multi line comment, `=` can be placed multiple times
   in case if you have `[[` `]]` tokens inside, it will
-  always match it's correspoding token
+  always match it's corresponding token
 ]=]
 ```
 
@@ -41,25 +41,25 @@ There are many types of variables:
 
 ```euluna
 local l = 0 -- variable of type integer, type automatically deduced
-var a = 2 -- variable of type integer, type automatically deduced
-var b: int -- variable of type integer, initialized to zero by default
-var c: int = 1 -- variable of type integer, initialized
-let d = 1 -- immutable constant variable
-let e = a -- immutable reference to variable a
-var& f = a -- mutable reference to variable a
-var& f = a -- immutable reference to variable a
-var g = nil -- variable of type any
-var h: any -- variable of type any
-var i: any = 2 -- variable of type any holding an integer 2
+local a = 2 -- variable of type integer, type automatically deduced
+local b: integer -- variable of type integer, initialized to zero by default
+local c: integer = 1 -- variable of type integer, initialized
+local d: immutable integer = 1 -- immutable variable
+local e: immutable& = a -- immutable reference to variable a
+local f: mutable = a -- mutable reference to variable a
+local f: mutable& = a -- immutable reference to variable a
+local g = nil -- variable of type any
+local h: any -- variable of type any
+local i: any = 2 -- variable of type any holding an integer 2
 ```
 
-Variables are initilized to zero values.
+Variables are initialized to zero values.
 
 ### Constants
 Constant are evaluated at compile time.
 
 ```euluna
-const h = 1 + 2 -- constant variable evaluated at compile time
+local h: const = 1 + 2 -- constant variable evaluated at compile time
 ```
 
 --------------------------------------------------------------------------------
@@ -74,7 +74,7 @@ function fib(n)
 end
 
 -- typed function
-function fib(n: int): int
+function fib(n: integer): integer
   if n < 2 then return n end
   return fib(n - 2) + fib(n - 1)
 end
@@ -83,7 +83,11 @@ end
 ### Parameters
 
 ```euluna
-function foo(a: let int, b: let& int, c: int, d: var int, e: var& int)
+function foo(a: immutable integer,
+             b: immutable& integer,
+             c: integer,
+             d: mutable integer,
+             e: mutable& integer)
   print(a,b,c,d,e)
   -- `a` and `b` are a read only variables and assignment on it is not allowed
   c = 2
@@ -91,7 +95,7 @@ function foo(a: let int, b: let& int, c: int, d: var int, e: var& int)
   e = 4
 end
 
-var a, b, c, d, e = 0, 0, 0, 0, 0
+local a, b, c, d, e = 0, 0, 0, 0, 0
 foo(a ,b, c, d, e)
 print(a, b, c, d, e) -- outputs 0 0 2 3 4
 ```
@@ -116,7 +120,7 @@ foo(0)
 Closure are functions declared inside another function
 that captures variables in the scope, by default they
 capture values by shared references using the garbage collector
-(this choice was made to make it work similiar to lua closures),
+(this choice was made to make it work similar to lua closures),
 but can they be captured by stack reference, or garbage collected copy.
 
 
@@ -174,7 +178,7 @@ print(1,2,3) -- outputs 1 2 3
 
 ### Primitives types
 
-Value types are similiar to C with some changes:
+Value types are similar to C with some changes:
 
 ```euluna
 local b = true -- boolean
@@ -233,7 +237,7 @@ Enums are used to list constant values in sequential order, if no
 initial value is specified, the first value initiates at 1.
 
 ```euluna
-typedef Weeks = enum {
+local Weeks = @enum {
   Sunday,
   Monday,
   Tuesday,
@@ -244,8 +248,8 @@ typedef Weeks = enum {
 }
 
 local a: Weeks = @Weeks.Sunday
-print(Weeks.Sunday) -- outputs 1
-print(tostring(Week.Sunday)) -- outputs Sunday
+print(@Weeks.Sunday) -- outputs 1
+print(tostring(@Week.Sunday)) -- outputs Sunday
 
 ```
 
@@ -275,7 +279,7 @@ local b: integer?
 ### Struct
 
 ```euluna
-typedef Person = struct {
+local Person = @struct {
   name: string,
   age: integer
 }
@@ -293,16 +297,16 @@ print(b.age)
 ### Pointer
 
 ```euluna
-var a: pointer<integer>
+local a: pointer<integer>
 
 -- syntax sugar
-var a: *pointer
+local a: *pointer
 ```
 
 ### Tuple
 
 ```euluna
-var a: tuple<integer, integer>
+local a: tuple<integer, integer>
 a = @tuple{1,2}
 a[1] = 0
 ```
@@ -333,7 +337,7 @@ function f(args) end
 ### Type alias
 
 ```euluna
-typedef MyPair = tuple<integer, integer>
+local MyPair = @tuple<integer, integer>
 ```
 
 ### Type conversions
@@ -379,7 +383,7 @@ end
 ```
 
 ### Do
-Do blocks are useful to create arbritary scopes to avoid colision of
+Do blocks are useful to create arbitrary scopes to avoid collision of
 variable names, also useful to use in combination with defer statement:
 
 ```euluna
@@ -460,7 +464,7 @@ end
 
 #### Exclusive For
 An enhanced for is available to do exclusive for loops, they work using
-comparasion operators `~=` `<=` `>=` `<` `>`:
+comparison operators `~=` `<=` `>=` `<` `>`:
 
 ```euluna
 for i = 0,<5 do
@@ -685,7 +689,7 @@ a[0] = 1
 var& ra = *a; ra = 1
 delete(a)
 
-let a = new(@integer[10]) -- a is pointer<array<integer, 10>>
+local a = new(@integer[10]) -- a is pointer<array<integer, 10>>
 for i=0,<10 do
   a[i] = i
 end
@@ -697,7 +701,7 @@ delete(a)
 ```euluna
 import euluna.std.shared_pointer
 
-struct Person {
+local Person = @struct{
   name: string,
   age: int
 }
@@ -715,7 +719,7 @@ print(a.name) -- outputs "John"
 ```euluna
 import euluna.std.gc
 
-struct Person {
+local Person = @struct{
   name: string,
   age: int
 }
@@ -734,7 +738,7 @@ more advanced ones cna be achieved with metaprogramming.
 
 ### Methods
 ```euluna
-struct Person {
+local Person = @struct{
   name: string,
   age: integer
 }
@@ -752,11 +756,11 @@ print(a.age)
 ### Inheritance
 
 ```euluna
-struct PolygonVTable {
+local PolygonVTable @struct{
   area: function<(self: pointer): int>
 }
 
-struct Polygon {
+local Polygon = @struct{
   vtable: pointer<PolygonVTable>,
 }
 
@@ -764,7 +768,7 @@ function Polygon:area()
   return self.vtable.area(self)
 end
 
-struct Square {
+local Square = @struct{
   Polygon,
   width: int,
   height: int
@@ -820,7 +824,7 @@ local {:volatile:} a = 1 -- C volatile variable
 --------------------------------------------------------------------------------
 ### Literals
 
-Literals are used to convert string or numbers into arbritary types.
+Literals are used to convert string or numbers into arbitrary types.
 
 ```euluna
 function _f32(v) {:literal:}
@@ -838,14 +842,14 @@ The language offers advanced features for metaprogramming.
 
 ### Preprocessor
 
-At compile time a Lua preprocessor is available to render arbritary code:
+At compile time a Lua preprocessor is available to render arbitrary code:
 
 ```euluna
 local a = 0
 local b = 0
 {% for i = 1,4 do %}
   a = a + 1 -- unroll this line 4 times
-  b = b + {%=i%} -- will evalute "i" values: 1, 2, 3 and 4
+  b = b + {%=i%} -- will evaluate "i" values: 1, 2, 3 and 4
 {% end %}
 print(a) -- outputs 4
 
@@ -856,7 +860,7 @@ print(a) -- outputs 4
 
 ### Templates
 
-Templates are useful to render code with ease, they work similiar to templates
+Templates are useful to render code with ease, they work similar to templates
 in the web development world, they should not be confused with C++ templates.
 Using the lua preprocessor with it you can render complex codes.
 
@@ -899,7 +903,7 @@ template Point(T: ASTId)
     if has_type(typename) then return typename end
   %}
 
-  typedef PointT = struct { x: T, y: T }
+  local PointT = @struct { x: T, y: T }
   function PointT:length(a: T): T
     return math.sqrt(self.x ^ @T(2), self.y ^ @T(2))
   end
@@ -908,8 +912,8 @@ template Point(T: ASTId)
   {% return PointT %}
 end
 
-local a: Point(@float32)
-local b = @Point(float32)
+local a: Point(float32)
+local b = @Point(@float32)
 ```
 
 ```euluna
@@ -929,21 +933,21 @@ template generic(T: ASTId, GenericT: ASTId, body: ASTBlock)
 end
 
 generic(T, Point, do
-  typedef PointT = struct { x: T, y: T }
+  local PointT = @struct { x: T, y: T }
   function Point:length(a: T): T
     return math.sqrt(self.x ^ @T(2), self.y ^ @T(2))
   end
 end)
 
-Point(float32)
-Point(float64)
+Point(@float32)
+Point(@float64)
 ```
 
 
 ### Concepts?
 
 ```euluna
-typedef has_area = concept(T)
+local has_area = @concept(T)
   return has_method(T, 'area')
 end
 

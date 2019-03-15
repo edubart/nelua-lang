@@ -28,12 +28,10 @@ local     nil       not       or        repeat    return
 then      true      until     while
 ```
 
-Additional keywords:
+Additional keywords used in extensions:
 ```
-var let const
+switch case
 continue
-typedef
-enum struct
 ```
 
 ## Operators
@@ -79,7 +77,7 @@ enum struct
 | `{}`  | listing |
 | `()`  | surrounding |
 | `<>`  | inner type definition |
-| `:`   | method acess |
+| `:`   | method access |
 | `.`   | field index |
 | `...` | varargs |
 | `,`   | separator |
@@ -96,12 +94,12 @@ enum struct
 
 ## Variables mutabilities
 
-* **var** is a mutable variable
-* **var&** is a reference to a mutable variable
-* **var&&** is a rvalue
-* **let** is an immutable variable
-* **let&** is a reference to a immutable variable
-* **const** is an immutable variable and it's expression is evoluated at compile time
+* **mutable** is a mutable variable
+* **mutable&** is a reference to a mutable variable
+* **mutable&&** is a mutable rvalue
+* **immutable** is an immutable variable
+* **immutable&** is a reference to a immutable variable
+* **const** is an immutable variable and it's expression is evaluated at compile time
 
 ## Primitives types
 
@@ -129,7 +127,7 @@ enum struct
 ## Scope rules
 
 * `var` `let` `const` are local by default inside function blocks
-* in code scope all variables are exported unless it is declated as `local`
+* in code scope all variables are exported unless it is declarated as `local`
 
 ```euluna
 -- variables are locally available
