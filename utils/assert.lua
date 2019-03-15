@@ -76,6 +76,7 @@ local print = _G.print
 local function run(args)
   if type(args) == 'string' then
     args = stringx.split(args)
+    setmetatable(args, nil)
   end
   local tmperr, tmpout = io.tmpfile(), io.tmpfile()
   local function rprint(...)
@@ -108,7 +109,7 @@ end
 
 function assert.run(args, expected_stdout)
   local status, sout, serr = run(args)
-  assert(status == 0, string.format('expected success status on %s:\n%s', inspect(args), serr))
+  assert(status == 0, string.format('expected success status on %s:\n%s\n%s', inspect(args), serr, sout))
   if expected_stdout then
     assert.contains(expected_stdout, sout)
   end
@@ -116,7 +117,7 @@ end
 
 function assert.run_error(args, expected_stderr)
   local status, sout, serr = run(args)
-  assert(status ~= 0, string.format('expected error status on %s:\n%s', inspect(args), sout))
+  assert(status ~= 0, string.format('expected error status on %s:\n%s\n%s', inspect(args), serr, sout))
   if expected_stderr then
     assert.contains(expected_stderr, serr)
   end

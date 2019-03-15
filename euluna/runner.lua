@@ -1,19 +1,18 @@
 local euluna_parser = require 'euluna.parsers.euluna_parser'
 local plfile = require 'pl.file'
 local plutil = require 'pl.utils'
+local tablex = require 'pl.tablex'
 local configer = require 'euluna.configer'
 local runner = {}
 
 function runner.run(argv)
   local config = configer.parse(argv)
 
-  local input
+  local input = config.input
   local infile
-  if config.eval then
-    input = config.input
-  else
-    input = assert(plfile.read(config.input))
-    infile = config.input
+  if not config.eval then
+    infile = input
+    input = assert(plfile.read(input))
   end
 
   local ast = assert(euluna_parser:parse(input))
@@ -39,12 +38,11 @@ function runner.run(argv)
   local sourcefile
   local binaryfile
   local dorun = not config.compile and not config.compile_binary
+  local dobinarycompile = config.compile_binary or dorun
 
-  if config.compile_binary or config.compile or dorun then
-    sourcefile = compiler.compile_code(code, outcachefile)
-  end
+  sourcefile = compiler.compile_code(code, outcachefile)
 
-  if config.compile_binary or dorun then
+  if dobinarycompile then
     binaryfile = compiler.compile_binary(sourcefile, outcachefile)
   end
 
@@ -54,7 +52,11 @@ function runner.run(argv)
       print(cmd)
     end
 
-    local ok,status,sout,serr = plutil.executeex(cmd)
+    local runargs = tablex.copy(config.args)
+    tablex.transform(function(a) return plutil.quote_arg(a) end, runargs)
+    runargs = table.concat(runargs, ' ')
+
+    local ok,status,sout,serr = plutil.executeex(cmd, runargs)
     assert(ok, "failed to run the compiled program!")
     if sout then io.stdout:write(sout) end
     if serr then io.stderr:write(serr) end

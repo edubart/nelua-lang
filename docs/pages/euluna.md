@@ -9,7 +9,7 @@
 
 Euluna is a minimalistic, performant, safe, optionally typed, meta programmable,
 systems programming language with syntax close to Lua language that works
-either dynamically or staticaly by compiling to Lua or C.
+either dynamically or statically by compiling to Lua or C.
 
 **Warning this language is currently highly experimental and a WIP (work in progress).**
 
@@ -18,9 +18,9 @@ either dynamically or staticaly by compiling to Lua or C.
 * Be minimalistic with a small syntax, manual and API, but powerful
 * Be performant by compiling to native code
 * Have syntax and features closer and compatible to Lua as much as possible
-* Optionally staticaly typed with type checking
+* Optionally statically typed with type checking
 * Compile to both Lua or C
-* Work dynamically or statically depending on the backend (Lua or C)
+* Work dynamically or statically depending on the code generator (Lua or C)
 * Generate readable, simple and performant C or Lua code
 * Be a companion to Lua or C
 * Have powerful meta programming capabilities by manipulating the AST
@@ -37,10 +37,10 @@ either dynamically or staticaly by compiling to Lua or C.
 
 * We love to script in Lua.
 * We love C/C++ performance.
-* We want best of both worlds in a single language and with similiar syntax.
+* We want best of both worlds in a single language and with similar syntax.
 * We want to reuse or mix existing C/C++/Lua code.
 * We want type safety and optimizations.
-* We want to be able to manipulate the language parser and make cleaner and elegand DSLs.
+* We want to be able to manipulate the language parser and make cleaner and elegant DSLs.
 * We want to have performant code while maintaining readability and safety.
 * We want the language features and manual to be minimalistic and fit our brain.
 * We want to deploy anywhere Lua or C runs.
@@ -67,14 +67,14 @@ Create a file named `helloworld.euluna` containing:
 print 'Hello world!'
 ```
 
-Running by compiling to Lua and using your system Lua's intepreter:
+Running by compiling to Lua and using your system Lua's interpreter:
 ```bash
 euluna helloworld.euluna
 ```
 
-Runing by compiling to native code (requires a GCC compiler):
+Runing by compiling to C then to native code (requires a GCC compiler):
 ```bash
-euluna --backend=c helloworld.euluna
+euluna -g c helloworld.euluna
 ```
 
 Both ways it will output  ```Hello world!```
