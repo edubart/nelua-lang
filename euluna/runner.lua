@@ -1,12 +1,24 @@
 local euluna_parser = require 'euluna.parsers.euluna_parser'
 local plfile = require 'pl.file'
 local plutil = require 'pl.utils'
+local plpath = require 'pl.path'
 local tablex = require 'pl.tablex'
 local configer = require 'euluna.configer'
+local config = configer.get()
+local sha1 = require 'sha1'.sha1
 local runner = {}
 
+local function get_outcachepath(infile)
+  local path = infile:gsub('%.[^.]+$','')
+  path = plpath.relpath(path)
+  path = path:gsub('%.%.[/\\]+', '')
+  path = plpath.join(config.cache_dir, path)
+  path = plpath.normpath(path)
+  return path
+end
+
 function runner.run(argv)
-  local config = configer.parse(argv)
+  configer.parse(argv)
 
   local input = config.input
   local infile
@@ -34,13 +46,16 @@ function runner.run(argv)
 
   local compiler = generator.compiler
 
-  local outcachefile = compiler.choose_codefile_name(code, infile)
-  local sourcefile
-  local binaryfile
+  if not infile then
+    infile = 'eval_' .. sha1(code)
+  end
+
+  local outcachefile = get_outcachepath(infile)
+  local sourcefile = compiler.compile_code(code, outcachefile)
+
   local dorun = not config.compile and not config.compile_binary
   local dobinarycompile = config.compile_binary or dorun
-
-  sourcefile = compiler.compile_code(code, outcachefile)
+  local binaryfile
 
   if dobinarycompile then
     binaryfile = compiler.compile_binary(sourcefile, outcachefile)

@@ -3,18 +3,18 @@ local assert = require 'utils.assert'
 describe("Euluna runner should", function()
 
 it("compile simple programs" , function()
-  assert.run('--compile examples/helloworld.euluna')
+  assert.run('--no-cache --compile examples/helloworld.euluna')
   assert.run('--compile-binary examples/helloworld.euluna')
+  assert.run('--generator c --no-cache --compile examples/helloworld.euluna')
+  assert.run('--generator c --compile-binary examples/helloworld.euluna')
 end)
 
 it("run simple programs", function()
   assert.run('examples/helloworld.euluna', 'hello world')
-  assert.run('examples/helloworld.euluna', 'hello world') -- second time, use cache
   assert.run('--generator c examples/helloworld.euluna', 'hello world')
   assert.run({'--eval', "\n"}, '')
   assert.run({'--generator', 'c', '--eval', ""})
   assert.run({'--generator', 'c', '--no-cache', '--eval', "return 0"})
-  assert.run({'--generator', 'c', '--eval', ""})
 end)
 
 it("throw error parsing an invalid program" , function()

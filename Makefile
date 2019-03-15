@@ -1,7 +1,8 @@
 UID=$(shell id -u $(USER))
 GID=$(shell id -g $(USER))
 PWD=$(shell pwd)
-DFLAGS=--rm -it -u $(UID):$(GID) -v "$(PWD):/euluna" euluna
+DRFLAGS=--rm -it -v "$(PWD):/euluna" euluna
+DFLAGS=-u $(UID):$(GID) $(DRFLAGS)
 NODEMONFLAGS=-w euluna -w spec -w utils -w tools -w examples -e lua,euluna -q -x
 
 test: test-luajit test-lua5.3 test-lua5.1
@@ -58,22 +59,30 @@ test-full: test coverage check
 livedev:
 	@nodemon $(NODEMONFLAGS) "make -Ss devtest || exit 1"
 
-DOCKER_FLAGS="-u $(id -u ${USER}):$(id -g ${USER})"
 docker-image:
 	docker build -t "euluna" .
 
 docker-test:
 	docker run $(DFLAGS) make -s test
 
-docker-test-rocks:
-	docker run $(DFLAGS) sudo luarocks install rockspecs/euluna-dev-1.rockspec
+_docker-test-rocks:
+	sudo luarocks-5.3 make rockspecs/euluna-dev-1.rockspec
+	cd /tmp && euluna /euluna/examples/helloworld.euluna
+	cd /tmp && euluna -g c /euluna/examples/helloworld.euluna
 
-docker-test-full:
+docker-test-rocks:
+	docker run $(DRFLAGS) make -s _docker-test-rocks
+
+docker-test-all:
 	$(MAKE) cache-clean
 	docker run $(DFLAGS) make -s test-full
 
+docker-test-full:
+	$(MAKE) docker-test-all
+	$(MAKE) docker-test-rocks
+
 docker-term:
-	docker run $(DFLAGS) /bin/bash
+	docker run $(DRFLAGS) /bin/bash
 
 install-dev:
 	luarocks install --lua-version=5.3 --local rockspecs/euluna-dev-1.rockspec

@@ -15,7 +15,7 @@ either dynamically or staticaly by compiling to Lua or C.
 ]],
   maintainer = "Eduardo Bart <edub4rt@gmail.com>",
   homepage = 'https://github.com/edubart/euluna-lang',
-  license = 'MIT <http://opensource.org/licenses/MIT>'
+  license = 'MIT'
 }
 
 dependencies = {
@@ -37,18 +37,20 @@ dependencies = {
 build = {
   type = 'builtin',
   modules = {
-    ['euluna/generator.lua'] = 'euluna/generator.lua',
-    ['euluna/grammar.lua'] = 'euluna/grammar.lua',
-    ['euluna/parser.lua'] = 'euluna/parser.lua',
-    ['euluna/runner.lua'] = 'euluna/runner.lua',
-    ['euluna/scope.lua'] = 'euluna/scope.lua',
-    ['euluna/shaper.lua'] = 'euluna/shaper.lua',
-    ['euluna/traverser.lua'] = 'euluna/traverser.lua',
-    ['euluna/compilers/lua_compiler.lua'] = 'euluna/compilers/lua_compiler.lua',
-    ['euluna/compilers/c_compiler.lua'] = 'euluna/compilers/c_compiler.lua',
-    ['euluna/generators/c_generator.lua'] = 'euluna/generators/c_generator.lua',
-    ['euluna/generators/lua_generator.lua'] = 'euluna/generators/lua_generator.lua',
-    ['euluna/parsers/euluna_parser.lua'] = 'euluna/parsers/euluna_parser.lua',
+    ['euluna.configer'] = 'euluna/configer.lua',
+    ['euluna.generator'] = 'euluna/generator.lua',
+    ['euluna.grammar'] = 'euluna/grammar.lua',
+    ['euluna.parser'] = 'euluna/parser.lua',
+    ['euluna.runner'] = 'euluna/runner.lua',
+    ['euluna.scope'] = 'euluna/scope.lua',
+    ['euluna.shaper'] = 'euluna/shaper.lua',
+    ['euluna.utils'] = 'euluna/utils.lua',
+    ['euluna.traverser'] = 'euluna/traverser.lua',
+    ['euluna.compilers.lua_compiler'] = 'euluna/compilers/lua_compiler.lua',
+    ['euluna.compilers.c_compiler'] = 'euluna/compilers/c_compiler.lua',
+    ['euluna.generators.c_generator'] = 'euluna/generators/c_generator.lua',
+    ['euluna.generators.lua_generator'] = 'euluna/generators/lua_generator.lua',
+    ['euluna.parsers.euluna_parser'] = 'euluna/parsers/euluna_parser.lua',
   },
   install = {
     bin = {
