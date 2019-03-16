@@ -27,7 +27,6 @@ function runner.run(argv)
     input = assert(plfile.read(input))
   end
 
-  print(infile)
   local ast = assert(euluna_parser:parse(input))
 
   if config.lint then return end

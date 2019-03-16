@@ -3,12 +3,10 @@ local assert = require 'luassert'
 local runner = require 'euluna.runner'
 local stringx = require 'pl.stringx'
 local inspect = require 'inspect'
+local assertf = require 'euluna.utils'.assertf
 
 -- upper table display limit
 assert:set_parameter("TableFormatLevel", 16)
-
--- inject dump utility while testing
-_G.dump = require 'utils.dump'
 
 function assert.ast_equals(expected_ast, ast)
   assert.same(tostring(expected_ast), tostring(ast))
@@ -18,7 +16,7 @@ function assert.peg_match_all(patt, subjects)
   for _,subject in ipairs(subjects) do
     local matchedpos = patt:match(subject)
     local slen = string.len(subject)
-    assert(matchedpos == slen+1, string.format('expected full match on "%s"', subject))
+    assertf(matchedpos == slen+1, 'expected full match on "%s"', subject)
   end
 end
 
@@ -33,7 +31,7 @@ function assert.peg_capture_all(peg, subjects)
     if expected_ast then
       assert.ast_equals(expected_ast, ast)
     else
-      assert(type(ast) == 'table', string.format('expected capture on "%s"', subject))
+      assertf(type(ast) == 'table', 'expected capture on "%s"', subject)
     end
   end
 end
@@ -49,7 +47,7 @@ end
 function assert.peg_match_none(peg, subjects)
   for _,subject in pairs(subjects) do
     local matchedpos = peg:match(subject)
-    assert(matchedpos == nil, string.format('expected no match on "%s"', subject))
+    assertf(matchedpos == nil, 'expected no match on "%s"', subject)
   end
 end
 
@@ -65,13 +63,9 @@ end
 
 function assert.parse_ast_error(parser, input, expected_error)
   local ast, _, errdetails = parser:parse(input)
-  assert(ast == nil and errdetails and errdetails.label == expected_error,
-         string.format('expected error "%s" while parsing', expected_error))
+  assertf(ast == nil and errdetails and errdetails.label == expected_error,
+         'expected error "%s" while parsing', expected_error)
 end
-
-local stderr = io.stderr
-local stdout = io.stdout
-local print = _G.print
 
 local function run(args)
   if type(args) == 'string' then
@@ -83,7 +77,10 @@ local function run(args)
     return tmpout:write(table.concat({...}, "\t") .. "\n")
   end
   -- hook print, stderr and stdout
+  local ostderr, ostdout, oprint = io.stderr, io.stdout, _G.print
+  _G.ostderr, _G.ostdout, _G.oprint = ostderr, ostdout, oprint
   io.stderr, io.stdout, _G.print = tmperr, tmpout, rprint
+  -- run the test
   local ok, err = pcall(function()
     return runner.run(args)
   end)
@@ -94,7 +91,8 @@ local function run(args)
     status = err
   end
   -- remove hooks
-  io.stderr, io.stdout, _G.print = stderr, stdout, print
+  io.stderr, io.stdout, _G.print = ostderr, ostdout, oprint
+  _G.ostderr, _G.ostdout, _G.oprint = nil, nil, nil
   tmperr:seek('set') tmpout:seek('set')
   local serr, sout = tmperr:read("*a"), tmpout:read("*a")
   tmperr:close() tmpout:close()
@@ -102,14 +100,14 @@ local function run(args)
 end
 
 function assert.contains(expected, passedin)
-  assert(passedin:find(expected, 1, true),
-    string.format("Expected string to contains.\nPassed in:\n%s\nExpected:\n%s",
-    passedin, expected))
+  assertf(passedin:find(expected, 1, true),
+    "Expected string to contains.\nPassed in:\n%s\nExpected:\n%s",
+    passedin, expected)
 end
 
 function assert.run(args, expected_stdout)
   local status, sout, serr = run(args)
-  assert(status == 0, string.format('expected success status on %s:\n%s\n%s', inspect(args), serr, sout))
+  assertf(status == 0, 'expected success status on %s:\n%s\n%s', inspect(args), serr, sout)
   if expected_stdout then
     assert.contains(expected_stdout, sout)
   end
@@ -117,7 +115,7 @@ end
 
 function assert.run_error(args, expected_stderr)
   local status, sout, serr = run(args)
-  assert(status ~= 0, string.format('expected error status on %s:\n%s\n%s', inspect(args), serr, sout))
+  assert(status ~= 0, 'expected error status on %s:\n%s\n%s', inspect(args), serr, sout)
   if expected_stderr then
     assert.contains(expected_stderr, serr)
   end

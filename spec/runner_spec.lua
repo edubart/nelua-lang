@@ -1,4 +1,4 @@
-local assert = require 'utils.assert'
+local assert = require 'spec.assert'
 
 describe("Euluna runner should", function()
 

@@ -5,6 +5,3 @@ modules = {
   ['spec.*'] = '.',
   ['utils.*'] = '.',
 }
-exclude = {
-  'utils.dump'
-}

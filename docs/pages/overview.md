@@ -190,7 +190,7 @@ local d = 1234.56 -- double
 local c = 'a'_c -- character
 local s1 = "hello world" -- string
 local s2 = 'hello world' -- string
-local p: pointer<integer> = nil -- pointer to integer type
+local p: integer* = nil -- pointer to integer type
 ```
 
 ### Type inference
@@ -198,20 +198,15 @@ To infer types for arbitrary values the `@` operator can be used.
 
 ```euluna
 local a = @integer(1) -- a is an integer with value 1
-local p = @pointer<integer>() -- p is a pointer to an integer initialized to zeros
+local p = @integer*() -- p is a pointer to an integer initialized to zeros
 ```
 
 ### Static arrays
 
 ```euluna
-local a: array<integer, 4> = {1,2,3,4}
-local a = @array<integer,4> {1,2,3,4}
-local a = @array<integer> {1,2,3,4}
-local a = @array {1,2,3,4}
-
--- syntax sugar
+local a: integer[4] = {1,2,3,4}
 local a = @integer[4] {1,2,3,4}
-local a = @integer[] {1,2,3,4}
+local a = @integer[] {1,2,3,4}  -- the size is 4
 ```
 
 ### Tables
@@ -224,11 +219,6 @@ local t2: table -- empty table
 local t3 = {x = 1, y = 2} -- simple table
 local t4 = {1 , 2} -- simple table
 local t5 = {a = 1, [2] = "a", 1} -- complex table
-
--- syntax sugar
-local t: {}
-local t: {integer}
-local t: {integer, integer}
 ```
 
 ### Enum
@@ -253,26 +243,23 @@ print(tostring(@Week.Sunday)) -- outputs Sunday
 
 ```
 
-### Variant
+### Any
+
+Any can store any type.
 
 ```euluna
-local a: variant<integer,string,nil>
-
--- syntax sugar
-local b: (integer|string|nil)
+local a: any
 ```
 
-### Optional
+### Variant
 
-Optional types are used in variables to check if the variables is set.
+Variants can store specific types.
 
 ```euluna
-local b: optional<integer, nil>
-local a: optional<integer, nil>
-a = 1
-print(a, b) -- outputs "1 nil"
-
 -- syntax sugar
+local b: (integer|string|nil)
+
+-- syntax sugar for variant (integer|nil)
 local b: integer?
 ```
 
@@ -294,33 +281,31 @@ local b = @Person {name = 1, age = 2}
 print(b.age)
 ```
 
+Can also be used as tuples
+
+```euluna
+local a: struct{integer, integer}
+a = {1,2}
+a[1] = 0
+```
+
 ### Pointer
 
 ```euluna
-local a: pointer<integer>
-
--- syntax sugar
-local a: *pointer
-```
-
-### Tuple
-
-```euluna
-local a: tuple<integer, integer>
-a = @tuple{1,2}
-a[1] = 0
+local p: pointer --generic pointer
+local i: integer* --integer pointer
 ```
 
 ### Slices
 
 ```euluna
-local arr = @array<integer> {1,2,3,4}
+local arr = @integer[] {1,2,3,4}
 print(arr[1:2]) -- outputs 1 2
 print(arr[2:]) -- outputs 2 3 4
 print(arr[:3]) -- outputs 1 2 3
 print(arr[:]) -- outputs 1 2 3 4
 
-local s: slice<integer>
+local a: integer[:] = arr[1:2]
 ```
 
 ### Function
@@ -337,7 +322,7 @@ function f(args) end
 ### Type alias
 
 ```euluna
-local MyPair = @tuple<integer, integer>
+local MyPair = @struct{integer, integer}
 ```
 
 ### Type conversions
@@ -667,11 +652,11 @@ end
 ### Pointers
 
 ```euluna
-import euluna.std.memory
+@import 'euluna.std.memory'
 
 local a = 1
-local a_ptr: pointer<integer> = &a
-local& c: int = *a_ptr -- dereference is a shortcut for a_ptr[0]
+local a_ptr: integer* = &a
+local& c: integer = *a_ptr -- dereference is a shortcut for a_ptr[0]
 b = 2
 print(a) -- outputs 2
 a_ptr[0] = 3
@@ -681,7 +666,7 @@ print(a) -- outputs 3
 ### Allocation
 
 ```euluna
-import euluna.std.memory
+@import 'euluna.std.memory'
 
 local a = new(@integer) -- a type is: pointer<integer>
 a[0] = 1
@@ -699,14 +684,14 @@ delete(a)
 ### Shared objects with smart pointers
 
 ```euluna
-import euluna.std.shared_pointer
+local shared_pointer = @import 'euluna.std.shared_pointer'
 
 local Person = @struct{
   name: string,
   age: int
 }
 
-alias PersonPtr = shared_pointer<Person>
+local PersonPtr = shared_pointer(Person)
 
 local a = PersonPtr(new(@Person))
 local b = a
@@ -717,7 +702,7 @@ print(a.name) -- outputs "John"
 ### Shared objects with garbage collector
 
 ```euluna
-import euluna.std.gc
+@import 'euluna.std.gc'
 
 local Person = @struct{
   name: string,
@@ -761,7 +746,7 @@ local PolygonVTable @struct{
 }
 
 local Polygon = @struct{
-  vtable: pointer<PolygonVTable>,
+  vtable: PolygonVTable*,
 }
 
 function Polygon:area()
@@ -770,8 +755,8 @@ end
 
 local Square = @struct{
   Polygon,
-  width: int,
-  height: int
+  width: integer,
+  height: integer
 }
 local squareTable: PolygonVTable
 
@@ -779,16 +764,17 @@ function squareTable:area()
   return self.width * self.height
 end
 
-function newSquare()
-  local square = Square{}
-  square.vtable = addressof(squareTable)
+function newSquare(...)
+  local square = Square{...}
+  square.vtable = &squareTable
 end
 
 polygonTable.area = Polygon.area
 squareTable.area = Square.area
 
-local square = Square{2, 2}
-var& polygon = cast<Polygon>(square)
+local castPolygon()
+local square = newSquare{2, 2}
+var& polygon = cast(@Polygon, square)
 print(polygon:area()) -- outputs 4
 ```
 
@@ -817,7 +803,7 @@ end
 ### Variable pragmas
 
 ```euluna
-local {:noinit:} a: int -- don't initialize variable
+local {:noinit:} a: integer -- don't initialize variable
 local {:volatile:} a = 1 -- C volatile variable
 ```
 
@@ -865,7 +851,7 @@ in the web development world, they should not be confused with C++ templates.
 Using the lua preprocessor with it you can render complex codes.
 
 ```euluna
-template unroll(count: ASTNumber, body: ASTBlock)
+local function unroll(count: ASTNumber, body: ASTBlock) {:template:}
   {% local typ,n,lit = count:args()
      if typ ~= 'int' or lit then return false end
      for i=1, n do %}
@@ -880,7 +866,7 @@ end)
 print(a) -- outputs 4
 
 
-local template swap(a, b)
+local function swap(a, b) {:template:}
   a, b = b, a
 end
 
@@ -960,21 +946,21 @@ function(A: has_area)
 ### Dynamic arrays
 
 ```euluna
-import euluna.std.vector
+@import 'euluna.std.vector'
 
 local arr1 = @vector {1,2,3,4} -- dynamic array of integer
-local arr2 = @vector<int8> {1,2,3,4} -- dynamic array of int8
-local arr3: @vector<string> -- dynamic array of string
+local arr2 = @vector(int8) {1,2,3,4} -- dynamic array of int8
+local arr3: @vector(string) -- dynamic array of string
 ```
 
 ### Maps
 
 ```euluna
-import euluna.std.map
+@import 'euluna.std.map'
 
 local m1 = @map {a = 1, b = 2} -- map of string -> integer
-local m2 = @map<string, integer>{} -- map of string -> integer
-local m3: @map<string, integer> -- map of string -> int
+local m2 = @map(string, integer){} -- map of string -> integer
+local m3: @map(string, integer) -- map of string -> int
 ```
 
 {% endraw %}

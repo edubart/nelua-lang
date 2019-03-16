@@ -105,61 +105,21 @@ continue
 
 | Type  | C Type  | Suffixes  |
 |---|---|---|
-| `boolean` `bool` | `bool` | |
-| `integer` `int` | `long` | `_i` `_integer` |
-| `uinteger` `uint` | `unsigned long` | `_u` `_uinteger` |
+| `boolean` | `bool` | |
+| `integer` | `int64_t` | `_i` `_integer` |
+| `uinteger`| `uint64_t` | `_u` `_uinteger` |
 | `number` | `double` | `_d` `_number` |
+| `byte` | `uint8_t` | `_b` `_byte` |
+| `char` | `char` | `_c` `_char` |
 | `uint64` | `uint64_t` | `_u64` `_uint64` |
 | `uint32` | `uint32_t` | `_u32` `_uint32` |
 | `uint16` | `uint16_t` | `_u16` `_uint16` |
-| `uint8` `byte` | `uint8_t` | `_u8` `_uint8` |
+| `uint8` | `uint8_t` | `_u8` `_uint8` |
 | `int64` | `int64_t` | `_i64` `_int64` |
 | `int32` | `int32_t` | `_i32` `_int32` |
 | `int16` | `int16_t` | `_i16` `_int16` |
 | `int8` | `int8_t` | `_i8` `_int8` |
 | `float64` | `double` | `_f64` `_float64` |
 | `float32` | `float` | `_f32` `_float32` |
-| `isize` | `std::ptrdiff_t` | `_isize` |
-| `usize` | `std::size_t` | `_usize` |
-| `char` | `char` | `_c` `_char` |
-
-
-## Scope rules
-
-* `var` `let` `const` are local by default inside function blocks
-* in code scope all variables are exported unless it is declarated as `local`
-
-```euluna
--- variables are locally available
-local a
-local var a
-local let a = 1
-local var& a = b
-local const a = 1
-local function a() end
-
--- variables are exported
-a = nil -- only in lua compatible mode
-var a
-let a = 1
-const a = 1
-function a() end
-
-function f()
-  -- variables are locally available
-  local a
-  local var a
-  local let a = 1
-  local const a = 1
-  local function a() end
-
-  var a
-  let a = 1
-  const a = 1
-end
-
-function f()
-  a = nil -- only in lua compatible mode
-  function a() end -- only in lua compatible mode
-end
-```
+| `isize` | `ptrdiff_t` | `_isize` |
+| `usize` | `size_t` | `_usize` |
