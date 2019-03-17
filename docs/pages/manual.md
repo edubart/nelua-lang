@@ -121,5 +121,5 @@ continue
 | `int8` | `int8_t` | `_i8` `_int8` |
 | `float64` | `double` | `_f64` `_float64` |
 | `float32` | `float` | `_f32` `_float32` |
-| `isize` | `ptrdiff_t` | `_isize` |
-| `usize` | `size_t` | `_usize` |
+| `isize` | `intptr_t` | `_isize` |
+| `usize` | `uintptr_t` | `_usize` |

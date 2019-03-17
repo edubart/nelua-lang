@@ -193,6 +193,16 @@ local s2 = 'hello world' -- string
 local p: integer* = nil -- pointer to integer type
 ```
 
+### Function
+
+```euluna
+local f: function<(a: integer, b: integer): boolean, boolean>
+local f = function(args) end
+
+-- syntax sugar
+function f(args) end
+```
+
 ### Type inference
 To infer types for arbitrary values the `@` operator can be used.
 
@@ -201,12 +211,15 @@ local a = @integer(1) -- a is an integer with value 1
 local p = @integer*() -- p is a pointer to an integer initialized to zeros
 ```
 
-### Static arrays
+### Static Arrays
 
 ```euluna
+local a: @array<integer, 4> = {1,2,3,4}
+local a: array<integer, 4>
+
+-- syntax sugar
 local a: integer[4] = {1,2,3,4}
 local a = @integer[4] {1,2,3,4}
-local a = @integer[] {1,2,3,4}  -- the size is 4
 ```
 
 ### Tables
@@ -239,7 +252,7 @@ local Weeks = @enum {
 
 local a: Weeks = @Weeks.Sunday
 print(@Weeks.Sunday) -- outputs 1
-print(tostring(@Week.Sunday)) -- outputs Sunday
+print(tostring(@Weeks.Sunday)) -- outputs Sunday
 
 ```
 
@@ -249,18 +262,6 @@ Any can store any type.
 
 ```euluna
 local a: any
-```
-
-### Variant
-
-Variants can store specific types.
-
-```euluna
--- syntax sugar
-local b: (integer|string|nil)
-
--- syntax sugar for variant (integer|nil)
-local b: integer?
 ```
 
 ### Struct
@@ -289,50 +290,81 @@ a = {1,2}
 a[1] = 0
 ```
 
+### Union
+
+Union can store multiple types.
+
+```euluna
+local u: union{integer,string}
+```
+
+### Nilable
+
+Nilable types are not useful by itself, they are only useful when using with unions.
+
+```euluna
+local v: union{string,nilable}
+
+-- syntax sugar for union union{string,nilable}
+local v: integer?
+```
+
 ### Pointer
 
-```euluna
-local p: pointer --generic pointer
-local i: integer* --integer pointer
-```
-
-### Slices
+Pointer to one or many elements.
 
 ```euluna
-local arr = @integer[] {1,2,3,4}
-print(arr[1:2]) -- outputs 1 2
-print(arr[2:]) -- outputs 2 3 4
-print(arr[:3]) -- outputs 1 2 3
-print(arr[:]) -- outputs 1 2 3 4
-
-local a: integer[:] = arr[1:2]
-```
-
-### Function
-
-```euluna
-local f: function(a: integer, b: integer): boolean, boolean
-
-local f = function(args) end
+local p: pointer --a generic pointer to anything
+local i: pointer<integer> -- pointer to an integer
 
 -- syntax sugar
-function f(args) end
+local i: integer*
 ```
 
-### Type alias
+### Range
+
+Ranges are used to specifying ranges for slices.
 
 ```euluna
+local r = 1:10
+local r: range<integer>
+```
+
+### Slice
+
+Slices are pointers to a known number of elements at runtime.
+
+```euluna
+local arr = @integer[4] {1,2,3,4}
+local str = 'hello world'
+print(arr[1:2]) -- outputs '1 2'
+print(arr[2:]) -- outputs '2 3 4'
+print(arr[:3]) -- outputs '1 2 3'
+print(arr[:]) -- outputs '1 2 3 4'
+print(str[1:5]) -- outputs 'hello'
+
+local a: array_slice<integer> = arr[1:2]
+local a: string_slice = 'hello world'[1:2]
+```
+
+### Type
+
+The "type" type is also a type. Useful for aliasing types.
+
+```euluna
+local int: type = integer
 local MyPair = @struct{integer, integer}
 ```
 
-### Type conversions
+### Type Conversion
 
 ```euluna
 local i = 1
-local d2 = @float32(i)
+local f = @float32(i)
 ```
 
 There is no automatic type conversion.
+
 
 --------------------------------------------------------------------------------
 ## Flow control
@@ -431,7 +463,7 @@ repeat
 until a == 0
 ```
 
-### Numeric for
+### Numeric For
 All for loops always evaluate it's ending variable only once, so the user should
 keep this in mind.
 
@@ -458,7 +490,7 @@ end
 ```
 
 #### Stepped For
-The last paramter in for syntax is the step, it's counter is always incremented
+The last parameter in for syntax is the step, it's counter is always incremented
 with `i = i + step`, by default step is always 1,
 with negative steps reverse for is possible:
 
@@ -468,7 +500,7 @@ for i = 5,>0,-1 do
 end
 ```
 
-#### Iterated for
+#### Iterated For
 
 ```euluna
 local a = {'a', 'b', 'c'}
@@ -525,7 +557,7 @@ end
 --------------------------------------------------------------------------------
 ## Modules
 
-### Static modules
+### Static Modules
 
 Modules are useful to separate code scopes using local variables to avoid
 type and function name clashing across the code base.
@@ -557,7 +589,7 @@ use import hello -- all exported modules symbols are available in the current sc
 foo()
 ```
 
-### Dynamic module
+### Dynamic Module
 
 Dynamic modules uses tables and it can change on runtime.
 
@@ -882,53 +914,17 @@ print(x,y)
 Generics can be achieved with just macros and templates.
 
 ```euluna
-template Point(T: ASTId)
-  {%
-    local typealias = 'PointT'
-    local typename = 'Point' .. tostring(T)
-    if has_type(typename) then return typename end
-  %}
-
+function Point(T: ASTId) {:template:}
   local PointT = @struct { x: T, y: T }
   function PointT:length(a: T): T
     return math.sqrt(self.x ^ @T(2), self.y ^ @T(2))
   end
-
-  {% self:replace_type_id(typealias, typename) %}
-  {% return PointT %}
+  return PointT
 end
 
 local a: Point(float32)
 local b = @Point(@float32)
 ```
-
-```euluna
-template generic(T: ASTId, GenericT: ASTId, body: ASTBlock)
-  template {%= tostring(GenericT) %}(T: ASTId)
-    {%%
-      local typealias = tostring(GenericT)
-      local typename = 'Point_' .. tostring(T)
-      if has_type(typename) then return typename end
-    %%}
-    {%%= body %%}
-    {%%
-      self:replace_type_id(typealias, typename)
-      return PointT
-    %%}
-  end
-end
-
-generic(T, Point, do
-  local PointT = @struct { x: T, y: T }
-  function Point:length(a: T): T
-    return math.sqrt(self.x ^ @T(2), self.y ^ @T(2))
-  end
-end)
-
-Point(@float32)
-Point(@float64)
-```
-
 
 ### Concepts?
 
@@ -946,21 +942,19 @@ function(A: has_area)
 ### Dynamic arrays
 
 ```euluna
-@import 'euluna.std.vector'
+local vector = @import 'euluna.std.vector'
 
-local arr1 = @vector {1,2,3,4} -- dynamic array of integer
-local arr2 = @vector(int8) {1,2,3,4} -- dynamic array of int8
-local arr3: @vector(string) -- dynamic array of string
+local a = @vector(int8) {1,2,3,4} -- dynamic array of int8
+local a: vector(string) -- dynamic array of string
 ```
 
 ### Maps
 
 ```euluna
-@import 'euluna.std.map'
+local map = @import 'euluna.std.map'
 
-local m1 = @map {a = 1, b = 2} -- map of string -> integer
-local m2 = @map(string, integer){} -- map of string -> integer
-local m3: @map(string, integer) -- map of string -> int
+local m = @map(string, integer) {a = 1, b = 2} -- map of string -> integer
+local m: map(string, integer) -- map of string -> int
 ```
 
 {% endraw %}

@@ -12,7 +12,7 @@ generator:set_indent('    ')
 
 generator:register('Number', function(ast, coder)
   local type, value, literal = ast:args()
-  assert(literal == nil, 'literals are not supported in c')
+  ast:assertf(literal == nil, 'literals are not supported in c')
   if type == 'int' or type == 'dec' then
     coder:add(value)
   --elseif type == 'exp' then
@@ -26,7 +26,7 @@ end)
 
 generator:register('String', function(ast, coder)
   local value, literal = ast:args()
-  assert(literal == nil, 'literals are not supported in c')
+  ast:assertf(literal == nil, 'literals are not supported in c')
   coder:add_double_quoted(value)
 end)
 

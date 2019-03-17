@@ -1,7 +1,8 @@
 local class = require 'pl.class'
 local types = require 'tableshape'.types
 local inspect = require 'inspect'
-local assertf = require 'euluna.utils'.assertf
+local utils = require 'euluna.utils'
+local assertf = utils.assertf
 local unpack = table.unpack or unpack
 
 local ASTNode = class()
@@ -48,6 +49,17 @@ local function stringfy_ast(node, depth, t, skipindent)
   if depth == 0 then
     return table.concat(t)
   end
+end
+
+function ASTNode:assertf(cond, format, ...)
+  if not cond then
+    local msg = string.format(format, ...)
+    if self.src and self.pos then
+      msg = utils.generate_pretty_error(self.src, self.pos, msg)
+    end
+    error(msg)
+  end
+  return cond
 end
 
 function ASTNode:__tostring()

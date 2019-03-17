@@ -1,13 +1,15 @@
 local class = require 'pl.class'
 local re = require 'relabel'
 local tablex = require 'pl.tablex'
-local assertf = require 'euluna.utils'.assertf
+local utils = require 'euluna.utils'
+local assertf = utils.assertf
 local Parser = class()
 
 function Parser:_init(shaper)
   local function to_astnode(pos, tag, ...)
     local node = shaper:create(tag, ...)
     node.pos = pos
+    node.src = self.input
     return node
   end
 
@@ -125,7 +127,10 @@ end
 function Parser:match(name, input)
   local peg = self.defs[name]
   assertf(peg, 'cannot match an input to inexistent peg "%s"', name)
-  return peg:match(input)
+  self.input = input
+  local res, errlabel, errpos = peg:match(input)
+  self.input = nil
+  return res, errlabel, errpos
 end
 
 local function token_peg_generator(p, defs)
@@ -181,24 +186,6 @@ function Parser:add_syntax_errors(syntax_errors)
   tablex.update(self.syntax_errors, syntax_errors)
 end
 
-local function generate_pretty_error(input, err)
-  local colors = require 'term.colors'
-  local NEARLENGTH = 20
-  local pos = err.pos
-  local linebegin = input:sub(math.max(pos-NEARLENGTH, 1), pos-1):match('[^\r\n]*$')
-  local lineend = input:sub(pos, pos+NEARLENGTH):match('^[^\r\n]*')
-  local linehelper = string.rep(' ', #linebegin) .. colors.bright(colors.green('^'))
-  return string.format(
-    "%s%d:%d: %ssyntax error:%s %s%s\n%s%s\n%s\n",
-    tostring(colors.bright),
-    err.line, err.col,
-    tostring(colors.red),
-    colors.reset .. colors.bright, err.msg or err.label,
-    tostring(colors.reset),
-    linebegin, lineend,
-    linehelper)
-end
-
 function Parser:parse(input, name)
   if not name then
     name = 'sourcecode'
@@ -207,15 +194,8 @@ function Parser:parse(input, name)
   if ast then
     return ast
   else
-    local line, col = re.calcline(input, errpos)
-    local err = {
-      pos=errpos,
-      line=line,
-      col=col,
-      label=errlabel,
-      msg=self.syntax_errors[errlabel]
-    }
-    return nil, generate_pretty_error(input, err), err
+    local errmsg = self.syntax_errors[errlabel] or errlabel
+    return nil, utils.generate_pretty_error(input, errpos, errmsg), errlabel
   end
 end
 
@@ -225,7 +205,6 @@ function Parser:clone()
   clone.syntax_errors = tablex.deepcopy(self.syntax_errors)
   clone.defs = tablex.deepcopy(self.defs)
   clone.pegdescs = tablex.deepcopy(self.pegdescs)
-  clone.to_astnode = self.to_astnode
   clone.grammar = self.grammar
   return clone
 end

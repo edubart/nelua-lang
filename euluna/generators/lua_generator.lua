@@ -1,11 +1,10 @@
 local Generator = require 'euluna.generator'
 local generator = Generator()
-local assertf = require 'euluna.utils'.assertf
 
 -- primitives
 generator:register('Number', function(ast, coder)
   local type, value, literal = ast:args()
-  assert(literal == nil, 'literals are not supported in lua')
+  ast:assertf(literal == nil, 'literals are not supported in lua')
   if type == 'int' or type == 'dec' then
     coder:add(value)
   elseif type == 'exp' then
@@ -19,7 +18,7 @@ end)
 
 generator:register('String', function(ast, coder)
   local value, literal = ast:args()
-  assert(literal == nil, 'literals are not supported in lua')
+  ast:assertf(literal == nil, 'literals are not supported in lua')
   if value:find('"') and not value:find("'") then
     coder:add_single_quoted(value)
   else
@@ -198,7 +197,7 @@ end)
 
 generator:register('ForNum', function(ast, coder)
   local itervar, beginval, comp, endval, incrval, block  = ast:args()
-  assert(comp == 'le', 'for comparator not supported in lua yet')
+  ast:assertf(comp == 'le', 'for comparator not supported in lua yet')
   coder:add_indent("for ", itervar, '=', beginval, ',', endval)
   if incrval then
     coder:add(',', incrval)
@@ -231,7 +230,7 @@ end)
 
 generator:register('VarDecl', function(ast, coder, scope)
   local varscope, mutability, vars, vals = ast:args()
-  assert(mutability == 'var', 'variable mutability not supported in lua')
+  ast:assertf(mutability == 'var', 'variable mutability not supported in lua')
   local is_local = (varscope == 'local') or not scope:is_main()
   coder:add_indent()
   if is_local then
@@ -295,7 +294,7 @@ generator:register('UnaryOp', function(ast, coder)
   if opname == 'tostr' then
     coder:add('tostring(', arg, ')')
   else
-    local op = assertf(LUA_UNARY_OPS[opname], 'unary operator "%s" not found', opname)
+    local op = ast:assertf(LUA_UNARY_OPS[opname], 'unary operator "%s" not found', opname)
     local surround = is_in_operator(coder)
     if surround then coder:add('(') end
     coder:add(op, arg)
@@ -327,7 +326,7 @@ local BINARY_OPS = {
 }
 generator:register('BinaryOp', function(ast, coder)
   local opname, left_arg, right_arg = ast:args()
-  local op = assertf(BINARY_OPS[opname], 'binary operator "%s" not found', opname)
+  local op = ast:assertf(BINARY_OPS[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(coder)
   if surround then coder:add('(') end
     coder:add(left_arg, ' ', op, ' ', right_arg)
@@ -336,7 +335,7 @@ end)
 
 generator:register('TernaryOp', function(ast, coder)
   local opname, left_arg, mid_arg, right_arg = ast:args()
-  assertf(opname == 'if', 'unknown ternary operator "%s"', opname)
+  ast:assertf(opname == 'if', 'unknown ternary operator "%s"', opname)
   local surround = is_in_operator(coder)
   if surround then coder:add('(') end
   coder:add(mid_arg, ' and ', left_arg, ' or ', right_arg)
@@ -347,7 +346,7 @@ generator:register('Switch', function(ast, coder)
   local val, caseparts, switchelseblock = ast:args()
   local varname = '__switchval' .. ast.pos
   coder:add_indent_ln("local ", varname, " = ", val)
-  assert(#caseparts > 0, "switch must have case parts")
+  ast:assertf(#caseparts > 0, "switch must have case parts")
   for i,casepart in ipairs(caseparts) do
     local caseval, caseblock = casepart[1], casepart[2]
     if i == 1 then

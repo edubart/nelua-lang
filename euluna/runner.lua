@@ -27,9 +27,13 @@ function runner.run(argv)
     input = assert(plfile.read(input))
   end
 
-  local ast = assert(euluna_parser:parse(input))
+  local ast, parseerr = euluna_parser:parse(input)
+  if not ast then
+    io.stderr:write(parseerr)
+    return 1
+  end
 
-  if config.lint then return end
+  if config.lint then return 0 end
 
   if config.print_ast then
     print(tostring(ast))

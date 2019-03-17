@@ -22,6 +22,7 @@ it("throw error parsing an invalid program" , function()
   assert.run_error('--lint --eval invalid')
   assert.run_error('--lint invalid', 'invalid: No such file or directory')
   assert.run_error({'--generator', 'c', '--eval', "f()"}, 'undefined reference')
+  assert.run_error({'--generator', 'lua', '--eval', "local a = 1_x"}, 'literals are not supported')
 end)
 
 it("print correct generated AST" , function()

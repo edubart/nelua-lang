@@ -62,8 +62,8 @@ function assert.parse_ast(parser, input, expected_ast)
 end
 
 function assert.parse_ast_error(parser, input, expected_error)
-  local ast, _, errdetails = parser:parse(input)
-  assertf(ast == nil and errdetails and errdetails.label == expected_error,
+  local ast, _, errlabel = parser:parse(input)
+  assertf(ast == nil and errlabel and errlabel == expected_error,
          'expected error "%s" while parsing', expected_error)
 end
 
