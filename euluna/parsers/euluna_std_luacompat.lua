@@ -185,7 +185,7 @@ parser:set_peg("SHEBANG", "'#!' (!%LINEBREAK .)*")
 
 -- multiline and single line comments
 parser:set_pegs([[
-  %LONGCOMMENT  <- open (contents close / %{UnclosedLongComment})
+  %LONGCOMMENT  <- (open (contents close / %{UnclosedLongComment})) -> 0
   contents      <- (!close .)*
   open          <- '--[' {:eq: '='*:} '['
   close         <- ']' =eq ']'
@@ -234,6 +234,7 @@ parser:set_token_pegs([[
 ]])
 
 -- escape sequence conversion
+local utf8char = utf8 and utf8.char or string.char
 local BACKLASHES_SPECIFIERS = {
   ["a"] = "\a", -- audible bell
   ["b"] = "\b", -- back feed
@@ -252,14 +253,14 @@ parser:set_pegs([[
     [abfnrtv\'"] -> specifier2char /
     %LINEBREAK -> ln2ln /
     ('z' %s*) -> '' /
-    (%d %d^-2) -> num2char /
-    ('x' {%x+}) -> hex2char /
-    ('u' '{' {%x+} '}') -> hex2unicode /
+    ([012] %d^-2) -> num2char /
+    ('x' {%x^2}) -> hex2char /
+    ('u' '{' {%x^+1} '}') -> hex2unicode /
     %{MalformedEscapeSequence}
 ]], {
   num2char = function(s) return string.char(tonumber(s)) end,
   hex2char = function(s) return string.char(tonumber(s, 16)) end,
-  hex2unicode = function(s) return (utf8 and utf8.char or string.char)(tonumber(s, 16)) end,
+  hex2unicode = function(s) return utf8char(tonumber(s, 16)) end,
   specifier2char = function(s) return BACKLASHES_SPECIFIERS[s] end,
   ln2ln = function() return "\n" end,
 })
@@ -295,8 +296,8 @@ parser:set_token_pegs([[
 %SUB          <- !'--' '-'
 %MUL          <- '*'
 %MOD          <- '%'
-%DIV          <- '/'
-%IDIV         <- !%DIV '//'
+%IDIV         <- '//'
+%DIV          <- !%IDIV '/'
 %POW          <- '^'
 %BAND         <- '&'
 %BOR          <- '|'
@@ -434,17 +435,17 @@ grammar:add_group_peg('stat', 'funcdef', [[
   func_name <- (%cID {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
 ]])
 
-grammar:add_group_peg('stat', 'call', [[
-  (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |} ctrue) -> to_chain_index_or_call
-]])
-
 grammar:add_group_peg('stat', 'assign', [[
   ({} '' -> 'Assign' {| assignable_var_list |} %ASSIGN {| eexpr_list |}) -> to_astnode
 
   assignable_var_list <- assignable_var (%COMMA assignable_var)*
   assignable_var <-
-    (primary_expr {| ((call_expr+ & index_expr) / index_expr)+ |}) -> to_chain_index_or_call
+    (primary_expr {| ((call_expr+ &index_expr) / index_expr)+ |}) -> to_chain_index_or_call
     / %cID
+]])
+
+grammar:add_group_peg('stat', 'call', [[
+  (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |} ctrue) -> to_chain_index_or_call
 ]])
 
 -- expressions

@@ -169,6 +169,9 @@ it("escape sequence", function()
     "\\u42",
     "\\xH",
     "\\x",
+    "\\x1",
+    "\\u{}",
+    "\\300"
   })
   assert.peg_capture_all(pegs.cESCAPESEQUENCE, {
     ["\\a"] = "\a",
@@ -182,7 +185,8 @@ it("escape sequence", function()
     ["\\'"] = "'",
     ['\\"'] = '"',
     ['\\z \t\r\n'] = '',
-    ['\\65'] = 'A',
+    ['\\0'] = '\0',
+    ['\\065'] = 'A',
     ['\\x41'] = 'A',
     ['\\u{41}'] = 'A',
     ['\\\n'] = '\n',

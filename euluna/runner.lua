@@ -40,6 +40,7 @@ function runner.run(argv)
   local infile
   if not config.eval then
     infile = input
+    print(infile)
     input,err = plfile.read(input)
     if not input then return fail(err) end
   end

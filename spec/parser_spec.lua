@@ -41,6 +41,10 @@ it("comments", function()
 --[[
 multiline comment
 ]]]=], AST('Block', {}))
+
+  assert.parse_ast(euluna_parser, [=[if a then --[[f()]] end]=],
+    AST('Block', {AST('If', {{ AST('Id', 'a'), AST('Block', {})}
+  })}))
 end)
 
 --------------------------------------------------------------------------------
@@ -602,6 +606,24 @@ describe("statement assignment", function()
           { AST('Id', 'x'), AST('Id', 'y'), AST('Id', 'z'), AST('Id', 'w') })
     }))
   end)
+  it("on calls", function()
+    assert.parse_ast(euluna_parser, "f().a, a.b()[c].d = 1, 2",
+      AST('Block', {
+        AST('Assign', {
+          AST('DotIndex', "a", AST('Call', {}, {}, AST('Id', "f"))),
+          AST('DotIndex',
+              "d",
+              AST('ArrayIndex',
+                AST('Id', "c"),
+                AST('Call', {}, {}, AST('DotIndex', "b", AST('Id', "a")))
+              )
+            )
+          },
+          { AST('Number', "int", "1", nil),
+            AST('Number', "int", "2", nil)
+          }
+    )}))
+  end)
 end)
 
 --------------------------------------------------------------------------------
@@ -765,6 +787,13 @@ describe("operator", function()
       AST('Block', {
         AST('Return', {
           AST('BinaryOp', 'div', AST('Id', 'a'), AST('Id', 'b')
+    )})}))
+  end)
+  it("'//'", function()
+    assert.parse_ast(euluna_parser, "return a // b",
+      AST('Block', {
+        AST('Return', {
+          AST('BinaryOp', 'idiv', AST('Id', 'a'), AST('Id', 'b')
     )})}))
   end)
   it("'%'", function()
