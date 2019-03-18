@@ -11,7 +11,8 @@ function lua_compiler.compile_code(luacode, outfile)
 
   -- create output directory if needed
   local outdir = plpath.dirname(luafile)
-  pldir.makepath(outdir)
+  local ok, err = pldir.makepath(outdir)
+  if not ok then return nil, string.format('failed to create path for compiling "%s": %s', luafile, err) end
 
   -- file heading
   local hash = sha1(luacode)
@@ -30,7 +31,8 @@ function lua_compiler.compile_code(luacode, outfile)
   end
 
   -- save sources to a file
-  assert(plfile.write(luafile, sourcecode))
+  ok, err = plfile.write(luafile, sourcecode)
+  if not ok then return nil, string.format('failed to create file for compiling "%s": %s', luafile, err) end
   if not config.quiet then print("generated " .. luafile) end
 
   return luafile

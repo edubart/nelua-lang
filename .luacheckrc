@@ -1,5 +1,5 @@
 std='max'
-exclude_files={'playground.lua', 'euluna_cache'}
+exclude_files={'playground', 'euluna_cache'}
 --self=false
 unused_secondaries=false
 globals = {

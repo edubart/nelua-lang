@@ -115,7 +115,7 @@ end
 
 function assert.run_error(args, expected_stderr)
   local status, sout, serr = run(args)
-  assert(status ~= 0, 'expected error status on %s:\n%s\n%s', inspect(args), serr, sout)
+  assertf(status ~= 0, 'expected error status on %s:\n%s\n%s', inspect(args), serr, sout)
   if expected_stderr then
     assert.contains(expected_stderr, serr)
   end

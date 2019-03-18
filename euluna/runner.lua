@@ -2,7 +2,6 @@ local euluna_parser = require 'euluna.parsers.euluna_parser'
 local plfile = require 'pl.file'
 local plutil = require 'pl.utils'
 local plpath = require 'pl.path'
-local tablex = require 'pl.tablex'
 local configer = require 'euluna.configer'
 local config = configer.get()
 local sha1 = require 'sha1'.sha1
@@ -17,68 +16,84 @@ local function get_outcachepath(infile)
   return path
 end
 
-function runner.run(argv)
-  configer.parse(argv)
+local function succeed(msg)
+  io.stdout:write(msg)
+  io.stdout:write('\n')
+  io.stdout:flush()
+  return 0
+end
 
+local function fail(err)
+  io.stderr:write(err)
+  io.stderr:write('\n')
+  io.stderr:flush()
+  return 1
+end
+
+function runner.run(argv)
+  -- parse config
+  local err
+  config, err = configer.parse(argv)
+  if not config then return fail(err) end
+
+  -- determine input
   local input = config.input
   local infile
   if not config.eval then
     infile = input
-    input = assert(plfile.read(input))
+    input,err = plfile.read(input)
+    if not input then return fail(err) end
   end
 
-  local ast, parseerr = euluna_parser:parse(input)
-  if not ast then
-    io.stderr:write(parseerr)
-    return 1
-  end
+  -- parse ast
+  local ast
+  ast, err = euluna_parser:parse(input)
+  if not ast then return fail(err) end
 
+  -- only checking syntax?
   if config.lint then return 0 end
 
-  if config.print_ast then
-    print(tostring(ast))
-    return 0
-  end
+  -- only printing ast?
+  if config.print_ast then return succeed(tostring(ast)) end
 
+  -- generate the code
   local generator = require('euluna.generators.' .. config.generator .. '_generator')
-  local code = generator:generate(ast)
+  local code
+  code, err = generator:generate(ast)
+  if not ast then return fail(err) end
 
-  if config.print_code then
-    io.stdout:write(code)
-    return 0
-  end
+  -- only printing generated code?
+  if config.print_code then return succeed(code) end
 
-  local compiler = generator.compiler
+  -- choose a infile for evals
+  if not infile then infile = 'eval_' .. sha1(code) end
 
-  if not infile then
-    infile = 'eval_' .. sha1(code)
-  end
-
+  -- save the generated code
   local outcachefile = get_outcachepath(infile)
-  local sourcefile = compiler.compile_code(code, outcachefile)
+  local sourcefile, binaryfile
+  local compiler = generator.compiler
+  sourcefile, err = compiler.compile_code(code, outcachefile)
+  if not sourcefile then return fail(err) end
 
   local dorun = not config.compile and not config.compile_binary
   local dobinarycompile = config.compile_binary or dorun
-  local binaryfile
 
+  -- compile the generated code
   if dobinarycompile then
-    binaryfile = compiler.compile_binary(sourcefile, outcachefile)
+    binaryfile, err = compiler.compile_binary(sourcefile, outcachefile)
+    if not binaryfile then return fail(err) end
   end
 
+  -- run
   if dorun then
     local cmd = compiler.get_run_command(binaryfile)
-    if not config.quiet then
-      print(cmd)
-    end
-
-    local runargs = tablex.copy(config.args)
-    tablex.transform(function(a) return plutil.quote_arg(a) end, runargs)
-    runargs = table.concat(runargs, ' ')
+    local runargs = configer.get_run_args()
+    if not config.quiet then print(cmd .. ' ' .. runargs) end
 
     local ok,status,sout,serr = plutil.executeex(cmd, runargs)
-    assert(ok, "failed to run the compiled program!")
     if sout then io.stdout:write(sout) end
     if serr then io.stderr:write(serr) end
+    if not ok then return 1 end
     return status
   end
 

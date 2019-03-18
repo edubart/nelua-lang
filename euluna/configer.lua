@@ -1,5 +1,6 @@
 local argparse = require 'argparse'
 local tablex = require 'pl.tablex'
+local plutil = require 'pl.utils'
 local configer = {}
 
 local arg
@@ -33,13 +34,20 @@ local config = {}
 
 function configer.parse(argv)
   arg = tablex.copy(argv)
-  local ok, options = assert(argparser:pparse(argv))
+  local ok, options = argparser:pparse(argv)
+  if not ok then return nil, options end
   setmetatable(config, {__index = options})
   return config
 end
 
 function configer.get()
   return config
+end
+
+function configer.get_run_args()
+  local runargs = tablex.copy(config.args)
+  tablex.transform(function(a) return plutil.quote_arg(a) end, runargs)
+  return table.concat(runargs, ' ')
 end
 
 return configer

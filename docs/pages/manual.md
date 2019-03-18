@@ -123,3 +123,10 @@ continue
 | `float32` | `float` | `_f32` `_float32` |
 | `isize` | `intptr_t` | `_isize` |
 | `usize` | `uintptr_t` | `_usize` |
+
+## Literal values
+
+`false`
+`true`
+`nil`
+`nullptr`
