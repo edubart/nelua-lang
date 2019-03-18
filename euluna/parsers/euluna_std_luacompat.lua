@@ -100,11 +100,6 @@ shaper:register('If', types.shape {
   types.array_of(types.shape{types.ASTNode, types.ASTBlock}), -- if list {expr, block}
   types.ASTBlock:is_optional() -- else block
 })
-shaper:register('Switch', types.shape {
-  types.ASTNode, -- switch expr
-  types.array_of(types.shape{types.ASTNode, types.ASTBlock}), -- case list {expr, block}
-  types.ASTBlock:is_optional() -- else block
-})
 shaper:register('Do', types.shape {
   types.ASTBlock -- block
 })
@@ -130,7 +125,6 @@ shaper:register('ForIn', types.shape {
   types.ASTBlock -- block
 })
 shaper:register('Break', types.shape {})
-shaper:register('Continue', types.shape {})
 shaper:register('Label', types.shape {
   types.string -- label name
 })
@@ -139,7 +133,7 @@ shaper:register('Goto', types.shape {
 })
 shaper:register('VarDecl', types.shape {
   types.one_of{"local"}:is_optional(), -- scope
-  types.one_of{"var", "var&", "let", "let&", "const"}, -- mutability
+  types.one_of{"var"}, -- mutability
   types.array_of(types.ASTTypedId), -- var names with types
   types.array_of(types.ASTNode):is_optional(), -- expr list, initial assignments values
 })
@@ -177,7 +171,8 @@ shaper:register('TernaryOp', types.shape {
 -- Lexer
 --------------------------------------------------------------------------------
 
-local parser = Parser(shaper)
+local parser = Parser()
+parser:set_shaper(shaper)
 
 -- spaces including new lines
 parser:set_peg("SPACE", "%s")
@@ -215,9 +210,6 @@ parser:add_keywords({
   "and", "break", "do", "else", "elseif", "end", "for", "false",
   "function", "goto", "if", "in", "local", "nil", "not", "or",
   "repeat", "return", "then", "true", "until", "while",
-
-  -- euluna additional keywords
-  "switch", "case", "continue", "var", "let", "const"
 })
 
 -- names and identifiers (names for variables, functions, etc)
@@ -289,10 +281,7 @@ parser:set_token_pegs([[
 -- capture boolean (true or false)
 parser:set_token_pegs([[
   %cBOOLEAN <- ({} '' -> 'Boolean' ((%FALSE -> to_false) / (%TRUE -> to_true))) -> to_astnode
-]], {
-  to_false = function() return false end,
-  to_true = function() return true end
-})
+]])
 
 --- capture nil values
 parser:set_token_pegs([[
@@ -352,6 +341,11 @@ parser:set_token_pegs([[
 %AT           <- '@'
 %DOLLAR       <- '$'
 %QUESTION     <- '?'
+
+-- used by types
+%TVAR         <- 'var'
+%TLET         <- 'let'
+%TCONST       <- 'const'
 ]])
 
 --- capture varargs values
@@ -359,23 +353,11 @@ parser:set_token_pegs([[
   %cVARARGS <- ({} %ELLIPSIS -> 'Varargs') -> to_astnode
 ]])
 
--- syntax errors
-parser:add_syntax_errors({
-  MalformedExponentialNumber = 'malformed exponential number',
-  MalformedBinaryNumber = 'malformed binary number',
-  MalformedHexadecimalNumber = 'malformed hexadecimal number',
-  UnclosedLongComment = 'unclosed long comment',
-  UnclosedShortString = 'unclosed short string',
-  UnclosedLongString = 'unclosed long string',
-})
-
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Grammar
 --------------------------------------------------------------------------------
 
 local grammar = Grammar()
-local to_astnode = parser.to_astnode
-local unpack = table.unpack or unpack
 
 -- source code body
 grammar:set_pegs([==[
@@ -400,16 +382,6 @@ grammar:add_group_peg('stat', 'if', [[
     |}
     (%ELSE block)?
   eEND) -> to_astnode
-]])
-
-grammar:add_group_peg('stat', 'switch', [[
-  ({} %SWITCH -> 'Switch' eexpr
-      {|(
-        ({| %CASE eexpr eTHEN block |})+ / %{ExpectedCase})
-      |}
-      (%ELSE block)?
-      eEND
-  ) -> to_astnode
 ]])
 
 grammar:add_group_peg('stat', 'do', [[
@@ -441,10 +413,6 @@ grammar:add_group_peg('stat', 'break', [[
   ({} %BREAK -> 'Break') -> to_astnode
 ]])
 
-grammar:add_group_peg('stat', 'continue', [[
-  ({} %CONTINUE -> 'Continue') -> to_astnode
-]])
-
 grammar:add_group_peg('stat', 'label', [[
   ({} %DBLCOLON -> 'Label' ecNAME eDBLCOLON) -> to_astnode
 ]])
@@ -455,7 +423,7 @@ grammar:add_group_peg('stat', 'goto', [[
 
 grammar:add_group_peg('stat', 'vardecl', [[
   ({} '' -> 'VarDecl'
-    ((var_scope (var_mutability / '' -> 'var')) / (cnil var_mutability))
+    var_scope '' -> 'var'
     {| typed_idlist |}
     (%ASSIGN {| eexpr_list |})?
   ) -> to_astnode
@@ -483,19 +451,19 @@ grammar:add_group_peg('stat', 'assign', [[
 grammar:set_pegs([[
   expr      <- expr0
 
-  expr0     <- ({} {| expr1  (%IF -> 'if' expr1 %ELSE expr1)* |}) -> to_chain_ternary_op
-  expr1     <- ({} {| expr2  (op_or       expr2 )* |})            -> to_chain_binary_op
-  expr2     <- ({} {| expr3  (op_and      expr3 )* |})            -> to_chain_binary_op
-  expr3     <- ({} {| expr4  (op_cmp      expr4 )* |})            -> to_chain_binary_op
-  expr4     <- ({} {| expr5  (op_bor      expr5 )* |})            -> to_chain_binary_op
-  expr5     <- ({} {| expr6  (op_xor      expr6 )* |})            -> to_chain_binary_op
-  expr6     <- ({} {| expr7  (op_band     expr7 )* |})            -> to_chain_binary_op
-  expr7     <- ({} {| expr8  (op_bshift   expr8 )* |})            -> to_chain_binary_op
-  expr8     <- ({}    expr9  (op_concat   expr8 )?   )            -> to_binary_op
-  expr9     <- ({} {| expr10 (op_add      expr10)* |})            -> to_chain_binary_op
-  expr10    <- ({} {| expr11 (op_mul      expr11)* |})            -> to_chain_binary_op
-  expr11    <- ({} {| op_unary* |} expr12)                        -> to_chain_unary_op
-  expr12    <- ({}    simple_expr (op_pow      expr11)?   )       -> to_binary_op
+  expr0  <- ({} ''->'TernaryOp' {| expr1  (%IF -> 'if' expr1 %ELSE expr1)* |}) -> to_chain_ternary_op
+  expr1  <- ({} ''->'BinaryOp'  {| expr2  (op_or       expr2 )* |})    -> to_chain_binary_op
+  expr2  <- ({} ''->'BinaryOp'  {| expr3  (op_and      expr3 )* |})    -> to_chain_binary_op
+  expr3  <- ({} ''->'BinaryOp'  {| expr4  (op_cmp      expr4 )* |})    -> to_chain_binary_op
+  expr4  <- ({} ''->'BinaryOp'  {| expr5  (op_bor      expr5 )* |})    -> to_chain_binary_op
+  expr5  <- ({} ''->'BinaryOp'  {| expr6  (op_xor      expr6 )* |})    -> to_chain_binary_op
+  expr6  <- ({} ''->'BinaryOp'  {| expr7  (op_band     expr7 )* |})    -> to_chain_binary_op
+  expr7  <- ({} ''->'BinaryOp'  {| expr8  (op_bshift   expr8 )* |})    -> to_chain_binary_op
+  expr8  <- ({} ''->'BinaryOp'    expr9  (op_concat   expr8 )?   )     -> to_binary_op
+  expr9  <- ({} ''->'BinaryOp'  {| expr10 (op_add      expr10)* |})    -> to_chain_binary_op
+  expr10 <- ({} ''->'BinaryOp'  {| expr11 (op_mul      expr11)* |})    -> to_chain_binary_op
+  expr11 <- ({} ''->'UnaryOp'   {| op_unary* |} expr12)                -> to_chain_unary_op
+  expr12 <- ({} ''->'BinaryOp' simple_expr (op_pow      expr11)?   )   -> to_binary_op
 
   simple_expr <-
       %cNUMBER
@@ -547,6 +515,12 @@ grammar:set_pegs([[
   func_args <- func_arg (%COMMA func_arg)*
   func_arg <- ({} '' -> 'FuncArg' %cNAME
     (%COLON (func_var_mutability (typexpr / cnil) / cnil etypexpr))?) -> to_astnode
+  func_var_mutability <-
+    %TVAR %BAND %BAND -> 'var&&' /
+    %TVAR %BAND -> 'var&' /
+    %TVAR -> 'var' /
+    %TLET %BAND -> 'let&' /
+    %TLET -> 'let'
   typed_idlist <- typed_id (%COMMA typed_id)*
   typed_id <- ({} '' -> 'TypedId' %cNAME (%COLON etypexpr)?) -> to_astnode
 
@@ -558,63 +532,10 @@ grammar:set_pegs([[
   eexpr_list <- eexpr (%COMMA expr)*
 
   var_scope <- %LOCAL -> 'local'
-  func_var_mutability <- %VAR %BAND -> 'var&&' / %VAR %BAND -> 'var&' / %VAR -> 'var' /
-                         %LET %BAND -> 'let&' / %LET -> 'let'
-  var_mutability <- %VAR %BAND -> 'var&' / %VAR -> 'var' / %LET %BAND -> 'let&' / %LET -> 'let' / %CONST -> 'const'
 
   cnil <- '' -> to_nil
   ctrue <- '' -> to_true
-]], {
-  to_chain_unary_op = function(pos, opnames, expr)
-    for i=#opnames,1,-1 do
-      local opname = opnames[i]
-      expr = to_astnode(pos, "UnaryOp", opname, expr)
-    end
-    return expr
-  end,
-
-  to_binary_op = function(pos, lhs, opname, rhs)
-    if rhs then
-      return to_astnode(pos, "BinaryOp", opname, lhs, rhs)
-    end
-    return lhs
-  end,
-
-  to_chain_binary_op = function(pos, matches)
-    local lhs = matches[1]
-    for i=2,#matches,2 do
-      local opname, rhs = matches[i], matches[i+1]
-      lhs = to_astnode(pos, "BinaryOp", opname, lhs, rhs)
-    end
-    return lhs
-  end,
-
-  to_chain_ternary_op = function(pos, matches)
-    local lhs = matches[1]
-    for i=2,#matches,3 do
-      local opname, mid, rhs = matches[i], matches[i+1], matches[i+2]
-      lhs = to_astnode(pos, "TernaryOp", opname, lhs, mid, rhs)
-    end
-    return lhs
-  end,
-
-  to_chain_index_or_call = function(primary_expr, exprs, inblock)
-    local last_expr = primary_expr
-    if exprs then
-      for _,expr in ipairs(exprs) do
-        table.insert(expr, last_expr)
-        last_expr = to_astnode(unpack(expr))
-      end
-    end
-    if inblock then
-      table.insert(last_expr, true)
-    end
-    return last_expr
-  end,
-
-  to_nil = function() return nil end,
-  to_true = function() return true end
-})
+]])
 
 -- operators
 grammar:set_pegs([[
@@ -669,15 +590,28 @@ grammar:set_pegs([[
 
 -- compile whole grammar
 parser:set_peg('sourcecode', grammar:build())
-parser.grammar = grammar
-
 
 --------------------------------------------------------------------------------
 -- Syntax Errors
 --------------------------------------------------------------------------------
 
+-- lexer errors
+parser:add_syntax_errors({
+  MalformedExponentialNumber = 'malformed exponential number',
+  MalformedBinaryNumber = 'malformed binary number',
+  MalformedHexadecimalNumber = 'malformed hexadecimal number',
+  UnclosedLongComment = 'unclosed long comment',
+  UnclosedShortString = 'unclosed short string',
+  UnclosedLongString = 'unclosed long string',
+})
+
+-- grammar errors
 parser:add_syntax_errors({
   UnexpectedSyntaxAtEOF  = 'unexpected syntax, was expecting EOF'
 })
 
-return parser
+return {
+  shaper = shaper,
+  parser = parser,
+  grammar = grammar
+}

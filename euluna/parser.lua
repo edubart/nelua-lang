@@ -2,23 +2,14 @@ local class = require 'pl.class'
 local re = require 'relabel'
 local tablex = require 'pl.tablex'
 local utils = require 'euluna.utils'
+local unpack = table.unpack or unpack
 local assertf = utils.assertf
 local Parser = class()
 
-function Parser:_init(shaper)
-  local function to_astnode(pos, tag, ...)
-    local node = shaper:create(tag, ...)
-    node.pos = pos
-    node.src = self.input
-    return node
-  end
-
-  self.shaper = shaper
-  self.to_astnode = to_astnode
-
+function Parser:_init()
   self.keywords = {}
   self.syntax_errors = {}
-  self.defs = {to_astnode = to_astnode}
+  self.defs = {}
   self.pegdescs = {}
 end
 
@@ -28,6 +19,83 @@ local function inherit_defs(parent_defs, defs)
     return defs
   else
     return parent_defs
+  end
+end
+
+local function recompile_peg(selfdefs, pegdesc)
+  local combined_defs = inherit_defs(selfdefs, pegdesc.defs)
+  local compiled_patt = re.compile(pegdesc.patt, combined_defs)
+  if pegdesc.modf then
+    compiled_patt = pegdesc.modf(compiled_patt, selfdefs)
+  end
+  selfdefs[pegdesc.name] = compiled_patt
+end
+
+function Parser:set_shaper(shaper)
+  self.shaper = shaper
+
+  local function to_astnode(pos, tag, ...)
+    local node = shaper:create(tag, ...)
+    node.pos = pos
+    node.src = self.input
+    return node
+  end
+
+  local defs = self.defs
+  defs.to_astnode = to_astnode
+  defs.to_chain_unary_op = function(pos, tag, opnames, expr)
+    for i=#opnames,1,-1 do
+      local opname = opnames[i]
+      expr = to_astnode(pos, tag, opname, expr)
+    end
+    return expr
+  end
+
+  defs.to_binary_op = function(pos, tag, lhs, opname, rhs)
+    if rhs then
+      return to_astnode(pos, tag, opname, lhs, rhs)
+    end
+    return lhs
+  end
+
+  defs.to_chain_binary_op = function(pos, tag, matches)
+    local lhs = matches[1]
+    for i=2,#matches,2 do
+      local opname, rhs = matches[i], matches[i+1]
+      lhs = to_astnode(pos, tag, opname, lhs, rhs)
+    end
+    return lhs
+  end
+
+  defs.to_chain_ternary_op = function(pos, tag, matches)
+    local lhs = matches[1]
+    for i=2,#matches,3 do
+      local opname, mid, rhs = matches[i], matches[i+1], matches[i+2]
+      lhs = to_astnode(pos, tag, opname, lhs, mid, rhs)
+    end
+    return lhs
+  end
+
+  defs.to_chain_index_or_call = function(primary_expr, exprs, inblock)
+    local last_expr = primary_expr
+    if exprs then
+      for _,expr in ipairs(exprs) do
+        table.insert(expr, last_expr)
+        last_expr = to_astnode(unpack(expr))
+      end
+    end
+    if inblock then
+      table.insert(last_expr, true)
+    end
+    return last_expr
+  end
+
+  defs.to_nil = function() return nil end
+  defs.to_true = function() return true end
+  defs.to_false = function() return false end
+
+  for _,pegdesc in pairs(self.pegdescs) do
+    recompile_peg(defs, pegdesc)
   end
 end
 
@@ -66,11 +134,7 @@ end
 local function recompile_dependencies_for(self, name)
   local to_recompile = cascade_dependencies_for(self.pegdescs, name)
   for _,pegdesc in ipairs(to_recompile) do
-    local compiled_patt = re.compile(pegdesc.patt, pegdesc.defs)
-    if pegdesc.modf then
-      compiled_patt = pegdesc.modf(compiled_patt, self.defs)
-    end
-    self.defs[pegdesc.name] = compiled_patt
+    recompile_peg(self.defs, pegdesc)
   end
 end
 
@@ -86,7 +150,7 @@ function Parser:set_peg(name, patt, defs, modf)
   self.pegdescs[name] = {
     name = name,
     patt = patt,
-    defs = combined_defs,
+    defs = defs,
     modf = modf,
     deps = deps
   }
@@ -200,12 +264,12 @@ function Parser:parse(input, name)
 end
 
 function Parser:clone()
-  local clone = Parser(self.shaper)
-  clone.keywords = tablex.deepcopy(self.keywords)
-  clone.syntax_errors = tablex.deepcopy(self.syntax_errors)
-  clone.defs = tablex.deepcopy(self.defs)
-  clone.pegdescs = tablex.deepcopy(self.pegdescs)
-  clone.grammar = self.grammar
+  local clone = Parser()
+  tablex.update(clone.keywords, self.keywords)
+  tablex.update(clone.syntax_errors, self.syntax_errors)
+  tablex.update(clone.defs, self.defs)
+  tablex.update(clone.pegdescs, self.pegdescs)
+  clone:set_shaper(self.shaper)
   return clone
 end
 

@@ -2,6 +2,7 @@ local class = require 'pl.class'
 local types = require 'tableshape'.types
 local inspect = require 'inspect'
 local utils = require 'euluna.utils'
+local tablex = require 'pl.tablex'
 local assertf = utils.assertf
 local unpack = table.unpack or unpack
 
@@ -115,6 +116,14 @@ function Shaper:create(tag, ...)
   local create = self.creates[tag]
   assertf(create, "AST with name '%s' is not registered", tag)
   return create(...)
+end
+
+function Shaper:clone()
+  local clone = Shaper()
+  tablex.update(clone.nodes, self.nodes)
+  tablex.update(clone.creates, self.creates)
+  tablex.update(clone.types, self.types)
+  return clone
 end
 
 return Shaper

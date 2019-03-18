@@ -25,18 +25,21 @@ local function recompile_group_peg(self, groupname)
   self:set_peg(groupname, patt, nil, true)
 end
 
-function Grammar:add_group_peg(groupname, name, patt, defs)
+function Grammar:add_group_peg(groupname, name, patt, defs, overwrite)
   local group = self.group_pegs[groupname]
   if not group then
     group = {}
     self.group_pegs[groupname] = group
   end
   local fullname = string.format('%s_%s', groupname, name)
-  assertf(tablex.find(group, fullname) == nil, 'group peg "%s" already exists', fullname)
-  table.insert(group, fullname)
+  if tablex.find(group, fullname) then
+    assertf(overwrite, 'group peg "%s" already exists', fullname)
+  else
+    table.insert(group, fullname)
+  end
   merge_defs(self, defs)
   recompile_group_peg(self, groupname)
-  self:set_peg(fullname, patt)
+  self:set_peg(fullname, patt, nil, overwrite)
 end
 
 local combined_peg_pat = re.compile([[
@@ -79,7 +82,11 @@ function Grammar:build()
 end
 
 function Grammar:clone()
-  return tablex.deepcopy(self)
+  local clone = Grammar()
+  tablex.update(clone.group_pegs, self.group_pegs)
+  tablex.update(clone.pegs, self.pegs)
+  tablex.update(clone.defs, self.defs)
+  return clone
 end
 
 return Grammar

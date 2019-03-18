@@ -1,6 +1,6 @@
 require 'busted.runner'()
 
-local shaper = require 'euluna.parsers.euluna_parser'.shaper
+local shaper = require 'euluna.parsers.euluna_std_default'.shaper
 local assert = require 'spec.assert'
 local AST = function(...) return shaper:create(...) end
 

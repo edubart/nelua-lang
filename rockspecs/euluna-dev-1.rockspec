@@ -50,7 +50,8 @@ build = {
     ['euluna.compilers.c_compiler'] = 'euluna/compilers/c_compiler.lua',
     ['euluna.generators.c_generator'] = 'euluna/generators/c_generator.lua',
     ['euluna.generators.lua_generator'] = 'euluna/generators/lua_generator.lua',
-    ['euluna.parsers.euluna_parser'] = 'euluna/parsers/euluna_parser.lua',
+    ['euluna.parsers.euluna_std_default'] = 'euluna/parsers/euluna_std_default.lua',
+    ['euluna.parsers.euluna_std_luacompat'] = 'euluna/parsers/euluna_std_luacompat.lua',
   },
   install = {
     bin = {

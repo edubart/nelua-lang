@@ -1,9 +1,10 @@
 require 'busted.runner'()
 
 local assert = require 'spec.assert'
-local euluna_parser = require 'euluna.parsers.euluna_parser'
-local euluna_grammar = euluna_parser.grammar
-local euluna_shaper = euluna_parser.shaper
+local euluna_std_default = require 'euluna.parsers.euluna_std_default'
+local euluna_parser = euluna_std_default.parser
+local euluna_grammar = euluna_std_default.grammar
+local euluna_shaper = euluna_std_default.shaper
 local AST = function(...) return euluna_shaper:create(...) end
 
 describe("Euluna should parse", function()
@@ -874,7 +875,7 @@ describe("live grammar change for", function()
     grammar:set_pegs([[
       stat_return <-
         ({} %DO_RETURN -> 'Return' {| (expr (%COMMA expr)*)? |} %SEMICOLON?) -> to_astnode
-    ]], nil, true)
+    ]], { to_nothing = function() end }, true)
     parser:set_peg('sourcecode', grammar:build())
     parser:remove_keyword("return")
 

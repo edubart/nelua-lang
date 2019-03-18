@@ -1,7 +1,7 @@
 require 'busted.runner'()
 
 local assert = require 'spec.assert'
-local euluna_parser = require 'euluna.parsers.euluna_parser'
+local euluna_parser = require 'euluna.parsers.euluna_std_default'.parser
 local lua_generator = require 'euluna.generators.lua_generator'
 local stringx = require 'pl.stringx'
 

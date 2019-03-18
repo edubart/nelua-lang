@@ -1,4 +1,3 @@
-local euluna_parser = require 'euluna.parsers.euluna_parser'
 local plfile = require 'pl.file'
 local plutil = require 'pl.utils'
 local plpath = require 'pl.path'
@@ -47,7 +46,8 @@ function runner.run(argv)
 
   -- parse ast
   local ast
-  ast, err = euluna_parser:parse(input)
+  local parser = require('euluna.parsers.euluna_std_' .. config.standard).parser
+  ast, err = parser:parse(input)
   if not ast then return fail(err) end
 
   -- only checking syntax?
