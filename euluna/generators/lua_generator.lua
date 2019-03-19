@@ -162,6 +162,28 @@ generator:register('If', function(_, ast, coder)
   coder:add_indent_ln("end")
 end)
 
+generator:register('Switch', function(_, ast, coder)
+  local val, caseparts, switchelseblock = ast:args()
+  local varname = '__switchval' .. ast.pos
+  coder:add_indent_ln("local ", varname, " = ", val)
+  ast:assertf(#caseparts > 0, "switch must have case parts")
+  for i,casepart in ipairs(caseparts) do
+    local caseval, caseblock = casepart[1], casepart[2]
+    if i == 1 then
+      coder:add_indent('if ')
+    else
+      coder:add_indent('elseif ')
+    end
+    coder:add_ln(varname, ' == ', caseval, ' then')
+    coder:add(caseblock)
+  end
+  if switchelseblock then
+    coder:add_indent_ln('else')
+    coder:add(switchelseblock)
+  end
+  coder:add_indent_ln("end")
+end)
+
 generator:register('Do', function(_, ast, coder)
   local block = ast:args()
   coder:add_indent_ln("do")
@@ -310,6 +332,7 @@ local BINARY_OPS = {
   ['sub'] = '-',
   ['mul'] = '*',
   ['div'] = '/',
+  ['idiv'] = '//',
   ['mod'] = '%',
   ['pow'] = '^',
   ['concat'] = '..'
@@ -330,28 +353,6 @@ generator:register('TernaryOp', function(context, ast, coder)
   if surround then coder:add('(') end
   coder:add(mid_arg, ' and ', left_arg, ' or ', right_arg)
   if surround then coder:add(')') end
-end)
-
-generator:register('Switch', function(_, ast, coder)
-  local val, caseparts, switchelseblock = ast:args()
-  local varname = '__switchval' .. ast.pos
-  coder:add_indent_ln("local ", varname, " = ", val)
-  ast:assertf(#caseparts > 0, "switch must have case parts")
-  for i,casepart in ipairs(caseparts) do
-    local caseval, caseblock = casepart[1], casepart[2]
-    if i == 1 then
-      coder:add_indent('if ')
-    else
-      coder:add_indent('elseif ')
-    end
-    coder:add_ln(varname, ' == ', caseval, ' then')
-    coder:add(caseblock)
-  end
-  if switchelseblock then
-    coder:add_indent_ln('else')
-    coder:add(switchelseblock)
-  end
-  coder:add_indent_ln("end")
 end)
 
 function generator:generate(ast)

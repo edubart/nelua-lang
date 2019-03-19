@@ -83,6 +83,22 @@ it("if", function()
   assert_generate_lua("if a then\nelseif b then\nend")
   assert_generate_lua("if a then\nelseif b then\nelse\nend")
 end)
+it("switch", function()
+  assert_generate_lua("switch a case b then else end", [[
+local __switchval1 = a
+if __switchval1 == b then
+else
+end]])
+  assert_generate_lua("switch a case b then f() case c then g() else h() end",[[
+local __switchval1 = a
+if __switchval1 == b then
+  f()
+elseif __switchval1 == c then
+  g()
+else
+  h()
+end]])
+end)
 it("do", function()
   assert_generate_lua("do\n  return\nend")
 end)
@@ -145,30 +161,13 @@ it("binary operators", function()
   assert_generate_lua("return a | b, a ~ b, a & b")
   assert_generate_lua("return a << b, a >> b")
   assert_generate_lua("return a + b, a - b")
-  assert_generate_lua("return a * b, a / b")
+  assert_generate_lua("return a * b, a / b, a // b")
   assert_generate_lua("return a % b")
   assert_generate_lua("return a ^ b")
   assert_generate_lua("return a .. b")
 end)
 it("ternary operators", function()
   assert_generate_lua("return b if a else c", "return a and b or c")
-end)
-
-it("switch", function()
-  assert_generate_lua("switch a case b then else end", [[
-local __switchval1 = a
-if __switchval1 == b then
-else
-end]])
-  assert_generate_lua("switch a case b then f() case c then g() else h() end",[[
-local __switchval1 = a
-if __switchval1 == b then
-  f()
-elseif __switchval1 == c then
-  g()
-else
-  h()
-end]])
 end)
 
 end)

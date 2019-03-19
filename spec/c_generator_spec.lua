@@ -48,6 +48,23 @@ it("if", function()
   assert_generate_c("if a then\nelseif b then\nend", "if(a) {\n    } else if(b) {\n    }")
   assert_generate_c("if a then\nelse\nend", "if(a) {\n    } else {\n    }")
 end)
+it("switch", function()
+  assert_generate_c("switch a case b then f() case c then g() else h() end",[[
+    switch(a) {
+        case b: {
+            f();
+            break;
+        }
+        case c: {
+            g();
+            break;
+        }
+        default: {
+            h();
+            break;
+        }
+    }]])
+end)
 it("do", function()
   assert_generate_c("do\n  return\nend", "{\n        return;\n    }")
 end)
@@ -72,6 +89,11 @@ it("variable declaration", function()
   assert_generate_c("local a: integer", "int64_t a;")
   assert_generate_c("local a: integer = 0", "int64_t a = 0;")
 end)
+it("assignment", function()
+  assert_generate_c("a = 1")
+  assert_generate_c("a, b = 1, 2", "a = 1; b = 2;")
+  assert_generate_c("a.b, a[1] = x, y", "a.b = x; a[1] = y;")
+end)
 it("function definition", function()
   assert_generate_c("local function f()\n end",
     "void f() {\n}")
@@ -81,6 +103,34 @@ it("function definition", function()
   assert_generate_c(
     "local function f(a: integer): integer\n return a end",
     "int64_t f(int64_t a) {\n    return a;\n}")
+end)
+it("unary operators", function()
+  assert_generate_c("return not a", "return !a;")
+  assert_generate_c("return -a", "return -a;")
+  assert_generate_c("return ~a", "return ~a")
+end)
+it("binary operators", function()
+  assert_generate_c("return a or b",  "return a || b;")
+  assert_generate_c("return a and b", "return a && b;")
+  assert_generate_c("return a ~= b",  "return a != b;")
+  assert_generate_c("return a == b",  "return a == b;")
+  assert_generate_c("return a <= b",  "return a <= b;")
+  assert_generate_c("return a >= b",  "return a >= b;")
+  assert_generate_c("return a < b",   "return a < b;")
+  assert_generate_c("return a > b",   "return a > b;")
+  assert_generate_c("return a | b",   "return a | b;")
+  assert_generate_c("return a ~ b",   "return a ^ b;")
+  assert_generate_c("return a & b",   "return a & b;")
+  assert_generate_c("return a << b",  "return a << b;")
+  assert_generate_c("return a >> b",  "return a >> b;")
+  assert_generate_c("return a + b",   "return a + b;")
+  assert_generate_c("return a - b",   "return a - b;")
+  assert_generate_c("return a * b",   "return a * b;")
+  assert_generate_c("return a / b",   "return a / b;")
+  assert_generate_c("return a % b",   "return a % b;")
+end)
+it("ternary operators", function()
+  assert_generate_c("return b if a else c", "return a ? b : c")
 end)
 
 end)

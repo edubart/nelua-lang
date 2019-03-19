@@ -64,6 +64,12 @@ generator:register('Boolean', function(context, ast, coder)
   coder:add(tostring(value))
 end)
 
+-- TODO: Nil
+-- TODO: Varargs
+-- TODO: Table
+-- TODO: Pair
+-- TODO: Function
+
 -- identifier and types
 generator:register('Id', function(_, ast, coder)
   local name = ast:args()
@@ -85,6 +91,19 @@ generator:register('TypedId', function(_, ast, coder)
   else
     coder:add(name)
   end
+end)
+
+-- indexing
+generator:register('DotIndex', function(_, ast, coder)
+  local name, obj = ast:args()
+  coder:add(obj, '.', name)
+end)
+
+-- TODO: ColonIndex
+
+generator:register('ArrayIndex', function(_, ast, coder)
+  local index, obj = ast:args()
+  coder:add(obj, '[', index, ']')
 end)
 
 -- calls
@@ -137,8 +156,10 @@ end)
 
 -- statements
 generator:register('Return', function(_, ast, coder, scope)
+  --TODO: multiple return
   scope.has_return = true
   local rets = ast:args()
+  ast:assertf(#rets <= 1, "multiple returns not supported yet")
   coder:add_indent("return")
   if #rets > 0 then
     coder:add_ln(' ', rets, ';')
@@ -170,6 +191,28 @@ generator:register('If', function(_, ast, coder)
     coder:add_indent_ln("} else {")
     coder:add(elseblock)
   end
+  coder:add_indent_ln("}")
+end)
+
+generator:register('Switch', function(_, ast, coder)
+  local val, caseparts, switchelseblock = ast:args()
+  coder:add_indent_ln("switch(", val, ") {")
+  coder:inc_indent()
+  ast:assertf(#caseparts > 0, "switch must have case parts")
+  for _,casepart in ipairs(caseparts) do
+    local caseval, caseblock = casepart[1], casepart[2]
+    coder:add_indent_ln("case ", caseval, ': {')
+    coder:add(caseblock)
+    coder:inc_indent() coder:add_indent_ln('break;') coder:dec_indent()
+    coder:add_indent_ln("}")
+  end
+  if switchelseblock then
+    coder:add_indent_ln('default: {')
+    coder:add(switchelseblock)
+    coder:inc_indent() coder:add_indent_ln('break;') coder:dec_indent()
+    coder:add_indent_ln("}")
+  end
+  coder:dec_indent()
   coder:add_indent_ln("}")
 end)
 
@@ -209,7 +252,7 @@ generator:register('ForNum', function(_, ast, coder)
   coder:add_indent_ln("}")
 end)
 
--- ForIn
+-- TODO: ForIn
 
 generator:register('Break', function(_, _, coder)
   coder:add_indent_ln('break;')
@@ -233,17 +276,32 @@ generator:register('VarDecl', function(_, ast, coder)
   local varscope, mutability, vars, vals = ast:args()
   ast:assertf(mutability == 'var', 'variable mutability not supported yet')
   ast:assertf(varscope == 'local', 'global variables not supported yet')
+  ast:assertf(not vals or #vars == #vals, 'vars and vals count differs')
+  coder:add_indent()
   for i=1,#vars do
     local var, val = vars[i], vals and vals[i]
-    coder:add_indent(var)
+    if i > 1 then coder:add(' ') end
+    coder:add(var)
     if val then
       coder:add(' = ', val)
     end
-    coder:add_ln(';')
+    coder:add(';')
   end
+  coder:add_ln()
 end)
 
--- Assign
+
+generator:register('Assign', function(_, ast, coder)
+  local vars, vals = ast:args()
+  ast:assertf(#vars == #vals, 'vars and vals count differs')
+  coder:add_indent()
+  for i=1,#vars do
+    local var, val = vars[i], vals[i]
+    if i > 1 then coder:add(' ') end
+    coder:add(var, ' = ', val, ';')
+  end
+  coder:add_ln()
+end)
 
 generator:register('FuncDef', function(context, ast)
   local varscope, name, args, rets, block = ast:args()
@@ -263,6 +321,72 @@ generator:register('FuncDef', function(context, ast)
 end)
 
 -- operators
+local function is_in_operator(context)
+  local parent_ast = context:get_parent_ast()
+  if not parent_ast then return false end
+  local parent_ast_tag = parent_ast.tag
+  return
+    parent_ast_tag == 'UnaryOp' or
+    parent_ast_tag == 'BinaryOp' or
+    parent_ast_tag == 'TernaryOp'
+end
+
+local C_UNARY_OPS = {
+  ['not'] = '!',
+  ['neg'] = '-',
+  ['bnot'] = '~'
+  --TODO: len
+  --TODO: tostring
+}
+generator:register('UnaryOp', function(context, ast, coder)
+  local opname, arg = ast:args()
+  local op = ast:assertf(C_UNARY_OPS[opname], 'unary operator "%s" not found', opname)
+  local surround = is_in_operator(context)
+  if surround then coder:add('(') end
+  coder:add(op, arg)
+  if surround then coder:add(')') end
+end)
+
+local BINARY_OPS = {
+  ['or'] = '||',
+  ['and'] = '&&',
+  ['ne'] = '!=',
+  ['eq'] = '==',
+  ['le'] = '<=',
+  ['ge'] = '>=',
+  ['lt'] = '<',
+  ['gt'] = '>',
+  ['bor'] = '|',
+  ['bxor'] = '^',
+  ['band'] = '&',
+  ['shl'] = '<<',
+  ['shr'] = '>>',
+  ['add'] = '+',
+  ['sub'] = '-',
+  ['mul'] = '*',
+  ['div'] = '/',
+  ['mod'] = '%',
+  --TODO: idiv
+  --TODO: pow
+  --TODO: concat
+}
+generator:register('BinaryOp', function(context, ast, coder)
+  local opname, left_arg, right_arg = ast:args()
+  local op = ast:assertf(BINARY_OPS[opname], 'binary operator "%s" not found', opname)
+  local surround = is_in_operator(context)
+  if surround then coder:add('(') end
+  coder:add(left_arg, ' ', op, ' ', right_arg)
+  if surround then coder:add(')') end
+end)
+
+generator:register('TernaryOp', function(context, ast, coder)
+  local opname, left_arg, mid_arg, right_arg = ast:args()
+  ast:assertf(opname == 'if', 'unknown ternary operator "%s"', opname)
+  local surround = is_in_operator(context)
+  if surround then coder:add('(') end
+  coder:add(mid_arg, ' ? ', left_arg, ' : ', right_arg)
+  if surround then coder:add(')') end
+end)
 
 function generator:generate(ast)
   local context = self:newContext()
