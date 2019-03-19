@@ -5,9 +5,6 @@ local stringx = require 'pl.stringx'
 local inspect = require 'inspect'
 local assertf = require 'euluna.utils'.assertf
 
--- upper table display limit
-assert:set_parameter("TableFormatLevel", 16)
-
 function assert.ast_equals(expected_ast, ast)
   assert.same(tostring(expected_ast), tostring(ast))
 end

@@ -129,8 +129,6 @@ it("function definition", function()
   assert_generate_lua("function a:f()\nend")
   assert_generate_lua("function a.b:f()\nend")
   assert_generate_lua("function f(a: integer): integer\nend", "function f(a)\nend")
-  assert_generate_lua("function f(a: var, b: var&, c: let, d: let&, e)\nend",
-                      "function f(a, b, c, d, e)\nend")
 end)
 it("unary operators", function()
   assert_generate_lua("return not a")

@@ -6,8 +6,9 @@ local TraverserContext = class()
 
 function TraverserContext:_init(traverser)
   self.scope = Scope()
-  self.traverser = traverser
+  self.visitors = traverser.visitors
   self.asts = {}
+  self.coders = {}
 end
 
 function TraverserContext:push_scope()
@@ -32,7 +33,17 @@ function TraverserContext:get_parent_ast()
   return self.asts[#self.asts - 1]
 end
 
+function TraverserContext:traverse(ast, ...)
+  assert(ast.is_astnode, "trying to traverse a non ast value")
+  local visitor_func = self.visitors[ast.tag]
+  assertf(visitor_func, "visitor '%s' does not exist", ast.tag)
+  self:push_ast(ast)
+  visitor_func(self, ast, ...)
+  self:pop_ast()
+end
+
 local Traverser = class()
+Traverser.Context = TraverserContext
 
 function Traverser:_init()
   self.visitors = {}
@@ -42,14 +53,8 @@ function Traverser:register(name, func)
   self.visitors[name] = func
 end
 
-function Traverser:traverse(ast, context, scope)
-  assert(scope, 'no scope in traversal')
-  local visitor_func = assertf(self.visitors[ast.tag], "visitor '%s' does not exist", ast.tag)
-  context:push_ast(ast)
-  visitor_func(ast, context, scope)
-  context:pop_ast()
+function Traverser:newContext(...)
+  return self.Context(self, ...)
 end
-
-Traverser.Context = TraverserContext
 
 return Traverser
