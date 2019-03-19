@@ -63,7 +63,7 @@ generator:register('Function', function(ast, coder)
   else
     coder:add_ln('function(', args, ')')
     coder:add(block)
-    coder:add('end')
+    coder:add_indent('end')
   end
 end)
 
@@ -71,6 +71,10 @@ end)
 generator:register('Id', function(ast, coder)
   local name = ast:args()
   coder:add(name)
+end)
+generator:register('Paren', function(ast, coder)
+  local what = ast:args()
+  coder:add('(', what, ')')
 end)
 generator:register('Type', function() end)
 generator:register('TypedId', function(ast, coder)
@@ -99,36 +103,17 @@ generator:register('ArrayIndex', function(ast, coder)
 end)
 
 -- calls
-local function should_surround_caller(caller)
-  if caller.tag == 'Id' or
-     caller.tag == 'DotIndex' or
-     caller.tag == 'ArrayIndex' or
-     caller.tag == 'Call' or
-     caller.tag == 'CallMethod' then
-     return false
-  end
-  return true
-end
-
 generator:register('Call', function(ast, coder)
   local argtypes, args, caller, block_call = ast:args()
-  local surround = should_surround_caller(caller)
   if block_call then coder:add_indent() end
-  if surround then coder:add('(') end
-  coder:add(caller)
-  if surround then coder:add(')') end
-  coder:add('(', args, ')')
+  coder:add(caller, '(', args, ')')
   if block_call then coder:add_ln() end
 end)
 
 generator:register('CallMethod', function(ast, coder)
   local name, argtypes, args, caller, block_call = ast:args()
-  local surround = should_surround_caller(caller)
   if block_call then coder:add_indent() end
-  if surround then coder:add('(') end
-  coder:add(caller)
-  if surround then coder:add(')') end
-  coder:add(':', name, '(', args, ')')
+  coder:add(caller, ':', name, '(', args, ')')
   if block_call then coder:add_ln() end
 end)
 
@@ -291,7 +276,7 @@ local LUA_UNARY_OPS = {
 }
 generator:register('UnaryOp', function(ast, coder)
   local opname, arg = ast:args()
-  if opname == 'tostr' then
+  if opname == 'tostring' then
     coder:add('tostring(', arg, ')')
   else
     local op = ast:assertf(LUA_UNARY_OPS[opname], 'unary operator "%s" not found', opname)
@@ -329,7 +314,7 @@ generator:register('BinaryOp', function(ast, coder)
   local op = ast:assertf(BINARY_OPS[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(coder)
   if surround then coder:add('(') end
-    coder:add(left_arg, ' ', op, ' ', right_arg)
+  coder:add(left_arg, ' ', op, ' ', right_arg)
   if surround then coder:add(')') end
 end)
 

@@ -143,12 +143,13 @@ describe("expression", function()
           AST('Table', { AST('Pair', AST('Id', 'a'), AST('Id', 'b')) }),
     })}))
   end)
-  it("surrounded parethesis", function()
+  it("surrounded expression", function()
     assert.parse_ast(euluna_parser, "return (a)",
       AST('Block', {
         AST('Return', {
-          AST('Id', 'a'),
-    })}))
+          AST('Paren',
+            AST('Id', 'a')
+    )})}))
   end)
   it("dot index", function()
     assert.parse_ast(euluna_parser, "return a.b, a.b.c",
@@ -835,7 +836,7 @@ describe("operator", function()
     assert.parse_ast(euluna_parser, "return $a",
       AST('Block', {
         AST('Return', {
-          AST('UnaryOp', 'tostr', AST('Id', 'a')
+          AST('UnaryOp', 'tostring', AST('Id', 'a')
     )})}))
   end)
   it("'&'", function()

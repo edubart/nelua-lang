@@ -38,36 +38,36 @@ continue
 
 | Name | Syntax | Type | Operation |
 |---|---|---|---|
-| or    | `a or b`      | binary   | conditional or           |
-| and   | `a and b`     | binary   | conditional and          |
-| lt    | `a < b`       | binary   | less than                |
-| ne    | `a ~= b`      | binary   | not equal                |
-| gt    | `a > b`       | binary   | greater than             |
-| le    | `a <= b`      | binary   | less or equal than       |
-| ge    | `a >= b`      | binary   | greater or equal than    |
-| eq    | `a == b`      | binary   | equal                    |
-| bor   | `a | b`       | binary   | bitwise or               |
-| band  | `a & b`       | binary   | bitwise and              |
-| bxor  | `a ~ b`       | binary   | bitwise xor              |
-| shl   | `a << b`      | binary   | bitwise sguft right      |
-| shr   | `a >> b`      | binary   | bitwise shift left       |
-| concat| `a .. b`      | binary   | concatenation operator   |
-| add   | `a + b`       | binary   | numeric add              |
-| sub   | `a - b`       | binary   | numeric subtract         |
-| mul   | `a * b`       | binary   | numeric multiply         |
-| div   | `a / b`       | binary   | numeric division         |
-| idiv  | `a // b`      | binary   | integer division         |
-| mod   | `a % b`       | binary   | numeric modulo           |
-| imod  | `a %% b`      | binary   | integer modulo           |
-| not   | `not a`       | unary    | boolean negation         |
-| len   | `#a`          | unary    | length operator          |
-| neg   | `-a`          | unary    | numeric negation         |
-| bnot  | `~a`          | unary    | bitwise not              |
-| tostr | `$a`          | unary    | stringification operator |
-| ref   | `&a`          | unary    | reference operator       |
-| deref | `*a`          | unary    | dereference operator     |
-| pow   | `a ^ b`       | unary    | numeric pow              |
-| if    | `a if c or b` | ternary  | ternary if operator      |
+| or       | `a or b`      | binary   | conditional or           |
+| and      | `a and b`     | binary   | conditional and          |
+| lt       | `a < b`       | binary   | less than                |
+| ne       | `a ~= b`      | binary   | not equal                |
+| gt       | `a > b`       | binary   | greater than             |
+| le       | `a <= b`      | binary   | less or equal than       |
+| ge       | `a >= b`      | binary   | greater or equal than    |
+| eq       | `a == b`      | binary   | equal                    |
+| bor      | `a | b`       | binary   | bitwise or               |
+| band     | `a & b`       | binary   | bitwise and              |
+| bxor     | `a ~ b`       | binary   | bitwise xor              |
+| shl      | `a << b`      | binary   | bitwise sguft right      |
+| shr      | `a >> b`      | binary   | bitwise shift left       |
+| concat   | `a .. b`      | binary   | concatenation operator   |
+| add      | `a + b`       | binary   | numeric add              |
+| sub      | `a - b`       | binary   | numeric subtract         |
+| mul      | `a * b`       | binary   | numeric multiply         |
+| div      | `a / b`       | binary   | numeric division         |
+| idiv     | `a // b`      | binary   | integer division         |
+| mod      | `a % b`       | binary   | numeric modulo           |
+| imod     | `a %% b`      | binary   | integer modulo           |
+| not      | `not a`       | unary    | boolean negation         |
+| len      | `#a`          | unary    | length operator          |
+| neg      | `-a`          | unary    | numeric negation         |
+| bnot     | `~a`          | unary    | bitwise not              |
+| tostring | `$a`          | unary    | stringification operator |
+| ref      | `&a`          | unary    | reference operator       |
+| deref    | `*a`          | unary    | dereference operator     |
+| pow      | `a ^ b`       | unary    | numeric pow              |
+| if       | `a if c or b` | ternary  | ternary if operator      |
 
 ## Other symbols used in the language syntax
 

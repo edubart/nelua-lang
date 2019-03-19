@@ -38,6 +38,9 @@ shaper:register('Pair', types.shape {
 shaper:register('Id', types.shape {
   types.string, -- name
 })
+shaper:register('Paren', types.shape {
+  types.ASTNode -- expr
+})
 shaper:register('Type', types.shape {
   types.string, -- type
 })
@@ -253,7 +256,7 @@ parser:set_pegs([[
     [abfnrtv\'"] -> specifier2char /
     %LINEBREAK -> ln2ln /
     ('z' %s*) -> '' /
-    ([012] %d^-2) -> num2char /
+    (%d %d^-1 !%d / [012] %d^2) -> num2char /
     ('x' {%x^2}) -> hex2char /
     ('u' '{' {%x^+1} '}') -> hex2unicode /
     %{MalformedEscapeSequence}
@@ -480,7 +483,7 @@ grammar:set_pegs([[
 
   primary_expr <-
     %cID /
-    %LPAREN eexpr eRPAREN
+    ({} %LPAREN -> 'Paren' eexpr eRPAREN) -> to_astnode
 
   index_expr <- dot_index / array_index
   dot_index <- {| {} %DOT -> 'DotIndex' ecNAME |}
@@ -565,7 +568,7 @@ grammar:set_pegs([[
                %LEN -> 'len' /
                %NEG -> 'neg' /
                %BNOT -> 'bnot' /
-               %TOSTR -> 'tostr' /
+               %TOSTR -> 'tostring' /
                %REF -> 'ref' /
                %DEREF -> 'deref'
   op_pow   <-  %POW -> 'pow'

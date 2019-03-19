@@ -1,10 +1,13 @@
 local class = require 'pl.class'
+local lpeg = require 'lpeglabel'
 local re = require 'relabel'
 local tablex = require 'pl.tablex'
 local utils = require 'euluna.utils'
 local unpack = table.unpack or unpack
 local assertf = utils.assertf
 local Parser = class()
+
+lpeg.setmaxstack(1024)
 
 function Parser:_init()
   self.keywords = {}

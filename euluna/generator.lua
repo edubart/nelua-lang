@@ -59,7 +59,7 @@ end
 
 local quotes_defs = {
   to_special_character = function(s)
-    return '\\x' .. string.format('%.2x', string.byte(s))
+    return '\\' .. string.byte(s)
   end
 }
 local quote_patt_begin =  "\
@@ -69,7 +69,7 @@ quotechar <- \
   '\a' -> '\\a' /   -- audible bell \
   '\b' -> '\\b' /   -- backspace \
   '\f' -> '\\f' /   -- form feed \
-  [%nl] -> '\\n' /  -- line feed \
+  %nl  -> '\\n' /  -- line feed \
   '\r' -> '\\r' /   -- carriege return \
   '\t' -> '\\t' /   -- horizontal tab \
   '\v' -> '\\v' /   -- vertical tab \
