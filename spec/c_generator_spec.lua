@@ -175,4 +175,9 @@ it("c types", function()
   assert_generate_c("local a: bool", "bool a;")
 end)
 
+it("print", function()
+  assert.run({'-g', 'c', '-e', "print(1,0.2,1e2,0xf,0b01)"},
+    '1\t0.200000\t100.000000\t15\t1')
+end)
+
 end)

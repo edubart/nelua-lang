@@ -5,6 +5,46 @@ local assertf = require 'euluna.utils'.assertf
 
 local Builtins = {}
 
+local NUM_LITERALS = {
+  _integer    = 'integer',
+  _number     = 'number',
+  _b          = 'byte',     _byte       = 'byte',
+  _c          = 'char',     _char       = 'char',
+  _i          = 'int',      _int        = 'int',
+  _i8         = 'int8',     _int8       = 'int8',
+  _i16        = 'int16',    _int16      = 'int16',
+  _i32        = 'int32',    _int32      = 'int32',
+  _i64        = 'int64',    _int64      = 'int64',
+  _u          = 'uint',     _uint       = 'uint',
+  _u8         = 'uint',     _uint8      = 'uint',
+  _u16        = 'uint',     _uint16     = 'uint',
+  _u32        = 'uint',     _uint32     = 'uint',
+  _u64        = 'uint',     _uint64     = 'uint',
+  _f32        = 'float32',  _float32    = 'float32',
+  _f64        = 'float64',  _float64    = 'float64',
+  _pointer    = 'pointer',
+}
+
+local function get_number_type(ast)
+  local numtype, _, literal = ast:args()
+  if literal then
+    local littype = NUM_LITERALS[literal]
+    ast:assertf(littype, 'literal "%s" is not defined', literal)
+    return littype
+  end
+  if numtype == 'int' then
+    return 'int'
+  elseif numtype == 'dec' then
+    return 'number'
+  elseif numtype == 'exp' then
+    return 'number'
+  elseif numtype == 'hex' then
+    return 'uint'
+  elseif numtype == 'bin' then
+    return 'uint'
+  end
+end
+
 function Builtins.euluna_string_t(context)
   context:add_include("<stdint.h>")
   context.builtins_declarations_coder:add(
@@ -16,33 +56,91 @@ function Builtins.euluna_string_t(context)
 ]])
 end
 
-function Builtins.euluna_print(context)
+local BultinFunctions = {}
+
+local PRINTF_TYPES_FORMAT = {
+  integer = '%lli',
+  number  = '%lf',
+  byte    = '%hhi',
+  char    = '%c',
+  float64 = '%f',
+  float32 = '%lf',
+  pointer = '%p',
+  int     = '%ti',
+  int8    = '%hhi',
+  int16   = '%hi',
+  int32   = '%li',
+  int64   = '%lli',
+  uint    = '%tu',
+  uint8   = '%hhu',
+  uint16  = '%hu',
+  uint32  = '%lu',
+  uint64  = '%llu',
+}
+
+function BultinFunctions.print(context, ast, coder)
+  local argtypes, args = ast:args()
+  local funcname = '__euluna_print_' .. ast.pos
   context:add_builtin('euluna_string_t')
   context:add_include("<stdio.h>")
-  context:add_include("<stdarg.h>")
-  context.builtins_declarations_coder:add_ln(
-    "void euluna_print(int n, euluna_string_t* s, ...);")
-  context.builtins_definitions_coder:add_ln(
-[[void euluna_print(int n, euluna_string_t* s, ...) {
-    va_list argp;
-    va_start(argp, s);
-    for(int i=0; i<n; ++i) {
-        fwrite((*s).data, (*s).len, 1, stdout);
-    }
-    va_end(argp);
-    fwrite("\n", 1, 1, stdout);
-    fflush(stdout);
-}]])
-end
 
-local BultinFunctions = {}
-function BultinFunctions.print(context, args, coder)
-  context:add_builtin('euluna_print')
-  local numargs = #args
-  coder:add('euluna_print(', numargs, ', ')
-  for _,arg in ipairs(args) do
-    arg:assertf(arg.tag == 'String', "only string literals are supported in print")
-    coder:add('(euluna_string_t*) &(', arg, ')')
+  local function add_heading(dcoder)
+    dcoder:add('void ', funcname, '(')
+    for i,arg in ipairs(args) do
+      arg:assertf(arg.tag == 'String' or arg.tag == 'Number',
+       "only string/number literals are supported in print")
+      if i>1 then dcoder:add(', ') end
+      if arg.tag == 'String' then
+        dcoder:add('const euluna_string_t* a', i)
+      elseif arg.tag == 'Number' then
+        local tyname = get_number_type(arg)
+        local ctype = context:get_ctype(arg, tyname)
+        dcoder:add('const ', ctype, ' a', i)
+      end
+    end
+    dcoder:add(')')
+  end
+
+  do
+    local dcoder = context.declarations_coder
+    dcoder:add_indent('inline ')
+    add_heading(dcoder)
+    dcoder:add_ln(';')
+  end
+
+  do
+    local dcoder = context.definitions_coder
+    dcoder:add_indent()
+    add_heading(dcoder)
+    dcoder:add_ln(' {')
+    dcoder:inc_indent()
+    for i,arg in ipairs(args) do
+      if i > 1 then
+        dcoder:add_indent_ln('fwrite("\t", 1, 1, stdout);')
+      end
+      if arg.tag == 'String' then
+        dcoder:add_indent_ln('fwrite(a',i,'->data, a',i,'->len, 1, stdout);')
+      elseif arg.tag == 'Number' then
+        local tyname = get_number_type(arg)
+        local tyformat = PRINTF_TYPES_FORMAT[tyname]
+        ast:assertf(tyformat, 'invalid type "%s" for printf format', tyname)
+        dcoder:add_indent_ln('fprintf(stdout, "',tyformat,'", a',i,');')
+      end
+    end
+    dcoder:add_indent_ln('fwrite("\\n", 1, 1, stdout);')
+    dcoder:add_indent_ln('fflush(stdout);')
+    dcoder:dec_indent()
+    dcoder:add_ln('}')
+  end
+
+  coder:add(funcname, '(')
+  for i,arg in ipairs(args) do
+    if i>1 then coder:add(', ') end
+    if arg.tag == 'String' then
+      coder:add('(euluna_string_t*) &', arg)
+    elseif arg.tag == 'Number' then
+      coder:add(arg)
+    end
   end
   coder:add(')')
 end
@@ -76,12 +174,12 @@ end
 
 local C_PRIMTYPES = {
   integer = {ctype = 'int64_t',       include='<stdint.h>'},
-  number  = {ctype = 'double',        include=''},
-  byte    = {ctype = 'unsigned char', include=''},
-  char    = {ctype = 'char',          include=''},
-  float64 = {ctype = 'double',        include=''},
-  float32 = {ctype = 'float',         include=''},
-  pointer = {ctype = 'void*',         include=''},
+  number  = {ctype = 'double',                            },
+  byte    = {ctype = 'unsigned char',                     },
+  char    = {ctype = 'char',                              },
+  float64 = {ctype = 'double',                            },
+  float32 = {ctype = 'float',                             },
+  pointer = {ctype = 'void*',                             },
   int     = {ctype = 'intptr_t',      include='<stdint.h>'},
   int8    = {ctype = 'int8_t',        include='<stdint.h>'},
   int16   = {ctype = 'int16_t',       include='<stdint.h>'},
@@ -111,26 +209,6 @@ end
 local generator = Traverser()
 generator.Context = GeneratorContext
 
-local NUM_LITERALS = {
-  _integer    = 'integer',
-  _number     = 'number',
-  _b          = 'byte',     _byte       = 'byte',
-  _c          = 'char',     _char       = 'char',
-  _i          = 'int',      _int        = 'int',
-  _i8         = 'int8',     _int8       = 'int8',
-  _i16        = 'int16',    _int16      = 'int16',
-  _i32        = 'int32',    _int32      = 'int32',
-  _i64        = 'int64',    _int64      = 'int64',
-  _u          = 'uint',     _uint       = 'uint',
-  _u8         = 'uint',     _uint8      = 'uint',
-  _u16        = 'uint',     _uint16     = 'uint',
-  _u32        = 'uint',     _uint32     = 'uint',
-  _u64        = 'uint',     _uint64     = 'uint',
-  _f32        = 'float32',  _float32    = 'float32',
-  _f64        = 'float64',  _float64    = 'float64',
-  _pointer    = 'pointer',
-}
-
 generator:register('Number', function(context, ast, coder)
   local numtype, value, literal = ast:args()
   local cval
@@ -146,9 +224,8 @@ generator:register('Number', function(context, ast, coder)
     cval = string.format('%uu', tonumber(value, 2))
   end
   if literal then
-    local littype = NUM_LITERALS[literal]
-    ast:assertf(littype, 'literal "%s" is not defined', literal)
-    local ctype = context:get_ctype(ast, littype)
+    local tyname = get_number_type(ast)
+    local ctype = context:get_ctype(ast, tyname)
     coder:add('((', ctype, ') ', cval, ')')
   else
     coder:add(cval)
@@ -229,7 +306,7 @@ generator:register('Call', function(context, ast, coder)
     builtin = BultinFunctions[fname]
   end
   if builtin then
-    builtin(context, args, coder)
+    builtin(context, ast, coder)
   else
     coder:add(caller, '(', args, ')')
   end
