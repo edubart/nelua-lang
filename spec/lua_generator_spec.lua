@@ -22,9 +22,9 @@ it("return", function()
   assert_generate_lua("return 1")
   assert_generate_lua("return 1, 2")
 end)
-
 it("number", function()
-  assert_generate_lua("return 1, 1.2, 1e2, 0x1f, 0b10", "return 1, 1.2, 1e2, 0x1f, 2")
+  assert_generate_lua("return 1, 1.2, 1e2, 0x1f, 0b10",
+                      "return 1, 1.2, 1e2, 0x1f, 2")
 end)
 it("string", function()
   assert_generate_lua([[return 'a', "b", [=[c]=] ]], [[return "a", "b", "c"]])

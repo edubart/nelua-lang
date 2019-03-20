@@ -25,11 +25,37 @@ function GeneratorContext:add_include(name)
   self.includes_coder:add_ln(string.format('#include %s', name))
 end
 
-function GeneratorContext:get_ctype(tyname)
-  if tyname == 'integer' then
-    self:add_include('<stdint.h>')
-    return 'int64_t'
+local C_PRIMTYPES = {
+  integer = {ctype = 'int64_t',       include='<stdint.h>'},
+  number  = {ctype = 'double',        include=''},
+  byte    = {ctype = 'unsigned char', include=''},
+  char    = {ctype = 'char',          include=''},
+  float64 = {ctype = 'double',        include=''},
+  float32 = {ctype = 'float',         include=''},
+  pointer = {ctype = 'void*',         include=''},
+  int     = {ctype = 'intptr_t',      include='<stdint.h>'},
+  int8    = {ctype = 'int8_t',        include='<stdint.h>'},
+  int16   = {ctype = 'int16_t',       include='<stdint.h>'},
+  int32   = {ctype = 'int32_t',       include='<stdint.h>'},
+  int64   = {ctype = 'int64_t',       include='<stdint.h>'},
+  uint    = {ctype = 'uintptr_t',     include='<stdint.h>'},
+  uint8   = {ctype = 'uint8_t',       include='<stdint.h>'},
+  uint16  = {ctype = 'uint16_t',      include='<stdint.h>'},
+  uint32  = {ctype = 'uint32_t',      include='<stdint.h>'},
+  uint64  = {ctype = 'uint64_t',      include='<stdint.h>'},
+  isize   = {ctype = 'size_t',        include='<stddef.h>'},
+  usize   = {ctype = 'usize_t',       include='<stddef.h>'},
+  boolean = {ctype = 'bool',          include='<stdbool.h>'},
+  bool    = {ctype = 'bool',          include='<stdbool.h>'},
+}
+
+function GeneratorContext:get_ctype(ast, tyname)
+  local ttype = C_PRIMTYPES[tyname]
+  ast:assertf(ttype, 'type %s is not known', tyname)
+  if ttype.include then
+    self:add_include(ttype.include)
   end
+  return ttype.ctype
 end
 
 --------------------------------------------------------------------------------
@@ -38,23 +64,55 @@ end
 local generator = Traverser()
 generator.Context = GeneratorContext
 
-generator:register('Number', function(_, ast, coder)
-  local type, value, literal = ast:args()
-  ast:assertf(literal == nil, 'literals are not supported in c')
-  if type == 'int' or type == 'dec' then
-    coder:add(value)
-  --elseif type == 'exp' then
-  --  coder:add(string.format('%se%s', value[1], value[2]))
-  --elseif type == 'hex' then
-  --  coder:add(string.format('0x%s', value))
-  --elseif type == 'bin' then
-  --  coder:add(string.format('%u', tonumber(value, 2)))
+local NUM_LITERALS = {
+  _integer    = 'integer',
+  _number     = 'number',
+  _b          = 'byte',     _byte       = 'byte',
+  _c          = 'char',     _char       = 'char',
+  _i          = 'int',      _int        = 'int',
+  _i8         = 'int8',     _int8       = 'int8',
+  _i16        = 'int16',    _int16      = 'int16',
+  _i32        = 'int32',    _int32      = 'int32',
+  _i64        = 'int64',    _int64      = 'int64',
+  _u          = 'uint',     _uint       = 'uint',
+  _u8         = 'uint',     _uint8      = 'uint',
+  _u16        = 'uint',     _uint16     = 'uint',
+  _u32        = 'uint',     _uint32     = 'uint',
+  _u64        = 'uint',     _uint64     = 'uint',
+  _f32        = 'float32',  _float32    = 'float32',
+  _f64        = 'float64',  _float64    = 'float64',
+  _isize      = 'isize',
+  _usize      = 'usize',
+  _pointer    = 'pointer',
+}
+
+generator:register('Number', function(context, ast, coder)
+  local numtype, value, literal = ast:args()
+  local cval
+  if numtype == 'int' then
+    cval = value
+  elseif numtype == 'dec' then
+    cval = value
+  elseif numtype == 'exp' then
+    cval = string.format('%se%s', value[1], value[2])
+  elseif numtype == 'hex' then
+    cval = string.format('0x%su', value)
+  elseif numtype == 'bin' then
+    cval = string.format('%uu', tonumber(value, 2))
+  end
+  if literal then
+    local littype = NUM_LITERALS[literal]
+    ast:assertf(littype, 'literal "%s" is not defined', literal)
+    local ctype = context:get_ctype(ast, littype)
+    coder:add('((', ctype, ') ', cval, ')')
+  else
+    coder:add(cval)
   end
 end)
 
 generator:register('String', function(_, ast, coder)
   local value, literal = ast:args()
-  ast:assertf(literal == nil, 'literals are not supported in c')
+  ast:assertf(literal == nil, 'literals are not supported yet')
   coder:add_double_quoted(value)
 end)
 
@@ -81,7 +139,7 @@ generator:register('Paren', function(_, ast, coder)
 end)
 generator:register('Type', function(context, ast, coder)
   local tyname = ast:args()
-  local ctyname = context:get_ctype(tyname)
+  local ctyname = context:get_ctype(ast, tyname)
   coder:add(ctyname)
 end)
 generator:register('TypedId', function(_, ast, coder)
@@ -123,6 +181,13 @@ generator:register('Call', function(context, ast, coder)
   end
   coder:add('(', args, ')')
   if block_call then coder:add_ln(";") end
+end)
+
+generator:register('CallMethod', function(_, ast, coder)
+  local name, argtypes, args, caller, block_call = ast:args()
+  if block_call then coder:add_indent() end
+  coder:add(caller, '.', name, '(', caller, args, ')')
+  if block_call then coder:add_ln() end
 end)
 
 generator:register('FuncArg', function(_, ast, coder)
@@ -334,7 +399,9 @@ end
 local C_UNARY_OPS = {
   ['not'] = '!',
   ['neg'] = '-',
-  ['bnot'] = '~'
+  ['bnot'] = '~',
+  ['ref'] = '&',
+  ['deref'] = '*',
   --TODO: len
   --TODO: tostring
 }

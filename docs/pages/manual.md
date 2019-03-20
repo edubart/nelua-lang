@@ -103,26 +103,36 @@ continue
 
 ## Primitives types
 
-| Type  | C Type  | Suffixes  |
-|---|---|---|
-| `boolean` | `bool` | |
-| `integer` | `int64_t` | `_i` `_integer` |
-| `uinteger`| `uint64_t` | `_u` `_uinteger` |
-| `number` | `double` | `_d` `_number` |
-| `byte` | `uint8_t` | `_b` `_byte` |
-| `char` | `char` | `_c` `_char` |
-| `uint64` | `uint64_t` | `_u64` `_uint64` |
-| `uint32` | `uint32_t` | `_u32` `_uint32` |
-| `uint16` | `uint16_t` | `_u16` `_uint16` |
-| `uint8` | `uint8_t` | `_u8` `_uint8` |
-| `int64` | `int64_t` | `_i64` `_int64` |
-| `int32` | `int32_t` | `_i32` `_int32` |
-| `int16` | `int16_t` | `_i16` `_int16` |
-| `int8` | `int8_t` | `_i8` `_int8` |
-| `float64` | `double` | `_f64` `_float64` |
-| `float32` | `float` | `_f32` `_float32` |
-| `isize` | `intptr_t` | `_isize` |
-| `usize` | `uintptr_t` | `_usize` |
+| Type              | C Type          | Suffixes            |
+|-------------------|-----------------|---------------------|
+| `integer`         | `int64_t`       | `_integer`          |
+| `number`          | `double`        | `_number`           |
+| `byte`            | `unsigned char` | `_b` `_byte`        |
+| `char`            | `char`          | `_c` `_char`        |
+| `int`             | `intptr_t`      | `_i` `_int`         |
+| `int8`            | `int8_t`        | `_i8` `_int8`       |
+| `int16`           | `int16_t`       | `_i16` `_int16`     |
+| `int32`           | `int32_t`       | `_i32` `_int32`     |
+| `int64`           | `int64_t`       | `_i64` `_int64`     |
+| `uint`            | `uintptr_t`     | `_u` `_uint`        |
+| `uint8`           | `uint8_t`       | `_u8` `_uint8`      |
+| `uint16`          | `uint16_t`      | `_u16` `_uint16`    |
+| `uint32`          | `uint32_t`      | `_u32` `_uint32`    |
+| `uint64`          | `uint64_t`      | `_u64` `_uint64`    |
+| `float32`         | `float`         | `_f32` `_float32`   |
+| `float64`         | `double`        | `_f64` `_float64`   |
+| `isize`           | `ptrdiff_t`     | `_isize`            |
+| `usize`           | `size_t`        | `_usize`            |
+| `pointer`         | `void*`         | `_pointer`          |
+| `boolean` `bool`  | `bool`          |                     |
+
+The types `int` and `uint` types are usually 32 wide bits on 32-bit systems,
+and 64 bits wide on 64-bit systems. When you need an integer value you should use `int` unless you have a specific reason to use a sized or unsigned integer type.
+
+The `int` is the default type for integers literals with no suffix.
+The `uint` is the default type for hexadecimal and binary literals with no suffix.
+The `number` is the default type for decimal and exponential literals with no suffix.
+
 
 ## Literal values
 
