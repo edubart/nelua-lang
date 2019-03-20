@@ -1,11 +1,50 @@
 local Traverser = require 'euluna.traverser'
 local Coder = require 'euluna.coder'
 local class = require 'pl.class'
+local assertf = require 'euluna.utils'.assertf
+
+local Builtins = {}
+
+function Builtins.euluna_string_t(context)
+  context:add_include("<stdint.h>")
+  context.builtins_declarations_coder:add(
+[[typedef struct euluna_string_t {
+    uintptr_t len;
+    uintptr_t res;
+    char data[];
+} euluna_string_t;
+]])
+end
+
+function Builtins.euluna_print(context)
+  context:add_builtin('euluna_string_t')
+  context:add_include("<stdio.h>")
+  context:add_include("<stdarg.h>")
+  context.builtins_declarations_coder:add_ln(
+    "void euluna_print(int n, euluna_string_t* s, ...);")
+  context.builtins_definitions_coder:add_ln(
+[[void euluna_print(int n, euluna_string_t* s, ...) {
+    va_list argp;
+    va_start(argp, s);
+    for(int i=0; i<n; ++i) {
+        fwrite((*s).data, (*s).len, 1, stdout);
+    }
+    va_end(argp);
+    fwrite("\n", 1, 1, stdout);
+    fflush(stdout);
+}]])
+end
 
 local BultinFunctions = {}
-function BultinFunctions.print(context, coder)
-  context:add_include("<stdio.h>")
-  coder:add("puts")
+function BultinFunctions.print(context, args, coder)
+  context:add_builtin('euluna_print')
+  local numargs = #args
+  coder:add('euluna_print(', numargs, ', ')
+  for _,arg in ipairs(args) do
+    arg:assertf(arg.tag == 'String', "only string literals are supported in print")
+    coder:add('(euluna_string_t*) &(', arg, ')')
+  end
+  coder:add(')')
 end
 
 --------------------------------------------------------------------------------
@@ -16,6 +55,7 @@ local GeneratorContext = class(Traverser.Context)
 function GeneratorContext:_init(traverser)
   self:super(traverser)
   self.includes = {}
+  self.builtins = {}
 end
 
 function GeneratorContext:add_include(name)
@@ -23,6 +63,15 @@ function GeneratorContext:add_include(name)
   if includes[name] then return end
   includes[name] = true
   self.includes_coder:add_ln(string.format('#include %s', name))
+end
+
+function GeneratorContext:add_builtin(name)
+  local builtins = self.builtins
+  if builtins[name] then return end
+  builtins[name] = true
+  local builtin = Builtins[name]
+  assertf(builtin, 'builtin %s not found', name)
+  builtin(self)
 end
 
 local C_PRIMTYPES = {
@@ -43,8 +92,6 @@ local C_PRIMTYPES = {
   uint16  = {ctype = 'uint16_t',      include='<stdint.h>'},
   uint32  = {ctype = 'uint32_t',      include='<stdint.h>'},
   uint64  = {ctype = 'uint64_t',      include='<stdint.h>'},
-  isize   = {ctype = 'size_t',        include='<stddef.h>'},
-  usize   = {ctype = 'usize_t',       include='<stddef.h>'},
   boolean = {ctype = 'bool',          include='<stdbool.h>'},
   bool    = {ctype = 'bool',          include='<stdbool.h>'},
 }
@@ -81,8 +128,6 @@ local NUM_LITERALS = {
   _u64        = 'uint',     _uint64     = 'uint',
   _f32        = 'float32',  _float32    = 'float32',
   _f64        = 'float64',  _float64    = 'float64',
-  _isize      = 'isize',
-  _usize      = 'usize',
   _pointer    = 'pointer',
 }
 
@@ -110,10 +155,20 @@ generator:register('Number', function(context, ast, coder)
   end
 end)
 
-generator:register('String', function(_, ast, coder)
+generator:register('String', function(context, ast, coder)
   local value, literal = ast:args()
   ast:assertf(literal == nil, 'literals are not supported yet')
-  coder:add_double_quoted(value)
+  local deccoder = context.declarations_coder
+  local len = #value
+  local varname = '__string_literal_' .. ast.pos
+  context:add_include('<stdint.h>')
+  deccoder:add_indent('static const struct { uintptr_t len, res; char data[')
+  deccoder:add(len + 1)
+  deccoder:add_ln(']; }')
+  deccoder:add_indent('  ', varname, ' = {', len, ', ', len, ', ')
+  deccoder:add_double_quoted(value)
+  deccoder:add_ln('};')
+  coder:add(varname)
 end)
 
 generator:register('Boolean', function(context, ast, coder)
@@ -168,18 +223,16 @@ end)
 generator:register('Call', function(context, ast, coder)
   local argtypes, args, caller, block_call = ast:args()
   if block_call then coder:add_indent() end
+  local builtin
   if caller.tag == 'Id' then
     local fname = caller[1]
-    local builtin = BultinFunctions[fname]
-    if builtin then
-      builtin(context, coder)
-    else
-      coder:add(caller)
-    end
-  else
-    coder:add(caller)
+    builtin = BultinFunctions[fname]
   end
-  coder:add('(', args, ')')
+  if builtin then
+    builtin(context, args, coder)
+  else
+    coder:add(caller, '(', args, ')')
+  end
   if block_call then coder:add_ln(";") end
 end)
 
@@ -460,6 +513,8 @@ function generator:generate(ast)
   local indent = '    '
 
   context.includes_coder = Coder(context, indent, 0)
+  context.builtins_declarations_coder = Coder(context, indent, 0)
+  context.builtins_definitions_coder = Coder(context, indent, 0)
   context.declarations_coder = Coder(context, indent, 0)
   context.definitions_coder = Coder(context, indent, 0)
   context.main_coder = Coder(context, indent)
@@ -468,6 +523,8 @@ function generator:generate(ast)
 
   local code = table.concat({
     context.includes_coder:generate(),
+    context.builtins_declarations_coder:generate(),
+    context.builtins_definitions_coder:generate(),
     context.declarations_coder:generate(),
     context.definitions_coder:generate(),
     context.main_coder:generate()

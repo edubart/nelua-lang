@@ -121,8 +121,6 @@ continue
 | `uint64`          | `uint64_t`      | `_u64` `_uint64`    |
 | `float32`         | `float`         | `_f32` `_float32`   |
 | `float64`         | `double`        | `_f64` `_float64`   |
-| `isize`           | `ptrdiff_t`     | `_isize`            |
-| `usize`           | `size_t`        | `_usize`            |
 | `pointer`         | `void*`         | `_pointer`          |
 | `boolean` `bool`  | `bool`          |                     |
 

@@ -35,9 +35,13 @@ end
 function Coder:add(what, ...)
   if what then
     local typewhat = type(what)
-    assert(typewhat == 'string' or typewhat == 'table', 'cannot add non string or table value')
+    assert(typewhat == 'string' or
+           typewhat == 'table' or
+           typewhat == 'number', 'coder cannot add non string/table/number value')
     if typewhat == 'string' then
       table.insert(self.codes, what)
+    elseif typewhat == 'number' then
+      table.insert(self.codes, tostring(what))
     elseif typewhat == 'table' and what.is_astnode then
       self:add_traversal(what)
     elseif typewhat == 'table' and #what > 0 then
