@@ -29,7 +29,11 @@ local function stringfy_ast(node, depth, t, skipindent)
     table_insert(t, indent)
   end
   if isast then
-    table_inserts(t, "AST('", node.tag, "'")
+    if node.type then
+      table_inserts(t, "TAST('", node.type, "', '", node.tag, "'")
+    else
+      table_inserts(t, "AST('", node.tag, "'")
+    end
   end
   local nargs = isast and node.nargs or #node
   if nargs > 0 then
@@ -99,8 +103,7 @@ function Shaper:register(name, shape)
   klass.nargs = #shape.shape
   klass.is_astnode = true
   local klass_mt = getmetatable(klass())
-  local function node_create(...)
-    local node = {...}
+  local function node_create(node)
     setmetatable(node, klass_mt)
     local ok, err = shape(node)
     assertf(ok, 'invalid shape while creating AST node "%s": %s', name, err)
@@ -112,10 +115,10 @@ function Shaper:register(name, shape)
   return klass
 end
 
-function Shaper:create(tag, ...)
+function Shaper:create(tag, node)
   local create = self.creates[tag]
   assertf(create, "AST with name '%s' is not registered", tag)
-  return create(...)
+  return create(node)
 end
 
 function Shaper:clone()
@@ -124,6 +127,17 @@ function Shaper:clone()
   tablex.update(clone.creates, self.creates)
   tablex.update(clone.types, self.types)
   return clone
+end
+
+function Shaper:AST(tag, ...)
+  return self:create(tag, {...})
+end
+
+function Shaper:TAST(type, tag, ...)
+  local node = {...}
+  self:create(tag, node)
+  node.type = type
+  return node
 end
 
 return Shaper

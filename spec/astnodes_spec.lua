@@ -2,7 +2,7 @@ require 'busted.runner'()
 
 local shaper = require 'euluna.parsers.euluna_std_default'.shaper
 local assert = require 'spec.assert'
-local AST = function(...) return shaper:create(...) end
+local AST = function(name, ...) return shaper:create(name, {...}) end
 
 describe("Euluna AST should", function()
 

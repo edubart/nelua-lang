@@ -16,9 +16,11 @@ local function get_outcachepath(infile)
 end
 
 local function succeed(msg)
-  io.stdout:write(msg)
-  io.stdout:write('\n')
-  io.stdout:flush()
+  if msg then
+    io.stdout:write(msg)
+    io.stdout:write('\n')
+    io.stdout:flush()
+  end
   return 0
 end
 
@@ -55,6 +57,14 @@ function runner.run(argv)
 
   -- only printing ast?
   if config.print_ast then return succeed(tostring(ast)) end
+
+  -- analyze the ast
+  local type_analizer = require 'euluna.analyzers.type_analyzer'
+  local analyzeok
+  analyzeok, err = type_analizer:analyze(ast)
+  if not analyzeok then return fail(err) end
+
+  if config.analyze then return succeed() end
 
   -- generate the code
   local generator = require('euluna.generators.' .. config.generator .. '_generator')

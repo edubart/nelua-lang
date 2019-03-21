@@ -5,46 +5,6 @@ local assertf = require 'euluna.utils'.assertf
 
 local Builtins = {}
 
-local NUM_LITERALS = {
-  _integer    = 'integer',
-  _number     = 'number',
-  _b          = 'byte',     _byte       = 'byte',
-  _c          = 'char',     _char       = 'char',
-  _i          = 'int',      _int        = 'int',
-  _i8         = 'int8',     _int8       = 'int8',
-  _i16        = 'int16',    _int16      = 'int16',
-  _i32        = 'int32',    _int32      = 'int32',
-  _i64        = 'int64',    _int64      = 'int64',
-  _u          = 'uint',     _uint       = 'uint',
-  _u8         = 'uint',     _uint8      = 'uint',
-  _u16        = 'uint',     _uint16     = 'uint',
-  _u32        = 'uint',     _uint32     = 'uint',
-  _u64        = 'uint',     _uint64     = 'uint',
-  _f32        = 'float32',  _float32    = 'float32',
-  _f64        = 'float64',  _float64    = 'float64',
-  _pointer    = 'pointer',
-}
-
-local function get_number_type(ast)
-  local numtype, _, literal = ast:args()
-  if literal then
-    local littype = NUM_LITERALS[literal]
-    ast:assertf(littype, 'literal "%s" is not defined', literal)
-    return littype
-  end
-  if numtype == 'int' then
-    return 'int'
-  elseif numtype == 'dec' then
-    return 'number'
-  elseif numtype == 'exp' then
-    return 'number'
-  elseif numtype == 'hex' then
-    return 'uint'
-  elseif numtype == 'bin' then
-    return 'uint'
-  end
-end
-
 function Builtins.euluna_string_t(context)
   context:add_include("<stdint.h>")
   context.builtins_declarations_coder:add(
@@ -81,20 +41,25 @@ local PRINTF_TYPES_FORMAT = {
 function BultinFunctions.print(context, ast, coder)
   local argtypes, args = ast:args()
   local funcname = '__euluna_print_' .. ast.pos
-  context:add_builtin('euluna_string_t')
   context:add_include("<stdio.h>")
+
+  for _,arg in ipairs(args) do
+    if arg.tag == 'String' then
+      context:add_builtin('euluna_string_t')
+      break
+    end
+  end
 
   local function add_heading(dcoder)
     dcoder:add('void ', funcname, '(')
     for i,arg in ipairs(args) do
-      arg:assertf(arg.tag == 'String' or arg.tag == 'Number',
+      arg:assertf(arg.tag == 'String' or arg.tag == 'Number' or arg.tag == 'Id',
        "only string/number literals are supported in print")
       if i>1 then dcoder:add(', ') end
       if arg.tag == 'String' then
         dcoder:add('const euluna_string_t* a', i)
-      elseif arg.tag == 'Number' then
-        local tyname = get_number_type(arg)
-        local ctype = context:get_ctype(arg, tyname)
+      elseif arg.tag == 'Number' or arg.tag == 'Id' then
+        local ctype = context:get_ctype(arg)
         dcoder:add('const ', ctype, ' a', i)
       end
     end
@@ -113,8 +78,8 @@ function BultinFunctions.print(context, ast, coder)
       end
       if arg.tag == 'String' then
         dcoder:add_indent_ln('fwrite(a',i,'->data, a',i,'->len, 1, stdout);')
-      elseif arg.tag == 'Number' then
-        local tyname = get_number_type(arg)
+      elseif arg.tag == 'Number' or arg.tag == 'Id' then
+        local tyname = assert(arg.type)
         local tyformat = PRINTF_TYPES_FORMAT[tyname]
         ast:assertf(tyformat, 'invalid type "%s" for printf format', tyname)
         dcoder:add_indent_ln('fprintf(stdout, "',tyformat,'", a',i,');')
@@ -131,7 +96,7 @@ function BultinFunctions.print(context, ast, coder)
     if i>1 then coder:add(', ') end
     if arg.tag == 'String' then
       coder:add('(euluna_string_t*) &', arg)
-    elseif arg.tag == 'Number' then
+    elseif arg.tag == 'Number' or arg.tag == 'Id' then
       coder:add(arg)
     end
   end
@@ -187,7 +152,8 @@ local C_PRIMTYPES = {
   bool    = {ctype = 'bool',          include='<stdbool.h>'},
 }
 
-function GeneratorContext:get_ctype(ast, tyname)
+function GeneratorContext:get_ctype(ast)
+  local tyname = ast:assertf(ast.type, 'unknown type for for AST node')
   local ttype = C_PRIMTYPES[tyname]
   ast:assertf(ttype, 'type %s is not known', tyname)
   if ttype.include then
@@ -217,8 +183,7 @@ generator:register('Number', function(context, ast, coder)
     cval = string.format('%uu', tonumber(value, 2))
   end
   if literal then
-    local tyname = get_number_type(ast)
-    local ctype = context:get_ctype(ast, tyname)
+    local ctype = context:get_ctype(ast)
     coder:add('((', ctype, ') ', cval, ')')
   else
     coder:add(cval)
@@ -263,14 +228,14 @@ generator:register('Paren', function(_, ast, coder)
   coder:add('(', what, ')')
 end)
 generator:register('Type', function(context, ast, coder)
-  local tyname = ast:args()
-  local ctyname = context:get_ctype(ast, tyname)
-  coder:add(ctyname)
+  local ctype = context:get_ctype(ast)
+  coder:add(ctype)
 end)
-generator:register('TypedId', function(_, ast, coder)
-  local name, type = ast:args()
-  if type then
-    coder:add(type, ' ', name)
+generator:register('TypedId', function(context, ast, coder)
+  local name = ast:args()
+  if ast.type then
+    local ctype = context:get_ctype(ast)
+    coder:add(ctype, ' ', name)
   else
     coder:add(name)
   end
@@ -462,7 +427,6 @@ end)
 
 generator:register('VarDecl', function(_, ast, coder)
   local varscope, mutability, vars, vals = ast:args()
-  ast:assertf(mutability == 'var', 'variable mutability not supported yet')
   ast:assertf(varscope == 'local', 'global variables not supported yet')
   ast:assertf(not vals or #vars == #vals, 'vars and vals count differs')
   coder:add_indent()

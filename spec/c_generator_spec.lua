@@ -2,11 +2,13 @@ require 'busted.runner'()
 
 local assert = require 'spec.assert'
 local euluna_parser = require 'euluna.parsers.euluna_std_default'.parser
+local analyzer = require 'euluna.analyzers.type_analyzer'
 local c_generator = require 'euluna.generators.c_generator'
 local assertf = require 'euluna.utils'.assertf
 
 local function assert_generate_c(euluna_code, c_code)
   local ast = assert.parse_ast(euluna_parser, euluna_code)
+  assert(analyzer:analyze(ast))
   local generated_code = assert(c_generator:generate(ast))
   if not c_code then c_code = euluna_code end
   assertf(generated_code:find(c_code or '', 1, true),

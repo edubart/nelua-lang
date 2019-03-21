@@ -22,7 +22,7 @@ it("throw error parsing an invalid program" , function()
   assert.run_error('--lint --eval invalid')
   assert.run_error('--lint invalid', 'invalid: No such file or directory')
   assert.run_error({'--generator', 'c', '--eval', "f()"}, 'undefined reference')
-  assert.run_error({'--generator', 'lua', '--eval', "local a = 1_x"}, 'literals are not supported')
+  assert.run_error({'--generator', 'lua', '--eval', "local a = 1_x"}, 'literal "_x" is not defined')
   assert.run_error('--generator c --cc invgcc examples/helloworld.euluna', 'failed to retrive compiler information')
 end)
 

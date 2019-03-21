@@ -242,7 +242,6 @@ end)
 
 generator:register('VarDecl', function(_, ast, coder, scope)
   local varscope, mutability, vars, vals = ast:args()
-  ast:assertf(mutability == 'var', 'variable mutability not supported in lua')
   local is_local = (varscope == 'local') or not scope:is_main()
   coder:add_indent()
   if is_local then

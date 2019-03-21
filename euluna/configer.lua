@@ -11,6 +11,7 @@ argparser:flag('-b --compile-binary', "Compile the generated code and binaries o
 argparser:flag('-e --eval', 'Evaluate string code from input')
 argparser:flag('-l --lint', 'Only check syntax errors')
 argparser:flag('-q --quiet', "Don't print any information while compiling")
+argparser:flag('-a --analyze', 'Analyze the code only')
 argparser:flag('--no-cache', "Don't use any cached compilation")
 argparser:flag('--print-ast', 'Print the AST only')
 argparser:flag('--print-code', 'Print the generated code only')

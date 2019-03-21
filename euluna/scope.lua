@@ -3,6 +3,10 @@ local Scope = class()
 
 function Scope:_init(parent)
   self.parent = parent
+  self.vars = {}
+  if parent then
+    setmetatable(self.vars, { __index = parent.vars })
+  end
 end
 
 function Scope:fork()

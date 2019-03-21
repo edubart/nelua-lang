@@ -38,7 +38,7 @@ function Parser:set_shaper(shaper)
   self.shaper = shaper
 
   local function to_astnode(pos, tag, ...)
-    local node = shaper:create(tag, ...)
+    local node = shaper:create(tag, {...})
     node.pos = pos
     node.src = self.input
     node.srcname = self.inputname

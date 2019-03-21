@@ -46,6 +46,7 @@ build = {
     ['euluna.shaper'] = 'euluna/shaper.lua',
     ['euluna.utils'] = 'euluna/utils.lua',
     ['euluna.traverser'] = 'euluna/traverser.lua',
+    ['euluna.analyzers.type_analyzer'] = 'euluna/analyzers/type_analyzer.lua',
     ['euluna.compilers.lua_compiler'] = 'euluna/compilers/lua_compiler.lua',
     ['euluna.compilers.c_compiler'] = 'euluna/compilers/c_compiler.lua',
     ['euluna.generators.c_generator'] = 'euluna/generators/c_generator.lua',
