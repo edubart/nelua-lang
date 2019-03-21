@@ -56,7 +56,7 @@ function ASTNode:assertf(cond, format, ...)
   if not cond then
     local msg = string.format(format, ...)
     if self.src and self.pos then
-      msg = utils.generate_pretty_error(self.src, self.pos, msg)
+      msg = utils.generate_pretty_error(self.src, self.srcname, self.pos, msg)
     end
     error(msg)
   end

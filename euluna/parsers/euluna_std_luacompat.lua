@@ -418,7 +418,7 @@ grammar:add_group_peg('stat', 'break', [[
 ]])
 
 grammar:add_group_peg('stat', 'label', [[
-  ({} %DBLCOLON -> 'Label' ecNAME eDBLCOLON) -> to_astnode
+  ({} %DBLCOLON -> 'Label' ecNAME (%DBLCOLON / %{UnclosedLabel})) -> to_astnode
 ]])
 
 grammar:add_group_peg('stat', 'goto', [[
@@ -585,7 +585,6 @@ grammar:set_pegs([[
   eTHEN      <- %THEN      / %{ExpectedThen}
   eUNTIL     <- %UNTIL     / %{ExpectedUntil}
   eDO        <- %DO        / %{ExpectedDo}
-  eDBLCOLON  <- %DBLCOLON  / %{ExpectedDoubleColumn}
   ecNAME     <- %cNAME     / %{ExpectedName}
   eexpr      <- expr       / %{ExpectedExpression}
   etypexpr   <- typexpr    / %{ExpectedTypeExpression}
@@ -604,14 +603,30 @@ parser:add_syntax_errors({
   MalformedExponentialNumber = 'malformed exponential number',
   MalformedBinaryNumber = 'malformed binary number',
   MalformedHexadecimalNumber = 'malformed hexadecimal number',
+  MalformedEscapeSequence = 'malformed escape sequence',
   UnclosedLongComment = 'unclosed long comment',
   UnclosedShortString = 'unclosed short string',
   UnclosedLongString = 'unclosed long string',
+
 })
 
 -- grammar errors
 parser:add_syntax_errors({
-  UnexpectedSyntaxAtEOF  = 'unexpected syntax, was expecting EOF'
+  UnexpectedSyntaxAtEOF  = 'unexpected syntax, was expecting EOF',
+  UnclosedParenthesis = "unclosed parenthesis, did you forget a `)`?",
+  UnclosedBracket = "unclosed bracket, did you forget a `]`?",
+  UnclosedCurly = "unclosed curly brace, did you forget a `}`?",
+  UnclosedAngleBracket = "unclosed angle bracket, did you forget a `>`",
+  UnclosedLabel = "unclosed label, did you forget `::`?",
+  ExpectedParenthesis = "expected parenthesis `(`",
+  ExpectedEnd = "expected `end` keyword",
+  ExpectedThen = "expected `then` keyword",
+  ExpectedUntil = "expected `until` keyword",
+  ExpectedDo = "expected `do` keyword",
+  ExpectedName = "expected an identifier name",
+  ExpectedExpression = "expected an expression",
+  ExpectedTypeExpression = "expected a type expression",
+  ExpectedCall = "expected call"
 })
 
 return {

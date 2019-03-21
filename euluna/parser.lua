@@ -41,6 +41,7 @@ function Parser:set_shaper(shaper)
     local node = shaper:create(tag, ...)
     node.pos = pos
     node.src = self.input
+    node.srcname = self.inputname
     return node
   end
 
@@ -191,12 +192,14 @@ function Parser:set_pegs(combined_patts, defs, modf)
   end
 end
 
-function Parser:match(name, input)
-  local peg = self.defs[name]
-  assertf(peg, 'cannot match an input to inexistent peg "%s"', name)
+function Parser:match(pegname, input, inputname)
+  local peg = self.defs[pegname]
+  assertf(peg, 'cannot match an input to inexistent peg "%s"', pegname)
   self.input = input
+  self.inputname = inputname
   local res, errlabel, errpos = peg:match(input)
   self.input = nil
+  self.inputname = nil
   return res, errlabel, errpos
 end
 
@@ -253,16 +256,17 @@ function Parser:add_syntax_errors(syntax_errors)
   tablex.update(self.syntax_errors, syntax_errors)
 end
 
-function Parser:parse(input, name)
-  if not name then
-    name = 'sourcecode'
+function Parser:parse(input, inputname, pegname)
+  if not pegname then
+    pegname = 'sourcecode'
   end
-  local ast, errlabel, errpos = self:match(name, input)
+  local ast, errlabel, errpos = self:match(pegname, input, inputname)
   if ast then
     return ast
   else
     local errmsg = self.syntax_errors[errlabel] or errlabel
-    return nil, utils.generate_pretty_error(input, errpos, errmsg), errlabel
+    local prettymsg = utils.generate_pretty_error(input, inputname, errpos, errmsg, 'syntax error')
+    return nil, prettymsg, errlabel
   end
 end
 

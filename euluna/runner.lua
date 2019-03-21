@@ -40,7 +40,6 @@ function runner.run(argv)
   local infile
   if not config.eval then
     infile = input
-    print(infile)
     input,err = plfile.read(input)
     if not input then return fail(err) end
   end
@@ -48,7 +47,7 @@ function runner.run(argv)
   -- parse ast
   local ast
   local parser = require('euluna.parsers.euluna_std_' .. config.standard).parser
-  ast, err = parser:parse(input)
+  ast, err = parser:parse(input, infile)
   if not ast then return fail(err) end
 
   -- only checking syntax?

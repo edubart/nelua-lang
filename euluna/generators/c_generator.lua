@@ -102,15 +102,8 @@ function BultinFunctions.print(context, ast, coder)
   end
 
   do
-    local dcoder = context.declarations_coder
-    dcoder:add_indent('inline ')
-    add_heading(dcoder)
-    dcoder:add_ln(';')
-  end
-
-  do
     local dcoder = context.definitions_coder
-    dcoder:add_indent()
+    dcoder:add_indent('static inline ')
     add_heading(dcoder)
     dcoder:add_ln(' {')
     dcoder:inc_indent()

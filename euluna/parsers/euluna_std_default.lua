@@ -69,6 +69,15 @@ grammar:add_group_peg('stat', 'continue', [[
 
 parser:set_peg('sourcecode', grammar:build())
 
+--------------------------------------------------------------------------------
+-- Syntax Errors
+--------------------------------------------------------------------------------
+
+-- grammar errors
+parser:add_syntax_errors({
+  ExpectedCase = "expected `case` keyword"
+})
+
 return {
   shaper = shaper,
   parser = parser,
