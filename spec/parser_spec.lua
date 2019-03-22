@@ -4,8 +4,8 @@ local assert = require 'spec.assert'
 local euluna_std_default = require 'euluna.parsers.euluna_std_default'
 local euluna_parser = euluna_std_default.parser
 local euluna_grammar = euluna_std_default.grammar
-local euluna_shaper = euluna_std_default.shaper
-local AST = function(name, ...) return euluna_shaper:create(name, {...}) end
+local euluna_aster = euluna_std_default.aster
+local AST = function(...) return euluna_aster:AST(...) end
 
 describe("Euluna should parse", function()
 

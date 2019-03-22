@@ -49,7 +49,8 @@ function Coder:add(what, ...)
       errorf('coder cannot add value of type "%s"', type(what))
     end  --luacov:enable
   end
-  if select('#', ...) > 0 then
+  local numargs = select('#', ...)
+  if numargs > 0 then
     self:add(...)
   end
 end

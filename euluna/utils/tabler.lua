@@ -36,6 +36,12 @@ function tabler.copy(t)
   return _t
 end
 
+function tabler.insert_many(t, v, ...)
+  if v == nil and select('#', ...) == 0 then return end
+  table.insert(t, v)
+  tabler.insert_many(t, ...)
+end
+
 -- set index metamethod for a table
 function tabler.setmetaindex(t, __index)
   local mt = getmetatable(t)

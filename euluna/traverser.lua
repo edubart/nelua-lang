@@ -35,7 +35,7 @@ function TraverserContext:get_parent_ast()
 end
 
 function TraverserContext:traverse(ast, ...)
-  assert(ast.is_astnode, "trying to traverse a non ast value")
+  assert(traits.is_astnode(ast), "trying to traverse a non ast value")
   local visitor_func = self.visitors[ast.tag] or self.default_visitor
   ast:assertf(visitor_func, "visitor for AST node '%s' does not exist", ast.tag)
   self:push_ast(ast)

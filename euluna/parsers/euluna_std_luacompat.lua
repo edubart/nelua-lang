@@ -1,4 +1,4 @@
-local Shaper = require 'euluna.shaper'
+local Aster = require 'euluna.aster'
 local Parser = require 'euluna.parser'
 local Grammar = require 'euluna.grammar'
 
@@ -6,167 +6,167 @@ local Grammar = require 'euluna.grammar'
 -- AST definition
 --------------------------------------------------------------------------------
 
-local shaper = Shaper()
-local types = shaper.types
+local aster = Aster()
+local types = aster.types
 
 -- primitives
-shaper:register('Number', types.shape {
+aster:register('Number', types.shape {
   types.one_of{"int", "dec", "bin", "exp", "hex"}, -- type
   types.string + types.table, -- value, (table used in exp values)
   types.string:is_optional() -- literal
 })
-shaper:register('String', types.shape {
+aster:register('String', types.shape {
   types.string, -- value
   types.string:is_optional() -- literal
 })
-shaper:register('Boolean', types.shape {
+aster:register('Boolean', types.shape {
   types.boolean, -- true or false
 })
-shaper:register('Nil', types.shape {})
-shaper:register('Varargs', types.shape {})
+aster:register('Nil', types.shape {})
+aster:register('Varargs', types.shape {})
 
 -- table
-shaper:register('Table', types.shape {
-  types.array_of(types.ASTNode) -- pair or exprs
+aster:register('Table', types.shape {
+  types.array_of(types.ast.Node) -- pair or exprs
 })
-shaper:register('Pair', types.shape {
-  types.ASTNode + types.string, -- field name (an expr or a string)
-  types.ASTNode -- field value expr
+aster:register('Pair', types.shape {
+  types.ast.Node + types.string, -- field name (an expr or a string)
+  types.ast.Node -- field value expr
 })
 
 -- identifier and types
-shaper:register('Id', types.shape {
+aster:register('Id', types.shape {
   types.string, -- name
 })
-shaper:register('Paren', types.shape {
-  types.ASTNode -- expr
+aster:register('Paren', types.shape {
+  types.ast.Node -- expr
 })
-shaper:register('Type', types.shape {
+aster:register('Type', types.shape {
   types.string, -- type
 })
-shaper:register('TypedId', types.shape {
+aster:register('TypedId', types.shape {
   types.string, -- name
-  types.ASTType:is_optional(), -- type
+  types.ast.Type:is_optional(), -- type
 })
-shaper:register('FuncArg', types.shape {
+aster:register('FuncArg', types.shape {
   types.string, -- name
   types.one_of{"var", "var&", "var&&", "let", "let&"}:is_optional(), -- mutability
-  types.ASTType:is_optional() -- type
+  types.ast.Type:is_optional() -- type
 })
 
 -- function
-shaper:register('Function', types.shape {
-  types.array_of(types.ASTFuncArg + types.ASTVarargs), -- typed arguments
-  types.array_of(types.ASTType), -- typed returns
-  types.ASTNode -- block
+aster:register('Function', types.shape {
+  types.array_of(types.ast.FuncArg + types.ast.Varargs), -- typed arguments
+  types.array_of(types.ast.Type), -- typed returns
+  types.ast.Node -- block
 })
 
 -- indexing
-shaper:register('DotIndex', types.shape {
+aster:register('DotIndex', types.shape {
   types.string, -- name
-  types.ASTNode -- expr
+  types.ast.Node -- expr
 })
-shaper:register('ColonIndex', types.shape {
+aster:register('ColonIndex', types.shape {
   types.string, -- name
-  types.ASTNode -- expr
+  types.ast.Node -- expr
 })
-shaper:register('ArrayIndex', types.shape {
-  types.ASTNode, -- index expr
-  types.ASTNode -- expr
+aster:register('ArrayIndex', types.shape {
+  types.ast.Node, -- index expr
+  types.ast.Node -- expr
 })
 
 -- calls
-shaper:register('Call', types.shape {
-  types.array_of(types.ASTType), -- call types
-  types.array_of(types.ASTNode), -- args exprs
-  types.ASTNode, -- caller expr
+aster:register('Call', types.shape {
+  types.array_of(types.ast.Type), -- call types
+  types.array_of(types.ast.Node), -- args exprs
+  types.ast.Node, -- caller expr
   types.boolean:is_optional(), -- is called from a block
 })
-shaper:register('CallMethod', types.shape {
+aster:register('CallMethod', types.shape {
   types.string, -- method name
-  types.array_of(types.ASTType), -- call types
-  types.array_of(types.ASTNode), -- args exprs
-  types.ASTNode, -- caller expr
+  types.array_of(types.ast.Type), -- call types
+  types.array_of(types.ast.Node), -- args exprs
+  types.ast.Node, -- caller expr
   types.boolean:is_optional(), -- is called from a block
 })
 
 -- block
-shaper:register('Block', types.shape {
-  types.array_of(types.ASTNode) -- statements
+aster:register('Block', types.shape {
+  types.array_of(types.ast.Node) -- statements
 })
 
 -- statements
-shaper:register('Return', types.shape {
-  types.array_of(types.ASTNode) -- returned exprs
+aster:register('Return', types.shape {
+  types.array_of(types.ast.Node) -- returned exprs
 })
-shaper:register('If', types.shape {
-  types.array_of(types.shape{types.ASTNode, types.ASTBlock}), -- if list {expr, block}
-  types.ASTBlock:is_optional() -- else block
+aster:register('If', types.shape {
+  types.array_of(types.shape{types.ast.Node, types.ast.Block}), -- if list {expr, block}
+  types.ast.Block:is_optional() -- else block
 })
-shaper:register('Do', types.shape {
-  types.ASTBlock -- block
+aster:register('Do', types.shape {
+  types.ast.Block -- block
 })
-shaper:register('While', types.shape {
-  types.ASTNode, -- expr
-  types.ASTBlock -- block
+aster:register('While', types.shape {
+  types.ast.Node, -- expr
+  types.ast.Block -- block
 })
-shaper:register('Repeat', types.shape {
-  types.ASTBlock, -- block
-  types.ASTNode -- expr
+aster:register('Repeat', types.shape {
+  types.ast.Block, -- block
+  types.ast.Node -- expr
 })
-shaper:register('ForNum', types.shape {
-  types.ASTTypedId, -- iterated var
-  types.ASTNode, -- begin expr
+aster:register('ForNum', types.shape {
+  types.ast.TypedId, -- iterated var
+  types.ast.Node, -- begin expr
   types.string, -- compare operator
-  types.ASTNode, -- end expr
-  types.ASTNode:is_optional(), -- increment expr
-  types.ASTBlock, -- block
+  types.ast.Node, -- end expr
+  types.ast.Node:is_optional(), -- increment expr
+  types.ast.Block, -- block
 })
-shaper:register('ForIn', types.shape {
-  types.array_of(types.ASTTypedId), -- iterated vars
-  types.array_of(types.ASTNode), -- in exprlist
-  types.ASTBlock -- block
+aster:register('ForIn', types.shape {
+  types.array_of(types.ast.TypedId), -- iterated vars
+  types.array_of(types.ast.Node), -- in exprlist
+  types.ast.Block -- block
 })
-shaper:register('Break', types.shape {})
-shaper:register('Label', types.shape {
+aster:register('Break', types.shape {})
+aster:register('Label', types.shape {
   types.string -- label name
 })
-shaper:register('Goto', types.shape {
+aster:register('Goto', types.shape {
   types.string -- label name
 })
-shaper:register('VarDecl', types.shape {
+aster:register('VarDecl', types.shape {
   types.one_of{"local"}:is_optional(), -- scope
   types.one_of{"var"}, -- mutability
-  types.array_of(types.ASTTypedId), -- var names with types
-  types.array_of(types.ASTNode):is_optional(), -- expr list, initial assignments values
+  types.array_of(types.ast.TypedId), -- var names with types
+  types.array_of(types.ast.Node):is_optional(), -- expr list, initial assignments values
 })
-shaper:register('Assign', types.shape {
-  types.array_of(types.ASTNode), -- expr list, assign variables
-  types.array_of(types.ASTNode), -- expr list, assign values
+aster:register('Assign', types.shape {
+  types.array_of(types.ast.Node), -- expr list, assign variables
+  types.array_of(types.ast.Node), -- expr list, assign values
 })
-shaper:register('FuncDef', types.shape {
+aster:register('FuncDef', types.shape {
   types.one_of{"local"}:is_optional(), -- scope
-  types.ASTId + types.ASTDotIndex + types.ASTColonIndex, -- name
-  types.array_of(types.ASTNode), -- typed arguments
-  types.array_of(types.ASTNode), -- typed returns
-  types.ASTNode -- block
+  types.ast.Id + types.ast.DotIndex + types.ast.ColonIndex, -- name
+  types.array_of(types.ast.Node), -- typed arguments
+  types.array_of(types.ast.Node), -- typed returns
+  types.ast.Node -- block
 })
 
 -- operations
-shaper:register('UnaryOp', types.shape {
+aster:register('UnaryOp', types.shape {
   types.string, -- type
-  types.ASTNode -- right expr
+  types.ast.Node -- right expr
 })
-shaper:register('BinaryOp', types.shape {
+aster:register('BinaryOp', types.shape {
   types.string, -- type
-  types.ASTNode, --- left expr
-  types.ASTNode -- right expr
+  types.ast.Node, --- left expr
+  types.ast.Node -- right expr
 })
-shaper:register('TernaryOp', types.shape {
+aster:register('TernaryOp', types.shape {
   types.string, -- type
-  types.ASTNode, -- left expr
-  types.ASTNode, -- middle expr
-  types.ASTNode -- right expr
+  types.ast.Node, -- left expr
+  types.ast.Node, -- middle expr
+  types.ast.Node -- right expr
 })
 
 
@@ -175,7 +175,7 @@ shaper:register('TernaryOp', types.shape {
 --------------------------------------------------------------------------------
 
 local parser = Parser()
-parser:set_shaper(shaper)
+parser:set_aster(aster)
 
 -- spaces including new lines
 parser:set_peg("SPACE", "%s")
@@ -630,7 +630,7 @@ parser:add_syntax_errors({
 })
 
 return {
-  shaper = shaper,
+  aster = aster,
   parser = parser,
   grammar = grammar
 }

@@ -4,9 +4,9 @@ local assert = require 'spec.assert'
 local euluna_std_default = require 'euluna.parsers.euluna_std_default'
 local analyzer = require 'euluna.analyzers.type_analyzer'
 local euluna_parser = euluna_std_default.parser
-local euluna_shaper = euluna_std_default.shaper
-local AST = function(...) return euluna_shaper:AST(...) end
-local TAST = function(...) return euluna_shaper:TAST(...) end
+local euluna_aster = euluna_std_default.aster
+local AST = function(...) return euluna_aster:AST(...) end
+local TAST = function(...) return euluna_aster:TAST(...) end
 
 local function assert_analyze_ast(euluna_code, expected_ast)
   local ast = assert.parse_ast(euluna_parser, euluna_code)

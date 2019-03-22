@@ -36,11 +36,11 @@ local function recompile_peg(selfdefs, pegdesc)
   selfdefs[pegdesc.name] = compiled_patt
 end
 
-function Parser:set_shaper(shaper)
-  self.shaper = shaper
+function Parser:set_aster(aster)
+  self.aster = aster
 
   local function to_astnode(pos, tag, ...)
-    local node = shaper:create(tag, {...})
+    local node = aster:create(tag, ...)
     node.pos = pos
     node.src = self.input
     node.srcname = self.inputname
@@ -264,7 +264,7 @@ function Parser:clone()
   tabler.update(clone.syntax_errors, self.syntax_errors)
   tabler.update(clone.defs, self.defs)
   tabler.update(clone.pegdescs, self.pegdescs)
-  clone:set_shaper(self.shaper)
+  clone:set_aster(self.aster)
   return clone
 end
 

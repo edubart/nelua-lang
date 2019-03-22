@@ -13,7 +13,7 @@ function traits.is_table(v)
 end
 
 function traits.is_astnode(v)
-  return type(v) == 'table' and v.is_astnode
+  return type(v) == 'table' and v._astnode
 end
 
 return traits
