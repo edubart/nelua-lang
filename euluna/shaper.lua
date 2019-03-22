@@ -1,10 +1,9 @@
-local class = require 'pl.class'
+local class = require 'euluna.utils.class'
 local types = require 'tableshape'.types
 local inspect = require 'inspect'
-local utils = require 'euluna.utils'
-local tablex = require 'pl.tablex'
+local utils = require 'euluna.utils.errorer'
+local tabler = require 'euluna.utils.tabler'
 local assertf = utils.assertf
-local unpack = table.unpack or unpack
 
 local ASTNode = class()
 ASTNode.tag = 'Node'
@@ -12,7 +11,7 @@ ASTNode.nargs = 0
 ASTNode.is_astnode = true
 
 function ASTNode:args()
-  return unpack(self, 1, self.nargs)
+  return tabler.unpack(self, 1, self.nargs)
 end
 
 local table_insert = table.insert
@@ -60,7 +59,7 @@ function ASTNode:assertf(cond, format, ...)
   if not cond then
     local msg = string.format(format, ...)
     if self.src and self.pos then
-      msg = utils.generate_pretty_error(self.src, self.srcname, self.pos, msg)
+      msg = utils.get_pretty_source_errmsg(self.src, self.srcname, self.pos, msg)
     end
     error(msg)
   end
@@ -76,7 +75,7 @@ local Shaper = class()
 local function get_astnode_shapetype(self, name)
   local nodeklass = self.nodes[name]
   return types.custom(function(val)
-    if type(val) == 'table' and val.is_a and val:is_a(nodeklass) then
+    if type(val) == 'table' and class.is_a(val, nodeklass) then
       return true
     end
     return nil, string.format('expected type "ASTNode", got "%s"', type(val))
@@ -85,15 +84,13 @@ end
 
 function Shaper:_init()
   self.nodes = {
-    node = ASTNode
+    Node = ASTNode
   }
   self.creates = {}
   self.types = {
-    ASTNode = get_astnode_shapetype(self)
+    ASTNode = get_astnode_shapetype(self, 'Node')
   }
-  setmetatable(self.types, {
-    __index = types
-  })
+  tabler.setmetaindex(self.types, types)
 end
 
 function Shaper:register(name, shape)
@@ -101,7 +98,6 @@ function Shaper:register(name, shape)
   self.nodes[name] = klass
   klass.tag = name
   klass.nargs = #shape.shape
-  klass.is_astnode = true
   local klass_mt = getmetatable(klass())
   local function node_create(node)
     setmetatable(node, klass_mt)
@@ -123,9 +119,9 @@ end
 
 function Shaper:clone()
   local clone = Shaper()
-  tablex.update(clone.nodes, self.nodes)
-  tablex.update(clone.creates, self.creates)
-  tablex.update(clone.types, self.types)
+  tabler.update(clone.nodes, self.nodes)
+  tabler.update(clone.creates, self.creates)
+  tabler.update(clone.types, self.types)
   return clone
 end
 

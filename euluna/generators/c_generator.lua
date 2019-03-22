@@ -1,7 +1,8 @@
 local Traverser = require 'euluna.traverser'
 local Coder = require 'euluna.coder'
-local class = require 'pl.class'
-local assertf = require 'euluna.utils'.assertf
+local class = require 'euluna.utils.class'
+local assertf = require 'euluna.utils.errorer'.assertf
+local pegger = require 'euluna.utils.pegger'
 
 local Builtins = {}
 
@@ -131,25 +132,26 @@ function GeneratorContext:add_builtin(name)
 end
 
 local C_PRIMTYPES = {
-  integer = {ctype = 'int64_t',       include='<stdint.h>'},
+  integer = {ctype = 'int64_t',         include='<stdint.h>'},
   number  = {ctype = 'double',                            },
   byte    = {ctype = 'unsigned char',                     },
   char    = {ctype = 'char',                              },
   float64 = {ctype = 'double',                            },
   float32 = {ctype = 'float',                             },
   pointer = {ctype = 'void*',                             },
-  int     = {ctype = 'intptr_t',      include='<stdint.h>'},
-  int8    = {ctype = 'int8_t',        include='<stdint.h>'},
-  int16   = {ctype = 'int16_t',       include='<stdint.h>'},
-  int32   = {ctype = 'int32_t',       include='<stdint.h>'},
-  int64   = {ctype = 'int64_t',       include='<stdint.h>'},
-  uint    = {ctype = 'uintptr_t',     include='<stdint.h>'},
-  uint8   = {ctype = 'uint8_t',       include='<stdint.h>'},
-  uint16  = {ctype = 'uint16_t',      include='<stdint.h>'},
-  uint32  = {ctype = 'uint32_t',      include='<stdint.h>'},
-  uint64  = {ctype = 'uint64_t',      include='<stdint.h>'},
-  boolean = {ctype = 'bool',          include='<stdbool.h>'},
-  bool    = {ctype = 'bool',          include='<stdbool.h>'},
+  int     = {ctype = 'intptr_t',        include='<stdint.h>'},
+  int8    = {ctype = 'int8_t',          include='<stdint.h>'},
+  int16   = {ctype = 'int16_t',         include='<stdint.h>'},
+  int32   = {ctype = 'int32_t',         include='<stdint.h>'},
+  int64   = {ctype = 'int64_t',         include='<stdint.h>'},
+  uint    = {ctype = 'uintptr_t',       include='<stdint.h>'},
+  uint8   = {ctype = 'uint8_t',         include='<stdint.h>'},
+  uint16  = {ctype = 'uint16_t',        include='<stdint.h>'},
+  uint32  = {ctype = 'uint32_t',        include='<stdint.h>'},
+  uint64  = {ctype = 'uint64_t',        include='<stdint.h>'},
+  boolean = {ctype = 'bool',            include='<stdbool.h>'},
+  bool    = {ctype = 'bool',            include='<stdbool.h>'},
+  string  = {ctype = 'euluna_string_t', builtin='euluna_string_t'}
 }
 
 function GeneratorContext:get_ctype(ast)
@@ -158,6 +160,9 @@ function GeneratorContext:get_ctype(ast)
   ast:assertf(ttype, 'type %s is not known', tyname)
   if ttype.include then
     self:add_include(ttype.include)
+  end
+  if ttype.builtin then
+    self:add_builtin(ttype.builtin)
   end
   return ttype.ctype
 end
@@ -196,12 +201,14 @@ generator:register('String', function(context, ast, coder)
   local deccoder = context.declarations_coder
   local len = #value
   local varname = '__string_literal_' .. ast.pos
+
+  local quoted_value = pegger.double_quote_c_string(value)
   context:add_include('<stdint.h>')
   deccoder:add_indent('static const struct { uintptr_t len, res; char data[')
   deccoder:add(len + 1)
   deccoder:add_ln(']; }')
   deccoder:add_indent('  ', varname, ' = {', len, ', ', len, ', ')
-  deccoder:add_double_quoted(value)
+  deccoder:add(quoted_value)
   deccoder:add_ln('};')
   coder:add(varname)
 end)

@@ -4,7 +4,7 @@ local assert = require 'spec.assert'
 local euluna_parser = require 'euluna.parsers.euluna_std_default'.parser
 local analyzer = require 'euluna.analyzers.type_analyzer'
 local c_generator = require 'euluna.generators.c_generator'
-local assertf = require 'euluna.utils'.assertf
+local assertf = require 'euluna.utils.errorer'.assertf
 
 local function assert_generate_c(euluna_code, c_code)
   local ast = assert.parse_ast(euluna_parser, euluna_code)
@@ -35,6 +35,7 @@ int main() {
 }]])
   assert_generate_c("return (1)")
 end)
+
 it("number", function()
   assert_generate_c("return 1")
   assert_generate_c("return 1.2")
@@ -50,6 +51,10 @@ it("number literals", function()
   assert_generate_c("return 1_int", "return ((intptr_t) 1")
   assert_generate_c("return 1_uint", "return ((uintptr_t) 1")
   assert_generate_c("return 1_pointer", "return ((void*) 1")
+end)
+it("string", function()
+  assert_generate_c([[local a = "hello"]], [["hello"]])
+  assert_generate_c([[local a = "\x01"]], [["\x01"]])
 end)
 it("boolean", function()
   assert_generate_c("return true", "return true;")

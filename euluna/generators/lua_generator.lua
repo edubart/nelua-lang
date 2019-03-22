@@ -1,6 +1,6 @@
 local Traverser = require 'euluna.traverser'
 local Coder = require 'euluna.coder'
-
+local pegger = require 'euluna.utils.pegger'
 local generator = Traverser()
 
 -- primitives
@@ -21,11 +21,13 @@ end)
 generator:register('String', function(_, ast, coder)
   local value, literal = ast:args()
   ast:assertf(literal == nil, 'literals are not supported in lua')
+  local quoted_value
   if value:find('"') and not value:find("'") then
-    coder:add_single_quoted(value)
+    quoted_value = pegger.single_quote_lua_string(value)
   else
-    coder:add_double_quoted(value)
+    quoted_value = pegger.double_quote_lua_string(value)
   end
+  coder:add(quoted_value)
 end)
 
 generator:register('Boolean', function(_, ast, coder)

@@ -1,10 +1,12 @@
-local class = require 'pl.class'
+local class = require 'euluna.utils.class'
 local lpeg = require 'lpeglabel'
 local re = require 'relabel'
-local tablex = require 'pl.tablex'
-local utils = require 'euluna.utils'
-local unpack = table.unpack or unpack
+local tabler = require 'euluna.utils.tabler'
+local utils = require 'euluna.utils.errorer'
+local pegger = require 'euluna.utils.pegger'
+local unpack = tabler.unpack
 local assertf = utils.assertf
+
 local Parser = class()
 
 lpeg.setmaxstack(1024)
@@ -18,7 +20,7 @@ end
 
 local function inherit_defs(parent_defs, defs)
   if defs then
-    setmetatable(defs, { __index = parent_defs })
+    tabler.setmetaindex(defs, parent_defs)
     return defs
   else
     return parent_defs
@@ -107,14 +109,13 @@ local function get_peg_deps(patt, defs, full_defs)
   if not defs then return {} end
   local deps = {}
   local proxy_defs = {}
-  setmetatable(proxy_defs, {
-    __index = function(_, name)
+  tabler.setmetaindex(proxy_defs,
+    function(_, name)
       if defs[name] then
         table.insert(deps, name)
       end
       return full_defs[name]
-    end
-  })
+    end)
   re.compile(patt, proxy_defs)
   return deps
 end
@@ -171,24 +172,11 @@ function Parser:remove_peg(name)
   self.pegdescs[name] = nil
 end
 
-local combined_peg_pat = re.compile([[
-pegs       <- {| (comment/peg)+ |}
-peg        <- {| peg_head {peg_char*} |}
-peg_head   <- %s* '%' {[-_%w]+} %s* '<-' %s*
-peg_char   <- !next_peg .
-next_peg   <- linebreak %s* '%' [-_%w]+ %s* '<-' %s*
-comment    <- %s* '--' (!linebreak .)* linebreak?
-]] ..
-"linebreak <- [%nl]'\r' / '\r'[%nl] / [%nl] / '\r'"
-)
-
 function Parser:set_pegs(combined_patts, defs, modf)
-  local pattdescs = combined_peg_pat:match(combined_patts)
-  assertf(pattdescs, 'invalid multiple pegs patterns syntax for:\n%s', combined_patts)
+  local pattdescs = pegger.split_parser_patts(combined_patts)
   for _,pattdesc in ipairs(pattdescs) do
-    local name, content = pattdesc[1], pattdesc[2]
-    local patt = string.format('%s <- %s', name, content)
-    self:set_peg(name, patt, defs, modf)
+    local patt = string.format('%s <- %s', pattdesc.name, pattdesc.patt)
+    self:set_peg(pattdesc.name, patt, defs, modf)
   end
 end
 
@@ -218,7 +206,7 @@ function Parser:set_token_pegs(combined_peg, defs)
 end
 
 local function recompile_keyword_peg(self)
-  local keyword_names = tablex.imap(function(k) return k:upper() end, self.keywords)
+  local keyword_names = tabler.imap(self.keywords, function(v) return v:upper() end)
   local keyword_patt = string.format('%%%s', table.concat(keyword_names, '/%'))
   self:set_token_peg('KEYWORD', keyword_patt)
 end
@@ -226,7 +214,7 @@ end
 local function internal_add_keyword(self, keyword)
   local keyword_name = keyword:upper()
   assert(self.defs.IDSUFFIX, 'cannot add keyword without a IDSUFFIX peg')
-  assertf(tablex.find(self.keywords, keyword) == nil, 'keyword "%s" already exists', keyword)
+  assertf(tabler.find(self.keywords, keyword) == nil, 'keyword "%s" already exists', keyword)
   table.insert(self.keywords, keyword)
   self:set_token_peg(keyword_name, string.format("'%s' !%%IDSUFFIX", keyword))
 end
@@ -238,7 +226,7 @@ end
 
 function Parser:remove_keyword(keyword)
   local keyword_name = keyword:upper()
-  local i = tablex.find(self.keywords, keyword)
+  local i = tabler.find(self.keywords, keyword)
   assertf(i, 'keyword "%s" to remove not found', keyword)
   table.remove(self.keywords, i)
   recompile_keyword_peg(self)
@@ -253,7 +241,7 @@ function Parser:add_keywords(keywords)
 end
 
 function Parser:add_syntax_errors(syntax_errors)
-  tablex.update(self.syntax_errors, syntax_errors)
+  tabler.update(self.syntax_errors, syntax_errors)
 end
 
 function Parser:parse(input, inputname, pegname)
@@ -265,17 +253,17 @@ function Parser:parse(input, inputname, pegname)
     return ast
   else
     local errmsg = self.syntax_errors[errlabel] or errlabel
-    local prettymsg = utils.generate_pretty_error(input, inputname, errpos, errmsg, 'syntax error')
+    local prettymsg = utils.get_pretty_source_errmsg(input, inputname, errpos, errmsg, 'syntax error')
     return nil, prettymsg, errlabel
   end
 end
 
 function Parser:clone()
   local clone = Parser()
-  tablex.update(clone.keywords, self.keywords)
-  tablex.update(clone.syntax_errors, self.syntax_errors)
-  tablex.update(clone.defs, self.defs)
-  tablex.update(clone.pegdescs, self.pegdescs)
+  tabler.update(clone.keywords, self.keywords)
+  tabler.update(clone.syntax_errors, self.syntax_errors)
+  tabler.update(clone.defs, self.defs)
+  tabler.update(clone.pegdescs, self.pegdescs)
   clone:set_shaper(self.shaper)
   return clone
 end

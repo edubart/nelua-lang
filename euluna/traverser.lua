@@ -1,5 +1,6 @@
-local class = require 'pl.class'
+local class = require 'euluna.utils.class'
 local Scope = require 'euluna.scope'
+local traits = require 'euluna.utils.traits'
 
 local TraverserContext = class()
 
@@ -54,15 +55,13 @@ function Traverser:register(name, func)
 end
 
 local function default_visitor(self, ast, ...)
-  local nargs = ast.is_astnode and ast.nargs or #ast
+  local nargs = traits.is_astnode(ast) and ast.nargs or #ast
   for i=1,nargs do
     local arg = ast[i]
-    if type(arg) == 'table' then
-      if arg.is_astnode then
-        self:traverse(arg, ...)
-      else
-        default_visitor(self, arg, ...)
-      end
+    if traits.is_astnode(arg) then
+      self:traverse(arg, ...)
+    elseif traits.is_table(arg) then
+      default_visitor(self, arg, ...)
     end
   end
 end

@@ -3,7 +3,7 @@ local assert = require 'luassert'
 local runner = require 'euluna.runner'
 local stringx = require 'pl.stringx'
 local inspect = require 'inspect'
-local assertf = require 'euluna.utils'.assertf
+local assertf = require 'euluna.utils.errorer'.assertf
 
 function assert.ast_equals(expected_ast, ast)
   assert.same(tostring(expected_ast), tostring(ast))

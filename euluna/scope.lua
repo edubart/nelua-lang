@@ -1,11 +1,13 @@
-local class = require 'pl.class'
+local class = require 'euluna.utils.class'
+local tabler = require 'euluna.utils.tabler'
+
 local Scope = class()
 
 function Scope:_init(parent)
   self.parent = parent
   self.vars = {}
   if parent then
-    setmetatable(self.vars, { __index = parent.vars })
+    tabler.setmetaindex(self.vars, parent.vars)
   end
 end
 

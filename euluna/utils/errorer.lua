@@ -1,12 +1,18 @@
 local re = require 'relabel'
 
-local utils = {}
+local errorer = {}
 
-function utils.assertf(cond, str, ...)
+function errorer.assertf(cond, str, ...)
   return assert(cond, not cond and string.format(str, ...))
 end
 
-function utils.generate_pretty_error(src, srcname, errpos, errmsg, errname)
+function errorer.errorf(str, ...)
+  --luacov:disable
+  error(string.format(str, ...), 2)
+  --luacov:enable
+end
+
+function errorer.get_pretty_source_errmsg(src, srcname, errpos, errmsg, errname)
   local line, col = re.calcline(src, errpos)
   local colors = require 'term.colors'
   local NEARLENGTH = 20
@@ -26,4 +32,4 @@ function utils.generate_pretty_error(src, srcname, errpos, errmsg, errname)
     linehelper)
 end
 
-return utils
+return errorer

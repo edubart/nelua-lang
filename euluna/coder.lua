@@ -1,5 +1,6 @@
-local class = require 'pl.class'
-local re = require 'relabel'
+local class = require 'euluna.utils.class'
+local traits = require 'euluna.utils.traits'
+local errorf = require 'euluna.utils.errorer'.errorf
 
 local Coder = class()
 
@@ -19,7 +20,9 @@ function Coder:dec_indent()
 end
 
 function Coder:add_indent(what, ...)
-  self:add(string.rep(self.indent, math.max(self.depth, 0)), what, ...)
+  local depth = math.max(self.depth, 0)
+  local indent = string.rep(self.indent, depth)
+  self:add(indent, what, ...)
 end
 
 function Coder:add_indent_ln(what, ...)
@@ -34,19 +37,17 @@ end
 
 function Coder:add(what, ...)
   if what then
-    local typewhat = type(what)
-    assert(typewhat == 'string' or
-           typewhat == 'table' or
-           typewhat == 'number', 'coder cannot add non string/table/number value')
-    if typewhat == 'string' then
+    if traits.is_string(what) then
       table.insert(self.codes, what)
-    elseif typewhat == 'number' then
+    elseif traits.is_number(what) then
       table.insert(self.codes, tostring(what))
-    elseif typewhat == 'table' and what.is_astnode then
+    elseif traits.is_astnode(what) then
       self:add_traversal(what)
-    elseif typewhat == 'table' and #what > 0 then
+    elseif traits.is_table(what) then
       self:add_traversal_list(what)
-    end
+    else --luacov:disable
+      errorf('coder cannot add value of type "%s"', type(what))
+    end  --luacov:enable
   end
   if select('#', ...) > 0 then
     self:add(...)
@@ -64,46 +65,6 @@ function Coder:add_traversal_list(ast_list, separator)
     if i > 1 then self:add(separator) end
     self:add_traversal(ast)
   end
-end
-
-local quotes_defs = {
-  to_special_character = function(s)
-    return '\\' .. string.byte(s)
-  end
-}
-local quote_patt_begin =  "\
-quote <- {~ (quotechar / .)* ~} \
-quotechar <- \
-  '\\' -> '\\\\' /  -- backslash \
-  '\a' -> '\\a' /   -- audible bell \
-  '\b' -> '\\b' /   -- backspace \
-  '\f' -> '\\f' /   -- form feed \
-  %nl  -> '\\n' /  -- line feed \
-  '\r' -> '\\r' /   -- carriege return \
-  '\t' -> '\\t' /   -- horizontal tab \
-  '\v' -> '\\v' /   -- vertical tab \
-"
-local quote_patt_end = "\
-  -- ('??' {[=/'%(%)!<>%-]}) -> '?\\?%1' / -- C trigraphs \
-  [^%g%s] -> to_special_character -- other special characters \
-"
-local single_quoter = re.compile(
-  quote_patt_begin ..
-  "\"\'\" -> \"\\'\" /  -- single quote \n" ..
-  quote_patt_end, quotes_defs)
-local double_quoter = re.compile(
-  quote_patt_begin ..
-  "'\"' -> '\\\"' /  -- double quote \"" ..
-  quote_patt_end, quotes_defs)
-
-function Coder:add_single_quoted(str)
-  local quoted = single_quoter:match(str)
-  self:add("'", quoted, "'")
-end
-
-function Coder:add_double_quoted(str)
-  local quoted = double_quoter:match(str)
-  self:add('"', quoted, '"')
 end
 
 function Coder:generate()
