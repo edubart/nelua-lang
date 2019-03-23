@@ -17,9 +17,9 @@ function visitors.Number(context, ast, coder)
   elseif numtype == 'exp' then
     cval = string.format('%se%s', value[1], value[2])
   elseif numtype == 'hex' then
-    cval = string.format('0x%su', value)
+    cval = string.format('0x%s', value)
   elseif numtype == 'bin' then
-    cval = string.format('%uu', tonumber(value, 2))
+    cval = string.format('%u', tonumber(value, 2))
   else --luacov:disable
     ast:errorf('invalid number type "%s" for AST Number', numtype)
   end --luacov:enable
@@ -40,12 +40,8 @@ function visitors.String(context, ast, coder)
 
   local quoted_value = pegger.double_quote_c_string(value)
   context:add_include('<stdint.h>')
-  deccoder:add_indent('static const struct { uintptr_t len, res; char data[')
-  deccoder:add(len + 1)
-  deccoder:add_ln(']; }')
-  deccoder:add_indent('  ', varname, ' = {', len, ', ', len, ', ')
-  deccoder:add(quoted_value)
-  deccoder:add_ln('};')
+  deccoder:add_indent_ln('static const struct { uintptr_t len, res; char data[', len + 1, ']; }')
+  deccoder:add_indent_ln('  ', varname, ' = {', len, ', ', len, ', ', quoted_value, '};')
   coder:add(varname)
 end
 
