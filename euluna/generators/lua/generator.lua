@@ -8,7 +8,7 @@ local visitors = {}
 -- primitives
 function visitors.Number(_, ast, coder)
   local numtype, value, literal = ast:args()
-  ast:assertf(literal == nil, 'literals are not supported in lua')
+  ast:assertraisef(literal == nil, 'literals are not supported in lua')
   if numtype == 'int' or numtype == 'dec' then
     coder:add(value)
   elseif numtype == 'exp' then
@@ -24,7 +24,7 @@ end
 
 function visitors.String(_, ast, coder)
   local value, literal = ast:args()
-  ast:assertf(literal == nil, 'literals are not supported in lua')
+  ast:assertraisef(literal == nil, 'literals are not supported in lua')
   local quoted_value
   if value:find('"') and not value:find("'") then
     quoted_value = pegger.single_quote_lua_string(value)
@@ -91,7 +91,7 @@ function visitors.TypedId(_, ast, coder)
 end
 function visitors.FuncArg(_, ast, coder)
   local name, mut, type = ast:args()
-  ast:assertf(mut == nil or mut == 'var', "variable mutabilities are not supported in lua")
+  ast:assertraisef(mut == nil or mut == 'var', "variable mutabilities are not supported in lua")
   coder:add(name)
 end
 
@@ -172,7 +172,7 @@ function visitors.Switch(_, ast, coder)
   local val, caseparts, switchelseblock = ast:args()
   local varname = '__switchval' .. ast.pos
   coder:add_indent_ln("local ", varname, " = ", val)
-  ast:assertf(#caseparts > 0, "switch must have case parts")
+  ast:assertraisef(#caseparts > 0, "switch must have case parts")
   for i,casepart in ipairs(caseparts) do
     local caseval, caseblock = casepart[1], casepart[2]
     if i == 1 then
@@ -213,7 +213,7 @@ end
 
 function visitors.ForNum(_, ast, coder)
   local itvar, beginval, comp, endval, incrval, block  = ast:args()
-  ast:assertf(comp == 'le', 'for comparator not supported yet')
+  ast:assertraisef(comp == 'le', 'for comparator not supported yet')
   coder:add_indent("for ", itvar, '=', beginval, ',', endval)
   if incrval then
     coder:add(',', incrval)
@@ -305,7 +305,7 @@ function visitors.UnaryOp(context, ast, coder)
   if opname == 'tostring' then
     coder:add('tostring(', arg, ')')
   else
-    local op = ast:assertf(luadefs.UNARY_OPS[opname], 'unary operator "%s" not found', opname)
+    local op = ast:assertraisef(luadefs.UNARY_OPS[opname], 'unary operator "%s" not found', opname)
     local surround = is_in_operator(context)
     if surround then coder:add('(') end
     coder:add(op, arg)
@@ -315,7 +315,7 @@ end
 
 function visitors.BinaryOp(context, ast, coder)
   local opname, left_arg, right_arg = ast:args()
-  local op = ast:assertf(luadefs.BINARY_OPS[opname], 'binary operator "%s" not found', opname)
+  local op = ast:assertraisef(luadefs.BINARY_OPS[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(left_arg, ' ', op, ' ', right_arg)
@@ -324,7 +324,7 @@ end
 
 function visitors.TernaryOp(context, ast, coder)
   local opname, left_arg, mid_arg, right_arg = ast:args()
-  ast:assertf(opname == 'if', 'unknown ternary operator "%s"', opname)
+  ast:assertraisef(opname == 'if', 'unknown ternary operator "%s"', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(mid_arg, ' and ', left_arg, ' or ', right_arg)

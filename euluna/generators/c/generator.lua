@@ -33,7 +33,7 @@ end
 
 function visitors.String(context, ast, coder)
   local value, literal = ast:args()
-  ast:assertf(literal == nil, 'literals are not supported yet')
+  ast:assertraisef(literal == nil, 'literals are not supported yet')
   local deccoder = context.declarations_coder
   local len = #value
   local varname = '__string_literal_' .. ast.pos
@@ -119,7 +119,7 @@ end
 
 function visitors.FuncArg(_, ast, coder)
   local name, mut, type = ast:args()
-  ast:assertf(mut == nil or mut == 'var', "variable mutabilities are not supported yet")
+  ast:assertraisef(mut == nil or mut == 'var', "variable mutabilities are not supported yet")
   coder:add(type, ' ', name)
 end
 
@@ -151,7 +151,7 @@ function visitors.Return(_, ast, coder, scope)
   --TODO: multiple return
   scope.has_return = true
   local rets = ast:args()
-  ast:assertf(#rets <= 1, "multiple returns not supported yet")
+  ast:assertraisef(#rets <= 1, "multiple returns not supported yet")
   coder:add_indent("return")
   if #rets > 0 then
     coder:add_ln(' ', rets, ';')
@@ -190,7 +190,7 @@ function visitors.Switch(_, ast, coder)
   local val, caseparts, switchelseblock = ast:args()
   coder:add_indent_ln("switch(", val, ") {")
   coder:inc_indent()
-  ast:assertf(#caseparts > 0, "switch must have case parts")
+  ast:assertraisef(#caseparts > 0, "switch must have case parts")
   for casepart in iters.ivalues(caseparts) do
     local caseval, caseblock = casepart[1], casepart[2]
     coder:add_indent_ln("case ", caseval, ': {')
@@ -231,7 +231,7 @@ end
 
 function visitors.ForNum(_, ast, coder)
   local itvar, beginval, comp, endval, incrval, block  = ast:args()
-  ast:assertf(comp == 'le', 'for comparator not supported yet')
+  ast:assertraisef(comp == 'le', 'for comparator not supported yet')
   local itname = itvar[1]
   coder:add_indent("for(", itvar, ' = ', beginval, '; ', itname, ' <= ', endval, '; ')
   if incrval then
@@ -266,8 +266,8 @@ end
 
 function visitors.VarDecl(_, ast, coder)
   local varscope, mutability, vars, vals = ast:args()
-  ast:assertf(varscope == 'local', 'global variables not supported yet')
-  ast:assertf(not vals or #vars == #vals, 'vars and vals count differs')
+  ast:assertraisef(varscope == 'local', 'global variables not supported yet')
+  ast:assertraisef(not vals or #vars == #vals, 'vars and vals count differs')
   coder:add_indent()
   for i,var,val in iters.izip(vars, vals or {}) do
     if i > 1 then coder:add(' ') end
@@ -283,7 +283,7 @@ end
 
 function visitors.Assign(_, ast, coder)
   local vars, vals = ast:args()
-  ast:assertf(#vars == #vals, 'vars and vals count differs')
+  ast:assertraisef(#vars == #vals, 'vars and vals count differs')
   coder:add_indent()
   for i,var,val in iters.izip(vars, vals) do
     if i > 1 then coder:add(' ') end
@@ -294,14 +294,14 @@ end
 
 function visitors.FuncDef(context, ast)
   local varscope, name, args, rets, block = ast:args()
-  ast:assertf(#rets <= 1, 'multiple returns not supported yet')
-  ast:assertf(varscope == 'local', 'non local scope for functions not supported yet')
+  ast:assertraisef(#rets <= 1, 'multiple returns not supported yet')
+  ast:assertraisef(varscope == 'local', 'non local scope for functions not supported yet')
   local coder = context.declarations_coder
   if #rets == 0 then
     coder:add_indent('void ')
   else
     local ret = rets[1]
-    ast:assertf(ret.tag == 'Type')
+    ast:assertraisef(ret.tag == 'Type')
     coder:add_indent(ret, ' ')
   end
   coder:add_ln(name, '(', args, ') {')
@@ -322,7 +322,7 @@ end
 
 function visitors.UnaryOp(context, ast, coder)
   local opname, arg = ast:args()
-  local op = ast:assertf(cdefs.UNARY_OPS[opname], 'unary operator "%s" not found', opname)
+  local op = ast:assertraisef(cdefs.UNARY_OPS[opname], 'unary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(op, arg)
@@ -331,7 +331,7 @@ end
 
 function visitors.BinaryOp(context, ast, coder)
   local opname, left_arg, right_arg = ast:args()
-  local op = ast:assertf(cdefs.BINARY_OPS[opname], 'binary operator "%s" not found', opname)
+  local op = ast:assertraisef(cdefs.BINARY_OPS[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(left_arg, ' ', op, ' ', right_arg)
@@ -340,7 +340,7 @@ end
 
 function visitors.TernaryOp(context, ast, coder)
   local opname, left_arg, mid_arg, right_arg = ast:args()
-  ast:assertf(opname == 'if', 'unknown ternary operator "%s"', opname)
+  ast:assertraisef(opname == 'if', 'unknown ternary operator "%s"', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(mid_arg, ' ? ', left_arg, ' : ', right_arg)

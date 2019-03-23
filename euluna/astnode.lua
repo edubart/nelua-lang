@@ -1,8 +1,9 @@
 local class = require 'euluna.utils.class'
 local inspect = require 'inspect'
-local utils = require 'euluna.utils.errorer'
+local errorer = require 'euluna.utils.errorer'
 local tabler = require 'euluna.utils.tabler'
 local iters = require 'euluna.utils.iterators'
+local except = require 'euluna.utils.except'
 
 local ASTNode = class()
 ASTNode.tag = 'Node'
@@ -25,24 +26,37 @@ function ASTNode:args()
   return tabler.unpack(self, 1, self.nargs)
 end
 
-local function astnode_errorf(self, level, format, ...)
-  local msg = string.format(format, ...)
-  if self.src and self.pos then
-    msg = utils.get_pretty_source_errmsg(self.src, self.srcname, self.pos, msg)
+local function get_astnode_errmsg(ast, message, ...)
+  message = string.format(message, ...)
+  if ast.src and ast.pos then
+    message = errorer.get_pretty_source_errmsg(ast.src, ast.srcname, ast.pos, message)
   end
-  error(msg, level)
+  return message
 end
 
-function ASTNode:assertf(cond, format, ...)
+--luacov:disable
+function ASTNode:errorf(message, ...)
+  error(get_astnode_errmsg(self, message, ...))
+end
+
+function ASTNode:assertf(cond, message, ...)
   if not cond then
-    astnode_errorf(self, 2, format, ...)
+    error(get_astnode_errmsg(self, message, ...))
   end
   return cond
 end
 
-function ASTNode:errorf(format, ...) --luacov:disable
-  astnode_errorf(self, 2, format, ...)
-end --luacov:enable
+function ASTNode:raisef(message, ...)
+  except.raise(get_astnode_errmsg(self, message, ...))
+end
+
+function ASTNode:assertraisef(cond, message, ...)
+  if not cond then
+    except.raise(get_astnode_errmsg(self, message, ...))
+  end
+  return cond
+end
+ --luacov:enable
 
 -- pretty print ast
 local function stringfy_ast(node, depth, t, skipindent)

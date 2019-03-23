@@ -1,20 +1,10 @@
-local plfile = require 'pl.file'
 local plutil = require 'pl.utils'
-local plpath = require 'pl.path'
+local sha1 = require 'sha1'.sha1
+local fs = require 'euluna.utils.fs'
+local except = require 'euluna.utils.except'
 local configer = require 'euluna.configer'
 local config = configer.get()
-local sha1 = require 'sha1'.sha1
-
 local runner = {}
-
-local function get_outcachepath(infile)
-  local path = infile:gsub('%.[^.]+$','')
-  path = plpath.relpath(path)
-  path = path:gsub('%.%.[/\\]+', '')
-  path = plpath.join(config.cache_dir, path)
-  path = plpath.normpath(path)
-  return path
-end
 
 local function succeed(msg)
   if msg then
@@ -26,52 +16,43 @@ local function succeed(msg)
 end
 
 local function fail(err)
-  io.stderr:write(err)
+  io.stderr:write(tostring(err))
   io.stderr:write('\n')
   io.stderr:flush()
   return 1
 end
 
-function runner.run(argv)
+local function run(argv)
   -- parse config
-  local err
-  config, err = configer.parse(argv)
-  if not config then return fail(err) end
+  config = configer.parse(argv)
 
   -- determine input
   local input = config.input
   local infile
   if not config.eval then
     infile = input
-    input,err = plfile.read(input)
-    if not input then return fail(err) end
+    input = fs.readfile(input)
   end
 
   -- parse ast
-  local ast
   local parser = require('euluna.parsers.euluna_std_' .. config.standard).parser
-  ast, err = parser:parse(input, infile)
-  if not ast then return fail(err) end
+  local ast = parser:parse(input, infile)
 
   -- only checking syntax?
-  if config.lint then return 0 end
+  if config.lint then return succeed() end
 
   -- only printing ast?
   if config.print_ast then return succeed(tostring(ast)) end
 
   -- analyze the ast
   local type_analizer = require 'euluna.analyzers.types.analyzer'
-  local analyzeok
-  analyzeok, err = type_analizer.analyze(ast)
-  if not analyzeok then return fail(err) end
+  ast = type_analizer.analyze(ast)
 
   if config.analyze then return succeed() end
 
   -- generate the code
   local generator = require('euluna.generators.' .. config.generator .. '.generator')
-  local code
-  code, err = generator.generate(ast)
-  if not ast then return fail(err) end
+  local code = generator.generate(ast)
 
   -- only printing generated code?
   if config.print_code then return succeed(code) end
@@ -80,19 +61,17 @@ function runner.run(argv)
   if not infile then infile = 'eval_' .. sha1(code) end
 
   -- save the generated code
-  local outcachefile = get_outcachepath(infile)
-  local sourcefile, binaryfile
+  local outcachefile = fs.getcachepath(infile, config.cache_dir)
   local compiler = generator.compiler
-  sourcefile, err = compiler.compile_code(code, outcachefile)
-  if not sourcefile then return fail(err) end
+  local sourcefile = compiler.compile_code(code, outcachefile)
 
   local dorun = not config.compile and not config.compile_binary
   local dobinarycompile = config.compile_binary or dorun
 
   -- compile the generated code
+  local binaryfile
   if dobinarycompile then
-    binaryfile, err = compiler.compile_binary(sourcefile, outcachefile)
-    if not binaryfile then return fail(err) end
+    binaryfile = compiler.compile_binary(sourcefile, outcachefile)
   end
 
   -- run
@@ -104,11 +83,22 @@ function runner.run(argv)
     local ok,status,sout,serr = plutil.executeex(cmd, runargs)
     if sout then io.stdout:write(sout) end
     if serr then io.stderr:write(serr) end
-    if not ok then return 1 end
+    if not ok then return fail('execution failed') end
     return status
   end
 
-  return 0
+  return succeed()
+end
+
+function runner.run(argv)
+  local status
+  except.try(function()
+    status = run(argv)
+  end, function(e)
+    status = fail(e)
+    return true
+  end)
+  return status
 end
 
 return runner

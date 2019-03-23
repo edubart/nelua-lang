@@ -6,6 +6,7 @@ local utils = require 'euluna.utils.errorer'
 local pegger = require 'euluna.utils.pegger'
 local iters = require 'euluna.utils.iterators'
 local metamagic = require 'euluna.utils.metamagic'
+local except = require 'euluna.utils.except'
 local unpack = tabler.unpack
 local assertf = utils.assertf
 
@@ -250,14 +251,17 @@ function Parser:parse(input, inputname, pegname)
   if not pegname then
     pegname = 'sourcecode'
   end
-  local ast, errlabel, errpos = self:match(pegname, input, inputname)
-  if ast then
-    return ast
-  else
-    local errmsg = self.syntax_errors[errlabel] or errlabel
-    local prettymsg = utils.get_pretty_source_errmsg(input, inputname, errpos, errmsg, 'syntax error')
-    return nil, prettymsg, errlabel
+  local ast, syntaxlabel, errpos = self:match(pegname, input, inputname)
+  if not ast then
+    local errmsg = self.syntax_errors[syntaxlabel] or syntaxlabel
+    local message = utils.get_pretty_source_errmsg(input, inputname, errpos, errmsg, 'syntax error')
+    except.raise({
+      label = 'ParseError',
+      message = message,
+      syntaxlabel = syntaxlabel
+    })
   end
+  return ast
 end
 
 function Parser:clone()

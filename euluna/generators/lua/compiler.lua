@@ -1,6 +1,4 @@
-local pldir = require 'pl.dir'
-local plfile = require 'pl.file'
-local plpath = require 'pl.path'
+local fs = require 'euluna.utils.fs'
 local pltemplate = require 'pl.template'
 local sha1 = require 'sha1'.sha1
 local config = require 'euluna.configer'.get()
@@ -9,11 +7,6 @@ local lua_compiler = {}
 
 function lua_compiler.compile_code(luacode, outfile)
   local luafile = outfile .. '.lua'
-
-  -- create output directory if needed
-  local outdir = plpath.dirname(luafile)
-  local ok, err = pldir.makepath(outdir)
-  if not ok then return nil, string.format('failed to create path for compiling "%s": %s', luafile, err) end
 
   -- file heading
   local hash = sha1(luacode)
@@ -25,15 +18,14 @@ function lua_compiler.compile_code(luacode, outfile)
   local sourcecode = heading .. luacode
 
   -- check if write is actually needed
-  local current_sourcecode = plfile.read(luafile)
+  local current_sourcecode = fs.tryreadfile(luafile)
   if not config.no_cache and current_sourcecode and current_sourcecode == sourcecode then
     if not config.quiet then print("using cached generated " .. luafile) end
     return luafile
   end
 
-  -- save sources to a file
-  ok, err = plfile.write(luafile, sourcecode)
-  if not ok then return nil, string.format('failed to create file for compiling "%s": %s', luafile, err) end
+  fs.ensurefilepath(luafile)
+  fs.writefile(luafile, sourcecode)
   if not config.quiet then print("generated " .. luafile) end
 
   return luafile

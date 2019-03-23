@@ -20,7 +20,7 @@ end)
 --------------------------------------------------------------------------------
 -- AST error checking
 --------------------------------------------------------------------------------
-it("throw error on invalid ASTNode", function()
+it("error on invalid ASTNode", function()
   assert.has_error(function() AST('Invalid') end)
   assert.has_error(function() AST('Block', 1) end)
   assert.has_error(function() AST('Block', {1}) end)

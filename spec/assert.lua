@@ -3,6 +3,7 @@ local assert = require 'luassert'
 local runner = require 'euluna.runner'
 local stringx = require 'pl.stringx'
 local inspect = require 'inspect'
+local except = require 'euluna.utils.except'
 local assertf = require 'euluna.utils.errorer'.assertf
 
 function assert.ast_equals(expected_ast, ast)
@@ -59,8 +60,10 @@ function assert.parse_ast(parser, input, expected_ast)
 end
 
 function assert.parse_ast_error(parser, input, expected_error)
-  local ast, _, errlabel = parser:parse(input)
-  assertf(ast == nil and errlabel and errlabel == expected_error,
+  local ast,e = except.try(function()
+    parser:parse(input)
+  end)
+  assertf(ast == nil and e.label == 'ParseError' and e.syntaxlabel == expected_error,
          'expected error "%s" while parsing', expected_error)
 end
 
@@ -82,8 +85,7 @@ local function run(args)
     return runner.run(args)
   end)
   local status = 1
-  if not ok then
-    io.stderr:write(err .. '\n')
+  if not ok then io.stderr:write(tostring(err) .. '\n')
   else
     status = err
   end

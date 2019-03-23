@@ -9,7 +9,7 @@ function visitors.Number(_, ast)
   local type
   if literal then
     type = typedefs.NUM_LITERALS[literal]
-    ast:assertf(type, 'literal "%s" is not defined', literal)
+    ast:assertraisef(type, 'literal "%s" is not defined', literal)
   else
     type = typedefs.NUM_DEF_TYPES[numtype]
     ast:assertf(type, 'invalid number type "%s" for AST Number', numtype)
@@ -49,7 +49,7 @@ end
 
 function visitors.VarDecl(context, ast, scope)
   local varscope, mutability, vars, vals = ast:args()
-  ast:assertf(mutability == 'var', 'variable mutability not supported yet')
+  ast:assertraisef(mutability == 'var', 'variable mutability not supported yet')
   for _,var,val in iters.izip(vars, vals or {}) do
     local varname = var:arg(1)
     context:traverse(var, scope)
@@ -68,7 +68,7 @@ local analyzer = {}
 function analyzer.analyze(ast)
   local context = TraverseContext(visitors, true)
   context:traverse(ast, context.scope)
-  return true
+  return ast
 end
 
 return analyzer

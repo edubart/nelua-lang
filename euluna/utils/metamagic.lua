@@ -22,4 +22,11 @@ function metamagic.setmetacall(t, f)
   return setmetatable(t, { __call = callfunc})
 end
 
+-- check if a value has a metamethod
+function metamagic.hasmetamethod(t, method)
+  local mt = getmetatable(t)
+  if mt and mt[method] then return true end
+  return false
+end
+
 return metamagic

@@ -662,18 +662,18 @@ print(foo(false)) -- outputs "success"
 
 ### Exceptions
 
-Exceptions are useful to throw and catch errors.
+Exceptions are useful to raise and catch errors.
 
 ```euluna
 function foo(err)
-  error "failed" -- throw an exception with a string object
+  error "failed" -- raise an exception with a string object
 end
 
 try
   foo()
-catch(e: string)
+except(e: string)
   -- catch error with string object
-catch(e: any)
+except(e: any)
   -- catch any error
 end
 ```

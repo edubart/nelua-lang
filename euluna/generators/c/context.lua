@@ -29,9 +29,9 @@ function CContext:add_builtin(name)
 end
 
 function CContext:get_ctype(ast)
-  local tyname = ast:assertf(ast.type, 'unknown type for for AST node')
+  local tyname = ast:assertraisef(ast.type, 'unknown type for for AST node')
   local ttype = cdefs.PRIMIVE_TYPES[tyname]
-  ast:assertf(ttype, 'type %s is not known', tyname)
+  ast:assertraisef(ttype, 'type %s is not known', tyname)
   if ttype.include then
     self:add_include(ttype.include)
   end

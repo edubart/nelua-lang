@@ -55,9 +55,9 @@ function functions.print(context, ast, coder)
     if arg.tag == 'String' then
       defcoder:add_indent_ln('fwrite(a',i,'->data, a',i,'->len, 1, stdout);')
     elseif arg.tag == 'Number' or arg.tag == 'Id' then
-      local tyname = ast:assertf(arg.type, 'type is not defined in AST node')
+      local tyname = ast:assertraisef(arg.type, 'type is not defined in AST node')
       local tyformat = cdefs.PRINTF_TYPES_FORMAT[tyname]
-      ast:assertf(tyformat, 'invalid type "%s" for printf format', tyname)
+      ast:assertraisef(tyformat, 'invalid type "%s" for printf format', tyname)
       defcoder:add_indent_ln('fprintf(stdout, "',tyformat,'", a',i,');')
     else --luacov:disable
       ast:errorf('cannot handle AST node "%s" in print', arg.tag)

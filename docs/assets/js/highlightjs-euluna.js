@@ -21,7 +21,7 @@ hljs.registerLanguage("euluna", function(e) {
         //Lua
         "function and break do else elseif end for goto if in local not or repeat return then until while " +
         //Extended lua
-        "switch case try catch throw defer continue import " +
+        "switch case try except raise defer continue import " +
         "typedef export " +
         "struct enum " +
         "template concept " +

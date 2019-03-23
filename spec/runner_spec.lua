@@ -17,7 +17,7 @@ it("run simple programs", function()
   assert.run({'--generator', 'c', '--no-cache', '--eval', "return 0"})
 end)
 
-it("throw error parsing an invalid program" , function()
+it("error on parsing an invalid program" , function()
   assert.run_error('--aninvalidflag', 'unknown option')
   assert.run_error('--lint --eval invalid')
   assert.run_error('--lint invalid', 'invalid: No such file or directory')

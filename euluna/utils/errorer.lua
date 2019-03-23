@@ -2,15 +2,18 @@ local re = require 'relabel'
 
 local errorer = {}
 
-function errorer.assertf(cond, str, ...)
-  return assert(cond, not cond and string.format(str, ...))
+--luacov:disable
+function errorer.assertf(cond, message, ...)
+  if not cond then
+    error(string.format(message, ...), 2)
+  end
+  return cond
 end
 
-function errorer.errorf(str, ...)
-  --luacov:disable
-  error(string.format(str, ...), 2)
-  --luacov:enable
+function errorer.errorf(message, ...)
+  error(string.format(message, ...), 2)
 end
+--luacov:enable
 
 function errorer.get_pretty_source_errmsg(src, srcname, errpos, errmsg, errname)
   local line, col = re.calcline(src, errpos)
