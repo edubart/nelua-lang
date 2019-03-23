@@ -5,6 +5,7 @@ local tabler = require 'euluna.utils.tabler'
 local utils = require 'euluna.utils.errorer'
 local pegger = require 'euluna.utils.pegger'
 local iters = require 'euluna.utils.iterators'
+local metamagic = require 'euluna.utils.metamagic'
 local unpack = tabler.unpack
 local assertf = utils.assertf
 
@@ -21,7 +22,7 @@ end
 
 local function inherit_defs(parent_defs, defs)
   if defs then
-    tabler.setmetaindex(defs, parent_defs)
+    metamagic.setmetaindex(defs, parent_defs, true)
     return defs
   else
     return parent_defs
@@ -110,7 +111,7 @@ local function get_peg_deps(patt, defs, full_defs)
   if not defs then return {} end
   local deps = {}
   local proxy_defs = {}
-  tabler.setmetaindex(proxy_defs,
+  metamagic.setmetaindex(proxy_defs,
     function(_, name)
       if defs[name] then
         table.insert(deps, name)

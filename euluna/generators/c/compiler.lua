@@ -4,6 +4,7 @@ local plpath = require 'pl.path'
 local plutil = require 'pl.utils'
 local pltemplate = require 'pl.template'
 local config = require 'euluna.configer'.get()
+local metamagic = require 'euluna.utils.metamagic'
 local sha1 = require 'sha1'.sha1
 local compiler = {}
 
@@ -12,7 +13,7 @@ local function get_compile_command(infile, outfile)
   env.cc = os.getenv('CC')
   env.cflags = os.getenv('CFLAGS')
   env.ldflags = os.getenv('LDFLAGS')
-  setmetatable(env, {__index = config})
+  metamagic.setmetaindex(env, config)
   return pltemplate.substitute("$(cc) $(cflags) -o $(outfile) $(ldflags) $(infile)", env)
 end
 

@@ -2,6 +2,7 @@ local class = require 'euluna.utils.class'
 local shapetypes = require 'tableshape'.types
 local utils = require 'euluna.utils.errorer'
 local tabler = require 'euluna.utils.tabler'
+local metamagic = require 'euluna.utils.metamagic'
 local assertf = utils.assertf
 local ASTNode = require 'euluna.astnode'
 
@@ -18,7 +19,7 @@ function Aster:_init()
   self.nodes = { Node = ASTNode }
   self.types = { ast = { Node = get_astnode_shapetype(ASTNode) } }
   self.shapes = { Node = shapetypes.shape {} }
-  tabler.setmetaindex(self.types, shapetypes)
+  metamagic.setmetaindex(self.types, shapetypes)
 end
 
 function Aster:register(tag, shape)

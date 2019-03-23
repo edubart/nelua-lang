@@ -16,6 +16,11 @@ function ASTNode:_init(...)
   end
 end
 
+function ASTNode:arg(index)
+  assert(index >= 1 and index <= self.nargs)
+  return self[index]
+end
+
 function ASTNode:args()
   return tabler.unpack(self, 1, self.nargs)
 end

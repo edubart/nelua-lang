@@ -1,5 +1,5 @@
 local class = require 'euluna.utils.class'
-local tabler = require 'euluna.utils.tabler'
+local metamagic = require 'euluna.utils.metamagic'
 
 local Scope = class()
 
@@ -7,7 +7,7 @@ function Scope:_init(parent)
   self.parent = parent
   self.vars = {}
   if parent then
-    tabler.setmetaindex(self.vars, parent.vars)
+    metamagic.setmetaindex(self.vars, parent.vars)
   end
 end
 

@@ -1,4 +1,3 @@
-local Traverser = require 'euluna.traverser'
 local Coder = require 'euluna.coder'
 local pegger = require 'euluna.utils.pegger'
 local iters = require 'euluna.utils.iterators'
@@ -6,10 +5,9 @@ local cdefs = require 'euluna.generators.c.definitions'
 local cbuiltins = require 'euluna.generators.c.builtins'
 local CContext = require 'euluna.generators.c.context'
 
-local generator = Traverser()
-generator.Context = CContext
+local visitors = {}
 
-generator:register('Number', function(context, ast, coder)
+function visitors.Number(context, ast, coder)
   local numtype, value, literal = ast:args()
   local cval
   if numtype == 'int' then
@@ -31,9 +29,9 @@ generator:register('Number', function(context, ast, coder)
   else
     coder:add(cval)
   end
-end)
+end
 
-generator:register('String', function(context, ast, coder)
+function visitors.String(context, ast, coder)
   local value, literal = ast:args()
   ast:assertf(literal == nil, 'literals are not supported yet')
   local deccoder = context.declarations_coder
@@ -49,13 +47,13 @@ generator:register('String', function(context, ast, coder)
   deccoder:add(quoted_value)
   deccoder:add_ln('};')
   coder:add(varname)
-end)
+end
 
-generator:register('Boolean', function(context, ast, coder)
+function visitors.Boolean(context, ast, coder)
   local value = ast:args()
   context:add_include('<stdbool.h>')
   coder:add(tostring(value))
-end)
+end
 
 -- TODO: Nil
 -- TODO: Varargs
@@ -64,19 +62,19 @@ end)
 -- TODO: Function
 
 -- identifier and types
-generator:register('Id', function(_, ast, coder)
+function visitors.Id(_, ast, coder)
   local name = ast:args()
   coder:add(name)
-end)
-generator:register('Paren', function(_, ast, coder)
+end
+function visitors.Paren(_, ast, coder)
   local what = ast:args()
   coder:add('(', what, ')')
-end)
-generator:register('Type', function(context, ast, coder)
+end
+function visitors.Type(context, ast, coder)
   local ctype = context:get_ctype(ast)
   coder:add(ctype)
-end)
-generator:register('TypedId', function(context, ast, coder)
+end
+function visitors.TypedId(context, ast, coder)
   local name = ast:args()
   if ast.type then
     local ctype = context:get_ctype(ast)
@@ -84,23 +82,23 @@ generator:register('TypedId', function(context, ast, coder)
   else
     coder:add(name)
   end
-end)
+end
 
 -- indexing
-generator:register('DotIndex', function(_, ast, coder)
+function visitors.DotIndex(_, ast, coder)
   local name, obj = ast:args()
   coder:add(obj, '.', name)
-end)
+end
 
 -- TODO: ColonIndex
 
-generator:register('ArrayIndex', function(_, ast, coder)
+function visitors.ArrayIndex(_, ast, coder)
   local index, obj = ast:args()
   coder:add(obj, '[', index, ']')
-end)
+end
 
 -- calls
-generator:register('Call', function(context, ast, coder)
+function visitors.Call(context, ast, coder)
   local argtypes, args, caller, block_call = ast:args()
   if block_call then coder:add_indent() end
   local builtin
@@ -114,23 +112,23 @@ generator:register('Call', function(context, ast, coder)
     coder:add(caller, '(', args, ')')
   end
   if block_call then coder:add_ln(";") end
-end)
+end
 
-generator:register('CallMethod', function(_, ast, coder)
+function visitors.CallMethod(_, ast, coder)
   local name, argtypes, args, caller, block_call = ast:args()
   if block_call then coder:add_indent() end
   coder:add(caller, '.', name, '(', caller, args, ')')
   if block_call then coder:add_ln() end
-end)
+end
 
-generator:register('FuncArg', function(_, ast, coder)
+function visitors.FuncArg(_, ast, coder)
   local name, mut, type = ast:args()
   ast:assertf(mut == nil or mut == 'var', "variable mutabilities are not supported yet")
   coder:add(type, ' ', name)
-end)
+end
 
 -- block
-generator:register('Block', function(context, ast, coder, scope)
+function visitors.Block(context, ast, coder, scope)
   local stats = ast:args()
   local is_top_scope = scope:is_top()
   if is_top_scope then
@@ -150,10 +148,10 @@ generator:register('Block', function(context, ast, coder, scope)
     coder:add_ln("}")
     coder:dec_indent()
   end
-end)
+end
 
 -- statements
-generator:register('Return', function(_, ast, coder, scope)
+function visitors.Return(_, ast, coder, scope)
   --TODO: multiple return
   scope.has_return = true
   local rets = ast:args()
@@ -168,9 +166,9 @@ generator:register('Return', function(_, ast, coder, scope)
     end
     coder:add_ln(';')
   end
-end)
+end
 
-generator:register('If', function(_, ast, coder)
+function visitors.If(_, ast, coder)
   local ifparts, elseblock = ast:args()
   for i,ifpart in ipairs(ifparts) do
     local cond, block = ifpart[1], ifpart[2]
@@ -190,9 +188,9 @@ generator:register('If', function(_, ast, coder)
     coder:add(elseblock)
   end
   coder:add_indent_ln("}")
-end)
+end
 
-generator:register('Switch', function(_, ast, coder)
+function visitors.Switch(_, ast, coder)
   local val, caseparts, switchelseblock = ast:args()
   coder:add_indent_ln("switch(", val, ") {")
   coder:inc_indent()
@@ -212,30 +210,30 @@ generator:register('Switch', function(_, ast, coder)
   end
   coder:dec_indent()
   coder:add_indent_ln("}")
-end)
+end
 
-generator:register('Do', function(_, ast, coder)
+function visitors.Do(_, ast, coder)
   local block = ast:args()
   coder:add_indent_ln("{")
   coder:add(block)
   coder:add_indent_ln("}")
-end)
+end
 
-generator:register('While', function(_, ast, coder)
+function visitors.While(_, ast, coder)
   local cond, block = ast:args()
   coder:add_indent_ln("while(", cond, ') {')
   coder:add(block)
   coder:add_indent_ln("}")
-end)
+end
 
-generator:register('Repeat', function(_, ast, coder)
+function visitors.Repeat(_, ast, coder)
   local block, cond = ast:args()
   coder:add_indent_ln("do {")
   coder:add(block)
   coder:add_indent_ln('} while(!(', cond, '));')
-end)
+end
 
-generator:register('ForNum', function(_, ast, coder)
+function visitors.ForNum(_, ast, coder)
   local itvar, beginval, comp, endval, incrval, block  = ast:args()
   ast:assertf(comp == 'le', 'for comparator not supported yet')
   local itname = itvar[1]
@@ -248,29 +246,29 @@ generator:register('ForNum', function(_, ast, coder)
   coder:add_ln(') {')
   coder:add(block)
   coder:add_indent_ln("}")
-end)
+end
 
 -- TODO: ForIn
 
-generator:register('Break', function(_, _, coder)
+function visitors.Break(_, _, coder)
   coder:add_indent_ln('break;')
-end)
+end
 
-generator:register('Continue', function(_, _, coder)
+function visitors.Continue(_, _, coder)
   coder:add_indent_ln('continue;')
-end)
+end
 
-generator:register('Label', function(_, ast, coder)
+function visitors.Label(_, ast, coder)
   local name = ast:args()
   coder:add_indent_ln(name, ':')
-end)
+end
 
-generator:register('Goto', function(_, ast, coder)
+function visitors.Goto(_, ast, coder)
   local labelname = ast:args()
   coder:add_indent_ln('goto ', labelname, ';')
-end)
+end
 
-generator:register('VarDecl', function(_, ast, coder)
+function visitors.VarDecl(_, ast, coder)
   local varscope, mutability, vars, vals = ast:args()
   ast:assertf(varscope == 'local', 'global variables not supported yet')
   ast:assertf(not vals or #vars == #vals, 'vars and vals count differs')
@@ -284,10 +282,10 @@ generator:register('VarDecl', function(_, ast, coder)
     coder:add(';')
   end
   coder:add_ln()
-end)
+end
 
 
-generator:register('Assign', function(_, ast, coder)
+function visitors.Assign(_, ast, coder)
   local vars, vals = ast:args()
   ast:assertf(#vars == #vals, 'vars and vals count differs')
   coder:add_indent()
@@ -296,9 +294,9 @@ generator:register('Assign', function(_, ast, coder)
     coder:add(var, ' = ', val, ';')
   end
   coder:add_ln()
-end)
+end
 
-generator:register('FuncDef', function(context, ast)
+function visitors.FuncDef(context, ast)
   local varscope, name, args, rets, block = ast:args()
   ast:assertf(#rets <= 1, 'multiple returns not supported yet')
   ast:assertf(varscope == 'local', 'non local scope for functions not supported yet')
@@ -313,7 +311,7 @@ generator:register('FuncDef', function(context, ast)
   coder:add_ln(name, '(', args, ') {')
   coder:add(block)
   coder:add_indent_ln('}')
-end)
+end
 
 -- operators
 local function is_in_operator(context)
@@ -326,35 +324,37 @@ local function is_in_operator(context)
     parent_ast_tag == 'TernaryOp'
 end
 
-generator:register('UnaryOp', function(context, ast, coder)
+function visitors.UnaryOp(context, ast, coder)
   local opname, arg = ast:args()
   local op = ast:assertf(cdefs.UNARY_OPS[opname], 'unary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(op, arg)
   if surround then coder:add(')') end
-end)
+end
 
-generator:register('BinaryOp', function(context, ast, coder)
+function visitors.BinaryOp(context, ast, coder)
   local opname, left_arg, right_arg = ast:args()
   local op = ast:assertf(cdefs.BINARY_OPS[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(left_arg, ' ', op, ' ', right_arg)
   if surround then coder:add(')') end
-end)
+end
 
-generator:register('TernaryOp', function(context, ast, coder)
+function visitors.TernaryOp(context, ast, coder)
   local opname, left_arg, mid_arg, right_arg = ast:args()
   ast:assertf(opname == 'if', 'unknown ternary operator "%s"', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(mid_arg, ' ? ', left_arg, ' : ', right_arg)
   if surround then coder:add(')') end
-end)
+end
 
-function generator:generate(ast)
-  local context = self:newContext()
+local generator = {}
+
+function generator.generate(ast)
+  local context = CContext(visitors)
   local indent = '    '
 
   context.includes_coder = Coder(context, indent, 0)

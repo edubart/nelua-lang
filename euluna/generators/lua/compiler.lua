@@ -4,6 +4,7 @@ local plpath = require 'pl.path'
 local pltemplate = require 'pl.template'
 local sha1 = require 'sha1'.sha1
 local config = require 'euluna.configer'.get()
+local metamagic = require 'euluna.utils.metamagic'
 local lua_compiler = {}
 
 function lua_compiler.compile_code(luacode, outfile)
@@ -45,7 +46,7 @@ end
 function lua_compiler.get_run_command(binaryfile)
   -- generate compile command
   local env = {binaryfile = binaryfile}
-  setmetatable(env, {__index = config})
+  metamagic.setmetaindex(env, config)
   return pltemplate.substitute("$(lua) $(lua_options) $(binaryfile)", env)
 end
 

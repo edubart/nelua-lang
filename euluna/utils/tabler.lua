@@ -1,3 +1,5 @@
+local metamagic = require 'euluna.utils.metamagic'
+
 local tabler = {}
 local tabler_wrapper = {}
 
@@ -42,17 +44,6 @@ function tabler.insert_many(t, v, ...)
   tabler.insert_many(t, ...)
 end
 
--- set index metamethod for a table
-function tabler.setmetaindex(t, __index)
-  local mt = getmetatable(t)
-  if mt then
-    mt.__index = __index
-  else
-    setmetatable(t, { __index = __index})
-  end
-  return t
-end
-
 -- inject lua table methods to use in chain mode
 tabler.concat = table.concat
 tabler.insert = table.insert
@@ -81,11 +72,10 @@ do
   end
 
   -- allow calling tabler() to begin chain on tables
-  local tabler_mt = {}
-  function tabler_mt.__call(_, v)
+  function tabler.chain(v)
     return new_tabler_wrapper(v)
   end
-  setmetatable(tabler, tabler_mt)
+  metamagic.setmetacall(tabler, tabler.chain)
 end
 
 return tabler

@@ -3,7 +3,7 @@ GID=$(shell id -g $(USER))
 PWD=$(shell pwd)
 DRFLAGS=--rm -it -v "$(PWD):/euluna" euluna
 DFLAGS=-u $(UID):$(GID) $(DRFLAGS)
-NODEMONFLAGS=-w euluna -w spec -w utils -w tools -w examples -e lua,euluna -q -x
+NODEMONFLAGS=-w euluna -w spec -w tools -w examples -e lua,euluna -q -x
 
 test: test-luajit test-lua5.3 test-lua5.1
 

@@ -1,13 +1,13 @@
-local Traverser = require 'euluna.traverser'
+local TraverseContext = require 'euluna.traversecontext'
 local class = require 'euluna.utils.class'
 local assertf = require 'euluna.utils.errorer'.assertf
 local cdefs = require 'euluna.generators.c.definitions'
 local cbuiltins = require 'euluna.generators.c.builtins'
 
-local CContext = class(Traverser.Context)
+local CContext = class(TraverseContext)
 
-function CContext:_init(traverser)
-  self:super(traverser)
+function CContext:_init(visitors)
+  self:super(visitors)
   self.includes = {}
   self.builtins = {}
 end

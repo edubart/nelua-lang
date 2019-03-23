@@ -3,14 +3,14 @@ require 'busted.runner'()
 local assert = require 'spec.assert'
 local euluna_parser = require 'euluna.parsers.euluna_std_default'.parser
 local lua_generator = require 'euluna.generators.lua.generator'
-local analyzer = require 'euluna.analyzers.type_analyzer'
+local analyzer = require 'euluna.analyzers.types.analyzer'
 local stringx = require 'pl.stringx'
 
 local function assert_generate_lua(euluna_code, lua_code)
   lua_code = lua_code or euluna_code
   local ast = assert.parse_ast(euluna_parser, euluna_code)
-  assert(analyzer:analyze(ast))
-  local generated_code = assert(lua_generator:generate(ast))
+  assert(analyzer.analyze(ast))
+  local generated_code = assert(lua_generator.generate(ast))
   assert.same(stringx.rstrip(lua_code), stringx.rstrip(generated_code))
 end
 

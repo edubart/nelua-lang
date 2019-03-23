@@ -1,6 +1,7 @@
 local argparse = require 'argparse'
 local tabler = require 'euluna.utils.tabler'
 local plutil = require 'pl.utils'
+local metamagic = require 'euluna.utils.metamagic'
 
 local configer = {}
 local config = {}
@@ -41,7 +42,7 @@ function configer.parse(args)
   local argparser = create_parser(tabler.copy(args))
   local ok, options = argparser:pparse(args)
   if not ok then return nil, options end
-  tabler.setmetaindex(config, options)
+  metamagic.setmetaindex(config, options, true)
   return config
 end
 

@@ -1,3 +1,4 @@
+local metamagic = require 'euluna.utils.metamagic'
 local class = {}
 
 -- base class for any object
@@ -13,7 +14,7 @@ function Object.__call(klass, ...)
 end
 
 -- called when creating a new class
-local function new_class(base)
+function class.new(base)
   base = base or Object
   local klass = {}
   for k, v in pairs(base) do
@@ -37,8 +38,6 @@ function class.is_a(val, T)
 end
 
 -- implement class() call to create a new class
-setmetatable(class, {
-  __call = function(_, ...) return new_class(...) end
-})
+metamagic.setmetacall(class, class.new)
 
 return class
