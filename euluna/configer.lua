@@ -1,6 +1,6 @@
 local argparse = require 'argparse'
-local tabler = require 'euluna.utils.tabler'
 local plutil = require 'pl.utils'
+local tabler = require 'euluna.utils.tabler'
 local metamagic = require 'euluna.utils.metamagic'
 local except = require 'euluna.utils.except'
 

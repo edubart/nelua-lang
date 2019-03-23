@@ -1,6 +1,6 @@
 local class = require 'euluna.utils.class'
 local traits = require 'euluna.utils.traits'
-local errorf = require 'euluna.utils.errorer'.errorf
+local errorer = require 'euluna.utils.errorer'
 
 local Coder = class()
 
@@ -46,7 +46,7 @@ function Coder:add(what, ...)
     elseif traits.is_table(what) then
       self:add_traversal_list(what)
     else --luacov:disable
-      errorf('coder cannot add value of type "%s"', type(what))
+      errorer.errorf('coder cannot add value of type "%s"', type(what))
     end  --luacov:enable
   end
   local numargs = select('#', ...)

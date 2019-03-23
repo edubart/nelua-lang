@@ -1,7 +1,7 @@
 
 local class = require 'euluna.utils.class'
 local tabler = require 'euluna.utils.tabler'
-local assertf = require 'euluna.utils.errorer'.assertf
+local errorer = require 'euluna.utils.errorer'
 local pegger = require 'euluna.utils.pegger'
 local iters = require 'euluna.utils.iterators'
 
@@ -16,7 +16,7 @@ end
 local function merge_defs(self, defs)
   if not defs then return end
   for dname,def in pairs(defs) do
-    assertf(self.defs[dname] == nil, 'conflict defs for "%s"', dname)
+    errorer.assertf(self.defs[dname] == nil, 'conflict defs for "%s"', dname)
     self.defs[dname] = def
   end
 end
@@ -35,7 +35,7 @@ function Grammar:add_group_peg(groupname, name, patt, defs, overwrite)
   end
   local fullname = string.format('%s_%s', groupname, name)
   if tabler.find(group, fullname) then
-    assertf(overwrite, 'group peg "%s" already exists', fullname)
+    errorer.assertf(overwrite, 'group peg "%s" already exists', fullname)
   else
     table.insert(group, fullname)
   end
@@ -46,7 +46,7 @@ end
 
 function Grammar:set_peg(name, patt, defs, overwrite)
   local has_peg = self.pegs[name] ~= nil
-  assertf(not has_peg or overwrite, 'cannot overwrite peg "%s"', name)
+  errorer.assertf(not has_peg or overwrite, 'cannot overwrite peg "%s"', name)
   if not has_peg then
     table.insert(self.pegs, name)
   end

@@ -1,5 +1,5 @@
-local class = require 'euluna.utils.class'
 local inspect = require 'inspect'
+local class = require 'euluna.utils.class'
 local errorer = require 'euluna.utils.errorer'
 local tabler = require 'euluna.utils.tabler'
 local iters = require 'euluna.utils.iterators'

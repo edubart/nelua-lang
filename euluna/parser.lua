@@ -1,14 +1,12 @@
-local class = require 'euluna.utils.class'
 local lpeg = require 'lpeglabel'
 local re = require 'relabel'
+local class = require 'euluna.utils.class'
 local tabler = require 'euluna.utils.tabler'
-local utils = require 'euluna.utils.errorer'
+local errorer = require 'euluna.utils.errorer'
 local pegger = require 'euluna.utils.pegger'
 local iters = require 'euluna.utils.iterators'
 local metamagic = require 'euluna.utils.metamagic'
 local except = require 'euluna.utils.except'
-local unpack = tabler.unpack
-local assertf = utils.assertf
 
 local Parser = class()
 
@@ -85,6 +83,7 @@ function Parser:set_aster(aster)
     return lhs
   end
 
+  local unpack = tabler.unpack
   defs.to_chain_index_or_call = function(primary_expr, exprs, inblock)
     local last_expr = primary_expr
     if exprs then
@@ -168,9 +167,9 @@ function Parser:set_peg(name, patt, defs, modf)
 end
 
 function Parser:remove_peg(name)
-  assertf(self.defs[name], 'cannot remove non existent peg "%s"', name)
+  errorer.assertf(self.defs[name], 'cannot remove non existent peg "%s"', name)
   local refs = cascade_dependencies_for(self.pegdescs, name)
-  assertf(#refs == 0, 'cannot remove peg "%s" that has references', name)
+  errorer.assertf(#refs == 0, 'cannot remove peg "%s" that has references', name)
   self.defs[name] = nil
   self.pegdescs[name] = nil
 end
@@ -185,7 +184,7 @@ end
 
 function Parser:match(pegname, input, inputname)
   local peg = self.defs[pegname]
-  assertf(peg, 'cannot match an input to inexistent peg "%s"', pegname)
+  errorer.assertf(peg, 'cannot match an input to inexistent peg "%s"', pegname)
   self.input = input
   self.inputname = inputname
   local res, errlabel, errpos = peg:match(input)
@@ -217,7 +216,7 @@ end
 local function internal_add_keyword(self, keyword)
   local keyword_name = keyword:upper()
   assert(self.defs.IDSUFFIX, 'cannot add keyword without a IDSUFFIX peg')
-  assertf(tabler.find(self.keywords, keyword) == nil, 'keyword "%s" already exists', keyword)
+  errorer.assertf(tabler.find(self.keywords, keyword) == nil, 'keyword "%s" already exists', keyword)
   table.insert(self.keywords, keyword)
   self:set_token_peg(keyword_name, string.format("'%s' !%%IDSUFFIX", keyword))
 end
@@ -230,7 +229,7 @@ end
 function Parser:remove_keyword(keyword)
   local keyword_name = keyword:upper()
   local i = tabler.find(self.keywords, keyword)
-  assertf(i, 'keyword "%s" to remove not found', keyword)
+  errorer.assertf(i, 'keyword "%s" to remove not found', keyword)
   table.remove(self.keywords, i)
   recompile_keyword_peg(self)
   self:remove_peg(keyword_name)
@@ -254,7 +253,7 @@ function Parser:parse(input, inputname, pegname)
   local ast, syntaxlabel, errpos = self:match(pegname, input, inputname)
   if not ast then
     local errmsg = self.syntax_errors[syntaxlabel] or syntaxlabel
-    local message = utils.get_pretty_source_errmsg(input, inputname, errpos, errmsg, 'syntax error')
+    local message = errorer.get_pretty_source_errmsg(input, inputname, errpos, errmsg, 'syntax error')
     except.raise({
       label = 'ParseError',
       message = message,

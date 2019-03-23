@@ -1,6 +1,6 @@
 local TraverseContext = require 'euluna.traversecontext'
 local class = require 'euluna.utils.class'
-local assertf = require 'euluna.utils.errorer'.assertf
+local errorer = require 'euluna.utils.errorer'
 local cdefs = require 'euluna.generators.c.definitions'
 local cbuiltins = require 'euluna.generators.c.builtins'
 
@@ -24,7 +24,7 @@ function CContext:add_builtin(name)
   if builtins[name] then return end
   builtins[name] = true
   local builtin = cbuiltins[name]
-  assertf(builtin, 'builtin %s not found', name)
+  errorer.assertf(builtin, 'builtin %s not found', name)
   builtin(self)
 end
 

@@ -67,6 +67,7 @@ build = {
     ['euluna.utils.metamagic'] = 'euluna/utils/metamagic.lua',
     ['euluna.utils.except'] = 'euluna/utils/except.lua',
     ['euluna.utils.fs'] = 'euluna/utils/fs.lua',
+    ['euluna.utils.stringer'] = 'euluna/utils/stringer.lua',
   },
   install = {
     bin = {

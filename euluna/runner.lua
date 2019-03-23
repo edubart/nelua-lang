@@ -1,5 +1,5 @@
 local plutil = require 'pl.utils'
-local sha1 = require 'sha1'.sha1
+local stringer = require 'euluna.utils.stringer'
 local fs = require 'euluna.utils.fs'
 local except = require 'euluna.utils.except'
 local configer = require 'euluna.configer'
@@ -58,7 +58,7 @@ local function run(argv)
   if config.print_code then return succeed(code) end
 
   -- choose a infile for evals
-  if not infile then infile = 'eval_' .. sha1(code) end
+  if not infile then infile = 'eval_' .. stringer.sha1(code) end
 
   -- save the generated code
   local outcachefile = fs.getcachepath(infile, config.cache_dir)

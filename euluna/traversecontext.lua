@@ -1,7 +1,7 @@
 local class = require 'euluna.utils.class'
-local Scope = require 'euluna.scope'
 local traits = require 'euluna.utils.traits'
 local iters = require 'euluna.utils.iterators'
+local Scope = require 'euluna.scope'
 
 local TraverseContext = class()
 

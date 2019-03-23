@@ -1,9 +1,8 @@
 local class = require 'euluna.utils.class'
 local shapetypes = require 'tableshape'.types
-local utils = require 'euluna.utils.errorer'
+local errorer = require 'euluna.utils.errorer'
 local tabler = require 'euluna.utils.tabler'
 local metamagic = require 'euluna.utils.metamagic'
-local assertf = utils.assertf
 local ASTNode = require 'euluna.astnode'
 
 local Aster = class()
@@ -34,11 +33,11 @@ end
 
 function Aster:create(tag, ...)
   local klass = self.nodes[tag]
-  assertf(klass, "AST with name '%s' is not registered", tag)
+  errorer.assertf(klass, "AST with name '%s' is not registered", tag)
   local node = klass(...)
   local shape = self.shapes[tag]
   local ok, err = shape(node)
-  assertf(ok, 'invalid shape while creating AST node "%s": %s', tag, err)
+  errorer.assertf(ok, 'invalid shape while creating AST node "%s": %s', tag, err)
   return node
 end
 

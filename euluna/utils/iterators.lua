@@ -1,6 +1,5 @@
 local tabler = require 'euluna.utils.tabler'
 
-local unpack = tabler.unpack
 local iterators = {}
 
 -- iterate all values of a array, returning only its value
@@ -54,7 +53,7 @@ function iterators.izip(...)
     if not found then
       return nil
     end
-    return i, unpack(ans, 1, n)
+    return i, tabler.unpack(ans, 1, n)
   end
 end
 

@@ -1,5 +1,5 @@
 local re = require 'relabel'
-local assertf = require 'euluna.utils.errorer'.assertf
+local errorer = require 'euluna.utils.errorer'
 local tabler = require 'euluna.utils.tabler'
 
 local pegger = {}
@@ -78,7 +78,7 @@ comment    <- %s* '--' (!linebreak .)* linebreak?
 )
 function pegger.split_grammar_patts(combined_patts)
   local pattdescs = combined_grammar_peg_pat:match(combined_patts)
-  assertf(pattdescs, 'invalid multiple pegs patterns syntax: %s', combined_patts)
+  errorer.assertf(pattdescs, 'invalid multiple pegs patterns syntax: %s', combined_patts)
   return tabler.imap(pattdescs, function(v)
     return {name = v[1], patt = v[2]}
   end)
@@ -96,7 +96,7 @@ comment    <- %s* '--' (!linebreak .)* linebreak?
 )
 function pegger.split_parser_patts(combined_patts)
   local pattdescs = combined_parser_peg_pat:match(combined_patts)
-  assertf(pattdescs, 'invalid multiple pegs patterns syntax: %s', combined_patts)
+  errorer.assertf(pattdescs, 'invalid multiple pegs patterns syntax: %s', combined_patts)
   return tabler.imap(pattdescs, function(v)
     return {name = v[1], patt = v[2]}
   end)

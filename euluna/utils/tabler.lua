@@ -1,7 +1,6 @@
 local metamagic = require 'euluna.utils.metamagic'
 
 local tabler = {}
-local tabler_wrapper = {}
 
 --- copy a table into another, in-place.
 function tabler.update(t, src)
@@ -53,6 +52,7 @@ tabler.sort = table.sort
 
 --- tabler wrapper for using in chain mode
 do
+  local tabler_wrapper = {}
   local tabler_wrapper_mt = { __index = tabler_wrapper}
   local function new_tabler_wrapper(v)
     return setmetatable({_v = v}, tabler_wrapper_mt)

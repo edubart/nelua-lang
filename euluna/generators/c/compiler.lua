@@ -1,10 +1,10 @@
 local plutil = require 'pl.utils'
-local fs = require 'euluna.utils.fs'
 local pltemplate = require 'pl.template'
-local config = require 'euluna.configer'.get()
+local stringer = require 'euluna.utils.stringer'
+local fs = require 'euluna.utils.fs'
 local metamagic = require 'euluna.utils.metamagic'
 local except = require 'euluna.utils.except'
-local sha1 = require 'sha1'.sha1
+local config = require 'euluna.configer'.get()
 local compiler = {}
 
 local function get_compile_command(infile, outfile)
@@ -30,7 +30,7 @@ end
 local function hash_compilation(ccode)
   local dummycmd = get_compile_command('dummy.c', 'dummy')
   local ccinfo = get_cc_info()
-  return sha1(string.format("%s%s%s", ccode, ccinfo, dummycmd))
+  return stringer.sha1(string.format("%s%s%s", ccode, ccinfo, dummycmd))
 end
 
 function compiler.compile_code(ccode, outfile)
