@@ -5,7 +5,7 @@ local plutil = require 'pl.utils'
 local pltemplate = require 'pl.template'
 local config = require 'euluna.configer'.get()
 local sha1 = require 'sha1'.sha1
-local c_compiler = {}
+local compiler = {}
 
 local function get_compile_command(infile, outfile)
   local env = {infile = infile, outfile = outfile}
@@ -36,7 +36,7 @@ local function hash_compilation(ccode)
   return sha1(string.format("%s%s%s", ccode, ccinfo, dummycmd))
 end
 
-function c_compiler.compile_code(ccode, outfile)
+function compiler.compile_code(ccode, outfile)
   local cfile = outfile .. '.c'
 
   -- create output directory if needed
@@ -70,7 +70,7 @@ function c_compiler.compile_code(ccode, outfile)
   return cfile
 end
 
-function c_compiler.compile_binary(cfile, outfile)
+function compiler.compile_binary(cfile, outfile)
   -- if the file with that hash already exists skip recompiling it
   if not config.no_cache then
     local cfile_mtime = plfile.modified_time(cfile)
@@ -101,8 +101,8 @@ function c_compiler.compile_binary(cfile, outfile)
   return outfile
 end
 
-function c_compiler.get_run_command(binaryfile)
+function compiler.get_run_command(binaryfile)
   return './' .. binaryfile
 end
 
-return c_compiler
+return compiler

@@ -1,6 +1,7 @@
 local class = require 'euluna.utils.class'
 local Scope = require 'euluna.scope'
 local traits = require 'euluna.utils.traits'
+local iters = require 'euluna.utils.iterators'
 
 local TraverserContext = class()
 
@@ -56,8 +57,7 @@ end
 
 local function default_visitor(self, ast, ...)
   local nargs = traits.is_astnode(ast) and ast.nargs or #ast
-  for i=1,nargs do
-    local arg = ast[i]
+  for _,arg in iters.inpairs(ast, nargs) do
     if traits.is_astnode(arg) then
       self:traverse(arg, ...)
     elseif traits.is_table(arg) then

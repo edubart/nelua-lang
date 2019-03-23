@@ -1,5 +1,5 @@
+local iters = require 'euluna.utils.iterators'
 local Traverser = require 'euluna.traverser'
-
 local analyzer = Traverser()
 
 local NUM_LITERALS = {
@@ -39,7 +39,9 @@ analyzer:register('Number', function(_, ast)
       type = 'uint'
     elseif numtype == 'bin' then
       type = 'uint'
-    end
+    else --luacov:disable
+      ast:errorf('invalid number type "%s" for AST Number', numtype)
+    end  --luacov:enable
   end
   ast.type = type
 end)
@@ -77,8 +79,7 @@ end)
 analyzer:register('VarDecl', function(context, ast, scope)
   local varscope, mutability, vars, vals = ast:args()
   ast:assertf(mutability == 'var', 'variable mutability not supported yet')
-  for i=1,#vars do
-    local var, val = vars[i], vals and vals[i]
+  for _,var,val in iters.izip(vars, vals or {}) do
     local varname = var[1]
     context:traverse(var, scope)
     if val then

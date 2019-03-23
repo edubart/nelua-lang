@@ -3,7 +3,7 @@ require 'busted.runner'()
 local assert = require 'spec.assert'
 local euluna_parser = require 'euluna.parsers.euluna_std_default'.parser
 local analyzer = require 'euluna.analyzers.type_analyzer'
-local c_generator = require 'euluna.generators.c_generator'
+local c_generator = require 'euluna.generators.c.generator'
 local assertf = require 'euluna.utils.errorer'.assertf
 
 local function assert_generate_c(euluna_code, c_code)

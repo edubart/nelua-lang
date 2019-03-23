@@ -4,6 +4,7 @@ local re = require 'relabel'
 local tabler = require 'euluna.utils.tabler'
 local utils = require 'euluna.utils.errorer'
 local pegger = require 'euluna.utils.pegger'
+local iters = require 'euluna.utils.iterators'
 local unpack = tabler.unpack
 local assertf = utils.assertf
 
@@ -100,7 +101,7 @@ function Parser:set_aster(aster)
   defs.to_true = function() return true end
   defs.to_false = function() return false end
 
-  for _,pegdesc in pairs(self.pegdescs) do
+  for pegdesc in iters.values(self.pegdescs) do
     recompile_peg(defs, pegdesc)
   end
 end
@@ -124,7 +125,7 @@ local function cascade_dependencies_for(pegdescs, name, list)
   list = list or {}
   for pegname,pegdesc in pairs(pegdescs) do
     if pegdesc.deps then
-      for _,depname in ipairs(pegdesc.deps) do
+      for depname in iters.ivalues(pegdesc.deps) do
         if depname == name and not list[pegname] then
           list[pegname] = true
           table.insert(list, pegdesc)
@@ -138,7 +139,7 @@ end
 
 local function recompile_dependencies_for(self, name)
   local to_recompile = cascade_dependencies_for(self.pegdescs, name)
-  for _,pegdesc in ipairs(to_recompile) do
+  for pegdesc in iters.ivalues(to_recompile) do
     recompile_peg(self.defs, pegdesc)
   end
 end
@@ -174,7 +175,7 @@ end
 
 function Parser:set_pegs(combined_patts, defs, modf)
   local pattdescs = pegger.split_parser_patts(combined_patts)
-  for _,pattdesc in ipairs(pattdescs) do
+  for pattdesc in iters.ivalues(pattdescs) do
     local patt = string.format('%s <- %s', pattdesc.name, pattdesc.patt)
     self:set_peg(pattdesc.name, patt, defs, modf)
   end
@@ -234,7 +235,7 @@ function Parser:remove_keyword(keyword)
 end
 
 function Parser:add_keywords(keywords)
-  for _,keyword in ipairs(keywords) do
+  for keyword in iters.ivalues(keywords) do
     internal_add_keyword(self, keyword)
   end
   recompile_keyword_peg(self)

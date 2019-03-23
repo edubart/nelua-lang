@@ -2,6 +2,7 @@ local class = require 'euluna.utils.class'
 local inspect = require 'inspect'
 local utils = require 'euluna.utils.errorer'
 local tabler = require 'euluna.utils.tabler'
+local iters = require 'euluna.utils.iterators'
 
 local ASTNode = class()
 ASTNode.tag = 'Node'
@@ -19,16 +20,24 @@ function ASTNode:args()
   return tabler.unpack(self, 1, self.nargs)
 end
 
+local function astnode_errorf(self, level, format, ...)
+  local msg = string.format(format, ...)
+  if self.src and self.pos then
+    msg = utils.get_pretty_source_errmsg(self.src, self.srcname, self.pos, msg)
+  end
+  error(msg, level)
+end
+
 function ASTNode:assertf(cond, format, ...)
   if not cond then
-    local msg = string.format(format, ...)
-    if self.src and self.pos then
-      msg = utils.get_pretty_source_errmsg(self.src, self.srcname, self.pos, msg)
-    end
-    error(msg)
+    astnode_errorf(self, 2, format, ...)
   end
   return cond
 end
+
+function ASTNode:errorf(format, ...) --luacov:disable
+  astnode_errorf(self, 2, format, ...)
+end --luacov:enable
 
 -- pretty print ast
 local function stringfy_ast(node, depth, t, skipindent)
@@ -47,8 +56,7 @@ local function stringfy_ast(node, depth, t, skipindent)
   local nargs = isast and node.nargs or #node
   if nargs > 0 then
     table.insert(t, isast and ',\n' or '{ ')
-    for i=1,nargs do
-      local v = node[i]
+    for i,v in iters.inpairs(node,nargs) do
       if type(v) == 'table' then
         stringfy_ast(v, depth+1, t, i == 1 and not isast)
       else

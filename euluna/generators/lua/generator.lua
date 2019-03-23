@@ -1,21 +1,25 @@
 local Traverser = require 'euluna.traverser'
 local Coder = require 'euluna.coder'
 local pegger = require 'euluna.utils.pegger'
+local luadefs = require 'euluna.generators.lua.definitions'
+
 local generator = Traverser()
 
 -- primitives
 generator:register('Number', function(_, ast, coder)
-  local type, value, literal = ast:args()
+  local numtype, value, literal = ast:args()
   ast:assertf(literal == nil, 'literals are not supported in lua')
-  if type == 'int' or type == 'dec' then
+  if numtype == 'int' or numtype == 'dec' then
     coder:add(value)
-  elseif type == 'exp' then
+  elseif numtype == 'exp' then
     coder:add(string.format('%se%s', value[1], value[2]))
-  elseif type == 'hex' then
+  elseif numtype == 'hex' then
     coder:add(string.format('0x%s', value))
-  elseif type == 'bin' then
+  elseif numtype == 'bin' then
     coder:add(string.format('%u', tonumber(value, 2)))
-  end
+  else --luacov:disable
+    ast:errorf('invalid number type "%s" for AST Number', numtype)
+  end --luacov:enable
 end)
 
 generator:register('String', function(_, ast, coder)
@@ -296,18 +300,12 @@ local function is_in_operator(context)
     parent_ast_tag == 'TernaryOp'
 end
 
-local LUA_UNARY_OPS = {
-  ['not'] = 'not ',
-  ['neg'] = '-',
-  ['bnot'] = '~',
-  ['len'] = '#'
-}
 generator:register('UnaryOp', function(context, ast, coder)
   local opname, arg = ast:args()
   if opname == 'tostring' then
     coder:add('tostring(', arg, ')')
   else
-    local op = ast:assertf(LUA_UNARY_OPS[opname], 'unary operator "%s" not found', opname)
+    local op = ast:assertf(luadefs.UNARY_OPS[opname], 'unary operator "%s" not found', opname)
     local surround = is_in_operator(context)
     if surround then coder:add('(') end
     coder:add(op, arg)
@@ -315,32 +313,9 @@ generator:register('UnaryOp', function(context, ast, coder)
   end
 end)
 
-local BINARY_OPS = {
-  ['or'] = 'or',
-  ['and'] = 'and',
-  ['ne'] = '~=',
-  ['eq'] = '==',
-  ['le'] = '<=',
-  ['ge'] = '>=',
-  ['lt'] = '<',
-  ['gt'] = '>',
-  ['bor'] = '|',
-  ['bxor'] = '~',
-  ['band'] = '&',
-  ['shl'] = '<<',
-  ['shr'] = '>>',
-  ['add'] = '+',
-  ['sub'] = '-',
-  ['mul'] = '*',
-  ['div'] = '/',
-  ['idiv'] = '//',
-  ['mod'] = '%',
-  ['pow'] = '^',
-  ['concat'] = '..'
-}
 generator:register('BinaryOp', function(context, ast, coder)
   local opname, left_arg, right_arg = ast:args()
-  local op = ast:assertf(BINARY_OPS[opname], 'binary operator "%s" not found', opname)
+  local op = ast:assertf(luadefs.BINARY_OPS[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(left_arg, ' ', op, ' ', right_arg)
@@ -364,6 +339,6 @@ function generator:generate(ast)
   return coder:generate()
 end
 
-generator.compiler = require('euluna.compilers.lua_compiler')
+generator.compiler = require('euluna.generators.lua.compiler')
 
 return generator

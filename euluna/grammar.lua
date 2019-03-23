@@ -3,6 +3,7 @@ local class = require 'euluna.utils.class'
 local tabler = require 'euluna.utils.tabler'
 local assertf = require 'euluna.utils.errorer'.assertf
 local pegger = require 'euluna.utils.pegger'
+local iters = require 'euluna.utils.iterators'
 
 local Grammar = class()
 
@@ -55,7 +56,7 @@ end
 
 function Grammar:set_pegs(combined_patts, defs, overwrite)
   local pattdescs = pegger.split_grammar_patts(combined_patts)
-  for _,pattdesc in ipairs(pattdescs) do
+  for pattdesc in iters.ivalues(pattdescs) do
     self:set_peg(pattdesc.name, pattdesc.patt, nil, overwrite)
   end
   merge_defs(self, defs)

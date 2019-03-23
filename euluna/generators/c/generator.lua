@@ -1,177 +1,13 @@
 local Traverser = require 'euluna.traverser'
 local Coder = require 'euluna.coder'
-local class = require 'euluna.utils.class'
-local assertf = require 'euluna.utils.errorer'.assertf
 local pegger = require 'euluna.utils.pegger'
+local iters = require 'euluna.utils.iterators'
+local cdefs = require 'euluna.generators.c.definitions'
+local cbuiltins = require 'euluna.generators.c.builtins'
+local CContext = require 'euluna.generators.c.context'
 
-local Builtins = {}
-
-function Builtins.euluna_string_t(context)
-  context:add_include("<stdint.h>")
-  context.builtins_declarations_coder:add(
-[[typedef struct euluna_string_t {
-    uintptr_t len;
-    uintptr_t res;
-    char data[];
-} euluna_string_t;
-]])
-end
-
-local BultinFunctions = {}
-
-local PRINTF_TYPES_FORMAT = {
-  integer = '%lli',
-  number  = '%lf',
-  byte    = '%hhi',
-  char    = '%c',
-  float64 = '%f',
-  float32 = '%lf',
-  pointer = '%p',
-  int     = '%ti',
-  int8    = '%hhi',
-  int16   = '%hi',
-  int32   = '%li',
-  int64   = '%lli',
-  uint    = '%tu',
-  uint8   = '%hhu',
-  uint16  = '%hu',
-  uint32  = '%lu',
-  uint64  = '%llu',
-}
-
-function BultinFunctions.print(context, ast, coder)
-  local argtypes, args = ast:args()
-  local funcname = '__euluna_print_' .. ast.pos
-  context:add_include("<stdio.h>")
-
-  for _,arg in ipairs(args) do
-    if arg.tag == 'String' then
-      context:add_builtin('euluna_string_t')
-      break
-    end
-  end
-
-  local function add_heading(dcoder)
-    dcoder:add('void ', funcname, '(')
-    for i,arg in ipairs(args) do
-      arg:assertf(arg.tag == 'String' or arg.tag == 'Number' or arg.tag == 'Id',
-       "only string/number literals are supported in print")
-      if i>1 then dcoder:add(', ') end
-      if arg.tag == 'String' then
-        dcoder:add('const euluna_string_t* a', i)
-      elseif arg.tag == 'Number' or arg.tag == 'Id' then
-        local ctype = context:get_ctype(arg)
-        dcoder:add('const ', ctype, ' a', i)
-      end
-    end
-    dcoder:add(')')
-  end
-
-  do
-    local dcoder = context.definitions_coder
-    dcoder:add_indent('static inline ')
-    add_heading(dcoder)
-    dcoder:add_ln(' {')
-    dcoder:inc_indent()
-    for i,arg in ipairs(args) do
-      if i > 1 then
-        dcoder:add_indent_ln('fwrite("\t", 1, 1, stdout);')
-      end
-      if arg.tag == 'String' then
-        dcoder:add_indent_ln('fwrite(a',i,'->data, a',i,'->len, 1, stdout);')
-      elseif arg.tag == 'Number' or arg.tag == 'Id' then
-        local tyname = assert(arg.type)
-        local tyformat = PRINTF_TYPES_FORMAT[tyname]
-        ast:assertf(tyformat, 'invalid type "%s" for printf format', tyname)
-        dcoder:add_indent_ln('fprintf(stdout, "',tyformat,'", a',i,');')
-      end
-    end
-    dcoder:add_indent_ln('fwrite("\\n", 1, 1, stdout);')
-    dcoder:add_indent_ln('fflush(stdout);')
-    dcoder:dec_indent()
-    dcoder:add_ln('}')
-  end
-
-  coder:add(funcname, '(')
-  for i,arg in ipairs(args) do
-    if i>1 then coder:add(', ') end
-    if arg.tag == 'String' then
-      coder:add('(euluna_string_t*) &', arg)
-    elseif arg.tag == 'Number' or arg.tag == 'Id' then
-      coder:add(arg)
-    end
-  end
-  coder:add(')')
-end
-
---------------------------------------------------------------------------------
--- Generator Context
---------------------------------------------------------------------------------
-local GeneratorContext = class(Traverser.Context)
-
-function GeneratorContext:_init(traverser)
-  self:super(traverser)
-  self.includes = {}
-  self.builtins = {}
-end
-
-function GeneratorContext:add_include(name)
-  local includes = self.includes
-  if includes[name] then return end
-  includes[name] = true
-  self.includes_coder:add_ln(string.format('#include %s', name))
-end
-
-function GeneratorContext:add_builtin(name)
-  local builtins = self.builtins
-  if builtins[name] then return end
-  builtins[name] = true
-  local builtin = Builtins[name]
-  assertf(builtin, 'builtin %s not found', name)
-  builtin(self)
-end
-
-local C_PRIMTYPES = {
-  integer = {ctype = 'int64_t',         include='<stdint.h>'},
-  number  = {ctype = 'double',                            },
-  byte    = {ctype = 'unsigned char',                     },
-  char    = {ctype = 'char',                              },
-  float64 = {ctype = 'double',                            },
-  float32 = {ctype = 'float',                             },
-  pointer = {ctype = 'void*',                             },
-  int     = {ctype = 'intptr_t',        include='<stdint.h>'},
-  int8    = {ctype = 'int8_t',          include='<stdint.h>'},
-  int16   = {ctype = 'int16_t',         include='<stdint.h>'},
-  int32   = {ctype = 'int32_t',         include='<stdint.h>'},
-  int64   = {ctype = 'int64_t',         include='<stdint.h>'},
-  uint    = {ctype = 'uintptr_t',       include='<stdint.h>'},
-  uint8   = {ctype = 'uint8_t',         include='<stdint.h>'},
-  uint16  = {ctype = 'uint16_t',        include='<stdint.h>'},
-  uint32  = {ctype = 'uint32_t',        include='<stdint.h>'},
-  uint64  = {ctype = 'uint64_t',        include='<stdint.h>'},
-  boolean = {ctype = 'bool',            include='<stdbool.h>'},
-  bool    = {ctype = 'bool',            include='<stdbool.h>'},
-  string  = {ctype = 'euluna_string_t', builtin='euluna_string_t'}
-}
-
-function GeneratorContext:get_ctype(ast)
-  local tyname = ast:assertf(ast.type, 'unknown type for for AST node')
-  local ttype = C_PRIMTYPES[tyname]
-  ast:assertf(ttype, 'type %s is not known', tyname)
-  if ttype.include then
-    self:add_include(ttype.include)
-  end
-  if ttype.builtin then
-    self:add_builtin(ttype.builtin)
-  end
-  return ttype.ctype
-end
-
---------------------------------------------------------------------------------
--- Generator
---------------------------------------------------------------------------------
 local generator = Traverser()
-generator.Context = GeneratorContext
+generator.Context = CContext
 
 generator:register('Number', function(context, ast, coder)
   local numtype, value, literal = ast:args()
@@ -186,7 +22,9 @@ generator:register('Number', function(context, ast, coder)
     cval = string.format('0x%su', value)
   elseif numtype == 'bin' then
     cval = string.format('%uu', tonumber(value, 2))
-  end
+  else --luacov:disable
+    ast:errorf('invalid number type "%s" for AST Number', numtype)
+  end --luacov:enable
   if literal then
     local ctype = context:get_ctype(ast)
     coder:add('((', ctype, ') ', cval, ')')
@@ -268,7 +106,7 @@ generator:register('Call', function(context, ast, coder)
   local builtin
   if caller.tag == 'Id' then
     local fname = caller[1]
-    builtin = BultinFunctions[fname]
+    builtin = cbuiltins.functions[fname]
   end
   if builtin then
     builtin(context, ast, coder)
@@ -359,7 +197,7 @@ generator:register('Switch', function(_, ast, coder)
   coder:add_indent_ln("switch(", val, ") {")
   coder:inc_indent()
   ast:assertf(#caseparts > 0, "switch must have case parts")
-  for _,casepart in ipairs(caseparts) do
+  for casepart in iters.ivalues(caseparts) do
     local caseval, caseblock = casepart[1], casepart[2]
     coder:add_indent_ln("case ", caseval, ': {')
     coder:add(caseblock)
@@ -437,8 +275,7 @@ generator:register('VarDecl', function(_, ast, coder)
   ast:assertf(varscope == 'local', 'global variables not supported yet')
   ast:assertf(not vals or #vars == #vals, 'vars and vals count differs')
   coder:add_indent()
-  for i=1,#vars do
-    local var, val = vars[i], vals and vals[i]
+  for i,var,val in iters.izip(vars, vals or {}) do
     if i > 1 then coder:add(' ') end
     coder:add(var)
     if val then
@@ -454,8 +291,7 @@ generator:register('Assign', function(_, ast, coder)
   local vars, vals = ast:args()
   ast:assertf(#vars == #vals, 'vars and vals count differs')
   coder:add_indent()
-  for i=1,#vars do
-    local var, val = vars[i], vals[i]
+  for i,var,val in iters.izip(vars, vals) do
     if i > 1 then coder:add(' ') end
     coder:add(var, ' = ', val, ';')
   end
@@ -490,50 +326,18 @@ local function is_in_operator(context)
     parent_ast_tag == 'TernaryOp'
 end
 
-local C_UNARY_OPS = {
-  ['not'] = '!',
-  ['neg'] = '-',
-  ['bnot'] = '~',
-  ['ref'] = '&',
-  ['deref'] = '*',
-  --TODO: len
-  --TODO: tostring
-}
 generator:register('UnaryOp', function(context, ast, coder)
   local opname, arg = ast:args()
-  local op = ast:assertf(C_UNARY_OPS[opname], 'unary operator "%s" not found', opname)
+  local op = ast:assertf(cdefs.UNARY_OPS[opname], 'unary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(op, arg)
   if surround then coder:add(')') end
 end)
 
-local BINARY_OPS = {
-  ['or'] = '||',
-  ['and'] = '&&',
-  ['ne'] = '!=',
-  ['eq'] = '==',
-  ['le'] = '<=',
-  ['ge'] = '>=',
-  ['lt'] = '<',
-  ['gt'] = '>',
-  ['bor'] = '|',
-  ['bxor'] = '^',
-  ['band'] = '&',
-  ['shl'] = '<<',
-  ['shr'] = '>>',
-  ['add'] = '+',
-  ['sub'] = '-',
-  ['mul'] = '*',
-  ['div'] = '/',
-  ['mod'] = '%',
-  --TODO: idiv
-  --TODO: pow
-  --TODO: concat
-}
 generator:register('BinaryOp', function(context, ast, coder)
   local opname, left_arg, right_arg = ast:args()
-  local op = ast:assertf(BINARY_OPS[opname], 'binary operator "%s" not found', opname)
+  local op = ast:assertf(cdefs.BINARY_OPS[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(left_arg, ' ', op, ' ', right_arg)
@@ -574,6 +378,6 @@ function generator:generate(ast)
   return code
 end
 
-generator.compiler = require('euluna.compilers.c_compiler')
+generator.compiler = require('euluna.generators.c.compiler')
 
 return generator

@@ -68,7 +68,7 @@ function runner.run(argv)
   if config.analyze then return succeed() end
 
   -- generate the code
-  local generator = require('euluna.generators.' .. config.generator .. '_generator')
+  local generator = require('euluna.generators.' .. config.generator .. '.generator')
   local code
   code, err = generator:generate(ast)
   if not ast then return fail(err) end
