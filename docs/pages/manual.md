@@ -137,4 +137,3 @@ The `number` is the default type for decimal and exponential literals with no su
 `false`
 `true`
 `nil`
-`nullptr`

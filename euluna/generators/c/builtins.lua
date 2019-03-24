@@ -50,13 +50,13 @@ function functions.print(context, ast, coder)
   defcoder:inc_indent()
   for i,arg in ipairs(args) do
     if i > 1 then
-      defcoder:add_indent_ln('fwrite("\t", 1, 1, stdout);')
+      defcoder:add_indent_ln('fwrite("\\t", 1, 1, stdout);')
     end
     if arg.tag == 'String' then
       defcoder:add_indent_ln('fwrite(a',i,'->data, a',i,'->len, 1, stdout);')
     elseif arg.tag == 'Number' or arg.tag == 'Id' then
       local tyname = ast:assertraisef(arg.type, 'type is not defined in AST node')
-      local tyformat = cdefs.PRINTF_TYPES_FORMAT[tyname]
+      local tyformat = cdefs.types_printf_format[tyname]
       ast:assertraisef(tyformat, 'invalid type "%s" for printf format', tyname)
       defcoder:add_indent_ln('fprintf(stdout, "',tyformat,'", a',i,');')
     else --luacov:disable

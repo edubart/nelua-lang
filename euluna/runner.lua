@@ -4,12 +4,12 @@ local except = require 'euluna.utils.except'
 local executor = require 'euluna.utils.executor'
 local errorer = require 'euluna.utils.errorer'
 local configer = require 'euluna.configer'
-local config = configer.get()
+
 local runner = {}
 
 local function run(argv)
   -- parse config
-  config = configer.parse(argv)
+  local config = configer.parse(argv)
 
   -- determine input
   local input = config.input
@@ -35,8 +35,8 @@ local function run(argv)
   end
 
   -- analyze the ast
-  local type_analizer = require 'euluna.analyzers.types.analyzer'
-  ast = type_analizer.analyze(ast)
+  local type_analyzer = require 'euluna.analyzers.types.analyzer'
+  ast = type_analyzer.analyze(ast)
 
   if config.analyze then return 0 end
 

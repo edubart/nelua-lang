@@ -1,49 +1,46 @@
+local typedefs = require 'euluna.analyzers.types.definitions'
+
 local cdefs = {}
 
-cdefs.PRINTF_TYPES_FORMAT = {
-  integer = '%lli',
-  number  = '%lf',
-  byte    = '%hhi',
-  char    = '%c',
-  float64 = '%f',
-  float32 = '%lf',
-  pointer = '%p',
-  int     = '%ti',
-  int8    = '%hhi',
-  int16   = '%hi',
-  int32   = '%li',
-  int64   = '%lli',
-  uint    = '%tu',
-  uint8   = '%hhu',
-  uint16  = '%hu',
-  uint32  = '%lu',
-  uint64  = '%llu',
+local primitive_types = typedefs.primitive_types
+
+cdefs.types_printf_format = {
+  [primitive_types.char]    = '%c',
+  [primitive_types.float64] = '%f',
+  [primitive_types.float32] = '%lf',
+  [primitive_types.pointer] = '%p',
+  [primitive_types.int]     = '%ti',
+  [primitive_types.int8]    = '%hhi',
+  [primitive_types.int16]   = '%hi',
+  [primitive_types.int32]   = '%li',
+  [primitive_types.int64]   = '%lli',
+  [primitive_types.uint]    = '%tu',
+  [primitive_types.uint8]   = '%hhu',
+  [primitive_types.uint16]  = '%hu',
+  [primitive_types.uint32]  = '%lu',
+  [primitive_types.uint64]  = '%llu',
 }
 
-cdefs.PRIMIVE_TYPES = {
-  integer = {ctype = 'int64_t',         include='<stdint.h>'      },
-  number  = {ctype = 'double',                                    },
-  byte    = {ctype = 'unsigned char',                             },
-  char    = {ctype = 'char',                                      },
-  float64 = {ctype = 'double',                                    },
-  float32 = {ctype = 'float',                                     },
-  pointer = {ctype = 'void*',                                     },
-  int     = {ctype = 'intptr_t',        include='<stdint.h>'      },
-  int8    = {ctype = 'int8_t',          include='<stdint.h>'      },
-  int16   = {ctype = 'int16_t',         include='<stdint.h>'      },
-  int32   = {ctype = 'int32_t',         include='<stdint.h>'      },
-  int64   = {ctype = 'int64_t',         include='<stdint.h>'      },
-  uint    = {ctype = 'uintptr_t',       include='<stdint.h>'      },
-  uint8   = {ctype = 'uint8_t',         include='<stdint.h>'      },
-  uint16  = {ctype = 'uint16_t',        include='<stdint.h>'      },
-  uint32  = {ctype = 'uint32_t',        include='<stdint.h>'      },
-  uint64  = {ctype = 'uint64_t',        include='<stdint.h>'      },
-  boolean = {ctype = 'bool',            include='<stdbool.h>'     },
-  bool    = {ctype = 'bool',            include='<stdbool.h>'     },
-  string  = {ctype = 'euluna_string_t', builtin='euluna_string_t' },
+cdefs.primitive_ctypes = {
+  [primitive_types.char]    = {name = 'char',                                      },
+  [primitive_types.float64] = {name = 'double',                                    },
+  [primitive_types.float32] = {name = 'float',                                     },
+  [primitive_types.pointer] = {name = 'void*',                                     },
+  [primitive_types.int]     = {name = 'intptr_t',        include='<stdint.h>'      },
+  [primitive_types.int8]    = {name = 'int8_t',          include='<stdint.h>'      },
+  [primitive_types.int16]   = {name = 'int16_t',         include='<stdint.h>'      },
+  [primitive_types.int32]   = {name = 'int32_t',         include='<stdint.h>'      },
+  [primitive_types.int64]   = {name = 'int64_t',         include='<stdint.h>'      },
+  [primitive_types.uint]    = {name = 'uintptr_t',       include='<stdint.h>'      },
+  [primitive_types.uint8]   = {name = 'uint8_t',         include='<stdint.h>'      },
+  [primitive_types.uint16]  = {name = 'uint16_t',        include='<stdint.h>'      },
+  [primitive_types.uint32]  = {name = 'uint32_t',        include='<stdint.h>'      },
+  [primitive_types.uint64]  = {name = 'uint64_t',        include='<stdint.h>'      },
+  [primitive_types.boolean] = {name = 'bool',            include='<stdbool.h>'     },
+  [primitive_types.string]  = {name = 'euluna_string_t', builtin='euluna_string_t' },
 }
 
-cdefs.UNARY_OPS = {
+cdefs.unary_ops = {
   ['not'] = '!',
   ['neg'] = '-',
   ['bnot'] = '~',
@@ -53,7 +50,7 @@ cdefs.UNARY_OPS = {
   --TODO: tostring
 }
 
-cdefs.BINARY_OPS = {
+cdefs.binary_ops = {
   ['or'] = '||',
   ['and'] = '&&',
   ['ne'] = '!=',

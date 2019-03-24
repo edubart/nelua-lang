@@ -5,9 +5,9 @@ local Scope = class()
 
 function Scope:_init(parent)
   self.parent = parent
-  self.vars = {}
+  self.symbols = {}
   if parent then
-    metamagic.setmetaindex(self.vars, parent.vars)
+    metamagic.setmetaindex(self.symbols, parent.symbols)
   end
 end
 

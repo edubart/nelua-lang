@@ -67,7 +67,7 @@ local function stringfy_ast(node, depth, t, skipindent)
   end
   if isast then
     if node.type then
-      tabler.insert_many(t, "TAST('", node.type, "', '", node.tag, "'")
+      tabler.insert_many(t, "TAST('", tostring(node.type), "', '", node.tag, "'")
     else
       tabler.insert_many(t, "AST('", node.tag, "'")
     end

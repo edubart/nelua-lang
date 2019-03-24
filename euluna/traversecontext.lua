@@ -52,8 +52,9 @@ function TraverseContext:traverse(ast, ...)
   local visitor_func = self.visitors[ast.tag] or self.default_visitor
   ast:assertf(visitor_func, "visitor for AST node '%s' does not exist", ast.tag)
   self:push_ast(ast)
-  visitor_func(self, ast, ...)
+  local ret = visitor_func(self, ast, ...)
   self:pop_ast()
+  return ret
 end
 
 return TraverseContext

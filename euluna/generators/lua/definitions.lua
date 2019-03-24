@@ -1,13 +1,13 @@
 local luadefs = {}
 
-luadefs.UNARY_OPS = {
+luadefs.unary_ops = {
   ['not'] = 'not ',
   ['neg'] = '-',
   ['bnot'] = '~',
   ['len'] = '#',
 }
 
-luadefs.BINARY_OPS = {
+luadefs.binary_ops = {
   ['or'] = 'or',
   ['and'] = 'and',
   ['ne'] = '~=',

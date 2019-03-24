@@ -62,14 +62,17 @@ function visitors.Id(_, ast, coder)
   local name = ast:args()
   coder:add(name)
 end
+
 function visitors.Paren(_, ast, coder)
   local what = ast:args()
   coder:add('(', what, ')')
 end
+
 function visitors.Type(context, ast, coder)
   local ctype = context:get_ctype(ast)
   coder:add(ctype)
 end
+
 function visitors.TypedId(context, ast, coder)
   local name = ast:args()
   if ast.type then
@@ -280,7 +283,6 @@ function visitors.VarDecl(_, ast, coder)
   coder:add_ln()
 end
 
-
 function visitors.Assign(_, ast, coder)
   local vars, vals = ast:args()
   ast:assertraisef(#vars == #vals, 'vars and vals count differs')
@@ -322,7 +324,7 @@ end
 
 function visitors.UnaryOp(context, ast, coder)
   local opname, arg = ast:args()
-  local op = ast:assertraisef(cdefs.UNARY_OPS[opname], 'unary operator "%s" not found', opname)
+  local op = ast:assertraisef(cdefs.unary_ops[opname], 'unary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(op, arg)
@@ -331,7 +333,7 @@ end
 
 function visitors.BinaryOp(context, ast, coder)
   local opname, left_arg, right_arg = ast:args()
-  local op = ast:assertraisef(cdefs.BINARY_OPS[opname], 'binary operator "%s" not found', opname)
+  local op = ast:assertraisef(cdefs.binary_ops[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(left_arg, ' ', op, ' ', right_arg)

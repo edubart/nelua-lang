@@ -305,7 +305,7 @@ function visitors.UnaryOp(context, ast, coder)
   if opname == 'tostring' then
     coder:add('tostring(', arg, ')')
   else
-    local op = ast:assertraisef(luadefs.UNARY_OPS[opname], 'unary operator "%s" not found', opname)
+    local op = ast:assertraisef(luadefs.unary_ops[opname], 'unary operator "%s" not found', opname)
     local surround = is_in_operator(context)
     if surround then coder:add('(') end
     coder:add(op, arg)
@@ -315,7 +315,7 @@ end
 
 function visitors.BinaryOp(context, ast, coder)
   local opname, left_arg, right_arg = ast:args()
-  local op = ast:assertraisef(luadefs.BINARY_OPS[opname], 'binary operator "%s" not found', opname)
+  local op = ast:assertraisef(luadefs.binary_ops[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(left_arg, ' ', op, ' ', right_arg)
