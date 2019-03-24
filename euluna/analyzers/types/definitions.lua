@@ -1,7 +1,9 @@
+local iters = require 'euluna.utils.iterators'
 local Type = require 'euluna.type'
 
 local typedefs = {}
 
+-- primitive types
 local types = {
   char    = Type('char'),
   float64 = Type('float64'),
@@ -30,6 +32,7 @@ types.number  = types.float64
 types.byte    = types.uint8
 types.bool    = types.boolean
 
+-- literal types
 typedefs.number_literal_types = {
   _integer    = types.integer,
   _number     = types.number,
@@ -50,6 +53,7 @@ typedefs.number_literal_types = {
   _pointer    = types.pointer,
 }
 
+-- default types for literals
 typedefs.number_default_types = {
   int = types.int,
   dec = types.number,
@@ -58,12 +62,19 @@ typedefs.number_default_types = {
   bin = types.uint,
 }
 
--- type compatibility
+-- number types
+-- NOTE: order here does matter when looking up for a common type between two different types
+typedefs.number_types = {
+  types.int8, types.int16, types.int32, types.int, types.int64,
+  types.uint8, types.uint16, types.uint32, types.uint, types.uint64,
+  types.float32, types.float64
+}
+
+-- automatic type conversion
 types.uint:add_conversible_types({types.uint8, types.uint16, types.uint32})
 types.uint16:add_conversible_types({types.uint8})
 types.uint32:add_conversible_types({types.uint8, types.uint16, types.uint32})
 types.uint64:add_conversible_types({types.uint, types.uint8, types.uint16, types.uint32})
-
 types.int:add_conversible_types({
   types.int8, types.int16, types.int32,
   types.uint8, types.uint16
@@ -80,16 +91,78 @@ types.int64:add_conversible_types({
   types.int, types.int8, types.int16, types.int32,
   types.uint, types.uint8, types.uint16, types.uint32
 })
-
 types.float32:add_conversible_types({
-  types.float64,
-  types.int, types.int8, types.int16, types.int32, types.int64,
-  types.uint, types.uint8, types.uint16, types.uint32, types.uint64
+  types.int, types.int8, types.int16,
+  types.uint, types.uint8, types.uint16
 })
 types.float64:add_conversible_types({
+  types.int, types.int8, types.int16, types.int32,
+  types.uint, types.uint8, types.uint16, types.uint32,
   types.float32,
+})
+
+-- unary operator types
+local bitwise_types = {
   types.int, types.int8, types.int16, types.int32, types.int64,
   types.uint, types.uint8, types.uint16, types.uint32, types.uint64
-})
+}
+local unary_op_types = {
+  -- 'not' is defined for everything in the code
+  ['neg']   = { types.float32, types.float64,
+                types.int, types.int8, types.int16, types.int32, types.int64},
+  ['bnot']  = bitwise_types,
+  --TODO: ref
+  --TODO: deref
+  --TODO: len
+  --TODO: tostring
+}
+
+for opname, optypes in pairs(unary_op_types) do
+  for type in iters.ivalues(optypes) do
+    type:add_unary_operator_type(opname, optypes.result_type or type)
+  end
+end
+
+-- binary operator types
+local comparable_types = {
+  types.char, types.string,
+  types.float32, types.float64,
+  types.int, types.int8, types.int16, types.int32, types.int64,
+  types.uint, types.uint8, types.uint16, types.uint32,
+  result_type = types.boolean
+}
+local binary_op_types = {
+  -- 'or', 'and', `ne`, `eq` is defined for everything in the code
+  ['le']      = comparable_types,
+  ['ge']      = comparable_types,
+  ['lt']      = comparable_types,
+  ['gt']      = comparable_types,
+  ['bor']     = bitwise_types,
+  ['bxor']    = bitwise_types,
+  ['band']    = bitwise_types,
+  ['shl']     = bitwise_types,
+  ['shr']     = bitwise_types,
+  ['add']     = typedefs.number_types,
+  ['sub']     = typedefs.number_types,
+  ['mul']     = typedefs.number_types,
+  ['div']     = typedefs.number_types,
+  ['mod']     = typedefs.number_types,
+  ['idiv']    = typedefs.number_types,
+  ['pow']     = typedefs.number_types,
+  ['concat']  = { types.string }
+}
+
+for opname, optypes in pairs(binary_op_types) do
+  for type in iters.ivalues(optypes) do
+    type:add_binary_operator_type(opname, optypes.result_type or type)
+  end
+end
+
+typedefs.binary_comparable_ops = {
+  ['or'] = true,
+  ['and'] = true,
+  ['ne'] = true,
+  ['eq'] = true,
+}
 
 return typedefs

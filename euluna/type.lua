@@ -6,6 +6,9 @@ local Type = class(Symbol)
 
 function Type:_init(name)
   self.name = name
+  self.unary_operators = {}
+  self.binary_operators = {}
+  self.conversible_types = {}
 end
 
 function Type:__tostring()
@@ -13,17 +16,40 @@ function Type:__tostring()
 end
 
 function Type:add_conversible_types(types)
-  self.conversible_types = self.conversible_types or {}
   for type in iters.ivalues(types) do
     self.conversible_types[type] = true
   end
+end
+
+function Type:add_unary_operator_type(opname, type)
+  self.unary_operators[opname] = type
+end
+
+function Type:get_unary_operator_type(opname)
+  return self.unary_operators[opname]
+end
+
+function Type:add_binary_operator_type(opname, type)
+  self.binary_operators[opname] = type
+end
+
+function Type:get_binary_operator_type(opname)
+  return self.binary_operators[opname]
 end
 
 function Type:is_conversible(type)
   if self == type then
     return true
   end
-  return self.conversible_types and self.conversible_types[type]
+  return self.conversible_types[type]
+end
+
+function Type.get_common_type(typelist, ltype, rtype)
+  for type in iters.ivalues(typelist) do
+    if type:is_conversible(ltype) and type:is_conversible(rtype) then
+      return type
+    end
+  end
 end
 
 Type.type = Type('type')
