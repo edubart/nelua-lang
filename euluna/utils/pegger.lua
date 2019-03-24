@@ -1,6 +1,7 @@
 local re = require 'relabel'
 local errorer = require 'euluna.utils.errorer'
 local tabler = require 'euluna.utils.tabler'
+local metamagic = require 'euluna.utils.metamagic'
 
 local pegger = {}
 
@@ -100,6 +101,17 @@ function pegger.split_parser_patts(combined_patts)
   return tabler.imap(pattdescs, function(v)
     return {name = v[1], patt = v[2]}
   end)
+end
+
+local substitute_vars = {}
+local substitute_defs = { to_var = function(k) return substitute_vars[k] or '' end }
+local substitute_patt = re.compile([[
+  pat <- {~ (var / .)* ~}
+  var <- ('$(' {[_%a]+} ')') -> to_var
+]], substitute_defs)
+function pegger.substitute(format, vars)
+  metamagic.setmetaindex(substitute_vars, vars, true)
+  return substitute_patt:match(format)
 end
 
 return pegger

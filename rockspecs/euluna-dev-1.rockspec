@@ -68,6 +68,7 @@ build = {
     ['euluna.utils.except'] = 'euluna/utils/except.lua',
     ['euluna.utils.fs'] = 'euluna/utils/fs.lua',
     ['euluna.utils.stringer'] = 'euluna/utils/stringer.lua',
+    ['euluna.utils.executor'] = 'euluna/utils/executor.lua',
   },
   install = {
     bin = {

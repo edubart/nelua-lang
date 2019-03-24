@@ -15,6 +15,12 @@ function errorer.errorf(message, ...)
 end
 --luacov:enable
 
+function errorer.errprint(...)
+  io.stderr:write(table.concat({...}, "\t"))
+  io.stderr:write("\n")
+  io.stderr:flush()
+end
+
 function errorer.get_pretty_source_errmsg(src, srcname, errpos, errmsg, errname)
   local line, col = re.calcline(src, errpos)
   local colors = require 'term.colors'

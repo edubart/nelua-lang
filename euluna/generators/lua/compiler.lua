@@ -1,8 +1,9 @@
 local fs = require 'euluna.utils.fs'
-local pltemplate = require 'pl.template'
+local pegger = require 'euluna.utils.pegger'
 local stringer = require 'euluna.utils.stringer'
-local config = require 'euluna.configer'.get()
 local metamagic = require 'euluna.utils.metamagic'
+local config = require 'euluna.configer'.get()
+
 local lua_compiler = {}
 
 function lua_compiler.compile_code(luacode, outfile)
@@ -37,9 +38,9 @@ end
 
 function lua_compiler.get_run_command(binaryfile)
   -- generate compile command
-  local env = {binaryfile = binaryfile}
+  local env = { binaryfile = binaryfile }
   metamagic.setmetaindex(env, config)
-  return pltemplate.substitute("$(lua) $(lua_options) $(binaryfile)", env)
+  return pegger.substitute("$(lua) $(lua_options) $(binaryfile)", env)
 end
 
 return lua_compiler

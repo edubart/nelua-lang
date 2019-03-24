@@ -1,19 +1,20 @@
-local plutil = require 'pl.utils'
-local pltemplate = require 'pl.template'
+local pegger = require 'euluna.utils.pegger'
 local stringer = require 'euluna.utils.stringer'
 local fs = require 'euluna.utils.fs'
 local metamagic = require 'euluna.utils.metamagic'
 local except = require 'euluna.utils.except'
+local executor = require 'euluna.utils.executor'
 local config = require 'euluna.configer'.get()
+
 local compiler = {}
 
 local function get_compile_command(infile, outfile)
-  local env = {infile = infile, outfile = outfile}
+  local env = { infile = infile, outfile = outfile }
   env.cc = os.getenv('CC')
   env.cflags = os.getenv('CFLAGS')
   env.ldflags = os.getenv('LDFLAGS')
   metamagic.setmetaindex(env, config)
-  return pltemplate.substitute("$(cc) $(cflags) -o $(outfile) $(ldflags) $(infile)", env)
+  return pegger.substitute("$(cc) $(cflags) -o $(outfile) $(ldflags) $(infile)", env)
 end
 
 local last_ccinfos = {}
@@ -21,7 +22,7 @@ local function get_cc_info()
   local ccinfocmd = string.format("%s -v -x c -E /dev/null", config.cc)
   local last_ccinfo = last_ccinfos[ccinfocmd]
   if last_ccinfo then return last_ccinfo end
-  local ok, ret, stdout, ccinfo = plutil.executeex(ccinfocmd)
+  local ok, ret, stdout, ccinfo = executor.execex(ccinfocmd)
   except.assertraisef(ok and ret == 0, "failed to retrive compiler information: %s", ccinfo or '')
   last_ccinfos[ccinfocmd] = ccinfo
   return ccinfo
@@ -79,8 +80,8 @@ function compiler.compile_binary(cfile, outfile)
   if not config.quiet then print(cmd) end
 
   -- compile the file
-  local execok, status, stdout, stderr = plutil.executeex(cmd)
-  except.assertraisef(execok and status == 0,
+  local success, status, stdout, stderr = executor.execex(cmd)
+  except.assertraisef(success and status == 0,
     "C compilation for '%s' failed:\n%s", outfile, stderr or '')
 
   return outfile

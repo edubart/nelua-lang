@@ -1,5 +1,4 @@
 local argparse = require 'argparse'
-local plutil = require 'pl.utils'
 local tabler = require 'euluna.utils.tabler'
 local metamagic = require 'euluna.utils.metamagic'
 local except = require 'euluna.utils.except'
@@ -35,7 +34,7 @@ local function create_parser(argv)
     end
     options.input = v
   end)
-  argparser:argument("args"):args("*")
+  argparser:argument("runargs"):args("*")
   return argparser
 end
 
@@ -49,12 +48,6 @@ end
 
 function configer.get()
   return config
-end
-
-function configer.get_run_args()
-  return tabler(config.args)
-    :imap(function(a) return plutil.quote_arg(a) end)
-    :concat(' '):value()
 end
 
 return configer

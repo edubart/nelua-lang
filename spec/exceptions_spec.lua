@@ -91,4 +91,11 @@ it("ignore number errors", function()
   end)
 end)
 
+it("raising in pcall", function()
+  local ok, e = pcall(function()
+    except.assertraise(false, 'an error')
+  end)
+  assert(tostring(e):match('uncaught exception'))
+end)
+
 end)

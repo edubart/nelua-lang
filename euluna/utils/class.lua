@@ -1,4 +1,5 @@
 local metamagic = require 'euluna.utils.metamagic'
+
 local class = {}
 
 -- base class for any object
