@@ -47,6 +47,21 @@ function TraverseContext:get_parent_ast()
   return self.asts[#self.asts - 1]
 end
 
+function TraverseContext:iterate_parent_asts()
+  local i = #self.asts
+  return function(asts)
+    i = i - 1
+    if i <= 0 then return nil end
+    return asts[i]
+  end, self.asts
+end
+
+function TraverseContext:get_parent_ast_if(f)
+  for ast in self:iterate_parent_asts() do
+    if f(ast) then return ast end
+  end
+end
+
 function TraverseContext:traverse(ast, ...)
   assert(traits.is_astnode(ast), "trying to traverse a non ast value")
   local visitor_func = self.visitors[ast.tag] or self.default_visitor

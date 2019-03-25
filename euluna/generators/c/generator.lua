@@ -4,7 +4,9 @@ local iters = require 'euluna.utils.iterators'
 local cdefs = require 'euluna.generators.c.definitions'
 local cbuiltins = require 'euluna.generators.c.builtins'
 local CContext = require 'euluna.generators.c.context'
+local typedefs = require 'euluna.analyzers.types.definitions'
 
+local types = typedefs.primitive_types
 local visitors = {}
 
 function visitors.Number(context, ast, coder)
@@ -336,7 +338,18 @@ function visitors.BinaryOp(context, ast, coder)
   local op = ast:assertraisef(cdefs.binary_ops[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
-  coder:add(left_arg, ' ', op, ' ', right_arg)
+
+  if typedefs.binary_conditional_ops[opname] and ast.type ~= types.boolean then
+    --TODO: create a temporary function in case of expressions and evaluate in order
+    if opname == 'and' then
+      --TODO: usa nilable values here
+      coder:add('(', left_arg, ' && ', right_arg, ') ? ', right_arg, ' : 0')
+    elseif opname == 'or' then
+      coder:add(left_arg, ' ? ', left_arg, ' : ', right_arg)
+    end
+  else
+    coder:add(left_arg, ' ', op, ' ', right_arg)
+  end
   if surround then coder:add(')') end
 end
 

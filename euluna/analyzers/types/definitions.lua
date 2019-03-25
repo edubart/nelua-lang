@@ -158,11 +158,14 @@ for opname, optypes in pairs(binary_op_types) do
   end
 end
 
-typedefs.binary_comparable_ops = {
-  ['or'] = true,
-  ['and'] = true,
+typedefs.binary_equality_ops = {
   ['ne'] = true,
   ['eq'] = true,
+}
+
+typedefs.binary_conditional_ops = {
+  ['or'] = true,
+  ['and'] = true,
 }
 
 return typedefs

@@ -2,7 +2,9 @@ local iters = require 'euluna.utils.iterators'
 local typedefs = require 'euluna.analyzers.types.definitions'
 local TraverseContext = require 'euluna.traversecontext'
 local Variable = require 'euluna.variable'
+local Type = require 'euluna.type'
 
+local types = typedefs.primitive_types
 local visitors = {}
 
 function visitors.Number(_, ast)
@@ -19,11 +21,11 @@ function visitors.Number(_, ast)
 end
 
 function visitors.String(_, ast)
-  ast.type = typedefs.primitive_types.string
+  ast.type = types.string
 end
 
 function visitors.Boolean(_, ast)
-  ast.type = typedefs.primitive_types.boolean
+  ast.type = types.boolean
 end
 
 function visitors.Id(context, ast)
@@ -42,7 +44,7 @@ end
 
 function visitors.Type(_, ast)
   local tyname = ast:arg(1)
-  local type = typedefs.primitive_types[tyname]
+  local type = types[tyname]
   ast:assertf(type, 'invalid type "%s"', tyname)
   ast.holding_type = type
   ast.type = type.type
@@ -88,7 +90,7 @@ function visitors.VarDecl(context, ast)
       context:traverse(val)
       if not var.type and val.type then
         var.type = val.type
-      elseif var.type and val.type then
+      elseif var.type and val.type and var.type ~= types.boolean then
         ast:assertraisef(var.type:is_conversible(val.type),
           "variable '%s' of type '%s' is not conversible with value of type '%s'",
           varname, tostring(var.type), tostring(val.type))
@@ -100,29 +102,67 @@ end
 
 function visitors.UnaryOp(context, ast)
   local opname, arg = ast:args()
-  context:traverse(arg)
-  local type
   if opname == 'not' then
-    type = typedefs.primitive_types.boolean
+    ast.type = types.boolean
+    context:traverse(arg)
   else
+    context:traverse(arg)
+    local type
     if arg.type then
       type = arg.type:get_unary_operator_type(opname)
       ast:assertraisef(type,
         "unary operation `%s` is not defined for type '%s' of the expression",
         opname, tostring(arg.type))
     end
+    ast.type = type
   end
-  ast.type = type
+end
+
+function visitors.If(context, ast)
+  ast.type = types.boolean
+  context:default_visitor(ast)
+end
+
+function visitors.While(context, ast)
+  ast.type = types.boolean
+  context:default_visitor(ast)
+end
+
+function visitors.Repeat(context, ast)
+  ast.type = types.boolean
+  context:default_visitor(ast)
 end
 
 function visitors.BinaryOp(context, ast)
   local opname, left_arg, right_arg = ast:args()
+  local skip = false
+
+  if typedefs.binary_equality_ops[opname] then
+    ast.type = types.boolean
+    skip = true
+  elseif typedefs.binary_conditional_ops[opname] then
+    local parent_ast = context:get_parent_ast_if(function(a) return a.tag ~= 'Paren' end)
+    if parent_ast.type == types.boolean then
+      ast.type = types.boolean
+      skip = true
+    end
+  end
+
   context:traverse(left_arg)
   context:traverse(right_arg)
-  local ltype, rtype, type
-  if typedefs.binary_comparable_ops[opname] then
-    type = typedefs.primitive_types.boolean
+
+  if skip then return end
+
+  if typedefs.binary_conditional_ops[opname] then
+    local type
+    if left_arg.type == right_arg.type then
+      type = left_arg.type
+    else
+      type = Type.get_common_type(typedefs.number_types, left_arg.type, right_arg.type)
+    end
+    ast.type = type
   else
+    local type, ltype, rtype
     if left_arg.type then
       ltype = left_arg.type:get_binary_operator_type(opname)
       ast:assertraisef(ltype,
@@ -139,7 +179,7 @@ function visitors.BinaryOp(context, ast)
       if ltype == rtype then
         type = ltype
       else
-        type = ltype.get_common_type(typedefs.number_types, ltype, rtype)
+        type = Type.get_common_type(typedefs.number_types, ltype, rtype)
       end
       ast:assertraisef(type,
         "binary operation `%s` is not defined for different types '%s' and '%s' in the expression",
@@ -147,8 +187,8 @@ function visitors.BinaryOp(context, ast)
     else
       type = ltype or rtype
     end
+    ast.type = type
   end
-  ast.type = type
 end
 
 local analyzer = {}
