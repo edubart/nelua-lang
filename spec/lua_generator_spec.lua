@@ -9,7 +9,7 @@ local stringer = require 'euluna.utils.stringer'
 local function assert_generate_lua(euluna_code, lua_code)
   lua_code = lua_code or euluna_code
   local ast = assert.parse_ast(euluna_parser, euluna_code)
-  assert(analyzer.analyze(ast))
+  assert(analyzer.analyze(ast, euluna_parser.aster))
   local generated_code = assert(lua_generator.generate(ast))
   assert.same(stringer.rstrip(lua_code), stringer.rstrip(generated_code))
 end

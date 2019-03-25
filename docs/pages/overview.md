@@ -353,8 +353,8 @@ local a: string_slice = 'hello world'[1:2]
 The "type" type is also a type. Useful for aliasing types.
 
 ```euluna
-local int: type = integer
-local MyPair = @struct{integer, integer}
+local myint: type = integer
+local MyPair = @struct{myint, myint}
 ```
 
 ### Type Conversion

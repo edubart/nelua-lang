@@ -36,7 +36,7 @@ local function run(argv)
 
   -- analyze the ast
   local type_analyzer = require 'euluna.analyzers.types.analyzer'
-  ast = type_analyzer.analyze(ast)
+  ast = type_analyzer.analyze(ast, parser.aster)
 
   if config.analyze then return 0 end
 

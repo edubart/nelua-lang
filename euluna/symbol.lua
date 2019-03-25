@@ -1,5 +1,7 @@
 local iters = require 'euluna.utils.iterators'
+local tabler = require 'euluna.utils.tabler'
 local class = require 'euluna.utils.class'
+local typer = require 'euluna.typer'
 
 local Symbol = class()
 
@@ -10,10 +12,12 @@ function Symbol:_init(ast)
 end
 
 function Symbol:add_possible_type(type)
+  if tabler.find(self.possible_types, type) then return end
   table.insert(self.possible_types, type)
 end
 
 function Symbol:add_ast_reference(ast)
+  if tabler.find(self.ast_references, ast) then return end
   table.insert(self.ast_references, ast)
 end
 
@@ -23,20 +27,13 @@ local function update_ast_references(self)
   end
 end
 
-local function find_common_type(types)
-  local len = #types
-  if len == 0 then return nil end
-  if len == 1 then return types[1] end
-  --TODO: find best type
-end
-
 function Symbol:resolve_type()
   if self.type then
-    return self.type
+    return false
   end
-  self.type = find_common_type(self.possible_types)
+  self.type = typer.find_common_type(self.possible_types)
   update_ast_references(self)
-  return self.type
+  return true
 end
 
 return Symbol

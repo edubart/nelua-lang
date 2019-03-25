@@ -45,14 +45,6 @@ function Type:is_conversible(type)
   return self.conversible_types[type]
 end
 
-function Type.get_common_type(typelist, ltype, rtype)
-  for type in iters.ivalues(typelist) do
-    if type:is_conversible(ltype) and type:is_conversible(rtype) then
-      return type
-    end
-  end
-end
-
 Type.type = Type('type')
 
 return Type

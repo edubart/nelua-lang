@@ -12,7 +12,7 @@ local TAST = function(...) return euluna_aster:TAST(...) end
 
 local function assert_gencode_equals(code, expected_code)
   local ast = assert.parse_ast(euluna_parser, code)
-  ast = assert(analyzer.analyze(ast))
+  ast = assert(analyzer.analyze(ast, euluna_parser.aster))
   local expected_ast = assert.parse_ast(euluna_parser, expected_code)
   expected_ast = assert(analyzer.analyze(expected_ast))
   local generated_code = assert(c_generator.generate(ast))
@@ -22,14 +22,14 @@ end
 
 local function assert_analyze_ast(code, expected_ast)
   local ast = assert.parse_ast(euluna_parser, code)
-  analyzer.analyze(ast)
+  analyzer.analyze(ast, euluna_parser.aster)
   assert.same(tostring(expected_ast), tostring(ast))
 end
 
 local function assert_analyze_error(code, expected_error)
   local ast = assert.parse_ast(euluna_parser, code)
   local ok, e = except.try(function()
-    analyzer.analyze(ast)
+    analyzer.analyze(ast, euluna_parser.aster)
   end)
   assert(not ok, "type analysis should fail")
   assert.contains(expected_error, e:get_message())
@@ -100,6 +100,28 @@ end)
 
 it("operation with parenthesis", function()
   assert_gencode_equals("local a = -(1)", "local a: int = -(1)")
+end)
+
+it("recursive late deduction", function()
+  assert_gencode_equals("local a, b, c; a = 1; b = 2; c = a + b",
+                        "local a:int, b:int, c:int; a = 1; b = 2; c = a + b")
+end)
+
+it("function return", function()
+  assert_gencode_equals("local function f() return 0 end",
+                        "local function f(): int return 0 end")
+  assert_gencode_equals([[
+local function f()
+  local a, b, c
+  a = 1; b = 2; c = a + b
+  return c
+end]],[[
+local function f(): int
+  local a: int, b: int, c: int
+  a = 1; b = 2; c = a + b
+  return c
+end]])
+  assert_analyze_error("local function f(): string return 0 end", "is not conversible with")
 end)
 
 end)

@@ -8,7 +8,7 @@ local assertf = require 'euluna.utils.errorer'.assertf
 
 local function assert_generate_c(euluna_code, c_code)
   local ast = assert.parse_ast(euluna_parser, euluna_code)
-  ast = assert(analyzer.analyze(ast))
+  ast = assert(analyzer.analyze(ast, euluna_parser.aster))
   local generated_code = assert(c_generator.generate(ast))
   if not c_code then c_code = euluna_code end
   assertf(generated_code:find(c_code or '', 1, true),

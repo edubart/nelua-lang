@@ -8,6 +8,7 @@ local TraverseContext = class()
 local function traverser_default_visitor(self, ast, ...)
   local nargs = traits.is_astnode(ast) and ast.nargs or #ast
   for _,arg in iters.inpairs(ast, nargs) do
+    --print(traits.is_astnode(ast) and ast.tag or 'list', nargs, _)
     if traits.is_astnode(arg) then
       self:traverse(arg, ...)
     elseif traits.is_table(arg) then
@@ -25,8 +26,8 @@ function TraverseContext:_init(visitors, default_visitor)
   self.asts = {}
 end
 
-function TraverseContext:push_scope()
-  local scope = self.scope:fork()
+function TraverseContext:push_scope(kind)
+  local scope = self.scope:fork(kind)
   self.scope = scope
   return scope
 end

@@ -147,9 +147,9 @@ aster:register('Assign', types.shape {
 aster:register('FuncDef', types.shape {
   types.one_of{"local"}:is_optional(), -- scope
   types.ast.Id + types.ast.DotIndex + types.ast.ColonIndex, -- name
-  types.array_of(types.ast.Node), -- typed arguments
-  types.array_of(types.ast.Node), -- typed returns
-  types.ast.Node -- block
+  types.array_of(types.ast.FuncArg + types.ast.Varargs), -- typed arguments
+  types.array_of(types.ast.Type), -- typed returns
+  types.ast.Block -- block
 })
 
 -- operations

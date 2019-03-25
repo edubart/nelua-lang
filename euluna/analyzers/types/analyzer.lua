@@ -2,7 +2,7 @@ local iters = require 'euluna.utils.iterators'
 local typedefs = require 'euluna.analyzers.types.definitions'
 local TraverseContext = require 'euluna.traversecontext'
 local Variable = require 'euluna.variable'
-local Type = require 'euluna.type'
+local typer = require 'euluna.typer'
 
 local types = typedefs.primitive_types
 local visitors = {}
@@ -50,16 +50,17 @@ function visitors.Paren(context, ast)
 end
 
 function visitors.Type(_, ast)
-  local tyname = ast:arg(1)
-  local type = types[tyname]
-  ast:assertf(type, 'invalid type "%s"', tyname)
-  ast.holding_type = type
-  ast.type = type.type
+  if not ast.type then
+    local tyname = ast:arg(1)
+    local type = types[tyname]
+    ast:assertf(type, 'invalid type "%s"', tyname)
+    ast.holding_type = type
+    ast.type = type.type
+  end
 end
 
-function visitors.IdDecl(context, ast)
-  local name, typenode = ast:args()
-  local type
+local function visit_id_decl(context, ast, name, typenode)
+  local type = ast.type
   if typenode then
     context:traverse(typenode)
     type = typenode.holding_type
@@ -74,11 +75,34 @@ function visitors.IdDecl(context, ast)
   return symbol
 end
 
+function visitors.IdDecl(context, ast)
+  local name, typenode = ast:args()
+  return visit_id_decl(context, ast, name, typenode)
+end
+
+function visitors.FuncArg(context, ast)
+  local name, mut, typenode = ast:args()
+  return visit_id_decl(context, ast, name, typenode)
+end
+
+local function repeat_scope_until_resolution(context, scope_kind, after_push, before_pop)
+  local resolutions_count = 0
+  repeat
+    local last_resolutions_count = resolutions_count
+    context:push_scope(scope_kind)
+    after_push()
+    resolutions_count = context.scope:resolve_symbols_types()
+    if before_pop then
+      before_pop()
+    end
+    context:pop_scope()
+  until resolutions_count == last_resolutions_count
+end
+
 function visitors.Block(context, ast)
-  context:push_scope()
-  context:default_visitor(ast)
-  context.scope:resolve_symbols_types()
-  context:pop_scope()
+  repeat_scope_until_resolution(context, 'block', function()
+    context:default_visitor(ast)
+  end)
 end
 
 function visitors.If(context, ast)
@@ -104,27 +128,33 @@ function visitors.ForNum(context, ast)
   if incrval then
     context:traverse(incrval)
   end
-  context:push_scope()
-  context:traverse(itvar)
-  local itsymbol = Variable(itvarname, itvar, itvar.type)
-  context.scope.symbols[itvarname] = itsymbol
-  if not itvar.type then
-    itsymbol:add_ast_reference(itvar)
-  end
-  if not itvar.type and beginval.type then
-    itsymbol:add_possible_type(beginval.type)
-  elseif itvar.type and beginval.type then
-    ast:assertraisef(itvar.type:is_conversible(beginval.type),
-      "`for` variable '%s' of type '%s' is not conversible with begin value of type '%s'",
-      itvarname, tostring(itvar.type), tostring(beginval.type))
-    ast:assertraisef(itvar.type:is_conversible(endval.type),
-      "`for` variable '%s' of type '%s' is not conversible with end value of type '%s'",
-      itvarname, tostring(itvar.type), tostring(endval.type))
-  end
-  --TODO: check incrval type compability with itvar
-  context:traverse(block)
-  context.scope:resolve_symbols_types()
-  context:pop_scope()
+  repeat_scope_until_resolution(context, 'loop', function()
+    context:traverse(itvar)
+    local itsymbol = Variable(itvarname, itvar, itvar.type)
+    context.scope.symbols[itvarname] = itsymbol
+    if not itvar.type then
+      itsymbol:add_ast_reference(itvar)
+    end
+    if not itvar.type and beginval.type then
+      itsymbol:add_possible_type(beginval.type)
+    end
+    if not itvar.type and endval.type then
+      itsymbol:add_possible_type(endval.type)
+    end
+    if itvar.type and beginval.type then
+      ast:assertraisef(itvar.type:is_conversible(beginval.type),
+        "`for` variable '%s' of type '%s' is not conversible with begin value of type '%s'",
+        itvarname, tostring(itvar.type), tostring(beginval.type))
+    end
+    if itvar.type and endval.type then
+      ast:assertraisef(itvar.type:is_conversible(endval.type),
+        "`for` variable '%s' of type '%s' is not conversible with end value of type '%s'",
+        itvarname, tostring(itvar.type), tostring(endval.type))
+    end
+    --TODO: check incrval type compability with itvar
+    context:traverse(block)
+    context.scope:resolve_symbols_types()
+  end)
 end
 
 function visitors.VarDecl(context, ast)
@@ -132,7 +162,7 @@ function visitors.VarDecl(context, ast)
   ast:assertraisef(mutability == 'var', 'variable mutability not supported yet')
   for _,var,val in iters.izip(vars, vals or {}) do
     local symbol = context:traverse(var)
-    assert(symbol.type == var.type)
+    assert(symbol.type == var.type, 'impossible')
     if val then
       context:traverse(val)
       if not var.type and val.type then
@@ -172,6 +202,38 @@ function visitors.Assign(context, ast)
   end
 end
 
+function visitors.Return(context, ast)
+  context:default_visitor(ast)
+  local rets = ast:args()
+  local func_scope = context.scope:get_parent_of_kind('function')
+  assert(func_scope, 'impossible')
+  for i,ret in ipairs(rets) do
+    func_scope:add_return_type(i, ret.type)
+  end
+end
+
+function visitors.FuncDef(context, ast)
+  repeat_scope_until_resolution(context, 'function', function()
+    context:default_visitor(ast)
+  end, function()
+    local rets = ast:arg(4)
+    local return_types = context.scope:resolve_returns_type()
+    for i,rtype in pairs(return_types) do
+      local ret = rets[i]
+      if not ret then
+        ret = context.aster:create('Type', tostring(rtype))
+        ret.type = types.type
+        ret.holding_type = rtype
+        rets[i] = ret
+      else
+        ast:assertraisef(ret.holding_type:is_conversible(rtype),
+          "return variable at index %d of type '%s' is not conversible with value of type '%s'",
+          i, tostring(ret.holding_type), tostring(rtype))
+      end
+    end
+  end)
+end
+
 function visitors.UnaryOp(context, ast)
   local opname, arg = ast:args()
   if opname == 'not' then
@@ -186,7 +248,9 @@ function visitors.UnaryOp(context, ast)
         "unary operation `%s` is not defined for type '%s' of the expression",
         opname, tostring(arg.type))
     end
-    ast.type = type
+    if type then
+      ast.type = type
+    end
   end
 end
 
@@ -215,9 +279,11 @@ function visitors.BinaryOp(context, ast)
     if left_arg.type == right_arg.type then
       type = left_arg.type
     else
-      type = Type.get_common_type(typedefs.number_types, left_arg.type, right_arg.type)
+      type = typer.find_common_type_between(typedefs.number_types, left_arg.type, right_arg.type)
     end
-    ast.type = type
+    if type then
+      ast.type = type
+    end
   else
     local type, ltype, rtype
     if left_arg.type then
@@ -236,7 +302,7 @@ function visitors.BinaryOp(context, ast)
       if ltype == rtype then
         type = ltype
       else
-        type = Type.get_common_type(typedefs.number_types, ltype, rtype)
+        type = typer.find_common_type_between(typedefs.number_types, ltype, rtype)
       end
       ast:assertraisef(type,
         "binary operation `%s` is not defined for different types '%s' and '%s' in the expression",
@@ -244,15 +310,19 @@ function visitors.BinaryOp(context, ast)
     else
       type = ltype or rtype
     end
-    ast.type = type
+    if type then
+      ast.type = type
+    end
   end
 end
 
 local analyzer = {}
-function analyzer.analyze(ast)
+function analyzer.analyze(ast, aster)
   local context = TraverseContext(visitors, true)
-  context:traverse(ast)
-  context.scope:resolve_symbols_types()
+  context.aster = aster
+  repeat_scope_until_resolution(context, 'function', function()
+    context:traverse(ast)
+  end)
   return ast
 end
 

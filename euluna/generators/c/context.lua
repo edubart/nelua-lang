@@ -35,7 +35,7 @@ function CContext:get_ctype(ast)
   else
     type = ast.type
   end
-  ast:assertraisef(type, 'unknown type for for AST node')
+  ast:assertraisef(type, 'unknown type for AST node while trying to get the C type')
   local ctype = cdefs.primitive_ctypes[type]
   ast:assertraisef(ctype, 'ctype for "%s" is unknown', tostring(type))
   if ctype.include then

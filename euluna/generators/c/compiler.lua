@@ -84,6 +84,10 @@ function compiler.compile_binary(cfile, outfile)
   except.assertraisef(success and status == 0,
     "C compilation for '%s' failed:\n%s", outfile, stderr or '')
 
+  if stderr then
+    io.stderr:write(stderr)
+  end
+
   return outfile
 end
 

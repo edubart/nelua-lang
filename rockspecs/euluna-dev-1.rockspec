@@ -46,6 +46,7 @@ build = {
     ['euluna.aster'] = 'euluna/aster.lua',
     ['euluna.astnode'] = 'euluna/astnode.lua',
     ['euluna.type'] = 'euluna/type.lua',
+    ['euluna.typer'] = 'euluna/typer.lua',
     ['euluna.symbol'] = 'euluna/symbol.lua',
     ['euluna.variable'] = 'euluna/variable.lua',
     ['euluna.traversecontext'] = 'euluna/traversecontext.lua',
