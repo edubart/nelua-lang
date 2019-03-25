@@ -246,9 +246,9 @@ function visitors.Goto(_, ast, coder)
   coder:add_indent_ln('goto ', labelname)
 end
 
-function visitors.VarDecl(_, ast, coder, scope)
+function visitors.VarDecl(context, ast, coder)
   local varscope, mutability, vars, vals = ast:args()
-  local is_local = (varscope == 'local') or not scope:is_main()
+  local is_local = (varscope == 'local') or not context.scope:is_main()
   coder:add_indent()
   if is_local then
     coder:add('local ')
@@ -296,8 +296,7 @@ local function is_in_operator(context)
   local parent_ast_tag = parent_ast.tag
   return
     parent_ast_tag == 'UnaryOp' or
-    parent_ast_tag == 'BinaryOp' or
-    parent_ast_tag == 'TernaryOp'
+    parent_ast_tag == 'BinaryOp'
 end
 
 function visitors.UnaryOp(context, ast, coder)
@@ -319,15 +318,6 @@ function visitors.BinaryOp(context, ast, coder)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(left_arg, ' ', op, ' ', right_arg)
-  if surround then coder:add(')') end
-end
-
-function visitors.TernaryOp(context, ast, coder)
-  local opname, left_arg, mid_arg, right_arg = ast:args()
-  ast:assertraisef(opname == 'if', 'unknown ternary operator "%s"', opname)
-  local surround = is_in_operator(context)
-  if surround then coder:add('(') end
-  coder:add(mid_arg, ' and ', left_arg, ' or ', right_arg)
   if surround then coder:add(')') end
 end
 

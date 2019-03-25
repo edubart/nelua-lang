@@ -74,15 +74,6 @@ function Parser:set_aster(aster)
     return lhs
   end
 
-  defs.to_chain_ternary_op = function(pos, tag, matches)
-    local lhs = matches[1]
-    for i=2,#matches,3 do
-      local opname, mid, rhs = matches[i], matches[i+1], matches[i+2]
-      lhs = to_astnode(pos, tag, opname, lhs, mid, rhs)
-    end
-    return lhs
-  end
-
   local unpack = tabler.unpack
   defs.to_chain_index_or_call = function(primary_expr, exprs, inblock)
     local last_expr = primary_expr

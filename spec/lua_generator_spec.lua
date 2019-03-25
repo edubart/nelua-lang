@@ -168,8 +168,5 @@ it("binary operators", function()
   assert_generate_lua("return a ^ b")
   assert_generate_lua("return a .. b")
 end)
-it("ternary operators", function()
-  assert_generate_lua("return b if a else c", "return a and b or c")
-end)
 
 end)

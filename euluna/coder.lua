@@ -57,7 +57,7 @@ end
 
 function Coder:add_traversal(ast)
   local context = self.context
-  context:traverse(ast, self, context.scope)
+  context:traverse(ast, self)
 end
 
 function Coder:add_traversal_list(ast_list, separator)

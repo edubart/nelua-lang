@@ -162,12 +162,6 @@ aster:register('BinaryOp', types.shape {
   types.ast.Node, --- left expr
   types.ast.Node -- right expr
 })
-aster:register('TernaryOp', types.shape {
-  types.string, -- type
-  types.ast.Node, -- left expr
-  types.ast.Node, -- middle expr
-  types.ast.Node -- right expr
-})
 
 
 --------------------------------------------------------------------------------
@@ -453,9 +447,8 @@ grammar:add_group_peg('stat', 'call', [[
 
 -- expressions
 grammar:set_pegs([[
-  expr      <- expr0
+  expr      <- expr1
 
-  expr0  <- ({} ''->'TernaryOp' {| expr1  (%IF -> 'if' expr1 %ELSE expr1)* |}) -> to_chain_ternary_op
   expr1  <- ({} ''->'BinaryOp'  {| expr2  (op_or       expr2 )* |})    -> to_chain_binary_op
   expr2  <- ({} ''->'BinaryOp'  {| expr3  (op_and      expr3 )* |})    -> to_chain_binary_op
   expr3  <- ({} ''->'BinaryOp'  {| expr4  (op_cmp      expr4 )* |})    -> to_chain_binary_op

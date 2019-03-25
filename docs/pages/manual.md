@@ -67,7 +67,6 @@ continue
 | ref      | `&a`          | unary    | reference operator       |
 | deref    | `*a`          | unary    | dereference operator     |
 | pow      | `a ^ b`       | unary    | numeric pow              |
-| if       | `a if c or b` | ternary  | ternary if operator      |
 
 ## Other symbols used in the language syntax
 

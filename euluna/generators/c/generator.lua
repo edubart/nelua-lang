@@ -127,9 +127,9 @@ function visitors.FuncArg(_, ast, coder)
 end
 
 -- block
-function visitors.Block(context, ast, coder, scope)
+function visitors.Block(context, ast, coder)
   local stats = ast:args()
-  local is_top_scope = scope:is_top()
+  local is_top_scope = context.scope:is_top()
   if is_top_scope then
     coder:inc_indent()
     coder:add_ln("int main() {")
@@ -150,8 +150,9 @@ function visitors.Block(context, ast, coder, scope)
 end
 
 -- statements
-function visitors.Return(_, ast, coder, scope)
+function visitors.Return(context, ast, coder)
   --TODO: multiple return
+  local scope = context.scope
   scope.has_return = true
   local rets = ast:args()
   ast:assertraisef(#rets <= 1, "multiple returns not supported yet")
@@ -318,8 +319,7 @@ local function is_in_operator(context)
   local parent_ast_tag = parent_ast.tag
   return
     parent_ast_tag == 'UnaryOp' or
-    parent_ast_tag == 'BinaryOp' or
-    parent_ast_tag == 'TernaryOp'
+    parent_ast_tag == 'BinaryOp'
 end
 
 function visitors.UnaryOp(context, ast, coder)
@@ -337,15 +337,6 @@ function visitors.BinaryOp(context, ast, coder)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
   coder:add(left_arg, ' ', op, ' ', right_arg)
-  if surround then coder:add(')') end
-end
-
-function visitors.TernaryOp(context, ast, coder)
-  local opname, left_arg, mid_arg, right_arg = ast:args()
-  ast:assertraisef(opname == 'if', 'unknown ternary operator "%s"', opname)
-  local surround = is_in_operator(context)
-  if surround then coder:add('(') end
-  coder:add(mid_arg, ' ? ', left_arg, ' : ', right_arg)
   if surround then coder:add(')') end
 end
 

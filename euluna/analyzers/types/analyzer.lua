@@ -26,12 +26,18 @@ function visitors.Boolean(_, ast)
   ast.type = typedefs.primitive_types.boolean
 end
 
-function visitors.Id(_, ast, scope)
+function visitors.Id(context, ast)
   local name = ast:arg(1)
-  local symbol = scope.symbols[name]
+  local symbol = context.scope.symbols[name]
   if symbol then
     ast.type = symbol.type
   end
+end
+
+function visitors.Paren(context, ast)
+  local what = ast:args()
+  context:traverse(what)
+  ast.type = what.type
 end
 
 function visitors.Type(_, ast)
@@ -42,23 +48,23 @@ function visitors.Type(_, ast)
   ast.type = type.type
 end
 
-function visitors.TypedId(context, ast, scope)
+function visitors.TypedId(context, ast)
   local name, typenode = ast:args()
   local type
   if typenode then
-    context:traverse(typenode, scope)
+    context:traverse(typenode)
     type = typenode.holding_type
   end
-  scope.symbols[name] = Variable(name, type)
+  context.scope.symbols[name] = Variable(name, type)
   ast.type = type
 end
 
-function visitors.ForNum(context, ast, scope)
+function visitors.ForNum(context, ast)
   local itvar, beginval, comp, endval, incrval, block = ast:args()
   local itvarname = itvar[1]
-  context:traverse(itvar, scope)
-  context:traverse(beginval, scope)
-  context:traverse(endval, scope)
+  context:traverse(itvar)
+  context:traverse(beginval)
+  context:traverse(endval)
   if not itvar.type and beginval.type then
     itvar.type = beginval.type
   elseif itvar.type and beginval.type then
@@ -69,17 +75,17 @@ function visitors.ForNum(context, ast, scope)
       "`for` variable '%s' of type '%s' is not conversible with end value of type '%s'",
       itvarname, tostring(itvar.type), tostring(endval.type))
   end
-  context:traverse(block, scope)
+  context:traverse(block)
 end
 
-function visitors.VarDecl(context, ast, scope)
+function visitors.VarDecl(context, ast)
   local varscope, mutability, vars, vals = ast:args()
   ast:assertraisef(mutability == 'var', 'variable mutability not supported yet')
   for _,var,val in iters.izip(vars, vals or {}) do
     local varname = var:arg(1)
-    context:traverse(var, scope)
+    context:traverse(var)
     if val then
-      context:traverse(val, scope)
+      context:traverse(val)
       if not var.type and val.type then
         var.type = val.type
       elseif var.type and val.type then
@@ -88,13 +94,13 @@ function visitors.VarDecl(context, ast, scope)
           varname, tostring(var.type), tostring(val.type))
       end
     end
-    scope.symbols[varname] = Variable(varname, var.type)
+    context.scope.symbols[varname] = Variable(varname, var.type)
   end
 end
 
-function visitors.UnaryOp(context, ast, scope)
+function visitors.UnaryOp(context, ast)
   local opname, arg = ast:args()
-  context:traverse(arg, scope)
+  context:traverse(arg)
   local type
   if opname == 'not' then
     type = typedefs.primitive_types.boolean
@@ -109,10 +115,10 @@ function visitors.UnaryOp(context, ast, scope)
   ast.type = type
 end
 
-function visitors.BinaryOp(context, ast, scope)
+function visitors.BinaryOp(context, ast)
   local opname, left_arg, right_arg = ast:args()
-  context:traverse(left_arg, scope)
-  context:traverse(right_arg, scope)
+  context:traverse(left_arg)
+  context:traverse(right_arg)
   local ltype, rtype, type
   if typedefs.binary_comparable_ops[opname] then
     type = typedefs.primitive_types.boolean
@@ -148,7 +154,7 @@ end
 local analyzer = {}
 function analyzer.analyze(ast)
   local context = TraverseContext(visitors, true)
-  context:traverse(ast, context.scope)
+  context:traverse(ast)
   return ast
 end
 

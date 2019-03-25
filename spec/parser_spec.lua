@@ -860,13 +860,6 @@ describe("operator", function()
           AST('BinaryOp', 'pow', AST('Id', 'a'), AST('Id', 'b')
     )})}))
   end)
-  it("ternary if", function()
-    assert.parse_ast(euluna_parser, "return a if c else b",
-      AST('Block', {
-        AST('Return', {
-          AST('TernaryOp', 'if', AST('Id', 'a'), AST('Id', 'c'), AST('Id', 'b')
-    )})}))
-  end)
 end)
 
 --------------------------------------------------------------------------------

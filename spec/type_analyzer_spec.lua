@@ -86,6 +86,11 @@ it("binary operators", function()
   assert_gencode_equals("local a = 1 + 2.0", "local a: number = 1 + 2.0")
   assert_gencode_equals("local a = 1_i8 + 2_u8", "local a: int16 = 1_i8 + 2_u8")
   assert_analyze_error("local a = 1 + 's'", "is not defined for type")
+  assert_analyze_error("local a = -1_u", "is not defined for type")
+end)
+
+it("operation with parenthesis", function()
+  assert_gencode_equals("local a = -(1)", "local a: int = -(1)")
 end)
 
 end)
