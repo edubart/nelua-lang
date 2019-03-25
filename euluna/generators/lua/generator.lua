@@ -85,7 +85,7 @@ function visitors.Paren(_, ast, coder)
   coder:add('(', what, ')')
 end
 function visitors.Type() end
-function visitors.TypedId(_, ast, coder)
+function visitors.IdDecl(_, ast, coder)
   local name, type = ast:args()
   coder:add(name)
 end

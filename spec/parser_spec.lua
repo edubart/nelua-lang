@@ -448,7 +448,7 @@ describe("statement for", function()
     assert.parse_ast(euluna_parser, "for i=1,10 do end",
       AST('Block', {
         AST('ForNum',
-          AST('TypedId', 'i'),
+          AST('IdDecl', 'i'),
           AST('Number', 'int', '1'),
           'le',
           AST('Number', 'int', '10'),
@@ -460,7 +460,7 @@ describe("statement for", function()
     assert.parse_ast(euluna_parser, "for i:number=10,>0,-1 do end",
       AST('Block', {
         AST('ForNum',
-          AST('TypedId', 'i', AST('Type', 'number')),
+          AST('IdDecl', 'i', AST('Type', 'number')),
           AST('Number', 'int', '10'),
           'gt',
           AST('Number', 'int', '0'),
@@ -472,7 +472,7 @@ describe("statement for", function()
     assert.parse_ast(euluna_parser, "for i in a,b,c do end",
       AST('Block', {
         AST('ForIn',
-          { AST('TypedId', 'i') },
+          { AST('IdDecl', 'i') },
           { AST('Id', 'a'), AST('Id', 'b'), AST('Id', 'c') },
           AST('Block', {}))
     }))
@@ -481,9 +481,9 @@ describe("statement for", function()
     assert.parse_ast(euluna_parser, "for i:int8,j:int16,k:int32 in iter() do end",
       AST('Block', {
         AST('ForIn',
-          { AST('TypedId', 'i', AST('Type', 'int8')),
-            AST('TypedId', 'j', AST('Type', 'int16')),
-            AST('TypedId', 'k', AST('Type', 'int32'))
+          { AST('IdDecl', 'i', AST('Type', 'int8')),
+            AST('IdDecl', 'j', AST('Type', 'int16')),
+            AST('IdDecl', 'k', AST('Type', 'int32'))
           },
           { AST('Call', {}, {}, AST('Id', 'iter')) },
           AST('Block', {}))
@@ -527,8 +527,8 @@ describe("statement variable declaration", function()
       local a: integer
     ]],
       AST('Block', {
-        AST('VarDecl', 'local', 'var', { AST('TypedId', 'a') }),
-        AST('VarDecl', 'local', 'var', { AST('TypedId', 'a', AST('Type', 'integer')) })
+        AST('VarDecl', 'local', 'var', { AST('IdDecl', 'a') }),
+        AST('VarDecl', 'local', 'var', { AST('IdDecl', 'a', AST('Type', 'integer')) })
     }))
   end)
   it("local variable assignment", function()
@@ -537,16 +537,16 @@ describe("statement variable declaration", function()
       local a: integer = b
     ]],
       AST('Block', {
-        AST('VarDecl', 'local', 'var', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', 'local', 'var', { AST('IdDecl', 'a') }, { AST('Id', 'b') }),
         AST('VarDecl', 'local', 'var',
-          { AST('TypedId', 'a', AST('Type', 'integer')) },
+          { AST('IdDecl', 'a', AST('Type', 'integer')) },
           { AST('Id', 'b') })
     }))
   end)
   it("non local variable", function()
     assert.parse_ast(euluna_parser, "var a",
       AST('Block', {
-        AST('VarDecl', nil, 'var', { AST('TypedId', 'a') })
+        AST('VarDecl', nil, 'var', { AST('IdDecl', 'a') })
     }))
   end)
   it("variable mutabilities", function()
@@ -558,18 +558,18 @@ describe("statement variable declaration", function()
       const a = b
     ]],
       AST('Block', {
-        AST('VarDecl', nil, 'var', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
-        AST('VarDecl', nil, 'let', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
-        AST('VarDecl', nil, 'let&', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
-        AST('VarDecl', 'local', 'var&', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
-        AST('VarDecl', nil, 'const', { AST('TypedId', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', nil, 'var', { AST('IdDecl', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', nil, 'let', { AST('IdDecl', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', nil, 'let&', { AST('IdDecl', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', 'local', 'var&', { AST('IdDecl', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', nil, 'const', { AST('IdDecl', 'a') }, { AST('Id', 'b') }),
     }))
   end)
   it("variable multiple assigments", function()
     assert.parse_ast(euluna_parser, "local a,b,c = x,y,z",
       AST('Block', {
         AST('VarDecl', 'local', 'var',
-          { AST('TypedId', 'a'), AST('TypedId', 'b'), AST('TypedId', 'c') },
+          { AST('IdDecl', 'a'), AST('IdDecl', 'b'), AST('IdDecl', 'c') },
           { AST('Id', 'x'), AST('Id', 'y'), AST('Id', 'z') }),
     }))
   end)

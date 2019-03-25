@@ -31,9 +31,16 @@ end
 function visitors.Id(context, ast)
   local name = ast:arg(1)
   local symbol = context.scope.symbols[name]
-  if symbol then
+  if not symbol then
+    symbol = Variable(name, ast)
+    context.scope.symbols[name] = symbol
+  elseif symbol.type then
     ast.type = symbol.type
   end
+  if not ast.type then
+    symbol:add_ast_reference(ast)
+  end
+  return symbol
 end
 
 function visitors.Paren(context, ast)
@@ -50,25 +57,62 @@ function visitors.Type(_, ast)
   ast.type = type.type
 end
 
-function visitors.TypedId(context, ast)
+function visitors.IdDecl(context, ast)
   local name, typenode = ast:args()
   local type
   if typenode then
     context:traverse(typenode)
     type = typenode.holding_type
   end
-  context.scope.symbols[name] = Variable(name, type)
-  ast.type = type
+  local symbol = Variable(name, ast, type)
+  context.scope.symbols[name] = symbol
+  if type then
+    ast.type = type
+  else
+    symbol:add_ast_reference(ast)
+  end
+  return symbol
+end
+
+function visitors.Block(context, ast)
+  context:push_scope()
+  context:default_visitor(ast)
+  context.scope:resolve_symbols_types()
+  context:pop_scope()
+end
+
+function visitors.If(context, ast)
+  ast.type = types.boolean
+  context:default_visitor(ast)
+end
+
+function visitors.While(context, ast)
+  ast.type = types.boolean
+  context:default_visitor(ast)
+end
+
+function visitors.Repeat(context, ast)
+  ast.type = types.boolean
+  context:default_visitor(ast)
 end
 
 function visitors.ForNum(context, ast)
   local itvar, beginval, comp, endval, incrval, block = ast:args()
   local itvarname = itvar[1]
-  context:traverse(itvar)
   context:traverse(beginval)
   context:traverse(endval)
+  if incrval then
+    context:traverse(incrval)
+  end
+  context:push_scope()
+  context:traverse(itvar)
+  local itsymbol = Variable(itvarname, itvar, itvar.type)
+  context.scope.symbols[itvarname] = itsymbol
+  if not itvar.type then
+    itsymbol:add_ast_reference(itvar)
+  end
   if not itvar.type and beginval.type then
-    itvar.type = beginval.type
+    itsymbol:add_possible_type(beginval.type)
   elseif itvar.type and beginval.type then
     ast:assertraisef(itvar.type:is_conversible(beginval.type),
       "`for` variable '%s' of type '%s' is not conversible with begin value of type '%s'",
@@ -77,26 +121,54 @@ function visitors.ForNum(context, ast)
       "`for` variable '%s' of type '%s' is not conversible with end value of type '%s'",
       itvarname, tostring(itvar.type), tostring(endval.type))
   end
+  --TODO: check incrval type compability with itvar
   context:traverse(block)
+  context.scope:resolve_symbols_types()
+  context:pop_scope()
 end
 
 function visitors.VarDecl(context, ast)
   local varscope, mutability, vars, vals = ast:args()
   ast:assertraisef(mutability == 'var', 'variable mutability not supported yet')
   for _,var,val in iters.izip(vars, vals or {}) do
-    local varname = var:arg(1)
-    context:traverse(var)
+    local symbol = context:traverse(var)
+    assert(symbol.type == var.type)
     if val then
       context:traverse(val)
       if not var.type and val.type then
-        var.type = val.type
+        symbol:add_possible_type(val.type)
       elseif var.type and val.type and var.type ~= types.boolean then
         ast:assertraisef(var.type:is_conversible(val.type),
           "variable '%s' of type '%s' is not conversible with value of type '%s'",
-          varname, tostring(var.type), tostring(val.type))
+          symbol.name, tostring(var.type), tostring(val.type))
       end
     end
-    context.scope.symbols[varname] = Variable(varname, var.type)
+  end
+end
+
+function visitors.Assign(context, ast)
+  local vars, vals = ast:args()
+  for _,var,val in iters.izip(vars, vals) do
+    local varsymbol = context:traverse(var)
+    if varsymbol then
+      if varsymbol.type then
+        var.type = varsymbol.type
+      else
+        varsymbol:add_ast_reference(var)
+      end
+    end
+    if val then
+      context:traverse(val)
+      if not var.type and val.type then
+        if varsymbol then
+          varsymbol:add_possible_type(val.type)
+        end
+      elseif var.type and val.type then
+        ast:assertraisef(var.type:is_conversible(val.type),
+          "variable assignment of type '%s' is not conversible with value of type '%s'",
+          tostring(var.type), tostring(val.type))
+      end
+    end
   end
 end
 
@@ -116,21 +188,6 @@ function visitors.UnaryOp(context, ast)
     end
     ast.type = type
   end
-end
-
-function visitors.If(context, ast)
-  ast.type = types.boolean
-  context:default_visitor(ast)
-end
-
-function visitors.While(context, ast)
-  ast.type = types.boolean
-  context:default_visitor(ast)
-end
-
-function visitors.Repeat(context, ast)
-  ast.type = types.boolean
-  context:default_visitor(ast)
 end
 
 function visitors.BinaryOp(context, ast)
@@ -195,6 +252,7 @@ local analyzer = {}
 function analyzer.analyze(ast)
   local context = TraverseContext(visitors, true)
   context:traverse(ast)
+  context.scope:resolve_symbols_types()
   return ast
 end
 

@@ -75,7 +75,7 @@ function visitors.Type(context, ast, coder)
   coder:add(ctype)
 end
 
-function visitors.TypedId(context, ast, coder)
+function visitors.IdDecl(context, ast, coder)
   local name = ast:args()
   if ast.type then
     local ctype = context:get_ctype(ast)
@@ -238,6 +238,7 @@ end
 function visitors.ForNum(_, ast, coder)
   local itvar, beginval, comp, endval, incrval, block  = ast:args()
   ast:assertraisef(comp == 'le', 'for comparator not supported yet')
+  --TODO: evaluate beginval, endval, incrval only once in case of expressions
   local itname = itvar[1]
   coder:add_indent("for(", itvar, ' = ', beginval, '; ', itname, ' <= ', endval, '; ')
   if incrval then
@@ -292,6 +293,7 @@ function visitors.Assign(_, ast, coder)
   coder:add_indent()
   for i,var,val in iters.izip(vars, vals) do
     if i > 1 then coder:add(' ') end
+    --TODO: check if val is nil
     coder:add(var, ' = ', val, ';')
   end
   coder:add_ln()

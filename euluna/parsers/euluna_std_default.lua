@@ -17,7 +17,7 @@ aster:register('Continue', types.shape {})
 aster:register('VarDecl', types.shape {
   types.one_of{"local"}:is_optional(), -- scope
   types.one_of{"var", "var&", "let", "let&", "const"}, -- mutability
-  types.array_of(types.ast.TypedId), -- var names with types
+  types.array_of(types.ast.IdDecl), -- var names with types
   types.array_of(types.ast.Node):is_optional(), -- expr list, initial assignments values
 })
 

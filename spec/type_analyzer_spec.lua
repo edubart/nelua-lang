@@ -31,7 +31,7 @@ local function assert_analyze_error(code, expected_error)
   local ok, e = except.try(function()
     analyzer.analyze(ast)
   end)
-  assert(not ok, "analysis should fail")
+  assert(not ok, "type analysis should fail")
   assert.contains(expected_error, e:get_message())
 end
 
@@ -41,22 +41,20 @@ it("local variable", function()
   assert_analyze_ast("local a: int",
     AST('Block', {
       AST('VarDecl', 'local', 'var', {
-        TAST('int', 'TypedId', 'a', TAST('type', 'Type', 'int'))})
+        TAST('int', 'IdDecl', 'a', TAST('type', 'Type', 'int'))})
   }))
-
-  assert_gencode_equals("local a = 1", "local a: int = 1")
 
   assert_analyze_ast("local a: int = 1",
     AST('Block', {
       AST('VarDecl', 'local', 'var',
-        { TAST('int', 'TypedId', 'a', TAST('type', 'Type', 'int')) },
+        { TAST('int', 'IdDecl', 'a', TAST('type', 'Type', 'int')) },
         { TAST('int', 'Number', 'int', '1') }),
   }))
 
   assert_analyze_ast("local a = 1 f(a)",
     AST('Block', {
       AST('VarDecl', 'local', 'var',
-        { TAST('int', 'TypedId', 'a') },
+        { TAST('int', 'IdDecl', 'a') },
         { TAST('int', 'Number', 'int', '1') }),
       AST('Call', {},
         { TAST('int', 'Id', "a") },
@@ -65,6 +63,7 @@ it("local variable", function()
       )
   }))
 
+  assert_gencode_equals("local a = 1", "local a: int = 1")
   assert_analyze_error("local a: int = 'string'", "is not conversible with")
   assert_analyze_error("local a: uint8 = 1.0", "is not conversible with")
 end)
@@ -73,6 +72,11 @@ it("loop variables", function()
   assert_gencode_equals("for i=1,10 do end", "for i:int=1,10 do end")
   assert_analyze_error("for i:uint8=1.0,2 do end", "is not conversible with")
   assert_analyze_error("for i:uint8=1_u8,2 do end", "is not conversible with")
+end)
+
+it("variable assignments", function()
+  assert_gencode_equals("local a; a = 1", "local a: int; a = 1")
+  assert_analyze_error("local a: int; a = 's'", "is not conversible with")
 end)
 
 it("unary operators", function()

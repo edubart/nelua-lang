@@ -23,4 +23,10 @@ function Scope:is_main()
   return self.parent and not self.parent.parent
 end
 
+function Scope:resolve_symbols_types()
+  for _,symbol in pairs(self.symbols) do
+    symbol:resolve_type()
+  end
+end
+
 return Scope

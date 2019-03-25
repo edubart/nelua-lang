@@ -44,7 +44,7 @@ aster:register('Paren', types.shape {
 aster:register('Type', types.shape {
   types.string, -- type
 })
-aster:register('TypedId', types.shape {
+aster:register('IdDecl', types.shape {
   types.string, -- name
   types.ast.Type:is_optional(), -- type
 })
@@ -115,7 +115,7 @@ aster:register('Repeat', types.shape {
   types.ast.Node -- expr
 })
 aster:register('ForNum', types.shape {
-  types.ast.TypedId, -- iterated var
+  types.ast.IdDecl, -- iterated var
   types.ast.Node, -- begin expr
   types.string, -- compare operator
   types.ast.Node, -- end expr
@@ -123,7 +123,7 @@ aster:register('ForNum', types.shape {
   types.ast.Block, -- block
 })
 aster:register('ForIn', types.shape {
-  types.array_of(types.ast.TypedId), -- iterated vars
+  types.array_of(types.ast.IdDecl), -- iterated vars
   types.array_of(types.ast.Node), -- in exprlist
   types.ast.Block -- block
 })
@@ -137,7 +137,7 @@ aster:register('Goto', types.shape {
 aster:register('VarDecl', types.shape {
   types.one_of{"local"}:is_optional(), -- scope
   types.one_of{"var"}, -- mutability
-  types.array_of(types.ast.TypedId), -- var names with types
+  types.array_of(types.ast.IdDecl), -- var names with types
   types.array_of(types.ast.Node):is_optional(), -- expr list, initial assignments values
 })
 aster:register('Assign', types.shape {
@@ -519,7 +519,7 @@ grammar:set_pegs([[
     %TLET %BAND -> 'let&' /
     %TLET -> 'let'
   typed_idlist <- typed_id (%COMMA typed_id)*
-  typed_id <- ({} '' -> 'TypedId' %cNAME (%COLON etypexpr)?) -> to_astnode
+  typed_id <- ({} '' -> 'IdDecl' %cNAME (%COLON etypexpr)?) -> to_astnode
 
   typexpr <- ({} '' -> 'Type' %cNAME) -> to_astnode
   typexpr_list <- typexpr (%COMMA typexpr)*
