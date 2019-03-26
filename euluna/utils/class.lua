@@ -24,7 +24,6 @@ function class.new(base)
     end
   end
   klass.__index = klass
-  klass.super = base._init
   return setmetatable(klass, base)
 end
 

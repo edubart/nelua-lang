@@ -5,7 +5,7 @@ local Symbol = require 'euluna.symbol'
 local Type = class(Symbol)
 
 function Type:_init(name, ast)
-  self:super(ast)
+  Symbol._init(self, ast)
   self.name = name
   self.unary_operators = {}
   self.binary_operators = {}

@@ -1,4 +1,5 @@
 local iters = require 'euluna.utils.iterators'
+local tabler = require 'euluna.utils.tabler'
 local typedefs = require 'euluna.analyzers.types.definitions'
 local TraverseContext = require 'euluna.traversecontext'
 local Variable = require 'euluna.variable'
@@ -73,6 +74,22 @@ local function visit_id_decl(context, ast, name, typenode)
     symbol:add_ast_reference(ast)
   end
   return symbol
+end
+
+function visitors.Call(context, ast)
+  context:default_visitor(ast)
+  local _, args, caller = ast:args()
+  --TODO: check types on other nodes too
+  if caller.tag == 'Id' then
+    local funcname = caller:arg(1)
+    local symbol = context.scope.symbols[funcname]
+    if symbol and symbol.type then
+      --TODO: check multiple returns
+      caller:assertraisef(symbol.type.name == 'function',
+        "attempt to call a non callable variable of type '%s'", symbol.type.name)
+      ast.type = symbol.type.return_types[1]
+    end
+  end
 end
 
 function visitors.IdDecl(context, ast)
@@ -216,19 +233,31 @@ function visitors.FuncDef(context, ast)
   repeat_scope_until_resolution(context, 'function', function()
     context:default_visitor(ast)
   end, function()
-    local rets = ast:arg(4)
-    local return_types = context.scope:resolve_returns_type()
-    for i,rtype in pairs(return_types) do
-      local ret = rets[i]
-      if not ret then
-        ret = context.aster:create('Type', tostring(rtype))
-        ret.type = types.type
-        ret.holding_type = rtype
-        rets[i] = ret
+    local varscope, varnode, argnodes, retnodes, blocknode = ast:args()
+    local returntypes = context.scope:resolve_return_types()
+    local argtypes = tabler.imap(argnodes, function(n) return {id=n:arg(1), type=n.type} end)
+    local type = typedefs.dynamic_types.Function(ast, argtypes, returntypes)
+    ast.type = type
+
+    if varnode.tag == 'Id' then
+      local name = varnode:arg(1)
+      local symbol = Variable(name, ast, type)
+      context.scope.parent.symbols[name] = symbol
+    --TODO: check definition on other nodes
+    end
+
+    -- check return types
+    for i,rtype in pairs(returntypes) do
+      local retnode = retnodes[i]
+      if not retnode then
+        retnode = context.aster:create('Type', tostring(rtype))
+        retnode.type = types.type
+        retnode.holding_type = rtype
+        retnodes[i] = retnode
       else
-        ast:assertraisef(ret.holding_type:is_conversible(rtype),
+        ast:assertraisef(retnode.holding_type:is_conversible(rtype),
           "return variable at index %d of type '%s' is not conversible with value of type '%s'",
-          i, tostring(ret.holding_type), tostring(rtype))
+          i, tostring(retnode.holding_type), tostring(rtype))
       end
     end
   end)

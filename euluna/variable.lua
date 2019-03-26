@@ -4,7 +4,7 @@ local Symbol = require 'euluna.symbol'
 local Variable = class(Symbol)
 
 function Variable:_init(name, ast, type)
-  self:super(ast)
+  Symbol._init(self, ast)
   self.name = name
   self.type = type
 end

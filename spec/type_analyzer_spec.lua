@@ -124,4 +124,10 @@ end]])
   assert_analyze_error("local function f(): string return 0 end", "is not conversible with")
 end)
 
+it("function call", function()
+  assert_gencode_equals("local function f() return 0 end; local a = f()",
+                        "local function f(): int return 0 end; local a: int = f()")
+  assert_analyze_error("local a: int = 1; a()", "attempt to call a non callable variable")
+end)
+
 end)

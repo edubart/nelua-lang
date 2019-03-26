@@ -5,26 +5,30 @@ local typedefs = {}
 
 -- primitive types
 local types = {
-  char    = Type('char'),
-  float64 = Type('float64'),
-  float32 = Type('float32'),
-  pointer = Type('pointer'),
-  int     = Type('int'),
-  int8    = Type('int8'),
-  int16   = Type('int16'),
-  int32   = Type('int32'),
-  int64   = Type('int64'),
-  uint    = Type('uint'),
-  uint8   = Type('uint8'),
-  uint16  = Type('uint16'),
-  uint32  = Type('uint32'),
-  uint64  = Type('uint64'),
-  boolean = Type('boolean'),
-  string  = Type('string'),
-  any     = Type('any'),
-  type    = Type.type, -- the type of "type"
+  char      = Type('char'),
+  float64   = Type('float64'),
+  float32   = Type('float32'),
+  pointer   = Type('pointer'),
+  int       = Type('int'),
+  int8      = Type('int8'),
+  int16     = Type('int16'),
+  int32     = Type('int32'),
+  int64     = Type('int64'),
+  uint      = Type('uint'),
+  uint8     = Type('uint8'),
+  uint16    = Type('uint16'),
+  uint32    = Type('uint32'),
+  uint64    = Type('uint64'),
+  boolean   = Type('boolean'),
+  string    = Type('string'),
+  any       = Type('any'),
+  type      = Type.type, -- the type of "type"
 }
 typedefs.primitive_types = types
+
+typedefs.dynamic_types = {
+  Function = require 'euluna.functiontype'
+}
 
 -- type aliases
 types.integer = types.int64

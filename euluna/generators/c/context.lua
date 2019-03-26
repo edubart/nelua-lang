@@ -7,7 +7,7 @@ local cbuiltins = require 'euluna.generators.c.builtins'
 local CContext = class(TraverseContext)
 
 function CContext:_init(visitors)
-  self:super(visitors)
+  TraverseContext._init(self, visitors)
   self.includes = {}
   self.builtins = {}
 end

@@ -56,7 +56,7 @@ function Scope:add_return_type(index, type)
   table.insert(return_types, type)
 end
 
-function Scope:resolve_returns_type()
+function Scope:resolve_return_types()
   local resolved_types = {}
   for i,return_types in pairs(self.returns_types) do
     resolved_types[i] = typer.find_common_type(return_types)
