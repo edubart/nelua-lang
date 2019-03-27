@@ -1,9 +1,9 @@
 local iters = require 'euluna.utils.iterators'
 local tabler = require 'euluna.utils.tabler'
 local typedefs = require 'euluna.analyzers.types.definitions'
+local typer = require 'euluna.typer'
 local TraverseContext = require 'euluna.traversecontext'
 local Variable = require 'euluna.variable'
-local typer = require 'euluna.typer'
 
 local types = typedefs.primitive_types
 local visitors = {}
@@ -64,10 +64,10 @@ function visitors.Call(context, ast)
     local funcname = caller:arg(1)
     local symbol = context.scope:get_symbol(funcname)
     if symbol and symbol.type then
-      --TODO: check multiple returns
       caller:assertraisef(symbol.type.name == 'function',
         "attempt to call a non callable variable of type '%s'", symbol.type.name)
       ast.type = symbol.type.return_types[1]
+      ast.types = symbol.type.return_types
     end
   end
 end
@@ -131,17 +131,26 @@ function visitors.ForNum(context, ast)
     itsymbol:link_ast_type(itvar)
     itsymbol:add_possible_type(beginval.type)
     itsymbol:add_possible_type(endval.type)
-    if itvar.type and beginval.type then
-      ast:assertraisef(itvar.type:is_conversible(beginval.type),
-        "`for` variable '%s' of type '%s' is not conversible with begin value of type '%s'",
-        itvarname, tostring(itvar.type), tostring(beginval.type))
+    if itvar.type then
+      if beginval.type then
+        ast:assertraisef(itvar.type:is_conversible(beginval.type),
+          "`for` variable '%s' of type '%s' is not conversible with begin value of type '%s'",
+          itvarname, tostring(itvar.type), tostring(beginval.type))
+      end
+      if endval.type then
+        ast:assertraisef(itvar.type:is_conversible(endval.type),
+          "`for` variable '%s' of type '%s' is not conversible with end value of type '%s'",
+          itvarname, tostring(itvar.type), tostring(endval.type))
+      end
+      if incrval and incrval.type then
+        ast:assertraisef(itvar.type:is_conversible(incrval.type),
+          "`for` variable '%s' of type '%s' is not conversible with increment value of type '%s'",
+          itvarname, tostring(itvar.type), tostring(incrval.type))
+      end
+    else
+      itsymbol:add_possible_type(beginval.type)
+      itsymbol:add_possible_type(endval.type)
     end
-    if itvar.type and endval.type then
-      ast:assertraisef(itvar.type:is_conversible(endval.type),
-        "`for` variable '%s' of type '%s' is not conversible with end value of type '%s'",
-        itvarname, tostring(itvar.type), tostring(endval.type))
-    end
-    --TODO: check incrval type compability with itvar
     context:traverse(block)
     context.scope:resolve_symbols_types()
   end)

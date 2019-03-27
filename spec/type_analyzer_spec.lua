@@ -70,8 +70,10 @@ end)
 
 it("loop variables", function()
   assert_gencode_equals("for i=1,10 do end", "for i:int=1,10 do end")
-  assert_analyze_error("for i:uint8=1.0,2 do end", "is not conversible with")
-  assert_analyze_error("for i:uint8=1_u8,2 do end", "is not conversible with")
+  assert_gencode_equals("for i=1,10,2 do end", "for i:int=1,10,2 do end")
+  assert_analyze_error("for i:uint8=1.0,10 do end", "is not conversible with")
+  assert_analyze_error("for i:uint8=1_u8,10 do end", "is not conversible with")
+  assert_analyze_error("for i:uint8=1_u8,10_u8,2 do end", "is not conversible with")
 end)
 
 it("variable assignments", function()
