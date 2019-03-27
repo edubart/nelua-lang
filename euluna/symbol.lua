@@ -12,6 +12,7 @@ function Symbol:_init(ast)
 end
 
 function Symbol:add_possible_type(type)
+  if self.type or not type then return end
   if tabler.find(self.possible_types, type) then return end
   table.insert(self.possible_types, type)
 end
@@ -19,6 +20,14 @@ end
 function Symbol:add_ast_reference(ast)
   if tabler.find(self.ast_references, ast) then return end
   table.insert(self.ast_references, ast)
+end
+
+function Symbol:link_ast_type(ast)
+  if self.type then
+    ast.type = self.type
+  else
+    self:add_ast_reference(ast)
+  end
 end
 
 local function update_ast_references(self)

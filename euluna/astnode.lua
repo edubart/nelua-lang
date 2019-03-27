@@ -26,7 +26,10 @@ function ASTNode:args()
   return tabler.unpack(self, 1, self.nargs)
 end
 
-local function get_astnode_errmsg(ast, message, ...)
+-------------------
+-- error handling
+-------------------
+local function format_node_errmsg(ast, message, ...)
   message = string.format(message, ...)
   if ast.src and ast.pos then
     message = errorer.get_pretty_source_errmsg(ast.src, ast.srcname, ast.pos, message)
@@ -36,29 +39,31 @@ end
 
 --luacov:disable
 function ASTNode:errorf(message, ...)
-  error(get_astnode_errmsg(self, message, ...))
+  error(format_node_errmsg(self, message, ...))
 end
 
 function ASTNode:assertf(cond, message, ...)
   if not cond then
-    error(get_astnode_errmsg(self, message, ...))
+    error(format_node_errmsg(self, message, ...))
   end
   return cond
 end
 
 function ASTNode:raisef(message, ...)
-  except.raise(get_astnode_errmsg(self, message, ...))
+  except.raise(format_node_errmsg(self, message, ...))
 end
 
 function ASTNode:assertraisef(cond, message, ...)
   if not cond then
-    except.raise(get_astnode_errmsg(self, message, ...))
+    except.raise(format_node_errmsg(self, message, ...))
   end
   return cond
 end
  --luacov:enable
 
+-------------------
 -- pretty print ast
+-------------------
 local function stringfy_ast(node, depth, t, skipindent)
   local indent = string.rep('  ', depth)
   local isast = node._astnode

@@ -35,6 +35,15 @@ function Scope:get_parent_of_kind(kind)
   return parent
 end
 
+function Scope:get_symbol(name)
+  return self.symbols[name]
+end
+
+function Scope:add_symbol(symbol)
+  self.symbols[symbol.name] = symbol
+  return symbol
+end
+
 function Scope:resolve_symbols_types()
   local count = 0
   for _,symbol in pairs(self.symbols) do

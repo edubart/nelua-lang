@@ -10,15 +10,13 @@ local visitors = {}
 
 function visitors.Number(_, ast)
   local numtype, value, literal = ast:args()
-  local type
   if literal then
-    type = typedefs.number_literal_types[literal]
-    ast:assertraisef(type, 'literal suffix "%s" is not defined', literal)
+    ast.type = typedefs.number_literal_types[literal]
+    ast:assertraisef(ast.type, 'literal suffix "%s" is not defined', literal)
   else
-    type = typedefs.number_default_types[numtype]
-    ast:assertf(type, 'invalid number type "%s" for AST Number', numtype)
+    ast.type = typedefs.number_default_types[numtype]
+    ast:assertf(ast.type, 'invalid number type "%s" for AST Number', numtype)
   end
-  ast.type = type
 end
 
 function visitors.String(_, ast)
@@ -31,16 +29,8 @@ end
 
 function visitors.Id(context, ast)
   local name = ast:arg(1)
-  local symbol = context.scope.symbols[name]
-  if not symbol then
-    symbol = Variable(name, ast)
-    context.scope.symbols[name] = symbol
-  elseif symbol.type then
-    ast.type = symbol.type
-  end
-  if not ast.type then
-    symbol:add_ast_reference(ast)
-  end
+  local symbol = context.scope:get_symbol(name) or context.scope:add_symbol(Variable(name, ast))
+  symbol:link_ast_type(ast)
   return symbol
 end
 
@@ -51,28 +41,18 @@ function visitors.Paren(context, ast)
 end
 
 function visitors.Type(_, ast)
-  if not ast.type then
-    local tyname = ast:arg(1)
-    local type = types[tyname]
-    ast:assertf(type, 'invalid type "%s"', tyname)
-    ast.holding_type = type
-    ast.type = type.type
-  end
+  local tyname = ast:arg(1)
+  local type = types[tyname]
+  ast:assertf(type, 'invalid type "%s"', tyname)
+  ast.holding_type = type
+  ast.type = type.type
+  return type
 end
 
 local function visit_id_decl(context, ast, name, typenode)
-  local type = ast.type
-  if typenode then
-    context:traverse(typenode)
-    type = typenode.holding_type
-  end
-  local symbol = Variable(name, ast, type)
-  context.scope.symbols[name] = symbol
-  if type then
-    ast.type = type
-  else
-    symbol:add_ast_reference(ast)
-  end
+  local type = typenode and context:traverse(typenode) or ast.type
+  local symbol = context.scope:add_symbol(Variable(name, ast, type))
+  symbol:link_ast_type(ast)
   return symbol
 end
 
@@ -82,7 +62,7 @@ function visitors.Call(context, ast)
   --TODO: check types on other nodes too
   if caller.tag == 'Id' then
     local funcname = caller:arg(1)
-    local symbol = context.scope.symbols[funcname]
+    local symbol = context.scope:get_symbol(funcname)
     if symbol and symbol.type then
       --TODO: check multiple returns
       caller:assertraisef(symbol.type.name == 'function',
@@ -147,17 +127,10 @@ function visitors.ForNum(context, ast)
   end
   repeat_scope_until_resolution(context, 'loop', function()
     context:traverse(itvar)
-    local itsymbol = Variable(itvarname, itvar, itvar.type)
-    context.scope.symbols[itvarname] = itsymbol
-    if not itvar.type then
-      itsymbol:add_ast_reference(itvar)
-    end
-    if not itvar.type and beginval.type then
-      itsymbol:add_possible_type(beginval.type)
-    end
-    if not itvar.type and endval.type then
-      itsymbol:add_possible_type(endval.type)
-    end
+    local itsymbol = context.scope:add_symbol(Variable(itvarname, itvar, itvar.type))
+    itsymbol:link_ast_type(itvar)
+    itsymbol:add_possible_type(beginval.type)
+    itsymbol:add_possible_type(endval.type)
     if itvar.type and beginval.type then
       ast:assertraisef(itvar.type:is_conversible(beginval.type),
         "`for` variable '%s' of type '%s' is not conversible with begin value of type '%s'",
@@ -182,9 +155,8 @@ function visitors.VarDecl(context, ast)
     assert(symbol.type == var.type, 'impossible')
     if val then
       context:traverse(val)
-      if not var.type and val.type then
-        symbol:add_possible_type(val.type)
-      elseif var.type and val.type and var.type ~= types.boolean then
+      symbol:add_possible_type(val.type)
+      if var.type and val.type and var.type ~= types.boolean then
         ast:assertraisef(var.type:is_conversible(val.type),
           "variable '%s' of type '%s' is not conversible with value of type '%s'",
           symbol.name, tostring(var.type), tostring(val.type))
@@ -197,20 +169,12 @@ function visitors.Assign(context, ast)
   local vars, vals = ast:args()
   for _,var,val in iters.izip(vars, vals) do
     local varsymbol = context:traverse(var)
-    if varsymbol then
-      if varsymbol.type then
-        var.type = varsymbol.type
-      else
-        varsymbol:add_ast_reference(var)
-      end
-    end
     if val then
       context:traverse(val)
-      if not var.type and val.type then
-        if varsymbol then
-          varsymbol:add_possible_type(val.type)
-        end
-      elseif var.type and val.type then
+      if varsymbol then
+        varsymbol:add_possible_type(val.type)
+      end
+      if var.type and val.type then
         ast:assertraisef(var.type:is_conversible(val.type),
           "variable assignment of type '%s' is not conversible with value of type '%s'",
           tostring(var.type), tostring(val.type))
@@ -241,8 +205,7 @@ function visitors.FuncDef(context, ast)
 
     if varnode.tag == 'Id' then
       local name = varnode:arg(1)
-      local symbol = Variable(name, ast, type)
-      context.scope.parent.symbols[name] = symbol
+      context.scope.parent:add_symbol(Variable(name, ast, type))
     --TODO: check definition on other nodes
     end
 
