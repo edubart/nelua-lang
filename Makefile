@@ -107,4 +107,4 @@ docs-serve:
 cache-clean:
 	rm -rf euluna_cache
 
-clean: cache-clean coverage-clean docs-clean
+clean: cache-clean coverage-clean
