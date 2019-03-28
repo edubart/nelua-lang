@@ -44,20 +44,20 @@ it("local variable", function()
   assert_analyze_ast("local a: int",
     AST('Block', {
       AST('VarDecl', 'local', 'var', {
-        TAST('int', 'IdDecl', 'a', TAST('type', 'Type', 'int'))})
+        TAST('int', 'IdDecl', 'a', 'var', TAST('type', 'Type', 'int'))})
   }))
 
   assert_analyze_ast("local a: int = 1",
     AST('Block', {
       AST('VarDecl', 'local', 'var',
-        { TAST('int', 'IdDecl', 'a', TAST('type', 'Type', 'int')) },
+        { TAST('int', 'IdDecl', 'a', 'var', TAST('type', 'Type', 'int')) },
         { TAST('int', 'Number', 'int', '1') }),
   }))
 
   assert_analyze_ast("local a = 1 f(a)",
     AST('Block', {
       AST('VarDecl', 'local', 'var',
-        { TAST('int', 'IdDecl', 'a') },
+        { TAST('int', 'IdDecl', 'a', 'var') },
         { TAST('int', 'Number', 'int', '1') }),
       AST('Call', {},
         { TAST('int', 'Id', "a") },
@@ -108,40 +108,89 @@ it("operation with parenthesis", function()
 end)
 
 it("recursive late deduction", function()
-  assert_c_gencode_equals("local a, b, c; a = 1; b = 2; c = a + b",
-                        "local a:int, b:int, c:int; a = 1; b = 2; c = a + b")
+  assert_c_gencode_equals([[
+    local a, b, c
+    a = 1
+    b = 2
+    c = a + b
+  ]],[[
+    local a:int, b:int, c:int
+    a = 1
+    b = 2
+    c = a + b
+  ]])
 end)
 
 it("function definition", function()
-  assert_analyze_ast("local f; function f() end")
-  assert_analyze_ast("local function f(a: int) end; function f(a: int) end")
-  assert_analyze_error("local f: int; function f(a: int) return 0 end", "is not conversible with")
-  assert_analyze_error("local function f(a: int) end; function f(a: int, b:int) end", "is not conversible with")
-  assert_analyze_error("local function f(a: int) end; function f(a: string) end", "is not conversible with")
-  assert_analyze_error("local function f(): int, string end; function f(): int end", "is not conversible with")
+  assert_analyze_ast([[
+    local f
+    function f() end
+  ]])
+  assert_analyze_ast([[
+    local function f(a: int) end
+    function f(a: int) end
+  ]])
+  assert_analyze_ast([[
+    local f: function<(int): string>
+    function f(a: int): string end
+  ]])
+  assert_analyze_error([[
+    local f: int
+    function f(a: int) return 0 end
+  ]], "is not conversible with")
+  assert_analyze_error([[
+    local function f(a: int) end
+    function f(a: int, b:int) end
+  ]], "is not conversible with")
+  assert_analyze_error([[
+    local function f(a: int) end
+    function f(a: string) end
+  ]], "is not conversible with")
+  assert_analyze_error([[
+    local function f(): int, string end
+    function f(): int end
+  ]], "is not conversible with")
+  assert_analyze_error([[
+    local f: function<():int, string>
+    function f(): int end
+  ]], "is not conversible with")
 end)
 
 it("function return", function()
-  assert_c_gencode_equals("local function f() return 0 end",
-                        "local function f(): int return 0 end")
+  assert_c_gencode_equals(
+    "local function f() return 0 end",
+    "local function f(): int return 0 end"
+  )
   assert_c_gencode_equals([[
-local function f()
-  local a, b, c
-  a = 1; b = 2; c = a + b
-  return c
-end]],[[
-local function f(): int
-  local a: int, b: int, c: int
-  a = 1; b = 2; c = a + b
-  return c
-end]])
-  assert_analyze_error("local function f(): string return 0 end", "is not conversible with")
+    local function f()
+      local a, b, c
+      a = 1; b = 2; c = a + b
+      return c
+    end
+    ]],[[
+    local function f(): int
+      local a: int, b: int, c: int
+      a = 1; b = 2; c = a + b
+      return c
+    end
+  ]])
+  assert_analyze_error([[
+    local function f(): string return 0 end
+  ]], "is not conversible with")
 end)
 
 it("function call", function()
-  assert_c_gencode_equals("local function f() return 0 end; local a = f()",
-                        "local function f(): int return 0 end; local a: int = f()")
-  assert_analyze_error("local a: int = 1; a()", "attempt to call a non callable variable")
+  assert_c_gencode_equals([[
+    local function f() return 0 end
+    local a = f()
+  ]],[[
+    local function f(): int return 0 end
+    local a: int = f()
+  ]])
+  assert_analyze_error([[
+    local a: int = 1
+    a()
+  ]], "attempt to call a non callable variable")
 end)
 
 it("strict mode", function()

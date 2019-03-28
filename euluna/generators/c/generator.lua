@@ -75,8 +75,11 @@ function visitors.Type(context, ast, coder)
   coder:add(ctype)
 end
 
+visitors.FuncType = visitors.Type
+
 function visitors.IdDecl(context, ast, coder)
-  local name = ast:args()
+  local name, mut = ast:args()
+  ast:assertraisef(mut == nil or mut == 'var', "variable mutabilities are not supported yet")
   if ast.type then
     local ctype = context:get_ctype(ast)
     coder:add(ctype, ' ', name)
@@ -120,12 +123,6 @@ function visitors.CallMethod(_, ast, coder)
   if block_call then coder:add_indent() end
   coder:add(caller, '.', name, '(', caller, args, ')')
   if block_call then coder:add_ln() end
-end
-
-function visitors.FuncArg(_, ast, coder)
-  local name, mut, type = ast:args()
-  ast:assertraisef(mut == nil or mut == 'var', "variable mutabilities are not supported yet")
-  coder:add(type, ' ', name)
 end
 
 -- block

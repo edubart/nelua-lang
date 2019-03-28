@@ -44,20 +44,20 @@ aster:register('Paren', types.shape {
 aster:register('Type', types.shape {
   types.string, -- type
 })
+aster:register('FuncType', types.shape {
+  types.array_of(types.ast.Type), -- arguments types
+  types.array_of(types.ast.Type), -- returns types
+})
 aster:register('IdDecl', types.shape {
   types.string, -- name
-  types.ast.Type:is_optional(), -- type
-})
-aster:register('FuncArg', types.shape {
-  types.string, -- name
-  types.one_of{"var", "var&", "var&&", "let", "let&"}:is_optional(), -- mutability
-  types.ast.Type:is_optional() -- type
+  types.one_of{"var", "var&", "var&&", "val"}:is_optional(), -- mutability
+  types.ast.Node:is_optional(), -- type
 })
 
 -- function
 aster:register('Function', types.shape {
-  types.array_of(types.ast.FuncArg + types.ast.Varargs), -- typed arguments
-  types.array_of(types.ast.Type), -- typed returns
+  types.array_of(types.ast.IdDecl + types.ast.Varargs), -- typed arguments
+  types.array_of(types.ast.Node), -- typed returns
   types.ast.Node -- block
 })
 
@@ -77,14 +77,14 @@ aster:register('ArrayIndex', types.shape {
 
 -- calls
 aster:register('Call', types.shape {
-  types.array_of(types.ast.Type), -- call types
+  types.array_of(types.ast.Node), -- call types
   types.array_of(types.ast.Node), -- args exprs
   types.ast.Node, -- caller expr
   types.boolean:is_optional(), -- is called from a block
 })
 aster:register('CallMethod', types.shape {
   types.string, -- method name
-  types.array_of(types.ast.Type), -- call types
+  types.array_of(types.ast.Node), -- call types
   types.array_of(types.ast.Node), -- args exprs
   types.ast.Node, -- caller expr
   types.boolean:is_optional(), -- is called from a block
@@ -147,8 +147,8 @@ aster:register('Assign', types.shape {
 aster:register('FuncDef', types.shape {
   types.one_of{"local"}:is_optional(), -- scope
   types.ast.Id + types.ast.DotIndex + types.ast.ColonIndex, -- name
-  types.array_of(types.ast.FuncArg + types.ast.Varargs), -- typed arguments
-  types.array_of(types.ast.Type), -- typed returns
+  types.array_of(types.ast.IdDecl + types.ast.Varargs), -- typed arguments
+  types.array_of(types.ast.Node), -- typed returns
   types.ast.Block -- block
 })
 
@@ -342,7 +342,7 @@ parser:set_token_pegs([[
 
 -- used by types
 %TVAR         <- 'var'
-%TLET         <- 'let'
+%TVAL         <- 'val'
 %TCONST       <- 'const'
 ]])
 
@@ -456,7 +456,7 @@ grammar:set_pegs([[
   expr5  <- ({} ''->'BinaryOp'  {| expr6  (op_xor      expr6 )* |})    -> to_chain_binary_op
   expr6  <- ({} ''->'BinaryOp'  {| expr7  (op_band     expr7 )* |})    -> to_chain_binary_op
   expr7  <- ({} ''->'BinaryOp'  {| expr8  (op_bshift   expr8 )* |})    -> to_chain_binary_op
-  expr8  <- ({} ''->'BinaryOp'    expr9  (op_concat   expr8 )?   )     -> to_binary_op
+  expr8  <- ({} ''->'BinaryOp'     expr9  (op_concat   expr8 )?   )    -> to_binary_op
   expr9  <- ({} ''->'BinaryOp'  {| expr10 (op_add      expr10)* |})    -> to_chain_binary_op
   expr10 <- ({} ''->'BinaryOp'  {| expr11 (op_mul      expr11)* |})    -> to_chain_binary_op
   expr11 <- ({} ''->'UnaryOp'   {| op_unary* |} expr12)                -> to_chain_unary_op
@@ -504,24 +504,24 @@ grammar:set_pegs([[
   function <- ({} %FUNCTION -> 'Function' function_body) -> to_astnode
   function_body <-
     eLPAREN (
-      {| (func_args (%COMMA %cVARARGS)? / %cVARARGS)? |}
+      {| (typed_idlist (%COMMA %cVARARGS)? / %cVARARGS)? |}
     ) eRPAREN
     {| (%COLON etypexpr_list)? |}
       block
     eEND
-  func_args <- func_arg (%COMMA func_arg)*
-  func_arg <- ({} '' -> 'FuncArg' %cNAME
-    (%COLON (func_var_mutability (typexpr / cnil) / cnil etypexpr))?) -> to_astnode
-  func_var_mutability <-
+  var_mutability <-
     %TVAR %BAND %BAND -> 'var&&' /
     %TVAR %BAND -> 'var&' /
+    %TVAL %BAND -> 'val&' /
     %TVAR -> 'var' /
-    %TLET %BAND -> 'let&' /
-    %TLET -> 'let'
+    %TVAL -> 'val'
   typed_idlist <- typed_id (%COMMA typed_id)*
-  typed_id <- ({} '' -> 'IdDecl' %cNAME (%COLON etypexpr)?) -> to_astnode
+  typed_id <- ({} '' -> 'IdDecl'
+      %cNAME
+      (var_mutability / '' -> 'var')
+      (%COLON etypexpr)?
+    ) -> to_astnode
 
-  typexpr <- ({} '' -> 'Type' %cNAME) -> to_astnode
   typexpr_list <- typexpr (%COMMA typexpr)*
   etypexpr_list <- etypexpr (%COMMA typexpr)*
 
@@ -532,6 +532,22 @@ grammar:set_pegs([[
 
   cnil <- '' -> to_nil
   ctrue <- '' -> to_true
+
+  typexpr <-
+      func_type
+    / simple_type
+
+  func_type <- (
+    {} '' -> 'FuncType'
+      %FUNCTION %LANGLE
+      %LPAREN ({|
+        (typexpr_list (%COMMA %cVARARGS)? / %cVARARGS)?
+      |}) eRPAREN
+      {| (%COLON etypexpr_list)? |}
+      eRANGLE
+    ) -> to_astnode
+
+  simple_type   <- ({} '' -> 'Type' %cNAME) -> to_astnode
 ]])
 
 -- operators

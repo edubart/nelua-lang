@@ -26,7 +26,7 @@ hljs.registerLanguage("euluna", function(e) {
         "struct enum " +
         "template concept " +
         "literal " +
-        "var let const"
+        "var val const"
       ,
       built_in:
         //Metatags and globals:

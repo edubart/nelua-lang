@@ -45,9 +45,9 @@ local a = 2 -- variable of type integer, type automatically deduced
 local b: integer -- variable of type integer, initialized to zero by default
 local c: integer = 1 -- variable of type integer, initialized
 local d: var integer = 1 -- var variable
-local e: var& = a -- var reference to variable a
-local f: val = a -- val reference to variable a
-local f: val& = a -- var reference to variable a
+local e: var& = a -- mutable reference to variable a
+local f: val = a -- immutable variable a
+local f: val& = a -- mutable reference to variable a
 local g = nil -- variable of type any
 local h: any -- variable of type any
 local i: any = 2 -- variable of type any holding an integer 2
@@ -89,15 +89,15 @@ function foo(a: var integer,
              d: val integer,
              e: val& integer)
   print(a,b,c,d,e)
-  -- `a` and `b` are a read only variables and assignment on it is not allowed
-  c = 2
-  d = 3
-  e = 4
+  -- `d` and `e` are a read only variables and assignment on it is not allowed
+  a = 2
+  b = 3
+  c = 4
 end
 
 local a, b, c, d, e = 0, 0, 0, 0, 0
 foo(a ,b, c, d, e)
-print(a, b, c, d, e) -- outputs 0 0 2 3 4
+print(a, b, c, d, e) -- outputs 2 3 4 0 0
 ```
 
 By default function parameters are `var` unless changed.

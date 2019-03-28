@@ -16,7 +16,7 @@ aster:register('Continue', types.shape {})
 
 aster:register('VarDecl', types.shape {
   types.one_of{"local"}:is_optional(), -- scope
-  types.one_of{"var", "var&", "let", "let&", "const"}, -- mutability
+  types.one_of{"var", "var&", "val", "val&"}, -- mutability
   types.array_of(types.ast.IdDecl), -- var names with types
   types.array_of(types.ast.Node):is_optional(), -- expr list, initial assignments values
 })
@@ -28,7 +28,7 @@ local parser = euluna_std_luacompat.parser:clone()
 parser:set_aster(aster)
 parser:add_keywords({
   -- euluna additional keywords
-  "switch", "case", "continue", "var", "let", "const"
+  "switch", "case", "continue", "var", "val"
 })
 
 --------------------------------------------------------------------------------
@@ -44,13 +44,6 @@ grammar:add_group_peg('stat', 'vardecl', [[
     {| typed_idlist |}
     (%ASSIGN {| eexpr_list |})?
   ) -> to_astnode
-
-  var_mutability <-
-    %TVAR %BAND -> 'var&' /
-    %TVAR -> 'var' /
-    %TLET %BAND -> 'let&' /
-    %TLET -> 'let' /
-    %TCONST -> 'const'
 ]], nil, true)
 
 grammar:add_group_peg('stat', 'switch', [[

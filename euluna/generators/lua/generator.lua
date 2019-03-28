@@ -85,11 +85,8 @@ function visitors.Paren(_, ast, coder)
   coder:add('(', what, ')')
 end
 function visitors.Type() end
+function visitors.FuncType() end
 function visitors.IdDecl(_, ast, coder)
-  local name, type = ast:args()
-  coder:add(name)
-end
-function visitors.FuncArg(_, ast, coder)
   local name, mut, type = ast:args()
   ast:assertraisef(mut == nil or mut == 'var', "variable mutabilities are not supported in lua")
   coder:add(name)

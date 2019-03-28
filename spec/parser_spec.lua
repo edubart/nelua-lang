@@ -186,7 +186,7 @@ describe("expression", function()
         AST('Return', {
           AST('Function', {}, {}, AST('Block', {})),
           AST('Function',
-            { AST('FuncArg', 'a'), AST('FuncArg', 'b', nil, AST('Type', 'B')) },
+            { AST('IdDecl', 'a', 'var'), AST('IdDecl', 'b', 'var', AST('Type', 'B')) },
             { AST('Type', 'C'), AST('Type', 'D') },
             AST('Block', {})
           )
@@ -448,7 +448,7 @@ describe("statement for", function()
     assert.parse_ast(euluna_parser, "for i=1,10 do end",
       AST('Block', {
         AST('ForNum',
-          AST('IdDecl', 'i'),
+          AST('IdDecl', 'i', 'var'),
           AST('Number', 'int', '1'),
           'le',
           AST('Number', 'int', '10'),
@@ -460,7 +460,7 @@ describe("statement for", function()
     assert.parse_ast(euluna_parser, "for i:number=10,>0,-1 do end",
       AST('Block', {
         AST('ForNum',
-          AST('IdDecl', 'i', AST('Type', 'number')),
+          AST('IdDecl', 'i', 'var', AST('Type', 'number')),
           AST('Number', 'int', '10'),
           'gt',
           AST('Number', 'int', '0'),
@@ -472,7 +472,7 @@ describe("statement for", function()
     assert.parse_ast(euluna_parser, "for i in a,b,c do end",
       AST('Block', {
         AST('ForIn',
-          { AST('IdDecl', 'i') },
+          { AST('IdDecl', 'i', 'var') },
           { AST('Id', 'a'), AST('Id', 'b'), AST('Id', 'c') },
           AST('Block', {}))
     }))
@@ -481,9 +481,9 @@ describe("statement for", function()
     assert.parse_ast(euluna_parser, "for i:int8,j:int16,k:int32 in iter() do end",
       AST('Block', {
         AST('ForIn',
-          { AST('IdDecl', 'i', AST('Type', 'int8')),
-            AST('IdDecl', 'j', AST('Type', 'int16')),
-            AST('IdDecl', 'k', AST('Type', 'int32'))
+          { AST('IdDecl', 'i', 'var', AST('Type', 'int8')),
+            AST('IdDecl', 'j', 'var', AST('Type', 'int16')),
+            AST('IdDecl', 'k', 'var', AST('Type', 'int32'))
           },
           { AST('Call', {}, {}, AST('Id', 'iter')) },
           AST('Block', {}))
@@ -527,8 +527,8 @@ describe("statement variable declaration", function()
       local a: integer
     ]],
       AST('Block', {
-        AST('VarDecl', 'local', 'var', { AST('IdDecl', 'a') }),
-        AST('VarDecl', 'local', 'var', { AST('IdDecl', 'a', AST('Type', 'integer')) })
+        AST('VarDecl', 'local', 'var', { AST('IdDecl', 'a', 'var') }),
+        AST('VarDecl', 'local', 'var', { AST('IdDecl', 'a', 'var', AST('Type', 'integer')) })
     }))
   end)
   it("local variable assignment", function()
@@ -537,39 +537,37 @@ describe("statement variable declaration", function()
       local a: integer = b
     ]],
       AST('Block', {
-        AST('VarDecl', 'local', 'var', { AST('IdDecl', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', 'local', 'var', { AST('IdDecl', 'a', 'var') }, { AST('Id', 'b') }),
         AST('VarDecl', 'local', 'var',
-          { AST('IdDecl', 'a', AST('Type', 'integer')) },
+          { AST('IdDecl', 'a', 'var', AST('Type', 'integer')) },
           { AST('Id', 'b') })
     }))
   end)
   it("non local variable", function()
     assert.parse_ast(euluna_parser, "var a",
       AST('Block', {
-        AST('VarDecl', nil, 'var', { AST('IdDecl', 'a') })
+        AST('VarDecl', nil, 'var', { AST('IdDecl', 'a', 'var') })
     }))
   end)
   it("variable mutabilities", function()
     assert.parse_ast(euluna_parser, [[
       var a = b
-      let a = b
-      let& a = b
+      val a = b
+      val& a = b
       local var& a = b
-      const a = b
     ]],
       AST('Block', {
-        AST('VarDecl', nil, 'var', { AST('IdDecl', 'a') }, { AST('Id', 'b') }),
-        AST('VarDecl', nil, 'let', { AST('IdDecl', 'a') }, { AST('Id', 'b') }),
-        AST('VarDecl', nil, 'let&', { AST('IdDecl', 'a') }, { AST('Id', 'b') }),
-        AST('VarDecl', 'local', 'var&', { AST('IdDecl', 'a') }, { AST('Id', 'b') }),
-        AST('VarDecl', nil, 'const', { AST('IdDecl', 'a') }, { AST('Id', 'b') }),
+        AST('VarDecl', nil, 'var', { AST('IdDecl', 'a', 'var') }, { AST('Id', 'b') }),
+        AST('VarDecl', nil, 'val', { AST('IdDecl', 'a', 'var') }, { AST('Id', 'b') }),
+        AST('VarDecl', nil, 'val&', { AST('IdDecl', 'a', 'var') }, { AST('Id', 'b') }),
+        AST('VarDecl', 'local', 'var&', { AST('IdDecl', 'a', 'var') }, { AST('Id', 'b') }),
     }))
   end)
   it("variable multiple assigments", function()
     assert.parse_ast(euluna_parser, "local a,b,c = x,y,z",
       AST('Block', {
         AST('VarDecl', 'local', 'var',
-          { AST('IdDecl', 'a'), AST('IdDecl', 'b'), AST('IdDecl', 'c') },
+          { AST('IdDecl', 'a', 'var'), AST('IdDecl', 'b', 'var'), AST('IdDecl', 'c', 'var') },
           { AST('Id', 'x'), AST('Id', 'y'), AST('Id', 'z') }),
     }))
   end)
@@ -641,7 +639,7 @@ describe("statement function", function()
     assert.parse_ast(euluna_parser, "local function f(a, b: int): string end",
       AST('Block', {
         AST('FuncDef', 'local', AST('Id', 'f'),
-          { AST('FuncArg', 'a'), AST('FuncArg', 'b', nil, AST('Type', 'int')) },
+          { AST('IdDecl', 'a', 'var'), AST('IdDecl', 'b', 'var', AST('Type', 'int')) },
           { AST('Type', 'string') },
           AST('Block', {}) )
     }))
@@ -885,6 +883,32 @@ and `..´ (concatenation), which are right associative.
 ]]
 describe("operators following precedence rules for", function()
   --TODO
+end)
+
+
+--------------------------------------------------------------------------------
+-- type expressions
+--------------------------------------------------------------------------------
+describe("type expression", function()
+  it("function", function()
+    assert.parse_ast(euluna_parser, "local f: function<()>",
+      AST('Block', {
+        AST('VarDecl', 'local', 'var',
+          { AST('IdDecl', 'f', 'var', AST('FuncType', {}, {})) }
+    )}))
+    assert.parse_ast(euluna_parser, "local f: function<(int): string>",
+      AST('Block', {
+        AST('VarDecl', 'local', 'var',
+          { AST('IdDecl', 'f', 'var', AST('FuncType', {AST('Type', 'int')}, {AST('Type', 'string')})) }
+    )}))
+    assert.parse_ast(euluna_parser, "local f: function<(int, uint): string, bool>",
+      AST('Block', {
+        AST('VarDecl', 'local', 'var',
+          { AST('IdDecl', 'f', 'var', AST('FuncType',
+            {AST('Type', 'int'), AST('Type', 'uint')},
+            {AST('Type', 'string'), AST('Type', 'bool')})) }
+    )}))
+  end)
 end)
 
 --------------------------------------------------------------------------------

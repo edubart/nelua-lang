@@ -4,6 +4,7 @@ local typedefs = require 'euluna.analyzers.types.definitions'
 local typer = require 'euluna.typer'
 local TraverseContext = require 'euluna.traversecontext'
 local Variable = require 'euluna.variable'
+local FunctionType = require 'euluna.functiontype'
 
 local types = typedefs.primitive_types
 local visitors = {}
@@ -49,11 +50,16 @@ function visitors.Type(_, ast)
   return type
 end
 
-local function visit_id_decl(context, ast, name, typenode)
-  local type = typenode and context:traverse(typenode) or ast.type
-  local symbol = context.scope:add_symbol(Variable(name, ast, type))
-  symbol:link_ast_type(ast)
-  return symbol
+function visitors.FuncType(context, ast)
+  local argtypes, returntypes = ast:args()
+  context:default_visitor(argtypes)
+  context:default_visitor(returntypes)
+  local type = FunctionType(ast,
+    tabler.imap(argtypes, function(n) return n.holding_type end),
+    tabler.imap(returntypes, function(n) return n.holding_type end))
+  ast.holding_type = type
+  ast.type = type.type
+  return type
 end
 
 function visitors.Call(context, ast)
@@ -69,13 +75,11 @@ function visitors.Call(context, ast)
 end
 
 function visitors.IdDecl(context, ast)
-  local name, typenode = ast:args()
-  return visit_id_decl(context, ast, name, typenode)
-end
-
-function visitors.FuncArg(context, ast)
   local name, mut, typenode = ast:args()
-  return visit_id_decl(context, ast, name, typenode)
+  local type = typenode and context:traverse(typenode) or ast.type
+  local symbol = context.scope:add_symbol(Variable(name, ast, type))
+  symbol:link_ast_type(ast)
+  return symbol
 end
 
 local function repeat_scope_until_resolution(context, scope_kind, after_push)
@@ -206,7 +210,7 @@ function visitors.FuncDef(context, ast)
     context:traverse(blocknode)
   end)
 
-  local argtypes = tabler.imap(argnodes, function(n) return {id=n:arg(1), type=n.type} end)
+  local argtypes = tabler.imap(argnodes, function(n) return n.type end)
   local returntypes = funcscope:resolve_return_types()
 
   -- populate function return types

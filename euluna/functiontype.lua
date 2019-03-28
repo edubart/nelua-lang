@@ -22,14 +22,7 @@ function FunctionType:__tostring()
     if i > 1 then
       table.insert(s, ', ')
     end
-    local typestr = tostring(arg.type)
-    if arg.id then
-      table.insert(s, string.format('%s: %s', arg.id, typestr))
-    else
-      --luacov:disable
-      table.insert(s, typestr)
-      --luacov:enable
-    end
+    table.insert(s, tostring(arg.type))
   end
   table.insert(s, ')')
   for i,rtype in ipairs(self.return_types) do
