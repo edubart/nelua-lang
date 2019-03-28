@@ -2,6 +2,7 @@ local class = require 'euluna.utils.class'
 local metamagic = require 'euluna.utils.metamagic'
 local typer = require 'euluna.typer'
 local tabler = require 'euluna.utils.tabler'
+local config = require 'euluna.configer'.get()
 
 local Scope = class()
 
@@ -35,12 +36,20 @@ function Scope:get_parent_of_kind(kind)
   return parent
 end
 
-function Scope:get_symbol(name)
-  return self.symbols[name]
+function Scope:get_symbol(name, ast)
+  local symbol = self.symbols[name]
+  if not symbol and config.strict then
+    ast:raisef("undeclarated symbol '%s'", name)
+  end
+  return symbol
 end
 
 function Scope:add_symbol(symbol)
-  self.symbols[symbol.name] = symbol
+  local name = symbol.name
+  if self.symbols[name] and config.strict then
+    symbol.ast:raisef("symbol '%s' shadows pre declarated symbol with the same name", name)
+  end
+  self.symbols[name] = symbol
   return symbol
 end
 

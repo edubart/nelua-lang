@@ -1,4 +1,5 @@
 local class = require 'euluna.utils.class'
+local tabler = require 'euluna.utils.tabler'
 local Type = require 'euluna.type'
 
 local FunctionType = class(Type)
@@ -9,7 +10,12 @@ function FunctionType:_init(ast, arg_types, return_types)
   Type._init(self, 'function', ast)
 end
 
---[[
+function FunctionType:is_equal(type)
+  return type.name == 'function' and
+         tabler.deepcompare(type.arg_types, self.arg_types) and
+         tabler.deepcompare(type.return_types, self.return_types)
+end
+
 function FunctionType:__tostring()
   local s = {'function<('}
   for i,arg in ipairs(self.arg_types) do
@@ -20,7 +26,9 @@ function FunctionType:__tostring()
     if arg.id then
       table.insert(s, string.format('%s: %s', arg.id, typestr))
     else
+      --luacov:disable
       table.insert(s, typestr)
+      --luacov:enable
     end
   end
   table.insert(s, ')')
@@ -35,6 +43,5 @@ function FunctionType:__tostring()
   table.insert(s, '>')
   return table.concat(s)
 end
-]]
 
 return FunctionType

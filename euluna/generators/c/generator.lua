@@ -300,7 +300,7 @@ function visitors.Assign(_, ast, coder)
 end
 
 function visitors.FuncDef(context, ast)
-  local varscope, name, args, rets, block = ast:args()
+  local varscope, varnode, args, rets, block = ast:args()
   ast:assertraisef(#rets <= 1, 'multiple returns not supported yet')
   ast:assertraisef(varscope == 'local', 'non local scope for functions not supported yet')
   local coder = context.declarations_coder
@@ -311,7 +311,7 @@ function visitors.FuncDef(context, ast)
     ast:assertraisef(ret.tag == 'Type')
     coder:add_indent(ret, ' ')
   end
-  coder:add_ln(name, '(', args, ') {')
+  coder:add_ln(varnode, '(', args, ') {')
   coder:add(block)
   coder:add_indent_ln('}')
 end

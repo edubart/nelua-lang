@@ -29,7 +29,7 @@ end
 
 function visitors.Id(context, ast)
   local name = ast:arg(1)
-  local symbol = context.scope:get_symbol(name) or context.scope:add_symbol(Variable(name, ast))
+  local symbol = context.scope:get_symbol(name, ast) or context.scope:add_symbol(Variable(name, ast))
   symbol:link_ast_type(ast)
   return symbol
 end
@@ -57,18 +57,14 @@ local function visit_id_decl(context, ast, name, typenode)
 end
 
 function visitors.Call(context, ast)
-  context:default_visitor(ast)
-  local _, args, caller = ast:args()
-  --TODO: check types on other nodes too
-  if caller.tag == 'Id' then
-    local funcname = caller:arg(1)
-    local symbol = context.scope:get_symbol(funcname)
-    if symbol and symbol.type then
-      caller:assertraisef(symbol.type.name == 'function',
-        "attempt to call a non callable variable of type '%s'", symbol.type.name)
-      ast.type = symbol.type.return_types[1]
-      ast.types = symbol.type.return_types
-    end
+  local argtypes, args, caller, block_call = ast:args()
+  context:default_visitor(args)
+  local symbol = context:traverse(caller)
+  if symbol and symbol.type then
+    caller:assertraisef(symbol.type.name == 'function',
+      "attempt to call a non callable variable of type '%s'", symbol.type.name)
+    ast.type = symbol.type.return_types[1]
+    ast.types = symbol.type.return_types
   end
 end
 
@@ -82,18 +78,17 @@ function visitors.FuncArg(context, ast)
   return visit_id_decl(context, ast, name, typenode)
 end
 
-local function repeat_scope_until_resolution(context, scope_kind, after_push, before_pop)
+local function repeat_scope_until_resolution(context, scope_kind, after_push)
   local resolutions_count = 0
+  local scope
   repeat
     local last_resolutions_count = resolutions_count
-    context:push_scope(scope_kind)
+    scope = context:push_scope(scope_kind)
     after_push()
     resolutions_count = context.scope:resolve_symbols_types()
-    if before_pop then
-      before_pop()
-    end
     context:pop_scope()
   until resolutions_count == last_resolutions_count
+  return scope
 end
 
 function visitors.Block(context, ast)
@@ -128,9 +123,6 @@ function visitors.ForNum(context, ast)
   repeat_scope_until_resolution(context, 'loop', function()
     context:traverse(itvar)
     local itsymbol = context.scope:add_symbol(Variable(itvarname, itvar, itvar.type))
-    itsymbol:link_ast_type(itvar)
-    itsymbol:add_possible_type(beginval.type)
-    itsymbol:add_possible_type(endval.type)
     if itvar.type then
       if beginval.type then
         ast:assertraisef(itvar.type:is_conversible(beginval.type),
@@ -151,6 +143,7 @@ function visitors.ForNum(context, ast)
       itsymbol:add_possible_type(beginval.type)
       itsymbol:add_possible_type(endval.type)
     end
+    itsymbol:link_ast_type(itvar)
     context:traverse(block)
     context.scope:resolve_symbols_types()
   end)
@@ -195,44 +188,71 @@ end
 function visitors.Return(context, ast)
   context:default_visitor(ast)
   local rets = ast:args()
-  local func_scope = context.scope:get_parent_of_kind('function')
-  assert(func_scope, 'impossible')
+  local funcscope = context.scope:get_parent_of_kind('function')
+  assert(funcscope, 'impossible')
   for i,ret in ipairs(rets) do
-    func_scope:add_return_type(i, ret.type)
+    funcscope:add_return_type(i, ret.type)
   end
 end
 
 function visitors.FuncDef(context, ast)
-  repeat_scope_until_resolution(context, 'function', function()
-    context:default_visitor(ast)
-  end, function()
-    local varscope, varnode, argnodes, retnodes, blocknode = ast:args()
-    local returntypes = context.scope:resolve_return_types()
-    local argtypes = tabler.imap(argnodes, function(n) return {id=n:arg(1), type=n.type} end)
-    local type = typedefs.dynamic_types.Function(ast, argtypes, returntypes)
-    ast.type = type
+  local varscope, varnode, argnodes, retnodes, blocknode = ast:args()
+  local symbol = context:traverse(varnode)
 
-    if varnode.tag == 'Id' then
-      local name = varnode:arg(1)
-      context.scope.parent:add_symbol(Variable(name, ast, type))
-    --TODO: check definition on other nodes
+  -- try to resolver function return types
+  local funcscope = repeat_scope_until_resolution(context, 'function', function()
+    context:default_visitor(argnodes)
+    context:default_visitor(retnodes)
+    context:traverse(blocknode)
+  end)
+
+  local argtypes = tabler.imap(argnodes, function(n) return {id=n:arg(1), type=n.type} end)
+  local returntypes = funcscope:resolve_return_types()
+
+  -- populate function return types
+  for i,retnode in ipairs(retnodes) do
+    local rtype = returntypes[i]
+    if rtype then
+      ast:assertraisef(retnode.holding_type:is_conversible(rtype),
+        "return variable at index %d of type '%s' is not conversible with value of type '%s'",
+        i, tostring(retnode.holding_type), tostring(rtype))
+    else
+      returntypes[i] = retnode.holding_type
     end
+  end
 
-    -- check return types
-    for i,rtype in pairs(returntypes) do
-      local retnode = retnodes[i]
-      if not retnode then
-        retnode = context.aster:create('Type', tostring(rtype))
-        retnode.type = types.type
-        retnode.holding_type = rtype
-        retnodes[i] = retnode
+  -- populate return type nodes
+  for i,rtype in pairs(returntypes) do
+    local retnode = retnodes[i]
+    if not retnode then
+      retnode = context.aster:create('Type', tostring(rtype))
+      retnode.type = types.type
+      retnode.holding_type = rtype
+      retnodes[i] = retnode
+    end
+  end
+
+  -- build function type
+  local type = typedefs.dynamic_types.Function(ast, argtypes, returntypes)
+
+  if symbol then
+    if varscope == 'local' then
+      -- new function declaration
+      symbol.type = type
+    else
+      -- check if previous symbol declaration is compatible
+      if symbol.type then
+        ast:assertraisef(symbol.type:is_conversible(type),
+          "in function defition, symbol of type '%s' is not conversible with function type '%s'",
+          tostring(symbol.type), tostring(type))
       else
-        ast:assertraisef(retnode.holding_type:is_conversible(rtype),
-          "return variable at index %d of type '%s' is not conversible with value of type '%s'",
-          i, tostring(retnode.holding_type), tostring(rtype))
+        symbol:add_possible_type(type)
       end
     end
-  end)
+    symbol:link_ast_type(ast)
+  else
+    ast.type = type
+  end
 end
 
 function visitors.UnaryOp(context, ast)

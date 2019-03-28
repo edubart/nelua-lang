@@ -45,6 +45,14 @@ function Type:is_conversible(type)
   return self.conversible_types[type]
 end
 
+function Type:is_equal(type)
+  return rawequal(self, type)
+end
+
+function Type:__eq(type)
+  return self:is_equal(type) and type:is_equal(self)
+end
+
 Type.type = Type('type')
 
 return Type

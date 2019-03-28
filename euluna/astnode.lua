@@ -59,6 +59,7 @@ function ASTNode:assertraisef(cond, message, ...)
   end
   return cond
 end
+
  --luacov:enable
 
 -------------------
