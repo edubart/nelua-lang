@@ -38,6 +38,11 @@ local function run(argv)
   local type_analyzer = require 'euluna.analyzers.types.analyzer'
   ast = type_analyzer.analyze(ast, parser.aster)
 
+  if config.print_analyzed_ast then
+    print(tostring(ast))
+    return 0
+  end
+
   if config.analyze then return 0 end
 
   -- generate the code

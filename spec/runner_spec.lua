@@ -44,6 +44,21 @@ it("print correct generated AST" , function()
     )
   }
 )]])
+  assert.run('--print-analyzed-ast examples/helloworld.euluna', [[AST('Block',
+  { AST('Call',
+      {},
+      { TAST('string', 'String',
+          "hello world",
+          nil
+        )
+      },
+      AST('Id',
+        "print"
+      ),
+      true
+    )
+  }
+)]])
 end)
 
 it("print correct generated code", function()

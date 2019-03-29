@@ -41,15 +41,14 @@ function visitors.String(context, ast, coder)
   local varname = '__string_literal_' .. ast.pos
 
   local quoted_value = pegger.double_quote_c_string(value)
-  context:add_include('<stdint.h>')
+  context:add_builtin('euluna_string_t')
   deccoder:add_indent_ln('static const struct { uintptr_t len, res; char data[', len + 1, ']; }')
   deccoder:add_indent_ln('  ', varname, ' = {', len, ', ', len, ', ', quoted_value, '};')
   coder:add(varname)
 end
 
-function visitors.Boolean(context, ast, coder)
+function visitors.Boolean(_, ast, coder)
   local value = ast:args()
-  context:add_include('<stdbool.h>')
   coder:add(tostring(value))
 end
 
@@ -268,31 +267,62 @@ function visitors.Goto(_, ast, coder)
   coder:add_indent_ln('goto ', labelname, ';')
 end
 
-function visitors.VarDecl(_, ast, coder)
+local function is_any_type(type)
+  return not type or type == types.any
+end
+
+local function add_any_value(context, coder, value)
+  context:add_builtin('euluna_any_t')
+  if value then
+    if is_any_type(value.type) then
+      coder:add(value)
+    else
+      coder:add('(euluna_any_t){&euluna_type_',
+                value.type:codegen_name(), ', ', value, '}')
+    end
+  else
+    coder:add('(euluna_any_t){&euluna_type_nil, 0}')
+  end
+end
+
+local function add_cast_any_value(context, coder, type, value)
+  context:add_builtin('euluna_cast_any')
+  assert(value and is_any_type(value.type), 'impossible')
+  assert(not is_any_type(type), 'impossible')
+  coder:add('euluna_cast_any_', type:codegen_name(), '(', value, ')')
+end
+
+local function add_assignments(context, coder, vars, vals)
+  for i,var,val in iters.izip(vars, vals or {}) do
+    if i > 1 then coder:add(' ') end
+    coder:add(var, ' = ')
+    if is_any_type(var.type) then
+      add_any_value(context, coder, val)
+    elseif val and is_any_type(val.type) then
+      add_cast_any_value(context, coder, var.type, val)
+    elseif val then
+      coder:add(val)
+    else
+      coder:add('{0}')
+    end
+    coder:add(';')
+  end
+end
+
+function visitors.VarDecl(context, ast, coder)
   local varscope, mutability, vars, vals = ast:args()
   ast:assertraisef(varscope == 'local', 'global variables not supported yet')
   ast:assertraisef(not vals or #vars == #vals, 'vars and vals count differs')
   coder:add_indent()
-  for i,var,val in iters.izip(vars, vals or {}) do
-    if i > 1 then coder:add(' ') end
-    coder:add(var)
-    if val then
-      coder:add(' = ', val)
-    end
-    coder:add(';')
-  end
+  add_assignments(context, coder, vars, vals)
   coder:add_ln()
 end
 
-function visitors.Assign(_, ast, coder)
+function visitors.Assign(context, ast, coder)
   local vars, vals = ast:args()
   ast:assertraisef(#vars == #vals, 'vars and vals count differs')
   coder:add_indent()
-  for i,var,val in iters.izip(vars, vals) do
-    if i > 1 then coder:add(' ') end
-    --TODO: check if val is nil
-    coder:add(var, ' = ', val, ';')
-  end
+  add_assignments(context, coder, vars, vals)
   coder:add_ln()
 end
 
@@ -364,6 +394,9 @@ function generator.generate(ast)
   context.declarations_coder = Coder(context, indent, 0)
   context.definitions_coder = Coder(context, indent, 0)
   context.main_coder = Coder(context, indent)
+
+  context:add_include('<stdbool.h>')
+  context:add_include('<stdint.h>')
 
   context.main_coder:add_traversal(ast)
 

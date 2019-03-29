@@ -10,10 +10,18 @@ function Type:_init(name, ast)
   self.unary_operators = {}
   self.binary_operators = {}
   self.conversible_types = {}
+  self.integral = false
+  self.real = false
 end
 
 function Type:__tostring()
   return self.name
+end
+
+function Type:codegen_name()
+  local name = tostring(self)
+  --TODO: replace non alphanumeric characters
+  return name
 end
 
 function Type:add_conversible_types(types)
@@ -39,11 +47,24 @@ function Type:get_binary_operator_type(opname)
 end
 
 function Type:is_conversible(type)
-  if self == type then
+  if self == type or self.name == 'any' or type.name == 'any' then
     return true
   end
   return self.conversible_types[type]
 end
+
+function Type:is_number()
+  return self.integral or self.real
+end
+
+function Type:is_any() return self.name == 'any' end
+function Type:is_string() return self.name == 'string' end
+
+--[[
+function Type:is_boolean() return self.name == 'boolean' end
+function Type:is_integral() return self.integral end
+function Type:is_pointer() return self.name == 'pointer' end
+]]
 
 function Type:is_equal(type)
   return rawequal(self, type)

@@ -16,6 +16,10 @@ local function assert_generate_c(euluna_code, c_code)
     generated_code, c_code)
 end
 
+local function assert_run_c(euluna_code, output)
+  assert.run({'--generator', 'c', '--eval', euluna_code}, output)
+end
+
 describe("Euluna should parse and generate C", function()
 
 it("empty file", function()
@@ -113,7 +117,7 @@ it("goto", function()
   assert_generate_c("::mylabel::\ngoto mylabel", "mylabel:\n    goto mylabel;")
 end)
 it("variable declaration", function()
-  assert_generate_c("local a: integer", "int64_t a;")
+  assert_generate_c("local a: integer", "int64_t a = {0};")
   assert_generate_c("local a: integer = 0", "int64_t a = 0;")
 end)
 it("assignment", function()
@@ -164,25 +168,50 @@ it("binary conditional operators", function()
 end)
 
 it("c types", function()
-  assert_generate_c("local a: integer", "int64_t a;")
-  assert_generate_c("local a: number", "double a;")
-  assert_generate_c("local a: byte", "uint8_t a;")
-  assert_generate_c("local a: char", "char a;")
-  assert_generate_c("local a: float64", "double a;")
-  assert_generate_c("local a: float32", "float a;")
-  assert_generate_c("local a: pointer", "void* a;")
-  assert_generate_c("local a: int64", "int64_t a;")
-  assert_generate_c("local a: int32", "int32_t a;")
-  assert_generate_c("local a: int16", "int16_t a;")
-  assert_generate_c("local a: int8", "int8_t a;")
-  assert_generate_c("local a: int", "intptr_t a;")
-  assert_generate_c("local a: uint64", "uint64_t a;")
-  assert_generate_c("local a: uint32", "uint32_t a;")
-  assert_generate_c("local a: uint16", "uint16_t a;")
-  assert_generate_c("local a: uint8", "uint8_t a;")
-  assert_generate_c("local a: uint", "uintptr_t a;")
-  assert_generate_c("local a: boolean", "bool a;")
-  assert_generate_c("local a: bool", "bool a;")
+  assert_generate_c("local a: integer", "int64_t a = {0};")
+  assert_generate_c("local a: number", "double a = {0};")
+  assert_generate_c("local a: byte", "uint8_t a = {0};")
+  assert_generate_c("local a: char", "char a = {0};")
+  assert_generate_c("local a: float64", "double a = {0};")
+  assert_generate_c("local a: float32", "float a = {0};")
+  assert_generate_c("local a: pointer", "void* a = {0};")
+  assert_generate_c("local a: int64", "int64_t a = {0};")
+  assert_generate_c("local a: int32", "int32_t a = {0};")
+  assert_generate_c("local a: int16", "int16_t a = {0};")
+  assert_generate_c("local a: int8", "int8_t a = {0};")
+  assert_generate_c("local a: int", "intptr_t a = {0};")
+  assert_generate_c("local a: uint64", "uint64_t a = {0};")
+  assert_generate_c("local a: uint32", "uint32_t a = {0};")
+  assert_generate_c("local a: uint16", "uint16_t a = {0};")
+  assert_generate_c("local a: uint8", "uint8_t a = {0};")
+  assert_generate_c("local a: uint", "uintptr_t a = {0};")
+  assert_generate_c("local a: boolean", "bool a = {0};")
+  assert_generate_c("local a: bool", "bool a = {0};")
+end)
+
+it("any type", function()
+  assert_generate_c(
+    "local a: any",
+    "euluna_any_t a = (euluna_any_t){&euluna_type_nil, 0};")
+  assert_generate_c(
+    "local a: any; local b: any = a",
+    "euluna_any_t b = a;")
+  assert_generate_c(
+    "local a: any = 1",
+    "euluna_any_t a = (euluna_any_t){&euluna_type_int, 1};")
+  assert_generate_c(
+    "local a: any = 1; local b: int = a",
+    "intptr_t b = euluna_cast_any_int(a);")
+  assert_run_c([[
+local a: any = 1
+local b: int = a
+print(a, b)
+]], "1\t1")
+  assert_run_c([[
+local a: any = 1
+a = true
+print(a)
+]], "true")
 end)
 
 it("print", function()

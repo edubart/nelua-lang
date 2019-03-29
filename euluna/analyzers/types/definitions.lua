@@ -26,15 +26,28 @@ local types = {
 }
 typedefs.primitive_types = types
 
-typedefs.dynamic_types = {
-  Function = require 'euluna.functiontype'
-}
-
 -- type aliases
 types.integer = types.int64
 types.number  = types.float64
 types.byte    = types.uint8
 types.bool    = types.boolean
+
+typedefs.dynamic_types = {
+  Function = require 'euluna.functiontype'
+}
+
+-- integral types
+local integral_types = {
+  types.int, types.int8, types.int16, types.int32, types.int64,
+  types.uint, types.uint8, types.uint16, types.uint32, types.uint64,
+}
+for itype in iters.ivalues(integral_types) do
+  itype.integral = true
+end
+
+-- real types
+types.float32.real = true
+types.float64.real = true
 
 -- literal types
 typedefs.number_literal_types = {
