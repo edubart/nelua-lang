@@ -45,14 +45,14 @@ it("print correct generated AST" , function()
   }
 )]])
   assert.run('--print-analyzed-ast examples/helloworld.euluna', [[AST('Block',
-  { AST('Call',
+  { TAST('any', 'Call',
       {},
       { TAST('string', 'String',
           "hello world",
           nil
         )
       },
-      AST('Id',
+      TAST('any', 'Id',
         "print"
       ),
       true

@@ -44,24 +44,24 @@ it("local variable", function()
   assert_analyze_ast("local a: int",
     AST('Block', {
       AST('VarDecl', 'local', 'var', {
-        TAST('int', 'IdDecl', 'a', 'var', TAST('type', 'Type', 'int'))})
+        TAST('int', 'IdDecl', 'a', 'var', TAST('int', 'Type', 'int'))})
   }))
 
   assert_analyze_ast("local a: int = 1",
     AST('Block', {
       AST('VarDecl', 'local', 'var',
-        { TAST('int', 'IdDecl', 'a', 'var', TAST('type', 'Type', 'int')) },
+        { TAST('int', 'IdDecl', 'a', 'var', TAST('int', 'Type', 'int')) },
         { TAST('int', 'Number', 'int', '1') }),
   }))
 
-  assert_analyze_ast("local a = 1 f(a)",
+  assert_analyze_ast("local a = 1; f(a)",
     AST('Block', {
       AST('VarDecl', 'local', 'var',
         { TAST('int', 'IdDecl', 'a', 'var') },
         { TAST('int', 'Number', 'int', '1') }),
-      AST('Call', {},
+      TAST('any', 'Call', {},
         { TAST('int', 'Id', "a") },
-        AST('Id', "f"),
+        TAST('any', 'Id', "f"),
         true
       )
   }))

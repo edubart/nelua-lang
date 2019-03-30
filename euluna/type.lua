@@ -35,6 +35,7 @@ function Type:add_unary_operator_type(opname, type)
 end
 
 function Type:get_unary_operator_type(opname)
+  if self:is_any() then return self end
   return self.unary_operators[opname]
 end
 
@@ -43,11 +44,12 @@ function Type:add_binary_operator_type(opname, type)
 end
 
 function Type:get_binary_operator_type(opname)
+  if self:is_any() then return self end
   return self.binary_operators[opname]
 end
 
 function Type:is_conversible(type)
-  if self == type or self.name == 'any' or type.name == 'any' then
+  if self == type or self:is_any() or type:is_any() then
     return true
   end
   return self.conversible_types[type]
@@ -60,6 +62,7 @@ end
 function Type:is_any() return self.name == 'any' end
 function Type:is_string() return self.name == 'string' end
 function Type:is_boolean() return self.name == 'boolean' end
+function Type:is_function() return self.name == 'function' end
 
 --[[
 function Type:is_integral() return self.integral end

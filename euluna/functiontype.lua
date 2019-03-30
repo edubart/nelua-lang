@@ -18,11 +18,11 @@ end
 
 function FunctionType:__tostring()
   local s = {'function<('}
-  for i,arg in ipairs(self.arg_types) do
+  for i,atype in ipairs(self.arg_types) do
     if i > 1 then
       table.insert(s, ', ')
     end
-    table.insert(s, tostring(arg.type))
+    table.insert(s, tostring(atype))
   end
   table.insert(s, ')')
   for i,rtype in ipairs(self.return_types) do

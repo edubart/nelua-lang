@@ -9,6 +9,11 @@ local FunctionType = require 'euluna.functiontype'
 local types = typedefs.primitive_types
 local visitors = {}
 
+local phases = {
+  type_inference = 1,
+  any_inference = 2
+}
+
 function visitors.Number(_, ast)
   local numtype, value, literal = ast:args()
   if literal then
@@ -30,7 +35,11 @@ end
 
 function visitors.Id(context, ast)
   local name = ast:arg(1)
-  local symbol = context.scope:get_symbol(name, ast) or context.scope:add_symbol(Variable(name, ast))
+  local type = ast.type
+  if not type and context.phase == phases.any_inference then
+    type = types.any
+  end
+  local symbol = context.scope:get_symbol(name, ast) or context.scope:add_symbol(Variable(name, ast, type))
   symbol:link_ast_type(ast)
   return symbol
 end
@@ -45,8 +54,7 @@ function visitors.Type(_, ast)
   local tyname = ast:arg(1)
   local type = types[tyname]
   ast:assertf(type, 'invalid type "%s"', tyname)
-  ast.holding_type = type
-  ast.type = type.type
+  ast.type = type
   return type
 end
 
@@ -55,11 +63,28 @@ function visitors.FuncType(context, ast)
   context:default_visitor(argtypes)
   context:default_visitor(returntypes)
   local type = FunctionType(ast,
-    tabler.imap(argtypes, function(n) return n.holding_type end),
-    tabler.imap(returntypes, function(n) return n.holding_type end))
-  ast.holding_type = type
-  ast.type = type.type
+    tabler.imap(argtypes, function(n) return n.type end),
+    tabler.imap(returntypes, function(n) return n.type end))
+  ast.type = type
   return type
+end
+
+function visitors.DotIndex(context, ast)
+  context:default_visitor(ast)
+  --TODO: detect better types
+  ast.type = types.any
+end
+
+function visitors.ColonIndex(context, ast)
+  context:default_visitor(ast)
+  --TODO: detect better types
+  ast.type = types.any
+end
+
+function visitors.ArrayIndex(context, ast)
+  context:default_visitor(ast)
+  --TODO: detect better types
+  ast.type = types.any
 end
 
 function visitors.Call(context, ast)
@@ -67,16 +92,23 @@ function visitors.Call(context, ast)
   context:default_visitor(args)
   local symbol = context:traverse(caller)
   if symbol and symbol.type then
-    caller:assertraisef(symbol.type.name == 'function',
+    caller:assertraisef(symbol.type:is_function() or symbol.type:is_any(),
       "attempt to call a non callable variable of type '%s'", symbol.type.name)
-    ast.type = symbol.type.return_types[1]
-    ast.types = symbol.type.return_types
+    if symbol.type:is_function() then
+      ast.type = symbol.type.return_types[1]
+      ast.types = symbol.type.return_types
+    else
+      ast.type = types.any
+    end
   end
 end
 
 function visitors.IdDecl(context, ast)
   local name, mut, typenode = ast:args()
   local type = typenode and context:traverse(typenode) or ast.type
+  if not type and context.phase == phases.any_inference then
+    type = types.any
+  end
   local symbol = context.scope:add_symbol(Variable(name, ast, type))
   symbol:link_ast_type(ast)
   return symbol
@@ -210,18 +242,18 @@ function visitors.FuncDef(context, ast)
     context:traverse(blocknode)
   end)
 
-  local argtypes = tabler.imap(argnodes, function(n) return n.type end)
+  local argtypes = tabler.imap(argnodes, function(n) return n.type or types.any end)
   local returntypes = funcscope:resolve_return_types()
 
   -- populate function return types
   for i,retnode in ipairs(retnodes) do
     local rtype = returntypes[i]
     if rtype then
-      ast:assertraisef(retnode.holding_type:is_conversible(rtype),
+      ast:assertraisef(retnode.type:is_conversible(rtype),
         "return variable at index %d of type '%s' is not conversible with value of type '%s'",
-        i, tostring(retnode.holding_type), tostring(rtype))
+        i, tostring(retnode.type), tostring(rtype))
     else
-      returntypes[i] = retnode.holding_type
+      returntypes[i] = retnode.type
     end
   end
 
@@ -230,8 +262,7 @@ function visitors.FuncDef(context, ast)
     local retnode = retnodes[i]
     if not retnode then
       retnode = context.aster:create('Type', tostring(rtype))
-      retnode.type = types.type
-      retnode.holding_type = rtype
+      retnode.type = rtype
       retnodes[i] = retnode
     end
   end
@@ -266,16 +297,14 @@ function visitors.UnaryOp(context, ast)
     context:traverse(arg)
   else
     context:traverse(arg)
-    local type
     if arg.type then
-      type = arg.type:get_unary_operator_type(opname)
+      local type = arg.type:get_unary_operator_type(opname)
       ast:assertraisef(type,
         "unary operation `%s` is not defined for type '%s' of the expression",
         opname, tostring(arg.type))
-    end
-    if type then
       ast.type = type
     end
+    assert(context.phase ~= phases.any_inference or ast.type, 'impossible')
   end
 end
 
@@ -299,18 +328,15 @@ function visitors.BinaryOp(context, ast)
 
   if skip then return end
 
+  local type
   if typedefs.binary_conditional_ops[opname] then
-    local type
     if left_arg.type == right_arg.type then
       type = left_arg.type
     else
       type = typer.find_common_type_between(typedefs.number_types, left_arg.type, right_arg.type)
     end
-    if type then
-      ast.type = type
-    end
   else
-    local type, ltype, rtype
+    local ltype, rtype
     if left_arg.type then
       ltype = left_arg.type:get_binary_operator_type(opname)
       ast:assertraisef(ltype,
@@ -335,19 +361,30 @@ function visitors.BinaryOp(context, ast)
     else
       type = ltype or rtype
     end
-    if type then
-      ast.type = type
-    end
   end
+  if type then
+    ast.type = type
+  end
+  assert(context.phase ~= phases.any_inference or ast.type, 'impossible')
 end
 
 local analyzer = {}
 function analyzer.analyze(ast, aster)
   local context = TraverseContext(visitors, true)
   context.aster = aster
+
+  -- phase 1 traverse: infer and check types
+  context.phase = phases.type_inference
   repeat_scope_until_resolution(context, 'function', function()
     context:traverse(ast)
   end)
+
+  -- phase 2 traverse: infer non set types to 'any' type
+  context.phase = phases.any_inference
+  repeat_scope_until_resolution(context, 'function', function()
+    context:traverse(ast)
+  end)
+
   return ast
 end
 

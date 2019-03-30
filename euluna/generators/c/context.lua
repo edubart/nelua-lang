@@ -17,12 +17,7 @@ function CContext:add_include(name)
 end
 
 function CContext.get_ctype(_, ast)
-  local type
-  if ast.tag == 'Type' then
-    type = ast.holding_type
-  else
-    type = ast.type
-  end
+  local type = ast.type
   ast:assertraisef(type, 'unknown type for AST node while trying to get the C type')
   local ctype = cdefs.primitive_ctypes[type]
   ast:assertraisef(ctype, 'ctype for "%s" is unknown', tostring(type))

@@ -6,7 +6,6 @@ local cbuiltins = require 'euluna.generators.c.builtins'
 local CContext = require 'euluna.generators.c.context'
 local typedefs = require 'euluna.analyzers.types.definitions'
 
-local types = typedefs.primitive_types
 local visitors = {}
 
 function visitors.Number(context, ast, coder)
@@ -78,12 +77,8 @@ visitors.FuncType = visitors.Type
 function visitors.IdDecl(context, ast, coder)
   local name, mut = ast:args()
   ast:assertraisef(mut == nil or mut == 'var', "variable mutabilities are not supported yet")
-  if ast.type then
-    local ctype = context:get_ctype(ast)
-    coder:add(ctype, ' ', name)
-  else
-    coder:add(name)
-  end
+  local ctype = context:get_ctype(ast)
+  coder:add(ctype, ' ', name)
 end
 
 -- indexing
@@ -266,13 +261,9 @@ function visitors.Goto(_, ast, coder)
   coder:add_indent_ln('goto ', labelname, ';')
 end
 
-local function is_any_type(type)
-  return not type or type == types.any
-end
-
 local function add_any_value(coder, value)
   if value then
-    if is_any_type(value.type) then
+    if value.type:is_any() then
       coder:add(value)
     else
       coder:add('(euluna_any_t){&euluna_type_',
@@ -284,8 +275,8 @@ local function add_any_value(coder, value)
 end
 
 local function add_cast_any_value(coder, type, value)
-  assert(value and is_any_type(value.type), 'impossible')
-  assert(not is_any_type(type), 'impossible')
+  assert(value and value.type:is_any(), 'impossible')
+  assert(not type:is_any(), 'impossible')
   coder:add('euluna_cast_any_', type:codegen_name(), '(', value, ')')
 end
 
@@ -293,9 +284,9 @@ local function add_assignments(coder, vars, vals)
   for i,var,val in iters.izip(vars, vals or {}) do
     if i > 1 then coder:add(' ') end
     coder:add(var, ' = ')
-    if is_any_type(var.type) then
+    if var.type:is_any() then
       add_any_value(coder, val)
-    elseif val and is_any_type(val.type) then
+    elseif val and val.type:is_any() then
       add_cast_any_value(coder, var.type, val)
     elseif val then
       coder:add(val)
@@ -365,7 +356,7 @@ function visitors.BinaryOp(context, ast, coder)
   local surround = is_in_operator(context)
   if surround then coder:add('(') end
 
-  if typedefs.binary_conditional_ops[opname] and ast.type ~= types.boolean then
+  if typedefs.binary_conditional_ops[opname] and not ast.type:is_boolean() then
     --TODO: create a temporary function in case of expressions and evaluate in order
     if opname == 'and' then
       --TODO: usa nilable values here
