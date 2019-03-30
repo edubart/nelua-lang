@@ -2,6 +2,7 @@ local argparse = require 'argparse'
 local tabler = require 'euluna.utils.tabler'
 local metamagic = require 'euluna.utils.metamagic'
 local except = require 'euluna.utils.except'
+local fs = require 'euluna.utils.fs'
 
 local configer = {}
 local config = {}
@@ -40,10 +41,26 @@ local function create_parser(argv)
   return argparser
 end
 
+local function get_runtime_path(arg0)
+  local path
+  if arg0 then --luacov:disable
+    path = fs.getpathdir(arg0)
+    -- luarocks install, use the bin/../conf/runtime dir
+    if fs.getbasename(path) == 'bin' then
+      path = fs.join(fs.getpathdir(path), 'conf')
+    end
+  else --luacov:enable
+    path = fs.getpathdir(fs.getpathdir(fs.abspath(debug.getinfo(1).short_src)))
+  end
+  path = fs.join(path, 'runtime')
+  return path
+end
+
 function configer.parse(args)
   local argparser = create_parser(tabler.copy(args))
   local ok, options = argparser:pparse(args)
   except.assertraise(ok, options)
+  config.runtime_path = get_runtime_path(args[0])
   metamagic.setmetaindex(config, options, true)
   return config
 end

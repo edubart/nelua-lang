@@ -59,9 +59,9 @@ end
 
 function Type:is_any() return self.name == 'any' end
 function Type:is_string() return self.name == 'string' end
+function Type:is_boolean() return self.name == 'boolean' end
 
 --[[
-function Type:is_boolean() return self.name == 'boolean' end
 function Type:is_integral() return self.integral end
 function Type:is_pointer() return self.name == 'pointer' end
 ]]

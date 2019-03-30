@@ -41,7 +41,6 @@ function visitors.String(context, ast, coder)
   local varname = '__string_literal_' .. ast.pos
 
   local quoted_value = pegger.double_quote_c_string(value)
-  context:add_builtin('euluna_string_t')
   deccoder:add_indent_ln('static const struct { uintptr_t len, res; char data[', len + 1, ']; }')
   deccoder:add_indent_ln('  ', varname, ' = {', len, ', ', len, ', ', quoted_value, '};')
   coder:add(varname)
@@ -107,7 +106,7 @@ function visitors.Call(context, ast, coder)
   local builtin
   if caller.tag == 'Id' then
     local fname = caller[1]
-    builtin = cbuiltins.functions[fname]
+    builtin = cbuiltins[fname]
   end
   if builtin then
     builtin(context, ast, coder)
@@ -271,8 +270,7 @@ local function is_any_type(type)
   return not type or type == types.any
 end
 
-local function add_any_value(context, coder, value)
-  context:add_builtin('euluna_any_t')
+local function add_any_value(coder, value)
   if value then
     if is_any_type(value.type) then
       coder:add(value)
@@ -285,21 +283,20 @@ local function add_any_value(context, coder, value)
   end
 end
 
-local function add_cast_any_value(context, coder, type, value)
-  context:add_builtin('euluna_cast_any')
+local function add_cast_any_value(coder, type, value)
   assert(value and is_any_type(value.type), 'impossible')
   assert(not is_any_type(type), 'impossible')
   coder:add('euluna_cast_any_', type:codegen_name(), '(', value, ')')
 end
 
-local function add_assignments(context, coder, vars, vals)
+local function add_assignments(coder, vars, vals)
   for i,var,val in iters.izip(vars, vals or {}) do
     if i > 1 then coder:add(' ') end
     coder:add(var, ' = ')
     if is_any_type(var.type) then
-      add_any_value(context, coder, val)
+      add_any_value(coder, val)
     elseif val and is_any_type(val.type) then
-      add_cast_any_value(context, coder, var.type, val)
+      add_cast_any_value(coder, var.type, val)
     elseif val then
       coder:add(val)
     else
@@ -309,20 +306,20 @@ local function add_assignments(context, coder, vars, vals)
   end
 end
 
-function visitors.VarDecl(context, ast, coder)
+function visitors.VarDecl(_, ast, coder)
   local varscope, mutability, vars, vals = ast:args()
   ast:assertraisef(varscope == 'local', 'global variables not supported yet')
   ast:assertraisef(not vals or #vars == #vals, 'vars and vals count differs')
   coder:add_indent()
-  add_assignments(context, coder, vars, vals)
+  add_assignments(coder, vars, vals)
   coder:add_ln()
 end
 
-function visitors.Assign(context, ast, coder)
+function visitors.Assign(_, ast, coder)
   local vars, vals = ast:args()
   ast:assertraisef(#vars == #vals, 'vars and vals count differs')
   coder:add_indent()
-  add_assignments(context, coder, vars, vals)
+  add_assignments(coder, vars, vals)
   coder:add_ln()
 end
 
@@ -395,8 +392,7 @@ function generator.generate(ast)
   context.definitions_coder = Coder(context, indent, 0)
   context.main_coder = Coder(context, indent)
 
-  context:add_include('<stdbool.h>')
-  context:add_include('<stdint.h>')
+  context:add_include('<euluna_core.h>')
 
   context.main_coder:add_traversal(ast)
 

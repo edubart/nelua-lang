@@ -5,6 +5,13 @@ local except = require 'euluna.utils.except'
 
 local fs = {}
 
+fs.join = plpath.join
+fs.tryreadfile = plfile.read
+fs.abspath = plpath.abspath
+fs.getbasename = plpath.basename
+fs.getpathdir = plpath.dirname
+fs.getfiletime = plfile.modified_time
+
 function fs.ensurefilepath(file)
   local outdir = plpath.dirname(file)
   local ok, err = pldir.makepath(outdir)
@@ -19,14 +26,6 @@ end
 function fs.readfile(file)
   local content, err = plfile.read(file)
   return except.assertraisef(content, 'failed to read file "%s": %s', file, err)
-end
-
-function fs.tryreadfile(file)
-  return plfile.read(file)
-end
-
-function fs.getfiletime(file)
-  return plfile.modified_time(file)
 end
 
 function fs.getcachepath(infile, cachedir)

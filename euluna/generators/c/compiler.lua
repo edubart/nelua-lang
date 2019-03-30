@@ -8,13 +8,27 @@ local config = require 'euluna.configer'.get()
 
 local compiler = {}
 
+local function get_runtime_cfile()
+  return fs.join(config.runtime_path, 'c', 'euluna_core.c')
+end
+local function get_runtime_hfile()
+  return fs.join(config.runtime_path, 'c', 'euluna_core.h')
+end
+local function get_runtime_include_path()
+  return fs.join(config.runtime_path, 'c')
+end
+
 local function get_compile_command(infile, outfile)
   local env = { infile = infile, outfile = outfile }
   env.cc = os.getenv('CC')
   env.cflags = os.getenv('CFLAGS')
   env.ldflags = os.getenv('LDFLAGS')
   metamagic.setmetaindex(env, config)
-  return pegger.substitute("$(cc) $(cflags) -o $(outfile) $(ldflags) $(infile)", env)
+  env.runtime_cflags = string.format('-I "%s"', get_runtime_include_path())
+  env.runtime_file = get_runtime_cfile()
+  return pegger.substitute(
+    '$(cc) $(runtime_cflags) $(cflags) $(ldflags) -o "$(outfile)" "$(infile)" "$(runtime_file)"',
+    env)
 end
 
 local last_ccinfos = {}
@@ -31,7 +45,9 @@ end
 local function hash_compilation(ccode)
   local dummycmd = get_compile_command('dummy.c', 'dummy')
   local ccinfo = get_cc_info()
-  return stringer.sha1(string.format("%s%s%s", ccode, ccinfo, dummycmd))
+  local runtime_hcode = fs.readfile(get_runtime_hfile())
+  local runtime_ccode = fs.readfile(get_runtime_cfile())
+  return stringer.sha1(string.format("%s%s%s%s%s", runtime_hcode, runtime_ccode, ccode, ccinfo, dummycmd))
 end
 
 function compiler.compile_code(ccode, outfile)

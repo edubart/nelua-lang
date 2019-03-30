@@ -5,10 +5,6 @@ local typedefs = {}
 
 -- primitive types
 local types = {
-  char      = Type('char'),
-  float64   = Type('float64'),
-  float32   = Type('float32'),
-  pointer   = Type('pointer'),
   int       = Type('int'),
   int8      = Type('int8'),
   int16     = Type('int16'),
@@ -19,8 +15,12 @@ local types = {
   uint16    = Type('uint16'),
   uint32    = Type('uint32'),
   uint64    = Type('uint64'),
+  float32   = Type('float32'),
+  float64   = Type('float64'),
   boolean   = Type('boolean'),
   string    = Type('string'),
+  char      = Type('char'),
+  pointer   = Type('pointer'),
   any       = Type('any'),
   type      = Type.type, -- the type of "type"
 }
@@ -142,10 +142,10 @@ end
 
 -- binary operator types
 local comparable_types = {
-  types.char, types.string,
   types.float32, types.float64,
   types.int, types.int8, types.int16, types.int32, types.int64,
   types.uint, types.uint8, types.uint16, types.uint32,
+  types.char, types.string,
   result_type = types.boolean
 }
 local binary_op_types = {

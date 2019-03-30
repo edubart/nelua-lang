@@ -78,6 +78,10 @@ build = {
   install = {
     bin = {
       ['euluna'] = 'euluna.lua'
+    },
+    conf = {
+      ['runtime/c/euluna_core.c'] = 'runtime/c/euluna_core.c',
+      ['runtime/c/euluna_core.h'] = 'runtime/c/euluna_core.h'
     }
   }
 }

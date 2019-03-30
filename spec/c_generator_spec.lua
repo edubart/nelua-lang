@@ -20,6 +20,10 @@ local function assert_run_c(euluna_code, output)
   assert.run({'--generator', 'c', '--eval', euluna_code}, output)
 end
 
+local function assert_run_error_c(euluna_code, output)
+  assert.run_error({'--generator', 'c', '--eval', euluna_code}, output)
+end
+
 describe("Euluna should parse and generate C", function()
 
 it("empty file", function()
@@ -203,15 +207,20 @@ it("any type", function()
     "local a: any = 1; local b: int = a",
     "intptr_t b = euluna_cast_any_int(a);")
   assert_run_c([[
-local a: any = 1
-local b: int = a
-print(a, b)
-]], "1\t1")
+    local a: any = 1
+    local b: int = a
+    print(a, b)
+  ]], "1\t1")
   assert_run_c([[
-local a: any = 1
-a = true
-print(a)
-]], "true")
+    local a: any = 1
+    a = true
+    print(a)
+  ]], "true")
+  assert_run_error_c([[
+    local a: any = 1
+    local b: bool = a
+    print(b)
+  ]], "type check fail")
 end)
 
 it("print", function()
