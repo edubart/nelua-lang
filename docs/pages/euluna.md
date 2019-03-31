@@ -8,36 +8,43 @@
 ![Project Status](https://img.shields.io/badge/status-experimental-red.svg)
 
 Euluna is a minimalistic, performant, safe, optionally typed, meta programmable,
-systems programming language with syntax close to Lua language that works
-either dynamically or statically by compiling to Lua or C.
+compiled, systems programming language with syntax and semantics similar to Lua language that can work dynamically or statically depending on the code style and compiles to C (or Lua).
+
+Euluna aims to be a language for performance sensitive applications where Lua would not be efficient (like operational systems, real-time applications, game engines) while maintaining syntax and semantics compatible with Lua and providing a
+a seamless interface to Lua.
+
+When coding with types and using Euluna's additional constructs (structs, static arrays, manual memory management, pointers, etc) the performance is efficient as C.
+
+As Euluna syntax is a super set of Lua syntax it can also be used to have basic type checking and extended features for Lua by generating Lua code.
+
 
 **Warning this language is currently highly experimental and a WIP (work in progress).**
 
 ## Goals
 
 * Be minimalistic with a small syntax, manual and API, but powerful
-* Be performant by compiling to native code
-* Have syntax and features closer and compatible to Lua as much as possible
+* Be performant by compiling to optimized C code then native code
+* Possibility to output freestanding (dependency free) code (for kernel dev or minimal runtime)
+* Have syntax, semantics and features compatible to Lua
 * Optionally statically typed with type checking
 * Compile to both Lua or C
-* Work dynamically or statically depending on the code generator (Lua or C)
+* Work dynamically or statically depending on the coding style (typed or untyped)
 * Generate readable, simple and performant C or Lua code
 * Be a companion to Lua or C
 * Have powerful meta programming capabilities by manipulating the AST
-* Make possible to create clean DSLs by manipulating the language grammar
+* Make possible to create clean DSLs by extending the language grammar
 * Achieve classes, generics and other higher constructs by meta programming
-* Be safe to code
+* Be safer to code
 * Have an optional garbage collector
-* Allow us to go low level (C, assembly)
-* Allow us to go higher level (use Lua or extend the language)
-* Be modular, plugin in or out language syntaxes or features of your choice
+* Allow to go low level (C, assembly)
+* Allow to go higher level (use Lua or extend the language)
+* Be modular, plugin in or out language syntaxes and features of your choice
 * Once stable, make euluna compile itself
-* Possibility to output freestanding code (for kernel dev and minimal runtime)
 
 ## Why?
 
 * We love to script in Lua.
-* We love C/C++ performance.
+* We love C performance.
 * We want best of both worlds in a single language and with similar syntax.
 * We want to reuse or mix existing C/C++/Lua code.
 * We want type safety and optimizations.
@@ -79,6 +86,53 @@ euluna -g c helloworld.euluna
 ```
 
 Both ways it will output  ```Hello world!```
+
+## Roadmap
+
+- [x] Parse complete Lua 5.x syntax and generate its AST
+- [x] Parse optional typed syntax
+- [x] Basic type checking and inference
+
+Lua Generator:
+- [x] Generate Lua code with complete Lua features
+
+C Generator:
+- [x] Generate basic C code and compile
+- [x] Primitives (integer, number, boolean)
+- [x] Control structures
+- [x] Primitives operators
+- [x] Functions
+- [x] Static string
+- [x] Calls
+- [ ] Any
+- [ ] Tables
+- [ ] Multiple returns and arguments
+- [ ] Dynamic string
+- [ ] Closures
+- [ ] Iterators (for in)
+- [ ] Exceptions
+- [ ] Lua standard library API
+- [ ] Metatables
+- [ ] Memory management utilities
+- [ ] Optional garbage collector
+- [ ] Enums
+- [ ] Structs
+- [ ] Static array
+- [ ] Slices
+- [ ] Unions
+- [ ] Pointers
+- [ ] Modules
+- [ ] FFI with C
+- [ ] Seamless interface with Lua
+- [ ] Rvalues
+- [ ] Immutable values
+- [ ] Ownership model for memory management
+- [ ] Coroutines
+
+Metaprogramming:
+- [ ] Preprocessor
+- [ ] Templates
+- [ ] Concepts
 
 ## Learning more
 
