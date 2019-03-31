@@ -8,6 +8,25 @@ local config = require 'euluna.configer'.get()
 
 local compiler = {}
 
+local compiler_base_flags = {
+  cflags = "-pipe -std=c99 -pedantic -Wall -Wextra -fno-strict-aliasing -rdynamic",
+  cflags_release = "-O2",
+  cflags_debug = "-g"
+}
+
+local compilers_flags = {
+  gcc = {
+    cflags_release = "-O2 -flto -Wl,-O1,--sort-common,-z,relro,-z,now"
+  },
+  clang = {
+    cflags_release = "-O2 -Wl,-O1,--sort-common,-z,relro,-z,now"
+  }
+}
+
+for _,compiler_flags in pairs(compilers_flags) do
+  metamagic.setmetaindex(compiler_flags, compiler_base_flags)
+end
+
 local function get_runtime_cfile()
   return fs.join(config.runtime_path, 'c', 'euluna_core.c')
 end
@@ -20,14 +39,15 @@ end
 
 local function get_compile_command(infile, outfile)
   local env = { infile = infile, outfile = outfile }
+  local compiler_flags = compilers_flags[config.cc] or compiler_base_flags
   env.cc = os.getenv('CC')
-  env.cflags = os.getenv('CFLAGS')
-  env.ldflags = os.getenv('LDFLAGS')
   metamagic.setmetaindex(env, config)
-  env.runtime_cflags = string.format('-I "%s"', get_runtime_include_path())
   env.runtime_file = get_runtime_cfile()
+  env.cflags_runtime = string.format('-I "%s"', get_runtime_include_path())
+  env.cflags_base = compiler_flags.cflags
+  env.cflags_build = (config.release and compiler_flags.cflags_release or compiler_flags.cflags_debug)
   return pegger.substitute(
-    '$(cc) $(runtime_cflags) $(cflags) $(ldflags) -o "$(outfile)" "$(infile)" "$(runtime_file)"',
+    '$(cc) $(cflags_runtime) $(cflags_base) $(cflags_build) $(cflags) -o "$(outfile)" "$(infile)" "$(runtime_file)"',
     env)
 end
 

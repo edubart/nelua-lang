@@ -77,6 +77,4 @@ function Type:__eq(type)
   return self:is_equal(type) and type:is_equal(self)
 end
 
-Type.type = Type('type')
-
 return Type

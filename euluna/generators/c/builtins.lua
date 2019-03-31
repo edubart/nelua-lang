@@ -24,7 +24,7 @@ function builtins.print(context, ast)
     if i > 1 then
       defcoder:add_indent_ln('euluna_stdout_write("\\t");')
     end
-    if not arg.type or arg.type:is_any() then
+    if arg.type:is_any() then
       defcoder:add_indent_ln('euluna_stdout_write_any(a',i,');')
     elseif arg.type:is_string() then
       defcoder:add_indent_ln('euluna_stdout_write_string(a',i,');')
@@ -36,7 +36,7 @@ function builtins.print(context, ast)
       ast:assertraisef(tyformat, 'invalid type "%s" for printf format', tyname)
       defcoder:add_indent_ln('euluna_stdout_write_format("',tyformat,'", a',i,');')
     else --luacov:disable
-      ast:errorf('cannot handle AST node "%s" in print', arg.tag)
+      ast:raisef('cannot handle type "%s" in print', tostring(arg.type))
     end --luacov:enable
   end
   defcoder:add_indent_ln('euluna_stdout_write_newline();')

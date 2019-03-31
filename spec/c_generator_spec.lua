@@ -196,13 +196,13 @@ end)
 it("any type", function()
   assert_generate_c(
     "local a: any",
-    "euluna_any_t a = (euluna_any_t){&euluna_type_nil, 0};")
+    "euluna_any_t a = (euluna_any_t){&euluna_type_nil, {0}};")
   assert_generate_c(
     "local a: any; local b: any = a",
     "euluna_any_t b = a;")
   assert_generate_c(
     "local a: any = 1",
-    "euluna_any_t a = (euluna_any_t){&euluna_type_int, 1};")
+    "euluna_any_t a = (euluna_any_t){&euluna_type_int, {1}};")
   assert_generate_c(
     "local a: any = 1; local b: int = a",
     "intptr_t b = euluna_cast_any_int(a);")

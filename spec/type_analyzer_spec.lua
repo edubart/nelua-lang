@@ -74,6 +74,7 @@ end)
 it("loop variables", function()
   assert_c_gencode_equals("for i=1,10 do end", "for i:int=1,10 do end")
   assert_c_gencode_equals("for i=1,10,2 do end", "for i:int=1,10,2 do end")
+  assert_c_gencode_equals("for i=0,1_integer-1 do end", "for i:integer=0,1_integer-1 do end")
   assert_analyze_error("for i:uint8=1.0,10 do end", "is not conversible with")
   assert_analyze_error("for i:uint8=1_u8,10 do end", "is not conversible with")
   assert_analyze_error("for i:uint8=1_u8,10_u8,2 do end", "is not conversible with")
@@ -118,6 +119,20 @@ it("recursive late deduction", function()
     a = 1
     b = 2
     c = a + b
+  ]])
+  assert_c_gencode_equals([[
+    local a = 1_integer
+    local b = a + 1
+  ]],[[
+    local a: integer = 1_integer
+    local b: integer = a + 1
+  ]])
+  assert_c_gencode_equals([[
+    local limit = 1_integer
+    for i=1,limit do end
+  ]],[[
+    local limit = 1_integer
+    for i:integer=1,limit do end
   ]])
 end)
 

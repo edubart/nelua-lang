@@ -1,7 +1,6 @@
 local iters = require 'euluna.utils.iterators'
 local tabler = require 'euluna.utils.tabler'
 local class = require 'euluna.utils.class'
-local typer = require 'euluna.typer'
 
 local Symbol = class()
 
@@ -11,8 +10,12 @@ function Symbol:_init(ast)
   self.possible_types = {}
 end
 
-function Symbol:add_possible_type(type)
-  if self.type or not type then return end
+function Symbol:add_possible_type(type, required)
+  if self.type then return end
+  if not type and required then
+    self.has_unknown_type = true
+    return
+  end
   if tabler.find(self.possible_types, type) then return end
   table.insert(self.possible_types, type)
 end
@@ -30,19 +33,15 @@ function Symbol:link_ast_type(ast)
   end
 end
 
-local function update_ast_references(self)
+function Symbol:update_ast_references()
   for ast in iters.values(self.ast_references) do
     ast.type = self.type
   end
 end
 
-function Symbol:resolve_type()
-  if self.type then
-    return false
-  end
-  self.type = typer.find_common_type(self.possible_types)
-  update_ast_references(self)
-  return true
+function Symbol:set_type(type)
+  self.type = type
+  self:update_ast_references()
 end
 
 return Symbol

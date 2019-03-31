@@ -1,4 +1,5 @@
 local iters = require 'euluna.utils.iterators'
+local tabler = require 'euluna.utils.tabler'
 local Type = require 'euluna.type'
 
 local typedefs = {}
@@ -110,12 +111,12 @@ types.int64:add_conversible_types({
   types.uint, types.uint8, types.uint16, types.uint32
 })
 types.float32:add_conversible_types({
-  types.int, types.int8, types.int16,
-  types.uint, types.uint8, types.uint16
-})
-types.float64:add_conversible_types({
   types.int, types.int8, types.int16, types.int32,
   types.uint, types.uint8, types.uint16, types.uint32,
+})
+types.float64:add_conversible_types({
+  types.int, types.int8, types.int16, types.int32, types.int64,
+  types.uint, types.uint8, types.uint16, types.uint32, types.uint64,
   types.float32,
 })
 
@@ -185,5 +186,19 @@ typedefs.binary_conditional_ops = {
   ['or'] = true,
   ['and'] = true,
 }
+
+function typedefs.find_common_type(possible_types)
+  local len = #possible_types
+  if len == 0 then return nil end
+  if len == 1 then return possible_types[1] end
+
+  if tabler.iall(possible_types, Type.is_number) then
+    for numtype in iters.ivalues(typedefs.number_types) do
+      if tabler.iall(possible_types, function(ty) return numtype:is_conversible(ty) end) then
+        return numtype
+      end
+    end
+  end
+end
 
 return typedefs

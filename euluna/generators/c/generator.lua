@@ -15,10 +15,10 @@ local function add_casted_value(_, coder, type, valnode)
         coder:add(valnode)
       else
         coder:add('(euluna_any_t){&euluna_type_',
-                  valnode.type:codegen_name(), ', ', valnode, '}')
+                  valnode.type:codegen_name(), ', {', valnode, '}}')
       end
     else
-      coder:add('(euluna_any_t){&euluna_type_nil, 0}')
+      coder:add('(euluna_any_t){&euluna_type_nil, {0}}')
     end
   elseif valnode then
     if valnode.type:is_any() then

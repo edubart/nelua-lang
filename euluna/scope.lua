@@ -1,6 +1,6 @@
 local class = require 'euluna.utils.class'
 local metamagic = require 'euluna.utils.metamagic'
-local typer = require 'euluna.typer'
+local typedefs = require 'euluna.analyzers.types.definitions'
 local tabler = require 'euluna.utils.tabler'
 local config = require 'euluna.configer'.get()
 
@@ -53,10 +53,20 @@ function Scope:add_symbol(symbol)
   return symbol
 end
 
+local function resolve_symbol_type(symbol)
+  if symbol.type then
+    return false
+  end
+  if symbol.has_unknown_type then return false end
+  local type = typedefs.find_common_type(symbol.possible_types)
+  symbol:set_type(type)
+  return true
+end
+
 function Scope:resolve_symbols_types()
   local count = 0
   for _,symbol in pairs(self.symbols) do
-    if symbol:resolve_type() then
+    if resolve_symbol_type(symbol) then
       count = count + 1
     end
   end
@@ -77,7 +87,7 @@ end
 function Scope:resolve_return_types()
   local resolved_types = {}
   for i,return_types in pairs(self.returns_types) do
-    resolved_types[i] = typer.find_common_type(return_types)
+    resolved_types[i] = typedefs.find_common_type(return_types)
   end
   return resolved_types
 end

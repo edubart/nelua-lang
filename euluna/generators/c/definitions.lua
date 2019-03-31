@@ -39,6 +39,7 @@ cdefs.primitive_ctypes = {
   [types.char]    = {name = 'char',             },
   [types.pointer] = {name = 'void*',            },
   [types.any]     = {name = 'euluna_any_t',     },
+  [types.void]    = {name = 'void',             },
 }
 
 cdefs.unary_ops = {

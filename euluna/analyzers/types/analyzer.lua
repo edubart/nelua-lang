@@ -1,7 +1,6 @@
 local iters = require 'euluna.utils.iterators'
 local tabler = require 'euluna.utils.tabler'
 local typedefs = require 'euluna.analyzers.types.definitions'
-local typer = require 'euluna.typer'
 local TraverseContext = require 'euluna.traversecontext'
 local Variable = require 'euluna.variable'
 local FunctionType = require 'euluna.functiontype'
@@ -192,12 +191,11 @@ function visitors.ForNum(context, ast)
           itvarname, tostring(itvar.type), tostring(incrval.type))
       end
     else
-      itsymbol:add_possible_type(beginval.type)
-      itsymbol:add_possible_type(endval.type)
+      itsymbol:add_possible_type(beginval.type, true)
+      itsymbol:add_possible_type(endval.type, true)
     end
     itsymbol:link_ast_type(itvar)
     context:traverse(block)
-    context.scope:resolve_symbols_types()
   end)
 end
 
@@ -222,11 +220,11 @@ end
 function visitors.Assign(context, ast)
   local vars, vals = ast:args()
   for _,var,val in iters.izip(vars, vals) do
-    local varsymbol = context:traverse(var)
+    local symbol = context:traverse(var)
     if val then
       context:traverse(val)
-      if varsymbol then
-        varsymbol:add_possible_type(val.type)
+      if symbol then
+        symbol:add_possible_type(val.type)
       end
       if var.type and val.type then
         ast:assertraisef(var.type:is_conversible(val.type),
@@ -289,7 +287,7 @@ function visitors.FuncDef(context, ast)
   if symbol then
     if varscope == 'local' then
       -- new function declaration
-      symbol.type = type
+      symbol:set_type(type)
     else
       -- check if previous symbol declaration is compatible
       if symbol.type then
@@ -348,8 +346,8 @@ function visitors.BinaryOp(context, ast)
   if typedefs.binary_conditional_ops[opname] then
     if left_arg.type == right_arg.type then
       type = left_arg.type
-    else
-      type = typer.find_common_type_between(typedefs.number_types, left_arg.type, right_arg.type)
+    elseif left_arg.type and right_arg.type then
+      type = typedefs.find_common_type({left_arg.type, right_arg.type})
     end
   else
     local ltype, rtype
@@ -369,13 +367,11 @@ function visitors.BinaryOp(context, ast)
       if ltype == rtype then
         type = ltype
       else
-        type = typer.find_common_type_between(typedefs.number_types, ltype, rtype)
+        type = typedefs.find_common_type({ltype, rtype})
       end
       ast:assertraisef(type,
         "binary operation `%s` is not defined for different types '%s' and '%s' in the expression",
         opname, tostring(ltype), tostring(rtype))
-    else
-      type = ltype or rtype
     end
   end
   if type then

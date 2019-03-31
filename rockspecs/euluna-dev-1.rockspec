@@ -32,6 +32,7 @@ dependencies = {
   'luacheck >= 0.23.0',
   'luacov >= 0.13.0',
   'cluacov >= 0.1.1',
+  'chronos >= 0.2',
 }
 
 build = {
@@ -45,7 +46,6 @@ build = {
     ['euluna.scope'] = 'euluna/scope.lua',
     ['euluna.aster'] = 'euluna/aster.lua',
     ['euluna.astnode'] = 'euluna/astnode.lua',
-    ['euluna.typer'] = 'euluna/typer.lua',
     ['euluna.symbol'] = 'euluna/symbol.lua',
     ['euluna.variable'] = 'euluna/variable.lua',
     ['euluna.type'] = 'euluna/type.lua',

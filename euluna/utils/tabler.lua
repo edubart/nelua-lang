@@ -37,6 +37,14 @@ function tabler.copy(t)
   return _t
 end
 
+-- check if all values of a list pass test
+function tabler.iall(t, f)
+  for i,v in ipairs(t) do
+    if not f(v,i) then return false end
+  end
+  return true
+end
+
 -- compare two tables
 function tabler.deepcompare(t1,t2,ignore_mt)
   local ty1 = type(t1)
