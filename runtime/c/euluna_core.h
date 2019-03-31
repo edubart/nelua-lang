@@ -20,28 +20,45 @@ typedef struct euluna_type_t {
   char *name;
 } euluna_type_t;
 
-typedef struct euluna_any_t {
-    euluna_type_t *type;
-    uint64_t value;
-} euluna_any_t;
-
 typedef struct euluna_string_t {
-    uintptr_t len;
-    uintptr_t res;
-    char data[];
+  uintptr_t len;
+  uintptr_t res;
+  char data[];
 } euluna_string_t;
 
+typedef struct euluna_any_t {
+  euluna_type_t *type;
+  union {
+    intptr_t i;
+    int8_t i8;
+    int16_t i16;
+    int32_t i32;
+    int64_t i64;
+    uintptr_t u;
+    uint8_t u8;
+    uint16_t u16;
+    uint32_t u32;
+    uint64_t u64;
+    float f32;
+    double f64;
+    bool b;
+    euluna_string_t* s;
+    char c;
+    void* p;
+  } value;
+} euluna_any_t;
+
 /* runtime types */
-extern euluna_type_t euluna_type_uint;
-extern euluna_type_t euluna_type_uint8;
-extern euluna_type_t euluna_type_uint16;
-extern euluna_type_t euluna_type_uint32;
-extern euluna_type_t euluna_type_uint64;
 extern euluna_type_t euluna_type_int;
 extern euluna_type_t euluna_type_int8;
 extern euluna_type_t euluna_type_int16;
 extern euluna_type_t euluna_type_int32;
 extern euluna_type_t euluna_type_int64;
+extern euluna_type_t euluna_type_uint;
+extern euluna_type_t euluna_type_uint8;
+extern euluna_type_t euluna_type_uint16;
+extern euluna_type_t euluna_type_uint32;
+extern euluna_type_t euluna_type_uint64;
 extern euluna_type_t euluna_type_float32;
 extern euluna_type_t euluna_type_float64;
 extern euluna_type_t euluna_type_boolean;
@@ -65,69 +82,70 @@ static inline void euluna_check_type(euluna_type_t* a, euluna_type_t* b) {
     EULUNA_UNREACHABLE;
   }
 }
+
 static inline intptr_t euluna_cast_any_int(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_int);
-  return (intptr_t)a.value;
+  return a.value.i;
 }
 static inline int8_t euluna_cast_any_int8(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_int8);
-  return (int8_t)a.value;
+  return a.value.i8;
 }
 static inline int16_t euluna_cast_any_int16(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_int16);
-  return (int16_t)a.value;
+  return a.value.i16;
 }
 static inline int32_t euluna_cast_any_int32(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_int32);
-  return (int32_t)a.value;
+  return a.value.i32;
 }
 static inline int64_t euluna_cast_any_int64(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_int64);
-  return (int64_t)a.value;
+  return a.value.i64;
 }
 static inline uintptr_t euluna_cast_any_uint(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_uint);
-  return (uintptr_t)a.value;
+  return a.value.u;
 }
 static inline uint8_t euluna_cast_any_uint8(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_uint8);
-  return (uint8_t)a.value;
+  return a.value.u8;
 }
 static inline uint16_t euluna_cast_any_uint16(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_uint16);
-  return (uint16_t)a.value;
+  return a.value.u16;
 }
 static inline uint32_t euluna_cast_any_uint32(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_uint32);
-  return (uint32_t)a.value;
+  return a.value.u32;
 }
 static inline uint64_t euluna_cast_any_uint64(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_uint64);
-  return (uint64_t)a.value;
+  return a.value.u64;
 }
 static inline float euluna_cast_any_float32(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_float32);
-  return (float)a.value;
+  return a.value.f32;
 }
 static inline double euluna_cast_any_float64(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_float64);
-  return (double)a.value;
+  return a.value.f64;
 }
 static inline bool euluna_cast_any_boolean(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_boolean);
-  return (bool)a.value;
+  return a.value.b;
 }
 static inline euluna_string_t* euluna_cast_any_string(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_string);
-  return (euluna_string_t*)a.value;
+  return a.value.s;
 }
 static inline char euluna_cast_any_char(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_char);
-  return (char)a.value;
+  return a.value.c;
 }
 static inline void* euluna_cast_any_pointer(const euluna_any_t a) {
   euluna_check_type(a.type, &euluna_type_pointer);
-  return (void*)a.value;
+  return a.value.p;
 }
 
 #endif

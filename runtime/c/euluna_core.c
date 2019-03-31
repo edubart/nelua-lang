@@ -36,35 +36,35 @@ void euluna_stdout_write_boolean(const bool b) {
 
 void euluna_stdout_write_any(const euluna_any_t a) {
   if(a.type == &euluna_type_boolean) {
-    euluna_stdout_write_boolean((bool)a.value);
+    euluna_stdout_write_boolean(a.value.b);
   } else if(a.type == &euluna_type_int) {
-    fprintf(stdout, "%ti", (intptr_t)a.value);
+    fprintf(stdout, "%ti", a.value.i);
   } else if(a.type == &euluna_type_int8) {
-    fprintf(stdout, "%hhi", (int8_t)a.value);
+    fprintf(stdout, "%hhi", a.value.i8);
   } else if(a.type == &euluna_type_int16) {
-    fprintf(stdout, "%hi", (int16_t)a.value);
+    fprintf(stdout, "%hi", a.value.i16);
   } else if(a.type == &euluna_type_int32) {
-    fprintf(stdout, "%i", (int32_t)a.value);
+    fprintf(stdout, "%i", a.value.i32);
   } else if(a.type == &euluna_type_int64) {
-    fprintf(stdout, "%li", (int64_t)a.value);
+    fprintf(stdout, "%li", a.value.i64);
   } else if(a.type == &euluna_type_uint) {
-    fprintf(stdout, "%tu", (uintptr_t)a.value);
+    fprintf(stdout, "%tu", a.value.u);
   } else if(a.type == &euluna_type_uint8) {
-    fprintf(stdout, "%hhu", (uint8_t)a.value);
+    fprintf(stdout, "%hhu", a.value.u8);
   } else if(a.type == &euluna_type_uint16) {
-    fprintf(stdout, "%hu", (uint16_t)a.value);
+    fprintf(stdout, "%hu", a.value.u16);
   } else if(a.type == &euluna_type_uint32) {
-    fprintf(stdout, "%u", (uint32_t)a.value);
+    fprintf(stdout, "%u", a.value.u32);
   } else if(a.type == &euluna_type_uint64) {
-    fprintf(stdout, "%lu", (uint64_t)a.value);
+    fprintf(stdout, "%lu", a.value.u64);
   } else if(a.type == &euluna_type_float32) {
-    fprintf(stdout, "%f", (float)a.value);
+    fprintf(stdout, "%f", a.value.f32);
   } else if(a.type == &euluna_type_float64) {
-    fprintf(stdout, "%lf", (double)a.value);
+    fprintf(stdout, "%lf", a.value.f64);
   } else if(a.type == &euluna_type_char) {
-    fprintf(stdout, "%c", (char)a.value);
+    fprintf(stdout, "%c", a.value.c);
   } else if(a.type == &euluna_type_pointer) {
-    fprintf(stdout, "%p", (void*)a.value);
+    fprintf(stdout, "%p", a.value.p);
   } else {
     euluna_panic("invalid type for euluna_fwrite_any");
     EULUNA_UNREACHABLE;
