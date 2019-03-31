@@ -191,6 +191,10 @@ it("function call", function()
     local a: int = 1
     a()
   ]], "attempt to call a non callable variable")
+  assert_analyze_error([[
+    local function f(a: int) end
+    f('a')
+  ]], "is not conversible with")
 end)
 
 it("strict mode", function()

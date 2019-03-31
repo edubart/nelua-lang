@@ -2,7 +2,7 @@ local cdefs = require 'euluna.generators.c.definitions'
 
 local builtins = {}
 
-function builtins.print(context, ast, coder)
+function builtins.print(context, ast)
   local argtypes, args = ast:args()
   local funcname = '__euluna_print_' .. ast.pos
 
@@ -44,18 +44,7 @@ function builtins.print(context, ast, coder)
   defcoder:add_ln('}')
 
   -- the call
-  coder:add(funcname, '(')
-  for i,arg in ipairs(args) do
-    if i>1 then coder:add(', ') end
-    if arg.type then
-      if arg.tag == 'String' then
-        coder:add('(euluna_string_t*) &', arg)
-      elseif arg.tag == 'Number' or arg.tag == 'Id' then
-        coder:add(arg)
-      end
-    end
-  end
-  coder:add(')')
+  return funcname
 end
 
 return builtins

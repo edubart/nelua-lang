@@ -8,6 +8,33 @@ local typedefs = require 'euluna.analyzers.types.definitions'
 
 local visitors = {}
 
+local function add_casted_value(_, coder, type, valnode)
+  if type:is_any() then
+    if valnode then
+      if valnode.type:is_any() then
+        coder:add(valnode)
+      else
+        coder:add('(euluna_any_t){&euluna_type_',
+                  valnode.type:codegen_name(), ', ', valnode, '}')
+      end
+    else
+      coder:add('(euluna_any_t){&euluna_type_nil, 0}')
+    end
+  elseif valnode then
+    if valnode.type:is_any() then
+      coder:add('euluna_cast_any_', type:codegen_name(), '(', valnode, ')')
+    elseif type == valnode.type then
+      coder:add(valnode)
+    elseif valnode.type:is_number() and type:is_number() then
+      coder:add(valnode)
+    --else
+      --coder:add('(',context:get_ctype(type, valnode),')',valnode)
+    end
+  else
+    coder:add('{0}')
+  end
+end
+
 function visitors.Number(context, ast, coder)
   local numtype, value, literal = ast:args()
   local cval
@@ -38,11 +65,10 @@ function visitors.String(context, ast, coder)
   local deccoder = context.declarations_coder
   local len = #value
   local varname = '__string_literal_' .. ast.pos
-
   local quoted_value = pegger.double_quote_c_string(value)
   deccoder:add_indent_ln('static const struct { uintptr_t len, res; char data[', len + 1, ']; }')
   deccoder:add_indent_ln('  ', varname, ' = {', len, ', ', len, ', ', quoted_value, '};')
-  coder:add(varname)
+  coder:add('(const euluna_string_t*)&', varname)
 end
 
 function visitors.Boolean(_, ast, coder)
@@ -96,25 +122,34 @@ end
 
 -- calls
 function visitors.Call(context, ast, coder)
-  local argtypes, args, caller, block_call = ast:args()
+  local argtypes, args, callee, block_call = ast:args()
   if block_call then coder:add_indent() end
   local builtin
-  if caller.tag == 'Id' then
-    local fname = caller[1]
+  if callee.tag == 'Id' then
+    local fname = callee[1]
     builtin = cbuiltins[fname]
   end
   if builtin then
-    builtin(context, ast, coder)
-  else
-    coder:add(caller, '(', args, ')')
+    callee = builtin(context, ast, coder)
   end
+  coder:add(callee, '(')
+  if ast.callee_type and ast.callee_type:is_function() then
+    for i,argtype,argnode in iters.izip(ast.callee_type.arg_types, args) do
+      if i > 1 then coder:add(', ') end
+      add_casted_value(context, coder, argtype, argnode)
+    end
+  else
+    --TODO: handle better calls on any types
+    coder:add(args)
+  end
+  coder:add(')')
   if block_call then coder:add_ln(";") end
 end
 
 function visitors.CallMethod(_, ast, coder)
-  local name, argtypes, args, caller, block_call = ast:args()
+  local name, argtypes, args, callee, block_call = ast:args()
   if block_call then coder:add_indent() end
-  coder:add(caller, '.', name, '(', caller, args, ')')
+  coder:add(callee, '.', name, '(', callee, args, ')')
   if block_call then coder:add_ln() end
 end
 
@@ -225,18 +260,16 @@ function visitors.Repeat(_, ast, coder)
   coder:add_indent_ln('} while(!(', cond, '));')
 end
 
-function visitors.ForNum(_, ast, coder)
+function visitors.ForNum(context, ast, coder)
   local itvar, beginval, comp, endval, incrval, block  = ast:args()
   ast:assertraisef(comp == 'le', 'for comparator not supported yet')
   --TODO: evaluate beginval, endval, incrval only once in case of expressions
   local itname = itvar[1]
-  coder:add_indent("for(", itvar, ' = ', beginval, '; ', itname, ' <= ', endval, '; ')
-  if incrval then
-    coder:add(itname, ' += ', incrval)
-  else
-    coder:add('++', itname)
-  end
-  coder:add_ln(') {')
+  coder:add_indent("for(", itvar, ' = ')
+  add_casted_value(context, coder, itvar.type, beginval)
+  coder:add('; ', itname, ' <= ')
+  add_casted_value(context, coder, itvar.type, endval)
+  coder:add_ln('; ', itname, ' += ', incrval or '1', ') {')
   coder:add(block)
   coder:add_indent_ln("}")
 end
@@ -261,56 +294,29 @@ function visitors.Goto(_, ast, coder)
   coder:add_indent_ln('goto ', labelname, ';')
 end
 
-local function add_any_value(coder, value)
-  if value then
-    if value.type:is_any() then
-      coder:add(value)
-    else
-      coder:add('(euluna_any_t){&euluna_type_',
-                value.type:codegen_name(), ', ', value, '}')
-    end
-  else
-    coder:add('(euluna_any_t){&euluna_type_nil, 0}')
-  end
-end
-
-local function add_cast_any_value(coder, type, value)
-  assert(value and value.type:is_any(), 'impossible')
-  assert(not type:is_any(), 'impossible')
-  coder:add('euluna_cast_any_', type:codegen_name(), '(', value, ')')
-end
-
-local function add_assignments(coder, vars, vals)
+local function add_assignments(context, coder, vars, vals)
   for i,var,val in iters.izip(vars, vals or {}) do
     if i > 1 then coder:add(' ') end
     coder:add(var, ' = ')
-    if var.type:is_any() then
-      add_any_value(coder, val)
-    elseif val and val.type:is_any() then
-      add_cast_any_value(coder, var.type, val)
-    elseif val then
-      coder:add(val)
-    else
-      coder:add('{0}')
-    end
+    add_casted_value(context, coder, var.type, val)
     coder:add(';')
   end
 end
 
-function visitors.VarDecl(_, ast, coder)
+function visitors.VarDecl(context, ast, coder)
   local varscope, mutability, vars, vals = ast:args()
   ast:assertraisef(varscope == 'local', 'global variables not supported yet')
   ast:assertraisef(not vals or #vars == #vals, 'vars and vals count differs')
   coder:add_indent()
-  add_assignments(coder, vars, vals)
+  add_assignments(context, coder, vars, vals)
   coder:add_ln()
 end
 
-function visitors.Assign(_, ast, coder)
+function visitors.Assign(context, ast, coder)
   local vars, vals = ast:args()
   ast:assertraisef(#vars == #vals, 'vars and vals count differs')
   coder:add_indent()
-  add_assignments(coder, vars, vals)
+  add_assignments(context, coder, vars, vals)
   coder:add_ln()
 end
 

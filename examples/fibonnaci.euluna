@@ -1,4 +1,4 @@
-function fib(n)
+local function fib(n)
   local a = 0
   local b = 1
   for i=1,n do
@@ -9,4 +9,4 @@ function fib(n)
   return a
 end
 
-print('Fib of 10 is ' .. fib(10))
+print('Fib of 10 is ', fib(10))

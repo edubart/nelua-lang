@@ -110,16 +110,16 @@ end
 
 -- calls
 function visitors.Call(_, ast, coder)
-  local argtypes, args, caller, block_call = ast:args()
+  local argtypes, args, callee, block_call = ast:args()
   if block_call then coder:add_indent() end
-  coder:add(caller, '(', args, ')')
+  coder:add(callee, '(', args, ')')
   if block_call then coder:add_ln() end
 end
 
 function visitors.CallMethod(_, ast, coder)
-  local name, argtypes, args, caller, block_call = ast:args()
+  local name, argtypes, args, callee, block_call = ast:args()
   if block_call then coder:add_indent() end
-  coder:add(caller, ':', name, '(', args, ')')
+  coder:add(callee, ':', name, '(', args, ')')
   if block_call then coder:add_ln() end
 end
 

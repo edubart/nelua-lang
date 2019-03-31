@@ -88,18 +88,34 @@ function visitors.ArrayIndex(context, ast)
 end
 
 function visitors.Call(context, ast)
-  local argtypes, args, caller, block_call = ast:args()
+  local argtypes, args, callee, block_call = ast:args()
   context:default_visitor(args)
-  local symbol = context:traverse(caller)
+  local symbol = context:traverse(callee)
   if symbol and symbol.type then
-    caller:assertraisef(symbol.type:is_function() or symbol.type:is_any(),
+    callee:assertraisef(symbol.type:is_function() or symbol.type:is_any(),
       "attempt to call a non callable variable of type '%s'", symbol.type.name)
+    ast.callee_type = symbol.type
     if symbol.type:is_function() then
-      ast.type = symbol.type.return_types[1]
+      -- check function argument types
+      for i,argtype,argnode in iters.izip(symbol.type.arg_types, args) do
+        if argtype and argnode and argnode.type then
+          ast:assertraisef(argtype:is_conversible(argnode.type),
+            "in call function argument %d of type '%s' is not conversible with call argument %d of type '%s'",
+            i, tostring(argtype), i, tostring(argnode.type))
+        end
+      end
+
+      --TODO: check multiple returns
+
+      ast.type = symbol.type.return_types[1] or types.void
       ast.types = symbol.type.return_types
-    else
-      ast.type = types.any
     end
+  end
+  if not ast.callee_type and context.phase == phases.any_inference then
+    ast.callee_type = types.any
+  end
+  if not ast.type and context.phase == phases.any_inference then
+    ast.type = types.any
   end
 end
 

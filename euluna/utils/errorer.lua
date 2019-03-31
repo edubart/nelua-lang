@@ -1,4 +1,5 @@
 local re = require 'relabel'
+local stringer = require 'euluna.utils.stringer'
 
 local errorer = {}
 
@@ -16,7 +17,7 @@ end
 --luacov:enable
 
 function errorer.errprint(...)
-  io.stderr:write(table.concat({...}, "\t"))
+  io.stderr:write(stringer.print_concat(...))
   io.stderr:write("\n")
   io.stderr:flush()
 end

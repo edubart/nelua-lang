@@ -110,7 +110,7 @@ it("repeat", function()
   assert_generate_c("repeat\nuntil a", "do {\n    } while(!(a));")
 end)
 it("for", function()
-  assert_generate_c("for i=a,b do\nend", "for(euluna_any_t i = a; i <= b; ++i) {\n    }")
+  assert_generate_c("for i=a,b do\nend", "for(euluna_any_t i = a; i <= b; i += 1) {\n    }")
   assert_generate_c("for i=a,b,c do\nend", "for(euluna_any_t i = a; i <= b; i += c) {\n    }")
 end)
 it("break and continue", function()
@@ -216,6 +216,16 @@ it("any type", function()
     a = true
     print(a)
   ]], "true")
+  assert_run_c([[
+    local function f(a: int) return a + 1 end
+    local a: any = 1
+    local r = f(a)
+    print(r)
+  ]], "2")
+  assert_run_c([[
+    local a: any, b: any = 1,2
+    for i:int=a,b do print(i) end
+  ]], "1\n2")
   assert_run_error_c([[
     local a: any = 1
     local b: bool = a

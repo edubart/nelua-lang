@@ -22,6 +22,7 @@ local types = {
   char      = Type('char'),
   pointer   = Type('pointer'),
   any       = Type('any'),
+  void      = Type('void'),
   type      = Type.type, -- the type of "type"
 }
 typedefs.primitive_types = types
