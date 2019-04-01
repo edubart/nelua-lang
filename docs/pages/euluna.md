@@ -7,16 +7,48 @@
 [![Join the chat at Gitter](https://badges.gitter.im/euluna-lang/Lobby.svg)](https://gitter.im/euluna-lang/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 ![Project Status](https://img.shields.io/badge/status-experimental-red.svg)
 
-Euluna is a minimalistic, performant, safe, optionally typed, meta programmable,
-compiled, systems programming language with syntax and semantics similar to Lua language that can work dynamically or statically depending on the code style and compiles to C (or Lua).
+Euluna is a minimalistic, performant, safe, optionally typed, compiled, meta programmable,
+systems programming language with syntax and semantics similar to Lua
+language that can work dynamically or statically depending on the code style and
+compiles to C or Lua.
 
-Euluna aims to be a language for performance sensitive applications where Lua would not be efficient (like operational systems, real-time applications, game engines) while maintaining syntax and semantics compatible with Lua and providing a
+Euluna aims to be a language for performance sensitive applications where Lua
+would not be efficient (like operational systems, real-time applications, game engines)
+while maintaining syntax and semantics compatible with Lua and providing a
 a seamless interface to Lua.
 
-When coding with types and using Euluna's additional constructs (structs, static arrays, manual memory management, pointers, etc) the performance is efficient as C.
+Euluna is designed to be able to work free from a Lua VM or garbage collector
+when using it's new idioms, just like a C program would work. When coding with
+types and using additional idioms (structs, arrays, manual memory
+management, pointers, etc) the performance should be efficient as C. However when
+using Lua idioms like tables, metatables or interacting with scripts, the compiler
+uses a Lua VM such as Lua or LuaJIT.
 
-As Euluna syntax is a super set of Lua syntax it can also be used to have basic type checking and extended features for Lua by generating Lua code.
+The motivation is to have a language to replace C/C++ part of projects that uses
+lua today with this new language with syntax and semantics similar to Lua
+without loosing performance or the ability to go low level. Therefore unifying the
+syntax and semantics across both compiled and dynamic language. At the same time maintaining
+the language safe for non-expert users.
 
+By compiling to C, C libraries and APIs can be reused, C libraries can be generated,
+allows to target any platform that a C compiler targets and take advantage of
+highly optimized compilers like GCC/Clang, thus generating very efficient native code.
+
+Euluna has different goals of JIT implementations of Lua, it does not
+intend be an JIT, actually it can use one to interact with scripts and to implement some Lua idioms
+(tables, metatables).
+
+The language also aims to be meta programmable by using having a Lua preprocessor, template idioms,
+AST or grammar manipulation, with that higher constructs such as classes, generics and DSLs can
+be implemented at compile time without runtime costs.
+
+As Euluna syntax is a superset of Lua syntax it can also be used to have basic
+type checking and extended features for Lua by generating Lua code.
+
+Euluna stands for Extensible Unified Luna. Extensible because it intends to allow meta programming
+and language grammar manipulation. Unified because it unifies both statically and dynamic
+language styles in a common syntax and semantic while providing a seamless interface with Lua for
+running dynamic code at runtime, Luna is Lua in latim.
 
 **Warning this language is currently highly experimental and a WIP (work in progress).**
 
@@ -24,8 +56,8 @@ As Euluna syntax is a super set of Lua syntax it can also be used to have basic 
 
 * Be minimalistic with a small syntax, manual and API, but powerful
 * Be performant by compiling to optimized C code then native code
-* Possibility to output freestanding (dependency free) code (for kernel dev or minimal runtime)
-* Have syntax, semantics and features compatible to Lua
+* Possibility to output freestanding code (dependency free code, for kernel dev or minimal runtime)
+* Have syntax, semantics and features compatible with Lua
 * Optionally statically typed with type checking
 * Compile to both Lua or C
 * Work dynamically or statically depending on the coding style (typed or untyped)
@@ -34,7 +66,7 @@ As Euluna syntax is a super set of Lua syntax it can also be used to have basic 
 * Have powerful meta programming capabilities by manipulating the AST
 * Make possible to create clean DSLs by extending the language grammar
 * Achieve classes, generics and other higher constructs by meta programming
-* Be safer to code
+* Safe idioms to code safe
 * Have an optional garbage collector
 * Allow to go low level (C, assembly)
 * Allow to go higher level (use Lua or extend the language)
