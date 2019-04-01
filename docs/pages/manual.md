@@ -124,12 +124,11 @@ continue
 | `boolean` `bool`  | `bool`          |                     |
 
 The types `int` and `uint` types are usually 32 wide bits on 32-bit systems,
-and 64 bits wide on 64-bit systems. When you need an integer value you should use `int` unless you have a specific reason to use a sized or unsigned integer type.
+and 64 bits wide on 64-bit systems. When you need an integer value you should use `integer`
+unless you have a specific reason to use a sized or unsigned integer type.
 
-The `int` is the default type for integers literals with no suffix.
-The `uint` is the default type for hexadecimal and binary literals with no suffix.
-The `number` is the default type for decimal and exponential literals with no suffix.
-
+The `integer` is the default type for integral literals with no suffix.
+The `number` is the default type for fractional literals with no suffix.
 
 ## Literal values
 

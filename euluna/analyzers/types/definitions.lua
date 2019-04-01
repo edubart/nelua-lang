@@ -74,11 +74,11 @@ typedefs.number_literal_types = {
 
 -- default types for literals
 typedefs.number_default_types = {
-  int = types.int,
+  int = types.integer,
   dec = types.number,
   exp = types.number,
-  hex = types.uint,
-  bin = types.uint,
+  hex = types.integer,
+  bin = types.integer,
 }
 
 -- number types

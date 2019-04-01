@@ -41,58 +41,58 @@ end
 describe("Euluna should check types for", function()
 
 it("local variable", function()
-  assert_analyze_ast("local a: int",
+  assert_analyze_ast("local a: integer",
     AST('Block', {
       AST('VarDecl', 'local', 'var', {
-        TAST('int', 'IdDecl', 'a', 'var', TAST('int', 'Type', 'int'))})
+        TAST('int64', 'IdDecl', 'a', 'var', TAST('int64', 'Type', 'integer'))})
   }))
 
-  assert_analyze_ast("local a: int = 1",
+  assert_analyze_ast("local a: integer = 1",
     AST('Block', {
       AST('VarDecl', 'local', 'var',
-        { TAST('int', 'IdDecl', 'a', 'var', TAST('int', 'Type', 'int')) },
-        { TAST('int', 'Number', 'int', '1') }),
+        { TAST('int64', 'IdDecl', 'a', 'var', TAST('int64', 'Type', 'integer')) },
+        { TAST('int64', 'Number', 'int', '1') }),
   }))
 
   assert_analyze_ast("local a = 1; f(a)",
     AST('Block', {
       AST('VarDecl', 'local', 'var',
-        { TAST('int', 'IdDecl', 'a', 'var') },
-        { TAST('int', 'Number', 'int', '1') }),
+        { TAST('int64', 'IdDecl', 'a', 'var') },
+        { TAST('int64', 'Number', 'int', '1') }),
       TAST('any', 'Call', {},
-        { TAST('int', 'Id', "a") },
+        { TAST('int64', 'Id', "a") },
         TAST('any', 'Id', "f"),
         true
       )
   }))
 
-  assert_c_gencode_equals("local a = 1", "local a: int = 1")
-  assert_analyze_error("local a: int = 'string'", "is not conversible with")
+  assert_c_gencode_equals("local a = 1", "local a: integer = 1")
+  assert_analyze_error("local a: integer = 'string'", "is not conversible with")
   assert_analyze_error("local a: uint8 = 1.0", "is not conversible with")
 end)
 
 it("loop variables", function()
-  assert_c_gencode_equals("for i=1,10 do end", "for i:int=1,10 do end")
-  assert_c_gencode_equals("for i=1,10,2 do end", "for i:int=1,10,2 do end")
-  assert_c_gencode_equals("for i=0,1_integer-1 do end", "for i:integer=0,1_integer-1 do end")
+  assert_c_gencode_equals("for i=1,10 do end", "for i:integer=1,10 do end")
+  assert_c_gencode_equals("for i=1,10,2 do end", "for i:integer=1,10,2 do end")
+  assert_c_gencode_equals("for i=0_i,1_i-1 do end", "for i:integer=0_i,1_i-1 do end")
   assert_analyze_error("for i:uint8=1.0,10 do end", "is not conversible with")
   assert_analyze_error("for i:uint8=1_u8,10 do end", "is not conversible with")
   assert_analyze_error("for i:uint8=1_u8,10_u8,2 do end", "is not conversible with")
 end)
 
 it("variable assignments", function()
-  assert_c_gencode_equals("local a; a = 1", "local a: int; a = 1")
-  assert_analyze_error("local a: int; a = 's'", "is not conversible with")
+  assert_c_gencode_equals("local a; a = 1", "local a: integer; a = 1")
+  assert_analyze_error("local a: integer; a = 's'", "is not conversible with")
 end)
 
 it("unary operators", function()
   assert_c_gencode_equals("local a = not b", "local a: boolean = not b")
-  assert_c_gencode_equals("local a = -1", "local a: int = -1")
+  assert_c_gencode_equals("local a = -1", "local a: integer = -1")
   assert_analyze_error("local a = -1_u", "is not defined for type")
 end)
 
 it("binary operators", function()
-  assert_c_gencode_equals("local a = 1 + 2", "local a: int = 1 + 2")
+  assert_c_gencode_equals("local a = 1 + 2", "local a: integer = 1 + 2")
   assert_c_gencode_equals("local a = 1 + 2.0", "local a: number = 1 + 2.0")
   assert_c_gencode_equals("local a = 1_i8 + 2_u8", "local a: int16 = 1_i8 + 2_u8")
   assert_analyze_error("local a = 1 + 's'", "is not defined for type")
@@ -100,12 +100,12 @@ it("binary operators", function()
 end)
 
 it("binary conditional operators", function()
-  assert_c_gencode_equals("local a = 1 and 2", "local a: int = 1 and 2")
+  assert_c_gencode_equals("local a = 1 and 2", "local a: integer = 1 and 2")
   assert_c_gencode_equals("local a = 1_i8 and 2_u8", "local a: int16 = 1_i8 and 2_u8")
 end)
 
 it("operation with parenthesis", function()
-  assert_c_gencode_equals("local a = -(1)", "local a: int = -(1)")
+  assert_c_gencode_equals("local a = -(1)", "local a: integer = -(1)")
 end)
 
 it("recursive late deduction", function()
@@ -115,7 +115,7 @@ it("recursive late deduction", function()
     b = 2
     c = a + b
   ]],[[
-    local a:int, b:int, c:int
+    local a:integer, b:integer, c:integer
     a = 1
     b = 2
     c = a + b
@@ -142,39 +142,39 @@ it("function definition", function()
     function f() end
   ]])
   assert_analyze_ast([[
-    local function f(a: int) end
-    function f(a: int) end
+    local function f(a: integer) end
+    function f(a: integer) end
   ]])
   assert_analyze_ast([[
-    local f: function<(int): string>
-    function f(a: int): string end
+    local f: function<(integer): string>
+    function f(a: integer): string end
   ]])
   assert_analyze_error([[
     local f: int
-    function f(a: int) return 0 end
+    function f(a: integer) return 0 end
   ]], "is not conversible with")
   assert_analyze_error([[
-    local function f(a: int) end
-    function f(a: int, b:int) end
+    local function f(a: integer) end
+    function f(a: integer, b:integer) end
   ]], "is not conversible with")
   assert_analyze_error([[
-    local function f(a: int) end
+    local function f(a: integer) end
     function f(a: string) end
   ]], "is not conversible with")
   assert_analyze_error([[
-    local function f(): int, string end
-    function f(): int end
+    local function f(): integer, string end
+    function f(): integer end
   ]], "is not conversible with")
   assert_analyze_error([[
-    local f: function<():int, string>
-    function f(): int end
+    local f: function<():integer, string>
+    function f(): integer end
   ]], "is not conversible with")
 end)
 
 it("function return", function()
   assert_c_gencode_equals(
     "local function f() return 0 end",
-    "local function f(): int return 0 end"
+    "local function f(): integer return 0 end"
   )
   assert_c_gencode_equals([[
     local function f()
@@ -183,8 +183,8 @@ it("function return", function()
       return c
     end
     ]],[[
-    local function f(): int
-      local a: int, b: int, c: int
+    local function f(): integer
+      local a: integer, b: integer, c: integer
       a = 1; b = 2; c = a + b
       return c
     end
@@ -199,15 +199,15 @@ it("function call", function()
     local function f() return 0 end
     local a = f()
   ]],[[
-    local function f(): int return 0 end
-    local a: int = f()
+    local function f(): integer return 0 end
+    local a: integer = f()
   ]])
   assert_analyze_error([[
-    local a: int = 1
+    local a: integer = 1
     a()
   ]], "attempt to call a non callable variable")
   assert_analyze_error([[
-    local function f(a: int) end
+    local function f(a: integer) end
     f('a')
   ]], "is not conversible with")
 end)

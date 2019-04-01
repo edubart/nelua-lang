@@ -202,13 +202,13 @@ it("any type", function()
     "euluna_any_t b = a;")
   assert_generate_c(
     "local a: any = 1",
-    "euluna_any_t a = (euluna_any_t){&euluna_type_int, {1}};")
+    "euluna_any_t a = (euluna_any_t){&euluna_type_int64, {1}};")
   assert_generate_c(
-    "local a: any = 1; local b: int = a",
-    "intptr_t b = euluna_cast_any_int(a);")
+    "local a: any = 1; local b: integer = a",
+    "int64_t b = euluna_cast_any_int64(a);")
   assert_run_c([[
     local a: any = 1
-    local b: int = a
+    local b: integer = a
     print(a, b)
   ]], "1\t1")
   assert_run_c([[
@@ -217,14 +217,14 @@ it("any type", function()
     print(a)
   ]], "true")
   assert_run_c([[
-    local function f(a: int) return a + 1 end
+    local function f(a: integer) return a + 1 end
     local a: any = 1
     local r = f(a)
     print(r)
   ]], "2")
   assert_run_c([[
     local a: any, b: any = 1,2
-    for i:int=a,b do print(i) end
+    for i:integer=a,b do print(i) end
   ]], "1\n2")
   assert_run_error_c([[
     local a: any = 1

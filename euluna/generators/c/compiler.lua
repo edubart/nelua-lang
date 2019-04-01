@@ -9,7 +9,7 @@ local config = require 'euluna.configer'.get()
 local compiler = {}
 
 local compiler_base_flags = {
-  cflags = "-pipe -std=c99 -pedantic -Wall -Wextra -fno-strict-aliasing -rdynamic",
+  cflags_base = "-pipe -std=c99 -pedantic -Wall -Wextra -fno-strict-aliasing -rdynamic",
   cflags_release = "-O2",
   cflags_debug = "-g"
 }
@@ -40,11 +40,10 @@ end
 local function get_compile_command(infile, outfile)
   local env = { infile = infile, outfile = outfile }
   local compiler_flags = compilers_flags[config.cc] or compiler_base_flags
-  env.cc = os.getenv('CC')
   metamagic.setmetaindex(env, config)
   env.runtime_file = get_runtime_cfile()
   env.cflags_runtime = string.format('-I "%s"', get_runtime_include_path())
-  env.cflags_base = compiler_flags.cflags
+  env.cflags_base = compiler_flags.cflags_base
   env.cflags_build = (config.release and compiler_flags.cflags_release or compiler_flags.cflags_debug)
   return pegger.substitute(
     '$(cc) $(cflags_runtime) $(cflags_base) $(cflags_build) $(cflags) -o "$(outfile)" "$(infile)" "$(runtime_file)"',

@@ -119,6 +119,30 @@ euluna -g c helloworld.euluna
 
 Both ways it will output  ```Hello world!```
 
+## Benchmarks
+
+Some benchmarks can be found in `benchmarks` folder, the folder contains euluna benchmarks and pure C benchmark as reference. As Euluna can compile Lua, it's generated
+Lua code can be used to test it's performance against Lua VM implementations.
+
+The benchmarks can be run with `luajit ./tools/benchmarker.lua`
+
+|    benchmark |  language |   min (ms) |   avg (ms) |   max (ms) |   std (ms) |
+|--------------|-----------|------------|------------|------------|------------|
+|    ackermann |       lua |   2327.888 |   2416.702 |   2530.101 |     61.701 |
+|    ackermann |    luajit |    128.188 |    139.680 |    170.379 |     11.405 |
+|    ackermann |  euluna c |     52.457 |     55.792 |     59.055 |      1.921 |
+|    ackermann |         c |     57.070 |     62.120 |     66.022 |      2.852 |
+|    fibonacci |       lua |   2357.503 |   2387.313 |   2522.749 |     46.491 |
+|    fibonacci |    luajit |    877.819 |    910.107 |    934.214 |     22.497 |
+|    fibonacci |  euluna c |    326.565 |    331.798 |    337.065 |      3.189 |
+|    fibonacci |         c |    326.552 |    330.038 |    334.531 |      2.244 |
+|       mandel |       lua |   2361.819 |   2413.406 |   2483.242 |     46.779 |
+|       mandel |    luajit |     99.929 |    104.349 |    108.903 |      2.434 |
+|       mandel |  euluna c |     91.897 |     97.183 |    100.462 |      2.246 |
+|       mandel |         c |     92.089 |     96.413 |    100.373 |      2.826 |
+
+Environment that this benchmark was run: LuaJIT 2.1.0-beta3, GCC 8.2.1, Lua 5.3.5, CPU Intel Core i7-3770K CPU @ 3.50GH, OS ArchLinux.
+
 ## Roadmap
 
 - [x] Parse complete Lua 5.x syntax and generate its AST

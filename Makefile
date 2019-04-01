@@ -22,6 +22,9 @@ test-lua5.1:
 check:
 	@luacheck -q .
 
+benchmark:
+	luajit ./tools/benchmarker.lua
+
 coverage:
 	@rm -f luacov.report.out luacov.stats.out
 	@busted --coverage > /dev/null

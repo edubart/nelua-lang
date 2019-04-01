@@ -1,0 +1,13 @@
+local function fibmod(n: integer, m: integer)
+  local a = 0
+  local b = 1
+  for i=1,n do
+    local nb = (a + b) % m
+    a = b
+    b = nb
+  end
+  return a
+end
+
+local res = fibmod(100000000, 1000000000000)
+print(res)
