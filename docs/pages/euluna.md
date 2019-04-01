@@ -15,40 +15,40 @@ compiles to C or Lua.
 Euluna aims to be a language for performance sensitive applications where Lua
 would not be efficient (like operational systems, real-time applications, game engines)
 while maintaining syntax and semantics compatible with Lua and providing a
-a seamless interface to Lua.
-
-Euluna is designed to be able to work free from a Lua VM or garbage collector
-when using it's new idioms, just like a C program would work. When coding with
-types and using additional idioms (structs, arrays, manual memory
+a seamless interface to Lua. Euluna is designed to be able to work free from a Lua VM
+or garbage collector when using its new idioms, just like a C program would work.
+When coding with types and using its new idioms (structs, arrays, manual memory
 management, pointers, etc) the performance should be efficient as C. However when
-using Lua idioms like tables, metatables or interacting with scripts, the compiler
-uses a Lua VM such as Lua or LuaJIT.
+using Lua idioms (like tables, metatables) or interacting with scripts, the compiler
+uses a Lua VM such as Lua or LuaJIT, therefore Euluna has different goals of other JIT or VM
+implementations of Lua, as it actually uses Lua to interact with scripts and to implement
+some Lua idioms.
 
 The motivation is to have a language to replace C/C++ part of projects that uses
-lua today with this new language with syntax and semantics similar to Lua
+Lua today with a language with syntax and semantics similar to Lua, but
 without loosing performance or the ability to go low level. Therefore unifying the
 syntax and semantics across both compiled and dynamic language. At the same time maintaining
 the language safe for non-expert users.
 
-By compiling to C, C libraries and APIs can be reused, C libraries can be generated,
-allows to target any platform that a C compiler targets and take advantage of
-highly optimized compilers like GCC/Clang, thus generating very efficient native code.
+By compiling to C existing C libraries and APIs can be reused, new C libraries can be created,
+any platform that a C99 compiler targets the language will also target and the language can take
+advantage of highly optimized compilers such as GCC and Clang, thus generating very
+efficient native code.
 
-Euluna has different goals of JIT implementations of Lua, it does not
-intend be an JIT, actually it can use one to interact with scripts and to implement some Lua idioms
-(tables, metatables).
-
-The language also aims to be meta programmable by using having a Lua preprocessor, template idioms,
-AST or grammar manipulation, with that higher constructs such as classes, generics and DSLs can
-be implemented at compile time without runtime costs.
+The language also aims to be meta programmable by having a Lua preprocessor, template idioms,
+AST and grammar manipulation. With that higher constructs such as classes, generics and DSLs
+can be implemented at compile time without runtime costs and the language specification can
+be more simpler and compact, just like in Lua classes
+does not exist but you can implement yourself using mechanisms like metatables.
 
 As Euluna syntax is a superset of Lua syntax it can also be used to have basic
-type checking and extended features for Lua by generating Lua code.
+type checking and extended features for existing Lua projects by generating Lua code.
 
-Euluna stands for Extensible Unified Luna. Extensible because it intends to allow meta programming
-and language grammar manipulation. Unified because it unifies both statically and dynamic
-language styles in a common syntax and semantic while providing a seamless interface with Lua for
-running dynamic code at runtime, Luna is Lua in latim.
+Euluna stands for Extensible Unified Luna. Extensible because it intends to allow to
+extended the language by meta programming and manipulating its grammar. Unified because
+it unifies both statically and dynamic language styles in a common syntax and semantic
+while providing a seamless interface with Lua for running dynamic code at runtime. And
+Luna is Lua in latim.
 
 **Warning this language is currently highly experimental and a WIP (work in progress).**
 
@@ -141,7 +141,7 @@ The benchmarks can be run with `luajit ./tools/benchmarker.lua`
 |       mandel |  euluna c |     91.897 |     97.183 |    100.462 |      2.246 |
 |       mandel |         c |     92.089 |     96.413 |    100.373 |      2.826 |
 
-Environment that this benchmark was run: LuaJIT 2.1.0-beta3, GCC 8.2.1, Lua 5.3.5, CPU Intel Core i7-3770K CPU @ 3.50GH, OS ArchLinux.
+Environment that this benchmark was run: LuaJIT 2.1.0-beta3, GCC 8.2.1, Lua 5.3.5, CPU Intel Core i7-3770K CPU @ 3.50GH, OS ArchLinux and compiled with C flags `-std=c99 pedantic -fno-strict-aliasing -rdynamic -O2 -flto -Wl,-O1,--sort-common,-z,relro,-z,now`
 
 ## Roadmap
 
