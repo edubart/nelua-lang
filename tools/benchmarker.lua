@@ -74,7 +74,7 @@ end
 
 local function euluna_compile(name, generator)
   local file = 'benchmarks/' .. name .. '.euluna'
-  local command = string.format('lua ./euluna.lua -q -b -r -g %s %s', generator, file)
+  local command = string.format('lua ./euluna.lua -b -r -g %s --cflags="-march=native" %s', generator, file)
   local success = executor.exec(command)
   assert(success, 'failed to compile euluna benchmark ' .. name)
 end
@@ -83,7 +83,7 @@ local function c_compile(name)
   local cfile = 'benchmarks/c/' .. name .. '.c'
   local ofile = 'euluna_cache/benchmarks/c' .. name
   local cflags = "-pipe -std=c99 -pedantic -Wall -Wextra -fno-strict-aliasing -rdynamic " ..
-                 "-O2 -flto -Wl,-O1,--sort-common,-z,relro,-z,now"
+                 "-O2 -fno-plt -flto -march=native -Wl,-O1,--sort-common,-z,relro,-z,now"
   local command = string.format('gcc %s -o %s %s', cflags, ofile, cfile)
   local success = executor.exec(command)
   assert(success, 'failed to compile c benchmark ' .. name)

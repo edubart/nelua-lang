@@ -44,12 +44,6 @@ does not exist but you can implement yourself using mechanisms like metatables.
 As Euluna syntax is a superset of Lua syntax it can also be used to have basic
 type checking and extended features for existing Lua projects by generating Lua code.
 
-Euluna stands for Extensible Unified Luna. Extensible because it intends to allow to
-extended the language by meta programming and manipulating its grammar. Unified because
-it unifies both statically and dynamic language styles in a common syntax and semantic
-while providing a seamless interface with Lua for running dynamic code at runtime. And
-Luna is Lua in latim.
-
 **Warning this language is currently highly experimental and a WIP (work in progress).**
 
 ## Goals
@@ -128,20 +122,27 @@ The benchmarks can be run with `luajit ./tools/benchmarker.lua`
 
 |    benchmark |  language |   min (ms) |   avg (ms) |   max (ms) |   std (ms) |
 |--------------|-----------|------------|------------|------------|------------|
-|    ackermann |       lua |   2327.888 |   2416.702 |   2530.101 |     61.701 |
-|    ackermann |    luajit |    128.188 |    139.680 |    170.379 |     11.405 |
-|    ackermann |  euluna c |     52.457 |     55.792 |     59.055 |      1.921 |
-|    ackermann |         c |     57.070 |     62.120 |     66.022 |      2.852 |
-|    fibonacci |       lua |   2357.503 |   2387.313 |   2522.749 |     46.491 |
-|    fibonacci |    luajit |    877.819 |    910.107 |    934.214 |     22.497 |
-|    fibonacci |  euluna c |    326.565 |    331.798 |    337.065 |      3.189 |
-|    fibonacci |         c |    326.552 |    330.038 |    334.531 |      2.244 |
-|       mandel |       lua |   2361.819 |   2413.406 |   2483.242 |     46.779 |
-|       mandel |    luajit |     99.929 |    104.349 |    108.903 |      2.434 |
-|       mandel |  euluna c |     91.897 |     97.183 |    100.462 |      2.246 |
-|       mandel |         c |     92.089 |     96.413 |    100.373 |      2.826 |
+|    ackermann |       lua |   2269.235 |   2280.283 |   2303.618 |      9.718 |
+|    ackermann |    luajit |    128.855 |    133.373 |    140.729 |      3.405 |
+|    ackermann |  euluna c |     58.332 |     61.660 |     65.722 |      2.140 |
+|    ackermann |         c |     60.166 |     61.411 |     63.280 |      1.049 |
+|    fibonacci |       lua |   2348.139 |   2356.104 |   2364.382 |      5.583 |
+|    fibonacci |    luajit |    872.809 |    886.653 |    928.692 |     20.471 |
+|    fibonacci |  euluna c |    329.148 |    330.505 |    333.186 |      1.294 |
+|    fibonacci |         c |    324.313 |    329.637 |    335.949 |      3.079 |
+|       mandel |       lua |   2341.287 |   2358.073 |   2384.650 |     13.188 |
+|       mandel |    luajit |     98.066 |    102.507 |    106.075 |      2.494 |
+|       mandel |  euluna c |     91.281 |     94.466 |     96.893 |      1.689 |
+|       mandel |         c |     92.334 |     95.158 |     97.407 |      1.438 |
 
-Environment that this benchmark was run: LuaJIT 2.1.0-beta3, GCC 8.2.1, Lua 5.3.5, CPU Intel Core i7-3770K CPU @ 3.50GH, OS ArchLinux and compiled with C flags `-std=c99 pedantic -fno-strict-aliasing -rdynamic -O2 -flto -Wl,-O1,--sort-common,-z,relro,-z,now`
+Environment that this benchmark was run:
+LuaJIT 2.1.0-beta3,
+GCC 8.2.1,
+Lua 5.3.5,
+CPU Intel Core i7-3770K CPU @ 3.50GH,
+OS ArchLinux
+and compiled with C flags
+`-std=c99 -pedantic -fno-strict-aliasing -rdynamic -O2 -fno-plt -flto -march=native -Wl,-O1,--sort-common,-z,relro,-z,now`
 
 ## Roadmap
 
