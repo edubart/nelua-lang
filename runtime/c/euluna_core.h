@@ -67,12 +67,14 @@ extern euluna_type_t euluna_type_char;
 extern euluna_type_t euluna_type_pointer;
 
 /* static builtins */
+/* {% if context.builtins['stdout_write'] then %} */
 void euluna_stdout_write_string(const euluna_string_t* s);
 void euluna_stdout_write_boolean(const bool b);
 void euluna_stdout_write_any(const euluna_any_t a);
 void euluna_stdout_write_newline();
 void euluna_stdout_write(const char *message);
 void euluna_stdout_write_format(char *format, ...);
+/* {% end %} */
 void euluna_panic(const char* message) EULUNA_NORETURN;
 
 /* inlined builtins */

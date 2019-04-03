@@ -57,6 +57,8 @@ local function get_runtime_path(arg0)
   return path
 end
 
+config.runtime_path = get_runtime_path()
+
 function configer.parse(args)
   local argparser = create_parser(tabler.copy(args))
   local ok, options = argparser:pparse(args)

@@ -2,6 +2,7 @@ local re = require 'relabel'
 local errorer = require 'euluna.utils.errorer'
 local tabler = require 'euluna.utils.tabler'
 local metamagic = require 'euluna.utils.metamagic'
+local compat = require 'pl.compat'
 
 local pegger = {}
 
@@ -33,37 +34,37 @@ local quotes_defs = {
   end
 }
 
-local c_double_pegger = re.compile(
+local c_double_peg = re.compile(
   quote_patt_begin ..
   double_quote_patt ..
   c_quote_patt_end, quotes_defs)
 function pegger.double_quote_c_string(str)
-  return '"' .. c_double_pegger:match(str) .. '"'
+  return '"' .. c_double_peg:match(str) .. '"'
 end
 
-local lua_double_pegger = re.compile(
+local lua_double_peg = re.compile(
   quote_patt_begin ..
   double_quote_patt ..
   lua_quote_patt_end, quotes_defs)
 function pegger.double_quote_lua_string(str)
-  return '"' .. lua_double_pegger:match(str) .. '"'
+  return '"' .. lua_double_peg:match(str) .. '"'
 end
 
-local lua_single_pegger = re.compile(
+local lua_single_peg = re.compile(
   quote_patt_begin ..
   single_quote_patt ..
   lua_quote_patt_end, quotes_defs)
 function pegger.single_quote_lua_string(str)
-  return "'" .. lua_single_pegger:match(str) .. "'"
+  return "'" .. lua_single_peg:match(str) .. "'"
 end
 
 --[[
-local c_single_pegger = re.compile(
+local c_single_peg = re.compile(
   quote_patt_begin ..
   single_quote_patt ..
   c_quote_patt_end, quotes_defs)
 function pegger.single_quote_c_string(str)
-  return "'" .. c_single_pegger:match(str) .. "'"
+  return "'" .. c_single_peg:match(str) .. "'"
 end
 ]]
 
@@ -114,4 +115,28 @@ function pegger.substitute(format, vars)
   return substitute_patt:match(format)
 end
 
+local template_peg = re.compile([[
+  peg           <- {~ (text / code_eq / code)+ ~}
+  text          <- '' -> ' render([==[' text_contents  '' -> ']==]) '
+  text_contents <- {(!code_open_eq !code_open .)+}
+  code_eq       <- code_open_eq -> ' render(tostring(' code_contents ''->')) ' code_close
+  code          <- code_open code_contents code_close %s*
+  code_contents <- {(!code_close .)*}
+  code_open     <- (' '* '{%' !'=') -> ' '
+  code_open_eq  <- ('{%=' ' '*) -> ''
+  code_close    <- '%}' -> '' / %{UnclosedCode}
+]])
+
+function pegger.render_template(text, env)
+  local out = {}
+  env = env or {}
+  env.render = function(s) table.insert(out, s) end
+  setmetatable(env, { __index = _G })
+  local luacode = assert(template_peg:match(text))
+  local run = assert(compat.load(luacode, nil, "t", env))
+  run()
+  return table.concat(out)
+end
+
 return pegger
+

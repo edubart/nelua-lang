@@ -1,4 +1,6 @@
+#ifndef EULUNA_COMPILER
 #include "euluna_core.h"
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,6 +25,7 @@ euluna_type_t euluna_type_char = {"char"};
 euluna_type_t euluna_type_pointer = {"pointer"};
 
 /* static builtins */
+/* {% if context.builtins['stdout_write'] then %} */
 void euluna_stdout_write_string(const euluna_string_t* s) {
   fwrite(s->data, s->len, 1, stdout);
 }
@@ -87,6 +90,7 @@ void euluna_stdout_write_newline() {
   fwrite("\n", 1, 1, stdout);
   fflush(stdout);
 }
+/* {% end %} */
 
 void euluna_panic(const char *message) {
   fputs(message, stderr);

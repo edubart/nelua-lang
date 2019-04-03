@@ -3,8 +3,10 @@ local pegger = require 'euluna.utils.pegger'
 local iters = require 'euluna.utils.iterators'
 local cdefs = require 'euluna.generators.c.definitions'
 local cbuiltins = require 'euluna.generators.c.builtins'
-local CContext = require 'euluna.generators.c.context'
 local typedefs = require 'euluna.analyzers.types.definitions'
+local fs = require 'euluna.utils.fs'
+local config = require 'euluna.configer'.get()
+local CContext = require 'euluna.generators.c.context'
 
 local visitors = {}
 
@@ -382,24 +384,27 @@ function generator.generate(ast)
   local context = CContext(visitors)
   local indent = '    '
 
-  context.includes_coder = Coder(context, indent, 0)
   context.builtins_declarations_coder = Coder(context, indent, 0)
   context.builtins_definitions_coder = Coder(context, indent, 0)
   context.declarations_coder = Coder(context, indent, 0)
   context.definitions_coder = Coder(context, indent, 0)
   context.main_coder = Coder(context, indent)
 
-  context:add_include('<euluna_core.h>')
-
   context.main_coder:add_traversal(ast)
+  local runtime_hfile = fs.join(config.runtime_path, 'c', 'euluna_core.h')
+  local runtime_cfile = fs.join(config.runtime_path, 'c', 'euluna_core.c')
+  local runtime_declarations = pegger.render_template(fs.tryreadfile(runtime_hfile), { context = context })
+  local runtime_definitions = pegger.render_template(fs.tryreadfile(runtime_cfile), { context = context })
 
   local code = table.concat({
-    context.includes_coder:generate(),
+    '#define EULUNA_COMPILER\n',
+    runtime_declarations,
     context.builtins_declarations_coder:generate(),
     context.builtins_definitions_coder:generate(),
     context.declarations_coder:generate(),
     context.definitions_coder:generate(),
-    context.main_coder:generate()
+    context.main_coder:generate(),
+    runtime_definitions,
   })
 
   return code

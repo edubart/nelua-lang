@@ -6,6 +6,8 @@ function builtins.print(context, ast)
   local argtypes, args = ast:args()
   local funcname = '__euluna_print_' .. ast.pos
 
+  context:add_runtime_builtin('stdout_write')
+
   --function head
   local defcoder = context.definitions_coder
   defcoder:add_indent('static inline ')
