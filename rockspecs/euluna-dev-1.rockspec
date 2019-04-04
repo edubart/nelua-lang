@@ -50,6 +50,7 @@ build = {
     ['euluna.variable'] = 'euluna/variable.lua',
     ['euluna.type'] = 'euluna/type.lua',
     ['euluna.functiontype'] = 'euluna/functiontype.lua',
+    ['euluna.composedtype'] = 'euluna/composedtype.lua',
     ['euluna.traversecontext'] = 'euluna/traversecontext.lua',
     ['euluna.analyzers.types.analyzer'] = 'euluna/analyzers/types/analyzer.lua',
     ['euluna.analyzers.types.definitions'] = 'euluna/analyzers/types/definitions.lua',
@@ -80,8 +81,14 @@ build = {
       ['euluna'] = 'euluna.lua'
     },
     conf = {
-      ['runtime/c/euluna_core.c'] = 'runtime/c/euluna_core.c',
-      ['runtime/c/euluna_core.h'] = 'runtime/c/euluna_core.h'
+      ['runtime/c/euluna_core.c']   = 'runtime/c/euluna_core.c',
+      ['runtime/c/euluna_core.h']   = 'runtime/c/euluna_core.h',
+      ['runtime/c/euluna_main.c']   = 'runtime/c/euluna_main.c',
+      ['runtime/c/euluna_main.h']   = 'runtime/c/euluna_main.h',
+      ['runtime/c/euluna_gc.c']     = 'runtime/c/euluna_gc.c',
+      ['runtime/c/euluna_gc.h']     = 'runtime/c/euluna_gc.h',
+      ['runtime/c/euluna_arrtab.c'] = 'runtime/c/euluna_arrtab.c',
+      ['runtime/c/euluna_arrtab.h'] = 'runtime/c/euluna_arrtab.h',
     }
   }
 }

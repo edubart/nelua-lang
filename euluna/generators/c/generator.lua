@@ -101,6 +101,7 @@ function visitors.Type(context, ast, coder)
 end
 
 visitors.FuncType = visitors.Type
+visitors.ComposedType = visitors.Type
 
 function visitors.IdDecl(context, ast, coder)
   local name, mut = ast:args()
@@ -118,8 +119,15 @@ end
 -- TODO: ColonIndex
 
 function visitors.ArrayIndex(_, ast, coder)
-  local index, obj = ast:args()
-  coder:add(obj, '[', index, ']')
+  local index, varnode = ast:args()
+  if varnode.type:is_arraytable() then
+    coder:add('*euluna_arrtab_',
+      ast.type:codegen_name(),
+      ast.assign and '_at(&' or '_get(&',
+      varnode, ', ', index, ')')
+  else
+    coder:add(varnode, '[', index, ']')
+  end
 end
 
 -- calls
@@ -161,7 +169,7 @@ function visitors.Block(context, ast, coder)
   local is_top_scope = context.scope:is_top()
   if is_top_scope then
     coder:inc_indent()
-    coder:add_ln("int main() {")
+    coder:add_ln("int euluna_main() {")
   end
   coder:inc_indent()
   local inner_scope = context:push_scope()
@@ -380,6 +388,19 @@ end
 
 local generator = {}
 
+local function build_runtime_code(context)
+  local decs, defs = {}, {}
+  for filename in iters.ivalues(cdefs.runtime_files) do
+    local hfile = fs.join(config.runtime_path, 'c', filename .. '.h')
+    local cfile = fs.join(config.runtime_path, 'c', filename .. '.c')
+    local deccode = pegger.render_template(fs.tryreadfile(hfile), { context = context })
+    local defcode = pegger.render_template(fs.tryreadfile(cfile), { context = context })
+    table.insert(decs, deccode)
+    table.insert(defs, defcode)
+  end
+  return table.concat(decs), table.concat(defs)
+end
+
 function generator.generate(ast)
   local context = CContext(visitors)
   local indent = '    '
@@ -391,20 +412,17 @@ function generator.generate(ast)
   context.main_coder = Coder(context, indent)
 
   context.main_coder:add_traversal(ast)
-  local runtime_hfile = fs.join(config.runtime_path, 'c', 'euluna_core.h')
-  local runtime_cfile = fs.join(config.runtime_path, 'c', 'euluna_core.c')
-  local runtime_declarations = pegger.render_template(fs.tryreadfile(runtime_hfile), { context = context })
-  local runtime_definitions = pegger.render_template(fs.tryreadfile(runtime_cfile), { context = context })
+  local runtime_declarations, runtime_definitions = build_runtime_code(context)
 
   local code = table.concat({
     '#define EULUNA_COMPILER\n',
     runtime_declarations,
+    runtime_definitions,
     context.builtins_declarations_coder:generate(),
     context.builtins_definitions_coder:generate(),
     context.declarations_coder:generate(),
     context.definitions_coder:generate(),
     context.main_coder:generate(),
-    runtime_definitions,
   })
 
   return code

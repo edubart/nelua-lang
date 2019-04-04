@@ -5,7 +5,8 @@ local executor = require 'euluna.utils.executor'
 local benchmarks = {
   'ackermann',
   'fibonacci',
-  'mandel'
+  'mandel',
+  'sieve'
 }
 
 local config
@@ -74,7 +75,7 @@ end
 
 local function euluna_compile(name, generator)
   local file = 'benchmarks/' .. name .. '.euluna'
-  local command = string.format('lua ./euluna.lua -b -r -g %s --cflags="-march=native" %s', generator, file)
+  local command = string.format('lua ./euluna.lua -q -b -r -g %s --cflags="-march=native" %s', generator, file)
   local success = executor.exec(command)
   assert(success, 'failed to compile euluna benchmark ' .. name)
 end
@@ -94,7 +95,7 @@ local function compile_benchmark(name)
   euluna_compile(name, 'lua')
   printf('%11s  %s', name, 'euluna (c)')
   euluna_compile(name, 'c')
-  printf('%11s %s', name, 'c')
+  printf('%11s  %s', name, 'c')
   c_compile(name)
 end
 

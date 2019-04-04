@@ -86,6 +86,7 @@ function visitors.Paren(_, ast, coder)
 end
 function visitors.Type() end
 function visitors.FuncType() end
+function visitors.ComposedType() end
 function visitors.IdDecl(_, ast, coder)
   local name, mut, type = ast:args()
   ast:assertraisef(mut == nil or mut == 'var', "variable mutabilities are not supported in lua")
@@ -251,20 +252,32 @@ function visitors.VarDecl(context, ast, coder)
     coder:add('local ')
   end
   coder:add(vars)
-  if vals or not is_local then
+  local doassigns = vals or not is_local
+  for _,var in ipairs(vars) do
+    if not var.type:is_any() then
+      doassigns = true
+      break
+    end
+  end
+  if doassigns then
     coder:add(' = ')
-  end
-  if vals then
-    coder:add(vals)
-  end
-  if not is_local then
     local istart = 1
     if vals then
+      coder:add(vals)
       istart = #vals+1
     end
     for i=istart,#vars do
       if i > 1 then coder:add(', ') end
-      coder:add('nil')
+      local var = vars[i]
+      if var.type:is_table() then
+        coder:add('{}')
+      elseif var.type:is_number() then
+        coder:add('0')
+      elseif var.type:is_boolean() then
+        coder:add('false')
+      else
+        coder:add('nil')
+      end
     end
   end
   coder:add_ln()

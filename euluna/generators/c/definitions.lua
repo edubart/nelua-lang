@@ -76,4 +76,11 @@ cdefs.binary_ops = {
   --TODO: concat
 }
 
+cdefs.runtime_files = {
+  'euluna_core',
+  'euluna_gc',
+  'euluna_arrtab',
+  'euluna_main',
+}
+
 return cdefs

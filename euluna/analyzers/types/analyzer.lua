@@ -4,6 +4,7 @@ local typedefs = require 'euluna.analyzers.types.definitions'
 local TraverseContext = require 'euluna.traversecontext'
 local Variable = require 'euluna.variable'
 local FunctionType = require 'euluna.functiontype'
+local ComposedType = require 'euluna.composedtype'
 
 local types = typedefs.primitive_types
 local visitors = {}
@@ -68,6 +69,16 @@ function visitors.FuncType(context, ast)
   return type
 end
 
+function visitors.ComposedType(context, ast)
+  local name, subtypes = ast:args()
+  context:default_visitor(subtypes)
+  -- TODO: check validity of builtins composed types (eg table)
+  local type = ComposedType(ast, name,
+    tabler.imap(subtypes, function(n) return n.type end))
+  ast.type = type
+  return type
+end
+
 function visitors.DotIndex(context, ast)
   context:default_visitor(ast)
   --TODO: detect better types
@@ -82,8 +93,12 @@ end
 
 function visitors.ArrayIndex(context, ast)
   context:default_visitor(ast)
-  --TODO: detect better types
-  ast.type = types.any
+  local index, obj = ast:args()
+  if obj.type and obj.type:is_arraytable() then
+    ast.type = obj.type.subtypes[1]
+  else
+    ast.type = types.any
+  end
 end
 
 function visitors.Call(context, ast)
@@ -205,6 +220,7 @@ function visitors.VarDecl(context, ast)
   for _,var,val in iters.izip(vars, vals or {}) do
     local symbol = context:traverse(var)
     assert(symbol.type == var.type, 'impossible')
+    var.assign = true
     if val then
       context:traverse(val)
       symbol:add_possible_type(val.type)
@@ -221,6 +237,7 @@ function visitors.Assign(context, ast)
   local vars, vals = ast:args()
   for _,var,val in iters.izip(vars, vals) do
     local symbol = context:traverse(var)
+    var.assign = true
     if val then
       context:traverse(val)
       if symbol then

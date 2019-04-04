@@ -63,6 +63,12 @@ function Type:is_any() return self.name == 'any' end
 function Type:is_string() return self.name == 'string' end
 function Type:is_boolean() return self.name == 'boolean' end
 function Type:is_function() return self.name == 'function' end
+function Type:is_table() return self.name == 'table' end
+function Type:is_arraytable()
+  return self.name == 'table' and
+    self.subtypes and
+    #self.subtypes == 1
+end
 
 --[[
 function Type:is_integral() return self.integral end

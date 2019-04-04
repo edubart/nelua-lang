@@ -4,6 +4,7 @@ local assert = require 'spec.assert'
 local euluna_std_default = require 'euluna.parsers.euluna_std_default'
 local analyzer = require 'euluna.analyzers.types.analyzer'
 local c_generator = require 'euluna.generators.c.generator'
+local lua_generator = require 'euluna.generators.lua.generator'
 local euluna_parser = euluna_std_default.parser
 local euluna_aster = euluna_std_default.aster
 local except = require 'euluna.utils.except'
@@ -20,6 +21,17 @@ local function assert_c_gencode_equals(code, expected_code)
   local expected_generated_code = assert(c_generator.generate(expected_ast))
   assert.same(expected_generated_code, generated_code)
 end
+
+local function assert_lua_gencode_equals(code, expected_code)
+  local ast = assert.parse_ast(euluna_parser, code)
+  ast = assert(analyzer.analyze(ast, euluna_parser.aster))
+  local expected_ast = assert.parse_ast(euluna_parser, expected_code)
+  expected_ast = assert(analyzer.analyze(expected_ast))
+  local generated_code = assert(lua_generator.generate(ast))
+  local expected_generated_code = assert(lua_generator.generate(expected_ast))
+  assert.same(expected_generated_code, generated_code)
+end
+
 
 local function assert_analyze_ast(code, expected_ast)
   local ast = assert.parse_ast(euluna_parser, code)
@@ -69,6 +81,12 @@ it("local variable", function()
   assert_c_gencode_equals("local a = 1", "local a: integer = 1")
   assert_analyze_error("local a: integer = 'string'", "is not conversible with")
   assert_analyze_error("local a: uint8 = 1.0", "is not conversible with")
+end)
+
+it("typed var initialization", function()
+  assert_lua_gencode_equals("local a: integer", "local a: integer = 0")
+  assert_lua_gencode_equals("local a: boolean", "local a: boolean = false")
+  assert_lua_gencode_equals("local a: table<integer>", "local a: table<integer> = {}")
 end)
 
 it("loop variables", function()
@@ -209,6 +227,31 @@ it("function call", function()
   assert_analyze_error([[
     local function f(a: integer) end
     f('a')
+  ]], "is not conversible with")
+end)
+
+it("array tables", function()
+  assert_analyze_ast([[
+    local a: table<boolean>
+    local b: table<boolean>
+    b = a
+  ]])
+  assert_c_gencode_equals([[
+    local a: table<boolean>
+    local b = a[0]
+  ]],[[
+    local a: table<boolean>
+    local b: boolean = a[0]
+  ]])
+  assert_analyze_error([[
+    local a: table<integer>
+    local b: table<boolean>
+    b = a
+  ]], "is not conversible with")
+  assert_analyze_error([[
+    local a: table<integer, boolean>
+    local b: table<integer, integer>
+    b = a
   ]], "is not conversible with")
 end)
 

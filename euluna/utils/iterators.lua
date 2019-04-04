@@ -57,4 +57,22 @@ function iterators.izip(...)
   end
 end
 
+-- ordered pairs iterator
+function iterators.opairs(t)
+  local okeys = { }
+  for k,_ in pairs(t) do
+    okeys[#okeys + 1] = k
+  end
+  table.sort(okeys)
+  local i = 1
+  return function()
+    local k = okeys[i]
+    local v = t[k]
+    i = i + 1
+    if v ~= nil then
+      return k, v
+    end
+  end
+end
+
 return iterators

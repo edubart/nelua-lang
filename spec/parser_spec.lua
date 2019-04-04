@@ -909,6 +909,20 @@ describe("type expression", function()
             {AST('Type', 'string'), AST('Type', 'bool')})) }
     )}))
   end)
+  it("composed type", function()
+    assert.parse_ast(euluna_parser, "local t: table<int>",
+      AST('Block', {
+        AST('VarDecl', 'local', 'var',
+          { AST('IdDecl', 't', 'var', AST('ComposedType', 'table',
+            { AST('Type', 'int') })) }
+    )}))
+    assert.parse_ast(euluna_parser, "local t: table<int, string>",
+      AST('Block', {
+        AST('VarDecl', 'local', 'var',
+          { AST('IdDecl', 't', 'var', AST('ComposedType', 'table',
+            { AST('Type', 'int'), AST('Type', 'string') })) }
+    )}))
+  end)
 end)
 
 --------------------------------------------------------------------------------

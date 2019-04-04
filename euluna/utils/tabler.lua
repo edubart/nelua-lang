@@ -19,11 +19,13 @@ function tabler.find(t, val, idx)
 end
 
 -- insert a value if not exists
+--[[
 function tabler.insertonce(t, val)
   if tabler.find(t, val) then return false end
   table.insert(t, val)
   return true
 end
+]]
 
 -- create a new table of mapped array values
 function tabler.imap(t, f)

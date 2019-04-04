@@ -42,11 +42,15 @@ aster:register('Paren', types.shape {
   types.ast.Node -- expr
 })
 aster:register('Type', types.shape {
-  types.string, -- type
+  types.string, -- type name
 })
 aster:register('FuncType', types.shape {
-  types.array_of(types.ast.Type), -- arguments types
-  types.array_of(types.ast.Type), -- returns types
+  types.array_of(types.ast.Node), -- arguments types
+  types.array_of(types.ast.Node), -- returns types
+})
+aster:register('ComposedType', types.shape {
+  types.string, -- type name
+  types.array_of(types.ast.Node), -- arguments types
 })
 aster:register('IdDecl', types.shape {
   types.string, -- name
@@ -535,7 +539,13 @@ grammar:set_pegs([[
 
   typexpr <-
       func_type
+    / composed_type
     / simple_type
+
+  composed_type <- (
+    {} '' -> 'ComposedType'
+      %cNAME %LANGLE {| etypexpr_list |} eRANGLE
+    ) -> to_astnode
 
   func_type <- (
     {} '' -> 'FuncType'

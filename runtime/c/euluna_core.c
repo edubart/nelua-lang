@@ -2,9 +2,8 @@
 #include "euluna_core.h"
 #endif
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <stdarg.h>
+#include <stdlib.h>
 
 /* runtime types */
 euluna_type_t euluna_type_uint = {"uint"};
@@ -70,7 +69,6 @@ void euluna_stdout_write_any(const euluna_any_t a) {
     fprintf(stdout, "%p", a.value.p);
   } else {
     euluna_panic("invalid type for euluna_fwrite_any");
-    EULUNA_UNREACHABLE;
   }
 }
 
@@ -94,7 +92,7 @@ void euluna_stdout_write_newline() {
 
 void euluna_panic(const char *message) {
   fputs(message, stderr);
+  fputs("\n", stderr);
   fflush(stderr);
   exit(-1);
-  EULUNA_UNREACHABLE;
 }

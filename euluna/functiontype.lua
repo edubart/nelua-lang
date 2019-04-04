@@ -12,6 +12,7 @@ end
 
 function FunctionType:is_equal(type)
   return type.name == 'function' and
+         class.is_a(type, FunctionType) and
          tabler.deepcompare(type.arg_types, self.arg_types) and
          tabler.deepcompare(type.return_types, self.return_types)
 end

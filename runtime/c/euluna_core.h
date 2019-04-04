@@ -1,19 +1,17 @@
-
 #ifndef EULUNA_CORE_H
 #define EULUNA_CORE_H
 
-#include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <stdarg.h>
+#include <string.h>
 
 /* defines */
-#ifdef __GNUC__
-#define EULUNA_UNREACHABLE  __builtin_unreachable()
-#else
-#define EULUNA_UNREACHABLE
-#endif
 #define EULUNA_NORETURN     __attribute__((noreturn))
 #define EULUNA_LIKELY(x)    __builtin_expect(x, 1)
 #define EULUNA_UNLIKELY(x)  __builtin_expect(x, 0)
+#define EULUNA_UNUSED(x)    (void)(x)
 
 /* basic types */
 typedef struct euluna_type_t {
@@ -81,7 +79,6 @@ void euluna_panic(const char* message) EULUNA_NORETURN;
 static inline void euluna_check_type(euluna_type_t* a, euluna_type_t* b) {
   if(EULUNA_UNLIKELY(a != b)) {
     euluna_panic("type check fail");
-    EULUNA_UNREACHABLE;
   }
 }
 

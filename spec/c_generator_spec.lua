@@ -28,17 +28,17 @@ describe("Euluna should parse and generate C", function()
 
 it("empty file", function()
   assert_generate_c("", [[
-int main() {
+int euluna_main() {
     return 0;
 }]])
 end)
 it("return", function()
   assert_generate_c("return", [[
-int main() {
+int euluna_main() {
     return 0;
 }]])
   assert_generate_c("return 1", [[
-int main() {
+int euluna_main() {
     return 1;
 }]])
   assert_generate_c("return (1)")
@@ -231,6 +231,16 @@ it("any type", function()
     local b: bool = a
     print(b)
   ]], "type check fail")
+end)
+
+it("array tables", function()
+  assert_generate_c(
+    "local t: table<bool>",
+    "euluna_arrtab_boolean_t t = {0};")
+  assert_run_c([[
+    local t: table<bool>
+    print(t[0])
+  ]], "")
 end)
 
 it("print", function()

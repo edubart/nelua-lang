@@ -122,18 +122,22 @@ The benchmarks can be run with `luajit ./tools/benchmarker.lua`
 
 |    benchmark |  language |   min (ms) |   avg (ms) |   max (ms) |   std (ms) |
 |--------------|-----------|------------|------------|------------|------------|
-|    ackermann |       lua |   2269.235 |   2280.283 |   2303.618 |      9.718 |
-|    ackermann |    luajit |    128.855 |    133.373 |    140.729 |      3.405 |
-|    ackermann |  euluna c |     58.332 |     61.660 |     65.722 |      2.140 |
-|    ackermann |         c |     60.166 |     61.411 |     63.280 |      1.049 |
-|    fibonacci |       lua |   2348.139 |   2356.104 |   2364.382 |      5.583 |
-|    fibonacci |    luajit |    872.809 |    886.653 |    928.692 |     20.471 |
-|    fibonacci |  euluna c |    329.148 |    330.505 |    333.186 |      1.294 |
-|    fibonacci |         c |    324.313 |    329.637 |    335.949 |      3.079 |
-|       mandel |       lua |   2341.287 |   2358.073 |   2384.650 |     13.188 |
-|       mandel |    luajit |     98.066 |    102.507 |    106.075 |      2.494 |
-|       mandel |  euluna c |     91.281 |     94.466 |     96.893 |      1.689 |
-|       mandel |         c |     92.334 |     95.158 |     97.407 |      1.438 |
+|    ackermann |       lua |   2262.048 |   2268.901 |   2278.014 |      5.023 |
+|    ackermann |    luajit |    127.469 |    132.504 |    136.721 |      2.300 |
+|    ackermann |  euluna c |     56.027 |     60.481 |     65.138 |      2.319 |
+|    ackermann |         c |     54.713 |     60.128 |     62.728 |      2.483 |
+|    fibonacci |       lua |   2341.736 |   2350.338 |   2360.470 |      5.260 |
+|    fibonacci |    luajit |    870.804 |    895.123 |    927.580 |     23.852 |
+|    fibonacci |  euluna c |    326.133 |    329.366 |    332.112 |      2.069 |
+|    fibonacci |         c |    329.624 |    331.008 |    332.792 |      1.132 |
+|       mandel |       lua |   2341.213 |   2352.519 |   2373.720 |     11.367 |
+|       mandel |    luajit |     99.029 |    103.191 |    108.392 |      2.395 |
+|       mandel |  euluna c |     90.956 |     94.661 |     96.356 |      1.391 |
+|       mandel |         c |     89.097 |     93.122 |     97.010 |      2.805 |
+|        sieve |       lua |   1211.001 |   1219.087 |   1230.420 |      5.570 |
+|        sieve |    luajit |    281.919 |    289.172 |    301.547 |      6.863 |
+|        sieve |  euluna c |     90.662 |     98.785 |    116.735 |      6.499 |
+|        sieve |         c |     74.849 |     80.538 |     91.990 |      4.423 |
 
 Environment that this benchmark was run:
 LuaJIT 2.1.0-beta3,
