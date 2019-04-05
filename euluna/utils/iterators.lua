@@ -75,4 +75,37 @@ function iterators.opairs(t)
   end
 end
 
+-- pairs() for string keys only
+function iterators.spairs(t)
+  return function(_t, k)
+    local v
+    repeat
+      k, v = next(_t, k)
+    until k == nil or type(k) == 'string'
+    if k ~= nil then
+      return k, v
+    end
+  end, t
+end
+
+-- ordered pairs for string keys only
+function iterators.ospairs(t)
+  local okeys = {}
+  for k,_ in pairs(t) do
+    if type(k) == 'string' then
+      okeys[#okeys + 1] = k
+    end
+  end
+  table.sort(okeys)
+  local i = 1
+  return function()
+    local k = okeys[i]
+    local v = t[k]
+    i = i + 1
+    if v ~= nil then
+      return k, v
+    end
+  end
+end
+
 return iterators

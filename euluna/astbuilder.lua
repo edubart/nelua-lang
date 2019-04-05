@@ -2,6 +2,7 @@ local class = require 'euluna.utils.class'
 local errorer = require 'euluna.utils.errorer'
 local tabler = require 'euluna.utils.tabler'
 local metamagic = require 'euluna.utils.metamagic'
+local iters = require 'euluna.utils.iterators'
 local ASTNode = require 'euluna.astnode'
 local shapetypes = require 'tableshape'.types
 
@@ -18,6 +19,7 @@ function ASTBuilder:_init()
   self.nodes = { Node = ASTNode }
   self.shapetypes = { node = { Node = get_astnode_shapetype(ASTNode) } }
   self.shapes = { Node = shapetypes.shape {} }
+  self.aster = {}
   metamagic.setmetaindex(self.shapetypes, shapetypes)
 end
 
@@ -28,6 +30,14 @@ function ASTBuilder:register(tag, shape)
   self.shapetypes.node[tag] = get_astnode_shapetype(klass)
   self.shapes[tag] = shape
   self.nodes[tag] = klass
+  self.aster[tag] = function(params)
+    local nargs = math.min(klass.nargs, #params)
+    local node = self:create(tag, table.unpack(params, 1, nargs))
+    for k,v in iters.spairs(params) do
+      node[k] = v
+    end
+    return node
+  end
   return klass
 end
 
@@ -47,16 +57,6 @@ function ASTBuilder:clone()
   tabler.update(clone.shapes, self.shapes)
   tabler.update(clone.shapetypes, self.shapetypes)
   return clone
-end
-
-function ASTBuilder:AST(tag, ...)
-  return self:create(tag, ...)
-end
-
-function ASTBuilder:TAST(type, tag, ...)
-  local node = self:create(tag, ...)
-  node.type = type
-  return node
 end
 
 return ASTBuilder

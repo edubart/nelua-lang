@@ -9,8 +9,7 @@ local euluna_parser = euluna_syntax.parser
 local euluna_astbuilder = euluna_syntax.astbuilder
 local except = require 'euluna.utils.except'
 local config = require 'euluna.configer'.get()
-local AST = function(...) return euluna_astbuilder:AST(...) end
-local TAST = function(...) return euluna_astbuilder:TAST(...) end
+local n = euluna_astbuilder.aster
 
 local function assert_c_gencode_equals(code, expected_code)
   local ast = assert.parse_ast(euluna_parser, code)
@@ -31,7 +30,6 @@ local function assert_lua_gencode_equals(code, expected_code)
   local expected_generated_code = assert(lua_generator.generate(expected_ast))
   assert.same(expected_generated_code, generated_code)
 end
-
 
 local function assert_analyze_ast(code, expected_ast)
   local ast = assert.parse_ast(euluna_parser, code)
@@ -54,29 +52,34 @@ describe("Euluna should check types for", function()
 
 it("local variable", function()
   assert_analyze_ast("local a: integer",
-    AST('Block', {
-      AST('VarDecl', 'local', 'var', {
-        TAST('int64', 'IdDecl', 'a', 'var', TAST('int64', 'Type', 'integer'))})
-  }))
+    n.Block { {
+      n.VarDecl { 'local', 'var',
+        { n.IdDecl{ assign=true, type='int64', 'a', 'var', n.Type { type='int64', 'integer'}} }
+      }
+    } }
+  )
 
   assert_analyze_ast("local a: integer = 1",
-    AST('Block', {
-      AST('VarDecl', 'local', 'var',
-        { TAST('int64', 'IdDecl', 'a', 'var', TAST('int64', 'Type', 'integer')) },
-        { TAST('int64', 'Number', 'int', '1') }),
-  }))
+    n.Block { {
+      n.VarDecl { 'local', 'var',
+        { n.IdDecl{ assign=true, type='int64', 'a', 'var', n.Type { type='int64', 'integer'}} },
+        { n.Number{ type='int64', 'int', '1'} }
+      }
+    } }
+  )
 
   assert_analyze_ast("local a = 1; f(a)",
-    AST('Block', {
-      AST('VarDecl', 'local', 'var',
-        { TAST('int64', 'IdDecl', 'a', 'var') },
-        { TAST('int64', 'Number', 'int', '1') }),
-      TAST('any', 'Call', {},
-        { TAST('int64', 'Id', "a") },
-        TAST('any', 'Id', "f"),
+    n.Block { {
+      n.VarDecl { 'local', 'var',
+        { n.IdDecl { assign=true, type='int64', 'a', 'var' } },
+        { n.Number { type='int64', 'int', '1' } }
+      },
+      n.Call { callee_type='any', type='any', {},
+        { n.Id { type='int64', "a"} },
+        n.Id { type='any', "f"},
         true
-      )
-  }))
+    }
+  }})
 
   assert_c_gencode_equals("local a = 1", "local a: integer = 1")
   assert_analyze_error("local a: integer = 'string'", "is not conversible with")

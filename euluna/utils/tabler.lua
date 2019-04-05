@@ -66,10 +66,10 @@ function tabler.deepcompare(t1,t2,ignore_mt)
   return true
 end
 
-function tabler.insert_many(t, v, ...)
+function tabler.insertmany(t, v, ...)
   if v == nil and select('#', ...) == 0 then return end
   table.insert(t, v)
-  tabler.insert_many(t, ...)
+  tabler.insertmany(t, ...)
 end
 
 -- inject lua table methods to use in chain mode

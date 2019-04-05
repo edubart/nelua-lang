@@ -5,7 +5,7 @@ local euluna_syntax = require 'euluna.syntaxdefs'()
 local euluna_parser = euluna_syntax.parser
 local euluna_grammar = euluna_syntax.grammar
 local euluna_astbuilder = euluna_syntax.astbuilder
-local AST = function(...) return euluna_astbuilder:AST(...) end
+local n = euluna_astbuilder.aster
 
 describe("Euluna should parse", function()
 
@@ -13,9 +13,9 @@ describe("Euluna should parse", function()
 -- empty file
 --------------------------------------------------------------------------------
 it("empty file", function()
-  assert.parse_ast(euluna_parser, "", AST('Block', {}))
-  assert.parse_ast(euluna_parser, " \t\n", AST('Block', {}))
-  assert.parse_ast(euluna_parser, ";", AST('Block', {}))
+  assert.parse_ast(euluna_parser, "", n.Block{{}})
+  assert.parse_ast(euluna_parser, " \t\n", n.Block{{}})
+  assert.parse_ast(euluna_parser, ";", n.Block{{}})
 end)
 
 --------------------------------------------------------------------------------
@@ -29,8 +29,8 @@ end)
 -- shebang
 --------------------------------------------------------------------------------
 it("shebang", function()
-  assert.parse_ast(euluna_parser, [[#!/usr/bin/env lua]], AST('Block', {}))
-  assert.parse_ast(euluna_parser, [[#!/usr/bin/env lua\n]], AST('Block', {}))
+  assert.parse_ast(euluna_parser, [[#!/usr/bin/env lua]], n.Block{{}})
+  assert.parse_ast(euluna_parser, [[#!/usr/bin/env lua\n]], n.Block{{}})
 end)
 
 --------------------------------------------------------------------------------
@@ -40,11 +40,11 @@ it("comments", function()
   assert.parse_ast(euluna_parser, [=[-- line comment
 --[[
 multiline comment
-]]]=], AST('Block', {}))
+]]]=], n.Block{{}})
 
   assert.parse_ast(euluna_parser, [=[if a then --[[f()]] end]=],
-    AST('Block', {AST('If', {{ AST('Id', 'a'), AST('Block', {})}
-  })}))
+    n.Block{{n.If{{{ n.Id{'a'}, n.Block{{}}}
+  }}}})
 end)
 
 --------------------------------------------------------------------------------
@@ -53,31 +53,31 @@ end)
 describe("return", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "return",
-      AST('Block', {
-        AST('Return', {})
-    }))
+      n.Block{{
+        n.Return{{}}
+    }})
   end)
   it("with semicolon", function()
     assert.parse_ast(euluna_parser, "return;",
-      AST('Block', {
-        AST('Return', {})
-    }))
+      n.Block{{
+        n.Return{{}}
+    }})
   end)
   it("with value", function()
     assert.parse_ast(euluna_parser, "return 0",
-      AST('Block', {
-        AST('Return', {
-          AST('Number', 'int', '0')
-    })}))
+      n.Block{{
+        n.Return{{
+          n.Number{'int', '0'}
+    }}}})
   end)
   it("with multiple values", function()
     assert.parse_ast(euluna_parser, "return 1,2,3",
-      AST('Block', {
-        AST('Return', {
-          AST('Number', 'int', '1'),
-          AST('Number', 'int', '2'),
-          AST('Number', 'int', '3'),
-    })}))
+      n.Block{{
+        n.Return{{
+          n.Number{'int', '1'},
+          n.Number{'int', '2'},
+          n.Number{'int', '3'},
+    }}}})
   end)
 end)
 
@@ -87,144 +87,144 @@ end)
 describe("expression", function()
   it("number", function()
     assert.parse_ast(euluna_parser, "return 3.34e-50, 0xff, 0.1",
-      AST('Block', {
-        AST('Return', {
-          AST('Number', 'exp', {'3.34', '-50'}),
-          AST('Number', 'hex', 'ff'),
-          AST('Number', 'dec', '0.1'),
-    })}))
+      n.Block{{
+        n.Return{{
+          n.Number{'exp', {'3.34', '-50'}},
+          n.Number{'hex', 'ff'},
+          n.Number{'dec', '0.1'},
+    }}}})
   end)
   it("string", function()
     assert.parse_ast(euluna_parser, [[return 'hi', "there"]],
-      AST('Block', {
-        AST('Return', {
-          AST('String', 'hi'),
-          AST('String', 'there')
-    })}))
+      n.Block{{
+        n.Return{{
+          n.String{'hi'},
+          n.String{'there'}
+    }}}})
   end)
   it("boolean", function()
     assert.parse_ast(euluna_parser, "return true, false",
-      AST('Block', {
-        AST('Return', {
-          AST('Boolean', true),
-          AST('Boolean', false)
-    })}))
+      n.Block{{
+        n.Return{{
+          n.Boolean{true},
+          n.Boolean{false}
+    }}}})
   end)
   it("nil", function()
     assert.parse_ast(euluna_parser, "return nil",
-      AST('Block', {
-        AST('Return', {
-          AST('Nil'),
-    })}))
+      n.Block{{
+        n.Return{{
+          n.Nil{},
+    }}}})
   end)
   it("varargs", function()
     assert.parse_ast(euluna_parser, "return ...",
-      AST('Block', {
-        AST('Return', {
-          AST('Varargs'),
-    })}))
+      n.Block{{
+        n.Return{{
+          n.Varargs{},
+    }}}})
   end)
   it("identifier", function()
     assert.parse_ast(euluna_parser, "return a, _b",
-      AST('Block', {
-        AST('Return', {
-          AST('Id', 'a'),
-          AST('Id', '_b'),
-    })}))
+      n.Block{{
+        n.Return{{
+          n.Id{'a'},
+          n.Id{'_b'},
+    }}}})
   end)
   it("table", function()
     assert.parse_ast(euluna_parser, "return {}, {a}, {a,b}, {a=b}, {[a] = b}",
-      AST('Block', {
-        AST('Return', {
-          AST('Table', {}),
-          AST('Table', { AST('Id', 'a') }),
-          AST('Table', { AST('Id', 'a'), AST('Id', 'b') }),
-          AST('Table', { AST('Pair', 'a', AST('Id', 'b')) }),
-          AST('Table', { AST('Pair', AST('Id', 'a'), AST('Id', 'b')) }),
-    })}))
+      n.Block{{
+        n.Return{{
+          n.Table{{}},
+          n.Table{{ n.Id{'a'} }},
+          n.Table{{ n.Id{'a'}, n.Id{'b'} }},
+          n.Table{{ n.Pair{'a', n.Id{'b'}} }},
+          n.Table{{ n.Pair{n.Id{'a'}, n.Id{'b'}} }},
+    }}}})
   end)
   it("surrounded expression", function()
     assert.parse_ast(euluna_parser, "return (a)",
-      AST('Block', {
-        AST('Return', {
-          AST('Paren',
-            AST('Id', 'a')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.Paren{
+            n.Id{'a'}
+    }}}}})
   end)
   it("dot index", function()
     assert.parse_ast(euluna_parser, "return a.b, a.b.c",
-      AST('Block', {
-        AST('Return', {
-          AST('DotIndex', 'b',
-            AST('Id', 'a')
-          ),
-          AST('DotIndex', 'c',
-            AST('DotIndex', 'b',
-              AST('Id', 'a')
-          ))
-    })}))
+      n.Block{{
+        n.Return{{
+          n.DotIndex{'b',
+            n.Id{'a'}
+          },
+          n.DotIndex{'c',
+            n.DotIndex{'b',
+              n.Id{'a'}
+          }}
+    }}}})
   end)
   it("array index", function()
     assert.parse_ast(euluna_parser, "return a[b], a[b][c]",
-      AST('Block', {
-        AST('Return', {
-          AST('ArrayIndex',
-            AST('Id', 'b'),
-            AST('Id', 'a')
-          ),
-          AST('ArrayIndex',
-            AST('Id', 'c'),
-            AST('ArrayIndex',
-              AST('Id', 'b'),
-              AST('Id', 'a')
-          ))
-    })}))
+      n.Block{{
+        n.Return{{
+          n.ArrayIndex{
+            n.Id{'b'},
+            n.Id{'a'}
+          },
+          n.ArrayIndex{
+            n.Id{'c'},
+            n.ArrayIndex{
+              n.Id{'b'},
+              n.Id{'a'}
+          }}
+    }}}})
   end)
   it("anonymous function", function()
     assert.parse_ast(euluna_parser, "return function() end, function(a, b: B): C,D end",
-      AST('Block', {
-        AST('Return', {
-          AST('Function', {}, {}, AST('Block', {})),
-          AST('Function',
-            { AST('IdDecl', 'a', 'var'), AST('IdDecl', 'b', 'var', AST('Type', 'B')) },
-            { AST('Type', 'C'), AST('Type', 'D') },
-            AST('Block', {})
-          )
-    })}))
+      n.Block{{
+        n.Return{{
+          n.Function{{}, {}, n.Block{{}}},
+          n.Function{
+            { n.IdDecl{'a', 'var'}, n.IdDecl{'b', 'var', n.Type{'B'}} },
+            { n.Type{'C'}, n.Type{'D'} },
+            n.Block{{}}
+          }
+    }}}})
   end)
   it("call global", function()
     assert.parse_ast(euluna_parser, "return a()",
-      AST('Block', {
-        AST('Return', {
-          AST('Call', {}, {}, AST('Id', 'a')),
-    })}))
+      n.Block{{
+        n.Return{{
+          n.Call{{}, {}, n.Id{'a'}},
+    }}}})
   end)
   it("call with arguments", function()
     assert.parse_ast(euluna_parser, "return a(a, 'b', 1, f(), ...)",
-      AST('Block', {
-        AST('Return', {
-          AST('Call', {}, {
-            AST('Id', 'a'),
-            AST('String', 'b'),
-            AST('Number', 'int', '1'),
-            AST('Call', {}, {}, AST('Id', 'f')),
-            AST('Varargs'),
-          }, AST('Id', 'a')),
-    })}))
+      n.Block{{
+        n.Return{{
+          n.Call{{}, {
+            n.Id{'a'},
+            n.String{'b'},
+            n.Number{'int', '1'},
+            n.Call{{}, {}, n.Id{'f'}},
+            n.Varargs{},
+          }, n.Id{'a'}},
+    }}}})
   end)
   it("call field", function()
     assert.parse_ast(euluna_parser, "return a.b()",
-      AST('Block', {
-        AST('Return', {
-          AST('Call', {}, {}, AST('DotIndex', 'b', AST('Id', 'a'))),
-    })}))
+      n.Block{{
+        n.Return{{
+          n.Call{{}, {}, n.DotIndex{'b', n.Id{'a'}}},
+    }}}})
   end)
   it("call method", function()
     assert.parse_ast(euluna_parser, "return a:b()",
-      AST('Block', {
-        AST('Return', {
-          AST('CallMethod', 'b', {}, {}, AST('Id', 'a')),
-    })}))
+      n.Block{{
+        n.Return{{
+          n.CallMethod{'b', {}, {}, n.Id{'a'}},
+    }}}})
   end)
 end)
 
@@ -238,39 +238,39 @@ describe("table", function()
       ['mystr']='mystr', [1.0]=1.0, [func()]=func(),
       [...]=...
     }]],
-      AST('Block', {
-        AST('Return', {
-          AST('Table', {
-            AST('Pair', 'a', AST('Id', 'a')),
-            AST('Pair', AST('Id', 'a'), AST('Id', 'a')),
-            AST('Pair', AST('Nil'), AST('Nil')),
-            AST('Pair', AST('Boolean', true), AST('Boolean', true)),
-            AST('Pair', AST('String', 'mystr'), AST('String', 'mystr')),
-            AST('Pair', AST('Number', 'dec', '1.0'), AST('Number', 'dec', '1.0')),
-            AST('Pair', AST('Call', {}, {}, AST('Id', 'func')), AST('Call', {}, {}, AST('Id', 'func'))),
-            AST('Pair', AST('Varargs'), AST('Varargs')),
-    })})}))
+      n.Block{{
+        n.Return{{
+          n.Table{{
+            n.Pair{'a', n.Id{'a'}},
+            n.Pair{n.Id{'a'}, n.Id{'a'}},
+            n.Pair{n.Nil{}, n.Nil{}},
+            n.Pair{n.Boolean{true}, n.Boolean{true}},
+            n.Pair{n.String{'mystr'}, n.String{'mystr'}},
+            n.Pair{n.Number{'dec', '1.0'}, n.Number{'dec', '1.0'}},
+            n.Pair{n.Call{{}, {}, n.Id{'func'}}, n.Call{{}, {}, n.Id{'func'}}},
+            n.Pair{n.Varargs{}, n.Varargs{}},
+    }}}}}})
   end)
   it("multiple values", function()
     assert.parse_ast(euluna_parser, "return {a,nil,true,'mystr',1.0,func(),...}",
-      AST('Block', {
-        AST('Return', {
-          AST('Table', {
-            AST('Id', 'a'),
-            AST('Nil'),
-            AST('Boolean', true),
-            AST('String', 'mystr'),
-            AST('Number', 'dec', '1.0'),
-            AST('Call', {}, {}, AST('Id', 'func')),
-            AST('Varargs'),
-    })})}))
+      n.Block{{
+        n.Return{{
+          n.Table{{
+            n.Id{'a'},
+            n.Nil{},
+            n.Boolean{true},
+            n.String{'mystr'},
+            n.Number{'dec', '1.0'},
+            n.Call{{}, {}, n.Id{'func'}},
+            n.Varargs{},
+    }}}}}})
   end)
   it("nested", function()
     assert.parse_ast(euluna_parser, "return {{{}}}",
-      AST('Block', {
-        AST('Return', {
-          AST('Table', { AST('Table', { AST('Table', {})}),
-    })})}))
+      n.Block{{
+        n.Return{{
+          n.Table{{ n.Table{{ n.Table{{}}}},
+    }}}}}})
   end)
 end)
 
@@ -281,53 +281,53 @@ end)
 describe("call", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "a()",
-      AST('Block', {
-        AST('Call', {}, {}, AST('Id', 'a'), true),
-    }))
+      n.Block{{
+        n.Call{{}, {}, n.Id{'a'}, true},
+    }})
   end)
   it("dot index", function()
     assert.parse_ast(euluna_parser, "a.b()",
-      AST('Block', {
-        AST('Call', {}, {}, AST('DotIndex', 'b', AST('Id', 'a')), true)
-    }))
+      n.Block{{
+        n.Call{{}, {}, n.DotIndex{'b', n.Id{'a'}}, true}
+    }})
   end)
   it("array index", function()
     assert.parse_ast(euluna_parser, "a['b']()",
-      AST('Block', {
-        AST('Call', {}, {}, AST('ArrayIndex', AST('String', 'b'), AST('Id', 'a')), true)
-    }))
+      n.Block{{
+        n.Call{{}, {}, n.ArrayIndex{n.String{'b'}, n.Id{'a'}}, true}
+    }})
   end)
   it("method", function()
     assert.parse_ast(euluna_parser, "a:b()",
-      AST('Block', {
-        AST('CallMethod', 'b', {}, {}, AST('Id', 'a'), true)
-    }))
+      n.Block{{
+        n.CallMethod{'b', {}, {}, n.Id{'a'}, true}
+    }})
   end)
   it("nested", function()
     assert.parse_ast(euluna_parser, "a(b())",
-      AST('Block', {
-        AST('Call', {}, {AST('Call', {}, {}, AST('Id', 'b'))}, AST('Id', 'a'), true),
-    }))
+      n.Block{{
+        n.Call{{}, {n.Call{{}, {}, n.Id{'b'}}}, n.Id{'a'}, true},
+    }})
   end)
   it("typed", function()
     assert.parse_ast(euluna_parser, "print<string>('hi')",
-      AST('Block', {
-        AST('Call',
-          { AST('Type', 'string') },
-          { AST('String', 'hi') },
-          AST('Id', 'print'), true),
-    }))
+      n.Block{{
+        n.Call{
+          { n.Type{'string'} },
+          { n.String{'hi'} },
+          n.Id{'print'}, true},
+    }})
   end)
   it("typed method", function()
     assert.parse_ast(euluna_parser, "s:substr<number,number>(1,2)",
-      AST('Block', {
-        AST('CallMethod',
+      n.Block{{
+        n.CallMethod{
           'substr',
-          { AST('Type', 'number'), AST('Type', 'number') },
-          { AST('Number', 'int', '1'), AST('Number', 'int', '2') },
-          AST('Id', 's'),
+          { n.Type{'number'}, n.Type{'number'} },
+          { n.Number{'int', '1'}, n.Number{'int', '2'} },
+          n.Id{'s'},
           true
-    )}))
+    }}})
   end)
 end)
 
@@ -337,20 +337,20 @@ end)
 describe("statement if", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "if true then end",
-      AST('Block', {
-        AST('If', {
-          {AST('Boolean', true), AST('Block', {})}
-    })}))
+      n.Block{{
+        n.If{{
+          {n.Boolean{true}, n.Block{{}}}
+    }}}})
   end)
   it("with elseifs and else", function()
     assert.parse_ast(euluna_parser, "if a then return x elseif b then return y else return z end",
-      AST('Block', {
-        AST('If', {
-          { AST('Id', 'a'), AST('Block', {AST('Return', { AST('Id', 'x') })}) },
-          { AST('Id', 'b'), AST('Block', {AST('Return', { AST('Id', 'y') })}) },
+      n.Block{{
+        n.If{{
+          { n.Id{'a'}, n.Block{{n.Return{{ n.Id{'x'} }}}} },
+          { n.Id{'b'}, n.Block{{n.Return{{ n.Id{'y'} }}}} },
         },
-        AST('Block', {AST('Return', { AST('Id', 'z') })})
-    )}))
+        n.Block{{n.Return{{ n.Id{'z'} }}}}
+    }}})
   end)
 end)
 
@@ -360,31 +360,31 @@ end)
 describe("statement switch", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "switch a case b then end",
-      AST('Block', {
-        AST('Switch',
-          AST('Id', 'a'),
-          { {AST('Id', 'b'), AST('Block', {})} }
-    )}))
+      n.Block{{
+        n.Switch{
+          n.Id{'a'},
+          { {n.Id{'b'}, n.Block{{}}} }
+    }}})
   end)
   it("with else part", function()
     assert.parse_ast(euluna_parser, "switch a case b then else end",
-      AST('Block', {
-        AST('Switch',
-          AST('Id', 'a'),
-          { {AST('Id', 'b'), AST('Block', {})} },
-          AST('Block', {})
-    )}))
+      n.Block{{
+        n.Switch{
+          n.Id{'a'},
+          { {n.Id{'b'}, n.Block{{}}} },
+          n.Block{{}}
+    }}})
   end)
   it("multiple cases", function()
     assert.parse_ast(euluna_parser, "switch a case b then case c then else end",
-      AST('Block', {
-        AST('Switch',
-          AST('Id', 'a'),
-          { {AST('Id', 'b'), AST('Block', {})},
-            {AST('Id', 'c'), AST('Block', {})}
+      n.Block{{
+        n.Switch{
+          n.Id{'a'},
+          { {n.Id{'b'}, n.Block{{}}},
+            {n.Id{'c'}, n.Block{{}}}
           },
-          AST('Block', {})
-    )}))
+          n.Block{{}}
+    }}})
   end)
 end)
 
@@ -394,15 +394,15 @@ end)
 describe("statement do", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "do end",
-      AST('Block', {
-        AST('Do', AST('Block', {}))
-    }))
+      n.Block{{
+        n.Do{n.Block{{}}}
+    }})
   end)
   it("with statements", function()
     assert.parse_ast(euluna_parser, "do print() end",
-      AST('Block', {
-        AST('Do', AST('Block', { AST('Call', {}, {}, AST('Id', 'print'), true) }))
-    }))
+      n.Block{{
+        n.Do{n.Block{{ n.Call{{}, {}, n.Id{'print'}, true} }}}
+    }})
   end)
 end)
 
@@ -412,31 +412,31 @@ end)
 describe("loop statement", function()
   it("while", function()
     assert.parse_ast(euluna_parser, "while a do end",
-      AST('Block', {
-        AST('While', AST('Id', 'a'), AST('Block', {}))
-    }))
+      n.Block{{
+        n.While{n.Id{'a'}, n.Block{{}}}
+    }})
   end)
   it("break and continue", function()
     assert.parse_ast(euluna_parser, "while a do break end",
-      AST('Block', {
-        AST('While', AST('Id', 'a'), AST('Block', { AST('Break') }))
-    }))
+      n.Block{{
+        n.While{n.Id{'a'}, n.Block{{ n.Break{} }}}
+    }})
     assert.parse_ast(euluna_parser, "while a do continue end",
-      AST('Block', {
-        AST('While', AST('Id', 'a'), AST('Block', { AST('Continue') }))
-    }))
+      n.Block{{
+        n.While{n.Id{'a'}, n.Block{{ n.Continue{} }}}
+    }})
   end)
   it("repeat", function()
     assert.parse_ast(euluna_parser, "repeat until a",
-      AST('Block', {
-        AST('Repeat', AST('Block', {}), AST('Id', 'a'))
-    }))
+      n.Block{{
+        n.Repeat{n.Block{{}}, n.Id{'a'}}
+    }})
     assert.parse_ast(euluna_parser, "repeat print() until a==b",
-      AST('Block', {
-        AST('Repeat',
-          AST('Block', { AST('Call', {}, {}, AST('Id', 'print'), true) }),
-          AST('BinaryOp', 'eq', AST('Id', 'a'), AST('Id', 'b'))
-    )}))
+      n.Block{{
+        n.Repeat{
+          n.Block{{ n.Call{{}, {}, n.Id{'print'}, true} }},
+          n.BinaryOp{'eq', n.Id{'a'}, n.Id{'b'}}
+    }}})
   end)
 end)
 
@@ -446,48 +446,48 @@ end)
 describe("statement for", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "for i=1,10 do end",
-      AST('Block', {
-        AST('ForNum',
-          AST('IdDecl', 'i', 'var'),
-          AST('Number', 'int', '1'),
+      n.Block{{
+        n.ForNum{
+          n.IdDecl{'i', 'var'},
+          n.Number{'int', '1'},
           'le',
-          AST('Number', 'int', '10'),
+          n.Number{'int', '10'},
           nil,
-          AST('Block', {}))
-    }))
+          n.Block{{}}}
+    }})
   end)
   it("reverse with comparations", function()
     assert.parse_ast(euluna_parser, "for i:number=10,>0,-1 do end",
-      AST('Block', {
-        AST('ForNum',
-          AST('IdDecl', 'i', 'var', AST('Type', 'number')),
-          AST('Number', 'int', '10'),
+      n.Block{{
+        n.ForNum{
+          n.IdDecl{'i', 'var', n.Type{'number'}},
+          n.Number{'int', '10'},
           'gt',
-          AST('Number', 'int', '0'),
-          AST('UnaryOp', 'neg', AST('Number', 'int', '1')),
-          AST('Block', {}))
-    }))
+          n.Number{'int', '0'},
+          n.UnaryOp{'neg', n.Number{'int', '1'}},
+          n.Block{{}}}
+    }})
   end)
   it("in", function()
     assert.parse_ast(euluna_parser, "for i in a,b,c do end",
-      AST('Block', {
-        AST('ForIn',
-          { AST('IdDecl', 'i', 'var') },
-          { AST('Id', 'a'), AST('Id', 'b'), AST('Id', 'c') },
-          AST('Block', {}))
-    }))
+      n.Block{{
+        n.ForIn{
+          { n.IdDecl{'i', 'var'} },
+          { n.Id{'a'}, n.Id{'b'}, n.Id{'c'} },
+          n.Block{{}}}
+    }})
   end)
   it("in typed", function()
     assert.parse_ast(euluna_parser, "for i:int8,j:int16,k:int32 in iter() do end",
-      AST('Block', {
-        AST('ForIn',
-          { AST('IdDecl', 'i', 'var', AST('Type', 'int8')),
-            AST('IdDecl', 'j', 'var', AST('Type', 'int16')),
-            AST('IdDecl', 'k', 'var', AST('Type', 'int32'))
+      n.Block{{
+        n.ForIn{
+          { n.IdDecl{'i', 'var', n.Type{'int8'}},
+            n.IdDecl{'j', 'var', n.Type{'int16'}},
+            n.IdDecl{'k', 'var', n.Type{'int32'}}
           },
-          { AST('Call', {}, {}, AST('Id', 'iter')) },
-          AST('Block', {}))
-    }))
+          { n.Call{{}, {}, n.Id{'iter'}} },
+          n.Block{{}}}
+    }})
   end)
 end)
 
@@ -497,23 +497,23 @@ end)
 describe("statement goto", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "goto mylabel",
-      AST('Block', {
-        AST('Goto', 'mylabel')
-    }))
+      n.Block{{
+        n.Goto{'mylabel'}
+    }})
   end)
   it("label", function()
     assert.parse_ast(euluna_parser, "::mylabel::",
-      AST('Block', {
-        AST('Label', 'mylabel')
-    }))
+      n.Block{{
+        n.Label{'mylabel'}
+    }})
   end)
   it("complex", function()
     assert.parse_ast(euluna_parser, "::mylabel:: f() if a then goto mylabel end",
-      AST('Block', {
-        AST('Label', 'mylabel'),
-        AST('Call', {}, {}, AST('Id', 'f'), true),
-        AST('If', { {AST('Id', 'a'), AST('Block', {AST('Goto', 'mylabel')}) } })
-    }))
+      n.Block{{
+        n.Label{'mylabel'},
+        n.Call{{}, {}, n.Id{'f'}, true},
+        n.If{{ {n.Id{'a'}, n.Block{{n.Goto{'mylabel'}}} } }}
+    }})
   end)
 end)
 
@@ -526,28 +526,28 @@ describe("statement variable declaration", function()
       local a
       local a: integer
     ]],
-      AST('Block', {
-        AST('VarDecl', 'local', 'var', { AST('IdDecl', 'a', 'var') }),
-        AST('VarDecl', 'local', 'var', { AST('IdDecl', 'a', 'var', AST('Type', 'integer')) })
-    }))
+      n.Block{{
+        n.VarDecl{'local', 'var', { n.IdDecl{'a', 'var'} }},
+        n.VarDecl{'local', 'var', { n.IdDecl{'a', 'var', n.Type{'integer'}} }}
+    }})
   end)
   it("local variable assignment", function()
     assert.parse_ast(euluna_parser, [[
       local a = b
       local a: integer = b
     ]],
-      AST('Block', {
-        AST('VarDecl', 'local', 'var', { AST('IdDecl', 'a', 'var') }, { AST('Id', 'b') }),
-        AST('VarDecl', 'local', 'var',
-          { AST('IdDecl', 'a', 'var', AST('Type', 'integer')) },
-          { AST('Id', 'b') })
-    }))
+      n.Block{{
+        n.VarDecl{'local', 'var', { n.IdDecl{'a', 'var'} }, { n.Id{'b'} }},
+        n.VarDecl{'local', 'var',
+          { n.IdDecl{'a', 'var', n.Type{'integer'}} },
+          { n.Id{'b'} }}
+    }})
   end)
   it("non local variable", function()
     assert.parse_ast(euluna_parser, "var a",
-      AST('Block', {
-        AST('VarDecl', nil, 'var', { AST('IdDecl', 'a', 'var') })
-    }))
+      n.Block{{
+        n.VarDecl{nil, 'var', { n.IdDecl{'a', 'var'} }}
+    }})
   end)
   it("variable mutabilities", function()
     assert.parse_ast(euluna_parser, [[
@@ -556,20 +556,20 @@ describe("statement variable declaration", function()
       val& a = b
       local var& a = b
     ]],
-      AST('Block', {
-        AST('VarDecl', nil, 'var', { AST('IdDecl', 'a', 'var') }, { AST('Id', 'b') }),
-        AST('VarDecl', nil, 'val', { AST('IdDecl', 'a', 'var') }, { AST('Id', 'b') }),
-        AST('VarDecl', nil, 'val&', { AST('IdDecl', 'a', 'var') }, { AST('Id', 'b') }),
-        AST('VarDecl', 'local', 'var&', { AST('IdDecl', 'a', 'var') }, { AST('Id', 'b') }),
-    }))
+      n.Block{{
+        n.VarDecl{nil, 'var', { n.IdDecl{'a', 'var'} }, { n.Id{'b'} }},
+        n.VarDecl{nil, 'val', { n.IdDecl{'a', 'var'} }, { n.Id{'b'} }},
+        n.VarDecl{nil, 'val&', { n.IdDecl{'a', 'var'} }, { n.Id{'b'} }},
+        n.VarDecl{'local', 'var&', { n.IdDecl{'a', 'var'} }, { n.Id{'b'} }},
+    }})
   end)
   it("variable multiple assigments", function()
     assert.parse_ast(euluna_parser, "local a,b,c = x,y,z",
-      AST('Block', {
-        AST('VarDecl', 'local', 'var',
-          { AST('IdDecl', 'a', 'var'), AST('IdDecl', 'b', 'var'), AST('IdDecl', 'c', 'var') },
-          { AST('Id', 'x'), AST('Id', 'y'), AST('Id', 'z') }),
-    }))
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          { n.IdDecl{'a', 'var'}, n.IdDecl{'b', 'var'}, n.IdDecl{'c', 'var'} },
+          { n.Id{'x'}, n.Id{'y'}, n.Id{'z'} }},
+    }})
   end)
 end)
 
@@ -579,49 +579,49 @@ end)
 describe("statement assignment", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "a = b",
-      AST('Block', {
-        AST('Assign',
-          { AST('Id', 'a') },
-          { AST('Id', 'b') }),
-    }))
+      n.Block{{
+        n.Assign{
+          { n.Id{'a'} },
+          { n.Id{'b'} }},
+    }})
   end)
   it("multiple", function()
     assert.parse_ast(euluna_parser, "a,b,c = x,y,z",
-      AST('Block', {
-        AST('Assign',
-          { AST('Id', 'a'), AST('Id', 'b'), AST('Id', 'c') },
-          { AST('Id', 'x'), AST('Id', 'y'), AST('Id', 'z') }),
-    }))
+      n.Block{{
+        n.Assign{
+          { n.Id{'a'}, n.Id{'b'}, n.Id{'c'} },
+          { n.Id{'x'}, n.Id{'y'}, n.Id{'z'} }},
+    }})
   end)
   it("on indexes", function()
     assert.parse_ast(euluna_parser, "a.b, a[b], a[b][c], f(a).b = x,y,z,w",
-      AST('Block', {
-        AST('Assign',
-          { AST('DotIndex', 'b', AST('Id', 'a')),
-            AST('ArrayIndex', AST('Id', 'b'), AST('Id', 'a')),
-            AST('ArrayIndex', AST('Id', 'c'), AST('ArrayIndex', AST('Id', 'b'), AST('Id', 'a'))),
-            AST('DotIndex', 'b', AST('Call', {}, {AST('Id', 'a')}, AST('Id', 'f'))),
+      n.Block{{
+        n.Assign{
+          { n.DotIndex{'b', n.Id{'a'}},
+            n.ArrayIndex{n.Id{'b'}, n.Id{'a'}},
+            n.ArrayIndex{n.Id{'c'}, n.ArrayIndex{n.Id{'b'}, n.Id{'a'}}},
+            n.DotIndex{'b', n.Call{{}, {n.Id{'a'}}, n.Id{'f'}}},
           },
-          { AST('Id', 'x'), AST('Id', 'y'), AST('Id', 'z'), AST('Id', 'w') })
-    }))
+          { n.Id{'x'}, n.Id{'y'}, n.Id{'z'}, n.Id{'w'} }}
+    }})
   end)
   it("on calls", function()
     assert.parse_ast(euluna_parser, "f().a, a.b()[c].d = 1, 2",
-      AST('Block', {
-        AST('Assign', {
-          AST('DotIndex', "a", AST('Call', {}, {}, AST('Id', "f"))),
-          AST('DotIndex',
+      n.Block{{
+        n.Assign{{
+          n.DotIndex{"a", n.Call{{}, {}, n.Id{"f"}}},
+          n.DotIndex{
               "d",
-              AST('ArrayIndex',
-                AST('Id', "c"),
-                AST('Call', {}, {}, AST('DotIndex', "b", AST('Id', "a")))
-              )
-            )
+              n.ArrayIndex{
+                n.Id{"c"},
+                n.Call{{}, {}, n.DotIndex{"b", n.Id{"a"}}}
+              }
+            }
           },
-          { AST('Number', "int", "1", nil),
-            AST('Number', "int", "2", nil)
+          { n.Number{"int", "1", nil},
+            n.Number{"int", "2", nil}
           }
-    )}))
+    }}})
   end)
 end)
 
@@ -631,30 +631,30 @@ end)
 describe("statement function", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "function f() end",
-      AST('Block', {
-        AST('FuncDef', nil, AST('Id', 'f'), {}, {}, AST('Block', {}) )
-    }))
+      n.Block{{
+        n.FuncDef{nil, n.Id{'f'}, {}, {}, n.Block{{}} }
+    }})
   end)
   it("local and typed", function()
     assert.parse_ast(euluna_parser, "local function f(a, b: int): string end",
-      AST('Block', {
-        AST('FuncDef', 'local', AST('Id', 'f'),
-          { AST('IdDecl', 'a', 'var'), AST('IdDecl', 'b', 'var', AST('Type', 'int')) },
-          { AST('Type', 'string') },
-          AST('Block', {}) )
-    }))
+      n.Block{{
+        n.FuncDef{'local', n.Id{'f'},
+          { n.IdDecl{'a', 'var'}, n.IdDecl{'b', 'var', n.Type{'int'}} },
+          { n.Type{'string'} },
+          n.Block{{}} }
+    }})
   end)
   it("with colon index", function()
     assert.parse_ast(euluna_parser, "function a:f() end",
-      AST('Block', {
-        AST('FuncDef', nil, AST('ColonIndex', 'f', AST('Id', 'a')), {}, {}, AST('Block', {}) )
-    }))
+      n.Block{{
+        n.FuncDef{nil, n.ColonIndex{'f', n.Id{'a'}}, {}, {}, n.Block{{}} }
+    }})
   end)
   it("with dot index", function()
     assert.parse_ast(euluna_parser, "function a.f() end",
-      AST('Block', {
-        AST('FuncDef', nil, AST('DotIndex', 'f', AST('Id', 'a')), {}, {}, AST('Block', {}) )
-    }))
+      n.Block{{
+        n.FuncDef{nil, n.DotIndex{'f', n.Id{'a'}}, {}, {}, n.Block{{}} }
+    }})
   end)
 end)
 
@@ -664,199 +664,199 @@ end)
 describe("operator", function()
   it("'or'", function()
     assert.parse_ast(euluna_parser, "return a or b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'or', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'or', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'and'", function()
     assert.parse_ast(euluna_parser, "return a and b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'and', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'and', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'<'", function()
     assert.parse_ast(euluna_parser, "return a < b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'lt', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'lt', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'>'", function()
     assert.parse_ast(euluna_parser, "return a > b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'gt', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'gt', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'<='", function()
     assert.parse_ast(euluna_parser, "return a <= b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'le', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'le', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'>='", function()
     assert.parse_ast(euluna_parser, "return a >= b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'ge', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'ge', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'~='", function()
     assert.parse_ast(euluna_parser, "return a ~= b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'ne', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'ne', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'=='", function()
     assert.parse_ast(euluna_parser, "return a == b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'eq', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'eq', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'|'", function()
     assert.parse_ast(euluna_parser, "return a | b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'bor', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'bor', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'~'", function()
     assert.parse_ast(euluna_parser, "return a ~ b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'bxor', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'bxor', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'&'", function()
     assert.parse_ast(euluna_parser, "return a & b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'band', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'band', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'<<'", function()
     assert.parse_ast(euluna_parser, "return a << b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'shl', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'shl', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'>>'", function()
     assert.parse_ast(euluna_parser, "return a >> b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'shr', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'shr', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'..'", function()
     assert.parse_ast(euluna_parser, "return a .. b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'concat', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'concat', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'+'", function()
     assert.parse_ast(euluna_parser, "return a + b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'add', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'add', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'-'", function()
     assert.parse_ast(euluna_parser, "return a - b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'sub', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'sub', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'*'", function()
     assert.parse_ast(euluna_parser, "return a * b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'mul', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'mul', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'/'", function()
     assert.parse_ast(euluna_parser, "return a / b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'div', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'div', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'//'", function()
     assert.parse_ast(euluna_parser, "return a // b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'idiv', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'idiv', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'%'", function()
     assert.parse_ast(euluna_parser, "return a % b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'mod', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'mod', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
   it("'not'", function()
     assert.parse_ast(euluna_parser, "return not a",
-      AST('Block', {
-        AST('Return', {
-          AST('UnaryOp', 'not', AST('Id', 'a')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.UnaryOp{'not', n.Id{'a'}
+    }}}}})
   end)
   it("'#'", function()
     assert.parse_ast(euluna_parser, "return #a",
-      AST('Block', {
-        AST('Return', {
-          AST('UnaryOp', 'len', AST('Id', 'a')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.UnaryOp{'len', n.Id{'a'}
+    }}}}})
   end)
   it("'-'", function()
     assert.parse_ast(euluna_parser, "return -a",
-      AST('Block', {
-        AST('Return', {
-          AST('UnaryOp', 'neg', AST('Id', 'a')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.UnaryOp{'neg', n.Id{'a'}
+    }}}}})
   end)
   it("'~'", function()
     assert.parse_ast(euluna_parser, "return ~a",
-      AST('Block', {
-        AST('Return', {
-          AST('UnaryOp', 'bnot', AST('Id', 'a')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.UnaryOp{'bnot', n.Id{'a'}
+    }}}}})
   end)
   it("'$'", function()
     assert.parse_ast(euluna_parser, "return $a",
-      AST('Block', {
-        AST('Return', {
-          AST('UnaryOp', 'tostring', AST('Id', 'a')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.UnaryOp{'tostring', n.Id{'a'}
+    }}}}})
   end)
   it("'&'", function()
     assert.parse_ast(euluna_parser, "return &a",
-      AST('Block', {
-        AST('Return', {
-          AST('UnaryOp', 'ref', AST('Id', 'a')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.UnaryOp{'ref', n.Id{'a'}
+    }}}}})
   end)
   it("'*'", function()
     assert.parse_ast(euluna_parser, "return *a",
-      AST('Block', {
-        AST('Return', {
-          AST('UnaryOp', 'deref', AST('Id', 'a')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.UnaryOp{'deref', n.Id{'a'}
+    }}}}})
   end)
   it("'^'", function()
     assert.parse_ast(euluna_parser, "return a ^ b",
-      AST('Block', {
-        AST('Return', {
-          AST('BinaryOp', 'pow', AST('Id', 'a'), AST('Id', 'b')
-    )})}))
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'pow', n.Id{'a'}, n.Id{'b'}
+    }}}}})
   end)
 end)
 
@@ -892,36 +892,36 @@ end)
 describe("type expression", function()
   it("function", function()
     assert.parse_ast(euluna_parser, "local f: function<()>",
-      AST('Block', {
-        AST('VarDecl', 'local', 'var',
-          { AST('IdDecl', 'f', 'var', AST('FuncType', {}, {})) }
-    )}))
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          { n.IdDecl{'f', 'var', n.FuncType{{}, {}}} }
+    }}})
     assert.parse_ast(euluna_parser, "local f: function<(int): string>",
-      AST('Block', {
-        AST('VarDecl', 'local', 'var',
-          { AST('IdDecl', 'f', 'var', AST('FuncType', {AST('Type', 'int')}, {AST('Type', 'string')})) }
-    )}))
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          { n.IdDecl{'f', 'var', n.FuncType{{n.Type{'int'}}, {n.Type{'string'}}}} }
+    }}})
     assert.parse_ast(euluna_parser, "local f: function<(int, uint): string, bool>",
-      AST('Block', {
-        AST('VarDecl', 'local', 'var',
-          { AST('IdDecl', 'f', 'var', AST('FuncType',
-            {AST('Type', 'int'), AST('Type', 'uint')},
-            {AST('Type', 'string'), AST('Type', 'bool')})) }
-    )}))
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          { n.IdDecl{'f', 'var', n.FuncType{
+            {n.Type{'int'}, n.Type{'uint'}},
+            {n.Type{'string'}, n.Type{'bool'}}}} }
+    }}})
   end)
   it("composed type", function()
     assert.parse_ast(euluna_parser, "local t: table<int>",
-      AST('Block', {
-        AST('VarDecl', 'local', 'var',
-          { AST('IdDecl', 't', 'var', AST('ComposedType', 'table',
-            { AST('Type', 'int') })) }
-    )}))
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          { n.IdDecl{'t', 'var', n.ComposedType{'table',
+            { n.Type{'int'} }}} }
+    }}})
     assert.parse_ast(euluna_parser, "local t: table<int, string>",
-      AST('Block', {
-        AST('VarDecl', 'local', 'var',
-          { AST('IdDecl', 't', 'var', AST('ComposedType', 'table',
-            { AST('Type', 'int'), AST('Type', 'string') })) }
-    )}))
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          { n.IdDecl{'t', 'var', n.ComposedType{'table',
+            { n.Type{'int'}, n.Type{'string'} }}} }
+    }}})
   end)
 end)
 
@@ -943,15 +943,15 @@ describe("live grammar change for", function()
     parser:remove_keyword("return")
 
     assert.parse_ast(parser, "do_return",
-      AST('Block', {
-        AST('Return', {})}))
+      n.Block{{
+        n.Return{{}}}})
     assert.parse_ast_error(parser, "return", 'UnexpectedSyntaxAtEOF')
   end)
 
   it("return keyword (revert)", function()
     assert.parse_ast(euluna_parser, "return",
-      AST('Block', {
-        AST('Return', {})}))
+      n.Block{{
+        n.Return{{}}}})
     assert.parse_ast_error(euluna_parser, "do_return", 'UnexpectedSyntaxAtEOF')
   end)
 end)

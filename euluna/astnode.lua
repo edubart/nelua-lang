@@ -1,8 +1,9 @@
-local inspect = require 'inspect'
+local pegger = require 'euluna.utils.pegger'
 local class = require 'euluna.utils.class'
 local errorer = require 'euluna.utils.errorer'
 local tabler = require 'euluna.utils.tabler'
 local iters = require 'euluna.utils.iterators'
+local traits = require 'euluna.utils.traits'
 local except = require 'euluna.utils.except'
 
 local ASTNode = class()
@@ -65,33 +66,55 @@ end
 -------------------
 -- pretty print ast
 -------------------
+local ignored_stringfy_keys = { pos = true, src = true, srcname=true }
+local function stringfy_val2str(val)
+  local vstr = tostring(val)
+  if traits.is_number(val) or traits.is_boolean(val) or val == nil then
+    return vstr
+  else
+    return pegger.double_quote_lua_string(vstr)
+  end
+end
+
 local function stringfy_astnode(node, depth, t, skipindent)
   local indent = string.rep('  ', depth)
   local isnode = node._astnode
   if not skipindent then
     table.insert(t, indent)
   end
+  local empty = true
+  for k,_ in pairs(node) do
+    if not isnode or not ignored_stringfy_keys[k] then
+      empty = false
+    end
+  end
   if isnode then
-    if node.type then
-      tabler.insert_many(t, "TAST('", tostring(node.type), "', '", node.tag, "'")
-    else
-      tabler.insert_many(t, "AST('", node.tag, "'")
+    tabler.insertmany(t, node.tag, ' ')
+  end
+  table.insert(t, '{')
+  if isnode and not empty then
+    table.insert(t, '\n')
+  else
+    table.insert(t, ' ')
+  end
+  for k,v in iters.ospairs(node) do
+    if not isnode or not ignored_stringfy_keys[k] then
+      tabler.insertmany(t, indent, '  ', k, ' = ', stringfy_val2str(v), ',\n')
     end
   end
   local nargs = isnode and node.nargs or #node
   if nargs > 0 then
-    table.insert(t, isnode and ',\n' or '{ ')
-    for i,v in iters.inpairs(node,nargs) do
+    for i,v in iters.inpairs(node, nargs) do
       if type(v) == 'table' then
         stringfy_astnode(v, depth+1, t, i == 1 and not isnode)
       else
-        tabler.insert_many(t, indent, '  ', inspect(v))
+        tabler.insertmany(t, indent, '  ', stringfy_val2str(v))
       end
       table.insert(t, (i == nargs and '\n' or ',\n'))
     end
-    tabler.insert_many(t, indent, isnode and ')' or '}')
+    tabler.insertmany(t, indent, '}')
   else
-    table.insert(t,  (isnode and ')' or '{}'))
+    table.insert(t, (isnode and '}' or '{}'))
   end
   if depth == 0 then
     return table.concat(t)

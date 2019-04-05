@@ -29,36 +29,40 @@ it("error on parsing an invalid program" , function()
 end)
 
 it("print correct generated AST" , function()
-  assert.run('--print-ast examples/helloworld.euluna', [[AST('Block',
-  { AST('Call',
-      {},
-      { AST('String',
+  assert.run('--print-ast examples/helloworld.euluna', [[Block {
+  { Call {
+      { {},
+      { String {
           "hello world",
           nil
-        )
+        }
       },
-      AST('Id',
+      Id {
         "print"
-      ),
+      },
       true
-    )
+    }
   }
-)]])
-  assert.run('--print-analyzed-ast examples/helloworld.euluna', [[AST('Block',
-  { TAST('any', 'Call',
-      {},
-      { TAST('string', 'String',
+}]])
+  assert.run('--print-analyzed-ast examples/helloworld.euluna', [[Block {
+  { Call {
+      callee_type = "any",
+      type = "any",
+      { {},
+      { String {
+          type = "string",
           "hello world",
           nil
-        )
+        }
       },
-      TAST('any', 'Id',
+      Id {
+        type = "any",
         "print"
-      ),
+      },
       true
-    )
+    }
   }
-)]])
+}]])
 end)
 
 it("print correct generated code", function()

@@ -3,7 +3,7 @@ require 'busted.runner'()
 local assert = require 'spec.assert'
 local euluna_parser = require 'euluna.syntaxdefs'().parser
 local euluna_astbuilder = euluna_parser.astbuilder
-local AST = function(...) return euluna_astbuilder:AST(...) end
+local n = euluna_astbuilder.aster
 local pegs = euluna_parser.defs
 
 describe("Euluna parser should parse", function()
@@ -86,7 +86,7 @@ it("identifiers", function()
     ['var123'] = 'var123'
   })
   assert.peg_capture_all(pegs.cID, {
-    ['_varname'] = AST('Id', '_varname')
+    ['_varname'] = n.Id{'_varname'}
   })
   assert.peg_match_none(pegs.cNAME, {
     '123a', 'if', '-varname', 'if', 'else'
@@ -99,47 +99,47 @@ end)
 describe("numbers", function()
   it("binary", function()
     assert.peg_capture_all(pegs.cNUMBER, {
-      ["0b0"] = AST("Number", "bin", "0"),
-      ["0b1"] = AST("Number", "bin", "1"),
-      ["0b10101111"] = AST("Number", "bin", "10101111"),
+      ["0b0"] = n.Number{"bin", "0"},
+      ["0b1"] = n.Number{"bin", "1"},
+      ["0b10101111"] = n.Number{"bin", "10101111"},
     })
   end)
   it("hexadecimal", function()
     assert.peg_capture_all(pegs.cNUMBER, {
-      ["0x0"] = AST("Number", "hex", "0"),
-      ["0x0123456789abcdef"] = AST("Number", "hex", "0123456789abcdef"),
-      ["0xABCDEF"] = AST("Number", "hex", "ABCDEF"),
+      ["0x0"] = n.Number{"hex", "0"},
+      ["0x0123456789abcdef"] = n.Number{"hex", "0123456789abcdef"},
+      ["0xABCDEF"] = n.Number{"hex", "ABCDEF"},
     })
   end)
   it("integer", function()
     assert.peg_capture_all(pegs.cNUMBER, {
-      ["1"] = AST("Number", "int", "1"),
-      ["0123456789"] = AST("Number", "int", "0123456789"),
+      ["1"] = n.Number{"int", "1"},
+      ["0123456789"] = n.Number{"int", "0123456789"},
     })
   end)
   it("decimal", function()
     assert.peg_capture_all(pegs.cNUMBER, {
-      [".0"] = AST("Number", "dec", ".0"),
-      ["0."] = AST("Number", "dec", "0."),
-      ["0123.456789"] = AST("Number", "dec", "0123.456789"),
+      [".0"] = n.Number{"dec", ".0"},
+      ["0."] = n.Number{"dec", "0."},
+      ["0123.456789"] = n.Number{"dec", "0123.456789"},
     })
   end)
   it("exponential", function()
     assert.peg_capture_all(pegs.cNUMBER, {
-      ["1.2e-3"] = AST("Number", "exp", {"1.2" , "-3"}),
-      [".1e2"] = AST("Number", "exp", {".1", "2"}),
-      [".0e+2"] = AST("Number", "exp", {".0", "+2"}),
-      ["1e-2"] = AST("Number", "exp", {"1", "-2"}),
-      ["1e+2"] = AST("Number", "exp", {"1", "+2"}),
-      ["1.e3"] = AST("Number", "exp", {"1.", "3"}),
-      ["1e1"] = AST("Number", "exp", {"1", "1"}),
-      ["1.2e+6"] = AST("Number", "exp", {"1.2", "+6"}),
+      ["1.2e-3"] = n.Number{"exp", {"1.2" , "-3"}},
+      [".1e2"] = n.Number{"exp", {".1", "2"}},
+      [".0e+2"] = n.Number{"exp", {".0", "+2"}},
+      ["1e-2"] = n.Number{"exp", {"1", "-2"}},
+      ["1e+2"] = n.Number{"exp", {"1", "+2"}},
+      ["1.e3"] = n.Number{"exp", {"1.", "3"}},
+      ["1e1"] = n.Number{"exp", {"1", "1"}},
+      ["1.2e+6"] = n.Number{"exp", {"1.2", "+6"}},
     })
   end)
   it("literal", function()
     assert.peg_capture_all(pegs.cNUMBER, {
-      [".1f"] = AST("Number", "dec", ".1", "f"),
-      ["123u"] = AST("Number", "int", "123", "u"),
+      [".1f"] = n.Number{"dec", ".1", "f"},
+      ["123u"] = n.Number{"int", "123", "u"},
     })
   end)
   it("malformed", function()
@@ -207,8 +207,8 @@ describe("string", function()
       "[[[]]", "[=[]]=]", "[==[]]]]==]",
       "[[test]]", "[=[test]=]", "[==[test]==]",
       "[[\nasd\n]]", "[=[\nasd\n]=]", "[==[\nasd\n]==]",
-      ["[[\nasd\n]]"] = AST('String', "asd\n"),
-      ["[==[\nasd\n]==]"] = AST('String', "asd\n")
+      ["[[\nasd\n]]"] = n.String{"asd\n"},
+      ["[==[\nasd\n]==]"] = n.String{"asd\n"}
     })
     assert.peg_error_all(pegs.cSTRING, 'UnclosedLongString', {
       '[[', '[=[]]', '[[]',
@@ -217,11 +217,11 @@ describe("string", function()
 
   it("short", function()
     assert.peg_capture_all(pegs.cSTRING, {
-      ['""'] = AST('String', ''),
-      ["''"] = AST('String', ''),
-      ['"test"'] = AST('String', 'test'),
-      ["'test'"] = AST('String', 'test'),
-      ['"a\\t\\nb"'] = AST('String', 'a\t\nb')
+      ['""'] = n.String{''},
+      ["''"] = n.String{''},
+      ['"test"'] = n.String{'test'},
+      ["'test'"] = n.String{'test'},
+      ['"a\\t\\nb"'] = n.String{'a\t\nb'}
     })
     assert.peg_error_all(pegs.cSTRING, 'UnclosedShortString', {
       '"', "'", '"\\"', "'\\\"", '"\n"',
@@ -230,9 +230,9 @@ describe("string", function()
 
   it("literal", function()
     assert.peg_capture_all(pegs.cSTRING, {
-      ['"asd"u8'] = AST("String", "asd", "u8"),
-      ["'asd'hex"] = AST("String", "asd", "hex"),
-      ["[[asd]]hex"] = AST("String", "asd", "hex"),
+      ['"asd"u8'] = n.String{"asd", "u8"},
+      ["'asd'hex"] = n.String{"asd", "hex"},
+      ["[[asd]]hex"] = n.String{"asd", "hex"},
     })
   end)
 end)
@@ -242,8 +242,8 @@ end)
 --------------------------------------------------------------------------------
 it("boolean", function()
   assert.peg_capture_all(pegs.cBOOLEAN, {
-    ["true"] = AST("Boolean", true),
-    ["false"] = AST("Boolean", false),
+    ["true"] = n.Boolean{true},
+    ["false"] = n.Boolean{false},
   })
   assert.peg_match_none(pegs.cBOOLEAN, {
     'False', 'FALSE', 'True', 'TRUE',
