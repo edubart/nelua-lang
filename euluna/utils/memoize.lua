@@ -7,7 +7,7 @@ local function cache_get(f, params)
   if cachef then
     for cparams,cres in pairs(cachef) do
       if tabler.deepcompare(cparams, params) then
-        return tabler.unpack(cres, 1, params.n)
+        return tabler.unpack(cres, 1, cres.n)
       end
     end
   else

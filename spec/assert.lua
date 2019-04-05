@@ -1,10 +1,15 @@
 
 local assert = require 'luassert'
-local runner = require 'euluna.runner'
 local inspect = require 'inspect'
 local stringer = require 'euluna.utils.stringer'
 local except = require 'euluna.utils.except'
 local errorer = require 'euluna.utils.errorer'
+local runner = require 'euluna.runner'
+local typechecker = require 'euluna.typechecker'
+local lua_generator = require 'euluna.luagenerator'
+local c_generator = require 'euluna.cgenerator'
+local euluna_syntax = require 'euluna.syntaxdefs'()
+local euluna_parser = euluna_syntax.parser
 
 function assert.ast_equals(expected_ast, ast)
   assert.same(tostring(expected_ast), tostring(ast))
@@ -118,6 +123,69 @@ function assert.run_error(args, expected_stderr)
   if expected_stderr then
     assert.contains(expected_stderr, serr)
   end
+end
+
+function assert.generate_lua(euluna_code, lua_code)
+  lua_code = lua_code or euluna_code
+  local ast = assert.parse_ast(euluna_parser, euluna_code)
+  assert(typechecker.analyze(ast, euluna_parser.astbuilder))
+  local generated_code = assert(lua_generator.generate(ast))
+  assert.same(stringer.rstrip(lua_code), stringer.rstrip(generated_code))
+end
+
+function assert.generate_c(euluna_code, c_code)
+  local ast = assert.parse_ast(euluna_parser, euluna_code)
+  ast = assert(typechecker.analyze(ast, euluna_parser.astbuilder))
+  local generated_code = assert(c_generator.generate(ast))
+  if not c_code then c_code = euluna_code end
+  errorer.assertf(generated_code:find(c_code or '', 1, true),
+    "Expected C code to contains.\nPassed in:\n%s\nExpected:\n%s",
+    generated_code, c_code)
+end
+
+function assert.run_c(euluna_code, output)
+  assert.run({'--generator', 'c', '--eval', euluna_code}, output)
+end
+
+function assert.run_error_c(euluna_code, output)
+  assert.run_error({'--generator', 'c', '--eval', euluna_code}, output)
+end
+
+function assert.c_gencode_equals(code, expected_code)
+  local ast = assert.parse_ast(euluna_parser, code)
+  ast = assert(typechecker.analyze(ast, euluna_parser.astbuilder))
+  local expected_ast = assert.parse_ast(euluna_parser, expected_code)
+  expected_ast = assert(typechecker.analyze(expected_ast))
+  local generated_code = assert(c_generator.generate(ast))
+  local expected_generated_code = assert(c_generator.generate(expected_ast))
+  assert.same(expected_generated_code, generated_code)
+end
+
+function assert.lua_gencode_equals(code, expected_code)
+  local ast = assert.parse_ast(euluna_parser, code)
+  ast = assert(typechecker.analyze(ast, euluna_parser.astbuilder))
+  local expected_ast = assert.parse_ast(euluna_parser, expected_code)
+  expected_ast = assert(typechecker.analyze(expected_ast))
+  local generated_code = assert(lua_generator.generate(ast))
+  local expected_generated_code = assert(lua_generator.generate(expected_ast))
+  assert.same(expected_generated_code, generated_code)
+end
+
+function assert.analyze_ast(code, expected_ast)
+  local ast = assert.parse_ast(euluna_parser, code)
+  typechecker.analyze(ast, euluna_parser.astbuilder)
+  if expected_ast then
+    assert.same(tostring(expected_ast), tostring(ast))
+  end
+end
+
+function assert.analyze_error(code, expected_error)
+  local ast = assert.parse_ast(euluna_parser, code)
+  local ok, e = except.try(function()
+    typechecker.analyze(ast, euluna_parser.astbuilder)
+  end)
+  assert(not ok, "type analysis should fail")
+  assert.contains(expected_error, e:get_message())
 end
 
 return assert
