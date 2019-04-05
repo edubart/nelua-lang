@@ -32,7 +32,7 @@ function ASTBuilder:register(tag, shape)
   self.nodes[tag] = klass
   self.aster[tag] = function(params)
     local nargs = math.min(klass.nargs, #params)
-    local node = self:create(tag, table.unpack(params, 1, nargs))
+    local node = self:create(tag, tabler.unpack(params, 1, nargs))
     for k,v in iters.spairs(params) do
       node[k] = v
     end

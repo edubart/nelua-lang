@@ -91,30 +91,4 @@ void euluna_arrtab_{%=tyname%}_push(euluna_arrtab_{%=tyname%}_t* t, {%=ctype%} v
 
 /* {% end %} */
 
-/*
-#include <stdio.h>
-
-int64_t sieve(int64_t N) {
-    euluna_arrtab_{%=tyname%}_t is_prime = {0};
-    euluna_arrtab_{%=tyname%}_resize(&is_prime, N, true);
-    euluna_arrtab_{%=tyname%}_set(&is_prime, 1, false);
-    int64_t nprimes = 0;
-    for(int64_t n = 2; n <= N; n += 1) {
-        if(euluna_arrtab_{%=tyname%}_get(&is_prime, n)) {
-            nprimes = nprimes + 1;
-            for(int64_t m = n + n; m <= N; m += n) {
-                euluna_arrtab_{%=tyname%}_set(&is_prime, m, false);
-            }
-        }
-    }
-    return nprimes;
-}
-
-int euluna_main() {
-  int64_t res = sieve(10000000);
-  printf("%li\n", res);
-  return 0;
-}
-*/
-
 /* {% end %} */
