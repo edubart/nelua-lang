@@ -18,15 +18,6 @@ function tabler.find(t, val, idx)
   return nil
 end
 
--- insert a value if not exists
---[[
-function tabler.insertonce(t, val)
-  if tabler.find(t, val) then return false end
-  table.insert(t, val)
-  return true
-end
-]]
-
 -- create a new table of mapped array values
 function tabler.imap(t, f)
   local _t = {}
@@ -85,8 +76,11 @@ end
 tabler.concat = table.concat
 tabler.insert = table.insert
 tabler.remove = table.remove
-tabler.unpack = table.unpack or unpack
 tabler.sort = table.sort
+
+-- compability with lua 5.1
+tabler.unpack = table.unpack or unpack
+tabler.pack = table.pack or function(...) return {n=select('#',...), ...} end
 
 --- tabler wrapper for using in chain mode
 do

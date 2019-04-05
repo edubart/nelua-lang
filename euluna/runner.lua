@@ -4,6 +4,8 @@ local except = require 'euluna.utils.except'
 local executor = require 'euluna.utils.executor'
 local errorer = require 'euluna.utils.errorer'
 local configer = require 'euluna.configer'
+local syntaxdefs = require 'euluna.syntaxdefs'
+local typechecker = require 'euluna.typechecker'
 
 local runner = {}
 
@@ -20,7 +22,8 @@ local function run(argv)
   end
 
   -- parse ast
-  local parser = require('euluna.parsers.euluna_std_' .. config.standard).parser
+  local syntax = syntaxdefs(config.standard)
+  local parser = syntax.parser
   local ast = parser:parse(input, infile)
 
   -- only checking syntax?
@@ -35,8 +38,7 @@ local function run(argv)
   end
 
   -- analyze the ast
-  local type_analyzer = require 'euluna.analyzers.types.analyzer'
-  ast = type_analyzer.analyze(ast, parser.aster)
+  ast = typechecker.analyze(ast, parser.astbuilder)
 
   if config.print_analyzed_ast then
     print(tostring(ast))
@@ -46,7 +48,7 @@ local function run(argv)
   if config.analyze then return 0 end
 
   -- generate the code
-  local generator = require('euluna.generators.' .. config.generator .. '.generator')
+  local generator = require('euluna.' .. config.generator .. 'generator')
   local code = generator.generate(ast)
 
   -- only printing generated code?

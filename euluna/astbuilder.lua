@@ -1,11 +1,11 @@
 local class = require 'euluna.utils.class'
-local shapetypes = require 'tableshape'.types
 local errorer = require 'euluna.utils.errorer'
 local tabler = require 'euluna.utils.tabler'
 local metamagic = require 'euluna.utils.metamagic'
 local ASTNode = require 'euluna.astnode'
+local shapetypes = require 'tableshape'.types
 
-local Aster = class()
+local ASTBuilder = class()
 
 local function get_astnode_shapetype(nodeklass)
   return shapetypes.custom(function(val)
@@ -14,24 +14,24 @@ local function get_astnode_shapetype(nodeklass)
   end)
 end
 
-function Aster:_init()
+function ASTBuilder:_init()
   self.nodes = { Node = ASTNode }
-  self.types = { ast = { Node = get_astnode_shapetype(ASTNode) } }
+  self.shapetypes = { node = { Node = get_astnode_shapetype(ASTNode) } }
   self.shapes = { Node = shapetypes.shape {} }
-  metamagic.setmetaindex(self.types, shapetypes)
+  metamagic.setmetaindex(self.shapetypes, shapetypes)
 end
 
-function Aster:register(tag, shape)
+function ASTBuilder:register(tag, shape)
   local klass = class(ASTNode)
   klass.tag = tag
   klass.nargs = #shape.shape
-  self.types.ast[tag] = get_astnode_shapetype(klass)
+  self.shapetypes.node[tag] = get_astnode_shapetype(klass)
   self.shapes[tag] = shape
   self.nodes[tag] = klass
   return klass
 end
 
-function Aster:create(tag, ...)
+function ASTBuilder:create(tag, ...)
   local klass = self.nodes[tag]
   errorer.assertf(klass, "AST with name '%s' is not registered", tag)
   local node = klass(...)
@@ -41,22 +41,22 @@ function Aster:create(tag, ...)
   return node
 end
 
-function Aster:clone()
-  local clone = Aster()
+function ASTBuilder:clone()
+  local clone = ASTBuilder()
   tabler.update(clone.nodes, self.nodes)
   tabler.update(clone.shapes, self.shapes)
-  tabler.update(clone.types, self.types)
+  tabler.update(clone.shapetypes, self.shapetypes)
   return clone
 end
 
-function Aster:AST(tag, ...)
+function ASTBuilder:AST(tag, ...)
   return self:create(tag, ...)
 end
 
-function Aster:TAST(type, tag, ...)
+function ASTBuilder:TAST(type, tag, ...)
   local node = self:create(tag, ...)
   node.type = type
   return node
 end
 
-return Aster
+return ASTBuilder

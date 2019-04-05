@@ -1,9 +1,9 @@
 require 'busted.runner'()
 
 local assert = require 'spec.assert'
-local euluna_parser = require 'euluna.parsers.euluna_std_default'.parser
-local euluna_aster = euluna_parser.aster
-local AST = function(...) return euluna_aster:AST(...) end
+local euluna_parser = require 'euluna.syntaxdefs'().parser
+local euluna_astbuilder = euluna_parser.astbuilder
+local AST = function(...) return euluna_astbuilder:AST(...) end
 local pegs = euluna_parser.defs
 
 describe("Euluna parser should parse", function()

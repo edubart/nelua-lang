@@ -8,8 +8,8 @@ stringer.split = stringx.split
 stringer.rstrip = stringx.rstrip
 
 function stringer.print_concat(...)
-  local t = {...}
-  for i=1,select('#',...) do
+  local t = table.pack(...)
+  for i=1,t.n do
     t[i] = tostring(t[i])
   end
   return table.concat(t, '\t')

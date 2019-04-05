@@ -1,6 +1,6 @@
 local class = require 'euluna.utils.class'
 local metamagic = require 'euluna.utils.metamagic'
-local typedefs = require 'euluna.analyzers.types.definitions'
+local typedefs = require 'euluna.typedefs'
 local tabler = require 'euluna.utils.tabler'
 local config = require 'euluna.configer'.get()
 
@@ -10,7 +10,7 @@ function Scope:_init(parent, kind)
   self.kind = kind
   self.parent = parent
   self.symbols = {}
-  self.returns_types = {}
+  self.returnstypes = {}
   if parent then
     metamagic.setmetaindex(self.symbols, parent.symbols)
   end
@@ -36,10 +36,10 @@ function Scope:get_parent_of_kind(kind)
   return parent
 end
 
-function Scope:get_symbol(name, ast)
+function Scope:get_symbol(name, node)
   local symbol = self.symbols[name]
   if not symbol and config.strict then
-    ast:raisef("undeclarated symbol '%s'", name)
+    node:raisef("undeclarated symbol '%s'", name)
   end
   return symbol
 end
@@ -47,7 +47,7 @@ end
 function Scope:add_symbol(symbol)
   local name = symbol.name
   if self.symbols[name] and config.strict then
-    symbol.ast:raisef("symbol '%s' shadows pre declarated symbol with the same name", name)
+    symbol.node:raisef("symbol '%s' shadows pre declarated symbol with the same name", name)
   end
   self.symbols[name] = symbol
   return symbol
@@ -58,7 +58,7 @@ local function resolve_symbol_type(symbol)
     return false
   end
   if symbol.has_unknown_type then return false end
-  local type = typedefs.find_common_type(symbol.possible_types)
+  local type = typedefs.find_common_type(symbol.possibletypes)
   symbol:set_type(type)
   return true
 end
@@ -74,20 +74,20 @@ function Scope:resolve_symbols_types()
 end
 
 function Scope:add_return_type(index, type)
-  local return_types = self.returns_types[index]
-  if not return_types then
-    return_types = {}
-    self.returns_types[index] = return_types
-  elseif tabler.find(return_types, type) then
+  local returntypes = self.returnstypes[index]
+  if not returntypes then
+    returntypes = {}
+    self.returnstypes[index] = returntypes
+  elseif tabler.find(returntypes, type) then
     return
   end
-  table.insert(return_types, type)
+  table.insert(returntypes, type)
 end
 
-function Scope:resolve_return_types()
+function Scope:resolve_returntypes()
   local resolved_types = {}
-  for i,return_types in pairs(self.returns_types) do
-    resolved_types[i] = typedefs.find_common_type(return_types)
+  for i,returntypes in pairs(self.returnstypes) do
+    resolved_types[i] = typedefs.find_common_type(returntypes)
   end
   return resolved_types
 end

@@ -29,10 +29,10 @@ end
 -------------------
 -- error handling
 -------------------
-local function format_node_errmsg(ast, message, ...)
+local function format_node_errmsg(node, message, ...)
   message = string.format(message, ...)
-  if ast.src and ast.pos then
-    message = errorer.get_pretty_source_errmsg(ast.src, ast.srcname, ast.pos, message)
+  if node.src and node.pos then
+    message = errorer.get_pretty_source_errmsg(node.src, node.srcname, node.pos, message)
   end
   return message
 end
@@ -65,33 +65,33 @@ end
 -------------------
 -- pretty print ast
 -------------------
-local function stringfy_ast(node, depth, t, skipindent)
+local function stringfy_astnode(node, depth, t, skipindent)
   local indent = string.rep('  ', depth)
-  local isast = node._astnode
+  local isnode = node._astnode
   if not skipindent then
     table.insert(t, indent)
   end
-  if isast then
+  if isnode then
     if node.type then
       tabler.insert_many(t, "TAST('", tostring(node.type), "', '", node.tag, "'")
     else
       tabler.insert_many(t, "AST('", node.tag, "'")
     end
   end
-  local nargs = isast and node.nargs or #node
+  local nargs = isnode and node.nargs or #node
   if nargs > 0 then
-    table.insert(t, isast and ',\n' or '{ ')
+    table.insert(t, isnode and ',\n' or '{ ')
     for i,v in iters.inpairs(node,nargs) do
       if type(v) == 'table' then
-        stringfy_ast(v, depth+1, t, i == 1 and not isast)
+        stringfy_astnode(v, depth+1, t, i == 1 and not isnode)
       else
         tabler.insert_many(t, indent, '  ', inspect(v))
       end
       table.insert(t, (i == nargs and '\n' or ',\n'))
     end
-    tabler.insert_many(t, indent, isast and ')' or '}')
+    tabler.insert_many(t, indent, isnode and ')' or '}')
   else
-    table.insert(t,  (isast and ')' or '{}'))
+    table.insert(t,  (isnode and ')' or '{}'))
   end
   if depth == 0 then
     return table.concat(t)
@@ -99,7 +99,7 @@ local function stringfy_ast(node, depth, t, skipindent)
 end
 
 function ASTNode:__tostring()
-  return stringfy_ast(self, 0, {})
+  return stringfy_astnode(self, 0, {})
 end
 
 return ASTNode

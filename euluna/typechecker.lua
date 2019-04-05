@@ -1,12 +1,11 @@
 local iters = require 'euluna.utils.iterators'
 local tabler = require 'euluna.utils.tabler'
-local typedefs = require 'euluna.analyzers.types.definitions'
-local TraverseContext = require 'euluna.traversecontext'
+local typedefs = require 'euluna.typedefs'
+local Context = require 'euluna.context'
 local Variable = require 'euluna.variable'
-local FunctionType = require 'euluna.functiontype'
-local ComposedType = require 'euluna.composedtype'
+local types = require 'euluna.types'
 
-local types = typedefs.primitive_types
+local primtypes = typedefs.primtypes
 local visitors = {}
 
 local phases = {
@@ -14,106 +13,106 @@ local phases = {
   any_inference = 2
 }
 
-function visitors.Number(_, ast)
-  local numtype, value, literal = ast:args()
+function visitors.Number(_, node)
+  local numtype, value, literal = node:args()
   if literal then
-    ast.type = typedefs.number_literal_types[literal]
-    ast:assertraisef(ast.type, 'literal suffix "%s" is not defined', literal)
+    node.type = typedefs.number_literal_types[literal]
+    node:assertraisef(node.type, 'literal suffix "%s" is not defined', literal)
   else
-    ast.type = typedefs.number_default_types[numtype]
-    ast:assertf(ast.type, 'invalid number type "%s" for AST Number', numtype)
+    node.type = typedefs.number_default_types[numtype]
+    node:assertf(node.type, 'invalid number type "%s" for AST Number', numtype)
   end
 end
 
-function visitors.String(_, ast)
-  ast.type = types.string
+function visitors.String(_, node)
+  node.type = primtypes.string
 end
 
-function visitors.Boolean(_, ast)
-  ast.type = types.boolean
+function visitors.Boolean(_, node)
+  node.type = primtypes.boolean
 end
 
-function visitors.Id(context, ast)
-  local name = ast:arg(1)
-  local type = ast.type
+function visitors.Id(context, node)
+  local name = node:arg(1)
+  local type = node.type
   if not type and context.phase == phases.any_inference then
-    type = types.any
+    type = primtypes.any
   end
-  local symbol = context.scope:get_symbol(name, ast) or context.scope:add_symbol(Variable(name, ast, type))
-  symbol:link_ast_type(ast)
+  local symbol = context.scope:get_symbol(name, node) or context.scope:add_symbol(Variable(name, node, type))
+  symbol:link_node_type(node)
   return symbol
 end
 
-function visitors.Paren(context, ast)
-  local what = ast:args()
+function visitors.Paren(context, node)
+  local what = node:args()
   context:traverse(what)
-  ast.type = what.type
+  node.type = what.type
 end
 
-function visitors.Type(_, ast)
-  local tyname = ast:arg(1)
-  local type = types[tyname]
-  ast:assertf(type, 'invalid type "%s"', tyname)
-  ast.type = type
+function visitors.Type(_, node)
+  local tyname = node:arg(1)
+  local type = primtypes[tyname]
+  node:assertf(type, 'invalid type "%s"', tyname)
+  node.type = type
   return type
 end
 
-function visitors.FuncType(context, ast)
-  local argtypes, returntypes = ast:args()
+function visitors.FuncType(context, node)
+  local argtypes, returntypes = node:args()
   context:default_visitor(argtypes)
   context:default_visitor(returntypes)
-  local type = FunctionType(ast,
+  local type = types.FunctionType(node,
     tabler.imap(argtypes, function(n) return n.type end),
     tabler.imap(returntypes, function(n) return n.type end))
-  ast.type = type
+  node.type = type
   return type
 end
 
-function visitors.ComposedType(context, ast)
-  local name, subtypes = ast:args()
+function visitors.ComposedType(context, node)
+  local name, subtypes = node:args()
   context:default_visitor(subtypes)
   -- TODO: check validity of builtins composed types (eg table)
-  local type = ComposedType(ast, name,
+  local type = types.ComposedType(node, name,
     tabler.imap(subtypes, function(n) return n.type end))
-  ast.type = type
+  node.type = type
   return type
 end
 
-function visitors.DotIndex(context, ast)
-  context:default_visitor(ast)
+function visitors.DotIndex(context, node)
+  context:default_visitor(node)
   --TODO: detect better types
-  ast.type = types.any
+  node.type = primtypes.any
 end
 
-function visitors.ColonIndex(context, ast)
-  context:default_visitor(ast)
+function visitors.ColonIndex(context, node)
+  context:default_visitor(node)
   --TODO: detect better types
-  ast.type = types.any
+  node.type = primtypes.any
 end
 
-function visitors.ArrayIndex(context, ast)
-  context:default_visitor(ast)
-  local index, obj = ast:args()
+function visitors.ArrayIndex(context, node)
+  context:default_visitor(node)
+  local index, obj = node:args()
   if obj.type and obj.type:is_arraytable() then
-    ast.type = obj.type.subtypes[1]
+    node.type = obj.type.subtypes[1]
   else
-    ast.type = types.any
+    node.type = primtypes.any
   end
 end
 
-function visitors.Call(context, ast)
-  local argtypes, args, callee, block_call = ast:args()
+function visitors.Call(context, node)
+  local argtypes, args, callee, block_call = node:args()
   context:default_visitor(args)
   local symbol = context:traverse(callee)
   if symbol and symbol.type then
     callee:assertraisef(symbol.type:is_function() or symbol.type:is_any(),
       "attempt to call a non callable variable of type '%s'", symbol.type.name)
-    ast.callee_type = symbol.type
+    node.callee_type = symbol.type
     if symbol.type:is_function() then
       -- check function argument types
-      for i,argtype,argnode in iters.izip(symbol.type.arg_types, args) do
+      for i,argtype,argnode in iters.izip(symbol.type.argtypes, args) do
         if argtype and argnode and argnode.type then
-          ast:assertraisef(argtype:is_conversible(argnode.type),
+          node:assertraisef(argtype:is_conversible(argnode.type),
             "in call function argument %d of type '%s' is not conversible with call argument %d of type '%s'",
             i, tostring(argtype), i, tostring(argnode.type))
         end
@@ -121,26 +120,26 @@ function visitors.Call(context, ast)
 
       --TODO: check multiple returns
 
-      ast.type = symbol.type.return_types[1] or types.void
-      ast.types = symbol.type.return_types
+      node.type = symbol.type.returntypes[1] or primtypes.void
+      node.types = symbol.type.returntypes
     end
   end
-  if not ast.callee_type and context.phase == phases.any_inference then
-    ast.callee_type = types.any
+  if not node.callee_type and context.phase == phases.any_inference then
+    node.callee_type = primtypes.any
   end
-  if not ast.type and context.phase == phases.any_inference then
-    ast.type = types.any
+  if not node.type and context.phase == phases.any_inference then
+    node.type = primtypes.any
   end
 end
 
-function visitors.IdDecl(context, ast)
-  local name, mut, typenode = ast:args()
-  local type = typenode and context:traverse(typenode) or ast.type
+function visitors.IdDecl(context, node)
+  local name, mut, typenode = node:args()
+  local type = typenode and context:traverse(typenode) or node.type
   if not type and context.phase == phases.any_inference then
-    type = types.any
+    type = primtypes.any
   end
-  local symbol = context.scope:add_symbol(Variable(name, ast, type))
-  symbol:link_ast_type(ast)
+  local symbol = context.scope:add_symbol(Variable(name, node, type))
+  symbol:link_node_type(node)
   return symbol
 end
 
@@ -157,29 +156,29 @@ local function repeat_scope_until_resolution(context, scope_kind, after_push)
   return scope
 end
 
-function visitors.Block(context, ast)
+function visitors.Block(context, node)
   repeat_scope_until_resolution(context, 'block', function()
-    context:default_visitor(ast)
+    context:default_visitor(node)
   end)
 end
 
-function visitors.If(context, ast)
-  ast.type = types.boolean
-  context:default_visitor(ast)
+function visitors.If(context, node)
+  node.type = primtypes.boolean
+  context:default_visitor(node)
 end
 
-function visitors.While(context, ast)
-  ast.type = types.boolean
-  context:default_visitor(ast)
+function visitors.While(context, node)
+  node.type = primtypes.boolean
+  context:default_visitor(node)
 end
 
-function visitors.Repeat(context, ast)
-  ast.type = types.boolean
-  context:default_visitor(ast)
+function visitors.Repeat(context, node)
+  node.type = primtypes.boolean
+  context:default_visitor(node)
 end
 
-function visitors.ForNum(context, ast)
-  local itvar, beginval, comp, endval, incrval, block = ast:args()
+function visitors.ForNum(context, node)
+  local itvar, beginval, comp, endval, incrval, block = node:args()
   local itvarname = itvar[1]
   context:traverse(beginval)
   context:traverse(endval)
@@ -191,17 +190,17 @@ function visitors.ForNum(context, ast)
     local itsymbol = context.scope:add_symbol(Variable(itvarname, itvar, itvar.type))
     if itvar.type then
       if beginval.type then
-        ast:assertraisef(itvar.type:is_conversible(beginval.type),
+        node:assertraisef(itvar.type:is_conversible(beginval.type),
           "`for` variable '%s' of type '%s' is not conversible with begin value of type '%s'",
           itvarname, tostring(itvar.type), tostring(beginval.type))
       end
       if endval.type then
-        ast:assertraisef(itvar.type:is_conversible(endval.type),
+        node:assertraisef(itvar.type:is_conversible(endval.type),
           "`for` variable '%s' of type '%s' is not conversible with end value of type '%s'",
           itvarname, tostring(itvar.type), tostring(endval.type))
       end
       if incrval and incrval.type then
-        ast:assertraisef(itvar.type:is_conversible(incrval.type),
+        node:assertraisef(itvar.type:is_conversible(incrval.type),
           "`for` variable '%s' of type '%s' is not conversible with increment value of type '%s'",
           itvarname, tostring(itvar.type), tostring(incrval.type))
       end
@@ -209,14 +208,14 @@ function visitors.ForNum(context, ast)
       itsymbol:add_possible_type(beginval.type, true)
       itsymbol:add_possible_type(endval.type, true)
     end
-    itsymbol:link_ast_type(itvar)
+    itsymbol:link_node_type(itvar)
     context:traverse(block)
   end)
 end
 
-function visitors.VarDecl(context, ast)
-  local varscope, mutability, vars, vals = ast:args()
-  ast:assertraisef(mutability == 'var', 'variable mutability not supported yet')
+function visitors.VarDecl(context, node)
+  local varscope, mutability, vars, vals = node:args()
+  node:assertraisef(mutability == 'var', 'variable mutability not supported yet')
   for _,var,val in iters.izip(vars, vals or {}) do
     local symbol = context:traverse(var)
     assert(symbol.type == var.type, 'impossible')
@@ -224,8 +223,8 @@ function visitors.VarDecl(context, ast)
     if val then
       context:traverse(val)
       symbol:add_possible_type(val.type)
-      if var.type and val.type and var.type ~= types.boolean then
-        ast:assertraisef(var.type:is_conversible(val.type),
+      if var.type and val.type and var.type ~= primtypes.boolean then
+        node:assertraisef(var.type:is_conversible(val.type),
           "variable '%s' of type '%s' is not conversible with value of type '%s'",
           symbol.name, tostring(var.type), tostring(val.type))
       end
@@ -233,8 +232,8 @@ function visitors.VarDecl(context, ast)
   end
 end
 
-function visitors.Assign(context, ast)
-  local vars, vals = ast:args()
+function visitors.Assign(context, node)
+  local vars, vals = node:args()
   for _,var,val in iters.izip(vars, vals) do
     local symbol = context:traverse(var)
     var.assign = true
@@ -244,7 +243,7 @@ function visitors.Assign(context, ast)
         symbol:add_possible_type(val.type)
       end
       if var.type and val.type then
-        ast:assertraisef(var.type:is_conversible(val.type),
+        node:assertraisef(var.type:is_conversible(val.type),
           "variable assignment of type '%s' is not conversible with value of type '%s'",
           tostring(var.type), tostring(val.type))
       end
@@ -252,9 +251,9 @@ function visitors.Assign(context, ast)
   end
 end
 
-function visitors.Return(context, ast)
-  context:default_visitor(ast)
-  local rets = ast:args()
+function visitors.Return(context, node)
+  context:default_visitor(node)
+  local rets = node:args()
   local funcscope = context.scope:get_parent_of_kind('function')
   assert(funcscope, 'impossible')
   for i,ret in ipairs(rets) do
@@ -262,8 +261,8 @@ function visitors.Return(context, ast)
   end
 end
 
-function visitors.FuncDef(context, ast)
-  local varscope, varnode, argnodes, retnodes, blocknode = ast:args()
+function visitors.FuncDef(context, node)
+  local varscope, varnode, argnodes, retnodes, blocknode = node:args()
   local symbol = context:traverse(varnode)
 
   -- try to resolver function return types
@@ -273,14 +272,14 @@ function visitors.FuncDef(context, ast)
     context:traverse(blocknode)
   end)
 
-  local argtypes = tabler.imap(argnodes, function(n) return n.type or types.any end)
-  local returntypes = funcscope:resolve_return_types()
+  local argtypes = tabler.imap(argnodes, function(n) return n.type or primtypes.any end)
+  local returntypes = funcscope:resolve_returntypes()
 
   -- populate function return types
   for i,retnode in ipairs(retnodes) do
     local rtype = returntypes[i]
     if rtype then
-      ast:assertraisef(retnode.type:is_conversible(rtype),
+      node:assertraisef(retnode.type:is_conversible(rtype),
         "return variable at index %d of type '%s' is not conversible with value of type '%s'",
         i, tostring(retnode.type), tostring(rtype))
     else
@@ -292,14 +291,14 @@ function visitors.FuncDef(context, ast)
   for i,rtype in pairs(returntypes) do
     local retnode = retnodes[i]
     if not retnode then
-      retnode = context.aster:create('Type', tostring(rtype))
+      retnode = context.astbuilder:create('Type', tostring(rtype))
       retnode.type = rtype
       retnodes[i] = retnode
     end
   end
 
   -- build function type
-  local type = typedefs.dynamic_types.Function(ast, argtypes, returntypes)
+  local type = types.FunctionType(node, argtypes, returntypes)
 
   if symbol then
     if varscope == 'local' then
@@ -308,48 +307,48 @@ function visitors.FuncDef(context, ast)
     else
       -- check if previous symbol declaration is compatible
       if symbol.type then
-        ast:assertraisef(symbol.type:is_conversible(type),
+        node:assertraisef(symbol.type:is_conversible(type),
           "in function defition, symbol of type '%s' is not conversible with function type '%s'",
           tostring(symbol.type), tostring(type))
       else
         symbol:add_possible_type(type)
       end
     end
-    symbol:link_ast_type(ast)
+    symbol:link_node_type(node)
   else
-    ast.type = type
+    node.type = type
   end
 end
 
-function visitors.UnaryOp(context, ast)
-  local opname, arg = ast:args()
+function visitors.UnaryOp(context, node)
+  local opname, arg = node:args()
   if opname == 'not' then
-    ast.type = types.boolean
+    node.type = primtypes.boolean
     context:traverse(arg)
   else
     context:traverse(arg)
     if arg.type then
       local type = arg.type:get_unary_operator_type(opname)
-      ast:assertraisef(type,
+      node:assertraisef(type,
         "unary operation `%s` is not defined for type '%s' of the expression",
         opname, tostring(arg.type))
-      ast.type = type
+      node.type = type
     end
-    assert(context.phase ~= phases.any_inference or ast.type, 'impossible')
+    assert(context.phase ~= phases.any_inference or node.type, 'impossible')
   end
 end
 
-function visitors.BinaryOp(context, ast)
-  local opname, left_arg, right_arg = ast:args()
+function visitors.BinaryOp(context, node)
+  local opname, left_arg, right_arg = node:args()
   local skip = false
 
   if typedefs.binary_equality_ops[opname] then
-    ast.type = types.boolean
+    node.type = primtypes.boolean
     skip = true
   elseif typedefs.binary_conditional_ops[opname] then
-    local parent_ast = context:get_parent_ast_if(function(a) return a.tag ~= 'Paren' end)
-    if parent_ast.type == types.boolean then
-      ast.type = types.boolean
+    local parent_node = context:get_parent_node_if(function(a) return a.tag ~= 'Paren' end)
+    if parent_node.type == primtypes.boolean then
+      node.type = primtypes.boolean
       skip = true
     end
   end
@@ -370,13 +369,13 @@ function visitors.BinaryOp(context, ast)
     local ltype, rtype
     if left_arg.type then
       ltype = left_arg.type:get_binary_operator_type(opname)
-      ast:assertraisef(ltype,
+      node:assertraisef(ltype,
         "binary operation `%s` is not defined for type '%s' of the left expression",
         opname, tostring(left_arg.type))
     end
     if right_arg.type then
       rtype = right_arg.type:get_binary_operator_type(opname)
-      ast:assertraisef(rtype,
+      node:assertraisef(rtype,
         "binary operation `%s` is not defined for type '%s' of the right expression",
         opname, tostring(right_arg.type))
     end
@@ -386,21 +385,21 @@ function visitors.BinaryOp(context, ast)
       else
         type = typedefs.find_common_type({ltype, rtype})
       end
-      ast:assertraisef(type,
+      node:assertraisef(type,
         "binary operation `%s` is not defined for different types '%s' and '%s' in the expression",
         opname, tostring(ltype), tostring(rtype))
     end
   end
   if type then
-    ast.type = type
+    node.type = type
   end
-  assert(context.phase ~= phases.any_inference or ast.type, 'impossible')
+  assert(context.phase ~= phases.any_inference or node.type, 'impossible')
 end
 
-local analyzer = {}
-function analyzer.analyze(ast, aster)
-  local context = TraverseContext(visitors, true)
-  context.aster = aster
+local typechecker = {}
+function typechecker.analyze(ast, astbuilder)
+  local context = Context(visitors, true)
+  context.astbuilder = astbuilder
 
   -- phase 1 traverse: infer and check types
   context.phase = phases.type_inference
@@ -417,4 +416,4 @@ function analyzer.analyze(ast, aster)
   return ast
 end
 
-return analyzer
+return typechecker

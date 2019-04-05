@@ -43,18 +43,7 @@ local function create_parser(argv)
 end
 
 local function get_runtime_path(arg0)
-  local path
-  if arg0 then --luacov:disable
-    path = fs.getpathdir(arg0)
-    -- luarocks install, use the bin/../conf/runtime dir
-    if fs.getbasename(path) == 'bin' then
-      path = fs.join(fs.getpathdir(path), 'conf')
-    end
-  else --luacov:enable
-    path = fs.getpathdir(fs.getpathdir(fs.abspath(debug.getinfo(1).short_src)))
-  end
-  path = fs.join(path, 'runtime')
-  return path
+  return fs.join(fs.getdatapath(arg0), 'runtime')
 end
 
 config.runtime_path = get_runtime_path()

@@ -37,4 +37,18 @@ function fs.getcachepath(infile, cachedir)
   return path
 end
 
+function fs.getdatapath(arg0)
+  local path
+  if arg0 then --luacov:disable
+    path = fs.getpathdir(arg0)
+    -- luarocks install, use the bin/../conf/runtime dir
+    if fs.getbasename(path) == 'bin' then
+      path = fs.join(fs.getpathdir(path), 'conf')
+    end
+  else --luacov:enable
+    path = fs.getpathdir(fs.getpathdir(fs.getpathdir(fs.abspath(debug.getinfo(1).short_src))))
+  end
+  return path
+end
+
 return fs

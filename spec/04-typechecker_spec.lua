@@ -1,20 +1,20 @@
 require 'busted.runner'()
 
 local assert = require 'spec.assert'
-local euluna_std_default = require 'euluna.parsers.euluna_std_default'
-local analyzer = require 'euluna.analyzers.types.analyzer'
-local c_generator = require 'euluna.generators.c.generator'
-local lua_generator = require 'euluna.generators.lua.generator'
-local euluna_parser = euluna_std_default.parser
-local euluna_aster = euluna_std_default.aster
+local euluna_syntax = require 'euluna.syntaxdefs'()
+local analyzer = require 'euluna.typechecker'
+local c_generator = require 'euluna.cgenerator'
+local lua_generator = require 'euluna.luagenerator'
+local euluna_parser = euluna_syntax.parser
+local euluna_astbuilder = euluna_syntax.astbuilder
 local except = require 'euluna.utils.except'
 local config = require 'euluna.configer'.get()
-local AST = function(...) return euluna_aster:AST(...) end
-local TAST = function(...) return euluna_aster:TAST(...) end
+local AST = function(...) return euluna_astbuilder:AST(...) end
+local TAST = function(...) return euluna_astbuilder:TAST(...) end
 
 local function assert_c_gencode_equals(code, expected_code)
   local ast = assert.parse_ast(euluna_parser, code)
-  ast = assert(analyzer.analyze(ast, euluna_parser.aster))
+  ast = assert(analyzer.analyze(ast, euluna_parser.astbuilder))
   local expected_ast = assert.parse_ast(euluna_parser, expected_code)
   expected_ast = assert(analyzer.analyze(expected_ast))
   local generated_code = assert(c_generator.generate(ast))
@@ -24,7 +24,7 @@ end
 
 local function assert_lua_gencode_equals(code, expected_code)
   local ast = assert.parse_ast(euluna_parser, code)
-  ast = assert(analyzer.analyze(ast, euluna_parser.aster))
+  ast = assert(analyzer.analyze(ast, euluna_parser.astbuilder))
   local expected_ast = assert.parse_ast(euluna_parser, expected_code)
   expected_ast = assert(analyzer.analyze(expected_ast))
   local generated_code = assert(lua_generator.generate(ast))
@@ -35,7 +35,7 @@ end
 
 local function assert_analyze_ast(code, expected_ast)
   local ast = assert.parse_ast(euluna_parser, code)
-  analyzer.analyze(ast, euluna_parser.aster)
+  analyzer.analyze(ast, euluna_parser.astbuilder)
   if expected_ast then
     assert.same(tostring(expected_ast), tostring(ast))
   end
@@ -44,7 +44,7 @@ end
 local function assert_analyze_error(code, expected_error)
   local ast = assert.parse_ast(euluna_parser, code)
   local ok, e = except.try(function()
-    analyzer.analyze(ast, euluna_parser.aster)
+    analyzer.analyze(ast, euluna_parser.astbuilder)
   end)
   assert(not ok, "type analysis should fail")
   assert.contains(expected_error, e:get_message())

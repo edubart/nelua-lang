@@ -91,6 +91,7 @@ end
 -- otherwise:
 --    if the exception is not caught by the handler then it's raised again
 --    an exception is considered caught when the call to the handler returns true
+--    the handler can be a table of labeled exceptions function handlers or a function
 function except.try(f, handler)
   local ok, e = xpcall(f, try_error_handler)
   if not ok then

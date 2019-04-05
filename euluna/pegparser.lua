@@ -8,11 +8,11 @@ local iters = require 'euluna.utils.iterators'
 local metamagic = require 'euluna.utils.metamagic'
 local except = require 'euluna.utils.except'
 
-local Parser = class()
+local PEGParser = class()
 
 lpeg.setmaxstack(1024)
 
-function Parser:_init()
+function PEGParser:_init()
   self.keywords = {}
   self.syntax_errors = {}
   self.defs = {}
@@ -37,11 +37,11 @@ local function recompile_peg(selfdefs, pegdesc)
   selfdefs[pegdesc.name] = compiled_patt
 end
 
-function Parser:set_aster(aster)
-  self.aster = aster
+function PEGParser:set_astbuilder(astbuilder)
+  self.astbuilder = astbuilder
 
   local function to_astnode(pos, tag, ...)
-    local node = aster:create(tag, ...)
+    local node = astbuilder:create(tag, ...)
     node.pos = pos
     node.src = self.input
     node.srcname = self.inputname
@@ -136,7 +136,7 @@ local function recompile_dependencies_for(self, name)
   end
 end
 
-function Parser:set_peg(name, patt, defs, modf)
+function PEGParser:set_peg(name, patt, defs, modf)
   local combined_defs = inherit_defs(self.defs, defs)
   local compiled_patt = re.compile(patt, combined_defs)
   local deps = get_peg_deps(patt, self.defs, combined_defs)
@@ -157,7 +157,7 @@ function Parser:set_peg(name, patt, defs, modf)
   end
 end
 
-function Parser:remove_peg(name)
+function PEGParser:remove_peg(name)
   errorer.assertf(self.defs[name], 'cannot remove non existent peg "%s"', name)
   local refs = cascade_dependencies_for(self.pegdescs, name)
   errorer.assertf(#refs == 0, 'cannot remove peg "%s" that has references', name)
@@ -165,7 +165,7 @@ function Parser:remove_peg(name)
   self.pegdescs[name] = nil
 end
 
-function Parser:set_pegs(combined_patts, defs, modf)
+function PEGParser:set_pegs(combined_patts, defs, modf)
   local pattdescs = pegger.split_parser_patts(combined_patts)
   for pattdesc in iters.ivalues(pattdescs) do
     local patt = string.format('%s <- %s', pattdesc.name, pattdesc.patt)
@@ -173,7 +173,7 @@ function Parser:set_pegs(combined_patts, defs, modf)
   end
 end
 
-function Parser:match(pegname, input, inputname)
+function PEGParser:match(pegname, input, inputname)
   local peg = self.defs[pegname]
   errorer.assertf(peg, 'cannot match an input to inexistent peg "%s"', pegname)
   self.input = input
@@ -188,12 +188,12 @@ local function token_peg_generator(p, defs)
   return p * defs.SKIP
 end
 
-function Parser:set_token_peg(name, patt, defs)
+function PEGParser:set_token_peg(name, patt, defs)
   assert(self.defs.SKIP, 'cannot set token without a SKIP peg')
   return self:set_peg(name, patt, defs, token_peg_generator)
 end
 
-function Parser:set_token_pegs(combined_peg, defs)
+function PEGParser:set_token_pegs(combined_peg, defs)
   assert(self.defs.SKIP, 'cannot set token without a SKIP peg')
   return self:set_pegs(combined_peg, defs, token_peg_generator)
 end
@@ -212,12 +212,12 @@ local function internal_add_keyword(self, keyword)
   self:set_token_peg(keyword_name, string.format("'%s' !%%IDSUFFIX", keyword))
 end
 
-function Parser:add_keyword(keyword)
+function PEGParser:add_keyword(keyword)
   internal_add_keyword(self, keyword)
   recompile_keyword_peg(self)
 end
 
-function Parser:remove_keyword(keyword)
+function PEGParser:remove_keyword(keyword)
   local keyword_name = keyword:upper()
   local i = tabler.find(self.keywords, keyword)
   errorer.assertf(i, 'keyword "%s" to remove not found', keyword)
@@ -226,18 +226,18 @@ function Parser:remove_keyword(keyword)
   self:remove_peg(keyword_name)
 end
 
-function Parser:add_keywords(keywords)
+function PEGParser:add_keywords(keywords)
   for keyword in iters.ivalues(keywords) do
     internal_add_keyword(self, keyword)
   end
   recompile_keyword_peg(self)
 end
 
-function Parser:add_syntax_errors(syntax_errors)
+function PEGParser:add_syntax_errors(syntax_errors)
   tabler.update(self.syntax_errors, syntax_errors)
 end
 
-function Parser:parse(input, inputname, pegname)
+function PEGParser:parse(input, inputname, pegname)
   if not pegname then
     pegname = 'sourcecode'
   end
@@ -254,14 +254,14 @@ function Parser:parse(input, inputname, pegname)
   return ast
 end
 
-function Parser:clone()
-  local clone = Parser()
+function PEGParser:clone()
+  local clone = PEGParser()
   tabler.update(clone.keywords, self.keywords)
   tabler.update(clone.syntax_errors, self.syntax_errors)
   tabler.update(clone.defs, self.defs)
   tabler.update(clone.pegdescs, self.pegdescs)
-  clone:set_aster(self.aster)
+  clone:set_astbuilder(self.astbuilder)
   return clone
 end
 
-return Parser
+return PEGParser

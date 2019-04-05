@@ -37,8 +37,8 @@ end
 -- iterate multiples values for multiple arrays, returning its index and values
 -- stops only when all values in the arrays are nil
 function iterators.izip(...)
-  local arrays, ans = {...}, {}
-  local n = select('#', ...)
+  local arrays, ans = tabler.pack(...), {}
+  local n = arrays.n
   local i = 0
   return function()
     i = i + 1
