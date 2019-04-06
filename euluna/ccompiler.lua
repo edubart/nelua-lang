@@ -5,31 +5,13 @@ local metamagic = require 'euluna.utils.metamagic'
 local except = require 'euluna.utils.except'
 local executor = require 'euluna.utils.executor'
 local config = require 'euluna.configer'.get()
+local cdefs = require 'euluna.cdefs'
 
 local compiler = {}
 
-local compiler_base_flags = {
-  cflags_base = "-pipe -std=c99 -pedantic -Wall -Wextra -fno-strict-aliasing -rdynamic",
-  cflags_release = "-O2",
-  cflags_debug = "-g"
-}
-
-local compilers_flags = {
-  gcc = {
-    cflags_release = "-O2 -fno-plt -flto -Wl,-O1,--sort-common,-z,relro,-z,now"
-  },
-  clang = {
-    cflags_release = "-O2 -fno-plt -Wl,-O1,--sort-common,-z,relro,-z,now"
-  }
-}
-
-for _,compiler_flags in pairs(compilers_flags) do
-  metamagic.setmetaindex(compiler_flags, compiler_base_flags)
-end
-
 local function get_compile_command(infile, outfile)
   local env = { infile = infile, outfile = outfile }
-  local compiler_flags = compilers_flags[config.cc] or compiler_base_flags
+  local compiler_flags = cdefs.compilers_flags[config.cc] or cdefs.compiler_base_flags
   metamagic.setmetaindex(env, config)
   env.cflags_base = compiler_flags.cflags_base
   env.cflags_build = (config.release and compiler_flags.cflags_release or compiler_flags.cflags_debug)

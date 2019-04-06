@@ -1,4 +1,5 @@
 local typedefs = require 'euluna.typedefs'
+local metamagic = require 'euluna.utils.metamagic'
 
 local cdefs = {}
 
@@ -82,5 +83,24 @@ cdefs.runtime_files = {
   'euluna_arrtab',
   'euluna_main',
 }
+
+cdefs.compiler_base_flags = {
+  cflags_base = "-pipe -std=c99 -pedantic -Wall -Wextra -fno-strict-aliasing -rdynamic",
+  cflags_release = "-O2",
+  cflags_debug = "-g"
+}
+
+cdefs.compilers_flags = {
+  gcc = {
+    cflags_release = "-O2 -fno-plt -flto -Wl,-O1,--sort-common,-z,relro,-z,now"
+  },
+  clang = {
+    cflags_release = "-O2 -fno-plt -Wl,-O1,--sort-common,-z,relro,-z,now"
+  }
+}
+
+for _,compiler_flags in pairs(cdefs.compilers_flags) do
+  metamagic.setmetaindex(compiler_flags, cdefs.compiler_base_flags)
+end
 
 return cdefs
