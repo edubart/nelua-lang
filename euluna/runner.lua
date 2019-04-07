@@ -58,7 +58,7 @@ local function run(argv)
   end
 
   -- choose a infile for evals
-  if not infile then infile = 'eval_' .. stringer.sha1(code) end
+  if not infile then infile = 'eval_' .. stringer.hash(code) end
 
   -- save the generated code
   local outcachefile = fs.getcachepath(infile, config.cache_dir)

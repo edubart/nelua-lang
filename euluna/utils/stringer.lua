@@ -3,7 +3,12 @@ local sha1 = require 'sha1'.sha1
 
 local stringer = {}
 
-stringer.sha1 = sha1
+function stringer.hash(s)
+  --local lz = require 'luazen'
+  --return lz.b58encode(lz.blake2b(s, 16))
+  return sha1(s)
+end
+
 stringer.split = stringx.split
 stringer.rstrip = stringx.rstrip
 

@@ -34,7 +34,7 @@ end
 local function hash_compilation(ccode)
   local dummycmd = get_compile_command('dummy.c', 'dummy')
   local ccinfo = get_cc_info()
-  return stringer.sha1(string.format("%s%s%s", ccode, ccinfo, dummycmd))
+  return stringer.hash(string.format("%s%s%s", ccode, ccinfo, dummycmd))
 end
 
 function compiler.compile_code(ccode, outfile)
