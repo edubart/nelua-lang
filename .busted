@@ -1,8 +1,7 @@
 return {
   default = {
     verbose = true,
-  },
-  complete = {
-    verbose = true
-  },
+    ['sort-files'] = true,
+    ['auto-insulate'] = false,
+  }
 }

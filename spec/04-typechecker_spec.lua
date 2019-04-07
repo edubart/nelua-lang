@@ -218,7 +218,7 @@ it("strict mode", function()
   config.strict = true
   assert.analyze_error("a = 1", "undeclarated symbol")
   assert.analyze_error("local a; local a", "shadows pre declarated symbol")
-  config.string = false
+  config.strict = false
 end)
 
 end)
