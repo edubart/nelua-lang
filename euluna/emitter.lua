@@ -68,6 +68,47 @@ function Emitter:add_traversal_list(nodelist, separator)
   end
 end
 
+function Emitter:add_composed_number(base, int, frac, exp)
+  if base == 'dec' then
+    self:add(int)
+    if frac then
+      self:add('.', frac)
+    end
+    if exp then
+      self:add('e', exp)
+    end
+  elseif base == 'hex' then
+    --FIXME: overflow for uint64
+    if not frac and not exp then
+      self:add('0x', int)
+    else
+      local n = tonumber(int, 16)
+      if frac then
+        local len = frac:gsub('^[+-]', ''):len()
+        local f = tonumber(frac, 16) / math.pow(16, len)
+        n = n + f
+      end
+      if exp then
+        local factor = math.pow(2, tonumber(exp))
+        n = n * factor
+      end
+      local nstr
+      if n % 1 == 0 then
+        nstr = string.format('0x%x', n)
+      else
+        nstr = string.format('%.15f', n):gsub('0+$', '')
+      end
+      self:add(nstr)
+    end
+  elseif base == 'bin' then
+    int = string.format('%x', tonumber(int, 2))
+    if frac then
+      frac = string.format('%x', tonumber(frac, 2))
+    end
+    self:add_composed_number('hex', int, frac, exp)
+  end
+end
+
 function Emitter:generate()
   return table.concat(self.codes)
 end

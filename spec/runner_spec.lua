@@ -1,3 +1,5 @@
+require 'busted.runner'()
+
 local assert = require 'spec.assert'
 
 describe("Euluna runner should", function()

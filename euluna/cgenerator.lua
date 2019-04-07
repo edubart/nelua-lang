@@ -38,26 +38,14 @@ local function add_casted_value(_, emitter, type, valnode)
 end
 
 function visitors.Number(context, node, emitter)
-  local numtype, value, literal = node:args()
-  local cval
-  if numtype == 'int' then
-    cval = value
-  elseif numtype == 'dec' then
-    cval = value
-  elseif numtype == 'exp' then
-    cval = string.format('%se%s', value[1], value[2])
-  elseif numtype == 'hex' then
-    cval = string.format('0x%s', value)
-  elseif numtype == 'bin' then
-    cval = string.format('%u', tonumber(value, 2))
-  else --luacov:disable
-    node:errorf('invalid number type "%s" for AST Number', numtype)
-  end --luacov:enable
+  local base, int, frac, exp, literal = node:args()
   if literal then
     local ctype = context:get_ctype(node)
-    emitter:add('((', ctype, ') ', cval, ')')
-  else
-    emitter:add(cval)
+    emitter:add('((', ctype, ') ')
+  end
+  emitter:add_composed_number(base, int, frac, exp)
+  if literal then
+    emitter:add(')')
   end
 end
 

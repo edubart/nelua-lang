@@ -1,4 +1,3 @@
-
 local assert = require 'luassert'
 local inspect = require 'inspect'
 local stringer = require 'euluna.utils.stringer'

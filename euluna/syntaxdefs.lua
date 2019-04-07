@@ -63,20 +63,24 @@ local function get_parser(std)
   parser:set_token_peg('cNAME', '&%IDPREFIX !%KEYWORD {%IDFORMAT}')
   parser:set_token_peg('cID', "({} &%IDPREFIX !%KEYWORD '' -> 'Id' {%IDFORMAT}) -> to_astnode")
 
-  -- capture numbers (hexdecimal, binary, exponential, decimal or integer)
+  -- capture numbers (hexadecimal, binary, exponential, decimal or integer)
   parser:set_token_pegs([[
-    %cNUMBER        <- ({} '' -> 'Number' number_types literal?) -> to_astnode
-    number_types    <- '' -> 'hex' hexadecimal /
-                      '' -> 'bin' binary /
-                      '' -> 'exp' exponential /
-                      '' -> 'dec' decimal /
-                      '' -> 'int' integer
-    literal         <- %cNAME
-    exponential     <- {| (decimal / integer) [eE] ({[+-]? %d+} / %{MalformedExponentialNumber}) |}
-    decimal         <- {'-'? %d+ '.' %d* / '.' %d+}
-    integer         <- {'-'? %d+}
-    binary          <- '0' [bB] ({[01]+} !%d / %{MalformedBinaryNumber})
-    hexadecimal     <- '0' [xX] ({%x+} / %{MalformedHexadecimalNumber})
+    %cNUMBER    <- ({} '' -> 'Number' number literal?) -> to_astnode
+    number      <- '' -> 'hex' hexadecimal /
+                   '' -> 'bin' binary /
+                   '' -> 'dec' decimal
+    literal     <- %cNAME
+    hexadecimal <-  '0' [xX] ({hex} '.' ({hex} / '' -> '0') / '' -> '0' '.' {hex} / {hex} nil)
+                    ([pP] {exp} / nil)
+    binary      <-  '0' [bB] ({bin} '.' ({bin} / '' -> '0') / '' -> '0' '.' {bin} / {bin} nil)
+                    ([pP] {exp} / nil)
+    decimal     <-  ({dec} '.' ({dec} / '' -> '0') / '' -> '0' '.' {dec} / {dec} nil)
+                    ([eE] {exp} / nil)
+    dec         <- %d+
+    bin         <- ([01]+ !%d / %{MalformedBinaryNumber})
+    hex         <- (%x+ / %{MalformedHexadecimalNumber})
+    exp         <- ([+-])? %d+ / %{MalformedExponentialNumber}
+    nil         <- '' -> to_nil
   ]])
 
   -- escape sequence conversion

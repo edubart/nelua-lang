@@ -115,33 +115,36 @@ describe("numbers", function()
   end)
   it("integer", function()
     assert.peg_capture_all(pegs.cNUMBER, {
-      ["1"] = n.Number{"int", "1"},
-      ["0123456789"] = n.Number{"int", "0123456789"},
+      ["1"] = n.Number{"dec", "1"},
+      ["0123456789"] = n.Number{"dec", "0123456789"},
     })
   end)
   it("decimal", function()
     assert.peg_capture_all(pegs.cNUMBER, {
-      [".0"] = n.Number{"dec", ".0"},
-      ["0."] = n.Number{"dec", "0."},
-      ["0123.456789"] = n.Number{"dec", "0123.456789"},
+      [".0"] = n.Number{"dec", "0", "0"},
+      ["0."] = n.Number{"dec", "0", "0"},
+      ["0123.456789"] = n.Number{"dec", "0123", "456789"},
     })
   end)
   it("exponential", function()
     assert.peg_capture_all(pegs.cNUMBER, {
-      ["1.2e-3"] = n.Number{"exp", {"1.2" , "-3"}},
-      [".1e2"] = n.Number{"exp", {".1", "2"}},
-      [".0e+2"] = n.Number{"exp", {".0", "+2"}},
-      ["1e-2"] = n.Number{"exp", {"1", "-2"}},
-      ["1e+2"] = n.Number{"exp", {"1", "+2"}},
-      ["1.e3"] = n.Number{"exp", {"1.", "3"}},
-      ["1e1"] = n.Number{"exp", {"1", "1"}},
-      ["1.2e+6"] = n.Number{"exp", {"1.2", "+6"}},
+      ["1.2e-3"] = n.Number{"dec", "1", "2", "-3"},
+      [".1e2"] = n.Number{"dec", "0", "1", "2"},
+      [".0e+2"] = n.Number{"dec", "0", "0", "+2"},
+      ["1e-2"] = n.Number{"dec", "1", nil, "-2"},
+      ["1e+2"] = n.Number{"dec", "1", nil, "+2"},
+      ["1.e3"] = n.Number{"dec", "1", "0", "3"},
+      ["1e1"] = n.Number{"dec", "1", nil, "1"},
+      ["1.2e+6"] = n.Number{"dec", "1", "2", "+6"},
+      ["0x3.3p3"] = n.Number{"hex", "3", "3", "3"},
+      ["0x5.5P-5"] = n.Number{"hex", "5", "5", "-5"},
+      ["0b1.1p2"] = n.Number{"bin", "1", "1", "2"},
     })
   end)
   it("literal", function()
     assert.peg_capture_all(pegs.cNUMBER, {
-      [".1f"] = n.Number{"dec", ".1", "f"},
-      ["123u"] = n.Number{"int", "123", "u"},
+      [".1f"] = n.Number{"dec", "0", "1", nil, "f"},
+      ["123u"] = n.Number{"dec", "123", nil, nil, "u"},
     })
   end)
   it("malformed", function()
@@ -373,16 +376,16 @@ describe("return", function()
     assert.parse_ast(euluna_parser, "return 0",
       n.Block{{
         n.Return{{
-          n.Number{'int', '0'}
+          n.Number{'dec', '0'}
     }}}})
   end)
   it("with multiple values", function()
     assert.parse_ast(euluna_parser, "return 1,2,3",
       n.Block{{
         n.Return{{
-          n.Number{'int', '1'},
-          n.Number{'int', '2'},
-          n.Number{'int', '3'},
+          n.Number{'dec', '1'},
+          n.Number{'dec', '2'},
+          n.Number{'dec', '3'},
     }}}})
   end)
 end)
@@ -395,9 +398,9 @@ describe("expression", function()
     assert.parse_ast(euluna_parser, "return 3.34e-50, 0xff, 0.1",
       n.Block{{
         n.Return{{
-          n.Number{'exp', {'3.34', '-50'}},
+          n.Number{'dec', '3', '34', '-50'},
           n.Number{'hex', 'ff'},
-          n.Number{'dec', '0.1'},
+          n.Number{'dec', '0', '1'},
     }}}})
   end)
   it("string", function()
@@ -512,7 +515,7 @@ describe("expression", function()
           n.Call{{}, {
             n.Id{'a'},
             n.String{'b'},
-            n.Number{'int', '1'},
+            n.Number{'dec', '1'},
             n.Call{{}, {}, n.Id{'f'}},
             n.Varargs{},
           }, n.Id{'a'}},
@@ -552,7 +555,7 @@ describe("table", function()
             n.Pair{n.Nil{}, n.Nil{}},
             n.Pair{n.Boolean{true}, n.Boolean{true}},
             n.Pair{n.String{'mystr'}, n.String{'mystr'}},
-            n.Pair{n.Number{'dec', '1.0'}, n.Number{'dec', '1.0'}},
+            n.Pair{n.Number{'dec', '1', '0'}, n.Number{'dec', '1', '0'}},
             n.Pair{n.Call{{}, {}, n.Id{'func'}}, n.Call{{}, {}, n.Id{'func'}}},
             n.Pair{n.Varargs{}, n.Varargs{}},
     }}}}}})
@@ -566,7 +569,7 @@ describe("table", function()
             n.Nil{},
             n.Boolean{true},
             n.String{'mystr'},
-            n.Number{'dec', '1.0'},
+            n.Number{'dec', '1', '0'},
             n.Call{{}, {}, n.Id{'func'}},
             n.Varargs{},
     }}}}}})
@@ -630,7 +633,7 @@ describe("call", function()
         n.CallMethod{
           'substr',
           { n.Type{'number'}, n.Type{'number'} },
-          { n.Number{'int', '1'}, n.Number{'int', '2'} },
+          { n.Number{'dec', '1'}, n.Number{'dec', '2'} },
           n.Id{'s'},
           true
     }}})
@@ -755,9 +758,9 @@ describe("statement for", function()
       n.Block{{
         n.ForNum{
           n.IdDecl{'i', 'var'},
-          n.Number{'int', '1'},
+          n.Number{'dec', '1'},
           'le',
-          n.Number{'int', '10'},
+          n.Number{'dec', '10'},
           nil,
           n.Block{{}}}
     }})
@@ -767,10 +770,10 @@ describe("statement for", function()
       n.Block{{
         n.ForNum{
           n.IdDecl{'i', 'var', n.Type{'number'}},
-          n.Number{'int', '10'},
+          n.Number{'dec', '10'},
           'gt',
-          n.Number{'int', '0'},
-          n.UnaryOp{'neg', n.Number{'int', '1'}},
+          n.Number{'dec', '0'},
+          n.UnaryOp{'neg', n.Number{'dec', '1'}},
           n.Block{{}}}
     }})
   end)
@@ -924,8 +927,8 @@ describe("statement assignment", function()
               }
             }
           },
-          { n.Number{"int", "1", nil},
-            n.Number{"int", "2", nil}
+          { n.Number{"dec", "1"},
+            n.Number{"dec", "2"}
           }
     }}})
   end)
@@ -1259,9 +1262,6 @@ describe("live grammar change for", function()
       n.Block{{
         n.Return{{}}}})
     assert.parse_ast_error(euluna_parser, "do_return", 'UnexpectedSyntaxAtEOF')
-  end)
-  it("return keyword (revert)", function()
-    assert.parse_ast_error(euluna_parser, "switch a end", 'ExpectedCase')
   end)
 end)
 

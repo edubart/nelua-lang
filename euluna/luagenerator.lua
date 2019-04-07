@@ -7,19 +7,9 @@ local visitors = {}
 
 -- primitives
 function visitors.Number(_, node, emitter)
-  local numtype, value, literal = node:args()
+  local base, int, frac, exp, literal = node:args()
   node:assertraisef(literal == nil, 'literals are not supported in lua')
-  if numtype == 'int' or numtype == 'dec' then
-    emitter:add(value)
-  elseif numtype == 'exp' then
-    emitter:add(string.format('%se%s', value[1], value[2]))
-  elseif numtype == 'hex' then
-    emitter:add(string.format('0x%s', value))
-  elseif numtype == 'bin' then
-    emitter:add(string.format('%u', tonumber(value, 2)))
-  else --luacov:disable
-    node:errorf('invalid number type "%s" for AST Number', numtype)
-  end --luacov:enable
+  emitter:add_composed_number(base, int, frac, exp)
 end
 
 function visitors.String(_, node, emitter)

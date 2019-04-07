@@ -5,8 +5,10 @@ local stypes = astbuilder.shapetypes
 
 -- primitives
 astbuilder:register('Number', stypes.shape {
-  stypes.one_of{"int", "dec", "bin", "exp", "hex"}, -- type
-  stypes.string + stypes.table, -- value, (table used in exp values)
+  stypes.one_of{"dec", "bin", "hex"}, -- number base
+  stypes.string:is_optional(), -- integer part
+  stypes.string:is_optional(), -- fractional part
+  stypes.string:is_optional(), -- exponential part
   stypes.string:is_optional() -- literal
 })
 astbuilder:register('String', stypes.shape {

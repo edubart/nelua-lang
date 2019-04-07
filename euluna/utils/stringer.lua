@@ -19,6 +19,7 @@ function stringer.hash(s)
   --luacov:enable
 end
 
+stringer.startswith = stringx.startswith
 stringer.split = stringx.split
 stringer.rstrip = stringx.rstrip
 

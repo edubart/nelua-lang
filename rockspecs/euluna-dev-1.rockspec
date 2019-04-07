@@ -9,9 +9,10 @@ source = {
 description = {
   summary = 'The Euluna Programming Language.',
   detailed = [[
-Euluna is a minimalistic, performant, safe, optionally typed, meta programmable,
-systems programming language with syntax close to Lua language that works
-either dynamically or staticaly by compiling to Lua or C.
+Euluna is a minimalistic, performant, safe, optionally typed, compiled, meta programmable,
+systems programming language with syntax and semantics similar to Lua
+language that can work dynamically or statically depending on the code style and
+compiles to C or Lua.
 ]],
   maintainer = "Eduardo Bart <edub4rt@gmail.com>",
   homepage = 'https://github.com/edubart/euluna-lang',
@@ -19,15 +20,17 @@ either dynamically or staticaly by compiling to Lua or C.
 }
 
 dependencies = {
+  'lua >= 5.1',
+  'bit32',
   'penlight >= 1.5.4',
   'lpeglabel >= 1.5.0',
   'tableshape >= 2.0.0',
-  'inspect >= 3.1.1',
   'lua-term >= 0.7',
   'argparse >= 0.6.0',
   'sha1 >= 0.6.0',
 
   -- dev dependencies only
+  'inspect >= 3.1.1',
   'busted >= 2.0rc13',
   'luacheck >= 0.23.0',
   'luacov >= 0.13.0',

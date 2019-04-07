@@ -1,5 +1,6 @@
 local iters = require 'euluna.utils.iterators'
 local tabler = require 'euluna.utils.tabler'
+local stringer = require 'euluna.utils.stringer'
 local typedefs = require 'euluna.typedefs'
 local Context = require 'euluna.context'
 local Variable = require 'euluna.variable'
@@ -14,13 +15,16 @@ local phases = {
 }
 
 function visitors.Number(_, node)
-  local numtype, value, literal = node:args()
+  local numtype, int, frac, exp, literal = node:args()
   if literal then
     node.type = typedefs.number_literal_types[literal]
     node:assertraisef(node.type, 'literal suffix "%s" is not defined', literal)
   else
-    node.type = typedefs.number_default_types[numtype]
-    node:assertf(node.type, 'invalid number type "%s" for AST Number', numtype)
+    if frac or (exp and stringer.startswith(exp, '-')) then
+      node.type = primtypes.number
+    else
+      node.type = primtypes.integer
+    end
   end
 end
 

@@ -10,10 +10,10 @@ describe("Euluna AST should", function()
 -- AST syntax validity
 --------------------------------------------------------------------------------
 it("create a valid ASTNode", function()
-  local ast = n.Number{'int', '10'}
+  local ast = n.Number{'dec', '10'}
   assert(ast)
   assert.same(ast.tag, 'Number')
-  assert.same({ast:args()}, {'int', '10'})
+  assert.same({ast:args()}, {'dec', '10'})
 end)
 
 

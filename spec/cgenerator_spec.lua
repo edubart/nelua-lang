@@ -27,7 +27,7 @@ it("number", function()
   assert.generate_c("return 1.2")
   assert.generate_c("return 1e2")
   assert.generate_c("return 0x1f")
-  assert.generate_c("return 0b10", "return 2")
+  assert.generate_c("return 0b10", "return 0x2")
 end)
 it("number literals", function()
   assert.generate_c("return 1_integer", "return ((int64_t) 1")
@@ -223,7 +223,7 @@ end)
 
 it("print", function()
   assert.run({'-g', 'c', '-e', "print(1,0.2,1e2,0xf,0b01)"},
-    '1\t0.200000\t100.000000\t15\t1')
+    '1\t0.200000\t100\t15\t1')
 end)
 
 end)

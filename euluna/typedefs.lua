@@ -69,15 +69,6 @@ typedefs.number_literal_types = {
   _pointer    = primtypes.pointer,
 }
 
--- default types for literals
-typedefs.number_default_types = {
-  int = primtypes.integer,
-  dec = primtypes.number,
-  exp = primtypes.number,
-  hex = primtypes.integer,
-  bin = primtypes.integer,
-}
-
 -- number types
 -- NOTE: order here does matter when looking up for a common type between two different types
 typedefs.number_types = {
