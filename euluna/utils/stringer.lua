@@ -9,7 +9,7 @@ function stringer.hash(s)
   local lz
   pcall(function()
     local m = require 'luazen'
-    if m.ascon_encrypt then lz = m end
+    if not m.blake2b_init and m.blake2b then lz = m end
   end)
   if lz then
     return lz.b58encode(lz.blake2b(s, 20))

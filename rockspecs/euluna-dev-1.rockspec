@@ -27,7 +27,7 @@ dependencies = {
   'lua-term >= 0.7',
   'argparse >= 0.6.0',
   'sha1 >= 0.6.0',
-  'luabc >= 1.1',
+  'luabc >= 1.2',
 
   -- dev dependencies only
   'inspect >= 3.1.1',

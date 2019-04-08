@@ -1,9 +1,6 @@
 local bn = require 'bc'
 bn.digits(64)
 
--- compat with older bc version
-bn.new = bn.new or bn.number
-
 function bn.fromhex(s)
   assert(s:match('^[0-9a-fA-F]+$'), 'invalid hexadecimal number')
   local n = bn.new(0)
