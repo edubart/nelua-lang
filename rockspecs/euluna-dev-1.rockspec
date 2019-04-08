@@ -21,14 +21,13 @@ compiles to C or Lua.
 
 dependencies = {
   'lua >= 5.1',
-  'bit32',
   'penlight >= 1.5.4',
   'lpeglabel >= 1.5.0',
   'tableshape >= 2.0.0',
   'lua-term >= 0.7',
   'argparse >= 0.6.0',
   'sha1 >= 0.6.0',
-  'luabc == 1.1',
+  'luabc >= 1.1',
 
   -- dev dependencies only
   'inspect >= 3.1.1',

@@ -83,9 +83,7 @@ function Type:is_table()
 end
 
 function Type:is_arraytable()
-  return self.name == 'table' and
-    self.subtypes and
-    #self.subtypes == 1
+  return self.name == 'table' and self.subtypes and #self.subtypes == 1
 end
 
 function Type:is_equal(type)

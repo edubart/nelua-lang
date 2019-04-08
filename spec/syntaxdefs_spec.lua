@@ -1191,7 +1191,65 @@ All binary operators are left associative, except for `^´ (exponentiation)
 and `..´ (concatenation), which are right associative.
 ]]
 describe("operators following precedence rules for", function()
-  --TODO
+  it("`and` and `or`", function()
+    assert.parse_ast(euluna_parser, "return a and b or c",
+      n.Block{{
+        n.Return{
+          {n.BinaryOp{"or", n.BinaryOp{"and", n.Id{"a"}, n.Id{"b"}}, n.Id{"c"}}}
+        }
+    }})
+    assert.parse_ast(euluna_parser, "return a or b and c",
+      n.Block{{
+        n.Return{
+          {n.BinaryOp{"or", n.Id{"a"}, n.BinaryOp{"and", n.Id{"b"}, n.Id{"c"}}}}
+        }
+    }})
+    assert.parse_ast(euluna_parser, "return a and (b or c)",
+      n.Block{{
+        n.Return{
+          {n.BinaryOp{"and", n.Id{"a"}, n.Paren{n.BinaryOp{"or", n.Id{"b"}, n.Id{"c"}}}}}
+        }
+    }})
+  end)
+  it("lua procedence rules", function()
+    assert.parse_ast(euluna_parser, "return a or b and c < d | e ~ f & g << h .. i + j * k ^ #l",
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{"or", n.Id{"a"},
+            n.BinaryOp{"and", n.Id{"b"},
+              n.BinaryOp{"lt", n.Id{"c"},
+                n.BinaryOp{"bor", n.Id{"d"},
+                  n.BinaryOp{"bxor", n.Id{"e"},
+                    n.BinaryOp{"band", n.Id{"f"},
+                      n.BinaryOp{"shl", n.Id{"g"},
+                        n.BinaryOp{"concat", n.Id{"h"},
+                          n.BinaryOp{"add", n.Id{"i"},
+                            n.BinaryOp{"mul", n.Id{"j"},
+                              n.BinaryOp{"pow", n.Id{"k"},
+                                n.UnaryOp{"len", n.Id{"l"}
+    }}}}}}}}}}}}}}}})
+  end)
+  it("lua associative rules", function()
+    assert.parse_ast(euluna_parser, "return a + b + c",
+    n.Block{{
+      n.Return{{
+        n.BinaryOp{"add",
+          n.BinaryOp{"add", n.Id{"a"}, n.Id{"b"}},
+          n.Id{"c"}
+    }}}}})
+    assert.parse_ast(euluna_parser, "return a .. b .. c",
+    n.Block{{
+      n.Return{{
+        n.BinaryOp{"concat", n.Id{"a"},
+          n.BinaryOp{"concat", n.Id{"b"}, n.Id{"c"}}
+    }}}}})
+    assert.parse_ast(euluna_parser, "return a ^ b ^ c",
+    n.Block{{
+      n.Return{{
+        n.BinaryOp{"pow", n.Id{"a"},
+          n.BinaryOp{"pow", n.Id{"b"}, n.Id{"c"}}
+    }}}}})
+  end)
 end)
 
 
