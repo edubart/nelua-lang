@@ -1,6 +1,7 @@
 local class = require 'euluna.utils.class'
 local tabler = require 'euluna.utils.tabler'
 local iters = require 'euluna.utils.iterators'
+local sstream = require 'euluna.utils.sstream'
 local Symbol = require 'euluna.symbol'
 
 --------------------------------------------------------------------------------
@@ -110,15 +111,7 @@ function ComposedType:is_equal(type)
 end
 
 function ComposedType:__tostring()
-  local s = { self.name, '<'}
-  for i,stype in ipairs(self.subtypes) do
-    if i > 1 then
-      table.insert(s, ', ')
-    end
-    table.insert(s, tostring(stype))
-  end
-  table.insert(s, '>')
-  return table.concat(s)
+  return sstream(self.name, '<', self.subtypes, '>'):tostring()
 end
 
 --------------------------------------------------------------------------------
@@ -138,24 +131,12 @@ function FunctionType:is_equal(type)
 end
 
 function FunctionType:__tostring()
-  local s = {'function<('}
-  for i,atype in ipairs(self.argtypes) do
-    if i > 1 then
-      table.insert(s, ', ')
-    end
-    table.insert(s, tostring(atype))
+  local ss = sstream('function<(', self.argtypes, ')')
+  if #self.returntypes > 0 then
+    ss:add(': ', self.returntypes)
   end
-  table.insert(s, ')')
-  for i,rtype in ipairs(self.returntypes) do
-    if i == 1 then
-      table.insert(s, ': ')
-    else
-      table.insert(s, ', ')
-    end
-    table.insert(s, tostring(rtype))
-  end
-  table.insert(s, '>')
-  return table.concat(s)
+  ss:add('>')
+  return ss:tostring()
 end
 
 local types = {

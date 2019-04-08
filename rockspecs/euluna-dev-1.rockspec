@@ -76,6 +76,7 @@ build = {
     ['euluna.utils.memoize'] = 'euluna/utils/memoize.lua',
     ['euluna.utils.metamagic'] = 'euluna/utils/metamagic.lua',
     ['euluna.utils.pegger'] = 'euluna/utils/pegger.lua',
+    ['euluna.utils.sstream'] = 'euluna/utils/sstream.lua',
     ['euluna.utils.stringer'] = 'euluna/utils/stringer.lua',
     ['euluna.utils.tabler'] = 'euluna/utils/tabler.lua',
     ['euluna.utils.traits'] = 'euluna/utils/traits.lua',

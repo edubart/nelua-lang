@@ -5,6 +5,7 @@ local tabler = require 'euluna.utils.tabler'
 local iters = require 'euluna.utils.iterators'
 local traits = require 'euluna.utils.traits'
 local except = require 'euluna.utils.except'
+local sstream = require 'euluna.utils.sstream'
 
 local ASTNode = class()
 ASTNode.tag = 'Node'
@@ -75,11 +76,11 @@ local function stringfy_val2str(val)
   end
 end
 
-local function stringfy_astnode(node, depth, t, skipindent)
+local function stringfy_astnode(node, depth, ss, skipindent)
   local indent = string.rep('  ', depth)
   local isnode = node._astnode
   if not skipindent then
-    table.insert(t, indent)
+    ss:add(indent)
   end
   local empty = true
   for k,_ in pairs(node) do
@@ -88,40 +89,39 @@ local function stringfy_astnode(node, depth, t, skipindent)
     end
   end
   if isnode then
-    tabler.insertmany(t, node.tag, ' ')
+    ss:add(node.tag, ' ')
   end
-  table.insert(t, '{')
+  ss:add('{')
   if isnode and not empty then
-    table.insert(t, '\n')
+    ss:add('\n')
   else
-    table.insert(t, ' ')
+    ss:add(' ')
   end
   for k,v in iters.ospairs(node) do
     if not isnode or not ignored_stringfy_keys[k] then
-      tabler.insertmany(t, indent, '  ', k, ' = ', stringfy_val2str(v), ',\n')
+      ss:add(indent, '  ', k, ' = ', stringfy_val2str(v), ',\n')
     end
   end
   local nargs = isnode and node.nargs or #node
   if nargs > 0 then
     for i,v in iters.inpairs(node, nargs) do
       if type(v) == 'table' then
-        stringfy_astnode(v, depth+1, t, i == 1 and not isnode)
+        stringfy_astnode(v, depth+1, ss, i == 1 and not isnode)
       else
-        tabler.insertmany(t, indent, '  ', stringfy_val2str(v))
+        ss:add(indent, '  ', stringfy_val2str(v))
       end
-      table.insert(t, (i == nargs and '\n' or ',\n'))
+      ss:add(i == nargs and '\n' or ',\n')
     end
-    tabler.insertmany(t, indent, '}')
+    ss:add(indent, '}')
   else
-    table.insert(t, (isnode and '}' or '{}'))
-  end
-  if depth == 0 then
-    return table.concat(t)
+    ss:add(isnode and '}' or '{}')
   end
 end
 
 function ASTNode:__tostring()
-  return stringfy_astnode(self, 0, {})
+  local ss = sstream()
+  stringfy_astnode(self, 0, ss)
+  return ss:tostring()
 end
 
 return ASTNode

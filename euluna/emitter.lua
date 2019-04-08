@@ -79,19 +79,16 @@ function Emitter:add_composed_number(base, int, frac, exp)
       self:add('e', exp)
     end
   elseif base == 'hex' then
-    --FIXME: overflow for uint64
     if not frac and not exp then
       self:add('0x', int)
     else
       local n = bn.fromhex(int)
       if frac then
         local len = frac:gsub('^[+-]', ''):len()
-        local f = bn.fromhex(frac) / bn.pow(16, len)
-        n = n + f
+        n = n + (bn.fromhex(frac) / bn.pow(16, len))
       end
       if exp then
-        local factor = bn.pow(2, tonumber(exp))
-        n = n * factor
+        n = n * bn.pow(2, tonumber(exp))
       end
       local nstr
       if n:trunc() == n then
