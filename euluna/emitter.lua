@@ -1,6 +1,7 @@
 local class = require 'euluna.utils.class'
 local traits = require 'euluna.utils.traits'
 local errorer = require 'euluna.utils.errorer'
+local bn = require 'euluna.utils.bn'
 
 local Emitter = class()
 
@@ -82,28 +83,28 @@ function Emitter:add_composed_number(base, int, frac, exp)
     if not frac and not exp then
       self:add('0x', int)
     else
-      local n = tonumber(int, 16)
+      local n = bn.fromhex(int)
       if frac then
         local len = frac:gsub('^[+-]', ''):len()
-        local f = tonumber(frac, 16) / math.pow(16, len)
+        local f = bn.fromhex(frac) / bn.pow(16, len)
         n = n + f
       end
       if exp then
-        local factor = math.pow(2, tonumber(exp))
+        local factor = bn.pow(2, tonumber(exp))
         n = n * factor
       end
       local nstr
-      if n % 1 == 0 then
-        nstr = string.format('0x%x', n)
+      if n:trunc() == n then
+        nstr = string.format('0x%s', n:tohex())
       else
-        nstr = string.format('%.15f', n):gsub('0+$', '')
+        nstr = n:todec()
       end
       self:add(nstr)
     end
   elseif base == 'bin' then
-    int = string.format('%x', tonumber(int, 2))
+    int = bn.frombin(int):tohex()
     if frac then
-      frac = string.format('%x', tonumber(frac, 2))
+      frac = bn.frombin(frac):tohex()
     end
     self:add_composed_number('hex', int, frac, exp)
   end

@@ -28,6 +28,7 @@ dependencies = {
   'lua-term >= 0.7',
   'argparse >= 0.6.0',
   'sha1 >= 0.6.0',
+  'luabc == 1.1',
 
   -- dev dependencies only
   'inspect >= 3.1.1',
@@ -65,6 +66,7 @@ build = {
     ['euluna.typedefs'] = 'euluna/typedefs.lua',
     ['euluna.types'] = 'euluna/types.lua',
     ['euluna.variable'] = 'euluna/variable.lua',
+    ['euluna.utils.bn'] = 'euluna/utils/bn.lua',
     ['euluna.utils.class'] = 'euluna/utils/class.lua',
     ['euluna.utils.errorer'] = 'euluna/utils/errorer.lua',
     ['euluna.utils.except'] = 'euluna/utils/except.lua',
