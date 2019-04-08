@@ -75,7 +75,8 @@ end
 
 local function euluna_compile(name, generator)
   local file = 'benchmarks/' .. name .. '.euluna'
-  local command = string.format('lua ./euluna.lua -q -b -r -g %s --cflags="-march=native" %s', generator, file)
+  local flags = '-q -b -r --lua-version=5.1 --cflags="-march=native"'
+  local command = string.format('lua ./euluna.lua %s -g %s %s', flags, generator, file)
   local success = executor.exec(command)
   assert(success, 'failed to compile euluna benchmark ' .. name)
 end

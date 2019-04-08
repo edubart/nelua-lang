@@ -1,3 +1,4 @@
+local luabuiltins = require 'euluna.luabuiltins'
 local luadefs = {}
 
 luadefs.unary_ops = {
@@ -29,6 +30,20 @@ luadefs.binary_ops = {
   ['mod'] = '%',
   ['pow'] = '^',
   ['concat'] = '..',
+}
+
+luadefs.lua51_unary_ops = {
+  ['bnot']  = { func = 'bit.bnot', builtin = 'bit '},
+}
+
+luadefs.lua51_binary_ops = {
+  ['idiv']  = { func = luabuiltins.idiv },
+  ['pow']   = { func = 'math.pow' },
+  ['bor']   = { func = 'bit.bor', builtin = 'bit' },
+  ['band']  = { func = 'bit.band', builtin = 'bit' },
+  ['bxor']  = { func = 'bit.bxor', builtin = 'bit' },
+  ['shl']   = { func = 'bit.lshift', builtin = 'bit' },
+  ['shr']   = { func = 'bit.rshift', builtin = 'bit' }
 }
 
 return luadefs

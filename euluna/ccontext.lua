@@ -9,12 +9,7 @@ local CContext = class(Context)
 function CContext:_init(visitors)
   Context._init(self, visitors)
   self.builtintypes = {}
-  self.builtins = {}
   self.arraytypes = {}
-end
-
-function CContext:add_runtime_builtin(name)
-  self.builtins[name] = true
 end
 
 function CContext:get_ctype(nodeortype)

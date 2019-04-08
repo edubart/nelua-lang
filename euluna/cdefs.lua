@@ -72,8 +72,9 @@ cdefs.binary_ops = {
   ['mul'] = '*',
   ['div'] = '/',
   ['mod'] = '%',
-  --TODO: idiv
-  --TODO: pow
+  -- builtins
+  ['idiv'] = true,
+  ['pow'] = true,
   --TODO: concat
 }
 
@@ -82,6 +83,7 @@ cdefs.runtime_files = {
   'euluna_gc',
   'euluna_arrtab',
   'euluna_main',
+  'euluna_math',
 }
 
 cdefs.compiler_base_flags = {

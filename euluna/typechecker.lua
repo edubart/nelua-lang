@@ -343,7 +343,7 @@ function visitors.UnaryOp(context, node)
 end
 
 function visitors.BinaryOp(context, node)
-  local opname, left_arg, right_arg = node:args()
+  local opname, lnode, rnode = node:args()
   local skip = false
 
   if typedefs.binary_equality_ops[opname] then
@@ -357,31 +357,31 @@ function visitors.BinaryOp(context, node)
     end
   end
 
-  context:traverse(left_arg)
-  context:traverse(right_arg)
+  context:traverse(lnode)
+  context:traverse(rnode)
 
   if skip then return end
 
   local type
   if typedefs.binary_conditional_ops[opname] then
-    if left_arg.type == right_arg.type then
-      type = left_arg.type
-    elseif left_arg.type and right_arg.type then
-      type = typedefs.find_common_type({left_arg.type, right_arg.type})
+    if lnode.type == rnode.type then
+      type = lnode.type
+    elseif lnode.type and rnode.type then
+      type = typedefs.find_common_type({lnode.type, rnode.type})
     end
   else
     local ltype, rtype
-    if left_arg.type then
-      ltype = left_arg.type:get_binary_operator_type(opname)
+    if lnode.type then
+      ltype = lnode.type:get_binary_operator_type(opname)
       node:assertraisef(ltype,
         "binary operation `%s` is not defined for type '%s' of the left expression",
-        opname, tostring(left_arg.type))
+        opname, tostring(lnode.type))
     end
-    if right_arg.type then
-      rtype = right_arg.type:get_binary_operator_type(opname)
+    if rnode.type then
+      rtype = rnode.type:get_binary_operator_type(opname)
       node:assertraisef(rtype,
         "binary operation `%s` is not defined for type '%s' of the right expression",
-        opname, tostring(right_arg.type))
+        opname, tostring(rnode.type))
     end
     if ltype and rtype then
       if ltype == rtype then
@@ -392,6 +392,13 @@ function visitors.BinaryOp(context, node)
       node:assertraisef(type,
         "binary operation `%s` is not defined for different types '%s' and '%s' in the expression",
         opname, tostring(ltype), tostring(rtype))
+    end
+    if type then
+      if type:is_real() and opname == 'idiv' then
+        type = primtypes.integer
+      elseif type:is_integral() and opname == 'pow' then
+        type = primtypes.number
+      end
     end
   end
   if type then

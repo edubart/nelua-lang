@@ -62,6 +62,14 @@ function Type:is_number()
   return self.integral or self.real
 end
 
+function Type:is_float32()
+  return self.name == 'float32'
+end
+
+function Type:is_real()
+  return self.real
+end
+
 function Type:is_any()
   return self.name == 'any'
 end
@@ -88,6 +96,10 @@ end
 
 function Type:is_equal(type)
   return rawequal(self, type)
+end
+
+function Type:is_integral()
+  return self.integral
 end
 
 function Type:__eq(type)

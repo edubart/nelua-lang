@@ -23,6 +23,7 @@ function Context:_init(visitors, default_visitor)
     self.default_visitor = traverser_default_visitor
   end
   self.nodes = {}
+  self.builtins = {}
 end
 
 function Context:push_scope(kind)
@@ -70,6 +71,11 @@ function Context:traverse(node, ...)
   local ret = visitor_func(self, node, ...)
   self:pop_node()
   return ret
+end
+
+function Context:add_runtime_builtin(name)
+  if not name then return end
+  self.builtins[name] = true
 end
 
 return Context

@@ -1,5 +1,6 @@
 require 'busted.runner'()
 
+local config = require 'euluna.configer'.get()
 local assert = require 'spec.assert'
 
 describe("Euluna should parse and generate Lua", function()
@@ -161,6 +162,18 @@ it("binary operators", function()
   assert.generate_lua("return a % b")
   assert.generate_lua("return a ^ b")
   assert.generate_lua("return a .. b")
+end)
+it("lua 5.1 compat operators", function()
+  config.lua_version = '5.1'
+  assert.generate_lua("return ~a", "return bit.bnot(a)")
+  assert.generate_lua("return a // b", "return math.floor(a / b)")
+  assert.generate_lua("return a ^ b", "return math.pow(a, b)")
+  assert.generate_lua("return a | b", "return bit.bor(a, b)")
+  assert.generate_lua("return a & b", "return bit.band(a, b)")
+  assert.generate_lua("return a ~ b", "return bit.bxor(a, b)")
+  assert.generate_lua("return a << b", "return bit.lshift(a, b)")
+  assert.generate_lua("return a >> b", "return bit.rshift(a, b)")
+  config.lua_version = '5.3'
 end)
 
 end)

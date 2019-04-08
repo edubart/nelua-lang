@@ -12,6 +12,10 @@ function traits.is_table(v)
   return type(v) == 'table'
 end
 
+function traits.is_function(v)
+  return type(v) == 'function'
+end
+
 function traits.is_boolean(v)
   return type(v) == 'boolean'
 end

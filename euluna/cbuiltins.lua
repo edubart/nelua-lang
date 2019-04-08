@@ -2,6 +2,28 @@ local cdefs = require 'euluna.cdefs'
 
 local builtins = {}
 
+function builtins.idiv(context, node, emitter, lnode, rnode)
+  if lnode.type:is_number() and rnode.type:is_number() then
+    if lnode.type:is_real() or rnode.type:is_real() then
+      emitter:add('((', context:get_ctype(node), ')(', lnode, ' / ', rnode, '))')
+    else
+      emitter:add(lnode, ' / ', rnode)
+    end
+  else --luacov:disable
+    error('not implemented')
+  end --luacov:enable
+end
+
+function builtins.pow(context, node, emitter, lnode, rnode)
+  if lnode.type:is_number() and rnode.type:is_number() then
+    local powname = node.type:is_float32() and 'powf' or 'pow'
+    emitter:add(powname, '(', lnode, ', ', rnode, ')')
+    context.has_math = true
+  else --luacov:disable
+    error('not implemented')
+  end --luacov:enable
+end
+
 function builtins.print(context, node)
   local argtypes, args = node:args()
   local funcname = '__euluna_print_' .. node.pos

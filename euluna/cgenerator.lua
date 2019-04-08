@@ -1,6 +1,7 @@
 local Emitter = require 'euluna.emitter'
 local pegger = require 'euluna.utils.pegger'
 local iters = require 'euluna.utils.iterators'
+local traits = require 'euluna.utils.traits'
 local cdefs = require 'euluna.cdefs'
 local cbuiltins = require 'euluna.cbuiltins'
 local typedefs = require 'euluna.typedefs'
@@ -41,7 +42,7 @@ function visitors.Number(context, node, emitter)
   local base, int, frac, exp, literal = node:args()
   if literal then
     local ctype = context:get_ctype(node)
-    emitter:add('((', ctype, ') ')
+    emitter:add('((', ctype, ')')
   end
   emitter:add_composed_number(base, int, frac, exp)
   if literal then
@@ -355,7 +356,7 @@ function visitors.UnaryOp(context, node, emitter)
 end
 
 function visitors.BinaryOp(context, node, emitter)
-  local opname, left_arg, right_arg = node:args()
+  local opname, lnode, rnode = node:args()
   local op = node:assertraisef(cdefs.binary_ops[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then emitter:add('(') end
@@ -364,12 +365,18 @@ function visitors.BinaryOp(context, node, emitter)
     --TODO: create a temporary function in case of expressions and evaluate in order
     if opname == 'and' then
       --TODO: usa nilable values here
-      emitter:add('(', left_arg, ' && ', right_arg, ') ? ', right_arg, ' : 0')
+      emitter:add('(', lnode, ' && ', rnode, ') ? ', rnode, ' : 0')
     elseif opname == 'or' then
-      emitter:add(left_arg, ' ? ', left_arg, ' : ', right_arg)
+      emitter:add(lnode, ' ? ', lnode, ' : ', rnode)
     end
   else
-    emitter:add(left_arg, ' ', op, ' ', right_arg)
+    if traits.is_string(op) then
+      emitter:add(lnode, ' ', op, ' ', rnode)
+    else
+      local func = cbuiltins[opname]
+      assert(func, 'impossible')
+      func(context, node, emitter, lnode, rnode)
+    end
   end
   if surround then emitter:add(')') end
 end

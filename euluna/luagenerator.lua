@@ -1,7 +1,9 @@
+local pegger = require 'euluna.utils.pegger'
+local traits = require 'euluna.utils.traits'
+local luadefs = require 'euluna.luadefs'
+local config = require 'euluna.configer'.get()
 local Context = require 'euluna.context'
 local Emitter = require 'euluna.emitter'
-local pegger = require 'euluna.utils.pegger'
-local luadefs = require 'euluna.luadefs'
 
 local visitors = {}
 
@@ -300,24 +302,44 @@ local function is_in_operator(context)
 end
 
 function visitors.UnaryOp(context, node, emitter)
-  local opname, arg = node:args()
+  local opname, argnode = node:args()
   if opname == 'tostring' then
-    emitter:add('tostring(', arg, ')')
+    emitter:add('tostring(', argnode, ')')
   else
     local op = node:assertraisef(luadefs.unary_ops[opname], 'unary operator "%s" not found', opname)
+    if config.lua_version ~= '5.3' then
+      local fallop = luadefs.lua51_unary_ops[opname]
+      if fallop then
+        context:add_runtime_builtin(fallop.builtin)
+        emitter:add(fallop.func, '(', argnode, ')')
+        return
+      end
+    end
     local surround = is_in_operator(context)
     if surround then emitter:add('(') end
-    emitter:add(op, arg)
+    emitter:add(op, argnode)
     if surround then emitter:add(')') end
   end
 end
 
 function visitors.BinaryOp(context, node, emitter)
-  local opname, left_arg, right_arg = node:args()
+  local opname, lnode, rnode = node:args()
   local op = node:assertraisef(luadefs.binary_ops[opname], 'binary operator "%s" not found', opname)
+  if config.lua_version ~= '5.3' then
+    local fallop = luadefs.lua51_binary_ops[opname]
+    if fallop then
+      context:add_runtime_builtin(fallop.builtin)
+      if traits.is_function(fallop.func) then
+        fallop.func(context, node, emitter, lnode, rnode)
+      else
+        emitter:add(fallop.func, '(', lnode, ', ', rnode, ')')
+      end
+      return
+    end
+  end
   local surround = is_in_operator(context)
   if surround then emitter:add('(') end
-  emitter:add(left_arg, ' ', op, ' ', right_arg)
+  emitter:add(lnode, ' ', op, ' ', rnode)
   if surround then emitter:add(')') end
 end
 
