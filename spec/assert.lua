@@ -1,5 +1,4 @@
 local assert = require 'luassert'
-local inspect = require 'inspect'
 local stringer = require 'euluna.utils.stringer'
 local except = require 'euluna.utils.except'
 local errorer = require 'euluna.utils.errorer'
@@ -110,7 +109,7 @@ end
 
 function assert.run(args, expected_stdout)
   local status, sout, serr = run(args)
-  errorer.assertf(status == 0, 'expected success status on %s:\n%s\n%s', inspect(args), serr, sout)
+  errorer.assertf(status == 0, 'expected success status in run:\n%s\n%s', serr, sout)
   if expected_stdout then
     assert.contains(expected_stdout, sout)
   end
@@ -118,7 +117,7 @@ end
 
 function assert.run_error(args, expected_stderr)
   local status, sout, serr = run(args)
-  errorer.assertf(status ~= 0, 'expected error status on %s:\n%s\n%s', inspect(args), serr, sout)
+  errorer.assertf(status ~= 0, 'expected error status in run:\n%s\n%s', serr, sout)
   if expected_stderr then
     assert.contains(expected_stderr, serr)
   end
