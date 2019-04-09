@@ -40,8 +40,10 @@ local integral_types = {
   primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
   primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
 }
-for itype in iters.ivalues(integral_types) do
-  itype.integral = true
+do
+  for itype in iters.ivalues(integral_types) do
+    itype.integral = true
+  end
 end
 
 -- real types
@@ -71,7 +73,7 @@ typedefs.number_literal_types = {
 
 -- number types
 -- NOTE: order here does matter when looking up for a common type between two different types
-typedefs.number_types = {
+typedefs.numeric_types = {
   primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int, primtypes.int64,
   primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint, primtypes.uint64,
   primtypes.float32, primtypes.float64
@@ -124,10 +126,13 @@ local unary_op_types = {
   --TODO: tostring
 }
 
-for opname, optypes in pairs(unary_op_types) do
-  for type in iters.ivalues(optypes) do
-    type:add_unary_operator_type(opname, optypes.result_type or type)
+do
+  for opname, optypes in pairs(unary_op_types) do
+    for type in iters.ivalues(optypes) do
+      type:add_unary_operator_type(opname, optypes.result_type or type)
+    end
   end
+  Type:add_unary_operator_type('not', primtypes.boolean)
 end
 
 -- binary operator types
@@ -139,7 +144,6 @@ local comparable_types = {
   result_type = primtypes.boolean
 }
 local binary_op_types = {
-  -- 'or', 'and', `ne`, `eq` is defined for everything in the code
   ['le']      = comparable_types,
   ['ge']      = comparable_types,
   ['lt']      = comparable_types,
@@ -149,31 +153,37 @@ local binary_op_types = {
   ['band']    = bitwise_types,
   ['shl']     = bitwise_types,
   ['shr']     = bitwise_types,
-  ['add']     = typedefs.number_types,
-  ['sub']     = typedefs.number_types,
-  ['mul']     = typedefs.number_types,
-  ['div']     = typedefs.number_types,
-  ['mod']     = typedefs.number_types,
-  ['idiv']    = typedefs.number_types,
-  ['pow']     = typedefs.number_types,
+  ['add']     = typedefs.numeric_types,
+  ['sub']     = typedefs.numeric_types,
+  ['mul']     = typedefs.numeric_types,
+  ['div']     = typedefs.numeric_types,
+  ['mod']     = typedefs.numeric_types,
+  ['idiv']    = typedefs.numeric_types,
+  ['pow']     = typedefs.numeric_types,
   ['concat']  = { primtypes.string }
 }
 
-for opname, optypes in pairs(binary_op_types) do
-  for type in iters.ivalues(optypes) do
-    type:add_binary_operator_type(opname, optypes.result_type or type)
+do
+  for opname, optypes in pairs(binary_op_types) do
+    for type in iters.ivalues(optypes) do
+      type:add_binary_operator_type(opname, optypes.result_type or type)
+    end
   end
 end
 
-typedefs.binary_equality_ops = {
-  ['ne'] = true,
-  ['eq'] = true,
-}
+-- `ne`, `eq` is defined for everything in the code
+Type:add_binary_operator_type('ne', primtypes.boolean)
+Type:add_binary_operator_type('eq', primtypes.boolean)
 
+
+-- 'or', 'and' is handled internally
 typedefs.binary_conditional_ops = {
   ['or'] = true,
   ['and'] = true,
 }
+
+-- array table types
+types.ArrayTableType:add_unary_operator_type('len', primtypes.integer)
 
 function typedefs.find_common_type(possibletypes)
   local len = #possibletypes
@@ -181,7 +191,7 @@ function typedefs.find_common_type(possibletypes)
   if len == 1 then return possibletypes[1] end
 
   if tabler.iall(possibletypes, Type.is_number) then
-    for numtype in iters.ivalues(typedefs.number_types) do
+    for numtype in iters.ivalues(typedefs.numeric_types) do
       if tabler.iall(possibletypes, function(ty) return numtype:is_conversible(ty) end) then
         return numtype
       end

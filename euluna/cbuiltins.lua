@@ -2,6 +2,14 @@ local cdefs = require 'euluna.cdefs'
 
 local builtins = {}
 
+function builtins.len(_, _, emitter, argnode)
+  assert(argnode.type:is_arraytable(), 'not implemented yet')
+  emitter:add('euluna_arrtab_',
+      argnode.type.subtypes[1]:codegen_name(),
+      '_length(&',
+      argnode, ')')
+end
+
 function builtins.idiv(context, node, emitter, lnode, rnode)
   if lnode.type:is_number() and rnode.type:is_number() then
     if lnode.type:is_real() or rnode.type:is_real() then

@@ -49,7 +49,8 @@ cdefs.unary_ops = {
   ['bnot'] = '~',
   ['ref'] = '&',
   ['deref'] = '*',
-  --TODO: len
+  -- builtins
+  ['len'] = true,
   --TODO: tostring
 }
 

@@ -347,11 +347,17 @@ local function is_in_operator(context)
 end
 
 function visitors.UnaryOp(context, node, emitter)
-  local opname, arg = node:args()
+  local opname, argnode = node:args()
   local op = node:assertraisef(cdefs.unary_ops[opname], 'unary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then emitter:add('(') end
-  emitter:add(op, arg)
+  if traits.is_string(op) then
+    emitter:add(op, argnode)
+  else
+    local func = cbuiltins[opname]
+    assert(func, 'impossible')
+    func(context, node, emitter, argnode)
+  end
   if surround then emitter:add(')') end
 end
 

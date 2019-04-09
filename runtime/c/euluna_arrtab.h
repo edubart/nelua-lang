@@ -24,6 +24,7 @@ void euluna_arrtab_{%=tyname%}_push(euluna_arrtab_{%=tyname%}_t* t, {%=ctype%} v
 static inline {%=ctype%} euluna_arrtab_{%=tyname%}_pop(euluna_arrtab_{%=tyname%}_t* t);
 static inline {%=ctype%}* euluna_arrtab_{%=tyname%}_get(euluna_arrtab_{%=tyname%}_t* t, size_t i);
 static inline {%=ctype%}* euluna_arrtab_{%=tyname%}_at(euluna_arrtab_{%=tyname%}_t* t, size_t i);
+static inline size_t euluna_arrtab_{%=tyname%}_length(euluna_arrtab_{%=tyname%}_t* t) { return t-> len; }
 
 /* {% end %} */
 

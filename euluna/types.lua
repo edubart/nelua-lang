@@ -2,19 +2,26 @@ local class = require 'euluna.utils.class'
 local tabler = require 'euluna.utils.tabler'
 local iters = require 'euluna.utils.iterators'
 local sstream = require 'euluna.utils.sstream'
+local metamagic = require 'euluna.utils.metamagic'
 local Symbol = require 'euluna.symbol'
 
 --------------------------------------------------------------------------------
 local Type = class(Symbol)
 
+Type.unary_operators = {}
+Type.binary_operators = {}
+
 function Type:_init(name, node)
   Symbol._init(self, node)
   self.name = name
+  self.integral = false
+  self.real = false
   self.unary_operators = {}
   self.binary_operators = {}
   self.conversible_types = {}
-  self.integral = false
-  self.real = false
+  local mt = getmetatable(self)
+  metamagic.setmetaindex(self.unary_operators, mt.unary_operators)
+  metamagic.setmetaindex(self.binary_operators, mt.binary_operators)
 end
 
 function Type:__tostring()
@@ -38,8 +45,11 @@ function Type:add_unary_operator_type(opname, type)
 end
 
 function Type:get_unary_operator_type(opname)
-  if self:is_any() then return self end
-  return self.unary_operators[opname]
+  local type = self.unary_operators[opname]
+  if not type and self:is_any() then
+    type = self
+  end
+  return type
 end
 
 function Type:add_binary_operator_type(opname, type)
@@ -47,8 +57,11 @@ function Type:add_binary_operator_type(opname, type)
 end
 
 function Type:get_binary_operator_type(opname)
-  if self:is_any() then return self end
-  return self.binary_operators[opname]
+  local type = self.binary_operators[opname]
+  if not type and self:is_any() then
+    type = self
+  end
+  return type
 end
 
 function Type:is_conversible(type)
@@ -90,8 +103,8 @@ function Type:is_table()
   return self.name == 'table'
 end
 
-function Type:is_arraytable()
-  return self.name == 'table' and self.subtypes and #self.subtypes == 1
+function Type.is_arraytable()
+  return false
 end
 
 function Type:is_equal(type)
@@ -109,19 +122,32 @@ end
 --------------------------------------------------------------------------------
 local ComposedType = class(Type)
 
-function ComposedType:_init(node, name, subtypes)
+function ComposedType:_init(name, node, subtypes)
   self.subtypes = subtypes
   Type._init(self, name, node)
 end
 
 function ComposedType:is_equal(type)
   return type.name == self.name and
-         class.is_a(type, ComposedType) and
+         class.is_a(type, getmetatable(self)) and
          tabler.deepcompare(type.subtypes, self.subtypes)
 end
 
 function ComposedType:__tostring()
   return sstream(self.name, '<', self.subtypes, '>'):tostring()
+end
+
+--------------------------------------------------------------------------------
+local ArrayTableType = class(ComposedType)
+ArrayTableType.unary_operators = {}
+metamagic.setmetaindex(ArrayTableType.unary_operators, Type.unary_operators)
+
+function ArrayTableType:_init(node, subtypes)
+  ComposedType._init(self, 'table', node, subtypes)
+end
+
+function ArrayTableType.is_arraytable()
+  return true
 end
 
 --------------------------------------------------------------------------------
@@ -152,6 +178,7 @@ end
 local types = {
   Type = Type,
   ComposedType = ComposedType,
+  ArrayTableType = ArrayTableType,
   FunctionType = FunctionType
 }
 return types

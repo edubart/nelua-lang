@@ -56,7 +56,7 @@ end
 function visitors.Type(_, node)
   local tyname = node:arg(1)
   local type = primtypes[tyname]
-  node:assertf(type, 'invalid type "%s"', tyname)
+  node:assertraisef(type, 'invalid type "%s"', tyname)
   node.type = type
   return type
 end
@@ -73,11 +73,14 @@ function visitors.FuncType(context, node)
 end
 
 function visitors.ComposedType(context, node)
-  local name, subtypes = node:args()
-  context:default_visitor(subtypes)
-  -- TODO: check validity of builtins composed types (eg table)
-  local type = types.ComposedType(node, name,
-    tabler.imap(subtypes, function(n) return n.type end))
+  local name, subtypenodes = node:args()
+  context:default_visitor(subtypenodes)
+  local type
+  if name == 'table' then
+    local subtypes = tabler.imap(subtypenodes, function(n) return n.type end)
+    node:assertraisef(#subtypes <= 2, 'tables can have at most 2 subtypes')
+    type = types.ArrayTableType(node, subtypes)
+  end
   node.type = type
   return type
 end
@@ -327,6 +330,8 @@ end
 function visitors.UnaryOp(context, node)
   local opname, arg = node:args()
   if opname == 'not' then
+    -- must set to boolean type before traversing
+    -- in case we are inside a if/while/repeat statement
     node.type = primtypes.boolean
     context:traverse(arg)
   else
@@ -344,23 +349,21 @@ end
 
 function visitors.BinaryOp(context, node)
   local opname, lnode, rnode = node:args()
-  local skip = false
 
-  if typedefs.binary_equality_ops[opname] then
-    node.type = primtypes.boolean
-    skip = true
-  elseif typedefs.binary_conditional_ops[opname] then
+  -- evaluate conditional operators to boolean type before traversing
+  -- in case we are inside a if/while/repeat statement
+  if typedefs.binary_conditional_ops[opname] then
     local parent_node = context:get_parent_node_if(function(a) return a.tag ~= 'Paren' end)
     if parent_node.type == primtypes.boolean then
       node.type = primtypes.boolean
-      skip = true
+      context:traverse(lnode)
+      context:traverse(rnode)
+      return
     end
   end
 
   context:traverse(lnode)
   context:traverse(rnode)
-
-  if skip then return end
 
   local type
   if typedefs.binary_conditional_ops[opname] then

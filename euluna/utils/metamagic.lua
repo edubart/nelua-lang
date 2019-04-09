@@ -7,7 +7,7 @@ function metamagic.setmetaindex(t, __index, overwrite)
     assert(overwrite, 'cannot overwrite metatable')
     mt.__index = __index
     return t
-  else
+  elseif __index then
     return setmetatable(t, { __index = __index})
   end
 end
