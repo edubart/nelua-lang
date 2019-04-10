@@ -1290,6 +1290,76 @@ describe("type expression", function()
             { n.Type{'int'}, n.Type{'string'} }}} }
     }}})
   end)
+  it("record type", function()
+    assert.parse_ast(euluna_parser, "local r: record{a: int}",
+      n.Block{{
+        n.VarDecl{'local', 'var', {
+          n.IdDecl{'r', 'var', n.RecordType{{
+            n.RecordField{'a', n.Type{'int'}}
+    }}}}}}})
+    assert.parse_ast(euluna_parser, "local r: record{a: int, b: bool}",
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          { n.IdDecl{'r', 'var', n.RecordType{{
+            n.RecordField{'a', n.Type{'int'}},
+            n.RecordField{'b', n.Type{'bool'}}
+    }}}}}}})
+    assert.parse_ast(euluna_parser,
+      "local r: record{f: function<(int, uint): string, bool>, t: table<int>}",
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          { n.IdDecl{'r', 'var', n.RecordType{{
+            n.RecordField{'f', n.FuncType{
+              {n.Type{'int'}, n.Type{'uint'}},
+              {n.Type{'string'}, n.Type{'bool'}}}},
+            n.RecordField{'t', n.ComposedType{'table', { n.Type{'int'} }}},
+    }}}}}}})
+    assert.parse_ast(euluna_parser, "local r: record{a: record{c: int}, b: bool}",
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          { n.IdDecl{'r', 'var', n.RecordType{{
+            n.RecordField{'a', n.RecordType{{
+              n.RecordField{'c', n.Type{'int'}}
+            }}},
+            n.RecordField{'b', n.Type{'bool'}}
+    }}}}}}})
+  end)
+  it("enum type", function()
+    assert.parse_ast(euluna_parser, "local e: enum{a}",
+      n.Block{{
+        n.VarDecl{'local', 'var', {
+          n.IdDecl{'e', 'var', n.EnumType{nil, {
+            n.EnumField{'a'},
+    }}}}}}})
+    assert.parse_ast(euluna_parser, "local e: enum<int>{a,b=2,}",
+      n.Block{{
+        n.VarDecl{'local', 'var', {
+          n.IdDecl{'e', 'var', n.EnumType{n.Type{'int'}, {
+            n.EnumField{'a'},
+            n.EnumField{'b', n.Number{'dec','2'}},
+    }}}}}}})
+  end)
+  it("inference", function()
+    assert.parse_ast(euluna_parser, "local Integer = @integer",
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          {n.IdDecl{'Integer', 'var'} },
+          {n.TypeInfer{n.Type{'integer'}}}
+    }}})
+    assert.parse_ast(euluna_parser, "local MyRecord = @record{a: int}",
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          {n.IdDecl{'MyRecord', 'var'} },
+          {n.TypeInfer{n.RecordType{{n.RecordField{'a', n.Type{'int'}}}}}}
+    }}})
+    assert.parse_ast(euluna_parser, "local a = @integer(0)",
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          {n.IdDecl{'a', 'var'} },
+          {n.Call {{},{n.Number{"dec","0"}},n.TypeInfer{n.Type{"integer"}}}
+        }
+    }}})
+  end)
 end)
 
 --------------------------------------------------------------------------------

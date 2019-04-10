@@ -114,7 +114,7 @@ local function stringfy_astnode(node, depth, ss, skipindent)
     end
     ss:add(indent, '}')
   else
-    ss:add(isnode and '}' or '{}')
+    ss:add('}')
   end
 end
 

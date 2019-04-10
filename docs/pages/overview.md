@@ -268,7 +268,7 @@ local a: any
 ### Struct
 
 ```euluna
-local Person = @struct {
+local Person = @record {
   name: string,
   age: integer
 }
@@ -286,7 +286,7 @@ print(b.age)
 Can also be used as tuples
 
 ```euluna
-local a: struct{integer, integer}
+local a: record{integer, integer}
 a = {1,2}
 a[1] = 0
 ```
@@ -296,7 +296,7 @@ a[1] = 0
 Union can store multiple types.
 
 ```euluna
-local u: union{integer,string}
+local u: union<integer,string>
 ```
 
 ### Nilable
@@ -304,7 +304,7 @@ local u: union{integer,string}
 Nilable types are not useful by itself, they are only useful when using with unions.
 
 ```euluna
-local v: union{string,nilable}
+local v: union<string,nilable>
 
 -- syntax sugar for union union{string,nilable}
 local v: integer?

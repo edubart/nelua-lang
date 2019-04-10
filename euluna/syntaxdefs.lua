@@ -197,6 +197,8 @@ local function get_parser(std)
   %TVAR         <- 'var'
   %TVAL         <- 'val'
   %TCONST       <- 'const'
+  %TRECORD      <- 'record'
+  %TENUM        <- 'enum'
   ]])
 
   --- capture varargs values
@@ -353,7 +355,11 @@ local function get_parser(std)
 
     primary_expr <-
       %cID /
+      type_infer /
       ({} %LPAREN -> 'Paren' eexpr eRPAREN) -> to_astnode
+
+    type_infer <-
+      ({} %AT -> 'TypeInfer' etypexpr) -> to_astnode
 
     index_expr <- dot_index / array_index
     dot_index <- {| {} %DOT -> 'DotIndex' ecNAME |}
@@ -412,13 +418,10 @@ local function get_parser(std)
 
     typexpr <-
         func_type
+      / record_type
+      / enum_type
       / composed_type
-      / simple_type
-
-    composed_type <- (
-      {} '' -> 'ComposedType'
-        %cNAME %LANGLE {| etypexpr_list |} eRANGLE
-      ) -> to_astnode
+      / prim_type
 
     func_type <- (
       {} '' -> 'FuncType'
@@ -430,57 +433,82 @@ local function get_parser(std)
         eRANGLE
       ) -> to_astnode
 
-    simple_type   <- ({} '' -> 'Type' %cNAME) -> to_astnode
+    record_type <- ({} %TRECORD -> 'RecordType' eLCURLY
+        {| erecord_field (%SEPARATOR record_field)* %SEPARATOR? |}
+      eRCURLY) -> to_astnode
+    record_field <- ({} '' -> 'RecordField'
+        %cNAME eCOLON etypexpr
+      ) -> to_astnode
+
+    enum_type <- ({} %TENUM -> 'EnumType'
+        ((%LANGLE eprim_type eRANGLE) / cnil) eLCURLY
+        {| eenum_field (%SEPARATOR enum_field)* %SEPARATOR? |}
+      eRCURLY) -> to_astnode
+    enum_field <- ({} '' -> 'EnumField'
+        %cNAME (%ASSIGN ecNUMBER)?
+      ) -> to_astnode
+
+    composed_type <- (
+      {} '' -> 'ComposedType'
+        %cNAME %LANGLE {| etypexpr_list |} eRANGLE
+      ) -> to_astnode
+
+    prim_type   <- ({} '' -> 'Type' %cNAME) -> to_astnode
   ]])
 
   -- operators
   grammar:set_pegs([[
-    op_or     <- %OR -> 'or'
-    op_and    <- %AND -> 'and'
-    op_cmp    <- %LT -> 'lt' /
-                %NE -> 'ne' /
-                %GT -> 'gt' /
-                %LE -> 'le' /
-                %GE -> 'ge' /
-                %EQ -> 'eq'
-
-    op_bor    <- %BOR -> 'bor'
-    op_xor    <- %BXOR -> 'bxor'
-    op_band   <- %BAND -> 'band'
-    op_bshift <- %SHL -> 'shl' /
-                %SHR -> 'shr'
-    op_concat <- %CONCAT -> 'concat'
-    op_add    <- %ADD -> 'add' /
-                %SUB -> 'sub'
-    op_mul    <- %MUL -> 'mul' /
-                %IDIV -> 'idiv' /
-                %DIV -> 'div' /
-                %MOD -> 'mod'
-    op_unary  <- %NOT -> 'not' /
-                %LEN -> 'len' /
-                %NEG -> 'neg' /
-                %BNOT -> 'bnot' /
-                %TOSTR -> 'tostring' /
-                %REF -> 'ref' /
-                %DEREF -> 'deref'
-    op_pow   <-  %POW -> 'pow'
+    op_or     <-  %OR -> 'or'
+    op_and    <-  %AND -> 'and'
+    op_cmp    <-  %LT -> 'lt' /
+                  %NE -> 'ne' /
+                  %GT -> 'gt' /
+                  %LE -> 'le' /
+                  %GE -> 'ge' /
+                  %EQ -> 'eq'
+    op_bor    <-  %BOR -> 'bor'
+    op_xor    <-  %BXOR -> 'bxor'
+    op_band   <-  %BAND -> 'band'
+    op_bshift <-  %SHL -> 'shl' /
+                  %SHR -> 'shr'
+    op_concat <-  %CONCAT -> 'concat'
+    op_add    <-  %ADD -> 'add' /
+                  %SUB -> 'sub'
+    op_mul    <-  %MUL -> 'mul' /
+                  %IDIV -> 'idiv' /
+                  %DIV -> 'div' /
+                  %MOD -> 'mod'
+    op_unary  <-  %NOT -> 'not' /
+                  %LEN -> 'len' /
+                  %NEG -> 'neg' /
+                  %BNOT -> 'bnot' /
+                  %TOSTR -> 'tostring' /
+                  %REF -> 'ref' /
+                  %DEREF -> 'deref'
+    op_pow    <-  %POW -> 'pow'
   ]])
 
   -- syntax expected captures with errors
   grammar:set_pegs([[
-    eRPAREN    <- %RPAREN    / %{UnclosedParenthesis}
-    eRBRACKET  <- %RBRACKET  / %{UnclosedBracket}
-    eRCURLY    <- %RCURLY    / %{UnclosedCurly}
-    eRANGLE    <- %RANGLE    / %{UnclosedAngle}
-    eLPAREN    <- %LPAREN    / %{ExpectedParenthesis}
-    eEND       <- %END       / %{ExpectedEnd}
-    eTHEN      <- %THEN      / %{ExpectedThen}
-    eUNTIL     <- %UNTIL     / %{ExpectedUntil}
-    eDO        <- %DO        / %{ExpectedDo}
-    ecNAME     <- %cNAME     / %{ExpectedName}
-    eexpr      <- expr       / %{ExpectedExpression}
-    etypexpr   <- typexpr    / %{ExpectedTypeExpression}
-    ecall_args <- call_args  / %{ExpectedCall}
+    eRPAREN       <- %RPAREN      / %{UnclosedParenthesis}
+    eRBRACKET     <- %RBRACKET    / %{UnclosedBracket}
+    eRCURLY       <- %RCURLY      / %{UnclosedCurly}
+    eRANGLE       <- %RANGLE      / %{UnclosedAngle}
+    eCOLON        <- %COLON       / %{ExpectedColon}
+    eLCURLY       <- %LCURLY      / %{ExpectedCurly}
+    eLPAREN       <- %LPAREN      / %{ExpectedParenthesis}
+    eEND          <- %END         / %{ExpectedEnd}
+    eTHEN         <- %THEN        / %{ExpectedThen}
+    eUNTIL        <- %UNTIL       / %{ExpectedUntil}
+    eDO           <- %DO          / %{ExpectedDo}
+    ecNAME        <- %cNAME       / %{ExpectedName}
+    ecNUMBER      <- %cNUMBER     / %{ExpectedNumber}
+    eexpr         <- expr         / %{ExpectedExpression}
+    etypexpr      <- typexpr      / %{ExpectedTypeExpression}
+    ecall_args    <- call_args    / %{ExpectedCall}
+    erecord_field <- record_field / %{ExpectedRecordField}
+    eenum_field   <- enum_field   / %{ExpectedEnumField}
+    eprim_type    <- prim_type    / %{ExpectedPrimitiveTypeExpression}
   ]])
 
   -- compile whole grammar
@@ -510,15 +538,21 @@ local function get_parser(std)
     UnclosedCurly = "unclosed curly brace, did you forget a `}`?",
     UnclosedAngleBracket = "unclosed angle bracket, did you forget a `>`",
     UnclosedLabel = "unclosed label, did you forget `::`?",
+    ExpectedColon = "expected colon `:`",
+    ExpectedCurly = "expected curly brace `{`",
     ExpectedParenthesis = "expected parenthesis `(`",
     ExpectedEnd = "expected `end` keyword",
     ExpectedThen = "expected `then` keyword",
     ExpectedUntil = "expected `until` keyword",
     ExpectedDo = "expected `do` keyword",
     ExpectedName = "expected an identifier name",
+    ExpectedNumber = "expected a number expression",
     ExpectedExpression = "expected an expression",
     ExpectedTypeExpression = "expected a type expression",
-    ExpectedCall = "expected call"
+    ExpectedCall = "expected call",
+    ExpectedEnumField = "expected at least one enum field",
+    ExpectedRecordField = "expected at least one record field",
+    ExpectedPrimitiveTypeExpression = "expected a primitive type expression",
   })
 
   if not is_luacompat then
