@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 int64_t sieve(int64_t N) {
     bool* is_prime = (bool*)malloc(sizeof(bool) * N);
@@ -25,5 +26,6 @@ int64_t sieve(int64_t N) {
 int main() {
     int64_t res = sieve(10000000);
     printf("%li\n", res);
+    assert(res == 664579);
     return 0;
 }

@@ -40,3 +40,4 @@ end
 
 local res = mandel(1024)
 print(res)
+assert(res == 20164264)

@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <assert.h>
 
 int64_t mandel(int64_t width) {
     int64_t height = width; double wscale = 2.0 / width;
@@ -46,5 +47,6 @@ int64_t mandel(int64_t width) {
 int main() {
     int64_t res = mandel(1024);
     printf("%li\n", res);
+    assert(res == 20164264);
     return 0;
 }

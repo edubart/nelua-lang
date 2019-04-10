@@ -35,7 +35,7 @@ local function heapsort(a: table<number>)
 end
 
 local function random_int(seed: integer)
-  return (1103515245 * seed + 12345) % 2147483648
+  return (214013 * seed + 2531011) % 2147483648
 end
 
 local N = 1000000
@@ -45,7 +45,13 @@ for i=1,N do
   rand = random_int(rand)
   a[i] = rand
 end
+
 heapsort(a)
+
+local sum: number = 0.0
 for i=1,N-1 do
   assert(a[i] <= a[i+1])
+  sum = sum + (a[i+1] - a[i])
 end
+print(sum)
+assert(sum == 2147480127.0)

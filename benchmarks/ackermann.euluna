@@ -10,3 +10,4 @@ end
 
 local res = ack(3,10)
 print(res)
+assert(res == 8189)

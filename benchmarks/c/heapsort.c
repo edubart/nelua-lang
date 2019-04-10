@@ -5,36 +5,40 @@
 #include <assert.h>
 
 void heapsort(double* a, int64_t n) {
-    int l = n / 2, p, j, t;
+    int64_t j = 0; int64_t i = 0; double t = 0;
+    int64_t l = n / 2;
+    int64_t k = n - 1;
     while(true) {
-        if (l > 0) {
-            l--;
+        if(l > 0) {
+            l = l - 1;
             t = a[l];
         } else {
-            n--;
-            if(n == 0)
+            t = a[k];
+            a[k] = a[0];
+            k = k - 1;
+            if(k == 0) {
+                a[0] = t;
                 return;
-            t = a[n];
-            a[n] = a[0];
+            }
         }
-        p = l;
+        i = l;
         j = l * 2 + 1;
-        while(j < n) {
-            if((j + 1 < n) && (a[j + 1] > a[j]))
-                j++;
-            if (a[j] > t) {
-                a[p] = a[j];
-                p = j;
-                j = p * 2 + 1;
+        while(j <= k) {
+            if(j < k && a[j] < a[j + 1])
+                j = j + 1;
+            if(t < a[j]) {
+                a[i] = a[j];
+                i = j;
+                j = j + i + 1;
             } else
-                break;
+                j = k + 1;
         }
-        a[p] = t;
+        a[i] = t;
     }
 }
 
 int64_t random_int(int64_t seed) {
-    return ((1103515245 * seed) + 12345) % 2147483648;
+    return (214013 * seed + 2531011) % 2147483648;
 }
 
 int main() {
@@ -46,8 +50,13 @@ int main() {
         a[i] = rand;
     }
     heapsort(a, N);
-    for(int64_t i = 0; i < N - 1; i += 1)
+    double sum = 0;
+    for(int64_t i = 0; i < N - 1; i += 1) {
         assert(a[i] <= a[i + 1]);
+        sum = sum + (a[i + 1] - a[i]);
+    }
+    printf("%lf\n", sum);
+    assert(sum == 2147480127.0);
     free(a);
     return 0;
 }

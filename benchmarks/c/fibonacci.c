@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <assert.h>
 
 int64_t fibmod(int64_t n, int64_t m) {
     int64_t a = 0;
@@ -15,5 +16,6 @@ int64_t fibmod(int64_t n, int64_t m) {
 int main() {
     int64_t res = fibmod(100000000, 1000000000000);
     printf("%li\n", res);
+    assert(res == 167760546875);
     return 0;
 }

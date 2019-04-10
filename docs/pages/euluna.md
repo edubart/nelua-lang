@@ -138,10 +138,10 @@ The benchmarks can be run with `luajit ./tools/benchmarker.lua`
 |        sieve |    luajit |    281.919 |    289.172 |    301.547 |      6.863 |
 |        sieve |  euluna c |     90.662 |     98.785 |    116.735 |      6.499 |
 |        sieve |         c |     74.849 |     80.538 |     91.990 |      4.423 |
-|     heapsort |       lua |   2326.845 |   2420.581 |   2573.169 |     92.502 |
-|     heapsort |    luajit |    266.303 |    275.297 |    287.669 |      8.030 |
-|     heapsort |  euluna c |    175.111 |    180.640 |    188.584 |      5.137 |
-|     heapsort |         c |    141.115 |    150.384 |    157.541 |      6.216 |
+|     heapsort |       lua |   2366.075 |   2505.377 |   2635.038 |    120.612 |
+|     heapsort |    luajit |    273.339 |    278.048 |    288.385 |      6.031 |
+|     heapsort |  euluna c |    176.590 |    181.156 |    190.310 |      5.473 |
+|     heapsort |         c |    134.544 |    137.838 |    141.037 |      2.333 |
 
 Environment that this benchmark was run:
 LuaJIT 2.1.0-beta3,

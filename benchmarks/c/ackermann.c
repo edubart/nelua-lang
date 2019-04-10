@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <assert.h>
 
 int64_t ack(int64_t m, int64_t n) {
     if(m == 0) {
@@ -14,5 +15,6 @@ int64_t ack(int64_t m, int64_t n) {
 int main() {
     int64_t res = ack(3, 10);
     printf("%li\n", res);
+    assert(res == 8189);
     return 0;
 }

@@ -78,7 +78,7 @@ void euluna_panic(const char* message) EULUNA_NORETURN;
 /* {% if context.builtins['assert'] then %} */
 static inline void euluna_assert(bool cond) {
   if(EULUNA_UNLIKELY(!cond))
-    euluna_panic("assert failed");
+    euluna_panic("assertion failed!");
 }
 /* {% end %} */
 /* {% if context.builtins['assert_message'] then %} */

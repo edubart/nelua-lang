@@ -248,11 +248,14 @@ it("assert", function()
     assert(true, 'assertion')
   ]])
   assert.run_error_c([[
+    assert()
+  ]], "invalid assert call")
+  assert.run_error_c([[
     assert(false, 'assertion')
   ]], "assertion")
   assert.run_error_c([[
     assert(false)
-  ]], "assert failed")
+  ]], "assertion failed!")
 end)
 
 end)

@@ -18,3 +18,4 @@ end
 
 local res = sieve(10000000)
 print(res)
+assert(res == 664579)
