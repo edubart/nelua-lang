@@ -32,6 +32,19 @@ function builtins.pow(context, node, emitter, lnode, rnode)
   end --luacov:enable
 end
 
+function builtins.assert(context, node)
+  local argtypes, args = node:args()
+  if #args == 2 then
+    context:add_runtime_builtin('assert_message')
+    return 'euluna_assert_message'
+  elseif #args == 1 then
+    context:add_runtime_builtin('assert')
+    return 'euluna_assert'
+  else
+    node:raisef('invalid assert call')
+  end
+end
+
 function builtins.print(context, node)
   local argtypes, args = node:args()
   local funcname = '__euluna_print_' .. node.pos

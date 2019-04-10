@@ -6,7 +6,8 @@ local benchmarks = {
   'ackermann',
   'fibonacci',
   'mandel',
-  'sieve'
+  'sieve',
+  'heapsort'
 }
 
 local config

@@ -73,7 +73,20 @@ void euluna_stdout_write_newline();
 void euluna_stdout_write(const char *message);
 void euluna_stdout_write_format(char *format, ...);
 /* {% end %} */
+
 void euluna_panic(const char* message) EULUNA_NORETURN;
+/* {% if context.builtins['assert'] then %} */
+static inline void euluna_assert(bool cond) {
+  if(EULUNA_UNLIKELY(!cond))
+    euluna_panic("assert failed");
+}
+/* {% end %} */
+/* {% if context.builtins['assert_message'] then %} */
+static inline void euluna_assert_message(bool cond, const euluna_string_t* s) {
+  if(EULUNA_UNLIKELY(!cond))
+    euluna_panic(s->data);
+}
+/* {% end %} */
 
 /* inlined builtins */
 static inline void euluna_check_type(euluna_type_t* a, euluna_type_t* b) {

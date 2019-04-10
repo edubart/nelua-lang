@@ -236,4 +236,23 @@ it("print", function()
     '1\t0.200000\t100\t15\t1')
 end)
 
+it("assert", function()
+  assert.generate_c(
+    "assert(true)",
+    "euluna_assert(true)")
+  assert.generate_c(
+    "assert(true, 'assertion')",
+    'euluna_assert_message(true, ')
+  assert.run_c([[
+    assert(true)
+    assert(true, 'assertion')
+  ]])
+  assert.run_error_c([[
+    assert(false, 'assertion')
+  ]], "assertion")
+  assert.run_error_c([[
+    assert(false)
+  ]], "assert failed")
+end)
+
 end)

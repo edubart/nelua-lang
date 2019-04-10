@@ -78,7 +78,6 @@ void euluna_arrtab_{%=tyname%}_push(euluna_arrtab_{%=tyname%}_t* t, {%=ctype%} v
 
 {%=ctype%}* euluna_arrtab_{%=tyname%}_get(euluna_arrtab_{%=tyname%}_t* t, size_t i) {
   if(EULUNA_UNLIKELY(i > t->len)) {
-    printf("%lu %lu", i, t->len);
     euluna_panic("euluna_arrtab_{%=tyname%}_get: index out of range");
   }
   else if(EULUNA_UNLIKELY(i == 0 && t->cap == 0)) {
