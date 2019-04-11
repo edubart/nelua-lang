@@ -214,6 +214,32 @@ it("array tables", function()
   ]], "is not conversible with")
 end)
 
+it("records", function()
+  assert.analyze_ast([[
+    local a: record {x: boolean}
+    a.x = true
+  ]])
+  assert.analyze_error([[
+    local a: record {x: boolean}
+    a.x = 1
+  ]], "is not conversible with")
+  assert.analyze_error([[
+    local a: record {x: boolean}
+    local b = a.y
+  ]], "does not have field named")
+  assert.analyze_ast([[
+    local Record: type = @record{x: boolean}
+    local a: Record
+    local b: Record
+    b = a
+  ]])
+  assert.analyze_error([[
+    local a: record {x: boolean}
+    local b: record {x: boolean}
+    b = a
+  ]], "is not conversible with")
+end)
+
 it("strict mode", function()
   config.strict = true
   assert.analyze_error("a = 1", "undeclarated symbol")

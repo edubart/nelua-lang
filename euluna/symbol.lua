@@ -4,8 +4,10 @@ local class = require 'euluna.utils.class'
 
 local Symbol = class()
 
-function Symbol:_init(node)
+function Symbol:_init(name, node, type)
+  self.name = name
   self.node = node
+  self.type = type
   self.noderefs = {}
   self.possibletypes = {}
 end
@@ -16,7 +18,7 @@ function Symbol:add_possible_type(type, required)
     self.has_unknown_type = true
     return
   end
-  if tabler.find(self.possibletypes, type) then return end
+  if tabler.ifind(self.possibletypes, type) then return end
   table.insert(self.possibletypes, type)
 end
 
@@ -24,7 +26,7 @@ function Symbol:link_node_type(node)
   if self.type then
     node.type = self.type
   else
-    if tabler.find(self.noderefs, node) then return end
+    if tabler.ifind(self.noderefs, node) then return end
     table.insert(self.noderefs, node)
   end
 end

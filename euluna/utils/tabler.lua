@@ -11,9 +11,18 @@ function tabler.update(t, src)
 end
 
 -- find a value inside an array table
-function tabler.find(t, val, idx)
+function tabler.ifind(t, val, idx)
   for i=idx or 1,#t do
     if t[i] == val then return i end
+  end
+  return nil
+end
+
+-- find values inside an array table using a custom if function
+function tabler.ifindif(t, fn, idx)
+  for i=idx or 1,#t do
+    local val = t[i]
+    if fn(val) then return val end
   end
   return nil
 end

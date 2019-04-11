@@ -32,8 +32,8 @@ local function create_parser(argv)
   argparser:option('--cache-dir', "Compilation cache directory", "euluna_cache")
   argparser:argument("input", "Input source file"):action(function(options, _, v)
     -- hacky way to stop handling options
-    local index = tabler.find(argv, v) + 1
-    local found_stop_index = tabler.find(argv, '--')
+    local index = tabler.ifind(argv, v) + 1
+    local found_stop_index = tabler.ifind(argv, '--')
     if not found_stop_index or found_stop_index > index-1 then
       table.insert(argv, index, '--')
     end

@@ -48,6 +48,9 @@ astbuilder:register('Paren', stypes.shape {
 astbuilder:register('Type', stypes.shape {
   stypes.string, -- type name
 })
+astbuilder:register('TypeInfer', stypes.shape {
+  ntypes.Node, -- type
+})
 astbuilder:register('FuncType', stypes.shape {
   stypes.array_of(ntypes.Node), -- arguments types
   stypes.array_of(ntypes.Node), -- returns types
@@ -70,9 +73,6 @@ astbuilder:register('EnumType', stypes.shape {
 astbuilder:register('ComposedType', stypes.shape {
   stypes.string, -- type name
   stypes.array_of(ntypes.Node), -- arguments types
-})
-astbuilder:register('TypeInfer', stypes.shape {
-  ntypes.Node, -- type
 })
 
 -- function

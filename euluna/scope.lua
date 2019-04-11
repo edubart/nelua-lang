@@ -3,6 +3,7 @@ local metamagic = require 'euluna.utils.metamagic'
 local typedefs = require 'euluna.typedefs'
 local tabler = require 'euluna.utils.tabler'
 local config = require 'euluna.configer'.get()
+local Symbol = require 'euluna.symbol'
 
 local Scope = class()
 
@@ -45,6 +46,7 @@ function Scope:get_symbol(name, node)
 end
 
 function Scope:add_symbol(symbol)
+  assert(class.is_a(symbol, Symbol), 'invalid symbol')
   local name = symbol.name
   if self.symbols[name] and config.strict then
     symbol.node:raisef("symbol '%s' shadows pre declarated symbol with the same name", name)
@@ -78,7 +80,7 @@ function Scope:add_return_type(index, type)
   if not returntypes then
     returntypes = {}
     self.returnstypes[index] = returntypes
-  elseif tabler.find(returntypes, type) then
+  elseif tabler.ifind(returntypes, type) then
     return
   end
   table.insert(returntypes, type)

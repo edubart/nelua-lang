@@ -63,7 +63,14 @@ function Context:get_parent_node_if(f)
   end
 end
 
-function Context:traverse(node, ...)
+function Context:traverse_nodes(nodes, ...)
+  assert(not traits.is_astnode(nodes) and traits.is_table(nodes), "must traverse a list")
+  for _,node in ipairs(nodes) do
+    self:traverse(node, ...)
+  end
+end
+
+function Context:traverse_node(node, ...)
   assert(traits.is_astnode(node), "trying to traverse a non node value")
   local visitor_func = self.visitors[node.tag] or self.default_visitor
   node:assertf(visitor_func, "visitor for AST node '%s' does not exist", node.tag)
@@ -71,6 +78,13 @@ function Context:traverse(node, ...)
   local ret = visitor_func(self, node, ...)
   self:pop_node()
   return ret
+end
+
+function Context:traverse(node, ...)
+  if traits.is_astnode(node) then
+    return self:traverse_node(node, ...)
+  end
+  return self:traverse_nodes(node, ...)
 end
 
 function Context:add_runtime_builtin(name)

@@ -17,7 +17,7 @@ would not be efficient (like operational systems, real-time applications, game e
 while maintaining syntax and semantics compatible with Lua and providing a
 a seamless interface to Lua. Euluna is designed to be able to work free from a Lua VM
 or garbage collector when using its new idioms, just like a C program would work.
-When coding with types and using its new idioms (structs, arrays, manual memory
+When coding with types and using its new idioms (records, arrays, manual memory
 management, pointers, etc) the performance should be efficient as C. However when
 using Lua idioms (like tables, metatables) or interacting with scripts, the compiler
 uses a Lua VM such as Lua or LuaJIT, therefore Euluna has different goals of other JIT or VM

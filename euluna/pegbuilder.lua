@@ -33,7 +33,7 @@ function PEGBuilder:add_group_peg(groupname, name, patt, defs, overwrite)
     self.group_pegs[groupname] = group
   end
   local fullname = string.format('%s_%s', groupname, name)
-  if tabler.find(group, fullname) then
+  if tabler.ifind(group, fullname) then
     errorer.assertf(overwrite, 'group peg "%s" already exists', fullname)
   else
     table.insert(group, fullname)

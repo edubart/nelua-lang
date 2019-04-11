@@ -231,6 +231,14 @@ it("array tables", function()
   ]], "false\t0\ntrue\t1")
 end)
 
+-- it("records", function()
+--   assert.generate_c(
+--     "local t: record{a: bool}",
+-- [[typedef struct {
+--   bool a;
+-- } Record]])
+-- end)
+
 it("print", function()
   assert.run({'-g', 'c', '-e', "print(1,0.2,1e2,0xf,0b01)"},
     '1\t0.200000\t100\t15\t1')

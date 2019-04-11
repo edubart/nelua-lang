@@ -64,7 +64,6 @@ build = {
     ['euluna.typechecker'] = 'euluna/typechecker.lua',
     ['euluna.typedefs'] = 'euluna/typedefs.lua',
     ['euluna.types'] = 'euluna/types.lua',
-    ['euluna.variable'] = 'euluna/variable.lua',
     ['euluna.utils.bn'] = 'euluna/utils/bn.lua',
     ['euluna.utils.class'] = 'euluna/utils/class.lua',
     ['euluna.utils.errorer'] = 'euluna/utils/errorer.lua',

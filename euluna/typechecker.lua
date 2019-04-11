@@ -3,7 +3,7 @@ local tabler = require 'euluna.utils.tabler'
 local stringer = require 'euluna.utils.stringer'
 local typedefs = require 'euluna.typedefs'
 local Context = require 'euluna.context'
-local Variable = require 'euluna.variable'
+local Symbol = require 'euluna.symbol'
 local types = require 'euluna.types'
 
 local primtypes = typedefs.primtypes
@@ -42,7 +42,7 @@ function visitors.Id(context, node)
   if not type and context.phase == phases.any_inference then
     type = primtypes.any
   end
-  local symbol = context.scope:get_symbol(name, node) or context.scope:add_symbol(Variable(name, node, type))
+  local symbol = context.scope:get_symbol(name, node) or context.scope:add_symbol(Symbol(name, node, type))
   symbol:link_node_type(node)
   return symbol
 end
@@ -53,18 +53,31 @@ function visitors.Paren(context, node)
   node.type = what.type
 end
 
-function visitors.Type(_, node)
+function visitors.Type(context, node)
   local tyname = node:arg(1)
   local type = primtypes[tyname]
-  node:assertraisef(type, 'invalid type "%s"', tyname)
+  if not type then
+    local symbol = context.scope:get_symbol(tyname, node)
+    node:assertraisef(symbol and symbol.holding_type, "symbol '%s' is not a valid type", tyname)
+    type = symbol.holding_type
+  end
   node.type = type
+  return type
+end
+
+function visitors.TypeInfer(context, node)
+  local typenode = node:arg(1)
+  context:traverse(typenode)
+  local type = primtypes.type
+  node.type = type
+  node.holding_type = typenode.type
   return type
 end
 
 function visitors.FuncType(context, node)
   local argtypes, returntypes = node:args()
-  context:default_visitor(argtypes)
-  context:default_visitor(returntypes)
+  context:traverse(argtypes)
+  context:traverse(returntypes)
   local type = types.FunctionType(node,
     tabler.imap(argtypes, function(n) return n.type end),
     tabler.imap(returntypes, function(n) return n.type end))
@@ -72,23 +85,53 @@ function visitors.FuncType(context, node)
   return type
 end
 
+function visitors.RecordField(context, node)
+  local name, typenode = node:args()
+  context:traverse(typenode)
+  local type = typenode.type
+  node.type = type
+  return type
+end
+
+function visitors.RecordType(context, node)
+  local fieldnodes = node:args()
+  context:traverse(fieldnodes)
+  local fields = tabler.imap(fieldnodes, function(n)
+    return {name = n:arg(1), type=n.type}
+  end)
+  local type = types.RecordType(node, fields)
+  node.type = type
+  return type
+end
+
 function visitors.ComposedType(context, node)
   local name, subtypenodes = node:args()
-  context:default_visitor(subtypenodes)
+  context:traverse(subtypenodes)
   local type
   if name == 'table' then
     local subtypes = tabler.imap(subtypenodes, function(n) return n.type end)
     node:assertraisef(#subtypes <= 2, 'tables can have at most 2 subtypes')
     type = types.ArrayTableType(node, subtypes)
   end
+  node:assertraisef(type, 'unknown composed type "%s"', name)
   node.type = type
   return type
 end
 
 function visitors.DotIndex(context, node)
-  context:default_visitor(node)
-  --TODO: detect better types
-  node.type = primtypes.any
+  local name, obj = node:args()
+  context:traverse(obj)
+  local type
+  if obj.type then
+    if obj.type:is_record() then
+      type = obj.type:get_field_type(name)
+      node:assertraisef(type, 'record "%s" does not have field named "%s"', tostring(obj.type), name)
+    end
+  end
+  if not type and context.phase == phases.any_inference then
+    type = primtypes.any
+  end
+  node.type = type
 end
 
 function visitors.ColonIndex(context, node)
@@ -109,7 +152,7 @@ end
 
 function visitors.Call(context, node)
   local argtypes, args, callee, block_call = node:args()
-  context:default_visitor(args)
+  context:traverse(args)
   local symbol = context:traverse(callee)
   if symbol and symbol.type then
     callee:assertraisef(symbol.type:is_function() or symbol.type:is_any(),
@@ -145,7 +188,7 @@ function visitors.IdDecl(context, node)
   if not type and context.phase == phases.any_inference then
     type = primtypes.any
   end
-  local symbol = context.scope:add_symbol(Variable(name, node, type))
+  local symbol = context.scope:add_symbol(Symbol(name, node, type))
   symbol:link_node_type(node)
   return symbol
 end
@@ -194,7 +237,7 @@ function visitors.ForNum(context, node)
   end
   repeat_scope_until_resolution(context, 'loop', function()
     context:traverse(itvar)
-    local itsymbol = context.scope:add_symbol(Variable(itvarname, itvar, itvar.type))
+    local itsymbol = context.scope:add_symbol(Symbol(itvarname, itvar, itvar.type))
     if itvar.type then
       if beginval.type then
         node:assertraisef(itvar.type:is_conversible(beginval.type),
@@ -229,11 +272,16 @@ function visitors.VarDecl(context, node)
     var.assign = true
     if val then
       context:traverse(val)
-      symbol:add_possible_type(val.type)
-      if var.type and val.type and var.type ~= primtypes.boolean then
-        node:assertraisef(var.type:is_conversible(val.type),
-          "variable '%s' of type '%s' is not conversible with value of type '%s'",
-          symbol.name, tostring(var.type), tostring(val.type))
+      if val.type then
+        symbol:add_possible_type(val.type)
+        if var.type and var.type ~= primtypes.boolean then
+          node:assertraisef(var.type:is_conversible(val.type),
+            "variable '%s' of type '%s' is not conversible with value of type '%s'",
+            symbol.name, tostring(var.type), tostring(val.type))
+        end
+        if val.type:is_type() then
+          symbol.holding_type = val.holding_type
+        end
       end
     end
   end
@@ -274,8 +322,8 @@ function visitors.FuncDef(context, node)
 
   -- try to resolver function return types
   local funcscope = repeat_scope_until_resolution(context, 'function', function()
-    context:default_visitor(argnodes)
-    context:default_visitor(retnodes)
+    context:traverse(argnodes)
+    context:traverse(retnodes)
     context:traverse(blocknode)
   end)
 

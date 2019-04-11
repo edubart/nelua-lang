@@ -25,7 +25,7 @@ local primtypes = {
   pointer   = Type('pointer'),
   any       = Type('any'),
   void      = Type('void'),
-  type      = Type.type, -- the type of "type"
+  type      = Type.type, -- the type of "Type"
 }
 typedefs.primtypes = primtypes
 

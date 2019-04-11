@@ -207,7 +207,7 @@ end
 local function internal_add_keyword(self, keyword)
   local keyword_name = keyword:upper()
   assert(self.defs.IDSUFFIX, 'cannot add keyword without a IDSUFFIX peg')
-  errorer.assertf(tabler.find(self.keywords, keyword) == nil, 'keyword "%s" already exists', keyword)
+  errorer.assertf(tabler.ifind(self.keywords, keyword) == nil, 'keyword "%s" already exists', keyword)
   table.insert(self.keywords, keyword)
   self:set_token_peg(keyword_name, string.format("'%s' !%%IDSUFFIX", keyword))
 end
@@ -219,7 +219,7 @@ end
 
 function PEGParser:remove_keyword(keyword)
   local keyword_name = keyword:upper()
-  local i = tabler.find(self.keywords, keyword)
+  local i = tabler.ifind(self.keywords, keyword)
   errorer.assertf(i, 'keyword "%s" to remove not found', keyword)
   table.remove(self.keywords, i)
   recompile_keyword_peg(self)

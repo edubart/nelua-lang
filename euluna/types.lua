@@ -3,16 +3,15 @@ local tabler = require 'euluna.utils.tabler'
 local iters = require 'euluna.utils.iterators'
 local sstream = require 'euluna.utils.sstream'
 local metamagic = require 'euluna.utils.metamagic'
-local Symbol = require 'euluna.symbol'
 
 --------------------------------------------------------------------------------
-local Type = class(Symbol)
+local Type = class()
 
 Type.unary_operators = {}
 Type.binary_operators = {}
 
 function Type:_init(name, node)
-  Symbol._init(self, node)
+  self.node = node
   self.name = name
   self.integral = false
   self.real = false
@@ -87,8 +86,16 @@ function Type:is_any()
   return self.name == 'any'
 end
 
+function Type:is_type()
+  return self.name == 'type'
+end
+
 function Type:is_string()
   return self.name == 'string'
+end
+
+function Type:is_record()
+  return self.name == 'record'
 end
 
 function Type:is_boolean()
@@ -118,6 +125,9 @@ end
 function Type:__eq(type)
   return self:is_equal(type) and type:is_equal(self)
 end
+
+-- the type of 'Type'
+Type.type = Type('type')
 
 --------------------------------------------------------------------------------
 local ComposedType = class(Type)
@@ -160,10 +170,11 @@ function FunctionType:_init(node, argtypes, returntypes)
 end
 
 function FunctionType:is_equal(type)
-  return type.name == 'function' and
-         class.is_a(type, FunctionType) and
-         tabler.deepcompare(type.argtypes, self.argtypes) and
-         tabler.deepcompare(type.returntypes, self.returntypes)
+  return
+    type.name == 'function' and
+    class.is_a(type, FunctionType) and
+    tabler.deepcompare(type.argtypes, self.argtypes) and
+    tabler.deepcompare(type.returntypes, self.returntypes)
 end
 
 function FunctionType:__tostring()
@@ -175,10 +186,36 @@ function FunctionType:__tostring()
   return ss:tostring()
 end
 
+--------------------------------------------------------------------------------
+local RecordType = class(Type)
+
+function RecordType:_init(node, fields)
+  self.fields = fields
+  Type._init(self, 'record', node)
+end
+
+function RecordType:get_field_type(name)
+  local field = tabler.ifindif(self.fields, function(f)
+    return f.name == name
+  end)
+  return field and field.type or nil
+end
+
+function RecordType:__tostring()
+  local ss = sstream('record{')
+  for i,field in ipairs(self.fields) do
+    if i > 1 then self:add(', ') end
+    ss:add(field.name, ': ', field.type)
+  end
+  ss:add('}')
+  return ss:tostring()
+end
+
 local types = {
   Type = Type,
   ComposedType = ComposedType,
   ArrayTableType = ArrayTableType,
-  FunctionType = FunctionType
+  FunctionType = FunctionType,
+  RecordType = RecordType,
 }
 return types
