@@ -182,8 +182,10 @@ function assert.analyze_error(code, expected_error)
   local ok, e = except.try(function()
     typechecker.analyze(ast, euluna_parser.astbuilder)
   end)
-  assert(not ok, "type analysis should fail")
-  assert.contains(expected_error, e:get_message())
+  errorer.assertf(not ok, "type analysis should fail for: %s", code)
+  if expected_error then
+    assert.contains(expected_error, e:get_message())
+  end
 end
 
 return assert

@@ -265,6 +265,35 @@ it("arrays", function()
   assert.analyze_error([[
     local a: array<integer, 1.0>
   ]], "expected a valid decimal integral number in the second argument")
+  assert.analyze_error([[
+    local MyArray = @array<integer, 10>
+    local b = MyArray.len
+  ]], "cannot index object of type")
+end)
+
+it("enums", function()
+  assert.analyze_ast([[
+    local a: enum{A}
+    local b: enum<integer>{A,B}
+  ]])
+  assert.analyze_ast([[
+    local Enum = @enum{A,B=3}
+    local e: Enum = Enum.A
+    local i: number = e
+  ]])
+  assert.analyze_error([[
+    local Enum = @enum{A,B=3}
+    local e: Enum = Enum.A
+    local i: string = e
+  ]], "is not conversible with")
+  assert.analyze_error([[
+    local Enum = @enum{A,B}
+    local e: Enum = Enum.C
+  ]], "does not have field named")
+  assert.analyze_error([[
+    local Enum = @enum{A,B=3}
+    local e: Enum = 1
+  ]], "is not conversible with")
 end)
 
 it("strict mode", function()

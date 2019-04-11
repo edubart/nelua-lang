@@ -16,6 +16,7 @@ local phases = {
 
 function visitors.Number(_, node)
   local base, int, frac, exp, literal = node:args()
+  local value
   if literal then
     node.type = typedefs.number_literal_types[literal]
     node:assertraisef(node.type, 'literal suffix "%s" is not defined', literal)
@@ -26,6 +27,16 @@ function visitors.Number(_, node)
       node.type = primtypes.integer
     end
   end
+  if int and frac == nil and exp == nil and literal == nil then
+    if base == 'hex' then
+      value = tonumber(int, 16)
+    elseif base == 'bin' then
+      value = tonumber(int, 2)
+    else
+      value = tonumber(int)
+    end
+  end
+  return value
 end
 
 function visitors.String(_, node)
@@ -49,8 +60,9 @@ end
 
 function visitors.Paren(context, node)
   local what = node:args()
-  context:traverse(what)
+  local ret = context:traverse(what)
   node.type = what.type
+  return ret
 end
 
 function visitors.Type(context, node)
@@ -87,8 +99,7 @@ end
 
 function visitors.RecordField(context, node)
   local name, typenode = node:args()
-  context:traverse(typenode)
-  local type = typenode.type
+  local type = context:traverse(typenode)
   node.type = type
   return type
 end
@@ -104,25 +115,47 @@ function visitors.RecordType(context, node)
   return type
 end
 
+function visitors.EnumField(context, node)
+  local name, numnode = node:args()
+  local value
+  if numnode then
+    value = context:traverse(numnode)
+  end
+  return {name = name, value = value}
+end
+
+function visitors.EnumType(context, node)
+  local typenode, fieldnodes = node:args()
+  local subtype = primtypes.integer
+  if typenode then
+    subtype = context:traverse(typenode)
+  end
+  local fields = {}
+  for i,fnode in ipairs(fieldnodes) do
+    local field = context:traverse(fnode)
+    if not field.value then
+      field.value = i
+    end
+    fields[i] = field
+  end
+  local type = types.EnumType(node, subtype, fields)
+  node.type = type
+  return type
+end
+
 function visitors.ComposedType(context, node)
   local name, subnodes = node:args()
-  context:traverse(subnodes)
   local type
   if name == 'table' then
+    context:traverse(subnodes)
     local subtypes = tabler.imap(subnodes, function(n) return n.type end)
     node:assertraisef(#subtypes <= 2, 'tables can have at most 2 subtypes')
     type = types.ArrayTableType(node, subtypes)
   elseif name == 'array' then
     node:assertraisef(#subnodes == 2, 'arrays must have 2 arguments')
     local typenode, numnode = subnodes[1], subnodes[2]
-    local subtype = typenode.type
-    local length
-    if numnode and numnode.tag == 'Number' then
-      local base, int, frac, exp, literal = numnode:args()
-      if base == 'dec' and int and frac == nil and exp == nil and literal == nil then
-        length = tonumber(int)
-      end
-    end
+    local subtype = context:traverse(typenode)
+    local length = context:traverse(numnode)
     node:assertraisef(length and length > 0,
       'expected a valid decimal integral number in the second argument of an "array" type')
     type = types.ArrayType(node, subtype, length)
@@ -134,12 +167,27 @@ end
 
 function visitors.DotIndex(context, node)
   local name, obj = node:args()
-  context:traverse(obj)
+  local symbol = context:traverse(obj)
   local type
-  if obj.type then
-    if obj.type:is_record() then
-      type = obj.type:get_field_type(name)
-      node:assertraisef(type, 'record "%s" does not have field named "%s"', tostring(obj.type), name)
+  local objtype = obj.type
+  if objtype then
+    if objtype:is_record() then
+      type = objtype:get_field_type(name)
+      node:assertraisef(type,
+        'record "%s" does not have field named "%s"',
+        tostring(objtype), name)
+    elseif objtype:is_type() then
+      assert(symbol, 'impossible')
+      assert(symbol.holding_type, 'impossible')
+      objtype = symbol.holding_type
+      if objtype:is_enum() then
+        node:assertraisef(objtype:has_field(name),
+          'enum "%s" does not have field named "%s"',
+          tostring(objtype), name)
+        type = objtype
+      else
+        node:raisef('cannot index object of type "%s"', tostring(objtype))
+      end
     end
   end
   if not type and context.phase == phases.any_inference then

@@ -67,6 +67,9 @@ function Type:is_conversible(type)
   if self == type or self:is_any() or type:is_any() then
     return true
   end
+  if type:is_enum() then
+    return self:is_conversible(type.subtype)
+  end
   return self.conversible_types[type]
 end
 
@@ -112,6 +115,10 @@ end
 
 function Type:is_array()
   return self.name == 'array'
+end
+
+function Type:is_enum()
+  return self.name == 'enum'
 end
 
 function Type.is_arraytable()
@@ -185,6 +192,31 @@ function ArrayType:__tostring()
 end
 
 --------------------------------------------------------------------------------
+local EnumType = class(Type)
+
+function EnumType:_init(node, subtype, fields)
+  self.subtype = subtype
+  self.fields = fields
+  Type._init(self, 'enum', node)
+end
+
+function EnumType:has_field(name)
+  return tabler.ifindif(self.fields, function(f)
+    return f.name == name
+  end) ~= nil
+end
+
+function EnumType:__tostring()
+  local ss = sstream('enum<', self.subtype, '>{')
+  for i,field in ipairs(self.fields) do
+    if i > 1 then ss:add(', ') end
+    ss:add(field.name, '=', field.value)
+  end
+  ss:add('}')
+  return ss:tostring()
+end
+
+--------------------------------------------------------------------------------
 local FunctionType = class(Type)
 
 function FunctionType:_init(node, argtypes, returntypes)
@@ -228,8 +260,8 @@ end
 function RecordType:__tostring()
   local ss = sstream('record{')
   for i,field in ipairs(self.fields) do
-    if i > 1 then self:add(', ') end
-    ss:add(field.name, ': ', field.type)
+    if i > 1 then ss:add(', ') end
+    ss:add(field.name, ':', field.type)
   end
   ss:add('}')
   return ss:tostring()
@@ -239,8 +271,9 @@ local types = {
   Type = Type,
   ComposedType = ComposedType,
   ArrayTableType = ArrayTableType,
+  ArrayType = ArrayType,
+  EnumType = EnumType,
   FunctionType = FunctionType,
   RecordType = RecordType,
-  ArrayType = ArrayType,
 }
 return types
