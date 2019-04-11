@@ -240,6 +240,33 @@ it("records", function()
   ]], "is not conversible with")
 end)
 
+it("arrays", function()
+  assert.analyze_ast([[
+    local a: array<integer, 10>
+    a[0] = 1
+  ]])
+  assert.analyze_ast([[
+    local a: array<integer, 10>
+    local b: array<integer, 10>
+    b = a
+  ]])
+  assert.analyze_error([[
+    local a: array<integer, 10>
+    local b: array<integer, 11>
+    b = a
+  ]], "is not conversible with")
+  assert.analyze_error([[
+    local a: array<integer, 10>
+    a[0] = 1.0
+  ]], "is not conversible with")
+  assert.analyze_error([[
+    local a: array<integer>
+  ]], "arrays must have 2 arguments")
+  assert.analyze_error([[
+    local a: array<integer, 1.0>
+  ]], "expected a valid decimal integral number in the second argument")
+end)
+
 it("strict mode", function()
   config.strict = true
   assert.analyze_error("a = 1", "undeclarated symbol")

@@ -110,6 +110,10 @@ function Type:is_table()
   return self.name == 'table'
 end
 
+function Type:is_array()
+  return self.name == 'array'
+end
+
 function Type.is_arraytable()
   return false
 end
@@ -158,6 +162,26 @@ end
 
 function ArrayTableType.is_arraytable()
   return true
+end
+
+--------------------------------------------------------------------------------
+local ArrayType = class(Type)
+
+function ArrayType:_init(node, subtype, length)
+  self.subtype = subtype
+  self.length = length
+  Type._init(self, 'array', node)
+end
+
+function ArrayType:is_equal(type)
+  return type.name == self.name and
+         class.is_a(type, getmetatable(self)) and
+         self.subtype == type.subtype and
+         self.length == type.length
+end
+
+function ArrayType:__tostring()
+  return sstream('array<', self.subtype, self.length, '>'):tostring()
 end
 
 --------------------------------------------------------------------------------
@@ -217,5 +241,6 @@ local types = {
   ArrayTableType = ArrayTableType,
   FunctionType = FunctionType,
   RecordType = RecordType,
+  ArrayType = ArrayType,
 }
 return types

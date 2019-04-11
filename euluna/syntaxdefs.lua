@@ -450,8 +450,10 @@ local function get_parser(std)
 
     composed_type <- (
       {} '' -> 'ComposedType'
-        %cNAME %LANGLE {| etypexpr_list |} eRANGLE
+        %cNAME %LANGLE {| ecomposed_typexpr_list |} eRANGLE
       ) -> to_astnode
+    ecomposed_typexpr_list <-
+      etypexpr (%COMMA (typexpr / %cNUMBER))*
 
     prim_type   <- ({} '' -> 'Type' %cNAME) -> to_astnode
   ]])

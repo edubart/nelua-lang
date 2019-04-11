@@ -15,7 +15,7 @@ local phases = {
 }
 
 function visitors.Number(_, node)
-  local numtype, int, frac, exp, literal = node:args()
+  local base, int, frac, exp, literal = node:args()
   if literal then
     node.type = typedefs.number_literal_types[literal]
     node:assertraisef(node.type, 'literal suffix "%s" is not defined', literal)
@@ -105,13 +105,27 @@ function visitors.RecordType(context, node)
 end
 
 function visitors.ComposedType(context, node)
-  local name, subtypenodes = node:args()
-  context:traverse(subtypenodes)
+  local name, subnodes = node:args()
+  context:traverse(subnodes)
   local type
   if name == 'table' then
-    local subtypes = tabler.imap(subtypenodes, function(n) return n.type end)
+    local subtypes = tabler.imap(subnodes, function(n) return n.type end)
     node:assertraisef(#subtypes <= 2, 'tables can have at most 2 subtypes')
     type = types.ArrayTableType(node, subtypes)
+  elseif name == 'array' then
+    node:assertraisef(#subnodes == 2, 'arrays must have 2 arguments')
+    local typenode, numnode = subnodes[1], subnodes[2]
+    local subtype = typenode.type
+    local length
+    if numnode and numnode.tag == 'Number' then
+      local base, int, frac, exp, literal = numnode:args()
+      if base == 'dec' and int and frac == nil and exp == nil and literal == nil then
+        length = tonumber(int)
+      end
+    end
+    node:assertraisef(length and length > 0,
+      'expected a valid decimal integral number in the second argument of an "array" type')
+    type = types.ArrayType(node, subtype, length)
   end
   node:assertraisef(type, 'unknown composed type "%s"', name)
   node.type = type
@@ -143,11 +157,20 @@ end
 function visitors.ArrayIndex(context, node)
   context:default_visitor(node)
   local index, obj = node:args()
-  if obj.type and obj.type:is_arraytable() then
-    node.type = obj.type.subtypes[1]
-  else
-    node.type = primtypes.any
+  local type
+  if obj.type then
+    if obj.type:is_arraytable() then
+      --TODO: check negative values
+      type = obj.type.subtypes[1]
+    elseif obj.type:is_array() then
+      --TODO: check index range
+      type = obj.type.subtype
+    end
   end
+  if not type and context.phase == phases.any_inference then
+    type = primtypes.any
+  end
+  node.type = type
 end
 
 function visitors.Call(context, node)

@@ -1289,6 +1289,12 @@ describe("type expression", function()
           { n.IdDecl{'t', 'var', n.ComposedType{'table',
             { n.Type{'int'}, n.Type{'string'} }}} }
     }}})
+    assert.parse_ast(euluna_parser, "local a: array<int, 10>",
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          { n.IdDecl{'a', 'var', n.ComposedType{'array',
+            { n.Type{'int'}, n.Number{'dec', '10'} }}} }
+    }}})
   end)
   it("record type", function()
     assert.parse_ast(euluna_parser, "local r: record{a: int}",
