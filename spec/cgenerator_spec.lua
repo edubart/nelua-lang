@@ -173,7 +173,6 @@ it("c types", function()
   assert.generate_c("local a: uint8", "euluna_uint8 a = {0};")
   assert.generate_c("local a: uint", "euluna_uint a = {0};")
   assert.generate_c("local a: boolean", "euluna_boolean a = {0};")
-  assert.generate_c("local a: bool", "euluna_boolean a = {0};")
 end)
 
 it("any type", function()
@@ -211,20 +210,20 @@ it("any type", function()
   ]], "1\n2")
   assert.run_error_c([[
     local a: any = 1
-    local b: bool = a
+    local b: boolean = a
     print(b)
   ]], "type check fail")
 end)
 
 it("array tables", function()
   assert.generate_c(
-    "local t: table<bool>",
+    "local t: table<boolean>",
     "euluna_boolean_arrtab t = {0};")
   assert.generate_c(
-    "local t: table<bool>; local a = #t",
+    "local t: table<boolean>; local a = #t",
     "euluna_int64 a = euluna_boolean_arrtab_length(&t);")
   assert.run_c([[
-    local t: table<bool>
+    local t: table<boolean>
     print(t[0], #t)
     t[1] = true
     print(t[1], #t)
@@ -234,7 +233,7 @@ end)
 --[=[
  it("records", function()
    assert.generate_c(
-     "local t: record{a: bool}",
+     "local t: record{a: boolean}",
  [[typedef struct {
    bool a;
  } Record]])

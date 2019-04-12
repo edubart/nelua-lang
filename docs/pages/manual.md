@@ -121,7 +121,7 @@ continue
 | `float32`         | `float`         | `_f32` `_float32`   |
 | `float64`         | `double`        | `_f64` `_float64`   |
 | `pointer`         | `void*`         | `_pointer`          |
-| `boolean` `bool`  | `bool`          |                     |
+| `boolean`         | `bool`          |                     |
 
 The types `int` and `uint` types are usually 32 wide bits on 32-bit systems,
 and 64 bits wide on 64-bit systems. When you need an integer value you should use `integer`

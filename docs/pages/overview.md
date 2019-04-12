@@ -766,7 +766,7 @@ print(a.age)
 
 ```euluna
 local PolygonVTable @struct{
-  area: function<(self: pointer): int>
+  area: function<(self: pointer): integer>
 }
 
 local Polygon = @struct{

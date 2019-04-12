@@ -1268,12 +1268,12 @@ describe("type expression", function()
         n.VarDecl{'local', 'var',
           { n.IdDecl{'f', 'var', n.FuncType{{n.Type{'int'}}, {n.Type{'string'}}}} }
     }}})
-    assert.parse_ast(euluna_parser, "local f: function<(int, uint): string, bool>",
+    assert.parse_ast(euluna_parser, "local f: function<(int, uint): string, boolean>",
       n.Block{{
         n.VarDecl{'local', 'var',
           { n.IdDecl{'f', 'var', n.FuncType{
             {n.Type{'int'}, n.Type{'uint'}},
-            {n.Type{'string'}, n.Type{'bool'}}}} }
+            {n.Type{'string'}, n.Type{'boolean'}}}} }
     }}})
   end)
   it("composed type", function()
@@ -1303,31 +1303,31 @@ describe("type expression", function()
           n.IdDecl{'r', 'var', n.RecordType{{
             n.RecordField{'a', n.Type{'int'}}
     }}}}}}})
-    assert.parse_ast(euluna_parser, "local r: record{a: int, b: bool}",
+    assert.parse_ast(euluna_parser, "local r: record{a: int, b: boolean}",
       n.Block{{
         n.VarDecl{'local', 'var',
           { n.IdDecl{'r', 'var', n.RecordType{{
             n.RecordField{'a', n.Type{'int'}},
-            n.RecordField{'b', n.Type{'bool'}}
+            n.RecordField{'b', n.Type{'boolean'}}
     }}}}}}})
     assert.parse_ast(euluna_parser,
-      "local r: record{f: function<(int, uint): string, bool>, t: table<int>}",
+      "local r: record{f: function<(int, uint): string, boolean>, t: table<int>}",
       n.Block{{
         n.VarDecl{'local', 'var',
           { n.IdDecl{'r', 'var', n.RecordType{{
             n.RecordField{'f', n.FuncType{
               {n.Type{'int'}, n.Type{'uint'}},
-              {n.Type{'string'}, n.Type{'bool'}}}},
+              {n.Type{'string'}, n.Type{'boolean'}}}},
             n.RecordField{'t', n.ComposedType{'table', { n.Type{'int'} }}},
     }}}}}}})
-    assert.parse_ast(euluna_parser, "local r: record{a: record{c: int}, b: bool}",
+    assert.parse_ast(euluna_parser, "local r: record{a: record{c: int}, b: boolean}",
       n.Block{{
         n.VarDecl{'local', 'var',
           { n.IdDecl{'r', 'var', n.RecordType{{
             n.RecordField{'a', n.RecordType{{
               n.RecordField{'c', n.Type{'int'}}
             }}},
-            n.RecordField{'b', n.Type{'bool'}}
+            n.RecordField{'b', n.Type{'boolean'}}
     }}}}}}})
   end)
   it("enum type", function()

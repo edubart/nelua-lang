@@ -35,7 +35,6 @@ typedefs.primtypes = primtypes
 primtypes.integer = primtypes.int64
 primtypes.number  = primtypes.float64
 primtypes.byte    = primtypes.uint8
-primtypes.bool    = primtypes.boolean
 
 -- integral types
 local integral_types = {
