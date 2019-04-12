@@ -26,7 +26,7 @@ dependencies = {
   'tableshape >= 2.0.0',
   'lua-term >= 0.7',
   'argparse >= 0.6.0',
-  'sha1 >= 0.6.0',
+  'hasher >= 0.1.0',
   'lbc >= 20180729',
 
   -- dev dependencies only
