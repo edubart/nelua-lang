@@ -3,8 +3,9 @@ local hasher = require 'hasher'
 
 local stringer = {}
 
-function stringer.hash(s)
-  local hash = hasher.blake2b(s, 20)
+function stringer.hash(s, len, key)
+  len = len or 20
+  local hash = hasher.blake2b(s, len, key)
   return hasher.base58encode(hash)
 end
 

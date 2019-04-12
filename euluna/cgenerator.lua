@@ -8,24 +8,25 @@ local typedefs = require 'euluna.typedefs'
 local fs = require 'euluna.utils.fs'
 local config = require 'euluna.configer'.get()
 local CContext = require 'euluna.ccontext'
-
+local primtypes = typedefs.primtypes
 local visitors = {}
 
-local function add_casted_value(_, emitter, type, valnode)
+local function add_casted_value(context, emitter, type, valnode)
   if type:is_any() then
     if valnode then
       if valnode.type:is_any() then
         emitter:add(valnode)
       else
-        emitter:add('(euluna_any_t){&euluna_type_',
-                  valnode.type:codegen_name(), ', {', valnode, '}}')
+        emitter:add('(', context:get_ctype(primtypes.any), '){&',
+                  context:get_typectype(valnode), ', {', valnode, '}}')
       end
     else
-      emitter:add('(euluna_any_t){&euluna_type_nil, {0}}')
+      emitter:add('(', context:get_ctype(primtypes.any), '){&',
+        context:get_typectype(primtypes.Nil), ', {0}}')
     end
   elseif valnode then
     if valnode.type:is_any() then
-      emitter:add('euluna_cast_any_', type:codegen_name(), '(', valnode, ')')
+      emitter:add(context:get_ctype(type), '_any_cast(', valnode, ')')
     elseif type == valnode.type then
       emitter:add(valnode)
     elseif valnode.type:is_number() and type:is_number() then
@@ -41,7 +42,7 @@ end
 function visitors.Number(context, node, emitter)
   local base, int, frac, exp, literal = node:args()
   if literal then
-    local ctype = context:get_ctype(node)
+    local ctype = context:get_ctype(node.type)
     emitter:add('((', ctype, ')')
   end
   emitter:add_composed_number(base, int, frac, exp)
@@ -59,7 +60,7 @@ function visitors.String(context, node, emitter)
   local quoted_value = pegger.double_quote_c_string(value)
   decemitter:add_indent_ln('static const struct { uintptr_t len, res; char data[', len + 1, ']; }')
   decemitter:add_indent_ln('  ', varname, ' = {', len, ', ', len, ', ', quoted_value, '};')
-  emitter:add('(const euluna_string_t*)&', varname)
+  emitter:add('(const ', context:get_ctype(primtypes.string), ')&', varname)
 end
 
 function visitors.Boolean(_, node, emitter)
@@ -107,11 +108,11 @@ end
 
 -- TODO: ColonIndex
 
-function visitors.ArrayIndex(_, node, emitter)
+function visitors.ArrayIndex(context, node, emitter)
   local index, varnode = node:args()
   if varnode.type:is_arraytable() then
-    emitter:add('*euluna_arrtab_',
-      node.type:codegen_name(),
+    emitter:add('*',
+      context:get_ctype(varnode),
       node.assign and '_at(&' or '_get(&',
       varnode, ', ', index, ')')
   else

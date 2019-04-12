@@ -227,7 +227,7 @@ function visitors.Call(context, node)
   local symbol = context:traverse(callee)
   if symbol and symbol.type then
     callee:assertraisef(symbol.type:is_function() or symbol.type:is_any(),
-      "attempt to call a non callable variable of type '%s'", symbol.type.name)
+      "attempt to call a non callable variable of type '%s'", tostring(symbol.type))
     node.callee_type = symbol.type
     if symbol.type:is_function() then
       -- check function argument types

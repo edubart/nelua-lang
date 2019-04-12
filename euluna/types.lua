@@ -1,6 +1,7 @@
 local class = require 'euluna.utils.class'
 local tabler = require 'euluna.utils.tabler'
 local iters = require 'euluna.utils.iterators'
+local stringer = require 'euluna.utils.stringer'
 local sstream = require 'euluna.utils.sstream'
 local metamagic = require 'euluna.utils.metamagic'
 
@@ -18,6 +19,7 @@ function Type:_init(name, node)
   self.unary_operators = {}
   self.binary_operators = {}
   self.conversible_types = {}
+  self.codename = string.format('euluna_%s', self.name)
   local mt = getmetatable(self)
   metamagic.setmetaindex(self.unary_operators, mt.unary_operators)
   metamagic.setmetaindex(self.binary_operators, mt.binary_operators)
@@ -25,12 +27,6 @@ end
 
 function Type:__tostring()
   return self.name
-end
-
-function Type:codegen_name()
-  local name = tostring(self)
-  --TODO: replace non alphanumeric characters
-  return name
 end
 
 function Type:add_conversible_types(types)
@@ -89,6 +85,10 @@ function Type:is_any()
   return self.name == 'any'
 end
 
+function Type:is_nil()
+  return self.name == 'nil'
+end
+
 function Type:is_type()
   return self.name == 'type'
 end
@@ -140,12 +140,23 @@ end
 -- the type of 'Type'
 Type.type = Type('type')
 
+local function gencodename(self)
+  local key
+  -- use source as key
+  if self.node then
+    key = tostring(self.node.srcname) .. tostring(self.node.pos)
+  end
+  local name = tostring(self)
+  return string.format('%s_%s', self.name, stringer.hash(name, 16, key))
+end
+
 --------------------------------------------------------------------------------
 local ComposedType = class(Type)
 
 function ComposedType:_init(name, node, subtypes)
   self.subtypes = subtypes
   Type._init(self, name, node)
+  self.codename = gencodename(self)
 end
 
 function ComposedType:is_equal(type)
@@ -165,6 +176,11 @@ metamagic.setmetaindex(ArrayTableType.unary_operators, Type.unary_operators)
 
 function ArrayTableType:_init(node, subtypes)
   ComposedType._init(self, 'table', node, subtypes)
+  if #subtypes == 1 then
+    self.codename = subtypes[1].codename .. '_arrtab'
+  else
+    self.codename = gencodename(self)
+  end
 end
 
 function ArrayTableType.is_arraytable()
@@ -178,6 +194,7 @@ function ArrayType:_init(node, subtype, length)
   self.subtype = subtype
   self.length = length
   Type._init(self, 'array', node)
+  self.codename = gencodename(self)
 end
 
 function ArrayType:is_equal(type)
@@ -198,6 +215,7 @@ function EnumType:_init(node, subtype, fields)
   self.subtype = subtype
   self.fields = fields
   Type._init(self, 'enum', node)
+  self.codename = gencodename(self)
 end
 
 function EnumType:has_field(name)
@@ -223,6 +241,7 @@ function FunctionType:_init(node, argtypes, returntypes)
   self.argtypes = argtypes
   self.returntypes = returntypes
   Type._init(self, 'function', node)
+  self.codename = gencodename(self)
 end
 
 function FunctionType:is_equal(type)
@@ -248,6 +267,7 @@ local RecordType = class(Type)
 function RecordType:_init(node, fields)
   self.fields = fields
   Type._init(self, 'record', node)
+  self.codename = gencodename(self)
 end
 
 function RecordType:get_field_type(name)

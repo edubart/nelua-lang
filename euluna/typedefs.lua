@@ -21,10 +21,12 @@ local primtypes = {
   float64   = Type('float64'),
   boolean   = Type('boolean'),
   string    = Type('string'),
+  cstring   = Type('cstring'),
   char      = Type('char'),
   pointer   = Type('pointer'),
   any       = Type('any'),
   void      = Type('void'),
+  Nil       = Type('nil'),
   type      = Type.type, -- the type of "Type"
 }
 typedefs.primtypes = primtypes

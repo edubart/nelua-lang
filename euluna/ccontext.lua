@@ -8,8 +8,9 @@ local CContext = class(Context)
 
 function CContext:_init(visitors)
   Context._init(self, visitors)
-  self.builtintypes = {}
-  self.arraytypes = {}
+  self.arrtabtypes = {}
+  self.recordtypes = {}
+  self.primtypes = {}
 end
 
 function CContext:get_ctype(nodeortype)
@@ -20,17 +21,30 @@ function CContext:get_ctype(nodeortype)
   end
   assert(type, 'impossible')
   if type:is_arraytable() then
-    local subtype = type.subtypes[1]
-    local csubtype = self:get_ctype(subtype)
-    self.arraytypes[subtype.name] = csubtype
+    self.arrtabtypes[type.codename] = type.subtypes[1].codename
     self.has_gc = true
     self.has_arrtab = true
-    return string.format('euluna_arrtab_%s_t', subtype.name)
+  --elseif type:is_record() then
+    --self.recordtypes[type.codename] = type
+  elseif type:is_string() then
+    self.has_string = true
+  elseif type:is_any() then
+    self.has_any = true
+    self.has_type = true
+  elseif type:is_nil() then
+    self.has_nil = true
+  else
+    local ctype = cdefs.primitive_ctypes[type]
+    self.primtypes[type.codename] = ctype
+    errorer.assertf(ctype, 'ctype for "%s" is unknown', tostring(type))
   end
-  local ctype = cdefs.primitive_ctypes[type]
-  errorer.assertf(ctype, 'ctype for "%s" is unknown', tostring(type))
-  self.builtintypes[type] = true
-  return ctype.name
+  return type.codename
+end
+
+function CContext:get_typectype(nodeortype)
+  local ctype = self:get_ctype(nodeortype)
+  self.has_type = true
+  return ctype .. '_type'
 end
 
 return CContext

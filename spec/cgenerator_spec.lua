@@ -30,13 +30,13 @@ it("number", function()
   assert.generate_c("return 0b10", "return 0x2")
 end)
 it("number literals", function()
-  assert.generate_c("return 1_integer", "return ((int64_t)1")
-  assert.generate_c("return 1_number", "return ((double)1")
-  assert.generate_c("return 1_byte", "return ((uint8_t)1")
-  assert.generate_c("return 1_char", "return ((char)1")
-  assert.generate_c("return 1_int", "return ((intptr_t)1")
-  assert.generate_c("return 1_uint", "return ((uintptr_t)1")
-  assert.generate_c("return 1_pointer", "return ((void*)1")
+  assert.generate_c("return 1_integer", "return ((euluna_int64)1")
+  assert.generate_c("return 1_number", "return ((euluna_float64)1")
+  assert.generate_c("return 1_byte", "return ((euluna_uint8)1")
+  assert.generate_c("return 1_char", "return ((euluna_char)1")
+  assert.generate_c("return 1_int", "return ((euluna_int)1")
+  assert.generate_c("return 1_uint", "return ((euluna_uint)1")
+  assert.generate_c("return 1_pointer", "return ((euluna_pointer)1")
 end)
 it("string", function()
   assert.generate_c([[local a = "hello"]], [["hello"]])
@@ -88,8 +88,8 @@ it("repeat", function()
   assert.generate_c("repeat\nuntil a", "do {\n    } while(!(a));")
 end)
 it("for", function()
-  assert.generate_c("for i=a,b do\nend", "for(euluna_any_t i = a; i <= b; i += 1) {\n    }")
-  assert.generate_c("for i=a,b,c do\nend", "for(euluna_any_t i = a; i <= b; i += c) {\n    }")
+  assert.generate_c("for i=a,b do\nend", "for(euluna_any i = a; i <= b; i += 1) {\n    }")
+  assert.generate_c("for i=a,b,c do\nend", "for(euluna_any i = a; i <= b; i += c) {\n    }")
 end)
 it("break and continue", function()
   assert.generate_c("break")
@@ -99,8 +99,8 @@ it("goto", function()
   assert.generate_c("::mylabel::\ngoto mylabel", "mylabel:\n    goto mylabel;")
 end)
 it("variable declaration", function()
-  assert.generate_c("local a: integer", "int64_t a = {0};")
-  assert.generate_c("local a: integer = 0", "int64_t a = 0;")
+  assert.generate_c("local a: integer", "euluna_int64 a = {0};")
+  assert.generate_c("local a: integer = 0", "euluna_int64 a = 0;")
 end)
 it("assignment", function()
   assert.generate_c("a = b")
@@ -112,10 +112,10 @@ it("function definition", function()
     "void f() {\n}")
   assert.generate_c(
     "local function f(): integer\n return 0 end",
-    "int64_t f() {\n    return 0;\n")
+    "euluna_int64 f() {\n    return 0;\n")
   assert.generate_c(
     "local function f(a: integer): integer\n return a end",
-    "int64_t f(int64_t a) {\n    return a;\n}")
+    "euluna_int64 f(euluna_int64 a) {\n    return a;\n}")
 end)
 it("unary operators", function()
   assert.generate_c("return not a", "return !a;")
@@ -142,10 +142,10 @@ it("binary operators", function()
   assert.generate_c("return a / b",       "return a / b;")
   assert.generate_c("return a % b",       "return a % b;")
   assert.generate_c("return 3 // 2",      "return 3 / 2")
-  assert.generate_c("return 3.0 // 2.0",  "return ((int64_t)(3.0 / 2.0));")
+  assert.generate_c("return 3.0 // 2.0",  "return ((euluna_int64)(3.0 / 2.0));")
   assert.generate_c("return 2 ^ 2",       "return pow(2, 2);")
   assert.generate_c("return 2_f32 ^ 2_f32",
-                    "return powf(((float)2), ((float)2));")
+                    "return powf(((euluna_float32)2), ((euluna_float32)2));")
 end)
 it("binary conditional operators", function()
   assert.generate_c("return a or b",  "return a ? a : b;")
@@ -155,40 +155,40 @@ it("binary conditional operators", function()
 end)
 
 it("c types", function()
-  assert.generate_c("local a: integer", "int64_t a = {0};")
-  assert.generate_c("local a: number", "double a = {0};")
-  assert.generate_c("local a: byte", "uint8_t a = {0};")
-  assert.generate_c("local a: char", "char a = {0};")
-  assert.generate_c("local a: float64", "double a = {0};")
-  assert.generate_c("local a: float32", "float a = {0};")
-  assert.generate_c("local a: pointer", "void* a = {0};")
-  assert.generate_c("local a: int64", "int64_t a = {0};")
-  assert.generate_c("local a: int32", "int32_t a = {0};")
-  assert.generate_c("local a: int16", "int16_t a = {0};")
-  assert.generate_c("local a: int8", "int8_t a = {0};")
-  assert.generate_c("local a: int", "intptr_t a = {0};")
-  assert.generate_c("local a: uint64", "uint64_t a = {0};")
-  assert.generate_c("local a: uint32", "uint32_t a = {0};")
-  assert.generate_c("local a: uint16", "uint16_t a = {0};")
-  assert.generate_c("local a: uint8", "uint8_t a = {0};")
-  assert.generate_c("local a: uint", "uintptr_t a = {0};")
-  assert.generate_c("local a: boolean", "bool a = {0};")
-  assert.generate_c("local a: bool", "bool a = {0};")
+  assert.generate_c("local a: integer", "euluna_int64 a = {0};")
+  assert.generate_c("local a: number", "euluna_float64 a = {0};")
+  assert.generate_c("local a: byte", "euluna_uint8 a = {0};")
+  assert.generate_c("local a: char", "euluna_char a = {0};")
+  assert.generate_c("local a: float64", "euluna_float64 a = {0};")
+  assert.generate_c("local a: float32", "euluna_float32 a = {0};")
+  assert.generate_c("local a: pointer", "euluna_pointer a = {0};")
+  assert.generate_c("local a: int64", "euluna_int64 a = {0};")
+  assert.generate_c("local a: int32", "euluna_int32 a = {0};")
+  assert.generate_c("local a: int16", "euluna_int16 a = {0};")
+  assert.generate_c("local a: int8", "euluna_int8 a = {0};")
+  assert.generate_c("local a: int", "euluna_int a = {0};")
+  assert.generate_c("local a: uint64", "euluna_uint64 a = {0};")
+  assert.generate_c("local a: uint32", "euluna_uint32 a = {0};")
+  assert.generate_c("local a: uint16", "euluna_uint16 a = {0};")
+  assert.generate_c("local a: uint8", "euluna_uint8 a = {0};")
+  assert.generate_c("local a: uint", "euluna_uint a = {0};")
+  assert.generate_c("local a: boolean", "euluna_boolean a = {0};")
+  assert.generate_c("local a: bool", "euluna_boolean a = {0};")
 end)
 
 it("any type", function()
   assert.generate_c(
     "local a: any",
-    "euluna_any_t a = (euluna_any_t){&euluna_type_nil, {0}};")
+    "euluna_any a = (euluna_any){&euluna_nil_type, {0}};")
   assert.generate_c(
     "local a: any; local b: any = a",
-    "euluna_any_t b = a;")
+    "euluna_any b = a;")
   assert.generate_c(
     "local a: any = 1",
-    "euluna_any_t a = (euluna_any_t){&euluna_type_int64, {1}};")
+    "euluna_any a = (euluna_any){&euluna_int64_type, {1}};")
   assert.generate_c(
     "local a: any = 1; local b: integer = a",
-    "int64_t b = euluna_cast_any_int64(a);")
+    "euluna_int64 b = euluna_int64_any_cast(a);")
   assert.run_c([[
     local a: any = 1
     local b: integer = a
@@ -219,10 +219,10 @@ end)
 it("array tables", function()
   assert.generate_c(
     "local t: table<bool>",
-    "euluna_arrtab_boolean_t t = {0};")
+    "euluna_boolean_arrtab t = {0};")
   assert.generate_c(
     "local t: table<bool>; local a = #t",
-    "int64_t a = euluna_arrtab_boolean_length(&t);")
+    "euluna_int64 a = euluna_boolean_arrtab_length(&t);")
   assert.run_c([[
     local t: table<bool>
     print(t[0], #t)
@@ -231,13 +231,15 @@ it("array tables", function()
   ]], "false\t0\ntrue\t1")
 end)
 
--- it("records", function()
---   assert.generate_c(
---     "local t: record{a: bool}",
--- [[typedef struct {
---   bool a;
--- } Record]])
--- end)
+--[=[
+ it("records", function()
+   assert.generate_c(
+     "local t: record{a: bool}",
+ [[typedef struct {
+   bool a;
+ } Record]])
+ end)
+]=]
 
 it("print", function()
   assert.run({'-g', 'c', '-e', "print(1,0.2,1e2,0xf,0b01)"},

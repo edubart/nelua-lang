@@ -8,23 +8,23 @@
 
 /* {%
 local iters = require 'euluna.utils.iterators'
-for tyname,ctype in iters.opairs(context.arraytypes) do
+for tyname,ctype in iters.opairs(context.arrtabtypes) do
 %} */
 
-typedef struct euluna_arrtab_{%=tyname%}_t {
+typedef struct {%=tyname%} {
   {%=ctype%}* data;
   size_t len, cap;
-} euluna_arrtab_{%=tyname%}_t;
+} {%=tyname%};
 
-void euluna_arrtab_{%=tyname%}_reserve(euluna_arrtab_{%=tyname%}_t* t, size_t cap);
-void euluna_arrtab_{%=tyname%}_resize_zero(euluna_arrtab_{%=tyname%}_t* t, size_t n);
-void euluna_arrtab_{%=tyname%}_resize(euluna_arrtab_{%=tyname%}_t* t, size_t n, {%=ctype%} v);
-void euluna_arrtab_{%=tyname%}_push(euluna_arrtab_{%=tyname%}_t* t, {%=ctype%} v);
+void {%=tyname%}_reserve({%=tyname%}* t, size_t cap);
+void {%=tyname%}_resize_zero({%=tyname%}* t, size_t n);
+void {%=tyname%}_resize({%=tyname%}* t, size_t n, {%=ctype%} v);
+void {%=tyname%}_push({%=tyname%}* t, {%=ctype%} v);
 
-static inline {%=ctype%} euluna_arrtab_{%=tyname%}_pop(euluna_arrtab_{%=tyname%}_t* t);
-static inline {%=ctype%}* euluna_arrtab_{%=tyname%}_get(euluna_arrtab_{%=tyname%}_t* t, size_t i);
-static inline {%=ctype%}* euluna_arrtab_{%=tyname%}_at(euluna_arrtab_{%=tyname%}_t* t, size_t i);
-static inline size_t euluna_arrtab_{%=tyname%}_length(euluna_arrtab_{%=tyname%}_t* t) { return t-> len; }
+static inline {%=ctype%} {%=tyname%}_pop({%=tyname%}* t);
+static inline {%=ctype%}* {%=tyname%}_get({%=tyname%}* t, size_t i);
+static inline {%=ctype%}* {%=tyname%}_at({%=tyname%}* t, size_t i);
+static inline size_t {%=tyname%}_length({%=tyname%}* t) { return t-> len; }
 
 /* {% end %} */
 

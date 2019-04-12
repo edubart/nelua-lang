@@ -2,12 +2,9 @@ local cdefs = require 'euluna.cdefs'
 
 local builtins = {}
 
-function builtins.len(_, _, emitter, argnode)
+function builtins.len(context, _, emitter, argnode)
   assert(argnode.type:is_arraytable(), 'not implemented yet')
-  emitter:add('euluna_arrtab_',
-      argnode.type.subtypes[1]:codegen_name(),
-      '_length(&',
-      argnode, ')')
+  emitter:add(context:get_ctype(argnode), '_length(&', argnode, ')')
 end
 
 function builtins.idiv(context, node, emitter, lnode, rnode)
