@@ -5,10 +5,10 @@ local bn = require 'euluna.utils.bn'
 
 local Emitter = class()
 
-function Emitter:_init(context, indent, depth)
+function Emitter:_init(context, depth)
   self.codes = {}
-  self.depth = depth or -1
-  self.indent = indent or '  '
+  self.depth = depth or 0
+  self.indent = '  '
   self.context = context
 end
 

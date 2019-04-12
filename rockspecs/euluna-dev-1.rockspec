@@ -94,6 +94,8 @@ build = {
       ['runtime/c/euluna_gc.h']     = 'runtime/c/euluna_gc.h',
       ['runtime/c/euluna_arrtab.c'] = 'runtime/c/euluna_arrtab.c',
       ['runtime/c/euluna_arrtab.h'] = 'runtime/c/euluna_arrtab.h',
+      ['runtime/c/euluna_record.c'] = 'runtime/c/euluna_record.c',
+      ['runtime/c/euluna_record.h'] = 'runtime/c/euluna_record.h',
     }
   }
 }

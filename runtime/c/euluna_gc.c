@@ -1,5 +1,3 @@
-/* {% if context.has_gc then %} */
-
 #ifndef EULUNA_COMPILER
 #include "euluna_gc.h"
 #endif
@@ -460,5 +458,3 @@ size_t euluna_gc_get_size(euluna_gc_t *gc, void *ptr) {
   if (p) { return p->size; }
   return 0;
 }
-
-/* {% end %} */

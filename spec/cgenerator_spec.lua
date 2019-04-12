@@ -7,17 +7,17 @@ describe("Euluna should parse and generate C", function()
 it("empty file", function()
   assert.generate_c("", [[
 int euluna_main() {
-    return 0;
+  return 0;
 }]])
 end)
 it("return", function()
   assert.generate_c("return", [[
 int euluna_main() {
-    return 0;
+  return 0;
 }]])
   assert.generate_c("return 1", [[
 int euluna_main() {
-    return 1;
+  return 1;
 }]])
   assert.generate_c("return (1)")
 end)
@@ -55,48 +55,48 @@ it("call", function()
   assert.generate_c("a:f()", "a.f(a)")
 end)
 it("if", function()
-  assert.generate_c("if a then\nend","if(a) {\n    }")
-  assert.generate_c("if a then\nelseif b then\nend", "if(a) {\n    } else if(b) {\n    }")
-  assert.generate_c("if a then\nelse\nend", "if(a) {\n    } else {\n    }")
-  assert.generate_c("if a and b then\nend","if(a && b) {\n    }")
-  assert.generate_c("if a and b or c then\nend","if((a && b) || c) {\n    }")
+  assert.generate_c("if a then\nend","if(a) {\n  }")
+  assert.generate_c("if a then\nelseif b then\nend", "if(a) {\n  } else if(b) {\n  }")
+  assert.generate_c("if a then\nelse\nend", "if(a) {\n  } else {\n  }")
+  assert.generate_c("if a and b then\nend","if(a && b) {\n  }")
+  assert.generate_c("if a and b or c then\nend","if((a && b) || c) {\n  }")
 end)
 it("switch", function()
   assert.generate_c("switch a case b then f() case c then g() else h() end",[[
-    switch(a) {
-        case b: {
-            f();
-            break;
-        }
-        case c: {
-            g();
-            break;
-        }
-        default: {
-            h();
-            break;
-        }
-    }]])
+  switch(a) {
+    case b: {
+      f();
+      break;
+    }
+    case c: {
+      g();
+      break;
+    }
+    default: {
+      h();
+      break;
+    }
+  }]])
 end)
 it("do", function()
-  assert.generate_c("do\n  return\nend", "{\n        return;\n    }")
+  assert.generate_c("do\n  return\nend", "{\n    return;\n  }")
 end)
 it("while", function()
-  assert.generate_c("while a do\nend", "while(a) {\n    }")
+  assert.generate_c("while a do\nend", "while(a) {\n  }")
 end)
 it("repeat", function()
-  assert.generate_c("repeat\nuntil a", "do {\n    } while(!(a));")
+  assert.generate_c("repeat\nuntil a", "do {\n  } while(!(a));")
 end)
 it("for", function()
-  assert.generate_c("for i=a,b do\nend", "for(euluna_any i = a; i <= b; i += 1) {\n    }")
-  assert.generate_c("for i=a,b,c do\nend", "for(euluna_any i = a; i <= b; i += c) {\n    }")
+  assert.generate_c("for i=a,b do\nend", "for(euluna_any i = a; i <= b; i += 1) {\n  }")
+  assert.generate_c("for i=a,b,c do\nend", "for(euluna_any i = a; i <= b; i += c) {\n  }")
 end)
 it("break and continue", function()
   assert.generate_c("break")
   assert.generate_c("continue")
 end)
 it("goto", function()
-  assert.generate_c("::mylabel::\ngoto mylabel", "mylabel:\n    goto mylabel;")
+  assert.generate_c("::mylabel::\ngoto mylabel", "mylabel:\n  goto mylabel;")
 end)
 it("variable declaration", function()
   assert.generate_c("local a: integer", "euluna_int64 a = {0};")
@@ -112,10 +112,10 @@ it("function definition", function()
     "void f() {\n}")
   assert.generate_c(
     "local function f(): integer\n return 0 end",
-    "euluna_int64 f() {\n    return 0;\n")
+    "euluna_int64 f() {\n  return 0;\n")
   assert.generate_c(
     "local function f(a: integer): integer\n return a end",
-    "euluna_int64 f(euluna_int64 a) {\n    return a;\n}")
+    "euluna_int64 f(euluna_int64 a) {\n  return a;\n}")
 end)
 it("unary operators", function()
   assert.generate_c("return not a", "return !a;")
@@ -230,15 +230,22 @@ it("array tables", function()
   ]], "false\t0\ntrue\t1")
 end)
 
---[=[
- it("records", function()
-   assert.generate_c(
-     "local t: record{a: boolean}",
- [[typedef struct {
-   bool a;
- } Record]])
- end)
-]=]
+it("records", function()
+  assert.generate_c(
+    "local t: record{a: boolean}",
+[[typedef struct {
+  euluna_boolean a;
+} record_]])
+  assert.run_c([[
+    local p: record{
+      x: integer,
+      y: integer
+    }
+    print(p.x, p.y)
+    p.x, p.y = 1, 2
+    print(p.x, p.y)
+  ]], "0\t0\n1\t2")
+end)
 
 it("print", function()
   assert.run({'-g', 'c', '-e', "print(1,0.2,1e2,0xf,0b01)"},

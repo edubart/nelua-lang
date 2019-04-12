@@ -1,15 +1,9 @@
-/* {% if context.has_arrtab then %} */
 #ifndef EULUNA_ARRTAB_H
 #define EULUNA_ARRTAB_H
 
 #ifndef EULUNA_COMPILER
 #include "euluna_core.h"
 #endif
-
-/* {%
-local iters = require 'euluna.utils.iterators'
-for tyname,ctype in iters.opairs(context.arrtabtypes) do
-%} */
 
 typedef struct {%=tyname%} {
   {%=ctype%}* data;
@@ -26,7 +20,4 @@ static inline {%=ctype%}* {%=tyname%}_get({%=tyname%}* t, size_t i);
 static inline {%=ctype%}* {%=tyname%}_at({%=tyname%}* t, size_t i);
 static inline size_t {%=tyname%}_length({%=tyname%}* t) { return t-> len; }
 
-/* {% end %} */
-
 #endif
-/* {% end %} */

@@ -1,12 +1,12 @@
 local Emitter = require 'euluna.emitter'
-local pegger = require 'euluna.utils.pegger'
 local iters = require 'euluna.utils.iterators'
 local traits = require 'euluna.utils.traits'
+local pegger = require 'euluna.utils.pegger'
+local fs = require 'euluna.utils.fs'
+local config = require 'euluna.configer'.get()
 local cdefs = require 'euluna.cdefs'
 local cbuiltins = require 'euluna.cbuiltins'
 local typedefs = require 'euluna.typedefs'
-local fs = require 'euluna.utils.fs'
-local config = require 'euluna.configer'.get()
 local CContext = require 'euluna.ccontext'
 local primtypes = typedefs.primtypes
 local visitors = {}
@@ -54,13 +54,14 @@ end
 function visitors.String(context, node, emitter)
   local value, literal = node:args()
   node:assertraisef(literal == nil, 'literals are not supported yet')
-  local decemitter = context.declarations_emitter
+  local decemitter = Emitter(context)
   local len = #value
   local varname = '__string_literal_' .. node.pos
   local quoted_value = pegger.double_quote_c_string(value)
   decemitter:add_indent_ln('static const struct { uintptr_t len, res; char data[', len + 1, ']; }')
   decemitter:add_indent_ln('  ', varname, ' = {', len, ', ', len, ', ', quoted_value, '};')
   emitter:add('(const ', context:get_ctype(primtypes.string), ')&', varname)
+  context:add_declaration(decemitter:generate(), varname)
 end
 
 function visitors.Boolean(_, node, emitter)
@@ -324,7 +325,7 @@ function visitors.FuncDef(context, node)
   local varscope, varnode, args, rets, block = node:args()
   node:assertraisef(#rets <= 1, 'multiple returns not supported yet')
   node:assertraisef(varscope == 'local', 'non local scope for functions not supported yet')
-  local emitter = context.declarations_emitter
+  local emitter = Emitter(context)
   if #rets == 0 then
     emitter:add_indent('void ')
   else
@@ -335,6 +336,7 @@ function visitors.FuncDef(context, node)
   emitter:add_ln(varnode, '(', args, ') {')
   emitter:add(block)
   emitter:add_indent_ln('}')
+  context:add_declaration(emitter:generate())
 end
 
 -- operators
@@ -390,41 +392,24 @@ end
 
 local generator = {}
 
-local function build_runtime_code(context)
-  local decs, defs = {}, {}
-  for filename in iters.ivalues(cdefs.runtime_files) do
-    local hfile = fs.join(config.runtime_path, 'c', filename .. '.h')
-    local cfile = fs.join(config.runtime_path, 'c', filename .. '.c')
-    local deccode = pegger.render_template(fs.tryreadfile(hfile), { context = context })
-    local defcode = pegger.render_template(fs.tryreadfile(cfile), { context = context })
-    table.insert(decs, deccode)
-    table.insert(defs, defcode)
-  end
-  return table.concat(decs), table.concat(defs)
-end
-
 function generator.generate(ast)
   local context = CContext(visitors)
-  local indent = '    '
+  context.runtime_path = fs.join(config.runtime_path, 'c')
 
-  context.builtins_declarations_emitter = Emitter(context, indent, 0)
-  context.builtins_definitions_emitter = Emitter(context, indent, 0)
-  context.declarations_emitter = Emitter(context, indent, 0)
-  context.definitions_emitter = Emitter(context, indent, 0)
-  context.main_emitter = Emitter(context, indent)
+  context:ensure_runtime('euluna_core')
 
-  context.main_emitter:add_traversal(ast)
-  local runtime_declarations, runtime_definitions = build_runtime_code(context)
+  local main_emitter = Emitter(context, -1)
+  main_emitter:add_traversal(ast)
+
+  context:add_definition(main_emitter:generate())
+
+  context:ensure_runtime('euluna_main')
+  context:evaluate_templates()
 
   local code = table.concat({
     '#define EULUNA_COMPILER\n',
-    runtime_declarations,
-    runtime_definitions,
-    context.builtins_declarations_emitter:generate(),
-    context.builtins_definitions_emitter:generate(),
-    context.declarations_emitter:generate(),
-    context.definitions_emitter:generate(),
-    context.main_emitter:generate(),
+    table.concat(context.declarations),
+    table.concat(context.definitions)
   })
 
   return code

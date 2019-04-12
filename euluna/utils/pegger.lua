@@ -120,7 +120,7 @@ local template_peg = re.compile([[
   text          <- '' -> ' render([==[' text_contents  '' -> ']==]) '
   text_contents <- {(!code_open_eq !code_open .)+}
   code_eq       <- code_open_eq -> ' render(tostring(' code_contents ''->')) ' code_close
-  code          <- code_open code_contents code_close %s*
+  code          <- code_open code_contents code_close %nl*
   code_contents <- {(!code_close .)*}
   code_open     <- (' '* '{%' !'=') -> ' '
   code_open_eq  <- ('{%=' ' '*) -> ''

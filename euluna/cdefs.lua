@@ -78,14 +78,6 @@ cdefs.binary_ops = {
   --TODO: concat
 }
 
-cdefs.runtime_files = {
-  'euluna_core',
-  'euluna_gc',
-  'euluna_arrtab',
-  'euluna_main',
-  'euluna_math',
-}
-
 cdefs.compiler_base_flags = {
   cflags_base = "-pipe -std=c99 -pedantic -Wall -Wextra -fno-strict-aliasing -rdynamic",
   cflags_release = "-O2",

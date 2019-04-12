@@ -347,7 +347,7 @@ local generator = {}
 
 function generator.generate(ast)
   local context = Context(visitors)
-  local emitter = Emitter(context)
+  local emitter = Emitter(context, -1)
   context.emitter = emitter
   emitter:add_traversal(ast)
   return emitter:generate()

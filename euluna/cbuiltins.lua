@@ -1,4 +1,5 @@
 local cdefs = require 'euluna.cdefs'
+local Emitter = require 'euluna.emitter'
 
 local builtins = {}
 
@@ -49,7 +50,7 @@ function builtins.print(context, node)
   context:add_runtime_builtin('stdout_write')
 
   --function head
-  local defemitter = context.definitions_emitter
+  local defemitter = Emitter(context)
   defemitter:add_indent('static inline ')
   defemitter:add('void ', funcname, '(')
   for i,arg in ipairs(args) do
@@ -84,6 +85,8 @@ function builtins.print(context, node)
   defemitter:add_indent_ln('euluna_stdout_write_newline();')
   defemitter:dec_indent()
   defemitter:add_ln('}')
+
+  context:add_definition(defemitter:generate(), funcname)
 
   -- the call
   return funcname

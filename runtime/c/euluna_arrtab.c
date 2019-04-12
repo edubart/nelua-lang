@@ -1,13 +1,7 @@
-/* {% if context.has_arrtab then %} */
 #ifndef EULUNA_COMPILER
 #include "euluna_arrtab.h"
 #include "euluna_gc.h"
 #endif
-
-/* {%
-local iters = require 'euluna.utils.iterators'
-for tyname,ctype in iters.opairs(context.arrtabtypes) do
-%} */
 
 void _{%=tyname%}_reserve({%=tyname%}* t, size_t cap) {
   {%=ctype%}* data = ({%=ctype%}*)euluna_gc_realloc(&euluna_gc, t->data, (cap+1) * sizeof({%=ctype%}));
@@ -87,7 +81,3 @@ void {%=tyname%}_push({%=tyname%}* t, {%=ctype%} v) {
 }
 
 // TODO: insert and remove
-
-/* {% end %} */
-
-/* {% end %} */

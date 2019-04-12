@@ -1,5 +1,3 @@
-/* {% if context.has_gc then %} */
-
 #ifndef EULUNA_GC_H
 #define EULUNA_GC_H
 
@@ -52,5 +50,3 @@ size_t euluna_gc_get_size(euluna_gc_t *gc, void *ptr);
 extern euluna_gc_t euluna_gc;
 
 #endif
-
-/* {% end %} */

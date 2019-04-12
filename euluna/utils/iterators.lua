@@ -58,6 +58,7 @@ function iterators.izip(...)
 end
 
 -- ordered pairs iterator
+--[[
 function iterators.opairs(t)
   local okeys = { }
   for k,_ in pairs(t) do
@@ -74,6 +75,7 @@ function iterators.opairs(t)
     end
   end
 end
+]]
 
 -- pairs() for string keys only
 function iterators.spairs(t)
