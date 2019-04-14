@@ -6,6 +6,7 @@ local fs = require 'euluna.utils.fs'
 
 local configer = {}
 local config = {}
+local envconfig = {}
 
 local function create_parser(argv)
   local argparser = argparse("euluna", "Euluna v0.1")
@@ -24,9 +25,9 @@ local function create_parser(argv)
   argparser:flag('--print-code', 'Print the generated code only')
   argparser:option('-g --generator', "Code generator to use (lua/c)", "lua")
   argparser:option('-s --standard', "Source standard (default/luacompat)", "default")
-  argparser:option('--cc', "C compiler to use", "gcc")
-  argparser:option('--cflags', "Additional C flags to use on compilation")
-  argparser:option('--lua', "Lua interpreter to use when runnning", "lua")
+  argparser:option('--cc', "C compiler to use", envconfig.cc)
+  argparser:option('--cflags', "Additional C flags to use on compilation", envconfig.cflags)
+  argparser:option('--lua', "Lua interpreter to use when runnning", envconfig.lua)
   argparser:option('--lua-version', "Target lua version for lua generator", "5.3")
   argparser:option('--lua-options', "Lua options to use when running")
   argparser:option('--cache-dir', "Compilation cache directory", "euluna_cache")
@@ -47,13 +48,12 @@ local function get_runtime_path(arg0)
   return fs.join(fs.getdatapath(arg0), 'runtime')
 end
 
-config.runtime_path = get_runtime_path()
-
 function configer.parse(args)
   local argparser = create_parser(tabler.copy(args))
   local ok, options = argparser:pparse(args)
   except.assertraise(ok, options)
   config.runtime_path = get_runtime_path(args[0])
+  metamagic.setmetaindex(options, envconfig)
   metamagic.setmetaindex(config, options, true)
   return config
 end
@@ -61,5 +61,15 @@ end
 function configer.get()
   return config
 end
+
+local function init_default_configs()
+  envconfig.runtime_path = get_runtime_path()
+  envconfig.lua = os.getenv('LUA') or 'lua'
+  envconfig.cc = os.getenv('CC') or 'gcc'
+  envconfig.cflags = os.getenv('CFLAGS')
+  metamagic.setmetaindex(config, envconfig)
+end
+
+init_default_configs()
 
 return configer

@@ -35,6 +35,7 @@ dependencies = {
   'luacov >= 0.13.0',
   'cluacov >= 0.1.1',
   'chronos >= 0.2',
+  'dumper >= 0.1.0',
 }
 
 build = {
