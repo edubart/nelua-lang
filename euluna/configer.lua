@@ -9,7 +9,7 @@ local config = {}
 local envconfig = {}
 
 local function create_parser(argv)
-  local argparser = argparse("euluna", "Euluna v0.1")
+  local argparser = argparse("euluna", "Euluna 0.1")
   argparser:flag('-c --compile', "Compile the generated code only")
   argparser:flag('-b --compile-binary', "Compile the generated code and binaries only")
   --argparser:option('-o --output', "Output file when compiling")
