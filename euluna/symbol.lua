@@ -4,10 +4,11 @@ local class = require 'euluna.utils.class'
 
 local Symbol = class()
 
-function Symbol:_init(name, node, type)
+function Symbol:_init(name, node, type, holding_type)
   self.name = name
   self.node = node
   self.type = type
+  self.holding_type = holding_type
   self.noderefs = {}
   self.possibletypes = {}
 end

@@ -32,7 +32,11 @@ function bn.tohex(v)
 end
 
 function bn.todec(v)
-  return v:tostring():gsub('0+$', '')
+  local vstr = v:tostring()
+  if vstr:find('%.') then
+    vstr = vstr:gsub('0+$', '')
+  end
+  return vstr
 end
 
 return bn

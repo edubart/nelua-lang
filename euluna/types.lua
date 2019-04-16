@@ -19,10 +19,15 @@ function Type:_init(name, node)
   self.unary_operators = {}
   self.binary_operators = {}
   self.conversible_types = {}
+  self.key = name
   self.codename = string.format('euluna_%s', self.name)
   local mt = getmetatable(self)
   metamagic.setmetaindex(self.unary_operators, mt.unary_operators)
   metamagic.setmetaindex(self.binary_operators, mt.binary_operators)
+
+  if node then
+    self.key = tostring(self.node.srcname) .. tostring(self.node.pos)
+  end
 end
 
 function Type:__tostring()
@@ -141,13 +146,8 @@ end
 Type.type = Type('type')
 
 local function gencodename(self)
-  local key
-  -- use source as key
-  if self.node then
-    key = tostring(self.node.srcname) .. tostring(self.node.pos)
-  end
   local name = tostring(self)
-  return string.format('%s_%s', self.name, stringer.hash(name, 16, key))
+  return string.format('%s_%s', self.name, stringer.hash(name, 16, self.key))
 end
 
 --------------------------------------------------------------------------------
@@ -275,6 +275,11 @@ function RecordType:get_field_type(name)
     return f.name == name
   end)
   return field and field.type or nil
+end
+
+function RecordType:is_equal(type)
+  return type.name == self.name and
+         type.key == self.key
 end
 
 function RecordType:__tostring()

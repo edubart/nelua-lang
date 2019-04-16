@@ -47,6 +47,10 @@ function visitors.Boolean(_, node)
   node.type = primtypes.boolean
 end
 
+function visitors.Nil(_, node)
+  node.type = primtypes.Nil
+end
+
 function visitors.Id(context, node)
   local name = node:arg(1)
   local type = node.type
@@ -67,23 +71,20 @@ end
 
 function visitors.Type(context, node)
   local tyname = node:arg(1)
-  local type = primtypes[tyname]
-  if not type then
-    local symbol = context.scope:get_symbol(tyname, node)
+  local symbol = typedefs.primsymbols[tyname]
+  if not symbol then
+    symbol = context.scope:get_symbol(tyname, node)
     node:assertraisef(symbol and symbol.holding_type, "symbol '%s' is not a valid type", tyname)
-    type = symbol.holding_type
   end
-  node.type = type
-  return type
+  node.type = symbol.holding_type
+  return symbol
 end
 
 function visitors.TypeInfer(context, node)
   local typenode = node:arg(1)
-  context:traverse(typenode)
-  local type = primtypes.type
-  node.type = type
-  node.holding_type = typenode.type
-  return type
+  local symbol = context:traverse(typenode)
+  node.type = primtypes.type
+  return symbol
 end
 
 function visitors.FuncType(context, node)
@@ -94,14 +95,14 @@ function visitors.FuncType(context, node)
     tabler.imap(argtypes, function(n) return n.type end),
     tabler.imap(returntypes, function(n) return n.type end))
   node.type = type
-  return type
+  return Symbol(nil, node, primtypes.type, type)
 end
 
 function visitors.RecordField(context, node)
   local name, typenode = node:args()
-  local type = context:traverse(typenode)
+  context:traverse(typenode)
+  local type = typenode.type
   node.type = type
-  return type
 end
 
 function visitors.RecordType(context, node)
@@ -112,7 +113,7 @@ function visitors.RecordType(context, node)
   end)
   local type = types.RecordType(node, fields)
   node.type = type
-  return type
+  return Symbol(nil, node, primtypes.type, type)
 end
 
 function visitors.EnumField(context, node)
@@ -128,7 +129,8 @@ function visitors.EnumType(context, node)
   local typenode, fieldnodes = node:args()
   local subtype = primtypes.integer
   if typenode then
-    subtype = context:traverse(typenode)
+    context:traverse(typenode)
+    subtype = typenode.type
   end
   local fields = {}
   for i,fnode in ipairs(fieldnodes) do
@@ -140,7 +142,7 @@ function visitors.EnumType(context, node)
   end
   local type = types.EnumType(node, subtype, fields)
   node.type = type
-  return type
+  return Symbol(nil, node, primtypes.type, type)
 end
 
 function visitors.ComposedType(context, node)
@@ -154,7 +156,8 @@ function visitors.ComposedType(context, node)
   elseif name == 'array' then
     node:assertraisef(#subnodes == 2, 'arrays must have 2 arguments')
     local typenode, numnode = subnodes[1], subnodes[2]
-    local subtype = context:traverse(typenode)
+    context:traverse(typenode)
+    local subtype = typenode.type
     local length = context:traverse(numnode)
     node:assertraisef(length and length > 0,
       'expected a valid decimal integral number in the second argument of an "array" type')
@@ -162,7 +165,7 @@ function visitors.ComposedType(context, node)
   end
   node:assertraisef(type, 'unknown composed type "%s"', name)
   node.type = type
-  return type
+  return Symbol(nil, node, primtypes.type, type)
 end
 
 function visitors.DotIndex(context, node)
@@ -222,19 +225,30 @@ function visitors.ArrayIndex(context, node)
 end
 
 function visitors.Call(context, node)
-  local argtypes, args, callee, block_call = node:args()
-  context:traverse(args)
+  local argtypes, argnodes, callee, block_call = node:args()
+  context:traverse(argnodes)
   local symbol = context:traverse(callee)
   if symbol and symbol.type then
-    callee:assertraisef(symbol.type:is_function() or symbol.type:is_any(),
-      "attempt to call a non callable variable of type '%s'", tostring(symbol.type))
     node.callee_type = symbol.type
-    if symbol.type:is_function() then
+    if symbol.type:is_type() then
+      local type = symbol.holding_type
+      assert(type, 'impossible')
+      node:assertraisef(#argnodes == 1,
+        "in value creation of type '%s', expected one argument, but got %d",
+        tostring(type), #argnodes)
+      local argnode = argnodes[1]
+      if argnode.type then
+        node:assertraisef(type:is_conversible(argnode.type),
+          "in value creation, type '%s' is not conversible with argument of type '%s'",
+          tostring(type), tostring(argnode.type))
+      end
+      node.type = type
+    elseif symbol.type:is_function() then
       -- check function argument types
-      for i,argtype,argnode in iters.izip(symbol.type.argtypes, args) do
+      for i,argtype,argnode in iters.izip(symbol.type.argtypes, argnodes) do
         if argtype and argnode and argnode.type then
           node:assertraisef(argtype:is_conversible(argnode.type),
-            "in call function argument %d of type '%s' is not conversible with call argument %d of type '%s'",
+            "in call, function argument %d of type '%s' is not conversible with call argument %d of type '%s'",
             i, tostring(argtype), i, tostring(argnode.type))
         end
       end
@@ -243,6 +257,8 @@ function visitors.Call(context, node)
 
       node.type = symbol.type.returntypes[1] or primtypes.void
       node.types = symbol.type.returntypes
+    elseif not symbol.type:is_any() then
+      callee:raisef("attempt to call a non callable variable of type '%s'", tostring(symbol.type))
     end
   end
   if not node.callee_type and context.phase == phases.any_inference then
@@ -255,7 +271,11 @@ end
 
 function visitors.IdDecl(context, node)
   local name, mut, typenode = node:args()
-  local type = typenode and context:traverse(typenode) or node.type
+  local type = node.type
+  if typenode then
+    context:traverse(typenode)
+    type = typenode.type
+  end
   if not type and context.phase == phases.any_inference then
     type = primtypes.any
   end
@@ -342,7 +362,7 @@ function visitors.VarDecl(context, node)
     assert(symbol.type == var.type, 'impossible')
     var.assign = true
     if val then
-      context:traverse(val)
+      local valsymbol = context:traverse(val)
       if val.type then
         symbol:add_possible_type(val.type)
         if var.type and var.type ~= primtypes.boolean then
@@ -351,7 +371,8 @@ function visitors.VarDecl(context, node)
             symbol.name, tostring(var.type), tostring(val.type))
         end
         if val.type:is_type() then
-          symbol.holding_type = val.holding_type
+          assert(valsymbol and valsymbol.holding_type, 'impossible')
+          symbol.holding_type = valsymbol.holding_type
         end
       end
     end

@@ -238,6 +238,12 @@ it("records", function()
     local b: record {x: boolean}
     b = a
   ]], "is not conversible with")
+  assert.analyze_error([[
+    local A = @record {x: boolean}
+    local B = @record {x: boolean}
+    local a: A, b: B
+    b = a
+  ]], "is not conversible with")
 end)
 
 it("arrays", function()
@@ -294,6 +300,17 @@ it("enums", function()
     local Enum = @enum{A,B=3}
     local e: Enum = 1
   ]], "is not conversible with")
+end)
+
+it("type construction", function()
+  assert.analyze_ast("local a = @integer(0)")
+  assert.analyze_ast("local a = @boolean(false)")
+  assert.analyze_ast("local a = @string('')")
+  assert.analyze_ast("local a = @any(nil)")
+  assert.analyze_error("local a = @integer()", "expected one argument")
+  assert.analyze_error("local a = @integer(1,2)", "expected one argument")
+  assert.analyze_error("local a = @integer(false)", "is not conversible with")
+  assert.analyze_error("local a = @integer(nil)", "is not conversible with")
 end)
 
 it("strict mode", function()

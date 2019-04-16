@@ -95,6 +95,8 @@ visitors.FuncType = visitors.Type
 visitors.ComposedType = visitors.Type
 
 function visitors.IdDecl(context, node, emitter)
+  if node.type:is_type() then return end
+
   local name, mut = node:args()
   node:assertraisef(mut == nil or mut == 'var', "variable mutabilities are not supported yet")
   local ctype = context:get_ctype(node)
@@ -296,11 +298,15 @@ function visitors.Goto(_, node, emitter)
 end
 
 local function add_assignments(context, emitter, vars, vals)
-  for i,var,val in iters.izip(vars, vals or {}) do
-    if i > 1 then emitter:add(' ') end
-    emitter:add(var, ' = ')
-    add_casted_value(context, emitter, var.type, val)
-    emitter:add(';')
+  local added = false
+  for _,var,val in iters.izip(vars, vals or {}) do
+    if not var.type:is_type() then
+      if added then emitter:add(' ') end
+      emitter:add(var, ' = ')
+      add_casted_value(context, emitter, var.type, val)
+      emitter:add(';')
+      added = true
+    end
   end
 end
 

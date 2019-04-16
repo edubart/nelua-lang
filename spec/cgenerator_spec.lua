@@ -245,6 +245,19 @@ it("records", function()
     p.x, p.y = 1, 2
     print(p.x, p.y)
   ]], "0\t0\n1\t2")
+  assert.run_c([[
+    local Point = @record {x: integer, y: integer}
+    local p: Point
+    p.x = 1
+    print(p.x, p.y)
+  ]], "1\t0")
+  --[=[
+  assert.run_c([[
+    local Point = @record {x: integer, y: integer}
+    local p = Point{x=1, y=2}
+    print(p.x, p.y)
+  ]], "1\t2")
+  ]=]
 end)
 
 it("print", function()
