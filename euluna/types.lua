@@ -128,8 +128,8 @@ function Type:is_enum()
   return self.name == 'enum'
 end
 
-function Type.is_arraytable()
-  return false
+function Type:is_arraytable()
+  return self.name == 'arraytable'
 end
 
 function Type:is_equal(type)
@@ -153,41 +153,24 @@ local function gencodename(self)
 end
 
 --------------------------------------------------------------------------------
-local ComposedType = class(Type)
-
-function ComposedType:_init(name, node, subtypes)
-  self.subtypes = subtypes
-  Type._init(self, name, node)
-  self.codename = gencodename(self)
-end
-
-function ComposedType:is_equal(type)
-  return type.name == self.name and
-         class.is_a(type, getmetatable(self)) and
-         tabler.deepcompare(type.subtypes, self.subtypes)
-end
-
-function ComposedType:__tostring()
-  return sstream(self.name, '<', self.subtypes, '>'):tostring()
-end
-
---------------------------------------------------------------------------------
---TODO: dont inherit from ComposedType
-local ArrayTableType = class(ComposedType)
+local ArrayTableType = class(Type)
 ArrayTableType.unary_operators = {}
 metamagic.setmetaindex(ArrayTableType.unary_operators, Type.unary_operators)
 
-function ArrayTableType:_init(node, subtypes)
-  ComposedType._init(self, 'table', node, subtypes)
-  if #subtypes == 1 then
-    self.codename = subtypes[1].codename .. '_arrtab'
-  else
-    self.codename = gencodename(self)
-  end
+function ArrayTableType:_init(node, subtype)
+  Type._init(self, 'arraytable', node)
+  self.subtype = subtype
+  self.codename = subtype.codename .. '_arrtab'
 end
 
-function ArrayTableType.is_arraytable()
-  return true
+function ArrayTableType:is_equal(type)
+  return type.name == self.name and
+         class.is_a(type, getmetatable(self)) and
+         type.subtype == self.subtype
+end
+
+function ArrayTableType:__tostring()
+  return sstream(self.name, '<', self.subtype, '>'):tostring()
 end
 
 --------------------------------------------------------------------------------
@@ -297,7 +280,6 @@ end
 
 local types = {
   Type = Type,
-  ComposedType = ComposedType,
   ArrayTableType = ArrayTableType,
   ArrayType = ArrayType,
   EnumType = EnumType,

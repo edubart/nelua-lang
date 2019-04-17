@@ -26,7 +26,7 @@ function CContext:get_ctype(nodeortype)
   if type:is_arraytable() then
     self:ensure_runtime(codename, 'euluna_arrtab', {
       tyname = codename,
-      ctype = type.subtypes[1].codename
+      ctype = type.subtype.codename
     })
     self:ensure_runtime('euluna_gc')
     self:use_gc()

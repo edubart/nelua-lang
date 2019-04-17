@@ -78,7 +78,8 @@ function visitors.Paren(_, node, emitter)
 end
 function visitors.Type() end
 function visitors.FuncType() end
-function visitors.ComposedType() end
+function visitors.ArrayTableType() end
+function visitors.ArrayType() end
 function visitors.IdDecl(_, node, emitter)
   local name, mut, type = node:args()
   node:assertraisef(mut == nil or mut == 'var', "variable mutabilities are not supported in lua")
@@ -261,7 +262,7 @@ function visitors.VarDecl(context, node, emitter)
     for i=istart,#vars do
       if i > 1 then emitter:add(', ') end
       local var = vars[i]
-      if var.type:is_table() then
+      if var.type:is_table() or var.type:is_arraytable() then
         emitter:add('{}')
       elseif var.type:is_number() then
         emitter:add('0')

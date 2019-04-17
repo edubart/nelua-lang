@@ -114,7 +114,8 @@ function visitors.Type(context, node, emitter)
 end
 
 visitors.FuncType = visitors.Type
-visitors.ComposedType = visitors.Type
+visitors.ArrayTableType = visitors.Type
+visitors.ArrayType = visitors.Type
 
 function visitors.IdDecl(context, node, emitter)
   if node.type:is_type() then return end

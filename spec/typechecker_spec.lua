@@ -48,7 +48,7 @@ end)
 it("typed var initialization", function()
   assert.lua_gencode_equals("local a: integer", "local a: integer = 0")
   assert.lua_gencode_equals("local a: boolean", "local a: boolean = false")
-  assert.lua_gencode_equals("local a: table<integer>", "local a: table<integer> = {}")
+  assert.lua_gencode_equals("local a: arraytable<integer>", "local a: arraytable<integer> = {}")
 end)
 
 it("loop variables", function()
@@ -194,36 +194,36 @@ end)
 
 it("array tables", function()
   assert.analyze_ast([[
-    local a: table<boolean>
-    local b: table<boolean>
+    local a: arraytable<boolean>
+    local b: arraytable<boolean>
     b = a
   ]])
   assert.analyze_ast([[
-    local a: table<boolean> = {}
-    local b: table<boolean> = {false, true}
-    local c = @table<boolean>{false, true}
+    local a: arraytable<boolean> = {}
+    local b: arraytable<boolean> = {false, true}
+    local c = @arraytable<boolean>{false, true}
   ]])
   assert.c_gencode_equals([[
-    local a: table<boolean>
+    local a: arraytable<boolean>
     local b = a[0]
   ]],[[
-    local a: table<boolean>
+    local a: arraytable<boolean>
     local b: boolean = a[0]
   ]])
   assert.analyze_error([[
-    local a: table<integer>
-    local b: table<boolean>
+    local a: arraytable<integer>
+    local b: arraytable<boolean>
     b = a
   ]], "is not conversible with")
   assert.analyze_error([[
-    local a: table<integer> = {false}
+    local a: arraytable<integer> = {false}
   ]], "is not conversible with")
   assert.analyze_error([[
-    local a: table<integer> = {a = 1}
+    local a: arraytable<integer> = {a = 1}
   ]], "fields are not allowed")
   assert.analyze_error([[
-    local a: table<integer, boolean>
-    local b: table<integer, integer>
+    local a: arraytable<boolean>
+    local b: arraytable<integer>
     b = a
   ]], "is not conversible with")
 end)
@@ -264,9 +264,6 @@ it("arrays", function()
     local a: array<integer, 10>
     a[0] = 1.0
   ]], "is not conversible with")
-  assert.analyze_error([[
-    local a: array<integer>
-  ]], "arrays must have 2 arguments")
   assert.analyze_error([[
     local a: array<integer, 1.0>
   ]], "expected a valid decimal integral number in the second argument")

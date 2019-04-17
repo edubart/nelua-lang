@@ -217,13 +217,13 @@ end)
 
 it("array tables", function()
   assert.generate_c(
-    "local t: table<boolean>",
+    "local t: arraytable<boolean>",
     "euluna_boolean_arrtab t = {0};")
   assert.generate_c(
-    "local t: table<boolean>; local a = #t",
+    "local t: arraytable<boolean>; local a = #t",
     "euluna_int64 a = euluna_boolean_arrtab_length(&t);")
   assert.run_c([[
-    local t: table<boolean>
+    local t: arraytable<boolean>
     print(t[0], #t)
     t[1] = true
     print(t[1], #t)

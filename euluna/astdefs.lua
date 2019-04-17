@@ -70,9 +70,12 @@ astbuilder:register('EnumType', stypes.shape {
   ntypes.Type:is_optional(), -- primitive type
   stypes.array_of(ntypes.EnumField), -- field types
 })
-astbuilder:register('ComposedType', stypes.shape {
-  stypes.string, -- type name
-  stypes.array_of(ntypes.Node), -- arguments types
+astbuilder:register('ArrayTableType', stypes.shape {
+  ntypes.Node, -- subtype
+})
+astbuilder:register('ArrayType', stypes.shape {
+  ntypes.Node, -- subtype
+  ntypes.Number, -- size
 })
 
 -- function

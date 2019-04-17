@@ -62,7 +62,7 @@ function visitors.Table(context, node, desiredtype)
 
   if desiredtype and desiredtype ~= primtypes.table then
     if desiredtype:is_arraytable() then
-      local subtype = desiredtype.subtypes[1]
+      local subtype = desiredtype.subtype
       for i, childnode in ipairs(childnodes) do
         childnode:assertraisef(childnode.tag ~= 'Pair',
           "in array table literal value, fields are not allowed")
@@ -194,25 +194,22 @@ function visitors.EnumType(context, node)
   return Symbol(nil, node, primtypes.type, type)
 end
 
-function visitors.ComposedType(context, node)
-  local name, subnodes = node:args()
-  local type
-  if name == 'table' then
-    context:traverse(subnodes)
-    local subtypes = tabler.imap(subnodes, function(n) return n.type end)
-    node:assertraisef(#subtypes <= 2, 'tables can have at most 2 subtypes')
-    type = types.ArrayTableType(node, subtypes)
-  elseif name == 'array' then
-    node:assertraisef(#subnodes == 2, 'arrays must have 2 arguments')
-    local typenode, numnode = subnodes[1], subnodes[2]
-    context:traverse(typenode)
-    local subtype = typenode.type
-    local length = context:traverse(numnode)
-    node:assertraisef(length and length > 0,
-      'expected a valid decimal integral number in the second argument of an "array" type')
-    type = types.ArrayType(node, subtype, length)
-  end
-  node:assertraisef(type, 'unknown composed type "%s"', name)
+function visitors.ArrayTableType(context, node)
+  local subtypenode = node:args()
+  context:traverse(subtypenode)
+  local type = types.ArrayTableType(node, subtypenode.type)
+  node.type = type
+  return Symbol(nil, node, primtypes.type, type)
+end
+
+function visitors.ArrayType(context, node)
+  local subtypenode, lengthnode = node:args()
+  context:traverse(subtypenode)
+  local subtype = subtypenode.type
+  local length = context:traverse(lengthnode)
+  lengthnode:assertraisef(length and length > 0,
+    'expected a valid decimal integral number in the second argument of an "array" type')
+  local type = types.ArrayType(node, subtype, length)
   node.type = type
   return Symbol(nil, node, primtypes.type, type)
 end
@@ -261,7 +258,7 @@ function visitors.ArrayIndex(context, node)
   if obj.type then
     if obj.type:is_arraytable() then
       --TODO: check negative values
-      type = obj.type.subtypes[1]
+      type = obj.type.subtype
     elseif obj.type:is_array() then
       --TODO: check index range
       type = obj.type.subtype

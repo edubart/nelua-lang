@@ -420,7 +420,8 @@ local function get_parser(std)
         func_type
       / record_type
       / enum_type
-      / composed_type
+      / arraytable_type
+      / array_type
       / prim_type
 
     func_type <- (
@@ -439,7 +440,6 @@ local function get_parser(std)
     record_field <- ({} '' -> 'RecordField'
         %cNAME eCOLON etypexpr
       ) -> to_astnode
-
     enum_type <- ({} %TENUM -> 'EnumType'
         ((%LANGLE eprim_type eRANGLE) / cnil) eLCURLY
         {| eenum_field (%SEPARATOR enum_field)* %SEPARATOR? |}
@@ -447,13 +447,14 @@ local function get_parser(std)
     enum_field <- ({} '' -> 'EnumField'
         %cNAME (%ASSIGN ecNUMBER)?
       ) -> to_astnode
-
-    composed_type <- (
-      {} '' -> 'ComposedType'
-        %cNAME %LANGLE {| ecomposed_typexpr_list |} eRANGLE
+    arraytable_type <- (
+      {} 'arraytable' -> 'ArrayTableType'
+        eLANGLE etypexpr eRANGLE
       ) -> to_astnode
-    ecomposed_typexpr_list <-
-      etypexpr (%COMMA (typexpr / %cNUMBER))*
+    array_type <- (
+      {} 'array' -> 'ArrayType'
+        eLANGLE etypexpr eCOMMA ecNUMBER eRANGLE
+      ) -> to_astnode
 
     prim_type   <- ({} '' -> 'Type' %cNAME) -> to_astnode
   ]])
@@ -496,9 +497,11 @@ local function get_parser(std)
     eRBRACKET     <- %RBRACKET    / %{UnclosedBracket}
     eRCURLY       <- %RCURLY      / %{UnclosedCurly}
     eRANGLE       <- %RANGLE      / %{UnclosedAngle}
-    eCOLON        <- %COLON       / %{ExpectedColon}
-    eLCURLY       <- %LCURLY      / %{ExpectedCurly}
     eLPAREN       <- %LPAREN      / %{ExpectedParenthesis}
+    eLCURLY       <- %LCURLY      / %{ExpectedCurly}
+    eLANGLE       <- %LANGLE      / %{ExpectedAngle}
+    eCOLON        <- %COLON       / %{ExpectedColon}
+    eCOMMA        <- %COMMA       / %{ExpectedComma}
     eEND          <- %END         / %{ExpectedEnd}
     eTHEN         <- %THEN        / %{ExpectedThen}
     eUNTIL        <- %UNTIL       / %{ExpectedUntil}
@@ -540,9 +543,11 @@ local function get_parser(std)
     UnclosedCurly = "unclosed curly brace, did you forget a `}`?",
     UnclosedAngleBracket = "unclosed angle bracket, did you forget a `>`",
     UnclosedLabel = "unclosed label, did you forget `::`?",
-    ExpectedColon = "expected colon `:`",
-    ExpectedCurly = "expected curly brace `{`",
     ExpectedParenthesis = "expected parenthesis `(`",
+    ExpectedCurly = "expected curly brace `{`",
+    ExpectedAngle = "expected angle bracket `<`",
+    ExpectedColon = "expected colon `:`",
+    ExpectedComma = "expected comma `,`",
     ExpectedEnd = "expected `end` keyword",
     ExpectedThen = "expected `then` keyword",
     ExpectedUntil = "expected `until` keyword",

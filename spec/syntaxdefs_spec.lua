@@ -1276,24 +1276,18 @@ describe("type expression", function()
             {n.Type{'string'}, n.Type{'boolean'}}}} }
     }}})
   end)
-  it("composed type", function()
-    assert.parse_ast(euluna_parser, "local t: table<int>",
+  it("array table type", function()
+    assert.parse_ast(euluna_parser, "local t: arraytable<int>",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'t', 'var', n.ComposedType{'table',
-            { n.Type{'int'} }}} }
+          { n.IdDecl{'t', 'var', n.ArrayTableType{n.Type{'int'}}}}
     }}})
-    assert.parse_ast(euluna_parser, "local t: table<int, string>",
-      n.Block{{
-        n.VarDecl{'local', 'var',
-          { n.IdDecl{'t', 'var', n.ComposedType{'table',
-            { n.Type{'int'}, n.Type{'string'} }}} }
-    }}})
+  end)
+  it("array type", function()
     assert.parse_ast(euluna_parser, "local a: array<int, 10>",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'a', 'var', n.ComposedType{'array',
-            { n.Type{'int'}, n.Number{'dec', '10'} }}} }
+          { n.IdDecl{'a', 'var', n.ArrayType{n.Type{'int'}, n.Number{'dec', '10'}}}}
     }}})
   end)
   it("record type", function()
@@ -1311,14 +1305,14 @@ describe("type expression", function()
             n.RecordField{'b', n.Type{'boolean'}}
     }}}}}}})
     assert.parse_ast(euluna_parser,
-      "local r: record{f: function<(int, uint): string, boolean>, t: table<int>}",
+      "local r: record{f: function<(int, uint): string, boolean>, t: arraytable<int>}",
       n.Block{{
         n.VarDecl{'local', 'var',
           { n.IdDecl{'r', 'var', n.RecordType{{
             n.RecordField{'f', n.FuncType{
               {n.Type{'int'}, n.Type{'uint'}},
               {n.Type{'string'}, n.Type{'boolean'}}}},
-            n.RecordField{'t', n.ComposedType{'table', { n.Type{'int'} }}},
+            n.RecordField{'t', n.ArrayTableType{ n.Type{'int'} }},
     }}}}}}})
     assert.parse_ast(euluna_parser, "local r: record{a: record{c: int}, b: boolean}",
       n.Block{{
