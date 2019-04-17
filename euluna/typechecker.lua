@@ -129,7 +129,7 @@ function visitors.Type(context, node)
   return symbol
 end
 
-function visitors.TypeInfer(context, node)
+function visitors.TypeInstance(context, node)
   local typenode = node:arg(1)
   local symbol = context:traverse(typenode)
   node.type = primtypes.type
@@ -147,7 +147,7 @@ function visitors.FuncType(context, node)
   return Symbol(nil, node, primtypes.type, type)
 end
 
-function visitors.RecordField(context, node)
+function visitors.RecordFieldType(context, node)
   local name, typenode = node:args()
   context:traverse(typenode)
   local type = typenode.type
@@ -165,7 +165,7 @@ function visitors.RecordType(context, node)
   return Symbol(nil, node, primtypes.type, type)
 end
 
-function visitors.EnumField(context, node)
+function visitors.EnumFieldType(context, node)
   local name, numnode = node:args()
   local value
   if numnode then

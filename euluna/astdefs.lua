@@ -38,7 +38,7 @@ astbuilder:register('Id', stypes.shape {
 astbuilder:register('IdDecl', stypes.shape {
   stypes.string, -- name
   stypes.one_of{"var", "var&", "var&&", "val"}:is_optional(), -- mutability
-  ntypes.Node:is_optional(), -- type
+  ntypes.Node:is_optional(), -- typexpr
 })
 astbuilder:register('Paren', stypes.shape {
   ntypes.Node -- expr
@@ -48,33 +48,33 @@ astbuilder:register('Paren', stypes.shape {
 astbuilder:register('Type', stypes.shape {
   stypes.string, -- type name
 })
-astbuilder:register('TypeInfer', stypes.shape {
-  ntypes.Node, -- type
+astbuilder:register('TypeInstance', stypes.shape {
+  ntypes.Node, -- typexpr
 })
 astbuilder:register('FuncType', stypes.shape {
   stypes.array_of(ntypes.Node), -- arguments types
   stypes.array_of(ntypes.Node), -- returns types
 })
-astbuilder:register('RecordField', stypes.shape {
+astbuilder:register('RecordFieldType', stypes.shape {
   stypes.string, -- name
-  ntypes.Node, -- type
+  ntypes.Node, -- typexpr
 })
 astbuilder:register('RecordType', stypes.shape {
-  stypes.array_of(ntypes.RecordField), -- field types
+  stypes.array_of(ntypes.RecordFieldType), -- field types
 })
-astbuilder:register('EnumField', stypes.shape {
+astbuilder:register('EnumFieldType', stypes.shape {
   stypes.string, -- name
   ntypes.Number:is_optional() -- numeric value
 })
 astbuilder:register('EnumType', stypes.shape {
   ntypes.Type:is_optional(), -- primitive type
-  stypes.array_of(ntypes.EnumField), -- field types
+  stypes.array_of(ntypes.EnumFieldType), -- field types
 })
 astbuilder:register('ArrayTableType', stypes.shape {
-  ntypes.Node, -- subtype
+  ntypes.Node, -- subtype typexpr
 })
 astbuilder:register('ArrayType', stypes.shape {
-  ntypes.Node, -- subtype
+  ntypes.Node, -- subtype typeexpt
   ntypes.Number, -- size
 })
 

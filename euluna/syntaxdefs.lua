@@ -355,11 +355,11 @@ local function get_parser(std)
 
     primary_expr <-
       %cID /
-      type_infer /
+      type_instance /
       ({} %LPAREN -> 'Paren' eexpr eRPAREN) -> to_astnode
 
-    type_infer <-
-      ({} %AT -> 'TypeInfer' etypexpr) -> to_astnode
+    type_instance <-
+      ({} %AT -> 'TypeInstance' etypexpr) -> to_astnode
 
     index_expr <- dot_index / array_index
     dot_index <- {| {} %DOT -> 'DotIndex' ecNAME |}
@@ -368,11 +368,7 @@ local function get_parser(std)
 
     call_expr <-
       {| {} %COLON -> 'CallMethod' ecNAME call_args |} /
-      {| {} & (
-        %LPAREN /
-        %LCURLY /
-        %cSTRING
-      ) '' -> 'Call' call_args |}
+      {| {} '' -> 'Call' call_args |}
     call_args <-
       {| (%LPAREN  expr_list eRPAREN / table / %cSTRING) |}
 
@@ -435,14 +431,14 @@ local function get_parser(std)
     record_type <- ({} %TRECORD -> 'RecordType' eLCURLY
         {| erecord_field (%SEPARATOR record_field)* %SEPARATOR? |}
       eRCURLY) -> to_astnode
-    record_field <- ({} '' -> 'RecordField'
+    record_field <- ({} '' -> 'RecordFieldType'
         %cNAME eCOLON etypexpr
       ) -> to_astnode
     enum_type <- ({} %TENUM -> 'EnumType'
         ((%LANGLE eprim_type eRANGLE) / cnil) eLCURLY
         {| eenum_field (%SEPARATOR enum_field)* %SEPARATOR? |}
       eRCURLY) -> to_astnode
-    enum_field <- ({} '' -> 'EnumField'
+    enum_field <- ({} '' -> 'EnumFieldType'
         %cNAME (%ASSIGN ecNUMBER)?
       ) -> to_astnode
     arraytable_type <- (
@@ -509,8 +505,8 @@ local function get_parser(std)
     eexpr         <- expr         / %{ExpectedExpression}
     etypexpr      <- typexpr      / %{ExpectedTypeExpression}
     ecall_args    <- call_args    / %{ExpectedCall}
-    erecord_field <- record_field / %{ExpectedRecordField}
-    eenum_field   <- enum_field   / %{ExpectedEnumField}
+    erecord_field <- record_field / %{ExpectedRecordFieldType}
+    eenum_field   <- enum_field   / %{ExpectedEnumFieldType}
     eprim_type    <- prim_type    / %{ExpectedPrimitiveTypeExpression}
   ]])
 
@@ -555,8 +551,8 @@ local function get_parser(std)
     ExpectedExpression = "expected an expression",
     ExpectedTypeExpression = "expected a type expression",
     ExpectedCall = "expected call",
-    ExpectedEnumField = "expected at least one enum field",
-    ExpectedRecordField = "expected at least one record field",
+    ExpectedEnumFieldType = "expected at least one enum field",
+    ExpectedRecordFieldType = "expected at least one record field",
     ExpectedPrimitiveTypeExpression = "expected a primitive type expression",
   })
 
