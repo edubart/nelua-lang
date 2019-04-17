@@ -31,7 +31,7 @@ end
 function class.is_a(val, T)
   local mt = getmetatable(val)
   while mt do
-    if mt == T then return true end
+    if rawequal(mt, T) then return true end
     mt = getmetatable(mt)
   end
   return false

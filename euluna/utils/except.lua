@@ -39,7 +39,7 @@ local function raise(e, level)
     error(e, 2)
   elseif traits.is_string(e) then
     error(Exception({ message = e }), level)
-  elseif traits.is_table(e) and getmetatable(e) == nil then
+  elseif traits.is_table(e) and rawequal(getmetatable(e), nil) then
     assert(e.message or e.label, 'exception table has no message or label')
     error(Exception(e), level)
   else --luacov:disable

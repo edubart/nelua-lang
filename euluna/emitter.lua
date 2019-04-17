@@ -56,16 +56,16 @@ function Emitter:add(what, ...)
   end
 end
 
-function Emitter:add_traversal(node)
+function Emitter:add_traversal(node, ...)
   local context = self.context
-  context:traverse(node, self)
+  context:traverse(node, self, ...)
 end
 
-function Emitter:add_traversal_list(nodelist, separator)
+function Emitter:add_traversal_list(nodelist, separator, ...)
   separator = separator or ', '
   for i,node in ipairs(nodelist) do
     if i > 1 then self:add(separator) end
-    self:add_traversal(node)
+    self:add_traversal(node, ...)
   end
 end
 

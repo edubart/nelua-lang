@@ -52,6 +52,7 @@ it("print correct generated AST" , function()
       type = "any",
       { },
       { String {
+          literal = true,
           type = "string",
           "hello world",
           nil

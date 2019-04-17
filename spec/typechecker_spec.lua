@@ -10,7 +10,8 @@ it("local variable", function()
   assert.analyze_ast("local a: integer",
     n.Block { {
       n.VarDecl { 'local', 'var',
-        { n.IdDecl{ assign=true, type='int64', 'a', 'var', n.Type { type='int64', 'integer'}} }
+        { n.IdDecl{ assign=true, type='int64', 'a', 'var',
+          n.Type { type='int64', 'integer'}}}
       }
     } }
   )
@@ -18,8 +19,9 @@ it("local variable", function()
   assert.analyze_ast("local a: integer = 1",
     n.Block { {
       n.VarDecl { 'local', 'var',
-        { n.IdDecl{ assign=true, type='int64', 'a', 'var', n.Type { type='int64', 'integer'}} },
-        { n.Number{ type='int64', 'dec', '1'} }
+        { n.IdDecl{ assign=true, type='int64', 'a', 'var',
+          n.Type { type='int64', 'integer'}}},
+        { n.Number{ literal=true, type='int64', 'dec', '1'}}
       }
     } }
   )
@@ -27,8 +29,8 @@ it("local variable", function()
   assert.analyze_ast("local a = 1; f(a)",
     n.Block { {
       n.VarDecl { 'local', 'var',
-        { n.IdDecl { assign=true, type='int64', 'a', 'var' } },
-        { n.Number { type='int64', 'dec', '1' } }
+        { n.IdDecl { assign=true, type='int64', 'a', 'var' }},
+        { n.Number { literal=true, type='int64', 'dec', '1' }}
       },
       n.Call { callee_type='any', type='any', {},
         { n.Id { type='int64', "a"} },
@@ -40,6 +42,7 @@ it("local variable", function()
   assert.c_gencode_equals("local a = 1", "local a: integer = 1")
   assert.analyze_error("local a: integer = 'string'", "is not conversible with")
   assert.analyze_error("local a: uint8 = 1.0", "is not conversible with")
+  assert.analyze_error("local a: uint8 = {1.0}", "cannot be initialized using a table literal")
 end)
 
 it("typed var initialization", function()
@@ -195,6 +198,11 @@ it("array tables", function()
     local b: table<boolean>
     b = a
   ]])
+  assert.analyze_ast([[
+    local a: table<boolean> = {}
+    local b: table<boolean> = {false, true}
+    local c = @table<boolean>{false, true}
+  ]])
   assert.c_gencode_equals([[
     local a: table<boolean>
     local b = a[0]
@@ -208,6 +216,12 @@ it("array tables", function()
     b = a
   ]], "is not conversible with")
   assert.analyze_error([[
+    local a: table<integer> = {false}
+  ]], "is not conversible with")
+  assert.analyze_error([[
+    local a: table<integer> = {a = 1}
+  ]], "fields are not allowed")
+  assert.analyze_error([[
     local a: table<integer, boolean>
     local b: table<integer, integer>
     b = a
@@ -215,50 +229,35 @@ it("array tables", function()
 end)
 
 it("records", function()
-  assert.analyze_ast([[
-    local a: record {x: boolean}
-    a.x = true
-  ]])
-  assert.analyze_error([[
-    local a: record {x: boolean}
-    a.x = 1
-  ]], "is not conversible with")
-  assert.analyze_error([[
-    local a: record {x: boolean}
-    local b = a.y
-  ]], "does not have field named")
+  assert.analyze_ast([[local a: record {x: boolean}; a.x = true]])
+  assert.analyze_ast([[local a: record {x: boolean} = {x = true}]])
+  assert.analyze_error([[local a: record {x: boolean}; a.x = 1]], "is not conversible with")
+  assert.analyze_error([[local a: record {x: boolean}; local b = a.y]], "does not have field named")
+  assert.analyze_error([[local a: record {x: boolean} = {x = 1}]], "is not conversible with")
+  assert.analyze_error([[local a: record {x: boolean} = {y = 1}]], "is not present in record")
+  assert.analyze_error([[local a: record {x: boolean} = {[x] = 1}]], "only string literals are allowed")
+  assert.analyze_error([[local a: record {x: boolean} = {false}]], "only named fields are allowed")
   assert.analyze_ast([[
     local Record: type = @record{x: boolean}
-    local a: Record
-    local b: Record
+    local a: Record, b: Record
     b = a
   ]])
   assert.analyze_error([[
-    local a: record {x: boolean}
-    local b: record {x: boolean}
+    local a: record {x: boolean}, b: record {x: boolean}
     b = a
   ]], "is not conversible with")
   assert.analyze_error([[
-    local A = @record {x: boolean}
-    local B = @record {x: boolean}
+    local A, B = @record {x: boolean}, @record {x: boolean}
     local a: A, b: B
     b = a
   ]], "is not conversible with")
 end)
 
 it("arrays", function()
-  assert.analyze_ast([[
-    local a: array<integer, 10>
-    a[0] = 1
-  ]])
-  assert.analyze_ast([[
-    local a: array<integer, 10>
-    local b: array<integer, 10>
-    b = a
-  ]])
+  assert.analyze_ast([[local a: array<integer, 10>; a[0] = 1]])
+  assert.analyze_ast([[local a: array<integer, 10>, b: array<integer, 10>; b = a]])
   assert.analyze_error([[
-    local a: array<integer, 10>
-    local b: array<integer, 11>
+    local a: array<integer, 10>, b: array<integer, 11>
     b = a
   ]], "is not conversible with")
   assert.analyze_error([[

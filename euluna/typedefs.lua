@@ -27,6 +27,7 @@ local primtypes = {
   pointer   = Type('pointer'),
   any       = Type('any'),
   void      = Type('void'),
+  table     = Type('table'),
   Nil       = Type('nil'),
   type      = Type.type, -- the type of "Type"
 }

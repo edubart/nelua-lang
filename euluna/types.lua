@@ -12,14 +12,14 @@ Type.unary_operators = {}
 Type.binary_operators = {}
 
 function Type:_init(name, node)
-  self.node = node
+  assert(name)
   self.name = name
+  self.node = node
   self.integral = false
   self.real = false
   self.unary_operators = {}
   self.binary_operators = {}
   self.conversible_types = {}
-  self.key = name
   self.codename = string.format('euluna_%s', self.name)
   local mt = getmetatable(self)
   metamagic.setmetaindex(self.unary_operators, mt.unary_operators)
@@ -27,6 +27,8 @@ function Type:_init(name, node)
 
   if node then
     self.key = tostring(self.node.srcname) .. tostring(self.node.pos)
+  else
+    self.key = name
   end
 end
 
@@ -146,8 +148,8 @@ end
 Type.type = Type('type')
 
 local function gencodename(self)
-  local name = tostring(self)
-  return string.format('%s_%s', self.name, stringer.hash(name, 16, self.key))
+  local s = tostring(self)
+  return string.format('%s_%s', self.name, stringer.hash(s .. self.key, 16))
 end
 
 --------------------------------------------------------------------------------
@@ -170,6 +172,7 @@ function ComposedType:__tostring()
 end
 
 --------------------------------------------------------------------------------
+--TODO: dont inherit from ComposedType
 local ArrayTableType = class(ComposedType)
 ArrayTableType.unary_operators = {}
 metamagic.setmetaindex(ArrayTableType.unary_operators, Type.unary_operators)
@@ -205,7 +208,7 @@ function ArrayType:is_equal(type)
 end
 
 function ArrayType:__tostring()
-  return sstream('array<', self.subtype, self.length, '>'):tostring()
+  return sstream('array<', self.subtype, ', ', self.length, '>'):tostring()
 end
 
 --------------------------------------------------------------------------------

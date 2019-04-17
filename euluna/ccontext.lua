@@ -21,7 +21,7 @@ function CContext:get_ctype(nodeortype)
     type = nodeortype.type
     nodeortype:assertraisef(type, 'unknown type for AST node while trying to get the C type')
   end
-  assert(type, 'impossible')
+  assert(type)
   local codename = type.codename
   if type:is_arraytable() then
     self:ensure_runtime(codename, 'euluna_arrtab', {
@@ -86,7 +86,7 @@ end
 
 function CContext:add_declaration(code, name)
   if name then
-    assert(not self.declarations[name], 'impossible')
+    assert(not self.declarations[name])
     self.declarations[name] = true
   end
   table.insert(self.declarations, code)
@@ -94,7 +94,7 @@ end
 
 function CContext:add_definition(code, name)
   if name then
-    assert(not self.definitions[name], 'impossible')
+    assert(not self.definitions[name])
     self.definitions[name] = true
   end
   table.insert(self.definitions, code)

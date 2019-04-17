@@ -69,6 +69,28 @@ function visitors.Boolean(_, node, emitter)
   emitter:add(tostring(value))
 end
 
+function visitors.Pair(_, node, emitter, parent_type)
+  local namenode, valuenode = node:args()
+  if parent_type:is_record() then
+    assert(traits.is_string(namenode))
+    emitter:add('.', namenode, ' = ', valuenode)
+  else --luacov:disable
+    error('not implemented yet')
+  end --luacov:enable
+end
+
+function visitors.Table(context, node, emitter)
+  local childnodes = node:args()
+  if node.type:is_record() then
+    local ctype = context:get_ctype(node)
+    emitter:add('(', ctype, ')', '{')
+    emitter:add_traversal_list(childnodes, ', ', node.type)
+    emitter:add('}')
+  else --luacov:disable
+    error('not implemented yet')
+  end --luacov:enable
+end
+
 -- TODO: Nil
 -- TODO: Varargs
 -- TODO: Table
@@ -135,17 +157,20 @@ function visitors.Call(context, node, emitter)
   if builtin then
     callee = builtin(context, node, emitter)
   end
-  emitter:add(callee, '(')
-  if node.callee_type and node.callee_type:is_function() then
+  if node.callee_type:is_function() then
+    emitter:add(callee, '(')
     for i,argtype,argnode in iters.izip(node.callee_type.argtypes, args) do
       if i > 1 then emitter:add(', ') end
       add_casted_value(context, emitter, argtype, argnode)
     end
+    emitter:add(')')
+  elseif node.callee_type:is_type() then
+    assert(#args == 1)
+    emitter:add(args[1])
   else
     --TODO: handle better calls on any types
-    emitter:add(args)
+    emitter:add(callee, '(', args, ')')
   end
-  emitter:add(')')
   if block_call then emitter:add_ln(";") end
 end
 
@@ -364,7 +389,7 @@ function visitors.UnaryOp(context, node, emitter)
     emitter:add(op, argnode)
   else
     local func = cbuiltins[opname]
-    assert(func, 'impossible')
+    assert(func)
     func(context, node, emitter, argnode)
   end
   if surround then emitter:add(')') end
@@ -389,7 +414,7 @@ function visitors.BinaryOp(context, node, emitter)
       emitter:add(lnode, ' ', op, ' ', rnode)
     else
       local func = cbuiltins[opname]
-      assert(func, 'impossible')
+      assert(func)
       func(context, node, emitter, lnode, rnode)
     end
   end
