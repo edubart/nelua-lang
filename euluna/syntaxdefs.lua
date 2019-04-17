@@ -371,11 +371,9 @@ local function get_parser(std)
       {| {} & (
         %LPAREN /
         %LCURLY /
-        %cSTRING /
-        %LANGLE typexpr_list %RANGLE %LPAREN
+        %cSTRING
       ) '' -> 'Call' call_args |}
     call_args <-
-      {| (%LANGLE typexpr_list? eRANGLE)? |}
       {| (%LPAREN  expr_list eRPAREN / table / %cSTRING) |}
 
     table <- ({} '' -> 'Table' %LCURLY

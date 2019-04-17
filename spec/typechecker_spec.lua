@@ -32,7 +32,7 @@ it("local variable", function()
         { n.IdDecl { assign=true, type='int64', 'a', 'var' }},
         { n.Number { literal=true, type='int64', 'dec', '1' }}
       },
-      n.Call { callee_type='any', type='any', {},
+      n.Call { callee_type='any', type='any',
         { n.Id { type='int64', "a"} },
         n.Id { type='any', "f"},
         true

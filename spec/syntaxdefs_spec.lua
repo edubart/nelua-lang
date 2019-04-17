@@ -505,18 +505,18 @@ describe("expression", function()
     assert.parse_ast(euluna_parser, "return a()",
       n.Block{{
         n.Return{{
-          n.Call{{}, {}, n.Id{'a'}},
+          n.Call{{}, n.Id{'a'}},
     }}}})
   end)
   it("call with arguments", function()
     assert.parse_ast(euluna_parser, "return a(a, 'b', 1, f(), ...)",
       n.Block{{
         n.Return{{
-          n.Call{{}, {
+          n.Call{{
             n.Id{'a'},
             n.String{'b'},
             n.Number{'dec', '1'},
-            n.Call{{}, {}, n.Id{'f'}},
+            n.Call{{}, n.Id{'f'}},
             n.Varargs{},
           }, n.Id{'a'}},
     }}}})
@@ -525,14 +525,14 @@ describe("expression", function()
     assert.parse_ast(euluna_parser, "return a.b()",
       n.Block{{
         n.Return{{
-          n.Call{{}, {}, n.DotIndex{'b', n.Id{'a'}}},
+          n.Call{{}, n.DotIndex{'b', n.Id{'a'}}},
     }}}})
   end)
   it("call method", function()
     assert.parse_ast(euluna_parser, "return a:b()",
       n.Block{{
         n.Return{{
-          n.CallMethod{'b', {}, {}, n.Id{'a'}},
+          n.CallMethod{'b', {}, n.Id{'a'}},
     }}}})
   end)
 end)
@@ -556,7 +556,7 @@ describe("table", function()
             n.Pair{n.Boolean{true}, n.Boolean{true}},
             n.Pair{n.String{'mystr'}, n.String{'mystr'}},
             n.Pair{n.Number{'dec', '1', '0'}, n.Number{'dec', '1', '0'}},
-            n.Pair{n.Call{{}, {}, n.Id{'func'}}, n.Call{{}, {}, n.Id{'func'}}},
+            n.Pair{n.Call{{}, n.Id{'func'}}, n.Call{{}, n.Id{'func'}}},
             n.Pair{n.Varargs{}, n.Varargs{}},
     }}}}}})
   end)
@@ -570,7 +570,7 @@ describe("table", function()
             n.Boolean{true},
             n.String{'mystr'},
             n.Number{'dec', '1', '0'},
-            n.Call{{}, {}, n.Id{'func'}},
+            n.Call{{}, n.Id{'func'}},
             n.Varargs{},
     }}}}}})
   end)
@@ -591,52 +591,32 @@ describe("call", function()
   it("simple", function()
     assert.parse_ast(euluna_parser, "a()",
       n.Block{{
-        n.Call{{}, {}, n.Id{'a'}, true},
+        n.Call{{}, n.Id{'a'}, true},
     }})
   end)
   it("dot index", function()
     assert.parse_ast(euluna_parser, "a.b()",
       n.Block{{
-        n.Call{{}, {}, n.DotIndex{'b', n.Id{'a'}}, true}
+        n.Call{{}, n.DotIndex{'b', n.Id{'a'}}, true}
     }})
   end)
   it("array index", function()
     assert.parse_ast(euluna_parser, "a['b']()",
       n.Block{{
-        n.Call{{}, {}, n.ArrayIndex{n.String{'b'}, n.Id{'a'}}, true}
+        n.Call{{}, n.ArrayIndex{n.String{'b'}, n.Id{'a'}}, true}
     }})
   end)
   it("method", function()
     assert.parse_ast(euluna_parser, "a:b()",
       n.Block{{
-        n.CallMethod{'b', {}, {}, n.Id{'a'}, true}
+        n.CallMethod{'b', {}, n.Id{'a'}, true}
     }})
   end)
   it("nested", function()
     assert.parse_ast(euluna_parser, "a(b())",
       n.Block{{
-        n.Call{{}, {n.Call{{}, {}, n.Id{'b'}}}, n.Id{'a'}, true},
+        n.Call{{n.Call{{}, n.Id{'b'}}}, n.Id{'a'}, true},
     }})
-  end)
-  it("typed", function()
-    assert.parse_ast(euluna_parser, "print<string>('hi')",
-      n.Block{{
-        n.Call{
-          { n.Type{'string'} },
-          { n.String{'hi'} },
-          n.Id{'print'}, true},
-    }})
-  end)
-  it("typed method", function()
-    assert.parse_ast(euluna_parser, "s:substr<number,number>(1,2)",
-      n.Block{{
-        n.CallMethod{
-          'substr',
-          { n.Type{'number'}, n.Type{'number'} },
-          { n.Number{'dec', '1'}, n.Number{'dec', '2'} },
-          n.Id{'s'},
-          true
-    }}})
   end)
 end)
 
@@ -710,7 +690,7 @@ describe("statement do", function()
   it("with statements", function()
     assert.parse_ast(euluna_parser, "do print() end",
       n.Block{{
-        n.Do{n.Block{{ n.Call{{}, {}, n.Id{'print'}, true} }}}
+        n.Do{n.Block{{ n.Call{{}, n.Id{'print'}, true} }}}
     }})
   end)
 end)
@@ -743,7 +723,7 @@ describe("loop statement", function()
     assert.parse_ast(euluna_parser, "repeat print() until a==b",
       n.Block{{
         n.Repeat{
-          n.Block{{ n.Call{{}, {}, n.Id{'print'}, true} }},
+          n.Block{{ n.Call{{}, n.Id{'print'}, true} }},
           n.BinaryOp{'eq', n.Id{'a'}, n.Id{'b'}}
     }}})
   end)
@@ -794,7 +774,7 @@ describe("statement for", function()
             n.IdDecl{'j', 'var', n.Type{'int16'}},
             n.IdDecl{'k', 'var', n.Type{'int32'}}
           },
-          { n.Call{{}, {}, n.Id{'iter'}} },
+          { n.Call{{}, n.Id{'iter'}} },
           n.Block{{}}}
     }})
   end)
@@ -820,7 +800,7 @@ describe("statement goto", function()
     assert.parse_ast(euluna_parser, "::mylabel:: f() if a then goto mylabel end",
       n.Block{{
         n.Label{'mylabel'},
-        n.Call{{}, {}, n.Id{'f'}, true},
+        n.Call{{}, n.Id{'f'}, true},
         n.If{{ {n.Id{'a'}, n.Block{{n.Goto{'mylabel'}}} } }}
     }})
   end)
@@ -909,7 +889,7 @@ describe("statement assignment", function()
           { n.DotIndex{'b', n.Id{'a'}},
             n.ArrayIndex{n.Id{'b'}, n.Id{'a'}},
             n.ArrayIndex{n.Id{'c'}, n.ArrayIndex{n.Id{'b'}, n.Id{'a'}}},
-            n.DotIndex{'b', n.Call{{}, {n.Id{'a'}}, n.Id{'f'}}},
+            n.DotIndex{'b', n.Call{{n.Id{'a'}}, n.Id{'f'}}},
           },
           { n.Id{'x'}, n.Id{'y'}, n.Id{'z'}, n.Id{'w'} }}
     }})
@@ -918,12 +898,12 @@ describe("statement assignment", function()
     assert.parse_ast(euluna_parser, "f().a, a.b()[c].d = 1, 2",
       n.Block{{
         n.Assign{{
-          n.DotIndex{"a", n.Call{{}, {}, n.Id{"f"}}},
+          n.DotIndex{"a", n.Call{{}, n.Id{"f"}}},
           n.DotIndex{
               "d",
               n.ArrayIndex{
                 n.Id{"c"},
-                n.Call{{}, {}, n.DotIndex{"b", n.Id{"a"}}}
+                n.Call{{}, n.DotIndex{"b", n.Id{"a"}}}
               }
             }
           },
@@ -1356,7 +1336,7 @@ describe("type expression", function()
       n.Block{{
         n.VarDecl{'local', 'var',
           {n.IdDecl{'a', 'var'} },
-          {n.Call {{},{n.Number{"dec","0"}},n.TypeInfer{n.Type{"integer"}}}
+          {n.Call{{n.Number{"dec","0"}},n.TypeInfer{n.Type{"integer"}}}
         }
     }}})
   end)

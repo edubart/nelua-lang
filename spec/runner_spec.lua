@@ -33,7 +33,6 @@ end)
 it("print correct generated AST" , function()
   assert.run('--print-ast examples/helloworld.euluna', [[Block {
   { Call {
-      { },
       { String {
           "hello world",
           nil
@@ -50,7 +49,6 @@ it("print correct generated AST" , function()
   { Call {
       callee_type = "any",
       type = "any",
-      { },
       { String {
           literal = true,
           type = "string",

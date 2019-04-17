@@ -271,7 +271,7 @@ function visitors.ArrayIndex(context, node)
 end
 
 function visitors.Call(context, node)
-  local argtypes, argnodes, calleenode, block_call = node:args()
+  local argnodes, calleenode, block_call = node:args()
   context:traverse(argnodes)
   local symbol = context:traverse(calleenode)
   if symbol and symbol.type then

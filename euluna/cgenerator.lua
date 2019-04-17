@@ -148,7 +148,7 @@ end
 
 -- calls
 function visitors.Call(context, node, emitter)
-  local argtypes, args, callee, block_call = node:args()
+  local args, callee, block_call = node:args()
   if block_call then emitter:add_indent() end
   local builtin
   if callee.tag == 'Id' then
@@ -176,7 +176,7 @@ function visitors.Call(context, node, emitter)
 end
 
 function visitors.CallMethod(_, node, emitter)
-  local name, argtypes, args, callee, block_call = node:args()
+  local name, args, callee, block_call = node:args()
   if block_call then emitter:add_indent() end
   emitter:add(callee, '.', name, '(', callee, args, ')')
   if block_call then emitter:add_ln() end

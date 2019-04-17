@@ -101,14 +101,12 @@ astbuilder:register('ArrayIndex', stypes.shape {
 
 -- calls
 astbuilder:register('Call', stypes.shape {
-  stypes.array_of(ntypes.Node), -- call types
   stypes.array_of(ntypes.Node), -- args exprs
   ntypes.Node, -- caller expr
   stypes.boolean:is_optional(), -- is called from a block
 })
 astbuilder:register('CallMethod', stypes.shape {
   stypes.string, -- method name
-  stypes.array_of(ntypes.Node), -- call types
   stypes.array_of(ntypes.Node), -- args exprs
   ntypes.Node, -- caller expr
   stypes.boolean:is_optional(), -- is called from a block

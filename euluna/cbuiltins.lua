@@ -31,7 +31,7 @@ function builtins.pow(context, node, emitter, lnode, rnode)
 end
 
 function builtins.assert(context, node)
-  local argtypes, args = node:args()
+  local args = node:args()
   if #args == 2 then
     context:add_runtime_builtin('assert_message')
     return 'euluna_assert_message'
@@ -44,7 +44,7 @@ function builtins.assert(context, node)
 end
 
 function builtins.print(context, node)
-  local argtypes, args = node:args()
+  local args = node:args()
   local funcname = '__euluna_print_' .. node.pos
 
   context:add_runtime_builtin('stdout_write')
