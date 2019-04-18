@@ -228,6 +228,14 @@ it("array tables", function()
     t[1] = true
     print(t[1], #t)
   ]], "false\t0\ntrue\t1")
+  assert.run_c([[
+    local t: arraytable<integer> = {}
+    print(t[0],#t)
+  ]], "0\t0")
+  assert.run_c([[
+    local t: arraytable<integer> = {1, 2}
+    print(t[0], t[1], t[2], #t)
+  ]], "0\t1\t2\t2")
 end)
 
 it("array", function()
@@ -271,6 +279,11 @@ it("records", function()
   assert.run_c([[
     local Point = @record {x: integer, y: integer}
     local p = Point{x=1, y=2}
+    print(p.x, p.y)
+  ]], "1\t2")
+  assert.run_c([[
+    local Point = @record {x: integer, y: integer}
+    local p: Point = {x=1, y=2}
     print(p.x, p.y)
   ]], "1\t2")
 end)

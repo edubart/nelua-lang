@@ -473,7 +473,7 @@ function visitors.Assign(context, node)
     local symbol = context:traverse(var)
     var.assign = true
     if val then
-      context:traverse(val)
+      context:traverse(val, var.type)
       if symbol then
         symbol:add_possible_type(val.type)
       end

@@ -91,6 +91,17 @@ function visitors.Table(context, node, emitter)
     emitter:add('(', ctype, ')', '{{')
     emitter:add_traversal_list(childnodes)
     emitter:add('}}')
+  elseif node.type:is_arraytable() then
+    local ctype = context:get_ctype(node)
+    local len = #childnodes
+    if len > 0 then
+      local subctype = context:get_ctype(node.type.subtype)
+      emitter:add(ctype, '_create((', subctype, '[', len, ']){')
+      emitter:add_traversal_list(childnodes)
+      emitter:add('},', len, ')')
+    else
+      emitter:add('(', ctype, ')', '{0}')
+    end
   else --luacov:disable
     error('not implemented yet')
   end --luacov:enable

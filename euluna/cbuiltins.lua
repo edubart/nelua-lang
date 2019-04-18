@@ -54,10 +54,21 @@ function builtins.print(context, node)
 
   context:add_runtime_builtin('stdout_write')
 
+  --function declaration
+  local decemitter = Emitter(context)
+  decemitter:add_indent('static inline ')
+  decemitter:add('void ', funcname, '(')
+  for i,arg in ipairs(args) do
+    if i>1 then decemitter:add(', ') end
+    local ctype = context:get_ctype(arg)
+    decemitter:add('const ', ctype, ' a', i)
+  end
+  decemitter:add_ln(');')
+  context:add_declaration(decemitter:generate(), funcname)
+
   --function head
   local defemitter = Emitter(context)
-  defemitter:add_indent('static inline ')
-  defemitter:add('void ', funcname, '(')
+  defemitter:add_indent('void ', funcname, '(')
   for i,arg in ipairs(args) do
     if i>1 then defemitter:add(', ') end
     local ctype = context:get_ctype(arg)

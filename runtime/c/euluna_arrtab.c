@@ -1,8 +1,3 @@
-#ifndef EULUNA_COMPILER
-#include "euluna_arrtab.h"
-#include "euluna_gc.h"
-#endif
-
 void _{%=tyname%}_reserve({%=tyname%}* t, size_t cap) {
   {%=ctype%}* data = ({%=ctype%}*)euluna_gc_realloc(&euluna_gc, t->data, (cap+1) * sizeof({%=ctype%}));
   if(EULUNA_UNLIKELY(data == NULL))
@@ -44,6 +39,13 @@ void {%=tyname%}_resize({%=tyname%}* t, size_t n, {%=ctype%} v) {
   }
 }
 
+void {%=tyname%}_init({%=tyname%}* t, {%=ctype%}* a, size_t n) {
+  _{%=tyname%}_reserve(t, n);
+  for(size_t i = 0; i < n; ++i)
+    t->data[i+1] = a[i];
+  t->len = n;
+}
+
 void {%=tyname%}_push({%=tyname%}* t, {%=ctype%} v) {
   ++t->len;
   if(EULUNA_UNLIKELY(t->len > t->cap))
@@ -79,5 +81,3 @@ void {%=tyname%}_push({%=tyname%}* t, {%=ctype%} v) {
   }
   return &t->data[i];
 }
-
-// TODO: insert and remove

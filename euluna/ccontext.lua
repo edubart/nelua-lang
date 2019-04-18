@@ -24,17 +24,19 @@ function CContext:get_ctype(nodeortype)
   assert(type)
   local codename = type.codename
   if type:is_arraytable() then
+    local subctype = self:get_ctype(type.subtype)
     self:ensure_runtime(codename, 'euluna_arrtab', {
       tyname = codename,
-      ctype = type.subtype.codename
+      ctype = subctype
     })
     self:ensure_runtime('euluna_gc')
     self:use_gc()
   elseif type:is_array() then
+    local subctype = self:get_ctype(type.subtype)
     self:ensure_runtime(codename, 'euluna_array', {
       tyname = codename,
       length = type.length,
-      subctype = type.subtype.codename
+      subctype = subctype
     })
   elseif type:is_record() then
     local fields = tabler.imap(type.fields, function(f)
