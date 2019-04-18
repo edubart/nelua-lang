@@ -437,8 +437,12 @@ end
 
 function visitors.VarDecl(context, node)
   local varscope, mutability, vars, vals = node:args()
+  vals = vals or {}
   node:assertraisef(mutability == 'var', 'variable mutability not supported yet')
-  for _,var,val in iters.izip(vars, vals or {}) do
+  node:assertraisef(#vars >= #vals,
+    'too many expressions in declaration, expected at most %d but got %d',
+    #vars, #vals)
+  for _,var,val in iters.izip(vars, vals) do
     local symbol = context:traverse(var)
     assert(symbol.type == var.type)
     var.assign = true
@@ -462,6 +466,9 @@ end
 
 function visitors.Assign(context, node)
   local vars, vals = node:args()
+  node:assertraisef(#vars >= #vals,
+    'too many expressions in assign, expected at most %d but got %d',
+    #vars, #vals)
   for _,var,val in iters.izip(vars, vals) do
     local symbol = context:traverse(var)
     var.assign = true
