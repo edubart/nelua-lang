@@ -2,12 +2,8 @@ local metamagic = require 'euluna.utils.metamagic'
 
 local class = {}
 
--- base class for any object
-local Object = {}
-Object.__index = Object
-
 -- called when creating a new object
-function Object.__call(klass, ...)
+local function create_object(klass, ...)
   local object = setmetatable({}, klass)
   local init = object._init
   if init then init(object, ...) end
@@ -16,23 +12,25 @@ end
 
 -- called when creating a new class
 function class.new(base)
-  base = base or Object
   local klass = {}
-  for k, v in pairs(base) do
-    if k:find("__") == 1 then
-      klass[k] = v
+  if base then
+    for k, v in pairs(base) do
+      if k:find("^__") == 1 then
+        klass[k] = v
+      end
     end
   end
   klass.__index = klass
-  return setmetatable(klass, base)
+  return setmetatable(klass, { __index = base, __call = create_object })
 end
 
 -- check if a value is an instance of a class
 function class.is_a(val, T)
   local mt = getmetatable(val)
   while mt do
-    if rawequal(mt, T) then return true end
-    mt = getmetatable(mt)
+    local mtindex = rawget(mt, '__index')
+    if rawequal(mtindex, T) then return true end
+    mt = getmetatable(mtindex)
   end
   return false
 end
