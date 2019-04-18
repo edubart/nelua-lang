@@ -309,6 +309,29 @@ it("enums", function()
   ]], "is not conversible with")
 end)
 
+it("pointers", function()
+  assert.analyze_ast([[
+    local a: pointer<integer>
+    local b: pointer
+    b = a
+  ]])
+  assert.analyze_ast([[
+    local a: pointer<integer>
+    local b: pointer<integer>
+    b = a
+  ]])
+  assert.analyze_error([[
+    local a: pointer<integer>
+    local b: pointer<boolean>
+    b = a
+  ]], "is not conversible with")
+  assert.analyze_error([[
+    local a: pointer<integer>
+    local b: pointer
+    a = b
+  ]], "is not conversible with")
+end)
+
 it("type construction", function()
   assert.analyze_ast("local a = @integer(0)")
   assert.analyze_ast("local a = @boolean(false)")

@@ -132,6 +132,10 @@ function Type:is_arraytable()
   return self.name == 'arraytable'
 end
 
+function Type:is_pointer()
+  return self.name == 'pointer'
+end
+
 function Type:is_equal(type)
   return rawequal(self, type)
 end
@@ -285,6 +289,38 @@ function RecordType:__tostring()
   return ss:tostring()
 end
 
+--------------------------------------------------------------------------------
+local PointerType = typeclass()
+
+function PointerType:_init(node, subtype)
+  Type._init(self, 'pointer', node)
+  self.subtype = subtype
+  if subtype then
+    self.codename = subtype.codename .. '_pointer'
+  end
+end
+
+function PointerType:is_conversible(type)
+  if Type.is_conversible(self, type) then
+    return true
+  end
+  return type:is_pointer() and type.subtype == self.subtype or self.subtype == nil
+end
+
+function PointerType:is_equal(type)
+  return type.name == self.name and
+         class.is_a(type, getmetatable(self)) and
+         type.subtype == self.subtype
+end
+
+function PointerType:__tostring()
+  if self.subtype then
+    return sstream(self.name, '<', self.subtype, '>'):tostring()
+  else
+    return self.name
+  end
+end
+
 local types = {
   Type = Type,
   ArrayTableType = ArrayTableType,
@@ -292,5 +328,6 @@ local types = {
   EnumType = EnumType,
   FunctionType = FunctionType,
   RecordType = RecordType,
+  PointerType = PointerType,
 }
 return types

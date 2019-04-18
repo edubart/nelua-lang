@@ -77,6 +77,9 @@ astbuilder:register('ArrayType', stypes.shape {
   ntypes.Node, -- subtype typeexpt
   ntypes.Number, -- size
 })
+astbuilder:register('PointerType', stypes.shape {
+  ntypes.Node:is_optional(), -- subtype typexpr
+})
 
 -- function
 astbuilder:register('Function', stypes.shape {

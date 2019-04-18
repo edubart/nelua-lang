@@ -1319,6 +1319,18 @@ describe("type expression", function()
             n.EnumFieldType{'b', n.Number{'dec','2'}},
     }}}}}}})
   end)
+  it("pointer type", function()
+    assert.parse_ast(euluna_parser, "local p: pointer",
+      n.Block{{
+        n.VarDecl{'local', 'var', {
+          n.IdDecl{'p', 'var', n.PointerType{},
+    }}}}})
+    assert.parse_ast(euluna_parser, "local p: pointer<integer>",
+      n.Block{{
+        n.VarDecl{'local', 'var',
+          { n.IdDecl{'p', 'var', n.PointerType{n.Type{'integer'}}}}
+    }}})
+  end)
   it("type instantiation", function()
     assert.parse_ast(euluna_parser, "local Integer = @integer",
       n.Block{{

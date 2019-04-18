@@ -228,6 +228,23 @@ function visitors.ArrayType(context, node)
   return Symbol(nil, node, primtypes.type, type)
 end
 
+function visitors.PointerType(context, node)
+  local subtypenode = node:args()
+  local type
+  local symbol
+  if subtypenode then
+    context:traverse(subtypenode)
+    assert(subtypenode.type)
+    type = types.PointerType(node, subtypenode.type)
+    symbol = Symbol(nil, node, type.type, type)
+  else
+    type = primtypes.pointer
+    symbol = typedefs.primsymbols.pointer
+  end
+  node.type = type
+  return symbol
+end
+
 function visitors.DotIndex(context, node)
   local name, objnode = node:args()
   local symbol = context:traverse(objnode)

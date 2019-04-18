@@ -416,6 +416,7 @@ local function get_parser(std)
       / enum_type
       / arraytable_type
       / array_type
+      / pointer_type
       / prim_type
 
     func_type <- (
@@ -449,7 +450,10 @@ local function get_parser(std)
       {} 'array' -> 'ArrayType'
         eLANGLE etypexpr eCOMMA ecNUMBER eRANGLE
       ) -> to_astnode
-
+    pointer_type <- (
+      {} 'pointer' -> 'PointerType'
+        ((%LANGLE etypexpr eRANGLE) / %SKIP)
+      ) -> to_astnode
     prim_type   <- ({} '' -> 'Type' %cNAME) -> to_astnode
   ]])
 
