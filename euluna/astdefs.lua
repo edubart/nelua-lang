@@ -56,15 +56,15 @@ astbuilder:register('FuncType', stypes.shape {
   stypes.array_of(ntypes.Node), -- returns types
 })
 astbuilder:register('RecordFieldType', stypes.shape {
-  stypes.string, -- name
-  ntypes.Node, -- typexpr
+  stypes.string, -- field name
+  ntypes.Node, -- field typexpr
 })
 astbuilder:register('RecordType', stypes.shape {
   stypes.array_of(ntypes.RecordFieldType), -- field types
 })
 astbuilder:register('EnumFieldType', stypes.shape {
-  stypes.string, -- name
-  ntypes.Number:is_optional() -- numeric value
+  stypes.string, -- field name
+  ntypes.Number:is_optional() -- field numeric value
 })
 astbuilder:register('EnumType', stypes.shape {
   ntypes.Type:is_optional(), -- primitive type
@@ -142,7 +142,7 @@ astbuilder:register('Repeat', stypes.shape {
 astbuilder:register('ForNum', stypes.shape {
   ntypes.IdDecl, -- iterated var
   ntypes.Node, -- begin expr
-  stypes.string, -- compare operator
+  stypes.one_of{"lt", "ne", "gt", "le", "ge", "eq"}, -- compare operator
   ntypes.Node, -- end expr
   ntypes.Node:is_optional(), -- increment expr
   ntypes.Block, -- block
@@ -179,11 +179,11 @@ astbuilder:register('FuncDef', stypes.shape {
 
 -- operations
 astbuilder:register('UnaryOp', stypes.shape {
-  stypes.string, -- type
+  stypes.string, -- opname
   ntypes.Node -- right expr
 })
 astbuilder:register('BinaryOp', stypes.shape {
-  stypes.string, -- type
+  stypes.string, -- opname
   ntypes.Node, --- left expr
   ntypes.Node -- right expr
 })

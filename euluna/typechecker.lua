@@ -58,7 +58,6 @@ end
 
 function visitors.Table(context, node, desiredtype)
   local childnodes = node:args()
-  context:traverse(childnodes)
 
   if desiredtype and desiredtype ~= primtypes.table then
     if desiredtype:is_arraytable() then
@@ -66,6 +65,7 @@ function visitors.Table(context, node, desiredtype)
       for i, childnode in ipairs(childnodes) do
         childnode:assertraisef(childnode.tag ~= 'Pair',
           "in array table literal value, fields are not allowed")
+        context:traverse(childnode, subtype)
         if childnode.type then
           childnode:assertraisef(subtype:is_conversible(childnode.type),
             "in array table literal, subtype '%s' is not conversible with value at index %d of type '%s'",
@@ -80,6 +80,7 @@ function visitors.Table(context, node, desiredtype)
       for i, childnode in ipairs(childnodes) do
         childnode:assertraisef(childnode.tag ~= 'Pair',
           "in array literal, fields are not allowed")
+        context:traverse(childnode, subtype)
         if childnode.type then
           childnode:assertraisef(subtype:is_conversible(childnode.type),
             "in array literal, subtype '%s' is not conversible with value at index %d of type '%s'",
@@ -97,6 +98,7 @@ function visitors.Table(context, node, desiredtype)
         childnode:assertraisef(fieldtype,
           "in record literal, field '%s' is not present in record of type '%s'",
           fieldname, tostring(desiredtype))
+        context:traverse(fieldvalnode, fieldtype)
         if fieldvalnode.type then
           fieldvalnode:assertraisef(fieldtype:is_conversible(fieldvalnode.type),
             "in record literal, field '%s' of type '%s' is not conversible with value of type '%s'",
@@ -109,6 +111,7 @@ function visitors.Table(context, node, desiredtype)
     end
     node.type = desiredtype
   else
+    context:traverse(childnodes)
     node.type = primtypes.table
   end
   node.literal = true
@@ -287,11 +290,11 @@ function visitors.ArrayIndex(context, node)
   local index, obj = node:args()
   local type
   if obj.type then
+    --TODO: check negative literal values
+    --TODO: check if index type is an integral
     if obj.type:is_arraytable() then
-      --TODO: check negative values
       type = obj.type.subtype
     elseif obj.type:is_array() then
-      --TODO: check index range
       type = obj.type.subtype
     end
   end
@@ -619,6 +622,8 @@ function visitors.BinaryOp(context, node)
         type = primtypes.integer
       elseif type:is_integral() and opname == 'pow' then
         type = primtypes.number
+      elseif opname == 'shl' or opname == 'shr' then
+        type = ltype
       end
     end
   end

@@ -178,10 +178,9 @@ end
 Type:add_binary_operator_type('ne', primtypes.boolean)
 Type:add_binary_operator_type('eq', primtypes.boolean)
 
-
 -- 'or', 'and' is handled internally
 typedefs.binary_conditional_ops = {
-  ['or'] = true,
+  ['or']  = true,
   ['and'] = true,
 }
 

@@ -72,6 +72,8 @@ it("unary operators", function()
 end)
 
 it("binary operators", function()
+  assert.c_gencode_equals("local a = 1_u32 << 1", "local a: uint32 = 1_u32 << 1")
+  assert.c_gencode_equals("local a = 1_u16 >> 1_u32", "local a: uint16 = 1_u16 >> 1_u32")
   assert.c_gencode_equals("local a = 1 + 2", "local a: integer = 1 + 2")
   assert.c_gencode_equals("local a = 1 + 2.0", "local a: number = 1 + 2.0")
   assert.c_gencode_equals("local a = 1_i8 + 2_u8", "local a: int16 = 1_i8 + 2_u8")
@@ -282,6 +284,25 @@ it("records", function()
     local a: A, b: B
     b = a
   ]], "is not conversible with")
+end)
+
+it("type neasting", function()
+  assert.analyze_ast([[
+    local a: record{x: record{y: integer}}
+    a.x.y = 1
+    local b = a.x.y
+  ]])
+  assert.analyze_ast([[
+    local a: record{x: record{y: integer}} = {x={y=1}}
+  ]])
+  assert.analyze_ast([[
+    local a: record{a: array<integer, 2>}
+    a.a = @array<integer,2>{1,2}
+    local b = a.a
+  ]])
+  assert.analyze_ast([[
+    local a: record{a: array<integer, 2>} = {a={1,2}}
+  ]])
 end)
 
 it("enums", function()

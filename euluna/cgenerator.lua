@@ -297,13 +297,12 @@ function visitors.Repeat(_, node, emitter)
 end
 
 function visitors.ForNum(context, node, emitter)
-  local itvar, beginval, comp, endval, incrval, block  = node:args()
-  node:assertraisef(comp == 'le', 'for comparator not supported yet')
+  local itvar, beginval, compop, endval, incrval, block  = node:args()
   --TODO: evaluate beginval, endval, incrval only once in case of expressions
   local itname = itvar[1]
   emitter:add_indent("for(", itvar, ' = ')
   add_casted_value(context, emitter, itvar.type, beginval)
-  emitter:add('; ', itname, ' <= ')
+  emitter:add('; ', itname, ' ', cdefs.binary_ops[compop], ' ')
   add_casted_value(context, emitter, itvar.type, endval)
   emitter:add_ln('; ', itname, ' += ', incrval or '1', ') {')
   emitter:add(block)
