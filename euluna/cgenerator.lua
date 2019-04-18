@@ -86,6 +86,11 @@ function visitors.Table(context, node, emitter)
     emitter:add('(', ctype, ')', '{')
     emitter:add_traversal_list(childnodes, ', ', node.type)
     emitter:add('}')
+  elseif node.type:is_array() then
+    local ctype = context:get_ctype(node)
+    emitter:add('(', ctype, ')', '{{')
+    emitter:add_traversal_list(childnodes)
+    emitter:add('}}')
   else --luacov:disable
     error('not implemented yet')
   end --luacov:enable
@@ -141,6 +146,8 @@ function visitors.ArrayIndex(context, node, emitter)
       context:get_ctype(varnode),
       node.assign and '_at(&' or '_get(&',
       varnode, ', ', index, ')')
+  elseif varnode.type:is_array() then
+    emitter:add(varnode, '.data[', index, ']')
   else
     emitter:add(varnode, '[', index, ']')
   end

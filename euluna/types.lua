@@ -152,10 +152,17 @@ local function gencodename(self)
   return string.format('%s_%s', self.name, stringer.hash(s .. self.key, 16))
 end
 
+local function typeclass()
+  local type = class(Type)
+  type.unary_operators = {}
+  type.binary_operators = {}
+  metamagic.setmetaindex(type.unary_operators, Type.unary_operators)
+  metamagic.setmetaindex(type.binary_operators, Type.binary_operators)
+  return type
+end
+
 --------------------------------------------------------------------------------
-local ArrayTableType = class(Type)
-ArrayTableType.unary_operators = {}
-metamagic.setmetaindex(ArrayTableType.unary_operators, Type.unary_operators)
+local ArrayTableType = typeclass()
 
 function ArrayTableType:_init(node, subtype)
   Type._init(self, 'arraytable', node)
@@ -174,7 +181,7 @@ function ArrayTableType:__tostring()
 end
 
 --------------------------------------------------------------------------------
-local ArrayType = class(Type)
+local ArrayType = typeclass()
 
 function ArrayType:_init(node, subtype, length)
   self.subtype = subtype
@@ -195,7 +202,7 @@ function ArrayType:__tostring()
 end
 
 --------------------------------------------------------------------------------
-local EnumType = class(Type)
+local EnumType = typeclass()
 
 function EnumType:_init(node, subtype, fields)
   self.subtype = subtype
@@ -221,7 +228,7 @@ function EnumType:__tostring()
 end
 
 --------------------------------------------------------------------------------
-local FunctionType = class(Type)
+local FunctionType = typeclass()
 
 function FunctionType:_init(node, argtypes, returntypes)
   self.argtypes = argtypes
@@ -248,7 +255,7 @@ function FunctionType:__tostring()
 end
 
 --------------------------------------------------------------------------------
-local RecordType = class(Type)
+local RecordType = typeclass()
 
 function RecordType:_init(node, fields)
   self.fields = fields

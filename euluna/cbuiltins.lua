@@ -8,6 +8,8 @@ function builtins.len(context, _, emitter, argnode)
     emitter:add(context:get_ctype(argnode), '_length(&', argnode, ')')
   elseif argnode.type:is_array() then
     emitter:add(argnode.type.length)
+  elseif argnode.type:is_record() then
+    emitter:add('sizeof(',context:get_ctype(argnode),')')
   end
 end
 

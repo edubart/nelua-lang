@@ -1,1 +1,3 @@
-typedef {%=subctype%} {%=tyname%}[{%=length%}];
+typedef struct {
+  {%=subctype%} data[{%=length%}];
+} {%=tyname%};

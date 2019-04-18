@@ -233,13 +233,17 @@ end)
 it("array", function()
   assert.generate_c(
     "local a: array<boolean, 10>",
-    "typedef euluna_boolean array_")
+    "euluna_boolean data[10];")
   assert.run_c([[
     local a: array<boolean, 1>
     print(a[0], #a)
     a[0] = true
     print(a[0])
   ]], "false\t1\ntrue")
+  assert.run_c([[
+    local a: array<integer, 4> = {1,2,3,4}
+    print(a[0], a[1], a[2], a[3], #a)
+  ]], "1\t2\t3\t4\t4")
 end)
 
 it("records", function()
@@ -256,7 +260,8 @@ it("records", function()
     print(p.x, p.y)
     p.x, p.y = 1, 2
     print(p.x, p.y)
-  ]], "0\t0\n1\t2")
+    print(#p)
+  ]], "0\t0\n1\t2\n16")
   assert.run_c([[
     local Point = @record {x: integer, y: integer}
     local p: Point

@@ -188,6 +188,7 @@ typedefs.binary_conditional_ops = {
 -- array table types
 types.ArrayTableType:add_unary_operator_type('len', primtypes.integer)
 types.ArrayType:add_unary_operator_type('len', primtypes.integer)
+types.RecordType:add_unary_operator_type('len', primtypes.integer)
 
 function typedefs.find_common_type(possibletypes)
   local len = #possibletypes
