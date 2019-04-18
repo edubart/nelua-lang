@@ -230,6 +230,18 @@ it("array tables", function()
   ]], "false\t0\ntrue\t1")
 end)
 
+it("array", function()
+  assert.generate_c(
+    "local a: array<boolean, 10>",
+    "typedef euluna_boolean array_")
+  assert.run_c([[
+    local a: array<boolean, 1>
+    print(a[0], #a)
+    a[0] = true
+    print(a[0])
+  ]], "false\t1\ntrue")
+end)
+
 it("records", function()
   assert.generate_c(
     "local t: record{a: boolean}",

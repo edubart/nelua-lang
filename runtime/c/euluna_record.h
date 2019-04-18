@@ -3,3 +3,4 @@ typedef struct {
   {%=field.ctype%} {%=field.name%};
 {% end %}
 } {%=tyname%};
+

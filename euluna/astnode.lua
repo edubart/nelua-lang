@@ -41,23 +41,23 @@ end
 
 --luacov:disable
 function ASTNode:errorf(message, ...)
-  error(format_node_errmsg(self, message, ...))
+  error(format_node_errmsg(self, message, ...), 2)
 end
 
 function ASTNode:assertf(cond, message, ...)
   if not cond then
-    error(format_node_errmsg(self, message, ...))
+    error(format_node_errmsg(self, message, ...), 2)
   end
   return cond
 end
 
 function ASTNode:raisef(message, ...)
-  except.raise(format_node_errmsg(self, message, ...))
+  except.raise(format_node_errmsg(self, message, ...), 2)
 end
 
 function ASTNode:assertraisef(cond, message, ...)
   if not cond then
-    except.raise(format_node_errmsg(self, message, ...))
+    except.raise(format_node_errmsg(self, message, ...), 2)
   end
   return cond
 end

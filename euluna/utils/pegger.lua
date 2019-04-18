@@ -132,7 +132,7 @@ function pegger.render_template(text, env)
   env = env or {}
   env.render = function(s) table.insert(out, s) end
   setmetatable(env, { __index = _G })
-  local luacode = assert(template_peg:match(text))
+  local luacode = assert(template_peg:match(text), 'template peg parse failed')
   local run = assert(compat.load(luacode, nil, "t", env))
   run()
   return table.concat(out)

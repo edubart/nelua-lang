@@ -4,8 +4,11 @@ local Emitter = require 'euluna.emitter'
 local builtins = {}
 
 function builtins.len(context, _, emitter, argnode)
-  assert(argnode.type:is_arraytable(), 'not implemented yet')
-  emitter:add(context:get_ctype(argnode), '_length(&', argnode, ')')
+  if argnode.type:is_arraytable() then
+    emitter:add(context:get_ctype(argnode), '_length(&', argnode, ')')
+  elseif argnode.type:is_array() then
+    emitter:add(argnode.type.length)
+  end
 end
 
 function builtins.idiv(context, node, emitter, lnode, rnode)

@@ -199,6 +199,10 @@ it("array tables", function()
     b = a
   ]])
   assert.analyze_ast([[
+    local a: arraytable<boolean>
+    local len = #a
+  ]])
+  assert.analyze_ast([[
     local a: arraytable<boolean> = {}
     local b: arraytable<boolean> = {false, true}
     local c = @arraytable<boolean>{false, true}
@@ -228,6 +232,32 @@ it("array tables", function()
   ]], "is not conversible with")
 end)
 
+it("arrays", function()
+  assert.analyze_ast([[local a: array<integer, 10>; a[0] = 1]])
+  assert.analyze_ast([[local a: array<integer, 2> = {1,2}]])
+  assert.analyze_ast([[local a: array<integer, 10>, b: array<integer, 10>; b = a]])
+  assert.analyze_ast([[local a: arraytable<boolean>; local len = #a]])
+  assert.analyze_error([[local a: array<integer, 2> = {1}]], 'expected 2 values but got 1')
+  assert.analyze_error([[local a: array<integer, 2> = {1,2,3}]], 'expected 2 values but got 3')
+  assert.analyze_error([[local a: array<integer, 2> = {1.0,2.0}]], 'is not conversible with')
+  assert.analyze_error([[local a: array<integer, 2> = {a=0,2}]], 'fields are not allowed')
+  assert.analyze_error([[
+    local a: array<integer, 10>, b: array<integer, 11>
+    b = a
+  ]], "is not conversible with")
+  assert.analyze_error([[
+    local a: array<integer, 10>
+    a[0] = 1.0
+  ]], "is not conversible with")
+  assert.analyze_error([[
+    local a: array<integer, 1.0>
+  ]], "expected a valid decimal integral number in the second argument")
+  assert.analyze_error([[
+    local MyArray = @array<integer, 10>
+    local b = MyArray.len
+  ]], "cannot index object of type")
+end)
+
 it("records", function()
   assert.analyze_ast([[local a: record {x: boolean}; a.x = true]])
   assert.analyze_ast([[local a: record {x: boolean} = {x = true}]])
@@ -251,26 +281,6 @@ it("records", function()
     local a: A, b: B
     b = a
   ]], "is not conversible with")
-end)
-
-it("arrays", function()
-  assert.analyze_ast([[local a: array<integer, 10>; a[0] = 1]])
-  assert.analyze_ast([[local a: array<integer, 10>, b: array<integer, 10>; b = a]])
-  assert.analyze_error([[
-    local a: array<integer, 10>, b: array<integer, 11>
-    b = a
-  ]], "is not conversible with")
-  assert.analyze_error([[
-    local a: array<integer, 10>
-    a[0] = 1.0
-  ]], "is not conversible with")
-  assert.analyze_error([[
-    local a: array<integer, 1.0>
-  ]], "expected a valid decimal integral number in the second argument")
-  assert.analyze_error([[
-    local MyArray = @array<integer, 10>
-    local b = MyArray.len
-  ]], "cannot index object of type")
 end)
 
 it("enums", function()

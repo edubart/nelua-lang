@@ -72,13 +72,27 @@ function visitors.Table(context, node, desiredtype)
             tostring(subtype), i, tostring(childnode.type))
         end
       end
+    elseif desiredtype:is_array() then
+      local subtype = desiredtype.subtype
+      node:assertraisef(#childnodes == desiredtype.length,
+        " in array literal, expected %d values but got %d",
+        desiredtype.length, #childnodes)
+      for i, childnode in ipairs(childnodes) do
+        childnode:assertraisef(childnode.tag ~= 'Pair',
+          "in array literal, fields are not allowed")
+        if childnode.type then
+          childnode:assertraisef(subtype:is_conversible(childnode.type),
+            "in array literal, subtype '%s' is not conversible with value at index %d of type '%s'",
+            tostring(subtype), i, tostring(childnode.type))
+        end
+      end
     elseif desiredtype:is_record() then
       for _, childnode in ipairs(childnodes) do
         childnode:assertraisef(childnode.tag == 'Pair',
           "in record literal, only named fields are allowed")
         local fieldname, fieldvalnode = childnode:args()
         childnode:assertraisef(traits.is_string(fieldname),
-          "in record literal, only string literals are allowed in record field names")
+          "in record literal, only string literals are allowed in field names")
         local fieldtype = desiredtype:get_field_type(fieldname)
         childnode:assertraisef(fieldtype,
           "in record literal, field '%s' is not present in record of type '%s'",

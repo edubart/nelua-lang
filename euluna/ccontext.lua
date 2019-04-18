@@ -30,6 +30,12 @@ function CContext:get_ctype(nodeortype)
     })
     self:ensure_runtime('euluna_gc')
     self:use_gc()
+  elseif type:is_array() then
+    self:ensure_runtime(codename, 'euluna_array', {
+      tyname = codename,
+      length = type.length,
+      subctype = type.subtype.codename
+    })
   elseif type:is_record() then
     local fields = tabler.imap(type.fields, function(f)
       return {name = f.name, ctype = self:get_ctype(f.type)}

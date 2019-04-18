@@ -14,9 +14,10 @@ local function get_message_for_trace(self)
   end
 end
 
-function Exception:_init(params)
+function Exception:_init(params, level)
+  level = (level or 1) + 2
   tabler.update(self, params)
-  self.traceback = debug.traceback(get_message_for_trace(self), 3)
+  self.traceback = debug.traceback(get_message_for_trace(self), level)
 end
 
 function Exception:__tostring()
@@ -35,20 +36,22 @@ local except = {}
 except.Exception = Exception
 
 local function raise(e, level)
+  level = (level or 1) + 1
   if class.is_a(e, Exception) then
-    error(e, 2)
+    error(e, level)
   elseif traits.is_string(e) then
-    error(Exception({ message = e }), level)
+    error(Exception({ message = e }, level), level)
   elseif traits.is_table(e) and rawequal(getmetatable(e), nil) then
     assert(e.message or e.label, 'exception table has no message or label')
-    error(Exception(e), level)
+    error(Exception(e, level), level)
   else --luacov:disable
     error('invalid exception object')
   end --luacov:enable
 end
 
-function except.raise(e)
-  raise(e, 2)
+function except.raise(e, level)
+  level = (level or 1) + 1
+  raise(e, level)
 end
 
 function except.assertraise(cond, e)
