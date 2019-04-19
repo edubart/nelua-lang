@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-int64_t sieve(int64_t N) {
+static int64_t sieve(int64_t N) {
     bool* is_prime = (bool*)malloc(sizeof(bool) * N);
     is_prime[1] = false;
     for(int64_t n = 2; n <= N; n += 1) {

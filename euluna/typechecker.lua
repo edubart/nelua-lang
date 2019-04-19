@@ -98,7 +98,7 @@ function visitors.Table(context, node, desiredtype)
         context:traverse(childnode, subtype)
         if childnode.type then
           childnode:assertraisef(subtype:is_coercible_from(childnode.type),
-            "in array table literal, subtype '%s' is not coercible with value at index %d of type '%s'",
+            "in array table literal, subtype '%s' is not coercible with expression at index %d of type '%s'",
             tostring(subtype), i, tostring(childnode.type))
         end
       end
@@ -113,7 +113,7 @@ function visitors.Table(context, node, desiredtype)
         context:traverse(childnode, subtype)
         if childnode.type then
           childnode:assertraisef(subtype:is_coercible_from(childnode.type),
-            "in array literal, subtype '%s' is not coercible with value at index %d of type '%s'",
+            "in array literal, subtype '%s' is not coercible with expression at index %d of type '%s'",
             tostring(subtype), i, tostring(childnode.type))
         end
       end
@@ -131,7 +131,7 @@ function visitors.Table(context, node, desiredtype)
         context:traverse(fieldvalnode, fieldtype)
         if fieldvalnode.type then
           fieldvalnode:assertraisef(fieldtype:is_coercible_from(fieldvalnode.type),
-            "in record literal, field '%s' of type '%s' is not coercible with value of type '%s'",
+            "in record literal, field '%s' of type '%s' is not coercible with expression of type '%s'",
             fieldname, tostring(fieldtype), tostring(fieldvalnode.type))
         end
       end
@@ -509,7 +509,7 @@ function visitors.VarDecl(context, node)
         symbol:add_possible_type(val.type)
         if var.type and var.type ~= primtypes.boolean then
           var:assertraisef(var.type:is_coercible_from(val.type),
-            "variable '%s' of type '%s' is not coercible with value of type '%s'",
+            "variable '%s' of type '%s' is not coercible with expression of type '%s'",
             symbol.name, tostring(var.type), tostring(val.type))
         end
         if val.type:is_type() then
@@ -536,7 +536,7 @@ function visitors.Assign(context, node)
       end
       if var.type and val.type then
         var:assertraisef(var.type:is_coercible_from(val.type),
-          "variable assignment of type '%s' is not coercible with value of type '%s'",
+          "variable assignment of type '%s' is not coercible with expression of type '%s'",
           tostring(var.type), tostring(val.type))
       end
     end
@@ -572,7 +572,7 @@ function visitors.FuncDef(context, node)
     local rtype = returntypes[i]
     if rtype then
       retnode:assertraisef(retnode.type:is_coercible_from(rtype),
-        "return variable at index %d of type '%s' is not coercible with value of type '%s'",
+        "return variable at index %d of type '%s' is not coercible with expression of type '%s'",
         i, tostring(retnode.type), tostring(rtype))
     else
       returntypes[i] = retnode.type

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-int64_t fibmod(int64_t n, int64_t m) {
+static int64_t fibmod(int64_t n, int64_t m) {
     int64_t a = 0;
     int64_t b = 1;
     for(int64_t i = 1; i <= n; i += 1) {

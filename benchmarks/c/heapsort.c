@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <assert.h>
 
-void heapsort(double* a, int64_t n) {
+static void heapsort(double* a, int64_t n) {
     int64_t j = 0; int64_t i = 0; double t = 0;
     int64_t l = n / 2;
     int64_t k = n - 1;
@@ -37,7 +37,7 @@ void heapsort(double* a, int64_t n) {
     }
 }
 
-int64_t random_int(int64_t seed) {
+static int64_t random_int(int64_t seed) {
     return (214013 * seed + 2531011) % 2147483648;
 }
 

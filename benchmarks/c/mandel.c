@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-int64_t mandel(int64_t width) {
+static int64_t mandel(int64_t width) {
     int64_t height = width; double wscale = 2.0 / width;
     int64_t m = 50; double limit2 = 4.0;
     int64_t sum = 0;
