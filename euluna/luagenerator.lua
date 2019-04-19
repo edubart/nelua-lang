@@ -11,7 +11,7 @@ local visitors = {}
 function visitors.Number(_, node, emitter)
   local base, int, frac, exp, literal = node:args()
   node:assertraisef(literal == nil, 'literals are not supported in lua')
-  emitter:add_composed_number(base, int, frac, exp, node.value)
+  emitter:add_composed_number(base, int, frac, exp, node.value:abs())
 end
 
 function visitors.String(_, node, emitter)

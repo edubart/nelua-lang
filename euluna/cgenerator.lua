@@ -43,7 +43,7 @@ function visitors.Number(context, node, emitter)
     local ctype = context:get_ctype(node.type)
     emitter:add('((', ctype, ')')
   end
-  emitter:add_composed_number(base, int, frac, exp, node.value)
+  emitter:add_composed_number(base, int, frac, exp, node.value:abs())
   if literal then
     emitter:add(')')
   end

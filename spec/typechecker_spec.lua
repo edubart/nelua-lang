@@ -56,10 +56,10 @@ it("local variable", function()
   assert.analyze_error("local a, b = 1,2,3", "too many expressions in declaration")
 end)
 
-it("small type coercion", function()
+it("numeric types coercion", function()
   assert.analyze_ast([[
     local u:uint, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 1,1,1,1,1
-    local i:int, i8:int8, i16:int16, i32:uint32, i64:uint64 = 1,1,1,1,1
+    local i:int, i8:int8, i16:int16, i32:int32, i64:int64 = 1,1,1,1,1
     local f32: float32, f64: float64 = 1,1
   ]])
   assert.analyze_ast([[
@@ -69,6 +69,45 @@ it("small type coercion", function()
   ]])
   assert.c_gencode_equals("local a = 1 + 1_u16", "local a: uint16 = 1 + 1_u16")
   assert.c_gencode_equals("local a = 1 + 2.0_f32", "local a: float32 = 1 + 2.0_f32")
+end)
+
+it("numeric ranges", function()
+  assert.analyze_ast([[
+    local u:uint, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 0,0,0,0,0
+  ]])
+  assert.analyze_ast([[
+    local u:uint = 18446744073709551616_u
+    local u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 256,65536,4294967296,18446744073709551616
+  ]])
+  assert.analyze_error([[local u = -1_u]], "is out of range")
+  assert.analyze_error([[local u = -1_u8]], "is out of range")
+  assert.analyze_error([[local u = -1_u16]], "is out of range")
+  assert.analyze_error([[local u = -1_u32]], "is out of range")
+  assert.analyze_error([[local u = -1_u64]], "is out of range")
+  assert.analyze_error([[local u = 18446744073709551617_u]], 'is out of range')
+  assert.analyze_error([[local u = 257_u8]], 'is out of range')
+  assert.analyze_error([[local u = 65537_u16]], 'is out of range')
+  assert.analyze_error([[local u = 4294967297_u32]], 'is out of range')
+  assert.analyze_error([[local u = 18446744073709551617_u64]], 'is out of range')
+
+  assert.analyze_ast([[
+    local i:int = -9223372036854775808_i
+    local i8:int8, i16:int16, i32:int32, i64:int64 = -128,-32768,-2147483648,-9223372036854775808
+  ]])
+  assert.analyze_ast([[
+    local i:int = 9223372036854775807_i
+    local i8:int8, i16:int16, i32:int32, i64:int64 = 127,32767,2147483647,9223372036854775807
+  ]])
+  assert.analyze_error([[local i = -9223372036854775809_i64]], 'is out of range')
+  assert.analyze_error([[local i = -129_i8]], 'is out of range')
+  assert.analyze_error([[local i = -32769_i16]], 'is out of range')
+  assert.analyze_error([[local i = -2147483649_i32]], 'is out of range')
+  assert.analyze_error([[local i = -9223372036854775809_i64]], 'is out of range')
+  assert.analyze_error([[local i = 9223372036854775808_i]], 'is out of range')
+  assert.analyze_error([[local i = 128_i8]], 'is out of range')
+  assert.analyze_error([[local i = 32768_i16]], 'is out of range')
+  assert.analyze_error([[local i = 2147483648_i32]], 'is out of range')
+  assert.analyze_error([[local i = 9223372036854775808_i64]], 'is out of range')
 end)
 
 it("typed var initialization", function()
@@ -95,7 +134,6 @@ end)
 it("unary operators", function()
   assert.c_gencode_equals("local a = not b", "local a: boolean = not b")
   assert.c_gencode_equals("local a = -1", "local a: integer = -1")
-  assert.analyze_error("local a = -1_u", "is not defined for type")
 end)
 
 it("binary operators", function()
@@ -106,7 +144,6 @@ it("binary operators", function()
   assert.c_gencode_equals("local a = 1_f32 + 2.0_f32", "local a: float32 = 1_f32 + 2.0_f32")
   assert.c_gencode_equals("local a = 1_i8 + 2_u8", "local a: int16 = 1_i8 + 2_u8")
   assert.analyze_error("local a = 1 + 's'", "is not defined for type")
-  assert.analyze_error("local a = -1_u", "is not defined for type")
 end)
 
 it("binary conditional operators", function()

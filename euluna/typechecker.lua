@@ -16,7 +16,7 @@ local phases = {
   any_inference = 2
 }
 
-function visitors.Number(_, node, desiredtype)
+function visitors.Number(context, node, desiredtype)
   local base, int, frac, exp, literal = node:args()
   local value
   if base == 'hex' then
@@ -25,6 +25,10 @@ function visitors.Number(_, node, desiredtype)
     value = bn.frombin(int, frac, exp)
   else
     value = bn.fromdec(int, frac, exp)
+  end
+  local parentnode = context:get_parent_node()
+  if parentnode and parentnode.tag == 'UnaryOp' and parentnode:arg(1) == 'neg' then
+    value = -value
   end
   local integral = not (frac or (exp and stringer.startswith(exp, '-')))
   local type
@@ -66,6 +70,17 @@ function visitors.Number(_, node, desiredtype)
   end
   if desiredtype and desiredtype:is_numeric() and desiredtype:is_coercible_from(type) then
     type = desiredtype
+  end
+  if type:is_integral() then
+    local range
+    if type:is_unsigned() then
+      range = tabler.ifindif(typedefs.unsigned_ranges, function(v) return v.type == type end)
+    else
+      range = tabler.ifindif(typedefs.signed_ranges, function(v) return v.type == type end)
+    end
+    node:assertraisef(value >= range.min and value <= range.max,
+      "value %s for integral of type '%s' is out of range, minimum is %s and maximum is %s",
+      value:todec(), tostring(type), range.min:todec(), range.max:todec())
   end
   node.type = type
   node.value = value

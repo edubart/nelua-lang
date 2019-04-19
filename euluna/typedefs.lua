@@ -56,12 +56,14 @@ typedefs.signed_ranges = {
   { type = primtypes.int16,  min = - bn.pow(2, 16) / 2, max = bn.pow(2, 16) / 2 - 1 },
   { type = primtypes.int32,  min = - bn.pow(2, 32) / 2, max = bn.pow(2, 32) / 2 - 1 },
   { type = primtypes.int64,  min = - bn.pow(2, 64) / 2, max = bn.pow(2, 64) / 2 - 1 },
+  { type = primtypes.int,    min = - bn.pow(2, 64) / 2, max = bn.pow(2, 64) / 2 - 1 },
 }
 typedefs.unsigned_ranges = {
   { type = primtypes.uint8,  min = bn.new(0), max = bn.pow(2,  8) },
   { type = primtypes.uint16, min = bn.new(0), max = bn.pow(2, 16) },
   { type = primtypes.uint32, min = bn.new(0), max = bn.pow(2, 32) },
   { type = primtypes.uint64, min = bn.new(0), max = bn.pow(2, 64) },
+  { type = primtypes.uint,   min = bn.new(0), max = bn.pow(2, 64) },
 }
 
 -- real types
@@ -97,10 +99,13 @@ typedefs.number_literal_types = {
 -- number types
 -- NOTE: order here does matter when looking up for a common type between two different types
 typedefs.numeric_types = {
-  primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int, primtypes.int64,
-  primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint, primtypes.uint64,
+  primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
+  primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
   primtypes.float64,
-  primtypes.float32 -- will never be choosen as a common type, but we need to list it
+  -- will never be choosen as a common type, but we need to list it
+  primtypes.int,
+  primtypes.uint,
+  primtypes.float32
 }
 
 -- automatic type conversion

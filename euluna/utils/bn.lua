@@ -73,6 +73,7 @@ function bn.todec(v)
   local vstr = v:tostring()
   if vstr:find('%.') then
     vstr = vstr:gsub('0+$', '')
+    vstr = vstr:gsub('%.$', '')
   end
   return vstr
 end
