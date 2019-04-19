@@ -361,6 +361,11 @@ function visitors.ArrayIndex(context, node)
         indexnode:assertraisef(not indexnode.value:isneg(),
           "in array indexing, trying to index negative value %s",
           indexnode.value:todec())
+        if obj.type:is_array() then
+          indexnode:assertraisef(indexnode.value < bn.new(obj.type.length),
+            "in array indexing, index %s is out of bounds, array maximum index is %d",
+              indexnode.value:todec(), obj.type.length - 1)
+        end
       end
       type = obj.type.subtype
     end
@@ -711,9 +716,7 @@ function visitors.BinaryOp(context, node, desiredtype)
     if type then
       if type:is_float() and opname == 'idiv' then
         type = primtypes.integer
-      elseif type:is_integral() and opname == 'div' then
-        type = primtypes.number
-      elseif type:is_integral() and opname == 'pow' then
+      elseif type:is_integral() and (opname == 'div' or opname == 'pow') then
         type = primtypes.number
       elseif opname == 'shl' or opname == 'shr' then
         type = ltype
