@@ -264,7 +264,7 @@ function visitors.VarDecl(context, node, emitter)
       local var = vars[i]
       if var.type:is_table() or var.type:is_arraytable() then
         emitter:add('{}')
-      elseif var.type:is_number() then
+      elseif var.type:is_numeric() then
         emitter:add('0')
       elseif var.type:is_boolean() then
         emitter:add('false')

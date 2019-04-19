@@ -27,9 +27,7 @@ local function add_casted_value(context, emitter, type, valnode)
   elseif valnode then
     if valnode.type:is_any() then
       emitter:add(context:get_ctype(type), '_any_cast(', valnode, ')')
-    elseif type == valnode.type then
-      emitter:add(valnode)
-    elseif valnode.type:is_number() and type:is_number() then
+    elseif type == valnode.type or valnode.type:is_numeric() and type:is_numeric() then
       emitter:add(valnode)
     --else
       --emitter:add('(',context:get_ctype(type, valnode),')',valnode)

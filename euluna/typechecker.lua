@@ -16,7 +16,7 @@ local phases = {
   any_inference = 2
 }
 
-function visitors.Number(_, node)
+function visitors.Number(_, node, desiredtype)
   local base, int, frac, exp, literal = node:args()
   local value
   if base == 'hex' then
@@ -26,16 +26,48 @@ function visitors.Number(_, node)
   else
     value = bn.fromdec(int, frac, exp)
   end
+  local integral = not (frac or (exp and stringer.startswith(exp, '-')))
+  local type
   if literal then
-    node.type = typedefs.number_literal_types[literal]
-    node:assertraisef(node.type, 'literal suffix "%s" is not defined', literal)
-  else
-    if frac or (exp and stringer.startswith(exp, '-')) then
-      node.type = primtypes.number
-    else
-      node.type = primtypes.integer
+    type = typedefs.number_literal_types[literal]
+    node:assertraisef(type, 'literal suffix "%s" is not defined', literal)
+  elseif desiredtype and desiredtype:is_numeric() then
+    if integral and desiredtype:is_integral() then
+      if desiredtype:is_unsigned() and not value:isneg() then
+        -- find smallest unsigned type
+        for _,range in ipairs(typedefs.unsigned_ranges) do
+          if value >= range.min and value <= range.max then
+            type = range.type
+            break
+          end
+        end
+      else
+      -- find smallest signed type
+        for _,range in ipairs(typedefs.signed_ranges) do
+          if value >= range.min and value <= range.max then
+            type = range.type
+            break
+          end
+        end
+      end
+    elseif desiredtype:is_float() then
+      type = desiredtype
     end
   end
+  if not type then
+    if integral then
+      type = primtypes.integer
+    else
+      type = primtypes.number
+    end
+    node.untyped = true
+  else
+    node.untyped = nil
+  end
+  if desiredtype and desiredtype:is_numeric() and desiredtype:is_coercible_from(type) then
+    type = desiredtype
+  end
+  node.type = type
   node.value = value
   node.literal = true
 end
@@ -57,7 +89,6 @@ end
 
 function visitors.Table(context, node, desiredtype)
   local childnodes = node:args()
-
   if desiredtype and desiredtype ~= primtypes.table then
     if desiredtype:is_arraytable() then
       local subtype = desiredtype.subtype
@@ -66,8 +97,8 @@ function visitors.Table(context, node, desiredtype)
           "in array table literal value, fields are not allowed")
         context:traverse(childnode, subtype)
         if childnode.type then
-          childnode:assertraisef(subtype:is_conversible(childnode.type),
-            "in array table literal, subtype '%s' is not conversible with value at index %d of type '%s'",
+          childnode:assertraisef(subtype:is_coercible_from(childnode.type),
+            "in array table literal, subtype '%s' is not coercible with value at index %d of type '%s'",
             tostring(subtype), i, tostring(childnode.type))
         end
       end
@@ -81,8 +112,8 @@ function visitors.Table(context, node, desiredtype)
           "in array literal, fields are not allowed")
         context:traverse(childnode, subtype)
         if childnode.type then
-          childnode:assertraisef(subtype:is_conversible(childnode.type),
-            "in array literal, subtype '%s' is not conversible with value at index %d of type '%s'",
+          childnode:assertraisef(subtype:is_coercible_from(childnode.type),
+            "in array literal, subtype '%s' is not coercible with value at index %d of type '%s'",
             tostring(subtype), i, tostring(childnode.type))
         end
       end
@@ -99,8 +130,8 @@ function visitors.Table(context, node, desiredtype)
           fieldname, tostring(desiredtype))
         context:traverse(fieldvalnode, fieldtype)
         if fieldvalnode.type then
-          fieldvalnode:assertraisef(fieldtype:is_conversible(fieldvalnode.type),
-            "in record literal, field '%s' of type '%s' is not conversible with value of type '%s'",
+          fieldvalnode:assertraisef(fieldtype:is_coercible_from(fieldvalnode.type),
+            "in record literal, field '%s' of type '%s' is not coercible with value of type '%s'",
             fieldname, tostring(fieldtype), tostring(fieldvalnode.type))
         end
       end
@@ -127,9 +158,9 @@ function visitors.Id(context, node)
   return symbol
 end
 
-function visitors.Paren(context, node)
+function visitors.Paren(context, node, ...)
   local innernode = node:args()
-  local ret = context:traverse(innernode)
+  local ret = context:traverse(innernode, ...)
   node.type = innernode.type
   return ret
 end
@@ -191,8 +222,8 @@ function visitors.EnumFieldType(context, node, desiredtype)
     numnode:assertraisef(numnode.type:is_integral(),
       "only integral numbers are allowed in enums")
     field.value = value
-    numnode:assertraisef(desiredtype:is_conversible(numnode.type),
-      "enum of type '%s' is not conversible with field '%s' of type '%s'",
+    numnode:assertraisef(desiredtype:is_coercible_from(numnode.type),
+      "enum of type '%s' is not coercible with field '%s' of type '%s'",
       tostring(desiredtype), name, tostring(numnode.type))
   end
   return field
@@ -325,7 +356,6 @@ end
 
 function visitors.Call(context, node)
   local argnodes, calleenode, block_call = node:args()
-  context:traverse(argnodes)
   local symbol = context:traverse(calleenode)
   if symbol and symbol.type then
     node.callee_type = symbol.type
@@ -338,17 +368,20 @@ function visitors.Call(context, node)
       local argnode = argnodes[1]
       context:traverse(argnode, type)
       if argnode.type then
-        node:assertraisef(type:is_conversible(argnode.type),
-          "in value creation, type '%s' is not conversible with argument of type '%s'",
+        argnode:assertraisef(type:is_coercible_from(argnode.type),
+          "in value creation, type '%s' is not coercible with argument of type '%s'",
           tostring(type), tostring(argnode.type))
       end
       node.type = type
     elseif symbol.type:is_function() then
-      -- check function argument types
+      -- TODO: check if number of argument matches
       for i,argtype,argnode in iters.izip(symbol.type.argtypes, argnodes) do
+        if argnode then
+          context:traverse(argnode, argtype)
+        end
         if argtype and argnode and argnode.type then
-          node:assertraisef(argtype:is_conversible(argnode.type),
-            "in call, function argument %d of type '%s' is not conversible with call argument %d of type '%s'",
+          argnode:assertraisef(argtype:is_coercible_from(argnode.type),
+            "in call, function argument %d of type '%s' is not coercible with call argument %d of type '%s'",
             i, tostring(argtype), i, tostring(argnode.type))
         end
       end
@@ -358,8 +391,13 @@ function visitors.Call(context, node)
       node.type = symbol.type.returntypes[1] or primtypes.void
       node.types = symbol.type.returntypes
     elseif not symbol.type:is_any() then
+      context:traverse(argnodes)
       calleenode:raisef("attempt to call a non callable variable of type '%s'", tostring(symbol.type))
+    else
+      context:traverse(argnodes)
     end
+  else
+    context:traverse(argnodes)
   end
   if not node.callee_type and context.phase == phases.any_inference then
     node.callee_type = primtypes.any
@@ -431,18 +469,18 @@ function visitors.ForNum(context, node)
     local itsymbol = context.scope:add_symbol(Symbol(itvarname, itvar, itvar.type))
     if itvar.type then
       if beginval.type then
-        itvar:assertraisef(itvar.type:is_conversible(beginval.type),
-          "`for` variable '%s' of type '%s' is not conversible with begin value of type '%s'",
+        itvar:assertraisef(itvar.type:is_coercible_from(beginval.type),
+          "`for` variable '%s' of type '%s' is not coercible with begin value of type '%s'",
           itvarname, tostring(itvar.type), tostring(beginval.type))
       end
       if endval.type then
-        itvar:assertraisef(itvar.type:is_conversible(endval.type),
-          "`for` variable '%s' of type '%s' is not conversible with end value of type '%s'",
+        itvar:assertraisef(itvar.type:is_coercible_from(endval.type),
+          "`for` variable '%s' of type '%s' is not coercible with end value of type '%s'",
           itvarname, tostring(itvar.type), tostring(endval.type))
       end
       if incrval and incrval.type then
-        itvar:assertraisef(itvar.type:is_conversible(incrval.type),
-          "`for` variable '%s' of type '%s' is not conversible with increment value of type '%s'",
+        itvar:assertraisef(itvar.type:is_coercible_from(incrval.type),
+          "`for` variable '%s' of type '%s' is not coercible with increment value of type '%s'",
           itvarname, tostring(itvar.type), tostring(incrval.type))
       end
     else
@@ -470,8 +508,8 @@ function visitors.VarDecl(context, node)
       if val.type then
         symbol:add_possible_type(val.type)
         if var.type and var.type ~= primtypes.boolean then
-          var:assertraisef(var.type:is_conversible(val.type),
-            "variable '%s' of type '%s' is not conversible with value of type '%s'",
+          var:assertraisef(var.type:is_coercible_from(val.type),
+            "variable '%s' of type '%s' is not coercible with value of type '%s'",
             symbol.name, tostring(var.type), tostring(val.type))
         end
         if val.type:is_type() then
@@ -497,8 +535,8 @@ function visitors.Assign(context, node)
         symbol:add_possible_type(val.type)
       end
       if var.type and val.type then
-        var:assertraisef(var.type:is_conversible(val.type),
-          "variable assignment of type '%s' is not conversible with value of type '%s'",
+        var:assertraisef(var.type:is_coercible_from(val.type),
+          "variable assignment of type '%s' is not coercible with value of type '%s'",
           tostring(var.type), tostring(val.type))
       end
     end
@@ -533,8 +571,8 @@ function visitors.FuncDef(context, node)
   for i,retnode in ipairs(retnodes) do
     local rtype = returntypes[i]
     if rtype then
-      retnode:assertraisef(retnode.type:is_conversible(rtype),
-        "return variable at index %d of type '%s' is not conversible with value of type '%s'",
+      retnode:assertraisef(retnode.type:is_coercible_from(rtype),
+        "return variable at index %d of type '%s' is not coercible with value of type '%s'",
         i, tostring(retnode.type), tostring(rtype))
     else
       returntypes[i] = retnode.type
@@ -561,8 +599,8 @@ function visitors.FuncDef(context, node)
     else
       -- check if previous symbol declaration is compatible
       if symbol.type then
-        node:assertraisef(symbol.type:is_conversible(type),
-          "in function defition, symbol of type '%s' is not conversible with function type '%s'",
+        node:assertraisef(symbol.type:is_coercible_from(type),
+          "in function defition, symbol of type '%s' is not coercible with function type '%s'",
           tostring(symbol.type), tostring(type))
       else
         symbol:add_possible_type(type)
@@ -574,51 +612,55 @@ function visitors.FuncDef(context, node)
   end
 end
 
-function visitors.UnaryOp(context, node)
+function visitors.UnaryOp(context, node, desiredtype)
   local opname, argnode = node:args()
   if opname == 'not' then
     -- must set to boolean type before traversing
     -- in case we are inside a if/while/repeat statement
     node.type = primtypes.boolean
-    context:traverse(argnode)
+    context:traverse(argnode, primtypes.boolean)
   else
-    context:traverse(argnode)
+    context:traverse(argnode, desiredtype)
     if argnode.type then
       local type = argnode.type:get_unary_operator_type(opname)
       argnode:assertraisef(type,
         "unary operation `%s` is not defined for type '%s' of the expression",
-        opname, tostring(arg.type))
+        opname, tostring(argnode.type))
       node.type = type
     end
     assert(context.phase ~= phases.any_inference or node.type)
   end
 end
 
-function visitors.BinaryOp(context, node)
+function visitors.BinaryOp(context, node, desiredtype)
   local opname, lnode, rnode = node:args()
 
   -- evaluate conditional operators to boolean type before traversing
   -- in case we are inside a if/while/repeat statement
   if typedefs.binary_conditional_ops[opname] then
+    -- TODO: use desiredtype instead of this check
     local parent_node = context:get_parent_node_if(function(a) return a.tag ~= 'Paren' end)
     if parent_node.type == primtypes.boolean then
       node.type = primtypes.boolean
-      context:traverse(lnode)
-      context:traverse(rnode)
+      context:traverse(lnode, primtypes.boolean)
+      context:traverse(rnode, primtypes.boolean)
       return
     end
   end
 
-  context:traverse(lnode)
-  context:traverse(rnode)
+  context:traverse(lnode, desiredtype)
+  context:traverse(rnode, desiredtype)
+
+  -- traverse again trying to coerce untyped child nodes
+  if lnode.untyped and rnode.type then
+    context:traverse(lnode, rnode.type)
+  elseif rnode.untyped and lnode.type then
+    context:traverse(rnode, lnode.type)
+  end
 
   local type
   if typedefs.binary_conditional_ops[opname] then
-    if lnode.type == rnode.type then
-      type = lnode.type
-    elseif lnode.type and rnode.type then
-      type = typedefs.find_common_type({lnode.type, rnode.type})
-    end
+    type = typedefs.find_common_type({lnode.type, rnode.type})
   else
     local ltype, rtype
     if lnode.type then
@@ -634,17 +676,13 @@ function visitors.BinaryOp(context, node)
         opname, tostring(rnode.type))
     end
     if ltype and rtype then
-      if ltype == rtype then
-        type = ltype
-      else
-        type = typedefs.find_common_type({ltype, rtype})
-      end
+      type = typedefs.find_common_type({ltype, rtype})
       node:assertraisef(type,
         "binary operation `%s` is not defined for different types '%s' and '%s' in the expression",
         opname, tostring(ltype), tostring(rtype))
     end
     if type then
-      if type:is_real() and opname == 'idiv' then
+      if type:is_float() and opname == 'idiv' then
         type = primtypes.integer
       elseif type:is_integral() and opname == 'pow' then
         type = primtypes.number

@@ -22,7 +22,11 @@ it("local variable", function()
       n.VarDecl { 'local', 'var',
         { n.IdDecl{ assign=true, type='int64', 'a', 'var',
           n.Type { type='int64', 'integer'}}},
-        { n.Number{ literal=true, type='int64', value=bn.fromdec('1'), 'dec', '1'}}
+        { n.Number{
+          literal=true,
+          type='int64',
+          value=bn.fromdec('1'),
+          'dec', '1'}}
       }
     } }
   )
@@ -31,7 +35,12 @@ it("local variable", function()
     n.Block { {
       n.VarDecl { 'local', 'var',
         { n.IdDecl { assign=true, type='int64', 'a', 'var' }},
-        { n.Number { literal=true, type='int64', value=bn.fromdec('1'), 'dec', '1' }}
+        { n.Number {
+          literal=true,
+          type='int64',
+          value=bn.fromdec('1'),
+          'dec', '1'
+        }}
       },
       n.Call { callee_type='any', type='any',
         { n.Id { type='int64', "a"} },
@@ -41,10 +50,25 @@ it("local variable", function()
   }})
 
   assert.c_gencode_equals("local a = 1", "local a: integer = 1")
-  assert.analyze_error("local a: integer = 'string'", "is not conversible with")
-  assert.analyze_error("local a: uint8 = 1.0", "is not conversible with")
+  assert.analyze_error("local a: integer = 'string'", "is not coercible with")
+  assert.analyze_error("local a: uint8 = 1.0", "is not coercible with")
   assert.analyze_error("local a: uint8 = {1.0}", "cannot be initialized using a table literal")
   assert.analyze_error("local a, b = 1,2,3", "too many expressions in declaration")
+end)
+
+it("small type coercion", function()
+  assert.analyze_ast([[
+    local u:uint, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 1,1,1,1,1
+    local i:int, i8:int8, i16:int16, i32:uint32, i64:uint64 = 1,1,1,1,1
+    local f32: float32, f64: float64 = 1,1
+  ]])
+  assert.analyze_ast([[
+    local a: uint16 = 1 + 1_u16
+    local b: uint16 = 1 + 1
+    local b: int16 = -1
+  ]])
+  assert.c_gencode_equals("local a = 1 + 1_u16", "local a: uint16 = 1 + 1_u16")
+  assert.c_gencode_equals("local a = 1 + 2.0_f32", "local a: float32 = 1 + 2.0_f32")
 end)
 
 it("typed var initialization", function()
@@ -56,15 +80,15 @@ end)
 it("loop variables", function()
   assert.c_gencode_equals("for i=1,10 do end", "for i:integer=1,10 do end")
   assert.c_gencode_equals("for i=1,10,2 do end", "for i:integer=1,10,2 do end")
-  assert.c_gencode_equals("for i=0_i,1_i-1 do end", "for i:integer=0_i,1_i-1 do end")
-  assert.analyze_error("for i:uint8=1.0,10 do end", "is not conversible with")
-  assert.analyze_error("for i:uint8=1_u8,10 do end", "is not conversible with")
-  assert.analyze_error("for i:uint8=1_u8,10_u8,2 do end", "is not conversible with")
+  assert.c_gencode_equals("for i=0_i,1_i-1 do end", "for i:int=0_i,1_i-1 do end")
+  assert.analyze_error("for i:uint8=1.0,10 do end", "is not coercible with")
+  assert.analyze_error("for i:uint8=1_u8,10 do end", "is not coercible with")
+  assert.analyze_error("for i:uint8=1_u8,10_u8,2 do end", "is not coercible with")
 end)
 
 it("variable assignments", function()
   assert.c_gencode_equals("local a; a = 1", "local a: integer; a = 1")
-  assert.analyze_error("local a: integer; a = 's'", "is not conversible with")
+  assert.analyze_error("local a: integer; a = 's'", "is not coercible with")
   assert.analyze_error("local a, b; a, b = 1,2,3", "too many expressions in assign")
 end)
 
@@ -79,6 +103,7 @@ it("binary operators", function()
   assert.c_gencode_equals("local a = 1_u16 >> 1_u32", "local a: uint16 = 1_u16 >> 1_u32")
   assert.c_gencode_equals("local a = 1 + 2", "local a: integer = 1 + 2")
   assert.c_gencode_equals("local a = 1 + 2.0", "local a: number = 1 + 2.0")
+  assert.c_gencode_equals("local a = 1_f32 + 2.0_f32", "local a: float32 = 1_f32 + 2.0_f32")
   assert.c_gencode_equals("local a = 1_i8 + 2_u8", "local a: int16 = 1_i8 + 2_u8")
   assert.analyze_error("local a = 1 + 's'", "is not defined for type")
   assert.analyze_error("local a = -1_u", "is not defined for type")
@@ -137,23 +162,23 @@ it("function definition", function()
   assert.analyze_error([[
     local f: int
     function f(a: integer) return 0 end
-  ]], "is not conversible with")
+  ]], "is not coercible with")
   assert.analyze_error([[
     local function f(a: integer) end
     function f(a: integer, b:integer) end
-  ]], "is not conversible with")
+  ]], "is not coercible with")
   assert.analyze_error([[
     local function f(a: integer) end
     function f(a: string) end
-  ]], "is not conversible with")
+  ]], "is not coercible with")
   assert.analyze_error([[
     local function f(): integer, string end
     function f(): integer end
-  ]], "is not conversible with")
+  ]], "is not coercible with")
   assert.analyze_error([[
     local f: function<():integer, string>
     function f(): integer end
-  ]], "is not conversible with")
+  ]], "is not coercible with")
 end)
 
 it("function return", function()
@@ -176,7 +201,7 @@ it("function return", function()
   ]])
   assert.analyze_error([[
     local function f(): string return 0 end
-  ]], "is not conversible with")
+  ]], "is not coercible with")
 end)
 
 it("function call", function()
@@ -194,7 +219,7 @@ it("function call", function()
   assert.analyze_error([[
     local function f(a: integer) end
     f('a')
-  ]], "is not conversible with")
+  ]], "is not coercible with")
 end)
 
 it("array tables", function()
@@ -211,8 +236,9 @@ it("array tables", function()
     local a: arraytable<boolean> = {}
     local b: arraytable<boolean> = {false, true}
     local c = @arraytable<boolean>{false, true}
-    local d: arraytable<boolean>
-    d = {false, true}
+    local d: arraytable<boolean>; d = {false, true}
+    local function f(a: arraytable<boolean>) end
+    f({false, true})
   ]])
   assert.c_gencode_equals([[
     local a: arraytable<boolean>
@@ -225,10 +251,10 @@ it("array tables", function()
     local a: arraytable<integer>
     local b: arraytable<boolean>
     b = a
-  ]], "is not conversible with")
+  ]], "is not coercible with")
   assert.analyze_error([[
     local a: arraytable<integer> = {false}
-  ]], "is not conversible with")
+  ]], "is not coercible with")
   assert.analyze_error([[
     local a: arraytable<integer> = {a = 1}
   ]], "fields are not allowed")
@@ -236,7 +262,7 @@ it("array tables", function()
     local a: arraytable<boolean>
     local b: arraytable<integer>
     b = a
-  ]], "is not conversible with")
+  ]], "is not coercible with")
 end)
 
 it("arrays", function()
@@ -247,16 +273,16 @@ it("arrays", function()
   assert.analyze_ast([[local a: arraytable<boolean>; local len = #a]])
   assert.analyze_error([[local a: array<integer, 2> = {1}]], 'expected 2 values but got 1')
   assert.analyze_error([[local a: array<integer, 2> = {1,2,3}]], 'expected 2 values but got 3')
-  assert.analyze_error([[local a: array<integer, 2> = {1.0,2.0}]], 'is not conversible with')
+  assert.analyze_error([[local a: array<integer, 2> = {1.0,2.0}]], 'is not coercible with')
   assert.analyze_error([[local a: array<integer, 2> = {a=0,2}]], 'fields are not allowed')
   assert.analyze_error([[
     local a: array<integer, 10>, b: array<integer, 11>
     b = a
-  ]], "is not conversible with")
+  ]], "is not coercible with")
   assert.analyze_error([[
     local a: array<integer, 10>
     a[0] = 1.0
-  ]], "is not conversible with")
+  ]], "is not coercible with")
   assert.analyze_error([[
     local a: array<integer, 1.0>
   ]], "expected a valid decimal integral number in the second argument")
@@ -271,9 +297,9 @@ it("records", function()
   assert.analyze_ast([[local a: record {x: boolean} = {x = true}]])
   assert.analyze_ast([[local a: record {x: boolean}; a = {x = true}]])
   assert.analyze_ast([[local a: record {x: boolean}; local len = #a]])
-  assert.analyze_error([[local a: record {x: boolean}; a.x = 1]], "is not conversible with")
+  assert.analyze_error([[local a: record {x: boolean}; a.x = 1]], "is not coercible with")
   assert.analyze_error([[local a: record {x: boolean}; local b = a.y]], "does not have field named")
-  assert.analyze_error([[local a: record {x: boolean} = {x = 1}]], "is not conversible with")
+  assert.analyze_error([[local a: record {x: boolean} = {x = 1}]], "is not coercible with")
   assert.analyze_error([[local a: record {x: boolean} = {y = 1}]], "is not present in record")
   assert.analyze_error([[local a: record {x: boolean} = {[x] = 1}]], "only string literals are allowed")
   assert.analyze_error([[local a: record {x: boolean} = {false}]], "only named fields are allowed")
@@ -285,12 +311,12 @@ it("records", function()
   assert.analyze_error([[
     local a: record {x: boolean}, b: record {x: boolean}
     b = a
-  ]], "is not conversible with")
+  ]], "is not coercible with")
   assert.analyze_error([[
     local A, B = @record {x: boolean}, @record {x: boolean}
     local a: A, b: B
     b = a
-  ]], "is not conversible with")
+  ]], "is not coercible with")
 end)
 
 it("type neasting", function()
@@ -324,12 +350,12 @@ it("enums", function()
   ]])
   assert.analyze_error([[
     local Enum = @enum<uint8>{A=256}
-  ]], "is not conversible with")
+  ]], "is not coercible with")
   assert.analyze_error([[
     local Enum = @enum{A=0,B=3}
     local e: Enum = Enum.A
     local i: string = e
-  ]], "is not conversible with")
+  ]], "is not coercible with")
   assert.analyze_error([[
     local Enum = @enum{A=0,B}
     local e: Enum = Enum.C
@@ -360,12 +386,12 @@ it("pointers", function()
     local a: pointer<integer>
     local b: pointer<boolean>
     b = a
-  ]], "is not conversible with")
+  ]], "is not coercible with")
   assert.analyze_error([[
     local a: pointer<integer>
     local b: pointer
     a = b
-  ]], "is not conversible with")
+  ]], "is not coercible with")
 end)
 
 it("type construction", function()
@@ -375,8 +401,8 @@ it("type construction", function()
   assert.analyze_ast("local a = @any(nil)")
   assert.analyze_error("local a = @integer()", "expected one argument")
   assert.analyze_error("local a = @integer(1,2)", "expected one argument")
-  assert.analyze_error("local a = @integer(false)", "is not conversible with")
-  assert.analyze_error("local a = @integer(nil)", "is not conversible with")
+  assert.analyze_error("local a = @integer(false)", "is not coercible with")
+  assert.analyze_error("local a = @integer(nil)", "is not coercible with")
 end)
 
 it("strict mode", function()

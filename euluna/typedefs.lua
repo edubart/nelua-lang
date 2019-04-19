@@ -2,6 +2,7 @@ local iters = require 'euluna.utils.iterators'
 local tabler = require 'euluna.utils.tabler'
 local types = require 'euluna.types'
 local Symbol = require 'euluna.symbol'
+local bn = require 'euluna.utils.bn'
 local Type = types.Type
 
 local typedefs = {}
@@ -49,9 +50,28 @@ do
   end
 end
 
+-- integral ranges
+typedefs.signed_ranges = {
+  { type = primtypes.int8,   min = - bn.pow(2,  8) / 2, max = bn.pow(2,  8) / 2 - 1 },
+  { type = primtypes.int16,  min = - bn.pow(2, 16) / 2, max = bn.pow(2, 16) / 2 - 1 },
+  { type = primtypes.int32,  min = - bn.pow(2, 32) / 2, max = bn.pow(2, 32) / 2 - 1 },
+  { type = primtypes.int64,  min = - bn.pow(2, 64) / 2, max = bn.pow(2, 64) / 2 - 1 },
+}
+typedefs.unsigned_ranges = {
+  { type = primtypes.uint8,  min = bn.new(0), max = bn.pow(2,  8) },
+  { type = primtypes.uint16, min = bn.new(0), max = bn.pow(2, 16) },
+  { type = primtypes.uint32, min = bn.new(0), max = bn.pow(2, 32) },
+  { type = primtypes.uint64, min = bn.new(0), max = bn.pow(2, 64) },
+}
+
 -- real types
-primtypes.float32.real = true
-primtypes.float64.real = true
+primtypes.float32.float = true
+primtypes.float64.float = true
+primtypes.uint.unsigned = true
+primtypes.uint8.unsigned = true
+primtypes.uint16.unsigned = true
+primtypes.uint32.unsigned = true
+primtypes.uint64.unsigned = true
 
 -- literal types
 typedefs.number_literal_types = {
@@ -79,7 +99,8 @@ typedefs.number_literal_types = {
 typedefs.numeric_types = {
   primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int, primtypes.int64,
   primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint, primtypes.uint64,
-  primtypes.float32, primtypes.float64
+  primtypes.float64,
+  primtypes.float32 -- will never be choosen as a common type, but we need to list it
 }
 
 -- automatic type conversion
@@ -104,13 +125,14 @@ primtypes.int64:add_conversible_types({
   primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32
 })
 primtypes.float32:add_conversible_types({
-  primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32,
-  primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32,
+  primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
+  primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
+  primtypes.float64
 })
 primtypes.float64:add_conversible_types({
   primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
   primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
-  primtypes.float32,
+  primtypes.float32
 })
 
 -- unary operator types
@@ -194,9 +216,20 @@ function typedefs.find_common_type(possibletypes)
   if len == 0 then return nil end
   if len == 1 then return possibletypes[1] end
 
-  if tabler.iall(possibletypes, Type.is_number) then
+  -- check if all types are the same first
+  local firsttype = possibletypes[1]
+  if tabler.iall(possibletypes, function(ty)
+    return ty == firsttype
+  end) then
+    return firsttype
+  end
+
+  -- numeric type promotion
+  if tabler.iall(possibletypes, Type.is_numeric) then
     for numtype in iters.ivalues(typedefs.numeric_types) do
-      if tabler.iall(possibletypes, function(ty) return numtype:is_conversible(ty) end) then
+      if tabler.iall(possibletypes, function(ty)
+        return numtype:is_coercible_from(ty) end
+      ) then
         return numtype
       end
     end

@@ -14,8 +14,8 @@ function builtins.len(context, _, emitter, argnode)
 end
 
 function builtins.idiv(context, node, emitter, lnode, rnode)
-  if lnode.type:is_number() and rnode.type:is_number() then
-    if lnode.type:is_real() or rnode.type:is_real() then
+  if lnode.type:is_numeric() and rnode.type:is_numeric() then
+    if lnode.type:is_float() or rnode.type:is_float() then
       emitter:add('((', context:get_ctype(node), ')(', lnode, ' / ', rnode, '))')
     else
       emitter:add(lnode, ' / ', rnode)
@@ -26,7 +26,7 @@ function builtins.idiv(context, node, emitter, lnode, rnode)
 end
 
 function builtins.pow(context, node, emitter, lnode, rnode)
-  if lnode.type:is_number() and rnode.type:is_number() then
+  if lnode.type:is_numeric() and rnode.type:is_numeric() then
     local powname = node.type:is_float32() and 'powf' or 'pow'
     emitter:add(powname, '(', lnode, ', ', rnode, ')')
     context.has_math = true
@@ -89,7 +89,7 @@ function builtins.print(context, node)
       defemitter:add_indent_ln('euluna_stdout_write_string(a',i,');')
     elseif arg.type:is_boolean() then
       defemitter:add_indent_ln('euluna_stdout_write_boolean(a',i,');')
-    elseif arg.type:is_number() then
+    elseif arg.type:is_numeric() then
       local tyname = node:assertraisef(arg.type, 'type is not defined in AST node')
       local tyformat = cdefs.types_printf_format[tyname]
       node:assertraisef(tyformat, 'invalid type "%s" for printf format', tyname)

@@ -16,7 +16,8 @@ function Type:_init(name, node)
   self.name = name
   self.node = node
   self.integral = false
-  self.real = false
+  self.float = false
+  self.unsigned = false
   self.unary_operators = {}
   self.binary_operators = {}
   self.conversible_types = {}
@@ -66,26 +67,26 @@ function Type:get_binary_operator_type(opname)
   return type
 end
 
-function Type:is_conversible(type)
+function Type:is_coercible_from(type)
   if self == type or self:is_any() or type:is_any() then
     return true
   end
   if type:is_enum() then
-    return self:is_conversible(type.subtype)
+    return self:is_coercible_from(type.subtype)
   end
   return self.conversible_types[type]
 end
 
-function Type:is_number()
-  return self.integral or self.real
+function Type:is_numeric()
+  return self.integral or self.float
 end
 
 function Type:is_float32()
   return self.name == 'float32'
 end
 
-function Type:is_real()
-  return self.real
+function Type:is_float()
+  return self.float
 end
 
 function Type:is_any()
@@ -142,6 +143,10 @@ end
 
 function Type:is_integral()
   return self.integral
+end
+
+function Type:is_unsigned()
+  return self.unsigned
 end
 
 function Type:__eq(type)
@@ -303,8 +308,8 @@ function PointerType:_init(node, subtype)
   end
 end
 
-function PointerType:is_conversible(type)
-  if Type.is_conversible(self, type) then
+function PointerType:is_coercible_from(type)
+  if Type.is_coercible_from(self, type) then
     return true
   end
   return type:is_pointer() and type.subtype == self.subtype or self.subtype == nil
