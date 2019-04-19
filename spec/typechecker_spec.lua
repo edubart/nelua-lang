@@ -23,7 +23,6 @@ it("local variable", function()
         { n.IdDecl{ assign=true, type='int64', 'a', 'var',
           n.Type { type='int64', 'integer'}}},
         { n.Number{
-          literal=true,
           type='int64',
           value=bn.fromdec('1'),
           'dec', '1'}}
@@ -36,7 +35,6 @@ it("local variable", function()
       n.VarDecl { 'local', 'var',
         { n.IdDecl { assign=true, type='int64', 'a', 'var' }},
         { n.Number {
-          literal=true,
           type='int64',
           value=bn.fromdec('1'),
           'dec', '1'
@@ -310,21 +308,13 @@ it("arrays", function()
   assert.analyze_error([[local a: array<integer, 2> = {1,2,3}]], 'expected 2 values but got 3')
   assert.analyze_error([[local a: array<integer, 2> = {1.0,2.0}]], 'is not coercible with')
   assert.analyze_error([[local a: array<integer, 2> = {a=0,2}]], 'fields are not allowed')
-  assert.analyze_error([[
-    local a: array<integer, 10>, b: array<integer, 11>
-    b = a
-  ]], "is not coercible with")
-  assert.analyze_error([[
-    local a: array<integer, 10>
-    a[0] = 1.0
-  ]], "is not coercible with")
-  assert.analyze_error([[
-    local a: array<integer, 1.0>
-  ]], "expected a valid decimal integral number in the second argument")
-  assert.analyze_error([[
-    local MyArray = @array<integer, 10>
-    local b = MyArray.len
-  ]], "cannot index object of type")
+  assert.analyze_error([[local a: array<integer, 10>, b: array<integer, 11>; b = a]], "is not coercible with")
+  assert.analyze_error([[local a: array<integer, 10>; a[0] = 1.0]], "is not coercible with")
+  assert.analyze_error([[local a: array<integer, 1.0>]], "expected a valid decimal integral")
+  assert.analyze_error([[local Array = @array<integer, 1>; local a = Array.l]], "cannot index fields")
+  assert.analyze_error([[local a: array<integer, 2> = {1}]], 'expected 2 values but got 1')
+  assert.analyze_error([[local a: array<integer, 2>; a[-1] = 1]], 'trying to index negative value')
+  assert.analyze_error([[local a: array<integer, 2>; a['s'] = 1]], 'trying to index with non integral value')
 end)
 
 it("records", function()

@@ -50,7 +50,6 @@ it("print correct generated AST" , function()
       callee_type = "any",
       type = "any",
       { String {
-          literal = true,
           type = "string",
           "hello world",
           nil

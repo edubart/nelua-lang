@@ -84,22 +84,18 @@ function visitors.Number(context, node, desiredtype)
   end
   node.type = type
   node.value = value
-  node.literal = true
 end
 
 function visitors.String(_, node)
   node.type = primtypes.string
-  node.literal = true
 end
 
 function visitors.Boolean(_, node)
   node.type = primtypes.boolean
-  node.literal = true
 end
 
 function visitors.Nil(_, node)
   node.type = primtypes.Nil
-  node.literal = true
 end
 
 function visitors.Table(context, node, desiredtype)
@@ -159,7 +155,6 @@ function visitors.Table(context, node, desiredtype)
     context:traverse(childnodes)
     node.type = primtypes.table
   end
-  node.literal = true
 end
 
 function visitors.Id(context, node)
@@ -177,6 +172,7 @@ function visitors.Paren(context, node, ...)
   local innernode = node:args()
   local ret = context:traverse(innernode, ...)
   node.type = innernode.type
+  node.value = innernode.value
   return ret
 end
 
@@ -334,7 +330,7 @@ function visitors.DotIndex(context, node)
           tostring(objtype), name)
         type = objtype
       else
-        node:raisef('cannot index object of type "%s"', tostring(objtype))
+        node:raisef('cannot index fields for type "%s"', tostring(objtype))
       end
     end
   end
@@ -352,14 +348,20 @@ end
 
 function visitors.ArrayIndex(context, node)
   context:default_visitor(node)
-  local index, obj = node:args()
+  local indexnode, obj = node:args()
   local type
   if obj.type then
-    --TODO: check negative literal values
-    --TODO: check if index type is an integral
-    if obj.type:is_arraytable() then
-      type = obj.type.subtype
-    elseif obj.type:is_array() then
+    if obj.type:is_arraytable() or obj.type:is_array() then
+      if indexnode.type then
+        indexnode:assertraisef(indexnode.type:is_integral(),
+          "in array indexing, trying to index with non integral value '%s'",
+          tostring(indexnode.type))
+      end
+      if indexnode.value then
+        indexnode:assertraisef(not indexnode.value:isneg(),
+          "in array indexing, trying to index negative value %s",
+          indexnode.value:todec())
+      end
       type = obj.type.subtype
     end
   end
@@ -649,6 +651,9 @@ function visitors.UnaryOp(context, node, desiredtype)
         "unary operation `%s` is not defined for type '%s' of the expression",
         opname, tostring(argnode.type))
       node.type = type
+    end
+    if opname == 'neg' and argnode.tag == 'Number' then
+      node.value = argnode.value
     end
     assert(context.phase ~= phases.any_inference or node.type)
   end
