@@ -69,6 +69,21 @@ it("numeric types coercion", function()
   assert.c_gencode_equals("local a = 1 + 2.0_f32", "local a: float32 = 1 + 2.0_f32")
 end)
 
+it("narrow casting", function()
+  assert.analyze_ast([[
+    local u   = @uint  (0xffffffffffffffff)
+    local u8  = @uint8 (0xffffffffffffffff)
+    local u16 = @uint16(0xffffffffffffffff)
+    local u32 = @uint32(0xffffffffffffffff)
+    local u64 = @uint64(0xffffffffffffffff)
+    local i   = @int  (-0x8000000000000000)
+    local i8  = @int8 (-0x8000000000000000)
+    local i16 = @int16(-0x8000000000000000)
+    local i32 = @int32(-0x8000000000000000)
+    local i64 = @int64(-0x8000000000000000)
+  ]])
+end)
+
 it("numeric ranges", function()
   assert.analyze_ast([[
     local u:uint, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 0,0,0,0,0

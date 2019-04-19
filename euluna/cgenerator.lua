@@ -191,8 +191,14 @@ function visitors.Call(context, node, emitter)
     end
     emitter:add(')')
   elseif node.callee_type:is_type() then
+    -- type assertion
     assert(#args == 1)
-    emitter:add(args[1])
+    local argnode = args[1]
+    if argnode.type ~= node.type then
+      emitter:add('(', context:get_ctype(node.type), ')', args[1])
+    else
+      emitter:add(args[1])
+    end
   else
     --TODO: handle better calls on any types
     emitter:add(callee, '(', args, ')')

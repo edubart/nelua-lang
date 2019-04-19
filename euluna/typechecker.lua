@@ -382,20 +382,22 @@ function visitors.Call(context, node)
   if symbol and symbol.type then
     node.callee_type = symbol.type
     if symbol.type:is_type() then
+      -- type assertion
       local type = symbol.holding_type
       assert(type)
       node:assertraisef(#argnodes == 1,
-        "in value creation of type '%s', expected one argument, but got %d",
+        "in assertion to type '%s', expected one argument, but got %d",
         tostring(type), #argnodes)
       local argnode = argnodes[1]
       context:traverse(argnode, type)
-      if argnode.type then
+      if argnode.type and not (argnode.type:is_numeric() and type:is_numeric()) then
         argnode:assertraisef(type:is_coercible_from(argnode.type),
-          "in value creation, type '%s' is not coercible with argument of type '%s'",
+          "in assertion to type '%s', the type is not coercible with expression of type '%s'",
           tostring(type), tostring(argnode.type))
       end
       node.type = type
     elseif symbol.type:is_function() then
+      -- function call
       local argtypes = symbol.type.argtypes
       node:assertraisef(#argnodes <= #argtypes,
         "in call, function '%s' expected at most %d arguments but got %d",
