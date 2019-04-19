@@ -1,27 +1,65 @@
 local bn = require 'bc'
-bn.digits(64)
 
-function bn.fromhex(s)
-  assert(s:match('^[0-9a-fA-F]+$'), 'invalid hexadecimal number')
+bn.digits(64)
+bn._bn = true
+
+local function frombase(base, expbase, int, frac, exp)
   local n = bn.new(0)
-  for i=1,#s do
-    n = (n * 16) + tonumber(s:sub(i,i), 16)
+  for i=1,#int do
+    n = (n * base) + tonumber(int:sub(i,i), base)
   end
-  return n:trunc()
+  if frac then
+    local fracnum = frombase(base, expbase, frac)
+    local fracdiv = bn.pow(base, #frac)
+    n = n + fracnum / fracdiv
+  end
+  if exp then
+    n = n * bn.pow(expbase, tonumber(exp))
+  end
+  local nint = n:trunc()
+  if nint == n then
+    n = nint
+  end
+  return n
 end
 
-function bn.frombin(s)
-  assert(s:match('^[01]+$'), 'invalid binary number')
-  local n = bn.new(0)
-  for i=1,#s do
-    n = (n * 2) + tonumber(s:sub(i,i), 2)
+function bn.fromhex(int, frac, exp)
+  return frombase(16, 2, int, frac, exp)
+end
+
+function bn.frombin(int, frac, exp)
+  return frombase(2, 2, int, frac, exp)
+end
+
+function bn.fromdec(int, frac, exp)
+  local s = int
+  if frac then
+    s = s .. '.' .. frac
   end
-  return n:trunc()
+  if exp then
+    s = s .. 'e' .. exp
+  end
+  local n = bn.new(s)
+  local nint = n:trunc()
+  if nint == n then
+    n = nint
+  end
+  return n
+end
+
+function bn.isintegral(v)
+  return v == v:trunc()
+end
+
+function bn.tointeger(v)
+  if v:isintegral() then
+    return tonumber(tostring(v:trunc()))
+  end
 end
 
 function bn.tohex(v)
   local n = bn.new(v)
-  assert(n == n:trunc(), 'cannot convert fractional numbers to hex')
+  assert(n:isintegral(), 'cannot convert fractional numbers to hex')
   local t = {}
   while not n:iszero() do
     local d = (n % 16):tonumber()

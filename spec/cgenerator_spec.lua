@@ -238,7 +238,7 @@ it("array tables", function()
   ]], "0\t1\t2\t2")
 end)
 
-it("array", function()
+it("arrays", function()
   assert.generate_c(
     "local a: array<boolean, 10>",
     "euluna_boolean data[10];")
@@ -286,6 +286,19 @@ it("records", function()
     local p: Point = {x=1, y=2}
     print(p.x, p.y)
   ]], "1\t2")
+end)
+
+it("enums", function()
+  assert.generate_c(
+    "local e: enum{A=0}",
+    [[enum {]])
+  assert.run_c([[
+    local Enum = @enum{A=0,B=1,C=2}
+    local e: Enum
+    assert(e == 0)
+    e = Enum.C
+    assert(e == 2)
+  ]])
 end)
 
 it("print", function()

@@ -3,6 +3,7 @@ require 'busted.runner'()
 local assert = require 'spec.assert'
 local config = require 'euluna.configer'.get()
 local n = require 'euluna.syntaxdefs'().astbuilder.aster
+local bn = require 'euluna.utils.bn'
 
 describe("Euluna should check types for", function()
 
@@ -21,7 +22,7 @@ it("local variable", function()
       n.VarDecl { 'local', 'var',
         { n.IdDecl{ assign=true, type='int64', 'a', 'var',
           n.Type { type='int64', 'integer'}}},
-        { n.Number{ literal=true, type='int64', 'dec', '1'}}
+        { n.Number{ literal=true, type='int64', value=bn.fromdec('1'), 'dec', '1'}}
       }
     } }
   )
@@ -30,7 +31,7 @@ it("local variable", function()
     n.Block { {
       n.VarDecl { 'local', 'var',
         { n.IdDecl { assign=true, type='int64', 'a', 'var' }},
-        { n.Number { literal=true, type='int64', 'dec', '1' }}
+        { n.Number { literal=true, type='int64', value=bn.fromdec('1'), 'dec', '1' }}
       },
       n.Call { callee_type='any', type='any',
         { n.Id { type='int64', "a"} },
@@ -313,27 +314,35 @@ end)
 
 it("enums", function()
   assert.analyze_ast([[
-    local a: enum{A}
-    local b: enum<integer>{A,B}
+    local a: enum{A=0}
+    local b: enum<integer>{A=0,B}
   ]])
   assert.analyze_ast([[
-    local Enum = @enum{A,B=3}
+    local Enum = @enum{A=0,B=3}
     local e: Enum = Enum.A
     local i: number = e
   ]])
   assert.analyze_error([[
-    local Enum = @enum{A,B=3}
+    local Enum = @enum<uint8>{A=256}
+  ]], "is not conversible with")
+  assert.analyze_error([[
+    local Enum = @enum{A=0,B=3}
     local e: Enum = Enum.A
     local i: string = e
   ]], "is not conversible with")
   assert.analyze_error([[
-    local Enum = @enum{A,B}
+    local Enum = @enum{A=0,B}
     local e: Enum = Enum.C
   ]], "does not have field named")
   assert.analyze_error([[
     local Enum = @enum{A,B=3}
-    local e: Enum = 1
-  ]], "is not conversible with")
+  ]], "first field requires a initial value")
+  assert.analyze_error([[
+    local Enum = @enum{A=1,B}
+  ]], "a field with value 0 is always required")
+  assert.analyze_error([[
+    local Enum = @enum{A=1.0}
+  ]], "only integral numbers are allowed in enums")
 end)
 
 it("pointers", function()

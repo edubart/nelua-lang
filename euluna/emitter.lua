@@ -1,7 +1,6 @@
 local class = require 'euluna.utils.class'
 local traits = require 'euluna.utils.traits'
 local errorer = require 'euluna.utils.errorer'
-local bn = require 'euluna.utils.bn'
 
 local Emitter = class()
 
@@ -40,7 +39,7 @@ function Emitter:add(what, ...)
   if what then
     if traits.is_string(what) then
       table.insert(self.codes, what)
-    elseif traits.is_number(what) then
+    elseif traits.is_number(what) or traits.is_bignumber(what) then
       table.insert(self.codes, tostring(what))
     elseif traits.is_astnode(what) then
       self:add_traversal(what)
@@ -69,7 +68,7 @@ function Emitter:add_traversal_list(nodelist, separator, ...)
   end
 end
 
-function Emitter:add_composed_number(base, int, frac, exp)
+function Emitter:add_composed_number(base, int, frac, exp, value)
   if base == 'dec' then
     self:add(int)
     if frac then
@@ -78,32 +77,12 @@ function Emitter:add_composed_number(base, int, frac, exp)
     if exp then
       self:add('e', exp)
     end
-  elseif base == 'hex' then
-    if not frac and not exp then
-      self:add('0x', int)
+  elseif base == 'hex' or base == 'bin' then
+    if value:isintegral() then
+      self:add('0x', value:tohex())
     else
-      local n = bn.fromhex(int)
-      if frac then
-        local len = frac:gsub('^[+-]', ''):len()
-        n = n + (bn.fromhex(frac) / bn.pow(16, len))
-      end
-      if exp then
-        n = n * bn.pow(2, tonumber(exp))
-      end
-      local nstr
-      if n:trunc() == n then
-        nstr = string.format('0x%s', n:tohex())
-      else
-        nstr = n:todec()
-      end
-      self:add(nstr)
+      self:add(value:todec())
     end
-  elseif base == 'bin' then
-    int = bn.frombin(int):tohex()
-    if frac then
-      frac = bn.frombin(frac):tohex()
-    end
-    self:add_composed_number('hex', int, frac, exp)
   end
 end
 

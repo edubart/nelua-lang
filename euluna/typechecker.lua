@@ -6,6 +6,7 @@ local typedefs = require 'euluna.typedefs'
 local Context = require 'euluna.context'
 local Symbol = require 'euluna.symbol'
 local types = require 'euluna.types'
+local bn = require 'euluna.utils.bn'
 
 local primtypes = typedefs.primtypes
 local visitors = {}
@@ -18,6 +19,13 @@ local phases = {
 function visitors.Number(_, node)
   local base, int, frac, exp, literal = node:args()
   local value
+  if base == 'hex' then
+    value = bn.fromhex(int, frac, exp)
+  elseif base == 'bin' then
+    value = bn.frombin(int, frac, exp)
+  else
+    value = bn.fromdec(int, frac, exp)
+  end
   if literal then
     node.type = typedefs.number_literal_types[literal]
     node:assertraisef(node.type, 'literal suffix "%s" is not defined', literal)
@@ -28,17 +36,8 @@ function visitors.Number(_, node)
       node.type = primtypes.integer
     end
   end
-  if int and frac == nil and exp == nil and literal == nil then
-    if base == 'hex' then
-      value = tonumber(int, 16)
-    elseif base == 'bin' then
-      value = tonumber(int, 2)
-    else
-      value = tonumber(int)
-    end
-  end
+  node.value = value
   node.literal = true
-  return value
 end
 
 function visitors.String(_, node)
@@ -182,13 +181,21 @@ function visitors.RecordType(context, node)
   return Symbol(nil, node, primtypes.type, type)
 end
 
-function visitors.EnumFieldType(context, node)
+function visitors.EnumFieldType(context, node, desiredtype)
   local name, numnode = node:args()
-  local value
+  local field = {name = name}
   if numnode then
-    value = context:traverse(numnode)
+    context:traverse(numnode)
+    local value = numnode.value
+    assert(numnode.tag == 'Number')
+    numnode:assertraisef(numnode.type:is_integral(),
+      "only integral numbers are allowed in enums")
+    field.value = value
+    numnode:assertraisef(desiredtype:is_conversible(numnode.type),
+      "enum of type '%s' is not conversible with field '%s' of type '%s'",
+      tostring(desiredtype), name, tostring(numnode.type))
   end
-  return {name = name, value = value}
+  return field
 end
 
 function visitors.EnumType(context, node)
@@ -199,13 +206,22 @@ function visitors.EnumType(context, node)
     subtype = typenode.type
   end
   local fields = {}
+  local haszero = false
   for i,fnode in ipairs(fieldnodes) do
-    local field = context:traverse(fnode)
+    local field = context:traverse(fnode, subtype)
     if not field.value then
-      field.value = i
+      if i == 1 then
+        fnode:raisef('in enum declaration, first field requires a initial value')
+      else
+        field.value = fields[i-1].value
+      end
+    end
+    if field.value:iszero() then
+      haszero = true
     end
     fields[i] = field
   end
+  node:assertraisef(haszero, 'in enum declaration, a field with value 0 is always required')
   local type = types.EnumType(node, subtype, fields)
   node.type = type
   return Symbol(nil, node, primtypes.type, type)
@@ -223,8 +239,10 @@ function visitors.ArrayType(context, node)
   local subtypenode, lengthnode = node:args()
   context:traverse(subtypenode)
   local subtype = subtypenode.type
-  local length = context:traverse(lengthnode)
-  lengthnode:assertraisef(length and length > 0,
+  context:traverse(lengthnode)
+  assert(lengthnode.tag == 'Number')
+  local length = lengthnode.value:tointeger()
+  lengthnode:assertraisef(lengthnode.type:is_integral() and length > 0,
     'expected a valid decimal integral number in the second argument of an "array" type')
   local type = types.ArrayType(node, subtype, length)
   node.type = type
@@ -263,8 +281,9 @@ function visitors.DotIndex(context, node)
       assert(symbol)
       assert(symbol.holding_type)
       objtype = symbol.holding_type
+      node.holding_type = objtype
       if objtype:is_enum() then
-        node:assertraisef(objtype:has_field(name),
+        node:assertraisef(objtype:get_field(name),
           'enum "%s" does not have field named "%s"',
           tostring(objtype), name)
         type = objtype

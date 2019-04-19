@@ -24,4 +24,8 @@ function traits.is_astnode(v)
   return type(v) == 'table' and v._astnode
 end
 
+function traits.is_bignumber(v)
+  return type(v) == 'userdata' and v._bn
+end
+
 return traits

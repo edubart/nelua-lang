@@ -213,12 +213,15 @@ function EnumType:_init(node, subtype, fields)
   self.fields = fields
   Type._init(self, 'enum', node)
   self.codename = gencodename(self)
+  for _,field in ipairs(fields) do
+    field.codename = self.codename .. '_' .. field.name
+  end
 end
 
-function EnumType:has_field(name)
+function EnumType:get_field(name)
   return tabler.ifindif(self.fields, function(f)
     return f.name == name
-  end) ~= nil
+  end)
 end
 
 function EnumType:__tostring()
@@ -293,8 +296,8 @@ end
 local PointerType = typeclass()
 
 function PointerType:_init(node, subtype)
-  Type._init(self, 'pointer', node)
   self.subtype = subtype
+  Type._init(self, 'pointer', node)
   if subtype then
     self.codename = subtype.codename .. '_pointer'
   end

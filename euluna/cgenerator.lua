@@ -45,7 +45,7 @@ function visitors.Number(context, node, emitter)
     local ctype = context:get_ctype(node.type)
     emitter:add('((', ctype, ')')
   end
-  emitter:add_composed_number(base, int, frac, exp)
+  emitter:add_composed_number(base, int, frac, exp, node.value)
   if literal then
     emitter:add(')')
   end
@@ -144,8 +144,17 @@ end
 
 -- indexing
 function visitors.DotIndex(_, node, emitter)
-  local name, obj = node:args()
-  emitter:add(obj, '.', name)
+  local name, objnode = node:args()
+  if objnode.type:is_type() then
+    local objtype = node.holding_type
+    if objtype:is_enum() then
+      emitter:add(objtype:get_field(name).value)
+    else --luacov:disable
+      error('not implemented yet')
+    end --luacov:enable
+  else
+    emitter:add(objnode, '.', name)
+  end
 end
 
 -- TODO: ColonIndex

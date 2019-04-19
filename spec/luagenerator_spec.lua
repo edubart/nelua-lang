@@ -17,7 +17,7 @@ it("number", function()
   assert.generate_lua("return 1, 1.2, 1e2, 0x1f, 0b10",
                       "return 1, 1.2, 1e2, 0x1f, 0x2")
   assert.generate_lua("return 0x3p5, 0x3.5, 0x3.5p7, 0xfa.d7p-5, 0b11.11p2",
-                      "return 0x60, 3.3125, 0x1a8, 7.8387451171875, 12.75")
+                      "return 0x60, 3.3125, 0x1a8, 7.8387451171875, 0xf")
   assert.generate_lua("return 0xffffffffffffffffp4",
                       "return 0xffffffffffffffff0")
   assert.generate_lua("return 0xffffffffffffffff.001",
