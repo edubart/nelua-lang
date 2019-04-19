@@ -711,10 +711,16 @@ function visitors.BinaryOp(context, node, desiredtype)
     if type then
       if type:is_float() and opname == 'idiv' then
         type = primtypes.integer
+      elseif type:is_integral() and opname == 'div' then
+        type = primtypes.number
       elseif type:is_integral() and opname == 'pow' then
         type = primtypes.number
       elseif opname == 'shl' or opname == 'shr' then
         type = ltype
+      end
+
+      if rnode.value and (opname == 'idiv' or opname == 'div' or opname == 'mod') then
+        rnode:assertraisef(not rnode.value:iszero(), "divizion by zero is not allowed")
       end
     end
   end
