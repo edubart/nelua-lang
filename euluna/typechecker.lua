@@ -374,10 +374,17 @@ function visitors.Call(context, node)
       end
       node.type = type
     elseif symbol.type:is_function() then
-      -- TODO: check if number of argument matches
+      local argtypes = symbol.type.argtypes
+      node:assertraisef(#argnodes <= #argtypes,
+        "in call, function '%s' expected at most %d arguments but got %d",
+        tostring(symbol.type), #argtypes, #argnodes)
       for i,argtype,argnode in iters.izip(symbol.type.argtypes, argnodes) do
         if argnode then
           context:traverse(argnode, argtype)
+        elseif argtype then
+          node:assertraisef(argtype:is_nilable(),
+            "in call, function '%s' expected an argument at index %d but got nothing",
+            tostring(symbol.type), i)
         end
         if argtype and argnode and argnode.type then
           argnode:assertraisef(argtype:is_coercible_from(argnode.type),

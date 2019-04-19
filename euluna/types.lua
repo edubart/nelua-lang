@@ -97,6 +97,10 @@ function Type:is_nil()
   return self.name == 'nil'
 end
 
+function Type:is_nilable()
+  return self:is_any() or self:is_nil()
+end
+
 function Type:is_type()
   return self.name == 'type'
 end

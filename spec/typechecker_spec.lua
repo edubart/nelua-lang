@@ -212,14 +212,12 @@ it("function call", function()
     local function f(): integer return 0 end
     local a: integer = f()
   ]])
-  assert.analyze_error([[
-    local a: integer = 1
-    a()
-  ]], "attempt to call a non callable variable")
-  assert.analyze_error([[
-    local function f(a: integer) end
-    f('a')
-  ]], "is not coercible with")
+  assert.analyze_ast([[local function f(a: integer) end; f(1_u32)]])
+  assert.analyze_ast([[local function f(a) end; f() f(1)]])
+  assert.analyze_error([[local a: integer = 1; a()]], "attempt to call a non callable variable")
+  assert.analyze_error([[local function f(a: integer) end; f('a')]], "is not coercible with")
+  assert.analyze_error([[local function f(a: integer) end; f(1,1)]], "expected at most 1 arguments but got 2")
+  assert.analyze_error([[local function f(a: integer) end; f()]], "expected an argument at index 1")
 end)
 
 it("array tables", function()
