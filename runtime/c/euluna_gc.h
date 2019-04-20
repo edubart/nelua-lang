@@ -1,10 +1,3 @@
-#ifndef EULUNA_GC_H
-#define EULUNA_GC_H
-
-#ifndef EULUNA_COMPILER
-#include "euluna_core.h"
-#endif
-
 enum {
   EULUNA_GC_MARK = 0x01,
   EULUNA_GC_ROOT = 0x02,
@@ -48,5 +41,3 @@ void(*euluna_gc_get_dtor(euluna_gc_t *gc, void *ptr))(void*);
 size_t euluna_gc_get_size(euluna_gc_t *gc, void *ptr);
 
 extern euluna_gc_t euluna_gc;
-
-#endif

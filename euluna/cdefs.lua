@@ -93,6 +93,20 @@ cdefs.compilers_flags = {
   }
 }
 
+cdefs.variable_pragmas = {
+  volatile = 'volatile',
+  register = 'register',
+  codename = true,
+  cimport = true,
+  nodecl = true,
+}
+
+cdefs.function_pragmas = {
+  inline = 'inline',
+  noinline = 'EULUNA_NOINLINE',
+  noreturn = 'EULUNA_NORETURN',
+}
+
 for _,compiler_flags in pairs(cdefs.compilers_flags) do
   metamagic.setmetaindex(compiler_flags, cdefs.compiler_base_flags)
 end

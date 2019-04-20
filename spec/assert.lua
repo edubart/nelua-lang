@@ -107,11 +107,16 @@ function assert.contains(expected, passedin)
     passedin, expected)
 end
 
-function assert.run(args, expected_stdout)
+function assert.run(args, expected_stdout, expected_stderr)
   local status, sout, serr = run(args)
   errorer.assertf(status == 0, 'expected success status in run:\n%s\n%s', serr, sout)
   if expected_stdout then
     assert.contains(expected_stdout, sout)
+  end
+  if expected_stderr then
+    assert.contains(expected_stderr or '', serr)
+  else
+    assert.same('', serr)
   end
 end
 
@@ -141,8 +146,8 @@ function assert.generate_c(euluna_code, c_code)
     generated_code, c_code)
 end
 
-function assert.run_c(euluna_code, output)
-  assert.run({'--generator', 'c', '--eval', euluna_code}, output)
+function assert.run_c(euluna_code, expected_stdout, expected_stderr)
+  assert.run({'--generator', 'c', '--eval', euluna_code}, expected_stdout, expected_stderr)
 end
 
 function assert.run_error_c(euluna_code, output)

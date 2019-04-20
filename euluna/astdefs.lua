@@ -31,6 +31,12 @@ astbuilder:register('Pair', stypes.shape {
   ntypes.Node -- field value expr
 })
 
+-- pragma
+astbuilder:register('Pragma', stypes.shape {
+  stypes.string, -- name
+  stypes.array_of(ntypes.String + ntypes.Number + ntypes.Boolean) -- args
+})
+
 -- identifier and types
 astbuilder:register('Id', stypes.shape {
   stypes.string, -- name
@@ -39,6 +45,7 @@ astbuilder:register('IdDecl', stypes.shape {
   stypes.string, -- name
   stypes.one_of{"var", "var&", "var&&", "val"}:is_optional(), -- mutability
   ntypes.Node:is_optional(), -- typexpr
+  stypes.array_of(ntypes.Pragma):is_optional(), -- pragmas
 })
 astbuilder:register('Paren', stypes.shape {
   ntypes.Node -- expr
@@ -81,18 +88,12 @@ astbuilder:register('PointerType', stypes.shape {
   ntypes.Node:is_optional(), -- subtype typexpr
 })
 
--- pragma
-astbuilder:register('Pragma', stypes.shape {
-  ntypes.Node -- expr
-})
-
 -- function
 astbuilder:register('Function', stypes.shape {
   stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
   stypes.array_of(ntypes.Pragma), -- pragmas
   ntypes.Node, -- block
-  ntypes.Pragma:is_optional() -- pragma
 })
 
 -- indexing
@@ -170,7 +171,6 @@ astbuilder:register('VarDecl', stypes.shape {
   stypes.one_of{"local"}:is_optional(), -- scope
   stypes.one_of{"var", "var&", "val", "val&"}, -- mutability
   stypes.array_of(ntypes.IdDecl), -- var names with types
-  stypes.array_of(ntypes.Pragma), -- pragmas
   stypes.array_of(ntypes.Node):is_optional(), -- expr list, initial assignments values
 })
 astbuilder:register('Assign', stypes.shape {

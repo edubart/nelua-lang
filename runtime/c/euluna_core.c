@@ -1,11 +1,6 @@
-#ifndef EULUNA_COMPILER
-#include "euluna_core.h"
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
-
-/* {% if context.has_type then %} */
+{% if context.has_type then %}
 euluna_type euluna_uint_type = {"uint"};
 euluna_type euluna_uint8_type = {"uint8"};
 euluna_type euluna_uint16_type = {"uint16"};
@@ -22,21 +17,18 @@ euluna_type euluna_boolean_type = {"boolean"};
 euluna_type euluna_string_type = {"string"};
 euluna_type euluna_char_type = {"char"};
 euluna_type euluna_pointer_type = {"pointer"};
-/* {% end %} */
-
-/* {% if context.builtins['stdout_write'] then %} */
+{% end %}
+{% if context.builtins['stdout_write'] then %}
 void euluna_stdout_write_string(const euluna_string s) {
   fwrite(s->data, s->len, 1, stdout);
 }
-
 void euluna_stdout_write_boolean(const bool b) {
   if(b)
     fwrite("true", 4, 1, stdout);
   else
     fwrite("false", 5, 1, stdout);
 }
-
-/* {% if context.has_any then %} */
+{% if context.has_any then %}
 void euluna_stdout_write_any(const euluna_any a) {
   if(a.type == &euluna_boolean_type) {
     euluna_stdout_write_boolean(a.value.b);
@@ -72,26 +64,21 @@ void euluna_stdout_write_any(const euluna_any a) {
     euluna_panic("invalid type for euluna_fwrite_any");
   }
 }
-/* {% end %} */
-
+{% end %}
 void euluna_stdout_write(const char *message) {
   fputs(message, stdout);
 }
-
-void euluna_stdout_write_format(char *format, ...)
-{
+void euluna_stdout_write_format(char *format, ...) {
   va_list args;
   va_start(args, format);
   vfprintf(stdout, format, args);
   va_end(args);
 }
-
 void euluna_stdout_write_newline() {
   fwrite("\n", 1, 1, stdout);
   fflush(stdout);
 }
-/* {% end %} */
-
+{% end %}
 void euluna_panic(const char *message) {
   fputs(message, stderr);
   fputs("\n", stderr);

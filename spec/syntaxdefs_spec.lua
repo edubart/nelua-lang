@@ -817,8 +817,8 @@ describe("statement variable declaration", function()
       local a: integer
     ]],
       n.Block{{
-        n.VarDecl{'local', 'var', {n.IdDecl{'a', 'var'}}, {}},
-        n.VarDecl{'local', 'var', {n.IdDecl{'a', 'var', n.Type{'integer'}}}, {}}
+        n.VarDecl{'local', 'var', {n.IdDecl{'a', 'var'}}},
+        n.VarDecl{'local', 'var', {n.IdDecl{'a', 'var', n.Type{'integer'}}}}
     }})
   end)
   it("local variable assignment", function()
@@ -827,14 +827,14 @@ describe("statement variable declaration", function()
       local a: integer = b
     ]],
       n.Block{{
-        n.VarDecl{'local', 'var', {n.IdDecl{'a', 'var'}}, {}, {n.Id{'b'}}},
-        n.VarDecl{'local', 'var', {n.IdDecl{'a', 'var', n.Type{'integer'}}}, {}, {n.Id{'b'}}}
+        n.VarDecl{'local', 'var', {n.IdDecl{'a', 'var'}}, {n.Id{'b'}}},
+        n.VarDecl{'local', 'var', {n.IdDecl{'a', 'var', n.Type{'integer'}}}, {n.Id{'b'}}}
     }})
   end)
   it("non local variable", function()
     assert.parse_ast(euluna_parser, "var a",
       n.Block{{
-        n.VarDecl{nil, 'var', {n.IdDecl{'a', 'var'}}, {}}
+        n.VarDecl{nil, 'var', {n.IdDecl{'a', 'var'}}}
     }})
   end)
   it("variable mutabilities", function()
@@ -845,17 +845,17 @@ describe("statement variable declaration", function()
       local var& a = b
     ]],
       n.Block{{
-        n.VarDecl{nil, 'var', {n.IdDecl{'a', 'var'}}, {}, {n.Id{'b'}}},
-        n.VarDecl{nil, 'val', {n.IdDecl{'a', 'var'}}, {}, {n.Id{'b'}}},
-        n.VarDecl{nil, 'val&', {n.IdDecl{'a', 'var'}}, {}, {n.Id{'b'}}},
-        n.VarDecl{'local', 'var&', {n.IdDecl{'a', 'var'}}, {}, {n.Id{'b'}}},
+        n.VarDecl{nil, 'var', {n.IdDecl{'a', 'var'}}, {n.Id{'b'}}},
+        n.VarDecl{nil, 'val', {n.IdDecl{'a', 'var'}}, {n.Id{'b'}}},
+        n.VarDecl{nil, 'val&', {n.IdDecl{'a', 'var'}}, {n.Id{'b'}}},
+        n.VarDecl{'local', 'var&', {n.IdDecl{'a', 'var'}}, {n.Id{'b'}}},
     }})
   end)
   it("variable multiple assigments", function()
     assert.parse_ast(euluna_parser, "local a,b,c = x,y,z",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'a', 'var'}, n.IdDecl{'b', 'var'}, n.IdDecl{'c', 'var'} }, {},
+          { n.IdDecl{'a', 'var'}, n.IdDecl{'b', 'var'}, n.IdDecl{'c', 'var'} },
           { n.Id{'x'}, n.Id{'y'}, n.Id{'z'} }},
     }})
   end)
@@ -1246,47 +1246,47 @@ describe("type expression", function()
     assert.parse_ast(euluna_parser, "local f: function<()>",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'f', 'var', n.FuncType{{}, {}}}}, {}
+          { n.IdDecl{'f', 'var', n.FuncType{{}, {}}}}
     }}})
     assert.parse_ast(euluna_parser, "local f: function<(int): string>",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'f', 'var', n.FuncType{{n.Type{'int'}}, {n.Type{'string'}}}}}, {}
+          { n.IdDecl{'f', 'var', n.FuncType{{n.Type{'int'}}, {n.Type{'string'}}}}}
     }}})
     assert.parse_ast(euluna_parser, "local f: function<(int, uint): string, boolean>",
       n.Block{{
         n.VarDecl{'local', 'var',
           { n.IdDecl{'f', 'var', n.FuncType{
             {n.Type{'int'}, n.Type{'uint'}},
-            {n.Type{'string'}, n.Type{'boolean'}}}}}, {}
+            {n.Type{'string'}, n.Type{'boolean'}}}}}
     }}})
   end)
   it("array table type", function()
     assert.parse_ast(euluna_parser, "local t: arraytable<int>",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'t', 'var', n.ArrayTableType{n.Type{'int'}}}}, {}
+          { n.IdDecl{'t', 'var', n.ArrayTableType{n.Type{'int'}}}}
     }}})
   end)
   it("array type", function()
     assert.parse_ast(euluna_parser, "local a: array<int, 10>",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'a', 'var', n.ArrayType{n.Type{'int'}, n.Number{'dec', '10'}}}}, {}
+          { n.IdDecl{'a', 'var', n.ArrayType{n.Type{'int'}, n.Number{'dec', '10'}}}}
     }}})
   end)
   it("record type", function()
     assert.parse_ast(euluna_parser, "local r: record{a: int}",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'r', 'var', n.RecordType{{n.RecordFieldType{'a', n.Type{'int'}}}}}}, {}
+          { n.IdDecl{'r', 'var', n.RecordType{{n.RecordFieldType{'a', n.Type{'int'}}}}}}
     }}})
     assert.parse_ast(euluna_parser, "local r: record{a: int, b: boolean}",
       n.Block{{
         n.VarDecl{'local', 'var',
           { n.IdDecl{'r', 'var', n.RecordType{{
             n.RecordFieldType{'a', n.Type{'int'}},
-            n.RecordFieldType{'b', n.Type{'boolean'}}}}}}, {}
+            n.RecordFieldType{'b', n.Type{'boolean'}}}}}}
     }}})
     assert.parse_ast(euluna_parser,
       "local r: record{f: function<(int, uint): string, boolean>, t: arraytable<int>}",
@@ -1296,7 +1296,7 @@ describe("type expression", function()
             n.RecordFieldType{'f', n.FuncType{
               {n.Type{'int'}, n.Type{'uint'}},
               {n.Type{'string'}, n.Type{'boolean'}}}},
-            n.RecordFieldType{'t', n.ArrayTableType{ n.Type{'int'}}}}}}}, {}
+            n.RecordFieldType{'t', n.ArrayTableType{ n.Type{'int'}}}}}}}
     }}})
     assert.parse_ast(euluna_parser, "local r: record{a: record{c: int}, b: boolean}",
       n.Block{{
@@ -1305,46 +1305,46 @@ describe("type expression", function()
             n.RecordFieldType{'a', n.RecordType{{
               n.RecordFieldType{'c', n.Type{'int'}}
             }}},
-            n.RecordFieldType{'b', n.Type{'boolean'}}}}}}, {}
+            n.RecordFieldType{'b', n.Type{'boolean'}}}}}}
     }}})
   end)
   it("enum type", function()
     assert.parse_ast(euluna_parser, "local e: enum{a}",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'e', 'var', n.EnumType{nil,{n.EnumFieldType{'a'}}}}}, {}
+          { n.IdDecl{'e', 'var', n.EnumType{nil,{n.EnumFieldType{'a'}}}}}
     }}})
     assert.parse_ast(euluna_parser, "local e: enum<int>{a,b=2,}",
       n.Block{{
         n.VarDecl{'local', 'var',
           { n.IdDecl{'e', 'var', n.EnumType{n.Type{'int'}, {
             n.EnumFieldType{'a'},
-            n.EnumFieldType{'b', n.Number{'dec','2'}}}}}}, {}
+            n.EnumFieldType{'b', n.Number{'dec','2'}}}}}}
     }}})
   end)
   it("pointer type", function()
     assert.parse_ast(euluna_parser, "local p: pointer",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'p', 'var', n.PointerType{}}}, {}
+          { n.IdDecl{'p', 'var', n.PointerType{}}}
     }}})
     assert.parse_ast(euluna_parser, "local p: pointer<integer>",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'p', 'var', n.PointerType{n.Type{'integer'}}}}, {}
+          { n.IdDecl{'p', 'var', n.PointerType{n.Type{'integer'}}}}
     }}})
   end)
   it("type instantiation", function()
     assert.parse_ast(euluna_parser, "local Integer = @integer",
       n.Block{{
         n.VarDecl{'local', 'var',
-          {n.IdDecl{'Integer', 'var'}}, {},
+          {n.IdDecl{'Integer', 'var'}},
           {n.TypeInstance{n.Type{'integer'}}}
     }}})
     assert.parse_ast(euluna_parser, "local MyRecord = @record{a: int}",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'MyRecord', 'var'}}, {},
+          { n.IdDecl{'MyRecord', 'var'}},
           { n.TypeInstance{n.RecordType{{n.RecordFieldType{'a', n.Type{'int'}}}}}}
     }}})
   end)
@@ -1352,7 +1352,7 @@ describe("type expression", function()
     assert.parse_ast(euluna_parser, "local a = @integer(0)",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'a', 'var'}}, {},
+          { n.IdDecl{'a', 'var'}},
           { n.Call{{n.Number{"dec","0"}},n.TypeInstance{n.Type{"integer"}}}
         }
     }}})
@@ -1366,29 +1366,29 @@ describe("pragma expression for", function()
   it("block statement", function()
     assert.parse_ast(euluna_parser, "!!pragma",
       n.Block{{
-        n.Pragma{n.Id{'pragma'}}
+        n.Pragma{'pragma', {}}
     }})
-    assert.parse_ast(euluna_parser, "!!pragma('s',1)",
+    assert.parse_ast(euluna_parser, "!!pragma('s',1,true)",
       n.Block{{
-        n.Pragma{n.Call{{n.String{'s'},n.Number{'dec','1'}},n.Id{'pragma'}}}
+        n.Pragma{'pragma', {n.String{'s'}, n.Number{'dec','1'}, n.Boolean{true}}}
     }})
   end)
   it("variable", function()
     assert.parse_ast(euluna_parser, "local a !pragma",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'a', 'var'}}, {n.Pragma{n.Id{'pragma'}}}
+          { n.IdDecl{'a', 'var', nil, {n.Pragma{'pragma', {}}}}}
     }}})
     assert.parse_ast(euluna_parser, "local a !pragma1 !pragma2",
       n.Block{{
         n.VarDecl{'local', 'var',
-          { n.IdDecl{'a', 'var'}}, {n.Pragma{n.Id{'pragma1'}}, n.Pragma{n.Id{'pragma2'}}}
+          { n.IdDecl{'a', 'var', nil, {n.Pragma{'pragma1', {}}, n.Pragma{'pragma2', {}}}}}
     }}})
   end)
   it("function", function()
     assert.parse_ast(euluna_parser, "local function f() !pragma end",
       n.Block{{
-        n.FuncDef{'local', n.Id{'f'}, {}, {}, {n.Pragma{n.Id{'pragma'}}}, n.Block{{}} }
+        n.FuncDef{'local', n.Id{'f'}, {}, {}, {n.Pragma{'pragma', {}}}, n.Block{{}} }
     }})
   end)
 end)

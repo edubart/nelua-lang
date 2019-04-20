@@ -139,6 +139,9 @@ primtypes.float64:add_conversible_types({
   primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
   primtypes.float32
 })
+primtypes.cstring:add_conversible_types({
+  primtypes.string
+})
 
 -- unary operator types
 local bitwise_types = {

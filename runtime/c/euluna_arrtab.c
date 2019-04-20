@@ -7,18 +7,15 @@ void _{%=tyname%}_reserve({%=tyname%}* t, size_t cap) {
   t->data = data;
   t->cap = cap;
 }
-
 void _{%=tyname%}_grow({%=tyname%}* t) {
   size_t cap = (t->cap == 0) ? 1 : t->cap << 1;
   _{%=tyname%}_reserve(t, cap);
 }
-
 void {%=tyname%}_reserve({%=tyname%}* t, size_t cap) {
   if(EULUNA_UNLIKELY(t->cap >= cap))
     return;
   _{%=tyname%}_reserve(t, cap);
 }
-
 void {%=tyname%}_resize_zero({%=tyname%}* t, size_t n) {
   size_t addn = n - t->len;
   if(addn > 0) {
@@ -27,7 +24,6 @@ void {%=tyname%}_resize_zero({%=tyname%}* t, size_t n) {
     t->len = n;
   }
 }
-
 void {%=tyname%}_resize({%=tyname%}* t, size_t n, {%=ctype%} v) {
   size_t addn = n - t->len;
   if(addn > 0) {
@@ -38,27 +34,23 @@ void {%=tyname%}_resize({%=tyname%}* t, size_t n, {%=ctype%} v) {
     t->len = n;
   }
 }
-
 void {%=tyname%}_init({%=tyname%}* t, {%=ctype%}* a, size_t n) {
   _{%=tyname%}_reserve(t, n);
   for(size_t i = 0; i < n; ++i)
     t->data[i+1] = a[i];
   t->len = n;
 }
-
 void {%=tyname%}_push({%=tyname%}* t, {%=ctype%} v) {
   ++t->len;
   if(EULUNA_UNLIKELY(t->len > t->cap))
     _{%=tyname%}_grow(t);
   t->data[t->len] = v;
 }
-
 {%=ctype%} {%=tyname%}_pop({%=tyname%}* t) {
   if(EULUNA_UNLIKELY(t->len == 0))
     euluna_panic("{%=tyname%}_pop: length is 0");
   return t->data[t->len--];
 }
-
 {%=ctype%}* {%=tyname%}_at({%=tyname%}* t, size_t i) {
   if(EULUNA_UNLIKELY(i > t->len)) {
     if(EULUNA_UNLIKELY(i != t->len + 1))
@@ -71,7 +63,6 @@ void {%=tyname%}_push({%=tyname%}* t, {%=ctype%} v) {
   }
   return &t->data[i];
 }
-
 {%=ctype%}* {%=tyname%}_get({%=tyname%}* t, size_t i) {
   if(EULUNA_UNLIKELY(i > t->len)) {
     euluna_panic("{%=tyname%}_get: index out of range");

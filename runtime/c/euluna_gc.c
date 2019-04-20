@@ -1,7 +1,3 @@
-#ifndef EULUNA_COMPILER
-#include "euluna_gc.h"
-#endif
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>

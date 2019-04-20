@@ -1,18 +1,13 @@
-#ifndef EULUNA_COMPILER
-#include "euluna_main.h"
-#include "euluna_gc.h"
-#endif
-
 int main(int argc, char **argv) {
   EULUNA_UNUSED(argv);
-  /* {% if context.has_gc then %} */
+{% if context.has_gc then %}
   euluna_gc_start(&euluna_gc, &argc);
 	int (*volatile inner_main)(void) = euluna_main;
   int result = inner_main();
   euluna_gc_stop(&euluna_gc);
   return result;
-  /* {% else %} */
+{% else %}
   EULUNA_UNUSED(argc);
   return euluna_main();
-  /* {% end %} */
+{% end %}
 }

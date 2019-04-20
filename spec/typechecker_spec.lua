@@ -11,9 +11,8 @@ it("local variable", function()
   assert.analyze_ast("local a: integer",
     n.Block { {
       n.VarDecl { 'local', 'var',
-        { n.IdDecl{ assign=true, type='int64', 'a', 'var',
+        { n.IdDecl{ assign=true, codename='a', type='int64', 'a', 'var',
           n.Type { type='int64', 'integer'}}},
-        {}
       }
     } }
   )
@@ -21,9 +20,8 @@ it("local variable", function()
   assert.analyze_ast("local a: integer = 1",
     n.Block { {
       n.VarDecl { 'local', 'var',
-        { n.IdDecl{ assign=true, type='int64', 'a', 'var',
+        { n.IdDecl{ assign=true, codename='a', type='int64', 'a', 'var',
           n.Type { type='int64', 'integer'}}},
-        {},
         { n.Number{
           type='int64',
           value=bn.fromdec('1'),
@@ -35,8 +33,7 @@ it("local variable", function()
   assert.analyze_ast("local a = 1; f(a)",
     n.Block { {
       n.VarDecl { 'local', 'var',
-        { n.IdDecl { assign=true, type='int64', 'a', 'var' }},
-        {},
+        { n.IdDecl { assign=true, codename='a', type='int64', 'a', 'var' }},
         { n.Number {
           type='int64',
           value=bn.fromdec('1'),
@@ -44,8 +41,8 @@ it("local variable", function()
         }}
       },
       n.Call { callee_type='any', type='any',
-        { n.Id { type='int64', "a"} },
-        n.Id { type='any', "f"},
+        { n.Id { codename='a', type='int64', "a"} },
+        n.Id { codename='f', type='any', "f"},
         true
     }
   }})

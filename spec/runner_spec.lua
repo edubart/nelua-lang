@@ -51,11 +51,13 @@ it("print correct generated AST" , function()
       type = "any",
       { String {
           type = "string",
+          value = "hello world",
           "hello world",
           nil
         }
       },
       Id {
+        codename = "print",
         type = "any",
         "print"
       },

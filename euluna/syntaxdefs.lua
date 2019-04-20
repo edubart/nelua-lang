@@ -280,7 +280,6 @@ local function get_parser(std)
     ({} '' -> 'VarDecl'
       var_scope '' -> 'var'
       {| typed_idlist |}
-      {| var_pragma* |}
       (%ASSIGN {| eexpr_list |})?
     ) -> to_astnode
   ]])
@@ -310,7 +309,7 @@ local function get_parser(std)
   ]])
 
   grammar:add_group_peg('stat', 'pragma', [[
-    ({} %DBEXCL -> 'Pragma' esuffixed_expr) -> to_astnode
+    ({} %DBEXCL -> 'Pragma' epragma_expr) -> to_astnode
   ]])
 
   if not is_luacompat then
@@ -318,7 +317,6 @@ local function get_parser(std)
       ({} '' -> 'VarDecl'
         ((var_scope (var_mutability / '' -> 'var')) / (cnil var_mutability))
         {| typed_idlist |}
-        {| var_pragma* |}
         (%ASSIGN {| eexpr_list |})?
       ) -> to_astnode
     ]], nil, true)
@@ -410,7 +408,8 @@ local function get_parser(std)
     typed_id <- ({} '' -> 'IdDecl'
         %cNAME
         (var_mutability / '' -> 'var')
-        (%COLON etypexpr)?
+        (%COLON etypexpr / cnil)
+        (&%EXCL {| var_pragma* |})?
       ) -> to_astnode
 
     typexpr_list <- typexpr (%COMMA typexpr)*
@@ -420,7 +419,14 @@ local function get_parser(std)
     eexpr_list <- eexpr (%COMMA expr)*
 
     var_scope <- %LOCAL -> 'local'
-    var_pragma <- ({} %EXCL -> 'Pragma' esuffixed_expr) -> to_astnode
+    var_pragma <- ({} %EXCL -> 'Pragma' epragma_expr) -> to_astnode
+
+    epragma_expr <-
+      ecNAME {|(
+        (%LPAREN pragma_arg (%COMMA pragma_arg)* eRPAREN) /
+        %cSTRING
+      )?|}
+    pragma_arg <- %cNUMBER / %cSTRING / %cBOOLEAN
 
     cnil <- '' -> to_nil
     ctrue <- '' -> to_true
@@ -523,7 +529,6 @@ local function get_parser(std)
     ecNAME          <- %cNAME         / %{ExpectedName}
     ecNUMBER        <- %cNUMBER       / %{ExpectedNumber}
     eexpr           <- expr           / %{ExpectedExpression}
-    esuffixed_expr  <- suffixed_expr  / %{ExpectedExpression}
     etypexpr        <- typexpr        / %{ExpectedTypeExpression}
     ecall_args      <- call_args      / %{ExpectedCall}
     erecord_field   <- record_field   / %{ExpectedRecordFieldType}

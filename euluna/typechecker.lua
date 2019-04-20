@@ -87,10 +87,12 @@ function visitors.Number(context, node, desiredtype)
 end
 
 function visitors.String(_, node)
+  node.value = node:args(1)
   node.type = primtypes.string
 end
 
 function visitors.Boolean(_, node)
+  node.value = node:args(1)
   node.type = primtypes.boolean
 end
 
@@ -157,14 +159,33 @@ function visitors.Table(context, node, desiredtype)
   end
 end
 
+function visitors.Pragma(context, node, symbol)
+  local name, argnodes = node:args()
+  context:traverse(argnodes)
+  if name == 'codename' then
+    node:assertraisef(#argnodes == 1 and traits.is_string(argnodes[1].value),
+      "pragma '%s' expects one string argument", name)
+    symbol:set_codename(argnodes[1].value)
+  elseif name == 'cimport' then
+    node:assertraisef(#argnodes >= 1 and #argnodes <= 2,
+      "pragma '%s' expects at most two string arguments", name)
+    symbol:set_codename(argnodes[1].value)
+  else
+    node:assertraisef(#argnodes == 0, "pragma '%s' takes no arguments", name)
+  end
+end
+
 function visitors.Id(context, node)
   local name = node:arg(1)
   local type = node.type
   if not type and context.phase == phases.any_inference then
     type = primtypes.any
   end
-  local symbol = context.scope:get_symbol(name, node) or context.scope:add_symbol(Symbol(name, node, type))
-  symbol:link_node_type(node)
+  local symbol = context.scope:get_symbol(name, node)
+  if not symbol then
+    symbol = context.scope:add_symbol(Symbol(name, node, type))
+  end
+  symbol:link_node(node)
   return symbol
 end
 
@@ -445,7 +466,8 @@ function visitors.Call(context, node)
 end
 
 function visitors.IdDecl(context, node)
-  local name, mut, typenode = node:args()
+  local name, mut, typenode, pragmanodes = node:args()
+  node:assertraisef(mut == 'var', 'other mutabilities not supported yet')
   local type = node.type
   if typenode then
     context:traverse(typenode)
@@ -455,7 +477,10 @@ function visitors.IdDecl(context, node)
     type = primtypes.any
   end
   local symbol = context.scope:add_symbol(Symbol(name, node, type))
-  symbol:link_node_type(node)
+  if pragmanodes then
+    context:traverse(pragmanodes, symbol)
+  end
+  symbol:link_node(node)
   return symbol
 end
 
@@ -495,44 +520,43 @@ end
 
 function visitors.ForNum(context, node)
   local itvar, beginval, comp, endval, incrval, block = node:args()
-  local itvarname = itvar[1]
+  local itname = itvar[1]
   context:traverse(beginval)
   context:traverse(endval)
   if incrval then
     context:traverse(incrval)
   end
   repeat_scope_until_resolution(context, 'loop', function()
-    context:traverse(itvar)
-    local itsymbol = context.scope:add_symbol(Symbol(itvarname, itvar, itvar.type))
+    local itsymbol = context:traverse(itvar)
     if itvar.type then
       if beginval.type then
         itvar:assertraisef(itvar.type:is_coercible_from(beginval.type),
           "`for` variable '%s' of type '%s' is not coercible with begin value of type '%s'",
-          itvarname, tostring(itvar.type), tostring(beginval.type))
+          itname, tostring(itvar.type), tostring(beginval.type))
       end
       if endval.type then
         itvar:assertraisef(itvar.type:is_coercible_from(endval.type),
           "`for` variable '%s' of type '%s' is not coercible with end value of type '%s'",
-          itvarname, tostring(itvar.type), tostring(endval.type))
+          itname, tostring(itvar.type), tostring(endval.type))
       end
       if incrval and incrval.type then
         itvar:assertraisef(itvar.type:is_coercible_from(incrval.type),
           "`for` variable '%s' of type '%s' is not coercible with increment value of type '%s'",
-          itvarname, tostring(itvar.type), tostring(incrval.type))
+          itname, tostring(itvar.type), tostring(incrval.type))
       end
     else
       itsymbol:add_possible_type(beginval.type, true)
       itsymbol:add_possible_type(endval.type, true)
     end
-    itsymbol:link_node_type(itvar)
+    itsymbol:link_node(itvar)
     context:traverse(block)
   end)
 end
 
 function visitors.VarDecl(context, node)
-  local varscope, mutability, vars, pragmas, vals = node:args()
+  local varscope, mut, vars, vals = node:args()
   vals = vals or {}
-  node:assertraisef(mutability == 'var', 'variable mutability not supported yet')
+  node:assertraisef(mut == 'var', 'other mutabilities not supported yet')
   node:assertraisef(#vars >= #vals,
     'too many expressions in declaration, expected at most %d but got %d',
     #vars, #vals)
@@ -593,6 +617,9 @@ end
 function visitors.FuncDef(context, node)
   local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
   local symbol = context:traverse(varnode)
+  if pragmanodes then
+    context:traverse(pragmanodes, symbol)
+  end
 
   -- try to resolver function return types
   local funcscope = repeat_scope_until_resolution(context, 'function', function()
@@ -643,7 +670,7 @@ function visitors.FuncDef(context, node)
         symbol:add_possible_type(type)
       end
     end
-    symbol:link_node_type(node)
+    symbol:link_node(node)
   else
     node.type = type
   end

@@ -113,6 +113,10 @@ function Type:is_string()
   return self.name == 'string'
 end
 
+function Type:is_cstring()
+  return self.name == 'cstring'
+end
+
 function Type:is_record()
   return self.name == 'record'
 end

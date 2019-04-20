@@ -320,6 +320,31 @@ it("pointers", function()
   ]], "1\n2\n3")
 end)
 
+it("pragmas", function()
+  assert.generate_c("local a: int64 !volatile !codename'a'", "volatile euluna_int64 a")
+  assert.generate_c("local function f() !inline end", "inline void")
+  assert.generate_c("local function f() !noreturn end", "EULUNA_NORETURN void")
+  assert.generate_c("local function f() !noinline end", "EULUNA_NOINLINE void")
+  assert.generate_c(
+    "local function puts(s: cstring): int !cimport'puts' end",
+    "euluna_int puts(euluna_cstring s);")
+  assert.generate_c(
+    "local function cos(x: number): number !cimport('myfunc','<myheader.h>') end",
+    "#include <myheader.h>")
+  assert.run_c([[
+    local function exit(x: int32) !cimport('exit', '<stdlib.h>') end
+    local function printstdout(s: cstring): int !cimport('puts', '<stdio.h>') end
+    local function printstderr(s: cstring): int !cimport('perror') !nodecl end
+    local function f() !noinline !noreturn
+      local i: int32 !register !volatile !codename'i' = 0
+      exit(i)
+    end
+    printstdout('msg stdout\n')
+    printstderr('msg stderr\n')
+    f()
+  ]], "msg stdout", "msg stderr")
+end)
+
 it("print", function()
   assert.run({'-g', 'c', '-e', "print(1,0.2,1e2,0xf,0b01)"},
     '1\t0.200000\t100\t15\t1')

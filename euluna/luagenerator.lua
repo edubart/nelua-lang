@@ -238,7 +238,7 @@ function visitors.Goto(_, node, emitter)
 end
 
 function visitors.VarDecl(context, node, emitter)
-  local varscope, mutability, vars, pragmas, vals = node:args()
+  local varscope, mutability, vars, vals = node:args()
   local is_local = (varscope == 'local') or not context.scope:is_main()
   emitter:add_indent()
   if is_local then

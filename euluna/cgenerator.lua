@@ -29,9 +29,12 @@ local function add_casted_value(context, emitter, type, valnode)
       emitter:add(context:get_ctype(type), '_any_cast(', valnode, ')')
     elseif type == valnode.type or valnode.type:is_numeric() and type:is_numeric() then
       emitter:add(valnode)
-    --else
+    elseif valnode.type:is_string() and type:is_cstring() then
+      emitter:add('(', valnode, ')->data')
+    else --luacov:disable
       --emitter:add('(',context:get_ctype(type, valnode),')',valnode)
-    end
+      error('not implemented yet')
+    end --luacov:enable
   else
     emitter:add('{0}')
   end
@@ -113,8 +116,7 @@ end
 
 -- identifier and types
 function visitors.Id(_, node, emitter)
-  local name = node:args()
-  emitter:add(name)
+  emitter:add(node.codename)
 end
 
 function visitors.Paren(_, node, emitter)
@@ -133,11 +135,21 @@ visitors.ArrayType = visitors.Type
 
 function visitors.IdDecl(context, node, emitter)
   if node.type:is_type() then return end
-
-  local name, mut = node:args()
+  local name, mut, typenode, pragmanodes = node:args()
   node:assertraisef(mut == nil or mut == 'var', "variable mutabilities are not supported yet")
+  if pragmanodes then
+    for pragmanode in iters.ivalues(pragmanodes) do
+      local pragmaname, pragmaargs = pragmanode:args()
+      local cattr = cdefs.variable_pragmas[pragmaname]
+      pragmanode:assertraisef(cattr, "pragma '%s' is not defined", pragmaname)
+      if traits.is_string(cattr) then
+        pragmanode:assertraisef(#pragmaargs == 0, "pragma '%s' takes no arguments", pragmaname)
+        emitter:add(cattr, ' ')
+      end
+    end
+  end
   local ctype = context:get_ctype(node)
-  emitter:add(ctype, ' ', name)
+  emitter:add(ctype, ' ', node.codename)
 end
 
 -- indexing
@@ -369,7 +381,7 @@ local function add_assignments(context, emitter, vars, vals)
 end
 
 function visitors.VarDecl(context, node, emitter)
-  local varscope, mutability, vars, pragmas, vals = node:args()
+  local varscope, mutability, vars, vals = node:args()
   node:assertraisef(varscope == 'local', 'global variables not supported yet')
   node:assertraisef(not vals or #vars == #vals, 'vars and vals count differs')
   emitter:add_indent()
@@ -389,18 +401,51 @@ function visitors.FuncDef(context, node)
   local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
   node:assertraisef(#retnodes <= 1, 'multiple returns not supported yet')
   node:assertraisef(varscope == 'local', 'non local scope for functions not supported yet')
-  local emitter = Emitter(context)
+
+  local cfirstattr = 'static '
+  local cattr = ''
+  local declare = true
+  local define = true
+  for pragmanode in iters.ivalues(pragmanodes) do
+    local pragmaname, pragmaargs = pragmanode:args()
+    local attr = cdefs.function_pragmas[pragmaname] or cdefs.variable_pragmas[pragmaname]
+    pragmanode:assertraisef(attr, "pragma '%s' is not defined", pragmaname)
+    if pragmaname == 'cimport' then
+      define = false
+      local header = pragmaargs[2] and pragmaargs[2].value
+      if header then
+        context:add_include(header)
+        declare = false
+      end
+      cfirstattr = ''
+      pragmanode:assertraisef(#blocknode[1] == 0, 'body of C import function must be empty')
+    elseif pragmaname == 'nodecl' then
+      declare = false
+    elseif traits.is_string(attr) then
+      cattr = cattr .. attr .. ' '
+    end
+  end
+
+  local decemitter, defemitter = Emitter(context), Emitter(context)
   if #retnodes == 0 then
-    emitter:add_indent('void ')
+    decemitter:add_indent(cfirstattr, cattr, 'void ')
+    defemitter:add_indent('void ')
   else
     local ret = retnodes[1]
     node:assertraisef(ret.tag == 'Type')
-    emitter:add_indent(ret, ' ')
+    decemitter:add_indent(cfirstattr, cattr, ret, ' ')
+    defemitter:add_indent(ret, ' ')
   end
-  emitter:add_ln(varnode, '(', argnodes, ') {')
-  emitter:add(blocknode)
-  emitter:add_indent_ln('}')
-  context:add_declaration(emitter:generate())
+  decemitter:add_ln(varnode, '(', argnodes, ');')
+  defemitter:add_ln(varnode, '(', argnodes, ') {')
+  defemitter:add(blocknode)
+  defemitter:add_indent_ln('}')
+  if declare then
+    context:add_declaration(decemitter:generate())
+  end
+  if define then
+    context:add_definition(defemitter:generate())
+  end
 end
 
 -- operators
@@ -437,7 +482,7 @@ function visitors.BinaryOp(context, node, emitter)
   if typedefs.binary_conditional_ops[opname] and not node.type:is_boolean() then
     --TODO: create a temporary function in case of expressions and evaluate in order
     if opname == 'and' then
-      --TODO: usa nilable values here
+      --TODO: use nilable values here
       emitter:add('(', lnode, ' && ', rnode, ') ? ', rnode, ' : 0')
     elseif opname == 'or' then
       emitter:add(lnode, ' ? ', lnode, ' : ', rnode)
@@ -471,7 +516,7 @@ function generator.generate(ast)
   context:evaluate_templates()
 
   local code = table.concat({
-    '#define EULUNA_COMPILER\n',
+    table.concat(context.includes),
     table.concat(context.declarations),
     table.concat(context.definitions)
   })

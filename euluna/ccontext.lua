@@ -13,6 +13,7 @@ function CContext:_init(visitors)
   Context._init(self, visitors)
   self.declarations = {}
   self.definitions = {}
+  self.includes = {}
 end
 
 function CContext:get_ctype(nodeortype)
@@ -119,6 +120,12 @@ function CContext:add_definition(code, name)
     self.definitions[name] = true
   end
   table.insert(self.definitions, code)
+end
+
+function CContext:add_include(name)
+  if self.includes[name] then return end
+  self.includes[name] = true
+  table.insert(self.includes, string.format('#include %s\n', name))
 end
 
 local function eval_late_templates(templates)
