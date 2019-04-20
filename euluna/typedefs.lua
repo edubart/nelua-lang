@@ -35,9 +35,10 @@ primtypes.pointer = types.PointerType(nil, primtypes.void)
 typedefs.primtypes = primtypes
 
 -- type aliases
-primtypes.integer = primtypes.int64
-primtypes.number  = primtypes.float64
-primtypes.byte    = primtypes.uint8
+primtypes.integer  = primtypes.int64
+primtypes.uinteger = primtypes.uint64
+primtypes.number   = primtypes.float64
+primtypes.byte     = primtypes.uint8
 
 -- integral types
 local integral_types = {
@@ -78,6 +79,7 @@ primtypes.uint64.unsigned = true
 -- literal types
 typedefs.number_literal_types = {
   _integer    = primtypes.integer,
+  _uinteger   = primtypes.uinteger,
   _number     = primtypes.number,
   _b          = primtypes.byte,     _byte       = primtypes.byte,
   _c          = primtypes.char,     _char       = primtypes.char,
@@ -176,7 +178,7 @@ end
 local comparable_types = {
   primtypes.float32, primtypes.float64,
   primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
-  primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32,
+  primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
   primtypes.char, primtypes.string,
   result_type = primtypes.boolean
 }

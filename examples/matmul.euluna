@@ -1,0 +1,49 @@
+--TODO: implement as multidimensional static arrays
+--TODO: declare huge static arrays outside of the stack
+--TODO: implement slices
+
+local Matrix = @arraytable<arraytable<number>>
+
+local function matrix_transpose(a: Matrix, n: integer): Matrix
+  local x: Matrix = {}
+  for i=1,n do
+    x[i] = {}
+    for j=1,n do
+      x[i][j] = a[j][i]
+    end
+  end
+  return x
+end
+
+local function matrix_multiply(a: Matrix, b: Matrix, n: integer): Matrix
+  local x: Matrix = {}
+  local c = matrix_transpose(b, n)
+  for i=1,n do
+    x[i] = {}
+    for j=1,n do
+      local sum = 0.0
+      for k=1,n do
+        sum = sum + a[i][k] * c[j][k]
+      end
+      x[i][j] = sum
+    end
+  end
+  return x
+end
+
+local function matrix_generate(n: integer): Matrix
+  local a: Matrix, tmp = {}, 1.0 / n / n
+  for i=1,n do
+    a[i] = {}
+    for j=1,n do
+      a[i][j] = tmp * (i - j - 2) * (i + j - 2)
+    end
+  end
+  return a
+end
+
+local n = 200
+local a = matrix_generate(n)
+local b = matrix_generate(n)
+local res = matrix_multiply(a, b, n)
+print(res[n//2+1][n//2+1])

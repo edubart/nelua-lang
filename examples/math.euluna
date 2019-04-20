@@ -1,0 +1,171 @@
+--TODO: link libraries flags
+--TODO: return two values
+--TODO: function type overload
+--TODO: import variables/consts from C
+--TODO: declare constants visible inside functions
+--TODO: fix division 1_i / 2_i => must convert to float
+--TODO: impeleent using namespaces or method syntax sugar
+--TODO: become a module
+--TODO: export functions
+--TODO: discard operator
+--TODO: string compare
+
+--!!linklib '-lm'
+
+local math_pi = 3.141592653589793
+local math_maxinteger = 9223372036854775807
+local math_mininteger = -9223372036854775807 - 1
+local math_huge: number = @number(HUGE_VAL)
+
+local function math_abs(x: number): number !cimport('fabs','<math.h>') end
+local function math_ceil(x: number): number !cimport('ceil','<math.h>') end
+local function math_floor(x: number): number !cimport('floor','<math.h>') end
+local function math_max(x: number, y: number): number !cimport('fmax','<math.h>') end
+local function math_min(x: number, y: number): number !cimport('fmin','<math.h>') end
+local function math_acos(x: number): number !cimport('acos','<math.h>') end
+local function math_asin(x: number): number !cimport('asin','<math.h>') end
+local function math_atan(x: number): number !cimport('atan','<math.h>') end
+local function math_cos(x: number): number !cimport('cos','<math.h>') end
+local function math_sin(x: number): number !cimport('sin','<math.h>') end
+local function math_tan(x: number): number !cimport('tan','<math.h>') end
+local function math_sqrt(x: number): number !cimport('sqrt','<math.h>') end
+local function math_exp(x: number): number !cimport('exp','<math.h>') end
+local function math_log(x: number): number !cimport('log','<math.h>') end
+local function math_fmod(x: number, y: number): number !cimport('fmod','<math.h>') end
+
+-- used internally
+local function clog2(x: number): number !cimport('log2','<math.h>') end
+local function clog10(x: number): number !cimport('log10','<math.h>') end
+local function cmodf(x: number, y: pointer<number>): number !cimport('modf','<math.h>') end
+local function crand(): int32 !cimport('rand','<stdlib.h>') end
+local function csrand(x: uint32) !cimport('srand','<stdlib.h>') end
+
+local function math_atan2(x: number, y: number): number !cimport('atan2','<math.h>') end
+
+local function math_logbase(x: number, base: number): number
+  if base == 2.0 then
+    return clog2(x)
+  elseif base == 1.0 then
+    return clog10(x)
+  else
+    return math_log(x) / math_log(base)
+  end
+end
+
+local function math_deg(x: number)
+  return x * (180.0 / 3.141592653589793)
+end
+
+local function math_rad(x: number)
+  return x * (3.141592653589793 / 180.0)
+end
+
+local function math_intmodf(x: number)
+  local i: number
+  cmodf(x, &i)
+  return i
+end
+
+local function math_fracmodf(x: number)
+  local i: number
+  return cmodf(x, &i)
+end
+
+local function math_random()
+  local randmax = @int32(RAND_MAX)
+  local r: number = (crand() % randmax) / @number(randmax)
+  return r
+end
+--TODO:randommax
+--TODO:randomrange
+
+local function math_randomseed(x: number)
+  csrand(@uint32(x))
+end
+
+local function math_ult(m: integer, n: integer)
+  return @uinteger(m) < @uinteger(n)
+end
+
+local function math_tointeger(x: number)
+  return @integer(x)
+end
+
+--[[
+local function type(x: number)
+  return 'float'
+end
+assert(type(1.0) == 'float')
+]]
+
+--------------------------------
+-- tests
+local function assert_equal(x: number, y: number)
+  assert(math_abs(x - y) < 1e-12)
+end
+
+local e = 2.718281828459045
+assert_equal(math_abs(-1.0), 1)
+assert_equal(math_abs(1.0), 1)
+assert_equal(math_ceil(0.1), 1)
+assert_equal(math_ceil(1.0), 1)
+assert_equal(math_floor(0.9), 0)
+assert_equal(math_floor(0.0), 0)
+
+assert_equal(math_min(1.0, -1.0), -1)
+assert_equal(math_min(-1.0, 1.0), -1)
+assert_equal(math_max(1.0, -1.0), 1)
+assert_equal(math_max(-1.0, 1.0), 1)
+assert(math_min(math_huge, -math_huge) == -math_huge)
+assert(math_max(math_huge, -math_huge) == math_huge)
+
+assert_equal(math_acos(-1.0), math_pi)
+assert_equal(math_acos(1.0), 0)
+assert_equal(math_asin(0.0), 0)
+assert_equal(math_asin(1.0), math_pi/2)
+assert_equal(math_atan(0.0), 0)
+assert_equal(math_atan(1.0), math_pi/4)
+assert_equal(math_atan2(0.0, 1.0), 0)
+assert_equal(math_atan2(0.0, -1.0), math_pi)
+
+assert_equal(math_cos(math_pi), -1)
+assert_equal(math_cos(0.0), 1)
+assert_equal(math_sin(math_pi/2), 1)
+assert_equal(math_sin(0.0), 0)
+assert_equal(math_tan(math_pi/4), 1)
+assert_equal(math_tan(0.0), 0)
+
+assert_equal(math_deg(math_pi / 2), 90)
+assert_equal(math_deg(0), 0)
+assert_equal(math_rad(90), math_pi / 2)
+assert_equal(math_rad(0), 0)
+
+assert_equal(math_sqrt(4.0), 2)
+assert_equal(math_sqrt(9.0), 3)
+assert_equal(math_exp(0), 1)
+assert_equal(math_exp(1), e)
+assert_equal(math_log(1), 0)
+assert_equal(math_log(e), 1)
+assert_equal(math_logbase(1, 2), 0)
+assert_equal(math_logbase(2, 2), 1)
+assert_equal(math_logbase(1, 10), 0)
+assert_equal(math_logbase(10, 10), 1)
+
+assert_equal(math_fmod(5, 2), 1)
+assert_equal(math_fmod(2.3, 5.7), 2.3)
+assert_equal(math_intmodf(5), 5)
+assert_equal(math_intmodf(5.3), 5)
+assert_equal(math_intmodf(-5.3), -5)
+assert_equal(math_fracmodf(5), 0)
+assert_equal(math_fracmodf(5.3), 0.3)
+assert_equal(math_fracmodf(-5.3), -0.3)
+
+assert(not (math_maxinteger < math_mininteger))
+assert(math_ult(math_maxinteger, math_mininteger))
+assert(math_tointeger(1.0) == 1_integer)
+
+math_randomseed(0)
+for i=1,10 do
+  local x = math_random()
+  assert(x >= 0 and x <= 1)
+end

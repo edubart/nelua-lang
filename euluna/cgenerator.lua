@@ -44,12 +44,9 @@ function visitors.Number(context, node, emitter)
   local base, int, frac, exp, literal = node:args()
   if literal then
     local ctype = context:get_ctype(node.type)
-    emitter:add('((', ctype, ')')
+    emitter:add('(', ctype, ')')
   end
   emitter:add_composed_number(base, int, frac, exp, node.value:abs())
-  if literal then
-    emitter:add(')')
-  end
 end
 
 function visitors.String(context, node, emitter)
