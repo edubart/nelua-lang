@@ -288,16 +288,22 @@ local function get_parser(std)
   ]])
 
   grammar:add_group_peg('stat', 'assign', [[
-    ({} '' -> 'Assign' {| assignable_var_list |} %ASSIGN {| eexpr_list |}) -> to_astnode
+    ({} '' -> 'Assign' {| assignable_list |} %ASSIGN {| eexpr_list |}) -> to_astnode
 
-    assignable_var_list <- assignable_var (%COMMA assignable_var)*
-    assignable_var <-
+    assignable_list <- assignable (%COMMA assignable)*
+    assignable <-
+      ({} ''->'UnaryOp' {| op_deref* |} assignable_suffix) -> to_chain_unary_op
+    assignable_suffix <-
       (primary_expr {| ((call_expr+ &index_expr) / index_expr)+ |}) -> to_chain_index_or_call
       / %cID
   ]])
 
   grammar:add_group_peg('stat', 'call', [[
-    (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |} ctrue) -> to_chain_index_or_call
+    callable
+    callable <-
+      ({} ''->'UnaryOp' {| op_deref* |} callable_suffix) -> to_chain_unary_op
+    callable_suffix <-
+      (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |} ctrue) -> to_chain_index_or_call
   ]])
 
   if not is_luacompat then
@@ -485,7 +491,8 @@ local function get_parser(std)
                   %BNOT -> 'bnot' /
                   %TOSTR -> 'tostring' /
                   %REF -> 'ref' /
-                  %DEREF -> 'deref'
+                  op_deref
+    op_deref    <-  %DEREF -> 'deref'
     op_pow    <-  %POW -> 'pow'
   ]])
 

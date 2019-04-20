@@ -315,7 +315,9 @@ it("pointers", function()
     print(*p)
     i = 2
     print(*p)
-  ]], "1\n2")
+    *p = 3
+    print(i)
+  ]], "1\n2\n3")
 end)
 
 it("print", function()

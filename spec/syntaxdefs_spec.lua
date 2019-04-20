@@ -1134,6 +1134,12 @@ describe("operator", function()
     }}}}})
   end)
   it("'*'", function()
+    assert.parse_ast(euluna_parser, "*a = b",
+      n.Block{{
+        n.Assign{
+          {n.UnaryOp{'deref',n.Id{'a'}}},
+          {n.Id{'b'}
+    }}}})
     assert.parse_ast(euluna_parser, "return *a",
       n.Block{{
         n.Return{{
