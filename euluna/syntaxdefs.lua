@@ -192,6 +192,8 @@ local function get_parser(std)
   %AT           <- '@'
   %DOLLAR       <- '$'
   %QUESTION     <- '?'
+  %DBEXCL       <- '!!'
+  %EXCL         <- !%DBEXCL '!'
 
   -- used by types
   %TVAR         <- 'var'
@@ -278,6 +280,7 @@ local function get_parser(std)
     ({} '' -> 'VarDecl'
       var_scope '' -> 'var'
       {| typed_idlist |}
+      {| var_pragma* |}
       (%ASSIGN {| eexpr_list |})?
     ) -> to_astnode
   ]])
@@ -306,11 +309,16 @@ local function get_parser(std)
       (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |} ctrue) -> to_chain_index_or_call
   ]])
 
+  grammar:add_group_peg('stat', 'pragma', [[
+    ({} %DBEXCL -> 'Pragma' esuffixed_expr) -> to_astnode
+  ]])
+
   if not is_luacompat then
     grammar:add_group_peg('stat', 'vardecl', [[
       ({} '' -> 'VarDecl'
         ((var_scope (var_mutability / '' -> 'var')) / (cnil var_mutability))
         {| typed_idlist |}
+        {| var_pragma* |}
         (%ASSIGN {| eexpr_list |})?
       ) -> to_astnode
     ]], nil, true)
@@ -389,7 +397,7 @@ local function get_parser(std)
       eLPAREN (
         {| (typed_idlist (%COMMA %cVARARGS)? / %cVARARGS)? |}
       ) eRPAREN
-      {| (%COLON etypexpr_list)? |}
+      {| (%COLON etypexpr_list)? |} {| var_pragma* |}
         block
       eEND
     var_mutability <-
@@ -412,6 +420,7 @@ local function get_parser(std)
     eexpr_list <- eexpr (%COMMA expr)*
 
     var_scope <- %LOCAL -> 'local'
+    var_pragma <- ({} %EXCL -> 'Pragma' esuffixed_expr) -> to_astnode
 
     cnil <- '' -> to_nil
     ctrue <- '' -> to_true
@@ -498,27 +507,28 @@ local function get_parser(std)
 
   -- syntax expected captures with errors
   grammar:set_pegs([[
-    eRPAREN       <- %RPAREN      / %{UnclosedParenthesis}
-    eRBRACKET     <- %RBRACKET    / %{UnclosedBracket}
-    eRCURLY       <- %RCURLY      / %{UnclosedCurly}
-    eRANGLE       <- %RANGLE      / %{UnclosedAngle}
-    eLPAREN       <- %LPAREN      / %{ExpectedParenthesis}
-    eLCURLY       <- %LCURLY      / %{ExpectedCurly}
-    eLANGLE       <- %LANGLE      / %{ExpectedAngle}
-    eCOLON        <- %COLON       / %{ExpectedColon}
-    eCOMMA        <- %COMMA       / %{ExpectedComma}
-    eEND          <- %END         / %{ExpectedEnd}
-    eTHEN         <- %THEN        / %{ExpectedThen}
-    eUNTIL        <- %UNTIL       / %{ExpectedUntil}
-    eDO           <- %DO          / %{ExpectedDo}
-    ecNAME        <- %cNAME       / %{ExpectedName}
-    ecNUMBER      <- %cNUMBER     / %{ExpectedNumber}
-    eexpr         <- expr         / %{ExpectedExpression}
-    etypexpr      <- typexpr      / %{ExpectedTypeExpression}
-    ecall_args    <- call_args    / %{ExpectedCall}
-    erecord_field <- record_field / %{ExpectedRecordFieldType}
-    eenum_field   <- enum_field   / %{ExpectedEnumFieldType}
-    eprim_type    <- prim_type    / %{ExpectedPrimitiveTypeExpression}
+    eRPAREN         <- %RPAREN        / %{UnclosedParenthesis}
+    eRBRACKET       <- %RBRACKET      / %{UnclosedBracket}
+    eRCURLY         <- %RCURLY        / %{UnclosedCurly}
+    eRANGLE         <- %RANGLE        / %{UnclosedAngle}
+    eLPAREN         <- %LPAREN        / %{ExpectedParenthesis}
+    eLCURLY         <- %LCURLY        / %{ExpectedCurly}
+    eLANGLE         <- %LANGLE        / %{ExpectedAngle}
+    eCOLON          <- %COLON         / %{ExpectedColon}
+    eCOMMA          <- %COMMA         / %{ExpectedComma}
+    eEND            <- %END           / %{ExpectedEnd}
+    eTHEN           <- %THEN          / %{ExpectedThen}
+    eUNTIL          <- %UNTIL         / %{ExpectedUntil}
+    eDO             <- %DO            / %{ExpectedDo}
+    ecNAME          <- %cNAME         / %{ExpectedName}
+    ecNUMBER        <- %cNUMBER       / %{ExpectedNumber}
+    eexpr           <- expr           / %{ExpectedExpression}
+    esuffixed_expr  <- suffixed_expr  / %{ExpectedExpression}
+    etypexpr        <- typexpr        / %{ExpectedTypeExpression}
+    ecall_args      <- call_args      / %{ExpectedCall}
+    erecord_field   <- record_field   / %{ExpectedRecordFieldType}
+    eenum_field     <- enum_field     / %{ExpectedEnumFieldType}
+    eprim_type      <- prim_type      / %{ExpectedPrimitiveTypeExpression}
   ]])
 
   -- compile whole grammar

@@ -81,11 +81,18 @@ astbuilder:register('PointerType', stypes.shape {
   ntypes.Node:is_optional(), -- subtype typexpr
 })
 
+-- pragma
+astbuilder:register('Pragma', stypes.shape {
+  ntypes.Node -- expr
+})
+
 -- function
 astbuilder:register('Function', stypes.shape {
   stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
-  ntypes.Node -- block
+  stypes.array_of(ntypes.Pragma), -- pragmas
+  ntypes.Node, -- block
+  ntypes.Pragma:is_optional() -- pragma
 })
 
 -- indexing
@@ -163,6 +170,7 @@ astbuilder:register('VarDecl', stypes.shape {
   stypes.one_of{"local"}:is_optional(), -- scope
   stypes.one_of{"var", "var&", "val", "val&"}, -- mutability
   stypes.array_of(ntypes.IdDecl), -- var names with types
+  stypes.array_of(ntypes.Pragma), -- pragmas
   stypes.array_of(ntypes.Node):is_optional(), -- expr list, initial assignments values
 })
 astbuilder:register('Assign', stypes.shape {
@@ -174,6 +182,7 @@ astbuilder:register('FuncDef', stypes.shape {
   ntypes.Id + ntypes.DotIndex + ntypes.ColonIndex, -- name
   stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
+  stypes.array_of(ntypes.Pragma), -- pragmas
   ntypes.Block -- block
 })
 

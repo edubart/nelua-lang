@@ -369,7 +369,7 @@ local function add_assignments(context, emitter, vars, vals)
 end
 
 function visitors.VarDecl(context, node, emitter)
-  local varscope, mutability, vars, vals = node:args()
+  local varscope, mutability, vars, pragmas, vals = node:args()
   node:assertraisef(varscope == 'local', 'global variables not supported yet')
   node:assertraisef(not vals or #vars == #vals, 'vars and vals count differs')
   emitter:add_indent()
@@ -386,19 +386,19 @@ function visitors.Assign(context, node, emitter)
 end
 
 function visitors.FuncDef(context, node)
-  local varscope, varnode, args, rets, block = node:args()
-  node:assertraisef(#rets <= 1, 'multiple returns not supported yet')
+  local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
+  node:assertraisef(#retnodes <= 1, 'multiple returns not supported yet')
   node:assertraisef(varscope == 'local', 'non local scope for functions not supported yet')
   local emitter = Emitter(context)
-  if #rets == 0 then
+  if #retnodes == 0 then
     emitter:add_indent('void ')
   else
-    local ret = rets[1]
+    local ret = retnodes[1]
     node:assertraisef(ret.tag == 'Type')
     emitter:add_indent(ret, ' ')
   end
-  emitter:add_ln(varnode, '(', args, ') {')
-  emitter:add(block)
+  emitter:add_ln(varnode, '(', argnodes, ') {')
+  emitter:add(blocknode)
   emitter:add_indent_ln('}')
   context:add_declaration(emitter:generate())
 end

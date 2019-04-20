@@ -811,15 +811,15 @@ generator.
 ### Global pragmas
 
 ```euluna
-{:cinclude '<stdio.h>':} -- include C header
-{:cppinclude '<iostream>', cppflags "-DSOMETHING":} -- include C++ header
-{:linkflags "-Lsomelib":} -- link a library
+!!cinclude '<stdio.h>' -- include C header
+!!cppinclude '<iostream>' !cppflags "-DSOMETHING" -- include C++ header
+!!linkflags "-Lsomelib" -- link a library
 ```
 
 ### Function pragmas
 
 ```euluna
-function sum(a, b) {:inline:} -- inline function
+function sum(a, b) !inline -- inline function
   return a + b
 end
 ```
@@ -827,8 +827,8 @@ end
 ### Variable pragmas
 
 ```euluna
-local {:noinit:} a: integer -- don't initialize variable
-local {:volatile:} a = 1 -- C volatile variable
+local a: integer !noinit-- don't initialize variable
+local a !volatile = 1 -- C volatile variable
 ```
 
 --------------------------------------------------------------------------------
@@ -837,7 +837,7 @@ local {:volatile:} a = 1 -- C volatile variable
 Literals are used to convert string or numbers into arbitrary types.
 
 ```euluna
-function _f32(v) {:literal:}
+function _f32(v) !literal
   return tofloat(v)
 end
 

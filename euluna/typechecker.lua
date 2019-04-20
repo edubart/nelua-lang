@@ -530,7 +530,7 @@ function visitors.ForNum(context, node)
 end
 
 function visitors.VarDecl(context, node)
-  local varscope, mutability, vars, vals = node:args()
+  local varscope, mutability, vars, pragmas, vals = node:args()
   vals = vals or {}
   node:assertraisef(mutability == 'var', 'variable mutability not supported yet')
   node:assertraisef(#vars >= #vals,
@@ -591,7 +591,7 @@ function visitors.Return(context, node)
 end
 
 function visitors.FuncDef(context, node)
-  local varscope, varnode, argnodes, retnodes, blocknode = node:args()
+  local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
   local symbol = context:traverse(varnode)
 
   -- try to resolver function return types

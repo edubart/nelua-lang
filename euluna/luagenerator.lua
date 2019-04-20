@@ -57,7 +57,7 @@ end
 
 -- function
 function visitors.Function(_, node, emitter)
-  local args, rets, block = node:args()
+  local args, rets, pragmas, block = node:args()
   if #block[1] == 0 then
     emitter:add('function(', args, ') end')
   else
@@ -238,7 +238,7 @@ function visitors.Goto(_, node, emitter)
 end
 
 function visitors.VarDecl(context, node, emitter)
-  local varscope, mutability, vars, vals = node:args()
+  local varscope, mutability, vars, pragmas, vals = node:args()
   local is_local = (varscope == 'local') or not context.scope:is_main()
   emitter:add_indent()
   if is_local then
@@ -282,7 +282,7 @@ function visitors.Assign(_, node, emitter)
 end
 
 function visitors.FuncDef(_, node, emitter)
-  local varscope, name, args, rets, block = node:args()
+  local varscope, name, args, rets, pragams, block = node:args()
   emitter:add_indent()
   if varscope == 'local' then
     emitter:add('local ')

@@ -12,7 +12,8 @@ it("local variable", function()
     n.Block { {
       n.VarDecl { 'local', 'var',
         { n.IdDecl{ assign=true, type='int64', 'a', 'var',
-          n.Type { type='int64', 'integer'}}}
+          n.Type { type='int64', 'integer'}}},
+        {}
       }
     } }
   )
@@ -22,6 +23,7 @@ it("local variable", function()
       n.VarDecl { 'local', 'var',
         { n.IdDecl{ assign=true, type='int64', 'a', 'var',
           n.Type { type='int64', 'integer'}}},
+        {},
         { n.Number{
           type='int64',
           value=bn.fromdec('1'),
@@ -34,6 +36,7 @@ it("local variable", function()
     n.Block { {
       n.VarDecl { 'local', 'var',
         { n.IdDecl { assign=true, type='int64', 'a', 'var' }},
+        {},
         { n.Number {
           type='int64',
           value=bn.fromdec('1'),
