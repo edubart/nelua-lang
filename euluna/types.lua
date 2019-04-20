@@ -1,6 +1,7 @@
 local class = require 'euluna.utils.class'
 local tabler = require 'euluna.utils.tabler'
 local iters = require 'euluna.utils.iterators'
+local traits = require 'euluna.utils.traits'
 local stringer = require 'euluna.utils.stringer'
 local sstream = require 'euluna.utils.sstream'
 local metamagic = require 'euluna.utils.metamagic'
@@ -49,6 +50,9 @@ end
 
 function Type:get_unary_operator_type(opname)
   local type = self.unary_operators[opname]
+  if traits.is_function(type) then
+    type = type(self)
+  end
   if not type and self:is_any() then
     type = self
   end
@@ -131,6 +135,10 @@ end
 
 function Type:is_enum()
   return self.name == 'enum'
+end
+
+function Type:is_void()
+  return self.name == 'void'
 end
 
 function Type:is_arraytable()
@@ -307,16 +315,17 @@ local PointerType = typeclass()
 function PointerType:_init(node, subtype)
   self.subtype = subtype
   Type._init(self, 'pointer', node)
-  if subtype then
+  if not subtype:is_void() then
     self.codename = subtype.codename .. '_pointer'
   end
+  self.unary_operators['deref'] = subtype
 end
 
 function PointerType:is_coercible_from(type)
   if Type.is_coercible_from(self, type) then
     return true
   end
-  return type:is_pointer() and type.subtype == self.subtype or self.subtype == nil
+  return type:is_pointer() and type.subtype == self.subtype or self.subtype:is_void()
 end
 
 function PointerType:is_equal(type)
@@ -326,7 +335,7 @@ function PointerType:is_equal(type)
 end
 
 function PointerType:__tostring()
-  if self.subtype then
+  if not self.subtype:is_void() then
     return sstream(self.name, '<', self.subtype, '>'):tostring()
   else
     return self.name

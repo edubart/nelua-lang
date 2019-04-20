@@ -443,6 +443,16 @@ it("pointers", function()
   ]], "is not coercible with")
 end)
 
+it("dereferecing and referencing", function()
+  assert.analyze_ast([[local p: pointer<integer>; local i = 1; p = &i]])
+  assert.analyze_ast([[local p: pointer<integer>; local i = *p]])
+end)
+
+it("pointers to complex types", function()
+  assert.analyze_ast([[local p: pointer<record{x:int}>; p.x = 0]])
+  assert.analyze_error([[local p: pointer<record{x:int}>; p.y = 0]], "does not have field")
+end)
+
 it("type construction", function()
   assert.analyze_ast("local a = @integer(0)")
   assert.analyze_ast("local a = @boolean(false)")

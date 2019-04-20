@@ -314,6 +314,10 @@ function visitors.DotIndex(context, node)
   local type
   local objtype = objnode.type
   if objtype then
+    if objtype:is_pointer() then
+      objtype = objtype.subtype
+    end
+
     if objtype:is_record() then
       type = objtype:get_field_type(name)
       node:assertraisef(type,
@@ -332,7 +336,9 @@ function visitors.DotIndex(context, node)
       else
         node:raisef('cannot index fields for type "%s"', tostring(objtype))
       end
-    end
+    elseif not (objtype:is_table() or objtype:is_any()) then --luacov:disable
+      error('not implemented yet')
+    end --luacov:enable
   end
   if not type and context.phase == phases.any_inference then
     type = primtypes.any

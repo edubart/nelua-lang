@@ -25,13 +25,13 @@ local primtypes = {
   string    = Type('string'),
   cstring   = Type('cstring'),
   char      = Type('char'),
-  pointer   = types.PointerType(),
   any       = Type('any'),
   void      = Type('void'),
   table     = Type('table'),
   Nil       = Type('nil'),
   type      = Type.type, -- the type of "Type"
 }
+primtypes.pointer = types.PointerType(nil, primtypes.void)
 typedefs.primtypes = primtypes
 
 -- type aliases
@@ -146,13 +146,18 @@ local bitwise_types = {
   primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64
 }
 local unary_op_types = {
-  -- 'not' is defined for everything in the code
   ['neg']   = { primtypes.float32, primtypes.float64,
                 primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64},
   ['bnot']  = bitwise_types,
-  --TODO: ref
-  --TODO: deref
-  --TODO: len
+  ['len']   = { types.ArrayTableType, types.ArrayType, types.RecordType,
+                result_type = primtypes.integer },
+  ['not']   = { Type, primtypes.boolean },
+  ['ref']   = { Type, result_type = function(type)
+                  if not type:is_type() then
+                    return types.PointerType(nil, type)
+                  end
+                end
+              },
   --TODO: tostring
 }
 
@@ -162,7 +167,6 @@ do
       type:add_unary_operator_type(opname, optypes.result_type or type)
     end
   end
-  Type:add_unary_operator_type('not', primtypes.boolean)
 end
 
 -- binary operator types
@@ -190,7 +194,9 @@ local binary_op_types = {
   ['mod']     = typedefs.numeric_types,
   ['idiv']    = typedefs.numeric_types,
   ['pow']     = typedefs.numeric_types,
-  ['concat']  = { primtypes.string }
+  ['concat']  = { primtypes.string },
+  ['ne']      = { Type, result_type = primtypes.boolean },
+  ['eq']      = { Type, result_type = primtypes.boolean },
 }
 
 do
@@ -201,20 +207,11 @@ do
   end
 end
 
--- `ne`, `eq` is defined for everything in the code
-Type:add_binary_operator_type('ne', primtypes.boolean)
-Type:add_binary_operator_type('eq', primtypes.boolean)
-
 -- 'or', 'and' is handled internally
 typedefs.binary_conditional_ops = {
   ['or']  = true,
   ['and'] = true,
 }
-
--- array table types
-types.ArrayTableType:add_unary_operator_type('len', primtypes.integer)
-types.ArrayType:add_unary_operator_type('len', primtypes.integer)
-types.RecordType:add_unary_operator_type('len', primtypes.integer)
 
 function typedefs.find_common_type(possibletypes)
   local len = #possibletypes

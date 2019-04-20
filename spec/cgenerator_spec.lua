@@ -305,6 +305,19 @@ it("enums", function()
   ]])
 end)
 
+it("pointers", function()
+  assert.generate_c("local p: pointer<float32>", "euluna_float32*")
+  assert.generate_c("local p: pointer", "void*")
+  assert.generate_c("local p: pointer<record{x:int}>; p.x = 0", "->x = ")
+  assert.run_c([[
+    local i: integer = 1
+    local p: pointer<integer> = &i
+    print(*p)
+    i = 2
+    print(*p)
+  ]], "1\n2")
+end)
+
 it("print", function()
   assert.run({'-g', 'c', '-e', "print(1,0.2,1e2,0xf,0b01)"},
     '1\t0.200000\t100\t15\t1')

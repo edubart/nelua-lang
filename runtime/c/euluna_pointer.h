@@ -1,0 +1,1 @@
+typedef {%=subctype%}* {%=tyname%};

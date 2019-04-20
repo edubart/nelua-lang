@@ -150,6 +150,8 @@ function visitors.DotIndex(_, node, emitter)
     else --luacov:disable
       error('not implemented yet')
     end --luacov:enable
+  elseif objnode.type:is_pointer() then
+    emitter:add(objnode, '->', name)
   else
     emitter:add(objnode, '.', name)
   end

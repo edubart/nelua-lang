@@ -66,6 +66,9 @@ function bn.tohex(v)
     table.insert(t, 1, string.format('%x', d))
     n = (n / 16):trunc()
   end
+  if #t == 0 then
+    return '0'
+  end
   return table.concat(t)
 end
 
