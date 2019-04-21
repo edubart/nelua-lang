@@ -93,6 +93,12 @@ cdefs.compilers_flags = {
   }
 }
 
+do
+  for _,compiler_flags in pairs(cdefs.compilers_flags) do
+    metamagic.setmetaindex(compiler_flags, cdefs.compiler_base_flags)
+  end
+end
+
 cdefs.variable_pragmas = {
   volatile = 'volatile',
   register = 'register',
@@ -107,8 +113,96 @@ cdefs.function_pragmas = {
   noreturn = 'EULUNA_NORETURN',
 }
 
-for _,compiler_flags in pairs(cdefs.compilers_flags) do
-  metamagic.setmetaindex(compiler_flags, cdefs.compiler_base_flags)
+cdefs.reserverd_keywords = {
+  -- C syntax keywrods
+  ['auto'] = true,
+  ['break'] = true,
+  ['case'] = true,
+  ['char'] = true,
+  ['const'] = true,
+  ['continue'] = true,
+  ['default'] = true,
+  ['do'] = true,
+  ['double'] = true,
+  ['else'] = true,
+  ['enum'] = true,
+  ['extern'] = true,
+  ['float'] = true,
+  ['for'] = true,
+  ['goto'] = true,
+  ['if'] = true,
+  ['int'] = true,
+  ['long'] = true,
+  ['register'] = true,
+  ['return'] = true,
+  ['short'] = true,
+  ['signed'] = true,
+  ['sizeof'] = true,
+  ['static'] = true,
+  ['struct'] = true,
+  ['switch'] = true,
+  ['typedef'] = true,
+  ['union'] = true,
+  ['unsigned'] = true,
+  ['void'] = true,
+  ['volatile'] = true,
+  ['while'] = true,
+  ['inline'] = true,
+  ['restrict'] = true,
+  ['asm'] = true,
+  ['fortran'] = true,
+
+  -- C macros aliases
+  ['alignas'] = true,
+  ['alignof'] = true,
+  ['offsetof'] = true,
+  ['bool'] = true,
+  ['complex'] = true,
+  ['imaginary'] = true,
+  ['noreturn'] = true,
+  ['static_assert'] = true,
+  ['thread_local'] = true,
+
+  -- C operator aliases
+  ['and'] = true,
+  ['and_eq'] = true,
+  ['bitand'] = true,
+  ['bitor'] = true,
+  ['compl'] = true,
+  ['not'] = true,
+  ['not_eq'] = true,
+  ['or'] = true,
+  ['or_eq'] = true,
+  ['xor'] = true,
+  ['xor_eq'] = true,
+
+  -- C macros used internally by compilers
+  ['NULL'] = true,
+  ['NAN'] = true,
+  ['EOF'] = true,
+  ['INFINITY'] = true,
+  ['BUFSIZ'] = true,
+
+  ['errno'] = true,
+  ['stderr'] = true,
+  ['stdin'] = true,
+  ['stdout'] = true,
+  ['assert'] = true,
+
+  -- C arch defines
+  ['i386'] = true,
+  ['linux'] = true,
+  ['mips'] = true,
+  ['near'] = true,
+  ['powerpc'] = true,
+  ['unix'] = true,
+}
+
+function cdefs.quotename(name)
+  if cdefs.reserverd_keywords[name] then
+    return name .. '_'
+  end
+  return name
 end
 
 return cdefs

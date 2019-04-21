@@ -179,6 +179,19 @@ it("c types", function()
   assert.generate_c("local a: boolean", "euluna_boolean a = {0};")
 end)
 
+it("reserved names quoting", function()
+  assert.generate_c("local default: integer", "euluna_int64 default_ = {0};")
+  assert.generate_c("local NULL: integer = 0", "euluna_int64 NULL_ = 0;")
+  assert.run_c([[
+    local function struct(static: integer)
+      local default: integer
+      default = 1
+      return default + static
+    end
+    print(struct(1))
+  ]], "2")
+end)
+
 it("any type", function()
   assert.generate_c(
     "local a: any",

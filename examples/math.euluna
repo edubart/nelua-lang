@@ -10,7 +10,7 @@
 --TODO: discard operator
 --TODO: string compare
 
---!!linklib '-lm'
+--!!linkflag '-lm'
 
 local math_pi = 3.141592653589793
 local math_maxinteger = 9223372036854775807

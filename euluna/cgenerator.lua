@@ -71,7 +71,7 @@ function visitors.Pair(_, node, emitter, parent_type)
   local namenode, valuenode = node:args()
   if parent_type:is_record() then
     assert(traits.is_string(namenode))
-    emitter:add('.', namenode, ' = ', valuenode)
+    emitter:add('.', cdefs.quotename(namenode), ' = ', valuenode)
   else --luacov:disable
     error('not implemented yet')
   end --luacov:enable
@@ -113,7 +113,7 @@ end
 
 -- identifier and types
 function visitors.Id(_, node, emitter)
-  emitter:add(node.codename)
+  emitter:add(cdefs.quotename(node.codename))
 end
 
 function visitors.Paren(_, node, emitter)
@@ -146,7 +146,7 @@ function visitors.IdDecl(context, node, emitter)
     end
   end
   local ctype = context:get_ctype(node)
-  emitter:add(ctype, ' ', node.codename)
+  emitter:add(ctype, ' ', cdefs.quotename(node.codename))
 end
 
 -- indexing
@@ -160,9 +160,9 @@ function visitors.DotIndex(_, node, emitter)
       error('not implemented yet')
     end --luacov:enable
   elseif objnode.type:is_pointer() then
-    emitter:add(objnode, '->', name)
+    emitter:add(objnode, '->', cdefs.quotename(name))
   else
-    emitter:add(objnode, '.', name)
+    emitter:add(objnode, '.', cdefs.quotename(name))
   end
 end
 
@@ -220,7 +220,7 @@ end
 function visitors.CallMethod(_, node, emitter)
   local name, args, callee, block_call = node:args()
   if block_call then emitter:add_indent() end
-  emitter:add(callee, '.', name, '(', callee, args, ')')
+  emitter:add(callee, '.', cdefs.quotename(name), '(', callee, args, ')')
   if block_call then emitter:add_ln() end
 end
 
@@ -339,7 +339,7 @@ function visitors.ForNum(context, node, emitter)
   add_casted_value(context, emitter, itvar.type, beginval)
   emitter:add('; ', itname, ' ', cdefs.binary_ops[compop], ' ')
   add_casted_value(context, emitter, itvar.type, endval)
-  emitter:add_ln('; ', itname, ' += ', incrval or '1', ') {')
+  emitter:add_ln('; ', cdefs.quotename(itname), ' += ', incrval or '1', ') {')
   emitter:add(block)
   emitter:add_indent_ln("}")
 end
@@ -356,12 +356,12 @@ end
 
 function visitors.Label(_, node, emitter)
   local name = node:args()
-  emitter:add_indent_ln(name, ':')
+  emitter:add_indent_ln(cdefs.quotename(name), ':')
 end
 
 function visitors.Goto(_, node, emitter)
   local labelname = node:args()
-  emitter:add_indent_ln('goto ', labelname, ';')
+  emitter:add_indent_ln('goto ', cdefs.quotename(labelname), ';')
 end
 
 local function add_assignments(context, emitter, vars, vals)
