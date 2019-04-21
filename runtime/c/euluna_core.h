@@ -3,6 +3,9 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <string.h>
+{% if context.has_math then %}
+#include <math.h>
+{% end %}
 #define EULUNA_NORETURN     __attribute__((noreturn))
 #define EULUNA_NOINLINE     __attribute__((noinline))
 #define EULUNA_LIKELY(x)    __builtin_expect(x, 1)

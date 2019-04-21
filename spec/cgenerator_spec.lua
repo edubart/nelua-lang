@@ -143,8 +143,8 @@ it("binary operators", function()
   assert.generate_c("return a + b",       "return a + b;")
   assert.generate_c("return a - b",       "return a - b;")
   assert.generate_c("return a * b",       "return a * b;")
-  assert.generate_c("return a / b",       "return a / b;")
-  assert.generate_c("return a % b",       "return a % b;")
+  -- div
+  --assert.generate_c("return a / b")
   assert.generate_c("return 3 / 2",       "return 3 / (euluna_float64)2")
   assert.generate_c(
     "return @float64(3 / 2)",
@@ -161,11 +161,32 @@ it("binary operators", function()
   assert.generate_c(
     "return @integer(3 / 2_int64)",
     "return (euluna_int64)(3 / (euluna_float64)(euluna_int64)2)")
+  -- idiv
+  --assert.generate_c("return a // b")
   assert.generate_c("return 3 // 2",      "return 3 / 2")
-  assert.generate_c("return 3.0 // 2.0",  "return ((euluna_int64)(3.0 / 2.0));")
+  assert.generate_c("return 3 // 2.0",    "return floor(3.0 / 2.0)")
+  assert.generate_c("return 3.0 // 2.0",  "return floor(3.0 / 2.0)")
+  assert.generate_c("return 3.0 // 2",    "return floor(3.0 / 2)")
+  -- mod
+  --assert.generate_c("return a % b",       "return a % b;")
+  assert.generate_c("return 3 % 2",       "return 3 % 2")
+  assert.generate_c("return 3.0 % 2",     "return fmod(3.0, 2)")
+  assert.generate_c("return 3 % 2.0",     "return fmod(3.0, 2.0)")
+  assert.generate_c("return 3.0 % 2.0",   "return fmod(3.0, 2.0)")
+  -- pow
+  --assert.generate_c("return a ^ b")
   assert.generate_c("return 2 ^ 2",       "return pow(2, 2);")
   assert.generate_c("return 2_f32 ^ 2_f32",
                     "return powf(2.0f, 2.0f);")
+  assert.run_c([[
+    assert(1 / 2 == 0.5)
+    assert(1.0 / 2.0 == 0.5)
+    assert(3 % 2 == 1)
+    assert(3.0 % 2.0 == 1)
+    assert(3 // 2 == 1)
+    assert(3.0 // 2.0 == 1)
+    assert(2 ^ 2 == 4)
+  ]])
 end)
 it("binary conditional operators", function()
   assert.generate_c("return a or b",  "return a ? a : b;")

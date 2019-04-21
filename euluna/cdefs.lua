@@ -70,16 +70,17 @@ cdefs.binary_ops = {
   ['add'] = '+',
   ['sub'] = '-',
   ['mul'] = '*',
-  ['mod'] = '%',
   -- builtins
   ['div'] = true,
   ['idiv'] = true,
   ['pow'] = true,
+  ['mod'] = true,
   --TODO: concat
 }
 
 cdefs.compiler_base_flags = {
-  cflags_base = "-pipe -std=c99 -pedantic -Wall -Wextra -fno-strict-aliasing -rdynamic",
+  cflags_base =
+    "-pipe -std=c99 -pedantic -Wall -Wextra -fno-strict-aliasing -rdynamic -lm -Wl,-as-needed",
   cflags_release = "-O2",
   cflags_debug = "-g"
 }

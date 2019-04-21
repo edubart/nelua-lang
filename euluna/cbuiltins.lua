@@ -22,16 +22,32 @@ function builtins.div(context, node, emitter, lnode, rnode)
       emitter:add(lnode, ' / ', rnode)
     end
   else --luacov:disable
-    emitter:add(lnode, ' / ', rnode)
+    error('not implemented')
   end --luacov:enable
 end
 
 function builtins.idiv(context, node, emitter, lnode, rnode)
   if lnode.type:is_numeric() and rnode.type:is_numeric() then
     if lnode.type:is_float() or rnode.type:is_float() then
-      emitter:add('((', context:get_ctype(node), ')(', lnode, ' / ', rnode, '))')
+      local floorname = node.type:is_float32() and 'floorf' or 'floor'
+      emitter:add(floorname, '(', lnode, ' / ', rnode, ')')
+      context.has_math = true
     else
       emitter:add(lnode, ' / ', rnode)
+    end
+  else --luacov:disable
+    error('not implemented')
+  end --luacov:enable
+end
+
+function builtins.mod(context, node, emitter, lnode, rnode)
+  if lnode.type:is_numeric() and rnode.type:is_numeric() then
+    if lnode.type:is_float() or rnode.type:is_float() then
+      local modname = node.type:is_float32() and 'fmodf' or 'fmod'
+      emitter:add(modname, '(', lnode, ', ', rnode, ')')
+      context.has_math = true
+    else
+      emitter:add(lnode, ' % ', rnode)
     end
   else --luacov:disable
     error('not implemented')

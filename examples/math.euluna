@@ -42,9 +42,9 @@ local function csrand(x: uint32) !cimport('srand','<stdlib.h>') end
 local function math_atan2(x: number, y: number): number !cimport('atan2','<math.h>') end
 
 local function math_logbase(x: number, base: number): number
-  if base == 2.0 then
+  if base == 2 then
     return clog2(x)
-  elseif base == 1.0 then
+  elseif base == 10 then
     return clog10(x)
   else
     return math_log(x) / math_log(base)

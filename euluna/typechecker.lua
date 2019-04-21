@@ -749,9 +749,7 @@ function visitors.BinaryOp(context, node, desiredtype)
         opname, tostring(ltype), tostring(rtype))
     end
     if type then
-      if type:is_float() and opname == 'idiv' then
-        type = primtypes.integer
-      elseif type:is_integral() and (opname == 'div' or opname == 'pow') then
+      if type:is_integral() and (opname == 'div' or opname == 'pow') then
         type = primtypes.number
       elseif opname == 'shl' or opname == 'shr' then
         type = ltype
