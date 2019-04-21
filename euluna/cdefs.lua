@@ -80,7 +80,7 @@ cdefs.binary_ops = {
 
 cdefs.compiler_base_flags = {
   cflags_base =
-    "-pipe -std=c99 -pedantic -Wall -Wextra -fno-strict-aliasing -rdynamic -lm -Wl,-as-needed",
+    "-pipe -std=c99 -pedantic -Wall -Wextra -fno-strict-aliasing -rdynamic -lm",
   cflags_release = "-O2",
   cflags_debug = "-g"
 }

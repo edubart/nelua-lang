@@ -1,0 +1,50 @@
+-- TODO: import consts
+-- TODO: import C types
+-- TODO: include c headers pragma
+-- TODO: nullptr
+-- TODO: pass compiler parameters
+--!!linkflags('-lSDL2')
+
+-- import SDL functions
+local SDL_WindowPtr = @pointer
+--local SDL_Window: type !cimporttype('<SDL2/SDL.h>', 'SDL_Window')
+--local SDL_WindowPtr = @pointer<SDLWindow>
+local function SDL_Init(flags: uint32): int32
+  !cimport('SDL_Init', '<SDL2/SDL.h>')
+end
+local function SDL_CreateWindow(title: cstring,
+                                x: int32, y: int32, w: int32,
+                                h: int32, flags: uint32): SDL_WindowPtr
+  !cimport('SDL_CreateWindow', '<SDL2/SDL.h>')
+end
+local function SDL_Quit() !cimport('SDL_Quit', '<SDL2/SDL.h>') end
+local function SDL_DestroyWindow(window: SDL_WindowPtr) !cimport('SDL_DestroyWindow', '<SDL2/SDL.h>') end
+local function SDL_Delay(ms: uint32) !cimport('SDL_Delay', '<SDL2/SDL.h>') end
+
+SDL_Init(@uint32(SDL_INIT_VIDEO))
+
+-- Create an application window with the following settings:
+local window = SDL_CreateWindow("An SDL2 Window",
+  @int32(SDL_WINDOWPOS_UNDEFINED),  -- initial x position
+  @int32(SDL_WINDOWPOS_UNDEFINED),  -- initial y position
+  @int32(640),                      -- width, in pixels
+  @int32(480),                      -- height, in pixels
+  @uint32(SDL_WINDOW_OPENGL)        -- flags - see below
+)
+
+-- Check that the window was successfully created
+if window == @pointer(0) then
+  print("Could not create window")
+  return 1
+end
+
+-- Pause execution for 3000 milliseconds as example
+SDL_Delay(3000)
+
+-- Close and destroy the window
+SDL_DestroyWindow(window)
+
+-- Clean up
+SDL_Quit()
+
+return 0
