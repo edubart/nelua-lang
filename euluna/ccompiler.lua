@@ -16,27 +16,26 @@ local function get_compile_args(infile, outfile)
   metamagic.setmetaindex(env, config)
   env.cflags_base = compiler_flags.cflags_base
   env.cflags_build = (config.release and compiler_flags.cflags_release or compiler_flags.cflags_debug)
-  local sargs = pegger.substitute(
-    '$(cflags_base) $(cflags_build) $(cflags) -o "$(outfile)" "$(infile)"',
+  return pegger.substitute(
+    '$(cc) $(cflags_base) $(cflags_build) $(cflags) -o "$(outfile)" "$(infile)"',
     env)
-  return env.cc, pegger.split_execargs(sargs)
 end
 
 local last_ccinfos = {}
 local function get_cc_info()
-  local ccargs = {'-v', '-x', 'c', '-E', '/dev/null'}
+  local cccmd = string.format('%s -v -x c -E /dev/null', config.cc)
   local last_ccinfo = last_ccinfos[config.cc]
   if last_ccinfo then return last_ccinfo end
-  local ok, ret, stdout, ccinfo = executor.execex(config.cc, ccargs)
+  local ok, ret, stdout, ccinfo = executor.execex(cccmd)
   except.assertraisef(ok and ret == 0, "failed to retrive compiler information: %s", ccinfo or '')
   last_ccinfos[config.cc] = ccinfo
   return ccinfo
 end
 
 local function hash_compilation(ccode)
-  local ccexe, ccargs = get_compile_args('dummy.c', 'dummy')
+  local cccmd = get_compile_args('dummy.c', 'dummy')
   local ccinfo = get_cc_info()
-  return stringer.hash(string.format("%s%s%s%s", ccode, ccinfo, ccexe,table.concat(ccargs)))
+  return stringer.hash(string.format("%s%s%s", ccode, ccinfo, cccmd))
 end
 
 function compiler.compile_code(ccode, outfile)
@@ -81,11 +80,11 @@ function compiler.compile_binary(cfile, outfile)
   fs.ensurefilepath(outfile)
 
   -- generate compile command
-  local ccexe, ccargs = get_compile_args(cfile, outfile)
-  if not config.quiet then print(ccexe .. ' ' .. table.concat(ccargs, ' ')) end
+  local cccmd = get_compile_args(cfile, outfile)
+  if not config.quiet then print(cccmd) end
 
   -- compile the file
-  local success, status, stdout, stderr = executor.execex(ccexe, ccargs)
+  local success, status, stdout, stderr = executor.execex(cccmd)
   except.assertraisef(success and status == 0,
     "C compilation for '%s' failed:\n%s", outfile, stderr or '')
 

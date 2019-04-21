@@ -1,6 +1,7 @@
 local plutil = require 'pl.utils'
 local tabler = require 'euluna.utils.tabler'
 local stringer = require 'euluna.utils.stringer'
+local pegger = require 'euluna.utils.pegger'
 
 local executor = {}
 
@@ -35,6 +36,7 @@ local hasposix, posix_pexec = pcall(function()
       return false, 127, "", string.format("%s: command not found\n", exe)
     end
     args[0] = exe
+
 
     -- piped fork and exec
     local outfd, outwfd = unistd.pipe()
@@ -84,7 +86,17 @@ local pexec = hasposix and posix_pexec or pl_pexec
 
 --luacov:enable
 
+local function convert_args(exe, args)
+  if not args then
+    args = pegger.split_execargs(exe)
+    exe = args[1]
+    table.remove(args, 1)
+  end
+  return exe, args
+end
+
 function executor.exec(exe, args)
+  exe, args = convert_args(exe, args)
   local success, status, sout, serr = pexec(exe, args)
   if sout then
     io.stdout:write(sout)
@@ -99,6 +111,7 @@ function executor.exec(exe, args)
 end
 
 function executor.execex(exe, args)
+  exe, args = convert_args(exe, args)
   return pexec(exe, args)
 end
 
