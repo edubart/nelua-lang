@@ -71,12 +71,12 @@ function Type:get_binary_operator_type(opname)
   return type
 end
 
-function Type:is_coercible_from(type)
+function Type:is_coercible_from(type, explicit)
   if self == type or self:is_any() or type:is_any() then
     return true
   end
   if type:is_enum() then
-    return self:is_coercible_from(type.subtype)
+    return self:is_coercible_from(type.subtype, explicit)
   end
   return self.conversible_types[type]
 end
@@ -155,6 +155,10 @@ end
 
 function Type:is_pointer()
   return self.name == 'pointer'
+end
+
+function Type:is_generic_pointer()
+  return self.name == 'pointer' and self.subtype:is_void()
 end
 
 function Type:is_equal(type)
@@ -329,8 +333,11 @@ function PointerType:_init(node, subtype)
   self.unary_operators['deref'] = subtype
 end
 
-function PointerType:is_coercible_from(type)
-  if Type.is_coercible_from(self, type) then
+function PointerType:is_coercible_from(type, explicit)
+  if explicit and type:is_pointer() then
+    return true
+  end
+  if Type.is_coercible_from(self, type, explicit) then
     return true
   end
   return type:is_pointer() and type.subtype == self.subtype or self.subtype:is_void()

@@ -450,7 +450,9 @@ end)
 
 it("pointers to complex types", function()
   assert.analyze_ast([[local p: pointer<record{x:int}>; p.x = 0]])
+  assert.analyze_ast([[local p: pointer<array<int, 10>>; p[0] = 0]])
   assert.analyze_error([[local p: pointer<record{x:int}>; p.y = 0]], "does not have field")
+  assert.analyze_error([[local p: pointer<array<int, 10>>; p[-1] = 0]], "trying to index negative value")
 end)
 
 it("type construction", function()

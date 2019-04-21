@@ -375,10 +375,15 @@ end
 
 function visitors.ArrayIndex(context, node)
   context:default_visitor(node)
-  local indexnode, obj = node:args()
+  local indexnode, objnode = node:args()
   local type
-  if obj.type then
-    if obj.type:is_arraytable() or obj.type:is_array() then
+  local objtype = objnode.type
+  if objtype then
+    if objtype:is_pointer() then
+      objtype = objtype.subtype
+    end
+
+    if objtype:is_arraytable() or objtype:is_array() then
       if indexnode.type then
         indexnode:assertraisef(indexnode.type:is_integral(),
           "in array indexing, trying to index with non integral value '%s'",
@@ -388,13 +393,13 @@ function visitors.ArrayIndex(context, node)
         indexnode:assertraisef(not indexnode.value:isneg(),
           "in array indexing, trying to index negative value %s",
           indexnode.value:todec())
-        if obj.type:is_array() then
-          indexnode:assertraisef(indexnode.value < bn.new(obj.type.length),
+        if objtype:is_array() then
+          indexnode:assertraisef(indexnode.value < bn.new(objtype.length),
             "in array indexing, index %s is out of bounds, array maximum index is %d",
-              indexnode.value:todec(), obj.type.length - 1)
+              indexnode.value:todec(), objtype.length - 1)
         end
       end
-      type = obj.type.subtype
+      type = objtype.subtype
     end
   end
   if not type and context.phase == phases.any_inference then
@@ -418,7 +423,7 @@ function visitors.Call(context, node)
       local argnode = argnodes[1]
       context:traverse(argnode, type)
       if argnode.type and not (argnode.type:is_numeric() and type:is_numeric()) then
-        argnode:assertraisef(type:is_coercible_from(argnode.type),
+        argnode:assertraisef(type:is_coercible_from(argnode.type, true),
           "in assertion to type '%s', the type is not coercible with expression of type '%s'",
           tostring(type), tostring(argnode.type))
       end

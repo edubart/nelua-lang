@@ -55,11 +55,13 @@ function CContext:get_ctype(nodeortype)
       fields = type.fields
     })
   elseif type:is_pointer() then
-    local subctype = self:get_ctype(type.subtype)
-    self:ensure_runtime(codename, 'euluna_pointer', {
-      tyname = codename,
-      subctype = subctype
-    })
+    if not type:is_generic_pointer() then
+      local subctype = self:get_ctype(type.subtype)
+      self:ensure_runtime(codename, 'euluna_pointer', {
+        tyname = codename,
+        subctype = subctype
+      })
+    end
   elseif type:is_string() then
     self.has_string = true
   elseif type:is_any() then

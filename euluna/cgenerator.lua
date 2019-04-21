@@ -31,10 +31,9 @@ local function add_casted_value(context, emitter, type, valnode)
       emitter:add(valnode)
     elseif valnode.type:is_string() and type:is_cstring() then
       emitter:add('(', valnode, ')->data')
-    else --luacov:disable
-      --emitter:add('(',context:get_ctype(type, valnode),')',valnode)
-      error('not implemented yet')
-    end --luacov:enable
+    else
+      emitter:add('(',context:get_ctype(type, valnode),')',valnode)
+    end
   else
     emitter:add('{0}')
   end
@@ -142,6 +141,7 @@ end
 visitors.FuncType = visitors.Type
 visitors.ArrayTableType = visitors.Type
 visitors.ArrayType = visitors.Type
+visitors.PointerType = visitors.Type
 
 function visitors.IdDecl(context, node, emitter)
   if node.type:is_type() then return end
@@ -182,16 +182,33 @@ end
 -- TODO: ColonIndex
 
 function visitors.ArrayIndex(context, node, emitter)
-  local index, varnode = node:args()
-  if varnode.type:is_arraytable() then
+  local index, objnode = node:args()
+  local objtype = objnode.type
+  local pointer = false
+  if objtype:is_pointer() then
+    if not objtype:is_generic_pointer() then
+      objtype = objtype.subtype
+      pointer = true
+    end
+  end
+  if objtype:is_arraytable() then
     emitter:add('*',
-      context:get_ctype(varnode),
-      node.assign and '_at(&' or '_get(&',
-      varnode, ', ', index, ')')
-  elseif varnode.type:is_array() then
-    emitter:add(varnode, '.data[', index, ']')
+      context:get_ctype(objtype),
+      node.assign and '_at(&' or '_get(&')
+  end
+  if pointer then
+    emitter:add('(*')
+  end
+  emitter:add(objnode)
+  if pointer then
+    emitter:add(')')
+  end
+  if objtype:is_arraytable() then
+    emitter:add(', ', index, ')')
+  elseif objtype:is_array() then
+    emitter:add('.data[', index, ']')
   else
-    emitter:add(varnode, '[', index, ']')
+    emitter:add('[', index, ']')
   end
 end
 
@@ -442,7 +459,6 @@ function visitors.FuncDef(context, node)
     defemitter:add_indent('void ')
   else
     local ret = retnodes[1]
-    node:assertraisef(ret.tag == 'Type')
     decemitter:add_indent(cfirstattr, cattr, ret, ' ')
     defemitter:add_indent(ret, ' ')
   end
