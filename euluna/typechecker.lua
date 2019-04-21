@@ -68,7 +68,7 @@ function visitors.Number(context, node, desiredtype)
   else
     node.untyped = nil
   end
-  if desiredtype and desiredtype:is_numeric() and desiredtype:is_coercible_from(type) then
+  if not literal and desiredtype and desiredtype:is_numeric() and desiredtype:is_coercible_from(type) then
     type = desiredtype
   end
   if type:is_integral() then

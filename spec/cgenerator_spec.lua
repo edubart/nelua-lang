@@ -31,7 +31,7 @@ it("number", function()
 end)
 it("number literals", function()
   assert.generate_c("return 1_integer", "return (euluna_int64)1")
-  assert.generate_c("return 1_number", "return (euluna_float64)1")
+  assert.generate_c("return 1_number", "return 1.0")
   assert.generate_c("return 1_byte", "return (euluna_uint8)1")
   assert.generate_c("return 1_char", "return (euluna_char)1")
   assert.generate_c("return 1_int", "return (euluna_int)1")
@@ -39,8 +39,8 @@ it("number literals", function()
   assert.generate_c("return 1_pointer", "return (euluna_pointer)1")
 end)
 it("type assertion", function()
-  assert.generate_c("return @int16(1_u64)", "return (euluna_int16)(euluna_uint64)1")
-  assert.generate_c("return @int64(1_u8)", "return (euluna_int64)1")
+  assert.generate_c("return @int16(1_u64)", "return (euluna_int16)((euluna_uint64)1U)")
+  assert.generate_c("return @int64(1_u8)", "return (euluna_int64)((euluna_uint8)1U)")
 end)
 it("string", function()
   assert.generate_c([[local a = "hello"]], [["hello"]])
@@ -145,11 +145,27 @@ it("binary operators", function()
   assert.generate_c("return a * b",       "return a * b;")
   assert.generate_c("return a / b",       "return a / b;")
   assert.generate_c("return a % b",       "return a % b;")
+  assert.generate_c("return 3 / 2",       "return 3 / (euluna_float64)2")
+  assert.generate_c(
+    "return @float64(3 / 2)",
+    "return 3.0 / 2.0")
+  assert.generate_c(
+    "return 3 / 2_int64",
+    "return 3 / (euluna_float64)(euluna_int64)2")
+  assert.generate_c(
+    "return 3.0 / 2",
+    "return 3.0 / 2")
+  assert.generate_c(
+    "return @integer(3_i / 2_i)",
+    "return (euluna_int64)((euluna_int)3 / (euluna_float64)(euluna_int)2)")
+  assert.generate_c(
+    "return @integer(3 / 2_int64)",
+    "return (euluna_int64)(3 / (euluna_float64)(euluna_int64)2)")
   assert.generate_c("return 3 // 2",      "return 3 / 2")
   assert.generate_c("return 3.0 // 2.0",  "return ((euluna_int64)(3.0 / 2.0));")
   assert.generate_c("return 2 ^ 2",       "return pow(2, 2);")
   assert.generate_c("return 2_f32 ^ 2_f32",
-                    "return powf((euluna_float32)2, (euluna_float32)2);")
+                    "return powf(2.0f, 2.0f);")
 end)
 it("binary conditional operators", function()
   assert.generate_c("return a or b",  "return a ? a : b;")

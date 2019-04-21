@@ -3,7 +3,6 @@
 --TODO: function type overload
 --TODO: import variables/consts from C
 --TODO: declare constants visible inside functions
---TODO: fix division 1_i / 2_i => must convert to float
 --TODO: impeleent using namespaces or method syntax sugar
 --TODO: become a module
 --TODO: export functions
@@ -73,7 +72,7 @@ end
 
 local function math_random()
   local randmax = @int32(RAND_MAX)
-  local r: number = (crand() % randmax) / @number(randmax)
+  local r: number = (crand() % randmax) / randmax
   return r
 end
 --TODO:randommax

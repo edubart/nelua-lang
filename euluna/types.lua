@@ -89,6 +89,10 @@ function Type:is_float32()
   return self.name == 'float32'
 end
 
+function Type:is_float64()
+  return self.name == 'float64'
+end
+
 function Type:is_float()
   return self.float
 end

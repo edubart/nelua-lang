@@ -13,6 +13,19 @@ function builtins.len(context, _, emitter, argnode)
   end
 end
 
+function builtins.div(context, node, emitter, lnode, rnode)
+  if lnode.type:is_numeric() and rnode.type:is_numeric() then
+    if not rnode.type:is_float() and not lnode.type:is_float() then
+      assert(node.type:is_float())
+      emitter:add(lnode, ' / (', context:get_ctype(node.type), ')', rnode)
+    else
+      emitter:add(lnode, ' / ', rnode)
+    end
+  else --luacov:disable
+    emitter:add(lnode, ' / ', rnode)
+  end --luacov:enable
+end
+
 function builtins.idiv(context, node, emitter, lnode, rnode)
   if lnode.type:is_numeric() and rnode.type:is_numeric() then
     if lnode.type:is_float() or rnode.type:is_float() then

@@ -42,11 +42,24 @@ end
 
 function visitors.Number(context, node, emitter)
   local base, int, frac, exp, literal = node:args()
-  if literal then
-    local ctype = context:get_ctype(node.type)
-    emitter:add('(', ctype, ')')
+  local isintegral = not frac and node.value:isintegral()
+  local suffix
+  if node.type:is_unsigned() then
+    suffix = 'U'
+  elseif node.type:is_float32() and base == 'dec' then
+    suffix = isintegral and '.0f' or 'f'
+  elseif node.type:is_float64() and base == 'dec' then
+    suffix = isintegral and '.0' or ''
   end
+
+  if not node.type:is_float() and literal then
+    emitter:add('(', context:get_ctype(node.type), ')')
+  end
+
   emitter:add_composed_number(base, int, frac, exp, node.value:abs())
+  if suffix then
+    emitter:add(suffix)
+  end
 end
 
 function visitors.String(context, node, emitter)
@@ -206,7 +219,7 @@ function visitors.Call(context, node, emitter)
     assert(#args == 1)
     local argnode = args[1]
     if argnode.type ~= node.type then
-      emitter:add('(', context:get_ctype(node.type), ')', args[1])
+      emitter:add('(', context:get_ctype(node.type), ')(', args[1], ')')
     else
       emitter:add(args[1])
     end
