@@ -115,6 +115,19 @@ function pegger.substitute(format, vars)
   return substitute_patt:match(format)
 end
 
+--TODO: handle quptes
+local split_execargs_patt = re.compile[[
+  args <- %s* {| arg+ |}
+  arg <- (squoted_arg / dquoted_arg / simple_arg) %s*
+  simple_arg <- {(!%s .)+}
+  squoted_arg <- "'" {~ ("\'" -> "'" / !"'" {.})+ ~} "'"
+  dquoted_arg <- '"' {~ ('\"' -> '"' / !'"' {.})+ ~} '"'
+]]
+function pegger.split_execargs(s)
+  if not s then return {} end
+  return split_execargs_patt:match(s)
+end
+
 local template_peg = re.compile([[
   peg           <- {~ (text / code_eq / code)+ ~}
   text          <- '' -> ' render([==[' text_contents  '' -> ']==]) '

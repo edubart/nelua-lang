@@ -76,9 +76,9 @@ local function run(argv)
 
   -- run
   if dorun then
-    local command = executor.build_command(compiler.get_run_command(binaryfile), config.runargs)
-    if not config.quiet then print(command) end
-    local success, status = executor.exec(command)
+    local exe, exeargs = compiler.get_run_command(binaryfile, config.runargs)
+    if not config.quiet then print(exe .. ' ' .. table.concat(exeargs, ' ')) end
+    local success, status = executor.exec(exe, exeargs)
     return status
   end
 

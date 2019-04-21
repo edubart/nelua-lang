@@ -1,7 +1,7 @@
 local fs = require 'euluna.utils.fs'
 local pegger = require 'euluna.utils.pegger'
 local stringer = require 'euluna.utils.stringer'
-local metamagic = require 'euluna.utils.metamagic'
+local tabler = require 'euluna.utils.tabler'
 local config = require 'euluna.configer'.get()
 
 local lua_compiler = {}
@@ -36,11 +36,12 @@ function lua_compiler.compile_binary(luafile)
   return luafile
 end
 
-function lua_compiler.get_run_command(binaryfile)
+function lua_compiler.get_run_command(binaryfile, runargs)
   -- generate compile command
-  local env = { binaryfile = binaryfile }
-  metamagic.setmetaindex(env, config)
-  return pegger.substitute("$(lua) $(lua_options) $(binaryfile)", env)
+  local args = pegger.split_execargs(config.lua_options)
+  table.insert(args, fs.abspath(binaryfile))
+  tabler.insertvalues(args, runargs)
+  return config.lua, args
 end
 
 return lua_compiler

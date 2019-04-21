@@ -375,12 +375,15 @@ end)
 it("manual memory managment", function()
   assert.run_c([[
     local function malloc(size: uint): pointer !cimport('malloc','<stdlib.h>') end
+    local function memset(s: pointer, c: int32, n: uint): pointer !cimport('memset','<stdlib.h>') end
     local function free(ptr: pointer) !cimport('free','<stdlib.h>') end
     local a = @pointer<array<int64, 10>>(malloc(10 * 8))
+    memset(a, 0, 10*8)
+    assert(a[0] == 0)
     a[0] = 1
-    print(a[0])
+    assert(a[0] == 1)
     free(a)
-  ]], "1")
+  ]])
 end)
 
 it("pragmas", function()

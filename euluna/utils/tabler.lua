@@ -18,6 +18,14 @@ function tabler.ifind(t, val, idx)
   return nil
 end
 
+-- insert values
+function tabler.insertvalues(t, st)
+  for _,v in ipairs(st) do
+    t[#t + 1] = v
+  end
+  return t
+end
+
 -- find values inside an array table using a custom if function
 function tabler.ifindif(t, fn, idx)
   for i=idx or 1,#t do

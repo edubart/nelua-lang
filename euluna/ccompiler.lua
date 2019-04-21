@@ -4,37 +4,39 @@ local fs = require 'euluna.utils.fs'
 local metamagic = require 'euluna.utils.metamagic'
 local except = require 'euluna.utils.except'
 local executor = require 'euluna.utils.executor'
+local tabler = require 'euluna.utils.tabler'
 local config = require 'euluna.configer'.get()
 local cdefs = require 'euluna.cdefs'
 
 local compiler = {}
 
-local function get_compile_command(infile, outfile)
+local function get_compile_args(infile, outfile)
   local env = { infile = infile, outfile = outfile }
   local compiler_flags = cdefs.compilers_flags[config.cc] or cdefs.compiler_base_flags
   metamagic.setmetaindex(env, config)
   env.cflags_base = compiler_flags.cflags_base
   env.cflags_build = (config.release and compiler_flags.cflags_release or compiler_flags.cflags_debug)
-  return pegger.substitute(
-    '$(cc) $(cflags_base) $(cflags_build) $(cflags) -o "$(outfile)" "$(infile)"',
+  local sargs = pegger.substitute(
+    '$(cflags_base) $(cflags_build) $(cflags) -o "$(outfile)" "$(infile)"',
     env)
+  return env.cc, pegger.split_execargs(sargs)
 end
 
 local last_ccinfos = {}
 local function get_cc_info()
-  local ccinfocmd = string.format("%s -v -x c -E /dev/null", config.cc)
-  local last_ccinfo = last_ccinfos[ccinfocmd]
+  local ccargs = {'-v', '-x', 'c', '-E', '/dev/null'}
+  local last_ccinfo = last_ccinfos[config.cc]
   if last_ccinfo then return last_ccinfo end
-  local ok, ret, stdout, ccinfo = executor.execex(ccinfocmd)
+  local ok, ret, stdout, ccinfo = executor.execex(config.cc, ccargs)
   except.assertraisef(ok and ret == 0, "failed to retrive compiler information: %s", ccinfo or '')
-  last_ccinfos[ccinfocmd] = ccinfo
+  last_ccinfos[config.cc] = ccinfo
   return ccinfo
 end
 
 local function hash_compilation(ccode)
-  local dummycmd = get_compile_command('dummy.c', 'dummy')
+  local ccexe, ccargs = get_compile_args('dummy.c', 'dummy')
   local ccinfo = get_cc_info()
-  return stringer.hash(string.format("%s%s%s", ccode, ccinfo, dummycmd))
+  return stringer.hash(string.format("%s%s%s%s", ccode, ccinfo, ccexe,table.concat(ccargs)))
 end
 
 function compiler.compile_code(ccode, outfile)
@@ -79,11 +81,11 @@ function compiler.compile_binary(cfile, outfile)
   fs.ensurefilepath(outfile)
 
   -- generate compile command
-  local cmd = get_compile_command(cfile, outfile)
-  if not config.quiet then print(cmd) end
+  local ccexe, ccargs = get_compile_args(cfile, outfile)
+  if not config.quiet then print(ccexe .. ' ' .. table.concat(ccargs, ' ')) end
 
   -- compile the file
-  local success, status, stdout, stderr = executor.execex(cmd)
+  local success, status, stdout, stderr = executor.execex(ccexe, ccargs)
   except.assertraisef(success and status == 0,
     "C compilation for '%s' failed:\n%s", outfile, stderr or '')
 
@@ -94,8 +96,8 @@ function compiler.compile_binary(cfile, outfile)
   return outfile
 end
 
-function compiler.get_run_command(binaryfile)
-  return './' .. binaryfile
+function compiler.get_run_command(binaryfile, runargs)
+  return fs.abspath(binaryfile), tabler.copy(runargs)
 end
 
 return compiler
