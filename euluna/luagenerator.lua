@@ -204,6 +204,9 @@ end
 
 function visitors.ForNum(_, node, emitter)
   local itvar, beginval, comp, endval, incrval, block  = node:args()
+  if not comp then
+    comp = 'le'
+  end
   node:assertraisef(comp == 'le', 'for comparator not supported yet')
   emitter:add_indent("for ", itvar, '=', beginval, ',', endval)
   if incrval then

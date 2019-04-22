@@ -7,51 +7,46 @@ local bn = require 'euluna.utils.bn'
 
 describe("Euluna should check types for", function()
 
-it("local variable", function()
-  assert.analyze_ast("local a: integer",
-    n.Block { {
-      n.VarDecl { 'local', 'var',
-        { n.IdDecl{ assign=true, codename='a', type='int64', 'a', 'var',
-          n.Type { type='int64', 'integer'}}},
-      }
-    } }
-  )
-
-  assert.analyze_ast("local a: integer = 1",
-    n.Block { {
-      n.VarDecl { 'local', 'var',
-        { n.IdDecl{ assign=true, codename='a', type='int64', 'a', 'var',
-          n.Type { type='int64', 'integer'}}},
-        { n.Number{
-          type='int64',
-          value=bn.fromdec('1'),
-          'dec', '1'}}
-      }
-    } }
-  )
-
+it("analyzed ast transform", function()
   assert.analyze_ast("local a = 1; f(a)",
     n.Block { {
-      n.VarDecl { 'local', 'var',
-        { n.IdDecl { assign=true, codename='a', type='int64', 'a', 'var' }},
+      n.VarDecl { 'local', nil,
+        { n.IdDecl { assign=true, codename='a', mut='var', type='int64', 'a' }},
         { n.Number {
+          const=true,
           type='int64',
           value=bn.fromdec('1'),
           'dec', '1'
         }}
       },
       n.Call { callee_type='any', type='any',
-        { n.Id { codename='a', type='int64', "a"} },
-        n.Id { codename='f', type='any', "f"},
+        { n.Id { codename='a', mut='var', type='int64', "a"} },
+        n.Id { codename='f', mut='var', type='any', "f"},
         true
     }
   }})
+end)
 
+it("local variable", function()
   assert.c_gencode_equals("local a = 1", "local a: integer = 1")
   assert.analyze_error("local a: integer = 'string'", "is not coercible with")
   assert.analyze_error("local a: uint8 = 1.0", "is not coercible with")
   assert.analyze_error("local a: uint8 = {1.0}", "cannot be initialized using a table literal")
   assert.analyze_error("local a, b = 1,2,3", "too many expressions in declaration")
+end)
+
+it("const variable" , function()
+  assert.analyze_ast([[local a: const integer = 1]])
+  assert.c_gencode_equals(
+    [[local const a = 1; local function f() return a end]],
+    [[local const a: integer = 1; local function f() return a end]])
+  assert.analyze_ast([[local const a = 1 * 2 + 3]])
+  assert.analyze_ast([[local const a = 1; local const b = a]])
+  assert.analyze_ast([[const a = 1]])
+  assert.analyze_error("local const a: var integer", "cannot declare mutability twice")
+  assert.analyze_error("local const a = 1; a = 2", "cannot assign a read only variable")
+  assert.analyze_error("local a = 1; local const c = a", "can only assign to const")
+  assert.analyze_error("local b = 1; local const c = 1 * 2 + b", "can only assign to const")
 end)
 
 it("numeric types coercion", function()

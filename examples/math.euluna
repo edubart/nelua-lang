@@ -3,7 +3,7 @@
 --TODO: function type overload
 --TODO: import variables/consts from C
 --TODO: declare constants visible inside functions
---TODO: impeleent using namespaces or method syntax sugar
+--TODO: impelement using namespaces or method syntax sugar
 --TODO: become a module
 --TODO: export functions
 --TODO: discard operator
@@ -11,9 +11,9 @@
 
 --!!linkflag '-lm'
 
-local math_pi = 3.141592653589793
-local math_maxinteger = 9223372036854775807
-local math_mininteger = -9223372036854775807 - 1
+local math_pi: const = 3.141592653589793
+local math_maxinteger: const = 9223372036854775807
+local math_mininteger: const = -9223372036854775807 - 1
 local math_huge: number = @number(HUGE_VAL)
 
 local function math_abs(x: number): number !cimport('fabs','<math.h>') end
@@ -52,11 +52,11 @@ local function math_logbase(x: number, base: number): number
 end
 
 local function math_deg(x: number)
-  return x * (180.0 / 3.141592653589793)
+  return x * (180.0 / math_pi)
 end
 
 local function math_rad(x: number)
-  return x * (3.141592653589793 / 180.0)
+  return x * (math_pi / 180.0)
 end
 
 local function math_intmodf(x: number)
@@ -103,7 +103,7 @@ local function assert_equal(x: number, y: number)
   assert(math_abs(x - y) < 1e-12)
 end
 
-local e = 2.718281828459045
+local e: const = 2.718281828459045
 assert_equal(math_abs(-1.0), 1)
 assert_equal(math_abs(1.0), 1)
 assert_equal(math_ceil(0.1), 1)

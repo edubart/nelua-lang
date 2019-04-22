@@ -246,10 +246,19 @@ end
 local primsymbols = {}
 do
   for name,type in pairs(primtypes) do
-    local symbol = Symbol(type.name, nil, type.type, type)
+    local symbol = Symbol(type.name, nil, 'const', type.type, type)
     primsymbols[name:lower()] = symbol
   end
 end
 typedefs.primsymbols = primsymbols
+
+typedefs.mutabilities = {
+  ['var'] = true,
+  ['const'] = true,
+}
+
+typedefs.readonly_mutabilities = {
+  ['const'] = true
+}
 
 return typedefs

@@ -256,7 +256,7 @@ local function get_parser(std)
 
     for_num <-
       ({} '' -> 'ForNum'
-        typed_id %ASSIGN eexpr %COMMA (op_cmp / '' -> 'le') eexpr (%COMMA eexpr / cnil)
+        typed_id %ASSIGN eexpr %COMMA (op_cmp / cnil) eexpr (%COMMA eexpr / cnil)
         eDO block eEND
       ) -> to_astnode
 
@@ -278,7 +278,7 @@ local function get_parser(std)
 
   grammar:add_group_peg('stat', 'vardecl', [[
     ({} '' -> 'VarDecl'
-      var_scope '' -> 'var'
+      var_scope cnil
       {| typed_idlist |}
       (%ASSIGN {| eexpr_list |})?
     ) -> to_astnode
@@ -315,7 +315,7 @@ local function get_parser(std)
   if not is_luacompat then
     grammar:add_group_peg('stat', 'vardecl', [[
       ({} '' -> 'VarDecl'
-        ((var_scope (var_mutability / '' -> 'var')) / (cnil var_mutability))
+        ((var_scope (var_mutability / cnil)) / (cnil var_mutability))
         {| typed_idlist |}
         (%ASSIGN {| eexpr_list |})?
       ) -> to_astnode
@@ -403,12 +403,12 @@ local function get_parser(std)
       %TVAR %BAND -> 'var&' /
       %TVAL %BAND -> 'val&' /
       %TVAR -> 'var' /
-      %TVAL -> 'val'
+      %TVAL -> 'val' /
+      %TCONST -> 'const'
     typed_idlist <- typed_id (%COMMA typed_id)*
     typed_id <- ({} '' -> 'IdDecl'
         %cNAME
-        (var_mutability / '' -> 'var')
-        (%COLON etypexpr / cnil)
+        ((%COLON (var_mutability (typexpr /cnil) / cnil etypexpr)) / cnil cnil)
         (&%EXCL {| var_pragma* |})?
       ) -> to_astnode
 

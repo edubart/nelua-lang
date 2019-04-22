@@ -84,20 +84,24 @@ function visitors.Number(context, node, desiredtype)
   end
   node.type = type
   node.value = value
+  node.const = true
 end
 
 function visitors.String(_, node)
   node.value = node:args(1)
   node.type = primtypes.string
+  node.const = true
 end
 
 function visitors.Boolean(_, node)
   node.value = node:args(1)
   node.type = primtypes.boolean
+  node.const = true
 end
 
 function visitors.Nil(_, node)
   node.type = primtypes.Nil
+  node.const = true
 end
 
 function visitors.Table(context, node, desiredtype)
@@ -183,7 +187,7 @@ function visitors.Id(context, node)
   end
   local symbol = context.scope:get_symbol(name, node)
   if not symbol then
-    symbol = context.scope:add_symbol(Symbol(name, node, type))
+    symbol = context.scope:add_symbol(Symbol(name, node, 'var', type))
   end
   symbol:link_node(node)
   return symbol
@@ -223,7 +227,7 @@ function visitors.FuncType(context, node)
     tabler.imap(argnodes, function(n) return n.type end),
     tabler.imap(returnnodes, function(n) return n.type end))
   node.type = type
-  return Symbol(nil, node, primtypes.type, type)
+  return Symbol(nil, node, 'const', primtypes.type, type)
 end
 
 function visitors.RecordFieldType(context, node)
@@ -241,7 +245,7 @@ function visitors.RecordType(context, node)
   end)
   local type = types.RecordType(node, fields)
   node.type = type
-  return Symbol(nil, node, primtypes.type, type)
+  return Symbol(nil, node, 'const', primtypes.type, type)
 end
 
 function visitors.EnumFieldType(context, node, desiredtype)
@@ -287,7 +291,7 @@ function visitors.EnumType(context, node)
   node:assertraisef(haszero, 'in enum declaration, a field with value 0 is always required')
   local type = types.EnumType(node, subtype, fields)
   node.type = type
-  return Symbol(nil, node, primtypes.type, type)
+  return Symbol(nil, node, 'const', primtypes.type, type)
 end
 
 function visitors.ArrayTableType(context, node)
@@ -295,7 +299,7 @@ function visitors.ArrayTableType(context, node)
   context:traverse(subtypenode)
   local type = types.ArrayTableType(node, subtypenode.type)
   node.type = type
-  return Symbol(nil, node, primtypes.type, type)
+  return Symbol(nil, node, 'const', primtypes.type, type)
 end
 
 function visitors.ArrayType(context, node)
@@ -309,7 +313,7 @@ function visitors.ArrayType(context, node)
     'expected a valid decimal integral number in the second argument of an "array" type')
   local type = types.ArrayType(node, subtype, length)
   node.type = type
-  return Symbol(nil, node, primtypes.type, type)
+  return Symbol(nil, node, 'const', primtypes.type, type)
 end
 
 function visitors.PointerType(context, node)
@@ -320,7 +324,7 @@ function visitors.PointerType(context, node)
     context:traverse(subtypenode)
     assert(subtypenode.type)
     type = types.PointerType(node, subtypenode.type)
-    symbol = Symbol(nil, node, type.type, type)
+    symbol = Symbol(nil, node, 'const', type.type, type)
   else
     type = primtypes.pointer
     symbol = typedefs.primsymbols.pointer
@@ -427,6 +431,7 @@ function visitors.Call(context, node)
           "in assertion to type '%s', the type is not coercible with expression of type '%s'",
           tostring(type), tostring(argnode.type))
       end
+      node.const = argnode.const
       node.type = type
     elseif symbol.type:is_function() then
       -- function call
@@ -470,9 +475,12 @@ function visitors.Call(context, node)
   end
 end
 
-function visitors.IdDecl(context, node)
+function visitors.IdDecl(context, node, declmut)
   local name, mut, typenode, pragmanodes = node:args()
-  node:assertraisef(mut == 'var', 'other mutabilities not supported yet')
+  node:assertraisef(not (mut and declmut), "cannot declare mutability twice for '%s'", name)
+  mut = mut or declmut or 'var'
+  node:assertraisef(typedefs.mutabilities[mut],
+    'mutability %s not supported yet', mut)
   local type = node.type
   if typenode then
     context:traverse(typenode)
@@ -481,7 +489,7 @@ function visitors.IdDecl(context, node)
   if not type and context.phase == phases.any_inference then
     type = primtypes.any
   end
-  local symbol = context.scope:add_symbol(Symbol(name, node, type))
+  local symbol = context.scope:add_symbol(Symbol(name, node, mut, type))
   if pragmanodes then
     context:traverse(pragmanodes, symbol)
   end
@@ -559,26 +567,37 @@ function visitors.ForNum(context, node)
 end
 
 function visitors.VarDecl(context, node)
-  local varscope, mut, vars, vals = node:args()
-  vals = vals or {}
-  node:assertraisef(mut == 'var', 'other mutabilities not supported yet')
-  node:assertraisef(#vars >= #vals,
+  local varscope, mut, varnodes, valnodes = node:args()
+  valnodes = valnodes or {}
+  node:assertraisef(not mut or typedefs.mutabilities[mut],
+    'mutability %s not supported yet', mut)
+  node:assertraisef(#varnodes >= #valnodes,
     'too many expressions in declaration, expected at most %d but got %d',
-    #vars, #vals)
-  for _,var,val in iters.izip(vars, vals) do
-    local symbol = context:traverse(var)
-    assert(symbol.type == var.type)
-    var.assign = true
-    if val then
-      local valsymbol = context:traverse(val, var.type)
-      if val.type then
-        symbol:add_possible_type(val.type)
-        if var.type and var.type ~= primtypes.boolean then
-          var:assertraisef(var.type:is_coercible_from(val.type),
-            "variable '%s' of type '%s' is not coercible with expression of type '%s'",
-            symbol.name, tostring(var.type), tostring(val.type))
+    #varnodes, #valnodes)
+  for _,varnode,valnode in iters.izip(varnodes, valnodes) do
+    assert(varnode.tag == 'IdDecl')
+    local symbol = context:traverse(varnode, mut)
+    assert(symbol.type == varnode.type)
+    varnode.assign = true
+    if valnode then
+      local valsymbol = context:traverse(valnode, varnode.type)
+      if varnode.const then
+        varnode:assertraisef(valnode.const, 'const variables can only assign to const expressions')
+      end
+      if valnode.type then
+        if varnode.const then
+          -- for consts the type should be fixed
+          symbol:set_type(valnode.type)
+        else
+          -- lazy type evaluation
+          symbol:add_possible_type(valnode.type)
         end
-        if val.type:is_type() then
+        if varnode.type and varnode.type ~= primtypes.boolean then
+          varnode:assertraisef(varnode.type:is_coercible_from(valnode.type),
+            "variable '%s' of type '%s' is not coercible with expression of type '%s'",
+            symbol.name, tostring(varnode.type), tostring(valnode.type))
+        end
+        if valnode.type:is_type() then
           assert(valsymbol and valsymbol.holding_type)
           symbol.holding_type = valsymbol.holding_type
         end
@@ -588,22 +607,24 @@ function visitors.VarDecl(context, node)
 end
 
 function visitors.Assign(context, node)
-  local vars, vals = node:args()
-  node:assertraisef(#vars >= #vals,
+  local varnodes, valnodes = node:args()
+  node:assertraisef(#varnodes >= #valnodes,
     'too many expressions in assign, expected at most %d but got %d',
-    #vars, #vals)
-  for _,var,val in iters.izip(vars, vals) do
-    local symbol = context:traverse(var)
-    var.assign = true
-    if val then
-      context:traverse(val, var.type)
+    #varnodes, #valnodes)
+  for _,varnode,valnode in iters.izip(varnodes, valnodes) do
+    local symbol = context:traverse(varnode)
+    varnode.assign = true
+    varnode:assertraisef(not typedefs.readonly_mutabilities[varnode.mut],
+      "cannot assign a read only variable of mutability '%s'", varnode.mut)
+    if valnode then
+      context:traverse(valnode, varnode.type)
       if symbol then
-        symbol:add_possible_type(val.type)
+        symbol:add_possible_type(valnode.type)
       end
-      if var.type and val.type then
-        var:assertraisef(var.type:is_coercible_from(val.type),
+      if varnode.type and valnode.type then
+        varnode:assertraisef(varnode.type:is_coercible_from(valnode.type),
           "variable assignment of type '%s' is not coercible with expression of type '%s'",
-          tostring(var.type), tostring(val.type))
+          tostring(varnode.type), tostring(valnode.type))
       end
     end
   end
@@ -702,6 +723,9 @@ function visitors.UnaryOp(context, node, desiredtype)
     end
     assert(context.phase ~= phases.any_inference or node.type)
   end
+  if argnode.const then
+    node.const = true
+  end
 end
 
 function visitors.BinaryOp(context, node, desiredtype)
@@ -767,6 +791,9 @@ function visitors.BinaryOp(context, node, desiredtype)
   end
   if type then
     node.type = type
+  end
+  if lnode.const and rnode.const then
+    node.const = true
   end
   assert(context.phase ~= phases.any_inference or node.type)
 end

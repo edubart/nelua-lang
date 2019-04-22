@@ -26,6 +26,7 @@ local function add_casted_value(context, emitter, type, valnode)
     end
   elseif valnode then
     if valnode.type:is_any() then
+      context:get_ctype(primtypes.any) -- to inject any builtin
       emitter:add(context:get_ctype(type), '_any_cast(', valnode, ')')
     elseif type == valnode.type or valnode.type:is_numeric() and type:is_numeric() then
       emitter:add(valnode)
@@ -146,7 +147,6 @@ visitors.PointerType = visitors.Type
 function visitors.IdDecl(context, node, emitter)
   if node.type:is_type() then return end
   local name, mut, typenode, pragmanodes = node:args()
-  node:assertraisef(mut == nil or mut == 'var', "variable mutabilities are not supported yet")
   if pragmanodes then
     for pragmanode in iters.ivalues(pragmanodes) do
       local pragmaname, pragmaargs = pragmanode:args()
@@ -157,6 +157,9 @@ function visitors.IdDecl(context, node, emitter)
         emitter:add(cattr, ' ')
       end
     end
+  end
+  if node.const then
+    emitter:add('const ')
   end
   local ctype = context:get_ctype(node)
   emitter:add(ctype, ' ', cdefs.quotename(node.codename))
@@ -363,6 +366,9 @@ end
 
 function visitors.ForNum(context, node, emitter)
   local itvar, beginval, compop, endval, incrval, block  = node:args()
+  if not compop then
+    compop = 'le'
+  end
   --TODO: evaluate beginval, endval, incrval only once in case of expressions
   local itname = itvar[1]
   emitter:add_indent("for(", itvar, ' = ')
@@ -394,15 +400,26 @@ function visitors.Goto(_, node, emitter)
   emitter:add_indent_ln('goto ', cdefs.quotename(labelname), ';')
 end
 
-local function add_assignments(context, emitter, vars, vals)
+local function add_assignments(context, emitter, vars, vals, decl)
   local added = false
   for _,var,val in iters.izip(vars, vals or {}) do
     if not var.type:is_type() then
-      if added then emitter:add(' ') end
-      emitter:add(var, ' = ')
-      add_casted_value(context, emitter, var.type, val)
-      emitter:add(';')
-      added = true
+      local varemitter = emitter
+      local mainconst = decl and var.const and context.scope:is_main()
+      if mainconst then
+        varemitter = Emitter(context)
+        varemitter:add('static ')
+      else
+        if added then varemitter:add(' ') end
+        added = true
+      end
+      varemitter:add(var, ' = ')
+      add_casted_value(context, varemitter, var.type, val)
+      varemitter:add(';')
+      if mainconst then
+        varemitter:add_ln()
+        context:add_declaration(varemitter:generate())
+      end
     end
   end
 end
@@ -412,7 +429,7 @@ function visitors.VarDecl(context, node, emitter)
   node:assertraisef(varscope == 'local', 'global variables not supported yet')
   node:assertraisef(not vals or #vars == #vals, 'vars and vals count differs')
   emitter:add_indent()
-  add_assignments(context, emitter, vars, vals)
+  add_assignments(context, emitter, vars, vals, true)
   emitter:add_ln()
 end
 

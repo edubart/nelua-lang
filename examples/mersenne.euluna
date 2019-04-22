@@ -7,6 +7,8 @@
 -- Mersenne Twister random number generator, implementation taken from
 -- http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/MT2002/CODES/mt19937ar.c
 
+local MT19937_N: const uint32 = 624
+
 local mt19937 = @record {
   i: uint32,
   v: array<uint32, 624>
@@ -14,7 +16,6 @@ local mt19937 = @record {
 
 -- initialize random state with a seed
 local function mt19937_seed(self: pointer<mt19937>, seed: uint32)
-  local MT19937_N = @uint32(#self.v)
   self.i = MT19937_N
   self.v[0]= seed & 0xffffffff
   for i=1_u32,<MT19937_N do
@@ -26,9 +27,9 @@ end
 -- generates a random number on [0, 0xffffffff]
 local function mt19937_random_uint32(self: pointer<mt19937>)
   local MAG01: array<uint32, 2> = {0x0, 0x9908b0df}
-  local LOWER_MASK = 0x7fffffff_u32
-  local UPPER_MASK = 0x80000000_u32
-  local N, M = 624_u32, 397_u32
+  local LOWER_MASK: const = 0x7fffffff_u32
+  local UPPER_MASK: const = 0x80000000_u32
+  local N: const, M: const = MT19937_N, 397_u32
   local y
   if self.i >= N then
     for j=0_u32,<N-M do

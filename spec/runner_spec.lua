@@ -50,6 +50,7 @@ it("print correct generated AST" , function()
       callee_type = "any",
       type = "any",
       { String {
+          const = true,
           type = "string",
           value = "hello world",
           "hello world",
@@ -58,6 +59,7 @@ it("print correct generated AST" , function()
       },
       Id {
         codename = "print",
+        mut = "var",
         type = "any",
         "print"
       },

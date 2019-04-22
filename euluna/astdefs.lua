@@ -43,7 +43,7 @@ astbuilder:register('Id', stypes.shape {
 })
 astbuilder:register('IdDecl', stypes.shape {
   stypes.string, -- name
-  stypes.one_of{"var", "var&", "var&&", "val"}:is_optional(), -- mutability
+  stypes.one_of{"var", "var&", "var&&", "val", "val&", "const"}:is_optional(), -- mutability
   ntypes.Node:is_optional(), -- typexpr
   stypes.array_of(ntypes.Pragma):is_optional(), -- pragmas
 })
@@ -150,7 +150,7 @@ astbuilder:register('Repeat', stypes.shape {
 astbuilder:register('ForNum', stypes.shape {
   ntypes.IdDecl, -- iterated var
   ntypes.Node, -- begin expr
-  stypes.one_of{"lt", "ne", "gt", "le", "ge", "eq"}, -- compare operator
+  stypes.one_of{"lt", "ne", "gt", "le", "ge", "eq"}:is_optional(), -- compare operator
   ntypes.Node, -- end expr
   ntypes.Node:is_optional(), -- increment expr
   ntypes.Block, -- block
@@ -169,7 +169,7 @@ astbuilder:register('Goto', stypes.shape {
 })
 astbuilder:register('VarDecl', stypes.shape {
   stypes.one_of{"local"}:is_optional(), -- scope
-  stypes.one_of{"var", "var&", "val", "val&"}, -- mutability
+  stypes.one_of{"var", "var&", "val", "val&", "const"}:is_optional(), -- mutability
   stypes.array_of(ntypes.IdDecl), -- var names with types
   stypes.array_of(ntypes.Node):is_optional(), -- expr list, initial assignments values
 })

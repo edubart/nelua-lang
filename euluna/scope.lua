@@ -89,7 +89,7 @@ end
 function Scope:resolve_returntypes()
   local resolved_types = {}
   for i,returntypes in pairs(self.returnstypes) do
-    resolved_types[i] = typedefs.find_common_type(returntypes)
+    resolved_types[i] = typedefs.find_common_type(returntypes) or typedefs.primtypes.any
   end
   return resolved_types
 end
