@@ -87,7 +87,7 @@ function iterators.spairs(t)
     if k ~= nil then
       return k, v
     end
-  end, t
+  end, t, nil
 end
 
 -- ordered pairs for string keys only

@@ -24,6 +24,8 @@ function ASTBuilder:_init()
 end
 
 function ASTBuilder:register(tag, shape)
+  shape.attr = shapetypes.table:is_optional()
+  shape = shapetypes.shape(shape)
   local klass = class(ASTNode)
   klass.tag = tag
   klass.nargs = #shape.shape

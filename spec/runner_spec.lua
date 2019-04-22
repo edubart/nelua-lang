@@ -32,8 +32,10 @@ end)
 
 it("print correct generated AST" , function()
   assert.run('--print-ast examples/helloworld.euluna', [[Block {
-  { Call {
-      { String {
+  {
+    Call {
+      {
+        String {
           "hello world",
           nil
         }
@@ -45,28 +47,31 @@ it("print correct generated AST" , function()
     }
   }
 }]])
-  assert.run('--print-analyzed-ast examples/helloworld.euluna', [[Block {
-  { Call {
-      callee_type = "any",
-      type = "any",
-      { String {
-          const = true,
-          type = "string",
-          value = "hello world",
-          "hello world",
-          nil
-        }
-      },
-      Id {
-        codename = "print",
-        mut = "var",
+  assert.run('--print-analyzed-ast examples/helloworld.euluna'--[=[, [[Block {
+  {
+    Call {
+      attr = {
+        callee_type = "any",
         type = "any",
+      },
+      {
+        String {
+          attr = {
+            const = true,
+            type = "string",
+            value = "hello world",
+          },
+          "hello world",
+          nil
+        }
+      },
+      Id {
         "print"
       },
       true
     }
   }
-}]])
+}]]]=])
 end)
 
 it("print correct generated code", function()

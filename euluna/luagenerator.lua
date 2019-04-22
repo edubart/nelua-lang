@@ -11,7 +11,7 @@ local visitors = {}
 function visitors.Number(_, node, emitter)
   local base, int, frac, exp, literal = node:args()
   node:assertraisef(literal == nil, 'literals are not supported in lua')
-  emitter:add_composed_number(base, int, frac, exp, node.value:abs())
+  emitter:add_composed_number(base, int, frac, exp, node.attr.value:abs())
 end
 
 function visitors.String(_, node, emitter)
@@ -241,16 +241,16 @@ function visitors.Goto(_, node, emitter)
 end
 
 function visitors.VarDecl(context, node, emitter)
-  local varscope, mutability, vars, vals = node:args()
+  local varscope, mutability, varnodes, valnodes = node:args()
   local is_local = (varscope == 'local') or not context.scope:is_main()
   emitter:add_indent()
   if is_local then
     emitter:add('local ')
   end
-  emitter:add(vars)
-  local doassigns = vals or not is_local
-  for _,var in ipairs(vars) do
-    if not var.type:is_any() then
+  emitter:add(varnodes)
+  local doassigns = valnodes or not is_local
+  for _,varnode in ipairs(varnodes) do
+    if not varnode.attr.type:is_any() then
       doassigns = true
       break
     end
@@ -258,18 +258,18 @@ function visitors.VarDecl(context, node, emitter)
   if doassigns then
     emitter:add(' = ')
     local istart = 1
-    if vals then
-      emitter:add(vals)
-      istart = #vals+1
+    if valnodes then
+      emitter:add(valnodes)
+      istart = #valnodes+1
     end
-    for i=istart,#vars do
+    for i=istart,#varnodes do
       if i > 1 then emitter:add(', ') end
-      local var = vars[i]
-      if var.type:is_table() or var.type:is_arraytable() then
+      local varnode = varnodes[i]
+      if varnode.attr.type:is_table() or varnode.attr.type:is_arraytable() then
         emitter:add('{}')
-      elseif var.type:is_numeric() then
+      elseif varnode.attr.type:is_numeric() then
         emitter:add('0')
-      elseif var.type:is_boolean() then
+      elseif varnode.attr.type:is_boolean() then
         emitter:add('false')
       else
         emitter:add('nil')
@@ -280,8 +280,8 @@ function visitors.VarDecl(context, node, emitter)
 end
 
 function visitors.Assign(_, node, emitter)
-  local vars, vals = node:args()
-  emitter:add_indent_ln(vars, ' = ', vals)
+  local varnodes, valnodes = node:args()
+  emitter:add_indent_ln(varnodes, ' = ', valnodes)
 end
 
 function visitors.FuncDef(_, node, emitter)

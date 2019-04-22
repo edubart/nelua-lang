@@ -19,7 +19,7 @@ end
 function CContext:get_ctype(nodeortype)
   local type = nodeortype
   if traits.is_astnode(nodeortype) then
-    type = nodeortype.type
+    type = nodeortype.attr.type
     nodeortype:assertraisef(type, 'unknown type for AST node while trying to get the C type')
   end
   assert(type)

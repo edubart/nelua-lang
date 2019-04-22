@@ -14,7 +14,7 @@ local visitors = {}
 local function add_casted_value(context, emitter, type, valnode)
   if type:is_any() then
     if valnode then
-      if valnode.type:is_any() then
+      if valnode.attr.type:is_any() then
         emitter:add(valnode)
       else
         emitter:add('(', context:get_ctype(primtypes.any), '){&',
@@ -25,12 +25,12 @@ local function add_casted_value(context, emitter, type, valnode)
         context:get_typectype(primtypes.Nil), ', {0}}')
     end
   elseif valnode then
-    if valnode.type:is_any() then
+    if valnode.attr.type:is_any() then
       context:get_ctype(primtypes.any) -- to inject any builtin
       emitter:add(context:get_ctype(type), '_any_cast(', valnode, ')')
-    elseif type == valnode.type or valnode.type:is_numeric() and type:is_numeric() then
+    elseif type == valnode.attr.type or valnode.attr.type:is_numeric() and type:is_numeric() then
       emitter:add(valnode)
-    elseif valnode.type:is_string() and type:is_cstring() then
+    elseif valnode.attr.type:is_string() and type:is_cstring() then
       emitter:add('(', valnode, ')->data')
     else
       emitter:add('(',context:get_ctype(type, valnode),')',valnode)
@@ -42,21 +42,21 @@ end
 
 function visitors.Number(context, node, emitter)
   local base, int, frac, exp, literal = node:args()
-  local isintegral = not frac and node.value:isintegral()
+  local isintegral = not frac and node.attr.value:isintegral()
   local suffix
-  if node.type:is_unsigned() then
+  if node.attr.type:is_unsigned() then
     suffix = 'U'
-  elseif node.type:is_float32() and base == 'dec' then
+  elseif node.attr.type:is_float32() and base == 'dec' then
     suffix = isintegral and '.0f' or 'f'
-  elseif node.type:is_float64() and base == 'dec' then
+  elseif node.attr.type:is_float64() and base == 'dec' then
     suffix = isintegral and '.0' or ''
   end
 
-  if not node.type:is_float() and literal then
-    emitter:add('(', context:get_ctype(node.type), ')')
+  if not node.attr.type:is_float() and literal then
+    emitter:add('(', context:get_ctype(node.attr.type), ')')
   end
 
-  emitter:add_composed_number(base, int, frac, exp, node.value:abs())
+  emitter:add_composed_number(base, int, frac, exp, node.attr.value:abs())
   if suffix then
     emitter:add(suffix)
   end
@@ -92,21 +92,21 @@ end
 
 function visitors.Table(context, node, emitter)
   local childnodes = node:args()
-  if node.type:is_record() then
+  if node.attr.type:is_record() then
     local ctype = context:get_ctype(node)
     emitter:add('(', ctype, ')', '{')
-    emitter:add_traversal_list(childnodes, ', ', node.type)
+    emitter:add_traversal_list(childnodes, ', ', node.attr.type)
     emitter:add('}')
-  elseif node.type:is_array() then
+  elseif node.attr.type:is_array() then
     local ctype = context:get_ctype(node)
     emitter:add('(', ctype, ')', '{{')
     emitter:add_traversal_list(childnodes)
     emitter:add('}}')
-  elseif node.type:is_arraytable() then
+  elseif node.attr.type:is_arraytable() then
     local ctype = context:get_ctype(node)
     local len = #childnodes
     if len > 0 then
-      local subctype = context:get_ctype(node.type.subtype)
+      local subctype = context:get_ctype(node.attr.type.subtype)
       emitter:add(ctype, '_create((', subctype, '[', len, ']){')
       emitter:add_traversal_list(childnodes)
       emitter:add('},', len, ')')
@@ -126,7 +126,7 @@ end
 
 -- identifier and types
 function visitors.Id(_, node, emitter)
-  emitter:add(cdefs.quotename(node.codename))
+  emitter:add(cdefs.quotename(node.attr.codename))
 end
 
 function visitors.Paren(_, node, emitter)
@@ -145,7 +145,7 @@ visitors.ArrayType = visitors.Type
 visitors.PointerType = visitors.Type
 
 function visitors.IdDecl(context, node, emitter)
-  if node.type:is_type() then return end
+  if node.attr.type:is_type() then return end
   local name, mut, typenode, pragmanodes = node:args()
   if pragmanodes then
     for pragmanode in iters.ivalues(pragmanodes) do
@@ -158,24 +158,24 @@ function visitors.IdDecl(context, node, emitter)
       end
     end
   end
-  if node.const then
+  if node.attr.const then
     emitter:add('const ')
   end
   local ctype = context:get_ctype(node)
-  emitter:add(ctype, ' ', cdefs.quotename(node.codename))
+  emitter:add(ctype, ' ', cdefs.quotename(node.attr.codename))
 end
 
 -- indexing
 function visitors.DotIndex(_, node, emitter)
   local name, objnode = node:args()
-  if objnode.type:is_type() then
-    local objtype = node.holding_type
+  if objnode.attr.type:is_type() then
+    local objtype = node.attr.holding_type
     if objtype:is_enum() then
       emitter:add(objtype:get_field(name).value)
     else --luacov:disable
       error('not implemented yet')
     end --luacov:enable
-  elseif objnode.type:is_pointer() then
+  elseif objnode.attr.type:is_pointer() then
     emitter:add(objnode, '->', cdefs.quotename(name))
   else
     emitter:add(objnode, '.', cdefs.quotename(name))
@@ -186,7 +186,7 @@ end
 
 function visitors.ArrayIndex(context, node, emitter)
   local index, objnode = node:args()
-  local objtype = objnode.type
+  local objtype = objnode.attr.type
   local pointer = false
   if objtype:is_pointer() then
     if not objtype:is_generic_pointer() then
@@ -227,19 +227,19 @@ function visitors.Call(context, node, emitter)
   if builtin then
     callee = builtin(context, node, emitter)
   end
-  if node.callee_type:is_function() then
+  if node.attr.callee_type:is_function() then
     emitter:add(callee, '(')
-    for i,argtype,argnode in iters.izip(node.callee_type.argtypes, args) do
+    for i,argtype,argnode in iters.izip(node.attr.callee_type.argtypes, args) do
       if i > 1 then emitter:add(', ') end
       add_casted_value(context, emitter, argtype, argnode)
     end
     emitter:add(')')
-  elseif node.callee_type:is_type() then
+  elseif node.attr.callee_type:is_type() then
     -- type assertion
     assert(#args == 1)
     local argnode = args[1]
-    if argnode.type ~= node.type then
-      emitter:add('(', context:get_ctype(node.type), ')(', args[1], ')')
+    if argnode.attr.type ~= node.attr.type then
+      emitter:add('(', context:get_ctype(node.attr.type), ')(', args[1], ')')
     else
       emitter:add(args[1])
     end
@@ -365,16 +365,16 @@ function visitors.Repeat(_, node, emitter)
 end
 
 function visitors.ForNum(context, node, emitter)
-  local itvar, beginval, compop, endval, incrval, block  = node:args()
+  local itvarnode, beginval, compop, endval, incrval, block  = node:args()
   if not compop then
     compop = 'le'
   end
   --TODO: evaluate beginval, endval, incrval only once in case of expressions
-  local itname = itvar[1]
-  emitter:add_indent("for(", itvar, ' = ')
-  add_casted_value(context, emitter, itvar.type, beginval)
+  local itname = itvarnode[1]
+  emitter:add_indent("for(", itvarnode, ' = ')
+  add_casted_value(context, emitter, itvarnode.attr.type, beginval)
   emitter:add('; ', itname, ' ', cdefs.binary_ops[compop], ' ')
-  add_casted_value(context, emitter, itvar.type, endval)
+  add_casted_value(context, emitter, itvarnode.attr.type, endval)
   emitter:add_ln('; ', cdefs.quotename(itname), ' += ', incrval or '1', ') {')
   emitter:add(block)
   emitter:add_indent_ln("}")
@@ -400,12 +400,12 @@ function visitors.Goto(_, node, emitter)
   emitter:add_indent_ln('goto ', cdefs.quotename(labelname), ';')
 end
 
-local function add_assignments(context, emitter, vars, vals, decl)
+local function add_assignments(context, emitter, varnodes, valnodes, decl)
   local added = false
-  for _,var,val in iters.izip(vars, vals or {}) do
-    if not var.type:is_type() then
+  for _,varnode,valnode in iters.izip(varnodes, valnodes or {}) do
+    if not varnode.attr.type:is_type() then
       local varemitter = emitter
-      local mainconst = decl and var.const and context.scope:is_main()
+      local mainconst = decl and varnode.attr.const and context.scope:is_main()
       if mainconst then
         varemitter = Emitter(context)
         varemitter:add('static ')
@@ -413,8 +413,8 @@ local function add_assignments(context, emitter, vars, vals, decl)
         if added then varemitter:add(' ') end
         added = true
       end
-      varemitter:add(var, ' = ')
-      add_casted_value(context, varemitter, var.type, val)
+      varemitter:add(varnode, ' = ')
+      add_casted_value(context, varemitter, varnode.attr.type, valnode)
       varemitter:add(';')
       if mainconst then
         varemitter:add_ln()
@@ -425,11 +425,11 @@ local function add_assignments(context, emitter, vars, vals, decl)
 end
 
 function visitors.VarDecl(context, node, emitter)
-  local varscope, mutability, vars, vals = node:args()
+  local varscope, mutability, varnodes, valnodes = node:args()
   node:assertraisef(varscope == 'local', 'global variables not supported yet')
-  node:assertraisef(not vals or #vars == #vals, 'vars and vals count differs')
+  node:assertraisef(not valnodes or #varnodes == #valnodes, 'vars and vals count differs')
   emitter:add_indent()
-  add_assignments(context, emitter, vars, vals, true)
+  add_assignments(context, emitter, varnodes, valnodes, true)
   emitter:add_ln()
 end
 
@@ -456,7 +456,7 @@ function visitors.FuncDef(context, node)
     pragmanode:assertraisef(attr, "pragma '%s' is not defined", pragmaname)
     if pragmaname == 'cimport' then
       define = false
-      local header = pragmaargs[2] and pragmaargs[2].value
+      local header = pragmaargs[2] and pragmaargs[2].attr.value
       if header then
         context:add_include(header)
         declare = false
@@ -522,7 +522,7 @@ function visitors.BinaryOp(context, node, emitter)
   local surround = is_in_operator(context)
   if surround then emitter:add('(') end
 
-  if typedefs.binary_conditional_ops[opname] and not node.type:is_boolean() then
+  if typedefs.binary_conditional_ops[opname] and not node.attr.type:is_boolean() then
     --TODO: create a temporary function in case of expressions and evaluate in order
     if opname == 'and' then
       --TODO: use nilable values here

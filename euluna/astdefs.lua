@@ -5,91 +5,91 @@ local stypes = astbuilder.shapetypes
 local ntypes = stypes.node
 
 -- primitives
-astbuilder:register('Number', stypes.shape {
+astbuilder:register('Number', {
   stypes.one_of{"dec", "bin", "hex"}, -- number base
   stypes.string:is_optional(), -- integer part
   stypes.string:is_optional(), -- fractional part
   stypes.string:is_optional(), -- exponential part
   stypes.string:is_optional() -- literal
 })
-astbuilder:register('String', stypes.shape {
+astbuilder:register('String', {
   stypes.string, -- value
   stypes.string:is_optional() -- literal
 })
-astbuilder:register('Boolean', stypes.shape {
+astbuilder:register('Boolean', {
   stypes.boolean, -- true or false
 })
-astbuilder:register('Nil', stypes.shape {})
-astbuilder:register('Varargs', stypes.shape {})
+astbuilder:register('Nil', {})
+astbuilder:register('Varargs', {})
 
 -- table
-astbuilder:register('Table', stypes.shape {
+astbuilder:register('Table', {
   stypes.array_of(ntypes.Node) -- pair or exprs
 })
-astbuilder:register('Pair', stypes.shape {
+astbuilder:register('Pair', {
   ntypes.Node + stypes.string, -- field name (an expr or a string)
   ntypes.Node -- field value expr
 })
 
 -- pragma
-astbuilder:register('Pragma', stypes.shape {
+astbuilder:register('Pragma', {
   stypes.string, -- name
   stypes.array_of(ntypes.String + ntypes.Number + ntypes.Boolean) -- args
 })
 
 -- identifier and types
-astbuilder:register('Id', stypes.shape {
+astbuilder:register('Id', {
   stypes.string, -- name
 })
-astbuilder:register('IdDecl', stypes.shape {
+astbuilder:register('IdDecl', {
   stypes.string, -- name
   stypes.one_of{"var", "var&", "var&&", "val", "val&", "const"}:is_optional(), -- mutability
   ntypes.Node:is_optional(), -- typexpr
   stypes.array_of(ntypes.Pragma):is_optional(), -- pragmas
 })
-astbuilder:register('Paren', stypes.shape {
+astbuilder:register('Paren', {
   ntypes.Node -- expr
 })
 
 -- types
-astbuilder:register('Type', stypes.shape {
+astbuilder:register('Type', {
   stypes.string, -- type name
 })
-astbuilder:register('TypeInstance', stypes.shape {
+astbuilder:register('TypeInstance', {
   ntypes.Node, -- typexpr
 })
-astbuilder:register('FuncType', stypes.shape {
+astbuilder:register('FuncType', {
   stypes.array_of(ntypes.Node), -- arguments types
   stypes.array_of(ntypes.Node), -- returns types
 })
-astbuilder:register('RecordFieldType', stypes.shape {
+astbuilder:register('RecordFieldType', {
   stypes.string, -- field name
   ntypes.Node, -- field typexpr
 })
-astbuilder:register('RecordType', stypes.shape {
+astbuilder:register('RecordType', {
   stypes.array_of(ntypes.RecordFieldType), -- field types
 })
-astbuilder:register('EnumFieldType', stypes.shape {
+astbuilder:register('EnumFieldType', {
   stypes.string, -- field name
   ntypes.Node:is_optional() -- field numeric value expr
 })
-astbuilder:register('EnumType', stypes.shape {
+astbuilder:register('EnumType', {
   ntypes.Type:is_optional(), -- primitive type
   stypes.array_of(ntypes.EnumFieldType), -- field types
 })
-astbuilder:register('ArrayTableType', stypes.shape {
+astbuilder:register('ArrayTableType', {
   ntypes.Node, -- subtype typexpr
 })
-astbuilder:register('ArrayType', stypes.shape {
+astbuilder:register('ArrayType', {
   ntypes.Node, -- subtype typeexpt
   ntypes.Node, -- size expr
 })
-astbuilder:register('PointerType', stypes.shape {
+astbuilder:register('PointerType', {
   ntypes.Node:is_optional(), -- subtype typexpr
 })
 
 -- function
-astbuilder:register('Function', stypes.shape {
+astbuilder:register('Function', {
   stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
   stypes.array_of(ntypes.Pragma), -- pragmas
@@ -97,26 +97,26 @@ astbuilder:register('Function', stypes.shape {
 })
 
 -- indexing
-astbuilder:register('DotIndex', stypes.shape {
+astbuilder:register('DotIndex', {
   stypes.string, -- name
   ntypes.Node -- expr
 })
-astbuilder:register('ColonIndex', stypes.shape {
+astbuilder:register('ColonIndex', {
   stypes.string, -- name
   ntypes.Node -- expr
 })
-astbuilder:register('ArrayIndex', stypes.shape {
+astbuilder:register('ArrayIndex', {
   ntypes.Node, -- index expr
   ntypes.Node -- expr
 })
 
 -- calls
-astbuilder:register('Call', stypes.shape {
+astbuilder:register('Call', {
   stypes.array_of(ntypes.Node), -- args exprs
   ntypes.Node, -- caller expr
   stypes.boolean:is_optional(), -- is called from a block
 })
-astbuilder:register('CallMethod', stypes.shape {
+astbuilder:register('CallMethod', {
   stypes.string, -- method name
   stypes.array_of(ntypes.Node), -- args exprs
   ntypes.Node, -- caller expr
@@ -124,30 +124,30 @@ astbuilder:register('CallMethod', stypes.shape {
 })
 
 -- block
-astbuilder:register('Block', stypes.shape {
+astbuilder:register('Block', {
   stypes.array_of(ntypes.Node) -- statements
 })
 
 -- statements
-astbuilder:register('Return', stypes.shape {
+astbuilder:register('Return', {
   stypes.array_of(ntypes.Node) -- returned exprs
 })
-astbuilder:register('If', stypes.shape {
+astbuilder:register('If', {
   stypes.array_of(stypes.shape{ntypes.Node, ntypes.Block}), -- if list {expr, block}
   ntypes.Block:is_optional() -- else block
 })
-astbuilder:register('Do', stypes.shape {
+astbuilder:register('Do', {
   ntypes.Block -- block
 })
-astbuilder:register('While', stypes.shape {
+astbuilder:register('While', {
   ntypes.Node, -- expr
   ntypes.Block -- block
 })
-astbuilder:register('Repeat', stypes.shape {
+astbuilder:register('Repeat', {
   ntypes.Block, -- block
   ntypes.Node -- expr
 })
-astbuilder:register('ForNum', stypes.shape {
+astbuilder:register('ForNum', {
   ntypes.IdDecl, -- iterated var
   ntypes.Node, -- begin expr
   stypes.one_of{"lt", "ne", "gt", "le", "ge", "eq"}:is_optional(), -- compare operator
@@ -155,29 +155,29 @@ astbuilder:register('ForNum', stypes.shape {
   ntypes.Node:is_optional(), -- increment expr
   ntypes.Block, -- block
 })
-astbuilder:register('ForIn', stypes.shape {
+astbuilder:register('ForIn', {
   stypes.array_of(ntypes.IdDecl), -- iterated vars
   stypes.array_of(ntypes.Node), -- in exprlist
   ntypes.Block -- block
 })
-astbuilder:register('Break', stypes.shape {})
-astbuilder:register('Label', stypes.shape {
+astbuilder:register('Break', {})
+astbuilder:register('Label', {
   stypes.string -- label name
 })
-astbuilder:register('Goto', stypes.shape {
+astbuilder:register('Goto', {
   stypes.string -- label name
 })
-astbuilder:register('VarDecl', stypes.shape {
+astbuilder:register('VarDecl', {
   stypes.one_of{"local"}:is_optional(), -- scope
   stypes.one_of{"var", "var&", "val", "val&", "const"}:is_optional(), -- mutability
   stypes.array_of(ntypes.IdDecl), -- var names with types
   stypes.array_of(ntypes.Node):is_optional(), -- expr list, initial assignments values
 })
-astbuilder:register('Assign', stypes.shape {
+astbuilder:register('Assign', {
   stypes.array_of(ntypes.Node), -- expr list, assign variables
   stypes.array_of(ntypes.Node), -- expr list, assign values
 })
-astbuilder:register('FuncDef', stypes.shape {
+astbuilder:register('FuncDef', {
   stypes.one_of{"local"}:is_optional(), -- scope
   ntypes.Id + ntypes.DotIndex + ntypes.ColonIndex, -- name
   stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
@@ -187,23 +187,23 @@ astbuilder:register('FuncDef', stypes.shape {
 })
 
 -- operations
-astbuilder:register('UnaryOp', stypes.shape {
+astbuilder:register('UnaryOp', {
   stypes.string, -- opname
   ntypes.Node -- right expr
 })
-astbuilder:register('BinaryOp', stypes.shape {
+astbuilder:register('BinaryOp', {
   stypes.string, -- opname
   ntypes.Node, --- left expr
   ntypes.Node -- right expr
 })
 
 -- euluna extesions to lua
-astbuilder:register('Switch', stypes.shape {
+astbuilder:register('Switch', {
   ntypes.Node, -- switch expr
   stypes.array_of(stypes.shape{ntypes.Node, ntypes.Block}), -- case list {expr, block}
   ntypes.Block:is_optional() -- else block
 })
 
-astbuilder:register('Continue', stypes.shape {})
+astbuilder:register('Continue', {})
 
 return astbuilder

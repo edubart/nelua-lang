@@ -56,12 +56,12 @@ function Scope:add_symbol(symbol)
 end
 
 local function resolve_symbol_type(symbol)
-  if symbol.type then
+  if symbol.attr.type then
     return false
   end
   if symbol.has_unknown_type then return false end
   local type = typedefs.find_common_type(symbol.possibletypes)
-  symbol:set_type(type)
+  symbol.attr.type = type
   return true
 end
 

@@ -1,23 +1,37 @@
-local iters = require 'euluna.utils.iterators'
 local tabler = require 'euluna.utils.tabler'
 local class = require 'euluna.utils.class'
-
+local metamagic = require 'euluna.utils.metamagic'
 local Symbol = class()
 
 function Symbol:_init(name, node, mut, type, holding_type)
   assert(mut and (node or name))
   self.name = name
   self.node = node
-  self.mut = mut
-  self.type = type
-  self.holding_type = holding_type
-  self.noderefs = {}
   self.possibletypes = {}
-  self.codename = name
+  local attr
+  if node then
+    -- try to get attr from a previus symbol associated with the ast
+    attr = metamagic.getmetaindex(node.attr)
+    if not attr then
+      attr = {}
+      metamagic.setmetaindex(node.attr, attr)
+    end
+  else
+    attr = {}
+  end
+  self.attr = attr
+  if mut == 'const' then
+    attr.const = true
+  end
+  attr.name = name
+  attr.mut = mut
+  attr.type = type
+  attr.codename = name
+  attr.holding_type = holding_type
 end
 
 function Symbol:add_possible_type(type, required)
-  if self.type then return end
+  if self.attr.type then return end
   if not type and required then
     self.has_unknown_type = true
     return
@@ -26,44 +40,9 @@ function Symbol:add_possible_type(type, required)
   table.insert(self.possibletypes, type)
 end
 
-local function update_node(self, node)
-  node.mut = self.mut
-  node.type = self.type
-  node.value = self.value
-  node.codename = self.codename
-  if self.mut == 'const' then
-    node.const = true
-  end
-end
-
 function Symbol:link_node(node)
-  update_node(self, node)
-  if tabler.ifind(self.noderefs, node) then return end
-  table.insert(self.noderefs, node)
-end
-
-function Symbol:set_codename(name)
-  if rawequal(self.codename, name) then return end
-  self.codename = name
-  self:update_noderefs()
-end
-
-function Symbol:set_type(type)
-  if rawequal(self.type, type) then return end
-  self.type = type
-  self:update_noderefs()
-end
-
-function Symbol:set_value(value)
-  if rawequal(self.value, value) then return end
-  self.value = value
-  self:update_noderefs()
-end
-
-function Symbol:update_noderefs()
-  for node in iters.values(self.noderefs) do
-    update_node(self, node)
-  end
+  assert(self.node)
+  metamagic.setmetaindex(node.attr, self.attr)
 end
 
 return Symbol

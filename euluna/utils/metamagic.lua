@@ -4,11 +4,19 @@ local metamagic = {}
 function metamagic.setmetaindex(t, __index, overwrite)
   local mt = getmetatable(t)
   if mt then
-    assert(overwrite, 'cannot overwrite metatable')
+    assert(overwrite or mt.__index == __index, 'cannot overwrite metatable')
     mt.__index = __index
     return t
   elseif __index then
     return setmetatable(t, { __index = __index})
+  end
+end
+
+-- get index metamethod for a table
+function metamagic.getmetaindex(t)
+  local mt = getmetatable(t)
+  if mt then
+    return mt.__index
   end
 end
 

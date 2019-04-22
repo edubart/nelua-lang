@@ -8,6 +8,7 @@ local bn = require 'euluna.utils.bn'
 describe("Euluna should check types for", function()
 
 it("analyzed ast transform", function()
+  --[=[
   assert.analyze_ast("local a = 1; f(a)",
     n.Block { {
       n.VarDecl { 'local', nil,
@@ -25,6 +26,7 @@ it("analyzed ast transform", function()
         true
     }
   }})
+  ]=]
 end)
 
 it("local variable", function()
