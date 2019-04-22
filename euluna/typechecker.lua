@@ -254,9 +254,11 @@ function visitors.EnumFieldType(context, node, desiredtype)
   if numnode then
     context:traverse(numnode)
     local value = numnode.value
-    assert(numnode.tag == 'Number')
+    numnode:assertraisef(numnode.const,
+      "enum values can only be assigned to const values")
     numnode:assertraisef(numnode.type:is_integral(),
-      "only integral numbers are allowed in enums")
+      "only integral numbers are allowed in enums, but got type '%s'",
+      tostring(numnode.type))
     field.value = value
     numnode:assertraisef(desiredtype:is_coercible_from(numnode.type),
       "enum of type '%s' is not coercible with field '%s' of type '%s'",
@@ -307,7 +309,7 @@ function visitors.ArrayType(context, node)
   context:traverse(subtypenode)
   local subtype = subtypenode.type
   context:traverse(lengthnode)
-  assert(lengthnode.tag == 'Number')
+  assert(lengthnode.value, 'not implemented yet')
   local length = lengthnode.value:tointeger()
   lengthnode:assertraisef(lengthnode.type:is_integral() and length > 0,
     'expected a valid decimal integral number in the second argument of an "array" type')
@@ -579,15 +581,20 @@ function visitors.VarDecl(context, node)
     local symbol = context:traverse(varnode, mut)
     assert(symbol.type == varnode.type)
     varnode.assign = true
+    if varnode.const then
+      varnode:assertraisef(valnode, 'const variables must have an initial value')
+    end
     if valnode then
       local valsymbol = context:traverse(valnode, varnode.type)
       if varnode.const then
-        varnode:assertraisef(valnode.const, 'const variables can only assign to const expressions')
+        varnode:assertraisef(valnode.const and valnode.type,
+          'const variables can only assign to typed const expressions')
       end
       if valnode.type then
         if varnode.const then
           -- for consts the type should be fixed
           symbol:set_type(valnode.type)
+          symbol:set_value(valnode.value)
         else
           -- lazy type evaluation
           symbol:add_possible_type(valnode.type)

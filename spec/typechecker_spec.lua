@@ -43,10 +43,11 @@ it("const variable" , function()
   assert.analyze_ast([[local const a = 1 * 2 + 3]])
   assert.analyze_ast([[local const a = 1; local const b = a]])
   assert.analyze_ast([[const a = 1]])
-  assert.analyze_error("local const a: var integer", "cannot declare mutability twice")
+  assert.analyze_error("local const a: integer", "const variables must have an initial value")
+  assert.analyze_error("local const a: var integer = 1", "cannot declare mutability twice")
   assert.analyze_error("local const a = 1; a = 2", "cannot assign a read only variable")
-  assert.analyze_error("local a = 1; local const c = a", "can only assign to const")
-  assert.analyze_error("local b = 1; local const c = 1 * 2 + b", "can only assign to const")
+  assert.analyze_error("local a = 1; local const c = a", "can only assign to typed const")
+  assert.analyze_error("local b = 1; local const c = 1 * 2 + b", "can only assign to typed const")
 end)
 
 it("numeric types coercion", function()
@@ -316,6 +317,8 @@ it("array tables", function()
 end)
 
 it("arrays", function()
+  --assert.analyze_ast([[local a: array<integer, (2 << 1)>]])
+  assert.analyze_ast([[local const N = 10; local a: array<integer, N>]])
   assert.analyze_ast([[local a: array<integer, 10>; a[0] = 1]])
   assert.analyze_ast([[local a: array<integer, 2> = {1,2}]])
   assert.analyze_ast([[local a: array<integer, 2>; a[0] = 1; a[1] = 2]])
@@ -386,9 +389,11 @@ it("enums", function()
   assert.analyze_ast([[
     local a: enum{A=0}
     local b: enum<integer>{A=0,B}
+    local b: enum<integer>{A=0,B=1 << 2}
   ]])
   assert.analyze_ast([[
-    local Enum = @enum{A=0,B=3}
+    local const c = 2
+    local Enum = @enum{A=0,B=1,C=c}
     local e: Enum = Enum.A
     local i: number = e
   ]])
@@ -410,6 +415,10 @@ it("enums", function()
   assert.analyze_error([[
     local Enum = @enum{A=1,B}
   ]], "a field with value 0 is always required")
+  assert.analyze_error([[
+    local C: integer
+    local Enum = @enum{A=C}
+  ]], "enum values can only be assigned to const values")
   assert.analyze_error([[
     local Enum = @enum{A=1.0}
   ]], "only integral numbers are allowed in enums")

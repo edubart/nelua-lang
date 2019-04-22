@@ -71,7 +71,7 @@ astbuilder:register('RecordType', stypes.shape {
 })
 astbuilder:register('EnumFieldType', stypes.shape {
   stypes.string, -- field name
-  ntypes.Number:is_optional() -- field numeric value
+  ntypes.Node:is_optional() -- field numeric value expr
 })
 astbuilder:register('EnumType', stypes.shape {
   ntypes.Type:is_optional(), -- primitive type
@@ -82,7 +82,7 @@ astbuilder:register('ArrayTableType', stypes.shape {
 })
 astbuilder:register('ArrayType', stypes.shape {
   ntypes.Node, -- subtype typeexpt
-  ntypes.Number, -- size
+  ntypes.Node, -- size expr
 })
 astbuilder:register('PointerType', stypes.shape {
   ntypes.Node:is_optional(), -- subtype typexpr

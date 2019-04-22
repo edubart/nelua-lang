@@ -29,6 +29,7 @@ end
 local function update_node(self, node)
   node.mut = self.mut
   node.type = self.type
+  node.value = self.value
   node.codename = self.codename
   if self.mut == 'const' then
     node.const = true
@@ -42,6 +43,7 @@ function Symbol:link_node(node)
 end
 
 function Symbol:set_codename(name)
+  if rawequal(self.codename, name) then return end
   self.codename = name
   self:update_noderefs()
 end
@@ -49,6 +51,12 @@ end
 function Symbol:set_type(type)
   if rawequal(self.type, type) then return end
   self.type = type
+  self:update_noderefs()
+end
+
+function Symbol:set_value(value)
+  if rawequal(self.value, value) then return end
+  self.value = value
   self:update_noderefs()
 end
 

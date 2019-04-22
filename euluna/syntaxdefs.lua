@@ -450,6 +450,12 @@ local function get_parser(std)
         eRANGLE
       ) -> to_astnode
 
+    typexpr_param_expr <-
+      %cNUMBER /
+      %cID /
+      (%LPAREN eexpr eRPAREN) /
+      %{ExpectedExpression}
+
     record_type <- ({} %TRECORD -> 'RecordType' eLCURLY
         {| erecord_field (%SEPARATOR record_field)* %SEPARATOR? |}
       eRCURLY) -> to_astnode
@@ -461,7 +467,7 @@ local function get_parser(std)
         {| eenum_field (%SEPARATOR enum_field)* %SEPARATOR? |}
       eRCURLY) -> to_astnode
     enum_field <- ({} '' -> 'EnumFieldType'
-        %cNAME (%ASSIGN ecNUMBER)?
+        %cNAME (%ASSIGN eexpr)?
       ) -> to_astnode
     arraytable_type <- (
       {} 'arraytable' -> 'ArrayTableType'
@@ -469,7 +475,7 @@ local function get_parser(std)
       ) -> to_astnode
     array_type <- (
       {} 'array' -> 'ArrayType'
-        eLANGLE etypexpr eCOMMA ecNUMBER eRANGLE
+        eLANGLE etypexpr eCOMMA typexpr_param_expr eRANGLE
       ) -> to_astnode
     pointer_type <- (
       {} 'pointer' -> 'PointerType'
