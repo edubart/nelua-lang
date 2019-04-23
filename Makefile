@@ -56,11 +56,15 @@ _clear-stdout:
 	@clear
 
 devtest: _clear-stdout coverage-test check
+devtestlight: _clear-stdout test-luajit check
 
 test-full: test coverage check
 
 livedev:
 	luamon $(LUAMONFLAGS) "make -Ss devtest"
+
+livedevlight:
+	luamon $(LUAMONFLAGS) "make -Ss devtestlight"
 
 docker-image:
 	docker build -t "euluna" .

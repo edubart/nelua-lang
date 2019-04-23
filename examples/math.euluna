@@ -1,43 +1,43 @@
---TODO: link libraries flags
 --TODO: return two values
 --TODO: function type overload
---TODO: impelement using namespaces or method syntax sugar
+--TODO: implement using namespaces or method syntax sugar
 --TODO: become a module
 --TODO: export functions
 --TODO: discard operator
 --TODO: string compare
 
---!!linkflag '-lm'
+!!cinclude '<math.h>'
+!!cinclude '<stdlib.h>'
 
 local math_pi: const = 3.141592653589793
 local math_maxinteger: const = 9223372036854775807
 local math_mininteger: const = -9223372036854775807 - 1
-local math_huge: number !importc('HUGE_VAL')
+local math_huge: number !cimport 'HUGE_VAL'
 
-local function math_abs(x: number): number !importc('fabs', '<math.h>') end
-local function math_ceil(x: number): number !importc('ceil') end
-local function math_floor(x: number): number !importc('floor') end
-local function math_max(x: number, y: number): number !importc('fmax') end
-local function math_min(x: number, y: number): number !importc('fmin') end
-local function math_acos(x: number): number !importc('acos') end
-local function math_asin(x: number): number !importc('asin') end
-local function math_atan(x: number): number !importc('atan') end
-local function math_cos(x: number): number !importc('cos') end
-local function math_sin(x: number): number !importc('sin') end
-local function math_tan(x: number): number !importc('tan') end
-local function math_sqrt(x: number): number !importc('sqrt') end
-local function math_exp(x: number): number !importc('exp') end
-local function math_log(x: number): number !importc('log') end
-local function math_fmod(x: number, y: number): number !importc('fmod') end
+local function math_abs(x: number): number !cimport('fabs') end
+local function math_ceil(x: number): number !cimport('ceil') end
+local function math_floor(x: number): number !cimport('floor') end
+local function math_max(x: number, y: number): number !cimport('fmax') end
+local function math_min(x: number, y: number): number !cimport('fmin') end
+local function math_acos(x: number): number !cimport('acos') end
+local function math_asin(x: number): number !cimport('asin') end
+local function math_atan(x: number): number !cimport('atan') end
+local function math_cos(x: number): number !cimport('cos') end
+local function math_sin(x: number): number !cimport('sin') end
+local function math_tan(x: number): number !cimport('tan') end
+local function math_sqrt(x: number): number !cimport('sqrt') end
+local function math_exp(x: number): number !cimport('exp') end
+local function math_log(x: number): number !cimport('log') end
+local function math_fmod(x: number, y: number): number !cimport('fmod') end
 
 -- used internally
-local function clog2(x: number): number !importc('log2') end
-local function clog10(x: number): number !importc('log10') end
-local function cmodf(x: number, y: pointer<number>): number !importc('modf') end
-local function crand(): int32 !importc('rand','<stdlib.h>') end
-local function csrand(x: uint32) !importc('srand') end
+local function clog2(x: number): number !cimport('log2') end
+local function clog10(x: number): number !cimport('log10') end
+local function cmodf(x: number, y: pointer<number>): number !cimport('modf') end
+local function crand(): int32 !cimport('rand') end
+local function csrand(x: uint32) !cimport('srand') end
 
-local function math_atan2(x: number, y: number): number !importc('atan2') end
+local function math_atan2(x: number, y: number): number !cimport('atan2') end
 
 local function math_logbase(x: number, base: number): number
   if base == 2 then

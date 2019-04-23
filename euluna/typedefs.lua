@@ -1,7 +1,9 @@
 local iters = require 'euluna.utils.iterators'
 local tabler = require 'euluna.utils.tabler'
+local metamagic = require 'euluna.utils.metamagic'
 local types = require 'euluna.types'
 local bn = require 'euluna.utils.bn'
+local shaper = require 'tableshape'.types
 local Type = types.Type
 
 local typedefs = {}
@@ -251,20 +253,34 @@ typedefs.readonly_mutabilities = {
   ['const'] = true
 }
 
-local shaper = require 'tableshape'.types
+typedefs.block_pragmas = {
+  cinclude = shaper.shape{shaper.string},
+  cemit = shaper.shape{shaper.string},
+  cdefine = shaper.shape{shaper.string},
+  cflags = shaper.shape{shaper.string},
+  ldflags = shaper.shape{shaper.string},
+  linklib = shaper.shape{shaper.string}
+}
 
-typedefs.pragmas = {
-  importc = shaper.shape{shaper.string:is_optional(), (shaper.boolean + shaper.string):is_optional()},
-  includec = shaper.shape{shaper.string},
+local common_pragmas = {
+  cimport = shaper.shape{shaper.string:is_optional(), (shaper.boolean + shaper.string):is_optional()},
   codename = shaper.shape{shaper.string},
-  aligned = shaper.shape{shaper.integer},
-  nodecl = true,
-  inline = true,
   volatile = true,
+  nodecl = true,
+}
+typedefs.function_pragmas = {
+  inline = true,
   noreturn = true,
   noinline = true,
+}
+typedefs.variable_pragmas = {
+  aligned = shaper.shape{shaper.integer},
   register = true,
   restrict = true,
 }
+do
+  metamagic.setmetaindex(typedefs.function_pragmas, common_pragmas)
+  metamagic.setmetaindex(typedefs.variable_pragmas, common_pragmas)
+end
 
 return typedefs

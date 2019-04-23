@@ -382,9 +382,9 @@ end)
 
 it("manual memory managment", function()
   assert.run_c([[
-    local function malloc(size: uint): pointer !importc('malloc','<stdlib.h>') end
-    local function memset(s: pointer, c: int32, n: uint): pointer !importc('memset','<stdlib.h>') end
-    local function free(ptr: pointer) !importc('free','<stdlib.h>') end
+    local function malloc(size: uint): pointer !cimport('malloc','<stdlib.h>') end
+    local function memset(s: pointer, c: int32, n: uint): pointer !cimport('memset','<stdlib.h>') end
+    local function free(ptr: pointer) !cimport('free','<stdlib.h>') end
     local a = @pointer<array<int64, 10>>(malloc(10 * 8))
     memset(a, 0, 10*8)
     assert(a[0] == 0)
@@ -395,6 +395,10 @@ it("manual memory managment", function()
 end)
 
 it("pragmas", function()
+  assert.generate_c("!!cinclude '<myheader.h>'", "#include <myheader.h>")
+  assert.generate_c("!!cemit '#define SOMETHING'", "#define SOMETHING")
+  assert.generate_c("!!cdefine 'SOMETHING'", "#define SOMETHING")
+  assert.generate_c("local huge: number !cimport('HUGE_VAL', '<math.h>')", "include <math.h>")
   assert.generate_c("local a: int64 !volatile !codename'a'", "volatile euluna_int64 a")
   assert.generate_c("local a: int64 !register", "register euluna_int64 a")
   assert.generate_c("local a: int64 !restrict", "restrict euluna_int64 a")
@@ -405,15 +409,15 @@ it("pragmas", function()
   assert.generate_c("local function f() !volatile end", "volatile void")
   assert.generate_c("local function f() !nodecl end", "")
   assert.generate_c(
-    "local function puts(s: cstring): int32 !importc('puts', true) end",
+    "local function puts(s: cstring): int32 !cimport('puts', true) end",
     "euluna_int32 puts(euluna_cstring s);")
   assert.generate_c(
-    "local function cos(x: number): number !importc('myfunc','<myheader.h>') end",
+    "local function cos(x: number): number !cimport('myfunc','<myheader.h>') end",
     "#include <myheader.h>")
   assert.run_c([[
-    local function exit(x: int32) !importc('exit', '<stdlib.h>') end
-    local function puts(s: cstring): int32 !importc('puts', '<stdio.h>') end
-    local function perror(s: cstring): void !importc end
+    local function exit(x: int32) !cimport('exit', '<stdlib.h>') end
+    local function puts(s: cstring): int32 !cimport('puts', '<stdio.h>') end
+    local function perror(s: cstring): void !cimport end
     local function f() !noinline !noreturn
       local i: int32 !register !volatile !codename'i' = 0
       exit(i)

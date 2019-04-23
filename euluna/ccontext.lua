@@ -13,7 +13,11 @@ function CContext:_init(visitors)
   Context._init(self, visitors)
   self.declarations = {}
   self.definitions = {}
-  self.includes = {}
+  self.compileopts = {
+    cflags = {},
+    ldflags = {},
+    linklibs = {}
+  }
 end
 
 function CContext:get_ctype(nodeortype)
@@ -128,9 +132,8 @@ function CContext:add_definition(code, name)
 end
 
 function CContext:add_include(name)
-  if self.includes[name] then return end
-  self.includes[name] = true
-  table.insert(self.includes, string.format('#include %s\n', name))
+  if self.declarations[name] then return end
+  self:add_declaration(string.format('#include %s\n', name), name)
 end
 
 local function eval_late_templates(templates)

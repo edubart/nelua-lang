@@ -1,29 +1,29 @@
--- TODO: import consts
 -- TODO: import C types
 -- TODO: include c headers pragma
 -- TODO: nullptr
 -- TODO: pass compiler parameters
---!!linkflags('-lSDL2')
 
 -- import SDL functions
-local SDL_WindowPtr = @pointer
-local SDL_INIT_VIDEO: uint32 !importc
-local SDL_WINDOWPOS_UNDEFINED: int32 !importc
-local SDL_WINDOW_OPENGL: uint32 !importc
+!!cdefine 'SDL_DISABLE_IMMINTRIN_H'
+!!cinclude '<SDL2/SDL.h>'
+!!linklib 'SDL2'
 
---local SDL_Window: type !importctype('<SDL2/SDL.h>', 'SDL_Window')
+local SDL_WindowPtr = @pointer
+local SDL_INIT_VIDEO: uint32 !cimport
+local SDL_WINDOWPOS_UNDEFINED: int32 !cimport
+local SDL_WINDOW_OPENGL: uint32 !cimport
+
+--local SDL_Window: type !cimporttype('<SDL2/SDL.h>', 'SDL_Window')
 --local SDL_WindowPtr = @pointer<SDLWindow>
-local function SDL_Init(flags: uint32): int32
-  !importc('SDL_Init', '<SDL2/SDL.h>')
-end
+local function SDL_Init(flags: uint32): int32 !cimport end
 local function SDL_CreateWindow(title: cstring,
                                 x: int32, y: int32, w: int32,
                                 h: int32, flags: uint32): SDL_WindowPtr
-  !importc('SDL_CreateWindow', '<SDL2/SDL.h>')
+  !cimport
 end
-local function SDL_Quit() !importc('SDL_Quit', '<SDL2/SDL.h>') end
-local function SDL_DestroyWindow(window: SDL_WindowPtr) !importc('SDL_DestroyWindow', '<SDL2/SDL.h>') end
-local function SDL_Delay(ms: uint32) !importc('SDL_Delay', '<SDL2/SDL.h>') end
+local function SDL_Quit() !cimport end
+local function SDL_DestroyWindow(window: SDL_WindowPtr) !cimport end
+local function SDL_Delay(ms: uint32) !cimport end
 
 SDL_Init(SDL_INIT_VIDEO)
 

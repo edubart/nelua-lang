@@ -49,7 +49,7 @@ local function run(argv)
 
   -- generate the code
   local generator = require('euluna.' .. config.generator .. 'generator')
-  local code = generator.generate(ast)
+  local code, compileopts = generator.generate(ast)
 
   -- only printing generated code?
   if config.print_code then
@@ -63,7 +63,7 @@ local function run(argv)
   -- save the generated code
   local outcachefile = fs.getcachepath(infile, config.cache_dir)
   local compiler = generator.compiler
-  local sourcefile = compiler.compile_code(code, outcachefile)
+  local sourcefile = compiler.compile_code(code, outcachefile, compileopts)
 
   local dorun = not config.compile and not config.compile_binary
   local dobinarycompile = config.compile_binary or dorun
@@ -71,7 +71,7 @@ local function run(argv)
   -- compile the generated code
   local binaryfile
   if dobinarycompile then
-    binaryfile = compiler.compile_binary(sourcefile, outcachefile)
+    binaryfile = compiler.compile_binary(sourcefile, outcachefile, compileopts)
   end
 
   -- run

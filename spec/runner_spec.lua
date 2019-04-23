@@ -19,6 +19,8 @@ it("run simple programs", function()
   assert.run({'--lint', '--eval', ""})
   assert.run({'--eval', "print(arg[1])", "hello"}, 'hello')
   assert.run({'--generator', 'c', '--eval', ""})
+  assert.run({'--generator', 'c', '--cflags="-Wall"', '--eval',
+    "!!cflags '-Wextra' !!linklib 'm' !!ldflags '-s'"})
 end)
 
 it("error on parsing an invalid program" , function()

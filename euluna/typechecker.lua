@@ -166,34 +166,49 @@ end
 function visitors.Pragma(context, node, symbol)
   local name, argnodes = node:args()
   context:traverse(argnodes)
-  local shape = typedefs.pragmas[name]
-  node:assertraisef(shape, "pragma '%s' is not defined", name)
+  local pragmashape
+  if symbol then
+    if symbol.attr.type and symbol.attr.type:is_function() then
+      pragmashape = typedefs.function_pragmas[name]
+    elseif not symbol.attr.type or not symbol.attr.type:is_type() then
+      pragmashape = typedefs.variable_pragmas[name]
+    end
+  elseif not symbol then
+    pragmashape = typedefs.block_pragmas[name]
+  end
+  node:assertraisef(pragmashape, "pragma '%s' is not defined in this context", name)
   local params = tabler.imap(argnodes, function(argnode)
     if traits.is_bignumber(argnode.attr.value) then
       return argnode.attr.value:tointeger()
     end
     return argnode.attr.value
   end)
-  if shape == true then
-    node:assertraisef(#argnodes == 0, "pragma '%s' takes no arguments", name)
-    symbol.attr[name] = true
+  local attr
+  if symbol then
+    attr = symbol.attr
   else
-    local ok, err = shape(params)
+    attr = node.attr
+  end
+  if pragmashape == true then
+    node:assertraisef(#argnodes == 0, "pragma '%s' takes no arguments", name)
+    attr[name] = true
+  else
+    local ok, err = pragmashape(params)
     node:assertraisef(ok, "pragma '%s' arguments are invalid: %s", name, err)
-    if #shape.shape == 1 then
+    if #pragmashape.shape == 1 then
       params = params[1]
     end
-    symbol.attr[name] = params
+    attr[name] = params
   end
 
-  if name == 'importc' then
+  if name == 'cimport' then
     local cname, header = tabler.unpack(params)
     if cname then
-      symbol.attr.codename = cname
+      attr.codename = cname
     end
-    symbol.attr.nodecl = header ~= true
+    attr.nodecl = header ~= true
     if traits.is_string(header) then
-      symbol.attr.includec = header
+      attr.cinclude = header
     end
   end
 
@@ -617,7 +632,7 @@ function visitors.VarDecl(context, node)
         varnode:assertraisef(valnode.attr.const and valnode.attr.type,
           'const variables can only assign to typed const expressions')
       end
-      varnode:assertraisef(not varnode.attr.importc,
+      varnode:assertraisef(not varnode.attr.cimport,
           'cannot assign imported variables')
       if valnode.attr.type then
         if varnode.attr.const then
@@ -680,10 +695,6 @@ function visitors.FuncDef(context, node)
   local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
   local symbol = context:traverse(varnode)
 
-  if pragmanodes then
-    context:traverse(pragmanodes, symbol)
-  end
-
   -- try to resolver function return types
   local funcscope = repeat_scope_until_resolution(context, 'function', function()
     context:traverse(argnodes)
@@ -740,7 +751,11 @@ function visitors.FuncDef(context, node)
     node.attr.type = type
   end
 
-  if varnode.attr.importc then
+  if pragmanodes then
+    context:traverse(pragmanodes, symbol)
+  end
+
+  if varnode.attr.cimport then
     blocknode:assertraisef(#blocknode[1] == 0, 'body of an import function must be empty')
   end
 end

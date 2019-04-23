@@ -124,6 +124,27 @@ end
 -- TODO: Pair
 -- TODO: Function
 
+function visitors.Pragma(context, node, emitter)
+  if node.attr.cinclude then
+    context:add_include(node.attr.cinclude)
+  end
+  if node.attr.cemit then
+    emitter:add_ln(node.attr.cemit)
+  end
+  if node.attr.cdefine then
+    context:add_declaration(string.format('#define %s\n', node.attr.cdefine))
+  end
+  if node.attr.cflags then
+    table.insert(context.compileopts.cflags, node.attr.cflags)
+  end
+  if node.attr.ldflags then
+    table.insert(context.compileopts.ldflags, node.attr.ldflags)
+  end
+  if node.attr.linklib then
+    table.insert(context.compileopts.linklibs, node.attr.linklib)
+  end
+end
+
 -- identifier and types
 function visitors.Id(_, node, emitter)
   emitter:add(cdefs.quotename(node.attr.codename))
@@ -417,6 +438,8 @@ local function add_assignments(context, emitter, varnodes, valnodes, decl)
         varemitter:add_ln()
         context:add_declaration(varemitter:generate())
       end
+    elseif varnode.attr.cinclude then
+      context:add_include(varnode.attr.cinclude)
     end
   end
 end
@@ -447,10 +470,10 @@ function visitors.FuncDef(context, node)
   local declare = not node.attr.nodecl
   local define = true
 
-  if node.attr.includec then
-    context:add_include(node.attr.includec)
+  if node.attr.cinclude then
+    context:add_include(node.attr.cinclude)
   end
-  if node.attr.importc then
+  if node.attr.cimport then
     decoration = ''
     define = false
   end
@@ -556,12 +579,11 @@ function generator.generate(ast)
   context:evaluate_templates()
 
   local code = table.concat({
-    table.concat(context.includes),
     table.concat(context.declarations),
     table.concat(context.definitions)
   })
 
-  return code
+  return code, context.compileopts
 end
 
 generator.compiler = require('euluna.ccompiler')

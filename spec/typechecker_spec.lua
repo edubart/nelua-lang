@@ -482,9 +482,10 @@ end)
 it("pragmas", function()
   assert.analyze_ast("local r: record{x: integer} !aligned(8)")
   assert.analyze_error(
-    "local function f() !importc return 0 end",
+    "local function f() !cimport return 0 end",
     "body of an import function must be empty")
-  assert.analyze_error("local a !importc = 2", "cannot assign imported variables")
+  assert.analyze_error("local a !cimport = 2", "cannot assign imported variables")
+  assert.analyze_error("!!cimport 'lala'", "is not defined in this context")
 end)
 
 it("strict mode", function()
