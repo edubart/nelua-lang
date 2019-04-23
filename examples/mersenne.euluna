@@ -1,4 +1,3 @@
--- TODO: const
 -- TODO: make enum work
 -- TODO: var&
 -- TODO: self sugar methods
@@ -11,7 +10,7 @@ local MT19937_N: const uint32 = 624
 
 local mt19937 = @record {
   i: uint32,
-  v: array<uint32, 624>
+  v: array<uint32, MT19937_N>
 }
 
 -- initialize random state with a seed

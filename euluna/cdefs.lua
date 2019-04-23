@@ -100,20 +100,6 @@ do
   end
 end
 
-cdefs.variable_pragmas = {
-  volatile = 'volatile',
-  register = 'register',
-  codename = true,
-  cimport = true,
-  nodecl = true,
-}
-
-cdefs.function_pragmas = {
-  inline = 'inline',
-  noinline = 'EULUNA_NOINLINE',
-  noreturn = 'EULUNA_NORETURN',
-}
-
 cdefs.reserverd_keywords = {
   -- C syntax keywrods
   ['auto'] = true,

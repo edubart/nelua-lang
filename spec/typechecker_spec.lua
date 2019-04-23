@@ -479,6 +479,14 @@ it("type construction", function()
   assert.analyze_error("local a = @integer(nil)", "is not coercible with")
 end)
 
+it("pragmas", function()
+  assert.analyze_ast("local r: record{x: integer} !aligned(8)")
+  assert.analyze_error(
+    "local function f() !importc return 0 end",
+    "body of an import function must be empty")
+  assert.analyze_error("local a !importc = 2", "cannot assign imported variables")
+end)
+
 it("strict mode", function()
   config.strict = true
   assert.analyze_error("a = 1", "undeclarated symbol")

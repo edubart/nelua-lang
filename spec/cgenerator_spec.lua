@@ -109,6 +109,10 @@ end)
 it("const", function()
   assert.generate_c("local const a: integer = 0", "static const euluna_int64 a = 0;")
   assert.generate_c("local const a = 1", "static const euluna_int64 a = 1;")
+  assert.generate_c(
+    "local const N = 3773; local a: array<integer, N>",
+    {"static const euluna_int64 N = 3773",
+     "euluna_int64 data[3773];"})
 end)
 it("assignment", function()
   assert.generate_c("a = b")
@@ -378,9 +382,9 @@ end)
 
 it("manual memory managment", function()
   assert.run_c([[
-    local function malloc(size: uint): pointer !cimport('malloc','<stdlib.h>') end
-    local function memset(s: pointer, c: int32, n: uint): pointer !cimport('memset','<stdlib.h>') end
-    local function free(ptr: pointer) !cimport('free','<stdlib.h>') end
+    local function malloc(size: uint): pointer !importc('malloc','<stdlib.h>') end
+    local function memset(s: pointer, c: int32, n: uint): pointer !importc('memset','<stdlib.h>') end
+    local function free(ptr: pointer) !importc('free','<stdlib.h>') end
     local a = @pointer<array<int64, 10>>(malloc(10 * 8))
     memset(a, 0, 10*8)
     assert(a[0] == 0)
@@ -392,25 +396,30 @@ end)
 
 it("pragmas", function()
   assert.generate_c("local a: int64 !volatile !codename'a'", "volatile euluna_int64 a")
+  assert.generate_c("local a: int64 !register", "register euluna_int64 a")
+  assert.generate_c("local a: int64 !restrict", "restrict euluna_int64 a")
+  assert.generate_c("local a: int64 !nodecl", "")
   assert.generate_c("local function f() !inline end", "inline void")
   assert.generate_c("local function f() !noreturn end", "EULUNA_NORETURN void")
   assert.generate_c("local function f() !noinline end", "EULUNA_NOINLINE void")
+  assert.generate_c("local function f() !volatile end", "volatile void")
+  assert.generate_c("local function f() !nodecl end", "")
   assert.generate_c(
-    "local function puts(s: cstring): int !cimport'puts' end",
-    "euluna_int puts(euluna_cstring s);")
+    "local function puts(s: cstring): int32 !importc('puts', true) end",
+    "euluna_int32 puts(euluna_cstring s);")
   assert.generate_c(
-    "local function cos(x: number): number !cimport('myfunc','<myheader.h>') end",
+    "local function cos(x: number): number !importc('myfunc','<myheader.h>') end",
     "#include <myheader.h>")
   assert.run_c([[
-    local function exit(x: int32) !cimport('exit', '<stdlib.h>') end
-    local function printstdout(s: cstring): int !cimport('puts', '<stdio.h>') end
-    local function printstderr(s: cstring): int !cimport('perror') !nodecl end
+    local function exit(x: int32) !importc('exit', '<stdlib.h>') end
+    local function puts(s: cstring): int32 !importc('puts', '<stdio.h>') end
+    local function perror(s: cstring): void !importc end
     local function f() !noinline !noreturn
       local i: int32 !register !volatile !codename'i' = 0
       exit(i)
     end
-    printstdout('msg stdout\n')
-    printstderr('msg stderr\n')
+    puts('msg stdout\n')
+    perror('msg stderr\n')
     f()
   ]], "msg stdout", "msg stderr")
 end)

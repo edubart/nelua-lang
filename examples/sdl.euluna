@@ -7,29 +7,33 @@
 
 -- import SDL functions
 local SDL_WindowPtr = @pointer
---local SDL_Window: type !cimporttype('<SDL2/SDL.h>', 'SDL_Window')
+local SDL_INIT_VIDEO: uint32 !importc
+local SDL_WINDOWPOS_UNDEFINED: int32 !importc
+local SDL_WINDOW_OPENGL: uint32 !importc
+
+--local SDL_Window: type !importctype('<SDL2/SDL.h>', 'SDL_Window')
 --local SDL_WindowPtr = @pointer<SDLWindow>
 local function SDL_Init(flags: uint32): int32
-  !cimport('SDL_Init', '<SDL2/SDL.h>')
+  !importc('SDL_Init', '<SDL2/SDL.h>')
 end
 local function SDL_CreateWindow(title: cstring,
                                 x: int32, y: int32, w: int32,
                                 h: int32, flags: uint32): SDL_WindowPtr
-  !cimport('SDL_CreateWindow', '<SDL2/SDL.h>')
+  !importc('SDL_CreateWindow', '<SDL2/SDL.h>')
 end
-local function SDL_Quit() !cimport('SDL_Quit', '<SDL2/SDL.h>') end
-local function SDL_DestroyWindow(window: SDL_WindowPtr) !cimport('SDL_DestroyWindow', '<SDL2/SDL.h>') end
-local function SDL_Delay(ms: uint32) !cimport('SDL_Delay', '<SDL2/SDL.h>') end
+local function SDL_Quit() !importc('SDL_Quit', '<SDL2/SDL.h>') end
+local function SDL_DestroyWindow(window: SDL_WindowPtr) !importc('SDL_DestroyWindow', '<SDL2/SDL.h>') end
+local function SDL_Delay(ms: uint32) !importc('SDL_Delay', '<SDL2/SDL.h>') end
 
-SDL_Init(@uint32(SDL_INIT_VIDEO))
+SDL_Init(SDL_INIT_VIDEO)
 
 -- Create an application window with the following settings:
 local window = SDL_CreateWindow("An SDL2 Window",
-  @int32(SDL_WINDOWPOS_UNDEFINED),  -- initial x position
-  @int32(SDL_WINDOWPOS_UNDEFINED),  -- initial y position
-  @int32(640),                      -- width, in pixels
-  @int32(480),                      -- height, in pixels
-  @uint32(SDL_WINDOW_OPENGL)        -- flags - see below
+  SDL_WINDOWPOS_UNDEFINED,  -- initial x position
+  SDL_WINDOWPOS_UNDEFINED,  -- initial y position
+  640,                      -- width, in pixels
+  480,                      -- height, in pixels
+  SDL_WINDOW_OPENGL         -- flags - see below
 )
 
 -- Check that the window was successfully created

@@ -4,6 +4,7 @@ local except = require 'euluna.utils.except'
 local errorer = require 'euluna.utils.errorer'
 local runner = require 'euluna.runner'
 local typechecker = require 'euluna.typechecker'
+local traits = require 'euluna.utils.traits'
 local lua_generator = require 'euluna.luagenerator'
 local c_generator = require 'euluna.cgenerator'
 local euluna_syntax = require 'euluna.syntaxdefs'()
@@ -128,22 +129,27 @@ function assert.run_error(args, expected_stderr)
   end
 end
 
-function assert.generate_lua(euluna_code, lua_code)
-  lua_code = lua_code or euluna_code
+function assert.generate_lua(euluna_code, expected_code)
+  expected_code = expected_code or euluna_code
   local ast = assert.parse_ast(euluna_parser, euluna_code)
   assert(typechecker.analyze(ast, euluna_parser.astbuilder))
   local generated_code = assert(lua_generator.generate(ast))
-  assert.same(stringer.rstrip(lua_code), stringer.rstrip(generated_code))
+  assert.same(stringer.rstrip(expected_code), stringer.rstrip(generated_code))
 end
 
-function assert.generate_c(euluna_code, c_code)
+function assert.generate_c(euluna_code, expected_code)
   local ast = assert.parse_ast(euluna_parser, euluna_code)
   ast = assert(typechecker.analyze(ast, euluna_parser.astbuilder))
   local generated_code = assert(c_generator.generate(ast))
-  if not c_code then c_code = euluna_code end
-  errorer.assertf(generated_code:find(c_code or '', 1, true),
-    "Expected C code to contains.\nPassed in:\n%s\nExpected:\n%s",
-    generated_code, c_code)
+  if not expected_code then expected_code = euluna_code end
+  if traits.is_string(expected_code) then
+    expected_code = {expected_code}
+  end
+  for _,ecode in ipairs(expected_code) do
+    errorer.assertf(generated_code:find(ecode or '', 1, true),
+      "Expected C code to contains.\nPassed in:\n%s\nExpected:\n%s",
+      generated_code, ecode)
+  end
 end
 
 function assert.run_c(euluna_code, expected_stdout, expected_stderr)

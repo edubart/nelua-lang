@@ -166,17 +166,38 @@ end
 function visitors.Pragma(context, node, symbol)
   local name, argnodes = node:args()
   context:traverse(argnodes)
-  if name == 'codename' then
-    node:assertraisef(#argnodes == 1 and traits.is_string(argnodes[1].attr.value),
-      "pragma '%s' expects one string argument", name)
-    symbol.attr.codename = argnodes[1].attr.value
-  elseif name == 'cimport' then
-    node:assertraisef(#argnodes >= 1 and #argnodes <= 2,
-      "pragma '%s' expects at most two string arguments", name)
-    symbol.attr.codename = argnodes[1].attr.value
-  else
+  local shape = typedefs.pragmas[name]
+  node:assertraisef(shape, "pragma '%s' is not defined", name)
+  local params = tabler.imap(argnodes, function(argnode)
+    if traits.is_bignumber(argnode.attr.value) then
+      return argnode.attr.value:tointeger()
+    end
+    return argnode.attr.value
+  end)
+  if shape == true then
     node:assertraisef(#argnodes == 0, "pragma '%s' takes no arguments", name)
+    symbol.attr[name] = true
+  else
+    local ok, err = shape(params)
+    node:assertraisef(ok, "pragma '%s' arguments are invalid: %s", name, err)
+    if #shape.shape == 1 then
+      params = params[1]
+    end
+    symbol.attr[name] = params
   end
+
+  if name == 'importc' then
+    local cname, header = tabler.unpack(params)
+    if cname then
+      symbol.attr.codename = cname
+    end
+    symbol.attr.nodecl = header ~= true
+    if traits.is_string(header) then
+      symbol.attr.includec = header
+    end
+  end
+
+  --TODO: check if pragma is usable for its type (function, variables, etc)
 end
 
 function visitors.Id(context, node)
@@ -596,6 +617,8 @@ function visitors.VarDecl(context, node)
         varnode:assertraisef(valnode.attr.const and valnode.attr.type,
           'const variables can only assign to typed const expressions')
       end
+      varnode:assertraisef(not varnode.attr.importc,
+          'cannot assign imported variables')
       if valnode.attr.type then
         if varnode.attr.const then
           -- for consts the type should be fixed
@@ -715,6 +738,10 @@ function visitors.FuncDef(context, node)
     symbol:link_node(node)
   else
     node.attr.type = type
+  end
+
+  if varnode.attr.importc then
+    blocknode:assertraisef(#blocknode[1] == 0, 'body of an import function must be empty')
   end
 end
 

@@ -251,4 +251,20 @@ typedefs.readonly_mutabilities = {
   ['const'] = true
 }
 
+local shaper = require 'tableshape'.types
+
+typedefs.pragmas = {
+  importc = shaper.shape{shaper.string:is_optional(), (shaper.boolean + shaper.string):is_optional()},
+  includec = shaper.shape{shaper.string},
+  codename = shaper.shape{shaper.string},
+  aligned = shaper.shape{shaper.integer},
+  nodecl = true,
+  inline = true,
+  volatile = true,
+  noreturn = true,
+  noinline = true,
+  register = true,
+  restrict = true,
+}
+
 return typedefs

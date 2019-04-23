@@ -146,20 +146,17 @@ visitors.PointerType = visitors.Type
 
 function visitors.IdDecl(context, node, emitter)
   if node.attr.type:is_type() then return end
-  local name, mut, typenode, pragmanodes = node:args()
-  if pragmanodes then
-    for pragmanode in iters.ivalues(pragmanodes) do
-      local pragmaname, pragmaargs = pragmanode:args()
-      local cattr = cdefs.variable_pragmas[pragmaname]
-      pragmanode:assertraisef(cattr, "pragma '%s' is not defined", pragmaname)
-      if traits.is_string(cattr) then
-        pragmanode:assertraisef(#pragmaargs == 0, "pragma '%s' takes no arguments", pragmaname)
-        emitter:add(cattr, ' ')
-      end
-    end
-  end
   if node.attr.const then
     emitter:add('const ')
+  end
+  if node.attr.volatile then
+    emitter:add('volatile ')
+  end
+  if node.attr.restrict then
+    emitter:add('restrict ')
+  end
+  if node.attr.register then
+    emitter:add('register ')
   end
   local ctype = context:get_ctype(node)
   emitter:add(ctype, ' ', cdefs.quotename(node.attr.codename))
@@ -403,7 +400,7 @@ end
 local function add_assignments(context, emitter, varnodes, valnodes, decl)
   local added = false
   for _,varnode,valnode in iters.izip(varnodes, valnodes or {}) do
-    if not varnode.attr.type:is_type() then
+    if not varnode.attr.type:is_type() and not varnode.attr.nodecl then
       local varemitter = emitter
       local mainconst = decl and varnode.attr.const and context.scope:is_main()
       if mainconst then
@@ -446,37 +443,37 @@ function visitors.FuncDef(context, node)
   node:assertraisef(#retnodes <= 1, 'multiple returns not supported yet')
   node:assertraisef(varscope == 'local', 'non local scope for functions not supported yet')
 
-  local cfirstattr = 'static '
-  local cattr = ''
-  local declare = true
+  local decoration = 'static '
+  local declare = not node.attr.nodecl
   local define = true
-  for pragmanode in iters.ivalues(pragmanodes) do
-    local pragmaname, pragmaargs = pragmanode:args()
-    local attr = cdefs.function_pragmas[pragmaname] or cdefs.variable_pragmas[pragmaname]
-    pragmanode:assertraisef(attr, "pragma '%s' is not defined", pragmaname)
-    if pragmaname == 'cimport' then
-      define = false
-      local header = pragmaargs[2] and pragmaargs[2].attr.value
-      if header then
-        context:add_include(header)
-        declare = false
-      end
-      cfirstattr = ''
-      pragmanode:assertraisef(#blocknode[1] == 0, 'body of C import function must be empty')
-    elseif pragmaname == 'nodecl' then
-      declare = false
-    elseif traits.is_string(attr) then
-      cattr = cattr .. attr .. ' '
-    end
+
+  if node.attr.includec then
+    context:add_include(node.attr.includec)
+  end
+  if node.attr.importc then
+    decoration = ''
+    define = false
+  end
+  if node.attr.volatile then
+    decoration = decoration .. 'volatile '
+  end
+  if node.attr.inline then
+    decoration = decoration .. 'inline '
+  end
+  if node.attr.noinline then
+    decoration = decoration .. 'EULUNA_NOINLINE '
+  end
+  if node.attr.noreturn then
+    decoration = decoration .. 'EULUNA_NORETURN '
   end
 
   local decemitter, defemitter = Emitter(context), Emitter(context)
   if #retnodes == 0 then
-    decemitter:add_indent(cfirstattr, cattr, 'void ')
+    decemitter:add_indent(decoration, 'void ')
     defemitter:add_indent('void ')
   else
     local ret = retnodes[1]
-    decemitter:add_indent(cfirstattr, cattr, ret, ' ')
+    decemitter:add_indent(decoration, ret, ' ')
     defemitter:add_indent(ret, ' ')
   end
   decemitter:add_ln(varnode, '(', argnodes, ');')
