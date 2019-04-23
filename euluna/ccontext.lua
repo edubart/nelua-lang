@@ -21,6 +21,9 @@ function CContext:get_ctype(nodeortype)
   if traits.is_astnode(nodeortype) then
     type = nodeortype.attr.type
     nodeortype:assertraisef(type, 'unknown type for AST node while trying to get the C type')
+    if type:is_type() then
+      type = nodeortype.attr.holdedtype
+    end
   end
   assert(type)
   local codename = type.codename

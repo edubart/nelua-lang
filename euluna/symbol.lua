@@ -1,33 +1,21 @@
 local tabler = require 'euluna.utils.tabler'
 local class = require 'euluna.utils.class'
-local metamagic = require 'euluna.utils.metamagic'
 local Symbol = class()
 
-function Symbol:_init(name, node, mut, type, holding_type)
-  assert(mut and (node or name))
+function Symbol:_init(name, node, mut, type)
+  assert(name and node)
+  local attr  = node.attr
   self.name = name
   self.node = node
   self.possibletypes = {}
-  local attr
-  if node then
-    -- try to get attr from a previus symbol associated with the ast
-    attr = metamagic.getmetaindex(node.attr)
-    if not attr then
-      attr = {}
-      metamagic.setmetaindex(node.attr, attr)
-    end
-  else
-    attr = {}
-  end
   self.attr = attr
   if mut == 'const' then
     attr.const = true
   end
   attr.name = name
+  attr.codename = name
   attr.mut = mut
   attr.type = type
-  attr.codename = name
-  attr.holding_type = holding_type
 end
 
 function Symbol:add_possible_type(type, required)
@@ -41,8 +29,11 @@ function Symbol:add_possible_type(type, required)
 end
 
 function Symbol:link_node(node)
-  assert(self.node)
-  metamagic.setmetaindex(node.attr, self.attr)
+  if node.attr == self.attr then
+    return
+  end
+  assert(next(node.attr) == nil, 'cannot link to a node with attributes')
+  node.attr = self.attr
 end
 
 return Symbol

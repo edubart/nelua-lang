@@ -47,13 +47,13 @@ it("print correct generated AST" , function()
     }
   }
 }]])
-  assert.run('--print-analyzed-ast examples/helloworld.euluna'--[=[, [[Block {
+  assert.run('--print-analyzed-ast examples/helloworld.euluna', [[Block {
   {
     Call {
       attr = {
-        callee_type = "any",
         type = "any",
       },
+      callee_type = "any",
       {
         String {
           attr = {
@@ -66,12 +66,18 @@ it("print correct generated AST" , function()
         }
       },
       Id {
+        attr = {
+          codename = "print",
+          mut = "var",
+          name = "print",
+          type = "any",
+        },
         "print"
       },
       true
     }
   }
-}]]]=])
+}]])
 end)
 
 it("print correct generated code", function()

@@ -8,25 +8,26 @@ local bn = require 'euluna.utils.bn'
 describe("Euluna should check types for", function()
 
 it("analyzed ast transform", function()
-  --[=[
   assert.analyze_ast("local a = 1; f(a)",
-    n.Block { {
-      n.VarDecl { 'local', nil,
-        { n.IdDecl { assign=true, codename='a', mut='var', type='int64', 'a' }},
-        { n.Number {
-          const=true,
-          type='int64',
-          value=bn.fromdec('1'),
+    n.Block{{
+      n.VarDecl{'local', nil,
+        { n.IdDecl{
+          assign=true,
+          attr = {codename='a', mut='var', name='a', type='int64'},
+          'a' }},
+        { n.Number{
+          attr = {const=true, type='int64', value=bn.fromdec('1')},
           'dec', '1'
         }}
       },
-      n.Call { callee_type='any', type='any',
-        { n.Id { codename='a', mut='var', type='int64', "a"} },
-        n.Id { codename='f', mut='var', type='any', "f"},
+      n.Call{
+        attr = {type='any'},
+        callee_type = 'any',
+        {n.Id{ attr = {codename='a', mut='var', name='a', type='int64'}, "a"}},
+        n.Id{ attr = {codename='f', mut='var', name='f', type='any'}, "f"},
         true
-    }
+      }
   }})
-  ]=]
 end)
 
 it("local variable", function()
@@ -366,6 +367,12 @@ it("records", function()
     local a: A, b: B
     b = a
   ]], "is not coercible with")
+  assert.c_gencode_equals(
+    "local a: record {x: boolean}; local b = a.x",
+    "local a: record {x: boolean}; local b: boolean = a.x")
+  assert.c_gencode_equals(
+    "local a: record {x: boolean}; local b; b = a.x",
+    "local a: record {x: boolean}; local b: boolean; b = a.x")
 end)
 
 it("type neasting", function()

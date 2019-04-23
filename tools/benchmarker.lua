@@ -26,8 +26,8 @@ end
 
 local function measure_command(command)
   local timestart = nanotime()
-  local success = executor.execex(command)
-  assert(success, 'benchmark command run failed ' .. command)
+  local success, _, _, err = executor.execex(command)
+  assert(success, 'benchmark command run failed ' .. err)
   local timeend = nanotime()
   local elapsed = timeend - timestart
   return elapsed * 1000

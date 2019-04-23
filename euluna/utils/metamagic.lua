@@ -12,14 +12,6 @@ function metamagic.setmetaindex(t, __index, overwrite)
   end
 end
 
--- get index metamethod for a table
-function metamagic.getmetaindex(t)
-  local mt = getmetatable(t)
-  if mt then
-    return mt.__index
-  end
-end
-
 -- set call metamethod for a table
 function metamagic.setmetacall(t, f)
   local mt = getmetatable(t)

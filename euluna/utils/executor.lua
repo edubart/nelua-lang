@@ -18,7 +18,7 @@ local hasposix, posix_pexec = pcall(function()
 
     -- find the executable
     local exepath = plpath.abspath(exe)
-    if exe ~= exepath then
+    if exe ~= exepath and not exe:find(plpath.sep, 1, true) then
       exepath = nil
       local envpath = os.getenv('PATH')
       if envpath then

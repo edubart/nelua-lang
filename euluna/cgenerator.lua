@@ -169,7 +169,7 @@ end
 function visitors.DotIndex(_, node, emitter)
   local name, objnode = node:args()
   if objnode.attr.type:is_type() then
-    local objtype = node.attr.holding_type
+    local objtype = node.attr.holdedtype
     if objtype:is_enum() then
       emitter:add(objtype:get_field(name).value)
     else --luacov:disable
@@ -227,14 +227,14 @@ function visitors.Call(context, node, emitter)
   if builtin then
     callee = builtin(context, node, emitter)
   end
-  if node.attr.callee_type:is_function() then
+  if node.callee_type:is_function() then
     emitter:add(callee, '(')
-    for i,argtype,argnode in iters.izip(node.attr.callee_type.argtypes, args) do
+    for i,argtype,argnode in iters.izip(node.callee_type.argtypes, args) do
       if i > 1 then emitter:add(', ') end
       add_casted_value(context, emitter, argtype, argnode)
     end
     emitter:add(')')
-  elseif node.attr.callee_type:is_type() then
+  elseif node.callee_type:is_type() then
     -- type assertion
     assert(#args == 1)
     local argnode = args[1]

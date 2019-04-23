@@ -1,7 +1,6 @@
 local iters = require 'euluna.utils.iterators'
 local tabler = require 'euluna.utils.tabler'
 local types = require 'euluna.types'
-local Symbol = require 'euluna.symbol'
 local bn = require 'euluna.utils.bn'
 local Type = types.Type
 
@@ -242,15 +241,6 @@ function typedefs.find_common_type(possibletypes)
     end
   end
 end
-
-local primsymbols = {}
-do
-  for name,type in pairs(primtypes) do
-    local symbol = Symbol(type.name, nil, 'const', type.type, type)
-    primsymbols[name:lower()] = symbol
-  end
-end
-typedefs.primsymbols = primsymbols
 
 typedefs.mutabilities = {
   ['var'] = true,
