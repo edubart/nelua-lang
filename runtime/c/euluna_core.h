@@ -11,12 +11,12 @@
 #define EULUNA_LIKELY(x)    __builtin_expect(x, 1)
 #define EULUNA_UNLIKELY(x)  __builtin_expect(x, 0)
 #define EULUNA_UNUSED(x)    (void)(x)
-typedef intptr_t      euluna_int;
+typedef intptr_t      euluna_isize;
 typedef int8_t        euluna_int8;
 typedef int16_t       euluna_int16;
 typedef int32_t       euluna_int32;
 typedef int64_t       euluna_int64;
-typedef uintptr_t     euluna_uint;
+typedef uintptr_t     euluna_usize;
 typedef uint8_t       euluna_uint8;
 typedef uint16_t      euluna_uint16;
 typedef uint32_t      euluna_uint32;
@@ -33,8 +33,8 @@ typedef struct euluna_type {
 } euluna_type;
 {% end %}
 typedef struct euluna_string_object {
-  euluna_int len;
-  euluna_int res;
+  euluna_isize len;
+  euluna_isize res;
   euluna_char data[];
 } euluna_string_object;
 typedef euluna_string_object* euluna_string;
@@ -42,12 +42,12 @@ typedef euluna_string_object* euluna_string;
 typedef struct euluna_any {
   euluna_type *type;
   union {
-    euluna_int i;
+    euluna_isize i;
     euluna_int8 i8;
     euluna_int16 i16;
     euluna_int32 i32;
     euluna_int64 i64;
-    euluna_uint u;
+    euluna_usize u;
     euluna_uint8 u8;
     euluna_uint16 u16;
     euluna_uint32 u32;
@@ -110,7 +110,7 @@ static inline void euluna_check_type(euluna_type* a, euluna_type* b) {
 }
 {% end %}
 {% if context.has_any then %}
-static inline euluna_int euluna_int_any_cast(const euluna_any a) {
+static inline euluna_isize euluna_int_any_cast(const euluna_any a) {
   euluna_check_type(a.type, &euluna_int_type);
   return a.value.i;
 }
@@ -130,7 +130,7 @@ static inline euluna_int64 euluna_int64_any_cast(const euluna_any a) {
   euluna_check_type(a.type, &euluna_int64_type);
   return a.value.i64;
 }
-static inline euluna_uint euluna_uint_any_cast(const euluna_any a) {
+static inline euluna_usize euluna_uint_any_cast(const euluna_any a) {
   euluna_check_type(a.type, &euluna_uint_type);
   return a.value.u;
 }

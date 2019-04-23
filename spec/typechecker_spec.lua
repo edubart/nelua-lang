@@ -55,8 +55,8 @@ end)
 
 it("numeric types coercion", function()
   assert.analyze_ast([[
-    local u:uint, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 1,1,1,1,1
-    local i:int, i8:int8, i16:int16, i32:int32, i64:int64 = 1,1,1,1,1
+    local u:usize, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 1,1,1,1,1
+    local i:isize, i8:int8, i16:int16, i32:int32, i64:int64 = 1,1,1,1,1
     local f32: float32, f64: float64 = 1,1
   ]])
   assert.analyze_ast([[
@@ -70,12 +70,12 @@ end)
 
 it("narrow casting", function()
   assert.analyze_ast([[
-    local u   = @uint  (0xffffffffffffffff)
+    local u   = @usize  (0xffffffffffffffff)
     local u8  = @uint8 (0xffffffffffffffff)
     local u16 = @uint16(0xffffffffffffffff)
     local u32 = @uint32(0xffffffffffffffff)
     local u64 = @uint64(0xffffffffffffffff)
-    local i   = @int  (-0x8000000000000000)
+    local i   = @isize  (-0x8000000000000000)
     local i8  = @int8 (-0x8000000000000000)
     local i16 = @int16(-0x8000000000000000)
     local i32 = @int32(-0x8000000000000000)
@@ -85,10 +85,10 @@ end)
 
 it("numeric ranges", function()
   assert.analyze_ast([[
-    local u:uint, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 0,0,0,0,0
+    local u:usize, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 0,0,0,0,0
   ]])
   assert.analyze_ast([[
-    local u:uint = 18446744073709551616_u
+    local u:usize = 18446744073709551616_us
     local u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 256,65536,4294967296,18446744073709551616
   ]])
   assert.analyze_error([[local u = -1_u]], "is out of range")
@@ -103,11 +103,11 @@ it("numeric ranges", function()
   assert.analyze_error([[local u = 18446744073709551617_u64]], 'is out of range')
 
   assert.analyze_ast([[
-    local i:int = -9223372036854775808_i
+    local i:isize = -9223372036854775808_is
     local i8:int8, i16:int16, i32:int32, i64:int64 = -128,-32768,-2147483648,-9223372036854775808
   ]])
   assert.analyze_ast([[
-    local i:int = 9223372036854775807_i
+    local i:isize = 9223372036854775807_is
     local i8:int8, i16:int16, i32:int32, i64:int64 = 127,32767,2147483647,9223372036854775807
   ]])
   assert.analyze_error([[local i = -9223372036854775809_i64]], 'is out of range')
@@ -131,7 +131,7 @@ end)
 it("loop variables", function()
   assert.c_gencode_equals("for i=1,10 do end", "for i:integer=1,10 do end")
   assert.c_gencode_equals("for i=1,10,2 do end", "for i:integer=1,10,2 do end")
-  assert.c_gencode_equals("for i=0_i,1_i-1 do end", "for i:int=0_i,1_i-1 do end")
+  assert.c_gencode_equals("for i=0_is,1_is-1 do end", "for i:isize=0_is,1_is-1 do end")
   assert.analyze_error("for i:uint8=1.0,10 do end", "is not coercible with")
   assert.analyze_error("for i:uint8=1_u8,10 do end", "is not coercible with")
   assert.analyze_error("for i:uint8=1_u8,10_u8,2 do end", "is not coercible with")
@@ -216,7 +216,7 @@ it("function definition", function()
     function f(a: integer): string end
   ]])
   assert.analyze_error([[
-    local f: int
+    local f: isize
     function f(a: integer) return 0 end
   ]], "is not coercible with")
   assert.analyze_error([[
@@ -462,10 +462,10 @@ it("dereferecing and referencing", function()
 end)
 
 it("pointers to complex types", function()
-  assert.analyze_ast([[local p: pointer<record{x:int}>; p.x = 0]])
-  assert.analyze_ast([[local p: pointer<array<int, 10>>; p[0] = 0]])
-  assert.analyze_error([[local p: pointer<record{x:int}>; p.y = 0]], "does not have field")
-  assert.analyze_error([[local p: pointer<array<int, 10>>; p[-1] = 0]], "trying to index negative value")
+  assert.analyze_ast([[local p: pointer<record{x:isize}>; p.x = 0]])
+  assert.analyze_ast([[local p: pointer<array<isize, 10>>; p[0] = 0]])
+  assert.analyze_error([[local p: pointer<record{x:isize}>; p.y = 0]], "does not have field")
+  assert.analyze_error([[local p: pointer<array<isize, 10>>; p[-1] = 0]], "trying to index negative value")
 end)
 
 it("type construction", function()

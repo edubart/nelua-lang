@@ -34,8 +34,8 @@ it("number literals", function()
   assert.generate_c("return 1_number", "return 1.0")
   assert.generate_c("return 1_byte", "return (euluna_uint8)1")
   assert.generate_c("return 1_char", "return (euluna_char)1")
-  assert.generate_c("return 1_int", "return (euluna_int)1")
-  assert.generate_c("return 1_uint", "return (euluna_uint)1")
+  assert.generate_c("return 1_isize", "return (euluna_isize)1")
+  assert.generate_c("return 1_usize", "return (euluna_usize)1")
   assert.generate_c("return 1_pointer", "return (euluna_pointer)1")
 end)
 it("type assertion", function()
@@ -165,7 +165,7 @@ it("binary operators", function()
     "return 3.0 / 2")
   assert.generate_c(
     "return @integer(3_i / 2_i)",
-    "return (euluna_int64)((euluna_int)3 / (euluna_float64)(euluna_int)2)")
+    "return (euluna_int64)((euluna_int64)3 / (euluna_float64)(euluna_int64)2)")
   assert.generate_c(
     "return @integer(3 / 2_int64)",
     "return (euluna_int64)(3 / (euluna_float64)(euluna_int64)2)")
@@ -215,12 +215,12 @@ it("c types", function()
   assert.generate_c("local a: int32", "euluna_int32 a = {0};")
   assert.generate_c("local a: int16", "euluna_int16 a = {0};")
   assert.generate_c("local a: int8", "euluna_int8 a = {0};")
-  assert.generate_c("local a: int", "euluna_int a = {0};")
+  assert.generate_c("local a: isize", "euluna_isize a = {0};")
   assert.generate_c("local a: uint64", "euluna_uint64 a = {0};")
   assert.generate_c("local a: uint32", "euluna_uint32 a = {0};")
   assert.generate_c("local a: uint16", "euluna_uint16 a = {0};")
   assert.generate_c("local a: uint8", "euluna_uint8 a = {0};")
-  assert.generate_c("local a: uint", "euluna_uint a = {0};")
+  assert.generate_c("local a: usize", "euluna_usize a = {0};")
   assert.generate_c("local a: boolean", "euluna_boolean a = {0};")
 end)
 
@@ -366,7 +366,7 @@ end)
 it("pointers", function()
   assert.generate_c("local p: pointer<float32>", "euluna_float32*")
   assert.generate_c("local p: pointer", "void*")
-  assert.generate_c("local p: pointer<record{x:int}>; p.x = 0", "->x = ")
+  assert.generate_c("local p: pointer<record{x:integer}>; p.x = 0", "->x = ")
   assert.run_c([[
     local function f(a: pointer): pointer return a end
     local i: integer = 1
@@ -382,8 +382,8 @@ end)
 
 it("manual memory managment", function()
   assert.run_c([[
-    local function malloc(size: uint): pointer !cimport('malloc','<stdlib.h>') end
-    local function memset(s: pointer, c: int32, n: uint): pointer !cimport('memset','<stdlib.h>') end
+    local function malloc(size: usize): pointer !cimport('malloc','<stdlib.h>') end
+    local function memset(s: pointer, c: int32, n: usize): pointer !cimport('memset','<stdlib.h>') end
     local function free(ptr: pointer) !cimport('free','<stdlib.h>') end
     local a = @pointer<array<int64, 10>>(malloc(10 * 8))
     memset(a, 0, 10*8)

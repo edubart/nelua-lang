@@ -10,12 +10,12 @@ local typedefs = {}
 
 -- primitive types
 local primtypes = {
-  int       = Type('int'),
+  isize     = Type('isize'),
   int8      = Type('int8'),
   int16     = Type('int16'),
   int32     = Type('int32'),
   int64     = Type('int64'),
-  uint      = Type('uint'),
+  usize     = Type('usize'),
   uint8     = Type('uint8'),
   uint16    = Type('uint16'),
   uint32    = Type('uint32'),
@@ -43,8 +43,8 @@ primtypes.byte     = primtypes.uint8
 
 -- integral types
 local integral_types = {
-  primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
-  primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
+  primtypes.isize, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
+  primtypes.usize, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
 }
 do
   for itype in iters.ivalues(integral_types) do
@@ -58,20 +58,20 @@ typedefs.signed_ranges = {
   { type = primtypes.int16,  min = - bn.pow(2, 16) / 2, max = bn.pow(2, 16) / 2 - 1 },
   { type = primtypes.int32,  min = - bn.pow(2, 32) / 2, max = bn.pow(2, 32) / 2 - 1 },
   { type = primtypes.int64,  min = - bn.pow(2, 64) / 2, max = bn.pow(2, 64) / 2 - 1 },
-  { type = primtypes.int,    min = - bn.pow(2, 64) / 2, max = bn.pow(2, 64) / 2 - 1 },
+  { type = primtypes.isize,  min = - bn.pow(2, 64) / 2, max = bn.pow(2, 64) / 2 - 1 },
 }
 typedefs.unsigned_ranges = {
   { type = primtypes.uint8,  min = bn.new(0), max = bn.pow(2,  8) },
   { type = primtypes.uint16, min = bn.new(0), max = bn.pow(2, 16) },
   { type = primtypes.uint32, min = bn.new(0), max = bn.pow(2, 32) },
   { type = primtypes.uint64, min = bn.new(0), max = bn.pow(2, 64) },
-  { type = primtypes.uint,   min = bn.new(0), max = bn.pow(2, 64) },
+  { type = primtypes.usize,  min = bn.new(0), max = bn.pow(2, 64) },
 }
 
 -- real types
 primtypes.float32.float = true
 primtypes.float64.float = true
-primtypes.uint.unsigned = true
+primtypes.usize.unsigned = true
 primtypes.uint8.unsigned = true
 primtypes.uint16.unsigned = true
 primtypes.uint32.unsigned = true
@@ -79,17 +79,17 @@ primtypes.uint64.unsigned = true
 
 -- literal types
 typedefs.number_literal_types = {
-  _integer    = primtypes.integer,
-  _uinteger   = primtypes.uinteger,
-  _number     = primtypes.number,
+  _i          = primtypes.integer,  _integer    = primtypes.integer,
+  _u          = primtypes.uinteger, _uinteger   = primtypes.uinteger,
+  _n          = primtypes.number,   _number     = primtypes.number,
   _b          = primtypes.byte,     _byte       = primtypes.byte,
   _c          = primtypes.char,     _char       = primtypes.char,
-  _i          = primtypes.int,      _int        = primtypes.int,
+  _is         = primtypes.isize,    _isize      = primtypes.isize,
   _i8         = primtypes.int8,     _int8       = primtypes.int8,
   _i16        = primtypes.int16,    _int16      = primtypes.int16,
   _i32        = primtypes.int32,    _int32      = primtypes.int32,
   _i64        = primtypes.int64,    _int64      = primtypes.int64,
-  _u          = primtypes.uint,     _uint       = primtypes.uint,
+  _us         = primtypes.usize,    _usize      = primtypes.usize,
   _u8         = primtypes.uint8,    _uint8      = primtypes.uint8,
   _u16        = primtypes.uint16,   _uint16     = primtypes.uint16,
   _u32        = primtypes.uint32,   _uint32     = primtypes.uint32,
@@ -106,17 +106,17 @@ typedefs.numeric_types = {
   primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
   primtypes.float64,
   -- will never be choosen as a common type, but we need to list it
-  primtypes.int,
-  primtypes.uint,
+  primtypes.isize,
+  primtypes.usize,
   primtypes.float32
 }
 
 -- automatic type conversion
-primtypes.uint:add_conversible_types({primtypes.uint8, primtypes.uint16, primtypes.uint32})
+primtypes.usize:add_conversible_types({primtypes.uint8, primtypes.uint16, primtypes.uint32})
 primtypes.uint16:add_conversible_types({primtypes.uint8})
 primtypes.uint32:add_conversible_types({primtypes.uint8, primtypes.uint16, primtypes.uint32})
-primtypes.uint64:add_conversible_types({primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32})
-primtypes.int:add_conversible_types({
+primtypes.uint64:add_conversible_types({primtypes.usize, primtypes.uint8, primtypes.uint16, primtypes.uint32})
+primtypes.isize:add_conversible_types({
   primtypes.int8, primtypes.int16, primtypes.int32,
   primtypes.uint8, primtypes.uint16
 })
@@ -129,17 +129,17 @@ primtypes.int32:add_conversible_types({
   primtypes.uint8, primtypes.uint16
 })
 primtypes.int64:add_conversible_types({
-  primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32,
-  primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32
+  primtypes.isize, primtypes.int8, primtypes.int16, primtypes.int32,
+  primtypes.usize, primtypes.uint8, primtypes.uint16, primtypes.uint32
 })
 primtypes.float32:add_conversible_types({
-  primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
-  primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
+  primtypes.isize, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
+  primtypes.usize, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
   primtypes.float64
 })
 primtypes.float64:add_conversible_types({
-  primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
-  primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
+  primtypes.isize, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
+  primtypes.usize, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
   primtypes.float32
 })
 primtypes.cstring:add_conversible_types({
@@ -148,12 +148,12 @@ primtypes.cstring:add_conversible_types({
 
 -- unary operator types
 local bitwise_types = {
-  primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
-  primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64
+  primtypes.isize, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
+  primtypes.usize, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64
 }
 local unary_op_types = {
   ['neg']   = { primtypes.float32, primtypes.float64,
-                primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64},
+                primtypes.isize, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64},
   ['bnot']  = bitwise_types,
   ['len']   = { types.ArrayTableType, types.ArrayType, types.RecordType,
                 result_type = primtypes.integer },
@@ -178,8 +178,8 @@ end
 -- binary operator types
 local comparable_types = {
   primtypes.float32, primtypes.float64,
-  primtypes.int, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
-  primtypes.uint, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
+  primtypes.isize, primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
+  primtypes.usize, primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
   primtypes.char, primtypes.string,
   result_type = primtypes.boolean
 }

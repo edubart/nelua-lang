@@ -93,27 +93,28 @@ continue
 
 ## Variables mutabilities
 
-* **mutable** is a mutable variable
-* **mutable&** is a reference to a mutable variable
-* **mutable&&** is a mutable rvalue
-* **immutable** is an immutable variable
-* **immutable&** is a reference to a immutable variable
+* **var** is a mutable variable
+* **var&** is a reference to a mutable variable
+* **var&&** is a mutable rvalue
+* **val** is an immutable variable
+* **val&** is a reference to a immutable variable
 * **const** is an immutable variable and it's expression is evaluated at compile time
 
 ## Primitives types
 
 | Type              | C Type          | Suffixes            |
 |-------------------|-----------------|---------------------|
-| `integer`         | `int64_t`       | `_integer`          |
-| `number`          | `double`        | `_number`           |
+| `integer`         | `int64_t`       | `_i` `_integer`     |
+| `uinteger`        | `unt64_t`       | `_u` `_uinteger`    |
+| `number`          | `double`        | `_n` `_number`      |
 | `byte`            | `unsigned char` | `_b` `_byte`        |
 | `char`            | `char`          | `_c` `_char`        |
-| `int`             | `intptr_t`      | `_i` `_int`         |
+| `isize`           | `intptr_t`      | `_is` `_int`        |
 | `int8`            | `int8_t`        | `_i8` `_int8`       |
 | `int16`           | `int16_t`       | `_i16` `_int16`     |
 | `int32`           | `int32_t`       | `_i32` `_int32`     |
 | `int64`           | `int64_t`       | `_i64` `_int64`     |
-| `uint`            | `uintptr_t`     | `_u` `_uint`        |
+| `usize`           | `uintptr_t`     | `_us` `_uint`       |
 | `uint8`           | `uint8_t`       | `_u8` `_uint8`      |
 | `uint16`          | `uint16_t`      | `_u16` `_uint16`    |
 | `uint32`          | `uint32_t`      | `_u32` `_uint32`    |
@@ -123,7 +124,7 @@ continue
 | `pointer`         | `void*`         | `_pointer`          |
 | `boolean`         | `bool`          |                     |
 
-The types `int` and `uint` types are usually 32 wide bits on 32-bit systems,
+The types `isize` and `usize` types are usually 32 wide bits on 32-bit systems,
 and 64 bits wide on 64-bit systems. When you need an integer value you should use `integer`
 unless you have a specific reason to use a sized or unsigned integer type.
 
@@ -135,3 +136,4 @@ The `number` is the default type for fractional literals with no suffix.
 `false`
 `true`
 `nil`
+`nilptr`
