@@ -88,19 +88,19 @@ it("numeric ranges", function()
     local u:usize, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 0,0,0,0,0
   ]])
   assert.analyze_ast([[
-    local u:usize = 18446744073709551616_us
-    local u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 256,65536,4294967296,18446744073709551616
+    local u:usize = 18446744073709551615_us
+    local u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 255,65535,4294967295,18446744073709551615
   ]])
   assert.analyze_error([[local u = -1_u]], "is out of range")
   assert.analyze_error([[local u = -1_u8]], "is out of range")
   assert.analyze_error([[local u = -1_u16]], "is out of range")
   assert.analyze_error([[local u = -1_u32]], "is out of range")
   assert.analyze_error([[local u = -1_u64]], "is out of range")
-  assert.analyze_error([[local u = 18446744073709551617_u]], 'is out of range')
-  assert.analyze_error([[local u = 257_u8]], 'is out of range')
-  assert.analyze_error([[local u = 65537_u16]], 'is out of range')
-  assert.analyze_error([[local u = 4294967297_u32]], 'is out of range')
-  assert.analyze_error([[local u = 18446744073709551617_u64]], 'is out of range')
+  assert.analyze_error([[local u = 18446744073709551616_u]], 'is out of range')
+  assert.analyze_error([[local u = 256_u8]], 'is out of range')
+  assert.analyze_error([[local u = 65536_u16]], 'is out of range')
+  assert.analyze_error([[local u = 4294967296_u32]], 'is out of range')
+  assert.analyze_error([[local u = 18446744073709551616_u64]], 'is out of range')
 
   assert.analyze_ast([[
     local i:isize = -9223372036854775808_is

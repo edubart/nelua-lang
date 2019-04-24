@@ -437,14 +437,12 @@ function visitors.DotIndex(context, node)
 end
 
 function visitors.ColonIndex(context, node)
-  if node.attr.type then return end
   context:default_visitor(node)
   --TODO: detect better types
   node.attr.type = primtypes.any
 end
 
 function visitors.ArrayIndex(context, node)
-  if node.attr.type then return end
   context:default_visitor(node)
   local indexnode, objnode = node:args()
   local type
@@ -480,7 +478,6 @@ function visitors.ArrayIndex(context, node)
 end
 
 function visitors.Call(context, node)
-  if node.attr.type then return end
   local argnodes, calleenode, block_call = node:args()
   context:traverse(calleenode)
   if calleenode.attr.type then

@@ -64,10 +64,10 @@ local i16min, i16max = - bn.pow(2, 16) / 2, bn.pow(2, 16) / 2 - 1
 local i32min, i32max = - bn.pow(2, 32) / 2, bn.pow(2, 32) / 2 - 1
 local i64min, i64max = - bn.pow(2, 64) / 2, bn.pow(2, 64) / 2 - 1
 local umin   = bn.new(0)
-local u8max  = bn.pow(2,  8)
-local u16max = bn.pow(2, 16)
-local u32max = bn.pow(2, 32)
-local u64max = bn.pow(2, 64)
+local u8max  = bn.pow(2,  8) - 1
+local u16max = bn.pow(2, 16) - 1
+local u32max = bn.pow(2, 32) - 1
+local u64max = bn.pow(2, 64) - 1
 
 typedefs.signed_ranges = {
   {type = primtypes.int8,      min = i8min,  max = i8max},
