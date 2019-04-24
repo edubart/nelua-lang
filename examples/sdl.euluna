@@ -1,5 +1,4 @@
 -- TODO: import C types
--- TODO: include c headers pragma
 -- TODO: nullptr
 -- TODO: pass compiler parameters
 
@@ -37,7 +36,7 @@ local window = SDL_CreateWindow("An SDL2 Window",
 )
 
 -- Check that the window was successfully created
-if window == @pointer(0) then
+if not window then
   print("Could not create window")
   return 1
 end

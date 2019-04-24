@@ -366,7 +366,7 @@ end)
 
 it("pointers", function()
   assert.generate_c("local p: pointer<float32>", "euluna_float32*")
-  assert.generate_c("local p: pointer", "void*")
+  assert.generate_c("local p: pointer", "euluna_pointer p")
   assert.generate_c("local p: pointer<record{x:integer}>; p.x = 0", "->x = ")
   assert.run_c([[
     local function f(a: pointer): pointer return a end
@@ -379,6 +379,14 @@ it("pointers", function()
     *p = 3
     print(i)
   ]], "1\n2\n3")
+end)
+
+it("nilptr", function()
+  assert.generate_c("local p: pointer = nilptr", "euluna_pointer p = NULL")
+  assert.run_c([[
+    local p: pointer = nilptr
+    assert(p == nilptr)
+  ]])
 end)
 
 it("manual memory managment", function()

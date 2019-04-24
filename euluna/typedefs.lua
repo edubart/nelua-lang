@@ -24,11 +24,11 @@ local primtypes = {
   float64   = Type('float64'),
   boolean   = Type('boolean'),
   string    = Type('string'),
-  cstring   = Type('cstring'),
   any       = Type('any'),
   void      = Type('void'),
   table     = Type('table'),
   Nil       = Type('nil'),
+  Nilptr    = Type('nilptr'),
   type      = Type.type, -- the type of "Type"
 
   -- for C compability
@@ -46,6 +46,7 @@ local primtypes = {
   culonglong  = Type('culonglong'),
   csize       = Type('csize'),
   clongdouble = Type('clongdouble'),
+  cstring     = Type('cstring'),
 }
 primtypes.pointer = types.PointerType(nil, primtypes.void)
 typedefs.primtypes = primtypes
@@ -214,6 +215,7 @@ do
       end
     end
   end
+  primtypes.cstring:add_conversible_types({primtypes.string})
   primtypes.cstring:add_conversible_types({primtypes.string})
 end
 

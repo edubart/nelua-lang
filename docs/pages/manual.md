@@ -107,7 +107,7 @@ continue
 | `integer`         | `int64_t`       | `_i` `_integer`     |
 | `uinteger`        | `unt64_t`       | `_u` `_uinteger`    |
 | `number`          | `double`        | `_n` `_number`      |
-| `byte`            | `unsigned char` | `_b` `_byte`        |
+| `byte`            | `uint8_t`       | `_b` `_byte`        |
 | `isize`           | `intptr_t`      | `_is` `_int`        |
 | `int8`            | `int8_t`        | `_i8` `_int8`       |
 | `int16`           | `int16_t`       | `_i16` `_int16`     |
@@ -150,8 +150,9 @@ Additional types for C compatibility are also provided:
 | `clongdouble`     | `long double`        | `_clongdouble`   |
 | `cdouble`         | `double`             | `_cdouble`       |
 | `cfloat`          | `float`              | `_cfloat_`       |
+| `cstring`         | `char*`              | `_cstring`       |
 
-## Literal values
+## Primitives values
 
 `false`
 `true`

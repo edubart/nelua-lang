@@ -223,6 +223,9 @@ function visitors.Id(context, node)
   end
   local symbol = context.scope:get_symbol(name, node)
   if not symbol then
+    if name == primtypes.Nilptr.name then
+      type = primtypes.Nilptr
+    end
     symbol = context.scope:add_symbol(Symbol(name, node, 'var', type))
   else
     symbol:link_node(node)

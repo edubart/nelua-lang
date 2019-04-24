@@ -435,6 +435,12 @@ end)
 
 it("pointers", function()
   assert.analyze_ast([[
+    local a: pointer<integer> = nilptr
+    local b: pointer = nilptr
+    b = nilptr
+    a = nilptr
+  ]])
+  assert.analyze_ast([[
     local a: pointer<integer>
     local b: pointer
     b = a

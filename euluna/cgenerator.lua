@@ -28,7 +28,9 @@ local function add_casted_value(context, emitter, type, valnode)
     if valnode.attr.type:is_any() then
       context:get_ctype(primtypes.any) -- to inject any builtin
       emitter:add(context:get_ctype(type), '_any_cast(', valnode, ')')
-    elseif type == valnode.attr.type or valnode.attr.type:is_numeric() and type:is_numeric() then
+    elseif type == valnode.attr.type or
+           (valnode.attr.type:is_numeric() and type:is_numeric()) or
+           (valnode.attr.type:is_nilptr() and type:is_pointer()) then
       emitter:add(valnode)
     elseif valnode.attr.type:is_string() and type:is_cstring() then
       emitter:add('(', valnode, ')->data')
@@ -147,12 +149,19 @@ end
 
 -- identifier and types
 function visitors.Id(_, node, emitter)
-  emitter:add(cdefs.quotename(node.attr.codename))
+  if node.attr.type:is_nilptr() then
+    emitter:add('NULL')
+  else
+    emitter:add(cdefs.quotename(node.attr.codename))
+  end
 end
 
-function visitors.Paren(_, node, emitter)
-  local what = node:args()
-  emitter:add('(', what, ')')
+function visitors.Paren(_, node, emitter, ...)
+  local innernode = node:args()
+  emitter:add('(')
+  local ret = emitter:add_traversal(innernode, ...)
+  emitter:add(')')
+  return ret
 end
 
 function visitors.Type(context, node, emitter)

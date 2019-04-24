@@ -109,6 +109,10 @@ function Type:is_nilable()
   return self:is_any() or self:is_nil()
 end
 
+function Type:is_nilptr()
+  return self.name == 'nilptr'
+end
+
 function Type:is_type()
   return self.name == 'type'
 end
@@ -335,6 +339,9 @@ end
 
 function PointerType:is_coercible_from(type, explicit)
   if explicit and type:is_pointer() then
+    return true
+  end
+  if type:is_nilptr() then
     return true
   end
   if Type.is_coercible_from(self, type, explicit) then
