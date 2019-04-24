@@ -137,7 +137,7 @@ function assert.generate_lua(euluna_code, expected_code)
   assert.same(stringer.rstrip(expected_code), stringer.rstrip(generated_code))
 end
 
-function assert.generate_c(euluna_code, expected_code)
+function assert.generate_c(euluna_code, expected_code, ispattern)
   local ast = assert.parse_ast(euluna_parser, euluna_code)
   ast = assert(typechecker.analyze(ast, euluna_parser.astbuilder))
   local generated_code = assert(c_generator.generate(ast))
@@ -146,7 +146,7 @@ function assert.generate_c(euluna_code, expected_code)
     expected_code = {expected_code}
   end
   for _,ecode in ipairs(expected_code) do
-    errorer.assertf(generated_code:find(ecode or '', 1, true),
+    errorer.assertf(generated_code:find(ecode or '', 1, not ispattern),
       "Expected C code to contains.\nPassed in:\n%s\nExpected:\n%s",
       generated_code, ecode)
   end

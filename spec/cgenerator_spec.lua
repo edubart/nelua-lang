@@ -319,10 +319,13 @@ end)
 
 it("records", function()
   assert.generate_c(
+    "local t: record{}",
+    "typedef struct record_%w+ record_%w+;", true)
+  assert.generate_c(
     "local t: record{a: boolean}",
-[[typedef struct {
+    [[typedef struct record_%w+ {
   euluna_boolean a;
-} record_]])
+} record_%w+]], true)
   assert.run_c([[
     local p: record{
       x: integer,

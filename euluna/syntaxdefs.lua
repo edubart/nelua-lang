@@ -457,7 +457,7 @@ local function get_parser(std)
       %{ExpectedExpression}
 
     record_type <- ({} %TRECORD -> 'RecordType' eLCURLY
-        {| erecord_field (%SEPARATOR record_field)* %SEPARATOR? |}
+        {| (record_field (%SEPARATOR record_field)* %SEPARATOR?)? |}
       eRCURLY) -> to_astnode
     record_field <- ({} '' -> 'RecordFieldType'
         %cNAME eCOLON etypexpr
@@ -537,7 +537,6 @@ local function get_parser(std)
     eexpr           <- expr           / %{ExpectedExpression}
     etypexpr        <- typexpr        / %{ExpectedTypeExpression}
     ecall_args      <- call_args      / %{ExpectedCall}
-    erecord_field   <- record_field   / %{ExpectedRecordFieldType}
     eenum_field     <- enum_field     / %{ExpectedEnumFieldType}
     eprim_type      <- prim_type      / %{ExpectedPrimitiveTypeExpression}
   ]])
@@ -584,7 +583,6 @@ local function get_parser(std)
     ExpectedTypeExpression = "expected a type expression",
     ExpectedCall = "expected call",
     ExpectedEnumFieldType = "expected at least one enum field",
-    ExpectedRecordFieldType = "expected at least one record field",
     ExpectedPrimitiveTypeExpression = "expected a primitive type expression",
   })
 
