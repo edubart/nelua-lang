@@ -36,7 +36,6 @@ function CContext:get_ctype(nodeortype)
   end
   if type.cimport then
     assert(type:is_record(), 'not implemented')
-    codename = 'struct ' .. codename
   elseif type:is_arraytable() then
     local subctype = self:get_ctype(type.subtype)
     self:ensure_runtime(codename, 'euluna_arrtab', {
