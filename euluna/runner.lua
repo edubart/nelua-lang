@@ -9,7 +9,7 @@ local typechecker = require 'euluna.typechecker'
 
 local runner = {}
 
-local function run(argv)
+local function run(argv, redirect)
   -- parse config
   local config = configer.parse(argv)
 
@@ -78,17 +78,20 @@ local function run(argv)
   if dorun then
     local exe, exeargs = compiler.get_run_command(binaryfile, config.runargs)
     if not config.quiet then print(exe .. ' ' .. table.concat(exeargs, ' ')) end
-    local success, status = executor.exec(exe, exeargs)
+    local exec = redirect and executor.execex or executor.exec
+    local success, status, sout, serr = exec(exe, exeargs, redirect)
+    if sout then io.stdout:write(sout) io.stdout:flush() end
+    if serr then io.stderr:write(serr) io.stderr:flush() end
     return status
   end
 
   return 0
 end
 
-function runner.run(argv)
+function runner.run(argv, redirect)
   local status
   except.try(function()
-    status = run(argv)
+    status = run(argv, redirect)
   end, function(e)
     errorer.errprint(e:get_message())
     status = 1

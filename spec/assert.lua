@@ -86,7 +86,7 @@ local function run(args)
   io.stderr, io.stdout, _G.print = tmperr, tmpout, rprint
   -- run the test
   local ok, err = pcall(function()
-    return runner.run(args)
+    return runner.run(args, true)
   end)
   local status = 1
   if not ok then io.stderr:write(tostring(err) .. '\n')

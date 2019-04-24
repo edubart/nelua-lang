@@ -13,7 +13,7 @@ local hasposix, posix_pexec = pcall(function()
   local wait = require 'posix.sys.wait'.wait
   local plpath = require 'pl.path'
 
-  return function(exe, args)
+  return function(exe, args, redirect)
     args = args or {}
 
     -- find the executable
@@ -39,47 +39,64 @@ local hasposix, posix_pexec = pcall(function()
 
 
     -- piped fork and exec
-    local outfd, outwfd = unistd.pipe()
-    local errfd, errwfd = unistd.pipe()
+    io.stderr:flush()
+    io.stdout:flush()
+    local outfd, outwfd, errfd, errwfd
+    if redirect then
+      outfd, outwfd = unistd.pipe()
+      errfd, errwfd = unistd.pipe()
+    end
     local pid, errmsg = unistd.fork()
     if pid == 0 then
-      unistd.close(outfd) unistd.close(errfd)
-      unistd.dup2(outwfd, unistd.STDOUT_FILENO) unistd.dup2(errwfd, unistd.STDERR_FILENO)
+      if redirect then
+        unistd.close(outfd) unistd.close(errfd)
+        unistd.dup2(outwfd, unistd.STDOUT_FILENO) unistd.dup2(errwfd, unistd.STDERR_FILENO)
+      end
       local _, err = unistd.exec(exepath, args)
       -- this is reached only when it fails
       io.stderr:write(err)
       unistd._exit(127)
     end
-    unistd.close(outwfd)
-    unistd.close(errwfd)
     local ssout = {}
     local sserr = {}
-    while true do
-      local r = unistd.read(outfd, 8192)
-      if not r or #r == 0 then break end
-      table.insert(ssout, r)
-    end
-    while true do
-      local r = unistd.read(errfd, 8192)
-      if not r or #r == 0  then break end
-      table.insert(sserr, r)
+    if redirect then
+      unistd.close(outwfd)
+      unistd.close(errwfd)
+      while true do
+        local r = unistd.read(outfd, 8192)
+        if not r or #r == 0 then break end
+        table.insert(ssout, r)
+      end
+      while true do
+        local r = unistd.read(errfd, 8192)
+        if not r or #r == 0  then break end
+        table.insert(sserr, r)
+      end
     end
     local _, reason, status = wait(pid)
     local ok = (reason == 'exited') and status == 0
-    unistd.close(outfd) unistd.close(errfd)
-    local sout = table.concat(ssout)
-    local serr = table.concat(sserr)
-    return ok, status, sout, serr
+    if redirect then
+      unistd.close(outfd) unistd.close(errfd)
+      local sout = table.concat(ssout)
+      local serr = table.concat(sserr)
+      return ok, status, sout, serr
+    else
+      return ok, status
+    end
   end
 end)
 
-local function pl_pexec(exe, args)
+local function pl_pexec(exe, args, redirect)
   local command = exe
   if args and #args > 0 then
     local strargs = tabler(args):imap(plutil.quote_arg):concat(' '):value()
     command = command .. ' ' .. strargs
   end
-  return plutil.executeex(command)
+  if redirect then
+    return plutil.executeex(command)
+  else
+    return plutil.execute(command)
+  end
 end
 
 local pexec = hasposix and posix_pexec or pl_pexec
@@ -97,22 +114,12 @@ end
 
 function executor.exec(exe, args)
   exe, args = convert_args(exe, args)
-  local success, status, sout, serr = pexec(exe, args)
-  if sout then
-    io.stdout:write(sout)
-    io.stdout:flush()
-  end
-  if serr then
-    io.stderr:write(serr)
-    io.stderr:flush()
-  end
-  if status ~= 0 then success = false end
-  return success, status
+  return pexec(exe, args)
 end
 
 function executor.execex(exe, args)
   exe, args = convert_args(exe, args)
-  return pexec(exe, args)
+  return pexec(exe, args, true)
 end
 
 return executor
