@@ -88,18 +88,21 @@ function visitors.Number(context, node, desiredtype)
 end
 
 function visitors.String(_, node)
+  if node.attr.type then return end
   node.attr.value = node:args(1)
   node.attr.type = primtypes.string
   node.attr.const = true
 end
 
 function visitors.Boolean(_, node)
+  if node.attr.type then return end
   node.attr.value = node:args(1)
   node.attr.type = primtypes.boolean
   node.attr.const = true
 end
 
 function visitors.Nil(_, node)
+  if node.attr.type then return end
   node.attr.type = primtypes.Nil
   node.attr.const = true
 end
@@ -168,9 +171,15 @@ function visitors.Pragma(context, node, symbol)
   context:traverse(argnodes)
   local pragmashape
   if symbol then
-    if symbol.attr.type and symbol.attr.type:is_function() then
+    if not symbol.attr.type or (symbol.attr.type:is_type() and not symbol.attr.holdedtype) then
+      -- in the next traversal we will have the type
+      return
+    end
+    if symbol.attr.type:is_function() then
       pragmashape = typedefs.function_pragmas[name]
-    elseif not symbol.attr.type or not symbol.attr.type:is_type() then
+    elseif symbol.attr.type:is_type() and symbol.attr.holdedtype:is_record() then
+      pragmashape = typedefs.type_pragmas[name]
+    elseif not symbol.attr.type:is_type() then
       pragmashape = typedefs.variable_pragmas[name]
     end
   elseif not symbol then
@@ -183,12 +192,15 @@ function visitors.Pragma(context, node, symbol)
     end
     return argnode.attr.value
   end)
+
   local attr
   if symbol then
     attr = symbol.attr
   else
     attr = node.attr
   end
+  attr.haspragma = true
+
   if pragmashape == true then
     node:assertraisef(#argnodes == 0, "pragma '%s' takes no arguments", name)
     attr[name] = true
@@ -211,8 +223,6 @@ function visitors.Pragma(context, node, symbol)
       attr.cinclude = header
     end
   end
-
-  --TODO: check if pragma is usable for its type (function, variables, etc)
 end
 
 function visitors.Id(context, node)
@@ -243,6 +253,7 @@ function visitors.Paren(context, node, ...)
 end
 
 function visitors.Type(context, node)
+  if node.attr.type then return end
   local tyname = node:arg(1)
   local holdedtype = typedefs.primtypes[tyname]
   if not holdedtype then
@@ -256,14 +267,25 @@ function visitors.Type(context, node)
   node.attr.const = true
 end
 
-function visitors.TypeInstance(context, node)
+function visitors.TypeInstance(context, node, _, symbol)
   local typenode = node:arg(1)
   context:traverse(typenode)
   -- inherit attributes from inner node
   node.attr = typenode.attr
+
+  if symbol and symbol.attr.haspragma then
+    assert(node.attr.holdedtype and not node.attr.holdedtype:is_primitive())
+    -- forward pragmas
+    for name,_ in pairs(typedefs.type_pragmas) do
+      if symbol.attr[name] ~= nil then
+        node.attr.holdedtype[name] = symbol.attr[name]
+      end
+    end
+  end
 end
 
 function visitors.FuncType(context, node)
+  if node.attr.type then return end
   local argnodes, retnodes = node:args()
   context:traverse(argnodes)
   context:traverse(retnodes)
@@ -276,6 +298,7 @@ function visitors.FuncType(context, node)
 end
 
 function visitors.RecordFieldType(context, node)
+  if node.attr.type then return end
   local name, typenode = node:args()
   context:traverse(typenode)
   node.attr.type = typenode.attr.type
@@ -283,6 +306,7 @@ function visitors.RecordFieldType(context, node)
 end
 
 function visitors.RecordType(context, node)
+  if node.attr.type then return end
   local fieldnodes = node:args()
   context:traverse(fieldnodes)
   local fields = tabler.imap(fieldnodes, function(fieldnode)
@@ -314,6 +338,7 @@ function visitors.EnumFieldType(context, node, desiredtype)
 end
 
 function visitors.EnumType(context, node)
+  if node.attr.type then return end
   local typenode, fieldnodes = node:args()
   local subtype = primtypes.integer
   if typenode then
@@ -344,6 +369,7 @@ function visitors.EnumType(context, node)
 end
 
 function visitors.ArrayTableType(context, node)
+  if node.attr.type then return end
   local subtypenode = node:args()
   context:traverse(subtypenode)
   local type = types.ArrayTableType(node, subtypenode.attr.holdedtype)
@@ -353,6 +379,7 @@ function visitors.ArrayTableType(context, node)
 end
 
 function visitors.ArrayType(context, node)
+  if node.attr.type then return end
   local subtypenode, lengthnode = node:args()
   context:traverse(subtypenode)
   local subtype = subtypenode.attr.holdedtype
@@ -368,6 +395,7 @@ function visitors.ArrayType(context, node)
 end
 
 function visitors.PointerType(context, node)
+  if node.attr.type then return end
   local subtypenode = node:args()
   local type
   if subtypenode then
@@ -383,6 +411,7 @@ function visitors.PointerType(context, node)
 end
 
 function visitors.DotIndex(context, node)
+  if node.attr.type then return end
   local name, objnode = node:args()
   context:traverse(objnode)
   local type
@@ -420,12 +449,14 @@ function visitors.DotIndex(context, node)
 end
 
 function visitors.ColonIndex(context, node)
+  if node.attr.type then return end
   context:default_visitor(node)
   --TODO: detect better types
   node.attr.type = primtypes.any
 end
 
 function visitors.ArrayIndex(context, node)
+  if node.attr.type then return end
   context:default_visitor(node)
   local indexnode, objnode = node:args()
   local type
@@ -461,6 +492,7 @@ function visitors.ArrayIndex(context, node)
 end
 
 function visitors.Call(context, node)
+  if node.attr.type then return end
   local argnodes, calleenode, block_call = node:args()
   context:traverse(calleenode)
   if calleenode.attr.type then
@@ -538,6 +570,7 @@ function visitors.IdDecl(context, node, declmut)
     type = primtypes.any
   end
   local symbol = context.scope:add_symbol(Symbol(name, node, mut, type))
+  --dump(symbol.name, symbol.attr.codename, symbol.attr.type and symbol.attr.type.codename)
   if pragmanodes then
     context:traverse(pragmanodes, symbol)
   end
@@ -630,13 +663,14 @@ function visitors.VarDecl(context, node)
       varnode:assertraisef(valnode, 'const variables must have an initial value')
     end
     if valnode then
-      context:traverse(valnode, varnode.attr.type)
+      context:traverse(valnode, varnode.attr.type, symbol)
       if varnode.attr.const then
         varnode:assertraisef(valnode.attr.const and valnode.attr.type,
           'const variables can only assign to typed const expressions')
       end
-      varnode:assertraisef(not varnode.attr.cimport,
-          'cannot assign imported variables')
+      varnode:assertraisef(not varnode.attr.cimport or
+        (varnode.attr.type == primtypes.type or (varnode.attr.type == nil and valnode.attr.type == primtypes.type)),
+        'cannot assign imported variables, only imported types can be assigned')
       if valnode.attr.type then
         if varnode.attr.const then
           -- for consts the type should be fixed

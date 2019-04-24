@@ -165,6 +165,10 @@ function Type:is_generic_pointer()
   return self.name == 'pointer' and self.subtype:is_void()
 end
 
+function Type:is_primitive()
+  return getmetatable(self) == Type
+end
+
 function Type:is_equal(type)
   return rawequal(self, type)
 end

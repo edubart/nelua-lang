@@ -25,19 +25,24 @@ function CContext:get_ctype(nodeortype)
   if traits.is_astnode(nodeortype) then
     type = nodeortype.attr.type
     nodeortype:assertraisef(type, 'unknown type for AST node while trying to get the C type')
-    if type:is_type() then
-      type = nodeortype.attr.holdedtype
-    end
+  end
+  if type:is_type() then
+    type = nodeortype.attr.holdedtype
   end
   assert(type)
   local codename = type.codename
-  if type:is_arraytable() then
+  if type.cinclude then
+    self:add_include(type.cinclude)
+  end
+  if type.cimport then
+    assert(type:is_record(), 'not implemented')
+    codename = 'struct ' .. codename
+  elseif type:is_arraytable() then
     local subctype = self:get_ctype(type.subtype)
     self:ensure_runtime(codename, 'euluna_arrtab', {
       tyname = codename,
       ctype = subctype
     })
-    self:ensure_runtime('euluna_gc')
     self:use_gc()
   elseif type:is_array() then
     local subctype = self:get_ctype(type.subtype)

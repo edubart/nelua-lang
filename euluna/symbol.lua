@@ -4,7 +4,7 @@ local Symbol = class()
 
 function Symbol:_init(name, node, mut, type)
   assert(name and node)
-  local attr  = node.attr
+  local attr = node.attr
   self.name = name
   self.node = node
   self.possibletypes = {}

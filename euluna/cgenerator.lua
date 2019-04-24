@@ -55,7 +55,7 @@ function visitors.Number(context, node, emitter)
   end
 
   if not node.attr.type:is_float() and literal then
-    emitter:add('(', context:get_ctype(node.attr.type), ')')
+    emitter:add('(', context:get_ctype(node), ')')
   end
 
   emitter:add_composed_number(base, int, frac, exp, node.attr.value:abs())
@@ -266,7 +266,7 @@ function visitors.Call(context, node, emitter)
     assert(#args == 1)
     local argnode = args[1]
     if argnode.attr.type ~= node.attr.type then
-      emitter:add('(', context:get_ctype(node.attr.type), ')(', args[1], ')')
+      emitter:add('(', context:get_ctype(node), ')(', args[1], ')')
     else
       emitter:add(args[1])
     end

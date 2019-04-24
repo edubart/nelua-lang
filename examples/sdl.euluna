@@ -1,13 +1,10 @@
--- TODO: import C types
--- TODO: nullptr
--- TODO: pass compiler parameters
-
 -- import SDL functions
 !!cdefine 'SDL_DISABLE_IMMINTRIN_H'
 !!cinclude '<SDL2/SDL.h>'
 !!linklib 'SDL2'
 
-local SDL_WindowPtr = @pointer<record{}>
+local SDL_Window !cimport = @record{}
+local SDL_WindowPtr = @pointer<SDL_Window>
 local SDL_INIT_VIDEO: uint32 !cimport
 local SDL_WINDOWPOS_UNDEFINED: cint !cimport
 local SDL_WINDOW_OPENGL: uint32 !cimport

@@ -486,6 +486,7 @@ it("type construction", function()
 end)
 
 it("pragmas", function()
+  assert.analyze_ast("local MyStruct !cimport 'struct MyStruct' = @record{}")
   assert.analyze_ast("local r: record{x: integer} !aligned(8)")
   assert.analyze_error(
     "local function f() !cimport return 0 end",
