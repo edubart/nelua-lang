@@ -108,7 +108,6 @@ continue
 | `uinteger`        | `unt64_t`       | `_u` `_uinteger`    |
 | `number`          | `double`        | `_n` `_number`      |
 | `byte`            | `unsigned char` | `_b` `_byte`        |
-| `char`            | `char`          | `_c` `_char`        |
 | `isize`           | `intptr_t`      | `_is` `_int`        |
 | `int8`            | `int8_t`        | `_i8` `_int8`       |
 | `int16`           | `int16_t`       | `_i16` `_int16`     |
@@ -130,6 +129,27 @@ unless you have a specific reason to use a sized or unsigned integer type.
 
 The `integer` is the default type for integral literals with no suffix.
 The `number` is the default type for fractional literals with no suffix.
+
+Additional types for C compatibility are also provided:
+
+| Type              | C Type               | Suffixes         |
+|-------------------|----------------------|------------------|
+| `cschar`          | `char`               | `_cschar`        |
+| `cshort`          | `signed char`        | `_cshort`        |
+| `cint`            | `short`              | `_cint`          |
+| `clong`           | `int`                | `_clong`         |
+| `clonglong`       | `long`               | `_clonglong`     |
+| `cptrdiff`        | `long long`          | `_cptrdiff`      |
+| `cchar`           | `ptrdiff_t`          | `_cchar`         |
+| `cuchar`          | `unsigned char`      | `_cuchar`        |
+| `cushort`         | `unsigned short`     | `_cushort`       |
+| `cuint`           | `unsigned int`       | `_cuint`         |
+| `culong`          | `unsigned long`      | `_culong`        |
+| `culonglong`      | `unsigned long long` | `_culonglong`    |
+| `csize`           | `size_t`             | `_csize`         |
+| `clongdouble`     | `long double`        | `_clongdouble`   |
+| `cdouble`         | `double`             | `_cdouble`       |
+| `cfloat`          | `float`              | `_cfloat_`       |
 
 ## Literal values
 

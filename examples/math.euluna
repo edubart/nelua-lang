@@ -11,7 +11,7 @@
 
 local math_pi: const = 3.141592653589793
 local math_maxinteger: const = 9223372036854775807
-local math_mininteger: const = -9223372036854775807 - 1
+local math_mininteger: const = -9223372036854775807-1
 local math_huge: number !cimport 'HUGE_VAL'
 
 local function math_abs(x: number): number !cimport('fabs') end
@@ -31,6 +31,7 @@ local function math_log(x: number): number !cimport('log') end
 local function math_fmod(x: number, y: number): number !cimport('fmod') end
 
 -- used internally
+local RAND_MAX: int32 !cimport
 local function clog2(x: number): number !cimport('log2') end
 local function clog10(x: number): number !cimport('log10') end
 local function cmodf(x: number, y: pointer<number>): number !cimport('modf') end
@@ -69,7 +70,7 @@ local function math_fracmodf(x: number)
 end
 
 local function math_random()
-  local randmax = @int32(RAND_MAX)
+  local randmax = RAND_MAX
   local r: number = (crand() % randmax) / randmax
   return r
 end

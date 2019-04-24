@@ -6,7 +6,6 @@ local cdefs = {}
 local primtypes = typedefs.primtypes
 
 cdefs.types_printf_format = {
-  [primtypes.char]    = '%c',
   [primtypes.float32] = '%f',
   [primtypes.float64] = '%lf',
   [primtypes.pointer] = '%p',
@@ -20,6 +19,21 @@ cdefs.types_printf_format = {
   [primtypes.uint16]  = '%hu',
   [primtypes.uint32]  = '%u',
   [primtypes.uint64]  = '%lu',
+
+  [primtypes.cchar]       = '%c',
+  [primtypes.cschar]      = '%c',
+  [primtypes.cshort]      = '%hi',
+  [primtypes.cint]        = '%i',
+  [primtypes.clong]       = '%li',
+  [primtypes.clonglong]   = '%lli',
+  [primtypes.cptrdiff]    = '%li',
+  [primtypes.cuchar]      = '%c',
+  [primtypes.cushort]     = '%hu',
+  [primtypes.cuint]       = '%u',
+  [primtypes.culong]      = '%lu',
+  [primtypes.culonglong]  = '%llu',
+  [primtypes.csize]       = '%lu',
+  [primtypes.clongdouble] = '%llf',
 }
 
 cdefs.primitive_ctypes = {
@@ -36,10 +50,24 @@ cdefs.primitive_ctypes = {
   [primtypes.float32] = 'float',
   [primtypes.float64] = 'double',
   [primtypes.boolean] = 'bool',
-  [primtypes.char]    = 'char',
   [primtypes.cstring] = 'char*',
   [primtypes.pointer] = 'void*',
   [primtypes.void]    = 'void',
+
+  [primtypes.cchar]       = 'char',
+  [primtypes.cschar]      = 'signed char',
+  [primtypes.cshort]      = 'short',
+  [primtypes.cint]        = 'int',
+  [primtypes.clong]       = 'long',
+  [primtypes.clonglong]   = 'long long',
+  [primtypes.cptrdiff]    = 'ptrdiff_t',
+  [primtypes.cuchar]      = 'unsigned char',
+  [primtypes.cushort]     = 'unsigned short',
+  [primtypes.cuint]       = 'unsigned int',
+  [primtypes.culong]      = 'unsigned long',
+  [primtypes.culonglong]  = 'unsigned long long',
+  [primtypes.csize]       = 'size_t',
+  [primtypes.clongdouble] = 'long double',
 }
 
 cdefs.unary_ops = {

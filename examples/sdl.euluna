@@ -10,15 +10,15 @@
 
 local SDL_WindowPtr = @pointer
 local SDL_INIT_VIDEO: uint32 !cimport
-local SDL_WINDOWPOS_UNDEFINED: int32 !cimport
+local SDL_WINDOWPOS_UNDEFINED: cint !cimport
 local SDL_WINDOW_OPENGL: uint32 !cimport
 
 --local SDL_Window: type !cimporttype('<SDL2/SDL.h>', 'SDL_Window')
 --local SDL_WindowPtr = @pointer<SDLWindow>
 local function SDL_Init(flags: uint32): int32 !cimport end
 local function SDL_CreateWindow(title: cstring,
-                                x: int32, y: int32, w: int32,
-                                h: int32, flags: uint32): SDL_WindowPtr
+                                x: cint, y: cint, w: cint, h: cint,
+                                flags: uint32): SDL_WindowPtr
   !cimport
 end
 local function SDL_Quit() !cimport end

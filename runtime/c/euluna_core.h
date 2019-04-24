@@ -11,22 +11,35 @@
 #define EULUNA_LIKELY(x)    __builtin_expect(x, 1)
 #define EULUNA_UNLIKELY(x)  __builtin_expect(x, 0)
 #define EULUNA_UNUSED(x)    (void)(x)
-typedef intptr_t      euluna_isize;
-typedef int8_t        euluna_int8;
-typedef int16_t       euluna_int16;
-typedef int32_t       euluna_int32;
-typedef int64_t       euluna_int64;
-typedef uintptr_t     euluna_usize;
-typedef uint8_t       euluna_uint8;
-typedef uint16_t      euluna_uint16;
-typedef uint32_t      euluna_uint32;
-typedef uint64_t      euluna_uint64;
-typedef float         euluna_float32;
-typedef double        euluna_float64;
-typedef bool          euluna_boolean;
-typedef char          euluna_char;
-typedef char*         euluna_cstring;
-typedef void*         euluna_pointer;
+typedef intptr_t            euluna_isize;
+typedef int8_t              euluna_int8;
+typedef int16_t             euluna_int16;
+typedef int32_t             euluna_int32;
+typedef int64_t             euluna_int64;
+typedef uintptr_t           euluna_usize;
+typedef uint8_t             euluna_uint8;
+typedef uint16_t            euluna_uint16;
+typedef uint32_t            euluna_uint32;
+typedef uint64_t            euluna_uint64;
+typedef float               euluna_float32;
+typedef double              euluna_float64;
+typedef bool                euluna_boolean;
+typedef char*               euluna_cstring;
+typedef void*               euluna_pointer;
+typedef char                euluna_cchar;
+typedef signed char         euluna_cschar;
+typedef short               euluna_cshort;
+typedef int                 euluna_cint;
+typedef long                euluna_clong;
+typedef long long           euluna_clonglong;
+typedef ptrdiff_t           euluna_cptrdiff;
+typedef unsigned char       euluna_cuchar;
+typedef unsigned short      euluna_cushort;
+typedef unsigned int        euluna_cuint;
+typedef unsigned long       euluna_culong;
+typedef unsigned long long  euluna_culonglong;
+typedef size_t              euluna_csize;
+typedef long double         euluna_clongdouble;
 {% if context.has_type then %}
 typedef struct euluna_type {
   euluna_cstring name;
@@ -35,7 +48,7 @@ typedef struct euluna_type {
 typedef struct euluna_string_object {
   euluna_isize len;
   euluna_isize res;
-  euluna_char data[];
+  euluna_cchar data[];
 } euluna_string_object;
 typedef euluna_string_object* euluna_string;
 {% if context.has_any then %}
@@ -56,8 +69,20 @@ typedef struct euluna_any {
     euluna_float64 f64;
     euluna_boolean b;
     euluna_string s;
-    euluna_char c;
     euluna_pointer p;
+    euluna_cchar c;
+    euluna_cschar csc;
+    euluna_cshort cs;
+    euluna_cint ci;
+    euluna_clong cl;
+    euluna_clonglong cll;
+    euluna_cptrdiff cpd;
+    euluna_cuchar cuc;
+    euluna_cushort cus;
+    euluna_cuint cui;
+    euluna_culong cul;
+    euluna_culonglong cull;
+    euluna_csize csz;
   } value;
 } euluna_any;
 {% end %}
@@ -76,7 +101,6 @@ extern euluna_type euluna_float32_type;
 extern euluna_type euluna_float64_type;
 extern euluna_type euluna_boolean_type;
 extern euluna_type euluna_string_type;
-extern euluna_type euluna_char_type;
 extern euluna_type euluna_pointer_type;
 {% end %}
 {% if context.builtins['stdout_write'] then %}
@@ -165,10 +189,6 @@ static inline euluna_boolean euluna_boolean_any_cast(const euluna_any a) {
 static inline euluna_string euluna_string_any_cast(const euluna_any a) {
   euluna_check_type(a.type, &euluna_string_type);
   return a.value.s;
-}
-static inline char euluna_char_any_cast(const euluna_any a) {
-  euluna_check_type(a.type, &euluna_char_type);
-  return a.value.c;
 }
 static inline void* euluna_pointer_any_cast(const euluna_any a) {
   euluna_check_type(a.type, &euluna_pointer_type);

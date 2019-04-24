@@ -15,7 +15,6 @@ euluna_type euluna_float32_type = {"float32"};
 euluna_type euluna_float64_type = {"float64"};
 euluna_type euluna_boolean_type = {"boolean"};
 euluna_type euluna_string_type = {"string"};
-euluna_type euluna_char_type = {"char"};
 euluna_type euluna_pointer_type = {"pointer"};
 {% end %}
 {% if context.builtins['stdout_write'] then %}
@@ -56,8 +55,6 @@ void euluna_stdout_write_any(const euluna_any a) {
     fprintf(stdout, "%f", a.value.f32);
   } else if(a.type == &euluna_float64_type) {
     fprintf(stdout, "%lf", a.value.f64);
-  } else if(a.type == &euluna_char_type) {
-    fprintf(stdout, "%c", a.value.c);
   } else if(a.type == &euluna_pointer_type) {
     fprintf(stdout, "%p", a.value.p);
   } else {
