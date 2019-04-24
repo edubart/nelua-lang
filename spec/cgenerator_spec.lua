@@ -426,12 +426,6 @@ it("pragmas", function()
   assert.generate_c(
     "local function cos(x: number): number !cimport('myfunc','<myheader.h>') end",
     "#include <myheader.h>")
-  assert.generate_c(
-    "local MyStruct !cimport('struct MyStruct','<myheader.h>') = @record{}; local a: MyStruct",
-    {"struct MyStruct a = {0}", "<myheader.h>"})
-  assert.generate_c(
-    "local mytype_t !cimport = @record{}; local a: mytype_t",
-    "mytype_t a = {0}")
   assert.run_c([[
     local function exit(x: int32) !cimport('exit', '<stdlib.h>') end
     local function puts(s: cstring): int32 !cimport('puts', '<stdio.h>') end

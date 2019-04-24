@@ -112,10 +112,12 @@ local function convert_args(exe, args)
   return exe, args
 end
 
+-- luacov:disable
 function executor.exec(exe, args)
   exe, args = convert_args(exe, args)
   return pexec(exe, args)
 end
+--luacov:enable
 
 function executor.execex(exe, args)
   exe, args = convert_args(exe, args)

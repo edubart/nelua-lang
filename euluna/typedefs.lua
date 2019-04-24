@@ -352,10 +352,5 @@ typedefs.variable_pragmas = {
   volatile = true,
   nodecl = true,
 }
-typedefs.type_pragmas = {
-  cimport = common_pragmas.cimport,
-  cinclude = true,
-  codename = true,
-}
 
 return typedefs

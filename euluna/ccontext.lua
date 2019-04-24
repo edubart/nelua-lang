@@ -31,12 +31,7 @@ function CContext:get_ctype(nodeortype)
   end
   assert(type)
   local codename = type.codename
-  if type.cinclude then
-    self:add_include(type.cinclude)
-  end
-  if type.cimport then
-    assert(type:is_record(), 'not implemented')
-  elseif type:is_arraytable() then
+  if type:is_arraytable() then
     local subctype = self:get_ctype(type.subtype)
     self:ensure_runtime(codename, 'euluna_arrtab', {
       tyname = codename,

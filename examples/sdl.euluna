@@ -3,11 +3,7 @@
 !!cinclude '<SDL2/SDL.h>'
 !!linklib 'SDL2'
 
-local SDL_Window !cimport 'struct SDL_Window' = @record{}
-local SDL_Event !cimport 'SDL_Event' = @record{
-  type: uint32,
-  padding: array<byte, 56>
-}
+local SDL_Window = @record{}
 local SDL_WindowPtr = @pointer<SDL_Window>
 local SDL_INIT_VIDEO: uint32 !cimport
 local SDL_WINDOWPOS_UNDEFINED: cint !cimport
@@ -41,16 +37,7 @@ if not window then
 end
 
 -- Pause execution for 3000 milliseconds as example
-local quit = false
-while not quit do
-  local e: SDL_Event
-  while SDL_PollEvent(&e) do
-    switch e.type
-    case SDL_QUIT then
-      quit = true
-    end
-  end
-end
+SDL_Delay(3000)
 
 -- Close and destroy the window
 SDL_DestroyWindow(window)

@@ -171,14 +171,12 @@ function visitors.Pragma(context, node, symbol)
   context:traverse(argnodes)
   local pragmashape
   if symbol then
-    if not symbol.attr.type or (symbol.attr.type:is_type() and not symbol.attr.holdedtype) then
+    if not symbol.attr.type then
       -- in the next traversal we will have the type
       return
     end
     if symbol.attr.type:is_function() then
       pragmashape = typedefs.function_pragmas[name]
-    elseif symbol.attr.type:is_type() and symbol.attr.holdedtype:is_record() then
-      pragmashape = typedefs.type_pragmas[name]
     elseif not symbol.attr.type:is_type() then
       pragmashape = typedefs.variable_pragmas[name]
     end
@@ -267,21 +265,11 @@ function visitors.Type(context, node)
   node.attr.const = true
 end
 
-function visitors.TypeInstance(context, node, _, symbol)
+function visitors.TypeInstance(context, node)
   local typenode = node:arg(1)
   context:traverse(typenode)
   -- inherit attributes from inner node
   node.attr = typenode.attr
-
-  if symbol and symbol.attr.haspragma then
-    assert(node.attr.holdedtype and not node.attr.holdedtype:is_primitive())
-    -- forward pragmas
-    for name,_ in pairs(typedefs.type_pragmas) do
-      if symbol.attr[name] ~= nil then
-        node.attr.holdedtype[name] = symbol.attr[name]
-      end
-    end
-  end
 end
 
 function visitors.FuncType(context, node)
@@ -663,7 +651,7 @@ function visitors.VarDecl(context, node)
       varnode:assertraisef(valnode, 'const variables must have an initial value')
     end
     if valnode then
-      context:traverse(valnode, varnode.attr.type, symbol)
+      context:traverse(valnode, varnode.attr.type)
       if varnode.attr.const then
         varnode:assertraisef(valnode.attr.const and valnode.attr.type,
           'const variables can only assign to typed const expressions')
