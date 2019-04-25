@@ -82,6 +82,21 @@ function CContext:get_ctype(nodeortype)
   return codename
 end
 
+function CContext:get_declname(node)
+  if node.attr.declname then
+    return node.attr.declname
+  end
+  local declname = node.attr.codename
+  if not node.attr.nodecl and not node.attr.cimport then
+    if self.scope:is_main() then
+      declname = node.modname .. '_' .. declname
+    end
+    declname = cdefs.quotename(declname)
+  end
+  node.attr.declname = declname
+  return declname
+end
+
 function CContext:use_gc()
   self:ensure_runtime('euluna_gc')
   self.has_gc = true

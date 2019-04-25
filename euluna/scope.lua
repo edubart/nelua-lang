@@ -21,12 +21,8 @@ function Scope:fork(kind)
   return Scope(self, kind)
 end
 
-function Scope:is_top()
-  return not self.parent
-end
-
 function Scope:is_main()
-  return self.parent and not self.parent.parent
+  return self.main or (self.parent and self.parent.main)
 end
 
 function Scope:get_parent_of_kind(kind)

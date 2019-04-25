@@ -7,6 +7,7 @@ local pegger = require 'euluna.utils.pegger'
 local iters = require 'euluna.utils.iterators'
 local metamagic = require 'euluna.utils.metamagic'
 local except = require 'euluna.utils.except'
+local stringer = require 'euluna.utils.stringer'
 
 local PEGParser = class()
 
@@ -45,6 +46,7 @@ function PEGParser:set_astbuilder(astbuilder)
     node.pos = pos
     node.src = self.input
     node.srcname = self.inputname
+    node.modname = self.modulename
     return node
   end
 
@@ -178,9 +180,11 @@ function PEGParser:match(pegname, input, inputname)
   errorer.assertf(peg, 'cannot match an input to inexistent peg "%s"', pegname)
   self.input = input
   self.inputname = inputname
+  self.modulename = pegger.filename_to_modulename(inputname)
   local res, errlabel, errpos = peg:match(input)
   self.input = nil
   self.inputname = nil
+  self.modulename = nil
   return res, errlabel, errpos
 end
 
@@ -240,6 +244,9 @@ end
 function PEGParser:parse(input, inputname, pegname)
   if not pegname then
     pegname = 'sourcecode'
+  end
+  if not inputname then
+    inputname = 'eval_' .. stringer.hash(input, 8)
   end
   local ast, syntaxlabel, errpos = self:match(pegname, input, inputname)
   if not ast then

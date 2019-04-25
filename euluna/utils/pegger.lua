@@ -115,7 +115,6 @@ function pegger.substitute(format, vars)
   return substitute_patt:match(format)
 end
 
---TODO: handle quptes
 local split_execargs_patt = re.compile[[
   args <- %s* {| arg+ |}
   arg <- (squoted_arg / dquoted_arg / simple_arg) %s*
@@ -126,6 +125,17 @@ local split_execargs_patt = re.compile[[
 function pegger.split_execargs(s)
   if not s then return {} end
   return split_execargs_patt:match(s)
+end
+
+local filename_to_modulename_patt = re.compile[[
+  p <- {~ filebeg? c* ~}
+  c <- extend -> '' / [_%w] / (%s+ / [_/\.]) -> '_' / . -> 'X'
+  filebeg <- [./\]+ -> ''
+  extend <- '.' [_%w]+ !.
+]]
+
+function pegger.filename_to_modulename(s)
+  return filename_to_modulename_patt:match(s)
 end
 
 local template_peg = re.compile([[

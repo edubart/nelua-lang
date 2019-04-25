@@ -121,7 +121,7 @@ end
 function visitors.Block(context, node, emitter)
   local stats = node:args()
   emitter:inc_indent()
-  context:push_scope()
+  context:push_scope('block')
   emitter:add_traversal_list(stats, '')
   context:pop_scope()
   emitter:dec_indent()
@@ -284,14 +284,17 @@ function visitors.Assign(_, node, emitter)
   emitter:add_indent_ln(varnodes, ' = ', valnodes)
 end
 
-function visitors.FuncDef(_, node, emitter)
+function visitors.FuncDef(context, node, emitter)
   local varscope, name, args, rets, pragams, block = node:args()
   emitter:add_indent()
   if varscope == 'local' then
     emitter:add('local ')
   end
-  emitter:add_ln('function ', name, '(', args, ')')
+  emitter:add('function ', name)
+  context:push_scope('function')
+  emitter:add_ln('(', args, ')')
   emitter:add(block)
+  context:pop_scope()
   emitter:add_indent_ln('end')
 end
 
@@ -353,7 +356,10 @@ function generator.generate(ast)
   local context = Context(visitors)
   local emitter = Emitter(context, -1)
   context.emitter = emitter
+  local main_scope = context:push_scope('function')
+  main_scope.main = true
   emitter:add_traversal(ast)
+  context:pop_scope()
   return emitter:generate()
 end
 

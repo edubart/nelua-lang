@@ -54,7 +54,7 @@ function assert.peg_match_none(peg, subjects)
 end
 
 function assert.parse_ast(parser, input, expected_ast)
-  local ast = assert(parser:parse(input))
+  local ast = assert(parser:parse(input, 'mymod'))
   if expected_ast then
     assert.ast_equals(expected_ast, ast)
   else
@@ -65,7 +65,7 @@ end
 
 function assert.parse_ast_error(parser, input, expected_error)
   local ast,e = except.try(function()
-    parser:parse(input)
+    parser:parse(input, 'mymod')
   end)
   errorer.assertf(ast == nil and e.label == 'ParseError' and e.syntaxlabel == expected_error,
          'expected error "%s" while parsing', expected_error)
@@ -187,6 +187,16 @@ function assert.analyze_ast(code, expected_ast)
     assert.same(tostring(expected_ast), tostring(ast))
   end
 end
+
+--[[
+function assert.analyze_ast_equals(code, expected_code)
+  local ast = assert.parse_ast(euluna_parser, code)
+  ast = assert(typechecker.analyze(ast, euluna_parser.astbuilder))
+  local expected_ast = assert.parse_ast(euluna_parser, expected_code)
+  expected_ast = assert(typechecker.analyze(expected_ast, euluna_parser.astbuilder))
+  assert.same(tostring(expected_ast), tostring(ast))
+end
+]]
 
 function assert.analyze_error(code, expected_error)
   local ast = assert.parse_ast(euluna_parser, code)

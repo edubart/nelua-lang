@@ -11,6 +11,10 @@ test-luajit:
 	@echo -n "test luajit "
 	@busted --lua=luajit
 
+test-luajit-quick:
+	@echo -n "test luajit "
+	@busted --lua=luajit --no-keep-going
+
 test-lua5.3:
 	@echo -n "test lua-5.3 "
 	@busted --lua=lua5.3
@@ -56,7 +60,7 @@ _clear-stdout:
 	@clear
 
 devtest: _clear-stdout coverage-test check
-devtestlight: _clear-stdout test-luajit check
+devtestlight: _clear-stdout test-luajit-quick check
 
 test-full: test coverage check
 

@@ -148,11 +148,11 @@ function visitors.Pragma(context, node, emitter)
 end
 
 -- identifier and types
-function visitors.Id(_, node, emitter)
+function visitors.Id(context, node, emitter)
   if node.attr.type:is_nilptr() then
     emitter:add('NULL')
   else
-    emitter:add(cdefs.quotename(node.attr.codename))
+    emitter:add(context:get_declname(node))
   end
 end
 
@@ -189,7 +189,7 @@ function visitors.IdDecl(context, node, emitter)
     emitter:add('register ')
   end
   local ctype = context:get_ctype(node)
-  emitter:add(ctype, ' ', cdefs.quotename(node.attr.codename))
+  emitter:add(ctype, ' ', context:get_declname(node))
 end
 
 -- indexing
@@ -280,45 +280,35 @@ end
 function visitors.CallMethod(_, node, emitter)
   local name, args, callee, block_call = node:args()
   if block_call then emitter:add_indent() end
-  emitter:add(callee, '.', cdefs.quotename(name), '(', callee, args, ')')
+  local sep = #args > 0 and ', ' or ''
+  emitter:add(callee, '.', cdefs.quotename(name), '(', callee, sep, args, ')')
   if block_call then emitter:add_ln() end
 end
 
 -- block
 function visitors.Block(context, node, emitter)
   local stats = node:args()
-  local is_top_scope = context.scope:is_top()
-  if is_top_scope then
-    emitter:inc_indent()
-    emitter:add_ln("int euluna_main() {")
-  end
   emitter:inc_indent()
-  local inner_scope = context:push_scope()
-  emitter:add_traversal_list(stats, '')
-  if inner_scope:is_main() and not inner_scope.has_return then
-    -- main() must always return an integer
-    emitter:add_indent_ln("return 0;")
+  context:push_scope('block')
+  do
+    emitter:add_traversal_list(stats, '')
   end
   context:pop_scope()
   emitter:dec_indent()
-  if is_top_scope then
-    emitter:add_ln("}")
-    emitter:dec_indent()
-  end
 end
 
 -- statements
 function visitors.Return(context, node, emitter)
   --TODO: multiple return
   local scope = context.scope
-  scope.has_return = true
+  scope:get_parent_of_kind('function').has_return = true
   local rets = node:args()
   node:assertraisef(#rets <= 1, "multiple returns not supported yet")
   emitter:add_indent("return")
   if #rets > 0 then
     emitter:add_ln(' ', rets, ';')
   else
-    if scope:is_main() then
+    if scope:get_parent_of_kind('function').main then
       -- main() must always return an integer
       emitter:add(' 0')
     end
@@ -397,12 +387,12 @@ function visitors.ForNum(context, node, emitter)
     compop = 'le'
   end
   --TODO: evaluate beginval, endval, incrval only once in case of expressions
-  local itname = itvarnode[1]
+  local itname = context:get_declname(itvarnode)
   emitter:add_indent("for(", itvarnode, ' = ')
   add_casted_value(context, emitter, itvarnode.attr.type, beginval)
   emitter:add('; ', itname, ' ', cdefs.binary_ops[compop], ' ')
   add_casted_value(context, emitter, itvarnode.attr.type, endval)
-  emitter:add_ln('; ', cdefs.quotename(itname), ' += ', incrval or '1', ') {')
+  emitter:add_ln('; ', itname, ' += ', incrval or '1', ') {')
   emitter:add(block)
   emitter:add_indent_ln("}")
 end
@@ -508,9 +498,15 @@ function visitors.FuncDef(context, node)
     decemitter:add_indent(decoration, ret, ' ')
     defemitter:add_indent(ret, ' ')
   end
-  decemitter:add_ln(varnode, '(', argnodes, ');')
-  defemitter:add_ln(varnode, '(', argnodes, ') {')
-  defemitter:add(blocknode)
+  decemitter:add(varnode)
+  defemitter:add(varnode)
+  context:push_scope('function')
+  do
+    decemitter:add_ln('(', argnodes, ');')
+    defemitter:add_ln('(', argnodes, ') {')
+    defemitter:add(blocknode)
+  end
+  context:pop_scope()
   defemitter:add_indent_ln('}')
   if declare then
     context:add_declaration(decemitter:generate())
@@ -579,10 +575,26 @@ function generator.generate(ast)
 
   context:ensure_runtime('euluna_core')
 
-  local main_emitter = Emitter(context, -1)
-  main_emitter:add_traversal(ast)
+  local mainemitter = Emitter(context, -1)
 
-  context:add_definition(main_emitter:generate())
+  local main_scope = context:push_scope('function')
+  main_scope.main = true
+  do
+    mainemitter:inc_indent()
+    mainemitter:add_ln("int euluna_main() {")
+    mainemitter:add_traversal(ast)
+    if not main_scope.has_return then
+      -- main() must always return an integer
+      mainemitter:inc_indent()
+      mainemitter:add_indent_ln("return 0;")
+      mainemitter:dec_indent()
+    end
+    mainemitter:add_ln("}")
+    mainemitter:dec_indent()
+  end
+  context:pop_scope()
+
+  context:add_definition(mainemitter:generate())
 
   context:ensure_runtime('euluna_main')
   context:evaluate_templates()

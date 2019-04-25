@@ -67,7 +67,7 @@ end
 -------------------
 -- pretty print ast
 -------------------
-local ignored_stringfy_keys = { pos = true, src = true, srcname=true }
+local ignored_stringfy_keys = { pos = true, src = true, srcname=true, modname=true }
 local function stringfy_val2str(val)
   local vstr = tostring(val)
   if traits.is_number(val) or traits.is_boolean(val) or val == nil then
