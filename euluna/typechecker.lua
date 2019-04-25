@@ -338,22 +338,17 @@ function visitors.EnumType(context, node)
     subtype = typenode.attr.holdedtype
   end
   local fields = {}
-  local haszero = false
   for i,fnode in ipairs(fieldnodes) do
     local field = context:traverse(fnode, subtype)
     if not field.value then
       if i == 1 then
         fnode:raisef('in enum declaration, first field requires a initial value')
       else
-        field.value = fields[i-1].value
+        field.value = fields[i-1].value:intadd(1)
       end
-    end
-    if field.value:iszero() then
-      haszero = true
     end
     fields[i] = field
   end
-  node:assertraisef(haszero, 'in enum declaration, a field with value 0 is always required')
   local type = types.EnumType(node, subtype, fields)
   node.attr.type = primtypes.type
   node.attr.holdedtype = type
@@ -430,9 +425,9 @@ function visitors.DotIndex(context, node)
       else
         node:raisef('cannot index fields for type "%s"', tostring(objtype))
       end
-    elseif not (objtype:is_table() or objtype:is_any()) then --luacov:disable
-      error('not implemented yet')
-    end --luacov:enable
+    elseif not (objtype:is_table() or objtype:is_any()) then
+      node:raisef('cannot index field "%s" from variable of type "%s"', name, objtype.name)
+    end
   end
   if not type and context.phase == phases.any_inference then
     type = primtypes.any
@@ -749,7 +744,10 @@ function visitors.FuncDef(context, node)
     local retnode = retnodes[i]
     if not retnode then
       --TODO: using tostring will not work for complex types here
-      retnode = context.astbuilder:create('Type', tostring(rtype))
+      retnode = context.astbuilder:create('Type', '<dummy>')
+      retnode.attr.type = primtypes.type
+      retnode.attr.holdedtype = rtype
+      retnode.attr.const = true
       retnodes[i] = retnode
     end
   end

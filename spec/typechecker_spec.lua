@@ -422,9 +422,6 @@ it("enums", function()
     local Enum = @enum{A,B=3}
   ]], "first field requires a initial value")
   assert.analyze_error([[
-    local Enum = @enum{A=1,B}
-  ]], "a field with value 0 is always required")
-  assert.analyze_error([[
     local C: integer
     local Enum = @enum{A=C}
   ]], "enum values can only be assigned to const values")

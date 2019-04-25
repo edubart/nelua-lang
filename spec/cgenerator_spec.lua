@@ -373,11 +373,10 @@ it("enums", function()
     "local e: enum{A=0}",
     [[enum {]])
   assert.run_c([[
-    local Enum = @enum{A=0,B=1,C=2}
-    local e: Enum
-    assert(e == 0)
-    e = Enum.C
-    assert(e == 2)
+    local Enum = @enum{A=0,B=1,C}
+    local e: Enum; assert(e == 0)
+    e = Enum.B; assert(e == 1)
+    e = Enum.C; assert(e == 2)
   ]])
 end)
 

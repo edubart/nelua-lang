@@ -57,6 +57,10 @@ function bn.tointeger(v)
   end
 end
 
+function bn.intadd(v, a)
+  return v:add(a):trunc()
+end
+
 function bn.tohex(v)
   local n = bn.new(v)
   assert(n:isintegral(), 'cannot convert fractional numbers to hex')
