@@ -150,7 +150,7 @@ Lua 5.3.5,
 CPU Intel Core i7-3770K CPU @ 3.50GH,
 OS ArchLinux
 and compiled with C flags
-`-std=c99 -pedantic -fno-strict-aliasing -rdynamic -O2 -fno-plt -flto -march=native -Wl,-O1,--sort-common,-z,relro,-z,now`
+`-std=c99 -fno-strict-aliasing -rdynamic -O2 -fno-plt -flto -march=native -Wl,-O1,--sort-common,-z,relro,-z,now`
 
 ## Roadmap
 

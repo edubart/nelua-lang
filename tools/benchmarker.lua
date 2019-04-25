@@ -85,7 +85,7 @@ end
 local function c_compile(name)
   local cfile = 'benchmarks/c/' .. name .. '.c'
   local ofile = 'euluna_cache/benchmarks/c' .. name
-  local cflags = "-pipe -std=c99 -pedantic -Wall -Wextra -fno-strict-aliasing -rdynamic " ..
+  local cflags = "-pipe -std=c99 -Wall -Wextra -fno-strict-aliasing -rdynamic " ..
                  "-O2 -fno-plt -flto -march=native -Wl,-O1,--sort-common,-z,relro,-z,now"
   local command = string.format('gcc %s -o %s %s', cflags, ofile, cfile)
   local success = executor.exec(command)

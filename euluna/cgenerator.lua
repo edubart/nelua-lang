@@ -35,7 +35,7 @@ local function add_casted_value(context, emitter, type, valnode)
     elseif valnode.attr.type:is_string() and type:is_cstring() then
       emitter:add('(', valnode, ')->data')
     else
-      emitter:add('(',context:get_ctype(type, valnode),')',valnode)
+      emitter:add('(',context:get_ctype(type),')',valnode)
     end
   else
     emitter:add('{0}')
@@ -387,14 +387,18 @@ function visitors.ForNum(context, node, emitter)
     compop = 'le'
   end
   --TODO: evaluate beginval, endval, incrval only once in case of expressions
-  local itname = context:get_declname(itvarnode)
-  emitter:add_indent("for(", itvarnode, ' = ')
-  add_casted_value(context, emitter, itvarnode.attr.type, beginval)
-  emitter:add('; ', itname, ' ', cdefs.binary_ops[compop], ' ')
-  add_casted_value(context, emitter, itvarnode.attr.type, endval)
-  emitter:add_ln('; ', itname, ' += ', incrval or '1', ') {')
-  emitter:add(block)
-  emitter:add_indent_ln("}")
+  context:push_scope('for')
+  do
+    local itname = context:get_declname(itvarnode)
+    emitter:add_indent("for(", itvarnode, ' = ')
+    add_casted_value(context, emitter, itvarnode.attr.type, beginval)
+    emitter:add('; ', itname, ' ', cdefs.binary_ops[compop], ' ')
+    add_casted_value(context, emitter, itvarnode.attr.type, endval)
+    emitter:add_ln('; ', itname, ' += ', incrval or '1', ') {')
+    emitter:add(block)
+    emitter:add_indent_ln("}")
+  end
+  context:pop_scope()
 end
 
 -- TODO: ForIn
@@ -418,24 +422,36 @@ function visitors.Goto(_, node, emitter)
 end
 
 local function add_assignments(context, emitter, varnodes, valnodes, decl)
-  local added = false
   for _,varnode,valnode in iters.izip(varnodes, valnodes or {}) do
     if not varnode.attr.type:is_type() and not varnode.attr.nodecl then
-      local varemitter = emitter
-      local mainconst = decl and varnode.attr.const and context.scope:is_main()
-      if mainconst then
-        varemitter = Emitter(context)
-        varemitter:add('static ')
-      else
-        if added then varemitter:add(' ') end
-        added = true
+      local declared, defined = false, false
+      -- declare main variables in the top scope
+      if decl and context.scope:is_main() then
+        local decemitter = Emitter(context)
+        decemitter:add_indent('static ')
+        decemitter:add(varnode, ' = ')
+        if valnode and valnode.attr.const then
+          -- initialize to const values
+          add_casted_value(context, decemitter, varnode.attr.type, valnode)
+          defined = true
+        else
+          -- pre initialize to zeros
+          decemitter:add('{0}')
+        end
+        decemitter:add_ln(';')
+        context:add_declaration(decemitter:generate())
+        declared = true
       end
-      varemitter:add(varnode, ' = ')
-      add_casted_value(context, varemitter, varnode.attr.type, valnode)
-      varemitter:add(';')
-      if mainconst then
-        varemitter:add_ln()
-        context:add_declaration(varemitter:generate())
+
+      if not declared or (not defined and valnode) then
+        if not declared then
+          emitter:add_indent(varnode)
+        else
+          emitter:add_indent(context:get_declname(varnode))
+        end
+        emitter:add(' = ')
+        add_casted_value(context, emitter, varnode.attr.type, valnode)
+        emitter:add_ln(';')
       end
     elseif varnode.attr.cinclude then
       context:add_include(varnode.attr.cinclude)
@@ -447,17 +463,13 @@ function visitors.VarDecl(context, node, emitter)
   local varscope, mutability, varnodes, valnodes = node:args()
   node:assertraisef(varscope == 'local', 'global variables not supported yet')
   node:assertraisef(not valnodes or #varnodes == #valnodes, 'vars and vals count differs')
-  emitter:add_indent()
   add_assignments(context, emitter, varnodes, valnodes, true)
-  emitter:add_ln()
 end
 
 function visitors.Assign(context, node, emitter)
   local vars, vals = node:args()
   node:assertraisef(#vars == #vals, 'vars and vals count differs')
-  emitter:add_indent()
   add_assignments(context, emitter, vars, vals)
-  emitter:add_ln()
 end
 
 function visitors.FuncDef(context, node)

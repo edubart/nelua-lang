@@ -112,7 +112,7 @@ cdefs.compiler_base_flags = {
     "-Wextra",
     "-Wno-incompatible-pointer-types", -- importing C functions can cause this warn
   },
-  cflags_base = "-pipe -std=c99 -pedantic -fno-strict-aliasing -rdynamic -lm",
+  cflags_base = "-pipe -std=c99 -fno-strict-aliasing -rdynamic -lm",
   cflags_release = "-O2",
   cflags_debug = "-g"
 }
