@@ -34,6 +34,12 @@ function Type:_init(name, node)
   end
 end
 
+function Type:suggest_nick(nick)
+  if self.nick then return end
+  self.codename = self.codename:gsub(string.format('^%s_', self.name), nick .. '_')
+  self.nick = nick
+end
+
 function Type:__tostring()
   return self.name
 end
@@ -175,6 +181,10 @@ end
 
 function Type:is_unsigned()
   return self.unsigned
+end
+
+function Type:is_primitive()
+  return getmetatable(self) == Type or self:is_generic_pointer()
 end
 
 function Type:__eq(type)

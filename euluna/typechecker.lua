@@ -265,11 +265,15 @@ function visitors.Type(context, node)
   node.attr.const = true
 end
 
-function visitors.TypeInstance(context, node)
+function visitors.TypeInstance(context, node, _, symbol)
   local typenode = node:arg(1)
   context:traverse(typenode)
   -- inherit attributes from inner node
   node.attr = typenode.attr
+
+  if symbol and not node.attr.holdedtype:is_primitive() then
+    node.attr.holdedtype:suggest_nick(symbol.name)
+  end
 end
 
 function visitors.FuncType(context, node)
@@ -555,7 +559,6 @@ function visitors.IdDecl(context, node, declmut)
     type = primtypes.any
   end
   local symbol = context.scope:add_symbol(Symbol(name, node, mut, type))
-  --dump(symbol.name, symbol.attr.codename, symbol.attr.type and symbol.attr.type.codename)
   if pragmanodes then
     context:traverse(pragmanodes, symbol)
   end
@@ -648,7 +651,7 @@ function visitors.VarDecl(context, node)
       varnode:assertraisef(valnode, 'const variables must have an initial value')
     end
     if valnode then
-      context:traverse(valnode, varnode.attr.type)
+      context:traverse(valnode, varnode.attr.type, symbol)
       if varnode.attr.const then
         varnode:assertraisef(valnode.attr.const and valnode.attr.type,
           'const variables can only assign to typed const expressions')
