@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 {% if context.has_type then %}
-euluna_type euluna_uint_type = {"uint"};
+euluna_type euluna_usize_type = {"usize"};
 euluna_type euluna_uint8_type = {"uint8"};
 euluna_type euluna_uint16_type = {"uint16"};
 euluna_type euluna_uint32_type = {"uint32"};
 euluna_type euluna_uint64_type = {"uint64"};
-euluna_type euluna_int_type = {"int"};
+euluna_type euluna_isize_type = {"isize"};
 euluna_type euluna_int8_type = {"int8"};
 euluna_type euluna_int16_type = {"int16"};
 euluna_type euluna_int32_type = {"int32"};
@@ -31,7 +31,7 @@ void euluna_stdout_write_boolean(const bool b) {
 void euluna_stdout_write_any(const euluna_any a) {
   if(a.type == &euluna_boolean_type) {
     euluna_stdout_write_boolean(a.value.b);
-  } else if(a.type == &euluna_int_type) {
+  } else if(a.type == &euluna_isize_type) {
     fprintf(stdout, "%ti", a.value.i);
   } else if(a.type == &euluna_int8_type) {
     fprintf(stdout, "%hhi", a.value.i8);
@@ -41,7 +41,7 @@ void euluna_stdout_write_any(const euluna_any a) {
     fprintf(stdout, "%i", a.value.i32);
   } else if(a.type == &euluna_int64_type) {
     fprintf(stdout, "%li", a.value.i64);
-  } else if(a.type == &euluna_uint_type) {
+  } else if(a.type == &euluna_usize_type) {
     fprintf(stdout, "%tu", a.value.u);
   } else if(a.type == &euluna_uint8_type) {
     fprintf(stdout, "%hhu", a.value.u8);

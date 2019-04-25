@@ -20,7 +20,7 @@ function CContext:_init(visitors)
   }
 end
 
-function CContext:get_ctype(nodeortype)
+function CContext:ensure_type(nodeortype)
   local type = nodeortype
   if traits.is_astnode(nodeortype) then
     type = nodeortype.attr.type
@@ -76,8 +76,21 @@ function CContext:get_ctype(nodeortype)
   elseif type:is_nil() then
     self.has_nil = true
   else
-    local ctype = cdefs.primitive_ctypes[type]
-    errorer.assertf(ctype, 'ctype for "%s" is unknown', tostring(type))
+    errorer.assertf(cdefs.primitive_ctypes[type], 'ctype for "%s" is unknown', tostring(type))
+  end
+  return codename, type
+end
+
+function CContext:get_typename(nodeortype)
+  local codename = self:ensure_type(nodeortype)
+  return codename
+end
+
+function CContext:get_ctype(nodeortype)
+  local codename, type = self:ensure_type(nodeortype)
+  local ctype = cdefs.primitive_ctypes[type]
+  if ctype then
+    return ctype
   end
   return codename
 end
@@ -103,9 +116,9 @@ function CContext:use_gc()
 end
 
 function CContext:get_typectype(nodeortype)
-  local ctype = self:get_ctype(nodeortype)
+  local typename = self:get_typename(nodeortype)
   self.has_type = true
-  return ctype .. '_type'
+  return typename .. '_type'
 end
 
 local function late_template_render(context, filename, params)

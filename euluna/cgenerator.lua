@@ -11,6 +11,26 @@ local CContext = require 'euluna.ccontext'
 local primtypes = typedefs.primtypes
 local visitors = {}
 
+local function add_zeroinit(emitter, type)
+  local s
+  if type:is_float64() then
+    s = '0.0'
+  elseif type:is_float32() then
+    s = '0.0f'
+  elseif type:is_unsigned() then
+    s = '0U'
+  elseif type:is_numeric() then
+    s = '0'
+  elseif type:is_pointer() then
+    s = 'NULL'
+  elseif type:is_boolean() then
+    s = 'false'
+  else
+    s = '{0}'
+  end
+  emitter:add(s)
+end
+
 local function add_casted_value(context, emitter, type, valnode)
   if type:is_any() then
     if valnode then
@@ -26,8 +46,9 @@ local function add_casted_value(context, emitter, type, valnode)
     end
   elseif valnode then
     if valnode.attr.type:is_any() then
-      context:get_ctype(primtypes.any) -- to inject any builtin
-      emitter:add(context:get_ctype(type), '_any_cast(', valnode, ')')
+      context:get_ctype(primtypes.any)
+      context:get_ctype(type)
+      emitter:add(context:get_typename(type), '_any_cast(', valnode, ')')
     elseif type == valnode.attr.type or
            (valnode.attr.type:is_numeric() and type:is_numeric()) or
            (valnode.attr.type:is_nilptr() and type:is_pointer()) then
@@ -38,7 +59,7 @@ local function add_casted_value(context, emitter, type, valnode)
       emitter:add('(',context:get_ctype(type),')',valnode)
     end
   else
-    emitter:add('{0}')
+    add_zeroinit(emitter, type)
   end
 end
 
@@ -109,7 +130,7 @@ function visitors.Table(context, node, emitter)
     local len = #childnodes
     if len > 0 then
       local subctype = context:get_ctype(node.attr.type.subtype)
-      emitter:add(ctype, '_create((', subctype, '[', len, ']){')
+      emitter:add(context:get_typename(node), '_create((', subctype, '[', len, ']){')
       emitter:add_traversal_list(childnodes)
       emitter:add('},', len, ')')
     else
@@ -223,7 +244,7 @@ function visitors.ArrayIndex(context, node, emitter)
   end
   if objtype:is_arraytable() then
     emitter:add('*',
-      context:get_ctype(objtype),
+      context:get_typename(objtype),
       node.assign and '_at(&' or '_get(&')
   end
   if pointer then
@@ -436,7 +457,7 @@ local function add_assignments(context, emitter, varnodes, valnodes, decl)
           defined = true
         else
           -- pre initialize to zeros
-          decemitter:add('{0}')
+          add_zeroinit(decemitter, varnode.attr.type)
         end
         decemitter:add_ln(';')
         context:add_declaration(decemitter:generate())
