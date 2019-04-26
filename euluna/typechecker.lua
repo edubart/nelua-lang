@@ -72,15 +72,9 @@ function visitors.Number(context, node, desiredtype)
     type = desiredtype
   end
   if type:is_integral() then
-    local range
-    if type:is_unsigned() then
-      range = tabler.ifindif(typedefs.unsigned_ranges, function(v) return v.type == type end)
-    else
-      range = tabler.ifindif(typedefs.signed_ranges, function(v) return v.type == type end)
-    end
-    node:assertraisef(value >= range.min and value <= range.max,
+    node:assertraisef(type:is_inrange(value),
       "value %s for integral of type '%s' is out of range, minimum is %s and maximum is %s",
-      value:todec(), tostring(type), range.min:todec(), range.max:todec())
+      value:todec(), tostring(type), type.range.min:todec(), type.range.max:todec())
   end
   node.attr.type = type
   node.attr.value = value

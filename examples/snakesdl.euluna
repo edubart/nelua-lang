@@ -70,9 +70,9 @@ local Direction = @enum<byte>{NONE=0, UP, DOWN, RIGHT, LEFT, UNSEEN}
 local Color = @record{r: byte, g: byte, b: byte}
 
 -- game constants
-local const TILE_SIZE = 16
+local const TILE_SIZE = 32
 local const SCREEN_SIZE = 512
-local const MAP_SIZE = 32 --SCREEN_SIZE / TILE_SIZE
+local const MAP_SIZE = 16 --SCREEN_SIZE / TILE_SIZE
 local const MOVE_DELAY = 128
 local const COLOR_PINK = Color{r=255, g=0, b=255}
 local const COLOR_GREEN = Color{r=0, g=255, b=0}
