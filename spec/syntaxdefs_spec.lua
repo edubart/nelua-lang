@@ -1302,6 +1302,19 @@ describe("type expression", function()
           { n.IdDecl{'a', nil, n.ArrayType{n.Type{'int'},
             n.BinaryOp{"shr", n.Number{"dec", "2"}, n.Number{"dec", "1"}}}}}
     }}})
+    assert.parse_ast(euluna_parser, "local a: int[10]",
+      n.Block{{
+        n.VarDecl{'local', nil,
+          { n.IdDecl{'a', nil, n.ArrayType{n.Type{'int'}, n.Number{'dec', '10'}}}}
+    }}})
+    assert.parse_ast(euluna_parser, "local a: int[10][10]",
+      n.Block{{
+        n.VarDecl{'local', nil,
+          { n.IdDecl{'a', nil,
+            n.ArrayType{
+              n.ArrayType{n.Type{'int'}, n.Number{'dec', '10'}},
+              n.Number{'dec', '10'}}}}
+    }}})
   end)
   it("record type", function()
     assert.parse_ast(euluna_parser, "local r: record{a: int}",
@@ -1362,6 +1375,31 @@ describe("type expression", function()
         n.VarDecl{'local', nil,
           { n.IdDecl{'p', nil, n.PointerType{n.Type{'integer'}}}}
     }}})
+    assert.parse_ast(euluna_parser, "local p: integer*",
+      n.Block{{
+        n.VarDecl{'local', nil,
+          { n.IdDecl{'p', nil, n.PointerType{n.Type{'integer'}}}}
+    }}})
+    assert.parse_ast(euluna_parser, "local p: integer**",
+      n.Block{{
+        n.VarDecl{'local', nil,
+          { n.IdDecl{'p', nil, n.PointerType{n.PointerType{n.Type{'integer'}}}}}
+    }}})
+  end)
+  it("complex types", function()
+    assert.parse_ast(euluna_parser, "local p: integer*[10]*[10]",
+      n.Block{{
+        n.VarDecl{'local', nil,
+          { n.IdDecl{'p', nil,
+            n.ArrayType{
+              n.PointerType{
+                n.ArrayType{
+                  n.PointerType{n.Type{"integer"}},
+                  n.Number{"dec", "10"}
+                }
+            },
+            n.Number{"dec", "10"}
+    }}}}}})
   end)
   it("type instantiation", function()
     assert.parse_ast(euluna_parser, "local Integer = @integer",

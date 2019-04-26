@@ -60,6 +60,15 @@ function PEGParser:set_astbuilder(astbuilder)
     return expr
   end
 
+  defs.to_chain_late_unary_op = function(expr, opnodes)
+    for i=1,#opnodes do
+      local op = opnodes[i]
+      op[3] = expr
+      expr = to_astnode(unpack(op))
+    end
+    return expr
+  end
+
   defs.to_binary_op = function(pos, tag, lhs, opname, rhs)
     if rhs then
       return to_astnode(pos, tag, opname, lhs, rhs)

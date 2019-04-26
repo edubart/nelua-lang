@@ -431,14 +431,21 @@ local function get_parser(std)
     cnil <- '' -> to_nil
     ctrue <- '' -> to_true
 
-    typexpr <-
-        func_type
-      / record_type
-      / enum_type
-      / arraytable_type
-      / array_type
-      / pointer_type
-      / prim_type
+    typexpr <- typexpr0
+    typexpr0 <- (simple_typexpr {| unary_typexpr_op* |}) -> to_chain_late_unary_op
+
+    simple_typexpr <-
+      func_type /
+      record_type /
+      enum_type /
+      arraytable_type /
+      array_type /
+      pointer_type /
+      prim_type
+
+    unary_typexpr_op <-
+      {| {} %DEREF -> 'PointerType' |} /
+      {| {} %LBRACKET -> 'ArrayType' cnil typexpr_param_expr eRBRACKET |}
 
     func_type <- (
       {} '' -> 'FuncType'

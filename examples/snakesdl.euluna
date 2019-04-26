@@ -31,8 +31,8 @@ local SDL_Rect = @record {
 };
 
 -- import SDL pointers
-local SDL_Window = @pointer<record{}>
-local SDL_Renderer = @pointer<record{}>
+local SDL_Window = @record{}*
+local SDL_Renderer = @record{}*
 
 -- import SDL constants
 local SDL_INIT_VIDEO: uint32 !cimport
@@ -53,14 +53,14 @@ local function SDL_CreateWindow(title: cstring, x: cint, y: cint, w: cint, h: ci
 local function SDL_Quit() !cimport end
 local function SDL_DestroyWindow(window: SDL_Window) !cimport end
 local function SDL_Delay(ms: uint32) !cimport end
-local function SDL_PollEvent(event: pointer<SDL_Event>): int32 !cimport end
-local function SDL_WaitEvent(event: pointer<SDL_Event>): int32 !cimport end
+local function SDL_PollEvent(event: SDL_Event*): int32 !cimport end
+local function SDL_WaitEvent(event: SDL_Event*): int32 !cimport end
 local function SDL_CreateRenderer(window: SDL_Window, index: cint, flags: uint32): SDL_Renderer !cimport end
 local function SDL_DestroyRenderer(renderer: SDL_Renderer) !cimport end
 local function SDL_RenderPresent(renderer: SDL_Renderer) !cimport end
 local function SDL_RenderClear(renderer: SDL_Renderer) !cimport end
 local function SDL_SetRenderDrawColor(renderer: SDL_Renderer, r: uint8, g: uint8, b: uint8, a: uint8): cint !cimport end
-local function SDL_RenderFillRect(renderer: SDL_Renderer, rect: pointer<SDL_Rect>): cint !cimport end
+local function SDL_RenderFillRect(renderer: SDL_Renderer, rect: SDL_Rect*): cint !cimport end
 local function rand(): int32 !cimport('rand') end
 
 -- game types
@@ -72,7 +72,7 @@ local Color = @record{r: byte, g: byte, b: byte}
 local const TILE_SIZE = 16
 local const SCREEN_SIZE = 512
 local const MAP_SIZE = 32 --SCREEN_SIZE / TILE_SIZE
-local TileMap = @array<array<Direction, MAP_SIZE>, MAP_SIZE>
+local TileMap = @Direction[MAP_SIZE][MAP_SIZE]
 local const COLOR_PINK = Color{r=255, g=0, b=255}
 local const COLOR_GREEN = Color{r=0, g=255, b=0}
 local const COLOR_BLACK = Color{r=0, g=0, b=0}
@@ -93,7 +93,7 @@ local function poll_events()
     case SDL_QUIT then
       quit = true
     case SDL_KEYDOWN then
-      local kevent = @pointer<SDL_KeyboardEvent>(&event)
+      local kevent = @SDL_KeyboardEvent*(&event)
       switch kevent.keysym.sym
       case SDLK_UP then
         if movedir ~= Direction.DOWN then
@@ -252,7 +252,6 @@ end
 go()
 
 --TODO: unions
---TODO: syntax sugar for pointer, syntax sugar for array
 --TODO: function type overload
 --TODO: multiple returns
 --TODO: var&
