@@ -110,6 +110,7 @@ end
 function visitors.Table(context, node, desiredtype)
   local childnodes = node:args()
   if desiredtype and desiredtype ~= primtypes.table then
+    local const = true
     if desiredtype:is_arraytable() then
       local subtype = desiredtype.subtype
       for i, childnode in ipairs(childnodes) do
@@ -122,6 +123,7 @@ function visitors.Table(context, node, desiredtype)
             tostring(subtype), i, tostring(childnode.attr.type))
         end
       end
+      const = false
     elseif desiredtype:is_array() then
       local subtype = desiredtype.subtype
       node:assertraisef(#childnodes == desiredtype.length or #childnodes == 0,
@@ -135,6 +137,9 @@ function visitors.Table(context, node, desiredtype)
           childnode:assertraisef(subtype:is_coercible_from_node(childnode),
             "in array literal, subtype '%s' is not coercible with expression at index %d of type '%s'",
             tostring(subtype), i, tostring(childnode.attr.type))
+        end
+        if not childnode.attr.const then
+          const = false
         end
       end
     elseif desiredtype:is_record() then
@@ -154,12 +159,18 @@ function visitors.Table(context, node, desiredtype)
             "in record literal, field '%s' of type '%s' is not coercible with expression of type '%s'",
             fieldname, tostring(fieldtype), tostring(fieldvalnode.attr.type))
         end
+        if not fieldvalnode.attr.const then
+          const = false
+        end
       end
     else
       node:raisef("in table literal, type '%s' cannot be initialized using a table literal",
         tostring(desiredtype))
     end
     node.attr.type = desiredtype
+    if const then
+      node.attr.const = true
+    end
   else
     context:traverse(childnodes)
     node.attr.type = primtypes.table
@@ -658,9 +669,13 @@ function visitors.VarDecl(context, node)
         'cannot assign imported variables, only imported types can be assigned')
       if valnode.attr.type then
         if varnode.attr.const then
-          -- for consts the type should be fixed
+          -- for consts the type must be known ahead
           symbol.attr.type = valnode.attr.type
           symbol.attr.value = valnode.attr.value
+        elseif valnode.attr.type:is_type() then
+          -- for 'type' types the type must also be known ahead
+          symbol.attr.type = valnode.attr.type
+          symbol.attr.const = true
         else
           -- lazy type evaluation
           symbol:add_possible_type(valnode.attr.type)

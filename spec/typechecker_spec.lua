@@ -278,6 +278,7 @@ it("function call", function()
 end)
 
 it("array tables", function()
+  assert.analyze_ast([[local a: arraytable<boolean>; local len = #a]])
   assert.analyze_ast([[
     local a: arraytable<boolean>
     local b: arraytable<boolean>
@@ -329,7 +330,7 @@ it("arrays", function()
   assert.analyze_ast([[local a: array<integer, 2>; a = {1,2}]])
   assert.analyze_ast([[local a: array<integer, 2>; a = {}]])
   assert.analyze_ast([[local a: array<integer, 10>, b: array<integer, 10>; b = a]])
-  assert.analyze_ast([[local a: arraytable<boolean>; local len = #a]])
+  assert.analyze_ast([[local const a: array<integer, 2> = {1,2}]])
   assert.analyze_error([[local a: array<integer, 2> = {1}]], 'expected 2 values but got 1')
   assert.analyze_error([[local a: array<integer, 2> = {1,2,3}]], 'expected 2 values but got 3')
   assert.analyze_error([[local a: array<integer, 2> = {1.0,2.0}]], 'is not coercible with')
@@ -342,6 +343,8 @@ it("arrays", function()
   assert.analyze_error([[local a: array<integer, 2>; a[-1] = 1]], 'trying to index negative value')
   assert.analyze_error([[local a: array<integer, 2>; a[2] = 1]], 'is out of bounds')
   assert.analyze_error([[local a: array<integer, 2>; a['s'] = 1]], 'trying to index with non integral value')
+  assert.analyze_error([[local const a: array<integer, 2> = {1,b}]], 'can only assign to typed const')
+
 end)
 
 it("records", function()
@@ -368,6 +371,11 @@ it("records", function()
     a = Record{x = true}
     a = Record{}
   ]])
+  assert.analyze_ast([[
+    local Record = @record{x: boolean}
+    local const a = Record{}
+    local const b = Record{x=true}
+  ]])
   assert.analyze_error([[
     local a: record {x: boolean}, b: record {x: boolean}
     b = a
@@ -377,6 +385,11 @@ it("records", function()
     local a: A, b: B
     b = a
   ]], "is not coercible with")
+  assert.analyze_error([[
+    local b = false
+    local Record = @record{x: boolean}
+    local const a = Record{x = b}
+  ]], "can only assign to typed const")
   assert.c_gencode_equals(
     "local a: record {x: boolean}; local b = a.x",
     "local a: record {x: boolean}; local b: boolean = a.x")

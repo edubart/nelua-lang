@@ -65,17 +65,17 @@ local function rand(): int32 !cimport('rand') end
 
 -- game types
 local Point2D = @record{x: integer, y: integer}
-local Direction = @enum<uint8>{NONE=0, UP, DOWN, RIGHT, LEFT}
-local Color = @record{r: uint8, g: uint8, b: uint8}
+local Direction = @enum<byte>{NONE=0, UP, DOWN, RIGHT, LEFT}
+local Color = @record{r: byte, g: byte, b: byte}
 
 -- game constants
 local const TILE_SIZE = 16
 local const SCREEN_SIZE = 512
 local const MAP_SIZE = 32 --SCREEN_SIZE / TILE_SIZE
 local TileMap = @array<array<Direction, MAP_SIZE>, MAP_SIZE>
-local COLOR_PINK = Color{r=255, g=0, b=255}
-local COLOR_GREEN = Color{r=0, g=255, b=0}
-local COLOR_BLACK = Color{r=0, g=0, b=0}
+local const COLOR_PINK = Color{r=255, g=0, b=255}
+local const COLOR_GREEN = Color{r=0, g=255, b=0}
+local const COLOR_BLACK = Color{r=0, g=0, b=0}
 
 -- game state variables
 local renderer
@@ -251,11 +251,8 @@ end
 
 go()
 
---TODO: rinitialize records to zero
---TODO: const for complex types (Color)
 --TODO: unions
 --TODO: syntax sugar for pointer, syntax sugar for array
 --TODO: function type overload
 --TODO: multiple returns
 --TODO: var&
---TODO: integer constants should not warn if the value is in range
