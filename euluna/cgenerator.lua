@@ -118,13 +118,23 @@ function visitors.Table(context, node, emitter)
   if node.attr.type:is_record() then
     local ctype = context:get_ctype(node)
     emitter:add('(', ctype, ')', '{')
-    emitter:add_traversal_list(childnodes, ', ', node.attr.type)
+    if #childnodes == 0 then
+      -- initialize everything to zeroes
+      emitter:add('0')
+    else
+      emitter:add_traversal_list(childnodes, ', ', node.attr.type)
+    end
     emitter:add('}')
   elseif node.attr.type:is_array() then
     local ctype = context:get_ctype(node)
-    emitter:add('(', ctype, ')', '{{')
-    emitter:add_traversal_list(childnodes)
-    emitter:add('}}')
+    emitter:add('(', ctype, ')', '{')
+    if #childnodes == 0 then
+      -- initialize everything to zeroes
+      emitter:add('0')
+    else
+      emitter:add('{', childnodes, '}')
+    end
+    emitter:add('}')
   elseif node.attr.type:is_arraytable() then
     local ctype = context:get_ctype(node)
     local len = #childnodes

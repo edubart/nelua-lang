@@ -124,7 +124,7 @@ function visitors.Table(context, node, desiredtype)
       end
     elseif desiredtype:is_array() then
       local subtype = desiredtype.subtype
-      node:assertraisef(#childnodes == desiredtype.length,
+      node:assertraisef(#childnodes == desiredtype.length or #childnodes == 0,
         " in array literal, expected %d values but got %d",
         desiredtype.length, #childnodes)
       for i, childnode in ipairs(childnodes) do

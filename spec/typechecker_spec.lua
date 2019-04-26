@@ -326,6 +326,7 @@ it("arrays", function()
   assert.analyze_ast([[local a: array<integer, 2> = {1,2}]])
   assert.analyze_ast([[local a: array<integer, 2>; a[0] = 1; a[1] = 2]])
   assert.analyze_ast([[local a: array<integer, 2>; a = {1,2}]])
+  assert.analyze_ast([[local a: array<integer, 2>; a = {}]])
   assert.analyze_ast([[local a: array<integer, 10>, b: array<integer, 10>; b = a]])
   assert.analyze_ast([[local a: arraytable<boolean>; local len = #a]])
   assert.analyze_error([[local a: array<integer, 2> = {1}]], 'expected 2 values but got 1')
@@ -344,7 +345,9 @@ end)
 
 it("records", function()
   assert.analyze_ast([[local a: record {x: boolean}; a.x = true]])
+  assert.analyze_ast([[local a: record {x: boolean} = {}]])
   assert.analyze_ast([[local a: record {x: boolean} = {x = true}]])
+  assert.analyze_ast([[local a: record {x: boolean}; a = {}]])
   assert.analyze_ast([[local a: record {x: boolean}; a = {x = true}]])
   assert.analyze_ast([[local a: record {x: boolean}; local len = #a]])
   assert.analyze_error([[local a: record {x: boolean}; a.x = 1]], "is not coercible with")
@@ -357,6 +360,12 @@ it("records", function()
     local Record: type = @record{x: boolean}
     local a: Record, b: Record
     b = a
+  ]])
+  assert.analyze_ast([[
+    local Record: type = @record{x: boolean}
+    local a
+    a = Record{x = true}
+    a = Record{}
   ]])
   assert.analyze_error([[
     local a: record {x: boolean}, b: record {x: boolean}
@@ -428,6 +437,11 @@ it("enums", function()
   assert.analyze_error([[
     local Enum = @enum{A=1.0}
   ]], "only integral numbers are allowed in enums")
+  assert.analyze_error([[
+    local Enum = @enum{A=1}
+    local e: Enum
+    print(e.A)
+  ]], "cannot index field")
 end)
 
 it("pointers", function()

@@ -72,6 +72,7 @@ local Color = @record{r: uint8, g: uint8, b: uint8}
 local const TILE_SIZE = 16
 local const SCREEN_SIZE = 512
 local const MAP_SIZE = 32 --SCREEN_SIZE / TILE_SIZE
+local TileMap = @array<array<Direction, MAP_SIZE>, MAP_SIZE>
 local COLOR_PINK = Color{r=255, g=0, b=255}
 local COLOR_GREEN = Color{r=0, g=255, b=0}
 local COLOR_BLACK = Color{r=0, g=0, b=0}
@@ -82,8 +83,7 @@ local movedir = Direction.UP
 local quit = false
 local movecounter = 0
 local headpos, tailpos, applepos
-local TileMap = @array<array<Direction, MAP_SIZE>, MAP_SIZE>
-local tiles: TileMap
+local tiles
 
 -- poll input events
 local function poll_events()
@@ -141,11 +141,7 @@ local function respawn_apple()
 end
 
 local function init_game()
-  for i=0,MAP_SIZE-1 do
-    for j=0,MAP_SIZE-1 do
-      tiles[i][j] = Direction.NONE
-    end
-  end
+  tiles = TileMap{}
   headpos = Point2D{x=MAP_SIZE//2, y=MAP_SIZE//2}
   tailpos = Point2D{x=headpos.x,   y=headpos.y+1}
   tiles[headpos.x][headpos.y] = Direction.UP

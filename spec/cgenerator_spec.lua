@@ -321,10 +321,13 @@ it("arrays", function()
     "bool data[10];")
   assert.run_c([[
     local a: array<boolean, 1>
-    print(a[0], #a)
+    assert(a[0] == false)
+    assert(#a == 1)
     a[0] = true
-    print(a[0])
-  ]], "false\t1\ntrue")
+    assert(a[0] == true)
+    a = {}
+    assert(a[0] == false)
+  ]])
   assert.run_c([[
     local a: array<integer, 4> = {1,2,3,4}
     print(a[0], a[1], a[2], a[3], #a)
@@ -345,17 +348,19 @@ it("records", function()
       x: integer,
       y: integer
     }
-    print(p.x, p.y)
+    assert(p.x == 0 and p.y == 0)
     p.x, p.y = 1, 2
-    print(p.x, p.y)
-    print(#p)
-  ]], "0\t0\n1\t2\n16")
+    assert(p.x == 1 and p.y == 2)
+    assert(#p == 16)
+  ]])
   assert.run_c([[
     local Point = @record {x: integer, y: integer}
     local p: Point
     p.x = 1
-    print(p.x, p.y)
-  ]], "1\t0")
+    assert(p.x == 1 and p.y == 0)
+    p = Point{}
+    assert(p.x == 0 and p.y == 0)
+  ]])
   assert.run_c([[
     local Point = @record {x: integer, y: integer}
     local p = Point{x=1, y=2}
