@@ -64,7 +64,7 @@ function PEGParser:set_astbuilder(astbuilder)
     for i=1,#opnodes do
       local op = opnodes[i]
       op[3] = expr
-      expr = to_astnode(unpack(op))
+      expr = to_astnode(tabler.unpack(op))
     end
     return expr
   end
