@@ -129,6 +129,7 @@ do
   for _,range in ipairs(typedefs.signed_ranges) do
     local itype = range.type
     itype.integral = true
+    itype.range = range
     table.insert(typedefs.numeric_types, itype)
     table.insert(typedefs.integral_types, itype)
     table.insert(typedefs.signed_types, itype)
@@ -137,6 +138,7 @@ do
     local itype = range.type
     itype.integral = true
     itype.unsigned = true
+    itype.range = range
     table.insert(typedefs.numeric_types, itype)
     table.insert(typedefs.integral_types, itype)
     table.insert(typedefs.unsigned_types, itype)

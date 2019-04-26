@@ -117,7 +117,7 @@ function visitors.Table(context, node, desiredtype)
           "in array table literal value, fields are not allowed")
         context:traverse(childnode, subtype)
         if childnode.attr.type then
-          childnode:assertraisef(subtype:is_coercible_from(childnode.attr.type),
+          childnode:assertraisef(subtype:is_coercible_from_node(childnode),
             "in array table literal, subtype '%s' is not coercible with expression at index %d of type '%s'",
             tostring(subtype), i, tostring(childnode.attr.type))
         end
@@ -132,7 +132,7 @@ function visitors.Table(context, node, desiredtype)
           "in array literal, fields are not allowed")
         context:traverse(childnode, subtype)
         if childnode.attr.type then
-          childnode:assertraisef(subtype:is_coercible_from(childnode.attr.type),
+          childnode:assertraisef(subtype:is_coercible_from_node(childnode),
             "in array literal, subtype '%s' is not coercible with expression at index %d of type '%s'",
             tostring(subtype), i, tostring(childnode.attr.type))
         end
@@ -150,7 +150,7 @@ function visitors.Table(context, node, desiredtype)
           fieldname, tostring(desiredtype))
         context:traverse(fieldvalnode, fieldtype)
         if fieldvalnode.attr.type then
-          fieldvalnode:assertraisef(fieldtype:is_coercible_from(fieldvalnode.attr.type),
+          fieldvalnode:assertraisef(fieldtype:is_coercible_from_node(fieldvalnode),
             "in record literal, field '%s' of type '%s' is not coercible with expression of type '%s'",
             fieldname, tostring(fieldtype), tostring(fieldvalnode.attr.type))
         end
@@ -314,7 +314,7 @@ function visitors.EnumFieldType(context, node, desiredtype)
   local name, numnode = node:args()
   local field = {name = name}
   if numnode then
-    context:traverse(numnode)
+    context:traverse(numnode, desiredtype)
     local value = numnode.attr.value
     numnode:assertraisef(numnode.attr.const,
       "enum values can only be assigned to const values")
@@ -322,7 +322,7 @@ function visitors.EnumFieldType(context, node, desiredtype)
       "only integral numbers are allowed in enums, but got type '%s'",
       tostring(numnode.attr.type))
     field.value = value
-    numnode:assertraisef(desiredtype:is_coercible_from(numnode.attr.type),
+    numnode:assertraisef(desiredtype:is_coercible_from_node(numnode),
       "enum of type '%s' is not coercible with field '%s' of type '%s'",
       tostring(desiredtype), name, tostring(numnode.attr.type))
   end
@@ -347,6 +347,8 @@ function visitors.EnumType(context, node)
         field.value = fields[i-1].value:intadd(1)
       end
     end
+    fnode:assertraisef(subtype:is_inrange(field.value),
+      "in enum value %s or field '%s' is not in range of type '%s'", field.value:todec(), field.name, tostring(subtype))
     fields[i] = field
   end
   local type = types.EnumType(node, subtype, fields)
@@ -491,7 +493,7 @@ function visitors.Call(context, node)
       local argnode = argnodes[1]
       context:traverse(argnode, type)
       if argnode.attr.type and not (argnode.attr.type:is_numeric() and type:is_numeric()) then
-        argnode:assertraisef(type:is_coercible_from(argnode.attr.type, true),
+        argnode:assertraisef(type:is_coercible_from_node(argnode, true),
           "in assertion to type '%s', the type is not coercible with expression of type '%s'",
           tostring(type), tostring(argnode.attr.type))
       end
@@ -512,7 +514,7 @@ function visitors.Call(context, node)
             tostring(calleenode.attr.type), i)
         end
         if argtype and argnode and argnode.attr.type then
-          argnode:assertraisef(argtype:is_coercible_from(argnode.attr.type),
+          argnode:assertraisef(argtype:is_coercible_from_node(argnode),
             "in call, function argument %d of type '%s' is not coercible with call argument %d of type '%s'",
             i, tostring(argtype), i, tostring(argnode.attr.type))
         end
@@ -606,17 +608,17 @@ function visitors.ForNum(context, node)
     local itsymbol = context:traverse(itvarnode)
     if itvarnode.attr.type then
       if beginvalnode.attr.type then
-        itvarnode:assertraisef(itvarnode.attr.type:is_coercible_from(beginvalnode.attr.type),
+        itvarnode:assertraisef(itvarnode.attr.type:is_coercible_from_node(beginvalnode),
           "`for` variable '%s' of type '%s' is not coercible with begin value of type '%s'",
           itname, tostring(itvarnode.attr.type), tostring(beginvalnode.attr.type))
       end
       if endvalnode.attr.type then
-        itvarnode:assertraisef(itvarnode.attr.type:is_coercible_from(endvalnode.attr.type),
+        itvarnode:assertraisef(itvarnode.attr.type:is_coercible_from_node(endvalnode),
           "`for` variable '%s' of type '%s' is not coercible with end value of type '%s'",
           itname, tostring(itvarnode.attr.type), tostring(endvalnode.attr.type))
       end
       if incvalnode and incvalnode.attr.type then
-        itvarnode:assertraisef(itvarnode.attr.type:is_coercible_from(incvalnode.attr.type),
+        itvarnode:assertraisef(itvarnode.attr.type:is_coercible_from_node(incvalnode),
           "`for` variable '%s' of type '%s' is not coercible with increment value of type '%s'",
           itname, tostring(itvarnode.attr.type), tostring(incvalnode.attr.type))
       end
@@ -664,7 +666,7 @@ function visitors.VarDecl(context, node)
           symbol:add_possible_type(valnode.attr.type)
         end
         if varnode.attr.type and varnode.attr.type ~= primtypes.boolean then
-          varnode:assertraisef(varnode.attr.type:is_coercible_from(valnode.attr.type),
+          varnode:assertraisef(varnode.attr.type:is_coercible_from_node(valnode),
             "variable '%s' of type '%s' is not coercible with expression of type '%s'",
             symbol.name, tostring(varnode.attr.type), tostring(valnode.attr.type))
         end
@@ -693,7 +695,7 @@ function visitors.Assign(context, node)
         symbol:add_possible_type(valnode.attr.type)
       end
       if varnode.attr.type and valnode.attr.type then
-        varnode:assertraisef(varnode.attr.type:is_coercible_from(valnode.attr.type),
+        varnode:assertraisef(varnode.attr.type:is_coercible_from_node(valnode),
           "variable assignment of type '%s' is not coercible with expression of type '%s'",
           tostring(varnode.attr.type), tostring(valnode.attr.type))
       end

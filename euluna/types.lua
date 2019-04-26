@@ -87,6 +87,20 @@ function Type:is_coercible_from(type, explicit)
   return self.conversible_types[type]
 end
 
+function Type:is_coercible_from_node(node, explicit)
+  local type = node.attr.type
+  if self.integral and type.integral and node.attr.const and node.attr.value then
+    return self:is_inrange(node.attr.value)
+  end
+  return self:is_coercible_from(type, explicit)
+end
+
+function Type:is_inrange(value)
+  if self:is_float() then return true end
+  if not self:is_integral() then return false end
+  return value >= self.range.min and value <= self.range.max
+end
+
 function Type:is_numeric()
   return self.integral or self.float
 end

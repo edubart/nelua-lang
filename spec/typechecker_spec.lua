@@ -33,12 +33,13 @@ end)
 it("local variable", function()
   assert.c_gencode_equals("local a = 1", "local a: integer = 1")
   assert.analyze_error("local a: integer = 'string'", "is not coercible with")
-  assert.analyze_error("local a: uint8 = 1.0", "is not coercible with")
-  assert.analyze_error("local a: uint8 = {1.0}", "cannot be initialized using a table literal")
+  assert.analyze_error("local a: byte = 1.0", "is not coercible with")
+  assert.analyze_error("local a: byte = {1.0}", "cannot be initialized using a table literal")
   assert.analyze_error("local a, b = 1,2,3", "too many expressions in declaration")
 end)
 
 it("const variable" , function()
+  assert.analyze_ast([[local const N = 255; local a: byte = N]])
   assert.analyze_ast([[local a: const integer = 1]])
   assert.c_gencode_equals(
     [[local const a = 1; local function f() return a end]],
@@ -132,9 +133,9 @@ it("loop variables", function()
   assert.c_gencode_equals("for i=1,10 do end", "for i:integer=1,10 do end")
   assert.c_gencode_equals("for i=1,10,2 do end", "for i:integer=1,10,2 do end")
   assert.c_gencode_equals("for i=0_is,1_is-1 do end", "for i:isize=0_is,1_is-1 do end")
-  assert.analyze_error("for i:uint8=1.0,10 do end", "is not coercible with")
-  assert.analyze_error("for i:uint8=1_u8,10 do end", "is not coercible with")
-  assert.analyze_error("for i:uint8=1_u8,10_u8,2 do end", "is not coercible with")
+  assert.analyze_error("for i:byte=1.0,256 do end", "is not coercible with")
+  assert.analyze_error("for i:byte=1_byte,256 do end", "is not coercible with")
+  assert.analyze_error("for i:byte=1_byte,10_byte,2.0 do end", "is not coercible with")
 end)
 
 it("variable assignments", function()
@@ -407,6 +408,7 @@ it("enums", function()
   assert.analyze_ast([[
     local a: enum{A=0}
     local b: enum<integer>{A=0,B}
+    local b: enum<byte>{A=0,B,C}
     local b: enum<integer>{A=0,B=1 << 2}
   ]])
   assert.analyze_ast([[
@@ -415,8 +417,17 @@ it("enums", function()
     local e: Enum = Enum.A
     local i: number = e
   ]])
+  assert.analyze_ast([[
+    local Enum = @enum<byte>{A=255}
+  ]])
   assert.analyze_error([[
-    local Enum = @enum<uint8>{A=256}
+    local Enum = @enum<byte>{A=256}
+  ]], "is not coercible with")
+  assert.analyze_error([[
+    local Enum = @enum<byte>{A=255,B}
+  ]], "is not in range of type")
+  assert.analyze_error([[
+    local Enum = @enum<byte>{A=256_integer}
   ]], "is not coercible with")
   assert.analyze_error([[
     local Enum = @enum{A=0,B=3}

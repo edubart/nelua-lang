@@ -65,7 +65,7 @@ local function rand(): int32 !cimport('rand') end
 
 -- game types
 local Point2D = @record{x: integer, y: integer}
-local Direction = @enum<uint8>{NONE=0_u8, UP, DOWN, RIGHT, LEFT}
+local Direction = @enum<uint8>{NONE=0, UP, DOWN, RIGHT, LEFT}
 local Color = @record{r: uint8, g: uint8, b: uint8}
 
 -- game constants
@@ -193,8 +193,8 @@ local function draw_tile(pos: Point2D, color: Color)
   local rect = SDL_Rect{
     x = @int32(pos.x * TILE_SIZE),
     y = @int32(pos.y * TILE_SIZE),
-    w = @int32(TILE_SIZE),
-    h = @int32(TILE_SIZE)
+    w = TILE_SIZE,
+    h = TILE_SIZE
   }
   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255)
   SDL_RenderFillRect(renderer, &rect)
@@ -227,7 +227,7 @@ local function go()
   -- create window
   local window = SDL_CreateWindow("An SDL2 Window",
     SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-    @int32(SCREEN_SIZE), @int32(SCREEN_SIZE), SDL_WINDOW_OPENGL)
+    SCREEN_SIZE, SCREEN_SIZE, SDL_WINDOW_OPENGL)
   assert(window, "Could not create window")
 
   -- create renderer
