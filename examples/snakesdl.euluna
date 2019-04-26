@@ -61,18 +61,19 @@ local function SDL_RenderPresent(renderer: SDL_Renderer) !cimport end
 local function SDL_RenderClear(renderer: SDL_Renderer) !cimport end
 local function SDL_SetRenderDrawColor(renderer: SDL_Renderer, r: uint8, g: uint8, b: uint8, a: uint8): cint !cimport end
 local function SDL_RenderFillRect(renderer: SDL_Renderer, rect: SDL_Rect*): cint !cimport end
+local function SDL_GetTicks(): uint32 !cimport end
 local function rand(): int32 !cimport('rand') end
 
 -- game types
 local Point2D = @record{x: integer, y: integer}
-local Direction = @enum<byte>{NONE=0, UP, DOWN, RIGHT, LEFT}
+local Direction = @enum<byte>{NONE=0, UP, DOWN, RIGHT, LEFT, UNSEEN}
 local Color = @record{r: byte, g: byte, b: byte}
 
 -- game constants
 local const TILE_SIZE = 16
 local const SCREEN_SIZE = 512
 local const MAP_SIZE = 32 --SCREEN_SIZE / TILE_SIZE
-local TileMap = @Direction[MAP_SIZE][MAP_SIZE]
+local const MOVE_DELAY = 128
 local const COLOR_PINK = Color{r=255, g=0, b=255}
 local const COLOR_GREEN = Color{r=0, g=255, b=0}
 local const COLOR_BLACK = Color{r=0, g=0, b=0}
@@ -81,9 +82,9 @@ local const COLOR_BLACK = Color{r=0, g=0, b=0}
 local renderer
 local movedir = Direction.UP
 local quit = false
-local movecounter = 0
+local nextmove = 0
 local headpos, tailpos, applepos
-local tiles
+local tiles: Direction[MAP_SIZE][MAP_SIZE]
 
 -- poll input events
 local function poll_events()
@@ -130,6 +131,22 @@ local function move_point(pos: Point2D, dir: Direction)
   return pos
 end
 
+local function set_tile(pos: Point2D, dir: Direction)
+  tiles[pos.x][pos.y] = dir
+end
+
+local function reset_tile(pos: Point2D)
+  tiles[pos.x][pos.y] = Direction.NONE
+end
+
+local function get_tile(pos: Point2D)
+  return tiles[pos.x][pos.y]
+end
+
+local function has_tile(pos: Point2D)
+  return tiles[pos.x][pos.y] ~= Direction.NONE
+end
+
 local function respawn_apple()
   -- respawn until there is no collision with its body
   repeat
@@ -137,25 +154,26 @@ local function respawn_apple()
       x = rand() % MAP_SIZE,
       y = rand() % MAP_SIZE
     }
-  until tiles[applepos.x][applepos.y] == Direction.NONE
+  until not has_tile(applepos)
 end
 
 local function init_game()
-  tiles = TileMap{}
+  tiles = {}
   headpos = Point2D{x=MAP_SIZE//2, y=MAP_SIZE//2}
   tailpos = Point2D{x=headpos.x,   y=headpos.y+1}
-  tiles[headpos.x][headpos.y] = Direction.UP
-  tiles[tailpos.x][tailpos.y] = Direction.UP
   movedir = Direction.UP
+  set_tile(headpos, Direction.UP)
+  set_tile(tailpos, Direction.UP)
   respawn_apple()
 end
 
 local function poll_game()
-  movecounter = movecounter + 1
-  if movecounter < 8 then return end
-  movecounter = 0
+  local now = SDL_GetTicks()
+  if now < nextmove then return end
+  nextmove = now + MOVE_DELAY
 
-  tiles[headpos.x][headpos.y] = movedir
+  -- move the head
+  set_tile(headpos, movedir)
   headpos = move_point(headpos, movedir)
 
   -- check collision with map boundaries
@@ -166,20 +184,21 @@ local function poll_game()
   end
 
   -- check collisions with its body
-  if tiles[headpos.x][headpos.y] ~= Direction.NONE then
+  if has_tile(headpos) then
     init_game()
     return
   end
 
-  tiles[headpos.x][headpos.y] = movedir
+  -- place head on next tile
+  set_tile(headpos, Direction.UNSEEN)
 
   -- check collision with apple
   if headpos.x == applepos.x and headpos.y == applepos.y then
     respawn_apple()
   else
     -- eat tail
-    local taildir = tiles[tailpos.x][tailpos.y]
-    tiles[tailpos.x][tailpos.y] = Direction.NONE
+    local taildir = get_tile(tailpos)
+    reset_tile(tailpos)
     tailpos = move_point(tailpos, taildir)
   end
 end
@@ -190,26 +209,25 @@ local function draw_background(color: Color)
 end
 
 local function draw_tile(pos: Point2D, color: Color)
-  local rect = SDL_Rect{
+  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255)
+  SDL_RenderFillRect(renderer, &SDL_Rect{
     x = @int32(pos.x * TILE_SIZE),
     y = @int32(pos.y * TILE_SIZE),
     w = TILE_SIZE,
     h = TILE_SIZE
-  }
-  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255)
-  SDL_RenderFillRect(renderer, &rect)
+  })
+end
+
+local function draw_apple()
+  draw_tile(applepos, COLOR_PINK)
 end
 
 local function draw_snake()
-  -- draw apple
-  draw_tile(applepos, COLOR_PINK)
-
-  -- draw the snake body
   for x=0,MAP_SIZE-1 do
     for y=0,MAP_SIZE-1 do
-      if tiles[x][y] ~= Direction.NONE then
-        -- snake is present at this tile
-        draw_tile(Point2D{x=x, y=y}, COLOR_GREEN)
+      local pos = Point2D{x=x,y=y}
+      if has_tile(pos) then -- snake is present at this tile
+        draw_tile(pos, COLOR_GREEN)
       end
     end
   end
@@ -217,20 +235,19 @@ end
 
 local function draw()
   draw_background(COLOR_BLACK)
+  draw_apple()
   draw_snake()
-  SDL_RenderPresent(renderer)
 end
 
 local function go()
+  -- init sdl
   SDL_Init(SDL_INIT_VIDEO)
 
-  -- create window
   local window = SDL_CreateWindow("An SDL2 Window",
     SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
     SCREEN_SIZE, SCREEN_SIZE, SDL_WINDOW_OPENGL)
   assert(window, "Could not create window")
 
-  -- create renderer
   renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC)
   assert(renderer, "Could not create renderer")
 
@@ -241,6 +258,9 @@ local function go()
     poll_events()
     poll_game()
     draw()
+
+    -- swap buffers
+    SDL_RenderPresent(renderer)
   until quit
 
   -- cleanup and finish
@@ -250,8 +270,3 @@ local function go()
 end
 
 go()
-
---TODO: unions
---TODO: function type overload
---TODO: multiple returns
---TODO: var&
