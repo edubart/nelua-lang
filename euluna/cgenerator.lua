@@ -56,7 +56,10 @@ local function add_casted_value(context, emitter, type, valnode)
     elseif valnode.attr.type:is_string() and type:is_cstring() then
       emitter:add('(', valnode, ')->data')
     else
-      emitter:add('(',context:get_ctype(type),')',valnode)
+      if valnode.type ~= type then
+        emitter:add('(',context:get_ctype(type),')')
+      end
+      emitter:add(valnode)
     end
   else
     add_zeroinit(emitter, type)
@@ -113,11 +116,18 @@ function visitors.Pair(_, node, emitter, parent_type)
   end --luacov:enable
 end
 
+local function add_cast_paren(context, emitter, node)
+  local ctype = context:get_ctype(node)
+  if not node.attr.initializer then
+    emitter:add('(', ctype, ')')
+  end
+end
+
 function visitors.Table(context, node, emitter)
   local childnodes = node:args()
   if node.attr.type:is_record() then
-    local ctype = context:get_ctype(node)
-    emitter:add('(', ctype, ')', '{')
+    add_cast_paren(context, emitter, node)
+    emitter:add('{')
     if #childnodes == 0 then
       -- initialize everything to zeroes
       emitter:add('0')
@@ -126,8 +136,8 @@ function visitors.Table(context, node, emitter)
     end
     emitter:add('}')
   elseif node.attr.type:is_array() then
-    local ctype = context:get_ctype(node)
-    emitter:add('(', ctype, ')', '{')
+    add_cast_paren(context, emitter, node)
+    emitter:add('{')
     if #childnodes == 0 then
       -- initialize everything to zeroes
       emitter:add('0')
@@ -136,15 +146,16 @@ function visitors.Table(context, node, emitter)
     end
     emitter:add('}')
   elseif node.attr.type:is_arraytable() then
-    local ctype = context:get_ctype(node)
     local len = #childnodes
     if len > 0 then
+      context:get_ctype(node)
       local subctype = context:get_ctype(node.attr.type.subtype)
       emitter:add(context:get_typename(node), '_create((', subctype, '[', len, ']){')
       emitter:add_traversal_list(childnodes)
       emitter:add('},', len, ')')
     else
-      emitter:add('(', ctype, ')', '{0}')
+      add_cast_paren(context, emitter, node)
+      emitter:add('{0}')
     end
   else --luacov:disable
     error('not implemented yet')
@@ -463,7 +474,7 @@ local function add_assignments(context, emitter, varnodes, valnodes, decl)
         decemitter:add(varnode, ' = ')
         if valnode and valnode.attr.const then
           -- initialize to const values
-          add_casted_value(context, decemitter, varnode.attr.type, valnode)
+          add_casted_value(context, decemitter, varnode.attr.type, valnode, decl)
           defined = true
         else
           -- pre initialize to zeros
@@ -481,7 +492,7 @@ local function add_assignments(context, emitter, varnodes, valnodes, decl)
           emitter:add_indent(context:get_declname(varnode))
         end
         emitter:add(' = ')
-        add_casted_value(context, emitter, varnode.attr.type, valnode)
+        add_casted_value(context, emitter, varnode.attr.type, valnode, decl)
         emitter:add_ln(';')
       end
     elseif varnode.attr.cinclude then

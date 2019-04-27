@@ -129,7 +129,7 @@ end
 
 local filename_to_modulename_patt = re.compile[[
   p <- {~ filebeg? c* ~}
-  c <- extend -> '' / [_%w] / (%s+ / [_/\.]) -> '_' / . -> 'X'
+  c <- extend -> '' / [_%w] / (%s+ / [_/\.-]) -> '_' / . -> 'X'
   filebeg <- [./\]+ -> ''
   extend <- '.' [_%w]+ !.
 ]]

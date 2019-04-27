@@ -371,6 +371,10 @@ it("records", function()
     local p: Point = {x=1, y=2}
     print(p.x, p.y)
   ]], "1\t2")
+  assert.run_c([[
+    local r: record {x: array<integer, 1>} =  {x={1}}
+    assert(r.x[0] == 1)
+  ]])
 end)
 
 it("enums", function()

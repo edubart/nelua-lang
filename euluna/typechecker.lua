@@ -115,6 +115,9 @@ function visitors.Table(context, node, desiredtype)
           childnode:assertraisef(subtype:is_coercible_from_node(childnode),
             "in array table literal, subtype '%s' is not coercible with expression at index %d of type '%s'",
             tostring(subtype), i, tostring(childnode.attr.type))
+          if childnode.attr.type == subtype then
+            childnode.attr.initializer = true
+          end
         end
       end
       const = false
@@ -131,6 +134,9 @@ function visitors.Table(context, node, desiredtype)
           childnode:assertraisef(subtype:is_coercible_from_node(childnode),
             "in array literal, subtype '%s' is not coercible with expression at index %d of type '%s'",
             tostring(subtype), i, tostring(childnode.attr.type))
+          if childnode.attr.type == subtype then
+            childnode.attr.initializer = true
+          end
         end
         if not childnode.attr.const then
           const = false
@@ -152,6 +158,9 @@ function visitors.Table(context, node, desiredtype)
           fieldvalnode:assertraisef(fieldtype:is_coercible_from_node(fieldvalnode),
             "in record literal, field '%s' of type '%s' is not coercible with expression of type '%s'",
             fieldname, tostring(fieldtype), tostring(fieldvalnode.attr.type))
+          if fieldvalnode.attr.type == fieldtype then
+            fieldvalnode.attr.initializer = true
+          end
         end
         if not fieldvalnode.attr.const then
           const = false
