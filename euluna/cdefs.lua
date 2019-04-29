@@ -52,6 +52,7 @@ cdefs.primitive_ctypes = {
   [primtypes.boolean] = 'bool',
   [primtypes.cstring] = 'char*',
   [primtypes.pointer] = 'void*',
+  [primtypes.Nilptr]  = 'void*',
   [primtypes.void]    = 'void',
 
   [primtypes.cchar]       = 'char',

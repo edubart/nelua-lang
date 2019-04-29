@@ -165,4 +165,13 @@ static inline void* euluna_pointer_any_cast(const euluna_any a) {
   euluna_check_type(a.type, &euluna_pointer_type);
   return a.value.p;
 }
+static inline bool euluna_any_to_boolean(const euluna_any a) {
+  if(a.type == &euluna_boolean_type)
+    return a.value.b;
+  else if(a.type == &euluna_pointer_type)
+    return a.value.p != NULL;
+  else if(a.type == NULL)
+    return false;
+  return true;
+}
 {% end %}

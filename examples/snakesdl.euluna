@@ -147,7 +147,7 @@ end
 
 local function poll_events()
   local event: SDL_Event
-  while SDL_PollEvent(&event) do
+  while SDL_PollEvent(&event) ~= 0 do
     switch event.type
     case SDL_QUIT then
       quit = true

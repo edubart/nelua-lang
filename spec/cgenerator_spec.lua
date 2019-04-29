@@ -51,11 +51,6 @@ end)
 it("boolean", function()
   assert.generate_c("return true", "return true;")
 end)
-
-it("call", function()
-end)
-it("if", function()
-end)
 it("call", function()
   assert.generate_c("f()", "mymod_f();")
   assert.generate_c("return f()", "return mymod_f();")
@@ -73,11 +68,15 @@ it("call", function()
   assert.generate_c("do a:f() end", "a.f(a)")
 end)
 it("if", function()
-  assert.generate_c("if a then\nend","if(mymod_a) {\n  }")
-  assert.generate_c("if a then\nelseif b then\nend", "if(mymod_a) {\n  } else if(mymod_b) {\n  }")
-  assert.generate_c("if a then\nelse\nend", "if(mymod_a) {\n  } else {\n  }")
-  assert.generate_c("if a and b then\nend","if(mymod_a && mymod_b) {\n  }")
-  assert.generate_c("if a and b or c then\nend","if((mymod_a && mymod_b) || mymod_c) {\n  }")
+  assert.generate_c("if nilptr then\nend","if(false) {\n")
+  assert.generate_c("if nil then\nend","if(false) {\n")
+  assert.generate_c("if 1 then\nend","if(true) {\n")
+  assert.generate_c("if a then\nend","if(euluna_any_to_boolean(mymod_a)) {\n")
+  assert.generate_c("if true then\nend","if(true) {\n  }")
+  assert.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
+  assert.generate_c("if true then\nelse\nend", "if(true) {\n  } else {\n  }")
+  assert.generate_c("if true and true then\nend","if(true && true) {\n  }")
+  assert.generate_c("if true and true or true then\nend","if((true && true) || true) {\n  }")
 end)
 it("switch", function()
   assert.generate_c("do switch a case b then f() case c then g() else h() end end",[[
@@ -100,10 +99,10 @@ it("do", function()
   assert.generate_c("do\n  return\nend", "return 0;\n")
 end)
 it("while", function()
-  assert.generate_c("while a do\nend", "while(mymod_a) {")
+  assert.generate_c("while true do\nend", "while(true) {")
 end)
 it("repeat", function()
-  assert.generate_c("repeat\nuntil a", "do {\n  } while(!(mymod_a));")
+  assert.generate_c("repeat\nuntil false", "do {\n  } while(!(false));")
 end)
 it("for", function()
   assert.generate_c("for i=a,b do\nend",
@@ -213,12 +212,71 @@ it("binary operators", function()
   ]])
 end)
 it("binary conditional operators", function()
-  assert.generate_c("do return a or b end",  "return a ? a : b;")
-  assert.generate_c("do return a and b end",  "return (a && b) ? b : 0;")
+  assert.generate_c("do return a or b end",  [[return ({
+      euluna_any t1_ = a; (void)t1_;
+      euluna_any t2_ = {0}; (void)t2_;
+      bool cond_ = euluna_any_to_boolean(t1_);
+      if(cond_)
+        t2_ = b;
+      cond_ ? t1_ : t2_;
+    });]])
+  assert.generate_c("do return a and b end",  [[return ({
+      euluna_any t1_ = a; (void)t1_;
+      euluna_any t2_ = {0}; (void)t2_;
+      bool cond_ = euluna_any_to_boolean(t1_);
+      if(cond_) {
+        t2_ = b;
+        cond_ = euluna_any_to_boolean(t2_);
+      }
+      cond_ ? t2_ : (euluna_any){0};
+    });]])
+  --[[
+  assert.generate_c("do return a and b end",  "return (a && b) ? b : (euluna_any){0};")
+  assert.generate_c("do return a and b or c end",  "return (a && b) ? a : b;")
   assert.generate_c("do return not (a or b) end",  "return !(a || b)")
   assert.generate_c("do return not (a and b) end",  "return !(a && b)")
-end)
+  ]]
+  assert.run_c([[
+    assert((2 or 3) == 2)
+    assert((2 and 3) == 3)
+    assert((0 or 1) == 0)
+    --assert(nilptr or 1)
+    --assert(1 or 's')
+    assert((false or false) == false)
+    assert((false or true) == true)
+    assert((true or false) == true)
+    assert((false and false) == false)
+    assert((false and true) == false)
+    assert((true and false) == false)
 
+    local t1, t2 = false, false
+    if (2 or 1) == 2 then t1 = true end
+    if (2 and 0) == 0 then t2 = true end
+    assert(t1)
+    assert(t2)
+  ]])
+end)
+it("expressions with side effects", function()
+  assert.generate_c([[do
+    local function f() return 1 end
+    local a = f() + 1
+  end]],  "int64_t a = f() + 1")
+  assert.generate_c([[do
+    local function f() return 1 end
+    local function g() return 1 end
+    local a = f() + g()
+  end]],  [[int64_t a = ({
+      int64_t t1_ = f();
+      int64_t t2_ = g();
+      t1_ + t2_;
+    });]])
+  assert.run_c([[
+    local function f() return 1 end
+    local function g() return 2 end
+    local a = f() + g()
+    assert(a == 3)
+  ]])
+end)
 it("c types", function()
   assert.generate_c("do local a: integer end", "int64_t a = 0;")
   assert.generate_c("do local a: number end", "double a = 0.0;")
@@ -287,8 +345,7 @@ it("any type", function()
   ]], "1\n2")
   assert.run_error_c([[
     local a: any = 1
-    local b: boolean = a
-    print(b)
+    local b: string = a
   ]], "type check fail")
 end)
 

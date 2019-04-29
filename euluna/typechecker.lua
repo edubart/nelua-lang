@@ -532,6 +532,7 @@ end
 function visitors.Call(context, node)
   local argnodes, calleenode, block_call = node:args()
   context:traverse(calleenode)
+  node.attr.sideeffect = true
   if calleenode.attr.type then
     node.callee_type = calleenode.attr.type
     if calleenode.attr.type:is_type() then
@@ -549,6 +550,7 @@ function visitors.Call(context, node)
           tostring(type), tostring(argnode.attr.type))
       end
       node.attr.const = argnode.attr.const
+      node.attr.sideeffect = argnode.attr.sideeffect
       node.attr.type = type
     elseif calleenode.attr.type:is_function() then
       -- function call
@@ -634,18 +636,27 @@ function visitors.Block(context, node)
 end
 
 function visitors.If(context, node)
-  node.attr.type = primtypes.boolean
-  context:default_visitor(node)
+  local iflist, elsenode = node:args()
+  for _,ifpair in ipairs(iflist) do
+    local ifcondnode, ifblocknode = ifpair[1], ifpair[2]
+    context:traverse(ifcondnode, primtypes.boolean)
+    context:traverse(ifblocknode)
+  end
+  if elsenode then
+    context:traverse(elsenode)
+  end
 end
 
 function visitors.While(context, node)
-  node.attr.type = primtypes.boolean
-  context:default_visitor(node)
+  local condnode, blocknode = node:args()
+  context:traverse(condnode, primtypes.boolean)
+  context:traverse(blocknode)
 end
 
 function visitors.Repeat(context, node)
-  node.attr.type = primtypes.boolean
-  context:default_visitor(node)
+  local blocknode, condnode = node:args()
+  context:traverse(blocknode)
+  context:traverse(condnode, primtypes.boolean)
 end
 
 function visitors.ForNum(context, node)
@@ -848,10 +859,8 @@ end
 function visitors.UnaryOp(context, node, desiredtype)
   local opname, argnode = node:args()
   if opname == 'not' then
-    -- must set to boolean type before traversing
-    -- in case we are inside a if/while/repeat statement
-    node.attr.type = primtypes.boolean
     context:traverse(argnode, primtypes.boolean)
+    node.attr.type = primtypes.boolean
   else
     context:traverse(argnode, desiredtype)
     if argnode.attr.type then
@@ -866,71 +875,72 @@ function visitors.UnaryOp(context, node, desiredtype)
     end
     assert(context.phase ~= phases.any_inference or node.attr.type)
   end
-  if argnode.attr.const then
-    node.attr.const = true
-  end
+  argnode.attr.const = node.attr.const
+  argnode.attr.sideeffect = node.attr.sideeffect
 end
 
 function visitors.BinaryOp(context, node, desiredtype)
   local opname, lnode, rnode = node:args()
+  local type
 
-  -- evaluate conditional operators to boolean type before traversing
-  -- in case we are inside a if/while/repeat statement
-  if typedefs.binary_conditional_ops[opname] then
-    -- TODO: use desiredtype instead of this check
-    local parent_node = context:get_parent_node_if(function(a) return a.tag ~= 'Paren' end)
-    if parent_node.attr.type == primtypes.boolean then
-      node.attr.type = primtypes.boolean
+  if desiredtype == primtypes.boolean then
+    if typedefs.binary_conditional_ops[opname] then
+      type = primtypes.boolean
       context:traverse(lnode, primtypes.boolean)
       context:traverse(rnode, primtypes.boolean)
-      return
+    else
+      desiredtype = nil
     end
   end
 
-  context:traverse(lnode, desiredtype)
-  context:traverse(rnode, desiredtype)
+  if not type then
+    context:traverse(lnode, desiredtype)
+    context:traverse(rnode, desiredtype)
 
-  -- traverse again trying to coerce untyped child nodes
-  if lnode.untyped and rnode.attr.type then
-    context:traverse(lnode, rnode.attr.type)
-  elseif rnode.untyped and lnode.attr.type then
-    context:traverse(rnode, lnode.attr.type)
+    -- traverse again trying to coerce untyped child nodes
+    if lnode.untyped and rnode.attr.type then
+      context:traverse(lnode, rnode.attr.type)
+    elseif rnode.untyped and lnode.attr.type then
+      context:traverse(rnode, lnode.attr.type)
+    end
+
+    if typedefs.binary_conditional_ops[opname] then
+      type = typedefs.find_common_type({lnode.attr.type, rnode.attr.type})
+    else
+      local ltype, rtype
+      if lnode.attr.type then
+        ltype = lnode.attr.type:get_binary_operator_type(opname)
+        lnode:assertraisef(ltype,
+          "binary operation `%s` is not defined for type '%s' of the left expression",
+          opname, tostring(lnode.attr.type))
+      end
+      if rnode.attr.type then
+        rtype = rnode.attr.type:get_binary_operator_type(opname)
+        rnode:assertraisef(rtype,
+          "binary operation `%s` is not defined for type '%s' of the right expression",
+          opname, tostring(rnode.attr.type))
+      end
+      if ltype and rtype then
+        type = typedefs.find_common_type({ltype, rtype})
+        node:assertraisef(type,
+          "binary operation `%s` is not defined for different types '%s' and '%s' in the expression",
+          opname, tostring(ltype), tostring(rtype))
+      end
+      if type then
+        if type:is_integral() and (opname == 'div' or opname == 'pow') then
+          type = primtypes.number
+        elseif opname == 'shl' or opname == 'shr' then
+          type = ltype
+        end
+
+        if rnode.attr.value and (opname == 'idiv' or opname == 'div' or opname == 'mod') then
+          rnode:assertraisef(not rnode.attr.value:iszero(), "divizion by zero is not allowed")
+        end
+      end
+    end
   end
-
-  local type
-  if typedefs.binary_conditional_ops[opname] then
-    type = typedefs.find_common_type({lnode.attr.type, rnode.attr.type})
-  else
-    local ltype, rtype
-    if lnode.attr.type then
-      ltype = lnode.attr.type:get_binary_operator_type(opname)
-      lnode:assertraisef(ltype,
-        "binary operation `%s` is not defined for type '%s' of the left expression",
-        opname, tostring(lnode.attr.type))
-    end
-    if rnode.attr.type then
-      rtype = rnode.attr.type:get_binary_operator_type(opname)
-      rnode:assertraisef(rtype,
-        "binary operation `%s` is not defined for type '%s' of the right expression",
-        opname, tostring(rnode.attr.type))
-    end
-    if ltype and rtype then
-      type = typedefs.find_common_type({ltype, rtype})
-      node:assertraisef(type,
-        "binary operation `%s` is not defined for different types '%s' and '%s' in the expression",
-        opname, tostring(ltype), tostring(rtype))
-    end
-    if type then
-      if type:is_integral() and (opname == 'div' or opname == 'pow') then
-        type = primtypes.number
-      elseif opname == 'shl' or opname == 'shr' then
-        type = ltype
-      end
-
-      if rnode.attr.value and (opname == 'idiv' or opname == 'div' or opname == 'mod') then
-        rnode:assertraisef(not rnode.attr.value:iszero(), "divizion by zero is not allowed")
-      end
-    end
+  if not type and context.phase == phases.any_inference then
+    type = primtypes.any
   end
   if type then
     node.attr.type = type
@@ -938,7 +948,9 @@ function visitors.BinaryOp(context, node, desiredtype)
   if lnode.attr.const and rnode.attr.const then
     node.attr.const = true
   end
-  assert(context.phase ~= phases.any_inference or node.attr.type)
+  if lnode.attr.sideeffect or rnode.attr.sideeffect then
+    node.attr.sideeffect = true
+  end
 end
 
 local typechecker = {}

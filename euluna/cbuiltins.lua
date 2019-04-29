@@ -13,51 +13,51 @@ function builtins.len(context, _, emitter, argnode)
   end
 end
 
-function builtins.div(context, node, emitter, lnode, rnode)
+function builtins.div(context, node, emitter, lnode, rnode, lname, rname)
   if lnode.attr.type:is_numeric() and rnode.attr.type:is_numeric() then
     if not rnode.attr.type:is_float() and not lnode.attr.type:is_float() then
       assert(node.attr.type:is_float())
-      emitter:add(lnode, ' / (', context:get_ctype(node.attr.type), ')', rnode)
+      emitter:add(lname, ' / (', context:get_ctype(node.attr.type), ')', rname)
     else
-      emitter:add(lnode, ' / ', rnode)
+      emitter:add(lname, ' / ', rname)
     end
   else --luacov:disable
     error('not implemented')
   end --luacov:enable
 end
 
-function builtins.idiv(context, node, emitter, lnode, rnode)
+function builtins.idiv(context, node, emitter, lnode, rnode, lname, rname)
   if lnode.attr.type:is_numeric() and rnode.attr.type:is_numeric() then
     if lnode.attr.type:is_float() or rnode.attr.type:is_float() then
       local floorname = node.attr.type:is_float32() and 'floorf' or 'floor'
-      emitter:add(floorname, '(', lnode, ' / ', rnode, ')')
+      emitter:add(floorname, '(', lname, ' / ', rname, ')')
       context.has_math = true
     else
-      emitter:add(lnode, ' / ', rnode)
+      emitter:add(lname, ' / ', rname)
     end
   else --luacov:disable
     error('not implemented')
   end --luacov:enable
 end
 
-function builtins.mod(context, node, emitter, lnode, rnode)
+function builtins.mod(context, node, emitter, lnode, rnode, lname, rname)
   if lnode.attr.type:is_numeric() and rnode.attr.type:is_numeric() then
     if lnode.attr.type:is_float() or rnode.attr.type:is_float() then
       local modname = node.attr.type:is_float32() and 'fmodf' or 'fmod'
-      emitter:add(modname, '(', lnode, ', ', rnode, ')')
+      emitter:add(modname, '(', lname, ', ', rname, ')')
       context.has_math = true
     else
-      emitter:add(lnode, ' % ', rnode)
+      emitter:add(lname, ' % ', rname)
     end
   else --luacov:disable
     error('not implemented')
   end --luacov:enable
 end
 
-function builtins.pow(context, node, emitter, lnode, rnode)
+function builtins.pow(context, node, emitter, lnode, rnode, lname, rname)
   if lnode.attr.type:is_numeric() and rnode.attr.type:is_numeric() then
     local powname = node.attr.type:is_float32() and 'powf' or 'pow'
-    emitter:add(powname, '(', lnode, ', ', rnode, ')')
+    emitter:add(powname, '(', lname, ', ', rname, ')')
     context.has_math = true
   else --luacov:disable
     error('not implemented')

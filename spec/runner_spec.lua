@@ -53,6 +53,7 @@ it("print correct generated AST" , function()
   {
     Call {
       attr = {
+        sideeffect = true,
         type = "any",
       },
       callee_type = "any",
