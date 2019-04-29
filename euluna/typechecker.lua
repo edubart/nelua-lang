@@ -68,7 +68,7 @@ function visitors.Number(context, node, desiredtype)
   else
     node.untyped = nil
   end
-  if not literal and desiredtype and desiredtype:is_numeric() and desiredtype:is_coercible_from(type) then
+  if not literal and desiredtype and desiredtype:is_numeric() and desiredtype:is_coercible_from_type(type) then
     type = desiredtype
   end
   if type:is_integral() then
@@ -492,6 +492,43 @@ function visitors.ArrayIndex(context, node)
   node.attr.type = type
 end
 
+local function izipvarargs(vars, argnodes)
+  local iter = iters.izip(vars, argnodes)
+  local lastargnode = argnodes[#argnodes]
+  if lastargnode and lastargnode.tag == 'Call' and lastargnode.callee_type ~= primtypes.type then
+    -- last arg is a call
+    if lastargnode.callee_type then
+      -- we know call type
+      local returntypes = lastargnode.callee_type.returntypes
+      local returnindex = 2
+      return function()
+        local i, var, argnode = iter()
+        local argtype = false
+        -- argtype will be false this function is missing the return
+        if not argnode then
+          argtype = returntypes[returnindex] or false
+          returnindex = returnindex + 1
+        end
+        return i, var, argnode, argtype
+      end
+    else
+      -- call type is now known yet, argtype will be 'nil'
+      return iter
+    end
+  else
+    -- no calls from last argument
+    return function()
+      local i, var, argnode = iter()
+      local argtype
+      if not argnode then
+        -- we are sure this argument have no type, set argtype to 'false'
+        argtype = false
+      end
+      return i, var, argnode, argtype
+    end
+  end
+end
+
 function visitors.Call(context, node)
   local argnodes, calleenode, block_call = node:args()
   context:traverse(calleenode)
@@ -515,26 +552,26 @@ function visitors.Call(context, node)
       node.attr.type = type
     elseif calleenode.attr.type:is_function() then
       -- function call
-      local argtypes = calleenode.attr.type.argtypes
-      node:assertraisef(#argnodes <= #argtypes,
+      local funcargtypes = calleenode.attr.type.argtypes
+      node:assertraisef(#argnodes <= #funcargtypes,
         "in call, function '%s' expected at most %d arguments but got %d",
-        tostring(calleenode.attr.type), #argtypes, #argnodes)
-      for i,argtype,argnode in iters.izip(calleenode.attr.type.argtypes, argnodes) do
+        tostring(calleenode.attr.type), #funcargtypes, #argnodes)
+      for i,funcargtype,argnode,argtype in izipvarargs(funcargtypes, argnodes) do
         if argnode then
-          context:traverse(argnode, argtype)
-        elseif argtype then
-          node:assertraisef(argtype:is_nilable(),
+          context:traverse(argnode, funcargtype)
+          argtype = argnode.attr.type
+        end
+        if funcargtype and argtype == false then
+          node:assertraisef(funcargtype:is_nilable(),
             "in call, function '%s' expected an argument at index %d but got nothing",
             tostring(calleenode.attr.type), i)
         end
-        if argtype and argnode and argnode.attr.type then
-          argnode:assertraisef(argtype:is_coercible_from_node(argnode),
-            "in call, function argument %d of type '%s' is not coercible with call argument %d of type '%s'",
-            i, tostring(argtype), i, tostring(argnode.attr.type))
+        if funcargtype and argtype then
+          calleenode:assertraisef(funcargtype:is_coercible_from(argnode or argtype),
+"in call, function argument %d of type '%s' is not coercible with call argument %d of type '%s'",
+            i, tostring(funcargtype), i, tostring(argtype))
         end
       end
-
-      --TODO: check multiple returns
 
       node.attr.type = calleenode.attr.type.returntypes[1] or primtypes.void
       node.attr.types = calleenode.attr.type.returntypes
@@ -543,7 +580,8 @@ function visitors.Call(context, node)
       node.attr.type = primtypes.any
     elseif not calleenode.attr.type:is_any() then
       context:traverse(argnodes)
-      calleenode:raisef("attempt to call a non callable variable of type '%s'", tostring(calleenode.attr.type))
+      calleenode:raisef("attempt to call a non callable variable of type '%s'",
+        tostring(calleenode.attr.type))
     else
       context:traverse(argnodes)
     end
@@ -652,46 +690,48 @@ function visitors.VarDecl(context, node)
   node:assertraisef(#varnodes >= #valnodes,
     'too many expressions in declaration, expected at most %d but got %d',
     #varnodes, #valnodes)
-  for _,varnode,valnode in iters.izip(varnodes, valnodes) do
+  for _,varnode,valnode,valtype in izipvarargs(varnodes, valnodes) do
     assert(varnode.tag == 'IdDecl')
     local symbol = context:traverse(varnode, mut)
     assert(symbol)
-    assert(symbol.attr.type == varnode.attr.type)
+    local vartype = varnode.attr.type
+    assert(symbol.attr.type == vartype)
     varnode.assign = true
     if varnode.attr.const then
       varnode:assertraisef(valnode, 'const variables must have an initial value')
     end
     if valnode then
-      context:traverse(valnode, varnode.attr.type, symbol)
+      context:traverse(valnode, vartype, symbol)
+      valtype = valnode.attr.type
       if varnode.attr.const then
-        varnode:assertraisef(valnode.attr.const and valnode.attr.type,
+        varnode:assertraisef(valnode.attr.const and valtype,
           'const variables can only assign to typed const expressions')
       end
       varnode:assertraisef(not varnode.attr.cimport or
-        (varnode.attr.type == primtypes.type or (varnode.attr.type == nil and valnode.attr.type == primtypes.type)),
+        (vartype == primtypes.type or (vartype == nil and valtype == primtypes.type)),
         'cannot assign imported variables, only imported types can be assigned')
-      if valnode.attr.type then
-        if varnode.attr.const then
-          -- for consts the type must be known ahead
-          symbol.attr.type = valnode.attr.type
-          symbol.attr.value = valnode.attr.value
-        elseif valnode.attr.type:is_type() then
-          -- for 'type' types the type must also be known ahead
-          symbol.attr.type = valnode.attr.type
-          symbol.attr.const = true
-        else
-          -- lazy type evaluation
-          symbol:add_possible_type(valnode.attr.type)
-        end
-        if varnode.attr.type and varnode.attr.type ~= primtypes.boolean then
-          varnode:assertraisef(varnode.attr.type:is_coercible_from_node(valnode),
-            "variable '%s' of type '%s' is not coercible with expression of type '%s'",
-            symbol.name, tostring(varnode.attr.type), tostring(valnode.attr.type))
-        end
-        if valnode.attr.type:is_type() then
-          assert(valnode.attr.holdedtype)
-          symbol.attr.holdedtype = valnode.attr.holdedtype
-        end
+    end
+    if valtype then
+      if varnode.attr.const then
+        -- for consts the type must be known ahead
+        symbol.attr.type = valtype
+        symbol.attr.value = valnode.attr.value
+      elseif valtype:is_type() then
+        -- for 'type' types the type must also be known ahead
+        symbol.attr.type = valtype
+        symbol.attr.const = true
+      else
+        -- lazy type evaluation
+        symbol:add_possible_type(valtype)
+      end
+      if vartype and vartype ~= primtypes.boolean then
+        varnode:assertraisef(vartype:is_coercible_from(valnode or valtype),
+          "variable '%s' of type '%s' is not coercible with expression of type '%s'",
+          symbol.name, tostring(vartype), tostring(valtype))
+      end
+      if valtype:is_type() then
+        assert(valnode and valnode.attr.holdedtype)
+        symbol.attr.holdedtype = valnode.attr.holdedtype
       end
     end
   end
@@ -702,21 +742,23 @@ function visitors.Assign(context, node)
   node:assertraisef(#varnodes >= #valnodes,
     'too many expressions in assign, expected at most %d but got %d',
     #varnodes, #valnodes)
-  for _,varnode,valnode in iters.izip(varnodes, valnodes) do
+  for _,varnode,valnode,valtype in izipvarargs(varnodes, valnodes) do
     local symbol = context:traverse(varnode)
+    local vartype = varnode.attr.type
     varnode.assign = true
     varnode:assertraisef(not typedefs.readonly_mutabilities[varnode.attr.mut],
       "cannot assign a read only variable of mutability '%s'", varnode.attr.mut)
     if valnode then
-      context:traverse(valnode, varnode.attr.type)
-      if symbol then -- symbol may nil in case of array/dot index
-        symbol:add_possible_type(valnode.attr.type)
-      end
-      if varnode.attr.type and valnode.attr.type then
-        varnode:assertraisef(varnode.attr.type:is_coercible_from_node(valnode),
-          "variable assignment of type '%s' is not coercible with expression of type '%s'",
-          tostring(varnode.attr.type), tostring(valnode.attr.type))
-      end
+      context:traverse(valnode, vartype)
+      valtype = valnode.attr.type
+    end
+    if symbol then -- symbol may nil in case of array/dot index
+      symbol:add_possible_type(valtype)
+    end
+    if vartype and valtype then
+      varnode:assertraisef(vartype:is_coercible_from(valnode or valtype),
+        "variable assignment of type '%s' is not coercible with expression of type '%s'",
+        tostring(vartype), tostring(valtype))
     end
   end
 end
@@ -751,7 +793,7 @@ function visitors.FuncDef(context, node)
   for i,retnode in ipairs(retnodes) do
     local rtype = returntypes[i]
     if rtype then
-      retnode:assertraisef(retnode.attr.holdedtype:is_coercible_from(rtype),
+      retnode:assertraisef(retnode.attr.holdedtype:is_coercible_from_type(rtype),
         "return variable at index %d of type '%s' is not coercible with expression of type '%s'",
         i, tostring(retnode.attr.holdedtype), tostring(rtype))
     else
@@ -782,7 +824,7 @@ function visitors.FuncDef(context, node)
     else
       -- check if previous symbol declaration is compatible
       if symbol.attr.type then
-        node:assertraisef(symbol.attr.type:is_coercible_from(type),
+        node:assertraisef(symbol.attr.type:is_coercible_from_type(type),
           "in function defition, symbol of type '%s' is not coercible with function type '%s'",
           tostring(symbol.attr.type), tostring(type))
       else

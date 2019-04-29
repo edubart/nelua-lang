@@ -77,12 +77,12 @@ function Type:get_binary_operator_type(opname)
   return type
 end
 
-function Type:is_coercible_from(type, explicit)
+function Type:is_coercible_from_type(type, explicit)
   if self == type or self:is_any() or type:is_any() then
     return true
   end
   if type:is_enum() then
-    return self:is_coercible_from(type.subtype, explicit)
+    return self:is_coercible_from_type(type.subtype, explicit)
   end
   return self.conversible_types[type]
 end
@@ -92,8 +92,17 @@ function Type:is_coercible_from_node(node, explicit)
   if self.integral and type.integral and node.attr.const and node.attr.value then
     return self:is_inrange(node.attr.value)
   end
-  return self:is_coercible_from(type, explicit)
+  return self:is_coercible_from_type(type, explicit)
 end
+
+function Type:is_coercible_from(typeornode, explicit)
+  if traits.is_astnode(typeornode) then
+    return self:is_coercible_from_node(typeornode, explicit)
+  else
+    return self:is_coercible_from_type(typeornode, explicit)
+  end
+end
+
 
 function Type:is_inrange(value)
   if self:is_float() then return true end
@@ -361,14 +370,14 @@ function PointerType:_init(node, subtype)
   self.unary_operators['deref'] = subtype
 end
 
-function PointerType:is_coercible_from(type, explicit)
+function PointerType:is_coercible_from_type(type, explicit)
   if explicit and type:is_pointer() then
     return true
   end
   if type:is_nilptr() then
     return true
   end
-  if Type.is_coercible_from(self, type, explicit) then
+  if Type.is_coercible_from_type(self, type, explicit) then
     return true
   end
   return type:is_pointer() and type.subtype == self.subtype or self.subtype:is_void()

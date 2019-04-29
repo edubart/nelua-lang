@@ -306,7 +306,7 @@ function typedefs.find_common_type(possibletypes)
   if tabler.iall(possibletypes, Type.is_numeric) then
     for numtype in iters.ivalues(typedefs.numeric_coerce_types) do
       if tabler.iall(possibletypes, function(ty)
-        return numtype:is_coercible_from(ty) end
+        return numtype:is_coercible_from_type(ty) end
       ) then
         return numtype
       end

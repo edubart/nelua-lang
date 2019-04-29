@@ -262,6 +262,34 @@ it("function return", function()
   ]], "is not coercible with")
 end)
 
+it("function multiple return", function()
+  assert.analyze_ast([[
+    local function f(): integer, string return 1,'s'  end
+    local function g(a: boolean, b: integer, c: string) end
+    g(false, f())
+    local a: integer, b: string = f()
+    local a: integer = f()
+  ]])
+  assert.analyze_error([[
+    local function f(): integer, boolean return 1,false  end
+    local function g(a: boolean, b: integer, c: string) end
+    g(false, f())
+  ]], 'is not coercible with')
+  assert.analyze_error([[
+    local function f(): integer, boolean return 1,false  end
+    local a: integer, b: number = f()
+  ]], 'is not coercible with')
+  assert.analyze_error([[
+    local function f(): integer, boolean return 1,false  end
+    local a: integer, b: number;
+    a, b = f()
+  ]], 'is not coercible with')
+  assert.analyze_error([[
+    local function f(): integer, number return 1,'s'  end
+  ]], 'is not coercible with')
+end)
+
+
 it("function call", function()
   assert.c_gencode_equals([[
     local function f() return 0 end

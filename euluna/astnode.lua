@@ -90,7 +90,6 @@ local function stringfy_astnode(node, depth, ss, skipindent)
   for k,v in iters.ospairs(node) do
     if not isnode or not ignored_stringfy_keys[k] then
       if isnode and k == 'attr' and traits.is_table(v) then
-        --TODO: print inhereted attrs
         if next(v) then
           ss:add(indent, '  attr = ')
           stringfy_astnode(v, depth+1, ss, true)
