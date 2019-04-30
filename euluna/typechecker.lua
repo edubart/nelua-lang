@@ -816,7 +816,6 @@ function visitors.FuncDef(context, node)
   for i,rtype in pairs(returntypes) do
     local retnode = retnodes[i]
     if not retnode then
-      --TODO: using tostring will not work for complex types here
       retnode = context.astbuilder:create('Type', '<dummy>')
       retnode.attr.type = primtypes.type
       retnode.attr.holdedtype = rtype
@@ -945,8 +944,13 @@ function visitors.BinaryOp(context, node, desiredtype)
   if type then
     node.attr.type = type
   end
-  if lnode.attr.const and rnode.attr.const then
-    node.attr.const = true
+  if rnode.attr.type and lnode.attr.type then
+    if typedefs.binary_conditional_ops[opname] and
+      (not rnode.attr.type:is_boolean() or not lnode.attr.type:is_boolean()) then
+      node.attr.dynamic_conditional = true
+    elseif lnode.attr.const and rnode.attr.const then
+      node.attr.const = true
+    end
   end
   if lnode.attr.sideeffect or rnode.attr.sideeffect then
     node.attr.sideeffect = true

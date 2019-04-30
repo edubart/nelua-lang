@@ -7,11 +7,19 @@ local typechecker = require 'euluna.typechecker'
 local traits = require 'euluna.utils.traits'
 local lua_generator = require 'euluna.luagenerator'
 local c_generator = require 'euluna.cgenerator'
+local differ = require 'spec.differ'
 local euluna_syntax = require 'euluna.syntaxdefs'()
 local euluna_parser = euluna_syntax.parser
 
 function assert.ast_equals(expected_ast, ast)
   assert.same(tostring(expected_ast), tostring(ast))
+end
+
+function assert.same_string(expected, passedin)
+  if expected ~= passedin then --luacov:disable
+    error('Expected strings to be the same, difference:\n' ..
+      differ(expected, passedin):tostring({colored = true, context=3}))
+  end --luacov:enable
 end
 
 function assert.peg_match_all(patt, subjects)
@@ -134,7 +142,7 @@ function assert.generate_lua(euluna_code, expected_code)
   local ast = assert.parse_ast(euluna_parser, euluna_code)
   assert(typechecker.analyze(ast, euluna_parser.astbuilder))
   local generated_code = assert(lua_generator.generate(ast))
-  assert.same(stringer.rstrip(expected_code), stringer.rstrip(generated_code))
+  assert.same_string(stringer.rstrip(expected_code), stringer.rstrip(generated_code))
 end
 
 function assert.generate_c(euluna_code, expected_code, ispattern)
@@ -167,7 +175,7 @@ function assert.c_gencode_equals(code, expected_code)
   expected_ast = assert(typechecker.analyze(expected_ast, euluna_parser.astbuilder))
   local generated_code = assert(c_generator.generate(ast))
   local expected_generated_code = assert(c_generator.generate(expected_ast))
-  assert.same(expected_generated_code, generated_code)
+  assert.same_string(expected_generated_code, generated_code)
 end
 
 function assert.lua_gencode_equals(code, expected_code)
@@ -177,14 +185,14 @@ function assert.lua_gencode_equals(code, expected_code)
   expected_ast = assert(typechecker.analyze(expected_ast, euluna_parser.astbuilder))
   local generated_code = assert(lua_generator.generate(ast))
   local expected_generated_code = assert(lua_generator.generate(expected_ast))
-  assert.same(expected_generated_code, generated_code)
+  assert.same_string(expected_generated_code, generated_code)
 end
 
 function assert.analyze_ast(code, expected_ast)
   local ast = assert.parse_ast(euluna_parser, code)
   typechecker.analyze(ast, euluna_parser.astbuilder)
   if expected_ast then
-    assert.same(tostring(expected_ast), tostring(ast))
+    assert.same_string(tostring(expected_ast), tostring(ast))
   end
 end
 

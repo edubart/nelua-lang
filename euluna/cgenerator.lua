@@ -621,8 +621,7 @@ function visitors.BinaryOp(context, node, emitter)
   local op = node:assertraisef(cdefs.binary_ops[opname], 'binary operator "%s" not found', opname)
   local surround = is_in_operator(context)
   if surround then emitter:add('(') end
-  if typedefs.binary_conditional_ops[opname] and
-    (not rnode.attr.type:is_boolean() or not lnode.attr.type:is_boolean()) then
+  if node.attr.dynamic_conditional then
     emitter:add_ln('({')
     emitter:inc_indent()
     emitter:add_indent(context:get_ctype(node), ' t1_ = ')

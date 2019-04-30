@@ -237,7 +237,8 @@ it("binary conditional operators", function()
   assert.generate_c("do return not (a and b) end",  "return !(a && b)")
   ]]
   assert.run_c([[
-    assert((2 or 3) == 2)
+    local a = 2 or 3
+    assert(a == 2)
     assert((2 and 3) == 3)
     assert((0 or 1) == 0)
     --assert(nilptr or 1)
@@ -300,6 +301,8 @@ end)
 it("reserved names quoting", function()
   assert.generate_c("local default: integer", "int64_t mymod_default = 0;")
   assert.generate_c("local NULL: integer = 0", "int64_t mymod_NULL = 0;")
+  assert.generate_c("do local default: integer end", "int64_t default_ = 0;")
+  assert.generate_c("do local NULL: integer = 0 end", "int64_t NULL_ = 0;")
   assert.run_c([[
     local function struct(static: integer)
       local default: integer
