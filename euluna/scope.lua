@@ -11,7 +11,8 @@ function Scope:_init(parent, kind)
   self.kind = kind
   self.parent = parent
   self.symbols = {}
-  self.returnstypes = {}
+  self.possible_return_types = {}
+  self.resolved_return_types = {}
   if parent then
     metamagic.setmetaindex(self.symbols, parent.symbols)
   end
@@ -72,10 +73,10 @@ function Scope:resolve_symbols_types()
 end
 
 function Scope:add_return_type(index, type)
-  local returntypes = self.returnstypes[index]
+  local returntypes = self.possible_return_types[index]
   if not returntypes then
     returntypes = {}
-    self.returnstypes[index] = returntypes
+    self.possible_return_types[index] = returntypes
   elseif tabler.ifind(returntypes, type) then
     return
   end
@@ -83,11 +84,12 @@ function Scope:add_return_type(index, type)
 end
 
 function Scope:resolve_returntypes()
-  local resolved_types = {}
-  for i,returntypes in pairs(self.returnstypes) do
-    resolved_types[i] = typedefs.find_common_type(returntypes) or typedefs.primtypes.any
+  local resolved_return_types = {}
+  for i,returntypes in pairs(self.possible_return_types) do
+    resolved_return_types[i] = typedefs.find_common_type(returntypes) or typedefs.primtypes.any
   end
-  return resolved_types
+  self.resolved_return_types = resolved_return_types
+  return resolved_return_types
 end
 
 return Scope

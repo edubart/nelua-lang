@@ -102,6 +102,18 @@ function CContext:runctype(type)
   return typename .. '_type'
 end
 
+function CContext:funcretctype(functype)
+  local rettypes = functype.returntypes
+  local numrets = #rettypes
+  if numrets == 0 then
+    return 'void'
+  elseif numrets == 1 then
+    return self:ctype(rettypes[1])
+  else
+    return functype.codename .. '_ret'
+  end
+end
+
 function CContext:use_gc()
   self:ensure_runtime('euluna_gc')
   self.has_gc = true

@@ -184,12 +184,18 @@ function visitors.Call(context, node, emitter)
     callee = builtin(context, node, emitter)
   end
   if node.callee_type:is_function() then
+    -- function call
     emitter:add(callee, '(')
     for i,argtype,argnode in iters.izip(node.callee_type.argtypes, args) do
       if i > 1 then emitter:add(', ') end
       emitter:add_val2type(argtype, argnode)
     end
     emitter:add(')')
+
+    if node.callee_type:has_multiple_returns() then
+      -- get just the first result in multiple return functions
+      emitter:add('.r1')
+    end
   elseif node.callee_type:is_type() then
     -- type assertion
     assert(#args == 1)
@@ -223,11 +229,11 @@ end
 
 -- block
 function visitors.Block(context, node, emitter)
-  local stats = node:args()
+  local statnodes = node:args()
   emitter:inc_indent()
   context:push_scope('block')
   do
-    emitter:add_traversal_list(stats, '')
+    emitter:add_traversal_list(statnodes, '')
   end
   context:pop_scope()
   emitter:dec_indent()
@@ -235,21 +241,51 @@ end
 
 -- statements
 function visitors.Return(context, node, emitter)
-  --TODO: multiple return
-  local rets = node:args()
-  local scope = context.scope
-  scope:get_parent_of_kind('function').has_return = true
-  node:assertraisef(#rets <= 1, "multiple returns not supported yet")
-  emitter:add_indent("return")
-  if #rets > 0 then
-    emitter:add_ln(' ', rets, ';')
-  else
-    if scope:get_parent_of_kind('function').main then
-      -- main() must always return an integer
-      --TODO: actually all functions that return values should return something
-      emitter:add(' 0')
+  local retnodes = node:args()
+  local funcscope = context.scope:get_parent_of_kind('function')
+  local numretnodes = #retnodes
+  funcscope.has_return = true
+  if funcscope.main then
+    -- in main body
+    node:assertraisef(numretnodes <= 1, "multiple returns in main is not supported yet")
+    if numretnodes == 0 then
+      -- main must always return an integer
+      emitter:add_indent_ln('return 0;')
+    else
+      -- return one value (an integer expected)
+      local retnode = retnodes[1]
+      emitter:add_indent_ln('return ', retnode, ';')
     end
-    emitter:add_ln(';')
+  else
+    local functype = funcscope.functype
+    local rettypes = functype.returntypes
+    local numfuncrets = #rettypes
+    if numfuncrets == 0 then
+      -- no returns
+      assert(numretnodes == 0)
+      emitter:add_indent_ln('return;')
+    elseif numfuncrets == 1 then
+      -- one return
+      local retnode, rettype = retnodes[1], rettypes[1]
+      emitter:add_indent('return ')
+      if retnode then
+        -- return value is present
+        emitter:add_ln(retnode, ';')
+      else
+        -- no return value present, generate a zeroed one
+        emitter:add_castedzerotype(rettype)
+        emitter:add_ln(';')
+      end
+    else
+      -- multiple returns
+      local retctype = context:funcretctype(functype)
+      emitter:add_indent('return (', retctype, '){')
+      for i,retnode,rettype in iters.izip(retnodes, rettypes) do
+        if i>1 then emitter:add(', ') end
+        emitter:add_val2type(rettype, retnode)
+      end
+      emitter:add_ln('};')
+    end
   end
 end
 
@@ -262,7 +298,9 @@ function visitors.If(_, node, emitter)
       emitter:add_val2type(primtypes.boolean, condnode)
       emitter:add_ln(") {")
     else
-      emitter:add_indent_ln("} else if(", condnode, ") {")
+      emitter:add_indent("} else if(")
+      emitter:add_val2type(primtypes.boolean, condnode)
+      emitter:add_ln(") {")
     end
     emitter:add(blocknode)
   end
@@ -382,6 +420,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
       end
 
       if not declared or (not defined and valnode) then
+        -- decalre or define if needed
         if not declared then
           emitter:add_indent(varnode)
         else
@@ -392,6 +431,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         emitter:add_ln(';')
       end
     elseif varnode.attr.cinclude then
+      -- not declared, might be an imported variable from C
       context:add_include(varnode.attr.cinclude)
     end
   end
@@ -400,7 +440,6 @@ end
 function visitors.VarDecl(context, node, emitter)
   local varscope, mutability, varnodes, valnodes = node:args()
   node:assertraisef(varscope == 'local', 'global variables not supported yet')
-  node:assertraisef(not valnodes or #varnodes == #valnodes, 'vars and vals count differs')
   visit_assignments(context, emitter, varnodes, valnodes, true)
 end
 
@@ -412,10 +451,12 @@ end
 
 function visitors.FuncDef(context, node)
   local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
-  node:assertraisef(#retnodes <= 1, 'multiple returns not supported yet')
   node:assertraisef(varscope == 'local', 'non local scope for functions not supported yet')
 
   local attr = node.attr
+  local type = attr.type
+  local rettypes = type.returntypes
+  local numrets = #rettypes
   local decoration = 'static '
   local declare, define = not attr.nodecl, true
 
@@ -433,17 +474,28 @@ function visitors.FuncDef(context, node)
   if attr.noreturn then decoration = decoration .. 'EULUNA_NORETURN ' end
 
   local decemitter, defemitter = CEmitter(context), CEmitter(context)
-  if #retnodes == 0 then
-    decemitter:add_indent(decoration, 'void ')
-    defemitter:add_indent('void ')
-  else
-    local ret = retnodes[1]
-    decemitter:add_indent(decoration, ret.attr.holdedtype, ' ')
-    defemitter:add_indent(ret.attr.holdedtype, ' ')
+  local retctype = context:funcretctype(type)
+  if numrets > 1 then
+    node:assertraisef(declare, 'functions with multiple returns must be declared')
+
+    local retemitter = CEmitter(context)
+    retemitter:add_indent_ln('typedef struct ', retctype, ' {')
+    retemitter:inc_indent()
+    for i,rettype in ipairs(rettypes) do
+      retemitter:add_indent_ln(rettype, ' ', 'r', i, ';')
+    end
+    retemitter:dec_indent()
+    retemitter:add_indent_ln('} ', retctype, ';')
+    context:add_declaration(retemitter:generate())
   end
+
+  decemitter:add_indent(decoration, retctype, ' ')
+  defemitter:add_indent(retctype, ' ')
+
   decemitter:add(varnode)
   defemitter:add(varnode)
-  context:push_scope('function')
+  local funcscope = context:push_scope('function')
+  funcscope.functype = type
   do
     decemitter:add_ln('(', argnodes, ');')
     defemitter:add_ln('(', argnodes, ') {')

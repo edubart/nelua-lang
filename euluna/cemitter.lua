@@ -53,6 +53,13 @@ function CEmitter:add_nodezerotype(node)
   self:add(zeroinit(type))
 end
 
+function CEmitter:add_castedzerotype(type)
+  if not (type:is_boolean() or type:is_numeric() or type:is_pointer()) then
+    self:add_ctypecast(type)
+  end
+  self:add(zeroinit(type))
+end
+
 function CEmitter:add_ctype(type)
   self:add(self.context:ctype(type))
 end

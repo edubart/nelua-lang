@@ -319,6 +319,10 @@ function FunctionType:is_equal(type)
     tabler.deepcompare(type.returntypes, self.returntypes)
 end
 
+function FunctionType:has_multiple_returns()
+  return #self.returntypes > 1
+end
+
 function FunctionType:__tostring()
   local ss = sstream('function<(', self.argtypes, ')')
   if #self.returntypes > 0 then

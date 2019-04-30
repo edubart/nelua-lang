@@ -626,7 +626,7 @@ local function repeat_scope_until_resolution(context, scope_kind, after_push)
   repeat
     local last_resolutions_count = resolutions_count
     scope = context:push_scope(scope_kind)
-    after_push()
+    after_push(scope)
     resolutions_count = context.scope:resolve_symbols_types()
     context:pop_scope()
   until resolutions_count == last_resolutions_count
@@ -634,8 +634,9 @@ local function repeat_scope_until_resolution(context, scope_kind, after_push)
 end
 
 function visitors.Block(context, node)
+  local statnodes = node:args()
   repeat_scope_until_resolution(context, 'block', function()
-    context:default_visitor(node)
+    context:traverse(statnodes)
   end)
 end
 
@@ -779,12 +780,29 @@ function visitors.Assign(context, node)
 end
 
 function visitors.Return(context, node)
-  context:default_visitor(node)
   local retnodes = node:args()
+  context:traverse(retnodes)
   local funcscope = context.scope:get_parent_of_kind('function')
-  assert(funcscope)
-  for i,retnode in ipairs(retnodes) do
-    funcscope:add_return_type(i, retnode.attr.type)
+  if funcscope.returntypes then
+    for i,retnode,rettype in iters.izip(retnodes, funcscope.returntypes) do
+      local retnodetype = retnode and retnode.attr.type
+      if retnodetype and rettype then
+        retnode:assertraisef(rettype:is_coercible_from_type(retnodetype),
+          "return at index %d of type '%s' is not coercible with expression of type '%s'",
+          i, tostring(rettype), tostring(retnodetype))
+      elseif not retnode and rettype then
+        node:assertraisef(rettype:is_nilable(),
+          "missing return expression at index %d of type '%s'",
+          i, tostring(rettype))
+      elseif retnodetype then
+        node:assertraisef(#retnodes == 0,
+          "invalid return expression at index %d", i)
+      end
+    end
+  else
+    for i,retnode in ipairs(retnodes) do
+      funcscope:add_return_type(i, retnode.attr.type)
+    end
   end
 end
 
@@ -792,40 +810,31 @@ function visitors.FuncDef(context, node)
   local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
   local symbol = context:traverse(varnode)
 
+  context:traverse(retnodes)
+  local returntypes
+  if #retnodes > 0 then
+    returntypes = tabler.imap(retnodes, function(retnode)
+      return retnode.attr.holdedtype
+    end)
+
+    if #returntypes == 1 and returntypes[1]:is_void() then
+      returntypes = {}
+    end
+  end
+
   -- try to resolver function return types
-  local funcscope = repeat_scope_until_resolution(context, 'function', function()
+  local funcscope = repeat_scope_until_resolution(context, 'function', function(scope)
+    scope.returntypes = returntypes
     context:traverse(argnodes)
-    context:traverse(retnodes)
     context:traverse(blocknode)
   end)
 
   local argtypes = tabler.imap(argnodes, function(argnode)
     return argnode.attr.type or primtypes.any
   end)
-  local returntypes = funcscope:resolve_returntypes()
 
-  -- populate function return types
-  for i,retnode in ipairs(retnodes) do
-    local rtype = returntypes[i]
-    if rtype then
-      retnode:assertraisef(retnode.attr.holdedtype:is_coercible_from_type(rtype),
-        "return variable at index %d of type '%s' is not coercible with expression of type '%s'",
-        i, tostring(retnode.attr.holdedtype), tostring(rtype))
-    else
-      returntypes[i] = retnode.attr.holdedtype
-    end
-  end
-
-  -- populate return type nodes
-  for i,rtype in pairs(returntypes) do
-    local retnode = retnodes[i]
-    if not retnode then
-      retnode = context.astbuilder:create('Type', '<dummy>')
-      retnode.attr.type = primtypes.type
-      retnode.attr.holdedtype = rtype
-      retnode.attr.const = true
-      retnodes[i] = retnode
-    end
+  if not returntypes then
+    returntypes = funcscope:resolve_returntypes()
   end
 
   -- build function type
@@ -854,6 +863,18 @@ function visitors.FuncDef(context, node)
     context:traverse(pragmanodes, symbol)
   end
 
+  -- check missing returns
+  if not varnode.attr.nodecl and not varnode.attr.cimport then
+    local statnodes = blocknode:arg(1)
+    local laststat = statnodes[#statnodes]
+    if (not laststat or laststat.tag ~= 'Return') and #returntypes > 0 then
+      local canbeempty = tabler.iall(returntypes, function(rettype)
+        return rettype:is_nilable()
+      end)
+      node:assertraisef(canbeempty, 'return statement is missing in function body end')
+    end
+  end
+
   if varnode.attr.cimport then
     blocknode:assertraisef(#blocknode[1] == 0, 'body of an import function must be empty')
   end
@@ -875,11 +896,12 @@ function visitors.UnaryOp(context, node, desiredtype)
     node.attr.type = primtypes.boolean
   else
     context:traverse(argnode, desiredtype)
-    if argnode.attr.type then
-      local type = argnode.attr.type:get_unary_operator_type(opname)
+    local argtype = argnode.attr.type
+    if argtype then
+      local type = argtype:get_unary_operator_type(opname)
       argnode:assertraisef(type,
         "unary operation `%s` is not defined for type '%s' of the expression",
-        opname, tostring(argnode.attr.type))
+        opname, tostring(argtype))
       node.attr.type = type
     end
     if opname == 'neg' and argnode.tag == 'Number' then

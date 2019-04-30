@@ -237,7 +237,7 @@ it("function definition", function()
   ]])
   assert.analyze_ast([[
     local f: function<(integer): string>
-    function f(a: integer): string end
+    function f(a: integer): string return '' end
   ]])
   assert.analyze_error([[
     local f: isize
@@ -252,7 +252,7 @@ it("function definition", function()
     function f(a: string) end
   ]], "is not coercible with")
   assert.analyze_error([[
-    local function f(): integer, string end
+    local function f(): integer, string return 1, '' end
     function f(): integer end
   ]], "is not coercible with")
   assert.analyze_error([[
@@ -279,6 +279,15 @@ it("function return", function()
       return c
     end
   ]])
+  assert.analyze_error([[
+    local function f(): integer, string return 1 end
+  ]], "missing return expression at index")
+  assert.analyze_error([[
+    local function f(): integer end
+  ]], "return statement is missing")
+  assert.analyze_error([[
+    local function f(): integer return 1, 2 end
+  ]], "invalid return expression at index")
   assert.analyze_error([[
     local function f(): string return 0 end
   ]], "is not coercible with")
