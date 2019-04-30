@@ -78,12 +78,15 @@ function visitors.Number(context, node, desiredtype)
   end
   node.attr.type = type
   node.attr.value = value
+  node.attr.integral = integral
   node.attr.const = true
 end
 
 function visitors.String(_, node)
   if node.attr.type then return end
-  node.attr.value = node:args(1)
+  local value, literal = node:args()
+  node:assertraisef(literal == nil, 'literals are not supported yet')
+  node.attr.value = value
   node.attr.type = primtypes.string
   node.attr.const = true
 end
@@ -162,6 +165,7 @@ function visitors.Table(context, node, desiredtype)
             fieldvalnode.attr.initializer = true
           end
         end
+        childnode.attr.parenttype = desiredtype
         if not fieldvalnode.attr.const then
           const = false
         end
@@ -855,6 +859,15 @@ function visitors.FuncDef(context, node)
   end
 end
 
+local function is_in_operator(context)
+  local parent_node = context:get_parent_node()
+  if not parent_node then return false end
+  local parent_node_tag = parent_node.tag
+  return
+    parent_node_tag == 'UnaryOp' or
+    parent_node_tag == 'BinaryOp'
+end
+
 function visitors.UnaryOp(context, node, desiredtype)
   local opname, argnode = node:args()
   if opname == 'not' then
@@ -876,6 +889,7 @@ function visitors.UnaryOp(context, node, desiredtype)
   end
   argnode.attr.const = node.attr.const
   argnode.attr.sideeffect = node.attr.sideeffect
+  node.attr.inoperator = is_in_operator(context)
 end
 
 function visitors.BinaryOp(context, node, desiredtype)
@@ -955,6 +969,7 @@ function visitors.BinaryOp(context, node, desiredtype)
   if lnode.attr.sideeffect or rnode.attr.sideeffect then
     node.attr.sideeffect = true
   end
+  node.attr.inoperator = is_in_operator(context)
 end
 
 local typechecker = {}

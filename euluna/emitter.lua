@@ -35,19 +35,25 @@ function Emitter:add_ln(what, ...)
   self:add('\n')
 end
 
+function Emitter:add_one(what)
+  if traits.is_string(what) then
+    table.insert(self.codes, what)
+  elseif traits.is_number(what) or traits.is_bignumber(what) then
+    table.insert(self.codes, tostring(what))
+  elseif traits.is_astnode(what) then
+    self:add_traversal(what)
+  elseif traits.is_table(what) then
+    self:add_traversal_list(what)
+  --elseif traits.is_function(what) then
+    --what(self)
+  else --luacov:disable
+    errorer.errorf('emitter cannot add value of type "%s"', type(what))
+  end  --luacov:enable
+end
+
 function Emitter:add(what, ...)
   if what then
-    if traits.is_string(what) then
-      table.insert(self.codes, what)
-    elseif traits.is_number(what) or traits.is_bignumber(what) then
-      table.insert(self.codes, tostring(what))
-    elseif traits.is_astnode(what) then
-      self:add_traversal(what)
-    elseif traits.is_table(what) then
-      self:add_traversal_list(what)
-    else --luacov:disable
-      errorer.errorf('emitter cannot add value of type "%s"', type(what))
-    end  --luacov:enable
+    self:add_one(what)
   end
   local numargs = select('#', ...)
   if numargs > 0 then

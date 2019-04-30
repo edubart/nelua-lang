@@ -20,26 +20,34 @@ function CContext:_init(visitors)
   }
 end
 
-function CContext:ensure_type(nodeortype)
-  local type = nodeortype
-  if traits.is_astnode(nodeortype) then
-    type = nodeortype.attr.type
-    nodeortype:assertraisef(type, 'unknown type for AST node while trying to get the C type')
+function CContext:declname(node)
+  local attr = node.attr
+  if attr.declname then
+    return attr.declname
   end
-  if type:is_type() then
-    type = nodeortype.attr.holdedtype
+  local declname = attr.codename
+  if not attr.nodecl and not attr.cimport then
+    if self.scope:is_main() then
+      declname = node.modname .. '_' .. declname
+    end
+    declname = cdefs.quotename(declname)
   end
-  assert(type)
+  attr.declname = declname
+  return declname
+end
+
+function CContext:typename(type)
+  assert(traits.is_type(type))
   local codename = type.codename
   if type:is_arraytable() then
-    local subctype = self:get_ctype(type.subtype)
+    local subctype = self:ctype(type.subtype)
     self:ensure_runtime(codename, 'euluna_arrtab', {
       tyname = codename,
       ctype = subctype
     })
     self:use_gc()
   elseif type:is_array() then
-    local subctype = self:get_ctype(type.subtype)
+    local subctype = self:ctype(type.subtype)
     self:ensure_runtime(codename, 'euluna_array', {
       tyname = codename,
       length = type.length,
@@ -47,14 +55,14 @@ function CContext:ensure_type(nodeortype)
     })
   elseif type:is_record() then
     local fields = tabler.imap(type.fields, function(f)
-      return {name = f.name, ctype = self:get_ctype(f.type)}
+      return {name = f.name, ctype = self:ctype(f.type)}
     end)
     self:ensure_runtime(codename, 'euluna_record', {
       tyname = codename,
       fields = fields
     })
   elseif type:is_enum() then
-    local subctype = self:get_ctype(type.subtype)
+    local subctype = self:ctype(type.subtype)
     self:ensure_runtime(codename, 'euluna_enum', {
       tyname = codename,
       subctype = subctype,
@@ -62,7 +70,7 @@ function CContext:ensure_type(nodeortype)
     })
   elseif type:is_pointer() then
     if not type:is_generic_pointer() then
-      local subctype = self:get_ctype(type.subtype)
+      local subctype = self:ctype(type.subtype)
       self:ensure_runtime(codename, 'euluna_pointer', {
         tyname = codename,
         subctype = subctype
@@ -73,21 +81,14 @@ function CContext:ensure_type(nodeortype)
   elseif type:is_any() then
     self.has_any = true
     self.has_type = true
-  elseif type:is_nil() then
-    self.has_nil = true
   else
     errorer.assertf(cdefs.primitive_ctypes[type], 'ctype for "%s" is unknown', tostring(type))
   end
-  return codename, type
-end
-
-function CContext:get_typename(nodeortype)
-  local codename = self:ensure_type(nodeortype)
   return codename
 end
 
-function CContext:get_ctype(nodeortype)
-  local codename, type = self:ensure_type(nodeortype)
+function CContext:ctype(type)
+  local codename = self:typename(type)
   local ctype = cdefs.primitive_ctypes[type]
   if ctype then
     return ctype
@@ -95,30 +96,15 @@ function CContext:get_ctype(nodeortype)
   return codename
 end
 
-function CContext:get_declname(node)
-  if node.attr.declname then
-    return node.attr.declname
-  end
-  local declname = node.attr.codename
-  if not node.attr.nodecl and not node.attr.cimport then
-    if self.scope:is_main() then
-      declname = node.modname .. '_' .. declname
-    end
-    declname = cdefs.quotename(declname)
-  end
-  node.attr.declname = declname
-  return declname
+function CContext:runctype(type)
+  local typename = self:typename(type)
+  self.has_type = true
+  return typename .. '_type'
 end
 
 function CContext:use_gc()
   self:ensure_runtime('euluna_gc')
   self.has_gc = true
-end
-
-function CContext:get_typectype(nodeortype)
-  local typename = self:get_typename(nodeortype)
-  self.has_type = true
-  return typename .. '_type'
 end
 
 local function late_template_render(context, filename, params)

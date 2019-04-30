@@ -16,7 +16,7 @@ it("analyzed ast transform", function()
           attr = {codename='a', mut='var', name='a', type='int64'},
           'a' }},
         { n.Number{
-          attr = {const=true, type='int64', value=bn.fromdec('1')},
+          attr = {const=true, integral=true, type='int64', value=bn.fromdec('1')},
           'dec', '1'
         }}
       },

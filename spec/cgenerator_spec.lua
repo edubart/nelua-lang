@@ -316,7 +316,7 @@ end)
 it("any type", function()
   assert.generate_c(
     "do local a: any end",
-    "euluna_any a = (euluna_any){&euluna_nil_type, {0}};")
+    "euluna_any a = {0};")
   assert.generate_c(
     "do local a: any; local b: any = a end",
     "euluna_any b = a;")

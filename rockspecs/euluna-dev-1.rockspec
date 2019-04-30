@@ -51,6 +51,7 @@ build = {
     ['euluna.cgenerator'] = 'euluna/cgenerator.lua',
     ['euluna.configer'] = 'euluna/configer.lua',
     ['euluna.context'] = 'euluna/context.lua',
+    ['euluna.cemitter'] = 'euluna/cemitter.lua',
     ['euluna.emitter'] = 'euluna/emitter.lua',
     ['euluna.luabuiltins'] = 'euluna/luabuiltins.lua',
     ['euluna.luacompiler'] = 'euluna/luacompiler.lua',

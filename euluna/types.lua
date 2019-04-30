@@ -9,6 +9,7 @@ local metamagic = require 'euluna.utils.metamagic'
 --------------------------------------------------------------------------------
 local Type = class()
 
+Type._type = true
 Type.unary_operators = {}
 Type.binary_operators = {}
 
