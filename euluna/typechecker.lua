@@ -748,6 +748,10 @@ function visitors.VarDecl(context, node)
       varnode:assertraisef(not varnode.attr.cimport or
         (vartype == primtypes.type or (vartype == nil and valtype == primtypes.type)),
         'cannot assign imported variables, only imported types can be assigned')
+
+      if valtype == vartype and valnode.attr.const then
+        valnode.attr.initializer = true
+      end
     end
     if valtype then
       if varnode.attr.const then

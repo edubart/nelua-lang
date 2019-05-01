@@ -169,6 +169,10 @@ it("const", function()
     "local const N = 3773; local a: array<integer, N>",
     {"static const int64_t mymod_N = 3773",
      "int64_t data[3773];"})
+  assert.generate_c("local const a, b = 1, 2; local const c = a * b",
+    "static const int64_t mymod_c = mymod_a * mymod_b;")
+  assert.generate_c("local const a, b = 1, 2; local const c = @int32(a * b)",
+    "static const int32_t mymod_c = (int32_t)(mymod_a * mymod_b);")
 end)
 
 it("assignment", function()

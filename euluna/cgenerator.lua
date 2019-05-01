@@ -201,7 +201,7 @@ function visitors.Call(context, node, emitter)
     assert(#args == 1)
     local argnode = args[1]
     if argnode.attr.type ~= type then
-      emitter:add_nodectypecast(node)
+      emitter:add_ctypecast(type)
       emitter:add('(', argnode, ')')
     else
       emitter:add(argnode)
