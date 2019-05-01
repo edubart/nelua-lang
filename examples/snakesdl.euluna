@@ -62,6 +62,7 @@ local function SDL_RenderClear(renderer: SDL_Renderer) !cimport end
 local function SDL_SetRenderDrawColor(renderer: SDL_Renderer, r: uint8, g: uint8, b: uint8, a: uint8): cint !cimport end
 local function SDL_RenderFillRect(renderer: SDL_Renderer, rect: SDL_Rect*): cint !cimport end
 local function SDL_GetTicks(): uint32 !cimport end
+--local function SDL_GetError(): cstring !cimport end
 local function rand(): int32 !cimport('rand') end
 
 -- game types
@@ -130,7 +131,7 @@ end
 local function init_game()
   tiles = {}
   headpos = Point2D{x=GRID_SIZE//2, y=GRID_SIZE//2}
-  tailpos = Point2D{x=headpos.x,   y=headpos.y+1}
+  tailpos = Point2D{x=headpos.x,    y=headpos.y+1}
   movedir = Direction.UP
   score = 0
   nextmove = 0

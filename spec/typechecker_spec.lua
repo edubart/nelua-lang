@@ -136,6 +136,8 @@ it("loop variables", function()
   assert.analyze_error("for i:byte=1.0,256 do end", "is not coercible with")
   assert.analyze_error("for i:byte=1_byte,256 do end", "is not coercible with")
   assert.analyze_error("for i:byte=1_byte,10_byte,2.0 do end", "is not coercible with")
+  assert.analyze_error("for i='s','b' do end", "must be a number")
+  assert.analyze_error("for i=1,2,'s' do end", "is not coercible with")
 end)
 
 it("variable assignments", function()

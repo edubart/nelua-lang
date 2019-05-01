@@ -117,10 +117,36 @@ it("repeat", function()
 end)
 
 it("for", function()
-  assert.generate_c("for i=a,b do\nend",
-    "for(euluna_any i = a; i <= b; i += 1) {\n  }")
-  assert.generate_c("for i=a,b,c do\nend",
-    "for(euluna_any i = a; i <= b; i += c) {\n  }")
+  assert.generate_c("for i=a,b do end", {
+    "for(euluna_any __it = a, __end = b; __it <= __end; __it = __it + 1) {",
+    "euluna_any i = __it;"})
+  assert.generate_c("for i=a,b,c do end",
+    "for(euluna_any __it = a, __end = b, __step = c; " ..
+    "(__step >= 0 && __it <= __end) || (__step < 0 && __it >= __end); __it = __it + __step) {")
+  assert.generate_c(
+    "for i=1,<2 do end",
+    "for(int64_t __it = 1, __end = 2; __it < __end; __it = __it + 1)")
+  assert.generate_c(
+    "for i=2,1,-1 do end",
+    "for(int64_t __it = 2, __end = 1; __it >= __end; __it = __it + -1)")
+  assert.run_c([[
+    local x = 0
+    for i=1,10 do x = x + 1 end
+    assert(x == 10)
+    x = 0
+    for i=1,<10 do x = x + 1 end
+    assert(x == 9)
+    x = 0
+    for i=1,10,2 do x = x + 1 end
+    assert(x == 5)
+    x = 0
+    for i=10,1,-1 do x = x + 1 end
+    assert(x == 10)
+    local step = -2
+    x = 0
+    for i=10,1,step do x = x + 1 end
+    assert(x == 5)
+  ]])
 end)
 
 it("break and continue", function()
@@ -268,16 +294,16 @@ end)
 
 it("binary conditional operators", function()
   assert.generate_c("do return a or b end",  [[return ({
-      euluna_any t1_ = a; (void)t1_;
-      euluna_any t2_ = {0}; (void)t2_;
+      euluna_any t1_ = a; EULUNA_UNUSED(t1_);
+      euluna_any t2_ = {0}; EULUNA_UNUSED(t2_);
       bool cond_ = euluna_any_to_boolean(t1_);
       if(cond_)
         t2_ = b;
       cond_ ? t1_ : t2_;
     });]])
   assert.generate_c("do return a and b end",  [[return ({
-      euluna_any t1_ = a; (void)t1_;
-      euluna_any t2_ = {0}; (void)t2_;
+      euluna_any t1_ = a; EULUNA_UNUSED(t1_);
+      euluna_any t2_ = {0}; EULUNA_UNUSED(t2_);
       bool cond_ = euluna_any_to_boolean(t1_);
       if(cond_) {
         t2_ = b;

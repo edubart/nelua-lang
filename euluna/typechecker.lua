@@ -665,37 +665,59 @@ function visitors.Repeat(context, node)
 end
 
 function visitors.ForNum(context, node)
-  local itvarnode, beginvalnode, comp, endvalnode, incvalnode, blocknode = node:args()
+  local itvarnode, beginvalnode, compop, endvalnode, stepvalnode, blocknode = node:args()
   local itname = itvarnode[1]
   context:traverse(beginvalnode)
   context:traverse(endvalnode)
-  if incvalnode then
-    context:traverse(incvalnode)
+  local btype, etype = beginvalnode.attr.type, endvalnode.attr.type
+  local stype
+  if stepvalnode then
+    context:traverse(stepvalnode)
+    stype = stepvalnode.attr.type
   end
   repeat_scope_until_resolution(context, 'loop', function()
     local itsymbol = context:traverse(itvarnode)
-    if itvarnode.attr.type then
-      if beginvalnode.attr.type then
-        itvarnode:assertraisef(itvarnode.attr.type:is_coercible_from_node(beginvalnode),
+    local ittype = itvarnode.attr.type
+    if ittype then
+      itvarnode:assertraisef(ittype:is_numeric() or ittype:is_any(),
+          "`for` variable must be a number, but got type '%s'",
+           tostring(ittype))
+      if btype then
+        beginvalnode:assertraisef(ittype:is_coercible_from_node(beginvalnode),
           "`for` variable '%s' of type '%s' is not coercible with begin value of type '%s'",
-          itname, tostring(itvarnode.attr.type), tostring(beginvalnode.attr.type))
+          itname, tostring(ittype), tostring(btype))
       end
-      if endvalnode.attr.type then
-        itvarnode:assertraisef(itvarnode.attr.type:is_coercible_from_node(endvalnode),
+      if etype then
+        endvalnode:assertraisef(ittype:is_coercible_from_node(endvalnode),
           "`for` variable '%s' of type '%s' is not coercible with end value of type '%s'",
-          itname, tostring(itvarnode.attr.type), tostring(endvalnode.attr.type))
+          itname, tostring(ittype), tostring(etype))
       end
-      if incvalnode and incvalnode.attr.type then
-        itvarnode:assertraisef(itvarnode.attr.type:is_coercible_from_node(incvalnode),
+      if stype then
+        stepvalnode:assertraisef(ittype:is_coercible_from_node(stepvalnode),
           "`for` variable '%s' of type '%s' is not coercible with increment value of type '%s'",
-          itname, tostring(itvarnode.attr.type), tostring(incvalnode.attr.type))
+          itname, tostring(ittype), tostring(stype))
       end
     else
-      itsymbol:add_possible_type(beginvalnode.attr.type, true)
-      itsymbol:add_possible_type(endvalnode.attr.type, true)
+      itsymbol:add_possible_type(btype, true)
+      itsymbol:add_possible_type(etype, true)
     end
     context:traverse(blocknode)
   end)
+  local fixedstep
+  if stype and stype:is_numeric() and stepvalnode.attr.const then
+    -- constant step
+    fixedstep = stepvalnode.attr.value
+  elseif not stepvalnode then
+    -- default step is '1'
+    fixedstep = bn.new(1)
+  end
+  if not compop and fixedstep then
+    -- we now that the step is a const numeric value
+    -- compare operation must be ge ('>=') when step is negative
+    compop = fixedstep:isneg() and 'ge' or 'le'
+  end
+  node.attr.fixedstep = fixedstep
+  node.attr.compop = compop
 end
 
 function visitors.VarDecl(context, node)
@@ -909,8 +931,8 @@ function visitors.UnaryOp(context, node, desiredtype)
     end
     assert(context.phase ~= phases.any_inference or node.attr.type)
   end
-  argnode.attr.const = node.attr.const
-  argnode.attr.sideeffect = node.attr.sideeffect
+  node.attr.const = argnode.attr.const
+  node.attr.sideeffect = argnode.attr.sideeffect
   node.attr.inoperator = is_in_operator(context)
 end
 

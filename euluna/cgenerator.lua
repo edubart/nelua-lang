@@ -359,23 +359,44 @@ function visitors.Repeat(_, node, emitter)
 end
 
 function visitors.ForNum(context, node, emitter)
-  local itvarnode, beginval, compop, endval, incrval, blocknode  = node:args()
-  if not compop then
-    compop = 'le'
-  end
-  --TODO: evaluate beginval, endval, incrval only once in case of expressions
-  --TODO: must change increment for reverse loops
+  local itvarnode, beginvalnode, compop, endvalnode, stepvalnode, blocknode  = node:args()
+  compop = node.attr.compop
+  local fixedstep = node.attr.fixedstep
   context:push_scope('for')
   do
-    local itname = context:declname(itvarnode)
+    local ccompop = cdefs.binary_ops[compop]
     local ittype = itvarnode.attr.type
-    emitter:add_indent("for(", itvarnode, ' = ')
-    emitter:add_val2type(ittype, beginval)
-    emitter:add('; ', itname, ' ', cdefs.binary_ops[compop], ' ')
-    emitter:add_val2type(ittype, endval)
-    emitter:add_ln('; ', itname, ' += ', incrval or '1', ') {')
+    local itname = context:declname(itvarnode)
+    emitter:add_indent('for(', ittype, ' __it = ')
+    emitter:add_val2type(ittype, beginvalnode)
+    emitter:add(', __end = ')
+    emitter:add_val2type(ittype, endvalnode)
+    if not fixedstep then
+      emitter:add(', __step = ')
+      emitter:add_val2type(ittype, stepvalnode)
+    end
+    emitter:add('; ')
+    if compop then
+      emitter:add('__it ', ccompop, ' __end')
+    else
+      -- step is an expression, must detect the compare operation at runtime
+      assert(not fixedstep)
+      emitter:add('(__step >= 0 && __it <= __end) || (__step < 0 && __it >= __end)')
+    end
+    emitter:add('; __it = __it + ')
+    if not fixedstep then
+      emitter:add('__step')
+    elseif stepvalnode then
+      emitter:add_val2type(ittype, stepvalnode)
+    else
+      emitter:add('1')
+    end
+    emitter:add_ln(') {')
+    emitter:inc_indent()
+    emitter:add_indent_ln(itvarnode, ' = __it; EULUNA_UNUSED(', itname, ');')
+    emitter:dec_indent()
     emitter:add(blocknode)
-    emitter:add_indent_ln("}")
+    emitter:add_indent_ln('}')
   end
   context:pop_scope()
 end
@@ -538,8 +559,8 @@ function visitors.BinaryOp(_, node, emitter)
     emitter:inc_indent()
     emitter:add_indent(type, ' t1_ = ')
     emitter:add_val2type(type, lnode)
-    emitter:add_ln('; (void)t1_;')
-    emitter:add_indent_ln(type, ' t2_ = {0}; (void)t2_;')
+    emitter:add_ln('; EULUNA_UNUSED(t1_);')
+    emitter:add_indent_ln(type, ' t2_ = {0}; EULUNA_UNUSED(t2_);')
     if opname == 'and' then
       emitter:add_indent('bool cond_ = ')
       emitter:add_val2type(primtypes.boolean, 't1_', type)

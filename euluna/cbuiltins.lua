@@ -126,6 +126,8 @@ function functions.print(context, node)
       defemitter:add_indent_ln('euluna_stdout_write_any(a',i,');')
     elseif argtype:is_string() then
       defemitter:add_indent_ln('euluna_stdout_write_string(a',i,');')
+    elseif argtype:is_cstring() then
+      defemitter:add_indent_ln('euluna_stdout_write(a',i,');')
     elseif argtype:is_boolean() then
       defemitter:add_indent_ln('euluna_stdout_write_boolean(a',i,');')
     elseif argtype:is_numeric() then
