@@ -89,6 +89,19 @@ function Context:traverse(node, ...)
   return self:traverse_nodes(node, ...)
 end
 
+function Context:repeat_scope_until_resolution(scope_kind, after_push)
+  local resolutions_count = 0
+  local scope
+  repeat
+    local last_resolutions_count = resolutions_count
+    scope = self:push_scope(scope_kind)
+    after_push(scope)
+    resolutions_count = scope:resolve()
+    self:pop_scope()
+  until resolutions_count == last_resolutions_count
+  return scope
+end
+
 function Context:add_runtime_builtin(name)
   if not name then return end
   self.builtins[name] = true

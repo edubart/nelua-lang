@@ -45,9 +45,8 @@ local function math_logbase(x: number, base: number): number
     return clog2(x)
   elseif base == 10 then
     return clog10(x)
-  else
-    return math_log(x) / math_log(base)
   end
+  return math_log(x) / math_log(base)
 end
 
 local function math_deg(x: number)
@@ -58,15 +57,10 @@ local function math_rad(x: number)
   return x * (math_pi / 180.0)
 end
 
-local function math_intmodf(x: number)
+local function math_modf(x: number)
   local i: number
-  cmodf(x, &i)
-  return i
-end
-
-local function math_fracmodf(x: number)
-  local i: number
-  return cmodf(x, &i)
+  local f = cmodf(x, &i)
+  return i, f
 end
 
 local function math_random()
@@ -81,7 +75,7 @@ local function math_randomseed(x: number)
   csrand(@uint32(x))
 end
 
-local function math_ult(m: integer, n: integer)
+local function math_ult(m: integer, n: integer): boolean
   return @uinteger(m) < @uinteger(n)
 end
 
@@ -151,12 +145,11 @@ assert_equal(math_logbase(10, 10), 1)
 
 assert_equal(math_fmod(5, 2), 1)
 assert_equal(math_fmod(2.3, 5.7), 2.3)
-assert_equal(math_intmodf(5), 5)
-assert_equal(math_intmodf(5.3), 5)
-assert_equal(math_intmodf(-5.3), -5)
-assert_equal(math_fracmodf(5), 0)
-assert_equal(math_fracmodf(5.3), 0.3)
-assert_equal(math_fracmodf(-5.3), -0.3)
+
+local i: number, f: number
+i, f = math_modf( 5.0)  assert_equal(i, 5)  assert_equal(f, 0.0)
+i, f = math_modf( 5.3)  assert_equal(i, 5)  assert_equal(f, 0.3)
+i, f = math_modf(-5.3)  assert_equal(i,-5)  assert_equal(f,-0.3)
 
 assert(not (math_maxinteger < math_mininteger))
 assert(math_ult(math_maxinteger, math_mininteger))

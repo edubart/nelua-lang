@@ -213,17 +213,26 @@ it("function multiple returns", function()
   }, true)
   assert.generate_c([[do
     local function f(): integer, boolean return 1, true end
-    local a = f()
+    local a, b = f()
+    local c = f()
   end]], {
-    "int64_t a = f().r1;",
-  })
+    "int64_t a = __ret%d+%.r1;",
+    "bool b = __ret%d+%.r2;",
+    "int64_t c = f%(%)%.r1;"
+  }, true)
   assert.run_c([[
     local function f(): integer, boolean return 1, true end
     local function g() return 2, true end
-    local a = f()
-    local b = g()
+    local a, b = f()
+    local c = g()
     assert(a == 1)
-    assert(b == 2)
+    assert(b == true)
+    assert(c == 2)
+    a, b = f()
+    c = g()
+    assert(a == 1)
+    assert(b == true)
+    assert(c == 2)
   ]])
 end)
 

@@ -128,7 +128,11 @@ function Type:is_float()
 end
 
 function Type:is_any()
-  return self.name == 'any'
+  return self.name == 'any' or self.name == 'varanys'
+end
+
+function Type:is_varanys()
+  return self.name == 'varanys'
 end
 
 function Type:is_nil()
@@ -215,8 +219,10 @@ function Type:__eq(type)
   return self:is_equal(type) and type:is_equal(self)
 end
 
--- the type of 'Type'
+-- types used internally
 Type.type = Type('type')
+Type.void = Type('void')
+Type.any = Type('any')
 
 local function gencodename(self)
   local s = tostring(self)
@@ -319,8 +325,26 @@ function FunctionType:is_equal(type)
     tabler.deepcompare(type.returntypes, self.returntypes)
 end
 
+function FunctionType:get_return_type(index)
+  local returntypes = self.returntypes
+  local lastindex = #returntypes
+  local lastret = returntypes[#returntypes]
+  if lastret and lastret:is_varanys() and index > lastindex then
+    return Type.any
+  end
+  local rettype = returntypes[index]
+  if not rettype and index == 1 then
+    return Type.void
+  end
+  return rettype
+end
+
 function FunctionType:has_multiple_returns()
   return #self.returntypes > 1
+end
+
+function FunctionType:get_return_count()
+  return #self.returntypes
 end
 
 function FunctionType:__tostring()

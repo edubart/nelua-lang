@@ -150,7 +150,7 @@ astbuilder:register('Repeat', {
 astbuilder:register('ForNum', {
   ntypes.IdDecl, -- iterated var
   ntypes.Node, -- begin expr
-  stypes.one_of{"lt", "ne", "gt", "le", "ge", "eq"}:is_optional(), -- compare operator
+  stypes.one_of{"lt", "ne", "gt", "le", "ge"}:is_optional(), -- compare operator
   ntypes.Node, -- end expr
   ntypes.Node:is_optional(), -- increment expr
   ntypes.Block, -- block

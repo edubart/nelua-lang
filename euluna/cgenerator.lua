@@ -29,7 +29,8 @@ end
 
 function visitors.String(context, node, emitter)
   local decemitter = CEmitter(context)
-  local value, len = node.attr.value, #node.attr.value
+  local value = node.attr.value
+  local len = #value
   local varname = '__string_literal_' .. node.pos
   local quoted_value = pegger.double_quote_c_string(value)
   decemitter:add_indent_ln('static const struct { uintptr_t len, res; char data[', len + 1, ']; }')
@@ -42,16 +43,8 @@ function visitors.Boolean(_, node, emitter)
   emitter:add_booleanlit(node.attr.value)
 end
 
-function visitors.Pair(_, node, emitter)
-  local namenode, valuenode = node:args()
-  local parenttype = node.attr.parenttype
-  if parenttype and parenttype:is_record() then
-    assert(traits.is_string(namenode))
-    emitter:add('.', cdefs.quotename(namenode), ' = ', valuenode)
-  else --luacov:disable
-    error('not implemented yet')
-  end --luacov:enable
-end
+-- TODO: Nil
+-- TODO: Varargs
 
 function visitors.Table(context, node, emitter)
   local childnodes, type = node:arg(1), node.attr.type
@@ -70,6 +63,19 @@ function visitors.Table(context, node, emitter)
     error('not implemented yet')
   end --luacov:enable
 end
+
+function visitors.Pair(_, node, emitter)
+  local namenode, valuenode = node:args()
+  local parenttype = node.attr.parenttype
+  if parenttype and parenttype:is_record() then
+    assert(traits.is_string(namenode))
+    emitter:add('.', cdefs.quotename(namenode), ' = ', valuenode)
+  else --luacov:disable
+    error('not implemented yet')
+  end --luacov:enable
+end
+
+-- TODO: Function
 
 function visitors.Pragma(context, node, emitter)
   local attr = node.attr
@@ -113,12 +119,13 @@ visitors.PointerType = visitors.Type
 
 function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
-  if attr.type:is_type() then return end
+  local type = node.attr.type
+  if type:is_type() then return end
   if attr.const    then emitter:add('const ') end
   if attr.volatile then emitter:add('volatile ') end
   if attr.restrict then emitter:add('restrict ') end
   if attr.register then emitter:add('register ') end
-  emitter:add(node.attr.type, ' ', context:declname(node))
+  emitter:add(type, ' ', context:declname(node))
 end
 
 -- indexing
@@ -167,7 +174,6 @@ function visitors.ArrayIndex(context, node, emitter)
   end
 end
 
--- calls
 function visitors.Call(context, node, emitter)
   local args, callee, block_call = node:args()
   local type = node.attr.type
@@ -183,20 +189,20 @@ function visitors.Call(context, node, emitter)
   if builtin then
     callee = builtin(context, node, emitter)
   end
-  if node.callee_type:is_function() then
+  if node.calleetype:is_function() then
     -- function call
     emitter:add(callee, '(')
-    for i,argtype,argnode in iters.izip(node.callee_type.argtypes, args) do
+    for i,argtype,argnode in iters.izip(node.calleetype.argtypes, args) do
       if i > 1 then emitter:add(', ') end
       emitter:add_val2type(argtype, argnode)
     end
     emitter:add(')')
 
-    if node.callee_type:has_multiple_returns() then
+    if node.calleetype:has_multiple_returns() and not node.multirets then
       -- get just the first result in multiple return functions
       emitter:add('.r1')
     end
-  elseif node.callee_type:is_type() then
+  elseif node.calleetype:is_type() then
     -- type assertion
     assert(#args == 1)
     local argnode = args[1]
@@ -227,7 +233,6 @@ function visitors.CallMethod(_, node, emitter)
   end
 end
 
--- block
 function visitors.Block(context, node, emitter)
   local statnodes = node:args()
   emitter:inc_indent()
@@ -239,7 +244,6 @@ function visitors.Block(context, node, emitter)
   emitter:dec_indent()
 end
 
--- statements
 function visitors.Return(context, node, emitter)
   local retnodes = node:args()
   local funcscope = context.scope:get_parent_of_kind('function')
@@ -258,15 +262,14 @@ function visitors.Return(context, node, emitter)
     end
   else
     local functype = funcscope.functype
-    local rettypes = functype.returntypes
-    local numfuncrets = #rettypes
+    local numfuncrets = functype:get_return_count()
     if numfuncrets == 0 then
       -- no returns
       assert(numretnodes == 0)
       emitter:add_indent_ln('return;')
     elseif numfuncrets == 1 then
       -- one return
-      local retnode, rettype = retnodes[1], rettypes[1]
+      local retnode, rettype = retnodes[1], functype:get_return_type(1)
       emitter:add_indent('return ')
       if retnode then
         -- return value is present
@@ -280,7 +283,8 @@ function visitors.Return(context, node, emitter)
       -- multiple returns
       local retctype = context:funcretctype(functype)
       emitter:add_indent('return (', retctype, '){')
-      for i,retnode,rettype in iters.izip(retnodes, rettypes) do
+      for i,retnode in iters.inpairs(retnodes, numfuncrets) do
+        local rettype = functype:get_return_type(i)
         if i>1 then emitter:add(', ') end
         emitter:add_val2type(rettype, retnode)
       end
@@ -401,6 +405,8 @@ function visitors.ForNum(context, node, emitter)
   context:pop_scope()
 end
 
+-- TODO: ForIn
+
 function visitors.Break(_, _, emitter)
   emitter:add_indent_ln('break;')
 end
@@ -419,9 +425,45 @@ function visitors.Goto(_, node, emitter)
   emitter:add_indent_ln('goto ', cdefs.quotename(labelname), ';')
 end
 
+local function izipargnodes(vars, argnodes)
+  local iter = iters.izip(vars, argnodes)
+  local lastargindex = #argnodes
+  local lastargnode = argnodes[#argnodes]
+  local calleetype = lastargnode and lastargnode.calleetype
+  if lastargnode and lastargnode.tag == 'Call' and (not calleetype or not calleetype:is_type()) then
+    -- last arg is a runtime call
+    assert(calleetype)
+    -- we know the callee type
+    return function()
+      local i, var, argnode = iter()
+      if not i then return nil end
+      if i >= lastargindex and lastargnode.multirets then
+        -- argnode does not exists, fill with multiple returns type
+        -- in case it doest not exists, the argtype will be false
+        local callretindex = i - lastargindex + 1
+        local argtype = calleetype:get_return_type(callretindex)
+        return i, var, argnode, argtype, callretindex
+      else
+        return i, var, argnode, argnode.attr.type, nil
+      end
+    end
+  else
+    -- no calls from last argument
+    return function()
+      local i, var, argnode = iter()
+      if not i then return end
+      -- we are sure this argument have no type, set argtype to false
+      local argtype = argnode and argnode.attr.type
+      return i, var, argnode, argtype
+    end
+  end
+end
+
 local function visit_assignments(context, emitter, varnodes, valnodes, decl)
-  for _,varnode,valnode in iters.izip(varnodes, valnodes or {}) do
-    if not varnode.attr.type:is_type() and not varnode.attr.nodecl then
+  local multiretvalname
+  for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
+    local vartype = varnode.attr.type
+    if not vartype:is_type() and not varnode.attr.nodecl then
       local declared, defined = false, false
       -- declare main variables in the top scope
       if decl and context.scope:is_main() then
@@ -429,26 +471,38 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         decemitter:add_indent('static ', varnode, ' = ')
         if valnode and valnode.attr.const then
           -- initialize to const values
-          decemitter:add_val2type(varnode.attr.type, valnode)
+          assert(not lastcallindex)
+          decemitter:add_val2type(vartype, valnode)
           defined = true
         else
           -- pre initialize to zeros
-          decemitter:add_zeroinit(varnode.attr.type)
+          decemitter:add_zeroinit(vartype)
         end
         decemitter:add_ln(';')
         context:add_declaration(decemitter:generate())
         declared = true
       end
 
-      if not declared or (not defined and valnode) then
-        -- decalre or define if needed
+      if lastcallindex == 1 then
+        multiretvalname = '__ret' .. valnode.pos
+        local retctype = context:funcretctype(valnode.calleetype)
+        emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', valnode, ';')
+      end
+
+      if not declared or (not defined and (valnode or lastcallindex)) then
+        -- declare or define if needed
         if not declared then
           emitter:add_indent(varnode)
         else
           emitter:add_indent(context:declname(varnode))
         end
         emitter:add(' = ')
-        emitter:add_val2type(varnode.attr.type, valnode)
+        if lastcallindex then
+          local valname = string.format('%s.r%d', multiretvalname, lastcallindex)
+          emitter:add_val2type(vartype, valname, valtype)
+        else
+          emitter:add_val2type(vartype, valnode)
+        end
         emitter:add_ln(';')
       end
     elseif varnode.attr.cinclude then
@@ -466,7 +520,6 @@ end
 
 function visitors.Assign(context, node, emitter)
   local vars, vals = node:args()
-  node:assertraisef(#vars == #vals, 'vars and vals count differs')
   visit_assignments(context, emitter, vars, vals)
 end
 
@@ -476,8 +529,7 @@ function visitors.FuncDef(context, node)
 
   local attr = node.attr
   local type = attr.type
-  local rettypes = type.returntypes
-  local numrets = #rettypes
+  local numrets = type:get_return_count()
   local decoration = 'static '
   local declare, define = not attr.nodecl, true
 
@@ -502,7 +554,9 @@ function visitors.FuncDef(context, node)
     local retemitter = CEmitter(context)
     retemitter:add_indent_ln('typedef struct ', retctype, ' {')
     retemitter:inc_indent()
-    for i,rettype in ipairs(rettypes) do
+    for i=1,numrets do
+      local rettype = type:get_return_type(i)
+      assert(rettype)
       retemitter:add_indent_ln(rettype, ' ', 'r', i, ';')
     end
     retemitter:dec_indent()

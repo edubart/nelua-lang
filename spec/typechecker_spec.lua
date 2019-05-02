@@ -21,8 +21,8 @@ it("analyzed ast transform", function()
         }}
       },
       n.Call{
-        attr = {sideeffect = true, type='any'},
-        callee_type = 'any',
+        attr = {sideeffect = true, type='varanys'},
+        calleetype = 'any',
         {n.Id{ attr = {codename='a', mut='var', name='a', type='int64'}, "a"}},
         n.Id{ attr = {codename='f', mut='var', name='f', type='any'}, "f"},
         true
@@ -36,6 +36,7 @@ it("local variable", function()
   assert.analyze_error("local a: byte = 1.0", "is not coercible with")
   assert.analyze_error("local a: byte = {1.0}", "cannot be initialized using a table literal")
   assert.analyze_error("local a, b = 1,2,3", "too many expressions in declaration")
+  assert.analyze_error("local a: void", "cannot have variables of type void")
 end)
 
 it("const variable" , function()
@@ -138,6 +139,7 @@ it("loop variables", function()
   assert.analyze_error("for i:byte=1_byte,10_byte,2.0 do end", "is not coercible with")
   assert.analyze_error("for i='s','b' do end", "must be a number")
   assert.analyze_error("for i=1,2,'s' do end", "is not coercible with")
+  assert.analyze_error("for i=1,2,0 do end", "step cannot be zero")
 end)
 
 it("variable assignments", function()
@@ -282,6 +284,15 @@ it("function return", function()
     end
   ]])
   assert.analyze_error([[
+    local function f() end
+    local a: integer = f()
+  ]], "cannot assign to expressions of type void")
+  assert.analyze_error([[
+    local function f() end
+    local a: any
+    a = f()
+  ]], "cannot assign to expressions of type void")
+  assert.analyze_error([[
     local function f(): integer, string return 1 end
   ]], "missing return expression at index")
   assert.analyze_error([[
@@ -303,6 +314,26 @@ it("function multiple return", function()
     local a: integer, b: string = f()
     local a: integer = f()
   ]])
+  assert.analyze_ast([[
+    local function f(): integer, boolean return 1,false  end
+    local a, b, c = f()
+  ]])
+  assert.analyze_ast([[
+    local function f(): varanys end
+    local a, b, c
+    a, b, c  = f()
+    local x = f()
+  ]])
+  assert.analyze_error([[
+    local function f(): integer, boolean return 1,false  end
+    local a, b, c
+    a, b, c = f()
+  ]], 'is assigning to nothing in this expression')
+  assert.analyze_error([[
+    local function f() return 1,false  end
+    local a, b, c
+    a, b, c = f()
+  ]], 'is assigning to nothing in this expression')
   assert.analyze_error([[
     local function f(): integer, boolean return 1,false  end
     local function g(a: boolean, b: integer, c: string) end

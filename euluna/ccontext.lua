@@ -103,14 +103,10 @@ function CContext:runctype(type)
 end
 
 function CContext:funcretctype(functype)
-  local rettypes = functype.returntypes
-  local numrets = #rettypes
-  if numrets == 0 then
-    return 'void'
-  elseif numrets == 1 then
-    return self:ctype(rettypes[1])
-  else
+  if functype:has_multiple_returns() then
     return functype.codename .. '_ret'
+  else
+    return self:ctype(functype:get_return_type(1))
   end
 end
 

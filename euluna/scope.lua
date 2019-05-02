@@ -11,8 +11,8 @@ function Scope:_init(parent, kind)
   self.kind = kind
   self.parent = parent
   self.symbols = {}
-  self.possible_return_types = {}
-  self.resolved_return_types = {}
+  self.possible_returntypes = {}
+  self.resolved_returntypes = {}
   if parent then
     metamagic.setmetaindex(self.symbols, parent.symbols)
   end
@@ -62,7 +62,7 @@ local function resolve_symbol_type(symbol)
   return true
 end
 
-function Scope:resolve_symbols_types()
+function Scope:resolve_symbols()
   local count = 0
   for _,symbol in pairs(self.symbols) do
     if resolve_symbol_type(symbol) then
@@ -73,10 +73,10 @@ function Scope:resolve_symbols_types()
 end
 
 function Scope:add_return_type(index, type)
-  local returntypes = self.possible_return_types[index]
+  local returntypes = self.possible_returntypes[index]
   if not returntypes then
     returntypes = {}
-    self.possible_return_types[index] = returntypes
+    self.possible_returntypes[index] = returntypes
   elseif tabler.ifind(returntypes, type) then
     return
   end
@@ -84,12 +84,18 @@ function Scope:add_return_type(index, type)
 end
 
 function Scope:resolve_returntypes()
-  local resolved_return_types = {}
-  for i,returntypes in pairs(self.possible_return_types) do
-    resolved_return_types[i] = typedefs.find_common_type(returntypes) or typedefs.primtypes.any
+  local resolved_returntypes = {}
+  for i,returntypes in pairs(self.possible_returntypes) do
+    resolved_returntypes[i] = typedefs.find_common_type(returntypes) or typedefs.primtypes.any
   end
-  self.resolved_return_types = resolved_return_types
-  return resolved_return_types
+  self.resolved_returntypes = resolved_returntypes
+  return resolved_returntypes
+end
+
+function Scope:resolve()
+  local count = self:resolve_symbols()
+  self:resolve_returntypes()
+  return count
 end
 
 return Scope

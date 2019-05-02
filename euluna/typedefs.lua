@@ -23,12 +23,13 @@ local primtypes = {
   float64   = Type('float64'),
   boolean   = Type('boolean'),
   string    = Type('string'),
-  any       = Type('any'),
-  void      = Type('void'),
+  varanys   = Type('varanys'),
   table     = Type('table'),
   Nil       = Type('nil'),
   Nilptr    = Type('nilptr'),
-  type      = Type.type, -- the type of "Type"
+  any       = Type.any, -- the type for anything
+  void      = Type.void, -- the type for nothing
+  type      = Type.type, -- the type for types
 
   -- for C compability
   cschar      = Type('cschar'),

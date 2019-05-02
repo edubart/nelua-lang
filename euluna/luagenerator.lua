@@ -7,7 +7,6 @@ local Emitter = require 'euluna.emitter'
 
 local visitors = {}
 
--- primitives
 function visitors.Number(_, node, emitter)
   local base, int, frac, exp, literal = node:args()
   node:assertraisef(literal == nil, 'literals are not supported in lua')
@@ -39,7 +38,6 @@ function visitors.Varargs(_, _, emitter)
   emitter:add('...')
 end
 
--- table
 function visitors.Table(_, node, emitter)
   local contents = node:args()
   emitter:add('{', contents, '}')
@@ -55,7 +53,6 @@ function visitors.Pair(_, node, emitter)
   emitter:add(' = ', value)
 end
 
--- function
 function visitors.Function(_, node, emitter)
   local args, rets, pragmas, block = node:args()
   if #block[1] == 0 then
@@ -67,7 +64,8 @@ function visitors.Function(_, node, emitter)
   end
 end
 
--- identifier and types
+-- TODO: Pragma
+
 function visitors.Id(_, node, emitter)
   local name = node:args()
   emitter:add(name)
@@ -86,7 +84,6 @@ function visitors.IdDecl(_, node, emitter)
   emitter:add(name)
 end
 
--- indexing
 function visitors.DotIndex(_, node, emitter)
   local name, obj = node:args()
   emitter:add(obj, '.', name)
@@ -102,7 +99,6 @@ function visitors.ArrayIndex(_, node, emitter)
   emitter:add(obj, '[', index, ']')
 end
 
--- calls
 function visitors.Call(_, node, emitter)
   local args, callee, block_call = node:args()
   if block_call then emitter:add_indent() end
@@ -117,7 +113,6 @@ function visitors.CallMethod(_, node, emitter)
   if block_call then emitter:add_ln() end
 end
 
--- block
 function visitors.Block(context, node, emitter)
   local stats = node:args()
   emitter:inc_indent()
@@ -127,7 +122,6 @@ function visitors.Block(context, node, emitter)
   emitter:dec_indent()
 end
 
--- statements
 function visitors.Return(_, node, emitter)
   local rets = node:args()
   emitter:add_indent("return")
