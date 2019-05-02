@@ -21,8 +21,7 @@ it("analyzed ast transform", function()
         }}
       },
       n.Call{
-        attr = {sideeffect = true, type='varanys'},
-        calleetype = 'any',
+        attr = {calleetype = 'any', sideeffect = true, type='varanys'},
         {n.Id{ attr = {codename='a', mut='var', name='a', type='int64'}, "a"}},
         n.Id{ attr = {codename='f', mut='var', name='f', type='any'}, "f"},
         true

@@ -53,10 +53,10 @@ it("print correct generated AST" , function()
   {
     Call {
       attr = {
+        calleetype = "any",
         sideeffect = true,
         type = "varanys",
       },
-      calleetype = "any",
       {
         String {
           attr = {

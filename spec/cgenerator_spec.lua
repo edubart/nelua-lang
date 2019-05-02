@@ -236,6 +236,33 @@ it("function multiple returns", function()
   ]])
 end)
 
+it("call with multiple args", function()
+  assert.generate_c([[do
+    local function f(): integer, boolean return 1, true end
+    local function g(a: int32, b: integer, c: boolean) end
+    g(1, f())
+  end]], {
+    "function_%w+_ret __tmp%d+ = f%(%)",
+    "g%(1, __tmp%d+.r1, __tmp%d+.r2%);"
+  }, true)
+  assert.run_c([[do
+    local function f(): integer, integer return 1, 2 end
+    local function g(a: integer, b: integer, c: integer) return a + b + c end
+    assert(g(3, f()) == 6)
+    assert(g(3, f(), 0) == 4)
+    assert(g(3, 0, f()) == 4)
+  end]])
+end)
+
+it("call with side effects", function()
+  assert.run_c([[do
+    local function f(x: integer) print(x) return x end
+    local function g(a: integer, b: integer, c: integer) return a+b+c end
+    assert(f(1) + f(2) + f(3) == 6)
+    assert(g(f(4), f(5), f(6)) == 15)
+  end]],"1\n2\n3\n4\n5\n6")
+end)
+
 it("unary operators", function()
   assert.generate_c("do return not a end", "return !a;")
   assert.generate_c("do return -a end", "return -a")

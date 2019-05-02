@@ -174,8 +174,42 @@ function visitors.ArrayIndex(context, node, emitter)
   end
 end
 
+local function izipargnodes(vars, argnodes)
+  local iter = iters.izip(vars, argnodes)
+  local lastargindex = #argnodes
+  local lastargnode = argnodes[#argnodes]
+  local calleetype = lastargnode and lastargnode.attr.calleetype
+  if lastargnode and lastargnode.tag == 'Call' and (not calleetype or not calleetype:is_type()) then
+    -- last arg is a runtime call
+    assert(calleetype)
+    -- we know the callee type
+    return function()
+      local i, var, argnode = iter()
+      if not i then return nil end
+      if i >= lastargindex and lastargnode.attr.multirets then
+        -- argnode does not exists, fill with multiple returns type
+        -- in case it doest not exists, the argtype will be false
+        local callretindex = i - lastargindex + 1
+        local argtype = calleetype:get_return_type(callretindex)
+        return i, var, argnode, argtype, callretindex, calleetype
+      else
+        return i, var, argnode, argnode.attr.type, nil
+      end
+    end
+  else
+    -- no calls from last argument
+    return function()
+      local i, var, argnode = iter()
+      if not i then return end
+      -- we are sure this argument have no type, set argtype to false
+      local argtype = argnode and argnode.attr.type
+      return i, var, argnode, argtype
+    end
+  end
+end
+
 function visitors.Call(context, node, emitter)
-  local args, callee, block_call = node:args()
+  local argnodes, callee, block_call = node:args()
   local type = node.attr.type
   if block_call then
     emitter:add_indent()
@@ -189,32 +223,97 @@ function visitors.Call(context, node, emitter)
   if builtin then
     callee = builtin(context, node, emitter)
   end
-  if node.calleetype:is_function() then
+  local calleetype = node.attr.calleetype
+  if calleetype:is_function() then
     -- function call
+    local tmpargs = {}
+    local tmpcount = 0
+    local lastcalltmp
+    local sequential = false
+    for i,_,argnode,_,lastcallindex in izipargnodes(calleetype.argtypes, argnodes) do
+      if (argnode and argnode.attr.sideeffect) or lastcallindex == 1 then
+        -- expressions with side effects need to be evaluated in sequence
+        -- and expressions with multiple returns needs to be stored in a temporary
+        tmpcount = tmpcount + 1
+        local tmpname = '__tmp' .. tmpcount
+        tmpargs[i] = tmpname
+        if lastcallindex == 1 then
+          lastcalltmp = tmpname
+        end
+        if tmpcount >= 2 or lastcallindex then
+          -- only need to evaluate in sequence mode if we have two or more temporaries
+          -- or the last argument is a multiple return call
+          sequential = true
+        end
+      end
+    end
+
+    if sequential then
+      -- begin sequential expression
+      if not block_call then
+        emitter:add('(')
+      end
+      emitter:add_ln('{')
+      emitter:inc_indent()
+
+      for _,tmparg,argnode,argtype,_,lastcalletype in izipargnodes(tmpargs, argnodes) do
+        -- set temporary values in sequence
+        if tmparg then
+          if lastcalletype then
+            -- type for result of multiple return call
+            argtype = context:funcretctype(lastcalletype)
+          end
+          emitter:add_indent_ln(argtype, ' ', tmparg, ' = ', argnode, ';')
+        end
+      end
+
+      emitter:add_indent()
+    end
+
     emitter:add(callee, '(')
-    for i,argtype,argnode in iters.izip(node.calleetype.argtypes, args) do
+    for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(calleetype.argtypes, argnodes) do
       if i > 1 then emitter:add(', ') end
-      emitter:add_val2type(argtype, argnode)
+      local arg = argnode
+      if sequential then
+        if lastcallindex then
+          arg = string.format('%s.r%d', lastcalltmp, lastcallindex)
+        elseif tmpargs[i] then
+          arg = tmpargs[i]
+        end
+      end
+      emitter:add_val2type(funcargtype, arg, argtype)
     end
     emitter:add(')')
 
-    if node.calleetype:has_multiple_returns() and not node.multirets then
+    if calleetype:has_multiple_returns() and not node.attr.multirets then
       -- get just the first result in multiple return functions
       emitter:add('.r1')
     end
-  elseif node.calleetype:is_type() then
+
+    if sequential then
+      -- end sequential expression
+      emitter:add_ln(';')
+      emitter:dec_indent()
+      emitter:add_indent('}')
+      if not block_call then
+        emitter:add(')')
+      end
+    end
+  elseif calleetype:is_type() then
     -- type assertion
-    assert(#args == 1)
-    local argnode = args[1]
+    assert(#argnodes == 1)
+    local argnode = argnodes[1]
     if argnode.attr.type ~= type then
+      -- type really differs, cast it
       emitter:add_ctypecast(type)
       emitter:add('(', argnode, ')')
     else
+      -- same type, no need to cast
       emitter:add(argnode)
     end
   else
     --TODO: handle better calls on any types
-    emitter:add(callee, '(', args, ')')
+    emitter:add(callee, '(', argnodes, ')')
   end
   if block_call then
     emitter:add_ln(";")
@@ -425,40 +524,6 @@ function visitors.Goto(_, node, emitter)
   emitter:add_indent_ln('goto ', cdefs.quotename(labelname), ';')
 end
 
-local function izipargnodes(vars, argnodes)
-  local iter = iters.izip(vars, argnodes)
-  local lastargindex = #argnodes
-  local lastargnode = argnodes[#argnodes]
-  local calleetype = lastargnode and lastargnode.calleetype
-  if lastargnode and lastargnode.tag == 'Call' and (not calleetype or not calleetype:is_type()) then
-    -- last arg is a runtime call
-    assert(calleetype)
-    -- we know the callee type
-    return function()
-      local i, var, argnode = iter()
-      if not i then return nil end
-      if i >= lastargindex and lastargnode.multirets then
-        -- argnode does not exists, fill with multiple returns type
-        -- in case it doest not exists, the argtype will be false
-        local callretindex = i - lastargindex + 1
-        local argtype = calleetype:get_return_type(callretindex)
-        return i, var, argnode, argtype, callretindex
-      else
-        return i, var, argnode, argnode.attr.type, nil
-      end
-    end
-  else
-    -- no calls from last argument
-    return function()
-      local i, var, argnode = iter()
-      if not i then return end
-      -- we are sure this argument have no type, set argtype to false
-      local argtype = argnode and argnode.attr.type
-      return i, var, argnode, argtype
-    end
-  end
-end
-
 local function visit_assignments(context, emitter, varnodes, valnodes, decl)
   local multiretvalname
   for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
@@ -485,7 +550,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
 
       if lastcallindex == 1 then
         multiretvalname = '__ret' .. valnode.pos
-        local retctype = context:funcretctype(valnode.calleetype)
+        local retctype = context:funcretctype(valnode.attr.calleetype)
         emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', valnode, ';')
       end
 
@@ -645,6 +710,7 @@ function visitors.BinaryOp(_, node, emitter)
     local lname = lnode
     local rname = rnode
     if sequential then
+      -- need to evaluate args in sequence when one expression has side effects
       emitter:add_ln('({')
       emitter:inc_indent()
       emitter:add_indent_ln(lnode.attr.type, ' t1_ = ', lnode, ';')

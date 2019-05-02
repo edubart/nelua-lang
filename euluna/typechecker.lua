@@ -509,7 +509,7 @@ local function izipargnodes(vars, argnodes)
   local iter = iters.izip(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
-  local calleetype = lastargnode and lastargnode.calleetype
+  local calleetype = lastargnode and lastargnode.attr.calleetype
   if lastargnode and lastargnode.tag == 'Call' and (not calleetype or not calleetype:is_type()) then
     -- last arg is a runtime call
     if calleetype then
@@ -523,7 +523,7 @@ local function izipargnodes(vars, argnodes)
           local callretindex = i - lastargindex + 1
           local argtype = calleetype:get_return_type(callretindex) or false
           if callretindex > 1 then
-            lastargnode.multirets = true
+            lastargnode.attr.multirets = true
           end
           return i, var, argnode, argtype, callretindex
         else
@@ -549,10 +549,10 @@ end
 function visitors.Call(context, node)
   local argnodes, calleenode, block_call = node:args()
   context:traverse(calleenode)
-  node.attr.sideeffect = true
   local calleetype = calleenode.attr.type
+  local attr = node.attr
   if calleetype then
-    node.calleetype = calleetype
+    attr.calleetype = calleetype
     if calleetype:is_type() then
       -- type assertion
       local type = calleenode.attr.holdedtype
@@ -568,9 +568,9 @@ function visitors.Call(context, node)
           "in assertion to type '%s', the type is not coercible with expression of type '%s'",
           tostring(type), tostring(argtype))
       end
-      node.attr.const = argnode.attr.const
-      node.attr.sideeffect = argnode.attr.sideeffect
-      node.attr.type = type
+      attr.const = argnode.attr.const
+      attr.sideeffect = argnode.attr.sideeffect
+      attr.type = type
     elseif calleetype:is_function() then
       -- function call
       local funcargtypes = calleetype.argtypes
@@ -583,6 +583,7 @@ function visitors.Call(context, node)
           argtype = argnode.attr.type
         end
         if argtype == false then
+          -- argument is missing
           node:assertraisef(funcargtype:is_nilable(),
             "in call, function '%s' expected an argument at index %d but got nothing",
             tostring(calleetype), i)
@@ -593,20 +594,25 @@ function visitors.Call(context, node)
             i, tostring(funcargtype), i, tostring(argtype))
         end
       end
-
-      node.attr.type = calleetype:get_return_type(1)
+      attr.sideeffect = true
+      attr.type = calleetype:get_return_type(1)
     elseif calleetype:is_table() then
       -- table call (allowed for tables with metamethod __index)
       context:traverse(argnodes)
-      node.attr.type = primtypes.varanys
+      attr.type = primtypes.varanys
+      attr.sideeffect = true
     elseif calleetype:is_any() then
+      -- call on any values
       context:traverse(argnodes)
-      node.attr.type = primtypes.varanys
+      attr.type = primtypes.varanys
+      attr.sideeffect = true
     else
+      -- call on invalid types (i.e: numbers)
       calleenode:raisef("attempt to call a non callable variable of type '%s'",
         tostring(calleetype))
     end
   else
+    -- callee type is not known yet (will be in known after resolution)
     context:traverse(argnodes)
   end
   --if not node.attr.type and context.phase == phases.any_inference then
