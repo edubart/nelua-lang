@@ -432,7 +432,8 @@ local function get_parser(std)
     ctrue <- '' -> to_true
 
     typexpr <- typexpr0
-    typexpr0 <- (simple_typexpr {| unary_typexpr_op* |}) -> to_chain_late_unary_op
+    typexpr0 <- ({} '' -> 'MultipleType' {| typexpr1 (%BOR typexpr1)* |}) -> to_list_astnode
+    typexpr1 <- (simple_typexpr {| unary_typexpr_op* |}) -> to_chain_late_unary_op
 
     simple_typexpr <-
       func_type /

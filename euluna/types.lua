@@ -171,6 +171,10 @@ function Type:is_function()
   return self.name == 'function'
 end
 
+function Type:is_multipletype()
+  return self.name == 'multipletype'
+end
+
 function Type:is_table()
   return self.name == 'table'
 end
@@ -315,6 +319,9 @@ function FunctionType:_init(node, argtypes, returntypes)
   self.returntypes = returntypes
   Type._init(self, 'function', node)
   self.codename = gencodename(self)
+  self.lazy = tabler.ifindif(argtypes, function(argtype)
+    return argtype:is_multipletype()
+  end) ~= nil
 end
 
 function FunctionType:is_equal(type)
@@ -326,6 +333,7 @@ function FunctionType:is_equal(type)
 end
 
 function FunctionType:get_return_type(index)
+  if not self.returntypes then return nil end
   local returntypes = self.returntypes
   local lastindex = #returntypes
   local lastret = returntypes[#returntypes]
@@ -339,6 +347,42 @@ function FunctionType:get_return_type(index)
   return rettype
 end
 
+function FunctionType:get_functype_for_argtypes(argtypes)
+  local lazytypes = self.node.lazytypes
+  if not lazytypes then return nil end
+  for _,functype in pairs(lazytypes) do
+    if functype then
+      local ok = true
+      for _,funcargtype,argtype in iters.izip(functype.argtypes, argtypes) do
+        if not funcargtype or
+          (argtype and not funcargtype:is_coercible_from(argtype)) or
+          (not argtype and not funcargtype:is_nilable()) then
+          ok = false
+          break
+        end
+      end
+      if ok then
+        return functype
+      end
+    end
+  end
+end
+
+function FunctionType:get_return_type_for_argtypes(argtypes, index)
+  if self.lazy then
+    local functype = self:get_functype_for_argtypes(argtypes)
+    if functype then
+      return functype:get_return_type(index)
+    elseif functype ~= false then
+      if not self.node.lazytypes then
+        self.node.lazytypes = {}
+      end
+      self.node.lazytypes[argtypes] = false
+    end
+  end
+  return self:get_return_type(index)
+end
+
 function FunctionType:has_multiple_returns()
   return #self.returntypes > 1
 end
@@ -349,10 +393,33 @@ end
 
 function FunctionType:__tostring()
   local ss = sstream('function<(', self.argtypes, ')')
-  if #self.returntypes > 0 then
+  if self.returntypes and #self.returntypes > 0 then
     ss:add(': ', self.returntypes)
   end
   ss:add('>')
+  return ss:tostring()
+end
+
+--------------------------------------------------------------------------------
+local MultipleType = typeclass()
+
+function MultipleType:_init(node, types)
+  self.types = types
+  Type._init(self, 'multipletype', node)
+end
+
+function MultipleType:is_coercible_from_type(type, explicit)
+  for _,possibletype in ipairs(self.types) do
+    if possibletype:is_coercible_from_type(type, explicit) then
+      return true
+    end
+  end
+  return false
+end
+
+function MultipleType:__tostring()
+  local ss = sstream()
+  ss:addlist(self.types, ' | ')
   return ss:tostring()
 end
 
@@ -432,6 +499,7 @@ local types = {
   ArrayType = ArrayType,
   EnumType = EnumType,
   FunctionType = FunctionType,
+  MultipleType = MultipleType,
   RecordType = RecordType,
   PointerType = PointerType,
 }

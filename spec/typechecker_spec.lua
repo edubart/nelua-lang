@@ -35,7 +35,7 @@ it("local variable", function()
   assert.analyze_error("local a: byte = 1.0", "is not coercible with")
   assert.analyze_error("local a: byte = {1.0}", "cannot be initialized using a table literal")
   assert.analyze_error("local a, b = 1,2,3", "too many expressions in declaration")
-  assert.analyze_error("local a: void", "cannot have variables of type void")
+  assert.analyze_error("local a: void", "variable declaration cannot be of the type")
 end)
 
 it("const variable" , function()
@@ -262,6 +262,15 @@ it("function definition", function()
     local f: function<():integer, string>
     function f(): integer end
   ]], "is not coercible with")
+end)
+
+it("function multiple argument types", function()
+  assert.analyze_ast([[
+    local function f(x: integer | boolean): void end
+    local function g(x: integer | boolean) end
+    f(1)
+    --g(1)
+  ]])
 end)
 
 it("function return", function()

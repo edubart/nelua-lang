@@ -29,6 +29,35 @@ function ASTNode:args()
   return tabler.unpack(self, 1, self.nargs)
 end
 
+local function clone_nodetable(t)
+  local ct = {}
+  for i,v in ipairs(t) do
+    if traits.is_astnode(v) then
+      ct[i] = v:clone()
+    elseif traits.is_table(v) then
+      ct[i] = clone_nodetable(v)
+    else
+      ct[i] = v
+    end
+  end
+  return ct
+end
+
+function ASTNode:clone()
+  local node = setmetatable({}, getmetatable(self))
+  for i=1,self.nargs do
+    local arg = self[i]
+    if traits.is_astnode(arg) then
+      arg = arg:clone()
+    elseif traits.is_table(arg) then
+      arg = clone_nodetable(arg)
+    end
+    node[i] = arg
+  end
+  node.attr = {}
+  return node
+end
+
 -------------------
 -- error handling
 -------------------
