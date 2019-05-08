@@ -37,6 +37,10 @@ astbuilder:register('Pragma', {
   stypes.array_of(ntypes.String + ntypes.Number + ntypes.Boolean) -- args
 })
 
+astbuilder:register('Preprocess', {
+  stypes.string, -- code
+})
+
 -- identifier and types
 astbuilder:register('Id', {
   stypes.string, -- name

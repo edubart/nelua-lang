@@ -12,6 +12,7 @@ end
 stringer.startswith = stringx.startswith
 stringer.split = stringx.split
 stringer.rstrip = stringx.rstrip
+stringer.count = stringx.count
 
 function stringer.print_concat(...)
   local t = table.pack(...)

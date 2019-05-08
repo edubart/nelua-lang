@@ -7,6 +7,8 @@ local Context = require 'euluna.context'
 local Symbol = require 'euluna.symbol'
 local types = require 'euluna.types'
 local bn = require 'euluna.utils.bn'
+local sstream = require 'euluna.utils.sstream'
+local compat = require 'pl.compat'
 
 local primtypes = typedefs.primtypes
 local visitors = {}
@@ -662,10 +664,72 @@ function visitors.IdDecl(context, node, declmut)
   return symbol
 end
 
+local function preprocess_traverse(context, node, statnodes)
+  if not tabler.ifindif(statnodes, function(statnode) return statnode.tag == 'Preprocess' end) then
+    -- no preprocess statement found
+    context:traverse(statnodes)
+    return statnodes
+  end
+
+  local ss = sstream()
+  ss:addln('local __newstatnodes,__node = {}')
+  local line2node = {}
+  local linecounter = 1
+  local lastppnode = nil
+  for i,statnode in ipairs(statnodes) do
+    local luacode, numlines
+    if statnode.tag == 'Preprocess' then
+      luacode = statnode[1]
+      lastppnode = statnode
+      numlines = stringer.count(luacode, '\n') + 1
+    else
+      luacode = string.format([[
+local __node = __statnodes[%d]:clone()
+table.insert(__newstatnodes, __node) context:traverse(__node)]], i)
+      numlines = 2
+    end
+    ss:addln(luacode)
+    for _=1,numlines do
+      linecounter = linecounter + 1
+      line2node[linecounter] = statnode
+    end
+  end
+  ss:addln('return __newstatnodes')
+  local ppcode = ss:tostring()
+  local env = setmetatable({
+    context = context,
+    scope = context.scope,
+    node = node,
+    __statnodes = statnodes
+  }, {__index = _G})
+  local newnodes, err = compat.load(ppcode, '@pp', "t", env)
+  local ok = not err
+  local newstatnodes
+  if newnodes then
+    ok, newstatnodes = pcall(newnodes)
+    if not ok then
+      err = newstatnodes
+    end
+  end
+  if not ok then
+    local line, lineerr = err:match('pp:(%d+): (.*)')
+    assert(line and lineerr)
+    local linenode = line2node[line] or lastppnode
+    linenode:raisef('preprocessing error: %s', lineerr)
+  end
+  return newstatnodes
+end
+
 function visitors.Block(context, node)
   local statnodes = node:args()
   context:repeat_scope_until_resolution('block', function()
-    context:traverse(statnodes)
+    if not node.processed then
+      statnodes = preprocess_traverse(context, node, statnodes)
+      node[1] = statnodes
+      node.processed = true
+    else
+      context:traverse(statnodes)
+    end
   end)
 end
 

@@ -19,6 +19,11 @@ function sstream:add(...)
   end
 end
 
+function sstream:addln(...)
+  self:add(...)
+  self:add('\n')
+end
+
 function sstream:addlist(list, sep)
   sep = sep or self.sep or ', '
   for i,v in ipairs(list) do

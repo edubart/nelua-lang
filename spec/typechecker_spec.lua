@@ -630,6 +630,33 @@ it("pragmas", function()
   assert.analyze_error("!!cimport 'lala'", "is not defined in this context")
 end)
 
+it("preprocessor", function()
+  assert.c_gencode_equals(
+    "local function f() [# if true then #] return 1 [# end #] end",
+    "local function f() return 1 end")
+  assert.c_gencode_equals([[
+    local function f() [# if true then #] return 1 [# end #] end
+  ]],[[
+    local function f() return 1 end
+  ]])
+  assert.c_gencode_equals("[# if true then #] local a = 1 [# end #]", "local a = 1")
+  assert.c_gencode_equals("[# if false then #] local a = 1 [# end #]", "")
+  assert.c_gencode_equals([[
+    local a = 2
+    ## for i=1,4 do
+      a = a * 2
+    ## end
+  ]], [[
+    local a = 2
+    a = a * 2
+    a = a * 2
+    a = a * 2
+    a = a * 2
+  ]])
+  assert.analyze_error("[# if true then #]", "'end' expected")
+  assert.analyze_error("[# invalid() #]", "attempt to call global")
+end)
+
 it("strict mode", function()
   config.strict = true
   assert.analyze_error("a = 1", "undeclarated symbol")

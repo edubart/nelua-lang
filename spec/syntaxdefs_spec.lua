@@ -1471,6 +1471,32 @@ describe("pragma expression for", function()
 end)
 
 --------------------------------------------------------------------------------
+-- preprocessor
+--------------------------------------------------------------------------------
+describe("preprocessor", function()
+  it("one line", function()
+    assert.parse_ast(euluna_parser, "##f()",
+      n.Block{{
+        n.Preprocess{"f()"}
+    }})
+  end)
+  it("multiline", function()
+    assert.parse_ast(euluna_parser, "[#if true then\nend#]",
+      n.Block{{
+        n.Preprocess{"if true then\nend"}
+    }})
+  end)
+  it("emitting nodes", function()
+    assert.parse_ast(euluna_parser, "[#if true then#] print 'hello' [#end#]",
+      n.Block{{
+        n.Preprocess{"if true then"},
+        n.Call{{n.String {"hello",nil}}, n.Id{"print"},true},
+        n.Preprocess{"end"}
+    }})
+  end)
+end)
+
+--------------------------------------------------------------------------------
 -- live grammar change
 --------------------------------------------------------------------------------
 describe("live grammar change for", function()

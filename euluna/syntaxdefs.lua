@@ -141,6 +141,17 @@ local function get_parser(std)
 
   -- tokened symbols
   parser:set_token_pegs([[
+  -- matching symbols
+  %LPAREN       <- '('
+  %RPAREN       <- ')'
+  %LBRACKET     <- !('[' ('='* '[' / '#')) '['
+  %RBRACKET     <- ']'
+  %LCURLY       <- '{'
+  %RCURLY       <- '}'
+  %LANGLE       <- '<'
+  %RANGLE       <- '>'
+  %SHORTPP      <- '##'
+
   -- binary operators
   %ADD          <- '+'
   %SUB          <- !'--' '-'
@@ -164,21 +175,11 @@ local function get_parser(std)
 
   -- unary operators
   %NEG          <- !'--' '-'
-  %LEN          <- '#'
+  %LEN          <- !%SHORTPP '#'
   %BNOT         <- !%NE '~'
   %TOSTR        <- '$'
   %REF          <- '&'
   %DEREF        <- '*'
-
-  -- matching symbols
-  %LPAREN       <- '('
-  %RPAREN       <- ')'
-  %LBRACKET     <- !('[' '='* '[') '['
-  %RBRACKET     <- ']'
-  %LCURLY       <- '{'
-  %RCURLY       <- '}'
-  %LANGLE       <- '<'
-  %RANGLE       <- '>'
 
   -- other symbols
   %SEMICOLON    <- ';'
@@ -222,7 +223,7 @@ local function get_parser(std)
       (!. / %{UnexpectedSyntaxAtEOF})
 
     block <-
-      ({} '' -> 'Block' {| (stat / %SEMICOLON)* stat_return? |}) -> to_astnode
+      ({} '' -> 'Block' {| (stat / %SEMICOLON)* stat_return? stat_preprocess* |}) -> to_astnode
 
     stat_return <-
       ({} %RETURN -> 'Return' {| expr_list |} %SEMICOLON?) -> to_astnode
@@ -310,6 +311,10 @@ local function get_parser(std)
 
   grammar:add_group_peg('stat', 'pragma', [[
     ({} %DBEXCL -> 'Pragma' epragma_expr) -> to_astnode
+  ]])
+
+  grammar:add_group_peg('stat', 'preprocess', [[
+    ({} '' -> 'Preprocess' ppstring ) -> to_astnode
   ]])
 
   if not is_luacompat then
@@ -430,6 +435,7 @@ local function get_parser(std)
 
     cnil <- '' -> to_nil
     ctrue <- '' -> to_true
+    cfalse <- '' -> to_false
 
     typexpr <- typexpr0
     typexpr0 <- ({} '' -> 'MultipleType' {| typexpr1 (%BOR typexpr1)* |}) -> to_list_astnode
@@ -490,6 +496,13 @@ local function get_parser(std)
         ((%LANGLE etypexpr eRANGLE) / %SKIP)
       ) -> to_astnode
     prim_type   <- ({} '' -> 'Type' %cNAME) -> to_astnode
+
+    ppstring <- (ppshort_string / pplong_string) %SKIP
+    ppshort_string    <- %SHORTPP {(!%LINEBREAK .)*} %LINEBREAK?
+    pplong_string     <- pplong_open ({pplong_content*} pplong_close / %{UnclosedPreprocessBracket})
+    pplong_content    <- !pplong_close .
+    pplong_open       <- '[' {:eq: '#'*:} %SKIP
+    pplong_close      <- =eq ']'
   ]])
 
   -- operators
@@ -574,7 +587,8 @@ local function get_parser(std)
     UnclosedParenthesis = "unclosed parenthesis, did you forget a `)`?",
     UnclosedBracket = "unclosed bracket, did you forget a `]`?",
     UnclosedCurly = "unclosed curly brace, did you forget a `}`?",
-    UnclosedAngleBracket = "unclosed angle bracket, did you forget a `>`",
+    UnclosedAngleBracket = "unclosed angle bracket, did you forget a `>`?",
+    UnclosedPreprocessBracket = "unclosed preprocess bracket, did your forget a '#]'?",
     UnclosedLabel = "unclosed label, did you forget `::`?",
     ExpectedParenthesis = "expected parenthesis `(`",
     ExpectedCurly = "expected curly brace `{`",
