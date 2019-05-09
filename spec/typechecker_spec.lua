@@ -654,7 +654,7 @@ it("preprocessor", function()
     a = a * 2
   ]])
   assert.analyze_error("[# if true then #]", "'end' expected")
-  assert.analyze_error("[# invalid() #]", "attempt to call global")
+  assert.analyze_error("[# invalid() #]", "attempt to call")
 end)
 
 it("strict mode", function()

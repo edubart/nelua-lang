@@ -61,7 +61,6 @@ local function get_parser(std)
   -- names and identifiers (names for variables, functions, etc)
   parser:set_token_peg('NAME', '&%IDPREFIX !%KEYWORD %IDFORMAT')
   parser:set_token_peg('cNAME', '&%IDPREFIX !%KEYWORD {%IDFORMAT}')
-  parser:set_token_peg('cID', "({} &%IDPREFIX !%KEYWORD '' -> 'Id' {%IDFORMAT}) -> to_astnode")
 
   -- capture numbers (hexadecimal, binary, exponential, decimal or integer)
   parser:set_token_pegs([[
@@ -150,7 +149,8 @@ local function get_parser(std)
   %RCURLY       <- '}'
   %LANGLE       <- '<'
   %RANGLE       <- '>'
-  %SHORTPP      <- '##'
+  %PPSHORT      <- '##'
+  %PPEXPRL      <- '#['
 
   -- binary operators
   %ADD          <- '+'
@@ -175,7 +175,7 @@ local function get_parser(std)
 
   -- unary operators
   %NEG          <- !'--' '-'
-  %LEN          <- !%SHORTPP '#'
+  %LEN          <- !%PPSHORT !%PPEXPRL '#'
   %BNOT         <- !%NE '~'
   %TOSTR        <- '$'
   %REF          <- '&'
@@ -270,11 +270,11 @@ local function get_parser(std)
   ]])
 
   grammar:add_group_peg('stat', 'label', [[
-    ({} %DBLCOLON -> 'Label' ecNAME (%DBLCOLON / %{UnclosedLabel})) -> to_astnode
+    ({} %DBLCOLON -> 'Label' ename (%DBLCOLON / %{UnclosedLabel})) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'goto', [[
-    ({} %GOTO -> 'Goto' ecNAME) -> to_astnode
+    ({} %GOTO -> 'Goto' ename) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'vardecl', [[
@@ -287,7 +287,7 @@ local function get_parser(std)
 
   grammar:add_group_peg('stat', 'funcdef', [[
     ({} '' -> 'FuncDef' (var_scope / cnil) %FUNCTION func_name function_body) -> to_astnode
-    func_name <- (%cID {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
+    func_name <- (id {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
   ]])
 
   grammar:add_group_peg('stat', 'assign', [[
@@ -298,7 +298,7 @@ local function get_parser(std)
       ({} ''->'UnaryOp' {| op_deref* |} assignable_suffix) -> to_chain_unary_op
     assignable_suffix <-
       (primary_expr {| ((call_expr+ &index_expr) / index_expr)+ |}) -> to_chain_index_or_call
-      / %cID
+      / id
   ]])
 
   grammar:add_group_peg('stat', 'call', [[
@@ -371,7 +371,8 @@ local function get_parser(std)
     suffixed_expr <- (primary_expr {| (index_expr / call_expr)* |}) -> to_chain_index_or_call
 
     primary_expr <-
-      %cID /
+      id_nopp /
+      ppexpr /
       type_instance /
       ({} %LPAREN -> 'Paren' eexpr eRPAREN) -> to_astnode
 
@@ -379,21 +380,21 @@ local function get_parser(std)
       ({} %AT -> 'TypeInstance' etypexpr) -> to_astnode
 
     index_expr <- dot_index / array_index
-    dot_index <- {| {} %DOT -> 'DotIndex' ecNAME |}
+    dot_index <- {| {} %DOT -> 'DotIndex' ename |}
     array_index <- {| {} %LBRACKET -> 'ArrayIndex' eexpr eRBRACKET |}
-    colon_index <- {| {} %COLON -> 'ColonIndex' ecNAME |}
+    colon_index <- {| {} %COLON -> 'ColonIndex' ename |}
 
     call_expr <-
-      {| {} %COLON -> 'CallMethod' ecNAME call_args |} /
-      {| {} '' -> 'Call' call_args |}
-    call_args <-
-      {| (%LPAREN  expr_list eRPAREN / table / %cSTRING) |}
+      {| {} %COLON -> 'CallMethod' ename callargs |} /
+      {| {} '' -> 'Call' callargs |}
+    callargs <-
+      {| (%LPAREN  expr_list eRPAREN / table / %cSTRING / ppexpr) |}
 
     table <- ({} '' -> 'Table' %LCURLY
         {| (table_row (%SEPARATOR table_row)* %SEPARATOR?)? |}
       eRCURLY) -> to_astnode
     table_row <- table_pair / expr
-    table_pair <- ({} '' -> 'Pair' (%LBRACKET eexpr eRBRACKET / %cNAME) %ASSIGN eexpr) -> to_astnode
+    table_pair <- ({} '' -> 'Pair' (%LBRACKET eexpr eRBRACKET / name) %ASSIGN eexpr) -> to_astnode
 
     function <- ({} %FUNCTION -> 'Function' function_body) -> to_astnode
     function_body <-
@@ -412,7 +413,7 @@ local function get_parser(std)
       %TCONST -> 'const'
     typed_idlist <- typed_id (%COMMA typed_id)*
     typed_id <- ({} '' -> 'IdDecl'
-        %cNAME
+        name
         ((%COLON (var_mutability (typexpr /cnil) / cnil etypexpr)) / cnil cnil)
         (&%EXCL {| var_pragma* |})?
       ) -> to_astnode
@@ -427,7 +428,7 @@ local function get_parser(std)
     var_pragma <- ({} %EXCL -> 'Pragma' epragma_expr) -> to_astnode
 
     epragma_expr <-
-      ecNAME {|(
+      ename {|(
         (%LPAREN pragma_arg (%COMMA pragma_arg)* eRPAREN) /
         %cSTRING
       )?|}
@@ -448,7 +449,7 @@ local function get_parser(std)
       arraytable_type /
       array_type /
       pointer_type /
-      prim_type
+      primtype
 
     unary_typexpr_op <-
       {| {} %DEREF -> 'PointerType' |} /
@@ -466,7 +467,8 @@ local function get_parser(std)
 
     typexpr_param_expr <-
       %cNUMBER /
-      %cID /
+      id_nopp /
+      ppexpr /
       (%LPAREN eexpr eRPAREN) /
       %{ExpectedExpression}
 
@@ -474,14 +476,14 @@ local function get_parser(std)
         {| (record_field (%SEPARATOR record_field)* %SEPARATOR?)? |}
       eRCURLY) -> to_astnode
     record_field <- ({} '' -> 'RecordFieldType'
-        %cNAME eCOLON etypexpr
+       name eCOLON etypexpr
       ) -> to_astnode
     enum_type <- ({} %TENUM -> 'EnumType'
-        ((%LANGLE eprim_type eRANGLE) / cnil) eLCURLY
-        {| eenum_field (%SEPARATOR enum_field)* %SEPARATOR? |}
+        ((%LANGLE eprimtype eRANGLE) / cnil) eLCURLY
+        {| eenumfield (%SEPARATOR enumfield)* %SEPARATOR? |}
       eRCURLY) -> to_astnode
-    enum_field <- ({} '' -> 'EnumFieldType'
-        %cNAME (%ASSIGN eexpr)?
+    enumfield <- ({} '' -> 'EnumFieldType'
+        name (%ASSIGN eexpr)?
       ) -> to_astnode
     arraytable_type <- (
       {} 'arraytable' -> 'ArrayTableType'
@@ -495,14 +497,20 @@ local function get_parser(std)
       {} 'pointer' -> 'PointerType'
         ((%LANGLE etypexpr eRANGLE) / %SKIP)
       ) -> to_astnode
-    prim_type   <- ({} '' -> 'Type' %cNAME) -> to_astnode
+    primtype   <- ({} '' -> 'Type' name) -> to_astnode
 
+    ppexpr <- ({} %PPEXPRL -> 'PreprocessExpr' {expr -> 0} eRBRACKET) -> to_astnode
+    ppname <- ({} %PPEXPRL -> 'PreprocessName' {expr -> 0} eRBRACKET) -> to_astnode
     ppstring <- (ppshort_string / pplong_string) %SKIP
-    ppshort_string    <- %SHORTPP {(!%LINEBREAK .)*} %LINEBREAK?
+    ppshort_string    <- %PPSHORT {(!%LINEBREAK .)*} %LINEBREAK?
     pplong_string     <- pplong_open ({pplong_content*} pplong_close / %{UnclosedPreprocessBracket})
     pplong_content    <- !pplong_close .
     pplong_open       <- '[' {:eq: '#'*:} %SKIP
     pplong_close      <- =eq ']'
+
+    name    <- %cNAME / ppname
+    id_nopp <- ({} '' -> 'Id' %cNAME) -> to_astnode
+    id      <- ({} '' -> 'Id' name) -> to_astnode
   ]])
 
   -- operators
@@ -534,7 +542,7 @@ local function get_parser(std)
                   %TOSTR -> 'tostring' /
                   %REF -> 'ref' /
                   op_deref
-    op_deref    <-  %DEREF -> 'deref'
+    op_deref  <-  %DEREF -> 'deref'
     op_pow    <-  %POW -> 'pow'
   ]])
 
@@ -553,13 +561,12 @@ local function get_parser(std)
     eTHEN           <- %THEN          / %{ExpectedThen}
     eUNTIL          <- %UNTIL         / %{ExpectedUntil}
     eDO             <- %DO            / %{ExpectedDo}
-    ecNAME          <- %cNAME         / %{ExpectedName}
-    ecNUMBER        <- %cNUMBER       / %{ExpectedNumber}
+    ename           <- name           / %{ExpectedName}
     eexpr           <- expr           / %{ExpectedExpression}
     etypexpr        <- typexpr        / %{ExpectedTypeExpression}
-    ecall_args      <- call_args      / %{ExpectedCall}
-    eenum_field     <- enum_field     / %{ExpectedEnumFieldType}
-    eprim_type      <- prim_type      / %{ExpectedPrimitiveTypeExpression}
+    ecallargs       <- callargs       / %{ExpectedCall}
+    eenumfield      <- enumfield      / %{ExpectedEnumFieldType}
+    eprimtype       <- primtype       / %{ExpectedPrimitiveTypeExpression}
   ]])
 
   -- compile whole grammar

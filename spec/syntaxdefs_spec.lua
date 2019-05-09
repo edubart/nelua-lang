@@ -87,9 +87,6 @@ it("identifiers", function()
     ['if_'] = 'if_',
     ['var123'] = 'var123'
   })
-  assert.peg_capture_all(pegs.cID, {
-    ['_varname'] = n.Id{'_varname'}
-  })
   assert.peg_match_none(pegs.cNAME, {
     '123a', 'if', '-varname', 'if', 'else'
   })
@@ -1490,9 +1487,68 @@ describe("preprocessor", function()
     assert.parse_ast(euluna_parser, "[#if true then#] print 'hello' [#end#]",
       n.Block{{
         n.Preprocess{"if true then"},
-        n.Call{{n.String {"hello",nil}}, n.Id{"print"},true},
+        n.Call{{n.String {"hello"}}, n.Id{"print"},true},
         n.Preprocess{"end"}
     }})
+  end)
+  it("eval expression", function()
+    assert.parse_ast(euluna_parser, "print #['hello ' .. 'world']",
+      n.Block{{
+        n.Call{{n.PreprocessExpr{"'hello ' .. 'world'"}}, n.Id{"print"},true}
+    }})
+    assert.parse_ast(euluna_parser, "print(#['hello ' .. 'world'])",
+      n.Block{{
+        n.Call{{n.PreprocessExpr{"'hello ' .. 'world'"}}, n.Id{"print"},true}
+    }})
+    assert.parse_ast(euluna_parser, "print #[a[1]]",
+      n.Block{{
+        n.Call{{n.PreprocessExpr{"a[1]"}}, n.Id{"print"},true}
+    }})
+    assert.parse_ast(euluna_parser, "#[a]()",
+      n.Block{{
+        n.Call{{}, n.PreprocessExpr{"a"},true}
+    }})
+  end)
+  it("eval name", function()
+    assert.parse_ast(euluna_parser, "::#[a]::",
+      n.Block{{
+        n.Label{n.PreprocessName{"a"}}
+    }})
+    assert.parse_ast(euluna_parser, "::#[a]::",
+      n.Block{{
+        n.Label{n.PreprocessName{"a"}}
+    }})
+    assert.parse_ast(euluna_parser, "goto #[a]",
+      n.Block{{
+        n.Goto{n.PreprocessName{"a"}}
+    }})
+    assert.parse_ast(euluna_parser, "return #[a].#[b]",
+      n.Block{{
+        n.Return{{n.DotIndex{n.PreprocessName{"b"}, n.PreprocessExpr{"a"}}}}
+    }})
+    assert.parse_ast(euluna_parser, "function #[a]:#[b]() end",
+      n.Block{{
+        n.FuncDef{nil,
+        n.ColonIndex{n.PreprocessName{"b"}, n.Id{n.PreprocessName{"a"}}},
+        {}, {}, {}, n.Block{{}} },
+    }})
+    assert.parse_ast(euluna_parser, "#[a]:#[b]()",
+      n.Block{{
+        n.CallMethod{n.PreprocessName{"b"}, {}, n.PreprocessExpr{"a"}, true},
+    }})
+    assert.parse_ast(euluna_parser, "return {#[a] = b}",
+      n.Block{{
+        n.Return{{n.Table{{n.Pair{n.PreprocessName{"a"}, n.Id{'b'}}}}}}
+    }})
+    assert.parse_ast(euluna_parser, "local #[a]: #[b] !#[c]",
+      n.Block{{
+        n.VarDecl{'local', nil, {
+          n.IdDecl{
+            n.PreprocessName{"a"},
+            nil,
+            n.Type{n.PreprocessName{"b"}},
+            {n.Pragma{n.PreprocessName{"c"}, {}}}
+    }}}}})
   end)
 end)
 

@@ -11,15 +11,15 @@ local differ = require 'spec.differ'
 local euluna_syntax = require 'euluna.syntaxdefs'()
 local euluna_parser = euluna_syntax.parser
 
-function assert.ast_equals(expected_ast, ast)
-  assert.same(tostring(expected_ast), tostring(ast))
-end
-
 function assert.same_string(expected, passedin)
   if expected ~= passedin then --luacov:disable
     error('Expected strings to be the same, difference:\n' ..
       differ(expected, passedin):tostring({colored = true, context=3}))
   end --luacov:enable
+end
+
+function assert.ast_equals(expected_ast, ast)
+  assert.same_string(tostring(expected_ast), tostring(ast))
 end
 
 function assert.peg_match_all(patt, subjects)

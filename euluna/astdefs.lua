@@ -22,31 +22,38 @@ astbuilder:register('Boolean', {
 astbuilder:register('Nil', {})
 astbuilder:register('Varargs', {})
 
+-- preprocess
+astbuilder:register('Preprocess', {
+  stypes.string, -- code
+})
+astbuilder:register('PreprocessExpr', {
+  stypes.string, -- code
+})
+astbuilder:register('PreprocessName', {
+  stypes.string, -- code
+})
+
 -- table
 astbuilder:register('Table', {
   stypes.array_of(ntypes.Node) -- pair or exprs
 })
 astbuilder:register('Pair', {
-  ntypes.Node + stypes.string, -- field name (an expr or a string)
+  ntypes.Node + stypes.string + ntypes.PreprocessName, -- field name (an expr or a string)
   ntypes.Node -- field value expr
 })
 
 -- pragma
 astbuilder:register('Pragma', {
-  stypes.string, -- name
+  stypes.string + ntypes.PreprocessName, -- name
   stypes.array_of(ntypes.String + ntypes.Number + ntypes.Boolean) -- args
-})
-
-astbuilder:register('Preprocess', {
-  stypes.string, -- code
 })
 
 -- identifier and types
 astbuilder:register('Id', {
-  stypes.string, -- name
+  stypes.string + ntypes.PreprocessName, -- name
 })
 astbuilder:register('IdDecl', {
-  stypes.string, -- name
+  stypes.string + ntypes.PreprocessName, -- name
   stypes.one_of{"var", "var&", "var&&", "val", "val&", "const"}:is_optional(), -- mutability
   ntypes.Node:is_optional(), -- typexpr
   stypes.array_of(ntypes.Pragma):is_optional(), -- pragmas
@@ -57,7 +64,7 @@ astbuilder:register('Paren', {
 
 -- types
 astbuilder:register('Type', {
-  stypes.string, -- type name
+  stypes.string + ntypes.PreprocessName, -- type name
 })
 astbuilder:register('TypeInstance', {
   ntypes.Node, -- typexpr
@@ -67,14 +74,14 @@ astbuilder:register('FuncType', {
   stypes.array_of(ntypes.Node), -- returns types
 })
 astbuilder:register('RecordFieldType', {
-  stypes.string, -- field name
+  stypes.string + ntypes.PreprocessName, -- field name
   ntypes.Node, -- field typexpr
 })
 astbuilder:register('RecordType', {
   stypes.array_of(ntypes.RecordFieldType), -- field types
 })
 astbuilder:register('EnumFieldType', {
-  stypes.string, -- field name
+  stypes.string + ntypes.PreprocessName, -- field name
   ntypes.Node:is_optional() -- field numeric value expr
 })
 astbuilder:register('EnumType', {
@@ -105,11 +112,11 @@ astbuilder:register('Function', {
 
 -- indexing
 astbuilder:register('DotIndex', {
-  stypes.string, -- name
+  stypes.string + ntypes.PreprocessName, -- name
   ntypes.Node -- expr
 })
 astbuilder:register('ColonIndex', {
-  stypes.string, -- name
+  stypes.string + ntypes.PreprocessName, -- name
   ntypes.Node -- expr
 })
 astbuilder:register('ArrayIndex', {
@@ -124,7 +131,7 @@ astbuilder:register('Call', {
   stypes.boolean:is_optional(), -- is called from a block
 })
 astbuilder:register('CallMethod', {
-  stypes.string, -- method name
+  stypes.string + ntypes.PreprocessName, -- method name
   stypes.array_of(ntypes.Node), -- args exprs
   ntypes.Node, -- caller expr
   stypes.boolean:is_optional(), -- is called from a block
@@ -169,10 +176,10 @@ astbuilder:register('ForIn', {
 })
 astbuilder:register('Break', {})
 astbuilder:register('Label', {
-  stypes.string -- label name
+  stypes.string + ntypes.PreprocessName -- label name
 })
 astbuilder:register('Goto', {
-  stypes.string -- label name
+  stypes.string + ntypes.PreprocessName -- label name
 })
 astbuilder:register('VarDecl', {
   stypes.one_of{"local"}:is_optional(), -- scope
