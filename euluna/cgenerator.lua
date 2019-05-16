@@ -31,6 +31,7 @@ function visitors.String(context, node, emitter)
   local decemitter = CEmitter(context)
   local value = node.attr.value
   local len = #value
+  --TODO: use another identifier other than pos
   local varname = '__string_literal_' .. node.pos
   local quoted_value = pegger.double_quote_c_string(value)
   decemitter:add_indent_ln('static const struct { uintptr_t len, res; char data[', len + 1, ']; }')
@@ -438,6 +439,7 @@ end
 
 function visitors.Do(_, node, emitter)
   local blocknode = node:args()
+  if #blocknode[1] == 0 then return end
   emitter:add_indent_ln("{")
   emitter:add(blocknode)
   emitter:add_indent_ln("}")
@@ -549,6 +551,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
       end
 
       if lastcallindex == 1 then
+        --TODO: use another identifier other than pos
         multiretvalname = '__ret' .. valnode.pos
         local retctype = context:funcretctype(valnode.attr.calleetype)
         emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', valnode, ';')

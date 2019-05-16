@@ -66,7 +66,9 @@ end
 -- error handling
 -------------------
 local function format_node_errmsg(node, message, ...)
-  message = string.format(message, ...)
+  if select('#', ...) > 0 then
+    message = string.format(message, ...)
+  end
   if node.src and node.pos then
     message = errorer.get_pretty_source_errmsg(node.src, node.srcname, node.pos, message)
   end

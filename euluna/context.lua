@@ -21,6 +21,8 @@ function Context:_init(visitors, default_visitor)
   self.visitors = visitors
   if default_visitor == true then
     self.default_visitor = traverser_default_visitor
+  elseif default_visitor then
+    self.default_visitor = default_visitor
   end
   self.nodes = {}
   self.builtins = {}

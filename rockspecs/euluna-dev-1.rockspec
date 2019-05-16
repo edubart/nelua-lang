@@ -64,6 +64,7 @@ build = {
     ['euluna.symbol'] = 'euluna/symbol.lua',
     ['euluna.syntaxdefs'] = 'euluna/syntaxdefs.lua',
     ['euluna.typechecker'] = 'euluna/typechecker.lua',
+    ['euluna.preprocessor'] = 'euluna/preprocessor.lua',
     ['euluna.typedefs'] = 'euluna/typedefs.lua',
     ['euluna.types'] = 'euluna/types.lua',
     ['euluna.utils.bn'] = 'euluna/utils/bn.lua',

@@ -293,15 +293,6 @@ function visitors.FuncDef(context, node, emitter)
 end
 
 -- operators
-local function is_in_operator(context)
-  local parent_node = context:get_parent_node()
-  if not parent_node then return false end
-  local parent_node_tag = parent_node.tag
-  return
-    parent_node_tag == 'UnaryOp' or
-    parent_node_tag == 'BinaryOp'
-end
-
 function visitors.UnaryOp(context, node, emitter)
   local opname, argnode = node:args()
   if opname == 'tostring' then
@@ -316,7 +307,7 @@ function visitors.UnaryOp(context, node, emitter)
         return
       end
     end
-    local surround = is_in_operator(context)
+    local surround = node.attr.inoperator
     if surround then emitter:add('(') end
     emitter:add(op, argnode)
     if surround then emitter:add(')') end
@@ -338,7 +329,7 @@ function visitors.BinaryOp(context, node, emitter)
       return
     end
   end
-  local surround = is_in_operator(context)
+  local surround = node.attr.inoperator
   if surround then emitter:add('(') end
   emitter:add(lnode, ' ', op, ' ', rnode)
   if surround then emitter:add(')') end

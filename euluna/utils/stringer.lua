@@ -10,6 +10,7 @@ function stringer.hash(s, len, key)
 end
 
 stringer.startswith = stringx.startswith
+stringer.endswith = stringx.endswith
 stringer.split = stringx.split
 stringer.rstrip = stringx.rstrip
 stringer.count = stringx.count

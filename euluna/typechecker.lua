@@ -7,8 +7,6 @@ local Context = require 'euluna.context'
 local Symbol = require 'euluna.symbol'
 local types = require 'euluna.types'
 local bn = require 'euluna.utils.bn'
-local sstream = require 'euluna.utils.sstream'
-local compat = require 'pl.compat'
 
 local primtypes = typedefs.primtypes
 local visitors = {}
@@ -664,6 +662,7 @@ function visitors.IdDecl(context, node, declmut)
   return symbol
 end
 
+--[=[
 local function preprocess_traverse(context, node, statnodes)
   if not tabler.ifindif(statnodes, function(statnode) return statnode.tag == 'Preprocess' end) then
     -- no preprocess statement found
@@ -720,16 +719,17 @@ table.insert(__newstatnodes, __node) context:traverse(__node)]], i)
   return newstatnodes
 end
 
+]=]
+
+local preprocessor = require 'euluna.preprocessor'
+
 function visitors.Block(context, node)
+  if not node.processed then
+    preprocessor.preprocess(context, node)
+  end
   local statnodes = node:args()
   context:repeat_scope_until_resolution('block', function()
-    if not node.processed then
-      statnodes = preprocess_traverse(context, node, statnodes)
-      node[1] = statnodes
-      node.processed = true
-    else
-      context:traverse(statnodes)
-    end
+    context:traverse(statnodes)
   end)
 end
 
@@ -1066,15 +1066,6 @@ function visitors.FuncDef(context, node)
   end
 end
 
-local function is_in_operator(context)
-  local parent_node = context:get_parent_node()
-  if not parent_node then return false end
-  local parent_node_tag = parent_node.tag
-  return
-    parent_node_tag == 'UnaryOp' or
-    parent_node_tag == 'BinaryOp'
-end
-
 function visitors.UnaryOp(context, node, desiredtype)
   local opname, argnode = node:args()
   if opname == 'not' then
@@ -1097,7 +1088,8 @@ function visitors.UnaryOp(context, node, desiredtype)
   end
   node.attr.const = argnode.attr.const
   node.attr.sideeffect = argnode.attr.sideeffect
-  node.attr.inoperator = is_in_operator(context)
+  local parentnode = context:get_parent_node()
+  node.attr.inoperator = parentnode and stringer.endswith(parentnode.tag, 'Op')
 end
 
 function visitors.BinaryOp(context, node, desiredtype)
@@ -1180,10 +1172,12 @@ function visitors.BinaryOp(context, node, desiredtype)
   if lnode.attr.sideeffect or rnode.attr.sideeffect then
     node.attr.sideeffect = true
   end
-  node.attr.inoperator = is_in_operator(context)
+  local parentnode = context:get_parent_node()
+  node.attr.inoperator = parentnode and stringer.endswith(parentnode.tag, 'Op')
 end
 
 local typechecker = {}
+
 function typechecker.analyze(ast, astbuilder)
   local context = Context(visitors, true)
   context.astbuilder = astbuilder
