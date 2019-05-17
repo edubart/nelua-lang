@@ -46,11 +46,14 @@ function Context:pop_node()
   table.remove(self.nodes)
 end
 
+function Context:get_top_node()
+  return self.nodes[1]
+end
+
 function Context:get_parent_node()
   return self.nodes[#self.nodes - 1]
 end
 
---[[
 function Context:iterate_parent_nodes()
   local i = #self.nodes
   return function(nodes)
@@ -65,7 +68,6 @@ function Context:get_parent_node_if(f)
     if f(node) then return node end
   end
 end
-]]
 
 function Context:traverse_nodes(nodes, ...)
   assert(not traits.is_astnode(nodes) and traits.is_table(nodes), "must traverse a list")

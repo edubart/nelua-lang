@@ -1,74 +1,13 @@
 local traits = require 'euluna.utils.traits'
+local tabler = require 'euluna.utils.tabler'
 local iters = require 'euluna.utils.iterators'
 local class = require 'euluna.utils.class'
 local except = require 'euluna.utils.except'
+local bn = require 'euluna.utils.bn'
+local compat = require 'pl.compat'
+local typedefs = require 'euluna.typedefs'
 local Context = require 'euluna.context'
 local Emitter = require 'euluna.emitter'
-local compat = require 'pl.compat'
-
---[=[
-local function preprocess_traverse(context, node, statnodes)
-  if not tabler.ifindif(statnodes, function(statnode) return statnode.tag == 'Preprocess' end) then
-    -- no preprocess statement found
-    context:traverse(statnodes)
-    return statnodes
-  end
-
-  local ss = sstream()
-  ss:addln('local __newstatnodes,__node = {}')
-  local line2node = {}
-  local linecounter = 1
-  local lastppnode = nil
-  for i,statnode in ipairs(statnodes) do
-    local luacode, numlines
-    if statnode.tag == 'Preprocess' then
-      luacode = statnode[1]
-      lastppnode = statnode
-      numlines = stringer.count(luacode, '\n') + 1
-    else
-      luacode = string.format([[
-local __node = __statnodes[%d]:clone()
-table.insert(__newstatnodes, __node) context:traverse(__node)]], i)
-numlines = 2
-end
-ss:addln(luacode)
-for _=1,numlines do
-  linecounter = linecounter + 1
-  line2node[linecounter] = statnode
-end
-end
-ss:addln('return __newstatnodes')
-local ppcode = ss:tostring()
-local env = setmetatable({
-context = context,
-scope = context.scope,
-node = node,
-__statnodes = statnodes
-}, {__index = _G})
-local newnodes, err = compat.load(ppcode, '@pp', "t", env)
-local ok = not err
-local newstatnodes
-if newnodes then
-ok, newstatnodes = pcall(newnodes)
-if not ok then
-  err = newstatnodes
-end
-end
-if not ok then
-local line, lineerr = err:match('pp:(%d+): (.*)')
-assert(line and lineerr)
-local linenode = line2node[line] or lastppnode
-linenode:raisef('preprocessing error: %s', lineerr)
-end
-return newstatnodes
-
-]=]
-
---[[
-print #[a]
-
-
-]]
 
 local function default_visitor(self, node, emitter, ...)
   local nargs = traits.is_astnode(node) and node.nargs or #node
@@ -90,23 +29,43 @@ function PPContext:_init(context, visitors)
   self.registry = {}
 end
 
-function PPContext.toname(_, val)
-  local vtype = type(val)
-  assert(vtype == 'string')
+function PPContext.toname(_, val, orignode)
+  orignode:assertraisef(traits.is_string(val),
+    'unable to convert preprocess value of type "%s" to a compile time name', type(val))
   return val
 end
 
 function PPContext:tovalue(val, orignode)
-  local vtype = type(val)
   local node
-  if vtype == 'string' then
+  if traits.is_astnode(val) then
+    node = val
+  elseif traits.is_type(val) then
+    node = self.aster.Type{'void'}
+    -- inject persistent parsed type
+    node.pattr = {
+      type = typedefs.primtypes.type,
+      holdedtype = val,
+      const = true
+    }
+    tabler.update(node.attr, node.pattr)
+  elseif traits.is_string(val) then
     node = self.aster.String{val}
-  elseif vtype == 'number' then
-    node = self.aster.Number{'dec', tostring(val)}
+  elseif traits.is_number(val) or traits.is_bignumber(val) then
+    local num = bn.new(val)
+    if num:isintegral() then
+      node = self.aster.Number{'dec', num:todec()}
+    else
+      local int, frac = num:todec():match('^(%d+).(%d+)$')
+      node = self.aster.Number{'dec', int, frac}
+    end
+  elseif traits.is_boolean(val) then
+    node = self.aster.Boolean{val}
+  --TODO: table, nil
   else
-    error 'not implemented'
+    orignode:raisef('unable to convert preprocess value of type "%s" to a const value', type(val))
   end
   node.srcname = orignode.srcname
+  node.modname = orignode.modname
   node.src = orignode.src
   node.pos = orignode.pos
   return node
@@ -125,18 +84,18 @@ end
 
 local visitors = {}
 
-function visitors.PreprocessName(ppcontext, node, emitter, parentnode, parentindex)
+function visitors.PreprocessName(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
-  local parentregindex = ppcontext:getregistryindex(parentnode)
+  local parentregindex = ppcontext:getregistryindex(parent)
   local selfregindex = ppcontext:getregistryindex(node)
   emitter:add_ln(
     'ppregistry[', parentregindex, '][', parentindex, ']',
     ' = ppcontext:toname(', luacode, ', ppregistry[', selfregindex, '])')
 end
 
-function visitors.PreprocessExpr(ppcontext, node, emitter, parentnode, parentindex)
+function visitors.PreprocessExpr(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
-  local parentregindex = ppcontext:getregistryindex(parentnode)
+  local parentregindex = ppcontext:getregistryindex(parent)
   local selfregindex = ppcontext:getregistryindex(node)
   emitter:add_ln(
     'ppregistry[', parentregindex, '][', parentindex, ']',
@@ -148,61 +107,142 @@ function visitors.Preprocess(_, node, emitter)
   emitter:add_ln(luacode)
 end
 
-function visitors.Block(ppcontext, node, emitter, parentnode)
-  local statnodes = node.origstatnodes or node[1]
+function visitors.ForNum(ppcontext, node, emitter)
+  local itvarnode, begvalnode, compop, endvalnode, stepvalnode, blocknode = node:args()
+  ppcontext:traverse(begvalnode, emitter, node, 2)
+  ppcontext:traverse(endvalnode, emitter, node, 4)
+  if stepvalnode then
+    ppcontext:traverse(stepvalnode, emitter, node, 5)
+  end
+  emitter:add_ln([[
+local ppitvarnode, ppbegvalnode, _, ppendvalnode, ppstepvalnode, ppblocknode = ppstatnode:args()
+context:traverse(ppbegvalnode)
+context:traverse(ppendvalnode)
+if ppstepvalnode then
+context:traverse(ppstepvalnode)
+end
+context:push_scope("loop")]])
+  ppcontext:traverse(itvarnode, emitter, node, 1)
+  emitter:add_ln([[context:traverse(ppitvarnode)]])
+  ppcontext:traverse(blocknode, emitter, node, 6)
+  emitter:add_ln([[context:traverse(ppblocknode)
+context:pop_scope()]])
+end
 
-  node.processed = true
-  --[[
-  local preprocess_tags = {
-    Preprocess = true,
-    PreprocessExpr = true,
-    PreprocessName = true
-  }
-  if node:find_child_if(function(childnode) return preprocess_tags[childnode.tag] end) then
-    -- this block doesn't have any preprocess directive
-    emitter:add_ln('do')
-    emitter:add_ln('context:push_scope("block")')
-    ppcontext:traverse(statnodes)
-    emitter:add_ln('context:pop_scope()')
-    emitter:add_ln('end')
+function visitors.Block(ppcontext, node, emitter, parent)
+  if not node.needprocess then
+    -- this block doesn't have any preprocess directive, skip it
     return
   end
-  ]]
 
-  if parentnode and not node.origstatnodes then
-    node.origstatnodes = statnodes
+  -- always use original statement nodes for inner preprocessor blocks
+  local statnodes = node.origstatnodes or node[1]
+  if parent and not node.origstatnodes then
+    -- clone because we may change origina ref
+    node.origstatnodes = node:clone()[1]
   end
 
+  node.processed = true
+  node.needprocess = false
+
   emitter:add_ln('do')
-  emitter:add_ln('local ppnewstatnodes, ppstatnode = {}')
+  emitter:add_ln('local ppnewstatnodes = {}')
   emitter:add_ln('ppregistry[', ppcontext:getregistryindex(node), '][1] = ppnewstatnodes')
   emitter:add_ln('context:push_scope("block")')
   for _,statnode in ipairs(statnodes) do
-    ppcontext:traverse(statnode, emitter)
-    if statnode.tag ~= 'Preprocess' then
-      emitter:add_ln('ppstatnode = ppregistry[', ppcontext:getregistryindex(statnode), ']:clone()')
-      emitter:add_ln('table.insert(ppnewstatnodes, ppstatnode) context:traverse(ppstatnode)')
+    if statnode.tag == 'Preprocess' then
+      ppcontext:traverse(statnode, emitter)
+    else
+      emitter:add_ln('do')
+      emitter:add_ln('local ppstatnode = ppregistry[', ppcontext:getregistryindex(statnode), ']')
+      ppcontext:traverse(statnode, emitter)
+      emitter:add_ln('local ppnewstatnode =  ppstatnode:clone()')
+      emitter:add_ln('table.insert(ppnewstatnodes, ppnewstatnode)')
+      emitter:add_ln('context:traverse(ppnewstatnode)')
+      emitter:add_ln('end')
     end
   end
   emitter:add_ln('context:pop_scope()')
   emitter:add_ln('end')
 end
 
+local function mark_process_visitor(markercontext)
+  local topppblocknode = markercontext:get_parent_node_if(function(pnode)
+    return pnode.needprocess
+  end)
+  if topppblocknode then
+    -- mark all blocks between top pp block and this block
+    for pnode in markercontext:iterate_parent_nodes() do
+      if pnode.tag == 'Block' then
+        if pnode == topppblocknode then
+          break
+        end
+        pnode.needprocess = true
+      end
+    end
+  else
+    -- mark parent block
+    local parentblocknode = markercontext:get_parent_node_if(function(pnode)
+      return pnode.tag == 'Block'
+    end)
+    parentblocknode.needprocess = true
+  end
+  markercontext.needprocess = true
+end
+
+local marker_visitors = {
+  Preprocess = mark_process_visitor,
+  PreprocessName = mark_process_visitor,
+  PreprocessExpr = mark_process_visitor,
+}
+
+function marker_visitors.Block(markercontext, node)
+  local statnodes = node[1]
+  markercontext:traverse(statnodes)
+  if not node.needprocess then
+    node.processed = true
+  end
+end
+
 local preprocessor = {}
 function preprocessor.preprocess(context, ast)
-  local ppcontext = PPContext(context, visitors)
-
-  local emitter = Emitter(ppcontext, 0)
   assert(ast.tag == 'Block')
+
+  local markercontext = Context(marker_visitors, true)
+
+  -- first pass, mark blocks that needs preprocess
+  markercontext:traverse(ast)
+
+  if not markercontext.needprocess then
+    -- none preprocess directive found for this block, finished
+    return
+  end
+
+  -- second pass, emit the preprocess lua code
+  local ppcontext = PPContext(context, visitors)
+  local emitter = Emitter(ppcontext, 0)
   ppcontext:traverse(ast, emitter)
 
+  -- generate the preprocess function
   local ppcode = emitter:generate()
   local env = setmetatable({
     context = context,
+    aster = context.astbuilder.aster,
     ppcontext = ppcontext,
     ppregistry = ppcontext.registry
-  }, { __index = _G })
+  }, { __index = function(_, key)
+    if key == 'scope' then
+      return context.scope
+    elseif key == 'ast' then
+      return context:get_top_node()
+    elseif key == 'symbols' then
+      return context.scope.symbols
+    else
+      return _G[key]
+    end
+  end})
 
+  -- try to run the preprocess otherwise capture and show the error
   local ppfunc, err = compat.load(ppcode, '@pp', "t", env)
   local ok = not err
   if ppfunc then

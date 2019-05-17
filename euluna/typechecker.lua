@@ -758,11 +758,11 @@ function visitors.Repeat(context, node)
 end
 
 function visitors.ForNum(context, node)
-  local itvarnode, beginvalnode, compop, endvalnode, stepvalnode, blocknode = node:args()
+  local itvarnode, begvalnode, compop, endvalnode, stepvalnode, blocknode = node:args()
   local itname = itvarnode[1]
-  context:traverse(beginvalnode)
+  context:traverse(begvalnode)
   context:traverse(endvalnode)
-  local btype, etype = beginvalnode.attr.type, endvalnode.attr.type
+  local btype, etype = begvalnode.attr.type, endvalnode.attr.type
   local stype
   if stepvalnode then
     context:traverse(stepvalnode)
@@ -776,7 +776,7 @@ function visitors.ForNum(context, node)
           "`for` variable must be a number, but got type '%s'",
            tostring(ittype))
       if btype then
-        beginvalnode:assertraisef(ittype:is_coercible_from_node(beginvalnode),
+        begvalnode:assertraisef(ittype:is_coercible_from_node(begvalnode),
           "`for` variable '%s' of type '%s' is not coercible with begin value of type '%s'",
           itname, tostring(ittype), tostring(btype))
       end

@@ -1,5 +1,6 @@
 local tabler = require 'euluna.utils.tabler'
 local class = require 'euluna.utils.class'
+local sstream = require 'euluna.utils.sstream'
 local Symbol = class()
 
 function Symbol:_init(name, node, mut, type)
@@ -34,6 +35,19 @@ function Symbol:link_node(node)
   end
   assert(next(node.attr) == nil, 'cannot link to a node with attributes')
   node.attr = self.attr
+end
+
+function Symbol:__tostring()
+  local ss = sstream('symbol<')
+  ss:add(self.attr.mut, ' ', self.name)
+  if self.attr.type then
+    ss:add(': ', tostring(self.attr.type))
+  end
+  if self.attr.value then
+    ss:add(' = ', tostring(self.attr.value))
+  end
+  ss:add('>')
+  return ss:tostring()
 end
 
 return Symbol

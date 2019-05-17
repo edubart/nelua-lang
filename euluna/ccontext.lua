@@ -18,6 +18,7 @@ function CContext:_init(visitors)
     ldflags = {},
     linklibs = {}
   }
+  self.uniquecounters = {}
 end
 
 function CContext:declname(node)
@@ -34,6 +35,16 @@ function CContext:declname(node)
   end
   attr.declname = declname
   return declname
+end
+
+function CContext:genuniquename(kind)
+  local count = self.uniquecounters[kind]
+  if not count then
+    count = 0
+  end
+  count = count + 1
+  self.uniquecounters[kind] = count
+  return string.format('__%s%d', kind, count)
 end
 
 function CContext:typename(type)

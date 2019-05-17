@@ -36,9 +36,10 @@ local function clone_nodetable(t)
       ct[i] = v:clone()
     elseif traits.is_table(v) then
       ct[i] = clone_nodetable(v)
-    else
-      ct[i] = v
-    end
+    else --luacov:disable
+      error('invalid value type in node clone')
+      --ct[i] = v
+    end --luacov:enable
   end
   return ct
 end
@@ -54,7 +55,13 @@ function ASTNode:clone()
     end
     node[i] = arg
   end
-  node.attr = {}
+  if self.pattr then
+    -- copy persistent attributes
+    node.attr = tabler.copy(self.pattr)
+    node.pattr = self.pattr
+  else
+    node.attr = {}
+  end
   node.pos = self.pos
   node.src = self.src
   node.srcname = self.srcname
@@ -103,7 +110,9 @@ end
 -- pretty print ast
 -------------------
 local ignored_stringfy_keys = {
-  pos = true, src = true, srcname=true, modname=true, processed = true
+  pos = true, src = true, srcname=true, modname=true,
+  processed = true,
+  needprocess = true,
 }
 local function stringfy_val2str(val)
   local vstr = tostring(val)

@@ -90,7 +90,7 @@ end
 
 function functions.print(context, node)
   local argnodes = node:args()
-  local funcname = '__euluna_print_' .. node.pos
+  local funcname = context:genuniquename('euluna_print')
 
   context:add_runtime_builtin('stdout_write')
 

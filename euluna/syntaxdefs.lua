@@ -151,6 +151,7 @@ local function get_parser(std)
   %RANGLE       <- '>'
   %PPSHORT      <- '##'
   %PPEXPRL      <- '#['
+  %PPNAMEL      <- '$['
 
   -- binary operators
   %ADD          <- '+'
@@ -177,7 +178,7 @@ local function get_parser(std)
   %NEG          <- !'--' '-'
   %LEN          <- !%PPSHORT !%PPEXPRL '#'
   %BNOT         <- !%NE '~'
-  %TOSTR        <- '$'
+  %TOSTR        <- !%PPNAMEL '$'
   %REF          <- '&'
   %DEREF        <- '*'
 
@@ -371,7 +372,7 @@ local function get_parser(std)
     suffixed_expr <- (primary_expr {| (index_expr / call_expr)* |}) -> to_chain_index_or_call
 
     primary_expr <-
-      id_nopp /
+      id /
       ppexpr /
       type_instance /
       ({} %LPAREN -> 'Paren' eexpr eRPAREN) -> to_astnode
@@ -449,7 +450,8 @@ local function get_parser(std)
       arraytable_type /
       array_type /
       pointer_type /
-      primtype
+      primtype /
+      ppexpr
 
     unary_typexpr_op <-
       {| {} %DEREF -> 'PointerType' |} /
@@ -467,7 +469,7 @@ local function get_parser(std)
 
     typexpr_param_expr <-
       %cNUMBER /
-      id_nopp /
+      id /
       ppexpr /
       (%LPAREN eexpr eRPAREN) /
       %{ExpectedExpression}
@@ -500,7 +502,7 @@ local function get_parser(std)
     primtype   <- ({} '' -> 'Type' name) -> to_astnode
 
     ppexpr <- ({} %PPEXPRL -> 'PreprocessExpr' {expr -> 0} eRBRACKET) -> to_astnode
-    ppname <- ({} %PPEXPRL -> 'PreprocessName' {expr -> 0} eRBRACKET) -> to_astnode
+    ppname <- ({} %PPNAMEL -> 'PreprocessName' {expr -> 0} eRBRACKET) -> to_astnode
     ppstring <- (ppshort_string / pplong_string) %SKIP
     ppshort_string    <- %PPSHORT {(!%LINEBREAK .)*} %LINEBREAK?
     pplong_string     <- pplong_open ({pplong_content*} pplong_close / %{UnclosedPreprocessBracket})
@@ -509,7 +511,6 @@ local function get_parser(std)
     pplong_close      <- =eq ']'
 
     name    <- %cNAME / ppname
-    id_nopp <- ({} '' -> 'Id' %cNAME) -> to_astnode
     id      <- ({} '' -> 'Id' name) -> to_astnode
   ]])
 

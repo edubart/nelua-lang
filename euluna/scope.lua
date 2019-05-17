@@ -36,7 +36,7 @@ end
 
 function Scope:get_symbol(name, node)
   local symbol = self.symbols[name]
-  if not symbol and config.strict then
+  if not symbol and node and config.strict then
     node:raisef("undeclarated symbol '%s'", name)
   end
   return symbol

@@ -197,12 +197,12 @@ function visitors.Repeat(_, node, emitter)
 end
 
 function visitors.ForNum(_, node, emitter)
-  local itvar, beginval, comp, endval, incrval, block  = node:args()
+  local itvar, begval, comp, endval, incrval, block  = node:args()
   if not comp then
     comp = 'le'
   end
   node:assertraisef(comp == 'le', 'for comparator not supported yet')
-  emitter:add_indent("for ", itvar, '=', beginval, ',', endval)
+  emitter:add_indent("for ", itvar, '=', begval, ',', endval)
   if incrval then
     emitter:add(',', incrval)
   end

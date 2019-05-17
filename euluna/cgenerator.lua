@@ -31,8 +31,7 @@ function visitors.String(context, node, emitter)
   local decemitter = CEmitter(context)
   local value = node.attr.value
   local len = #value
-  --TODO: use another identifier other than pos
-  local varname = '__string_literal_' .. node.pos
+  local varname = context:genuniquename('strlit')
   local quoted_value = pegger.double_quote_c_string(value)
   decemitter:add_indent_ln('static const struct { uintptr_t len, res; char data[', len + 1, ']; }')
   decemitter:add_indent_ln('  ', varname, ' = {', len, ', ', len, ', ', quoted_value, '};')
@@ -464,7 +463,7 @@ function visitors.Repeat(_, node, emitter)
 end
 
 function visitors.ForNum(context, node, emitter)
-  local itvarnode, beginvalnode, compop, endvalnode, stepvalnode, blocknode  = node:args()
+  local itvarnode, begvalnode, compop, endvalnode, stepvalnode, blocknode  = node:args()
   compop = node.attr.compop
   local fixedstep = node.attr.fixedstep
   context:push_scope('for')
@@ -473,7 +472,7 @@ function visitors.ForNum(context, node, emitter)
     local ittype = itvarnode.attr.type
     local itname = context:declname(itvarnode)
     emitter:add_indent('for(', ittype, ' __it = ')
-    emitter:add_val2type(ittype, beginvalnode)
+    emitter:add_val2type(ittype, begvalnode)
     emitter:add(', __end = ')
     emitter:add_val2type(ittype, endvalnode)
     if not fixedstep then
@@ -552,7 +551,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
 
       if lastcallindex == 1 then
         --TODO: use another identifier other than pos
-        multiretvalname = '__ret' .. valnode.pos
+        multiretvalname = context:genuniquename('ret')
         local retctype = context:funcretctype(valnode.attr.calleetype)
         emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', valnode, ';')
       end

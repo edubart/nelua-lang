@@ -1,0 +1,56 @@
+local function getchar(): int32 !cimport end
+local function putchar(c: int32): int32 !cimport end
+
+local data: int32[1024]
+local ptr: int32 = 0
+
+[#
+local source = [[
+  ++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++
+  ..+++.>>.<-.<.+++.------.--------.>>+.>++.
+]]
+--add a stack to keep track of the beginning of each loop
+local jumpstack = {}
+for i=1,#source do
+  local c = source:sub(i,i)
+  if c == ">" then
+    #] ptr = ptr + 1 [#
+  elseif c == "<" then
+    #] ptr = ptr - 1 [#
+  elseif c == "+" then
+    #] data[ptr] = data[ptr] + 1 [#
+  elseif c == "-" then
+    #] data[ptr] = data[ptr] - 1 [#
+  elseif c == "." then
+    #] putchar(data[ptr]) [#
+  elseif c == "," then
+    #] data[ptr] = getchar() [#
+  elseif c == "[" then
+    --generate labels to represent the beginning
+    --and ending of the loop
+    --the 'symbol' function generates a globally unique
+    --name for the label
+    local target = { before = 'b' .. i, after = 'a' .. i }
+    table.insert(jumpstack, target)
+    #]
+      --label for beginning of the loop
+      ::$[target.before]::
+      if data[ptr] == 0 then
+        goto $[target.after] --exit the loop
+      end
+    [#
+  elseif c == "]" then
+    --retrieve the labels that match this loop
+    local target = table.remove(jumpstack)
+    assert(target)
+    #]
+      goto $[target.before] --loop back edge
+      ::$[target.after]:: --label for end of the loop
+    [#
+  elseif c:match("%s") then
+    -- skip spaces
+  else
+    error("unknown character " .. c)
+  end
+end
+#]
