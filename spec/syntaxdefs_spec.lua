@@ -278,7 +278,7 @@ it("operators and symbols", function()
   assert.peg_match_all(pegs.NEG, {'-'})
   assert.peg_match_all(pegs.LEN, {'#'})
   assert.peg_match_all(pegs.BNOT, {'~'})
-  assert.peg_match_all(pegs.TOSTR, {'$'})
+  assert.peg_match_all(pegs.DEREF, {'$'})
 
   assert.peg_match_all(pegs.LPAREN, {'('})
   assert.peg_match_all(pegs.RPAREN, {')'})
@@ -1148,13 +1148,6 @@ describe("operator", function()
           n.UnaryOp{'bnot', n.Id{'a'}
     }}}}})
   end)
-  it("'$'", function()
-    assert.parse_ast(euluna_parser, "return $a",
-      n.Block{{
-        n.Return{{
-          n.UnaryOp{'tostring', n.Id{'a'}
-    }}}}})
-  end)
   it("'&'", function()
     assert.parse_ast(euluna_parser, "return &a",
       n.Block{{
@@ -1163,13 +1156,13 @@ describe("operator", function()
     }}}}})
   end)
   it("'*'", function()
-    assert.parse_ast(euluna_parser, "*a = b",
+    assert.parse_ast(euluna_parser, "$a = b",
       n.Block{{
         n.Assign{
           {n.UnaryOp{'deref',n.Id{'a'}}},
           {n.Id{'b'}
     }}}})
-    assert.parse_ast(euluna_parser, "return *a",
+    assert.parse_ast(euluna_parser, "return $a",
       n.Block{{
         n.Return{{
           n.UnaryOp{'deref', n.Id{'a'}

@@ -178,9 +178,8 @@ local function get_parser(std)
   %NEG          <- !'--' '-'
   %LEN          <- !%PPSHORT !%PPEXPRL '#'
   %BNOT         <- !%NE '~'
-  %TOSTR        <- !%PPNAMEL '$'
+  %DEREF        <- !%PPNAMEL '$'
   %REF          <- '&'
-  %DEREF        <- '*'
 
   -- other symbols
   %SEMICOLON    <- ';'
@@ -454,7 +453,7 @@ local function get_parser(std)
       ppexpr
 
     unary_typexpr_op <-
-      {| {} %DEREF -> 'PointerType' |} /
+      {| {} %MUL -> 'PointerType' |} /
       {| {} %LBRACKET -> 'ArrayType' cnil typexpr_param_expr eRBRACKET |}
 
     func_type <- (
@@ -540,7 +539,6 @@ local function get_parser(std)
                   %LEN -> 'len' /
                   %NEG -> 'neg' /
                   %BNOT -> 'bnot' /
-                  %TOSTR -> 'tostring' /
                   %REF -> 'ref' /
                   op_deref
     op_deref  <-  %DEREF -> 'deref'

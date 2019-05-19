@@ -410,7 +410,7 @@ function visitors.ArrayType(context, node)
   context:traverse(lengthnode)
   assert(lengthnode.attr.value, 'not implemented yet')
   local length = lengthnode.attr.value:tointeger()
-  lengthnode:assertraisef(lengthnode.attr.type:is_integral() and length > 0,
+  lengthnode:assertraisef(lengthnode.attr.type:is_integral() and length >= 0,
     'expected a valid decimal integral number in the second argument of an "array" type')
   local type = types.ArrayType(node, subtype, length)
   node.attr.type = primtypes.type

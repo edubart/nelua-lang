@@ -135,7 +135,51 @@ it("print symbol", function()
   ]])
 end)
 
-it("print nodes", function()
+it("print enums", function()
+  assert.c_gencode_equals([[
+    local Weekends = @enum { Friday=0, Saturday, Sunday }
+    ## for i,field in ipairs(symbols.Weekends.attr.holdedtype.fields) do
+      print(#[field.name .. ' ' .. tostring(field.value)])
+    ## end
+  ]], [[
+    local Weekends = @enum { Friday=0, Saturday, Sunday }
+    print 'Friday 0'
+    print 'Saturday 1'
+    print 'Sunday 2'
+  ]])
+end)
+
+it("generate functions", function()
+  assert.c_gencode_equals([[
+    [# local function make_pow(N) #]
+      local function $['pow' .. N](x: integer)
+        local r = 1
+        [# for i=1,N do #]
+          r = r*x
+        [# end #]
+        return r
+      end
+    [# end #]
+
+    [#
+    make_pow(2)
+    make_pow(3)
+    #]
+  ]], [[
+    local function pow2(x: integer)
+      local r = 1
+      r = r * x
+      r = r * x
+      return r
+    end
+    local function pow3(x: integer)
+      local r = 1
+      r = r * x
+      r = r * x
+      r = r * x
+      return r
+    end
+  ]])
 end)
 
 it("print symbol", function()

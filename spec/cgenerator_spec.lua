@@ -268,7 +268,7 @@ it("unary operators", function()
   assert.generate_c("do return -a end", "return -a")
   assert.generate_c("do return ~a end", "return ~a")
   assert.generate_c("do return &a end", "return &a")
-  assert.generate_c("do return *a end", "return *a")
+  assert.generate_c("do return $a end", "return *a")
 end)
 
 it("binary operators", function()
@@ -580,11 +580,11 @@ it("pointers", function()
     local function f(a: pointer): pointer return a end
     local i: integer = 1
     local p: pointer<integer> = &i
-    print(*p)
+    print($p)
     p = @pointer<int64>(f(p))
     i = 2
-    print(*p)
-    *p = 3
+    print($p)
+    $p = 3
     print(i)
   ]], "1\n2\n3")
 end)

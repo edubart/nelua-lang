@@ -600,7 +600,7 @@ end)
 
 it("dereferecing and referencing", function()
   assert.analyze_ast([[local p: pointer<integer>; local i = 1; p = &i]])
-  assert.analyze_ast([[local p: pointer<integer>; local i = *p]])
+  assert.analyze_ast([[local p: pointer<integer>; local i = $p]])
 end)
 
 it("pointers to complex types", function()

@@ -680,7 +680,7 @@ end
 
 local a = 1
 local a_ptr: integer* = &a
-local& c: integer = *a_ptr -- dereference is a shortcut for a_ptr[0]
+local& c: integer = $a_ptr -- dereference is a shortcut for a_ptr[0]
 b = 2
 print(a) -- outputs 2
 a_ptr[0] = 3
@@ -695,7 +695,7 @@ print(a) -- outputs 3
 local a = new(@integer) -- a type is: pointer<integer>
 a[0] = 1
 *a = 1
-var& ra = *a; ra = 1
+var& ra = $a; ra = 1
 delete(a)
 
 local a = new(@integer[10]) -- a is pointer<array<integer, 10>>
