@@ -177,8 +177,20 @@ end)
 
 it("assignment", function()
   assert.generate_c("do a = b end" ,"a = b")
-  assert.generate_c("do a, b = x, y end", "a = x;\n    b = y;")
-  assert.generate_c("do a.b, a[b] = x, y end", "a.b = x;\n    a[b] = y;")
+end)
+
+it("multiple assignment", function()
+  assert.generate_c("do a, b = x, y end", {
+    "__asgntmp1 = x;", "__asgntmp2 = y;",
+    "a = __asgntmp1;", "b = __asgntmp2;" })
+  assert.generate_c("do a.b, a[b] = x, y end", {
+    "__asgntmp1 = x;", "__asgntmp2 = y;",
+    "a.b = __asgntmp1;", "a[b] = __asgntmp2;" })
+  assert.run_c([[
+    local a, b = 1,2
+    a, b = b, a
+    assert(a == 2 and b == 1)
+  ]])
 end)
 
 it("function definition", function()

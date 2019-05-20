@@ -526,13 +526,20 @@ function visitors.Goto(_, node, emitter)
 end
 
 local function visit_assignments(context, emitter, varnodes, valnodes, decl)
+  local defemitter = emitter
+  local usetemporary = false
+  if not decl and #valnodes > 1 then
+    -- multiple assignments must assign to a temporary first (in case of a swap)
+    usetemporary = true
+    defemitter = CEmitter(context, emitter.depth)
+  end
   local multiretvalname
   for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
     local vartype = varnode.attr.type
     if not vartype:is_type() and not varnode.attr.nodecl then
       local declared, defined = false, false
-      -- declare main variables in the top scope
       if decl and context.scope:is_main() then
+        -- declare main variables in the top scope
         local decemitter = CEmitter(context)
         decemitter:add_indent('static ', varnode, ' = ')
         if valnode and valnode.attr.const then
@@ -550,32 +557,44 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
       end
 
       if lastcallindex == 1 then
-        --TODO: use another identifier other than pos
+        -- last assigment value may be a multiple return call
         multiretvalname = context:genuniquename('ret')
         local retctype = context:funcretctype(valnode.attr.calleetype)
         emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', valnode, ';')
       end
 
+      local retvalname
+      if lastcallindex then
+        retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
+      elseif usetemporary then
+        retvalname = context:genuniquename('asgntmp')
+        emitter:add_indent(vartype, ' ', retvalname, ' = ')
+        emitter:add_val2type(vartype, valnode)
+        emitter:add_ln(';')
+      end
+
       if not declared or (not defined and (valnode or lastcallindex)) then
         -- declare or define if needed
         if not declared then
-          emitter:add_indent(varnode)
+          defemitter:add_indent(varnode)
         else
-          emitter:add_indent(context:declname(varnode))
+          defemitter:add_indent(context:declname(varnode))
         end
-        emitter:add(' = ')
-        if lastcallindex then
-          local valname = string.format('%s.r%d', multiretvalname, lastcallindex)
-          emitter:add_val2type(vartype, valname, valtype)
+        defemitter:add(' = ')
+        if retvalname then
+          defemitter:add_val2type(vartype, retvalname, valtype)
         else
-          emitter:add_val2type(vartype, valnode)
+          defemitter:add_val2type(vartype, valnode)
         end
-        emitter:add_ln(';')
+        defemitter:add_ln(';')
       end
     elseif varnode.attr.cinclude then
       -- not declared, might be an imported variable from C
       context:add_include(varnode.attr.cinclude)
     end
+  end
+  if usetemporary then
+    emitter:add(defemitter:generate())
   end
 end
 
