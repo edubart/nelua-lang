@@ -50,8 +50,8 @@ function operators.mod(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   if ltype:is_numeric() and rtype:is_numeric() then
     if ltype:is_float() or rtype:is_float() then
-      local modname = type:is_float32() and 'fmodf' or 'fmod'
-      emitter:add(modname, '(', lname, ', ', rname, ')')
+      local modfuncname = type:is_float32() and 'fmodf' or 'fmod'
+      emitter:add(modfuncname, '(', lname, ', ', rname, ')')
       emitter.context.has_math = true
     else
       emitter:add(lname, ' % ', rname)

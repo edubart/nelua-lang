@@ -768,6 +768,8 @@ function generator.generate(ast)
   local main_scope = context:push_scope('function')
   main_scope.main = true
   do
+    mainemitter:add_ln(
+      '/*********************************** MAIN ***********************************/')
     mainemitter:inc_indent()
     mainemitter:add_ln("int euluna_main() {")
     mainemitter:add_traversal(ast)
@@ -788,7 +790,9 @@ function generator.generate(ast)
   context:evaluate_templates()
 
   local code = table.concat({
+    '/******************************** DECLARATIONS ********************************/\n',
     table.concat(context.declarations),
+    '/******************************** DEFINITIONS *********************************/\n',
     table.concat(context.definitions)
   })
 
