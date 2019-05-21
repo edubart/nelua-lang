@@ -405,9 +405,6 @@ local function get_parser(std)
         block
       eEND
     var_mutability <-
-      %TVAR %BAND %BAND -> 'var&&' /
-      %TVAR %BAND -> 'var&' /
-      %TVAL %BAND -> 'val&' /
       %TVAR -> 'var' /
       %TVAL -> 'val' /
       %TCONST -> 'const'

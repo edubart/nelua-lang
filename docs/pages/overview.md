@@ -44,13 +44,9 @@ local l = 0 -- variable of type integer, type automatically deduced
 local a = 2 -- variable of type integer, type automatically deduced
 local b: integer -- variable of type integer, initialized to zero by default
 local c: integer = 1 -- variable of type integer, initialized
-local d: var integer = 1 -- var variable
-local e: var& = a -- mutable reference to variable a
-local f: val = a -- immutable variable a
-local f: val& = a -- mutable reference to variable a
 local g = nil -- variable of type any
 local h: any -- variable of type any
-local i: any = 2 -- variable of type any holding an integer 2
+local i: any = 2 -- variable of type any holding the integer 2
 ```
 
 Variables are initialized to zero values.
@@ -84,36 +80,20 @@ end
 
 ```euluna
 function foo(a: var integer,
-             b: var& integer,
-             c: integer,
-             d: val integer,
-             e: val& integer)
-  print(a,b,c,d,e)
-  -- `d` and `e` are a read only variables and assignment on it is not allowed
+             b: integer,
+             c: val integer)
+  print(a, b, c)
+  -- `c` is read only variables and assignment on it is not allowed
   a = 2
   b = 3
-  c = 4
 end
 
-local a, b, c, d, e = 0, 0, 0, 0, 0
-foo(a ,b, c, d, e)
-print(a, b, c, d, e) -- outputs 2 3 4 0 0
+local a, b, c = 0, 0, 0
+foo(a ,b, c)
+print(a, b, c) -- outputs 2 3 0
 ```
 
 By default function parameters are `var` unless changed.
-
-### Rvalues
-
-```euluna
-function foo(a: var&& integer)
-  a = 1
-  print(a)
-end
-
-local a = 1
--- cannot call foo(a), because a is a lvalue
-foo(0)
-```
 
 ### Closures
 
@@ -626,12 +606,11 @@ foo()
 
 ### Operator overloading
 ```euluna
-function `+=`(a: var& string, b: string)
-  a = a .. b
+function `+`(a: string, b: string)
+  return a .. b
 end
 
-local a = "hello"
-a += "world"
+local a = "hello " + "world"
 print(a) -- outputs hello world
 ```
 
@@ -765,7 +744,7 @@ print(a.age)
 ### Inheritance
 
 ```euluna
-local PolygonVTable @struct{
+local PolygonVTable = @struct{
   area: function<(self: pointer): integer>
 }
 

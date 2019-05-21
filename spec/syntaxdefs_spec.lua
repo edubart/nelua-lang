@@ -839,34 +839,24 @@ describe("statement variable declaration", function()
       local a = b
       local a: var = b
       local a: val = b
-      local a: var& = b
-      local a: val& = b
       local a: const any = b
     ]],
       n.Block{{
         n.VarDecl{'local', nil, {n.IdDecl{'a'}}, {n.Id{'b'}}},
         n.VarDecl{'local', nil, {n.IdDecl{'a', 'var'}}, {n.Id{'b'}}},
         n.VarDecl{'local', nil, {n.IdDecl{'a', 'val'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', nil, {n.IdDecl{'a', 'var&'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', nil, {n.IdDecl{'a', 'val&'}}, {n.Id{'b'}}},
         n.VarDecl{'local', nil, {n.IdDecl{'a', 'const', n.Type{'any'}}}, {n.Id{'b'}}},
     }})
   end)
   it("variable mutabilities", function()
     assert.parse_ast(euluna_parser, [[
       var a = b
-      var& a = b
       val a = b
-      val& a = b
-      local var& a = b
       local const a = b
     ]],
       n.Block{{
         n.VarDecl{nil, 'var', {n.IdDecl{'a'}}, {n.Id{'b'}}},
-        n.VarDecl{nil, 'var&', {n.IdDecl{'a'}}, {n.Id{'b'}}},
         n.VarDecl{nil, 'val', {n.IdDecl{'a'}}, {n.Id{'b'}}},
-        n.VarDecl{nil, 'val&', {n.IdDecl{'a'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', 'var&', {n.IdDecl{'a'}}, {n.Id{'b'}}},
         n.VarDecl{'local', 'const', {n.IdDecl{'a'}}, {n.Id{'b'}}},
     }})
   end)

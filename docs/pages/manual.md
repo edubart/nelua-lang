@@ -94,10 +94,7 @@ continue
 ## Variables mutabilities
 
 * **var** is a mutable variable
-* **var&** is a reference to a mutable variable
-* **var&&** is a mutable rvalue
 * **val** is an immutable variable
-* **val&** is a reference to a immutable variable
 * **const** is an immutable variable and it's expression is evaluated at compile time
 
 ## Primitives types
