@@ -448,6 +448,17 @@ it("reserved names quoting", function()
   ]], "2")
 end)
 
+it("variable shadowing", function()
+  assert.run_c([[
+    local a = 1
+    assert(a == 1)
+    local a = 2
+    assert(a == 2)
+    local a = 3
+    assert(a == 3)
+  ]])
+end)
+
 it("any type", function()
   assert.generate_c(
     "do local a: any end",

@@ -33,6 +33,9 @@ function CContext:declname(node)
     end
     declname = cdefs.quotename(declname)
   end
+  if attr.shadowcount then
+    declname = declname .. attr.shadowcount
+  end
   attr.declname = declname
   return declname
 end

@@ -1,6 +1,7 @@
 local tabler = require 'euluna.utils.tabler'
 local class = require 'euluna.utils.class'
 local sstream = require 'euluna.utils.sstream'
+local typedefs = require 'euluna.typedefs'
 local Symbol = class()
 
 function Symbol:_init(name, node, mut, type)
@@ -27,6 +28,16 @@ function Symbol:add_possible_type(type, required)
   end
   if tabler.ifind(self.possibletypes, type) then return end
   table.insert(self.possibletypes, type)
+end
+
+function Symbol:resolve_type()
+  if self.attr.type then
+    return false
+  end
+  if self.has_unknown_type then return false end
+  local type = typedefs.find_common_type(self.possibletypes)
+  self.attr.type = type
+  return true
 end
 
 function Symbol:link_node(node)

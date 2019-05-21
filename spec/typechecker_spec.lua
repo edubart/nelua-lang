@@ -38,6 +38,10 @@ it("local variable", function()
   assert.analyze_error("local a: void", "variable declaration cannot be of the type")
 end)
 
+it("name collision", function()
+  assert.c_gencode_equals("local a = 1; local a = 2", "local a: integer = 1; local a: integer = 2")
+end)
+
 it("const variable" , function()
   assert.analyze_ast([[local const N = 255; local a: byte = N]])
   assert.analyze_ast([[local a: const integer = 1]])

@@ -45,27 +45,23 @@ end
 function Scope:add_symbol(symbol)
   assert(class.is_a(symbol, Symbol), 'invalid symbol')
   local name = symbol.name
-  if self.symbols[name] and config.strict then
-    symbol.node:raisef("symbol '%s' shadows pre declarated symbol with the same name", name)
+  local oldsymbol = self.symbols[name]
+  if oldsymbol then
+    symbol.node:assertraisef(not config.strict,
+      "symbol '%s' shadows pre declarated symbol with the same name", name)
+
+    -- symbol redeclaration, resolve old symbol type before replacing it
+    oldsymbol:resolve_type()
+    symbol.attr.shadowcount = (oldsymbol.attr.shadowcount or 1) + 1
   end
   self.symbols[name] = symbol
   return symbol
 end
 
-local function resolve_symbol_type(symbol)
-  if symbol.attr.type then
-    return false
-  end
-  if symbol.has_unknown_type then return false end
-  local type = typedefs.find_common_type(symbol.possibletypes)
-  symbol.attr.type = type
-  return true
-end
-
 function Scope:resolve_symbols()
   local count = 0
   for _,symbol in pairs(self.symbols) do
-    if resolve_symbol_type(symbol) then
+    if symbol:resolve_type() then
       count = count + 1
     end
   end
