@@ -1493,37 +1493,37 @@ describe("preprocessor", function()
     }})
   end)
   it("eval name", function()
-    assert.parse_ast(euluna_parser, "::$[a]::",
+    assert.parse_ast(euluna_parser, "::#(a)::",
       n.Block{{
         n.Label{n.PreprocessName{"a"}}
     }})
-    assert.parse_ast(euluna_parser, "::$[a]::",
+    assert.parse_ast(euluna_parser, "::#(a)::",
       n.Block{{
         n.Label{n.PreprocessName{"a"}}
     }})
-    assert.parse_ast(euluna_parser, "goto $[a]",
+    assert.parse_ast(euluna_parser, "goto #(a)",
       n.Block{{
         n.Goto{n.PreprocessName{"a"}}
     }})
-    assert.parse_ast(euluna_parser, "return $[a].$[b]",
+    assert.parse_ast(euluna_parser, "return #(a).#(b)",
       n.Block{{
         n.Return{{n.DotIndex{n.PreprocessName{"b"}, n.Id{n.PreprocessName{"a"}}}}}
     }})
-    assert.parse_ast(euluna_parser, "function $[a]:$[b]() end",
+    assert.parse_ast(euluna_parser, "function #(a):#(b)() end",
       n.Block{{
         n.FuncDef{nil,
         n.ColonIndex{n.PreprocessName{"b"}, n.Id{n.PreprocessName{"a"}}},
         {}, {}, {}, n.Block{{}} },
     }})
-    assert.parse_ast(euluna_parser, "$[a]:$[b]()",
+    assert.parse_ast(euluna_parser, "#(a):#(b)()",
       n.Block{{
         n.CallMethod{n.PreprocessName{"b"}, {}, n.Id{n.PreprocessName{"a"}}, true},
     }})
-    assert.parse_ast(euluna_parser, "return {$[a] = b}",
+    assert.parse_ast(euluna_parser, "return {#(a) = b}",
       n.Block{{
         n.Return{{n.Table{{n.Pair{n.PreprocessName{"a"}, n.Id{'b'}}}}}}
     }})
-    assert.parse_ast(euluna_parser, "local $[a]: $[b] !$[c]",
+    assert.parse_ast(euluna_parser, "local #(a): #(b) !#(c)",
       n.Block{{
         n.VarDecl{'local', nil, {
           n.IdDecl{

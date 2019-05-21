@@ -23,7 +23,7 @@ end)
 
 it("evaluate names", function()
   assert.c_gencode_equals([[
-    $['print'] 'hello'
+    #('print') 'hello'
   ]], [[
     print 'hello'
   ]])
@@ -126,7 +126,7 @@ it("print symbol", function()
   assert.c_gencode_equals([[
     ## local aval = 1
     ## if true then
-      local $['a']: const $['integer'] = #[aval]
+      local #('a'): const #('integer') = #[aval]
       print #[tostring(scope:get_symbol('a'))]
     ## end
   ]], [[
@@ -137,7 +137,8 @@ end)
 
 it("print enums", function()
   assert.c_gencode_equals([[
-    local Weekends = @enum { Friday=0, Saturday, Sunday }
+    local Weekends = @enum { Friday=0, Saturday, Sunda }
+    [# symbols.Weekends.attr.holdedtype.fields[3].name = 'Sunday' #]
     ## for i,field in ipairs(symbols.Weekends.attr.holdedtype.fields) do
       print(#[field.name .. ' ' .. tostring(field.value)])
     ## end
@@ -152,7 +153,7 @@ end)
 it("generate functions", function()
   assert.c_gencode_equals([[
     [# local function make_pow(N) #]
-      local function $['pow' .. N](x: integer)
+      local function #('pow' .. N)(x: integer)
         local r = 1
         [# for i=1,N do #]
           r = r*x

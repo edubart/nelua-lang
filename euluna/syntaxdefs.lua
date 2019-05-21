@@ -151,7 +151,7 @@ local function get_parser(std)
   %RANGLE       <- '>'
   %PPSHORT      <- '##'
   %PPEXPRL      <- '#['
-  %PPNAMEL      <- '$['
+  %PPNAMEL      <- '#('
 
   -- binary operators
   %ADD          <- '+'
@@ -176,9 +176,9 @@ local function get_parser(std)
 
   -- unary operators
   %NEG          <- !'--' '-'
-  %LEN          <- !%PPSHORT !%PPEXPRL '#'
+  %LEN          <- !%PPSHORT !%PPEXPRL !%PPNAMEL '#'
   %BNOT         <- !%NE '~'
-  %DEREF        <- !%PPNAMEL '$'
+  %DEREF        <- '$'
   %REF          <- '&'
 
   -- other symbols
@@ -498,7 +498,7 @@ local function get_parser(std)
     primtype   <- ({} '' -> 'Type' name) -> to_astnode
 
     ppexpr <- ({} %PPEXPRL -> 'PreprocessExpr' {expr -> 0} eRBRACKET) -> to_astnode
-    ppname <- ({} %PPNAMEL -> 'PreprocessName' {expr -> 0} eRBRACKET) -> to_astnode
+    ppname <- ({} %PPNAMEL -> 'PreprocessName' {expr -> 0} eRPAREN) -> to_astnode
     ppstring <- (ppshort_string / pplong_string) %SKIP
     ppshort_string    <- %PPSHORT {(!%LINEBREAK .)*} %LINEBREAK?
     pplong_string     <- pplong_open ({pplong_content*} pplong_close / %{UnclosedPreprocessBracket})

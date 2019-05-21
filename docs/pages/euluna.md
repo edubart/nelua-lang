@@ -35,14 +35,16 @@ any platform that a C99 compiler targets the language will also target and the l
 advantage of highly optimized compilers such as GCC and Clang, thus generating very
 efficient native code.
 
-The language also aims to be meta programmable by having a Lua preprocessor, template idioms,
-AST and grammar manipulation. With that higher constructs such as classes, generics and DSLs
-can be implemented at compile time without runtime costs and the language specification can
-be more simpler and compact, just like in Lua classes
+The language also aims to be meta programmable by having a Lua preprocessor,
+compile time code generation mechanisms, AST and grammar manipulation.
+With that higher constructs such as classes, generics and DSLs
+can be implemented at compile time without runtime costs by the users,
+and the language specification can be more simpler and compact, just like in Lua classes
 does not exist but you can implement yourself using mechanisms like metatables.
 
-As Euluna syntax is a superset of Lua syntax it can also be used to have basic
-type checking and extended features for existing Lua projects by generating Lua code.
+As Euluna syntax intends to have it's syntax as a superset of Lua syntax,
+it can also be used to have basic type checking and extended features
+for existing Lua projects by generating Lua code.
 
 **Warning this language is currently highly experimental and a WIP (work in progress).**
 
