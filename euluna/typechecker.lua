@@ -757,6 +757,26 @@ function visitors.Repeat(context, node)
   context:traverse(condnode, primtypes.boolean)
 end
 
+function visitors.ForIn(context, node)
+  local itvarnodes, inexpnodes, blocknode = node:args()
+  assert(#inexpnodes > 0)
+  node:assertraisef(#inexpnodes <= 3, 'in expression can have at most 3 arguments')
+  local infuncnode = inexpnodes[1]
+  local infunctype = infuncnode.attr.type
+  if infunctype then
+    node:assertraisef(infunctype:is_any() or infunctype:is_function(),
+      'first argument of in expression must be a function, but got type "%s"',
+        tostring(infunctype))
+  end
+  context:traverse(inexpnodes)
+  context:repeat_scope_until_resolution('loop', function()
+    if itvarnodes then
+      context:traverse(itvarnodes)
+    end
+    context:traverse(blocknode)
+  end)
+end
+
 function visitors.ForNum(context, node)
   local itvarnode, begvalnode, compop, endvalnode, stepvalnode, blocknode = node:args()
   local itname = itvarnode[1]
@@ -800,7 +820,6 @@ function visitors.ForNum(context, node)
   if stype and stype:is_numeric() and stepvalnode.attr.const then
     -- constant step
     fixedstep = stepvalnode.attr.value
-
     stepvalnode:assertraisef(not fixedstep:iszero(), '`for` step cannot be zero')
   elseif not stepvalnode then
     -- default step is '1'

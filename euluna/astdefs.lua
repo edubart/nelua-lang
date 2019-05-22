@@ -170,7 +170,7 @@ astbuilder:register('ForNum', {
   ntypes.Block, -- block
 })
 astbuilder:register('ForIn', {
-  stypes.array_of(ntypes.IdDecl), -- iterated vars
+  stypes.array_of(ntypes.IdDecl):is_optional(), -- iteration vars
   stypes.array_of(ntypes.Node), -- in exprlist
   ntypes.Block -- block
 })

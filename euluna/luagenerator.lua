@@ -212,8 +212,13 @@ function visitors.ForNum(_, node, emitter)
 end
 
 function visitors.ForIn(_, node, emitter)
-  local itvars, iterator, block  = node:args()
-  emitter:add_indent_ln("for ", itvars, ' in ', iterator, ' do')
+  local itvars, iterator, block = node:args()
+  if itvars then
+    emitter:add_indent("for ", itvars)
+  else
+    emitter:add_indent("for _")
+  end
+  emitter:add_ln(' in ', iterator, ' do')
   emitter:add(block)
   emitter:add_indent_ln("end")
 end

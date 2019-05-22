@@ -365,7 +365,6 @@ it("function multiple return", function()
   ]], 'is not coercible with')
 end)
 
-
 it("function call", function()
   assert.c_gencode_equals([[
     local function f() return 0 end
@@ -380,6 +379,24 @@ it("function call", function()
   assert.analyze_error([[local function f(a: integer) end; f('a')]], "is not coercible with")
   assert.analyze_error([[local function f(a: integer) end; f(1,1)]], "expected at most 1 arguments but got 2")
   assert.analyze_error([[local function f(a: integer) end; f()]], "expected an argument at index 1")
+end)
+
+it("for in", function()
+  assert.analyze_ast([[for a in a,b,c do end]])
+  assert.analyze_ast([[in a,b,c do end]])
+  assert.analyze_error([[local a = 1; for i in a do end]],
+    "first argument of in expression must be a function")
+  assert.analyze_error([[for i in a,b,c,d do end]],
+    "in expression can have at most")
+  --[=[
+  assert.c_gencode_equals([[
+  local function iter() return 1 end
+  for i in iter() do end
+  ]],[[
+  local function iter() return 1 end
+  for i:integer in iter() do end
+  ]])
+  ]=]
 end)
 
 it("array tables", function()
@@ -632,79 +649,6 @@ it("pragmas", function()
     "body of an import function must be empty")
   assert.analyze_error("local a !cimport = 2", "cannot assign imported variables")
   assert.analyze_error("!!cimport 'lala'", "is not defined in this context")
-end)
-
-it("preprocessor", function()
-  assert.c_gencode_equals(
-    "local function f() [# if true then #] return 1 [# end #] end",
-    "local function f() return 1 end")
-  assert.c_gencode_equals([[
-    local function f() [# if true then #] return 1 [# end #] end
-  ]],[[
-    local function f() return 1 end
-  ]])
-  assert.c_gencode_equals("[# if true then #] local a = 1 [# end #]", "local a = 1")
-  assert.c_gencode_equals("[# if false then #] local a = 1 [# end #]", "")
-  assert.c_gencode_equals([[
-    local a = 2
-    ## for i=1,4 do
-      a = a * 2
-    ## end
-  ]], [[
-    local a = 2
-    a = a * 2
-    a = a * 2
-    a = a * 2
-    a = a * 2
-  ]])
-  assert.c_gencode_equals([[
-    local a = 0
-    ## for i=1,3 do
-      do
-        ## if i == 1 then
-          a = a + 1
-        ## elseif i == 2 then
-          a = a + 2
-        ## elseif i == 3 then
-          a = a + 3
-        ## end
-      end
-    ## end
-  ]], [[
-    local a = 0
-    do a = a + 1 end
-    do a = a + 2 end
-    do a = a + 3 end
-  ]])
-  assert.c_gencode_equals([[
-    local a = 0
-    ## for i=1,3 do
-      a = a + #[i]
-    ## end
-  ]], [[
-    local a = 0
-    a = a + 1
-    a = a + 2
-    a = a + 3
-  ]])
-  assert.c_gencode_equals([[
-    local a = #['hello ' .. 'world']
-  ]], [[
-    local a = 'hello world'
-  ]])
-  assert.c_gencode_equals([[
-    local function f()
-      [# if true then #]
-        return 1
-      [# end #]
-    end
-  ]], [[
-    local function f()
-      return 1
-    end
-  ]])
-  assert.analyze_error("[# if true then #]", "'end' expected")
-  assert.analyze_error("[# invalid() #]", "attempt to call")
 end)
 
 it("strict mode", function()

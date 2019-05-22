@@ -253,7 +253,7 @@ local function get_parser(std)
   ]])
 
   grammar:add_group_peg('stat', 'for', [[
-    %FOR (for_num / for_in / %{ExpectedForParams})
+    %FOR (for_num / for_in / %{ExpectedForParams}) / for_in_empty
 
     for_num <-
       ({} '' -> 'ForNum'
@@ -263,6 +263,9 @@ local function get_parser(std)
 
     for_in <-
       ({} '' -> 'ForIn' {| typed_idlist |} %IN {| eexpr_list |} eDO block eEND) -> to_astnode
+
+    for_in_empty <-
+      ({} %IN -> 'ForIn' cnil {| eexpr_list |} eDO block eEND) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'break', [[

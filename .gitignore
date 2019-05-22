@@ -1,5 +1,3 @@
 euluna_cache
 *.out
-/build*
-local.TODO
-playground
+.vscode

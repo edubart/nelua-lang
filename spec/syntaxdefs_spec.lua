@@ -776,6 +776,15 @@ describe("statement for", function()
           n.Block{{}}}
     }})
   end)
+  it("in with no variables", function()
+    assert.parse_ast(euluna_parser, "in a,b,c do end",
+      n.Block{{
+        n.ForIn{
+          nil,
+          { n.Id{'a'}, n.Id{'b'}, n.Id{'c'} },
+          n.Block{{}}}
+    }})
+  end)
 end)
 
 --------------------------------------------------------------------------------
