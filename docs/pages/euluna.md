@@ -115,6 +115,18 @@ euluna -g c helloworld.euluna
 
 Both ways it will output  ```Hello world!```
 
+
+## Examples
+
+The folder `examples` contains some examples in Euluna, including some games,
+most of the examples currently work only with the C generator backend.
+
+To run the Snake demo for example run:
+
+```shell
+euluna -g c examples/snakesdl.euluna
+```
+
 ## Benchmarks
 
 Some benchmarks can be found in `benchmarks` folder, the folder contains euluna benchmarks and pure C benchmark as reference. As Euluna can compile Lua, it's generated
@@ -159,9 +171,11 @@ and compiled with C flags
 - [x] Parse complete Lua 5.x syntax and generate its AST
 - [x] Parse optional typed syntax
 - [x] Basic type checking and inference
+- [x] Basic preprocessor in Lua
 
 Lua Generator:
 - [x] Generate Lua code with complete Lua features
+- [ ] Implement Lua runtime for Euluna's additional features
 
 C Generator:
 - [x] Generate basic C code and compile
@@ -170,36 +184,32 @@ C Generator:
 - [x] Primitives operators
 - [x] Functions
 - [x] Static string
+- [ ] Dynamic string
 - [x] Calls
 - [ ] Any
 - [ ] Tables
-- [ ] Multiple returns and arguments
-- [ ] Dynamic string
+- [x] Multiple returns
+- [ ] Multiple arguments
 - [ ] Closures
 - [ ] Iterators (for in)
-- [ ] Exceptions
 - [ ] Lua standard library API
 - [ ] Metatables
 - [ ] Memory management utilities
 - [ ] Optional garbage collector
-- [ ] Enums
-- [ ] Structs
-- [ ] Static array
+- [x] Enums
+- [x] Records
+- [ ] S
+- [x] Static arrays
 - [ ] Slices
 - [ ] Unions
-- [ ] Pointers
+- [x] Pointers
 - [ ] Modules
-- [ ] FFI with C
+- [x] C FFI
+- [ ] Exceptions
 - [ ] Seamless interface with Lua
-- [ ] Rvalues
-- [ ] Immutable values
 - [ ] Ownership model for memory management
 - [ ] Coroutines
-
-Metaprogramming:
-- [ ] Preprocessor
-- [ ] Templates
-- [ ] Concepts
+- [ ] Multi threading
 
 ## Learning more
 

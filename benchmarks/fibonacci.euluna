@@ -1,10 +1,7 @@
 local function fibmod(n: integer, m: integer)
-  local a = 0
-  local b = 1
+  local a, b = 0, 1
   for i=1,n do
-    local nb = (a + b) % m
-    a = b
-    b = nb
+    a, b = b, (a + b) % m
   end
   return a
 end

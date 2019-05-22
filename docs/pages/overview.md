@@ -138,7 +138,7 @@ end
 
 ### Switch
 
-Switch statement is similiar C switches:
+Switch statement is similar to C switches:
 
 ```euluna
 switch a
@@ -152,7 +152,7 @@ end
 ```
 
 The case expression can only contain integral expressions known at compile time. The
-compiler can genera more optimized code when using a switch instead of an if for integers.
+compiler can generate more optimized code when using a switch instead of an if for integers.
 
 ### Do
 
@@ -274,7 +274,7 @@ Iterators are useful to create more complex for loops:
 
 ```euluna
 local function multiples_countdown(s, e)
-  return function(e, i, b)
+  return function(e, i)
     repeat
       i = i - 1
       if i < e then return nil end
