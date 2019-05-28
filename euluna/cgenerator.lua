@@ -11,6 +11,114 @@ local CContext = require 'euluna.ccontext'
 local primtypes = typedefs.primtypes
 local visitors = {}
 
+
+local function izipargnodes(vars, argnodes)
+  local iter = iters.izip(vars, argnodes)
+  local lastargindex = #argnodes
+  local lastargnode = argnodes[#argnodes]
+  local calleetype = lastargnode and lastargnode.attr.calleetype
+  if lastargnode and lastargnode.tag == 'Call' and (not calleetype or not calleetype:is_type()) then
+    -- last arg is a runtime call
+    assert(calleetype)
+    -- we know the callee type
+    return function()
+      local i, var, argnode = iter()
+      if not i then return nil end
+      if i >= lastargindex and lastargnode.attr.multirets then
+        -- argnode does not exists, fill with multiple returns type
+        -- in case it doest not exists, the argtype will be false
+        local callretindex = i - lastargindex + 1
+        local argtype = calleetype:get_return_type(callretindex)
+        return i, var, argnode, argtype, callretindex, calleetype
+      else
+        return i, var, argnode, argnode.attr.type, nil
+      end
+    end
+  else
+    -- no calls from last argument
+    return function()
+      local i, var, argnode = iter()
+      if not i then return end
+      -- we are sure this argument have no type, set argtype to false
+      local argtype = argnode and argnode.attr.type
+      return i, var, argnode, argtype
+    end
+  end
+end
+
+local function visit_assignments(context, emitter, varnodes, valnodes, decl)
+  local defemitter = emitter
+  local usetemporary = false
+  if not decl and #valnodes > 1 then
+    -- multiple assignments must assign to a temporary first (in case of a swap)
+    usetemporary = true
+    defemitter = CEmitter(context, emitter.depth)
+  end
+  local multiretvalname
+  for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
+    local vartype = varnode.attr.type
+    if not vartype:is_type() and not varnode.attr.nodecl then
+      local declared, defined = false, false
+      if decl and context.scope:is_main() then
+        -- declare main variables in the top scope
+        local decemitter = CEmitter(context)
+        decemitter:add_indent('static ', varnode, ' = ')
+        if valnode and valnode.attr.const then
+          -- initialize to const values
+          assert(not lastcallindex)
+          decemitter:add_val2type(vartype, valnode)
+          defined = true
+        else
+          -- pre initialize to zeros
+          decemitter:add_zeroinit(vartype)
+        end
+        decemitter:add_ln(';')
+        context:add_declaration(decemitter:generate())
+        declared = true
+      end
+
+      if lastcallindex == 1 then
+        -- last assigment value may be a multiple return call
+        multiretvalname = context:genuniquename('ret')
+        local retctype = context:funcretctype(valnode.attr.calleetype)
+        emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', valnode, ';')
+      end
+
+      local retvalname
+      if lastcallindex then
+        retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
+      elseif usetemporary then
+        retvalname = context:genuniquename('asgntmp')
+        emitter:add_indent(vartype, ' ', retvalname, ' = ')
+        emitter:add_val2type(vartype, valnode)
+        emitter:add_ln(';')
+      end
+
+      if not declared or (not defined and (valnode or lastcallindex)) then
+        -- declare or define if needed
+        if not declared then
+          defemitter:add_indent(varnode)
+        else
+          defemitter:add_indent(context:declname(varnode))
+        end
+        defemitter:add(' = ')
+        if retvalname then
+          defemitter:add_val2type(vartype, retvalname, valtype)
+        else
+          defemitter:add_val2type(vartype, valnode)
+        end
+        defemitter:add_ln(';')
+      end
+    elseif varnode.attr.cinclude then
+      -- not declared, might be an imported variable from C
+      context:add_include(varnode.attr.cinclude)
+    end
+  end
+  if usetemporary then
+    emitter:add(defemitter:generate())
+  end
+end
+
 function visitors.Number(_, node, emitter)
   local base, int, frac, exp, literal = node:args()
   local value, integral, type = node.attr.value, node.attr.integral, node.attr.type
@@ -171,40 +279,6 @@ function visitors.ArrayIndex(context, node, emitter)
     emitter:add('.data[', index, ']')
   else
     emitter:add('[', index, ']')
-  end
-end
-
-local function izipargnodes(vars, argnodes)
-  local iter = iters.izip(vars, argnodes)
-  local lastargindex = #argnodes
-  local lastargnode = argnodes[#argnodes]
-  local calleetype = lastargnode and lastargnode.attr.calleetype
-  if lastargnode and lastargnode.tag == 'Call' and (not calleetype or not calleetype:is_type()) then
-    -- last arg is a runtime call
-    assert(calleetype)
-    -- we know the callee type
-    return function()
-      local i, var, argnode = iter()
-      if not i then return nil end
-      if i >= lastargindex and lastargnode.attr.multirets then
-        -- argnode does not exists, fill with multiple returns type
-        -- in case it doest not exists, the argtype will be false
-        local callretindex = i - lastargindex + 1
-        local argtype = calleetype:get_return_type(callretindex)
-        return i, var, argnode, argtype, callretindex, calleetype
-      else
-        return i, var, argnode, argnode.attr.type, nil
-      end
-    end
-  else
-    -- no calls from last argument
-    return function()
-      local i, var, argnode = iter()
-      if not i then return end
-      -- we are sure this argument have no type, set argtype to false
-      local argtype = argnode and argnode.attr.type
-      return i, var, argnode, argtype
-    end
   end
 end
 
@@ -485,7 +559,7 @@ function visitors.ForNum(context, node, emitter)
     else
       -- step is an expression, must detect the compare operation at runtime
       assert(not fixedstep)
-      emitter:add('(__step >= 0 && __it <= __end) || (__step < 0 && __it >= __end)')
+      emitter:add('__step >= 0 ? __it <= __end : __it >= __end')
     end
     emitter:add('; __it = __it + ')
     if not fixedstep then
@@ -505,7 +579,17 @@ function visitors.ForNum(context, node, emitter)
   context:pop_scope()
 end
 
--- TODO: ForIn
+function visitors.ForIn(_, node, emitter)
+  local itvarnodes, inexpnodes, blocknode = node:args()
+  emitter:add_indent_ln("{")
+  emitter:inc_indent()
+  --visit_assignments(context, emitter, itvarnodes, inexpnodes, true)
+  emitter:add_indent("while(true) {")
+  emitter:add(blocknode)
+  emitter:add_indent_ln("}")
+  emitter:dec_indent()
+  emitter:add_indent_ln("}")
+end
 
 function visitors.Break(_, _, emitter)
   emitter:add_indent_ln('break;')
@@ -523,79 +607,6 @@ end
 function visitors.Goto(_, node, emitter)
   local labelname = node:args()
   emitter:add_indent_ln('goto ', cdefs.quotename(labelname), ';')
-end
-
-local function visit_assignments(context, emitter, varnodes, valnodes, decl)
-  local defemitter = emitter
-  local usetemporary = false
-  if not decl and #valnodes > 1 then
-    -- multiple assignments must assign to a temporary first (in case of a swap)
-    usetemporary = true
-    defemitter = CEmitter(context, emitter.depth)
-  end
-  local multiretvalname
-  for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
-    local vartype = varnode.attr.type
-    if not vartype:is_type() and not varnode.attr.nodecl then
-      local declared, defined = false, false
-      if decl and context.scope:is_main() then
-        -- declare main variables in the top scope
-        local decemitter = CEmitter(context)
-        decemitter:add_indent('static ', varnode, ' = ')
-        if valnode and valnode.attr.const then
-          -- initialize to const values
-          assert(not lastcallindex)
-          decemitter:add_val2type(vartype, valnode)
-          defined = true
-        else
-          -- pre initialize to zeros
-          decemitter:add_zeroinit(vartype)
-        end
-        decemitter:add_ln(';')
-        context:add_declaration(decemitter:generate())
-        declared = true
-      end
-
-      if lastcallindex == 1 then
-        -- last assigment value may be a multiple return call
-        multiretvalname = context:genuniquename('ret')
-        local retctype = context:funcretctype(valnode.attr.calleetype)
-        emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', valnode, ';')
-      end
-
-      local retvalname
-      if lastcallindex then
-        retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
-      elseif usetemporary then
-        retvalname = context:genuniquename('asgntmp')
-        emitter:add_indent(vartype, ' ', retvalname, ' = ')
-        emitter:add_val2type(vartype, valnode)
-        emitter:add_ln(';')
-      end
-
-      if not declared or (not defined and (valnode or lastcallindex)) then
-        -- declare or define if needed
-        if not declared then
-          defemitter:add_indent(varnode)
-        else
-          defemitter:add_indent(context:declname(varnode))
-        end
-        defemitter:add(' = ')
-        if retvalname then
-          defemitter:add_val2type(vartype, retvalname, valtype)
-        else
-          defemitter:add_val2type(vartype, valnode)
-        end
-        defemitter:add_ln(';')
-      end
-    elseif varnode.attr.cinclude then
-      -- not declared, might be an imported variable from C
-      context:add_include(varnode.attr.cinclude)
-    end
-  end
-  if usetemporary then
-    emitter:add(defemitter:generate())
-  end
 end
 
 function visitors.VarDecl(context, node, emitter)

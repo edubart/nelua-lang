@@ -122,7 +122,7 @@ it("for", function()
     "euluna_any i = __it;"})
   assert.generate_c("for i=a,b,c do end",
     "for(euluna_any __it = a, __end = b, __step = c; " ..
-    "(__step >= 0 && __it <= __end) || (__step < 0 && __it >= __end); __it = __it + __step) {")
+    "__step >= 0 ? __it <= __end : __it >= __end; __it = __it + __step) {")
   assert.generate_c(
     "for i=1,<2 do end",
     "for(int64_t __it = 1, __end = 2; __it < __end; __it = __it + 1)")

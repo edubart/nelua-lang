@@ -384,19 +384,19 @@ end)
 it("for in", function()
   assert.analyze_ast([[for a in a,b,c do end]])
   assert.analyze_ast([[in a,b,c do end]])
-  assert.analyze_error([[local a = 1; for i in a do end]],
-    "first argument of in expression must be a function")
-  assert.analyze_error([[for i in a,b,c,d do end]],
-    "in expression can have at most")
-  --[=[
+  assert.analyze_error(
+    [[local a = 1; for i in a do end]],
+    "first argument of `in` expression must be a function")
+  assert.analyze_error(
+    [[for i in a,b,c,d do end]],
+    "`in` expression can have at most")
   assert.c_gencode_equals([[
   local function iter() return 1 end
-  for i in iter() do end
+  for i in iter do end
   ]],[[
   local function iter() return 1 end
-  for i:integer in iter() do end
+  for i:integer in iter do end
   ]])
-  ]=]
 end)
 
 it("array tables", function()

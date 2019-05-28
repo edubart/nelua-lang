@@ -251,6 +251,7 @@ function preprocessor.preprocess(context, ast)
   if except.is_exception(err) then
     except.reraise(err)
   else
+    --TODO: better error messages
     ast:assertraisef(ok, tostring(err))
   end
 end

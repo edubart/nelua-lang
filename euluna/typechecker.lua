@@ -7,6 +7,7 @@ local Context = require 'euluna.context'
 local Symbol = require 'euluna.symbol'
 local types = require 'euluna.types'
 local bn = require 'euluna.utils.bn'
+local preprocessor = require 'euluna.preprocessor'
 
 local primtypes = typedefs.primtypes
 local visitors = {}
@@ -662,67 +663,6 @@ function visitors.IdDecl(context, node, declmut)
   return symbol
 end
 
---[=[
-local function preprocess_traverse(context, node, statnodes)
-  if not tabler.ifindif(statnodes, function(statnode) return statnode.tag == 'Preprocess' end) then
-    -- no preprocess statement found
-    context:traverse(statnodes)
-    return statnodes
-  end
-
-  local ss = sstream()
-  ss:addln('local __newstatnodes,__node = {}')
-  local line2node = {}
-  local linecounter = 1
-  local lastppnode = nil
-  for i,statnode in ipairs(statnodes) do
-    local luacode, numlines
-    if statnode.tag == 'Preprocess' then
-      luacode = statnode[1]
-      lastppnode = statnode
-      numlines = stringer.count(luacode, '\n') + 1
-    else
-      luacode = string.format([[
-local __node = __statnodes[%d]:clone()
-table.insert(__newstatnodes, __node) context:traverse(__node)]], i)
-      numlines = 2
-    end
-    ss:addln(luacode)
-    for _=1,numlines do
-      linecounter = linecounter + 1
-      line2node[linecounter] = statnode
-    end
-  end
-  ss:addln('return __newstatnodes')
-  local ppcode = ss:tostring()
-  local env = setmetatable({
-    context = context,
-    scope = context.scope,
-    node = node,
-    __statnodes = statnodes
-  }, {__index = _G})
-  local newnodes, err = compat.load(ppcode, '@pp', "t", env)
-  local ok = not err
-  local newstatnodes
-  if newnodes then
-    ok, newstatnodes = pcall(newnodes)
-    if not ok then
-      err = newstatnodes
-    end
-  end
-  if not ok then
-    local line, lineerr = err:match('pp:(%d+): (.*)')
-    assert(line and lineerr)
-    local linenode = line2node[line] or lastppnode
-    linenode:raisef('preprocessing error: %s', lineerr)
-  end
-  return newstatnodes
-end
-
-]=]
-
-local preprocessor = require 'euluna.preprocessor'
-
 function visitors.Block(context, node)
   if not node.processed then
     preprocessor.preprocess(context, node)
@@ -760,18 +700,26 @@ end
 function visitors.ForIn(context, node)
   local itvarnodes, inexpnodes, blocknode = node:args()
   assert(#inexpnodes > 0)
-  node:assertraisef(#inexpnodes <= 3, 'in expression can have at most 3 arguments')
+  node:assertraisef(#inexpnodes <= 3, '`in` expression can have at most 3 arguments')
   local infuncnode = inexpnodes[1]
   local infunctype = infuncnode.attr.type
   if infunctype then
     node:assertraisef(infunctype:is_any() or infunctype:is_function(),
-      'first argument of in expression must be a function, but got type "%s"',
+      'first argument of `in` expression must be a function, but got type "%s"',
         tostring(infunctype))
   end
   context:traverse(inexpnodes)
   context:repeat_scope_until_resolution('loop', function()
     if itvarnodes then
-      context:traverse(itvarnodes)
+      for i,itvarnode in ipairs(itvarnodes) do
+        local itsymbol = context:traverse(itvarnode)
+        if infunctype and infunctype:is_function() then
+          local fittype = infunctype:get_return_type(i)
+          if fittype then
+            itsymbol:add_possible_type(fittype)
+          end
+        end
+      end
     end
     context:traverse(blocknode)
   end)
