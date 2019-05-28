@@ -30,7 +30,7 @@ end
 function tabler.ifindif(t, fn, idx)
   for i=idx or 1,#t do
     local val = t[i]
-    if fn(val) then return val end
+    if fn(val) then return val,i end
   end
   return nil
 end

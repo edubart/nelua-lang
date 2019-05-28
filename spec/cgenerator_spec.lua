@@ -566,6 +566,10 @@ it("records", function()
     assert(p.x == 1 and p.y == 0)
     p = Point{}
     assert(p.x == 0 and p.y == 0)
+    assert(Point({1,2}).x == 1)
+    assert(Point({1,2}).y == 2)
+    assert(Point({x=1,2}).y == 2)
+    assert(Point({1,y=2}).x == 1)
   ]])
   assert.run_c([[
     local Point = @record {x: integer, y: integer}

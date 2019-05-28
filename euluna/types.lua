@@ -432,11 +432,10 @@ function RecordType:_init(node, fields)
   self.codename = gencodename(self)
 end
 
-function RecordType:get_field_type(name)
-  local field = tabler.ifindif(self.fields, function(f)
+function RecordType:get_field(name)
+  return tabler.ifindif(self.fields, function(f)
     return f.name == name
   end)
-  return field and field.type or nil
 end
 
 function RecordType:is_equal(type)

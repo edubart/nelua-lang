@@ -481,7 +481,7 @@ it("records", function()
   assert.analyze_error([[local a: record {x: boolean} = {x = 1}]], "is not coercible with")
   assert.analyze_error([[local a: record {x: boolean} = {y = 1}]], "is not present in record")
   assert.analyze_error([[local a: record {x: boolean} = {[x] = 1}]], "only string literals are allowed")
-  assert.analyze_error([[local a: record {x: boolean} = {false}]], "only named fields are allowed")
+  assert.analyze_error([[local a: record {x: boolean} = {false,false}]], "field at index 2 is not valid")
   assert.analyze_ast([[
     local Record: type = @record{x: boolean}
     local a: Record, b: Record
@@ -492,12 +492,24 @@ it("records", function()
     local a
     a = Record{x = true}
     a = Record{}
+    a = Record{false}
+  ]])
+  assert.analyze_ast([[
+    local Record: type = @record{x: integer, y: integer}
+    local a
+    a = Record{x=1, 2}
+    a = Record{1, y=2}
   ]])
   assert.analyze_ast([[
     local Record = @record{x: boolean}
     local const a = Record{}
     local const b = Record{x=true}
   ]])
+  assert.analyze_error([[
+    local Record: type = @record{x: integer, y: integer}
+    local a
+    a = Record{y = 1, 2}
+  ]], "field at index 3 is not valid")
   assert.analyze_error([[
     local a: record {x: boolean}, b: record {x: boolean}
     b = a

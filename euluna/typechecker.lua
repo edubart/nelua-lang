@@ -149,17 +149,29 @@ function visitors.Table(context, node, desiredtype)
         end
       end
     elseif desiredtype:is_record() then
+      local lastfieldindex = 0
       for _, childnode in ipairs(childnodes) do
-        childnode:assertraisef(childnode.tag == 'Pair',
-          "in record literal, only named fields are allowed")
-        local fieldname, fieldvalnode = childnode:args()
-        childnode:assertraisef(traits.is_string(fieldname),
-          "in record literal, only string literals are allowed in field names")
-        local fieldtype = desiredtype:get_field_type(fieldname)
-        childnode:assertraisef(fieldtype,
+        local fieldname, fieldvalnode, field, fieldindex
+        if childnode.tag == 'Pair' then
+          fieldname, fieldvalnode = childnode:args()
+          childnode:assertraisef(traits.is_string(fieldname),
+            "in record literal, only string literals are allowed in field names")
+          field, fieldindex = desiredtype:get_field(fieldname)
+        else
+          fieldindex = lastfieldindex + 1
+          field = desiredtype.fields[fieldindex]
+          childnode:assertraisef(field,
+            "in record literal, field at index %d is not valid, record has only %d fields",
+            fieldindex, #desiredtype.fields)
+          fieldname = field.name
+          fieldvalnode = childnode
+        end
+        childnode:assertraisef(field,
           "in record literal, field '%s' is not present in record of type '%s'",
           fieldname, tostring(desiredtype))
+        local fieldtype = field.type
         context:traverse(fieldvalnode, fieldtype)
+        lastfieldindex = fieldindex
         local fieldvaltype = fieldvalnode.attr.type
         if fieldvaltype then
           fieldvalnode:assertraisef(fieldtype:is_coercible_from_node(fieldvalnode),
@@ -447,7 +459,8 @@ function visitors.DotIndex(context, node)
     end
 
     if objtype:is_record() then
-      type = objtype:get_field_type(name)
+      local field = objtype:get_field(name)
+      type = field and field.type
       node:assertraisef(type,
         'record "%s" does not have field named "%s"',
         tostring(objtype), name)
