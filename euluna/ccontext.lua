@@ -57,7 +57,8 @@ function CContext:typename(type)
     local subctype = self:ctype(type.subtype)
     self:ensure_runtime(codename, 'euluna_arrtab', {
       tyname = codename,
-      ctype = subctype
+      ctype = subctype,
+      type = type
     })
     self:use_gc()
   elseif type:is_array() then
@@ -65,7 +66,8 @@ function CContext:typename(type)
     self:ensure_runtime(codename, 'euluna_array', {
       tyname = codename,
       length = type.length,
-      subctype = subctype
+      subctype = subctype,
+      type = type
     })
   elseif type:is_record() then
     local fields = tabler.imap(type.fields, function(f)
@@ -73,21 +75,24 @@ function CContext:typename(type)
     end)
     self:ensure_runtime(codename, 'euluna_record', {
       tyname = codename,
-      fields = fields
+      fields = fields,
+      type = type
     })
   elseif type:is_enum() then
     local subctype = self:ctype(type.subtype)
     self:ensure_runtime(codename, 'euluna_enum', {
       tyname = codename,
       subctype = subctype,
-      fields = type.fields
+      fields = type.fields,
+      type = type
     })
   elseif type:is_pointer() then
     if not type:is_generic_pointer() then
       local subctype = self:ctype(type.subtype)
       self:ensure_runtime(codename, 'euluna_pointer', {
         tyname = codename,
-        subctype = subctype
+        subctype = subctype,
+        type = type
       })
     end
   elseif type:is_string() then

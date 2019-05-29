@@ -1,3 +1,3 @@
 typedef struct {
   {%=subctype%} data[{%=length%}];
-} {%=tyname%};
+} {% if type.aligned then %} __attribute__((aligned({%=type.aligned%}))){% end %} {%=tyname%};

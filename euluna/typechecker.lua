@@ -204,15 +204,18 @@ function visitors.Pragma(context, node, symbol)
   local name, argnodes = node:args()
   context:traverse(argnodes)
   local pragmashape
+  local symboltype
   if symbol then
-    local symboltype = symbol.attr.type
+    symboltype = symbol.attr.type
     if not symboltype then
       -- in the next traversal we will have the type
       return
     end
     if symboltype:is_function() then
       pragmashape = typedefs.function_pragmas[name]
-    elseif not symboltype:is_type() then
+    elseif symboltype:is_type() then
+      pragmashape = typedefs.type_pragmas[name]
+    else
       pragmashape = typedefs.variable_pragmas[name]
     end
   elseif not symbol then
@@ -227,34 +230,38 @@ function visitors.Pragma(context, node, symbol)
     return value
   end)
 
-  local attr
-  if symbol then
-    attr = symbol.attr
-  else
-    attr = node.attr
-  end
-  attr.haspragma = true
-
   if pragmashape == true then
     node:assertraisef(#argnodes == 0, "pragma '%s' takes no arguments", name)
-    attr[name] = true
+    params = true
   else
     local ok, err = pragmashape(params)
     node:assertraisef(ok, "pragma '%s' arguments are invalid: %s", name, err)
     if #pragmashape.shape == 1 then
       params = params[1]
     end
-    attr[name] = params
   end
 
-  if name == 'cimport' then
-    local cname, header = tabler.unpack(params)
-    if cname then
-      attr.codename = cname
+  if symboltype and symboltype:is_type() then
+    local type = symbol.attr.holdedtype
+    type[name] = params
+  else
+    local attr
+    if symbol then
+      attr = symbol.attr
+    else
+      attr = node.attr
     end
-    attr.nodecl = header ~= true
-    if traits.is_string(header) then
-      attr.cinclude = header
+    attr[name] = params
+
+    if name == 'cimport' then
+      local cname, header = tabler.unpack(params)
+      if cname then
+        attr.codename = cname
+      end
+      attr.nodecl = header ~= true
+      if traits.is_string(header) then
+        attr.cinclude = header
+      end
     end
   end
 end

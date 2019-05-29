@@ -23,6 +23,7 @@ function Type:_init(name, node)
   self.unary_operators = {}
   self.binary_operators = {}
   self.conversible_types = {}
+  self.aligned = nil
   self.codename = string.format('euluna_%s', self.name)
   local mt = getmetatable(self)
   metamagic.setmetaindex(self.unary_operators, mt.unary_operators)

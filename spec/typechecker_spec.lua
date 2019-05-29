@@ -175,12 +175,14 @@ end)
 
 it("binary operator (idiv)", function()
   assert.c_gencode_equals("local a = 2 // 2", "local a: integer = 2 // 2")
-  assert.c_gencode_equals("local a = 2 // 2", "local a: integer = 2 // 2")
   assert.analyze_error("local a = 1 // 0", "divizion by zero")
 end)
 
 it("binary operator (div)", function()
   assert.c_gencode_equals("local a = 2 / 2", "local a: number = 2 / 2")
+  assert.c_gencode_equals(
+    "local x = 1; local a = x / 2_f32",
+    "local x = 1; local a: float32 = x / 2_f32")
   assert.analyze_error("local a = 1 / 0", "divizion by zero")
   assert.analyze_error("local a = 1 / -0", "divizion by zero")
 end)
@@ -656,6 +658,7 @@ end)
 
 it("pragmas", function()
   assert.analyze_ast("local r: record{x: integer} !aligned(8)")
+  assert.analyze_ast("local Record !aligned(8) = @record{x: integer}")
   assert.analyze_error(
     "local function f() !cimport return 0 end",
     "body of an import function must be empty")

@@ -152,10 +152,9 @@ do
 end
 
 -- NOTE: order here does matter when looking up for a common type between two different types
-typedefs.numeric_coerce_types = {
+typedefs.integer_coerce_types = {
   primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
   primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
-  primtypes.float64
 }
 
 -- literal types
@@ -305,13 +304,24 @@ function typedefs.find_common_type(possibletypes)
 
   -- numeric type promotion
   if tabler.iall(possibletypes, Type.is_numeric) then
-    for numtype in iters.ivalues(typedefs.numeric_coerce_types) do
+    for numtype in iters.ivalues(typedefs.integer_coerce_types) do
       if tabler.iall(possibletypes, function(ty)
         return numtype:is_coercible_from_type(ty) end
       ) then
         return numtype
       end
     end
+
+    -- try float32 if any of the types is float32
+    if tabler.ifindif(possibletypes, function(ty) return ty:is_float32() end) then
+      -- check if all types fit
+      if tabler.iall(possibletypes, function(ty) return not ty:is_float64() end) then
+        return primtypes.float32
+      end
+    end
+
+    -- can only be float64 now
+    return primtypes.float64
   end
 end
 
@@ -354,6 +364,10 @@ typedefs.variable_pragmas = {
   restrict = true,
   volatile = true,
   nodecl = true,
+}
+typedefs.type_pragmas = {
+  aligned = shaper.shape{shaper.integer},
+  packed = true,
 }
 
 return typedefs
