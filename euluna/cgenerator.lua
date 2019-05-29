@@ -601,7 +601,7 @@ end
 
 function visitors.Label(_, node, emitter)
   local name = node:args()
-  emitter:add_indent_ln(cdefs.quotename(name), ':')
+  emitter:add_ln(cdefs.quotename(name), ':')
 end
 
 function visitors.Goto(_, node, emitter)
