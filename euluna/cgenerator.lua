@@ -540,28 +540,33 @@ function visitors.ForNum(context, node, emitter)
   local itvarnode, begvalnode, compop, endvalnode, stepvalnode, blocknode  = node:args()
   compop = node.attr.compop
   local fixedstep = node.attr.fixedstep
+  local fixedend = node.attr.fixedend
+  local itmutate = itvarnode.attr.mutate
   context:push_scope('for')
   do
     local ccompop = cdefs.binary_ops[compop]
     local ittype = itvarnode.attr.type
     local itname = context:declname(itvarnode)
-    emitter:add_indent('for(', ittype, ' __it = ')
+    local itforname = itmutate and '__it' or itname
+    emitter:add_indent('for(', ittype, ' ', itforname, ' = ')
     emitter:add_val2type(ittype, begvalnode)
-    emitter:add(', __end = ')
-    emitter:add_val2type(ittype, endvalnode)
+    if not fixedend or not compop then
+      emitter:add(', __end = ')
+      emitter:add_val2type(ittype, endvalnode)
+    end
     if not fixedstep then
       emitter:add(', __step = ')
       emitter:add_val2type(ittype, stepvalnode)
     end
     emitter:add('; ')
     if compop then
-      emitter:add('__it ', ccompop, ' __end')
+      emitter:add(itforname, ' ', ccompop, ' ', fixedend or '__end')
     else
       -- step is an expression, must detect the compare operation at runtime
       assert(not fixedstep)
-      emitter:add('__step >= 0 ? __it <= __end : __it >= __end')
+      emitter:add('__step >= 0 ? ', itforname, ' <= __end : ', itforname, ' >= __end')
     end
-    emitter:add('; __it = __it + ')
+    emitter:add('; ', itforname, ' = ', itforname, ' + ')
     if not fixedstep then
       emitter:add('__step')
     elseif stepvalnode then
@@ -571,7 +576,9 @@ function visitors.ForNum(context, node, emitter)
     end
     emitter:add_ln(') {')
     emitter:inc_indent()
-    emitter:add_indent_ln(itvarnode, ' = __it; EULUNA_UNUSED(', itname, ');')
+    if itmutate then
+      emitter:add_indent_ln(itvarnode, ' = __it;')
+    end
     emitter:dec_indent()
     emitter:add(blocknode)
     emitter:add_indent_ln('}')

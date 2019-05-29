@@ -118,17 +118,19 @@ end)
 
 it("for", function()
   assert.generate_c("for i=a,b do end", {
+    "for(euluna_any i = a, __end = b; i <= __end; i = i + 1) {"})
+  assert.generate_c("for i=a,b do i=c end", {
     "for(euluna_any __it = a, __end = b; __it <= __end; __it = __it + 1) {",
     "euluna_any i = __it;"})
   assert.generate_c("for i=a,b,c do end",
-    "for(euluna_any __it = a, __end = b, __step = c; " ..
-    "__step >= 0 ? __it <= __end : __it >= __end; __it = __it + __step) {")
+    "for(euluna_any i = a, __end = b, __step = c; " ..
+    "__step >= 0 ? i <= __end : i >= __end; i = i + __step) {")
   assert.generate_c(
     "for i=1,<2 do end",
-    "for(int64_t __it = 1, __end = 2; __it < __end; __it = __it + 1)")
+    "for(int64_t i = 1; i < 2; i = i + 1)")
   assert.generate_c(
     "for i=2,1,-1 do end",
-    "for(int64_t __it = 2, __end = 1; __it >= __end; __it = __it + -1)")
+    "for(int64_t i = 2; i >= 1; i = i + -1)")
   assert.run_c([[
     local x = 0
     for i=1,10 do x = x + 1 end

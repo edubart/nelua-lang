@@ -786,12 +786,17 @@ function visitors.ForNum(context, node)
     -- default step is '1'
     fixedstep = bn.new(1)
   end
+  local fixedend
+  if etype and etype:is_numeric() and endvalnode.attr.const then
+    fixedend = endvalnode.attr.value
+  end
   if not compop and fixedstep then
     -- we now that the step is a const numeric value
     -- compare operation must be ge ('>=') when step is negative
     compop = fixedstep:isneg() and 'ge' or 'le'
   end
   node.attr.fixedstep = fixedstep
+  node.attr.fixedend = fixedend
   node.attr.compop = compop
 end
 
@@ -890,6 +895,7 @@ function visitors.Assign(context, node)
     end
     if symbol then -- symbol may nil in case of array/dot index
       symbol:add_possible_type(valtype)
+      symbol.attr.mutate = true
     end
     if vartype and valtype then
       varnode:assertraisef(vartype:is_coercible_from(valnode or valtype),
@@ -1063,6 +1069,10 @@ function visitors.UnaryOp(context, node, desiredtype)
     end
     if opname == 'neg' and argnode.tag == 'Number' then
       node.attr.value = argnode.attr.value
+    end
+    if (opname == 'deref' or opname == 'ref') and argnode.tag == 'Id' then
+      -- for loops needs to know if an Id symbol could mutate
+      argnode.attr.mutate = true
     end
     assert(context.phase ~= phases.any_inference or node.attr.type)
   end
