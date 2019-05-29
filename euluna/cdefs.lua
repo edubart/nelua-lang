@@ -112,8 +112,9 @@ cdefs.compiler_base_flags = {
     "-Wall",
     "-Wextra",
     "-Wno-incompatible-pointer-types", -- importing C functions can cause this warn
+    "-Wno-missing-braces",
   },
-  cflags_base = "-pipe -std=c99 -fno-strict-aliasing -rdynamic -lm",
+  cflags_base = "-pipe -std=c99 -rdynamic -lm",
   cflags_release = "-O2",
   cflags_debug = "-g"
 }
