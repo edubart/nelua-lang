@@ -113,8 +113,11 @@ cdefs.compiler_base_flags = {
     "-Wextra",
     "-Wno-incompatible-pointer-types", -- importing C functions can cause this warn
     "-Wno-missing-braces",
+    "-Wno-unused-parameter", -- functions with unused parameters
+    "-Wno-missing-field-initializers", -- records without all fields explicity initialized
+    "-Wno-unused-const-variable", -- consts can be left unused
   },
-  cflags_base = "-pipe -std=c99 -rdynamic -lm",
+  cflags_base = "-pipe -rdynamic -lm",
   cflags_release = "-O2",
   cflags_debug = "-g"
 }

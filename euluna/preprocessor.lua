@@ -55,7 +55,7 @@ function PPContext:tovalue(val, orignode)
     if num:isintegral() then
       node = self.aster.Number{'dec', num:todec()}
     else
-      local int, frac = num:todec():match('^(%d+).(%d+)$')
+      local int, frac = num:todec():match('^(-?%d+).(%d+)$')
       node = self.aster.Number{'dec', int, frac}
     end
   elseif traits.is_boolean(val) then

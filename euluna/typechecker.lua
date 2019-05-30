@@ -27,12 +27,13 @@ function visitors.Number(context, node, desiredtype)
   else
     value = bn.fromdec(int, frac, exp)
   end
+  local floatexp = exp and (stringer.startswith(exp, '-') or value > primtypes.integer.range.max)
+  local integral = not (frac or floatexp)
+  local type
   local parentnode = context:get_parent_node()
   if parentnode and parentnode.tag == 'UnaryOp' and parentnode:arg(1) == 'neg' then
     value = -value
   end
-  local integral = not (frac or (exp and stringer.startswith(exp, '-')))
-  local type
   if literal then
     type = typedefs.number_literal_types[literal]
     node:assertraisef(type, 'literal suffix "%s" is not defined', literal)

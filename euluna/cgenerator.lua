@@ -125,6 +125,12 @@ function visitors.Number(_, node, emitter)
   if not type:is_float() and literal then
     emitter:add_nodectypecast(node)
   end
+  if integral and exp then
+    local numzeros = tonumber(exp)
+    assert(numzeros > 0)
+    int = int .. string.rep('0', numzeros)
+    exp = nil
+  end
   emitter:add_composed_number(base, int, frac, exp, value:abs())
   if type:is_unsigned() then
     emitter:add('U')
