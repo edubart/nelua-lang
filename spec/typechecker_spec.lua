@@ -338,6 +338,20 @@ it("function multiple return", function()
     a, b, c  = f()
     local x = f()
   ]])
+  assert.analyze_ast([[
+    local function f(): boolean,integer return true,1 end
+    local function g(): boolean,integer return f() end
+    local a: boolean, b: integer = g()
+  ]])
+  assert.c_gencode_equals([[
+    local function f() return true,1 end
+    local function g() return f() end
+    local a, b = g()
+  ]],[[
+    local function f() return true,1 end
+    local function g(): boolean,integer return f() end
+    local a: boolean, b: integer = g()
+  ]])
   assert.analyze_error([[
     local function f(): integer, boolean return 1,false  end
     local a, b, c

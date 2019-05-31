@@ -538,6 +538,40 @@ function visitors.ArrayIndex(context, node)
   node.attr.type = type
 end
 
+local function iargnodes(argnodes)
+  local i = 0
+  local lastargindex = #argnodes
+  local lastargnode = argnodes[#argnodes]
+  local calleetype = lastargnode and lastargnode.attr.calleetype
+  if lastargnode and lastargnode.tag == 'Call' and calleetype and
+    not calleetype:is_type() and not calleetype:is_any() then
+    -- last arg is a runtime call with known return type at compile time
+    return function()
+      i = i + 1
+      if i < lastargindex then
+        local argnode = argnodes[i]
+        return i, argnode, argnode.attr.type
+      else
+        -- argnode does not exists, fill with multiple returns type
+        local callretindex = i - lastargindex + 1
+        local argtype = calleetype:get_return_type(callretindex)
+        if not argtype then return nil end
+        if callretindex > 1 then
+          -- mark node as multiple returns for usage later
+          lastargnode.attr.multirets = true
+        end
+        return i, nil, argtype, callretindex
+      end
+    end
+  end
+  return function()
+    i = i + 1
+    local argnode = argnodes[i]
+    if not argnode then return nil end
+    return i, argnode, argnode.attr.type
+  end
+end
+
 local function izipargnodes(vars, argnodes)
   local iter = iters.izip(vars, argnodes)
   local lastargindex = #argnodes
@@ -546,26 +580,43 @@ local function izipargnodes(vars, argnodes)
   if lastargnode and lastargnode.tag == 'Call' and (not calleetype or not calleetype:is_type()) then
     -- last arg is a runtime call
     if calleetype then
-      -- we know the callee type
-      return function()
-        local i, var, argnode = iter()
-        if not i then return nil end
-        if i >= lastargindex then
-          -- argnode does not exists, fill with multiple returns type
-          -- in case it doest not exists, the argtype will be false
-          local callretindex = i - lastargindex + 1
-          local argtype = calleetype:get_return_type(callretindex) or false
-          if callretindex > 1 then
-            lastargnode.attr.multirets = true
+      if calleetype:is_any() then
+        -- calling any types makes last arguments always a varanys
+        return function()
+          local i, var, argnode = iter()
+          local argtype = argnode and argnode.attr.type
+          if not i then return nil end
+          if i == lastargindex then
+            assert(argtype and argtype:is_varanys())
           end
-          return i, var, argnode, argtype, callretindex
-        else
-          return i, var, argnode, argnode.attr.type, nil
+          return i, var, argnode, argtype
+        end
+      else
+        -- we know the callee type
+        return function()
+          local i, var, argnode = iter()
+          if not i then return nil end
+          if i >= lastargindex then
+            -- argnode does not exists, fill with multiple returns type
+            -- in case it doest not exists, the argtype will be false
+            local callretindex = i - lastargindex + 1
+            local argtype = calleetype:get_return_type(callretindex) or false
+            if callretindex > 1 then
+              lastargnode.attr.multirets = true
+            end
+            return i, var, argnode, argtype, callretindex
+          else
+            return i, var, argnode, argnode.attr.type, nil
+          end
         end
       end
     else
       -- call type is now known yet, argtype will be nil
-      return iter
+      return function()
+        local i, var, argnode = iter()
+        if not i then return end
+        return i, var, argnode, argnode and argnode.attr.type
+      end
     end
   else
     -- no calls from last argument
@@ -573,7 +624,12 @@ local function izipargnodes(vars, argnodes)
       local i, var, argnode = iter()
       if not i then return end
       -- in case this is inexistent, set argtype to false
-      local argtype = argnode and argnode.attr.type or false
+      local argtype
+      if argnode then
+        argtype = argnode.attr.type
+      else
+        argtype =false
+      end
       return i, var, argnode, argtype
     end
   end
@@ -925,24 +981,23 @@ function visitors.Return(context, node)
   context:traverse(retnodes)
   local funcscope = context.scope:get_parent_of_kind('function')
   if funcscope.returntypes then
-    for i,funcrettype,retnode in izipargnodes(funcscope.returntypes, retnodes) do
-      local retnodetype = retnode and retnode.attr.type
-      if retnodetype and funcrettype then
-        retnode:assertraisef(funcrettype:is_coercible_from_type(retnodetype),
+    for i,funcrettype,retnode,rettype in izipargnodes(funcscope.returntypes, retnodes) do
+      if rettype and funcrettype then
+        (retnode or node):assertraisef(funcrettype:is_coercible_from_type(rettype),
           "return at index %d of type '%s' is not coercible with expression of type '%s'",
-          i, tostring(funcrettype), tostring(retnodetype))
-      elseif not retnode and funcrettype then
+          i, tostring(funcrettype), tostring(rettype))
+      elseif rettype == false and funcrettype then
         node:assertraisef(funcrettype:is_nilable(),
           "missing return expression at index %d of type '%s'",
           i, tostring(funcrettype))
-      elseif retnodetype then
+      elseif rettype then
         node:assertraisef(#retnodes == 0,
           "invalid return expression at index %d", i)
       end
     end
   else
-    for i,retnode in ipairs(retnodes) do
-      funcscope:add_return_type(i, retnode.attr.type)
+    for i,_,rettype in iargnodes(retnodes) do
+      funcscope:add_return_type(i, rettype)
     end
   end
 end

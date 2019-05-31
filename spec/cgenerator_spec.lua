@@ -269,6 +269,11 @@ it("function multiple returns", function()
     assert(a == 1)
     assert(b == true)
     assert(c == 2)
+
+    local function t(): boolean, integer return false, 1 end
+    local function u(): boolean, number return t() end
+    local a, b, c = 2, u()
+    assert(a == 2 and b == false and c == 1)
   ]])
 end)
 

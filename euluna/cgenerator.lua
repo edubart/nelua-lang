@@ -11,7 +11,6 @@ local CContext = require 'euluna.ccontext'
 local primtypes = typedefs.primtypes
 local visitors = {}
 
-
 local function izipargnodes(vars, argnodes)
   local iter = iters.izip(vars, argnodes)
   local lastargindex = #argnodes
@@ -460,14 +459,33 @@ function visitors.Return(context, node, emitter)
       end
     else
       -- multiple returns
-      local retctype = context:funcretctype(functype)
-      emitter:add_indent('return (', retctype, '){')
-      for i,retnode in iters.inpairs(retnodes, numfuncrets) do
-        local rettype = functype:get_return_type(i)
-        if i>1 then emitter:add(', ') end
-        emitter:add_val2type(rettype, retnode)
+      local funcretctype = context:funcretctype(functype)
+      local retemitter = CEmitter(context, emitter.depth)
+      local multiretvalname
+      retemitter:add('return (', funcretctype, '){')
+      for i,funcrettype,retnode,rettype,lastcallindex in izipargnodes(functype.returntypes, retnodes) do
+        if i>1 then retemitter:add(', ') end
+        if lastcallindex == 1 then
+          -- last assigment value may be a multiple return call
+          emitter:add_indent_ln('{')
+          emitter:inc_indent()
+          multiretvalname = context:genuniquename('ret')
+          local retctype = context:funcretctype(retnode.attr.calleetype)
+          emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', retnode, ';')
+        end
+        if lastcallindex then
+          local retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
+          retemitter:add_val2type(funcrettype, retvalname, rettype)
+        else
+          retemitter:add_val2type(funcrettype, retnode)
+        end
       end
-      emitter:add_ln('};')
+      retemitter:add_ln('};')
+      emitter:add_indent(retemitter:generate())
+      if multiretvalname then
+        emitter:dec_indent()
+        emitter:add_indent_ln('}')
+      end
     end
   end
 end

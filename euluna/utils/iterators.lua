@@ -57,6 +57,32 @@ function iterators.izip(...)
   end
 end
 
+-- iterate multiples values from multiple iterators,
+-- returning a index and first value of each iterator
+-- stops only when all values are nil
+--[[
+function iterators.izipit(...)
+  local fs, ans = tabler.pack(...), {}
+  local n = fs.n
+  local i = 0
+  return function()
+    i = i + 1
+    local found
+    for j=1,n do
+      local v = fs[j]()
+      if v then
+        found = true
+      end
+      ans[j] = v
+    end
+    if not found then
+      return nil
+    end
+    return i, tabler.unpack(ans, 1, n)
+  end
+end
+]]
+
 -- ordered pairs iterator
 --[[
 function iterators.opairs(t)
