@@ -5,18 +5,25 @@ local assert = require 'spec.assert'
 describe("Euluna preprocessor should", function()
 
 it("evaluate expressions", function()
-  assert.c_gencode_equals([[
+  assert.c_gencode_equals([=[
     local a = #['he' .. 'llo']
     local b = #[math.sin(-math.pi/2)]
     local c = #[true]
     local d = #[math.pi]
     local e = #[aster.Number{'dec','1'}]
-  ]], [[
+  ]=], [[
     local a = 'hello'
     local b = -1
     local c = true
     local d = 3.1415926535898
     local e = 1
+  ]])
+  assert.c_gencode_equals([=[
+    local a: integer[10]
+    a[#[0]] = 1
+  ]=], [[
+    local a: integer[10]
+    a[0] = 1
   ]])
   assert.analyze_error("local a = #[function() end]", "unable to convert preprocess value of type")
 end)
@@ -30,25 +37,25 @@ it("evaluate names", function()
 end)
 
 it("parse if", function()
-  assert.c_gencode_equals("[# if true then #] local a = 1 [# end #]", "local a = 1")
-  assert.c_gencode_equals("[# if false then #] local a = 1 [# end #]", "")
+  assert.c_gencode_equals("[##[ if true then ]##] local a = 1 [##[ end ]##]", "local a = 1")
+  assert.c_gencode_equals("[##[ if false then ]##] local a = 1 [##[ end ]##]", "")
   assert.c_gencode_equals([[
-    local function f() [# if true then #] return 1 [# end #] end
+    local function f() [##[ if true then ]##] return 1 [##[ end ]##] end
   ]],[[
     local function f() return 1 end
   ]])
   assert.c_gencode_equals([[
     local function f()
-      [# if true then #]
+      ## if true then
         return 1
-      [# end #]
+      ## end
     end
   ]], [[
     local function f()
       return 1
     end
   ]])
-  assert.analyze_error("[# if true then #]", "'end' expected")
+  assert.analyze_error("[##[ if true then ]##]", "'end' expected")
 end)
 
 it("parse loops", function()
@@ -138,7 +145,7 @@ end)
 it("print enums", function()
   assert.c_gencode_equals([[
     local Weekends = @enum { Friday=0, Saturday, Sunda }
-    [# symbols.Weekends.attr.holdedtype.fields[3].name = 'Sunday' #]
+    ## symbols.Weekends.attr.holdedtype.fields[3].name = 'Sunday'
     ## for i,field in ipairs(symbols.Weekends.attr.holdedtype.fields) do
       print(#[field.name .. ' ' .. tostring(field.value)])
     ## end
@@ -152,20 +159,20 @@ end)
 
 it("generate functions", function()
   assert.c_gencode_equals([[
-    [# local function make_pow(N) #]
+    ## local function make_pow(N)
       local function #('pow' .. N)(x: integer)
         local r = 1
-        [# for i=1,N do #]
+        ## for i=1,N do
           r = r*x
-        [# end #]
+        ## end
         return r
       end
-    [# end #]
+    ## end
 
-    [#
+    [##[
     make_pow(2)
     make_pow(3)
-    #]
+    ]##]
   ]], [[
     local function pow2(x: integer)
       local r = 1
@@ -207,7 +214,7 @@ it("print symbol", function()
 end)
 
 it("report errors", function()
-  assert.analyze_error("[# invalid() #]", "attempt to call")
+  assert.analyze_error("[##[ invalid() ]##]", "attempt to call")
 end)
 
 it("run brainfuck", function()

@@ -143,7 +143,7 @@ local function get_parser(std)
   -- matching symbols
   %LPAREN       <- '('
   %RPAREN       <- ')'
-  %LBRACKET     <- !('[' ('='* '[' / '#')) '['
+  %LBRACKET     <- !('[' ('#'^+2 / '='*) '[') '['
   %RBRACKET     <- ']'
   %LCURLY       <- '{'
   %RCURLY       <- '}'
@@ -506,8 +506,8 @@ local function get_parser(std)
     ppshort_string    <- %PPSHORT {(!%LINEBREAK .)*} %LINEBREAK?
     pplong_string     <- pplong_open ({pplong_content*} pplong_close / %{UnclosedPreprocessBracket})
     pplong_content    <- !pplong_close .
-    pplong_open       <- '[' {:eq: '#'*:} %SKIP
-    pplong_close      <- =eq ']'
+    pplong_open       <- '[' {:eq: '#'^+2:} '[' %SKIP
+    pplong_close      <- ']' =eq ']'
 
     name    <- %cNAME / ppname
     id      <- ({} '' -> 'Id' name) -> to_astnode
@@ -594,7 +594,7 @@ local function get_parser(std)
     UnclosedBracket = "unclosed bracket, did you forget a `]`?",
     UnclosedCurly = "unclosed curly brace, did you forget a `}`?",
     UnclosedAngleBracket = "unclosed angle bracket, did you forget a `>`?",
-    UnclosedPreprocessBracket = "unclosed preprocess bracket, did your forget a '#]'?",
+    UnclosedPreprocessBracket = "unclosed preprocess bracket, did your forget a ']##]'?",
     UnclosedLabel = "unclosed label, did you forget `::`?",
     ExpectedParenthesis = "expected parenthesis `(`",
     ExpectedCurly = "expected curly brace `{`",

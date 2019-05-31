@@ -901,7 +901,7 @@ At compile time a Lua preprocessor is available to render arbitrary code,
 it works similiar to templates in the web development world because they emit
 code between it's statements.
 
-Lines beginning with `##` and between `[# #]` are Lua code evaluated by the processor:
+Lines beginning with `##` and between `[##[ ]##]` are Lua code evaluated by the processor:
 
 
 ```euluna
@@ -911,10 +911,12 @@ local a = 0
 ## end
 print(a) -- outputs 4
 
-[# local something = false #]
-[# if something then #]
+[##[
+local something = false
+if something then
+]##]
   print('hello') -- prints hello when compiling with "something" defined
-[# end #]
+[##[ end ]##]
 ```
 
 For instance the above code compile exactly as:
@@ -1006,7 +1008,7 @@ You can even manipulate what is already been processed:
 ```euluna
 local Weekends = @enum { Friday=0, Saturday, Sunda }
 -- fix the third field name to 'Sunday'
-[# symbols.Weekends.attr.holdedtype.fields[3].name = 'Sunday' #]
+## symbols.Weekends.attr.holdedtype.fields[3].name = 'Sunday'
 print(Weekends.Sunday) -- outputs 2
 ```
 
@@ -1028,20 +1030,20 @@ the preprocessor:
 
 ```euluna
 function pow(x: auto, n: const integer)
-  [# symbols.x.attr.type:is_integral() then #]
+  ## symbols.x.attr.type:is_integral() then
     -- x is an integral type (any unsigned/signed integer)
     local r: #[symbols.x.attr.type] = 1
-    [# for i=1,symbols.n.attr.value do #]
+    ## for i=1,symbols.n.attr.value do
       r = r * x
-    [# end #]
+    ## end
     return r
-  [# elseif symbols.x.attr.type:is_float() then #]
+  ## elseif symbols.x.attr.type:is_float() then
     -- x is a floating point type
     return x ^ n
-  [# else
+  [##[ else
     -- invalid type, raise an error at compile time
     symbols.x.node:raisef('cannot pow variable of type "%s"', tostring(symbols.x.attr.type))
-  end #]
+  end ]##]
 end
 
 pow(2, 2) -- use specialized implementation for integers
@@ -1056,9 +1058,9 @@ inlined in the call placement.
 
 ```euluna
 local function unroll(count: const integer, body: block)
-  [# for i=1,symbols.count.attr.value do #]
+  ## for i=1,symbols.count.attr.value do
     body()
-  [# end #]
+  ## end
 end
 
 local a = 0
