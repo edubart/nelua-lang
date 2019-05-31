@@ -297,6 +297,12 @@ it("function return", function()
       return c
     end
   ]])
+  assert.analyze_ast([[
+    local function f(): integer return 1 end
+    local function f(): integer if true then return 1 else return 2 end end
+    local function f(): integer do return 1 end end
+    local function f(): integer switch a case 1 then return 1 else return 2 end end
+  ]])
   assert.analyze_error([[
     local function f() end
     local a: integer = f()
@@ -311,6 +317,9 @@ it("function return", function()
   ]], "missing return expression at index")
   assert.analyze_error([[
     local function f(): integer end
+  ]], "return statement is missing")
+  assert.analyze_error([[
+    local function f(): integer if a then return 1 end end
   ]], "return statement is missing")
   assert.analyze_error([[
     local function f(): integer return 1, 2 end

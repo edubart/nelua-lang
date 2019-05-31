@@ -1002,6 +1002,29 @@ function visitors.Return(context, node)
   end
 end
 
+local function block_endswith_return(blocknode)
+  assert(blocknode.tag == 'Block')
+  local statnodes = blocknode[1]
+  local laststat = statnodes[#statnodes]
+  if not laststat then return false end
+  if laststat.tag == 'Return' then
+    return true
+  elseif laststat.tag == 'Do' then
+    return block_endswith_return(laststat[1])
+  elseif laststat.tag == 'Switch' or laststat.tag == 'If' then
+    for _,pair in ipairs(laststat[laststat.nargs-1]) do
+      if not block_endswith_return(pair[2]) then
+        return false
+      end
+    end
+    local elseblock = laststat[laststat.nargs]
+    if elseblock then
+      return block_endswith_return(elseblock)
+    end
+  end
+  return false
+end
+
 function visitors.FuncDef(context, node)
   local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
   local symbol, argtypes
@@ -1086,14 +1109,13 @@ function visitors.FuncDef(context, node)
   end
 
   if not lazy and not varnode.attr.nodecl and not varnode.attr.cimport then
-    -- check missing returns
-    local statnodes = blocknode:arg(1)
-    local laststat = statnodes[#statnodes]
-    if (not laststat or laststat.tag ~= 'Return') and #returntypes > 0 then
+    if #returntypes > 0 then
       local canbeempty = tabler.iall(returntypes, function(rettype)
         return rettype:is_nilable()
       end)
-      node:assertraisef(canbeempty, 'return statement is missing before function end')
+      if not canbeempty and not block_endswith_return(blocknode) then
+        node:raisef('a return statement is missing before function end')
+      end
     end
   end
 
