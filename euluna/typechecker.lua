@@ -285,6 +285,27 @@ function visitors.Id(context, node)
   return symbol
 end
 
+function visitors.IdDecl(context, node, declmut)
+  local name, mut, typenode, pragmanodes = node:args()
+  node:assertraisef(not (mut and declmut), "cannot declare mutability twice for '%s'", name)
+  mut = mut or declmut or 'var'
+  node:assertraisef(typedefs.mutabilities[mut],
+    'mutability %s not supported yet', mut)
+  local type = node.attr.type
+  if typenode then
+    context:traverse(typenode)
+    type = typenode.attr.holdedtype
+  end
+  if not type and context.phase == phases.any_inference then
+    type = primtypes.any
+  end
+  local symbol = context.scope:add_symbol(Symbol(name, node, mut, type))
+  if pragmanodes then
+    context:traverse(pragmanodes, symbol)
+  end
+  return symbol
+end
+
 function visitors.Paren(context, node, ...)
   local innernode = node:args()
   local ret = context:traverse(innernode, ...)
@@ -719,27 +740,6 @@ function visitors.Call(context, node)
   assert(context.phase ~= phases.any_inference or node.attr.type)
 end
 
-function visitors.IdDecl(context, node, declmut)
-  local name, mut, typenode, pragmanodes = node:args()
-  node:assertraisef(not (mut and declmut), "cannot declare mutability twice for '%s'", name)
-  mut = mut or declmut or 'var'
-  node:assertraisef(typedefs.mutabilities[mut],
-    'mutability %s not supported yet', mut)
-  local type = node.attr.type
-  if typenode then
-    context:traverse(typenode)
-    type = typenode.attr.holdedtype
-  end
-  if not type and context.phase == phases.any_inference then
-    type = primtypes.any
-  end
-  local symbol = context.scope:add_symbol(Symbol(name, node, mut, type))
-  if pragmanodes then
-    context:traverse(pragmanodes, symbol)
-  end
-  return symbol
-end
-
 function visitors.Block(context, node, scopecb)
   if not node.processed then
     preprocessor.preprocess(context, node)
@@ -1032,7 +1032,17 @@ function visitors.FuncDef(context, node)
   if node.deducedargtypes then
     argtypes = node.deducedargtypes
   else
-    symbol = context:traverse(varnode)
+    if varscope and varnode.tag == 'Id' then
+      -- function declaration, must create a new symbol
+      local name = varnode[1]
+      local vartype = varnode.attr.type
+      if not vartype and context.phase == phases.any_inference then
+        vartype = primtypes.any
+      end
+      symbol = context.scope:add_symbol(Symbol(name, varnode, 'var', vartype))
+    else
+      symbol = context:traverse(varnode)
+    end
   end
 
   context:traverse(retnodes)

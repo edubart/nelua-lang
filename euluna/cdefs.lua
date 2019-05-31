@@ -116,6 +116,7 @@ cdefs.compiler_base_flags = {
     "-Wno-unused-parameter", -- functions with unused parameters
     "-Wno-missing-field-initializers", -- records without all fields explicity initialized
     "-Wno-unused-const-variable", -- consts can be left unused
+    "-Wno-unused-function", -- local functions can be left unused
   },
   cflags_base = "-pipe -rdynamic -lm",
   cflags_release = "-O2",

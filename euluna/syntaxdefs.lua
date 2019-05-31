@@ -289,7 +289,9 @@ local function get_parser(std)
   ]])
 
   grammar:add_group_peg('stat', 'funcdef', [[
-    ({} '' -> 'FuncDef' (var_scope / cnil) %FUNCTION func_name function_body) -> to_astnode
+    ({} '' -> 'FuncDef' var_scope %FUNCTION id function_body) -> to_astnode /
+    ({} %FUNCTION -> 'FuncDef' cnil func_name function_body) -> to_astnode
+
     func_name <- (id {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
   ]])
 
