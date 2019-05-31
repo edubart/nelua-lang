@@ -501,9 +501,9 @@ it("records", function()
   assert.analyze_ast([[local a: record {x: boolean}; a = {}]])
   assert.analyze_ast([[local a: record {x: boolean}; a = {x = true}]])
   assert.analyze_ast([[local a: record {x: boolean}; local len = #a]])
-  assert.analyze_error([[local a: record {x: boolean}; a.x = 1]], "is not coercible with")
+  assert.analyze_error([[local a: record {x: integer}; a.x = true]], "is not coercible with")
   assert.analyze_error([[local a: record {x: boolean}; local b = a.y]], "does not have field named")
-  assert.analyze_error([[local a: record {x: boolean} = {x = 1}]], "is not coercible with")
+  assert.analyze_error([[local a: record {x: integer} = {x = true}]], "is not coercible with")
   assert.analyze_error([[local a: record {x: boolean} = {y = 1}]], "is not present in record")
   assert.analyze_error([[local a: record {x: boolean} = {[x] = 1}]], "only string literals are allowed")
   assert.analyze_error([[local a: record {x: boolean} = {false,false}]], "field at index 2 is not valid")
@@ -691,6 +691,12 @@ end)
 
 it("strict mode", function()
   config.strict = true
+  assert.analyze_ast([[
+    !!strict
+    local a = 1
+    local function f() print 'a' end
+    assert(a)
+  ]])
   assert.analyze_error("a = 1", "undeclarated symbol")
   assert.analyze_error("local a; local a", "shadows pre declarated symbol")
   config.strict = false

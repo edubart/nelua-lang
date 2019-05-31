@@ -80,7 +80,7 @@ function Type:get_binary_operator_type(opname)
 end
 
 function Type:is_coercible_from_type(type, explicit)
-  if self == type or self:is_any() or type:is_any() then
+  if self == type or self:is_any() or type:is_any() or self:is_boolean() then
     return true
   end
   if type:is_enum() then
@@ -104,7 +104,6 @@ function Type:is_coercible_from(typeornode, explicit)
     return self:is_coercible_from_type(typeornode, explicit)
   end
 end
-
 
 function Type:is_inrange(value)
   if self:is_float() then return true end
@@ -316,8 +315,8 @@ end
 local FunctionType = typeclass()
 
 function FunctionType:_init(node, argtypes, returntypes)
-  self.argtypes = argtypes
-  self.returntypes = returntypes
+  self.argtypes = argtypes or {}
+  self.returntypes = returntypes or {}
   Type._init(self, 'function', node)
   self.codename = gencodename(self)
   self.lazy = tabler.ifindif(argtypes, function(argtype)

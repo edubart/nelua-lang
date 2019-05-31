@@ -71,7 +71,7 @@ it("print correct generated AST" , function()
       Id {
         attr = {
           codename = "print",
-          mut = "var",
+          mut = "val",
           name = "print",
           type = "any",
         },

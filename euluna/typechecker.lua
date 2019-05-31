@@ -8,6 +8,7 @@ local Symbol = require 'euluna.symbol'
 local types = require 'euluna.types'
 local bn = require 'euluna.utils.bn'
 local preprocessor = require 'euluna.preprocessor'
+local config = require 'euluna.configer'.get()
 
 local primtypes = typedefs.primtypes
 local visitors = {}
@@ -264,6 +265,9 @@ function visitors.Pragma(context, node, symbol)
         attr.cinclude = header
       end
     end
+    if name == 'strict' then
+      config.strict = true
+    end
   end
 end
 
@@ -275,9 +279,6 @@ function visitors.Id(context, node)
   end
   local symbol = context.scope:get_symbol(name, node)
   if not symbol then
-    if name == primtypes.Nilptr.name then
-      type = primtypes.Nilptr
-    end
     symbol = context.scope:add_symbol(Symbol(name, node, 'var', type))
   else
     symbol:link_node(node)

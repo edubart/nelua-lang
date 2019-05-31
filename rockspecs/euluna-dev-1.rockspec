@@ -61,6 +61,7 @@ build = {
     ['euluna.pegparser'] = 'euluna/pegparser.lua',
     ['euluna.runner'] = 'euluna/runner.lua',
     ['euluna.scope'] = 'euluna/scope.lua',
+    ['euluna.symdefs'] = 'euluna/symdefs.lua',
     ['euluna.symbol'] = 'euluna/symbol.lua',
     ['euluna.syntaxdefs'] = 'euluna/syntaxdefs.lua',
     ['euluna.typechecker'] = 'euluna/typechecker.lua',

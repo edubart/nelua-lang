@@ -157,7 +157,7 @@ typedefs.integer_coerce_types = {
   primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
 }
 
--- literal types
+-- literal suffixes types
 typedefs.number_literal_types = {
   _i          = primtypes.integer,  _integer    = primtypes.integer,
   _u          = primtypes.uinteger, _uinteger   = primtypes.uinteger,
@@ -340,7 +340,8 @@ typedefs.block_pragmas = {
   cdefine = shaper.shape{shaper.string},
   cflags = shaper.shape{shaper.string},
   ldflags = shaper.shape{shaper.string},
-  linklib = shaper.shape{shaper.string}
+  linklib = shaper.shape{shaper.string},
+  strict = true
 }
 
 local common_pragmas = {

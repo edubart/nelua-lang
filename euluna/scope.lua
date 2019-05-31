@@ -1,6 +1,7 @@
 local class = require 'euluna.utils.class'
 local metamagic = require 'euluna.utils.metamagic'
 local typedefs = require 'euluna.typedefs'
+local symdefs = require 'euluna.symdefs'
 local tabler = require 'euluna.utils.tabler'
 local config = require 'euluna.configer'.get()
 local Symbol = require 'euluna.symbol'
@@ -36,10 +37,26 @@ end
 
 function Scope:get_symbol(name, node)
   local symbol = self.symbols[name]
+  if not symbol and node then
+    local symtype = symdefs[name]
+    if symtype then
+      return Symbol(name, node, 'val', symtype)
+    end
+  end
   if not symbol and node and config.strict then
     node:raisef("undeclarated symbol '%s'", name)
   end
   return symbol
+end
+
+local function symbol_resolve_type(symbol)
+  if symbol.attr.type then
+    return false
+  end
+  if symbol.has_unknown_type then return false end
+  local type = typedefs.find_common_type(symbol.possibletypes)
+  symbol.attr.type = type
+  return true
 end
 
 function Scope:add_symbol(symbol)
@@ -51,7 +68,7 @@ function Scope:add_symbol(symbol)
       "symbol '%s' shadows pre declarated symbol with the same name", name)
 
     -- symbol redeclaration, resolve old symbol type before replacing it
-    oldsymbol:resolve_type()
+    symbol_resolve_type(oldsymbol)
     symbol.attr.shadowcount = (oldsymbol.attr.shadowcount or 1) + 1
   end
   self.symbols[name] = symbol
@@ -61,7 +78,7 @@ end
 function Scope:resolve_symbols()
   local count = 0
   for _,symbol in pairs(self.symbols) do
-    if symbol:resolve_type() then
+    if symbol_resolve_type(symbol) then
       count = count + 1
     end
   end
