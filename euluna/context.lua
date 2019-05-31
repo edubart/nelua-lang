@@ -17,7 +17,7 @@ local function traverser_default_visitor(self, node, ...)
 end
 
 function Context:_init(visitors, default_visitor)
-  self.scope = Scope()
+  self.scope = Scope(self, 'root')
   self.visitors = visitors
   if default_visitor == true then
     self.default_visitor = traverser_default_visitor

@@ -10,7 +10,12 @@ local Scope = class()
 
 function Scope:_init(parent, kind)
   self.kind = kind
-  self.parent = parent
+  if kind == 'root' then
+    self.context = parent
+  else
+    self.parent = parent
+    self.context = parent.context
+  end
   self.symbols = {}
   self.possible_returntypes = {}
   self.resolved_returntypes = {}
@@ -43,7 +48,7 @@ function Scope:get_symbol(name, node)
       return Symbol(name, node, 'val', symtype)
     end
   end
-  if not symbol and node and config.strict then
+  if not symbol and node and config.strict and not self.context.preprocessing then
     node:raisef("undeclarated symbol '%s'", name)
   end
   return symbol

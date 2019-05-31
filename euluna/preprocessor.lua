@@ -218,6 +218,8 @@ function preprocessor.preprocess(context, ast)
     return
   end
 
+  context.preprocessing = true
+
   -- second pass, emit the preprocess lua code
   local ppcontext = PPContext(context, visitors)
   local emitter = Emitter(ppcontext, 0)
@@ -254,6 +256,8 @@ function preprocessor.preprocess(context, ast)
     --TODO: better error messages
     ast:assertraisef(ok, tostring(err))
   end
+
+  context.preprocessing = false
 end
 
 return preprocessor

@@ -1,6 +1,7 @@
 require 'busted.runner'()
 
 local assert = require 'spec.assert'
+local config = require 'euluna.configer'.get()
 
 describe("Euluna preprocessor should", function()
 
@@ -211,6 +212,25 @@ it("print symbol", function()
       print(i, 'symbol<var i: int64>')
     end
   ]])
+end)
+
+it("strict mode", function()
+  config.strict = true
+  assert.c_gencode_equals([=[
+    ## local dummy = 1
+    local function f(a: integer)
+      ## if true then
+        print(a)
+      ## end
+    end
+    f(1)
+  ]=], [[
+    local function f(a: integer)
+      print(a)
+    end
+    f(1)
+  ]])
+  config.strict = false
 end)
 
 it("report errors", function()
