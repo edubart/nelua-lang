@@ -114,7 +114,28 @@ it("while", function()
 end)
 
 it("repeat", function()
-  assert.generate_c("repeat\nuntil false", "do {\n  } while(!(false));")
+  assert.generate_c("repeat until true", [[
+  while(true) {
+    if(true) break;
+  }]])
+  assert.generate_c([[
+    repeat
+      local a = true
+    until a
+  ]], [[
+  while(true) {
+    bool a = true;
+    if(a) break;
+  }]])
+  assert.run_c([[
+    local x = 0
+    repeat
+      x = x + 1
+      local a = (x == 4)
+    until a
+    print(x)
+    assert(x == 4)
+  ]])
 end)
 
 it("for", function()

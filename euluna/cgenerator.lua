@@ -535,11 +535,14 @@ end
 
 function visitors.Repeat(_, node, emitter)
   local blocknode, condnode = node:args()
-  emitter:add_indent_ln("do {")
+  emitter:add_indent_ln("while(true) {")
   emitter:add(blocknode)
-  emitter:add_indent('} while(!(')
+  emitter:inc_indent()
+  emitter:add_indent('if(')
   emitter:add_val2type(primtypes.boolean, condnode)
-  emitter:add_ln('));')
+  emitter:add_ln(') break;')
+  emitter:dec_indent()
+  emitter:add_indent_ln('}')
 end
 
 function visitors.ForNum(context, node, emitter)

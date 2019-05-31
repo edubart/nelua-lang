@@ -684,13 +684,16 @@ function visitors.IdDecl(context, node, declmut)
   return symbol
 end
 
-function visitors.Block(context, node)
+function visitors.Block(context, node, scopecb)
   if not node.processed then
     preprocessor.preprocess(context, node)
   end
   local statnodes = node:args()
   context:repeat_scope_until_resolution('block', function()
     context:traverse(statnodes)
+    if scopecb then
+      scopecb()
+    end
   end)
 end
 
@@ -714,8 +717,9 @@ end
 
 function visitors.Repeat(context, node)
   local blocknode, condnode = node:args()
-  context:traverse(blocknode)
-  context:traverse(condnode, primtypes.boolean)
+  context:traverse(blocknode, function()
+    context:traverse(condnode, primtypes.boolean)
+  end)
 end
 
 function visitors.ForIn(context, node)
