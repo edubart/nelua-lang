@@ -1545,6 +1545,20 @@ describe("preprocessor", function()
 end)
 
 --------------------------------------------------------------------------------
+-- utf8 characters
+--------------------------------------------------------------------------------
+describe("utf8 characters", function()
+  -- '\207\128' is UTF-8 code for greek 'pi' character
+  it("function", function()
+    assert.parse_ast(euluna_parser, "local \207\128",
+      n.Block{{
+        n.VarDecl{'local', nil,
+          { n.IdDecl{'uCF80'} }
+    }}})
+  end)
+end)
+
+--------------------------------------------------------------------------------
 -- live grammar change
 --------------------------------------------------------------------------------
 describe("live grammar change for", function()

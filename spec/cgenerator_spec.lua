@@ -184,6 +184,7 @@ end)
 it("variable declaration", function()
   assert.generate_c("local a: integer", "int64_t mymod_a = 0;")
   assert.generate_c("local a: integer = 0", "int64_t mymod_a = 0;")
+  assert.generate_c("local π = 3.14", "double mymod_uCF80 = 3.14;")
 end)
 
 it("const", function()

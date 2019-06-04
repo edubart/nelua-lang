@@ -36,12 +36,8 @@ local function get_parser(std)
   -- skip any code not relevant (spaces, new lines and comments), usually matched after any TOKEN
   parser:set_peg('SKIP', "(%SPACE / %COMMENT)*")
 
-  -- identifier prefix, letter or _ character
-  parser:set_peg('IDPREFIX', '[_%a]')
   -- identifier suffix, alphanumeric or _ character
-  parser:set_peg('IDSUFFIX', '[_%w]')
-  -- identifier full format (prefix + suffix)
-  parser:set_peg('IDFORMAT', '%IDPREFIX %IDSUFFIX*')
+  parser:set_peg('IDSUFFIX', '[\128-\255_%w]')
 
   -- language keywords
   parser:add_keywords({
@@ -59,8 +55,17 @@ local function get_parser(std)
   end
 
   -- names and identifiers (names for variables, functions, etc)
-  parser:set_token_peg('NAME', '&%IDPREFIX !%KEYWORD %IDFORMAT')
-  parser:set_token_peg('cNAME', '&%IDPREFIX !%KEYWORD {%IDFORMAT}')
+  parser:set_token_pegs([[
+    %cNAME <- &idprefix !%KEYWORD {~ idformat ~}
+    idprefix <- ]] .. '[\128-\255_%a]' ..[[
+    idformat <- ([_%w] / escape_utf8)+
+    escape_utf8 <-
+      ]]..'[\128-\255]+'..[[ -> char2hex
+  ]], {
+    char2hex = function(s)
+      return 'u' .. s:gsub('.', function(c) return string.format('%02X', string.byte(c)) end)
+    end
+  })
 
   -- capture numbers (hexadecimal, binary, exponential, decimal or integer)
   parser:set_token_pegs([[
