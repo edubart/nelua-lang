@@ -24,29 +24,29 @@ int euluna_main() {
 end)
 
 it("number", function()
-  assert.generate_c("return 1")
-  assert.generate_c("return 1.2")
-  assert.generate_c("return 1e2", "return 100")
-  assert.generate_c("return 0x1f")
-  assert.generate_c("return 0b10", "return 0x2")
-  assert.generate_c("return 1e127", "return 1e127;")
+  assert.generate_c("do local a = 99 end", "99")
+  assert.generate_c("do local a = 1.2 end", "1.2")
+  assert.generate_c("do local a = 1e2 end", "100")
+  assert.generate_c("do local a = 0x1f end", "0x1f")
+  assert.generate_c("do local a = 0b10 end", "0x2")
+  assert.generate_c("do local a = 1e127 end", "1e127;")
 end)
 
 it("number literals", function()
-  assert.generate_c("return 1_integer", "return (int64_t)1")
-  assert.generate_c("return 1_number", "return 1.0")
-  assert.generate_c("return 1_byte", "return (uint8_t)1")
-  assert.generate_c("return 1_isize", "return (intptr_t)1")
-  assert.generate_c("return 1_usize", "return (uintptr_t)1")
-  assert.generate_c("return 1_pointer", "return (void*)1")
-  assert.generate_c("return 1_cint", "return (int)1")
-  assert.generate_c("return 1_clong", "return (long)1")
-  assert.generate_c("return 1_clonglong", "return (long long)1")
+  assert.generate_c("do local a = 1_integer end", "int64_t a = 1")
+  assert.generate_c("do local a = 1_number end", "double a = 1.0")
+  assert.generate_c("do local a = 1_byte end", "uint8_t a = 1")
+  assert.generate_c("do local a = 1_isize end", "intptr_t a = 1")
+  assert.generate_c("do local a = 1_usize end", "uintptr_t a = 1")
+  assert.generate_c("do local a = 1_pointer end", "void* a = 1")
+  assert.generate_c("do local a = 1_cint end", "int a = 1")
+  assert.generate_c("do local a = 1_clong end", "long a = 1")
+  assert.generate_c("do local a = 1_clonglong end", "long long a = 1")
 end)
 
 it("type assertion", function()
-  assert.generate_c("return @int16(1_u64)", "return (int16_t)((uint64_t)1U)")
-  assert.generate_c("return @int64(1_u8)", "return (int64_t)((uint8_t)1U)")
+  assert.generate_c("do local a = @int16(1_u64) end", "int16_t a = (int16_t)((uint64_t)1U)")
+  assert.generate_c("do local a = @int64(1_u8) end", "int64_t a = (int64_t)((uint8_t)1U)")
 end)
 
 it("string", function()
@@ -55,19 +55,19 @@ it("string", function()
 end)
 
 it("boolean", function()
-  assert.generate_c("return true", "return true;")
+  assert.generate_c("do local a = true end", "bool a = true")
+  assert.generate_c("do local a = false end", "bool a = false")
 end)
 
 it("call", function()
   assert.generate_c("f()", "mymod_f();")
-  assert.generate_c("return f()", "return mymod_f();")
   assert.generate_c("f(g())", "mymod_f(mymod_g())")
   assert.generate_c("f(a, b)", "mymod_f(mymod_a, mymod_b)")
   assert.generate_c("f(a)(b)", "mymod_f(mymod_a)(mymod_b)")
   assert.generate_c("a.f()", "mymod_a.f()")
   assert.generate_c("a:f(a)", "mymod_a.f(mymod_a, mymod_a)")
   assert.generate_c("do f() end", "f();")
-  assert.generate_c("do return f() end", "return f();")
+  assert.generate_c("do return f() end", "return euluna_cint_any_cast(f());")
   assert.generate_c("do f(g()) end", "f(g())")
   assert.generate_c("do f(a, b) end", "f(a, b)")
   assert.generate_c("do f(a)(b) end", "f(a)(b)")
@@ -306,28 +306,28 @@ it("call with side effects", function()
 end)
 
 it("unary operators", function()
-  assert.generate_c("do return not a end", "return !a;")
-  assert.generate_c("do return -a end", "return -a")
-  assert.generate_c("do return ~a end", "return ~a")
-  assert.generate_c("do return &a end", "return &a")
-  assert.generate_c("do return $a end", "return *a")
+  assert.generate_c("do local x = not a end", "!a")
+  assert.generate_c("do local x = -a end", "-a")
+  assert.generate_c("do local x = ~a end", "~a")
+  assert.generate_c("do local x = &a end", "&a")
+  assert.generate_c("do local x = $a end", "*a")
 end)
 
 it("binary operators", function()
-  assert.generate_c("do return a ~= b end",      "return a != b;")
-  assert.generate_c("do return a == b end",      "return a == b;")
-  assert.generate_c("do return a <= b end",      "return a <= b;")
-  assert.generate_c("do return a >= b end",      "return a >= b;")
-  assert.generate_c("do return a < b end",       "return a < b;")
-  assert.generate_c("do return a > b end",       "return a > b;")
-  assert.generate_c("do return a | b end",       "return a | b;")
-  assert.generate_c("do return a ~ b end",       "return a ^ b;")
-  assert.generate_c("do return a & b end",       "return a & b;")
-  assert.generate_c("do return a << b end",      "return a << b;")
-  assert.generate_c("do return a >> b end",      "return a >> b;")
-  assert.generate_c("do return a + b end",       "return a + b;")
-  assert.generate_c("do return a - b end",       "return a - b;")
-  assert.generate_c("do return a * b end",       "return a * b;")
+  assert.generate_c("do local x = a ~= b end",      "a != b")
+  assert.generate_c("do local x = a == b end",      "a == b")
+  assert.generate_c("do local x = a <= b end",      "a <= b")
+  assert.generate_c("do local x = a >= b end",      "a >= b")
+  assert.generate_c("do local x = a < b end",       "a < b")
+  assert.generate_c("do local x = a > b end",       "a > b")
+  assert.generate_c("do local x = a | b end",       "a | b")
+  assert.generate_c("do local x = a ~ b end",       "a ^ b")
+  assert.generate_c("do local x = a & b end",       "a & b")
+  assert.generate_c("do local x = a << b end",      "a << b")
+  assert.generate_c("do local x = a >> b end",      "a >> b")
+  assert.generate_c("do local x = a + b end",       "a + b")
+  assert.generate_c("do local x = a - b end",       "a - b")
+  assert.generate_c("do local x = a * b end",       "a * b")
   -- div
   --assert.generate_c("return a / b")
   assert.generate_c("return 3 / 2",       "return 3 / (double)2")
@@ -375,15 +375,15 @@ it("binary operators", function()
 end)
 
 it("binary conditional operators", function()
-  assert.generate_c("do return a or b end",  [[return ({
+  assert.generate_c("do return a or b end",  [[({
       euluna_any t1_ = a; EULUNA_UNUSED(t1_);
       euluna_any t2_ = {0}; EULUNA_UNUSED(t2_);
       bool cond_ = euluna_any_to_boolean(t1_);
       if(cond_)
         t2_ = b;
       cond_ ? t1_ : t2_;
-    });]])
-  assert.generate_c("do return a and b end",  [[return ({
+    })]])
+  assert.generate_c("do return a and b end",  [[({
       euluna_any t1_ = a; EULUNA_UNUSED(t1_);
       euluna_any t2_ = {0}; EULUNA_UNUSED(t2_);
       bool cond_ = euluna_any_to_boolean(t1_);
@@ -392,7 +392,7 @@ it("binary conditional operators", function()
         cond_ = euluna_any_to_boolean(t2_);
       }
       cond_ ? t2_ : (euluna_any){0};
-    });]])
+    })]])
   --[[
   assert.generate_c("do return a and b end",  "return (a && b) ? b : (euluna_any){0};")
   assert.generate_c("do return a and b or c end",  "return (a && b) ? a : b;")
@@ -649,6 +649,34 @@ it("pointers", function()
     $p = 3
     print(i)
   ]], "1\n2\n3")
+end)
+
+it("automatic reference", function()
+  assert.run_c([[
+    local p: integer*
+    local a: integer = 1
+    p = a
+    assert($p == 1)
+    local function f(p: integer*) return $p end
+    assert(f(a) == 1)
+    local function g(): integer* return a end
+    assert($g() == 1)
+  ]])
+end)
+
+it("automatic dereference", function()
+  assert.run_c([[
+    local a: integer = 1
+    local p: integer* = &a
+    local b: integer
+    b = p
+    assert(b == 1)
+    local function f(x: integer) return x end
+    local function g(): integer return p end
+    a = 2
+    assert(f(p) == 2)
+    assert(g() == 2)
+  ]])
 end)
 
 it("nilptr", function()

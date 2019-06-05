@@ -436,7 +436,9 @@ function visitors.Return(context, node, emitter)
     else
       -- return one value (an integer expected)
       local retnode = retnodes[1]
-      emitter:add_indent_ln('return ', retnode, ';')
+      emitter:add_indent('return ')
+      emitter:add_val2type(primtypes.cint, retnode)
+      emitter:add_ln(';')
     end
   else
     local functype = funcscope.functype
@@ -451,7 +453,8 @@ function visitors.Return(context, node, emitter)
       emitter:add_indent('return ')
       if retnode then
         -- return value is present
-        emitter:add_ln(retnode, ';')
+        emitter:add_val2type(rettype, retnode)
+        emitter:add_ln(';')
       else
         -- no return value present, generate a zeroed one
         emitter:add_castedzerotype(rettype)

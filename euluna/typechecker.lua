@@ -283,6 +283,7 @@ function visitors.Id(context, node)
   else
     symbol:link_node(node)
   end
+  symbol.attr.lvalue = true
   return symbol
 end
 
@@ -304,6 +305,7 @@ function visitors.IdDecl(context, node, declmut)
   if pragmanodes then
     context:traverse(pragmanodes, symbol)
   end
+  symbol.attr.lvalue = true
   return symbol
 end
 
@@ -513,6 +515,9 @@ function visitors.DotIndex(context, node)
   if not type and context.phase == phases.any_inference then
     type = primtypes.any
   end
+  if objnode.attr.lvalue then
+    node.attr.lvalue = true
+  end
   node.attr.type = type
 end
 
@@ -556,6 +561,9 @@ function visitors.ArrayIndex(context, node)
   end
   if not type and context.phase == phases.any_inference then
     type = primtypes.any
+  end
+  if objnode.attr.lvalue then
+    node.attr.lvalue = true
   end
   node.attr.type = type
 end
@@ -984,7 +992,7 @@ function visitors.Return(context, node)
   if funcscope.returntypes then
     for i,funcrettype,retnode,rettype in izipargnodes(funcscope.returntypes, retnodes) do
       if rettype and funcrettype then
-        (retnode or node):assertraisef(funcrettype:is_coercible_from_type(rettype),
+        (retnode or node):assertraisef(funcrettype:is_coercible_from(retnode or rettype),
           "return at index %d of type '%s' is not coercible with expression of type '%s'",
           i, tostring(funcrettype), tostring(rettype))
       elseif rettype == false and funcrettype then

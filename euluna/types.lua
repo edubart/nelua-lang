@@ -83,6 +83,10 @@ function Type:is_coercible_from_type(type, explicit)
   if self == type or self:is_any() or type:is_any() or self:is_boolean() then
     return true
   end
+  if type:is_pointer() and type.subtype == self then
+    -- automatic deref
+    return true
+  end
   if type:is_enum() then
     return self:is_coercible_from_type(type.subtype, explicit)
   end
@@ -463,6 +467,18 @@ function PointerType:_init(node, subtype)
     self.codename = subtype.codename .. '_pointer'
   end
   self.unary_operators['deref'] = subtype
+end
+
+function PointerType:is_coercible_from_node(node, explicit)
+  local nodetype = node.attr.type
+  if self.subtype == nodetype then
+    -- automatic reference
+    node:assertraisef(node.attr.lvalue,
+      'cannot automatic reference rvalue to pointer type "%s"', tostring(self))
+    node.attr.autoref = true
+    return true
+  end
+  return Type.is_coercible_from_node(self, node, explicit)
 end
 
 function PointerType:is_coercible_from_type(type, explicit)

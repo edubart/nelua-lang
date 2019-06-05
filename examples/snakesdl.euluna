@@ -1,10 +1,10 @@
 -- SDL2 Snake Game Demo
 
 -- import SDL headers
+!!strict
 !!cdefine 'SDL_DISABLE_IMMINTRIN_H'
 !!cinclude '<SDL2/SDL.h>'
 !!linklib 'SDL2'
-!!strict
 
 -- import SDL structures
 local SDL_Event = @record {

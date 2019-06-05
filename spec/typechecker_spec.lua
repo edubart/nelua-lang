@@ -13,7 +13,7 @@ it("analyzed ast transform", function()
       n.VarDecl{'local', nil,
         { n.IdDecl{
           assign=true,
-          attr = {codename='a', mut='var', name='a', type='int64'},
+          attr = {codename='a', mut='var', name='a', type='int64', lvalue=true},
           'a' }},
         { n.Number{
           attr = {const=true, initializer=true, integral=true, type='int64', value=bn.fromdec('1')},
@@ -22,8 +22,8 @@ it("analyzed ast transform", function()
       },
       n.Call{
         attr = {calleetype = 'any', sideeffect = true, type='varanys'},
-        {n.Id{ attr = {codename='a', mut='var', name='a', type='int64'}, "a"}},
-        n.Id{ attr = {codename='f', mut='var', name='f', type='any'}, "f"},
+        {n.Id{ attr = {codename='a', mut='var', name='a', type='int64', lvalue=true}, "a"}},
+        n.Id{ attr = {codename='f', mut='var', name='f', type='any', lvalue=true}, "f"},
         true
       }
   }})
@@ -654,11 +654,63 @@ it("pointers", function()
     local b: pointer
     a = b
   ]], "is not coercible with")
+  assert.analyze_error([[local a: integer*, b: number*; b = a]], "coercible with")
 end)
 
-it("dereferecing and referencing", function()
+it("automatic referencing", function()
   assert.analyze_ast([[local p: pointer<integer>; local i = 1; p = &i]])
   assert.analyze_ast([[local p: pointer<integer>; local i = $p]])
+  assert.analyze_ast([[local p: pointer<integer>; local a: integer; p = a]])
+  assert.analyze_ast([[local a: integer; local function f(a: integer*) end; f(p)]])
+  assert.analyze_ast([[
+    local p: pointer<integer>
+    local r: record{x: integer}
+    p = r.x
+  ]])
+  assert.analyze_ast([[
+    local p: pointer<integer>
+    local a: integer
+    local function f(): integer* return a end
+    p = f()
+  ]])
+  assert.analyze_error([[
+    local p: pointer<integer>
+    p = 1
+  ]], 'cannot automatic reference rvalue')
+  assert.analyze_error([[
+    local p: pointer<integer>
+    local function f(): integer return 1 end
+    p = f()
+  ]], 'cannot automatic reference rvalue')
+  assert.analyze_error([[
+    local p: pointer<integer>
+    local Record = @record{x: integer}
+    p = (Record{x=1}).x
+  ]], 'cannot automatic reference rvalue')
+end)
+
+it("automatic dereferencing", function()
+  assert.analyze_ast([[
+    local p: pointer<integer>
+    local a: integer = p
+  ]])
+  assert.analyze_ast([[
+    local p: pointer<integer>
+    local a: integer
+    local function f(x: integer): integer return p end
+    f(p)
+  ]])
+  assert.analyze_error([[
+    local p: pointer<integer>
+    local a: number = 1
+    p = a
+  ]], 'coercible with')
+  assert.analyze_error([[
+    local function f(x: number): number return x end
+    local p: pointer<integer>
+    local r: record{x: integer*}
+    f(r.x)
+  ]], 'coercible with')
 end)
 
 it("pointers to complex types", function()

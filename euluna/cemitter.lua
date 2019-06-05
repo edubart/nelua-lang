@@ -134,6 +134,13 @@ function CEmitter:add_val2type(type, val, valtype)
       self:add_any2type(type, val)
     elseif type:is_cstring() and valtype:is_string() then
       self:add_string2cstring(val)
+    elseif type:is_pointer() and type.subtype == valtype then
+      -- automatice reference
+      assert(val and val.attr.autoref)
+      self:add('&', val)
+    elseif valtype:is_pointer() and valtype.subtype == type then
+      -- automatic dereference
+      self:add('*', val)
     else
       if valtype ~= type then
         self:add_ctypecast(type)
