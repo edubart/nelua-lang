@@ -75,16 +75,16 @@ extern euluna_type euluna_string_type;
 extern euluna_type euluna_pointer_type;
 {% end %}
 {% if context.builtins['stdout_write'] then %}
-void euluna_stdout_write_string(const euluna_string s);
-void euluna_stdout_write_boolean(const bool b);
+static void euluna_stdout_write_string(const euluna_string s);
+static void euluna_stdout_write_boolean(const bool b);
 {% if context.has_any then %}
-void euluna_stdout_write_any(const euluna_any a);
+static void euluna_stdout_write_any(const euluna_any a);
 {% end %}
-void euluna_stdout_write_newline();
-void euluna_stdout_write(const char *message);
-void euluna_stdout_write_format(char *format, ...);
+static void euluna_stdout_write_newline();
+static void euluna_stdout_write(const char *message);
+static void euluna_stdout_write_format(char *format, ...);
 {% end %}
-void euluna_panic(const char* message) EULUNA_NORETURN;
+static void euluna_panic(const char* message) EULUNA_NORETURN;
 {% if context.builtins['assert'] then %}
 static inline void euluna_assert(bool cond) {
   if(EULUNA_UNLIKELY(!cond))

@@ -571,7 +571,8 @@ it("arrays", function()
   ]])
   assert.run_c([[
     local a: array<integer, 4> = {1,2,3,4}
-    print(a[0], a[1], a[2], a[3], #a)
+    local b: array<integer, 4> = a
+    print(b[0], b[1], b[2], b[3], #b)
   ]], "1\t2\t3\t4\t4")
 end)
 

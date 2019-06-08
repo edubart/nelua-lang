@@ -272,7 +272,7 @@ function ArrayType:_init(node, subtype, length)
   self.subtype = subtype
   self.length = length
   Type._init(self, 'array', node)
-  self.codename = gencodename(self)
+  self.codename = subtype.codename .. '_arr' .. tostring(length)
 end
 
 function ArrayType:is_equal(type)
@@ -491,7 +491,7 @@ function PointerType:is_coercible_from_type(type, explicit)
   if Type.is_coercible_from_type(self, type, explicit) then
     return true
   end
-  return type:is_pointer() and type.subtype == self.subtype or self.subtype:is_void()
+  return type:is_pointer() and (type.subtype == self.subtype or self.subtype:is_void())
 end
 
 function PointerType:is_equal(type)

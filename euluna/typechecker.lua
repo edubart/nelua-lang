@@ -453,7 +453,7 @@ function visitors.ArrayType(context, node)
   context:traverse(subtypenode)
   local subtype = subtypenode.attr.holdedtype
   context:traverse(lengthnode)
-  assert(lengthnode.attr.value, 'not implemented yet')
+  node:assertraisef(lengthnode.attr.value, 'unknown const value for expression')
   local length = lengthnode.attr.value:tointeger()
   lengthnode:assertraisef(lengthnode.attr.type:is_integral() and length >= 0,
     'expected a valid decimal integral number in the second argument of an "array" type')

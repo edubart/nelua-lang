@@ -706,6 +706,11 @@ it("automatic dereferencing", function()
     p = a
   ]], 'coercible with')
   assert.analyze_error([[
+    local p: pointer
+    local a: number = 1
+    p = a
+  ]], 'coercible with')
+  assert.analyze_error([[
     local function f(x: number): number return x end
     local p: pointer<integer>
     local r: record{x: integer*}
