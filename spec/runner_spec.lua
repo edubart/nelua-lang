@@ -5,19 +5,19 @@ local assert = require 'spec.assert'
 describe("Euluna runner should", function()
 
 it("compile simple programs" , function()
-  assert.run('--no-cache --compile examples/helloworld.euluna')
+  assert.run('--generator lua --no-cache --compile examples/helloworld.euluna')
   assert.run('--generator c --no-cache --compile examples/helloworld.euluna')
-  assert.run('--compile-binary examples/helloworld.euluna')
+  assert.run('--generator lua --compile-binary examples/helloworld.euluna')
   assert.run('--generator c --compile-binary examples/helloworld.euluna')
 end)
 
 it("run simple programs", function()
   assert.run({'--generator', 'c', '--no-cache', '--eval', "return 0"})
-  assert.run('examples/helloworld.euluna', 'hello world')
+  assert.run('--generator lua examples/helloworld.euluna', 'hello world')
   assert.run('--generator c examples/helloworld.euluna', 'hello world')
-  assert.run({'--eval', ""}, '')
+  assert.run({'--generator', 'lua', '--eval', ""}, '')
   assert.run({'--lint', '--eval', ""})
-  assert.run({'--eval', "print(arg[1])", "hello"}, 'hello')
+  assert.run({'--generator', 'lua', '--eval', "print(arg[1])", "hello"}, 'hello')
   assert.run({'--generator', 'c', '--eval', ""})
   assert.run({'--generator', 'c', '--cflags="-Wall"', '--eval',
     "!!cflags '-Wextra' !!linklib 'm' !!ldflags '-s'"})
@@ -85,7 +85,7 @@ it("print correct generated AST" , function()
 end)
 
 it("print correct generated code", function()
-  assert.run('--print-code examples/helloworld.euluna', 'print("hello world")')
+  assert.run('--generator lua --print-code examples/helloworld.euluna', 'print("hello world")')
 end)
 
 end)
