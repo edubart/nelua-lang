@@ -1,6 +1,6 @@
 require 'busted.runner'()
 
-local assert = require 'spec.assert'
+local assert = require 'spec.tools.assert'
 local config = require 'euluna.configer'.get()
 local n = require 'euluna.syntaxdefs'().astbuilder.aster
 local bn = require 'euluna.utils.bn'
@@ -555,6 +555,20 @@ it("records", function()
   assert.c_gencode_equals(
     "local a: record {x: boolean}; local b; b = a.x",
     "local a: record {x: boolean}; local b: boolean; b = a.x")
+end)
+
+it("record methods", function()
+  assert.analyze_ast([[
+    local vec2 = @record{x: integer, y: integer}
+    function vec2.create(x: integer, y: integer) return vec2{x,y} end
+    function vec2:length() return self.x + self.y end
+    local v: vec2 = vec2.create(1,2)
+    local l: integer = v:length()
+  ]])
+  assert.analyze_error([[
+    local vec2 = @record{x: integer, y: integer}
+    local v: vec2 = vec2.create(1,2)
+  ]], "cannot index record meta field")
 end)
 
 it("type neasting", function()

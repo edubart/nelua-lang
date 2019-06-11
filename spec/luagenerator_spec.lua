@@ -1,7 +1,7 @@
 require 'busted.runner'()
 
 local config = require 'euluna.configer'.get()
-local assert = require 'spec.assert'
+local assert = require 'spec.tools.assert'
 
 describe("Euluna should parse and generate Lua", function()
 

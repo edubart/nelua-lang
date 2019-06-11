@@ -428,12 +428,49 @@ function MultipleType:__tostring()
 end
 
 --------------------------------------------------------------------------------
+local MetaType = typeclass()
+
+local metatypecounter = 0
+function MetaType:_init(node, fields)
+  self.fields = fields or {}
+  Type._init(self, 'metatype', node)
+  metatypecounter = metatypecounter + 1
+  self.key = metatypecounter
+  self.codename = gencodename(self)
+end
+
+function MetaType:get_field(name)
+  return self.fields[name]
+end
+
+function MetaType:set_field(name, symbol)
+  self.fields[name] = symbol
+end
+
+function MetaType:is_equal(type)
+  return type.name == self.name and
+         type.key == self.key
+end
+
+function MetaType:__tostring()
+  local ss = sstream('metatype{')
+  local first = true
+  for name,sym in iters.opairs(self.fields) do
+    if first then ss:add(', ') first = false end
+    ss:add(name, ':', sym.attr.type)
+  end
+  ss:add('}')
+  return ss:tostring()
+end
+
+--------------------------------------------------------------------------------
 local RecordType = typeclass()
 
 function RecordType:_init(node, fields)
   self.fields = fields
   Type._init(self, 'record', node)
   self.codename = gencodename(self)
+  self.metatype = MetaType()
 end
 
 function RecordType:get_field(name)
@@ -455,6 +492,14 @@ function RecordType:__tostring()
   end
   ss:add('}')
   return ss:tostring()
+end
+
+function RecordType:get_metafield(name)
+  return self.metatype:get_field(name)
+end
+
+function RecordType:set_metafield(name, symbol)
+  return self.metatype:set_field(name, symbol)
 end
 
 --------------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 require 'busted.runner'()
 
 local astbuilder = require 'euluna.syntaxdefs'().astbuilder
-local assert = require 'spec.assert'
+local assert = require 'spec.tools.assert'
 local n = astbuilder.aster
 
 describe("Euluna AST should", function()

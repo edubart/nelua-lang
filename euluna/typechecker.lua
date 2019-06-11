@@ -287,10 +287,10 @@ function visitors.Id(context, node)
   return symbol
 end
 
-function visitors.IdDecl(context, node, declmut)
+function visitors.IdDecl(context, node)
   local name, mut, typenode, pragmanodes = node:args()
-  node:assertraisef(not (mut and declmut), "cannot declare mutability twice for '%s'", name)
-  mut = mut or declmut or 'var'
+  node:assertraisef(not (mut and node.mut), "cannot declare mutability twice for '%s'", name)
+  mut = mut or node.mut or 'var'
   node:assertraisef(typedefs.mutabilities[mut],
     'mutability %s not supported yet', mut)
   local type = node.attr.type
@@ -479,9 +479,10 @@ function visitors.PointerType(context, node)
   node.attr.const = true
 end
 
-function visitors.DotIndex(context, node)
+local function visitor_FieldIndex(context, node)
   if node.attr.type then return end
   local name, objnode = node:args()
+  local symbol
   context:traverse(objnode)
   local type
   local objtype = objnode.attr.type
@@ -505,6 +506,22 @@ function visitors.DotIndex(context, node)
           'enum "%s" does not have field named "%s"',
           tostring(objtype), name)
         type = objtype
+      elseif objtype:is_record() then
+        symbol = objtype:get_metafield(name)
+        if not symbol then
+          if node.infuncdef then
+            local symname = objtype.codename .. '_' .. name
+            symbol = Symbol(symname, node, 'var')
+            symbol.attr.metafunc = true
+            symbol.attr.metarecordtype = objtype
+            objtype:set_metafield(name, symbol)
+          else
+            node:raisef('cannot index record meta field "%s"', tostring(name))
+          end
+        end
+        if symbol then
+          type = symbol.attr.type
+        end
       else
         node:raisef('cannot index fields for type "%s"', tostring(objtype))
       end
@@ -519,12 +536,15 @@ function visitors.DotIndex(context, node)
     node.attr.lvalue = true
   end
   node.attr.type = type
+  return symbol
+end
+
+function visitors.DotIndex(context, node)
+  return visitor_FieldIndex(context, node)
 end
 
 function visitors.ColonIndex(context, node)
-  context:default_visitor(node)
-  --TODO: detect better types
-  node.attr.type = primtypes.any
+  return visitor_FieldIndex(context, node)
 end
 
 function visitors.ArrayIndex(context, node)
@@ -665,40 +685,25 @@ local function izipargnodes(vars, argnodes)
   end
 end
 
-function visitors.Call(context, node)
-  local argnodes, calleenode, block_call = node:args()
-  context:traverse(calleenode)
-  local calleetype = calleenode.attr.type
+local function visitor_Call(context, node, argnodes, calleetype, ismethod)
   local attr = node.attr
   if calleetype then
     attr.calleetype = calleetype
-    if calleetype:is_type() then
-      -- type assertion
-      local type = calleenode.attr.holdedtype
-      assert(type)
-      node:assertraisef(#argnodes == 1,
-        "in assertion to type '%s', expected one argument, but got %d",
-        tostring(type), #argnodes)
-      local argnode = argnodes[1]
-      context:traverse(argnode, type)
-      local argtype = argnode.attr.type
-      if argtype and not (argtype:is_numeric() and type:is_numeric()) then
-        argnode:assertraisef(type:is_coercible_from_node(argnode, true),
-          "in assertion to type '%s', the type is not coercible with expression of type '%s'",
-          tostring(type), tostring(argtype))
-      end
-      attr.const = argnode.attr.const
-      attr.sideeffect = argnode.attr.sideeffect
-      attr.type = type
-    elseif calleetype:is_function() then
+    if calleetype:is_function() then
       -- function call
       local funcargtypes = calleetype.argtypes
-      node:assertraisef(#argnodes <= #funcargtypes,
+      local pseudoargtypes = funcargtypes
+      if ismethod then
+        pseudoargtypes = tabler.copy(funcargtypes)
+        table.remove(pseudoargtypes, 1)
+        attr.pseudoargtypes = pseudoargtypes
+      end
+      node:assertraisef(#argnodes <= #pseudoargtypes,
         "in call, function '%s' expected at most %d arguments but got %d",
-        tostring(calleetype), #funcargtypes, #argnodes)
+        tostring(calleetype), #pseudoargtypes, #argnodes)
       local argtypes = {}
       local knownallargs = true
-      for i,funcargtype,argnode,argtype in izipargnodes(funcargtypes, argnodes) do
+      for i,funcargtype,argnode,argtype in izipargnodes(pseudoargtypes, argnodes) do
         if argnode then
           context:traverse(argnode, funcargtype)
           argtype = argnode.attr.type
@@ -715,12 +720,15 @@ function visitors.Call(context, node)
             tostring(calleetype), i)
         end
         if funcargtype and argtype then
-          calleenode:assertraisef(funcargtype:is_coercible_from(argnode or argtype),
+          node:assertraisef(funcargtype:is_coercible_from(argnode or argtype),
 "in call, function argument %d of type '%s' is not coercible with call argument %d of type '%s'",
             i, tostring(funcargtype), i, tostring(argtype))
         end
       end
       if knownallargs or not calleetype.lazy then
+        if ismethod then
+          tabler.insert(argtypes, funcargtypes[1])
+        end
         attr.type = calleetype:get_return_type_for_argtypes(argtypes, 1)
       end
       attr.sideeffect = true
@@ -736,7 +744,7 @@ function visitors.Call(context, node)
       attr.sideeffect = true
     else
       -- call on invalid types (i.e: numbers)
-      calleenode:raisef("attempt to call a non callable variable of type '%s'",
+      node:raisef("attempt to call a non callable variable of type '%s'",
         tostring(calleetype))
     end
   else
@@ -747,6 +755,58 @@ function visitors.Call(context, node)
   --  node.attr.type = primtypes.any
   --end
   assert(context.phase ~= phases.any_inference or node.attr.type)
+end
+
+function visitors.Call(context, node)
+  local argnodes, calleenode, isblockcall = node:args()
+  context:traverse(calleenode)
+  local calleetype = calleenode.attr.type
+  local attr = node.attr
+  if calleetype and calleetype:is_type() then
+    -- type assertion
+    local type = calleenode.attr.holdedtype
+    assert(type)
+    node:assertraisef(#argnodes == 1,
+      "in assertion to type '%s', expected one argument, but got %d",
+      tostring(type), #argnodes)
+    local argnode = argnodes[1]
+    context:traverse(argnode, type)
+    local argtype = argnode.attr.type
+    if argtype and not (argtype:is_numeric() and type:is_numeric()) then
+      argnode:assertraisef(type:is_coercible_from_node(argnode, true),
+        "in assertion to type '%s', the type is not coercible with expression of type '%s'",
+        tostring(type), tostring(argtype))
+    end
+    attr.const = argnode.attr.const
+    attr.sideeffect = argnode.attr.sideeffect
+    attr.type = type
+    attr.calleetype = calleetype
+  else
+    visitor_Call(context, node, argnodes, calleetype)
+  end
+end
+
+function visitors.CallMethod(context, node)
+  local name, argnodes, calleenode, isblockcall = node:args()
+  local attr = node.attr
+  context:traverse(calleenode)
+  local calleetype = calleenode.attr.type
+  if calleetype then
+    attr.calleetype = calleetype
+    if calleetype:is_record() then
+      local symbol = calleetype:get_metafield(name)
+      node:assertraisef(symbol, 'cannot index record meta field "%s"', tostring(name))
+      calleetype = symbol.attr.type
+      attr.symbol = symbol
+    elseif calleetype:is_string() then
+      --TODO: string methods
+      calleetype = primtypes.any
+    elseif calleetype:is_any() then
+      calleetype = primtypes.any
+    end
+  end
+
+  visitor_Call(context, node, argnodes, calleetype, true)
 end
 
 function visitors.Block(context, node, scopecb)
@@ -887,7 +947,8 @@ function visitors.VarDecl(context, node)
     #varnodes, #valnodes)
   for _,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
     assert(varnode.tag == 'IdDecl')
-    local symbol = context:traverse(varnode, mut)
+    varnode.mut = mut
+    local symbol = context:traverse(varnode)
     assert(symbol)
     local vartype = varnode.attr.type
     if vartype then
@@ -1041,7 +1102,10 @@ function visitors.FuncDef(context, node)
   if node.deducedargtypes then
     argtypes = node.deducedargtypes
   else
-    if varscope and varnode.tag == 'Id' then
+    for child in varnode:iterate_children() do
+      child.infuncdef = true
+    end
+    if varscope == 'local' and varnode.tag == 'Id' then
       -- function declaration, must create a new symbol
       local name = varnode[1]
       local vartype = varnode.attr.type
@@ -1049,6 +1113,8 @@ function visitors.FuncDef(context, node)
         vartype = primtypes.any
       end
       symbol = context.scope:add_symbol(Symbol(name, varnode, 'var', vartype))
+    elseif varnode.tag == 'Id' then
+      symbol = context:traverse(varnode)
     else
       symbol = context:traverse(varnode)
     end
@@ -1090,6 +1156,15 @@ function visitors.FuncDef(context, node)
             'function with multiple types for an argument must have a symbol')
         end
       end
+
+      if varnode.tag == 'ColonIndex' and symbol and symbol.attr.metafunc then
+        -- inject 'self' type as first argument
+        table.insert(argtypes, 1, symbol.attr.metarecordtype)
+      end
+    end
+
+    if varnode.tag == 'ColonIndex' and symbol and symbol.attr.metafunc then
+      scope:add_symbol(Symbol('self', nil, 'var', symbol.attr.metarecordtype))
     end
 
     if not lazy then
@@ -1104,7 +1179,7 @@ function visitors.FuncDef(context, node)
   local type = types.FunctionType(node, argtypes, returntypes)
 
   if symbol then -- symbol may be nil in case of array/dot index
-    if varscope == 'local' then
+    if varscope == 'local' or symbol.attr.metafunc then
       -- new function declaration
       symbol.attr.type = type
     else

@@ -1,6 +1,6 @@
 require 'busted.runner'()
 
-local assert = require 'spec.assert'
+local assert = require 'spec.tools.assert'
 
 describe("Euluna should parse and generate C", function()
 
@@ -65,14 +65,14 @@ it("call", function()
   assert.generate_c("f(a, b)", "mymod_f(mymod_a, mymod_b)")
   assert.generate_c("f(a)(b)", "mymod_f(mymod_a)(mymod_b)")
   assert.generate_c("a.f()", "mymod_a.f()")
-  assert.generate_c("a:f(a)", "mymod_a.f(mymod_a, mymod_a)")
+  --assert.generate_c("a:f(a)", "mymod_a.f(mymod_a, mymod_a)")
   assert.generate_c("do f() end", "f();")
   assert.generate_c("do return f() end", "return euluna_cint_any_cast(f());")
   assert.generate_c("do f(g()) end", "f(g())")
   assert.generate_c("do f(a, b) end", "f(a, b)")
   assert.generate_c("do f(a)(b) end", "f(a)(b)")
   assert.generate_c("do a.f() end", "a.f()")
-  assert.generate_c("do a:f() end", "a.f(a)")
+  --assert.generate_c("do a:f() end", "a.f(a)")
 end)
 
 it("if", function()
@@ -620,6 +620,19 @@ it("records", function()
   assert.run_c([[
     local r: record {x: array<integer, 1>} =  {x={1}}
     assert(r.x[0] == 1)
+  ]])
+end)
+
+it("record methods", function()
+  assert.run_c([[
+    local vec2 = @record{x: integer, y: integer}
+    function vec2.create(x: integer, y: integer) return vec2{x,y} end
+    local v = vec2.create(1,2)
+    assert(v.x == 1 and v.y == 2)
+
+    function vec2:length() return self.x + self.y end
+    local l = v:length()
+    assert(l == 3)
   ]])
 end)
 

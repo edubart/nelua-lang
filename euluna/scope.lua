@@ -66,6 +66,9 @@ end
 
 function Scope:add_symbol(symbol)
   assert(class.is_a(symbol, Symbol), 'invalid symbol')
+  if not symbol.name then
+    return
+  end
   local name = symbol.name
   local oldsymbol = self.symbols[name]
   if oldsymbol then

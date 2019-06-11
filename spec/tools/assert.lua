@@ -7,7 +7,7 @@ local typechecker = require 'euluna.typechecker'
 local traits = require 'euluna.utils.traits'
 local lua_generator = require 'euluna.luagenerator'
 local c_generator = require 'euluna.cgenerator'
-local differ = require 'spec.differ'
+local differ = require 'spec.tools.differ'
 local euluna_syntax = require 'euluna.syntaxdefs'()
 local euluna_parser = euluna_syntax.parser
 

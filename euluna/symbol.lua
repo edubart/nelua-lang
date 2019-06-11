@@ -4,8 +4,8 @@ local sstream = require 'euluna.utils.sstream'
 local Symbol = class()
 
 function Symbol:_init(name, node, mut, type)
-  assert(name and node)
-  local attr = node.attr
+  assert(name)
+  local attr = node and node.attr or {}
   self.name = name
   self.node = node
   self.possibletypes = {}

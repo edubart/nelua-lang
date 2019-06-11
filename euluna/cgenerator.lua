@@ -249,6 +249,9 @@ function visitors.DotIndex(_, node, emitter)
     local objtype = node.attr.holdedtype
     if objtype:is_enum() then
       emitter:add(objtype:get_field(name).value)
+    elseif objtype:is_record() then
+      local symbol = objtype:get_metafield(name)
+      emitter:add(symbol.name)
     else --luacov:disable
       error('not implemented yet')
     end --luacov:enable
@@ -259,7 +262,7 @@ function visitors.DotIndex(_, node, emitter)
   end
 end
 
--- TODO: ColonIndex
+visitors.ColonIndex = visitors.DotIndex
 
 function visitors.ArrayIndex(context, node, emitter)
   local index, objnode = node:args()
@@ -287,20 +290,9 @@ function visitors.ArrayIndex(context, node, emitter)
   end
 end
 
-function visitors.Call(context, node, emitter)
-  local argnodes, callee, block_call = node:args()
-  local type = node.attr.type
-  if block_call then
+local function visitor_Call(context, node, emitter, argnodes, callee, isblockcall)
+  if isblockcall then
     emitter:add_indent()
-  end
-  local builtin
-  if callee.tag == 'Id' then
-    --TODO: move builtin detection to type checker
-    local fname = callee[1]
-    builtin = cbuiltins.functions[fname]
-  end
-  if builtin then
-    callee = builtin(context, node, emitter)
   end
   local calleetype = node.attr.calleetype
   if calleetype:is_function() then
@@ -309,7 +301,9 @@ function visitors.Call(context, node, emitter)
     local tmpcount = 0
     local lastcalltmp
     local sequential = false
-    for i,_,argnode,_,lastcallindex in izipargnodes(calleetype.argtypes, argnodes) do
+    local callargtypes = node.attr.pseudoargtypes or calleetype.argtypes
+    local ismethod = node.attr.pseudoargtypes ~= nil
+    for i,_,argnode,_,lastcallindex in izipargnodes(callargtypes, argnodes) do
       if (argnode and argnode.attr.sideeffect) or lastcallindex == 1 then
         -- expressions with side effects need to be evaluated in sequence
         -- and expressions with multiple returns needs to be stored in a temporary
@@ -329,7 +323,7 @@ function visitors.Call(context, node, emitter)
 
     if sequential then
       -- begin sequential expression
-      if not block_call then
+      if not isblockcall then
         emitter:add('(')
       end
       emitter:add_ln('{')
@@ -349,9 +343,13 @@ function visitors.Call(context, node, emitter)
       emitter:add_indent()
     end
 
-    emitter:add(callee, '(')
-    for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(calleetype.argtypes, argnodes) do
-      if i > 1 then emitter:add(', ') end
+    if ismethod then
+      emitter:add(context:declname(node.attr.symbol), '(', callee)
+    else
+      emitter:add(callee, '(')
+    end
+    for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(callargtypes, argnodes) do
+      if i > 1 or ismethod then emitter:add(', ') end
       local arg = argnode
       if sequential then
         if lastcallindex then
@@ -374,14 +372,36 @@ function visitors.Call(context, node, emitter)
       emitter:add_ln(';')
       emitter:dec_indent()
       emitter:add_indent('}')
-      if not block_call then
+      if not isblockcall then
         emitter:add(')')
       end
     end
-  elseif calleetype:is_type() then
+  else
+    --TODO: handle better calls on any types
+    emitter:add(callee, '(', argnodes, ')')
+  end
+  if isblockcall then
+    emitter:add_ln(";")
+  end
+end
+
+function visitors.Call(context, node, emitter)
+  local argnodes, callee, isblockcall = node:args()
+  local calleetype = node.attr.calleetype
+  local builtin
+  if callee.tag == 'Id' then
+    --TODO: move builtin detection to type checker
+    local fname = callee[1]
+    builtin = cbuiltins.functions[fname]
+  end
+  if builtin then
+    callee = builtin(context, node, emitter)
+  end
+  if calleetype:is_type() then
     -- type assertion
     assert(#argnodes == 1)
     local argnode = argnodes[1]
+    local type = node.attr.type
     if argnode.attr.type ~= type then
       -- type really differs, cast it
       emitter:add_ctypecast(type)
@@ -391,15 +411,17 @@ function visitors.Call(context, node, emitter)
       emitter:add(argnode)
     end
   else
-    --TODO: handle better calls on any types
-    emitter:add(callee, '(', argnodes, ')')
-  end
-  if block_call then
-    emitter:add_ln(";")
+    visitor_Call(context, node, emitter, argnodes, callee, isblockcall)
   end
 end
 
-function visitors.CallMethod(_, node, emitter)
+function visitors.CallMethod(context, node, emitter)
+  local name, argnodes, callee, isblockcall = node:args()
+
+  visitor_Call(context, node, emitter, argnodes, callee, isblockcall)
+
+
+  --[[
   local name, args, callee, block_call = node:args()
   if block_call then
     emitter:add_indent()
@@ -409,6 +431,7 @@ function visitors.CallMethod(_, node, emitter)
   if block_call then
     emitter:add_ln()
   end
+  ]]
 end
 
 function visitors.Block(context, node, emitter)
@@ -659,7 +682,7 @@ end
 
 function visitors.FuncDef(context, node)
   local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
-  node:assertraisef(varscope == 'local', 'non local scope for functions not supported yet')
+  node:assertraisef(varscope == 'local' or varnode.tag ~= 'Id', 'non local scope for functions not supported yet')
 
   local attr = node.attr
   local type = attr.type
@@ -706,8 +729,18 @@ function visitors.FuncDef(context, node)
   local funcscope = context:push_scope('function')
   funcscope.functype = type
   do
-    decemitter:add_ln('(', argnodes, ');')
-    defemitter:add_ln('(', argnodes, ') {')
+    decemitter:add('(')
+    defemitter:add('(')
+    if varnode.tag == 'ColonIndex' then
+      decemitter:add(node.attr.metarecordtype, ' self')
+      defemitter:add(node.attr.metarecordtype, ' self')
+      if #argnodes > 0 then
+        decemitter:add(', ')
+        defemitter:add(', ')
+      end
+    end
+    decemitter:add_ln(argnodes, ');')
+    defemitter:add_ln(argnodes, ') {')
     defemitter:add(blocknode)
   end
   context:pop_scope()

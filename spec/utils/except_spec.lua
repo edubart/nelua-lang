@@ -1,6 +1,6 @@
 require 'busted.runner'()
 
-local assert = require 'spec.assert'
+local assert = require 'spec.tools.assert'
 local except = require 'euluna.utils.except'
 
 describe("Euluna exceptions should work for", function()

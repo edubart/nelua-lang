@@ -28,7 +28,7 @@ function CContext:declname(node)
   end
   local declname = attr.codename
   if not attr.nodecl and not attr.cimport then
-    if self.scope:is_main() then
+    if self.scope:is_main() and traits.is_astnode(node) then
       declname = node.modname .. '_' .. declname
     end
     declname = cdefs.quotename(declname)

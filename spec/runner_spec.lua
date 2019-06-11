@@ -1,6 +1,6 @@
 require 'busted.runner'()
 
-local assert = require 'spec.assert'
+local assert = require 'spec.tools.assert'
 
 describe("Euluna runner should", function()
 

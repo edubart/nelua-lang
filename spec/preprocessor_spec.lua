@@ -1,6 +1,6 @@
 require 'busted.runner'()
 
-local assert = require 'spec.assert'
+local assert = require 'spec.tools.assert'
 local config = require 'euluna.configer'.get()
 
 describe("Euluna preprocessor should", function()

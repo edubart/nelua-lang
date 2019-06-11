@@ -69,6 +69,25 @@ function ASTNode:clone()
   return node
 end
 
+local function iterate_children_visitor(node, depth)
+  local nargs = traits.is_astnode(node) and node.nargs or #node
+  for _,arg in iters.inpairs(node, nargs) do
+    if traits.is_astnode(arg) then
+      coroutine.yield(arg, depth)
+      iterate_children_visitor(arg, depth+1)
+    elseif traits.is_table(arg) then
+      iterate_children_visitor(arg, depth+1)
+    end
+  end
+end
+
+function ASTNode:iterate_children()
+  return coroutine.wrap(function()
+    coroutine.yield(self, 0)
+    iterate_children_visitor(self, 1)
+  end)
+end
+
 -------------------
 -- error handling
 -------------------

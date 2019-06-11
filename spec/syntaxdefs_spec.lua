@@ -1,6 +1,6 @@
 require 'busted.runner'()
 
-local assert = require 'spec.assert'
+local assert = require 'spec.tools.assert'
 local euluna_syntax = require 'euluna.syntaxdefs'()
 local euluna_parser = euluna_syntax.parser
 local euluna_grammar = euluna_syntax.grammar
