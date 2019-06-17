@@ -482,8 +482,17 @@ function visitors.PointerType(context, node)
 end
 
 local function visitor_FieldIndex(context, node)
-  if node.attr.type then return end
   local name, objnode = node:args()
+  if node.attr.type then
+    local objtype = objnode.attr.type
+    if objtype:is_type() then
+      objtype = objnode.attr.holdedtype
+      if objtype:is_record() then
+        return objtype:get_metafield(name)
+      end
+    end
+    return
+  end
   local symbol
   context:traverse(objnode)
   local type
@@ -1118,7 +1127,7 @@ function visitors.FuncDef(context, node)
       symbol = context.scope:add_symbol(Symbol(name, varnode, 'var', vartype))
     elseif varnode.tag == 'Id' then
       symbol = context:traverse(varnode)
-    else
+    else -- DotIndex or ColumnIndex
       symbol = context:traverse(varnode)
     end
   end

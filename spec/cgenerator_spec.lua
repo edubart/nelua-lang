@@ -633,6 +633,10 @@ it("record methods", function()
     function vec2:length() return self.x + self.y end
     local l = v:length()
     assert(l == 3)
+
+    local math = @record{}
+    function math.abs(x: number): number !cimport('fabs', '<math.h>') end
+    assert(math.abs(-1) == 1)
   ]])
 end)
 

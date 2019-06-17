@@ -256,7 +256,7 @@ function visitors.IdDecl(context, node, emitter)
 end
 
 -- indexing
-function visitors.DotIndex(_, node, emitter)
+function visitors.DotIndex(context, node, emitter)
   local name, objnode = node:args()
   local type = objnode.attr.type
   if type:is_type() then
@@ -265,7 +265,7 @@ function visitors.DotIndex(_, node, emitter)
       emitter:add(objtype:get_field(name).value)
     elseif objtype:is_record() then
       local symbol = objtype:get_metafield(name)
-      emitter:add(symbol.name)
+      emitter:add(context:declname(symbol))
     else --luacov:disable
       error('not implemented yet')
     end --luacov:enable
