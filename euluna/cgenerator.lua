@@ -252,6 +252,7 @@ function visitors.IdDecl(context, node, emitter)
   if attr.register then emitter:add('register ') end
   if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
   emitter:add(type, ' ', context:declname(node))
+  if attr.cattribute then emitter:add(' __attribute__((', attr.cattribute, '))') end
 end
 
 -- indexing
@@ -695,7 +696,8 @@ end
 
 function visitors.FuncDef(context, node)
   local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
-  node:assertraisef(varscope == 'local' or varnode.tag ~= 'Id', 'non local scope for functions not supported yet')
+  node:assertraisef(varscope == 'local' or varnode.tag ~= 'Id',
+    'non local scope for functions not supported yet')
 
   local attr = node.attr
   local type = attr.type
@@ -719,6 +721,9 @@ function visitors.FuncDef(context, node)
   if attr.noinline then qualifier = qualifier .. 'EULUNA_NOINLINE ' end
   if attr.noreturn then qualifier = qualifier .. 'EULUNA_NORETURN ' end
   if attr.cqualifier then qualifier = qualifier .. attr.cqualifier .. ' ' end
+  if attr.cattribute then
+    qualifier = string.format('%s__attribute__((%s)) ', qualifier, attr.cattribute)
+  end
 
   local decemitter, defemitter, implemitter = CEmitter(context), CEmitter(context), CEmitter(context)
   local retctype = context:funcretctype(type)

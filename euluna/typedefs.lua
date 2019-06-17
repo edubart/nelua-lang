@@ -349,13 +349,13 @@ typedefs.block_pragmas = {
 
 local common_pragmas = {
   cimport = shaper.shape{shaper.string:is_optional(), (shaper.boolean + shaper.string):is_optional()},
-  codename = shaper.shape{shaper.string},
-  cqualifier = shaper.shape{shaper.string},
+  onestring = shaper.shape{shaper.string}
 }
 typedefs.function_pragmas = {
   cimport = common_pragmas.cimport,
-  codename = common_pragmas.codename,
-  cqualifier = common_pragmas.codename,
+  codename = common_pragmas.onestring,
+  cqualifier = common_pragmas.onestring,
+  cattribute = common_pragmas.onestring,
   inline = true,
   noreturn = true,
   noinline = true,
@@ -366,8 +366,9 @@ typedefs.function_pragmas = {
 }
 typedefs.variable_pragmas = {
   cimport = common_pragmas.cimport,
-  codename = common_pragmas.codename,
-  cqualifier = common_pragmas.codename,
+  codename = common_pragmas.onestring,
+  cqualifier = common_pragmas.onestring,
+  cattribute = common_pragmas.onestring,
   aligned = shaper.shape{shaper.integer},
   register = true,
   restrict = true,
@@ -377,7 +378,7 @@ typedefs.variable_pragmas = {
 typedefs.type_pragmas = {
   aligned = shaper.shape{shaper.integer},
   cimport = common_pragmas.cimport,
-  codename = common_pragmas.codename,
+  codename = common_pragmas.onestring,
   nodecl = true,
   packed = true,
 }
