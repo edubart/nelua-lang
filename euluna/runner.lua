@@ -38,7 +38,8 @@ local function run(argv, redirect)
   end
 
   -- analyze the ast
-  ast = typechecker.analyze(ast, parser.astbuilder)
+  local context
+  ast, context = typechecker.analyze(ast, parser.astbuilder)
 
   if config.print_analyzed_ast then
     print(tostring(ast))
@@ -49,7 +50,7 @@ local function run(argv, redirect)
 
   -- generate the code
   local generator = require('euluna.' .. config.generator .. 'generator')
-  local code, compileopts = generator.generate(ast)
+  local code, compileopts = generator.generate(ast, context)
 
   -- only printing generated code?
   if config.print_code then

@@ -19,9 +19,9 @@ end
 
 ----------------------------------------
 -- Return string functions
-local function zeroinit(type)
+function CEmitter:zeroinit(type)
   local s
-  if type:is_float64() then
+  if type:is_float64() or (type:is_float32() and self.context.attr.no_float_suffix) then
     s = '0.0'
   elseif type:is_float32() then
     s = '0.0f'
@@ -42,7 +42,7 @@ end
 -------------------------------------
 -- add functions
 function CEmitter:add_zeroinit(type)
-  self:add(zeroinit(type))
+  self:add(self:zeroinit(type))
 end
 
 function CEmitter:add_nodezerotype(node)
@@ -50,14 +50,14 @@ function CEmitter:add_nodezerotype(node)
   if not (type:is_boolean() or type:is_numeric() or type:is_pointer()) then
     self:add_nodectypecast(node)
   end
-  self:add(zeroinit(type))
+  self:add(self:zeroinit(type))
 end
 
 function CEmitter:add_castedzerotype(type)
   if not (type:is_boolean() or type:is_numeric() or type:is_pointer()) then
     self:add_ctypecast(type)
   end
-  self:add(zeroinit(type))
+  self:add(self:zeroinit(type))
 end
 
 function CEmitter:add_ctype(type)

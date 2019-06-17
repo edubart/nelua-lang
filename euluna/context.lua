@@ -24,6 +24,7 @@ function Context:_init(visitors, default_visitor)
   elseif default_visitor then
     self.default_visitor = default_visitor
   end
+  self.attr = {}
   self.nodes = {}
   self.builtins = {}
 end

@@ -1223,11 +1223,10 @@ function visitors.FuncDef(context, node)
   type.sideeffect = not varnode.attr.nosideeffect
 
   if varnode.attr.entrypoint then
-    node:assertraisef(not context.ast.entrypoint or context.ast.entrypoint == node,
+    node:assertraisef(not context.attr.entrypoint or context.attr.entrypoint == node,
       "cannot have more than one function entrypoint")
-        print(varnode.attr.name,symbol.name)
     varnode.attr.declname = varnode.attr.codename
-    context.ast.entrypoint = node
+    context.attr.entrypoint = node
   end
 
   if node.lazytypes then
@@ -1367,7 +1366,6 @@ local typechecker = {}
 function typechecker.analyze(ast, astbuilder)
   local context = Context(visitors, true)
   context.astbuilder = astbuilder
-  context.ast = ast
 
   -- phase 1 traverse: infer and check types
   context.phase = phases.type_inference
@@ -1381,7 +1379,7 @@ function typechecker.analyze(ast, astbuilder)
     context:traverse(ast)
   end)
 
-  return ast
+  return ast, context
 end
 
 return typechecker

@@ -1,3 +1,4 @@
 euluna_cache
 *.out
 .vscode
+tempCodeRunner.*

@@ -61,15 +61,24 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
       if decl and context.scope:is_main() then
         -- declare main variables in the top scope
         local decemitter = CEmitter(context)
-        decemitter:add_indent('static ', varnode, ' = ')
+        if not context.attr.no_static then
+          decemitter:add_indent('static ')
+        else
+          decemitter:add_indent()
+        end
+        decemitter:add(varnode)
         if valnode and valnode.attr.const then
           -- initialize to const values
+          decemitter:add(' = ')
           assert(not lastcallindex)
           decemitter:add_val2type(vartype, valnode)
           defined = true
         else
           -- pre initialize to zeros
-          decemitter:add_zeroinit(vartype)
+          if not context.attr.no_zero_init then
+            decemitter:add(' = ')
+            decemitter:add_zeroinit(vartype)
+          end
         end
         decemitter:add_ln(';')
         context:add_declaration(decemitter:generate())
@@ -100,11 +109,14 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         else
           defemitter:add_indent(context:declname(varnode))
         end
-        defemitter:add(' = ')
-        if retvalname then
-          defemitter:add_val2type(vartype, retvalname, valtype)
-        else
-          defemitter:add_val2type(vartype, valnode)
+        if valnode or not context.attr.no_zero_init then
+          -- initialize variable
+          defemitter:add(' = ')
+          if retvalname then
+            defemitter:add_val2type(vartype, retvalname, valtype)
+          else
+            defemitter:add_val2type(vartype, valnode)
+          end
         end
         defemitter:add_ln(';')
       end
@@ -118,7 +130,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
   end
 end
 
-function visitors.Number(_, node, emitter)
+function visitors.Number(context, node, emitter)
   local base, int, frac, exp, literal = node:args()
   local value, integral, type = node.attr.value, node.attr.integral, node.attr.type
   if not type:is_float() and literal then
@@ -133,7 +145,7 @@ function visitors.Number(_, node, emitter)
   emitter:add_composed_number(base, int, frac, exp, value:abs())
   if type:is_unsigned() then
     emitter:add('U')
-  elseif type:is_float32() and base == 'dec' then
+  elseif not context.attr.no_float_suffix and type:is_float32() and base == 'dec' then
     emitter:add(integral and '.0f' or 'f')
   elseif type:is_float64() and base == 'dec' then
     emitter:add(integral and '.0' or '')
@@ -238,6 +250,7 @@ function visitors.IdDecl(context, node, emitter)
   if attr.volatile then emitter:add('volatile ') end
   if attr.restrict then emitter:add('restrict ') end
   if attr.register then emitter:add('register ') end
+  if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
   emitter:add(type, ' ', context:declname(node))
 end
 
@@ -687,9 +700,9 @@ function visitors.FuncDef(context, node)
   local attr = node.attr
   local type = attr.type
   local numrets = type:get_return_count()
-  local decoration = ''
-  if not attr.entrypoint then
-    decoration = 'static '
+  local qualifier = ''
+  if not attr.entrypoint and not context.attr.no_static then
+    qualifier = 'static '
   end
   local declare, define = not attr.nodecl, true
 
@@ -697,14 +710,15 @@ function visitors.FuncDef(context, node)
     context:add_include(attr.cinclude)
   end
   if attr.cimport then
-    decoration = ''
+    qualifier = ''
     define = false
   end
 
-  if attr.volatile then decoration = decoration .. 'volatile ' end
-  if attr.inline then decoration = decoration .. 'inline ' end
-  if attr.noinline then decoration = decoration .. 'EULUNA_NOINLINE ' end
-  if attr.noreturn then decoration = decoration .. 'EULUNA_NORETURN ' end
+  if attr.volatile then qualifier = qualifier .. 'volatile ' end
+  if attr.inline then qualifier = qualifier .. 'inline ' end
+  if attr.noinline then qualifier = qualifier .. 'EULUNA_NOINLINE ' end
+  if attr.noreturn then qualifier = qualifier .. 'EULUNA_NORETURN ' end
+  if attr.cqualifier then qualifier = qualifier .. attr.cqualifier .. ' ' end
 
   local decemitter, defemitter, implemitter = CEmitter(context), CEmitter(context), CEmitter(context)
   local retctype = context:funcretctype(type)
@@ -724,7 +738,7 @@ function visitors.FuncDef(context, node)
     context:add_declaration(retemitter:generate())
   end
 
-  decemitter:add_indent(decoration, retctype, ' ')
+  decemitter:add_indent(qualifier, retctype, ' ')
   defemitter:add_indent(retctype, ' ')
 
   decemitter:add(varnode)
@@ -845,17 +859,23 @@ end
 
 local generator = {}
 
-function generator.generate(ast)
+function generator.generate(ast, pcontext)
   local context = CContext(visitors)
+  if pcontext then
+    -- inherit attributs from previous context
+    context.attr = pcontext.attr
+  end
   context.runtime_path = fs.join(config.runtime_path, 'c')
 
-  context:ensure_runtime('euluna_core')
+  if not context.attr.no_core_runtime then
+    context:ensure_runtime('euluna_core')
+  end
 
   local mainemitter = CEmitter(context, -1)
 
   local main_scope = context:push_scope('function')
   main_scope.main = true
-  if not ast.entrypoint then
+  if not context.attr.entrypoint then
     mainemitter:add_ln(
       '/*********************************** MAIN ***********************************/')
     mainemitter:inc_indent()
@@ -877,7 +897,7 @@ function generator.generate(ast)
   end
   context:pop_scope()
 
-  if not ast.entrypoint then
+  if not context.attr.entrypoint then
     context:add_definition(mainemitter:generate())
     context:ensure_runtime('euluna_main')
   end
