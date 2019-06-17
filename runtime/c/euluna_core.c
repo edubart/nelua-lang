@@ -18,9 +18,11 @@ euluna_type euluna_string_type = {"string"};
 euluna_type euluna_pointer_type = {"pointer"};
 {% end %}
 {% if context.builtins['stdout_write'] then %}
+{% if context.has_string then %}
 void euluna_stdout_write_string(const euluna_string s) {
   fwrite(s->data, s->len, 1, stdout);
 }
+{% end %}
 void euluna_stdout_write_boolean(const bool b) {
   if(b)
     fwrite("true", 4, 1, stdout);

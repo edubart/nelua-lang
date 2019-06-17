@@ -48,7 +48,10 @@ local primtypes = {
   clongdouble = Type('clongdouble'),
   cstring     = Type('cstring'),
 }
+
 primtypes.pointer = types.PointerType(nil, primtypes.void)
+primtypes.pointer.nodecl = true
+
 typedefs.primtypes = primtypes
 
 -- type aliases
@@ -356,6 +359,8 @@ typedefs.function_pragmas = {
   noinline = true,
   volatile = true,
   nodecl = true,
+  nosideeffect = true,
+  entrypoint = true,
 }
 typedefs.variable_pragmas = {
   cimport = common_pragmas.cimport,
@@ -368,6 +373,9 @@ typedefs.variable_pragmas = {
 }
 typedefs.type_pragmas = {
   aligned = shaper.shape{shaper.integer},
+  cimport = common_pragmas.cimport,
+  codename = common_pragmas.codename,
+  nodecl = true,
   packed = true,
 }
 

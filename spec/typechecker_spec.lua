@@ -758,6 +758,10 @@ it("pragmas", function()
     "body of an import function must be empty")
   assert.analyze_error("local a !cimport = 2", "cannot assign imported variables")
   assert.analyze_error("!!cimport 'lala'", "is not defined in this context")
+  assert.analyze_error([[
+    local function main1() !entrypoint end
+    local function main2() !entrypoint end
+  ]], "cannot have more than one function entrypoint")
 end)
 
 it("strict mode", function()

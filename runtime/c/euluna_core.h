@@ -16,12 +16,14 @@ typedef struct euluna_type {
   char* name;
 } euluna_type;
 {% end %}
+{% if context.has_string then %}
 typedef struct euluna_string_object {
   intptr_t len;
   intptr_t res;
   char data[];
 } euluna_string_object;
 typedef euluna_string_object* euluna_string;
+{% end %}
 {% if context.has_any then %}
 typedef struct euluna_any {
   euluna_type *type;
@@ -75,7 +77,9 @@ extern euluna_type euluna_string_type;
 extern euluna_type euluna_pointer_type;
 {% end %}
 {% if context.builtins['stdout_write'] then %}
+{% if context.has_string then %}
 static void euluna_stdout_write_string(const euluna_string s);
+{% end %}
 static void euluna_stdout_write_boolean(const bool b);
 {% if context.has_any then %}
 static void euluna_stdout_write_any(const euluna_any a);

@@ -7,17 +7,17 @@
 !!linklib 'SDL2'
 
 -- import SDL structures
-local SDL_Event = @record {
+local SDL_Event !cimport = @record {
   type: uint32,
   padding: array<byte, 56>
 }
-local SDL_Keysym = @record {
+local SDL_Keysym !cimport = @record {
   scancode: cint,
   sym: int32,
   mod: uint16,
   unused: uint32
 }
-local SDL_KeyboardEvent = @record {
+local SDL_KeyboardEvent !cimport = @record {
   type: uint32,
   timestamp: uint32,
   windowID: uint32,
@@ -26,7 +26,7 @@ local SDL_KeyboardEvent = @record {
   padding: uint16,
   keysym: SDL_Keysym
 }
-local SDL_Rect = @record {
+local SDL_Rect !cimport = @record {
   x: cint, y: cint,
   w: cint, h: cint,
 };

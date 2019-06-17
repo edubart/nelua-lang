@@ -730,6 +730,7 @@ it("pragmas", function()
   assert.generate_c("local function f() !noinline end", "EULUNA_NOINLINE void")
   assert.generate_c("local function f() !volatile end", "volatile void")
   assert.generate_c("local function f() !nodecl end", "")
+  assert.generate_c("local function f() !nosideeffect end", "")
   assert.generate_c(
     "local function puts(s: cstring): int32 !cimport('puts', true) end",
     "int32_t puts(char* s);")
@@ -748,6 +749,24 @@ it("pragmas", function()
     perror('msg stderr\n')
     f()
   ]], "msg stdout", "msg stderr")
+  assert.run_c([[
+    !!cinclude '<stdlib.h>'
+    local div_t !cimport = @record{quot: cint, rem: cint}
+    local function div(numer: cint, denom: cint): div_t !cimport end
+    local r = div(38,5)
+    assert(r.quot == 7 and r.rem == 3)
+  ]])
+end)
+
+it("entrypoint", function()
+  assert.run_c([[
+    print 'hello'
+    local function main(): cint !entrypoint
+      print 'world'
+      return 0
+    end
+    print 'wonderful'
+  ]], "hello\nwonderful\nworld")
 end)
 
 it("print", function()

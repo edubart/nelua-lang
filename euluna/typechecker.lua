@@ -243,31 +243,33 @@ function visitors.Pragma(context, node, symbol)
     end
   end
 
+  local attr, type
   if symboltype and symboltype:is_type() then
-    local type = symbol.attr.holdedtype
-    type[name] = params
+    type = symbol.attr.holdedtype
+    attr = type
   else
-    local attr
     if symbol then
       attr = symbol.attr
     else
       attr = node.attr
     end
-    attr[name] = params
+  end
+  attr[name] = params
 
-    if name == 'cimport' then
-      local cname, header = tabler.unpack(params)
-      if cname then
-        attr.codename = cname
-      end
-      attr.nodecl = header ~= true
-      if traits.is_string(header) then
-        attr.cinclude = header
-      end
+  if name == 'cimport' then
+    local cname, header = tabler.unpack(params)
+    if cname then
+      attr.codename = cname
+    elseif type then
+      type.codename = symbol.name
     end
-    if name == 'strict' then
-      config.strict = true
+    attr.nodecl = header ~= true
+    if traits.is_string(header) then
+      attr.cinclude = header
     end
+  end
+  if name == 'strict' then
+    config.strict = true
   end
 end
 
@@ -731,7 +733,8 @@ local function visitor_Call(context, node, argnodes, calleetype, ismethod)
         end
         attr.type = calleetype:get_return_type_for_argtypes(argtypes, 1)
       end
-      attr.sideeffect = true
+      assert(calleetype.sideeffect ~= nil)
+      attr.sideeffect = calleetype.sideeffect
     elseif calleetype:is_table() then
       -- table call (allowed for tables with metamethod __index)
       context:traverse(argnodes)
@@ -1217,6 +1220,16 @@ function visitors.FuncDef(context, node)
     blocknode:assertraisef(#blocknode[1] == 0, 'body of an import function must be empty')
   end
 
+  type.sideeffect = not varnode.attr.nosideeffect
+
+  if varnode.attr.entrypoint then
+    node:assertraisef(not context.ast.entrypoint or context.ast.entrypoint == node,
+      "cannot have more than one function entrypoint")
+        print(varnode.attr.name,symbol.name)
+    varnode.attr.declname = varnode.attr.codename
+    context.ast.entrypoint = node
+  end
+
   if node.lazytypes then
     -- traverse deduced types from lazy functions
     assert(lazy)
@@ -1354,6 +1367,7 @@ local typechecker = {}
 function typechecker.analyze(ast, astbuilder)
   local context = Context(visitors, true)
   context.astbuilder = astbuilder
+  context.ast = ast
 
   -- phase 1 traverse: infer and check types
   context.phase = phases.type_inference

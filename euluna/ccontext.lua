@@ -63,32 +63,38 @@ function CContext:typename(type)
     self:use_gc()
   elseif type:is_array() then
     local subctype = self:ctype(type.subtype)
-    self:ensure_runtime(codename, 'euluna_array', {
-      tyname = codename,
-      length = type.length,
-      subctype = subctype,
-      type = type
-    })
+    if not type.nodecl then
+      self:ensure_runtime(codename, 'euluna_array', {
+        tyname = codename,
+        length = type.length,
+        subctype = subctype,
+        type = type
+      })
+    end
   elseif type:is_record() then
     local fields = tabler.imap(type.fields, function(f)
       return {name = f.name, ctype = self:ctype(f.type)}
     end)
-    self:ensure_runtime(codename, 'euluna_record', {
-      tyname = codename,
-      fields = fields,
-      type = type
-    })
+    if not type.nodecl then
+      self:ensure_runtime(codename, 'euluna_record', {
+        tyname = codename,
+        fields = fields,
+        type = type
+      })
+    end
   elseif type:is_enum() then
     local subctype = self:ctype(type.subtype)
-    self:ensure_runtime(codename, 'euluna_enum', {
-      tyname = codename,
-      subctype = subctype,
-      fields = type.fields,
-      type = type
-    })
+    if not type.nodecl then
+      self:ensure_runtime(codename, 'euluna_enum', {
+        tyname = codename,
+        subctype = subctype,
+        fields = type.fields,
+        type = type
+      })
+    end
   elseif type:is_pointer() then
-    if not type:is_generic_pointer() then
-      local subctype = self:ctype(type.subtype)
+    local subctype = self:ctype(type.subtype)
+    if not type.nodecl then
       self:ensure_runtime(codename, 'euluna_pointer', {
         tyname = codename,
         subctype = subctype,
@@ -99,6 +105,7 @@ function CContext:typename(type)
     self.has_string = true
   elseif type:is_any() then
     self.has_any = true
+    self.has_string = true
     self.has_type = true
   else
     errorer.assertf(cdefs.primitive_ctypes[type], 'ctype for "%s" is unknown', tostring(type))

@@ -687,7 +687,10 @@ function visitors.FuncDef(context, node)
   local attr = node.attr
   local type = attr.type
   local numrets = type:get_return_count()
-  local decoration = 'static '
+  local decoration = ''
+  if not attr.entrypoint then
+    decoration = 'static '
+  end
   local declare, define = not attr.nodecl, true
 
   if attr.cinclude then
@@ -703,7 +706,7 @@ function visitors.FuncDef(context, node)
   if attr.noinline then decoration = decoration .. 'EULUNA_NOINLINE ' end
   if attr.noreturn then decoration = decoration .. 'EULUNA_NORETURN ' end
 
-  local decemitter, defemitter = CEmitter(context), CEmitter(context)
+  local decemitter, defemitter, implemitter = CEmitter(context), CEmitter(context), CEmitter(context)
   local retctype = context:funcretctype(type)
   if numrets > 1 then
     node:assertraisef(declare, 'functions with multiple returns must be declared')
@@ -741,15 +744,19 @@ function visitors.FuncDef(context, node)
     end
     decemitter:add_ln(argnodes, ');')
     defemitter:add_ln(argnodes, ') {')
-    defemitter:add(blocknode)
+    implemitter:add(blocknode)
   end
   context:pop_scope()
-  defemitter:add_indent_ln('}')
+  implemitter:add_indent_ln('}')
   if declare then
     context:add_declaration(decemitter:generate())
   end
   if define then
     context:add_definition(defemitter:generate())
+    if attr.entrypoint then
+      context:add_definition(function() return context.mainemitter:generate() end)
+    end
+    context:add_definition(implemitter:generate())
   end
 end
 
@@ -848,7 +855,7 @@ function generator.generate(ast)
 
   local main_scope = context:push_scope('function')
   main_scope.main = true
-  do
+  if not ast.entrypoint then
     mainemitter:add_ln(
       '/*********************************** MAIN ***********************************/')
     mainemitter:inc_indent()
@@ -862,12 +869,19 @@ function generator.generate(ast)
     end
     mainemitter:add_ln("}")
     mainemitter:dec_indent()
+  else
+    context.mainemitter = mainemitter
+    mainemitter:inc_indent()
+    mainemitter:add_traversal(ast)
+    mainemitter:dec_indent()
   end
   context:pop_scope()
 
-  context:add_definition(mainemitter:generate())
+  if not ast.entrypoint then
+    context:add_definition(mainemitter:generate())
+    context:ensure_runtime('euluna_main')
+  end
 
-  context:ensure_runtime('euluna_main')
   context:evaluate_templates()
 
   local code = table.concat({
