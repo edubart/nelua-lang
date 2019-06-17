@@ -26,12 +26,6 @@ local     nil       not       or        repeat    return
 then      true      until     while
 ```
 
-Additional keywords used in extensions:
-```
-switch case
-continue
-```
-
 
 ## Other symbols used in the language syntax
 
@@ -55,8 +49,3 @@ continue
 | `{: :}` | pragma |
 
 
-## Variables mutabilities
-
-* **var** is a mutable variable
-* **val** is an immutable variable
-* **const** is an immutable variable and it's expression is evaluated at compile time

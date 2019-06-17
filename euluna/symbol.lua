@@ -3,19 +3,15 @@ local class = require 'euluna.utils.class'
 local sstream = require 'euluna.utils.sstream'
 local Symbol = class()
 
-function Symbol:_init(name, node, mut, type)
+function Symbol:_init(name, node, type)
   assert(name)
   local attr = node and node.attr or {}
   self.name = name
   self.node = node
   self.possibletypes = {}
   self.attr = attr
-  if mut == 'const' then
-    attr.const = true
-  end
   attr.name = name
   attr.codename = name
-  attr.mut = mut
   attr.type = type
 end
 
@@ -39,9 +35,18 @@ end
 
 function Symbol:__tostring()
   local ss = sstream('symbol<')
-  ss:add(self.attr.mut, ' ', self.name)
+  ss:add(self.name)
+  if self.attr.const or self.attr.compconst or self.attr.type then
+    ss:add(': ')
+  end
+  if self.attr.const then
+    ss:add('const ')
+  end
+  if self.attr.compconst then
+    ss:add('compconst ')
+  end
   if self.attr.type then
-    ss:add(': ', tostring(self.attr.type))
+    ss:add(tostring(self.attr.type))
   end
   if self.attr.value then
     ss:add(' = ', tostring(self.attr.value))

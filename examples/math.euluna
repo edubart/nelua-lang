@@ -10,9 +10,9 @@
 !!cinclude '<stdlib.h>'
 
 local math = @record{}
-local math_pi: const = 3.141592653589793
-local math_maxinteger: const = 9223372036854775807
-local math_mininteger: const = -9223372036854775807-1
+local math_pi: compconst = 3.141592653589793
+local math_maxinteger: compconst = 9223372036854775807
+local math_mininteger: compconst = -9223372036854775807-1
 local math_huge: number !cimport 'HUGE_VAL'
 
 function math.abs(x: number): number !cimport('fabs') end
@@ -97,7 +97,7 @@ local function assert_equal(x: number, y: number)
   assert(math.abs(x - y) < 1e-12)
 end
 
-local e: const = 2.718281828459045
+local e: compconst = 2.718281828459045
 assert_equal(math.abs(-1.0), 1)
 assert_equal(math.abs(1.0), 1)
 assert_equal(math.ceil(0.1), 1)

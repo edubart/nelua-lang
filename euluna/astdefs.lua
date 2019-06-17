@@ -54,7 +54,7 @@ astbuilder:register('Id', {
 })
 astbuilder:register('IdDecl', {
   stypes.string + ntypes.PreprocessName, -- name
-  stypes.one_of{"var", "val", "const"}:is_optional(), -- mutability
+  stypes.one_of{"const", "compconst"}:is_optional(), -- mutability
   ntypes.Node:is_optional(), -- typexpr
   stypes.array_of(ntypes.Pragma):is_optional(), -- pragmas
 })
@@ -183,7 +183,7 @@ astbuilder:register('Goto', {
 })
 astbuilder:register('VarDecl', {
   stypes.one_of{"local"}:is_optional(), -- scope
-  stypes.one_of{"var", "val", "const"}:is_optional(), -- mutability
+  stypes.one_of{"const", "compconst"}:is_optional(), -- mutability
   stypes.array_of(ntypes.IdDecl), -- var names with types
   stypes.array_of(ntypes.Node):is_optional(), -- expr list, initial assignments values
 })

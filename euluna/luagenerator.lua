@@ -80,7 +80,7 @@ function visitors.ArrayTableType() end
 function visitors.ArrayType() end
 function visitors.IdDecl(_, node, emitter)
   local name, mut, type = node:args()
-  node:assertraisef(mut == nil or mut == 'var', "variable mutabilities are not supported in lua")
+  node:assertraisef(mut == nil, "variable mutabilities are not supported in lua")
   emitter:add(name)
 end
 

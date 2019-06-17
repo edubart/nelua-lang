@@ -67,7 +67,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
           decemitter:add_indent()
         end
         decemitter:add(varnode)
-        if valnode and valnode.attr.const then
+        if valnode and valnode.attr.compconst then
           -- initialize to const values
           decemitter:add(' = ')
           assert(not lastcallindex)
@@ -246,7 +246,7 @@ function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
   local type = node.attr.type
   if type:is_type() then return end
-  if attr.const    then emitter:add('const ') end
+  if attr.compconst or attr.const then emitter:add('const ') end
   if attr.volatile then emitter:add('volatile ') end
   if attr.restrict then emitter:add('restrict ') end
   if attr.register then emitter:add('register ') end

@@ -840,33 +840,31 @@ describe("statement variable declaration", function()
   it("non local variable", function()
     assert.parse_ast(euluna_parser, "var a",
       n.Block{{
-        n.VarDecl{nil, 'var', {n.IdDecl{'a'}}}
+        n.VarDecl{'local', nil, {n.IdDecl{'a'}}}
     }})
   end)
   it("variable mutabilities inside types", function()
     assert.parse_ast(euluna_parser, [[
       local a = b
-      local a: var = b
-      local a: val = b
-      local a: const any = b
+      local a: const = b
+      local a: compconst any = b
     ]],
       n.Block{{
         n.VarDecl{'local', nil, {n.IdDecl{'a'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', nil, {n.IdDecl{'a', 'var'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', nil, {n.IdDecl{'a', 'val'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', nil, {n.IdDecl{'a', 'const', n.Type{'any'}}}, {n.Id{'b'}}},
+        n.VarDecl{'local', nil, {n.IdDecl{'a', 'const'}}, {n.Id{'b'}}},
+        n.VarDecl{'local', nil, {n.IdDecl{'a', 'compconst', n.Type{'any'}}}, {n.Id{'b'}}},
     }})
   end)
   it("variable mutabilities", function()
     assert.parse_ast(euluna_parser, [[
       var a = b
-      val a = b
-      local const a = b
+      const a = b
+      local compconst a = b
     ]],
       n.Block{{
-        n.VarDecl{nil, 'var', {n.IdDecl{'a'}}, {n.Id{'b'}}},
-        n.VarDecl{nil, 'val', {n.IdDecl{'a'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', 'const', {n.IdDecl{'a'}}, {n.Id{'b'}}},
+        n.VarDecl{'local', nil, {n.IdDecl{'a'}}, {n.Id{'b'}}},
+        n.VarDecl{nil, 'const', {n.IdDecl{'a'}}, {n.Id{'b'}}},
+        n.VarDecl{'local', 'compconst', {n.IdDecl{'a'}}, {n.Id{'b'}}},
     }})
   end)
   it("variable multiple assigments", function()

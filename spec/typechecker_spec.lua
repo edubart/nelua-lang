@@ -13,17 +13,17 @@ it("analyzed ast transform", function()
       n.VarDecl{'local', nil,
         { n.IdDecl{
           assign=true,
-          attr = {codename='a', mut='var', name='a', type='int64', lvalue=true},
+          attr = {codename='a', name='a', type='int64', lvalue=true},
           'a' }},
         { n.Number{
-          attr = {const=true, initializer=true, integral=true, type='int64', value=bn.fromdec('1')},
+          attr = {compconst=true, initializer=true, integral=true, type='int64', value=bn.fromdec('1')},
           'dec', '1'
         }}
       },
       n.Call{
         attr = {calleetype = 'any', sideeffect = true, type='varanys'},
-        {n.Id{ attr = {codename='a', mut='var', name='a', type='int64', lvalue=true}, "a"}},
-        n.Id{ attr = {codename='f', mut='var', name='f', type='any', lvalue=true}, "f"},
+        {n.Id{ attr = {codename='a', name='a', type='int64', lvalue=true}, "a"}},
+        n.Id{ attr = {codename='f', name='f', type='any', lvalue=true}, "f"},
         true
       }
   }})
@@ -42,20 +42,29 @@ it("name collision", function()
   assert.c_gencode_equals("local a = 1; local a = 2", "local a: integer = 1; local a: integer = 2")
 end)
 
-it("const variable" , function()
-  assert.analyze_ast([[local const N = 255; local a: byte = N]])
-  assert.analyze_ast([[local a: const integer = 1]])
+it("compconst variable" , function()
+  assert.analyze_ast([[local compconst N = 255; local a: byte = N]])
+  assert.analyze_ast([[local a: compconst integer = 1]])
   assert.c_gencode_equals(
-    [[local const a = 1; local function f() return a end]],
-    [[local const a: integer = 1; local function f() return a end]])
-  assert.analyze_ast([[local const a = 1 * 2 + 3]])
-  assert.analyze_ast([[local const a = 1; local const b = a]])
-  assert.analyze_ast([[const a = 1]])
-  assert.analyze_error("local const a: integer", "const variables must have an initial value")
-  assert.analyze_error("local const a: var integer = 1", "cannot declare mutability twice")
-  assert.analyze_error("local const a = 1; a = 2", "cannot assign a read only variable")
-  assert.analyze_error("local a = 1; local const c = a", "can only assign to typed const")
-  assert.analyze_error("local b = 1; local const c = 1 * 2 + b", "can only assign to typed const")
+    [[local compconst a = 1; local function f() return a end]],
+    [[local compconst a: integer = 1; local function f() return a end]])
+  assert.analyze_ast([[local compconst a = 1 * 2 + 3]])
+  assert.analyze_ast([[local compconst a = 1; local compconst b = a]])
+  assert.analyze_ast([[compconst a = 1]])
+  assert.analyze_error("local compconst a: integer", "const variables must have an initial value")
+  assert.analyze_error("local compconst a: compconst integer = 1", "cannot declare mutability twice")
+  assert.analyze_error("local compconst a = 1; a = 2", "cannot assign a constant variable")
+  assert.analyze_error("local a = 1; local compconst c = a", "can only assign to constant expressions")
+  assert.analyze_error("local b = 1; local compconst c = 1 * 2 + b", "can only assign to constant expressions")
+end)
+
+it("const variable" , function()
+  assert.analyze_ast([[local a: const integer = 1]])
+  assert.analyze_ast([[local function f(x: const integer) end]])
+  assert.analyze_ast([[local b = 1; local a: const integer = b]])
+  assert.analyze_error([[local a: const integer = 1; a = 2]], "cannot assign a constant variable")
+  assert.analyze_error("local a: const integer", "const variables must have an initial value")
+  assert.analyze_error("local function f(x: const integer) x = 2 end", "cannot assign a constant variable")
 end)
 
 it("numeric types coercion", function()
@@ -470,14 +479,14 @@ end)
 
 it("arrays", function()
   --assert.analyze_ast([[local a: array<integer, (2 << 1)>]])
-  assert.analyze_ast([[local const N = 10; local a: array<integer, N>]])
+  assert.analyze_ast([[local compconst N = 10; local a: array<integer, N>]])
   assert.analyze_ast([[local a: array<integer, 10>; a[0] = 1]])
   assert.analyze_ast([[local a: array<integer, 2> = {1,2}]])
   assert.analyze_ast([[local a: array<integer, 2>; a[0] = 1; a[1] = 2]])
   assert.analyze_ast([[local a: array<integer, 2>; a = {1,2}]])
   assert.analyze_ast([[local a: array<integer, 2>; a = {}]])
   assert.analyze_ast([[local a: array<integer, 10>, b: array<integer, 10>; b = a]])
-  assert.analyze_ast([[local const a: array<integer, 2> = {1,2}]])
+  assert.analyze_ast([[local compconst a: array<integer, 2> = {1,2}]])
   assert.analyze_error([[local a: array<integer, 2> = {1}]], 'expected 2 values but got 1')
   assert.analyze_error([[local a: array<integer, 2> = {1,2,3}]], 'expected 2 values but got 3')
   assert.analyze_error([[local a: array<integer, 2> = {1.0,2.0}]], 'is not coercible with')
@@ -490,7 +499,7 @@ it("arrays", function()
   assert.analyze_error([[local a: array<integer, 2>; a[-1] = 1]], 'trying to index negative value')
   assert.analyze_error([[local a: array<integer, 2>; a[2] = 1]], 'is out of bounds')
   assert.analyze_error([[local a: array<integer, 2>; a['s'] = 1]], 'trying to index with non integral value')
-  assert.analyze_error([[local const a: array<integer, 2> = {1,b}]], 'can only assign to typed const')
+  assert.analyze_error([[local compconst a: array<integer, 2> = {1,b}]], 'can only assign to constant expressions')
 
 end)
 
@@ -527,8 +536,8 @@ it("records", function()
   ]])
   assert.analyze_ast([[
     local Record = @record{x: boolean}
-    local const a = Record{}
-    local const b = Record{x=true}
+    local compconst a = Record{}
+    local compconst b = Record{x=true}
   ]])
   assert.analyze_error([[
     local Record: type = @record{x: integer, y: integer}
@@ -547,8 +556,8 @@ it("records", function()
   assert.analyze_error([[
     local b = false
     local Record = @record{x: boolean}
-    local const a = Record{x = b}
-  ]], "can only assign to typed const")
+    local compconst a = Record{x = b}
+  ]], "can only assign to constant expressions")
   assert.c_gencode_equals(
     "local a: record {x: boolean}; local b = a.x",
     "local a: record {x: boolean}; local b: boolean = a.x")
@@ -598,7 +607,7 @@ it("enums", function()
     local b: enum<integer>{A=0,B=1 << 2}
   ]])
   assert.analyze_ast([[
-    local const c = 2
+    local compconst c = 2
     local Enum = @enum{A=0,B=1,C=c}
     local e: Enum = Enum.A
     local i: number = e

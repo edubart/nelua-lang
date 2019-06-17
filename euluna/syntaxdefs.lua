@@ -50,7 +50,7 @@ local function get_parser(std)
   if not is_luacompat then
     parser:add_keywords({
       -- euluna additional keywords
-      "switch", "case", "continue", "var", "val"
+      "switch", "case", "continue", "compconst", "const", "var"
     })
   end
 
@@ -202,8 +202,7 @@ local function get_parser(std)
   %EXCL         <- !%DBEXCL '!'
 
   -- used by types
-  %TVAR         <- 'var'
-  %TVAL         <- 'val'
+  %TCOMPCONST   <- 'compconst'
   %TCONST       <- 'const'
   %TRECORD      <- 'record'
   %TENUM        <- 'enum'
@@ -330,7 +329,7 @@ local function get_parser(std)
   if not is_luacompat then
     grammar:add_group_peg('stat', 'vardecl', [[
       ({} '' -> 'VarDecl'
-        ((var_scope (var_mutability / cnil)) / (cnil var_mutability))
+        (((var_scope / %VAR -> 'local') (var_mutability / cnil)) / (cnil var_mutability))
         {| typed_idlist |}
         (%ASSIGN {| eexpr_list |})?
       ) -> to_astnode
@@ -415,8 +414,7 @@ local function get_parser(std)
         block
       eEND
     var_mutability <-
-      %TVAR -> 'var' /
-      %TVAL -> 'val' /
+      %TCOMPCONST -> 'compconst' /
       %TCONST -> 'const'
     typed_idlist <- typed_id (%COMMA typed_id)*
     typed_id <- ({} '' -> 'IdDecl'

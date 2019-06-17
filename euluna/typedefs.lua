@@ -329,12 +329,8 @@ function typedefs.find_common_type(possibletypes)
 end
 
 typedefs.mutabilities = {
-  ['var'] = true,
+  ['compconst'] = true,
   ['const'] = true,
-}
-
-typedefs.readonly_mutabilities = {
-  ['const'] = true
 }
 
 typedefs.block_pragmas = {

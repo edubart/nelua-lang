@@ -82,7 +82,7 @@ function visitors.Number(context, node, desiredtype)
   node.attr.type = type
   node.attr.value = value
   node.attr.integral = integral
-  node.attr.const = true
+  node.attr.compconst = true
 end
 
 function visitors.String(_, node)
@@ -91,26 +91,26 @@ function visitors.String(_, node)
   node:assertraisef(literal == nil, 'string literals are not supported yet')
   node.attr.value = value
   node.attr.type = primtypes.string
-  node.attr.const = true
+  node.attr.compconst = true
 end
 
 function visitors.Boolean(_, node)
   if node.attr.type then return end
   node.attr.value = node:args(1)
   node.attr.type = primtypes.boolean
-  node.attr.const = true
+  node.attr.compconst = true
 end
 
 function visitors.Nil(_, node)
   if node.attr.type then return end
   node.attr.type = primtypes.Nil
-  node.attr.const = true
+  node.attr.compconst = true
 end
 
 function visitors.Table(context, node, desiredtype)
   local childnodes = node:args()
   if desiredtype and desiredtype ~= primtypes.table then
-    local const = true
+    local compconst = true
     if desiredtype:is_arraytable() then
       local subtype = desiredtype.subtype
       for i, childnode in ipairs(childnodes) do
@@ -127,7 +127,7 @@ function visitors.Table(context, node, desiredtype)
           end
         end
       end
-      const = false
+      compconst = false
     elseif desiredtype:is_array() then
       local subtype = desiredtype.subtype
       node:assertraisef(#childnodes == desiredtype.length or #childnodes == 0,
@@ -146,8 +146,8 @@ function visitors.Table(context, node, desiredtype)
             childnode.attr.initializer = true
           end
         end
-        if not childnode.attr.const then
-          const = false
+        if not childnode.attr.compconst then
+          compconst = false
         end
       end
     elseif desiredtype:is_record() then
@@ -184,8 +184,8 @@ function visitors.Table(context, node, desiredtype)
           end
         end
         childnode.attr.parenttype = desiredtype
-        if not fieldvalnode.attr.const then
-          const = false
+        if not fieldvalnode.attr.compconst then
+          compconst = false
         end
       end
     else
@@ -193,8 +193,8 @@ function visitors.Table(context, node, desiredtype)
         tostring(desiredtype))
     end
     node.attr.type = desiredtype
-    if const then
-      node.attr.const = true
+    if compconst then
+      node.attr.compconst = true
     end
   else
     context:traverse(childnodes)
@@ -281,7 +281,7 @@ function visitors.Id(context, node)
   end
   local symbol = context.scope:get_symbol(name, node)
   if not symbol then
-    symbol = context.scope:add_symbol(Symbol(name, node, 'var', type))
+    symbol = context.scope:add_symbol(Symbol(name, node, type))
   else
     symbol:link_node(node)
   end
@@ -292,8 +292,8 @@ end
 function visitors.IdDecl(context, node)
   local name, mut, typenode, pragmanodes = node:args()
   node:assertraisef(not (mut and node.mut), "cannot declare mutability twice for '%s'", name)
-  mut = mut or node.mut or 'var'
-  node:assertraisef(typedefs.mutabilities[mut],
+  mut = mut or node.mut
+  node:assertraisef(not mut or typedefs.mutabilities[mut],
     'mutability %s not supported yet', mut)
   local type = node.attr.type
   if typenode then
@@ -303,7 +303,10 @@ function visitors.IdDecl(context, node)
   if not type and context.phase == phases.any_inference then
     type = primtypes.any
   end
-  local symbol = context.scope:add_symbol(Symbol(name, node, mut, type))
+  local symbol = context.scope:add_symbol(Symbol(name, node, type))
+  if mut then
+    symbol.attr[mut] = true
+  end
   if pragmanodes then
     context:traverse(pragmanodes, symbol)
   end
@@ -332,7 +335,7 @@ function visitors.Type(context, node)
   end
   node.attr.type = primtypes.type
   node.attr.holdedtype = holdedtype
-  node.attr.const = true
+  node.attr.compconst = true
 end
 
 function visitors.TypeInstance(context, node, _, symbol)
@@ -356,7 +359,7 @@ function visitors.FuncType(context, node)
     tabler.imap(retnodes, function(retnode) return retnode.attr.holdedtype end))
   node.attr.type = primtypes.type
   node.attr.holdedtype = type
-  node.attr.const = true
+  node.attr.compconst = true
 end
 
 function visitors.MultipleType(context, node)
@@ -367,7 +370,7 @@ function visitors.MultipleType(context, node)
   node.attr.type = primtypes.type
   node.attr.holdedtype = types.MultipleType(node,
     tabler.imap(typenodes, function(typenode) return typenode.attr.holdedtype end))
-  node.attr.const = true
+  node.attr.compconst = true
 end
 
 function visitors.RecordFieldType(context, node)
@@ -388,7 +391,7 @@ function visitors.RecordType(context, node)
   local type = types.RecordType(node, fields)
   node.attr.type = primtypes.type
   node.attr.holdedtype = type
-  node.attr.const = true
+  node.attr.compconst = true
 end
 
 function visitors.EnumFieldType(context, node, desiredtype)
@@ -397,7 +400,7 @@ function visitors.EnumFieldType(context, node, desiredtype)
   if numnode then
     context:traverse(numnode, desiredtype)
     local value, numtype = numnode.attr.value, numnode.attr.type
-    numnode:assertraisef(numnode.attr.const,
+    numnode:assertraisef(numnode.attr.compconst,
       "enum values can only be assigned to const values")
     numnode:assertraisef(numtype:is_integral(),
       "only integral numbers are allowed in enums, but got type '%s'",
@@ -436,7 +439,7 @@ function visitors.EnumType(context, node)
   local type = types.EnumType(node, subtype, fields)
   node.attr.type = primtypes.type
   node.attr.holdedtype = type
-  node.attr.const = true
+  node.attr.compconst = true
 end
 
 function visitors.ArrayTableType(context, node)
@@ -446,7 +449,7 @@ function visitors.ArrayTableType(context, node)
   local type = types.ArrayTableType(node, subtypenode.attr.holdedtype)
   node.attr.type = primtypes.type
   node.attr.holdedtype = type
-  node.attr.const = true
+  node.attr.compconst = true
 end
 
 function visitors.ArrayType(context, node)
@@ -455,14 +458,14 @@ function visitors.ArrayType(context, node)
   context:traverse(subtypenode)
   local subtype = subtypenode.attr.holdedtype
   context:traverse(lengthnode)
-  node:assertraisef(lengthnode.attr.value, 'unknown const value for expression')
+  lengthnode:assertraisef(lengthnode.attr.value, 'unknown const value for expression')
   local length = lengthnode.attr.value:tointeger()
   lengthnode:assertraisef(lengthnode.attr.type:is_integral() and length >= 0,
     'expected a valid decimal integral number in the second argument of an "array" type')
   local type = types.ArrayType(node, subtype, length)
   node.attr.type = primtypes.type
   node.attr.holdedtype = type
-  node.attr.const = true
+  node.attr.compconst = true
 end
 
 function visitors.PointerType(context, node)
@@ -478,7 +481,7 @@ function visitors.PointerType(context, node)
   end
   node.attr.type = primtypes.type
   node.attr.holdedtype = type
-  node.attr.const = true
+  node.attr.compconst = true
 end
 
 local function visitor_FieldIndex(context, node)
@@ -522,7 +525,8 @@ local function visitor_FieldIndex(context, node)
         if not symbol then
           if node.infuncdef then
             local symname = objtype.codename .. '_' .. name
-            symbol = Symbol(symname, node, 'var')
+            symbol = Symbol(symname, node)
+            symbol.attr.const = true
             symbol.attr.metafunc = true
             symbol.attr.metarecordtype = objtype
             objtype:set_metafield(name, symbol)
@@ -789,7 +793,7 @@ function visitors.Call(context, node)
         "in assertion to type '%s', the type is not coercible with expression of type '%s'",
         tostring(type), tostring(argtype))
     end
-    attr.const = argnode.attr.const
+    attr.compconst = argnode.attr.compconst
     attr.sideeffect = argnode.attr.sideeffect
     attr.type = type
     attr.calleetype = calleetype
@@ -927,7 +931,7 @@ function visitors.ForNum(context, node)
     context:traverse(blocknode)
   end)
   local fixedstep
-  if stype and stype:is_numeric() and stepvalnode.attr.const then
+  if stype and stype:is_numeric() and stepvalnode.attr.compconst then
     -- constant step
     fixedstep = stepvalnode.attr.value
     stepvalnode:assertraisef(not fixedstep:iszero(), '`for` step cannot be zero')
@@ -936,7 +940,7 @@ function visitors.ForNum(context, node)
     fixedstep = bn.new(1)
   end
   local fixedend
-  if etype and etype:is_numeric() and endvalnode.attr.const then
+  if etype and etype:is_numeric() and endvalnode.attr.compconst then
     fixedend = endvalnode.attr.value
   end
   if not compop and fixedstep then
@@ -970,7 +974,7 @@ function visitors.VarDecl(context, node)
     end
     assert(symbol.attr.type == vartype)
     varnode.assign = true
-    if varnode.attr.const then
+    if varnode.attr.compconst or varnode.attr.const then
       varnode:assertraisef(valnode, 'const variables must have an initial value')
     end
     if valnode then
@@ -980,21 +984,21 @@ function visitors.VarDecl(context, node)
         -- varanys are always stored as any in variables
         valtype = primtypes.any
       end
-      if varnode.attr.const then
-        varnode:assertraisef(valnode.attr.const and valtype,
-          'const variables can only assign to typed const expressions')
+      if varnode.attr.compconst then
+        varnode:assertraisef(valnode.attr.compconst and valtype,
+          'constant variables can only assign to constant expressions')
       end
       varnode:assertraisef(not varnode.attr.cimport or
         (vartype == primtypes.type or (vartype == nil and valtype == primtypes.type)),
         'cannot assign imported variables, only imported types can be assigned')
 
-      if valtype == vartype and valnode.attr.const then
+      if valtype == vartype and valnode.attr.compconst then
         valnode.attr.initializer = true
       end
     end
     if valtype then
       varnode:assertraisef(not valtype:is_void(), 'cannot assign to expressions of type void')
-      if varnode.attr.const then
+      if varnode.attr.compconst then
         -- for consts the type must be known ahead
         vartype = valtype
         symbol.attr.type = valtype
@@ -1003,7 +1007,7 @@ function visitors.VarDecl(context, node)
         -- for 'type' types the type must also be known ahead
         vartype = valtype
         symbol.attr.type = valtype
-        symbol.attr.const = true
+        symbol.attr.compconst = true
       else
         -- lazy type evaluation
         symbol:add_possible_type(valtype)
@@ -1030,8 +1034,8 @@ function visitors.Assign(context, node)
     local symbol = context:traverse(varnode)
     local vartype = varnode.attr.type
     varnode.assign = true
-    varnode:assertraisef(not typedefs.readonly_mutabilities[varnode.attr.mut],
-      "cannot assign a read only variable of mutability '%s'", varnode.attr.mut)
+    varnode:assertraisef(not (varnode.attr.const or varnode.attr.compconst),
+      "cannot assign a constant variable")
     if valnode then
       context:traverse(valnode, vartype)
       valtype = valnode.attr.type
@@ -1124,7 +1128,7 @@ function visitors.FuncDef(context, node)
       if not vartype and context.phase == phases.any_inference then
         vartype = primtypes.any
       end
-      symbol = context.scope:add_symbol(Symbol(name, varnode, 'var', vartype))
+      symbol = context.scope:add_symbol(Symbol(name, varnode, vartype))
     elseif varnode.tag == 'Id' then
       symbol = context:traverse(varnode)
     else -- DotIndex or ColumnIndex
@@ -1176,7 +1180,7 @@ function visitors.FuncDef(context, node)
     end
 
     if varnode.tag == 'ColonIndex' and symbol and symbol.attr.metafunc then
-      scope:add_symbol(Symbol('self', nil, 'var', symbol.attr.metarecordtype))
+      scope:add_symbol(Symbol('self', nil, symbol.attr.metarecordtype))
     end
 
     if not lazy then
@@ -1280,7 +1284,7 @@ function visitors.UnaryOp(context, node, desiredtype)
     end
     assert(context.phase ~= phases.any_inference or node.attr.type)
   end
-  node.attr.const = argnode.attr.const
+  node.attr.compconst = argnode.attr.compconst
   node.attr.sideeffect = argnode.attr.sideeffect
   local parentnode = context:get_parent_node()
   node.attr.inoperator = parentnode and stringer.endswith(parentnode.tag, 'Op')
@@ -1359,8 +1363,8 @@ function visitors.BinaryOp(context, node, desiredtype)
     if typedefs.binary_conditional_ops[opname] and
       (not rtype:is_boolean() or not ltype:is_boolean()) then
       node.attr.dynamic_conditional = true
-    elseif lnode.attr.const and rnode.attr.const then
-      node.attr.const = true
+    elseif lnode.attr.compconst and rnode.attr.compconst then
+      node.attr.compconst = true
     end
   end
   if lnode.attr.sideeffect or rnode.attr.sideeffect then

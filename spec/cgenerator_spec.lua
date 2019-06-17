@@ -187,16 +187,16 @@ it("variable declaration", function()
   assert.generate_c("local π = 3.14", "double mymod_uCF80 = 3.14;")
 end)
 
-it("const", function()
-  assert.generate_c("local const a: integer = 0", "static const int64_t mymod_a = 0;")
-  assert.generate_c("local const a = 1", "static const int64_t mymod_a = 1;")
+it("compconst", function()
+  assert.generate_c("local compconst a: integer = 0", "static const int64_t mymod_a = 0;")
+  assert.generate_c("local compconst a = 1", "static const int64_t mymod_a = 1;")
   assert.generate_c(
-    "local const N = 3773; local a: array<integer, N>",
+    "local compconst N = 3773; local a: array<integer, N>",
     {"static const int64_t mymod_N = 3773",
      "int64_t data[3773];"})
-  assert.generate_c("local const a, b = 1, 2; local const c = a * b",
+  assert.generate_c("local compconst a, b = 1, 2; local compconst c = a * b",
     "static const int64_t mymod_c = mymod_a * mymod_b;")
-  assert.generate_c("local const a, b = 1, 2; local const c = @int32(a * b)",
+  assert.generate_c("local compconst a, b = 1, 2; local compconst c = @int32(a * b)",
     "static const int32_t mymod_c = (int32_t)(mymod_a * mymod_b);")
 end)
 

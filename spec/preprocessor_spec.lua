@@ -116,11 +116,11 @@ end)
 
 it("print symbol", function()
   assert.c_gencode_equals([=[
-    local a: const integer = 1
+    local a: compconst integer = 1
     print #[tostring(symbols.a)]
   ]=], [[
-    local const a = 1
-    print 'symbol<const a: int64 = 1>'
+    local compconst a = 1
+    print 'symbol<a: compconst int64 = 1>'
   ]])
   assert.c_gencode_equals([=[
     for i:integer=1,2 do
@@ -128,18 +128,18 @@ it("print symbol", function()
     end
   ]=], [[
     for i=1,2 do
-      print(i, 'symbol<var i: int64>')
+      print(i, 'symbol<i: int64>')
     end
   ]])
   assert.c_gencode_equals([[
     ## local aval = 1
     ## if true then
-      local #('a'): const #('integer') = #[aval]
+      local #('a'): compconst #('integer') = #[aval]
       print #[tostring(scope:get_symbol('a'))]
     ## end
   ]], [[
-    local const a = 1
-    print 'symbol<const a: int64 = 1>'
+    local compconst a = 1
+    print 'symbol<a: compconst int64 = 1>'
   ]])
 end)
 
@@ -209,7 +209,7 @@ it("print symbol", function()
     end
   ]=], [[
     for i:integer=1,2 do
-      print(i, 'symbol<var i: int64>')
+      print(i, 'symbol<i: int64>')
     end
   ]])
 end)

@@ -99,7 +99,7 @@ This can be optionally be disabled (for optimization reasons) using **pragmas**.
 Variables declared as auto have it's type deduced early using only the type of it's first assignment.
 
 ```euluna
-local auto a = 1 -- a is deduced to be of type 'integer'
+local a: auto = 1 -- a is deduced to be of type 'integer'
 
 -- this would trigger a compile error:
 -- a = false
@@ -107,16 +107,30 @@ local auto a = 1 -- a is deduced to be of type 'integer'
 
 Auto variables are more useful when used in **lazy functions**.
 
-### Const variables
+### Compconst variables
 
-Const variables have its value known at compile time:
+Compconst variables have its value known at compile time:
 
 ```euluna
-local const a = 1 + 2 -- constant variable of value '3' evaluated and known at compile time
+local a: compconst = 1 + 2 -- constant variable of value '3' evaluated and known at compile time
 ```
 
 The compiler takes advantages of constants to make optimizations, constants are also useful
 for using as compile time parameters in **lazy functions**.
+
+### Const variables
+
+Const variables can be assigned at runtime however it cannot mutate.
+
+```euluna
+local x = 1
+local a: const = x -- constant variable of value '3' evaluated and known at compile time
+-- doing "a = 2" would throw a compile time error
+
+local function f(x: const integer)
+  -- cannot assign 'x' here because it's const
+end
+```
 
 
 --------------------------------------------------------------------------------
@@ -1029,7 +1043,7 @@ Lazy functions can make compile time dynamic functions when used in combination 
 the preprocessor:
 
 ```euluna
-function pow(x: auto, n: const integer)
+function pow(x: auto, n: compconst integer)
   ## symbols.x.attr.type:is_integral() then
     -- x is an integral type (any unsigned/signed integer)
     local r: #[symbols.x.attr.type] = 1
@@ -1057,7 +1071,7 @@ Blocks can be passed to lazy functions, in this case the entire function code wi
 inlined in the call placement.
 
 ```euluna
-local function unroll(count: const integer, body: block)
+local function unroll(count: compconst integer, body: block)
   ## for i=1,symbols.count.attr.value do
     body()
   ## end

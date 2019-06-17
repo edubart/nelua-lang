@@ -21,12 +21,8 @@ hljs.registerLanguage("euluna", function(e) {
         //Lua
         "function and break do else elseif end for goto if in local not or repeat return then until while " +
         //Extended lua
-        "switch case try except raise defer continue import " +
-        "typedef export " +
-        "struct enum " +
-        "template concept " +
-        "literal " +
-        "var val const auto"
+        "switch case continue defer record enum" +
+        "var const compconst auto"
       ,
       built_in:
         //Metatags and globals:

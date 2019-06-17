@@ -45,7 +45,8 @@ function Scope:get_symbol(name, node)
   if not symbol and node then
     local symtype = symdefs[name]
     if symtype then
-      return Symbol(name, node, 'val', symtype)
+      symbol = Symbol(name, node, symtype)
+      symbol.attr.const = true
     end
   end
   if not symbol and node and config.strict and not self.context.preprocessing then

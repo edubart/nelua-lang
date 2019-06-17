@@ -60,7 +60,7 @@ it("print correct generated AST" , function()
       {
         String {
           attr = {
-            const = true,
+            compconst = true,
             type = "string",
             value = "hello world",
           },
@@ -71,8 +71,8 @@ it("print correct generated AST" , function()
       Id {
         attr = {
           codename = "print",
+          const = true,
           lvalue = true,
-          mut = "val",
           name = "print",
           type = "any",
         },
