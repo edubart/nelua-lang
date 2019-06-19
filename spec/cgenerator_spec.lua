@@ -631,8 +631,22 @@ it("record methods", function()
     assert(v.x == 1 and v.y == 2)
 
     function vec2:length() return self.x + self.y end
-    local l = v:length()
-    assert(l == 3)
+    assert(v:length() == 3)
+    assert(vec2.length(v) == 3)
+    local vp = &v
+    assert(vp:length() == 3)
+    assert(vec2.length(vp) == 3)
+
+    function vec2.length2(self: vec2) return self:length() end
+    assert(v:length2() == 3)
+    assert(vec2.length2(v) == 3)
+
+    function vec2:length3() return self:length() end
+    assert(v:length3() == 3)
+
+    function vec2.length4(self: vec2*) return self:length() end
+    assert(v:length4() == 3)
+    assert(vec2.length4(v) == 3)
 
     local math = @record{}
     function math.abs(x: number): number !cimport('fabs', '<math.h>') end

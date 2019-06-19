@@ -700,16 +700,20 @@ local function izipargnodes(vars, argnodes)
   end
 end
 
-local function visitor_Call(context, node, argnodes, calleetype, ismethod)
+local function visitor_Call(context, node, argnodes, calleetype, methodcalleenode)
   local attr = node.attr
   if calleetype then
     attr.calleetype = calleetype
+
     if calleetype:is_function() then
       -- function call
       local funcargtypes = calleetype.argtypes
       local pseudoargtypes = funcargtypes
-      if ismethod then
+      if methodcalleenode then
         pseudoargtypes = tabler.copy(funcargtypes)
+        node:assertraisef(funcargtypes[1]:is_coercible_from(methodcalleenode),
+        "in call, expected argument at index %d of type '%s' but got not coercible type '%s'",
+                    1, tostring(funcargtypes[1]), tostring(methodcalleenode.attr.type))
         table.remove(pseudoargtypes, 1)
         attr.pseudoargtypes = pseudoargtypes
       end
@@ -741,7 +745,7 @@ local function visitor_Call(context, node, argnodes, calleetype, ismethod)
         end
       end
       if knownallargs or not calleetype.lazy then
-        if ismethod then
+        if methodcalleenode then
           tabler.insert(argtypes, funcargtypes[1])
         end
         attr.type = calleetype:get_return_type_for_argtypes(argtypes, 1)
@@ -776,8 +780,13 @@ end
 function visitors.Call(context, node)
   local argnodes, calleenode, isblockcall = node:args()
   context:traverse(calleenode)
-  local calleetype = calleenode.attr.type
   local attr = node.attr
+  local calleetype = calleenode.attr.type
+  if calleetype and calleetype:is_pointer() then
+    calleetype = calleetype.subtype
+    calleenode:assertraisef(calleetype, 'cannot call from generic pointers')
+    attr.pointercall = true
+  end
   if calleetype and calleetype:is_type() then
     -- type assertion
     local type = calleenode.attr.holdedtype
@@ -808,6 +817,12 @@ function visitors.CallMethod(context, node)
   context:traverse(calleenode)
   local calleetype = calleenode.attr.type
   if calleetype then
+    if calleetype:is_pointer() then
+      calleetype = calleetype.subtype
+      calleenode:assertraisef(calleetype, 'cannot call from generic pointers')
+      attr.pointercall = true
+    end
+
     attr.calleetype = calleetype
     if calleetype:is_record() then
       local symbol = calleetype:get_metafield(name)
@@ -822,7 +837,7 @@ function visitors.CallMethod(context, node)
     end
   end
 
-  visitor_Call(context, node, argnodes, calleetype, true)
+  visitor_Call(context, node, argnodes, calleetype, calleenode)
 end
 
 function visitors.Block(context, node, scopecb)

@@ -29,8 +29,21 @@ function Symbol:link_node(node)
   if node.attr == self.attr then
     return
   end
-  assert(next(node.attr) == nil, 'cannot link to a node with attributes')
-  node.attr = self.attr
+  if not self.node then
+    -- this is symbol without a parent node, merge attrs into others nodes and link
+    local attr = node.attr
+    for k,v in pairs(self.attr) do
+      if attr[k] == nil then
+        attr[k] = v
+      else
+        assert(attr[k] == v, 'cannot link to a node with different attributes')
+      end
+    end
+    self.attr = attr
+  else
+    assert(next(node.attr) == nil, 'cannot link to a node with attributes')
+    node.attr = self.attr
+  end
 end
 
 function Symbol:__tostring()

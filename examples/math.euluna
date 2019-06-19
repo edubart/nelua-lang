@@ -1,15 +1,14 @@
---TODO: return two values
 --TODO: function type overload
 --TODO: implement using namespaces or method syntax sugar
 --TODO: become a module
 --TODO: export functions
---TODO: discard operator
 --TODO: string compare
 
 !!cinclude '<math.h>'
 !!cinclude '<stdlib.h>'
 
 local math = @record{}
+
 local math_pi: compconst = 3.141592653589793
 local math_maxinteger: compconst = 9223372036854775807
 local math_mininteger: compconst = -9223372036854775807-1

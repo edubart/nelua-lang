@@ -308,15 +308,16 @@ local function visitor_Call(context, node, emitter, argnodes, callee, isblockcal
   if isblockcall then
     emitter:add_indent()
   end
-  local calleetype = node.attr.calleetype
+  local attr = node.attr
+  local calleetype = attr.calleetype
   if calleetype:is_function() then
     -- function call
     local tmpargs = {}
     local tmpcount = 0
     local lastcalltmp
     local sequential = false
-    local callargtypes = node.attr.pseudoargtypes or calleetype.argtypes
-    local ismethod = node.attr.pseudoargtypes ~= nil
+    local callargtypes = attr.pseudoargtypes or calleetype.argtypes
+    local ismethod = attr.pseudoargtypes ~= nil
     for i,_,argnode,_,lastcallindex in izipargnodes(callargtypes, argnodes) do
       if (argnode and argnode.attr.sideeffect) or lastcallindex == 1 then
         -- expressions with side effects need to be evaluated in sequence
@@ -358,10 +359,15 @@ local function visitor_Call(context, node, emitter, argnodes, callee, isblockcal
     end
 
     if ismethod then
-      emitter:add(context:declname(node.attr.symbol), '(', callee)
+      emitter:add(context:declname(attr.symbol), '(')
+      emitter:add_val2type(calleetype.argtypes[1], callee)
     else
+      if attr.pointercall then
+        emitter:add('*')
+      end
       emitter:add(callee, '(')
     end
+
     for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(callargtypes, argnodes) do
       if i > 1 or ismethod then emitter:add(', ') end
       local arg = argnode
@@ -376,7 +382,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, isblockcal
     end
     emitter:add(')')
 
-    if calleetype:has_multiple_returns() and not node.attr.multirets then
+    if calleetype:has_multiple_returns() and not attr.multirets then
       -- get just the first result in multiple return functions
       emitter:add('.r1')
     end

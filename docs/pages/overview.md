@@ -627,7 +627,7 @@ local a: string_slice = 'hello world'[1:2]
 
 ### Void
 
-Void type is more used internally and it's only used to specify that a functions has no arguments:
+Void type is more used internally and it's only used to specify that a function returns nothing:
 
 ```euluna
 local function f(): void end
