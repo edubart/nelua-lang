@@ -95,15 +95,13 @@ function Context:traverse(node, ...)
 end
 
 function Context:repeat_scope_until_resolution(scope_kind, after_push)
-  local resolutions_count = 0
   local scope
   repeat
-    local last_resolutions_count = resolutions_count
     scope = self:push_scope(scope_kind)
     after_push(scope)
-    resolutions_count = scope:resolve()
+    local resolutions_count = scope:resolve()
     self:pop_scope()
-  until resolutions_count == last_resolutions_count
+  until resolutions_count == 0
   return scope
 end
 

@@ -896,9 +896,7 @@ function visitors.ForIn(context, node)
         local itsymbol = context:traverse(itvarnode)
         if infunctype and infunctype:is_function() then
           local fittype = infunctype:get_return_type(i)
-          if fittype then
-            itsymbol:add_possible_type(fittype)
-          end
+          itsymbol:add_possible_type(fittype)
         end
       end
     end
@@ -1036,6 +1034,9 @@ function visitors.VarDecl(context, node)
         assert(valnode and valnode.attr.holdedtype)
         symbol.attr.holdedtype = valnode.attr.holdedtype
       end
+    else
+      -- delay type evaluation
+      symbol:add_possible_type(nil)
     end
   end
 end

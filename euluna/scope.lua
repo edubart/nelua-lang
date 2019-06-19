@@ -59,10 +59,15 @@ local function symbol_resolve_type(symbol)
   if symbol.attr.type then
     return false
   end
-  if symbol.has_unknown_type then return false end
+  if symbol.requnknown then
+    return false
+  end
   local type = typedefs.find_common_type(symbol.possibletypes)
-  symbol.attr.type = type
-  return true
+  if type then
+    symbol.attr.type = type
+    return true
+  end
+  return false
 end
 
 function Scope:add_symbol(symbol)
@@ -86,9 +91,26 @@ end
 
 function Scope:resolve_symbols()
   local count = 0
+  local unknownlist = {}
+  -- first resolve any symbol with known possible types
   for _,symbol in pairs(self.symbols) do
-    if symbol_resolve_type(symbol) then
-      count = count + 1
+    if not symbol.hasunknown then
+      if symbol_resolve_type(symbol) then
+        count = count + 1
+      end
+    elseif count == 0 then
+      table.insert(unknownlist, symbol)
+    end
+  end
+  -- if nothing was resolved previously then try resolve symbol with unkown possible types
+  if count == 0 and #unknownlist > 0 then
+    -- try to infer the type only for the first unknown symbol
+    table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)
+    for _,symbol in ipairs(unknownlist) do
+      if symbol_resolve_type(symbol) then
+        count = count + 1
+        break
+      end
     end
   end
   return count

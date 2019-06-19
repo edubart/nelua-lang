@@ -17,8 +17,12 @@ end
 
 function Symbol:add_possible_type(type, required)
   if self.attr.type then return end
-  if not type and required then
-    self.has_unknown_type = true
+  if not type then
+    if required then
+      self.requnknown = true
+    else
+      self.hasunknown = true
+    end
     return
   end
   if tabler.ifind(self.possibletypes, type) then return end
