@@ -1319,8 +1319,20 @@ function visitors.BinaryOp(context, node, desiredtype)
     end
   end
 
-  context:traverse(lnode, desiredtype)
+  local ldesiredtype = desiredtype
+  local ternaryand = false
+  local parent = context:get_parent_node()
+  if opname == 'and' then
+    if parent.tag == 'BinaryOp' and parent[1] == 'or' then
+      ternaryand = true
+      node.attr.ternaryand = true
+      parent.attr.ternaryor = true
+      ldesiredtype = primtypes.boolean
+    end
+  end
+
   context:traverse(rnode, desiredtype)
+  context:traverse(lnode, ldesiredtype)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
 
   if not type then
@@ -1334,7 +1346,12 @@ function visitors.BinaryOp(context, node, desiredtype)
     end
 
     if typedefs.binary_conditional_ops[opname] then
-      type = typedefs.find_common_type({ltype, rtype})
+      if ternaryand then
+        local prtype = parent[3].type
+        type = typedefs.find_common_type({rtype, prtype})
+      else
+        type = typedefs.find_common_type({ltype, rtype})
+      end
     else
       local ltargettype, rtargettype
       if ltype then

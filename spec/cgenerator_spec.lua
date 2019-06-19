@@ -393,12 +393,6 @@ it("binary conditional operators", function()
       }
       cond_ ? t2_ : (euluna_any){0};
     })]])
-  --[[
-  assert.generate_c("do return a and b end",  "return (a && b) ? b : (euluna_any){0};")
-  assert.generate_c("do return a and b or c end",  "return (a && b) ? a : b;")
-  assert.generate_c("do return not (a or b) end",  "return !(a || b)")
-  assert.generate_c("do return not (a and b) end",  "return !(a && b)")
-  ]]
   assert.run_c([[
     local a = 2 or 3
     assert(a == 2)
@@ -406,12 +400,33 @@ it("binary conditional operators", function()
     assert((0 or 1) == 0)
     --assert(nilptr or 1)
     --assert(1 or 's')
+
     assert((false or false) == false)
     assert((false or true) == true)
     assert((true or false) == true)
     assert((false and false) == false)
     assert((false and true) == false)
     assert((true and false) == false)
+
+    assert((true and true or true) == true)
+    assert((true and true or false) == true)
+    assert((true and false or true) == true)
+    assert((true and false or false) == false)
+    assert((false and true or true) == true)
+    assert((false and true or false) == false)
+    assert((false and false or true) == true)
+    assert((false and false or false) == false)
+
+    assert((false and 1 or 2) == 2)
+    assert((true and 1 or 2) == 1)
+    assert((true and 1 and 2 or 3) == 2)
+    assert((false and 1 and 2 or 3) == 3)
+    assert((false and 0xff_uint8 or 0xffff_uint16) == 0xffff)
+
+    local p: pointer = nilptr
+    local pa: pointer = &a
+    assert((p and p or pa) == pa)
+    assert((pa and pa or p) == pa)
 
     local t1, t2 = false, false
     if (2 or 1) == 2 then t1 = true end

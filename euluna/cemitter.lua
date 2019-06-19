@@ -101,6 +101,8 @@ function CEmitter:add_val2boolean(val, valtype)
     self:add('euluna_any_to_boolean(', val, ')')
   elseif valtype:is_nil() or valtype:is_nilptr() then
     self:add('false')
+  elseif valtype:is_pointer() then
+    self:add(val, ' != NULL')
   else
     self:add('true')
   end

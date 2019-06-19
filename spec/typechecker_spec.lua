@@ -208,6 +208,7 @@ it("binary conditional and", function()
   assert.c_gencode_equals("local a = 1 and 2", "local a: integer = 1 and 2")
   assert.c_gencode_equals("local a = 1_i8 and 2_u8", "local a: int16 = 1_i8 and 2_u8")
   assert.c_gencode_equals("local a = 1 and true", "local a: any = 1 and true")
+  assert.c_gencode_equals("local a = 1 and 2 or 3", "local a: integer = 1 and 2 or 3")
 end)
 
 it("binary conditional or", function()
