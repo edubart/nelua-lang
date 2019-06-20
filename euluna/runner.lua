@@ -1,8 +1,9 @@
+local timer = require 'euluna.utils.nanotimer'()
 local stringer = require 'euluna.utils.stringer'
+local console = require 'euluna.utils.console'
 local fs = require 'euluna.utils.fs'
 local except = require 'euluna.utils.except'
 local executor = require 'euluna.utils.executor'
-local errorer = require 'euluna.utils.errorer'
 local configer = require 'euluna.configer'
 local syntaxdefs = require 'euluna.syntaxdefs'
 local typechecker = require 'euluna.typechecker'
@@ -12,6 +13,16 @@ local runner = {}
 local function run(argv, redirect)
   -- parse config
   local config = configer.parse(argv)
+  local generator = require('euluna.' .. config.generator .. 'generator')
+  if config.timing then
+    console.debugf('startup         %.1f ms', timer:elapsed_restart())
+  end
+
+  local syntax = syntaxdefs(config.standard)
+  if config.timing then
+    console.debugf('compile grammar %.1f ms', timer:elapsed_restart())
+  end
+
 
   -- determine input
   local input = config.input
@@ -22,9 +33,12 @@ local function run(argv, redirect)
   end
 
   -- parse ast
-  local syntax = syntaxdefs(config.standard)
   local parser = syntax.parser
   local ast = parser:parse(input, infile)
+
+  if config.timing then
+    console.debugf('parse AST       %.1f ms', timer:elapsed_restart())
+  end
 
   -- only checking syntax?
   if config.lint then
@@ -33,7 +47,7 @@ local function run(argv, redirect)
 
   -- only printing ast?
   if config.print_ast then
-    print(tostring(ast))
+    console.info(tostring(ast))
     return 0
   end
 
@@ -41,20 +55,27 @@ local function run(argv, redirect)
   local context
   ast, context = typechecker.analyze(ast, parser.astbuilder)
 
+  if config.timing then
+    console.debugf('analyze AST     %.1f ms', timer:elapsed_restart())
+  end
+
   if config.print_analyzed_ast then
-    print(tostring(ast))
+    console.info(tostring(ast))
     return 0
   end
 
   if config.analyze then return 0 end
 
   -- generate the code
-  local generator = require('euluna.' .. config.generator .. 'generator')
   local code, compileopts = generator.generate(ast, context)
+
+  if config.timing then
+    console.debugf('generate code   %.1f ms', timer:elapsed_restart())
+  end
 
   -- only printing generated code?
   if config.print_code then
-    print(code)
+    console.info(code)
     return 0
   end
 
@@ -66,6 +87,10 @@ local function run(argv, redirect)
   local compiler = generator.compiler
   local sourcefile = compiler.compile_code(code, outcachefile, compileopts)
 
+  if config.timing then
+    console.debugf('compile code    %.1f ms', timer:elapsed_restart())
+  end
+
   local dorun = not config.compile and not config.compile_binary
   local dobinarycompile = config.compile_binary or dorun
 
@@ -73,16 +98,23 @@ local function run(argv, redirect)
   local binaryfile
   if dobinarycompile then
     binaryfile = compiler.compile_binary(sourcefile, outcachefile, compileopts)
+
+    if config.timing then
+      console.debugf('compile binary  %.1f ms', timer:elapsed_restart())
+    end
   end
 
   -- run
   if dorun then
     local exe, exeargs = compiler.get_run_command(binaryfile, config.runargs)
-    if not config.quiet then print(exe .. ' ' .. table.concat(exeargs, ' ')) end
+    if not config.quiet then console.info(exe .. ' ' .. table.concat(exeargs, ' ')) end
     local exec = redirect and executor.execex or executor.exec
     local success, status, sout, serr = exec(exe, exeargs, redirect)
     if sout then io.stdout:write(sout) io.stdout:flush() end
     if serr then io.stderr:write(serr) io.stderr:flush() end
+    if config.timing then
+      console.debugf('run             %.1f ms', timer:elapsed_restart())
+    end
     return status
   end
 
@@ -94,7 +126,7 @@ function runner.run(argv, redirect)
   except.try(function()
     status = run(argv, redirect)
   end, function(e)
-    errorer.errprint(e:get_message())
+    console.error(e:get_message())
     status = 1
     return true
   end)

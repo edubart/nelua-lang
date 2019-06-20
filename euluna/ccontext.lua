@@ -106,6 +106,8 @@ function CContext:typename(type)
     end
   elseif type:is_string() then
     self.has_string = true
+  elseif type:is_function() then
+    assert(false, 'ctype for functions not implemented yet')
   elseif type:is_any() then
     self.has_any = true
     self.has_string = true

@@ -27,6 +27,7 @@ dependencies = {
   'lua-term >= 0.7',
   'argparse >= 0.6.0',
   'hasher >= 0.1.0',
+  'chronos >= 0.2',
   'lbc >= 20180729',
 
   -- dev dependencies only
@@ -34,7 +35,6 @@ dependencies = {
   'luacheck >= 0.23.0',
   'luacov >= 0.13.0',
   'cluacov >= 0.1.1',
-  'chronos >= 0.2',
   'dumper >= 0.1.0',
 }
 
@@ -70,11 +70,13 @@ build = {
     ['euluna.types'] = 'euluna/types.lua',
     ['euluna.utils.bn'] = 'euluna/utils/bn.lua',
     ['euluna.utils.class'] = 'euluna/utils/class.lua',
+    ['euluna.utils.console'] = 'euluna/utils/console.lua',
     ['euluna.utils.errorer'] = 'euluna/utils/errorer.lua',
     ['euluna.utils.except'] = 'euluna/utils/except.lua',
     ['euluna.utils.executor'] = 'euluna/utils/executor.lua',
     ['euluna.utils.fs'] = 'euluna/utils/fs.lua',
     ['euluna.utils.iterators'] = 'euluna/utils/iterators.lua',
+    ['euluna.utils.nanotimer'] = 'euluna/utils/nanotimer.lua',
     ['euluna.utils.memoize'] = 'euluna/utils/memoize.lua',
     ['euluna.utils.metamagic'] = 'euluna/utils/metamagic.lua',
     ['euluna.utils.pegger'] = 'euluna/utils/pegger.lua',

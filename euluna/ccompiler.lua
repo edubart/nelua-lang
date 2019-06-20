@@ -5,6 +5,7 @@ local except = require 'euluna.utils.except'
 local executor = require 'euluna.utils.executor'
 local tabler = require 'euluna.utils.tabler'
 local sstream = require 'euluna.utils.sstream'
+local console = require 'euluna.utils.console'
 local config = require 'euluna.configer'.get()
 local cdefs = require 'euluna.cdefs'
 
@@ -64,13 +65,13 @@ function compiler.compile_code(ccode, outfile, compileopts)
   -- check if write is actually needed
   local current_sourcecode = fs.tryreadfile(cfile)
   if not config.no_cache and current_sourcecode and current_sourcecode == sourcecode then
-    if not config.quiet then print("using cached generated " .. cfile) end
+    if not config.quiet then console.info("using cached generated " .. cfile) end
     return cfile
   end
 
   fs.ensurefilepath(cfile)
   fs.writefile(cfile, sourcecode)
-  if not config.quiet then print("generated " .. cfile) end
+  if not config.quiet then console.info("generated " .. cfile) end
 
   return cfile
 end
@@ -82,7 +83,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
     local outfile_mtime = fs.getfiletime(outfile)
     if cfile_mtime and outfile_mtime and cfile_mtime <= outfile_mtime then
       if not config.quiet then
-        print("using cached binary " .. outfile)
+        console.info("using cached binary " .. outfile)
       end
       return outfile
     end
@@ -92,7 +93,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
 
   -- generate compile command
   local cccmd = get_compile_args(cfile, outfile, compileopts)
-  if not config.quiet then print(cccmd) end
+  if not config.quiet then console.info(cccmd) end
 
   -- compile the file
   local success, status, stdout, stderr = executor.execex(cccmd)

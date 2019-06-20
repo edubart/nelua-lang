@@ -1,5 +1,5 @@
 local re = require 'relabel'
-local stringer = require 'euluna.utils.stringer'
+local colors = require 'euluna.utils.console'.colors
 
 local errorer = {}
 
@@ -16,15 +16,8 @@ function errorer.errorf(message, ...)
 end
 --luacov:enable
 
-function errorer.errprint(...)
-  io.stderr:write(stringer.print_concat(...))
-  io.stderr:write("\n")
-  io.stderr:flush()
-end
-
 function errorer.get_pretty_source_errmsg(src, srcname, errpos, errmsg, errname)
   local line, col = re.calcline(src, errpos)
-  local colors = require 'term.colors'
   local NEARLENGTH = 120
   local linebegin = src:sub(math.max(errpos-NEARLENGTH, 1), errpos-1):match('[^\r\n]*$')
   local lineend = src:sub(errpos, errpos+NEARLENGTH):match('^[^\r\n]*')

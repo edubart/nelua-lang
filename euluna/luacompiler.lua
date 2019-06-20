@@ -2,6 +2,7 @@ local fs = require 'euluna.utils.fs'
 local pegger = require 'euluna.utils.pegger'
 local stringer = require 'euluna.utils.stringer'
 local tabler = require 'euluna.utils.tabler'
+local console = require 'euluna.utils.console'
 local config = require 'euluna.configer'.get()
 
 local lua_compiler = {}
@@ -21,13 +22,13 @@ function lua_compiler.compile_code(luacode, outfile)
   -- check if write is actually needed
   local current_sourcecode = fs.tryreadfile(luafile)
   if not config.no_cache and current_sourcecode and current_sourcecode == sourcecode then
-    if not config.quiet then print("using cached generated " .. luafile) end
+    if not config.quiet then console.info("using cached generated " .. luafile) end
     return luafile
   end
 
   fs.ensurefilepath(luafile)
   fs.writefile(luafile, sourcecode)
-  if not config.quiet then print("generated " .. luafile) end
+  if not config.quiet then console.info("generated " .. luafile) end
 
   return luafile
 end

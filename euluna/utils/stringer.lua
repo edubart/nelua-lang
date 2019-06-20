@@ -23,4 +23,12 @@ function stringer.print_concat(...)
   return table.concat(t, '\t')
 end
 
+function stringer.print_format(format, ...)
+  if select('#', ...) > 0 then
+    return string.format(format, ...)
+  else
+    return format
+  end
+end
+
 return stringer
