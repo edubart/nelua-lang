@@ -63,10 +63,10 @@ function Symbol:__tostring()
     ss:add('compconst ')
   end
   if self.attr.type then
-    ss:add(tostring(self.attr.type))
+    ss:add(self.attr.type)
   end
   if self.attr.value then
-    ss:add(' = ', tostring(self.attr.value))
+    ss:add(' = ', self.attr.value)
   end
   ss:add('>')
   return ss:tostring()

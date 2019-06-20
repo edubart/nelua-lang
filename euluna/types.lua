@@ -30,7 +30,7 @@ function Type:_init(name, node)
   metamagic.setmetaindex(self.binary_operators, mt.binary_operators)
 
   if node then
-    self.key = tostring(self.node.srcname) .. tostring(self.node.pos)
+    self.key = string.format('%s%d', self.node.srcname or '', self.node.pos)
   else
     self.key = name
   end
@@ -234,7 +234,8 @@ Type.any = Type('any')
 
 local function gencodename(self)
   local s = tostring(self)
-  return string.format('%s_%s', self.name, stringer.hash(s .. self.key, 16))
+  local hash = stringer.hash(s .. self.key, 16)
+  return string.format('%s_%s', self.name, hash)
 end
 
 local function typeclass()
@@ -272,7 +273,7 @@ function ArrayType:_init(node, subtype, length)
   self.subtype = subtype
   self.length = length
   Type._init(self, 'array', node)
-  self.codename = subtype.codename .. '_arr' .. tostring(length)
+  self.codename = string.format('%s_arr%d', subtype.codename, length)
 end
 
 function ArrayType:is_equal(type)
@@ -519,7 +520,7 @@ function PointerType:is_coercible_from_node(node, explicit)
   if self.subtype == nodetype then
     -- automatic reference
     node:assertraisef(node.attr.lvalue,
-      'cannot automatic reference rvalue to pointer type "%s"', tostring(self))
+      'cannot automatic reference rvalue to pointer type "%s"', self)
     node.attr.autoref = true
     return true
   end

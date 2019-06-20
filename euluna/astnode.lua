@@ -6,6 +6,7 @@ local iters = require 'euluna.utils.iterators'
 local traits = require 'euluna.utils.traits'
 local except = require 'euluna.utils.except'
 local sstream = require 'euluna.utils.sstream'
+local stringer = require 'euluna.utils.stringer'
 
 local ASTNode = class()
 ASTNode.tag = 'Node'
@@ -92,9 +93,7 @@ end
 -- error handling
 -------------------
 local function format_node_errmsg(node, message, ...)
-  if select('#', ...) > 0 then
-    message = string.format(message, ...)
-  end
+  message = stringer.pformat(message, ...)
   if node.src and node.pos then
     message = errorer.get_pretty_source_errmsg(node.src, node.srcname, node.pos, message)
   end

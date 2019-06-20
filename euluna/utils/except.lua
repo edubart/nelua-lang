@@ -1,6 +1,7 @@
 local class = require 'euluna.utils.class'
 local metamagic = require 'euluna.utils.metamagic'
 local tabler = require 'euluna.utils.tabler'
+local stringer = require 'euluna.utils.stringer'
 local traits = require 'euluna.utils.traits'
 
 local Exception = class()
@@ -60,7 +61,7 @@ function except.assertraise(cond, e)
 end
 
 function except.assertraisef(cond, message, ...)
-  if not cond then raise(string.format(message, ...), 2) end
+  if not cond then raise(stringer.pformat(message, ...), 2) end
   return cond
 end
 

@@ -1,4 +1,6 @@
 local stringx = require 'pl.stringx'
+local tabler = require 'euluna.utils.tabler'
+local metamagic = require 'euluna.utils.metamagic'
 local hasher = require 'hasher'
 
 local stringer = {}
@@ -15,7 +17,7 @@ stringer.split = stringx.split
 stringer.rstrip = stringx.rstrip
 stringer.count = stringx.count
 
-function stringer.print_concat(...)
+function stringer.pconcat(...)
   local t = table.pack(...)
   for i=1,t.n do
     t[i] = tostring(t[i])
@@ -23,12 +25,26 @@ function stringer.print_concat(...)
   return table.concat(t, '\t')
 end
 
-function stringer.print_format(format, ...)
+function stringer.pformat(format, ...)
   if select('#', ...) > 0 then
     return string.format(format, ...)
   else
     return format
   end
+end
+
+function stringer.pformat(format, ...)
+  if select('#', ...) == 0 then
+    return format
+  end
+  -- compability with lua5.1
+  local args = tabler.pack(...)
+  for i=1,args.n do
+    if metamagic.hasmetamethod(args[i], '__tostring') then
+      args[i] = tostring(args[i])
+    end
+  end
+  return string.format(format, tabler.unpack(args))
 end
 
 return stringer

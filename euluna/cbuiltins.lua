@@ -136,7 +136,7 @@ function functions.print(context, node)
       node:assertraisef(tyformat, 'invalid type "%s" for printf format', tyname)
       defemitter:add_indent_ln('euluna_stdout_write_format("',tyformat,'", a',i,');')
     else --luacov:disable
-      node:raisef('cannot handle type "%s" in print', tostring(argtype))
+      node:raisef('cannot handle type "%s" in print', argtype)
     end --luacov:enable
   end
   defemitter:add_indent_ln('euluna_stdout_write_newline();')

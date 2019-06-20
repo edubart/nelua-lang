@@ -115,7 +115,7 @@ function CContext:typename(type)
     self.has_string = true
     self.has_type = true
   else
-    errorer.assertf(cdefs.primitive_ctypes[type], 'ctype for "%s" is unknown', tostring(type))
+    errorer.assertf(cdefs.primitive_ctypes[type], 'ctype for "%s" is unknown', type)
   end
   return codename
 end

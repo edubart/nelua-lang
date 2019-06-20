@@ -18,7 +18,7 @@ local function logcf(out, color, text)
   out:flush()
 end
 
-local pformat, pconcat = stringer.print_format, stringer.print_concat
+local pformat, pconcat = stringer.pformat, stringer.pconcat
 
 function console.warnf(format, ...)  logcf(io.stderr, color_warn,  pformat(format, ...)) end
 function console.errorf(format, ...) logcf(io.stderr, color_error, pformat(format, ...)) end

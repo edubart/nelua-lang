@@ -1,18 +1,19 @@
 local re = require 'relabel'
 local colors = require 'euluna.utils.console'.colors
+local stringer = require 'euluna.utils.stringer'
 
 local errorer = {}
 
 --luacov:disable
 function errorer.assertf(cond, message, ...)
   if not cond then
-    error(string.format(message, ...), 2)
+    error(stringer.pformat(message, ...), 2)
   end
   return cond
 end
 
 function errorer.errorf(message, ...)
-  error(string.format(message, ...), 2)
+  error(stringer.pformat(message, ...), 2)
 end
 --luacov:enable
 
