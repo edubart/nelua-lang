@@ -1,4 +1,3 @@
-local iters = require 'euluna.utils.iterators'
 local tabler = require 'euluna.utils.tabler'
 local types = require 'euluna.types'
 local bn = require 'euluna.utils.bn'
@@ -241,7 +240,7 @@ local unary_op_types = {
 
 do
   for opname, optypes in pairs(unary_op_types) do
-    for type in iters.ivalues(optypes) do
+    for _,type in ipairs(optypes) do
       type:add_unary_operator_type(opname, optypes.result_type or type)
     end
   end
@@ -280,7 +279,7 @@ local binary_op_types = {
 
 do
   for opname, optypes in pairs(binary_op_types) do
-    for type in iters.ivalues(optypes) do
+    for _,type in ipairs(optypes) do
       type:add_binary_operator_type(opname, optypes.result_type or type)
     end
   end
@@ -307,7 +306,7 @@ function typedefs.find_common_type(possibletypes)
 
   -- numeric type promotion
   if tabler.iall(possibletypes, Type.is_numeric) then
-    for numtype in iters.ivalues(typedefs.integer_coerce_types) do
+    for _,numtype in ipairs(typedefs.integer_coerce_types) do
       if tabler.iall(possibletypes, function(ty)
         return numtype:is_coercible_from_type(ty) end
       ) then

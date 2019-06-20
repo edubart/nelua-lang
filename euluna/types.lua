@@ -47,7 +47,7 @@ function Type:__tostring()
 end
 
 function Type:add_conversible_types(types)
-  for type in iters.ivalues(types) do
+  for _,type in ipairs(types) do
     self.conversible_types[type] = true
   end
 end

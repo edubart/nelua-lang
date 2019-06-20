@@ -2,7 +2,6 @@ local class = require 'euluna.utils.class'
 local tabler = require 'euluna.utils.tabler'
 local errorer = require 'euluna.utils.errorer'
 local pegger = require 'euluna.utils.pegger'
-local iters = require 'euluna.utils.iterators'
 
 local PEGBuilder = class()
 
@@ -55,7 +54,7 @@ end
 
 function PEGBuilder:set_pegs(combined_patts, defs, overwrite)
   local pattdescs = pegger.split_grammar_patts(combined_patts)
-  for pattdesc in iters.ivalues(pattdescs) do
+  for _,pattdesc in ipairs(pattdescs) do
     self:set_peg(pattdesc.name, pattdesc.patt, nil, overwrite)
   end
   merge_defs(self, defs)

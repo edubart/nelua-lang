@@ -2,27 +2,6 @@ local tabler = require 'euluna.utils.tabler'
 
 local iterators = {}
 
--- iterate all values of a array, returning only its value
-function iterators.ivalues(t)
-  local i = 0
-  return function()
-    i = i + 1
-    return t[i]
-  end
-end
-
--- iterate all values of a table, returning only its value
-function iterators.values(t)
-  local k = nil
-  return function()
-    local v
-    k, v = next(t, k)
-    if k ~= nil then
-      return v
-    end
-  end
-end
-
 -- iterate `n` values of an array, returning its index and value
 function iterators.inpairs(t, n)
   return function(_t, i)
