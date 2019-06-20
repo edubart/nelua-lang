@@ -27,17 +27,19 @@ function CContext:declname(node)
     return attr.declname
   end
   local declname = attr.codename
-  if not attr.nodecl and not attr.cimport then
-    if self.scope:is_main() and traits.is_astnode(node) then
-      local modname = self.attr.modname or node.modname
-      if modname ~= '' then
-        declname = modname .. '_' .. declname
+  if not attr.nodecl then
+    if not attr.cimport then
+      if self.scope:is_main() and traits.is_astnode(node) then
+        local modname = self.attr.modname or node.modname
+        if modname ~= '' then
+          declname = modname .. '_' .. declname
+        end
       end
+      declname = cdefs.quotename(declname)
     end
-    declname = cdefs.quotename(declname)
-  end
-  if attr.shadowcount then
-    declname = declname .. attr.shadowcount
+    if attr.shadowcount then
+      declname = declname .. '__' .. attr.shadowcount
+    end
   end
   attr.declname = declname
   return declname

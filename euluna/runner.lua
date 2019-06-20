@@ -126,7 +126,7 @@ function runner.run(argv, redirect)
   except.try(function()
     status = run(argv, redirect)
   end, function(e)
-    console.error(e:get_message())
+    console.logerr(e:get_message())
     status = 1
     return true
   end)

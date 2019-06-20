@@ -506,6 +506,9 @@ it("variable shadowing", function()
     assert(f() == 1)
     local function f() return 2 end
     assert(f() == 2)
+
+    local a2 = 4
+    assert(a2 == 4)
   ]])
 end)
 

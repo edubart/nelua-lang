@@ -11,14 +11,10 @@ local color_warn = tostring(colors.yellow) .. tostring(colors.bright)
 local color_info = nil
 
 local function logcf(out, color, text)
-  if color then
-    out:write(color)
-  end
+  if color then out:write(color) end
   out:write(text)
   out:write('\n')
-  if color then
-    out:write(color_reset)
-  end
+  if color then out:write(color_reset) end
   out:flush()
 end
 
@@ -33,5 +29,8 @@ function console.warn(...)  logcf(io.stderr, color_warn,  pconcat(...)) end
 function console.error(...) logcf(io.stderr, color_error, pconcat(...)) end
 function console.debug(...) logcf(io.stderr, color_debug, pconcat(...)) end
 function console.info(...)  logcf(io.stdout, color_info,  pconcat(...)) end
+
+function console.log(...)   logcf(io.stdout, nil,  pconcat(...)) end
+function console.logerr(...)logcf(io.stderr, nil,  pconcat(...)) end
 
 return console
