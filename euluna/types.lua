@@ -94,9 +94,10 @@ function Type:is_coercible_from_type(type, explicit)
 end
 
 function Type:is_coercible_from_node(node, explicit)
-  local type = node.attr.type
-  if self.integral and type.integral and node.attr.compconst and node.attr.value then
-    return self:is_inrange(node.attr.value)
+  local attr = node.attr
+  local type = attr.type
+  if self.integral and type.integral and attr.compconst and attr.value then
+    return self:is_inrange(attr.value)
   end
   return self:is_coercible_from_type(type, explicit)
 end

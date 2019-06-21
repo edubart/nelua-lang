@@ -56,18 +56,17 @@ function Scope:get_symbol(name, node)
 end
 
 local function symbol_resolve_type(symbol)
-  if symbol.attr.type then
-    return false
-  end
-  if symbol.requnknown then
+  if symbol.attr.type or symbol.requnknown or symbol.resolvefail then
     return false
   end
   local type = typedefs.find_common_type(symbol.possibletypes)
   if type then
     symbol.attr.type = type
     return true
+  else
+    symbol.resolvefail = true
+    return false
   end
-  return false
 end
 
 function Scope:add_symbol(symbol)

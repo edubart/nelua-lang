@@ -19,31 +19,40 @@ local phases = {
 }
 
 function visitors.Number(context, node, desiredtype)
-  local base, int, frac, exp, literal = node:args()
-  local value
-  if base == 'hex' then
-    value = bn.fromhex(int, frac, exp)
-  elseif base == 'bin' then
-    value = bn.frombin(int, frac, exp)
-  else
-    value = bn.fromdec(int, frac, exp)
+  local attr = node.attr
+  if attr.type and (not desiredtype or attr.littype) then return end
+
+  if not attr.value then
+    local value
+    local base, int, frac, exp, literal = node:args()
+    if base == 'hex' then
+      value = bn.fromhex(int, frac, exp)
+    elseif base == 'bin' then
+      value = bn.frombin(int, frac, exp)
+    else
+      value = bn.fromdec(int, frac, exp)
+    end
+    local floatexp = exp and (stringer.startswith(exp, '-') or value > primtypes.integer.range.max)
+    local integral = not (frac or floatexp)
+    local parentnode = context:get_parent_node()
+    if parentnode and parentnode.tag == 'UnaryOp' and parentnode:arg(1) == 'neg' then
+      value = -value
+    end
+    if literal then
+      attr.littype = typedefs.number_literal_types[literal]
+      node:assertraisef(attr.littype, 'literal suffix "%s" is not defined', literal)
+    end
+    attr.value = value
+    attr.integral = integral
+    attr.compconst = true
   end
-  local floatexp = exp and (stringer.startswith(exp, '-') or value > primtypes.integer.range.max)
-  local integral = not (frac or floatexp)
-  local type
-  local parentnode = context:get_parent_node()
-  if parentnode and parentnode.tag == 'UnaryOp' and parentnode:arg(1) == 'neg' then
-    value = -value
-  end
-  if literal then
-    type = typedefs.number_literal_types[literal]
-    node:assertraisef(type, 'literal suffix "%s" is not defined', literal)
-  elseif desiredtype and desiredtype:is_numeric() then
-    if integral and desiredtype:is_integral() then
-      if desiredtype:is_unsigned() and not value:isneg() then
+  local type = attr.littype
+  if not type and desiredtype and desiredtype:is_numeric() then
+    if attr.integral and desiredtype:is_integral() then
+      if desiredtype:is_unsigned() and not attr.value:isneg() then
         -- find smallest unsigned type
         for _,range in ipairs(typedefs.unsigned_ranges) do
-          if value >= range.min and value <= range.max then
+          if attr.value >= range.min and attr.value <= range.max then
             type = range.type
             break
           end
@@ -51,7 +60,7 @@ function visitors.Number(context, node, desiredtype)
       else
       -- find smallest signed type
         for _,range in ipairs(typedefs.signed_ranges) do
-          if value >= range.min and value <= range.max then
+          if attr.value >= range.min and attr.value <= range.max then
             type = range.type
             break
           end
@@ -62,52 +71,51 @@ function visitors.Number(context, node, desiredtype)
     end
   end
   if not type then
-    if integral then
-      type = primtypes.integer
-    else
-      type = primtypes.number
-    end
+    type = attr.integral and primtypes.integer or primtypes.number
     node.untyped = true
   else
     node.untyped = nil
   end
-  if not literal and desiredtype and desiredtype:is_numeric() and desiredtype:is_coercible_from_type(type) then
+  if not attr.littype and desiredtype and desiredtype:is_numeric() and desiredtype:is_coercible_from_type(type) then
     type = desiredtype
   end
-  if type:is_integral() and not type:is_inrange(value) then
-    node:raisef(
-      "value %s for integral of type '%s' is out of range, minimum is %s and maximum is %s",
-      value:todec(), type, type.range.min:todec(), type.range.max:todec())
+  if attr.type ~= type then
+    if type:is_integral() and not type:is_inrange(attr.value) then
+      node:raisef(
+        "value %s for integral of type '%s' is out of range, minimum is %s and maximum is %s",
+        attr.value:todec(), type, type.range.min:todec(), type.range.max:todec())
+    end
+    attr.type = type
   end
-  node.attr.type = type
-  node.attr.value = value
-  node.attr.integral = integral
-  node.attr.compconst = true
 end
 
 function visitors.String(_, node)
-  if node.attr.type then return end
+  local attr = node.attr
+  if attr.type then return end
   local value, literal = node:args()
   node:assertraisef(literal == nil, 'string literals are not supported yet')
-  node.attr.value = value
-  node.attr.type = primtypes.string
-  node.attr.compconst = true
+  attr.value = value
+  attr.type = primtypes.string
+  attr.compconst = true
 end
 
 function visitors.Boolean(_, node)
-  if node.attr.type then return end
-  node.attr.value = node:args(1)
-  node.attr.type = primtypes.boolean
-  node.attr.compconst = true
+  local attr = node.attr
+  if attr.type then return end
+  attr.value = node:args(1)
+  attr.type = primtypes.boolean
+  attr.compconst = true
 end
 
 function visitors.Nil(_, node)
-  if node.attr.type then return end
-  node.attr.type = primtypes.Nil
-  node.attr.compconst = true
+  local attr = node.attr
+  if attr.type then return end
+  attr.type = primtypes.Nil
+  attr.compconst = true
 end
 
 function visitors.Table(context, node, desiredtype)
+  local attr = node.attr
   local childnodes = node:args()
   if desiredtype and desiredtype ~= primtypes.table then
     local compconst = true
@@ -192,13 +200,13 @@ function visitors.Table(context, node, desiredtype)
       node:raisef("in table literal, type '%s' cannot be initialized using a table literal",
         desiredtype)
     end
-    node.attr.type = desiredtype
+    attr.type = desiredtype
     if compconst then
-      node.attr.compconst = true
+      attr.compconst = true
     end
   else
     context:traverse(childnodes)
-    node.attr.type = primtypes.table
+    attr.type = primtypes.table
   end
 end
 
@@ -275,12 +283,12 @@ end
 
 function visitors.Id(context, node)
   local name = node:arg(1)
-  local type = node.attr.type
-  if not type and context.phase == phases.any_inference then
-    type = primtypes.any
-  end
   local symbol = context.scope:get_symbol(name, node)
   if not symbol then
+    local type = node.attr.type
+    if not type and context.phase == phases.any_inference then
+      type = primtypes.any
+    end
     symbol = context.scope:add_symbol(Symbol(name, node, type))
   else
     symbol:link_node(node)
@@ -296,12 +304,14 @@ function visitors.IdDecl(context, node)
   node:assertraisef(not mut or typedefs.mutabilities[mut],
     'mutability %s not supported yet', mut)
   local type = node.attr.type
-  if typenode then
-    context:traverse(typenode)
-    type = typenode.attr.holdedtype
-  end
-  if not type and context.phase == phases.any_inference then
-    type = primtypes.any
+  if not type then
+    if typenode then
+      context:traverse(typenode)
+      type = typenode.attr.holdedtype
+    end
+    if context.phase == phases.any_inference then
+      type = primtypes.any
+    end
   end
   local symbol = context.scope:add_symbol(Symbol(name, node, type))
   local attr = symbol.attr
@@ -325,7 +335,8 @@ function visitors.Paren(context, node, ...)
 end
 
 function visitors.Type(context, node)
-  if node.attr.type then return end
+  local attr = node.attr
+  if attr.type then return end
   local tyname = node:arg(1)
   local holdedtype = typedefs.primtypes[tyname]
   if not holdedtype then
@@ -334,9 +345,9 @@ function visitors.Type(context, node)
       "symbol '%s' is not a valid type", tyname)
     holdedtype = symbol.attr.holdedtype
   end
-  node.attr.type = primtypes.type
-  node.attr.holdedtype = holdedtype
-  node.attr.compconst = true
+  attr.type = primtypes.type
+  attr.holdedtype = holdedtype
+  attr.compconst = true
 end
 
 function visitors.TypeInstance(context, node, _, symbol)
@@ -351,48 +362,52 @@ function visitors.TypeInstance(context, node, _, symbol)
 end
 
 function visitors.FuncType(context, node)
-  if node.attr.type then return end
+  local attr = node.attr
+  if attr.type then return end
   local argnodes, retnodes = node:args()
   context:traverse(argnodes)
   context:traverse(retnodes)
   local type = types.FunctionType(node,
     tabler.imap(argnodes, function(argnode) return argnode.attr.holdedtype end),
     tabler.imap(retnodes, function(retnode) return retnode.attr.holdedtype end))
-  node.attr.type = primtypes.type
-  node.attr.holdedtype = type
-  node.attr.compconst = true
+  attr.type = primtypes.type
+  attr.holdedtype = type
+  attr.compconst = true
 end
 
 function visitors.MultipleType(context, node)
-  if node.attr.type then return end
+  local attr = node.attr
+  if attr.type then return end
   local typenodes = node:args()
   assert(#typenodes > 1)
   context:traverse(typenodes)
-  node.attr.type = primtypes.type
-  node.attr.holdedtype = types.MultipleType(node,
+  attr.type = primtypes.type
+  attr.holdedtype = types.MultipleType(node,
     tabler.imap(typenodes, function(typenode) return typenode.attr.holdedtype end))
-  node.attr.compconst = true
+  attr.compconst = true
 end
 
 function visitors.RecordFieldType(context, node)
-  if node.attr.type then return end
+  local attr = node.attr
+  if attr.type then return end
   local name, typenode = node:args()
   context:traverse(typenode)
-  node.attr.type = typenode.attr.type
-  node.attr.holdedtype = typenode.attr.holdedtype
+  attr.type = typenode.attr.type
+  attr.holdedtype = typenode.attr.holdedtype
 end
 
 function visitors.RecordType(context, node)
-  if node.attr.type then return end
+  local attr = node.attr
+  if attr.type then return end
   local fieldnodes = node:args()
   context:traverse(fieldnodes)
   local fields = tabler.imap(fieldnodes, function(fieldnode)
     return {name = fieldnode:arg(1), type=fieldnode.attr.holdedtype}
   end)
   local type = types.RecordType(node, fields)
-  node.attr.type = primtypes.type
-  node.attr.holdedtype = type
-  node.attr.compconst = true
+  attr.type = primtypes.type
+  attr.holdedtype = type
+  attr.compconst = true
 end
 
 function visitors.EnumFieldType(context, node, desiredtype)
@@ -415,7 +430,8 @@ function visitors.EnumFieldType(context, node, desiredtype)
 end
 
 function visitors.EnumType(context, node)
-  if node.attr.type then return end
+  local attr = node.attr
+  if attr.type then return end
   local typenode, fieldnodes = node:args()
   local subtype = primtypes.integer
   if typenode then
@@ -439,23 +455,25 @@ function visitors.EnumType(context, node)
     fields[i] = field
   end
   local type = types.EnumType(node, subtype, fields)
-  node.attr.type = primtypes.type
-  node.attr.holdedtype = type
-  node.attr.compconst = true
+  attr.type = primtypes.type
+  attr.holdedtype = type
+  attr.compconst = true
 end
 
 function visitors.ArrayTableType(context, node)
-  if node.attr.type then return end
+  local attr = node.attr
+  if attr.type then return end
   local subtypenode = node:args()
   context:traverse(subtypenode)
   local type = types.ArrayTableType(node, subtypenode.attr.holdedtype)
-  node.attr.type = primtypes.type
-  node.attr.holdedtype = type
-  node.attr.compconst = true
+  attr.type = primtypes.type
+  attr.holdedtype = type
+  attr.compconst = true
 end
 
 function visitors.ArrayType(context, node)
-  if node.attr.type then return end
+  local attr = node.attr
+  if attr.type then return end
   local subtypenode, lengthnode = node:args()
   context:traverse(subtypenode)
   local subtype = subtypenode.attr.holdedtype
@@ -465,13 +483,14 @@ function visitors.ArrayType(context, node)
   lengthnode:assertraisef(lengthnode.attr.type:is_integral() and length >= 0,
     'expected a valid decimal integral number in the second argument of an "array" type')
   local type = types.ArrayType(node, subtype, length)
-  node.attr.type = primtypes.type
-  node.attr.holdedtype = type
-  node.attr.compconst = true
+  attr.type = primtypes.type
+  attr.holdedtype = type
+  attr.compconst = true
 end
 
 function visitors.PointerType(context, node)
-  if node.attr.type then return end
+  local attr = node.attr
+  if attr.type then return end
   local subtypenode = node:args()
   local type
   if subtypenode then
@@ -481,14 +500,15 @@ function visitors.PointerType(context, node)
   else
     type = primtypes.pointer
   end
-  node.attr.type = primtypes.type
-  node.attr.holdedtype = type
-  node.attr.compconst = true
+  attr.type = primtypes.type
+  attr.holdedtype = type
+  attr.compconst = true
 end
 
 local function visitor_FieldIndex(context, node)
+  local attr = node.attr
   local name, objnode = node:args()
-  if node.attr.type then
+  if attr.type then
     local objtype = objnode.attr.type
     if objtype:is_type() then
       objtype = objnode.attr.holdedtype
@@ -498,9 +518,8 @@ local function visitor_FieldIndex(context, node)
     end
     return
   end
-  local symbol
   context:traverse(objnode)
-  local type
+  local symbol, type
   local objtype = objnode.attr.type
   if objtype then
     if objtype:is_pointer() then
@@ -516,7 +535,7 @@ local function visitor_FieldIndex(context, node)
     elseif objtype:is_type() then
       objtype = objnode.attr.holdedtype
       assert(objtype)
-      node.attr.holdedtype = objtype
+      attr.holdedtype = objtype
       if objtype:is_enum() then
         node:assertraisef(objtype:get_field(name),
           'enum "%s" does not have field named "%s"',
@@ -526,7 +545,7 @@ local function visitor_FieldIndex(context, node)
         symbol = objtype:get_metafield(name)
         if not symbol then
           if node.infuncdef then
-            local symname = objtype.codename .. '_' .. name
+            local symname = string.format('%s_%s', objtype.codename, name)
             symbol = Symbol(symname, node)
             symbol.attr.const = true
             symbol.attr.metafunc = true
@@ -550,9 +569,9 @@ local function visitor_FieldIndex(context, node)
     type = primtypes.any
   end
   if objnode.attr.lvalue then
-    node.attr.lvalue = true
+    attr.lvalue = true
   end
-  node.attr.type = type
+  attr.type = type
   return symbol
 end
 
@@ -1279,9 +1298,10 @@ function visitors.FuncDef(context, node)
 end
 
 function visitors.UnaryOp(context, node, desiredtype)
-  local opname, argnode = node:args()
-  local argattr
   local attr = node.attr
+  local opname, argnode = node:args()
+  local argattr = argnode.attr
+  if attr.type and argattr.type then return end
   if opname == 'not' then
     context:traverse(argnode, primtypes.boolean)
     argattr = argnode.attr
@@ -1308,14 +1328,13 @@ function visitors.UnaryOp(context, node, desiredtype)
   end
   attr.compconst = argattr.compconst
   attr.sideeffect = argattr.sideeffect
-  local parentnode = context:get_parent_node()
-  attr.inoperator = parentnode and stringer.endswith(parentnode.tag, 'Op')
+  attr.inoperator = stringer.endswith(context:get_parent_node().tag, 'Op')
 end
 
 function visitors.BinaryOp(context, node, desiredtype)
+  local attr = node.attr
   local opname, lnode, rnode = node:args()
   local parentnode = context:get_parent_node()
-  local attr = node.attr
   local type
 
   if desiredtype == primtypes.boolean then
@@ -1330,7 +1349,7 @@ function visitors.BinaryOp(context, node, desiredtype)
   local ldesiredtype = desiredtype
   local ternaryand = false
   if opname == 'and' then
-    if parentnode.tag == 'BinaryOp' and parentnode[1] == 'or' then
+    if parentnode.tag == 'BinaryOp' and parentnode[1] == 'or' and parentnode[2] == node then
       ternaryand = true
       attr.ternaryand = true
       parentnode.attr.ternaryor = true
@@ -1338,8 +1357,8 @@ function visitors.BinaryOp(context, node, desiredtype)
     end
   end
 
-  context:traverse(rnode, desiredtype)
   context:traverse(lnode, ldesiredtype)
+  context:traverse(rnode, desiredtype)
   local lattr, rattr = lnode.attr, rnode.attr
   local ltype, rtype = lattr.type, rattr.type
 
@@ -1355,10 +1374,19 @@ function visitors.BinaryOp(context, node, desiredtype)
 
     if typedefs.binary_conditional_ops[opname] then
       if ternaryand then
-        local prtype = parentnode[3].type
-        type = typedefs.find_common_type({rtype, prtype})
+        if rtype then
+          -- get type from right 'or' node
+          local prnode = parentnode[3]
+          context:traverse(prnode, rtype)
+          local prtype = prnode.attr.type
+          if prtype then
+            type = typedefs.find_common_type({rtype, prtype})
+          end
+        end
       else
-        type = typedefs.find_common_type({ltype, rtype})
+        if ltype and rtype then
+          type = typedefs.find_common_type({ltype, rtype})
+        end
       end
     else
       local ltargettype, rtargettype
@@ -1411,7 +1439,7 @@ function visitors.BinaryOp(context, node, desiredtype)
   if lattr.sideeffect or rattr.sideeffect then
     attr.sideeffect = true
   end
-  attr.inoperator = parentnode and stringer.endswith(parentnode.tag, 'Op')
+  attr.inoperator = stringer.endswith(parentnode.tag, 'Op')
 end
 
 local typechecker = {}
