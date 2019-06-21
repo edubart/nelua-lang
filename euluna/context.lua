@@ -1,17 +1,39 @@
 local class = require 'euluna.utils.class'
 local traits = require 'euluna.utils.traits'
-local iters = require 'euluna.utils.iterators'
+local errorer = require 'euluna.utils.errorer'
 local Scope = require 'euluna.scope'
 
 local Context = class()
 
+local is_astnode, is_table = traits.is_astnode, traits.is_table
+
+local function traverse_node(self, node, ...)
+  local tag = node.tag
+  local visitor_func = self.visitors[tag] or self.default_visitor
+  if not visitor_func then --luacov:disable
+    node:errorf("visitor for AST node '%s' does not exist", tag)
+  end --luacov:enable
+  table.insert(self.nodes, node) -- push node
+  local ret = visitor_func(self, node, ...)
+  table.remove(self.nodes) -- pop node
+  return ret
+end
+
+local function traverse_nodes(self, nodes, ...)
+  for i=1,#nodes do
+    self:traverse(nodes[i], ...)
+  end
+end
+
 local function traverser_default_visitor(self, node, ...)
-  local nargs = traits.is_astnode(node) and node.nargs or #node
-  for _,arg in iters.inpairs(node, nargs) do
-    if traits.is_astnode(arg) then
-      self:traverse(arg, ...)
-    elseif traits.is_table(arg) then
-      traverser_default_visitor(self, arg, ...)
+  for i=1,node.nargs or #node do
+    local arg = node[i]
+    if arg and is_table(arg) then
+      if arg._astnode then
+        traverse_node(self, arg, ...)
+      else
+        traverser_default_visitor(self, arg, ...)
+      end
     end
   end
 end
@@ -39,14 +61,6 @@ function Context:pop_scope()
   self.scope = self.scope.parent
 end
 
-function Context:push_node(node)
-  table.insert(self.nodes, node)
-end
-
-function Context:pop_node()
-  table.remove(self.nodes)
-end
-
 function Context:get_top_node()
   return self.nodes[1]
 end
@@ -70,28 +84,14 @@ function Context:get_parent_node_if(f)
   end
 end
 
-function Context:traverse_nodes(nodes, ...)
-  assert(not traits.is_astnode(nodes) and traits.is_table(nodes), "must traverse a list")
-  for _,node in ipairs(nodes) do
-    self:traverse(node, ...)
-  end
-end
-
-function Context:traverse_node(node, ...)
-  assert(traits.is_astnode(node), "trying to traverse a non node value")
-  local visitor_func = self.visitors[node.tag] or self.default_visitor
-  node:assertf(visitor_func, "visitor for AST node '%s' does not exist", node.tag)
-  self:push_node(node)
-  local ret = visitor_func(self, node, ...)
-  self:pop_node()
-  return ret
-end
-
 function Context:traverse(node, ...)
-  if traits.is_astnode(node) then
-    return self:traverse_node(node, ...)
-  end
-  return self:traverse_nodes(node, ...)
+  if is_astnode(node) then
+    return traverse_node(self, node, ...)
+  elseif is_table(node) then
+    return traverse_nodes(self, node, ...)
+  else --luacov:disable
+    errorer.errorf('cannot traverse lua value of type %s', type(node))
+  end --luacov:enable
 end
 
 function Context:repeat_scope_until_resolution(scope_kind, after_push)

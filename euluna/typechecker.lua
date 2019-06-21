@@ -304,13 +304,14 @@ function visitors.IdDecl(context, node)
     type = primtypes.any
   end
   local symbol = context.scope:add_symbol(Symbol(name, node, type))
+  local attr = symbol.attr
   if mut then
-    symbol.attr[mut] = true
+    attr[mut] = true
   end
   if pragmanodes then
     context:traverse(pragmanodes, symbol)
   end
-  symbol.attr.lvalue = true
+  attr.lvalue = true
   return symbol
 end
 
@@ -1279,42 +1280,48 @@ end
 
 function visitors.UnaryOp(context, node, desiredtype)
   local opname, argnode = node:args()
+  local argattr
+  local attr = node.attr
   if opname == 'not' then
     context:traverse(argnode, primtypes.boolean)
-    node.attr.type = primtypes.boolean
+    argattr = argnode.attr
+    attr.type = primtypes.boolean
   else
     context:traverse(argnode, desiredtype)
-    local argtype = argnode.attr.type
+    argattr = argnode.attr
+    local argtype = argattr.type
     if argtype then
       local type = argtype:get_unary_operator_type(opname)
       argnode:assertraisef(type,
         "unary operation `%s` is not defined for type '%s' of the expression",
         opname, argtype)
-      node.attr.type = type
+      attr.type = type
     end
     if opname == 'neg' and argnode.tag == 'Number' then
-      node.attr.value = argnode.attr.value
+      attr.value = argattr.value
     end
     if (opname == 'deref' or opname == 'ref') and argnode.tag == 'Id' then
       -- for loops needs to know if an Id symbol could mutate
-      argnode.attr.mutate = true
+      argattr.mutate = true
     end
-    assert(context.phase ~= phases.any_inference or node.attr.type)
+    assert(context.phase ~= phases.any_inference or attr.type)
   end
-  node.attr.compconst = argnode.attr.compconst
-  node.attr.sideeffect = argnode.attr.sideeffect
+  attr.compconst = argattr.compconst
+  attr.sideeffect = argattr.sideeffect
   local parentnode = context:get_parent_node()
-  node.attr.inoperator = parentnode and stringer.endswith(parentnode.tag, 'Op')
+  attr.inoperator = parentnode and stringer.endswith(parentnode.tag, 'Op')
 end
 
 function visitors.BinaryOp(context, node, desiredtype)
   local opname, lnode, rnode = node:args()
+  local parentnode = context:get_parent_node()
+  local attr = node.attr
   local type
 
   if desiredtype == primtypes.boolean then
     if typedefs.binary_conditional_ops[opname] then
       type = primtypes.boolean
-      desiredtype = primtypes.boolean
+      desiredtype = type
     else
       desiredtype = nil
     end
@@ -1322,33 +1329,33 @@ function visitors.BinaryOp(context, node, desiredtype)
 
   local ldesiredtype = desiredtype
   local ternaryand = false
-  local parent = context:get_parent_node()
   if opname == 'and' then
-    if parent.tag == 'BinaryOp' and parent[1] == 'or' then
+    if parentnode.tag == 'BinaryOp' and parentnode[1] == 'or' then
       ternaryand = true
-      node.attr.ternaryand = true
-      parent.attr.ternaryor = true
+      attr.ternaryand = true
+      parentnode.attr.ternaryor = true
       ldesiredtype = primtypes.boolean
     end
   end
 
   context:traverse(rnode, desiredtype)
   context:traverse(lnode, ldesiredtype)
-  local ltype, rtype = lnode.attr.type, rnode.attr.type
+  local lattr, rattr = lnode.attr, rnode.attr
+  local ltype, rtype = lattr.type, rattr.type
 
   if not type then
     -- traverse again trying to coerce untyped child nodes
     if lnode.untyped and rtype then
       context:traverse(lnode, rtype)
-      ltype = lnode.attr.type
+      ltype = lattr.type
     elseif rnode.untyped and ltype then
       context:traverse(rnode, ltype)
-      rtype = rnode.attr.type
+      rtype = rattr.type
     end
 
     if typedefs.binary_conditional_ops[opname] then
       if ternaryand then
-        local prtype = parent[3].type
+        local prtype = parentnode[3].type
         type = typedefs.find_common_type({rtype, prtype})
       else
         type = typedefs.find_common_type({ltype, rtype})
@@ -1374,12 +1381,12 @@ function visitors.BinaryOp(context, node, desiredtype)
           opname, ltargettype, rtargettype)
       end
       if type then
-        if type:is_integral() and (opname == 'div' or opname == 'pow') then
+        if (opname == 'div' or opname == 'pow') and type:is_integral() then
           type = primtypes.number
         elseif opname == 'shl' or opname == 'shr' then
           type = ltargettype
         elseif opname == 'idiv' or opname == 'div' or opname == 'mod' then
-          local rvalue = rnode.attr.value
+          local rvalue = rattr.value
           if rvalue then
             rnode:assertraisef(not rvalue:iszero(), "divizion by zero is not allowed")
           end
@@ -1391,21 +1398,20 @@ function visitors.BinaryOp(context, node, desiredtype)
     type = primtypes.any
   end
   if type then
-    node.attr.type = type
+    attr.type = type
   end
   if rtype and ltype then
     if typedefs.binary_conditional_ops[opname] and
       (not rtype:is_boolean() or not ltype:is_boolean()) then
-      node.attr.dynamic_conditional = true
-    elseif lnode.attr.compconst and rnode.attr.compconst then
-      node.attr.compconst = true
+      attr.dynamic_conditional = true
+    elseif lattr.compconst and rattr.compconst then
+      attr.compconst = true
     end
   end
-  if lnode.attr.sideeffect or rnode.attr.sideeffect then
-    node.attr.sideeffect = true
+  if lattr.sideeffect or rattr.sideeffect then
+    attr.sideeffect = true
   end
-  local parentnode = context:get_parent_node()
-  node.attr.inoperator = parentnode and stringer.endswith(parentnode.tag, 'Op')
+  attr.inoperator = parentnode and stringer.endswith(parentnode.tag, 'Op')
 end
 
 local typechecker = {}

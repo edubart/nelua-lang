@@ -28,6 +28,8 @@ local function create_parser(argv)
   argparser:flag('--print-ast', 'Print the AST only')
   argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only')
   argparser:flag('--print-code', 'Print the generated code only')
+  argparser:flag('--no-compile-gc', 'Disable compiler GC (faster but uses more mem)'):action(
+    function() collectgarbage('stop') end)
   argparser:option('-g --generator', "Code generator to use (lua/c)", "c")
   argparser:option('-s --standard', "Source standard (default/luacompat)", "default")
   argparser:option('--cc', "C compiler to use", defconfig.cc)
