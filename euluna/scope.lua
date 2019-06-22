@@ -102,12 +102,12 @@ function Scope:resolve_symbols()
   end
   -- if nothing was resolved previously then try resolve symbol with unknown possible types
   if count == 0 and #unknownlist > 0 then
-    -- try to infer the type only for the first unknown symbol
-    table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)
+    -- [disabled] try to infer the type only for the first unknown symbol
+    --table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)
     for _,symbol in ipairs(unknownlist) do
       if symbol_resolve_type(symbol) then
         count = count + 1
-        break
+        --break
       end
     end
   end

@@ -20,7 +20,10 @@ local phases = {
 
 function visitors.Number(context, node, desiredtype)
   local attr = node.attr
-  if attr.type and (not desiredtype or attr.littype) then return end
+  if attr.type and (not desiredtype or attr.littype or desiredtype == attr.type) then
+    -- type already known, quick return
+    return
+  end
 
   if not attr.value then
     local value
@@ -213,6 +216,7 @@ end
 function visitors.Pragma(context, node, symbol)
   local name, argnodes = node:args()
   context:traverse(argnodes)
+
   local pragmashape
   local symboltype
   if symbol then
@@ -354,10 +358,11 @@ function visitors.TypeInstance(context, node, _, symbol)
   local typenode = node[1]
   context:traverse(typenode)
   -- inherit attributes from inner node
-  node.attr = typenode.attr
+  local attr = typenode.attr
+  node.attr = attr
 
-  if symbol and not node.attr.holdedtype:is_primitive() then
-    node.attr.holdedtype:suggest_nick(symbol.name)
+  if symbol and not attr.holdedtype:is_primitive() then
+    attr.holdedtype:suggest_nick(symbol.name)
   end
 end
 
@@ -1299,21 +1304,25 @@ end
 function visitors.UnaryOp(context, node, desiredtype)
   local attr = node.attr
   local opname, argnode = node:args()
-  local argattr
+  local argtype = argnode.attr.type
+  local type
   if opname == 'not' then
-    context:traverse(argnode, primtypes.boolean)
-    argattr = argnode.attr
-    attr.type = primtypes.boolean
-  else
-    context:traverse(argnode, desiredtype)
-    argattr = argnode.attr
-    local argtype = argattr.type
+    desiredtype = primtypes.boolean
+    type = primtypes.boolean
+  end
+  context:traverse(argnode, desiredtype)
+  local argattr = argnode.attr
+  if attr.type and argattr.type == argtype then
+    -- type already resolved, quick return
+    return
+  end
+  argtype = argattr.type
+  if opname ~= 'not' then
     if argtype then
-      local type = argtype:get_unary_operator_type(opname)
+      type = argtype:get_unary_operator_type(opname)
       argnode:assertraisef(type,
         "unary operation `%s` is not defined for type '%s' of the expression",
         opname, argtype)
-      attr.type = type
     end
     if opname == 'neg' and argnode.tag == 'Number' then
       attr.value = argattr.value
@@ -1322,8 +1331,11 @@ function visitors.UnaryOp(context, node, desiredtype)
       -- for loops needs to know if an Id symbol could mutate
       argattr.mutate = true
     end
-    assert(context.phase ~= phases.any_inference or attr.type)
   end
+  if type then
+    attr.type = type
+  end
+  assert(context.phase ~= phases.any_inference or attr.type)
   attr.compconst = argattr.compconst
   attr.sideeffect = argattr.sideeffect
   local parentnode = context:get_parent_node()
@@ -1333,6 +1345,7 @@ end
 function visitors.BinaryOp(context, node, desiredtype)
   local attr = node.attr
   local opname, lnode, rnode = node:args()
+
   local parentnode = context:get_parent_node()
   local type
 
@@ -1350,16 +1363,27 @@ function visitors.BinaryOp(context, node, desiredtype)
   if opname == 'and' then
     if parentnode.tag == 'BinaryOp' and parentnode[1] == 'or' and parentnode[2] == node then
       ternaryand = true
-      attr.ternaryand = true
-      parentnode.attr.ternaryor = true
       ldesiredtype = primtypes.boolean
     end
   end
 
+  local ltype, rtype = lnode.attr.type, rnode.attr.type
+
   context:traverse(lnode, ldesiredtype)
   context:traverse(rnode, desiredtype)
+
+  if attr.type and ltype == lnode.attr.type and rtype == rnode.attr.type then
+    -- type already resolved, quick return
+    return
+  end
+
+  if ternaryand then
+    attr.ternaryand = true
+    parentnode.attr.ternaryor = true
+  end
+
   local lattr, rattr = lnode.attr, rnode.attr
-  local ltype, rtype = lattr.type, rattr.type
+  ltype, rtype = lattr.type, rattr.type
 
   if not type then
     -- traverse again trying to coerce untyped child nodes

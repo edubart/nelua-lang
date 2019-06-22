@@ -128,6 +128,7 @@ end
 local ignored_stringfy_keys = {
   pos = true, src = true, srcname=true, modname=true,
   processed = true,
+  untyped = true,
   cloned = true,
   needprocess = true,
 }
