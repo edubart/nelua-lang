@@ -21,11 +21,6 @@ function ASTNode:_init(...)
   self.attr = {}
 end
 
-function ASTNode:arg(index)
-  assert(index >= 1 and index <= self.nargs)
-  return self[index]
-end
-
 function ASTNode:args()
   return tabler.unpack(self, 1, self.nargs)
 end
@@ -70,6 +65,7 @@ function ASTNode:clone()
   return node
 end
 
+--[[
 local function iterate_children_visitor(node, depth)
   local nargs = traits.is_astnode(node) and node.nargs or #node
   for _,arg in iters.inpairs(node, nargs) do
@@ -88,6 +84,7 @@ function ASTNode:iterate_children()
     iterate_children_visitor(self, 1)
   end)
 end
+]]
 
 -------------------
 -- error handling

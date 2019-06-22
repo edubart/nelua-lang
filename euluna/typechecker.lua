@@ -35,7 +35,7 @@ function visitors.Number(context, node, desiredtype)
     local floatexp = exp and (stringer.startswith(exp, '-') or value > primtypes.integer.range.max)
     local integral = not (frac or floatexp)
     local parentnode = context:get_parent_node()
-    if parentnode and parentnode.tag == 'UnaryOp' and parentnode:arg(1) == 'neg' then
+    if parentnode and parentnode.tag == 'UnaryOp' and parentnode[1] == 'neg' then
       value = -value
     end
     if literal then
@@ -282,7 +282,7 @@ function visitors.Pragma(context, node, symbol)
 end
 
 function visitors.Id(context, node)
-  local name = node:arg(1)
+  local name = node[1]
   local symbol = context.scope:get_symbol(name, node)
   if not symbol then
     local type = node.attr.type
@@ -337,7 +337,7 @@ end
 function visitors.Type(context, node)
   local attr = node.attr
   if attr.type then return end
-  local tyname = node:arg(1)
+  local tyname = node[1]
   local holdedtype = typedefs.primtypes[tyname]
   if not holdedtype then
     local symbol = context.scope:get_symbol(tyname, node)
@@ -351,7 +351,7 @@ function visitors.Type(context, node)
 end
 
 function visitors.TypeInstance(context, node, _, symbol)
-  local typenode = node:arg(1)
+  local typenode = node[1]
   context:traverse(typenode)
   -- inherit attributes from inner node
   node.attr = typenode.attr
@@ -402,7 +402,7 @@ function visitors.RecordType(context, node)
   local fieldnodes = node:args()
   context:traverse(fieldnodes)
   local fields = tabler.imap(fieldnodes, function(fieldnode)
-    return {name = fieldnode:arg(1), type=fieldnode.attr.holdedtype}
+    return {name = fieldnode[1], type=fieldnode.attr.holdedtype}
   end)
   local type = types.RecordType(node, fields)
   attr.type = primtypes.type
@@ -544,7 +544,7 @@ local function visitor_FieldIndex(context, node)
       elseif objtype:is_record() then
         symbol = objtype:get_metafield(name)
         if not symbol then
-          if node.infuncdef then
+          if context.infuncdef == context:get_parent_node() then
             local symname = string.format('%s_%s', objtype.codename, name)
             symbol = Symbol(symname, node)
             symbol.attr.const = true
@@ -1155,9 +1155,7 @@ function visitors.FuncDef(context, node)
   if node.deducedargtypes then
     argtypes = node.deducedargtypes
   else
-    for child in varnode:iterate_children() do
-      child.infuncdef = true
-    end
+    context.infuncdef = node
     if varscope == 'local' and varnode.tag == 'Id' then
       -- function declaration, must create a new symbol
       local name = varnode[1]
@@ -1171,6 +1169,7 @@ function visitors.FuncDef(context, node)
     else -- DotIndex or ColumnIndex
       symbol = context:traverse(varnode)
     end
+    context.infuncdef = nil
   end
 
   context:traverse(retnodes)
@@ -1300,8 +1299,7 @@ end
 function visitors.UnaryOp(context, node, desiredtype)
   local attr = node.attr
   local opname, argnode = node:args()
-  local argattr = argnode.attr
-  if attr.type and argattr.type then return end
+  local argattr
   if opname == 'not' then
     context:traverse(argnode, primtypes.boolean)
     argattr = argnode.attr
@@ -1328,7 +1326,8 @@ function visitors.UnaryOp(context, node, desiredtype)
   end
   attr.compconst = argattr.compconst
   attr.sideeffect = argattr.sideeffect
-  attr.inoperator = stringer.endswith(context:get_parent_node().tag, 'Op')
+  local parentnode = context:get_parent_node()
+  attr.inoperator = parentnode.tag == 'BinaryOp' or parentnode.tag == 'UnaryOp'
 end
 
 function visitors.BinaryOp(context, node, desiredtype)
@@ -1439,7 +1438,7 @@ function visitors.BinaryOp(context, node, desiredtype)
   if lattr.sideeffect or rattr.sideeffect then
     attr.sideeffect = true
   end
-  attr.inoperator = stringer.endswith(parentnode.tag, 'Op')
+  attr.inoperator = parentnode.tag == 'BinaryOp' or parentnode.tag == 'UnaryOp'
 end
 
 local typechecker = {}

@@ -70,7 +70,6 @@ local function symbol_resolve_type(symbol)
 end
 
 function Scope:add_symbol(symbol)
-  assert(class.is_a(symbol, Symbol), 'invalid symbol')
   if not symbol.name then
     return
   end
@@ -101,7 +100,7 @@ function Scope:resolve_symbols()
       table.insert(unknownlist, symbol)
     end
   end
-  -- if nothing was resolved previously then try resolve symbol with unkown possible types
+  -- if nothing was resolved previously then try resolve symbol with unknown possible types
   if count == 0 and #unknownlist > 0 then
     -- try to infer the type only for the first unknown symbol
     table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)

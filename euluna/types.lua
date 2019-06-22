@@ -259,7 +259,7 @@ end
 
 function ArrayTableType:is_equal(type)
   return type.name == self.name and
-         class.is_a(type, getmetatable(self)) and
+         getmetatable(type) == getmetatable(self) and
          type.subtype == self.subtype
 end
 
@@ -279,7 +279,7 @@ end
 
 function ArrayType:is_equal(type)
   return type.name == self.name and
-         class.is_a(type, getmetatable(self)) and
+         getmetatable(type) == getmetatable(self) and
          self.subtype == type.subtype and
          self.length == type.length
 end
@@ -333,7 +333,7 @@ end
 function FunctionType:is_equal(type)
   return
     type.name == 'function' and
-    class.is_a(type, FunctionType) and
+    getmetatable(type) == getmetatable(self) and
     tabler.deepcompare(type.argtypes, self.argtypes) and
     tabler.deepcompare(type.returntypes, self.returntypes)
 end
@@ -543,7 +543,7 @@ end
 
 function PointerType:is_equal(type)
   return type.name == self.name and
-         class.is_a(type, getmetatable(self)) and
+         getmetatable(type) == getmetatable(self) and
          type.subtype == self.subtype
 end
 

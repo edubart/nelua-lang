@@ -13,15 +13,18 @@ end
 -- find a value inside an array table
 function tabler.ifind(t, val, idx)
   for i=idx or 1,#t do
-    if t[i] == val then return i end
+    if t[i] == val then
+      return i
+    end
   end
   return nil
 end
 
 -- insert values
 function tabler.insertvalues(t, st)
-  for _,v in ipairs(st) do
-    t[#t + 1] = v
+  local tlen = #t
+  for i=1,#st do
+    t[tlen + i] = st[i]
   end
   return t
 end
@@ -30,7 +33,9 @@ end
 function tabler.ifindif(t, fn, idx)
   for i=idx or 1,#t do
     local val = t[i]
-    if fn(val) then return val,i end
+    if fn(val) then
+      return val,i
+    end
   end
   return nil
 end
@@ -38,9 +43,9 @@ end
 -- create a new table of mapped array values
 function tabler.imap(t, f)
   local _t = {}
-  for k,v in ipairs(t) do
-    local nv, nk = f(v, k)
-    _t[nk or k] = nv
+  for i=1,#t do
+    local nv, ni = f(t[i], i)
+    _t[ni or i] = nv
   end
   return _t
 end
@@ -56,8 +61,10 @@ end
 
 -- check if all values of a list pass test
 function tabler.iall(t, f)
-  for i,v in ipairs(t) do
-    if not f(v,i) then return false end
+  for i=1,#t do
+    if not f(t[i],i) then
+      return false
+    end
   end
   return true
 end

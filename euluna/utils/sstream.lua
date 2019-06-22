@@ -8,8 +8,7 @@ function sstream:_init(...)
 end
 
 function sstream:add(...)
-  local n = select('#', ...)
-  for i=1,n do
+  for i=1,select('#', ...) do
     local v = select(i, ...)
     if not traits.is_table(v) or metamagic.hasmetamethod(v, '__tostring') then
       table.insert(self, tostring(v))

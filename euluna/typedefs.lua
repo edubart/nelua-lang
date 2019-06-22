@@ -294,10 +294,10 @@ typedefs.binary_conditional_ops = {
 function typedefs.find_common_type(possibletypes)
   local len = #possibletypes
   if len == 0 then return nil end
-  if len == 1 then return possibletypes[1] end
+  local firsttype = possibletypes[1]
+  if len == 1 then return firsttype end
 
   -- check if all types are the same first
-  local firsttype = possibletypes[1]
   if tabler.iall(possibletypes, function(ty)
     return ty == firsttype
   end) then
@@ -315,9 +315,9 @@ function typedefs.find_common_type(possibletypes)
     end
 
     -- try float32 if any of the types is float32
-    if tabler.ifindif(possibletypes, function(ty) return ty:is_float32() end) then
+    if tabler.ifindif(possibletypes, Type.is_float32) then
       -- check if all types fit
-      if tabler.iall(possibletypes, function(ty) return not ty:is_float64() end) then
+      if not tabler.ifindif(possibletypes, Type.is_float64) then
         return primtypes.float32
       end
     end

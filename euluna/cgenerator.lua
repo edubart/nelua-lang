@@ -172,7 +172,7 @@ end
 -- TODO: Varargs
 
 function visitors.Table(context, node, emitter)
-  local childnodes, type = node:arg(1), node.attr.type
+  local childnodes, type = node[1], node.attr.type
   local len = #childnodes
   if len == 0 and (type:is_record() or type:is_array() or type:is_arraytable()) then
     emitter:add_nodezerotype(node)

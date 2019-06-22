@@ -18,7 +18,7 @@ stringer.rstrip = stringx.rstrip
 stringer.count = stringx.count
 
 function stringer.pconcat(...)
-  local t = table.pack(...)
+  local t = tabler.pack(...)
   for i=1,t.n do
     t[i] = tostring(t[i])
   end
