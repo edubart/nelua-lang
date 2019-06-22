@@ -13,6 +13,21 @@ Type._type = true
 Type.unary_operators = {}
 Type.binary_operators = {}
 
+local uidcounter = 0
+local function genkey(name, node)
+  local uid
+  local srcname
+  if node and node.pos and not node.cloned then
+    uid = node.pos
+    srcname = node.srcname
+  else
+    uidcounter = uidcounter + 1
+    uid = uidcounter
+    srcname = ''
+  end
+  return string.format('%s%s%d', name, srcname, uid)
+end
+
 function Type:_init(name, node)
   assert(name)
   self.name = name
@@ -25,15 +40,10 @@ function Type:_init(name, node)
   self.conversible_types = {}
   self.aligned = nil
   self.codename = string.format('euluna_%s', self.name)
+  self.key = genkey(name, node)
   local mt = getmetatable(self)
   metamagic.setmetaindex(self.unary_operators, mt.unary_operators)
   metamagic.setmetaindex(self.binary_operators, mt.binary_operators)
-
-  if node then
-    self.key = string.format('%s%d', self.node.srcname or '', self.node.pos)
-  else
-    self.key = name
-  end
 end
 
 function Type:suggest_nick(nick)
@@ -234,8 +244,7 @@ Type.void = Type('void')
 Type.any = Type('any')
 
 local function gencodename(self)
-  local s = tostring(self)
-  local hash = stringer.hash(s .. self.key, 16)
+  local hash = stringer.hash(self.key, 16)
   return string.format('%s_%s', self.name, hash)
 end
 

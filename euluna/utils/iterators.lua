@@ -15,8 +15,9 @@ end
 
 -- iterate multiples values for multiple arrays, returning its index and values
 -- stops only when all values in the arrays are nil
+local pack, unpack = tabler.pack, tabler.unpack
 function iterators.izip(...)
-  local arrays, ans = tabler.pack(...), {}
+  local arrays, ans = pack(...), {}
   local n = arrays.n
   local i = 0
   return function()
@@ -32,7 +33,7 @@ function iterators.izip(...)
     if not found then
       return nil
     end
-    return i, tabler.unpack(ans, 1, n)
+    return i, unpack(ans, 1, n)
   end
 end
 

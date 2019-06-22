@@ -62,6 +62,7 @@ function ASTNode:clone()
   node.src = self.src
   node.srcname = self.srcname
   node.modname = self.modname
+  node.cloned = true
   return node
 end
 
@@ -127,6 +128,7 @@ end
 local ignored_stringfy_keys = {
   pos = true, src = true, srcname=true, modname=true,
   processed = true,
+  cloned = true,
   needprocess = true,
 }
 local function stringfy_val2str(val)

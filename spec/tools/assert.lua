@@ -9,7 +9,11 @@ local lua_generator = require 'euluna.luagenerator'
 local c_generator = require 'euluna.cgenerator'
 local differ = require 'spec.tools.differ'
 local euluna_syntax = require 'euluna.syntaxdefs'()
+local config = require 'euluna.configer'.get()
 local euluna_parser = euluna_syntax.parser
+
+-- enable ast shape checking
+config.check_ast_shape = true
 
 function assert.same_string(expected, passedin)
   if expected ~= passedin then --luacov:disable

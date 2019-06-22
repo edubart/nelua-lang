@@ -1,11 +1,7 @@
 local class = require 'euluna.utils.class'
-local traits = require 'euluna.utils.traits'
-local errorer = require 'euluna.utils.errorer'
 local Scope = require 'euluna.scope'
 
 local Context = class()
-
-local is_astnode, is_table = traits.is_astnode, traits.is_table
 
 local function traverse_node(self, node, ...)
   local tag = node.tag
@@ -19,16 +15,17 @@ local function traverse_node(self, node, ...)
   return ret
 end
 
+local traverse
 local function traverse_nodes(self, nodes, ...)
   for i=1,#nodes do
-    self:traverse(nodes[i], ...)
+    traverse(self, nodes[i], ...)
   end
 end
 
 local function traverser_default_visitor(self, node, ...)
   for i=1,node.nargs or #node do
     local arg = node[i]
-    if arg and is_table(arg) then
+    if arg and type(arg) == 'table' then
       if arg._astnode then
         traverse_node(self, arg, ...)
       else
@@ -85,14 +82,13 @@ function Context:get_parent_node_if(f)
 end
 
 function Context:traverse(node, ...)
-  if is_astnode(node) then
+  if node._astnode then
     return traverse_node(self, node, ...)
-  elseif is_table(node) then
+  else
     return traverse_nodes(self, node, ...)
-  else --luacov:disable
-    errorer.errorf('cannot traverse lua value of type %s', type(node))
-  end --luacov:enable
+  end
 end
+traverse = Context.traverse
 
 function Context:repeat_scope_until_resolution(scope_kind, after_push)
   local scope
