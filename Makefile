@@ -78,7 +78,7 @@ docker-test:
 
 _docker-test-rocks:
 	sudo luarocks-5.3 make rockspecs/nelua-dev-1.rockspec
-	cd /tmp && nelua /nelua/examples/helloworld.nelua
+	cd /tmp && nelua -g lua /nelua/examples/helloworld.nelua
 	cd /tmp && nelua -g c /nelua/examples/helloworld.nelua
 
 docker-test-rocks:
