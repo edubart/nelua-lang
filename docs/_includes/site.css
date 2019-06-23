@@ -27,31 +27,31 @@ code {
   vertical-align: text-top;
 }
 
-.euluna-brand {
+.nelua-brand {
   line-height: 2.8rem;
 }
 
-.euluna-brand svg {
+.nelua-brand svg {
   width: 2.8rem;
   height: 2.8rem;
 }
 
-.euluna-brand img {
+.nelua-brand img {
   float: left;
 }
 
-.euluna-brand .euluna-name {
+.nelua-brand .nelua-name {
   margin-left: 10px;
   font-weight: bold;
   font-family: 'Montserrat', sans-serif;
 }
 
-.euluna-subname {
+.nelua-subname {
   display: none;
 }
 
 @media (min-width: 768px) {
-  .euluna-subname {
+  .nelua-subname {
     display: inline;
   }
 }

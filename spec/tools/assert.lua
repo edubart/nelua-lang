@@ -1,16 +1,16 @@
 local assert = require 'luassert'
-local stringer = require 'euluna.utils.stringer'
-local except = require 'euluna.utils.except'
-local errorer = require 'euluna.utils.errorer'
-local runner = require 'euluna.runner'
-local typechecker = require 'euluna.typechecker'
-local traits = require 'euluna.utils.traits'
-local lua_generator = require 'euluna.luagenerator'
-local c_generator = require 'euluna.cgenerator'
+local stringer = require 'nelua.utils.stringer'
+local except = require 'nelua.utils.except'
+local errorer = require 'nelua.utils.errorer'
+local runner = require 'nelua.runner'
+local typechecker = require 'nelua.typechecker'
+local traits = require 'nelua.utils.traits'
+local lua_generator = require 'nelua.luagenerator'
+local c_generator = require 'nelua.cgenerator'
 local differ = require 'spec.tools.differ'
-local euluna_syntax = require 'euluna.syntaxdefs'()
-local config = require 'euluna.configer'.get()
-local euluna_parser = euluna_syntax.parser
+local nelua_syntax = require 'nelua.syntaxdefs'()
+local config = require 'nelua.configer'.get()
+local nelua_parser = nelua_syntax.parser
 
 -- enable ast shape checking
 config.check_ast_shape = true
@@ -141,19 +141,19 @@ function assert.run_error(args, expected_stderr)
   end
 end
 
-function assert.generate_lua(euluna_code, expected_code)
-  expected_code = expected_code or euluna_code
-  local ast = assert.parse_ast(euluna_parser, euluna_code)
-  assert(typechecker.analyze(ast, euluna_parser.astbuilder))
+function assert.generate_lua(nelua_code, expected_code)
+  expected_code = expected_code or nelua_code
+  local ast = assert.parse_ast(nelua_parser, nelua_code)
+  assert(typechecker.analyze(ast, nelua_parser.astbuilder))
   local generated_code = assert(lua_generator.generate(ast))
   assert.same_string(stringer.rstrip(expected_code), stringer.rstrip(generated_code))
 end
 
-function assert.generate_c(euluna_code, expected_code, ispattern)
-  local ast = assert.parse_ast(euluna_parser, euluna_code)
-  ast = assert(typechecker.analyze(ast, euluna_parser.astbuilder))
+function assert.generate_c(nelua_code, expected_code, ispattern)
+  local ast = assert.parse_ast(nelua_parser, nelua_code)
+  ast = assert(typechecker.analyze(ast, nelua_parser.astbuilder))
   local generated_code = assert(c_generator.generate(ast))
-  if not expected_code then expected_code = euluna_code end
+  if not expected_code then expected_code = nelua_code end
   if traits.is_string(expected_code) then
     expected_code = {expected_code}
   end
@@ -164,37 +164,37 @@ function assert.generate_c(euluna_code, expected_code, ispattern)
   end
 end
 
-function assert.run_c(euluna_code, expected_stdout, expected_stderr)
-  assert.run({'--generator', 'c', '--eval', euluna_code}, expected_stdout, expected_stderr)
+function assert.run_c(nelua_code, expected_stdout, expected_stderr)
+  assert.run({'--generator', 'c', '--eval', nelua_code}, expected_stdout, expected_stderr)
 end
 
-function assert.run_error_c(euluna_code, output)
-  assert.run_error({'--generator', 'c', '--eval', euluna_code}, output)
+function assert.run_error_c(nelua_code, output)
+  assert.run_error({'--generator', 'c', '--eval', nelua_code}, output)
 end
 
 function assert.c_gencode_equals(code, expected_code)
-  local ast = assert.parse_ast(euluna_parser, code)
-  ast = assert(typechecker.analyze(ast, euluna_parser.astbuilder))
-  local expected_ast = assert.parse_ast(euluna_parser, expected_code)
-  expected_ast = assert(typechecker.analyze(expected_ast, euluna_parser.astbuilder))
+  local ast = assert.parse_ast(nelua_parser, code)
+  ast = assert(typechecker.analyze(ast, nelua_parser.astbuilder))
+  local expected_ast = assert.parse_ast(nelua_parser, expected_code)
+  expected_ast = assert(typechecker.analyze(expected_ast, nelua_parser.astbuilder))
   local generated_code = assert(c_generator.generate(ast))
   local expected_generated_code = assert(c_generator.generate(expected_ast))
   assert.same_string(expected_generated_code, generated_code)
 end
 
 function assert.lua_gencode_equals(code, expected_code)
-  local ast = assert.parse_ast(euluna_parser, code)
-  ast = assert(typechecker.analyze(ast, euluna_parser.astbuilder))
-  local expected_ast = assert.parse_ast(euluna_parser, expected_code)
-  expected_ast = assert(typechecker.analyze(expected_ast, euluna_parser.astbuilder))
+  local ast = assert.parse_ast(nelua_parser, code)
+  ast = assert(typechecker.analyze(ast, nelua_parser.astbuilder))
+  local expected_ast = assert.parse_ast(nelua_parser, expected_code)
+  expected_ast = assert(typechecker.analyze(expected_ast, nelua_parser.astbuilder))
   local generated_code = assert(lua_generator.generate(ast))
   local expected_generated_code = assert(lua_generator.generate(expected_ast))
   assert.same_string(expected_generated_code, generated_code)
 end
 
 function assert.analyze_ast(code, expected_ast)
-  local ast = assert.parse_ast(euluna_parser, code)
-  typechecker.analyze(ast, euluna_parser.astbuilder)
+  local ast = assert.parse_ast(nelua_parser, code)
+  typechecker.analyze(ast, nelua_parser.astbuilder)
   if expected_ast then
     assert.same_string(tostring(expected_ast), tostring(ast))
   end
@@ -202,18 +202,18 @@ end
 
 --[[
 function assert.analyze_ast_equals(code, expected_code)
-  local ast = assert.parse_ast(euluna_parser, code)
-  ast = assert(typechecker.analyze(ast, euluna_parser.astbuilder))
-  local expected_ast = assert.parse_ast(euluna_parser, expected_code)
-  expected_ast = assert(typechecker.analyze(expected_ast, euluna_parser.astbuilder))
+  local ast = assert.parse_ast(nelua_parser, code)
+  ast = assert(typechecker.analyze(ast, nelua_parser.astbuilder))
+  local expected_ast = assert.parse_ast(nelua_parser, expected_code)
+  expected_ast = assert(typechecker.analyze(expected_ast, nelua_parser.astbuilder))
   assert.same(tostring(expected_ast), tostring(ast))
 end
 ]]
 
 function assert.analyze_error(code, expected_error)
-  local ast = assert.parse_ast(euluna_parser, code)
+  local ast = assert.parse_ast(nelua_parser, code)
   local ok, e = except.try(function()
-    typechecker.analyze(ast, euluna_parser.astbuilder)
+    typechecker.analyze(ast, nelua_parser.astbuilder)
   end)
   errorer.assertf(not ok, "type analysis should fail for: %s", code)
   if expected_error then

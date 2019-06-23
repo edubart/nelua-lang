@@ -16,7 +16,7 @@ Modules are useful to separate code scopes using local variables to avoid
 type and function name clashing across the code base.
 
 Creating module `hello`:
-```euluna
+```nelua
 -- hello.lua
 local a = 1 -- private variable
 local function get_a() -- private function
@@ -30,7 +30,7 @@ end
 ```
 
 Using the module:
-```euluna
+```nelua
 import hello
 hello.foo()
 print(hello.b)
@@ -47,7 +47,7 @@ foo()
 Dynamic modules uses tables and it can change on runtime.
 
 Creating module `hello`:
-```euluna
+```nelua
 -- hello.lua
 local M = {}
 local a = 1 -- private variable
@@ -64,7 +64,7 @@ return M
 ```
 
 Using the module:
-```euluna
+```nelua
 local hello = require 'hello'
 hello.foo()
 print(hello.b)
@@ -77,7 +77,7 @@ foo()
 ## Operators
 
 ### Operator overloading
-```euluna
+```nelua
 local function `+`(a: string, b: string)
   return a .. b
 end
@@ -91,7 +91,7 @@ print(a) -- outputs hello world
 
 ### Returning errors
 
-```euluna
+```nelua
 function foo(dofail)
   if dofail then
     return nil, "fail"
@@ -107,7 +107,7 @@ print(foo(false)) -- outputs "success"
 
 Exceptions are useful to raise and catch errors.
 
-```euluna
+```nelua
 local function foo(err)
   error "failed" -- raise an exception with a string object
 end
@@ -126,8 +126,8 @@ end
 
 ### Allocation
 
-```euluna
-@import 'euluna.std.memory'
+```nelua
+@import 'nelua.std.memory'
 
 local a = new(@integer) -- a type is: pointer<integer>
 a[0] = 1
@@ -144,8 +144,8 @@ delete(a)
 
 ### Shared objects with smart pointers
 
-```euluna
-local shared_pointer = @import 'euluna.std.shared_pointer'
+```nelua
+local shared_pointer = @import 'nelua.std.shared_pointer'
 
 local Person = @struct{
   name: string,
@@ -162,8 +162,8 @@ print(a.name) -- outputs "John"
 
 ### Shared objects with garbage collector
 
-```euluna
-@import 'euluna.std.gc'
+```nelua
+@import 'nelua.std.gc'
 
 local Person = @struct{
   name: string,
@@ -183,7 +183,7 @@ The language has basic features for object oriented programming,
 more advanced ones cna be achieved with metaprogramming.
 
 ### Methods
-```euluna
+```nelua
 local Person = @struct{
   name: string,
   age: integer
@@ -201,7 +201,7 @@ print(a.age)
 
 ### Inheritance
 
-```euluna
+```nelua
 local PolygonVTable = @struct{
   area: function<(self: pointer): integer>
 }
@@ -245,7 +245,7 @@ print(polygon:area()) -- outputs 4
 
 Literals are used to convert string or numbers into arbitrary types.
 
-```euluna
+```nelua
 function _f32(v) !literal
   return tofloat(v)
 end
@@ -258,8 +258,8 @@ local a = "1234"_f32 -- a is float
 
 ### Dynamic arrays
 
-```euluna
-local vector = @import 'euluna.std.vector'
+```nelua
+local vector = @import 'nelua.std.vector'
 
 local a = @vector(int8) {1,2,3,4} -- dynamic array of int8
 local a: vector(string) -- dynamic array of string
@@ -267,8 +267,8 @@ local a: vector(string) -- dynamic array of string
 
 ### Maps
 
-```euluna
-local map = @import 'euluna.std.map'
+```nelua
+local map = @import 'nelua.std.map'
 
 local m = @map(string, integer) {a = 1, b = 2} -- map of string -> integer
 local m: map(string, integer) -- map of string -> int

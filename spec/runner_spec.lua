@@ -2,19 +2,19 @@ require 'busted.runner'()
 
 local assert = require 'spec.tools.assert'
 
-describe("Euluna runner should", function()
+describe("Nelua runner should", function()
 
 it("compile simple programs" , function()
-  assert.run('--generator lua --no-cache --compile examples/helloworld.euluna')
-  assert.run('--generator c --no-cache --compile examples/helloworld.euluna')
-  assert.run('--generator lua --compile-binary examples/helloworld.euluna')
-  assert.run('--generator c --compile-binary examples/helloworld.euluna')
+  assert.run('--generator lua --no-cache --compile examples/helloworld.nelua')
+  assert.run('--generator c --no-cache --compile examples/helloworld.nelua')
+  assert.run('--generator lua --compile-binary examples/helloworld.nelua')
+  assert.run('--generator c --compile-binary examples/helloworld.nelua')
 end)
 
 it("run simple programs", function()
   assert.run({'--generator', 'c', '--no-cache', '--eval', "return 0"})
-  assert.run('--generator lua examples/helloworld.euluna', 'hello world')
-  assert.run('--generator c examples/helloworld.euluna', 'hello world')
+  assert.run('--generator lua examples/helloworld.nelua', 'hello world')
+  assert.run('--generator c examples/helloworld.nelua', 'hello world')
   assert.run({'--generator', 'lua', '--eval', ""}, '')
   assert.run({'--lint', '--eval', ""})
   assert.run({'--generator', 'lua', '--eval', "print(arg[1])", "hello"}, 'hello')
@@ -29,11 +29,11 @@ it("error on parsing an invalid program" , function()
   assert.run_error('--lint invalid', 'invalid: No such file or directory')
   --assert.run_error({'--generator', 'c', '--eval', "f()"}, 'undefined')
   assert.run_error({'--generator', 'lua', '--eval', "local a = 1_x"}, 'literal suffix "_x" is not defined')
-  assert.run_error('--generator c --cc invgcc examples/helloworld.euluna', 'failed to retrive compiler information')
+  assert.run_error('--generator c --cc invgcc examples/helloworld.nelua', 'failed to retrive compiler information')
 end)
 
 it("print correct generated AST" , function()
-  assert.run('--print-ast examples/helloworld.euluna', [[Block {
+  assert.run('--print-ast examples/helloworld.nelua', [[Block {
   {
     Call {
       {
@@ -49,7 +49,7 @@ it("print correct generated AST" , function()
     }
   }
 }]])
-  assert.run('--print-analyzed-ast examples/helloworld.euluna', [[Block {
+  assert.run('--print-analyzed-ast examples/helloworld.nelua', [[Block {
   {
     Call {
       attr = {
@@ -85,7 +85,7 @@ it("print correct generated AST" , function()
 end)
 
 it("print correct generated code", function()
-  assert.run('--generator lua --print-code examples/helloworld.euluna', 'print("hello world")')
+  assert.run('--generator lua --print-code examples/helloworld.nelua', 'print("hello world")')
 end)
 
 end)

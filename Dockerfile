@@ -11,12 +11,12 @@ RUN apk add lua5.3 lua5.3-dev lua5.1 lua5.1-dev luajit luajit-dev luarocks5.1 lu
 #RUN pacman -S --noconfirm --needed base-devel git gcc clang
 #RUN pacman -S --noconfirm lua lua51 luajit luarocks luarocks5.1
 
-COPY rockspecs/euluna-dev-1.rockspec .
+COPY rockspecs/nelua-dev-1.rockspec .
 
-# euluna lua dependencies (5.1)
-RUN sudo luarocks-5.1 install --only-deps euluna-dev-1.rockspec
+# nelua lua dependencies (5.1)
+RUN sudo luarocks-5.1 install --only-deps nelua-dev-1.rockspec
 
-# euluna lua dependencies (5.3)
-RUN sudo luarocks-5.3 install --only-deps euluna-dev-1.rockspec
+# nelua lua dependencies (5.3)
+RUN sudo luarocks-5.3 install --only-deps nelua-dev-1.rockspec
 
-WORKDIR /euluna
+WORKDIR /nelua

@@ -1,10 +1,10 @@
 require 'busted.runner'()
 
-local astbuilder = require 'euluna.syntaxdefs'().astbuilder
+local astbuilder = require 'nelua.syntaxdefs'().astbuilder
 local assert = require 'spec.tools.assert'
 local n = astbuilder.aster
 
-describe("Euluna AST should", function()
+describe("Nelua AST should", function()
 
 it("create a valid ASTNode", function()
   local node = n.Number{'dec', '10'}

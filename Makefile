@@ -1,9 +1,9 @@
 UID=$(shell id -u $(USER))
 GID=$(shell id -g $(USER))
 PWD=$(shell pwd)
-DRFLAGS=--rm -it -v "$(PWD):/euluna" euluna
+DRFLAGS=--rm -it -v "$(PWD):/nelua" nelua
 DFLAGS=-u $(UID):$(GID) $(DRFLAGS)
-LUAMONFLAGS=-w euluna,spec,tools,examples,runtime -e lua,euluna,h,c -q -x
+LUAMONFLAGS=-w nelua,spec,tools,examples,runtime -e lua,nelua,h,c -q -x
 
 test: test-luajit test-lua5.3 test-lua5.1
 
@@ -54,7 +54,7 @@ check-duplication:
 		-balanceParentheses+ \
 		-balanceCurlyBraces+ \
 		-reportDuplicateText+ \
-		`find euluna -name '*.lua'` | tail +5 | head -n -2
+		`find nelua -name '*.lua'` | tail +5 | head -n -2
 
 _clear-stdout:
 	@clear
@@ -71,15 +71,15 @@ livedevlight:
 	luamon $(LUAMONFLAGS) "make -Ss devtestlight"
 
 docker-image:
-	docker build -t "euluna" .
+	docker build -t "nelua" .
 
 docker-test:
 	docker run $(DFLAGS) make -s test
 
 _docker-test-rocks:
-	sudo luarocks-5.3 make rockspecs/euluna-dev-1.rockspec
-	cd /tmp && euluna /euluna/examples/helloworld.euluna
-	cd /tmp && euluna -g c /euluna/examples/helloworld.euluna
+	sudo luarocks-5.3 make rockspecs/nelua-dev-1.rockspec
+	cd /tmp && nelua /nelua/examples/helloworld.nelua
+	cd /tmp && nelua -g c /nelua/examples/helloworld.nelua
 
 docker-test-rocks:
 	docker run $(DRFLAGS) make -s _docker-test-rocks
@@ -96,14 +96,14 @@ docker-term:
 	docker run $(DRFLAGS) /bin/bash
 
 install-dev:
-	luarocks install --lua-version=5.3 --local rockspecs/euluna-dev-1.rockspec
+	luarocks install --lua-version=5.3 --local rockspecs/nelua-dev-1.rockspec
 
 install-dev-deps:
-	luarocks install --lua-version=5.1 --only-deps rockspecs/euluna-dev-1.rockspec --local
-	luarocks install --lua-version=5.3 --only-deps rockspecs/euluna-dev-1.rockspec --local
+	luarocks install --lua-version=5.1 --only-deps rockspecs/nelua-dev-1.rockspec --local
+	luarocks install --lua-version=5.3 --only-deps rockspecs/nelua-dev-1.rockspec --local
 
 upload-dev-rocks:
-	luarocks upload --api-key=$(LUAROCKS_APIKEY) --force rockspecs/euluna-dev-1.rockspec
+	luarocks upload --api-key=$(LUAROCKS_APIKEY) --force rockspecs/nelua-dev-1.rockspec
 
 docs:
 	cd docs && jekyll build
@@ -116,6 +116,6 @@ docs-serve:
 	cd docs && bundle exec jekyll serve
 
 cache-clean:
-	rm -rf euluna_cache
+	rm -rf nelua_cache
 
 clean: cache-clean coverage-clean

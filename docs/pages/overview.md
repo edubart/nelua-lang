@@ -12,8 +12,8 @@ order: 2
 # Overview
 
 This is a quick overview of the language features using many examples.
-Most of Euluna syntax and semantics
-is similar to Lua, thus if you know Lua you probably know Euluna too, however Euluna have many
+Most of Nelua syntax and semantics
+is similar to Lua, thus if you know Lua you probably know Nelua too, however Nelua have many
 additions to code with types, to make more performant code and to metaprogram.
 This overview try to focus more on those features.
 
@@ -22,7 +22,7 @@ This overview try to focus more on those features.
 
 Simple hello world program, just like in Lua:
 
-```euluna
+```nelua
 print 'Hello world!'
 ```
 
@@ -30,7 +30,7 @@ print 'Hello world!'
 
 Comments are just like in Lua:
 
-```euluna
+```nelua
 -- one line comment
 --[[
   multi-line comment
@@ -48,21 +48,21 @@ Comments are just like in Lua:
 Variables are declared or defined like in lua, but optionally
 you can specify it's type when declaring:
 
-```euluna
+```nelua
 local a = nil -- of deduced type 'any', initialized to nil
 local b = false -- of deduced type 'boolean', initialized to false
 local d = 1 --  of type 'integer', initialized to 1
 local e: integer = 1 --  of type 'integer', initialized to 1
 ```
 
-Euluna takes advantages of types to make checks and optimizations at compile time.
+Nelua takes advantages of types to make checks and optimizations at compile time.
 
 ### Type deduction
 
 When a variable has no specified type on its declaration, the type is automatically deduced
 and resolved at compile time:
 
-```euluna
+```nelua
 local a -- type will be deduced and scope end
 a = 1
 a = 2
@@ -73,9 +73,9 @@ a = 2
 
 In case of different types being assigned to a same variable,
 then the compiler deduces the variable type
-to the type `any` (a type that can hold anything an runtime), this makes euluna code compatible with lua values semantics:
+to the type `any` (a type that can hold anything an runtime), this makes nelua code compatible with lua values semantics:
 
-```euluna
+```nelua
 local a -- a type will be deduced
 a = 2
 a = false
@@ -87,7 +87,7 @@ a = false
 Variables declared but not defined are always initialized to zeros automatically,
 this prevents undefined behaviours:
 
-```euluna
+```nelua
 local a -- variable of deduced type 'any', initialized to 'nil'
 local b: integer -- variable of type 'integer', initialized to 0
 ```
@@ -98,7 +98,7 @@ This can be optionally be disabled (for optimization reasons) using **pragmas**.
 
 Variables declared as auto have it's type deduced early using only the type of it's first assignment.
 
-```euluna
+```nelua
 local a: auto = 1 -- a is deduced to be of type 'integer'
 
 -- this would trigger a compile error:
@@ -111,7 +111,7 @@ Auto variables are more useful when used in **lazy functions**.
 
 Compconst variables have its value known at compile time:
 
-```euluna
+```nelua
 local a: compconst = 1 + 2 -- constant variable of value '3' evaluated and known at compile time
 ```
 
@@ -122,7 +122,7 @@ for using as compile time parameters in **lazy functions**.
 
 Const variables can be assigned at runtime however it cannot mutate.
 
-```euluna
+```nelua
 local x = 1
 local a: const = x -- constant variable of value '3' evaluated and known at compile time
 -- doing "a = 2" would throw a compile time error
@@ -140,7 +140,7 @@ end
 
 If statement is just like in Lua.
 
-```euluna
+```nelua
 if a == 1 then
   print 'is one'
 elseif a ~= 2 then
@@ -154,7 +154,7 @@ end
 
 Switch statement is similar to C switches:
 
-```euluna
+```nelua
 switch a
 case 1 then
   print 'is 1'
@@ -173,7 +173,7 @@ compiler can generate more optimized code when using a switch instead of an if f
 Do blocks are useful to create arbitrary scopes to avoid collision of
 variable names:
 
-```euluna
+```nelua
 do
   local a = 0
 end
@@ -188,7 +188,7 @@ They are also useful to create arbitrary scopes for **defer** statement.
 
 Gotos are useful to get out of nested loops and jump between codes:
 
-```euluna
+```nelua
 local haserr = true
 if haserr then
   goto getout -- get out of the loop
@@ -203,7 +203,7 @@ print 'world'
 
 Defer statement is useful for executing code at scope termination.
 
-```euluna
+```nelua
 do
   defer
     print 'world'
@@ -220,7 +220,7 @@ end
 
 While are just like in Lua:
 
-```euluna
+```nelua
 local a = 1
 while a < 42 do
   a = a + 1
@@ -231,7 +231,7 @@ end
 
 Repeat is also like in Lua:
 
-```euluna
+```nelua
 repeat
   a = a - 1
 until a == 0
@@ -244,7 +244,7 @@ Note that variables declarated inside repeat scope are visible on it's condition
 Numeric for are like in Lua, meaning they are inclusive for the first and the last
 element:
 
-```euluna
+```nelua
 for i = 0, 5 do
   -- i is deduced to 'integer'
   print(i) -- outputs 0 1 2 3 4 5
@@ -258,7 +258,7 @@ variable type is automatically deduced using the for expressions.
 An extesion to for is available to do exclusive for loops, they work using
 comparison operators `~=` `<=` `>=` `<` `>`:
 
-```euluna
+```nelua
 for i = 0,<5 do
   print(i) -- outputs 0 1 2 3 4
 end
@@ -268,7 +268,7 @@ end
 The last parameter in for syntax is the step, it's counter is always incremented
 with `i = i + step`, by default step is always 1, with negative steps reverse for is possible:
 
-```euluna
+```nelua
 for i = 5,0,-1 do
   print(i) -- outputs 5 4 3 2 1
 end
@@ -276,7 +276,7 @@ end
 
 #### Iterated
 
-```euluna
+```nelua
 local a = {'a', 'b', 'c'}
 for i,v in ipairs(a) do
   print(i, v)
@@ -286,7 +286,7 @@ end
 
 Iterators are useful to create more complex for loops:
 
-```euluna
+```nelua
 local function multiples_countdown(s, e)
   return function(e, i)
     repeat
@@ -305,7 +305,7 @@ end
 ### Continue
 Continue statement is used to skip a for loop to it's next iteration.
 
-```euluna
+```nelua
 for i=1,10 do
   if i<=5 do
     continue
@@ -318,7 +318,7 @@ end
 ### Break
 Break statement is used to break a for loop.
 
-```euluna
+```nelua
 for i=1,10 do
   if i>5 do
     break
@@ -333,7 +333,7 @@ end
 
 ### Boolean
 
-```euluna
+```nelua
 local a: boolean -- variable of type 'boolean' initialized to 'false'
 local b = false
 local c = true
@@ -345,7 +345,7 @@ They are defined as `bool` in C code.
 
 Number literals are defined similar as in Lua:
 
-```euluna
+```nelua
 local a = 1234 -- variable of type 'integer'
 local b = 0x123 -- variable of type 'integer'
 local c = 1234.56 -- variable of type 'number'
@@ -356,12 +356,12 @@ The `number` is the default type for fractional literals with no suffix.
 
 You can use type suffixes to force a type for a numeric literal:
 
-```euluna
+```nelua
 local a = 1234_u32 -- variable of type 'int32'
 local b = 1_f32 -- variable of type 'float32'
 ```
 
-The following table shows Euluna primitive numeric types and is related type in C:
+The following table shows Nelua primitive numeric types and is related type in C:
 
 | Type              | C Type          | Suffixes            |
 |-------------------|-----------------|---------------------|
@@ -390,7 +390,7 @@ unless you have a specific reason to use a sized or unsigned integer type.
 
 Strings are just like in Lua:
 
-```euluna
+```nelua
 local s1 = "hello world" -- string
 local s2 = 'hello world' -- also a string
 ```
@@ -405,7 +405,7 @@ a mutable string he can always implement his own string object.
 
 Functions can be stored inside variables like in lua:
 
-```euluna
+```nelua
 local f1: function<(a: integer, b: integer): boolean, boolean>
 local f2 = function(args) end
 
@@ -418,7 +418,7 @@ function f4(args) end
 
 Tables are just like Lua tables:
 
-```euluna
+```nelua
 local t1 = {} -- empty table
 local t2: table -- empty table
 local t3 = {x = 1, y = 2} -- simple table
@@ -433,7 +433,7 @@ Tables triggers usage of the garbage collector.
 The "type" type is also a type, they can be stored in variables (actually symbols).
 Variables with this type is used at compile time only, they are useful for aliasing types:
 
-```euluna
+```nelua
 local MyInt: type = @integer -- a symbol of type 'type' holding the type 'integer'
 local a: MyInt -- varible of type 'MyInt' (actually a 'integer')
 
@@ -448,7 +448,7 @@ The '@' symbol is required to infer types in expressions.
 Type expressions (and also symbols) can be called to explicitly convert a
 variable to a new compatible type.
 
-```euluna
+```nelua
 local i = 1
 local f = @number(i) -- convert 'i' to the type 'number'
 ```
@@ -457,7 +457,7 @@ local f = @number(i) -- convert 'i' to the type 'number'
 
 Array is a fixed size array known at compile time:
 
-```euluna
+```nelua
 local a1: array<integer, 4> = {1,2,3,4}
 local a2: array<integer, 4>
 
@@ -470,7 +470,7 @@ local a4 = @integer[4] {1,2,3,4}
 
 Enums are used to list constant values in sequential order:
 
-```euluna
+```nelua
 local Weeks = @enum {
   Sunday = 0,
   Monday,
@@ -493,14 +493,14 @@ was made to makes the code more clear when reading.
 
 Any is a special type tha can store any type at runtime:
 
-```euluna
+```nelua
 local a: any = 2 -- variable of type 'any', holding type 'integer' at runtime
 print(a) -- outputs 2
 a = false -- now holds the type 'boolean' at runtime
 print(a) -- outputs false
 ```
 
-This type makes Euluna semantics compatible to Lua, you can use it to make untyped code
+This type makes Nelua semantics compatible to Lua, you can use it to make untyped code
 just like in Lua, however the programmer should know that he pays the price in
 performance, as operations on `any` types generate lots of branches at runtime,
 thus less efficient code.
@@ -509,7 +509,7 @@ thus less efficient code.
 
 Record store variables in a block of memory (like C structs):
 
-```euluna
+```nelua
 local Person = @record {
   name: string,
   age: integer
@@ -527,7 +527,7 @@ print(b.age)
 
 Records can also be used as tuples:
 
-```euluna
+```nelua
 local a: record{integer, integer}
 a = {1,2}
 a[1] = 0
@@ -537,7 +537,7 @@ a[1] = 0
 
 Union can store multiple types at the same block of memory:
 
-```euluna
+```nelua
 local u: union<integer,string> -- variable of type union, initialized to its first type 'integer'
 print(u) -- outputs 0
 u = 'string' -- u now holds a string
@@ -558,7 +558,7 @@ optional type as shown bellow.
 Optional type is actually a union of a `nilable` and any other type, it
 is used to declare a variable that may hold or not a variable:
 
-```euluna
+```nelua
 local a: union<nilable,string> -- variable that may hold a string, initialized to 'nil'
 assert(a == nil)
 assert(not a)
@@ -572,7 +572,7 @@ local v: string?
 
 Optional types are useful for passing or returning variables that maybe set or not:
 
-```euluna
+```nelua
 local function foo(a: integer?): integer?
   if not a then
     return nil
@@ -590,7 +590,7 @@ print(b) -- outputs 'nil'
 
 Pointer is like in C, points to a region in memory of a specific type:
 
-```euluna
+```nelua
 local n = nilptr -- a generic pointer, initialized to nilptr
 local p: pointer --a generic pointer to anything, initialized to nilptr
 local i: pointer<integer> -- pointer to an integer
@@ -603,7 +603,7 @@ local i: integer*
 
 Ranges are used to specifying ranges for slices.
 
-```euluna
+```nelua
 local r = 1:10
 local r: range<integer>
 ```
@@ -612,7 +612,7 @@ local r: range<integer>
 
 Slices are pointers to a block of contiguous elements at runtime.
 
-```euluna
+```nelua
 local arr = @integer[4] {1,2,3,4}
 local str = 'hello world'
 print(arr[1:2]) -- outputs '1 2'
@@ -629,7 +629,7 @@ local a: string_slice = 'hello world'[1:2]
 
 Void type is more used internally and it's only used to specify that a function returns nothing:
 
-```euluna
+```nelua
 local function f(): void end
 ```
 
@@ -638,7 +638,7 @@ local function f(): void end
 Block variables are used to encapsulate arbritary code inside a variable at compile time,
 when the block variable is called the compiler replaces the call code with the block code:
 
-```euluna
+```nelua
 local a: block = do
   print 'hello'
 end -- a is of type 'block'
@@ -685,7 +685,7 @@ All Lua operators are provided:
 
 The only additional operators are `$` and `&`, used for working with pointers.
 
-```euluna
+```nelua
 print(2 ^ 2) -- pow, outputs 4
 print(5 // 2) -- integer division, outputs 2
 print(5 / 2) -- float division, outputs 2.5
@@ -696,7 +696,7 @@ print(5 / 2) -- float division, outputs 2.5
 
 Functions are declared like in lua:
 
-```euluna
+```nelua
 -- untyped function, 'n' argument and return value is of the type 'any'
 local function fib(n)
   if n < 2 then return n end
@@ -706,7 +706,7 @@ end
 
 They can be recursive as shown above. It's arguments can have an optionally specified type:
 
-```euluna
+```nelua
 -- typed function, 'n' argument and return value is of the type 'integer'
 local function fib(n: integer): integer
   if n < 2 then return n end
@@ -716,14 +716,14 @@ end
 
 In contrast with variable declaration when the type is omitted from an argument there is no
 automatic detection of the argument type, instead it's assumed the argument must
-be of the `any` type, this makes Euluna semantics compatible with Lua semantics.
+be of the `any` type, this makes Nelua semantics compatible with Lua semantics.
 
 
 ### Return type inference
 
 Function return type is automatically detected:
 
-```euluna
+```nelua
 local function add(a: integer, b: integer)
   return a + b
 end
@@ -735,7 +735,7 @@ local a = add(1,2) -- a will be of type 'integer'
 
 Functions can have multiple returns like in Lua:
 
-```euluna
+```nelua
 local function get_multiple()
   return false, 1
 end
@@ -747,7 +747,7 @@ local a, b = get_multiple()
 
 The returns can optionally be explicitly typed:
 
-```euluna
+```nelua
 local function get_multiple(): boolean, integer
   return false, 1
 end
@@ -758,9 +758,9 @@ end
 Closure are functions declared inside another function
 that captures variables from the upper scope, by default they
 capture values by shared references using the garbage collector,
-this choice was made to make Euluna code compatible with lua semantics:
+this choice was made to make Nelua code compatible with lua semantics:
 
-```euluna
+```nelua
 local function main()
   local a = 1 -- a is promoted to a heap variable internally because it's captured by a closure
   local function foo()
@@ -776,7 +776,7 @@ main()  -- outputs 2
 To make the above possible the compiler promote any captured variable to heap variables and
 adds references of them to the garbage collector, however we can explicitly specify to capture the variable by its stack reference:
 
-```euluna
+```nelua
 -- capture all value by garbage collected copies
 local function main()
   local a = 1
@@ -799,7 +799,7 @@ Because any top scope variable lives in the heap, top scope closures environment
 visible and the compiler takes advantages this to not use the garbage collector, thus they
 they are more lightweight.
 
-```euluna
+```nelua
 local a = 1 -- 'a' lives in the heap already because it's on the top scope
 local function foo() -- foo is a top scope closure
   -- captured 'a' by reference
@@ -816,7 +816,7 @@ print(a) -- outputs 2
 The operator '&' is used to get a reference a variable,
 and the operator '$' is used to access the reference.
 
-```euluna
+```nelua
 local a = 1
 local aptr = &a -- aptr is a pointer to a
 $aptr = 2
@@ -832,7 +832,7 @@ Lazy functions are functions which contains arguments that it's proprieties can
 only be known when calling the function, they are processed and defined lazily (lately, on demand)
 at each call. They are memoized (only defined once for each kind of arguments).
 
-```euluna
+```nelua
 local function add(a: auto, b: auto)
   return a + b
 end
@@ -853,7 +853,7 @@ Later we will show how lazy functions are a lot more useful when used in combina
 Variable arguments functions can be implemented as lazy functions, the syntax is like in Lua
 using the `...`, and can be used to forward to another variable argument function:
 
-```euluna
+```nelua
 local function printproxy(a, ...)
   print(a, ...)
 end
@@ -864,7 +864,7 @@ On each call a different types call a real function will be implemented.
 
 The arguments can be accessed individually using the `select` builtin directive (like in Lua):
 
-```euluna
+```nelua
 local function printfirsttwo(...)
   local a = select(1, ...)
   local b = select(2, ...)
@@ -876,7 +876,7 @@ printfirsttwo('a','b') -- outputs "a b 2"
 
 It can be combined with multiple return functions:
 
-```euluna
+```nelua
 local function gettwo()
   return 1, 2
 end
@@ -890,7 +890,7 @@ printall(getwo()) -- outputs "1 2"
 
 Generics can be achieved with lazy functions:
 
-```euluna
+```nelua
 local function Point(T: type)
   local PointT = @struct{ x: T, y: T }
   function PointT:length(a: T): T
@@ -918,7 +918,7 @@ code between it's statements.
 Lines beginning with `##` and between `[##[ ]##]` are Lua code evaluated by the processor:
 
 
-```euluna
+```nelua
 local a = 0
 ## for i = 1,4 do
   a = a + 1 -- unroll this line 4 times
@@ -935,7 +935,7 @@ if something then
 
 For instance the above code compile exactly as:
 
-```euluna
+```nelua
 local a = 0
 a = a + 1
 a = a + 1
@@ -950,13 +950,13 @@ Using the lua preprocessor you can generate complex codes at compile time.
 
 It's also possible to emit new AST node while preprocessing:
 
-```euluna
+```nelua
 local a = #[aster.Number{'dec','1'}]
 ```
 
 The above code compile exactly as:
 
-```euluna
+```nelua
 local a = 1
 ```
 
@@ -964,7 +964,7 @@ local a = 1
 
 For placing values generated by the processor you should use `#[ ]`:
 
-```euluna
+```nelua
 local deg2rad = #[math.pi/180.0]
 local hello = #['hello ' .. 'world']
 local mybool = #[false]
@@ -972,7 +972,7 @@ local mybool = #[false]
 
 The above code compile exactly as:
 
-```euluna
+```nelua
 local deg2rad = 0.017453292519943
 local hello = 'hello world'
 local mybool = false
@@ -982,7 +982,7 @@ local mybool = false
 
 For placing identifier names generated by the processor you should use `#( )`:
 
-```euluna
+```nelua
 local #('my' .. 'var') = 1
 local function foo1() print 'foo' end
 #('foo' .. 1)() -- outputs 'foo'
@@ -990,7 +990,7 @@ local function foo1() print 'foo' end
 
 The above code compile exactly as:
 
-```euluna
+```nelua
 local myvar = 1
 local function foo1() print 'foo' end
 foo1()
@@ -1001,7 +1001,7 @@ foo1()
 While the compiler is processing you can view what the compiler already knows
 to generate code:
 
-```euluna
+```nelua
 local Weekends = @enum { Friday=0, Saturday, Sunda }
 ## for i,field in ipairs(symbols.Weekends.attr.holdedtype.fields) do
   print(#[field.name .. ' ' .. tostring(field.value)])
@@ -1010,7 +1010,7 @@ local Weekends = @enum { Friday=0, Saturday, Sunda }
 
 The above code compile exactly as:
 
-```euluna
+```nelua
 local Weekends = @enum { Friday=0, Saturday, Sunday }
 print 'Friday 0'
 print 'Saturday 1'
@@ -1019,7 +1019,7 @@ print 'Sunday 2'
 
 You can even manipulate what is already been processed:
 
-```euluna
+```nelua
 local Weekends = @enum { Friday=0, Saturday, Sunda }
 -- fix the third field name to 'Sunday'
 ## symbols.Weekends.attr.holdedtype.fields[3].name = 'Sunday'
@@ -1028,7 +1028,7 @@ print(Weekends.Sunday) -- outputs 2
 
 The above code compile exactly as:
 
-```euluna
+```nelua
 local Weekends = @enum { Friday=0, Saturday, Sunday }
 print(Weekends.Sunday)
 ```
@@ -1042,7 +1042,7 @@ or inject code to the compiler itself on the fly.
 Lazy functions can make compile time dynamic functions when used in combination with
 the preprocessor:
 
-```euluna
+```nelua
 function pow(x: auto, n: compconst integer)
   ## symbols.x.attr.type:is_integral() then
     -- x is an integral type (any unsigned/signed integer)
@@ -1070,7 +1070,7 @@ pow('a', 2) -- throws an error at compile time because of invalid type
 Blocks can be passed to lazy functions, in this case the entire function code will be always
 inlined in the call placement.
 
-```euluna
+```nelua
 local function unroll(count: compconst integer, body: block)
   ## for i=1,symbols.count.attr.value do
     body()
@@ -1092,14 +1092,14 @@ generation.
 
 Global pragmas begins with `!!` followed by it's name and parameters.
 
-```euluna
+```nelua
 !!cinclude '<stdio.h>' -- include a C header
 !!linklib "SDL" -- link SDL library
 ```
 
 ### Function pragmas
 
-```euluna
+```nelua
 function sum(a, b) !inline -- inline function
   return a + b
 end
@@ -1107,7 +1107,7 @@ end
 
 ### Variable pragmas
 
-```euluna
+```nelua
 local a: integer !noinit-- don't initialize variable to zeros
 local a !volatile = 1 -- C volatile variable
 ```
@@ -1115,9 +1115,9 @@ local a !volatile = 1 -- C volatile variable
 --------------------------------------------------------------------------------
 ## Mixing C code
 
-Euluna can import C functions from C headers:
+Nelua can import C functions from C headers:
 
-```euluna
+```nelua
 local function malloc(size: usize): pointer !cimport('malloc','<stdlib.h>') end
 local function memset(s: pointer, c: int32, n: usize): pointer !cimport('memset','<stdlib.h>') end
 local function free(ptr: pointer) !cimport('free','<stdlib.h>') end
@@ -1129,7 +1129,7 @@ assert(a[0] == 1)
 free(a)
 ```
 
-This allows to use existing C libraries in Euluna code.
+This allows to use existing C libraries in Nelua code.
 
 ### C primitives
 

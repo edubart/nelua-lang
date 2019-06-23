@@ -1,11 +1,11 @@
 require 'busted.runner'()
 
 local assert = require 'spec.tools.assert'
-local config = require 'euluna.configer'.get()
-local n = require 'euluna.syntaxdefs'().astbuilder.aster
-local bn = require 'euluna.utils.bn'
+local config = require 'nelua.configer'.get()
+local n = require 'nelua.syntaxdefs'().astbuilder.aster
+local bn = require 'nelua.utils.bn'
 
-describe("Euluna should check types for", function()
+describe("Nelua should check types for", function()
 
 it("analyzed ast transform", function()
   assert.analyze_ast("local a = 1; f(a)",

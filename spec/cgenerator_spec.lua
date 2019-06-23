@@ -2,22 +2,22 @@ require 'busted.runner'()
 
 local assert = require 'spec.tools.assert'
 
-describe("Euluna should parse and generate C", function()
+describe("Nelua should parse and generate C", function()
 
 it("empty file", function()
   assert.generate_c("", [[
-int euluna_main() {
+int nelua_main() {
   return 0;
 }]])
 end)
 
 it("return", function()
   assert.generate_c("return", [[
-int euluna_main() {
+int nelua_main() {
   return 0;
 }]])
   assert.generate_c("return 1", [[
-int euluna_main() {
+int nelua_main() {
   return 1;
 }]])
   assert.generate_c("return (1)")
@@ -67,7 +67,7 @@ it("call", function()
   assert.generate_c("a.f()", "mymod_a.f()")
   --assert.generate_c("a:f(a)", "mymod_a.f(mymod_a, mymod_a)")
   assert.generate_c("do f() end", "f();")
-  assert.generate_c("do return f() end", "return euluna_cint_any_cast(f());")
+  assert.generate_c("do return f() end", "return nelua_cint_any_cast(f());")
   assert.generate_c("do f(g()) end", "f(g())")
   assert.generate_c("do f(a, b) end", "f(a, b)")
   assert.generate_c("do f(a)(b) end", "f(a)(b)")
@@ -79,7 +79,7 @@ it("if", function()
   assert.generate_c("if nilptr then\nend","if(false) {\n")
   assert.generate_c("if nil then\nend","if(false) {\n")
   assert.generate_c("if 1 then\nend","if(true) {\n")
-  assert.generate_c("if a then\nend","if(euluna_any_to_boolean(mymod_a)) {\n")
+  assert.generate_c("if a then\nend","if(nelua_any_to_boolean(mymod_a)) {\n")
   assert.generate_c("if true then\nend","if(true) {\n  }")
   assert.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
   assert.generate_c("if true then\nelse\nend", "if(true) {\n  } else {\n  }")
@@ -140,12 +140,12 @@ end)
 
 it("for", function()
   assert.generate_c("for i=a,b do end", {
-    "for(euluna_any i = a, __end = b; i <= __end; i = i + 1) {"})
+    "for(nelua_any i = a, __end = b; i <= __end; i = i + 1) {"})
   assert.generate_c("for i=a,b do i=c end", {
-    "for(euluna_any __it = a, __end = b; __it <= __end; __it = __it + 1) {",
-    "euluna_any i = __it;"})
+    "for(nelua_any __it = a, __end = b; __it <= __end; __it = __it + 1) {",
+    "nelua_any i = __it;"})
   assert.generate_c("for i=a,b,c do end",
-    "for(euluna_any i = a, __end = b, __step = c; " ..
+    "for(nelua_any i = a, __end = b, __step = c; " ..
     "__step >= 0 ? i <= __end : i >= __end; i = i + __step) {")
   assert.generate_c(
     "for i=1,<2 do end",
@@ -235,7 +235,7 @@ it("function return", function()
   ]], "int64_t mymod_f() {\n  return 0;")
   assert.generate_c([[
     local function f(): any return end
-  ]], "euluna_any mymod_f() {\n  return (euluna_any){0};")
+  ]], "nelua_any mymod_f() {\n  return (nelua_any){0};")
   assert.generate_c([[
     local function f() return end
   ]], "return;")
@@ -376,22 +376,22 @@ end)
 
 it("binary conditional operators", function()
   assert.generate_c("do return a or b end",  [[({
-      euluna_any t1_ = a; EULUNA_UNUSED(t1_);
-      euluna_any t2_ = {0}; EULUNA_UNUSED(t2_);
-      bool cond_ = euluna_any_to_boolean(t1_);
+      nelua_any t1_ = a; Nelua_UNUSED(t1_);
+      nelua_any t2_ = {0}; Nelua_UNUSED(t2_);
+      bool cond_ = nelua_any_to_boolean(t1_);
       if(cond_)
         t2_ = b;
       cond_ ? t1_ : t2_;
     })]])
   assert.generate_c("do return a and b end",  [[({
-      euluna_any t1_ = a; EULUNA_UNUSED(t1_);
-      euluna_any t2_ = {0}; EULUNA_UNUSED(t2_);
-      bool cond_ = euluna_any_to_boolean(t1_);
+      nelua_any t1_ = a; Nelua_UNUSED(t1_);
+      nelua_any t2_ = {0}; Nelua_UNUSED(t2_);
+      bool cond_ = nelua_any_to_boolean(t1_);
       if(cond_) {
         t2_ = b;
-        cond_ = euluna_any_to_boolean(t2_);
+        cond_ = nelua_any_to_boolean(t2_);
       }
-      cond_ ? t2_ : (euluna_any){0};
+      cond_ ? t2_ : (nelua_any){0};
     })]])
   assert.run_c([[
     local a = 2 or 3
@@ -515,16 +515,16 @@ end)
 it("any type", function()
   assert.generate_c(
     "do local a: any end",
-    "euluna_any a = {0};")
+    "nelua_any a = {0};")
   assert.generate_c(
     "do local a: any; local b: any = a end",
-    "euluna_any b = a;")
+    "nelua_any b = a;")
   assert.generate_c(
     "do local a: any = 1 end",
-    "euluna_any a = (euluna_any){&euluna_int64_type, {1}};")
+    "nelua_any a = (nelua_any){&nelua_int64_type, {1}};")
   assert.generate_c(
     "do local a: any = 1; local b: integer = a end",
-    "int64_t b = euluna_int64_any_cast(a);")
+    "int64_t b = nelua_int64_any_cast(a);")
   assert.run_c([[
     local a: any = 1
     local b: integer = a
@@ -554,10 +554,10 @@ end)
 it("array tables", function()
   assert.generate_c(
     "do local t: arraytable<boolean> end",
-    "euluna_boolean_arrtab t = {0};")
+    "nelua_boolean_arrtab t = {0};")
   assert.generate_c(
     "do local t: arraytable<boolean>; local a = #t end",
-    "int64_t a = euluna_boolean_arrtab_length(&t);")
+    "int64_t a = nelua_boolean_arrtab_length(&t);")
   assert.run_c([[
     local t: arraytable<boolean>
     print(t[0], #t)
@@ -764,8 +764,8 @@ it("pragmas", function()
   assert.generate_c("local a: number !cqualifier 'in' = 1", "in double mymod_a = 1.0;")
   assert.generate_c("local R !aligned(16) = @record{x: integer}; local r: R", "} __attribute__((aligned(16))) ")
   assert.generate_c("local function f() !inline end", "inline void")
-  assert.generate_c("local function f() !noreturn end", "EULUNA_NORETURN void")
-  assert.generate_c("local function f() !noinline end", "EULUNA_NOINLINE void")
+  assert.generate_c("local function f() !noreturn end", "Nelua_NORETURN void")
+  assert.generate_c("local function f() !noinline end", "Nelua_NOINLINE void")
   assert.generate_c("local function f() !volatile end", "volatile void")
   assert.generate_c("local function f() !nodecl end", "")
   assert.generate_c("local function f() !nosideeffect end", "")
@@ -817,10 +817,10 @@ end)
 it("assert", function()
   assert.generate_c(
     "assert(true)",
-    "euluna_assert(true)")
+    "nelua_assert(true)")
   assert.generate_c(
     "assert(true, 'assertion')",
-    'euluna_assert_message(true, ')
+    'nelua_assert_message(true, ')
   assert.run_c([[
     assert(true)
     assert(true, 'assertion')

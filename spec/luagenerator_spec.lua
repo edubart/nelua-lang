@@ -1,9 +1,9 @@
 require 'busted.runner'()
 
-local config = require 'euluna.configer'.get()
+local config = require 'nelua.configer'.get()
 local assert = require 'spec.tools.assert'
 
-describe("Euluna should parse and generate Lua", function()
+describe("Nelua should parse and generate Lua", function()
 
 it("empty file", function()
   assert.generate_lua("", "")

@@ -13,17 +13,17 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: Euluna
+title: Nelua
 email: edub4rt@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
-  Euluna is a minimalistic, performant, safe, optionally typed, meta programmable,
+  Nelua is a minimalistic, performant, safe, optionally typed, meta programmable,
   systems programming language with syntax close to Lua language that works
   either dynamically or staticaly by compiling to Lua or C respectively.
-baseurl: "/euluna-lang" # the subpath of your site, e.g. /blog
+baseurl: "/nelua-lang" # the subpath of your site, e.g. /blog
 url: "https://edubart.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 
 categories: [sidenav]
-exclude: [pages/euluna]
+exclude: [pages/nelua]
 
 # Build settings
 markdown: kramdown

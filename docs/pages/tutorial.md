@@ -11,7 +11,7 @@ order: 3
 
 # Tutorial
 
-This is a basic tutorial for the programming language Euluna.
+This is a basic tutorial for the programming language Nelua.
 
 ## Your first program
 

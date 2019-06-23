@@ -1,9 +1,9 @@
 require 'busted.runner'()
 
 local assert = require 'spec.tools.assert'
-local except = require 'euluna.utils.except'
+local except = require 'nelua.utils.except'
 
-describe("Euluna exceptions should work for", function()
+describe("Nelua exceptions should work for", function()
 
 it("raising strings", function()
   local e

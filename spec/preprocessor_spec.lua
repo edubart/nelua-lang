@@ -1,9 +1,9 @@
 require 'busted.runner'()
 
 local assert = require 'spec.tools.assert'
-local config = require 'euluna.configer'.get()
+local config = require 'nelua.configer'.get()
 
-describe("Euluna preprocessor should", function()
+describe("Nelua preprocessor should", function()
 
 it("evaluate expressions", function()
   assert.c_gencode_equals([=[
@@ -238,7 +238,7 @@ it("report errors", function()
 end)
 
 it("run brainfuck", function()
-  assert.run('--generator c examples/brainfuck.euluna', 'Hello World!')
+  assert.run('--generator c examples/brainfuck.nelua', 'Hello World!')
 end)
 
 end)
