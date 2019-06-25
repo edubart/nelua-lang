@@ -22,12 +22,12 @@ local pformat, pconcat = stringer.pformat, stringer.pconcat
 
 function console.warnf(format, ...)  logcf(io.stderr, color_warn,  pformat(format, ...)) end
 function console.errorf(format, ...) logcf(io.stderr, color_error, pformat(format, ...)) end
-function console.debugf(format, ...) logcf(io.stderr, color_debug, pformat(format, ...)) end
+function console.debugf(format, ...) logcf(io.stdout, color_debug, pformat(format, ...)) end
 function console.infof(format, ...)  logcf(io.stdout, color_info,  pformat(format, ...)) end
 
 function console.warn(...)  logcf(io.stderr, color_warn,  pconcat(...)) end
 function console.error(...) logcf(io.stderr, color_error, pconcat(...)) end
-function console.debug(...) logcf(io.stderr, color_debug, pconcat(...)) end
+function console.debug(...) logcf(io.stdout, color_debug, pconcat(...)) end
 function console.info(...)  logcf(io.stdout, color_info,  pconcat(...)) end
 
 function console.log(...)   logcf(io.stdout, nil,  pconcat(...)) end

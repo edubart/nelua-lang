@@ -38,6 +38,11 @@ it("local variable", function()
   assert.analyze_error("local a: void", "variable declaration cannot be of the type")
 end)
 
+it("global variable", function()
+  assert.c_gencode_equals("global a = 1", "global a: integer = 1")
+  assert.analyze_error("do global a = 1 end", "global variables can only be declarated in top scope")
+end)
+
 it("name collision", function()
   assert.c_gencode_equals("local a = 1; local a = 2", "local a: integer = 1; local a: integer = 2")
 end)
@@ -582,6 +587,19 @@ it("record methods", function()
     local vec2 = @record{x: integer, y: integer}
     local v: vec2 = vec2.create(1,2)
   ]], "cannot index record meta field")
+end)
+
+it("record globals", function()
+  assert.analyze_ast([[
+    local Math = @record{}
+    global Math.PI = 3.14
+    local a = Math.PI
+  ]])
+  assert.analyze_error([[
+    local Math = @record{}
+    global Math.PI: integer = 3
+    Math.PI = 3.14
+  ]], "is not coercible with")
 end)
 
 it("type neasting", function()

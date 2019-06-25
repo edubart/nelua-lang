@@ -90,7 +90,7 @@ local function run(args)
   end
   local tmperr, tmpout = io.tmpfile(), io.tmpfile()
   local function rprint(...)
-    return tmpout:write(stringer.print_concat(...) .. "\n")
+    return tmpout:write(stringer.pconcat(...) .. "\n")
   end
   -- hook print, stderr and stdout
   local ostderr, ostdout, oprint = io.stderr, io.stdout, _G.print

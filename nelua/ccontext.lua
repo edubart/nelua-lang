@@ -32,13 +32,13 @@ function CContext:declname(node)
       if self.scope:is_main() and traits.is_astnode(node) then
         local modname = self.attr.modname or node.modname
         if modname ~= '' then
-          declname = modname .. '_' .. declname
+          declname = string.format('%s_%s', modname, declname)
         end
       end
       declname = cdefs.quotename(declname)
     end
     if attr.shadowcount then
-      declname = declname .. '__' .. attr.shadowcount
+      declname = string.format('%s__%d', declname, attr.shadowcount)
     end
   end
   attr.declname = declname

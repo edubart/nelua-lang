@@ -838,9 +838,9 @@ describe("statement variable declaration", function()
     }})
   end)
   it("non local variable", function()
-    assert.parse_ast(nelua_parser, "var a",
+    assert.parse_ast(nelua_parser, "global a: integer",
       n.Block{{
-        n.VarDecl{'local', nil, {n.IdDecl{'a'}}}
+        n.VarDecl{'global', nil, {n.IdDecl{'a', nil, n.Type{'integer'}}}}
     }})
   end)
   it("variable mutabilities inside types", function()
@@ -857,13 +857,17 @@ describe("statement variable declaration", function()
   end)
   it("variable mutabilities", function()
     assert.parse_ast(nelua_parser, [[
-      var a = b
-      const a = b
+      local const a = b
+      local a: const = b
+      global const a = b
+      global a: const = b
       local compconst a = b
     ]],
       n.Block{{
-        n.VarDecl{'local', nil, {n.IdDecl{'a'}}, {n.Id{'b'}}},
-        n.VarDecl{nil, 'const', {n.IdDecl{'a'}}, {n.Id{'b'}}},
+        n.VarDecl{'local', 'const', {n.IdDecl{'a'}}, {n.Id{'b'}}},
+        n.VarDecl{'local', nil, {n.IdDecl{'a', 'const'}}, {n.Id{'b'}}},
+        n.VarDecl{'global', 'const', {n.IdDecl{'a'}}, {n.Id{'b'}}},
+        n.VarDecl{'global', nil, {n.IdDecl{'a', 'const'}}, {n.Id{'b'}}},
         n.VarDecl{'local', 'compconst', {n.IdDecl{'a'}}, {n.Id{'b'}}},
     }})
   end)
@@ -873,6 +877,12 @@ describe("statement variable declaration", function()
         n.VarDecl{'local', nil,
           { n.IdDecl{'a'}, n.IdDecl{'b'}, n.IdDecl{'c'} },
           { n.Id{'x'}, n.Id{'y'}, n.Id{'z'} }},
+    }})
+  end)
+  it("record global variables", function()
+    assert.parse_ast(nelua_parser, "global a.b: integer",
+      n.Block{{
+        n.VarDecl{'global', nil, {n.IdDecl{n.DotIndex{'b',n.Id{'a'}}, nil, n.Type{'integer'}}}}
     }})
   end)
 end)

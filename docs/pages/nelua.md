@@ -4,7 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/edubart/nelua-lang/badge.svg?branch=master)](https://coveralls.io/github/edubart/nelua-lang?branch=master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?label=license)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/website/https/edubart.github.io/nelua-lang.svg?label=docs&color=blue)](https://edubart.github.io/nelua-lang/overview/)
-[![Join the chat at Gitter](https://badges.gitter.im/euluna-lang/Lobby.svg)](https://gitter.im/nelua-lang/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Gitter](https://badges.gitter.im/nelua-lang/community.svg)](https://gitter.im/nelua-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 ![Project Status](https://img.shields.io/badge/status-alpha-red.svg)
 
 Nelua is a minimalistic, efficient, safe, optionally typed, ahead of time compiled, meta programmable,
@@ -192,7 +192,7 @@ Lua Generator:
 C Generator:
 - [x] Generate basic C code and compile
 - [x] Primitives (integer, number, boolean)
-- [x] Control structures
+- [x] Control flow statements
 - [x] Primitives operators
 - [x] Functions
 - [x] Static string

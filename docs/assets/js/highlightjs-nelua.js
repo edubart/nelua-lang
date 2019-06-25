@@ -21,8 +21,8 @@ hljs.registerLanguage("nelua", function(e) {
         //Lua
         "function and break do else elseif end for goto if in local not or repeat return then until while " +
         //Extended lua
-        "switch case continue defer record enum" +
-        "var const compconst auto"
+        "switch case continue compconst const global" +
+        "defer record enum"
       ,
       built_in:
         //Metatags and globals:

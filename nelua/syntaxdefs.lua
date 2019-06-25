@@ -50,7 +50,7 @@ local function get_parser(std)
   if not is_luacompat then
     parser:add_keywords({
       -- nelua additional keywords
-      "switch", "case", "continue", "compconst", "const", "var"
+      "switch", "case", "continue", "compconst", "const", "global"
     })
   end
 
@@ -266,7 +266,7 @@ local function get_parser(std)
       ) -> to_astnode
 
     for_in <-
-      ({} '' -> 'ForIn' {| typed_idlist |} %IN {| eexpr_list |} eDO block eEND) -> to_astnode
+      ({} '' -> 'ForIn' {| etyped_idlist |} %IN {| eexpr_list |} eDO block eEND) -> to_astnode
 
     for_in_empty <-
       ({} %IN -> 'ForIn' cnil {| eexpr_list |} eDO block eEND) -> to_astnode
@@ -284,16 +284,8 @@ local function get_parser(std)
     ({} %GOTO -> 'Goto' ename) -> to_astnode
   ]])
 
-  grammar:add_group_peg('stat', 'vardecl', [[
-    ({} '' -> 'VarDecl'
-      var_scope cnil
-      {| typed_idlist |}
-      (%ASSIGN {| eexpr_list |})?
-    ) -> to_astnode
-  ]])
-
   grammar:add_group_peg('stat', 'funcdef', [[
-    ({} '' -> 'FuncDef' var_scope %FUNCTION id function_body) -> to_astnode /
+    ({} '' -> 'FuncDef' %LOCAL -> 'local' %FUNCTION id function_body) -> to_astnode /
     ({} %FUNCTION -> 'FuncDef' cnil func_name function_body) -> to_astnode
 
     func_name <- (id {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
@@ -328,10 +320,20 @@ local function get_parser(std)
 
   if not is_luacompat then
     grammar:add_group_peg('stat', 'vardecl', [[
-      ({} '' -> 'VarDecl'
-        (((var_scope / %VAR -> 'local') (var_mutability / cnil)) / (cnil var_mutability))
-        {| typed_idlist |}
-        (%ASSIGN {| eexpr_list |})?
+    ({} '' -> 'VarDecl'
+      ( %LOCAL -> 'local' (var_mut/cnil)
+        {| etyped_idlist |}
+      / (%GLOBAL ->'global' (var_mut/cnil) / ''->'global' var_mut)
+        {| eglobal_typed_idlist |}
+      ) (%ASSIGN {| eexpr_list |})?
+    ) -> to_astnode
+
+    eglobal_typed_idlist <-
+      (global_typed_id / %{ExpectedName}) (%COMMA global_typed_id)*
+    global_typed_id <- ({} '' -> 'IdDecl'
+        ((id {| dot_index+ |}) -> to_chain_index_or_call / name)
+        ((%COLON (var_mut (typexpr/cnil) / cnil etypexpr)) / cnil cnil)
+        (&%EXCL {| var_pragma* |})?
       ) -> to_astnode
     ]], nil, true)
 
@@ -347,6 +349,14 @@ local function get_parser(std)
 
     grammar:add_group_peg('stat', 'continue', [[
       ({} %CONTINUE -> 'Continue') -> to_astnode
+    ]])
+  else
+    grammar:add_group_peg('stat', 'vardecl', [[
+      ({} '' -> 'VarDecl'
+        %LOCAL -> 'local' cnil
+        {| etyped_idlist |}
+        (%ASSIGN {| eexpr_list |})?
+      ) -> to_astnode
     ]])
   end
 
@@ -413,13 +423,14 @@ local function get_parser(std)
       {| (%COLON etypexpr_list)? |} {| var_pragma* |}
         block
       eEND
-    var_mutability <-
+    var_mut <-
       %TCOMPCONST -> 'compconst' /
       %TCONST -> 'const'
     typed_idlist <- typed_id (%COMMA typed_id)*
+    etyped_idlist <- (typed_id / %{ExpectedName}) (%COMMA typed_id)*
     typed_id <- ({} '' -> 'IdDecl'
         name
-        ((%COLON (var_mutability (typexpr /cnil) / cnil etypexpr)) / cnil cnil)
+        ((%COLON (var_mut (typexpr /cnil) / cnil etypexpr)) / cnil cnil)
         (&%EXCL {| var_pragma* |})?
       ) -> to_astnode
 
@@ -429,7 +440,6 @@ local function get_parser(std)
     expr_list <- (expr (%COMMA expr)*)?
     eexpr_list <- eexpr (%COMMA expr)*
 
-    var_scope <- %LOCAL -> 'local'
     var_pragma <- ({} %EXCL -> 'Pragma' epragma_expr) -> to_astnode
 
     epragma_expr <-
@@ -594,7 +604,7 @@ local function get_parser(std)
 
   -- grammar errors
   parser:add_syntax_errors({
-    UnexpectedSyntaxAtEOF  = 'unexpected syntax, was expecting EOF',
+    UnexpectedSyntaxAtEOF  = 'unexpected syntax',
     UnclosedParenthesis = "unclosed parenthesis, did you forget a `)`?",
     UnclosedBracket = "unclosed bracket, did you forget a `]`?",
     UnclosedCurly = "unclosed curly brace, did you forget a `}`?",

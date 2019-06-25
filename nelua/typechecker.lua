@@ -302,8 +302,8 @@ function visitors.Id(context, node)
 end
 
 function visitors.IdDecl(context, node)
-  local name, mut, typenode, pragmanodes = node:args()
-  node:assertraisef(not (mut and node.mut), "cannot declare mutability twice for '%s'", name)
+  local namenode, mut, typenode, pragmanodes = node:args()
+  node:assertraisef(not (mut and node.mut), "cannot declare mutability twice")
   mut = mut or node.mut
   node:assertraisef(not mut or typedefs.mutabilities[mut],
     'mutability %s not supported yet', mut)
@@ -317,10 +317,22 @@ function visitors.IdDecl(context, node)
       type = primtypes.any
     end
   end
-  local symbol = context.scope:add_symbol(Symbol(name, node, type))
+  local symbol
+  if traits.is_string(namenode) then
+    symbol = context.scope:add_symbol(Symbol(namenode, node, type))
+  else
+    -- global record field
+    assert(namenode.tag == 'DotIndex')
+    context.inglobaldecl = node
+    symbol = context:traverse(namenode)
+    context.inglobaldecl = nil
+  end
   local attr = symbol.attr
   if mut then
     attr[mut] = true
+  end
+  if type then
+    attr.type = type
   end
   if pragmanodes then
     context:traverse(pragmanodes, symbol)
@@ -514,6 +526,7 @@ local function visitor_FieldIndex(context, node)
   local attr = node.attr
   local name, objnode = node:args()
   if attr.type then
+    -- type already known, return early
     local objtype = objnode.attr.type
     if objtype:is_type() then
       objtype = objnode.attr.holdedtype
@@ -549,13 +562,22 @@ local function visitor_FieldIndex(context, node)
       elseif objtype:is_record() then
         symbol = objtype:get_metafield(name)
         if not symbol then
-          if context.infuncdef == context:get_parent_node() then
-            local symname = string.format('%s_%s', objtype.codename, name)
+          local parentnode = context:get_parent_node()
+          local symname = string.format('%s_%s', objtype.codename, name)
+          if context.infuncdef == parentnode then
+            -- declaration of record global function
             symbol = Symbol(symname, node)
             symbol.attr.const = true
             symbol.attr.metafunc = true
             symbol.attr.metarecordtype = objtype
             objtype:set_metafield(name, symbol)
+          elseif context.inglobaldecl == parentnode then
+            -- declaration of record global variable
+            symbol = Symbol(symname, parentnode)
+            objtype:set_metafield(name, symbol)
+
+            -- add symbol to scope to enable type deduction
+            context.scope:add_symbol(symbol)
           else
             node:raisef('cannot index record meta field "%s"', name)
           end
@@ -1002,6 +1024,10 @@ function visitors.VarDecl(context, node)
     #varnodes, #valnodes)
   for _,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
     assert(varnode.tag == 'IdDecl')
+    if varscope == 'global' then
+      varnode:assertraisef(context.scope:is_main(), 'global variables can only be declarated in top scope')
+      varnode.attr.global = true
+    end
     varnode.mut = mut
     local symbol = context:traverse(varnode)
     assert(symbol)
@@ -1473,13 +1499,15 @@ function typechecker.analyze(ast, astbuilder)
 
   -- phase 1 traverse: infer and check types
   context.phase = phases.type_inference
-  context:repeat_scope_until_resolution('function', function()
+  context:repeat_scope_until_resolution('function', function(scope)
+    scope.main = true
     context:traverse(ast)
   end)
 
   -- phase 2 traverse: infer non set types to 'any' type
   context.phase = phases.any_inference
-  context:repeat_scope_until_resolution('function', function()
+  context:repeat_scope_until_resolution('function', function(scope)
+    scope.main = true
     context:traverse(ast)
   end)
 

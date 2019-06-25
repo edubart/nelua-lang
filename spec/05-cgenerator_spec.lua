@@ -23,6 +23,14 @@ int nelua_main() {
   assert.generate_c("return (1)")
 end)
 
+it("local variable", function()
+  assert.generate_c("do local a = 1 end", "  int64_t a = 1;")
+end)
+
+it("global variable", function()
+  assert.generate_c("global a = 1", "\nint64_t mymod_a = 1;\n")
+end)
+
 it("number", function()
   assert.generate_c("do local a = 99 end", "99")
   assert.generate_c("do local a = 1.2 end", "1.2")
@@ -484,10 +492,10 @@ it("reserved names quoting", function()
   assert.generate_c("do local default: integer end", "int64_t default_ = 0;")
   assert.generate_c("do local NULL: integer = 0 end", "int64_t NULL_ = 0;")
   assert.run_c([[
-    local function struct(static: integer)
+    local function struct(double: integer)
       local default: integer
       default = 1
-      return default + static
+      return default + double
     end
     print(struct(1))
   ]], "2")
@@ -672,6 +680,16 @@ it("record methods", function()
   ]])
 end)
 
+it("record globals", function()
+  assert.run_c([[
+    local Math = @record{}
+    global Math.PI = 3.14
+    assert(Math.PI == 3.14)
+    Math.PI = 3
+    assert(Math.PI == 3)
+  ]])
+end)
+
 it("enums", function()
   assert.generate_c(
     "local e: enum{A=0}",
@@ -760,6 +778,7 @@ it("pragmas", function()
   assert.generate_c("local a: int64 !register", "register int64_t mymod_a")
   assert.generate_c("local a: int64 !restrict", "restrict int64_t mymod_a")
   assert.generate_c("local a: int64 !nodecl", "")
+  assert.generate_c("do local a !static = 1 end", "static int64_t a = 1;", true)
   assert.generate_c("local a: int64 !cattribute 'vector_size(16)'", "int64_t mymod_a __attribute__((vector_size(16)))")
   assert.generate_c("local a: number !cqualifier 'in' = 1", "in double mymod_a = 1.0;")
   assert.generate_c("local R !aligned(16) = @record{x: integer}; local r: R", "} __attribute__((aligned(16))) ")

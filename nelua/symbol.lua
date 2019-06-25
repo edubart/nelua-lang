@@ -12,7 +12,9 @@ function Symbol:_init(name, node, type)
   self.attr = attr
   attr.name = name
   attr.codename = name
-  attr.type = type
+  if type then
+    attr.type = type
+  end
 end
 
 function Symbol:add_possible_type(type, required)
@@ -33,20 +35,19 @@ function Symbol:link_node(node)
   if node.attr == self.attr then
     return
   end
-  if not self.node then
-    -- this is symbol without a parent node, merge attrs into others nodes and link
-    local attr = node.attr
-    for k,v in pairs(self.attr) do
+  if next(node.attr) == nil then
+    node.attr = self.attr
+  else
+    -- merge attrs into others node and link
+    local attr = self.attr
+    for k,v in pairs(node.attr) do
       if attr[k] == nil then
         attr[k] = v
       else
         assert(attr[k] == v, 'cannot link to a node with different attributes')
       end
     end
-    self.attr = attr
-  else
-    assert(next(node.attr) == nil, 'cannot link to a node with attributes')
-    node.attr = self.attr
+    node.attr = attr
   end
 end
 

@@ -33,6 +33,20 @@ astbuilder:register('PreprocessName', {
   stypes.string, -- code
 })
 
+-- indexing
+astbuilder:register('DotIndex', {
+  stypes.string + ntypes.PreprocessName, -- name
+  ntypes.Node -- expr
+})
+astbuilder:register('ColonIndex', {
+  stypes.string + ntypes.PreprocessName, -- name
+  ntypes.Node -- expr
+})
+astbuilder:register('ArrayIndex', {
+  ntypes.Node, -- index expr
+  ntypes.Node -- expr
+})
+
 -- table
 astbuilder:register('Table', {
   stypes.array_of(ntypes.Node) -- pair or exprs
@@ -53,7 +67,7 @@ astbuilder:register('Id', {
   stypes.string + ntypes.PreprocessName, -- name
 })
 astbuilder:register('IdDecl', {
-  stypes.string + ntypes.PreprocessName, -- name
+  stypes.string + ntypes.PreprocessName + ntypes.DotIndex, -- name
   stypes.one_of{"const", "compconst"}:is_optional(), -- mutability
   ntypes.Node:is_optional(), -- typexpr
   stypes.array_of(ntypes.Pragma):is_optional(), -- pragmas
@@ -108,20 +122,6 @@ astbuilder:register('Function', {
   stypes.array_of(ntypes.Node), -- typed returns
   stypes.array_of(ntypes.Pragma), -- pragmas
   ntypes.Node, -- block
-})
-
--- indexing
-astbuilder:register('DotIndex', {
-  stypes.string + ntypes.PreprocessName, -- name
-  ntypes.Node -- expr
-})
-astbuilder:register('ColonIndex', {
-  stypes.string + ntypes.PreprocessName, -- name
-  ntypes.Node -- expr
-})
-astbuilder:register('ArrayIndex', {
-  ntypes.Node, -- index expr
-  ntypes.Node -- expr
 })
 
 -- calls
@@ -182,7 +182,7 @@ astbuilder:register('Goto', {
   stypes.string + ntypes.PreprocessName -- label name
 })
 astbuilder:register('VarDecl', {
-  stypes.one_of{"local"}:is_optional(), -- scope
+  stypes.one_of{"local","global"}:is_optional(), -- scope
   stypes.one_of{"const", "compconst"}:is_optional(), -- mutability
   stypes.array_of(ntypes.IdDecl), -- var names with types
   stypes.array_of(ntypes.Node):is_optional(), -- expr list, initial assignments values

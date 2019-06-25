@@ -55,16 +55,16 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
   end
   local multiretvalname
   for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
-    local vartype = varnode.attr.type
-    if not vartype:is_type() and not varnode.attr.nodecl then
+    local varattr = varnode.attr
+    local vartype = varattr.type
+    if not vartype:is_type() and not varattr.nodecl then
       local declared, defined = false, false
-      if decl and context.scope:is_main() then
+      if decl and (context.scope:is_main()) then
         -- declare main variables in the top scope
         local decemitter = CEmitter(context)
-        if not context.attr.no_static then
-          decemitter:add_indent('static ')
-        else
-          decemitter:add_indent()
+        decemitter:add_indent()
+        if not context.attr.no_static and not varattr.global then
+          decemitter:add('static ')
         end
         decemitter:add(varnode)
         if valnode and valnode.attr.compconst then
@@ -120,9 +120,9 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         end
         defemitter:add_ln(';')
       end
-    elseif varnode.attr.cinclude then
+    elseif varattr.cinclude then
       -- not declared, might be an imported variable from C
-      context:add_include(varnode.attr.cinclude)
+      context:add_include(varattr.cinclude)
     end
   end
   if usetemporary then
@@ -250,6 +250,7 @@ function visitors.IdDecl(context, node, emitter)
   if attr.volatile then emitter:add('volatile ') end
   if attr.restrict then emitter:add('restrict ') end
   if attr.register then emitter:add('register ') end
+  if attr.static then emitter:add('static ') end
   if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
   emitter:add(type, ' ', context:declname(node))
   if attr.cattribute then emitter:add(' __attribute__((', attr.cattribute, '))') end
@@ -691,7 +692,6 @@ end
 
 function visitors.VarDecl(context, node, emitter)
   local varscope, mutability, varnodes, valnodes = node:args()
-  node:assertraisef(varscope == 'local', 'global variables not supported yet')
   visit_assignments(context, emitter, varnodes, valnodes, true)
 end
 
@@ -709,7 +709,7 @@ function visitors.FuncDef(context, node)
   local type = attr.type
   local numrets = type:get_return_count()
   local qualifier = ''
-  if not attr.entrypoint and not context.attr.no_static then
+  if not attr.entrypoint and not context.attr.no_static and not attr.global then
     qualifier = 'static '
   end
   local declare, define = not attr.nodecl, true

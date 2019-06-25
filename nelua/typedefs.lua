@@ -344,7 +344,8 @@ typedefs.block_pragmas = {
 
 local common_pragmas = {
   cimport = shaper.shape{shaper.string:is_optional(), (shaper.boolean + shaper.string):is_optional()},
-  onestring = shaper.shape{shaper.string}
+  onestring = shaper.shape{shaper.string},
+  oneinteger = shaper.shape{shaper.integer}
 }
 typedefs.function_pragmas = {
   cimport = common_pragmas.cimport,
@@ -364,14 +365,15 @@ typedefs.variable_pragmas = {
   codename = common_pragmas.onestring,
   cqualifier = common_pragmas.onestring,
   cattribute = common_pragmas.onestring,
-  aligned = shaper.shape{shaper.integer},
+  aligned = common_pragmas.oneinteger,
+  static = true,
   register = true,
   restrict = true,
   volatile = true,
   nodecl = true,
 }
 typedefs.type_pragmas = {
-  aligned = shaper.shape{shaper.integer},
+  aligned = common_pragmas.oneinteger,
   cimport = common_pragmas.cimport,
   codename = common_pragmas.onestring,
   nodecl = true,

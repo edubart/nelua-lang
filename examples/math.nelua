@@ -1,7 +1,5 @@
 --TODO: function type overload
---TODO: implement using namespaces or method syntax sugar
 --TODO: become a module
---TODO: export functions
 --TODO: string compare
 
 !!cinclude '<math.h>'
@@ -9,10 +7,10 @@
 
 local math = @record{}
 
-local math_pi: compconst = 3.141592653589793
-local math_maxinteger: compconst = 9223372036854775807
-local math_mininteger: compconst = -9223372036854775807-1
-local math_huge: number !cimport 'HUGE_VAL'
+global math.pi: compconst = 3.141592653589793
+global math.maxinteger: compconst = 9223372036854775807
+global math.mininteger: compconst = -9223372036854775807-1
+global math.huge: number !cimport 'HUGE_VAL'
 
 function math.abs(x: number): number !cimport('fabs') end
 function math.ceil(x: number): number !cimport('ceil') end
@@ -40,7 +38,7 @@ local function csrand(x: uint32) !cimport('srand') end
 
 function math.atan2(x: number, y: number): number !cimport('atan2') end
 
-function math.logbase(x: number, base: number): number
+local function math_logbase(x: number, base: number): number
   if base == 2 then
     return clog2(x)
   elseif base == 10 then
@@ -50,11 +48,11 @@ function math.logbase(x: number, base: number): number
 end
 
 function math.deg(x: number)
-  return x * (180.0 / math_pi)
+  return x * (180.0 / math.pi)
 end
 
 function math.rad(x: number)
-  return x * (math_pi / 180.0)
+  return x * (math.pi / 180.0)
 end
 
 function math.modf(x: number)
@@ -108,28 +106,28 @@ assert_equal(math.min(1.0, -1.0), -1)
 assert_equal(math.min(-1.0, 1.0), -1)
 assert_equal(math.max(1.0, -1.0), 1)
 assert_equal(math.max(-1.0, 1.0), 1)
-assert(math.min(math_huge, -math_huge) == -math_huge)
-assert(math.max(math_huge, -math_huge) == math_huge)
+assert(math.min(math.huge, -math.huge) == -math.huge)
+assert(math.max(math.huge, -math.huge) == math.huge)
 
-assert_equal(math.acos(-1.0), math_pi)
+assert_equal(math.acos(-1.0), math.pi)
 assert_equal(math.acos(1.0), 0)
 assert_equal(math.asin(0.0), 0)
-assert_equal(math.asin(1.0), math_pi/2)
+assert_equal(math.asin(1.0), math.pi/2)
 assert_equal(math.atan(0.0), 0)
-assert_equal(math.atan(1.0), math_pi/4)
+assert_equal(math.atan(1.0), math.pi/4)
 assert_equal(math.atan2(0.0, 1.0), 0)
-assert_equal(math.atan2(0.0, -1.0), math_pi)
+assert_equal(math.atan2(0.0, -1.0), math.pi)
 
-assert_equal(math.cos(math_pi), -1)
+assert_equal(math.cos(math.pi), -1)
 assert_equal(math.cos(0.0), 1)
-assert_equal(math.sin(math_pi/2), 1)
+assert_equal(math.sin(math.pi/2), 1)
 assert_equal(math.sin(0.0), 0)
-assert_equal(math.tan(math_pi/4), 1)
+assert_equal(math.tan(math.pi/4), 1)
 assert_equal(math.tan(0.0), 0)
 
-assert_equal(math.deg(math_pi / 2), 90)
+assert_equal(math.deg(math.pi / 2), 90)
 assert_equal(math.deg(0), 0)
-assert_equal(math.rad(90), math_pi / 2)
+assert_equal(math.rad(90), math.pi / 2)
 assert_equal(math.rad(0), 0)
 
 assert_equal(math.sqrt(4.0), 2)
@@ -138,10 +136,10 @@ assert_equal(math.exp(0), 1)
 assert_equal(math.exp(1), e)
 assert_equal(math.log(1), 0)
 assert_equal(math.log(e), 1)
-assert_equal(math.logbase(1, 2), 0)
-assert_equal(math.logbase(2, 2), 1)
-assert_equal(math.logbase(1, 10), 0)
-assert_equal(math.logbase(10, 10), 1)
+assert_equal(math_logbase(1, 2), 0)
+assert_equal(math_logbase(2, 2), 1)
+assert_equal(math_logbase(1, 10), 0)
+assert_equal(math_logbase(10, 10), 1)
 
 assert_equal(math.fmod(5, 2), 1)
 assert_equal(math.fmod(2.3, 5.7), 2.3)
@@ -151,8 +149,8 @@ i, f = math.modf( 5.0)  assert_equal(i, 5)  assert_equal(f, 0.0)
 i, f = math.modf( 5.3)  assert_equal(i, 5)  assert_equal(f, 0.3)
 i, f = math.modf(-5.3)  assert_equal(i,-5)  assert_equal(f,-0.3)
 
-assert(not (math_maxinteger < math_mininteger))
-assert(math.ult(math_maxinteger, math_mininteger))
+assert(not (math.maxinteger < math.mininteger))
+assert(math.ult(math.maxinteger, math.mininteger))
 assert(math.tointeger(1.0) == 1_integer)
 
 math.randomseed(0)
