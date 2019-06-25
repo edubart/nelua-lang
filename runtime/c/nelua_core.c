@@ -60,7 +60,7 @@ void nelua_stdout_write_any(const nelua_any a) {
   } else if(a.type == &nelua_pointer_type) {
     fprintf(stdout, "%p", a.value.p);
   } else {
-    nelua_panic("invalid type for nelua_fwrite_any");
+    nelua_panic_cstring("invalid type for nelua_fwrite_any");
   }
 }
 {% end %}
@@ -78,9 +78,14 @@ void nelua_stdout_write_newline() {
   fflush(stdout);
 }
 {% end %}
-void nelua_panic(const char *message) {
-  fputs(message, stderr);
+void nelua_panic_cstring(const char *s) {
+  fputs(s, stderr);
   fputs("\n", stderr);
   fflush(stderr);
   exit(-1);
 }
+{% if context.has_string then %}
+void nelua_panic_string(const nelua_string s) {
+  nelua_panic_cstring(s->data);
+}
+{% end %}

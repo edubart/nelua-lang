@@ -92,12 +92,13 @@ end
 function Type:is_coercible_from_type(type, explicit)
   if self == type or self:is_any() or type:is_any() or self:is_boolean() then
     return true
-  end
-  if type:is_pointer() and type.subtype == self then
+  elseif self:is_string() and type:is_cstring() and explicit then
+    -- cstring to string cast
+    return true
+  elseif type:is_pointer() and type.subtype == self then
     -- automatic deref
     return true
-  end
-  if type:is_enum() then
+  elseif type:is_enum() then
     return self:is_coercible_from_type(type.subtype, explicit)
   end
   return self.conversible_types[type]
@@ -171,7 +172,7 @@ function Type:is_string()
 end
 
 function Type:is_cstring()
-  return self.name == 'cstring'
+  return self.name == 'pointer' and self.subtype and self.subtype.name == 'cchar'
 end
 
 function Type:is_record()

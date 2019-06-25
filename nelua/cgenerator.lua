@@ -426,7 +426,9 @@ function visitors.Call(context, node, emitter)
     if argnode.attr.type ~= type then
       -- type really differs, cast it
       emitter:add_ctypecast(type)
-      emitter:add('(', argnode, ')')
+      emitter:add('(')
+      emitter:add_val2type(type, argnode)
+      emitter:add(')')
     else
       -- same type, no need to cast
       emitter:add(argnode)
@@ -440,7 +442,6 @@ function visitors.CallMethod(context, node, emitter)
   local name, argnodes, callee, isblockcall = node:args()
 
   visitor_Call(context, node, emitter, argnodes, callee, isblockcall)
-
 
   --[[
   local name, args, callee, block_call = node:args()

@@ -45,11 +45,13 @@ local primtypes = {
   culonglong  = Type('culonglong'),
   csize       = Type('csize'),
   clongdouble = Type('clongdouble'),
-  cstring     = Type('cstring'),
+  --cstring     = Type('cstring'),
 }
 
 primtypes.pointer = types.PointerType(nil, primtypes.void)
 primtypes.pointer.nodecl = true
+
+primtypes.cstring = types.PointerType(nil, primtypes.cchar)
 
 typedefs.primtypes = primtypes
 
@@ -219,7 +221,16 @@ do
     end
   end
   primtypes.cstring:add_conversible_types({primtypes.string})
-  primtypes.cstring:add_conversible_types({primtypes.string})
+end
+
+function typedefs.get_pointer_type(node, subtype)
+  if subtype == primtypes.cstring.subtype then
+    return primtypes.cstring
+  elseif subtype == primtypes.pointer.subtype then
+    return primtypes.pointer
+  else
+    return types.PointerType(node, subtype)
+  end
 end
 
 -- unary operator types
@@ -231,7 +242,7 @@ local unary_op_types = {
   ['not']   = { Type, primtypes.boolean },
   ['ref']   = { Type, result_type = function(type)
                   if not type:is_type() then
-                    return types.PointerType(nil, type)
+                    return typedefs.get_pointer_type(nil, type)
                   end
                 end
               },

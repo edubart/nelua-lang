@@ -6,6 +6,7 @@ local symdefs = {}
 
 symdefs.nilptr = primtypes.Nilptr
 symdefs.assert = primtypes.any
+symdefs.error = primtypes.any
 symdefs.print = primtypes.any
 
 --symdefs.assert = types.FunctionType(nil, {primtypes.boolean, primtypes.auto})

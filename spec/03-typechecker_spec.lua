@@ -509,7 +509,11 @@ it("arrays", function()
   assert.analyze_error([[local a: array<integer, 2>; a[2] = 1]], 'is out of bounds')
   assert.analyze_error([[local a: array<integer, 2>; a['s'] = 1]], 'trying to index with non integral value')
   assert.analyze_error([[local compconst a: array<integer, 2> = {1,b}]], 'can only assign to constant expressions')
+end)
 
+it("indexing", function()
+  assert.analyze_error([[local a = 1; a[1] = 2]], 'cannot index variable of type')
+  assert.analyze_error([[local a = 1; a.b = 2]], 'cannot index field')
 end)
 
 it("records", function()
@@ -573,6 +577,26 @@ it("records", function()
   assert.c_gencode_equals(
     "local a: record {x: boolean}; local b; b = a.x",
     "local a: record {x: boolean}; local b: boolean; b = a.x")
+end)
+
+it("dependent functions resolution", function()
+  assert.c_gencode_equals([[
+    local A = @record{x:number}
+    function A:foo() return self.x end
+    local a = A{}
+    function A:boo() return a:foo() end
+    function A.boo2() return a:foo() end
+    local b = a:boo()
+    --local b2 = A.boo2()
+  ]], [[
+    local A = @record{x:number}
+    function A:foo():number return self.x end
+    local a = A{}
+    function A:boo():number return a:foo() end
+    function A.boo2():number return a:foo() end
+    local b:number = a:boo()
+    --local b2:number = A.boo2()
+  ]])
 end)
 
 it("record methods", function()

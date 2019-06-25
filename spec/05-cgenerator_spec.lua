@@ -559,6 +559,17 @@ it("any type", function()
   ]], "type check fail")
 end)
 
+it("cstring and string conversions", function()
+  assert.run_c([[
+    local a = 'hello'
+    print(a)
+    local b: cstring = a
+    print(b)
+    local c: string = @string(b)
+    print(c)
+  ]], "hello\nhello\nhello")
+end)
+
 it("array tables", function()
   assert.generate_c(
     "do local t: arraytable<boolean> end",
@@ -839,7 +850,7 @@ it("assert", function()
     "nelua_assert(true)")
   assert.generate_c(
     "assert(true, 'assertion')",
-    'nelua_assert_message(true, ')
+    'nelua_assert_string(true, ')
   assert.run_c([[
     assert(true)
     assert(true, 'assertion')

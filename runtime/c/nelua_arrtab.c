@@ -1,7 +1,7 @@
 void _{%=tyname%}_reserve({%=tyname%}* t, size_t cap) {
   {%=ctype%}* data = ({%=ctype%}*)nelua_gc_realloc(&nelua_gc, t->data, (cap+1) * sizeof({%=ctype%}));
   if(Nelua_UNLIKELY(data == NULL))
-    nelua_panic("_{%=tyname%}_reserve: not enough memory");
+    nelua_panic_cstring("_{%=tyname%}_reserve: not enough memory");
   if(Nelua_UNLIKELY(t->cap == 0))
     data[0] = ({%=ctype%}){0};
   t->data = data;
@@ -48,13 +48,13 @@ void {%=tyname%}_push({%=tyname%}* t, {%=ctype%} v) {
 }
 {%=ctype%} {%=tyname%}_pop({%=tyname%}* t) {
   if(Nelua_UNLIKELY(t->len == 0))
-    nelua_panic("{%=tyname%}_pop: length is 0");
+    nelua_panic_cstring("{%=tyname%}_pop: length is 0");
   return t->data[t->len--];
 }
 {%=ctype%}* {%=tyname%}_at({%=tyname%}* t, size_t i) {
   if(Nelua_UNLIKELY(i > t->len)) {
     if(Nelua_UNLIKELY(i != t->len + 1))
-      nelua_panic("{%=tyname%}_set: index out of range");
+      nelua_panic_cstring("{%=tyname%}_set: index out of range");
     t->len++;
     if(Nelua_UNLIKELY(t->len > t->cap))
       _{%=tyname%}_grow(t);
@@ -65,7 +65,7 @@ void {%=tyname%}_push({%=tyname%}* t, {%=ctype%} v) {
 }
 {%=ctype%}* {%=tyname%}_get({%=tyname%}* t, size_t i) {
   if(Nelua_UNLIKELY(i > t->len)) {
-    nelua_panic("{%=tyname%}_get: index out of range");
+    nelua_panic_cstring("{%=tyname%}_get: index out of range");
   }
   else if(Nelua_UNLIKELY(i == 0 && t->cap == 0)) {
     _{%=tyname%}_grow(t);

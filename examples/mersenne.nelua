@@ -1,7 +1,4 @@
 -- TODO: make enum work
--- TODO: var&
--- TODO: self sugar methods
--- TODO: static globals
 
 -- Mersenne Twister random number generator, implementation taken from
 -- http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/MT2002/CODES/mt19937ar.c
@@ -14,7 +11,7 @@ local mt19937 = @record {
 }
 
 -- initialize random state with a seed
-local function mt19937_seed(self: pointer<mt19937>, seed: uint32)
+function mt19937:seed(seed: uint32)
   self.i = MT19937_N
   self.v[0]= seed & 0xffffffff
   for i=1_u32,<MT19937_N do
@@ -24,8 +21,8 @@ local function mt19937_seed(self: pointer<mt19937>, seed: uint32)
 end
 
 -- generates a random number on [0, 0xffffffff]
-local function mt19937_random_uint32(self: pointer<mt19937>)
-  local MAG01: array<uint32, 2> = {0x0, 0x9908b0df}
+function mt19937:random_uint32()
+  local MAG01: uint32[2] = {0x0, 0x9908b0df}
   local LOWER_MASK: compconst = 0x7fffffff_u32
   local UPPER_MASK: compconst = 0x80000000_u32
   local N: compconst, M: compconst = MT19937_N, 397_u32
@@ -53,18 +50,19 @@ local function mt19937_random_uint32(self: pointer<mt19937>)
 end
 
 -- generates a random number on [0,1) interval
-local function mt19937_random_float32(self: pointer<mt19937>)
-  return mt19937_random_uint32(self) * (1.0 / 4294967295.0)
+function mt19937:random_float32()
+  return self:random_uint32() * (1.0 / 4294967295.0)
 end
 
 -- generates a random number on [0,1) with 53-bit resolution
-local function mt19937_random_float64(self: pointer<mt19937>)
-  local a = mt19937_random_uint32(self) >> 5
-  local b = mt19937_random_uint32(self) >> 6
+function mt19937:random_float64()
+  local a = self:random_uint32() >> 5
+  local b = self:random_uint32() >> 6
   return (a * 67108864.0 + b) * (1.0 / 9007199254740992.0)
 end
 
-local default_mt19937: mt19937 = {
+-- pre initialized mersenne (faster startup)
+local default_mt19937 = @mt19937{
   i = 0,
   v = {
     0x5a682c69,0x1d6a2d67,0x3f086e20,0xeba44ff7,0xadad9a48,0xe11f0603,0x60f8b793,0x30a445b6,
@@ -148,6 +146,6 @@ local default_mt19937: mt19937 = {
   }
 }
 
-print(mt19937_random_float64(&default_mt19937))
-print(mt19937_random_float64(&default_mt19937))
-print(mt19937_random_float64(&default_mt19937))
+print(default_mt19937:random_float64())
+print(default_mt19937:random_float64())
+print(default_mt19937:random_float64())

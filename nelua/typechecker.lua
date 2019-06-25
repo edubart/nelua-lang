@@ -513,7 +513,7 @@ function visitors.PointerType(context, node)
   if subtypenode then
     context:traverse(subtypenode)
     assert(subtypenode.attr.holdedtype)
-    type = types.PointerType(node, subtypenode.attr.holdedtype)
+    type = typedefs.get_pointer_type(node, subtypenode.attr.holdedtype)
   else
     type = primtypes.pointer
   end
@@ -525,6 +525,9 @@ end
 local function visitor_FieldIndex(context, node)
   local attr = node.attr
   local name, objnode = node:args()
+  context:traverse(objnode)
+  --[[
+  -- TODO: this was disabled because of caching bugs
   if attr.type then
     -- type already known, return early
     local objtype = objnode.attr.type
@@ -536,7 +539,7 @@ local function visitor_FieldIndex(context, node)
     end
     return
   end
-  context:traverse(objnode)
+  ]]
   local symbol, type
   local objtype = objnode.attr.type
   if objtype then
@@ -569,7 +572,7 @@ local function visitor_FieldIndex(context, node)
             symbol = Symbol(symname, node)
             symbol.attr.const = true
             symbol.attr.metafunc = true
-            symbol.attr.metarecordtype = objtype
+            symbol.attr.metarecordtype = typedefs.get_pointer_type(objnode, objtype)
             objtype:set_metafield(name, symbol)
           elseif context.inglobaldecl == parentnode then
             -- declaration of record global variable
@@ -589,7 +592,7 @@ local function visitor_FieldIndex(context, node)
         node:raisef('cannot index fields for type "%s"', objtype)
       end
     elseif not (objtype:is_table() or objtype:is_any()) then
-      node:raisef('cannot index field "%s" from variable of type "%s"', name, objtype.name)
+      node:raisef('cannot index field "%s" on variable of type "%s"', name, objtype.name)
     end
   end
   if not type and context.phase == phases.any_inference then
@@ -633,13 +636,15 @@ function visitors.ArrayIndex(context, node)
         indexnode:assertraisef(not indexvalue:isneg(),
           "in array indexing, trying to index negative value %s",
           indexvalue:todec())
-        if objtype:is_array() and not (indexvalue < bn.new(objtype.length)) then
+        if objtype:is_array() and objtype.length ~= 0 and not (indexvalue < bn.new(objtype.length)) then
           indexnode:raisef(
             "in array indexing, index %s is out of bounds, array maximum index is %d",
             indexvalue:todec(), objtype.length - 1)
         end
       end
       type = objtype.subtype
+    elseif not (objtype:is_table() or objtype:is_any()) then
+      node:raisef('cannot index variable of type "%s"', objtype.name)
     end
   end
   if not type and context.phase == phases.any_inference then
@@ -1215,8 +1220,8 @@ function visitors.FuncDef(context, node)
       -- single void type means no returns
       returntypes = {}
     end
-  elseif node.attr.type then
-    -- recover return types from previous traversal
+  elseif node.attr.type and not node.attr.type.returntypes.has_unknown then
+    -- recover return types from previous traversal only if fully resolved
     returntypes = node.attr.type.returntypes
   end
 

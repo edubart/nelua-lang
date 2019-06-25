@@ -23,6 +23,7 @@ typedef struct nelua_string_object {
   char data[];
 } nelua_string_object;
 typedef nelua_string_object* nelua_string;
+static void nelua_panic_string(const nelua_string s) Nelua_NORETURN;
 {% end %}
 {% if context.has_any then %}
 typedef struct nelua_any {
@@ -88,23 +89,29 @@ static void nelua_stdout_write_newline();
 static void nelua_stdout_write(const char *message);
 static void nelua_stdout_write_format(char *format, ...);
 {% end %}
-static void nelua_panic(const char* message) Nelua_NORETURN;
+static void nelua_panic_cstring(const char* s) Nelua_NORETURN;
 {% if context.builtins['assert'] then %}
 static inline void nelua_assert(bool cond) {
   if(Nelua_UNLIKELY(!cond))
-    nelua_panic("assertion failed!");
+    nelua_panic_cstring("assertion failed!");
 }
 {% end %}
 {% if context.builtins['assert_message'] then %}
-static inline void nelua_assert_message(bool cond, const nelua_string s) {
+static inline void nelua_assert_string(bool cond, const nelua_string s) {
   if(Nelua_UNLIKELY(!cond))
-    nelua_panic(s->data);
+    nelua_panic_cstring(s->data);
+}
+{% end %}
+{% if context.builtins['assert_cmessage'] then %}
+static inline void nelua_assert_cstring(bool cond, const char* s) {
+  if(Nelua_UNLIKELY(!cond))
+    nelua_panic_cstring(s);
 }
 {% end %}
 {% if context.has_type then %}
 static inline void nelua_check_type(nelua_type* a, nelua_type* b) {
   if(Nelua_UNLIKELY(a != b)) {
-    nelua_panic("type check fail");
+    nelua_panic_cstring("type check fail");
   }
 }
 {% end %}

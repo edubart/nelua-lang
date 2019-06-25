@@ -1,0 +1,137 @@
+!!strict
+
+--------------------------------------------------------------------------------
+-- C imports
+
+!!cinclude '<unistd.h>'
+!!cinclude '<time.h>'
+!!cinclude '<stdlib.h>'
+!!cinclude '<stdio.h>'
+!!cinclude '<string.h>'
+!!cinclude '<locale.h>'
+!!cinclude '<errno.h>'
+
+local CLOCKS_PER_SEC: clong !cimport
+local LC_ALL: cint !cimport
+local LC_COLLATE: cint !cimport
+local LC_CTYPE: cint !cimport
+local LC_MONETARY: cint !cimport
+local LC_NUMERIC: cint !cimport
+local LC_TIME: cint !cimport
+local errno: cint !cimport
+local function clock(): clong !cimport end
+local function getenv(name: cstring): cstring !cimport end
+local function exit(status: cint) !cimport end
+local function mkstemp(s: cstring): cint !cimport end
+local function close(fd: cint): cint !cimport end
+local function strncpy(dest: cstring, src: cstring, n: usize): cstring !cimport end
+local function system(command: cstring): cint !cimport end
+local function strerror(errnum: cint): cstring !cimport end
+local function rename(old: cstring, new: cstring): cint !cimport end
+local function remove(pathname: cstring): cint !cimport end
+local function setlocale(category: cint, locale: cstring): cstring !cimport end
+local function ctime(tloc: pointer): clong !cimport 'time' end
+
+--------------------------------------------------------------------------------
+-- os module
+
+local os = @record{}
+
+local function fileresult(status: cint): boolean, string, integer
+  if status == -1 then
+    return false, @string(strerror(errno)), errno
+  else
+    return true, '', 0
+  end
+end
+
+function os.clock()
+  return clock() / CLOCKS_PER_SEC
+end
+
+function os.date()
+  --TODO: implement os date
+  return 'NIY (not implementet yet)'
+end
+
+function os.execute(command: string): boolean, string, integer
+  --TODO: optional string param
+  --TODO: on error return nil instead of false
+  local status = system(command)
+  if status == -1 then
+    return fileresult(status)
+  end
+  return true,'exit',status
+end
+
+function os.exit(code: integer)
+  --TODO: handle boolean argument
+  exit(@cint(code))
+end
+
+function os.getenv(varname: string): cstring
+  --TODO: coerce cchar to string
+  return getenv(varname)
+end
+
+function os.remove(filename: string)
+  return fileresult(remove(filename))
+end
+
+function os.rename(oldname: string, newname: string): boolean, string, integer
+  return fileresult(rename(oldname, newname))
+end
+
+function os.setlocale(locale: string, category: string): string
+  --TODO: make arguments optional
+  --TODO: string comparasion
+  local cat
+  if category == 'all' then cat = LC_ALL
+  elseif category == 'collate' then cat = LC_COLLATE
+  elseif category == 'ctype' then cat = LC_CTYPE
+  elseif category == 'monetary' then cat = LC_MONETARY
+  elseif category == 'numeric' then cat = LC_NUMERIC
+  elseif category == 'time' then cat = LC_TIME
+  else
+    --TODO: string format with option name
+    error "invalid option '%s'"
+  end
+  return @string(setlocale(cat, locale))
+end
+
+function os.time(): integer
+  --TODO: optional table argument
+  local t = ctime(nilptr)
+  if t == -1 then
+    error 'time result cannot be represented in this installation'
+  end
+  return t
+end
+
+function os.tmpname(): string
+  --TODO: windows implementation without POSIX
+  local compconst TMPBUFSIZE = 32
+  local buf: cchar[TMPBUFSIZE]
+  strncpy(&buf[0], "/tmp/lua_XXXXXX", TMPBUFSIZE)
+  local fd = mkstemp(&buf[0])
+  if fd == -1 then
+    error "unable to generate a unique filename"
+  end
+  close(fd)
+  return @string(&buf[0])
+end
+
+--------------------------------------------------------------------------------
+-- tests
+
+print(os.clock())
+print(os.date())
+print(os.getenv('HOME'))
+print(os.tmpname())
+print(os.execute('my_invalid_command'))
+print(os.rename('my_invalid_file', 'a'))
+print(os.remove('my_invalid_command'))
+print(os.setlocale('C','all'))
+print(os.time())
+os.exit(0)
+assert(false)

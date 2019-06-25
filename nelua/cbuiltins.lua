@@ -79,7 +79,7 @@ function functions.assert(context, node)
   local args = node:args()
   if #args == 2 then
     context:add_runtime_builtin('assert_message')
-    return 'nelua_assert_message'
+    return 'nelua_assert_string'
   elseif #args == 1 then
     context:add_runtime_builtin('assert')
     return 'nelua_assert'
@@ -147,6 +147,10 @@ function functions.print(context, node)
 
   -- the call
   return funcname
+end
+
+function functions.error()
+  return 'nelua_panic_string'
 end
 
 return builtins

@@ -119,10 +119,14 @@ function Scope:add_return_type(index, type)
   if not returntypes then
     returntypes = {}
     self.possible_returntypes[index] = returntypes
-  elseif tabler.ifind(returntypes, type) then
+  elseif type and tabler.ifind(returntypes, type) then
     return
   end
-  table.insert(returntypes, type)
+  if type then
+    table.insert(returntypes, type)
+  else
+    self.has_unknown_return = true
+  end
 end
 
 function Scope:resolve_returntypes()
@@ -130,6 +134,7 @@ function Scope:resolve_returntypes()
   for i,returntypes in pairs(self.possible_returntypes) do
     resolved_returntypes[i] = typedefs.find_common_type(returntypes) or typedefs.primtypes.any
   end
+  resolved_returntypes.has_unknown = self.has_unknown_return
   self.resolved_returntypes = resolved_returntypes
   return resolved_returntypes
 end
