@@ -654,8 +654,13 @@ it("records", function()
   assert.run_c([[
     local Point = @record {x: integer, y: integer}
     local p: Point
+    local pptr = &p
     p.x = 1
     assert(p.x == 1 and p.y == 0)
+    assert(pptr.x == 1 and pptr.y == 0)
+    pptr.x = 2
+    assert(p.x == 2 and p.y == 0)
+    assert(pptr.x == 2 and pptr.y == 0)
     p = Point{}
     assert(p.x == 0 and p.y == 0)
     assert(Point({1,2}).x == 1)
@@ -664,15 +669,17 @@ it("records", function()
     assert(Point({1,y=2}).x == 1)
   ]])
   assert.run_c([[
-    local Point = @record {x: integer, y: integer}
-    local p = Point{x=1, y=2}
-    print(p.x, p.y)
-  ]], "1\t2")
-  assert.run_c([[
-    local Point = @record {x: integer, y: integer}
-    local p: Point = {x=1, y=2}
-    print(p.x, p.y)
-  ]], "1\t2")
+    do
+      local Point = @record {x: integer, y: integer}
+      local p = Point{x=1, y=2}
+      assert(p.x == 1 and p.y == 2)
+    end
+    do
+      local Point = @record {x: integer, y: integer}
+      local p: Point = {x=1, y=2}
+      assert(p.x == 1 and p.y == 2)
+    end
+  ]])
   assert.run_c([[
     local r: record {x: array<integer, 1>} =  {x={1}}
     assert(r.x[0] == 1)
@@ -704,9 +711,12 @@ it("record methods", function()
     assert(v:length4() == 3)
     assert(vec2.length4(v) == 3)
 
-    local math = @record{}
-    function math.abs(x: number): number !cimport('fabs', '<math.h>') end
-    assert(math.abs(-1) == 1)
+    function vec2:lenmul(a: integer, b: integer) return (self.x + self.y)*a*b end
+    assert(v:lenmul(2,3) == 18)
+
+    local Math = @record{}
+    function Math.abs(x: number): number !cimport('fabs', '<math.h>') end
+    assert(Math.abs(-1) == 1)
   ]])
 end)
 
@@ -747,6 +757,14 @@ it("pointers", function()
     $p = 3
     print(i)
   ]], "1\n2\n3")
+end)
+
+it("function pointers", function()
+  assert.run_c([[
+    local function f() return 1 end
+    assert((&f)() == 1)
+    assert(f() == 1)
+  ]])
 end)
 
 it("automatic reference", function()
@@ -883,6 +901,12 @@ it("assert builtin", function()
   assert.run_error_c([[
     assert(false)
   ]], "assertion failed!")
+end)
+
+it("error builtin", function()
+  assert.run_error_c([[
+    error 'got an error!'
+  ]], 'got an error!')
 end)
 
 it("type builtin", function()

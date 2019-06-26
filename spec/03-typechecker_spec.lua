@@ -30,7 +30,7 @@ it("analyzed ast transform", function()
 end)
 
 it("local variable", function()
-  assert.c_gencode_equals("local a = 1", "local a: integer = 1")
+  assert.ast_type_equals("local a = 1", "local a: integer = 1")
   assert.analyze_error("local a: integer = 'string'", "is not coercible with")
   assert.analyze_error("local a: byte = 1.0", "is not coercible with")
   assert.analyze_error("local a: byte = {1.0}", "cannot be initialized using a table literal")
@@ -39,18 +39,18 @@ it("local variable", function()
 end)
 
 it("global variable", function()
-  assert.c_gencode_equals("global a = 1", "global a: integer = 1")
+  assert.ast_type_equals("global a = 1", "global a: integer = 1")
   assert.analyze_error("do global a = 1 end", "global variables can only be declarated in top scope")
 end)
 
 it("name collision", function()
-  assert.c_gencode_equals("local a = 1; local a = 2", "local a: integer = 1; local a: integer = 2")
+  assert.ast_type_equals("local a = 1; local a = 2", "local a: integer = 1; local a: integer = 2")
 end)
 
 it("compconst variable" , function()
   assert.analyze_ast([[local compconst N = 255; local a: byte = N]])
   assert.analyze_ast([[local a: compconst integer = 1]])
-  assert.c_gencode_equals(
+  assert.ast_type_equals(
     [[local compconst a = 1; local function f() return a end]],
     [[local compconst a: integer = 1; local function f() return a end]])
   assert.analyze_ast([[local compconst a = 1 * 2 + 3]])
@@ -83,8 +83,8 @@ it("numeric types coercion", function()
     local b: uint16 = 1 + 1
     local b: int16 = -1
   ]])
-  assert.c_gencode_equals("local a = 1 + 1_u16", "local a: uint16 = 1 + 1_u16")
-  assert.c_gencode_equals("local a = 1 + 2.0_f32", "local a: float32 = 1 + 2.0_f32")
+  assert.ast_type_equals("local a = 1 + 1_u16", "local a: uint16 = 1 + 1_u16")
+  assert.ast_type_equals("local a = 1 + 2.0_f32", "local a: float32 = 1 + 2.0_f32")
 end)
 
 it("narrow casting", function()
@@ -148,9 +148,9 @@ it("typed var initialization", function()
 end)
 
 it("loop variables", function()
-  assert.c_gencode_equals("for i=1,10 do end", "for i:integer=1,10 do end")
-  assert.c_gencode_equals("for i=1,10,2 do end", "for i:integer=1,10,2 do end")
-  assert.c_gencode_equals("for i=0_is,1_is-1 do end", "for i:isize=0_is,1_is-1 do end")
+  assert.ast_type_equals("for i=1,10 do end", "for i:integer=1,10 do end")
+  assert.ast_type_equals("for i=1,10,2 do end", "for i:integer=1,10,2 do end")
+  assert.ast_type_equals("for i=0_is,1_is-1 do end", "for i:isize=0_is,1_is-1 do end")
   assert.analyze_error("for i:byte=1.0,256 do end", "is not coercible with")
   assert.analyze_error("for i:byte=1_byte,256 do end", "is not coercible with")
   assert.analyze_error("for i:byte=1_byte,10_byte,2.0 do end", "is not coercible with")
@@ -160,83 +160,83 @@ it("loop variables", function()
 end)
 
 it("variable assignments", function()
-  assert.c_gencode_equals("local a; a = 1", "local a: integer; a = 1")
+  assert.ast_type_equals("local a; a = 1", "local a: integer; a = 1")
   assert.analyze_error("local a: integer; a = 's'", "is not coercible with")
   assert.analyze_error("local a, b; a, b = 1,2,3", "too many expressions in assign")
 end)
 
 it("unary operators", function()
-  assert.c_gencode_equals("local a = not b", "local a: boolean = not b")
-  assert.c_gencode_equals("local a = -1", "local a: integer = -1")
+  assert.ast_type_equals("local a = not b", "local a: boolean = not b")
+  assert.ast_type_equals("local a = -1", "local a: integer = -1")
 end)
 
 it("binary operator shift", function()
-  assert.c_gencode_equals("local a = 1_u32 << 1", "local a: uint32 = 1_u32 << 1")
-  assert.c_gencode_equals("local a = 1_u16 >> 1_u32", "local a: uint16 = 1_u16 >> 1_u32")
+  assert.ast_type_equals("local a = 1_u32 << 1", "local a: uint32 = 1_u32 << 1")
+  assert.ast_type_equals("local a = 1_u16 >> 1_u32", "local a: uint16 = 1_u16 >> 1_u32")
 end)
 
 it("binary operator add", function()
-  assert.c_gencode_equals("local a = 1 + 2", "local a: integer = 1 + 2")
-  assert.c_gencode_equals("local a = 1 + 2.0", "local a: number = 1 + 2.0")
-  assert.c_gencode_equals("local a = 1_f32 + 2.0_f32", "local a: float32 = 1_f32 + 2.0_f32")
-  assert.c_gencode_equals("local a = 1_i8 + 2_u8", "local a: int16 = 1_i8 + 2_u8")
+  assert.ast_type_equals("local a = 1 + 2", "local a: integer = 1 + 2")
+  assert.ast_type_equals("local a = 1 + 2.0", "local a: number = 1 + 2.0")
+  assert.ast_type_equals("local a = 1_f32 + 2.0_f32", "local a: float32 = 1_f32 + 2.0_f32")
+  assert.ast_type_equals("local a = 1_i8 + 2_u8", "local a: int16 = 1_i8 + 2_u8")
   assert.analyze_error("local a = 1 + 's'", "is not defined for type")
 end)
 
 it("binary operator pow", function()
-  assert.c_gencode_equals("local a = 2 ^ 2", "local a: number = 2 ^ 2")
+  assert.ast_type_equals("local a = 2 ^ 2", "local a: number = 2 ^ 2")
 end)
 
 it("binary operator idiv", function()
-  assert.c_gencode_equals("local a = 2 // 2", "local a: integer = 2 // 2")
+  assert.ast_type_equals("local a = 2 // 2", "local a: integer = 2 // 2")
   assert.analyze_error("local a = 1 // 0", "divizion by zero")
 end)
 
 it("binary operator div", function()
-  assert.c_gencode_equals("local a = 2 / 2", "local a: number = 2 / 2")
-  assert.c_gencode_equals(
+  assert.ast_type_equals("local a = 2 / 2", "local a: number = 2 / 2")
+  assert.ast_type_equals(
     "local x = 1; local a = x / 2_f32",
     "local x = 1; local a: float32 = x / 2_f32")
   assert.analyze_error("local a = 1 / 0", "divizion by zero")
   assert.analyze_error("local a = 1 / -0", "divizion by zero")
-  assert.c_gencode_equals(
+  assert.ast_type_equals(
     "local a, b = 1, 2; a = b / 1",
     "local a: number, b: integer = 1, 2; a = b / 1")
 end)
 
 it("binary operator mod", function()
-  assert.c_gencode_equals("local a = 2_u32 % 2_u32", "local a: uint32 = 2_u32 % 2_u32")
+  assert.ast_type_equals("local a = 2_u32 % 2_u32", "local a: uint32 = 2_u32 % 2_u32")
   assert.analyze_error("local a = 1 % 0", "divizion by zero")
 end)
 
 it("binary operator eq", function()
-  assert.c_gencode_equals("local a = 1 == 2", "local a: boolean = 1 == 2")
-  assert.c_gencode_equals("local a = 1 == 'a'", "local a: boolean = 1 == 'a'")
+  assert.ast_type_equals("local a = 1 == 2", "local a: boolean = 1 == 2")
+  assert.ast_type_equals("local a = 1 == 'a'", "local a: boolean = 1 == 'a'")
 end)
 
 it("binary operator ne", function()
-  assert.c_gencode_equals("local a = 1 ~= 2", "local a: boolean = 1 ~= 2")
-  assert.c_gencode_equals("local a = 1 ~= 'a'", "local a: boolean = 1 ~= 'a'")
+  assert.ast_type_equals("local a = 1 ~= 2", "local a: boolean = 1 ~= 2")
+  assert.ast_type_equals("local a = 1 ~= 'a'", "local a: boolean = 1 ~= 'a'")
 end)
 
 it("binary conditional and", function()
-  assert.c_gencode_equals("local a = 1 and 2", "local a: integer = 1 and 2")
-  assert.c_gencode_equals("local a = 1_i8 and 2_u8", "local a: int16 = 1_i8 and 2_u8")
-  assert.c_gencode_equals("local a = 1 and true", "local a: any = 1 and true")
-  assert.c_gencode_equals("local a = 1 and 2 or 3", "local a: integer = 1 and 2 or 3")
+  assert.ast_type_equals("local a = 1 and 2", "local a: integer = 1 and 2")
+  assert.ast_type_equals("local a = 1_i8 and 2_u8", "local a: int16 = 1_i8 and 2_u8")
+  assert.ast_type_equals("local a = 1 and true", "local a: any = 1 and true")
+  assert.ast_type_equals("local a = 1 and 2 or 3", "local a: integer = 1 and 2 or 3")
 end)
 
 it("binary conditional or", function()
-  assert.c_gencode_equals("local a = 1 or true", "local a: any = 1 or true")
-  assert.c_gencode_equals("local a = nilptr and false or 1", "local a: any = nilptr and false or 1")
+  assert.ast_type_equals("local a = 1 or true", "local a: any = 1 or true")
+  assert.ast_type_equals("local a = nilptr and false or 1", "local a: any = nilptr and false or 1")
 end)
 
 it("operation with parenthesis", function()
-  assert.c_gencode_equals("local a = -(1)", "local a: integer = -(1)")
+  assert.ast_type_equals("local a = -(1)", "local a: integer = -(1)")
 end)
 
 it("recursive late deduction", function()
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local a, b, c
     a = 1
     b = 2
@@ -247,14 +247,14 @@ it("recursive late deduction", function()
     b = 2
     c = a + b
   ]])
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local a = 1_integer
     local b = a + 1
   ]],[[
     local a: integer = 1_integer
     local b: integer = a + 1
   ]])
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local limit = 1_integer
     for i=1,limit do end
   ]],[[
@@ -303,16 +303,16 @@ it("function multiple argument types", function()
     local function f(x: integer | boolean): void end
     local function g(x: integer | boolean) end
     f(1)
-    --g(1)
+    g(1)
   ]])
 end)
 
 it("function return", function()
-  assert.c_gencode_equals(
+  assert.ast_type_equals(
     "local function f() return 0 end",
     "local function f(): integer return 0 end"
   )
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local function f()
       local a, b, c
       a = 1; b = 2; c = a + b
@@ -324,6 +324,13 @@ it("function return", function()
       a = 1; b = 2; c = a + b
       return c
     end
+  ]])
+  assert.ast_type_equals([[
+    local f
+    local x = f()
+  ]],[[
+    local f: any
+    local x: any = f()
   ]])
   assert.analyze_ast([[
     local function f(): integer return 1 end
@@ -348,6 +355,11 @@ it("function return", function()
   ]], "return statement is missing")
   assert.analyze_error([[
     local function f(): integer if a then return 1 end end
+  ]], "return statement is missing")
+  assert.analyze_error([[
+    local function f(x: boolean): integer
+      if x then assert(true) else return 1 end
+    end
   ]], "return statement is missing")
   assert.analyze_error([[
     local function f(): integer return 1, 2 end
@@ -380,7 +392,7 @@ it("function multiple return", function()
     local function g(): boolean,integer return f() end
     local a: boolean, b: integer = g()
   ]])
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local function f() return true,1 end
     local function g() return f() end
     local a, b = g()
@@ -388,6 +400,15 @@ it("function multiple return", function()
     local function f() return true,1 end
     local function g(): boolean,integer return f() end
     local a: boolean, b: integer = g()
+  ]])
+  assert.ast_type_equals([[
+    local function f() return true,1 end
+    local function g() return 's', f() end
+    local a, b = g()
+  ]],[[
+    local function f() return true,1 end
+    local function g(): string,boolean,integer return 's', f() end
+    local a: string, b: boolean = g()
   ]])
   assert.analyze_error([[
     local function f(): integer, boolean return 1,false  end
@@ -419,7 +440,7 @@ it("function multiple return", function()
 end)
 
 it("function call", function()
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local function f() return 0 end
     local a = f()
   ]],[[
@@ -443,13 +464,15 @@ it("for in", function()
   assert.analyze_error(
     [[for i in a,b,c,d do end]],
     "`in` expression can have at most")
-  assert.c_gencode_equals([[
+  --[=[
+  assert.ast_type_equals([[
   local function iter() return 1 end
   for i in iter do end
   ]],[[
-  local function iter() return 1 end
+  local function iter():integer return 1 end
   for i:integer in iter do end
   ]])
+  ]=]
 end)
 
 it("array tables", function()
@@ -471,7 +494,7 @@ it("array tables", function()
     local function f(a: arraytable<boolean>) end
     f({false, true})
   ]])
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local a: arraytable<boolean>
     local b = a[0]
   ]],[[
@@ -581,16 +604,16 @@ it("records", function()
     local Record = @record{x: boolean}
     local compconst a = Record{x = b}
   ]], "can only assign to constant expressions")
-  assert.c_gencode_equals(
+  assert.ast_type_equals(
     "local a: record {x: boolean}; local b = a.x",
     "local a: record {x: boolean}; local b: boolean = a.x")
-  assert.c_gencode_equals(
+  assert.ast_type_equals(
     "local a: record {x: boolean}; local b; b = a.x",
     "local a: record {x: boolean}; local b: boolean; b = a.x")
 end)
 
 it("dependent functions resolution", function()
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local A = @record{x:number}
     function A:foo() return self.x end
     local a = A{}
@@ -715,12 +738,17 @@ it("pointers", function()
   ]])
   assert.analyze_ast([[
     local a: pointer<integer>
-    local b: pointer
+    local b: pointer<void>
     b = a
   ]])
   assert.analyze_ast([[
     local a: pointer<integer>
     local b: pointer<integer>
+    b = a
+  ]])
+  assert.analyze_ast([[
+    local a: cstring
+    local b: pointer<cchar>
     b = a
   ]])
   assert.analyze_error([[

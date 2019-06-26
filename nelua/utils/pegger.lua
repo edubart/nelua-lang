@@ -6,8 +6,9 @@ local compat = require 'pl.compat'
 
 local pegger = {}
 
+local double_patt_begin = [[quote <- {~ ''->'"' (quotechar / .)* ''->'"' ~}]] .. '\n'
+local single_patt_begin = [[quote <- {~ ''->"'" (quotechar / .)* ''->"'" ~}]] .. '\n'
 local quote_patt_begin =  "\
-  quote <- {~ (quotechar / .)* ~} \
   quotechar <- \
     '\\' -> '\\\\' /  -- backslash \
     '\a' -> '\\a' /   -- audible bell \
@@ -35,38 +36,42 @@ local quotes_defs = {
 }
 
 local c_double_peg = re.compile(
+  double_patt_begin ..
   quote_patt_begin ..
   double_quote_patt ..
   c_quote_patt_end, quotes_defs)
 function pegger.double_quote_c_string(str)
-  return '"' .. c_double_peg:match(str) .. '"'
+  return c_double_peg:match(str)
 end
 
 local lua_double_peg = re.compile(
+  double_patt_begin ..
   quote_patt_begin ..
   double_quote_patt ..
   lua_quote_patt_end, quotes_defs)
 function pegger.double_quote_lua_string(str)
-  return '"' .. lua_double_peg:match(str) .. '"'
+  return lua_double_peg:match(str)
 end
 
 local lua_single_peg = re.compile(
+  single_patt_begin ..
   quote_patt_begin ..
   single_quote_patt ..
   lua_quote_patt_end, quotes_defs)
 function pegger.single_quote_lua_string(str)
-  return "'" .. lua_single_peg:match(str) .. "'"
+  return lua_single_peg:match(str)
 end
 
---[[
+--[=[
 local c_single_peg = re.compile(
+  single_patt_begin ..
   quote_patt_begin ..
   single_quote_patt ..
   c_quote_patt_end, quotes_defs)
 function pegger.single_quote_c_string(str)
-  return "'" .. c_single_peg:match(str) .. "'"
+  return c_single_peg:match(str)
 end
-]]
+]=]
 
 local combined_grammar_peg_pat = re.compile([[
 pegs       <- {| (comment/peg)+ |}

@@ -13,12 +13,18 @@ ASTNode.tag = 'Node'
 ASTNode.nargs = 0
 ASTNode._astnode = true
 
+local uid = 0
+local function genuid()
+  uid = uid + 1
+  return uid
+end
+
 function ASTNode:_init(...)
-  local nargs = select('#', ...)
-  for i=1,nargs do
+  for i=1,select('#', ...) do
     self[i] = select(i, ...)
   end
   self.attr = {}
+  self.uid = genuid()
 end
 
 function ASTNode:args()
@@ -63,6 +69,7 @@ function ASTNode:clone()
   node.srcname = self.srcname
   node.modname = self.modname
   node.cloned = true
+  node.uid = genuid()
   return node
 end
 
@@ -109,6 +116,7 @@ function ASTNode:assertf(cond, message, ...)
   end
   return cond
 end
+--luacov:enable
 
 function ASTNode:raisef(message, ...)
   except.raise(format_node_errmsg(self, message, ...), 2)
@@ -120,13 +128,13 @@ function ASTNode:assertraisef(cond, message, ...)
   end
   return cond
 end
---luacov:enable
 
 -------------------
 -- pretty print ast
 -------------------
 local ignored_stringfy_keys = {
   pos = true, src = true, srcname=true, modname=true,
+  uid = true,
   processed = true,
   untyped = true,
   cloned = true,
@@ -166,7 +174,8 @@ local function stringfy_astnode(node, depth, ss, skipindent)
   end
   local nargs = isnode and node.nargs or #node
   if nargs > 0 then
-    for i,v in iters.inpairs(node, nargs) do
+    for i=1,nargs do
+      local v = node[i]
       if type(v) == 'table' then
         stringfy_astnode(v, depth+1, ss)
       else

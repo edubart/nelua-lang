@@ -364,9 +364,10 @@ local function visitor_Call(context, node, emitter, argnodes, callee, isblockcal
       emitter:add_val2type(calleetype.argtypes[1], callee)
     else
       if attr.pointercall then
-        emitter:add('*')
+        emitter:add('(*', callee, ')(')
+      else
+        emitter:add(callee, '(')
       end
-      emitter:add(callee, '(')
     end
 
     for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(callargtypes, argnodes) do
@@ -661,6 +662,7 @@ function visitors.ForNum(context, node, emitter)
   context:pop_scope()
 end
 
+--[[
 function visitors.ForIn(_, node, emitter)
   local itvarnodes, inexpnodes, blocknode = node:args()
   emitter:add_indent_ln("{")
@@ -672,6 +674,7 @@ function visitors.ForIn(_, node, emitter)
   emitter:dec_indent()
   emitter:add_indent_ln("}")
 end
+]]
 
 function visitors.Break(_, _, emitter)
   emitter:add_indent_ln('break;')

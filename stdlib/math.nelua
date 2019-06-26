@@ -65,16 +65,16 @@ function math.modf(x: number)
   return i, f
 end
 
-function math.ult(m: integer, n: integer): boolean
-  return @uinteger(m) < @uinteger(n)
-end
-
 function math.tointeger(x: number)
   return @integer(x)
 end
 
 function math.type(x: number)
   return 'float'
+end
+
+function math.ult(m: integer, n: integer): boolean
+  return @uinteger(m) < @uinteger(n)
 end
 
 -- Pseudo Random Number Generator based on xoshiro256**

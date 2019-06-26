@@ -16,6 +16,7 @@ end
 function nanotimer.elapsed(t)
   return (nanotime() - t.s) * 1000
 end
+--luacov:enable
 
 function nanotimer.elapsed_restart(t)
   local s = nanotime()
@@ -23,7 +24,6 @@ function nanotimer.elapsed_restart(t)
   t.s = s
   return e
 end
---luacov:enable
 
 metamagic.setmetacall(nanotimer, nanotimer_init)
 

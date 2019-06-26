@@ -176,9 +176,9 @@ function functions.type(context, node, emitter)
     typename = 'number'
   elseif type:is_nilptr() then
     typename = 'pointer'
-  elseif type:is_any() then
-    assert(false, 'type for any values not implemented yet')
-  else
+  elseif type:is_any() then --luacov:disable
+    node:raisef('type() for any values not implemented yet')
+  else --luacov:enable
     typename = type.name
   end
   emitter:add('&nelua_typestr_', typename)

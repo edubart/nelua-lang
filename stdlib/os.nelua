@@ -1,5 +1,7 @@
 !!strict
 
+--TODO: optional params/returns
+
 --------------------------------------------------------------------------------
 -- C imports
 
@@ -18,6 +20,8 @@ local LC_CTYPE: cint !cimport
 local LC_MONETARY: cint !cimport
 local LC_NUMERIC: cint !cimport
 local LC_TIME: cint !cimport
+local EXIT_SUCCESS: cint !cimport
+local EXIT_FAILURE: cint !cimport
 local errno: cint !cimport
 local function clock(): clong !cimport end
 local function getenv(name: cstring): cstring !cimport end
@@ -45,22 +49,20 @@ local function fileresult(status: cint): boolean, string, integer
   end
 end
 
-function os.clock()
+function os.clock(): number
   return clock() / CLOCKS_PER_SEC
 end
 
-function os.date()
+function os.date(): string
   --TODO: implement os date
   return 'NIY (not implementet yet)'
 end
 
-function os.difftime(t1: integer, t2: integer)
+function os.difftime(t1: integer, t2: integer): integer
   return t2 - t1
 end
 
 function os.execute(command: string): boolean, string, integer
-  --TODO: optional string param
-  --TODO: on error return nil instead of false
   local status = system(command)
   if status == -1 then
     return fileresult(status)
@@ -68,16 +70,39 @@ function os.execute(command: string): boolean, string, integer
   return true,'exit',status
 end
 
+function os.execute_check(): boolean
+  local status = system(nilptr)
+  return status ~= 0
+end
+
 function os.exit(code: integer)
-  --TODO: handle boolean argument
   exit(@cint(code))
 end
 
-function os.getenv(varname: string): string
-  return @string(getenv(varname))
+function os.exit_boolean(code: boolean)
+  local ecode
+  if code then
+    ecode = EXIT_SUCCESS
+  else
+    ecode = EXIT_FAILURE
+  end
+  exit(ecode)
 end
 
-function os.remove(filename: string)
+function os.exit_default()
+  exit(EXIT_SUCCESS)
+end
+
+function os.getenv(varname: string): string
+  local s = getenv(varname)
+  if s then
+    return @string(s)
+  else
+    return ''
+  end
+end
+
+function os.remove(filename: string): boolean, string, integer
   return fileresult(remove(filename))
 end
 
@@ -86,7 +111,6 @@ function os.rename(oldname: string, newname: string): boolean, string, integer
 end
 
 function os.setlocale(locale: string, category: string): string
-  --TODO: make arguments optional
   local cat
   if category == 'all' then cat = LC_ALL
   elseif category == 'collate' then cat = LC_COLLATE
@@ -98,10 +122,19 @@ function os.setlocale(locale: string, category: string): string
     --TODO: string format with option name
     error "invalid option '%s'"
   end
-  return @string(setlocale(cat, locale))
+  local s = setlocale(cat, locale)
+  if s then
+    return @string(s)
+  else
+    return ''
+  end
 end
 
-function os.time(): integer
+function os.setlocale_default(locale: string): string
+  return os.setlocale(locale, 'all')
+end
+
+function os.time_default(): integer
   --TODO: optional table argument
   local t = ctime(nilptr)
   if t == -1 then
@@ -128,14 +161,17 @@ end
 
 assert(os.clock() >= 0)
 assert(os.difftime(0,0) == 0 and os.difftime(0,1) == 1)
-print(os.date())
+--print(os.date())
 assert(type(os.getenv('PATH')) == 'string')
-print(os.tmpname())
-print(os.execute('my_invalid_command'))
-print(os.rename('my_invalid_file', 'a'))
-print(os.remove('my_invalid_command'))
-assert(os.setlocale('C','all') == 'C')
+assert(type(os.tmpname()) == 'string')
+assert(os.execute_check() == true)
+--assert(os.execute('my_invalid_command'))
+assert(os.rename('my_invalid_file', 'my_invalid_file') == false)
+assert(os.remove('my_invalid_file') == false)
+assert(os.setlocale_default('C') == 'C')
 assert(os.setlocale('C','numeric') == 'C')
-print(os.time())
+assert(os.time_default() >= 0)
 os.exit(0)
+os.exit_boolean(true)
+os.exit_default()
 assert(false)

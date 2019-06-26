@@ -32,9 +32,9 @@ function PEGBuilder:add_group_peg(groupname, name, patt, defs, overwrite)
     self.group_pegs[groupname] = group
   end
   local fullname = string.format('%s_%s', groupname, name)
-  if tabler.ifind(group, fullname) then
+  if tabler.ifind(group, fullname) then --luacov:disable
     errorer.assertf(overwrite, 'group peg "%s" already exists', fullname)
-  else
+  else --luacov:enable
     table.insert(group, fullname)
   end
   merge_defs(self, defs)

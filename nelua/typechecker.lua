@@ -944,16 +944,18 @@ function visitors.ForIn(context, node)
   end
   context:traverse(inexpnodes)
   context:repeat_scope_until_resolution('loop', function()
-    if itvarnodes then
-      for i,itvarnode in ipairs(itvarnodes) do
-        local itsymbol = context:traverse(itvarnode)
-        if infunctype and infunctype:is_function() then
-          local fittype = infunctype:get_return_type(i)
-          itsymbol:add_possible_type(fittype)
-        end
+  --[[
+  if itvarnodes then
+    for i,itvarnode in ipairs(itvarnodes) do
+      local itsymbol = context:traverse(itvarnode)
+      if infunctype and infunctype:is_function() then
+        local fittype = infunctype:get_return_type(i)
+        itsymbol:add_possible_type(fittype)
       end
     end
-    context:traverse(blocknode)
+  end
+    ]]
+  context:traverse(blocknode)
   end)
 end
 
@@ -1196,9 +1198,7 @@ function visitors.FuncDef(context, node)
       -- function declaration, must create a new symbol
       local name = varnode[1]
       local vartype = varnode.attr.type
-      if not vartype and context.phase == phases.any_inference then
-        vartype = primtypes.any
-      end
+      assert(vartype or context.phase ~= phases.any_inference)
       symbol = context.scope:add_symbol(Symbol(name, varnode, vartype))
     elseif varnode.tag == 'Id' then
       symbol = context:traverse(varnode)

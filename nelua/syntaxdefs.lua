@@ -318,6 +318,14 @@ local function get_parser(std)
     ({} '' -> 'Preprocess' ppstring ) -> to_astnode
   ]])
 
+  grammar:add_group_peg('stat', 'vardecl', [[
+    ({} '' -> 'VarDecl'
+      %LOCAL -> 'local' cnil
+      {| etyped_idlist |}
+      (%ASSIGN {| eexpr_list |})?
+    ) -> to_astnode
+  ]])
+
   if not is_luacompat then
     grammar:add_group_peg('stat', 'vardecl', [[
     ({} '' -> 'VarDecl'
@@ -349,14 +357,6 @@ local function get_parser(std)
 
     grammar:add_group_peg('stat', 'continue', [[
       ({} %CONTINUE -> 'Continue') -> to_astnode
-    ]])
-  else
-    grammar:add_group_peg('stat', 'vardecl', [[
-      ({} '' -> 'VarDecl'
-        %LOCAL -> 'local' cnil
-        {| etyped_idlist |}
-        (%ASSIGN {| eexpr_list |})?
-      ) -> to_astnode
     ]])
   end
 

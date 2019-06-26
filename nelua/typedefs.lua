@@ -45,7 +45,6 @@ local primtypes = {
   culonglong  = Type('culonglong'),
   csize       = Type('csize'),
   clongdouble = Type('clongdouble'),
-  --cstring     = Type('cstring'),
 }
 
 primtypes.pointer = types.PointerType(nil, primtypes.void)

@@ -6,7 +6,7 @@ local config = require 'nelua.configer'.get()
 describe("Nelua preprocessor should", function()
 
 it("evaluate expressions", function()
-  assert.c_gencode_equals([=[
+  assert.ast_type_equals([=[
     local a = #['he' .. 'llo']
     local b = #[math.sin(-math.pi/2)]
     local c = #[true]
@@ -19,7 +19,7 @@ it("evaluate expressions", function()
     local d = 3.1415926535898
     local e = 1
   ]])
-  assert.c_gencode_equals([=[
+  assert.ast_type_equals([=[
     local a: integer[10]
     a[#[0]] = 1
   ]=], [[
@@ -30,7 +30,7 @@ it("evaluate expressions", function()
 end)
 
 it("evaluate names", function()
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     #('print') 'hello'
   ]], [[
     print 'hello'
@@ -38,14 +38,14 @@ it("evaluate names", function()
 end)
 
 it("parse if", function()
-  assert.c_gencode_equals("[##[ if true then ]##] local a = 1 [##[ end ]##]", "local a = 1")
-  assert.c_gencode_equals("[##[ if false then ]##] local a = 1 [##[ end ]##]", "")
-  assert.c_gencode_equals([[
+  assert.ast_type_equals("[##[ if true then ]##] local a = 1 [##[ end ]##]", "local a = 1")
+  assert.ast_type_equals("[##[ if false then ]##] local a = 1 [##[ end ]##]", "")
+  assert.ast_type_equals([[
     local function f() [##[ if true then ]##] return 1 [##[ end ]##] end
   ]],[[
     local function f() return 1 end
   ]])
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local function f()
       ## if true then
         return 1
@@ -60,7 +60,7 @@ it("parse if", function()
 end)
 
 it("parse loops", function()
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local a = 2
     ## for i=1,4 do
       a = a * 2
@@ -72,7 +72,7 @@ it("parse loops", function()
     a = a * 2
     a = a * 2
   ]])
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local a = 0
     ## for i=1,3 do
       do
@@ -91,21 +91,25 @@ it("parse loops", function()
     do a = a + 2 end
     do a = a + 3 end
   ]])
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local a = 0
     ## for i=1,3 do
       a = a + #[i]
+      for i=1,4,2 do end
     ## end
   ]], [[
     local a = 0
     a = a + 1
+    for i=1,4,2 do end
     a = a + 2
+    for i=1,4,2 do end
     a = a + 3
+    for i=1,4,2 do end
   ]])
 end)
 
 it("inject other symbol type", function()
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local a: uint8 = 1
     local b: #[symbols['a'].attr.type]
   ]], [[
@@ -115,14 +119,18 @@ it("inject other symbol type", function()
 end)
 
 it("print symbol", function()
-  assert.c_gencode_equals([=[
+  assert.ast_type_equals([=[
     local a: compconst integer = 1
+    local b: const integer = 2
     print #[tostring(symbols.a)]
+    print #[tostring(symbols.b)]
   ]=], [[
-    local compconst a = 1
+    local a: compconst = 1
+    local b: const = 2
     print 'symbol<a: compconst int64 = 1>'
+    print 'symbol<b: const int64>'
   ]])
-  assert.c_gencode_equals([=[
+  assert.ast_type_equals([=[
     for i:integer=1,2 do
       print(i, #[tostring(symbols.i)])
     end
@@ -131,20 +139,20 @@ it("print symbol", function()
       print(i, 'symbol<i: int64>')
     end
   ]])
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     ## local aval = 1
     ## if true then
       local #('a'): compconst #('integer') = #[aval]
       print #[tostring(scope:get_symbol('a'))]
     ## end
   ]], [[
-    local compconst a = 1
+    local a: compconst = 1
     print 'symbol<a: compconst int64 = 1>'
   ]])
 end)
 
 it("print enums", function()
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     local Weekends = @enum { Friday=0, Saturday, Sunda }
     ## symbols.Weekends.attr.holdedtype.fields[3].name = 'Sunday'
     ## for i,field in ipairs(symbols.Weekends.attr.holdedtype.fields) do
@@ -158,8 +166,63 @@ it("print enums", function()
   ]])
 end)
 
+it("print ast", function()
+  assert.ast_type_equals([[
+    local a = #[tostring(ast)]
+  ]], [=[
+    local a = [[Block {
+  {
+  }
+}]]
+  ]=])
+end)
+
+it("print types", function()
+  assert.ast_type_equals([[
+    local n: float64
+    local s: string
+    local b: boolean
+    local a: int64[2]
+    local function f(a: int64, b: int64): int64, int64 return 0,0 end
+    local function g(a: boolean | string) end
+    local R: type = @record{a: integer, b: integer}
+    function R:foo() return 1 end
+    global R.v: integer = 1
+    local r: R
+    local tn = #[tostring(symbols.n.attr.type)]
+    local ts = #[tostring(symbols.s.attr.type)]
+    local tb = #[tostring(symbols.b.attr.type)]
+    local ta = #[tostring(symbols.a.attr.type)]
+    local tf = #[tostring(symbols.f.attr.type)]
+    local tg = #[tostring(symbols.g.attr.type)]
+    local tR = #[tostring(symbols.R.attr.type)]
+    local tRmt = #[tostring(symbols.R.attr.holdedtype.metatype)]
+    local tr = #[tostring(symbols.r.attr.type)]
+  ]], [=[
+    local n: float64
+    local s: string
+    local b: boolean
+    local a: int64[2]
+    local function f(a: int64, b: int64): int64, int64 return 0,0 end
+    local function g(a: boolean | string) end
+    local R: type = @record{a: integer, b: integer}
+    function R:foo() return 1 end
+    global R.v: integer = 1
+    local r: R
+    local tn = 'float64'
+    local ts = 'string'
+    local tb = 'boolean'
+    local ta = 'array<int64, 2>'
+    local tf = 'function<(int64, int64): int64, int64>'
+    local tg = 'function<(boolean | string)>'
+    local tR = 'type'
+    local tRmt = 'metatype{foo: function<(pointer<record{a:int64, b:int64}>): int64>v: int64}'
+    local tr = 'record{a:int64, b:int64}'
+  ]=])
+end)
+
 it("generate functions", function()
-  assert.c_gencode_equals([[
+  assert.ast_type_equals([[
     ## local function make_pow(N)
       local function #('pow' .. N)(x: integer)
         local r = 1
@@ -192,7 +255,7 @@ it("generate functions", function()
 end)
 
 it("print symbol", function()
-  assert.c_gencode_equals([=[
+  assert.ast_type_equals([=[
     ## local a = 1
     do
       do
@@ -202,7 +265,7 @@ it("print symbol", function()
   ]=], [[
     do do print(1) end end
   ]])
-  assert.c_gencode_equals([=[
+  assert.ast_type_equals([=[
     ## local MIN, MAX = 1, 2
     for i:integer=#[MIN],#[MAX] do
       print(i, #[tostring(symbols.i)])
@@ -216,7 +279,7 @@ end)
 
 it("strict mode", function()
   config.strict = true
-  assert.c_gencode_equals([=[
+  assert.ast_type_equals([=[
     ## local dummy = 1
     local function f(a: integer)
       ## if true then

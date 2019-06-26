@@ -17,13 +17,13 @@ local uidcounter = 0
 local function genkey(name, node)
   local uid
   local srcname
-  if node and node.pos and not node.cloned then
-    uid = node.pos
-    srcname = node.srcname
+  if node then
+    uid = node.uid
+    srcname = node.srcname or ''
   else
     uidcounter = uidcounter + 1
     uid = uidcounter
-    srcname = ''
+    srcname = '__nonode__'
   end
   return string.format('%s%s%d', name, srcname, uid)
 end
@@ -459,17 +459,12 @@ function MetaType:set_field(name, symbol)
   self.fields[name] = symbol
 end
 
-function MetaType:is_equal(type)
-  return type.name == self.name and
-         type.key == self.key
-end
-
 function MetaType:__tostring()
   local ss = sstream('metatype{')
   local first = true
   for name,sym in iters.opairs(self.fields) do
-    if first then ss:add(', ') first = false end
-    ss:add(name, ':', sym.attr.type)
+    if not first then ss:add(', ') first = false end
+    ss:add(name, ': ', sym.attr.type)
   end
   ss:add('}')
   return ss:tostring()

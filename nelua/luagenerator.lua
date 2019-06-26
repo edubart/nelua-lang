@@ -300,23 +300,19 @@ end
 -- operators
 function visitors.UnaryOp(context, node, emitter)
   local opname, argnode = node:args()
-  if opname == 'tostring' then
-    emitter:add('tostring(', argnode, ')')
-  else
-    local op = node:assertraisef(luadefs.unary_ops[opname], 'unary operator "%s" not found', opname)
-    if config.lua_version ~= '5.3' then
-      local fallop = luadefs.lua51_unary_ops[opname]
-      if fallop then
-        context:add_runtime_builtin(fallop.builtin)
-        emitter:add(fallop.func, '(', argnode, ')')
-        return
-      end
+  local op = node:assertraisef(luadefs.unary_ops[opname], 'unary operator "%s" not found', opname)
+  if config.lua_version ~= '5.3' then
+    local fallop = luadefs.lua51_unary_ops[opname]
+    if fallop then
+      context:add_runtime_builtin(fallop.builtin)
+      emitter:add(fallop.func, '(', argnode, ')')
+      return
     end
-    local surround = node.attr.inoperator
-    if surround then emitter:add('(') end
-    emitter:add(op, argnode)
-    if surround then emitter:add(')') end
   end
+  local surround = node.attr.inoperator
+  if surround then emitter:add('(') end
+  emitter:add(op, argnode)
+  if surround then emitter:add(')') end
 end
 
 function visitors.BinaryOp(context, node, emitter)

@@ -26,14 +26,6 @@ function stringer.pconcat(...)
 end
 
 function stringer.pformat(format, ...)
-  if select('#', ...) > 0 then
-    return string.format(format, ...)
-  else
-    return format
-  end
-end
-
-function stringer.pformat(format, ...)
   if select('#', ...) == 0 then
     return format
   end

@@ -89,9 +89,7 @@ local function run(args)
     setmetatable(args, nil)
   end
   local tmperr, tmpout = io.tmpfile(), io.tmpfile()
-  local function rprint(...)
-    return tmpout:write(stringer.pconcat(...) .. "\n")
-  end
+  local function rprint(...) return tmpout:write(stringer.pconcat(...) .. "\n") end
   -- hook print, stderr and stdout
   local ostderr, ostdout, oprint = io.stderr, io.stdout, _G.print
   _G.ostderr, _G.ostdout, _G.oprint = ostderr, ostdout, oprint
@@ -172,6 +170,7 @@ function assert.run_error_c(nelua_code, output)
   assert.run_error({'--generator', 'c', '--eval', nelua_code}, output)
 end
 
+--[[
 function assert.c_gencode_equals(code, expected_code)
   local ast = assert.parse_ast(nelua_parser, code)
   ast = assert(typechecker.analyze(ast, nelua_parser.astbuilder))
@@ -181,6 +180,7 @@ function assert.c_gencode_equals(code, expected_code)
   local expected_generated_code = assert(c_generator.generate(expected_ast))
   assert.same_string(expected_generated_code, generated_code)
 end
+]]
 
 function assert.lua_gencode_equals(code, expected_code)
   local ast = assert.parse_ast(nelua_parser, code)
@@ -200,15 +200,35 @@ function assert.analyze_ast(code, expected_ast)
   end
 end
 
---[[
-function assert.analyze_ast_equals(code, expected_code)
+local function filter_ast_for_check(t)
+  for k,v in pairs(t) do
+    if type(k) == 'number' then
+      if traits.is_astnode(v) and v.attr.type and v.attr.type:is_type() then
+        -- remove type nodes because they are optional
+        t[k] = nil
+      elseif type(v) == 'table' then
+        filter_ast_for_check(v)
+      end
+    elseif k == 'attr' and traits.is_astnode(t) then
+      -- remove generated strings
+      v.codename = nil
+      v.name = nil
+      v.symbol = nil
+      v.pseudoargtypes = nil
+    end
+  end
+  return t
+end
+
+function assert.ast_type_equals(code, expected_code)
   local ast = assert.parse_ast(nelua_parser, code)
   ast = assert(typechecker.analyze(ast, nelua_parser.astbuilder))
   local expected_ast = assert.parse_ast(nelua_parser, expected_code)
   expected_ast = assert(typechecker.analyze(expected_ast, nelua_parser.astbuilder))
-  assert.same(tostring(expected_ast), tostring(ast))
+  filter_ast_for_check(ast)
+  filter_ast_for_check(expected_ast)
+  assert.same_string(tostring(expected_ast), tostring(ast))
 end
-]]
 
 function assert.analyze_error(code, expected_error)
   local ast = assert.parse_ast(nelua_parser, code)

@@ -1,6 +1,5 @@
 local traits = require 'nelua.utils.traits'
 local tabler = require 'nelua.utils.tabler'
-local iters = require 'nelua.utils.iterators'
 local class = require 'nelua.utils.class'
 local except = require 'nelua.utils.except'
 local bn = require 'nelua.utils.bn'
@@ -10,8 +9,8 @@ local Context = require 'nelua.context'
 local Emitter = require 'nelua.emitter'
 
 local function default_visitor(self, node, emitter, ...)
-  local nargs = traits.is_astnode(node) and node.nargs or #node
-  for i,arg in iters.inpairs(node, nargs) do
+  for i=1,node.nargs or #node do
+    local arg = node[i]
     if traits.is_astnode(arg) then
       self:traverse(arg, emitter, node, i, ...)
     elseif traits.is_table(arg) then
@@ -52,11 +51,19 @@ function PPContext:tovalue(val, orignode)
     node = self.aster.String{val}
   elseif traits.is_number(val) or traits.is_bignumber(val) then
     local num = bn.new(val)
+    local neg = false
+    if num:isneg() then
+      num = num:abs()
+      neg = true
+    end
     if num:isintegral() then
       node = self.aster.Number{'dec', num:todec()}
     else
       local int, frac = num:todec():match('^(-?%d+).(%d+)$')
       node = self.aster.Number{'dec', int, frac}
+    end
+    if neg then
+      node = self.aster.UnaryOp{'neg', node}
     end
   elseif traits.is_boolean(val) then
     node = self.aster.Boolean{val}

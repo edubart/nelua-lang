@@ -108,9 +108,9 @@ function CContext:typename(type)
     end
   elseif type:is_string() then
     self.has_string = true
-  elseif type:is_function() then
-    assert(false, 'ctype for functions not implemented yet')
-  elseif type:is_any() then
+  elseif type:is_function() then --luacov:disable
+    error('ctype for functions not implemented yet')
+  elseif type:is_any() then --luacov:enable
     self.has_any = true
     self.has_string = true
     self.has_type = true

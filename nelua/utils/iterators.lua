@@ -2,17 +2,6 @@ local tabler = require 'nelua.utils.tabler'
 
 local iterators = {}
 
--- iterate `n` values of an array, returning its index and value
-function iterators.inpairs(t, n)
-  return function(_t, i)
-    if i == n then
-      return nil
-    end
-    i = i + 1
-    return i, _t[i]
-  end, t, 0
-end
-
 -- iterate multiples values for multiple arrays, returning its index and values
 -- stops only when all values in the arrays are nil
 local pack, unpack = tabler.pack, tabler.unpack

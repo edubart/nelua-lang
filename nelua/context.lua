@@ -4,10 +4,9 @@ local Scope = require 'nelua.scope'
 local Context = class()
 
 local function traverse_node(self, node, ...)
-  local tag = node.tag
-  local visitor_func = self.visitors[tag] or self.default_visitor
+  local visitor_func = self.visitors[node.tag] or self.default_visitor
   if not visitor_func then --luacov:disable
-    node:errorf("visitor for AST node '%s' does not exist", tag)
+    node:errorf("visitor for AST node '%s' does not exist", node.tag)
   end --luacov:enable
   table.insert(self.nodes, node) -- push node
   local ret = visitor_func(self, node, ...)

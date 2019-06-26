@@ -73,10 +73,8 @@ local function symbol_resolve_type(symbol)
 end
 
 function Scope:add_symbol(symbol)
-  if not symbol.name then
-    return
-  end
   local name = symbol.name
+  assert(name)
   local oldsymbol = self.symbols[name]
   if oldsymbol then
     symbol.node:assertraisef(not config.strict,

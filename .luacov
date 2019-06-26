@@ -2,5 +2,7 @@ modules = {
   ['nelua.*'] = '.',
   ['nelua.*.*'] = '.',
   ['nelua.*.*.*'] = '.',
-  ['spec.*'] = '.'
+  ['spec.*'] = '.',
+  ['spec.tools.*'] = '.',
+  ['spec.utils.*'] = '.',
 }
