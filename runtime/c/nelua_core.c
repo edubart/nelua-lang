@@ -90,7 +90,7 @@ void nelua_panic_string(const nelua_string s) {
 }
 {% if context.builtins['cstring2string'] then %}
 nelua_string nelua_cstring2string(const char *s) {
-  nelua_assert_cstring(s != NULL, "NULL is cstring while converting to string");
+  nelua_assert_cstring(s != NULL, "NULL cstring while converting to string");
   size_t slen = strlen(s);
   nelua_string str = (nelua_string)malloc(sizeof(nelua_string_object) + slen+1);
   str->len = slen; str->res = slen + 1;

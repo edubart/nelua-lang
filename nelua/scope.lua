@@ -47,6 +47,9 @@ function Scope:get_symbol(name, node)
     if symtype then
       symbol = Symbol(name, node, symtype)
       symbol.attr.const = true
+      if symbol.attr.type:is_function() then
+        symbol.attr.type.sideeffect = false
+      end
     end
   end
   if not symbol and node and config.strict and not self.context.preprocessing then

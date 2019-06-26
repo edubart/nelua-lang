@@ -433,7 +433,7 @@ function visitors.Call(context, node, emitter)
       -- same type, no need to cast
       emitter:add(argnode)
     end
-  else
+  elseif callee then
     visitor_Call(context, node, emitter, argnodes, callee, isblockcall)
   end
 end

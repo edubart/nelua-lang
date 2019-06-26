@@ -858,12 +858,12 @@ it("entrypoint", function()
   ]], "hello\nwonderful\nworld")
 end)
 
-it("print", function()
+it("print builtin", function()
   assert.run({'-g', 'c', '-e', "print(1,0.2,1e2,0xf,0b01)"},
     '1\t0.200000\t100\t15\t1')
 end)
 
-it("assert", function()
+it("assert builtin", function()
   assert.generate_c(
     "assert(true)",
     "nelua_assert(true)")
@@ -883,6 +883,24 @@ it("assert", function()
   assert.run_error_c([[
     assert(false)
   ]], "assertion failed!")
+end)
+
+it("type builtin", function()
+  assert.run_c([[
+    local function f() end
+    local R = @record{x:integer}
+    local r: R
+    assert(r.x == 0)
+    assert(type('a') == 'string')
+    assert(type(1) == 'number')
+    assert(type(false) == 'boolean')
+    assert(type(f) == 'function')
+    assert(type(R) == 'type')
+    assert(type(r) == 'record')
+    assert(type(&r) == 'pointer')
+    assert(type(nilptr) == 'pointer')
+    assert(type(nil) == 'nil')
+  ]])
 end)
 
 end)

@@ -54,6 +54,10 @@ function os.date()
   return 'NIY (not implementet yet)'
 end
 
+function os.difftime(t1: integer, t2: integer)
+  return t2 - t1
+end
+
 function os.execute(command: string): boolean, string, integer
   --TODO: optional string param
   --TODO: on error return nil instead of false
@@ -69,8 +73,8 @@ function os.exit(code: integer)
   exit(@cint(code))
 end
 
-function os.getenv(varname: string): cstring
-  return getenv(varname)
+function os.getenv(varname: string): string
+  return @string(getenv(varname))
 end
 
 function os.remove(filename: string)
@@ -122,14 +126,16 @@ end
 --------------------------------------------------------------------------------
 -- tests
 
-print(os.clock())
+assert(os.clock() >= 0)
+assert(os.difftime(0,0) == 0 and os.difftime(0,1) == 1)
 print(os.date())
-print(os.getenv('HOME'))
+assert(type(os.getenv('PATH')) == 'string')
 print(os.tmpname())
 print(os.execute('my_invalid_command'))
 print(os.rename('my_invalid_file', 'a'))
 print(os.remove('my_invalid_command'))
-print(os.setlocale('C','all'))
+assert(os.setlocale('C','all') == 'C')
+assert(os.setlocale('C','numeric') == 'C')
 print(os.time())
 os.exit(0)
 assert(false)

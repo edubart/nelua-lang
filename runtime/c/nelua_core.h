@@ -194,3 +194,14 @@ static inline bool nelua_any_to_boolean(const nelua_any a) {
   return true;
 }
 {% end %}
+{% if context.builtins['type_strings'] then %}
+static const struct { uintptr_t len, res; char data[4]; } nelua_typestr_nil = {3,3,"nil"};
+static const struct { uintptr_t len, res; char data[5]; } nelua_typestr_type = {4,4,"type"};
+static const struct { uintptr_t len, res; char data[7]; } nelua_typestr_string = {6,6,"string"};
+static const struct { uintptr_t len, res; char data[7]; } nelua_typestr_number = {6,6,"number"};
+static const struct { uintptr_t len, res; char data[7]; } nelua_typestr_record = {6,6,"record"};
+static const struct { uintptr_t len, res; char data[8]; } nelua_typestr_boolean = {7,7,"boolean"};
+static const struct { uintptr_t len, res; char data[8]; } nelua_typestr_integer = {7,7,"integer"};
+static const struct { uintptr_t len, res; char data[8]; } nelua_typestr_pointer = {7,7,"pointer"};
+static const struct { uintptr_t len, res; char data[9]; } nelua_typestr_function = {8,8,"function"};
+{% end %}

@@ -167,6 +167,24 @@ function functions.print(context, node)
   return funcname
 end
 
+function functions.type(context, node, emitter)
+  local argnode = node[1][1]
+  local type = argnode.attr.type
+  context:add_runtime_builtin('type_strings')
+  local typename
+  if type:is_numeric() then
+    typename = 'number'
+  elseif type:is_nilptr() then
+    typename = 'pointer'
+  elseif type:is_any() then
+    assert(false, 'type for any values not implemented yet')
+  else
+    typename = type.name
+  end
+  emitter:add('&nelua_typestr_', typename)
+  return nil
+end
+
 function functions.error()
   return 'nelua_panic_string'
 end
