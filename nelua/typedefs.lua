@@ -246,7 +246,6 @@ local unary_op_types = {
                   end
                 end
               },
-  --TODO: tostring
 }
 
 do

@@ -70,7 +70,6 @@ function os.exit(code: integer)
 end
 
 function os.getenv(varname: string): cstring
-  --TODO: coerce cchar to string
   return getenv(varname)
 end
 
@@ -84,7 +83,6 @@ end
 
 function os.setlocale(locale: string, category: string): string
   --TODO: make arguments optional
-  --TODO: string comparasion
   local cat
   if category == 'all' then cat = LC_ALL
   elseif category == 'collate' then cat = LC_COLLATE

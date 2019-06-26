@@ -619,7 +619,7 @@ function visitors.ForNum(context, node, emitter)
   local itmutate = itvarnode.attr.mutate
   context:push_scope('for')
   do
-    local ccompop = cdefs.binary_ops[compop]
+    local ccompop = cdefs.compare_ops[compop]
     local ittype = itvarnode.attr.type
     local itname = context:declname(itvarnode)
     local itforname = itmutate and '__it' or itname

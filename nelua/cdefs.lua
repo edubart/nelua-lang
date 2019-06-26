@@ -82,11 +82,20 @@ cdefs.unary_ops = {
   --TODO: tostring
 }
 
+cdefs.compare_ops = {
+  ['or'] = '||',
+  ['and'] = '&&',
+  ['le'] = '<=',
+  ['ge'] = '>=',
+  ['lt'] = '<',
+  ['gt'] = '>',
+  ['ne'] = '!=',
+  ['eq'] = '=='
+}
+
 cdefs.binary_ops = {
   ['or'] = '||',
   ['and'] = '&&',
-  ['ne'] = '!=',
-  ['eq'] = '==',
   ['le'] = '<=',
   ['ge'] = '>=',
   ['lt'] = '<',
@@ -100,6 +109,8 @@ cdefs.binary_ops = {
   ['sub'] = '-',
   ['mul'] = '*',
   -- builtins
+  ['ne'] = true,
+  ['eq'] = true,
   ['div'] = true,
   ['idiv'] = true,
   ['pow'] = true,

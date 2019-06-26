@@ -209,6 +209,16 @@ it("binary operator mod", function()
   assert.analyze_error("local a = 1 % 0", "divizion by zero")
 end)
 
+it("binary operator eq", function()
+  assert.c_gencode_equals("local a = 1 == 2", "local a: boolean = 1 == 2")
+  assert.c_gencode_equals("local a = 1 == 'a'", "local a: boolean = 1 == 'a'")
+end)
+
+it("binary operator ne", function()
+  assert.c_gencode_equals("local a = 1 ~= 2", "local a: boolean = 1 ~= 2")
+  assert.c_gencode_equals("local a = 1 ~= 'a'", "local a: boolean = 1 ~= 'a'")
+end)
+
 it("binary conditional and", function()
   assert.c_gencode_equals("local a = 1 and 2", "local a: integer = 1 and 2")
   assert.c_gencode_equals("local a = 1_i8 and 2_u8", "local a: int16 = 1_i8 and 2_u8")

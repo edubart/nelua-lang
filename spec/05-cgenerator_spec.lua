@@ -379,6 +379,25 @@ it("binary operators", function()
     assert(3 // 2 == 1)
     assert(3.0 // 2.0 == 1)
     assert(2 ^ 2 == 4)
+    assert(1 == 1)
+    assert(1 ~= 2)
+  ]])
+end)
+
+it("string comparisons", function()
+  assert.generate_c("do local a,b = 'a','b'; local x = a == b end", "nelua_string_eq(a, b)")
+  assert.generate_c("do local a,b = 'a','b'; local x = a ~= b end", "nelua_string_ne(a, b)")
+  assert.run_c([[
+    assert('a' == 'a')
+    assert(not ('a' ~= 'a'))
+    assert('a' ~= 'b')
+    assert(not ('a' == 'b'))
+    local a = 'a'
+    local b = 'b'
+    assert(a == a)
+    assert(not (a ~= a))
+    assert(a ~= b)
+    assert(not (a == b))
   ]])
 end)
 

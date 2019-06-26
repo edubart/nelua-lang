@@ -2,7 +2,6 @@
 
 --TODO: function type overload
 --TODO: become a module
---TODO: string compare
 
 --------------------------------------------------------------------------------
 -- math module imports
@@ -74,18 +73,13 @@ function math.tointeger(x: number)
   return @integer(x)
 end
 
---[[
-local function type(x: number)
+function math.type(x: number)
   return 'float'
 end
-assert(type(1.0) == 'float')
-]]
 
 -- Pseudo Random Number Generator based on xoshiro256**
 
-local xoshiro256 = @record {
-  state: uint64[4]
-}
+local xoshiro256 = @record{state: uint64[4]}
 
 local compconst FLOAT64_MANT_DIGS = 53
 
@@ -100,17 +94,17 @@ function xoshiro256:nextrand(): uint64
     self.state[2] ~ self.state[0],
     self.state[3] ~ self.state[1]
   }
-  local res = rotl(state[1] * 5, 7) * 9;
-  self.state[0] = state[0] ~ state[3];
-  self.state[1] = state[1] ~ state[2];
-  self.state[2] = state[2] ~ (state[1] << 17);
-  self.state[3] = rotl(state[3], 45);
+  local res = rotl(state[1] * 5, 7) * 9
+  self.state[0] = state[0] ~ state[3]
+  self.state[1] = state[1] ~ state[2]
+  self.state[2] = state[2] ~ (state[1] << 17)
+  self.state[3] = rotl(state[3], 45)
   return res
 end
 
 function xoshiro256:random(): number
   local rv = self:nextrand()
-  local v: number = rv >> (64_i32 - FLOAT64_MANT_DIGS)
+  local v = rv >> (64_i32 - FLOAT64_MANT_DIGS)
   return v / (1_uint64 << FLOAT64_MANT_DIGS)
 end
 
@@ -124,8 +118,10 @@ function xoshiro256:seed(a: uint64, b: uint64)
   end
 end
 
-local default_random = xoshiro256{}
-default_random:seed(1,0)
+-- pre initialized default random generator
+local default_random = xoshiro256{state={
+  0x65CE039BAEBE74B4, 0x4911ADA153B51EEF, 0xFB71FBB497C00950, 0xF83CCF6AC1B74755
+}}
 
 function math.randomseed(x: integer)
   default_random:seed(@uint64(x), 0)
@@ -213,6 +209,7 @@ end
 assert(not (math.maxinteger < math.mininteger))
 assert(math.ult(math.maxinteger, math.mininteger))
 assert(math.tointeger(1.0) == 1_integer)
+assert(math.type(1.0) == 'float')
 
 math.randomseed(0)
 

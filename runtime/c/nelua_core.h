@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 {% if context.has_math then %}
@@ -24,6 +25,15 @@ typedef struct nelua_string_object {
 } nelua_string_object;
 typedef nelua_string_object* nelua_string;
 static void nelua_panic_string(const nelua_string s) Nelua_NORETURN;
+static inline bool nelua_string_eq(const nelua_string a, const nelua_string b) {
+  return a->len == b->len && memcmp(a->data, b->data, a->len) == 0;
+}
+static inline bool nelua_string_ne(const nelua_string a, const nelua_string b) {
+  return !nelua_string_eq(a, b);
+}
+{% if context.builtins['cstring2string'] then %}
+static nelua_string nelua_cstring2string(const char *s);
+{% end %}
 {% end %}
 {% if context.has_any then %}
 typedef struct nelua_any {
@@ -102,12 +112,10 @@ static inline void nelua_assert_string(bool cond, const nelua_string s) {
     nelua_panic_cstring(s->data);
 }
 {% end %}
-{% if context.builtins['assert_cmessage'] then %}
 static inline void nelua_assert_cstring(bool cond, const char* s) {
   if(Nelua_UNLIKELY(!cond))
     nelua_panic_cstring(s);
 }
-{% end %}
 {% if context.has_type then %}
 static inline void nelua_check_type(nelua_type* a, nelua_type* b) {
   if(Nelua_UNLIKELY(a != b)) {

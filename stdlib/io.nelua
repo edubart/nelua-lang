@@ -49,7 +49,6 @@ function filestream:seek(whence: string, offset: integer)
   --TODO: return correct optional values
   assert(self.f, 'attempt to use a closed file')
   local op
-  --TODO: fix string comparasion
   if whence == 'set' then op = SEEK_SET
   elseif whence == 'end' then op = SEEK_END
   elseif whence == 'cur' then op = SEEK_CUR

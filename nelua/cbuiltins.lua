@@ -72,6 +72,24 @@ function operators.pow(node, emitter, lnode, rnode, lname, rname)
   end --luacov:enable
 end
 
+function operators.eq(_, emitter, lnode, rnode, lname, rname)
+  local ltype, rtype = lnode.attr.type, rnode.attr.type
+  if ltype:is_string() and rtype:is_string() then
+    emitter:add('nelua_string_eq(', lname, ', ', rname, ')')
+  else
+    emitter:add(lname, ' ', '==', ' ', rname)
+  end
+end
+
+function operators.ne(_, emitter, lnode, rnode, lname, rname)
+  local ltype, rtype = lnode.attr.type, rnode.attr.type
+  if ltype:is_string() and rtype:is_string() then
+    emitter:add('nelua_string_ne(', lname, ', ', rname, ')')
+  else
+    emitter:add(lname, ' ', '!=', ' ', rname)
+  end
+end
+
 local functions = {}
 builtins.functions = functions
 

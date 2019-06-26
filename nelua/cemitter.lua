@@ -119,19 +119,8 @@ end
 
 function CEmitter:add_cstring2string(val)
   --TODO: free allocated strings using reference counting
-  self.context:add_runtime_builtin('assert_cmessage')
-  self:add_ln('({')
-  self:inc_indent()
-  self:add_indent_ln('const char* __ctmp = ', val, ';')
-  self:add_indent_ln('nelua_assert_cstring(__ctmp != NULL, "NULL is cstring while converting to string");')
-  self:add_indent_ln('size_t __ctmplen = strlen(__ctmp);')
-  self:add_indent_ln('nelua_string __tmp = (nelua_string)malloc(sizeof(nelua_string_object) + __ctmplen+1);')
-  self:add_indent_ln('__tmp->len = __ctmplen; __tmp->res = __ctmplen + 1;')
-  self:add_indent_ln('memcpy(__tmp->data, __ctmp, __ctmplen);')
-  self:add_indent_ln('__tmp->data[__ctmplen] = 0;')
-  self:add_indent_ln('__tmp;')
-  self:dec_indent()
-  self:add_indent_ln('})')
+  self.context:add_runtime_builtin('cstring2string')
+  self:add('nelua_cstring2string(', val, ')')
 end
 
 function CEmitter:add_val2type(type, val, valtype)
