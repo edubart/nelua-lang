@@ -639,6 +639,10 @@ it("record methods", function()
     function vec2:length() return self.x + self.y end
     local v: vec2 = vec2.create(1,2)
     local l: integer = v:length()
+
+    local vec2pointer = @vec2*
+    function vec2pointer:len() return self.x + self.y end
+    l = v:len()
   ]])
   assert.analyze_error([[
     local vec2 = @record{x: integer, y: integer}

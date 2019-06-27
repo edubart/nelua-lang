@@ -556,6 +556,10 @@ local function visitor_FieldIndex(context, node)
     elseif objtype:is_type() then
       objtype = objnode.attr.holdedtype
       assert(objtype)
+      if objtype:is_pointer() and objtype.subtype:is_record() then
+        -- allow to access method and fields on record pointer types
+        objtype = objtype.subtype
+      end
       attr.holdedtype = objtype
       if objtype:is_enum() then
         node:assertraisef(objtype:get_field(name),

@@ -713,6 +713,10 @@ it("record methods", function()
     function vec2:lenmul(a: integer, b: integer) return (self.x + self.y)*a*b end
     assert(v:lenmul(2,3) == 18)
 
+    local vec2pointer = @vec2*
+    function vec2pointer:len() return self.x + self.y end
+    assert(v:len() == 3)
+
     local Math = @record{}
     function Math.abs(x: number): number !cimport('fabs', '<math.h>') end
     assert(Math.abs(-1) == 1)
