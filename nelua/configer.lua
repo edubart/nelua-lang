@@ -9,7 +9,8 @@ local config = {}
 local defconfig = {
   cc = 'gcc',
   lua = 'lua',
-  lua_version = '5.3'
+  lua_version = '5.3',
+  cpu_bits = 64
 }
 
 local function create_parser(argv)
@@ -33,6 +34,7 @@ local function create_parser(argv)
   argparser:option('-g --generator', "Code generator to use (lua/c)", "c")
   argparser:option('-s --standard', "Source standard (default/luacompat)", "default")
   argparser:option('--cc', "C compiler to use", defconfig.cc)
+  argparser:option('--cpu-bits', "Target CPU architecture bit size", defconfig.cpu_bits)
   argparser:option('--cflags', "Additional C flags to use on compilation", defconfig.cflags)
   argparser:option('--lua', "Lua interpreter to use when runnning", defconfig.lua)
   argparser:option('--lua-version', "Target lua version for lua generator", defconfig.lua_version)

@@ -7,6 +7,7 @@ local compat = require 'pl.compat'
 local typedefs = require 'nelua.typedefs'
 local Context = require 'nelua.context'
 local Emitter = require 'nelua.emitter'
+local config = require 'nelua.configer'.get()
 
 local function default_visitor(self, node, emitter, ...)
   for i=1,node.nargs or #node do
@@ -246,6 +247,8 @@ function preprocessor.preprocess(context, ast)
       return context:get_top_node()
     elseif key == 'symbols' then
       return context.scope.symbols
+    elseif key == 'config' then
+      return config
     else
       return _G[key]
     end

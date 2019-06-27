@@ -12,9 +12,11 @@ function operators.len(_, emitter, argnode)
     emitter:add(type, '_length(&', argnode, ')')
   elseif type:is_array() then
     emitter:add(type.length)
-  elseif type:is_record() then
-    emitter:add('sizeof(', type, ')')
-  end
+  elseif type:is_type() then
+    emitter:add(argnode.attr.holdedtype.size)
+  else --luacov:disable
+    error('not implemented')
+  end --luacov:enable
 end
 
 function operators.div(node, emitter, lnode, rnode, lname, rname)

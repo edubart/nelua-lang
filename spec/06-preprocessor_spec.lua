@@ -277,6 +277,14 @@ it("print symbol", function()
   ]])
 end)
 
+it("print config", function()
+  assert.ast_type_equals([=[
+    local a = #[config.cc]
+  ]=], [[
+    local a = 'gcc'
+  ]])
+end)
+
 it("strict mode", function()
   config.strict = true
   assert.ast_type_equals([=[

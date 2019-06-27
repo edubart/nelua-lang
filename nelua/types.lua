@@ -5,6 +5,9 @@ local traits = require 'nelua.utils.traits'
 local stringer = require 'nelua.utils.stringer'
 local sstream = require 'nelua.utils.sstream'
 local metamagic = require 'nelua.utils.metamagic'
+local config = require 'nelua.configer'.get()
+
+local cpusize = math.floor(config.cpu_bits / 8)
 
 --------------------------------------------------------------------------------
 local Type = class()
@@ -28,10 +31,11 @@ local function genkey(name, node)
   return string.format('%s%s%d', name, srcname, uid)
 end
 
-function Type:_init(name, node)
+function Type:_init(name, size, node)
   assert(name)
   self.name = name
   self.node = node
+  self.size = size
   self.integral = false
   self.float = false
   self.unsigned = false
@@ -124,7 +128,7 @@ end
 function Type:is_inrange(value)
   if self:is_float() then return true end
   if not self:is_integral() then return false end
-  return value >= self.range.min and value <= self.range.max
+  return value >= self.min and value <= self.max
 end
 
 function Type:is_numeric()
@@ -240,8 +244,8 @@ function Type:__eq(type)
 end
 
 -- types used internally
-Type.type = Type('type')
-Type.void = Type('void')
+Type.type = Type('type', 0)
+Type.void = Type('void', 0)
 Type.any = Type('any')
 
 local function gencodename(self)
@@ -262,7 +266,7 @@ end
 local ArrayTableType = typeclass()
 
 function ArrayTableType:_init(node, subtype)
-  Type._init(self, 'arraytable', node)
+  Type._init(self, 'arraytable', cpusize*3, node)
   self.subtype = subtype
   self.codename = subtype.codename .. '_arrtab'
 end
@@ -283,7 +287,8 @@ local ArrayType = typeclass()
 function ArrayType:_init(node, subtype, length)
   self.subtype = subtype
   self.length = length
-  Type._init(self, 'array', node)
+  local size = subtype.size * length
+  Type._init(self, 'array', size, node)
   self.codename = string.format('%s_arr%d', subtype.codename, length)
 end
 
@@ -304,7 +309,7 @@ local EnumType = typeclass()
 function EnumType:_init(node, subtype, fields)
   self.subtype = subtype
   self.fields = fields
-  Type._init(self, 'enum', node)
+  Type._init(self, 'enum', subtype.size, node)
   self.codename = gencodename(self)
   for _,field in ipairs(fields) do
     field.codename = self.codename .. '_' .. field.name
@@ -333,7 +338,7 @@ local FunctionType = typeclass()
 function FunctionType:_init(node, argtypes, returntypes)
   self.argtypes = argtypes or {}
   self.returntypes = returntypes or {}
-  Type._init(self, 'function', node)
+  Type._init(self, 'function', cpusize, node)
   self.codename = gencodename(self)
   self.lazy = tabler.ifindif(argtypes, function(argtype)
     return argtype:is_multipletype()
@@ -421,7 +426,7 @@ local MultipleType = typeclass()
 
 function MultipleType:_init(node, types)
   self.types = types
-  Type._init(self, 'multipletype', node)
+  Type._init(self, 'multipletype', 0, node)
 end
 
 function MultipleType:is_coercible_from_type(type, explicit)
@@ -445,7 +450,7 @@ local MetaType = typeclass()
 local metatypecounter = 0
 function MetaType:_init(node, fields)
   self.fields = fields or {}
-  Type._init(self, 'metatype', node)
+  Type._init(self, 'metatype', 0, node)
   metatypecounter = metatypecounter + 1
   self.key = metatypecounter
   self.codename = gencodename(self)
@@ -473,9 +478,34 @@ end
 --------------------------------------------------------------------------------
 local RecordType = typeclass()
 
+local function compute_record_size(fields, pack)
+  local nfields = #fields
+  if nfields == 0 then
+    return 0
+  end
+  local size = 0
+  local maxfsize = 0
+  for i=1,#fields do
+    local fsize = fields[i].type.size
+    maxfsize = math.max(maxfsize, fsize)
+    local pad = 0
+    if not pack and size % fsize > 0 then
+      pad = fsize - (size % fsize)
+    end
+    size = size + pad + fsize
+  end
+  local pad = 0
+  if not pack and size % maxfsize > 0 then
+    pad = maxfsize - (size % maxfsize)
+  end
+  size = size + pad
+  return size
+end
+
 function RecordType:_init(node, fields)
+  local size = compute_record_size(fields)
   self.fields = fields
-  Type._init(self, 'record', node)
+  Type._init(self, 'record', size, node)
   self.codename = gencodename(self)
   self.metatype = MetaType()
 end
@@ -487,8 +517,7 @@ function RecordType:get_field(name)
 end
 
 function RecordType:is_equal(type)
-  return type.name == self.name and
-         type.key == self.key
+  return type.name == self.name and type.key == self.key
 end
 
 function RecordType:__tostring()
@@ -514,7 +543,7 @@ local PointerType = typeclass()
 
 function PointerType:_init(node, subtype)
   self.subtype = subtype
-  Type._init(self, 'pointer', node)
+  Type._init(self, 'pointer', cpusize, node)
   if not subtype:is_void() then
     self.codename = subtype.codename .. '_pointer'
   end

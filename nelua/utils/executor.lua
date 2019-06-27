@@ -55,6 +55,7 @@ local hasposix, posix_pexec = pcall(function()
       local _, err = unistd.exec(exepath, args)
       -- this is reached only when it fails
       io.stderr:write(err)
+      io.stderr:flush()
       unistd._exit(127)
     end
     local ssout = {}

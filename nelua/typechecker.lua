@@ -35,7 +35,7 @@ function visitors.Number(context, node, desiredtype)
     else
       value = bn.fromdec(int, frac, exp)
     end
-    local floatexp = exp and (stringer.startswith(exp, '-') or value > primtypes.integer.range.max)
+    local floatexp = exp and (stringer.startswith(exp, '-') or value > primtypes.integer.max)
     local integral = not (frac or floatexp)
     local parentnode = context:get_parent_node()
     if parentnode and parentnode.tag == 'UnaryOp' and parentnode[1] == 'neg' then
@@ -54,17 +54,17 @@ function visitors.Number(context, node, desiredtype)
     if attr.integral and desiredtype:is_integral() then
       if desiredtype:is_unsigned() and not attr.value:isneg() then
         -- find smallest unsigned type
-        for _,range in ipairs(typedefs.unsigned_ranges) do
-          if attr.value >= range.min and attr.value <= range.max then
-            type = range.type
+        for _,itype in ipairs(typedefs.unsigned_types) do
+          if attr.value >= itype.min and attr.value <= itype.max then
+            type = itype
             break
           end
         end
       else
       -- find smallest signed type
-        for _,range in ipairs(typedefs.signed_ranges) do
-          if attr.value >= range.min and attr.value <= range.max then
-            type = range.type
+        for _,itype in ipairs(typedefs.integral_signed_types) do
+          if attr.value >= itype.min and attr.value <= itype.max then
+            type = itype
             break
           end
         end
@@ -86,7 +86,7 @@ function visitors.Number(context, node, desiredtype)
     if type:is_integral() and not type:is_inrange(attr.value) then
       node:raisef(
         "value %s for integral of type '%s' is out of range, minimum is %s and maximum is %s",
-        attr.value:todec(), type, type.range.min:todec(), type.range.max:todec())
+        attr.value:todec(), type, type.min:todec(), type.max:todec())
     end
     attr.type = type
   end

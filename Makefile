@@ -12,8 +12,8 @@ test-luajit:
 	@busted --lua=luajit
 
 test-luajit-quick:
-	@echo -n "test luajit "
-	@busted --lua=luajit --no-keep-going
+	@echo -n "test luajit quick "
+	@busted --lua=luajit --no-keep-going -e 'jit.off\(\)'
 
 test-lua5.3:
 	@echo -n "test lua-5.3 "

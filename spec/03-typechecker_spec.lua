@@ -857,6 +857,11 @@ it("pragmas", function()
   ]], "cannot have more than one function entrypoint")
 end)
 
+it("builtins", function()
+  assert.ast_type_equals("local a = type(x)", "local a: string = type(x)")
+  assert.ast_type_equals("local a = #@integer", "local a: integer = #@integer")
+end)
+
 it("strict mode", function()
   config.strict = true
   assert.analyze_ast([[

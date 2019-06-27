@@ -649,7 +649,6 @@ it("records", function()
     assert(p.x == 0 and p.y == 0)
     p.x, p.y = 1, 2
     assert(p.x == 1 and p.y == 2)
-    assert(#p == 16)
   ]])
   assert.run_c([[
     local Point = @record {x: integer, y: integer}
@@ -879,6 +878,46 @@ end)
 it("print builtin", function()
   assert.run({'-g', 'c', '-e', "print(1,0.2,1e2,0xf,0b01)"},
     '1\t0.200000\t100\t15\t1')
+end)
+
+it("sizeof builtin", function()
+  assert.run_c([[
+    assert(#@int8 == 1)
+    assert(#@int16 == 2)
+    assert(#@int32 == 4)
+    assert(#@int64 == 8)
+    assert(#@int32[4] == 16)
+
+    local A = @record{
+      s: int16,   -- 2
+                  -- 2 pad
+      i: int32,   -- 4
+      c: boolean, -- 1
+                  -- 3 pad
+    }
+    assert(#A == 12)
+    assert(#@A[8] == 96)
+
+    local B = @record{
+      i: int32,   -- 4
+      c: cchar,   -- 1
+                  -- 1 pad
+      s: int16,   -- 2
+    }
+    assert(#B == 8)
+
+    local C = @record{
+      i: int32,   -- 4
+      c: cchar,   -- 1
+    }
+    assert(#C == 8)
+
+    local D = @record{
+      i: int64,   -- 8
+      c: cchar,   -- 1
+    }
+    assert(#D == 16)
+  ]])
 end)
 
 it("assert builtin", function()

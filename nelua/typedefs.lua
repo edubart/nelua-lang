@@ -1,27 +1,35 @@
 local tabler = require 'nelua.utils.tabler'
 local types = require 'nelua.types'
 local bn = require 'nelua.utils.bn'
+local config = require 'nelua.configer'.get()
 local shaper = require 'tableshape'.types
 local Type = types.Type
 
 local typedefs = {}
 
+-- CPU word size in bytes (size of size_t)
+local cpusize = math.floor(config.cpu_bits / 8)
+-- C int is at least 2 bytes and max 4 bytes
+local cintsize = math.max(math.min(cpusize, 4), 2)
+-- C long is at least 4 bytes
+local clongsize = math.max(cpusize, 4)
+
 -- primitive types
 local primtypes = {
-  isize     = Type('isize'),
-  int8      = Type('int8'),
-  int16     = Type('int16'),
-  int32     = Type('int32'),
-  int64     = Type('int64'),
-  usize     = Type('usize'),
-  uint8     = Type('uint8'),
-  uint16    = Type('uint16'),
-  uint32    = Type('uint32'),
-  uint64    = Type('uint64'),
-  float32   = Type('float32'),
-  float64   = Type('float64'),
-  boolean   = Type('boolean'),
-  string    = Type('string'),
+  isize     = Type('isize', cpusize),
+  int8      = Type('int8', 1),
+  int16     = Type('int16', 2),
+  int32     = Type('int32', 4),
+  int64     = Type('int64', 8),
+  usize     = Type('usize', cpusize),
+  uint8     = Type('uint8', 1),
+  uint16    = Type('uint16', 2),
+  uint32    = Type('uint32', 4),
+  uint64    = Type('uint64', 8),
+  float32   = Type('float32', 4),
+  float64   = Type('float64', 8),
+  boolean   = Type('boolean', 1),
+  string    = Type('string', cpusize*2),
   varanys   = Type('varanys'),
   table     = Type('table'),
   Nil       = Type('nil'),
@@ -31,28 +39,26 @@ local primtypes = {
   type      = Type.type, -- the type for types
 
   -- for C compability
-  cschar      = Type('cschar'),
-  cshort      = Type('cshort'),
-  cint        = Type('cint'),
-  clong       = Type('clong'),
-  clonglong   = Type('clonglong'),
-  cptrdiff    = Type('cptrdiff'),
-  cchar       = Type('cchar'),
-  cuchar      = Type('cuchar'),
-  cushort     = Type('cushort'),
-  cuint       = Type('cuint'),
-  culong      = Type('culong'),
-  culonglong  = Type('culonglong'),
-  csize       = Type('csize'),
-  clongdouble = Type('clongdouble'),
+  cschar      = Type('cschar', 1),
+  cshort      = Type('cshort', 2),
+  cint        = Type('cint', cintsize),
+  clong       = Type('clong', clongsize),
+  clonglong   = Type('clonglong', 8),
+  cptrdiff    = Type('cptrdiff', cpusize),
+  cchar       = Type('cchar', 1),
+  cuchar      = Type('cuchar', 1),
+  cushort     = Type('cushort', 2),
+  cuint       = Type('cuint', cintsize),
+  culong      = Type('culong', clongsize),
+  culonglong  = Type('culonglong', 8),
+  csize       = Type('csize', cpusize),
+  clongdouble = Type('clongdouble', 16),
 }
+typedefs.primtypes = primtypes
 
 primtypes.pointer = types.PointerType(nil, primtypes.void)
 primtypes.pointer.nodecl = true
-
 primtypes.cstring = types.PointerType(nil, primtypes.cchar)
-
-typedefs.primtypes = primtypes
 
 -- type aliases
 primtypes.integer  = primtypes.int64
@@ -62,58 +68,59 @@ primtypes.byte     = primtypes.uint8
 primtypes.cdouble  = primtypes.float64
 primtypes.cfloat   = primtypes.float32
 
--- signed integral ranges
-local i8min, i8max   = - bn.pow(2,  8) / 2, bn.pow(2,  8) / 2 - 1
-local i16min, i16max = - bn.pow(2, 16) / 2, bn.pow(2, 16) / 2 - 1
-local i32min, i32max = - bn.pow(2, 32) / 2, bn.pow(2, 32) / 2 - 1
-local i64min, i64max = - bn.pow(2, 64) / 2, bn.pow(2, 64) / 2 - 1
-local umin   = bn.new(0)
-local u8max  = bn.pow(2,  8) - 1
-local u16max = bn.pow(2, 16) - 1
-local u32max = bn.pow(2, 32) - 1
-local u64max = bn.pow(2, 64) - 1
-
-typedefs.signed_ranges = {
-  {type = primtypes.int8,      min = i8min,  max = i8max},
-  {type = primtypes.int16,     min = i16min, max = i16max},
-  {type = primtypes.int32,     min = i32min, max = i32max},
-  {type = primtypes.int64,     min = i64min, max = i64max},
-  {type = primtypes.isize,     min = i64min, max = i64max, strictmin = i32min, strictmax = i32max},
-
-  -- C ranges are set to the most common ranges
-  {type = primtypes.cschar,    min = i8min,  max = i8max },
-  {type = primtypes.cshort,    min = i16min, max = i16max },
-  -- do 16 bit CPUs is even used today?
-  --{type = primtypes.cint,      min = i32min, max = i32max, strictmin = i16min, strictmax = i16max},
-  {type = primtypes.cint,      min = i32min, max = i32max, strictmin = i32min, strictmax = i32max},
-  {type = primtypes.clong,     min = i64min, max = i64max, strictmin = i32min, strictmax = i32max},
-  {type = primtypes.clonglong, min = i64min, max = i64max },
-  {type = primtypes.cptrdiff,  min = i64min, max = i64max, strictmin = i32min, strictmax = i32max},
-  {type = primtypes.cchar,     min = i8min,  max = u8max,  strictmin = umin,   strictmax = i8max },
+-- signed types
+typedefs.integral_signed_types = {
+  primtypes.int8,
+  primtypes.int16,
+  primtypes.int32,
+  primtypes.int64,
+  primtypes.isize,
+  primtypes.cschar,
+  primtypes.cshort,
+  primtypes.cint,
+  primtypes.clong,
+  primtypes.clonglong,
+  primtypes.cptrdiff,
+  primtypes.cchar
 }
 
--- unsigned integral ranges
-typedefs.unsigned_ranges = {
-  {type = primtypes.uint8,      min = umin, max = u8max},
-  {type = primtypes.uint16,     min = umin, max = u16max},
-  {type = primtypes.uint32,     min = umin, max = u32max},
-  {type = primtypes.uint64,     min = umin, max = u64max},
-  {type = primtypes.usize,      min = umin, max = u64max, strictmax = u32max},
-
-  {type = primtypes.cuchar,     min = umin, max = u8max },
-  {type = primtypes.cushort,    min = umin, max = u16max},
-  -- do 16 bit CPUs is even used today?
-  --{type = primtypes.cuint,      min = umin, max = u32max, strictmin = umin, strictmax = u16max},
-  {type = primtypes.cuint,      min = umin, max = u32max, strictmax = u32max},
-  {type = primtypes.culong,     min = umin, max = u64max, strictmax = u32max},
-  {type = primtypes.culonglong, min = umin, max = u64max, strictmax = u64max},
-  {type = primtypes.csize,      min = umin, max = u64max, strictmax = u32max},
+-- unsigned types
+typedefs.unsigned_types = {
+  primtypes.uint8,
+  primtypes.uint16,
+  primtypes.uint32,
+  primtypes.uint64,
+  primtypes.usize,
+  primtypes.cuchar,
+  primtypes.cushort,
+  primtypes.cuint,
+  primtypes.culong,
+  primtypes.culonglong,
+  primtypes.csize,
 }
-
-typedefs.integral_ranges = {}
 do
-  tabler.insertvalues(typedefs.integral_ranges, typedefs.signed_ranges)
-  tabler.insertvalues(typedefs.integral_ranges, typedefs.unsigned_ranges)
+  for _,itype in ipairs(typedefs.unsigned_types) do
+    itype.unsigned = true
+  end
+end
+
+-- integral types
+typedefs.integral_types = {}
+do
+  tabler.insertvalues(typedefs.integral_types, typedefs.integral_signed_types)
+  tabler.insertvalues(typedefs.integral_types, typedefs.unsigned_types)
+  for _,itype in ipairs(typedefs.integral_types) do
+    itype.integral = true
+    -- define range based on its size
+    local bitsize = itype.size * 8
+    if itype.unsigned then
+      itype.min = bn.new(0)
+      itype.max = bn.pow(2, bitsize) - 1
+    else -- signed
+      itype.min =-bn.pow(2, bitsize) / 2
+      itype.max = bn.pow(2, bitsize) / 2 - 1
+    end
+  end
 end
 
 -- float types
@@ -122,36 +129,24 @@ typedefs.float_types = {
   primtypes.float64,
   primtypes.clongdouble,
 }
+do
+  for _,ftype in ipairs(typedefs.float_types) do
+    ftype.float = true
+  end
+end
+
+-- signed types
+typedefs.signed_types = {}
+do
+  tabler.insertvalues(typedefs.signed_types, typedefs.integral_signed_types)
+  tabler.insertvalues(typedefs.signed_types, typedefs.float_types)
+end
 
 -- number types
 typedefs.numeric_types = {}
-typedefs.integral_types = {}
-typedefs.signed_types = {}
-typedefs.unsigned_types = {}
-
 do
-  for _,range in ipairs(typedefs.signed_ranges) do
-    local itype = range.type
-    itype.integral = true
-    itype.range = range
-    table.insert(typedefs.numeric_types, itype)
-    table.insert(typedefs.integral_types, itype)
-    table.insert(typedefs.signed_types, itype)
-  end
-  for _,range in ipairs(typedefs.unsigned_ranges) do
-    local itype = range.type
-    itype.integral = true
-    itype.unsigned = true
-    itype.range = range
-    table.insert(typedefs.numeric_types, itype)
-    table.insert(typedefs.integral_types, itype)
-    table.insert(typedefs.unsigned_types, itype)
-  end
-  for _,ftype in ipairs(typedefs.float_types) do
-    ftype.float = true
-    table.insert(typedefs.numeric_types, ftype)
-    table.insert(typedefs.signed_types, ftype)
-  end
+  tabler.insertvalues(typedefs.numeric_types, typedefs.integral_types)
+  tabler.insertvalues(typedefs.numeric_types, typedefs.float_types)
 end
 
 -- NOTE: order here does matter when looking up for a common type between two different types
@@ -199,14 +194,12 @@ typedefs.number_literal_types = {
 -- automatic type conversion
 do
   -- populate conversible types for integral numbers
-  for _,drange in ipairs(typedefs.integral_ranges) do
-    local dtype = drange.type
-    local dmin, dmax = drange.strictmin or drange.min, drange.strictmax or drange.max
-    for _,srange in ipairs(typedefs.integral_ranges) do
-      local stype = srange.type
-      local smin, smax = srange.strictmin or srange.min, srange.strictmax or srange.max
+  for _,dtype in ipairs(typedefs.integral_types) do
+    local dmin, dmax = dtype.min, dtype.max
+    for _,stype in ipairs(typedefs.integral_types) do
+      local smin, smax = stype.min, stype.max
       if stype ~= dtype and smin >= dmin and smax <= dmax then
-        dtype:add_conversible_types {stype}
+        dtype:add_conversible_types{stype}
       end
     end
   end
@@ -236,7 +229,7 @@ end
 local unary_op_types = {
   ['neg']   = typedefs.signed_types,
   ['bnot']  = typedefs.integral_types,
-  ['len']   = { types.ArrayTableType, types.ArrayType, types.RecordType,
+  ['len']   = { types.ArrayTableType, types.ArrayType, types.Type,
                 result_type = primtypes.integer },
   ['not']   = { Type, primtypes.boolean },
   ['ref']   = { Type, result_type = function(type)
