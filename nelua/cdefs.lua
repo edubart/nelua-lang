@@ -73,7 +73,7 @@ cdefs.primitive_ctypes = {
 
 cdefs.unary_ops = {
   ['not'] = '!',
-  ['neg'] = '-',
+  ['unm'] = '-',
   ['bnot'] = '~',
   ['ref'] = '&',
   ['deref'] = '*',

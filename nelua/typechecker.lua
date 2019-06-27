@@ -38,7 +38,7 @@ function visitors.Number(context, node, desiredtype)
     local floatexp = exp and (stringer.startswith(exp, '-') or value > primtypes.integer.max)
     local integral = not (frac or floatexp)
     local parentnode = context:get_parent_node()
-    if parentnode and parentnode.tag == 'UnaryOp' and parentnode[1] == 'neg' then
+    if parentnode and parentnode.tag == 'UnaryOp' and parentnode[1] == 'unm' then
       value = -value
     end
     if literal then
@@ -1359,7 +1359,7 @@ function visitors.UnaryOp(context, node, desiredtype)
         "unary operation `%s` is not defined for type '%s' of the expression",
         opname, argtype)
     end
-    if opname == 'neg' and argnode.tag == 'Number' then
+    if opname == 'unm' and argnode.tag == 'Number' then
       attr.value = argattr.value
     end
     if (opname == 'deref' or opname == 'ref') and argnode.tag == 'Id' then

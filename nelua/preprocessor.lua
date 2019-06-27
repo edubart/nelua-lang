@@ -64,7 +64,7 @@ function PPContext:tovalue(val, orignode)
       node = self.aster.Number{'dec', int, frac}
     end
     if neg then
-      node = self.aster.UnaryOp{'neg', node}
+      node = self.aster.UnaryOp{'unm', node}
     end
   elseif traits.is_boolean(val) then
     node = self.aster.Boolean{val}

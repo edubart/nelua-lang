@@ -275,7 +275,7 @@ it("operators and symbols", function()
   assert.peg_match_all(pegs.LT, {'<'})
   assert.peg_match_all(pegs.GT, {'>'})
 
-  assert.peg_match_all(pegs.NEG, {'-'})
+  assert.peg_match_all(pegs.UNM, {'-'})
   assert.peg_match_all(pegs.LEN, {'#'})
   assert.peg_match_all(pegs.BNOT, {'~'})
   assert.peg_match_all(pegs.DEREF, {'$'})
@@ -306,7 +306,7 @@ it("operators and symbols", function()
   assert.peg_match_none(pegs.BXOR, {'~='})
   assert.peg_match_none(pegs.ASSIGN, {'=='})
 
-  assert.peg_match_none(pegs.NEG, {'--'})
+  assert.peg_match_none(pegs.UNM, {'--'})
   assert.peg_match_none(pegs.BNOT, {'~='})
   assert.peg_match_none(pegs.LBRACKET, {'[['})
 
@@ -751,7 +751,7 @@ describe("statement for", function()
           n.Number{'dec', '10'},
           'gt',
           n.Number{'dec', '0'},
-          n.UnaryOp{'neg', n.Number{'dec', '1'}},
+          n.UnaryOp{'unm', n.Number{'dec', '1'}},
           n.Block{{}}}
     }})
   end)
@@ -1145,7 +1145,7 @@ describe("operator", function()
     assert.parse_ast(nelua_parser, "return -a",
       n.Block{{
         n.Return{{
-          n.UnaryOp{'neg', n.Id{'a'}
+          n.UnaryOp{'unm', n.Id{'a'}
     }}}}})
   end)
   it("'~'", function()

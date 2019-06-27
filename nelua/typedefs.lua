@@ -227,7 +227,7 @@ end
 
 -- unary operator types
 local unary_op_types = {
-  ['neg']   = typedefs.signed_types,
+  ['unm']   = typedefs.signed_types,
   ['bnot']  = typedefs.integral_types,
   ['len']   = { types.ArrayTableType, types.ArrayType, types.Type,
                 result_type = primtypes.integer },

@@ -180,7 +180,7 @@ local function get_parser(std)
   %ASSIGN       <- !%EQ '='
 
   -- unary operators
-  %NEG          <- !'--' '-'
+  %UNM          <- !'--' '-'
   %LEN          <- !%PPSHORT !%PPEXPRL !%PPNAMEL '#'
   %BNOT         <- !%NE '~'
   %DEREF        <- '$'
@@ -552,7 +552,7 @@ local function get_parser(std)
                   %MOD -> 'mod'
     op_unary  <-  %NOT -> 'not' /
                   %LEN -> 'len' /
-                  %NEG -> 'neg' /
+                  %UNM -> 'unm' /
                   %BNOT -> 'bnot' /
                   %REF -> 'ref' /
                   op_deref

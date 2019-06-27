@@ -3,7 +3,7 @@ local luadefs = {}
 
 luadefs.unary_ops = {
   ['not'] = 'not ',
-  ['neg'] = '-',
+  ['unm'] = '-',
   ['bnot'] = '~',
   ['len'] = '#',
 }
