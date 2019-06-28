@@ -214,6 +214,10 @@ function visitors.Table(context, node, desiredtype)
 end
 
 function visitors.Pragma(context, node, symbol)
+  if symbol and node.attr.symbol == symbol then
+    -- quick return
+    return
+  end
   local name, argnodes = node:args()
   context:traverse(argnodes)
 
@@ -283,6 +287,7 @@ function visitors.Pragma(context, node, symbol)
   if name == 'strict' then
     config.strict = true
   end
+  node.attr.symbol = symbol
 end
 
 function visitors.Id(context, node)
@@ -1074,16 +1079,31 @@ function visitors.VarDecl(context, node)
     end
     if valtype then
       varnode:assertraisef(not valtype:is_void(), 'cannot assign to expressions of type void')
+      local foundtype = false
       if varnode.attr.compconst then
         -- for consts the type must be known ahead
-        vartype = valtype
-        symbol.attr.type = valtype
+        foundtype = true
         symbol.attr.value = valnode.attr.value
       elseif valtype:is_type() then
         -- for 'type' types the type must also be known ahead
-        vartype = valtype
-        symbol.attr.type = valtype
+        assert(valnode and valnode.attr.holdedtype)
+        foundtype = true
         symbol.attr.compconst = true
+        symbol.attr.holdedtype = valnode.attr.holdedtype
+      end
+
+      if foundtype then
+        if vartype ~= valtype then
+          assert(not vartype)
+          vartype = valtype
+          symbol.attr.type = valtype
+
+          local pragmanode = varnode[4]
+          if pragmanode then
+            -- must retravese pragma node early once type is found ahead
+            context:traverse(pragmanode, symbol)
+          end
+        end
       else
         -- lazy type evaluation
         symbol:add_possible_type(valtype)
@@ -1092,10 +1112,6 @@ function visitors.VarDecl(context, node)
         varnode:assertraisef(vartype:is_coercible_from(valnode or valtype),
           "variable '%s' of type '%s' is not coercible with expression of type '%s'",
           symbol.name, vartype, valtype)
-      end
-      if valtype:is_type() then
-        assert(valnode and valnode.attr.holdedtype)
-        symbol.attr.holdedtype = valnode.attr.holdedtype
       end
     else
       -- delay type evaluation

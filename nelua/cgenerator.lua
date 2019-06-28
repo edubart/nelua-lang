@@ -67,7 +67,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
           decemitter:add('static ')
         end
         decemitter:add(varnode)
-        if valnode and valnode.attr.compconst then
+        if valnode and (valnode.attr.compconst or varattr.const or varattr.compconst) then
           -- initialize to const values
           decemitter:add(' = ')
           assert(not lastcallindex)

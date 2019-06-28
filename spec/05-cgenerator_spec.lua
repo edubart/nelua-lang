@@ -868,6 +868,18 @@ it("pragmas", function()
   ]])
 end)
 
+it("type codenames", function()
+  assert.generate_c([[
+    local myrecord !codename 'myrecord' = @record{x: integer}
+    function myrecord:foo() return self.x end
+    local r = myrecord{}
+    return r:foo()
+  ]], {
+    "typedef struct myrecord {\n  int64_t x;\n} myrecord;",
+    "static int64_t myrecord_foo(myrecord_pointer self);"
+  })
+end)
+
 it("entrypoint", function()
   assert.run_c([[
     print 'hello'
