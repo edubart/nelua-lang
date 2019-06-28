@@ -50,9 +50,13 @@ function Type:_init(name, size, node)
   metamagic.setmetaindex(self.binary_operators, mt.binary_operators)
 end
 
-function Type:suggest_nick(nick)
+function Type:suggest_nick(nick, prefix)
   if self.nick then return end
-  self.codename = self.codename:gsub(string.format('^%s_', self.name), nick .. '_')
+  if not prefix then
+    self.codename = self.codename:gsub(string.format('^%s_', self.name), nick .. '_')
+  else
+    self.codename = string.format('%s_%s', prefix, nick)
+  end
   self.nick = nick
 end
 

@@ -28,7 +28,7 @@ it("local variable", function()
 end)
 
 it("global variable", function()
-  assert.generate_c("global a = 1", "\nint64_t mymod_a = 1;\n")
+  assert.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
 end)
 
 it("number", function()
@@ -235,6 +235,15 @@ it("function definition", function()
   assert.generate_c(
     "local function f(a: integer): integer return a end",
     "int64_t mymod_f(int64_t a) {\n  return a;\n}")
+end)
+
+it("global function definition", function()
+  assert.generate_c("function f() end", "static void mymod_f();")
+  assert.run_c([[
+    !!strict
+    function f(x: integer) return x+1 end
+    assert(f(1) == 2)
+  ]])
 end)
 
 it("function return", function()
@@ -829,6 +838,8 @@ it("pragmas", function()
   assert.generate_c("local a: int64 !register", "register int64_t mymod_a")
   assert.generate_c("local a: int64 !restrict", "restrict int64_t mymod_a")
   assert.generate_c("local a: int64 !nodecl", "")
+  assert.generate_c("local a: int64 !noinit", "mymod_a;")
+  assert.generate_c("local a: int64 !cexport", "extern int64_t mymod_a;")
   assert.generate_c("do local a !static = 1 end", "static int64_t a = 1;", true)
   assert.generate_c("local a: int64 !cattribute 'vector_size(16)'", "int64_t mymod_a __attribute__((vector_size(16)))")
   assert.generate_c("local a: number !cqualifier 'in' = 1", "in double mymod_a = 1.0;")
@@ -849,7 +860,7 @@ it("pragmas", function()
     "#include <myheader.h>")
   assert.run_c([[
     local function exit(x: int32) !cimport('exit', '<stdlib.h>') end
-    local function puts(s: cstring): int32 !cimport('puts', '<stdio.h>') end
+    function puts(s: cstring): int32 !cimport('puts', '<stdio.h>') end
     local function perror(s: cstring): void !cimport end
     local function f() !noinline !noreturn
       local i: int32 !register !volatile !codename'i' = 0
@@ -962,6 +973,30 @@ it("error builtin", function()
   assert.run_error_c([[
     error 'got an error!'
   ]], 'got an error!')
+  assert.run_error_c([[
+    panic 'got an panic!'
+  ]], 'got an panic!')
+end)
+
+it("warn builtin", function()
+  assert.run_error_c([[
+    warn 'got an warn!'
+    return -1
+  ]], 'got an warn!')
+end)
+
+it("likely builtin", function()
+  assert.generate_c([[do
+    local a = likely(true)
+    local b = unlikely(false)
+  end]], {
+    "bool a = Nelua_LIKELY(true)",
+    "b = Nelua_UNLIKELY(false)"
+  })
+  assert.run_c([[
+    assert(likely(true))
+    assert(not unlikely(false))
+  ]])
 end)
 
 it("type builtin", function()
@@ -980,6 +1015,65 @@ it("type builtin", function()
     assert(type(nilptr) == 'pointer')
     assert(type(nil) == 'nil')
   ]])
+end)
+
+it("context states", function()
+  assert.generate_c([[
+    ## state.noinit = true
+    local a: integer
+    ## state.noinit = false
+    local b: integer
+  ]], {
+    "\nstatic int64_t mymod_a;\n",
+    "\nstatic int64_t mymod_b = 0;\n"
+  })
+
+  assert.generate_c([[
+    ## state.nostatic = true
+    local a: integer
+    ## state.nostatic = false
+    local b: integer
+  ]], {
+    "\nint64_t mymod_a = 0;\n",
+    "\nstatic int64_t mymod_b = 0;\n"
+  })
+
+  assert.generate_c([[
+    ## state.nofloatsuffix = true
+    local a: float32 = 0
+  ]], {
+    "a = 0.0;",
+  })
+
+  assert.generate_c([[
+    ## state.nostatic = true
+    local a: integer
+    ## state.nostatic = false
+    local b: integer
+  ]], {
+    "\nint64_t mymod_a = 0;\n",
+    "\nstatic int64_t mymod_b = 0;\n"
+  })
+
+  assert.generate_c([[
+    ## state.nocore = true
+  ]], "nelua_main")
+
+  assert.generate_c([[
+    ## state.modname = 'mylib'
+    local function foo() !cexport
+    end
+  ]], "extern void mylib_foo();")
+end)
+
+it("require builtin", function()
+  assert.generate_c([[
+    require 'examples/helloworld.nelua'
+  ]], "hello world")
+
+  assert.run_c([[
+    require 'examples/helloworld.nelua'
+  ]], "hello world")
 end)
 
 end)

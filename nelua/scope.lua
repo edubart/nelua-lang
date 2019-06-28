@@ -3,7 +3,6 @@ local metamagic = require 'nelua.utils.metamagic'
 local typedefs = require 'nelua.typedefs'
 local symdefs = require 'nelua.symdefs'
 local tabler = require 'nelua.utils.tabler'
-local config = require 'nelua.configer'.get()
 local Symbol = require 'nelua.symbol'
 
 local Scope = class()
@@ -32,6 +31,11 @@ function Scope:is_main()
   return self.main or (self.parent and self.parent.main)
 end
 
+function Scope:is_static_storage()
+  if self:is_main() then return true end
+  return self.staticstorage or (self.parent and self.parent.staticstorage)
+end
+
 function Scope:get_parent_of_kind(kind)
   local parent = self
   repeat
@@ -40,19 +44,20 @@ function Scope:get_parent_of_kind(kind)
   return parent
 end
 
-function Scope:get_symbol(name, node)
+function Scope:get_symbol(name, node, required)
   local symbol = self.symbols[name]
   if not symbol and node then
     local symtype = symdefs[name]
     if symtype then
       symbol = Symbol(name, node, symtype)
       symbol.attr.const = true
+      symbol.attr.builtin = true
       if symbol.attr.type:is_function() then
         symbol.attr.type.sideeffect = false
       end
     end
   end
-  if not symbol and node and config.strict and not self.context.preprocessing then
+  if not symbol and required and self.context.state.strict and not self.context.preprocessing then
     node:raisef("undeclarated symbol '%s'", name)
   end
   return symbol
@@ -76,13 +81,16 @@ function Scope:add_symbol(symbol)
   local name = symbol.name
   assert(name)
   local oldsymbol = self.symbols[name]
-  if oldsymbol then
-    symbol.node:assertraisef(not config.strict,
+  if oldsymbol and (not oldsymbol.node or oldsymbol.node ~= symbol.node) then
+    symbol.node:assertraisef(not self.context.state.strict,
       "symbol '%s' shadows pre declarated symbol with the same name", name)
 
     -- symbol redeclaration, resolve old symbol type before replacing it
     symbol_resolve_type(oldsymbol)
     symbol.attr.shadowcount = (oldsymbol.attr.shadowcount or 1) + 1
+  end
+  if self.context.state.modname then
+    symbol.attr.modname = self.context.state.modname
   end
   self.symbols[name] = symbol
   return symbol

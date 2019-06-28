@@ -139,6 +139,7 @@ local ignored_stringfy_keys = {
   untyped = true,
   cloned = true,
   needprocess = true,
+  loaded = true,
 }
 local function stringfy_val2str(val)
   local vstr = tostring(val)

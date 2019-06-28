@@ -78,16 +78,16 @@ void nelua_stdout_write_newline() {
   fflush(stdout);
 }
 {% end %}
-void nelua_panic_cstring(const char *s) {
+void nelua_stderr_write_cstring(const char *s) {
   fputs(s, stderr);
   fputs("\n", stderr);
   fflush(stderr);
+}
+void nelua_panic_cstring(const char *s) {
+  nelua_stderr_write_cstring(s);
   exit(-1);
 }
 {% if context.has_string then %}
-void nelua_panic_string(const nelua_string s) {
-  nelua_panic_cstring(s->data);
-}
 {% if context.builtins['cstring2string'] then %}
 nelua_string nelua_cstring2string(const char *s) {
   nelua_assert_cstring(s != NULL, "NULL cstring while converting to string");

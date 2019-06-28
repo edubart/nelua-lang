@@ -56,14 +56,15 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
   local multiretvalname
   for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
     local varattr = varnode.attr
+    local noinit = varattr.noinit or varattr.cexport
     local vartype = varattr.type
     if not vartype:is_type() and not varattr.nodecl then
       local declared, defined = false, false
-      if decl and (context.scope:is_main()) then
+      if decl and context.scope:is_static_storage() then
         -- declare main variables in the top scope
         local decemitter = CEmitter(context)
         decemitter:add_indent()
-        if not context.attr.no_static and not varattr.global then
+        if not varattr.nostatic and not varattr.cexport then
           decemitter:add('static ')
         end
         decemitter:add(varnode)
@@ -75,7 +76,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
           defined = true
         else
           -- pre initialize to zeros
-          if not context.attr.no_zero_init then
+          if not noinit then
             decemitter:add(' = ')
             decemitter:add_zeroinit(vartype)
           end
@@ -109,7 +110,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         else
           defemitter:add_indent(context:declname(varnode))
         end
-        if valnode or not context.attr.no_zero_init then
+        if valnode or not noinit then
           -- initialize variable
           defemitter:add(' = ')
           if retvalname then
@@ -145,9 +146,9 @@ function visitors.Number(context, node, emitter)
   emitter:add_composed_number(base, int, frac, exp, value:abs())
   if type:is_unsigned() then
     emitter:add('U')
-  elseif not context.attr.no_float_suffix and type:is_float32() and base == 'dec' then
+  elseif type:is_float32() and base == 'dec' and not context.ast.attr.nofloatsuffix then
     emitter:add(integral and '.0f' or 'f')
-  elseif type:is_float64() and base == 'dec' then
+  elseif type:is_float() and base == 'dec' then
     emitter:add(integral and '.0' or '')
   end
 end
@@ -246,6 +247,7 @@ function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
   local type = node.attr.type
   if type:is_type() then return end
+  if attr.cexport then emitter:add('extern ') end
   if attr.compconst or attr.const then emitter:add('const ') end
   if attr.volatile then emitter:add('volatile ') end
   if attr.restrict then emitter:add('restrict ') end
@@ -408,15 +410,11 @@ local function visitor_Call(context, node, emitter, argnodes, callee, isblockcal
 end
 
 function visitors.Call(context, node, emitter)
-  local argnodes, callee, isblockcall = node:args()
+  local argnodes, calleenode, isblockcall = node:args()
   local calleetype = node.attr.calleetype
-  local builtin
-  if callee.tag == 'Id' then
-    --TODO: move builtin detection to type checker
-    local fname = callee[1]
-    builtin = cbuiltins.functions[fname]
-  end
-  if builtin then
+  local callee = calleenode
+  if calleenode.attr.builtin then
+    local builtin = cbuiltins.functions[calleenode.attr.name]
     callee = builtin(context, node, emitter)
   end
   if calleetype:is_type() then
@@ -706,14 +704,12 @@ end
 
 function visitors.FuncDef(context, node)
   local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
-  node:assertraisef(varscope == 'local' or varnode.tag ~= 'Id',
-    'non local scope for functions not supported yet')
 
   local attr = node.attr
   local type = attr.type
   local numrets = type:get_return_count()
   local qualifier = ''
-  if not attr.entrypoint and not context.attr.no_static and not attr.global then
+  if not attr.entrypoint and not attr.nostatic and not attr.cexport then
     qualifier = 'static '
   end
   local declare, define = not attr.nodecl, true
@@ -726,6 +722,7 @@ function visitors.FuncDef(context, node)
     define = false
   end
 
+  if attr.cexport then qualifier = qualifier .. 'extern ' end
   if attr.volatile then qualifier = qualifier .. 'volatile ' end
   if attr.inline then qualifier = qualifier .. 'inline ' end
   if attr.noinline then qualifier = qualifier .. 'Nelua_NOINLINE ' end
@@ -897,15 +894,12 @@ end
 
 local generator = {}
 
-function generator.generate(ast, pcontext)
+function generator.generate(ast)
   local context = CContext(visitors)
-  if pcontext then
-    -- inherit attributs from previous context
-    context.attr = pcontext.attr
-  end
+  context.ast = ast
   context.runtime_path = fs.join(config.runtime_path, 'c')
 
-  if not context.attr.no_core_runtime then
+  if not ast.attr.nocore then
     context:ensure_runtime('nelua_core')
   end
 
@@ -913,7 +907,7 @@ function generator.generate(ast, pcontext)
 
   local main_scope = context:push_scope('function')
   main_scope.main = true
-  if not context.attr.entrypoint then
+  if not ast.attr.entrypoint then
     mainemitter:add_ln(
       '/*********************************** MAIN ***********************************/')
     mainemitter:inc_indent()
@@ -935,7 +929,7 @@ function generator.generate(ast, pcontext)
   end
   context:pop_scope()
 
-  if not context.attr.entrypoint then
+  if not ast.attr.entrypoint then
     context:add_definition(mainemitter:generate())
     context:ensure_runtime('nelua_main')
   end

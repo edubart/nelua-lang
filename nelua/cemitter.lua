@@ -21,10 +21,10 @@ end
 -- Return string functions
 function CEmitter:zeroinit(type)
   local s
-  if type:is_float64() or (type:is_float32() and self.context.attr.no_float_suffix) then
-    s = '0.0'
-  elseif type:is_float32() then
+  if type:is_float32() and not self.context.ast.attr.nofloatsuffix then
     s = '0.0f'
+  elseif type:is_float() then
+    s = '0.0'
   elseif type:is_unsigned() then
     s = '0U'
   elseif type:is_numeric() then

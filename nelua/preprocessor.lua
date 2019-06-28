@@ -247,6 +247,8 @@ function preprocessor.preprocess(context, ast)
       return context:get_top_node()
     elseif key == 'symbols' then
       return context.scope.symbols
+    elseif key == 'state' then
+      return context.state
     elseif key == 'config' then
       return config
     else

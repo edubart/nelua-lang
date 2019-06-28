@@ -1,0 +1,7 @@
+-- utf8
+-- utf8.char(...)
+-- utf8.charpattern
+-- utf8.codes(s, lax)
+-- utf8.codepoint(s, i, j, lax)
+-- utf8.len(s, i, j, lax)
+-- utf8.offset(s, n, i)

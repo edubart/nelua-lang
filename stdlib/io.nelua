@@ -20,7 +20,7 @@ local function fseek(stream: pointer, offset: clong, whence: cint): cint !cimpor
 local function ftell(stream: pointer): clong !cimport end
 
 --------------------------------------------------------------------------------
--- file record
+-- file stream
 
 local function fileresult(success: boolean): boolean, string, integer
   if not success then
@@ -127,10 +127,6 @@ end
 function io.tmpfile()
   return filestream{}
 end
-
--- io.lines
--- io.type
-
 function io.flush(file: filestream)
   return file:flush()
 end
@@ -144,6 +140,9 @@ function io.write(...)
   return io.output():write(...)
 end
 ]]
+
+-- io.lines
+-- io.type
 
 --------------------------------------------------------------------------------
 -- tests

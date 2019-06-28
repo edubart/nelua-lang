@@ -1,0 +1,108 @@
+!!strict
+
+!!cinclude '<stdlib.h>'
+!!cinclude '<string.h>'
+local function realloc(ptr: pointer, size: usize): pointer !cimport end
+local function memset(s: pointer, c: int32, n: usize): pointer !cimport end
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer !cimport end
+
+local T = @number
+local myarraytableobj !codename 'myarraytable' = @record{
+  len: usize,
+  cap: usize,
+  data: T[0]*
+}
+local myarraytable = @myarraytableobj*
+
+function myarraytable:reserve(cap: usize)
+  local data = @T[0]*(realloc(self.data, (cap + 1_usize) * @usize(#T)))
+  if unlikely(not data) then
+    error 'myarraytable_reserve: not enough memory'
+  end
+  if unlikely(self.cap == 0) then
+    local t: T
+    data[0] = t
+  end
+  self.data = data
+  self.cap = cap
+end
+
+function myarraytable:grow()
+  local cap = self.cap == 0 and 1_usize or (self.cap << 1_usize)
+  self:reserve(cap)
+end
+
+function myarraytable:resize_zero(n: usize)
+  local addn = n - self.len
+  if addn > 0 then
+    self:reserve(n)
+    memset(&self.data[self.len+1], 0, addn);
+    self.len = n
+  end
+end
+
+function myarraytable:resize(n: usize, v: const T)
+  local addn = n - self.len
+  if addn > 0 then
+    self:reserve(n)
+    for i=self.len+1,<n do
+      self.data[i+1] = v
+    end
+    self.len = n
+  end
+end
+
+function myarraytable:init(a: const T[0]*, n: usize)
+  self:reserve(n)
+  memcpy(&self.data[1], &a[0], n * @usize(#T))
+  self.len = n
+end
+
+function myarraytable:push(v: const T)
+  self.len = self.len + 1
+  if unlikely(self.len > self.cap) then
+    self:grow()
+  end
+  self.data[self.len] = v
+end
+
+function myarraytable:pop(): T
+  if unlikely(self.len == 0) then
+    error 'myarraytable_pop: length is 0'
+  end
+  local i = self.len
+  self.len = self.len - 1
+  return self.data[i]
+end
+
+function myarraytable:at(i: usize): T*
+  if unlikely(i > self.len) then
+    if unlikely(i ~= self.len + 1) then
+      error 'myarraytable_at: index out of range'
+    end
+    self.len = self.len + 1
+    if unlikely(self.len > self.cap) then
+      self:grow()
+    end
+  elseif unlikely(i == 0 and self.cap == 0) then
+    self:grow()
+  end
+  return &self.data[i]
+end
+
+function myarraytable:get(i: usize): T*
+  if unlikely(i > self.len) then
+    error 'myarraytable_get: index out of range'
+  elseif unlikely(i == 0 and self.cap == 0) then
+    self:grow()
+  end
+  return &self.data[i]
+end
+
+function myarraytable:length(): usize
+  return self.len
+end
+
+
+
+

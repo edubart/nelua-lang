@@ -142,14 +142,14 @@ end
 function assert.generate_lua(nelua_code, expected_code)
   expected_code = expected_code or nelua_code
   local ast = assert.parse_ast(nelua_parser, nelua_code)
-  assert(typechecker.analyze(ast, nelua_parser.astbuilder))
+  typechecker.analyze(ast, nelua_parser)
   local generated_code = assert(lua_generator.generate(ast))
   assert.same_string(stringer.rstrip(expected_code), stringer.rstrip(generated_code))
 end
 
 function assert.generate_c(nelua_code, expected_code, ispattern)
   local ast = assert.parse_ast(nelua_parser, nelua_code)
-  ast = assert(typechecker.analyze(ast, nelua_parser.astbuilder))
+  typechecker.analyze(ast, nelua_parser)
   local generated_code = assert(c_generator.generate(ast))
   if not expected_code then expected_code = nelua_code end
   if traits.is_string(expected_code) then
@@ -173,9 +173,9 @@ end
 --[[
 function assert.c_gencode_equals(code, expected_code)
   local ast = assert.parse_ast(nelua_parser, code)
-  ast = assert(typechecker.analyze(ast, nelua_parser.astbuilder))
+  typechecker.analyze(ast, nelua_parser)
   local expected_ast = assert.parse_ast(nelua_parser, expected_code)
-  expected_ast = assert(typechecker.analyze(expected_ast, nelua_parser.astbuilder))
+  typechecker.analyze(expected_ast, nelua_parser)
   local generated_code = assert(c_generator.generate(ast))
   local expected_generated_code = assert(c_generator.generate(expected_ast))
   assert.same_string(expected_generated_code, generated_code)
@@ -184,9 +184,9 @@ end
 
 function assert.lua_gencode_equals(code, expected_code)
   local ast = assert.parse_ast(nelua_parser, code)
-  ast = assert(typechecker.analyze(ast, nelua_parser.astbuilder))
+  typechecker.analyze(ast, nelua_parser)
   local expected_ast = assert.parse_ast(nelua_parser, expected_code)
-  expected_ast = assert(typechecker.analyze(expected_ast, nelua_parser.astbuilder))
+  typechecker.analyze(expected_ast, nelua_parser)
   local generated_code = assert(lua_generator.generate(ast))
   local expected_generated_code = assert(lua_generator.generate(expected_ast))
   assert.same_string(expected_generated_code, generated_code)
@@ -194,7 +194,7 @@ end
 
 function assert.analyze_ast(code, expected_ast)
   local ast = assert.parse_ast(nelua_parser, code)
-  typechecker.analyze(ast, nelua_parser.astbuilder)
+  typechecker.analyze(ast, nelua_parser)
   if expected_ast then
     assert.same_string(tostring(expected_ast), tostring(ast))
   end
@@ -222,9 +222,9 @@ end
 
 function assert.ast_type_equals(code, expected_code)
   local ast = assert.parse_ast(nelua_parser, code)
-  ast = assert(typechecker.analyze(ast, nelua_parser.astbuilder))
+  typechecker.analyze(ast, nelua_parser)
   local expected_ast = assert.parse_ast(nelua_parser, expected_code)
-  expected_ast = assert(typechecker.analyze(expected_ast, nelua_parser.astbuilder))
+  typechecker.analyze(expected_ast, nelua_parser)
   filter_ast_for_check(ast)
   filter_ast_for_check(expected_ast)
   assert.same_string(tostring(expected_ast), tostring(ast))
@@ -233,7 +233,7 @@ end
 function assert.analyze_error(code, expected_error)
   local ast = assert.parse_ast(nelua_parser, code)
   local ok, e = except.try(function()
-    typechecker.analyze(ast, nelua_parser.astbuilder)
+    typechecker.analyze(ast, nelua_parser)
   end)
   errorer.assertf(not ok, "type analysis should fail for: %s", code)
   if expected_error then

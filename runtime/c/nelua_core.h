@@ -24,7 +24,6 @@ typedef struct nelua_string_object {
   char data[];
 } nelua_string_object;
 typedef nelua_string_object* nelua_string;
-static void nelua_panic_string(const nelua_string s) Nelua_NORETURN;
 static inline bool nelua_string_eq(const nelua_string a, const nelua_string b) {
   return a->len == b->len && memcmp(a->data, b->data, a->len) == 0;
 }
@@ -87,6 +86,16 @@ extern nelua_type nelua_boolean_type;
 extern nelua_type nelua_string_type;
 extern nelua_type nelua_pointer_type;
 {% end %}
+static void nelua_stderr_write_cstring(const char* s);
+static void nelua_panic_cstring(const char* s) Nelua_NORETURN;
+{% if context.has_string then %}
+static inline void nelua_stderr_write_string(const nelua_string s) {
+  nelua_stderr_write_cstring(s->data);
+}
+static inline Nelua_NORETURN void nelua_panic_string(const nelua_string s) {
+  nelua_panic_cstring(s->data);
+}
+{% end %}
 {% if context.builtins['stdout_write'] then %}
 {% if context.has_string then %}
 static void nelua_stdout_write_string(const nelua_string s);
@@ -99,7 +108,7 @@ static void nelua_stdout_write_newline();
 static void nelua_stdout_write(const char *message);
 static void nelua_stdout_write_format(char *format, ...);
 {% end %}
-static void nelua_panic_cstring(const char* s) Nelua_NORETURN;
+
 {% if context.builtins['assert'] then %}
 static inline void nelua_assert(bool cond) {
   if(Nelua_UNLIKELY(!cond))

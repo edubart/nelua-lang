@@ -70,6 +70,7 @@ it("print correct generated AST" , function()
       },
       Id {
         attr = {
+          builtin = true,
           codename = "print",
           const = true,
           lvalue = true,

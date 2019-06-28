@@ -8,7 +8,8 @@ local Symbol = require 'nelua.symbol'
 local types = require 'nelua.types'
 local bn = require 'nelua.utils.bn'
 local preprocessor = require 'nelua.preprocessor'
-local config = require 'nelua.configer'.get()
+local fs = require 'nelua.utils.fs'
+local typechecker = {}
 
 local primtypes = typedefs.primtypes
 local visitors = {}
@@ -285,20 +286,26 @@ function visitors.Pragma(context, node, symbol)
     end
   end
   if name == 'strict' then
-    config.strict = true
+    context.state.strict = true
   end
   node.attr.symbol = symbol
 end
 
 function visitors.Id(context, node)
   local name = node[1]
-  local symbol = context.scope:get_symbol(name, node)
+  local candeclglobal = context.infuncdef and context.infuncdef == context:get_parent_node()
+  local symbol = context.scope:get_symbol(name, node, not candeclglobal)
   if not symbol then
     local type = node.attr.type
     if not type and context.phase == phases.any_inference then
       type = primtypes.any
     end
     symbol = context.scope:add_symbol(Symbol(name, node, type))
+    if candeclglobal then
+      node.attr.global = true
+      -- globals are always visible in the global root scope too
+      context.rootscope:add_symbol(symbol)
+    end
   else
     symbol:link_node(node)
   end
@@ -325,6 +332,11 @@ function visitors.IdDecl(context, node)
   local symbol
   if traits.is_string(namenode) then
     symbol = context.scope:add_symbol(Symbol(namenode, node, type))
+
+    if node.attr.global then
+      -- globals are always visible in the global root scope too
+      context.rootscope:add_symbol(symbol)
+    end
   else
     -- global record field
     assert(namenode.tag == 'DotIndex')
@@ -379,7 +391,11 @@ function visitors.TypeInstance(context, node, _, symbol)
   node.attr = attr
 
   if symbol and not attr.holdedtype:is_primitive() then
-    attr.holdedtype:suggest_nick(symbol.name)
+    local prefix
+    if context.state.nohashcodenames then
+      prefix = context.state.modname or context.ast.modname
+    end
+    attr.holdedtype:suggest_nick(symbol.name, prefix)
   end
 end
 
@@ -823,7 +839,8 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
       -- call on any values
       context:traverse(argnodes)
       attr.type = primtypes.varanys
-      attr.sideeffect = true
+      -- builtins usuailly dont do side effects
+      attr.sideeffect = not attr.builtin
     else
       -- call on invalid types (i.e: numbers)
       node:raisef("attempt to call a non callable variable of type '%s'",
@@ -839,11 +856,41 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
   assert(context.phase ~= phases.any_inference or node.attr.type)
 end
 
+local function builtin_call_require(context, node)
+  if node.attr.loadedast then
+    -- already loaded
+    return
+  end
+
+  local argnode = node[1][1]
+  if not (argnode and
+          argnode.attr.type and argnode.attr.type:is_string() and
+          argnode.attr.compconst) then
+    -- not a compile time require
+    return
+  end
+  local filename = argnode.attr.value
+  if not stringer.endswith(filename, '.nelua') then
+    -- not a nelua file
+    return
+  end
+
+  -- load it and parse
+  local input, err = fs.tryreadfile(filename)
+  node:assertraisef(input, "failed to require nelua file: %s", err)
+  local ast = context.parser:parse(input, filename)
+
+  -- analyze it
+  typechecker.analyze(ast, context.parser, context)
+
+  node.attr.loadedast = ast
+end
+
 function visitors.Call(context, node)
   local argnodes, calleenode, isblockcall = node:args()
   context:traverse(calleenode)
-  local attr = node.attr
-  local calleetype = calleenode.attr.type
+  local attr, caleeattr = node.attr, calleenode.attr
+  local calleetype = caleeattr.type
   if calleetype and calleetype:is_pointer() then
     calleetype = calleetype.subtype
     calleenode:assertraisef(calleetype, 'cannot call from generic pointers')
@@ -851,7 +898,7 @@ function visitors.Call(context, node)
   end
   if calleetype and calleetype:is_type() then
     -- type assertion
-    local type = calleenode.attr.holdedtype
+    local type = caleeattr.holdedtype
     assert(type)
     node:assertraisef(#argnodes == 1,
       "in assertion to type '%s', expected one argument, but got %d",
@@ -868,8 +915,13 @@ function visitors.Call(context, node)
     attr.sideeffect = argnode.attr.sideeffect
     attr.type = type
     attr.calleetype = calleetype
-  else
-    visitor_Call(context, node, argnodes, calleetype)
+    return
+  end
+
+  visitor_Call(context, node, argnodes, calleetype)
+
+  if caleeattr.builtin and caleeattr.name == 'require' then
+    builtin_call_require(context, node)
   end
 end
 
@@ -1041,8 +1093,11 @@ function visitors.VarDecl(context, node)
   for _,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
     assert(varnode.tag == 'IdDecl')
     if varscope == 'global' then
-      varnode:assertraisef(context.scope:is_main(), 'global variables can only be declarated in top scope')
+      varnode:assertraisef(context.scope:is_static_storage(), 'global variables can only be declarated in top scope')
       varnode.attr.global = true
+    end
+    if context.state.nostatic then
+      varnode.attr.nostatic = true
     end
     varnode.mut = mut
     local symbol = context:traverse(varnode)
@@ -1075,6 +1130,10 @@ function visitors.VarDecl(context, node)
 
       if valtype == vartype and valnode.attr.compconst then
         valnode.attr.initializer = true
+      end
+    else
+      if context.state.noinit then
+        varnode.attr.noinit = true
       end
     end
     if valtype then
@@ -1209,7 +1268,7 @@ end
 function visitors.FuncDef(context, node)
   local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
   local symbol, argtypes
-
+  local decl
   if node.deducedargtypes then
     argtypes = node.deducedargtypes
   else
@@ -1220,10 +1279,13 @@ function visitors.FuncDef(context, node)
       local vartype = varnode.attr.type
       assert(vartype or context.phase ~= phases.any_inference)
       symbol = context.scope:add_symbol(Symbol(name, varnode, vartype))
-    elseif varnode.tag == 'Id' then
+      decl = true
+    else
+      -- Id, DotIndex or ColumnIndex
       symbol = context:traverse(varnode)
-    else -- DotIndex or ColumnIndex
-      symbol = context:traverse(varnode)
+      if symbol then
+        decl = symbol.attr.global
+      end
     end
     context.infuncdef = nil
   end
@@ -1287,7 +1349,7 @@ function visitors.FuncDef(context, node)
   local type = types.FunctionType(node, argtypes, returntypes)
 
   if symbol then -- symbol may be nil in case of array/dot index
-    if varscope == 'local' or symbol.attr.metafunc then
+    if decl or symbol.attr.metafunc then
       -- new function declaration
       symbol.attr.type = type
     else
@@ -1310,7 +1372,7 @@ function visitors.FuncDef(context, node)
     context:traverse(pragmanodes, symbol)
   end
 
-  if not lazy and not varnode.attr.nodecl and not varnode.attr.cimport then
+  if not lazy and node.attr.type and not varnode.attr.nodecl and not varnode.attr.cimport then
     if #returntypes > 0 then
       local canbeempty = tabler.iall(returntypes, function(rettype)
         return rettype:is_nilable()
@@ -1328,10 +1390,10 @@ function visitors.FuncDef(context, node)
   type.sideeffect = not varnode.attr.nosideeffect
 
   if varnode.attr.entrypoint then
-    node:assertraisef(not context.attr.entrypoint or context.attr.entrypoint == node,
+    node:assertraisef(not context.ast.attr.entrypoint or context.ast.attr.entrypoint == node,
       "cannot have more than one function entrypoint")
     varnode.attr.declname = varnode.attr.codename
-    context.attr.entrypoint = node
+    context.ast.attr.entrypoint = node
   end
 
   if node.lazytypes then
@@ -1516,11 +1578,11 @@ function visitors.BinaryOp(context, node, desiredtype)
   attr.inoperator = parentnode.tag == 'BinaryOp' or parentnode.tag == 'UnaryOp'
 end
 
-local typechecker = {}
-
-function typechecker.analyze(ast, astbuilder)
-  local context = Context(visitors, true)
-  context.astbuilder = astbuilder
+function typechecker.analyze(ast, parser, parentcontext)
+  local context = Context(visitors, true, parentcontext)
+  context.ast = ast
+  context.parser = parser
+  context.astbuilder = parser.astbuilder
 
   -- phase 1 traverse: infer and check types
   context.phase = phases.type_inference
@@ -1536,7 +1598,15 @@ function typechecker.analyze(ast, astbuilder)
     context:traverse(ast)
   end)
 
-  return ast, context
+  -- forward global attributes to ast
+  if context.state.nocore then
+    ast.attr.nocore = true
+  end
+  if context.state.nofloatsuffix then
+    ast.attr.nofloatsuffix = true
+  end
+
+  return ast
 end
 
 return typechecker

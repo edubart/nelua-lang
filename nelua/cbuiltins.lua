@@ -187,8 +187,38 @@ function functions.type(context, node, emitter)
   return nil
 end
 
+function functions.likely()
+  return 'Nelua_LIKELY'
+end
+
+function functions.unlikely()
+  return 'Nelua_UNLIKELY'
+end
+
 function functions.error()
   return 'nelua_panic_string'
+end
+
+function functions.warn()
+  return 'nelua_stderr_write_string'
+end
+
+function functions.panic()
+  return 'nelua_panic_string'
+end
+
+function functions.require(context, node, emitter)
+  local scope = context:push_scope('block')
+  scope.staticstorage = true
+  local hasstatnodes = #node.attr.loadedast[1] > 0
+  if hasstatnodes then
+    emitter:add_indent_ln('{')
+  end
+  emitter:add(node.attr.loadedast)
+  if hasstatnodes then
+    emitter:add_indent_ln('}')
+  end
+  context:pop_scope()
 end
 
 return builtins

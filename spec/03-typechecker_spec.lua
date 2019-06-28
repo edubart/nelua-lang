@@ -1,7 +1,6 @@
 require 'busted.runner'()
 
 local assert = require 'spec.tools.assert'
-local config = require 'nelua.configer'.get()
 local n = require 'nelua.syntaxdefs'().astbuilder.aster
 local bn = require 'nelua.utils.bn'
 
@@ -864,19 +863,27 @@ end)
 it("builtins", function()
   assert.ast_type_equals("local a = type(x)", "local a: string = type(x)")
   assert.ast_type_equals("local a = #@integer", "local a: integer = #@integer")
+  assert.ast_type_equals("local a = likely(a)", "local a: boolean = likely(a)")
+  assert.ast_type_equals("local a = unlikely(a)", "local a: boolean = unlikely(a)")
+  assert.analyze_ast("error 'an error'")
+  assert.analyze_ast("warn 'an warn'")
+end)
+
+it("require builtin", function()
+  assert.analyze_ast("require 'examples/helloworld.nelua'")
+  assert.analyze_ast("require 'somelualib'")
+  assert.analyze_ast("local a = 'dynamiclib'; require(a)")
 end)
 
 it("strict mode", function()
-  config.strict = true
   assert.analyze_ast([[
     !!strict
     local a = 1
     local function f() print 'a' end
     assert(a)
   ]])
-  assert.analyze_error("a = 1", "undeclarated symbol")
-  assert.analyze_error("local a; local a", "shadows pre declarated symbol")
-  config.strict = false
+  assert.analyze_error("!!strict a = 1", "undeclarated symbol")
+  assert.analyze_error("!!strict local a; local a", "shadows pre declarated symbol")
 end)
 
 end)

@@ -1,7 +1,6 @@
 require 'busted.runner'()
 
 local assert = require 'spec.tools.assert'
-local config = require 'nelua.configer'.get()
 
 describe("Nelua preprocessor should", function()
 
@@ -286,8 +285,8 @@ it("print config", function()
 end)
 
 it("strict mode", function()
-  config.strict = true
   assert.ast_type_equals([=[
+    !!strict
     ## local dummy = 1
     local function f(a: integer)
       ## if true then
@@ -296,12 +295,12 @@ it("strict mode", function()
     end
     f(1)
   ]=], [[
+    !!strict
     local function f(a: integer)
       print(a)
     end
     f(1)
   ]])
-  config.strict = false
 end)
 
 it("report errors", function()

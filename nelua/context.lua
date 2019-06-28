@@ -1,4 +1,5 @@
 local class = require 'nelua.utils.class'
+local metamagic = require 'nelua.utils.metamagic'
 local Scope = require 'nelua.scope'
 
 local Context = class()
@@ -34,17 +35,24 @@ local function traverser_default_visitor(self, node, ...)
   end
 end
 
-function Context:_init(visitors, default_visitor)
-  self.scope = Scope(self, 'root')
+function Context:_init(visitors, default_visitor, parentcontext)
+  self.state = {}
+  if parentcontext then
+    self.rootscope = parentcontext.rootscope
+    self.builtins = parentcontext.builtins
+    metamagic.setmetaindex(self.state, parentcontext.state)
+  else
+    self.rootscope = Scope(self, 'root')
+    self.builtins = {}
+  end
+  self.scope = self.rootscope
   self.visitors = visitors
   if default_visitor == true then
     self.default_visitor = traverser_default_visitor
   elseif default_visitor then
     self.default_visitor = default_visitor
   end
-  self.attr = {}
   self.nodes = {}
-  self.builtins = {}
 end
 
 function Context:push_scope(kind)

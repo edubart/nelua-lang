@@ -1,0 +1,206 @@
+!!strict
+
+--TODO: compile time integers
+--TODO: varargs
+--TODO: optional parameters/returns
+
+## state.modname = 'mystring'
+
+--------------------------------------------------------------------------------
+-- C imports
+
+!!cinclude '<string.h>'
+!!cinclude '<stdlib.h>'
+!!cinclude '<ctype.h>'
+
+local function malloc(size: usize): pointer !cimport end
+local function strlen(s: cstring): csize !cimport end
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer !cimport end
+local function memcmp(s1: pointer, s2: pointer, n: csize): cint !cimport end
+local function toupper(c: cint): cint !cimport end
+local function tolower(c: cint): cint !cimport end
+
+--------------------------------------------------------------------------------
+-- mystring
+
+local mystringobj !codename 'nelua_mystringobj' = @record{len: usize, data: byte[0]}
+local mystring !codename 'nelua_mystring' = @mystringobj*
+
+local emptystringobj !codename 'nelua_emptystringobj' = @record{len: usize, zero: byte}
+local const emptystringo: emptystringobj !codename 'nelua_emptystringo' = {}
+local const emptystring !codename 'nelua_emptystring' = @mystring(&emptystringo)
+
+local function mystring_create(len: usize): mystring
+  local self = @mystring(malloc(@csize(#mystringobj) + len + 1))
+  self.len = len
+  self.data[len] = 0
+  return self
+end
+
+function mystring.fromcstring(s: cstring): mystring
+  local len = strlen(s)
+  if len == 0 then
+    return emptystring
+  end
+  local self = mystring_create(len)
+  memcpy(&self.data[0], s, len)
+  return self
+end
+
+function mystring.tocstring(s: mystring): cstring
+  return @cstring(&s.data[0])
+end
+
+function mystring.__concat(a: mystring, b: mystring): mystring
+  if a.len == 0 then
+    return a
+  elseif b.len == 0 then
+    return b
+  end
+  local len = a.len + b.len
+  local self = mystring_create(len)
+  memcpy(&self.data[0], &a.data[0], a.len)
+  memcpy(&self.data[a.len], &b.data[0], b.len)
+  return self
+end
+
+function mystring.__eq(a: mystring, b: mystring): boolean
+  if a == b then
+    return true
+  end
+  return a.len == b.len and memcmp(&a.data[0], &b.data[0], a.len) == 0
+end
+
+function mystring.__lt(a: mystring, b: mystring): boolean
+  --TODO: consider locales
+  if a.len < b.len then
+    return memcmp(&a.data[0], &b.data[0], a.len) <= 0
+  else
+    return memcmp(&a.data[0], &b.data[0], b.len) < 0
+  end
+end
+
+function mystring.__le(a: mystring, b: mystring): boolean
+--TODO: consider locales
+  if a.len <= b.len then
+    return memcmp(&a.data[0], &b.data[0], a.len) <= 0
+  else
+    return memcmp(&a.data[0], &b.data[0], b.len) < 0
+  end
+end
+
+function mystring:__len(): integer
+  return @integer(self.len)
+end
+
+-- arithmetic operators
+-- mystring.__add
+-- mystring.__sub
+-- mystring.__mul
+-- mystring.__mod
+-- mystring.__pow
+-- mystring.__div
+-- mystring.__idiv
+-- mystring.__unm
+
+function mystring:byte(i: usize): byte
+  --TODO: handle negative pos
+  if i >= 1 and i <= self.len then
+    return self.data[i-1]
+  else
+    --TODO: return nil instead
+    return 0
+  end
+end
+
+-- mystring.char(...)
+-- mystring:find(pattern, init, plain)
+-- mystring:match(pattern, init)
+-- mystring:gmatch(pattern)
+-- mystring:gsub(pattern, repl, n)
+-- mystring.format(fmt, ...)
+-- mystring.pack(fmt, v1, v2, ..)
+-- mystring.unpack(fmt, s, pos)
+-- mystring.packsize(fmt)
+
+function mystring:len(): usize
+  return self.len
+end
+
+function mystring:sub(i: usize, j: usize)
+  --TODO: handle negative pos
+  if j >= self.len then j = self.len end
+  if i > j then return emptystring end
+  local len = j - i + 1
+  local s = mystring_create(len)
+  memcpy(&s.data[0], &self.data[i-1], len)
+  return s
+end
+
+function mystring:rep(n: usize)
+  if n <= 0 then return emptystring end
+  local s = mystring_create(n * self.len)
+  for i=0_usize,<n do
+    memcpy(&s.data[i*self.len], &self.data[0], self.len)
+  end
+  return s
+end
+
+function mystring:reverse()
+  local s = mystring_create(self.len)
+  for i=0_usize,<self.len do
+    s.data[i] = self.data[self.len - i - 1]
+  end
+  return s
+end
+
+function mystring:upper(): mystring
+  local s = mystring_create(self.len)
+  for i=0_usize,<self.len do
+    s.data[i] = @byte(toupper(self.data[i]))
+  end
+  return s
+end
+
+function mystring:lower(): mystring
+  local s = mystring_create(self.len)
+  for i=0_usize,<self.len do
+    s.data[i] = @byte(tolower(self.data[i]))
+  end
+  return s
+end
+
+--------------------------------------------------------------------------------
+-- tests
+
+local hello = mystring.fromcstring('hello')
+local HELLO = mystring.fromcstring('HELLO')
+assert(hello:len() == 5)
+assert(hello:__len() == 5)
+assert(hello:byte(1) == 104)
+assert(hello:byte(2) == 101)
+assert(hello:byte(6) == 0)
+assert(hello:upper():__eq(HELLO))
+assert(HELLO:lower():__eq(hello))
+assert(hello:rep(3):__eq(mystring.fromcstring('hellohellohello')))
+assert(hello:reverse():__eq(mystring.fromcstring('olleh')))
+assert(hello:sub(1,1):__eq(mystring.fromcstring('h')))
+assert(hello:sub(2,100):__eq(mystring.fromcstring('ello')))
+assert(hello:sub(3,4):__eq(mystring.fromcstring('ll')))
+assert(mystring.__concat(hello, HELLO):__eq(mystring.fromcstring('helloHELLO')))
+
+local a = mystring.fromcstring('a')
+local b = mystring.fromcstring('b')
+local x = mystring.fromcstring('x')
+local e = mystring.fromcstring('')
+assert(a:__lt(b) == true)
+assert(a:__le(b) == true)
+assert(b:__lt(a) == false)
+assert(b:__le(a) == false)
+assert(x:__lt(x) == false)
+assert(x:__le(x) == true)
+
+assert(x:__lt(e) == false)
+assert(x:__le(e) == false)
+assert(e:__lt(x) == true)
+assert(e:__le(x) == true)

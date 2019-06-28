@@ -361,6 +361,7 @@ typedefs.function_pragmas = {
   nodecl = true,
   nosideeffect = true,
   entrypoint = true,
+  cexport = true,
 }
 typedefs.variable_pragmas = {
   cimport = common_pragmas.cimport,
@@ -373,6 +374,8 @@ typedefs.variable_pragmas = {
   restrict = true,
   volatile = true,
   nodecl = true,
+  noinit = true,
+  cexport = true,
 }
 typedefs.type_pragmas = {
   aligned = common_pragmas.oneinteger,

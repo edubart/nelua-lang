@@ -1,0 +1,8 @@
+-- table
+-- table.concat(list, sep, i, j)
+-- table.insert(list, pos, value)
+-- table.move(a1, f, e, t, a2)
+-- table.pack(...)
+-- table.unpack(list, i, j)
+-- table.remove(list, pos)
+-- table.sort(list, comp)
