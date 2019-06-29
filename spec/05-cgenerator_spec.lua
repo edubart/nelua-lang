@@ -241,7 +241,7 @@ it("global function definition", function()
   assert.generate_c("function f() end", "static void mymod_f();")
   assert.run_c([[
     !!strict
-    function f(x: integer) return x+1 end
+    global function f(x: integer) return x+1 end
     assert(f(1) == 2)
   ]])
 end)
@@ -292,6 +292,17 @@ it("function multiple returns", function()
     local function u(): boolean, number return t() end
     local a, b, c = 2, u()
     assert(a == 2 and b == false and c == 1)
+
+    local R = @record{x: integer}
+    function R.foo(self: R*): boolean, integer return true, self.x end
+    function R:boo(): boolean, integer return true, self.x end
+    local r = R{1}
+    local function foo(): boolean, integer return R.foo(r) end
+    local function boo(): boolean, integer return r:boo() end
+    local a,b = foo()
+    assert(a == true and b == 1)
+    a,b = boo()
+    assert(a == true and b == 1)
   ]])
 end)
 

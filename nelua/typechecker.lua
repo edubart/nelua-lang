@@ -293,19 +293,13 @@ end
 
 function visitors.Id(context, node)
   local name = node[1]
-  local candeclglobal = context.infuncdef and context.infuncdef == context:get_parent_node()
-  local symbol = context.scope:get_symbol(name, node, not candeclglobal)
+  local symbol = context.scope:get_symbol(name, node, true)
   if not symbol then
     local type = node.attr.type
     if not type and context.phase == phases.any_inference then
       type = primtypes.any
     end
     symbol = context.scope:add_symbol(Symbol(name, node, type))
-    if candeclglobal then
-      node.attr.global = true
-      -- globals are always visible in the global root scope too
-      context.rootscope:add_symbol(symbol)
-    end
   else
     symbol:link_node(node)
   end
@@ -686,7 +680,7 @@ local function iargnodes(argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
   local calleetype = lastargnode and lastargnode.attr.calleetype
-  if lastargnode and lastargnode.tag == 'Call' and calleetype and
+  if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and calleetype and
     not calleetype:is_type() and not calleetype:is_any() then
     -- last arg is a runtime call with known return type at compile time
     return function()
@@ -720,7 +714,7 @@ local function izipargnodes(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
   local calleetype = lastargnode and lastargnode.attr.calleetype
-  if lastargnode and lastargnode.tag == 'Call' and (not calleetype or not calleetype:is_type()) then
+  if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and (not calleetype or not calleetype:is_type()) then
     -- last arg is a runtime call
     if calleetype then
       if calleetype:is_any() then
@@ -1268,25 +1262,19 @@ end
 function visitors.FuncDef(context, node)
   local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
   local symbol, argtypes
-  local decl
+  local decl = varscope ~= nil
   if node.deducedargtypes then
     argtypes = node.deducedargtypes
   else
     context.infuncdef = node
-    if varscope == 'local' and varnode.tag == 'Id' then
-      -- function declaration, must create a new symbol
-      local name = varnode[1]
-      local vartype = varnode.attr.type
-      assert(vartype or context.phase ~= phases.any_inference)
-      symbol = context.scope:add_symbol(Symbol(name, varnode, vartype))
-      decl = true
-    else
-      -- Id, DotIndex or ColumnIndex
-      symbol = context:traverse(varnode)
-      if symbol then
-        decl = symbol.attr.global
-      end
+    if varscope == 'global' then
+      varnode:assertraisef(context.scope:is_static_storage(), 'global function can only be declarated in top scope')
+      varnode.attr.global = true
     end
+    if decl then
+      varnode.attr.funcdecl = true
+    end
+    symbol = context:traverse(varnode)
     context.infuncdef = nil
   end
 

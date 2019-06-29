@@ -952,7 +952,17 @@ describe("statement function", function()
   it("local and typed", function()
     assert.parse_ast(nelua_parser, "local function f(a, b: int): string end",
       n.Block{{
-        n.FuncDef{'local', n.Id{'f'},
+        n.FuncDef{'local', n.IdDecl{'f'},
+          { n.IdDecl{'a'}, n.IdDecl{'b', nil, n.Type{'int'}} },
+          { n.Type{'string'} },
+          {},
+          n.Block{{}} }
+    }})
+  end)
+  it("global and typed", function()
+    assert.parse_ast(nelua_parser, "global function f(a, b: int): string end",
+      n.Block{{
+        n.FuncDef{'global', n.IdDecl{'f'},
           { n.IdDecl{'a'}, n.IdDecl{'b', nil, n.Type{'int'}} },
           { n.Type{'string'} },
           {},
@@ -962,7 +972,7 @@ describe("statement function", function()
   it("multiple types", function()
     assert.parse_ast(nelua_parser, "local function f(a: number | boolean) end",
       n.Block{{
-        n.FuncDef{'local', n.Id{'f'},
+        n.FuncDef{'local', n.IdDecl{'f'},
           { n.IdDecl{'a', nil, n.MultipleType{{n.Type{'number'}, n.Type{'boolean'}}}} },
           {},
           {},
@@ -1462,7 +1472,7 @@ describe("pragma expression for", function()
   it("function", function()
     assert.parse_ast(nelua_parser, "local function f() !pragma end",
       n.Block{{
-        n.FuncDef{'local', n.Id{'f'}, {}, {}, {n.Pragma{'pragma', {}}}, n.Block{{}} }
+        n.FuncDef{'local', n.IdDecl{'f'}, {}, {}, {n.Pragma{'pragma', {}}}, n.Block{{}} }
     }})
   end)
 end)

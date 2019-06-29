@@ -16,7 +16,7 @@ local function izipargnodes(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
   local calleetype = lastargnode and lastargnode.attr.calleetype
-  if lastargnode and lastargnode.tag == 'Call' and (not calleetype or not calleetype:is_type()) then
+  if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and (not calleetype or not calleetype:is_type()) then
     -- last arg is a runtime call
     assert(calleetype)
     -- we know the callee type
@@ -245,6 +245,10 @@ visitors.PointerType = visitors.Type
 
 function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
+  if attr.funcdecl then
+    emitter:add(context:declname(node))
+    return
+  end
   local type = node.attr.type
   if type:is_type() then return end
   if attr.cexport then emitter:add('extern ') end

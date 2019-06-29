@@ -285,10 +285,11 @@ local function get_parser(std)
   ]])
 
   grammar:add_group_peg('stat', 'funcdef', [[
-    ({} '' -> 'FuncDef' %LOCAL -> 'local' %FUNCTION id function_body) -> to_astnode /
+    ({} '' -> 'FuncDef' %LOCAL -> 'local' %FUNCTION func_iddecl function_body) -> to_astnode /
     ({} %FUNCTION -> 'FuncDef' cnil func_name function_body) -> to_astnode
 
     func_name <- (id {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
+    func_iddecl <- ({} '' -> 'IdDecl' name) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'assign', [[
@@ -343,6 +344,14 @@ local function get_parser(std)
         ((%COLON (var_mut (typexpr/cnil) / cnil etypexpr)) / cnil cnil)
         (&%EXCL {| var_pragma* |})?
       ) -> to_astnode
+    ]], nil, true)
+
+    grammar:add_group_peg('stat', 'funcdef', [[
+      ({} '' -> 'FuncDef' (%LOCAL -> 'local' / %GLOBAL -> 'global') %FUNCTION func_iddecl function_body) -> to_astnode /
+      ({} %FUNCTION -> 'FuncDef' cnil func_name function_body) -> to_astnode
+
+      func_name <- (id {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
+      func_iddecl <- ({} '' -> 'IdDecl' name) -> to_astnode
     ]], nil, true)
 
     grammar:add_group_peg('stat', 'switch', [[

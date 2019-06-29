@@ -192,8 +192,8 @@ astbuilder:register('Assign', {
   stypes.array_of(ntypes.Node), -- expr list, assign values
 })
 astbuilder:register('FuncDef', {
-  stypes.one_of{"local"}:is_optional(), -- scope
-  ntypes.Id + ntypes.DotIndex + ntypes.ColonIndex, -- name
+  stypes.one_of{"local","global"}:is_optional(), -- scope
+  ntypes.IdDecl + ntypes.Id + ntypes.DotIndex + ntypes.ColonIndex, -- name
   stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
   stypes.array_of(ntypes.Pragma), -- pragmas

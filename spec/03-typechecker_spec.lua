@@ -268,6 +268,7 @@ it("function definition", function()
     function f() end
   ]])
   assert.analyze_ast([[
+    global function f(a: integer) end
     local function f(a: integer) end
     function f(a: integer) end
   ]])
@@ -275,6 +276,11 @@ it("function definition", function()
     local f: function<(integer): string>
     function f(a: integer): string return '' end
   ]])
+  assert.analyze_error([[
+    do
+      global function f() end
+    end
+  ]], "can only be declarated in top scope")
   assert.analyze_error([[
     local f: isize
     function f(a: integer) return 0 end
@@ -390,6 +396,14 @@ it("function multiple return", function()
     local function f(): boolean,integer return true,1 end
     local function g(): boolean,integer return f() end
     local a: boolean, b: integer = g()
+  ]])
+  assert.analyze_ast([[
+    local R = @record{x: integer}
+    function R.foo(self: R*): boolean, integer return true, self.x end
+    function R:boo(): boolean, integer return true, self.x end
+    local r = R{}
+    local function foo(): boolean, integer return R.foo(r) end
+    local function boo(): boolean, integer return r:boo() end
   ]])
   assert.ast_type_equals([[
     local function f() return true,1 end
@@ -879,9 +893,12 @@ it("strict mode", function()
   assert.analyze_ast([[
     !!strict
     local a = 1
-    local function f() print 'a' end
-    assert(a)
+    local function f() return 3 end
+    global b = 2
+    global function g() return 4 end
+    assert(a == 1 and b == 2 and f() == 3 and g() == 4)
   ]])
+  assert.analyze_error("!!strict function f() return 0 end", "undeclarated symbol")
   assert.analyze_error("!!strict a = 1", "undeclarated symbol")
   assert.analyze_error("!!strict local a; local a", "shadows pre declarated symbol")
 end)
