@@ -47,9 +47,10 @@ end
 function Scope:get_symbol(name, node, required)
   local symbol = self.symbols[name]
   if not symbol and node then
-    local symtype = symdefs[name]
-    if symtype then
-      symbol = Symbol(name, node, symtype)
+    local symdef = symdefs[name]
+    if symdef then
+      symbol = Symbol(name, nil, symdef.type)
+      tabler.update(symbol.attr, symdef)
       symbol.attr.const = true
       symbol.attr.builtin = true
       if symbol.attr.type:is_function() then

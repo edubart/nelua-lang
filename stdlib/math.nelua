@@ -5,7 +5,6 @@
 --TODO: function type overload
 
 !!cinclude '<math.h>'
-!!cinclude '<stdlib.h>'
 
 global math = @record{}
 
@@ -29,16 +28,14 @@ function math.sqrt(x: number): number !cimport 'sqrt' end
 function math.exp(x: number): number !cimport 'exp' end
 function math.log(x: number): number !cimport 'log' end
 function math.fmod(x: number, y: number): number !cimport 'fmod' end
+function math.atan2(x: number, y: number): number !cimport 'atan2' end
 
 -- used internally
 local RAND_MAX: int32 !cimport
 local function clog2(x: number): number !cimport 'log2' end
 local function clog10(x: number): number !cimport 'log10' end
 local function cmodf(x: number, y: number*): number !cimport 'modf' end
-local function crand(): int32 !cimport 'rand' end
-local function csrand(x: uint32) !cimport 'srand' end
 
-function math.atan2(x: number, y: number): number !cimport 'atan2' end
 
 function math.logbase(x: number, base: number): number
   if base == 2 then

@@ -1104,7 +1104,7 @@ function visitors.VarDecl(context, node)
     end
     assert(symbol.attr.type == vartype)
     varnode.assign = true
-    if varnode.attr.compconst or varnode.attr.const then
+    if (varnode.attr.compconst or varnode.attr.const) and not varnode.attr.nodecl then
       varnode:assertraisef(valnode, 'const variables must have an initial value')
     end
     if valnode then

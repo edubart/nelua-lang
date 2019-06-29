@@ -4,18 +4,19 @@ local primtypes = typedefs.primtypes
 
 local symdefs = {
   -- nelua only
-  nilptr = primtypes.Nilptr,
-  likely = types.FunctionType(nil, {primtypes.boolean}, {primtypes.boolean}),
-  unlikely = types.FunctionType(nil, {primtypes.boolean}, {primtypes.boolean}),
-  panic = primtypes.any, --types.FunctionType(nil, {primtypes.string}),
+  nilptr = {type=primtypes.Nilptr},
+  likely = {type=types.FunctionType(nil, {primtypes.boolean}, {primtypes.boolean})},
+  unlikely = {type=types.FunctionType(nil, {primtypes.boolean}, {primtypes.boolean})},
+  panic = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.string})
+  C = {type = primtypes.type, holdedtype=types.RecordType(nil, {})},
 
   -- lua
-  assert = primtypes.any, --types.FunctionType(nil, {primtypes.boolean, primtypes.auto})
-  error = primtypes.any, --types.FunctionType(nil, {primtypes.string}),
-  warn = primtypes.any, --types.FunctionType(nil, {primtypes.string}),
-  print = primtypes.any, --types.FunctionType(nil, {primtypes.varargs})
-  type = types.FunctionType(nil, {primtypes.any}, {primtypes.string}),
-  require = primtypes.any,
+  assert = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.boolean, primtypes.auto})
+  error = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.string}),
+  warn = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.string}),
+  print = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.varargs})
+  type = {type=types.FunctionType(nil, {primtypes.any}, {primtypes.string})},
+  require = {type=primtypes.any},
 
   --dofile
   --select

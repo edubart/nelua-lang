@@ -4,8 +4,21 @@ local assert = require 'spec.tools.assert'
 
 describe("Nelua stdlib", function()
 
-it("math", function()
-  assert.run_c([[
+it("cmath", function() assert.run_c([[
+!!strict
+
+require 'stdlib/c/math.nelua'
+
+assert(C.fabs(-1.0) == 1.0)
+assert(C.fabsf(-2.0_f32) == 2.0_f32)
+assert(C.fabsl(-3.0_clongdouble) == 3.0_clongdouble)
+
+assert(C.isnan(C.NAN))
+assert(C.isinf(C.INFINITY))
+assert(C.NAN ~= C.NAN)
+]])end)
+
+it("math", function() assert.run_c([[
 !!strict
 
 require 'stdlib/math.nelua'
@@ -84,7 +97,7 @@ do
     assert(x >= 0 and x <= 1)
   end
 end
-]])
-end)
+
+]])end)
 
 end)
