@@ -1,0 +1,16 @@
+!!strict
+!!cinclude '<signal.h>'
+
+function C.signal(sig: cint, handler: pointer): pointer !cimport 'signal' end
+function C.raise(sig: cint): cint !cimport 'raise' end
+
+const C.SIG_DFL: pointer !cimport 'SIG_DFL'
+const C.SIG_IGN: pointer !cimport 'SIG_IGN'
+const C.SIG_ERR: pointer !cimport 'SIG_ERR'
+
+const C.SIGTERM: cint !cimport 'SIGTERM'
+const C.SIGSEGV: cint !cimport 'SIGSEGV'
+const C.SIGINT: cint !cimport 'SIGINT'
+const C.SIGILL: cint !cimport 'SIGILL'
+const C.SIGABRT: cint !cimport 'SIGABRT'
+const C.SIGFPE: cint !cimport 'SIGFPE'

@@ -1,6 +1,7 @@
 local CEmitter = require 'nelua.cemitter'
 local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
+local stringer = require 'nelua.utils.stringer'
 local pegger = require 'nelua.utils.pegger'
 local fs = require 'nelua.utils.fs'
 local config = require 'nelua.configer'.get()
@@ -209,7 +210,19 @@ function visitors.Pragma(context, node, emitter)
     context:add_include(attr.cinclude)
   end
   if attr.cemit then
-    emitter:add_ln(attr.cemit)
+    local code, scope = attr.cemit[1], attr.cemit[2]
+    if not stringer.endswith(code, '\n') then
+      code = code .. '\n'
+    end
+    if scope == 'declaration' then
+      context:add_declaration(code)
+    elseif scope == 'definition' then
+      context:add_definition(code)
+    elseif not scope then
+      emitter:add(code)
+    else --luacov:disable
+      node:raisef('invalid C emit scope')
+    end --luacov:enable
   end
   if attr.cdefine then
     context:add_declaration(string.format('#define %s\n', attr.cdefine))

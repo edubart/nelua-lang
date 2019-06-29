@@ -1,0 +1,23 @@
+!!strict
+!!cinclude '<string.h>'
+
+-- Memory manipulation
+function C.memcpy(dest: pointer, src: pointer, n: csize): pointer !cimport 'memcpy' end
+function C.memmove(dest: pointer, src: pointer, n: csize): pointer !cimport 'memmove' end
+function C.memccpy(dest: pointer, src: pointer, c: cint, n: csize): pointer !cimport 'memccpy' end
+function C.memset(s: pointer, c: cint, n: csize): pointer !cimport 'memset' end
+function C.memcmp(s1: pointer, s2: pointer, n: csize): cint !cimport 'memcmp' end
+function C.memchr(s: pointer, c: cint, n: csize): pointer !cimport 'memchr' end
+
+-- String examination
+function C.strcmp(s1: cstring, s2: cstring): cint !cimport 'strcmp' end
+function C.strncmp(s1: cstring, s2: cstring, n: csize): cint !cimport 'strncmp' end
+function C.strcoll(s1: cstring, s2: cstring): cint !cimport 'strcoll' end
+function C.strchr(s: cstring, c: cint): cstring !cimport 'strchr' end
+function C.strrchr(s: cstring, c: cint): cstring !cimport 'strrchr' end
+function C.strcspn(s: cstring, reject: cstring): csize !cimport 'strcspn' end
+function C.strspn(s: cstring, accept: cstring): csize !cimport 'strspn' end
+function C.strpbrk(s: cstring, accept: cstring): cstring !cimport 'strpbrk' end
+function C.strstr(haystack: cstring, needle: cstring): cstring !cimport 'strstr' end
+function C.strlen(s: cstring): csize !cimport 'strlen' end
+function C.strerror(errnum: cint): cstring !cimport 'strerror' end

@@ -1,0 +1,39 @@
+!!strict
+!!cinclude '<locale.h>'
+
+local lconv = @record {
+  decimal_point: cstring,
+  thousands_sep: cstring,
+  grouping: cstring,
+  int_curr_symbol: cstring,
+  currency_symbol: cstring,
+  mon_decimal_point: cstring,
+  mon_thousands_sep: cstring,
+  mon_grouping: cstring,
+  positive_sign: cstring,
+  negative_sign: cstring,
+  int_frac_digits: cchar,
+  frac_digits: cchar,
+  p_cs_precedes: cchar,
+  p_sep_by_space: cchar,
+  n_cs_precedes: cchar,
+  n_sep_by_space: cchar,
+  p_sign_posn: cchar,
+  n_sign_posn: cchar,
+  int_p_cs_precedes: cchar,
+  int_p_sep_by_space: cchar,
+  int_n_cs_precedes: cchar,
+  int_n_sep_by_space: cchar,
+  int_p_sign_posn: cchar,
+  int_n_sign_posn: cchar
+}
+
+function C.setlocale(category: cint, locale: cstring): cstring !cimport 'setlocale' end
+function C.localeconv(x: void): lconv* !cimport 'localeconv' end
+
+const C.LC_ALL: cint !cimport 'LC_ALL'
+const C.LC_COLLATE: cint !cimport 'LC_COLLATE'
+const C.LC_CTYPE: cint !cimport 'LC_CTYPE'
+const C.LC_MONETARY: cint !cimport 'LC_MONETARY'
+const C.LC_NUMERIC: cint !cimport 'LC_NUMERIC'
+const C.LC_TIME: cint !cimport 'LC_TIME'
