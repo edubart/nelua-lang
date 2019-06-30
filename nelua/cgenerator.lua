@@ -171,7 +171,10 @@ function visitors.Boolean(_, node, emitter)
 end
 
 -- TODO: Nil
--- TODO: Varargs
+
+function visitors.Varargs(_, _, emitter)
+  emitter:add('...')
+end
 
 function visitors.Table(context, node, emitter)
   local childnodes, type = node[1], node.attr.type

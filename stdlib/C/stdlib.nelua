@@ -9,7 +9,7 @@ function C.free(ptr: pointer): void !cimport 'free' end
 function C.aligned_alloc(alignment: csize, size: csize): pointer !cimport 'aligned_alloc' end
 
 -- Program termination
-function C.abort(x: void): void !cimport 'abort' end
+function C.abort(): void !cimport 'abort' end
 function C.exit(status: cint): void !cimport 'exit' end
 function C.quick_exit(status: cint): void !cimport 'quick_exit' end
 function C._Exit(status: cint): void !cimport '_Exit' end
@@ -21,11 +21,11 @@ function C.system(command: cstring): cint !cimport 'system' end
 function C.getenv(name: cstring): cstring !cimport 'getenv' end
 
 -- Searching and sorting
-function C.bsearch(key: void*, base: void*, nmemb: csize, size: csize, compar: pointer): pointer !cimport 'bsearch' end
+function C.bsearch(key: pointer, base: pointer, nmemb: csize, size: csize, compar: pointer): pointer !cimport 'bsearch' end
 function C.qsort(base: pointer, nmemb: csize, size: csize, compar: pointer): void !cimport 'qsort' end
 
 -- Pseudo-random sequence generation
-function C.rand(x: void): cint !cimport 'rand' end
+function C.rand(): cint !cimport 'rand' end
 function C.srand(seed: cuint): void !cimport 'srand' end
 
 -- Conversions to numeric formats
@@ -48,18 +48,16 @@ function C.abs(x: cint): cint !cimport 'abs' end
 function C.labs(x: clong): clong !cimport 'labs' end
 function C.llabs(x: clonglong): clonglong !cimport 'llabs' end
 
-local divt !cimport 'div_t' = @record{quot: cint, rem: cint}
+local div_t !cimport 'div_t' = @record{quot: cint, rem: cint}
 local ldiv_t !cimport 'ldiv_t' = @record{quot: cint, rem: cint}
 local lldiv_t !cimport 'lldiv_t' = @record{quot: cint, rem: cint}
 function C.div(numer: cint, denom: cint): div_t !cimport 'div' end
 function C.ldiv(numer: clong, denom: clong): ldiv_t !cimport 'ldiv' end
 function C.lldiv(numer: clonglong, denom: clonglong): lldiv_t !cimport 'lldiv' end
 
---TODO: Multibyte/wide character conversions
-
--- Macro constants
+-- Constants
 const C.EXIT_SUCCESS: cint !cimport 'EXIT_SUCCESS'
 const C.EXIT_FAILURE: cint !cimport 'EXIT_FAILURE'
 
 const C.RAND_MAX: cint !cimport 'RAND_MAX'
-const C.NULL: pointer !cimport 'NULL'
+compconst C.NULL = nilptr

@@ -26,14 +26,18 @@ local timespec !cimport 'timespec_t' = @record {
   tv_nsec: clong
 }
 
+-- Time manipulation
 function C.clock(): clock_t !cimport 'clock' end
-function C.time(timer: time_t*): time_t !cimport 'time' end
 function C.difftime(time1: time_t, time0: time_t): float64 !cimport 'difftime' end
 function C.mktime(tp: tm*): time_t !cimport 'mktime' end
-function C.gmtime(timer: time_t*): tm* !cimport 'gmtime' end
-function C.localtime(timer: time_t*): tm* !cimport 'localtime' end
+function C.time(timer: time_t*): time_t !cimport 'time' end
+
+-- Conversion
 function C.asctime(tp: tm*): cstring !cimport 'asctime' end
 function C.ctime(timer: time_t*): cstring !cimport 'ctime' end
+function C.gmtime(timer: time_t*): tm* !cimport 'gmtime' end
+function C.localtime(timer: time_t*): tm* !cimport 'localtime' end
 function C.timespec_get(ts: timespec*, base: cint): cint !cimport 'timespec_get' end
 
+-- Constants
 const C.CLOCKS_PER_SEC: clock_t !cimport 'CLOCKS_PER_SEC'

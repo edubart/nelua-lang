@@ -583,8 +583,8 @@ local function visitor_FieldIndex(context, node)
         type = objtype
       elseif objtype:is_record() then
         symbol = objtype:get_metafield(name)
+        local parentnode = context:get_parent_node()
         if not symbol then
-          local parentnode = context:get_parent_node()
           local symname = string.format('%s_%s', objtype.codename, name)
           if context.infuncdef == parentnode then
             -- declaration of record global function
@@ -595,7 +595,7 @@ local function visitor_FieldIndex(context, node)
             objtype:set_metafield(name, symbol)
           elseif context.inglobaldecl == parentnode then
             -- declaration of record global variable
-            symbol = Symbol(symname, parentnode)
+            symbol = Symbol(symname, node)
             objtype:set_metafield(name, symbol)
 
             -- add symbol to scope to enable type deduction
@@ -603,6 +603,9 @@ local function visitor_FieldIndex(context, node)
           else
             node:raisef('cannot index record meta field "%s"', name)
           end
+          symbol:link_node(parentnode)
+        elseif context.infuncdef or context.inglobaldecl then
+          node:assertraisef(symbol.node == node, 'cannot redefine meta type function')
         end
         if symbol then
           type = symbol.attr.type

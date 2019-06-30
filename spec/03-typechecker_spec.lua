@@ -661,6 +661,11 @@ it("record methods", function()
     local vec2 = @record{x: integer, y: integer}
     local v: vec2 = vec2.create(1,2)
   ]], "cannot index record meta field")
+  assert.analyze_error([[
+    local vec2 = @record{x: integer, y: integer}
+    function vec2.create(x: integer, y: integer) return vec2{x,y} end
+    function vec2.create(x: integer, y: integer) return vec2{x,y+1} end
+  ]], "cannot redefine meta type function")
 end)
 
 it("record globals", function()

@@ -840,6 +840,12 @@ it("manual memory managment", function()
   ]])
 end)
 
+it("C varargs", function()
+  assert.generate_c(
+    "local function scanf(format: cstring, ...): cint !cimport('scanf',true) end",
+    "int scanf(char* format, ...);")
+end)
+
 it("pragmas", function()
   assert.generate_c("!!cinclude '<myheader.h>'", "#include <myheader.h>")
   assert.generate_c("!!cemit '#define SOMETHING'", "#define SOMETHING")

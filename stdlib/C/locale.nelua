@@ -29,8 +29,9 @@ local lconv = @record {
 }
 
 function C.setlocale(category: cint, locale: cstring): cstring !cimport 'setlocale' end
-function C.localeconv(x: void): lconv* !cimport 'localeconv' end
+function C.localeconv(): lconv* !cimport 'localeconv' end
 
+-- Constants
 const C.LC_ALL: cint !cimport 'LC_ALL'
 const C.LC_COLLATE: cint !cimport 'LC_COLLATE'
 const C.LC_CTYPE: cint !cimport 'LC_CTYPE'

@@ -1,0 +1,10 @@
+!!strict
+!!cinclude '<errno.h>'
+
+-- Global variables
+global C.errno: cint !cimport 'errno'
+
+-- Constants
+const C.EDOM: cint !cimport 'EDOM'
+const C.EILSEQ: cint !cimport 'EILSEQ'
+const C.ERANGE: cint !cimport 'ERANGE'

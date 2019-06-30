@@ -287,13 +287,12 @@ function C.isunordered(x: float64, y: float64): cint !cimport 'isunordered' end
 function C.isunorderedf(x: float32, y: float32): cint !cimport 'isunordered' end
 function C.isunorderedl(x: clongdouble, y: clongdouble): cint !cimport 'isunordered' end
 
--- Macro constants
+-- Constants
 const C.HUGE_VALF: float32 !cimport 'HUGE_VALF'
 const C.HUGE_VAL: float64 !cimport 'HUGE_VAL'
 const C.HUGE_VALL: clongdouble !cimport 'HUGE_VALL'
 
 const C.INFINITY: cfloat !cimport 'INFINITY'
-
 const C.NAN: cfloat !cimport 'NAN'
 
 const C.FP_FAST_FMAF: float32 !cimport 'FP_FAST_FMAF'

@@ -7,7 +7,7 @@ describe("Nelua stdlib", function()
 it("cmath", function() assert.run_c([[
 !!strict
 
-require 'stdlib/c/math.nelua'
+require 'stdlib/C/math.nelua'
 
 assert(C.fabs(-1.0) == 1.0)
 assert(C.fabsf(-2.0_f32) == 2.0_f32)
