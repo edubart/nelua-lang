@@ -744,6 +744,12 @@ it("record methods", function()
 end)
 
 it("record globals", function()
+  assert.generate_c([[
+    ## state.nohashcodenames = true
+    local Math = @record{}
+    global Math.PI: compconst = 3.14
+    compconst Math.E = 2.7
+  ]], "double mymod_Math_PI = 3.14")
   assert.run_c([[
     local Math = @record{}
     global Math.PI = 3.14
@@ -906,7 +912,7 @@ it("type codenames", function()
     return r:foo()
   ]], {
     "typedef struct myrecord {\n  int64_t x;\n} myrecord;",
-    "static int64_t myrecord_foo(myrecord_pointer self);"
+    "static int64_t myrecord_foo(myrecord_ptr self);"
   })
 end)
 
@@ -1087,12 +1093,21 @@ end)
 
 it("require builtin", function()
   assert.generate_c([[
-    require 'examples/helloworld.nelua'
+    require 'examples.helloworld'
   ]], "hello world")
 
   assert.run_c([[
-    require 'examples/helloworld.nelua'
+    require 'examples.helloworld'
   ]], "hello world")
+
+  assert.run_error_c([[
+    local a = 'mylib'
+    require(a)
+  ]], "runtime require is not supported in C")
+
+  assert.run_error_c([[
+    require 'invalid_file'
+  ]], "compile time module 'invalid_file' not found")
 end)
 
 end)

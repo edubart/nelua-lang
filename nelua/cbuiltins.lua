@@ -6,7 +6,7 @@ local builtins = {}
 local operators = {}
 builtins.operators = operators
 
-function operators.len(_, emitter, argnode)
+function operators.len(node, emitter, argnode)
   local type = argnode.attr.type
   if type:is_arraytable() then
     emitter:add(type, '_length(&', argnode, ')')
@@ -15,7 +15,7 @@ function operators.len(_, emitter, argnode)
   elseif type:is_type() then
     emitter:add(argnode.attr.holdedtype.size)
   else --luacov:disable
-    error('not implemented')
+    node:errorf('not implemented')
   end --luacov:enable
 end
 
@@ -29,7 +29,7 @@ function operators.div(node, emitter, lnode, rnode, lname, rname)
       emitter:add(lname, ' / ', rname)
     end
   else --luacov:disable
-    error('not implemented')
+    node:errorf('not implemented')
   end --luacov:enable
 end
 
@@ -44,7 +44,7 @@ function operators.idiv(node, emitter, lnode, rnode, lname, rname)
       emitter:add(lname, ' / ', rname)
     end
   else --luacov:disable
-    error('not implemented')
+    node:errorf('not implemented')
   end --luacov:enable
 end
 
@@ -59,7 +59,7 @@ function operators.mod(node, emitter, lnode, rnode, lname, rname)
       emitter:add(lname, ' % ', rname)
     end
   else --luacov:disable
-    error('not implemented')
+    node:errorf('not implemented')
   end --luacov:enable
 end
 
@@ -70,7 +70,7 @@ function operators.pow(node, emitter, lnode, rnode, lname, rname)
     emitter:add(powname, '(', lname, ', ', rname, ')')
     emitter.context.has_math = true
   else --luacov:disable
-    error('not implemented')
+    node:errorf('not implemented')
   end --luacov:enable
 end
 
@@ -79,7 +79,7 @@ function operators.eq(_, emitter, lnode, rnode, lname, rname)
   if ltype:is_string() and rtype:is_string() then
     emitter:add('nelua_string_eq(', lname, ', ', rname, ')')
   else
-    emitter:add(lname, ' ', '==', ' ', rname)
+    emitter:add(lname, ' ', cdefs.compare_ops.eq, ' ', rname)
   end
 end
 
@@ -88,7 +88,7 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
   if ltype:is_string() and rtype:is_string() then
     emitter:add('nelua_string_ne(', lname, ', ', rname, ')')
   else
-    emitter:add(lname, ' ', '!=', ' ', rname)
+    emitter:add(lname, ' ', cdefs.compare_ops.ne, ' ', rname)
   end
 end
 
@@ -209,13 +209,16 @@ end
 
 function functions.require(context, node, emitter)
   local scope = context:push_scope('block')
+  local ast = node.attr.loadedast
+  assert(ast)
   scope.staticstorage = true
-  local hasstatnodes = #node.attr.loadedast[1] > 0
-  if hasstatnodes then
-    emitter:add_indent_ln('{')
-  end
-  emitter:add(node.attr.loadedast)
-  if hasstatnodes then
+  local bracepos = emitter:get_pos()
+  emitter:add_indent_ln('{')
+  local lastpos = emitter:get_pos()
+  emitter:add(ast)
+  if emitter:get_pos() == lastpos then
+    emitter:remove_until_pos(bracepos)
+  else
     emitter:add_indent_ln('}')
   end
   context:pop_scope()

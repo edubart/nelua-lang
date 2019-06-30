@@ -549,7 +549,7 @@ function PointerType:_init(node, subtype)
   self.subtype = subtype
   Type._init(self, 'pointer', cpusize, node)
   if not subtype:is_void() then
-    self.codename = subtype.codename .. '_pointer'
+    self.codename = subtype.codename .. '_ptr'
   end
   self.unary_operators['deref'] = subtype
 end

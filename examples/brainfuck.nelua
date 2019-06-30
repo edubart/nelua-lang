@@ -1,5 +1,4 @@
-local function getchar(): int32 !cimport end
-local function putchar(c: int32): int32 !cimport end
+require 'C.stdio'
 
 local data: int32[1024]
 local ptr: int32 = 0
@@ -22,9 +21,9 @@ for i=1,#source do
   elseif c == "-" then
     ]##] data[ptr] = data[ptr] - 1 [##[
   elseif c == "." then
-    ]##] putchar(data[ptr]) [##[
+    ]##] C.putchar(data[ptr]) [##[
   elseif c == "," then
-    ]##] data[ptr] = getchar() [##[
+    ]##] data[ptr] = C.getchar() [##[
   elseif c == "[" then
     --generate labels to represent the beginning and ending of the loop
     local target = { before = 'b' .. i, after = 'a' .. i }

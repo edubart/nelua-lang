@@ -889,7 +889,7 @@ it("builtins", function()
 end)
 
 it("require builtin", function()
-  assert.analyze_ast("require 'examples/helloworld.nelua'")
+  assert.analyze_ast("require 'examples.helloworld'")
   assert.analyze_ast("require 'somelualib'")
   assert.analyze_ast("local a = 'dynamiclib'; require(a)")
 end)

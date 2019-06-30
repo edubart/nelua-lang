@@ -35,9 +35,21 @@ function Emitter:add_ln(what, ...)
   self:add('\n')
 end
 
+function Emitter:get_pos()
+  return #self.codes
+end
+
+function Emitter:remove_until_pos(pos)
+  while #self.codes > pos do
+    table.remove(self.codes)
+  end
+end
+
 function Emitter:add_one(what)
   if traits.is_string(what) then
-    table.insert(self.codes, what)
+    if #what > 0 then
+      table.insert(self.codes, what)
+    end
   elseif traits.is_number(what) or traits.is_bignumber(what) then
     table.insert(self.codes, tostring(what))
   elseif traits.is_astnode(what) then

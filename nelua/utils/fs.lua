@@ -2,6 +2,7 @@ local pldir = require 'pl.dir'
 local plfile = require 'pl.file'
 local plpath = require 'pl.path'
 local except = require 'nelua.utils.except'
+local stringer = require 'nelua.utils.stringer'
 
 local fs = {}
 
@@ -49,6 +50,17 @@ function fs.getdatapath(arg0)
     path = fs.getpathdir(fs.getpathdir(fs.getpathdir(fs.abspath(debug.getinfo(1).short_src))))
   end
   return path
+end
+
+function fs.findmodulefile(name, path)
+  name = name:gsub('%.', plpath.sep)
+  local paths = stringer.split(path, ';')
+  for _,trypath in ipairs(paths) do
+    trypath = trypath:gsub('%?', name)
+    if plpath.isfile(trypath) then
+      return trypath
+    end
+  end
 end
 
 return fs

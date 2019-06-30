@@ -10,6 +10,7 @@ local defconfig = {
   cc = 'gcc',
   lua = 'lua',
   lua_version = '5.3',
+  cache_dir = 'nelua_cache',
   cpu_bits = 64
 }
 
@@ -39,7 +40,8 @@ local function create_parser(argv)
   argparser:option('--lua', "Lua interpreter to use when runnning", defconfig.lua)
   argparser:option('--lua-version', "Target lua version for lua generator", defconfig.lua_version)
   argparser:option('--lua-options', "Lua options to use when running")
-  argparser:option('--cache-dir', "Compilation cache directory", "nelua_cache")
+  argparser:option('--cache-dir', "Compilation cache directory", defconfig.cache_dir)
+  argparser:option('--path', "Nelua modules search path", defconfig.path)
   argparser:argument("input", "Input source file"):action(function(options, _, v)
     -- hacky way to stop handling options
     local index = tabler.ifind(argv, v) + 1
@@ -57,11 +59,21 @@ local function get_runtime_path(arg0)
   return fs.join(fs.getdatapath(arg0), 'runtime')
 end
 
+local function get_path(arg0)
+  local libdir = fs.join(fs.getdatapath(arg0), 'lib')
+  return
+    fs.join(libdir,'?.nelua')..';'..
+    fs.join(libdir,'?','init.nelua')..';'..
+    fs.join('.','?.nelua')..';'..
+    fs.join('.','?','init.nelua')
+end
+
 function configer.parse(args)
   local argparser = create_parser(tabler.copy(args))
   local ok, options = argparser:pparse(args)
   except.assertraise(ok, options)
   config.runtime_path = get_runtime_path(args[0])
+  config.path = get_path(args[0])
   metamagic.setmetaindex(options, defconfig)
   metamagic.setmetaindex(config, options, true)
   return config
@@ -73,6 +85,8 @@ end
 
 local function init_default_configs()
   defconfig.runtime_path = get_runtime_path()
+  defconfig.path = os.getenv('NELUA_PATH') or get_path()
+  defconfig.cache_dir = os.getenv('NELUA_CACHE_DIR') or defconfig.cache_dir
   defconfig.lua = os.getenv('LUA') or defconfig.lua
   defconfig.cc = os.getenv('CC') or defconfig.cc
   defconfig.cflags = os.getenv('CFLAGS')

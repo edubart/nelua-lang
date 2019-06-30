@@ -4,6 +4,7 @@ local except = require 'nelua.utils.except'
 local errorer = require 'nelua.utils.errorer'
 local runner = require 'nelua.runner'
 local typechecker = require 'nelua.typechecker'
+local fs = require 'nelua.utils.fs'
 local traits = require 'nelua.utils.traits'
 local lua_generator = require 'nelua.luagenerator'
 local c_generator = require 'nelua.cgenerator'
@@ -14,6 +15,9 @@ local nelua_parser = nelua_syntax.parser
 
 -- enable ast shape checking
 config.check_ast_shape = true
+
+-- use cache subfolder while testing
+config.cache_dir = fs.join(config.cache_dir, 'spec')
 
 function assert.same_string(expected, passedin)
   if expected ~= passedin then --luacov:disable

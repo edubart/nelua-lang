@@ -9,6 +9,7 @@ local types = require 'nelua.types'
 local bn = require 'nelua.utils.bn'
 local preprocessor = require 'nelua.preprocessor'
 local fs = require 'nelua.utils.fs'
+local config = require 'nelua.configer'.get()
 local typechecker = {}
 
 local primtypes = typedefs.primtypes
@@ -591,11 +592,13 @@ local function visitor_FieldIndex(context, node)
             symbol = Symbol(symname, node)
             symbol.attr.const = true
             symbol.attr.metafunc = true
+            symbol.attr.metavar = true
             symbol.attr.metarecordtype = typedefs.get_pointer_type(objnode, objtype)
             objtype:set_metafield(name, symbol)
           elseif context.inglobaldecl == parentnode then
             -- declaration of record global variable
             symbol = Symbol(symname, node)
+            symbol.attr.metavar = true
             objtype:set_metafield(name, symbol)
 
             -- add symbol to scope to enable type deduction
@@ -864,18 +867,22 @@ local function builtin_call_require(context, node)
           argnode.attr.type and argnode.attr.type:is_string() and
           argnode.attr.compconst) then
     -- not a compile time require
-    return
-  end
-  local filename = argnode.attr.value
-  if not stringer.endswith(filename, '.nelua') then
-    -- not a nelua file
+    node:assertraisef(context.state.backend ~= 'c', 'runtime require is not supported in C backend yet')
     return
   end
 
+  local modulename = argnode.attr.value
+  node.attr.modulename = modulename
+
   -- load it and parse
-  local input, err = fs.tryreadfile(filename)
-  node:assertraisef(input, "failed to require nelua file: %s", err)
-  local ast = context.parser:parse(input, filename)
+  local filepath = fs.findmodulefile(modulename, config.path)
+  if not filepath then
+    -- maybe it would succeed at runtime
+    node:assertraisef(context.state.backend ~= 'c', "compile time module '%s' not found", node.attr.modulename)
+    return
+  end
+  local input = fs.readfile(filepath)
+  local ast = context.parser:parse(input, filepath)
 
   -- analyze it
   typechecker.analyze(ast, context.parser, context)
@@ -1574,6 +1581,10 @@ function typechecker.analyze(ast, parser, parentcontext)
   context.ast = ast
   context.parser = parser
   context.astbuilder = parser.astbuilder
+
+  if not context.state.backend then
+    context.state.backend = config.generator
+  end
 
   -- phase 1 traverse: infer and check types
   context.phase = phases.type_inference

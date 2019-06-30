@@ -31,11 +31,11 @@ dependencies = {
   'lbc >= 20180729',
 
   -- dev dependencies only
-  'busted >= 2.0rc13',
+  'busted == 2.0rc13',
   'luacheck >= 0.23.0',
   'luacov >= 0.13.0',
   'cluacov >= 0.1.1',
-  'dumper >= 0.1.0',
+  'dumper >= 0.1.1',
 }
 
 build = {
@@ -100,6 +100,22 @@ build = {
       ['runtime/c/nelua_arrtab.h'] = 'runtime/c/nelua_arrtab.h',
       ['runtime/c/nelua_record.c'] = 'runtime/c/nelua_record.c',
       ['runtime/c/nelua_record.h'] = 'runtime/c/nelua_record.h',
+      ['lib/io.nelua']             = 'lib/io.nelua',
+      ['lib/math.nelua']           = 'lib/math.nelua',
+      ['lib/myarraytable.nelua']   = 'lib/myarraytable.nelua',
+      ['lib/mystring.nelua']       = 'lib/mystring.nelua',
+      ['lib/mytable.nelua']        = 'lib/mytable.nelua',
+      ['lib/os.nelua']             = 'lib/os.nelua',
+      ['lib/utf8.nelua']           = 'lib/utf8.nelua',
+      ['lib/C/ctype.nelua']        = 'lib/C/ctype.nelua',
+      ['lib/C/errno.nelua']        = 'lib/C/errno.nelua',
+      ['lib/C/locale.nelua']       = 'lib/C/locale.nelua',
+      ['lib/C/math.nelua']         = 'lib/C/math.nelua',
+      ['lib/C/signal.nelua']       = 'lib/C/signal.nelua',
+      ['lib/C/stdio.nelua']        = 'lib/C/stdio.nelua',
+      ['lib/C/stdlib.nelua']       = 'lib/C/stdlib.nelua',
+      ['lib/C/string.nelua']       = 'lib/C/string.nelua',
+      ['lib/C/time.nelua']         = 'lib/C/time.nelua',
     }
   }
 }

@@ -28,7 +28,7 @@ function CContext:declname(node)
   end
   local declname = attr.codename
   if not attr.nodecl then
-    if not attr.cimport then
+    if not attr.cimport and not attr.metavar then
       if self.scope:is_static_storage() and traits.is_astnode(node) then
         local modname = attr.modname or node.modname
         if modname ~= '' then
