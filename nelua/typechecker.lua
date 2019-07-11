@@ -1097,7 +1097,7 @@ function visitors.VarDecl(context, node)
   for _,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
     assert(varnode.tag == 'IdDecl')
     if varscope == 'global' then
-      varnode:assertraisef(context.scope:is_static_storage(), 'global variables can only be declarated in top scope')
+      varnode:assertraisef(context.scope:is_static_storage(), 'global variables can only be declared in top scope')
       varnode.attr.global = true
     end
     if context.state.nostatic then
@@ -1278,7 +1278,7 @@ function visitors.FuncDef(context, node)
   else
     context.infuncdef = node
     if varscope == 'global' then
-      varnode:assertraisef(context.scope:is_static_storage(), 'global function can only be declarated in top scope')
+      varnode:assertraisef(context.scope:is_static_storage(), 'global function can only be declared in top scope')
       varnode.attr.global = true
     end
     if decl then
@@ -1291,7 +1291,7 @@ function visitors.FuncDef(context, node)
   context:traverse(retnodes)
   local returntypes
   if #retnodes > 0 then
-    -- returns types are pre declarated
+    -- returns types are pre declared
     returntypes = tabler.imap(retnodes, function(retnode)
       return retnode.attr.holdedtype
     end)

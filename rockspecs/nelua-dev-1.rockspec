@@ -31,7 +31,7 @@ dependencies = {
   'lbc >= 20180729',
 
   -- dev dependencies only
-  'busted == 2.0rc13',
+  'busted >= 2.0rc13',
   'luacheck >= 0.23.0',
   'luacov >= 0.13.0',
   'cluacov >= 0.1.1',

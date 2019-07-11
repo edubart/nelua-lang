@@ -262,7 +262,7 @@ function preprocessor.preprocess(context, ast)
   if ppfunc then
     ok, err = pcall(ppfunc)
   end
-  if except.is_exception(err) then
+  if except.isexception(err) then
     except.reraise(err)
   else
     --TODO: better error messages

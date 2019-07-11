@@ -2,7 +2,7 @@ local tabler = require 'nelua.utils.tabler'
 
 local cache = {}
 
-local function cache_get(f, params)
+local function cacheget(f, params)
   local cachef = cache[f]
   if cachef then
     for cparams,cres in pairs(cachef) do
@@ -21,7 +21,7 @@ end
 
 local function memoize(f)
   return function(...)
-    return cache_get(f, table.pack(...))
+    return cacheget(f, table.pack(...))
   end
 end
 

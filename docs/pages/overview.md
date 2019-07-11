@@ -22,7 +22,7 @@ This overview try to focus more on those features.
 
 Simple hello world program, just like in Lua:
 
-```nelua
+```lua
 print 'Hello world!'
 ```
 
@@ -236,7 +236,7 @@ repeat
 until a == 0
 ```
 
-Note that variables declarated inside repeat scope are visible on it's condition expression.
+Note that variables declared inside repeat scope are visible on it's condition expression.
 
 ### For
 

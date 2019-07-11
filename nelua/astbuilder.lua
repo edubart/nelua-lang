@@ -11,7 +11,7 @@ local ASTBuilder = class()
 
 local function get_astnode_shapetype(nodeklass)
   return shapetypes.custom(function(val)
-    if class.is_a(val, nodeklass) then return true end
+    if class.is(val, nodeklass) then return true end
     return nil, string.format('expected type "ASTNode", got "%s"', type(val))
   end)
 end

@@ -4,7 +4,7 @@ local nanotime = require 'chronos'.nanotime
 local nanotimer = {}
 local nanotimer_mt = {__index = nanotimer}
 
-local function nanotimer_init()
+local function createnanotimer()
   return setmetatable({s = nanotime()}, nanotimer_mt)
 end
 
@@ -18,13 +18,13 @@ function nanotimer.elapsed(t)
 end
 --luacov:enable
 
-function nanotimer.elapsed_restart(t)
+function nanotimer.elapsedrestart(t)
   local s = nanotime()
   local e = (s - t.s) * 1000
   t.s = s
   return e
 end
 
-metamagic.setmetacall(nanotimer, nanotimer_init)
+metamagic.setmetacall(nanotimer, createnanotimer)
 
 return nanotimer

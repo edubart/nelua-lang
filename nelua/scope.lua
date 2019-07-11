@@ -59,7 +59,7 @@ function Scope:get_symbol(name, node, required)
     end
   end
   if not symbol and required and self.context.state.strict and not self.context.preprocessing then
-    node:raisef("undeclarated symbol '%s'", name)
+    node:raisef("undeclared symbol '%s'", name)
   end
   return symbol
 end
@@ -84,7 +84,7 @@ function Scope:add_symbol(symbol)
   local oldsymbol = self.symbols[name]
   if oldsymbol and (not oldsymbol.node or oldsymbol.node ~= symbol.node) then
     symbol.node:assertraisef(not self.context.state.strict,
-      "symbol '%s' shadows pre declarated symbol with the same name", name)
+      "symbol '%s' shadows pre declared symbol with the same name", name)
 
     -- symbol redeclaration, resolve old symbol type before replacing it
     symbol_resolve_type(oldsymbol)

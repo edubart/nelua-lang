@@ -72,10 +72,10 @@ end
 
 -- pairs() for string keys only
 function iterators.spairs(t)
-  return function(_t, k)
+  return function(st, k)
     local v
     repeat
-      k, v = next(_t, k)
+      k, v = next(st, k)
     until k == nil or type(k) == 'string'
     if k ~= nil then
       return k, v

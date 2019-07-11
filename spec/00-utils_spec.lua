@@ -59,7 +59,7 @@ it("raising labeled Exception", function()
     return true
   end)
   assert(e and e.label == 'MyError' and e:get_message() == 'MyError')
-  assert(except.is_exception(e, 'MyError'))
+  assert(except.isexception(e, 'MyError'))
 end)
 
 it("reraising", function()

@@ -39,7 +39,7 @@ end)
 
 it("global variable", function()
   assert.ast_type_equals("global a = 1", "global a: integer = 1")
-  assert.analyze_error("do global a = 1 end", "global variables can only be declarated in top scope")
+  assert.analyze_error("do global a = 1 end", "global variables can only be declared in top scope")
 end)
 
 it("name collision", function()
@@ -280,7 +280,7 @@ it("function definition", function()
     do
       global function f() end
     end
-  ]], "can only be declarated in top scope")
+  ]], "can only be declared in top scope")
   assert.analyze_error([[
     local f: isize
     function f(a: integer) return 0 end
@@ -903,9 +903,9 @@ it("strict mode", function()
     global function g() return 4 end
     assert(a == 1 and b == 2 and f() == 3 and g() == 4)
   ]])
-  assert.analyze_error("!!strict function f() return 0 end", "undeclarated symbol")
-  assert.analyze_error("!!strict a = 1", "undeclarated symbol")
-  assert.analyze_error("!!strict local a; local a", "shadows pre declarated symbol")
+  assert.analyze_error("!!strict function f() return 0 end", "undeclared symbol")
+  assert.analyze_error("!!strict a = 1", "undeclared symbol")
+  assert.analyze_error("!!strict local a; local a", "shadows pre declared symbol")
 end)
 
 end)

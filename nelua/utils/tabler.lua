@@ -42,21 +42,21 @@ end
 
 -- create a new table of mapped array values
 function tabler.imap(t, f)
-  local _t = {}
+  local ot = {}
   for i=1,#t do
     local nv, ni = f(t[i], i)
-    _t[ni or i] = nv
+    ot[ni or i] = nv
   end
-  return _t
+  return ot
 end
 
 -- shallow copy for table
 function tabler.copy(t)
-  local _t = {}
+  local ot = {}
   for i,v in pairs(t) do
-    _t[i] = v
+    ot[i] = v
   end
-  return _t
+  return ot
 end
 
 -- check if all values of a list pass test
@@ -102,28 +102,28 @@ tabler.pack = table.pack or function(...) return {n=select('#',...), ...} end
 
 --- tabler wrapper for using in chain mode
 do
-  local tabler_wrapper = {}
-  local tabler_wrapper_mt = { __index = tabler_wrapper}
-  local function new_tabler_wrapper(v)
-    return setmetatable({_v = v}, tabler_wrapper_mt)
+  local tablewrapper = {}
+  local tablewrapper_mt = { __index = tablewrapper}
+  local function createtablewrapper(v)
+    return setmetatable({_v = v}, tablewrapper_mt)
   end
 
   -- function for returning the wrapper table
-  function tabler_wrapper:value()
+  function tablewrapper:value()
     return self._v
   end
 
   -- inject tabler functions into the wrapper
   for k,f in pairs(tabler) do
-    tabler_wrapper[k] = function(v, ...)
-      assert(getmetatable(v) == tabler_wrapper_mt)
-      return new_tabler_wrapper(f(v._v, ...))
+    tablewrapper[k] = function(v, ...)
+      assert(getmetatable(v) == tablewrapper_mt)
+      return createtablewrapper(f(v._v, ...))
     end
   end
 
   -- allow calling tabler() to begin chain on tables
   function tabler.chain(v)
-    return new_tabler_wrapper(v)
+    return createtablewrapper(v)
   end
   metamagic.setmetacall(tabler, tabler.chain)
 end

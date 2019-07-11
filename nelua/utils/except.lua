@@ -38,7 +38,7 @@ except.Exception = Exception
 
 local function raise(e, level)
   level = (level or 1) + 1
-  if class.is_a(e, Exception) then
+  if class.is(e, Exception) then
     error(e, level)
   elseif traits.is_string(e) then
     error(Exception({ message = e }, level), level)
@@ -65,19 +65,19 @@ function except.assertraisef(cond, message, ...)
   return cond
 end
 
-function except.is_exception(e, label)
-  return class.is_a(e, Exception) and (not label or (label == e.label))
+function except.isexception(e, label)
+  return class.is(e, Exception) and (not label or (label == e.label))
 end
 
 function except.reraise(e)
-  if class.is_a(e, Exception) then
+  if class.is(e, Exception) then
     e.traceback = debug.traceback(e.traceback)
   end
   error(e, 0)
 end
 
-local function try_error_handler(e)
-  if class.is_a(e, Exception) then
+local function tryerrhandler(e)
+  if class.is(e, Exception) then
     return e
   elseif type(e) == 'string' then
     return debug.traceback(e, 2)
@@ -97,9 +97,9 @@ end
 --    an exception is considered caught when the call to the handler returns true
 --    the handler can be a table of labeled exceptions function handlers or a function
 function except.try(f, handler)
-  local ok, e = xpcall(f, try_error_handler)
+  local ok, e = xpcall(f, tryerrhandler)
   if not ok then
-    if class.is_a(e, Exception) then
+    if class.is(e, Exception) then
       if handler then
         if traits.is_table(handler) then handler = handler[e.label or 'Exception'] end
         if handler and handler(e) then return true end

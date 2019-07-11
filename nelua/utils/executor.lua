@@ -7,7 +7,7 @@ local executor = {}
 
 -- luacov:disable
 
--- try to use luaposix exec (faster because we skil shell creation)
+-- try to use luaposix exec (faster because we skip shell creation)
 local hasposix, posix_pexec = pcall(function()
   local unistd = require 'posix.unistd'
   local wait = require 'posix.sys.wait'.wait
@@ -104,7 +104,7 @@ local pexec = hasposix and posix_pexec or pl_pexec
 
 --luacov:enable
 
-local function convert_args(exe, args)
+local function convertargs(exe, args)
   if not args then
     args = pegger.split_execargs(exe)
     exe = args[1]
@@ -115,13 +115,13 @@ end
 
 -- luacov:disable
 function executor.exec(exe, args)
-  exe, args = convert_args(exe, args)
+  exe, args = convertargs(exe, args)
   return pexec(exe, args)
 end
 --luacov:enable
 
 function executor.execex(exe, args)
-  exe, args = convert_args(exe, args)
+  exe, args = convertargs(exe, args)
   return pexec(exe, args, true)
 end
 

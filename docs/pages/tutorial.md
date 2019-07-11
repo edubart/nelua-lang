@@ -15,7 +15,7 @@ This is a basic tutorial for the programming language Nelua.
 
 ## Your first program
 
-```
+```nelua
 print 'Hello world'
 ```
 

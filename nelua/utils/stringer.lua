@@ -11,12 +11,6 @@ function stringer.hash(s, len, key)
   return hasher.base58encode(hash)
 end
 
-stringer.startswith = stringx.startswith
-stringer.endswith = stringx.endswith
-stringer.split = stringx.split
-stringer.rstrip = stringx.rstrip
-stringer.count = stringx.count
-
 function stringer.pconcat(...)
   local t = tabler.pack(...)
   for i=1,t.n do
@@ -38,5 +32,11 @@ function stringer.pformat(format, ...)
   end
   return string.format(format, tabler.unpack(args))
 end
+
+stringer.startswith = stringx.startswith
+stringer.endswith = stringx.endswith
+stringer.split = stringx.split
+stringer.rstrip = stringx.rstrip
+stringer.count = stringx.count
 
 return stringer

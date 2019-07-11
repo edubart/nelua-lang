@@ -3,7 +3,7 @@ local metamagic = require 'nelua.utils.metamagic'
 local class = {}
 
 -- called when creating a new object
-local function create_object(klass, ...)
+local function createobject(klass, ...)
   local object = setmetatable({}, klass)
   local init = object._init
   if init then init(object, ...) end
@@ -21,11 +21,11 @@ function class.new(base)
     end
   end
   klass.__index = klass
-  return setmetatable(klass, { __index = base, __call = create_object })
+  return setmetatable(klass, { __index = base, __call = createobject })
 end
 
 -- check if a value is an instance of a class
-function class.is_a(val, T)
+function class.is(val, T)
   local mt = getmetatable(val)
   while mt do
     local mtindex = rawget(mt, '__index')

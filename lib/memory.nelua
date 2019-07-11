@@ -1,0 +1,97 @@
+## state.strict = true
+## state.modname = 'nelua'
+## state.nohashcodenames = true
+
+!!cinclude '<stdlib.h>'
+!!cinclude '<string.h>'
+
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer !cimport 'memcpy' end
+local function memmove(dest: pointer, src: pointer, n: csize): pointer !cimport 'memmove' end
+local function memset(s: pointer, c: cint, n: csize): pointer !cimport 'memset' end
+
+local function malloc(size: csize): pointer !cimport 'malloc' end
+local function calloc(nmemb: csize, size: csize): pointer !cimport 'calloc' end
+local function realloc(ptr: pointer, size: csize): pointer !cimport 'realloc' end
+local function free(ptr: pointer): void !cimport 'free' end
+
+global memory = @record{}
+
+local memslice = @record {
+  data: byte[0]*,
+  size: usize
+}
+
+function memory.alloc(size: usize): memslice
+  assert(size > 0)
+  local data = @byte[0]*(malloc(size))
+  assert(data)
+  return memslice { data, size }
+end
+
+function memory.alloc0(size: usize): memslice
+  assert(size > 0)
+  local data = @byte[0]*(calloc(1, size))
+  assert(data)
+  return memslice { data, size }
+end
+
+function memory.realloc(s: memslice*, size: usize)
+  assert(size > 0)
+  s.data = @byte[0]*(realloc(s.data, size))
+  assert(s.data)
+  s.size = size
+end
+
+function memory.realloc0(s: memslice*, size: usize)
+  assert(size > 0)
+  s.data = @byte[0]*(realloc(s.data, size))
+  assert(s.data)
+  if size > s.size then
+    memset(&s.data[s.size], 0, size - s.size)
+  end
+  s.size = size
+end
+
+function memory.dealloc(s: memslice*)
+  if s.size == 0 then
+    return
+  end
+  s.data = nilptr
+  s.size = 0
+  free(s.data)
+end
+
+function memory.copy(dest: memslice, src: memslice)
+  assert(dest.size >= src.size)
+  memcpy(dest.data, src.data, src.size)
+end
+
+function memory.move(dest: memslice, src: memslice)
+  assert(dest.size >= src.size)
+  memcpy(dest.data, src.data, src.size)
+end
+
+function memory.set(dest: memslice, x: byte)
+  memset(dest.data, x, dest.size)
+end
+
+-- tests
+local function assertmem(s: memslice, x: byte)
+  for i=0_usize,<s.size do
+    assert(s.data[i] == x)
+  end
+end
+
+local mem = memory.alloc0(4)
+assert(mem.size == 4)
+assertmem(mem, 0)
+
+memory.realloc0(mem, 8)
+assert(mem.size == 8)
+assertmem(mem, 0)
+
+memory.set(mem, 0xff)
+assertmem(mem, 0xff)
+
+memory.dealloc(mem)
+assert(mem.size == 0)

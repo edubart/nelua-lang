@@ -52,8 +52,9 @@ function bn.isintegral(v)
 end
 
 function bn.tointeger(v)
-  if v:isintegral() then
-    return tonumber(tostring(v:trunc()))
+  local vint = v:trunc()
+  if v == vint then
+    return tonumber(tostring(vint))
   end
 end
 

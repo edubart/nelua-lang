@@ -15,12 +15,12 @@ local function run(argv, redirect)
   local config = configer.parse(argv)
   local generator = require('nelua.' .. config.generator .. 'generator')
   if config.timing then
-    console.debugf('startup         %.1f ms', timer:elapsed_restart())
+    console.debugf('startup         %.1f ms', timer:elapsedrestart())
   end
 
   local syntax = syntaxdefs(config.standard)
   if config.timing then
-    console.debugf('compile grammar %.1f ms', timer:elapsed_restart())
+    console.debugf('compile grammar %.1f ms', timer:elapsedrestart())
   end
 
 
@@ -37,7 +37,7 @@ local function run(argv, redirect)
   local ast = parser:parse(input, infile)
 
   if config.timing then
-    console.debugf('parse AST       %.1f ms', timer:elapsed_restart())
+    console.debugf('parse AST       %.1f ms', timer:elapsedrestart())
   end
 
   -- only checking syntax?
@@ -55,7 +55,7 @@ local function run(argv, redirect)
   typechecker.analyze(ast, parser)
 
   if config.timing then
-    console.debugf('analyze AST     %.1f ms', timer:elapsed_restart())
+    console.debugf('analyze AST     %.1f ms', timer:elapsedrestart())
   end
 
   if config.print_analyzed_ast then
@@ -69,7 +69,7 @@ local function run(argv, redirect)
   local code, compileopts = generator.generate(ast)
 
   if config.timing then
-    console.debugf('generate code   %.1f ms', timer:elapsed_restart())
+    console.debugf('generate code   %.1f ms', timer:elapsedrestart())
   end
 
   -- only printing generated code?
@@ -87,7 +87,7 @@ local function run(argv, redirect)
   local sourcefile = compiler.compile_code(code, outcachefile, compileopts)
 
   if config.timing then
-    console.debugf('compile code    %.1f ms', timer:elapsed_restart())
+    console.debugf('compile code    %.1f ms', timer:elapsedrestart())
   end
 
   local dorun = not config.compile and not config.compile_binary
@@ -99,7 +99,7 @@ local function run(argv, redirect)
     binaryfile = compiler.compile_binary(sourcefile, outcachefile, compileopts)
 
     if config.timing then
-      console.debugf('compile binary  %.1f ms', timer:elapsed_restart())
+      console.debugf('compile binary  %.1f ms', timer:elapsedrestart())
     end
   end
 
@@ -112,7 +112,7 @@ local function run(argv, redirect)
     if sout then io.stdout:write(sout) io.stdout:flush() end
     if serr then io.stderr:write(serr) io.stderr:flush() end
     if config.timing then
-      console.debugf('run             %.1f ms', timer:elapsed_restart())
+      console.debugf('run             %.1f ms', timer:elapsedrestart())
     end
     return status
   end
