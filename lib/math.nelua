@@ -11,7 +11,7 @@ global math = @record{}
 global math.pi: compconst = 3.141592653589793
 global math.maxinteger: compconst = 9223372036854775807
 global math.mininteger: compconst = -9223372036854775807-1
-global math.huge: number !cimport 'HUGE_VAL'
+global math.huge: const number !cimport 'HUGE_VAL'
 
 function math.abs(x: number): number !cimport 'fabs' end
 function math.ceil(x: number): number !cimport 'ceil' end
@@ -31,7 +31,6 @@ function math.fmod(x: number, y: number): number !cimport 'fmod' end
 function math.atan2(x: number, y: number): number !cimport 'atan2' end
 
 -- used internally
-local RAND_MAX: int32 !cimport
 local function clog2(x: number): number !cimport 'log2' end
 local function clog10(x: number): number !cimport 'log10' end
 local function cmodf(x: number, y: number*): number !cimport 'modf' end

@@ -283,7 +283,7 @@ function visitors.DotIndex(context, node, emitter)
   local name, objnode = node:args()
   local type = objnode.attr.type
   if type:is_type() then
-    local objtype = node.attr.holdedtype
+    local objtype = node.attr.indextype
     if objtype:is_enum() then
       emitter:add(objtype:get_field(name).value)
     elseif objtype:is_record() then

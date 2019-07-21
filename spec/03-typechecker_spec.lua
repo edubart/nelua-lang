@@ -674,6 +674,12 @@ it("record globals", function()
     global Math.PI = 3.14
     local a = Math.PI
   ]])
+  assert.analyze_ast([[
+    local Math = @record{}
+    global Math.mathnumber = @number
+    local mathnumber = Math.mathnumber
+    local a: mathnumber = 1
+  ]])
   assert.analyze_error([[
     local Math = @record{}
     global Math.PI: integer = 3

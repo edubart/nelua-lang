@@ -600,16 +600,16 @@ local i: integer*
 
 ### Range
 
-Ranges are used to specifying ranges for slices.
+Ranges are used to specifying ranges for spans.
 
 ```nelua
 local r = 1:10
 local r: range<integer>
 ```
 
-### Slice
+### Span
 
-Slices are pointers to a block of contiguous elements at runtime.
+Span are pointers to a block of contiguous elements at runtime.
 
 ```nelua
 local arr = @integer[4] {1,2,3,4}
@@ -620,8 +620,8 @@ print(arr[:3]) -- outputs '1 2 3'
 print(arr[:]) -- outputs '1 2 3 4'
 print(str[1:5]) -- outputs 'hello'
 
-local a: array_slice<integer> = arr[1:2]
-local a: string_slice = 'hello world'[1:2]
+local a: array_span<integer> = arr[1:2]
+local a: string_span = 'hello world'[1:2]
 ```
 
 ### Void

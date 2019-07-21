@@ -749,6 +749,11 @@ it("record globals", function()
     local Math = @record{}
     global Math.PI: compconst = 3.14
     compconst Math.E = 2.7
+
+    global Math.Number = @number
+    local MathNumber = Math.Number
+    local a: MathNumber = 1
+    assert(a == 1)
   ]], "double mymod_Math_PI = 3.14")
   assert.run_c([[
     local Math = @record{}

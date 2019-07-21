@@ -1,7 +1,14 @@
+--TODO: lazy functions to make it generic
+--TODO: span class
+--TODO: record metamethods
+
 !!strict
 
+  
 !!cinclude '<stdlib.h>'
 !!cinclude '<string.h>'
+
+local function calloc(nmemb: csize, size: csize): pointer !cimport 'calloc' end
 local function realloc(ptr: pointer, size: usize): pointer !cimport end
 local function memset(s: pointer, c: int32, n: usize): pointer !cimport end
 local function memcpy(dest: pointer, src: pointer, n: csize): pointer !cimport end
@@ -13,6 +20,10 @@ local myarraytableobj !codename 'myarraytable' = @record{
   data: T[0]*
 }
 local myarraytable = @myarraytableobj*
+
+function myarraytable.create(): myarraytable
+  return @myarraytable(calloc(@csize(#myarraytableobj), 1))
+end
 
 function myarraytable:reserve(cap: usize)
   local data = @T[0]*(realloc(self.data, (cap + 1_usize) * @usize(#T)))
@@ -41,7 +52,7 @@ function myarraytable:resize_zero(n: usize)
   end
 end
 
-function myarraytable:resize(n: usize, v: const T)
+function myarraytable:resize(n: usize, v: T)
   local addn = n - self.len
   if addn > 0 then
     self:reserve(n)
@@ -52,13 +63,13 @@ function myarraytable:resize(n: usize, v: const T)
   end
 end
 
-function myarraytable:init(a: const T[0]*, n: usize)
+function myarraytable:init(a: T[0]*, n: usize)
   self:reserve(n)
   memcpy(&self.data[1], &a[0], n * @usize(#T))
   self.len = n
 end
 
-function myarraytable:push(v: const T)
+function myarraytable:push(v: T)
   self.len = self.len + 1
   if unlikely(self.len > self.cap) then
     self:grow()
@@ -103,6 +114,15 @@ function myarraytable:length(): usize
   return self.len
 end
 
-
-
-
+-- tests
+local t = myarraytable.create()
+assert(t:length() == 0)
+assert($t:at(0) == 0)
+assert(t:length() == 0)
+local i = t:at(0); $i = 1
+assert($t:get(0) == 1)
+t:push(0xf)
+assert($t:get(1) == 0xf)
+assert(t:length() == 1)
+t:pop()
+assert(t:length() == 0)

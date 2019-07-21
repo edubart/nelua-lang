@@ -16,33 +16,34 @@ local function free(ptr: pointer): void !cimport 'free' end
 
 global memory = @record{}
 
-local memslice = @record {
+local span = @record {
   data: byte[0]*,
   size: usize
 }
+global memory.span = span
 
-function memory.alloc(size: usize): memslice
+function memory.alloc(size: usize): span
   assert(size > 0)
   local data = @byte[0]*(malloc(size))
   assert(data)
-  return memslice { data, size }
+  return span { data, size }
 end
 
-function memory.alloc0(size: usize): memslice
+function memory.alloc0(size: usize): span
   assert(size > 0)
   local data = @byte[0]*(calloc(1, size))
   assert(data)
-  return memslice { data, size }
+  return span { data, size }
 end
 
-function memory.realloc(s: memslice*, size: usize)
+function memory.realloc(s: span*, size: usize)
   assert(size > 0)
   s.data = @byte[0]*(realloc(s.data, size))
   assert(s.data)
   s.size = size
 end
 
-function memory.realloc0(s: memslice*, size: usize)
+function memory.realloc0(s: span*, size: usize)
   assert(size > 0)
   s.data = @byte[0]*(realloc(s.data, size))
   assert(s.data)
@@ -52,46 +53,25 @@ function memory.realloc0(s: memslice*, size: usize)
   s.size = size
 end
 
-function memory.dealloc(s: memslice*)
+function memory.dealloc(s: span*)
   if s.size == 0 then
     return
   end
+  free(s.data)
   s.data = nilptr
   s.size = 0
-  free(s.data)
 end
 
-function memory.copy(dest: memslice, src: memslice)
+function memory.copy(dest: span, src: span)
   assert(dest.size >= src.size)
   memcpy(dest.data, src.data, src.size)
 end
 
-function memory.move(dest: memslice, src: memslice)
+function memory.move(dest: span, src: span)
   assert(dest.size >= src.size)
   memcpy(dest.data, src.data, src.size)
 end
 
-function memory.set(dest: memslice, x: byte)
+function memory.set(dest: span, x: byte)
   memset(dest.data, x, dest.size)
 end
-
--- tests
-local function assertmem(s: memslice, x: byte)
-  for i=0_usize,<s.size do
-    assert(s.data[i] == x)
-  end
-end
-
-local mem = memory.alloc0(4)
-assert(mem.size == 4)
-assertmem(mem, 0)
-
-memory.realloc0(mem, 8)
-assert(mem.size == 8)
-assertmem(mem, 0)
-
-memory.set(mem, 0xff)
-assertmem(mem, 0xff)
-
-memory.dealloc(mem)
-assert(mem.size == 0)

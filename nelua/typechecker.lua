@@ -576,7 +576,7 @@ local function visitor_FieldIndex(context, node)
         -- allow to access method and fields on record pointer types
         objtype = objtype.subtype
       end
-      attr.holdedtype = objtype
+      attr.indextype = objtype
       if objtype:is_enum() then
         node:assertraisef(objtype:get_field(name),
           'enum "%s" does not have field named "%s"',
@@ -609,6 +609,8 @@ local function visitor_FieldIndex(context, node)
           symbol:link_node(parentnode)
         elseif context.infuncdef or context.inglobaldecl then
           node:assertraisef(symbol.node == node, 'cannot redefine meta type function')
+        else
+          symbol:link_node(node)
         end
         if symbol then
           type = symbol.attr.type
