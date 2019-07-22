@@ -302,13 +302,29 @@ end
 visitors.ColonIndex = visitors.DotIndex
 
 function visitors.ArrayIndex(context, node, emitter)
-  local index, objnode = node:args()
+  local indexnode, objnode = node:args()
   local objtype = objnode.attr.type
   local pointer = false
   if objtype:is_pointer() and not objtype:is_generic_pointer() then
+    -- indexing a pointer to an array
     objtype = objtype.subtype
     pointer = true
   end
+
+  local indextype = indexnode.attr.type
+  local index = indexnode
+  if indextype:is_range() then
+    assert(node.attr.type:is_span())
+    -- index is a range type, result is a span
+    emitter:add_ln('({')
+    emitter:inc_indent()
+    emitter:add_indent_ln(indextype, ' __range = ', indexnode, ';')
+    emitter:add_indent()
+    emitter:add_nodectypecast(node)
+    emitter:add('{&(')
+    index = '__range.low'
+  end
+
   if objtype:is_arraytable() then
     emitter:add('*', context:typename(objtype))
     emitter:add(node.assign and '_at(&' or '_get(&')
@@ -318,12 +334,19 @@ function visitors.ArrayIndex(context, node, emitter)
   else
     emitter:add(objnode)
   end
+
   if objtype:is_arraytable() then
     emitter:add(', ', index, ')')
   elseif objtype:is_array() or objtype:is_span() then
     emitter:add('.data[', index, ']')
   else
     emitter:add('[', index, ']')
+  end
+
+  if indextype:is_range() then
+    emitter:add_ln('), __range.high - __range.low };')
+    emitter:dec_indent()
+    emitter:add_indent_ln('})')
   end
 end
 

@@ -92,6 +92,16 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
   end
 end
 
+function operators.range(node, emitter, lnode, rnode)
+  local subtype = node.attr.type.subtype
+  emitter:add_nodectypecast(node)
+  emitter:add('{')
+  emitter:add_val2type(subtype, lnode)
+  emitter:add(',')
+  emitter:add_val2type(subtype, rnode)
+  emitter:add('}')
+end
+
 local functions = {}
 builtins.functions = functions
 

@@ -555,6 +555,21 @@ it("spans", function()
   assert.analyze_error([[local a: span<void>]], 'spans cannot be of')
 end)
 
+it("ranges", function()
+  assert.analyze_ast([[
+    local a: range<integer>
+    local low, high = a.low, a.high
+    local b = 1:2
+    low, high = b.low, b.high
+  ]])
+  assert.ast_type_equals([[
+    local a = 1_u8:2_u16
+  ]],[[
+    local a: range<uint16> = 1_u8:2_u16
+  ]])
+  assert.analyze_error([[local a: range<string>]], 'is not an integral type')
+end)
+
 it("arrays", function()
   --assert.analyze_ast([[local a: array<integer, (2 << 1)>]])
   assert.analyze_ast([[local compconst N = 10; local a: array<integer, N>]])
@@ -576,13 +591,25 @@ it("arrays", function()
   assert.analyze_error([[local a: array<integer, 2> = {1}]], 'expected 2 values but got 1')
   assert.analyze_error([[local a: array<integer, 2>; a[-1] = 1]], 'trying to index negative value')
   assert.analyze_error([[local a: array<integer, 2>; a[2] = 1]], 'is out of bounds')
-  assert.analyze_error([[local a: array<integer, 2>; a['s'] = 1]], 'trying to index with non integral value')
+  assert.analyze_error([[local a: array<integer, 2>; a['s'] = 1]], 'trying to index with value of type')
   assert.analyze_error([[local compconst a: array<integer, 2> = {1,b}]], 'can only assign to constant expressions')
 end)
 
 it("indexing", function()
   assert.analyze_error([[local a = 1; a[1] = 2]], 'cannot index variable of type')
   assert.analyze_error([[local a = 1; a.b = 2]], 'cannot index field')
+end)
+
+it("range indexing", function()
+  assert.ast_type_equals([[
+    local a: integer[8]
+    local s = a[0:3]
+    local s2 = s[0:1]
+  ]],[[
+    local a: integer[8]
+    local s: span<integer> = a[0:3]
+    local s2: span<integer> = s[0:1]
+  ]])
 end)
 
 it("records", function()

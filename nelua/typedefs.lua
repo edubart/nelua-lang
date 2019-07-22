@@ -151,8 +151,8 @@ end
 
 -- NOTE: order here does matter when looking up for a common type between two different types
 typedefs.integer_coerce_types = {
-  primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
   primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
+  primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
 }
 
 -- literal suffixes types
@@ -275,6 +275,16 @@ local binary_op_types = {
   ['idiv']    = typedefs.numeric_types,
   ['pow']     = typedefs.numeric_types,
   ['concat']  = { primtypes.string },
+  ['range']   = tabler(typedefs.integral_types):copy():update({
+    result_type = function(ltype, rtype)
+      if rtype then
+        local type = typedefs.find_common_type({ltype, rtype})
+        if type and type:is_integral() then
+          return types.RangeType(nil, type)
+        end
+      end
+    end
+  }):value(),
   ['ne']      = { Type, result_type = primtypes.boolean },
   ['eq']      = { Type, result_type = primtypes.boolean },
 }

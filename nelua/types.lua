@@ -16,21 +16,6 @@ Type._type = true
 Type.unary_operators = {}
 Type.binary_operators = {}
 
-local uidcounter = 0
-local function genkey(name, node)
-  local uid
-  local srcname
-  if node then
-    uid = node.uid
-    srcname = node.srcname or ''
-  else
-    uidcounter = uidcounter + 1
-    uid = uidcounter
-    srcname = '__nonode__'
-  end
-  return string.format('%s%s%d', name, srcname, uid)
-end
-
 function Type:_init(name, size, node)
   assert(name)
   self.name = name
@@ -44,7 +29,6 @@ function Type:_init(name, size, node)
   self.conversible_types = {}
   self.aligned = nil
   self.codename = string.format('nelua_%s', self.name)
-  self.key = genkey(name, node)
   local mt = getmetatable(self)
   metamagic.setmetaindex(self.unary_operators, mt.unary_operators)
   metamagic.setmetaindex(self.binary_operators, mt.binary_operators)
@@ -89,8 +73,11 @@ function Type:add_binary_operator_type(opname, type)
   self.binary_operators[opname] = type
 end
 
-function Type:get_binary_operator_type(opname)
+function Type:get_binary_operator_type(opname, otype)
   local type = self.binary_operators[opname]
+  if traits.is_function(type) then
+    type = type(self, otype)
+  end
   if not type and self:is_any() then
     type = self
   end
@@ -183,8 +170,8 @@ function Type:is_cstring()
   return self.name == 'pointer' and self.subtype and self.subtype.name == 'cchar'
 end
 
-function Type:is_record()
-  return self.name == 'record' or self.name == 'span'
+function Type.is_record()
+  return false
 end
 
 function Type:is_boolean()
@@ -227,6 +214,10 @@ function Type:is_span()
   return self.name == 'span'
 end
 
+function Type:is_range()
+  return self.name == 'range'
+end
+
 function Type:is_generic_pointer()
   return self.name == 'pointer' and self.subtype:is_void()
 end
@@ -258,7 +249,23 @@ Type.usize = Type('usize', cpusize)
 Type.isize = Type('isize', cpusize)
 Type.any = Type('any')
 
+local uidcounter = 0
+local function genkey(name, node)
+  local uid
+  local srcname
+  if node then
+    uid = node.uid
+    srcname = node.srcname or ''
+  else
+    uidcounter = uidcounter + 1
+    uid = uidcounter
+    srcname = '__nonode__'
+  end
+  return string.format('%s%s%d', name, srcname, uid)
+end
+
 local function gencodename(self)
+  self.key = genkey(self.name, self.node)
   local hash = stringer.hash(self.key, 16)
   return string.format('%s_%s', self.name, hash)
 end
@@ -457,12 +464,9 @@ end
 --------------------------------------------------------------------------------
 local MetaType = typeclass()
 
-local metatypecounter = 0
 function MetaType:_init(node, fields)
   self.fields = fields or {}
   Type._init(self, 'metatype', 0, node)
-  metatypecounter = metatypecounter + 1
-  self.key = metatypecounter
   self.codename = gencodename(self)
 end
 
@@ -528,6 +532,10 @@ end
 
 function RecordType:is_equal(type)
   return type.name == self.name and type.key == self.key
+end
+
+function RecordType.is_record()
+  return true
 end
 
 function RecordType:__tostring()
@@ -608,10 +616,9 @@ function SpanType:_init(node, subtype)
     {name = 'size', type = Type.usize}
   }
   local size = compute_record_size(fields)
-  self.fields = fields
   Type._init(self, 'span', size, node)
-  self.key = 'span_' .. subtype.codename
-  self.codename = gencodename(self)
+  self.fields = fields
+  self.codename = subtype.codename .. '_span'
   self.metatype = MetaType()
   self.subtype = subtype
 end
@@ -626,6 +633,32 @@ function SpanType:__tostring()
   return sstream(self.name, '<', self.subtype, '>'):tostring()
 end
 
+--------------------------------------------------------------------------------
+local RangeType = typeclass(RecordType)
+
+function RangeType:_init(node, subtype)
+  local fields = {
+    {name = 'low', type = subtype},
+    {name = 'high', type = subtype}
+  }
+  local size = compute_record_size(fields)
+  Type._init(self, 'range', size, node)
+  self.fields = fields
+  self.codename = subtype.codename .. '_range'
+  self.metatype = MetaType()
+  self.subtype = subtype
+end
+
+function RangeType:is_equal(type)
+  return type.name == self.name and
+         getmetatable(type) == getmetatable(self) and
+         type.subtype == self.subtype
+end
+
+function RangeType:__tostring()
+  return sstream(self.name, '<', self.subtype, '>'):tostring()
+end
+
 local types = {
   Type = Type,
   ArrayTableType = ArrayTableType,
@@ -636,6 +669,7 @@ local types = {
   RecordType = RecordType,
   PointerType = PointerType,
   SpanType = SpanType,
+  RangeType = RangeType,
 }
 
 return types

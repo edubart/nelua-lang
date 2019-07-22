@@ -115,6 +115,9 @@ astbuilder:register('PointerType', {
 astbuilder:register('SpanType', {
   ntypes.Node, -- subtype typexpr
 })
+astbuilder:register('RangeType', {
+  ntypes.Node, -- subtype typexpr
+})
 astbuilder:register('MultipleType', {
   stypes.array_of(ntypes.Node), -- typexprs
 })

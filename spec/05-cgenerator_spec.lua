@@ -644,6 +644,29 @@ it("spans", function()
   ]])
 end)
 
+it("ranges", function()
+  assert.run_c([[
+    local a: range<integer>
+    assert(a.low == 0 and a.high == 0)
+    a = 2:3
+    assert(a.low == 2 and a.high == 3)
+    a = -1:0
+    assert(a.low == -1 and a.high == 0)
+
+    local buff: array<integer, 10>
+    local span1 = buff[0:9]
+    local span2 = span1[0:9]
+    assert(span2[0] == 0)
+    span2[0] = 2
+    span2[9] = 3
+    assert(buff[0] == 2 and buff[9] == 3)
+
+    local arr = @integer[4] {1,2,3,4}
+    local s = arr[1:2]
+    assert(s[0] == 2 and s[1] == 3)
+  ]])
+end)
+
 it("arrays", function()
   assert.generate_c(
     "local a: array<boolean, 10>",

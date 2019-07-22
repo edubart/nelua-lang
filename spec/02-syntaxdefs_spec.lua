@@ -1404,10 +1404,17 @@ describe("type expression", function()
     }}})
   end)
   it("span type", function()
-    assert.parse_ast(nelua_parser, "local p: span<integer>",
+    assert.parse_ast(nelua_parser, "local s: span<integer>",
       n.Block{{
         n.VarDecl{'local', nil,
-          { n.IdDecl{'p', nil, n.SpanType{n.Type{'integer'}}}}
+          { n.IdDecl{'s', nil, n.SpanType{n.Type{'integer'}}}}
+    }}})
+  end)
+  it("range type", function()
+    assert.parse_ast(nelua_parser, "local r: range<integer>",
+      n.Block{{
+        n.VarDecl{'local', nil,
+          { n.IdDecl{'r', nil, n.RangeType{n.Type{'integer'}}}}
     }}})
   end)
   it("complex types", function()

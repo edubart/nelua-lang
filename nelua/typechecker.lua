@@ -517,6 +517,20 @@ function visitors.SpanType(context, node)
   attr.compconst = true
 end
 
+function visitors.RangeType(context, node)
+  local attr = node.attr
+  if attr.type then return end
+  local subtypenode = node:args()
+  context:traverse(subtypenode)
+  local subtype = subtypenode.attr.holdedtype
+  subtypenode:assertraisef(subtype:is_integral(),
+    'ranges subtype "%s" is not an integral type', subtype)
+  local type = types.RangeType(node, subtype)
+  attr.type = primtypes.type
+  attr.holdedtype = type
+  attr.compconst = true
+end
+
 function visitors.ArrayType(context, node)
   local attr = node.attr
   if attr.type then return end
@@ -667,22 +681,25 @@ function visitors.ArrayIndex(context, node)
     if objtype:is_arraytable() or objtype:is_array() or objtype:is_span() then
       local indextype = indexnode.attr.type
       if indextype then
-        indexnode:assertraisef(indextype:is_integral(),
-          "in array indexing, trying to index with non integral value '%s'",
-          indextype)
-      end
-      local indexvalue = indexnode.attr.value
-      if indexvalue then
-        indexnode:assertraisef(not indexvalue:isneg(),
-          "in array indexing, trying to index negative value %s",
-          indexvalue:todec())
-        if objtype:is_array() and objtype.length ~= 0 and not (indexvalue < bn.new(objtype.length)) then
-          indexnode:raisef(
-            "in array indexing, index %s is out of bounds, array maximum index is %d",
-            indexvalue:todec(), objtype.length - 1)
+        if indextype:is_integral() then
+          local indexvalue = indexnode.attr.value
+          if indexvalue then
+            indexnode:assertraisef(not indexvalue:isneg(),
+              "in array indexing, trying to index negative value %s",
+              indexvalue:todec())
+            if objtype:is_array() and objtype.length ~= 0 and not (indexvalue < bn.new(objtype.length)) then
+              indexnode:raisef(
+                "in array indexing, index %s is out of bounds, array maximum index is %d",
+                indexvalue:todec(), objtype.length - 1)
+            end
+          end
+          type = objtype.subtype
+        elseif indextype:is_range() and (objtype:is_array() or objtype:is_span()) then
+          type = types.SpanType(node, objtype.subtype)
+        else
+          indexnode:raisef("in array indexing, trying to index with value of type '%s'", indextype)
         end
       end
-      type = objtype.subtype
     elseif not (objtype:is_table() or objtype:is_any()) then
       node:raisef('cannot index variable of type "%s"', objtype.name)
     end
@@ -1540,13 +1557,13 @@ function visitors.BinaryOp(context, node, desiredtype)
     else
       local ltargettype, rtargettype
       if ltype then
-        ltargettype = ltype:get_binary_operator_type(opname)
+        ltargettype = ltype:get_binary_operator_type(opname, rtype)
         lnode:assertraisef(ltargettype,
           "binary operation `%s` is not defined for type '%s' of the left expression",
           opname, ltype)
       end
       if rtype then
-        rtargettype = rtype:get_binary_operator_type(opname)
+        rtargettype = rtype:get_binary_operator_type(opname, ltype)
         rnode:assertraisef(rtargettype,
           "binary operation `%s` is not defined for type '%s' of the right expression",
           opname, rtype)

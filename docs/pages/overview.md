@@ -604,7 +604,7 @@ Ranges are used to specifying ranges for spans.
 
 ```nelua
 local r = 1:10
-local r: range<integer>
+local r: range<integer> = 1:10
 ```
 
 ### Span
@@ -613,15 +613,10 @@ Span are pointers to a block of contiguous elements at runtime.
 
 ```nelua
 local arr = @integer[4] {1,2,3,4}
-local str = 'hello world'
-print(arr[1:2]) -- outputs '1 2'
-print(arr[2:]) -- outputs '2 3 4'
-print(arr[:3]) -- outputs '1 2 3'
-print(arr[:]) -- outputs '1 2 3 4'
-print(str[1:5]) -- outputs 'hello'
+local s = arr[1:2]
+print(s[0], s[1]) -- outputs 2 3
 
-local a: array_span<integer> = arr[1:2]
-local a: string_span = 'hello world'[1:2]
+local s: span<integer> = arr[1:2]
 ```
 
 ### Void
