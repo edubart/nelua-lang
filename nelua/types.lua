@@ -184,7 +184,7 @@ function Type:is_cstring()
 end
 
 function Type:is_record()
-  return self.name == 'record'
+  return self.name == 'record' or self.name == 'span'
 end
 
 function Type:is_boolean()
@@ -223,6 +223,10 @@ function Type:is_pointer()
   return self.name == 'pointer'
 end
 
+function Type:is_span()
+  return self.name == 'span'
+end
+
 function Type:is_generic_pointer()
   return self.name == 'pointer' and self.subtype:is_void()
 end
@@ -250,6 +254,8 @@ end
 -- types used internally
 Type.type = Type('type', 0)
 Type.void = Type('void', 0)
+Type.usize = Type('usize', cpusize)
+Type.isize = Type('isize', cpusize)
 Type.any = Type('any')
 
 local function gencodename(self)
@@ -257,8 +263,8 @@ local function gencodename(self)
   return string.format('%s_%s', self.name, hash)
 end
 
-local function typeclass()
-  local type = class(Type)
+local function typeclass(base)
+  local type = class(base or Type)
   type.unary_operators = {}
   type.binary_operators = {}
   metamagic.setmetaindex(type.unary_operators, Type.unary_operators)
@@ -593,6 +599,33 @@ function PointerType:__tostring()
   end
 end
 
+--------------------------------------------------------------------------------
+local SpanType = typeclass(RecordType)
+
+function SpanType:_init(node, subtype)
+  local fields = {
+    {name = 'data', type = PointerType(node, subtype)},
+    {name = 'size', type = Type.usize}
+  }
+  local size = compute_record_size(fields)
+  self.fields = fields
+  Type._init(self, 'span', size, node)
+  self.key = 'span_' .. subtype.codename
+  self.codename = gencodename(self)
+  self.metatype = MetaType()
+  self.subtype = subtype
+end
+
+function SpanType:is_equal(type)
+  return type.name == self.name and
+         getmetatable(type) == getmetatable(self) and
+         type.subtype == self.subtype
+end
+
+function SpanType:__tostring()
+  return sstream(self.name, '<', self.subtype, '>'):tostring()
+end
+
 local types = {
   Type = Type,
   ArrayTableType = ArrayTableType,
@@ -602,5 +635,7 @@ local types = {
   MultipleType = MultipleType,
   RecordType = RecordType,
   PointerType = PointerType,
+  SpanType = SpanType,
 }
+
 return types

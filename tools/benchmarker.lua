@@ -76,7 +76,7 @@ end
 
 local function nelua_compile(name, generator)
   local file = 'benchmarks/' .. name .. '.nelua'
-  local flags = '-q -b -r --lua-version=5.1 --cflags="-march=native"'
+  local flags = '-q -b -r --lua-version=5.1 --cache-dir nelua_cache --cflags="-march=native"'
   local command = string.format('lua ./nelua.lua %s -g %s %s', flags, generator, file)
   local success = executor.exec(command)
   assert(success, 'failed to compile nelua benchmark ' .. name)

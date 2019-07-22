@@ -504,6 +504,19 @@ function visitors.ArrayTableType(context, node)
   attr.compconst = true
 end
 
+function visitors.SpanType(context, node)
+  local attr = node.attr
+  if attr.type then return end
+  local subtypenode = node:args()
+  context:traverse(subtypenode)
+  local subtype = subtypenode.attr.holdedtype
+  subtypenode:assertraisef(not subtype:is_void(), 'spans cannot be of "void" type')
+  local type = types.SpanType(node, subtype)
+  attr.type = primtypes.type
+  attr.holdedtype = type
+  attr.compconst = true
+end
+
 function visitors.ArrayType(context, node)
   local attr = node.attr
   if attr.type then return end
@@ -651,7 +664,7 @@ function visitors.ArrayIndex(context, node)
       objtype = objtype.subtype
     end
 
-    if objtype:is_arraytable() or objtype:is_array() then
+    if objtype:is_arraytable() or objtype:is_array() or objtype:is_span() then
       local indextype = indexnode.attr.type
       if indextype then
         indexnode:assertraisef(indextype:is_integral(),

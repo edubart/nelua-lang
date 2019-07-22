@@ -472,6 +472,7 @@ local function get_parser(std)
       enum_type /
       arraytable_type /
       array_type /
+      span_type /
       pointer_type /
       primtype /
       ppexpr
@@ -512,6 +513,10 @@ local function get_parser(std)
       ) -> to_astnode
     arraytable_type <- (
       {} 'arraytable' -> 'ArrayTableType'
+        eLANGLE etypexpr eRANGLE
+      ) -> to_astnode
+    span_type <- (
+      {} 'span' -> 'SpanType'
         eLANGLE etypexpr eRANGLE
       ) -> to_astnode
     array_type <- (

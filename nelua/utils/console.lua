@@ -5,7 +5,8 @@ local colors = require 'term.colors'
 
 local console = {}
 
-do -- check if colored output is supported
+do --luacov:disable
+  -- check if colored output is supported
   local isatty = io.type(io.stdout) == 'file' and term.isatty and term.isatty(io.stdout)
   if not isatty then
     colors = tabler.copy(colors)
@@ -13,7 +14,7 @@ do -- check if colored output is supported
       colors[k] = ''
     end
   end
-end
+end --luacov:enable
 
 console.colors = colors
 

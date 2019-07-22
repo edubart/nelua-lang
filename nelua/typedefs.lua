@@ -16,12 +16,12 @@ local clongsize = math.max(cpusize, 4)
 
 -- primitive types
 local primtypes = {
-  isize     = Type('isize', cpusize),
+  isize     = Type.isize,
   int8      = Type('int8', 1),
   int16     = Type('int16', 2),
   int32     = Type('int32', 4),
   int64     = Type('int64', 8),
-  usize     = Type('usize', cpusize),
+  usize     = Type.usize,
   uint8     = Type('uint8', 1),
   uint16    = Type('uint16', 2),
   uint32    = Type('uint32', 4),

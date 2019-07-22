@@ -632,6 +632,18 @@ it("array tables", function()
   ]], "0\t1\t2\t2")
 end)
 
+it("spans", function()
+  assert.run_c([[
+    local buff: array<integer, 10>
+    local s: span<integer> = {&buff[0], 10}
+    assert(s.size == 10)
+    assert(s.data == &buff[0])
+    assert(s[0] == 0)
+    s[0] = 0xf
+    assert(s[0] == 0xf)
+  ]])
+end)
+
 it("arrays", function()
   assert.generate_c(
     "local a: array<boolean, 10>",

@@ -4,29 +4,22 @@
 
 !!strict
 
-  
-!!cinclude '<stdlib.h>'
-!!cinclude '<string.h>'
+require 'memory'
 
-local function calloc(nmemb: csize, size: csize): pointer !cimport 'calloc' end
-local function realloc(ptr: pointer, size: usize): pointer !cimport end
-local function memset(s: pointer, c: int32, n: usize): pointer !cimport end
-local function memcpy(dest: pointer, src: pointer, n: csize): pointer !cimport end
-
-local T = @number
+local T = @byte
 local myarraytableobj !codename 'myarraytable' = @record{
   len: usize,
   cap: usize,
-  data: T[0]*
+  data: span<T>
 }
 local myarraytable = @myarraytableobj*
 
 function myarraytable.create(): myarraytable
-  return @myarraytable(calloc(@csize(#myarraytableobj), 1))
+  return @myarraytable(memory.alloc(@usize(#myarraytableobj)))
 end
 
 function myarraytable:reserve(cap: usize)
-  local data = @T[0]*(realloc(self.data, (cap + 1_usize) * @usize(#T)))
+  memory.realloc(self.data, (cap + 1_usize) * @usize(#T))
   if unlikely(not data) then
     error 'myarraytable_reserve: not enough memory'
   end
@@ -47,7 +40,7 @@ function myarraytable:resize_zero(n: usize)
   local addn = n - self.len
   if addn > 0 then
     self:reserve(n)
-    memset(&self.data[self.len+1], 0, addn);
+    memory.memset(span{&self.data[self.len+1], addn}, 0)
     self.len = n
   end
 end
@@ -61,12 +54,6 @@ function myarraytable:resize(n: usize, v: T)
     end
     self.len = n
   end
-end
-
-function myarraytable:init(a: T[0]*, n: usize)
-  self:reserve(n)
-  memcpy(&self.data[1], &a[0], n * @usize(#T))
-  self.len = n
 end
 
 function myarraytable:push(v: T)

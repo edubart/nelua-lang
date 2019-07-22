@@ -105,19 +105,17 @@ it("memory", function() assert.run_c([[
 
 require 'memory'
 
-local span = memory.span
-
-local function assertmem(s: span, x: byte)
+local function assertmem(s: span<byte>, x: byte)
   for i=0_usize,<s.size do
-    assert(s.data[i] == x)
+    assert(s[i] == x)
   end
 end
 
-local mem = memory.alloc0(4)
+local mem = memory.alloc(4)
 assert(mem.size == 4)
 assertmem(mem, 0)
 
-memory.realloc0(mem, 8)
+memory.realloc(mem, 8)
 assert(mem.size == 8)
 assertmem(mem, 0)
 

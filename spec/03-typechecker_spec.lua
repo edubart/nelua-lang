@@ -532,6 +532,29 @@ it("array tables", function()
   ]], "is not coercible with")
 end)
 
+it("spans", function()
+  assert.analyze_ast([[
+    local a: span<boolean>
+    local dataptr = a.data
+    local size = a.size
+    a.data = nilptr
+    a.size = 0
+    local b: boolean = a[0]
+    a[0] = b
+  ]])
+  assert.analyze_ast([[
+    local a: span<boolean>
+    local b: span<boolean>
+    b = a
+  ]])
+  assert.analyze_error([[
+    local a: span<float64>
+    local b: span<int64>
+    b = a
+  ]], 'is not coercible with')
+  assert.analyze_error([[local a: span<void>]], 'spans cannot be of')
+end)
+
 it("arrays", function()
   --assert.analyze_ast([[local a: array<integer, (2 << 1)>]])
   assert.analyze_ast([[local compconst N = 10; local a: array<integer, N>]])

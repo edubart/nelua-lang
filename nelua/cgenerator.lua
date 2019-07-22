@@ -320,7 +320,7 @@ function visitors.ArrayIndex(context, node, emitter)
   end
   if objtype:is_arraytable() then
     emitter:add(', ', index, ')')
-  elseif objtype:is_array() then
+  elseif objtype:is_array() or objtype:is_span() then
     emitter:add('.data[', index, ']')
   else
     emitter:add('[', index, ']')

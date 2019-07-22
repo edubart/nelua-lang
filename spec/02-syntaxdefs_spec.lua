@@ -1403,6 +1403,13 @@ describe("type expression", function()
           { n.IdDecl{'p', nil, n.PointerType{n.PointerType{n.Type{'integer'}}}}}
     }}})
   end)
+  it("span type", function()
+    assert.parse_ast(nelua_parser, "local p: span<integer>",
+      n.Block{{
+        n.VarDecl{'local', nil,
+          { n.IdDecl{'p', nil, n.SpanType{n.Type{'integer'}}}}
+    }}})
+  end)
   it("complex types", function()
     assert.parse_ast(nelua_parser, "local p: integer*[10]*[10]",
       n.Block{{
