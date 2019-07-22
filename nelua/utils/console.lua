@@ -1,7 +1,20 @@
 local stringer = require 'nelua.utils.stringer'
+local tabler = require 'nelua.utils.tabler'
+local term = require 'term'
 local colors = require 'term.colors'
 
 local console = {}
+
+do -- check if colored output is supported
+  local isatty = io.type(io.stdout) == 'file' and term.isatty and term.isatty(io.stdout)
+  if not isatty then
+    colors = tabler.copy(colors)
+    for k,_ in pairs(colors) do
+      colors[k] = ''
+    end
+  end
+end
+
 console.colors = colors
 
 local color_reset = tostring(colors.reset)

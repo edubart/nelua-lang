@@ -100,7 +100,6 @@ end
 
 ]])end)
 
---[=[
 it("memory", function() assert.run_c([[
 !!strict
 
@@ -129,7 +128,5 @@ memory.dealloc(mem)
 assert(mem.size == 0)
 
 ]])end)
-]=]
 
 end)
-
