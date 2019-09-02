@@ -119,13 +119,13 @@ end)
 
 it("print symbol", function()
   assert.ast_type_equals([=[
-    local a: compconst integer = 1
-    local b: const integer = 2
+    local a: integer !compconst = 1
+    local b: integer !const = 2
     print #[tostring(symbols.a)]
     print #[tostring(symbols.b)]
   ]=], [[
-    local a: compconst = 1
-    local b: const = 2
+    local a !compconst = 1
+    local b !const = 2
     print 'symbol<a: compconst int64 = 1>'
     print 'symbol<b: const int64>'
   ]])
@@ -141,11 +141,11 @@ it("print symbol", function()
   assert.ast_type_equals([[
     ## local aval = 1
     ## if true then
-      local #('a'): compconst #('integer') = #[aval]
+      local #('a'): #('integer') !compconst = #[aval]
       print #[tostring(scope:get_symbol('a'))]
     ## end
   ]], [[
-    local a: compconst = 1
+    local a !compconst = 1
     print 'symbol<a: compconst int64 = 1>'
   ]])
 end)

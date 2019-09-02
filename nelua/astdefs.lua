@@ -56,8 +56,8 @@ astbuilder:register('Pair', {
   ntypes.Node -- field value expr
 })
 
--- pragma
-astbuilder:register('Pragma', {
+-- attrib
+astbuilder:register('Attrib', {
   stypes.string + ntypes.PreprocessName, -- name
   stypes.array_of(ntypes.String + ntypes.Number + ntypes.Boolean) -- args
 })
@@ -68,9 +68,8 @@ astbuilder:register('Id', {
 })
 astbuilder:register('IdDecl', {
   stypes.string + ntypes.PreprocessName + ntypes.DotIndex, -- name
-  stypes.one_of{"const", "compconst"}:is_optional(), -- mutability
   ntypes.Node:is_optional(), -- typexpr
-  stypes.array_of(ntypes.Pragma):is_optional(), -- pragmas
+  stypes.array_of(ntypes.Attrib):is_optional(), -- attribs
 })
 astbuilder:register('Paren', {
   ntypes.Node -- expr
@@ -126,7 +125,7 @@ astbuilder:register('MultipleType', {
 astbuilder:register('Function', {
   stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
-  stypes.array_of(ntypes.Pragma), -- pragmas
+  stypes.array_of(ntypes.Attrib), -- attribs
   ntypes.Node, -- block
 })
 
@@ -189,7 +188,6 @@ astbuilder:register('Goto', {
 })
 astbuilder:register('VarDecl', {
   stypes.one_of{"local","global"}:is_optional(), -- scope
-  stypes.one_of{"const", "compconst"}:is_optional(), -- mutability
   stypes.array_of(ntypes.IdDecl), -- var names with types
   stypes.array_of(ntypes.Node):is_optional(), -- expr list, initial assignments values
 })
@@ -202,7 +200,7 @@ astbuilder:register('FuncDef', {
   ntypes.IdDecl + ntypes.Id + ntypes.DotIndex + ntypes.ColonIndex, -- name
   stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
-  stypes.array_of(ntypes.Pragma), -- pragmas
+  stypes.array_of(ntypes.Attrib), -- attribs
   ntypes.Block -- block
 })
 

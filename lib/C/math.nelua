@@ -288,26 +288,26 @@ function C.isunorderedf(x: float32, y: float32): cint !cimport 'isunordered' end
 function C.isunorderedl(x: clongdouble, y: clongdouble): cint !cimport 'isunordered' end
 
 -- Constants
-const C.HUGE_VALF: float32 !cimport 'HUGE_VALF'
-const C.HUGE_VAL: float64 !cimport 'HUGE_VAL'
-const C.HUGE_VALL: clongdouble !cimport 'HUGE_VALL'
+global C.HUGE_VALF: float32 !const !cimport 'HUGE_VALF'
+global C.HUGE_VAL: float64 !const !cimport 'HUGE_VAL'
+global C.HUGE_VALL: clongdouble !const !cimport 'HUGE_VALL'
 
-const C.INFINITY: cfloat !cimport 'INFINITY'
-const C.NAN: cfloat !cimport 'NAN'
+global C.INFINITY: cfloat !const !cimport 'INFINITY'
+global C.NAN: cfloat !const !cimport 'NAN'
 
-const C.FP_FAST_FMAF: float32 !cimport 'FP_FAST_FMAF'
-const C.FP_FAST_FMA: float64 !cimport 'FP_FAST_FMA'
-const C.FP_FAST_FMAL: clongdouble !cimport 'FP_FAST_FMAL'
+global C.FP_FAST_FMAF: float32 !const !cimport 'FP_FAST_FMAF'
+global C.FP_FAST_FMA: float64 !const !cimport 'FP_FAST_FMA'
+global C.FP_FAST_FMAL: clongdouble !const !cimport 'FP_FAST_FMAL'
 
-const C.FP_ILOGB0: cint !cimport 'FP_ILOGB0'
-const C.FP_ILOGBNAN: cint !cimport 'FP_ILOGBNAN'
+global C.FP_ILOGB0: cint !const !cimport 'FP_ILOGB0'
+global C.FP_ILOGBNAN: cint !const !cimport 'FP_ILOGBNAN'
 
-const C.math_errhandling: cint !cimport 'math_errhandling'
-const C.MATH_ERRNO: cint !cimport 'MATH_ERRNO'
-const C.MATH_ERREXCEPT: cint !cimport 'MATH_ERREXCEPT'
+global C.math_errhandling: cint !const !cimport 'math_errhandling'
+global C.MATH_ERRNO: cint !const !cimport 'MATH_ERRNO'
+global C.MATH_ERREXCEPT: cint !const !cimport 'MATH_ERREXCEPT'
 
-const C.FP_NORMAL: cint !cimport 'FP_NORMAL'
-const C.FP_SUBNORMAL: cint !cimport 'FP_SUBNORMAL'
-const C.FP_ZERO: cint !cimport 'FP_ZERO'
-const C.FP_INFINITE: cint !cimport 'FP_INFINITE'
-const C.FP_NAN: cint !cimport 'FP_NAN'
+global C.FP_NORMAL: cint !const !cimport 'FP_NORMAL'
+global C.FP_SUBNORMAL: cint !const !cimport 'FP_SUBNORMAL'
+global C.FP_ZERO: cint !const !cimport 'FP_ZERO'
+global C.FP_INFINITE: cint !const !cimport 'FP_INFINITE'
+global C.FP_NAN: cint !const !cimport 'FP_NAN'

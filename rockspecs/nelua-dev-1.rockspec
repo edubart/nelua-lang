@@ -25,13 +25,13 @@ dependencies = {
   'lpeglabel >= 1.5.0',
   'tableshape >= 2.0.0',
   'lua-term >= 0.7',
-  'argparse >= 0.6.0',
+  'argparse >= 0.7.0',
   'hasher >= 0.1.0',
   'chronos >= 0.2',
   'lbc >= 20180729',
 
   -- dev dependencies only
-  'busted >= 2.0rc13',
+  'busted >= 2.0.0',
   'luacheck >= 0.23.0',
   'luacov >= 0.13.0',
   'cluacov >= 0.1.1',

@@ -49,10 +49,11 @@ Variables are declared or defined like in lua, but optionally
 you can specify it's type when declaring:
 
 ```nelua
-local a = nil -- of deduced type 'any', initialized to nil
 local b = false -- of deduced type 'boolean', initialized to false
-local d = 1 --  of type 'integer', initialized to 1
+local i = 1 --  of type 'integer', initialized to 1
 local e: integer = 1 --  of type 'integer', initialized to 1
+local a = nil -- of deduced type 'any', initialized to nil
+local s = 'string'
 ```
 
 Nelua takes advantages of types to make checks and optimizations at compile time.
@@ -92,7 +93,7 @@ local a -- variable of deduced type 'any', initialized to 'nil'
 local b: integer -- variable of type 'integer', initialized to 0
 ```
 
-This can be optionally be disabled (for optimization reasons) using **pragmas**.
+This can be optionally be disabled (for optimization reasons) using **attributes**.
 
 ### Auto variables
 
@@ -112,7 +113,7 @@ Auto variables are more useful when used in **lazy functions**.
 Compconst variables have its value known at compile time:
 
 ```nelua
-local a: compconst = 1 + 2 -- constant variable of value '3' evaluated and known at compile time
+local a !compconst = 1 + 2 -- constant variable of value '3' evaluated and known at compile time
 ```
 
 The compiler takes advantages of constants to make optimizations, constants are also useful
@@ -124,10 +125,10 @@ Const variables can be assigned at runtime however it cannot mutate.
 
 ```nelua
 local x = 1
-local a: const = x -- constant variable of value '3' evaluated and known at compile time
+local a !const = x
 -- doing "a = 2" would throw a compile time error
 
-local function f(x: const integer)
+local function f(x: integer !const)
   -- cannot assign 'x' here because it's const
 end
 ```
@@ -537,15 +538,17 @@ a[1] = 0
 Union can store multiple types at the same block of memory:
 
 ```nelua
-local u: union<integer,string> -- variable of type union, initialized to its first type 'integer'
+local u: union{integer,string} -- variable of type union, initialized to its first type 'integer'
 print(u) -- outputs 0
 u = 'string' -- u now holds a string
 print(u) -- outputs 'string'
+
+local u: union<uint16>{integer,string} -- union that can hold more runtime types
+local u: union<void>{integer,string} -- union that holds all types at the same time (unsafe)
 ```
 
-Unions are slightly different from C union, because it has an `uint8` internally that holds
-the current type pointer at runtime, thus the union size will have at least the
-size of the largest type plus the size of `uint8`. Unions cannot hold more than 256 different types.
+Unions are slightly different from C union by default, because it has an `uint8` internally that holds the current type at runtime, thus the union size will have at least the
+size of the largest type plus the size of `uint8`. By default unions cannot hold more than 256 different types. The internal type 
 
 ### Nilable
 
@@ -558,14 +561,14 @@ Optional type is actually a union of a `nilable` and any other type, it
 is used to declare a variable that may hold or not a variable:
 
 ```nelua
-local a: union<nilable,string> -- variable that may hold a string, initialized to 'nil'
+local a: union{nilable,string} -- variable that may hold a string, initialized to 'nil'
 assert(a == nil)
 assert(not a)
 print(a) -- outputs 'nil'
 a = 'hi'
 print(a) -- outputs 'hi'
 
--- syntax sugar for union union<nilable,string>
+-- syntax sugar for union union{nilable,string}
 local v: string?
 ```
 
@@ -1037,7 +1040,7 @@ Lazy functions can make compile time dynamic functions when used in combination 
 the preprocessor:
 
 ```nelua
-function pow(x: auto, n: compconst integer)
+function pow(x: auto, n: integer !compconst)
   ## symbols.x.attr.type:is_integral() then
     -- x is an integral type (any unsigned/signed integer)
     local r: #[symbols.x.attr.type] = 1
@@ -1065,7 +1068,7 @@ Blocks can be passed to lazy functions, in this case the entire function code wi
 inlined in the call placement.
 
 ```nelua
-local function unroll(count: compconst integer, body: block)
+local function unroll(count: integer !compconst, body: block)
   ## for i=1,symbols.count.attr.value do
     body()
   ## end
@@ -1077,21 +1080,12 @@ print(a) -- outputs 4
 ```
 
 --------------------------------------------------------------------------------
-## Pragmas
+## Attributes
 
-Pragmas are used to inform the compiler different behaviours in the code
+Attributes are used to inform the compiler different behaviours in the code
 generation.
 
-### Global pragmas
-
-Global pragmas begins with `!!` followed by it's name and parameters.
-
-```nelua
-!!cinclude '<stdio.h>' -- include a C header
-!!linklib "SDL" -- link SDL library
-```
-
-### Function pragmas
+### Function attributes
 
 ```nelua
 function sum(a, b) !inline -- inline function
@@ -1099,7 +1093,7 @@ function sum(a, b) !inline -- inline function
 end
 ```
 
-### Variable pragmas
+### Variable attributes
 
 ```nelua
 local a: integer !noinit-- don't initialize variable to zeros

@@ -46,6 +46,6 @@ then      true      until     while
 | `@`   | type inference |
 | `::`  | label definition |
 | `--`  | comment |
-| `{: :}` | pragma |
+| `!`   | attribute |
 
 

@@ -27,7 +27,7 @@ local function asserteq(x: number, y: number)
   assert(math.abs(x - y) < 1e-12)
 end
 
-local e: compconst = 2.718281828459045
+local e !compconst = 2.718281828459045
 asserteq(math.abs(-1.0), 1)
 asserteq(math.abs(1.0), 1)
 asserteq(math.ceil(0.1), 1)
@@ -97,6 +97,30 @@ do
     assert(x >= 0 and x <= 1)
   end
 end
+
+]])end)
+
+it("os", function() assert.run_c([[
+!!strict
+
+require 'os'
+
+assert(os.clock() >= 0)
+assert(os.difftime(0,0) == 0 and os.difftime(0,1) == 1)
+--print(os.date())
+assert(type(os.getenv('PATH')) == 'string')
+assert(type(os.tmpname()) == 'string')
+assert(os.execute_check() == true)
+--assert(os.execute('my_invalid_command'))
+assert(os.rename('my_invalid_file', 'my_invalid_file') == false)
+assert(os.remove('my_invalid_file') == false)
+assert(os.setlocale_default('C') == 'C')
+assert(os.setlocale('C','numeric') == 'C')
+assert(os.time_default() >= 0)
+os.exit(0)
+os.exit_boolean(true)
+os.exit_default()
+assert(false)
 
 ]])end)
 

@@ -5,6 +5,6 @@
 global C.errno: cint !cimport 'errno'
 
 -- Constants
-const C.EDOM: cint !cimport 'EDOM'
-const C.EILSEQ: cint !cimport 'EILSEQ'
-const C.ERANGE: cint !cimport 'ERANGE'
+global C.EDOM: cint !const !cimport 'EDOM'
+global C.EILSEQ: cint !const !cimport 'EILSEQ'
+global C.ERANGE: cint !const !cimport 'ERANGE'

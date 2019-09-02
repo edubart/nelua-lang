@@ -50,7 +50,7 @@ local function get_parser(std)
   if not is_luacompat then
     parser:add_keywords({
       -- nelua additional keywords
-      "switch", "case", "continue", "compconst", "const", "global"
+      "switch", "case", "continue", "global"
     })
   end
 
@@ -202,8 +202,6 @@ local function get_parser(std)
   %EXCL         <- !%DBEXCL '!'
 
   -- used by types
-  %TCOMPCONST   <- 'compconst'
-  %TCONST       <- 'const'
   %TRECORD      <- 'record'
   %TENUM        <- 'enum'
   ]])
@@ -311,8 +309,8 @@ local function get_parser(std)
       (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |} ctrue) -> to_chain_index_or_call
   ]])
 
-  grammar:add_group_peg('stat', 'pragma', [[
-    ({} %DBEXCL -> 'Pragma' epragma_expr) -> to_astnode
+  grammar:add_group_peg('stat', 'attrib', [[
+    ({} %DBEXCL -> 'Attrib' eattrib_expr) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'preprocess', [[
@@ -330,9 +328,9 @@ local function get_parser(std)
   if not is_luacompat then
     grammar:add_group_peg('stat', 'vardecl', [[
     ({} '' -> 'VarDecl'
-      ( %LOCAL -> 'local' (var_mut/cnil)
+      ( %LOCAL -> 'local'
         {| etyped_idlist |}
-      / (%GLOBAL ->'global' (var_mut/cnil) / ''->'global' var_mut)
+      / (%GLOBAL ->'global')
         {| eglobal_typed_idlist |}
       ) (%ASSIGN {| eexpr_list |})?
     ) -> to_astnode
@@ -341,8 +339,8 @@ local function get_parser(std)
       (global_typed_id / %{ExpectedName}) (%COMMA global_typed_id)*
     global_typed_id <- ({} '' -> 'IdDecl'
         ((id {| dot_index+ |}) -> to_chain_index_or_call / name)
-        ((%COLON (var_mut (typexpr/cnil) / cnil etypexpr)) / cnil cnil)
-        (&%EXCL {| var_pragma* |})?
+        (%COLON etypexpr / cnil)
+        (&%EXCL {| var_attrib+ |})?
       ) -> to_astnode
     ]], nil, true)
 
@@ -430,18 +428,15 @@ local function get_parser(std)
       eLPAREN (
         {| (typed_idlist (%COMMA %cVARARGS)? / %cVARARGS)? |}
       ) eRPAREN
-      {| (%COLON etypexpr_list)? |} {| var_pragma* |}
+      {| (%COLON etypexpr_list)? |} {| var_attrib* |}
         block
       eEND
-    var_mut <-
-      %TCOMPCONST -> 'compconst' /
-      %TCONST -> 'const'
     typed_idlist <- typed_id (%COMMA typed_id)*
     etyped_idlist <- (typed_id / %{ExpectedName}) (%COMMA typed_id)*
     typed_id <- ({} '' -> 'IdDecl'
         name
-        ((%COLON (var_mut (typexpr /cnil) / cnil etypexpr)) / cnil cnil)
-        (&%EXCL {| var_pragma* |})?
+        (%COLON etypexpr / cnil)
+        (&%EXCL {| var_attrib+ |})?
       ) -> to_astnode
 
     typexpr_list <- typexpr (%COMMA typexpr)*
@@ -450,14 +445,14 @@ local function get_parser(std)
     expr_list <- (expr (%COMMA expr)*)?
     eexpr_list <- eexpr (%COMMA expr)*
 
-    var_pragma <- ({} %EXCL -> 'Pragma' epragma_expr) -> to_astnode
+    var_attrib <- ({} %EXCL -> 'Attrib' eattrib_expr) -> to_astnode
 
-    epragma_expr <-
+    eattrib_expr <-
       ename {|(
-        (%LPAREN pragma_arg (%COMMA pragma_arg)* eRPAREN) /
+        (%LPAREN attrib_arg (%COMMA attrib_arg)* eRPAREN) /
         %cSTRING
       )?|}
-    pragma_arg <- %cNUMBER / %cSTRING / %cBOOLEAN
+    attrib_arg <- %cNUMBER / %cSTRING / %cBOOLEAN
 
     cnil <- '' -> to_nil
     ctrue <- '' -> to_true

@@ -215,33 +215,33 @@ function visitors.Table(context, node, desiredtype)
   end
 end
 
-function visitors.Pragma(context, node, symbol)
-  if symbol and node.attr.symbol == symbol then
-    -- quick return
-    return
-  end
+function visitors.Attrib(context, node, symbol)
+  --TODO: quick return
+
   local name, argnodes = node:args()
   context:traverse(argnodes)
 
-  local pragmashape
+  local paramshape
   local symboltype
-  if symbol then
+  if name == 'compconst' then
+    paramshape = true
+  elseif symbol then
     symboltype = symbol.attr.type
     if not symboltype then
       -- in the next traversal we will have the type
       return
     end
     if symboltype:is_function() then
-      pragmashape = typedefs.function_pragmas[name]
+      paramshape = typedefs.function_attribs[name]
     elseif symboltype:is_type() then
-      pragmashape = typedefs.type_pragmas[name]
+      paramshape = typedefs.type_attribs[name]
     else
-      pragmashape = typedefs.variable_pragmas[name]
+      paramshape = typedefs.variable_attribs[name]
     end
   elseif not symbol then
-    pragmashape = typedefs.block_pragmas[name]
+    paramshape = typedefs.block_attribs[name]
   end
-  node:assertraisef(pragmashape, "pragma '%s' is not defined in this context", name)
+  node:assertraisef(paramshape, "attribute '%s' is not defined in this context", name)
   local params = tabler.imap(argnodes, function(argnode)
     local value = argnode.attr.value
     if traits.is_bignumber(value) then
@@ -250,13 +250,13 @@ function visitors.Pragma(context, node, symbol)
     return value
   end)
 
-  if pragmashape == true then
-    node:assertraisef(#argnodes == 0, "pragma '%s' takes no arguments", name)
+  if paramshape == true then
+    node:assertraisef(#argnodes == 0, "attribute '%s' takes no arguments", name)
     params = true
   else
-    local ok, err = pragmashape(params)
-    node:assertraisef(ok, "pragma '%s' arguments are invalid: %s", name, err)
-    if #pragmashape.shape == 1 then
+    local ok, err = paramshape(params)
+    node:assertraisef(ok, "attribute '%s' arguments are invalid: %s", name, err)
+    if #paramshape.shape == 1 then
       params = params[1]
     end
   end
@@ -289,7 +289,6 @@ function visitors.Pragma(context, node, symbol)
   if name == 'strict' then
     context.state.strict = true
   end
-  node.attr.symbol = symbol
 end
 
 function visitors.Id(context, node)
@@ -309,11 +308,7 @@ function visitors.Id(context, node)
 end
 
 function visitors.IdDecl(context, node)
-  local namenode, mut, typenode, pragmanodes = node:args()
-  node:assertraisef(not (mut and node.mut), "cannot declare mutability twice")
-  mut = mut or node.mut
-  node:assertraisef(not mut or typedefs.mutabilities[mut],
-    'mutability %s not supported yet', mut)
+  local namenode, typenode, attribnodes = node:args()
   local type = node.attr.type
   if not type then
     if typenode then
@@ -340,14 +335,11 @@ function visitors.IdDecl(context, node)
     context.inglobaldecl = nil
   end
   local attr = symbol.attr
-  if mut then
-    attr[mut] = true
-  end
   if type then
     attr.type = type
   end
-  if pragmanodes then
-    context:traverse(pragmanodes, symbol)
+  if attribnodes then
+    context:traverse(attribnodes, symbol)
   end
   attr.lvalue = true
   return symbol
@@ -1119,10 +1111,8 @@ function visitors.ForNum(context, node)
 end
 
 function visitors.VarDecl(context, node)
-  local varscope, mut, varnodes, valnodes = node:args()
+  local varscope, varnodes, valnodes = node:args()
   valnodes = valnodes or {}
-  node:assertraisef(not mut or typedefs.mutabilities[mut],
-    'mutability %s not supported yet', mut)
   node:assertraisef(#varnodes >= #valnodes,
     'too many expressions in declaration, expected at most %d but got %d',
     #varnodes, #valnodes)
@@ -1135,7 +1125,6 @@ function visitors.VarDecl(context, node)
     if context.state.nostatic then
       varnode.attr.nostatic = true
     end
-    varnode.mut = mut
     local symbol = context:traverse(varnode)
     assert(symbol)
     local vartype = varnode.attr.type
@@ -1193,10 +1182,10 @@ function visitors.VarDecl(context, node)
           vartype = valtype
           symbol.attr.type = valtype
 
-          local pragmanode = varnode[4]
-          if pragmanode then
-            -- must retravese pragma node early once type is found ahead
-            context:traverse(pragmanode, symbol)
+          local attribnode = varnode[3]
+          if attribnode then
+            -- must retravese attrib node early once type is found ahead
+            context:traverse(attribnode, symbol)
           end
         end
       else
@@ -1302,7 +1291,7 @@ local function block_endswith_return(blocknode)
 end
 
 function visitors.FuncDef(context, node)
-  local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
+  local varscope, varnode, argnodes, retnodes, attribnodes, blocknode = node:args()
   local symbol, argtypes
   local decl = varscope ~= nil
   if node.deducedargtypes then
@@ -1398,8 +1387,8 @@ function visitors.FuncDef(context, node)
     node.attr.type = type
   end
 
-  if pragmanodes then
-    context:traverse(pragmanodes, symbol)
+  if attribnodes then
+    context:traverse(attribnodes, symbol)
   end
 
   if not lazy and node.attr.type and not varnode.attr.nodecl and not varnode.attr.cimport then

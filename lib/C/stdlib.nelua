@@ -56,8 +56,8 @@ function C.ldiv(numer: clong, denom: clong): ldiv_t !cimport 'ldiv' end
 function C.lldiv(numer: clonglong, denom: clonglong): lldiv_t !cimport 'lldiv' end
 
 -- Constants
-const C.EXIT_SUCCESS: cint !cimport 'EXIT_SUCCESS'
-const C.EXIT_FAILURE: cint !cimport 'EXIT_FAILURE'
+global C.EXIT_SUCCESS: cint !const !cimport 'EXIT_SUCCESS'
+global C.EXIT_FAILURE: cint !const !cimport 'EXIT_FAILURE'
 
-const C.RAND_MAX: cint !cimport 'RAND_MAX'
-compconst C.NULL = nilptr
+global C.RAND_MAX: cint !const !cimport 'RAND_MAX'
+global C.NULL !compconst !nodecl = nilptr

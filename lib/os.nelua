@@ -39,7 +39,7 @@ local function ctime(tloc: pointer): clong !cimport 'time' end
 --------------------------------------------------------------------------------
 -- os module
 
-local os = @record{}
+global os = @record{}
 
 local function fileresult(status: cint): boolean, string, integer
   if status == -1 then
@@ -145,7 +145,7 @@ end
 
 function os.tmpname(): string
   --TODO: windows implementation without POSIX
-  local compconst TMPBUFSIZE = 32
+  local TMPBUFSIZE !compconst = 32
   local buf: cchar[TMPBUFSIZE]
   strncpy(&buf[0], "/tmp/lua_XXXXXX", TMPBUFSIZE)
   local fd = mkstemp(&buf[0])
@@ -155,23 +155,3 @@ function os.tmpname(): string
   close(fd)
   return @string(&buf[0])
 end
-
---------------------------------------------------------------------------------
--- tests
-
-assert(os.clock() >= 0)
-assert(os.difftime(0,0) == 0 and os.difftime(0,1) == 1)
---print(os.date())
-assert(type(os.getenv('PATH')) == 'string')
-assert(type(os.tmpname()) == 'string')
-assert(os.execute_check() == true)
---assert(os.execute('my_invalid_command'))
-assert(os.rename('my_invalid_file', 'my_invalid_file') == false)
-assert(os.remove('my_invalid_file') == false)
-assert(os.setlocale_default('C') == 'C')
-assert(os.setlocale('C','numeric') == 'C')
-assert(os.time_default() >= 0)
-os.exit(0)
-os.exit_boolean(true)
-os.exit_default()
-assert(false)

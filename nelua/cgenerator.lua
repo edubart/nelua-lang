@@ -207,7 +207,7 @@ end
 
 -- TODO: Function
 
-function visitors.Pragma(context, node, emitter)
+function visitors.Attrib(context, node, emitter)
   local attr = node.attr
   if attr.cinclude then
     context:add_include(attr.cinclude)
@@ -736,7 +736,7 @@ function visitors.Goto(_, node, emitter)
 end
 
 function visitors.VarDecl(context, node, emitter)
-  local varscope, mutability, varnodes, valnodes = node:args()
+  local varscope, varnodes, valnodes = node:args()
   visit_assignments(context, emitter, varnodes, valnodes, true)
 end
 
@@ -746,7 +746,7 @@ function visitors.Assign(context, node, emitter)
 end
 
 function visitors.FuncDef(context, node)
-  local varscope, varnode, argnodes, retnodes, pragmanodes, blocknode = node:args()
+  local varscope, varnode, argnodes, retnodes, attribnodes, blocknode = node:args()
 
   local attr = node.attr
   local type = attr.type

@@ -202,6 +202,7 @@ function assert.analyze_ast(code, expected_ast)
   if expected_ast then
     assert.same_string(tostring(expected_ast), tostring(ast))
   end
+  return ast
 end
 
 local function filter_ast_for_check(t)

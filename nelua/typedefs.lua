@@ -344,7 +344,7 @@ typedefs.mutabilities = {
   ['const'] = true,
 }
 
-typedefs.block_pragmas = {
+typedefs.block_attribs = {
   cinclude = shaper.shape{shaper.string},
   cemit = shaper.shape{shaper.string, shaper.string:is_optional()},
   cdefine = shaper.shape{shaper.string},
@@ -354,16 +354,16 @@ typedefs.block_pragmas = {
   strict = true
 }
 
-local common_pragmas = {
+local common_attribs = {
   cimport = shaper.shape{shaper.string:is_optional(), (shaper.boolean + shaper.string):is_optional()},
   onestring = shaper.shape{shaper.string},
   oneinteger = shaper.shape{shaper.integer}
 }
-typedefs.function_pragmas = {
-  cimport = common_pragmas.cimport,
-  codename = common_pragmas.onestring,
-  cqualifier = common_pragmas.onestring,
-  cattribute = common_pragmas.onestring,
+typedefs.function_attribs = {
+  cimport = common_attribs.cimport,
+  codename = common_attribs.onestring,
+  cqualifier = common_attribs.onestring,
+  cattribute = common_attribs.onestring,
   inline = true,
   noreturn = true,
   noinline = true,
@@ -373,12 +373,12 @@ typedefs.function_pragmas = {
   entrypoint = true,
   cexport = true,
 }
-typedefs.variable_pragmas = {
-  cimport = common_pragmas.cimport,
-  codename = common_pragmas.onestring,
-  cqualifier = common_pragmas.onestring,
-  cattribute = common_pragmas.onestring,
-  aligned = common_pragmas.oneinteger,
+typedefs.variable_attribs = {
+  cimport = common_attribs.cimport,
+  codename = common_attribs.onestring,
+  cqualifier = common_attribs.onestring,
+  cattribute = common_attribs.onestring,
+  aligned = common_attribs.oneinteger,
   static = true,
   register = true,
   restrict = true,
@@ -386,11 +386,13 @@ typedefs.variable_pragmas = {
   nodecl = true,
   noinit = true,
   cexport = true,
+  compconst = true,
+  const = true
 }
-typedefs.type_pragmas = {
-  aligned = common_pragmas.oneinteger,
-  cimport = common_pragmas.cimport,
-  codename = common_pragmas.onestring,
+typedefs.type_attribs = {
+  aligned = common_attribs.oneinteger,
+  cimport = common_attribs.cimport,
+  codename = common_attribs.onestring,
   nodecl = true,
   packed = true,
 }

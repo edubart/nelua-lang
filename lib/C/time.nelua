@@ -40,4 +40,4 @@ function C.localtime(timer: time_t*): tm* !cimport 'localtime' end
 function C.timespec_get(ts: timespec*, base: cint): cint !cimport 'timespec_get' end
 
 -- Constants
-const C.CLOCKS_PER_SEC: clock_t !cimport 'CLOCKS_PER_SEC'
+global C.CLOCKS_PER_SEC: clock_t !const !cimport 'CLOCKS_PER_SEC'

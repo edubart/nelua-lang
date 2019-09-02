@@ -8,10 +8,10 @@
 
 global math = @record{}
 
-global math.pi: compconst = 3.141592653589793
-global math.maxinteger: compconst = 9223372036854775807
-global math.mininteger: compconst = -9223372036854775807-1
-global math.huge: const number !cimport 'HUGE_VAL'
+global math.pi: number !compconst = 3.141592653589793
+global math.maxinteger: integer !compconst = 9223372036854775807
+global math.mininteger: integer !compconst = -9223372036854775807-1
+global math.huge: number !const !cimport 'HUGE_VAL'
 
 function math.abs(x: number): number !cimport 'fabs' end
 function math.ceil(x: number): number !cimport 'ceil' end
@@ -75,7 +75,7 @@ end
 
 local xoshiro256 = @record{state: uint64[4]}
 
-local compconst FLOAT64_MANT_DIGS = 53
+local FLOAT64_MANT_DIGS !compconst = 53
 
 local function rotl(x: uint64, n: int32) !inline
   return (x << n) | (x >> (64 - n))

@@ -196,15 +196,15 @@ it("variable declaration", function()
 end)
 
 it("compconst", function()
-  assert.generate_c("local compconst a: integer = 0", "static const int64_t mymod_a = 0;")
-  assert.generate_c("local compconst a = 1", "static const int64_t mymod_a = 1;")
+  assert.generate_c("local a: integer !compconst = 0", "static const int64_t mymod_a = 0;")
+  assert.generate_c("local a !compconst = 1", "static const int64_t mymod_a = 1;")
   assert.generate_c(
-    "local compconst N = 3773; local a: array<integer, N>",
+    "local N !compconst = 3773; local a: array<integer, N>",
     {"static const int64_t mymod_N = 3773",
      "int64_t data[3773];"})
-  assert.generate_c("local compconst a, b = 1, 2; local compconst c = a * b",
+  assert.generate_c("local a !compconst, b !compconst = 1, 2; local c !compconst = a * b",
     "static const int64_t mymod_c = mymod_a * mymod_b;")
-  assert.generate_c("local compconst a, b = 1, 2; local compconst c = @int32(a * b)",
+  assert.generate_c("local a !compconst, b !compconst = 1, 2; local c !compconst = @int32(a * b)",
     "static const int32_t mymod_c = (int32_t)(mymod_a * mymod_b);")
 end)
 
@@ -782,8 +782,8 @@ it("record globals", function()
   assert.generate_c([[
     ## state.nohashcodenames = true
     local Math = @record{}
-    global Math.PI: compconst = 3.14
-    compconst Math.E = 2.7
+    global Math.PI: number !compconst = 3.14
+    global Math.E !compconst = 2.7
 
     global Math.Number = @number
     local MathNumber = Math.Number
@@ -892,7 +892,7 @@ it("C varargs", function()
     "int scanf(char* format, ...);")
 end)
 
-it("pragmas", function()
+it("attributes", function()
   assert.generate_c("!!cinclude '<myheader.h>'", "#include <myheader.h>")
   assert.generate_c("!!cemit '#define SOMETHING'", "#define SOMETHING")
   assert.generate_c("!!cemit('#define SOMETHING', 'declaration')", "#define SOMETHING")

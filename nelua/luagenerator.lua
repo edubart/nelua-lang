@@ -54,7 +54,7 @@ function visitors.Pair(_, node, emitter)
 end
 
 function visitors.Function(_, node, emitter)
-  local args, rets, pragmas, block = node:args()
+  local args, rets, attributes, block = node:args()
   if #block[1] == 0 then
     emitter:add('function(', args, ') end')
   else
@@ -64,7 +64,7 @@ function visitors.Function(_, node, emitter)
   end
 end
 
--- TODO: Pragma
+-- TODO: Attrib
 
 function visitors.Id(_, node, emitter)
   local name = node:args()
@@ -79,8 +79,7 @@ function visitors.FuncType() end
 function visitors.ArrayTableType() end
 function visitors.ArrayType() end
 function visitors.IdDecl(_, node, emitter)
-  local name, mut, type = node:args()
-  node:assertraisef(mut == nil, "variable mutabilities are not supported in lua")
+  local name = node:args()
   emitter:add(name)
 end
 
@@ -240,7 +239,7 @@ function visitors.Goto(_, node, emitter)
 end
 
 function visitors.VarDecl(context, node, emitter)
-  local varscope, mutability, varnodes, valnodes = node:args()
+  local varscope, varnodes, valnodes = node:args()
   local is_local = (varscope == 'local') or not context.scope:is_main()
   emitter:add_indent()
   if is_local then

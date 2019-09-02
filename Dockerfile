@@ -1,5 +1,5 @@
 # AlpineLinux
-FROM alpine:3.9
+FROM alpine:3.10
 RUN apk update
 RUN apk upgrade
 RUN apk add bash sudo curl build-base git

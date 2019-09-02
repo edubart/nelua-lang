@@ -81,19 +81,19 @@ global C.stdout: FILE* !cimport 'stdout'
 global C.stderr: FILE* !cimport 'stderr'
 
 -- Constants
-const C.EOF: cint !cimport 'EOF'
-const C.BUFSIZ: cint !cimport 'BUFSIZ'
+global C.EOF: cint !const !cimport 'EOF'
+global C.BUFSIZ: cint !const !cimport 'BUFSIZ'
 
-const C.FOPEN_MAX: cint !cimport 'FOPEN_MAX'
-const C.FILENAME_MAX: cint !cimport 'FILENAME_MAX'
+global C.FOPEN_MAX: cint !const !cimport 'FOPEN_MAX'
+global C.FILENAME_MAX: cint !const !cimport 'FILENAME_MAX'
 
-const C._IOFBF: cint !cimport '_IOFBF'
-const C._IOLBF: cint !cimport '_IOLBF'
-const C._IONBF: cint !cimport '_IONBF'
+global C._IOFBF: cint !const !cimport '_IOFBF'
+global C._IOLBF: cint !const !cimport '_IOLBF'
+global C._IONBF: cint !const !cimport '_IONBF'
 
-const C.SEEK_SET: cint !cimport 'SEEK_SET'
-const C.SEEK_CUR: cint !cimport 'SEEK_CUR'
-const C.SEEK_END: cint !cimport 'SEEK_END'
+global C.SEEK_SET: cint !const !cimport 'SEEK_SET'
+global C.SEEK_CUR: cint !const !cimport 'SEEK_CUR'
+global C.SEEK_END: cint !const !cimport 'SEEK_END'
 
-const C.TMP_MAX: cint !cimport 'TMP_MAX'
-const C.L_tmpnam: cint !cimport 'L_tmpnam'
+global C.TMP_MAX: cint !const !cimport 'TMP_MAX'
+global C.L_tmpnam: cint !const !cimport 'L_tmpnam'

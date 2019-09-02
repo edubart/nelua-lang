@@ -492,7 +492,7 @@ describe("expression", function()
         n.Return{{
           n.Function{{}, {}, {}, n.Block{{}}},
           n.Function{
-            { n.IdDecl{'a'}, n.IdDecl{'b', nil, n.Type{'B'}} },
+            { n.IdDecl{'a'}, n.IdDecl{'b', n.Type{'B'}} },
             { n.Type{'C'}, n.Type{'D'} },
             {},
             n.Block{{}}
@@ -747,7 +747,7 @@ describe("statement for", function()
     assert.parse_ast(nelua_parser, "for i:number=10,>0,-1 do end",
       n.Block{{
         n.ForNum{
-          n.IdDecl{'i', nil, n.Type{'number'}},
+          n.IdDecl{'i', n.Type{'number'}},
           n.Number{'dec', '10'},
           'gt',
           n.Number{'dec', '0'},
@@ -768,9 +768,9 @@ describe("statement for", function()
     assert.parse_ast(nelua_parser, "for i:int8,j:int16,k:int32 in iter() do end",
       n.Block{{
         n.ForIn{
-          { n.IdDecl{'i', nil, n.Type{'int8'}},
-            n.IdDecl{'j', nil, n.Type{'int16'}},
-            n.IdDecl{'k', nil, n.Type{'int32'}}
+          { n.IdDecl{'i', n.Type{'int8'}},
+            n.IdDecl{'j', n.Type{'int16'}},
+            n.IdDecl{'k', n.Type{'int32'}}
           },
           { n.Call{{}, n.Id{'iter'}} },
           n.Block{{}}}
@@ -823,8 +823,8 @@ describe("statement variable declaration", function()
       local a: integer
     ]],
       n.Block{{
-        n.VarDecl{'local', nil, {n.IdDecl{'a'}}},
-        n.VarDecl{'local', nil, {n.IdDecl{'a', nil, n.Type{'integer'}}}}
+        n.VarDecl{'local', {n.IdDecl{'a'}}},
+        n.VarDecl{'local', {n.IdDecl{'a', n.Type{'integer'}}}}
     }})
   end)
   it("local variable assignment", function()
@@ -833,48 +833,47 @@ describe("statement variable declaration", function()
       local a: integer = b
     ]],
       n.Block{{
-        n.VarDecl{'local', nil, {n.IdDecl{'a'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', nil, {n.IdDecl{'a', nil, n.Type{'integer'}}}, {n.Id{'b'}}}
+        n.VarDecl{'local', {n.IdDecl{'a'}}, {n.Id{'b'}}},
+        n.VarDecl{'local', {n.IdDecl{'a', n.Type{'integer'}}}, {n.Id{'b'}}}
     }})
   end)
   it("non local variable", function()
     assert.parse_ast(nelua_parser, "global a: integer",
       n.Block{{
-        n.VarDecl{'global', nil, {n.IdDecl{'a', nil, n.Type{'integer'}}}}
+        n.VarDecl{'global', {n.IdDecl{'a', n.Type{'integer'}}}}
     }})
   end)
-  it("variable mutabilities inside types", function()
+  it("variable attributes", function()
     assert.parse_ast(nelua_parser, [[
       local a = b
-      local a: const = b
-      local a: compconst any = b
+      local a !const = b
+      local a: any !compconst = b
     ]],
       n.Block{{
-        n.VarDecl{'local', nil, {n.IdDecl{'a'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', nil, {n.IdDecl{'a', 'const'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', nil, {n.IdDecl{'a', 'compconst', n.Type{'any'}}}, {n.Id{'b'}}},
+        n.VarDecl{'local', {n.IdDecl{'a'}}, {n.Id{'b'}}},
+        n.VarDecl{'local', {n.IdDecl{'a', nil, {n.Attrib{'const', {}}}}}, {n.Id{'b'}}},
+        n.VarDecl{'local', {n.IdDecl{'a', n.Type{'any'}, {n.Attrib{'compconst', {}}}}}, {n.Id{'b'}}},
     }})
   end)
   it("variable mutabilities", function()
     assert.parse_ast(nelua_parser, [[
-      local const a = b
-      local a: const = b
-      global const a = b
-      global a: const = b
-      local compconst a = b
+      local a !const = b
+      global a !const = b
+      local a !const, b !compconst = c, d
     ]],
       n.Block{{
-        n.VarDecl{'local', 'const', {n.IdDecl{'a'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', nil, {n.IdDecl{'a', 'const'}}, {n.Id{'b'}}},
-        n.VarDecl{'global', 'const', {n.IdDecl{'a'}}, {n.Id{'b'}}},
-        n.VarDecl{'global', nil, {n.IdDecl{'a', 'const'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', 'compconst', {n.IdDecl{'a'}}, {n.Id{'b'}}},
+        n.VarDecl{'local', {n.IdDecl{'a', nil, {n.Attrib{'const', {}}} }}, {n.Id{'b'}}},
+        n.VarDecl{'global', {n.IdDecl{'a', nil, {n.Attrib{'const', {}}} }}, {n.Id{'b'}}},
+        n.VarDecl{'local', {
+          n.IdDecl{'a', nil, {n.Attrib{'const', {}}}},
+          n.IdDecl{'b', nil, {n.Attrib{'compconst', {}}}}
+        }, {n.Id{'c'},n.Id{'d'}}}
     }})
   end)
   it("variable multiple assigments", function()
     assert.parse_ast(nelua_parser, "local a,b,c = x,y,z",
       n.Block{{
-        n.VarDecl{'local', nil,
+        n.VarDecl{'local',
           { n.IdDecl{'a'}, n.IdDecl{'b'}, n.IdDecl{'c'} },
           { n.Id{'x'}, n.Id{'y'}, n.Id{'z'} }},
     }})
@@ -882,7 +881,7 @@ describe("statement variable declaration", function()
   it("record global variables", function()
     assert.parse_ast(nelua_parser, "global a.b: integer",
       n.Block{{
-        n.VarDecl{'global', nil, {n.IdDecl{n.DotIndex{'b',n.Id{'a'}}, nil, n.Type{'integer'}}}}
+        n.VarDecl{'global', {n.IdDecl{n.DotIndex{'b',n.Id{'a'}}, n.Type{'integer'}}}}
     }})
   end)
 end)
@@ -953,7 +952,7 @@ describe("statement function", function()
     assert.parse_ast(nelua_parser, "local function f(a, b: int): string end",
       n.Block{{
         n.FuncDef{'local', n.IdDecl{'f'},
-          { n.IdDecl{'a'}, n.IdDecl{'b', nil, n.Type{'int'}} },
+          { n.IdDecl{'a'}, n.IdDecl{'b', n.Type{'int'}} },
           { n.Type{'string'} },
           {},
           n.Block{{}} }
@@ -963,9 +962,20 @@ describe("statement function", function()
     assert.parse_ast(nelua_parser, "global function f(a, b: int): string end",
       n.Block{{
         n.FuncDef{'global', n.IdDecl{'f'},
-          { n.IdDecl{'a'}, n.IdDecl{'b', nil, n.Type{'int'}} },
+          { n.IdDecl{'a'}, n.IdDecl{'b', n.Type{'int'}} },
           { n.Type{'string'} },
           {},
+          n.Block{{}} }
+    }})
+  end)
+  it("global and typed with attributes", function()
+    assert.parse_ast(nelua_parser, "global function f(a !const, b: int !const): string !inline end",
+      n.Block{{
+        n.FuncDef{'global', n.IdDecl{'f'},
+          { n.IdDecl{'a', nil, {n.Attrib{'const', {}}}},
+            n.IdDecl{'b', n.Type{'int'}, {n.Attrib{'const', {}}}} },
+          { n.Type{'string'} },
+          {n.Attrib{'inline', {}}},
           n.Block{{}} }
     }})
   end)
@@ -973,7 +983,7 @@ describe("statement function", function()
     assert.parse_ast(nelua_parser, "local function f(a: number | boolean) end",
       n.Block{{
         n.FuncDef{'local', n.IdDecl{'f'},
-          { n.IdDecl{'a', nil, n.MultipleType{{n.Type{'number'}, n.Type{'boolean'}}}} },
+          { n.IdDecl{'a', n.MultipleType{{n.Type{'number'}, n.Type{'boolean'}}}} },
           {},
           {},
           n.Block{{}} }
@@ -1284,18 +1294,18 @@ describe("type expression", function()
   it("function", function()
     assert.parse_ast(nelua_parser, "local f: function<()>",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'f', nil, n.FuncType{{}, {}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'f', n.FuncType{{}, {}}}}
     }}})
     assert.parse_ast(nelua_parser, "local f: function<(int): string>",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'f', nil, n.FuncType{{n.Type{'int'}}, {n.Type{'string'}}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'f', n.FuncType{{n.Type{'int'}}, {n.Type{'string'}}}}}
     }}})
     assert.parse_ast(nelua_parser, "local f: function<(int, uint): string, boolean>",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'f', nil, n.FuncType{
+        n.VarDecl{'local',
+          { n.IdDecl{'f', n.FuncType{
             {n.Type{'int'}, n.Type{'uint'}},
             {n.Type{'string'}, n.Type{'boolean'}}}}}
     }}})
@@ -1303,31 +1313,31 @@ describe("type expression", function()
   it("array table type", function()
     assert.parse_ast(nelua_parser, "local t: arraytable<int>",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'t', nil, n.ArrayTableType{n.Type{'int'}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'t', n.ArrayTableType{n.Type{'int'}}}}
     }}})
   end)
   it("array type", function()
     assert.parse_ast(nelua_parser, "local a: array<int, 10>",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'a', nil, n.ArrayType{n.Type{'int'}, n.Number{'dec', '10'}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'a', n.ArrayType{n.Type{'int'}, n.Number{'dec', '10'}}}}
     }}})
     assert.parse_ast(nelua_parser, "local a: array<int, (2 >> 1)>",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'a', nil, n.ArrayType{n.Type{'int'},
+        n.VarDecl{'local',
+          { n.IdDecl{'a', n.ArrayType{n.Type{'int'},
             n.BinaryOp{"shr", n.Number{"dec", "2"}, n.Number{"dec", "1"}}}}}
     }}})
     assert.parse_ast(nelua_parser, "local a: int[10]",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'a', nil, n.ArrayType{n.Type{'int'}, n.Number{'dec', '10'}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'a', n.ArrayType{n.Type{'int'}, n.Number{'dec', '10'}}}}
     }}})
     assert.parse_ast(nelua_parser, "local a: int[10][10]",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'a', nil,
+        n.VarDecl{'local',
+          { n.IdDecl{'a',
             n.ArrayType{
               n.ArrayType{n.Type{'int'}, n.Number{'dec', '10'}},
               n.Number{'dec', '10'}}}}
@@ -1336,21 +1346,21 @@ describe("type expression", function()
   it("record type", function()
     assert.parse_ast(nelua_parser, "local r: record{a: int}",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'r', nil, n.RecordType{{n.RecordFieldType{'a', n.Type{'int'}}}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'r', n.RecordType{{n.RecordFieldType{'a', n.Type{'int'}}}}}}
     }}})
     assert.parse_ast(nelua_parser, "local r: record{a: int, b: boolean}",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'r', nil, n.RecordType{{
+        n.VarDecl{'local',
+          { n.IdDecl{'r', n.RecordType{{
             n.RecordFieldType{'a', n.Type{'int'}},
             n.RecordFieldType{'b', n.Type{'boolean'}}}}}}
     }}})
     assert.parse_ast(nelua_parser,
       "local r: record{f: function<(int, uint): string, boolean>, t: arraytable<int>}",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'r', nil, n.RecordType{{
+        n.VarDecl{'local',
+          { n.IdDecl{'r', n.RecordType{{
             n.RecordFieldType{'f', n.FuncType{
               {n.Type{'int'}, n.Type{'uint'}},
               {n.Type{'string'}, n.Type{'boolean'}}}},
@@ -1358,8 +1368,8 @@ describe("type expression", function()
     }}})
     assert.parse_ast(nelua_parser, "local r: record{a: record{c: int}, b: boolean}",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'r', nil, n.RecordType{{
+        n.VarDecl{'local',
+          { n.IdDecl{'r', n.RecordType{{
             n.RecordFieldType{'a', n.RecordType{{
               n.RecordFieldType{'c', n.Type{'int'}}
             }}},
@@ -1369,13 +1379,13 @@ describe("type expression", function()
   it("enum type", function()
     assert.parse_ast(nelua_parser, "local e: enum{a}",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'e', nil, n.EnumType{nil,{n.EnumFieldType{'a'}}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'e', n.EnumType{nil,{n.EnumFieldType{'a'}}}}}
     }}})
     assert.parse_ast(nelua_parser, "local e: enum<int>{a,b=2,c=b,}",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'e', nil, n.EnumType{n.Type{'int'}, {
+        n.VarDecl{'local',
+          { n.IdDecl{'e', n.EnumType{n.Type{'int'}, {
             n.EnumFieldType{'a'},
             n.EnumFieldType{'b', n.Number{'dec','2'}},
             n.EnumFieldType{'c', n.Id{'b'}}
@@ -1384,44 +1394,44 @@ describe("type expression", function()
   it("pointer type", function()
     assert.parse_ast(nelua_parser, "local p: pointer",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'p', nil, n.PointerType{}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'p', n.PointerType{}}}
     }}})
     assert.parse_ast(nelua_parser, "local p: pointer<integer>",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'p', nil, n.PointerType{n.Type{'integer'}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'p', n.PointerType{n.Type{'integer'}}}}
     }}})
     assert.parse_ast(nelua_parser, "local p: integer*",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'p', nil, n.PointerType{n.Type{'integer'}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'p', n.PointerType{n.Type{'integer'}}}}
     }}})
     assert.parse_ast(nelua_parser, "local p: integer**",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'p', nil, n.PointerType{n.PointerType{n.Type{'integer'}}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'p', n.PointerType{n.PointerType{n.Type{'integer'}}}}}
     }}})
   end)
   it("span type", function()
     assert.parse_ast(nelua_parser, "local s: span<integer>",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'s', nil, n.SpanType{n.Type{'integer'}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'s', n.SpanType{n.Type{'integer'}}}}
     }}})
   end)
   it("range type", function()
     assert.parse_ast(nelua_parser, "local r: range<integer>",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'r', nil, n.RangeType{n.Type{'integer'}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'r', n.RangeType{n.Type{'integer'}}}}
     }}})
   end)
   it("complex types", function()
     assert.parse_ast(nelua_parser, "local p: integer*[10]*[10]",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'p', nil,
+        n.VarDecl{'local',
+          { n.IdDecl{'p',
             n.ArrayType{
               n.PointerType{
                 n.ArrayType{
@@ -1435,13 +1445,13 @@ describe("type expression", function()
   it("type instantiation", function()
     assert.parse_ast(nelua_parser, "local Integer = @integer",
       n.Block{{
-        n.VarDecl{'local', nil,
+        n.VarDecl{'local',
           {n.IdDecl{'Integer'}},
           {n.TypeInstance{n.Type{'integer'}}}
     }}})
     assert.parse_ast(nelua_parser, "local MyRecord = @record{a: int}",
       n.Block{{
-        n.VarDecl{'local', nil,
+        n.VarDecl{'local',
           { n.IdDecl{'MyRecord'}},
           { n.TypeInstance{n.RecordType{{n.RecordFieldType{'a', n.Type{'int'}}}}}}
     }}})
@@ -1449,7 +1459,7 @@ describe("type expression", function()
   it("type assertion", function()
     assert.parse_ast(nelua_parser, "local a = @integer(0)",
       n.Block{{
-        n.VarDecl{'local', nil,
+        n.VarDecl{'local',
           { n.IdDecl{'a'}},
           { n.Call{{n.Number{"dec","0"}},n.TypeInstance{n.Type{"integer"}}}
         }
@@ -1458,35 +1468,35 @@ describe("type expression", function()
 end)
 
 --------------------------------------------------------------------------------
--- pragmas
+-- attributes
 --------------------------------------------------------------------------------
-describe("pragma expression for", function()
+describe("attrib expression for", function()
   it("block statement", function()
-    assert.parse_ast(nelua_parser, "!!pragma",
+    assert.parse_ast(nelua_parser, "!!attrib",
       n.Block{{
-        n.Pragma{'pragma', {}}
+        n.Attrib{'attrib', {}}
     }})
-    assert.parse_ast(nelua_parser, "!!pragma('s',1,true)",
+    assert.parse_ast(nelua_parser, "!!attrib('s',1,true)",
       n.Block{{
-        n.Pragma{'pragma', {n.String{'s'}, n.Number{'dec','1'}, n.Boolean{true}}}
+        n.Attrib{'attrib', {n.String{'s'}, n.Number{'dec','1'}, n.Boolean{true}}}
     }})
   end)
   it("variable", function()
-    assert.parse_ast(nelua_parser, "local a !pragma",
+    assert.parse_ast(nelua_parser, "local a !attrib",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'a', nil, nil, {n.Pragma{'pragma', {}}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'a', nil, {n.Attrib{'attrib', {}}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local a !pragma1 !pragma2",
+    assert.parse_ast(nelua_parser, "local a !attrib1 !attrib2",
       n.Block{{
-        n.VarDecl{'local', nil,
-          { n.IdDecl{'a', nil, nil, {n.Pragma{'pragma1', {}}, n.Pragma{'pragma2', {}}}}}
+        n.VarDecl{'local',
+          { n.IdDecl{'a', nil, {n.Attrib{'attrib1', {}}, n.Attrib{'attrib2', {}}}}}
     }}})
   end)
   it("function", function()
-    assert.parse_ast(nelua_parser, "local function f() !pragma end",
+    assert.parse_ast(nelua_parser, "local function f() !attrib end",
       n.Block{{
-        n.FuncDef{'local', n.IdDecl{'f'}, {}, {}, {n.Pragma{'pragma', {}}}, n.Block{{}} }
+        n.FuncDef{'local', n.IdDecl{'f'}, {}, {}, {n.Attrib{'attrib', {}}}, n.Block{{}} }
     }})
   end)
 end)
@@ -1566,12 +1576,11 @@ describe("preprocessor", function()
     }})
     assert.parse_ast(nelua_parser, "local #(a): #(b) !#(c)",
       n.Block{{
-        n.VarDecl{'local', nil, {
+        n.VarDecl{'local', {
           n.IdDecl{
             n.PreprocessName{"a"},
-            nil,
             n.Type{n.PreprocessName{"b"}},
-            {n.Pragma{n.PreprocessName{"c"}, {}}}
+            {n.Attrib{n.PreprocessName{"c"}, {}}}
     }}}}})
   end)
 end)
@@ -1584,7 +1593,7 @@ describe("utf8 characters", function()
   it("function", function()
     assert.parse_ast(nelua_parser, "local \207\128",
       n.Block{{
-        n.VarDecl{'local', nil,
+        n.VarDecl{'local',
           { n.IdDecl{'uCF80'} }
     }}})
   end)
