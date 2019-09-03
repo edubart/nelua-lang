@@ -33,7 +33,7 @@ local function get_compile_args(infile, outfile, compileopts)
     cflags:addlist(compileopts.linklibs, ' -l')
   end
   local env = { infile = infile, outfile = outfile, cflags = cflags:tostring(), cc = config.cc }
-  return pegger.substitute('$(cc) $(cflags) -o "$(outfile)" "$(infile)"', env)
+  return pegger.substitute('$(cc) -o "$(outfile)" "$(infile)" $(cflags)', env)
 end
 
 local last_ccinfos = {}

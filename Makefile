@@ -4,6 +4,8 @@ PWD=$(shell pwd)
 DRFLAGS=--rm -it -v "$(PWD):/nelua" nelua
 DFLAGS=-u $(UID):$(GID) $(DRFLAGS)
 LUAMONFLAGS=-w nelua,spec,tools,examples,runtime -e lua,nelua,h,c -q -x
+EXAMPLES=$(wildcard examples/*.nelua)
+BENCHMARKS=$(wildcard benchmarks/*.nelua)
 
 test: test-luajit test-lua5.3 test-lua5.1
 
@@ -62,7 +64,19 @@ _clear-stdout:
 devtest: _clear-stdout coverage-test check
 devtestlight: _clear-stdout test-luajit-quick check
 
-test-full: test coverage check
+test-full: test coverage check compile-examples
+
+compile-examples:
+	@echo -n "compile examples "
+	@for FILE in $(EXAMPLES); do \
+		luajit nelua.lua -qb $$FILE || exit 1; \
+		echo -n '+'; \
+	done
+	@for FILE in $(BENCHMARKS); do \
+		luajit nelua.lua -qb $$FILE || exit 1; \
+		echo -n '+'; \
+	done
+	@echo ""
 
 livedev:
 	luamon $(LUAMONFLAGS) "make -Ss devtest"
@@ -89,8 +103,8 @@ docker-test-all:
 	docker run $(DFLAGS) make -s test-full
 
 docker-test-full:
-	$(MAKE) docker-test-all
-	$(MAKE) docker-test-rocks
+	$(MAKE) -s docker-test-all
+	$(MAKE) -s docker-test-rocks
 
 docker-term:
 	docker run $(DRFLAGS) /bin/bash

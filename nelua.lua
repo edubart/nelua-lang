@@ -1,2 +1,2 @@
 #!/usr/bin/env lua
-require 'nelua.runner'.run(arg)
+os.exit(require 'nelua.runner'.run(arg))
