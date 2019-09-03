@@ -272,7 +272,7 @@ it("function multiple returns", function()
   end]], {
     "int64_t a = __ret%d+%.r1;",
     "bool b = __ret%d+%.r2;",
-    "int64_t c = f%(%)%.r1;"
+    "int64_t c = f__%d+%(%)%.r1;"
   }, true)
   assert.run_c([[
     local function f(): integer, boolean return 1, true end
@@ -312,8 +312,8 @@ it("call with multiple args", function()
     local function g(a: int32, b: integer, c: boolean) end
     g(1, f())
   end]], {
-    "function_%w+_ret __tmp%d+ = f%(%)",
-    "g%(1, __tmp%d+.r1, __tmp%d+.r2%);"
+    "function_%w+_ret __tmp%d+ = f__%d+%(%)",
+    "g__%d+%(1, __tmp%d+.r1, __tmp%d+.r2%);"
   }, true)
   assert.run_c([[do
     local function f(): integer, integer return 1, 2 end
@@ -487,14 +487,14 @@ it("expressions with side effects", function()
   assert.generate_c([[do
     local function f() return 1 end
     local a = f() + 1
-  end]],  "int64_t a = f() + 1")
+  end]],  "int64_t a = f__1() + 1")
   assert.generate_c([[do
     local function f() return 1 end
     local function g() return 1 end
     local a = f() + g()
   end]],  [[int64_t a = ({
-      int64_t t1_ = f();
-      int64_t t2_ = g();
+      int64_t t1_ = f__1();
+      int64_t t2_ = g__1();
       t1_ + t2_;
     });]])
   assert.run_c([[
@@ -1148,6 +1148,65 @@ it("require builtin", function()
   assert.run_error_c([[
     require 'invalid_file'
   ]], "compile time module 'invalid_file' not found")
+end)
+
+it("name collision", function()
+  assert.run_c([[
+    local function hello() print 'a' end
+    hello()
+    local function hello() print 'b' end
+    hello()
+    do
+      hello()
+      local function hello() print 'c' end
+      hello()
+      local function hello() print 'd' end
+      hello()
+    end
+    hello()
+    do
+      hello()
+      local function hello() print 'e' end
+      hello()
+      local function hello() print 'f' end
+      hello()
+    end
+    hello()
+  ]], "a\nb\nb\nc\nd\nb\nb\ne\nf\nb\n")
+  assert.run_c([[
+    local s = 'a'
+    print(s)
+    local s = 'b'
+    print(s)
+    do
+      print(s)
+      local s = 'c'
+      print(s)
+      local s = 'd'
+      print(s)
+    end
+    print(s)
+    do
+      print(s)
+      local s = 'e'
+      print(s)
+      local s = 'f'
+      print(s)
+    end
+    print(s)
+  ]], "a\nb\nb\nc\nd\nb\nb\ne\nf\nb\n")
+  assert.run_c([[
+    do
+      local function foo() print 'a' end
+      foo()
+    end
+    do
+      local function foo() print 'b' end
+      foo()
+    end
+    local function foo() print 'c' end
+    foo()
+  ]], "a\nb\nc\n")
 end)
 
 end)

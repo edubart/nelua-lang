@@ -29,7 +29,7 @@ function CContext:declname(node)
   local declname = attr.codename
   if not attr.nodecl then
     if not attr.cimport and not attr.metavar then
-      if self.scope:is_static_storage() and traits.is_astnode(node) then
+      if self.scope:is_static_storage() then
         local modname = attr.modname or node.modname
         if modname ~= '' then
           declname = string.format('%s_%s', modname, declname)
@@ -37,22 +37,26 @@ function CContext:declname(node)
       end
       declname = cdefs.quotename(declname)
     end
-    if attr.shadowcount then
-      declname = string.format('%s__%d', declname, attr.shadowcount)
+    if attr.shadowed or
+      (attr.type:is_function() and not self.scope:is_static_storage()) then
+      declname = self:genuniquename(declname, '%s__%d')
     end
   end
   attr.declname = declname
   return declname
 end
 
-function CContext:genuniquename(kind)
+function CContext:genuniquename(kind, fmt)
   local count = self.uniquecounters[kind]
   if not count then
     count = 0
   end
   count = count + 1
   self.uniquecounters[kind] = count
-  return string.format('__%s%d', kind, count)
+  if not fmt then
+    fmt = '__%s%d'
+  end
+  return string.format(fmt, kind, count)
 end
 
 function CContext:typename(type)

@@ -86,9 +86,12 @@ function Scope:add_symbol(symbol)
     symbol.node:assertraisef(not self.context.state.strict,
       "symbol '%s' shadows pre declared symbol with the same name", name)
 
-    -- symbol redeclaration, resolve old symbol type before replacing it
-    symbol_resolve_type(oldsymbol)
-    symbol.attr.shadowcount = (oldsymbol.attr.shadowcount or 1) + 1
+    if rawget(self.symbols, name) == oldsymbol then
+      -- symbol redeclaration in the same scope, resolve old symbol type before replacing it
+      symbol_resolve_type(oldsymbol)
+    end
+
+    symbol.attr.shadowed = true
   end
   if self.context.state.modname then
     symbol.attr.modname = self.context.state.modname

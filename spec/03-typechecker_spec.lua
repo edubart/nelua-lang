@@ -44,6 +44,21 @@ end)
 
 it("name collision", function()
   assert.ast_type_equals("local a = 1; local a = 2", "local a: integer = 1; local a: integer = 2")
+  assert.ast_type_equals([[
+    local a, b
+    do
+      b = 1
+      local a = 2
+    end
+    a = 1
+  ]], [[
+    local a: integer, b: integer
+    do
+      b = 1
+      local a: integer = 2
+    end
+    a = 1
+  ]])
 end)
 
 it("compconst variable" , function()

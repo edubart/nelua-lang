@@ -9,7 +9,7 @@
 -- import SDL structures
 local SDL_Event !cimport = @record {
   type: uint32,
-  padding: array<byte, 56>
+  padding: byte[56]
 }
 local SDL_Keysym !cimport = @record {
   scancode: cint,
