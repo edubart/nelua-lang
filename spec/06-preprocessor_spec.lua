@@ -278,9 +278,10 @@ end)
 
 it("print config", function()
   assert.ast_type_equals([=[
-    local a = #[config.cc]
+    ## config.test = 'test'
+    local a = #[config.test]
   ]=], [[
-    local a = 'gcc'
+    local a = 'test'
   ]])
 end)
 

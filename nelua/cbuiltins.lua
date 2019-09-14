@@ -220,6 +220,13 @@ end
 function functions.require(context, node, emitter)
   local scope = context:push_scope('block')
   local ast = node.attr.loadedast
+  if node.attr.runtime_require then
+    if node.attr.modulename then
+      node:raisef("compile time module '%s' not found", node.attr.modulename)
+    else
+      node:raisef('runtime require is not supported in C backend yet')
+    end
+  end
   assert(ast)
   scope.staticstorage = true
   local bracepos = emitter:get_pos()

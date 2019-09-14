@@ -8,40 +8,45 @@ local configer = {}
 local config = {}
 local defconfig = {
   cc = 'gcc',
+  generator = 'c',
+  cflags = '',
   lua = 'lua',
   lua_version = '5.3',
   cache_dir = 'nelua_cache',
+  standard = 'default',
   cpu_bits = 64
 }
 
 local function create_parser(argv)
   local argparser = argparse("nelua", "Nelua 0.1")
+  local d = defconfig
   argparser:flag('-c --compile', "Compile the generated code only")
   argparser:flag('-b --compile-binary', "Compile the generated code and binaries only")
   --argparser:option('-o --output', "Output file when compiling")
-  argparser:flag('-e --eval', 'Evaluate string code from input')
-  argparser:flag('-l --lint', 'Only check syntax errors')
-  argparser:flag('-q --quiet', "Don't print any information while compiling")
-  argparser:flag('--strict', "Compile in strict mode (more checks)")
-  argparser:flag('-a --analyze', 'Analyze the code only')
-  argparser:flag('-r --release', 'Release mode build')
-  argparser:flag('-t --timing', 'Debug compile timing information')
-  argparser:flag('--no-cache', "Don't use any cached compilation")
+  argparser:flag('-e --eval', 'Evaluate string code from input', d.eval)
+  argparser:flag('-l --lint', 'Only check syntax errors', d.lint)
+  argparser:flag('-q --quiet', "Don't print any information while compiling", d.quiet)
+  argparser:flag('-s --strict', "Compile in strict mode (more checks)", d.strict)
+  argparser:flag('-a --analyze', 'Analyze the code only', d.analyze)
+  argparser:flag('-r --release', 'Release mode build', d.release)
+  argparser:flag('-t --timing', 'Debug compile timing information', d.timing)
+  argparser:flag('--no-cache', "Don't use any cached compilation", d.no_cache)
   argparser:flag('--print-ast', 'Print the AST only')
   argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only')
   argparser:flag('--print-code', 'Print the generated code only')
   argparser:flag('--no-compile-gc', 'Disable compiler GC (faster but uses more mem)'):action(
-    function() collectgarbage('stop') end)
-  argparser:option('-g --generator', "Code generator to use (lua/c)", "c")
-  argparser:option('-s --standard', "Source standard (default/luacompat)", "default")
-  argparser:option('--cc', "C compiler to use", defconfig.cc)
-  argparser:option('--cpu-bits', "Target CPU architecture bit size", defconfig.cpu_bits)
-  argparser:option('--cflags', "Additional C flags to use on compilation", defconfig.cflags)
-  argparser:option('--lua', "Lua interpreter to use when runnning", defconfig.lua)
-  argparser:option('--lua-version', "Target lua version for lua generator", defconfig.lua_version)
-  argparser:option('--lua-options', "Lua options to use when running")
-  argparser:option('--cache-dir', "Compilation cache directory", defconfig.cache_dir)
-  argparser:option('--path', "Nelua modules search path", defconfig.path)
+    function() collectgarbage('stop') end, d.no_compile_gc)
+  argparser:option('-g --generator', "Code generator to use (lua/c)", d.generator)
+  argparser:option('-d --standard', "Source standard (default/luacompat)", d.standard)
+  argparser:option('--cc', "C compiler to use", d.cc)
+  argparser:option('--cpu-bits', "Target CPU architecture bit size", d.cpu_bits)
+  argparser:option('--cflags', "Additional C flags to use on compilation", d.cflags)
+  argparser:option('--lua', "Lua interpreter to use when runnning", d.lua)
+  argparser:option('--lua-version', "Target lua version for lua generator", d.lua_version)
+  argparser:option('--lua-options', "Lua options to use when running", d.lua_options)
+  argparser:option('--cache-dir', "Compilation cache directory", d.cache_dir)
+  argparser:option('--path', "Nelua modules search path", d.path)
+  argparser:option('--binary-suffix', "Binary suffix for the C generator", d.binary_suffix)
   argparser:argument("input", "Input source file"):action(function(options, _, v)
     -- hacky way to stop handling options
     local index = tabler.ifind(argv, v) + 1
@@ -84,15 +89,21 @@ function configer.get()
 end
 
 local function init_default_configs()
+  defconfig.path = get_path()
   defconfig.runtime_path = get_runtime_path()
-  defconfig.path = os.getenv('NELUA_PATH') or get_path()
-  defconfig.cache_dir = os.getenv('NELUA_CACHE_DIR') or defconfig.cache_dir
-  defconfig.lua = os.getenv('LUA') or defconfig.lua
   defconfig.cc = os.getenv('CC') or defconfig.cc
-  defconfig.cflags = os.getenv('CFLAGS')
+  defconfig.cflags = os.getenv('CFLAGS') or defconfig.cflags
   metamagic.setmetaindex(config, defconfig)
 end
 
+local function load_home_configs()
+  local homeconfigfile = fs.join(fs.getuserconfpath(), '.nelua.lua')
+  if not fs.isfile(homeconfigfile) then return end
+  local homeconfig = dofile(homeconfigfile)
+  tabler.update(defconfig, homeconfig)
+end
+
 init_default_configs()
+load_home_configs()
 
 return configer

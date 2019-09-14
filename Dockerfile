@@ -19,4 +19,7 @@ RUN sudo luarocks-5.1 install --only-deps nelua-dev-1.rockspec
 # nelua lua dependencies (5.3)
 RUN sudo luarocks-5.3 install --only-deps nelua-dev-1.rockspec
 
+RUN echo "return { binary_suffix = '.out' }" >> .nelua.lua
+RUN cp /.nelua.lua /root/.nelua.lua
+
 WORKDIR /nelua

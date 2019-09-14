@@ -11,7 +11,7 @@ local cdefs = require 'nelua.cdefs'
 
 local compiler = {}
 
-local function get_compile_args(infile, outfile, compileopts)
+local function get_compile_args(cfile, binfile, compileopts)
   local compiler_flags = cdefs.compilers_flags[config.cc] or cdefs.compiler_base_flags
   local cflags = sstream(compiler_flags.cflags_base)
   cflags:add(' ')
@@ -32,8 +32,8 @@ local function get_compile_args(infile, outfile, compileopts)
     cflags:add(' -l')
     cflags:addlist(compileopts.linklibs, ' -l')
   end
-  local env = { infile = infile, outfile = outfile, cflags = cflags:tostring(), cc = config.cc }
-  return pegger.substitute('$(cc) -o "$(outfile)" "$(infile)" $(cflags)', env)
+  local env = { cfile = cfile, binfile = binfile, cflags = cflags:tostring(), cc = config.cc }
+  return pegger.substitute('$(cc) -o "$(binfile)" "$(cfile)" $(cflags)', env)
 end
 
 local last_ccinfos = {}
@@ -77,34 +77,39 @@ function compiler.compile_code(ccode, outfile, compileopts)
 end
 
 function compiler.compile_binary(cfile, outfile, compileopts)
+  local binfile = outfile
+  if config.binary_suffix then
+    binfile = outfile .. config.binary_suffix
+  end
+
   -- if the file with that hash already exists skip recompiling it
   if not config.no_cache then
     local cfile_mtime = fs.getfiletime(cfile)
-    local outfile_mtime = fs.getfiletime(outfile)
-    if cfile_mtime and outfile_mtime and cfile_mtime <= outfile_mtime then
+    local binfile_mtime = fs.getfiletime(binfile)
+    if cfile_mtime and binfile_mtime and cfile_mtime <= binfile_mtime then
       if not config.quiet then
-        console.info("using cached binary " .. outfile)
+        console.info("using cached binary " .. binfile)
       end
-      return outfile
+      return binfile
     end
   end
 
-  fs.ensurefilepath(outfile)
+  fs.ensurefilepath(binfile)
 
   -- generate compile command
-  local cccmd = get_compile_args(cfile, outfile, compileopts)
+  local cccmd = get_compile_args(cfile, binfile, compileopts)
   if not config.quiet then console.info(cccmd) end
 
   -- compile the file
   local success, status, stdout, stderr = executor.execex(cccmd)
   except.assertraisef(success and status == 0,
-    "C compilation for '%s' failed:\n%s", outfile, stderr or '')
+    "C compilation for '%s' failed:\n%s", binfile, stderr or '')
 
   if stderr then
     io.stderr:write(stderr)
   end
 
-  return outfile
+  return binfile
 end
 
 function compiler.get_run_command(binaryfile, runargs)

@@ -12,6 +12,7 @@ fs.abspath = plpath.abspath
 fs.getbasename = plpath.basename
 fs.getpathdir = plpath.dirname
 fs.getfiletime = plfile.modified_time
+fs.isfile = plpath.isfile
 
 function fs.ensurefilepath(file)
   local outdir = plpath.dirname(file)
@@ -50,6 +51,10 @@ function fs.getdatapath(arg0)
     path = fs.getpathdir(fs.getpathdir(fs.getpathdir(fs.abspath(debug.getinfo(1).short_src))))
   end
   return path
+end
+
+function fs.getuserconfpath()
+  return plpath.expanduser('~')
 end
 
 function fs.findmodulefile(name, path)

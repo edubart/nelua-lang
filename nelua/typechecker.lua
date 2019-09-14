@@ -891,7 +891,7 @@ local function builtin_call_require(context, node)
           argnode.attr.type and argnode.attr.type:is_string() and
           argnode.attr.compconst) then
     -- not a compile time require
-    node:assertraisef(context.state.backend ~= 'c', 'runtime require is not supported in C backend yet')
+    node.attr.runtime_require = true
     return
   end
 
@@ -902,7 +902,7 @@ local function builtin_call_require(context, node)
   local filepath = fs.findmodulefile(modulename, config.path)
   if not filepath then
     -- maybe it would succeed at runtime
-    node:assertraisef(context.state.backend ~= 'c', "compile time module '%s' not found", node.attr.modulename)
+    node.attr.runtime_require = true
     return
   end
   local input = fs.readfile(filepath)
@@ -1602,10 +1602,6 @@ function typechecker.analyze(ast, parser, parentcontext)
   context.ast = ast
   context.parser = parser
   context.astbuilder = parser.astbuilder
-
-  if not context.state.backend then
-    context.state.backend = config.generator
-  end
 
   -- phase 1 traverse: infer and check types
   context.phase = phases.type_inference
