@@ -287,8 +287,7 @@ end)
 
 it("strict mode", function()
   assert.ast_type_equals([=[
-    !!strict
-    ## local dummy = 1
+    ## strict = true
     local function f(a: integer)
       ## if true then
         print(a)
@@ -296,11 +295,19 @@ it("strict mode", function()
     end
     f(1)
   ]=], [[
-    !!strict
+    ## strict = true
     local function f(a: integer)
       print(a)
     end
     f(1)
+  ]])
+end)
+
+it("inject nodes", function()
+  assert.ast_type_equals([=[
+    ## addnode(aster.Call{{aster.String{"hello"}}, aster.Id{'print'}, true})
+  ]=], [[
+    print 'hello'
   ]])
 end)
 

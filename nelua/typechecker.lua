@@ -215,6 +215,13 @@ function visitors.Table(context, node, desiredtype)
   end
 end
 
+function visitors.PragmaSet(context, node)
+  local name, value = node:args()
+  local pragmashape = typedefs.field_pragmas[name]
+  node:assertraisef(pragmashape, "pragma '%s' is not defined", name)
+  context[name] = value
+end
+
 function visitors.Attrib(context, node, symbol)
   --TODO: quick return
 
@@ -287,7 +294,7 @@ function visitors.Attrib(context, node, symbol)
     end
   end
   if name == 'strict' then
-    context.state.strict = true
+    context.strict = true
   end
 end
 
@@ -379,8 +386,8 @@ function visitors.TypeInstance(context, node, _, symbol)
 
   if symbol and not attr.holdedtype:is_primitive() then
     local prefix
-    if context.state.nohashcodenames then
-      prefix = context.state.modname or context.ast.modname
+    if context.nohashcodenames then
+      prefix = context.modname or context.ast.modname
     end
     attr.holdedtype:suggest_nick(symbol.name, prefix)
   end
@@ -1122,7 +1129,7 @@ function visitors.VarDecl(context, node)
       varnode:assertraisef(context.scope:is_static_storage(), 'global variables can only be declared in top scope')
       varnode.attr.global = true
     end
-    if context.state.nostatic then
+    if context.nostatic then
       varnode.attr.nostatic = true
     end
     local symbol = context:traverse(varnode)
@@ -1157,7 +1164,7 @@ function visitors.VarDecl(context, node)
         valnode.attr.initializer = true
       end
     else
-      if context.state.noinit then
+      if context.noinit then
         varnode.attr.noinit = true
       end
     end
@@ -1618,10 +1625,10 @@ function typechecker.analyze(ast, parser, parentcontext)
   end)
 
   -- forward global attributes to ast
-  if context.state.nocore then
+  if context.nocore then
     ast.attr.nocore = true
   end
-  if context.state.nofloatsuffix then
+  if context.nofloatsuffix then
     ast.attr.nofloatsuffix = true
   end
 

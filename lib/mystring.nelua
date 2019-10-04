@@ -4,7 +4,7 @@
 --TODO: varargs
 --TODO: optional parameters/returns
 
-## state.modname = 'mystring'
+## modname = 'mystring'
 
 --------------------------------------------------------------------------------
 -- C imports

@@ -62,6 +62,17 @@ astbuilder:register('Attrib', {
   stypes.array_of(ntypes.String + ntypes.Number + ntypes.Boolean) -- args
 })
 
+-- used inerally internal
+astbuilder:register('PragmaCall', {
+  stypes.string, -- name
+  stypes.table, -- args exprs
+})
+
+astbuilder:register('PragmaSet', {
+  stypes.string, -- name
+  stypes.any, -- value
+})
+
 -- identifier and types
 astbuilder:register('Id', {
   stypes.string + ntypes.PreprocessName, -- name

@@ -780,7 +780,7 @@ end)
 
 it("record globals", function()
   assert.generate_c([[
-    ## state.nohashcodenames = true
+    ## nohashcodenames = true
     local Math = @record{}
     global Math.PI: number !compconst = 3.14
     global Math.E !compconst = 2.7
@@ -838,9 +838,11 @@ end)
 
 it("automatic reference", function()
   assert.run_c([[
-    local p: integer*
+    local p: integer*, q: integer*
     local a: integer = 1
     p = a
+    q = &a
+    assert(p == q)
     assert($p == 1)
     local function f(p: integer*) return $p end
     assert(f(a) == 1)
@@ -1084,9 +1086,9 @@ end)
 
 it("context states", function()
   assert.generate_c([[
-    ## state.noinit = true
+    ## noinit = true
     local a: integer
-    ## state.noinit = false
+    ## noinit = false
     local b: integer
   ]], {
     "\nstatic int64_t mymod_a;\n",
@@ -1094,9 +1096,9 @@ it("context states", function()
   })
 
   assert.generate_c([[
-    ## state.nostatic = true
+    ## nostatic = true
     local a: integer
-    ## state.nostatic = false
+    ## nostatic = false
     local b: integer
   ]], {
     "\nint64_t mymod_a = 0;\n",
@@ -1104,16 +1106,16 @@ it("context states", function()
   })
 
   assert.generate_c([[
-    ## state.nofloatsuffix = true
+    ## nofloatsuffix = true
     local a: float32 = 0
   ]], {
     "a = 0.0;",
   })
 
   assert.generate_c([[
-    ## state.nostatic = true
+    ## nostatic = true
     local a: integer
-    ## state.nostatic = false
+    ## nostatic = false
     local b: integer
   ]], {
     "\nint64_t mymod_a = 0;\n",
@@ -1121,11 +1123,11 @@ it("context states", function()
   })
 
   assert.generate_c([[
-    ## state.nocore = true
+    ## nocore = true
   ]], "nelua_main")
 
   assert.generate_c([[
-    ## state.modname = 'mylib'
+    ## modname = 'mylib'
     local function foo() !cexport
     end
   ]], "extern void mylib_foo();")

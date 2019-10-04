@@ -97,7 +97,7 @@ local function init_default_configs()
 end
 
 local function load_home_configs()
-  local homeconfigfile = fs.join(fs.getuserconfpath(), '.nelua.lua')
+  local homeconfigfile = fs.getuserconfpath('neluacfg.lua')
   if not fs.isfile(homeconfigfile) then return end
   local homeconfig = dofile(homeconfigfile)
   tabler.update(defconfig, homeconfig)

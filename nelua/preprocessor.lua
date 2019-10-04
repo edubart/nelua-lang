@@ -29,6 +29,21 @@ function PPContext:_init(context, visitors)
   self.registry = {}
 end
 
+function PPContext:push_statnodes()
+  local statnodes = {oldstatnodes = self.statnodes}
+  self.statnodes = statnodes
+  return statnodes
+end
+
+function PPContext:pop_statnodes()
+  self.statnodes = self.statnodes.oldstatnodes
+end
+
+function PPContext:add_statnode(node)
+  table.insert(self.statnodes, node)
+  self.context:traverse(node)
+end
+
 function PPContext.toname(_, val, orignode)
   orignode:assertraisef(traits.is_string(val),
     'unable to convert preprocess value of type "%s" to a compile time name', type(val))
@@ -154,7 +169,7 @@ function visitors.Block(ppcontext, node, emitter, parent)
   node.needprocess = false
 
   emitter:add_ln('do')
-  emitter:add_ln('local ppnewstatnodes = {}')
+  emitter:add_ln('local ppnewstatnodes = ppcontext:push_statnodes()')
   emitter:add_ln('ppregistry[', ppcontext:getregistryindex(node), '][1] = ppnewstatnodes')
   emitter:add_ln('context:push_scope("block")')
   for _,statnode in ipairs(statnodes) do
@@ -164,12 +179,11 @@ function visitors.Block(ppcontext, node, emitter, parent)
       emitter:add_ln('do')
       emitter:add_ln('local ppstatnode = ppregistry[', ppcontext:getregistryindex(statnode), ']')
       ppcontext:traverse(statnode, emitter)
-      emitter:add_ln('local ppnewstatnode =  ppstatnode:clone()')
-      emitter:add_ln('table.insert(ppnewstatnodes, ppnewstatnode)')
-      emitter:add_ln('context:traverse(ppnewstatnode)')
+      emitter:add_ln('ppcontext:add_statnode(ppstatnode:clone())')
       emitter:add_ln('end')
     end
   end
+  emitter:add_ln('ppcontext:pop_statnodes()')
   emitter:add_ln('context:pop_scope()')
   emitter:add_ln('end')
 end
@@ -212,6 +226,17 @@ function marker_visitors.Block(markercontext, node)
   end
 end
 
+local ppenvgetfields = {}
+function ppenvgetfields:scope()
+  return self.context.scope
+end
+function ppenvgetfields:ast()
+  return self.context:get_top_node()
+end
+function ppenvgetfields:symbols()
+  return self.context.scope.symbols
+end
+
 local preprocessor = {}
 function preprocessor.preprocess(context, ast)
   assert(ast.tag == 'Block')
@@ -230,29 +255,36 @@ function preprocessor.preprocess(context, ast)
 
   -- second pass, emit the preprocess lua code
   local ppcontext = PPContext(context, visitors)
+  local aster = context.astbuilder.aster
   local emitter = Emitter(ppcontext, 0)
+  emitter:add_ln("local ppcontext = ppcontext")
+  emitter:add_ln("local ppregistry = ppcontext.registry")
+  emitter:add_ln("local context = ppcontext.context")
   ppcontext:traverse(ast, emitter)
 
   -- generate the preprocess function
   local ppcode = emitter:generate()
-  local env = setmetatable({
+  local env
+  env = setmetatable({
     context = context,
-    aster = context.astbuilder.aster,
     ppcontext = ppcontext,
-    ppregistry = ppcontext.registry
+    aster = aster,
+    addnode = function(node) ppcontext:add_statnode(node) end,
+    config = config
   }, { __index = function(_, key)
-    if key == 'scope' then
-      return context.scope
-    elseif key == 'ast' then
-      return context:get_top_node()
-    elseif key == 'symbols' then
-      return context.scope.symbols
-    elseif key == 'state' then
-      return context.state
-    elseif key == 'config' then
-      return config
+    local ppenvfield = ppenvgetfields[key]
+    if ppenvfield then
+      return ppenvfield(env)
+    elseif typedefs.field_pragmas[key] then
+      return context[key]
     else
       return _G[key]
+    end
+  end, __newindex = function(_, key, value)
+    if typedefs.field_pragmas[key] then
+      ppcontext:add_statnode(aster.PragmaSet{key, value})
+    else
+      env[key] = value
     end
   end})
 

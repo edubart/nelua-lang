@@ -207,6 +207,11 @@ end
 
 -- TODO: Function
 
+function visitors.PragmaSet(context, node)
+  local name, value = node:args()
+  context[name] = value
+end
+
 function visitors.Attrib(context, node, emitter)
   local attr = node.attr
   if attr.cinclude then

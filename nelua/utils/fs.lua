@@ -53,8 +53,8 @@ function fs.getdatapath(arg0)
   return path
 end
 
-function fs.getuserconfpath()
-  return plpath.expanduser('~')
+function fs.getuserconfpath(filename)
+  return plpath.expanduser(fs.join('~', '.config', 'nelua', filename))
 end
 
 function fs.findmodulefile(name, path)

@@ -36,7 +36,6 @@ local function traverser_default_visitor(self, node, ...)
 end
 
 function Context:_init(visitors, default_visitor, parentcontext)
-  self.state = {}
   if parentcontext then
     self.rootscope = parentcontext.rootscope
     self.builtins = parentcontext.builtins
@@ -52,6 +51,7 @@ function Context:_init(visitors, default_visitor, parentcontext)
   elseif default_visitor then
     self.default_visitor = default_visitor
   end
+  self.strict = false
   self.nodes = {}
 end
 

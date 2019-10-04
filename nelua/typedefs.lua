@@ -354,6 +354,25 @@ typedefs.block_attribs = {
   strict = true
 }
 
+typedefs.call_pragmas = {
+  cinclude = shaper.shape{shaper.string},
+  cemit = shaper.shape{shaper.string, shaper.string:is_optional()},
+  cdefine = shaper.shape{shaper.string},
+  cflags = shaper.shape{shaper.string},
+  ldflags = shaper.shape{shaper.string},
+  linklib = shaper.shape{shaper.string},
+}
+
+typedefs.field_pragmas = {
+  strict = shaper.shape{shaper.boolean},
+  nohashcodenames = shaper.shape{shaper.boolean},
+  noinit = shaper.shape{shaper.boolean},
+  nostatic = shaper.shape{shaper.boolean},
+  nofloatsuffix = shaper.shape{shaper.boolean},
+  nocore = shaper.shape{shaper.boolean},
+  modname = shaper.shape{shaper.string},
+}
+
 local common_attribs = {
   cimport = shaper.shape{shaper.string:is_optional(), (shaper.boolean + shaper.string):is_optional()},
   onestring = shaper.shape{shaper.string},

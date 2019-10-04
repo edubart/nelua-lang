@@ -1,6 +1,6 @@
-## state.strict = true
-## state.modname = 'nelua'
-## state.nohashcodenames = true
+## strict = true
+## modname = 'nelua'
+## nohashcodenames = true
 
 --TODO: function type overload
 

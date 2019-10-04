@@ -58,7 +58,7 @@ function Scope:get_symbol(name, node, required)
       end
     end
   end
-  if not symbol and required and self.context.state.strict and not self.context.preprocessing then
+  if not symbol and required and self.context.strict and not self.context.preprocessing then
     node:raisef("undeclared symbol '%s'", name)
   end
   return symbol
@@ -83,7 +83,7 @@ function Scope:add_symbol(symbol)
   assert(name)
   local oldsymbol = self.symbols[name]
   if oldsymbol and (not oldsymbol.node or oldsymbol.node ~= symbol.node) then
-    symbol.node:assertraisef(not self.context.state.strict,
+    symbol.node:assertraisef(not self.context.strict,
       "symbol '%s' shadows pre declared symbol with the same name", name)
 
     if rawget(self.symbols, name) == oldsymbol then
@@ -93,8 +93,8 @@ function Scope:add_symbol(symbol)
 
     symbol.attr.shadowed = true
   end
-  if self.context.state.modname then
-    symbol.attr.modname = self.context.state.modname
+  if self.context.modname then
+    symbol.attr.modname = self.context.modname
   end
   self.symbols[name] = symbol
   return symbol
