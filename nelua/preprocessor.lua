@@ -277,6 +277,10 @@ function preprocessor.preprocess(context, ast)
       return ppenvfield(env)
     elseif typedefs.field_pragmas[key] then
       return context[key]
+    elseif typedefs.call_pragmas[key] then
+      return function(...)
+        ppcontext:add_statnode(aster.PragmaCall{key, tabler.pack(...)})
+      end
     else
       return _G[key]
     end
@@ -284,7 +288,7 @@ function preprocessor.preprocess(context, ast)
     if typedefs.field_pragmas[key] then
       ppcontext:add_statnode(aster.PragmaSet{key, value})
     else
-      env[key] = value
+      rawset(env, key, value)
     end
   end})
 

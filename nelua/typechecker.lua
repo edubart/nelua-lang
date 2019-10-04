@@ -220,6 +220,14 @@ function visitors.PragmaSet(context, node)
   local pragmashape = typedefs.field_pragmas[name]
   node:assertraisef(pragmashape, "pragma '%s' is not defined", name)
   context[name] = value
+  --TODO: check argument types
+end
+
+function visitors.PragmaCall(_, node)
+  local name, args = node:args()
+  local pragmashape = typedefs.call_pragmas[name]
+  node:assertraisef(pragmashape, "pragma '%s' is not defined", name)
+  --TODO: check argument types
 end
 
 function visitors.Attrib(context, node, symbol)
@@ -227,12 +235,13 @@ function visitors.Attrib(context, node, symbol)
 
   local name, argnodes = node:args()
   context:traverse(argnodes)
+  assert(symbol)
 
   local paramshape
   local symboltype
   if name == 'compconst' then
     paramshape = true
-  elseif symbol then
+  else
     symboltype = symbol.attr.type
     if not symboltype then
       -- in the next traversal we will have the type
@@ -245,8 +254,6 @@ function visitors.Attrib(context, node, symbol)
     else
       paramshape = typedefs.variable_attribs[name]
     end
-  elseif not symbol then
-    paramshape = typedefs.block_attribs[name]
   end
   node:assertraisef(paramshape, "attribute '%s' is not defined in this context", name)
   local params = tabler.imap(argnodes, function(argnode)
@@ -273,11 +280,7 @@ function visitors.Attrib(context, node, symbol)
     type = symbol.attr.holdedtype
     attr = type
   else
-    if symbol then
-      attr = symbol.attr
-    else
-      attr = node.attr
-    end
+    attr = symbol.attr
   end
   attr[name] = params
 
@@ -292,9 +295,6 @@ function visitors.Attrib(context, node, symbol)
     if traits.is_string(header) then
       attr.cinclude = header
     end
-  end
-  if name == 'strict' then
-    context.strict = true
   end
 end
 

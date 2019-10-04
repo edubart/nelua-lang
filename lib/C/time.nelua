@@ -1,7 +1,7 @@
-!!strict
-!!cinclude '<time.h>'
+## strict = true
+## cinclude '<time.h>'
 
-!!cemit([[
+## cemit([[
 typedef struct timespec timespec_t;
 typedef struct tm tm_t;
 ]], 'declaration')

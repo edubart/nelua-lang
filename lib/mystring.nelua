@@ -1,17 +1,15 @@
-!!strict
-
 --TODO: compile time integers
 --TODO: varargs
 --TODO: optional parameters/returns
-
+## strict = true
 ## modname = 'mystring'
 
 --------------------------------------------------------------------------------
 -- C imports
 
-!!cinclude '<string.h>'
-!!cinclude '<stdlib.h>'
-!!cinclude '<ctype.h>'
+## cinclude '<string.h>'
+## cinclude '<stdlib.h>'
+## cinclude '<ctype.h>'
 
 local function malloc(size: usize): pointer !cimport end
 local function strlen(s: cstring): csize !cimport end

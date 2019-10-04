@@ -2,6 +2,7 @@ local CEmitter = require 'nelua.cemitter'
 local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
 local stringer = require 'nelua.utils.stringer'
+local tabler = require 'nelua.utils.tabler'
 local pegger = require 'nelua.utils.pegger'
 local fs = require 'nelua.utils.fs'
 local config = require 'nelua.configer'.get()
@@ -212,13 +213,12 @@ function visitors.PragmaSet(context, node)
   context[name] = value
 end
 
-function visitors.Attrib(context, node, emitter)
-  local attr = node.attr
-  if attr.cinclude then
-    context:add_include(attr.cinclude)
-  end
-  if attr.cemit then
-    local code, scope = attr.cemit[1], attr.cemit[2]
+function visitors.PragmaCall(context, node, emitter)
+  local name, args = node:args()
+  if name == 'cinclude' then
+    context:add_include(tabler.unpack(args))
+  elseif name == 'cemit' then
+    local code, scope = tabler.unpack(args)
     if not stringer.endswith(code, '\n') then
       code = code .. '\n'
     end
@@ -231,19 +231,17 @@ function visitors.Attrib(context, node, emitter)
     else --luacov:disable
       node:raisef('invalid C emit scope')
     end --luacov:enable
-  end
-  if attr.cdefine then
-    context:add_declaration(string.format('#define %s\n', attr.cdefine))
-  end
-  if attr.cflags then
-    table.insert(context.compileopts.cflags, attr.cflags)
-  end
-  if attr.ldflags then
-    table.insert(context.compileopts.ldflags, attr.ldflags)
-  end
-  if attr.linklib then
-    table.insert(context.compileopts.linklibs, attr.linklib)
-  end
+  elseif name == 'cdefine' then
+    context:add_declaration(string.format('#define %s\n', args[1]))
+  elseif name == 'cflags' then
+    table.insert(context.compileopts.cflags, args[1])
+  elseif name == 'ldflags' then
+    table.insert(context.compileopts.ldflags, args[1])
+  elseif name == 'linklib' then
+    table.insert(context.compileopts.linklibs, args[1])
+  else --luacov:disable
+    error('not implemented yet')
+  end --luacov:enable
 end
 
 function visitors.Id(context, node, emitter)

@@ -198,8 +198,7 @@ local function get_parser(std)
   %AT           <- '@'
   %DOLLAR       <- '$'
   %QUESTION     <- '?'
-  %DBEXCL       <- '!!'
-  %EXCL         <- !%DBEXCL '!'
+  %EXCL         <- '!'
 
   -- used by types
   %TRECORD      <- 'record'
@@ -307,10 +306,6 @@ local function get_parser(std)
       ({} ''->'UnaryOp' {| op_deref* |} callable_suffix) -> to_chain_unary_op
     callable_suffix <-
       (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |} ctrue) -> to_chain_index_or_call
-  ]])
-
-  grammar:add_group_peg('stat', 'attrib', [[
-    ({} %DBEXCL -> 'Attrib' eattrib_expr) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'preprocess', [[

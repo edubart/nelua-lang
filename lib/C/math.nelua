@@ -1,5 +1,5 @@
-!!strict
-!!cinclude '<math.h>'
+## strict = true
+## cinclude '<math.h>'
 
 -- Basic operations
 function C.fabs(x: float64): float64 !cimport 'fabs' end

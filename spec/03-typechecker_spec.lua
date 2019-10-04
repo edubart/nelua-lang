@@ -942,7 +942,6 @@ it("attributes", function()
     "local function f() !cimport return 0 end",
     "body of an import function must be empty")
   assert.analyze_error("local a !cimport = 2", "cannot assign imported variables")
-  assert.analyze_error("!!cimport 'lala'", "is not defined in this context")
   assert.analyze_error([[
     local function main1() !entrypoint end
     local function main2() !entrypoint end
@@ -966,16 +965,16 @@ end)
 
 it("strict mode", function()
   assert.analyze_ast([[
-    !!strict
+    ## strict = true
     local a = 1
     local function f() return 3 end
     global b = 2
     global function g() return 4 end
     assert(a == 1 and b == 2 and f() == 3 and g() == 4)
   ]])
-  assert.analyze_error("!!strict function f() return 0 end", "undeclared symbol")
-  assert.analyze_error("!!strict a = 1", "undeclared symbol")
-  assert.analyze_error("!!strict local a; local a", "shadows pre declared symbol")
+  assert.analyze_error("[##[ strict = true ]##] function f() return 0 end", "undeclared symbol")
+  assert.analyze_error("[##[ strict = true ]##] a = 1", "undeclared symbol")
+  assert.analyze_error("[##[ strict = true ]##] local a; local a", "shadows pre declared symbol")
 end)
 
 end)

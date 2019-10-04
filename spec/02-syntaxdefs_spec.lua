@@ -1471,16 +1471,6 @@ end)
 -- attributes
 --------------------------------------------------------------------------------
 describe("attrib expression for", function()
-  it("block statement", function()
-    assert.parse_ast(nelua_parser, "!!attrib",
-      n.Block{{
-        n.Attrib{'attrib', {}}
-    }})
-    assert.parse_ast(nelua_parser, "!!attrib('s',1,true)",
-      n.Block{{
-        n.Attrib{'attrib', {n.String{'s'}, n.Number{'dec','1'}, n.Boolean{true}}}
-    }})
-  end)
   it("variable", function()
     assert.parse_ast(nelua_parser, "local a !attrib",
       n.Block{{

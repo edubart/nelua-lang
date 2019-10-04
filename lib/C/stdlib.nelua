@@ -1,5 +1,5 @@
-!!strict
-!!cinclude '<stdlib.h>'
+## strict = true
+## cinclude '<stdlib.h>'
 
 -- Memory management
 function C.malloc(size: csize): pointer !cimport 'malloc' end

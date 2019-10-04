@@ -1,5 +1,5 @@
-!!strict
-!!cinclude '<errno.h>'
+## strict = true
+## cinclude '<errno.h>'
 
 -- Global variables
 global C.errno: cint !cimport 'errno'

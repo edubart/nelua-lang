@@ -4,20 +4,20 @@
 --TODO: default output file as html for emcc
 --TODO: pass ifdef via compile command
 --TODO: function pointers
-!!cinclude '<emscripten.h>'
-!!cflags '-O3 -s USE_SDL=2 -o nelua_cache/condots.html'
+## cinclude '<emscripten.h>'
+## cflags '-O3 -s USE_SDL=2 -o nelua_cache/condots.html'
 local function emscripten_set_main_loop_arg(func: function<(pointer)>, arg: pointer, fps: cint, simulate_infinite_loop: cint) !cimport end
 ## else
 -- optimize for performance
-!!cflags '-O3 -ffast-math -march=native -fno-plt -fopenmp -rdynamic -g'
-!!linklib 'SDL2'
+## cflags '-O3 -ffast-math -march=native -fno-plt -fopenmp -rdynamic -g'
+## linklib 'SDL2'
 ## end
 
 --------------------------------------------------------------------------------
 -- SDL
 -- import SDL headers
-!!cdefine 'SDL_DISABLE_IMMINTRIN_H'
-!!cinclude '<SDL2/SDL.h>'
+## cdefine 'SDL_DISABLE_IMMINTRIN_H'
+## cinclude '<SDL2/SDL.h>'
 
 -- import SDL types
 local SDL_Keysym = @record {
@@ -253,7 +253,7 @@ local function draw_scene()
     draw_circle(p, RADIUS)
   end
 
-  !!cemit '#pragma omp parallel for schedule(dynamic)'
+  ## cemit '#pragma omp parallel for schedule(dynamic)'
   for i=0,<NUM_PARTICLES do
     local pi = &particles[i]
     for j=i+1,<NUM_PARTICLES do

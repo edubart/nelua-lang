@@ -1,5 +1,5 @@
-!!strict
-!!cinclude '<signal.h>'
+## strict = true
+## cinclude '<signal.h>'
 
 function C.signal(sig: cint, handler: pointer): pointer !cimport 'signal' end
 function C.raise(sig: cint): cint !cimport 'raise' end

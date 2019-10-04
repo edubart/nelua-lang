@@ -1,17 +1,17 @@
-!!strict
+## strict = true
 
 --TODO: optional params/returns
 
 --------------------------------------------------------------------------------
 -- C imports
 
-!!cinclude '<unistd.h>'
-!!cinclude '<time.h>'
-!!cinclude '<stdlib.h>'
-!!cinclude '<stdio.h>'
-!!cinclude '<string.h>'
-!!cinclude '<locale.h>'
-!!cinclude '<errno.h>'
+## cinclude '<unistd.h>'
+## cinclude '<time.h>'
+## cinclude '<stdlib.h>'
+## cinclude '<stdio.h>'
+## cinclude '<string.h>'
+## cinclude '<locale.h>'
+## cinclude '<errno.h>'
 
 local CLOCKS_PER_SEC: clong !cimport
 local LC_ALL: cint !cimport

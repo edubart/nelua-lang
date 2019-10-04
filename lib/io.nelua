@@ -1,12 +1,12 @@
-!!strict
+## strict = true
 
 --TODO: optional arguments/returns
 
 --------------------------------------------------------------------------------
 -- C imports
 
-!!cinclude '<stdio.h>'
-!!cinclude '<errno.h>'
+## cinclude '<stdio.h>'
+## cinclude '<errno.h>'
 
 local errno: cint !cimport
 local SEEK_SET: cint !cimport

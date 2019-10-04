@@ -2,7 +2,7 @@
 --TODO: span class
 --TODO: record metamethods
 
-!!strict
+## strict = true
 
 require 'memory'
 

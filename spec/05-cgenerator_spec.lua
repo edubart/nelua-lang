@@ -240,7 +240,7 @@ end)
 it("global function definition", function()
   assert.generate_c("function f() end", "static void mymod_f();")
   assert.run_c([[
-    !!strict
+    ## strict = true
     global function f(x: integer) return x+1 end
     assert(f(1) == 2)
   ]])
@@ -895,11 +895,11 @@ it("C varargs", function()
 end)
 
 it("attributes", function()
-  assert.generate_c("!!cinclude '<myheader.h>'", "#include <myheader.h>")
-  assert.generate_c("!!cemit '#define SOMETHING'", "#define SOMETHING")
-  assert.generate_c("!!cemit('#define SOMETHING', 'declaration')", "#define SOMETHING")
-  assert.generate_c("!!cemit('#define SOMETHING', 'definition')", "#define SOMETHING")
-  assert.generate_c("!!cdefine 'SOMETHING'", "#define SOMETHING")
+  assert.generate_c("## cinclude '<myheader.h>'", "#include <myheader.h>")
+  assert.generate_c("## cemit '#define SOMETHING'", "#define SOMETHING")
+  assert.generate_c("## cemit('#define SOMETHING', 'declaration')", "#define SOMETHING")
+  assert.generate_c("## cemit('#define SOMETHING', 'definition')", "#define SOMETHING")
+  assert.generate_c("## cdefine 'SOMETHING'", "#define SOMETHING")
   assert.generate_c("local huge: number !cimport('HUGE_VAL', '<math.h>')", "include <math.h>")
   assert.generate_c("local a: int64 !volatile !codename'a'", "volatile int64_t mymod_a")
   assert.generate_c("local a: int64 !register", "register int64_t mymod_a")
@@ -938,7 +938,7 @@ it("attributes", function()
     f()
   ]], "msg stdout", "msg stderr")
   assert.run_c([[
-    !!cinclude '<stdlib.h>'
+    ## cinclude '<stdlib.h>'
     local div_t !cimport = @record{quot: cint, rem: cint}
     local function div(numer: cint, denom: cint): div_t !cimport end
     local r = div(38,5)

@@ -285,9 +285,20 @@ it("print config", function()
   ]])
 end)
 
+it("global preprocessor variables", function()
+assert.ast_type_equals([=[
+    ## TEST = 'test'
+    local a = #[TEST]
+  ]=], [[
+    local a = 'test'
+  ]])
+end)
+
 it("strict mode", function()
   assert.ast_type_equals([=[
+    print(#[tostring(strict)])
     ## strict = true
+    print(#[tostring(strict)])
     local function f(a: integer)
       ## if true then
         print(a)
@@ -295,7 +306,9 @@ it("strict mode", function()
     end
     f(1)
   ]=], [[
+    print 'false'
     ## strict = true
+    print 'true'
     local function f(a: integer)
       print(a)
     end
@@ -308,6 +321,22 @@ it("inject nodes", function()
     ## addnode(aster.Call{{aster.String{"hello"}}, aster.Id{'print'}, true})
   ]=], [[
     print 'hello'
+  ]])
+end)
+
+it("nested preprocessing", function()
+  assert.ast_type_equals([[
+    ## if true then
+      if true then
+        ## cinclude 'lala'
+        local a =1
+      end
+    ## end
+  ]], [[
+    if true then
+      ## cinclude 'lala'
+      local a = 1
+    end
   ]])
 end)
 

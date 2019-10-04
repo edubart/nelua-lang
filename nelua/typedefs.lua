@@ -339,21 +339,6 @@ function typedefs.find_common_type(possibletypes)
   end
 end
 
-typedefs.mutabilities = {
-  ['compconst'] = true,
-  ['const'] = true,
-}
-
-typedefs.block_attribs = {
-  cinclude = shaper.shape{shaper.string},
-  cemit = shaper.shape{shaper.string, shaper.string:is_optional()},
-  cdefine = shaper.shape{shaper.string},
-  cflags = shaper.shape{shaper.string},
-  ldflags = shaper.shape{shaper.string},
-  linklib = shaper.shape{shaper.string},
-  strict = true
-}
-
 typedefs.call_pragmas = {
   cinclude = shaper.shape{shaper.string},
   cemit = shaper.shape{shaper.string, shaper.string:is_optional()},

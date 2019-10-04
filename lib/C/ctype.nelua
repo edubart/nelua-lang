@@ -1,5 +1,5 @@
-!!strict
-!!cinclude '<ctype.h>'
+## strict = true
+## cinclude '<ctype.h>'
 
 -- Character classification functions
 function C.isalnum(x: cint): cint !cimport 'isalnum' end

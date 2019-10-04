@@ -5,7 +5,7 @@ local assert = require 'spec.tools.assert'
 describe("Nelua stdlib", function()
 
 it("cmath", function() assert.run_c([[
-!!strict
+## strict = true
 
 require 'C.math'
 
@@ -19,7 +19,7 @@ assert(C.NAN ~= C.NAN)
 ]])end)
 
 it("math", function() assert.run_c([[
-!!strict
+## strict = true
 
 require 'math'
 
@@ -101,7 +101,7 @@ end
 ]])end)
 
 it("os", function() assert.run_c([[
-!!strict
+## strict = true
 
 require 'os'
 
@@ -125,7 +125,7 @@ assert(false)
 ]])end)
 
 it("memory", function() assert.run_c([[
-!!strict
+## strict = true
 
 require 'memory'
 

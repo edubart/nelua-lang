@@ -38,10 +38,15 @@ local function clone_nodetable(t)
       ct[i] = v:clone()
     elseif traits.is_table(v) then
       ct[i] = clone_nodetable(v)
+    elseif traits.is_astprimitive(v) then
+      ct[i] = v
     else --luacov:disable
       error('invalid value type in node clone')
-      --ct[i] = v
     end --luacov:enable
+  end
+  if t.n then
+    -- in case of packed tables
+    ct.n = t.n
   end
   return ct
 end

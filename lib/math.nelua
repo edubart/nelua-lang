@@ -4,7 +4,7 @@
 
 --TODO: function type overload
 
-!!cinclude '<math.h>'
+## cinclude '<math.h>'
 
 global math = @record{}
 
@@ -129,7 +129,7 @@ end
 --TODO:randomrange
 
 --[[
-!!cinclude '<time.h>'
+## cinclude '<time.h>'
 local function ctime(tloc: pointer): clong !cimport 'time' end
 function math.randomseed()
   default_random:seed(@uint64(ctime(nilptr)), 0)

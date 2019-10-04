@@ -1,5 +1,5 @@
-!!strict
-!!cinclude '<locale.h>'
+## strict = true
+## cinclude '<locale.h>'
 
 local lconv = @record {
   decimal_point: cstring,

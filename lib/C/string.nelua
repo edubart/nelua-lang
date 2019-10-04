@@ -1,5 +1,5 @@
-!!strict
-!!cinclude '<string.h>'
+## strict = true
+## cinclude '<string.h>'
 
 -- Memory manipulation
 function C.memcpy(dest: pointer, src: pointer, n: csize): pointer !cimport 'memcpy' end

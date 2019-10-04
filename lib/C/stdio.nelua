@@ -1,5 +1,5 @@
-!!strict
-!!cinclude '<stdio.h>'
+## strict = true
+## cinclude '<stdio.h>'
 
 local FILE !cimport 'FILE' = @record{}
 local fpos_t !cimport 'fpos_t' = @record{}

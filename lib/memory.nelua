@@ -2,8 +2,8 @@
 ## modname = 'nelua'
 ## nohashcodenames = true
 
-!!cinclude '<stdlib.h>'
-!!cinclude '<string.h>'
+## cinclude '<stdlib.h>'
+## cinclude '<string.h>'
 
 local function memcpy(dest: pointer, src: pointer, n: csize): pointer !cimport 'memcpy' end
 local function memmove(dest: pointer, src: pointer, n: csize): pointer !cimport 'memmove' end
