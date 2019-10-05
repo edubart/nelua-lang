@@ -96,14 +96,14 @@ local function init_default_configs()
   metamagic.setmetaindex(config, defconfig)
 end
 
-local function load_home_configs()
-  local homeconfigfile = fs.getuserconfpath('neluacfg.lua')
-  if not fs.isfile(homeconfigfile) then return end
-  local homeconfig = dofile(homeconfigfile)
+local function load_configs(configfile)
+  if not fs.isfile(configfile) then return end
+  local homeconfig = dofile(configfile)
   tabler.update(defconfig, homeconfig)
 end
 
 init_default_configs()
-load_home_configs()
+load_configs(fs.getuserconfpath('neluacfg.lua'))
+load_configs('.neluacfg.lua')
 
 return configer

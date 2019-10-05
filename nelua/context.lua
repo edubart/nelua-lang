@@ -1,5 +1,4 @@
 local class = require 'nelua.utils.class'
-local metamagic = require 'nelua.utils.metamagic'
 local Scope = require 'nelua.scope'
 
 local Context = class()
@@ -39,10 +38,11 @@ function Context:_init(visitors, default_visitor, parentcontext)
   if parentcontext then
     self.rootscope = parentcontext.rootscope
     self.builtins = parentcontext.builtins
-    metamagic.setmetaindex(self.state, parentcontext.state)
+    self.env = parentcontext.env
   else
     self.rootscope = Scope(self, 'root')
     self.builtins = {}
+    self.env = {}
   end
   self.scope = self.rootscope
   self.visitors = visitors

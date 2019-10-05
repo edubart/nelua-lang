@@ -79,9 +79,9 @@ end
 local function tryerrhandler(e)
   if class.is(e, Exception) then
     return e
-  elseif type(e) == 'string' then
+  elseif traits.is_string(e) then
     return debug.traceback(e, 2)
-  elseif metamagic.hasmetamethod(e, '__tostring') or type(e) == 'number' then
+  elseif metamagic.hasmetamethod(e, '__tostring') or traits.is_number(e) then
     return debug.traceback(tostring(e), 2)
   else --luacov:disable
     return debug.traceback(string.format('(error object is a %s value)', type(e)), 2)

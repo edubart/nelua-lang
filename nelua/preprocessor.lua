@@ -282,13 +282,18 @@ function preprocessor.preprocess(context, ast)
         ppcontext:add_statnode(aster.PragmaCall{key, tabler.pack(...)})
       end
     else
-      return _G[key]
+      local v = rawget(context.env, key)
+      if v ~= nil then
+        return v
+      else
+        return _G[key]
+      end
     end
   end, __newindex = function(_, key, value)
     if typedefs.field_pragmas[key] then
       ppcontext:add_statnode(aster.PragmaSet{key, value})
     else
-      rawset(env, key, value)
+      rawset(context.env, key, value)
     end
   end})
 

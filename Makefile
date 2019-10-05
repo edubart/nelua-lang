@@ -107,7 +107,7 @@ docker-test-full:
 	$(MAKE) -s docker-test-rocks
 
 docker-term:
-	docker run $(DRFLAGS) /bin/bash
+	docker run $(DFLAGS) /bin/bash
 
 install-dev:
 	luarocks install --lua-version=5.3 --local rockspecs/nelua-dev-1.rockspec

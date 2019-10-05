@@ -3,6 +3,6 @@ modules = {
   ['nelua.*.*'] = '.',
   ['nelua.*.*.*'] = '.',
   ['spec.*'] = '.',
-  ['spec.tools.*'] = '.',
-  ['spec.utils.*'] = '.',
+  ['spec.*.*'] = '.',
 }
+exclude = {'neluacfg'}
