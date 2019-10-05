@@ -16,28 +16,28 @@ local function free(ptr: pointer): void !cimport 'free' end
 
 global memory = @record{}
 
-function memory.allocnoinit(size: usize): span<byte>
+function memory.allocnoinit(size: usize): span(byte)
   assert(size > 0)
   local data = @byte*(malloc(size))
   assert(data)
-  return @span<byte> { data, size }
+  return @span(byte) { data, size }
 end
 
-function memory.alloc(size: usize): span<byte>
+function memory.alloc(size: usize): span(byte)
   assert(size > 0)
   local data = @byte*(calloc(1, size))
   assert(data)
-  return @span<byte> { data, size }
+  return @span(byte) { data, size }
 end
 
-function memory.reallocnoinit(s: span<byte>*, size: usize)
+function memory.reallocnoinit(s: span(byte)*, size: usize)
   assert(size > 0)
   s.data = @byte*(realloc(s.data, size))
   assert(s.data)
   s.size = size
 end
 
-function memory.realloc(s: span<byte>*, size: usize)
+function memory.realloc(s: span(byte)*, size: usize)
   assert(size > 0)
   s.data = @byte*(realloc(s.data, size))
   assert(s.data)
@@ -47,7 +47,7 @@ function memory.realloc(s: span<byte>*, size: usize)
   s.size = size
 end
 
-function memory.dealloc(s: span<byte>*)
+function memory.dealloc(s: span(byte)*)
   if s.size == 0 then
     return
   end
@@ -56,16 +56,16 @@ function memory.dealloc(s: span<byte>*)
   s.size = 0
 end
 
-function memory.copy(dest: span<byte>, src: span<byte>)
+function memory.copy(dest: span(byte), src: span(byte))
   assert(dest.size >= src.size)
   memcpy(dest.data, src.data, src.size)
 end
 
-function memory.move(dest: span<byte>, src: span<byte>)
+function memory.move(dest: span(byte), src: span(byte))
   assert(dest.size >= src.size)
   memcpy(dest.data, src.data, src.size)
 end
 
-function memory.set(dest: span<byte>, x: byte)
+function memory.set(dest: span(byte), x: byte)
   memset(dest.data, x, dest.size)
 end

@@ -496,7 +496,7 @@ local function get_parser(std)
        name eCOLON etypexpr
       ) -> to_astnode
     enum_type <- ({} %TENUM -> 'EnumType'
-        ((%LANGLE eprimtype eRANGLE) / cnil) eLCURLY
+        ((%LPAREN eprimtype eRPAREN) / cnil) eLCURLY
         {| eenumfield (%SEPARATOR enumfield)* %SEPARATOR? |}
       eRCURLY) -> to_astnode
     enumfield <- ({} '' -> 'EnumFieldType'
@@ -504,23 +504,23 @@ local function get_parser(std)
       ) -> to_astnode
     arraytable_type <- (
       {} 'arraytable' -> 'ArrayTableType'
-        eLANGLE etypexpr eRANGLE
+        eLPAREN etypexpr eRPAREN
       ) -> to_astnode
     span_type <- (
       {} 'span' -> 'SpanType'
-        eLANGLE etypexpr eRANGLE
+        eLPAREN etypexpr eRPAREN
       ) -> to_astnode
     range_type <- (
       {} 'range' -> 'RangeType'
-        eLANGLE etypexpr eRANGLE
+        eLPAREN etypexpr eRPAREN
       ) -> to_astnode
     array_type <- (
       {} 'array' -> 'ArrayType'
-        eLANGLE etypexpr eCOMMA typexpr_param_expr eRANGLE
+        eLPAREN etypexpr eCOMMA typexpr_param_expr eRPAREN
       ) -> to_astnode
     pointer_type <- (
       {} 'pointer' -> 'PointerType'
-        ((%LANGLE etypexpr eRANGLE) / %SKIP)
+        ((%LPAREN etypexpr eRPAREN) / %SKIP)
       ) -> to_astnode
     primtype   <- ({} '' -> 'Type' name) -> to_astnode
 
@@ -579,6 +579,7 @@ local function get_parser(std)
     eLPAREN         <- %LPAREN        / %{ExpectedParenthesis}
     eLCURLY         <- %LCURLY        / %{ExpectedCurly}
     eLANGLE         <- %LANGLE        / %{ExpectedAngle}
+    eLBRACKET       <- %LBRACKET      / %{ExpectedBracket}
     eCOLON          <- %COLON         / %{ExpectedColon}
     eCOMMA          <- %COMMA         / %{ExpectedComma}
     eEND            <- %END           / %{ExpectedEnd}
@@ -616,7 +617,7 @@ local function get_parser(std)
   parser:add_syntax_errors({
     UnexpectedSyntaxAtEOF  = 'unexpected syntax',
     UnclosedParenthesis = "unclosed parenthesis, did you forget a `)`?",
-    UnclosedBracket = "unclosed bracket, did you forget a `]`?",
+    UnclosedBracket = "unclosed square bracket, did you forget a `]`?",
     UnclosedCurly = "unclosed curly brace, did you forget a `}`?",
     UnclosedAngleBracket = "unclosed angle bracket, did you forget a `>`?",
     UnclosedPreprocessBracket = "unclosed preprocess bracket, did your forget a ']##]'?",
@@ -624,6 +625,7 @@ local function get_parser(std)
     ExpectedParenthesis = "expected parenthesis `(`",
     ExpectedCurly = "expected curly brace `{`",
     ExpectedAngle = "expected angle bracket `<`",
+    ExpectedBracket = "expected square bracket `[`",
     ExpectedColon = "expected colon `:`",
     ExpectedComma = "expected comma `,`",
     ExpectedEnd = "expected `end` keyword",

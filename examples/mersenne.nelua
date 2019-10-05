@@ -7,7 +7,7 @@ local MT19937_N: uint32 !compconst = 624
 
 local mt19937 = @record {
   i: uint32,
-  v: array<uint32, MT19937_N>
+  v: array(uint32, MT19937_N)
 }
 
 -- initialize random state with a seed
@@ -22,7 +22,7 @@ end
 
 -- generates a random number on [0, 0xffffffff]
 function mt19937:random_uint32()
-  local MAG01: array<uint32,2> = {0x0, 0x9908b0df}
+  local MAG01: array(uint32,2) = {0x0, 0x9908b0df}
   local LOWER_MASK !compconst = 0x7fffffff_u32
   local UPPER_MASK !compconst = 0x80000000_u32
   local N !compconst, M !compconst = MT19937_N, 397_u32

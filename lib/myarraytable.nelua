@@ -10,7 +10,7 @@ local T = @byte
 local myarraytableobj !codename 'myarraytable' = @record{
   len: usize,
   cap: usize,
-  data: span<T>
+  data: span(T)
 }
 local myarraytable = @myarraytableobj*
 

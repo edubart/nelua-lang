@@ -9,7 +9,7 @@
 -- import SDL structures
 local SDL_Event !cimport = @record {
   type: uint32,
-  padding: array<byte,56>
+  padding: array(byte,56)
 }
 local SDL_Keysym !cimport = @record {
   scancode: cint,
@@ -68,7 +68,7 @@ local function rand(): int32 !cimport('rand') end
 
 -- game types
 local Point2D = @record{x: integer, y: integer}
-local Direction = @enum<byte>{NONE=0, UP, DOWN, RIGHT, LEFT}
+local Direction = @enum(byte){NONE=0, UP, DOWN, RIGHT, LEFT}
 local Color = @record{r: byte, g: byte, b: byte}
 
 -- game constants
@@ -87,7 +87,7 @@ local quit = false
 local nextmove
 local score
 local headpos, tailpos, applepos
-local tiles: array<array<Direction,GRID_SIZE>,GRID_SIZE>
+local tiles: array(array(Direction,GRID_SIZE),GRID_SIZE)
 
 local function move_point(pos: Point2D, dir: Direction)
   switch dir

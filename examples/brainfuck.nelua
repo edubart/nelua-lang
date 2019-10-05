@@ -1,6 +1,6 @@
 require 'C.stdio'
 
-local data: array<int32,1024>
+local data: array(int32,1024)
 local ptr: int32 = 0
 
 [##[

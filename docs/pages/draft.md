@@ -129,13 +129,13 @@ end
 ```nelua
 @import 'nelua.std.memory'
 
-local a = new(@integer) -- a type is: pointer<integer>
+local a = new(@integer) -- a type is: pointer(integer)
 a[0] = 1
 *a = 1
 var& ra = $a; ra = 1
 delete(a)
 
-local a = new(@integer[10]) -- a is pointer<array<integer, 10>>
+local a = new(@array(integer,10)) -- a is pointer(array(integer, 10))
 for i=0,<10 do
   a[i] = i
 end

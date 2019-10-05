@@ -458,8 +458,8 @@ local f = @number(i) -- convert 'i' to the type 'number'
 Array is a fixed size array known at compile time:
 
 ```nelua
-local a1: array<integer, 4> = {1,2,3,4}
-local a2: array<integer, 4>
+local a1: array(integer, 4) = {1,2,3,4}
+local a2: array(integer, 4)
 ```
 
 ### Enum
@@ -591,7 +591,7 @@ Pointer is like in C, points to a region in memory of a specific type:
 ```nelua
 local n = nilptr -- a generic pointer, initialized to nilptr
 local p: pointer --a generic pointer to anything, initialized to nilptr
-local i: pointer<integer> -- pointer to an integer
+local i: pointer(integer) -- pointer to an integer
 
 -- syntax sugar
 local i: integer*
@@ -603,7 +603,7 @@ Ranges are used to specifying ranges for spans.
 
 ```nelua
 local r = 1:10
-local r: range<integer> = 1:10
+local r: range(integer) = 1:10
 ```
 
 ### Span
@@ -611,11 +611,11 @@ local r: range<integer> = 1:10
 Span are pointers to a block of contiguous elements at runtime.
 
 ```nelua
-local arr = @array<integer,4> {1,2,3,4}
+local arr = @array(integer,4) {1,2,3,4}
 local s = arr[1:2]
 print(s[0], s[1]) -- outputs 2 3
 
-local s: span<integer> = arr[1:2]
+local s: span(integer) = arr[1:2]
 ```
 
 ### Void
@@ -1105,7 +1105,7 @@ Nelua can import C functions from C headers:
 local function malloc(size: usize): pointer !cimport('malloc','<stdlib.h>') end
 local function memset(s: pointer, c: int32, n: usize): pointer !cimport('memset','<stdlib.h>') end
 local function free(ptr: pointer) !cimport('free','<stdlib.h>') end
-local a = @array<int64,10>*(malloc(10 * 8))
+local a = @array(int64,10)*(malloc(10 * 8))
 memset(a, 0, 10*8)
 assert(a[0] == 0)
 a[0] = 1

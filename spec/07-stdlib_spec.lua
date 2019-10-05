@@ -129,7 +129,7 @@ it("memory", function() assert.run_c([[
 
 require 'memory'
 
-local function assertmem(s: span<byte>, x: byte)
+local function assertmem(s: span(byte), x: byte)
   for i=0_usize,<s.size do
     assert(s[i] == x)
   end

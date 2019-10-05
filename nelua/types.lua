@@ -295,7 +295,7 @@ function ArrayTableType:is_equal(type)
 end
 
 function ArrayTableType:__tostring()
-  return sstream(self.name, '<', self.subtype, '>'):tostring()
+  return sstream(self.name, '(', self.subtype, ')'):tostring()
 end
 
 --------------------------------------------------------------------------------
@@ -317,7 +317,7 @@ function ArrayType:is_equal(type)
 end
 
 function ArrayType:__tostring()
-  return sstream('array<', self.subtype, ', ', self.length, '>'):tostring()
+  return sstream(self.name, '(', self.subtype, ', ', self.length, ')'):tostring()
 end
 
 --------------------------------------------------------------------------------
@@ -340,7 +340,7 @@ function EnumType:get_field(name)
 end
 
 function EnumType:__tostring()
-  local ss = sstream('enum<', self.subtype, '>{')
+  local ss = sstream('enum(', self.subtype, '){')
   for i,field in ipairs(self.fields) do
     if i > 1 then ss:add(', ') end
     ss:add(field.name, '=', field.value)
@@ -601,7 +601,7 @@ end
 
 function PointerType:__tostring()
   if not self.subtype:is_void() then
-    return sstream(self.name, '<', self.subtype, '>'):tostring()
+    return sstream(self.name, '(', self.subtype, ')'):tostring()
   else
     return self.name
   end
@@ -630,7 +630,7 @@ function SpanType:is_equal(type)
 end
 
 function SpanType:__tostring()
-  return sstream(self.name, '<', self.subtype, '>'):tostring()
+  return sstream(self.name, '(', self.subtype, ')'):tostring()
 end
 
 --------------------------------------------------------------------------------
@@ -656,7 +656,7 @@ function RangeType:is_equal(type)
 end
 
 function RangeType:__tostring()
-  return sstream(self.name, '<', self.subtype, '>'):tostring()
+  return sstream(self.name, '(', self.subtype, ')'):tostring()
 end
 
 local types = {

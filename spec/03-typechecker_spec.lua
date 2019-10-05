@@ -157,7 +157,7 @@ end)
 it("typed var initialization", function()
   assert.lua_gencode_equals("local a: integer", "local a: integer = 0")
   assert.lua_gencode_equals("local a: boolean", "local a: boolean = false")
-  assert.lua_gencode_equals("local a: arraytable<integer>", "local a: arraytable<integer> = {}")
+  assert.lua_gencode_equals("local a: arraytable(integer)", "local a: arraytable(integer) = {}")
 end)
 
 it("loop variables", function()
@@ -503,52 +503,52 @@ it("for in", function()
 end)
 
 it("array tables", function()
-  assert.analyze_ast([[local a: arraytable<boolean>; local len = #a]])
+  assert.analyze_ast([[local a: arraytable(boolean); local len = #a]])
   assert.analyze_ast([[
-    local a: arraytable<boolean>
-    local b: arraytable<boolean>
+    local a: arraytable(boolean)
+    local b: arraytable(boolean)
     b = a
   ]])
   assert.analyze_ast([[
-    local a: arraytable<boolean>
+    local a: arraytable(boolean)
     local len = #a
   ]])
   assert.analyze_ast([[
-    local a: arraytable<boolean> = {}
-    local b: arraytable<boolean> = {false, true}
-    local c = @arraytable<boolean>{false, true}
-    local d: arraytable<boolean>; d = {false, true}
-    local function f(a: arraytable<boolean>) end
+    local a: arraytable(boolean) = {}
+    local b: arraytable(boolean) = {false, true}
+    local c = @arraytable(boolean){false, true}
+    local d: arraytable(boolean); d = {false, true}
+    local function f(a: arraytable(boolean)) end
     f({false, true})
   ]])
   assert.ast_type_equals([[
-    local a: arraytable<boolean>
+    local a: arraytable(boolean)
     local b = a[0]
   ]],[[
-    local a: arraytable<boolean>
+    local a: arraytable(boolean)
     local b: boolean = a[0]
   ]])
   assert.analyze_error([[
-    local a: arraytable<integer>
-    local b: arraytable<boolean>
+    local a: arraytable(integer)
+    local b: arraytable(boolean)
     b = a
   ]], "is not coercible with")
   assert.analyze_error([[
-    local a: arraytable<integer> = {false}
+    local a: arraytable(integer) = {false}
   ]], "is not coercible with")
   assert.analyze_error([[
-    local a: arraytable<integer> = {a = 1}
+    local a: arraytable(integer) = {a = 1}
   ]], "fields are not allowed")
   assert.analyze_error([[
-    local a: arraytable<boolean>
-    local b: arraytable<integer>
+    local a: arraytable(boolean)
+    local b: arraytable(integer)
     b = a
   ]], "is not coercible with")
 end)
 
 it("spans", function()
   assert.analyze_ast([[
-    local a: span<boolean>
+    local a: span(boolean)
     local dataptr = a.data
     local size = a.size
     a.data = nilptr
@@ -557,21 +557,21 @@ it("spans", function()
     a[0] = b
   ]])
   assert.analyze_ast([[
-    local a: span<boolean>
-    local b: span<boolean>
+    local a: span(boolean)
+    local b: span(boolean)
     b = a
   ]])
   assert.analyze_error([[
-    local a: span<float64>
-    local b: span<int64>
+    local a: span(float64)
+    local b: span(int64)
     b = a
   ]], 'is not coercible with')
-  assert.analyze_error([[local a: span<void>]], 'spans cannot be of')
+  assert.analyze_error([[local a: span(void) ]], 'spans cannot be of')
 end)
 
 it("ranges", function()
   assert.analyze_ast([[
-    local a: range<integer>
+    local a: range(integer)
     local low, high = a.low, a.high
     local b = 1:2
     low, high = b.low, b.high
@@ -579,34 +579,34 @@ it("ranges", function()
   assert.ast_type_equals([[
     local a = 1_u8:2_u16
   ]],[[
-    local a: range<uint16> = 1_u8:2_u16
+    local a: range(uint16) = 1_u8:2_u16
   ]])
-  assert.analyze_error([[local a: range<string>]], 'is not an integral type')
+  assert.analyze_error([[local a: range(string) ]], 'is not an integral type')
 end)
 
 it("arrays", function()
-  --assert.analyze_ast([[local a: array<integer, (2 << 1)>]])
-  assert.analyze_ast([[local N !compconst = 10; local a: array<integer, N>]])
-  assert.analyze_ast([[local a: array<integer, 10>; a[0] = 1]])
-  assert.analyze_ast([[local a: array<integer, 2> = {1,2}]])
-  assert.analyze_ast([[local a: array<integer, 2>; a[0] = 1; a[1] = 2]])
-  assert.analyze_ast([[local a: array<integer, 2>; a = {1,2}]])
-  assert.analyze_ast([[local a: array<integer, 2>; a = {}]])
-  assert.analyze_ast([[local a: array<integer, 10>, b: array<integer, 10>; b = a]])
-  assert.analyze_ast([[local a: array<integer, 2> !compconst = {1,2}]])
-  assert.analyze_error([[local a: array<integer, 2> = {1}]], 'expected 2 values but got 1')
-  assert.analyze_error([[local a: array<integer, 2> = {1,2,3}]], 'expected 2 values but got 3')
-  assert.analyze_error([[local a: array<integer, 2> = {1.0,2.0}]], 'is not coercible with')
-  assert.analyze_error([[local a: array<integer, 2> = {a=0,2}]], 'fields are not allowed')
-  assert.analyze_error([[local a: array<integer, 10>, b: array<integer, 11>; b = a]], "is not coercible with")
-  assert.analyze_error([[local a: array<integer, 10>; a[0] = 1.0]], "is not coercible with")
-  assert.analyze_error([[local a: array<integer, 1.0>]], "expected a valid decimal integral")
-  assert.analyze_error([[local Array = @array<integer, 1>; local a = Array.l]], "cannot index fields")
-  assert.analyze_error([[local a: array<integer, 2> = {1}]], 'expected 2 values but got 1')
-  assert.analyze_error([[local a: array<integer, 2>; a[-1] = 1]], 'trying to index negative value')
-  assert.analyze_error([[local a: array<integer, 2>; a[2] = 1]], 'is out of bounds')
-  assert.analyze_error([[local a: array<integer, 2>; a['s'] = 1]], 'trying to index with value of type')
-  assert.analyze_error([[local a: array<integer, 2> !compconst = {1,b}]], 'can only assign to constant expressions')
+  --assert.analyze_ast([[local a: array(integer, (2 << 1)) ]])
+  assert.analyze_ast([[local N !compconst = 10; local a: array(integer, N) ]])
+  assert.analyze_ast([[local a: array(integer, 10); a[0] = 1]])
+  assert.analyze_ast([[local a: array(integer, 2) = {1,2}]])
+  assert.analyze_ast([[local a: array(integer, 2); a[0] = 1; a[1] = 2]])
+  assert.analyze_ast([[local a: array(integer, 2); a = {1,2}]])
+  assert.analyze_ast([[local a: array(integer, 2); a = {}]])
+  assert.analyze_ast([[local a: array(integer, 10), b: array(integer, 10); b = a]])
+  assert.analyze_ast([[local a: array(integer, 2) !compconst = {1,2}]])
+  assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values but got 1')
+  assert.analyze_error([[local a: array(integer, 2) = {1,2,3}]], 'expected 2 values but got 3')
+  assert.analyze_error([[local a: array(integer, 2) = {1.0,2.0}]], 'is not coercible with')
+  assert.analyze_error([[local a: array(integer, 2) = {a=0,2}]], 'fields are not allowed')
+  assert.analyze_error([[local a: array(integer, 10), b: array(integer, 11); b = a]], "is not coercible with")
+  assert.analyze_error([[local a: array(integer, 10); a[0] = 1.0]], "is not coercible with")
+  assert.analyze_error([[local a: array(integer, 1.0) ]], "expected a valid decimal integral")
+  assert.analyze_error([[local Array = @array(integer, 1); local a = Array.l]], "cannot index fields")
+  assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values but got 1')
+  assert.analyze_error([[local a: array(integer, 2); a[-1] = 1]], 'trying to index negative value')
+  assert.analyze_error([[local a: array(integer, 2); a[2] = 1]], 'is out of bounds')
+  assert.analyze_error([[local a: array(integer, 2); a['s'] = 1]], 'trying to index with value of type')
+  assert.analyze_error([[local a: array(integer, 2) !compconst = {1,b}]], 'can only assign to constant expressions')
 end)
 
 it("indexing", function()
@@ -616,13 +616,13 @@ end)
 
 it("range indexing", function()
   assert.ast_type_equals([[
-    local a: array<integer,8>
+    local a: array(integer,8)
     local s = a[0:3]
     local s2 = s[0:1]
   ]],[[
-    local a: array<integer,8>
-    local s: span<integer> = a[0:3]
-    local s2: span<integer> = s[0:1]
+    local a: array(integer,8)
+    local s: span(integer) = a[0:3]
+    local s2: span(integer) = s[0:1]
   ]])
 end)
 
@@ -761,21 +761,21 @@ it("type neasting", function()
     local a: record{x: record{y: integer}} = {x={y=1}}
   ]])
   assert.analyze_ast([[
-    local a: record{a: array<integer, 2>}
-    a.a = @array<integer,2>{1,2}
+    local a: record{a: array(integer, 2)}
+    a.a = @array(integer,2){1,2}
     local b = a.a
   ]])
   assert.analyze_ast([[
-    local a: record{a: array<integer, 2>} = {a={1,2}}
+    local a: record{a: array(integer, 2)} = {a={1,2}}
   ]])
 end)
 
 it("enums", function()
   assert.analyze_ast([[
     local a: enum{A=0}
-    local b: enum<integer>{A=0,B}
-    local b: enum<byte>{A=0,B,C}
-    local b: enum<integer>{A=0,B=1 << 2}
+    local b: enum(integer){A=0,B}
+    local b: enum(byte){A=0,B,C}
+    local b: enum(integer){A=0,B=1 << 2}
   ]])
   assert.analyze_ast([[
     local c !compconst = 2
@@ -784,16 +784,16 @@ it("enums", function()
     local i: number = e
   ]])
   assert.analyze_ast([[
-    local Enum = @enum<byte>{A=255}
+    local Enum = @enum(byte){A=255}
   ]])
   assert.analyze_error([[
-    local Enum = @enum<byte>{A=256}
+    local Enum = @enum(byte){A=256}
   ]], "is not coercible with")
   assert.analyze_error([[
-    local Enum = @enum<byte>{A=255,B}
+    local Enum = @enum(byte){A=255,B}
   ]], "is not in range of type")
   assert.analyze_error([[
-    local Enum = @enum<byte>{A=256_integer}
+    local Enum = @enum(byte){A=256_integer}
   ]], "is not coercible with")
   assert.analyze_error([[
     local Enum = @enum{A=0,B=3}
@@ -823,33 +823,33 @@ end)
 
 it("pointers", function()
   assert.analyze_ast([[
-    local a: pointer<integer> = nilptr
+    local a: pointer(integer) = nilptr
     local b: pointer = nilptr
     b = nilptr
     a = nilptr
   ]])
   assert.analyze_ast([[
-    local a: pointer<integer>
-    local b: pointer<void>
+    local a: pointer(integer)
+    local b: pointer(void)
     b = a
   ]])
   assert.analyze_ast([[
-    local a: pointer<integer>
-    local b: pointer<integer>
+    local a: pointer(integer)
+    local b: pointer(integer)
     b = a
   ]])
   assert.analyze_ast([[
     local a: cstring
-    local b: pointer<cchar>
+    local b: pointer(cchar)
     b = a
   ]])
   assert.analyze_error([[
-    local a: pointer<integer>
-    local b: pointer<boolean>
+    local a: pointer(integer)
+    local b: pointer(boolean)
     b = a
   ]], "is not coercible with")
   assert.analyze_error([[
-    local a: pointer<integer>
+    local a: pointer(integer)
     local b: pointer
     a = b
   ]], "is not coercible with")
@@ -857,32 +857,32 @@ it("pointers", function()
 end)
 
 it("automatic referencing", function()
-  assert.analyze_ast([[local p: pointer<integer>; local i = 1; p = &i]])
-  assert.analyze_ast([[local p: pointer<integer>; local i = $p]])
-  assert.analyze_ast([[local p: pointer<integer>; local a: integer; p = a]])
+  assert.analyze_ast([[local p: pointer(integer); local i = 1; p = &i]])
+  assert.analyze_ast([[local p: pointer(integer); local i = $p]])
+  assert.analyze_ast([[local p: pointer(integer); local a: integer; p = a]])
   assert.analyze_ast([[local a: integer; local function f(a: integer*) end; f(p)]])
   assert.analyze_ast([[
-    local p: pointer<integer>
+    local p: pointer(integer)
     local r: record{x: integer}
     p = r.x
   ]])
   assert.analyze_ast([[
-    local p: pointer<integer>
+    local p: pointer(integer)
     local a: integer
     local function f(): integer* return a end
     p = f()
   ]])
   assert.analyze_error([[
-    local p: pointer<integer>
+    local p: pointer(integer)
     p = 1
   ]], 'cannot automatic reference rvalue')
   assert.analyze_error([[
-    local p: pointer<integer>
+    local p: pointer(integer)
     local function f(): integer return 1 end
     p = f()
   ]], 'cannot automatic reference rvalue')
   assert.analyze_error([[
-    local p: pointer<integer>
+    local p: pointer(integer)
     local Record = @record{x: integer}
     p = (Record{x=1}).x
   ]], 'cannot automatic reference rvalue')
@@ -890,17 +890,17 @@ end)
 
 it("automatic dereferencing", function()
   assert.analyze_ast([[
-    local p: pointer<integer>
+    local p: pointer(integer)
     local a: integer = p
   ]])
   assert.analyze_ast([[
-    local p: pointer<integer>
+    local p: pointer(integer)
     local a: integer
     local function f(x: integer): integer return p end
     f(p)
   ]])
   assert.analyze_error([[
-    local p: pointer<integer>
+    local p: pointer(integer)
     local a: number = 1
     p = a
   ]], 'coercible with')
@@ -911,17 +911,17 @@ it("automatic dereferencing", function()
   ]], 'coercible with')
   assert.analyze_error([[
     local function f(x: number): number return x end
-    local p: pointer<integer>
+    local p: pointer(integer)
     local r: record{x: integer*}
     f(r.x)
   ]], 'coercible with')
 end)
 
 it("pointers to complex types", function()
-  assert.analyze_ast([[local p: pointer<record{x:isize}>; p.x = 0]])
-  assert.analyze_ast([[local p: pointer<array<isize, 10>>; p[0] = 0]])
-  assert.analyze_error([[local p: pointer<record{x:isize}>; p.y = 0]], "does not have field")
-  assert.analyze_error([[local p: pointer<array<isize, 10>>; p[-1] = 0]], "trying to index negative value")
+  assert.analyze_ast([=[local p: pointer(record{x:isize}); p.x = 0]=])
+  assert.analyze_ast([=[local p: pointer(array(isize, 10)); p[0] = 0]=])
+  assert.analyze_error([=[local p: pointer(record{x:isize}); p.y = 0]=], "does not have field")
+  assert.analyze_error([=[local p: pointer(array(isize, 10)); p[-1] = 0]=], "trying to index negative value")
 end)
 
 it("type construction", function()

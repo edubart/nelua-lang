@@ -199,7 +199,7 @@ it("compconst", function()
   assert.generate_c("local a: integer !compconst = 0", "static const int64_t mymod_a = 0;")
   assert.generate_c("local a !compconst = 1", "static const int64_t mymod_a = 1;")
   assert.generate_c(
-    "local N !compconst = 3773; local a: array<integer, N>",
+    "local N !compconst = 3773; local a: array(integer, N)",
     {"static const int64_t mymod_N = 3773",
      "int64_t data[3773];"})
   assert.generate_c("local a !compconst, b !compconst = 1, 2; local c !compconst = a * b",
@@ -611,31 +611,31 @@ end)
 
 it("array tables", function()
   assert.generate_c(
-    "do local t: arraytable<boolean> end",
+    "do local t: arraytable(boolean) end",
     "nelua_boolean_arrtab t = {0};")
   assert.generate_c(
-    "do local t: arraytable<boolean>; local a = #t end",
+    "do local t: arraytable(boolean); local a = #t end",
     "int64_t a = nelua_boolean_arrtab_length(&t);")
   assert.run_c([[
-    local t: arraytable<boolean>
+    local t: arraytable(boolean)
     print(t[0], #t)
     t[1] = true
     print(t[1], #t)
   ]], "false\t0\ntrue\t1")
   assert.run_c([[
-    local t: arraytable<integer> = {}
+    local t: arraytable(integer) = {}
     print(t[0],#t)
   ]], "0\t0")
   assert.run_c([[
-    local t: arraytable<integer> = {1, 2}
+    local t: arraytable(integer) = {1, 2}
     print(t[0], t[1], t[2], #t)
   ]], "0\t1\t2\t2")
 end)
 
 it("spans", function()
   assert.run_c([[
-    local buff: array<integer, 10>
-    local s: span<integer> = {&buff[0], 10}
+    local buff: array(integer, 10)
+    local s: span(integer) = {&buff[0], 10}
     assert(s.size == 10)
     assert(s.data == &buff[0])
     assert(s[0] == 0)
@@ -646,14 +646,14 @@ end)
 
 it("ranges", function()
   assert.run_c([[
-    local a: range<integer>
+    local a: range(integer)
     assert(a.low == 0 and a.high == 0)
     a = 2:3
     assert(a.low == 2 and a.high == 3)
     a = -1:0
     assert(a.low == -1 and a.high == 0)
 
-    local buff: array<integer, 10>
+    local buff: array(integer, 10)
     local span1 = buff[0:9]
     local span2 = span1[0:9]
     assert(span2[0] == 0)
@@ -661,7 +661,7 @@ it("ranges", function()
     span2[9] = 3
     assert(buff[0] == 2 and buff[9] == 3)
 
-    local arr = @array<integer,4> {1,2,3,4}
+    local arr = @array(integer,4) {1,2,3,4}
     local s = arr[1:2]
     assert(s[0] == 2 and s[1] == 3)
   ]])
@@ -669,10 +669,10 @@ end)
 
 it("arrays", function()
   assert.generate_c(
-    "local a: array<boolean, 10>",
+    "local a: array(boolean, 10)",
     "bool data[10];")
   assert.run_c([[
-    local a: array<boolean, 1>
+    local a: array(boolean, 1)
     assert(a[0] == false)
     assert(#a == 1)
     a[0] = true
@@ -681,8 +681,8 @@ it("arrays", function()
     assert(a[0] == false)
   ]])
   assert.run_c([[
-    local a: array<integer, 4> = {1,2,3,4}
-    local b: array<integer, 4> = a
+    local a: array(integer, 4) = {1,2,3,4}
+    local b: array(integer, 4) = a
     print(b[0], b[1], b[2], b[3], #b)
   ]], "1\t2\t3\t4\t4")
 end)
@@ -735,7 +735,7 @@ it("records", function()
     end
   ]])
   assert.run_c([[
-    local r: record {x: array<integer, 1>} =  {x={1}}
+    local r: record {x: array(integer, 1)} =  {x={1}}
     assert(r.x[0] == 1)
   ]])
 end)
@@ -812,15 +812,15 @@ it("enums", function()
 end)
 
 it("pointers", function()
-  assert.generate_c("local p: pointer<float32>", "float*")
+  assert.generate_c("local p: pointer(float32)", "float*")
   assert.generate_c("do local p: pointer end", "void* p")
-  assert.generate_c("local p: pointer<record{x:integer}>; p.x = 0", "->x = ")
+  assert.generate_c("local p: pointer(record{x:integer}); p.x = 0", "->x = ")
   assert.run_c([[
     local function f(a: pointer): pointer return a end
     local i: integer = 1
-    local p: pointer<integer> = &i
+    local p: pointer(integer) = &i
     print($p)
-    p = @pointer<int64>(f(p))
+    p = @pointer(int64)(f(p))
     i = 2
     print($p)
     $p = 3
@@ -875,17 +875,17 @@ it("nilptr", function()
 end)
 
 it("manual memory managment", function()
-  assert.run_c([[
+  assert.run_c([=[
     local function malloc(size: usize): pointer !cimport('malloc','<stdlib.h>') end
     local function memset(s: pointer, c: int32, n: usize): pointer !cimport('memset','<stdlib.h>') end
     local function free(ptr: pointer) !cimport('free','<stdlib.h>') end
-    local a = @pointer<array<int64, 10>>(malloc(10 * 8))
+    local a = @pointer(array(int64, 10))(malloc(10 * 8))
     memset(a, 0, 10*8)
     assert(a[0] == 0)
     a[0] = 1
     assert(a[0] == 1)
     free(a)
-  ]])
+  ]=])
 end)
 
 it("C varargs", function()
@@ -980,7 +980,7 @@ it("sizeof builtin", function()
     assert(#@int16 == 2)
     assert(#@int32 == 4)
     assert(#@int64 == 8)
-    assert(#@array<int32,4> == 16)
+    assert(#@array(int32,4) == 16)
 
     local A = @record{
       s: int16,   -- 2
@@ -990,7 +990,7 @@ it("sizeof builtin", function()
                   -- 3 pad
     }
     assert(#A == 12)
-    assert(#@array<A,8> == 96)
+    assert(#@array(A,8) == 96)
 
     local B = @record{
       i: int32,   -- 4
