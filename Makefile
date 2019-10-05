@@ -3,7 +3,7 @@ GID=$(shell id -g $(USER))
 PWD=$(shell pwd)
 DRFLAGS=--rm -it -v "$(PWD):/nelua" nelua
 DFLAGS=-u $(UID):$(GID) $(DRFLAGS)
-LUAMONFLAGS=-w nelua,spec,tools,examples,runtime -e lua,nelua,h,c -q -x
+LUAMONFLAGS=-w nelua,spec,tools,examples,runtime,lib -e lua,nelua,h,c -q -x
 EXAMPLES=$(wildcard examples/*.nelua)
 BENCHMARKS=$(wildcard benchmarks/*.nelua)
 
@@ -31,21 +31,23 @@ check:
 benchmark:
 	luajit ./tools/benchmarker.lua
 
-coverage:
-	@rm -f luacov.report.out luacov.stats.out
-	@busted --coverage > /dev/null
-	@luacov
-	@luajit -e "require('tools.covreporter')()"
-
-coverage-test:
-	@rm -f luacov.report.out luacov.stats.out
-	@busted --coverage --no-keep-going
-	@luacov
-	@luajit -e "require('tools.covreporter')()"
-	@rm -f luacov.report.out luacov.stats.out
-
 coverage-clean:
 	rm -f luacov.report.out luacov.stats.out
+
+coverage-genreport:
+	@luacov
+	@luajit -e "require('tools.covreporter')()"
+
+coverage:
+	$(MAKE) coverage-clean
+	@busted --coverage > /dev/null
+	$(MAKE) coverage-genreport
+
+coverage-test:
+	$(MAKE) coverage-clean
+	@busted --coverage --no-keep-going
+	$(MAKE) coverage-genreport
+	$(MAKE) coverage-clean
 
 check-duplication:
 	@simian \

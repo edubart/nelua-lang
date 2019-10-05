@@ -146,7 +146,7 @@ end
 function os.tmpname(): string
   --TODO: windows implementation without POSIX
   local TMPBUFSIZE !compconst = 32
-  local buf: cchar[TMPBUFSIZE]
+  local buf: array<cchar,TMPBUFSIZE>
   strncpy(&buf[0], "/tmp/lua_XXXXXX", TMPBUFSIZE)
   local fd = mkstemp(&buf[0])
   if fd == -1 then
