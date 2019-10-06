@@ -41,7 +41,7 @@ local function ctime(tloc: pointer): clong <cimport 'time'> end
 
 global os = @record{}
 
-local function fileresult(status: cint): boolean, string, integer
+local function fileresult(status: cint): (boolean, string, integer)
   if status == -1 then
     return false, (@string)(strerror(errno)), errno
   else
@@ -62,7 +62,7 @@ function os.difftime(t1: integer, t2: integer): integer
   return t2 - t1
 end
 
-function os.execute(command: string): boolean, string, integer
+function os.execute(command: string): (boolean, string, integer)
   local status = system(command)
   if status == -1 then
     return fileresult(status)
@@ -102,11 +102,11 @@ function os.getenv(varname: string): string
   end
 end
 
-function os.remove(filename: string): boolean, string, integer
+function os.remove(filename: string): (boolean, string, integer)
   return fileresult(remove(filename))
 end
 
-function os.rename(oldname: string, newname: string): boolean, string, integer
+function os.rename(oldname: string, newname: string): (boolean, string, integer)
   return fileresult(rename(oldname, newname))
 end
 

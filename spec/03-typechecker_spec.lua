@@ -287,7 +287,7 @@ it("function definition", function()
     function f(a: integer) end
   ]])
   assert.analyze_ast([[
-    local f: function<(integer): string>
+    local f: function(integer): string
     function f(a: integer): string return '' end
   ]])
   assert.analyze_error([[
@@ -308,11 +308,11 @@ it("function definition", function()
     function f(a: string) end
   ]], "is not coercible with")
   assert.analyze_error([[
-    local function f(): integer, string return 1, '' end
+    local function f(): (integer, string) return 1, '' end
     function f(): integer end
   ]], "is not coercible with")
   assert.analyze_error([[
-    local f: function<():integer, string>
+    local f: function():(integer, string)
     function f(): integer end
   ]], "is not coercible with")
 end)
@@ -367,7 +367,7 @@ it("function return", function()
     a = f()
   ]], "cannot assign to expressions of type void")
   assert.analyze_error([[
-    local function f(): integer, string return 1 end
+    local function f(): (integer, string) return 1 end
   ]], "missing return expression at index")
   assert.analyze_error([[
     local function f(): integer end
@@ -390,14 +390,14 @@ end)
 
 it("function multiple return", function()
   assert.analyze_ast([[
-    local function f(): integer, string return 1,'s'  end
+    local function f(): (integer, string) return 1,'s'  end
     local function g(a: boolean, b: integer, c: string) end
     g(false, f())
     local a: integer, b: string = f()
     local a: integer = f()
   ]])
   assert.analyze_ast([[
-    local function f(): integer, boolean return 1,false  end
+    local function f(): (integer, boolean) return 1,false  end
     local a, b, c = f()
   ]])
   assert.analyze_ast([[
@@ -407,17 +407,17 @@ it("function multiple return", function()
     local x = f()
   ]])
   assert.analyze_ast([[
-    local function f(): boolean,integer return true,1 end
-    local function g(): boolean,integer return f() end
+    local function f(): (boolean,integer) return true,1 end
+    local function g(): (boolean,integer) return f() end
     local a: boolean, b: integer = g()
   ]])
   assert.analyze_ast([[
     local R = @record{x: integer}
-    function R.foo(self: R*): boolean, integer return true, self.x end
-    function R:boo(): boolean, integer return true, self.x end
+    function R.foo(self: R*): (boolean, integer) return true, self.x end
+    function R:boo(): (boolean, integer) return true, self.x end
     local r = R{}
-    local function foo(): boolean, integer return R.foo(r) end
-    local function boo(): boolean, integer return r:boo() end
+    local function foo(): (boolean, integer) return R.foo(r) end
+    local function boo(): (boolean, integer) return r:boo() end
   ]])
   assert.ast_type_equals([[
     local function f() return true,1 end
@@ -425,7 +425,7 @@ it("function multiple return", function()
     local a, b = g()
   ]],[[
     local function f() return true,1 end
-    local function g(): boolean,integer return f() end
+    local function g(): (boolean,integer) return f() end
     local a: boolean, b: integer = g()
   ]])
   assert.ast_type_equals([[
@@ -434,11 +434,11 @@ it("function multiple return", function()
     local a, b = g()
   ]],[[
     local function f() return true,1 end
-    local function g(): string,boolean,integer return 's', f() end
+    local function g(): (string,boolean,integer) return 's', f() end
     local a: string, b: boolean = g()
   ]])
   assert.analyze_error([[
-    local function f(): integer, boolean return 1,false  end
+    local function f(): (integer, boolean) return 1,false  end
     local a, b, c
     a, b, c = f()
   ]], 'is assigning to nothing in this expression')
@@ -448,21 +448,21 @@ it("function multiple return", function()
     a, b, c = f()
   ]], 'is assigning to nothing in this expression')
   assert.analyze_error([[
-    local function f(): integer, boolean return 1,false  end
+    local function f(): (integer, boolean) return 1,false  end
     local function g(a: boolean, b: integer, c: string) end
     g(false, f())
   ]], 'is not coercible with')
   assert.analyze_error([[
-    local function f(): integer, boolean return 1,false  end
+    local function f(): (integer, boolean) return 1,false  end
     local a: integer, b: number = f()
   ]], 'is not coercible with')
   assert.analyze_error([[
-    local function f(): integer, boolean return 1,false  end
+    local function f(): (integer, boolean) return 1,false  end
     local a: integer, b: number;
     a, b = f()
   ]], 'is not coercible with')
   assert.analyze_error([[
-    local function f(): integer, number return 1,'s'  end
+    local function f(): (integer, number) return 1,'s'  end
   ]], 'is not coercible with')
 end)
 

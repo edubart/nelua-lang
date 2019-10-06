@@ -487,7 +487,7 @@ describe("expression", function()
     }}}})
   end)
   it("anonymous function", function()
-    assert.parse_ast(nelua_parser, "return function() end, function(a, b: B): C,D end",
+    assert.parse_ast(nelua_parser, "return function() end, function(a, b: B): (C,D) end",
       n.Block{{
         n.Return{{
           n.Function{{}, {}, nil, n.Block{{}}},
@@ -1292,17 +1292,17 @@ end)
 --------------------------------------------------------------------------------
 describe("type expression", function()
   it("function", function()
-    assert.parse_ast(nelua_parser, "local f: function<()>",
+    assert.parse_ast(nelua_parser, "local f: function()",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'f', n.FuncType{{}, {}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local f: function<(integer): string>",
+    assert.parse_ast(nelua_parser, "local f: function(integer): string",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'f', n.FuncType{{n.Type{'integer'}}, {n.Type{'string'}}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local f: function<(integer, uinteger): string, boolean>",
+    assert.parse_ast(nelua_parser, "local f: function(integer, uinteger):(string, boolean)",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'f', n.FuncType{
@@ -1357,7 +1357,7 @@ describe("type expression", function()
             n.RecordFieldType{'b', n.Type{'boolean'}}}}}}
     }}})
     assert.parse_ast(nelua_parser,
-      "local r: record{f: function<(integer, uinteger): string, boolean>, t: arraytable(integer)}",
+      "local r: record{f: function(integer, uinteger):(string, boolean), t: arraytable(integer)}",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'r', n.RecordType{{

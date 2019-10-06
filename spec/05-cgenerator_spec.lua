@@ -260,13 +260,13 @@ end)
 
 it("function multiple returns", function()
   assert.generate_c([[
-    local function f(): integer, boolean return 1, true end
+    local function f(): (integer, boolean) return 1, true end
   ]], {
     "function_%w+_ret mymod_f",
     "return %(function_%w+_ret%){1, true};"
   }, true)
   assert.generate_c([[do
-    local function f(): integer, boolean return 1, true end
+    local function f(): (integer, boolean) return 1, true end
     local a, b = f()
     local c = f()
   end]], {
@@ -275,7 +275,7 @@ it("function multiple returns", function()
     "int64_t c = f__%d+%(%)%.r1;"
   }, true)
   assert.run_c([[
-    local function f(): integer, boolean return 1, true end
+    local function f(): (integer, boolean) return 1, true end
     local function g() return 2, true end
     local a, b = f()
     local c = g()
@@ -288,17 +288,17 @@ it("function multiple returns", function()
     assert(b == true)
     assert(c == 2)
 
-    local function t(): boolean, integer return false, 1 end
-    local function u(): boolean, number return t() end
+    local function t(): (boolean, integer) return false, 1 end
+    local function u(): (boolean, number) return t() end
     local a, b, c = 2, u()
     assert(a == 2 and b == false and c == 1)
 
     local R = @record{x: integer}
-    function R.foo(self: R*): boolean, integer return true, self.x end
-    function R:boo(): boolean, integer return true, self.x end
+    function R.foo(self: R*): (boolean, integer) return true, self.x end
+    function R:boo(): (boolean, integer) return true, self.x end
     local r = R{1}
-    local function foo(): boolean, integer return R.foo(r) end
-    local function boo(): boolean, integer return r:boo() end
+    local function foo(): (boolean, integer) return R.foo(r) end
+    local function boo(): (boolean, integer) return r:boo() end
     local a,b = foo()
     assert(a == true and b == 1)
     a,b = boo()
@@ -308,7 +308,7 @@ end)
 
 it("call with multiple args", function()
   assert.generate_c([[do
-    local function f(): integer, boolean return 1, true end
+    local function f(): (integer, boolean) return 1, true end
     local function g(a: int32, b: integer, c: boolean) end
     g(1, f())
   end]], {
@@ -316,7 +316,7 @@ it("call with multiple args", function()
     "g__%d+%(1, __tmp%d+.r1, __tmp%d+.r2%);"
   }, true)
   assert.run_c([[do
-    local function f(): integer, integer return 1, 2 end
+    local function f(): (integer, integer) return 1, 2 end
     local function g(a: integer, b: integer, c: integer) return a + b + c end
     assert(g(3, f()) == 6)
     assert(g(3, f(), 0) == 4)

@@ -6,7 +6,7 @@
 --TODO: function pointers
 ## cinclude '<emscripten.h>'
 ## cflags '-O3 -s USE_SDL=2 -o nelua_cache/condots.html'
-local function emscripten_set_main_loop_arg(func: function<(pointer)>, arg: pointer, fps: cint, simulate_infinite_loop: cint) <cimport> end
+local function emscripten_set_main_loop_arg(func: function(pointer), arg: pointer, fps: cint, simulate_infinite_loop: cint) <cimport> end
 ## else
 -- optimize for performance
 ## cflags '-O3 -ffast-math -march=native -fno-plt -fopenmp -rdynamic -g'

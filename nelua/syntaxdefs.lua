@@ -423,7 +423,7 @@ local function get_parser(std)
       eLPAREN (
         {| (typed_idlist (%COMMA %cVARARGS)? / %cVARARGS)? |}
       ) eRPAREN
-      {| (%COLON etypexpr_list)? |} (attrib_list / cnil)
+      {| (%COLON (%LPAREN etypexpr_list eRPAREN / etypexpr))? |} (attrib_list / cnil)
         block
       eEND
     typed_idlist <- typed_id (%COMMA typed_id)*
@@ -475,12 +475,11 @@ local function get_parser(std)
 
     func_type <- (
       {} '' -> 'FuncType'
-        %FUNCTION %LANGLE
-        %LPAREN ({|
+        %FUNCTION
+        eLPAREN ({|
           (typexpr_list (%COMMA %cVARARGS)? / %cVARARGS)?
         |}) eRPAREN
-        {| (%COLON etypexpr_list)? |}
-        eRANGLE
+        {| (%COLON (%LPAREN etypexpr_list eRPAREN / etypexpr))? |}
       ) -> to_astnode
 
     typexpr_param_expr <-

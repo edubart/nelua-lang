@@ -182,7 +182,7 @@ it("print types", function()
     local s: string
     local b: boolean
     local a: int64[2]
-    local function f(a: int64, b: int64): int64, int64 return 0,0 end
+    local function f(a: int64, b: int64): (int64, int64) return 0,0 end
     local function g(a: boolean | string) end
     local R: type = @record{a: integer, b: integer}
     function R:foo() return 1 end
@@ -202,7 +202,7 @@ it("print types", function()
     local s: string
     local b: boolean
     local a: int64[2]
-    local function f(a: int64, b: int64): int64, int64 return 0,0 end
+    local function f(a: int64, b: int64): (int64, int64) return 0,0 end
     local function g(a: boolean | string) end
     local R: type = @record{a: integer, b: integer}
     function R:foo() return 1 end
@@ -212,10 +212,10 @@ it("print types", function()
     local ts = 'string'
     local tb = 'boolean'
     local ta = 'array(int64, 2)'
-    local tf = 'function<(int64, int64): int64, int64>'
-    local tg = 'function<(boolean | string)>'
+    local tf = 'function(int64, int64): (int64, int64)'
+    local tg = 'function(boolean | string)'
     local tR = 'type'
-    local tRmt = 'metatype{foo: function<(pointer(record{a:int64, b:int64})): int64>v: int64}'
+    local tRmt = 'metatype{foo: function(pointer(record{a:int64, b:int64})): int64, v: int64}'
     local tr = 'record{a:int64, b:int64}'
   ]=])
 end)

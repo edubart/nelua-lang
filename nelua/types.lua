@@ -430,11 +430,15 @@ function FunctionType:get_return_count()
 end
 
 function FunctionType:__tostring()
-  local ss = sstream('function<(', self.argtypes, ')')
+  local ss = sstream(self.name, '(', self.argtypes, ')')
   if self.returntypes and #self.returntypes > 0 then
-    ss:add(': ', self.returntypes)
+    ss:add(': ')
+    if #self.returntypes > 1 then
+      ss:add('(', self.returntypes, ')')
+    else
+      ss:add(self.returntypes)
+    end
   end
-  ss:add('>')
   return ss:tostring()
 end
 
@@ -482,7 +486,11 @@ function MetaType:__tostring()
   local ss = sstream('metatype{')
   local first = true
   for name,sym in iters.opairs(self.fields) do
-    if not first then ss:add(', ') first = false end
+    if not first then
+      ss:add(', ')
+    else
+      first = false
+    end
     ss:add(name, ': ', sym.attr.type)
   end
   ss:add('}')

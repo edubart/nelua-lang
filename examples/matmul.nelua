@@ -1,7 +1,3 @@
---TODO: implement as multidimensional static arrays
---TODO: declare huge static arrays outside of the stack
---TODO: implement slices
-
 local Matrix = @arraytable(arraytable(number))
 
 local function matrix_transpose(a: Matrix, n: integer): Matrix

@@ -22,7 +22,7 @@ local function ftell(stream: pointer): clong <cimport> end
 --------------------------------------------------------------------------------
 -- file stream
 
-local function fileresult(success: boolean): boolean, string, integer
+local function fileresult(success: boolean): (boolean, string, integer)
   if not success then
     return false, (@string)(strerror(errno)), errno
   end

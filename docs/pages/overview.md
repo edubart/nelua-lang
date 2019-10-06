@@ -406,11 +406,10 @@ a mutable string he can always implement his own string object.
 Functions can be stored inside variables like in lua:
 
 ```nelua
-local f1: function<(a: integer, b: integer): boolean, boolean>
+local f1: function(a: integer, b: integer): (boolean, boolean)
 local f2 = function(args) end
 
 -- syntax sugar
-local f3: (integer, integer) -> (boolean, boolean)
 function f4(args) end
 ```
 
@@ -437,7 +436,7 @@ Variables with this type is used at compile time only, they are useful for alias
 local MyInt: type = @integer -- a symbol of type 'type' holding the type 'integer'
 local a: MyInt -- varible of type 'MyInt' (actually a 'integer')
 
-local CallbackType = @function<()>
+local CallbackType = @function()
 local callback: CallbackType
 ```
 
@@ -745,7 +744,7 @@ local a, b = get_multiple()
 The returns can optionally be explicitly typed:
 
 ```nelua
-local function get_multiple(): boolean, integer
+local function get_multiple(): (boolean, integer)
   return false, 1
 end
 ```
