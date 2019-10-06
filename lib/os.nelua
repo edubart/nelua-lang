@@ -13,28 +13,28 @@
 ## cinclude '<locale.h>'
 ## cinclude '<errno.h>'
 
-local CLOCKS_PER_SEC: clong !cimport
-local LC_ALL: cint !cimport
-local LC_COLLATE: cint !cimport
-local LC_CTYPE: cint !cimport
-local LC_MONETARY: cint !cimport
-local LC_NUMERIC: cint !cimport
-local LC_TIME: cint !cimport
-local EXIT_SUCCESS: cint !cimport
-local EXIT_FAILURE: cint !cimport
-local errno: cint !cimport
-local function clock(): clong !cimport end
-local function getenv(name: cstring): cstring !cimport end
-local function exit(status: cint) !cimport end
-local function mkstemp(s: cstring): cint !cimport end
-local function close(fd: cint): cint !cimport end
-local function strncpy(dest: cstring, src: cstring, n: usize): cstring !cimport end
-local function system(command: cstring): cint !cimport end
-local function strerror(errnum: cint): cstring !cimport end
-local function rename(old: cstring, new: cstring): cint !cimport end
-local function remove(pathname: cstring): cint !cimport end
-local function setlocale(category: cint, locale: cstring): cstring !cimport end
-local function ctime(tloc: pointer): clong !cimport 'time' end
+local CLOCKS_PER_SEC: clong <cimport>
+local LC_ALL: cint <cimport>
+local LC_COLLATE: cint <cimport>
+local LC_CTYPE: cint <cimport>
+local LC_MONETARY: cint <cimport>
+local LC_NUMERIC: cint <cimport>
+local LC_TIME: cint <cimport>
+local EXIT_SUCCESS: cint <cimport>
+local EXIT_FAILURE: cint <cimport>
+local errno: cint <cimport>
+local function clock(): clong <cimport> end
+local function getenv(name: cstring): cstring <cimport> end
+local function exit(status: cint) <cimport> end
+local function mkstemp(s: cstring): cint <cimport> end
+local function close(fd: cint): cint <cimport> end
+local function strncpy(dest: cstring, src: cstring, n: usize): cstring <cimport> end
+local function system(command: cstring): cint <cimport> end
+local function strerror(errnum: cint): cstring <cimport> end
+local function rename(old: cstring, new: cstring): cint <cimport> end
+local function remove(pathname: cstring): cint <cimport> end
+local function setlocale(category: cint, locale: cstring): cstring <cimport> end
+local function ctime(tloc: pointer): clong <cimport 'time'> end
 
 --------------------------------------------------------------------------------
 -- os module
@@ -145,7 +145,7 @@ end
 
 function os.tmpname(): string
   --TODO: windows implementation without POSIX
-  local TMPBUFSIZE !compconst = 32
+  local TMPBUFSIZE <compconst> = 32
   local buf: cchar[TMPBUFSIZE]
   strncpy(&buf[0], "/tmp/lua_XXXXXX", TMPBUFSIZE)
   local fd = mkstemp(&buf[0])

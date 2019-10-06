@@ -136,7 +136,7 @@ astbuilder:register('MultipleType', {
 astbuilder:register('Function', {
   stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
-  stypes.array_of(ntypes.Attrib), -- attribs
+  stypes.array_of(ntypes.Attrib):is_optional(), -- attribs
   ntypes.Node, -- block
 })
 
@@ -211,7 +211,7 @@ astbuilder:register('FuncDef', {
   ntypes.IdDecl + ntypes.Id + ntypes.DotIndex + ntypes.ColonIndex, -- name
   stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
-  stypes.array_of(ntypes.Attrib), -- attribs
+  stypes.array_of(ntypes.Attrib):is_optional(), -- attribs
   ntypes.Block -- block
 })
 

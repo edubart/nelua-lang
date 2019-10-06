@@ -1,16 +1,16 @@
 ## strict = true
 ## cinclude '<signal.h>'
 
-function C.signal(sig: cint, handler: pointer): pointer !cimport 'signal' end
-function C.raise(sig: cint): cint !cimport 'raise' end
+function C.signal(sig: cint, handler: pointer): pointer <cimport 'signal'> end
+function C.raise(sig: cint): cint <cimport 'raise'> end
 
-global C.SIG_DFL: pointer !const !cimport 'SIG_DFL'
-global C.SIG_IGN: pointer !const !cimport 'SIG_IGN'
-global C.SIG_ERR: pointer !const !cimport 'SIG_ERR'
+global C.SIG_DFL: pointer <const, cimport 'SIG_DFL'>
+global C.SIG_IGN: pointer <const, cimport 'SIG_IGN'>
+global C.SIG_ERR: pointer <const, cimport 'SIG_ERR'>
 
-global C.SIGTERM: cint !const !cimport 'SIGTERM'
-global C.SIGSEGV: cint !const !cimport 'SIGSEGV'
-global C.SIGINT: cint !const !cimport 'SIGINT'
-global C.SIGILL: cint !const !cimport 'SIGILL'
-global C.SIGABRT: cint !const !cimport 'SIGABRT'
-global C.SIGFPE: cint !const !cimport 'SIGFPE'
+global C.SIGTERM: cint <const, cimport 'SIGTERM'>
+global C.SIGSEGV: cint <const, cimport 'SIGSEGV'>
+global C.SIGINT: cint <const, cimport 'SIGINT'>
+global C.SIGILL: cint <const, cimport 'SIGILL'>
+global C.SIGABRT: cint <const, cimport 'SIGABRT'>
+global C.SIGFPE: cint <const, cimport 'SIGFPE'>

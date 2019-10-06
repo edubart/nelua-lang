@@ -335,7 +335,7 @@ local function get_parser(std)
     global_typed_id <- ({} '' -> 'IdDecl'
         ((id {| dot_index+ |}) -> to_chain_index_or_call / name)
         (%COLON etypexpr / cnil)
-        (&%EXCL {| var_attrib+ |})?
+        attrib_list?
       ) -> to_astnode
     ]], nil, true)
 
@@ -423,7 +423,7 @@ local function get_parser(std)
       eLPAREN (
         {| (typed_idlist (%COMMA %cVARARGS)? / %cVARARGS)? |}
       ) eRPAREN
-      {| (%COLON etypexpr_list)? |} {| var_attrib* |}
+      {| (%COLON etypexpr_list)? |} (attrib_list / cnil)
         block
       eEND
     typed_idlist <- typed_id (%COMMA typed_id)*
@@ -431,7 +431,7 @@ local function get_parser(std)
     typed_id <- ({} '' -> 'IdDecl'
         name
         (%COLON etypexpr / cnil)
-        (&%EXCL {| var_attrib+ |})?
+        attrib_list?
       ) -> to_astnode
 
     typexpr_list <- typexpr (%COMMA typexpr)*
@@ -440,13 +440,13 @@ local function get_parser(std)
     expr_list <- (expr (%COMMA expr)*)?
     eexpr_list <- eexpr (%COMMA expr)*
 
-    var_attrib <- ({} %EXCL -> 'Attrib' eattrib_expr) -> to_astnode
+    attrib_list <- %LANGLE {| (eattrib_expr (%COMMA eattrib_expr)*) |} eRANGLE
 
     eattrib_expr <-
-      ename {|(
+      ({} '' -> 'Attrib' ename {|(
         (%LPAREN attrib_arg (%COMMA attrib_arg)* eRPAREN) /
         %cSTRING
-      )?|}
+      )?|}) -> to_astnode
     attrib_arg <- %cNUMBER / %cSTRING / %cBOOLEAN
 
     cnil <- '' -> to_nil

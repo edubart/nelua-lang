@@ -6,10 +6,10 @@ typedef struct timespec timespec_t;
 typedef struct tm tm_t;
 ]], 'declaration')
 
-local time_t !cimport 'time_t' = @clong
-local clock_t !cimport 'clock_t' = @clong
+local time_t <cimport 'time_t'> = @clong
+local clock_t <cimport 'clock_t'> = @clong
 
-local tm !cimport 'tm_t' = @record{
+local tm <cimport 'tm_t'> = @record{
   tm_sec: cint,
   tm_min: cint,
   tm_hour: cint,
@@ -21,23 +21,23 @@ local tm !cimport 'tm_t' = @record{
   tm_isdst: cint
 }
 
-local timespec !cimport 'timespec_t' = @record {
+local timespec <cimport 'timespec_t'> = @record {
   tv_sec: time_t,
   tv_nsec: clong
 }
 
 -- Time manipulation
-function C.clock(): clock_t !cimport 'clock' end
-function C.difftime(time1: time_t, time0: time_t): float64 !cimport 'difftime' end
-function C.mktime(tp: tm*): time_t !cimport 'mktime' end
-function C.time(timer: time_t*): time_t !cimport 'time' end
+function C.clock(): clock_t <cimport 'clock'> end
+function C.difftime(time1: time_t, time0: time_t): float64 <cimport 'difftime'> end
+function C.mktime(tp: tm*): time_t <cimport 'mktime'> end
+function C.time(timer: time_t*): time_t <cimport 'time'> end
 
 -- Conversion
-function C.asctime(tp: tm*): cstring !cimport 'asctime' end
-function C.ctime(timer: time_t*): cstring !cimport 'ctime' end
-function C.gmtime(timer: time_t*): tm* !cimport 'gmtime' end
-function C.localtime(timer: time_t*): tm* !cimport 'localtime' end
-function C.timespec_get(ts: timespec*, base: cint): cint !cimport 'timespec_get' end
+function C.asctime(tp: tm*): cstring <cimport 'asctime'> end
+function C.ctime(timer: time_t*): cstring <cimport 'ctime'> end
+function C.gmtime(timer: time_t*): tm* <cimport 'gmtime'> end
+function C.localtime(timer: time_t*): tm* <cimport 'localtime'> end
+function C.timespec_get(ts: timespec*, base: cint): cint <cimport 'timespec_get'> end
 
 -- Constants
-global C.CLOCKS_PER_SEC: clock_t !const !cimport 'CLOCKS_PER_SEC'
+global C.CLOCKS_PER_SEC: clock_t <const, cimport 'CLOCKS_PER_SEC'>

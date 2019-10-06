@@ -7,7 +7,7 @@
 require 'memory'
 
 local T = @byte
-local myarraytableobj !codename 'myarraytable' = @record{
+local myarraytableobj <codename 'myarraytable'> = @record{
   len: usize,
   cap: usize,
   data: span(T)

@@ -8,16 +8,16 @@
 ## cinclude '<stdio.h>'
 ## cinclude '<errno.h>'
 
-local errno: cint !cimport
-local SEEK_SET: cint !cimport
-local SEEK_END: cint !cimport
-local SEEK_CUR: cint !cimport
-local function strerror(errnum: cint): cstring !cimport end
-local function fopen(pathname: cstring, mode: cstring): pointer !cimport end
-local function fclose(stream: pointer): cint !cimport end
-local function fflush(stream: pointer): cint !cimport end
-local function fseek(stream: pointer, offset: clong, whence: cint): cint !cimport end
-local function ftell(stream: pointer): clong !cimport end
+local errno: cint <cimport>
+local SEEK_SET: cint <cimport>
+local SEEK_END: cint <cimport>
+local SEEK_CUR: cint <cimport>
+local function strerror(errnum: cint): cstring <cimport> end
+local function fopen(pathname: cstring, mode: cstring): pointer <cimport> end
+local function fclose(stream: pointer): cint <cimport> end
+local function fflush(stream: pointer): cint <cimport> end
+local function fseek(stream: pointer, offset: clong, whence: cint): cint <cimport> end
+local function ftell(stream: pointer): clong <cimport> end
 
 --------------------------------------------------------------------------------
 -- file stream

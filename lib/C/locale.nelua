@@ -28,13 +28,13 @@ local lconv = @record {
   int_n_sign_posn: cchar
 }
 
-function C.setlocale(category: cint, locale: cstring): cstring !cimport 'setlocale' end
-function C.localeconv(): lconv* !cimport 'localeconv' end
+function C.setlocale(category: cint, locale: cstring): cstring <cimport 'setlocale'> end
+function C.localeconv(): lconv* <cimport 'localeconv'> end
 
 -- Constants
-global C.LC_ALL: cint !const !cimport 'LC_ALL'
-global C.LC_COLLATE: cint !const !cimport 'LC_COLLATE'
-global C.LC_CTYPE: cint !const !cimport 'LC_CTYPE'
-global C.LC_MONETARY: cint !const !cimport 'LC_MONETARY'
-global C.LC_NUMERIC: cint !const !cimport 'LC_NUMERIC'
-global C.LC_TIME: cint !const !cimport 'LC_TIME'
+global C.LC_ALL: cint <const, cimport 'LC_ALL'>
+global C.LC_COLLATE: cint <const, cimport 'LC_COLLATE'>
+global C.LC_CTYPE: cint <const, cimport 'LC_CTYPE'>
+global C.LC_MONETARY: cint <const, cimport 'LC_MONETARY'>
+global C.LC_NUMERIC: cint <const, cimport 'LC_NUMERIC'>
+global C.LC_TIME: cint <const, cimport 'LC_TIME'>

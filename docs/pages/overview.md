@@ -113,7 +113,7 @@ Auto variables are more useful when used in **lazy functions**.
 Compconst variables have its value known at compile time:
 
 ```nelua
-local a !compconst = 1 + 2 -- constant variable of value '3' evaluated and known at compile time
+local a <compconst> = 1 + 2 -- constant variable of value '3' evaluated and known at compile time
 ```
 
 The compiler takes advantages of constants to make optimizations, constants are also useful
@@ -125,10 +125,10 @@ Const variables can be assigned at runtime however it cannot mutate.
 
 ```nelua
 local x = 1
-local a !const = x
+local a <const> = x
 -- doing "a = 2" would throw a compile time error
 
-local function f(x: integer !const)
+local function f(x: integer <const>)
   -- cannot assign 'x' here because it's const
 end
 ```
@@ -1040,7 +1040,7 @@ Lazy functions can make compile time dynamic functions when used in combination 
 the preprocessor:
 
 ```nelua
-function pow(x: auto, n: integer !compconst)
+function pow(x: auto, n: integer <compconst>)
   ## symbols.x.attr.type:is_integral() then
     -- x is an integral type (any unsigned/signed integer)
     local r: #[symbols.x.attr.type] = 1
@@ -1068,7 +1068,7 @@ Blocks can be passed to lazy functions, in this case the entire function code wi
 inlined in the call placement.
 
 ```nelua
-local function unroll(count: integer !compconst, body: block)
+local function unroll(count: integer <compconst>, body: block)
   ## for i=1,symbols.count.attr.value do
     body()
   ## end
@@ -1088,7 +1088,7 @@ generation.
 ### Function attributes
 
 ```nelua
-function sum(a, b) !inline -- inline function
+function sum(a, b) <inline> -- inline function
   return a + b
 end
 ```
@@ -1096,8 +1096,8 @@ end
 ### Variable attributes
 
 ```nelua
-local a: integer !noinit-- don't initialize variable to zeros
-local a !volatile = 1 -- C volatile variable
+local a: integer <noinit>-- don't initialize variable to zeros
+local a <volatile> = 1 -- C volatile variable
 ```
 
 --------------------------------------------------------------------------------
@@ -1106,9 +1106,9 @@ local a !volatile = 1 -- C volatile variable
 Nelua can import C functions from C headers:
 
 ```nelua
-local function malloc(size: usize): pointer !cimport('malloc','<stdlib.h>') end
-local function memset(s: pointer, c: int32, n: usize): pointer !cimport('memset','<stdlib.h>') end
-local function free(ptr: pointer) !cimport('free','<stdlib.h>') end
+local function malloc(size: usize): pointer <cimport('malloc','<stdlib.h>')> end
+local function memset(s: pointer, c: int32, n: usize): pointer <cimport('memset','<stdlib.h>')> end
+local function free(ptr: pointer) <cimport('free','<stdlib.h>')> end
 local a = @int64[10]*(malloc(10 * 8))
 memset(a, 0, 10*8)
 assert(a[0] == 0)

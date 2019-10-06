@@ -7,17 +7,17 @@
 ## linklib 'SDL2'
 
 -- import SDL structures
-local SDL_Event !cimport = @record {
+local SDL_Event <cimport> = @record {
   type: uint32,
   padding: byte[56]
 }
-local SDL_Keysym !cimport = @record {
+local SDL_Keysym <cimport> = @record {
   scancode: cint,
   sym: int32,
   mod: uint16,
   unused: uint32
 }
-local SDL_KeyboardEvent !cimport = @record {
+local SDL_KeyboardEvent <cimport> = @record {
   type: uint32,
   timestamp: uint32,
   windowID: uint32,
@@ -26,7 +26,7 @@ local SDL_KeyboardEvent !cimport = @record {
   padding: uint16,
   keysym: SDL_Keysym
 }
-local SDL_Rect !cimport = @record {
+local SDL_Rect <cimport> = @record {
   x: cint, y: cint,
   w: cint, h: cint,
 };
@@ -36,35 +36,35 @@ local SDL_Window = @record{}*
 local SDL_Renderer = @record{}*
 
 -- import SDL constants
-local SDL_INIT_VIDEO: uint32 !cimport
-local SDL_WINDOWPOS_UNDEFINED: cint !cimport
-local SDL_WINDOW_OPENGL: uint32 !cimport
-local SDL_QUIT: uint32 !cimport
-local SDL_KEYDOWN: uint32 !cimport
-local SDLK_UP: int32 !cimport
-local SDLK_DOWN: int32 !cimport
-local SDLK_LEFT: int32 !cimport
-local SDLK_RIGHT: int32 !cimport
-local SDL_RENDERER_ACCELERATED: uint32 !cimport
-local SDL_RENDERER_PRESENTVSYNC: uint32 !cimport
+local SDL_INIT_VIDEO: uint32 <cimport>
+local SDL_WINDOWPOS_UNDEFINED: cint <cimport>
+local SDL_WINDOW_OPENGL: uint32 <cimport>
+local SDL_QUIT: uint32 <cimport>
+local SDL_KEYDOWN: uint32 <cimport>
+local SDLK_UP: int32 <cimport>
+local SDLK_DOWN: int32 <cimport>
+local SDLK_LEFT: int32 <cimport>
+local SDLK_RIGHT: int32 <cimport>
+local SDL_RENDERER_ACCELERATED: uint32 <cimport>
+local SDL_RENDERER_PRESENTVSYNC: uint32 <cimport>
 
 -- import SDL functions
-local function SDL_Init(flags: uint32): int32 !cimport end
-local function SDL_CreateWindow(title: cstring, x: cint, y: cint, w: cint, h: cint, flags: uint32): SDL_Window !cimport end
-local function SDL_Quit() !cimport end
-local function SDL_DestroyWindow(window: SDL_Window) !cimport end
-local function SDL_Delay(ms: uint32) !cimport end
-local function SDL_PollEvent(event: SDL_Event*): int32 !cimport end
-local function SDL_WaitEvent(event: SDL_Event*): int32 !cimport end
-local function SDL_CreateRenderer(window: SDL_Window, index: cint, flags: uint32): SDL_Renderer !cimport end
-local function SDL_DestroyRenderer(renderer: SDL_Renderer) !cimport end
-local function SDL_RenderPresent(renderer: SDL_Renderer) !cimport end
-local function SDL_RenderClear(renderer: SDL_Renderer) !cimport end
-local function SDL_SetRenderDrawColor(renderer: SDL_Renderer, r: uint8, g: uint8, b: uint8, a: uint8): cint !cimport end
-local function SDL_RenderFillRect(renderer: SDL_Renderer, rect: SDL_Rect*): cint !cimport end
-local function SDL_GetTicks(): uint32 !cimport end
---local function SDL_GetError(): cstring !cimport end
-local function rand(): int32 !cimport('rand') end
+local function SDL_Init(flags: uint32): int32 <cimport> end
+local function SDL_CreateWindow(title: cstring, x: cint, y: cint, w: cint, h: cint, flags: uint32): SDL_Window <cimport> end
+local function SDL_Quit() <cimport> end
+local function SDL_DestroyWindow(window: SDL_Window) <cimport> end
+local function SDL_Delay(ms: uint32) <cimport> end
+local function SDL_PollEvent(event: SDL_Event*): int32 <cimport> end
+local function SDL_WaitEvent(event: SDL_Event*): int32 <cimport> end
+local function SDL_CreateRenderer(window: SDL_Window, index: cint, flags: uint32): SDL_Renderer <cimport> end
+local function SDL_DestroyRenderer(renderer: SDL_Renderer) <cimport> end
+local function SDL_RenderPresent(renderer: SDL_Renderer) <cimport> end
+local function SDL_RenderClear(renderer: SDL_Renderer) <cimport> end
+local function SDL_SetRenderDrawColor(renderer: SDL_Renderer, r: uint8, g: uint8, b: uint8, a: uint8): cint <cimport> end
+local function SDL_RenderFillRect(renderer: SDL_Renderer, rect: SDL_Rect*): cint <cimport> end
+local function SDL_GetTicks(): uint32 <cimport> end
+--local function SDL_GetError(): cstring <cimport> end
+local function rand(): int32 <cimport('rand')> end
 
 -- game types
 local Point2D = @record{x: integer, y: integer}
@@ -72,13 +72,13 @@ local Direction = @enum(byte){NONE=0, UP, DOWN, RIGHT, LEFT}
 local Color = @record{r: byte, g: byte, b: byte}
 
 -- game constants
-local TILE_SIZE !compconst = 64
-local GRID_SIZE !compconst = 12
-local SCREEN_SIZE !compconst = @cint(64 * 12) --@cint(GRID_SIZE * TILE_SIZE)
-local MOVE_DELAY !compconst = 128
-local COLOR_RED !compconst = Color{r=255, g=96, b=96}
-local COLOR_GREEN !compconst = Color{r=96, g=255, b=96}
-local COLOR_BLACK !compconst = Color{r=0, g=0, b=0}
+local TILE_SIZE <compconst> = 64
+local GRID_SIZE <compconst> = 12
+local SCREEN_SIZE <compconst> = @cint(64 * 12) --@cint(GRID_SIZE * TILE_SIZE)
+local MOVE_DELAY <compconst> = 128
+local COLOR_RED <compconst> = Color{r=255, g=96, b=96}
+local COLOR_GREEN <compconst> = Color{r=96, g=255, b=96}
+local COLOR_BLACK <compconst> = Color{r=0, g=0, b=0}
 
 -- game state variables
 local renderer

@@ -62,27 +62,27 @@ it("name collision", function()
 end)
 
 it("compconst variable" , function()
-  assert.analyze_ast([[local N !compconst = 255; local a: byte = N]])
-  assert.analyze_ast([[local a: integer !compconst = 1]])
+  assert.analyze_ast([[local N <compconst> = 255; local a: byte = N]])
+  assert.analyze_ast([[local a: integer <compconst> = 1]])
   assert.ast_type_equals(
-    [[local a !compconst = 1; local function f() return a end]],
-    [[local a: integer !compconst = 1; local function f() return a end]])
-  assert.analyze_ast([[local a !compconst = 1 * 2 + 3]])
-  assert.analyze_ast([[local a !compconst = 1; local b !compconst = a]])
-  assert.analyze_ast([[global a !compconst = 1]])
-  assert.analyze_error("local a: integer !compconst", "const variables must have an initial value")
-  assert.analyze_error("local a !compconst = 1; a = 2", "cannot assign a constant variable")
-  assert.analyze_error("local a = 1; local c !compconst = a", "can only assign to constant expressions")
-  assert.analyze_error("local b = 1; local c !compconst = 1 * 2 + b", "can only assign to constant expressions")
+    [[local a <compconst> = 1; local function f() return a end]],
+    [[local a: integer <compconst> = 1; local function f() return a end]])
+  assert.analyze_ast([[local a <compconst> = 1 * 2 + 3]])
+  assert.analyze_ast([[local a <compconst> = 1; local b <compconst> = a]])
+  assert.analyze_ast([[global a <compconst> = 1]])
+  assert.analyze_error("local a: integer <compconst>", "const variables must have an initial value")
+  assert.analyze_error("local a <compconst> = 1; a = 2", "cannot assign a constant variable")
+  assert.analyze_error("local a = 1; local c <compconst> = a", "can only assign to constant expressions")
+  assert.analyze_error("local b = 1; local c <compconst> = 1 * 2 + b", "can only assign to constant expressions")
 end)
 
 it("const variable" , function()
-  assert.analyze_ast([[local a: integer !const = 1]])
-  assert.analyze_ast([[local function f(x: integer !const) end]])
-  assert.analyze_ast([[local b = 1; local a: integer !const = b]])
-  assert.analyze_error([[local a: integer !const = 1; a = 2]], "cannot assign a constant variable")
-  assert.analyze_error("local a: integer !const", "const variables must have an initial value")
-  assert.analyze_error("local function f(x: integer !const) x = 2 end", "cannot assign a constant variable")
+  assert.analyze_ast([[local a: integer <const> = 1]])
+  assert.analyze_ast([[local function f(x: integer <const>) end]])
+  assert.analyze_ast([[local b = 1; local a: integer <const> = b]])
+  assert.analyze_error([[local a: integer <const> = 1; a = 2]], "cannot assign a constant variable")
+  assert.analyze_error("local a: integer <const>", "const variables must have an initial value")
+  assert.analyze_error("local function f(x: integer <const>) x = 2 end", "cannot assign a constant variable")
 end)
 
 it("numeric types coercion", function()
@@ -586,14 +586,14 @@ end)
 
 it("arrays", function()
   --assert.analyze_ast([[local a: array(integer, (2 << 1)) ]])
-  assert.analyze_ast([[local N !compconst = 10; local a: array(integer, N) ]])
+  assert.analyze_ast([[local N <compconst> = 10; local a: array(integer, N) ]])
   assert.analyze_ast([[local a: array(integer, 10); a[0] = 1]])
   assert.analyze_ast([[local a: array(integer, 2) = {1,2}]])
   assert.analyze_ast([[local a: array(integer, 2); a[0] = 1; a[1] = 2]])
   assert.analyze_ast([[local a: array(integer, 2); a = {1,2}]])
   assert.analyze_ast([[local a: array(integer, 2); a = {}]])
   assert.analyze_ast([[local a: array(integer, 10), b: array(integer, 10); b = a]])
-  assert.analyze_ast([[local a: array(integer, 2) !compconst = {1,2}]])
+  assert.analyze_ast([[local a: array(integer, 2) <compconst> = {1,2}]])
   assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values but got 1')
   assert.analyze_error([[local a: array(integer, 2) = {1,2,3}]], 'expected 2 values but got 3')
   assert.analyze_error([[local a: array(integer, 2) = {1.0,2.0}]], 'is not coercible with')
@@ -606,7 +606,7 @@ it("arrays", function()
   assert.analyze_error([[local a: array(integer, 2); a[-1] = 1]], 'trying to index negative value')
   assert.analyze_error([[local a: array(integer, 2); a[2] = 1]], 'is out of bounds')
   assert.analyze_error([[local a: array(integer, 2); a['s'] = 1]], 'trying to index with value of type')
-  assert.analyze_error([[local a: array(integer, 2) !compconst = {1,b}]], 'can only assign to constant expressions')
+  assert.analyze_error([[local a: array(integer, 2) <compconst> = {1,b}]], 'can only assign to constant expressions')
 end)
 
 it("indexing", function()
@@ -659,8 +659,8 @@ it("records", function()
   ]])
   assert.analyze_ast([[
     local Record = @record{x: boolean}
-    local a !compconst = Record{}
-    local b !compconst = Record{x=true}
+    local a <compconst> = Record{}
+    local b <compconst> = Record{x=true}
   ]])
   assert.analyze_error([[
     local Record: type = @record{x: integer, y: integer}
@@ -679,7 +679,7 @@ it("records", function()
   assert.analyze_error([[
     local b = false
     local Record = @record{x: boolean}
-    local a !compconst = Record{x = b}
+    local a <compconst> = Record{x = b}
   ]], "can only assign to constant expressions")
   assert.ast_type_equals(
     "local a: record {x: boolean}; local b = a.x",
@@ -778,7 +778,7 @@ it("enums", function()
     local b: enum(integer){A=0,B=1 << 2}
   ]])
   assert.analyze_ast([[
-    local c !compconst = 2
+    local c <compconst> = 2
     local Enum = @enum{A=0,B=1,C=c}
     local e: Enum = Enum.A
     local i: number = e
@@ -936,15 +936,15 @@ it("type construction", function()
 end)
 
 it("attributes", function()
-  assert.analyze_ast("local r: record{x: integer} !aligned(8)")
-  assert.analyze_ast("local Record !aligned(8) = @record{x: integer}")
+  assert.analyze_ast("local r: record{x: integer} <aligned(8)>")
+  assert.analyze_ast("local Record <aligned(8)> = @record{x: integer}")
   assert.analyze_error(
-    "local function f() !cimport return 0 end",
+    "local function f() <cimport> return 0 end",
     "body of an import function must be empty")
-  assert.analyze_error("local a !cimport = 2", "cannot assign imported variables")
+  assert.analyze_error("local a <cimport> = 2", "cannot assign imported variables")
   assert.analyze_error([[
-    local function main1() !entrypoint end
-    local function main2() !entrypoint end
+    local function main1() <entrypoint> end
+    local function main2() <entrypoint> end
   ]], "cannot have more than one function entrypoint")
 end)
 

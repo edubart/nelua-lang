@@ -196,15 +196,15 @@ it("variable declaration", function()
 end)
 
 it("compconst", function()
-  assert.generate_c("local a: integer !compconst = 0", "static const int64_t mymod_a = 0;")
-  assert.generate_c("local a !compconst = 1", "static const int64_t mymod_a = 1;")
+  assert.generate_c("local a: integer <compconst> = 0", "static const int64_t mymod_a = 0;")
+  assert.generate_c("local a <compconst> = 1", "static const int64_t mymod_a = 1;")
   assert.generate_c(
-    "local N !compconst = 3773; local a: array(integer, N)",
+    "local N <compconst> = 3773; local a: array(integer, N)",
     {"static const int64_t mymod_N = 3773",
      "int64_t data[3773];"})
-  assert.generate_c("local a !compconst, b !compconst = 1, 2; local c !compconst = a * b",
+  assert.generate_c("local a <compconst>, b <compconst> = 1, 2; local c <compconst> = a * b",
     "static const int64_t mymod_c = mymod_a * mymod_b;")
-  assert.generate_c("local a !compconst, b !compconst = 1, 2; local c !compconst = @int32(a * b)",
+  assert.generate_c("local a <compconst>, b <compconst> = 1, 2; local c <compconst> = @int32(a * b)",
     "static const int32_t mymod_c = (int32_t)(mymod_a * mymod_b);")
 end)
 
@@ -773,7 +773,7 @@ it("record methods", function()
     assert(v:len() == 3)
 
     local Math = @record{}
-    function Math.abs(x: number): number !cimport('fabs', '<math.h>') end
+    function Math.abs(x: number): number <cimport('fabs', '<math.h>')> end
     assert(Math.abs(-1) == 1)
   ]])
 end)
@@ -782,8 +782,8 @@ it("record globals", function()
   assert.generate_c([[
     ## nohashcodenames = true
     local Math = @record{}
-    global Math.PI: number !compconst = 3.14
-    global Math.E !compconst = 2.7
+    global Math.PI: number <compconst> = 3.14
+    global Math.E <compconst> = 2.7
 
     global Math.Number = @number
     local MathNumber = Math.Number
@@ -876,9 +876,9 @@ end)
 
 it("manual memory managment", function()
   assert.run_c([=[
-    local function malloc(size: usize): pointer !cimport('malloc','<stdlib.h>') end
-    local function memset(s: pointer, c: int32, n: usize): pointer !cimport('memset','<stdlib.h>') end
-    local function free(ptr: pointer) !cimport('free','<stdlib.h>') end
+    local function malloc(size: usize): pointer <cimport('malloc','<stdlib.h>')> end
+    local function memset(s: pointer, c: int32, n: usize): pointer <cimport('memset','<stdlib.h>')> end
+    local function free(ptr: pointer) <cimport('free','<stdlib.h>')> end
     local a = @pointer(array(int64, 10))(malloc(10 * 8))
     memset(a, 0, 10*8)
     assert(a[0] == 0)
@@ -890,7 +890,7 @@ end)
 
 it("C varargs", function()
   assert.generate_c(
-    "local function scanf(format: cstring, ...): cint !cimport('scanf',true) end",
+    "local function scanf(format: cstring, ...): cint <cimport('scanf',true)> end",
     "int scanf(char* format, ...);")
 end)
 
@@ -900,37 +900,37 @@ it("attributes", function()
   assert.generate_c("## cemit('#define SOMETHING', 'declaration')", "#define SOMETHING")
   assert.generate_c("## cemit('#define SOMETHING', 'definition')", "#define SOMETHING")
   assert.generate_c("## cdefine 'SOMETHING'", "#define SOMETHING")
-  assert.generate_c("local huge: number !cimport('HUGE_VAL', '<math.h>')", "include <math.h>")
-  assert.generate_c("local a: int64 !volatile !codename'a'", "volatile int64_t mymod_a")
-  assert.generate_c("local a: int64 !register", "register int64_t mymod_a")
-  assert.generate_c("local a: int64 !restrict", "restrict int64_t mymod_a")
-  assert.generate_c("local a: int64 !nodecl", "")
-  assert.generate_c("local a: int64 !noinit", "mymod_a;")
-  assert.generate_c("local a: int64 !cexport", "extern int64_t mymod_a;")
-  assert.generate_c("do local a !static = 1 end", "static int64_t a = 1;", true)
-  assert.generate_c("local a: int64 !cattribute 'vector_size(16)'", "int64_t mymod_a __attribute__((vector_size(16)))")
-  assert.generate_c("local a: number !cqualifier 'in' = 1", "in double mymod_a = 1.0;")
-  assert.generate_c("local R !aligned(16) = @record{x: integer}; local r: R", "} __attribute__((aligned(16))) ")
-  assert.generate_c("local function f() !inline end", "inline void")
-  assert.generate_c("local function f() !noreturn end", "Nelua_NORETURN void")
-  assert.generate_c("local function f() !noinline end", "Nelua_NOINLINE void")
-  assert.generate_c("local function f() !volatile end", "volatile void")
-  assert.generate_c("local function f() !nodecl end", "")
-  assert.generate_c("local function f() !nosideeffect end", "")
-  assert.generate_c("local function f() !cqualifier 'volatile' end", "volatile void")
-  assert.generate_c("local function f() !cattribute 'noinline' end", "__attribute__((noinline)) void")
+  assert.generate_c("local huge: number <cimport('HUGE_VAL', '<math.h>')>", "include <math.h>")
+  assert.generate_c("local a: int64 <volatile, codename 'a'>", "volatile int64_t mymod_a")
+  assert.generate_c("local a: int64 <register>", "register int64_t mymod_a")
+  assert.generate_c("local a: int64 <restrict>", "restrict int64_t mymod_a")
+  assert.generate_c("local a: int64 <nodecl>", "")
+  assert.generate_c("local a: int64 <noinit>", "mymod_a;")
+  assert.generate_c("local a: int64 <cexport>", "extern int64_t mymod_a;")
+  assert.generate_c("do local a <static> = 1 end", "static int64_t a = 1;", true)
+  assert.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t mymod_a __attribute__((vector_size(16)))")
+  assert.generate_c("local a: number <cqualifier 'in'> = 1", "in double mymod_a = 1.0;")
+  assert.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R", "} __attribute__((aligned(16))) ")
+  assert.generate_c("local function f() <inline> end", "inline void")
+  assert.generate_c("local function f() <noreturn> end", "Nelua_NORETURN void")
+  assert.generate_c("local function f() <noinline> end", "Nelua_NOINLINE void")
+  assert.generate_c("local function f() <volatile> end", "volatile void")
+  assert.generate_c("local function f() <nodecl> end", "")
+  assert.generate_c("local function f() <nosideeffect> end", "")
+  assert.generate_c("local function f() <cqualifier 'volatile'> end", "volatile void")
+  assert.generate_c("local function f() <cattribute 'noinline'> end", "__attribute__((noinline)) void")
   assert.generate_c(
-    "local function puts(s: cstring): int32 !cimport('puts', true) end",
+    "local function puts(s: cstring): int32 <cimport('puts', true)> end",
     "int32_t puts(char* s);")
   assert.generate_c(
-    "local function cos(x: number): number !cimport('myfunc','<myheader.h>') end",
+    "local function cos(x: number): number <cimport('myfunc','<myheader.h>')> end",
     "#include <myheader.h>")
   assert.run_c([[
-    local function exit(x: int32) !cimport('exit', '<stdlib.h>') end
-    function puts(s: cstring): int32 !cimport('puts', '<stdio.h>') end
-    local function perror(s: cstring): void !cimport end
-    local function f() !noinline !noreturn
-      local i: int32 !register !volatile !codename'i' = 0
+    local function exit(x: int32) <cimport('exit', '<stdlib.h>')> end
+    function puts(s: cstring): int32 <cimport('puts', '<stdio.h>')> end
+    local function perror(s: cstring): void <cimport> end
+    local function f() <noinline, noreturn>
+      local i: int32 <register, volatile, codename 'i'> = 0
       exit(i)
     end
     puts('msg stdout\n')
@@ -939,8 +939,8 @@ it("attributes", function()
   ]], "msg stdout", "msg stderr")
   assert.run_c([[
     ## cinclude '<stdlib.h>'
-    local div_t !cimport = @record{quot: cint, rem: cint}
-    local function div(numer: cint, denom: cint): div_t !cimport end
+    local div_t <cimport> = @record{quot: cint, rem: cint}
+    local function div(numer: cint, denom: cint): div_t <cimport> end
     local r = div(38,5)
     assert(r.quot == 7 and r.rem == 3)
   ]])
@@ -948,7 +948,7 @@ end)
 
 it("type codenames", function()
   assert.generate_c([[
-    local myrecord !codename 'myrecord' = @record{x: integer}
+    local myrecord <codename 'myrecord'> = @record{x: integer}
     function myrecord:foo() return self.x end
     local r = myrecord{}
     return r:foo()
@@ -961,7 +961,7 @@ end)
 it("entrypoint", function()
   assert.run_c([[
     print 'hello'
-    local function main(): cint !entrypoint
+    local function main(): cint <entrypoint>
       print 'world'
       return 0
     end
@@ -1128,7 +1128,7 @@ it("context states", function()
 
   assert.generate_c([[
     ## modname = 'mylib'
-    local function foo() !cexport
+    local function foo() <cexport>
     end
   ]], "extern void mylib_foo();")
 end)
