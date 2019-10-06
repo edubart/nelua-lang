@@ -62,7 +62,7 @@ function mt19937:random_float64()
 end
 
 -- pre initialized mersenne (faster startup)
-local default_mt19937 = @mt19937{
+local default_mt19937 = (@mt19937){
   i = 0,
   v = {
     0x5a682c69,0x1d6a2d67,0x3f086e20,0xeba44ff7,0xadad9a48,0xe11f0603,0x60f8b793,0x30a445b6,

@@ -53,8 +53,8 @@ it("number literals", function()
 end)
 
 it("type assertion", function()
-  assert.generate_c("do local a = @int16(1_u64) end", "int16_t a = (int16_t)((uint64_t)1U)")
-  assert.generate_c("do local a = @int64(1_u8) end", "int64_t a = (int64_t)((uint8_t)1U)")
+  assert.generate_c("do local a = (@int16)(1_u64) end", "int16_t a = (int16_t)((uint64_t)1U)")
+  assert.generate_c("do local a = (@int64)(1_u8) end", "int64_t a = (int64_t)((uint8_t)1U)")
 end)
 
 it("string", function()
@@ -204,7 +204,7 @@ it("compconst", function()
      "int64_t data[3773];"})
   assert.generate_c("local a <compconst>, b <compconst> = 1, 2; local c <compconst> = a * b",
     "static const int64_t mymod_c = mymod_a * mymod_b;")
-  assert.generate_c("local a <compconst>, b <compconst> = 1, 2; local c <compconst> = @int32(a * b)",
+  assert.generate_c("local a <compconst>, b <compconst> = 1, 2; local c <compconst> = (@int32)(a * b)",
     "static const int32_t mymod_c = (int32_t)(mymod_a * mymod_b);")
 end)
 
@@ -360,7 +360,7 @@ it("binary operators", function()
   --assert.generate_c("return a / b")
   assert.generate_c("return 3 / 2",       "return 3 / (double)2")
   assert.generate_c(
-    "return @float64(3 / 2)",
+    "return (@float64)(3 / 2)",
     "return 3.0 / 2.0")
   assert.generate_c(
     "return 3 / 2_int64",
@@ -369,10 +369,10 @@ it("binary operators", function()
     "return 3.0 / 2",
     "return 3.0 / 2")
   assert.generate_c(
-    "return @integer(3_i / 2_i)",
+    "return (@integer)(3_i / 2_i)",
     "return (int64_t)((int64_t)3 / (double)(int64_t)2)")
   assert.generate_c(
-    "return @integer(3 / 2_int64)",
+    "return (@integer)(3 / 2_int64)",
     "return (int64_t)(3 / (double)(int64_t)2)")
   -- idiv
   --assert.generate_c("return a // b")
@@ -604,7 +604,7 @@ it("cstring and string conversions", function()
     print(a)
     local b: cstring = a
     print(b)
-    local c: string = @string(b)
+    local c: string = (@string)(b)
     print(c)
   ]], "hello\nhello\nhello")
 end)
@@ -661,7 +661,7 @@ it("ranges", function()
     span2[9] = 3
     assert(buff[0] == 2 and buff[9] == 3)
 
-    local arr = @integer[4] {1,2,3,4}
+    local arr = (@integer[4]){1,2,3,4}
     local s = arr[1:2]
     assert(s[0] == 2 and s[1] == 3)
   ]])
@@ -820,7 +820,7 @@ it("pointers", function()
     local i: integer = 1
     local p: pointer(integer) = &i
     print($p)
-    p = @pointer(int64)(f(p))
+    p = (@pointer(int64))(f(p))
     i = 2
     print($p)
     $p = 3
@@ -879,7 +879,7 @@ it("manual memory managment", function()
     local function malloc(size: usize): pointer <cimport('malloc','<stdlib.h>')> end
     local function memset(s: pointer, c: int32, n: usize): pointer <cimport('memset','<stdlib.h>')> end
     local function free(ptr: pointer) <cimport('free','<stdlib.h>')> end
-    local a = @pointer(array(int64, 10))(malloc(10 * 8))
+    local a = (@pointer(array(int64, 10)))(malloc(10 * 8))
     memset(a, 0, 10*8)
     assert(a[0] == 0)
     a[0] = 1

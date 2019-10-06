@@ -102,16 +102,16 @@ end)
 
 it("narrow casting", function()
   assert.analyze_ast([[
-    local u   = @usize  (0xffffffffffffffff)
-    local u8  = @uint8 (0xffffffffffffffff)
-    local u16 = @uint16(0xffffffffffffffff)
-    local u32 = @uint32(0xffffffffffffffff)
-    local u64 = @uint64(0xffffffffffffffff)
-    local i   = @isize  (-0x8000000000000000)
-    local i8  = @int8 (-0x8000000000000000)
-    local i16 = @int16(-0x8000000000000000)
-    local i32 = @int32(-0x8000000000000000)
-    local i64 = @int64(-0x8000000000000000)
+    local u   = (@usize)  (0xffffffffffffffff)
+    local u8  = (@uint8)  (0xffffffffffffffff)
+    local u16 = (@uint16) (0xffffffffffffffff)
+    local u32 = (@uint32) (0xffffffffffffffff)
+    local u64 = (@uint64) (0xffffffffffffffff)
+    local i   = (@isize) (-0x8000000000000000)
+    local i8  = (@int8)  (-0x8000000000000000)
+    local i16 = (@int16) (-0x8000000000000000)
+    local i32 = (@int32) (-0x8000000000000000)
+    local i64 = (@int64) (-0x8000000000000000)
   ]])
 end)
 
@@ -516,7 +516,7 @@ it("array tables", function()
   assert.analyze_ast([[
     local a: arraytable(boolean) = {}
     local b: arraytable(boolean) = {false, true}
-    local c = @arraytable(boolean){false, true}
+    local c = (@arraytable(boolean)){false, true}
     local d: arraytable(boolean); d = {false, true}
     local function f(a: arraytable(boolean)) end
     f({false, true})
@@ -762,7 +762,7 @@ it("type neasting", function()
   ]])
   assert.analyze_ast([[
     local a: record{a: array(integer, 2)}
-    a.a = @array(integer,2){1,2}
+    a.a = (@array(integer,2)){1,2}
     local b = a.a
   ]])
   assert.analyze_ast([[
@@ -925,14 +925,14 @@ it("pointers to complex types", function()
 end)
 
 it("type construction", function()
-  assert.analyze_ast("local a = @integer(0)")
-  assert.analyze_ast("local a = @boolean(false)")
-  assert.analyze_ast("local a = @string('')")
-  assert.analyze_ast("local a = @any(nil)")
-  assert.analyze_error("local a = @integer()", "expected one argument")
-  assert.analyze_error("local a = @integer(1,2)", "expected one argument")
-  assert.analyze_error("local a = @integer(false)", "is not coercible with")
-  assert.analyze_error("local a = @integer(nil)", "is not coercible with")
+  assert.analyze_ast("local a = (@integer)(0)")
+  assert.analyze_ast("local a = (@boolean)(false)")
+  assert.analyze_ast("local a = (@string)('')")
+  assert.analyze_ast("local a = (@any)(nil)")
+  assert.analyze_error("local a = (@integer)()", "expected one argument")
+  assert.analyze_error("local a = (@integer)(1,2)", "expected one argument")
+  assert.analyze_error("local a = (@integer)(false)", "is not coercible with")
+  assert.analyze_error("local a = (@integer)(nil)", "is not coercible with")
 end)
 
 it("attributes", function()

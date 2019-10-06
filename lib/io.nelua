@@ -24,7 +24,7 @@ local function ftell(stream: pointer): clong <cimport> end
 
 local function fileresult(success: boolean): boolean, string, integer
   if not success then
-    return false, @string(strerror(errno)), errno
+    return false, (@string)(strerror(errno)), errno
   end
   return true, '', 0
 end
@@ -95,7 +95,7 @@ function io.open(filename: string, mode: string)
   --TODO: check modes
   local f = fopen(filename, mode)
   if not f then
-    return filestream{}, @string(strerror(errno)), errno
+    return filestream{}, (@string)(strerror(errno)), errno
   end
   return filestream{f = f}, '', 0
 end

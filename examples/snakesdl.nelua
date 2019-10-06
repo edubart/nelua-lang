@@ -29,7 +29,7 @@ local SDL_KeyboardEvent <cimport> = @record {
 local SDL_Rect <cimport> = @record {
   x: cint, y: cint,
   w: cint, h: cint,
-};
+}
 
 -- import SDL pointers
 local SDL_Window = @record{}*
@@ -74,7 +74,7 @@ local Color = @record{r: byte, g: byte, b: byte}
 -- game constants
 local TILE_SIZE <compconst> = 64
 local GRID_SIZE <compconst> = 12
-local SCREEN_SIZE <compconst> = @cint(64 * 12) --@cint(GRID_SIZE * TILE_SIZE)
+local SCREEN_SIZE <compconst> = (@cint)(64 * 12) --@cint(GRID_SIZE * TILE_SIZE)
 local MOVE_DELAY <compconst> = 128
 local COLOR_RED <compconst> = Color{r=255, g=96, b=96}
 local COLOR_GREEN <compconst> = Color{r=96, g=255, b=96}
@@ -154,7 +154,7 @@ local function poll_events()
     case SDL_QUIT then
       quit = true
     case SDL_KEYDOWN then
-      local kevent = @SDL_KeyboardEvent*(&event)
+      local kevent = (@SDL_KeyboardEvent*)(&event)
       local headdir = get_tile(headpos)
       switch kevent.keysym.sym
       case SDLK_UP then
@@ -225,8 +225,8 @@ end
 local function draw_tile(pos: Point2D, color: Color)
   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255)
   SDL_RenderFillRect(renderer, &SDL_Rect{
-    x = @cint(pos.x * TILE_SIZE),
-    y = @cint(pos.y * TILE_SIZE),
+    x = (@cint)(pos.x * TILE_SIZE),
+    y = (@cint)(pos.y * TILE_SIZE),
     w = TILE_SIZE,
     h = TILE_SIZE
   })

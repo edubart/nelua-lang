@@ -388,6 +388,7 @@ local function get_parser(std)
       / %cVARARGS
       / function
       / table
+      / type_instance
       / suffixed_expr
 
     suffixed_expr <- (primary_expr {| (index_expr / call_expr)* |}) -> to_chain_index_or_call
@@ -395,7 +396,6 @@ local function get_parser(std)
     primary_expr <-
       id /
       ppexpr /
-      type_instance /
       ({} %LPAREN -> 'Paren' eexpr eRPAREN) -> to_astnode
 
     type_instance <-

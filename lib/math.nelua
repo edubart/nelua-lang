@@ -60,7 +60,7 @@ function math.modf(x: number)
 end
 
 function math.tointeger(x: number)
-  return @integer(x)
+  return (@integer)(x)
 end
 
 function math.type(x: number)
@@ -68,7 +68,7 @@ function math.type(x: number)
 end
 
 function math.ult(m: integer, n: integer): boolean
-  return @uinteger(m) < @uinteger(n)
+  return (@uinteger)(m) < (@uinteger)(n)
 end
 
 -- Pseudo Random Number Generator based on xoshiro256**
@@ -118,7 +118,7 @@ local default_random = xoshiro256{state={
 }}
 
 function math.randomseed(x: integer)
-  default_random:seed(@uint64(x), 0)
+  default_random:seed((@uint64)(x), 0)
 end
 
 function math.random(): number

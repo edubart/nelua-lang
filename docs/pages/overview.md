@@ -450,7 +450,7 @@ variable to a new compatible type.
 
 ```nelua
 local i = 1
-local f = @number(i) -- convert 'i' to the type 'number'
+local f = (@number)(i) -- convert 'i' to the type 'number'
 ```
 
 ### Array
@@ -463,7 +463,7 @@ local a2: array(integer, 4)
 
 -- syntax sugar
 local a3: integer[4] = {1,2,3,4}
-local a4 = @integer[4] {1,2,3,4}
+local a4 = (@integer[4]) {1,2,3,4}
 ```
 
 ### Enum
@@ -481,7 +481,7 @@ local Weeks = @enum {
   Saturday
 }
 
-local a: Weeks = @Weeks.Sunday
+local a: Weeks = Weeks.Sunday
 print(Weeks.Sunday) -- outputs 1
 print(tostring(Weeks.Sunday)) -- outputs Sunday
 ```
@@ -521,7 +521,7 @@ a.age  = 20
 print(a.age)
 
 -- record initialization
-local b = @Person {name = 1, age = 2}
+local b = (@Person){name = 1, age = 2}
 print(b.age)
 ```
 
@@ -615,7 +615,7 @@ local r: range(integer) = 1:10
 Span are pointers to a block of contiguous elements at runtime.
 
 ```nelua
-local arr = @integer[4] {1,2,3,4}
+local arr = (@integer[4]) {1,2,3,4}
 local s = arr[1:2]
 print(s[0], s[1]) -- outputs 2 3
 
@@ -1109,7 +1109,7 @@ Nelua can import C functions from C headers:
 local function malloc(size: usize): pointer <cimport('malloc','<stdlib.h>')> end
 local function memset(s: pointer, c: int32, n: usize): pointer <cimport('memset','<stdlib.h>')> end
 local function free(ptr: pointer) <cimport('free','<stdlib.h>')> end
-local a = @int64[10]*(malloc(10 * 8))
+local a = (@int64[10]*)(malloc(10 * 8))
 memset(a, 0, 10*8)
 assert(a[0] == 0)
 a[0] = 1

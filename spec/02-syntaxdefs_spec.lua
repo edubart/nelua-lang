@@ -1457,11 +1457,11 @@ describe("type expression", function()
     }}})
   end)
   it("type assertion", function()
-    assert.parse_ast(nelua_parser, "local a = @integer(0)",
+    assert.parse_ast(nelua_parser, "local a = (@integer)(0)",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'a'}},
-          { n.Call{{n.Number{"dec","0"}},n.TypeInstance{n.Type{"integer"}}}
+          { n.Call{{n.Number{"dec","0"}},n.Paren{n.TypeInstance{n.Type{"integer"}}}}
         }
     }}})
   end)

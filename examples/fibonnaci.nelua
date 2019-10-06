@@ -24,10 +24,10 @@ end
 
 do -- analytic
   local function fibonacci(n: integer): integer
-    local fn = @number(n)
+    local fn = (@number)(n)
     local p = (1.0 + math.sqrt(5.0)) / 2.0
     local q = 1.0 / p
-    return @integer(((p ^ fn) + (q ^ fn)) / math.sqrt(5.0))
+    return (@integer)(((p ^ fn) + (q ^ fn)) / math.sqrt(5.0))
   end
   print(fibonacci(10))
 end
