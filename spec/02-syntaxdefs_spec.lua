@@ -1329,12 +1329,12 @@ describe("type expression", function()
           { n.IdDecl{'a', n.ArrayType{n.Type{'integer'},
             n.BinaryOp{"shr", n.Number{"dec", "2"}, n.Number{"dec", "1"}}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local a: array(integer,10)",
+    assert.parse_ast(nelua_parser, "local a: integer[10]",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'a', n.ArrayType{n.Type{'integer'}, n.Number{'dec', '10'}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local a: array(array(integer,10),10)",
+    assert.parse_ast(nelua_parser, "local a: integer[10][10]",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'a',
@@ -1428,7 +1428,7 @@ describe("type expression", function()
     }}})
   end)
   it("complex types", function()
-    assert.parse_ast(nelua_parser, "local p: array(array(integer*,10)*,10)",
+    assert.parse_ast(nelua_parser, "local p: integer*[10]*[10]",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'p',

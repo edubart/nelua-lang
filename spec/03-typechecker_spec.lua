@@ -616,7 +616,7 @@ end)
 
 it("range indexing", function()
   assert.ast_type_equals([[
-    local a: array(integer,8)
+    local a: integer[8]
     local s = a[0:3]
     local s2 = s[0:1]
   ]],[[

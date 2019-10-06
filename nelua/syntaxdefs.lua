@@ -470,7 +470,8 @@ local function get_parser(std)
       ppexpr
 
     unary_typexpr_op <-
-      {| {} %MUL -> 'PointerType' |}
+      {| {} %MUL -> 'PointerType' |} /
+      {| {} %LBRACKET -> 'ArrayType' cnil typexpr_param_expr eRBRACKET |}
 
     func_type <- (
       {} '' -> 'FuncType'

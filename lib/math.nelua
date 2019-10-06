@@ -73,7 +73,7 @@ end
 
 -- Pseudo Random Number Generator based on xoshiro256**
 
-local xoshiro256 = @record{state: array(uint64,4)}
+local xoshiro256 = @record{state: uint64[4]}
 
 local FLOAT64_MANT_DIGS !compconst = 53
 
@@ -82,7 +82,7 @@ local function rotl(x: uint64, n: int32) !inline
 end
 
 function xoshiro256:nextrand(): uint64
-  local state: array(uint64,4) = {
+  local state: uint64[4] = {
     self.state[0],
     self.state[1],
     self.state[2] ~ self.state[0],

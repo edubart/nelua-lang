@@ -43,7 +43,7 @@ local SDL_Surface = @record{
   pitch: cint,
   pixels: pointer
 }
-local SDL_Event = @record{type: uint32, padding: array(byte,56)}
+local SDL_Event = @record{type: uint32, padding: byte[56]}
 local SDL_Rect = @record{x: cint, y: cint, w: cint, h: cint}
 local SDL_WindowPtr = @record{}*
 local SDL_RendererPtr = @record{}*
@@ -116,7 +116,7 @@ local window, renderer, texture
 
 local SCREEN_WIDTH: int32 !compconst = 1280
 local SCREEN_HEIGHT: int32 !compconst = 720
-local pixels: array(array(vec4b,SCREEN_WIDTH),SCREEN_HEIGHT) !aligned(16)
+local pixels: vec4b[SCREEN_WIDTH][SCREEN_HEIGHT] !aligned(16)
 
 local NUM_PARTICLES !compconst = 200
 local RADIUS !compconst = 3
@@ -124,7 +124,7 @@ local MIN_DISTANCE !compconst = 40
 local MAX_DISTANCE !compconst = 80
 local MIN_DISTANCE2 !compconst = 1600--MIN_DISTANCE * MIN_DISTANCE
 local MAX_DISTANCE2 !compconst = 6400--MAX_DISTANCE * MAX_DISTANCE
-local particles: array(Particle,NUM_PARTICLES)
+local particles: Particle[NUM_PARTICLES]
 
 do
   for i=0,<NUM_PARTICLES do

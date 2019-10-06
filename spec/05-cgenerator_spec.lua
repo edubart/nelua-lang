@@ -661,7 +661,7 @@ it("ranges", function()
     span2[9] = 3
     assert(buff[0] == 2 and buff[9] == 3)
 
-    local arr = @array(integer,4) {1,2,3,4}
+    local arr = @integer[4] {1,2,3,4}
     local s = arr[1:2]
     assert(s[0] == 2 and s[1] == 3)
   ]])
@@ -980,7 +980,7 @@ it("sizeof builtin", function()
     assert(#@int16 == 2)
     assert(#@int32 == 4)
     assert(#@int64 == 8)
-    assert(#@array(int32,4) == 16)
+    assert(#@int32[4] == 16)
 
     local A = @record{
       s: int16,   -- 2
@@ -990,7 +990,7 @@ it("sizeof builtin", function()
                   -- 3 pad
     }
     assert(#A == 12)
-    assert(#@array(A,8) == 96)
+    assert(#@A[8] == 96)
 
     local B = @record{
       i: int32,   -- 4
