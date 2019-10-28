@@ -2,15 +2,15 @@ local Context = require 'nelua.context'
 local class = require 'nelua.utils.class'
 local cdefs = require 'nelua.cdefs'
 local traits = require 'nelua.utils.traits'
-local tabler = require 'nelua.utils.tabler'
-local errorer = require 'nelua.utils.errorer'
 local pegger = require 'nelua.utils.pegger'
 local fs = require 'nelua.utils.fs'
+local cbuiltins = require 'nelua.cbuiltins'
 
 local CContext = class(Context)
 
-function CContext:_init(visitors)
+function CContext:_init(visitors, typevisitors)
   Context._init(self, visitors)
+  self.typevisitors = typevisitors
   self.declarations = {}
   self.definitions = {}
   self.compileopts = {
@@ -19,6 +19,7 @@ function CContext:_init(visitors)
     linklibs = {}
   }
   self.uniquecounters = {}
+  self.builtins = cbuiltins.builtins
 end
 
 function CContext:declname(node)
@@ -61,67 +62,22 @@ end
 
 function CContext:typename(type)
   assert(traits.is_type(type))
-  local codename = type.codename
-  if type:is_arraytable() then
-    local subctype = self:ctype(type.subtype)
-    self:ensure_runtime(codename, 'nelua_arrtab', {
-      tyname = codename,
-      ctype = subctype,
-      type = type
-    })
-    self:use_gc()
-  elseif type:is_array() then
-    local subctype = self:ctype(type.subtype)
-    if not type.nodecl then
-      self:ensure_runtime(codename, 'nelua_array', {
-        tyname = codename,
-        length = type.length,
-        subctype = subctype,
-        type = type
-      })
-    end
-  elseif type:is_record() then
-    local fields = tabler.imap(type.fields, function(f)
-      return {name = f.name, ctype = self:ctype(f.type)}
-    end)
-    if not type.nodecl then
-      self:ensure_runtime(codename, 'nelua_record', {
-        tyname = codename,
-        fields = fields,
-        type = type
-      })
-    end
-  elseif type:is_enum() then
-    local subctype = self:ctype(type.subtype)
-    if not type.nodecl then
-      self:ensure_runtime(codename, 'nelua_enum', {
-        tyname = codename,
-        subctype = subctype,
-        fields = type.fields,
-        type = type
-      })
-    end
-  elseif type:is_pointer() then
-    local subctype = self:ctype(type.subtype)
-    if not type.nodecl then
-      self:ensure_runtime(codename, 'nelua_pointer', {
-        tyname = codename,
-        subctype = subctype,
-        type = type
-      })
-    end
-  elseif type:is_string() then
-    self.has_string = true
-  elseif type:is_function() then --luacov:disable
-    error('ctype for functions not implemented yet')
-  elseif type:is_any() then --luacov:enable
-    self.has_any = true
-    self.has_string = true
-    self.has_type = true
-  else
-    errorer.assertf(cdefs.primitive_ctypes[type], 'ctype for "%s" is unknown', type)
+  local visitor
+
+  -- search visitor for any inhereted type class
+  local mt = getmetatable(type)
+  repeat
+    local mtindex = rawget(mt, '__index')
+    if not mtindex then break end
+    visitor = self.typevisitors[mtindex]
+    mt = getmetatable(mtindex)
+    if not mt then break end
+  until visitor
+
+  if visitor then
+    visitor(self, type)
   end
-  return codename
+  return type.codename
 end
 
 function CContext:ctype(type)
@@ -135,8 +91,8 @@ end
 
 function CContext:runctype(type)
   local typename = self:typename(type)
-  self.has_type = true
-  return typename .. '_type'
+  self:ensure_runtime_builtin('nelua_runtype_', typename)
+  return 'nelua_runtype_' .. typename
 end
 
 function CContext:funcretctype(functype)
@@ -187,6 +143,10 @@ function CContext:add_definition(code, name)
     self.definitions[name] = true
   end
   table.insert(self.definitions, code)
+end
+
+function CContext:is_declarated(name)
+  return self.declarations[name] == true
 end
 
 function CContext:add_include(name)

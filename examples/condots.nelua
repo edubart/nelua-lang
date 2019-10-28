@@ -20,13 +20,13 @@ local function emscripten_set_main_loop_arg(func: function(pointer), arg: pointe
 ## cinclude '<SDL2/SDL.h>'
 
 -- import SDL types
-local SDL_Keysym = @record {
+local SDL_Keysym <cimport> = @record {
   scancode: cint,
   sym: int32,
   mod: uint16,
   unused: uint32
 }
-local SDL_KeyboardEvent = @record {
+local SDL_KeyboardEvent <cimport> = @record {
   type: uint32,
   timestamp: uint32,
   windowID: uint32,
@@ -35,7 +35,7 @@ local SDL_KeyboardEvent = @record {
   padding: uint16,
   keysym: SDL_Keysym
 }
-local SDL_Surface = @record{
+local SDL_Surface <cimport> = @record{
   flags: uint32,
   format: pointer,
   w: cint,
@@ -43,11 +43,11 @@ local SDL_Surface = @record{
   pitch: cint,
   pixels: pointer
 }
-local SDL_Event = @record{type: uint32, padding: byte[56]}
-local SDL_Rect = @record{x: cint, y: cint, w: cint, h: cint}
-local SDL_WindowPtr = @record{}*
-local SDL_RendererPtr = @record{}*
-local SDL_TexturePtr = @record{}*
+local SDL_Event <cimport> = @record{type: uint32, padding: byte[56]}
+local SDL_Rect <cimport> = @record{x: cint, y: cint, w: cint, h: cint}
+local SDL_Window <cimport> = @record{}
+local SDL_Renderer <cimport> = @record{}
+local SDL_Texture <cimport> = @record{}
 
 -- import SDL constants
 local SDL_INIT_VIDEO: uint32 <cimport>
@@ -74,30 +74,30 @@ local SDL_TEXTUREACCESS_STREAMING: cint <cimport>
 
 -- import SDL functions
 local function SDL_Init(flags: uint32): int32 <cimport> end
-local function SDL_CreateWindow(title: cstring, x: cint, y: cint, w: cint, h: cint, flags: uint32): SDL_WindowPtr <cimport> end
+local function SDL_CreateWindow(title: cstring, x: cint, y: cint, w: cint, h: cint, flags: uint32): SDL_Window* <cimport> end
 local function SDL_Quit() <cimport> end
-local function SDL_DestroyWindow(window: SDL_WindowPtr) <cimport> end
+local function SDL_DestroyWindow(window: SDL_Window*) <cimport> end
 local function SDL_PollEvent(event: SDL_Event*): int32 <cimport> end
 local function SDL_GetTicks(): uint32 <cimport> end
 local function SDL_Delay(ms: uint32) <cimport> end
 local function SDL_CreateRGBSurfaceWithFormatFrom(pixels: pointer, width: cint,height: cint, depth: cint, pitch: cint,format: uint32): SDL_Surface <cimport> end
 local function SDL_FreeSurface(surface: SDL_Surface) <cimport> end
 local function SDL_LockSurface(surface: SDL_Surface) <cimport> end
-local function SDL_GetWindowSurface(window: SDL_WindowPtr): SDL_Surface <cimport> end
+local function SDL_GetWindowSurface(window: SDL_Window*): SDL_Surface <cimport> end
 local function SDL_BlitSurface(src: SDL_Surface, srcrect: SDL_Rect*, dst: SDL_Surface, dstrect: SDL_Rect*): cint <cimport> end
-local function SDL_UpdateWindowSurface(window: SDL_WindowPtr) <cimport> end
-local function SDL_CreateRenderer(window: SDL_WindowPtr, index: cint, flags: uint32): SDL_RendererPtr <cimport> end
-local function SDL_DestroyRenderer(renderer: SDL_RendererPtr) <cimport> end
-local function SDL_RenderPresent(renderer: SDL_RendererPtr) <cimport> end
-local function SDL_RenderClear(renderer: SDL_RendererPtr) <cimport> end
-local function SDL_CreateTexture(renderer: SDL_RendererPtr, format: uint32, access: cint, w: cint, h: cint): SDL_TexturePtr <cimport> end
-local function SDL_DestroyTexture(texture: SDL_TexturePtr) <cimport> end
-local function SDL_RenderCopy(renderer: SDL_RendererPtr, texture: SDL_TexturePtr, srcrect: SDL_Rect*, dstrect: SDL_Rect*): cint <cimport> end
-local function SDL_LockTexture(texture: SDL_TexturePtr, rect: SDL_Rect*, pixels: pointer*, pitch: cint*): cint <cimport> end
-local function SDL_UnlockTexture(texture: SDL_TexturePtr) <cimport> end
-local function SDL_SetRenderDrawBlendMode(renderer: SDL_RendererPtr, blendMode: int32): cint <cimport> end
-local function SDL_SetTextureBlendMode(texture: SDL_TexturePtr, blendMode: int32): cint <cimport> end
-local function SDL_UpdateTexture(texture: SDL_TexturePtr, rect: SDL_Rect*, pixels: pointer, pitch: cint): cint <cimport> end
+local function SDL_UpdateWindowSurface(window: SDL_Window*) <cimport> end
+local function SDL_CreateRenderer(window: SDL_Window*, index: cint, flags: uint32): SDL_Renderer* <cimport> end
+local function SDL_DestroyRenderer(renderer: SDL_Renderer*) <cimport> end
+local function SDL_RenderPresent(renderer: SDL_Renderer*) <cimport> end
+local function SDL_RenderClear(renderer: SDL_Renderer*) <cimport> end
+local function SDL_CreateTexture(renderer: SDL_Renderer*, format: uint32, access: cint, w: cint, h: cint): SDL_Texture* <cimport> end
+local function SDL_DestroyTexture(texture: SDL_Texture*) <cimport> end
+local function SDL_RenderCopy(renderer: SDL_Renderer*, texture: SDL_Texture*, srcrect: SDL_Rect*, dstrect: SDL_Rect*): cint <cimport> end
+local function SDL_LockTexture(texture: SDL_Texture*, rect: SDL_Rect*, pixels: pointer*, pitch: cint*): cint <cimport> end
+local function SDL_UnlockTexture(texture: SDL_Texture*) <cimport> end
+local function SDL_SetRenderDrawBlendMode(renderer: SDL_Renderer*, blendMode: int32): cint <cimport> end
+local function SDL_SetTextureBlendMode(texture: SDL_Texture*, blendMode: int32): cint <cimport> end
+local function SDL_UpdateTexture(texture: SDL_Texture*, rect: SDL_Rect*, pixels: pointer, pitch: cint): cint <cimport> end
 local function SDL_GetError(): cstring <cimport> end
 
 

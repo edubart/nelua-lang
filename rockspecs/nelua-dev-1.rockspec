@@ -21,9 +21,9 @@ compiles to C or Lua.
 
 dependencies = {
   'lua >= 5.1',
-  'penlight >= 1.5.4',
-  'lpeglabel >= 1.5.0',
-  'tableshape >= 2.0.0',
+  'penlight >= 1.7.0',
+  'lpeglabel >= 1.6.0',
+  'tableshape >= 2.1.0',
   'lua-term >= 0.7',
   'argparse >= 0.7.0',
   'hasher >= 0.1.0',

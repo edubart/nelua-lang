@@ -1,1 +1,0 @@
-int nelua_main();

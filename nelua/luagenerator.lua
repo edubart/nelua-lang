@@ -1,6 +1,7 @@
 local pegger = require 'nelua.utils.pegger'
 local traits = require 'nelua.utils.traits'
 local luadefs = require 'nelua.luadefs'
+local luabuiltins = require 'nelua.luabuiltins'
 local config = require 'nelua.configer'.get()
 local Context = require 'nelua.context'
 local Emitter = require 'nelua.emitter'
@@ -303,7 +304,7 @@ function visitors.UnaryOp(context, node, emitter)
   if config.lua_version ~= '5.3' then
     local fallop = luadefs.lua51_unary_ops[opname]
     if fallop then
-      context:add_runtime_builtin(fallop.builtin)
+      context:ensure_runtime_builtin(fallop.builtin)
       emitter:add(fallop.func, '(', argnode, ')')
       return
     end
@@ -320,7 +321,9 @@ function visitors.BinaryOp(context, node, emitter)
   if config.lua_version ~= '5.3' then
     local fallop = luadefs.lua51_binary_ops[opname]
     if fallop then
-      context:add_runtime_builtin(fallop.builtin)
+      if fallop.builtin then
+        context:ensure_runtime_builtin(fallop.builtin)
+      end
       if traits.is_function(fallop.func) then
         fallop.func(context, node, emitter, lnode, rnode)
       else
@@ -339,6 +342,7 @@ local generator = {}
 
 function generator.generate(ast)
   local context = Context(visitors)
+  context.builtins = luabuiltins.builtins
   local emitter = Emitter(context, -1)
   context.emitter = emitter
   local main_scope = context:push_scope('function')

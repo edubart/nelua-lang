@@ -1,7 +1,16 @@
-local builtins = {}
+local luabuiltins = {}
 
-function builtins.idiv(_, _, emitter, lnode, rnode)
+local operators = {}
+luabuiltins.operators = operators
+
+function operators.idiv(_, _, emitter, lnode, rnode)
   emitter:add('math.floor(', lnode, ' / ', rnode, ')')
 end
 
-return builtins
+local builtins = {}
+luabuiltins.builtins = builtins
+
+function builtins.bit()
+end
+
+return luabuiltins

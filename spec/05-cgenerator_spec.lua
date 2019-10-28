@@ -75,7 +75,7 @@ it("call", function()
   assert.generate_c("a.f()", "mymod_a.f()")
   --assert.generate_c("a:f(a)", "mymod_a.f(mymod_a, mymod_a)")
   assert.generate_c("do f() end", "f();")
-  assert.generate_c("do return f() end", "return nelua_cint_any_cast(f());")
+  assert.generate_c("do return f() end", "return nelua_any_to_nelua_cint(f());")
   assert.generate_c("do f(g()) end", "f(g())")
   assert.generate_c("do f(a, b) end", "f(a, b)")
   assert.generate_c("do f(a)(b) end", "f(a)(b)")
@@ -87,7 +87,7 @@ it("if", function()
   assert.generate_c("if nilptr then\nend","if(false) {\n")
   assert.generate_c("if nil then\nend","if(false) {\n")
   assert.generate_c("if 1 then\nend","if(true) {\n")
-  assert.generate_c("if a then\nend","if(nelua_any_to_boolean(mymod_a)) {\n")
+  assert.generate_c("if a then\nend","if(nelua_any_to_nelua_boolean(mymod_a)) {\n")
   assert.generate_c("if true then\nend","if(true) {\n  }")
   assert.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
   assert.generate_c("if true then\nelse\nend", "if(true) {\n  } else {\n  }")
@@ -124,7 +124,9 @@ end)
 it("repeat", function()
   assert.generate_c("repeat until true", [[
   while(true) {
-    if(true) break;
+    if(true) {
+      break;
+    }
   }]])
   assert.generate_c([[
     repeat
@@ -133,7 +135,9 @@ it("repeat", function()
   ]], [[
   while(true) {
     bool a = true;
-    if(a) break;
+    if(a) {
+      break;
+    }
   }]])
   assert.run_c([[
     local x = 0
@@ -423,20 +427,20 @@ end)
 
 it("binary conditional operators", function()
   assert.generate_c("do return a or b end",  [[({
-      nelua_any t1_ = a; Nelua_UNUSED(t1_);
-      nelua_any t2_ = {0}; Nelua_UNUSED(t2_);
-      bool cond_ = nelua_any_to_boolean(t1_);
+      nelua_any t1_ = a; nelua_unused(t1_);
+      nelua_any t2_ = {0}; nelua_unused(t2_);
+      bool cond_ = nelua_any_to_nelua_boolean(t1_);
       if(cond_)
         t2_ = b;
       cond_ ? t1_ : t2_;
     })]])
   assert.generate_c("do return a and b end",  [[({
-      nelua_any t1_ = a; Nelua_UNUSED(t1_);
-      nelua_any t2_ = {0}; Nelua_UNUSED(t2_);
-      bool cond_ = nelua_any_to_boolean(t1_);
+      nelua_any t1_ = a; nelua_unused(t1_);
+      nelua_any t2_ = {0}; nelua_unused(t2_);
+      bool cond_ = nelua_any_to_nelua_boolean(t1_);
       if(cond_) {
         t2_ = b;
-        cond_ = nelua_any_to_boolean(t2_);
+        cond_ = nelua_any_to_nelua_boolean(t2_);
       }
       cond_ ? t2_ : (nelua_any){0};
     })]])
@@ -567,16 +571,22 @@ it("any type", function()
     "do local a: any; local b: any = a end",
     "nelua_any b = a;")
   assert.generate_c(
-    "do local a: any = 1 end",
-    "nelua_any a = (nelua_any){&nelua_int64_type, {1}};")
-  assert.generate_c(
     "do local a: any = 1; local b: integer = a end",
-    "int64_t b = nelua_int64_any_cast(a);")
+    "int64_t b = nelua_any_to_nelua_int64(a);")
   assert.run_c([[
     local a: any = 1
     local b: integer = a
     print(a, b)
   ]], "1\t1")
+  assert.run_c([[
+    local a: any = 1
+    local b: boolean = a
+    print(b)
+    local p: pointer
+    a = p
+    b = a
+    print(b)
+  ]], "true\nfalse")
   assert.run_c([[
     local a: any = 1
     a = true
@@ -877,7 +887,7 @@ end)
 it("manual memory managment", function()
   assert.run_c([=[
     local function malloc(size: usize): pointer <cimport('malloc','<stdlib.h>')> end
-    local function memset(s: pointer, c: int32, n: usize): pointer <cimport('memset','<stdlib.h>')> end
+    local function memset(s: pointer, c: int32, n: usize): pointer <cimport('memset','<string.h>')> end
     local function free(ptr: pointer) <cimport('free','<stdlib.h>')> end
     local a = (@pointer(array(int64, 10)))(malloc(10 * 8))
     memset(a, 0, 10*8)
@@ -910,10 +920,10 @@ it("attributes", function()
   assert.generate_c("do local a <static> = 1 end", "static int64_t a = 1;", true)
   assert.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t mymod_a __attribute__((vector_size(16)))")
   assert.generate_c("local a: number <cqualifier 'in'> = 1", "in double mymod_a = 1.0;")
-  assert.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R", "} __attribute__((aligned(16))) ")
+  assert.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R", "__attribute__((aligned(16)));")
   assert.generate_c("local function f() <inline> end", "inline void")
-  assert.generate_c("local function f() <noreturn> end", "Nelua_NORETURN void")
-  assert.generate_c("local function f() <noinline> end", "Nelua_NOINLINE void")
+  assert.generate_c("local function f() <noreturn> end", "nelua_noreturn void")
+  assert.generate_c("local function f() <noinline> end", "nelua_noinline void")
   assert.generate_c("local function f() <volatile> end", "volatile void")
   assert.generate_c("local function f() <nodecl> end", "")
   assert.generate_c("local function f() <nosideeffect> end", "")
@@ -1057,8 +1067,8 @@ it("likely builtin", function()
     local a = likely(true)
     local b = unlikely(false)
   end]], {
-    "bool a = Nelua_LIKELY(true)",
-    "b = Nelua_UNLIKELY(false)"
+    "bool a = nelua_likely(true)",
+    "b = nelua_unlikely(false)"
   })
   assert.run_c([[
     assert(likely(true))
@@ -1121,10 +1131,6 @@ it("context states", function()
     "\nint64_t mymod_a = 0;\n",
     "\nstatic int64_t mymod_b = 0;\n"
   })
-
-  assert.generate_c([[
-    ## nocore = true
-  ]], "nelua_main")
 
   assert.generate_c([[
     ## modname = 'mylib'

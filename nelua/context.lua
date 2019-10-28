@@ -1,5 +1,6 @@
 local class = require 'nelua.utils.class'
 local Scope = require 'nelua.scope'
+local errorer = require 'nelua.utils.errorer'
 
 local Context = class()
 
@@ -37,11 +38,11 @@ end
 function Context:_init(visitors, default_visitor, parentcontext)
   if parentcontext then
     self.rootscope = parentcontext.rootscope
-    self.builtins = parentcontext.builtins
+    self.usedbuiltins = parentcontext.usedbuiltins
     self.env = parentcontext.env
   else
     self.rootscope = Scope(self, 'root')
-    self.builtins = {}
+    self.usedbuiltins = {}
     self.env = {}
   end
   self.scope = self.rootscope
@@ -108,9 +109,18 @@ function Context:repeat_scope_until_resolution(scope_kind, after_push)
   return scope
 end
 
-function Context:add_runtime_builtin(name)
-  if not name then return end
-  self.builtins[name] = true
+function Context:ensure_runtime_builtin(name, params)
+  if not params and self.usedbuiltins[name] then return name end
+  errorer.assertf(self.builtins[name], 'builtin "%s" not defined', name)
+  local func = self.builtins[name]
+  if func then
+    local newname = func(self, params)
+    if newname then
+      name = newname
+    end
+  end
+  self.usedbuiltins[name] = true
+  return name
 end
 
 return Context

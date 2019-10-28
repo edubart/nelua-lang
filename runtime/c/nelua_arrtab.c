@@ -1,8 +1,11 @@
+{% context:ensure_runtime_builtin('nelua_panic_cstring') %}
+{% context:ensure_runtime_builtin('nelua_unlikely') %}
+{% context:add_include('<string.h>') %}
 void _{%=tyname%}_reserve({%=tyname%}* t, size_t cap) {
   {%=ctype%}* data = ({%=ctype%}*)nelua_gc_realloc(&nelua_gc, t->data, (cap+1) * sizeof({%=ctype%}));
-  if(Nelua_UNLIKELY(data == NULL))
+  if(nelua_unlikely(data == NULL))
     nelua_panic_cstring("_{%=tyname%}_reserve: not enough memory");
-  if(Nelua_UNLIKELY(t->cap == 0))
+  if(nelua_unlikely(t->cap == 0))
     data[0] = ({%=ctype%}){0};
   t->data = data;
   t->cap = cap;
@@ -12,7 +15,7 @@ void _{%=tyname%}_grow({%=tyname%}* t) {
   _{%=tyname%}_reserve(t, cap);
 }
 void {%=tyname%}_reserve({%=tyname%}* t, size_t cap) {
-  if(Nelua_UNLIKELY(t->cap >= cap))
+  if(nelua_unlikely(t->cap >= cap))
     return;
   _{%=tyname%}_reserve(t, cap);
 }
@@ -42,32 +45,32 @@ void {%=tyname%}_init({%=tyname%}* t, {%=ctype%}* a, size_t n) {
 }
 void {%=tyname%}_push({%=tyname%}* t, {%=ctype%} v) {
   ++t->len;
-  if(Nelua_UNLIKELY(t->len > t->cap))
+  if(nelua_unlikely(t->len > t->cap))
     _{%=tyname%}_grow(t);
   t->data[t->len] = v;
 }
 {%=ctype%} {%=tyname%}_pop({%=tyname%}* t) {
-  if(Nelua_UNLIKELY(t->len == 0))
+  if(nelua_unlikely(t->len == 0))
     nelua_panic_cstring("{%=tyname%}_pop: length is 0");
   return t->data[t->len--];
 }
 {%=ctype%}* {%=tyname%}_at({%=tyname%}* t, size_t i) {
-  if(Nelua_UNLIKELY(i > t->len)) {
-    if(Nelua_UNLIKELY(i != t->len + 1))
+  if(nelua_unlikely(i > t->len)) {
+    if(nelua_unlikely(i != t->len + 1))
       nelua_panic_cstring("{%=tyname%}_set: index out of range");
     t->len++;
-    if(Nelua_UNLIKELY(t->len > t->cap))
+    if(nelua_unlikely(t->len > t->cap))
       _{%=tyname%}_grow(t);
-  } else if(Nelua_UNLIKELY(i == 0 && t->cap == 0)) {
+  } else if(nelua_unlikely(i == 0 && t->cap == 0)) {
     _{%=tyname%}_grow(t);
   }
   return &t->data[i];
 }
 {%=ctype%}* {%=tyname%}_get({%=tyname%}* t, size_t i) {
-  if(Nelua_UNLIKELY(i > t->len)) {
+  if(nelua_unlikely(i > t->len)) {
     nelua_panic_cstring("{%=tyname%}_get: index out of range");
   }
-  else if(Nelua_UNLIKELY(i == 0 && t->cap == 0)) {
+  else if(nelua_unlikely(i == 0 && t->cap == 0)) {
     _{%=tyname%}_grow(t);
   }
   return &t->data[i];

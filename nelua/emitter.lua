@@ -11,12 +11,18 @@ function Emitter:_init(context, depth)
   self.context = context
 end
 
-function Emitter:inc_indent()
-  self.depth = self.depth + 1
+function Emitter:inc_indent(count)
+  if not count then
+    count = 1
+  end
+  self.depth = self.depth + count
 end
 
-function Emitter:dec_indent()
-  self.depth = self.depth - 1
+function Emitter:dec_indent(count)
+  if not count then
+    count = 1
+  end
+  self.depth = self.depth - count
 end
 
 function Emitter:add_indent(what, ...)
@@ -71,6 +77,11 @@ function Emitter:add(what, ...)
   if numargs > 0 then
     self:add(...)
   end
+end
+
+function Emitter:add_builtin(name, ...)
+  name = self.context:ensure_runtime_builtin(name, ...)
+  self:add(name)
 end
 
 function Emitter:add_traversal(node, ...)

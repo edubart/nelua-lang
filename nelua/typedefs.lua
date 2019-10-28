@@ -354,7 +354,6 @@ typedefs.field_pragmas = {
   noinit = shaper.shape{shaper.boolean},
   nostatic = shaper.shape{shaper.boolean},
   nofloatsuffix = shaper.shape{shaper.boolean},
-  nocore = shaper.shape{shaper.boolean},
   modname = shaper.shape{shaper.string},
 }
 

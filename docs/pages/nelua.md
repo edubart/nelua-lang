@@ -42,7 +42,7 @@ efficient native code.
 The language also aims to be meta programmable by having a Lua preprocessor,
 compile time code generation mechanisms, AST and grammar manipulation.
 With that higher constructs such as classes, generics and DSLs
-can be implemented at compile time without runtime costs by the users,
+can be implemented at compile time without runtime costs,
 and the language specification can be more simpler and compact, just like in Lua classes
 does not exist but you can implement yourself using mechanisms like metatables.
 

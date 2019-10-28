@@ -1625,9 +1625,6 @@ function typechecker.analyze(ast, parser, parentcontext)
   end)
 
   -- forward global attributes to ast
-  if context.nocore then
-    ast.attr.nocore = true
-  end
   if context.nofloatsuffix then
     ast.attr.nofloatsuffix = true
   end

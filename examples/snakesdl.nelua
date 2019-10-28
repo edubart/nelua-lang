@@ -31,9 +31,8 @@ local SDL_Rect <cimport> = @record {
   w: cint, h: cint,
 }
 
--- import SDL pointers
-local SDL_Window = @record{}*
-local SDL_Renderer = @record{}*
+local SDL_Window <cimport> = @record{}
+local SDL_Renderer <cimport> = @record{}
 
 -- import SDL constants
 local SDL_INIT_VIDEO: uint32 <cimport>
@@ -50,18 +49,18 @@ local SDL_RENDERER_PRESENTVSYNC: uint32 <cimport>
 
 -- import SDL functions
 local function SDL_Init(flags: uint32): int32 <cimport> end
-local function SDL_CreateWindow(title: cstring, x: cint, y: cint, w: cint, h: cint, flags: uint32): SDL_Window <cimport> end
+local function SDL_CreateWindow(title: cstring, x: cint, y: cint, w: cint, h: cint, flags: uint32): SDL_Window* <cimport> end
 local function SDL_Quit() <cimport> end
-local function SDL_DestroyWindow(window: SDL_Window) <cimport> end
+local function SDL_DestroyWindow(window: SDL_Window*) <cimport> end
 local function SDL_Delay(ms: uint32) <cimport> end
 local function SDL_PollEvent(event: SDL_Event*): int32 <cimport> end
 local function SDL_WaitEvent(event: SDL_Event*): int32 <cimport> end
-local function SDL_CreateRenderer(window: SDL_Window, index: cint, flags: uint32): SDL_Renderer <cimport> end
-local function SDL_DestroyRenderer(renderer: SDL_Renderer) <cimport> end
-local function SDL_RenderPresent(renderer: SDL_Renderer) <cimport> end
-local function SDL_RenderClear(renderer: SDL_Renderer) <cimport> end
-local function SDL_SetRenderDrawColor(renderer: SDL_Renderer, r: uint8, g: uint8, b: uint8, a: uint8): cint <cimport> end
-local function SDL_RenderFillRect(renderer: SDL_Renderer, rect: SDL_Rect*): cint <cimport> end
+local function SDL_CreateRenderer(window: SDL_Window*, index: cint, flags: uint32): SDL_Renderer* <cimport> end
+local function SDL_DestroyRenderer(renderer: SDL_Renderer*) <cimport> end
+local function SDL_RenderPresent(renderer: SDL_Renderer*) <cimport> end
+local function SDL_RenderClear(renderer: SDL_Renderer*) <cimport> end
+local function SDL_SetRenderDrawColor(renderer: SDL_Renderer*, r: uint8, g: uint8, b: uint8, a: uint8): cint <cimport> end
+local function SDL_RenderFillRect(renderer: SDL_Renderer*, rect: SDL_Rect*): cint <cimport> end
 local function SDL_GetTicks(): uint32 <cimport> end
 --local function SDL_GetError(): cstring <cimport> end
 local function rand(): int32 <cimport('rand')> end

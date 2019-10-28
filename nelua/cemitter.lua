@@ -91,14 +91,17 @@ end
 function CEmitter:add_val2any(val, valtype)
   valtype = valtype or val.attr.type
   assert(not valtype:is_any())
-  self:add('(', primtypes.any, ')', '{&', self.context:runctype(valtype), ', {', val, '}}')
+  local runctype = self.context:runctype(valtype)
+  local typename = self.context:typename(valtype)
+  self:add('(', primtypes.any, ')', '{&', runctype, ', {._', typename, ' = ', val, '}}')
 end
 
 function CEmitter:add_val2boolean(val, valtype)
   valtype = valtype or val.attr.type
   assert(not valtype:is_boolean())
   if valtype:is_any() then
-    self:add('nelua_any_to_boolean(', val, ')')
+    self:add_builtin('nelua_any_to_', typedefs.primtypes.boolean)
+    self:add('(', val, ')')
   elseif valtype:is_nil() or valtype:is_nilptr() then
     self:add('false')
   elseif valtype:is_pointer() then
@@ -110,7 +113,8 @@ end
 
 function CEmitter:add_any2type(type, anyval)
   self.context:ctype(primtypes.any) -- ensure any type
-  self:add(self.context:typename(type), '_any_cast(', anyval, ')')
+  self:add_builtin('nelua_any_to_', type)
+  self:add('(', anyval, ')')
 end
 
 function CEmitter:add_string2cstring(val)
@@ -119,8 +123,8 @@ end
 
 function CEmitter:add_cstring2string(val)
   --TODO: free allocated strings using reference counting
-  self.context:add_runtime_builtin('cstring2string')
-  self:add('nelua_cstring2string(', val, ')')
+  self:add_builtin('nelua_cstring2string')
+  self:add('(', val, ')')
 end
 
 function CEmitter:add_val2type(type, val, valtype)

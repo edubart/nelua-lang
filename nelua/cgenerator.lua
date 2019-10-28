@@ -1,6 +1,7 @@
 local CEmitter = require 'nelua.cemitter'
 local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
+local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
 local tabler = require 'nelua.utils.tabler'
 local pegger = require 'nelua.utils.pegger'
@@ -10,8 +11,8 @@ local cdefs = require 'nelua.cdefs'
 local cbuiltins = require 'nelua.cbuiltins'
 local typedefs = require 'nelua.typedefs'
 local CContext = require 'nelua.ccontext'
+local types = require 'nelua.types'
 local primtypes = typedefs.primtypes
-local visitors = {}
 
 local function izipargnodes(vars, argnodes)
   local iter = iters.izip(vars, argnodes)
@@ -133,6 +134,83 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
   end
 end
 
+local typevisitors = {}
+
+local function emit_type_attributes(decemitter, type)
+  if type.aligned then
+    decemitter:add(' __attribute__((aligned(', type.aligned, ')))')
+  end
+end
+
+typevisitors[types.ArrayType] = function(context, type)
+  if type.nodecl or context:is_declarated(type.codename) then return end
+  local decemitter = CEmitter(context, 0)
+  decemitter:add('typedef struct {', type.subtype, ' data[', type.length, '];} ', type.codename)
+  emit_type_attributes(decemitter, type)
+  decemitter:add_ln(';')
+  context:add_declaration(decemitter:generate(), type.codename)
+end
+
+typevisitors[types.PointerType] = function(context, type)
+  if type.nodecl or context:is_declarated(type.codename) then return end
+  local decemitter = CEmitter(context, 0)
+  decemitter:add_ln('typedef ', type.subtype, '* ', type.codename, ';')
+  context:add_declaration(decemitter:generate(), type.codename)
+end
+
+typevisitors[types.RecordType] = function(context, type)
+  if type.nodecl or context:is_declarated(type.codename) then return end
+  local decemitter = CEmitter(context, 0)
+  decemitter:add('typedef struct ', type.codename)
+  if #type.fields > 0 then
+    decemitter:add_ln(' {')
+    for _,field in ipairs(type.fields) do
+      decemitter:add_ln('  ', field.type, ' ', field.name, ';')
+    end
+    decemitter:add('} ', type.codename)
+    emit_type_attributes(decemitter, type)
+    decemitter:add_ln(';')
+  else
+    decemitter:add_ln(' ', type.codename, ';')
+  end
+  context:add_declaration(decemitter:generate(), type.codename)
+end
+
+typevisitors[types.EnumType] = function(context, type)
+  if type.nodecl or context:is_declarated(type.codename) then return end
+  local decemitter = CEmitter(context, 0)
+  decemitter:add_ln('typedef ', type.subtype, ' ', type.codename, ';')
+  decemitter:add_ln('enum {')
+  for _,field in ipairs(type.fields) do
+    decemitter:add_ln('  ', field.name, ' = ', field.value, ',')
+  end
+  decemitter:add_ln('};')
+  context:add_declaration(decemitter:generate(), type.codename)
+end
+
+typevisitors[types.Type] = function(context, type)
+  if context:is_declarated(type.codename) then return end
+  if type:is_string() then
+    context:ensure_runtime_builtin('nelua_string')
+  elseif type:is_function() then
+    error('ctype for functions not implemented yet')
+  elseif type:is_any() then
+    context:ensure_runtime_builtin('nelua_any')
+  elseif type:is_arraytable() then
+    local subctype = context:ctype(type.subtype)
+    context:ensure_runtime(type.codename, 'nelua_arrtab', {
+      tyname = type.codename,
+      ctype = subctype,
+      type = type
+    })
+    context:use_gc()
+  else
+    errorer.assertf(cdefs.primitive_ctypes[type], 'C type visitor for "%s" is not defined', type)
+  end
+end
+
+local visitors = {}
+
 function visitors.Number(context, node, emitter)
   local base, int, frac, exp, literal = node:args()
   local value, integral, type = node.attr.value, node.attr.integral, node.attr.type
@@ -161,8 +239,8 @@ function visitors.String(context, node, emitter)
   local len = #value
   local varname = context:genuniquename('strlit')
   local quoted_value = pegger.double_quote_c_string(value)
-  decemitter:add_indent_ln('static const struct { uintptr_t len, res; char data[', len + 1, ']; }')
-  decemitter:add_indent_ln('  ', varname, ' = {', len, ', ', len, ', ', quoted_value, '};')
+  decemitter:add_indent('static const struct { uintptr_t len, res; char data[', len + 1, ']; }')
+  decemitter:add_indent_ln(' ', varname, ' = {', len, ', ', len, ', ', quoted_value, '};')
   emitter:add('(const ', primtypes.string, ')&', varname)
   context:add_declaration(decemitter:generate(), varname)
 end
@@ -460,7 +538,7 @@ function visitors.Call(context, node, emitter)
   local calleetype = node.attr.calleetype
   local callee = calleenode
   if calleenode.attr.builtin then
-    local builtin = cbuiltins.functions[calleenode.attr.name]
+    local builtin = cbuiltins.inlines[calleenode.attr.name]
     callee = builtin(context, node, emitter)
   end
   if calleetype:is_type() then
@@ -651,7 +729,11 @@ function visitors.Repeat(_, node, emitter)
   emitter:inc_indent()
   emitter:add_indent('if(')
   emitter:add_val2type(primtypes.boolean, condnode)
-  emitter:add_ln(') break;')
+  emitter:add_ln(') {')
+  emitter:inc_indent()
+  emitter:add_indent_ln('break;')
+  emitter:dec_indent()
+  emitter:add_indent_ln('}')
   emitter:dec_indent()
   emitter:add_indent_ln('}')
 end
@@ -771,8 +853,8 @@ function visitors.FuncDef(context, node)
   if attr.cexport then qualifier = qualifier .. 'extern ' end
   if attr.volatile then qualifier = qualifier .. 'volatile ' end
   if attr.inline then qualifier = qualifier .. 'inline ' end
-  if attr.noinline then qualifier = qualifier .. 'Nelua_NOINLINE ' end
-  if attr.noreturn then qualifier = qualifier .. 'Nelua_NORETURN ' end
+  if attr.noinline then qualifier = qualifier .. context:ensure_runtime_builtin('nelua_noinline') .. ' ' end
+  if attr.noreturn then qualifier = qualifier .. context:ensure_runtime_builtin('nelua_noreturn') .. ' ' end
   if attr.cqualifier then qualifier = qualifier .. attr.cqualifier .. ' ' end
   if attr.cattribute then
     qualifier = string.format('%s__attribute__((%s)) ', qualifier, attr.cattribute)
@@ -847,7 +929,7 @@ function visitors.UnaryOp(_, node, emitter)
   if surround then emitter:add(')') end
 end
 
-function visitors.BinaryOp(_, node, emitter)
+function visitors.BinaryOp(context, node, emitter)
   local opname, lnode, rnode = node:args()
   local type = node.attr.type
   local op = cdefs.binary_ops[opname]
@@ -880,8 +962,10 @@ function visitors.BinaryOp(_, node, emitter)
     else
       emitter:add_indent(type, ' t1_ = ')
       emitter:add_val2type(type, lnode)
-      emitter:add_ln('; Nelua_UNUSED(t1_);')
-      emitter:add_indent_ln(type, ' t2_ = {0}; Nelua_UNUSED(t2_);')
+      --TODO: be smart and remove this unused code
+      context:ensure_runtime_builtin('nelua_unused')
+      emitter:add_ln('; nelua_unused(t1_);')
+      emitter:add_indent_ln(type, ' t2_ = {0}; nelua_unused(t2_);')
       if opname == 'and' then
         assert(not node.attr.ternaryand)
         emitter:add_indent('bool cond_ = ')
@@ -940,14 +1024,10 @@ end
 
 local generator = {}
 
-function generator.generate(ast)
-  local context = CContext(visitors)
-  context.ast = ast
-  context.runtime_path = fs.join(config.runtime_path, 'c')
-
-  if not ast.attr.nocore then
-    context:ensure_runtime('nelua_core')
-  end
+local function emit_main(ast, context)
+  context:add_include('<stddef.h>')
+  context:add_include('<stdint.h>')
+  context:add_include('<stdbool.h>')
 
   local mainemitter = CEmitter(context, -1)
 
@@ -967,6 +1047,8 @@ function generator.generate(ast)
     end
     mainemitter:add_ln("}")
     mainemitter:dec_indent()
+
+    context:add_declaration('int nelua_main();\n')
   else
     context.mainemitter = mainemitter
     mainemitter:inc_indent()
@@ -976,9 +1058,34 @@ function generator.generate(ast)
   context:pop_scope()
 
   if not ast.attr.entrypoint then
+    mainemitter:add_indent_ln('int main(int argc, char **argv) {')
+    mainemitter:inc_indent(2)
+
+    context:ensure_runtime_builtin('nelua_unused')
+    mainemitter:add_indent_ln('nelua_unused(argv);')
+    if context.has_gc then
+      mainemitter:add_indent_ln('nelua_gc_start(&nelua_gc, &argc);')
+      mainemitter:add_indent_ln('int (*volatile inner_main)(void) = nelua_main;')
+      mainemitter:add_indent_ln('int result = inner_main();')
+      mainemitter:add_indent_ln('nelua_gc_stop(&nelua_gc);')
+      mainemitter:add_indent_ln('return result;')
+    else
+      mainemitter:add_indent_ln('nelua_unused(argc);')
+      mainemitter:add_indent_ln('return nelua_main();')
+    end
+    mainemitter:dec_indent(2)
+    mainemitter:add_indent_ln('}')
+
     context:add_definition(mainemitter:generate())
-    context:ensure_runtime('nelua_main')
   end
+end
+
+function generator.generate(ast)
+  local context = CContext(visitors, typevisitors)
+  context.ast = ast
+  context.runtime_path = fs.join(config.runtime_path, 'c')
+
+  emit_main(ast, context)
 
   context:evaluate_templates()
 

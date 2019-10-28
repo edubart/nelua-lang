@@ -33,11 +33,11 @@ luadefs.binary_ops = {
 }
 
 luadefs.lua51_unary_ops = {
-  ['bnot']  = { func = 'bit.bnot', builtin = 'bit '},
+  ['bnot']  = { func = 'bit.bnot', builtin = 'bit'},
 }
 
 luadefs.lua51_binary_ops = {
-  ['idiv']  = { func = luabuiltins.idiv },
+  ['idiv']  = { func = luabuiltins.operators.idiv },
   ['pow']   = { func = 'math.pow' },
   ['bor']   = { func = 'bit.bor', builtin = 'bit' },
   ['band']  = { func = 'bit.band', builtin = 'bit' },
