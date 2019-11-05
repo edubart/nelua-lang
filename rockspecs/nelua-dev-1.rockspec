@@ -90,16 +90,10 @@ build = {
       ['nelua'] = 'nelua.lua'
     },
     conf = {
-      ['runtime/c/nelua_core.c']   = 'runtime/c/nelua_core.c',
-      ['runtime/c/nelua_core.h']   = 'runtime/c/nelua_core.h',
-      ['runtime/c/nelua_main.c']   = 'runtime/c/nelua_main.c',
-      ['runtime/c/nelua_main.h']   = 'runtime/c/nelua_main.h',
       ['runtime/c/nelua_gc.c']     = 'runtime/c/nelua_gc.c',
       ['runtime/c/nelua_gc.h']     = 'runtime/c/nelua_gc.h',
       ['runtime/c/nelua_arrtab.c'] = 'runtime/c/nelua_arrtab.c',
       ['runtime/c/nelua_arrtab.h'] = 'runtime/c/nelua_arrtab.h',
-      ['runtime/c/nelua_record.c'] = 'runtime/c/nelua_record.c',
-      ['runtime/c/nelua_record.h'] = 'runtime/c/nelua_record.h',
       ['lib/io.nelua']             = 'lib/io.nelua',
       ['lib/math.nelua']           = 'lib/math.nelua',
       ['lib/myarraytable.nelua']   = 'lib/myarraytable.nelua',

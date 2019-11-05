@@ -48,7 +48,6 @@ function builtins.nelua_string(context)
   define_builtin(context, 'nelua_string',
     [[typedef struct nelua_string_object {
   intptr_t len;
-  intptr_t res;
   char data[];
 } nelua_string_object;
 typedef nelua_string_object* nelua_string;
@@ -173,7 +172,7 @@ function builtins.nelua_cstring2string(context)
   nelua_assert_cstring(s != NULL, "NULL cstring while converting to string");
   size_t slen = strlen(s);
   nelua_string str = (nelua_string)malloc(sizeof(nelua_string_object) + slen+1);
-  str->len = slen; str->res = slen + 1;
+  str->len = slen;
   memcpy(str->data, s, slen);
   str->data[slen] = 0;
   return str;
@@ -207,8 +206,8 @@ function builtins.nelua_static_string_(context, s)
   if context.usedbuiltins[name] then return name end
   local len = #s
   local code = string.format(
-    'static const struct { uintptr_t len, res; char data[%d]; } %s = {%d,%d,"%s"};\n',
-    len+1, name, len, len, s)
+    'static const struct { uintptr_t len; char data[%d]; } %s = {%d,"%s"};\n',
+    len+1, name, len, s)
   define_builtin(context, name, code)
   return name
 end
@@ -538,6 +537,7 @@ function inlines.print(context, node)
     if i > 1 then
       defemitter:add_builtin('nelua_stdout_write_cstring')
       defemitter:add_ln('("\\t");')
+      defemitter:add_indent()
     end
     if argtype:is_any() then
       defemitter:add_builtin('nelua_stdout_write_any')

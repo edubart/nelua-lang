@@ -239,8 +239,8 @@ function visitors.String(context, node, emitter)
   local len = #value
   local varname = context:genuniquename('strlit')
   local quoted_value = pegger.double_quote_c_string(value)
-  decemitter:add_indent('static const struct { uintptr_t len, res; char data[', len + 1, ']; }')
-  decemitter:add_indent_ln(' ', varname, ' = {', len, ', ', len, ', ', quoted_value, '};')
+  decemitter:add_indent('static const struct { uintptr_t len; char data[', len + 1, ']; }')
+  decemitter:add_indent_ln(' ', varname, ' = {', len, ', ', quoted_value, '};')
   emitter:add('(const ', primtypes.string, ')&', varname)
   context:add_declaration(decemitter:generate(), varname)
 end
