@@ -30,17 +30,17 @@ for i=1,#source do
     table.insert(jumpstack, target)
     ]##]
       --label for beginning of the loop
-      ::#(target.before)::
+      ::#(target.before)#::
       if data[ptr] == 0 then
-        goto #(target.after) --exit the loop
+        goto #(target.after)# --exit the loop
       end
     [##[
   elseif c == "]" then
     --retrieve the labels that match this loop
     local target = table.remove(jumpstack)
     ]##]
-      goto #(target.before) --loop back edge
-      ::#(target.after):: --label for end of the loop
+      goto #(target.before)# --loop back edge
+      ::#(target.after)#:: --label for end of the loop
     [##[
   elseif c:match("%s") then
     -- skip spaces

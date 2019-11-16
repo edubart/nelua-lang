@@ -146,17 +146,19 @@ local function get_parser(std)
   -- tokened symbols
   parser:set_token_pegs([[
   -- matching symbols
+  %LPPEXPR      <- '#['
+  %LPPNAME      <- '#('
+  %RPPEXPR      <- ']#'
+  %RPPNAME      <- ')#'
   %LPAREN       <- '('
-  %RPAREN       <- ')'
+  %RPAREN       <- !%RPPNAME ')'
   %LBRACKET     <- !('[' ('#'^+2 / '='*) '[') '['
-  %RBRACKET     <- ']'
+  %RBRACKET     <- !%RPPEXPR ']'
   %LCURLY       <- '{'
   %RCURLY       <- '}'
   %LANGLE       <- '<'
   %RANGLE       <- '>'
   %PPSHORT      <- '##'
-  %PPEXPRL      <- '#['
-  %PPNAMEL      <- '#('
 
   -- binary operators
   %ADD          <- '+'
@@ -181,7 +183,7 @@ local function get_parser(std)
 
   -- unary operators
   %UNM          <- !'--' '-'
-  %LEN          <- !%PPSHORT !%PPEXPRL !%PPNAMEL '#'
+  %LEN          <- !%PPSHORT !%LPPEXPR !%LPPNAME '#'
   %BNOT         <- !%NE '~'
   %DEREF        <- '$'
   %REF          <- '&'
@@ -524,8 +526,8 @@ local function get_parser(std)
       ) -> to_astnode
     primtype   <- ({} '' -> 'Type' name) -> to_astnode
 
-    ppexpr <- ({} %PPEXPRL -> 'PreprocessExpr' {expr -> 0} eRBRACKET) -> to_astnode
-    ppname <- ({} %PPNAMEL -> 'PreprocessName' {expr -> 0} eRPAREN) -> to_astnode
+    ppexpr <- ({} %LPPEXPR -> 'PreprocessExpr' {expr -> 0} eRPPEXPR) -> to_astnode
+    ppname <- ({} %LPPNAME -> 'PreprocessName' {expr -> 0} eRPPNAME) -> to_astnode
     ppstring <- (ppshort_string / pplong_string) %SKIP
     ppshort_string    <- %PPSHORT {(!%LINEBREAK .)*} %LINEBREAK?
     pplong_string     <- pplong_open ({pplong_content*} pplong_close / %{UnclosedPreprocessBracket})
@@ -574,6 +576,8 @@ local function get_parser(std)
   grammar:set_pegs([[
     eRPAREN         <- %RPAREN        / %{UnclosedParenthesis}
     eRBRACKET       <- %RBRACKET      / %{UnclosedBracket}
+    eRPPEXPR        <- %RPPEXPR       / %{UnclosedBracket}
+    eRPPNAME        <- %RPPNAME       / %{UnclosedParenthesis}
     eRCURLY         <- %RCURLY        / %{UnclosedCurly}
     eRANGLE         <- %RANGLE        / %{UnclosedAngle}
     eLPAREN         <- %LPAREN        / %{ExpectedParenthesis}

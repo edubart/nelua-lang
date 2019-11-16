@@ -6,11 +6,11 @@ describe("Nelua preprocessor should", function()
 
 it("evaluate expressions", function()
   assert.ast_type_equals([=[
-    local a = #['he' .. 'llo']
-    local b = #[math.sin(-math.pi/2)]
-    local c = #[true]
-    local d = #[math.pi]
-    local e = #[aster.Number{'dec','1'}]
+    local a = #['he' .. 'llo']#
+    local b = #[math.sin(-math.pi/2)]#
+    local c = #[true]#
+    local d = #[math.pi]#
+    local e = #[aster.Number{'dec','1'}]#
   ]=], [[
     local a = 'hello'
     local b = -1
@@ -20,17 +20,17 @@ it("evaluate expressions", function()
   ]])
   assert.ast_type_equals([=[
     local a: integer[10]
-    a[#[0]] = 1
+    a[#[0]#] = 1
   ]=], [[
     local a: integer[10]
     a[0] = 1
   ]])
-  assert.analyze_error("local a = #[function() end]", "unable to convert preprocess value of type")
+  assert.analyze_error("local a = #[function() end]#", "unable to convert preprocess value of type")
 end)
 
 it("evaluate names", function()
   assert.ast_type_equals([[
-    #('print') 'hello'
+    #('print')# 'hello'
   ]], [[
     print 'hello'
   ]])
@@ -93,7 +93,7 @@ it("parse loops", function()
   assert.ast_type_equals([[
     local a = 0
     ## for i=1,3 do
-      a = a + #[i]
+      a = a + #[i]#
       for i=1,4,2 do end
     ## end
   ]], [[
@@ -110,7 +110,7 @@ end)
 it("inject other symbol type", function()
   assert.ast_type_equals([[
     local a: uint8 = 1
-    local b: #[symbols['a'].attr.type]
+    local b: #[symbols['a'].attr.type]#
   ]], [[
     local a: uint8 = 1
     local b: uint8
@@ -121,8 +121,8 @@ it("print symbol", function()
   assert.ast_type_equals([=[
     local a: integer <compconst> = 1
     local b: integer <const> = 2
-    print #[tostring(symbols.a)]
-    print #[tostring(symbols.b)]
+    print #[tostring(symbols.a)]#
+    print #[tostring(symbols.b)]#
   ]=], [[
     local a <compconst> = 1
     local b <const> = 2
@@ -131,7 +131,7 @@ it("print symbol", function()
   ]])
   assert.ast_type_equals([=[
     for i:integer=1,2 do
-      print(i, #[tostring(symbols.i)])
+      print(i, #[tostring(symbols.i)]#)
     end
   ]=], [[
     for i=1,2 do
@@ -141,8 +141,8 @@ it("print symbol", function()
   assert.ast_type_equals([[
     ## local aval = 1
     ## if true then
-      local #('a'): #('integer') <compconst> = #[aval]
-      print #[tostring(scope:get_symbol('a'))]
+      local #('a')#: #('integer')# <compconst> = #[aval]#
+      print #[tostring(scope:get_symbol('a'))]#
     ## end
   ]], [[
     local a <compconst> = 1
@@ -155,7 +155,7 @@ it("print enums", function()
     local Weekends = @enum { Friday=0, Saturday, Sunda }
     ## symbols.Weekends.attr.holdedtype.fields[3].name = 'Sunday'
     ## for i,field in ipairs(symbols.Weekends.attr.holdedtype.fields) do
-      print(#[field.name .. ' ' .. tostring(field.value)])
+      print(#[field.name .. ' ' .. tostring(field.value)]#)
     ## end
   ]], [[
     local Weekends = @enum { Friday=0, Saturday, Sunday }
@@ -167,7 +167,7 @@ end)
 
 it("print ast", function()
   assert.ast_type_equals([[
-    local a = #[tostring(ast)]
+    local a = #[tostring(ast)]#
   ]], [=[
     local a = [[Block {
   {
@@ -188,15 +188,15 @@ it("print types", function()
     function R:foo() return 1 end
     global R.v: integer = 1
     local r: R
-    local tn = #[tostring(symbols.n.attr.type)]
-    local ts = #[tostring(symbols.s.attr.type)]
-    local tb = #[tostring(symbols.b.attr.type)]
-    local ta = #[tostring(symbols.a.attr.type)]
-    local tf = #[tostring(symbols.f.attr.type)]
-    local tg = #[tostring(symbols.g.attr.type)]
-    local tR = #[tostring(symbols.R.attr.type)]
-    local tRmt = #[tostring(symbols.R.attr.holdedtype.metatype)]
-    local tr = #[tostring(symbols.r.attr.type)]
+    local tn = #[tostring(symbols.n.attr.type)]#
+    local ts = #[tostring(symbols.s.attr.type)]#
+    local tb = #[tostring(symbols.b.attr.type)]#
+    local ta = #[tostring(symbols.a.attr.type)]#
+    local tf = #[tostring(symbols.f.attr.type)]#
+    local tg = #[tostring(symbols.g.attr.type)]#
+    local tR = #[tostring(symbols.R.attr.type)]#
+    local tRmt = #[tostring(symbols.R.attr.holdedtype.metatype)]#
+    local tr = #[tostring(symbols.r.attr.type)]#
   ]], [=[
     local n: float64
     local s: string
@@ -223,7 +223,7 @@ end)
 it("generate functions", function()
   assert.ast_type_equals([[
     ## local function make_pow(N)
-      local function #('pow' .. N)(x: integer)
+      local function #('pow' .. N)#(x: integer)
         local r = 1
         ## for i=1,N do
           r = r*x
@@ -258,7 +258,7 @@ it("print symbol", function()
     ## local a = 1
     do
       do
-        print #[a]
+        print #[a]#
       end
     end
   ]=], [[
@@ -266,8 +266,8 @@ it("print symbol", function()
   ]])
   assert.ast_type_equals([=[
     ## local MIN, MAX = 1, 2
-    for i:integer=#[MIN],#[MAX] do
-      print(i, #[tostring(symbols.i)])
+    for i:integer=#[MIN]#,#[MAX]# do
+      print(i, #[tostring(symbols.i)]#)
     end
   ]=], [[
     for i:integer=1,2 do
@@ -279,7 +279,7 @@ end)
 it("print config", function()
   assert.ast_type_equals([=[
     ## config.test = 'test'
-    local a = #[config.test]
+    local a = #[config.test]#
   ]=], [[
     local a = 'test'
   ]])
@@ -288,7 +288,7 @@ end)
 it("global preprocessor variables", function()
 assert.ast_type_equals([=[
     ## TEST = 'test'
-    local a = #[TEST]
+    local a = #[TEST]#
   ]=], [[
     local a = 'test'
   ]])
@@ -296,9 +296,9 @@ end)
 
 it("strict mode", function()
   assert.ast_type_equals([=[
-    print(#[tostring(strict)])
+    print(#[tostring(strict)]#)
     ## strict = true
-    print(#[tostring(strict)])
+    print(#[tostring(strict)]#)
     local function f(a: integer)
       ## if true then
         print(a)

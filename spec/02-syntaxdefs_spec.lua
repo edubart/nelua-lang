@@ -1521,55 +1521,55 @@ describe("preprocessor", function()
     }})
   end)
   it("eval expression", function()
-    assert.parse_ast(nelua_parser, "print #['hello ' .. 'world']",
+    assert.parse_ast(nelua_parser, "print #['hello ' .. 'world']#",
       n.Block{{
         n.Call{{n.PreprocessExpr{"'hello ' .. 'world'"}}, n.Id{"print"},true}
     }})
-    assert.parse_ast(nelua_parser, "print(#['hello ' .. 'world'])",
+    assert.parse_ast(nelua_parser, "print(#['hello ' .. 'world']#)",
       n.Block{{
         n.Call{{n.PreprocessExpr{"'hello ' .. 'world'"}}, n.Id{"print"},true}
     }})
-    assert.parse_ast(nelua_parser, "print #[a[1]]",
+    assert.parse_ast(nelua_parser, "print #[a[1]]#",
       n.Block{{
         n.Call{{n.PreprocessExpr{"a[1]"}}, n.Id{"print"},true}
     }})
-    assert.parse_ast(nelua_parser, "#[a]()",
+    assert.parse_ast(nelua_parser, "#[a]#()",
       n.Block{{
         n.Call{{}, n.PreprocessExpr{"a"},true}
     }})
   end)
   it("eval name", function()
-    assert.parse_ast(nelua_parser, "::#(a)::",
+    assert.parse_ast(nelua_parser, "::#(a)#::",
       n.Block{{
         n.Label{n.PreprocessName{"a"}}
     }})
-    assert.parse_ast(nelua_parser, "::#(a)::",
+    assert.parse_ast(nelua_parser, "::#(a)#::",
       n.Block{{
         n.Label{n.PreprocessName{"a"}}
     }})
-    assert.parse_ast(nelua_parser, "goto #(a)",
+    assert.parse_ast(nelua_parser, "goto #(a)#",
       n.Block{{
         n.Goto{n.PreprocessName{"a"}}
     }})
-    assert.parse_ast(nelua_parser, "return #(a).#(b)",
+    assert.parse_ast(nelua_parser, "return #(a)#.#(b)#",
       n.Block{{
         n.Return{{n.DotIndex{n.PreprocessName{"b"}, n.Id{n.PreprocessName{"a"}}}}}
     }})
-    assert.parse_ast(nelua_parser, "function #(a):#(b)() end",
+    assert.parse_ast(nelua_parser, "function #(a)#:#(b)#() end",
       n.Block{{
         n.FuncDef{nil,
         n.ColonIndex{n.PreprocessName{"b"}, n.Id{n.PreprocessName{"a"}}},
         {}, {}, nil, n.Block{{}} },
     }})
-    assert.parse_ast(nelua_parser, "#(a):#(b)()",
+    assert.parse_ast(nelua_parser, "#(a)#:#(b)#()",
       n.Block{{
         n.CallMethod{n.PreprocessName{"b"}, {}, n.Id{n.PreprocessName{"a"}}, true},
     }})
-    assert.parse_ast(nelua_parser, "return {#(a) = b}",
+    assert.parse_ast(nelua_parser, "return {#(a)# = b}",
       n.Block{{
         n.Return{{n.Table{{n.Pair{n.PreprocessName{"a"}, n.Id{'b'}}}}}}
     }})
-    assert.parse_ast(nelua_parser, "local #(a): #(b) <#(c)>",
+    assert.parse_ast(nelua_parser, "local #(a)#: #(b)# <#(c)#>",
       n.Block{{
         n.VarDecl{'local', {
           n.IdDecl{
