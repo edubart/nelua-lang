@@ -103,7 +103,7 @@ To install the language you will need [luarocks](https://luarocks.org/) installe
 If you want to compile to native code you will also need a C compiler such as GCC or Clang.
 
 ```bash
-luarocks install https://raw.githubusercontent.com/edubart/nelua-lang/master/rockspec/nelua-dev-1.rockspec
+luarocks install https://raw.githubusercontent.com/edubart/nelua-lang/master/rockspecs/nelua-dev-1.rockspec
 ```
 
 ## Running
