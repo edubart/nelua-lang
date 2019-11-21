@@ -56,7 +56,7 @@ function filestream:seek(whence: string, offset: integer)
   end
   local len
   local errmsg, status
-  if fseek(self.f, @clong(offset), op) == 0 then
+  if fseek(self.f, (@clong)(offset), op) == 0 then
     len = ftell(self.f)
   else
     len = -1

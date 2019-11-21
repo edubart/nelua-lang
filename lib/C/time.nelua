@@ -1,10 +1,10 @@
 ## strict = true
 ## cinclude '<time.h>'
 
-## cemit([[
+[##[cemit([[
 typedef struct timespec timespec_t;
 typedef struct tm tm_t;
-]], 'declaration')
+]],'declaration')]##]
 
 local time_t <cimport 'time_t'> = @clong
 local clock_t <cimport 'clock_t'> = @clong
