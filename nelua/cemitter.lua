@@ -2,6 +2,7 @@ local class = require 'nelua.utils.class'
 local Emitter = require 'nelua.emitter'
 local traits = require 'nelua.utils.traits'
 local typedefs = require 'nelua.typedefs'
+local errorer = require 'nelua.utils.errorer'
 local CEmitter = class(Emitter)
 local primtypes = typedefs.primtypes
 
@@ -81,6 +82,7 @@ function CEmitter:add_nodectypecast(node)
 end
 
 function CEmitter:add_booleanlit(value)
+  assert(type(value) == 'boolean')
   self:add(value and 'true' or 'false')
 end
 
@@ -149,7 +151,7 @@ function CEmitter:add_val2type(type, val, valtype)
     elseif type:is_string() and valtype:is_cstring() then
       self:add_cstring2string(val)
     elseif type:is_pointer() and type.subtype == valtype then
-      -- automatice reference
+      -- automatic reference
       assert(val and val.attr.autoref)
       self:add('&', val)
     elseif valtype:is_pointer() and valtype.subtype == type then
@@ -164,6 +166,36 @@ function CEmitter:add_val2type(type, val, valtype)
   else
     self:add_zeroinit(type)
   end
+end
+
+function CEmitter:add_numeric_literal(val, valtype)
+  assert(traits.is_bignumber(val))
+  if valtype:is_integral() and valtype:is_signed() and val == valtype.min then
+    -- workaround C warning `integer constant is so large that it is unsigned`
+    self:add((val+1):todec(), '-1')
+  else
+    self:add(val:todec())
+  end
+  if valtype:is_unsigned() then
+    self:add('U')
+  elseif valtype:is_float32() and not self.context.ast.attr.nofloatsuffix then
+    self:add(val:isintegral() and '.0f' or 'f')
+  elseif valtype:is_float() then
+    self:add(val:isintegral() and '.0' or '')
+  end
+end
+
+function CEmitter:add_literal(valattr)
+  local valtype = valattr.type
+  if valtype:is_boolean() then
+    self:add_booleanlit(valattr.value)
+  elseif valtype:is_numeric() then
+    self:add_numeric_literal(valattr.value, valtype)
+  --elseif valtype:is_record() then
+    --self:add(valattr)
+  else --luacov:disable
+    errorer.errorf('not implemented: `CEmitter:add_literal` for valtype `%s`', valtype)
+  end --luacov:enable
 end
 
 return CEmitter

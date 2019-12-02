@@ -199,17 +199,41 @@ it("variable declaration", function()
   assert.generate_c("local π = 3.14", "double mymod_uCF80 = 3.14;")
 end)
 
-it("compconst", function()
-  assert.generate_c("local a: integer <compconst> = 0", "static const int64_t mymod_a = 0;")
-  assert.generate_c("local a <compconst> = 1", "static const int64_t mymod_a = 1;")
-  assert.generate_c(
-    "local N <compconst> = 3773; local a: array(integer, N)",
-    {"static const int64_t mymod_N = 3773",
-     "int64_t data[3773];"})
-  assert.generate_c("local a <compconst>, b <compconst> = 1, 2; local c <compconst> = a * b",
-    "static const int64_t mymod_c = mymod_a * mymod_b;")
-  assert.generate_c("local a <compconst>, b <compconst> = 1, 2; local c <compconst> = (@int32)(a * b)",
-    "static const int32_t mymod_c = (int32_t)(mymod_a * mymod_b);")
+it("operation on compconst variables", function()
+  assert.generate_c([[
+    local a <compconst> = false
+    local b <compconst> = not a
+    local c = b
+  ]], "c = true;")
+  assert.generate_c([[
+    local a <compconst> = 2
+    local b <compconst> = -a
+    local c = b
+  ]], "c = -2;")
+  assert.generate_c([[
+    local a <compconst>, b <compconst> = 1, 2
+    local c <const> = (@int32)(a * b)
+  ]], "static const int32_t mymod_c = (int32_t)(2);")
+  assert.run_c([[
+    do local a <compconst> =  3 + 4; assert(a == 7) end
+    do local a <compconst> =  3 - 4; assert(a == -1) end
+    do local a <compconst> =  3 * 4; assert(a == 12) end
+
+    do local a <compconst> =   3 /  4; assert(a == 0.75) end
+    do local a <compconst> =  -3 /  4; assert(a == -0.75) end
+    do local a <compconst> =   3 / -4; assert(a == -0.75) end
+    do local a <compconst> =  -3 / -4; assert(a == 0.75) end
+
+    do local a <compconst> =   7 //  3;   assert(a == 2) end
+    do local a <compconst> =  -7 //  3;   assert(a == -2) end
+    do local a <compconst> =   7 // -3;   assert(a == -2) end
+    do local a <compconst> =  -7 // -3;   assert(a == 2) end
+
+    do local a <compconst> =   7 //  3.0; assert(a == 2) end
+    do local a <compconst> =  -7 //  3.0; assert(a == -3) end
+    do local a <compconst> =   7 // -3.0; assert(a == -3) end
+    do local a <compconst> =  -7 // -3.0; assert(a == 2) end
+  ]])
 end)
 
 it("assignment", function()
@@ -362,28 +386,28 @@ it("binary operators", function()
   assert.generate_c("do local x = a * b end",       "a * b")
   -- div
   --assert.generate_c("return a / b")
-  assert.generate_c("return 3 / 2",       "return 3 / (double)2")
+  assert.generate_c("return 3 / 2",       "return 1.5")
   assert.generate_c(
     "return (@float64)(3 / 2)",
-    "return 3.0 / 2.0")
+    "return 1.5")
   assert.generate_c(
     "return 3 / 2_int64",
-    "return 3 / (double)(int64_t)2")
+    "return 1.5")
   assert.generate_c(
     "return 3.0 / 2",
-    "return 3.0 / 2")
+    "return 1.5")
   assert.generate_c(
     "return (@integer)(3_i / 2_i)",
-    "return (int64_t)((int64_t)3 / (double)(int64_t)2)")
+    "return (int64_t)(1.5)")
   assert.generate_c(
     "return (@integer)(3 / 2_int64)",
-    "return (int64_t)(3 / (double)(int64_t)2)")
+    "return (int64_t)(1.5)")
   -- idiv
   --assert.generate_c("return a // b")
-  assert.generate_c("return 3 // 2",      "return 3 / 2")
-  assert.generate_c("return 3 // 2.0",    "return floor(3.0 / 2.0)")
-  assert.generate_c("return 3.0 // 2.0",  "return floor(3.0 / 2.0)")
-  assert.generate_c("return 3.0 // 2",    "return floor(3.0 / 2)")
+  assert.generate_c("return 3 // 2",      "return 1")
+  assert.generate_c("return 3 // 2.0",    "return 1.0")
+  assert.generate_c("return 3.0 // 2.0",  "return 1.0")
+  assert.generate_c("return 3.0 // 2",    "return 1.0")
   -- mod
   --assert.generate_c("return a % b",       "return a % b;")
   assert.generate_c("return 3 % 2",       "return 3 % 2")
@@ -792,8 +816,8 @@ it("record globals", function()
   assert.generate_c([[
     ## nohashcodenames = true
     local Math = @record{}
-    global Math.PI: number <compconst> = 3.14
-    global Math.E <compconst> = 2.7
+    global Math.PI: number <const> = 3.14
+    global Math.E <const> = 2.7
 
     global Math.Number = @number
     local MathNumber = Math.Number

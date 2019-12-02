@@ -86,4 +86,12 @@ function bn.todec(v)
   return vstr
 end
 
+function bn.floor(v)
+  local q, r = v:quotrem(1)
+  if q:isneg() and not r:iszero() then
+    return q:add(-1)
+  end
+  return q
+end
+
 return bn

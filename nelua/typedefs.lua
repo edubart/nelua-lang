@@ -142,7 +142,7 @@ do
   tabler.insertvalues(typedefs.signed_types, typedefs.float_types)
 end
 
--- number types
+-- numeric types
 typedefs.numeric_types = {}
 do
   tabler.insertvalues(typedefs.numeric_types, typedefs.integral_types)
@@ -227,7 +227,7 @@ end
 
 -- unary operator types
 local unary_op_types = {
-  ['unm']   = typedefs.signed_types,
+  ['unm']   = typedefs.numeric_types,
   ['bnot']  = typedefs.integral_types,
   ['len']   = { types.ArrayTableType, types.ArrayType, types.Type,
                 result_type = primtypes.integer },
@@ -320,7 +320,7 @@ function typedefs.find_common_type(possibletypes)
   if tabler.iall(possibletypes, Type.is_numeric) then
     for _,numtype in ipairs(typedefs.integer_coerce_types) do
       if tabler.iall(possibletypes, function(ty)
-        return numtype:is_coercible_from_type(ty) end
+        return numtype:is_conversible_from_type(ty) end
       ) then
         return numtype
       end
@@ -336,6 +336,44 @@ function typedefs.find_common_type(possibletypes)
 
     -- can only be float64 now
     return primtypes.float64
+  end
+end
+
+local promote_signed_types = {
+  primtypes.int8,
+  primtypes.int16,
+  primtypes.int32,
+  primtypes.int64
+}
+
+function typedefs.promote_numeric_type(value, prevtype)
+  if prevtype:is_integral() then
+    if value:isintegral() then
+      if prevtype:is_inrange(value) then
+        -- prev type already fits
+        return prevtype
+      end
+
+      -- try to use signed version until fit the size
+      for _,dtype in ipairs(promote_signed_types) do
+        if dtype:is_inrange(value) and dtype.size >= prevtype.size then
+          -- both value and prev type fits
+          return dtype
+        end
+      end
+
+      -- hope to fit in uint64 type
+      if primtypes.uint64:is_inrange(value) then
+        return primtypes.uint64
+      end
+    end
+
+    -- can only fallback to float64, losing mantissa precision
+    return primtypes.float64
+  else
+    -- can only be a float type
+    assert(prevtype:is_float())
+    return prevtype
   end
 end
 

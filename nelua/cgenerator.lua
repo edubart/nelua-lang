@@ -61,7 +61,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
     local varattr = varnode.attr
     local noinit = varattr.noinit or varattr.cexport
     local vartype = varattr.type
-    if not vartype:is_type() and not varattr.nodecl then
+    if not vartype:is_type() and not varattr.nodecl and not varattr.compconst then
       local declared, defined = false, false
       if decl and context.scope:is_static_storage() then
         -- declare main variables in the top scope
@@ -323,8 +323,11 @@ function visitors.PragmaCall(context, node, emitter)
 end
 
 function visitors.Id(context, node, emitter)
-  if node.attr.type:is_nilptr() then
+  local attr = node.attr
+  if attr.type:is_nilptr() then
     emitter:add_null()
+  elseif attr.compconst then
+    emitter:add_literal(attr)
   else
     emitter:add(context:declname(node))
   end
@@ -342,6 +345,7 @@ visitors.PointerType = visitors.Type
 
 function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
+  assert(not attr.compconst)
   if attr.funcdecl then
     emitter:add(context:declname(node))
     return
@@ -349,7 +353,7 @@ function visitors.IdDecl(context, node, emitter)
   local type = node.attr.type
   if type:is_type() then return end
   if attr.cexport then emitter:add('extern ') end
-  if attr.compconst or attr.const then emitter:add('const ') end
+  if attr.const then emitter:add('const ') end
   if attr.volatile then emitter:add('volatile ') end
   if attr.restrict then emitter:add('restrict ') end
   if attr.register then emitter:add('register ') end
@@ -369,7 +373,11 @@ function visitors.DotIndex(context, node, emitter)
       emitter:add(objtype:get_field(name).value)
     elseif objtype:is_record() then
       local symbol = objtype:get_metafield(name)
-      emitter:add(context:declname(symbol))
+      if symbol.attr.compconst then
+        emitter:add_literal(symbol.attr)
+      else
+        emitter:add(context:declname(symbol))
+      end
     else --luacov:disable
       error('not implemented yet')
     end --luacov:enable
@@ -915,10 +923,15 @@ function visitors.FuncDef(context, node)
 end
 
 function visitors.UnaryOp(_, node, emitter)
+  local attr = node.attr
+  if attr.compconst then
+    emitter:add_literal(attr)
+    return
+  end
   local opname, argnode = node:args()
   local op = cdefs.unary_ops[opname]
   assert(op)
-  local surround = node.attr.inoperator
+  local surround = attr.inoperator
   if surround then emitter:add('(') end
   if traits.is_string(op) then
     emitter:add(op, argnode)
@@ -930,6 +943,10 @@ function visitors.UnaryOp(_, node, emitter)
 end
 
 function visitors.BinaryOp(context, node, emitter)
+  if node.attr.compconst then
+    emitter:add_literal(node.attr)
+    return
+  end
   local opname, lnode, rnode = node:args()
   local type = node.attr.type
   local op = cdefs.binary_ops[opname]

@@ -73,11 +73,11 @@ local Color = @record{r: byte, g: byte, b: byte}
 -- game constants
 local TILE_SIZE <compconst> = 64
 local GRID_SIZE <compconst> = 12
-local SCREEN_SIZE <compconst> = (@cint)(64 * 12) --@cint(GRID_SIZE * TILE_SIZE)
+local SCREEN_SIZE <compconst> = TILE_SIZE * GRID_SIZE
 local MOVE_DELAY <compconst> = 128
-local COLOR_RED <compconst> = Color{r=255, g=96, b=96}
-local COLOR_GREEN <compconst> = Color{r=96, g=255, b=96}
-local COLOR_BLACK <compconst> = Color{r=0, g=0, b=0}
+local COLOR_RED <const> = Color{r=255, g=96, b=96}
+local COLOR_GREEN <const> = Color{r=96, g=255, b=96}
+local COLOR_BLACK <const> = Color{r=0, g=0, b=0}
 
 -- game state variables
 local renderer

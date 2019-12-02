@@ -59,9 +59,12 @@ function Type:add_unary_operator_type(opname, type)
 end
 
 function Type:get_unary_operator_type(opname)
-  local type = self.unary_operators[opname]
-  if traits.is_function(type) then
-    type = type(self)
+  local typeorfunc = self.unary_operators[opname]
+  local type
+  if traits.is_function(typeorfunc) then
+    type = typeorfunc(self)
+  else
+    type = typeorfunc
   end
   if not type and self:is_any() then
     type = self
@@ -84,35 +87,68 @@ function Type:get_binary_operator_type(opname, otype)
   return type
 end
 
-function Type:is_coercible_from_type(type, explicit)
-  if self == type or self:is_any() or type:is_any() or self:is_boolean() then
+-- Used to check conversion from `type` to `self`
+function Type:is_conversible_from_type(type, explicit)
+  if self == type then
+    -- the type itself
+    return true
+  elseif self:is_boolean() then
+    -- anything can be converted to a boolean
+    return true
+  elseif self:is_any() or type:is_any() then
+    -- anything can be converted to and from `any`
     return true
   elseif self:is_string() and type:is_cstring() and explicit then
-    -- cstring to string cast
+    -- explicit cstring to string cast
     return true
   elseif type:is_pointer() and type.subtype == self then
     -- automatic deref
     return true
   elseif type:is_enum() then
-    return self:is_coercible_from_type(type.subtype, explicit)
+    -- enum
+    return self:is_conversible_from_type(type.subtype, explicit)
   end
-  return self.conversible_types[type]
+  -- check type conversion table
+  if self.conversible_types[type] then
+    return true
+  else
+    return false, stringer.pformat(
+      "no viable type conversion from `%s` to `%s`",
+      type, self)
+  end
 end
 
-function Type:is_coercible_from_node(node, explicit)
+-- Used to check conversion from `node` type to `self` type
+function Type:is_conversible_from_node(node, explicit)
   local attr = node.attr
   local type = attr.type
-  if self.integral and type.integral and attr.compconst and attr.value then
-    return self:is_inrange(attr.value)
+
+  -- check for compconst number conversions
+  if attr.compconst and attr.value and self:is_numeric() and type:is_numeric() then
+    if self:is_integral() then
+      if not attr.value:isintegral() then
+        return false, stringer.pformat(
+          "constant value `%s` is fractional (invalid for the type)",
+          attr.value:todec())
+      elseif not self:is_inrange(attr.value) then
+        return false, stringer.pformat(
+          "constant value `%s` for type `%s` is out of range, the minimum is `%s` and maximum is `%s`",
+          attr.value:todec(), self, self.min:todec(), self.max:todec())
+      else
+        -- in range and integral, a valid constant conversion
+        return true
+      end
+    end
   end
-  return self:is_coercible_from_type(type, explicit)
+
+  return self:is_conversible_from_type(type, explicit)
 end
 
-function Type:is_coercible_from(typeornode, explicit)
+function Type:is_conversible_from(typeornode, explicit)
   if traits.is_astnode(typeornode) then
-    return self:is_coercible_from_node(typeornode, explicit)
+    return self:is_conversible_from_node(typeornode, explicit)
   else
-    return self:is_coercible_from_type(typeornode, explicit)
+    return self:is_conversible_from_type(typeornode, explicit)
   end
 end
 
@@ -232,6 +268,10 @@ end
 
 function Type:is_unsigned()
   return self.unsigned
+end
+
+function Type:is_signed()
+  return self:is_numeric() and not self.unsigned
 end
 
 function Type:is_primitive()
@@ -393,7 +433,7 @@ function FunctionType:get_functype_for_argtypes(argtypes)
       local ok = true
       for _,funcargtype,argtype in iters.izip(functype.argtypes, argtypes) do
         if not funcargtype or
-          (argtype and not funcargtype:is_coercible_from(argtype)) or
+          (argtype and not funcargtype:is_conversible_from(argtype)) or
           (not argtype and not funcargtype:is_nilable()) then
           ok = false
           break
@@ -450,9 +490,9 @@ function MultipleType:_init(node, types)
   Type._init(self, 'multipletype', 0, node)
 end
 
-function MultipleType:is_coercible_from_type(type, explicit)
+function MultipleType:is_conversible_from_type(type, explicit)
   for _,possibletype in ipairs(self.types) do
-    if possibletype:is_coercible_from_type(type, explicit) then
+    if possibletype:is_conversible_from_type(type, explicit) then
       return true
     end
   end
@@ -576,7 +616,7 @@ function PointerType:_init(node, subtype)
   self.unary_operators['deref'] = subtype
 end
 
-function PointerType:is_coercible_from_node(node, explicit)
+function PointerType:is_conversible_from_node(node, explicit)
   local nodetype = node.attr.type
   if self.subtype == nodetype then
     -- automatic reference
@@ -585,17 +625,17 @@ function PointerType:is_coercible_from_node(node, explicit)
     node.attr.autoref = true
     return true
   end
-  return Type.is_coercible_from_node(self, node, explicit)
+  return Type.is_conversible_from_node(self, node, explicit)
 end
 
-function PointerType:is_coercible_from_type(type, explicit)
+function PointerType:is_conversible_from_type(type, explicit)
   if explicit and type:is_pointer() then
     return true
   end
   if type:is_nilptr() then
     return true
   end
-  if Type.is_coercible_from_type(self, type, explicit) then
+  if Type.is_conversible_from_type(self, type, explicit) then
     return true
   end
   return type:is_pointer() and (type.subtype == self.subtype or self.subtype:is_void())
