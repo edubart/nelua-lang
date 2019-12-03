@@ -37,7 +37,7 @@ it("number", function()
   assert.generate_c("do local a = 1e2 end", "100")
   assert.generate_c("do local a = 0x1f end", "0x1f")
   assert.generate_c("do local a = 0b10 end", "0x2")
-  assert.generate_c("do local a = 1e127 end", "1e127;")
+  assert.generate_c("do local a = 1e129 end", "1e+129;")
 end)
 
 it("number literals", function()

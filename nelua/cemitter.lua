@@ -168,21 +168,41 @@ function CEmitter:add_val2type(type, val, valtype)
   end
 end
 
-function CEmitter:add_numeric_literal(val, valtype)
+function CEmitter:add_numeric_literal(val, valtype, base)
   assert(traits.is_bignumber(val))
+
+  local minusone = false
   if valtype:is_integral() and valtype:is_signed() and val == valtype.min then
     -- workaround C warning `integer constant is so large that it is unsigned`
-    self:add((val+1):todec(), '-1')
-  else
-    self:add(val:todec(valtype.maxdigits))
+    minusone = true
+    val = val:add(1)
   end
-  if valtype:is_unsigned() then
-    assert(val:isintegral())
+
+  if valtype:is_float() then
+    local valstr = val:todecsci(valtype.maxdigits)
+    self:add(valstr)
+
+    -- make sure it has decimals
+    if valstr:match('^-?[0-9]+$') then
+      self:add('.0')
+    end
+  else
+    if base == 'hex' or base == 'bin' then
+      self:add('0x', val:tohex())
+    else
+      self:add(val:todec())
+    end
+  end
+
+  -- suffixes
+  if valtype:is_float32() and not self.context.ast.attr.nofloatsuffix then
+    self:add('f')
+  elseif valtype:is_unsigned() then
     self:add('U')
-  elseif valtype:is_float32() and not self.context.ast.attr.nofloatsuffix then
-    self:add(val:isintegral() and '.0f' or 'f')
-  elseif valtype:is_float() then
-    self:add(val:isintegral() and '.0' or '')
+  end
+
+  if minusone then
+    self:add('-1')
   end
 end
 

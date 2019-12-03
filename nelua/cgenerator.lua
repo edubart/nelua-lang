@@ -211,26 +211,13 @@ end
 
 local visitors = {}
 
-function visitors.Number(context, node, emitter)
+function visitors.Number(_, node, emitter)
   local base, int, frac, exp, literal = node:args()
-  local value, integral, type = node.attr.value, node.attr.integral, node.attr.type
+  local type = node.attr.type
   if not type:is_float() and literal then
     emitter:add_nodectypecast(node)
   end
-  if integral and exp then
-    local numzeros = tonumber(exp)
-    assert(numzeros > 0)
-    int = int .. string.rep('0', numzeros)
-    exp = nil
-  end
-  emitter:add_composed_number(base, int, frac, exp, value:abs())
-  if type:is_unsigned() then
-    emitter:add('U')
-  elseif type:is_float32() and base == 'dec' and not context.ast.attr.nofloatsuffix then
-    emitter:add(integral and '.0f' or 'f')
-  elseif type:is_float() and base == 'dec' then
-    emitter:add(integral and '.0' or '')
-  end
+  emitter:add_numeric_literal(node.attr.value, type, base)
 end
 
 function visitors.String(context, node, emitter)

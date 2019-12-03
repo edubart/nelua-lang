@@ -15,7 +15,7 @@ it("evaluate expressions", function()
     local a = 'hello'
     local b = -1
     local c = true
-    local d = 3.1415926535898
+    local d = 3.1415926535897931
     local e = 1
   ]])
   assert.ast_type_equals([=[
