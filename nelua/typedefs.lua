@@ -133,6 +133,10 @@ do
   for _,ftype in ipairs(typedefs.float_types) do
     ftype.float = true
   end
+
+  -- number of significant decimal digits that uniquely identify a float
+  primtypes.float32.maxdigits = 9
+  primtypes.float32.maxdigits = 17
 end
 
 -- signed types

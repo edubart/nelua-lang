@@ -478,7 +478,7 @@ function visitors.EnumType(context, node)
       if i == 1 then
         fnode:raisef('in enum declaration, first field requires a initial value')
       else
-        field.value = fields[i-1].value:intadd(1)
+        field.value = fields[i-1].value:add(1)
       end
     end
     if not subtype:is_inrange(field.value) then

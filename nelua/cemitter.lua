@@ -174,9 +174,10 @@ function CEmitter:add_numeric_literal(val, valtype)
     -- workaround C warning `integer constant is so large that it is unsigned`
     self:add((val+1):todec(), '-1')
   else
-    self:add(val:todec())
+    self:add(val:todec(valtype.maxdigits))
   end
   if valtype:is_unsigned() then
+    assert(val:isintegral())
     self:add('U')
   elseif valtype:is_float32() and not self.context.ast.attr.nofloatsuffix then
     self:add(val:isintegral() and '.0f' or 'f')

@@ -103,6 +103,7 @@ it("numeric types coercion", function()
     local b: int16 = -1
   ]])
   assert.ast_type_equals("local a = 1 + 1_u16", "local a: uint16 = 1 + 1_u16")
+  assert.ast_type_equals("local a = 1_u16 + 1", "local a: uint16 = 1_u16 + 1")
   assert.ast_type_equals("local a = 1 + 2.0_f32", "local a: float32 = 1 + 2.0_f32")
 end)
 

@@ -16,10 +16,6 @@ local function frombase(base, expbase, int, frac, exp)
   if exp then
     n = n * bn.pow(expbase, tonumber(exp))
   end
-  local nint = n:trunc()
-  if nint == n then
-    n = nint
-  end
   return n
 end
 
@@ -39,12 +35,7 @@ function bn.fromdec(int, frac, exp)
   if exp then
     s = s .. 'e' .. exp
   end
-  local n = bn.new(s)
-  local nint = n:trunc()
-  if nint == n then
-    n = nint
-  end
-  return n
+  return bn.new(s)
 end
 
 function bn.isintegral(v)
@@ -56,10 +47,6 @@ function bn.tointeger(v)
   if v == vint then
     return tonumber(tostring(vint))
   end
-end
-
-function bn.intadd(v, a)
-  return v:add(a):trunc()
 end
 
 function bn.tohex(v)
@@ -77,11 +64,22 @@ function bn.tohex(v)
   return table.concat(t)
 end
 
-function bn.todec(v)
-  local vstr = v:tostring()
+local function remove_extra_zeros(vstr)
   if vstr:find('%.') then
+    -- remove extra zeros after the decimal point
     vstr = vstr:gsub('0+$', '')
     vstr = vstr:gsub('%.$', '')
+  end
+  return vstr
+end
+
+function bn.todec(v, maxdigits)
+  local vstr = v:tostring()
+  if maxdigits then
+    -- limit number of significant digits
+    local significantdigits = vstr:gsub('[-.]',''):gsub('^0+','')
+    local extradigits = #vstr - #significantdigits
+    return vstr:sub(1, extradigits + maxdigits)
   end
   return vstr
 end
@@ -93,5 +91,11 @@ function bn.floor(v)
   end
   return q
 end
+
+local orig_tostring = bn.tostring
+function bn.tostring(v)
+  return remove_extra_zeros(orig_tostring(v))
+end
+bn.__tostring = bn.tostring
 
 return bn

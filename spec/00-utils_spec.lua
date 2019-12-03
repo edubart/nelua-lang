@@ -2,6 +2,7 @@ require 'busted.runner'()
 
 local assert = require 'spec.tools.assert'
 local except = require 'nelua.utils.except'
+local bn = require 'nelua.utils.bn'
 
 describe("Nelua exceptions should work for", function()
 
@@ -105,6 +106,24 @@ it("raising in pcall", function()
     except.assertraise(false, 'an error')
   end)
   assert(tostring(e):match('uncaught exception'))
+end)
+
+it("big numbers", function()
+  local n = bn.new
+  assert.is.equal('1',     n(1):todec())
+  assert.is.equal('0.5',   n(0.5):todec())
+  assert.is.equal('0.3',   n(.1+.2):todec())
+  assert.is.equal('0.3',   (n(.1)+n(.2)):todec())
+  assert.is.equal('1000',  n(1000):todec(17))
+  assert.is.equal('0.14285714285714285',  (n(1)/ n(7)):todec(17))
+  assert.is.equal('1.4285714285714285',  (n(10)/ n(7)):todec(17))
+  assert.is.equal('-0.14285714285714285',  (n(-1)/ n(7)):todec(17))
+  assert.is.equal('-1.4285714285714285',  (n(-10)/ n(7)):todec(17))
+  assert.is.equal('14.285714285714285',  (n(100)/ n(7)):todec(17))
+  assert.is.equal('-14.285714285714285',  (n(-100)/ n(7)):todec(17))
+  assert.is.equal('0.014285714285714285',  (n(0.1)/ n(7)):todec(17))
+  assert.is.equal('-0.014285714285714285',  (n(-0.1)/ n(7)):todec(17))
+  assert.is.equal('90.909090909090909',  (n(1000)/ n(11)):todec(17))
 end)
 
 end)
