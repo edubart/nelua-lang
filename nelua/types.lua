@@ -266,6 +266,10 @@ function Type:is_integral()
   return self.integral
 end
 
+function Type:is_unsignedintegral()
+  return self.unsigned and self.integral
+end
+
 function Type:is_unsigned()
   return self.unsigned
 end

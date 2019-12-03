@@ -214,6 +214,7 @@ it("operation on compconst variables", function()
     local a <compconst>, b <compconst> = 1, 2
     local c <const> = (@int32)(a * b)
   ]], "static const int32_t mymod_c = (int32_t)(2);")
+
   assert.run_c([[
     do local a <compconst> =  3 + 4; assert(a == 7) end
     do local a <compconst> =  3 - 4; assert(a == -1) end
