@@ -216,24 +216,38 @@ it("operation on compconst variables", function()
   ]], "static const int32_t mymod_c = (int32_t)(2);")
 
   assert.run_c([[
-    do local a <compconst> =  3 + 4; assert(a == 7) end
-    do local a <compconst> =  3 - 4; assert(a == -1) end
-    do local a <compconst> =  3 * 4; assert(a == 12) end
+    -- sum/sub/mul
+    assert(3 + 4 == 7)
+    assert(3 - 4 == -1)
+    assert(3 * 4 == 12)
 
-    do local a <compconst> =   3 /  4; assert(a == 0.75) end
-    do local a <compconst> =  -3 /  4; assert(a == -0.75) end
-    do local a <compconst> =   3 / -4; assert(a == -0.75) end
-    do local a <compconst> =  -3 / -4; assert(a == 0.75) end
+    -- div
+    assert( 3 /  4 ==  0.75)
+    assert(-3 /  4 == -0.75)
+    assert( 3 / -4 == -0.75)
+    assert(-3 / -4 ==  0.75)
 
-    do local a <compconst> =   7 //  3;   assert(a == 2) end
-    do local a <compconst> =  -7 //  3;   assert(a == -2) end
-    do local a <compconst> =   7 // -3;   assert(a == -2) end
-    do local a <compconst> =  -7 // -3;   assert(a == 2) end
+    -- idiv
+    assert( 7 //  3 ==  2)
+    assert(-7 //  3 == -2)
+    assert( 7 // -3 == -2)
+    assert(-7 // -3 ==  2)
+    assert( 7 //  3.0 ==  2)
+    assert(-7 //  3.0 == -3)
+    assert( 7 // -3.0 == -3)
+    assert(-7 // -3.0 ==  2)
 
-    do local a <compconst> =   7 //  3.0; assert(a == 2) end
-    do local a <compconst> =  -7 //  3.0; assert(a == -3) end
-    do local a <compconst> =   7 // -3.0; assert(a == -3) end
-    do local a <compconst> =  -7 // -3.0; assert(a == 2) end
+    -- band
+    assert(3 & 5 == 1)
+    assert(-0xfffffffd & 5 == 1)
+    assert(-3 & -5 == -7)
+    assert(-3_i32 & 0xfffffffb_u32 == -7)
+
+    -- bor
+    assert(3 | 5 == 7)
+    --assert(-0xfffffffffffffffd_u64 & 5 == 7)
+    --assert(-3 & -5 == -1)
+    --assert(-3_i32 & 0xfffffffb_u32 == -7)
   ]])
 end)
 

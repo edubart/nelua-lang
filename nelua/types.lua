@@ -20,7 +20,10 @@ function Type:_init(name, size, node)
   assert(name)
   self.name = name
   self.node = node
-  self.size = size
+  if size then
+    self.size = size
+    self.bitsize = size * 8
+  end
   self.integral = false
   self.float = false
   self.unsigned = false
@@ -76,10 +79,14 @@ function Type:add_binary_operator_type(opname, type)
   self.binary_operators[opname] = type
 end
 
-function Type:get_binary_operator_type(opname, otype)
+function Type:get_binary_operator_type(opname, otype, isright)
   local type = self.binary_operators[opname]
   if traits.is_function(type) then
-    type = type(self, otype)
+    if isright then
+      type = type(otype, self)
+    else
+      type = type(self, otype)
+    end
   end
   if not type and self:is_any() then
     type = self

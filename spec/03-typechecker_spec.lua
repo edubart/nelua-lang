@@ -149,8 +149,8 @@ it("numeric ranges", function()
     local i:isize = 9223372036854775807_is
     local i8:int8, i16:int16, i32:int32, i64:int64 = 127,32767,2147483647,9223372036854775807
   ]])
-  assert.analyze_ast([[local i = -9223372036854775809_i]])
-  assert.analyze_error([[local i: integer = -9223372036854775809_i]], 'is out of range')
+  --assert.analyze_ast([[local i: integer = -9223372036854775809]])
+  assert.analyze_error([[local i = -9223372036854775809_i]], 'is out of range')
   assert.analyze_error([[local i: int8 = -129_i8]], 'is out of range')
   assert.analyze_error([[local i: int16 = -32769_i16]], 'is out of range')
   assert.analyze_error([[local i: int32 = -2147483649_i32]], 'is out of range')

@@ -1550,6 +1550,21 @@ compconst_binary_operators['idiv'] = function(lval, rval, commontype)
     return retval, typedefs.promote_numeric_type(retval, commontype)
   end
 end
+local function normalize_range(val, type)
+  if type:is_signed() and val > type.max then
+    return -bn.bnorm(-val, type.bitsize)
+  end
+  return val
+end
+compconst_binary_operators['band'] = function(lval, rval, outtype)
+  if not outtype:is_integral() then return end
+  return normalize_range(bn.band(lval, rval, outtype.bitsize), outtype), outtype
+end
+compconst_binary_operators['bor'] = function(lval, rval, outtype)
+  if not outtype:is_integral() then return end
+  return normalize_range(bn.bor(lval, rval, outtype.bitsize), outtype), outtype
+end
+
 --TODO: missing operators
 
 function visitors.BinaryOp(context, node, desiredtype)
@@ -1622,30 +1637,13 @@ function visitors.BinaryOp(context, node, desiredtype)
         end
       end
     else
-      local ltargettype, rtargettype
-      if ltype then
-        ltargettype = ltype:get_binary_operator_type(opname, rtype)
-        lnode:assertraisef(ltargettype,
+      if ltype and rtype then
+        type = ltype:get_binary_operator_type(opname, rtype)
+        lnode:assertraisef(type,
           "binary operation `%s` is not defined for type '%s' of the left expression",
           opname, ltype)
-      end
-      if rtype then
-        rtargettype = rtype:get_binary_operator_type(opname, ltype)
-        rnode:assertraisef(rtargettype,
-          "binary operation `%s` is not defined for type '%s' of the right expression",
-          opname, rtype)
-      end
-      if ltargettype and rtargettype then
-        type = typedefs.find_common_type({ltargettype, rtargettype})
-        node:assertraisef(type,
-          "binary operation `%s` is not defined for different types '%s' and '%s' in the expression",
-          opname, ltargettype, rtargettype)
-      end
-      if type then
         if (opname == 'div' or opname == 'pow') and type:is_integral() then
           type = primtypes.number
-        elseif opname == 'shl' or opname == 'shr' then
-          type = ltargettype
         elseif opname == 'idiv' or opname == 'div' or opname == 'mod' then
           local rvalue = rattr.value
           if rvalue then
@@ -1667,7 +1665,7 @@ function visitors.BinaryOp(context, node, desiredtype)
       attr.dynamic_conditional = true
     end
   end
-  if lattr.compconst and rattr.compconst then
+  if lattr.compconst and rattr.compconst and type then
     local opfunc = compconst_binary_operators[opname]
     if opfunc then
       local val, valtype = opfunc(lattr.value, rattr.value, type)

@@ -261,27 +261,53 @@ do
   tabler.insertvalues(comparable_types, typedefs.numeric_types)
 end
 
+local bitwise_op_types = tabler(typedefs.integral_types):copy():update({
+  result_type = function(ltype, rtype)
+    if not ltype or not rtype then
+      return
+    end
+    if not rtype:is_integral() then
+      return
+    end
+    if ltype.size >= rtype.size then
+      return ltype
+    else
+      return rtype
+    end
+  end
+}):value()
+
+local arithmetic_op_types = tabler(typedefs.numeric_types):copy():update({
+  result_type = function(ltype, rtype)
+    if not ltype or not rtype then
+      return
+    end
+    return typedefs.find_common_type({ltype, rtype})
+  end
+}):value()
+
+
 local binary_op_types = {
   ['le']      = comparable_types,
   ['ge']      = comparable_types,
   ['lt']      = comparable_types,
   ['gt']      = comparable_types,
-  ['bor']     = typedefs.integral_types,
-  ['bxor']    = typedefs.integral_types,
-  ['band']    = typedefs.integral_types,
+  ['bor']     = bitwise_op_types,
+  ['bxor']    = bitwise_op_types,
+  ['band']    = bitwise_op_types,
   ['shl']     = typedefs.integral_types,
   ['shr']     = typedefs.integral_types,
-  ['add']     = typedefs.numeric_types,
-  ['sub']     = typedefs.numeric_types,
-  ['mul']     = typedefs.numeric_types,
-  ['div']     = typedefs.numeric_types,
-  ['mod']     = typedefs.numeric_types,
-  ['idiv']    = typedefs.numeric_types,
-  ['pow']     = typedefs.numeric_types,
+  ['add']     = arithmetic_op_types,
+  ['sub']     = arithmetic_op_types,
+  ['mul']     = arithmetic_op_types,
+  ['div']     = arithmetic_op_types,
+  ['mod']     = arithmetic_op_types,
+  ['idiv']    = arithmetic_op_types,
+  ['pow']     = arithmetic_op_types,
   ['concat']  = { primtypes.string },
   ['range']   = tabler(typedefs.integral_types):copy():update({
     result_type = function(ltype, rtype)
-      if rtype then
+      if ltype and rtype then
         local type = typedefs.find_common_type({ltype, rtype})
         if type and type:is_integral() then
           return types.RangeType(nil, type)
@@ -321,7 +347,8 @@ function typedefs.find_common_type(possibletypes)
   end
 
   -- numeric type promotion
-  if tabler.iall(possibletypes, Type.is_numeric) then
+  if tabler.iall(possibletypes, Type.is_integral) then
+    -- integral types
     for _,numtype in ipairs(typedefs.integer_coerce_types) do
       if tabler.iall(possibletypes, function(ty)
         return numtype:is_conversible_from_type(ty) end
@@ -330,15 +357,15 @@ function typedefs.find_common_type(possibletypes)
       end
     end
 
-    -- try float32 if any of the types is float32
-    if tabler.ifindif(possibletypes, Type.is_float32) then
-      -- check if all types fit
-      if not tabler.ifindif(possibletypes, Type.is_float64) then
-        return primtypes.float32
-      end
+    -- can only be int64 now
+    return primtypes.int64
+  elseif tabler.ifindif(possibletypes, Type.is_float) then
+    -- preserve float32 when possible
+    if not tabler.ifindif(possibletypes, Type.is_float64) then
+      return primtypes.float32
     end
 
-    -- can only be float64 now
+    -- can only be int64 now
     return primtypes.float64
   end
 end
@@ -372,8 +399,8 @@ function typedefs.promote_numeric_type(value, prevtype)
       end
     end
 
-    -- can only fallback to float64, losing mantissa precision
-    return primtypes.float64
+    -- can only be int64 now
+    return primtypes.int64
   else
     -- can only be a float type
     assert(prevtype:is_float())
