@@ -28,7 +28,7 @@ function CEmitter:zeroinit(type)
     s = '0.0'
   elseif type:is_unsigned() then
     s = '0U'
-  elseif type:is_numeric() then
+  elseif type:is_arithmetic() then
     s = '0'
   elseif type:is_pointer() then
     s = 'NULL'
@@ -48,14 +48,14 @@ end
 
 function CEmitter:add_nodezerotype(node)
   local type = node.attr.type
-  if not (type:is_boolean() or type:is_numeric() or type:is_pointer()) then
+  if not (type:is_boolean() or type:is_arithmetic() or type:is_pointer()) then
     self:add_nodectypecast(node)
   end
   self:add(self:zeroinit(type))
 end
 
 function CEmitter:add_castedzerotype(type)
-  if not (type:is_boolean() or type:is_numeric() or type:is_pointer()) then
+  if not (type:is_boolean() or type:is_arithmetic() or type:is_pointer()) then
     self:add_ctypecast(type)
   end
   self:add(self:zeroinit(type))
@@ -137,7 +137,7 @@ function CEmitter:add_val2type(type, val, valtype)
   if val then
     assert(valtype)
     if type == valtype or
-      (valtype:is_numeric() and type:is_numeric()) or
+      (valtype:is_arithmetic() and type:is_arithmetic()) or
       (valtype:is_nilptr() and type:is_pointer()) then
       self:add(val)
     elseif type:is_any() then
@@ -210,7 +210,7 @@ function CEmitter:add_literal(valattr)
   local valtype = valattr.type
   if valtype:is_boolean() then
     self:add_booleanlit(valattr.value)
-  elseif valtype:is_numeric() then
+  elseif valtype:is_arithmetic() then
     self:add_numeric_literal(valattr.value, valtype)
   --elseif valtype:is_record() then
     --self:add(valattr)

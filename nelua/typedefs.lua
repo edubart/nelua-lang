@@ -1,64 +1,60 @@
-local tabler = require 'nelua.utils.tabler'
 local types = require 'nelua.types'
-local bn = require 'nelua.utils.bn'
 local config = require 'nelua.configer'.get()
 local shaper = require 'tableshape'.types
-local Type = types.Type
 
-local typedefs = {}
+local primtypes = {}
+local typedefs = {primtypes=primtypes}
+types.set_typedefs(typedefs)
 
 -- CPU word size in bytes (size of size_t)
 local cpusize = math.floor(config.cpu_bits / 8)
+
 -- C int is at least 2 bytes and max 4 bytes
 local cintsize = math.max(math.min(cpusize, 4), 2)
+
 -- C long is at least 4 bytes
 local clongsize = math.max(cpusize, 4)
 
 -- primitive types
-local primtypes = {
-  isize     = Type.isize,
-  int8      = Type('int8', 1),
-  int16     = Type('int16', 2),
-  int32     = Type('int32', 4),
-  int64     = Type('int64', 8),
-  usize     = Type.usize,
-  uint8     = Type('uint8', 1),
-  uint16    = Type('uint16', 2),
-  uint32    = Type('uint32', 4),
-  uint64    = Type('uint64', 8),
-  float32   = Type('float32', 4),
-  float64   = Type('float64', 8),
-  boolean   = Type('boolean', 1),
-  string    = Type('string', cpusize*2),
-  varanys   = Type('varanys'),
-  table     = Type('table'),
-  Nil       = Type('nil'),
-  Nilptr    = Type('nilptr'),
-  any       = Type.any, -- the type for anything
-  void      = Type.void, -- the type for nothing
-  type      = Type.type, -- the type for types
+primtypes.any         = types.AnyType('any') -- the type for anything
+primtypes.void        = types.VoidType('void') -- the type for nothing
+primtypes.type        = types.TypeType('type') -- the type for types
+primtypes.isize       = types.IntegralType('isize', cpusize)
+primtypes.int8        = types.IntegralType('int8', 1)
+primtypes.int16       = types.IntegralType('int16', 2)
+primtypes.int32       = types.IntegralType('int32', 4)
+primtypes.int64       = types.IntegralType('int64', 8)
+primtypes.usize       = types.IntegralType('usize', cpusize, true)
+primtypes.uint8       = types.IntegralType('uint8', 1, true)
+primtypes.uint16      = types.IntegralType('uint16', 2, true)
+primtypes.uint32      = types.IntegralType('uint32', 4, true)
+primtypes.uint64      = types.IntegralType('uint64', 8, true)
+primtypes.float32     = types.FloatType('float32', 4, 9)
+primtypes.float64     = types.FloatType('float64', 8, 17)
+primtypes.boolean     = types.BooleanType('boolean', 1)
+primtypes.string      = types.StringType('string', cpusize*2)
+primtypes.varanys     = types.AnyType('varanys')
+primtypes.table       = types.TableType('table')
+primtypes.Nil         = types.NilType('nil')
+primtypes.Nilptr      = types.NilptrType('nilptr', cpusize)
+primtypes.pointer     = types.PointerType(nil, primtypes.void)
 
-  -- for C compability
-  cschar      = Type('cschar', 1),
-  cshort      = Type('cshort', 2),
-  cint        = Type('cint', cintsize),
-  clong       = Type('clong', clongsize),
-  clonglong   = Type('clonglong', 8),
-  cptrdiff    = Type('cptrdiff', cpusize),
-  cchar       = Type('cchar', 1),
-  cuchar      = Type('cuchar', 1),
-  cushort     = Type('cushort', 2),
-  cuint       = Type('cuint', cintsize),
-  culong      = Type('culong', clongsize),
-  culonglong  = Type('culonglong', 8),
-  csize       = Type('csize', cpusize),
-  clongdouble = Type('clongdouble', 16),
-}
-typedefs.primtypes = primtypes
-
-primtypes.pointer = types.PointerType(nil, primtypes.void)
-primtypes.pointer.nodecl = true
-primtypes.cstring = types.PointerType(nil, primtypes.cchar)
+-- for C compability
+primtypes.cschar      = types.IntegralType('cschar', 1)
+primtypes.cshort      = types.IntegralType('cshort', 2)
+primtypes.cint        = types.IntegralType('cint', cintsize)
+primtypes.clong       = types.IntegralType('clong', clongsize)
+primtypes.clonglong   = types.IntegralType('clonglong', 8)
+primtypes.cptrdiff    = types.IntegralType('cptrdiff', cpusize)
+primtypes.cchar       = types.IntegralType('cchar', 1)
+primtypes.cuchar      = types.IntegralType('cuchar', 1, true)
+primtypes.cushort     = types.IntegralType('cushort', 2, true)
+primtypes.cuint       = types.IntegralType('cuint', cintsize, true)
+primtypes.culong      = types.IntegralType('culong', clongsize, true)
+primtypes.culonglong  = types.IntegralType('culonglong', 8, true)
+primtypes.csize       = types.IntegralType('csize', cpusize, true)
+primtypes.clongdouble = types.FloatType('clongdouble', 16, 36)
+primtypes.cstring     = types.PointerType(nil, primtypes.cchar)
 
 -- type aliases
 primtypes.integer  = primtypes.int64
@@ -98,60 +94,6 @@ typedefs.unsigned_types = {
   primtypes.culonglong,
   primtypes.csize,
 }
-do
-  for _,itype in ipairs(typedefs.unsigned_types) do
-    itype.unsigned = true
-  end
-end
-
--- integral types
-typedefs.integral_types = {}
-do
-  tabler.insertvalues(typedefs.integral_types, typedefs.integral_signed_types)
-  tabler.insertvalues(typedefs.integral_types, typedefs.unsigned_types)
-  for _,itype in ipairs(typedefs.integral_types) do
-    itype.integral = true
-    -- define range based on its size
-    local bitsize = itype.size * 8
-    if itype.unsigned then
-      itype.min = bn.new(0)
-      itype.max = bn.pow(2, bitsize) - 1
-    else -- signed
-      itype.min =-bn.pow(2, bitsize) / 2
-      itype.max = bn.pow(2, bitsize) / 2 - 1
-    end
-  end
-end
-
--- float types
-typedefs.float_types = {
-  primtypes.float32,
-  primtypes.float64,
-  primtypes.clongdouble,
-}
-do
-  for _,ftype in ipairs(typedefs.float_types) do
-    ftype.float = true
-  end
-
-  -- number of significant decimal digits that uniquely identify a float
-  primtypes.float32.maxdigits = 9
-  primtypes.float32.maxdigits = 17
-end
-
--- signed types
-typedefs.signed_types = {}
-do
-  tabler.insertvalues(typedefs.signed_types, typedefs.integral_signed_types)
-  tabler.insertvalues(typedefs.signed_types, typedefs.float_types)
-end
-
--- numeric types
-typedefs.numeric_types = {}
-do
-  tabler.insertvalues(typedefs.numeric_types, typedefs.integral_types)
-  tabler.insertvalues(typedefs.numeric_types, typedefs.float_types)
-end
 
 -- NOTE: order here does matter when looking up for a common type between two different types
 typedefs.integer_coerce_types = {
@@ -195,218 +137,18 @@ typedefs.number_literal_types = {
   _clongdouble = primtypes.clongdouble,
 }
 
--- automatic type conversion
-do
-  -- populate conversible types for integral numbers
-  for _,dtype in ipairs(typedefs.integral_types) do
-    local dmin, dmax = dtype.min, dtype.max
-    for _,stype in ipairs(typedefs.integral_types) do
-      local smin, smax = stype.min, stype.max
-      if stype ~= dtype and smin >= dmin and smax <= dmax then
-        dtype:add_conversible_types{stype}
-      end
-    end
-  end
-  -- populate conversible types for float numbers
-  for _,dtype in ipairs(typedefs.float_types) do
-    dtype:add_conversible_types(typedefs.integral_types)
-    for _,stype in ipairs(typedefs.float_types) do
-      if stype ~= dtype then
-        dtype:add_conversible_types{stype}
-      end
-    end
-  end
-  primtypes.cstring:add_conversible_types({primtypes.string})
-end
-
-function typedefs.get_pointer_type(node, subtype)
-  if subtype == primtypes.cstring.subtype then
-    return primtypes.cstring
-  elseif subtype == primtypes.pointer.subtype then
-    return primtypes.pointer
-  else
-    return types.PointerType(node, subtype)
-  end
-end
-
--- unary operator types
-local unary_op_types = {
-  ['unm']   = typedefs.numeric_types,
-  ['bnot']  = typedefs.integral_types,
-  ['len']   = { types.ArrayTableType, types.ArrayType, types.Type,
-                result_type = primtypes.integer },
-  ['not']   = { Type, primtypes.boolean },
-  ['ref']   = { Type, result_type = function(type)
-                  if not type:is_type() then
-                    return typedefs.get_pointer_type(nil, type)
-                  end
-                end
-              },
-}
-
-do
-  for opname, optypes in pairs(unary_op_types) do
-    for _,type in ipairs(optypes) do
-      type:add_unary_operator_type(opname, optypes.result_type or type)
-    end
-  end
-end
-
--- binary operator types
-local comparable_types = {
-  primtypes.string,
-  result_type = primtypes.boolean
-}
-do
-  tabler.insertvalues(comparable_types, typedefs.numeric_types)
-end
-
-local bitwise_op_types = tabler(typedefs.integral_types):copy():update({
-  result_type = function(ltype, rtype)
-    if not ltype or not rtype then
-      return
-    end
-    if not rtype:is_integral() then
-      return
-    end
-    if ltype.size >= rtype.size then
-      return ltype
-    else
-      return rtype
-    end
-  end
-}):value()
-
-local arithmetic_op_types = tabler(typedefs.numeric_types):copy():update({
-  result_type = function(ltype, rtype)
-    if not ltype or not rtype then
-      return
-    end
-    return typedefs.find_common_type({ltype, rtype})
-  end
-}):value()
-
-
-local binary_op_types = {
-  ['le']      = comparable_types,
-  ['ge']      = comparable_types,
-  ['lt']      = comparable_types,
-  ['gt']      = comparable_types,
-  ['bor']     = bitwise_op_types,
-  ['bxor']    = bitwise_op_types,
-  ['band']    = bitwise_op_types,
-  ['shl']     = typedefs.integral_types,
-  ['shr']     = typedefs.integral_types,
-  ['add']     = arithmetic_op_types,
-  ['sub']     = arithmetic_op_types,
-  ['mul']     = arithmetic_op_types,
-  ['div']     = arithmetic_op_types,
-  ['mod']     = arithmetic_op_types,
-  ['idiv']    = arithmetic_op_types,
-  ['pow']     = arithmetic_op_types,
-  ['concat']  = { primtypes.string },
-  ['range']   = tabler(typedefs.integral_types):copy():update({
-    result_type = function(ltype, rtype)
-      if ltype and rtype then
-        local type = typedefs.find_common_type({ltype, rtype})
-        if type and type:is_integral() then
-          return types.RangeType(nil, type)
-        end
-      end
-    end
-  }):value(),
-  ['ne']      = { Type, result_type = primtypes.boolean },
-  ['eq']      = { Type, result_type = primtypes.boolean },
-}
-
-do
-  for opname, optypes in pairs(binary_op_types) do
-    for _,type in ipairs(optypes) do
-      type:add_binary_operator_type(opname, optypes.result_type or type)
-    end
-  end
-end
-
 -- 'or', 'and' is handled internally
 typedefs.binary_conditional_ops = {
   ['or']  = true,
   ['and'] = true,
 }
 
-function typedefs.find_common_type(possibletypes)
-  local len = #possibletypes
-  if len == 0 then return nil end
-  local firsttype = possibletypes[1]
-  if len == 1 then return firsttype end
-
-  -- check if all types are the same first
-  if tabler.iall(possibletypes, function(ty)
-    return ty == firsttype
-  end) then
-    return firsttype
-  end
-
-  -- numeric type promotion
-  if tabler.iall(possibletypes, Type.is_integral) then
-    -- integral types
-    for _,numtype in ipairs(typedefs.integer_coerce_types) do
-      if tabler.iall(possibletypes, function(ty)
-        return numtype:is_conversible_from_type(ty) end
-      ) then
-        return numtype
-      end
-    end
-
-    -- can only be int64 now
-    return primtypes.int64
-  elseif tabler.ifindif(possibletypes, Type.is_float) then
-    -- preserve float32 when possible
-    if not tabler.ifindif(possibletypes, Type.is_float64) then
-      return primtypes.float32
-    end
-
-    -- can only be int64 now
-    return primtypes.float64
-  end
-end
-
-local promote_signed_types = {
+typedefs.promote_signed_types = {
   primtypes.int8,
   primtypes.int16,
   primtypes.int32,
   primtypes.int64
 }
-
-function typedefs.promote_numeric_type(value, prevtype)
-  if prevtype:is_integral() then
-    if value:isintegral() then
-      if prevtype:is_inrange(value) then
-        -- prev type already fits
-        return prevtype
-      end
-
-      -- try to use signed version until fit the size
-      for _,dtype in ipairs(promote_signed_types) do
-        if dtype:is_inrange(value) and dtype.size >= prevtype.size then
-          -- both value and prev type fits
-          return dtype
-        end
-      end
-
-      -- hope to fit in uint64 type
-      if primtypes.uint64:is_inrange(value) then
-        return primtypes.uint64
-      end
-    end
-
-    -- can only be int64 now
-    return primtypes.int64
-  else
-    -- can only be a float type
-    assert(prevtype:is_float())
-    return prevtype
-  end
-end
 
 typedefs.call_pragmas = {
   cinclude = shaper.shape{shaper.string},
@@ -431,6 +173,7 @@ local common_attribs = {
   onestring = shaper.shape{shaper.string},
   oneinteger = shaper.shape{shaper.integer}
 }
+
 typedefs.function_attribs = {
   cimport = common_attribs.cimport,
   codename = common_attribs.onestring,
@@ -445,6 +188,7 @@ typedefs.function_attribs = {
   entrypoint = true,
   cexport = true,
 }
+
 typedefs.variable_attribs = {
   cimport = common_attribs.cimport,
   codename = common_attribs.onestring,
@@ -461,6 +205,7 @@ typedefs.variable_attribs = {
   compconst = true,
   const = true
 }
+
 typedefs.type_attribs = {
   aligned = common_attribs.oneinteger,
   cimport = common_attribs.cimport,

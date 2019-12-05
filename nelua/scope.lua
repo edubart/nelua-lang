@@ -1,5 +1,6 @@
 local class = require 'nelua.utils.class'
 local metamagic = require 'nelua.utils.metamagic'
+local types = require 'nelua.types'
 local typedefs = require 'nelua.typedefs'
 local symdefs = require 'nelua.symdefs'
 local tabler = require 'nelua.utils.tabler'
@@ -68,7 +69,7 @@ local function symbol_resolve_type(symbol)
   if symbol.attr.type or symbol.requnknown or symbol.resolvefail then
     return false
   end
-  local type = typedefs.find_common_type(symbol.possibletypes)
+  local type = types.find_common_type(symbol.possibletypes)
   if type then
     symbol.attr.type = type
     return true
@@ -145,7 +146,7 @@ end
 function Scope:resolve_returntypes()
   local resolved_returntypes = {}
   for i,returntypes in pairs(self.possible_returntypes) do
-    resolved_returntypes[i] = typedefs.find_common_type(returntypes) or typedefs.primtypes.any
+    resolved_returntypes[i] = types.find_common_type(returntypes) or typedefs.primtypes.any
   end
   resolved_returntypes.has_unknown = self.has_unknown_return
   self.resolved_returntypes = resolved_returntypes

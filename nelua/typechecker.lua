@@ -56,7 +56,7 @@ function visitors.Number(_, node, desiredtype)
   end
 
   local type = attr.littype
-  if not type and desiredtype and desiredtype:is_numeric() then
+  if not type and desiredtype and desiredtype:is_arithmetic() then
     if attr.integral and desiredtype:is_integral() then
       if desiredtype:is_unsigned() and not attr.value:isneg() then
         -- find smallest unsigned type
@@ -85,7 +85,8 @@ function visitors.Number(_, node, desiredtype)
   else
     node.untyped = nil
   end
-  if not attr.littype and desiredtype and desiredtype:is_numeric() and desiredtype:is_conversible_from_type(type) then
+  if not attr.littype and desiredtype and
+     desiredtype:is_arithmetic() and desiredtype:is_conversible_from_type(type) then
     type = desiredtype
   end
   if attr.type ~= type then
@@ -551,7 +552,7 @@ function visitors.PointerType(context, node)
   if subtypenode then
     context:traverse(subtypenode)
     assert(subtypenode.attr.holdedtype)
-    type = typedefs.get_pointer_type(node, subtypenode.attr.holdedtype)
+    type = types.get_pointer_type(subtypenode.attr.holdedtype, node)
   else
     type = primtypes.pointer
   end
@@ -614,7 +615,7 @@ local function visitor_FieldIndex(context, node)
             symbol.attr.const = true
             symbol.attr.metafunc = true
             symbol.attr.metavar = true
-            symbol.attr.metarecordtype = typedefs.get_pointer_type(objnode, objtype)
+            symbol.attr.metarecordtype = types.get_pointer_type(objtype, objnode)
             objtype:set_metafield(name, symbol)
           elseif context.inglobaldecl == parentnode then
             -- declaration of record global variable
@@ -936,7 +937,7 @@ function visitors.Call(context, node)
     local argnode = argnodes[1]
     context:traverse(argnode, type)
     local argtype = argnode.attr.type
-    if argtype and not (argtype:is_numeric() and type:is_numeric()) then
+    if argtype and not (argtype:is_arithmetic() and type:is_arithmetic()) then
       argnode:assertraisef(type:is_conversible_from_node(argnode, true),
         "in assertion to type '%s', the type no viable type conversion expression of type '%s'",
         type, argtype)
@@ -1070,7 +1071,7 @@ function visitors.ForNum(context, node)
     local itsymbol = context:traverse(itvarnode)
     local ittype = itvarnode.attr.type
     if ittype then
-      itvarnode:assertraisef(ittype:is_numeric() or (ittype:is_any() and not ittype:is_varanys()),
+      itvarnode:assertraisef(ittype:is_arithmetic() or (ittype:is_any() and not ittype:is_varanys()),
           "`for` variable must be a number, but got type '%s'",
            ittype)
       if btype then
@@ -1095,7 +1096,7 @@ function visitors.ForNum(context, node)
     context:traverse(blocknode)
   end)
   local fixedstep
-  if stype and stype:is_numeric() and stepvalnode.attr.compconst then
+  if stype and stype:is_arithmetic() and stepvalnode.attr.compconst then
     -- constant step
     fixedstep = stepvalnode.attr.value
     stepvalnode:assertraisef(not fixedstep:iszero(), '`for` step cannot be zero')
@@ -1104,7 +1105,7 @@ function visitors.ForNum(context, node)
     fixedstep = bn.new(1)
   end
   local fixedend
-  if etype and etype:is_numeric() and endvalnode.attr.compconst then
+  if etype and etype:is_arithmetic() and endvalnode.attr.compconst then
     fixedend = endvalnode.attr.value
   end
   if not compop and fixedstep then
@@ -1454,9 +1455,9 @@ compconst_unary_operators['not'] = function(val, valtype)
   return ret, primtypes.boolean
 end
 compconst_unary_operators['unm'] = function(val, valtype)
-  if valtype:is_numeric() then
+  if valtype:is_arithmetic() then
     local retval = -val
-    local retvaltype = typedefs.promote_numeric_type(retval, valtype)
+    local retvaltype = valtype:promote_value(retval)
     return retval, retvaltype
   end
 end
@@ -1486,9 +1487,6 @@ function visitors.UnaryOp(context, node, desiredtype)
         "unary operation `%s` is not defined for type '%s' of the expression",
         opname, argtype)
     end
-    if opname == 'unm' and argnode.tag == 'Number' then
-      attr.value = argattr.value
-    end
     if (opname == 'deref' or opname == 'ref') and argnode.tag == 'Id' then
       -- for loops needs to know if an Id symbol could mutate
       argattr.mutate = true
@@ -1516,38 +1514,38 @@ end
 
 local compconst_binary_operators = {}
 compconst_binary_operators['add'] = function(lval, rval, commontype)
-  if commontype:is_numeric() then
+  if commontype:is_arithmetic() then
     local retval = lval + rval
-    return retval, typedefs.promote_numeric_type(retval, commontype)
+    return retval, commontype:promote_value(retval)
   end
 end
 compconst_binary_operators['sub'] = function(lval, rval, commontype)
-  if commontype:is_numeric() then
+  if commontype:is_arithmetic() then
     local retval = lval - rval
-    return retval, typedefs.promote_numeric_type(retval, commontype)
+    return retval, commontype:promote_value(retval)
   end
 end
 compconst_binary_operators['mul'] = function(lval, rval, commontype)
-  if commontype:is_numeric() then
+  if commontype:is_arithmetic() then
     local retval = lval * rval
-    return retval, typedefs.promote_numeric_type(retval, commontype)
+    return retval, commontype:promote_value(retval)
   end
 end
 compconst_binary_operators['div'] = function(lval, rval, commontype)
-  if commontype:is_numeric() then
+  if commontype:is_arithmetic() then
     local retval = lval / rval
-    return retval, typedefs.promote_numeric_type(retval, commontype)
+    return retval, commontype:promote_value(retval)
   end
 end
 compconst_binary_operators['idiv'] = function(lval, rval, commontype)
-  if commontype:is_numeric() then
+  if commontype:is_arithmetic() then
     local retval
     if commontype:is_float() then
       retval = (lval / rval):floor()
     else
       retval = (lval / rval):trunc()
     end
-    return retval, typedefs.promote_numeric_type(retval, commontype)
+    return retval, commontype:promote_value(retval)
   end
 end
 local function normalize_range(val, type)
@@ -1628,23 +1626,21 @@ function visitors.BinaryOp(context, node, desiredtype)
           context:traverse(prnode, rtype)
           local prtype = prnode.attr.type
           if prtype then
-            type = typedefs.find_common_type({rtype, prtype})
+            type = types.find_common_type({rtype, prtype})
           end
         end
       else
         if ltype and rtype then
-          type = typedefs.find_common_type({ltype, rtype})
+          type = types.find_common_type({ltype, rtype})
         end
       end
     else
       if ltype and rtype then
         type = ltype:get_binary_operator_type(opname, rtype)
         lnode:assertraisef(type,
-          "binary operation `%s` is not defined for type '%s' of the left expression",
-          opname, ltype)
-        if (opname == 'div' or opname == 'pow') and type:is_integral() then
-          type = primtypes.number
-        elseif opname == 'idiv' or opname == 'div' or opname == 'mod' then
+          "binary operation `%s` is not defined between types '%s' and '%s'",
+          opname, ltype, rtype)
+        if opname == 'idiv' or opname == 'div' or opname == 'mod' then
           local rvalue = rattr.value
           if rvalue then
             rnode:assertraisef(not rvalue:iszero(), "divizion by zero is not allowed")

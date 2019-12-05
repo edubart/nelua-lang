@@ -6,11 +6,15 @@ local stringer = require 'nelua.utils.stringer'
 local sstream = require 'nelua.utils.sstream'
 local metamagic = require 'nelua.utils.metamagic'
 local config = require 'nelua.configer'.get()
+local bn = require 'nelua.utils.bn'
+local typedefs, primtypes
 
+local types = {}
 local cpusize = math.floor(config.cpu_bits / 8)
 
 --------------------------------------------------------------------------------
 local Type = class()
+types.Type = Type
 
 Type._type = true
 Type.unary_operators = {}
@@ -20,16 +24,12 @@ function Type:_init(name, size, node)
   assert(name)
   self.name = name
   self.node = node
-  if size then
-    self.size = size
-    self.bitsize = size * 8
-  end
+  self.size = size
   self.integral = false
   self.float = false
   self.unsigned = false
   self.unary_operators = {}
   self.binary_operators = {}
-  self.conversible_types = {}
   self.aligned = nil
   self.codename = string.format('nelua_%s', self.name)
   local mt = getmetatable(self)
@@ -47,76 +47,42 @@ function Type:suggest_nick(nick, prefix)
   self.nick = nick
 end
 
-function Type:__tostring()
-  return self.name
-end
-
-function Type:add_conversible_types(types)
-  for _,type in ipairs(types) do
-    self.conversible_types[type] = true
+local function get_operator_in_oplist(self, oplist, opname, arg1)
+  local opret = oplist[opname]
+  local type
+  if traits.is_function(opret) then
+    type = opret(self, arg1)
+  elseif opret == true then
+    type = self
+  elseif traits.is_string(opret) then
+    type = primtypes[opret]
+  else
+    type = opret
   end
-end
-
-function Type:add_unary_operator_type(opname, type)
-  self.unary_operators[opname] = type
+  if not type and self:is_any() then
+    type = self
+  end
+  return type
 end
 
 function Type:get_unary_operator_type(opname)
-  local typeorfunc = self.unary_operators[opname]
-  local type
-  if traits.is_function(typeorfunc) then
-    type = typeorfunc(self)
-  else
-    type = typeorfunc
-  end
-  if not type and self:is_any() then
-    type = self
-  end
-  return type
+  return get_operator_in_oplist(self, self.unary_operators, opname)
 end
 
-function Type:add_binary_operator_type(opname, type)
-  self.binary_operators[opname] = type
-end
-
-function Type:get_binary_operator_type(opname, otype, isright)
-  local type = self.binary_operators[opname]
-  if traits.is_function(type) then
-    if isright then
-      type = type(otype, self)
-    else
-      type = type(self, otype)
-    end
-  end
-  if not type and self:is_any() then
-    type = self
-  end
-  return type
+function Type:get_binary_operator_type(opname, rtype)
+  return get_operator_in_oplist(self, self.binary_operators, opname, rtype)
 end
 
 -- Used to check conversion from `type` to `self`
-function Type:is_conversible_from_type(type, explicit)
+function Type:is_conversible_from_type(type)
   if self == type then
     -- the type itself
     return true
-  elseif self:is_boolean() then
-    -- anything can be converted to a boolean
-    return true
-  elseif self:is_any() or type:is_any() then
+  elseif type:is_any() then
     -- anything can be converted to and from `any`
     return true
-  elseif self:is_string() and type:is_cstring() and explicit then
-    -- explicit cstring to string cast
-    return true
-  elseif type:is_pointer() and type.subtype == self then
+  elseif type:is_pointer_of(self) then
     -- automatic deref
-    return true
-  elseif type:is_enum() then
-    -- enum
-    return self:is_conversible_from_type(type.subtype, explicit)
-  end
-  -- check type conversion table
-  if self.conversible_types[type] then
     return true
   else
     return false, stringer.pformat(
@@ -131,7 +97,7 @@ function Type:is_conversible_from_node(node, explicit)
   local type = attr.type
 
   -- check for compconst number conversions
-  if attr.compconst and attr.value and self:is_numeric() and type:is_numeric() then
+  if attr.compconst and attr.value and self:is_arithmetic() and type:is_arithmetic() then
     if self:is_integral() then
       if not attr.value:isintegral() then
         return false, stringer.pformat(
@@ -159,146 +125,61 @@ function Type:is_conversible_from(typeornode, explicit)
   end
 end
 
-function Type:is_inrange(value)
-  if self:is_float() then return true end
-  if not self:is_integral() then return false end
-  return value >= self.min and value <= self.max
-end
-
-function Type:is_numeric()
-  return self.integral or self.float
-end
-
-function Type:is_float32()
-  return self.name == 'float32'
-end
-
-function Type:is_float64()
-  return self.name == 'float64'
-end
-
-function Type:is_float()
-  return self.float
-end
-
-function Type:is_any()
-  return self.name == 'any' or self.name == 'varanys'
-end
-
-function Type:is_varanys()
-  return self.name == 'varanys'
-end
-
-function Type:is_nil()
-  return self.name == 'nil'
-end
-
-function Type:is_nilable()
-  return self:is_any() or self:is_nil()
-end
-
-function Type:is_nilptr()
-  return self.name == 'nilptr'
-end
-
-function Type:is_type()
-  return self.name == 'type'
-end
-
-function Type:is_string()
-  return self.name == 'string'
-end
-
-function Type:is_cstring()
-  return self.name == 'pointer' and self.subtype and self.subtype.name == 'cchar'
-end
-
-function Type.is_record()
-  return false
-end
-
-function Type:is_boolean()
-  return self.name == 'boolean'
-end
-
-function Type:is_function()
-  return self.name == 'function'
-end
-
-function Type:is_multipletype()
-  return self.name == 'multipletype'
-end
-
-function Type:is_table()
-  return self.name == 'table'
-end
-
-function Type:is_array()
-  return self.name == 'array'
-end
-
-function Type:is_enum()
-  return self.name == 'enum'
-end
-
-function Type:is_void()
-  return self.name == 'void'
-end
-
-function Type:is_arraytable()
-  return self.name == 'arraytable'
-end
-
-function Type:is_pointer()
-  return self.name == 'pointer'
-end
-
-function Type:is_span()
-  return self.name == 'span'
-end
-
-function Type:is_range()
-  return self.name == 'range'
-end
-
-function Type:is_generic_pointer()
-  return self.name == 'pointer' and self.subtype:is_void()
-end
-
 function Type:is_equal(type)
   return rawequal(self, type)
 end
 
-function Type:is_integral()
-  return self.integral
-end
-
-function Type:is_unsignedintegral()
-  return self.unsigned and self.integral
-end
-
-function Type:is_unsigned()
-  return self.unsigned
-end
-
-function Type:is_signed()
-  return self:is_numeric() and not self.unsigned
-end
-
 function Type:is_primitive()
-  return getmetatable(self) == Type or self:is_generic_pointer()
+  return primtypes[self.name] == self
+end
+
+function Type:__tostring()
+  return self.name
 end
 
 function Type:__eq(type)
   return self:is_equal(type) and type:is_equal(self)
 end
 
--- types used internally
-Type.type = Type('type', 0)
-Type.void = Type('void', 0)
-Type.usize = Type('usize', cpusize)
-Type.isize = Type('isize', cpusize)
-Type.any = Type('any')
+function Type:is_arithmetic() return self.arithmetic end
+function Type:is_float32() return self.float32 end
+function Type:is_float64() return self.float64 end
+function Type:is_float() return self.float end
+function Type:is_multipletype() return self.multipletype end
+function Type:is_any() return self.any end
+function Type:is_varanys() return self.varanys end
+function Type:is_nil() return self.Nil end
+function Type:is_nilable() return self.nilable end
+function Type:is_nilptr() return self.nilptr end
+function Type:is_type() return self.typetype end
+function Type:is_string() return self.string end
+function Type:is_cstring() return self.cstring end
+function Type:is_record() return self.record end
+function Type:is_function() return self.Function end
+function Type:is_boolean() return self.boolean end
+function Type:is_table() return self.table end
+function Type:is_array() return self.array end
+function Type:is_enum() return self.enum end
+function Type:is_void() return self.void end
+function Type:is_arraytable() return self.arraytable end
+function Type:is_pointer() return self.pointer end
+function Type:is_span() return self.span end
+function Type:is_range() return self.range end
+function Type:is_integral() return self.integral end
+function Type:is_unsigned() return self.unsigned end
+function Type:is_signed() return self.arithmetic and not self.unsigned end
+function Type:is_generic_pointer() return self.genericpointer end
+function Type.is_pointer_of() return false end
+
+Type.unary_operators['not'] = 'boolean'
+Type.unary_operators.ref = function(self)
+  if self.size and self.size > 0 then
+    return types.get_pointer_type(self)
+  end
+end
+
+Type.binary_operators.eq = 'boolean'
+Type.binary_operators.ne = 'boolean'
 
 local uidcounter = 0
 local function genkey(name, node)
@@ -322,21 +203,352 @@ local function gencodename(self)
 end
 
 local function typeclass(base)
-  local type = class(base or Type)
-  type.unary_operators = {}
-  type.binary_operators = {}
-  metamagic.setmetaindex(type.unary_operators, Type.unary_operators)
-  metamagic.setmetaindex(type.binary_operators, Type.binary_operators)
-  return type
+  if not base then
+    base = Type
+  end
+  local klass = class(base)
+  klass.unary_operators = {}
+  klass.binary_operators = {}
+  metamagic.setmetaindex(klass.unary_operators, base.unary_operators)
+  metamagic.setmetaindex(klass.binary_operators, base.binary_operators)
+  return klass
+end
+
+--------------------------------------------------------------------------------
+local VoidType = typeclass()
+types.VoidType = VoidType
+
+function VoidType:_init(name)
+  Type._init(self, name, 0)
+  self.void = true
+end
+
+--------------------------------------------------------------------------------
+local TypeType = typeclass()
+types.TypeType = TypeType
+
+function TypeType:_init(name)
+  Type._init(self, name, 0)
+  self.typetype = true
+end
+
+TypeType.unary_operators.len = 'integer'
+
+--------------------------------------------------------------------------------
+local NilType = typeclass()
+types.NilType = NilType
+
+function NilType:_init(name)
+  Type._init(self, name, 0)
+  self.Nil = true
+  self.nilable = true
+end
+
+--------------------------------------------------------------------------------
+local NilptrType = typeclass()
+types.NilptrType = NilptrType
+
+function NilptrType:_init(name, size)
+  Type._init(self, name, size)
+  self.nilptr = true
+end
+
+--------------------------------------------------------------------------------
+local StringType = typeclass()
+types.StringType = StringType
+
+function StringType:_init(name, size)
+  Type._init(self, name, size)
+  self.string = true
+end
+
+function StringType:is_conversible_from_type(type, explicit)
+  if self:is_string() and type:is_cstring() and explicit then
+    -- explicit cstring to string cast
+    return true
+  end
+  return Type.is_conversible_from_type(self, type, explicit)
+end
+
+StringType.unary_operators.len = 'integer'
+StringType.binary_operators.le = 'boolean'
+StringType.binary_operators.ge = 'boolean'
+StringType.binary_operators.lt = 'boolean'
+StringType.binary_operators.gt = 'boolean'
+StringType.binary_operators.concat = 'string'
+
+--------------------------------------------------------------------------------
+local BooleanType = typeclass()
+types.BooleanType = BooleanType
+
+function BooleanType:_init(name, size)
+  Type._init(self, name, size)
+  self.boolean = true
+end
+
+function BooleanType.is_conversible_from_type()
+  return true
+end
+
+--------------------------------------------------------------------------------
+local AnyType = typeclass()
+types.AnyType = AnyType
+
+function AnyType:_init(name, size)
+  Type._init(self, name, size)
+  self.any = true
+  self.nilable = true
+  if name == 'varanys' then
+    self.varanys = true
+  end
+end
+
+function AnyType.is_conversible_from_type()
+  return true
+end
+
+--------------------------------------------------------------------------------
+local ArithmeticType = typeclass()
+types.ArithmeticType = ArithmeticType
+
+function ArithmeticType:_init(name, size)
+  Type._init(self, name, size)
+  self.bitsize = size * 8
+  self.arithmetic = true
+end
+
+function ArithmeticType:is_conversible_from_type(type, explicit)
+  if type:is_enum() then
+    return self:is_conversible_from_type(type.subtype, explicit)
+  end
+  return Type.is_conversible_from_type(self, type, explicit)
+end
+
+ArithmeticType.unary_operators.unm = true
+ArithmeticType.binary_operators.le = 'boolean'
+ArithmeticType.binary_operators.ge = 'boolean'
+ArithmeticType.binary_operators.lt = 'boolean'
+ArithmeticType.binary_operators.gt = 'boolean'
+
+--------------------------------------------------------------------------------
+local IntegralType = typeclass(ArithmeticType)
+types.IntegralType = IntegralType
+
+local function get_integral_range(bits, unsigned)
+  local min, max
+  if unsigned then
+    min =  bn.new(0)
+    max =  bn.pow(2, bits) - 1
+  else -- signed
+    min = -bn.pow(2, bits) / 2
+    max =  bn.pow(2, bits) / 2 - 1
+  end
+  return min, max
+end
+
+function IntegralType:_init(name, size, unsigned)
+  ArithmeticType._init(self, name, size)
+  self.min, self.max = get_integral_range(self.bitsize, unsigned)
+  self.unsigned = unsigned
+  self.integral = true
+end
+
+function IntegralType:is_conversible_from_type(type, explicit)
+  if type:is_integral() and self:is_inrange(type.min) and self:is_inrange(type.max) then
+    return true
+  end
+  return ArithmeticType.is_conversible_from_type(self, type, explicit)
+end
+
+function IntegralType:promote_value(value)
+  assert(traits.is_bignumber(value))
+  if value:isintegral() then
+    if self:is_inrange(value) then
+      -- this type already fits
+      return self
+    end
+
+    -- try to use signed version until fit the size
+    for _,dtype in ipairs(typedefs.promote_signed_types) do
+      if dtype:is_inrange(value) and dtype.size >= self.size then
+        -- both value and prev type fits
+        return dtype
+      end
+    end
+
+    -- hope to fit in uint64 type
+    if primtypes.uint64:is_inrange(value) then
+      return primtypes.uint64
+    end
+  end
+
+  -- can only be int64 now
+  return primtypes.int64
+end
+
+function IntegralType:promote_type(type)
+  if type:is_float() then
+    return type
+  elseif not type:is_integral() then
+    return
+  end
+  if self:is_unsigned() == type:is_unsigned() then
+    -- promote to bigger of the same signess
+    return type.size >= self.size and type or self
+  else
+    -- promote to best signed type that fits both types
+    local signedsize = self:is_signed() and self.bitsize or type.bitsize
+    local unsignedsize = self:is_unsigned() and self.bitsize or type.bitsize
+    if signedsize < unsignedsize * 2 then
+      signedsize = math.min(unsignedsize * 2, 64)
+    end
+    return primtypes['int' .. signedsize]
+  end
+end
+
+function IntegralType:is_inrange(value)
+  assert(traits.is_bignumber(value))
+  return value >= self.min and value <= self.max
+end
+
+local function integral_arithmetic_operation(self, rtype)
+  if not rtype or not rtype:is_arithmetic() then
+    return
+  end
+  if rtype:is_integral() then
+    return self:promote_type(rtype)
+  elseif rtype:is_float() then
+    -- promote to float
+    return rtype
+  end
+  return self
+end
+
+local function integral_div_operation(self, rtype)
+  if not rtype then
+    return
+  end
+  if rtype:is_float() then
+    return rtype
+  elseif math.max(self.size, rtype.size) <= primtypes.float32.size then
+    return primtypes.float32
+  else
+    return primtypes.number
+  end
+end
+
+local function integral_bitwise_operation(self, rtype)
+  if not rtype or not rtype:is_integral() then
+    return
+  end
+  -- return the biggest
+  return rtype.size > self.size and rtype or self
+end
+
+local function integral_shift_operation(self, rtype)
+  if not rtype or not rtype:is_integral() then
+    return
+  end
+  return self
+end
+
+local function integral_range_operation(self, rtype)
+  local subtype = integral_arithmetic_operation(self, rtype)
+  return types.RangeType(nil, subtype)
+end
+
+IntegralType.unary_operators.bnot = true
+IntegralType.binary_operators.add = integral_arithmetic_operation
+IntegralType.binary_operators.sub = integral_arithmetic_operation
+IntegralType.binary_operators.mul = integral_arithmetic_operation
+IntegralType.binary_operators.div = integral_div_operation
+IntegralType.binary_operators.idiv = integral_arithmetic_operation
+IntegralType.binary_operators.mod = integral_arithmetic_operation
+IntegralType.binary_operators.pow = integral_div_operation
+IntegralType.binary_operators.bor = integral_bitwise_operation
+IntegralType.binary_operators.bxor = integral_bitwise_operation
+IntegralType.binary_operators.band = integral_bitwise_operation
+IntegralType.binary_operators.shl = integral_shift_operation
+IntegralType.binary_operators.shr = integral_shift_operation
+IntegralType.binary_operators.range = integral_range_operation
+
+--------------------------------------------------------------------------------
+local FloatType = typeclass(ArithmeticType)
+types.FloatType = FloatType
+
+function FloatType:_init(name, size, maxdigits)
+  ArithmeticType._init(self, name, size)
+  self.maxdigits = maxdigits
+  self.float = true
+  if self.bitsize == 32 then
+    self.float32 = true
+  elseif self.bitsize == 64 then
+    self.float64 = true
+  end
+end
+
+function FloatType:is_conversible_from_type(type, explicit)
+  if type:is_arithmetic() then
+    return true
+  end
+  return ArithmeticType.is_conversible_from_type(self, type, explicit)
+end
+
+function FloatType.is_inrange(value)
+  assert(traits.is_bignumber(value))
+  return true
+end
+
+function FloatType:promote_value()
+  --assert(traits.is_bignumber(value))
+  return self
+end
+
+function FloatType:promote_type(type)
+  if type:is_integral() then
+    return self
+  elseif not type:is_float() then
+    return
+  end
+  if type.size > self.size then
+    return type
+  end
+  return self
+end
+
+local function float_arithmetic_operation(self, rtype)
+  if not rtype or not rtype:is_arithmetic() then
+    return
+  end
+  return self:promote_type(rtype)
+end
+
+FloatType.binary_operators.add = float_arithmetic_operation
+FloatType.binary_operators.sub = float_arithmetic_operation
+FloatType.binary_operators.mul = float_arithmetic_operation
+FloatType.binary_operators.div = float_arithmetic_operation
+FloatType.binary_operators.idiv = float_arithmetic_operation
+FloatType.binary_operators.mod = float_arithmetic_operation
+FloatType.binary_operators.pow = float_arithmetic_operation
+
+--------------------------------------------------------------------------------
+local TableType = typeclass()
+types.TableType = TableType
+
+function TableType:_init(name)
+  Type._init(self, name, 0)
+  self.table = true
 end
 
 --------------------------------------------------------------------------------
 local ArrayTableType = typeclass()
+types.ArrayTableType = ArrayTableType
 
 function ArrayTableType:_init(node, subtype)
   Type._init(self, 'arraytable', cpusize*3, node)
   self.subtype = subtype
   self.codename = subtype.codename .. '_arrtab'
+  self.arraytable = true
 end
 
 function ArrayTableType:is_equal(type)
@@ -349,14 +561,18 @@ function ArrayTableType:__tostring()
   return sstream(self.name, '(', self.subtype, ')'):tostring()
 end
 
+ArrayTableType.unary_operators.len = 'integer'
+
 --------------------------------------------------------------------------------
 local ArrayType = typeclass()
+types.ArrayType = ArrayType
 
 function ArrayType:_init(node, subtype, length)
-  self.subtype = subtype
-  self.length = length
   local size = subtype.size * length
   Type._init(self, 'array', size, node)
+  self.subtype = subtype
+  self.length = length
+  self.array = true
   self.codename = string.format('%s_arr%d', subtype.codename, length)
 end
 
@@ -371,13 +587,17 @@ function ArrayType:__tostring()
   return sstream(self.name, '(', self.subtype, ', ', self.length, ')'):tostring()
 end
 
+ArrayType.unary_operators.len = 'integer'
+
 --------------------------------------------------------------------------------
 local EnumType = typeclass()
+types.EnumType = EnumType
 
 function EnumType:_init(node, subtype, fields)
+  Type._init(self, 'enum', subtype.size, node)
+  self.enum = true
   self.subtype = subtype
   self.fields = fields
-  Type._init(self, 'enum', subtype.size, node)
   self.codename = gencodename(self)
   for _,field in ipairs(fields) do
     field.codename = self.codename .. '_' .. field.name
@@ -402,11 +622,13 @@ end
 
 --------------------------------------------------------------------------------
 local FunctionType = typeclass()
+types.FunctionType = FunctionType
 
 function FunctionType:_init(node, argtypes, returntypes)
+  Type._init(self, 'function', cpusize, node)
+  self.Function = true
   self.argtypes = argtypes or {}
   self.returntypes = returntypes or {}
-  Type._init(self, 'function', cpusize, node)
   self.codename = gencodename(self)
   self.lazy = tabler.ifindif(argtypes, function(argtype)
     return argtype:is_multipletype()
@@ -427,11 +649,11 @@ function FunctionType:get_return_type(index)
   local lastindex = #returntypes
   local lastret = returntypes[#returntypes]
   if lastret and lastret:is_varanys() and index > lastindex then
-    return Type.any
+    return primtypes.any
   end
   local rettype = returntypes[index]
   if not rettype and index == 1 then
-    return Type.void
+    return primtypes.void
   end
   return rettype
 end
@@ -495,10 +717,12 @@ end
 
 --------------------------------------------------------------------------------
 local MultipleType = typeclass()
+types.MultipleType = MultipleType
 
-function MultipleType:_init(node, types)
-  self.types = types
+function MultipleType:_init(node, typelist)
   Type._init(self, 'multipletype', 0, node)
+  self.types = typelist
+  self.multipletype = true
 end
 
 function MultipleType:is_conversible_from_type(type, explicit)
@@ -518,6 +742,7 @@ end
 
 --------------------------------------------------------------------------------
 local MetaType = typeclass()
+types.MetaType = MetaType
 
 function MetaType:_init(node, fields)
   self.fields = fields or {}
@@ -550,6 +775,7 @@ end
 
 --------------------------------------------------------------------------------
 local RecordType = typeclass()
+types.RecordType = RecordType
 
 local function compute_record_size(fields, pack)
   local nfields = #fields
@@ -577,8 +803,9 @@ end
 
 function RecordType:_init(node, fields)
   local size = compute_record_size(fields)
-  self.fields = fields
   Type._init(self, 'record', size, node)
+  self.fields = fields
+  self.record = true
   self.codename = gencodename(self)
   self.metatype = MetaType()
 end
@@ -591,10 +818,6 @@ end
 
 function RecordType:is_equal(type)
   return type.name == self.name and type.key == self.key
-end
-
-function RecordType.is_record()
-  return true
 end
 
 function RecordType:__tostring()
@@ -615,14 +838,24 @@ function RecordType:set_metafield(name, symbol)
   return self.metatype:set_field(name, symbol)
 end
 
+RecordType.unary_operators.len = 'integer'
+
 --------------------------------------------------------------------------------
 local PointerType = typeclass()
+types.PointerType = PointerType
 
 function PointerType:_init(node, subtype)
-  self.subtype = subtype
   Type._init(self, 'pointer', cpusize, node)
-  if not subtype:is_void() then
+  self.subtype = subtype
+  self.pointer = true
+  if subtype:is_void() then
+    self.genericpointer = true
+    self.nodecl = true
+  else
     self.codename = subtype.codename .. '_ptr'
+  end
+  if subtype.name == 'cchar' then
+    self.cstring = true
   end
   self.unary_operators['deref'] = subtype
 end
@@ -640,22 +873,31 @@ function PointerType:is_conversible_from_node(node, explicit)
 end
 
 function PointerType:is_conversible_from_type(type, explicit)
-  if explicit and type:is_pointer() then
+  if type:is_pointer() then
+    if explicit then
+      return true
+    elseif type:is_pointer_of(self.subtype) then
+      return true
+    elseif self:is_generic_pointer() then
+      return true
+    end
+  end
+  if self:is_cstring() and type:is_string() then
+    return true
+  elseif type:is_nilptr() then
     return true
   end
-  if type:is_nilptr() then
-    return true
-  end
-  if Type.is_conversible_from_type(self, type, explicit) then
-    return true
-  end
-  return type:is_pointer() and (type.subtype == self.subtype or self.subtype:is_void())
+  return Type.is_conversible_from_type(self, type, explicit)
 end
 
 function PointerType:is_equal(type)
   return type.name == self.name and
          getmetatable(type) == getmetatable(self) and
          type.subtype == self.subtype
+end
+
+function PointerType:is_pointer_of(subtype)
+  return self.subtype == subtype
 end
 
 function PointerType:__tostring()
@@ -668,14 +910,16 @@ end
 
 --------------------------------------------------------------------------------
 local SpanType = typeclass(RecordType)
+types.SpanType = SpanType
 
 function SpanType:_init(node, subtype)
   local fields = {
     {name = 'data', type = PointerType(node, subtype)},
-    {name = 'size', type = Type.usize}
+    {name = 'size', type = primtypes.usize}
   }
-  local size = compute_record_size(fields)
-  Type._init(self, 'span', size, node)
+  RecordType._init(self, node, fields)
+  self.name = 'span'
+  self.span = true
   self.fields = fields
   self.codename = subtype.codename .. '_span'
   self.metatype = MetaType()
@@ -694,14 +938,17 @@ end
 
 --------------------------------------------------------------------------------
 local RangeType = typeclass(RecordType)
+types.RangeType = RangeType
 
 function RangeType:_init(node, subtype)
   local fields = {
     {name = 'low', type = subtype},
     {name = 'high', type = subtype}
   }
-  local size = compute_record_size(fields)
-  Type._init(self, 'range', size, node)
+  RecordType._init(self, node, fields)
+  self.name = 'range'
+  self.range = true
+  self.record = true
   self.fields = fields
   self.codename = subtype.codename .. '_range'
   self.metatype = MetaType()
@@ -718,17 +965,52 @@ function RangeType:__tostring()
   return sstream(self.name, '(', self.subtype, ')'):tostring()
 end
 
-local types = {
-  Type = Type,
-  ArrayTableType = ArrayTableType,
-  ArrayType = ArrayType,
-  EnumType = EnumType,
-  FunctionType = FunctionType,
-  MultipleType = MultipleType,
-  RecordType = RecordType,
-  PointerType = PointerType,
-  SpanType = SpanType,
-  RangeType = RangeType,
-}
+--------------------------------------------------------------------------------
+function types.set_typedefs(t)
+  typedefs = t
+  primtypes = t.primtypes
+end
+
+function types.get_pointer_type(subtype, node)
+  if subtype == primtypes.cstring.subtype then
+    return primtypes.cstring
+  elseif subtype == primtypes.pointer.subtype then
+    return primtypes.pointer
+  else
+    return types.PointerType(node, subtype)
+  end
+end
+
+function types.find_common_type(possibletypes)
+  local len = #possibletypes
+  if len == 0 then
+    return nil
+  end
+  local firsttype = possibletypes[1]
+  if len == 1 then
+    return firsttype
+  end
+
+  -- check if all types are the same first
+  if tabler.iall(possibletypes, function(ty)
+    return ty == firsttype
+  end) then
+    return firsttype
+  end
+
+  -- find common type between arithmetic types
+  if not firsttype:is_arithmetic() then
+    return
+  end
+  local numtype = firsttype
+  for i=2,len do
+    local ty = possibletypes[i]
+    if not ty:is_arithmetic() then
+      return nil
+    end
+    numtype = numtype:promote_type(ty)
+  end
+  return numtype
+end
 
 return types

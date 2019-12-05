@@ -188,10 +188,6 @@ function bn.isintegral(v)
   return v == v:trunc()
 end
 
-function bn.isunsignedintegral(v)
-  return v:isintegral() and not v:isneg()
-end
-
 function bn.floor(v)
   local q, r = v:quotrem(1)
   if r:isneg() and not r:iszero() then

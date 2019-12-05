@@ -192,9 +192,9 @@ typevisitors[types.Type] = function(context, type)
   if context:is_declarated(type.codename) then return end
   if type:is_string() then
     context:ensure_runtime_builtin('nelua_string')
-  elseif type:is_function() then
+  elseif type:is_function() then --luacov:disable
     error('ctype for functions not implemented yet')
-  elseif type:is_any() then
+  elseif type:is_any() then --luacov:enable
     context:ensure_runtime_builtin('nelua_any')
   elseif type:is_arraytable() then
     local subctype = context:ctype(type.subtype)
