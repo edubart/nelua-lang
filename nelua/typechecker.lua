@@ -108,15 +108,16 @@ function visitors.String(_, node)
   local value, literal = node:args()
   node:assertraisef(literal == nil, 'string literals are not supported yet')
   attr.value = value
-  attr.type = primtypes.string
+  attr.type = primtypes.string:clone_compconst(value, node)
   attr.compconst = true
 end
 
 function visitors.Boolean(_, node)
   local attr = node.attr
   if attr.type then return end
-  attr.value = node:args(1)
-  attr.type = primtypes.boolean
+  local value = node:args(1)
+  attr.value = value
+  attr.type = primtypes.boolean:clone_compconst(value, node)
   attr.compconst = true
 end
 
@@ -1572,7 +1573,7 @@ function visitors.BinaryOp(context, node, desiredtype)
   local parentnode = context:get_parent_node()
   local type
 
-  if desiredtype == primtypes.boolean then
+  if desiredtype and desiredtype:is_boolean() then
     if typedefs.binary_conditional_ops[opname] then
       type = primtypes.boolean
       desiredtype = type
@@ -1626,12 +1627,12 @@ function visitors.BinaryOp(context, node, desiredtype)
           context:traverse(prnode, rtype)
           local prtype = prnode.attr.type
           if prtype then
-            type = types.find_common_type({rtype, prtype})
+            type = rtype:promote_type(prtype)
           end
         end
       else
         if ltype and rtype then
-          type = types.find_common_type({ltype, rtype})
+          type = ltype:promote_type(rtype)
         end
       end
     else

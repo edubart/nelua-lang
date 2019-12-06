@@ -95,12 +95,6 @@ typedefs.unsigned_types = {
   primtypes.csize,
 }
 
--- NOTE: order here does matter when looking up for a common type between two different types
-typedefs.integer_coerce_types = {
-  primtypes.uint8, primtypes.uint16, primtypes.uint32, primtypes.uint64,
-  primtypes.int8, primtypes.int16, primtypes.int32, primtypes.int64,
-}
-
 -- literal suffixes types
 typedefs.number_literal_types = {
   _i          = primtypes.integer,  _integer    = primtypes.integer,

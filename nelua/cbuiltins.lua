@@ -552,9 +552,9 @@ function inlines.print(context, node)
       defemitter:add_builtin('nelua_stdout_write_boolean')
       defemitter:add_ln('(a',i,');')
     elseif argtype:is_arithmetic() then
-      local tyname = node:assertraisef(argtype, 'type is not defined in AST node')
-      local tyformat = cdefs.types_printf_format[tyname]
-      node:assertraisef(tyformat, 'invalid type "%s" for printf format', tyname)
+      local ty = node:assertraisef(argtype, 'type is not defined in AST node')
+      local tyformat = cdefs.types_printf_format[ty.codename]
+      node:assertraisef(tyformat, 'invalid type "%s" for printf format', ty)
       defemitter:add_builtin('nelua_stdout_write_format')
       defemitter:add_ln('("',tyformat,'", a',i,');')
     else --luacov:disable

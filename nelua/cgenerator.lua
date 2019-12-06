@@ -205,7 +205,8 @@ typevisitors[types.Type] = function(context, type)
     })
     context:use_gc()
   else
-    errorer.assertf(cdefs.primitive_ctypes[type], 'C type visitor for "%s" is not defined', type)
+    errorer.assertf(cdefs.primitive_ctypes[type.codename],
+      'C type visitor for "%s" is not defined', type)
   end
 end
 

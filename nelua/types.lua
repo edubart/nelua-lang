@@ -25,12 +25,8 @@ function Type:_init(name, size, node)
   self.name = name
   self.node = node
   self.size = size
-  self.integral = false
-  self.float = false
-  self.unsigned = false
   self.unary_operators = {}
   self.binary_operators = {}
-  self.aligned = nil
   self.codename = string.format('nelua_%s', self.name)
   local mt = getmetatable(self)
   metamagic.setmetaindex(self.unary_operators, mt.unary_operators)
@@ -125,22 +121,40 @@ function Type:is_conversible_from(typeornode, explicit)
   end
 end
 
+function Type:promote_type(type)
+  if self == type then
+    return self
+  end
+end
+
+function Type:clone(node)
+  local clone = {}
+  for k,v in pairs(self) do
+    clone[k] = v
+  end
+  clone.node = node
+  setmetatable(clone, getmetatable(self))
+  return clone
+end
+
+function Type:clone_compconst(value, node)
+  local clone = self:clone(node)
+  clone.compconst = true
+  clone.value = value
+  return clone
+end
+
 function Type:is_equal(type)
-  return rawequal(self, type)
+  if type then
+    if rawequal(type, self) then
+      return true
+    end
+    return type.name == self.name and getmetatable(type) == getmetatable(self)
+  end
 end
 
-function Type:is_primitive()
-  return primtypes[self.name] == self
-end
-
-function Type:__tostring()
-  return self.name
-end
-
-function Type:__eq(type)
-  return self:is_equal(type) and type:is_equal(self)
-end
-
+function Type:is_primitive() return self.primitive end
+function Type:is_compconst() return self.compconst end
 function Type:is_arithmetic() return self.arithmetic end
 function Type:is_float32() return self.float32 end
 function Type:is_float64() return self.float64 end
@@ -170,6 +184,14 @@ function Type:is_unsigned() return self.unsigned end
 function Type:is_signed() return self.arithmetic and not self.unsigned end
 function Type:is_generic_pointer() return self.genericpointer end
 function Type.is_pointer_of() return false end
+
+function Type:__tostring()
+  return self.name
+end
+
+function Type:__eq(type)
+  return self:is_equal(type) and type:is_equal(self)
+end
 
 Type.unary_operators['not'] = 'boolean'
 Type.unary_operators.ref = function(self)
@@ -221,6 +243,7 @@ types.VoidType = VoidType
 function VoidType:_init(name)
   Type._init(self, name, 0)
   self.void = true
+  self.primitive = true
 end
 
 --------------------------------------------------------------------------------
@@ -242,6 +265,8 @@ function NilType:_init(name)
   Type._init(self, name, 0)
   self.Nil = true
   self.nilable = true
+  self.primitive = true
+  self.compconst = true
 end
 
 --------------------------------------------------------------------------------
@@ -251,6 +276,8 @@ types.NilptrType = NilptrType
 function NilptrType:_init(name, size)
   Type._init(self, name, size)
   self.nilptr = true
+  self.primitive = true
+  self.compconst = true
 end
 
 --------------------------------------------------------------------------------
@@ -260,6 +287,7 @@ types.StringType = StringType
 function StringType:_init(name, size)
   Type._init(self, name, size)
   self.string = true
+  self.primitive = true
 end
 
 function StringType:is_conversible_from_type(type, explicit)
@@ -284,6 +312,7 @@ types.BooleanType = BooleanType
 function BooleanType:_init(name, size)
   Type._init(self, name, size)
   self.boolean = true
+  self.primitive = true
 end
 
 function BooleanType.is_conversible_from_type()
@@ -298,6 +327,7 @@ function AnyType:_init(name, size)
   Type._init(self, name, size)
   self.any = true
   self.nilable = true
+  self.primitive = true
   if name == 'varanys' then
     self.varanys = true
   end
@@ -315,6 +345,7 @@ function ArithmeticType:_init(name, size)
   Type._init(self, name, size)
   self.bitsize = size * 8
   self.arithmetic = true
+  self.primitive = true
 end
 
 function ArithmeticType:is_conversible_from_type(type, explicit)
@@ -387,7 +418,7 @@ function IntegralType:promote_value(value)
 end
 
 function IntegralType:promote_type(type)
-  if type:is_float() then
+  if type == self or type:is_float() then
     return type
   elseif not type:is_integral() then
     return
@@ -505,7 +536,7 @@ function FloatType:promote_value()
 end
 
 function FloatType:promote_type(type)
-  if type:is_integral() then
+  if type == self or type:is_integral() then
     return self
   elseif not type:is_float() then
     return
@@ -851,11 +882,14 @@ function PointerType:_init(node, subtype)
   if subtype:is_void() then
     self.genericpointer = true
     self.nodecl = true
+    self.primitive = true
+  elseif subtype.name == 'cchar' then
+    self.cstring = true
+    self.primitive = true
+    self.nodecl = true
+    self.codename = 'nelua_cstring'
   else
     self.codename = subtype.codename .. '_ptr'
-  end
-  if subtype.name == 'cchar' then
-    self.cstring = true
   end
   self.unary_operators['deref'] = subtype
 end
@@ -972,9 +1006,9 @@ function types.set_typedefs(t)
 end
 
 function types.get_pointer_type(subtype, node)
-  if subtype == primtypes.cstring.subtype then
+  if subtype == primtypes.cchar then
     return primtypes.cstring
-  elseif subtype == primtypes.pointer.subtype then
+  elseif subtype:is_void() then
     return primtypes.pointer
   else
     return types.PointerType(node, subtype)
@@ -982,35 +1016,14 @@ function types.get_pointer_type(subtype, node)
 end
 
 function types.find_common_type(possibletypes)
-  local len = #possibletypes
-  if len == 0 then
-    return nil
-  end
-  local firsttype = possibletypes[1]
-  if len == 1 then
-    return firsttype
-  end
-
-  -- check if all types are the same first
-  if tabler.iall(possibletypes, function(ty)
-    return ty == firsttype
-  end) then
-    return firsttype
-  end
-
-  -- find common type between arithmetic types
-  if not firsttype:is_arithmetic() then
-    return
-  end
-  local numtype = firsttype
-  for i=2,len do
-    local ty = possibletypes[i]
-    if not ty:is_arithmetic() then
-      return nil
+  local commontype = possibletypes[1]
+  for i=2,#possibletypes do
+    commontype = commontype:promote_type(possibletypes[i])
+    if not commontype then
+      break
     end
-    numtype = numtype:promote_type(ty)
   end
-  return numtype
+  return commontype
 end
 
 return types
