@@ -1105,9 +1105,9 @@ local a <volatile> = 1 -- C volatile variable
 Nelua can import C functions from C headers:
 
 ```nelua
-local function malloc(size: usize): pointer <cimport('malloc','<stdlib.h>')> end
-local function memset(s: pointer, c: int32, n: usize): pointer <cimport('memset','<stdlib.h>')> end
-local function free(ptr: pointer) <cimport('free','<stdlib.h>')> end
+local function malloc(size: usize): pointer <cimport'malloc',cinclude'<stdlib.h>'> end
+local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<stdlib.h>'> end
+local function free(ptr: pointer) <cimport'free',cinclude'<stdlib.h>'> end
 local a = (@int64[10]*)(malloc(10 * 8))
 memset(a, 0, 10*8)
 assert(a[0] == 0)

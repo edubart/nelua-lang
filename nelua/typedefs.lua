@@ -170,6 +170,7 @@ local common_attribs = {
 
 typedefs.function_attribs = {
   cimport = common_attribs.cimport,
+  cinclude = common_attribs.onestring,
   codename = common_attribs.onestring,
   cqualifier = common_attribs.onestring,
   cattribute = common_attribs.onestring,
@@ -185,6 +186,7 @@ typedefs.function_attribs = {
 
 typedefs.variable_attribs = {
   cimport = common_attribs.cimport,
+  cinclude = common_attribs.onestring,
   codename = common_attribs.onestring,
   cqualifier = common_attribs.onestring,
   cattribute = common_attribs.onestring,
@@ -203,6 +205,7 @@ typedefs.variable_attribs = {
 typedefs.type_attribs = {
   aligned = common_attribs.oneinteger,
   cimport = common_attribs.cimport,
+  cinclude = common_attribs.onestring,
   codename = common_attribs.onestring,
   nodecl = true,
   packed = true,

@@ -52,9 +52,7 @@ local function SDL_Init(flags: uint32): int32 <cimport> end
 local function SDL_CreateWindow(title: cstring, x: cint, y: cint, w: cint, h: cint, flags: uint32): SDL_Window* <cimport> end
 local function SDL_Quit() <cimport> end
 local function SDL_DestroyWindow(window: SDL_Window*) <cimport> end
-local function SDL_Delay(ms: uint32) <cimport> end
 local function SDL_PollEvent(event: SDL_Event*): int32 <cimport> end
-local function SDL_WaitEvent(event: SDL_Event*): int32 <cimport> end
 local function SDL_CreateRenderer(window: SDL_Window*, index: cint, flags: uint32): SDL_Renderer* <cimport> end
 local function SDL_DestroyRenderer(renderer: SDL_Renderer*) <cimport> end
 local function SDL_RenderPresent(renderer: SDL_Renderer*) <cimport> end
@@ -63,7 +61,7 @@ local function SDL_SetRenderDrawColor(renderer: SDL_Renderer*, r: uint8, g: uint
 local function SDL_RenderFillRect(renderer: SDL_Renderer*, rect: SDL_Rect*): cint <cimport> end
 local function SDL_GetTicks(): uint32 <cimport> end
 --local function SDL_GetError(): cstring <cimport> end
-local function rand(): int32 <cimport('rand')> end
+local function rand(): int32 <cimport'rand'> end
 
 -- game types
 local Point2D = @record{x: integer, y: integer}

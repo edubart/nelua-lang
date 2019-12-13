@@ -292,16 +292,13 @@ function visitors.Attrib(context, node, symbol)
   attr[name] = params
 
   if name == 'cimport' then
-    local cname, header = tabler.unpack(params)
+    local cname, decl = tabler.unpack(params)
     if cname then
       attr.codename = cname
     elseif type then
       type.codename = symbol.name
     end
-    attr.nodecl = header ~= true
-    if traits.is_string(header) then
-      attr.cinclude = header
-    end
+    attr.nodecl = decl ~= true
   end
 end
 
