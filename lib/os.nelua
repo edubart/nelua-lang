@@ -13,28 +13,28 @@
 ## cinclude '<locale.h>'
 ## cinclude '<errno.h>'
 
-local CLOCKS_PER_SEC: clong <cimport>
-local LC_ALL: cint <cimport>
-local LC_COLLATE: cint <cimport>
-local LC_CTYPE: cint <cimport>
-local LC_MONETARY: cint <cimport>
-local LC_NUMERIC: cint <cimport>
-local LC_TIME: cint <cimport>
-local EXIT_SUCCESS: cint <cimport>
-local EXIT_FAILURE: cint <cimport>
-local errno: cint <cimport>
-local function clock(): clong <cimport> end
-local function getenv(name: cstring): cstring <cimport> end
-local function exit(status: cint) <cimport> end
-local function mkstemp(s: cstring): cint <cimport> end
-local function close(fd: cint): cint <cimport> end
-local function strncpy(dest: cstring, src: cstring, n: usize): cstring <cimport> end
-local function system(command: cstring): cint <cimport> end
-local function strerror(errnum: cint): cstring <cimport> end
-local function rename(old: cstring, new: cstring): cint <cimport> end
-local function remove(pathname: cstring): cint <cimport> end
-local function setlocale(category: cint, locale: cstring): cstring <cimport> end
-local function ctime(tloc: pointer): clong <cimport 'time'> end
+local CLOCKS_PER_SEC: clong <cimport,nodecl>
+local LC_ALL: cint <cimport,nodecl>
+local LC_COLLATE: cint <cimport,nodecl>
+local LC_CTYPE: cint <cimport,nodecl>
+local LC_MONETARY: cint <cimport,nodecl>
+local LC_NUMERIC: cint <cimport,nodecl>
+local LC_TIME: cint <cimport,nodecl>
+local EXIT_SUCCESS: cint <cimport,nodecl>
+local EXIT_FAILURE: cint <cimport,nodecl>
+local errno: cint <cimport,nodecl>
+local function clock(): clong <cimport,nodecl> end
+local function getenv(name: cstring): cstring <cimport,nodecl> end
+local function exit(status: cint) <cimport,nodecl> end
+local function mkstemp(s: cstring): cint <cimport,nodecl> end
+local function close(fd: cint): cint <cimport,nodecl> end
+local function strncpy(dest: cstring, src: cstring, n: usize): cstring <cimport,nodecl> end
+local function system(command: cstring): cint <cimport,nodecl> end
+local function strerror(errnum: cint): cstring <cimport,nodecl> end
+local function rename(old: cstring, new: cstring): cint <cimport,nodecl> end
+local function remove(pathname: cstring): cint <cimport,nodecl> end
+local function setlocale(category: cint, locale: cstring): cstring <cimport,nodecl> end
+local function ctime(tloc: pointer): clong <cimport'time',nodecl> end
 
 --------------------------------------------------------------------------------
 -- os module

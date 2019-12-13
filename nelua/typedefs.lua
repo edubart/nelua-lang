@@ -163,7 +163,7 @@ typedefs.field_pragmas = {
 }
 
 local common_attribs = {
-  cimport = shaper.shape{shaper.string:is_optional(), (shaper.boolean + shaper.string):is_optional()},
+  cimport = shaper.shape{shaper.string:is_optional()},
   onestring = shaper.shape{shaper.string},
   oneinteger = shaper.shape{shaper.integer}
 }

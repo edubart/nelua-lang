@@ -2,312 +2,312 @@
 ## cinclude '<math.h>'
 
 -- Basic operations
-function C.fabs(x: float64): float64 <cimport 'fabs'> end
-function C.fabsf(x: float32): float32 <cimport 'fabsf'> end
-function C.fabsl(x: clongdouble): clongdouble <cimport 'fabsl'> end
+function C.fabs(x: float64): float64 <cimport'fabs',nodecl> end
+function C.fabsf(x: float32): float32 <cimport'fabsf',nodecl> end
+function C.fabsl(x: clongdouble): clongdouble <cimport'fabsl',nodecl> end
 
-function C.fmod(x: float64, y: float64): float64 <cimport 'fmod'> end
-function C.fmodf(x: float32, y: float32): float32 <cimport 'fmodf'> end
-function C.fmodl(x: clongdouble, y: clongdouble): clongdouble <cimport 'fmodl'> end
+function C.fmod(x: float64, y: float64): float64 <cimport'fmod',nodecl> end
+function C.fmodf(x: float32, y: float32): float32 <cimport'fmodf',nodecl> end
+function C.fmodl(x: clongdouble, y: clongdouble): clongdouble <cimport'fmodl',nodecl> end
 
-function C.remainder(x: float64, y: float64): float64 <cimport 'remainder'> end
-function C.remainderf(x: float32, y: float32): float32 <cimport 'remainderf'> end
-function C.remainderl(x: clongdouble, y: clongdouble): clongdouble <cimport 'remainderl'> end
+function C.remainder(x: float64, y: float64): float64 <cimport'remainder',nodecl> end
+function C.remainderf(x: float32, y: float32): float32 <cimport'remainderf',nodecl> end
+function C.remainderl(x: clongdouble, y: clongdouble): clongdouble <cimport'remainderl',nodecl> end
 
-function C.remquo(x: float64, y: float64, quo: cint*): float64 <cimport 'remquo'> end
-function C.remquof(x: float32, y: float32, quo: cint*): float32 <cimport 'remquof'> end
-function C.remquol(x: clongdouble, y: clongdouble, quo: cint*): clongdouble <cimport 'remquol'> end
+function C.remquo(x: float64, y: float64, quo: cint*): float64 <cimport'remquo',nodecl> end
+function C.remquof(x: float32, y: float32, quo: cint*): float32 <cimport'remquof',nodecl> end
+function C.remquol(x: clongdouble, y: clongdouble, quo: cint*): clongdouble <cimport'remquol',nodecl> end
 
-function C.fma(x: float64, y: float64, z: float64): float64 <cimport 'fma'> end
-function C.fmaf(x: float32, y: float32, z: float32): float32 <cimport 'fmaf'> end
-function C.fmal(x: clongdouble, y: clongdouble, z: clongdouble): clongdouble <cimport 'fmal'> end
+function C.fma(x: float64, y: float64, z: float64): float64 <cimport'fma',nodecl> end
+function C.fmaf(x: float32, y: float32, z: float32): float32 <cimport'fmaf',nodecl> end
+function C.fmal(x: clongdouble, y: clongdouble, z: clongdouble): clongdouble <cimport'fmal',nodecl> end
 
-function C.fmax(x: float64, y: float64): float64 <cimport 'fmax'> end
-function C.fmaxf(x: float32, y: float32): float32 <cimport 'fmaxf'> end
-function C.fmaxl(x: clongdouble, y: clongdouble): clongdouble <cimport 'fmaxl'> end
+function C.fmax(x: float64, y: float64): float64 <cimport'fmax',nodecl> end
+function C.fmaxf(x: float32, y: float32): float32 <cimport'fmaxf',nodecl> end
+function C.fmaxl(x: clongdouble, y: clongdouble): clongdouble <cimport'fmaxl',nodecl> end
 
-function C.fmin(x: float64, y: float64): float64 <cimport 'fmin'> end
-function C.fminf(x: float32, y: float32): float32 <cimport 'fminf'> end
-function C.fminl(x: clongdouble, y: clongdouble): clongdouble <cimport 'fminl'> end
+function C.fmin(x: float64, y: float64): float64 <cimport'fmin',nodecl> end
+function C.fminf(x: float32, y: float32): float32 <cimport'fminf',nodecl> end
+function C.fminl(x: clongdouble, y: clongdouble): clongdouble <cimport'fminl',nodecl> end
 
-function C.fdim(x: float64, y: float64): float64 <cimport 'fdim'> end
-function C.fdimf(x: float32, y: float32): float32 <cimport 'fdimf'> end
-function C.fdiml(x: clongdouble, y: clongdouble): clongdouble <cimport 'fdiml'> end
+function C.fdim(x: float64, y: float64): float64 <cimport'fdim',nodecl> end
+function C.fdimf(x: float32, y: float32): float32 <cimport'fdimf',nodecl> end
+function C.fdiml(x: clongdouble, y: clongdouble): clongdouble <cimport'fdiml',nodecl> end
 
-function C.nan(tagb: cchar*): float64 <cimport 'nan'> end
-function C.nanf(tagb: cchar*): float32 <cimport 'nanf'> end
-function C.nanl(tagb: cchar*): clongdouble <cimport 'nanl'> end
+function C.nan(tagb: cchar*): float64 <cimport'nan',nodecl> end
+function C.nanf(tagb: cchar*): float32 <cimport'nanf',nodecl> end
+function C.nanl(tagb: cchar*): clongdouble <cimport'nanl',nodecl> end
 
 -- Exponential functions
-function C.exp(x: float64): float64 <cimport 'exp'> end
-function C.expf(x: float32): float32 <cimport 'expf'> end
-function C.expl(x: clongdouble): clongdouble <cimport 'expl'> end
+function C.exp(x: float64): float64 <cimport'exp',nodecl> end
+function C.expf(x: float32): float32 <cimport'expf',nodecl> end
+function C.expl(x: clongdouble): clongdouble <cimport'expl',nodecl> end
 
-function C.exp2(x: float64): float64 <cimport 'exp2'> end
-function C.exp2f(x: float32): float32 <cimport 'exp2f'> end
-function C.exp2l(x: clongdouble): clongdouble <cimport 'exp2l'> end
+function C.exp2(x: float64): float64 <cimport'exp2',nodecl> end
+function C.exp2f(x: float32): float32 <cimport'exp2f',nodecl> end
+function C.exp2l(x: clongdouble): clongdouble <cimport'exp2l',nodecl> end
 
-function C.expm1(x: float64): float64 <cimport 'expm1'> end
-function C.expm1f(x: float32): float32 <cimport 'expm1f'> end
-function C.expm1l(x: clongdouble): clongdouble <cimport 'expm1l'> end
+function C.expm1(x: float64): float64 <cimport'expm1',nodecl> end
+function C.expm1f(x: float32): float32 <cimport'expm1f',nodecl> end
+function C.expm1l(x: clongdouble): clongdouble <cimport'expm1l',nodecl> end
 
-function C.log(x: float64): float64 <cimport 'log'> end
-function C.logf(x: float32): float32 <cimport 'logf'> end
-function C.logl(x: clongdouble): clongdouble <cimport 'logl'> end
+function C.log(x: float64): float64 <cimport'log',nodecl> end
+function C.logf(x: float32): float32 <cimport'logf',nodecl> end
+function C.logl(x: clongdouble): clongdouble <cimport'logl',nodecl> end
 
-function C.log10(x: float64): float64 <cimport 'log10'> end
-function C.log10f(x: float32): float32 <cimport 'log10f'> end
-function C.log10l(x: clongdouble): clongdouble <cimport 'log10l'> end
+function C.log10(x: float64): float64 <cimport'log10',nodecl> end
+function C.log10f(x: float32): float32 <cimport'log10f',nodecl> end
+function C.log10l(x: clongdouble): clongdouble <cimport'log10l',nodecl> end
 
-function C.log1p(x: float64): float64 <cimport 'log1p'> end
-function C.log1pf(x: float32): float32 <cimport 'log1pf'> end
-function C.log1pl(x: clongdouble): clongdouble <cimport 'log1pl'> end
+function C.log1p(x: float64): float64 <cimport'log1p',nodecl> end
+function C.log1pf(x: float32): float32 <cimport'log1pf',nodecl> end
+function C.log1pl(x: clongdouble): clongdouble <cimport'log1pl',nodecl> end
 
-function C.log2(x: float64): float64 <cimport 'log2'> end
-function C.log2f(x: float32): float32 <cimport 'log2f'> end
-function C.log2l(x: clongdouble): clongdouble <cimport 'log2l'> end
+function C.log2(x: float64): float64 <cimport'log2',nodecl> end
+function C.log2f(x: float32): float32 <cimport'log2f',nodecl> end
+function C.log2l(x: clongdouble): clongdouble <cimport'log2l',nodecl> end
 
-function C.logb(x: float64): float64 <cimport 'logb'> end
-function C.logbf(x: float32): float32 <cimport 'logbf'> end
-function C.logbl(x: clongdouble): clongdouble <cimport 'logbl'> end
+function C.logb(x: float64): float64 <cimport'logb',nodecl> end
+function C.logbf(x: float32): float32 <cimport'logbf',nodecl> end
+function C.logbl(x: clongdouble): clongdouble <cimport'logbl',nodecl> end
 
 -- Power functions
-function C.pow(x: float64, y: float64): float64 <cimport 'pow'> end
-function C.powf(x: float32, y: float32): float32 <cimport 'powf'> end
-function C.powl(x: clongdouble, y: clongdouble): clongdouble <cimport 'powl'> end
+function C.pow(x: float64, y: float64): float64 <cimport'pow',nodecl> end
+function C.powf(x: float32, y: float32): float32 <cimport'powf',nodecl> end
+function C.powl(x: clongdouble, y: clongdouble): clongdouble <cimport'powl',nodecl> end
 
-function C.sqrt(x: float64): float64 <cimport 'sqrt'> end
-function C.sqrtf(x: float32): float32 <cimport 'sqrtf'> end
-function C.sqrtl(x: clongdouble): clongdouble <cimport 'sqrtl'> end
+function C.sqrt(x: float64): float64 <cimport'sqrt',nodecl> end
+function C.sqrtf(x: float32): float32 <cimport'sqrtf',nodecl> end
+function C.sqrtl(x: clongdouble): clongdouble <cimport'sqrtl',nodecl> end
 
-function C.cbrt(x: float64): float64 <cimport 'cbrt'> end
-function C.cbrtf(x: float32): float32 <cimport 'cbrtf'> end
-function C.cbrtl(x: clongdouble): clongdouble <cimport 'cbrtl'> end
+function C.cbrt(x: float64): float64 <cimport'cbrt',nodecl> end
+function C.cbrtf(x: float32): float32 <cimport'cbrtf',nodecl> end
+function C.cbrtl(x: clongdouble): clongdouble <cimport'cbrtl',nodecl> end
 
-function C.hypot(x: float64, y: float64): float64 <cimport 'hypot'> end
-function C.hypotf(x: float32, y: float32): float32 <cimport 'hypotf'> end
-function C.hypotl(x: clongdouble, y: clongdouble): clongdouble <cimport 'hypotl'> end
+function C.hypot(x: float64, y: float64): float64 <cimport'hypot',nodecl> end
+function C.hypotf(x: float32, y: float32): float32 <cimport'hypotf',nodecl> end
+function C.hypotl(x: clongdouble, y: clongdouble): clongdouble <cimport'hypotl',nodecl> end
 
 -- Trigonometric functions
-function C.cos(x: float64): float64 <cimport 'cos'> end
-function C.cosf(x: float32): float32 <cimport 'cosf'> end
-function C.cosl(x: clongdouble): clongdouble <cimport 'cosl'> end
+function C.cos(x: float64): float64 <cimport'cos',nodecl> end
+function C.cosf(x: float32): float32 <cimport'cosf',nodecl> end
+function C.cosl(x: clongdouble): clongdouble <cimport'cosl',nodecl> end
 
-function C.sin(x: float64): float64 <cimport 'sin'> end
-function C.sinf(x: float32): float32 <cimport 'sinf'> end
-function C.sinl(x: clongdouble): clongdouble <cimport 'sinl'> end
+function C.sin(x: float64): float64 <cimport'sin',nodecl> end
+function C.sinf(x: float32): float32 <cimport'sinf',nodecl> end
+function C.sinl(x: clongdouble): clongdouble <cimport'sinl',nodecl> end
 
-function C.tan(x: float64): float64 <cimport 'tan'> end
-function C.tanf(x: float32): float32 <cimport 'tanf'> end
-function C.tanl(x: clongdouble): clongdouble <cimport 'tanl'> end
+function C.tan(x: float64): float64 <cimport'tan',nodecl> end
+function C.tanf(x: float32): float32 <cimport'tanf',nodecl> end
+function C.tanl(x: clongdouble): clongdouble <cimport'tanl',nodecl> end
 
-function C.acos(x: float64): float64 <cimport 'acos'> end
-function C.acosf(x: float32): float32 <cimport 'acosf'> end
-function C.acosl(x: clongdouble): clongdouble <cimport 'acosl'> end
+function C.acos(x: float64): float64 <cimport'acos',nodecl> end
+function C.acosf(x: float32): float32 <cimport'acosf',nodecl> end
+function C.acosl(x: clongdouble): clongdouble <cimport'acosl',nodecl> end
 
-function C.asin(x: float64): float64 <cimport 'asin'> end
-function C.asinf(x: float32): float32 <cimport 'asinf'> end
-function C.asinl(x: clongdouble): clongdouble <cimport 'asinl'> end
+function C.asin(x: float64): float64 <cimport'asin',nodecl> end
+function C.asinf(x: float32): float32 <cimport'asinf',nodecl> end
+function C.asinl(x: clongdouble): clongdouble <cimport'asinl',nodecl> end
 
-function C.atan(x: float64): float64 <cimport 'atan'> end
-function C.atanf(x: float32): float32 <cimport 'atanf'> end
-function C.atanl(x: clongdouble): clongdouble <cimport 'atanl'> end
+function C.atan(x: float64): float64 <cimport'atan',nodecl> end
+function C.atanf(x: float32): float32 <cimport'atanf',nodecl> end
+function C.atanl(x: clongdouble): clongdouble <cimport'atanl',nodecl> end
 
-function C.atan2(y: float64, x: float64): float64 <cimport 'atan2'> end
-function C.atan2f(y: float32, x: float32): float32 <cimport 'atan2f'> end
-function C.atan2l(y: clongdouble, x: clongdouble): clongdouble <cimport 'atan2l'> end
+function C.atan2(y: float64, x: float64): float64 <cimport'atan2',nodecl> end
+function C.atan2f(y: float32, x: float32): float32 <cimport'atan2f',nodecl> end
+function C.atan2l(y: clongdouble, x: clongdouble): clongdouble <cimport'atan2l',nodecl> end
 
 -- Hyperbolic functions
-function C.cosh(x: float64): float64 <cimport 'cosh'> end
-function C.coshf(x: float32): float32 <cimport 'coshf'> end
-function C.coshl(x: clongdouble): clongdouble <cimport 'coshl'> end
+function C.cosh(x: float64): float64 <cimport'cosh',nodecl> end
+function C.coshf(x: float32): float32 <cimport'coshf',nodecl> end
+function C.coshl(x: clongdouble): clongdouble <cimport'coshl',nodecl> end
 
-function C.sinh(x: float64): float64 <cimport 'sinh'> end
-function C.sinhf(x: float32): float32 <cimport 'sinhf'> end
-function C.sinhl(x: clongdouble): clongdouble <cimport 'sinhl'> end
+function C.sinh(x: float64): float64 <cimport'sinh',nodecl> end
+function C.sinhf(x: float32): float32 <cimport'sinhf',nodecl> end
+function C.sinhl(x: clongdouble): clongdouble <cimport'sinhl',nodecl> end
 
-function C.tanh(x: float64): float64 <cimport 'tanh'> end
-function C.tanhf(x: float32): float32 <cimport 'tanhf'> end
-function C.tanhl(x: clongdouble): clongdouble <cimport 'tanhl'> end
+function C.tanh(x: float64): float64 <cimport'tanh',nodecl> end
+function C.tanhf(x: float32): float32 <cimport'tanhf',nodecl> end
+function C.tanhl(x: clongdouble): clongdouble <cimport'tanhl',nodecl> end
 
-function C.acosh(x: float64): float64 <cimport 'acosh'> end
-function C.acoshf(x: float32): float32 <cimport 'acoshf'> end
-function C.acoshl(x: clongdouble): clongdouble <cimport 'acoshl'> end
+function C.acosh(x: float64): float64 <cimport'acosh',nodecl> end
+function C.acoshf(x: float32): float32 <cimport'acoshf',nodecl> end
+function C.acoshl(x: clongdouble): clongdouble <cimport'acoshl',nodecl> end
 
-function C.asinh(x: float64): float64 <cimport 'asinh'> end
-function C.asinhf(x: float32): float32 <cimport 'asinhf'> end
-function C.asinhl(x: clongdouble): clongdouble <cimport 'asinhl'> end
+function C.asinh(x: float64): float64 <cimport'asinh',nodecl> end
+function C.asinhf(x: float32): float32 <cimport'asinhf',nodecl> end
+function C.asinhl(x: clongdouble): clongdouble <cimport'asinhl',nodecl> end
 
-function C.atanh(x: float64): float64 <cimport 'atanh'> end
-function C.atanhf(x: float32): float32 <cimport 'atanhf'> end
-function C.atanhl(x: clongdouble): clongdouble <cimport 'atanhl'> end
+function C.atanh(x: float64): float64 <cimport'atanh',nodecl> end
+function C.atanhf(x: float32): float32 <cimport'atanhf',nodecl> end
+function C.atanhl(x: clongdouble): clongdouble <cimport'atanhl',nodecl> end
 
 -- Error and gamma functions
-function C.erf(x: float64): float64 <cimport 'erf'> end
-function C.erff(x: float32): float32 <cimport 'erff'> end
-function C.erfl(x: clongdouble): clongdouble <cimport 'erfl'> end
+function C.erf(x: float64): float64 <cimport'erf',nodecl> end
+function C.erff(x: float32): float32 <cimport'erff',nodecl> end
+function C.erfl(x: clongdouble): clongdouble <cimport'erfl',nodecl> end
 
-function C.erfc(x: float64): float64 <cimport 'erfc'> end
-function C.erfcf(x: float32): float32 <cimport 'erfcf'> end
-function C.erfcl(x: clongdouble): clongdouble <cimport 'erfcl'> end
+function C.erfc(x: float64): float64 <cimport'erfc',nodecl> end
+function C.erfcf(x: float32): float32 <cimport'erfcf',nodecl> end
+function C.erfcl(x: clongdouble): clongdouble <cimport'erfcl',nodecl> end
 
-function C.tgamma(x: float64): float64 <cimport 'tgamma'> end
-function C.tgammaf(x: float32): float32 <cimport 'tgammaf'> end
-function C.tgammal(x: clongdouble): clongdouble <cimport 'tgammal'> end
+function C.tgamma(x: float64): float64 <cimport'tgamma',nodecl> end
+function C.tgammaf(x: float32): float32 <cimport'tgammaf',nodecl> end
+function C.tgammal(x: clongdouble): clongdouble <cimport'tgammal',nodecl> end
 
-function C.lgamma(x: float64): float64 <cimport 'lgamma'> end
-function C.lgammaf(x: float32): float32 <cimport 'lgammaf'> end
-function C.lgammal(x: clongdouble): clongdouble <cimport 'lgammal'> end
+function C.lgamma(x: float64): float64 <cimport'lgamma',nodecl> end
+function C.lgammaf(x: float32): float32 <cimport'lgammaf',nodecl> end
+function C.lgammal(x: clongdouble): clongdouble <cimport'lgammal',nodecl> end
 
 -- Nearest integer floating-point operations
-function C.ceil(x: float64): float64 <cimport 'ceil'> end
-function C.ceilf(x: float32): float32 <cimport 'ceilf'> end
-function C.ceill(x: clongdouble): clongdouble <cimport 'ceill'> end
+function C.ceil(x: float64): float64 <cimport'ceil',nodecl> end
+function C.ceilf(x: float32): float32 <cimport'ceilf',nodecl> end
+function C.ceill(x: clongdouble): clongdouble <cimport'ceill',nodecl> end
 
-function C.floor(x: float64): float64 <cimport 'floor'> end
-function C.floorf(x: float32): float32 <cimport 'floorf'> end
-function C.floorl(x: clongdouble): clongdouble <cimport 'floorl'> end
+function C.floor(x: float64): float64 <cimport'floor',nodecl> end
+function C.floorf(x: float32): float32 <cimport'floorf',nodecl> end
+function C.floorl(x: clongdouble): clongdouble <cimport'floorl',nodecl> end
 
-function C.trunc(x: float64): float64 <cimport 'trunc'> end
-function C.truncf(x: float32): float32 <cimport 'truncf'> end
-function C.truncl(x: clongdouble): clongdouble <cimport 'truncl'> end
+function C.trunc(x: float64): float64 <cimport'trunc',nodecl> end
+function C.truncf(x: float32): float32 <cimport'truncf',nodecl> end
+function C.truncl(x: clongdouble): clongdouble <cimport'truncl',nodecl> end
 
-function C.round(x: float64): float64 <cimport 'round'> end
-function C.roundf(x: float32): float32 <cimport 'roundf'> end
-function C.roundl(x: clongdouble): clongdouble <cimport 'roundl'> end
+function C.round(x: float64): float64 <cimport'round',nodecl> end
+function C.roundf(x: float32): float32 <cimport'roundf',nodecl> end
+function C.roundl(x: clongdouble): clongdouble <cimport'roundl',nodecl> end
 
-function C.lround(x: float64): clong <cimport 'lround'> end
-function C.lroundf(x: float32): clong <cimport 'lroundf'> end
-function C.lroundl(x: clongdouble): clong <cimport 'lroundl'> end
+function C.lround(x: float64): clong <cimport'lround',nodecl> end
+function C.lroundf(x: float32): clong <cimport'lroundf',nodecl> end
+function C.lroundl(x: clongdouble): clong <cimport'lroundl',nodecl> end
 
-function C.llround(x: float64): clonglong <cimport 'llround'> end
-function C.llroundf(x: float32): clonglong <cimport 'llroundf'> end
-function C.llroundl(x: clongdouble): clonglong <cimport 'llroundl'> end
+function C.llround(x: float64): clonglong <cimport'llround',nodecl> end
+function C.llroundf(x: float32): clonglong <cimport'llroundf',nodecl> end
+function C.llroundl(x: clongdouble): clonglong <cimport'llroundl',nodecl> end
 
-function C.rint(x: float64): float64 <cimport 'rint'> end
-function C.rintf(x: float32): float32 <cimport 'rintf'> end
-function C.rintl(x: clongdouble): clongdouble <cimport 'rintl'> end
+function C.rint(x: float64): float64 <cimport'rint',nodecl> end
+function C.rintf(x: float32): float32 <cimport'rintf',nodecl> end
+function C.rintl(x: clongdouble): clongdouble <cimport'rintl',nodecl> end
 
-function C.lrint(x: float64): clong <cimport 'lrint'> end
-function C.lrintf(x: float32): clong <cimport 'lrintf'> end
-function C.lrintl(x: clongdouble): clong <cimport 'lrintl'> end
+function C.lrint(x: float64): clong <cimport'lrint',nodecl> end
+function C.lrintf(x: float32): clong <cimport'lrintf',nodecl> end
+function C.lrintl(x: clongdouble): clong <cimport'lrintl',nodecl> end
 
-function C.llrint(x: float64): clonglong <cimport 'llrint'> end
-function C.llrintf(x: float32): clonglong <cimport 'llrintf'> end
-function C.llrintl(x: clongdouble): clonglong <cimport 'llrintl'> end
+function C.llrint(x: float64): clonglong <cimport'llrint',nodecl> end
+function C.llrintf(x: float32): clonglong <cimport'llrintf',nodecl> end
+function C.llrintl(x: clongdouble): clonglong <cimport'llrintl',nodecl> end
 
-function C.nearbyint(x: float64): float64 <cimport 'nearbyint'> end
-function C.nearbyintf(x: float32): float32 <cimport 'nearbyintf'> end
-function C.nearbyintl(x: clongdouble): clongdouble <cimport 'nearbyintl'> end
+function C.nearbyint(x: float64): float64 <cimport'nearbyint',nodecl> end
+function C.nearbyintf(x: float32): float32 <cimport'nearbyintf',nodecl> end
+function C.nearbyintl(x: clongdouble): clongdouble <cimport'nearbyintl',nodecl> end
 
 -- Floating-point manipulation functions
-function C.frexp(x: float64, exponent: cint*): float64 <cimport 'frexp'> end
-function C.frexpf(x: float32, exponent: cint*): float32 <cimport 'frexpf'> end
-function C.frexpl(x: clongdouble, exponent: cint*): clongdouble <cimport 'frexpl'> end
+function C.frexp(x: float64, exponent: cint*): float64 <cimport'frexp',nodecl> end
+function C.frexpf(x: float32, exponent: cint*): float32 <cimport'frexpf',nodecl> end
+function C.frexpl(x: clongdouble, exponent: cint*): clongdouble <cimport'frexpl',nodecl> end
 
-function C.ldexp(x: float64, exponent: cint): float64 <cimport 'ldexp'> end
-function C.ldexpf(x: float32, exponent: cint): float32 <cimport 'ldexpf'> end
-function C.ldexpl(x: clongdouble, exponent: cint): clongdouble <cimport 'ldexpl'> end
+function C.ldexp(x: float64, exponent: cint): float64 <cimport'ldexp',nodecl> end
+function C.ldexpf(x: float32, exponent: cint): float32 <cimport'ldexpf',nodecl> end
+function C.ldexpl(x: clongdouble, exponent: cint): clongdouble <cimport'ldexpl',nodecl> end
 
-function C.modf(x: float64, iptr: float64*): float64 <cimport 'modf'> end
-function C.modff(x: float32, iptr: float32*): float32 <cimport 'modff'> end
-function C.modfl(x: clongdouble, iptr: clongdouble*): clongdouble <cimport 'modfl'> end
+function C.modf(x: float64, iptr: float64*): float64 <cimport'modf',nodecl> end
+function C.modff(x: float32, iptr: float32*): float32 <cimport'modff',nodecl> end
+function C.modfl(x: clongdouble, iptr: clongdouble*): clongdouble <cimport'modfl',nodecl> end
 
-function C.scalbln(x: float64, n: clong): float64 <cimport 'scalbln'> end
-function C.scalblnf(x: float32, n: clong): float32 <cimport 'scalblnf'> end
-function C.scalblnl(x: clongdouble, n: clong): clongdouble <cimport 'scalblnl'> end
+function C.scalbln(x: float64, n: clong): float64 <cimport'scalbln',nodecl> end
+function C.scalblnf(x: float32, n: clong): float32 <cimport'scalblnf',nodecl> end
+function C.scalblnl(x: clongdouble, n: clong): clongdouble <cimport'scalblnl',nodecl> end
 
-function C.scalbn(x: float64, n: cint): float64 <cimport 'scalbn'> end
-function C.scalbnf(x: float32, n: cint): float32 <cimport 'scalbnf'> end
-function C.scalbnl(x: clongdouble, n: cint): clongdouble <cimport 'scalbnl'> end
+function C.scalbn(x: float64, n: cint): float64 <cimport'scalbn',nodecl> end
+function C.scalbnf(x: float32, n: cint): float32 <cimport'scalbnf',nodecl> end
+function C.scalbnl(x: clongdouble, n: cint): clongdouble <cimport'scalbnl',nodecl> end
 
-function C.ilogb(x: float64): cint <cimport 'ilogb'> end
-function C.ilogbf(x: float32): cint <cimport 'ilogbf'> end
-function C.ilogbl(x: clongdouble): cint <cimport 'ilogbl'> end
+function C.ilogb(x: float64): cint <cimport'ilogb',nodecl> end
+function C.ilogbf(x: float32): cint <cimport'ilogbf',nodecl> end
+function C.ilogbl(x: clongdouble): cint <cimport'ilogbl',nodecl> end
 
-function C.nextafter(x: float64, y: float64): float64 <cimport 'nextafter'> end
-function C.nextafterf(x: float32, y: float32): float32 <cimport 'nextafterf'> end
-function C.nextafterl(x: clongdouble, y: clongdouble): clongdouble <cimport 'nextafterl'> end
+function C.nextafter(x: float64, y: float64): float64 <cimport'nextafter',nodecl> end
+function C.nextafterf(x: float32, y: float32): float32 <cimport'nextafterf',nodecl> end
+function C.nextafterl(x: clongdouble, y: clongdouble): clongdouble <cimport'nextafterl',nodecl> end
 
-function C.nexttoward(x: float64, y: clongdouble): float64 <cimport 'nexttoward'> end
-function C.nexttowardf(x: float32, y: clongdouble): float32 <cimport 'nexttowardf'> end
-function C.nexttowardl(x: clongdouble, y: clongdouble): clongdouble <cimport 'nexttowardl'> end
+function C.nexttoward(x: float64, y: clongdouble): float64 <cimport'nexttoward',nodecl> end
+function C.nexttowardf(x: float32, y: clongdouble): float32 <cimport'nexttowardf',nodecl> end
+function C.nexttowardl(x: clongdouble, y: clongdouble): clongdouble <cimport'nexttowardl',nodecl> end
 
-function C.copysign(x: float64, y: float64): float64 <cimport 'copysign'> end
-function C.copysignf(x: float32, y: float32): float32 <cimport 'copysignf'> end
-function C.copysignl(x: clongdouble, y: clongdouble): clongdouble <cimport 'copysignl'> end
+function C.copysign(x: float64, y: float64): float64 <cimport'copysign',nodecl> end
+function C.copysignf(x: float32, y: float32): float32 <cimport'copysignf',nodecl> end
+function C.copysignl(x: clongdouble, y: clongdouble): clongdouble <cimport'copysignl',nodecl> end
 
 -- Classification functions (actually C macros)
-function C.fpclassify(x: float64): cint <cimport 'fpclassify'> end
-function C.fpclassifyf(x: float32): cint <cimport 'fpclassify'> end
-function C.fpclassifyl(x: clongdouble): cint <cimport 'fpclassify'> end
+function C.fpclassify(x: float64): cint <cimport'fpclassify',nodecl> end
+function C.fpclassifyf(x: float32): cint <cimport'fpclassify',nodecl> end
+function C.fpclassifyl(x: clongdouble): cint <cimport'fpclassify',nodecl> end
 
-function C.isfinite(x: float64): cint <cimport 'isfinite'> end
-function C.isfinitef(x: float32): cint <cimport 'isfinite'> end
-function C.isfinitel(x: clongdouble): cint <cimport 'isfinite'> end
+function C.isfinite(x: float64): cint <cimport'isfinite',nodecl> end
+function C.isfinitef(x: float32): cint <cimport'isfinite',nodecl> end
+function C.isfinitel(x: clongdouble): cint <cimport'isfinite',nodecl> end
 
-function C.isinf(x: float64): cint <cimport 'isinf'> end
-function C.isinff(x: float32): cint <cimport 'isinf'> end
-function C.isinfl(x: clongdouble): cint <cimport 'isinf'> end
+function C.isinf(x: float64): cint <cimport'isinf',nodecl> end
+function C.isinff(x: float32): cint <cimport'isinf',nodecl> end
+function C.isinfl(x: clongdouble): cint <cimport'isinf',nodecl> end
 
-function C.isnan(x: float64): cint <cimport 'isnan'> end
-function C.isnanf(x: float32): cint <cimport 'isnan'> end
-function C.isnanl(x: clongdouble): cint <cimport 'isnan'> end
+function C.isnan(x: float64): cint <cimport'isnan',nodecl> end
+function C.isnanf(x: float32): cint <cimport'isnan',nodecl> end
+function C.isnanl(x: clongdouble): cint <cimport'isnan',nodecl> end
 
-function C.isnormal(x: float64): cint <cimport 'isnormal'> end
-function C.isnormalf(x: float32): cint <cimport 'isnormal'> end
-function C.isnormall(x: clongdouble): cint <cimport 'isnormal'> end
+function C.isnormal(x: float64): cint <cimport'isnormal',nodecl> end
+function C.isnormalf(x: float32): cint <cimport'isnormal',nodecl> end
+function C.isnormall(x: clongdouble): cint <cimport'isnormal',nodecl> end
 
-function C.signbit(x: float64): cint <cimport 'signbit'> end
-function C.signbitf(x: float32): cint <cimport 'signbit'> end
-function C.signbitl(x: clongdouble): cint <cimport 'signbit'> end
+function C.signbit(x: float64): cint <cimport'signbit',nodecl> end
+function C.signbitf(x: float32): cint <cimport'signbit',nodecl> end
+function C.signbitl(x: clongdouble): cint <cimport'signbit',nodecl> end
 
 -- Comparison macros (actually C macros)
-function C.isgreater(x: float64, y: float64): cint <cimport 'isgreater'> end
-function C.isgreaterf(x: float32, y: float32): cint <cimport 'isgreater'> end
-function C.isgreaterl(x: clongdouble, y: clongdouble): cint <cimport 'isgreater'> end
+function C.isgreater(x: float64, y: float64): cint <cimport'isgreater',nodecl> end
+function C.isgreaterf(x: float32, y: float32): cint <cimport'isgreater',nodecl> end
+function C.isgreaterl(x: clongdouble, y: clongdouble): cint <cimport'isgreater',nodecl> end
 
-function C.isgreaterequal(x: float64, y: float64): cint <cimport 'isgreaterequal'> end
-function C.isgreaterequalf(x: float32, y: float32): cint <cimport 'isgreaterequal'> end
-function C.isgreaterequall(x: clongdouble, y: clongdouble): cint <cimport 'isgreaterequal'> end
+function C.isgreaterequal(x: float64, y: float64): cint <cimport'isgreaterequal',nodecl> end
+function C.isgreaterequalf(x: float32, y: float32): cint <cimport'isgreaterequal',nodecl> end
+function C.isgreaterequall(x: clongdouble, y: clongdouble): cint <cimport'isgreaterequal',nodecl> end
 
-function C.isless(x: float64, y: float64): cint <cimport 'isless'> end
-function C.islessf(x: float32, y: float32): cint <cimport 'isless'> end
-function C.islessl(x: clongdouble, y: clongdouble): cint <cimport 'isless'> end
+function C.isless(x: float64, y: float64): cint <cimport'isless',nodecl> end
+function C.islessf(x: float32, y: float32): cint <cimport'isless',nodecl> end
+function C.islessl(x: clongdouble, y: clongdouble): cint <cimport'isless',nodecl> end
 
-function C.islessequal(x: float64, y: float64): cint <cimport 'islessequal'> end
-function C.islessequalf(x: float32, y: float32): cint <cimport 'islessequal'> end
-function C.islessequall(x: clongdouble, y: clongdouble): cint <cimport 'islessequal'> end
+function C.islessequal(x: float64, y: float64): cint <cimport'islessequal',nodecl> end
+function C.islessequalf(x: float32, y: float32): cint <cimport'islessequal',nodecl> end
+function C.islessequall(x: clongdouble, y: clongdouble): cint <cimport'islessequal',nodecl> end
 
-function C.islessgreater(x: float64, y: float64): cint <cimport 'islessgreater'> end
-function C.islessgreaterf(x: float32, y: float32): cint <cimport 'islessgreater'> end
-function C.islessgreaterl(x: clongdouble, y: clongdouble): cint <cimport 'islessgreater'> end
+function C.islessgreater(x: float64, y: float64): cint <cimport'islessgreater',nodecl> end
+function C.islessgreaterf(x: float32, y: float32): cint <cimport'islessgreater',nodecl> end
+function C.islessgreaterl(x: clongdouble, y: clongdouble): cint <cimport'islessgreater',nodecl> end
 
-function C.isunordered(x: float64, y: float64): cint <cimport 'isunordered'> end
-function C.isunorderedf(x: float32, y: float32): cint <cimport 'isunordered'> end
-function C.isunorderedl(x: clongdouble, y: clongdouble): cint <cimport 'isunordered'> end
+function C.isunordered(x: float64, y: float64): cint <cimport'isunordered',nodecl> end
+function C.isunorderedf(x: float32, y: float32): cint <cimport'isunordered',nodecl> end
+function C.isunorderedl(x: clongdouble, y: clongdouble): cint <cimport'isunordered',nodecl> end
 
 -- Constants
-global C.HUGE_VALF: float32 <const, cimport 'HUGE_VALF'>
-global C.HUGE_VAL: float64 <const, cimport 'HUGE_VAL'>
-global C.HUGE_VALL: clongdouble <const, cimport 'HUGE_VALL'>
+global C.HUGE_VALF: float32 <const,cimport'HUGE_VALF',nodecl>
+global C.HUGE_VAL: float64 <const,cimport'HUGE_VAL',nodecl>
+global C.HUGE_VALL: clongdouble <const,cimport'HUGE_VALL',nodecl>
 
-global C.INFINITY: cfloat <const, cimport 'INFINITY'>
-global C.NAN: cfloat <const, cimport 'NAN'>
+global C.INFINITY: cfloat <const,cimport'INFINITY',nodecl>
+global C.NAN: cfloat <const,cimport'NAN',nodecl>
 
-global C.FP_FAST_FMAF: float32 <const, cimport 'FP_FAST_FMAF'>
-global C.FP_FAST_FMA: float64 <const, cimport 'FP_FAST_FMA'>
-global C.FP_FAST_FMAL: clongdouble <const, cimport 'FP_FAST_FMAL'>
+global C.FP_FAST_FMAF: float32 <const,cimport'FP_FAST_FMAF',nodecl>
+global C.FP_FAST_FMA: float64 <const,cimport'FP_FAST_FMA',nodecl>
+global C.FP_FAST_FMAL: clongdouble <const,cimport'FP_FAST_FMAL',nodecl>
 
-global C.FP_ILOGB0: cint <const, cimport 'FP_ILOGB0'>
-global C.FP_ILOGBNAN: cint <const, cimport 'FP_ILOGBNAN'>
+global C.FP_ILOGB0: cint <const,cimport'FP_ILOGB0',nodecl>
+global C.FP_ILOGBNAN: cint <const,cimport'FP_ILOGBNAN',nodecl>
 
-global C.math_errhandling: cint <const, cimport 'math_errhandling'>
-global C.MATH_ERRNO: cint <const, cimport 'MATH_ERRNO'>
-global C.MATH_ERREXCEPT: cint <const, cimport 'MATH_ERREXCEPT'>
+global C.math_errhandling: cint <const,cimport'math_errhandling',nodecl>
+global C.MATH_ERRNO: cint <const,cimport'MATH_ERRNO',nodecl>
+global C.MATH_ERREXCEPT: cint <const,cimport'MATH_ERREXCEPT',nodecl>
 
-global C.FP_NORMAL: cint <const, cimport 'FP_NORMAL'>
-global C.FP_SUBNORMAL: cint <const, cimport 'FP_SUBNORMAL'>
-global C.FP_ZERO: cint <const, cimport 'FP_ZERO'>
-global C.FP_INFINITE: cint <const, cimport 'FP_INFINITE'>
-global C.FP_NAN: cint <const, cimport 'FP_NAN'>
+global C.FP_NORMAL: cint <const,cimport'FP_NORMAL',nodecl>
+global C.FP_SUBNORMAL: cint <const,cimport'FP_SUBNORMAL',nodecl>
+global C.FP_ZERO: cint <const,cimport'FP_ZERO',nodecl>
+global C.FP_INFINITE: cint <const,cimport'FP_INFINITE',nodecl>
+global C.FP_NAN: cint <const,cimport'FP_NAN',nodecl>

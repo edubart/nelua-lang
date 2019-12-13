@@ -11,12 +11,12 @@
 ## cinclude '<stdlib.h>'
 ## cinclude '<ctype.h>'
 
-local function malloc(size: usize): pointer <cimport> end
-local function strlen(s: cstring): csize <cimport> end
-local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport> end
-local function memcmp(s1: pointer, s2: pointer, n: csize): cint <cimport> end
-local function toupper(c: cint): cint <cimport> end
-local function tolower(c: cint): cint <cimport> end
+local function malloc(size: usize): pointer <cimport,nodecl> end
+local function strlen(s: cstring): csize <cimport,nodecl> end
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,nodecl> end
+local function memcmp(s1: pointer, s2: pointer, n: csize): cint <cimport,nodecl> end
+local function toupper(c: cint): cint <cimport,nodecl> end
+local function tolower(c: cint): cint <cimport,nodecl> end
 
 --------------------------------------------------------------------------------
 -- mystring
@@ -25,8 +25,8 @@ local mystringobj <codename 'nelua_mystringobj'> = @record{len: usize, data: byt
 local mystring <codename 'nelua_mystring'> = @mystringobj*
 
 local emptystringobj <codename 'nelua_emptystringobj'> = @record{len: usize, zero: byte}
-local emptystringo: emptystringobj <const, codename 'nelua_emptystringo'> = {}
-local emptystring <const, codename 'nelua_emptystring'> = @mystring(&emptystringo)
+local emptystringo: emptystringobj <const,codename 'nelua_emptystringo'> = {}
+local emptystring <const,codename 'nelua_emptystring'> = @mystring(&emptystringo)
 
 local function mystring_create(len: usize): mystring
   local self = @mystring(malloc(@csize(#mystringobj) + len + 1))

@@ -279,6 +279,9 @@ function visitors.Attrib(context, node, symbol)
     node:assertraisef(ok, "attribute '%s' arguments are invalid: %s", name, err)
     if #paramshape.shape == 1 then
       params = params[1]
+      if params == nil then
+        params = true
+      end
     end
   end
 
@@ -292,13 +295,11 @@ function visitors.Attrib(context, node, symbol)
   attr[name] = params
 
   if name == 'cimport' then
-    local cname, decl = tabler.unpack(params)
-    if cname then
-      attr.codename = cname
+    if traits.is_string(params) then
+      attr.codename = params
     elseif type then
       type.codename = symbol.name
     end
-    attr.nodecl = decl ~= true
   end
 end
 

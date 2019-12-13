@@ -1,99 +1,99 @@
 ## strict = true
 ## cinclude '<stdio.h>'
 
-local FILE <cimport 'FILE'> = @record{}
-local fpos_t <cimport 'fpos_t'> = @record{}
+local FILE <cimport'FILE',nodecl> = @record{}
+local fpos_t <cimport'fpos_t',nodecl> = @record{}
 
 -- Operations on files
-function C.remove(filename: cstring): cint <cimport 'remove'> end
-function C.rename(old: cstring, new: cstring): cint <cimport 'rename'> end
-function C.tmpfile(): FILE* <cimport 'tmpfile'> end
-function C.tmpnam(s: cstring): cstring <cimport 'tmpnam'> end
+function C.remove(filename: cstring): cint <cimport'remove',nodecl> end
+function C.rename(old: cstring, new: cstring): cint <cimport'rename',nodecl> end
+function C.tmpfile(): FILE* <cimport'tmpfile',nodecl> end
+function C.tmpnam(s: cstring): cstring <cimport'tmpnam',nodecl> end
 
 -- File access
-function C.fclose(stream: FILE*): cint <cimport 'fclose'> end
-function C.fflush(stream: FILE*): cint <cimport 'fflush'> end
-function C.fopen(filename: cstring, modes: cstring): FILE* <cimport 'fopen'> end
-function C.freopen(filename: cstring, modes: cstring, stream: FILE*): FILE* <cimport 'freopen'> end
+function C.fclose(stream: FILE*): cint <cimport'fclose',nodecl> end
+function C.fflush(stream: FILE*): cint <cimport'fflush',nodecl> end
+function C.fopen(filename: cstring, modes: cstring): FILE* <cimport'fopen',nodecl> end
+function C.freopen(filename: cstring, modes: cstring, stream: FILE*): FILE* <cimport'freopen',nodecl> end
 
-function C.setbuf(stream: FILE*, buf: cstring): void <cimport 'setbuf'> end
-function C.setvbuf(stream: FILE*, buf: cstring, modes: cint, n: csize): cint <cimport 'setvbuf'> end
+function C.setbuf(stream: FILE*, buf: cstring): void <cimport'setbuf',nodecl> end
+function C.setvbuf(stream: FILE*, buf: cstring, modes: cint, n: csize): cint <cimport'setvbuf',nodecl> end
 
 -- Formatted input/output
-function C.scanf(format: cstring, ...): cint <cimport 'scanf'> end
-function C.fscanf(stream: FILE*, format: cstring, ...): cint <cimport 'fscanf'> end
-function C.sscanf(s: cstring, format: cstring, ...): cint <cimport 'sscanf'> end
+function C.scanf(format: cstring, ...): cint <cimport'scanf',nodecl> end
+function C.fscanf(stream: FILE*, format: cstring, ...): cint <cimport'fscanf',nodecl> end
+function C.sscanf(s: cstring, format: cstring, ...): cint <cimport'sscanf',nodecl> end
 
-function C.vscanf(format: cstring, ...): cint <cimport 'vscanf'> end
-function C.vfscanf(s: FILE*, format: cstring, ...): cint <cimport 'vfscanf'> end
-function C.vsscanf(s: cstring, format: cstring, ...): cint <cimport 'vsscanf'> end
+function C.vscanf(format: cstring, ...): cint <cimport'vscanf',nodecl> end
+function C.vfscanf(s: FILE*, format: cstring, ...): cint <cimport'vfscanf',nodecl> end
+function C.vsscanf(s: cstring, format: cstring, ...): cint <cimport'vsscanf',nodecl> end
 
-function C.printf(format: cstring, ...): cint <cimport 'printf'> end
-function C.fprintf(stream: FILE*, format: cstring, ...): cint <cimport 'fprintf'> end
-function C.sprintf(s: cstring, format: cstring, ...): cint <cimport 'sprintf'> end
-function C.snprintf(s: cstring, maxlen: csize, format: cstring, ...): cint <cimport 'snprintf'> end
+function C.printf(format: cstring, ...): cint <cimport'printf',nodecl> end
+function C.fprintf(stream: FILE*, format: cstring, ...): cint <cimport'fprintf',nodecl> end
+function C.sprintf(s: cstring, format: cstring, ...): cint <cimport'sprintf',nodecl> end
+function C.snprintf(s: cstring, maxlen: csize, format: cstring, ...): cint <cimport'snprintf',nodecl> end
 
-function C.vprintf(format: cstring, ...): cint <cimport 'vprintf'> end
-function C.vfprintf(s: FILE*, format: cstring, ...): cint <cimport 'vfprintf'> end
-function C.vsprintf(s: cstring, format: cstring, ...): cint <cimport 'vsprintf'> end
-function C.vsnprintf(s: cstring, maxlen: csize, format: cstring, ...): cint <cimport 'vsnprintf'> end
+function C.vprintf(format: cstring, ...): cint <cimport'vprintf',nodecl> end
+function C.vfprintf(s: FILE*, format: cstring, ...): cint <cimport'vfprintf',nodecl> end
+function C.vsprintf(s: cstring, format: cstring, ...): cint <cimport'vsprintf',nodecl> end
+function C.vsnprintf(s: cstring, maxlen: csize, format: cstring, ...): cint <cimport'vsnprintf',nodecl> end
 
 -- Character input/output
-function C.getc(stream: FILE*): cint <cimport 'getc'> end
-function C.putc(c: cint, stream: FILE*): cint <cimport 'putc'> end
+function C.getc(stream: FILE*): cint <cimport'getc',nodecl> end
+function C.putc(c: cint, stream: FILE*): cint <cimport'putc',nodecl> end
 
-function C.getchar(): cint <cimport 'getchar'> end
-function C.putchar(c: cint): cint <cimport 'putchar'> end
+function C.getchar(): cint <cimport'getchar',nodecl> end
+function C.putchar(c: cint): cint <cimport'putchar',nodecl> end
 
-function C.fgetc(stream: FILE*): cint <cimport 'fgetc'> end
-function C.fputc(c: cint, stream: FILE*): cint <cimport 'fputc'> end
+function C.fgetc(stream: FILE*): cint <cimport'fgetc',nodecl> end
+function C.fputc(c: cint, stream: FILE*): cint <cimport'fputc',nodecl> end
 
-function C.fgets(s: cstring, n: cint, stream: FILE*): cstring <cimport 'fgets'> end
-function C.fputs(s: cstring, stream: FILE*): cint <cimport 'fputs'> end
+function C.fgets(s: cstring, n: cint, stream: FILE*): cstring <cimport'fgets',nodecl> end
+function C.fputs(s: cstring, stream: FILE*): cint <cimport'fputs',nodecl> end
 
-function C.gets(s: cstring): cstring <cimport 'puts'> end
-function C.puts(s: cstring): cint <cimport 'puts'> end
+function C.gets(s: cstring): cstring <cimport'puts',nodecl> end
+function C.puts(s: cstring): cint <cimport'puts',nodecl> end
 
-function C.ungetc(c: cint, stream: FILE*): cint <cimport 'ungetc'> end
+function C.ungetc(c: cint, stream: FILE*): cint <cimport'ungetc',nodecl> end
 
 -- Direct input/output
-function C.fread(ptr: pointer, size: csize, n: csize, stream: FILE*): csize <cimport 'fread'> end
-function C.fwrite(ptr: void*, size: csize, n: csize, s: FILE*): csize <cimport 'fwrite'> end
+function C.fread(ptr: pointer, size: csize, n: csize, stream: FILE*): csize <cimport'fread',nodecl> end
+function C.fwrite(ptr: void*, size: csize, n: csize, s: FILE*): csize <cimport'fwrite',nodecl> end
 
 -- File positioning
-function C.fgetpos(stream: FILE*, pos: fpos_t*): cint <cimport 'fgetpos'> end
-function C.fsetpos(stream: FILE*, pos: fpos_t*): cint <cimport 'fsetpos'> end
+function C.fgetpos(stream: FILE*, pos: fpos_t*): cint <cimport'fgetpos',nodecl> end
+function C.fsetpos(stream: FILE*, pos: fpos_t*): cint <cimport'fsetpos',nodecl> end
 
-function C.fseek(stream: FILE*, off: clong, whence: cint): cint <cimport 'fseek'> end
-function C.ftell(stream: FILE*): clong <cimport 'ftell'> end
+function C.fseek(stream: FILE*, off: clong, whence: cint): cint <cimport'fseek',nodecl> end
+function C.ftell(stream: FILE*): clong <cimport'ftell',nodecl> end
 
-function C.rewind(stream: FILE*): void <cimport 'rewind'> end
+function C.rewind(stream: FILE*): void <cimport'rewind',nodecl> end
 
 -- Error handling
-function C.clearerr(stream: FILE*): void <cimport 'clearerr'> end
-function C.feof(stream: FILE*): cint <cimport 'feof'> end
-function C.ferror(stream: FILE*): cint <cimport 'ferror'> end
-function C.perror(s: cstring): void <cimport 'perror'> end
+function C.clearerr(stream: FILE*): void <cimport'clearerr',nodecl> end
+function C.feof(stream: FILE*): cint <cimport'feof',nodecl> end
+function C.ferror(stream: FILE*): cint <cimport'ferror',nodecl> end
+function C.perror(s: cstring): void <cimport'perror',nodecl> end
 
 -- Global variables
-global C.stdin: FILE* <cimport 'stdin'>
-global C.stdout: FILE* <cimport 'stdout'>
-global C.stderr: FILE* <cimport 'stderr'>
+global C.stdin: FILE* <cimport'stdin',nodecl>
+global C.stdout: FILE* <cimport'stdout',nodecl>
+global C.stderr: FILE* <cimport'stderr',nodecl>
 
 -- Constants
-global C.EOF: cint <const, cimport 'EOF'>
-global C.BUFSIZ: cint <const, cimport 'BUFSIZ'>
+global C.EOF: cint <const,cimport'EOF',nodecl>
+global C.BUFSIZ: cint <const,cimport'BUFSIZ',nodecl>
 
-global C.FOPEN_MAX: cint <const, cimport 'FOPEN_MAX'>
-global C.FILENAME_MAX: cint <const, cimport 'FILENAME_MAX'>
+global C.FOPEN_MAX: cint <const,cimport'FOPEN_MAX',nodecl>
+global C.FILENAME_MAX: cint <const,cimport'FILENAME_MAX',nodecl>
 
-global C._IOFBF: cint <const, cimport '_IOFBF'>
-global C._IOLBF: cint <const, cimport '_IOLBF'>
-global C._IONBF: cint <const, cimport '_IONBF'>
+global C._IOFBF: cint <const,cimport'_IOFBF',nodecl>
+global C._IOLBF: cint <const,cimport'_IOLBF',nodecl>
+global C._IONBF: cint <const,cimport'_IONBF',nodecl>
 
-global C.SEEK_SET: cint <const, cimport 'SEEK_SET'>
-global C.SEEK_CUR: cint <const, cimport 'SEEK_CUR'>
-global C.SEEK_END: cint <const, cimport 'SEEK_END'>
+global C.SEEK_SET: cint <const,cimport'SEEK_SET',nodecl>
+global C.SEEK_CUR: cint <const,cimport'SEEK_CUR',nodecl>
+global C.SEEK_END: cint <const,cimport'SEEK_END',nodecl>
 
-global C.TMP_MAX: cint <const, cimport 'TMP_MAX'>
-global C.L_tmpnam: cint <const, cimport 'L_tmpnam'>
+global C.TMP_MAX: cint <const,cimport'TMP_MAX',nodecl>
+global C.L_tmpnam: cint <const,cimport'L_tmpnam',nodecl>

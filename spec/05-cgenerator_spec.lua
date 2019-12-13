@@ -925,9 +925,9 @@ end)
 
 it("manual memory managment", function()
   assert.run_c([=[
-    local function malloc(size: usize): pointer <cimport'malloc',cinclude'<stdlib.h>'> end
-    local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>'> end
-    local function free(ptr: pointer) <cimport'free',cinclude'<stdlib.h>'> end
+    local function malloc(size: usize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
+    local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
+    local function free(ptr: pointer) <cimport'free',cinclude'<stdlib.h>',nodecl> end
     local a = (@pointer(array(int64, 10)))(malloc(10 * 8))
     memset(a, 0, 10*8)
     assert(a[0] == 0)
@@ -939,7 +939,7 @@ end)
 
 it("C varargs", function()
   assert.generate_c(
-    "local function scanf(format: cstring, ...): cint <cimport('scanf',true)> end",
+    "local function scanf(format: cstring, ...): cint <cimport'scanf'> end",
     "int scanf(char* format, ...);")
 end)
 
@@ -949,7 +949,7 @@ it("attributes", function()
   assert.generate_c("## cemit('#define SOMETHING', 'declaration')", "#define SOMETHING")
   assert.generate_c("## cemit('#define SOMETHING', 'definition')", "#define SOMETHING")
   assert.generate_c("## cdefine 'SOMETHING'", "#define SOMETHING")
-  assert.generate_c("local huge: number <cimport'HUGE_VAL',cinclude'<math.h>'>", "include <math.h>")
+  assert.generate_c("local huge: number <cimport'HUGE_VAL',cinclude'<math.h>',nodecl>", "include <math.h>")
   assert.generate_c("local a: int64 <volatile, codename 'a'>", "volatile int64_t mymod_a")
   assert.generate_c("local a: int64 <register>", "register int64_t mymod_a")
   assert.generate_c("local a: int64 <restrict>", "restrict int64_t mymod_a")
@@ -969,15 +969,15 @@ it("attributes", function()
   assert.generate_c("local function f() <cqualifier 'volatile'> end", "volatile void")
   assert.generate_c("local function f() <cattribute 'noinline'> end", "__attribute__((noinline)) void")
   assert.generate_c(
-    "local function puts(s: cstring): int32 <cimport('puts', true)> end",
+    "local function puts(s: cstring): int32 <cimport'puts'> end",
     "int32_t puts(char* s);")
   assert.generate_c(
-    "local function cos(x: number): number <cimport'myfunc',cinclude'<myheader.h>'> end",
+    "local function cos(x: number): number <cimport'myfunc',cinclude'<myheader.h>',nodecl> end",
     "#include <myheader.h>")
   assert.run_c([[
-    local function exit(x: int32) <cimport'exit',cinclude'<stdlib.h>'> end
-    function puts(s: cstring): int32 <cimport'puts',cinclude'<stdio.h>'> end
-    local function perror(s: cstring): void <cimport> end
+    local function exit(x: int32) <cimport'exit',cinclude'<stdlib.h>',nodecl> end
+    function puts(s: cstring): int32 <cimport'puts',cinclude'<stdio.h>',nodecl> end
+    local function perror(s: cstring): void <cimport,nodecl> end
     local function f() <noinline, noreturn>
       local i: int32 <register, volatile, codename 'i'> = 0
       exit(i)
@@ -988,8 +988,8 @@ it("attributes", function()
   ]], "msg stdout", "msg stderr")
   assert.run_c([[
     ## cinclude '<stdlib.h>'
-    local div_t <cimport> = @record{quot: cint, rem: cint}
-    local function div(numer: cint, denom: cint): div_t <cimport> end
+    local div_t <cimport,nodecl> = @record{quot: cint, rem: cint}
+    local function div(numer: cint, denom: cint): div_t <cimport,nodecl> end
     local r = div(38,5)
     assert(r.quot == 7 and r.rem == 3)
   ]])

@@ -5,14 +5,14 @@
 ## cinclude '<stdlib.h>'
 ## cinclude '<string.h>'
 
-local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport 'memcpy'> end
-local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport 'memmove'> end
-local function memset(s: pointer, c: cint, n: csize): pointer <cimport 'memset'> end
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport'memcpy',nodecl> end
+local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport'memmove',nodecl> end
+local function memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',nodecl> end
 
-local function malloc(size: csize): pointer <cimport 'malloc'> end
-local function calloc(nmemb: csize, size: csize): pointer <cimport 'calloc'> end
-local function realloc(ptr: pointer, size: csize): pointer <cimport 'realloc'> end
-local function free(ptr: pointer): void <cimport 'free'> end
+local function malloc(size: csize): pointer <cimport'malloc',nodecl> end
+local function calloc(nmemb: csize, size: csize): pointer <cimport'calloc',nodecl> end
+local function realloc(ptr: pointer, size: csize): pointer <cimport'realloc',nodecl> end
+local function free(ptr: pointer): void <cimport'free',nodecl> end
 
 global memory = @record{}
 
