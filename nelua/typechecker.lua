@@ -108,7 +108,7 @@ function visitors.String(_, node)
   local value, literal = node:args()
   node:assertraisef(literal == nil, 'string literals are not supported yet')
   attr.value = value
-  attr.type = primtypes.string:clone_compconst(value, node)
+  attr.type = primtypes.string
   attr.compconst = true
 end
 
@@ -117,7 +117,7 @@ function visitors.Boolean(_, node)
   if attr.type then return end
   local value = node:args(1)
   attr.value = value
-  attr.type = primtypes.boolean:clone_compconst(value, node)
+  attr.type = primtypes.boolean
   attr.compconst = true
 end
 
@@ -147,7 +147,7 @@ function visitors.Table(context, node, desiredtype)
           end
         end
       end
-      compconst = false
+      compconst = nil
     elseif desiredtype:is_array() then
       local subtype = desiredtype.subtype
       node:assertraisef(#childnodes == desiredtype.length or #childnodes == 0,
@@ -167,7 +167,7 @@ function visitors.Table(context, node, desiredtype)
           end
         end
         if not childnode.attr.compconst then
-          compconst = false
+          compconst = nil
         end
       end
     elseif desiredtype:is_record() then
@@ -205,7 +205,7 @@ function visitors.Table(context, node, desiredtype)
         end
         childnode.attr.parenttype = desiredtype
         if not fieldvalnode.attr.compconst then
-          compconst = false
+          compconst = nil
         end
       end
     else
@@ -213,9 +213,7 @@ function visitors.Table(context, node, desiredtype)
         desiredtype)
     end
     attr.type = desiredtype
-    if compconst then
-      attr.compconst = true
-    end
+    attr.compconst = compconst
   else
     context:traverse(childnodes)
     attr.type = primtypes.table
@@ -378,6 +376,7 @@ function visitors.Type(context, node)
     holdedtype = symbol.attr.holdedtype
   end
   attr.type = primtypes.type
+  attr.value = holdedtype
   attr.holdedtype = holdedtype
 end
 
@@ -408,6 +407,7 @@ function visitors.FuncType(context, node)
     tabler.imap(retnodes, function(retnode) return retnode.attr.holdedtype end))
   attr.type = primtypes.type
   attr.holdedtype = type
+  attr.value = type
 end
 
 function visitors.MultipleType(context, node)
@@ -419,6 +419,7 @@ function visitors.MultipleType(context, node)
   attr.type = primtypes.type
   attr.holdedtype = types.MultipleType(node,
     tabler.imap(typenodes, function(typenode) return typenode.attr.holdedtype end))
+  attr.value = attr.holdedtype
 end
 
 function visitors.RecordFieldType(context, node)
@@ -428,6 +429,7 @@ function visitors.RecordFieldType(context, node)
   context:traverse(typenode)
   attr.type = typenode.attr.type
   attr.holdedtype = typenode.attr.holdedtype
+  attr.value = typenode.attr.holdedtype
 end
 
 function visitors.RecordType(context, node)
@@ -441,6 +443,7 @@ function visitors.RecordType(context, node)
   local type = types.RecordType(node, fields)
   attr.type = primtypes.type
   attr.holdedtype = type
+  attr.value = type
 end
 
 function visitors.EnumFieldType(context, node, desiredtype)
@@ -490,6 +493,7 @@ function visitors.EnumType(context, node)
   local type = types.EnumType(node, subtype, fields)
   attr.type = primtypes.type
   attr.holdedtype = type
+  attr.value = type
 end
 
 function visitors.ArrayTableType(context, node)
@@ -500,6 +504,7 @@ function visitors.ArrayTableType(context, node)
   local type = types.ArrayTableType(node, subtypenode.attr.holdedtype)
   attr.type = primtypes.type
   attr.holdedtype = type
+  attr.value = type
 end
 
 function visitors.SpanType(context, node)
@@ -512,6 +517,7 @@ function visitors.SpanType(context, node)
   local type = types.SpanType(node, subtype)
   attr.type = primtypes.type
   attr.holdedtype = type
+  attr.value = type
 end
 
 function visitors.RangeType(context, node)
@@ -525,6 +531,7 @@ function visitors.RangeType(context, node)
   local type = types.RangeType(node, subtype)
   attr.type = primtypes.type
   attr.holdedtype = type
+  attr.value = type
 end
 
 function visitors.ArrayType(context, node)
@@ -541,6 +548,7 @@ function visitors.ArrayType(context, node)
   local type = types.ArrayType(node, subtype, length)
   attr.type = primtypes.type
   attr.holdedtype = type
+  attr.value = type
 end
 
 function visitors.PointerType(context, node)
@@ -557,6 +565,7 @@ function visitors.PointerType(context, node)
   end
   attr.type = primtypes.type
   attr.holdedtype = type
+  attr.value = type
 end
 
 local function visitor_FieldIndex(context, node)
@@ -936,15 +945,15 @@ function visitors.Call(context, node)
     local argnode = argnodes[1]
     context:traverse(argnode, type)
     local argtype = argnode.attr.type
-    if argtype and not (argtype:is_arithmetic() and type:is_arithmetic()) then
+    if argtype then
       argnode:assertraisef(type:is_conversible_from_node(argnode, true),
         "in assertion to type '%s', the type no viable type conversion expression of type '%s'",
         type, argtype)
-    end
-    if argnode.attr.type and type:is_conversible_from_node(argnode) then
-      -- only propagate compile constant values when there is no overflow
-      attr.compconst = argnode.attr.compconst
-      attr.value = argnode.attr.value
+
+      if argnode.attr.compconst then
+        attr.compconst = argnode.attr.compconst
+        attr.value = type:normalize_value(argnode.attr.value)
+      end
     end
     attr.sideeffect = argnode.attr.sideeffect
     attr.typeassertion = true
@@ -1439,30 +1448,6 @@ function visitors.FuncDef(context, node)
   end
 end
 
-local compconst_unary_operators = {}
-compconst_unary_operators['not'] = function(val, valtype)
-  local ret
-  if valtype:is_boolean() then
-    ret = not val
-  elseif valtype:is_nilptr() or valtype:is_nil() then
-    -- not operator on nil/nilptr always evaluates to true
-    ret = true
-  else
-    -- every other type is considered `true` so we return `false`
-    ret = false
-  end
-  return ret, primtypes.boolean
-end
-compconst_unary_operators['unm'] = function(val, valtype)
-  if valtype:is_arithmetic() then
-    local retval = -val
-    local retvaltype = valtype:promote_value(retval)
-    return retval, retvaltype
-  end
-end
---TODO: missing operators
-
-
 function visitors.UnaryOp(context, node, desiredtype)
   local attr = node.attr
   local opname, argnode = node:args()
@@ -1479,87 +1464,31 @@ function visitors.UnaryOp(context, node, desiredtype)
     return
   end
   argtype = argattr.type
-  if opname ~= 'not' then
-    if argtype then
-      type = argtype:get_unary_operator_type(opname)
-      argnode:assertraisef(type,
-        "unary operation `%s` is not defined for type '%s' of the expression",
-        opname, argtype)
+  if argtype then
+    local value, err
+    type, value, err = argtype:unary_operator(opname, argattr.value)
+    argnode:assertraisef(not err,
+      "unary operation `%s` on type '%s': %s",
+      opname, argtype, err)
+    argnode:assertraisef(type,
+      "unary operation `%s` is not defined for type '%s' of the expression",
+      opname, argtype)
+    if value ~= nil then
+      attr.compconst = true
+      attr.value = value
     end
-    if (opname == 'deref' or opname == 'ref') and argnode.tag == 'Id' then
-      -- for loops needs to know if an Id symbol could mutate
-      argattr.mutate = true
-    end
+  end
+  if argnode.tag == 'Id' and opname == 'ref' then
+    -- for loops needs to know if an Id symbol could mutate
+    argattr.mutate = true
   end
   if type then
     attr.type = type
   end
   assert(context.phase ~= phases.any_inference or attr.type)
-  if argattr.compconst then
-    local opfunc = compconst_unary_operators[opname]
-    if opfunc then
-      local val, valtype = opfunc(argattr.value, argattr.type)
-      if valtype then
-        attr.value, attr.type = val, valtype
-        attr.compconst = true
-      end
-    end
-  else
-    attr.sideeffect = argattr.sideeffect
-  end
+  attr.sideeffect = argattr.sideeffect
   local parentnode = context:get_parent_node()
   attr.inoperator = parentnode.tag == 'BinaryOp' or parentnode.tag == 'UnaryOp'
-end
-
-local compconst_binary_operators = {}
-compconst_binary_operators['add'] = function(lval, rval, commontype)
-  if commontype:is_arithmetic() then
-    local retval = lval + rval
-    return retval, commontype:promote_value(retval)
-  end
-end
-compconst_binary_operators['sub'] = function(lval, rval, commontype)
-  if commontype:is_arithmetic() then
-    local retval = lval - rval
-    return retval, commontype:promote_value(retval)
-  end
-end
-compconst_binary_operators['mul'] = function(lval, rval, commontype)
-  if commontype:is_arithmetic() then
-    local retval = lval * rval
-    return retval, commontype:promote_value(retval)
-  end
-end
-compconst_binary_operators['div'] = function(lval, rval, commontype)
-  if commontype:is_arithmetic() then
-    local retval = lval / rval
-    return retval, commontype:promote_value(retval)
-  end
-end
-compconst_binary_operators['idiv'] = function(lval, rval, commontype)
-  if commontype:is_arithmetic() then
-    local retval
-    if commontype:is_float() then
-      retval = (lval / rval):floor()
-    else
-      retval = (lval / rval):trunc()
-    end
-    return retval, commontype:promote_value(retval)
-  end
-end
-local function normalize_range(val, type)
-  if type:is_signed() and val > type.max then
-    return -bn.bnorm(-val, type.bitsize)
-  end
-  return val
-end
-compconst_binary_operators['band'] = function(lval, rval, outtype)
-  if not outtype:is_integral() then return end
-  return normalize_range(bn.band(lval, rval, outtype.bitsize), outtype), outtype
-end
-compconst_binary_operators['bor'] = function(lval, rval, outtype)
-  if not outtype:is_integral() then return end
-  return normalize_range(bn.bor(lval, rval, outtype.bitsize), outtype), outtype
 end
 
 --TODO: missing operators
@@ -1635,15 +1564,17 @@ function visitors.BinaryOp(context, node, desiredtype)
       end
     else
       if ltype and rtype then
-        type = ltype:get_binary_operator_type(opname, rtype)
+        local value, err
+        type, value, err = ltype:binary_operator(opname, rtype, lnode.attr.value, rnode.attr.value)
+        lnode:assertraisef(not err,
+          "binary operation `%s` between types '%s' and '%s': %s",
+          opname, ltype, rtype, err)
         lnode:assertraisef(type,
           "binary operation `%s` is not defined between types '%s' and '%s'",
           opname, ltype, rtype)
-        if opname == 'idiv' or opname == 'div' or opname == 'mod' then
-          local rvalue = rattr.value
-          if rvalue then
-            rnode:assertraisef(not rvalue:iszero(), "divizion by zero is not allowed")
-          end
+        if value ~= nil then
+          attr.compconst = true
+          attr.value = value
         end
       end
     end
@@ -1660,19 +1591,7 @@ function visitors.BinaryOp(context, node, desiredtype)
       attr.dynamic_conditional = true
     end
   end
-  if lattr.compconst and rattr.compconst and type then
-    local opfunc = compconst_binary_operators[opname]
-    if opfunc then
-      local val, valtype = opfunc(lattr.value, rattr.value, type)
-      if valtype then
-        attr.value, attr.type = val, valtype
-        attr.compconst = true
-      end
-    end
-  end
-  if lattr.sideeffect or rattr.sideeffect then
-    attr.sideeffect = true
-  end
+  attr.sideeffect = lattr.sideeffect or rattr.sideeffect
   attr.inoperator = parentnode.tag == 'BinaryOp' or parentnode.tag == 'UnaryOp'
 end
 

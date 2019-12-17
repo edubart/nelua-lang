@@ -24,7 +24,7 @@ function Type:_init(name, size, node)
   assert(name)
   self.name = name
   self.node = node
-  self.size = size
+  self.size = size or 0
   self.unary_operators = {}
   self.binary_operators = {}
   self.codename = string.format('nelua_%s', self.name)
@@ -43,30 +43,28 @@ function Type:suggest_nick(nick, prefix)
   self.nick = nick
 end
 
-local function get_operator_in_oplist(self, oplist, opname, arg1)
+local function get_operator_in_oplist(self, oplist, opname, arg1, arg2, arg3)
   local opret = oplist[opname]
-  local type
+  local type, ret, err
   if traits.is_function(opret) then
-    type = opret(self, arg1)
-  elseif opret == true then
-    type = self
+    type, ret, err = opret(self, arg1, arg2, arg3)
   elseif traits.is_string(opret) then
-    type = primtypes[opret]
+    type, ret = primtypes[opret], nil
   else
-    type = opret
+    type, ret = opret, nil
   end
   if not type and self:is_any() then
-    type = self
+    type, ret = self, nil
   end
-  return type
+  return type, ret, err
 end
 
-function Type:get_unary_operator_type(opname)
-  return get_operator_in_oplist(self, self.unary_operators, opname)
+function Type:unary_operator(opname, val)
+  return get_operator_in_oplist(self, self.unary_operators, opname, val)
 end
 
-function Type:get_binary_operator_type(opname, rtype)
-  return get_operator_in_oplist(self, self.binary_operators, opname, rtype)
+function Type:binary_operator(opname, rtype, lval, rval)
+  return get_operator_in_oplist(self, self.binary_operators, opname, rtype, lval, rval)
 end
 
 -- Used to check conversion from `type` to `self`
@@ -93,7 +91,7 @@ function Type:is_conversible_from_node(node, explicit)
   local type = attr.type
 
   -- check for compconst number conversions
-  if attr.compconst and attr.value and self:is_arithmetic() and type:is_arithmetic() then
+  if attr.compconst and attr.value and self:is_arithmetic() and type:is_arithmetic() and not explicit then
     if self:is_integral() then
       if not attr.value:isintegral() then
         return false, stringer.pformat(
@@ -121,27 +119,14 @@ function Type:is_conversible_from(typeornode, explicit)
   end
 end
 
+function Type.normalize_value(_, value)
+  return value
+end
+
 function Type:promote_type(type)
   if self == type then
     return self
   end
-end
-
-function Type:clone(node)
-  local clone = {}
-  for k,v in pairs(self) do
-    clone[k] = v
-  end
-  clone.node = node
-  setmetatable(clone, getmetatable(self))
-  return clone
-end
-
-function Type:clone_compconst(value, node)
-  local clone = self:clone(node)
-  clone.compconst = true
-  clone.value = value
-  return clone
 end
 
 function Type:is_equal(type)
@@ -154,7 +139,6 @@ function Type:is_equal(type)
 end
 
 function Type:is_primitive() return self.primitive end
-function Type:is_compconst() return self.compconst end
 function Type:is_arithmetic() return self.arithmetic end
 function Type:is_float32() return self.float32 end
 function Type:is_float64() return self.float64 end
@@ -193,15 +177,37 @@ function Type:__eq(type)
   return self:is_equal(type) and type:is_equal(self)
 end
 
-Type.unary_operators['not'] = 'boolean'
-Type.unary_operators.ref = function(self)
-  if self.size and self.size > 0 then
-    return types.get_pointer_type(self)
+Type.unary_operators['not'] = function(_, val)
+  local reval
+  if val ~= nil then
+    reval = false
+  end
+  return primtypes.boolean, reval
+end
+
+Type.unary_operators.ref = function(ltype, lval)
+  if lval == nil and ltype.size and ltype.size > 0 then
+    return types.get_pointer_type(ltype)
+  else
+    return nil, nil, 'cannot reference compile time value'
   end
 end
 
-Type.binary_operators.eq = 'boolean'
-Type.binary_operators.ne = 'boolean'
+Type.binary_operators.eq = function(_, _, lval, rval)
+  local reval
+  if lval ~= nil and rval ~= nil then
+    reval = lval == rval
+  end
+  return primtypes.boolean, reval
+end
+
+Type.binary_operators.ne = function(ltype, rtype, lval, rval)
+  local retype, reval = ltype:binary_operator('eq', rtype, lval, rval)
+  if reval ~= nil then
+    reval = not reval
+  end
+  return retype, reval
+end
 
 local uidcounter = 0
 local function genkey(name, node)
@@ -255,7 +261,14 @@ function TypeType:_init(name)
   self.typetype = true
 end
 
-TypeType.unary_operators.len = 'integer'
+TypeType.unary_operators.len = function(_, lval)
+  local reval
+  if lval then
+    assert(traits.is_type(lval))
+    reval = bn.new(lval.size)
+  end
+  return primtypes.integer, reval
+end
 
 --------------------------------------------------------------------------------
 local NilType = typeclass()
@@ -266,7 +279,10 @@ function NilType:_init(name)
   self.Nil = true
   self.nilable = true
   self.primitive = true
-  self.compconst = true
+end
+
+NilType.unary_operators['not'] = function()
+  return primtypes.boolean, true
 end
 
 --------------------------------------------------------------------------------
@@ -277,7 +293,10 @@ function NilptrType:_init(name, size)
   Type._init(self, name, size)
   self.nilptr = true
   self.primitive = true
-  self.compconst = true
+end
+
+NilptrType.unary_operators['not'] = function()
+  return primtypes.boolean, true
 end
 
 --------------------------------------------------------------------------------
@@ -298,12 +317,47 @@ function StringType:is_conversible_from_type(type, explicit)
   return Type.is_conversible_from_type(self, type, explicit)
 end
 
-StringType.unary_operators.len = 'integer'
-StringType.binary_operators.le = 'boolean'
-StringType.binary_operators.ge = 'boolean'
-StringType.binary_operators.lt = 'boolean'
-StringType.binary_operators.gt = 'boolean'
-StringType.binary_operators.concat = 'string'
+StringType.unary_operators.len = function(_, lval)
+  local reval
+  if lval then
+    reval = bn.new(#lval)
+  end
+  return primtypes.integer, reval
+end
+
+local function make_string_cmp_opfunc(cmpfunc)
+  return function(_, rtype, lval, rval)
+    if rtype:is_string() then
+      local reval
+      if lval and rval then
+        reval = cmpfunc(lval, rval)
+      end
+      return primtypes.boolean, reval
+    end
+  end
+end
+
+StringType.binary_operators.le = make_string_cmp_opfunc(function(a,b)
+  return a<=b
+end)
+StringType.binary_operators.ge = make_string_cmp_opfunc(function(a,b)
+  return a>=b
+end)
+StringType.binary_operators.lt = make_string_cmp_opfunc(function(a,b)
+  return a<b
+end)
+StringType.binary_operators.gt = make_string_cmp_opfunc(function(a,b)
+  return a>b
+end)
+StringType.binary_operators.concat = function(ltype, rtype, lval, rval)
+  if rtype:is_string() then
+    local reval
+    if lval and rval then
+      reval = lval .. rval
+    end
+    return ltype, reval
+  end
+end
 
 --------------------------------------------------------------------------------
 local BooleanType = typeclass()
@@ -317,6 +371,14 @@ end
 
 function BooleanType.is_conversible_from_type()
   return true
+end
+
+BooleanType.unary_operators['not'] = function(self, val)
+  local ret
+  if val ~= nil then
+    ret = not val
+  end
+  return self, ret
 end
 
 --------------------------------------------------------------------------------
@@ -349,17 +411,58 @@ function ArithmeticType:_init(name, size)
 end
 
 function ArithmeticType:is_conversible_from_type(type, explicit)
-  if type:is_enum() then
-    return self:is_conversible_from_type(type.subtype, explicit)
-  end
   return Type.is_conversible_from_type(self, type, explicit)
 end
 
-ArithmeticType.unary_operators.unm = true
-ArithmeticType.binary_operators.le = 'boolean'
-ArithmeticType.binary_operators.ge = 'boolean'
-ArithmeticType.binary_operators.lt = 'boolean'
-ArithmeticType.binary_operators.gt = 'boolean'
+ArithmeticType.unary_operators.unm = function(self, val)
+  local ret
+  local retype = self
+  if val ~= nil then
+    ret = -val
+    retype = self:promote_value(ret)
+  end
+  return retype, ret
+end
+
+ArithmeticType.binary_operators.eq = function(_, rtype, lval, rval)
+  local reval
+  if rtype:is_arithmetic() then
+    if lval and rval then
+      reval = lval == rval
+    end
+  else
+    reval = false
+  end
+  return primtypes.boolean, reval
+end
+
+local function make_arithmetic_cmp_opfunc(cmpfunc)
+  return function(_, rtype, lval, rval)
+    if rtype:is_arithmetic() then
+      local reval
+      if lval and rval then
+        reval = cmpfunc(lval, rval)
+      end
+      return primtypes.boolean, reval
+    end
+  end
+end
+
+ArithmeticType.binary_operators.le = make_arithmetic_cmp_opfunc(function(a,b)
+  return a<=b
+end)
+
+ArithmeticType.binary_operators.ge = make_arithmetic_cmp_opfunc(function(a,b)
+  return a>=b
+end)
+
+ArithmeticType.binary_operators.lt = make_arithmetic_cmp_opfunc(function(a,b)
+  return a<b
+end)
+
+ArithmeticType.binary_operators.gt = make_arithmetic_cmp_opfunc(function(a,b)
+  return a>b
+end)
 
 --------------------------------------------------------------------------------
 local IntegralType = typeclass(ArithmeticType)
@@ -387,8 +490,24 @@ end
 function IntegralType:is_conversible_from_type(type, explicit)
   if type:is_integral() and self:is_inrange(type.min) and self:is_inrange(type.max) then
     return true
+  elseif explicit and type:is_arithmetic() then
+    return true
   end
   return ArithmeticType.is_conversible_from_type(self, type, explicit)
+end
+
+function IntegralType:normalize_value(value)
+  if not value:isintegral() then
+    value = value:trunc()
+  end
+  if not self:is_inrange(value) then
+    if self:is_signed() and value > self.max then
+      value = -bn.bnorm(-value, self.bitsize)
+    else
+      value = bn.bnorm(value, self.bitsize)
+    end
+  end
+  return value
 end
 
 function IntegralType:promote_value(value)
@@ -455,7 +574,7 @@ local function integral_arithmetic_operation(self, rtype)
   return self
 end
 
-local function integral_div_operation(self, rtype)
+local function integral_fractional_operation(self, rtype)
   if not rtype then
     return
   end
@@ -488,17 +607,88 @@ local function integral_range_operation(self, rtype)
   return types.RangeType(nil, subtype)
 end
 
-IntegralType.unary_operators.bnot = true
-IntegralType.binary_operators.add = integral_arithmetic_operation
-IntegralType.binary_operators.sub = integral_arithmetic_operation
-IntegralType.binary_operators.mul = integral_arithmetic_operation
-IntegralType.binary_operators.div = integral_div_operation
-IntegralType.binary_operators.idiv = integral_arithmetic_operation
-IntegralType.binary_operators.mod = integral_arithmetic_operation
-IntegralType.binary_operators.pow = integral_div_operation
-IntegralType.binary_operators.bor = integral_bitwise_operation
-IntegralType.binary_operators.bxor = integral_bitwise_operation
-IntegralType.binary_operators.band = integral_bitwise_operation
+local function make_integral_binary_opfunc(optypefunc, opvalfunc)
+  return function(ltype, rtype, lval, rval)
+    local retype, err = optypefunc(ltype, rtype, lval, rval)
+    if retype and lval and rval then
+      local reval
+      reval, err = opvalfunc(lval, rval, retype)
+      if reval then
+        retype = retype:promote_value(reval)
+        reval = retype:normalize_value(reval)
+      end
+      return retype, reval, err
+    end
+    return retype, nil, err
+  end
+end
+
+IntegralType.binary_operators.add = make_integral_binary_opfunc(integral_arithmetic_operation, function(a,b)
+  return a + b
+end)
+
+IntegralType.binary_operators.sub = make_integral_binary_opfunc(integral_arithmetic_operation, function(a,b)
+  return a - b
+end)
+
+IntegralType.binary_operators.mul = make_integral_binary_opfunc(integral_arithmetic_operation, function(a,b)
+  return a * b
+end)
+
+IntegralType.binary_operators.div = make_integral_binary_opfunc(function(ltype, rtype, lval, rval)
+  if rval and rval:iszero() then
+    return nil, 'division by zero is not allowed'
+  end
+  return integral_fractional_operation(ltype, rtype, lval, rval)
+end, function(a,b)
+  return a / b
+end)
+
+IntegralType.binary_operators.idiv = make_integral_binary_opfunc(function(ltype, rtype, lval, rval)
+  if rval and rval:iszero() then
+    return nil, 'division by zero is not allowed'
+  end
+  return integral_arithmetic_operation(ltype, rtype, lval, rval)
+end, function(a,b,retype)
+  if retype:is_float() then
+    return (a / b):floor()
+  end
+  return (a / b):trunc()
+end)
+
+IntegralType.binary_operators.mod = make_integral_binary_opfunc(function(ltype, rtype, lval, rval)
+  if rval and rval:iszero() then
+    return nil, 'division by zero is not allowed'
+  end
+  return integral_arithmetic_operation(ltype, rtype, lval, rval)
+end, function(a,b)
+  return a % b
+end)
+
+IntegralType.binary_operators.pow = make_integral_binary_opfunc(integral_fractional_operation, function(a,b)
+  return a ^ b
+end)
+
+IntegralType.binary_operators.bor = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
+  return t:normalize_value(bn.bor(a,b,t.bitsize))
+end)
+
+IntegralType.binary_operators.bxor = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
+  return t:normalize_value(bn.bxor(a,b,t.bitsize))
+end)
+
+IntegralType.binary_operators.band = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
+  return t:normalize_value(bn.band(a,b,t.bitsize))
+end)
+
+IntegralType.binary_operators.shl = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
+  return t:normalize_value(bn.lshift(a,b,t.bitsize))
+end)
+
+IntegralType.binary_operators.shr = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
+  return t:normalize_value(bn.rshift(a,b,t.bitsize))
+end)
+
 IntegralType.binary_operators.shl = integral_shift_operation
 IntegralType.binary_operators.shr = integral_shift_operation
 IntegralType.binary_operators.range = integral_range_operation
@@ -554,13 +744,39 @@ local function float_arithmetic_operation(self, rtype)
   return self:promote_type(rtype)
 end
 
-FloatType.binary_operators.add = float_arithmetic_operation
-FloatType.binary_operators.sub = float_arithmetic_operation
-FloatType.binary_operators.mul = float_arithmetic_operation
-FloatType.binary_operators.div = float_arithmetic_operation
-FloatType.binary_operators.idiv = float_arithmetic_operation
-FloatType.binary_operators.mod = float_arithmetic_operation
-FloatType.binary_operators.pow = float_arithmetic_operation
+local function make_float_binary_opfunc(optypefunc, opvalfunc)
+  return function(ltype, rtype, lval, rval)
+    local retype, err = optypefunc(ltype, rtype, lval, rval)
+    if retype and lval and rval then
+      local reval
+      reval, err = opvalfunc(lval, rval, retype)
+      return retype, reval, err
+    end
+    return retype, err
+  end
+end
+
+FloatType.binary_operators.add = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
+  return a + b
+end)
+FloatType.binary_operators.sub = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
+  return a - b
+end)
+FloatType.binary_operators.mul = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
+  return a * b
+end)
+FloatType.binary_operators.div = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
+  return a / b
+end)
+FloatType.binary_operators.idiv = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
+  return (a / b):floor()
+end)
+FloatType.binary_operators.mod = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
+  return a % b
+end)
+FloatType.binary_operators.pow = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
+  return a ^ b
+end)
 
 --------------------------------------------------------------------------------
 local TableType = typeclass()
@@ -621,11 +837,12 @@ end
 ArrayType.unary_operators.len = 'integer'
 
 --------------------------------------------------------------------------------
-local EnumType = typeclass()
+local EnumType = typeclass(IntegralType)
 types.EnumType = EnumType
 
 function EnumType:_init(node, subtype, fields)
-  Type._init(self, 'enum', subtype.size, node)
+  IntegralType._init(self, 'enum', subtype.size, subtype.unsigned)
+  self.node = node
   self.enum = true
   self.subtype = subtype
   self.fields = fields

@@ -189,6 +189,7 @@ end)
 it("unary operators", function()
   assert.ast_type_equals("local a = not b", "local a: boolean = not b")
   assert.ast_type_equals("local a = -1", "local a: integer = -1")
+  assert.analyze_error("local x = &1", "cannot reference compile time value")
 end)
 
 it("binary operator shift", function()
@@ -234,7 +235,7 @@ end)
 
 it("binary operator idiv", function()
   assert.ast_type_equals("local a = 2 // 2", "local a: integer = 2 // 2")
-  assert.analyze_error("local a = 1 // 0", "divizion by zero")
+  assert.analyze_error("local a = 1 // 0", "division by zero")
 end)
 
 it("binary operator div", function()
@@ -242,8 +243,8 @@ it("binary operator div", function()
   assert.ast_type_equals(
     "local x = 1; local a = x / 2_f32",
     "local x = 1; local a: float32 = x / 2_f32")
-  assert.analyze_error("local a = 1 / 0", "divizion by zero")
-  assert.analyze_error("local a = 1 / -0", "divizion by zero")
+  assert.analyze_error("local a = 1 / 0", "division by zero")
+  assert.analyze_error("local a = 1 / -0", "division by zero")
   assert.ast_type_equals(
     "local a, b = 1, 2; a = b / 1",
     "local a: number, b: integer = 1, 2; a = b / 1")
@@ -251,7 +252,7 @@ end)
 
 it("binary operator mod", function()
   assert.ast_type_equals("local a = 2_u32 % 2_u32", "local a: uint32 = 2_u32 % 2_u32")
-  assert.analyze_error("local a = 1 % 0", "divizion by zero")
+  assert.analyze_error("local a = 1 % 0", "division by zero")
 end)
 
 it("binary operator eq", function()

@@ -1039,8 +1039,6 @@ local function emit_main(ast, context)
   local main_scope = context:push_scope('function')
   main_scope.main = true
   if not ast.attr.entrypoint then
-    mainemitter:add_ln(
-      '/*********************************** MAIN ***********************************/')
     mainemitter:inc_indent()
     mainemitter:add_ln("int nelua_main() {")
     mainemitter:add_traversal(ast)
@@ -1095,9 +1093,9 @@ function generator.generate(ast)
   context:evaluate_templates()
 
   local code = table.concat({
-    '/******************************** DECLARATIONS ********************************/\n',
+    '/* ------------------------------ DECLARATIONS ------------------------------ */\n',
     table.concat(context.declarations),
-    '/******************************** DEFINITIONS *********************************/\n',
+    '/* ------------------------------ DEFINITIONS ------------------------------- */\n',
     table.concat(context.definitions)
   })
 
