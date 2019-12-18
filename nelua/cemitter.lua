@@ -3,6 +3,7 @@ local Emitter = require 'nelua.emitter'
 local traits = require 'nelua.utils.traits'
 local typedefs = require 'nelua.typedefs'
 local errorer = require 'nelua.utils.errorer'
+local pegger = require 'nelua.utils.pegger'
 local CEmitter = class(Emitter)
 local primtypes = typedefs.primtypes
 
@@ -206,12 +207,25 @@ function CEmitter:add_numeric_literal(val, valtype, base)
   end
 end
 
+function CEmitter:add_string_literal(val)
+  local decemitter = CEmitter(self.context)
+  local len = #val
+  local varname = self.context:genuniquename('strlit')
+  local quoted_value = pegger.double_quote_c_string(val)
+  decemitter:add_indent('static const struct { uintptr_t len; char data[', len + 1, ']; }')
+  decemitter:add_indent_ln(' ', varname, ' = {', len, ', ', quoted_value, '};')
+  self:add('(const ', primtypes.string, ')&', varname)
+  self.context:add_declaration(decemitter:generate(), varname)
+end
+
 function CEmitter:add_literal(valattr)
   local valtype = valattr.type
   if valtype:is_boolean() then
     self:add_booleanlit(valattr.value)
   elseif valtype:is_arithmetic() then
     self:add_numeric_literal(valattr.value, valtype)
+  elseif valtype:is_string() then
+    self:add_string_literal(valattr.value)
   --elseif valtype:is_record() then
     --self:add(valattr)
   else --luacov:disable

@@ -396,8 +396,6 @@ function operators.len(node, emitter, argnode)
   local type = argnode.attr.type
   if type:is_arraytable() then
     emitter:add(type, '_length(&', argnode, ')')
-  elseif type:is_array() then
-    emitter:add(type.length)
   elseif type:is_type() then
     emitter:add(argnode.attr.holdedtype.size)
   else --luacov:disable

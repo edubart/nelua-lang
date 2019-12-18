@@ -4,7 +4,6 @@ local traits = require 'nelua.utils.traits'
 local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
 local tabler = require 'nelua.utils.tabler'
-local pegger = require 'nelua.utils.pegger'
 local fs = require 'nelua.utils.fs'
 local config = require 'nelua.configer'.get()
 local cdefs = require 'nelua.cdefs'
@@ -213,24 +212,15 @@ end
 local visitors = {}
 
 function visitors.Number(_, node, emitter)
-  local base, int, frac, exp, literal = node:args()
-  local type = node.attr.type
-  if not type:is_float() and literal then
+  local attr = node.attr
+  if not attr.type:is_float() and attr.littype then
     emitter:add_nodectypecast(node)
   end
-  emitter:add_numeric_literal(node.attr.value, type, base)
+  emitter:add_numeric_literal(attr.value, attr.type, attr.base)
 end
 
-function visitors.String(context, node, emitter)
-  local decemitter = CEmitter(context)
-  local value = node.attr.value
-  local len = #value
-  local varname = context:genuniquename('strlit')
-  local quoted_value = pegger.double_quote_c_string(value)
-  decemitter:add_indent('static const struct { uintptr_t len; char data[', len + 1, ']; }')
-  decemitter:add_indent_ln(' ', varname, ' = {', len, ', ', quoted_value, '};')
-  emitter:add('(const ', primtypes.string, ')&', varname)
-  context:add_declaration(decemitter:generate(), varname)
+function visitors.String(_, node, emitter)
+  emitter:add_string_literal(node.attr.value)
 end
 
 function visitors.Boolean(_, node, emitter)

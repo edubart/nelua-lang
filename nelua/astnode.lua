@@ -142,6 +142,7 @@ local ignored_stringfy_keys = {
   uid = true,
   processed = true,
   untyped = true,
+  desiredtype = true,
   cloned = true,
   needprocess = true,
   loaded = true,

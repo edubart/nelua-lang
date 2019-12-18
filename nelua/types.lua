@@ -130,12 +130,9 @@ function Type:promote_type(type)
 end
 
 function Type:is_equal(type)
-  if type then
-    if rawequal(type, self) then
-      return true
-    end
-    return type.name == self.name and getmetatable(type) == getmetatable(self)
-  end
+  return type and (
+    rawequal(type, self) or
+    (type.name == self.name and getmetatable(type) == getmetatable(self)))
 end
 
 function Type:is_primitive() return self.primitive end
@@ -511,7 +508,6 @@ function IntegralType:normalize_value(value)
 end
 
 function IntegralType:promote_value(value)
-  assert(traits.is_bignumber(value))
   if value:isintegral() then
     if self:is_inrange(value) then
       -- this type already fits
@@ -530,10 +526,12 @@ function IntegralType:promote_value(value)
     if primtypes.uint64:is_inrange(value) then
       return primtypes.uint64
     end
-  end
 
-  -- can only be int64 now
-  return primtypes.int64
+    -- can only be int64 now
+    return primtypes.int64
+  else
+    return primtypes.number
+  end
 end
 
 function IntegralType:promote_type(type)
@@ -562,22 +560,19 @@ function IntegralType:is_inrange(value)
 end
 
 local function integral_arithmetic_operation(self, rtype)
-  if not rtype or not rtype:is_arithmetic() then
+  if not rtype:is_arithmetic() then
     return
   end
   if rtype:is_integral() then
     return self:promote_type(rtype)
-  elseif rtype:is_float() then
+  else
     -- promote to float
+    assert(rtype:is_float())
     return rtype
   end
-  return self
 end
 
 local function integral_fractional_operation(self, rtype)
-  if not rtype then
-    return
-  end
   if rtype:is_float() then
     return rtype
   elseif math.max(self.size, rtype.size) <= primtypes.float32.size then
@@ -588,7 +583,7 @@ local function integral_fractional_operation(self, rtype)
 end
 
 local function integral_bitwise_operation(self, rtype)
-  if not rtype or not rtype:is_integral() then
+  if not rtype:is_integral() then
     return
   end
   -- return the biggest
@@ -596,7 +591,7 @@ local function integral_bitwise_operation(self, rtype)
 end
 
 local function integral_shift_operation(self, rtype)
-  if not rtype or not rtype:is_integral() then
+  if not rtype:is_integral() then
     return
   end
   return self
@@ -681,16 +676,14 @@ IntegralType.binary_operators.band = make_integral_binary_opfunc(integral_bitwis
   return t:normalize_value(bn.band(a,b,t.bitsize))
 end)
 
-IntegralType.binary_operators.shl = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
+IntegralType.binary_operators.shl = make_integral_binary_opfunc(integral_shift_operation, function(a,b,t)
   return t:normalize_value(bn.lshift(a,b,t.bitsize))
 end)
 
-IntegralType.binary_operators.shr = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
+IntegralType.binary_operators.shr = make_integral_binary_opfunc(integral_shift_operation, function(a,b,t)
   return t:normalize_value(bn.rshift(a,b,t.bitsize))
 end)
 
-IntegralType.binary_operators.shl = integral_shift_operation
-IntegralType.binary_operators.shr = integral_shift_operation
 IntegralType.binary_operators.range = integral_range_operation
 
 --------------------------------------------------------------------------------
@@ -715,10 +708,7 @@ function FloatType:is_conversible_from_type(type, explicit)
   return ArithmeticType.is_conversible_from_type(self, type, explicit)
 end
 
-function FloatType.is_inrange(value)
-  assert(traits.is_bignumber(value))
-  return true
-end
+function FloatType.is_inrange() return true end
 
 function FloatType:promote_value()
   --assert(traits.is_bignumber(value))
@@ -737,11 +727,11 @@ function FloatType:promote_type(type)
   return self
 end
 
-local function float_arithmetic_operation(self, rtype)
-  if not rtype or not rtype:is_arithmetic() then
+local function float_arithmetic_operation(ltype, rtype)
+  if not rtype:is_arithmetic() then
     return
   end
-  return self:promote_type(rtype)
+  return ltype:promote_type(rtype)
 end
 
 local function make_float_binary_opfunc(optypefunc, opvalfunc)
@@ -834,7 +824,9 @@ function ArrayType:__tostring()
   return sstream(self.name, '(', self.subtype, ', ', self.length, ')'):tostring()
 end
 
-ArrayType.unary_operators.len = 'integer'
+ArrayType.unary_operators.len = function(ltype)
+  return primtypes.integer, bn.new(ltype.length)
+end
 
 --------------------------------------------------------------------------------
 local EnumType = typeclass(IntegralType)
@@ -1085,8 +1077,6 @@ end
 function RecordType:set_metafield(name, symbol)
   return self.metatype:set_field(name, symbol)
 end
-
-RecordType.unary_operators.len = 'integer'
 
 --------------------------------------------------------------------------------
 local PointerType = typeclass()

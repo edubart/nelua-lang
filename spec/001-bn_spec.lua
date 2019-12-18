@@ -19,6 +19,11 @@ it("regular number conversion", function()
   assert.is.same(n(12345.6789):tonumber(), 12345.6789)
 end)
 
+it("regular number conversion", function()
+  assert.has_error(function() n(1.0/0.0) end, 'non finite number')
+  assert.has_error(function() n(0.0/0.0) end, 'non finite number')
+end)
+
 it("decimal number conversion", function()
   assert.is.same(d'0', n(0))
   assert.is.same(d'1', n(1))
@@ -66,6 +71,12 @@ it("binary conversion", function()
   assert.is.same(b'-11', n(-3))
   assert.is.same(b'11111111', n(255))
   assert.is.same(b'100000000', n(256))
+
+
+  assert.is.same(b'11':tobin(), '11')
+  assert.is.same(b'10':tobin(), '10')
+  assert.is.same(b'1':tobin(), '1')
+  assert.is.same(b'0':tobin(), '0')
 end)
 
 it("scientific notation", function()

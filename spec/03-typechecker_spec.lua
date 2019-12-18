@@ -15,7 +15,7 @@ it("analyzed ast transform", function()
           attr = {codename='a', name='a', type='int64', lvalue=true},
           'a' }},
         { n.Number{
-          attr = {compconst=true, initializer=true, integral=true, type='int64', value=bn.fromdec('1')},
+          attr = {compconst=true, initializer=true, integral=true, base='dec', type='int64', value=bn.fromdec('1')},
           'dec', '1'
         }}
       },
@@ -189,6 +189,7 @@ end)
 it("unary operators", function()
   assert.ast_type_equals("local a = not b", "local a: boolean = not b")
   assert.ast_type_equals("local a = -1", "local a: integer = -1")
+  assert.ast_type_equals("local a = -1.0", "local a: number = -1.0")
   assert.analyze_error("local x = &1", "cannot reference compile time value")
 end)
 
@@ -227,10 +228,12 @@ it("binary operator add", function()
   assert.ast_type_equals("local a = 1_i64 + 2_f32", "local a: float32 = 1_i64 + 2_f32")
   assert.ast_type_equals("local a = 1_i64 + 2_f64", "local a: float64 = 1_i64 + 2_f64")
   assert.analyze_error("local a = 1 + 's'", "is not defined between types")
+  assert.analyze_error("local a = 1.0 + 's'", "is not defined between types")
 end)
 
 it("binary operator pow", function()
   assert.ast_type_equals("local a = 2 ^ 2", "local a: number = 2 ^ 2")
+  assert.ast_type_equals("local a = 2_i32 ^ 2_i32", "local a: float32 = 2_i32 ^ 2_i32")
 end)
 
 it("binary operator idiv", function()
@@ -240,6 +243,7 @@ end)
 
 it("binary operator div", function()
   assert.ast_type_equals("local a = 2 / 2", "local a: number = 2 / 2")
+  assert.ast_type_equals("local a = 2_i32 / 2_i32", "local a: float32 = 2_i32 / 2_i32")
   assert.ast_type_equals(
     "local x = 1; local a = x / 2_f32",
     "local x = 1; local a: float32 = x / 2_f32")
@@ -265,11 +269,42 @@ it("binary operator ne", function()
   assert.ast_type_equals("local a = 1 ~= 'a'", "local a: boolean = 1 ~= 'a'")
 end)
 
+it("binary operator bor", function()
+  assert.ast_type_equals("local a = 1 | 2", "local a: integer = 1 | 2")
+  assert.analyze_error("local a = 1 | 's'", "is not defined between types")
+end)
+
+it("binary operator band", function()
+  assert.ast_type_equals("local a = 1 & 2", "local a: integer = 1 & 2")
+  assert.analyze_error("local a = 1 & 's'", "is not defined between types")
+end)
+
+it("binary operator bxor", function()
+  assert.ast_type_equals("local a = 1 ~ 2", "local a: integer = 1 ~ 2")
+  assert.analyze_error("local a = 1 ~ 's'", "is not defined between types")
+end)
+
+it("binary operator shl", function()
+  assert.ast_type_equals("local a = 1 << 2", "local a: integer = 1 << 2")
+  assert.analyze_error("local a = 1 << 's'", "is not defined between types")
+end)
+
+it("binary operator shr", function()
+  assert.ast_type_equals("local a = 1 >> 2", "local a: integer = 1 >> 2")
+  assert.analyze_error("local a = 1 >> 's'", "is not defined between types")
+end)
+
 it("binary conditional and", function()
   assert.ast_type_equals("local a = 1 and 2", "local a: integer = 1 and 2")
   assert.ast_type_equals("local a = 1_i8 and 2_u8", "local a: int16 = 1_i8 and 2_u8")
   assert.ast_type_equals("local a = 1 and true", "local a: any = 1 and true")
   assert.ast_type_equals("local a = 1 and 2 or 3", "local a: integer = 1 and 2 or 3")
+  assert.ast_type_equals("local a = 1 and '2'", "local a: any = 1 and '2'")
+  assert.ast_type_equals("local a = 1.0 and '2'", "local a: any = 1.0 and '2'")
+  assert.ast_type_equals("local a = 1.0 and 2.0_f32", "local a: float32 = 1.0 and 2.0_f32")
+  assert.ast_type_equals("local a = 1.0_f32 and 2.0", "local a: float32 = 1.0_f32 and 2.0")
+  assert.ast_type_equals("local a = 1.0_f32 and 2.0_f64", "local a: float64 = 1.0_f32 and 2.0_f64")
+  assert.ast_type_equals("local a = 1.0_f64 and 2.0_f32", "local a: float64 = 1.0_f64 and 2.0_f32")
 end)
 
 it("binary conditional or", function()
@@ -665,7 +700,6 @@ it("records", function()
   assert.analyze_ast([[local a: record {x: boolean} = {x = true}]])
   assert.analyze_ast([[local a: record {x: boolean}; a = {}]])
   assert.analyze_ast([[local a: record {x: boolean}; a = {x = true}]])
-  assert.analyze_ast([[local a: record {x: boolean}; local len = #a]])
   assert.analyze_error([[local a: record {x: integer}; a.x = true]], "no viable type conversion")
   assert.analyze_error([[local a: record {x: boolean}; local b = a.y]], "does not have field named")
   assert.analyze_error([[local a: record {x: integer} = {x = true}]], "no viable type conversion")

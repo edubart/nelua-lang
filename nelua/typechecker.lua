@@ -27,12 +27,8 @@ local function check_implicit_conversion(node, from, totype, message, ...)
   end
 end
 
-function visitors.Number(_, node, desiredtype)
+function visitors.Number(_, node)
   local attr = node.attr
-  if attr.type and (not desiredtype or attr.littype or desiredtype == attr.type) then
-    -- type already known, quick return
-    return
-  end
 
   if not attr.value then
     local value
@@ -53,51 +49,25 @@ function visitors.Number(_, node, desiredtype)
     attr.value = value
     attr.integral = integral
     attr.compconst = true
+    attr.base = base
   end
 
   local type = attr.littype
-  if not type and desiredtype and desiredtype:is_arithmetic() then
-    if attr.integral and desiredtype:is_integral() then
-      if desiredtype:is_unsigned() and not attr.value:isneg() then
-        -- find smallest unsigned type
-        for _,itype in ipairs(typedefs.unsigned_types) do
-          if attr.value >= itype.min and attr.value <= itype.max then
-            type = itype
-            break
-          end
-        end
-      else
-      -- find smallest signed type
-        for _,itype in ipairs(typedefs.integral_signed_types) do
-          if attr.value >= itype.min and attr.value <= itype.max then
-            type = itype
-            break
-          end
-        end
-      end
-    elseif desiredtype:is_float() then
-      type = desiredtype
-    end
-  end
   if not type then
-    type = attr.integral and primtypes.integer or primtypes.number
-    node.untyped = true
-  else
-    node.untyped = nil
-  end
-  if not attr.littype and desiredtype and
-     desiredtype:is_arithmetic() and desiredtype:is_conversible_from_type(type) then
-    type = desiredtype
+    local desiredtype = node.desiredtype
+    if desiredtype and desiredtype:is_arithmetic() then
+      if attr.integral or desiredtype:is_float() then
+        type = desiredtype:promote_value(attr.value)
+      end
+    end
+    if not type then
+      type = attr.integral and primtypes.integer or primtypes.number
+      node.untyped = true
+    else
+      node.untyped = nil
+    end
   end
   if attr.type ~= type then
-    --TODO: recheck this
-    --[[
-    if type:is_integral() and not type:is_inrange(attr.value) then
-      node:raisef(
-        "value %s for integral of type '%s' is out of range, minimum is %s and maximum is %s",
-        attr.value:todec(), type, type.min:todec(), type.max:todec())
-    end
-    ]]
     attr.type = type
   end
 end
@@ -128,9 +98,10 @@ function visitors.Nil(_, node)
   attr.compconst = true
 end
 
-function visitors.Table(context, node, desiredtype)
+function visitors.Table(context, node)
   local attr = node.attr
   local childnodes = node:args()
+  local desiredtype = node.desiredtype
   if desiredtype and desiredtype ~= primtypes.table then
     local compconst = true
     if desiredtype:is_arraytable() then
@@ -138,7 +109,8 @@ function visitors.Table(context, node, desiredtype)
       for i, childnode in ipairs(childnodes) do
         childnode:assertraisef(childnode.tag ~= 'Pair',
           "in array table literal value, fields are not allowed")
-        context:traverse(childnode, subtype)
+        childnode.desiredtype = subtype
+        context:traverse(childnode)
         local childtype = childnode.attr.type
         if childtype then
           check_implicit_conversion(childnode, childnode, subtype, 'in array table literal at index %d', i)
@@ -156,7 +128,8 @@ function visitors.Table(context, node, desiredtype)
       for i, childnode in ipairs(childnodes) do
         childnode:assertraisef(childnode.tag ~= 'Pair',
           "in array literal, fields are not allowed")
-        context:traverse(childnode, subtype)
+        childnode.desiredtype = subtype
+        context:traverse(childnode)
         local childtype = childnode.attr.type
         if childtype then
           childnode:assertraisef(subtype:is_conversible_from_node(childnode),
@@ -192,7 +165,8 @@ function visitors.Table(context, node, desiredtype)
           "in record literal, field '%s' is not present in record of type '%s'",
           fieldname, desiredtype)
         local fieldtype = field.type
-        context:traverse(fieldvalnode, fieldtype)
+        fieldvalnode.desiredtype = fieldtype
+        context:traverse(fieldvalnode)
         lastfieldindex = fieldindex
         local fieldvaltype = fieldvalnode.attr.type
         if fieldvaltype then
@@ -380,7 +354,7 @@ function visitors.Type(context, node)
   attr.holdedtype = holdedtype
 end
 
-function visitors.TypeInstance(context, node, _, symbol)
+function visitors.TypeInstance(context, node, symbol)
   local typenode = node[1]
   context:traverse(typenode)
   -- inherit attributes from inner node
@@ -446,11 +420,13 @@ function visitors.RecordType(context, node)
   attr.value = type
 end
 
-function visitors.EnumFieldType(context, node, desiredtype)
+function visitors.EnumFieldType(context, node)
   local name, numnode = node:args()
   local field = {name = name}
   if numnode then
-    context:traverse(numnode, desiredtype)
+    local desiredtype = node.desiredtype
+    numnode.desiredtype = desiredtype
+    context:traverse(numnode)
     local value, numtype = numnode.attr.value, numnode.attr.type
     numnode:assertraisef(numnode.attr.compconst,
       "enum fields can only be assigned to compile time values")
@@ -476,7 +452,8 @@ function visitors.EnumType(context, node)
   end
   local fields = {}
   for i,fnode in ipairs(fieldnodes) do
-    local field = context:traverse(fnode, subtype)
+    fnode.desiredtype = subtype
+    local field = context:traverse(fnode)
     if not field.value then
       if i == 1 then
         fnode:raisef('in enum declaration, first field requires a initial value')
@@ -837,7 +814,8 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
       local knownallargs = true
       for i,funcargtype,argnode,argtype in izipargnodes(pseudoargtypes, argnodes) do
         if argnode then
-          context:traverse(argnode, funcargtype)
+          argnode.desiredtype = funcargtype
+          context:traverse(argnode)
           argtype = argnode.attr.type
           if argtype then
             argtypes[i] = argtype
@@ -943,7 +921,8 @@ function visitors.Call(context, node)
       "in assertion to type '%s', expected one argument, but got %d",
       type, #argnodes)
     local argnode = argnodes[1]
-    context:traverse(argnode, type)
+    argnode.desiredtype = type
+    context:traverse(argnode)
     local argtype = argnode.attr.type
     if argtype then
       argnode:assertraisef(type:is_conversible_from_node(argnode, true),
@@ -1015,7 +994,8 @@ function visitors.If(context, node)
   local iflist, elsenode = node:args()
   for _,ifpair in ipairs(iflist) do
     local ifcondnode, ifblocknode = ifpair[1], ifpair[2]
-    context:traverse(ifcondnode, primtypes.boolean)
+    ifcondnode.desiredtype = primtypes.boolean
+    context:traverse(ifcondnode)
     context:traverse(ifblocknode)
   end
   if elsenode then
@@ -1025,14 +1005,16 @@ end
 
 function visitors.While(context, node)
   local condnode, blocknode = node:args()
-  context:traverse(condnode, primtypes.boolean)
+  condnode.desiredtype = primtypes.boolean
+  context:traverse(condnode)
   context:traverse(blocknode)
 end
 
 function visitors.Repeat(context, node)
   local blocknode, condnode = node:args()
+  condnode.desiredtype = primtypes.boolean
   context:traverse(blocknode, function()
-    context:traverse(condnode, primtypes.boolean)
+    context:traverse(condnode)
   end)
 end
 
@@ -1155,7 +1137,8 @@ function visitors.VarDecl(context, node)
       varnode:assertraisef(valnode, 'const variables must have an initial value')
     end
     if valnode then
-      context:traverse(valnode, vartype, symbol)
+      valnode.desiredtype = vartype
+      context:traverse(valnode, symbol)
       valtype = valnode.attr.type
       if valtype and valtype:is_varanys() then
         -- varanys are always stored as any in variables
@@ -1231,7 +1214,8 @@ function visitors.Assign(context, node)
     varnode:assertraisef(not (varnode.attr.const or varnode.attr.compconst),
       "cannot assign a constant variable")
     if valnode then
-      context:traverse(valnode, vartype)
+      valnode.desiredtype = vartype
+      context:traverse(valnode)
       valtype = valnode.attr.type
     end
     if valtype then
@@ -1448,17 +1432,21 @@ function visitors.FuncDef(context, node)
   end
 end
 
-function visitors.UnaryOp(context, node, desiredtype)
+function visitors.UnaryOp(context, node)
   local attr = node.attr
   local opname, argnode = node:args()
+  local argattr = argnode.attr
+  argattr.inoperator = true
   local argtype = argnode.attr.type
   local type
   if opname == 'not' then
-    desiredtype = primtypes.boolean
+    argnode.desiredtype = primtypes.boolean
     type = primtypes.boolean
+  else
+    argnode.desiredtype = node.desiredtype
   end
-  context:traverse(argnode, desiredtype)
-  local argattr = argnode.attr
+  context:traverse(argnode)
+  argattr = argnode.attr
   if attr.type and argattr.type == argtype then
     -- type already resolved, quick return
     return
@@ -1487,95 +1475,87 @@ function visitors.UnaryOp(context, node, desiredtype)
   end
   assert(context.phase ~= phases.any_inference or attr.type)
   attr.sideeffect = argattr.sideeffect
-  local parentnode = context:get_parent_node()
-  attr.inoperator = parentnode.tag == 'BinaryOp' or parentnode.tag == 'UnaryOp'
 end
 
---TODO: missing operators
-
-function visitors.BinaryOp(context, node, desiredtype)
-  local attr = node.attr
+function visitors.BinaryOp(context, node)
   local opname, lnode, rnode = node:args()
+  local attr, lattr, rattr = node.attr, lnode.attr, rnode.attr
 
-  local parentnode = context:get_parent_node()
+  lattr.inoperator = true
+  rattr.inoperator = true
+
   local type
+  local isbinaryconditional = opname == 'or' or opname == 'and'
 
-  if desiredtype and desiredtype:is_boolean() then
-    if typedefs.binary_conditional_ops[opname] then
-      type = primtypes.boolean
-      desiredtype = type
-    else
-      desiredtype = nil
+  local desiredtype = node.desiredtype
+  if isbinaryconditional then
+    if desiredtype and desiredtype:is_boolean() then
+      type = desiredtype
+      lnode.desiredtype, rnode.desiredtype = type, type
     end
+  else
+    lnode.desiredtype, rnode.desiredtype = desiredtype, desiredtype
   end
 
-  local ldesiredtype = desiredtype
-  local ternaryand = false
-  if opname == 'and' then
-    if parentnode.tag == 'BinaryOp' and parentnode[1] == 'or' and parentnode[2] == node then
-      ternaryand = true
-      ldesiredtype = primtypes.boolean
-    end
+  local ltype, rtype = lattr.type, rattr.type
+
+  if not attr.ternaryor and opname == 'or' and lnode.tag == 'BinaryOp' and lnode[1] == 'and' then
+    lattr.ternaryand = true
+    attr.ternaryor = true
+    lnode[2].desiredtype = primtypes.boolean
+    context:traverse(rnode)
+    lnode.attr.ternaryandtype = rnode.attr.type
+    context:traverse(lnode)
+  else
+    context:traverse(lnode)
+    context:traverse(rnode)
   end
-
-  local ltype, rtype = lnode.attr.type, rnode.attr.type
-
-  context:traverse(lnode, ldesiredtype)
-  context:traverse(rnode, desiredtype)
 
   if attr.type and ltype == lnode.attr.type and rtype == rnode.attr.type then
     -- type already resolved, quick return
     return
   end
 
-  if ternaryand then
-    attr.ternaryand = true
-    parentnode.attr.ternaryor = true
-  end
-
-  local lattr, rattr = lnode.attr, rnode.attr
+  lattr, rattr = lnode.attr, rnode.attr
   ltype, rtype = lattr.type, rattr.type
 
-  if not type then
-    -- traverse again trying to coerce untyped child nodes
-    if lnode.untyped and rtype then
-      context:traverse(lnode, rtype)
-      ltype = lattr.type
-    elseif rnode.untyped and ltype then
-      context:traverse(rnode, ltype)
-      rtype = rattr.type
-    end
+  -- traverse again trying to coerce untyped child nodes
+  if rnode.untyped and ltype then
+    rnode.desiredtype = ltype
+    context:traverse(rnode)
+    rtype = rattr.type
+  elseif lnode.untyped and rtype then
+    lnode.desiredtype = rtype
+    context:traverse(lnode)
+    ltype = lattr.type
+  end
 
-    if typedefs.binary_conditional_ops[opname] then
-      if ternaryand then
-        if rtype then
-          -- get type from right 'or' node
-          local prnode = parentnode[3]
-          context:traverse(prnode, rtype)
-          local prtype = prnode.attr.type
-          if prtype then
-            type = rtype:promote_type(prtype)
-          end
-        end
-      else
-        if ltype and rtype then
-          type = ltype:promote_type(rtype)
-        end
+  if rtype and ltype and isbinaryconditional and (not rtype:is_boolean() or not ltype:is_boolean()) then
+    attr.dynamic_conditional = true
+  end
+  attr.sideeffect = lattr.sideeffect or rattr.sideeffect
+
+  if not type then
+    if attr.ternaryand then
+      if attr.ternaryandtype then
+        type = rtype:promote_type(attr.ternaryandtype)
       end
-    else
+    elseif isbinaryconditional then
       if ltype and rtype then
-        local value, err
-        type, value, err = ltype:binary_operator(opname, rtype, lnode.attr.value, rnode.attr.value)
-        lnode:assertraisef(not err,
-          "binary operation `%s` between types '%s' and '%s': %s",
-          opname, ltype, rtype, err)
-        lnode:assertraisef(type,
-          "binary operation `%s` is not defined between types '%s' and '%s'",
-          opname, ltype, rtype)
-        if value ~= nil then
-          attr.compconst = true
-          attr.value = value
-        end
+        type = ltype:promote_type(rtype)
+      end
+    elseif ltype and rtype then
+      local value, err
+      type, value, err = ltype:binary_operator(opname, rtype, lattr.value, rattr.value)
+      lnode:assertraisef(not err,
+        "binary operation `%s` between types '%s' and '%s': %s",
+        opname, ltype, rtype, err)
+      lnode:assertraisef(type,
+        "binary operation `%s` is not defined between types '%s' and '%s'",
+        opname, ltype, rtype)
+      if value ~= nil then
+        attr.compconst = true
+        attr.value = value
       end
     end
   end
@@ -1585,14 +1565,6 @@ function visitors.BinaryOp(context, node, desiredtype)
   if type then
     attr.type = type
   end
-  if rtype and ltype then
-    if typedefs.binary_conditional_ops[opname] and
-      (not rtype:is_boolean() or not ltype:is_boolean()) then
-      attr.dynamic_conditional = true
-    end
-  end
-  attr.sideeffect = lattr.sideeffect or rattr.sideeffect
-  attr.inoperator = parentnode.tag == 'BinaryOp' or parentnode.tag == 'UnaryOp'
 end
 
 function typechecker.analyze(ast, parser, parentcontext)
