@@ -60,4 +60,4 @@ global C.EXIT_SUCCESS: cint <const,cimport'EXIT_SUCCESS',nodecl>
 global C.EXIT_FAILURE: cint <const,cimport'EXIT_FAILURE',nodecl>
 
 global C.RAND_MAX: cint <const,cimport'RAND_MAX',nodecl>
-global C.NULL <compconst,nodecl> = nilptr
+global C.NULL <comptime,nodecl> = nilptr

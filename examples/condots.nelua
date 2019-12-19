@@ -114,16 +114,16 @@ local vec2 = @record {x: number, y: number}
 local Particle = @record{p: vec2, v: vec2}
 local window, renderer, texture
 
-local SCREEN_WIDTH <compconst> = 1280
-local SCREEN_HEIGHT <compconst> = 720
+local SCREEN_WIDTH <comptime> = 1280
+local SCREEN_HEIGHT <comptime> = 720
 local pixels: vec4b[SCREEN_WIDTH][SCREEN_HEIGHT] <aligned(16)>
 
-local NUM_PARTICLES <compconst> = 200
-local RADIUS <compconst> = 3
-local MIN_DISTANCE <compconst> = 40
-local MAX_DISTANCE <compconst> = 80
-local MIN_DISTANCE2 <compconst> = MIN_DISTANCE * MIN_DISTANCE
-local MAX_DISTANCE2 <compconst> = MAX_DISTANCE * MAX_DISTANCE
+local NUM_PARTICLES <comptime> = 200
+local RADIUS <comptime> = 3
+local MIN_DISTANCE <comptime> = 40
+local MAX_DISTANCE <comptime> = 80
+local MIN_DISTANCE2 <comptime> = MIN_DISTANCE * MIN_DISTANCE
+local MAX_DISTANCE2 <comptime> = MAX_DISTANCE * MAX_DISTANCE
 local particles: Particle[NUM_PARTICLES]
 
 do
@@ -177,7 +177,7 @@ function vec2:distance(a: vec2): number
   return self:sub(a):length()
 end
 
-local INTERP_RADIUS <compconst> = 1
+local INTERP_RADIUS <comptime> = 1
 
 local function draw_circle(p: vec2, radius: number)
   local sx = (@integer)(math.max(p.x-radius-INTERP_RADIUS, 0))

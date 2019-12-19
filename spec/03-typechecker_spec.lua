@@ -16,7 +16,7 @@ it("analyzed ast transform", function()
           'a' }},
         { n.Number{
           attr = {
-            compconst=true, initializer=true, integral=true,
+            comptime=true, initializer=true, integral=true,
             base='dec', type='int64', untyped=true, value=bn.fromdec('1')
           },'dec', '1'
         }}
@@ -64,24 +64,24 @@ it("name collision", function()
   ]])
 end)
 
-it("compconst variable" , function()
-  assert.analyze_ast([[local N <compconst> = 255; local a: byte = N]])
-  assert.analyze_ast([[local N: number <compconst> = 255; local a: byte = N]])
-  assert.analyze_ast([[local N <compconst> = -1; local a: integer = N]])
-  assert.analyze_ast([[local N <compconst> = -1 + -1; local a: integer = N]])
-  assert.analyze_ast([[local a: integer <compconst> = 1]])
+it("comptime variable" , function()
+  assert.analyze_ast([[local N <comptime> = 255; local a: byte = N]])
+  assert.analyze_ast([[local N: number <comptime> = 255; local a: byte = N]])
+  assert.analyze_ast([[local N <comptime> = -1; local a: integer = N]])
+  assert.analyze_ast([[local N <comptime> = -1 + -1; local a: integer = N]])
+  assert.analyze_ast([[local a: integer <comptime> = 1]])
   assert.ast_type_equals(
-    [[local a <compconst> = 1; local function f() return a end]],
-    [[local a: integer <compconst> = 1; local function f() return a end]])
-  assert.analyze_ast([[local a <compconst> = 1 * 2]])
-  assert.analyze_ast([[local a <compconst> = 1 * 2 + 3]])
-  assert.analyze_ast([[local a <compconst> = 1; local b <compconst> = a]])
-  assert.analyze_ast([[global a <compconst> = 1]])
-  assert.analyze_error("local a: integer <compconst>", "const variables must have an initial value")
-  assert.analyze_error("local a: integer <compconst> = true", "no viable type conversion")
-  assert.analyze_error("local a <compconst> = 1; a = 2", "cannot assign a constant variable")
-  assert.analyze_error("local a = 1; local c <compconst> = a", "can only assign to constant expressions")
-  assert.analyze_error("local b = 1; local c <compconst> = 1 * 2 + b", "can only assign to constant expressions")
+    [[local a <comptime> = 1; local function f() return a end]],
+    [[local a: integer <comptime> = 1; local function f() return a end]])
+  assert.analyze_ast([[local a <comptime> = 1 * 2]])
+  assert.analyze_ast([[local a <comptime> = 1 * 2 + 3]])
+  assert.analyze_ast([[local a <comptime> = 1; local b <comptime> = a]])
+  assert.analyze_ast([[global a <comptime> = 1]])
+  assert.analyze_error("local a: integer <comptime>", "const variables must have an initial value")
+  assert.analyze_error("local a: integer <comptime> = true", "no viable type conversion")
+  assert.analyze_error("local a <comptime> = 1; a = 2", "cannot assign a constant variable")
+  assert.analyze_error("local a = 1; local c <comptime> = a", "can only assign to constant expressions")
+  assert.analyze_error("local b = 1; local c <comptime> = 1 * 2 + b", "can only assign to constant expressions")
 end)
 
 it("const variable" , function()
@@ -95,7 +95,7 @@ end)
 
 it("auto type" , function()
   assert.ast_type_equals("local a: auto = 1", "local a: integer = 1")
-  assert.ast_type_equals("local a: auto <compconst> = 1", "local a: integer <compconst> = 1")
+  assert.ast_type_equals("local a: auto <comptime> = 1", "local a: integer <comptime> = 1")
   assert.ast_type_equals("local a: auto = 's'", "local a: string = 's'")
   assert.ast_type_equals("local a: auto = @integer", "local a: type = @integer")
 end)
@@ -673,14 +673,14 @@ end)
 
 it("arrays", function()
   --assert.analyze_ast([[local a: array(integer, (2 << 1)) ]])
-  assert.analyze_ast([[local N <compconst> = 10; local a: array(integer, N) ]])
+  assert.analyze_ast([[local N <comptime> = 10; local a: array(integer, N) ]])
   assert.analyze_ast([[local a: array(integer, 10); a[0] = 1]])
   assert.analyze_ast([[local a: array(integer, 2) = {1,2}]])
   assert.analyze_ast([[local a: array(integer, 2); a[0] = 1; a[1] = 2]])
   assert.analyze_ast([[local a: array(integer, 2); a = {1,2}]])
   assert.analyze_ast([[local a: array(integer, 2); a = {}]])
   assert.analyze_ast([[local a: array(integer, 10), b: array(integer, 10); b = a]])
-  assert.analyze_ast([[local a: array(integer, 2) <compconst> = {1,2}]])
+  assert.analyze_ast([[local a: array(integer, 2) <comptime> = {1,2}]])
   assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values but got 1')
   assert.analyze_error([[local a: array(integer, 2) = {1,2,3}]], 'expected 2 values but got 3')
   assert.analyze_error([[local a: array(integer, 2) = {1.1,2.3}]], 'no viable type conversion')
@@ -693,7 +693,7 @@ it("arrays", function()
   assert.analyze_error([[local a: array(integer, 2); a[-1] = 1]], 'trying to index negative value')
   assert.analyze_error([[local a: array(integer, 2); a[2] = 1]], 'is out of bounds')
   assert.analyze_error([[local a: array(integer, 2); a['s'] = 1]], 'trying to index with value of type')
-  assert.analyze_error([[local a: array(integer, 2) <compconst> = {1,b}]], 'can only assign to constant expressions')
+  assert.analyze_error([[local a: array(integer, 2) <comptime> = {1,b}]], 'can only assign to constant expressions')
 end)
 
 it("indexing", function()
@@ -745,8 +745,8 @@ it("records", function()
   ]])
   assert.analyze_ast([[
     local Record = @record{x: boolean}
-    local a <compconst> = Record{}
-    local b <compconst> = Record{x=true}
+    local a <comptime> = Record{}
+    local b <comptime> = Record{x=true}
   ]])
   assert.analyze_error([[
     local Record: type = @record{x: integer, y: integer}
@@ -765,7 +765,7 @@ it("records", function()
   assert.analyze_error([[
     local b = false
     local Record = @record{x: boolean}
-    local a <compconst> = Record{x = b}
+    local a <comptime> = Record{x = b}
   ]], "can only assign to constant expressions")
   assert.ast_type_equals(
     "local a: record {x: boolean}; local b = a.x",
@@ -864,7 +864,7 @@ it("enums", function()
     local b: enum(integer){A=0,B=1 + 2}
   ]])
   assert.analyze_ast([[
-    local c <compconst> = 2
+    local c <comptime> = 2
     local Enum = @enum{A=0,B=1,C=c}
     local e: Enum = Enum.A
     local i: number = e

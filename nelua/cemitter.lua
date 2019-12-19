@@ -141,7 +141,7 @@ function CEmitter:add_val2type(type, val, valtype)
       self:add(val)
     elseif valtype:is_arithmetic() and type:is_arithmetic() and
            (type:is_float() or valtype:is_integral()) and
-           traits.is_astnode(val) and val.attr.compconst then
+           traits.is_astnode(val) and val.attr.comptime then
       self:add_numeric_literal(val.attr, type)
     elseif valtype:is_nilptr() and type:is_pointer() then
       self:add(val)

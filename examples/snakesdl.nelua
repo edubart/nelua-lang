@@ -30,17 +30,17 @@ local SDL_Window <cimport> = @record{}
 local SDL_Renderer <cimport> = @record{}
 
 -- import SDL constants
-local SDL_INIT_VIDEO <compconst> = 0x20
-local SDL_WINDOWPOS_UNDEFINED <compconst> = 0x1fff0000
-local SDL_WINDOW_OPENGL <compconst> = 0x2
-local SDL_QUIT <compconst> = 0x100
-local SDL_KEYDOWN <compconst> = 0x300
-local SDLK_RIGHT <compconst> = 79 | 0x40000000
-local SDLK_LEFT <compconst> = 80 | 0x40000000
-local SDLK_DOWN <compconst> = 81 | 0x40000000
-local SDLK_UP <compconst> = 82 | 0x40000000
-local SDL_RENDERER_ACCELERATED <compconst> = 0x2
-local SDL_RENDERER_PRESENTVSYNC <compconst> = 0x4
+local SDL_INIT_VIDEO <comptime> = 0x20
+local SDL_WINDOWPOS_UNDEFINED <comptime> = 0x1fff0000
+local SDL_WINDOW_OPENGL <comptime> = 0x2
+local SDL_QUIT <comptime> = 0x100
+local SDL_KEYDOWN <comptime> = 0x300
+local SDLK_RIGHT <comptime> = 79 | 0x40000000
+local SDLK_LEFT <comptime> = 80 | 0x40000000
+local SDLK_DOWN <comptime> = 81 | 0x40000000
+local SDLK_UP <comptime> = 82 | 0x40000000
+local SDL_RENDERER_ACCELERATED <comptime> = 0x2
+local SDL_RENDERER_PRESENTVSYNC <comptime> = 0x4
 
 -- import SDL functions
 local function SDL_Init(flags: uint32): int32 <cimport> end
@@ -63,10 +63,10 @@ local Direction = @enum(byte){NONE=0, UP, DOWN, RIGHT, LEFT}
 local Color = @record{r: byte, g: byte, b: byte}
 
 -- game constants
-local TILE_SIZE <compconst> = 64
-local GRID_SIZE <compconst> = 12
-local SCREEN_SIZE <compconst> = TILE_SIZE * GRID_SIZE
-local MOVE_DELAY <compconst> = 128
+local TILE_SIZE <comptime> = 64
+local GRID_SIZE <comptime> = 12
+local SCREEN_SIZE <comptime> = TILE_SIZE * GRID_SIZE
+local MOVE_DELAY <comptime> = 128
 local COLOR_RED <const> = Color{r=255, g=96, b=96}
 local COLOR_GREEN <const> = Color{r=96, g=255, b=96}
 local COLOR_BLACK <const> = Color{r=0, g=0, b=0}

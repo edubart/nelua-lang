@@ -60,7 +60,7 @@ it("print correct generated AST" , function()
       {
         String {
           attr = {
-            compconst = true,
+            comptime = true,
             type = "string",
             value = "hello world",
           },

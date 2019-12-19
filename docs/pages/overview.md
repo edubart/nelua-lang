@@ -108,12 +108,12 @@ local a: auto = 1 -- a is deduced to be of type 'integer'
 
 Auto variables are more useful when used in **lazy functions**.
 
-### Compconst variables
+### Comptime variables
 
-Compconst variables have its value known at compile time:
+Comptime variables have its value known at compile time:
 
 ```nelua
-local a <compconst> = 1 + 2 -- constant variable of value '3' evaluated and known at compile time
+local a <comptime> = 1 + 2 -- constant variable of value '3' evaluated and known at compile time
 ```
 
 The compiler takes advantages of constants to make optimizations, constants are also useful
@@ -1039,7 +1039,7 @@ Lazy functions can make compile time dynamic functions when used in combination 
 the preprocessor:
 
 ```nelua
-function pow(x: auto, n: integer <compconst>)
+function pow(x: auto, n: integer <comptime>)
   ## symbols.x.attr.type:is_integral() then
     -- x is an integral type (any unsigned/signed integer)
     local r: #[symbols.x.attr.type]# = 1
@@ -1067,7 +1067,7 @@ Blocks can be passed to lazy functions, in this case the entire function code wi
 inlined in the call placement.
 
 ```nelua
-local function unroll(count: integer <compconst>, body: block)
+local function unroll(count: integer <comptime>, body: block)
   ## for i=1,symbols.count.attr.value do
     body()
   ## end

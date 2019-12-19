@@ -60,7 +60,7 @@ function PPContext:tovalue(val, orignode)
     node.pattr = {
       type = typedefs.primtypes.type,
       holdedtype = val,
-      compconst = true
+      comptime = true
     }
     tabler.update(node.attr, node.pattr)
   elseif traits.is_string(val) then

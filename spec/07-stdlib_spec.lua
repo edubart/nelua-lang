@@ -27,7 +27,7 @@ local function asserteq(x: number, y: number)
   assert(math.abs(x - y) < 1e-12)
 end
 
-local e <compconst> = 2.718281828459045
+local e <comptime> = 2.718281828459045
 asserteq(math.abs(-1.0), 1)
 asserteq(math.abs(1.0), 1)
 asserteq(math.ceil(0.1), 1)

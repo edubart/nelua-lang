@@ -54,14 +54,14 @@ end
 function Symbol:__tostring()
   local ss = sstream('symbol<')
   ss:add(self.name)
-  if self.attr.const or self.attr.compconst or self.attr.type then
+  if self.attr.const or self.attr.comptime or self.attr.type then
     ss:add(': ')
   end
   if self.attr.const then
     ss:add('const ')
   end
-  if self.attr.compconst then
-    ss:add('compconst ')
+  if self.attr.comptime then
+    ss:add('comptime ')
   end
   if self.attr.type then
     ss:add(self.attr.type)

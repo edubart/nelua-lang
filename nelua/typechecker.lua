@@ -53,7 +53,7 @@ function visitors.Number(_, node)
   end
   attr.untyped = not attr.literal
   attr.base = base
-  attr.compconst = true
+  attr.comptime = true
 end
 
 function visitors.String(_, node)
@@ -63,7 +63,7 @@ function visitors.String(_, node)
   node:assertraisef(literal == nil, 'string literals are not supported yet')
   attr.value = value
   attr.type = primtypes.string
-  attr.compconst = true
+  attr.comptime = true
 end
 
 function visitors.Boolean(_, node)
@@ -72,14 +72,14 @@ function visitors.Boolean(_, node)
   local value = node:args(1)
   attr.value = value
   attr.type = primtypes.boolean
-  attr.compconst = true
+  attr.comptime = true
 end
 
 function visitors.Nil(_, node)
   local attr = node.attr
   if attr.type then return end
   attr.type = primtypes.Nil
-  attr.compconst = true
+  attr.comptime = true
 end
 
 function visitors.Table(context, node)
@@ -87,7 +87,7 @@ function visitors.Table(context, node)
   local childnodes = node:args()
   local desiredtype = node.desiredtype
   if desiredtype and desiredtype ~= primtypes.table then
-    local compconst = true
+    local comptime = true
     if desiredtype:is_arraytable() then
       local subtype = desiredtype.subtype
       for i, childnode in ipairs(childnodes) do
@@ -103,7 +103,7 @@ function visitors.Table(context, node)
           end
         end
       end
-      compconst = nil
+      comptime = nil
     elseif desiredtype:is_array() then
       local subtype = desiredtype.subtype
       node:assertraisef(#childnodes == desiredtype.length or #childnodes == 0,
@@ -123,8 +123,8 @@ function visitors.Table(context, node)
             childnode.attr.initializer = true
           end
         end
-        if not childnode.attr.compconst then
-          compconst = nil
+        if not childnode.attr.comptime then
+          comptime = nil
         end
       end
     elseif desiredtype:is_record() then
@@ -162,8 +162,8 @@ function visitors.Table(context, node)
           end
         end
         childnode.attr.parenttype = desiredtype
-        if not fieldvalnode.attr.compconst then
-          compconst = nil
+        if not fieldvalnode.attr.comptime then
+          comptime = nil
         end
       end
     else
@@ -171,7 +171,7 @@ function visitors.Table(context, node)
         desiredtype)
     end
     attr.type = desiredtype
-    attr.compconst = compconst
+    attr.comptime = comptime
   else
     context:traverse(childnodes)
     attr.type = primtypes.table
@@ -202,7 +202,7 @@ function visitors.Attrib(context, node, symbol)
 
   local paramshape
   local symboltype
-  if name == 'compconst' then
+  if name == 'comptime' then
     paramshape = true
   else
     symboltype = symbol.attr.type
@@ -411,7 +411,7 @@ function visitors.EnumFieldType(context, node)
     local desiredtype = node.desiredtype
     context:traverse(numnode)
     local value, numtype = numnode.attr.value, numnode.attr.type
-    numnode:assertraisef(numnode.attr.compconst,
+    numnode:assertraisef(numnode.attr.comptime,
       "enum fields can only be assigned to compile time values")
     numnode:assertraisef(numtype:is_integral(),
       "only integral numbers are allowed in enums, but got type '%s'",
@@ -861,7 +861,7 @@ local function builtin_call_require(context, node)
   local argnode = node[1][1]
   if not (argnode and
           argnode.attr.type and argnode.attr.type:is_string() and
-          argnode.attr.compconst) then
+          argnode.attr.comptime) then
     -- not a compile time require
     node.attr.runtime_require = true
     return
@@ -912,8 +912,8 @@ function visitors.Call(context, node)
         "in assertion to type '%s', the type no viable type conversion expression of type '%s'",
         type, argtype)
 
-      if argnode.attr.compconst then
-        attr.compconst = argnode.attr.compconst
+      if argnode.attr.comptime then
+        attr.comptime = argnode.attr.comptime
         attr.value = type:normalize_value(argnode.attr.value)
       end
     end
@@ -1066,7 +1066,7 @@ function visitors.ForNum(context, node)
     context:traverse(blocknode)
   end)
   local fixedstep
-  if stype and stype:is_arithmetic() and stepvalnode.attr.compconst then
+  if stype and stype:is_arithmetic() and stepvalnode.attr.comptime then
     -- constant step
     fixedstep = stepvalnode.attr.value
     stepvalnode:assertraisef(not fixedstep:iszero(), '`for` step cannot be zero')
@@ -1075,7 +1075,7 @@ function visitors.ForNum(context, node)
     fixedstep = bn.new(1)
   end
   local fixedend
-  if etype and etype:is_arithmetic() and endvalnode.attr.compconst then
+  if etype and etype:is_arithmetic() and endvalnode.attr.comptime then
     fixedend = endvalnode.attr.value
   end
   if not compop and fixedstep then
@@ -1113,7 +1113,7 @@ function visitors.VarDecl(context, node)
     end
     assert(symbol.attr.type == vartype)
     varnode.assign = true
-    if (varnode.attr.compconst or varnode.attr.const) and not varnode.attr.nodecl then
+    if (varnode.attr.comptime or varnode.attr.const) and not varnode.attr.nodecl then
       varnode:assertraisef(valnode, 'const variables must have an initial value')
     end
     if valnode then
@@ -1124,15 +1124,15 @@ function visitors.VarDecl(context, node)
         -- varanys are always stored as any in variables
         valtype = primtypes.any
       end
-      if varnode.attr.compconst then
-        varnode:assertraisef(valnode.attr.compconst and valtype,
+      if varnode.attr.comptime then
+        varnode:assertraisef(valnode.attr.comptime and valtype,
           'constant variables can only assign to constant expressions')
       end
       varnode:assertraisef(not varnode.attr.cimport or
         (vartype == primtypes.type or (vartype == nil and valtype == primtypes.type)),
         'cannot assign imported variables, only imported types can be assigned')
 
-      if valtype == vartype and valnode.attr.compconst then
+      if valtype == vartype and valnode.attr.comptime then
         valnode.attr.initializer = true
       end
     else
@@ -1144,7 +1144,7 @@ function visitors.VarDecl(context, node)
       varnode:assertraisef(not valtype:is_void(), 'cannot assign to expressions of type void')
       local foundtype = true
       local assignvaltype = false
-      if varnode.attr.compconst then
+      if varnode.attr.comptime then
         -- for consts the type must be known ahead
         assignvaltype = not vartype
         symbol.attr.value = valnode.attr.value
@@ -1195,7 +1195,7 @@ function visitors.Assign(context, node)
     local symbol = context:traverse(varnode)
     local vartype = varnode.attr.type
     varnode.assign = true
-    varnode:assertraisef(not (varnode.attr.const or varnode.attr.compconst),
+    varnode:assertraisef(not (varnode.attr.const or varnode.attr.comptime),
       "cannot assign a constant variable")
     if valnode then
       valnode.desiredtype = vartype
@@ -1436,7 +1436,7 @@ function visitors.UnaryOp(context, node)
     type, value, err = argtype:unary_operator(opname, argattr)
     argnode:assertraisef(not err, "unary operation `%s` on type '%s': %s", opname, argtype, err)
     if value ~= nil then
-      attr.compconst = true
+      attr.comptime = true
       attr.value = value
       attr.untyped = argattr.untyped
     end
@@ -1490,7 +1490,7 @@ function visitors.BinaryOp(context, node)
     lnode:assertraisef(not err,
       "binary operation `%s` between types '%s' and '%s': %s", opname, ltype, rtype, err)
     if value ~= nil then
-      attr.compconst = true
+      attr.comptime = true
       attr.value = value
       attr.untyped = lattr.untyped and rattr.untyped or nil
     end

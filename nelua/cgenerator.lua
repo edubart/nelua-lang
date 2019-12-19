@@ -60,7 +60,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
     local varattr = varnode.attr
     local noinit = varattr.noinit or varattr.cexport
     local vartype = varattr.type
-    if not vartype:is_type() and not varattr.nodecl and not varattr.compconst then
+    if not vartype:is_type() and not varattr.nodecl and not varattr.comptime then
       local declared, defined = false, false
       if decl and context.scope:is_static_storage() then
         -- declare main variables in the top scope
@@ -70,7 +70,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
           decemitter:add('static ')
         end
         decemitter:add(varnode)
-        if valnode and (valnode.attr.compconst or varattr.const or varattr.compconst) then
+        if valnode and (valnode.attr.comptime or varattr.const or varattr.comptime) then
           -- initialize to const values
           decemitter:add(' = ')
           assert(not lastcallindex)
@@ -304,7 +304,7 @@ function visitors.Id(context, node, emitter)
   local attr = node.attr
   if attr.type:is_nilptr() then
     emitter:add_null()
-  elseif attr.compconst then
+  elseif attr.comptime then
     emitter:add_literal(attr)
   else
     emitter:add(context:declname(node))
@@ -323,7 +323,7 @@ visitors.PointerType = visitors.Type
 
 function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
-  assert(not attr.compconst)
+  assert(not attr.comptime)
   if attr.funcdecl then
     emitter:add(context:declname(node))
     return
@@ -351,7 +351,7 @@ function visitors.DotIndex(context, node, emitter)
       emitter:add(objtype:get_field(name).value)
     elseif objtype:is_record() then
       local symbol = objtype:get_metafield(name)
-      if symbol.attr.compconst then
+      if symbol.attr.comptime then
         emitter:add_literal(symbol.attr)
       else
         emitter:add(context:declname(symbol))
@@ -899,7 +899,7 @@ end
 
 function visitors.UnaryOp(_, node, emitter)
   local attr = node.attr
-  if attr.compconst then
+  if attr.comptime then
     emitter:add_literal(attr)
     return
   end
@@ -918,7 +918,7 @@ function visitors.UnaryOp(_, node, emitter)
 end
 
 function visitors.BinaryOp(context, node, emitter)
-  if node.attr.compconst then
+  if node.attr.comptime then
     emitter:add_literal(node.attr)
     return
   end

@@ -209,19 +209,19 @@ it("variable declaration", function()
   assert.generate_c("local π = 3.14", "double mymod_uCF80 = 3.14;")
 end)
 
-it("operation on compconst variables", function()
+it("operation on comptime variables", function()
   assert.generate_c([[
-    local a <compconst> = false
-    local b <compconst> = not a
+    local a <comptime> = false
+    local b <comptime> = not a
     local c = b
   ]], "c = true;")
   assert.generate_c([[
-    local a <compconst> = 2
-    local b <compconst> = -a
+    local a <comptime> = 2
+    local b <comptime> = -a
     local c = b
   ]], "c = -2;")
   assert.generate_c([[
-    local a <compconst>, b <compconst> = 1, 2
+    local a <comptime>, b <comptime> = 1, 2
     local c <const> = (@int32)(a * b)
   ]], "static const int32_t mymod_c = 2;")
 

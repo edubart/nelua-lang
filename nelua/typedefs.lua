@@ -193,7 +193,7 @@ typedefs.variable_attribs = {
   nodecl = true,
   noinit = true,
   cexport = true,
-  compconst = true,
+  comptime = true,
   const = true
 }
 

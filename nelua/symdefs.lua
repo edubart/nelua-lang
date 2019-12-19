@@ -4,7 +4,7 @@ local primtypes = typedefs.primtypes
 
 local symdefs = {
   -- nelua only
-  nilptr = {type=primtypes.Nilptr, compconst = true},
+  nilptr = {type=primtypes.Nilptr, comptime = true},
   likely = {type=types.FunctionType(nil, {primtypes.boolean}, {primtypes.boolean})},
   unlikely = {type=types.FunctionType(nil, {primtypes.boolean}, {primtypes.boolean})},
   panic = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.string})

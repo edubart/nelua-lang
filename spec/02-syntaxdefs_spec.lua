@@ -847,26 +847,26 @@ describe("statement variable declaration", function()
     assert.parse_ast(nelua_parser, [[
       local a = b
       local a <const> = b
-      local a: any <compconst> = b
+      local a: any <comptime> = b
     ]],
       n.Block{{
         n.VarDecl{'local', {n.IdDecl{'a'}}, {n.Id{'b'}}},
         n.VarDecl{'local', {n.IdDecl{'a', nil, {n.Attrib{'const', {}}}}}, {n.Id{'b'}}},
-        n.VarDecl{'local', {n.IdDecl{'a', n.Type{'any'}, {n.Attrib{'compconst', {}}}}}, {n.Id{'b'}}},
+        n.VarDecl{'local', {n.IdDecl{'a', n.Type{'any'}, {n.Attrib{'comptime', {}}}}}, {n.Id{'b'}}},
     }})
   end)
   it("variable mutabilities", function()
     assert.parse_ast(nelua_parser, [[
       local a <const> = b
       global a <const> = b
-      local a <const>, b <compconst> = c, d
+      local a <const>, b <comptime> = c, d
     ]],
       n.Block{{
         n.VarDecl{'local', {n.IdDecl{'a', nil, {n.Attrib{'const', {}}} }}, {n.Id{'b'}}},
         n.VarDecl{'global', {n.IdDecl{'a', nil, {n.Attrib{'const', {}}} }}, {n.Id{'b'}}},
         n.VarDecl{'local', {
           n.IdDecl{'a', nil, {n.Attrib{'const', {}}}},
-          n.IdDecl{'b', nil, {n.Attrib{'compconst', {}}}}
+          n.IdDecl{'b', nil, {n.Attrib{'comptime', {}}}}
         }, {n.Id{'c'},n.Id{'d'}}}
     }})
   end)

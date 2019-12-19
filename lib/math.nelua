@@ -8,9 +8,9 @@
 
 global math = @record{}
 
-global math.pi: number <compconst> = 3.141592653589793
-global math.maxinteger: integer <compconst> = 9223372036854775807
-global math.mininteger: integer <compconst> = -9223372036854775808
+global math.pi: number <comptime> = 3.141592653589793
+global math.maxinteger: integer <comptime> = 9223372036854775807
+global math.mininteger: integer <comptime> = -9223372036854775808
 global math.huge: number <const,cimport'HUGE_VAL',nodecl>
 
 function math.abs(x: number): number <cimport'fabs',nodecl,nosideeffect> end
@@ -75,7 +75,7 @@ end
 
 local xoshiro256 = @record{state: uint64[4]}
 
-local FLOAT64_MANT_DIGS <compconst> = 53
+local FLOAT64_MANT_DIGS <comptime> = 53
 
 local function rotl(x: uint64, n: int32) <inline>
   return (x << n) | (x >> (64 - n))

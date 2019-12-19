@@ -96,8 +96,8 @@ function Type:is_conversible_from_node(node, explicit)
   local attr = node.attr
   local type = attr.type
 
-  -- check for compconst number conversions
-  if attr.compconst and attr.value and self:is_arithmetic() and type:is_arithmetic() and not explicit then
+  -- check for comptime number conversions
+  if attr.comptime and attr.value and self:is_arithmetic() and type:is_arithmetic() and not explicit then
     if self:is_integral() then
       if not attr.value:isintegral() then
         return false, stringer.pformat(
@@ -184,9 +184,9 @@ function Type:__eq(type)
 end
 
 local function promote_type_for_attrs(lattr, rattr)
-  if not lattr.untyped and rattr.compconst and rattr.untyped then
+  if not lattr.untyped and rattr.comptime and rattr.untyped then
     return lattr.type:promote_type_for_value(rattr.value)
-  elseif not rattr.untyped and lattr.compconst and lattr.untyped then
+  elseif not rattr.untyped and lattr.comptime and lattr.untyped then
     return rattr.type:promote_type_for_value(lattr.value)
   end
 end

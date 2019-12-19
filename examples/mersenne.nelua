@@ -3,7 +3,7 @@
 -- Mersenne Twister random number generator, implementation taken from
 -- http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/MT2002/CODES/mt19937ar.c
 
-local MT19937_N: uint32 <compconst> = 624
+local MT19937_N: uint32 <comptime> = 624
 
 local mt19937 = @record {
   i: uint32,
@@ -23,9 +23,9 @@ end
 -- generates a random number on [0, 0xffffffff]
 function mt19937:random_uint32()
   local MAG01: uint32[2] = {0x0, 0x9908b0df}
-  local LOWER_MASK: uint32 <compconst> = 0x7fffffff
-  local UPPER_MASK: uint32 <compconst> = 0x80000000
-  local N <compconst>, M: uint32 <compconst> = MT19937_N, 397
+  local LOWER_MASK: uint32 <comptime> = 0x7fffffff
+  local UPPER_MASK: uint32 <comptime> = 0x80000000
+  local N <comptime>, M: uint32 <comptime> = MT19937_N, 397
   local y
   if self.i >= N then
     for j=0_u32,<N-M do
