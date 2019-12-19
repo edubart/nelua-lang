@@ -15,8 +15,10 @@ it("analyzed ast transform", function()
           attr = {codename='a', name='a', type='int64', lvalue=true},
           'a' }},
         { n.Number{
-          attr = {compconst=true, initializer=true, integral=true, type='int64', value=bn.fromdec('1')},
-          'dec', '1'
+          attr = {
+            compconst=true, initializer=true, integral=true,
+            base='dec', type='int64', untyped=true, value=bn.fromdec('1')
+          },'dec', '1'
         }}
       },
       n.Call{
@@ -29,9 +31,10 @@ it("analyzed ast transform", function()
 end)
 
 it("local variable", function()
+  assert.analyze_ast([[local a: byte = 1.0]])
   assert.ast_type_equals("local a = 1", "local a: integer = 1")
-  assert.analyze_error("local a: integer = 'string'", "is not coercible with")
-  assert.analyze_error("local a: byte = 1.0", "is not coercible with")
+  assert.analyze_error("local a: integer = 'string'", "no viable type conversion")
+  assert.analyze_error("local a: byte = 1.1", "is fractional")
   assert.analyze_error("local a: byte = {1.0}", "cannot be initialized using a table literal")
   assert.analyze_error("local a, b = 1,2,3", "too many expressions in declaration")
   assert.analyze_error("local a: void", "variable declaration cannot be of the type")
@@ -63,14 +66,19 @@ end)
 
 it("compconst variable" , function()
   assert.analyze_ast([[local N <compconst> = 255; local a: byte = N]])
+  assert.analyze_ast([[local N: number <compconst> = 255; local a: byte = N]])
+  assert.analyze_ast([[local N <compconst> = -1; local a: integer = N]])
+  assert.analyze_ast([[local N <compconst> = -1 + -1; local a: integer = N]])
   assert.analyze_ast([[local a: integer <compconst> = 1]])
   assert.ast_type_equals(
     [[local a <compconst> = 1; local function f() return a end]],
     [[local a: integer <compconst> = 1; local function f() return a end]])
+  assert.analyze_ast([[local a <compconst> = 1 * 2]])
   assert.analyze_ast([[local a <compconst> = 1 * 2 + 3]])
   assert.analyze_ast([[local a <compconst> = 1; local b <compconst> = a]])
   assert.analyze_ast([[global a <compconst> = 1]])
   assert.analyze_error("local a: integer <compconst>", "const variables must have an initial value")
+  assert.analyze_error("local a: integer <compconst> = true", "no viable type conversion")
   assert.analyze_error("local a <compconst> = 1; a = 2", "cannot assign a constant variable")
   assert.analyze_error("local a = 1; local c <compconst> = a", "can only assign to constant expressions")
   assert.analyze_error("local b = 1; local c <compconst> = 1 * 2 + b", "can only assign to constant expressions")
@@ -97,6 +105,7 @@ it("numeric types coercion", function()
     local b: int16 = -1
   ]])
   assert.ast_type_equals("local a = 1 + 1_u16", "local a: uint16 = 1 + 1_u16")
+  assert.ast_type_equals("local a = 1_u16 + 1", "local a: uint16 = 1_u16 + 1")
   assert.ast_type_equals("local a = 1 + 2.0_f32", "local a: float32 = 1 + 2.0_f32")
 end)
 
@@ -123,16 +132,16 @@ it("numeric ranges", function()
     local u:usize = 18446744073709551615_us
     local u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 255,65535,4294967295,18446744073709551615
   ]])
-  assert.analyze_error([[local u = -1_u]], "is out of range")
-  assert.analyze_error([[local u = -1_u8]], "is out of range")
-  assert.analyze_error([[local u = -1_u16]], "is out of range")
-  assert.analyze_error([[local u = -1_u32]], "is out of range")
-  assert.analyze_error([[local u = -1_u64]], "is out of range")
-  assert.analyze_error([[local u = 18446744073709551616_u]], 'is out of range')
-  assert.analyze_error([[local u = 256_u8]], 'is out of range')
-  assert.analyze_error([[local u = 65536_u16]], 'is out of range')
-  assert.analyze_error([[local u = 4294967296_u32]], 'is out of range')
-  assert.analyze_error([[local u = 18446744073709551616_u64]], 'is out of range')
+  assert.analyze_error([[local u: uinteger = -1_u]],   "is out of range")
+  assert.analyze_error([[local u: uint8 = -1_u8]],  "is out of range")
+  assert.analyze_error([[local u: uint16 = -1_u16]], "is out of range")
+  assert.analyze_error([[local u: uint32 = -1_u32]], "is out of range")
+  assert.analyze_error([[local u: uint64 = -1_u64]], "is out of range")
+  assert.analyze_error([[local u: uinteger = 18446744073709551616_u]], 'is out of range')
+  assert.analyze_error([[local u: uint8 = 256_u8]], 'is out of range')
+  assert.analyze_error([[local u: uint16 = 65536_u16]], 'is out of range')
+  assert.analyze_error([[local u: uint32 = 4294967296_u32]], 'is out of range')
+  assert.analyze_error([[local u: uint64 = 18446744073709551616_u64]], 'is out of range')
 
   assert.analyze_ast([[
     local i:isize = -9223372036854775808_is
@@ -142,16 +151,17 @@ it("numeric ranges", function()
     local i:isize = 9223372036854775807_is
     local i8:int8, i16:int16, i32:int32, i64:int64 = 127,32767,2147483647,9223372036854775807
   ]])
-  assert.analyze_error([[local i = -9223372036854775809_i64]], 'is out of range')
-  assert.analyze_error([[local i = -129_i8]], 'is out of range')
-  assert.analyze_error([[local i = -32769_i16]], 'is out of range')
-  assert.analyze_error([[local i = -2147483649_i32]], 'is out of range')
-  assert.analyze_error([[local i = -9223372036854775809_i64]], 'is out of range')
-  assert.analyze_error([[local i = 9223372036854775808_i]], 'is out of range')
-  assert.analyze_error([[local i = 128_i8]], 'is out of range')
-  assert.analyze_error([[local i = 32768_i16]], 'is out of range')
-  assert.analyze_error([[local i = 2147483648_i32]], 'is out of range')
-  assert.analyze_error([[local i = 9223372036854775808_i64]], 'is out of range')
+  --assert.analyze_ast([[local i: integer = -9223372036854775809]])
+  assert.analyze_error([[local i = -9223372036854775809_i]], 'is out of range')
+  assert.analyze_error([[local i: int8 = -129_i8]], 'is out of range')
+  assert.analyze_error([[local i: int16 = -32769_i16]], 'is out of range')
+  assert.analyze_error([[local i: int32 = -2147483649_i32]], 'is out of range')
+  assert.analyze_error([[local i: int64 = -9223372036854775809_i64]], 'is out of range')
+  assert.analyze_error([[local i: integer = 9223372036854775808_i]], 'is out of range')
+  assert.analyze_error([[local i: int8 = 128_i8]], 'is out of range')
+  assert.analyze_error([[local i: int16 = 32768_i16]], 'is out of range')
+  assert.analyze_error([[local i: int32 = 2147483648_i32]], 'is out of range')
+  assert.analyze_error([[local i: int64 = 9223372036854775808_i64]], 'is out of range')
 end)
 
 it("typed var initialization", function()
@@ -164,23 +174,25 @@ it("loop variables", function()
   assert.ast_type_equals("for i=1,10 do end", "for i:integer=1,10 do end")
   assert.ast_type_equals("for i=1,10,2 do end", "for i:integer=1,10,2 do end")
   assert.ast_type_equals("for i=0_is,1_is-1 do end", "for i:isize=0_is,1_is-1 do end")
-  assert.analyze_error("for i:byte=1.0,256 do end", "is not coercible with")
-  assert.analyze_error("for i:byte=1_byte,256 do end", "is not coercible with")
-  assert.analyze_error("for i:byte=1_byte,10_byte,2.0 do end", "is not coercible with")
+  assert.analyze_error("for i:byte=1.0,256 do end", "no viable type conversion")
+  assert.analyze_error("for i:byte=1_byte,256 do end", "no viable type conversion")
+  assert.analyze_error("for i:byte=1_byte,10_byte,2.1 do end", "no viable type conversion")
   assert.analyze_error("for i='s','b' do end", "must be a number")
-  assert.analyze_error("for i=1,2,'s' do end", "is not coercible with")
+  assert.analyze_error("for i=1,2,'s' do end", "no viable type conversion")
   assert.analyze_error("for i=1,2,0 do end", "step cannot be zero")
 end)
 
 it("variable assignments", function()
   assert.ast_type_equals("local a; a = 1", "local a: integer; a = 1")
-  assert.analyze_error("local a: integer; a = 's'", "is not coercible with")
+  assert.analyze_error("local a: integer; a = 's'", "no viable type conversion")
   assert.analyze_error("local a, b; a, b = 1,2,3", "too many expressions in assign")
 end)
 
 it("unary operators", function()
   assert.ast_type_equals("local a = not b", "local a: boolean = not b")
   assert.ast_type_equals("local a = -1", "local a: integer = -1")
+  assert.ast_type_equals("local a = -1.0", "local a: number = -1.0")
+  assert.analyze_error("local x = &1", "cannot reference compile time value")
 end)
 
 it("binary operator shift", function()
@@ -191,27 +203,58 @@ end)
 it("binary operator add", function()
   assert.ast_type_equals("local a = 1 + 2", "local a: integer = 1 + 2")
   assert.ast_type_equals("local a = 1 + 2.0", "local a: number = 1 + 2.0")
-  assert.ast_type_equals("local a = 1_f32 + 2.0_f32", "local a: float32 = 1_f32 + 2.0_f32")
-  assert.ast_type_equals("local a = 1_i8 + 2_u8", "local a: int16 = 1_i8 + 2_u8")
-  assert.analyze_error("local a = 1 + 's'", "is not defined for type")
+  assert.ast_type_equals("local a = 1_f32 + 2_f32", "local a: float32 = 1_f32 + 2_f32")
+  assert.ast_type_equals("local a = 1_f32 + 2_f64", "local a: float64 = 1_f32 + 2_f64")
+  assert.ast_type_equals("local a = 1_i8 + 2_u8",   "local a: int16 = 1_i8 + 2_u8")
+  assert.ast_type_equals("local a = 1_i8 + 2_u16",  "local a: int32 = 1_i8 + 2_u16")
+  assert.ast_type_equals("local a = 1_i8 + 2_u32",  "local a: int64 = 1_i8 + 2_u32")
+  assert.ast_type_equals("local a = 1_i8 + 2_u64",  "local a: int64 = 1_i8 + 2_u64")
+  assert.ast_type_equals("local a = 1_i8 + 2_f32",  "local a: float32 = 1_i8 + 2_f32")
+  assert.ast_type_equals("local a = 1_i8 + 2_f64",  "local a: float64 = 1_i8 + 2_f64")
+  assert.ast_type_equals("local a = 1_i16 + 2_u8",  "local a: int16 = 1_i16 + 2_u8")
+  assert.ast_type_equals("local a = 1_i16 + 2_u16", "local a: int32 = 1_i16 + 2_u16")
+  assert.ast_type_equals("local a = 1_i16 + 2_u32", "local a: int64 = 1_i16 + 2_u32")
+  assert.ast_type_equals("local a = 1_i16 + 2_u64", "local a: int64 = 1_i16 + 2_u64")
+  assert.ast_type_equals("local a = 1_i16 + 2_f32", "local a: float32 = 1_i16 + 2_f32")
+  assert.ast_type_equals("local a = 1_i16 + 2_f64", "local a: float64 = 1_i16 + 2_f64")
+  assert.ast_type_equals("local a = 1_i32 + 2_u8",  "local a: int32 = 1_i32 + 2_u8")
+  assert.ast_type_equals("local a = 1_i32 + 2_u16", "local a: int32 = 1_i32 + 2_u16")
+  assert.ast_type_equals("local a = 1_i32 + 2_u32", "local a: int64 = 1_i32 + 2_u32")
+  assert.ast_type_equals("local a = 1_i32 + 2_u64", "local a: int64 = 1_i32 + 2_u64")
+  assert.ast_type_equals("local a = 1_i32 + 2_f32", "local a: float32 = 1_i32 + 2_f32")
+  assert.ast_type_equals("local a = 1_i32 + 2_f64", "local a: float64 = 1_i32 + 2_f64")
+  assert.ast_type_equals("local a = 1_i64 + 2_u8",  "local a: int64 = 1_i64 + 2_u8")
+  assert.ast_type_equals("local a = 1_i64 + 2_u16", "local a: int64 = 1_i64 + 2_u16")
+  assert.ast_type_equals("local a = 1_i64 + 2_u32", "local a: int64 = 1_i64 + 2_u32")
+  assert.ast_type_equals("local a = 1_i64 + 2_u64", "local a: int64 = 1_i64 + 2_u64")
+  assert.ast_type_equals("local a = 1_i64 + 2_f32", "local a: float32 = 1_i64 + 2_f32")
+  assert.ast_type_equals("local a = 1_i64 + 2_f64", "local a: float64 = 1_i64 + 2_f64")
+  assert.ast_type_equals("local a = 1_i32 + 2    ", "local a: int32 = 1_i32 + 2")
+  assert.ast_type_equals("local a = 1     + 2_i32", "local a: int32 = 1     + 2_i32")
+  assert.analyze_error("local a = 1 + 's'", "is not defined between types")
+  assert.analyze_error("local a = 1.0 + 's'", "is not defined between types")
 end)
 
 it("binary operator pow", function()
   assert.ast_type_equals("local a = 2 ^ 2", "local a: number = 2 ^ 2")
+  assert.ast_type_equals("local a = 2_i32 ^ 2_i32", "local a: number = 2_i32 ^ 2_i32")
 end)
 
 it("binary operator idiv", function()
   assert.ast_type_equals("local a = 2 // 2", "local a: integer = 2 // 2")
-  assert.analyze_error("local a = 1 // 0", "divizion by zero")
+  assert.analyze_error("local a = 1 // 0", "division by zero")
 end)
 
 it("binary operator div", function()
   assert.ast_type_equals("local a = 2 / 2", "local a: number = 2 / 2")
+  assert.ast_type_equals("local a = 2.0_f64 / 2_i64", "local a: number = 2.0_f64 / 2_i64")
+  assert.ast_type_equals("local b = 1; local a = 2.0 / b", "local b = 1; local a: number = 2.0 / b")
+  assert.ast_type_equals("local a = 2_i32 / 2_i32", "local a: number = 2_i32 / 2_i32")
   assert.ast_type_equals(
     "local x = 1; local a = x / 2_f32",
     "local x = 1; local a: float32 = x / 2_f32")
-  assert.analyze_error("local a = 1 / 0", "divizion by zero")
-  assert.analyze_error("local a = 1 / -0", "divizion by zero")
+  assert.analyze_error("local a = 1 / 0", "division by zero")
+  assert.analyze_error("local a = 1 / -0", "division by zero")
   assert.ast_type_equals(
     "local a, b = 1, 2; a = b / 1",
     "local a: number, b: integer = 1, 2; a = b / 1")
@@ -219,7 +262,7 @@ end)
 
 it("binary operator mod", function()
   assert.ast_type_equals("local a = 2_u32 % 2_u32", "local a: uint32 = 2_u32 % 2_u32")
-  assert.analyze_error("local a = 1 % 0", "divizion by zero")
+  assert.analyze_error("local a = 1 % 0", "division by zero")
 end)
 
 it("binary operator eq", function()
@@ -232,11 +275,43 @@ it("binary operator ne", function()
   assert.ast_type_equals("local a = 1 ~= 'a'", "local a: boolean = 1 ~= 'a'")
 end)
 
+it("binary operator bor", function()
+  assert.ast_type_equals("local a = 1 | 2", "local a: integer = 1 | 2")
+  assert.analyze_error("local a = 1 | 's'", "is not defined between types")
+end)
+
+it("binary operator band", function()
+  assert.ast_type_equals("local a = 1 & 2", "local a: integer = 1 & 2")
+  assert.ast_type_equals("local a = 1_i32 & 1", "local a: int32 = 1_i32 & 1")
+  assert.analyze_error("local a = 1 & 's'", "is not defined between types")
+end)
+
+it("binary operator bxor", function()
+  assert.ast_type_equals("local a = 1 ~ 2", "local a: integer = 1 ~ 2")
+  assert.analyze_error("local a = 1 ~ 's'", "is not defined between types")
+end)
+
+it("binary operator shl", function()
+  assert.ast_type_equals("local a = 1 << 2", "local a: integer = 1 << 2")
+  assert.analyze_error("local a = 1 << 's'", "is not defined between types")
+end)
+
+it("binary operator shr", function()
+  assert.ast_type_equals("local a = 1 >> 2", "local a: integer = 1 >> 2")
+  assert.analyze_error("local a = 1 >> 's'", "is not defined between types")
+end)
+
 it("binary conditional and", function()
   assert.ast_type_equals("local a = 1 and 2", "local a: integer = 1 and 2")
   assert.ast_type_equals("local a = 1_i8 and 2_u8", "local a: int16 = 1_i8 and 2_u8")
   assert.ast_type_equals("local a = 1 and true", "local a: any = 1 and true")
   assert.ast_type_equals("local a = 1 and 2 or 3", "local a: integer = 1 and 2 or 3")
+  assert.ast_type_equals("local a = 1 and '2'", "local a: any = 1 and '2'")
+  assert.ast_type_equals("local a = 1.0 and '2'", "local a: any = 1.0 and '2'")
+  assert.ast_type_equals("local a = 1.0 and 2.0_f32", "local a: float32 = 1.0 and 2.0_f32")
+  assert.ast_type_equals("local a = 1.0_f32 and 2.0", "local a: float32 = 1.0_f32 and 2.0")
+  assert.ast_type_equals("local a = 1.0_f32 and 2.0_f64", "local a: float64 = 1.0_f32 and 2.0_f64")
+  assert.ast_type_equals("local a = 1.0_f64 and 2.0_f32", "local a: float64 = 1.0_f64 and 2.0_f32")
 end)
 
 it("binary conditional or", function()
@@ -298,23 +373,23 @@ it("function definition", function()
   assert.analyze_error([[
     local f: isize
     function f(a: integer) return 0 end
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local function f(a: integer) end
     function f(a: integer, b:integer) end
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local function f(a: integer) end
     function f(a: string) end
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local function f(): (integer, string) return 1, '' end
     function f(): integer end
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local f: function():(integer, string)
     function f(): integer end
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
 end)
 
 it("function multiple argument types", function()
@@ -385,7 +460,7 @@ it("function return", function()
   ]], "invalid return expression at index")
   assert.analyze_error([[
     local function f(): string return 0 end
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
 end)
 
 it("function multiple return", function()
@@ -451,19 +526,19 @@ it("function multiple return", function()
     local function f(): (integer, boolean) return 1,false  end
     local function g(a: boolean, b: integer, c: string) end
     g(false, f())
-  ]], 'is not coercible with')
+  ]], 'no viable type conversion')
   assert.analyze_error([[
     local function f(): (integer, boolean) return 1,false  end
     local a: integer, b: number = f()
-  ]], 'is not coercible with')
+  ]], 'no viable type conversion')
   assert.analyze_error([[
     local function f(): (integer, boolean) return 1,false  end
     local a: integer, b: number;
     a, b = f()
-  ]], 'is not coercible with')
+  ]], 'no viable type conversion')
   assert.analyze_error([[
     local function f(): (integer, number) return 1,'s'  end
-  ]], 'is not coercible with')
+  ]], 'no viable type conversion')
 end)
 
 it("function call", function()
@@ -477,7 +552,7 @@ it("function call", function()
   assert.analyze_ast([[local function f(a: integer) end; f(1_u32)]])
   assert.analyze_ast([[local function f(a) end; f() f(1)]])
   assert.analyze_error([[local a: integer = 1; a()]], "attempt to call a non callable variable")
-  assert.analyze_error([[local function f(a: integer) end; f('a')]], "is not coercible with")
+  assert.analyze_error([[local function f(a: integer) end; f('a')]], "no viable type conversion")
   assert.analyze_error([[local function f(a: integer) end; f(1,1)]], "expected at most 1 arguments but got 2")
   assert.analyze_error([[local function f(a: integer) end; f()]], "expected an argument at index 1")
 end)
@@ -532,10 +607,10 @@ it("array tables", function()
     local a: arraytable(integer)
     local b: arraytable(boolean)
     b = a
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local a: arraytable(integer) = {false}
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local a: arraytable(integer) = {a = 1}
   ]], "fields are not allowed")
@@ -543,7 +618,7 @@ it("array tables", function()
     local a: arraytable(boolean)
     local b: arraytable(integer)
     b = a
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
 end)
 
 it("spans", function()
@@ -565,7 +640,7 @@ it("spans", function()
     local a: span(float64)
     local b: span(int64)
     b = a
-  ]], 'is not coercible with')
+  ]], 'no viable type conversion')
   assert.analyze_error([[local a: span(void) ]], 'spans cannot be of')
 end)
 
@@ -596,10 +671,10 @@ it("arrays", function()
   assert.analyze_ast([[local a: array(integer, 2) <compconst> = {1,2}]])
   assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values but got 1')
   assert.analyze_error([[local a: array(integer, 2) = {1,2,3}]], 'expected 2 values but got 3')
-  assert.analyze_error([[local a: array(integer, 2) = {1.0,2.0}]], 'is not coercible with')
+  assert.analyze_error([[local a: array(integer, 2) = {1.1,2.3}]], 'no viable type conversion')
   assert.analyze_error([[local a: array(integer, 2) = {a=0,2}]], 'fields are not allowed')
-  assert.analyze_error([[local a: array(integer, 10), b: array(integer, 11); b = a]], "is not coercible with")
-  assert.analyze_error([[local a: array(integer, 10); a[0] = 1.0]], "is not coercible with")
+  assert.analyze_error([[local a: array(integer, 10), b: array(integer, 11); b = a]], "no viable type conversion")
+  assert.analyze_error([[local a: array(integer, 10); a[0] = 1.1]], "no viable type conversion")
   assert.analyze_error([[local a: array(integer, 1.0) ]], "expected a valid decimal integral")
   assert.analyze_error([[local Array = @array(integer, 1); local a = Array.l]], "cannot index fields")
   assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values but got 1')
@@ -632,10 +707,9 @@ it("records", function()
   assert.analyze_ast([[local a: record {x: boolean} = {x = true}]])
   assert.analyze_ast([[local a: record {x: boolean}; a = {}]])
   assert.analyze_ast([[local a: record {x: boolean}; a = {x = true}]])
-  assert.analyze_ast([[local a: record {x: boolean}; local len = #a]])
-  assert.analyze_error([[local a: record {x: integer}; a.x = true]], "is not coercible with")
+  assert.analyze_error([[local a: record {x: integer}; a.x = true]], "no viable type conversion")
   assert.analyze_error([[local a: record {x: boolean}; local b = a.y]], "does not have field named")
-  assert.analyze_error([[local a: record {x: integer} = {x = true}]], "is not coercible with")
+  assert.analyze_error([[local a: record {x: integer} = {x = true}]], "no viable type conversion")
   assert.analyze_error([[local a: record {x: boolean} = {y = 1}]], "is not present in record")
   assert.analyze_error([[local a: record {x: boolean} = {[x] = 1}]], "only string literals are allowed")
   assert.analyze_error([[local a: record {x: boolean} = {false,false}]], "field at index 2 is not valid")
@@ -670,12 +744,12 @@ it("records", function()
   assert.analyze_error([[
     local a: record {x: boolean}, b: record {x: boolean}
     b = a
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local A, B = @record {x: boolean}, @record {x: boolean}
     local a: A, b: B
     b = a
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local b = false
     local Record = @record{x: boolean}
@@ -748,7 +822,7 @@ it("record globals", function()
     local Math = @record{}
     global Math.PI: integer = 3
     Math.PI = 3.14
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
 end)
 
 it("type neasting", function()
@@ -775,7 +849,7 @@ it("enums", function()
     local a: enum{A=0}
     local b: enum(integer){A=0,B}
     local b: enum(byte){A=0,B,C}
-    local b: enum(integer){A=0,B=1 << 2}
+    local b: enum(integer){A=0,B=1 + 2}
   ]])
   assert.analyze_ast([[
     local c <compconst> = 2
@@ -788,18 +862,18 @@ it("enums", function()
   ]])
   assert.analyze_error([[
     local Enum = @enum(byte){A=256}
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local Enum = @enum(byte){A=255,B}
   ]], "is not in range of type")
   assert.analyze_error([[
     local Enum = @enum(byte){A=256_integer}
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local Enum = @enum{A=0,B=3}
     local e: Enum = Enum.A
     local i: string = e
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local Enum = @enum{A=0,B}
     local e: Enum = Enum.C
@@ -810,7 +884,7 @@ it("enums", function()
   assert.analyze_error([[
     local C: integer
     local Enum = @enum{A=C}
-  ]], "enum values can only be assigned to const values")
+  ]], "enum fields can only be assigned to")
   assert.analyze_error([[
     local Enum = @enum{A=1.0}
   ]], "only integral numbers are allowed in enums")
@@ -847,13 +921,13 @@ it("pointers", function()
     local a: pointer(integer)
     local b: pointer(boolean)
     b = a
-  ]], "is not coercible with")
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local a: pointer(integer)
     local b: pointer
     a = b
-  ]], "is not coercible with")
-  assert.analyze_error([[local a: integer*, b: number*; b = a]], "coercible with")
+  ]], "no viable type conversion")
+  assert.analyze_error([[local a: integer*, b: number*; b = a]], "no viable type conversion")
 end)
 
 it("automatic referencing", function()
@@ -903,18 +977,18 @@ it("automatic dereferencing", function()
     local p: pointer(integer)
     local a: number = 1
     p = a
-  ]], 'coercible with')
+  ]], 'no viable type conversion')
   assert.analyze_error([[
     local p: pointer
     local a: number = 1
     p = a
-  ]], 'coercible with')
+  ]], 'no viable type conversion')
   assert.analyze_error([[
     local function f(x: number): number return x end
     local p: pointer(integer)
     local r: record{x: integer*}
     f(r.x)
-  ]], 'coercible with')
+  ]], 'no viable type conversion')
 end)
 
 it("pointers to complex types", function()
@@ -931,17 +1005,17 @@ it("type construction", function()
   assert.analyze_ast("local a = (@any)(nil)")
   assert.analyze_error("local a = (@integer)()", "expected one argument")
   assert.analyze_error("local a = (@integer)(1,2)", "expected one argument")
-  assert.analyze_error("local a = (@integer)(false)", "is not coercible with")
-  assert.analyze_error("local a = (@integer)(nil)", "is not coercible with")
+  assert.analyze_error("local a = (@integer)(false)", "no viable type conversion")
+  assert.analyze_error("local a = (@integer)(nil)", "no viable type conversion")
 end)
 
 it("attributes", function()
   assert.analyze_ast("local r: record{x: integer} <aligned(8)>")
   assert.analyze_ast("local Record <aligned(8)> = @record{x: integer}")
   assert.analyze_error(
-    "local function f() <cimport> return 0 end",
+    "local function f() <cimport,nodecl> return 0 end",
     "body of an import function must be empty")
-  assert.analyze_error("local a <cimport> = 2", "cannot assign imported variables")
+  assert.analyze_error("local a <cimport,nodecl> = 2", "cannot assign imported variables")
   assert.analyze_error([[
     local function main1() <entrypoint> end
     local function main2() <entrypoint> end

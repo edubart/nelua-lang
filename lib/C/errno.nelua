@@ -2,9 +2,9 @@
 ## cinclude '<errno.h>'
 
 -- Global variables
-global C.errno: cint <cimport 'errno'>
+global C.errno: cint <cimport'errno'>
 
 -- Constants
-global C.EDOM: cint <const, cimport 'EDOM'>
-global C.EILSEQ: cint <const, cimport 'EILSEQ'>
-global C.ERANGE: cint <const, cimport 'ERANGE'>
+global C.EDOM: cint <const,cimport'EDOM'>
+global C.EILSEQ: cint <const,cimport'EILSEQ'>
+global C.ERANGE: cint <const,cimport'ERANGE'>

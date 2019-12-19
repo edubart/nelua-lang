@@ -257,6 +257,7 @@ function builtins.nelua_any_to_(context, type)
   local name = 'nelua_any_to_' .. typename
   if context.usedbuiltins[name] then return name end
   local ctype = context:ctype(type)
+  context:ensure_runtime_builtin('nelua_any')
   context:ensure_runtime_builtin('nelua_runtype_', typename)
   if type:is_boolean() then
     context:ensure_runtime_builtin('nelua_runtype_', 'nelua_pointer')
@@ -396,8 +397,6 @@ function operators.len(node, emitter, argnode)
   local type = argnode.attr.type
   if type:is_arraytable() then
     emitter:add(type, '_length(&', argnode, ')')
-  elseif type:is_array() then
-    emitter:add(type.length)
   elseif type:is_type() then
     emitter:add(argnode.attr.holdedtype.size)
   else --luacov:disable
@@ -407,7 +406,7 @@ end
 
 function operators.div(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  if ltype:is_numeric() and rtype:is_numeric() then
+  if ltype:is_arithmetic() and rtype:is_arithmetic() then
     if not rtype:is_float() and not ltype:is_float() then
       assert(type:is_float())
       emitter:add(lname, ' / (', type, ')', rname)
@@ -421,7 +420,7 @@ end
 
 function operators.idiv(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  if ltype:is_numeric() and rtype:is_numeric() then
+  if ltype:is_arithmetic() and rtype:is_arithmetic() then
     if ltype:is_float() or rtype:is_float() then
       local floorname = type:is_float32() and 'floorf' or 'floor'
       emitter.context:add_include('<math.h>')
@@ -436,7 +435,7 @@ end
 
 function operators.mod(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  if ltype:is_numeric() and rtype:is_numeric() then
+  if ltype:is_arithmetic() and rtype:is_arithmetic() then
     if ltype:is_float() or rtype:is_float() then
       local modfuncname = type:is_float32() and 'fmodf' or 'fmod'
       emitter.context:add_include('<math.h>')
@@ -451,7 +450,7 @@ end
 
 function operators.pow(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  if ltype:is_numeric() and rtype:is_numeric() then
+  if ltype:is_arithmetic() and rtype:is_arithmetic() then
     local powname = type:is_float32() and 'powf' or 'pow'
     emitter.context:add_include('<math.h>')
     emitter:add(powname, '(', lname, ', ', rname, ')')
@@ -551,10 +550,10 @@ function inlines.print(context, node)
     elseif argtype:is_boolean() then
       defemitter:add_builtin('nelua_stdout_write_boolean')
       defemitter:add_ln('(a',i,');')
-    elseif argtype:is_numeric() then
-      local tyname = node:assertraisef(argtype, 'type is not defined in AST node')
-      local tyformat = cdefs.types_printf_format[tyname]
-      node:assertraisef(tyformat, 'invalid type "%s" for printf format', tyname)
+    elseif argtype:is_arithmetic() then
+      local ty = node:assertraisef(argtype, 'type is not defined in AST node')
+      local tyformat = cdefs.types_printf_format[ty.codename]
+      node:assertraisef(tyformat, 'invalid type "%s" for printf format', ty)
       defemitter:add_builtin('nelua_stdout_write_format')
       defemitter:add_ln('("',tyformat,'", a',i,');')
     else --luacov:disable
@@ -577,7 +576,7 @@ function inlines.type(_, node, emitter)
   local argnode = node[1][1]
   local type = argnode.attr.type
   local typename
-  if type:is_numeric() then
+  if type:is_arithmetic() then
     typename = 'number'
   elseif type:is_nilptr() then
     typename = 'pointer'

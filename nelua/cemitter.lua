@@ -2,6 +2,8 @@ local class = require 'nelua.utils.class'
 local Emitter = require 'nelua.emitter'
 local traits = require 'nelua.utils.traits'
 local typedefs = require 'nelua.typedefs'
+local errorer = require 'nelua.utils.errorer'
+local pegger = require 'nelua.utils.pegger'
 local CEmitter = class(Emitter)
 local primtypes = typedefs.primtypes
 
@@ -27,7 +29,7 @@ function CEmitter:zeroinit(type)
     s = '0.0'
   elseif type:is_unsigned() then
     s = '0U'
-  elseif type:is_numeric() then
+  elseif type:is_arithmetic() then
     s = '0'
   elseif type:is_pointer() then
     s = 'NULL'
@@ -47,14 +49,14 @@ end
 
 function CEmitter:add_nodezerotype(node)
   local type = node.attr.type
-  if not (type:is_boolean() or type:is_numeric() or type:is_pointer()) then
+  if not (type:is_boolean() or type:is_arithmetic() or type:is_pointer()) then
     self:add_nodectypecast(node)
   end
   self:add(self:zeroinit(type))
 end
 
 function CEmitter:add_castedzerotype(type)
-  if not (type:is_boolean() or type:is_numeric() or type:is_pointer()) then
+  if not (type:is_boolean() or type:is_arithmetic() or type:is_pointer()) then
     self:add_ctypecast(type)
   end
   self:add(self:zeroinit(type))
@@ -81,6 +83,7 @@ function CEmitter:add_nodectypecast(node)
 end
 
 function CEmitter:add_booleanlit(value)
+  assert(type(value) == 'boolean')
   self:add(value and 'true' or 'false')
 end
 
@@ -134,9 +137,13 @@ function CEmitter:add_val2type(type, val, valtype)
 
   if val then
     assert(valtype)
-    if type == valtype or
-      (valtype:is_numeric() and type:is_numeric()) or
-      (valtype:is_nilptr() and type:is_pointer()) then
+    if type == valtype then
+      self:add(val)
+    elseif valtype:is_arithmetic() and type:is_arithmetic() and
+           (type:is_float() or valtype:is_integral()) and
+           traits.is_astnode(val) and val.attr.compconst then
+      self:add_numeric_literal(val.attr, type)
+    elseif valtype:is_nilptr() and type:is_pointer() then
       self:add(val)
     elseif type:is_any() then
       self:add_val2any(val, valtype)
@@ -149,7 +156,7 @@ function CEmitter:add_val2type(type, val, valtype)
     elseif type:is_string() and valtype:is_cstring() then
       self:add_cstring2string(val)
     elseif type:is_pointer() and type.subtype == valtype then
-      -- automatice reference
+      -- automatic reference
       assert(val and val.attr.autoref)
       self:add('&', val)
     elseif valtype:is_pointer() and valtype.subtype == type then
@@ -164,6 +171,73 @@ function CEmitter:add_val2type(type, val, valtype)
   else
     self:add_zeroinit(type)
   end
+end
+
+function CEmitter:add_numeric_literal(valattr, valtype)
+  assert(traits.is_bignumber(valattr.value))
+
+  valtype = valtype or valattr.type
+  local val, base = valattr.value, valattr.base
+
+  local minusone = false
+  if valtype:is_integral() and valtype:is_signed() and val == valtype.min then
+    -- workaround C warning `integer constant is so large that it is unsigned`
+    minusone = true
+    val = val:add(1)
+  end
+
+  if valtype:is_float() then
+    local valstr = val:todecsci(valtype.maxdigits)
+    self:add(valstr)
+
+    -- make sure it has decimals
+    if valstr:match('^-?[0-9]+$') then
+      self:add('.0')
+    end
+  else
+    if base == 'hex' or base == 'bin' then
+      self:add('0x', val:tohex())
+    else
+      self:add(val:todec())
+    end
+  end
+
+  -- suffixes
+  if valtype:is_float32() and not self.context.ast.attr.nofloatsuffix then
+    self:add('f')
+  elseif valtype:is_unsigned() then
+    self:add('U')
+  end
+
+  if minusone then
+    self:add('-1')
+  end
+end
+
+function CEmitter:add_string_literal(val)
+  local decemitter = CEmitter(self.context)
+  local len = #val
+  local varname = self.context:genuniquename('strlit')
+  local quoted_value = pegger.double_quote_c_string(val)
+  decemitter:add_indent('static const struct { uintptr_t len; char data[', len + 1, ']; }')
+  decemitter:add_indent_ln(' ', varname, ' = {', len, ', ', quoted_value, '};')
+  self:add('(const ', primtypes.string, ')&', varname)
+  self.context:add_declaration(decemitter:generate(), varname)
+end
+
+function CEmitter:add_literal(valattr)
+  local valtype = valattr.type
+  if valtype:is_boolean() then
+    self:add_booleanlit(valattr.value)
+  elseif valtype:is_arithmetic() then
+    self:add_numeric_literal(valattr)
+  elseif valtype:is_string() then
+    self:add_string_literal(valattr.value)
+  --elseif valtype:is_record() then
+    --self:add(valattr)
+  else --luacov:disable
+    errorer.errorf('not implemented: `CEmitter:add_literal` for valtype `%s`', valtype)
+  end --luacov:enable
 end
 
 return CEmitter

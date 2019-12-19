@@ -266,7 +266,7 @@ function visitors.VarDecl(context, node, emitter)
       local varnode = varnodes[i]
       if varnode.attr.type:is_table() or varnode.attr.type:is_arraytable() then
         emitter:add('{}')
-      elseif varnode.attr.type:is_numeric() then
+      elseif varnode.attr.type:is_arithmetic() then
         emitter:add('0')
       elseif varnode.attr.type:is_boolean() then
         emitter:add('false')

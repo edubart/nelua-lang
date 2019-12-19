@@ -20,7 +20,7 @@ int nelua_main() {
 int nelua_main() {
   return 1;
 }]])
-  assert.generate_c("return (1)")
+  assert.generate_c("return 1")
 end)
 
 it("local variable", function()
@@ -37,24 +37,24 @@ it("number", function()
   assert.generate_c("do local a = 1e2 end", "100")
   assert.generate_c("do local a = 0x1f end", "0x1f")
   assert.generate_c("do local a = 0b10 end", "0x2")
-  assert.generate_c("do local a = 1e127 end", "1e127;")
+  assert.generate_c("do local a = 1e129 end", "1e+129;")
 end)
 
 it("number literals", function()
-  assert.generate_c("do local a = 1_integer end", "int64_t a = 1")
-  assert.generate_c("do local a = 1_number end", "double a = 1.0")
-  assert.generate_c("do local a = 1_byte end", "uint8_t a = 1")
-  assert.generate_c("do local a = 1_isize end", "intptr_t a = 1")
-  assert.generate_c("do local a = 1_usize end", "uintptr_t a = 1")
-  assert.generate_c("do local a = 1_pointer end", "void* a = 1")
-  assert.generate_c("do local a = 1_cint end", "int a = 1")
-  assert.generate_c("do local a = 1_clong end", "long a = 1")
-  assert.generate_c("do local a = 1_clonglong end", "long long a = 1")
+  assert.generate_c("do local a = 1_integer end", "int64_t a = 1;")
+  assert.generate_c("do local a = 1_number end", "double a = 1.0;")
+  assert.generate_c("do local a = 1_byte end", "uint8_t a = 1U;")
+  assert.generate_c("do local a = 1_isize end", "intptr_t a = 1;")
+  assert.generate_c("do local a = 1_usize end", "uintptr_t a = 1U;")
+  assert.generate_c("do local a = 1_pointer end", "void* a = 1;")
+  assert.generate_c("do local a = 1_cint end", "int a = 1;")
+  assert.generate_c("do local a = 1_clong end", "long a = 1;")
+  assert.generate_c("do local a = 1_clonglong end", "long long a = 1;")
 end)
 
 it("type assertion", function()
-  assert.generate_c("do local a = (@int16)(1_u64) end", "int16_t a = (int16_t)((uint64_t)1U)")
-  assert.generate_c("do local a = (@int64)(1_u8) end", "int64_t a = (int64_t)((uint8_t)1U)")
+  assert.generate_c("do local b = 1_u64; local a = (@int16)(b) end", "int16_t a = (int16_t)b")
+  assert.generate_c("do local b = 1_u8; local a = (@int64)(b) end", "int64_t a = (int64_t)b")
 end)
 
 it("string", function()
@@ -91,8 +91,18 @@ it("if", function()
   assert.generate_c("if true then\nend","if(true) {\n  }")
   assert.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
   assert.generate_c("if true then\nelse\nend", "if(true) {\n  } else {\n  }")
-  assert.generate_c("if true and true then\nend","if(true && true) {\n  }")
-  assert.generate_c("if true and true or true then\nend","if((true && true) || true) {\n  }")
+  assert.scoped_generate_c([[
+    local a: boolean, b: boolean
+    if a and b then end]],
+    "if(a && b) {\n    }")
+  assert.scoped_generate_c([[
+    local a: boolean, b: boolean, c: boolean
+    if a and b or c then end]],
+    "if((a && b) || c) {\n    }")
+  assert.scoped_generate_c([[
+    local a: boolean, b: boolean
+    if a and not b then end]],
+    "if(a && (!b)) {\n    }")
 end)
 
 it("switch", function()
@@ -199,17 +209,35 @@ it("variable declaration", function()
   assert.generate_c("local π = 3.14", "double mymod_uCF80 = 3.14;")
 end)
 
-it("compconst", function()
-  assert.generate_c("local a: integer <compconst> = 0", "static const int64_t mymod_a = 0;")
-  assert.generate_c("local a <compconst> = 1", "static const int64_t mymod_a = 1;")
-  assert.generate_c(
-    "local N <compconst> = 3773; local a: array(integer, N)",
-    {"static const int64_t mymod_N = 3773",
-     "int64_t data[3773];"})
-  assert.generate_c("local a <compconst>, b <compconst> = 1, 2; local c <compconst> = a * b",
-    "static const int64_t mymod_c = mymod_a * mymod_b;")
-  assert.generate_c("local a <compconst>, b <compconst> = 1, 2; local c <compconst> = (@int32)(a * b)",
-    "static const int32_t mymod_c = (int32_t)(mymod_a * mymod_b);")
+it("operation on compconst variables", function()
+  assert.generate_c([[
+    local a <compconst> = false
+    local b <compconst> = not a
+    local c = b
+  ]], "c = true;")
+  assert.generate_c([[
+    local a <compconst> = 2
+    local b <compconst> = -a
+    local c = b
+  ]], "c = -2;")
+  assert.generate_c([[
+    local a <compconst>, b <compconst> = 1, 2
+    local c <const> = (@int32)(a * b)
+  ]], "static const int32_t mymod_c = 2;")
+
+  assert.run_c([[
+    -- sum/sub/mul
+    assert(3 + 4 == 7)
+    assert(3 - 4 == -1)
+    assert(3 * 4 == 12)
+
+
+    -- bor
+    assert(3 | 5 == 7)
+    --assert(-0xfffffffffffffffd_u64 & 5 == 7)
+    --assert(-3 & -5 == -1)
+    --assert(-3_i32 & 0xfffffffb_u32 == -7)
+  ]])
 end)
 
 it("assignment", function()
@@ -337,75 +365,209 @@ it("call with side effects", function()
   end]],"1\n2\n3\n4\n5\n6")
 end)
 
-it("unary operators", function()
-  assert.generate_c("do local x = not a end", "!a")
-  assert.generate_c("do local x = -a end", "-a")
-  assert.generate_c("do local x = ~a end", "~a")
-  assert.generate_c("do local x = &a end", "&a")
-  assert.generate_c("do local x = $a end", "*a")
+it("unary operator `not`", function()
+  assert.scoped_generate_c("local x = not true", "x = false;")
+  assert.scoped_generate_c("local x = not false", "x = true;")
+  assert.scoped_generate_c("local x = not nil", "x = true;")
+  assert.scoped_generate_c("local x = not nilptr", "x = true;")
+  assert.scoped_generate_c("local x = not 'a'", "x = false;")
+  assert.scoped_generate_c("local a = true; local x = not a", "x = !a;")
+  --assert.scoped_generate_c("local a = nil; local x = not a", "x = true;")
+  --assert.scoped_generate_c("local a = nilptr; local x = not a", "x = !a;")
 end)
 
-it("binary operators", function()
-  assert.generate_c("do local x = a ~= b end",      "a != b")
-  assert.generate_c("do local x = a == b end",      "a == b")
-  assert.generate_c("do local x = a <= b end",      "a <= b")
-  assert.generate_c("do local x = a >= b end",      "a >= b")
-  assert.generate_c("do local x = a < b end",       "a < b")
-  assert.generate_c("do local x = a > b end",       "a > b")
-  assert.generate_c("do local x = a | b end",       "a | b")
-  assert.generate_c("do local x = a ~ b end",       "a ^ b")
-  assert.generate_c("do local x = a & b end",       "a & b")
-  assert.generate_c("do local x = a << b end",      "a << b")
-  assert.generate_c("do local x = a >> b end",      "a >> b")
-  assert.generate_c("do local x = a + b end",       "a + b")
-  assert.generate_c("do local x = a - b end",       "a - b")
-  assert.generate_c("do local x = a * b end",       "a * b")
-  -- div
-  --assert.generate_c("return a / b")
-  assert.generate_c("return 3 / 2",       "return 3 / (double)2")
-  assert.generate_c(
-    "return (@float64)(3 / 2)",
-    "return 3.0 / 2.0")
-  assert.generate_c(
-    "return 3 / 2_int64",
-    "return 3 / (double)(int64_t)2")
-  assert.generate_c(
-    "return 3.0 / 2",
-    "return 3.0 / 2")
-  assert.generate_c(
-    "return (@integer)(3_i / 2_i)",
-    "return (int64_t)((int64_t)3 / (double)(int64_t)2)")
-  assert.generate_c(
-    "return (@integer)(3 / 2_int64)",
-    "return (int64_t)(3 / (double)(int64_t)2)")
-  -- idiv
-  --assert.generate_c("return a // b")
-  assert.generate_c("return 3 // 2",      "return 3 / 2")
-  assert.generate_c("return 3 // 2.0",    "return floor(3.0 / 2.0)")
-  assert.generate_c("return 3.0 // 2.0",  "return floor(3.0 / 2.0)")
-  assert.generate_c("return 3.0 // 2",    "return floor(3.0 / 2)")
-  -- mod
-  --assert.generate_c("return a % b",       "return a % b;")
-  assert.generate_c("return 3 % 2",       "return 3 % 2")
-  assert.generate_c("return 3.0 % 2",     "return fmod(3.0, 2)")
-  assert.generate_c("return 3 % 2.0",     "return fmod(3.0, 2.0)")
-  assert.generate_c("return 3.0 % 2.0",   "return fmod(3.0, 2.0)")
-  -- pow
-  --assert.generate_c("return a ^ b")
-  assert.generate_c("return 2 ^ 2",       "return pow(2, 2);")
-  assert.generate_c("return 2_f32 ^ 2_f32",
-                    "return powf(2.0f, 2.0f);")
-  assert.run_c([[
-    assert(1 / 2 == 0.5)
-    assert(1.0 / 2.0 == 0.5)
-    assert(3 % 2 == 1)
-    assert(3.0 % 2.0 == 1)
-    assert(3 // 2 == 1)
-    assert(3.0 // 2.0 == 1)
-    assert(2 ^ 2 == 4)
-    assert(1 == 1)
-    assert(1 ~= 2)
-  ]])
+it("unary operator `ref`", function()
+  assert.scoped_generate_c("local a = 1; local x = &a", "x = &a;")
+end)
+
+it("unary operator `unm`", function()
+  assert.scoped_generate_c("local x = -a", "-a;")
+end)
+
+it("unary operator `deref`", function()
+  assert.scoped_generate_c("local a: integer*; local x = $a", "x = *a;")
+end)
+
+it("unary operator `bnot`", function()
+  assert.scoped_generate_c("local x = ~a", "~a;")
+end)
+
+it("unary operator `len`", function()
+  assert.scoped_generate_c("local x = #@integer", "x = 8;")
+  assert.scoped_generate_c("local x = #'asd'", "x = 3;")
+  assert.scoped_generate_c("local x = #@integer[4]", "x = 32;")
+  --assert.scoped_generate_c("a = 'asd'; local x = #a", "x = 3;")
+end)
+
+it("unary operator `lt`", function()
+  assert.scoped_generate_c("local x = a < b", "a < b")
+  assert.scoped_generate_c("local x = 1 < 1", "x = false;")
+  assert.scoped_generate_c("local x = 1 < 2", "x = true;")
+  assert.scoped_generate_c("local x = 2 < 1", "x = false;")
+  assert.scoped_generate_c("local x = 'a' < 'a'", "x = false;")
+  assert.scoped_generate_c("local x = 'a' < 'b'", "x = true;")
+  assert.scoped_generate_c("local x = 'b' < 'a'", "x = false;")
+end)
+
+it("unary operator `le`", function()
+  assert.scoped_generate_c("local x = a <= b", "a <= b")
+  assert.scoped_generate_c("local x = 1 <= 1", "x = true;")
+  assert.scoped_generate_c("local x = 1 <= 2", "x = true;")
+  assert.scoped_generate_c("local x = 2 <= 1", "x = false;")
+  assert.scoped_generate_c("local x = 'a' <= 'a'", "x = true;")
+  assert.scoped_generate_c("local x = 'a' <= 'b'", "x = true;")
+  assert.scoped_generate_c("local x = 'b' <= 'a'", "x = false;")
+end)
+
+it("unary operator `gt`", function()
+  assert.scoped_generate_c("local x = a > b", "a > b")
+  assert.scoped_generate_c("local x = 1 > 1", "x = false;")
+  assert.scoped_generate_c("local x = 1 > 2", "x = false;")
+  assert.scoped_generate_c("local x = 2 > 1", "x = true;")
+  assert.scoped_generate_c("local x = 'a' > 'a'", "x = false;")
+  assert.scoped_generate_c("local x = 'a' > 'b'", "x = false;")
+  assert.scoped_generate_c("local x = 'b' > 'a'", "x = true;")
+end)
+
+it("unary operator `ge`", function()
+  assert.scoped_generate_c("local x = a >= b", "a >= b")
+  assert.scoped_generate_c("local x = 1 >= 1", "x = true;")
+  assert.scoped_generate_c("local x = 1 >= 2", "x = false;")
+  assert.scoped_generate_c("local x = 2 >= 1", "x = true;")
+  assert.scoped_generate_c("local x = 'a' >= 'a'", "x = true;")
+  assert.scoped_generate_c("local x = 'a' >= 'b'", "x = false;")
+  assert.scoped_generate_c("local x = 'b' >= 'a'", "x = true;")
+end)
+
+it("binary operator `eq`", function()
+  assert.scoped_generate_c("local x = a == b", "a == b")
+  assert.scoped_generate_c("local x = 1 == 1", "x = true;")
+  assert.scoped_generate_c("local x = 1 == 2", "x = false;")
+  assert.scoped_generate_c("local x = 1 == '1'", "x = false;")
+  assert.scoped_generate_c("local x = '1' == 1", "x = false;")
+  assert.scoped_generate_c("local x = '1' == '1'", "x = true;")
+  assert.scoped_generate_c("a,b = 1,2; local x = a == b", "x = a == b;")
+end)
+
+it("binary operator `ne`", function()
+  assert.scoped_generate_c("local x = a ~= b", "a != b")
+  assert.scoped_generate_c("local x = 1 ~= 1", "x = false;")
+  assert.scoped_generate_c("local x = 1 ~= 2", "x = true;")
+  assert.scoped_generate_c("local x = 1 ~= 's'", "x = true;")
+  assert.scoped_generate_c("local x = 's' ~= 1", "x = true;")
+  assert.scoped_generate_c("a,b = 1,2; local x = a ~= b", "x = a != b;")
+end)
+
+it("binary operator `add`", function()
+  assert.scoped_generate_c("local x = a + b",       "a + b;")
+  assert.scoped_generate_c("local x = 3 + 2",       "x = 5;")
+  assert.scoped_generate_c("local x = 3.0 + 2.0",   "x = 5.0;")
+end)
+
+it("binary operator `sub`", function()
+  assert.scoped_generate_c("local x = a - b",       "a - b")
+  assert.scoped_generate_c("local x = 3 - 2",       "x = 1;")
+  assert.scoped_generate_c("local x = 3.0 - 2.0",   "x = 1.0;")
+end)
+
+it("binary operator `mul`", function()
+  assert.scoped_generate_c("local x = a * b",       "a * b")
+  assert.scoped_generate_c("local x = 3 * 2",       "x = 6;")
+  assert.scoped_generate_c("local x = 3.0 * 2.0",   "x = 6.0;")
+end)
+
+it("binary operator `div`", function()
+  --assert.scoped_generate_c("local x = a / b")
+  assert.scoped_generate_c("local x = 3 / 2",                   "x = 1.5;")
+  assert.scoped_generate_c("local x = (@float64)(3 / 2)",       "x = 1.5;")
+  assert.scoped_generate_c("local x = 3 / 2_int64",             "x = 1.5;")
+  assert.scoped_generate_c("local x = 3.0 / 2",                 "x = 1.5;")
+  assert.scoped_generate_c("local x = (@integer)(3_i / 2_i)",   "x = (int64_t)1.5;")
+  assert.scoped_generate_c("local x = (@integer)(3 / 2_int64)", "x = (int64_t)1.5;")
+  assert.scoped_generate_c("local x =  3 /  4",                 "x = 0.75;")
+  assert.scoped_generate_c("local x = -3 /  4",                 "x = -0.75;")
+  assert.scoped_generate_c("local x =  3 / -4",                 "x = -0.75;")
+  assert.scoped_generate_c("local x = -3 / -4",                 "x = 0.75;")
+  assert.scoped_generate_c("local a,b = 1,2; local x=a/b",      "x = a / (double)b;")
+  assert.scoped_generate_c("local a,b = 1.0,2.0; local x=a/b",  "x = a / b;")
+end)
+
+it("binary operator `idiv`", function()
+  --assert.scoped_generate_c("local x = a // b")
+  assert.scoped_generate_c("local x = 3 // 2",      "x = 1;")
+  assert.scoped_generate_c("local x = 3 // 2.0",    "x = 1.0;")
+  assert.scoped_generate_c("local x = 3.0 // 2.0",  "x = 1.0;")
+  assert.scoped_generate_c("local x = 3.0 // 2",    "x = 1.0;")
+  assert.scoped_generate_c("local x =  7 //  3",    "x = 2;")
+  assert.scoped_generate_c("local x = -7 //  3",    "x = -2;")
+  assert.scoped_generate_c("local x =  7 // -3",    "x = -2;")
+  assert.scoped_generate_c("local x = -7 // -3",    "x = 2;")
+  assert.scoped_generate_c("local x =  7 //  3.0",  "x = 2.0;")
+  assert.scoped_generate_c("local x = -7 //  3.0",  "x = -3.0;")
+  assert.scoped_generate_c("local x =  7 // -3.0",  "x = -3.0;")
+  assert.scoped_generate_c("local x = -7 // -3.0",  "x = 2.0;")
+  assert.scoped_generate_c("local a,b = 1,2; local x=a//b",      "x = a / b;")
+  assert.scoped_generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = floor(a / b);")
+end)
+
+it("binary operator `mod`", function()
+  --assert.scoped_generate_c("local x = a % b")
+  assert.scoped_generate_c("local x = 3 % 2",       "x = 1;")
+  assert.scoped_generate_c("local x = 3.0 % 2.0",   "x = 1.0;")
+  assert.scoped_generate_c("local x = 3.0 % 2",     "x = 1.0;")
+  assert.scoped_generate_c("local x = 3 % 2.0",     "x = 1.0;")
+  assert.scoped_generate_c("local a, b = 3, 2;     local x = a % b", "x = a % b;")
+  assert.scoped_generate_c("local a, b = 3.0, 2;   local x = a % b", "x = fmod(a, b);")
+  assert.scoped_generate_c("local a, b = 3, 2.0;   local x = a % b", "x = fmod(a, b);")
+  assert.scoped_generate_c("local a, b = 3.0, 2.0; local x = a % b", "x = fmod(a, b);")
+end)
+
+it("binary operator `pow`", function()
+  --assert.scoped_generate_c("local x = a ^ b")
+  assert.scoped_generate_c("local a,b = 2,2; local x = a ^ b", "x = pow(a, b);")
+  assert.scoped_generate_c("local x = 2 ^ 2", "x = 4.0;")
+  assert.scoped_generate_c("local x = 2_f32 ^ 2_f32", "x = 4.0f;")
+  assert.scoped_generate_c("local a,b = 2_f32,2_f32; local x = a ^ b", "x = powf(a, b);")
+end)
+
+it("binary operator `band`", function()
+  assert.scoped_generate_c("local x = 3 & 5",                   "x = 1;")
+  assert.scoped_generate_c("local x = -0xfffffffd & 5",         "x = 1;")
+  assert.scoped_generate_c("local x = -3 & -5",                 "x = -7;")
+  assert.scoped_generate_c("local x = -3_i32 & 0xfffffffb_u32", "x = -7;")
+end)
+
+it("binary operator `bor`", function()
+  assert.scoped_generate_c("local x = a | b", "a | b;")
+  assert.scoped_generate_c("local x = 3 | 5", "x = 7;")
+  assert.scoped_generate_c("local x = 3 | -5", "x = -5;")
+  assert.scoped_generate_c("local x = -0xfffffffffffffffd | 5", "x = 7;")
+  assert.scoped_generate_c("local x = -3 | -5", "x = -1;")
+end)
+
+it("binary operator `bxor`", function()
+  assert.scoped_generate_c("local x = a ~ b", "a ^ b;")
+  assert.scoped_generate_c("local x = 3 ~ 5", "x = 6;")
+  assert.scoped_generate_c("local x = 3 ~ -5", "x = -8;")
+  assert.scoped_generate_c("local x = -3 ~ -5", "x = 6;")
+end)
+
+it("binary operator `shl`", function()
+  assert.scoped_generate_c("local x = a << b", "a << b;")
+  assert.scoped_generate_c("local x = 6 << 1", "x = 12;")
+  assert.scoped_generate_c("local x = 6 << 0", "x = 6;")
+  assert.scoped_generate_c("local x = 6 << -1", "x = 3;")
+end)
+
+it("binary operator `shr`", function()
+  assert.scoped_generate_c("local x = a >> b", "a >> b;")
+  assert.scoped_generate_c("local x = 6 >> 1", "x = 3;")
+  assert.scoped_generate_c("local x = 6 >> 0", "x = 6;")
+  assert.scoped_generate_c("local x = 6 >> -1", "x = 12;")
+end)
+
+it("binary operator `concat`", function()
+  assert.scoped_generate_c("local x = 'a' .. 'b'", [["ab"]])
 end)
 
 it("string comparisons", function()
@@ -783,7 +945,7 @@ it("record methods", function()
     assert(v:len() == 3)
 
     local Math = @record{}
-    function Math.abs(x: number): number <cimport('fabs', '<math.h>')> end
+    function Math.abs(x: number): number <cimport'fabs',cinclude'<math.h>'> end
     assert(Math.abs(-1) == 1)
   ]])
 end)
@@ -792,8 +954,8 @@ it("record globals", function()
   assert.generate_c([[
     ## nohashcodenames = true
     local Math = @record{}
-    global Math.PI: number <compconst> = 3.14
-    global Math.E <compconst> = 2.7
+    global Math.PI: number <const> = 3.14
+    global Math.E <const> = 2.7
 
     global Math.Number = @number
     local MathNumber = Math.Number
@@ -886,9 +1048,9 @@ end)
 
 it("manual memory managment", function()
   assert.run_c([=[
-    local function malloc(size: usize): pointer <cimport('malloc','<stdlib.h>')> end
-    local function memset(s: pointer, c: int32, n: usize): pointer <cimport('memset','<string.h>')> end
-    local function free(ptr: pointer) <cimport('free','<stdlib.h>')> end
+    local function malloc(size: usize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
+    local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
+    local function free(ptr: pointer) <cimport'free',cinclude'<stdlib.h>',nodecl> end
     local a = (@pointer(array(int64, 10)))(malloc(10 * 8))
     memset(a, 0, 10*8)
     assert(a[0] == 0)
@@ -900,7 +1062,7 @@ end)
 
 it("C varargs", function()
   assert.generate_c(
-    "local function scanf(format: cstring, ...): cint <cimport('scanf',true)> end",
+    "local function scanf(format: cstring, ...): cint <cimport'scanf'> end",
     "int scanf(char* format, ...);")
 end)
 
@@ -910,7 +1072,7 @@ it("attributes", function()
   assert.generate_c("## cemit('#define SOMETHING', 'declaration')", "#define SOMETHING")
   assert.generate_c("## cemit('#define SOMETHING', 'definition')", "#define SOMETHING")
   assert.generate_c("## cdefine 'SOMETHING'", "#define SOMETHING")
-  assert.generate_c("local huge: number <cimport('HUGE_VAL', '<math.h>')>", "include <math.h>")
+  assert.generate_c("local huge: number <cimport'HUGE_VAL',cinclude'<math.h>',nodecl>", "include <math.h>")
   assert.generate_c("local a: int64 <volatile, codename 'a'>", "volatile int64_t mymod_a")
   assert.generate_c("local a: int64 <register>", "register int64_t mymod_a")
   assert.generate_c("local a: int64 <restrict>", "restrict int64_t mymod_a")
@@ -930,15 +1092,15 @@ it("attributes", function()
   assert.generate_c("local function f() <cqualifier 'volatile'> end", "volatile void")
   assert.generate_c("local function f() <cattribute 'noinline'> end", "__attribute__((noinline)) void")
   assert.generate_c(
-    "local function puts(s: cstring): int32 <cimport('puts', true)> end",
+    "local function puts(s: cstring): int32 <cimport'puts'> end",
     "int32_t puts(char* s);")
   assert.generate_c(
-    "local function cos(x: number): number <cimport('myfunc','<myheader.h>')> end",
+    "local function cos(x: number): number <cimport'myfunc',cinclude'<myheader.h>',nodecl> end",
     "#include <myheader.h>")
   assert.run_c([[
-    local function exit(x: int32) <cimport('exit', '<stdlib.h>')> end
-    function puts(s: cstring): int32 <cimport('puts', '<stdio.h>')> end
-    local function perror(s: cstring): void <cimport> end
+    local function exit(x: int32) <cimport'exit',cinclude'<stdlib.h>',nodecl> end
+    function puts(s: cstring): int32 <cimport'puts',cinclude'<stdio.h>',nodecl> end
+    local function perror(s: cstring): void <cimport,nodecl> end
     local function f() <noinline, noreturn>
       local i: int32 <register, volatile, codename 'i'> = 0
       exit(i)
@@ -949,8 +1111,8 @@ it("attributes", function()
   ]], "msg stdout", "msg stderr")
   assert.run_c([[
     ## cinclude '<stdlib.h>'
-    local div_t <cimport> = @record{quot: cint, rem: cint}
-    local function div(numer: cint, denom: cint): div_t <cimport> end
+    local div_t <cimport,nodecl> = @record{quot: cint, rem: cint}
+    local function div(numer: cint, denom: cint): div_t <cimport,nodecl> end
     local r = div(38,5)
     assert(r.quot == 7 and r.rem == 3)
   ]])

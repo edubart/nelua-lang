@@ -2,19 +2,19 @@
 ## cinclude '<ctype.h>'
 
 -- Character classification functions
-function C.isalnum(x: cint): cint <cimport 'isalnum'> end
-function C.isalpha(x: cint): cint <cimport 'isalpha'> end
-function C.islower(x: cint): cint <cimport 'islower'> end
-function C.isupper(x: cint): cint <cimport 'isupper'> end
-function C.isdigit(x: cint): cint <cimport 'isdigit'> end
-function C.isxdigit(x: cint): cint <cimport 'isxdigit'> end
-function C.iscntrl(x: cint): cint <cimport 'iscntrl'> end
-function C.isgraph(x: cint): cint <cimport 'isgraph'> end
-function C.isspace(x: cint): cint <cimport 'isspace'> end
-function C.isblank(x: cint): cint <cimport 'isblank'> end
-function C.isprint(x: cint): cint <cimport 'isprint'> end
-function C.ispunct(x: cint): cint <cimport 'ispunct'> end
+function C.isalnum(x: cint): cint <cimport'isalnum',nodecl> end
+function C.isalpha(x: cint): cint <cimport'isalpha',nodecl> end
+function C.islower(x: cint): cint <cimport'islower',nodecl> end
+function C.isupper(x: cint): cint <cimport'isupper',nodecl> end
+function C.isdigit(x: cint): cint <cimport'isdigit',nodecl> end
+function C.isxdigit(x: cint): cint <cimport'isxdigit',nodecl> end
+function C.iscntrl(x: cint): cint <cimport'iscntrl',nodecl> end
+function C.isgraph(x: cint): cint <cimport'isgraph',nodecl> end
+function C.isspace(x: cint): cint <cimport'isspace',nodecl> end
+function C.isblank(x: cint): cint <cimport'isblank',nodecl> end
+function C.isprint(x: cint): cint <cimport'isprint',nodecl> end
+function C.ispunct(x: cint): cint <cimport'ispunct',nodecl> end
 
 -- Character conversion functions
-function C.tolower(c: cint): cint <cimport 'tolower'> end
-function C.toupper(c: cint): cint <cimport 'toupper'> end
+function C.tolower(c: cint): cint <cimport'tolower',nodecl> end
+function C.toupper(c: cint): cint <cimport'toupper',nodecl> end

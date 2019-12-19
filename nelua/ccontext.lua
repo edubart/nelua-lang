@@ -82,7 +82,7 @@ end
 
 function CContext:ctype(type)
   local codename = self:typename(type)
-  local ctype = cdefs.primitive_ctypes[type]
+  local ctype = cdefs.primitive_ctypes[type.codename]
   if ctype then
     return ctype
   end

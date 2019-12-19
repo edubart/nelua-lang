@@ -8,16 +8,16 @@
 ## cinclude '<stdio.h>'
 ## cinclude '<errno.h>'
 
-local errno: cint <cimport>
-local SEEK_SET: cint <cimport>
-local SEEK_END: cint <cimport>
-local SEEK_CUR: cint <cimport>
-local function strerror(errnum: cint): cstring <cimport> end
-local function fopen(pathname: cstring, mode: cstring): pointer <cimport> end
-local function fclose(stream: pointer): cint <cimport> end
-local function fflush(stream: pointer): cint <cimport> end
-local function fseek(stream: pointer, offset: clong, whence: cint): cint <cimport> end
-local function ftell(stream: pointer): clong <cimport> end
+local errno: cint <cimport,nodecl>
+local SEEK_SET: cint <cimport,nodecl>
+local SEEK_END: cint <cimport,nodecl>
+local SEEK_CUR: cint <cimport,nodecl>
+local function strerror(errnum: cint): cstring <cimport,nodecl> end
+local function fopen(pathname: cstring, mode: cstring): pointer <cimport,nodecl> end
+local function fclose(stream: pointer): cint <cimport,nodecl> end
+local function fflush(stream: pointer): cint <cimport,nodecl> end
+local function fseek(stream: pointer, offset: clong, whence: cint): cint <cimport,nodecl> end
+local function ftell(stream: pointer): clong <cimport,nodecl> end
 
 --------------------------------------------------------------------------------
 -- file stream
@@ -56,7 +56,7 @@ function filestream:seek(whence: string, offset: integer)
   end
   local len
   local errmsg, status
-  if fseek(self.f, @clong(offset), op) == 0 then
+  if fseek(self.f, (@clong)(offset), op) == 0 then
     len = ftell(self.f)
   else
     len = -1

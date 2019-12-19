@@ -166,6 +166,10 @@ function assert.generate_c(nelua_code, expected_code, ispattern)
   end
 end
 
+function assert.scoped_generate_c(nelua_code, expected_code, ispattern)
+  return assert.generate_c('do ' .. nelua_code .. ' end', expected_code, ispattern)
+end
+
 function assert.run_c(nelua_code, expected_stdout, expected_stderr)
   assert.run({'--generator', 'c', '--eval', nelua_code}, expected_stdout, expected_stderr)
 end

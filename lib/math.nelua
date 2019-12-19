@@ -10,30 +10,30 @@ global math = @record{}
 
 global math.pi: number <compconst> = 3.141592653589793
 global math.maxinteger: integer <compconst> = 9223372036854775807
-global math.mininteger: integer <compconst> = -9223372036854775807-1
-global math.huge: number <const, cimport 'HUGE_VAL'>
+global math.mininteger: integer <compconst> = -9223372036854775808
+global math.huge: number <const,cimport'HUGE_VAL',nodecl>
 
-function math.abs(x: number): number <cimport 'fabs'> end
-function math.ceil(x: number): number <cimport 'ceil'> end
-function math.floor(x: number): number <cimport 'floor'> end
-function math.max(x: number, y: number): number <cimport 'fmax'> end
-function math.min(x: number, y: number): number <cimport 'fmin'> end
-function math.acos(x: number): number <cimport 'acos'> end
-function math.asin(x: number): number <cimport 'asin'> end
-function math.atan(x: number): number <cimport 'atan'> end
-function math.cos(x: number): number <cimport 'cos'> end
-function math.sin(x: number): number <cimport 'sin'> end
-function math.tan(x: number): number <cimport 'tan'> end
-function math.sqrt(x: number): number <cimport 'sqrt'> end
-function math.exp(x: number): number <cimport 'exp'> end
-function math.log(x: number): number <cimport 'log'> end
-function math.fmod(x: number, y: number): number <cimport 'fmod'> end
-function math.atan2(x: number, y: number): number <cimport 'atan2'> end
+function math.abs(x: number): number <cimport'fabs',nodecl,nosideeffect> end
+function math.ceil(x: number): number <cimport'ceil',nodecl,nosideeffect> end
+function math.floor(x: number): number <cimport'floor',nodecl,nosideeffect> end
+function math.max(x: number, y: number): number <cimport'fmax',nodecl,nosideeffect> end
+function math.min(x: number, y: number): number <cimport'fmin',nodecl,nosideeffect> end
+function math.acos(x: number): number <cimport'acos',nodecl,nosideeffect> end
+function math.asin(x: number): number <cimport'asin',nodecl,nosideeffect> end
+function math.atan(x: number): number <cimport'atan',nodecl,nosideeffect> end
+function math.cos(x: number): number <cimport'cos',nodecl,nosideeffect> end
+function math.sin(x: number): number <cimport'sin',nodecl,nosideeffect> end
+function math.tan(x: number): number <cimport'tan',nodecl,nosideeffect> end
+function math.sqrt(x: number): number <cimport'sqrt',nodecl,nosideeffect> end
+function math.exp(x: number): number <cimport'exp',nodecl,nosideeffect> end
+function math.log(x: number): number <cimport'log',nodecl,nosideeffect> end
+function math.fmod(x: number, y: number): number <cimport'fmod',nodecl,nosideeffect> end
+function math.atan2(x: number, y: number): number <cimport'atan2',nodecl,nosideeffect> end
 
 -- used internally
-local function clog2(x: number): number <cimport 'log2'> end
-local function clog10(x: number): number <cimport 'log10'> end
-local function cmodf(x: number, y: number*): number <cimport 'modf'> end
+local function clog2(x: number): number <cimport'log2',nodecl,nosideeffect> end
+local function clog10(x: number): number <cimport'log10',nodecl,nosideeffect> end
+local function cmodf(x: number, y: number*): number <cimport'modf',nodecl,nosideeffect> end
 
 
 function math.logbase(x: number, base: number): number
@@ -130,7 +130,7 @@ end
 
 --[[
 ## cinclude '<time.h>'
-local function ctime(tloc: pointer): clong <cimport 'time'> end
+local function ctime(tloc: pointer): clong <cimport'time',nodecl> end
 function math.randomseed()
   default_random:seed(@uint64(ctime(nilptr)), 0)
 end

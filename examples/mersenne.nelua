@@ -13,7 +13,7 @@ local mt19937 = @record {
 -- initialize random state with a seed
 function mt19937:seed(seed: uint32)
   self.i = MT19937_N
-  self.v[0]= seed & 0xffffffff
+  self.v[0] = seed & 0xffffffff
   for i=1_u32,<MT19937_N do
     self.v[i] = (1812433253 * (self.v[i-1] ~ (self.v[i-1] >> 30)) + i)
     self.v[i] = self.v[i] & 0xffffffff
@@ -23,9 +23,9 @@ end
 -- generates a random number on [0, 0xffffffff]
 function mt19937:random_uint32()
   local MAG01: uint32[2] = {0x0, 0x9908b0df}
-  local LOWER_MASK <compconst> = 0x7fffffff_u32
-  local UPPER_MASK <compconst> = 0x80000000_u32
-  local N <compconst>, M <compconst> = MT19937_N, 397_u32
+  local LOWER_MASK: uint32 <compconst> = 0x7fffffff
+  local UPPER_MASK: uint32 <compconst> = 0x80000000
+  local N <compconst>, M: uint32 <compconst> = MT19937_N, 397
   local y
   if self.i >= N then
     for j=0_u32,<N-M do

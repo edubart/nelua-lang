@@ -4,7 +4,6 @@ local traits = require 'nelua.utils.traits'
 local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
 local tabler = require 'nelua.utils.tabler'
-local pegger = require 'nelua.utils.pegger'
 local fs = require 'nelua.utils.fs'
 local config = require 'nelua.configer'.get()
 local cdefs = require 'nelua.cdefs'
@@ -61,7 +60,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
     local varattr = varnode.attr
     local noinit = varattr.noinit or varattr.cexport
     local vartype = varattr.type
-    if not vartype:is_type() and not varattr.nodecl then
+    if not vartype:is_type() and not varattr.nodecl and not varattr.compconst then
       local declared, defined = false, false
       if decl and context.scope:is_static_storage() then
         -- declare main variables in the top scope
@@ -192,9 +191,9 @@ typevisitors[types.Type] = function(context, type)
   if context:is_declarated(type.codename) then return end
   if type:is_string() then
     context:ensure_runtime_builtin('nelua_string')
-  elseif type:is_function() then
+  elseif type:is_function() then --luacov:disable
     error('ctype for functions not implemented yet')
-  elseif type:is_any() then
+  elseif type:is_any() then --luacov:enable
     context:ensure_runtime_builtin('nelua_any')
   elseif type:is_arraytable() then
     local subctype = context:ctype(type.subtype)
@@ -205,44 +204,23 @@ typevisitors[types.Type] = function(context, type)
     })
     context:use_gc()
   else
-    errorer.assertf(cdefs.primitive_ctypes[type], 'C type visitor for "%s" is not defined', type)
+    errorer.assertf(cdefs.primitive_ctypes[type.codename],
+      'C type visitor for "%s" is not defined', type)
   end
 end
 
 local visitors = {}
 
-function visitors.Number(context, node, emitter)
-  local base, int, frac, exp, literal = node:args()
-  local value, integral, type = node.attr.value, node.attr.integral, node.attr.type
-  if not type:is_float() and literal then
+function visitors.Number(_, node, emitter)
+  local attr = node.attr
+  if not attr.type:is_float() and attr.literal then
     emitter:add_nodectypecast(node)
   end
-  if integral and exp then
-    local numzeros = tonumber(exp)
-    assert(numzeros > 0)
-    int = int .. string.rep('0', numzeros)
-    exp = nil
-  end
-  emitter:add_composed_number(base, int, frac, exp, value:abs())
-  if type:is_unsigned() then
-    emitter:add('U')
-  elseif type:is_float32() and base == 'dec' and not context.ast.attr.nofloatsuffix then
-    emitter:add(integral and '.0f' or 'f')
-  elseif type:is_float() and base == 'dec' then
-    emitter:add(integral and '.0' or '')
-  end
+  emitter:add_numeric_literal(attr)
 end
 
-function visitors.String(context, node, emitter)
-  local decemitter = CEmitter(context)
-  local value = node.attr.value
-  local len = #value
-  local varname = context:genuniquename('strlit')
-  local quoted_value = pegger.double_quote_c_string(value)
-  decemitter:add_indent('static const struct { uintptr_t len; char data[', len + 1, ']; }')
-  decemitter:add_indent_ln(' ', varname, ' = {', len, ', ', quoted_value, '};')
-  emitter:add('(const ', primtypes.string, ')&', varname)
-  context:add_declaration(decemitter:generate(), varname)
+function visitors.String(_, node, emitter)
+  emitter:add_string_literal(node.attr.value)
 end
 
 function visitors.Boolean(_, node, emitter)
@@ -323,8 +301,11 @@ function visitors.PragmaCall(context, node, emitter)
 end
 
 function visitors.Id(context, node, emitter)
-  if node.attr.type:is_nilptr() then
+  local attr = node.attr
+  if attr.type:is_nilptr() then
     emitter:add_null()
+  elseif attr.compconst then
+    emitter:add_literal(attr)
   else
     emitter:add(context:declname(node))
   end
@@ -342,6 +323,7 @@ visitors.PointerType = visitors.Type
 
 function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
+  assert(not attr.compconst)
   if attr.funcdecl then
     emitter:add(context:declname(node))
     return
@@ -349,7 +331,7 @@ function visitors.IdDecl(context, node, emitter)
   local type = node.attr.type
   if type:is_type() then return end
   if attr.cexport then emitter:add('extern ') end
-  if attr.compconst or attr.const then emitter:add('const ') end
+  if attr.const then emitter:add('const ') end
   if attr.volatile then emitter:add('volatile ') end
   if attr.restrict then emitter:add('restrict ') end
   if attr.register then emitter:add('register ') end
@@ -369,7 +351,11 @@ function visitors.DotIndex(context, node, emitter)
       emitter:add(objtype:get_field(name).value)
     elseif objtype:is_record() then
       local symbol = objtype:get_metafield(name)
-      emitter:add(context:declname(symbol))
+      if symbol.attr.compconst then
+        emitter:add_literal(symbol.attr)
+      else
+        emitter:add(context:declname(symbol))
+      end
     else --luacov:disable
       error('not implemented yet')
     end --luacov:enable
@@ -548,10 +534,7 @@ function visitors.Call(context, node, emitter)
     local type = node.attr.type
     if argnode.attr.type ~= type then
       -- type really differs, cast it
-      emitter:add_ctypecast(type)
-      emitter:add('(')
       emitter:add_val2type(type, argnode)
-      emitter:add(')')
     else
       -- same type, no need to cast
       emitter:add(argnode)
@@ -915,10 +898,15 @@ function visitors.FuncDef(context, node)
 end
 
 function visitors.UnaryOp(_, node, emitter)
+  local attr = node.attr
+  if attr.compconst then
+    emitter:add_literal(attr)
+    return
+  end
   local opname, argnode = node:args()
   local op = cdefs.unary_ops[opname]
   assert(op)
-  local surround = node.attr.inoperator
+  local surround = attr.inoperator
   if surround then emitter:add('(') end
   if traits.is_string(op) then
     emitter:add(op, argnode)
@@ -930,6 +918,10 @@ function visitors.UnaryOp(_, node, emitter)
 end
 
 function visitors.BinaryOp(context, node, emitter)
+  if node.attr.compconst then
+    emitter:add_literal(node.attr)
+    return
+  end
   local opname, lnode, rnode = node:args()
   local type = node.attr.type
   local op = cdefs.binary_ops[opname]
@@ -1034,8 +1026,6 @@ local function emit_main(ast, context)
   local main_scope = context:push_scope('function')
   main_scope.main = true
   if not ast.attr.entrypoint then
-    mainemitter:add_ln(
-      '/*********************************** MAIN ***********************************/')
     mainemitter:inc_indent()
     mainemitter:add_ln("int nelua_main() {")
     mainemitter:add_traversal(ast)
@@ -1090,9 +1080,9 @@ function generator.generate(ast)
   context:evaluate_templates()
 
   local code = table.concat({
-    '/******************************** DECLARATIONS ********************************/\n',
+    '/* ------------------------------ DECLARATIONS ------------------------------ */\n',
     table.concat(context.declarations),
-    '/******************************** DEFINITIONS *********************************/\n',
+    '/* ------------------------------ DEFINITIONS ------------------------------- */\n',
     table.concat(context.definitions)
   })
 
