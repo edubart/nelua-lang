@@ -59,6 +59,9 @@ local function get_operator_in_oplist(self, oplist, opname, arg1, arg2, arg3)
   if not type and self:is_any() then
     type, ret = self, nil
   end
+  if not type and not err then
+    err = 'operation not defined'
+  end
   return type, ret, err
 end
 
@@ -141,6 +144,7 @@ function Type:is_equal(type)
 end
 
 function Type:is_primitive() return self.primitive end
+function Type:is_auto() return self.auto end
 function Type:is_arithmetic() return self.arithmetic end
 function Type:is_float32() return self.float32 end
 function Type:is_float64() return self.float64 end
@@ -281,6 +285,16 @@ types.VoidType = VoidType
 function VoidType:_init(name)
   Type._init(self, name, 0)
   self.void = true
+  self.primitive = true
+end
+
+--------------------------------------------------------------------------------
+local AutoType = typeclass()
+types.AutoType = AutoType
+
+function AutoType:_init(name)
+  Type._init(self, name, 0)
+  self.auto = true
   self.primitive = true
 end
 

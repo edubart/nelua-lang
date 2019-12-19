@@ -19,6 +19,7 @@ local clongsize = math.max(cpusize, 4)
 primtypes.any         = types.AnyType('any') -- the type for anything
 primtypes.void        = types.VoidType('void') -- the type for nothing
 primtypes.type        = types.TypeType('type') -- the type for types
+primtypes.auto        = types.AutoType('auto')
 primtypes.isize       = types.IntegralType('isize', cpusize)
 primtypes.int8        = types.IntegralType('int8', 1)
 primtypes.int16       = types.IntegralType('int16', 2)

@@ -30,35 +30,30 @@ end
 function visitors.Number(_, node)
   local attr = node.attr
   if attr.type then return end
-  local value
   local base, int, frac, exp, literal = node:args()
   if base == 'hex' then
-    value = bn.fromhex(int, frac, exp)
+    attr.value = bn.fromhex(int, frac, exp)
   elseif base == 'bin' then
-    value = bn.frombin(int, frac, exp)
+    attr.value = bn.frombin(int, frac, exp)
   else
-    value = bn.fromdec(int, frac, exp)
+    attr.value = bn.fromdec(int, frac, exp)
   end
-  local floatexp = exp and (stringer.startswith(exp, '-') or value > primtypes.integer.max)
-  local integral = not (frac or floatexp)
+  local floatexp = exp and (stringer.startswith(exp, '-') or attr.value > primtypes.integer.max)
+  attr.integral = not (frac or floatexp)
   if literal then
-    attr.literal = typedefs.number_literal_types[literal]
-    node:assertraisef(attr.literal, 'literal suffix "%s" is not defined', literal)
+    attr.type = typedefs.number_literal_types[literal]
+    if not attr.type then
+      node:raisef('literal suffix "%s" is not defined', literal)
+    end
+    attr.literal = true
+  elseif attr.integral then
+    attr.type = primtypes.integer
+  else
+    attr.type = primtypes.number
   end
-  attr.value = value
-  attr.integral = integral
+  attr.untyped = not attr.literal
   attr.base = base
   attr.compconst = true
-  attr.untyped = not attr.literal
-  local type
-  if literal then
-    type = attr.literal
-  elseif integral then
-    type = primtypes.integer
-  else
-    type = primtypes.number
-  end
-  attr.type = type
 end
 
 function visitors.String(_, node)
@@ -1147,24 +1142,28 @@ function visitors.VarDecl(context, node)
     end
     if valtype then
       varnode:assertraisef(not valtype:is_void(), 'cannot assign to expressions of type void')
-      local foundtype = false
-      local searchtype = false
+      local foundtype = true
+      local assignvaltype = false
       if varnode.attr.compconst then
         -- for consts the type must be known ahead
-        foundtype = true
-        searchtype = not vartype
+        assignvaltype = not vartype
         symbol.attr.value = valnode.attr.value
       elseif valtype:is_type() then
         -- for 'type' types the type must also be known ahead
         assert(valnode and valnode.attr.holdedtype)
-        foundtype = true
-        searchtype = vartype ~= valtype
+        assignvaltype = vartype ~= valtype
         symbol.attr.holdedtype = valnode.attr.holdedtype
+      else
+        foundtype = false
       end
 
-      if searchtype then
+      if vartype and vartype:is_auto() then
+        assignvaltype = vartype ~= valtype
+      end
+
+      if assignvaltype then
         vartype = valtype
-        symbol.attr.type = valtype
+        symbol.attr.type = vartype
 
         local attribnode = varnode[3]
         if attribnode then
@@ -1435,12 +1434,7 @@ function visitors.UnaryOp(context, node)
   if argtype then
     local value, err
     type, value, err = argtype:unary_operator(opname, argattr)
-    argnode:assertraisef(not err,
-      "unary operation `%s` on type '%s': %s",
-      opname, argtype, err)
-    argnode:assertraisef(type,
-      "unary operation `%s` is not defined for type '%s' of the expression",
-      opname, argtype)
+    argnode:assertraisef(not err, "unary operation `%s` on type '%s': %s", opname, argtype, err)
     if value ~= nil then
       attr.compconst = true
       attr.value = value
@@ -1494,11 +1488,7 @@ function visitors.BinaryOp(context, node)
     local value, err
     type, value, err = ltype:binary_operator(opname, rtype, lattr, rattr)
     lnode:assertraisef(not err,
-      "binary operation `%s` between types '%s' and '%s': %s",
-      opname, ltype, rtype, err)
-    lnode:assertraisef(type,
-      "binary operation `%s` is not defined between types '%s' and '%s'",
-      opname, ltype, rtype)
+      "binary operation `%s` between types '%s' and '%s': %s", opname, ltype, rtype, err)
     if value ~= nil then
       attr.compconst = true
       attr.value = value

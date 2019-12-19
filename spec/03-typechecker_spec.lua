@@ -93,6 +93,13 @@ it("const variable" , function()
   assert.analyze_error("local function f(x: integer <const>) x = 2 end", "cannot assign a constant variable")
 end)
 
+it("auto type" , function()
+  assert.ast_type_equals("local a: auto = 1", "local a: integer = 1")
+  assert.ast_type_equals("local a: auto <compconst> = 1", "local a: integer <compconst> = 1")
+  assert.ast_type_equals("local a: auto = 's'", "local a: string = 's'")
+  assert.ast_type_equals("local a: auto = @integer", "local a: type = @integer")
+end)
+
 it("numeric types coercion", function()
   assert.analyze_ast([[
     local u:usize, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 1,1,1,1,1
@@ -236,8 +243,8 @@ it("binary operator add", function()
   assert.ast_type_equals(
     "local a = 18446744073709551616 - 1",
     "local a: uinteger = 18446744073709551616 - 1")
-  assert.analyze_error("local a = 1 + 's'", "is not defined between types")
-  assert.analyze_error("local a = 1.0 + 's'", "is not defined between types")
+  assert.analyze_error("local a = 1 + 's'", "operation not defined")
+  assert.analyze_error("local a = 1.0 + 's'", "operation not defined")
 end)
 
 it("binary operator pow", function()
@@ -282,28 +289,28 @@ end)
 
 it("binary operator bor", function()
   assert.ast_type_equals("local a = 1 | 2", "local a: integer = 1 | 2")
-  assert.analyze_error("local a = 1 | 's'", "is not defined between types")
+  assert.analyze_error("local a = 1 | 's'", "operation not defined")
 end)
 
 it("binary operator band", function()
   assert.ast_type_equals("local a = 1 & 2", "local a: integer = 1 & 2")
   assert.ast_type_equals("local a = 1_i32 & 1", "local a: int32 = 1_i32 & 1")
-  assert.analyze_error("local a = 1 & 's'", "is not defined between types")
+  assert.analyze_error("local a = 1 & 's'", "operation not defined")
 end)
 
 it("binary operator bxor", function()
   assert.ast_type_equals("local a = 1 ~ 2", "local a: integer = 1 ~ 2")
-  assert.analyze_error("local a = 1 ~ 's'", "is not defined between types")
+  assert.analyze_error("local a = 1 ~ 's'", "operation not defined")
 end)
 
 it("binary operator shl", function()
   assert.ast_type_equals("local a = 1 << 2", "local a: integer = 1 << 2")
-  assert.analyze_error("local a = 1 << 's'", "is not defined between types")
+  assert.analyze_error("local a = 1 << 's'", "operation not defined")
 end)
 
 it("binary operator shr", function()
   assert.ast_type_equals("local a = 1 >> 2", "local a: integer = 1 >> 2")
-  assert.analyze_error("local a = 1 >> 's'", "is not defined between types")
+  assert.analyze_error("local a = 1 >> 's'", "operation not defined")
 end)
 
 it("binary conditional and", function()
