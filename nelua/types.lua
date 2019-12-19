@@ -605,13 +605,7 @@ local function integral_arithmetic_operation(ltype, rtype, lattr, rattr)
   if not rtype:is_arithmetic() then
     return
   end
-  if rtype:is_integral() then
-    return promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype)
-  else
-    -- promote to float
-    assert(rtype:is_float())
-    return rtype
-  end
+  return promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype)
 end
 
 local function integral_fractional_operation(_, rtype)
@@ -690,11 +684,8 @@ IntegralType.binary_operators.idiv = make_integral_binary_opfunc(function(ltype,
     return nil, 'division by zero is not allowed'
   end
   return integral_arithmetic_operation(ltype, rtype, lattr, rattr)
-end, function(a,b,retype)
-  if retype:is_float() then
-    return (a / b):floor()
-  end
-  return (a / b):trunc()
+end, function(a,b)
+  return (a / b):floor()
 end)
 
 IntegralType.binary_operators.mod = make_integral_binary_opfunc(function(ltype, rtype, lattr, rattr)
@@ -949,6 +940,9 @@ end
 function FunctionType:get_functype_for_argtypes(argtypes)
   local lazytypes = self.node.lazytypes
   if not lazytypes then return nil end
+  assert(argtypes)
+  assert(#lazytypes == 0, 'code disabled')
+  --[[
   for _,functype in pairs(lazytypes) do
     if functype then
       local ok = true
@@ -965,14 +959,16 @@ function FunctionType:get_functype_for_argtypes(argtypes)
       end
     end
   end
+  ]]
 end
 
 function FunctionType:get_return_type_for_argtypes(argtypes, index)
   if self.lazy then
     local functype = self:get_functype_for_argtypes(argtypes)
-    if functype then
+    assert(not functype, 'code disabled')
+    --[[if functype then
       return functype:get_return_type(index)
-    elseif functype ~= false then
+    else]]if functype ~= false then
       if not self.node.lazytypes then
         self.node.lazytypes = {}
       end
@@ -1019,7 +1015,6 @@ function MultipleType:is_conversible_from_type(type, explicit)
       return true
     end
   end
-  return false
 end
 
 function MultipleType:__tostring()

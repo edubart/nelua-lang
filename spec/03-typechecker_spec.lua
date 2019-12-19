@@ -201,6 +201,7 @@ it("binary operator shift", function()
 end)
 
 it("binary operator add", function()
+  assert.ast_type_equals("local a = b + c", "local a: any = b + c")
   assert.ast_type_equals("local a = 1 + 2", "local a: integer = 1 + 2")
   assert.ast_type_equals("local a = 1 + 2.0", "local a: number = 1 + 2.0")
   assert.ast_type_equals("local a = 1_f32 + 2_f32", "local a: float32 = 1_f32 + 2_f32")
@@ -231,6 +232,10 @@ it("binary operator add", function()
   assert.ast_type_equals("local a = 1_i64 + 2_f64", "local a: float64 = 1_i64 + 2_f64")
   assert.ast_type_equals("local a = 1_i32 + 2    ", "local a: int32 = 1_i32 + 2")
   assert.ast_type_equals("local a = 1     + 2_i32", "local a: int32 = 1     + 2_i32")
+  assert.ast_type_equals("local a = 1_i64 + 2.1", "local a: number = 1_i64 + 2.1")
+  assert.ast_type_equals(
+    "local a = 18446744073709551616 - 1",
+    "local a: uinteger = 18446744073709551616 - 1")
   assert.analyze_error("local a = 1 + 's'", "is not defined between types")
   assert.analyze_error("local a = 1.0 + 's'", "is not defined between types")
 end)

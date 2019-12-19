@@ -542,8 +542,8 @@ print(u) -- outputs 0
 u = 'string' -- u now holds a string
 print(u) -- outputs 'string'
 
-local u: union<uint16>{integer,string} -- union that can hold more runtime types
-local u: union<void>{integer,string} -- union that holds all types at the same time (unsafe)
+local u: union(uint16){integer,string} -- union that can hold more runtime types
+local u: union(void){integer,string} -- union that holds all types at the same time (unsafe)
 ```
 
 Unions are slightly different from C union by default, because it has an `uint8` internally that holds the current type at runtime, thus the union size will have at least the

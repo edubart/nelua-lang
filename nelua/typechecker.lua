@@ -1408,10 +1408,13 @@ function visitors.FuncDef(context, node)
         funcdefnode.deducedargtypes = deducedargtypes
         context:traverse(funcdefnode)
         deducedfunctype = funcdefnode.type
+        assert(not deducedfunctype, 'code disabled')
+        --[[
         if deducedfunctype then
           node.lazytypes[deducedargtypes] = deducedfunctype
           node.lazynodes[deducedargtypes] = funcdefnode
         end
+        ]]
       end
     end
   end
@@ -1441,6 +1444,7 @@ function visitors.UnaryOp(context, node)
     if value ~= nil then
       attr.compconst = true
       attr.value = value
+      attr.untyped = argattr.untyped
     end
   elseif opname == 'not' then
     type = primtypes.boolean
@@ -1484,7 +1488,6 @@ function visitors.BinaryOp(context, node)
     attr.dynamic_conditional = true
   end
   attr.sideeffect = lattr.sideeffect or rattr.sideeffect or nil
-  attr.untyped = lattr.untyped and rattr.untyped or nil
 
   local type
   if ltype and rtype then
@@ -1499,17 +1502,16 @@ function visitors.BinaryOp(context, node)
     if value ~= nil then
       attr.compconst = true
       attr.value = value
+      attr.untyped = lattr.untyped and rattr.untyped or nil
     end
   end
   if attr.ternaryand then
     type = rtype
   end
-  if not type and context.phase == phases.any_inference then
-    type = primtypes.any
-  end
   if type then
     attr.type = type
   end
+  assert(context.phase ~= phases.any_inference or attr.type)
 end
 
 function typechecker.analyze(ast, parser, parentcontext)
