@@ -131,12 +131,6 @@ typedefs.number_literal_types = {
   _clongdouble = primtypes.clongdouble,
 }
 
--- 'or', 'and' is handled internally
-typedefs.binary_conditional_ops = {
-  ['or']  = true,
-  ['and'] = true,
-}
-
 typedefs.promote_signed_types = {
   primtypes.int8,
   primtypes.int16,

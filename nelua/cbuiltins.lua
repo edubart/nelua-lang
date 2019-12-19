@@ -257,6 +257,7 @@ function builtins.nelua_any_to_(context, type)
   local name = 'nelua_any_to_' .. typename
   if context.usedbuiltins[name] then return name end
   local ctype = context:ctype(type)
+  context:ensure_runtime_builtin('nelua_any')
   context:ensure_runtime_builtin('nelua_runtype_', typename)
   if type:is_boolean() then
     context:ensure_runtime_builtin('nelua_runtype_', 'nelua_pointer')

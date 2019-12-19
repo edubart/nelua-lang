@@ -13,7 +13,7 @@ local mt19937 = @record {
 -- initialize random state with a seed
 function mt19937:seed(seed: uint32)
   self.i = MT19937_N
-  self.v[0]= seed & 0xffffffff
+  self.v[0] = seed & 0xffffffff
   for i=1_u32,<MT19937_N do
     self.v[i] = (1812433253 * (self.v[i-1] ~ (self.v[i-1] >> 30)) + i)
     self.v[i] = self.v[i] & 0xffffffff

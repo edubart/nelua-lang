@@ -30,17 +30,17 @@ local SDL_Window <cimport> = @record{}
 local SDL_Renderer <cimport> = @record{}
 
 -- import SDL constants
-local SDL_INIT_VIDEO: uint32 <compconst> = 0x20
-local SDL_WINDOWPOS_UNDEFINED: cint <compconst> = 0x1fff0000
-local SDL_WINDOW_OPENGL: uint32 <compconst> = 0x2
-local SDL_QUIT: uint32 <compconst> = 0x100
-local SDL_KEYDOWN: uint32 <compconst> = 0x300
-local SDLK_RIGHT: int32 <compconst> = 79 | 0x40000000
-local SDLK_LEFT: int32 <compconst> = 80 | 0x40000000
-local SDLK_DOWN: int32 <compconst> = 81 | 0x40000000
-local SDLK_UP: int32 <compconst> = 82 | 0x40000000
-local SDL_RENDERER_ACCELERATED: uint32 <compconst> = 0x2
-local SDL_RENDERER_PRESENTVSYNC: uint32 <compconst> = 0x4
+local SDL_INIT_VIDEO <compconst> = 0x20
+local SDL_WINDOWPOS_UNDEFINED <compconst> = 0x1fff0000
+local SDL_WINDOW_OPENGL <compconst> = 0x2
+local SDL_QUIT <compconst> = 0x100
+local SDL_KEYDOWN <compconst> = 0x300
+local SDLK_RIGHT <compconst> = 79 | 0x40000000
+local SDLK_LEFT <compconst> = 80 | 0x40000000
+local SDLK_DOWN <compconst> = 81 | 0x40000000
+local SDLK_UP <compconst> = 82 | 0x40000000
+local SDL_RENDERER_ACCELERATED <compconst> = 0x2
+local SDL_RENDERER_PRESENTVSYNC <compconst> = 0x4
 
 -- import SDL functions
 local function SDL_Init(flags: uint32): int32 <cimport> end

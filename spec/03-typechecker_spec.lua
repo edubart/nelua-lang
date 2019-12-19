@@ -15,8 +15,10 @@ it("analyzed ast transform", function()
           attr = {codename='a', name='a', type='int64', lvalue=true},
           'a' }},
         { n.Number{
-          attr = {compconst=true, initializer=true, integral=true, base='dec', type='int64', value=bn.fromdec('1')},
-          'dec', '1'
+          attr = {
+            compconst=true, initializer=true, integral=true,
+            base='dec', type='int64', untyped=true, value=bn.fromdec('1')
+          },'dec', '1'
         }}
       },
       n.Call{
@@ -227,13 +229,15 @@ it("binary operator add", function()
   assert.ast_type_equals("local a = 1_i64 + 2_u64", "local a: int64 = 1_i64 + 2_u64")
   assert.ast_type_equals("local a = 1_i64 + 2_f32", "local a: float32 = 1_i64 + 2_f32")
   assert.ast_type_equals("local a = 1_i64 + 2_f64", "local a: float64 = 1_i64 + 2_f64")
+  assert.ast_type_equals("local a = 1_i32 + 2    ", "local a: int32 = 1_i32 + 2")
+  assert.ast_type_equals("local a = 1     + 2_i32", "local a: int32 = 1     + 2_i32")
   assert.analyze_error("local a = 1 + 's'", "is not defined between types")
   assert.analyze_error("local a = 1.0 + 's'", "is not defined between types")
 end)
 
 it("binary operator pow", function()
   assert.ast_type_equals("local a = 2 ^ 2", "local a: number = 2 ^ 2")
-  assert.ast_type_equals("local a = 2_i32 ^ 2_i32", "local a: float32 = 2_i32 ^ 2_i32")
+  assert.ast_type_equals("local a = 2_i32 ^ 2_i32", "local a: number = 2_i32 ^ 2_i32")
 end)
 
 it("binary operator idiv", function()
@@ -243,7 +247,9 @@ end)
 
 it("binary operator div", function()
   assert.ast_type_equals("local a = 2 / 2", "local a: number = 2 / 2")
-  assert.ast_type_equals("local a = 2_i32 / 2_i32", "local a: float32 = 2_i32 / 2_i32")
+  assert.ast_type_equals("local a = 2.0_f64 / 2_i64", "local a: number = 2.0_f64 / 2_i64")
+  assert.ast_type_equals("local b = 1; local a = 2.0 / b", "local b = 1; local a: number = 2.0 / b")
+  assert.ast_type_equals("local a = 2_i32 / 2_i32", "local a: number = 2_i32 / 2_i32")
   assert.ast_type_equals(
     "local x = 1; local a = x / 2_f32",
     "local x = 1; local a: float32 = x / 2_f32")
@@ -276,6 +282,7 @@ end)
 
 it("binary operator band", function()
   assert.ast_type_equals("local a = 1 & 2", "local a: integer = 1 & 2")
+  assert.ast_type_equals("local a = 1_i32 & 1", "local a: int32 = 1_i32 & 1")
   assert.analyze_error("local a = 1 & 's'", "is not defined between types")
 end)
 

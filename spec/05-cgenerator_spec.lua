@@ -20,7 +20,7 @@ int nelua_main() {
 int nelua_main() {
   return 1;
 }]])
-  assert.generate_c("return (1)")
+  assert.generate_c("return 1")
 end)
 
 it("local variable", function()
@@ -53,8 +53,8 @@ it("number literals", function()
 end)
 
 it("type assertion", function()
-  assert.generate_c("do local a = (@int16)(1_u64) end", "int16_t a = (int16_t)((uint64_t)1U)")
-  assert.generate_c("do local a = (@int64)(1_u8) end", "int64_t a = (int64_t)((uint8_t)1U)")
+  assert.generate_c("do local b = 1_u64; local a = (@int16)(b) end", "int16_t a = (int16_t)b")
+  assert.generate_c("do local b = 1_u8; local a = (@int64)(b) end", "int64_t a = (int64_t)b")
 end)
 
 it("string", function()
@@ -91,8 +91,14 @@ it("if", function()
   assert.generate_c("if true then\nend","if(true) {\n  }")
   assert.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
   assert.generate_c("if true then\nelse\nend", "if(true) {\n  } else {\n  }")
-  assert.generate_c("if true and true then\nend","if(true && true) {\n  }")
-  assert.generate_c("if true and true or true then\nend","if((true && true) || true) {\n  }")
+  assert.scoped_generate_c([[
+    local a: boolean, b: boolean
+    if a and b then end]],
+    "if(a && b) {\n    }")
+  assert.scoped_generate_c([[
+    local a: boolean, b: boolean, c: boolean
+    if a and b or c then end]],
+    "if((a && b) || c) {\n    }")
   assert.scoped_generate_c([[
     local a: boolean, b: boolean
     if a and not b then end]],
@@ -217,7 +223,7 @@ it("operation on compconst variables", function()
   assert.generate_c([[
     local a <compconst>, b <compconst> = 1, 2
     local c <const> = (@int32)(a * b)
-  ]], "static const int32_t mymod_c = (int32_t)(2);")
+  ]], "static const int32_t mymod_c = 2;")
 
   assert.run_c([[
     -- sum/sub/mul
@@ -476,8 +482,8 @@ it("binary operator `div`", function()
   assert.scoped_generate_c("local x = (@float64)(3 / 2)",       "x = 1.5;")
   assert.scoped_generate_c("local x = 3 / 2_int64",             "x = 1.5;")
   assert.scoped_generate_c("local x = 3.0 / 2",                 "x = 1.5;")
-  assert.scoped_generate_c("local x = (@integer)(3_i / 2_i)",   "x = (int64_t)(1.5);")
-  assert.scoped_generate_c("local x = (@integer)(3 / 2_int64)", "x = (int64_t)(1.5);")
+  assert.scoped_generate_c("local x = (@integer)(3_i / 2_i)",   "x = (int64_t)1.5;")
+  assert.scoped_generate_c("local x = (@integer)(3 / 2_int64)", "x = (int64_t)1.5;")
   assert.scoped_generate_c("local x =  3 /  4",                 "x = 0.75;")
   assert.scoped_generate_c("local x = -3 /  4",                 "x = -0.75;")
   assert.scoped_generate_c("local x =  3 / -4",                 "x = -0.75;")

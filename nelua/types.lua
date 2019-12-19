@@ -27,6 +27,9 @@ function Type:_init(name, size, node)
   self.size = size or 0
   self.unary_operators = {}
   self.binary_operators = {}
+  if self.size == 0 then
+    self.comptime = true
+  end
   self.codename = string.format('nelua_%s', self.name)
   local mt = getmetatable(self)
   metamagic.setmetaindex(self.unary_operators, mt.unary_operators)
@@ -59,12 +62,12 @@ local function get_operator_in_oplist(self, oplist, opname, arg1, arg2, arg3)
   return type, ret, err
 end
 
-function Type:unary_operator(opname, val)
-  return get_operator_in_oplist(self, self.unary_operators, opname, val)
+function Type:unary_operator(opname, attr)
+  return get_operator_in_oplist(self, self.unary_operators, opname, attr)
 end
 
-function Type:binary_operator(opname, rtype, lval, rval)
-  return get_operator_in_oplist(self, self.binary_operators, opname, rtype, lval, rval)
+function Type:binary_operator(opname, rtype, lattr, rattr)
+  return get_operator_in_oplist(self, self.binary_operators, opname, rtype, lattr, rattr)
 end
 
 -- Used to check conversion from `type` to `self`
@@ -129,6 +132,8 @@ function Type:promote_type(type)
   end
 end
 
+function Type.promote_type_for_value() return nil end
+
 function Type:is_equal(type)
   return type and (
     rawequal(type, self) or
@@ -174,34 +179,64 @@ function Type:__eq(type)
   return self:is_equal(type) and type:is_equal(self)
 end
 
-Type.unary_operators['not'] = function(_, val)
+local function promote_type_for_attrs(lattr, rattr)
+  if not lattr.untyped and rattr.compconst and rattr.untyped then
+    return lattr.type:promote_type_for_value(rattr.value)
+  elseif not rattr.untyped and lattr.compconst and lattr.untyped then
+    return rattr.type:promote_type_for_value(lattr.value)
+  end
+end
+
+Type.unary_operators['not'] = function(_, attr)
   local reval
-  if val ~= nil then
+  if attr.value ~= nil then
     reval = false
   end
   return primtypes.boolean, reval
 end
 
-Type.unary_operators.ref = function(ltype, lval)
-  if lval == nil and ltype.size and ltype.size > 0 then
+Type.unary_operators.ref = function(ltype, lattr)
+  local lval = lattr.value
+  if lval == nil and not ltype.comptime then
     return types.get_pointer_type(ltype)
   else
     return nil, nil, 'cannot reference compile time value'
   end
 end
 
-Type.binary_operators.eq = function(_, _, lval, rval)
+Type.binary_operators.eq = function(_, _, lattr, rattr)
   local reval
+  local lval, rval = lattr.value, rattr.value
   if lval ~= nil and rval ~= nil then
     reval = lval == rval
   end
   return primtypes.boolean, reval
 end
 
-Type.binary_operators.ne = function(ltype, rtype, lval, rval)
-  local retype, reval = ltype:binary_operator('eq', rtype, lval, rval)
+Type.binary_operators.ne = function(ltype, rtype, lattr, rattr)
+  local retype, reval = ltype:binary_operator('eq', rtype, lattr, rattr)
   if reval ~= nil then
     reval = not reval
+  end
+  return retype, reval
+end
+
+Type.binary_operators['and'] = function(ltype, rtype, lattr, rattr)
+  local reval
+  local retype = promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype) or primtypes.any
+  local lval, rval = lattr.value, rattr.value
+  if retype:is_boolean() and lval ~= nil and rval ~= nil then
+    reval = not not (lval and rval)
+  end
+  return retype, reval
+end
+
+Type.binary_operators['or'] = function(ltype, rtype, lattr, rattr)
+  local reval
+  local retype = promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype) or primtypes.any
+  local lval, rval = lattr.value, rattr.value
+  if retype:is_boolean() and lval ~= nil and rval ~= nil then
+    reval = lval or rval
   end
   return retype, reval
 end
@@ -258,8 +293,9 @@ function TypeType:_init(name)
   self.typetype = true
 end
 
-TypeType.unary_operators.len = function(_, lval)
+TypeType.unary_operators.len = function(_, lattr)
   local reval
+  local lval = lattr.value
   if lval then
     assert(traits.is_type(lval))
     reval = bn.new(lval.size)
@@ -314,7 +350,8 @@ function StringType:is_conversible_from_type(type, explicit)
   return Type.is_conversible_from_type(self, type, explicit)
 end
 
-StringType.unary_operators.len = function(_, lval)
+StringType.unary_operators.len = function(_, lattr)
+  local lval = lattr.value
   local reval
   if lval then
     reval = bn.new(#lval)
@@ -323,9 +360,10 @@ StringType.unary_operators.len = function(_, lval)
 end
 
 local function make_string_cmp_opfunc(cmpfunc)
-  return function(_, rtype, lval, rval)
+  return function(_, rtype, lattr, rattr)
     if rtype:is_string() then
       local reval
+      local lval, rval = lattr.value, rattr.value
       if lval and rval then
         reval = cmpfunc(lval, rval)
       end
@@ -346,9 +384,10 @@ end)
 StringType.binary_operators.gt = make_string_cmp_opfunc(function(a,b)
   return a>b
 end)
-StringType.binary_operators.concat = function(ltype, rtype, lval, rval)
+StringType.binary_operators.concat = function(ltype, rtype, lattr, rattr)
   if rtype:is_string() then
     local reval
+    local lval, rval = lattr.value, rattr.value
     if lval and rval then
       reval = lval .. rval
     end
@@ -370,12 +409,13 @@ function BooleanType.is_conversible_from_type()
   return true
 end
 
-BooleanType.unary_operators['not'] = function(self, val)
-  local ret
-  if val ~= nil then
-    ret = not val
+BooleanType.unary_operators['not'] = function(ltype, lattr)
+  local lval = lattr.value
+  local reval
+  if lval ~= nil then
+    reval = not lval
   end
-  return self, ret
+  return ltype, reval
 end
 
 --------------------------------------------------------------------------------
@@ -411,19 +451,21 @@ function ArithmeticType:is_conversible_from_type(type, explicit)
   return Type.is_conversible_from_type(self, type, explicit)
 end
 
-ArithmeticType.unary_operators.unm = function(self, val)
-  local ret
-  local retype = self
-  if val ~= nil then
-    ret = -val
-    retype = self:promote_value(ret)
+ArithmeticType.unary_operators.unm = function(ltype, lattr)
+  local reval
+  local retype = ltype
+  local lval = lattr.value
+  if lval ~= nil then
+    reval = -lval
+    retype = ltype:promote_type_for_value(reval)
   end
-  return retype, ret
+  return retype, reval
 end
 
-ArithmeticType.binary_operators.eq = function(_, rtype, lval, rval)
+ArithmeticType.binary_operators.eq = function(_, rtype, lattr, rattr)
   local reval
   if rtype:is_arithmetic() then
+    local lval, rval = lattr.value, rattr.value
     if lval and rval then
       reval = lval == rval
     end
@@ -434,9 +476,10 @@ ArithmeticType.binary_operators.eq = function(_, rtype, lval, rval)
 end
 
 local function make_arithmetic_cmp_opfunc(cmpfunc)
-  return function(_, rtype, lval, rval)
+  return function(_, rtype, lattr, rattr)
     if rtype:is_arithmetic() then
       local reval
+      local lval, rval = lattr.value, rattr.value
       if lval and rval then
         reval = cmpfunc(lval, rval)
       end
@@ -507,7 +550,7 @@ function IntegralType:normalize_value(value)
   return value
 end
 
-function IntegralType:promote_value(value)
+function IntegralType:promote_type_for_value(value)
   if value:isintegral() then
     if self:is_inrange(value) then
       -- this type already fits
@@ -555,16 +598,15 @@ function IntegralType:promote_type(type)
 end
 
 function IntegralType:is_inrange(value)
-  assert(traits.is_bignumber(value))
   return value >= self.min and value <= self.max
 end
 
-local function integral_arithmetic_operation(self, rtype)
+local function integral_arithmetic_operation(ltype, rtype, lattr, rattr)
   if not rtype:is_arithmetic() then
     return
   end
   if rtype:is_integral() then
-    return self:promote_type(rtype)
+    return promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype)
   else
     -- promote to float
     assert(rtype:is_float())
@@ -572,44 +614,46 @@ local function integral_arithmetic_operation(self, rtype)
   end
 end
 
-local function integral_fractional_operation(self, rtype)
+local function integral_fractional_operation(_, rtype)
   if rtype:is_float() then
     return rtype
-  elseif math.max(self.size, rtype.size) <= primtypes.float32.size then
-    return primtypes.float32
   else
     return primtypes.number
   end
 end
 
-local function integral_bitwise_operation(self, rtype)
+local function integral_bitwise_operation(ltype, rtype, lattr, rattr)
   if not rtype:is_integral() then
     return
   end
-  -- return the biggest
-  return rtype.size > self.size and rtype or self
+  local retype = promote_type_for_attrs(lattr, rattr)
+  if not retype then
+    retype = rtype.size > ltype.size and rtype or ltype
+  end
+  return retype
 end
 
-local function integral_shift_operation(self, rtype)
+local function integral_shift_operation(ltype, rtype)
   if not rtype:is_integral() then
     return
   end
-  return self
+  return ltype
 end
 
-local function integral_range_operation(self, rtype)
-  local subtype = integral_arithmetic_operation(self, rtype)
+local function integral_range_operation(ltype, rtype, lattr, rattr)
+  local subtype = integral_arithmetic_operation(ltype, rtype, lattr, rattr)
   return types.RangeType(nil, subtype)
 end
 
 local function make_integral_binary_opfunc(optypefunc, opvalfunc)
-  return function(ltype, rtype, lval, rval)
-    local retype, err = optypefunc(ltype, rtype, lval, rval)
+  return function(ltype, rtype, lattr, rattr)
+    local retype, err = optypefunc(ltype, rtype, lattr, rattr)
+    local lval, rval = lattr.value, rattr.value
     if retype and lval and rval then
       local reval
       reval, err = opvalfunc(lval, rval, retype)
       if reval then
-        retype = retype:promote_value(reval)
+        retype = retype:promote_type_for_value(reval)
         reval = retype:normalize_value(reval)
       end
       return retype, reval, err
@@ -630,20 +674,22 @@ IntegralType.binary_operators.mul = make_integral_binary_opfunc(integral_arithme
   return a * b
 end)
 
-IntegralType.binary_operators.div = make_integral_binary_opfunc(function(ltype, rtype, lval, rval)
+IntegralType.binary_operators.div = make_integral_binary_opfunc(function(ltype, rtype, lattr, rattr)
+  local rval = rattr.value
   if rval and rval:iszero() then
     return nil, 'division by zero is not allowed'
   end
-  return integral_fractional_operation(ltype, rtype, lval, rval)
+  return integral_fractional_operation(ltype, rtype, lattr, rattr)
 end, function(a,b)
   return a / b
 end)
 
-IntegralType.binary_operators.idiv = make_integral_binary_opfunc(function(ltype, rtype, lval, rval)
+IntegralType.binary_operators.idiv = make_integral_binary_opfunc(function(ltype, rtype, lattr, rattr)
+  local rval = rattr.value
   if rval and rval:iszero() then
     return nil, 'division by zero is not allowed'
   end
-  return integral_arithmetic_operation(ltype, rtype, lval, rval)
+  return integral_arithmetic_operation(ltype, rtype, lattr, rattr)
 end, function(a,b,retype)
   if retype:is_float() then
     return (a / b):floor()
@@ -651,11 +697,12 @@ end, function(a,b,retype)
   return (a / b):trunc()
 end)
 
-IntegralType.binary_operators.mod = make_integral_binary_opfunc(function(ltype, rtype, lval, rval)
+IntegralType.binary_operators.mod = make_integral_binary_opfunc(function(ltype, rtype, lattr, rattr)
+  local rval = rattr.value
   if rval and rval:iszero() then
     return nil, 'division by zero is not allowed'
   end
-  return integral_arithmetic_operation(ltype, rtype, lval, rval)
+  return integral_arithmetic_operation(ltype, rtype, lattr, rattr)
 end, function(a,b)
   return a % b
 end)
@@ -710,7 +757,7 @@ end
 
 function FloatType.is_inrange() return true end
 
-function FloatType:promote_value()
+function FloatType:promote_type_for_value()
   --assert(traits.is_bignumber(value))
   return self
 end
@@ -735,8 +782,9 @@ local function float_arithmetic_operation(ltype, rtype)
 end
 
 local function make_float_binary_opfunc(optypefunc, opvalfunc)
-  return function(ltype, rtype, lval, rval)
-    local retype, err = optypefunc(ltype, rtype, lval, rval)
+  return function(ltype, rtype, lattr, rattr)
+    local retype, err = optypefunc(ltype, rtype, lattr, rattr)
+    local lval, rval = lattr.value, rattr.value
     if retype and lval and rval then
       local reval
       reval, err = opvalfunc(lval, rval, retype)

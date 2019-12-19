@@ -114,8 +114,8 @@ local vec2 = @record {x: number, y: number}
 local Particle = @record{p: vec2, v: vec2}
 local window, renderer, texture
 
-local SCREEN_WIDTH: int32 <compconst> = 1280
-local SCREEN_HEIGHT: int32 <compconst> = 720
+local SCREEN_WIDTH <compconst> = 1280
+local SCREEN_HEIGHT <compconst> = 720
 local pixels: vec4b[SCREEN_WIDTH][SCREEN_HEIGHT] <aligned(16)>
 
 local NUM_PARTICLES <compconst> = 200
@@ -232,7 +232,7 @@ end
 
 local function draw_scene()
   -- clear screen
-  memset(&pixels[0], 255, (@usize)(SCREEN_WIDTH*SCREEN_HEIGHT*4))
+  memset(&pixels[0], 255, SCREEN_WIDTH*SCREEN_HEIGHT*4)
 
   for i=0,<NUM_PARTICLES do
     local p = &particles[i].p
@@ -272,7 +272,7 @@ local function draw_scene()
 end
 
 local function upload_pixels()
-  SDL_UpdateTexture(texture, nilptr, &pixels[0][0], (@cint)(SCREEN_WIDTH*4))
+  SDL_UpdateTexture(texture, nilptr, &pixels[0][0], SCREEN_WIDTH*4)
   SDL_RenderCopy(renderer, texture, nilptr, nilptr)
   SDL_RenderPresent(renderer)
 end

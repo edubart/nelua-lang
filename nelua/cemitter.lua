@@ -137,9 +137,13 @@ function CEmitter:add_val2type(type, val, valtype)
 
   if val then
     assert(valtype)
-    if type == valtype or
-      (valtype:is_arithmetic() and type:is_arithmetic()) or
-      (valtype:is_nilptr() and type:is_pointer()) then
+    if type == valtype then
+      self:add(val)
+    elseif valtype:is_arithmetic() and type:is_arithmetic() and
+           (type:is_float() or valtype:is_integral()) and
+           traits.is_astnode(val) and val.attr.compconst then
+      self:add_numeric_literal(val.attr, type)
+    elseif valtype:is_nilptr() and type:is_pointer() then
       self:add(val)
     elseif type:is_any() then
       self:add_val2any(val, valtype)
@@ -169,8 +173,11 @@ function CEmitter:add_val2type(type, val, valtype)
   end
 end
 
-function CEmitter:add_numeric_literal(val, valtype, base)
-  assert(traits.is_bignumber(val))
+function CEmitter:add_numeric_literal(valattr, valtype)
+  assert(traits.is_bignumber(valattr.value))
+
+  valtype = valtype or valattr.type
+  local val, base = valattr.value, valattr.base
 
   local minusone = false
   if valtype:is_integral() and valtype:is_signed() and val == valtype.min then
@@ -223,7 +230,7 @@ function CEmitter:add_literal(valattr)
   if valtype:is_boolean() then
     self:add_booleanlit(valattr.value)
   elseif valtype:is_arithmetic() then
-    self:add_numeric_literal(valattr.value, valtype)
+    self:add_numeric_literal(valattr)
   elseif valtype:is_string() then
     self:add_string_literal(valattr.value)
   --elseif valtype:is_record() then

@@ -213,10 +213,10 @@ local visitors = {}
 
 function visitors.Number(_, node, emitter)
   local attr = node.attr
-  if not attr.type:is_float() and attr.littype then
+  if not attr.type:is_float() and attr.literal then
     emitter:add_nodectypecast(node)
   end
-  emitter:add_numeric_literal(attr.value, attr.type, attr.base)
+  emitter:add_numeric_literal(attr)
 end
 
 function visitors.String(_, node, emitter)
@@ -534,10 +534,7 @@ function visitors.Call(context, node, emitter)
     local type = node.attr.type
     if argnode.attr.type ~= type then
       -- type really differs, cast it
-      emitter:add_ctypecast(type)
-      emitter:add('(')
       emitter:add_val2type(type, argnode)
-      emitter:add(')')
     else
       -- same type, no need to cast
       emitter:add(argnode)
