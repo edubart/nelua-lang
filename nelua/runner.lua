@@ -23,7 +23,6 @@ local function run(argv, redirect)
     console.debugf('compile grammar %.1f ms', timer:elapsedrestart())
   end
 
-
   -- determine input
   local input = config.input
   local infile

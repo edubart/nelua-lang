@@ -59,7 +59,7 @@ function PPContext:tovalue(val, orignode)
     -- inject persistent parsed type
     node.pattr = {
       type = typedefs.primtypes.type,
-      holdedtype = val,
+      value = val,
       comptime = true
     }
     tabler.update(node.attr, node.pattr)

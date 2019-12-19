@@ -980,6 +980,7 @@ it("enums", function()
     local e: Enum; assert(e == 0)
     e = Enum.B; assert(e == 1)
     e = Enum.C; assert(e == 2)
+    assert(Enum.B | Enum.C == 3)
   ]])
 end)
 

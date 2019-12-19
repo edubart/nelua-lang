@@ -999,7 +999,7 @@ to generate code:
 
 ```nelua
 local Weekends = @enum { Friday=0, Saturday, Sunda }
-## for i,field in ipairs(symbols.Weekends.attr.holdedtype.fields) do
+## for i,field in ipairs(symbols.Weekends.attr.value.fields) do
   print(#[field.name .. ' ' .. tostring(field.value)]#)
 ## end
 ```
@@ -1018,7 +1018,7 @@ You can even manipulate what is already been processed:
 ```nelua
 local Weekends = @enum { Friday=0, Saturday, Sunda }
 -- fix the third field name to 'Sunday'
-## symbols.Weekends.attr.holdedtype.fields[3].name = 'Sunday'
+## symbols.Weekends.attr.value.fields[3].name = 'Sunday'
 print(Weekends.Sunday) -- outputs 2
 ```
 

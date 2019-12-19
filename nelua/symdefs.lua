@@ -8,7 +8,7 @@ local symdefs = {
   likely = {type=types.FunctionType(nil, {primtypes.boolean}, {primtypes.boolean})},
   unlikely = {type=types.FunctionType(nil, {primtypes.boolean}, {primtypes.boolean})},
   panic = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.string})
-  C = {type = primtypes.type, holdedtype=types.RecordType(nil, {})},
+  C = {type = primtypes.type, value=types.RecordType(nil, {})},
 
   -- lua
   assert = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.boolean, primtypes.auto})

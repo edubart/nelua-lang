@@ -153,8 +153,8 @@ end)
 it("print enums", function()
   assert.ast_type_equals([[
     local Weekends = @enum { Friday=0, Saturday, Sunda }
-    ## symbols.Weekends.attr.holdedtype.fields[3].name = 'Sunday'
-    ## for i,field in ipairs(symbols.Weekends.attr.holdedtype.fields) do
+    ## symbols.Weekends.attr.value.fields[3].name = 'Sunday'
+    ## for i,field in ipairs(symbols.Weekends.attr.value.fields) do
       print(#[field.name .. ' ' .. tostring(field.value)]#)
     ## end
   ]], [[
@@ -195,7 +195,7 @@ it("print types", function()
     local tf = #[tostring(symbols.f.attr.type)]#
     local tg = #[tostring(symbols.g.attr.type)]#
     local tR = #[tostring(symbols.R.attr.type)]#
-    local tRmt = #[tostring(symbols.R.attr.holdedtype.metatype)]#
+    local tRmt = #[tostring(symbols.R.attr.value.metatype)]#
     local tr = #[tostring(symbols.r.attr.type)]#
   ]], [=[
     local n: float64

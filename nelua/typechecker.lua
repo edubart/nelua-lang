@@ -243,7 +243,7 @@ function visitors.Attrib(context, node, symbol)
 
   local attr, type
   if symboltype and symboltype:is_type() then
-    type = symbol.attr.holdedtype
+    type = symbol.attr.value
     attr = type
   else
     attr = symbol.attr
@@ -281,7 +281,7 @@ function visitors.IdDecl(context, node)
   if not type then
     if typenode then
       context:traverse(typenode)
-      type = typenode.attr.holdedtype
+      type = typenode.attr.value
     end
     if context.phase == phases.any_inference then
       type = primtypes.any
@@ -326,16 +326,16 @@ function visitors.Type(context, node)
   local attr = node.attr
   if attr.type then return end
   local tyname = node[1]
-  local holdedtype = typedefs.primtypes[tyname]
-  if not holdedtype then
+  local value = typedefs.primtypes[tyname]
+  if not value then
     local symbol = context.scope:get_symbol(tyname, node)
-    node:assertraisef(symbol and symbol.attr.holdedtype,
+    node:assertraisef(symbol and symbol.attr.value,
       "symbol '%s' is not a valid type", tyname)
-    holdedtype = symbol.attr.holdedtype
+    value = symbol.attr.value
   end
   attr.type = primtypes.type
-  attr.value = holdedtype
-  attr.holdedtype = holdedtype
+  attr.value = value
+  attr.value = value
 end
 
 function visitors.TypeInstance(context, node, symbol)
@@ -345,12 +345,12 @@ function visitors.TypeInstance(context, node, symbol)
   local attr = typenode.attr
   node.attr = attr
 
-  if symbol and not attr.holdedtype:is_primitive() then
+  if symbol and not attr.value:is_primitive() then
     local prefix
     if context.nohashcodenames then
       prefix = context.modname or context.ast.modname
     end
-    attr.holdedtype:suggest_nick(symbol.name, prefix)
+    attr.value:suggest_nick(symbol.name, prefix)
   end
 end
 
@@ -361,10 +361,10 @@ function visitors.FuncType(context, node)
   context:traverse(argnodes)
   context:traverse(retnodes)
   local type = types.FunctionType(node,
-    tabler.imap(argnodes, function(argnode) return argnode.attr.holdedtype end),
-    tabler.imap(retnodes, function(retnode) return retnode.attr.holdedtype end))
+    tabler.imap(argnodes, function(argnode) return argnode.attr.value end),
+    tabler.imap(retnodes, function(retnode) return retnode.attr.value end))
   attr.type = primtypes.type
-  attr.holdedtype = type
+  attr.value = type
   attr.value = type
 end
 
@@ -375,9 +375,9 @@ function visitors.MultipleType(context, node)
   assert(#typenodes > 1)
   context:traverse(typenodes)
   attr.type = primtypes.type
-  attr.holdedtype = types.MultipleType(node,
-    tabler.imap(typenodes, function(typenode) return typenode.attr.holdedtype end))
-  attr.value = attr.holdedtype
+  attr.value = types.MultipleType(node,
+    tabler.imap(typenodes, function(typenode) return typenode.attr.value end))
+  attr.value = attr.value
 end
 
 function visitors.RecordFieldType(context, node)
@@ -386,8 +386,8 @@ function visitors.RecordFieldType(context, node)
   local name, typenode = node:args()
   context:traverse(typenode)
   attr.type = typenode.attr.type
-  attr.holdedtype = typenode.attr.holdedtype
-  attr.value = typenode.attr.holdedtype
+  attr.value = typenode.attr.value
+  attr.value = typenode.attr.value
 end
 
 function visitors.RecordType(context, node)
@@ -396,11 +396,11 @@ function visitors.RecordType(context, node)
   local fieldnodes = node:args()
   context:traverse(fieldnodes)
   local fields = tabler.imap(fieldnodes, function(fieldnode)
-    return {name = fieldnode[1], type=fieldnode.attr.holdedtype}
+    return {name = fieldnode[1], type=fieldnode.attr.value}
   end)
   local type = types.RecordType(node, fields)
   attr.type = primtypes.type
-  attr.holdedtype = type
+  attr.value = type
   attr.value = type
 end
 
@@ -431,7 +431,7 @@ function visitors.EnumType(context, node)
   local subtype = primtypes.integer
   if typenode then
     context:traverse(typenode)
-    subtype = typenode.attr.holdedtype
+    subtype = typenode.attr.value
   end
   local fields = {}
   for i,fnode in ipairs(fieldnodes) do
@@ -452,7 +452,7 @@ function visitors.EnumType(context, node)
   end
   local type = types.EnumType(node, subtype, fields)
   attr.type = primtypes.type
-  attr.holdedtype = type
+  attr.value = type
   attr.value = type
 end
 
@@ -461,9 +461,9 @@ function visitors.ArrayTableType(context, node)
   if attr.type then return end
   local subtypenode = node:args()
   context:traverse(subtypenode)
-  local type = types.ArrayTableType(node, subtypenode.attr.holdedtype)
+  local type = types.ArrayTableType(node, subtypenode.attr.value)
   attr.type = primtypes.type
-  attr.holdedtype = type
+  attr.value = type
   attr.value = type
 end
 
@@ -472,11 +472,11 @@ function visitors.SpanType(context, node)
   if attr.type then return end
   local subtypenode = node:args()
   context:traverse(subtypenode)
-  local subtype = subtypenode.attr.holdedtype
+  local subtype = subtypenode.attr.value
   subtypenode:assertraisef(not subtype:is_void(), 'spans cannot be of "void" type')
   local type = types.SpanType(node, subtype)
   attr.type = primtypes.type
-  attr.holdedtype = type
+  attr.value = type
   attr.value = type
 end
 
@@ -485,12 +485,12 @@ function visitors.RangeType(context, node)
   if attr.type then return end
   local subtypenode = node:args()
   context:traverse(subtypenode)
-  local subtype = subtypenode.attr.holdedtype
+  local subtype = subtypenode.attr.value
   subtypenode:assertraisef(subtype:is_integral(),
     'ranges subtype "%s" is not an integral type', subtype)
   local type = types.RangeType(node, subtype)
   attr.type = primtypes.type
-  attr.holdedtype = type
+  attr.value = type
   attr.value = type
 end
 
@@ -499,7 +499,7 @@ function visitors.ArrayType(context, node)
   if attr.type then return end
   local subtypenode, lengthnode = node:args()
   context:traverse(subtypenode)
-  local subtype = subtypenode.attr.holdedtype
+  local subtype = subtypenode.attr.value
   context:traverse(lengthnode)
   lengthnode:assertraisef(lengthnode.attr.value, 'unknown const value for expression')
   local length = lengthnode.attr.value:tointeger()
@@ -507,7 +507,7 @@ function visitors.ArrayType(context, node)
     'expected a valid decimal integral number in the second argument of an "array" type')
   local type = types.ArrayType(node, subtype, length)
   attr.type = primtypes.type
-  attr.holdedtype = type
+  attr.value = type
   attr.value = type
 end
 
@@ -518,13 +518,13 @@ function visitors.PointerType(context, node)
   local type
   if subtypenode then
     context:traverse(subtypenode)
-    assert(subtypenode.attr.holdedtype)
-    type = types.get_pointer_type(subtypenode.attr.holdedtype, node)
+    assert(subtypenode.attr.value)
+    type = types.get_pointer_type(subtypenode.attr.value, node)
   else
     type = primtypes.pointer
   end
   attr.type = primtypes.type
-  attr.holdedtype = type
+  attr.value = type
   attr.value = type
 end
 
@@ -538,7 +538,7 @@ local function visitor_FieldIndex(context, node)
     -- type already known, return early
     local objtype = objnode.attr.type
     if objtype:is_type() then
-      objtype = objnode.attr.holdedtype
+      objtype = objnode.attr.value
       if objtype:is_record() then
         return objtype:get_metafield(name)
       end
@@ -560,7 +560,7 @@ local function visitor_FieldIndex(context, node)
         'record "%s" does not have field named "%s"',
         objtype, name)
     elseif objtype:is_type() then
-      objtype = objnode.attr.holdedtype
+      objtype = objnode.attr.value
       assert(objtype)
       if objtype:is_pointer() and objtype.subtype:is_record() then
         -- allow to access method and fields on record pointer types
@@ -898,7 +898,7 @@ function visitors.Call(context, node)
   end
   if calleetype and calleetype:is_type() then
     -- type assertion
-    local type = caleeattr.holdedtype
+    local type = caleeattr.value
     assert(type)
     node:assertraisef(#argnodes == 1,
       "in assertion to type '%s', expected one argument, but got %d",
@@ -1128,6 +1128,9 @@ function visitors.VarDecl(context, node)
         varnode:assertraisef(valnode.attr.comptime and valtype,
           'constant variables can only assign to constant expressions')
       end
+      if vartype and not valtype and vartype:is_auto() then
+        valnode:raisef('auto variables must be assigned to expressions where type is known ahead')
+      end
       varnode:assertraisef(not varnode.attr.cimport or
         (vartype == primtypes.type or (vartype == nil and valtype == primtypes.type)),
         'cannot assign imported variables, only imported types can be assigned')
@@ -1150,9 +1153,9 @@ function visitors.VarDecl(context, node)
         symbol.attr.value = valnode.attr.value
       elseif valtype:is_type() then
         -- for 'type' types the type must also be known ahead
-        assert(valnode and valnode.attr.holdedtype)
+        assert(valnode and valnode.attr.value)
         assignvaltype = vartype ~= valtype
-        symbol.attr.holdedtype = valnode.attr.holdedtype
+        symbol.attr.value = valnode.attr.value
       else
         foundtype = false
       end
@@ -1297,7 +1300,7 @@ function visitors.FuncDef(context, node)
   if #retnodes > 0 then
     -- returns types are pre declared
     returntypes = tabler.imap(retnodes, function(retnode)
-      return retnode.attr.holdedtype
+      return retnode.attr.value
     end)
 
     if #returntypes == 1 and returntypes[1]:is_void() then
