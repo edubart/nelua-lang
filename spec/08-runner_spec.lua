@@ -28,7 +28,7 @@ it("error on parsing an invalid program" , function()
   assert.run_error('--lint --eval invalid')
   assert.run_error('--lint invalid', 'invalid: No such file or directory')
   --assert.run_error({'--generator', 'c', '--eval', "f()"}, 'undefined')
-  assert.run_error({'--generator', 'lua', '--eval', "local a = 1_x"}, "literal suffix '_x' is not defined")
+  assert.run_error({'--generator', 'lua', '--eval', "local a = 1_x"}, "literal suffix '_x' is undefined")
   assert.run_error('--generator c --cc invgcc examples/helloworld.nelua', 'failed to retrive compiler information')
 end)
 

@@ -36,7 +36,7 @@ it("local variable", function()
   assert.analyze_error("local a: integer = 'string'", "no viable type conversion")
   assert.analyze_error("local a: byte = 1.1", "is fractional")
   assert.analyze_error("local a: byte = {1.0}", "cannot be initialized using a table literal")
-  assert.analyze_error("local a, b = 1,2,3", "too many expressions in declaration")
+  assert.analyze_error("local a, b = 1,2,3", "extra expressions in declaration")
   assert.analyze_error("local a: void", "variable declaration cannot be of the type")
   assert.analyze_error("local a: integer = 'string'_s", "string literals are not supported yet")
 end)
@@ -183,8 +183,8 @@ it("type declaration", function()
   assert.ast_type_equals(
     "local int = @integer; local a: int",
     "local int = @integer; local a: integer")
-  assert.analyze_error("local int = 1; local a: int = 2", "is not a valid type")
-  assert.analyze_error("local a: invalid = 2", "is not a valid type")
+  assert.analyze_error("local int = 1; local a: int = 2", "is an invalid type")
+  assert.analyze_error("local a: invalid = 2", "is an invalid type")
 end)
 
 it("loop variables", function()
@@ -203,7 +203,7 @@ end)
 it("variable assignments", function()
   assert.ast_type_equals("local a; a = 1", "local a: integer; a = 1")
   assert.analyze_error("local a: integer; a = 's'", "no viable type conversion")
-  assert.analyze_error("local a, b; a, b = 1,2,3", "too many expressions in assign")
+  assert.analyze_error("local a, b; a, b = 1,2,3", "extra expressions in assign")
 end)
 
 it("unary operators", function()
@@ -211,6 +211,7 @@ it("unary operators", function()
   assert.ast_type_equals("local a = -1", "local a: integer = -1")
   assert.ast_type_equals("local a = -1.0", "local a: number = -1.0")
   assert.analyze_error("local x = &1", "cannot reference compile time value")
+  assert.analyze_error("local a = -'s'", "invalid operation")
 end)
 
 it("binary operator shift", function()
@@ -254,8 +255,8 @@ it("binary operator add", function()
   assert.ast_type_equals(
     "local a = 18446744073709551616 - 1",
     "local a: uinteger = 18446744073709551616 - 1")
-  assert.analyze_error("local a = 1 + 's'", "operation not defined")
-  assert.analyze_error("local a = 1.0 + 's'", "operation not defined")
+  assert.analyze_error("local a = 1 + 's'", "invalid operation")
+  assert.analyze_error("local a = 1.0 + 's'", "invalid operation")
 end)
 
 it("binary operator pow", function()
@@ -300,28 +301,28 @@ end)
 
 it("binary operator bor", function()
   assert.ast_type_equals("local a = 1 | 2", "local a: integer = 1 | 2")
-  assert.analyze_error("local a = 1 | 's'", "operation not defined")
+  assert.analyze_error("local a = 1 | 's'", "invalid operation")
 end)
 
 it("binary operator band", function()
   assert.ast_type_equals("local a = 1 & 2", "local a: integer = 1 & 2")
   assert.ast_type_equals("local a = 1_i32 & 1", "local a: int32 = 1_i32 & 1")
-  assert.analyze_error("local a = 1 & 's'", "operation not defined")
+  assert.analyze_error("local a = 1 & 's'", "invalid operation")
 end)
 
 it("binary operator bxor", function()
   assert.ast_type_equals("local a = 1 ~ 2", "local a: integer = 1 ~ 2")
-  assert.analyze_error("local a = 1 ~ 's'", "operation not defined")
+  assert.analyze_error("local a = 1 ~ 's'", "invalid operation")
 end)
 
 it("binary operator shl", function()
   assert.ast_type_equals("local a = 1 << 2", "local a: integer = 1 << 2")
-  assert.analyze_error("local a = 1 << 's'", "operation not defined")
+  assert.analyze_error("local a = 1 << 's'", "invalid operation")
 end)
 
 it("binary operator shr", function()
   assert.ast_type_equals("local a = 1 >> 2", "local a: integer = 1 >> 2")
-  assert.analyze_error("local a = 1 >> 's'", "operation not defined")
+  assert.analyze_error("local a = 1 >> 's'", "invalid operation")
 end)
 
 it("binary conditional and", function()
@@ -458,12 +459,12 @@ it("function return", function()
   assert.analyze_error([[
     local function f() end
     local a: integer = f()
-  ]], "cannot assign to expressions of type void")
+  ]], "cannot assign to expressions of type 'void'")
   assert.analyze_error([[
     local function f() end
     local a: any
     a = f()
-  ]], "cannot assign to expressions of type void")
+  ]], "cannot assign to expressions of type 'void'")
   assert.analyze_error([[
     local function f(): (integer, string) return 1 end
   ]], "missing return expression at index")
@@ -539,12 +540,12 @@ it("function multiple return", function()
     local function f(): (integer, boolean) return 1,false  end
     local a, b, c
     a, b, c = f()
-  ]], 'is assigning to nothing in this expression')
+  ]], 'is assigning to nothing in the expression')
   assert.analyze_error([[
     local function f() return 1,false  end
     local a, b, c
     a, b, c = f()
-  ]], 'is assigning to nothing in this expression')
+  ]], 'is assigning to nothing in the expression')
   assert.analyze_error([[
     local function f(): (integer, boolean) return 1,false  end
     local function g(a: boolean, b: integer, c: string) end
@@ -572,7 +573,7 @@ it("switch", function()
   ]])
   assert.analyze_error(
     "switch 's' case 1 then end",
-    'must be compatible with an integral type')
+    'must be conversible to an integral')
   assert.analyze_error(
     "switch a case 1 then case 1.1 then else end",
     'must evaluate to a compile time integral value')
@@ -588,7 +589,7 @@ it("function call", function()
   ]])
   assert.analyze_ast([[local function f(a: integer) end; f(1_u32)]])
   assert.analyze_ast([[local function f(a) end; f() f(1)]])
-  assert.analyze_error([[local a: integer = 1; a()]], "attempt to call a non callable variable")
+  assert.analyze_error([[local a: integer = 1; a()]], "cannot call type")
   assert.analyze_error([[local function f(a: integer) end; f('a')]], "no viable type conversion")
   assert.analyze_error([[local function f(a: integer) end; f(1,1)]], "expected at most 1 arguments but got 2")
   assert.analyze_error([[local function f(a: integer) end; f()]], "expected an argument at index 1")
@@ -599,10 +600,10 @@ it("for in", function()
   assert.analyze_ast([[in a,b,c do end]])
   assert.analyze_error(
     [[local a = 1; for i in a do end]],
-    "first argument of `in` expression must be a function")
+    "first argument of `in` statement must be a function")
   assert.analyze_error(
     [[for i in a,b,c,d do end]],
-    "`in` expression can have at most")
+    "`in` statement can have at most")
   --[=[
   assert.ast_type_equals([[
   local function iter() return 1 end
@@ -650,7 +651,7 @@ it("array tables", function()
   ]], "no viable type conversion")
   assert.analyze_error([[
     local a: arraytable(integer) = {a = 1}
-  ]], "fields are not allowed")
+  ]], "fields are disallowed")
   assert.analyze_error([[
     local a: arraytable(boolean)
     local b: arraytable(integer)
@@ -707,18 +708,19 @@ it("arrays", function()
   assert.analyze_ast([[local a: array(integer, 10), b: array(integer, 10); b = a]])
   assert.analyze_ast([[local a: array(integer, 2) <comptime> = {1,2}]])
   assert.analyze_error([[local X = 2; local a: array(integer, X);]], "unknown comptime value for expression")
-  assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values but got 1')
-  assert.analyze_error([[local a: array(integer, 2) = {1,2,3}]], 'expected 2 values but got 3')
-  assert.analyze_error([[local a: array(integer, 2) = {1.1,2.3}]], 'is fractional (invalid for the type)')
-  assert.analyze_error([[local a: array(integer, 2) = {a=0,2}]], 'fields are not allowed')
+  assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values in array literal but got 1')
+  assert.analyze_error([[local a: array(integer, 2) = {1,2,3}]], 'expected 2 values in array literal but got 3')
+  assert.analyze_error([[local a: array(integer, 2) = {1.1,2.3}]], 'is fractional')
+  assert.analyze_error([[local a: array(integer, 2) = {a=0,2}]], 'fields are disallowed')
   assert.analyze_error([[local a: array(integer, 10), b: array(integer, 11); b = a]], "no viable type conversion")
-  assert.analyze_error([[local a: array(integer, 10); a[0] = 1.1]], "is fractional (invalid for the type)")
-  assert.analyze_error([[local a: array(integer, 1.0) ]], "expected a valid decimal integral")
+  assert.analyze_error([[local a: array(integer, 10); a[0] = 1.1]], "is fractional")
+  assert.analyze_error([[local a: array(integer, 1.0) ]], "expected a positive integral type")
+  assert.analyze_error([[local a: array(integer, 0) ]], "must be positive")
   assert.analyze_error([[local Array = @array(integer, 1); local a = Array.l]], "cannot index fields")
-  assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values but got 1')
-  assert.analyze_error([[local a: array(integer, 2); a[-1] = 1]], 'trying to index negative value')
+  assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values in array literal but got 1')
+  assert.analyze_error([[local a: array(integer, 2); a[-1] = 1]], 'cannot index negative value')
   assert.analyze_error([[local a: array(integer, 2); a[2] = 1]], 'is out of bounds')
-  assert.analyze_error([[local a: array(integer, 2); a['s'] = 1]], 'trying to index with value of type')
+  assert.analyze_error([[local a: array(integer, 2); a['s'] = 1]], 'cannot index with value of type')
   assert.analyze_error([[local a: array(integer, 2) <comptime> = {1,b}]], 'can only assign to constant expressions')
 end)
 
@@ -746,11 +748,11 @@ it("records", function()
   assert.analyze_ast([[local a: record {x: boolean}; a = {}]])
   assert.analyze_ast([[local a: record {x: boolean}; a = {x = true}]])
   assert.analyze_error([[local a: record {x: integer}; a.x = true]], "no viable type conversion")
-  assert.analyze_error([[local a: record {x: boolean}; local b = a.y]], "does not have field named")
+  assert.analyze_error([[local a: record {x: boolean}; local b = a.y]], "cannot index field")
   assert.analyze_error([[local a: record {x: integer} = {x = true}]], "no viable type conversion")
   assert.analyze_error([[local a: record {x: boolean} = {y = 1}]], "is not present in record")
   assert.analyze_error([[local a: record {x: boolean} = {[x] = 1}]], "only string literals are allowed")
-  assert.analyze_error([[local a: record {x: boolean} = {false,false}]], "field at index 2 is not valid")
+  assert.analyze_error([[local a: record {x: boolean} = {false,false}]], "field at index 2 is invalid")
   assert.analyze_ast([[
     local Record: type = @record{x: boolean}
     local a: Record, b: Record
@@ -778,7 +780,7 @@ it("records", function()
     local Record: type = @record{x: integer, y: integer}
     local a
     a = Record{y = 1, 2}
-  ]], "field at index 3 is not valid")
+  ]], "field at index 3 is invalid")
   assert.analyze_error([[
     local a: record {x: boolean}, b: record {x: boolean}
     b = a
@@ -871,7 +873,7 @@ it("record globals", function()
     local Math = @record{}
     global Math.PI: integer = 3
     Math.PI = 3.14
-  ]], "is fractional (invalid for the type)")
+  ]], "is fractional")
 end)
 
 it("type neasting", function()
@@ -918,7 +920,7 @@ it("enums", function()
   ]], "is out of range")
   assert.analyze_error([[
     local Enum = @enum(byte){A=255,B}
-  ]], "is not in range of type")
+  ]], "is out of range")
   assert.analyze_error([[
     local Enum = @enum(byte){A=256_integer}
   ]], "is out of range")
@@ -930,17 +932,17 @@ it("enums", function()
   assert.analyze_error([[
     local Enum = @enum{A=0,B}
     local e: Enum = Enum.C
-  ]], "does not have field named")
+  ]], "cannot index field")
   assert.analyze_error([[
     local Enum = @enum{A,B=3}
-  ]], "first field requires a initial value")
+  ]], "first enum field requires an initial value")
   assert.analyze_error([[
     local C: integer
     local Enum = @enum{A=C}
   ]], "enum fields can only be assigned to")
   assert.analyze_error([[
     local Enum = @enum{A=1.0}
-  ]], "only integral numbers are allowed in enums")
+  ]], "only integral types are allowed in enums")
   assert.analyze_error([[
     local Enum = @enum{A=1}
     local e: Enum
@@ -981,8 +983,8 @@ it("pointers", function()
     a = b
   ]], "no viable type conversion")
   assert.analyze_error([[local a: integer*, b: number*; b = a]], "no viable type conversion")
-  assert.analyze_error("local a: auto*", "is not valid for pointer type")
-  assert.analyze_error("local a: type*", "is not valid for pointer type")
+  assert.analyze_error("local a: auto*", "is invalid for 'pointer' type")
+  assert.analyze_error("local a: type*", "is invalid for 'pointer' type")
 end)
 
 it("automatic referencing", function()
@@ -1049,8 +1051,8 @@ end)
 it("pointers to complex types", function()
   assert.analyze_ast([=[local p: pointer(record{x:isize}); p.x = 0]=])
   assert.analyze_ast([=[local p: pointer(array(isize, 10)); p[0] = 0]=])
-  assert.analyze_error([=[local p: pointer(record{x:isize}); p.y = 0]=], "does not have field")
-  assert.analyze_error([=[local p: pointer(array(isize, 10)); p[-1] = 0]=], "trying to index negative value")
+  assert.analyze_error([=[local p: pointer(record{x:isize}); p.y = 0]=], "cannot index field")
+  assert.analyze_error([=[local p: pointer(array(isize, 10)); p[-1] = 0]=], "cannot index negative value")
 end)
 
 it("type construction", function()
@@ -1076,7 +1078,7 @@ it("attributes", function()
     local function main2() <entrypoint> end
   ]], "cannot have more than one function entrypoint")
   assert.analyze_error("local a <nodecl(1)>", "takes no arguments")
-  assert.analyze_error("local a <entrypoint>", "is not defined in this context")
+  assert.analyze_error("local a <entrypoint>", "is undefined for variables")
   assert.analyze_error("local a <codename(1)>", "arguments are invalid")
 end)
 

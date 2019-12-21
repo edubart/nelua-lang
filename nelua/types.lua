@@ -46,31 +46,44 @@ function Type:suggest_nick(nick, prefix)
   self.nick = nick
 end
 
+function Type:prettyname()
+  if self.nick then
+    return self.nick
+  end
+  return tostring(self)
+end
+
 local function get_operator_in_oplist(self, oplist, opname, arg1, arg2, arg3)
   local opret = oplist[opname]
-  local type, ret, err
+  local type, value, err
   if traits.is_function(opret) then
-    type, ret, err = opret(self, arg1, arg2, arg3)
+    type, value, err = opret(self, arg1, arg2, arg3)
   elseif traits.is_string(opret) then
-    type, ret = primtypes[opret], nil
+    type, value = primtypes[opret], nil
   else
-    type, ret = opret, nil
+    type, value = opret, nil
   end
   if not type and self:is_any() then
-    type, ret = self, nil
+    type, value = self, nil
   end
-  if not type and not err then
-    err = 'operation not defined'
-  end
-  return type, ret, err
+  return type, value, err
 end
 
 function Type:unary_operator(opname, attr)
-  return get_operator_in_oplist(self, self.unary_operators, opname, attr)
+  local type, value, err = get_operator_in_oplist(self, self.unary_operators, opname, attr)
+  if not type and not err then
+    err = stringer.pformat("invalid operation for type '%s'", self:prettyname())
+  end
+  return type, value, err
 end
 
 function Type:binary_operator(opname, rtype, lattr, rattr)
-  return get_operator_in_oplist(self, self.binary_operators, opname, rtype, lattr, rattr)
+  local type, value, err = get_operator_in_oplist(self, self.binary_operators, opname, rtype, lattr, rattr)
+  if not type and not err then
+    err = stringer.pformat("invalid operation between types '%s' and '%s'",
+      self:prettyname(), rtype:prettyname())
+  end
+  return type, value, err
 end
 
 -- Used to check conversion from `type` to `self`
@@ -87,7 +100,7 @@ function Type:is_conversible_from_type(type)
   else
     return false, stringer.pformat(
       "no viable type conversion from `%s` to `%s`",
-      type, self)
+      type:prettyname(), self:prettyname())
   end
 end
 
@@ -101,8 +114,8 @@ function Type:is_conversible_from_attr(attr, explicit)
     if self:is_integral() then
       if not attr.value:isintegral() then
         return false, stringer.pformat(
-          "constant value `%s` is fractional (invalid for the type)",
-          attr.value:todec())
+          "constant value `%s` is fractional which is invalid for the type '%s'",
+          attr.value:todec(), type:prettyname())
       elseif not self:is_inrange(attr.value) then
         return false, stringer.pformat(
           "constant value `%s` for type `%s` is out of range, the minimum is `%s` and maximum is `%s`",
