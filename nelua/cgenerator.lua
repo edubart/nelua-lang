@@ -670,7 +670,6 @@ function visitors.Switch(_, node, emitter)
   local valnode, caseparts, elsenode = node:args()
   emitter:add_indent_ln("switch(", valnode, ") {")
   emitter:inc_indent()
-  node:assertraisef(#caseparts > 0, "switch must have case parts")
   for _,casepart in ipairs(caseparts) do
     local casenode, blocknode = casepart[1], casepart[2]
     emitter:add_indent_ln("case ", casenode, ': {')

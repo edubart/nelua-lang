@@ -106,13 +106,13 @@ it("if", function()
 end)
 
 it("switch", function()
-  assert.generate_c("do switch a case b then f() case c then g() else h() end end",[[
+  assert.generate_c("do switch a case 1 then f() case 2 then g() else h() end end",[[
     switch(a) {
-      case b: {
+      case 1: {
         f();
         break;
       }
-      case c: {
+      case 2: {
         g();
         break;
       }

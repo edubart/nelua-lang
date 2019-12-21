@@ -44,6 +44,7 @@ build = {
     ['nelua.astbuilder'] = 'nelua/astbuilder.lua',
     ['nelua.astdefs'] = 'nelua/astdefs.lua',
     ['nelua.astnode'] = 'nelua/astnode.lua',
+    ['nelua.builtins'] = 'nelua/builtins.lua',
     ['nelua.cbuiltins'] = 'nelua/cbuiltins.lua',
     ['nelua.ccompiler'] = 'nelua/ccompiler.lua',
     ['nelua.ccontext'] = 'nelua/ccontext.lua',

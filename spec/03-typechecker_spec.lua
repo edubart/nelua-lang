@@ -564,6 +564,20 @@ it("function multiple return", function()
   ]], 'no viable type conversion')
 end)
 
+it("switch", function()
+  assert.analyze_ast([[
+    local B <comptime> = 2
+    local a = 2
+    switch a case 1 then case B then else end
+  ]])
+  assert.analyze_error(
+    "switch 's' case 1 then end",
+    'must be compatible with an integral type')
+  assert.analyze_error(
+    "switch a case 1 then case 1.1 then else end",
+    'must evaluate to a compile time integral value')
+end)
+
 it("function call", function()
   assert.ast_type_equals([[
     local function f() return 0 end
@@ -891,6 +905,10 @@ it("enums", function()
     local Enum = @enum{A=0,B=1,C=c}
     local e: Enum = Enum.A
     local i: number = e
+  ]])
+  assert.analyze_ast([[
+    local Enum = @enum{A=0}
+    local x <comptime> = Enum.A
   ]])
   assert.analyze_ast([[
     local Enum = @enum(byte){A=255}

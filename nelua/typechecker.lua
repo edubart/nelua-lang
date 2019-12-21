@@ -589,9 +589,12 @@ local function visitor_FieldIndex(context, node)
       end
       attr.indextype = objtype
       if objtype:is_enum() then
-        if not objtype:get_field(name) then
+        local field = objtype:get_field(name)
+        if not field then
           node:raisef("enum '%s' does not have field named '%s'", objtype, name)
         end
+        attr.comptime = true
+        attr.value = field.value
         type = objtype
       elseif objtype:is_record() then
         symbol = objtype:get_metafield(name)
@@ -976,6 +979,29 @@ function visitors.If(context, node)
     local ifcondnode, ifblocknode = ifpair[1], ifpair[2]
     context:traverse(ifcondnode)
     context:traverse(ifblocknode)
+  end
+  if elsenode then
+    context:traverse(elsenode)
+  end
+end
+
+function visitors.Switch(context, node)
+  local valnode, caseparts, elsenode = node:args()
+  context:traverse(valnode)
+  local valtype = valnode.attr.type
+  if valtype and not (valtype:is_any() or valtype:is_integral()) then
+    valnode:raisef(
+      "switch expression must be compatible with an integral type, but got type `%s` (non integral)",
+      valtype)
+  end
+  for _,casepart in ipairs(caseparts) do
+    local casenode, blocknode = casepart[1], casepart[2]
+    context:traverse(casenode)
+    if not (casenode.attr.type and casenode.attr.type:is_integral() and
+           (casenode.attr.comptime or casenode.attr.cimport)) then
+      casenode:raisef("case expression must evaluate to a compile time integral value")
+    end
+    context:traverse(blocknode)
   end
   if elsenode then
     context:traverse(elsenode)

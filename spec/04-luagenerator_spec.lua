@@ -81,16 +81,16 @@ it("if", function()
   assert.generate_lua("if a then\nelseif b then\nelse\nend")
 end)
 it("switch", function()
-  assert.generate_lua("switch a case b then else end", [[
+  assert.generate_lua("switch a case 1 then else end", [[
 local __switchval1 = a
-if __switchval1 == b then
+if __switchval1 == 1 then
 else
 end]])
-  assert.generate_lua("switch a case b then f() case c then g() else h() end",[[
+  assert.generate_lua("switch a case 1 then f() case 2 then g() else h() end",[[
 local __switchval1 = a
-if __switchval1 == b then
+if __switchval1 == 1 then
   f()
-elseif __switchval1 == c then
+elseif __switchval1 == 2 then
   g()
 else
   h()
