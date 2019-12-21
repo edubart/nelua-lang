@@ -65,7 +65,7 @@ bn.__tostring = bn.tostring
 --------------------------------------------------------------------------------
 -- Conversions
 
-function bn.frombase(base, expbase, int, frac, exp)
+local function frombase(base, expbase, int, frac, exp)
   local n = ZERO
   local neg = false
   if int:match('^%-') then
@@ -78,7 +78,7 @@ function bn.frombase(base, expbase, int, frac, exp)
     n = (n * base) + d
   end
   if frac then
-    local fracnum = bn.frombase(base, expbase, frac)
+    local fracnum = frombase(base, expbase, frac)
     local fracdiv = bn.pow(base, #frac)
     n = n + fracnum / fracdiv
   end
@@ -92,11 +92,33 @@ function bn.frombase(base, expbase, int, frac, exp)
 end
 
 function bn.fromhex(int, frac, exp)
-  return bn.frombase(16, 2, int, frac, exp)
+  return frombase(16, 2, int, frac, exp)
 end
 
 function bn.frombin(int, frac, exp)
-  return bn.frombase(2, 2, int, frac, exp)
+  return frombase(2, 2, int, frac, exp)
+end
+
+function bn.fromdec(int, frac, exp)
+  local s = int
+  if frac then
+    s = s .. '.' .. frac
+  end
+  if exp then
+    s = s .. 'e' .. exp
+  end
+  return bn.new(s)
+end
+
+function bn.frombase(base, int, frac, exp)
+  if base == 'dec' then
+    return bn.fromdec(int, frac, exp)
+  elseif base == 'hex' then
+    return bn.fromhex(int, frac, exp)
+  else
+    assert(base == 'bin')
+    return bn.frombin(int, frac, exp)
+  end
 end
 
 local baseletters = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -126,17 +148,6 @@ end
 
 function bn.tobin(v)
   return bn.tobase(v, 2)
-end
-
-function bn.fromdec(int, frac, exp)
-  local s = int
-  if frac then
-    s = s .. '.' .. frac
-  end
-  if exp then
-    s = s .. 'e' .. exp
-  end
-  return bn.new(s)
 end
 
 function bn.todec(v, maxdigits)

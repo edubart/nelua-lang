@@ -213,7 +213,7 @@ local visitors = {}
 
 function visitors.Number(_, node, emitter)
   local attr = node.attr
-  if not attr.type:is_float() and attr.literal then
+  if not attr.type:is_float() and not attr.untyped then
     emitter:add_nodectypecast(node)
   end
   emitter:add_numeric_literal(attr)

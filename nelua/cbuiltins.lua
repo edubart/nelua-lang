@@ -397,8 +397,6 @@ function operators.len(node, emitter, argnode)
   local type = argnode.attr.type
   if type:is_arraytable() then
     emitter:add(type, '_length(&', argnode, ')')
-  elseif type:is_type() then
-    emitter:add(argnode.attr.value.size)
   else --luacov:disable
     node:errorf('not implemented')
   end --luacov:enable

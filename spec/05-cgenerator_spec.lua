@@ -1144,7 +1144,7 @@ end)
 
 it("print builtin", function()
   assert.run({'-g', 'c', '-e', "print(1,0.2,1e2,0xf,0b01)"},
-    '1\t0.200000\t100\t15\t1')
+    '1\t0.200000\t100.000000\t15\t1')
 end)
 
 it("sizeof builtin", function()

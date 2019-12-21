@@ -91,13 +91,13 @@ function Type:is_conversible_from_type(type)
   end
 end
 
--- Used to check conversion from `node` type to `self` type
-function Type:is_conversible_from_node(node, explicit)
-  local attr = node.attr
+-- Used to check conversion from `attr` type to `self` type
+function Type:is_conversible_from_attr(attr, explicit)
   local type = attr.type
 
   -- check for comptime number conversions
-  if attr.comptime and attr.value and self:is_arithmetic() and type:is_arithmetic() and not explicit then
+  if attr.type and attr.comptime and attr.value and
+    self:is_arithmetic() and type:is_arithmetic() and not explicit then
     if self:is_integral() then
       if not attr.value:isintegral() then
         return false, stringer.pformat(
@@ -117,11 +117,14 @@ function Type:is_conversible_from_node(node, explicit)
   return self:is_conversible_from_type(type, explicit)
 end
 
-function Type:is_conversible_from(typeornode, explicit)
-  if traits.is_astnode(typeornode) then
-    return self:is_conversible_from_node(typeornode, explicit)
+function Type:is_conversible_from(what, explicit)
+  if traits.is_astnode(what) then
+    return self:is_conversible_from_attr(what.attr, explicit)
+  elseif traits.is_type(what) then
+    return self:is_conversible_from_type(what, explicit)
   else
-    return self:is_conversible_from_type(typeornode, explicit)
+    assert(traits.is_table(what))
+    return self:is_conversible_from_attr(what, explicit)
   end
 end
 
@@ -144,6 +147,7 @@ function Type:is_equal(type)
 end
 
 function Type:is_primitive() return self.primitive end
+function Type:is_comptime() return self.comptime end
 function Type:is_auto() return self.auto end
 function Type:is_arithmetic() return self.arithmetic end
 function Type:is_float32() return self.float32 end
@@ -201,7 +205,7 @@ end
 
 Type.unary_operators.ref = function(ltype, lattr)
   local lval = lattr.value
-  if lval == nil and not ltype.comptime then
+  if lval == nil and not ltype.unpointable then
     return types.get_pointer_type(ltype)
   else
     return nil, nil, 'cannot reference compile time value'
@@ -286,6 +290,7 @@ function VoidType:_init(name)
   Type._init(self, name, 0)
   self.void = true
   self.primitive = true
+  self.unpointable = true
 end
 
 --------------------------------------------------------------------------------
@@ -296,6 +301,7 @@ function AutoType:_init(name)
   Type._init(self, name, 0)
   self.auto = true
   self.primitive = true
+  self.unpointable = true
 end
 
 --------------------------------------------------------------------------------
@@ -305,6 +311,7 @@ types.TypeType = TypeType
 function TypeType:_init(name)
   Type._init(self, name, 0)
   self.typetype = true
+  self.unpointable = true
 end
 
 TypeType.unary_operators.len = function(_, lattr)
@@ -326,6 +333,7 @@ function NilType:_init(name)
   self.Nil = true
   self.nilable = true
   self.primitive = true
+  self.unpointable = true
 end
 
 NilType.unary_operators['not'] = function()
@@ -340,6 +348,7 @@ function NilptrType:_init(name, size)
   Type._init(self, name, size)
   self.nilptr = true
   self.primitive = true
+  self.unpointable = true
 end
 
 NilptrType.unary_operators['not'] = function()
@@ -443,6 +452,7 @@ function AnyType:_init(name, size)
   self.primitive = true
   if name == 'varanys' then
     self.varanys = true
+    self.comptime = true
   end
 end
 
@@ -1158,16 +1168,17 @@ function PointerType:_init(node, subtype)
   self.unary_operators['deref'] = subtype
 end
 
-function PointerType:is_conversible_from_node(node, explicit)
-  local nodetype = node.attr.type
+function PointerType:is_conversible_from_attr(attr, explicit)
+  local nodetype = attr.type
   if self.subtype == nodetype then
     -- automatic reference
-    node:assertraisef(node.attr.lvalue,
-      'cannot automatic reference rvalue to pointer type "%s"', self)
-    node.attr.autoref = true
+    if not attr.lvalue then
+      return false, stringer.pformat('cannot automatic reference rvalue to pointer type "%s"', self)
+    end
+    attr.autoref = true
     return true
   end
-  return Type.is_conversible_from_node(self, node, explicit)
+  return Type.is_conversible_from_attr(self, attr, explicit)
 end
 
 function PointerType:is_conversible_from_type(type, explicit)
@@ -1274,7 +1285,7 @@ function types.get_pointer_type(subtype, node)
     return primtypes.cstring
   elseif subtype:is_void() then
     return primtypes.pointer
-  else
+  elseif not subtype.unpointable then
     return types.PointerType(node, subtype)
   end
 end

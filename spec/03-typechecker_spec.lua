@@ -16,7 +16,7 @@ it("analyzed ast transform", function()
           'a' }},
         { n.Number{
           attr = {
-            comptime=true, initializer=true, integral=true,
+            comptime=true, initializer=true,
             base='dec', type='int64', untyped=true, value=bn.fromdec('1')
           },'dec', '1'
         }}
@@ -38,6 +38,7 @@ it("local variable", function()
   assert.analyze_error("local a: byte = {1.0}", "cannot be initialized using a table literal")
   assert.analyze_error("local a, b = 1,2,3", "too many expressions in declaration")
   assert.analyze_error("local a: void", "variable declaration cannot be of the type")
+  assert.analyze_error("local a: integer = 'string'_s", "string literals are not supported yet")
 end)
 
 it("global variable", function()
@@ -178,13 +179,22 @@ it("typed var initialization", function()
   assert.lua_gencode_equals("local a: arraytable(integer)", "local a: arraytable(integer) = {}")
 end)
 
+it("type declaration", function()
+  assert.ast_type_equals(
+    "local int = @integer; local a: int",
+    "local int = @integer; local a: integer")
+  assert.analyze_error("local int = 1; local a: int = 2", "is not a valid type")
+  assert.analyze_error("local a: invalid = 2", "is not a valid type")
+end)
+
 it("loop variables", function()
   assert.ast_type_equals("for i=1,10 do end", "for i:integer=1,10 do end")
   assert.ast_type_equals("for i=1,10,2 do end", "for i:integer=1,10,2 do end")
   assert.ast_type_equals("for i=0_is,1_is-1 do end", "for i:isize=0_is,1_is-1 do end")
-  assert.analyze_error("for i:byte=1.0,256 do end", "no viable type conversion")
-  assert.analyze_error("for i:byte=1_byte,256 do end", "no viable type conversion")
-  assert.analyze_error("for i:byte=1_byte,10_byte,2.1 do end", "no viable type conversion")
+  assert.analyze_error("for i:byte=1.0,256 do end", "is out of range")
+  assert.analyze_error("for i:byte=1_byte,256 do end", "is out of range")
+  assert.analyze_error("for i:byte=256,1,-1 do end", "is out of range")
+  assert.analyze_error("for i:byte=1_byte,10_byte,2.1 do end", "is fractional")
   assert.analyze_error("for i='s','b' do end", "must be a number")
   assert.analyze_error("for i=1,2,'s' do end", "no viable type conversion")
   assert.analyze_error("for i=1,2,0 do end", "step cannot be zero")
@@ -682,12 +692,13 @@ it("arrays", function()
   assert.analyze_ast([[local a: array(integer, 2); a = {}]])
   assert.analyze_ast([[local a: array(integer, 10), b: array(integer, 10); b = a]])
   assert.analyze_ast([[local a: array(integer, 2) <comptime> = {1,2}]])
+  assert.analyze_error([[local X = 2; local a: array(integer, X);]], "unknown comptime value for expression")
   assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values but got 1')
   assert.analyze_error([[local a: array(integer, 2) = {1,2,3}]], 'expected 2 values but got 3')
-  assert.analyze_error([[local a: array(integer, 2) = {1.1,2.3}]], 'no viable type conversion')
+  assert.analyze_error([[local a: array(integer, 2) = {1.1,2.3}]], 'is fractional (invalid for the type)')
   assert.analyze_error([[local a: array(integer, 2) = {a=0,2}]], 'fields are not allowed')
   assert.analyze_error([[local a: array(integer, 10), b: array(integer, 11); b = a]], "no viable type conversion")
-  assert.analyze_error([[local a: array(integer, 10); a[0] = 1.1]], "no viable type conversion")
+  assert.analyze_error([[local a: array(integer, 10); a[0] = 1.1]], "is fractional (invalid for the type)")
   assert.analyze_error([[local a: array(integer, 1.0) ]], "expected a valid decimal integral")
   assert.analyze_error([[local Array = @array(integer, 1); local a = Array.l]], "cannot index fields")
   assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values but got 1')
@@ -810,7 +821,18 @@ it("record methods", function()
   ]])
   assert.analyze_error([[
     local vec2 = @record{x: integer, y: integer}
+    function vec2.gen(x: integer) vec2{x, x} end
+    local a: vec2
+    local b = a:gen(1)
+  ]], "no viable type conversion")
+  assert.analyze_error([[
+    local vec2 = @record{x: integer, y: integer}
     local v: vec2 = vec2.create(1,2)
+  ]], "cannot index record meta field")
+  assert.analyze_error([[
+    local vec2 = @record{x: integer, y: integer}
+    local v: vec2
+    local x = v:length()
   ]], "cannot index record meta field")
   assert.analyze_error([[
     local vec2 = @record{x: integer, y: integer}
@@ -835,7 +857,7 @@ it("record globals", function()
     local Math = @record{}
     global Math.PI: integer = 3
     Math.PI = 3.14
-  ]], "no viable type conversion")
+  ]], "is fractional (invalid for the type)")
 end)
 
 it("type neasting", function()
@@ -875,13 +897,13 @@ it("enums", function()
   ]])
   assert.analyze_error([[
     local Enum = @enum(byte){A=256}
-  ]], "no viable type conversion")
+  ]], "is out of range")
   assert.analyze_error([[
     local Enum = @enum(byte){A=255,B}
   ]], "is not in range of type")
   assert.analyze_error([[
     local Enum = @enum(byte){A=256_integer}
-  ]], "no viable type conversion")
+  ]], "is out of range")
   assert.analyze_error([[
     local Enum = @enum{A=0,B=3}
     local e: Enum = Enum.A
@@ -941,6 +963,8 @@ it("pointers", function()
     a = b
   ]], "no viable type conversion")
   assert.analyze_error([[local a: integer*, b: number*; b = a]], "no viable type conversion")
+  assert.analyze_error("local a: auto*", "is not valid for pointer type")
+  assert.analyze_error("local a: type*", "is not valid for pointer type")
 end)
 
 it("automatic referencing", function()
@@ -1033,6 +1057,9 @@ it("attributes", function()
     local function main1() <entrypoint> end
     local function main2() <entrypoint> end
   ]], "cannot have more than one function entrypoint")
+  assert.analyze_error("local a <nodecl(1)>", "takes no arguments")
+  assert.analyze_error("local a <entrypoint>", "is not defined in this context")
+  assert.analyze_error("local a <codename(1)>", "arguments are invalid")
 end)
 
 it("builtins", function()
