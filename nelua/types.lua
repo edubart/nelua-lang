@@ -136,7 +136,7 @@ function Type:is_conversible_from(what, explicit)
   elseif traits.is_type(what) then
     return self:is_conversible_from_type(what, explicit)
   else
-    assert(traits.is_table(what))
+    assert(traits.is_attr(what))
     return self:is_conversible_from_attr(what, explicit)
   end
 end
@@ -1087,7 +1087,7 @@ function MetaType:__tostring()
     else
       first = false
     end
-    ss:add(name, ': ', sym.attr.type)
+    ss:add(name, ': ', sym.type)
   end
   ss:add('}')
   return ss:tostring()
@@ -1304,6 +1304,7 @@ function types.get_pointer_type(subtype, node)
 end
 
 function types.find_common_type(possibletypes)
+  if not possibletypes then return end
   local commontype = possibletypes[1]
   for i=2,#possibletypes do
     commontype = commontype:promote_type(possibletypes[i])

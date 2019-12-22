@@ -222,7 +222,7 @@ local function filter_ast_for_check(t)
       -- remove generated strings
       v.codename = nil
       v.name = nil
-      v.symbol = nil
+      v.methodsym = nil
       v.pseudoargtypes = nil
     end
   end

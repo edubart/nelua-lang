@@ -999,7 +999,7 @@ to generate code:
 
 ```nelua
 local Weekends = @enum { Friday=0, Saturday, Sunda }
-## for i,field in ipairs(symbols.Weekends.attr.value.fields) do
+## for i,field in ipairs(symbols.Weekends.value.fields) do
   print(#[field.name .. ' ' .. tostring(field.value)]#)
 ## end
 ```
@@ -1018,7 +1018,7 @@ You can even manipulate what is already been processed:
 ```nelua
 local Weekends = @enum { Friday=0, Saturday, Sunda }
 -- fix the third field name to 'Sunday'
-## symbols.Weekends.attr.value.fields[3].name = 'Sunday'
+## symbols.Weekends.value.fields[3].name = 'Sunday'
 print(Weekends.Sunday) -- outputs 2
 ```
 
@@ -1040,19 +1040,19 @@ the preprocessor:
 
 ```nelua
 function pow(x: auto, n: integer <comptime>)
-  ## symbols.x.attr.type:is_integral() then
+  ## symbols.x.type:is_integral() then
     -- x is an integral type (any unsigned/signed integer)
-    local r: #[symbols.x.attr.type]# = 1
-    ## for i=1,symbols.n.attr.value do
+    local r: #[symbols.x.type]# = 1
+    ## for i=1,symbols.n.value do
       r = r * x
     ## end
     return r
-  ## elseif symbols.x.attr.type:is_float() then
+  ## elseif symbols.x.type:is_float() then
     -- x is a floating point type
     return x ^ n
   [##[ else
     -- invalid type, raise an error at compile time
-    symbols.x.node:raisef('cannot pow variable of type "%s"', tostring(symbols.x.attr.type))
+    symbols.x.node:raisef('cannot pow variable of type "%s"', tostring(symbols.x.type))
   end ]##]
 end
 
@@ -1068,7 +1068,7 @@ inlined in the call placement.
 
 ```nelua
 local function unroll(count: integer <comptime>, body: block)
-  ## for i=1,symbols.count.attr.value do
+  ## for i=1,symbols.count.value do
     body()
   ## end
 end

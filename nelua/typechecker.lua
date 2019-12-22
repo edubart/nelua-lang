@@ -164,8 +164,7 @@ local function visitor_Record_literal(context, node, littype)
       else
         local ok, err = fieldtype:is_conversible_from(fieldvalnode.attr)
         if not ok then
-          childnode:raisef("in record literal field '%s': %s",
-            fieldname, err)
+          childnode:raisef("in record literal field '%s': %s", fieldname, err)
         end
       end
     end
@@ -231,7 +230,7 @@ function visitors.Attrib(context, node, symbol)
   if name == 'comptime' then
     paramshape = true
   else
-    symboltype = symbol.attr.type
+    symboltype = symbol.type
     if not symboltype then
       -- in the next traversal we will have the type
       return
@@ -278,10 +277,10 @@ function visitors.Attrib(context, node, symbol)
 
   local attr, type
   if symboltype and symboltype:is_type() then
-    type = symbol.attr.value
+    type = symbol.value
     attr = type
   else
-    attr = symbol.attr
+    attr = symbol
   end
   attr[name] = params
 
@@ -296,17 +295,24 @@ end
 
 function visitors.Id(context, node)
   local name = node[1]
-  local symbol = context.scope:get_symbol(name, node, true)
+  local symbol = context.scope:get_symbol(name)
+  if symbol then
+    assert(symbol.name == name, symbol)
+  end
+  if not symbol and context.strict and not context.preprocessing then
+    node:raisef("undeclared symbol '%s'", name)
+  end
   if not symbol then
-    local type = node.attr.type
-    if not type and context.phase == phases.any_inference then
-      type = primtypes.any
+    if not node.attr.type and context.phase == phases.any_inference then
+      node.attr.type = primtypes.any
     end
-    symbol = context.scope:add_symbol(Symbol(name, node, type))
+    symbol = Symbol.promote_attr(node.attr, name, node)
+    local ok, err = context.scope:add_symbol(symbol)
+    assert(ok)
   else
     symbol:link_node(node)
   end
-  symbol.attr.lvalue = true
+  symbol.lvalue = true
   return symbol
 end
 
@@ -324,11 +330,16 @@ function visitors.IdDecl(context, node)
   end
   local symbol
   if traits.is_string(namenode) then
-    symbol = context.scope:add_symbol(Symbol(namenode, node, type))
-
+    symbol = Symbol.promote_attr(node.attr, namenode, node)
+    local scope
     if node.attr.global then
-      -- globals are always visible in the global root scope too
-      context.rootscope:add_symbol(symbol)
+      scope = context.rootscope
+    else
+      scope = context.scope
+    end
+    local ok, err = scope:add_symbol(symbol)
+    if not ok then
+      node:raisef(err)
     end
   else
     -- global record field
@@ -337,7 +348,7 @@ function visitors.IdDecl(context, node)
     symbol = context:traverse(namenode)
     context.inglobaldecl = nil
   end
-  local attr = symbol.attr
+  local attr = symbol
   if type then
     attr.type = type
   end
@@ -363,11 +374,11 @@ function visitors.Type(context, node)
   local tyname = node[1]
   local value = typedefs.primtypes[tyname]
   if not value then
-    local symbol = context.scope:get_symbol(tyname, node)
-    if not (symbol and symbol.attr.type == primtypes.type and symbol.attr.value) then
+    local symbol = context.scope:get_symbol(tyname)
+    if not (symbol and symbol.type == primtypes.type and symbol.value) then
       node:raisef("symbol '%s' is an invalid type", tyname)
     end
-    value = symbol.attr.value
+    value = symbol.value
   end
   attr.type = primtypes.type
   attr.value = value
@@ -398,7 +409,6 @@ function visitors.FuncType(context, node)
     tabler.imap(argnodes, function(argnode) return argnode.attr.value end),
     tabler.imap(retnodes, function(retnode) return retnode.attr.value end))
   attr.type = primtypes.type
-  attr.value = type
   attr.value = type
 end
 
@@ -615,33 +625,34 @@ local function visitor_FieldIndex(context, node)
           local symname = string.format('%s_%s', objtype.codename, name)
           if context.infuncdef == parentnode then
             -- declaration of record global function
-            symbol = Symbol(symname, node)
-            symbol.attr.const = true
-            symbol.attr.metafunc = true
-            symbol.attr.metavar = true
-            symbol.attr.metarecordtype = types.get_pointer_type(objtype, objnode)
+            symbol = Symbol.promote_attr(node.attr, symname, node)
+            symbol.const = true
+            symbol.metafunc = true
+            symbol.metavar = true
+            symbol.metarecordtype = types.get_pointer_type(objtype, objnode)
             objtype:set_metafield(name, symbol)
           elseif context.inglobaldecl == parentnode then
             -- declaration of record global variable
-            symbol = Symbol(symname, node)
-            symbol.attr.metavar = true
+            symbol = Symbol.promote_attr(node.attr, symname, node)
+            symbol.metavar = true
             objtype:set_metafield(name, symbol)
 
             -- add symbol to scope to enable type deduction
-            context.scope:add_symbol(symbol)
+            local ok = context.scope:add_symbol(symbol)
+            assert(ok)
           else
             node:raisef("cannot index record meta field '%s'", name)
           end
           symbol:link_node(parentnode)
         elseif context.infuncdef or context.inglobaldecl then
           if symbol.node ~= node then
-            node:raisef("cannot redefine meta type function")
+            node:raisef("cannot redefine meta type field '%s'", name)
           end
         else
           symbol:link_node(node)
         end
         if symbol then
-          type = symbol.attr.type
+          type = symbol.type
         end
       else
         node:raisef("cannot index fields on type '%s'", objtype:prettyname())
@@ -959,8 +970,8 @@ function visitors.CallMethod(context, node)
       if not symbol then
         node:raisef("cannot index record meta field '%s'", name)
       end
-      calleetype = symbol.attr.type
-      attr.symbol = symbol
+      calleetype = symbol.type
+      attr.methodsym = symbol
     elseif calleetype:is_string() then
       --TODO: string methods
       calleetype = primtypes.any
@@ -1153,7 +1164,7 @@ function visitors.VarDecl(context, node)
     if vartype and (vartype:is_multipletype() or vartype:is_void() or vartype:is_varanys()) then
       varnode:raisef("variable declaration cannot be of the type '%s'", vartype:prettyname())
     end
-    assert(symbol.attr.type == vartype)
+    assert(symbol.type == vartype)
     varnode.assign = true
     if (varnode.attr.comptime or varnode.attr.const) and not varnode.attr.nodecl and not valnode then
       varnode:raisef("const variables must have an initial value")
@@ -1167,7 +1178,7 @@ function visitors.VarDecl(context, node)
         valtype = primtypes.any
       end
       if varnode.attr.comptime and not (valnode.attr.comptime and valtype) then
-        varnode:raisef("constant variables can only assign to constant expressions")
+        varnode:raisef("compile time variables can only assign to compile time expressions")
       elseif vartype and not valtype and vartype:is_auto() then
         valnode:raisef("auto variables must be assigned to expressions where type is known ahead")
       elseif varnode.attr.cimport and not
@@ -1192,12 +1203,12 @@ function visitors.VarDecl(context, node)
       if varnode.attr.comptime then
         -- for consts the type must be known ahead
         assignvaltype = not vartype
-        symbol.attr.value = valnode.attr.value
+        symbol.value = valnode.attr.value
       elseif valtype:is_type() then
         -- for 'type' types the type must also be known ahead
         assert(valnode and valnode.attr.value)
         assignvaltype = vartype ~= valtype
-        symbol.attr.value = valnode.attr.value
+        symbol.value = valnode.attr.value
       else
         foundtype = false
       end
@@ -1208,7 +1219,7 @@ function visitors.VarDecl(context, node)
 
       if assignvaltype then
         vartype = valtype
-        symbol.attr.type = vartype
+        symbol.type = vartype
 
         local attribnode = varnode[3]
         if attribnode then
@@ -1225,9 +1236,6 @@ function visitors.VarDecl(context, node)
           varnode:raisef("in variable '%s' declaration: %s", symbol.name, err)
         end
       end
-    else
-      -- delay type evaluation
-      symbol:add_possible_type(nil)
     end
   end
 end
@@ -1261,7 +1269,7 @@ function visitors.Assign(context, node)
     end
     if symbol then -- symbol may nil in case of array/dot index
       symbol:add_possible_type(valtype)
-      symbol.attr.mutate = true
+      symbol.mutate = true
     end
     if vartype and valtype then
       local ok, err = vartype:is_conversible_from(valnode or valtype)
@@ -1381,14 +1389,20 @@ function visitors.FuncDef(context, node)
         end
       end
 
-      if varnode.tag == 'ColonIndex' and symbol and symbol.attr.metafunc then
+      if varnode.tag == 'ColonIndex' and symbol and symbol.metafunc then
         -- inject 'self' type as first argument
-        table.insert(argtypes, 1, symbol.attr.metarecordtype)
+        table.insert(argtypes, 1, symbol.metarecordtype)
       end
     end
 
-    if varnode.tag == 'ColonIndex' and symbol and symbol.attr.metafunc then
-      scope:add_symbol(Symbol('self', nil, symbol.attr.metarecordtype))
+    if varnode.tag == 'ColonIndex' and symbol and symbol.metafunc then
+      local selfsym = Symbol()
+      selfsym:init('self')
+      selfsym.type = symbol.metarecordtype
+      local ok, err = scope:add_symbol(selfsym)
+      if not ok then
+        node:raisef(err)
+      end
     end
 
     if not lazy then
@@ -1403,12 +1417,12 @@ function visitors.FuncDef(context, node)
   local type = types.FunctionType(node, argtypes, returntypes)
 
   if symbol then -- symbol may be nil in case of array/dot index
-    if decl or symbol.attr.metafunc then
+    if decl or symbol.metafunc then
       -- new function declaration
-      symbol.attr.type = type
+      symbol.type = type
     else
       -- check if previous symbol declaration is compatible
-      local symboltype = symbol.attr.type
+      local symboltype = symbol.type
       if symboltype then
         local ok, err = symboltype:is_conversible_from(type)
         if not ok then
@@ -1574,6 +1588,7 @@ function typechecker.analyze(ast, parser, parentcontext)
     scope.main = true
     context:traverse(ast)
   end)
+  context.rootscope:resolve()
 
   -- phase 2 traverse: infer non set types to 'any' type
   context.phase = phases.any_inference

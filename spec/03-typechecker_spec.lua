@@ -81,8 +81,8 @@ it("comptime variable" , function()
   assert.analyze_error("local a: integer <comptime>", "const variables must have an initial value")
   assert.analyze_error("local a: integer <comptime> = true", "no viable type conversion")
   assert.analyze_error("local a <comptime> = 1; a = 2", "cannot assign a constant variable")
-  assert.analyze_error("local a = 1; local c <comptime> = a", "can only assign to constant expressions")
-  assert.analyze_error("local b = 1; local c <comptime> = 1 * 2 + b", "can only assign to constant expressions")
+  assert.analyze_error("local a = 1; local c <comptime> = a", "can only assign to compile time expressions")
+  assert.analyze_error("local b = 1; local c <comptime> = 1 * 2 + b", "can only assign to compile time expressions")
 end)
 
 it("const variable" , function()
@@ -721,7 +721,7 @@ it("arrays", function()
   assert.analyze_error([[local a: array(integer, 2); a[-1] = 1]], 'cannot index negative value')
   assert.analyze_error([[local a: array(integer, 2); a[2] = 1]], 'is out of bounds')
   assert.analyze_error([[local a: array(integer, 2); a['s'] = 1]], 'cannot index with value of type')
-  assert.analyze_error([[local a: array(integer, 2) <comptime> = {1,b}]], 'can only assign to constant expressions')
+  assert.analyze_error([[local a: array(integer, 2) <comptime> = {1,b}]], 'can only assign to compile time expressions')
 end)
 
 it("indexing", function()
@@ -794,7 +794,7 @@ it("records", function()
     local b = false
     local Record = @record{x: boolean}
     local a <comptime> = Record{x = b}
-  ]], "can only assign to constant expressions")
+  ]], "can only assign to compile time expressions")
   assert.ast_type_equals(
     "local a: record {x: boolean}; local b = a.x",
     "local a: record {x: boolean}; local b: boolean = a.x")
@@ -854,7 +854,12 @@ it("record methods", function()
     local vec2 = @record{x: integer, y: integer}
     function vec2.create(x: integer, y: integer) return vec2{x,y} end
     function vec2.create(x: integer, y: integer) return vec2{x,y+1} end
-  ]], "cannot redefine meta type function")
+  ]], "cannot redefine meta type field")
+  assert.analyze_error([[
+    local A = @record{}
+    global A.a: integer
+    global A.a: integer]],
+    "cannot redefine meta type field")
 end)
 
 it("record globals", function()
@@ -1109,6 +1114,12 @@ it("strict mode", function()
   assert.analyze_error("[##[ strict = true ]##] function f() return 0 end", "undeclared symbol")
   assert.analyze_error("[##[ strict = true ]##] a = 1", "undeclared symbol")
   assert.analyze_error("[##[ strict = true ]##] local a; local a", "shadows pre declared symbol")
+  assert.analyze_error("[##[ strict = true ]##] global a; global a", "shadows pre declared symbol")
+  assert.analyze_error([=[
+    [##[ strict = true ]##]
+    local self;
+    local A = @record{}
+    function A:f() end]=], "shadows pre declared symbol")
 end)
 
 end)

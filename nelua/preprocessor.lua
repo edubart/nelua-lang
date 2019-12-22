@@ -7,6 +7,7 @@ local compat = require 'pl.compat'
 local typedefs = require 'nelua.typedefs'
 local Context = require 'nelua.context'
 local Emitter = require 'nelua.emitter'
+local Attr = require 'nelua.attr'
 local config = require 'nelua.configer'.get()
 
 local function default_visitor(self, node, emitter, ...)
@@ -57,12 +58,13 @@ function PPContext:tovalue(val, orignode)
   elseif traits.is_type(val) then
     node = self.aster.Type{'void'}
     -- inject persistent parsed type
-    node.pattr = {
+    local pattr = Attr({
       type = typedefs.primtypes.type,
       value = val,
       comptime = true
-    }
-    tabler.update(node.attr, node.pattr)
+    })
+    node.attr:merge(pattr)
+    node.pattr = pattr
   elseif traits.is_string(val) then
     node = self.aster.String{val}
   elseif traits.is_number(val) or traits.is_bignumber(val) then

@@ -1,45 +1,73 @@
 local typedefs = require 'nelua.typedefs'
 local types = require 'nelua.types'
+local Symbol = require 'nelua.symbol'
 local primtypes = typedefs.primtypes
 
-local symdefs = {
-  -- nelua only
-  nilptr = {type=primtypes.Nilptr, comptime = true},
-  likely = {type=types.FunctionType(nil, {primtypes.boolean}, {primtypes.boolean})},
-  unlikely = {type=types.FunctionType(nil, {primtypes.boolean}, {primtypes.boolean})},
-  panic = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.string})
-  C = {type = primtypes.type, value=types.RecordType(nil, {})},
+local symdefs = {}
 
-  -- lua
-  assert = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.boolean, primtypes.auto})
-  error = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.string}),
-  warn = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.string}),
-  print = {type=primtypes.any}, --types.FunctionType(nil, {primtypes.varargs})
-  type = {type=types.FunctionType(nil, {primtypes.any}, {primtypes.string})},
-  require = {type=primtypes.any},
+local function define_function(name, args, rets)
+  local type = types.FunctionType(nil, args, rets)
+  type:suggest_nick(name)
+  type.sideeffect = false
+  local symbol = Symbol{
+    name = name,
+    codename = name,
+    type = type,
+    const = true,
+    builtin = true,
+  }
+  symdefs[name] = symbol
+end
 
-  --dofile
-  --select
-  --tostring
-  --tonumber
-  --_VERSION
+local function define_const(name, type, value)
+  local symbol = Symbol{
+    name = name,
+    codename = name,
+    type = type,
+    comptime = value ~= nil,
+    const = value == nil,
+    value = value,
+    builtin = true,
+  }
+  symdefs[name] = symbol
+end
 
-  --_G
-  --ipairs
-  --next
-  --pairs
-  --load
-  --loadfile
-  --pcall
-  --xpcall
-  --rawequal
-  --rawget
-  --rawlen
-  --rawset
-  --setmetatable
-  --getmetatable
-  --collectgarbage
-}
+-- nelua only
+define_function('likely', {primtypes.boolean}, {primtypes.boolean})
+define_function('unlikely', {primtypes.boolean}, {primtypes.boolean})
+define_const('panic', primtypes.any)
+define_const('nilptr', primtypes.Nilptr)
+define_const('C', primtypes.type, types.RecordType(nil, {}))
+
+-- lua
+define_const('assert', primtypes.any)
+define_const('error', primtypes.any)
+define_const('warn', primtypes.any)
+define_const('print', primtypes.any)
+define_function('type', {primtypes.any}, {primtypes.string})
+define_const('require', primtypes.any)
+
+--dofile
+--select
+--tostring
+--tonumber
+--_VERSION
+
+--_G
+--ipairs
+--next
+--pairs
+--load
+--loadfile
+--pcall
+--xpcall
+--rawequal
+--rawget
+--rawlen
+--rawset
+--setmetatable
+--getmetatable
+--collectgarbage
 
 --[[
 coroutine

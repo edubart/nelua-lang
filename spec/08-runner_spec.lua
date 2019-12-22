@@ -49,40 +49,7 @@ it("print correct generated AST" , function()
     }
   }
 }]])
-  assert.run('--print-analyzed-ast examples/helloworld.nelua', [[Block {
-  {
-    Call {
-      attr = {
-        calleetype = "any",
-        sideeffect = true,
-        type = "varanys",
-      },
-      {
-        String {
-          attr = {
-            comptime = true,
-            type = "string",
-            value = "hello world",
-          },
-          "hello world",
-          nil
-        }
-      },
-      Id {
-        attr = {
-          builtin = true,
-          codename = "print",
-          const = true,
-          lvalue = true,
-          name = "print",
-          type = "any",
-        },
-        "print"
-      },
-      true
-    }
-  }
-}]])
+  assert.run('--print-analyzed-ast examples/helloworld.nelua', [[type = "string"]])
 end)
 
 it("print correct generated code", function()

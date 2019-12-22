@@ -351,8 +351,8 @@ function visitors.DotIndex(context, node, emitter)
       emitter:add(objtype:get_field(name).value)
     elseif objtype:is_record() then
       local symbol = objtype:get_metafield(name)
-      if symbol.attr.comptime then
-        emitter:add_literal(symbol.attr)
+      if symbol.comptime then
+        emitter:add_literal(symbol)
       else
         emitter:add(context:declname(symbol))
       end
@@ -472,7 +472,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, isblockcal
     end
 
     if ismethod then
-      emitter:add(context:declname(attr.symbol), '(')
+      emitter:add(context:declname(attr.methodsym), '(')
       emitter:add_val2type(calleetype.argtypes[1], callee)
     else
       if attr.pointercall then

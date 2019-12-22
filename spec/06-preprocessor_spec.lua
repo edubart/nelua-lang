@@ -110,7 +110,7 @@ end)
 it("inject other symbol type", function()
   assert.ast_type_equals([[
     local a: uint8 = 1
-    local b: #[symbols['a'].attr.type]#
+    local b: #[symbols['a'].type]#
   ]], [[
     local a: uint8 = 1
     local b: uint8
@@ -126,8 +126,8 @@ it("print symbol", function()
   ]=], [[
     local a <comptime> = 1
     local b <const> = 2
-    print 'symbol<a: comptime int64 = 1>'
-    print 'symbol<b: const int64>'
+    print 'a: int64 <comptime> = 1'
+    print 'b: int64 <const>'
   ]])
   assert.ast_type_equals([=[
     for i:integer=1,2 do
@@ -135,7 +135,7 @@ it("print symbol", function()
     end
   ]=], [[
     for i=1,2 do
-      print(i, 'symbol<i: int64>')
+      print(i, 'i: int64')
     end
   ]])
   assert.ast_type_equals([[
@@ -146,15 +146,15 @@ it("print symbol", function()
     ## end
   ]], [[
     local a <comptime> = 1
-    print 'symbol<a: comptime int64 = 1>'
+    print 'a: int64 <comptime> = 1'
   ]])
 end)
 
 it("print enums", function()
   assert.ast_type_equals([[
     local Weekends = @enum { Friday=0, Saturday, Sunda }
-    ## symbols.Weekends.attr.value.fields[3].name = 'Sunday'
-    ## for i,field in ipairs(symbols.Weekends.attr.value.fields) do
+    ## symbols.Weekends.value.fields[3].name = 'Sunday'
+    ## for i,field in ipairs(symbols.Weekends.value.fields) do
       print(#[field.name .. ' ' .. tostring(field.value)]#)
     ## end
   ]], [[
@@ -188,15 +188,15 @@ it("print types", function()
     function R:foo() return 1 end
     global R.v: integer = 1
     local r: R
-    local tn = #[tostring(symbols.n.attr.type)]#
-    local ts = #[tostring(symbols.s.attr.type)]#
-    local tb = #[tostring(symbols.b.attr.type)]#
-    local ta = #[tostring(symbols.a.attr.type)]#
-    local tf = #[tostring(symbols.f.attr.type)]#
-    local tg = #[tostring(symbols.g.attr.type)]#
-    local tR = #[tostring(symbols.R.attr.type)]#
-    local tRmt = #[tostring(symbols.R.attr.value.metatype)]#
-    local tr = #[tostring(symbols.r.attr.type)]#
+    local tn = #[tostring(symbols.n.type)]#
+    local ts = #[tostring(symbols.s.type)]#
+    local tb = #[tostring(symbols.b.type)]#
+    local ta = #[tostring(symbols.a.type)]#
+    local tf = #[tostring(symbols.f.type)]#
+    local tg = #[tostring(symbols.g.type)]#
+    local tR = #[tostring(symbols.R.type)]#
+    local tRmt = #[tostring(symbols.R.value.metatype)]#
+    local tr = #[tostring(symbols.r.type)]#
   ]], [=[
     local n: float64
     local s: string
@@ -271,7 +271,7 @@ it("print symbol", function()
     end
   ]=], [[
     for i:integer=1,2 do
-      print(i, 'symbol<i: int64>')
+      print(i, 'i: int64')
     end
   ]])
 end)

@@ -64,6 +64,7 @@ build = {
     ['nelua.scope'] = 'nelua/scope.lua',
     ['nelua.symdefs'] = 'nelua/symdefs.lua',
     ['nelua.symbol'] = 'nelua/symbol.lua',
+    ['nelua.attr'] = 'nelua/attr.lua',
     ['nelua.syntaxdefs'] = 'nelua/syntaxdefs.lua',
     ['nelua.typechecker'] = 'nelua/typechecker.lua',
     ['nelua.preprocessor'] = 'nelua/preprocessor.lua',

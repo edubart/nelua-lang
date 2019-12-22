@@ -2,6 +2,7 @@ require 'busted.runner'()
 
 local astbuilder = require 'nelua.syntaxdefs'().astbuilder
 local assert = require 'spec.tools.assert'
+local Attr = require 'nelua.attr'
 local n = astbuilder.aster
 
 describe("Nelua AST should", function()
@@ -22,9 +23,9 @@ end)
 
 it("clone different ASTNode", function()
   local node =
-    n.Block{ attr={someattr = true}, {
+    n.Block{attr=Attr{someattr = true}, {
       n.Return{{
-        n.Nil{attr={someattr = true}},
+        n.Nil{attr=Attr{someattr = true}},
   }}}}
   local cloned = node:clone()
   assert(cloned.attr.someattr == nil)

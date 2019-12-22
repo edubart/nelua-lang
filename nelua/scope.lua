@@ -4,7 +4,7 @@ local types = require 'nelua.types'
 local typedefs = require 'nelua.typedefs'
 local symdefs = require 'nelua.symdefs'
 local tabler = require 'nelua.utils.tabler'
-local Symbol = require 'nelua.symbol'
+local stringer = require 'nelua.utils.stringer'
 
 local Scope = class()
 
@@ -45,38 +45,15 @@ function Scope:get_parent_of_kind(kind)
   return parent
 end
 
-function Scope:get_symbol(name, node, required)
+function Scope:get_symbol(name)
   local symbol = self.symbols[name]
-  if not symbol and node then
-    local symdef = symdefs[name]
-    if symdef then
-      symbol = Symbol(name, nil, symdef.type)
-      tabler.update(symbol.attr, symdef)
-      symbol.attr.const = true
-      symbol.attr.builtin = true
-      if symbol.attr.type:is_function() then
-        symbol.attr.type.sideeffect = false
-      end
+  if not symbol then
+    symbol = symdefs[name]
+    if symbol then
+      symbol = symbol:clone()
     end
   end
-  if not symbol and required and self.context.strict and not self.context.preprocessing then
-    node:raisef("undeclared symbol '%s'", name)
-  end
   return symbol
-end
-
-local function symbol_resolve_type(symbol)
-  if symbol.attr.type or symbol.requnknown or symbol.resolvefail then
-    return false
-  end
-  local type = types.find_common_type(symbol.possibletypes)
-  if type then
-    symbol.attr.type = type
-    return true
-  else
-    symbol.resolvefail = true
-    return false
-  end
 end
 
 function Scope:add_symbol(symbol)
@@ -84,21 +61,22 @@ function Scope:add_symbol(symbol)
   assert(name)
   local oldsymbol = self.symbols[name]
   if oldsymbol and (not oldsymbol.node or oldsymbol.node ~= symbol.node) then
-    symbol.node:assertraisef(not self.context.strict,
-      "symbol '%s' shadows pre declared symbol with the same name", name)
+    if self.context.strict then
+      return nil, stringer.pformat("symbol '%s' shadows pre declared symbol with the same name", name)
+    end
 
     if rawget(self.symbols, name) == oldsymbol then
       -- symbol redeclaration in the same scope, resolve old symbol type before replacing it
-      symbol_resolve_type(oldsymbol)
+      oldsymbol:resolve_type()
     end
 
-    symbol.attr.shadowed = true
+    symbol.shadowed = true
   end
   if self.context.modname then
-    symbol.attr.modname = self.context.modname
+    symbol.modname = self.context.modname
   end
   self.symbols[name] = symbol
-  return symbol
+  return true
 end
 
 function Scope:resolve_symbols()
@@ -107,7 +85,7 @@ function Scope:resolve_symbols()
   -- first resolve any symbol with known possible types
   for _,symbol in pairs(self.symbols) do
     if not symbol.hasunknown then
-      if symbol_resolve_type(symbol) then
+      if symbol:resolve_type() then
         count = count + 1
       end
     elseif count == 0 then
@@ -119,7 +97,7 @@ function Scope:resolve_symbols()
     -- [disabled] try to infer the type only for the first unknown symbol
     --table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)
     for _,symbol in ipairs(unknownlist) do
-      if symbol_resolve_type(symbol) then
+      if symbol:resolve_type() then
         count = count + 1
         --break
       end

@@ -1,24 +1,41 @@
 local tabler = require 'nelua.utils.tabler'
 local class = require 'nelua.utils.class'
 local sstream = require 'nelua.utils.sstream'
-local Symbol = class()
+local types = require 'nelua.types'
+local Attr = require 'nelua.attr'
+local Symbol = class(Attr)
 
-function Symbol:_init(name, node, type)
-  assert(name)
-  local attr = node and node.attr or {}
-  self.name = name
-  self.node = node
-  self.possibletypes = {}
-  self.attr = attr
-  attr.name = name
-  attr.codename = name
-  if type then
-    attr.type = type
+Symbol._symbol = true
+
+function Symbol:init(name, node)
+  if node then
+    self.node = node
   end
+  if name then
+    self.name = name
+    self.codename = name
+  end
+  self:clear_possible_types()
+end
+
+function Symbol.promote_attr(attr, name, node)
+  local self = setmetatable(attr, Symbol)
+  self:init(name, node)
+  return self
+end
+
+function Symbol:clear_possible_types()
+  self.possibletypes = nil
+  self.requnknown = nil
+  self.hasunknown = nil
+  self.resolvefail = nil
 end
 
 function Symbol:add_possible_type(type, required)
-  if self.attr.type then return end
+  if not self.possibletypes then
+    self.possibletypes = {}
+  end
+  if self.type then return end
   if not type then
     if required then
       self.requnknown = true
@@ -31,45 +48,44 @@ function Symbol:add_possible_type(type, required)
   table.insert(self.possibletypes, type)
 end
 
+function Symbol:resolve_type()
+  if self.type or self.requnknown or self.resolvefail then
+    return false
+  end
+  local resolvetype = types.find_common_type(self.possibletypes)
+  if resolvetype then
+    self.type = resolvetype
+    return true
+  else
+    self.resolvefail = true
+    return false
+  end
+end
+
 function Symbol:link_node(node)
-  if node.attr == self.attr then
+  if node.attr == self then
     return
   end
-  if next(node.attr) == nil then
-    node.attr = self.attr
+  if node.attr:is_empty() then
+    node.attr = self
   else
-    -- merge attrs into others node and link
-    local attr = self.attr
-    for k,v in pairs(node.attr) do
-      if attr[k] == nil then
-        attr[k] = v
-      else
-        assert(attr[k] == v, 'cannot link to a node with different attributes')
-      end
-    end
-    node.attr = attr
+    node.attr = self:merge(node.attr)
   end
 end
 
 function Symbol:__tostring()
-  local ss = sstream('symbol<')
-  ss:add(self.name)
-  if self.attr.const or self.attr.comptime or self.attr.type then
-    ss:add(': ')
+  local ss = sstream(self.name)
+  if self.type then
+    ss:add(': ', self.type)
   end
-  if self.attr.const then
-    ss:add('const ')
+  if self.comptime then
+    ss:add(' <comptime>')
+  elseif self.const then
+    ss:add(' <const>')
   end
-  if self.attr.comptime then
-    ss:add('comptime ')
+  if self.value then
+    ss:add(' = ', self.value)
   end
-  if self.attr.type then
-    ss:add(self.attr.type)
-  end
-  if self.attr.value then
-    ss:add(' = ', self.attr.value)
-  end
-  ss:add('>')
   return ss:tostring()
 end
 

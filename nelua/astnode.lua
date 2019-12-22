@@ -7,6 +7,7 @@ local traits = require 'nelua.utils.traits'
 local except = require 'nelua.utils.except'
 local sstream = require 'nelua.utils.sstream'
 local stringer = require 'nelua.utils.stringer'
+local Attr = require 'nelua.attr'
 
 local ASTNode = class()
 ASTNode.tag = 'Node'
@@ -23,7 +24,7 @@ function ASTNode:_init(...)
   for i=1,select('#', ...) do
     self[i] = select(i, ...)
   end
-  self.attr = {}
+  self.attr = setmetatable({}, Attr)
   self.uid = genuid()
 end
 
@@ -64,10 +65,10 @@ function ASTNode:clone()
   end
   if self.pattr then
     -- copy persistent attributes
-    node.attr = tabler.copy(self.pattr)
+    node.attr = self.pattr:clone()
     node.pattr = self.pattr
   else
-    node.attr = {}
+    node.attr = setmetatable({}, Attr)
   end
   node.pos = self.pos
   node.src = self.src
@@ -141,11 +142,11 @@ local ignored_stringfy_keys = {
   pos = true, src = true, srcname=true, modname=true,
   uid = true,
   processed = true,
-  untyped = true,
   desiredtype = true,
   cloned = true,
   needprocess = true,
-  loaded = true,
+  possibletypes = true,
+  node = true,
 }
 local function stringfy_val2str(val)
   local vstr = tostring(val)
@@ -167,7 +168,7 @@ local function stringfy_astnode(node, depth, ss, skipindent)
   end
   ss:add('{\n')
   for k,v in iters.ospairs(node) do
-    if not isnode or not ignored_stringfy_keys[k] then
+    if not ignored_stringfy_keys[k] then
       if isnode and k == 'attr' and traits.is_table(v) then
         if next(v) then
           ss:add(indent, '  attr = ')

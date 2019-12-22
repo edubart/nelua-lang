@@ -24,6 +24,10 @@ function traits.is_astnode(v)
   return type(v) == 'table' and v._astnode
 end
 
+function traits.is_attr(v)
+  return type(v) == 'table' and v._attr
+end
+
 function traits.is_type(v)
   return type(v) == 'table' and v._type
 end

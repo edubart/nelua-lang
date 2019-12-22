@@ -24,6 +24,9 @@ end
 
 function CContext:declname(node)
   local attr = node.attr
+  if node._symbol then
+    attr = node
+  end
   if attr.declname then
     return attr.declname
   end
