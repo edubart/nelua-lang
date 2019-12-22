@@ -725,6 +725,7 @@ it("arrays", function()
 end)
 
 it("indexing", function()
+  assert.analyze_ast([[local a; local c = a[2] ]])
   assert.analyze_error([[local a = 1; a[1] = 2]], 'cannot index variable of type')
   assert.analyze_error([[local a = 1; a.b = 2]], 'cannot index field')
 end)

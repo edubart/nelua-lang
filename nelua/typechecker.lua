@@ -197,8 +197,7 @@ function visitors.Table(context, node)
   elseif desiredtype:is_record() then
     visitor_Record_literal(context, node, desiredtype)
   else
-    node:raisef("type '%s' cannot be initialized using a table literal",
-      desiredtype:prettyname())
+    node:raisef("type '%s' cannot be initialized using a table literal", desiredtype:prettyname())
   end
 end
 
@@ -249,6 +248,7 @@ function visitors.Attrib(context, node, symbol)
   if not paramshape then
     node:raisef("attribute '%s' is undefined for %s", name, atttype)
   end
+
   local params = tabler.imap(argnodes, function(argnode)
     local value = argnode.attr.value
     if traits.is_bignumber(value) then
@@ -561,7 +561,7 @@ function visitors.PointerType(context, node)
   if subtypenode then
     context:traverse(subtypenode)
     local subtype = subtypenode.attr.value
-    attr.value = types.get_pointer_type(subtype, node)
+    attr.value = types.get_pointer_type(subtype)
     if not attr.value then
       node:raisef("subtype '%s' is invalid for 'pointer' type", subtype:prettyname())
     end
@@ -571,104 +571,109 @@ function visitors.PointerType(context, node)
   attr.type = primtypes.type
 end
 
+local function visitor_Record_FieldIndex(_, node, objtype, name)
+  local field = objtype:get_field(name)
+  local type = field and field.type
+  if not type then
+    node:raisef("cannot index field '%s' on enum '%s'", name, objtype:prettyname())
+  end
+  node.attr.type = type
+end
+
+local function visitor_EnumType_FieldIndex(_, node, objtype, name)
+  local attr = node.attr
+  local field = objtype:get_field(name)
+  if not field then
+    node:raisef("cannot index field '%s' on enum '%s'", name, objtype:prettyname())
+  end
+  attr.comptime = true
+  attr.value = field.value
+  attr.type = objtype
+end
+
+local function visitor_RecordType_FieldIndex(context, node, objtype, name)
+  local attr = node.attr
+  local symbol = objtype:get_metafield(name)
+  if not symbol then
+    local symname = string.format('%s_%s', objtype.codename, name)
+    local parentnode = context:get_parent_node()
+    if context.infuncdef == parentnode then
+      -- declaration of record global function
+      symbol = Symbol.promote_attr(attr, symname, node)
+      symbol.const = true
+      symbol.metafunc = true
+      symbol.metavar = true
+      symbol.metarecordtype = types.get_pointer_type(objtype)
+      objtype:set_metafield(name, symbol)
+    elseif context.inglobaldecl == parentnode then
+      -- declaration of record global variable
+      symbol = Symbol.promote_attr(attr, symname, node)
+      symbol.metavar = true
+      objtype:set_metafield(name, symbol)
+
+      -- add symbol to scope to enable type deduction
+      local ok = context.scope:add_symbol(symbol)
+      assert(ok)
+    else
+      node:raisef("cannot index record meta field '%s'", name)
+    end
+    symbol:link_node(parentnode)
+  elseif context.infuncdef or context.inglobaldecl then
+    if symbol.node ~= node then
+      node:raisef("cannot redefine meta type field '%s'", name)
+    end
+  else
+    symbol:link_node(node)
+  end
+  if not attr.type and context.phase == phases.any_inference then
+    attr.type = primtypes.any
+  end
+  return symbol
+end
+
+local function visitor_Type_FieldIndex(context, node, objtype, name)
+  local attr = node.attr
+  assert(objtype)
+  if objtype:is_pointer() and objtype.subtype:is_record() then
+    -- allow to access method and fields on record pointer types
+    objtype = objtype.subtype
+  end
+  attr.indextype = objtype
+  if objtype:is_enum() then
+    return visitor_EnumType_FieldIndex(context, node, objtype, name)
+  elseif objtype:is_record() then
+    return visitor_RecordType_FieldIndex(context, node, objtype, name)
+  else
+    node:raisef("cannot index fields on type '%s'", objtype:prettyname())
+  end
+end
+
 local function visitor_FieldIndex(context, node)
   local attr = node.attr
   local name, objnode = node:args()
   context:traverse(objnode)
-  --[[
-  -- TODO: this was disabled because of caching bugs
-  if attr.type then
-    -- type already known, return early
-    local objtype = objnode.attr.type
-    if objtype:is_type() then
-      objtype = objnode.attr.value
-      if objtype:is_record() then
-        return objtype:get_metafield(name)
-      end
-    end
-    return
-  end
-  ]]
-  local symbol, type
   local objtype = objnode.attr.type
+  local ret
   if objtype then
     if objtype:is_pointer() then
+      -- dereference when acessing fields for pointers
       objtype = objtype.subtype
     end
-
     if objtype:is_record() then
-      local field = objtype:get_field(name)
-      type = field and field.type
-      if not type then
-        node:raisef("cannot index field '%s' on enum '%s'", name, objtype:prettyname())
-      end
+      ret = visitor_Record_FieldIndex(context, node, objtype, name)
     elseif objtype:is_type() then
-      objtype = objnode.attr.value
-      assert(objtype)
-      if objtype:is_pointer() and objtype.subtype:is_record() then
-        -- allow to access method and fields on record pointer types
-        objtype = objtype.subtype
-      end
-      attr.indextype = objtype
-      if objtype:is_enum() then
-        local field = objtype:get_field(name)
-        if not field then
-          node:raisef("cannot index field '%s' on enum '%s'", name, objtype:prettyname())
-        end
-        attr.comptime = true
-        attr.value = field.value
-        type = objtype
-      elseif objtype:is_record() then
-        symbol = objtype:get_metafield(name)
-        local parentnode = context:get_parent_node()
-        if not symbol then
-          local symname = string.format('%s_%s', objtype.codename, name)
-          if context.infuncdef == parentnode then
-            -- declaration of record global function
-            symbol = Symbol.promote_attr(node.attr, symname, node)
-            symbol.const = true
-            symbol.metafunc = true
-            symbol.metavar = true
-            symbol.metarecordtype = types.get_pointer_type(objtype, objnode)
-            objtype:set_metafield(name, symbol)
-          elseif context.inglobaldecl == parentnode then
-            -- declaration of record global variable
-            symbol = Symbol.promote_attr(node.attr, symname, node)
-            symbol.metavar = true
-            objtype:set_metafield(name, symbol)
-
-            -- add symbol to scope to enable type deduction
-            local ok = context.scope:add_symbol(symbol)
-            assert(ok)
-          else
-            node:raisef("cannot index record meta field '%s'", name)
-          end
-          symbol:link_node(parentnode)
-        elseif context.infuncdef or context.inglobaldecl then
-          if symbol.node ~= node then
-            node:raisef("cannot redefine meta type field '%s'", name)
-          end
-        else
-          symbol:link_node(node)
-        end
-        if symbol then
-          type = symbol.type
-        end
-      else
-        node:raisef("cannot index fields on type '%s'", objtype:prettyname())
-      end
-    elseif not (objtype:is_table() or objtype:is_any()) then
+      ret = visitor_Type_FieldIndex(context, node, objnode.attr.value, name)
+    elseif objtype:is_table() or objtype:is_any() then
+      attr.type = primtypes.any
+    else
       node:raisef("cannot index field '%s' on type '%s'", name, objtype.name)
     end
   end
-  if not type and context.phase == phases.any_inference then
-    type = primtypes.any
-  end
+  assert(context.phase ~= phases.any_inference or node.attr.type)
   if objnode.attr.lvalue then
     attr.lvalue = true
   end
-  attr.type = type
-  return symbol
+  return ret
 end
 
 function visitors.DotIndex(context, node)
@@ -697,8 +702,7 @@ function visitors.ArrayIndex(context, node)
           local indexvalue = indexnode.attr.value
           if indexvalue then
             if indexvalue:isneg() then
-              indexnode:raisef("cannot index negative value %s",
-                indexvalue:todec())
+              indexnode:raisef("cannot index negative value %s", indexvalue:todec())
             end
             if objtype:is_array() and objtype.length ~= 0 and not (indexvalue < bn.new(objtype.length)) then
               indexnode:raisef("index %s is out of bounds, array maximum index is %d",
@@ -712,13 +716,13 @@ function visitors.ArrayIndex(context, node)
           indexnode:raisef("cannot index with value of type '%s'", indextype:prettyname())
         end
       end
-    elseif not (objtype:is_table() or objtype:is_any()) then
+    elseif objtype:is_table() or objtype:is_any() then
+      type = primtypes.any
+    else
       node:raisef("cannot index variable of type '%s'", objtype.name)
     end
   end
-  if not type and context.phase == phases.any_inference then
-    type = primtypes.any
-  end
+  assert(context.phase ~= phases.any_inference or type)
   if objnode.attr.lvalue then
     node.attr.lvalue = true
   end

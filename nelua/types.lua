@@ -1293,13 +1293,13 @@ function types.set_typedefs(t)
   primtypes = t.primtypes
 end
 
-function types.get_pointer_type(subtype, node)
+function types.get_pointer_type(subtype)
   if subtype == primtypes.cchar then
     return primtypes.cstring
   elseif subtype:is_void() then
     return primtypes.pointer
   elseif not subtype.unpointable then
-    return types.PointerType(node, subtype)
+    return types.PointerType(nil, subtype)
   end
 end
 
