@@ -67,7 +67,7 @@ function Scope:add_symbol(symbol)
 
     if rawget(self.symbols, name) == oldsymbol then
       -- symbol redeclaration in the same scope, resolve old symbol type before replacing it
-      oldsymbol:resolve_type()
+      oldsymbol:resolve_type(self.context.anyinference)
     end
 
     symbol.shadowed = true
@@ -82,6 +82,7 @@ end
 function Scope:resolve_symbols()
   local count = 0
   local unknownlist = {}
+  local anyfallback = self.context.anyinference
   -- first resolve any symbol with known possible types
   for _,symbol in pairs(self.symbols) do
     if not symbol.hasunknown then
@@ -91,9 +92,14 @@ function Scope:resolve_symbols()
     elseif count == 0 then
       table.insert(unknownlist, symbol)
     end
+    if anyfallback and symbol.type == nil then
+      symbol.type = typedefs.primtypes.any
+      symbol:clear_possible_types()
+      count = count + 1
+    end
   end
   -- if nothing was resolved previously then try resolve symbol with unknown possible types
-  if count == 0 and #unknownlist > 0 then
+  if not anyfallback and count == 0 and #unknownlist > 0 then
     -- [disabled] try to infer the type only for the first unknown symbol
     --table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)
     for _,symbol in ipairs(unknownlist) do

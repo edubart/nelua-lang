@@ -103,34 +103,34 @@ end
 -------------------
 -- error handling
 -------------------
-local function format_node_errmsg(node, message, ...)
+function ASTNode:format_errmsg(message, ...)
   message = stringer.pformat(message, ...)
-  if node.src and node.pos then
-    message = errorer.get_pretty_source_errmsg(node.src, node.srcname, node.pos, message)
+  if self.src and self.pos then
+    message = errorer.get_pretty_source_errmsg(self.src, self.srcname, self.pos, message)
   end
   return message
 end
 
 --luacov:disable
 function ASTNode:errorf(message, ...)
-  error(format_node_errmsg(self, message, ...), 2)
+  error(self:format_errmsg(message, ...), 2)
 end
 
 function ASTNode:assertf(cond, message, ...)
   if not cond then
-    error(format_node_errmsg(self, message, ...), 2)
+    error(self:format_errmsg(message, ...), 2)
   end
   return cond
 end
 --luacov:enable
 
 function ASTNode:raisef(message, ...)
-  except.raise(format_node_errmsg(self, message, ...), 2)
+  except.raise(self:format_errmsg(message, ...), 2)
 end
 
 function ASTNode:assertraisef(cond, message, ...)
   if not cond then
-    except.raise(format_node_errmsg(self, message, ...), 2)
+    except.raise(self:format_errmsg(message, ...), 2)
   end
   return cond
 end

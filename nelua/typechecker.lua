@@ -13,11 +13,6 @@ local typechecker = {}
 local primtypes = typedefs.primtypes
 local visitors = {}
 
-local phases = {
-  type_inference = 1,
-  any_inference = 2
-}
-
 function visitors.Number(_, node)
   local attr = node.attr
   if attr.type then return end
@@ -296,16 +291,10 @@ end
 function visitors.Id(context, node)
   local name = node[1]
   local symbol = context.scope:get_symbol(name)
-  if symbol then
-    assert(symbol.name == name, symbol)
-  end
   if not symbol and context.strict and not context.preprocessing then
     node:raisef("undeclared symbol '%s'", name)
   end
   if not symbol then
-    if not node.attr.type and context.phase == phases.any_inference then
-      node.attr.type = primtypes.any
-    end
     symbol = Symbol.promote_attr(node.attr, name, node)
     local ok, err = context.scope:add_symbol(symbol)
     assert(ok)
@@ -323,9 +312,6 @@ function visitors.IdDecl(context, node)
     if typenode then
       context:traverse(typenode)
       type = typenode.attr.value
-    end
-    if context.phase == phases.any_inference then
-      type = primtypes.any
     end
   end
   local symbol
@@ -610,14 +596,14 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
       symbol = Symbol.promote_attr(attr, symname, node)
       symbol.metavar = true
       objtype:set_metafield(name, symbol)
-
-      -- add symbol to scope to enable type deduction
-      local ok = context.scope:add_symbol(symbol)
-      assert(ok)
     else
       node:raisef("cannot index record meta field '%s'", name)
     end
     symbol:link_node(parentnode)
+
+    -- add symbol to scope to enable type deduction
+    local ok = context.rootscope:add_symbol(symbol)
+    assert(ok)
   elseif context.infuncdef or context.inglobaldecl then
     if symbol.node ~= node then
       node:raisef("cannot redefine meta type field '%s'", name)
@@ -625,15 +611,11 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   else
     symbol:link_node(node)
   end
-  if not attr.type and context.phase == phases.any_inference then
-    attr.type = primtypes.any
-  end
   return symbol
 end
 
 local function visitor_Type_FieldIndex(context, node, objtype, name)
   local attr = node.attr
-  assert(objtype)
   if objtype:is_pointer() and objtype.subtype:is_record() then
     -- allow to access method and fields on record pointer types
     objtype = objtype.subtype
@@ -669,7 +651,6 @@ local function visitor_FieldIndex(context, node)
       node:raisef("cannot index field '%s' on type '%s'", name, objtype.name)
     end
   end
-  assert(context.phase ~= phases.any_inference or node.attr.type)
   if objnode.attr.lvalue then
     attr.lvalue = true
   end
@@ -722,7 +703,6 @@ function visitors.ArrayIndex(context, node)
       node:raisef("cannot index variable of type '%s'", objtype.name)
     end
   end
-  assert(context.phase ~= phases.any_inference or type)
   if objnode.attr.lvalue then
     node.attr.lvalue = true
   end
@@ -901,10 +881,6 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
     -- callee type is not known yet (will be in known after resolution)
     context:traverse(argnodes)
   end
-  --if not node.attr.type and context.phase == phases.any_inference then
-  --  node.attr.type = primtypes.any
-  --end
-  assert(context.phase ~= phases.any_inference or node.attr.type)
 end
 
 function visitors.Call(context, node)
@@ -1244,7 +1220,6 @@ function visitors.VarDecl(context, node)
   end
 end
 
-
 function visitors.Assign(context, node)
   local varnodes, valnodes = node:args()
   if #varnodes < #valnodes then
@@ -1527,7 +1502,6 @@ function visitors.UnaryOp(context, node)
   if type then
     attr.type = type
   end
-  assert(context.phase ~= phases.any_inference or attr.type)
   attr.sideeffect = argattr.sideeffect
 end
 
@@ -1577,7 +1551,6 @@ function visitors.BinaryOp(context, node)
   if type then
     attr.type = type
   end
-  assert(context.phase ~= phases.any_inference or attr.type)
 end
 
 function typechecker.analyze(ast, parser, parentcontext)
@@ -1586,20 +1559,20 @@ function typechecker.analyze(ast, parser, parentcontext)
   context.parser = parser
   context.astbuilder = parser.astbuilder
 
-  -- phase 1 traverse: infer and check types
-  context.phase = phases.type_inference
-  context:repeat_scope_until_resolution('function', function(scope)
-    scope.main = true
-    context:traverse(ast)
-  end)
-  context.rootscope:resolve()
+  local function analyze_ast()
+    context:repeat_scope_until_resolution('function', function(scope)
+      scope.main = true
+      context:traverse(ast)
+    end)
+    context.rootscope:resolve()
+  end
 
-  -- phase 2 traverse: infer non set types to 'any' type
-  context.phase = phases.any_inference
-  context:repeat_scope_until_resolution('function', function(scope)
-    scope.main = true
-    context:traverse(ast)
-  end)
+  -- phase 1 traverse: infer and check types
+  analyze_ast()
+
+  -- phase 2 traverse: infer unset types to 'any' type
+  context.anyinference = true
+  analyze_ast()
 
   -- forward global attributes to ast
   if context.nofloatsuffix then

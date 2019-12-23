@@ -32,9 +32,6 @@ function Symbol:clear_possible_types()
 end
 
 function Symbol:add_possible_type(type, required)
-  if not self.possibletypes then
-    self.possibletypes = {}
-  end
   if self.type then return end
   if not type then
     if required then
@@ -43,6 +40,9 @@ function Symbol:add_possible_type(type, required)
       self.hasunknown = true
     end
     return
+  end
+  if not self.possibletypes then
+    self.possibletypes = {}
   end
   if tabler.ifind(self.possibletypes, type) then return end
   table.insert(self.possibletypes, type)
@@ -55,6 +55,7 @@ function Symbol:resolve_type()
   local resolvetype = types.find_common_type(self.possibletypes)
   if resolvetype then
     self.type = resolvetype
+    self:clear_possible_types()
     return true
   else
     self.resolvefail = true
