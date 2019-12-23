@@ -15,11 +15,11 @@ local myarraytableobj <codename 'myarraytable'> = @record{
 local myarraytable = @myarraytableobj*
 
 function myarraytable.create(): myarraytable
-  return (@myarraytable)(memory.alloc((@usize)(#myarraytableobj)).data)
+  return (@myarraytable)(memory.alloc(#myarraytableobj).data)
 end
 
 function myarraytable:reserve(cap: usize)
-  memory.realloc(self.data, (cap + 1_usize) * (@usize)(#T))
+  memory.realloc(self.data, (cap + 1) * #T)
   if unlikely(not self.data.data) then
     error 'myarraytable_reserve: not enough memory'
   end
@@ -31,7 +31,7 @@ function myarraytable:reserve(cap: usize)
 end
 
 function myarraytable:grow()
-  local cap = self.cap == 0 and 1_usize or (self.cap << 1_usize)
+  local cap = self.cap == 0 and 1_usize or (self.cap << 1)
   self:reserve(cap)
 end
 

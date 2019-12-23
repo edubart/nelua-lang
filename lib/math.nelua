@@ -35,7 +35,6 @@ local function clog2(x: number): number <cimport'log2',nodecl,nosideeffect> end
 local function clog10(x: number): number <cimport'log10',nodecl,nosideeffect> end
 local function cmodf(x: number, y: number*): number <cimport'modf',nodecl,nosideeffect> end
 
-
 function math.logbase(x: number, base: number): number
   if base == 2 then
     return clog2(x)

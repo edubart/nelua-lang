@@ -26,10 +26,10 @@ local mystring <codename 'nelua_mystring'> = @mystringobj*
 
 local emptystringobj <codename 'nelua_emptystringobj'> = @record{len: usize, zero: byte}
 local emptystringo: emptystringobj <const,codename 'nelua_emptystringo'> = {}
-local emptystring <const,codename 'nelua_emptystring'> = @mystring(&emptystringo)
+local emptystring <const,codename 'nelua_emptystring'> = (@mystring)(&emptystringo)
 
 local function mystring_create(len: usize): mystring
-  local self = @mystring(malloc(@csize(#mystringobj) + len + 1))
+  local self = (@mystring)(malloc(#mystringobj + len + 1))
   self.len = len
   self.data[len] = 0
   return self
@@ -46,7 +46,7 @@ function mystring.fromcstring(s: cstring): mystring
 end
 
 function mystring.tocstring(s: mystring): cstring
-  return @cstring(&s.data[0])
+  return (@cstring)(&s.data[0])
 end
 
 function mystring.__concat(a: mystring, b: mystring): mystring
@@ -88,7 +88,7 @@ function mystring.__le(a: mystring, b: mystring): boolean
 end
 
 function mystring:__len(): integer
-  return @integer(self.len)
+  return (@integer)(self.len)
 end
 
 -- arithmetic operators
@@ -155,7 +155,7 @@ end
 function mystring:upper(): mystring
   local s = mystring_create(self.len)
   for i=0_usize,<self.len do
-    s.data[i] = @byte(toupper(self.data[i]))
+    s.data[i] = (@byte)(toupper(self.data[i]))
   end
   return s
 end
@@ -163,7 +163,7 @@ end
 function mystring:lower(): mystring
   local s = mystring_create(self.len)
   for i=0_usize,<self.len do
-    s.data[i] = @byte(tolower(self.data[i]))
+    s.data[i] = (@byte)(tolower(self.data[i]))
   end
   return s
 end

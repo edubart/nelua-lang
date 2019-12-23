@@ -212,6 +212,11 @@ it("unary operators", function()
   assert.ast_type_equals("local a = -1.0", "local a: number = -1.0")
   assert.analyze_error("local x = &1", "cannot reference compile time value")
   assert.analyze_error("local a = -'s'", "invalid operation")
+  assert.ast_type_equals([[
+    local x = 1_usize * #@integer
+  ]],[[
+    local x: usize = 1_usize * #@integer
+  ]])
 end)
 
 it("binary operator shift", function()
@@ -616,7 +621,6 @@ it("for in", function()
 end)
 
 it("array tables", function()
-  assert.analyze_ast([[local a: arraytable(boolean); local len = #a]])
   assert.analyze_ast([[
     local a: arraytable(boolean)
     local b: arraytable(boolean)
@@ -633,6 +637,13 @@ it("array tables", function()
     local d: arraytable(boolean); d = {false, true}
     local function f(a: arraytable(boolean)) end
     f({false, true})
+  ]])
+  assert.ast_type_equals([[
+    local a: arraytable(boolean)
+    local len = #a
+  ]],[[
+    local a: arraytable(boolean)
+    local len: integer = #a
   ]])
   assert.ast_type_equals([[
     local a: arraytable(boolean)
@@ -714,8 +725,8 @@ it("arrays", function()
   assert.analyze_error([[local a: array(integer, 2) = {a=0,2}]], 'fields are disallowed')
   assert.analyze_error([[local a: array(integer, 10), b: array(integer, 11); b = a]], "no viable type conversion")
   assert.analyze_error([[local a: array(integer, 10); a[0] = 1.1]], "is fractional")
-  assert.analyze_error([[local a: array(integer, 1.0) ]], "expected a positive integral type")
-  assert.analyze_error([[local a: array(integer, 0) ]], "must be positive")
+  assert.analyze_error([[local a: array(integer, 1.0) ]], "cannot have non integral type")
+  assert.analyze_error([[local N <comptime> = -1 local a: array(integer, N) ]], "cannot have negative array size")
   assert.analyze_error([[local Array = @array(integer, 1); local a = Array.l]], "cannot index fields")
   assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values in array literal but got 1')
   assert.analyze_error([[local a: array(integer, 2); a[-1] = 1]], 'cannot index negative value')

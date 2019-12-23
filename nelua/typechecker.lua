@@ -529,12 +529,10 @@ function visitors.ArrayType(context, node)
   end
   local length = lengthnode.attr.value:tointeger()
   if not lengthnode.attr.type:is_integral() then
-    lengthnode:raisef(
-      "expected a positive integral type for array size argument, but got type '%s'",
+    lengthnode:raisef("cannot have non integral type '%s' for array size",
       lengthnode.attr.type:prettyname())
-  elseif length <= 0 then
-    lengthnode:raisef("array size argument must be positive, but got size %d",
-      length)
+  elseif length < 0 then
+    lengthnode:raisef("cannot have negative array size %d", length)
   end
   attr.type = primtypes.type
   attr.value = types.ArrayType(node, subtype, length)
@@ -1490,7 +1488,7 @@ function visitors.UnaryOp(context, node)
     if value ~= nil then
       attr.comptime = true
       attr.value = value
-      attr.untyped = argattr.untyped
+      attr.untyped = argattr.untyped or not argattr.comptime
     end
   elseif opname == 'not' then
     type = primtypes.boolean
@@ -1542,7 +1540,9 @@ function visitors.BinaryOp(context, node)
     if value ~= nil then
       attr.comptime = true
       attr.value = value
-      attr.untyped = lattr.untyped and rattr.untyped or nil
+      if (lattr.untyped or not lattr.comptime) and (rattr.untyped or not rattr.comptime) then
+        attr.untyped = true
+      end
     end
   end
   if attr.ternaryand then
