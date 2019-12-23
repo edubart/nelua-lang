@@ -24,11 +24,19 @@ end
 
 -- macros
 function builtins.nelua_likely(context)
-  define_builtin(context, 'nelua_likely', "#define nelua_likely(x) __builtin_expect(x, 1)\n")
+  define_builtin(context, 'nelua_likely',
+[[#ifdef __GNUC__
+#define nelua_likely(x) __builtin_expect(x, 1)
+#define nelua_unlikely(x) __builtin_expect(x, 0)
+#else
+#define nelua_likely(x) (x)
+#define nelua_unlikely(x) (x)
+#endif
+]])
 end
 
 function builtins.nelua_unlikely(context)
-  define_builtin(context, 'nelua_unlikely', "#define nelua_unlikely(x) __builtin_expect(x, 0)\n")
+  context:ensure_runtime_builtin('nelua_likely')
 end
 
 function builtins.nelua_unused(context)

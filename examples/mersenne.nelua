@@ -1,9 +1,8 @@
--- TODO: make enum work
-
 -- Mersenne Twister random number generator, implementation taken from
 -- http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/MT2002/CODES/mt19937ar.c
 
 local MT19937_N: uint32 <comptime> = 624
+local MT19937_M: uint32 <comptime> = 397
 
 local mt19937 = @record {
   i: uint32,
@@ -23,20 +22,19 @@ end
 -- generates a random number on [0, 0xffffffff]
 function mt19937:random_uint32()
   local MAG01: uint32[2] = {0x0, 0x9908b0df}
-  local LOWER_MASK: uint32 <comptime> = 0x7fffffff
-  local UPPER_MASK: uint32 <comptime> = 0x80000000
-  local N <comptime>, M: uint32 <comptime> = MT19937_N, 397
+  local MASK = @enum(uint32) { LOWER = 0x7fffffff, UPPER = 0x80000000 }
+  local N <comptime>, M <comptime> = MT19937_N, MT19937_M
   local y
   if self.i >= N then
     for j=0_u32,<N-M do
-      y = (self.v[j] & UPPER_MASK) | (self.v[j+1] & LOWER_MASK)
+      y = (self.v[j] & MASK.UPPER) | (self.v[j+1] & MASK.LOWER)
       self.v[j] = self.v[j+M] ~ (y >> 1) ~ MAG01[y & 0x1]
     end
     for j=N-M,<N-1 do
-      y = (self.v[j] & UPPER_MASK) | (self.v[j+1] & LOWER_MASK)
+      y = (self.v[j] & MASK.UPPER) | (self.v[j+1] & MASK.LOWER)
       self.v[j] = self.v[j + (M - N)] ~ (y >> 1) ~ MAG01[y & 0x1]
     end
-    y = (self.v[N-1] & UPPER_MASK) | (self.v[0] & LOWER_MASK)
+    y = (self.v[N-1] & MASK.UPPER) | (self.v[0] & MASK.LOWER)
     self.v[N-1] = self.v[M-1] ~ (y >> 1) ~ MAG01[y & 0x1]
     self.i = 0
   end
