@@ -1507,13 +1507,21 @@ describe("preprocessor", function()
     }})
   end)
   it("multiline", function()
-    assert.parse_ast(nelua_parser, "[##[if true then\nend]##]",
+    assert.parse_ast(nelua_parser, "##[[if true then\nend]]",
+      n.Block{{
+        n.Preprocess{"if true then\nend"}
+    }})
+    assert.parse_ast(nelua_parser, "##[=[if true then\nend]=]",
+      n.Block{{
+        n.Preprocess{"if true then\nend"}
+    }})
+    assert.parse_ast(nelua_parser, "##[==[if true then\nend]==]",
       n.Block{{
         n.Preprocess{"if true then\nend"}
     }})
   end)
   it("emitting nodes", function()
-    assert.parse_ast(nelua_parser, "[##[if true then]##] print 'hello' [##[end]##]",
+    assert.parse_ast(nelua_parser, "##[[if true then]] print 'hello' ##[[end]]",
       n.Block{{
         n.Preprocess{"if true then"},
         n.Call{{n.String {"hello"}}, n.Id{"print"},true},

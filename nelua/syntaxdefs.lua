@@ -528,11 +528,11 @@ local function get_parser(std)
 
     ppexpr <- ({} %LPPEXPR -> 'PreprocessExpr' {expr -> 0} eRPPEXPR) -> to_astnode
     ppname <- ({} %LPPNAME -> 'PreprocessName' {expr -> 0} eRPPNAME) -> to_astnode
-    ppstring <- (ppshort_string / pplong_string) %SKIP
+    ppstring <- (pplong_string / ppshort_string) %SKIP
     ppshort_string    <- %PPSHORT {(!%LINEBREAK .)*} %LINEBREAK?
-    pplong_string     <- pplong_open ({pplong_content*} pplong_close / %{UnclosedPreprocessBracket})
+    pplong_string     <- pplong_open ({pplong_content*} pplong_close / %{UnclosedLongPreprocessString})
     pplong_content    <- !pplong_close .
-    pplong_open       <- '[' {:eq: '#'^+2:} '[' %SKIP
+    pplong_open       <- '##[' {:eq: '='*:} '[' %SKIP
     pplong_close      <- ']' =eq ']'
 
     name    <- %cNAME / ppname
@@ -611,9 +611,9 @@ local function get_parser(std)
     MalformedBinaryNumber = 'malformed binary number',
     MalformedHexadecimalNumber = 'malformed hexadecimal number',
     MalformedEscapeSequence = 'malformed escape sequence',
-    UnclosedLongComment = 'unclosed long comment',
-    UnclosedShortString = 'unclosed short string',
-    UnclosedLongString = 'unclosed long string',
+    UnclosedLongComment = "unclosed long comment, did your forget a ']]'?",
+    UnclosedShortString = "unclosed short string, did your forget a quote?",
+    UnclosedLongString = "unclosed long string, did your forget a ']]'?",
 
   })
 
@@ -624,7 +624,7 @@ local function get_parser(std)
     UnclosedBracket = "unclosed square bracket, did you forget a `]`?",
     UnclosedCurly = "unclosed curly brace, did you forget a `}`?",
     UnclosedAngleBracket = "unclosed angle bracket, did you forget a `>`?",
-    UnclosedPreprocessBracket = "unclosed preprocess bracket, did your forget a ']##]'?",
+    UnclosedLongPreprocessString = "unclosed long preprocess string, did your forget a ']]'?",
     UnclosedLabel = "unclosed label, did you forget `::`?",
     ExpectedParenthesis = "expected parenthesis `(`",
     ExpectedCurly = "expected curly brace `{`",

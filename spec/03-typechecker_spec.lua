@@ -1112,12 +1112,12 @@ it("strict mode", function()
     global function g() return 4 end
     assert(a == 1 and b == 2 and f() == 3 and g() == 4)
   ]])
-  assert.analyze_error("[##[ strict = true ]##] function f() return 0 end", "undeclared symbol")
-  assert.analyze_error("[##[ strict = true ]##] a = 1", "undeclared symbol")
-  assert.analyze_error("[##[ strict = true ]##] local a; local a", "shadows pre declared symbol")
-  assert.analyze_error("[##[ strict = true ]##] global a; global a", "shadows pre declared symbol")
+  assert.analyze_error("##[[ strict = true ]] function f() return 0 end", "undeclared symbol")
+  assert.analyze_error("##[[ strict = true ]] a = 1", "undeclared symbol")
+  assert.analyze_error("##[[ strict = true ]] local a; local a", "shadows pre declared symbol")
+  assert.analyze_error("##[[ strict = true ]] global a; global a", "shadows pre declared symbol")
   assert.analyze_error([=[
-    [##[ strict = true ]##]
+    ##[[ strict = true ]]
     local self;
     local A = @record{}
     function A:f() end]=], "shadows pre declared symbol")

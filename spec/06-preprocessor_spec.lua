@@ -37,13 +37,11 @@ it("evaluate names", function()
 end)
 
 it("parse if", function()
-  assert.ast_type_equals("[##[ if true then ]##] local a = 1 [##[ end ]##]", "local a = 1")
-  assert.ast_type_equals("[##[ if false then ]##] local a = 1 [##[ end ]##]", "")
-  assert.ast_type_equals([[
-    local function f() [##[ if true then ]##] return 1 [##[ end ]##] end
-  ]],[[
-    local function f() return 1 end
-  ]])
+  assert.ast_type_equals("##[[ if true then ]] local a = 1 ##[[ end ]]", "local a = 1")
+  assert.ast_type_equals("##[[ if false then ]] local a = 1 ##[[ end ]]", "")
+  assert.ast_type_equals(
+    "local function f() ##[[ if true then ]] return 1 ##[[ end ]] end",
+    "local function f() return 1 end")
   assert.ast_type_equals([[
     local function f()
       ## if true then
@@ -55,7 +53,7 @@ it("parse if", function()
       return 1
     end
   ]])
-  assert.analyze_error("[##[ if true then ]##]", "'end' expected")
+  assert.analyze_error("##[[ if true then ]]", "'end' expected")
 end)
 
 it("parse loops", function()
@@ -221,7 +219,7 @@ it("print types", function()
 end)
 
 it("generate functions", function()
-  assert.ast_type_equals([[
+  assert.ast_type_equals([=[
     ## local function make_pow(N)
       local function #('pow' .. N)#(x: integer)
         local r = 1
@@ -232,11 +230,11 @@ it("generate functions", function()
       end
     ## end
 
-    [##[
+    ##[[
     make_pow(2)
     make_pow(3)
-    ]##]
-  ]], [[
+    ]]
+  ]=], [[
     local function pow2(x: integer)
       local r = 1
       r = r * x
@@ -341,7 +339,7 @@ it("nested preprocessing", function()
 end)
 
 it("report errors", function()
-  assert.analyze_error("[##[ invalid() ]##]", "attempt to call")
+  assert.analyze_error("##[[ invalid() ]]", "attempt to call")
 end)
 
 it("run brainfuck", function()

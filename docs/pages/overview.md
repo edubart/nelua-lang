@@ -911,7 +911,7 @@ At compile time a Lua preprocessor is available to render arbitrary code,
 it works similiar to templates in the web development world because they emit
 code between it's statements.
 
-Lines beginning with `##` and between `[##[ ]##]` are Lua code evaluated by the processor:
+Lines beginning with `##` and between `##[[ ]]` are Lua code evaluated by the processor:
 
 
 ```nelua
@@ -921,12 +921,12 @@ local a = 0
 ## end
 print(a) -- outputs 4
 
-[##[
+##[[
 local something = false
 if something then
-]##]
+]]
   print('hello') -- prints hello when compiling with "something" defined
-[##[ end ]##]
+##[[ end ]]
 ```
 
 For instance the above code compile exactly as:
@@ -1050,10 +1050,10 @@ function pow(x: auto, n: integer <comptime>)
   ## elseif symbols.x.type:is_float() then
     -- x is a floating point type
     return x ^ n
-  [##[ else
+  ##[[ else
     -- invalid type, raise an error at compile time
     symbols.x.node:raisef('cannot pow variable of type "%s"', tostring(symbols.x.type))
-  end ]##]
+  end ]]
 end
 
 pow(2, 2) -- use specialized implementation for integers
