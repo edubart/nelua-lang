@@ -1,5 +1,5 @@
 std='max'
-exclude_files={'playground', 'nelua_cache'}
+include_files={'nelua', 'spec', 'tools'}
 --self=false
 unused_secondaries=false
 globals = {

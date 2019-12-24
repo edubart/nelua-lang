@@ -6,8 +6,10 @@ DFLAGS=-u $(UID):$(GID) $(DRFLAGS)
 LUAMONFLAGS=-w nelua,spec,tools,examples,runtime,lib -e lua,nelua,h,c -q -x
 EXAMPLES=$(wildcard examples/*.nelua)
 BENCHMARKS=$(wildcard benchmarks/*.nelua)
+LUA=lua
 
-test: test-luajit test-lua5.3 test-lua5.1
+test:
+	@busted
 
 test-luajit:
 	@echo -n "test luajit "
@@ -29,14 +31,14 @@ check:
 	@luacheck -q .
 
 benchmark:
-	luajit ./tools/benchmarker.lua
+	$(LUA) ./tools/benchmarker.lua
 
 coverage-clean:
-	rm -f luacov.report.out luacov.stats.out
+	@rm -f luacov.report.out luacov.stats.out
 
 coverage-genreport:
 	@luacov
-	@luajit -e "require('tools.covreporter')()"
+	@$(LUA) -e "os.exit(require('tools.covreporter')() and 0 or 1)"
 
 coverage:
 	$(MAKE) coverage-clean
@@ -71,11 +73,11 @@ test-full: test coverage check compile-examples
 compile-examples:
 	@echo -n "compile examples "
 	@for FILE in $(EXAMPLES); do \
-		luajit nelua.lua -qb $$FILE || exit 1; \
+		$(LUA) nelua.lua -qb $$FILE || exit 1; \
 		echo -n '+'; \
 	done
 	@for FILE in $(BENCHMARKS); do \
-		luajit nelua.lua -qb $$FILE || exit 1; \
+		$(LUA) nelua.lua -qb $$FILE || exit 1; \
 		echo -n '+'; \
 	done
 	@echo ""

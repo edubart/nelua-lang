@@ -5,10 +5,10 @@ local assert = require 'spec.tools.assert'
 describe("Nelua runner should", function()
 
 it("compile simple programs" , function()
-  assert.run('--generator lua --no-cache --compile examples/helloworld.nelua')
+  assert.run('--generator lua --no-cache --compile --binary-suffix=.out examples/helloworld.nelua')
   assert.run('--generator c --no-cache --compile examples/helloworld.nelua')
   assert.run('--generator lua --compile-binary examples/helloworld.nelua')
-  assert.run('--generator c --compile-binary examples/helloworld.nelua')
+  assert.run('--generator c --compile-binary --binary-suffix=.out  examples/helloworld.nelua')
 end)
 
 it("run simple programs", function()

@@ -1,0 +1,53 @@
+name: "test"
+
+on: [push]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        luaVersion: ["5.1", "5.2", "5.3", "luajit"]
+        compiler: ["gcc", "clang"]
+        exclude:
+          - luaVersion: "luajit"
+            compiler:  "clang"
+          - luaVersion: "5.2"
+            compiler:  "clang"
+          - luaVersion: "5.3"
+            compiler:  "clang"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: leafo/gh-actions-lua@master
+      with:
+        luaVersion: ${{matrix.luaVersion}}
+    - uses: leafo/gh-actions-luarocks@v2
+    - name: Build
+      run: luarocks make rockspecs/nelua-dev-1.rockspec
+    - name: Test
+      run: CC=${{matrix.compiler}} busted -o utfTerminal
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: leafo/gh-actions-lua@master
+    - uses: leafo/gh-actions-luarocks@v2
+    - name: Build
+      run: luarocks make rockspecs/nelua-dev-1.rockspec
+    - name: Coverage
+      run: |
+        echo "return {}" > .neluacfg.lua
+        make coverage-test
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: leafo/gh-actions-lua@master
+    - uses: leafo/gh-actions-luarocks@v2
+    - name: Build
+      run: luarocks install luacheck
+    - name: Check
+      run: luacheck .
