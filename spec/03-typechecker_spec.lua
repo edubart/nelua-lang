@@ -137,6 +137,7 @@ it("numeric ranges", function()
   assert.analyze_ast([[
     local u:usize, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 0,0,0,0,0
   ]])
+
   assert.analyze_ast([[
     local u:usize = 18446744073709551615_us
     local u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 255,65535,4294967295,18446744073709551615
@@ -153,24 +154,32 @@ it("numeric ranges", function()
   assert.analyze_error([[local u: uint64 = 18446744073709551616_u64]], 'is out of range')
 
   assert.analyze_ast([[
-    local i:isize = -9223372036854775808_is
-    local i8:int8, i16:int16, i32:int32, i64:int64 = -128,-32768,-2147483648,-9223372036854775808
-  ]])
-  assert.analyze_ast([[
     local i:isize = 9223372036854775807_is
     local i8:int8, i16:int16, i32:int32, i64:int64 = 127,32767,2147483647,9223372036854775807
   ]])
-  --assert.analyze_ast([[local i: integer = -9223372036854775809]])
-  assert.analyze_error([[local i = -9223372036854775809_i]], 'is out of range')
-  assert.analyze_error([[local i: int8 = -129_i8]], 'is out of range')
-  assert.analyze_error([[local i: int16 = -32769_i16]], 'is out of range')
-  assert.analyze_error([[local i: int32 = -2147483649_i32]], 'is out of range')
-  assert.analyze_error([[local i: int64 = -9223372036854775809_i64]], 'is out of range')
+  assert.analyze_error([[local i: integer = -9223372036854775808_i]])
+  assert.analyze_error([[local i: int8 = -128_i8]], 'is out of range')
+  assert.analyze_error([[local i: int16 = -32768_i16]], 'is out of range')
+  assert.analyze_error([[local i: int32 = -2147483648_i32]], 'is out of range')
+  assert.analyze_error([[local i: int64 = -9223372036854775808_i64]], 'is out of range')
   assert.analyze_error([[local i: integer = 9223372036854775808_i]], 'is out of range')
   assert.analyze_error([[local i: int8 = 128_i8]], 'is out of range')
   assert.analyze_error([[local i: int16 = 32768_i16]], 'is out of range')
   assert.analyze_error([[local i: int32 = 2147483648_i32]], 'is out of range')
   assert.analyze_error([[local i: int64 = 9223372036854775808_i64]], 'is out of range')
+  assert.ast_type_equals("local a = -9223372036854775809", "local a: number = -9223372036854775809")
+  assert.ast_type_equals(
+    "local a = 9223372036854775807 + 9223372036854775807",
+    "local a: integer = 9223372036854775807 + 9223372036854775807")
+  assert.ast_type_equals(
+    "local a = 9223372036854775807_u64 + 9223372036854775807",
+    "local a: uinteger = 9223372036854775807_u64 + 9223372036854775807")
+  assert.ast_type_equals("local a = 9223372036854775807", "local a: integer = 9223372036854775807")
+  assert.ast_type_equals("local a = -9223372036854775807-1", "local a: integer = -9223372036854775807-1")
+  assert.ast_type_equals("local a = -9223372036854775808-1", "local a: number = -9223372036854775808-1")
+  assert.ast_type_equals("local a = -9223372036854775809", "local a: number = -9223372036854775809")
+  assert.ast_type_equals("local a = 9223372036854775807", "local a: integer = 9223372036854775807")
+  assert.ast_type_equals("local a = 9223372036854775808", "local a: number = 9223372036854775808")
 end)
 
 it("typed var initialization", function()
@@ -257,9 +266,6 @@ it("binary operator add", function()
   assert.ast_type_equals("local a = 1_i32 + 2    ", "local a: int32 = 1_i32 + 2")
   assert.ast_type_equals("local a = 1     + 2_i32", "local a: int32 = 1     + 2_i32")
   assert.ast_type_equals("local a = 1_i64 + 2.1", "local a: number = 1_i64 + 2.1")
-  assert.ast_type_equals(
-    "local a = 18446744073709551616 - 1",
-    "local a: uinteger = 18446744073709551616 - 1")
   assert.analyze_error("local a = 1 + 's'", "invalid operation")
   assert.analyze_error("local a = 1.0 + 's'", "invalid operation")
 end)

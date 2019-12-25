@@ -114,7 +114,6 @@ typedefs.number_literal_types = {
   _u64        = primtypes.uint64,   _uint64     = primtypes.uint64,
   _f32        = primtypes.float32,  _float32    = primtypes.float32,
   _f64        = primtypes.float64,  _float64    = primtypes.float64,
-  _pointer    = primtypes.pointer,
 
   _cchar       = primtypes.cchar,
   _cschar      = primtypes.cschar,

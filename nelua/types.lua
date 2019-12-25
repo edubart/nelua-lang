@@ -515,30 +515,35 @@ end
 local function make_arithmetic_cmp_opfunc(cmpfunc)
   return function(_, rtype, lattr, rattr)
     if rtype:is_arithmetic() then
-      local reval
-      local lval, rval = lattr.value, rattr.value
-      if lval and rval then
-        reval = cmpfunc(lval, rval)
-      end
-      return primtypes.boolean, reval
+      return primtypes.boolean, cmpfunc(lattr, rattr)
     end
   end
 end
 
 ArithmeticType.binary_operators.le = make_arithmetic_cmp_opfunc(function(a,b)
-  return a<=b
+  if a == b then return true end
+  if a.value and b.value then
+    return a.value <= b.value
+  end
 end)
 
 ArithmeticType.binary_operators.ge = make_arithmetic_cmp_opfunc(function(a,b)
-  return a>=b
+  if a == b then return true end
+  if a.value and b.value then
+    return a.value >= b.value
+  end
 end)
 
 ArithmeticType.binary_operators.lt = make_arithmetic_cmp_opfunc(function(a,b)
-  return a<b
+  if a.value and b.value then
+    return a.value < b.value
+  end
 end)
 
 ArithmeticType.binary_operators.gt = make_arithmetic_cmp_opfunc(function(a,b)
-  return a>b
+  if a.value and b.value then
+    return a.value > b.value
+  end
 end)
 
 --------------------------------------------------------------------------------
@@ -600,11 +605,6 @@ function IntegralType:promote_type_for_value(value)
         -- both value and prev type fits
         return dtype
       end
-    end
-
-    -- hope to fit in uint64 type
-    if primtypes.uint64:is_inrange(value) then
-      return primtypes.uint64
     end
 
     -- can only be int64 now

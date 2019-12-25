@@ -17,20 +17,29 @@ function visitors.Number(_, node)
   local attr = node.attr
   if attr.type then return end
   local base, int, frac, exp, literal = node:args()
+  attr.value = bn.frombase(base, int, frac, exp)
   if literal then
     attr.type = typedefs.number_literal_types[literal]
     if not attr.type then
       node:raisef("literal suffix '%s' is undefined", literal)
     end
+    if not attr.type:is_inrange(attr.value) then
+      node:raisef("value `%s` for literal type `%s` is out of range, "..
+        "the minimum is `%s` and maximum is `%s`",
+        attr.value:todec(), attr.type, attr.type.min:todec(), attr.type.max:todec())
+    end
   else
     attr.untyped = true
     if not (frac or exp) then
-      attr.type = primtypes.integer
+      if primtypes.integer:is_inrange(attr.value) or base ~= 'dec' then
+        attr.type = primtypes.integer
+      else
+        attr.type = primtypes.number
+      end
     else
       attr.type = primtypes.number
     end
   end
-  attr.value = bn.frombase(base, int, frac, exp)
   attr.base = base
   attr.comptime = true
 end

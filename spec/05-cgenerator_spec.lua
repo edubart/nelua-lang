@@ -46,7 +46,6 @@ it("number literals", function()
   assert.generate_c("do local a = 1_byte end", "uint8_t a = 1U;")
   assert.generate_c("do local a = 1_isize end", "intptr_t a = 1;")
   assert.generate_c("do local a = 1_usize end", "uintptr_t a = 1U;")
-  assert.generate_c("do local a = 1_pointer end", "void* a = 1;")
   assert.generate_c("do local a = 1_cint end", "int a = 1;")
   assert.generate_c("do local a = 1_clong end", "long a = 1;")
   assert.generate_c("do local a = 1_clonglong end", "long long a = 1;")
@@ -646,6 +645,19 @@ it("binary conditional operators", function()
     if (2 and 0) == 0 then t2 = true end
     assert(t1)
     assert(t2)
+
+    do
+      local a: auto = -1_i16
+      local b: auto = 1_u32
+      assert(a < b == true)
+      assert(b < a == false)
+      assert(a <= b == true)  assert(a <= a == true)
+      assert(b <= a == false) assert(b <= b == true)
+      assert(a > b == false)
+      assert(b > a == true)
+      assert(a >= b == false) assert(a >= a == true)
+      assert(b >= a == true)  assert(b >= b == true)
+    end
   ]])
 end)
 

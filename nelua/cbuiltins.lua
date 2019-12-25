@@ -398,6 +398,27 @@ function builtins.nelua_stdout_write_any(context)
 }]])
 end
 
+function builtins.nelua_lt_(context, ltype, rtype)
+  if ltype:is_signed() and rtype:is_unsigned() then
+    local name = string.format('nelua_lt_i%du%d', ltype.bitsize, rtype.bitsize)
+    if context.usedbuiltins[name] then return name end
+    define_inline_builtin(context, name,
+      'bool',
+      string.format('(int%d_t a, uint%d_t b)', ltype.bitsize, rtype.bitsize),
+      string.format("{ return a < 0 || (uint%d_t)a < b; }", ltype.bitsize))
+    return name
+  else
+    assert(ltype:is_unsigned() and rtype:is_signed())
+    local name = string.format('nelua_lt_u%di%d', ltype.bitsize, rtype.bitsize)
+    if context.usedbuiltins[name] then return name end
+    define_inline_builtin(context, name,
+      'bool',
+      string.format('(uint%d_t a, int%d_t b)', ltype.bitsize, rtype.bitsize),
+      string.format("{ return b > 0 && a < (uint%d_t)b; }", rtype.bitsize))
+    return name
+  end
+end
+
 local operators = {}
 cbuiltins.operators = operators
 
@@ -465,13 +486,53 @@ function operators.pow(node, emitter, lnode, rnode, lname, rname)
   end --luacov:enable
 end
 
+function operators.lt(_, emitter, lnode, rnode, lname, rname)
+  local ltype, rtype = lnode.attr.type, rnode.attr.type
+  if ltype:is_integral() and rtype:is_integral() and ltype:is_unsigned() ~= rtype:is_unsigned() then
+    local op = emitter.context:ensure_runtime_builtin('nelua_lt_', ltype, rtype)
+    emitter:add(op, '(', lname, ', ', rname, ')')
+  else
+    emitter:add(lname, ' < ', rname)
+  end
+end
+
+function operators.gt(_, emitter, lnode, rnode, lname, rname)
+  local ltype, rtype = lnode.attr.type, rnode.attr.type
+  if ltype:is_integral() and rtype:is_integral() and ltype:is_unsigned() ~= rtype:is_unsigned() then
+    local op = emitter.context:ensure_runtime_builtin('nelua_lt_', rtype, ltype)
+    emitter:add(op, '(', rname, ', ', lname, ')')
+  else
+    emitter:add(lname, ' > ', rname)
+  end
+end
+
+function operators.le(_, emitter, lnode, rnode, lname, rname)
+  local ltype, rtype = lnode.attr.type, rnode.attr.type
+  if ltype:is_integral() and rtype:is_integral() and ltype:is_unsigned() ~= rtype:is_unsigned() then
+    local op = emitter.context:ensure_runtime_builtin('nelua_lt_', rtype, ltype)
+    emitter:add('!', op, '(', rname, ', ', lname, ')')
+  else
+    emitter:add(lname, ' <= ', rname)
+  end
+end
+
+function operators.ge(_, emitter, lnode, rnode, lname, rname)
+  local ltype, rtype = lnode.attr.type, rnode.attr.type
+  if ltype:is_integral() and rtype:is_integral() and ltype:is_unsigned() ~= rtype:is_unsigned() then
+    local op = emitter.context:ensure_runtime_builtin('nelua_lt_', ltype, rtype)
+    emitter:add('!', op, '(', lname, ', ', rname, ')')
+  else
+    emitter:add(lname, ' >= ', rname)
+  end
+end
+
 function operators.eq(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
   if ltype:is_string() and rtype:is_string() then
     emitter:add_builtin('nelua_string_eq')
     emitter:add('(', lname, ', ', rname, ')')
   else
-    emitter:add(lname, ' ', cdefs.compare_ops.eq, ' ', rname)
+    emitter:add(lname, ' == ', rname)
   end
 end
 
@@ -481,7 +542,7 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
     emitter:add_builtin('nelua_string_ne')
     emitter:add('(', lname, ', ', rname, ')')
   else
-    emitter:add(lname, ' ', cdefs.compare_ops.ne, ' ', rname)
+    emitter:add(lname, ' != ', rname)
   end
 end
 

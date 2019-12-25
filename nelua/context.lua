@@ -109,12 +109,12 @@ function Context:repeat_scope_until_resolution(scope_kind, after_push)
   return scope
 end
 
-function Context:ensure_runtime_builtin(name, params)
-  if not params and self.usedbuiltins[name] then return name end
+function Context:ensure_runtime_builtin(name, p1, p2)
+  if not (p1 or p2) and self.usedbuiltins[name] then return name end
   errorer.assertf(self.builtins[name], 'builtin "%s" not defined', name)
   local func = self.builtins[name]
   if func then
-    local newname = func(self, params)
+    local newname = func(self, p1, p2)
     if newname then
       name = newname
     end
