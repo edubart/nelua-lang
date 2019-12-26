@@ -233,7 +233,7 @@ Repeat is also like in Lua:
 
 ```nelua
 repeat
-  a = a - 1
+  local a = a - 1
 until a == 0
 ```
 
@@ -245,14 +245,14 @@ Numeric for are like in Lua, meaning they are inclusive for the first and the la
 element:
 
 ```nelua
-for i = 0, 5 do
+for i = 0,5 do
   -- i is deduced to 'integer'
   print(i) -- outputs 0 1 2 3 4 5
 end
 ```
 
 Numeric for loops always evaluate it's begin, end and step expressions only once. The iterate
-variable type is automatically deduced using the for expressions.
+variable type is automatically deduced using the begin and end expressions.
 
 #### Exclusive
 An extesion to for is available to do exclusive for loops, they work using
@@ -266,7 +266,7 @@ end
 
 #### Stepped
 The last parameter in for syntax is the step, it's counter is always incremented
-with `i = i + step`, by default step is always 1, with negative steps reverse for is possible:
+with `i = i + step`, by default step is always 1, when using negative steps reverse for is possible:
 
 ```nelua
 for i = 5,0,-1 do
@@ -351,8 +351,8 @@ local b = 0x123 -- variable of type 'integer'
 local c = 1234.56 -- variable of type 'number'
 ```
 
-The `integer` is the default type for integral literals with no suffix.
-The `number` is the default type for fractional literals with no suffix.
+The `integer` is the default type for integral literals without suffix.
+The `number` is the default type for fractional literals without suffix.
 
 You can use type suffixes to force a type for a numeric literal:
 
@@ -434,7 +434,7 @@ Variables with this type is used at compile time only, they are useful for alias
 
 ```nelua
 local MyInt: type = @integer -- a symbol of type 'type' holding the type 'integer'
-local a: MyInt -- varible of type 'MyInt' (actually a 'integer')
+local a: MyInt -- varible of type 'MyInt' (actually an 'integer')
 
 local CallbackType = @function()
 local callback: CallbackType
@@ -444,8 +444,8 @@ The '@' symbol is required to infer types in expressions.
 
 ### Type conversion
 
-Type expressions (and also symbols) can be called to explicitly convert a
-variable to a new compatible type.
+Type expressions can be called to explicitly convert a
+variable to a new type.
 
 ```nelua
 local i = 1

@@ -127,7 +127,7 @@ cdefs.compiler_base_flags = {
     "-Wno-unused-function", -- local functions can be left unused
     "-Wno-missing-braces", -- C zero initialization for anything
   },
-  cflags_base = "-pipe -rdynamic -lm",
+  cflags_base = "-lm",
   cflags_release = "-O2",
   cflags_debug = "-g"
 }

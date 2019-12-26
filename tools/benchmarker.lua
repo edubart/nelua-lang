@@ -66,7 +66,7 @@ local function run_benchmark(name)
     string.format('luajit ./nelua_cache/benchmarks/%s.lua', name),
     config.ntimes)
   benchmark(
-    string.format('| %12s | %9s', name, 'nelua c'),
+    string.format('| %12s | %9s', name, 'nelua'),
     string.format('./nelua_cache/benchmarks/%s%s', name, binary_suffix),
     config.ntimes)
   benchmark(
@@ -90,8 +90,8 @@ end
 local function c_compile(name)
   local cfile = 'benchmarks/c/' .. name .. '.c'
   local ofile = 'nelua_cache/benchmarks/c' .. name .. binary_suffix
-  local cflags = "-pipe -Wall -Wextra -rdynamic " ..
-                 "-O2 -fno-plt -flto -march=native -Wl,-O1,--sort-common,-z,relro,-z,now"
+  local cflags = "-Wall -Wextra " ..
+                 "-O2 -fno-plt -march=native -Wl,-O1,--sort-common,-z,relro,-z,now"
   local command = string.format('gcc %s -o %s %s', cflags, ofile, cfile)
   local success = executor.exec(command)
   assert(success, 'failed to compile c benchmark ' .. name)
