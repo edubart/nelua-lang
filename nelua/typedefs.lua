@@ -139,21 +139,22 @@ typedefs.promote_signed_types = {
 }
 
 typedefs.call_pragmas = {
-  cinclude = shaper.shape{shaper.string},
-  cemit = shaper.shape{shaper.string, shaper.string:is_optional()},
-  cdefine = shaper.shape{shaper.string},
-  cflags = shaper.shape{shaper.string},
-  ldflags = shaper.shape{shaper.string},
-  linklib = shaper.shape{shaper.string},
+  cinclude = shaper.shape{n=shaper.number, shaper.string},
+  cemit = shaper.shape{n=shaper.number, shaper.string + shaper.func, shaper.string:is_optional()},
+  cdefine = shaper.shape{n=shaper.number, shaper.string},
+  cflags = shaper.shape{n=shaper.number, shaper.string},
+  ldflags = shaper.shape{n=shaper.number, shaper.string},
+  linklib = shaper.shape{n=shaper.number, shaper.string},
+  afterinfer = shaper.shape{n=shaper.number, shaper.func},
 }
 
 typedefs.field_pragmas = {
-  strict = shaper.shape{shaper.boolean},
-  nohashcodenames = shaper.shape{shaper.boolean},
-  noinit = shaper.shape{shaper.boolean},
-  nostatic = shaper.shape{shaper.boolean},
-  nofloatsuffix = shaper.shape{shaper.boolean},
-  modname = shaper.shape{shaper.string},
+  strict = shaper.boolean,
+  nohashcodenames = shaper.boolean,
+  noinit = shaper.boolean,
+  nostatic = shaper.boolean,
+  nofloatsuffix = shaper.boolean,
+  modname = shaper.string,
 }
 
 local common_attribs = {

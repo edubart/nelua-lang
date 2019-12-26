@@ -286,9 +286,7 @@ function visitors.PragmaCall(context, node, emitter)
       code(emitter)
     elseif not scope and traits.is_string(code) then
       emitter:add(code)
-    else --luacov:disable
-      node:raisef('invalid C emit scope')
-    end --luacov:enable
+    end
   elseif name == 'cdefine' then
     context:add_declaration(string.format('#define %s\n', args[1]))
   elseif name == 'cflags' then
@@ -297,9 +295,7 @@ function visitors.PragmaCall(context, node, emitter)
     table.insert(context.compileopts.ldflags, args[1])
   elseif name == 'linklib' then
     table.insert(context.compileopts.linklibs, args[1])
-  else --luacov:disable
-    error('not implemented yet')
-  end --luacov:enable
+  end
 end
 
 function visitors.Id(context, node, emitter)

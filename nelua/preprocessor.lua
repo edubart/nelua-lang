@@ -30,6 +30,12 @@ function PPContext:_init(context, visitors)
   self.registry = {}
 end
 
+function PPContext:get_registry(index)
+  local node = self.registry[index]
+  self.lastregnode = node
+  return node
+end
+
 function PPContext:push_statnodes()
   local statnodes = {oldstatnodes = self.statnodes}
   self.statnodes = statnodes
@@ -183,11 +189,9 @@ function visitors.Block(ppcontext, node, emitter, parent)
   emitter:add_indent_ln('context:push_scope("block")')
   emitter:inc_indent()
   for _,statnode in ipairs(statnodes) do
-    if statnode.tag == 'Preprocess' then
-      ppcontext:traverse(statnode, emitter)
-    else
-      emitter:add_indent_ln('ppstatnode = ppregistry[', ppcontext:getregistryindex(statnode), ']')
-      ppcontext:traverse(statnode, emitter)
+    emitter:add_indent_ln('ppstatnode = ppcontext:get_registry(', ppcontext:getregistryindex(statnode), ')')
+    ppcontext:traverse(statnode, emitter)
+    if statnode.tag ~= 'Preprocess' then
       emitter:add_indent_ln('ppcontext:add_statnode(ppstatnode:clone())')
     end
   end
@@ -279,7 +283,19 @@ function preprocessor.preprocess(context, ast)
     context = context,
     ppcontext = ppcontext,
     aster = aster,
+    primtypes = require 'nelua.typedefs'.primtypes,
     addnode = function(node) ppcontext:add_statnode(node) end,
+    staticassert = function(status, msg, ...)
+      if not status then
+        if not msg then
+          msg = 'static assertion failed!'
+        else
+          msg = 'static assertion failed: ' .. msg
+        end
+        ppcontext.lastregnode:raisef(msg, ...)
+      end
+      return status
+    end,
     config = config
   }, { __index = function(_, key)
     local ppenvfield = ppenvgetfields[key]
@@ -289,6 +305,11 @@ function preprocessor.preprocess(context, ast)
       return context[key]
     elseif typedefs.call_pragmas[key] then
       return function(...)
+        local args = tabler.pack(...)
+        local ok, err = typedefs.call_pragmas[key](args)
+        if not ok then
+          ppcontext.lastregnode:raisef("invalid arguments for preprocess function '%s': %s", key, err)
+        end
         ppcontext:add_statnode(aster.PragmaCall{key, tabler.pack(...)})
       end
     else
@@ -301,6 +322,10 @@ function preprocessor.preprocess(context, ast)
     end
   end, __newindex = function(_, key, value)
     if typedefs.field_pragmas[key] then
+      local ok, err = typedefs.field_pragmas[key](value)
+      if not ok then
+        ppcontext.lastregnode:raisef("invalid type for preprocess variable '%s': %s", key, err)
+      end
       ppcontext:add_statnode(aster.PragmaSet{key, value})
     else
       rawset(context.env, key, value)

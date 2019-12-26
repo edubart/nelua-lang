@@ -210,14 +210,17 @@ function visitors.PragmaSet(context, node)
   local pragmashape = typedefs.field_pragmas[name]
   node:assertraisef(pragmashape, "pragma '%s' is undefined", name)
   context[name] = value
-  --TODO: check argument types
 end
 
-function visitors.PragmaCall(_, node)
+function visitors.PragmaCall(context, node)
   local name, args = node:args()
   local pragmashape = typedefs.call_pragmas[name]
   node:assertraisef(pragmashape, "pragma '%s' is undefined", name)
-  --TODO: check argument types
+
+  if name == 'afterinfer' and context.anyinference and not node.attr.afterinfer then
+    node.attr.afterinfer = true
+    args[1]()
+  end
 end
 
 function visitors.Attrib(context, node, symbol)

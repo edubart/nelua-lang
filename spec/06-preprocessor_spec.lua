@@ -321,6 +321,13 @@ it("strict mode", function()
     end
     f(1)
   ]])
+
+  assert.analyze_error("## strict = 1", "invalid type for preprocess")
+end)
+
+it("function pragmas", function()
+  assert.analyze_ast("## afterinfer(function() print'ok' end)")
+  assert.analyze_error("## afterinfer(false)", "invalid arguments for preprocess")
 end)
 
 it("inject nodes", function()
@@ -344,6 +351,19 @@ it("nested preprocessing", function()
       ## cinclude 'lala'
       local a = 1
     end
+  ]])
+end)
+
+it("check function", function()
+  assert.analyze_ast([[ ## staticassert(true) ]])
+  assert.analyze_error([[ ## staticassert(false) ]], 'static assertion failed')
+  assert.analyze_error([[ ## staticassert(false, 'myfail') ]], 'myfail')
+
+  assert.analyze_ast([[
+    local a = 1
+    local b = 1.0
+    ## afterinfer(function() staticassert(symbols.a.type == primtypes.integer) end)
+    ## afterinfer(function() staticassert(symbols.b.type == primtypes.number) end)
   ]])
 end)
 
