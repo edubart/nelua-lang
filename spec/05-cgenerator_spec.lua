@@ -1131,6 +1131,7 @@ it("attributes", function()
   assert.generate_c("## cemit '#define SOMETHING'", "#define SOMETHING")
   assert.generate_c("## cemit('#define SOMETHING', 'declaration')", "#define SOMETHING")
   assert.generate_c("## cemit('#define SOMETHING', 'definition')", "#define SOMETHING")
+
   assert.generate_c("## cdefine 'SOMETHING'", "#define SOMETHING")
   assert.generate_c("local huge: number <cimport'HUGE_VAL',cinclude'<math.h>',nodecl>", "include <math.h>")
   assert.generate_c("local a: int64 <volatile, codename 'a'>", "volatile int64_t mymod_a")
@@ -1157,6 +1158,12 @@ it("attributes", function()
   assert.generate_c(
     "local function cos(x: number): number <cimport'myfunc',cinclude'<myheader.h>',nodecl> end",
     "#include <myheader.h>")
+  assert.generate_c([[
+    ## strict = true
+    do
+      ## cemit(function(e) e:add_ln('#define SOMETHING') end)
+    end
+  ]], "#define SOMETHING")
   assert.run_c([[
     local function exit(x: int32) <cimport'exit',cinclude'<stdlib.h>',nodecl> end
     function puts(s: cstring): int32 <cimport'puts',cinclude'<stdio.h>',nodecl> end

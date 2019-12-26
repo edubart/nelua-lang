@@ -45,6 +45,10 @@ function Emitter:get_pos()
   return #self.codes
 end
 
+function Emitter:is_empty()
+  return #self.codes == 0
+end
+
 function Emitter:remove_until_pos(pos)
   while #self.codes > pos do
     table.remove(self.codes)

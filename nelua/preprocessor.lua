@@ -113,7 +113,7 @@ function visitors.PreprocessName(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
   local parentregindex = ppcontext:getregistryindex(parent)
   local selfregindex = ppcontext:getregistryindex(node)
-  emitter:add_ln(
+  emitter:add_indent_ln(
     'ppregistry[', parentregindex, '][', parentindex, ']',
     ' = ppcontext:toname(', luacode, ', ppregistry[', selfregindex, '])')
 end
@@ -122,7 +122,7 @@ function visitors.PreprocessExpr(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
   local parentregindex = ppcontext:getregistryindex(parent)
   local selfregindex = ppcontext:getregistryindex(node)
-  emitter:add_ln(
+  emitter:add_indent_ln(
     'ppregistry[', parentregindex, '][', parentindex, ']',
     ' = ppcontext:tovalue(', luacode, ', ppregistry[', selfregindex, '])')
 end
@@ -139,19 +139,25 @@ function visitors.ForNum(ppcontext, node, emitter)
   if stepvalnode then
     ppcontext:traverse(stepvalnode, emitter, node, 5)
   end
-  emitter:add_ln([[
-local ppitvarnode, ppbegvalnode, _, ppendvalnode, ppstepvalnode, ppblocknode = ppstatnode:args()
-context:traverse(ppbegvalnode)
-context:traverse(ppendvalnode)
-if ppstepvalnode then
-context:traverse(ppstepvalnode)
-end
-context:push_scope("loop")]])
+  emitter:add_indent_ln("context:push_scope('loop')")
   ppcontext:traverse(itvarnode, emitter, node, 1)
-  emitter:add_ln([[context:traverse(ppitvarnode)]])
+  emitter:add_indent_ln("context:traverse(ppstatnode[1])")
   ppcontext:traverse(blocknode, emitter, node, 6)
-  emitter:add_ln([[context:traverse(ppblocknode)
-context:pop_scope()]])
+  emitter:add_indent_ln("context:pop_scope()")
+end
+
+function visitors.FuncDef(ppcontext, node, emitter)
+  local varscope, varnode, argnodes, retnodes, attribnodes, blocknode = node:args()
+  ppcontext:traverse(varnode, emitter, node, 2)
+  ppcontext:traverse(retnodes, emitter, node, 4)
+  if attribnodes then
+    ppcontext:traverse(attribnodes, emitter, node, 5)
+  end
+  emitter:add_indent_ln("context:push_scope('function')")
+  ppcontext:traverse(argnodes, emitter, node, 3)
+  emitter:add_indent_ln("context:traverse(ppstatnode[3])")
+  ppcontext:traverse(blocknode, emitter, node, 6)
+  emitter:add_indent_ln("context:pop_scope()")
 end
 
 function visitors.Block(ppcontext, node, emitter, parent)
@@ -170,24 +176,26 @@ function visitors.Block(ppcontext, node, emitter, parent)
   node.processed = true
   node.needprocess = false
 
-  emitter:add_ln('do')
-  emitter:add_ln('local ppnewstatnodes = ppcontext:push_statnodes()')
-  emitter:add_ln('ppregistry[', ppcontext:getregistryindex(node), '][1] = ppnewstatnodes')
-  emitter:add_ln('context:push_scope("block")')
+  emitter:add_indent_ln('do')
+  emitter:inc_indent()
+  emitter:add_indent_ln('local ppstatnode')
+  emitter:add_indent_ln('ppregistry[', ppcontext:getregistryindex(node), '][1] = ppcontext:push_statnodes()')
+  emitter:add_indent_ln('context:push_scope("block")')
+  emitter:inc_indent()
   for _,statnode in ipairs(statnodes) do
     if statnode.tag == 'Preprocess' then
       ppcontext:traverse(statnode, emitter)
     else
-      emitter:add_ln('do')
-      emitter:add_ln('local ppstatnode = ppregistry[', ppcontext:getregistryindex(statnode), ']')
+      emitter:add_indent_ln('ppstatnode = ppregistry[', ppcontext:getregistryindex(statnode), ']')
       ppcontext:traverse(statnode, emitter)
-      emitter:add_ln('ppcontext:add_statnode(ppstatnode:clone())')
-      emitter:add_ln('end')
+      emitter:add_indent_ln('ppcontext:add_statnode(ppstatnode:clone())')
     end
   end
-  emitter:add_ln('ppcontext:pop_statnodes()')
-  emitter:add_ln('context:pop_scope()')
-  emitter:add_ln('end')
+  emitter:dec_indent()
+  emitter:add_indent_ln('ppcontext:pop_statnodes()')
+  emitter:add_indent_ln('context:pop_scope()')
+  emitter:dec_indent()
+  emitter:add_indent_ln('end')
 end
 
 local function mark_process_visitor(markercontext)

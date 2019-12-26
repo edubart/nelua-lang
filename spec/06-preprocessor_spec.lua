@@ -115,6 +115,15 @@ it("inject other symbol type", function()
   ]])
 end)
 
+it("check symbols inside functions", function()
+  assert.analyze_ast([=[
+    ## strict = true
+    local function f(x: integer)
+      ## assert(symbols.x.type == require 'nelua.typedefs'.primtypes.integer)
+    end
+  ]=])
+end)
+
 it("print symbol", function()
   assert.ast_type_equals([=[
     local a: integer <comptime> = 1

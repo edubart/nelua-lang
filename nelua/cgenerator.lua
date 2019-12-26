@@ -275,14 +275,16 @@ function visitors.PragmaCall(context, node, emitter)
     context:add_include(tabler.unpack(args))
   elseif name == 'cemit' then
     local code, scope = tabler.unpack(args)
-    if not stringer.endswith(code, '\n') then
+    if traits.is_string(code) and not stringer.endswith(code, '\n') then
       code = code .. '\n'
     end
-    if scope == 'declaration' then
+    if scope == 'declaration' and traits.is_string(code) then
       context:add_declaration(code)
-    elseif scope == 'definition' then
+    elseif scope == 'definition' and traits.is_string(code)  then
       context:add_definition(code)
-    elseif not scope then
+    elseif not scope and traits.is_function(code) then
+      code(emitter)
+    elseif not scope and traits.is_string(code) then
       emitter:add(code)
     else --luacov:disable
       node:raisef('invalid C emit scope')
@@ -687,11 +689,13 @@ function visitors.Switch(_, node, emitter)
   emitter:add_indent_ln("}")
 end
 
-function visitors.Do(_, node, emitter)
+function visitors.Do(context, node, emitter)
   local blocknode = node:args()
-  if #blocknode[1] == 0 then return end
+  local doemitter = CEmitter(context, emitter.depth)
+  doemitter:add(blocknode)
+  if doemitter:is_empty() then return end
   emitter:add_indent_ln("{")
-  emitter:add(blocknode)
+  emitter:add(doemitter:generate())
   emitter:add_indent_ln("}")
 end
 
