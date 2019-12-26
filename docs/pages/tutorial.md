@@ -70,6 +70,18 @@ do `nelua --cc clang examples/helloworld.nelua`,
 or if you are on Windows you probably want to use MinGW then
 do `nelua --cc i686-w64-mingw32-gcc examples/helloworld.nelua`.
 
+## Syntax highlighting for editors
+
+Syntax definitions for the language is available for
+Visual Studio Code in [nelua-vscode](https://github.com/edubart/nelua-vscode) and
+for Sublime Text in [nelua-sublime](https://github.com/edubart/nelua-sublime).
+At the moment only Sublime Text have full definition, so I recommend using it.
+If you use other code editor you can use Lua syntax highlighting,
+as it very similar but of course incomplete.
+
+I recommend using the syntax highlighter, 
+it makes the experience of playing around with the language more pleasant because
+it can highlight type notations.
 
 ## More examples 
 
