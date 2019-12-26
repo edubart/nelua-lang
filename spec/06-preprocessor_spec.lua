@@ -326,7 +326,7 @@ it("strict mode", function()
 end)
 
 it("function pragmas", function()
-  assert.analyze_ast("## afterinfer(function() print'ok' end)")
+  assert.analyze_ast("## afterinfer(function() end)")
   assert.analyze_error("## afterinfer(false)", "invalid arguments for preprocess")
 end)
 

@@ -1,11 +1,11 @@
-# Nelua
+<img width="96" src="https://edubart.github.io/nelua-lang/assets/images/nelua-logo.svg?sanitize=true">
+
+# The Nelua Programming Language
 
 [![Build Status](https://travis-ci.org/edubart/nelua-lang.svg?branch=master)](https://travis-ci.org/edubart/nelua-lang)
 [![Coverage Status](https://coveralls.io/repos/github/edubart/nelua-lang/badge.svg?branch=master)](https://coveralls.io/github/edubart/nelua-lang?branch=master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?label=license)](https://opensource.org/licenses/MIT)
-[![Documentation](https://img.shields.io/website/https/edubart.github.io/nelua-lang.svg?label=docs&color=blue)](https://edubart.github.io/nelua-lang/overview/)
 [![Gitter](https://badges.gitter.im/nelua-lang/community.svg)](https://gitter.im/nelua-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-![Project Status](https://img.shields.io/badge/status-alpha-red.svg)
 
 Nelua is a minimalistic, efficient, optionally typed, ahead of time compiled, meta programmable,
 systems programming language with syntax and semantics similar to [Lua](https://en.wikipedia.org/wiki/Lua_(programming_language)). It can work statically or dynamically depending on the code style and
