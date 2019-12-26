@@ -505,8 +505,27 @@ it("binary operator `idiv`", function()
   assert.scoped_generate_c("local x = -7 //  3.0",  "x = -3.0;")
   assert.scoped_generate_c("local x =  7 // -3.0",  "x = -3.0;")
   assert.scoped_generate_c("local x = -7 // -3.0",  "x = 2.0;")
-  assert.scoped_generate_c("local a,b = 1,2; local x=a//b",      "x = a / b;")
+  assert.scoped_generate_c("local a,b = 1_u,2_u; local x=a//b",      "x = a / b;")
+  assert.scoped_generate_c("local a,b = 1,2; local x=a//b",      "x = nelua_idiv_i64(a, b);")
   assert.scoped_generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = floor(a / b);")
+  assert.run_c([[
+    do
+      local a, b = 7, 3
+      assert(a // b == 2)
+      assert(-a // b == -3)
+      assert(a // -b == -3)
+      assert(-a // -b == 2)
+      assert(a // a == 1)
+    end
+    do
+      local a, b = 7.0, 3.0
+      assert(a // b == 2.0)
+      assert(-a // b == -3.0)
+      assert(a // -b == -3.0)
+      assert(-a // -b == 2.0)
+      assert(a // a == 1.0)
+    end
+  ]])
 end)
 
 it("binary operator `mod`", function()
@@ -515,10 +534,38 @@ it("binary operator `mod`", function()
   assert.scoped_generate_c("local x = 3.0 % 2.0",   "x = 1.0;")
   assert.scoped_generate_c("local x = 3.0 % 2",     "x = 1.0;")
   assert.scoped_generate_c("local x = 3 % 2.0",     "x = 1.0;")
-  assert.scoped_generate_c("local a, b = 3, 2;     local x = a % b", "x = a % b;")
-  assert.scoped_generate_c("local a, b = 3.0, 2;   local x = a % b", "x = fmod(a, b);")
-  assert.scoped_generate_c("local a, b = 3, 2.0;   local x = a % b", "x = fmod(a, b);")
-  assert.scoped_generate_c("local a, b = 3.0, 2.0; local x = a % b", "x = fmod(a, b);")
+  assert.scoped_generate_c("local x =  7 %  3",     "x = 1;")
+  assert.scoped_generate_c("local x = -7 %  3",     "x = 2;")
+  assert.scoped_generate_c("local x =  7 % -3",     "x = -2;")
+  assert.scoped_generate_c("local x = -7 % -3",     "x = -1;")
+  assert.scoped_generate_c("local x =  7 %  3.0",   "x = 1.0;")
+  assert.scoped_generate_c("local x = -7 %  3.0",   "x = 2.0;")
+  assert.scoped_generate_c("local x =  7 % -3.0",   "x = -2.0;")
+  assert.scoped_generate_c("local x = -7 % -3.0",   "x = -1.0;")
+  assert.scoped_generate_c("local x = -7.0 % 3.0",  "x = 2.0;")
+  assert.scoped_generate_c("local a, b = 3, 2;     local x = a % b", "x = nelua_imod_i64(a, b);")
+  assert.scoped_generate_c("local a, b = 3_u, 2_u; local x = a % b", "x = a % b;")
+  assert.scoped_generate_c("local a, b = 3.0, 2;   local x = a % b", "x = nelua_fmod(a, b);")
+  assert.scoped_generate_c("local a, b = 3, 2.0;   local x = a % b", "x = nelua_fmod(a, b);")
+  assert.scoped_generate_c("local a, b = 3.0, 2.0; local x = a % b", "x = nelua_fmod(a, b);")
+  assert.run_c([[
+    do
+      local a, b = 7, 3
+      assert(a % b == 1)
+      assert(-a % b == 2)
+      assert(a % -b == -2)
+      assert(-a % -b == -1)
+      assert(a % a == 0)
+    end
+    do
+      local a, b = 7.0, 3.0
+      assert(a % b == 1.0)
+      assert(-a % b == 2.0)
+      assert(a % -b == -2.0)
+      assert(-a % -b == -1.0)
+      assert(a % a == 0.0)
+    end
+  ]])
 end)
 
 it("binary operator `pow`", function()

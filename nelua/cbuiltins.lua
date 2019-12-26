@@ -419,6 +419,50 @@ function builtins.nelua_lt_(context, ltype, rtype)
   end
 end
 
+function builtins.nelua_idiv_(context, type)
+  local name = string.format('nelua_idiv_i%d', type.bitsize)
+  if context.usedbuiltins[name] then return name end
+  local ictype = string.format('int%d_t', type.bitsize)
+  define_inline_builtin(context, name,
+    ictype,
+    string.format('(%s a, %s b)', ictype, ictype),
+    string.format([[{
+  %s d = a / b;
+  return d * b == a ? d : d - ((a < 0) ^ (b < 0));
+}]], ictype))
+  return name
+end
+
+function builtins.nelua_imod_(context, type)
+  local name = string.format('nelua_imod_i%d', type.bitsize)
+  if context.usedbuiltins[name] then return name end
+  local ictype = string.format('int%d_t', type.bitsize)
+  define_inline_builtin(context, name,
+    ictype,
+    string.format('(%s a, %s b)', ictype, ictype),
+    string.format([[{
+  %s r = a %% b;
+  return (r != 0 && (a ^ b) < 0) ? r + b : r;
+}]], ictype))
+  return name
+end
+
+function builtins.nelua_fmod_(context, type)
+  local ctype = context:ctype(type)
+  local cfmod = type:is_float32() and 'fmodf' or 'fmod'
+  local name = 'nelua_' .. cfmod
+  if context.usedbuiltins[name] then return name end
+  context:add_include('<math.h>')
+  define_inline_builtin(context, name,
+    ctype,
+    string.format('(%s a, %s b)', ctype, ctype),
+    string.format([[{
+  %s r = %s(a, b);
+  return r * b >= 0 ? r : r +b;
+}]], ctype, cfmod))
+  return name
+end
+
 local operators = {}
 cbuiltins.operators = operators
 
@@ -452,6 +496,9 @@ function operators.idiv(node, emitter, lnode, rnode, lname, rname)
       local floorname = type:is_float32() and 'floorf' or 'floor'
       emitter.context:add_include('<math.h>')
       emitter:add(floorname, '(', lname, ' / ', rname, ')')
+    elseif type:is_integral() and (ltype:is_signed() or rtype:is_signed()) then
+      local op = emitter.context:ensure_runtime_builtin('nelua_idiv_', type)
+      emitter:add(op, '(', lname, ', ', rname, ')')
     else
       emitter:add(lname, ' / ', rname)
     end
@@ -464,9 +511,11 @@ function operators.mod(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   if ltype:is_arithmetic() and rtype:is_arithmetic() then
     if ltype:is_float() or rtype:is_float() then
-      local modfuncname = type:is_float32() and 'fmodf' or 'fmod'
-      emitter.context:add_include('<math.h>')
-      emitter:add(modfuncname, '(', lname, ', ', rname, ')')
+      local op = emitter.context:ensure_runtime_builtin('nelua_fmod_', type)
+      emitter:add(op, '(', lname, ', ', rname, ')')
+    elseif type:is_integral() and (ltype:is_signed() or rtype:is_signed()) then
+      local op = emitter.context:ensure_runtime_builtin('nelua_imod_', type)
+      emitter:add(op, '(', lname, ', ', rname, ')')
     else
       emitter:add(lname, ' % ', rname)
     end

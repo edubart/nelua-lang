@@ -732,7 +732,11 @@ IntegralType.binary_operators.mod = make_integral_binary_opfunc(function(ltype, 
   end
   return integral_arithmetic_operation(ltype, rtype, lattr, rattr)
 end, function(a,b)
-  return a % b
+  local r = a % b
+  if (a * b):isneg() then
+    r = r + b
+  end
+  return r
 end)
 
 IntegralType.binary_operators.pow = make_integral_binary_opfunc(integral_fractional_operation, function(a,b)
@@ -838,7 +842,11 @@ FloatType.binary_operators.idiv = make_float_binary_opfunc(float_arithmetic_oper
   return (a / b):floor()
 end)
 FloatType.binary_operators.mod = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
-  return a % b
+  local r = a % b
+  if (a * b):isneg() then
+    r = r + b
+  end
+  return r
 end)
 FloatType.binary_operators.pow = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
   return a ^ b
