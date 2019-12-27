@@ -9,10 +9,9 @@ source = {
 description = {
   summary = 'The Nelua Programming Language.',
   detailed = [[
-Nelua is a minimalistic, performant, safe, optionally typed, compiled, meta programmable,
-systems programming language with syntax and semantics similar to Lua
-language that can work dynamically or statically depending on the code style and
-compiles to C or Lua.
+Nelua is a minimalistic, efficient, optionally typed, ahead of time compiled,
+meta programmable, systems programming language with syntax and semantics similar to Lua.
+It can work statically or dynamically depending on the code style and compiles to native machine code.
 ]],
   maintainer = "Eduardo Bart <edub4rt@gmail.com>",
   homepage = 'https://github.com/edubart/nelua-lang',

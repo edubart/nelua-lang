@@ -88,12 +88,15 @@ for learning the basics.
 
 ## Installation
 
-To install the language you will need [luarocks](https://luarocks.org/) installed first.
-If you want to compile to native code you will also need a C compiler such as GCC or Clang.
+You will need [luarocks](https://luarocks.org/) and a C compiler
+like GCC or Clang installed first.
+In your shell do the following command to install:
 
 ```bash
 luarocks install https://raw.githubusercontent.com/edubart/nelua-lang/master/rockspecs/nelua-dev-1.rockspec
 ```
+
+After installing the nelua compiler should be available in the luarocks binary path ready to be run.
 
 ## Running
 
@@ -133,30 +136,15 @@ Some benchmarks can be found in `benchmarks` folder, it contains nelua benchmark
 and pure C benchmark as reference. The Lua code of the benchmarks are generated
 by nelua compiler, as it can compile to Lua too.
 
-The benchmarks can be run with `make benchmark`:
+The benchmarks can be run with `make benchmark`, this is my last results:
 
-|    benchmark |  language |   min (ms) |
-|--------------|-----------|------------|
-|    ackermann |       lua |   2441.924 |
-|    ackermann |    luajit |    150.885 |
-|    ackermann |     nelua |     64.643 |
-|    ackermann |         c |     51.683 |
-|    fibonacci |       lua |   2607.637 |
-|    fibonacci |    luajit |    934.407 |
-|    fibonacci |     nelua |    387.643 |
-|    fibonacci |         c |    319.794 |
-|       mandel |       lua |   2628.983 |
-|       mandel |    luajit |    103.067 |
-|       mandel |     nelua |     92.318 |
-|       mandel |         c |     92.733 |
-|        sieve |       lua |   1252.810 |
-|        sieve |    luajit |    282.017 |
-|        sieve |     nelua |     98.735 |
-|        sieve |         c |     70.754 |
-|     heapsort |       lua |   2680.691 |
-|     heapsort |    luajit |    298.494 |
-|     heapsort |     nelua |    186.525 |
-|     heapsort |         c |    145.763 |
+|    benchmark |  lua 5.3   | luajit 2.1 |      nelua |          c |
+|--------------|------------|------------|------------|------------|
+|    ackermann |  2441.9 ms |   150.8 ms |    64.6 ms |    51.6 ms |
+|    fibonacci |  2607.6 ms |   934.4 ms |   387.6 ms |   319.7 ms |
+|       mandel |  2628.9 ms |   103.0 ms |    92.3 ms |    92.7 ms |
+|        sieve |  1252.8 ms |   282.0 ms |    98.7 ms |    70.7 ms |
+|     heapsort |  2680.6 ms |   298.4 ms |   186.5 ms |   145.7 ms |
 
 *NOTE*: Nelua can match C speed if the benchmarks were coded using arrays instead of tables,
 however to make the benchmarks comparisons fair with Lua/LuaJIT they were coded in Lua style
@@ -172,7 +160,7 @@ compiled with C flags `-O2 -fno-plt -march=native`
 
 ## Tests
 
-To run the language test suit do:
+To run the language test suit at your home do:
 
 ```
 make test
@@ -184,18 +172,26 @@ make docker-image
 make docker-test
 ```
 
-## Syntax highlighting for editors
+Previous test runs on the master branch can be seen in the
+[github's actions tab](https://github.com/edubart/nelua-lang/actions).
+
+## Syntax highlighting
 
 Syntax definitions for the language is available for
 Visual Studio Code in [nelua-vscode](https://github.com/edubart/nelua-vscode) and
 for Sublime Text in [nelua-sublime](https://github.com/edubart/nelua-sublime).
 At the moment only Sublime Text have full definition, so I recommend using it.
 If you use other code editor you can use Lua syntax highlighting,
-as it very similar but of course incomplete.
+as Nelua syntax is very similar but of course will be incomplete.
 
 I recommend using the syntax highlighter, 
 it makes the experience of playing around with the language more pleasant because
 it can highlight type notations.
+
+## Roadmap
+
+Language planned features and history of accomplished features can be seen
+in the [github's projects tab](https://github.com/edubart/nelua-lang/projects).
 
 ## License
 
