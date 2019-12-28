@@ -87,6 +87,21 @@ function assert.parse_ast_error(parser, input, expected_error)
          'expected error "%s" while parsing', expected_error)
 end
 
+--luacov:disable
+local function pretty_traceback_errhandler(e)
+  if type(e) == 'string' then
+    local msg = debug.traceback(e, 2)
+    local i = msg:find('\n%s+[%w%s%/%\\%.%-_ ]+busted[/\\]+[a-z]+%.lua')
+    if i then
+      msg = msg:sub(1, i) .. '        (...busted...)\n'
+    end
+    return msg
+  else
+    return e
+  end
+end
+--luacov:enable
+
 local function run(args)
   if type(args) == 'string' then
     args = stringer.split(args)
@@ -99,9 +114,9 @@ local function run(args)
   _G.ostderr, _G.ostdout, _G.oprint = ostderr, ostdout, oprint
   io.stderr, io.stdout, _G.print = tmperr, tmpout, rprint
   -- run the test
-  local ok, err = pcall(function()
+  local ok, err = xpcall(function()
     return runner.run(args, true)
-  end)
+  end, pretty_traceback_errhandler)
   local status = 1
   if not ok then io.stderr:write(tostring(err) .. '\n')
   else
@@ -143,18 +158,27 @@ function assert.run_error(args, expected_stderr)
   end
 end
 
+local function pretty_input_onerror(input, f)
+  local ok, err = xpcall(f, pretty_traceback_errhandler)
+  errorer.assertf(ok, '%s\ninput:\n%s', err, input)
+end
+
 function assert.generate_lua(nelua_code, expected_code)
   expected_code = expected_code or nelua_code
-  local ast = assert.parse_ast(nelua_parser, nelua_code)
-  typechecker.analyze(ast, nelua_parser)
-  local generated_code = assert(lua_generator.generate(ast))
+  local ast = assert.analyze_ast(nelua_code)
+  local generated_code
+  pretty_input_onerror(nelua_code, function()
+    generated_code = assert(lua_generator.generate(ast))
+  end)
   assert.same_string(stringer.rstrip(expected_code), stringer.rstrip(generated_code))
 end
 
 function assert.generate_c(nelua_code, expected_code, ispattern)
-  local ast = assert.parse_ast(nelua_parser, nelua_code)
-  typechecker.analyze(ast, nelua_parser)
-  local generated_code = assert(c_generator.generate(ast))
+  local ast = assert.analyze_ast(nelua_code)
+  local generated_code
+  pretty_input_onerror(nelua_code, function()
+    generated_code = assert(c_generator.generate(ast))
+  end)
   if not expected_code then expected_code = nelua_code end
   if traits.is_string(expected_code) then
     expected_code = {expected_code}
@@ -178,23 +202,9 @@ function assert.run_error_c(nelua_code, output)
   assert.run_error({'--generator', 'c', '--eval', nelua_code}, output)
 end
 
---[[
-function assert.c_gencode_equals(code, expected_code)
-  local ast = assert.parse_ast(nelua_parser, code)
-  typechecker.analyze(ast, nelua_parser)
-  local expected_ast = assert.parse_ast(nelua_parser, expected_code)
-  typechecker.analyze(expected_ast, nelua_parser)
-  local generated_code = assert(c_generator.generate(ast))
-  local expected_generated_code = assert(c_generator.generate(expected_ast))
-  assert.same_string(expected_generated_code, generated_code)
-end
-]]
-
 function assert.lua_gencode_equals(code, expected_code)
-  local ast = assert.parse_ast(nelua_parser, code)
-  typechecker.analyze(ast, nelua_parser)
-  local expected_ast = assert.parse_ast(nelua_parser, expected_code)
-  typechecker.analyze(expected_ast, nelua_parser)
+  local ast = assert.analyze_ast(code)
+  local expected_ast = assert.analyze_ast(expected_code)
   local generated_code = assert(lua_generator.generate(ast))
   local expected_generated_code = assert(lua_generator.generate(expected_ast))
   assert.same_string(expected_generated_code, generated_code)
@@ -202,7 +212,9 @@ end
 
 function assert.analyze_ast(code, expected_ast)
   local ast = assert.parse_ast(nelua_parser, code)
-  typechecker.analyze(ast, nelua_parser)
+  pretty_input_onerror(code, function()
+    typechecker.analyze(ast, nelua_parser)
+  end)
   if expected_ast then
     assert.same_string(tostring(expected_ast), tostring(ast))
   end
@@ -230,10 +242,8 @@ local function filter_ast_for_check(t)
 end
 
 function assert.ast_type_equals(code, expected_code)
-  local ast = assert.parse_ast(nelua_parser, code)
-  typechecker.analyze(ast, nelua_parser)
-  local expected_ast = assert.parse_ast(nelua_parser, expected_code)
-  typechecker.analyze(expected_ast, nelua_parser)
+  local ast = assert.analyze_ast(code)
+  local expected_ast = assert.analyze_ast(expected_code)
   filter_ast_for_check(ast)
   filter_ast_for_check(expected_ast)
   assert.same_string(tostring(expected_ast), tostring(ast))
@@ -244,10 +254,14 @@ function assert.analyze_error(code, expected_error)
   local ok, e = except.try(function()
     typechecker.analyze(ast, nelua_parser)
   end)
-  errorer.assertf(not ok, "type analysis should fail for: %s", code)
-  if expected_error then
-    assert.contains(expected_error, e:get_message())
-  end
+  pretty_input_onerror(code, function()
+    if expected_error then
+      errorer.assertf(not ok, "type analysis should fail with error '%s'", expected_error)
+      assert.contains(expected_error, e:get_message())
+    else
+      errorer.assertf(not ok, "type analysis should fail")
+    end
+  end)
 end
 
 return assert

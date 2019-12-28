@@ -8,36 +8,57 @@
 [![Gitter](https://badges.gitter.im/nelua-lang/community.svg)](https://gitter.im/nelua-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 Nelua is a minimalistic, efficient, optionally typed, ahead of time compiled, meta programmable,
-systems programming language with syntax and semantics similar to [Lua](https://en.wikipedia.org/wiki/Lua_(programming_language)). It can work statically or dynamically depending on the code style and
-compiles to native machine code. Nelua stands for "Native Extensible LUA".
+systems programming language with syntax and semantics similar to Lua.
+It can work statically or dynamically depending on the code style and
+compiles to native machine code. Nelua stands for *Native Extensible LUA*.
 
 **NOTE: The language is in development.** Many features are implemented but some notable still
 missing. However there are benchmarks, examples and games available ready to be run.
 
 ## About
 
-Nelua is a language for performance sensitive applications where Lua
+Nelua is a [systems programming language](https://en.wikipedia.org/wiki/System_programming_language)
+for performance sensitive applications where
+[Lua](https://en.wikipedia.org/wiki/Lua_(programming_language))
 would not be efficient, like operational systems, real-time applications and game engines.
-It has syntax and semantics similar to Lua, but is designed to be able to work free from
-a Lua interpreter, instead it takes advantage of ahead of time compilation. 
+It has syntax and semantics similar to Lua,
+but is designed to be able to work free from a Lua interpreter,
+instead it takes advantage of
+[ahead of time compilation](https://en.wikipedia.org/wiki/Ahead-of-time_compilation).
 When coding using Nelua idioms such as type annotations, records, arrays,
 manual memory management, pointers the performance should be efficient as C.
 But when using Lua idioms such as tables, metatables and untyped variables the compiler
 uses a runtime library to provide the dynamic functionality.
 
-The language can do advanced meta programming because it has a preprocessor
-capable to cooperate with the compiler as it compiles,
+The language can do advanced [meta programming](https://en.wikipedia.org/wiki/Metaprogramming)
+because it has a preprocessor capable to cooperate with the compiler as it compiles,
 this is only possible because the compiler is fully made in Lua
 and is fully accessible or modifiable by the preprocessor on the fly. 
-Therefore it's possible to implement higher constructs such as classes, generics and DSLs at compile time without having to make them into the language specification, thus keeping the language simpler and compact.
+Therefore it's possible to implement higher constructs such as classes,
+[generics](https://en.wikipedia.org/wiki/Generic_programming) and
+[polymorphism](https://en.wikipedia.org/wiki/Polymorphism_(computer_science))
+at compile time without having to make them into the language specification,
+thus keeping the language simpler and compact.
 For example in Lua classes don't exist but you can implement yourself using metatables,
-in Nelua they don't exists too but you can implement by meta programming.
+in Nelua they don't exist neither but you can implement more efficiently at compile time
+by meta programming or at runtime just like in Lua.
 
-Nelua compiles to C and then to the target native code, this way existing
-C libraries and APIs can be reused and new C libraries can be created.
-Any platform that a C99 compiler targets the language is capable of targeting and
-the language can take advantage of highly optimized compilers such as GCC and Clang, thus generating very
-efficient native code.
+The language has mutiple choices for
+[memory management](https://en.wikipedia.org/wiki/Memory_management),
+it's the developer choice to use
+[garbage collection](https://en.wikipedia.org/wiki/Garbage_collection_(computer_science)), 
+[automatic reference counting](https://en.wikipedia.org/wiki/Automatic_Reference_Counting) or
+[manual memory management](https://en.wikipedia.org/wiki/Manual_memory_management)
+depending on his use case.
+
+Nelua compiles to [C](https://en.wikipedia.org/wiki/C_(programming_language)) first
+then to the target [native code](https://en.wikipedia.org/wiki/Machine_code),
+this way existing C libraries and APIs can be reused and new C libraries can be created.
+Any platform that a C99 compiler targets the language is capable of targeting so
+the language can take advantage of highly optimized compilers such as
+[GCC](https://en.wikipedia.org/wiki/GNU_Compiler_Collection) and
+[Clang](https://en.wikipedia.org/wiki/Clang),
+thus generating very efficient native code.
 
 The motivation of the language is to replace C/C++ part of projects that uses
 Lua today with a language that have syntax and semantics similar to Lua, but
@@ -55,14 +76,15 @@ for existing Lua projects by generating Lua code.
 * Have syntax, semantics and features similar to Lua
 * Optionally statically typed with type checking
 * Generate native dependency free executable
-* Achieve classes, generics and other higher constructs by meta programming
+* Achieve classes, generics, polymorphism and other higher constructs by meta programming
 * Have an optional garbage collector
 * Make possible to create clean DSLs by extending the language grammar
-* Make programming safe for non experts by doing runtime/compile-time checks and avoiding undefined behavior
+* Make programming safe for non experts by doing run/compile-time checks and avoiding undefined behavior
 * Possibility to emit low level code (C, assembly)
 * Be modular and make users capable of creating compiler plugins to extended
 * Generate readable, simple and efficient C code
 * Possibility to output freestanding code (dependency free, for kernel dev or minimal runtime)
+* No single memory managment model, choose for your use case GC, ARC or manual
 
 ## Why?
 
@@ -74,7 +96,7 @@ for existing Lua projects by generating Lua code.
 * We want to have efficient code while maintaining readability and safety.
 * We want the language features and manual to be minimalistic and fit our brain.
 * We want to deploy anywhere Lua or C runs.
-* We want to extended the language features when by meta programming.
+* We want to extended the language features by meta programming or modding the compiler.
 * We want to code with or without garbage collection depending on our use case.
 * We want to abuse of static dispatch instead of dynamic dispatch to gain performance and correctness.
 
