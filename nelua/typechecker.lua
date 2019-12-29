@@ -87,7 +87,7 @@ local function visitor_ArrayTable_literal(context, node, littype)
       if childtype == subtype then
         childnode.attr.initializer = true
       else
-        local ok, err = subtype:is_conversible_from(childnode.attr)
+        local ok, err = subtype:is_convertible_from(childnode.attr)
         if not ok then
           childnode:raisef("in array table literal at index %d: %s", i, err)
         end
@@ -116,7 +116,7 @@ local function visitor_Array_literal(context, node, littype)
       if childtype == subtype then
         childnode.attr.initializer = true
       else
-        local ok, err = subtype:is_conversible_from(childnode.attr)
+        local ok, err = subtype:is_convertible_from(childnode.attr)
         if not ok then
           childnode:raisef("in array literal at index %d: %s", i, err)
         end
@@ -166,7 +166,7 @@ local function visitor_Record_literal(context, node, littype)
       if fieldvaltype == fieldtype then
         fieldvalnode.attr.initializer = true
       else
-        local ok, err = fieldtype:is_conversible_from(fieldvalnode.attr)
+        local ok, err = fieldtype:is_convertible_from(fieldvalnode.attr)
         if not ok then
           childnode:raisef("in record literal field '%s': %s", fieldname, err)
         end
@@ -455,7 +455,7 @@ function visitors.EnumFieldType(context, node)
       numnode:raisef("in enum field '%s': only integral types are allowed in enums, but got type '%s'",
         name, numtype:prettyname())
     end
-    local ok, err = desiredtype:is_conversible_from(numnode)
+    local ok, err = desiredtype:is_convertible_from(numnode)
     if not ok then
       numnode:raisef("in enum field '%s': %s", name, err)
     end
@@ -509,7 +509,7 @@ function visitors.SpanType(context, node)
   local subtypenode = node:args()
   context:traverse(subtypenode)
   local subtype = subtypenode.attr.value
-  if subtype:is_comptime() then
+  if subtype.size == 0 then
     subtypenode:raisef("spans cannot be of type '%s'", subtype.name)
   end
   attr.type = primtypes.type
@@ -648,7 +648,7 @@ local function visitor_FieldIndex(context, node)
   local ret
   if objtype then
     if objtype:is_pointer() then
-      -- dereference when acessing fields for pointers
+      -- dereference when accessing fields for pointers
       objtype = objtype.subtype
     end
     if objtype:is_record() then
@@ -827,7 +827,7 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
       local pseudoargtypes = funcargtypes
       if methodcalleenode then
         pseudoargtypes = tabler.copy(funcargtypes)
-        local ok, err = funcargtypes[1]:is_conversible_from(methodcalleenode)
+        local ok, err = funcargtypes[1]:is_convertible_from(methodcalleenode)
         if not ok then
           node:raisef("in call of function '%s' at argument %d: %s",
             calleetype:prettyname(), 1, err)
@@ -857,7 +857,7 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
             calleetype:prettyname(), i)
         end
         if funcargtype and argtype then
-          local ok, err = funcargtype:is_conversible_from(argnode or argtype)
+          local ok, err = funcargtype:is_convertible_from(argnode or argtype)
           if not ok then
             node:raisef("in call of function '%s' at argument %d: %s",
               calleetype:prettyname(), i, err)
@@ -881,7 +881,7 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
       -- call on any values
       context:traverse(argnodes)
       attr.type = primtypes.varanys
-      -- builtins usuailly dont do side effects
+      -- builtins usually don't have side effects
       attr.sideeffect = not attr.builtin
     else
       -- call on invalid types (i.e: numbers)
@@ -916,7 +916,7 @@ function visitors.Call(context, node)
     context:traverse(argnode)
     local argtype = argnode.attr.type
     if argtype then
-      local ok, err = type:is_conversible_from(argnode, true)
+      local ok, err = type:is_convertible_from(argnode, true)
       if not ok then
         argnode:raisef("in type assertion: %s", err)
       end
@@ -1004,7 +1004,7 @@ function visitors.Switch(context, node)
   local valtype = valnode.attr.type
   if valtype and not (valtype:is_any() or valtype:is_integral()) then
     valnode:raisef(
-      "`switch` statement must be conversible to an integral type, but got type `%s` (non integral)",
+      "`switch` statement must be convertible to an integral type, but got type `%s` (non integral)",
       valtype:prettyname())
   end
   for _,casepart in ipairs(caseparts) do
@@ -1082,19 +1082,19 @@ function visitors.ForNum(context, node)
         itvarnode:raisef("`for` variable '%s' must be a number, but got type '%s'", itname, ittype)
       end
       if btype then
-        local ok, err = ittype:is_conversible_from(begvalnode)
+        local ok, err = ittype:is_convertible_from(begvalnode)
         if not ok then
           begvalnode:raisef("in `for` begin variable '%s': %s", itname, err)
         end
       end
       if etype then
-        local ok, err = ittype:is_conversible_from(endvalnode)
+        local ok, err = ittype:is_convertible_from(endvalnode)
         if not ok then
           endvalnode:raisef("in `for` end variable '%s': %s", itname, err)
         end
       end
       if stype then
-        local ok, err = ittype:is_conversible_from(stepvalnode)
+        local ok, err = ittype:is_convertible_from(stepvalnode)
         if not ok then
           stepvalnode:raisef("in `for` step variable '%s': %s", itname, err)
         end
@@ -1121,8 +1121,8 @@ function visitors.ForNum(context, node)
     fixedend = endvalnode.attr.value
   end
   if not compop and fixedstep then
-    -- we now that the step is a const numeric value
-    -- compare operation must be ge ('>=') when step is negative
+    -- we now that the step is a constant numeric value
+    -- compare operation must be `ge` ('>=') when step is negative
     compop = fixedstep:isneg() and 'ge' or 'le'
   end
   node.attr.fixedstep = fixedstep
@@ -1191,7 +1191,7 @@ function visitors.VarDecl(context, node)
       local foundtype = true
       local assignvaltype = false
       if varnode.attr.comptime then
-        -- for consts the type must be known ahead
+        -- for comptimes the type must be known ahead
         assignvaltype = not vartype
         symbol.value = valnode.attr.value
       elseif valtype:is_type() then
@@ -1213,7 +1213,7 @@ function visitors.VarDecl(context, node)
 
         local attribnode = varnode[3]
         if attribnode then
-          -- must retravese attrib node early once type is found ahead
+          -- must traverse again attrib node early once type is found ahead
           context:traverse(attribnode, symbol)
         end
       elseif not foundtype then
@@ -1221,7 +1221,7 @@ function visitors.VarDecl(context, node)
         symbol:add_possible_type(valtype)
       end
       if vartype then
-        local ok, err = vartype:is_conversible_from(valnode or valtype)
+        local ok, err = vartype:is_convertible_from(valnode or valtype)
         if not ok then
           varnode:raisef("in variable '%s' declaration: %s", symbol.name, err)
         end
@@ -1261,7 +1261,7 @@ function visitors.Assign(context, node)
       symbol.mutate = true
     end
     if vartype and valtype then
-      local ok, err = vartype:is_conversible_from(valnode or valtype)
+      local ok, err = vartype:is_convertible_from(valnode or valtype)
       if not ok then
         varnode:raisef("in variable assignment: %s", err)
       end
@@ -1278,7 +1278,7 @@ function visitors.Return(context, node)
   if funcscope.returntypes then
     for i,funcrettype,retnode,rettype in izipargnodes(funcscope.returntypes, retnodes) do
       if rettype and funcrettype then
-        local ok, err = funcrettype:is_conversible_from(retnode or rettype)
+        local ok, err = funcrettype:is_convertible_from(retnode or rettype)
         if not ok then
           (retnode or node):raisef("return at index %d: %s", i, err)
         end
@@ -1346,7 +1346,7 @@ function visitors.FuncDef(context, node)
   context:traverse(retnodes)
   local returntypes
   if #retnodes > 0 then
-    -- returns types are pre declared
+    -- returns types are predeclared
     returntypes = tabler.imap(retnodes, function(retnode)
       return retnode.attr.value
     end)
@@ -1413,7 +1413,7 @@ function visitors.FuncDef(context, node)
       -- check if previous symbol declaration is compatible
       local symboltype = symbol.type
       if symboltype then
-        local ok, err = symboltype:is_conversible_from(type)
+        local ok, err = symboltype:is_convertible_from(type)
         if not ok then
           node:raisef("in function definition: %s", err)
         end

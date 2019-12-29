@@ -590,7 +590,7 @@ it("switch", function()
   ]])
   assert.analyze_error(
     "switch 's' case 1 then end",
-    'must be conversible to an integral')
+    'must be convertible to an integral')
   assert.analyze_error(
     "switch a case 1 then case 1.1 then else end",
     'must evaluate to a compile time integral value')

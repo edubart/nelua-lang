@@ -24,7 +24,6 @@ local function define_const(name, type, value)
     name = name,
     codename = name,
     type = type,
-    comptime = value ~= nil,
     const = value == nil,
     value = value,
     builtin = true,

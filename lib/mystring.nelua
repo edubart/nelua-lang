@@ -1,6 +1,6 @@
---TODO: compile time integers
 --TODO: varargs
 --TODO: optional parameters/returns
+
 ## strict = true
 ## modname = 'mystring'
 

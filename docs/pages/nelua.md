@@ -30,8 +30,9 @@ manual memory management, pointers the performance should be efficient as C.
 But when using Lua idioms such as tables, metatables and untyped variables the compiler
 uses a runtime library to provide the dynamic functionality.
 
-The language can do advanced [meta programming](https://en.wikipedia.org/wiki/Metaprogramming)
-because it has a preprocessor capable to cooperate with the compiler as it compiles,
+Nelua can do compile-time [meta programming](https://en.wikipedia.org/wiki/Metaprogramming)
+because it has a Lua preprocessor
+capable to cooperate with the compiler as it compiles,
 this is only possible because the compiler is fully made in Lua
 and is fully accessible or modifiable by the preprocessor on the fly. 
 Therefore it's possible to implement higher constructs such as classes,
@@ -41,9 +42,14 @@ at compile time without having to make them into the language specification,
 thus keeping the language simpler and compact.
 For example in Lua classes don't exist but you can implement yourself using metatables,
 in Nelua they don't exist neither but you can implement more efficiently at compile time
-by meta programming or at runtime just like in Lua.
+by meta programming or at runtime just like in Lua. Nelua can do some runtime meta programming 
+too in the Lua style, by using tables, metatables and metamethods.
 
-The language has mutiple choices for
+Nelua can do [extensible programming](https://en.wikipedia.org/wiki/Extensible_programming)
+as the programmer may add extensions to the language such as new grammars, [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) definitions, semantics, typecheckers, code
+generation and behaviours to the compiler at compile time via the preprocessor.
+
+Nelua has mutiple choices for
 [memory management](https://en.wikipedia.org/wiki/Memory_management),
 it's the developer choice to use
 [garbage collection](https://en.wikipedia.org/wiki/Garbage_collection_(computer_science)), 

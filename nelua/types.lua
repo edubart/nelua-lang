@@ -28,7 +28,7 @@ function Type:_init(name, size, node)
   self.unary_operators = {}
   self.binary_operators = {}
   if self.size == 0 then
-    self.comptime = true
+    self.nosize = true
   end
   self.codename = string.format('nelua_%s', self.name)
   local mt = getmetatable(self)
@@ -87,7 +87,7 @@ function Type:binary_operator(opname, rtype, lattr, rattr)
 end
 
 -- Used to check conversion from `type` to `self`
-function Type:is_conversible_from_type(type)
+function Type:is_convertible_from_type(type)
   if self == type then
     -- the type itself
     return true
@@ -105,7 +105,7 @@ function Type:is_conversible_from_type(type)
 end
 
 -- Used to check conversion from `attr` type to `self` type
-function Type:is_conversible_from_attr(attr, explicit)
+function Type:is_convertible_from_attr(attr, explicit)
   local type = attr.type
 
   -- check for comptime number conversions
@@ -127,17 +127,17 @@ function Type:is_conversible_from_attr(attr, explicit)
     end
   end
 
-  return self:is_conversible_from_type(type, explicit)
+  return self:is_convertible_from_type(type, explicit)
 end
 
-function Type:is_conversible_from(what, explicit)
+function Type:is_convertible_from(what, explicit)
   if traits.is_astnode(what) then
-    return self:is_conversible_from_attr(what.attr, explicit)
+    return self:is_convertible_from_attr(what.attr, explicit)
   elseif traits.is_type(what) then
-    return self:is_conversible_from_type(what, explicit)
+    return self:is_convertible_from_type(what, explicit)
   else
     assert(traits.is_attr(what))
-    return self:is_conversible_from_attr(what, explicit)
+    return self:is_convertible_from_attr(what, explicit)
   end
 end
 
@@ -160,7 +160,6 @@ function Type:is_equal(type)
 end
 
 function Type:is_primitive() return self.primitive end
-function Type:is_comptime() return self.comptime end
 function Type:is_auto() return self.auto end
 function Type:is_arithmetic() return self.arithmetic end
 function Type:is_float32() return self.float32 end
@@ -218,7 +217,7 @@ end
 
 Type.unary_operators.ref = function(ltype, lattr)
   local lval = lattr.value
-  if lval == nil and not ltype.unpointable then
+  if lval == nil then
     return types.get_pointer_type(ltype)
   else
     return nil, nil, 'cannot reference compile time value'
@@ -303,7 +302,6 @@ function VoidType:_init(name)
   Type._init(self, name, 0)
   self.void = true
   self.primitive = true
-  self.unpointable = true
 end
 
 --------------------------------------------------------------------------------
@@ -315,6 +313,7 @@ function AutoType:_init(name)
   self.auto = true
   self.primitive = true
   self.unpointable = true
+  self.lazyable = true
 end
 
 --------------------------------------------------------------------------------
@@ -325,6 +324,7 @@ function TypeType:_init(name)
   Type._init(self, name, 0)
   self.typetype = true
   self.unpointable = true
+  self.lazyable = true
 end
 
 TypeType.unary_operators.len = function(_, lattr)
@@ -378,12 +378,12 @@ function StringType:_init(name, size)
   self.primitive = true
 end
 
-function StringType:is_conversible_from_type(type, explicit)
+function StringType:is_convertible_from_type(type, explicit)
   if self:is_string() and type:is_cstring() and explicit then
     -- explicit cstring to string cast
     return true
   end
-  return Type.is_conversible_from_type(self, type, explicit)
+  return Type.is_convertible_from_type(self, type, explicit)
 end
 
 StringType.unary_operators.len = function(_, lattr)
@@ -441,7 +441,7 @@ function BooleanType:_init(name, size)
   self.primitive = true
 end
 
-function BooleanType.is_conversible_from_type()
+function BooleanType.is_convertible_from_type()
   return true
 end
 
@@ -465,11 +465,10 @@ function AnyType:_init(name, size)
   self.primitive = true
   if name == 'varanys' then
     self.varanys = true
-    self.comptime = true
   end
 end
 
-function AnyType.is_conversible_from_type()
+function AnyType.is_convertible_from_type()
   return true
 end
 
@@ -484,8 +483,8 @@ function ArithmeticType:_init(name, size)
   self.primitive = true
 end
 
-function ArithmeticType:is_conversible_from_type(type, explicit)
-  return Type.is_conversible_from_type(self, type, explicit)
+function ArithmeticType:is_convertible_from_type(type, explicit)
+  return Type.is_convertible_from_type(self, type, explicit)
 end
 
 ArithmeticType.unary_operators.unm = function(ltype, lattr)
@@ -569,13 +568,13 @@ function IntegralType:_init(name, size, unsigned)
   self.integral = true
 end
 
-function IntegralType:is_conversible_from_type(type, explicit)
+function IntegralType:is_convertible_from_type(type, explicit)
   if type:is_integral() and self:is_inrange(type.min) and self:is_inrange(type.max) then
     return true
   elseif explicit and type:is_arithmetic() then
     return true
   end
-  return ArithmeticType.is_conversible_from_type(self, type, explicit)
+  return ArithmeticType.is_convertible_from_type(self, type, explicit)
 end
 
 function IntegralType:normalize_value(value)
@@ -789,11 +788,11 @@ function FloatType:_init(name, size, maxdigits)
   end
 end
 
-function FloatType:is_conversible_from_type(type, explicit)
+function FloatType:is_convertible_from_type(type, explicit)
   if type:is_arithmetic() then
     return true
   end
-  return ArithmeticType.is_conversible_from_type(self, type, explicit)
+  return ArithmeticType.is_convertible_from_type(self, type, explicit)
 end
 
 function FloatType.is_inrange() return true end
@@ -964,7 +963,7 @@ function FunctionType:_init(node, argtypes, returntypes)
   self.returntypes = returntypes or {}
   self.codename = gencodename(self)
   self.lazy = tabler.ifindif(argtypes, function(argtype)
-    return argtype:is_multipletype()
+    return argtype.lazyable
   end) ~= nil
 end
 
@@ -1002,7 +1001,7 @@ function FunctionType:get_functype_for_argtypes(argtypes)
       local ok = true
       for _,funcargtype,argtype in iters.izip(functype.argtypes, argtypes) do
         if not funcargtype or
-          (argtype and not funcargtype:is_conversible_from(argtype)) or
+          (argtype and not funcargtype:is_convertible_from(argtype)) or
           (not argtype and not funcargtype:is_nilable()) then
           ok = false
           break
@@ -1054,6 +1053,108 @@ function FunctionType:__tostring()
 end
 
 --------------------------------------------------------------------------------
+local LazyFunctionType = typeclass()
+types.LazyFunctionTyoe = LazyFunctionType
+
+function LazyFunctionType:_init(node, argtypes, returntypes)
+  Type._init(self, 'function', cpusize, node)
+  self.lazyfunction = true
+  self.Function = true
+  self.argtypes = argtypes or {}
+  self.returntypes = returntypes or {}
+  self.codename = gencodename(self)
+  self.lazy = tabler.ifindif(argtypes, function(argtype)
+    return argtype:is_multipletype()
+  end) ~= nil
+end
+
+function LazyFunctionType:is_equal(type)
+  return
+    type.name == 'function' and
+    getmetatable(type) == getmetatable(self) and
+    tabler.deepcompare(type.argtypes, self.argtypes) and
+    tabler.deepcompare(type.returntypes, self.returntypes)
+end
+
+function LazyFunctionType:get_return_type(index)
+  if not self.returntypes then return nil end
+  local returntypes = self.returntypes
+  local lastindex = #returntypes
+  local lastret = returntypes[#returntypes]
+  if lastret and lastret:is_varanys() and index > lastindex then
+    return primtypes.any
+  end
+  local rettype = returntypes[index]
+  if not rettype and index == 1 then
+    return primtypes.void
+  end
+  return rettype
+end
+
+function LazyFunctionType:get_functype_for_argtypes(argtypes)
+  local lazytypes = self.node.lazytypes
+  if not lazytypes then return nil end
+  assert(argtypes)
+  assert(#lazytypes == 0, 'code disabled')
+  --[[
+  for _,functype in pairs(lazytypes) do
+    if functype then
+      local ok = true
+      for _,funcargtype,argtype in iters.izip(functype.argtypes, argtypes) do
+        if not funcargtype or
+          (argtype and not funcargtype:is_convertible_from(argtype)) or
+          (not argtype and not funcargtype:is_nilable()) then
+          ok = false
+          break
+        end
+      end
+      if ok then
+        return functype
+      end
+    end
+  end
+  ]]
+end
+
+function LazyFunctionType:get_return_type_for_argtypes(argtypes, index)
+  if self.lazy then
+    local functype = self:get_functype_for_argtypes(argtypes)
+    assert(not functype, 'code disabled')
+    --[[if functype then
+      return functype:get_return_type(index)
+    else]]if functype ~= false then
+      if not self.node.lazytypes then
+        self.node.lazytypes = {}
+      end
+      self.node.lazytypes[argtypes] = false
+    end
+  end
+  return self:get_return_type(index)
+end
+
+function LazyFunctionType:has_multiple_returns()
+  return #self.returntypes > 1
+end
+
+function LazyFunctionType:get_return_count()
+  return #self.returntypes
+end
+
+function LazyFunctionType:__tostring()
+  local ss = sstream(self.name, '(', self.argtypes, ')')
+  if self.returntypes and #self.returntypes > 0 then
+    ss:add(': ')
+    if #self.returntypes > 1 then
+      ss:add('(', self.returntypes, ')')
+    else
+      ss:add(self.returntypes)
+    end
+  end
+  return ss:tostring()
+end
+
+
+--------------------------------------------------------------------------------
 local MultipleType = typeclass()
 types.MultipleType = MultipleType
 
@@ -1061,11 +1162,12 @@ function MultipleType:_init(node, typelist)
   Type._init(self, 'multipletype', 0, node)
   self.types = typelist
   self.multipletype = true
+  self.lazyable = true
 end
 
-function MultipleType:is_conversible_from_type(type, explicit)
+function MultipleType:is_convertible_from_type(type, explicit)
   for _,possibletype in ipairs(self.types) do
-    if possibletype:is_conversible_from_type(type, explicit) then
+    if possibletype:is_convertible_from_type(type, explicit) then
       return true
     end
   end
@@ -1198,7 +1300,7 @@ function PointerType:_init(node, subtype)
   self.unary_operators['deref'] = subtype
 end
 
-function PointerType:is_conversible_from_attr(attr, explicit)
+function PointerType:is_convertible_from_attr(attr, explicit)
   local nodetype = attr.type
   if self.subtype == nodetype then
     -- automatic reference
@@ -1208,10 +1310,10 @@ function PointerType:is_conversible_from_attr(attr, explicit)
     attr.autoref = true
     return true
   end
-  return Type.is_conversible_from_attr(self, attr, explicit)
+  return Type.is_convertible_from_attr(self, attr, explicit)
 end
 
-function PointerType:is_conversible_from_type(type, explicit)
+function PointerType:is_convertible_from_type(type, explicit)
   if type:is_pointer() then
     if explicit then
       return true
@@ -1226,7 +1328,7 @@ function PointerType:is_conversible_from_type(type, explicit)
   elseif type:is_nilptr() then
     return true
   end
-  return Type.is_conversible_from_type(self, type, explicit)
+  return Type.is_convertible_from_type(self, type, explicit)
 end
 
 function PointerType:is_equal(type)
@@ -1313,8 +1415,6 @@ end
 function types.get_pointer_type(subtype)
   if subtype == primtypes.cchar then
     return primtypes.cstring
-  elseif subtype:is_void() then
-    return primtypes.pointer
   elseif not subtype.unpointable then
     return types.PointerType(nil, subtype)
   end

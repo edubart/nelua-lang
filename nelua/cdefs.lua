@@ -75,8 +75,7 @@ cdefs.unary_ops = {
   ['ref'] = '&',
   ['deref'] = '*',
   -- builtins
-  ['len'] = true,
-  --TODO: tostring
+  ['len'] = true
 }
 
 cdefs.compare_ops = {

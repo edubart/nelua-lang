@@ -65,7 +65,7 @@ check-duplication:
 _clear-stdout:
 	@clear
 
-devtest: _clear-stdout coverage-test check
+devtest: _clear-stdout coverage-test check compile-examples
 devtestlight: _clear-stdout test-luajit-quick check
 
 test-full: test coverage check compile-examples

@@ -1,6 +1,6 @@
 local bn = require 'bc'
 
-bn.digits(309) -- `double` exponent can go up to 10^309
+bn.digits(324) -- `double` exponent can be represent from 10^-324
 bn._bn = true
 
 local ZERO = bn.new(0)
