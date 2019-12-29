@@ -693,6 +693,15 @@ local function make_integral_binary_opfunc(optypefunc, opvalfunc)
   end
 end
 
+IntegralType.unary_operators.bnot = function(ltype, lattr)
+  local reval
+  local lval = lattr.value
+  if lval ~= nil then
+    reval = ltype:normalize_value(bn.bnot(lval,ltype.bitsize))
+  end
+  return ltype, reval
+end
+
 IntegralType.binary_operators.add = make_integral_binary_opfunc(integral_arithmetic_operation, function(a,b)
   return a + b
 end)

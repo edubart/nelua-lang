@@ -389,6 +389,10 @@ end)
 
 it("unary operator `bnot`", function()
   assert.scoped_generate_c("local x = ~a", "~a;")
+  assert.scoped_generate_c("local a = 2; local x=~a",      "x = ~a;")
+  assert.scoped_generate_c("local x = ~1", "x = -2;")
+  assert.scoped_generate_c("local x = ~-2", "x = 1;")
+  assert.scoped_generate_c("local x = ~0x2_u8", "x = 253U;")
 end)
 
 it("unary operator `len`", function()

@@ -228,6 +228,12 @@ it("unary operators", function()
   ]])
 end)
 
+it("unary operator not", function()
+  assert.ast_type_equals("local a = ~1", "local a: integer = ~1")
+  assert.ast_type_equals("local a = ~1_u32", "local a: uint32 = ~1_u32")
+  assert.analyze_error("local a = ~1.0", "invalid operation")
+end)
+
 it("binary operator shift", function()
   assert.ast_type_equals("local a = 1_u32 << 1", "local a: uint32 = 1_u32 << 1")
   assert.ast_type_equals("local a = 1_u16 >> 1_u32", "local a: uint16 = 1_u16 >> 1_u32")
