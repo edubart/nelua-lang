@@ -820,9 +820,9 @@ function visitors.Assign(context, node, emitter)
 end
 
 function visitors.FuncDef(context, node, emitter)
-  if node.lazynodes then
-    for _,lazynode in pairs(node.lazynodes) do
-      emitter:add(lazynode)
+  if node.lazys then
+    for _,lazytbl in ipairs(node.lazys) do
+      emitter:add(lazytbl.node)
     end
     return
   end

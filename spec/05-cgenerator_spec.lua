@@ -268,6 +268,26 @@ it("function definition", function()
     "int64_t mymod_f(int64_t a) {\n  return a;\n}")
 end)
 
+it("lazy functions", function()
+  assert.run_c([[
+    local function printtype(x: auto)
+      ## if symbols.x.type:is_float() then
+        print('float', x)
+      ## elseif symbols.x.type:is_integral() then
+        print('integral', x)
+      ## elseif symbols.x.type:is_boolean() then
+        print('boolean', x)
+      ## else
+        print('unknown', x)
+      ## end
+      return x
+    end
+    assert(printtype(1) == 1)
+    assert(printtype(3.14) == 3.14)
+    assert(printtype(true) == true)
+    assert(printtype(false) == false)
+  ]])
+end)
 it("global function definition", function()
   assert.generate_c("function f() end", "static void mymod_f();")
   assert.run_c([[

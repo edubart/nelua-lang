@@ -365,8 +365,62 @@ it("check function", function()
   ]])
 end)
 
+it("auto type", function()
+  assert.analyze_ast([[
+    local a: auto = 1
+    ## assert(symbols.a.type == primtypes.integer)
+  ]])
+end)
+
+it("multiple blocks", function()
+  assert.analyze_ast([[
+    ## assert(true)
+    local function f(a: auto)
+      ## assert(true)
+      for i=1,4 do
+        local a: #[primtypes.integer]# <comptime> = 2
+        ## assert(symbols.a.type == primtypes.integer)
+      end
+    end
+  ]])
+end)
+
+it("lazy function", function()
+  assert.analyze_ast([[
+    local function f(a: auto)
+      ## assert(symbols.a.type == primtypes.integer)
+    end
+    f(1)
+  ]])
+  assert.analyze_ast([=[
+    ## local printtypes = {}
+    local function printtype(x: auto)
+      ##[[
+      if symbols.x.type:is_float() then
+        table.insert(printtypes, 'float')
+      elseif symbols.x.type:is_integral() then
+        table.insert(printtypes, 'integral')
+      elseif symbols.x.type:is_boolean() then
+        table.insert(printtypes, 'boolean')
+      end
+      ]]
+      return x
+    end
+    assert(printtype(1) == 1)
+    assert(printtype(3.14) == 3.14)
+    assert(printtype(true) == true)
+    assert(printtype(false) == false)
+    ##[[ afterinfer(function()
+      local types = table.concat(printtypes, ' ')
+      staticassert(types == 'integral float boolean', types)
+    end) ]]
+  ]=])
+end)
+
 it("report errors", function()
   assert.analyze_error("##[[ invalid() ]]", "attempt to call")
+  assert.analyze_error("##[[ for ]]", "expected near")
+  assert.analyze_error("##[[ ast:raisef('ast error') ]]", "ast error")
 end)
 
 it("run brainfuck", function()

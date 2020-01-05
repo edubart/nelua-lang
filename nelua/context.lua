@@ -66,10 +66,6 @@ function Context:pop_scope()
   self.scope = self.scope.parent
 end
 
-function Context:get_top_node()
-  return self.nodes[1]
-end
-
 function Context:get_parent_node()
   return self.nodes[#self.nodes - 1]
 end

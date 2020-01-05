@@ -968,7 +968,7 @@ function FunctionType:_init(node, argtypes, returntypes)
 end
 
 function FunctionType:is_equal(type)
-  return type.name == 'function' and
+  return type.name == self.name and
          getmetatable(type) == getmetatable(self) and
          tabler.deepcompare(type.argtypes, self.argtypes) and
          tabler.deepcompare(type.returntypes, self.returntypes)
@@ -1015,8 +1015,8 @@ types.LazyFunctionType = LazyFunctionType
 
 function LazyFunctionType:_init(node, argtypes, returntypes)
   Type._init(self, 'lazyfunction', 0, node)
-  if not node.lazynodes then
-    node.lazynodes = {}
+  if not node.lazys then
+    node.lazys = {}
   end
   self.Function = true
   self.lazyfunction = true
@@ -1025,38 +1025,28 @@ function LazyFunctionType:_init(node, argtypes, returntypes)
   self.codename = gencodename(self)
 end
 
-function LazyFunctionType:is_equal(type)
-  return type.name == 'lazyfunction' and
-         getmetatable(type) == getmetatable(self) and
-         tabler.deepcompare(type.argtypes, self.argtypes) and
-         tabler.deepcompare(type.returntypes, self.returntypes)
-end
-
-function LazyFunctionType:get_lazy_node(argtypes)
-  for lazyargtypes,lazynode in pairs(self.node.lazynodes) do
-    if tabler.deepcompare(lazyargtypes, argtypes) then
-      return lazynode
+function LazyFunctionType:get_lazy(argtypes)
+  for _,lazytbl in ipairs(self.node.lazys) do
+    if tabler.deepcompare(lazytbl.argtypes, argtypes) then
+      return lazytbl
     end
   end
 end
 
-function LazyFunctionType:mark_lazy(argtypes)
-  self.node.lazynodes[argtypes] = false
-end
-
-function LazyFunctionType:get_lazy_type_for_argtypes(argtypes)
-  local lazynode = self:get_lazy_node(argtypes)
-  local functype = lazynode and lazynode.attr.type
-  if not functype then
+function LazyFunctionType:eval_lazy_for_argtypes(argtypes)
+  local lazy = self:get_lazy(argtypes)
+  if not lazy then
     local ok, err = types.are_types_convertible(argtypes, self.argtypes)
-    if not ok then
+    if not ok then --luacov:disable
       return nil, 'in lazy function evaluation: ' .. err
-    end
-    self:mark_lazy(argtypes)
+    end --luacov:enable
+    lazy = {argtypes = argtypes}
+    table.insert(self.node.lazys, lazy)
   end
-  return functype
+  return lazy
 end
 
+LazyFunctionType.is_equal = FunctionType.is_equal
 LazyFunctionType.__tostring = FunctionType.__tostring
 
 --------------------------------------------------------------------------------
@@ -1312,6 +1302,8 @@ function types.find_common_type(possibletypes)
   return commontype
 end
 
+--TODO: refactor to use this function
+--luacov:disable
 function types.are_types_convertible(atypes, btypes)
   for i,atype,btype in iters.izip(atypes, btypes) do
     if atype and btype then
@@ -1323,10 +1315,11 @@ function types.are_types_convertible(atypes, btypes)
       return nil, stringer.format("at index %d: parameter of type '%s' is missing", i, atype)
     else
       assert(not btype and atype)
-      return nil, stringer.format("extra parameter at index %d of type '%s'", i, atype)
+      return nil, stringer.format("at index %d: extra parameter of type '%s':", i, atype)
     end
   end
   return true
 end
+--luacov:enable
 
 return types

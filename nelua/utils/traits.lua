@@ -36,11 +36,4 @@ function traits.is_bignumber(v)
   return type(v) == 'userdata' and v._bn
 end
 
-function traits.is_astprimitive(v)
-  return traits.is_number(v) or
-    traits.is_bignumber(v) or
-    traits.is_string(v) or
-    traits.is_boolean(v)
-end
-
 return traits

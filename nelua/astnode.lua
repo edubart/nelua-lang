@@ -37,20 +37,18 @@ local function clone_nodetable(t)
   for i,v in ipairs(t) do
     if traits.is_astnode(v) then
       ct[i] = v:clone()
-    elseif traits.is_function(v) then
-      ct[i] = v
     elseif traits.is_table(v) then
       ct[i] = clone_nodetable(v)
-    elseif traits.is_astprimitive(v) then
+    --luacov:disable
+    elseif traits.is_number(v) or traits.is_bignumber(v) or traits.is_string(v) or
+           traits.is_boolean(v) or traits.is_function(v) then
       ct[i] = v
-    else --luacov:disable
+    else
       errorer.errorf("invalid value type '%s' in node clone", type(v))
     end --luacov:enable
   end
-  if t.n then
-    -- in case of packed tables
-    ct.n = t.n
-  end
+  -- in case of packed tables
+  if t.n then ct.n = t.n end
   return ct
 end
 
@@ -76,7 +74,7 @@ function ASTNode:clone()
   node.src = self.src
   node.srcname = self.srcname
   node.modname = self.modname
-  node.cloned = true
+  node.preprocess = self.preprocess
   node.uid = genuid()
   return node
 end
@@ -124,17 +122,17 @@ function ASTNode:assertf(cond, message, ...)
   end
   return cond
 end
---luacov:enable
-
-function ASTNode:raisef(message, ...)
-  except.raise(self:format_errmsg(message, ...), 2)
-end
 
 function ASTNode:assertraisef(cond, message, ...)
   if not cond then
     except.raise(self:format_errmsg(message, ...), 2)
   end
   return cond
+end
+--luacov:enable
+
+function ASTNode:raisef(message, ...)
+  except.raise(self:format_errmsg(message, ...), 2)
 end
 
 -------------------
@@ -143,11 +141,8 @@ end
 local ignored_stringfy_keys = {
   pos = true, src = true, srcname=true, modname=true,
   uid = true,
-  processed = true,
   desiredtype = true,
-  cloned = true,
-  needprocess = true,
-  possibletypes = true,
+  preprocess = true,
   node = true,
 }
 local function stringfy_val2str(val)

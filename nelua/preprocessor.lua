@@ -1,7 +1,6 @@
 local traits = require 'nelua.utils.traits'
 local tabler = require 'nelua.utils.tabler'
 local class = require 'nelua.utils.class'
-local except = require 'nelua.utils.except'
 local bn = require 'nelua.utils.bn'
 local compat = require 'pl.compat'
 local typedefs = require 'nelua.typedefs'
@@ -43,7 +42,9 @@ function PPContext:push_statnodes()
 end
 
 function PPContext:pop_statnodes()
-  self.statnodes = self.statnodes.oldstatnodes
+  local curstatnodes = self.statnodes
+  self.statnodes = curstatnodes.oldstatnodes
+  curstatnodes.oldstatnodes = nil
 end
 
 function PPContext:add_statnode(node)
@@ -138,62 +139,26 @@ function visitors.Preprocess(_, node, emitter)
   emitter:add_ln(luacode)
 end
 
-function visitors.ForNum(ppcontext, node, emitter)
-  local itvarnode, begvalnode, compop, endvalnode, stepvalnode, blocknode = node:args()
-  ppcontext:traverse(begvalnode, emitter, node, 2)
-  ppcontext:traverse(endvalnode, emitter, node, 4)
-  if stepvalnode then
-    ppcontext:traverse(stepvalnode, emitter, node, 5)
-  end
-  emitter:add_indent_ln("context:push_scope('loop')")
-  ppcontext:traverse(itvarnode, emitter, node, 1)
-  emitter:add_indent_ln("context:traverse(ppstatnode[1])")
-  ppcontext:traverse(blocknode, emitter, node, 6)
-  emitter:add_indent_ln("context:pop_scope()")
-end
+function visitors.Block(ppcontext, node, emitter)
+  local statnodes = node[1]
 
-function visitors.FuncDef(ppcontext, node, emitter)
-  local varscope, varnode, argnodes, retnodes, attribnodes, blocknode = node:args()
-  ppcontext:traverse(varnode, emitter, node, 2)
-  ppcontext:traverse(retnodes, emitter, node, 4)
-  if attribnodes then
-    ppcontext:traverse(attribnodes, emitter, node, 5)
-  end
-  emitter:add_indent_ln("do local function f()")
-  emitter:inc_indent()
-  emitter:add_indent_ln("context:push_scope('function')")
-  ppcontext:traverse(argnodes, emitter, node, 3)
-  emitter:add_indent_ln("context:traverse(ppstatnode[3])")
-  ppcontext:traverse(blocknode, emitter, node, 6)
-  emitter:add_indent_ln("context:pop_scope()")
-  emitter:dec_indent()
-  emitter:add_indent_ln("end f() end")
-end
-
-function visitors.Block(ppcontext, node, emitter, parent)
   if not node.needprocess then
-    -- this block doesn't have any preprocess directive, skip it
+    ppcontext:traverse(statnodes, emitter)
     return
   end
 
-  -- always use original statement nodes for inner preprocessor blocks
-  local statnodes = node.origstatnodes or node[1]
-  if parent and not node.origstatnodes then
-    -- clone because we may change origina ref
-    node.origstatnodes = node:clone()[1]
-  end
+  node.needprocess = nil
 
-  node.processed = true
-  node.needprocess = false
-
-  emitter:add_indent_ln('do')
+  local blockregidx = ppcontext:getregistryindex(node)
+  emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess = function(blocknode)')
   emitter:inc_indent()
   emitter:add_indent_ln('local ppstatnode')
-  emitter:add_indent_ln('ppregistry[', ppcontext:getregistryindex(node), '][1] = ppcontext:push_statnodes()')
+  emitter:add_indent_ln('blocknode[1] = ppcontext:push_statnodes()')
   emitter:add_indent_ln('context:push_scope("block")')
   emitter:inc_indent()
   for _,statnode in ipairs(statnodes) do
-    emitter:add_indent_ln('ppstatnode = ppcontext:get_registry(', ppcontext:getregistryindex(statnode), ')')
+    local statregidx = ppcontext:getregistryindex(statnode)
+    emitter:add_indent_ln('ppstatnode = ppcontext:get_registry(', statregidx, ')')
     ppcontext:traverse(statnode, emitter)
     if statnode.tag ~= 'Preprocess' then
       emitter:add_indent_ln('ppcontext:add_statnode(ppstatnode:clone())')
@@ -239,17 +204,11 @@ local marker_visitors = {
 function marker_visitors.Block(markercontext, node)
   local statnodes = node[1]
   markercontext:traverse(statnodes)
-  if not node.needprocess then
-    node.processed = true
-  end
 end
 
 local ppenvgetfields = {}
 function ppenvgetfields:scope()
   return self.context.scope
-end
-function ppenvgetfields:ast()
-  return self.context:get_top_node()
 end
 function ppenvgetfields:symbols()
   return self.context.scope.symbols
@@ -286,6 +245,7 @@ function preprocessor.preprocess(context, ast)
   env = setmetatable({
     context = context,
     ppcontext = ppcontext,
+    ast = ast,
     aster = aster,
     primtypes = require 'nelua.typedefs'.primtypes,
     addnode = function(node) ppcontext:add_statnode(node) end,
@@ -342,11 +302,8 @@ function preprocessor.preprocess(context, ast)
   if ppfunc then
     ok, err = pcall(ppfunc)
   end
-  if except.isexception(err) then
-    except.reraise(err)
-  else
-    --TODO: better error messages
-    ast:assertraisef(ok, tostring(err))
+  if not ok then
+    ast:raisef('error while preprocessing file: %s', err)
   end
 
   context.preprocessing = false

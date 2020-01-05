@@ -6,6 +6,7 @@ local Context = require 'nelua.context'
 local Symbol = require 'nelua.symbol'
 local types = require 'nelua.types'
 local bn = require 'nelua.utils.bn'
+local except = require 'nelua.utils.except'
 local preprocessor = require 'nelua.preprocessor'
 local builtins = require 'nelua.builtins'
 local typechecker = {}
@@ -880,11 +881,17 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
       end
       if calleetype.lazyfunction then
         if knownallargs then
-          local lazynode = calleetype:get_lazy_node(argtypes)
-          calleetype = calleetype:get_lazy_type_for_argtypes(argtypes)
+          local lazy, err = calleetype:eval_lazy_for_argtypes(argtypes)
+          if err then --luacov:disable
+            --TODO: actually this error is impossible because of the previous check
+            node:raisef("in call of function '%s': %s", calleetype:prettyname(), err)
+          end --luacov:enable
 
-          if lazynode then
-            attr.lazysym = lazynode.attr
+          if lazy and lazy.node then
+            calleetype = lazy.node and lazy.node.attr.type
+            attr.lazysym = lazy.node.attr
+          else
+            calleetype = nil
           end
         else
           calleetype = nil
@@ -977,8 +984,16 @@ function visitors.CallMethod(context, node)
 end
 
 function visitors.Block(context, node, scopecb)
-  if not node.processed then
-    preprocessor.preprocess(context, node)
+  if node.preprocess then
+    local ok, err = pcall(node.preprocess, node)
+    if except.isexception(err) then
+      except.reraise(err)
+    else
+      if not ok then
+        node:raisef('error while preprocessing block: %s', err)
+      end
+    end
+    node.preprocess = nil
   end
   local statnodes = node:args()
   context:repeat_scope_until_resolution('block', function()
@@ -1302,21 +1317,18 @@ function visitors.Return(context, node)
   end
 end
 
-local function resolve_function_argtypes(node, symbol, varnode, argnodes, scope)
+local function resolve_function_argtypes(symbol, varnode, argnodes, scope)
   local lazy = false
   local argtypes = {}
-  if node.argtypes then
-    argtypes = node.argtypes
-  else
-    for i,argnode in ipairs(argnodes) do
-      -- function arguments types must be known ahead, fallbacks to any if untyped
-      local argattr = argnode.attr
-      local argtype = argattr.type or primtypes.any
-      if argtype.lazyable or argattr.comptime then
-        lazy = true
-      end
-      argtypes[i] = argtype
+
+  for i,argnode in ipairs(argnodes) do
+    -- function arguments types must be known ahead, fallbacks to any if untyped
+    local argattr = argnode.attr
+    local argtype = argattr.type or primtypes.any
+    if argtype.lazyable or argattr.comptime then
+      lazy = true
     end
+    argtypes[i] = argtype
   end
 
   if varnode.tag == 'ColonIndex' and symbol and symbol.metafunc then
@@ -1427,7 +1439,7 @@ function visitors.FuncDef(context, node, lazysymbol)
   local funcscope = context:repeat_scope_until_resolution('function', function(scope)
     scope.returntypes = returntypes
     context:traverse(argnodes)
-    argtypes, lazy = resolve_function_argtypes(node, symbol, varnode, argnodes, scope)
+    argtypes, lazy = resolve_function_argtypes(symbol, varnode, argnodes, scope)
 
     if not lazy then
       -- lazy functions never traverse the blocknode by itself
@@ -1503,15 +1515,16 @@ function visitors.FuncDef(context, node, lazysymbol)
 
   -- traverse lazy function nodes
   if lazy then
-    local lazynodes = node.lazynodes
-    for lazyargtypes,lazynode in pairs(lazynodes) do
+    for _,lazytbl in ipairs(node.lazys) do
+      local lazyargtypes = lazytbl.argtypes
+      local lazynode = lazytbl.node
       if not lazynode then
         lazynode = node:clone()
         local lazyargnodes = lazynode[3]
         for i,lazyargtype in ipairs(lazyargtypes) do
           lazyargnodes[i].attr.type = lazyargtype
         end
-        lazynodes[lazyargtypes] = lazynode
+        lazytbl.node = lazynode
       end
       context:traverse(lazynode, symbol)
     end
@@ -1610,6 +1623,11 @@ function typechecker.analyze(ast, parser, parentcontext)
   context.ast = ast
   context.parser = parser
   context.astbuilder = parser.astbuilder
+
+  local mainscope = context:push_scope('function')
+  mainscope.main = true
+  preprocessor.preprocess(context, ast)
+  context:pop_scope()
 
   local function analyze_ast()
     context:repeat_scope_until_resolution('function', function(scope)

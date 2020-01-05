@@ -433,6 +433,29 @@ it("function definition", function()
   ]], "no viable type conversion")
 end)
 
+it("lazy function definition", function()
+  assert.analyze_ast([[
+    local function f(x: auto) end
+    f(1)
+    f('s')
+  ]])
+  assert.analyze_ast([[
+    local function f(x: auto) return x end
+    local a = f(1)
+    local b = f('s')
+  ]])
+  assert.analyze_ast([[
+    local function f(x: auto, y: auto) return x, y end
+    local a = f(1, 's')
+    local b = f('s', 1)
+  ]])
+  assert.analyze_ast([[
+    local function f(x: auto) return x end
+    local a = 1
+    f(a)
+  ]])
+end)
+
 it("function return", function()
   assert.ast_type_equals(
     "local function f() return 0 end",
