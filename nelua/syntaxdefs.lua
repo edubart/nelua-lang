@@ -226,13 +226,15 @@ local function get_parser(std)
       (!. / %{UnexpectedSyntaxAtEOF})
 
     block <-
-      ({} '' -> 'Block' {| (stat / %SEMICOLON)* stat_return? stat_preprocess* |}) -> to_astnode
+      ({} '' -> 'Block' {| (stat / %SEMICOLON)* |}) -> to_astnode
 
-    stat_return <-
-      ({} %RETURN -> 'Return' {| expr_list |} %SEMICOLON?) -> to_astnode
   ]==])
 
   -- statements
+  grammar:add_group_peg('stat', 'return', [[
+    ({} %RETURN -> 'Return' {| expr_list |}) -> to_astnode
+  ]])
+
   grammar:add_group_peg('stat', 'if', [[
     ({} %IF -> 'If'
       {|
@@ -456,8 +458,7 @@ local function get_parser(std)
     cfalse <- '' -> to_false
 
     typexpr <- typexpr0
-    typexpr0 <- ({} '' -> 'MultipleType' {| typexpr1 (%BOR typexpr1)* |}) -> to_list_astnode
-    typexpr1 <- (simple_typexpr {| unary_typexpr_op* |}) -> to_chain_late_unary_op
+    typexpr0 <- (simple_typexpr {| unary_typexpr_op* |}) -> to_chain_late_unary_op
 
     simple_typexpr <-
       func_type /

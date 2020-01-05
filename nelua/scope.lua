@@ -57,15 +57,23 @@ function Scope:get_symbol(name)
 end
 
 function Scope:add_symbol(symbol)
-  local name = symbol.name
-  assert(name)
-  local oldsymbol = self.symbols[name]
-  if oldsymbol and (not oldsymbol.node or oldsymbol.node ~= symbol.node) then
+  local key = symbol.name or symbol
+  local oldsymbol = self.symbols[key]
+  if oldsymbol == symbol then
+    return true
+  end
+  if oldsymbol and oldsymbol == self.context.inlazydef then
+    -- symbol definition of a lazy function
+    key = symbol
+    oldsymbol = nil
+    symbol.shadowed = true
+  end
+  if oldsymbol then
     if self.context.strict then
-      return nil, stringer.pformat("symbol '%s' shadows pre declared symbol with the same name", name)
+      return nil, stringer.pformat("symbol '%s' shadows pre declared symbol with the same name", key)
     end
 
-    if rawget(self.symbols, name) == oldsymbol then
+    if rawget(self.symbols, key) == oldsymbol then
       -- symbol redeclaration in the same scope, resolve old symbol type before replacing it
       oldsymbol:resolve_type(self.context.anyinference)
     end
@@ -75,7 +83,7 @@ function Scope:add_symbol(symbol)
   if self.context.modname then
     symbol.modname = self.context.modname
   end
-  self.symbols[name] = symbol
+  self.symbols[key] = symbol
   return true
 end
 

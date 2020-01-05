@@ -433,15 +433,6 @@ it("function definition", function()
   ]], "no viable type conversion")
 end)
 
-it("function multiple argument types", function()
-  assert.analyze_ast([[
-    local function f(x: integer | boolean): void end
-    local function g(x: integer | boolean) end
-    f(1)
-    g(1)
-  ]])
-end)
-
 it("function return", function()
   assert.ast_type_equals(
     "local function f() return 0 end",

@@ -165,7 +165,6 @@ function Type:is_arithmetic() return self.arithmetic end
 function Type:is_float32() return self.float32 end
 function Type:is_float64() return self.float64 end
 function Type:is_float() return self.float end
-function Type:is_multipletype() return self.multipletype end
 function Type:is_any() return self.any end
 function Type:is_varanys() return self.varanys end
 function Type:is_nil() return self.Nil end
@@ -314,6 +313,10 @@ function AutoType:_init(name)
   self.primitive = true
   self.unpointable = true
   self.lazyable = true
+end
+
+function AutoType.is_convertible_from_type()
+  return true
 end
 
 --------------------------------------------------------------------------------
@@ -962,24 +965,19 @@ function FunctionType:_init(node, argtypes, returntypes)
   self.argtypes = argtypes or {}
   self.returntypes = returntypes or {}
   self.codename = gencodename(self)
-  self.lazy = tabler.ifindif(argtypes, function(argtype)
-    return argtype.lazyable
-  end) ~= nil
 end
 
 function FunctionType:is_equal(type)
-  return
-    type.name == 'function' and
-    getmetatable(type) == getmetatable(self) and
-    tabler.deepcompare(type.argtypes, self.argtypes) and
-    tabler.deepcompare(type.returntypes, self.returntypes)
+  return type.name == 'function' and
+         getmetatable(type) == getmetatable(self) and
+         tabler.deepcompare(type.argtypes, self.argtypes) and
+         tabler.deepcompare(type.returntypes, self.returntypes)
 end
 
 function FunctionType:get_return_type(index)
-  if not self.returntypes then return nil end
   local returntypes = self.returntypes
   local lastindex = #returntypes
-  local lastret = returntypes[#returntypes]
+  local lastret = returntypes[lastindex]
   if lastret and lastret:is_varanys() and index > lastindex then
     return primtypes.any
   end
@@ -988,47 +986,6 @@ function FunctionType:get_return_type(index)
     return primtypes.void
   end
   return rettype
-end
-
-function FunctionType:get_functype_for_argtypes(argtypes)
-  local lazytypes = self.node.lazytypes
-  if not lazytypes then return nil end
-  assert(argtypes)
-  assert(#lazytypes == 0, 'code disabled')
-  --[[
-  for _,functype in pairs(lazytypes) do
-    if functype then
-      local ok = true
-      for _,funcargtype,argtype in iters.izip(functype.argtypes, argtypes) do
-        if not funcargtype or
-          (argtype and not funcargtype:is_convertible_from(argtype)) or
-          (not argtype and not funcargtype:is_nilable()) then
-          ok = false
-          break
-        end
-      end
-      if ok then
-        return functype
-      end
-    end
-  end
-  ]]
-end
-
-function FunctionType:get_return_type_for_argtypes(argtypes, index)
-  if self.lazy then
-    local functype = self:get_functype_for_argtypes(argtypes)
-    assert(not functype, 'code disabled')
-    --[[if functype then
-      return functype:get_return_type(index)
-    else]]if functype ~= false then
-      if not self.node.lazytypes then
-        self.node.lazytypes = {}
-      end
-      self.node.lazytypes[argtypes] = false
-    end
-  end
-  return self:get_return_type(index)
 end
 
 function FunctionType:has_multiple_returns()
@@ -1054,130 +1011,53 @@ end
 
 --------------------------------------------------------------------------------
 local LazyFunctionType = typeclass()
-types.LazyFunctionTyoe = LazyFunctionType
+types.LazyFunctionType = LazyFunctionType
 
 function LazyFunctionType:_init(node, argtypes, returntypes)
-  Type._init(self, 'function', cpusize, node)
-  self.lazyfunction = true
+  Type._init(self, 'lazyfunction', 0, node)
+  if not node.lazynodes then
+    node.lazynodes = {}
+  end
   self.Function = true
+  self.lazyfunction = true
   self.argtypes = argtypes or {}
   self.returntypes = returntypes or {}
   self.codename = gencodename(self)
-  self.lazy = tabler.ifindif(argtypes, function(argtype)
-    return argtype:is_multipletype()
-  end) ~= nil
 end
 
 function LazyFunctionType:is_equal(type)
-  return
-    type.name == 'function' and
-    getmetatable(type) == getmetatable(self) and
-    tabler.deepcompare(type.argtypes, self.argtypes) and
-    tabler.deepcompare(type.returntypes, self.returntypes)
+  return type.name == 'lazyfunction' and
+         getmetatable(type) == getmetatable(self) and
+         tabler.deepcompare(type.argtypes, self.argtypes) and
+         tabler.deepcompare(type.returntypes, self.returntypes)
 end
 
-function LazyFunctionType:get_return_type(index)
-  if not self.returntypes then return nil end
-  local returntypes = self.returntypes
-  local lastindex = #returntypes
-  local lastret = returntypes[#returntypes]
-  if lastret and lastret:is_varanys() and index > lastindex then
-    return primtypes.any
-  end
-  local rettype = returntypes[index]
-  if not rettype and index == 1 then
-    return primtypes.void
-  end
-  return rettype
-end
-
-function LazyFunctionType:get_functype_for_argtypes(argtypes)
-  local lazytypes = self.node.lazytypes
-  if not lazytypes then return nil end
-  assert(argtypes)
-  assert(#lazytypes == 0, 'code disabled')
-  --[[
-  for _,functype in pairs(lazytypes) do
-    if functype then
-      local ok = true
-      for _,funcargtype,argtype in iters.izip(functype.argtypes, argtypes) do
-        if not funcargtype or
-          (argtype and not funcargtype:is_convertible_from(argtype)) or
-          (not argtype and not funcargtype:is_nilable()) then
-          ok = false
-          break
-        end
-      end
-      if ok then
-        return functype
-      end
-    end
-  end
-  ]]
-end
-
-function LazyFunctionType:get_return_type_for_argtypes(argtypes, index)
-  if self.lazy then
-    local functype = self:get_functype_for_argtypes(argtypes)
-    assert(not functype, 'code disabled')
-    --[[if functype then
-      return functype:get_return_type(index)
-    else]]if functype ~= false then
-      if not self.node.lazytypes then
-        self.node.lazytypes = {}
-      end
-      self.node.lazytypes[argtypes] = false
-    end
-  end
-  return self:get_return_type(index)
-end
-
-function LazyFunctionType:has_multiple_returns()
-  return #self.returntypes > 1
-end
-
-function LazyFunctionType:get_return_count()
-  return #self.returntypes
-end
-
-function LazyFunctionType:__tostring()
-  local ss = sstream(self.name, '(', self.argtypes, ')')
-  if self.returntypes and #self.returntypes > 0 then
-    ss:add(': ')
-    if #self.returntypes > 1 then
-      ss:add('(', self.returntypes, ')')
-    else
-      ss:add(self.returntypes)
-    end
-  end
-  return ss:tostring()
-end
-
-
---------------------------------------------------------------------------------
-local MultipleType = typeclass()
-types.MultipleType = MultipleType
-
-function MultipleType:_init(node, typelist)
-  Type._init(self, 'multipletype', 0, node)
-  self.types = typelist
-  self.multipletype = true
-  self.lazyable = true
-end
-
-function MultipleType:is_convertible_from_type(type, explicit)
-  for _,possibletype in ipairs(self.types) do
-    if possibletype:is_convertible_from_type(type, explicit) then
-      return true
+function LazyFunctionType:get_lazy_node(argtypes)
+  for lazyargtypes,lazynode in pairs(self.node.lazynodes) do
+    if tabler.deepcompare(lazyargtypes, argtypes) then
+      return lazynode
     end
   end
 end
 
-function MultipleType:__tostring()
-  local ss = sstream()
-  ss:addlist(self.types, ' | ')
-  return ss:tostring()
+function LazyFunctionType:mark_lazy(argtypes)
+  self.node.lazynodes[argtypes] = false
 end
+
+function LazyFunctionType:get_lazy_type_for_argtypes(argtypes)
+  local lazynode = self:get_lazy_node(argtypes)
+  local functype = lazynode and lazynode.attr.type
+  if not functype then
+    local ok, err = types.are_types_convertible(argtypes, self.argtypes)
+    if not ok then
+      return nil, 'in lazy function evaluation: ' .. err
+    end
+    self:mark_lazy(argtypes)
+  end
+  return functype
+end
+
+LazyFunctionType.__tostring = FunctionType.__tostring
 
 --------------------------------------------------------------------------------
 local MetaType = typeclass()
@@ -1430,6 +1310,23 @@ function types.find_common_type(possibletypes)
     end
   end
   return commontype
+end
+
+function types.are_types_convertible(atypes, btypes)
+  for i,atype,btype in iters.izip(atypes, btypes) do
+    if atype and btype then
+      local ok, err = btype:is_convertible_from(atype)
+      if not ok then
+        return nil, stringer.pformat("at index %d: %s", i, err)
+      end
+    elseif not atype and not btype:is_nilable() then
+      return nil, stringer.format("at index %d: parameter of type '%s' is missing", i, atype)
+    else
+      assert(not btype and atype)
+      return nil, stringer.format("extra parameter at index %d of type '%s'", i, atype)
+    end
+  end
+  return true
 end
 
 return types

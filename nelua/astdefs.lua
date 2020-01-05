@@ -128,9 +128,6 @@ astbuilder:register('SpanType', {
 astbuilder:register('RangeType', {
   ntypes.Node, -- subtype typexpr
 })
-astbuilder:register('MultipleType', {
-  stypes.array_of(ntypes.Node), -- typexprs
-})
 
 -- function
 astbuilder:register('Function', {

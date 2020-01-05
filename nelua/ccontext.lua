@@ -67,7 +67,7 @@ function CContext:typename(type)
   assert(traits.is_type(type))
   local visitor
 
-  -- search visitor for any inhereted type class
+  -- search visitor for any inherited type class
   local mt = getmetatable(type)
   repeat
     local mtindex = rawget(mt, '__index')

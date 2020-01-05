@@ -159,11 +159,15 @@ function visitors.FuncDef(ppcontext, node, emitter)
   if attribnodes then
     ppcontext:traverse(attribnodes, emitter, node, 5)
   end
+  emitter:add_indent_ln("do local function f()")
+  emitter:inc_indent()
   emitter:add_indent_ln("context:push_scope('function')")
   ppcontext:traverse(argnodes, emitter, node, 3)
   emitter:add_indent_ln("context:traverse(ppstatnode[3])")
   ppcontext:traverse(blocknode, emitter, node, 6)
   emitter:add_indent_ln("context:pop_scope()")
+  emitter:dec_indent()
+  emitter:add_indent_ln("end f() end")
 end
 
 function visitors.Block(ppcontext, node, emitter, parent)

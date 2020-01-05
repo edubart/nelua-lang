@@ -979,16 +979,6 @@ describe("statement function", function()
           n.Block{{}} }
     }})
   end)
-  it("multiple types", function()
-    assert.parse_ast(nelua_parser, "local function f(a: number | boolean) end",
-      n.Block{{
-        n.FuncDef{'local', n.IdDecl{'f'},
-          { n.IdDecl{'a', n.MultipleType{{n.Type{'number'}, n.Type{'boolean'}}}} },
-          {},
-          nil,
-          n.Block{{}} }
-    }})
-  end)
   it("with colon index", function()
     assert.parse_ast(nelua_parser, "function a:f() end",
       n.Block{{

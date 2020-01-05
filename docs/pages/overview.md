@@ -14,7 +14,7 @@ order: 2
 This is a quick overview of the language features using many examples.
 Most of Nelua syntax and semantics
 is similar to Lua, thus if you know Lua you probably know Nelua too, however Nelua have many
-additions to code with types, to make more performant code and to metaprogram.
+additions to code with types, to make more efficient code and to meta program.
 This overview try to focus more on those features.
 
 --------------------------------------------------------------------------------
@@ -86,7 +86,7 @@ a = false
 ### Zero initialization
 
 Variables declared but not defined are always initialized to zeros automatically,
-this prevents undefined behaviours:
+this prevents undefined behaviors:
 
 ```nelua
 local a -- variable of deduced type 'any', initialized to 'nil'
@@ -255,7 +255,7 @@ Numeric for loops always evaluate it's begin, end and step expressions only once
 variable type is automatically deduced using the begin and end expressions.
 
 #### Exclusive
-An extesion to for is available to do exclusive for loops, they work using
+An exclusive to for is available to do exclusive for loops, they work using
 comparison operators `~=` `<=` `>=` `<` `>`:
 
 ```nelua
@@ -397,7 +397,7 @@ local s2 = 'hello world' -- also a string
 
 Like in lua strings are immutable, this make the semantics similar to lua and
 allows the compiler to use deferred reference counting instead of garbage collector
-for managing strings memory improving the application performance. If the programmer want's
+for managing strings memory improving the application performance. If the programmer wants
 a mutable string he can always implement his own string object.
 
 
@@ -434,7 +434,7 @@ Variables with this type is used at compile time only, they are useful for alias
 
 ```nelua
 local MyInt: type = @integer -- a symbol of type 'type' holding the type 'integer'
-local a: MyInt -- varible of type 'MyInt' (actually an 'integer')
+local a: MyInt -- variable of type 'MyInt' (actually an 'integer')
 
 local CallbackType = @function()
 local callback: CallbackType
@@ -490,7 +490,7 @@ was made to makes the code more clear when reading.
 
 ### Any
 
-Any is a special type tha can store any type at runtime:
+Any is a special type that can store any type at runtime:
 
 ```nelua
 local a: any = 2 -- variable of type 'any', holding type 'integer' at runtime
@@ -631,7 +631,7 @@ local function f(): void end
 
 ### Block
 
-Block variables are used to encapsulate arbritary code inside a variable at compile time,
+Block variables are used to encapsulate arbitrary code inside a variable at compile time,
 when the block variable is called the compiler replaces the call code with the block code:
 
 ```nelua
@@ -642,7 +642,7 @@ a() -- compiler injects the block code here, prints 'hello world'
 ```
 
 But block variables are not functions, think of block variables as a code replacement tool.
-Later will be shown how them are more useful to do *metaprogramming*.
+Later will be shown how them are more useful to do *meta programming*.
 
 --------------------------------------------------------------------------------
 ## Operators
@@ -662,7 +662,7 @@ All Lua operators are provided:
 | bor      | `a | b`       | binary   | bitwise or               |
 | band     | `a & b`       | binary   | bitwise and              |
 | bxor     | `a ~ b`       | binary   | bitwise xor              |
-| shl      | `a << b`      | binary   | bitwise sguft right      |
+| shl      | `a << b`      | binary   | bitwise shift right      |
 | shr      | `a >> b`      | binary   | bitwise shift left       |
 | concat   | `a .. b`      | binary   | concatenation operator   |
 | add      | `a + b`       | binary   | numeric add              |
@@ -776,7 +776,7 @@ adds references of them to the garbage collector, however we can explicitly spec
 -- capture all value by garbage collected copies
 local function main()
   local a = 1
-  local function foo[&a]()
+  local function foo() <byref>
     -- captured 'a' by stack reference
     a = 2
   end
@@ -787,7 +787,7 @@ main()
 ```
 
 The advantage of capturing by its stack reference is that the closure becomes much more lightweight
-because we don't need to promote to heap variables or use the garbage collector, but the disadvantage is that the function can not be called outside is parent scope, making this more unsafe and is responsability of the programmer to make sure this doesn't happen otherwise would cause an undefined behaviour and potentially a crash.
+because we don't need to promote to heap variables or use the garbage collector, but the disadvantage is that the function can not be called outside is parent scope, making this more unsafe and is responsibility of the programmer to make sure this doesn't happen otherwise would cause an undefined behavior and potentially a crash.
 
 ### Top scope closures
 
@@ -825,7 +825,8 @@ print($aptr) -- outputs 3
 ## Lazy functions
 
 Lazy functions are functions which contains arguments that it's proprieties can
-only be known when calling the function, they are processed and defined lazily (lately, on demand)
+only be known when calling the function at compile time,
+they are processed and defined lazily (lately, on demand)
 at each call. They are memoized (only defined once for each kind of arguments).
 
 ```nelua
@@ -850,10 +851,10 @@ Variable arguments functions can be implemented as lazy functions, the syntax is
 using the `...`, and can be used to forward to another variable argument function:
 
 ```nelua
-local function printproxy(a, ...)
+local function print_proxy(a, ...)
   print(a, ...)
 end
-print(1,2,3) -- outputs 1 2 3
+print_proxy(1,2,3) -- outputs 1 2 3
 ```
 
 On each call a different types call a real function will be implemented.
@@ -861,25 +862,25 @@ On each call a different types call a real function will be implemented.
 The arguments can be accessed individually using the `select` builtin directive (like in Lua):
 
 ```nelua
-local function printfirsttwo(...)
+local function print_first_two(...)
   local a = select(1, ...)
   local b = select(2, ...)
   local n = select('#', ...)
   print(a, b, n)
 end
-printfirsttwo('a','b') -- outputs "a b 2"
+print_first_two('a','b') -- outputs "a b 2"
 ```
 
 It can be combined with multiple return functions:
 
 ```nelua
-local function gettwo()
+local function get_two()
   return 1, 2
 end
-local function printall(...)
+local function print_all(...)
   print(...)
 end
-printall(getwo()) -- outputs "1 2"
+print_all(get_two()) -- outputs "1 2"
 ```
 
 ### Generics
@@ -888,27 +889,27 @@ Generics can be achieved with lazy functions:
 
 ```nelua
 local function Point(T: type)
-  local PointT = @struct{ x: T, y: T }
+  local PointT = @record{ x: T, y: T }
   function PointT:length(a: T): T
     return math.sqrt(self.x ^ @T(2), self.y ^ @T(2))
   end
   return PointT
 end
 
-local PointFloat32 = Point(float32)
+local PointFloat32 = Point(@float32)
 local b: PointFloat32
 ```
 
 --------------------------------------------------------------------------------
 ## Meta programming
 
-The language offers advanced features for metaprogramming by having a full lua processor
+The language offers advanced features for meta programming by having a full lua processor
 at compile time that can generate and manipulate code when compiling.
 
 ### Preprocessor
 
 At compile time a Lua preprocessor is available to render arbitrary code,
-it works similiar to templates in the web development world because they emit
+it works similar to templates in the web development world because they emit
 code between it's statements.
 
 Lines beginning with `##` and between `##[[ ]]` are Lua code evaluated by the processor:
@@ -1081,7 +1082,7 @@ print(a) -- outputs 4
 --------------------------------------------------------------------------------
 ## Attributes
 
-Attributes are used to inform the compiler different behaviours in the code
+Attributes are used to inform the compiler different behaviors in the code
 generation.
 
 ### Function attributes

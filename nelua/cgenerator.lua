@@ -474,10 +474,17 @@ local function visitor_Call(context, node, emitter, argnodes, callee, isblockcal
       emitter:add_val2type(calleetype.argtypes[1], callee)
     else
       if attr.pointercall then
-        emitter:add('(*', callee, ')(')
-      else
-        emitter:add(callee, '(')
+        emitter:add('(*')
       end
+      if attr.lazysym then
+        emitter:add(context:declname(attr.lazysym))
+      else
+        emitter:add(callee)
+      end
+      if attr.pointercall then
+        emitter:add(')')
+      end
+      emitter:add('(')
     end
 
     for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(callargtypes, argnodes) do
@@ -812,7 +819,14 @@ function visitors.Assign(context, node, emitter)
   visit_assignments(context, emitter, vars, vals)
 end
 
-function visitors.FuncDef(context, node)
+function visitors.FuncDef(context, node, emitter)
+  if node.lazynodes then
+    for _,lazynode in pairs(node.lazynodes) do
+      emitter:add(lazynode)
+    end
+    return
+  end
+
   local varscope, varnode, argnodes, retnodes, attribnodes, blocknode = node:args()
 
   local attr = node.attr

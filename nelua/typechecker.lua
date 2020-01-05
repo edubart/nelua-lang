@@ -253,7 +253,7 @@ function visitors.Attrib(context, node, symbol)
     end
   end
   if not paramshape then
-    node:raisef("attribute '%s' is undefined for %s", name, atttype)
+    node:raisef("annotation '%s' is undefined for %s", name, atttype)
   end
 
   local params = tabler.imap(argnodes, function(argnode)
@@ -266,13 +266,13 @@ function visitors.Attrib(context, node, symbol)
 
   if paramshape == true then
     if #argnodes ~= 0 then
-      node:raisef("attribute '%s' takes no arguments", name)
+      node:raisef("annotation '%s' takes no arguments", name)
     end
     params = true
   else
     local ok, err = paramshape(params)
     if not ok then
-      node:raisef("attribute '%s' arguments are invalid: %s", name, err)
+      node:raisef("annotation '%s' arguments are invalid: %s", name, err)
     end
     if #paramshape.shape == 1 then
       params = params[1]
@@ -309,7 +309,7 @@ function visitors.Id(context, node)
   if not symbol then
     symbol = Symbol.promote_attr(node.attr, name, node)
     local ok, err = context.scope:add_symbol(symbol)
-    assert(ok)
+    assert(ok, err)
   else
     symbol:link_node(node)
   end
@@ -408,17 +408,6 @@ function visitors.FuncType(context, node)
     tabler.imap(retnodes, function(retnode) return retnode.attr.value end))
   attr.type = primtypes.type
   attr.value = type
-end
-
-function visitors.MultipleType(context, node)
-  local attr = node.attr
-  if attr.type then return end
-  local typenodes = node:args()
-  assert(#typenodes > 1)
-  context:traverse(typenodes)
-  attr.type = primtypes.type
-  attr.value = types.MultipleType(node,
-    tabler.imap(typenodes, function(typenode) return typenode.attr.value end))
 end
 
 function visitors.RecordFieldType(context, node)
@@ -591,24 +580,21 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   local attr = node.attr
   local symbol = objtype:get_metafield(name)
   if not symbol then
-    local symname = string.format('%s_%s', objtype.codename, name)
+    symbol = Symbol.promote_attr(attr, nil, node)
+    symbol.metavar = true
+    symbol.codename = string.format('%s_%s', objtype.codename, name)
     local parentnode = context:get_parent_node()
     if context.infuncdef == parentnode then
       -- declaration of record global function
-      symbol = Symbol.promote_attr(attr, symname, node)
-      symbol.const = true
       symbol.metafunc = true
-      symbol.metavar = true
       symbol.metarecordtype = types.get_pointer_type(objtype)
-      objtype:set_metafield(name, symbol)
     elseif context.inglobaldecl == parentnode then
       -- declaration of record global variable
-      symbol = Symbol.promote_attr(attr, symname, node)
-      symbol.metavar = true
-      objtype:set_metafield(name, symbol)
+      symbol.metafield = true
     else
       node:raisef("cannot index record meta field '%s'", name)
     end
+    objtype:set_metafield(name, symbol)
     symbol:link_node(parentnode)
 
     -- add symbol to scope to enable type deduction
@@ -816,11 +802,36 @@ local function izipargnodes(vars, argnodes)
   end
 end
 
+local function visitor_Call_typeassertion(context, node, argnodes, type)
+  local attr = node.attr
+  assert(type)
+  if #argnodes ~= 1 then
+    node:raisef("assertion to type '%s' expected one argument, but got %d",
+      type:prettyname(), #argnodes)
+  end
+  local argnode = argnodes[1]
+  argnode.desiredtype = type
+  context:traverse(argnode)
+  local argtype = argnode.attr.type
+  if argtype then
+    local ok, err = type:is_convertible_from(argnode, true)
+    if not ok then
+      argnode:raisef("in type assertion: %s", err)
+    end
+    if argnode.attr.comptime then
+      attr.comptime = argnode.attr.comptime
+      attr.value = type:normalize_value(argnode.attr.value)
+    end
+  end
+  attr.sideeffect = argnode.attr.sideeffect
+  attr.typeassertion = true
+  attr.type = type
+  attr.calleetype = primtypes.type
+end
+
 local function visitor_Call(context, node, argnodes, calleetype, methodcalleenode)
   local attr = node.attr
   if calleetype then
-    attr.calleetype = calleetype
-
     if calleetype:is_function() then
       -- function call
       local funcargtypes = calleetype.argtypes
@@ -864,22 +875,32 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
           end
         end
       end
-      if knownallargs or not calleetype.lazy then
-        if methodcalleenode then
-          tabler.insert(argtypes, funcargtypes[1])
-        end
-        attr.type = calleetype:get_return_type_for_argtypes(argtypes, 1)
+      if methodcalleenode then
+        tabler.insert(argtypes, funcargtypes[1])
       end
-      assert(calleetype.sideeffect ~= nil)
-      attr.sideeffect = calleetype.sideeffect
+      if calleetype.lazyfunction then
+        if knownallargs then
+          local lazynode = calleetype:get_lazy_node(argtypes)
+          calleetype = calleetype:get_lazy_type_for_argtypes(argtypes)
+
+          if lazynode then
+            attr.lazysym = lazynode.attr
+          end
+        else
+          calleetype = nil
+        end
+      end
+      if calleetype then
+        attr.type = calleetype:get_return_type(1)
+        assert(calleetype.sideeffect ~= nil)
+        attr.sideeffect = calleetype.sideeffect
+      end
     elseif calleetype:is_table() then
       -- table call (allowed for tables with metamethod __index)
-      context:traverse(argnodes)
       attr.type = primtypes.varanys
       attr.sideeffect = true
     elseif calleetype:is_any() then
       -- call on any values
-      context:traverse(argnodes)
       attr.type = primtypes.varanys
       -- builtins usually don't have side effects
       attr.sideeffect = not attr.builtin
@@ -887,57 +908,35 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
       -- call on invalid types (i.e: numbers)
       node:raisef("cannot call type '%s'", calleetype:prettyname())
     end
-  else
-    -- callee type is not known yet (will be in known after resolution)
-    context:traverse(argnodes)
+    attr.calleetype = calleetype
   end
 end
 
 function visitors.Call(context, node)
+  local attr = node.attr
   local argnodes, calleenode, isblockcall = node:args()
+
+  context:traverse(argnodes)
   context:traverse(calleenode)
-  local attr, caleeattr = node.attr, calleenode.attr
-  local calleetype = caleeattr.type
+
+  local calleeattr = calleenode.attr
+  local calleetype = calleeattr.type
   if calleetype and calleetype:is_pointer() then
     calleetype = calleetype.subtype
     assert(calleetype)
     attr.pointercall = true
   end
+
   if calleetype and calleetype:is_type() then
-    -- type assertion
-    local type = caleeattr.value
-    assert(type)
-    if #argnodes ~= 1 then
-      node:raisef("assertion to type '%s' expected one argument, but got %d",
-        type:prettyname(), #argnodes)
-    end
-    local argnode = argnodes[1]
-    argnode.desiredtype = type
-    context:traverse(argnode)
-    local argtype = argnode.attr.type
-    if argtype then
-      local ok, err = type:is_convertible_from(argnode, true)
-      if not ok then
-        argnode:raisef("in type assertion: %s", err)
-      end
-      if argnode.attr.comptime then
-        attr.comptime = argnode.attr.comptime
-        attr.value = type:normalize_value(argnode.attr.value)
-      end
-    end
-    attr.sideeffect = argnode.attr.sideeffect
-    attr.typeassertion = true
-    attr.type = type
-    attr.calleetype = calleetype
-    return
-  end
+    visitor_Call_typeassertion(context, node, argnodes, calleeattr.value)
+  else
+    visitor_Call(context, node, argnodes, calleetype)
 
-  visitor_Call(context, node, argnodes, calleetype)
-
-  if caleeattr.builtin then
-    local builtinfunc = builtins[caleeattr.name]
-    if builtinfunc then
-      builtinfunc(context, node)
+    if calleeattr.builtin then
+      local builtinfunc = builtins[calleeattr.name]
+      if builtinfunc then
+        builtinfunc(context, node)
+      end
     end
   end
 end
@@ -945,7 +944,10 @@ end
 function visitors.CallMethod(context, node)
   local name, argnodes, calleenode, isblockcall = node:args()
   local attr = node.attr
+
+  context:traverse(argnodes)
   context:traverse(calleenode)
+
   local calleetype = calleenode.attr.type
   if calleetype then
     if calleetype:is_pointer() then
@@ -956,6 +958,7 @@ function visitors.CallMethod(context, node)
 
     attr.calleetype = calleetype
     if calleetype:is_record() then
+      --TODO: consider lazy functions
       local symbol = calleetype:get_metafield(name)
       if not symbol then
         node:raisef("cannot index record meta field '%s'", name)
@@ -1151,7 +1154,7 @@ function visitors.VarDecl(context, node)
     local symbol = context:traverse(varnode)
     assert(symbol)
     local vartype = varnode.attr.type
-    if vartype and (vartype:is_multipletype() or vartype:is_void() or vartype:is_varanys()) then
+    if vartype and (vartype:is_void() or vartype:is_varanys()) then
       varnode:raisef("variable declaration cannot be of the type '%s'", vartype:prettyname())
     end
     assert(symbol.type == vartype)
@@ -1211,10 +1214,10 @@ function visitors.VarDecl(context, node)
         vartype = valtype
         symbol.type = vartype
 
-        local attribnode = varnode[3]
-        if attribnode then
-          -- must traverse again attrib node early once type is found ahead
-          context:traverse(attribnode, symbol)
+        local annotnode = varnode[3]
+        if annotnode then
+          -- must traverse again annotation node early once type is found ahead
+          context:traverse(annotnode, symbol)
         end
       elseif not foundtype then
         -- lazy type evaluation
@@ -1299,6 +1302,38 @@ function visitors.Return(context, node)
   end
 end
 
+local function resolve_function_argtypes(node, symbol, varnode, argnodes, scope)
+  local lazy = false
+  local argtypes = {}
+  if node.argtypes then
+    argtypes = node.argtypes
+  else
+    for i,argnode in ipairs(argnodes) do
+      -- function arguments types must be known ahead, fallbacks to any if untyped
+      local argattr = argnode.attr
+      local argtype = argattr.type or primtypes.any
+      if argtype.lazyable or argattr.comptime then
+        lazy = true
+      end
+      argtypes[i] = argtype
+    end
+  end
+
+  if varnode.tag == 'ColonIndex' and symbol and symbol.metafunc then
+    -- inject 'self' type as first argument
+    table.insert(argtypes, 1, symbol.metarecordtype)
+    local selfsym = Symbol()
+    selfsym:init('self')
+    selfsym.type = symbol.metarecordtype
+    local ok, err = scope:add_symbol(selfsym)
+    if not ok then
+      varnode:raisef(err)
+    end
+  end
+
+  return argtypes, lazy
+end
+
 local function block_endswith_return(blocknode)
   assert(blocknode.tag == 'Block')
   local statnodes = blocknode[1]
@@ -1322,29 +1357,43 @@ local function block_endswith_return(blocknode)
   return false
 end
 
-function visitors.FuncDef(context, node)
-  local varscope, varnode, argnodes, retnodes, attribnodes, blocknode = node:args()
-  local symbol, argtypes
-  local decl = varscope ~= nil
-  if node.deducedargtypes then
-    argtypes = node.deducedargtypes
-  else
-    context.infuncdef = node
-    if varscope == 'global' then
-      if not context.scope:is_static_storage() then
-        varnode:raisef("global function can only be declared in top scope")
-      end
-      varnode.attr.global = true
-    end
-    if decl then
-      varnode.attr.funcdecl = true
-    end
-    symbol = context:traverse(varnode)
-    context.infuncdef = nil
+local function check_function_returns(node, returntypes, blocknode)
+  local attr = node.attr
+  local functype = attr.type
+  if not functype or functype.lazyfunction or attr.nodecl or attr.cimport then
+    return
   end
+  if #returntypes > 0 then
+    local canbeempty = tabler.iall(returntypes, function(rettype)
+      return rettype:is_nilable()
+    end)
+    if not canbeempty and not block_endswith_return(blocknode) then
+      node:raisef("a return statement is missing before function end")
+    end
+  end
+end
 
-  context:traverse(retnodes)
+local function visitor_FuncDef_variable(context, varscope, varnode)
+  local decl = varscope ~= nil
+  if varscope == 'global' then
+    if not context.scope:is_static_storage() then
+      varnode:raisef("global function can only be declared in top scope")
+    end
+    varnode.attr.global = true
+  end
+  if decl then
+    varnode.attr.funcdecl = true
+  end
+  local symbol = context:traverse(varnode)
+  if symbol and symbol.metafunc then
+    decl = true
+  end
+  return symbol, decl
+end
+
+local function visitor_FuncDef_returns(context, functype, retnodes)
   local returntypes
+  context:traverse(retnodes)
   if #retnodes > 0 then
     -- returns types are predeclared
     returntypes = tabler.imap(retnodes, function(retnode)
@@ -1355,47 +1404,33 @@ function visitors.FuncDef(context, node)
       -- single void type means no returns
       returntypes = {}
     end
-  elseif node.attr.type and not node.attr.type.returntypes.has_unknown then
-    -- recover return types from previous traversal only if fully resolved
-    returntypes = node.attr.type.returntypes
+  elseif functype and not functype.returntypes.has_unknown then
+    -- use return types from previous traversal only if fully resolved
+    returntypes = functype.returntypes
   end
+  return returntypes
+end
+
+function visitors.FuncDef(context, node, lazysymbol)
+  local varscope, varnode, argnodes, retnodes, annotnodes, blocknode = node:args()
+
+  context.infuncdef = node
+  context.inlazydef = lazysymbol
+  local symbol, decl = visitor_FuncDef_variable(context, varscope, varnode)
+  context.infuncdef = nil
+  context.inlazyfuncdef = nil
+
+  local returntypes = visitor_FuncDef_returns(context, node.attr.type, retnodes)
 
   -- repeat scope to resolve function variables and return types
-  local lazy = false
+  local lazy, argtypes
   local funcscope = context:repeat_scope_until_resolution('function', function(scope)
     scope.returntypes = returntypes
     context:traverse(argnodes)
-    if not argtypes then
-      argtypes = {}
-      for i,argnode in ipairs(argnodes) do
-        -- function arguments types must be known ahead, fallbacks to any if untyped
-        local argtype = argnode.attr.type or primtypes.any
-        argtypes[i] = argtype
-        if argtype:is_multipletype() then
-          -- multiple possible types for argument, enter lazy mode
-          lazy = true
-          assert(symbol, "function with multiple types for an argument must have a symbol")
-        end
-      end
-
-      if varnode.tag == 'ColonIndex' and symbol and symbol.metafunc then
-        -- inject 'self' type as first argument
-        table.insert(argtypes, 1, symbol.metarecordtype)
-      end
-    end
-
-    if varnode.tag == 'ColonIndex' and symbol and symbol.metafunc then
-      local selfsym = Symbol()
-      selfsym:init('self')
-      selfsym.type = symbol.metarecordtype
-      local ok, err = scope:add_symbol(selfsym)
-      if not ok then
-        node:raisef(err)
-      end
-    end
+    argtypes, lazy = resolve_function_argtypes(node, symbol, varnode, argnodes, scope)
 
     if not lazy then
-      -- lazy functions never translate the blocknode by itself
+      -- lazy functions never traverse the blocknode by itself
       context:traverse(blocknode)
     end
   end)
@@ -1403,11 +1438,20 @@ function visitors.FuncDef(context, node)
   if not lazy and not returntypes then
     returntypes = funcscope.resolved_returntypes
   end
-  local type = types.FunctionType(node, argtypes, returntypes)
+
+  -- set the function type
+  local type = node.attr.type
+  if lazy then
+    if not type then
+      type = types.LazyFunctionType(node, argtypes, returntypes)
+    end
+  else
+    type = types.FunctionType(node, argtypes, returntypes)
+  end
 
   if symbol then -- symbol may be nil in case of array/dot index
-    if decl or symbol.metafunc then
-      -- new function declaration
+    if decl then
+      -- declaration always set the type
       symbol.type = type
     else
       -- check if previous symbol declaration is compatible
@@ -1426,54 +1470,50 @@ function visitors.FuncDef(context, node)
     node.attr.type = type
   end
 
-  if attribnodes then
-    context:traverse(attribnodes, symbol)
+  -- once the type is know we can traverse annotation nodes
+  if annotnodes then
+    context:traverse(annotnodes, symbol)
   end
 
-  if not lazy and node.attr.type and not varnode.attr.nodecl and not varnode.attr.cimport then
-    if #returntypes > 0 then
-      local canbeempty = tabler.iall(returntypes, function(rettype)
-        return rettype:is_nilable()
-      end)
-      if not canbeempty and not block_endswith_return(blocknode) then
-        node:raisef("a return statement is missing before function end")
+  -- type checking for returns
+  check_function_returns(node, returntypes, blocknode)
+
+  do -- handle attributes and annotations
+    local attr = node.attr
+
+    -- annotation cimport
+    if attr.cimport then
+      if #blocknode[1] ~= 0 then
+        blocknode:raisef("body of an import function must be empty")
       end
     end
-  end
 
-  if varnode.attr.cimport then
-    if #blocknode[1] ~= 0 then
-      blocknode:raisef("body of an import function must be empty")
+    -- annotation sideeffect, the function has side effects unless told otherwise
+    type.sideeffect = not attr.nosideeffect
+
+    -- annotation entrypoint
+    if attr.entrypoint then
+      if context.ast.attr.entrypoint and context.ast.attr.entrypoint ~= node then
+        node:raisef("cannot have more than one function entrypoint")
+      end
+      attr.declname = attr.codename
+      context.ast.attr.entrypoint = node
     end
   end
 
-  type.sideeffect = not varnode.attr.nosideeffect
-
-  if varnode.attr.entrypoint then
-    if context.ast.attr.entrypoint and context.ast.attr.entrypoint ~= node then
-      node:raisef("cannot have more than one function entrypoint")
-    end
-    varnode.attr.declname = varnode.attr.codename
-    context.ast.attr.entrypoint = node
-  end
-
-  if node.lazytypes then
-    -- traverse deduced types from lazy functions
-    assert(lazy)
-    for deducedargtypes,deducedfunctype in pairs(node.lazytypes) do
-      if not deducedfunctype then
-        local funcdefnode = node:clone()
-        funcdefnode.deducedargtypes = deducedargtypes
-        context:traverse(funcdefnode)
-        deducedfunctype = funcdefnode.type
-        assert(not deducedfunctype, 'code disabled')
-        --[[
-        if deducedfunctype then
-          node.lazytypes[deducedargtypes] = deducedfunctype
-          node.lazynodes[deducedargtypes] = funcdefnode
+  -- traverse lazy function nodes
+  if lazy then
+    local lazynodes = node.lazynodes
+    for lazyargtypes,lazynode in pairs(lazynodes) do
+      if not lazynode then
+        lazynode = node:clone()
+        local lazyargnodes = lazynode[3]
+        for i,lazyargtype in ipairs(lazyargtypes) do
+          lazyargnodes[i].attr.type = lazyargtype
         end
-        ]]
+        lazynodes[lazyargtypes] = lazynode
       end
+      context:traverse(lazynode, symbol)
     end
   end
 end
