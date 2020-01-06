@@ -59,7 +59,7 @@ astbuilder:register('Pair', {
 -- attrib
 astbuilder:register('Attrib', {
   stypes.string + ntypes.PreprocessName, -- name
-  stypes.array_of(ntypes.String + ntypes.Number + ntypes.Boolean) -- args
+  stypes.array_of(ntypes.String + ntypes.Number + ntypes.Boolean + ntypes.PreprocessExpr) -- args
 })
 
 -- used inerally internal

@@ -449,9 +449,10 @@ local function get_parser(std)
     eattrib_expr <-
       ({} '' -> 'Attrib' ename {|(
         (%LPAREN attrib_arg (%COMMA attrib_arg)* eRPAREN) /
-        %cSTRING
+        %cSTRING /
+        ppexpr
       )?|}) -> to_astnode
-    attrib_arg <- %cNUMBER / %cSTRING / %cBOOLEAN
+    attrib_arg <- %cNUMBER / %cSTRING / %cBOOLEAN / ppexpr
 
     cnil <- '' -> to_nil
     ctrue <- '' -> to_true

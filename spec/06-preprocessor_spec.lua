@@ -34,6 +34,15 @@ it("evaluate names", function()
   ]], [[
     print 'hello'
   ]])
+  assert.ast_type_equals([[
+    local a <#('codename')# 'a'>
+    local b <codename 'b'>
+    local c <#('codename')##['c']#>
+  ]], [[
+    local a <codename 'a'>
+    local b <codename 'b'>
+    local c <codename 'c'>
+  ]])
 end)
 
 it("parse if", function()
