@@ -62,6 +62,11 @@ typedef nelua_string_object* nelua_string;
 ]])
 end
 
+-- nil
+function builtins.nelua_nil(context)
+  define_builtin(context, 'nelua_nil', "typedef struct nelua_nil {} nelua_nil;\n")
+end
+
 -- panic
 function builtins.nelua_panic_cstring(context)
   context:add_include('<stdlib.h>')

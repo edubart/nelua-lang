@@ -66,6 +66,10 @@ it("boolean", function()
   assert.generate_c("do local a = false end", "bool a = false")
 end)
 
+it("nil", function()
+  assert.generate_c("do local a = nil end", "nelua_nil a = (nelua_nil){}")
+end)
+
 it("call", function()
   assert.generate_c("f()", "mymod_f();")
   assert.generate_c("f(g())", "mymod_f(mymod_g())")
@@ -220,6 +224,10 @@ it("operation on comptime variables", function()
     local c = b
   ]], "c = -2;")
   assert.generate_c([[
+    local a = @integer == @integer
+    local b = @integer ~= @number
+  ]], {"a = true;", "b = true;"})
+  assert.generate_c([[
     local a <comptime>, b <comptime> = 1, 2
     local c <const> = (@int32)(a * b)
   ]], "static const int32_t mymod_c = 2;")
@@ -229,7 +237,6 @@ it("operation on comptime variables", function()
     assert(3 + 4 == 7)
     assert(3 - 4 == -1)
     assert(3 * 4 == 12)
-
 
     -- bor
     assert(3 | 5 == 7)
@@ -270,6 +277,13 @@ end)
 
 it("lazy functions", function()
   assert.run_c([[
+    local function f(x: auto, y: auto)
+      return x
+    end
+    f()
+    assert(f(1) == 1)
+    assert(f(true,2) == true)
+
     local function printtype(x: auto)
       ## if symbols.x.type:is_float() then
         print('float', x)
@@ -278,7 +292,7 @@ it("lazy functions", function()
       ## elseif symbols.x.type:is_boolean() then
         print('boolean', x)
       ## else
-        print('unknown', x)
+        print('unknown')
       ## end
       return x
     end
@@ -286,7 +300,9 @@ it("lazy functions", function()
     assert(printtype(3.14) == 3.14)
     assert(printtype(true) == true)
     assert(printtype(false) == false)
+    printtype()
   ]])
+
 end)
 it("global function definition", function()
   assert.generate_c("function f() end", "static void mymod_f();")

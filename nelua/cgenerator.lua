@@ -188,13 +188,15 @@ typevisitors[types.EnumType] = function(context, type)
 end
 
 typevisitors[types.Type] = function(context, type)
-  if context:is_declarated(type.codename) then return end
+  if type.nodecl or context:is_declarated(type.codename) then return end
   if type:is_string() then
     context:ensure_runtime_builtin('nelua_string')
   elseif type:is_function() then --luacov:disable
     error('ctype for functions not implemented yet')
   elseif type:is_any() then --luacov:enable
     context:ensure_runtime_builtin('nelua_any')
+  elseif type:is_nil() then
+    context:ensure_runtime_builtin('nelua_nil')
   elseif type:is_arraytable() then
     local subctype = context:ctype(type.subtype)
     context:ensure_runtime(type.codename, 'nelua_arrtab', {
@@ -227,7 +229,9 @@ function visitors.Boolean(_, node, emitter)
   emitter:add_booleanlit(node.attr.value)
 end
 
--- TODO: Nil
+function visitors.Nil(_, _, emitter)
+  emitter:add_nil_literal()
+end
 
 function visitors.Varargs(_, _, emitter)
   emitter:add('...')
@@ -300,6 +304,7 @@ end
 
 function visitors.Id(context, node, emitter)
   local attr = node.attr
+  assert(not attr.type:is_comptime())
   if attr.type:is_nilptr() then
     emitter:add_null()
   elseif attr.comptime then
@@ -321,12 +326,12 @@ visitors.PointerType = visitors.Type
 
 function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
-  assert(not attr.comptime)
+  local type = attr.type
+  assert(not (type:is_comptime() or attr.comptime))
   if attr.funcdecl then
     emitter:add(context:declname(node))
     return
   end
-  local type = node.attr.type
   if type:is_type() then return end
   if attr.cexport then emitter:add('extern ') end
   if attr.const then emitter:add('const ') end

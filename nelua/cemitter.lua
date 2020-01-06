@@ -35,6 +35,9 @@ function CEmitter:zeroinit(type)
     s = 'NULL'
   elseif type:is_boolean() then
     s = 'false'
+  elseif type:is_nil() then
+    self.context:ctype(primtypes.Nil) -- ensure nil type
+    s = '(nelua_nil){}'
   else
     s = '{0}'
   end
@@ -171,6 +174,12 @@ function CEmitter:add_val2type(type, val, valtype)
   else
     self:add_zeroinit(type)
   end
+end
+
+function CEmitter:add_nil_literal()
+  self:add('(')
+  self:add_builtin('nelua_nil')
+  self:add('){}')
 end
 
 function CEmitter:add_numeric_literal(valattr, valtype)

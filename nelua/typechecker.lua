@@ -499,7 +499,7 @@ function visitors.SpanType(context, node)
   local subtypenode = node:args()
   context:traverse(subtypenode)
   local subtype = subtypenode.attr.value
-  if subtype.size == 0 then
+  if subtype:is_comptime() then
     subtypenode:raisef("spans cannot be of type '%s'", subtype.name)
   end
   attr.type = primtypes.type
@@ -766,9 +766,9 @@ local function izipargnodes(vars, argnodes)
           if not i then return nil end
           if i >= lastargindex then
             -- argnode does not exists, fill with multiple returns type
-            -- in case it doest not exists, the argtype will be false
+            -- in case it doest not exists, the argtype will be nil type
             local callretindex = i - lastargindex + 1
-            local argtype = calleetype:get_return_type(callretindex) or false
+            local argtype = calleetype:get_return_type(callretindex) or primtypes.Nil
             if callretindex > 1 then
               lastargnode.attr.multirets = true
             end
@@ -791,12 +791,12 @@ local function izipargnodes(vars, argnodes)
     return function()
       local i, var, argnode = iter()
       if not i then return end
-      -- in case this is inexistent, set argtype to false
+      -- in case this is inexistent, set argtype to nil type
       local argtype
       if argnode then
         argtype = argnode.attr.type
       else
-        argtype =false
+        argtype = primtypes.Nil
       end
       return i, var, argnode, argtype
     end
@@ -858,22 +858,22 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
           argnode.desiredtype = funcargtype
           context:traverse(argnode)
           argtype = argnode.attr.type
-          if argtype then
-            argtypes[i] = argtype
-          else
-            knownallargs = false
-          end
         end
-        if argtype == false and not funcargtype:is_nilable() then
+        if argtype and argtype:is_nil() and not funcargtype:is_nilable() then
           node:raisef("in call of function '%s': expected an argument at index %d but got nothing",
             calleetype:prettyname(), i)
         end
-        if funcargtype and argtype then
-          local ok, err = funcargtype:is_convertible_from(argnode or argtype)
-          if not ok then
-            node:raisef("in call of function '%s' at argument %d: %s",
-              calleetype:prettyname(), i, err)
+        if argtype then
+          if funcargtype then
+            local ok, err = funcargtype:is_convertible_from(argnode or argtype)
+            if not ok then
+              node:raisef("in call of function '%s' at argument %d: %s",
+                calleetype:prettyname(), i, err)
+            end
           end
+          argtypes[i] = argtype
+        else
+          knownallargs = false
         end
       end
       if methodcalleenode then
@@ -1150,6 +1150,7 @@ end
 
 function visitors.VarDecl(context, node)
   local varscope, varnodes, valnodes = node:args()
+  local assigning = not not valnodes
   valnodes = valnodes or {}
   if #varnodes < #valnodes then
     node:raisef("extra expressions in declaration, expected at most %d but got %d",
@@ -1202,7 +1203,7 @@ function visitors.VarDecl(context, node)
         varnode.attr.noinit = true
       end
     end
-    if valtype then
+    if assigning and valtype then
       if valtype:is_void() then
         varnode:raisef("cannot assign to expressions of type 'void'")
       end
@@ -1210,6 +1211,7 @@ function visitors.VarDecl(context, node)
       local assignvaltype = false
       if varnode.attr.comptime then
         -- for comptimes the type must be known ahead
+        assert(valnode)
         assignvaltype = not vartype
         symbol.value = valnode.attr.value
       elseif valtype:is_type() then
@@ -1238,7 +1240,7 @@ function visitors.VarDecl(context, node)
         -- lazy type evaluation
         symbol:add_possible_type(valtype)
       end
-      if vartype then
+      if vartype and assigning then
         local ok, err = vartype:is_convertible_from(valnode or valtype)
         if not ok then
           varnode:raisef("in variable '%s' declaration: %s", symbol.name, err)
@@ -1278,13 +1280,14 @@ function visitors.Assign(context, node)
       symbol:add_possible_type(valtype)
       symbol.mutate = true
     end
+    if not valnode and valtype and valtype:is_nil() then
+      varnode:raisef("variable assignment at index '%d' is assigning to nothing in the expression", i)
+    end
     if vartype and valtype then
       local ok, err = vartype:is_convertible_from(valnode or valtype)
       if not ok then
         varnode:raisef("in variable assignment: %s", err)
       end
-    elseif valtype == false then
-      varnode:raisef("variable assignment at index '%d' is assigning to nothing in the expression", i)
     end
   end
 end
@@ -1295,18 +1298,19 @@ function visitors.Return(context, node)
   local funcscope = context.scope:get_parent_of_kind('function')
   if funcscope.returntypes then
     for i,funcrettype,retnode,rettype in izipargnodes(funcscope.returntypes, retnodes) do
-      if rettype and funcrettype then
-        local ok, err = funcrettype:is_convertible_from(retnode or rettype)
-        if not ok then
-          (retnode or node):raisef("return at index %d: %s", i, err)
-        end
-      elseif rettype == false and funcrettype then
-        if not funcrettype:is_nilable() then
-          node:raisef("missing return expression at index %d of type '%s'", i, funcrettype:prettyname())
-        end
-      elseif rettype then
-        if #retnodes ~= 0 then
-          node:raisef("invalid return expression at index %d", i)
+      if rettype then
+        if funcrettype then
+          if rettype:is_nil() and not funcrettype:is_nilable() then
+            node:raisef("missing return expression at index %d of type '%s'", i, funcrettype:prettyname())
+          end
+          local ok, err = funcrettype:is_convertible_from(retnode or rettype)
+          if not ok then
+            (retnode or node):raisef("return at index %d: %s", i, err)
+          end
+        else
+          if #retnodes ~= 0 then
+            node:raisef("invalid return expression at index %d", i)
+          end
         end
       end
     end
@@ -1322,8 +1326,8 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope)
   local argtypes = {}
 
   for i,argnode in ipairs(argnodes) do
-    -- function arguments types must be known ahead, fallbacks to any if untyped
     local argattr = argnode.attr
+    -- function arguments types must be known ahead, fallbacks to any if untyped
     local argtype = argattr.type or primtypes.any
     if argtype.lazyable or argattr.comptime then
       lazy = true
@@ -1454,6 +1458,7 @@ function visitors.FuncDef(context, node, lazysymbol)
   -- set the function type
   local type = node.attr.type
   if lazy then
+    assert(not lazysymbol)
     if not type then
       type = types.LazyFunctionType(node, argtypes, returntypes)
     end

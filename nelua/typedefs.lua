@@ -16,10 +16,10 @@ local cintsize = math.max(math.min(cpusize, 4), 2)
 local clongsize = math.max(cpusize, 4)
 
 -- primitive types
-primtypes.any         = types.AnyType('any') -- the type for anything
-primtypes.void        = types.VoidType('void') -- the type for nothing
-primtypes.type        = types.TypeType('type') -- the type for types
-primtypes.auto        = types.AutoType('auto')
+primtypes.any         = types.AnyType('any', 2*cpusize) -- the type for anything
+primtypes.void        = types.VoidType('void', 0) -- the type for nothing
+primtypes.type        = types.TypeType('type', 0) -- the type for types
+primtypes.auto        = types.AutoType('auto', 0)
 primtypes.isize       = types.IntegralType('isize', cpusize)
 primtypes.int8        = types.IntegralType('int8', 1)
 primtypes.int16       = types.IntegralType('int16', 2)
@@ -34,7 +34,7 @@ primtypes.float32     = types.FloatType('float32', 4, 9)
 primtypes.float64     = types.FloatType('float64', 8, 17)
 primtypes.boolean     = types.BooleanType('boolean', 1)
 primtypes.string      = types.StringType('string', cpusize*2)
-primtypes.varanys     = types.AnyType('varanys')
+primtypes.varanys     = types.VaranysType('varanys')
 primtypes.table       = types.TableType('table')
 primtypes.Nil         = types.NilType('nil')
 primtypes.Nilptr      = types.NilptrType('nilptr', cpusize)
