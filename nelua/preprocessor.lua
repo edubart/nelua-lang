@@ -63,7 +63,7 @@ function PPContext:tovalue(val, orignode)
   if traits.is_astnode(val) then
     node = val
   elseif traits.is_type(val) then
-    node = self.aster.Type{'void'}
+    node = self.aster.Type{'auto'}
     -- inject persistent parsed type
     local pattr = Attr({
       type = typedefs.primtypes.type,

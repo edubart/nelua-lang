@@ -227,6 +227,7 @@ end
 
 -- any
 function builtins.nelua_any(context)
+  context:ensure_runtime_builtin('nelua_nil')
   context:ensure_runtime_builtin('nelua_runtype')
   define_builtin(context, 'nelua_any', [[typedef struct nelua_any {
   nelua_runtype *type;
@@ -260,6 +261,7 @@ function builtins.nelua_any(context)
     unsigned long _nelua_culong;
     unsigned long long _nelua_culonglong;
     size_t _nelua_csize;
+    nelua_nil _nelua_nil;
   } value;
 } nelua_any;
 ]])

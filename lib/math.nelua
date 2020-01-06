@@ -2,8 +2,6 @@
 ## modname = 'nelua'
 ## nohashcodenames = true
 
---TODO: function type overload
-
 ## cinclude '<math.h>'
 
 global math = @record{}
@@ -74,8 +72,6 @@ end
 
 local xoshiro256 = @record{state: uint64[4]}
 
-local FLOAT64_MANT_DIGS <comptime> = 53
-
 local function rotl(x: uint64, n: int32) <inline>
   return (x << n) | (x >> (64 - n))
 end
@@ -96,6 +92,7 @@ function xoshiro256:nextrand(): uint64
 end
 
 function xoshiro256:random(): number
+  local FLOAT64_MANT_DIGS <comptime> = 53
   local rv = self:nextrand()
   local v = rv >> (64_i32 - FLOAT64_MANT_DIGS)
   return v / (1_uint64 << FLOAT64_MANT_DIGS)
@@ -123,14 +120,3 @@ end
 function math.random(): number
   return default_random:random()
 end
-
---TODO:randommax
---TODO:randomrange
-
---[[
-## cinclude '<time.h>'
-local function ctime(tloc: pointer): clong <cimport'time',nodecl> end
-function math.randomseed()
-  default_random:seed(@uint64(ctime(nilptr)), 0)
-end
-]]
