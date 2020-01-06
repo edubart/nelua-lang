@@ -1,4 +1,4 @@
-<img width="96" src="https://edubart.github.io/nelua-lang/assets/images/nelua-logo.svg?sanitize=true">
+<img width="96" src="https://nelua.io/assets/images/nelua-logo.svg?sanitize=true">
 
 # The Nelua Programming Language
 
@@ -34,7 +34,7 @@ Nelua can do compile-time [meta programming](https://en.wikipedia.org/wiki/Metap
 because it has a Lua preprocessor
 capable to cooperate with the compiler as it compiles,
 this is only possible because the compiler is fully made in Lua
-and is fully accessible or modifiable by the preprocessor on the fly. 
+and is fully accessible or modifiable by the preprocessor on the fly.
 Therefore it's possible to implement higher constructs such as classes,
 [generics](https://en.wikipedia.org/wiki/Generic_programming) and
 [polymorphism](https://en.wikipedia.org/wiki/Polymorphism_(computer_science))
@@ -42,7 +42,7 @@ at compile time without having to make them into the language specification,
 thus keeping the language simpler and compact.
 For example in Lua classes don't exist but you can implement yourself using metatables,
 in Nelua they don't exist neither but you can implement more efficiently at compile time
-by meta programming or at runtime just like in Lua. Nelua can do some runtime meta programming 
+by meta programming or at runtime just like in Lua. Nelua can do some runtime meta programming
 too in the Lua style, by using tables, metatables and metamethods.
 
 Nelua can do [extensible programming](https://en.wikipedia.org/wiki/Extensible_programming)
@@ -52,7 +52,7 @@ generation and behaviours to the compiler at compile time via the preprocessor.
 Nelua has mutiple choices for
 [memory management](https://en.wikipedia.org/wiki/Memory_management),
 it's the developer choice to use
-[garbage collection](https://en.wikipedia.org/wiki/Garbage_collection_(computer_science)), 
+[garbage collection](https://en.wikipedia.org/wiki/Garbage_collection_(computer_science)),
 [automatic reference counting](https://en.wikipedia.org/wiki/Automatic_Reference_Counting) or
 [manual memory management](https://en.wikipedia.org/wiki/Manual_memory_management)
 depending on his use case.
@@ -109,9 +109,9 @@ for existing Lua projects by generating Lua code.
 ## Learning
 
 More details about the language can be read on the following links:
-* Check out the language [overview](https://edubart.github.io/nelua-lang/overview/)
+* Check out the language [overview](https://nelua.io/overview/)
 to get a quick view of the language syntax, features and usage.
-* Check out the language [tutorial](https://edubart.github.io/nelua-lang/tutorial/)
+* Check out the language [tutorial](https://nelua.io/tutorial/)
 for learning the basics.
 
 ## Installation
@@ -212,7 +212,7 @@ At the moment only Sublime Text have full definition, so I recommend using it.
 If you use other code editor you can use Lua syntax highlighting,
 as Nelua syntax is very similar but of course will be incomplete.
 
-I recommend using the syntax highlighter, 
+I recommend using the syntax highlighter,
 it makes the experience of playing around with the language more pleasant because
 it can highlight type notations.
 
