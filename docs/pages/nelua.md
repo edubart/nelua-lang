@@ -5,6 +5,7 @@
 [![Build Status](https://travis-ci.org/edubart/nelua-lang.svg?branch=master)](https://travis-ci.org/edubart/nelua-lang)
 [![Coverage Status](https://coveralls.io/repos/github/edubart/nelua-lang/badge.svg?branch=master)](https://coveralls.io/github/edubart/nelua-lang?branch=master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?label=license)](https://opensource.org/licenses/MIT)
+[![Patreon](https://img.shields.io/badge/patreon-donate-orange.svg)](https://www.patreon.com/edubart)
 [![Gitter](https://badges.gitter.im/nelua-lang/community.svg)](https://gitter.im/nelua-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 Nelua is a minimalistic, efficient, optionally typed, ahead of time compiled, meta programmable,
@@ -42,14 +43,13 @@ at compile time without having to make them into the language specification,
 thus keeping the language simpler and compact.
 For example in Lua classes don't exist but you can implement yourself using metatables,
 in Nelua they don't exist neither but you can implement more efficiently at compile time
-by meta programming or at runtime just like in Lua. Nelua can do some runtime meta programming
-too in the Lua style, by using tables, metatables and metamethods.
+by meta programming or at runtime just like in Lua.
 
 Nelua can do [extensible programming](https://en.wikipedia.org/wiki/Extensible_programming)
-as the programmer may add extensions to the language such as new grammars, [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) definitions, semantics, typecheckers, code
-generation and behaviours to the compiler at compile time via the preprocessor.
+as the programmer may add extensions to the language such as new grammars, [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) definitions, semantics, type checkers, code
+generation and behaviors to the compiler at compile time via the preprocessor.
 
-Nelua has mutiple choices for
+Nelua has multiple choices for
 [memory management](https://en.wikipedia.org/wiki/Memory_management),
 it's the developer choice to use
 [garbage collection](https://en.wikipedia.org/wiki/Garbage_collection_(computer_science)),
@@ -90,7 +90,7 @@ for existing Lua projects by generating Lua code.
 * Be modular and make users capable of creating compiler plugins to extended
 * Generate readable, simple and efficient C code
 * Possibility to output freestanding code (dependency free, for kernel dev or minimal runtime)
-* No single memory managment model, choose for your use case GC, ARC or manual
+* No single memory management model, choose for your use case GC, ARC or manual
 
 ## Why?
 
@@ -208,9 +208,9 @@ Previous test runs on the master branch can be seen in the
 Syntax definitions for the language is available for
 Visual Studio Code in [nelua-vscode](https://github.com/edubart/nelua-vscode) and
 for Sublime Text in [nelua-sublime](https://github.com/edubart/nelua-sublime).
-At the moment only Sublime Text have full definition, so I recommend using it.
-If you use other code editor you can use Lua syntax highlighting,
-as Nelua syntax is very similar but of course will be incomplete.
+At the moment only Sublime Text have full syntax definition, so I recommend using it.
+If you use other code editor you can use Lua syntax highlighting
+as Nelua syntax is very similar.
 
 I recommend using the syntax highlighter,
 it makes the experience of playing around with the language more pleasant because
@@ -220,6 +220,23 @@ it can highlight type notations.
 
 Language planned features and history of accomplished features can be seen
 in the [github's projects tab](https://github.com/edubart/nelua-lang/projects).
+
+## Contributing
+
+You can support or contribute to Nelua in many ways,
+through a [donation or sponsorship](https://patreon.com/edubart),
+giving the project a star on github,
+testing out its features,
+reporting bugs,
+discussing ideas,
+spreading it to the world,
+sharing projects made with it on github,
+creating tutorials or blog posts,
+creating [wiki](https://github.com/edubart/nelua-lang/wiki/Wiki-Home) pages that could be useful for newcomers
+or
+improving its documentation.
+
+[![Become a Patron](https://c5.patreon.com/external/logo/become_a_patron_button.png)](https://www.patreon.com/edubart)
 
 ## License
 

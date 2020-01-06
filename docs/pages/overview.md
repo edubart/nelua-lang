@@ -218,7 +218,7 @@ end
 
 ### While
 
-While are just like in Lua:
+While is just like in Lua:
 
 ```nelua
 local a = 1
@@ -1125,13 +1125,13 @@ For importing C functions, additional compatibility primitive types are provided
 
 | Type              | C Type               | Suffixes         |
 |-------------------|----------------------|------------------|
-| `cschar`          | `char`               | `_cschar`        |
-| `cshort`          | `signed char`        | `_cshort`        |
-| `cint`            | `short`              | `_cint`          |
-| `clong`           | `int`                | `_clong`         |
-| `clonglong`       | `long`               | `_clonglong`     |
-| `cptrdiff`        | `long long`          | `_cptrdiff`      |
-| `cchar`           | `ptrdiff_t`          | `_cchar`         |
+| `cshort`          | `short`              | `_cshort`        |
+| `cint`            | `int`                | `_clong`         |
+| `clong`           | `long`               | `_clonglong`     |
+| `clonglong`       | `long long`          | `_cptrdiff`      |
+| `cptrdiff`        | `ptrdiff_t`          | `_cchar`         |
+| `cchar`           | `char`               | `_cchar`         |
+| `cschar`          | `signed char`        | `_cschar`        |
 | `cuchar`          | `unsigned char`      | `_cuchar`        |
 | `cushort`         | `unsigned short`     | `_cushort`       |
 | `cuint`           | `unsigned int`       | `_cuint`         |
@@ -1139,8 +1139,5 @@ For importing C functions, additional compatibility primitive types are provided
 | `culonglong`      | `unsigned long long` | `_culonglong`    |
 | `csize`           | `size_t`             | `_csize`         |
 | `clongdouble`     | `long double`        | `_clongdouble`   |
-| `cdouble`         | `double`             | `_cdouble`       |
-| `cfloat`          | `float`              | `_cfloat_`       |
-| `cstring`         | `char*`              | `_cstring`       |
 
 {% endraw %}
