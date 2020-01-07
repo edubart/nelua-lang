@@ -1462,7 +1462,7 @@ function visitors.FuncDef(context, node, lazysymbol)
     if not type then
       type = types.LazyFunctionType(node, argtypes, returntypes)
     end
-  else
+  elseif not returntypes.has_unknown then
     type = types.FunctionType(node, argtypes, returntypes)
   end
 
@@ -1506,7 +1506,9 @@ function visitors.FuncDef(context, node, lazysymbol)
     end
 
     -- annotation sideeffect, the function has side effects unless told otherwise
-    type.sideeffect = not attr.nosideeffect
+    if type then
+      type.sideeffect = not attr.nosideeffect
+    end
 
     -- annotation entrypoint
     if attr.entrypoint then

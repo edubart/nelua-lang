@@ -454,6 +454,7 @@ it("lazy function definition", function()
     local a = 1
     f(a)
   ]])
+
 end)
 
 it("function return", function()
@@ -849,7 +850,7 @@ it("dependent functions resolution", function()
     function A:boo() return a:foo() end
     function A.boo2() return a:foo() end
     local b = a:boo()
-    --local b2 = A.boo2()
+    local b2 = A.boo2()
   ]], [[
     local A = @record{x:number}
     function A:foo():number return self.x end
@@ -857,7 +858,21 @@ it("dependent functions resolution", function()
     function A:boo():number return a:foo() end
     function A.boo2():number return a:foo() end
     local b:number = a:boo()
-    --local b2:number = A.boo2()
+    local b2: number = A.boo2()
+  ]])
+
+  assert.ast_type_equals([[
+    local Foo = @record{x: integer}
+    local foo = Foo{x=0}
+    function Foo:f() return 1.0 end
+    local function f() return foo:f() end
+    local x = f()
+  ]], [[
+    local Foo: type = @record{x: integer}
+    local foo: Foo = Foo{x=0}
+    function Foo:f(): number return 1.0 end
+    local function f(): number return foo:f() end
+    local x: number = f()
   ]])
 end)
 
