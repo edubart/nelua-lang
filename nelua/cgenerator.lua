@@ -826,8 +826,8 @@ end
 
 function visitors.FuncDef(context, node, emitter)
   if node.lazys then
-    for _,lazytbl in ipairs(node.lazys) do
-      emitter:add(lazytbl.node)
+    for _,lazysym in ipairs(node.lazys) do
+      emitter:add(lazysym.lazynode)
     end
     return
   end

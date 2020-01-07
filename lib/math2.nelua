@@ -5,8 +5,8 @@ nohashcodenames = true
 ]]
 
 -- constants
-global math_pi: number <comptime> = 3.141592653589793
-global math_huge: number <const,cimport'HUGE_VAL',nodecl>
+global math_pi: float64 <comptime> = 3.141592653589793
+global math_huge: float64 <const,cimport'HUGE_VAL',nodecl>
 global math_maxinteger: integer <comptime> = 9223372036854775807
 global math_mininteger: integer <comptime> = -9223372036854775808
 
@@ -235,7 +235,7 @@ function xoshiro256:nextrand(): uint64
   return res
 end
 
-function xoshiro256:random(): number
+function xoshiro256:random(): float64
   local FLOAT64_MANT_DIGS <comptime> = 53
   local rv = self:nextrand()
   local v = rv >> (64_i32 - FLOAT64_MANT_DIGS)
@@ -262,17 +262,25 @@ local function math_randomseed(x: auto) <inline>
   default_random:seed((@uint64)(x), 0)
 end
 
-local function math_random(m: auto, n: auto): number <inline>
+local function math_random(m: auto, n: auto) <inline>
+  local r: number = default_random:random()
   ## if not symbols.m.type:is_nil() and not symbols.n.type:is_nil() then
     ## check_arithmetic(symbols.m, symbols.n)
-    --TODO: implement here
-    return default_random:random()
+    local low: integer, up: integer = (@integer)(m), (@integer)(n)
+    if not likely(low < up) then
+      panic("random: interval is empty")
+    elseif not likely(low >= 0 or up < math_maxinteger + low) then
+      panic("random: interval too large")
+    end
+    r = r * ((@number)(up - low) + 1.0)
+    return (@integer)(r) + low
   ## elseif not symbols.m.type:is_nil() then
     ## check_arithmetic(symbols.m)
-    --TODO: implement here
-    return default_random:random()
+    local low: integer = (@integer)(m)
+    r = r * (@number)(low)
+    return (@integer)(r)
   ## else
-    return default_random:random()
+    return r
   ## end
 end
 
@@ -402,7 +410,9 @@ assert(math_ult(math_maxinteger, math_mininteger))
 math_randomseed(0)
 do
   for i=1,10 do
-    local x: number = math_random()
+    local x,y,z = math_random(), math_random(10), math_random(-10,0)
     assert(x >= 0 and x <= 1)
+    assert(y >= 0 and y <= 10)
+    assert(z >= -10 and z <= 0)
   end
 end

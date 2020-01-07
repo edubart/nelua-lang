@@ -1040,9 +1040,15 @@ function LazyFunctionType:_init(node, argtypes, returntypes)
 end
 
 function LazyFunctionType:get_lazy(argtypes)
-  for _,lazytbl in ipairs(self.node.lazys) do
-    if tabler.deepcompare(lazytbl.argtypes, argtypes) then
-      return lazytbl
+  for _,lazy in ipairs(self.node.lazys) do
+    local lazyargtypes
+    if traits.is_attr(lazy) then
+      lazyargtypes = lazy.lazyargtypes
+    else
+      lazyargtypes = lazy
+    end
+    if tabler.deepcompare(lazyargtypes, argtypes) then
+      return lazy
     end
   end
 end
@@ -1054,7 +1060,7 @@ function LazyFunctionType:eval_lazy_for_argtypes(argtypes)
     if not ok then --luacov:disable
       return nil, 'in lazy function evaluation: ' .. err
     end --luacov:enable
-    lazy = {argtypes = argtypes}
+    lazy = argtypes
     table.insert(self.node.lazys, lazy)
   end
   return lazy

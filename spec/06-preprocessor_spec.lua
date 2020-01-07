@@ -401,6 +401,17 @@ it("lazy function", function()
     end
     f(1)
   ]])
+  assert.analyze_ast([[
+    local function f(x: auto)
+      local r = 1.0 + x
+      r = r + x
+      ## afterinfer(function() assert(symbols.r.type == primtypes.number) end)
+      return r
+    end
+
+    local x = f(1.0)
+    ## afterinfer(function() assert(symbols.x.type == primtypes.number) end)
+  ]])
   assert.analyze_ast([=[
     ## local printtypes = {}
     local function printtype(x: auto)

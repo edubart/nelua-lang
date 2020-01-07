@@ -880,21 +880,21 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
         tabler.insert(argtypes, funcargtypes[1])
       end
       if calleetype.lazyfunction then
+        local lazycalleetype = calleetype
+        calleetype = nil
         if knownallargs then
-          local lazy, err = calleetype:eval_lazy_for_argtypes(argtypes)
+          local lazysym, err = lazycalleetype:eval_lazy_for_argtypes(argtypes)
           if err then --luacov:disable
             --TODO: actually this error is impossible because of the previous check
-            node:raisef("in call of function '%s': %s", calleetype:prettyname(), err)
+            node:raisef("in call of function '%s': %s", lazycalleetype:prettyname(), err)
           end --luacov:enable
 
-          if lazy and lazy.node then
-            calleetype = lazy.node and lazy.node.attr.type
-            attr.lazysym = lazy.node.attr
+          if traits.is_attr(lazysym) and lazysym.type then
+            calleetype = lazysym.type
+            attr.lazysym = lazysym
           else
-            calleetype = nil
+            lazycalleetype.node.attr.delayresolution = true
           end
-        else
-          calleetype = nil
         end
       end
       if calleetype then
@@ -1322,7 +1322,7 @@ function visitors.Return(context, node)
 end
 
 local function resolve_function_argtypes(symbol, varnode, argnodes, scope)
-  local lazy = false
+  local islazyparent = false
   local argtypes = {}
 
   for i,argnode in ipairs(argnodes) do
@@ -1330,7 +1330,7 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope)
     -- function arguments types must be known ahead, fallbacks to any if untyped
     local argtype = argattr.type or primtypes.any
     if argtype.lazyable or argattr.comptime then
-      lazy = true
+      islazyparent = true
     end
     argtypes[i] = argtype
   end
@@ -1347,7 +1347,7 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope)
     end
   end
 
-  return argtypes, lazy
+  return argtypes, islazyparent
 end
 
 local function block_endswith_return(blocknode)
@@ -1439,25 +1439,25 @@ function visitors.FuncDef(context, node, lazysymbol)
   local returntypes = visitor_FuncDef_returns(context, node.attr.type, retnodes)
 
   -- repeat scope to resolve function variables and return types
-  local lazy, argtypes
+  local islazyparent, argtypes
   local funcscope = context:repeat_scope_until_resolution('function', function(scope)
     scope.returntypes = returntypes
     context:traverse(argnodes)
-    argtypes, lazy = resolve_function_argtypes(symbol, varnode, argnodes, scope)
+    argtypes, islazyparent = resolve_function_argtypes(symbol, varnode, argnodes, scope)
 
-    if not lazy then
+    if not islazyparent then
       -- lazy functions never traverse the blocknode by itself
       context:traverse(blocknode)
     end
   end)
 
-  if not lazy and not returntypes then
+  if not islazyparent and not returntypes then
     returntypes = funcscope.resolved_returntypes
   end
 
   -- set the function type
   local type = node.attr.type
-  if lazy then
+  if islazyparent then
     assert(not lazysymbol)
     if not type then
       type = types.LazyFunctionType(node, argtypes, returntypes)
@@ -1519,19 +1519,28 @@ function visitors.FuncDef(context, node, lazysymbol)
   end
 
   -- traverse lazy function nodes
-  if lazy then
-    for _,lazytbl in ipairs(node.lazys) do
-      local lazyargtypes = lazytbl.argtypes
-      local lazynode = lazytbl.node
-      if not lazynode then
+  if islazyparent then
+    for i,lazy in ipairs(node.lazys) do
+      local lazysym, lazyargtypes, lazynode
+      if traits.is_attr(lazy) then
+        lazysym = lazy
+      else
+        lazyargtypes = lazy
+      end
+      if not lazysym then
         lazynode = node:clone()
+        lazynode.attr.lazynode = lazynode
+        lazynode.attr.lazyargtypes = lazyargtypes
         local lazyargnodes = lazynode[3]
-        for i,lazyargtype in ipairs(lazyargtypes) do
-          lazyargnodes[i].attr.type = lazyargtype
+        for j,lazyargtype in ipairs(lazyargtypes) do
+          lazyargnodes[j].attr.type = lazyargtype
         end
-        lazytbl.node = lazynode
+      else
+        lazynode = lazysym.lazynode
       end
       context:traverse(lazynode, symbol)
+      assert(lazynode.attr._symbol)
+      node.lazys[i] = lazynode.attr
     end
   end
 end

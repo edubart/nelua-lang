@@ -75,7 +75,7 @@ function Symbol:link_node(node)
 end
 
 function Symbol:__tostring()
-  local ss = sstream(self.name)
+  local ss = sstream(self.name or '<annonymous>')
   if self.type then
     ss:add(': ', self.type)
   end
