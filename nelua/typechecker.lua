@@ -206,13 +206,6 @@ function visitors.Table(context, node)
   end
 end
 
-function visitors.PragmaSet(context, node)
-  local name, value = node:args()
-  local pragmashape = typedefs.field_pragmas[name]
-  node:assertraisef(pragmashape, "pragma '%s' is undefined", name)
-  context[name] = value
-end
-
 function visitors.PragmaCall(context, node)
   local name, args = node:args()
   local pragmashape = typedefs.call_pragmas[name]

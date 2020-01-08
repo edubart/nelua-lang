@@ -268,11 +268,6 @@ end
 
 -- TODO: Function
 
-function visitors.PragmaSet(context, node)
-  local name, value = node:args()
-  context[name] = value
-end
-
 function visitors.PragmaCall(context, node, emitter)
   local name, args = node:args()
   if name == 'cinclude' then

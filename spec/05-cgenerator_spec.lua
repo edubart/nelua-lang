@@ -285,11 +285,11 @@ it("lazy functions", function()
     assert(f(true,2) == true)
 
     local function printtype(x: auto)
-      ## if symbols.x.type:is_float() then
+      ## if x.type:is_float() then
         print('float', x)
-      ## elseif symbols.x.type:is_integral() then
+      ## elseif x.type:is_integral() then
         print('integral', x)
-      ## elseif symbols.x.type:is_boolean() then
+      ## elseif x.type:is_boolean() then
         print('boolean', x)
       ## else
         print('unknown')

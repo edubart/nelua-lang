@@ -119,7 +119,7 @@ end)
 it("inject other symbol type", function()
   assert.ast_type_equals([[
     local a: uint8 = 1
-    local b: #[symbols['a'].type]#
+    local b: #[context.scope.symbols['a'].type]#
   ]], [[
     local a: uint8 = 1
     local b: uint8
@@ -130,7 +130,7 @@ it("check symbols inside functions", function()
   assert.analyze_ast([=[
     ## strict = true
     local function f(x: integer)
-      ## assert(symbols.x.type == require 'nelua.typedefs'.primtypes.integer)
+      ## assert(x.type == require 'nelua.typedefs'.primtypes.integer)
     end
   ]=])
 end)
@@ -139,8 +139,8 @@ it("print symbol", function()
   assert.ast_type_equals([=[
     local a: integer <comptime> = 1
     local b: integer <const> = 2
-    print #[tostring(symbols.a)]#
-    print #[tostring(symbols.b)]#
+    print #[tostring(a)]#
+    print #[tostring(b)]#
   ]=], [[
     local a <comptime> = 1
     local b <const> = 2
@@ -149,7 +149,7 @@ it("print symbol", function()
   ]])
   assert.ast_type_equals([=[
     for i:integer=1,2 do
-      print(i, #[tostring(symbols.i)]#)
+      print(i, #[tostring(i)]#)
     end
   ]=], [[
     for i=1,2 do
@@ -160,7 +160,7 @@ it("print symbol", function()
     ## local aval = 1
     ## if true then
       local #('a')#: #('integer')# <comptime> = #[aval]#
-      print #[tostring(scope:get_symbol('a'))]#
+      print #[tostring(context.scope:get_symbol('a'))]#
     ## end
   ]], [[
     local a <comptime> = 1
@@ -171,8 +171,8 @@ end)
 it("print enums", function()
   assert.ast_type_equals([[
     local Weekends = @enum { Friday=0, Saturday, Sunda }
-    ## symbols.Weekends.value.fields[3].name = 'Sunday'
-    ## for i,field in ipairs(symbols.Weekends.value.fields) do
+    ## Weekends.value.fields[3].name = 'Sunday'
+    ## for i,field in ipairs(Weekends.value.fields) do
       print(#[field.name .. ' ' .. tostring(field.value)]#)
     ## end
   ]], [[
@@ -205,14 +205,14 @@ it("print types", function()
     function R:foo() return 1 end
     global R.v: integer = 1
     local r: R
-    local tn = #[tostring(symbols.n.type)]#
-    local ts = #[tostring(symbols.s.type)]#
-    local tb = #[tostring(symbols.b.type)]#
-    local ta = #[tostring(symbols.a.type)]#
-    local tf = #[tostring(symbols.f.type)]#
-    local tR = #[tostring(symbols.R.type)]#
-    local tRmt = #[tostring(symbols.R.value.metatype)]#
-    local tr = #[tostring(symbols.r.type)]#
+    local tn = #[tostring(n.type)]#
+    local ts = #[tostring(s.type)]#
+    local tb = #[tostring(b.type)]#
+    local ta = #[tostring(a.type)]#
+    local tf = #[tostring(f.type)]#
+    local tR = #[tostring(R.type)]#
+    local tRmt = #[tostring(R.value.metatype)]#
+    local tr = #[tostring(r.type)]#
   ]], [=[
     local n: float64
     local s: string
@@ -281,7 +281,7 @@ it("print symbol", function()
   assert.ast_type_equals([=[
     ## local MIN, MAX = 1, 2
     for i:integer=#[MIN]#,#[MAX]# do
-      print(i, #[tostring(symbols.i)]#)
+      print(i, #[tostring(i)]#)
     end
   ]=], [[
     for i:integer=1,2 do
@@ -339,7 +339,7 @@ end)
 
 it("inject nodes", function()
   assert.ast_type_equals([=[
-    ## addnode(aster.Call{{aster.String{"hello"}}, aster.Id{'print'}, true})
+    ## injectnode(aster.Call{{aster.String{"hello"}}, aster.Id{'print'}, true})
   ]=], [[
     print 'hello'
   ]])
@@ -369,15 +369,15 @@ it("check function", function()
   assert.analyze_ast([[
     local a = 1
     local b = 1.0
-    ## afterinfer(function() staticassert(symbols.a.type == primtypes.integer) end)
-    ## afterinfer(function() staticassert(symbols.b.type == primtypes.number) end)
+    ## afterinfer(function() staticassert(a.type == primtypes.integer) end)
+    ## afterinfer(function() staticassert(b.type == primtypes.number) end)
   ]])
 end)
 
 it("auto type", function()
   assert.analyze_ast([[
     local a: auto = 1
-    ## assert(symbols.a.type == primtypes.integer)
+    ## assert(a.type == primtypes.integer)
   ]])
 end)
 
@@ -388,7 +388,7 @@ it("multiple blocks", function()
       ## assert(true)
       for i=1,4 do
         local a: #[primtypes.integer]# <comptime> = 2
-        ## assert(symbols.a.type == primtypes.integer)
+        ## assert(a.type == primtypes.integer)
       end
     end
   ]])
@@ -397,7 +397,7 @@ end)
 it("lazy function", function()
   assert.analyze_ast([[
     local function f(a: auto)
-      ## assert(symbols.a.type == primtypes.integer)
+      ## assert(a.type == primtypes.integer)
     end
     f(1)
   ]])
@@ -405,22 +405,22 @@ it("lazy function", function()
     local function f(x: auto)
       local r = 1.0 + x
       r = r + x
-      ## afterinfer(function() assert(symbols.r.type == primtypes.number) end)
+      ## afterinfer(function() assert(r.type == primtypes.number) end)
       return r
     end
 
     local x = f(1.0)
-    ## afterinfer(function() assert(symbols.x.type == primtypes.number) end)
+    ## afterinfer(function() assert(x.type == primtypes.number) end)
   ]])
   assert.analyze_ast([=[
     ## local printtypes = {}
     local function printtype(x: auto)
       ##[[
-      if symbols.x.type:is_float() then
+      if x.type:is_float() then
         table.insert(printtypes, 'float')
-      elseif symbols.x.type:is_integral() then
+      elseif x.type:is_integral() then
         table.insert(printtypes, 'integral')
-      elseif symbols.x.type:is_boolean() then
+      elseif x.type:is_boolean() then
         table.insert(printtypes, 'boolean')
       end
       ]]

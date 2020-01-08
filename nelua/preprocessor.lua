@@ -206,14 +206,6 @@ function marker_visitors.Block(markercontext, node)
   markercontext:traverse(statnodes)
 end
 
-local ppenvgetfields = {}
-function ppenvgetfields:scope()
-  return self.context.scope
-end
-function ppenvgetfields:symbols()
-  return self.context.scope.symbols
-end
-
 local preprocessor = {}
 function preprocessor.preprocess(context, ast)
   assert(ast.tag == 'Block')
@@ -247,8 +239,9 @@ function preprocessor.preprocess(context, ast)
     ppcontext = ppcontext,
     ast = ast,
     aster = aster,
+    config = config,
     primtypes = require 'nelua.typedefs'.primtypes,
-    addnode = function(node) ppcontext:add_statnode(node) end,
+    injectnode = function(node) ppcontext:add_statnode(node) end,
     staticassert = function(status, msg, ...)
       if not status then
         if not msg then
@@ -260,11 +253,14 @@ function preprocessor.preprocess(context, ast)
       end
       return status
     end,
-    config = config
   }, { __index = function(_, key)
-    local ppenvfield = ppenvgetfields[key]
-    if ppenvfield then
-      return ppenvfield(env)
+    local v = rawget(context.env, key)
+    if v ~= nil then
+      return v
+    end
+    local symbol = context.scope.symbols[key]
+    if symbol then
+      return symbol
     elseif typedefs.field_pragmas[key] then
       return context[key]
     elseif typedefs.call_pragmas[key] then
@@ -277,12 +273,7 @@ function preprocessor.preprocess(context, ast)
         ppcontext:add_statnode(aster.PragmaCall{key, tabler.pack(...)})
       end
     else
-      local v = rawget(context.env, key)
-      if v ~= nil then
-        return v
-      else
-        return _G[key]
-      end
+      return _G[key]
     end
   end, __newindex = function(_, key, value)
     if typedefs.field_pragmas[key] then
@@ -290,7 +281,7 @@ function preprocessor.preprocess(context, ast)
       if not ok then
         ppcontext.lastregnode:raisef("invalid type for preprocess variable '%s': %s", key, err)
       end
-      ppcontext:add_statnode(aster.PragmaSet{key, value})
+      context[key] = value
     else
       rawset(context.env, key, value)
     end

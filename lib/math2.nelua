@@ -73,10 +73,10 @@ for _,name in ipairs(mathfuncs1) do
   local libname, namef64, namef32 = 'math_'..name, name..'_f64', name..'_f32'
 ]]
 local function #(libname)#(x: auto) <inline,nosideeffect>
-  ## check_arithmetic(symbols.x)
-  ## if symbols.x.type:is_float32() then
+  ## check_arithmetic(x)
+  ## if x.type:is_float32() then
     return #(namef32)#(x)
-  ## elseif symbols.x.type:is_float() then
+  ## elseif x.type:is_float() then
     return #(namef64)#(x)
   ## else
     ## if name == 'abs' then
@@ -97,10 +97,10 @@ for _,name in ipairs(mathfuncs2) do
   local libname, namef64, namef32 = 'math_'..name, name..'_f64', name..'_f32'
 ]]
 local function #(libname)#(x: auto, y: auto) <inline,nosideeffect>
-  ## check_arithmetic(symbols.x, symbols.y)
-  ## if symbols.x.type:is_float32() then
+  ## check_arithmetic(x, y)
+  ## if x.type:is_float32() then
     return #(namef32)#(x, y)
-  ## elseif symbols.x.type:is_float() then
+  ## elseif x.type:is_float() then
     return #(namef64)#(x, y)
   ## else
     ## if name == 'min' then
@@ -115,16 +115,16 @@ end
 ## end
 
 local function math_atan(y: auto, x: auto) <inline,nosideeffect>
-  ## check_arithmetic(symbols.y)
-  ## if not symbols.x.type:is_nil() then
-    ## check_arithmetic(symbols.x)
-    ## if symbols.y.type:is_float32() and symbols.x.type:is_float32() then
+  ## check_arithmetic(y)
+  ## if not x.type:is_nil() then
+    ## check_arithmetic(x)
+    ## if y.type:is_float32() and x.type:is_float32() then
       return atan2_f32(y, x)
     ## else
       return atan2_f64(y, x)
     ## end
   ## else
-    ## if symbols.y.type:is_float32() then
+    ## if y.type:is_float32() then
       return atan_f32(y)
     ## else
       return atan_f64(y)
@@ -133,10 +133,10 @@ local function math_atan(y: auto, x: auto) <inline,nosideeffect>
 end
 
 local function math_log(x: auto, base: auto) <inline,nosideeffect>
-  ## check_arithmetic(symbols.x)
-  ## local suffix = symbols.x.type:is_float32() and '_f32' or '_f64'
+  ## check_arithmetic(x)
+  ## local suffix = x.type:is_float32() and '_f32' or '_f64'
   ## local log2, log10, log = 'log2'..suffix, 'log10'..suffix, 'log'..suffix
-  ## if not symbols.base.type:is_nil() then
+  ## if not base.type:is_nil() then
     if base == 2 then
       return #(log2)#(x)
     elseif base == 10 then
@@ -150,23 +150,23 @@ local function math_log(x: auto, base: auto) <inline,nosideeffect>
 end
 
 local function math_deg(x: auto) <inline,nosideeffect>
-  ## check_arithmetic(symbols.x)
-  local factor: #[choose_float_type(symbols.x)]# <comptime> = 180 / math_pi
+  ## check_arithmetic(x)
+  local factor: #[choose_float_type(x)]# <comptime> = 180 / math_pi
   return x * factor
 end
 
 local function math_rad(x: auto) <inline,nosideeffect>
-  ## check_arithmetic(symbols.x)
-  local factor: #[choose_float_type(symbols.x)]# <comptime> = math_pi / 180.0
+  ## check_arithmetic(x)
+  local factor: #[choose_float_type(x)]# <comptime> = math_pi / 180.0
   return x * factor
 end
 
 local function math_modf(x: auto) <inline,nosideeffect>
-  ## check_arithmetic(symbols.x)
-  ## local rettype = choose_float_type(symbols.x)
+  ## check_arithmetic(x)
+  ## local rettype = choose_float_type(x)
   local i: #[rettype]#
   local f: #[rettype]# <noinit>
-  ## if symbols.x.type:is_float32() then
+  ## if x.type:is_float32() then
     f = modf_f32(x, &i)
   ## else
     f = modf_f64(x, &i)
@@ -175,9 +175,9 @@ local function math_modf(x: auto) <inline,nosideeffect>
 end
 
 local function math_tointeger(x: auto) <inline,nosideeffect>
-  ## if symbols.x.type:is_integral() then
+  ## if x.type:is_integral() then
     return (@integer)(x)
-  ## elseif symbols.x.type:is_float() then
+  ## elseif x.type:is_float() then
     local r = (@integer)(x)
     if likely(x == r) then
       return r
@@ -190,9 +190,9 @@ local function math_tointeger(x: auto) <inline,nosideeffect>
 end
 
 local function math_type(x: auto) <inline,nosideeffect>
-  ## if symbols.x.type:is_float() then
+  ## if x.type:is_float() then
     return 'float'
-  ## elseif symbols.x.type:is_integral() then
+  ## elseif x.type:is_integral() then
     return 'integer'
   ## else
     return nil
@@ -200,10 +200,10 @@ local function math_type(x: auto) <inline,nosideeffect>
 end
 
 local function math_ult(m: auto, n: auto): boolean <inline>
-  ## check_arithmetic(symbols.m, symbols.n)
-  ## if symbols.m.type:is_integral() and symbols.n.type:is_integral() then
+  ## check_arithmetic(m, n)
+  ## if m.type:is_integral() and n.type:is_integral() then
     return (@uinteger)(m) < (@uinteger)(n)
-  ## elseif symbols.x.type:is_float() then
+  ## elseif x.type:is_float() then
     local mi, ni = (@integer)(m), (@integer)(n)
     if likely(mi == m and ni == n) then
       return (@uinteger)(mi) < (@uinteger)(ni)
@@ -258,14 +258,14 @@ local default_random = xoshiro256{state={
 }}
 
 local function math_randomseed(x: auto) <inline>
-  ## check_arithmetic(symbols.x)
+  ## check_arithmetic(x)
   default_random:seed((@uint64)(x), 0)
 end
 
 local function math_random(m: auto, n: auto) <inline>
   local r: number = default_random:random()
-  ## if not symbols.m.type:is_nil() and not symbols.n.type:is_nil() then
-    ## check_arithmetic(symbols.m, symbols.n)
+  ## if not m.type:is_nil() and not n.type:is_nil() then
+    ## check_arithmetic(m, n)
     local low: integer, up: integer = (@integer)(m), (@integer)(n)
     if not likely(low < up) then
       panic("random: interval is empty")
@@ -274,8 +274,8 @@ local function math_random(m: auto, n: auto) <inline>
     end
     r = r * ((@number)(up - low) + 1.0)
     return (@integer)(r) + low
-  ## elseif not symbols.m.type:is_nil() then
-    ## check_arithmetic(symbols.m)
+  ## elseif not m.type:is_nil() then
+    ## check_arithmetic(m)
     local low: integer = (@integer)(m)
     r = r * (@number)(low)
     return (@integer)(r)

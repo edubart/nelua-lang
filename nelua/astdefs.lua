@@ -68,11 +68,6 @@ astbuilder:register('PragmaCall', {
   stypes.table, -- args exprs
 })
 
-astbuilder:register('PragmaSet', {
-  stypes.string, -- name
-  stypes.any, -- value
-})
-
 -- identifier and types
 astbuilder:register('Id', {
   stypes.string + ntypes.PreprocessName, -- name
