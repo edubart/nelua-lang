@@ -843,7 +843,7 @@ describe("statement variable declaration", function()
         n.VarDecl{'global', {n.IdDecl{'a', n.Type{'integer'}}}}
     }})
   end)
-  it("variable attributes", function()
+  it("variable annotations", function()
     assert.parse_ast(nelua_parser, [[
       local a = b
       local a <const> = b
@@ -851,8 +851,8 @@ describe("statement variable declaration", function()
     ]],
       n.Block{{
         n.VarDecl{'local', {n.IdDecl{'a'}}, {n.Id{'b'}}},
-        n.VarDecl{'local', {n.IdDecl{'a', nil, {n.Attrib{'const', {}}}}}, {n.Id{'b'}}},
-        n.VarDecl{'local', {n.IdDecl{'a', n.Type{'any'}, {n.Attrib{'comptime', {}}}}}, {n.Id{'b'}}},
+        n.VarDecl{'local', {n.IdDecl{'a', nil, {n.Annotation{'const', {}}}}}, {n.Id{'b'}}},
+        n.VarDecl{'local', {n.IdDecl{'a', n.Type{'any'}, {n.Annotation{'comptime', {}}}}}, {n.Id{'b'}}},
     }})
   end)
   it("variable mutabilities", function()
@@ -862,11 +862,11 @@ describe("statement variable declaration", function()
       local a <const>, b <comptime> = c, d
     ]],
       n.Block{{
-        n.VarDecl{'local', {n.IdDecl{'a', nil, {n.Attrib{'const', {}}} }}, {n.Id{'b'}}},
-        n.VarDecl{'global', {n.IdDecl{'a', nil, {n.Attrib{'const', {}}} }}, {n.Id{'b'}}},
+        n.VarDecl{'local', {n.IdDecl{'a', nil, {n.Annotation{'const', {}}} }}, {n.Id{'b'}}},
+        n.VarDecl{'global', {n.IdDecl{'a', nil, {n.Annotation{'const', {}}} }}, {n.Id{'b'}}},
         n.VarDecl{'local', {
-          n.IdDecl{'a', nil, {n.Attrib{'const', {}}}},
-          n.IdDecl{'b', nil, {n.Attrib{'comptime', {}}}}
+          n.IdDecl{'a', nil, {n.Annotation{'const', {}}}},
+          n.IdDecl{'b', nil, {n.Annotation{'comptime', {}}}}
         }, {n.Id{'c'},n.Id{'d'}}}
     }})
   end)
@@ -968,14 +968,14 @@ describe("statement function", function()
           n.Block{{}} }
     }})
   end)
-  it("global and typed with attributes", function()
+  it("global and typed with annotations", function()
     assert.parse_ast(nelua_parser, "global function f(a <const>, b: integer <const>): string <inline> end",
       n.Block{{
         n.FuncDef{'global', n.IdDecl{'f'},
-          { n.IdDecl{'a', nil, {n.Attrib{'const', {}}}},
-            n.IdDecl{'b', n.Type{'integer'}, {n.Attrib{'const', {}}}} },
+          { n.IdDecl{'a', nil, {n.Annotation{'const', {}}}},
+            n.IdDecl{'b', n.Type{'integer'}, {n.Annotation{'const', {}}}} },
           { n.Type{'string'} },
-          { n.Attrib{'inline', {}} },
+          { n.Annotation{'inline', {}} },
           n.Block{{}} }
     }})
   end)
@@ -1458,30 +1458,30 @@ describe("type expression", function()
 end)
 
 --------------------------------------------------------------------------------
--- attributes
+-- annotations
 --------------------------------------------------------------------------------
-describe("attrib expression for", function()
+describe("annotation expression for", function()
   it("variable", function()
-    assert.parse_ast(nelua_parser, "local a <attrib>",
+    assert.parse_ast(nelua_parser, "local a <annot>",
       n.Block{{
         n.VarDecl{'local',
-          { n.IdDecl{'a', nil, {n.Attrib{'attrib', {}}}}}
+          { n.IdDecl{'a', nil, {n.Annotation{'annot', {}}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local a <attrib>",
+    assert.parse_ast(nelua_parser, "local a <annot>",
       n.Block{{
         n.VarDecl{'local',
-          { n.IdDecl{'a', nil, {n.Attrib{'attrib', {}}}}}
+          { n.IdDecl{'a', nil, {n.Annotation{'annot', {}}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local a <attrib1, attrib2>",
+    assert.parse_ast(nelua_parser, "local a <annot1, annot2>",
       n.Block{{
         n.VarDecl{'local',
-          { n.IdDecl{'a', nil, {n.Attrib{'attrib1', {}}, n.Attrib{'attrib2', {}}}}}
+          { n.IdDecl{'a', nil, {n.Annotation{'annot1', {}}, n.Annotation{'annot2', {}}}}}
     }}})
   end)
   it("function", function()
-    assert.parse_ast(nelua_parser, "local function f() <attrib> end",
+    assert.parse_ast(nelua_parser, "local function f() <annot> end",
       n.Block{{
-        n.FuncDef{'local', n.IdDecl{'f'}, {}, {}, {n.Attrib{'attrib', {}}}, n.Block{{}} }
+        n.FuncDef{'local', n.IdDecl{'f'}, {}, {}, {n.Annotation{'annot', {}}}, n.Block{{}} }
     }})
   end)
 end)
@@ -1573,7 +1573,7 @@ describe("preprocessor", function()
           n.IdDecl{
             n.PreprocessName{"a"},
             n.Type{n.PreprocessName{"b"}},
-            {n.Attrib{n.PreprocessName{"c"}, {}}}
+            {n.Annotation{n.PreprocessName{"c"}, {}}}
     }}}}})
   end)
 end)

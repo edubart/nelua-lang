@@ -56,8 +56,8 @@ astbuilder:register('Pair', {
   ntypes.Node -- field value expr
 })
 
--- attrib
-astbuilder:register('Attrib', {
+-- annotation
+astbuilder:register('Annotation', {
   stypes.string + ntypes.PreprocessName, -- name
   stypes.array_of(ntypes.String + ntypes.Number + ntypes.Boolean + ntypes.PreprocessExpr) -- args
 })
@@ -75,7 +75,7 @@ astbuilder:register('Id', {
 astbuilder:register('IdDecl', {
   stypes.string + ntypes.PreprocessName + ntypes.DotIndex, -- name
   ntypes.Node:is_optional(), -- typexpr
-  stypes.array_of(ntypes.Attrib):is_optional(), -- attribs
+  stypes.array_of(ntypes.Annotation):is_optional(),
 })
 astbuilder:register('Paren', {
   ntypes.Node -- expr
@@ -128,7 +128,7 @@ astbuilder:register('RangeType', {
 astbuilder:register('Function', {
   stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
-  stypes.array_of(ntypes.Attrib):is_optional(), -- attribs
+  stypes.array_of(ntypes.Annotation):is_optional(),
   ntypes.Node, -- block
 })
 
@@ -203,7 +203,7 @@ astbuilder:register('FuncDef', {
   ntypes.IdDecl + ntypes.Id + ntypes.DotIndex + ntypes.ColonIndex, -- name
   stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
-  stypes.array_of(ntypes.Attrib):is_optional(), -- attribs
+  stypes.array_of(ntypes.Annotation):is_optional(),
   ntypes.Block -- block
 })
 

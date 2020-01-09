@@ -93,7 +93,7 @@ local a -- variable of deduced type 'any', initialized to 'nil'
 local b: integer -- variable of type 'integer', initialized to 0
 ```
 
-This can be optionally be disabled (for optimization reasons) using **attributes**.
+This can be optionally be disabled (for optimization reasons) using **annotations**.
 
 ### Auto variables
 
@@ -1080,12 +1080,12 @@ print(a) -- outputs 4
 ```
 
 --------------------------------------------------------------------------------
-## Attributes
+## Annotations
 
-Attributes are used to inform the compiler different behaviors in the code
+Annotations are used to inform the compiler different behaviors in the code
 generation.
 
-### Function attributes
+### Function annotations
 
 ```nelua
 function sum(a, b) <inline> -- inline function
@@ -1093,7 +1093,7 @@ function sum(a, b) <inline> -- inline function
 end
 ```
 
-### Variable attributes
+### Variable annotations
 
 ```nelua
 local a: integer <noinit>-- don't initialize variable to zeros

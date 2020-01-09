@@ -157,18 +157,18 @@ typedefs.field_pragmas = {
   modname = shaper.string,
 }
 
-local common_attribs = {
+local common_annots = {
   cimport = shaper.shape{shaper.string:is_optional()},
   onestring = shaper.shape{shaper.string},
   oneinteger = shaper.shape{shaper.integer}
 }
 
-typedefs.function_attribs = {
-  cimport = common_attribs.cimport,
-  cinclude = common_attribs.onestring,
-  codename = common_attribs.onestring,
-  cqualifier = common_attribs.onestring,
-  cattribute = common_attribs.onestring,
+typedefs.function_annots = {
+  cimport = common_annots.cimport,
+  cinclude = common_annots.onestring,
+  codename = common_annots.onestring,
+  cqualifier = common_annots.onestring,
+  cattribute = common_annots.onestring,
   inline = true,
   noreturn = true,
   noinline = true,
@@ -179,13 +179,13 @@ typedefs.function_attribs = {
   cexport = true,
 }
 
-typedefs.variable_attribs = {
-  cimport = common_attribs.cimport,
-  cinclude = common_attribs.onestring,
-  codename = common_attribs.onestring,
-  cqualifier = common_attribs.onestring,
-  cattribute = common_attribs.onestring,
-  aligned = common_attribs.oneinteger,
+typedefs.variable_annots = {
+  cimport = common_annots.cimport,
+  cinclude = common_annots.onestring,
+  codename = common_annots.onestring,
+  cqualifier = common_annots.onestring,
+  cattribute = common_annots.onestring,
+  aligned = common_annots.oneinteger,
   static = true,
   register = true,
   restrict = true,
@@ -197,11 +197,11 @@ typedefs.variable_attribs = {
   const = true
 }
 
-typedefs.type_attribs = {
-  aligned = common_attribs.oneinteger,
-  cimport = common_attribs.cimport,
-  cinclude = common_attribs.onestring,
-  codename = common_attribs.onestring,
+typedefs.type_annots = {
+  aligned = common_annots.oneinteger,
+  cimport = common_annots.cimport,
+  cinclude = common_annots.onestring,
+  codename = common_annots.onestring,
   nodecl = true,
   packed = true,
 }

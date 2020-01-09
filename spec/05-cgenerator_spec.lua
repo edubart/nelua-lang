@@ -1166,13 +1166,15 @@ it("C varargs", function()
     "int scanf(char* format, ...);")
 end)
 
-it("attributes", function()
+it("call pragmas", function()
   assert.generate_c("## cinclude '<myheader.h>'", "#include <myheader.h>")
   assert.generate_c("## cemit '#define SOMETHING'", "#define SOMETHING")
   assert.generate_c("## cemit('#define SOMETHING', 'declaration')", "#define SOMETHING")
   assert.generate_c("## cemit('#define SOMETHING', 'definition')", "#define SOMETHING")
-
   assert.generate_c("## cdefine 'SOMETHING'", "#define SOMETHING")
+end)
+
+it("annotations", function()
   assert.generate_c("local huge: number <cimport'HUGE_VAL',cinclude'<math.h>',nodecl>", "include <math.h>")
   assert.generate_c("local a: int64 <volatile, codename 'a'>", "volatile int64_t mymod_a")
   assert.generate_c("local a: int64 <register>", "register int64_t mymod_a")

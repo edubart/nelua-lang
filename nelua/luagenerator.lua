@@ -55,7 +55,7 @@ function visitors.Pair(_, node, emitter)
 end
 
 function visitors.Function(_, node, emitter)
-  local args, rets, attributes, block = node:args()
+  local args, rets, annots, block = node:args()
   if #block[1] == 0 then
     emitter:add('function(', args, ') end')
   else
@@ -65,7 +65,7 @@ function visitors.Function(_, node, emitter)
   end
 end
 
--- TODO: Attrib
+-- TODO: Annotation
 
 function visitors.Id(_, node, emitter)
   local name = node:args()
@@ -284,7 +284,7 @@ function visitors.Assign(_, node, emitter)
 end
 
 function visitors.FuncDef(context, node, emitter)
-  local varscope, name, args, rets, pragams, block = node:args()
+  local varscope, name, args, rets, annots, block = node:args()
   emitter:add_indent()
   if varscope == 'local' then
     emitter:add('local ')

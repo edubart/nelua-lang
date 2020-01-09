@@ -339,7 +339,7 @@ local function get_parser(std)
     global_typed_id <- ({} '' -> 'IdDecl'
         ((id {| dot_index+ |}) -> to_chain_index_or_call / name)
         (%COLON etypexpr / cnil)
-        attrib_list?
+        annot_list?
       ) -> to_astnode
     ]], nil, true)
 
@@ -427,7 +427,7 @@ local function get_parser(std)
       eLPAREN (
         {| (typed_idlist (%COMMA %cVARARGS)? / %cVARARGS)? |}
       ) eRPAREN
-      {| (%COLON (%LPAREN etypexpr_list eRPAREN / etypexpr))? |} (attrib_list / cnil)
+      {| (%COLON (%LPAREN etypexpr_list eRPAREN / etypexpr))? |} (annot_list / cnil)
         block
       eEND
     typed_idlist <- typed_id (%COMMA typed_id)*
@@ -435,7 +435,7 @@ local function get_parser(std)
     typed_id <- ({} '' -> 'IdDecl'
         name
         (%COLON etypexpr / cnil)
-        attrib_list?
+        annot_list?
       ) -> to_astnode
 
     typexpr_list <- typexpr (%COMMA typexpr)*
@@ -444,15 +444,15 @@ local function get_parser(std)
     expr_list <- (expr (%COMMA expr)*)?
     eexpr_list <- eexpr (%COMMA expr)*
 
-    attrib_list <- %LANGLE {| (eattrib_expr (%COMMA eattrib_expr)*) |} eRANGLE
+    annot_list <- %LANGLE {| (eannot_expr (%COMMA eannot_expr)*) |} eRANGLE
 
-    eattrib_expr <-
-      ({} '' -> 'Attrib' ename {|(
-        (%LPAREN attrib_arg (%COMMA attrib_arg)* eRPAREN) /
+    eannot_expr <-
+      ({} '' -> 'Annotation' ename {|(
+        (%LPAREN annot_arg (%COMMA annot_arg)* eRPAREN) /
         %cSTRING /
         ppexpr
       )?|}) -> to_astnode
-    attrib_arg <- %cNUMBER / %cSTRING / %cBOOLEAN / ppexpr
+    annot_arg <- %cNUMBER / %cSTRING / %cBOOLEAN / ppexpr
 
     cnil <- '' -> to_nil
     ctrue <- '' -> to_true

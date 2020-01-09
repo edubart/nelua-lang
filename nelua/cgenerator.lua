@@ -827,7 +827,7 @@ function visitors.FuncDef(context, node, emitter)
     return
   end
 
-  local varscope, varnode, argnodes, retnodes, attribnodes, blocknode = node:args()
+  local varscope, varnode, argnodes, retnodes, annotnodes, blocknode = node:args()
 
   local attr = node.attr
   local type = attr.type

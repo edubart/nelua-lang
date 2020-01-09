@@ -217,7 +217,7 @@ function visitors.PragmaCall(context, node)
   end
 end
 
-function visitors.Attrib(context, node, symbol)
+function visitors.Annotation(context, node, symbol)
   --TODO: quick return
 
   local name, argnodes = node:args()
@@ -236,13 +236,13 @@ function visitors.Attrib(context, node, symbol)
       return
     end
     if symboltype:is_function() then
-      paramshape = typedefs.function_attribs[name]
+      paramshape = typedefs.function_annots[name]
       atttype = 'functions'
     elseif symboltype:is_type() then
-      paramshape = typedefs.type_attribs[name]
+      paramshape = typedefs.type_annots[name]
       atttype = 'types'
     else
-      paramshape = typedefs.variable_attribs[name]
+      paramshape = typedefs.variable_annots[name]
       atttype = 'variables'
     end
   end
@@ -312,7 +312,7 @@ function visitors.Id(context, node)
 end
 
 function visitors.IdDecl(context, node)
-  local namenode, typenode, attribnodes = node:args()
+  local namenode, typenode, annotnodes = node:args()
   local type = node.attr.type
   if not type then
     if typenode then
@@ -344,8 +344,8 @@ function visitors.IdDecl(context, node)
   if type then
     attr.type = type
   end
-  if attribnodes then
-    context:traverse(attribnodes, symbol)
+  if annotnodes then
+    context:traverse(annotnodes, symbol)
   end
   attr.lvalue = true
   return symbol
