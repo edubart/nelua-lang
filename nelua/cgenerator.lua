@@ -62,7 +62,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
     local vartype = varattr.type
     if not vartype:is_type() and not varattr.nodecl and not varattr.comptime then
       local declared, defined = false, false
-      if decl and context.scope:is_static_storage() then
+      if decl and varattr.staticstorage then
         -- declare main variables in the top scope
         local decemitter = CEmitter(context)
         decemitter:add_indent()
@@ -404,9 +404,9 @@ function visitors.ArrayIndex(context, node, emitter)
     emitter:add(', ', index, ')')
   elseif objtype:is_array() or objtype:is_span() then
     emitter:add('.data[', index, ']')
-  else
-    emitter:add('[', index, ']')
-  end
+  else --luacov:disable
+    error('not implemented yet')
+  end --luacov:enable
 
   if indextype:is_range() then
     emitter:add_ln('), __range.high - __range.low };')

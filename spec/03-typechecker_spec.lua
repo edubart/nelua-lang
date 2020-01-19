@@ -12,7 +12,7 @@ it("analyzed ast transform", function()
       n.VarDecl{'local',
         { n.IdDecl{
           assign=true,
-          attr = {codename='a', name='a', type='int64', lvalue=true},
+          attr = {codename='a', name='a', staticstorage=true, type='int64', lvalue=true},
           'a' }},
         { n.Number{
           attr = {
@@ -23,8 +23,8 @@ it("analyzed ast transform", function()
       },
       n.Call{
         attr = {calleetype = 'any', sideeffect = true, type='varanys'},
-        {n.Id{ attr = {codename='a', name='a', type='int64', lvalue=true}, "a"}},
-        n.Id{ attr = {codename='f', name='f', type='any', lvalue=true}, "f"},
+        {n.Id{ attr = {codename='a', name='a', staticstorage=true, type='int64', lvalue=true}, "a"}},
+        n.Id{ attr = {codename='f', name='f', global=true, staticstorage=true, type='any', lvalue=true}, "f"},
         true
       }
   }})

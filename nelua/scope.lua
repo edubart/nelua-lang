@@ -28,13 +28,8 @@ function Scope:fork(kind)
   return Scope(self, kind)
 end
 
-function Scope:is_main()
+function Scope:is_topscope()
   return self.main or (self.parent and self.parent.main)
-end
-
-function Scope:is_static_storage()
-  if self:is_main() then return true end
-  return self.staticstorage or (self.parent and self.parent.staticstorage)
 end
 
 function Scope:get_parent_of_kind(kind)

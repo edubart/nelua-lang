@@ -733,11 +733,10 @@ function inlines.panic(context)
   return context:ensure_runtime_builtin('nelua_panic_string')
 end
 
-function inlines.require(context, node, emitter)
+function inlines.require(_, node, emitter)
   if node.attr.alreadyrequired then
     return
   end
-  local scope = context:push_scope('block')
   local ast = node.attr.loadedast
   if node.attr.runtime_require then
     if node.attr.modulename then
@@ -747,7 +746,6 @@ function inlines.require(context, node, emitter)
     end
   end
   assert(ast)
-  scope.staticstorage = true
   local bracepos = emitter:get_pos()
   emitter:add_indent_ln('{')
   local lastpos = emitter:get_pos()
@@ -757,7 +755,6 @@ function inlines.require(context, node, emitter)
   else
     emitter:add_indent_ln('}')
   end
-  context:pop_scope()
 end
 
 return cbuiltins

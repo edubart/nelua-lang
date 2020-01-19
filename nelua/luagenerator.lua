@@ -241,7 +241,7 @@ end
 
 function visitors.VarDecl(context, node, emitter)
   local varscope, varnodes, valnodes = node:args()
-  local is_local = (varscope == 'local') or not context.scope:is_main()
+  local is_local = (varscope == 'local') or not context.scope:is_topscope()
   emitter:add_indent()
   if is_local then
     emitter:add('local ')

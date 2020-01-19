@@ -443,6 +443,19 @@ it("report errors", function()
   assert.analyze_error("##[[ ast:raisef('ast error') ]]", "ast error")
 end)
 
+it("preprocessor functions", function()
+  assert.ast_type_equals([=[
+    ## function f(name, tyname)
+      global #(name)#: #(tyname)#
+    ## end
+    ## f('i', 'integer')
+    ## f('n', 'number')
+  ]=],[=[
+    global i: integer
+    global n: number
+  ]=])
+end)
+
 it("run brainfuck", function()
   assert.run('--generator c examples/brainfuck.nelua', 'Hello World!')
 end)

@@ -9,7 +9,7 @@ local Exception = class()
 local function get_message_for_trace(self)
   local label = self.label or 'Exception'
   if self.message then
-    return string.format('uncaught exception %s: %s', label, self.message)
+    return self.message
   else
     return string.format('uncaught exception %s', label)
   end
@@ -110,6 +110,11 @@ function except.try(f, handler)
     except.reraise(e)
   end
   return true, e
+end
+
+-- try and catch any error
+function except.trycall(f)
+  return xpcall(f, tryerrhandler)
 end
 
 return except

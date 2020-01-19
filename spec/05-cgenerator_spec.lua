@@ -78,11 +78,11 @@ it("call", function()
   assert.generate_c("a.f()", "mymod_a.f()")
   --assert.generate_c("a:f(a)", "mymod_a.f(mymod_a, mymod_a)")
   assert.generate_c("do f() end", "f();")
-  assert.generate_c("do return f() end", "return nelua_any_to_nelua_cint(f());")
-  assert.generate_c("do f(g()) end", "f(g())")
-  assert.generate_c("do f(a, b) end", "f(a, b)")
-  assert.generate_c("do f(a)(b) end", "f(a)(b)")
-  assert.generate_c("do a.f() end", "a.f()")
+  assert.generate_c("do return f() end", "return nelua_any_to_nelua_cint(mymod_f());")
+  assert.generate_c("do f(g()) end", "mymod_f(mymod_g())")
+  assert.generate_c("do f(a, b) end", "mymod_f(mymod_a, mymod_b)")
+  assert.generate_c("do f(a)(b) end", "mymod_f(mymod_a)(mymod_b)")
+  assert.generate_c("do a.f() end", "mymod_a.f()")
   --assert.generate_c("do a:f() end", "a.f(a)")
 end)
 
@@ -110,17 +110,17 @@ end)
 
 it("switch", function()
   assert.generate_c("do switch a case 1 then f() case 2 then g() else h() end end",[[
-    switch(a) {
+    switch(mymod_a) {
       case 1: {
-        f();
+        mymod_f();
         break;
       }
       case 2: {
-        g();
+        mymod_g();
         break;
       }
       default: {
-        h();
+        mymod_h();
         break;
       }
     }]])
@@ -165,12 +165,12 @@ end)
 
 it("for", function()
   assert.generate_c("for i=a,b do end", {
-    "for(nelua_any i = a, __end = b; i <= __end; i = i + 1) {"})
+    "for(nelua_any i = mymod_a, __end = mymod_b; i <= __end; i = i + 1) {"})
   assert.generate_c("for i=a,b do i=c end", {
-    "for(nelua_any __it = a, __end = b; __it <= __end; __it = __it + 1) {",
+    "for(nelua_any __it = mymod_a, __end = mymod_b; __it <= __end; __it = __it + 1) {",
     "nelua_any i = __it;"})
   assert.generate_c("for i=a,b,c do end",
-    "for(nelua_any i = a, __end = b, __step = c; " ..
+    "for(nelua_any i = mymod_a, __end = mymod_b, __step = mymod_c; " ..
     "__step >= 0 ? i <= __end : i >= __end; i = i + __step) {")
   assert.generate_c(
     "for i=1,<2 do end",
@@ -247,16 +247,16 @@ it("operation on comptime variables", function()
 end)
 
 it("assignment", function()
-  assert.generate_c("do a = b end" ,"a = b")
+  assert.scoped_generate_c("local a,b = 1,2; a = b" ,"a = b;")
 end)
 
 it("multiple assignment", function()
-  assert.generate_c("do a, b = x, y end", {
+  assert.scoped_generate_c("local a,b,x,y=1,2,3,4; a, b = x, y", {
     "__asgntmp1 = x;", "__asgntmp2 = y;",
     "a = __asgntmp1;", "b = __asgntmp2;" })
-  assert.generate_c("do a.b, a[b] = x, y end", {
-    "__asgntmp1 = x;", "__asgntmp2 = y;",
-    "a.b = __asgntmp1;", "a[b] = __asgntmp2;" })
+  --assert.scoped_generate_c("local a: table, x:integer, y:integer; a.b, a[b] = x, y", {
+  --  "__asgntmp1 = x;", "__asgntmp2 = y;",
+  --  "a.b = __asgntmp1;", "a[b] = __asgntmp2;" })
   assert.run_c([[
     local a, b = 1,2
     a, b = b, a
@@ -416,7 +416,7 @@ it("unary operator `ref`", function()
 end)
 
 it("unary operator `unm`", function()
-  assert.scoped_generate_c("local x = -a", "-a;")
+  assert.scoped_generate_c("local a = 1; local x = -a", "-a;")
 end)
 
 it("unary operator `deref`", function()
@@ -424,7 +424,7 @@ it("unary operator `deref`", function()
 end)
 
 it("unary operator `bnot`", function()
-  assert.scoped_generate_c("local x = ~a", "~a;")
+  assert.scoped_generate_c("local a = 1; local x = ~a", "~a;")
   assert.scoped_generate_c("local a = 2; local x=~a",      "x = ~a;")
   assert.scoped_generate_c("local x = ~1", "x = -2;")
   assert.scoped_generate_c("local x = ~-2", "x = 1;")
@@ -439,7 +439,7 @@ it("unary operator `len`", function()
 end)
 
 it("unary operator `lt`", function()
-  assert.scoped_generate_c("local x = a < b", "a < b")
+  assert.scoped_generate_c("local a, b = 1, 2; local x = a < b", "a < b")
   assert.scoped_generate_c("local x = 1 < 1", "x = false;")
   assert.scoped_generate_c("local x = 1 < 2", "x = true;")
   assert.scoped_generate_c("local x = 2 < 1", "x = false;")
@@ -449,7 +449,7 @@ it("unary operator `lt`", function()
 end)
 
 it("unary operator `le`", function()
-  assert.scoped_generate_c("local x = a <= b", "a <= b")
+  assert.scoped_generate_c("local a, b = 1, 2; local x = a <= b", "a <= b")
   assert.scoped_generate_c("local x = 1 <= 1", "x = true;")
   assert.scoped_generate_c("local x = 1 <= 2", "x = true;")
   assert.scoped_generate_c("local x = 2 <= 1", "x = false;")
@@ -459,7 +459,7 @@ it("unary operator `le`", function()
 end)
 
 it("unary operator `gt`", function()
-  assert.scoped_generate_c("local x = a > b", "a > b")
+  assert.scoped_generate_c("local a, b = 1, 2; local x = a > b", "a > b")
   assert.scoped_generate_c("local x = 1 > 1", "x = false;")
   assert.scoped_generate_c("local x = 1 > 2", "x = false;")
   assert.scoped_generate_c("local x = 2 > 1", "x = true;")
@@ -469,7 +469,7 @@ it("unary operator `gt`", function()
 end)
 
 it("unary operator `ge`", function()
-  assert.scoped_generate_c("local x = a >= b", "a >= b")
+  assert.scoped_generate_c("local a, b = 1, 2; local x = a >= b", "a >= b")
   assert.scoped_generate_c("local x = 1 >= 1", "x = true;")
   assert.scoped_generate_c("local x = 1 >= 2", "x = false;")
   assert.scoped_generate_c("local x = 2 >= 1", "x = true;")
@@ -479,44 +479,43 @@ it("unary operator `ge`", function()
 end)
 
 it("binary operator `eq`", function()
-  assert.scoped_generate_c("local x = a == b", "a == b")
+  assert.scoped_generate_c("local a, b = 1, 2; local x = a == b", "a == b")
   assert.scoped_generate_c("local x = 1 == 1", "x = true;")
   assert.scoped_generate_c("local x = 1 == 2", "x = false;")
   assert.scoped_generate_c("local x = 1 == '1'", "x = false;")
   assert.scoped_generate_c("local x = '1' == 1", "x = false;")
   assert.scoped_generate_c("local x = '1' == '1'", "x = true;")
-  assert.scoped_generate_c("a,b = 1,2; local x = a == b", "x = a == b;")
+  assert.scoped_generate_c("local a,b = 1,2; local x = a == b", "x = a == b;")
 end)
 
 it("binary operator `ne`", function()
-  assert.scoped_generate_c("local x = a ~= b", "a != b")
+  assert.scoped_generate_c("local a, b = 1, 2; local x = a ~= b", "a != b")
   assert.scoped_generate_c("local x = 1 ~= 1", "x = false;")
   assert.scoped_generate_c("local x = 1 ~= 2", "x = true;")
   assert.scoped_generate_c("local x = 1 ~= 's'", "x = true;")
   assert.scoped_generate_c("local x = 's' ~= 1", "x = true;")
-  assert.scoped_generate_c("a,b = 1,2; local x = a ~= b", "x = a != b;")
+  assert.scoped_generate_c("local a,b = 1,2; local x = a ~= b", "x = a != b;")
 end)
 
 it("binary operator `add`", function()
-  assert.scoped_generate_c("local x = a + b",       "a + b;")
+  assert.scoped_generate_c("local a, b = 1, 2; local x = a + b",       "a + b;")
   assert.scoped_generate_c("local x = 3 + 2",       "x = 5;")
   assert.scoped_generate_c("local x = 3.0 + 2.0",   "x = 5.0;")
 end)
 
 it("binary operator `sub`", function()
-  assert.scoped_generate_c("local x = a - b",       "a - b")
+  assert.scoped_generate_c("local a, b = 1, 2; local x = a - b",       "a - b")
   assert.scoped_generate_c("local x = 3 - 2",       "x = 1;")
   assert.scoped_generate_c("local x = 3.0 - 2.0",   "x = 1.0;")
 end)
 
 it("binary operator `mul`", function()
-  assert.scoped_generate_c("local x = a * b",       "a * b")
+  assert.scoped_generate_c("local a, b = 1, 2; local x = a * b",       "a * b")
   assert.scoped_generate_c("local x = 3 * 2",       "x = 6;")
   assert.scoped_generate_c("local x = 3.0 * 2.0",   "x = 6.0;")
 end)
 
 it("binary operator `div`", function()
-  --assert.scoped_generate_c("local x = a / b")
   assert.scoped_generate_c("local x = 3 / 2",                   "x = 1.5;")
   assert.scoped_generate_c("local x = (@float64)(3 / 2)",       "x = 1.5;")
   assert.scoped_generate_c("local x = 3 / 2_int64",             "x = 1.5;")
@@ -532,7 +531,6 @@ it("binary operator `div`", function()
 end)
 
 it("binary operator `idiv`", function()
-  --assert.scoped_generate_c("local x = a // b")
   assert.scoped_generate_c("local x = 3 // 2",      "x = 1;")
   assert.scoped_generate_c("local x = 3 // 2.0",    "x = 1.0;")
   assert.scoped_generate_c("local x = 3.0 // 2.0",  "x = 1.0;")
@@ -624,7 +622,7 @@ it("binary operator `band`", function()
 end)
 
 it("binary operator `bor`", function()
-  assert.scoped_generate_c("local x = a | b", "a | b;")
+  assert.scoped_generate_c("local a,b = 1,2; local x = a | b", "a | b;")
   assert.scoped_generate_c("local x = 3 | 5", "x = 7;")
   assert.scoped_generate_c("local x = 3 | -5", "x = -5;")
   assert.scoped_generate_c("local x = -0xfffffffffffffffd | 5", "x = 7;")
@@ -632,21 +630,21 @@ it("binary operator `bor`", function()
 end)
 
 it("binary operator `bxor`", function()
-  assert.scoped_generate_c("local x = a ~ b", "a ^ b;")
+  assert.scoped_generate_c("local a,b = 1,2; local x = a ~ b", "a ^ b;")
   assert.scoped_generate_c("local x = 3 ~ 5", "x = 6;")
   assert.scoped_generate_c("local x = 3 ~ -5", "x = -8;")
   assert.scoped_generate_c("local x = -3 ~ -5", "x = 6;")
 end)
 
 it("binary operator `shl`", function()
-  assert.scoped_generate_c("local x = a << b", "a << b;")
+  assert.scoped_generate_c("local a,b = 1,2; local x = a << b", "a << b;")
   assert.scoped_generate_c("local x = 6 << 1", "x = 12;")
   assert.scoped_generate_c("local x = 6 << 0", "x = 6;")
   assert.scoped_generate_c("local x = 6 << -1", "x = 3;")
 end)
 
 it("binary operator `shr`", function()
-  assert.scoped_generate_c("local x = a >> b", "a >> b;")
+  assert.scoped_generate_c("local a,b = 1,2; local x = a >> b", "a >> b;")
   assert.scoped_generate_c("local x = 6 >> 1", "x = 3;")
   assert.scoped_generate_c("local x = 6 >> 0", "x = 6;")
   assert.scoped_generate_c("local x = 6 >> -1", "x = 12;")
@@ -674,15 +672,15 @@ it("string comparisons", function()
 end)
 
 it("binary conditional operators", function()
-  assert.generate_c("do return a or b end",  [[({
-      nelua_any t1_ = a; nelua_unused(t1_);
-      nelua_any t2_ = {0}; nelua_unused(t2_);
-      bool cond_ = nelua_any_to_nelua_boolean(t1_);
-      if(cond_)
-        t2_ = b;
-      cond_ ? t1_ : t2_;
-    })]])
-  assert.generate_c("do return a and b end",  [[({
+  assert.scoped_generate_c("local a, b; do return a or b end",  [[({
+        nelua_any t1_ = a; nelua_unused(t1_);
+        nelua_any t2_ = {0}; nelua_unused(t2_);
+        bool cond_ = nelua_any_to_nelua_boolean(t1_);
+        if(cond_)
+          t2_ = b;
+        cond_ ? t1_ : t2_;
+      })]])
+  assert.scoped_generate_c("local a, b; return a and b",  [[({
       nelua_any t1_ = a; nelua_unused(t1_);
       nelua_any t2_ = {0}; nelua_unused(t2_);
       bool cond_ = nelua_any_to_nelua_boolean(t1_);

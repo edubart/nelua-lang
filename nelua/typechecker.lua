@@ -297,13 +297,15 @@ end
 function visitors.Id(context, node)
   local name = node[1]
   local symbol = context.scope:get_symbol(name)
-  if not symbol and context.strict and not context.preprocessing then
+  if not symbol and context.strict then
     node:raisef("undeclared symbol '%s'", name)
   end
   if not symbol then
     symbol = Symbol.promote_attr(node.attr, name, node)
     local ok, err = context.scope:add_symbol(symbol)
     assert(ok, err)
+    symbol.global = true
+    symbol.staticstorage = true
   else
     symbol:link_node(node)
   end
@@ -978,13 +980,9 @@ end
 
 function visitors.Block(context, node, scopecb)
   if node.preprocess then
-    local ok, err = pcall(node.preprocess, node)
-    if except.isexception(err) then
-      except.reraise(err)
-    else
-      if not ok then
-        node:raisef('error while preprocessing block: %s', err)
-      end
+    local ok, err = except.trycall(function() node:preprocess() end)
+    if not ok then
+      node:raisef('error while preprocessing block: %s', err)
     end
     node.preprocess = nil
   end
@@ -1152,10 +1150,13 @@ function visitors.VarDecl(context, node)
   for _,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
     assert(varnode.tag == 'IdDecl')
     if varscope == 'global' then
-      if not context.scope:is_static_storage() then
+      if not context.scope:is_topscope() then
         varnode:raisef("global variables can only be declared in top scope")
       end
       varnode.attr.global = true
+    end
+    if varscope == 'global' or context.scope:is_topscope() then
+      varnode.attr.staticstorage = true
     end
     if context.nostatic then
       varnode.attr.nostatic = true
@@ -1385,10 +1386,13 @@ end
 local function visitor_FuncDef_variable(context, varscope, varnode)
   local decl = varscope ~= nil
   if varscope == 'global' then
-    if not context.scope:is_static_storage() then
+    if not context.scope:is_topscope() then
       varnode:raisef("global function can only be declared in top scope")
     end
     varnode.attr.global = true
+  end
+  if varscope == 'global' or context.scope:is_topscope() then
+    varnode.attr.staticstorage = true
   end
   if decl then
     varnode.attr.funcdecl = true
@@ -1628,7 +1632,7 @@ function visitors.BinaryOp(context, node)
 end
 
 function typechecker.analyze(ast, parser, parentcontext)
-  local context = Context(visitors, true, parentcontext)
+  local context = Context(visitors, parentcontext)
   context.ast = ast
   context.parser = parser
   context.astbuilder = parser.astbuilder
@@ -1639,7 +1643,7 @@ function typechecker.analyze(ast, parser, parentcontext)
   context:pop_scope()
 
   local function analyze_ast()
-    context:repeat_scope_until_resolution('function', function(scope)
+    mainscope = context:repeat_scope_until_resolution('function', function(scope)
       scope.main = true
       context:traverse(ast)
     end)
@@ -1657,6 +1661,9 @@ function typechecker.analyze(ast, parser, parentcontext)
   if context.nofloatsuffix then
     ast.attr.nofloatsuffix = true
   end
+
+  -- used when calling
+  context.scope = mainscope
 
   return ast
 end

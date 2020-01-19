@@ -105,7 +105,7 @@ it("raising in pcall", function()
   local ok, e = pcall(function()
     except.assertraise(false, 'an error')
   end)
-  assert(tostring(e):match('uncaught exception'))
+  assert(tostring(e):match('an error'))
 end)
 
 it("big numbers", function()

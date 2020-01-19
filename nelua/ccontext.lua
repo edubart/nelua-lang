@@ -33,7 +33,7 @@ function CContext:declname(node)
   local declname = attr.codename
   if not attr.nodecl then
     if not attr.cimport and not attr.metavar then
-      if self.scope:is_static_storage() then
+      if attr.staticstorage then
         local modname = attr.modname or node.modname
         if modname ~= '' then
           declname = string.format('%s_%s', modname, declname)
@@ -42,7 +42,7 @@ function CContext:declname(node)
       declname = cdefs.quotename(declname)
     end
     if attr.shadowed or
-      (attr.type:is_function() and not self.scope:is_static_storage()) then
+      (attr.type:is_function() and not attr.staticstorage) then
       declname = self:genuniquename(declname, '%s__%d')
     end
   end

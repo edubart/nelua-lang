@@ -5,7 +5,7 @@ local errorer = require 'nelua.utils.errorer'
 local Context = class()
 
 local function traverse_node(self, node, ...)
-  local visitor_func = self.visitors[node.tag] or self.default_visitor
+  local visitor_func = self.visitors[node.tag] or self.visitors.default_visitor
   if not visitor_func then --luacov:disable
     node:errorf("visitor for AST node '%s' does not exist", node.tag)
   end --luacov:enable
@@ -35,24 +35,24 @@ local function traverser_default_visitor(self, node, ...)
   end
 end
 
-function Context:_init(visitors, default_visitor, parentcontext)
+function Context:_init(visitors, parentcontext)
   if parentcontext then
     self.rootscope = parentcontext.rootscope
     self.usedbuiltins = parentcontext.usedbuiltins
     self.env = parentcontext.env
     self.requires = parentcontext.requires
+    self.parentcontext = parentcontext
   else
     self.rootscope = Scope(self, 'root')
     self.usedbuiltins = {}
     self.env = {}
     self.requires = {}
+    self.parentcontext = self
   end
   self.scope = self.rootscope
   self.visitors = visitors
-  if default_visitor == true then
-    self.default_visitor = traverser_default_visitor
-  elseif default_visitor then
-    self.default_visitor = default_visitor
+  if visitors.default_visitor == nil then
+    visitors.default_visitor = traverser_default_visitor
   end
   self.strict = false
   self.nodes = {}

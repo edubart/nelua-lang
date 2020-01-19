@@ -67,6 +67,7 @@ build = {
     ['nelua.syntaxdefs'] = 'nelua/syntaxdefs.lua',
     ['nelua.typechecker'] = 'nelua/typechecker.lua',
     ['nelua.preprocessor'] = 'nelua/preprocessor.lua',
+    ['nelua.ppcontext'] = 'nelua/ppcontext.lua',
     ['nelua.typedefs'] = 'nelua/typedefs.lua',
     ['nelua.types'] = 'nelua/types.lua',
     ['nelua.utils.bn'] = 'nelua/utils/bn.lua',
