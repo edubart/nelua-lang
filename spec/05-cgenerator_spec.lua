@@ -67,7 +67,8 @@ it("boolean", function()
 end)
 
 it("nil", function()
-  assert.generate_c("do local a = nil end", "nelua_nil a = (nelua_nil){}")
+  assert.generate_c("do local a: Nil end", "nelua_nil a = (nelua_nil){}")
+  assert.generate_c("do local a: Nil = nil end", "nelua_nil a = (nelua_nil){}")
 end)
 
 it("call", function()
@@ -845,7 +846,9 @@ it("any type", function()
     a = p
     b = a
     print(b)
-  ]], "true\nfalse")
+    local n: any
+    print(n)
+  ]], "true\nfalse\nnil")
   assert.run_c([[
     local a: any = 1
     a = true
@@ -1249,8 +1252,13 @@ it("entrypoint", function()
 end)
 
 it("print builtin", function()
-  assert.run({'-g', 'c', '-e', "print(1,0.2,1e2,0xf,0b01)"},
-    '1\t0.200000\t100.000000\t15\t1')
+  assert.run_c([[
+    print(1,0.2,1e2,0xf,0b01)
+    local i: integer, s: string, n: Nil
+    print(i, s, n)
+  ]],
+    '1\t0.200000\t100.000000\t15\t1\n' ..
+    '0\t\tnil')
 end)
 
 it("sizeof builtin", function()

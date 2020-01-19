@@ -102,6 +102,11 @@ it("auto type" , function()
   assert.analyze_error("local a: auto = b", "must be assigned to expressions where type is known ahead")
 end)
 
+it("nil type" , function()
+  assert.ast_type_equals("local a = nil", "local a: any = nil")
+end)
+
+
 it("numeric types coercion", function()
   assert.analyze_ast([[
     local u:usize, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 1,1,1,1,1

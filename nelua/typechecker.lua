@@ -1176,9 +1176,11 @@ function visitors.VarDecl(context, node)
       valnode.desiredtype = vartype
       context:traverse(valnode, symbol)
       valtype = valnode.attr.type
-      if valtype and valtype:is_varanys() then
-        -- varanys are always stored as any in variables
-        valtype = primtypes.any
+      if valtype then
+        if valtype:is_varanys() or valtype:is_nil() then
+          -- varanys are always stored as any in variables
+          valtype = primtypes.any
+        end
       end
       if varnode.attr.comptime and not (valnode.attr.comptime and valtype) then
         varnode:raisef("compile time variables can only assign to compile time expressions")

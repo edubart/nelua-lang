@@ -314,7 +314,8 @@ function builtins.nelua_stdout_write_string(context)
   context:add_include('<stdio.h>')
   define_inline_builtin(context, 'nelua_stdout_write_string',
     'void', '(const nelua_string s)', [[{
-  fwrite(s->data, s->len, 1, stdout);
+  if(s && s->len > 0)
+    fwrite(s->data, s->len, 1, stdout);
 }]])
 end
 
@@ -327,6 +328,14 @@ function builtins.nelua_stdout_write_boolean(context)
   } else {
     fwrite("false", 5, 1, stdout);
   }
+}]])
+end
+
+function builtins.nelua_stdout_write_nil(context)
+  context:add_include('<stdio.h>')
+  define_inline_builtin(context, 'nelua_stdout_write_nil',
+    'void', '()', [[{
+  fwrite("nil", 3, 1, stdout);
 }]])
 end
 
@@ -399,6 +408,8 @@ function builtins.nelua_stdout_write_any(context)
     fprintf(stdout, "%lf", a.value._nelua_float64);
   } else if(a.type == &nelua_runtype_nelua_pointer) {
     fprintf(stdout, "%p", a.value._nelua_pointer);
+  } else if(a.type == NULL) {
+    fprintf(stdout, "nil");
   } else {
     nelua_panic_cstring("invalid type for nelua_fwrite_any");
   }
@@ -670,6 +681,9 @@ function inlines.print(context, node)
     elseif argtype:is_cstring() then
       defemitter:add_builtin('nelua_stdout_write_cstring')
       defemitter:add_ln('(a',i,');')
+    elseif argtype:is_nil() then
+      defemitter:add_builtin('nelua_stdout_write_nil')
+      defemitter:add_ln('();')
     elseif argtype:is_boolean() then
       defemitter:add_builtin('nelua_stdout_write_boolean')
       defemitter:add_ln('(a',i,');')
