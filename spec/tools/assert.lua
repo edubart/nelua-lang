@@ -210,6 +210,14 @@ function assert.lua_gencode_equals(code, expected_code)
   assert.same_string(expected_generated_code, generated_code)
 end
 
+function assert.c_gencode_equals(code, expected_code)
+  local ast = assert.analyze_ast(code)
+  local expected_ast = assert.analyze_ast(expected_code)
+  local generated_code = assert(c_generator.generate(ast))
+  local expected_generated_code = assert(c_generator.generate(expected_ast))
+  assert.same_string(expected_generated_code, generated_code)
+end
+
 function assert.analyze_ast(code, expected_ast)
   local ast = assert.parse_ast(nelua_parser, code)
   pretty_input_onerror(code, function()

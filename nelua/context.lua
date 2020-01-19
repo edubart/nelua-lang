@@ -40,10 +40,12 @@ function Context:_init(visitors, default_visitor, parentcontext)
     self.rootscope = parentcontext.rootscope
     self.usedbuiltins = parentcontext.usedbuiltins
     self.env = parentcontext.env
+    self.requires = parentcontext.requires
   else
     self.rootscope = Scope(self, 'root')
     self.usedbuiltins = {}
     self.env = {}
+    self.requires = {}
   end
   self.scope = self.rootscope
   self.visitors = visitors

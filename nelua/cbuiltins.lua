@@ -734,6 +734,9 @@ function inlines.panic(context)
 end
 
 function inlines.require(context, node, emitter)
+  if node.attr.alreadyrequired then
+    return
+  end
   local scope = context:push_scope('block')
   local ast = node.attr.loadedast
   if node.attr.runtime_require then

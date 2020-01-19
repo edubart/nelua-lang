@@ -63,7 +63,7 @@ function fs.findmodulefile(name, path)
   for _,trypath in ipairs(paths) do
     trypath = trypath:gsub('%?', name)
     if plpath.isfile(trypath) then
-      return trypath
+      return fs.abspath(trypath)
     end
   end
 end

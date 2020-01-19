@@ -1414,11 +1414,18 @@ it("require builtin", function()
   assert.generate_c([[
     require 'examples.helloworld'
   ]], "hello world")
-
+  assert.generate_c([[
+    require 'examples/helloworld'
+  ]], "hello world")
   assert.run_c([[
     require 'examples.helloworld'
   ]], "hello world")
-
+  assert.c_gencode_equals([[
+    require 'examples.helloworld'
+  ]], [[
+    require 'examples.helloworld'
+    require 'examples/helloworld'
+  ]])
   assert.run_error_c([[
     local a = 'mylib'
     require(a)
