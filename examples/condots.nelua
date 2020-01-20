@@ -106,7 +106,7 @@ local function SDL_GetError(): cstring <cimport,nodecl> end
 
 require 'math'
 
-local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<stdlib.h>',nodecl> end
+local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
 
 --------------------------------------------------------------------------------
 local vec4b = @record{x: byte, y: byte, z: byte, w: byte}

@@ -96,12 +96,12 @@ end
 function CEmitter:add_val2any(val, valtype)
   valtype = valtype or val.attr.type
   assert(not valtype:is_any())
-  local runctype = self.context:runctype(valtype)
-  local typename = self.context:typename(valtype)
   self:add('(', primtypes.any, ')')
   if valtype:is_nil() then
     self:add('{0}')
   else
+    local runctype = self.context:runctype(valtype)
+    local typename = self.context:typename(valtype)
     self:add('{&', runctype, ', {._', typename, ' = ', val, '}}')
   end
 end

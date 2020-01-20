@@ -375,6 +375,13 @@ function NilptrType:_init(name, size)
   Type._init(self, name, size)
 end
 
+function NilptrType:promote_type(type)
+  if type:is_pointer() then
+    return type
+  end
+  return Type.promote_type(self, type)
+end
+
 NilptrType.unary_operators['not'] = function()
   return primtypes.boolean, true
 end
@@ -1220,6 +1227,13 @@ function PointerType:is_convertible_from_type(type, explicit)
     return true
   end
   return Type.is_convertible_from_type(self, type, explicit)
+end
+
+function PointerType:promote_type(type)
+  if type:is_nilptr() then
+    return self
+  end
+  return Type.promote_type(self, type)
 end
 
 function PointerType:is_equal(type)

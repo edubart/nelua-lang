@@ -1020,6 +1020,18 @@ it("pointers", function()
     b = nilptr
     a = nilptr
   ]])
+  assert.ast_type_equals(
+    "local a = (@pointer)(nilptr) a = nilptr",
+    "local a: pointer = (@pointer)(nilptr) a = nilptr")
+  assert.ast_type_equals(
+    "local a = nilptr a = (@pointer)(nilptr)",
+    "local a: pointer = nilptr a = (@pointer)(nilptr)")
+  assert.analyze_ast([[
+    local a: pointer(integer) = nilptr
+    local b: pointer = nilptr
+    b = nilptr
+    a = nilptr
+  ]])
   assert.analyze_ast([[
     local a: pointer(integer)
     local b: pointer(void)
