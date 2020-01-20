@@ -1,4 +1,4 @@
-<img width="96" src="https://nelua.io/assets/images/nelua-logo.svg?sanitize=true">
+<img width="96" src="https://nelua.io/assets/images/nelua-logo.svg?sanitize=true" alt="Nelua Logo">
 
 # The Nelua Programming Language
 

@@ -2,6 +2,16 @@
 <html lang="en">
 
 <head>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-156435142-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-156435142-1');
+  </script>
+
   <title>{% if page.title and page.title != site.title %}{{ page.title }} - {{ site.title }}{% else %}{{ site.title }}{% endif %}</title>
 
   <meta charset="utf-8">

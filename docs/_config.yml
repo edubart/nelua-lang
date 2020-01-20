@@ -19,7 +19,7 @@ description: >- # this means to ignore newlines until "baseurl:"
   Nelua is a minimalistic, efficient, optionally typed, ahead of time compiled,
   meta programmable, systems programming language with syntax and semantics similar to Lua.
   It can work statically or dynamically depending on the code style and compiles to native machine code.
-baseurl: "/" # the subpath of your site, e.g. /blog
+baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://nelua.io" # the base hostname & protocol for your site, e.g. http://example.com
 
 categories: [sidenav]
