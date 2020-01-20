@@ -36,8 +36,7 @@ function CEmitter:zeroinit(type)
   elseif type:is_boolean() then
     s = 'false'
   elseif type:is_nil() then
-    self.context:ctype(primtypes.Nil) -- ensure nil type
-    s = '(nelua_nil){}'
+    s = self:add_builtin('NELUA_NIL')
   else
     s = '{0}'
   end
@@ -99,7 +98,12 @@ function CEmitter:add_val2any(val, valtype)
   assert(not valtype:is_any())
   local runctype = self.context:runctype(valtype)
   local typename = self.context:typename(valtype)
-  self:add('(', primtypes.any, ')', '{&', runctype, ', {._', typename, ' = ', val, '}}')
+  self:add('(', primtypes.any, ')')
+  if valtype:is_nil() then
+    self:add('{0}')
+  else
+    self:add('{&', runctype, ', {._', typename, ' = ', val, '}}')
+  end
 end
 
 function CEmitter:add_val2boolean(val, valtype)
@@ -177,9 +181,7 @@ function CEmitter:add_val2type(type, val, valtype)
 end
 
 function CEmitter:add_nil_literal()
-  self:add('(')
-  self:add_builtin('nelua_nil')
-  self:add('){}')
+  self:add_builtin('NELUA_NIL')
 end
 
 function CEmitter:add_numeric_literal(valattr, valtype)

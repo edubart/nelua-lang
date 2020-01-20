@@ -8,6 +8,22 @@ toc: true
 {% raw %}
 
 --------------------------------------------------------------------------------
+
+### Defer
+
+Defer statement is useful for executing code at scope termination.
+
+```nelua
+do
+  defer
+    print 'world'
+  end
+  print 'hello'
+end
+-- outputs 'hello' then 'world'
+```
+
+--------------------------------------------------------------------------------
 ## Modules
 
 ### Static Modules

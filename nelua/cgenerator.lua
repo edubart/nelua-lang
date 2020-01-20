@@ -196,7 +196,7 @@ typevisitors[types.Type] = function(context, type)
   elseif type:is_any() then --luacov:enable
     context:ensure_runtime_builtin('nelua_any')
   elseif type:is_nil() then
-    context:ensure_runtime_builtin('nelua_nil')
+    context:ensure_runtime_builtin('nelua_nilable')
   elseif type:is_arraytable() then
     local subctype = context:ctype(type.subtype)
     context:ensure_runtime(type.codename, 'nelua_arrtab', {

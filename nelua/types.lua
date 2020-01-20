@@ -349,18 +349,18 @@ TypeType.unary_operators.len = function(_, lattr)
 end
 
 --------------------------------------------------------------------------------
-local NilType = typeclass()
-types.NilType = NilType
-NilType.Nil = true
-NilType.nilable = true
-NilType.primitive = true
-NilType.unpointable = true
+local NilableType = typeclass()
+types.NilableType = NilableType
+NilableType.Nil = true
+NilableType.nilable = true
+NilableType.primitive = true
+NilableType.unpointable = true
 
-function NilType:_init(name)
+function NilableType:_init(name)
   Type._init(self, name, 0)
 end
 
-NilType.unary_operators['not'] = function()
+NilableType.unary_operators['not'] = function()
   return primtypes.boolean, true
 end
 

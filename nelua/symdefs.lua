@@ -35,7 +35,7 @@ end
 define_function('likely', {primtypes.boolean}, {primtypes.boolean})
 define_function('unlikely', {primtypes.boolean}, {primtypes.boolean})
 define_const('panic', primtypes.any)
-define_const('nilptr', primtypes.Nilptr)
+define_const('nilptr', primtypes.nilptr)
 define_const('C', primtypes.type, types.RecordType(nil, {}))
 
 -- lua

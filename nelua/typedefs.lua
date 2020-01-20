@@ -36,8 +36,8 @@ primtypes.boolean     = types.BooleanType('boolean', 1)
 primtypes.string      = types.StringType('string', cpusize*2)
 primtypes.varanys     = types.VaranysType('varanys')
 primtypes.table       = types.TableType('table')
-primtypes.Nil         = types.NilType('nil')
-primtypes.Nilptr      = types.NilptrType('nilptr', cpusize)
+primtypes.nilable     = types.NilableType('nilable')
+primtypes.nilptr      = types.NilptrType('nilptr', cpusize)
 primtypes.pointer     = types.PointerType(nil, primtypes.void)
 
 -- for C compability

@@ -69,7 +69,7 @@ end
 function visitors.Nil(_, node)
   local attr = node.attr
   if attr.type then return end
-  attr.type = primtypes.Nil
+  attr.type = primtypes.nilable
   attr.comptime = true
 end
 
@@ -763,7 +763,7 @@ local function izipargnodes(vars, argnodes)
             -- argnode does not exists, fill with multiple returns type
             -- in case it doest not exists, the argtype will be nil type
             local callretindex = i - lastargindex + 1
-            local argtype = calleetype:get_return_type(callretindex) or primtypes.Nil
+            local argtype = calleetype:get_return_type(callretindex) or primtypes.nilable
             if callretindex > 1 then
               lastargnode.attr.multirets = true
             end
@@ -791,7 +791,7 @@ local function izipargnodes(vars, argnodes)
       if argnode then
         argtype = argnode.attr.type
       else
-        argtype = primtypes.Nil
+        argtype = primtypes.nilable
       end
       return i, var, argnode, argtype
     end
@@ -1177,8 +1177,11 @@ function visitors.VarDecl(context, node)
       context:traverse(valnode, symbol)
       valtype = valnode.attr.type
       if valtype then
-        if valtype:is_varanys() or valtype:is_nil() then
+        if valtype:is_varanys() then
           -- varanys are always stored as any in variables
+          valtype = primtypes.any
+        elseif not vartype and valtype:is_nil() then
+          -- untyped variables assigned to nil always store as any type
           valtype = primtypes.any
         end
       end

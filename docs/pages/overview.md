@@ -199,20 +199,6 @@ print 'world'
 -- outputs only 'world'
 ```
 
-### Defer
-
-Defer statement is useful for executing code at scope termination.
-
-```nelua
-do
-  defer
-    print 'world'
-  end
-  print 'hello'
-end
--- outputs 'hello' then 'world'
-```
-
 --------------------------------------------------------------------------------
 ## Looping
 
@@ -551,7 +537,7 @@ size of the largest type plus the size of `uint8`. By default unions cannot hold
 
 ### Nilable
 
-Nil type is not useful by itself, it's only useful when using with unions to create the
+Niable type is not useful by itself, it's only useful when using with unions to create the
 optional type as shown bellow.
 
 ### Optional

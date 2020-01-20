@@ -67,8 +67,10 @@ it("boolean", function()
 end)
 
 it("nil", function()
-  assert.generate_c("do local a: Nil end", "nelua_nil a = (nelua_nil){}")
-  assert.generate_c("do local a: Nil = nil end", "nelua_nil a = (nelua_nil){}")
+  assert.generate_c("do local a: nilable end", "nelua_nilable a = NELUA_NIL;")
+  assert.generate_c("do local a: nilable = nil end", "nelua_nilable a = NELUA_NIL;")
+  assert.generate_c("do local a = nil end", "nelua_any a = (nelua_any){0};")
+  assert.generate_c("local function f(a: nilable) end f(nil)", "f(NELUA_NIL);")
 end)
 
 it("call", function()
@@ -1254,7 +1256,7 @@ end)
 it("print builtin", function()
   assert.run_c([[
     print(1,0.2,1e2,0xf,0b01)
-    local i: integer, s: string, n: Nil
+    local i: integer, s: string, n: nilable
     print(i, s, n)
   ]],
     '1\t0.200000\t100.000000\t15\t1\n' ..
@@ -1367,7 +1369,7 @@ it("type builtin", function()
     assert(type(r) == 'record')
     assert(type(&r) == 'pointer')
     assert(type(nilptr) == 'pointer')
-    assert(type(nil) == 'nil')
+    assert(type(nil) == 'nilable')
   ]])
 end)
 

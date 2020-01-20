@@ -63,8 +63,13 @@ typedef nelua_string_object* nelua_string;
 end
 
 -- nil
-function builtins.nelua_nil(context)
-  define_builtin(context, 'nelua_nil', "typedef struct nelua_nil {} nelua_nil;\n")
+function builtins.nelua_nilable(context)
+  define_builtin(context, 'nelua_nilable', "typedef struct nelua_nilable {uint8_t dummy;} nelua_nilable;\n")
+end
+
+function builtins.NELUA_NIL(context)
+  context:ensure_runtime_builtin('nelua_nilable')
+  define_builtin(context, 'NELUA_NIL', "#define NELUA_NIL (nelua_nilable){0}\n")
 end
 
 -- panic
@@ -206,7 +211,7 @@ function builtins.nelua_runtype_(context, typename)
   if context.usedbuiltins[name] then return name end
   context:ensure_runtime_builtin('nelua_runtype')
   context:ensure_runtime_builtin('nelua_static_string_', typename)
-  local code = string.format('nelua_runtype %s = { (nelua_string)&nelua_static_string_%s };\n',
+  local code = string.format('static nelua_runtype %s = { (nelua_string)&nelua_static_string_%s };\n',
     name,
     typename)
   define_builtin(context, name, code)
@@ -227,7 +232,7 @@ end
 
 -- any
 function builtins.nelua_any(context)
-  context:ensure_runtime_builtin('nelua_nil')
+  context:ensure_runtime_builtin('nelua_nilable')
   context:ensure_runtime_builtin('nelua_runtype')
   define_builtin(context, 'nelua_any', [[typedef struct nelua_any {
   nelua_runtype *type;
@@ -261,7 +266,7 @@ function builtins.nelua_any(context)
     unsigned long _nelua_culong;
     unsigned long long _nelua_culonglong;
     size_t _nelua_csize;
-    nelua_nil _nelua_nil;
+    nelua_nilable _nelua_nilable;
   } value;
 } nelua_any;
 ]])
