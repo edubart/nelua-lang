@@ -17,7 +17,8 @@ local quote_patt_begin =  "\
     %nl  -> '\\n' /   -- line feed \
     '\r' -> '\\r' /   -- carriege return \
     '\t' -> '\\t' /   -- horizontal tab \
-    '\v' -> '\\v' /   -- vertical tab"
+    '\v' -> '\\v' /   -- vertical tab\
+"
 local single_quote_patt = "\"\'\" -> \"\\'\" /\n"
 local double_quote_patt = "'\"' -> '\\\"' /\n"
 local lua_quote_patt_end = "\
