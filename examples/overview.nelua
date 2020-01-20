@@ -1,0 +1,486 @@
+do -- Comments
+  -- one line comment
+  --[[
+    multi-line comment
+  ]]
+  --[=[
+    multi line comment, `=` can be placed multiple times
+    in case if you have `[[` `]]` tokens inside, it will
+    always match it's corresponding token
+  ]=]
+end
+
+do -- Variables
+  local a = nil -- of deduced type 'any', initialized to nil
+  local b = false -- of deduced type 'boolean', initialized to false
+  local s = 'test' -- of deduced type 'string', initialized to 'test'
+  local one = 1 --  of type 'integer', initialized to 1
+  local pi: number = 3.14 --  of type 'number', initialized to 1
+  print(a,b,s,one,pi) -- outputs: nil false test 1 3.1400000
+end
+
+do -- Type deduction
+  local a -- type will be deduced and scope end
+  a = 1
+  a = 2
+  print(a) -- outputs: 2
+  -- end of scope, compiler deduced 'a' to be of type 'integer'
+end
+
+do -- Type collision
+  local a -- a type will be deduced
+  a = 2
+  a = false
+  print(a) -- outputs: false
+  -- a is deduced to be of type 'any', because it could hold an 'integer' or a 'boolean'
+end
+
+do -- Zero initialization
+  local a -- variable of deduced type 'any', initialized to 'nil'
+  local i: integer -- variable of type 'integer', initialized to 0
+  print(a, i) --outputs: nil 0
+end
+
+do -- Auto variables
+  local a: auto = 1 -- a is deduced to be of type 'integer'
+
+  -- uncommenting the following will trigger the compile error:
+  --   error: in variable assignment: no viable type conversion from `boolean` to `int64`
+  --a = false
+
+  print(a) -- outputs: 1
+end
+
+do -- Comptime variables
+  local a <comptime> = 1 + 2 -- constant variable evaluated and known at compile time
+  print(a) -- outputs: 3
+end
+
+do -- Const variables
+  local x <const> = 1
+  local a <const> = x
+  print(a) -- outputs: 1
+
+  -- uncommenting the following will trigger the compile error:
+  --   error: cannot assign a constant variable
+  --a = 2
+end
+
+do -- If
+  local a = 1 -- change this to 2 or 3 to trigger other ifs
+  if a == 1 then
+    print 'is one'
+  elseif a == 2 then
+    print 'is two'
+  else
+    print('not one or two')
+  end
+end
+
+do -- Switch
+  local a = 1 -- change this to 2 or 3 to trigger other ifs
+  switch a
+  case 1 then
+    print 'is 1'
+  case 2 then
+    print 'is 2'
+  else
+    print 'else'
+  end
+end
+
+do -- Do
+  do
+    local a = 0
+    print(a) -- outputs: 0
+  end
+  do
+    local a = 1 -- can declare variable named a again
+    print(a) -- outputs: 1
+  end
+end
+
+do -- Goto
+  local haserr = true
+  if haserr then
+    goto getout -- get out of the loop
+  end
+  print 'success'
+  ::getout::
+  print 'fail'
+  -- outputs only 'fail'
+end
+
+do -- While
+  local a = 1
+  while a <= 5 do
+    print(a) -- outputs 1 2 3 4 5
+    a = a + 1
+  end
+end
+
+do -- Repeat
+  local a = 0
+  repeat
+    a = a + 1
+    print(a) -- outputs 1 2 3 4 5
+    local stop = a == 5
+  until stop
+end
+
+do -- Numeric For
+  for i=0,5 do
+    -- i is deduced to 'integer'
+    print(i) -- outputs 0 1 2 3 4 5
+  end
+end
+
+do -- Numeric For Exclusive
+  for i=0,<5 do
+    print(i) -- outputs 0 1 2 3 4
+  end
+end
+
+do -- Numeric For Stepped
+  for i=5,0,-1 do
+    print(i) -- outputs 5 4 3 2 1
+  end
+end
+
+do -- Continue
+  for i=1,10 do
+    if i<=5 then
+      continue
+    end
+    print(i) -- outputs: 6 7 8 9 10
+  end
+end
+
+do -- Break
+  for i=1,10 do
+    if i>5 then
+      break
+    end
+    print(i) -- outputs: 1 2 3 4 5
+  end
+end
+
+do -- Boolean
+  local a: boolean -- variable of type 'boolean' initialized to 'false'
+  local b = false
+  local c = true
+  print(a,b,c) -- outputs: false false true
+end
+
+do -- Numbers
+  local a = 1234 -- variable of type 'integer'
+  local b = 0xff -- variable of type 'integer'
+  local c = 3.14159 -- variable of type 'number'
+  local d: integer
+  print(a,b,c,d) -- outputs: 1234 255 3.141590 0
+
+  do
+    local a = 1234_u32 -- variable of type 'int32'
+    local b = 1_f32 -- variable of type 'float32'
+    print(a,b) --outputs: 1234 1.000000
+  end
+end
+
+do -- String
+  local emptystr: string -- empty string
+  local str1 = "string one" -- string
+  local str2 = 'string two' -- also a string
+  print(emptystr, str1, str2) -- outputs: "" "string one" "string two"
+end
+
+do -- The "type" type
+  local MyInt: type = @integer -- a symbol of type 'type' holding the type 'integer'
+  local a: MyInt -- variable of type 'MyInt' (actually an 'integer')
+  print(a) -- outputs: 0
+end
+
+do -- Type conversion
+  local i = 1
+  local f = (@number)(i) -- convert 'i' to the type 'number'
+  print(i, f) -- outputs: 1 1.000000
+
+  local MyNumber = @number
+  local i = 1
+  local f = MyNumber(i) -- convert 'i' to the type 'number'
+  print(i, f) -- outputs: 1 1.000000
+end
+
+do -- Array
+  local a: array(integer, 4) = {1,2,3,4}
+  print(a[0], a[1], a[2], a[3]) -- outputs: 1 2 3 4
+
+  local b: integer[4] -- "integer[4]" is syntax sugar for "array(integer, 4)"
+  print(b[0], b[1], b[2], b[3]) -- outputs: 0 0 0 0
+end
+
+do -- Enum
+  local Weeks = @enum {
+    Sunday = 0,
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday
+  }
+  print(Weeks.Sunday) -- outputs: 0
+
+  local a: Weeks = Weeks.Monday
+  print(a) -- outputs: 1
+end
+
+do -- Any
+  local a: any = 2 -- variable of type 'any', holding type 'integer' at runtime
+  print(a) -- outputs: 2
+  a = false -- now holds the type 'boolean' at runtime
+  print(a) -- outputs: false
+end
+
+do -- Record
+  local Person = @record {
+    name: string,
+    age: integer
+  }
+
+  -- typed initialization
+  local a: Person = {name = "Mark", age = 20}
+  print(a.name, a.age)
+
+  -- casting initialization
+  local b = (@Person){name = "Paul", age = 21}
+  print(b.name, b.age)
+
+  -- ordered fields initialization
+  local c = (@Person){"Eric", 21}
+  print(c.name, c.age)
+
+  -- late initialization
+  local d: Person
+  d.name = "John"
+  d.age  = 22
+  print(d.name, d.age)
+end
+
+do -- Range
+  local ra = 1:10
+  print(ra.low, ra.high) -- outputs: 1 10
+  local rb: range(integer) = 0:100
+  print(rb.low, rb.high) -- outputs: 0 100
+end
+
+do -- Span
+  local arr = (@integer[4]) {1,2,3,4}
+  local s = arr[0:1]
+  print(s[0], s[1]) -- outputs: 1 2
+
+  local s: span(integer) = arr[2:3]
+  print(s[0], s[1]) -- outputs: 3 4
+end
+
+do -- Void
+  local function f(): void end
+end
+
+do -- Operators
+  print(2 ^ 2) -- pow, outputs: 4.000000
+  print(5 // 2) -- integer division, outputs: 2
+  print(5 / 2) -- float division, outputs: 2.500000
+end
+
+do -- Functions
+  local function get(a)
+    -- a is of type 'any'
+    return a -- return is of deduced type 'any'
+  end
+  print(get(1)) -- outputs: 1
+
+  local function add(a: integer, b: integer)
+    return a + b -- return is of deduced type 'integer'
+  end
+  print(add(1, 2)) -- outputs 3
+end
+
+do -- Return type inference
+  local function add(a: integer, b: integer): integer
+    return a + b -- return is of deduced type 'integer'
+  end
+  print(add(1, 2)) -- outputs 3
+end
+
+do -- Recursive calls
+  local function fib(n: integer): integer
+    if n < 2 then return n end
+    return fib(n - 2) + fib(n - 1)
+  end
+  print(fib(10)) -- outputs: 55
+end
+
+do -- Multiple returns
+  local function get_multiple()
+    return false, 1
+  end
+
+  local a, b = get_multiple()
+  -- a is of type 'integer' with value 'false'
+  -- b is of type 'boolean' with value '1'
+  print(a,b)
+
+  local function get_multiple(): (boolean, integer)
+    return false, 1
+  end
+
+  local a, b = get_multiple()
+  print(a,b) -- outputs: false 1
+end
+
+--do -- Top scope closures
+  local counter = 1 -- 'a' lives in the heap because it's on the top scope
+  local function increment() -- foo is a top scope closure
+    -- counter is an upvalue for this function, we can access and modify it
+    counter = counter + 1
+  end
+  print(counter) -- outputs 1
+  increment()
+  print(counter) -- outputs 2
+--end
+
+do -- Lazy functions
+  local function add(a: auto, b: auto)
+    return a + b
+  end
+
+  local a = add(1,2)
+  -- call to 'add', a function 'add(a: integer, b: integer): integer' is defined
+  print(a) -- outputs: 3
+  local b = add(1.0, 2.0)
+  -- call to 'add' with different types, function 'add(a: number, b: number): number' is defined
+  print(b) -- outputs: 3.000000
+end
+
+do -- Dereferencing and referencing
+  local a = 1
+  local ap = &a -- ap is a pointer to a
+  $ap = 2
+  print(a) -- outputs 2
+  a = 3
+  print($ap) -- outputs 3
+end
+
+do -- Allocating memory
+  require 'C.stdlib'
+
+  local Person = @record{name: string, age: integer}
+  local p = (@Person*)(C.malloc(#Person))
+  p.name = "John"
+  p.age = 20
+  print(p.name, p.age)
+  C.free(p)
+  p = nilptr
+end
+
+do -- Preprocessor
+  local a = 0
+  ## for i = 1,4 do
+    a = a + 1 -- unroll this line 4 times
+  ## end
+  print(a) -- outputs 4
+
+
+  ##[[
+  local something = false
+  if something then
+  ]]
+    print('hello') -- prints hello when compiling with "something" defined
+  ##[[ end ]]
+end
+
+do -- Emitting AST nodes
+  local a = #[aster.Number{'dec','1'}]#
+  print(a) -- outputs: 1
+end
+
+do -- Expression replacement
+  local deg2rad = #[math.pi/180.0]#
+  local hello = #['hello' .. 'world']#
+  local mybool = #[false]#
+  print(deg2rad, hello, mybool) -- outputs: 0.017453 helloworld false
+end
+
+do -- Name replacement
+  local #('my' .. 'var')# = 1
+  print(myvar) -- outputs: 1
+
+  local function foo1() print 'foo' end
+  #('foo' .. 1)#() -- outputs: foo
+end
+
+do -- Processing on the fly
+  local Weekends = @enum { Friday=0, Saturday, Sunday }
+  ## for i,field in ipairs(Weekends.value.fields) do
+    print(#[field.name .. ' ' .. tostring(field.value)]#)
+  ## end
+
+  local Person = @record{name: string}
+  ## Person.value.fields[1].name = 'nick' -- rename field 'name' to 'nick'
+  local p: Person = {nick='Joe'}
+  print(p.nick) -- outputs 'Joe'
+end
+
+do -- Preprocessing lazy functions
+  local function pow(x: auto, n: integer)
+    ## staticassert(x.type:is_arithmetic(), 'cannot pow variable of type "%s"', x.type)
+    ## if x.type:is_integral() then
+      -- x is an integral type (any unsigned/signed integer)
+      local r: #[x.type]# = 1
+      for i=1,n do
+        r = r * x
+      end
+      return r
+    ## elseif x.type:is_float() then
+      -- x is a floating point type
+      return x ^ n
+    ## end
+  end
+
+  local a = pow(2, 2) -- use specialized implementation for integers
+  local b = pow(2.0, 2) -- use pow implementation for floats
+  print(a,b) -- outputs: 4 4.000000
+
+  -- uncommenting the following will trigger the compile error:
+  --   error: cannot pow variable of type "string"
+  --pow('a', 2)
+end
+
+do -- Function annotations
+  local function sum(a: integer, b: integer) <inline> -- C inline function
+    return a + b
+  end
+  print(sum(1,2)) -- outputs: 3
+end
+
+do -- Variable annotations
+  local a: integer <noinit>-- don't initialize variable to zero
+  a = 0 -- manually initialize to zero
+  print(a) -- outputs: 0
+
+  local b <volatile> = 1 -- C volatile variable
+  print(b) -- outputs: 1
+end
+
+do -- Mixing C code
+  local function malloc(size: usize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
+  local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
+  local function free(ptr: pointer) <cimport'free',cinclude'<stdlib.h>',nodecl> end
+
+  local a = (@int64[10]*)(malloc(10 * 8))
+  memset(a, 0, 10*8)
+  assert(a[0] == 0)
+  a[0] = 1
+  assert(a[0] == 1)
+  free(a)
+end

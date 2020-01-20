@@ -11,11 +11,45 @@ order: 2
 
 # Overview
 
-This is a quick overview of the language features using many examples.
+This is a quick overview of the language features that are currently implemented by examples.
+All the features and examples presented here should work with the latest Nelua, for
+features not implemented yet please see the [draft](/draft/)
+
+## A note for Lua users
+
 Most of Nelua syntax and semantics
-is similar to Lua, thus if you know Lua you probably know Nelua too, however Nelua have many
-additions to code with types, to make more efficient code and to meta program.
+are similar to Lua, thus if you know Lua you probably know Nelua too. However Nelua have many
+additions to code with type annotations, to make more efficient code and to meta program.
 This overview try to focus more on those features.
+
+Although copying Lua code without or minor is a goal of Nelua, not all Lua
+features are implemented yet. Mostly the dynamic part such as tables and dynamic typing
+are not implemented yet, thus at the moment is best to try Nelua using type notations.
+
+There is no interpreter or VM, all the code is converted directly into native machine code,
+thus expect better efficiency than Lua. However this means that Nelua can't load
+code generated at runtime, the user is encouraged to generate code at compile time
+using the preprocessor.
+
+## A note for C users
+
+Nelua tries to expose most of C features without overhead, thus expect
+to get near C performance when coding in the C style, that is using
+type notations, manual memory management, pointers, records (structs).
+
+The semantics are not exactly as C semantics but close. There are modifications
+to minimize undefined behaviors (like initialize to zero by default) and
+other ones to keep Lua semantics (like integer division rounds towards minus infinity).
+However there are ways to get C semantics for each case when needed.
+
+The preprocessor is much more powerful than C preprocessor,
+because it's actually the compiler running in Lua,
+thus you can interact with the compiler while parsing. The preprocessor should
+be used for making generic code and avoiding code duplication.
+
+Nelua generates everything compiled into a single readable C file,
+if you know C is recommended to read the generated C code sometimes
+to learn more what exactly the compiler outputs.
 
 --------------------------------------------------------------------------------
 ## Hello world
@@ -49,11 +83,12 @@ Variables are declared or defined like in lua, but optionally
 you can specify it's type when declaring:
 
 ```nelua
-local b = false -- of deduced type 'boolean', initialized to false
-local i = 1 --  of type 'integer', initialized to 1
-local e: integer = 1 --  of type 'integer', initialized to 1
 local a = nil -- of deduced type 'any', initialized to nil
-local s = 'string'
+local b = false -- of deduced type 'boolean', initialized to false
+local s = 'test' -- of deduced type 'string', initialized to 'test'
+local one = 1 --  of type 'integer', initialized to 1
+local pi: number = 3.14 --  of type 'number', initialized to 1
+print(a,b,s,one,pi) -- outputs: nil false test 1 3.1400000
 ```
 
 Nelua takes advantages of types to make checks and optimizations at compile time.
@@ -67,6 +102,7 @@ and resolved at compile time:
 local a -- type will be deduced and scope end
 a = 1
 a = 2
+print(a) -- outputs: 2
 -- end of scope, compiler deduced 'a' to be of type 'integer'
 ```
 
@@ -80,6 +116,7 @@ to the type `any` (a type that can hold anything an runtime), this makes nelua c
 local a -- a type will be deduced
 a = 2
 a = false
+print(a) -- outputs: false
 -- a is deduced to be of type 'any', because it could hold an 'integer' or a 'boolean'
 ```
 
@@ -90,7 +127,8 @@ this prevents undefined behaviors:
 
 ```nelua
 local a -- variable of deduced type 'any', initialized to 'nil'
-local b: integer -- variable of type 'integer', initialized to 0
+local i: integer -- variable of type 'integer', initialized to 0
+print(a, i) --outputs: nil 0
 ```
 
 This can be optionally be disabled (for optimization reasons) using **annotations**.
@@ -102,8 +140,11 @@ Variables declared as auto have it's type deduced early using only the type of i
 ```nelua
 local a: auto = 1 -- a is deduced to be of type 'integer'
 
--- this would trigger a compile error:
--- a = false
+-- uncommenting the following will trigger the compile error:
+--   error: in variable assignment: no viable type conversion from `boolean` to `int64`
+--a = false
+
+print(a) -- outputs: 1
 ```
 
 Auto variables are more useful when used in **lazy functions**.
@@ -124,14 +165,16 @@ for using as compile time parameters in **lazy functions**.
 Const variables can be assigned at runtime however it cannot mutate.
 
 ```nelua
-local x = 1
+local x <const> = 1
 local a <const> = x
--- doing "a = 2" would throw a compile time error
+print(a) -- outputs: 1
 
-local function f(x: integer <const>)
-  -- cannot assign 'x' here because it's const
-end
+-- uncommenting the following will trigger the compile error:
+--   error: cannot assign a constant variable
+--a = 2
 ```
+
+Const annotation can also be used for function arguments.
 
 --------------------------------------------------------------------------------
 ## Control flow
@@ -141,12 +184,13 @@ end
 If statement is just like in Lua.
 
 ```nelua
+local a = 1 -- change this to 2 or 3 to trigger other ifs
 if a == 1 then
   print 'is one'
-elseif a ~= 2 then
-  print 'is not two'
+elseif a == 2 then
+  print 'is two'
 else
-  print 'else'
+  print('not one or two')
 end
 ```
 
@@ -155,11 +199,12 @@ end
 Switch statement is similar to C switches:
 
 ```nelua
+local a = 1 -- change this to 2 or 3 to trigger other ifs
 switch a
 case 1 then
   print 'is 1'
-case 2, 3 then
-  print 'is 2 or 3'
+case 2 then
+  print 'is 2'
 else
   print 'else'
 end
@@ -176,9 +221,11 @@ variable names:
 ```nelua
 do
   local a = 0
+  print(a) -- outputs: 0
 end
 do
   local a = 1 -- can declare variable named a again
+  print(a) -- outputs: 1
 end
 ```
 
@@ -193,14 +240,11 @@ local haserr = true
 if haserr then
   goto getout -- get out of the loop
 end
-print 'hello'
+print 'success'
 ::getout::
-print 'world'
--- outputs only 'world'
+print 'fail'
+-- outputs only 'fail'
 ```
-
---------------------------------------------------------------------------------
-## Looping
 
 ### While
 
@@ -208,7 +252,8 @@ While is just like in Lua:
 
 ```nelua
 local a = 1
-while a < 42 do
+while a <= 5 do
+  print(a) -- outputs 1 2 3 4 5
   a = a + 1
 end
 ```
@@ -218,14 +263,17 @@ end
 Repeat is also like in Lua:
 
 ```nelua
+local a = 0
 repeat
-  local a = a - 1
-until a == 0
+  a = a + 1
+  print(a) -- outputs 1 2 3 4 5
+  local stop = a == 5
+until stop
 ```
 
 Note that variables declared inside repeat scope are visible on it's condition expression.
 
-### For
+### Numeric For
 
 Numeric for are like in Lua, meaning they are inclusive for the first and the last
 element:
@@ -245,7 +293,7 @@ An exclusive to for is available to do exclusive for loops, they work using
 comparison operators `~=` `<=` `>=` `<` `>`:
 
 ```nelua
-for i = 0,<5 do
+for i=0,<5 do
   print(i) -- outputs 0 1 2 3 4
 end
 ```
@@ -255,36 +303,8 @@ The last parameter in for syntax is the step, it's counter is always incremented
 with `i = i + step`, by default step is always 1, when using negative steps reverse for is possible:
 
 ```nelua
-for i = 5,0,-1 do
+for i=5,0,-1 do
   print(i) -- outputs 5 4 3 2 1
-end
-```
-
-#### Iterated
-
-```nelua
-local a = {'a', 'b', 'c'}
-for i,v in ipairs(a) do
-  print(i, v)
-end
--- outputs 1 a 2 b 3 c
-```
-
-Iterators are useful to create more complex for loops:
-
-```nelua
-local function multiples_countdown(s, e)
-  return function(e, i)
-    repeat
-      i = i - 1
-      if i < e then return nil end
-    until i % 2 == 0
-    return i
-  end, e, s+2
-end
-
-for i,b in multiples_countdown(10, 0) do
-  print(i) -- outputs 10 8 6 4 2 0
 end
 ```
 
@@ -293,12 +313,11 @@ Continue statement is used to skip a for loop to it's next iteration.
 
 ```nelua
 for i=1,10 do
-  if i<=5 do
+  if i<=5 then
     continue
   end
-  print(i)
+  print(i) -- outputs: 6 7 8 9 10
 end
--- outputs: 6 7 8 9 10
 ```
 
 ### Break
@@ -306,12 +325,11 @@ Break statement is used to break a for loop.
 
 ```nelua
 for i=1,10 do
-  if i>5 do
+  if i>5 then
     break
   end
-  print(i)
+  print(i) -- outputs: 1 2 3 4 5
 end
--- outputs: 1 2 3 4 5
 ```
 
 --------------------------------------------------------------------------------
@@ -323,6 +341,7 @@ end
 local a: boolean -- variable of type 'boolean' initialized to 'false'
 local b = false
 local c = true
+print(a,b,c) -- outputs: false false true
 ```
 
 They are defined as `bool` in C code.
@@ -333,8 +352,10 @@ Number literals are defined similar as in Lua:
 
 ```nelua
 local a = 1234 -- variable of type 'integer'
-local b = 0x123 -- variable of type 'integer'
-local c = 1234.56 -- variable of type 'number'
+local b = 0xff -- variable of type 'integer'
+local c = 3.14159 -- variable of type 'number'
+local d: integer
+print(a,b,c,d) -- outputs: 1234 255 3.141590 0
 ```
 
 The `integer` is the default type for integral literals without suffix.
@@ -345,6 +366,7 @@ You can use type suffixes to force a type for a numeric literal:
 ```nelua
 local a = 1234_u32 -- variable of type 'int32'
 local b = 1_f32 -- variable of type 'float32'
+print(a,b) --outputs: 1234 1.000000
 ```
 
 The following table shows Nelua primitive numeric types and is related type in C:
@@ -377,8 +399,10 @@ unless you have a specific reason to use a sized or unsigned integer type.
 Strings are just like in Lua:
 
 ```nelua
-local s1 = "hello world" -- string
-local s2 = 'hello world' -- also a string
+local emptystr: string -- empty string
+local str1 = "string one" -- string
+local str2 = 'string two' -- also a string
+print(emptystr, str1, str2) -- outputs: "" "string one" "string two"
 ```
 
 Like in lua strings are immutable, this make the semantics similar to lua and
@@ -386,69 +410,16 @@ allows the compiler to use deferred reference counting instead of garbage collec
 for managing strings memory improving the application performance. If the programmer wants
 a mutable string he can always implement his own string object.
 
-
-### Function
-
-Functions can be stored inside variables like in lua:
-
-```nelua
-local f1: function(a: integer, b: integer): (boolean, boolean)
-local f2 = function(args) end
-
--- syntax sugar
-function f4(args) end
-```
-
-### Table
-
-Tables are just like Lua tables:
-
-```nelua
-local t1 = {} -- empty table
-local t2: table -- empty table
-local t3 = {x = 1, y = 2} -- simple table
-local t4 = {1 , 2} -- simple table
-local t5 = {a = 1, [2] = "a", 1} -- complex table
-```
-
-Tables triggers usage of the garbage collector.
-
-### The "type" type
-
-The "type" type is also a type, they can be stored in variables (actually symbols).
-Variables with this type is used at compile time only, they are useful for aliasing types:
-
-```nelua
-local MyInt: type = @integer -- a symbol of type 'type' holding the type 'integer'
-local a: MyInt -- variable of type 'MyInt' (actually an 'integer')
-
-local CallbackType = @function()
-local callback: CallbackType
-```
-
-The '@' symbol is required to infer types in expressions.
-
-### Type conversion
-
-Type expressions can be called to explicitly convert a
-variable to a new type.
-
-```nelua
-local i = 1
-local f = (@number)(i) -- convert 'i' to the type 'number'
-```
-
 ### Array
 
-Array is a fixed size array known at compile time:
+Array is a list with where its size is fixed and known at compile time:
 
 ```nelua
-local a1: array(integer, 4) = {1,2,3,4}
-local a2: array(integer, 4)
+local a: array(integer, 4) = {1,2,3,4}
+print(a[0], a[1], a[2], a[3]) -- outputs: 1 2 3 4
 
--- syntax sugar
-local a3: integer[4] = {1,2,3,4}
-local a4 = (@integer[4]) {1,2,3,4}
+local b: integer[4] -- "integer[4]" is syntax sugar for "array(integer, 4)"
+print(b[0], b[1], b[2], b[3]) -- outputs: 0 0 0 0
 ```
 
 ### Enum
@@ -465,10 +436,10 @@ local Weeks = @enum {
   Friday,
   Saturday
 }
+print(Weeks.Sunday) -- outputs: 0
 
-local a: Weeks = Weeks.Sunday
-print(Weeks.Sunday) -- outputs 1
-print(tostring(Weeks.Sunday)) -- outputs Sunday
+local a: Weeks = Weeks.Monday
+print(a) -- outputs: 1
 ```
 
 The programmer must always initialize the first enum value, this choice
@@ -500,79 +471,24 @@ local Person = @record {
   age: integer
 }
 
-local a: Person
-a.name = "John"
-a.age  = 20
-print(a.age)
+-- typed initialization
+local a: Person = {name = "Mark", age = 20}
+print(a.name, a.age)
 
--- record initialization
-local b = (@Person){name = 1, age = 2}
-print(b.age)
+-- casting initialization
+local b = (@Person){name = "Paul", age = 21}
+print(b.name, b.age)
+
+-- ordered fields initialization
+local c = (@Person){"Eric", 21}
+print(c.name, c.age)
+
+-- late initialization
+local d: Person
+d.name = "John"
+d.age  = 22
+print(d.name, d.age)
 ```
-
-Records can also be used as tuples:
-
-```nelua
-local a: record{integer, integer}
-a = {1,2}
-a[1] = 0
-```
-
-### Union
-
-Union can store multiple types at the same block of memory:
-
-```nelua
-local u: union{integer,string} -- variable of type union, initialized to its first type 'integer'
-print(u) -- outputs 0
-u = 'string' -- u now holds a string
-print(u) -- outputs 'string'
-
-local u: union(uint16){integer,string} -- union that can hold more runtime types
-local u: union(void){integer,string} -- union that holds all types at the same time (unsafe)
-```
-
-Unions are slightly different from C union by default, because it has an `uint8` internally that holds the current type at runtime, thus the union size will have at least the
-size of the largest type plus the size of `uint8`. By default unions cannot hold more than 256 different types. The internal type 
-
-### Nilable
-
-Niable type is not useful by itself, it's only useful when using with unions to create the
-optional type as shown bellow.
-
-### Optional
-
-Optional type is actually a union of a `nilable` and any other type, it
-is used to declare a variable that may hold or not a variable:
-
-```nelua
-local a: union{nilable,string} -- variable that may hold a string, initialized to 'nil'
-assert(a == nil)
-assert(not a)
-print(a) -- outputs 'nil'
-a = 'hi'
-print(a) -- outputs 'hi'
-
--- syntax sugar for union union{nilable,string}
-local v: string?
-```
-
-Optional types are useful for passing or returning variables that maybe set or not:
-
-```nelua
-local function foo(a: integer?): integer?
-  if not a then
-    return nil
-  end
-  return a + 1
-end
-
-local a = inc(1)
-print(a) -- outputs '1'
-local b = inc(nil)
-print(b) -- outputs 'nil'
-```
-
 ### Pointer
 
 Pointer is like in C, points to a region in memory of a specific type:
@@ -591,8 +507,10 @@ local i: integer*
 Ranges are used to specifying ranges for spans.
 
 ```nelua
-local r = 1:10
-local r: range(integer) = 1:10
+local ra = 1:10
+print(ra.low, ra.high) -- outputs: 1 10
+local rb: range(integer) = 0:100
+print(rb.low, rb.high) -- outputs: 0 100
 ```
 
 ### Span
@@ -601,34 +519,51 @@ Span are pointers to a block of contiguous elements at runtime.
 
 ```nelua
 local arr = (@integer[4]) {1,2,3,4}
-local s = arr[1:2]
-print(s[0], s[1]) -- outputs 2 3
+local s = arr[0:1]
+print(s[0], s[1]) -- outputs: 1 2
 
-local s: span(integer) = arr[1:2]
+local s: span(integer) = arr[2:3]
+print(s[0], s[1]) -- outputs: 3 4
 ```
 
-### Void
+### Nilable
 
-Void type is more used internally and it's only used to specify that a function returns nothing:
+Nilable type is not useful by itself, it's only useful when using with unions to create the
+optional type or for detecting nil arguments in lazy functions.
+
+### The "type" type
+
+The "type" type is also a type, they can be stored in variables (actually symbols).
+Symbols with this type is used at compile time only, they are useful for aliasing types:
 
 ```nelua
-local function f(): void end
+local MyInt: type = @integer -- a symbol of type 'type' holding the type 'integer'
+local a: MyInt -- variable of type 'MyInt' (actually an 'integer')
+print(a) -- outputs: 0
 ```
 
-### Block
+The '@' symbol is required to infer types expressions.
 
-Block variables are used to encapsulate arbitrary code inside a variable at compile time,
-when the block variable is called the compiler replaces the call code with the block code:
+### Type conversion
+
+The expression `(@type)(variable)` can be called to explicitly convert a
+variable to a new type.
 
 ```nelua
-local a: block = do
-  print 'hello'
-end -- a is of type 'block'
-a() -- compiler injects the block code here, prints 'hello world'
+local i = 1
+local f = (@number)(i) -- convert 'i' to the type 'number'
+print(i, f) -- outputs: 1 1.000000
 ```
 
-But block variables are not functions, think of block variables as a code replacement tool.
-Later will be shown how them are more useful to do *meta programming*.
+If a type is aliased to a symbol then
+is also possible to convert variables by calling the symbol:
+
+```nelua
+local MyNumber = @number
+local i = 1
+local f = MyNumber(i) -- convert 'i' to the type 'number'
+print(i, f) -- outputs: 1 1.000000
+```
 
 --------------------------------------------------------------------------------
 ## Operators
@@ -637,40 +572,43 @@ All Lua operators are provided:
 
 | Name | Syntax | Type | Operation |
 |---|---|---|---|
-| or       | `a or b`      | binary   | conditional or           |
-| and      | `a and b`     | binary   | conditional and          |
-| lt       | `a < b`       | binary   | less than                |
-| ne       | `a ~= b`      | binary   | not equal                |
-| gt       | `a > b`       | binary   | greater than             |
-| le       | `a <= b`      | binary   | less or equal than       |
-| ge       | `a >= b`      | binary   | greater or equal than    |
-| eq       | `a == b`      | binary   | equal                    |
-| bor      | `a | b`       | binary   | bitwise or               |
-| band     | `a & b`       | binary   | bitwise and              |
-| bxor     | `a ~ b`       | binary   | bitwise xor              |
-| shl      | `a << b`      | binary   | bitwise shift right      |
-| shr      | `a >> b`      | binary   | bitwise shift left       |
-| concat   | `a .. b`      | binary   | concatenation operator   |
-| add      | `a + b`       | binary   | numeric add              |
-| sub      | `a - b`       | binary   | numeric subtract         |
-| mul      | `a * b`       | binary   | numeric multiply         |
-| div      | `a / b`       | binary   | float division           |
-| idiv     | `a // b`      | binary   | integer division         |
-| mod      | `a % b`       | binary   | numeric modulo           |
-| pow      | `a ^ b`       | binary   | numeric pow              |
-| not      | `not a`       | unary    | boolean negation         |
-| len      | `#a`          | unary    | length operator          |
-| neg      | `-a`          | unary    | numeric negation         |
-| bnot     | `~a`          | unary    | bitwise not              |
-| deref    | `$a`          | unary    | dereference              |
-| ref      | `&a`          | unary    | reference                |
+| or       | `a or b`      | binary   | conditional or            |
+| and      | `a and b`     | binary   | conditional and           |
+| lt       | `a < b`       | binary   | less than                 |
+| gt       | `a > b`       | binary   | greater than              |
+| le       | `a <= b`      | binary   | less or equal than        |
+| ge       | `a >= b`      | binary   | greater or equal than     |
+| ne       | `a ~= b`      | binary   | not equal                 |
+| eq       | `a == b`      | binary   | equal                     |
+| bor      | `a | b`       | binary   | bitwise or                |
+| band     | `a & b`       | binary   | bitwise and               |
+| bxor     | `a ~ b`       | binary   | bitwise xor               |
+| shl      | `a << b`      | binary   | bitwise left shift        |
+| shr      | `a >> b`      | binary   | bitwise right shift       |
+| bnot     | `~a`          | unary    | bitwise not               |
+| concat   | `a .. b`      | binary   | concatenation             |
+| add      | `a + b`       | binary   | arithmetic add            |
+| sub      | `a - b`       | binary   | arithmetic subtract       |
+| mul      | `a * b`       | binary   | arithmetic multiply       |
+| neg      | `-a`          | unary    | arithmetic negation       |
+| mod      | `a % b`       | binary   | arithmetic modulo         |
+| pow      | `a ^ b`       | binary   | arithmetic exponentiation |
+| div      | `a / b`       | binary   | arithmetic division       |
+| idiv     | `a // b`      | binary   | arithmetic floor division |
+| not      | `not a`       | unary    | boolean negation          |
+| len      | `#a`          | unary    | length                    |
+| deref    | `$a`          | unary    | pointer dereference       |
+| ref      | `&a`          | unary    | memory reference          |
+
+The operators follows Lua semantics, for example, `%` and `//`
+rounds the quotient towards minus infinity (different from C).
 
 The only additional operators are `$` and `&`, used for working with pointers.
 
 ```nelua
-print(2 ^ 2) -- pow, outputs 4
-print(5 // 2) -- integer division, outputs 2
-print(5 / 2) -- float division, outputs 2.5
+print(2 ^ 2) -- pow, outputs: 4.000000
+print(5 // 2) -- integer division, outputs: 2
+print(5 / 2) -- float division, outputs: 2.500000
 ```
 
 --------------------------------------------------------------------------------
@@ -679,38 +617,47 @@ print(5 / 2) -- float division, outputs 2.5
 Functions are declared like in lua:
 
 ```nelua
--- untyped function, 'n' argument and return value is of the type 'any'
-local function fib(n)
-  if n < 2 then return n end
-  return fib(n - 2) + fib(n - 1)
+local function get(a)
+  -- a is of type 'any'
+  return a -- return is of deduced type 'any'
 end
+print(get(1)) -- outputs: 1
 ```
 
-They can be recursive as shown above. It's arguments can have an optionally specified type:
+The function arguments can have the type specified and its return type will be automatically deduced:
 
 ```nelua
--- typed function, 'n' argument and return value is of the type 'integer'
+local function add(a: integer, b: integer)
+  return a + b -- return is of deduced type 'integer'
+end
+print(add(1, 2)) -- outputs 3
+```
+
+In contrast with variable declaration when the type is omitted from a function argument there is no
+automatic detection of the argument type, instead it's assumed the argument must
+be of the `any` type, this makes Nelua semantics more compatible with Lua semantics.
+
+### Return type inference
+
+The function return type can also be specified:
+
+```nelua
+local function add(a: integer, b: integer): integer
+  return a + b -- return is of deduced type 'integer'
+end
+print(add(1, 2)) -- outputs 3
+```
+
+### Recursive calls
+
+Functions can call itself recursively:
+
+```nelua
 local function fib(n: integer): integer
   if n < 2 then return n end
   return fib(n - 2) + fib(n - 1)
 end
-```
-
-In contrast with variable declaration when the type is omitted from an argument there is no
-automatic detection of the argument type, instead it's assumed the argument must
-be of the `any` type, this makes Nelua semantics compatible with Lua semantics.
-
-
-### Return type inference
-
-Function return type is automatically detected:
-
-```nelua
-local function add(a: integer, b: integer)
-  return a + b
-end
-
-local a = add(1,2) -- a will be of type 'integer'
+print(fib(10)) -- outputs: 55
 ```
 
 ### Multiple returns
@@ -725,70 +672,63 @@ end
 local a, b = get_multiple()
 -- a is of type 'integer' with value 'false'
 -- b is of type 'boolean' with value '1'
+print(a,b) -- outputs: false 1
 ```
 
-The returns can optionally be explicitly typed:
+Multiple returns can optionally be explicitly typed:
 
 ```nelua
 local function get_multiple(): (boolean, integer)
   return false, 1
 end
+
+local a, b = get_multiple()
+print(a,b) -- outputs: false 1
 ```
-
-### Closures
-
-Closure are functions declared inside another function
-that captures variables from the upper scope, by default they
-capture values by shared references using the garbage collector,
-this choice was made to make Nelua code compatible with lua semantics:
-
-```nelua
-local function main()
-  local a = 1 -- a is promoted to a heap variable internally because it's captured by a closure
-  local function foo()
-    -- captured 'a' garbage collected reference
-    a = 2
-  end
-  foo()
-  print(a)
-end
-main()  -- outputs 2
-```
-
-To make the above possible the compiler promote any captured variable to heap variables and
-adds references of them to the garbage collector, however we can explicitly specify to capture the variable by its stack reference:
-
-```nelua
--- capture all value by garbage collected copies
-local function main()
-  local a = 1
-  local function foo() <byref>
-    -- captured 'a' by stack reference
-    a = 2
-  end
-  foo()
-  print(a) -- outputs 2
-end
-main()
-```
-
-The advantage of capturing by its stack reference is that the closure becomes much more lightweight
-because we don't need to promote to heap variables or use the garbage collector, but the disadvantage is that the function can not be called outside is parent scope, making this more unsafe and is responsibility of the programmer to make sure this doesn't happen otherwise would cause an undefined behavior and potentially a crash.
 
 ### Top scope closures
 
-Because any top scope variable lives in the heap, top scope closures environment is always
-visible and the compiler takes advantages this to not use the garbage collector, thus they
-they are more lightweight.
+When declaring functions in the top scope the compiler takes advantages of the fact that
+top scope variables is always accessible in the heap to create lightweight closures without
+needing to hold upvalues references or use a garbage collector,
+thus they are more lightweight than a closure nested in a function.
 
 ```nelua
-local a = 1 -- 'a' lives in the heap already because it's on the top scope
-local function foo() -- foo is a top scope closure
-  -- captured 'a' by reference
-  a = 2
+local counter = 1 -- 'a' lives in the heap because it's on the top scope
+local function increment() -- foo is a top scope closure
+  -- counter is an upvalue for this function, we can access and modify it
+  counter = counter + 1
 end
-print(a) -- outputs 2
+print(counter) -- outputs 1
+increment()
+print(counter) -- outputs 2
 ```
+
+--------------------------------------------------------------------------------
+## Lazy functions
+
+Lazy functions are functions which contains arguments that it's proprieties can
+only be known when calling the function at compile time,
+they are processed and defined lazily and lately after trying to call it.
+They are memoized (only defined once for each kind of arguments).
+
+```nelua
+local function add(a: auto, b: auto)
+  return a + b
+end
+
+local a = add(1,2)
+-- call to 'add', a function 'add(a: integer, b: integer): integer' is defined
+print(a) -- outputs: 3
+local b = add(1.0, 2.0)
+-- call to 'add' with different types, function 'add(a: number, b: number): number' is defined
+print(b) -- outputs: 3.000000
+```
+
+In the above, the `auto` type is used as a generic placeholder to replace the function argument
+by the incoming call type, this makes possible to make a generic function for multiple types.
+
+Later we will show how lazy functions are a lot more useful when used in combination with the **preprocessor**.
 
 --------------------------------------------------------------------------------
 ## Memory management
@@ -800,90 +740,27 @@ and the operator '$' is used to access the reference.
 
 ```nelua
 local a = 1
-local aptr = &a -- aptr is a pointer to a
-$aptr = 2
+local ap = &a -- ap is a pointer to a
+$ap = 2
 print(a) -- outputs 2
 a = 3
-print($aptr) -- outputs 3
+print($ap) -- outputs 3
 ```
 
---------------------------------------------------------------------------------
-## Lazy functions
+### Allocating memory
 
-Lazy functions are functions which contains arguments that it's proprieties can
-only be known when calling the function at compile time,
-they are processed and defined lazily (lately, on demand)
-at each call. They are memoized (only defined once for each kind of arguments).
+Memory can be allocated using C malloc and free.
 
 ```nelua
-local function add(a: auto, b: auto)
-  return a + b
-end
+require 'C.stdlib'
 
-local a = add(1,2)
--- call to 'add', a function 'add(a: integer, b: integer): integer' is defined
-local b = add(1.0, 2.0)
--- call to 'add' with another types, function 'add(a: number, b: number): number' is defined
-```
-
-In the above, the `auto` type is used as a generic placeholder to replace the function argument
-by the incoming call type, this makes possible to make a generic function for multiple types.
-
-Later we will show how lazy functions are a lot more useful when used in combination with the **preprocessor**.
-
-### Variable arguments
-
-Variable arguments functions can be implemented as lazy functions, the syntax is like in Lua
-using the `...`, and can be used to forward to another variable argument function:
-
-```nelua
-local function print_proxy(a, ...)
-  print(a, ...)
-end
-print_proxy(1,2,3) -- outputs 1 2 3
-```
-
-On each call a different types call a real function will be implemented.
-
-The arguments can be accessed individually using the `select` builtin directive (like in Lua):
-
-```nelua
-local function print_first_two(...)
-  local a = select(1, ...)
-  local b = select(2, ...)
-  local n = select('#', ...)
-  print(a, b, n)
-end
-print_first_two('a','b') -- outputs "a b 2"
-```
-
-It can be combined with multiple return functions:
-
-```nelua
-local function get_two()
-  return 1, 2
-end
-local function print_all(...)
-  print(...)
-end
-print_all(get_two()) -- outputs "1 2"
-```
-
-### Generics
-
-Generics can be achieved with lazy functions:
-
-```nelua
-local function Point(T: type)
-  local PointT = @record{ x: T, y: T }
-  function PointT:length(a: T): T
-    return math.sqrt(self.x ^ @T(2), self.y ^ @T(2))
-  end
-  return PointT
-end
-
-local PointFloat32 = Point(@float32)
-local b: PointFloat32
+local Person = @record{name: string, age: integer}
+local p = (@Person*)(C.malloc(#Person))
+p.name = "John"
+p.age = 20
+print(p.name, p.age)
+C.free(p)
+p = nilptr
 ```
 
 --------------------------------------------------------------------------------
@@ -935,12 +812,14 @@ It's also possible to emit new AST node while preprocessing:
 
 ```nelua
 local a = #[aster.Number{'dec','1'}]#
+print(a) -- outputs: 1
 ```
 
 The above code compile exactly as:
 
 ```nelua
 local a = 1
+print(a) -- outputs: 1
 ```
 
 ### Expression replacement
@@ -949,8 +828,9 @@ For placing values generated by the processor you should use `#[ ]#`:
 
 ```nelua
 local deg2rad = #[math.pi/180.0]#
-local hello = #['hello ' .. 'world']#
+local hello = #['hello' .. 'world']#
 local mybool = #[false]#
+print(deg2rad, hello, mybool) -- outputs: 0.017453 helloworld false
 ```
 
 The above code compile exactly as:
@@ -959,6 +839,7 @@ The above code compile exactly as:
 local deg2rad = 0.017453292519943
 local hello = 'hello world'
 local mybool = false
+print(deg2rad, hello, mybool)
 ```
 
 ### Name replacement
@@ -967,8 +848,10 @@ For placing identifier names generated by the processor you should use `#( )`:
 
 ```nelua
 local #('my' .. 'var')# = 1
+print(myvar) -- outputs: 1
+
 local function foo1() print 'foo' end
-#('foo' .. 1)() -- outputs 'foo'
+#('foo' .. 1)#() -- outputs: foo
 ```
 
 The above code compile exactly as:
@@ -1003,17 +886,18 @@ print 'Sunday 2'
 You can even manipulate what is already been processed:
 
 ```nelua
-local Weekends = @enum { Friday=0, Saturday, Sunda }
--- fix the third field name to 'Sunday'
-## Weekends.value.fields[3].name = 'Sunday'
-print(Weekends.Sunday) -- outputs 2
+local Person = @record{name: string}
+## Person.value.fields[1].name = 'nick' -- rename field 'name' to 'nick'
+local p: Person = {nick='Joe'}
+print(p.nick) -- outputs 'Joe'
 ```
 
 The above code compile exactly as:
 
 ```nelua
-local Weekends = @enum { Friday=0, Saturday, Sunday }
-print(Weekends.Sunday)
+local Person = @record{nick: string}
+local p: Person = {nick='Joe'}
+print(p.nick) -- outputs 'Joe'
 ```
 
 As the compiler is implemented and runs using Lua, and the preprocess
@@ -1026,43 +910,28 @@ Lazy functions can make compile time dynamic functions when used in combination 
 the preprocessor:
 
 ```nelua
-function pow(x: auto, n: integer <comptime>)
-  ## x.type:is_integral() then
-    -- x is an integral type (any unsigned/signed integer)
-    local r: #[x.type]# = 1
-    ## for i=1,n.value do
-      r = r * x
-    ## end
-    return r
-  ## elseif x.type:is_float() then
-    -- x is a floating point type
-    return x ^ n
-  ##[[ else
-    -- invalid type, raise an error at compile time
-    x.node:raisef('cannot pow variable of type "%s"', tostring(x.type))
-  end ]]
+local function pow(x: auto, n: integer)
+## staticassert(x.type:is_arithmetic(), 'cannot pow variable of type "%s"', x.type)
+## if x.type:is_integral() then
+  -- x is an integral type (any unsigned/signed integer)
+  local r: #[x.type]# = 1
+  for i=1,n do
+    r = r * x
+  end
+  return r
+## elseif x.type:is_float() then
+  -- x is a floating point type
+  return x ^ n
+## end
 end
 
-pow(2, 2) -- use specialized implementation for integers
-pow(2.0, 2) -- use pow implementation for floats
-pow('a', 2) -- throws an error at compile time because of invalid type
-```
+local a = pow(2, 2) -- use specialized implementation for integers
+local b = pow(2.0, 2) -- use pow implementation for floats
+print(a,b) -- outputs: 4 4.000000
 
-### Lazy functions with blocks
-
-Blocks can be passed to lazy functions, in this case the entire function code will be always
-inlined in the call placement.
-
-```nelua
-local function unroll(count: integer <comptime>, body: block)
-  ## for i=1,count.value do
-    body()
-  ## end
-end
-
-local a = 0
-unroll(4, do a = a + 1 end) -- inline "a = a + 1" for times
-print(a) -- outputs 4
+-- uncommenting the following will trigger the compile error:
+--   error: cannot pow variable of type "string"
+--pow('a', 2)
 ```
 
 --------------------------------------------------------------------------------
@@ -1074,16 +943,21 @@ generation.
 ### Function annotations
 
 ```nelua
-function sum(a, b) <inline> -- inline function
+local function sum(a: integer, b: integer) <inline> -- C inline function
   return a + b
 end
+print(sum(1,2)) -- outputs: 3
 ```
 
 ### Variable annotations
 
 ```nelua
-local a: integer <noinit>-- don't initialize variable to zeros
-local a <volatile> = 1 -- C volatile variable
+local a: integer <noinit>-- don't initialize variable to zero
+a = 0 -- manually initialize to zero
+print(a) -- outputs: 0
+
+local b <volatile> = 1 -- C volatile variable
+print(b) -- outputs: 1
 ```
 
 --------------------------------------------------------------------------------
@@ -1093,8 +967,9 @@ Nelua can import C functions from C headers:
 
 ```nelua
 local function malloc(size: usize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
-local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<stdlib.h>',nodecl> end
+local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
 local function free(ptr: pointer) <cimport'free',cinclude'<stdlib.h>',nodecl> end
+
 local a = (@int64[10]*)(malloc(10 * 8))
 memset(a, 0, 10*8)
 assert(a[0] == 0)
@@ -1112,10 +987,10 @@ For importing C functions, additional compatibility primitive types are provided
 | Type              | C Type               | Suffixes         |
 |-------------------|----------------------|------------------|
 | `cshort`          | `short`              | `_cshort`        |
-| `cint`            | `int`                | `_clong`         |
-| `clong`           | `long`               | `_clonglong`     |
-| `clonglong`       | `long long`          | `_cptrdiff`      |
-| `cptrdiff`        | `ptrdiff_t`          | `_cchar`         |
+| `cint`            | `int`                | `_cint`          |
+| `clong`           | `long`               | `_clong`         |
+| `clonglong`       | `long long`          | `_clonglong`     |
+| `cptrdiff`        | `ptrdiff_t`          | `_cptrdiff`      |
 | `cchar`           | `char`               | `_cchar`         |
 | `cschar`          | `signed char`        | `_cschar`        |
 | `cuchar`          | `unsigned char`      | `_cuchar`        |

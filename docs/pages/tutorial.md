@@ -83,6 +83,10 @@ I recommend using the syntax highlighter,
 it makes the experience of playing around with the language more pleasant because
 it can highlight type notations.
 
+## Language features
+
+A quick tour of the language features can be seen in the [overview page](/overview).
+
 ## More examples 
 
 As the language is being developed this tutorial still quite short.
