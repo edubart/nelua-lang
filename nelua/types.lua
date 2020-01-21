@@ -37,8 +37,10 @@ function Type:suggest_nick(nick, prefix)
   if self.nick then return end
   if not prefix then
     self.codename = self.codename:gsub(string.format('^%s_', self.name), nick .. '_')
-  else
+  elseif prefix ~= '' then
     self.codename = string.format('%s_%s', prefix, nick)
+  else
+    self.codename = nick
   end
   self.nick = nick
 end

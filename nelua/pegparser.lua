@@ -6,7 +6,6 @@ local errorer = require 'nelua.utils.errorer'
 local pegger = require 'nelua.utils.pegger'
 local metamagic = require 'nelua.utils.metamagic'
 local except = require 'nelua.utils.except'
-local stringer = require 'nelua.utils.stringer'
 
 local PEGParser = class()
 
@@ -188,7 +187,9 @@ function PEGParser:match(pegname, input, inputname)
   errorer.assertf(peg, 'cannot match an input to inexistent peg "%s"', pegname)
   self.input = input
   self.inputname = inputname
-  self.modulename = pegger.filename_to_modulename(inputname)
+  if inputname then
+    self.modulename = pegger.filename_to_modulename(inputname)
+  end
   local res, errlabel, errpos = peg:match(input)
   self.input = nil
   self.inputname = nil
@@ -253,13 +254,10 @@ function PEGParser:parse(input, inputname, pegname)
   if not pegname then
     pegname = 'sourcecode'
   end
-  if not inputname then
-    inputname = 'eval_' .. stringer.hash(input, 8)
-  end
   local ast, syntaxlabel, errpos = self:match(pegname, input, inputname)
   if not ast then
     local errmsg = self.syntax_errors[syntaxlabel] or syntaxlabel
-    local message = errorer.get_pretty_source_errmsg(input, inputname, errpos, errmsg, 'syntax error')
+    local message = errorer.get_pretty_source_errmsg(input, inputname or 'input', errpos, errmsg, 'syntax error')
     except.raise({
       label = 'ParseError',
       message = message,

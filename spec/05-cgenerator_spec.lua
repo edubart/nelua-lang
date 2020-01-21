@@ -24,31 +24,31 @@ int nelua_main() {
 end)
 
 it("local variable", function()
-  assert.generate_c("do local a = 1 end", "  int64_t a = 1;")
+  assert.generate_c("local a = 1", "int64_t a = 1;")
 end)
 
 it("global variable", function()
-  assert.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
+  assert.generate_c("global a = 1", "static int64_t a = 1;\n")
 end)
 
 it("number", function()
-  assert.generate_c("do local a = 99 end", "99")
-  assert.generate_c("do local a = 1.2 end", "1.2")
-  assert.generate_c("do local a = 1e2 end", "100")
-  assert.generate_c("do local a = 0x1f end", "0x1f")
-  assert.generate_c("do local a = 0b10 end", "0x2")
-  assert.generate_c("do local a = 1e129 end", "1e+129;")
+  assert.generate_c("local a = 99", "99")
+  assert.generate_c("local a = 1.2", "1.2")
+  assert.generate_c("local a = 1e2", "100")
+  assert.generate_c("local a = 0x1f", "0x1f")
+  assert.generate_c("local a = 0b10", "0x2")
+  assert.generate_c("local a = 1e129", "1e+129;")
 end)
 
 it("number literals", function()
-  assert.generate_c("do local a = 1_integer end", "int64_t a = 1;")
-  assert.generate_c("do local a = 1_number end", "double a = 1.0;")
-  assert.generate_c("do local a = 1_byte end", "uint8_t a = 1U;")
-  assert.generate_c("do local a = 1_isize end", "intptr_t a = 1;")
-  assert.generate_c("do local a = 1_usize end", "uintptr_t a = 1U;")
-  assert.generate_c("do local a = 1_cint end", "int a = 1;")
-  assert.generate_c("do local a = 1_clong end", "long a = 1;")
-  assert.generate_c("do local a = 1_clonglong end", "long long a = 1;")
+  assert.generate_c("local a = 1_integer", "int64_t a = 1;")
+  assert.generate_c("local a = 1_number", "double a = 1.0;")
+  assert.generate_c("local a = 1_byte", "uint8_t a = 1U;")
+  assert.generate_c("local a = 1_isize", "intptr_t a = 1;")
+  assert.generate_c("local a = 1_usize", "uintptr_t a = 1U;")
+  assert.generate_c("local a = 1_cint", "int a = 1;")
+  assert.generate_c("local a = 1_clong", "long a = 1;")
+  assert.generate_c("local a = 1_clonglong", "long long a = 1;")
 end)
 
 it("type assertion", function()
@@ -62,30 +62,30 @@ it("string", function()
 end)
 
 it("boolean", function()
-  assert.generate_c("do local a = true end", "bool a = true")
-  assert.generate_c("do local a = false end", "bool a = false")
+  assert.generate_c("local a = true", "bool a = true")
+  assert.generate_c("local a = false", "bool a = false")
 end)
 
 it("nil", function()
-  assert.generate_c("do local a: nilable end", "nelua_nilable a = NELUA_NIL;")
-  assert.generate_c("do local a: nilable = nil end", "nelua_nilable a = NELUA_NIL;")
-  assert.generate_c("do local a = nil end", "nelua_any a = (nelua_any){0};")
+  assert.generate_c("local a: nilable", "nelua_nilable a = NELUA_NIL;")
+  assert.generate_c("local a: nilable = nil", "nelua_nilable a = NELUA_NIL;")
+  assert.generate_c("local a = nil", "nelua_any a = (nelua_any){0};")
   assert.generate_c("local function f(a: nilable) end f(nil)", "f(NELUA_NIL);")
 end)
 
 it("call", function()
-  assert.generate_c("f()", "mymod_f();")
-  assert.generate_c("f(g())", "mymod_f(mymod_g())")
-  assert.generate_c("f(a, b)", "mymod_f(mymod_a, mymod_b)")
-  assert.generate_c("f(a)(b)", "mymod_f(mymod_a)(mymod_b)")
-  assert.generate_c("a.f()", "mymod_a.f()")
-  --assert.generate_c("a:f(a)", "mymod_a.f(mymod_a, mymod_a)")
+  assert.generate_c("f()", "f();")
+  assert.generate_c("f(g())", "f(g())")
+  assert.generate_c("f(a, b)", "f(a, b)")
+  assert.generate_c("f(a)(b)", "f(a)(b)")
+  assert.generate_c("a.f()", "a.f()")
+  --assert.generate_c("a:f(a)", "a.f(a, a)")
   assert.generate_c("do f() end", "f();")
-  assert.generate_c("do return f() end", "return nelua_any_to_nelua_cint(mymod_f());")
-  assert.generate_c("do f(g()) end", "mymod_f(mymod_g())")
-  assert.generate_c("do f(a, b) end", "mymod_f(mymod_a, mymod_b)")
-  assert.generate_c("do f(a)(b) end", "mymod_f(mymod_a)(mymod_b)")
-  assert.generate_c("do a.f() end", "mymod_a.f()")
+  assert.generate_c("do return f() end", "return nelua_any_to_nelua_cint(f());")
+  assert.generate_c("do f(g()) end", "f(g())")
+  assert.generate_c("do f(a, b) end", "f(a, b)")
+  assert.generate_c("do f(a)(b) end", "f(a)(b)")
+  assert.generate_c("do a.f() end", "a.f()")
   --assert.generate_c("do a:f() end", "a.f(a)")
 end)
 
@@ -93,37 +93,37 @@ it("if", function()
   assert.generate_c("if nilptr then\nend","if(false) {\n")
   assert.generate_c("if nil then\nend","if(false) {\n")
   assert.generate_c("if 1 then\nend","if(true) {\n")
-  assert.generate_c("if a then\nend","if(nelua_any_to_nelua_boolean(mymod_a)) {\n")
+  assert.generate_c("if a then\nend","if(nelua_any_to_nelua_boolean(a)) {\n")
   assert.generate_c("if true then\nend","if(true) {\n  }")
   assert.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
   assert.generate_c("if true then\nelse\nend", "if(true) {\n  } else {\n  }")
-  assert.scoped_generate_c([[
-    local a: boolean, b: boolean
-    if a and b then end]],
-    "if(a && b) {\n    }")
-  assert.scoped_generate_c([[
-    local a: boolean, b: boolean, c: boolean
-    if a and b or c then end]],
-    "if((a && b) || c) {\n    }")
-  assert.scoped_generate_c([[
-    local a: boolean, b: boolean
-    if a and not b then end]],
-    "if(a && (!b)) {\n    }")
+  assert.generate_c([[
+  local a: boolean, b: boolean
+  if a and b then end]],
+  "if(a && b) {\n")
+  assert.generate_c([[
+  local a: boolean, b: boolean, c: boolean
+  if a and b or c then end]],
+  "if((a && b) || c) {\n")
+  assert.generate_c([[
+  local a: boolean, b: boolean
+  if a and not b then end]],
+  "if(a && (!b)) {\n")
 end)
 
 it("switch", function()
   assert.generate_c("do switch a case 1 then f() case 2 then g() else h() end end",[[
-    switch(mymod_a) {
+    switch(a) {
       case 1: {
-        mymod_f();
+        f();
         break;
       }
       case 2: {
-        mymod_g();
+        g();
         break;
       }
       default: {
-        mymod_h();
+        h();
         break;
       }
     }]])
@@ -168,12 +168,12 @@ end)
 
 it("for", function()
   assert.generate_c("for i=a,b do end", {
-    "for(nelua_any i = mymod_a, __end = mymod_b; i <= __end; i = i + 1) {"})
+    "for(nelua_any i = a, __end = b; i <= __end; i = i + 1) {"})
   assert.generate_c("for i=a,b do i=c end", {
-    "for(nelua_any __it = mymod_a, __end = mymod_b; __it <= __end; __it = __it + 1) {",
+    "for(nelua_any __it = a, __end = b; __it <= __end; __it = __it + 1) {",
     "nelua_any i = __it;"})
   assert.generate_c("for i=a,b,c do end",
-    "for(nelua_any i = mymod_a, __end = mymod_b, __step = mymod_c; " ..
+    "for(nelua_any i = a, __end = b, __step = c; " ..
     "__step >= 0 ? i <= __end : i >= __end; i = i + __step) {")
   assert.generate_c(
     "for i=1,<2 do end",
@@ -210,9 +210,9 @@ it("goto", function()
 end)
 
 it("variable declaration", function()
-  assert.generate_c("local a: integer", "int64_t mymod_a = 0;")
-  assert.generate_c("local a: integer = 0", "int64_t mymod_a = 0;")
-  assert.generate_c("local π = 3.14", "double mymod_uCF80 = 3.14;")
+  assert.generate_c("local a: integer", "int64_t a = 0;")
+  assert.generate_c("local a: integer = 0", "int64_t a = 0;")
+  assert.generate_c("local π = 3.14", "double uCF80 = 3.14;")
 end)
 
 it("operation on comptime variables", function()
@@ -233,7 +233,7 @@ it("operation on comptime variables", function()
   assert.generate_c([[
     local a <comptime>, b <comptime> = 1, 2
     local c <const> = (@int32)(a * b)
-  ]], "static const int32_t mymod_c = 2;")
+  ]], "static const int32_t c = 2;")
 
   assert.run_c([[
     -- sum/sub/mul
@@ -250,14 +250,14 @@ it("operation on comptime variables", function()
 end)
 
 it("assignment", function()
-  assert.scoped_generate_c("local a,b = 1,2; a = b" ,"a = b;")
+  assert.generate_c("local a,b = 1,2; a = b" ,"a = b;")
 end)
 
 it("multiple assignment", function()
-  assert.scoped_generate_c("local a,b,x,y=1,2,3,4; a, b = x, y", {
+  assert.generate_c("local a,b,x,y=1,2,3,4; a, b = x, y", {
     "__asgntmp1 = x;", "__asgntmp2 = y;",
     "a = __asgntmp1;", "b = __asgntmp2;" })
-  --assert.scoped_generate_c("local a: table, x:integer, y:integer; a.b, a[b] = x, y", {
+  --assert.generate_c("local a: table, x:integer, y:integer; a.b, a[b] = x, y", {
   --  "__asgntmp1 = x;", "__asgntmp2 = y;",
   --  "a.b = __asgntmp1;", "a[b] = __asgntmp2;" })
   assert.run_c([[
@@ -269,13 +269,13 @@ end)
 
 it("function definition", function()
   assert.generate_c("local function f() end",
-    "void mymod_f() {\n}")
+    "void f() {\n}")
   assert.generate_c(
     "local function f(): integer return 0 end",
-    "int64_t mymod_f() {\n  return 0;\n")
+    "int64_t f() {\n  return 0;\n")
   assert.generate_c(
     "local function f(a: integer): integer return a end",
-    "int64_t mymod_f(int64_t a) {\n  return a;\n}")
+    "int64_t f(int64_t a) {\n  return a;\n}")
 end)
 
 it("lazy functions", function()
@@ -308,7 +308,7 @@ it("lazy functions", function()
 
 end)
 it("global function definition", function()
-  assert.generate_c("function f() end", "static void mymod_f();")
+  assert.generate_c("function f() end", "static void f();")
   assert.run_c([[
     ## strict = true
     global function f(x: integer) return x+1 end
@@ -319,10 +319,10 @@ end)
 it("function return", function()
   assert.generate_c([[
     local function f(): integer return 0 end
-  ]], "int64_t mymod_f() {\n  return 0;")
+  ]], "int64_t f() {\n  return 0;")
   assert.generate_c([[
     local function f(): any return end
-  ]], "nelua_any mymod_f() {\n  return (nelua_any){0};")
+  ]], "nelua_any f() {\n  return (nelua_any){0};")
   assert.generate_c([[
     local function f() return end
   ]], "return;")
@@ -332,7 +332,7 @@ it("function multiple returns", function()
   assert.generate_c([[
     local function f(): (integer, boolean) return 1, true end
   ]], {
-    "function_%w+_ret mymod_f",
+    "function_%w+_ret f",
     "return %(function_%w+_ret%){1, true};"
   }, true)
   assert.generate_c([[do
@@ -404,151 +404,151 @@ it("call with side effects", function()
 end)
 
 it("unary operator `not`", function()
-  assert.scoped_generate_c("local x = not true", "x = false;")
-  assert.scoped_generate_c("local x = not false", "x = true;")
-  assert.scoped_generate_c("local x = not nil", "x = true;")
-  assert.scoped_generate_c("local x = not nilptr", "x = true;")
-  assert.scoped_generate_c("local x = not 'a'", "x = false;")
-  assert.scoped_generate_c("local a = true; local x = not a", "x = !a;")
-  --assert.scoped_generate_c("local a = nil; local x = not a", "x = true;")
-  --assert.scoped_generate_c("local a = nilptr; local x = not a", "x = !a;")
+  assert.generate_c("local x = not true", "x = false;")
+  assert.generate_c("local x = not false", "x = true;")
+  assert.generate_c("local x = not nil", "x = true;")
+  assert.generate_c("local x = not nilptr", "x = true;")
+  assert.generate_c("local x = not 'a'", "x = false;")
+  assert.generate_c("local a = true; local x = not a", "x = !a;")
+  --assert.generate_c("local a = nil; local x = not a", "x = true;")
+  --assert.generate_c("local a = nilptr; local x = not a", "x = !a;")
 end)
 
 it("unary operator `ref`", function()
-  assert.scoped_generate_c("local a = 1; local x = &a", "x = &a;")
+  assert.generate_c("local a = 1; local x = &a", "x = &a;")
 end)
 
 it("unary operator `unm`", function()
-  assert.scoped_generate_c("local a = 1; local x = -a", "-a;")
+  assert.generate_c("local a = 1; local x = -a", "-a;")
 end)
 
 it("unary operator `deref`", function()
-  assert.scoped_generate_c("local a: integer*; local x = $a", "x = *a;")
+  assert.generate_c("local a: integer*; local x = $a", "x = *a;")
 end)
 
 it("unary operator `bnot`", function()
-  assert.scoped_generate_c("local a = 1; local x = ~a", "~a;")
-  assert.scoped_generate_c("local a = 2; local x=~a",      "x = ~a;")
-  assert.scoped_generate_c("local x = ~1", "x = -2;")
-  assert.scoped_generate_c("local x = ~-2", "x = 1;")
-  assert.scoped_generate_c("local x = ~0x2_u8", "x = 253U;")
+  assert.generate_c("local a = 1; local x = ~a", "~a;")
+  assert.generate_c("local a = 2; local x=~a",      "x = ~a;")
+  assert.generate_c("local x = ~1", "x = -2;")
+  assert.generate_c("local x = ~-2", "x = 1;")
+  assert.generate_c("local x = ~0x2_u8", "x = 253U;")
 end)
 
 it("unary operator `len`", function()
-  assert.scoped_generate_c("local x = #@integer", "x = 8;")
-  assert.scoped_generate_c("local x = #'asd'", "x = 3;")
-  assert.scoped_generate_c("local x = #@integer[4]", "x = 32;")
-  --assert.scoped_generate_c("a = 'asd'; local x = #a", "x = 3;")
+  assert.generate_c("local x = #@integer", "x = 8;")
+  assert.generate_c("local x = #'asd'", "x = 3;")
+  assert.generate_c("local x = #@integer[4]", "x = 32;")
+  --assert.generate_c("a = 'asd'; local x = #a", "x = 3;")
 end)
 
 it("unary operator `lt`", function()
-  assert.scoped_generate_c("local a, b = 1, 2; local x = a < b", "a < b")
-  assert.scoped_generate_c("local x = 1 < 1", "x = false;")
-  assert.scoped_generate_c("local x = 1 < 2", "x = true;")
-  assert.scoped_generate_c("local x = 2 < 1", "x = false;")
-  assert.scoped_generate_c("local x = 'a' < 'a'", "x = false;")
-  assert.scoped_generate_c("local x = 'a' < 'b'", "x = true;")
-  assert.scoped_generate_c("local x = 'b' < 'a'", "x = false;")
+  assert.generate_c("local a, b = 1, 2; local x = a < b", "a < b")
+  assert.generate_c("local x = 1 < 1", "x = false;")
+  assert.generate_c("local x = 1 < 2", "x = true;")
+  assert.generate_c("local x = 2 < 1", "x = false;")
+  assert.generate_c("local x = 'a' < 'a'", "x = false;")
+  assert.generate_c("local x = 'a' < 'b'", "x = true;")
+  assert.generate_c("local x = 'b' < 'a'", "x = false;")
 end)
 
 it("unary operator `le`", function()
-  assert.scoped_generate_c("local a, b = 1, 2; local x = a <= b", "a <= b")
-  assert.scoped_generate_c("local x = 1 <= 1", "x = true;")
-  assert.scoped_generate_c("local x = 1 <= 2", "x = true;")
-  assert.scoped_generate_c("local x = 2 <= 1", "x = false;")
-  assert.scoped_generate_c("local x = 'a' <= 'a'", "x = true;")
-  assert.scoped_generate_c("local x = 'a' <= 'b'", "x = true;")
-  assert.scoped_generate_c("local x = 'b' <= 'a'", "x = false;")
+  assert.generate_c("local a, b = 1, 2; local x = a <= b", "a <= b")
+  assert.generate_c("local x = 1 <= 1", "x = true;")
+  assert.generate_c("local x = 1 <= 2", "x = true;")
+  assert.generate_c("local x = 2 <= 1", "x = false;")
+  assert.generate_c("local x = 'a' <= 'a'", "x = true;")
+  assert.generate_c("local x = 'a' <= 'b'", "x = true;")
+  assert.generate_c("local x = 'b' <= 'a'", "x = false;")
 end)
 
 it("unary operator `gt`", function()
-  assert.scoped_generate_c("local a, b = 1, 2; local x = a > b", "a > b")
-  assert.scoped_generate_c("local x = 1 > 1", "x = false;")
-  assert.scoped_generate_c("local x = 1 > 2", "x = false;")
-  assert.scoped_generate_c("local x = 2 > 1", "x = true;")
-  assert.scoped_generate_c("local x = 'a' > 'a'", "x = false;")
-  assert.scoped_generate_c("local x = 'a' > 'b'", "x = false;")
-  assert.scoped_generate_c("local x = 'b' > 'a'", "x = true;")
+  assert.generate_c("local a, b = 1, 2; local x = a > b", "a > b")
+  assert.generate_c("local x = 1 > 1", "x = false;")
+  assert.generate_c("local x = 1 > 2", "x = false;")
+  assert.generate_c("local x = 2 > 1", "x = true;")
+  assert.generate_c("local x = 'a' > 'a'", "x = false;")
+  assert.generate_c("local x = 'a' > 'b'", "x = false;")
+  assert.generate_c("local x = 'b' > 'a'", "x = true;")
 end)
 
 it("unary operator `ge`", function()
-  assert.scoped_generate_c("local a, b = 1, 2; local x = a >= b", "a >= b")
-  assert.scoped_generate_c("local x = 1 >= 1", "x = true;")
-  assert.scoped_generate_c("local x = 1 >= 2", "x = false;")
-  assert.scoped_generate_c("local x = 2 >= 1", "x = true;")
-  assert.scoped_generate_c("local x = 'a' >= 'a'", "x = true;")
-  assert.scoped_generate_c("local x = 'a' >= 'b'", "x = false;")
-  assert.scoped_generate_c("local x = 'b' >= 'a'", "x = true;")
+  assert.generate_c("local a, b = 1, 2; local x = a >= b", "a >= b")
+  assert.generate_c("local x = 1 >= 1", "x = true;")
+  assert.generate_c("local x = 1 >= 2", "x = false;")
+  assert.generate_c("local x = 2 >= 1", "x = true;")
+  assert.generate_c("local x = 'a' >= 'a'", "x = true;")
+  assert.generate_c("local x = 'a' >= 'b'", "x = false;")
+  assert.generate_c("local x = 'b' >= 'a'", "x = true;")
 end)
 
 it("binary operator `eq`", function()
-  assert.scoped_generate_c("local a, b = 1, 2; local x = a == b", "a == b")
-  assert.scoped_generate_c("local x = 1 == 1", "x = true;")
-  assert.scoped_generate_c("local x = 1 == 2", "x = false;")
-  assert.scoped_generate_c("local x = 1 == '1'", "x = false;")
-  assert.scoped_generate_c("local x = '1' == 1", "x = false;")
-  assert.scoped_generate_c("local x = '1' == '1'", "x = true;")
-  assert.scoped_generate_c("local a,b = 1,2; local x = a == b", "x = a == b;")
+  assert.generate_c("local a, b = 1, 2; local x = a == b", "a == b")
+  assert.generate_c("local x = 1 == 1", "x = true;")
+  assert.generate_c("local x = 1 == 2", "x = false;")
+  assert.generate_c("local x = 1 == '1'", "x = false;")
+  assert.generate_c("local x = '1' == 1", "x = false;")
+  assert.generate_c("local x = '1' == '1'", "x = true;")
+  assert.generate_c("local a,b = 1,2; local x = a == b", "x = a == b;")
 end)
 
 it("binary operator `ne`", function()
-  assert.scoped_generate_c("local a, b = 1, 2; local x = a ~= b", "a != b")
-  assert.scoped_generate_c("local x = 1 ~= 1", "x = false;")
-  assert.scoped_generate_c("local x = 1 ~= 2", "x = true;")
-  assert.scoped_generate_c("local x = 1 ~= 's'", "x = true;")
-  assert.scoped_generate_c("local x = 's' ~= 1", "x = true;")
-  assert.scoped_generate_c("local a,b = 1,2; local x = a ~= b", "x = a != b;")
+  assert.generate_c("local a, b = 1, 2; local x = a ~= b", "a != b")
+  assert.generate_c("local x = 1 ~= 1", "x = false;")
+  assert.generate_c("local x = 1 ~= 2", "x = true;")
+  assert.generate_c("local x = 1 ~= 's'", "x = true;")
+  assert.generate_c("local x = 's' ~= 1", "x = true;")
+  assert.generate_c("local a,b = 1,2; local x = a ~= b", "x = a != b;")
 end)
 
 it("binary operator `add`", function()
-  assert.scoped_generate_c("local a, b = 1, 2; local x = a + b",       "a + b;")
-  assert.scoped_generate_c("local x = 3 + 2",       "x = 5;")
-  assert.scoped_generate_c("local x = 3.0 + 2.0",   "x = 5.0;")
+  assert.generate_c("local a, b = 1, 2; local x = a + b",       "a + b;")
+  assert.generate_c("local x = 3 + 2",       "x = 5;")
+  assert.generate_c("local x = 3.0 + 2.0",   "x = 5.0;")
 end)
 
 it("binary operator `sub`", function()
-  assert.scoped_generate_c("local a, b = 1, 2; local x = a - b",       "a - b")
-  assert.scoped_generate_c("local x = 3 - 2",       "x = 1;")
-  assert.scoped_generate_c("local x = 3.0 - 2.0",   "x = 1.0;")
+  assert.generate_c("local a, b = 1, 2; local x = a - b",       "a - b")
+  assert.generate_c("local x = 3 - 2",       "x = 1;")
+  assert.generate_c("local x = 3.0 - 2.0",   "x = 1.0;")
 end)
 
 it("binary operator `mul`", function()
-  assert.scoped_generate_c("local a, b = 1, 2; local x = a * b",       "a * b")
-  assert.scoped_generate_c("local x = 3 * 2",       "x = 6;")
-  assert.scoped_generate_c("local x = 3.0 * 2.0",   "x = 6.0;")
+  assert.generate_c("local a, b = 1, 2; local x = a * b",       "a * b")
+  assert.generate_c("local x = 3 * 2",       "x = 6;")
+  assert.generate_c("local x = 3.0 * 2.0",   "x = 6.0;")
 end)
 
 it("binary operator `div`", function()
-  assert.scoped_generate_c("local x = 3 / 2",                   "x = 1.5;")
-  assert.scoped_generate_c("local x = (@float64)(3 / 2)",       "x = 1.5;")
-  assert.scoped_generate_c("local x = 3 / 2_int64",             "x = 1.5;")
-  assert.scoped_generate_c("local x = 3.0 / 2",                 "x = 1.5;")
-  assert.scoped_generate_c("local x = (@integer)(3_i / 2_i)",   "x = (int64_t)1.5;")
-  assert.scoped_generate_c("local x = (@integer)(3 / 2_int64)", "x = (int64_t)1.5;")
-  assert.scoped_generate_c("local x =  3 /  4",                 "x = 0.75;")
-  assert.scoped_generate_c("local x = -3 /  4",                 "x = -0.75;")
-  assert.scoped_generate_c("local x =  3 / -4",                 "x = -0.75;")
-  assert.scoped_generate_c("local x = -3 / -4",                 "x = 0.75;")
-  assert.scoped_generate_c("local a,b = 1,2; local x=a/b",      "x = a / (double)b;")
-  assert.scoped_generate_c("local a,b = 1.0,2.0; local x=a/b",  "x = a / b;")
+  assert.generate_c("local x = 3 / 2",                   "x = 1.5;")
+  assert.generate_c("local x = (@float64)(3 / 2)",       "x = 1.5;")
+  assert.generate_c("local x = 3 / 2_int64",             "x = 1.5;")
+  assert.generate_c("local x = 3.0 / 2",                 "x = 1.5;")
+  assert.generate_c("local x = (@integer)(3_i / 2_i)",   "x = (int64_t)1.5;")
+  assert.generate_c("local x = (@integer)(3 / 2_int64)", "x = (int64_t)1.5;")
+  assert.generate_c("local x =  3 /  4",                 "x = 0.75;")
+  assert.generate_c("local x = -3 /  4",                 "x = -0.75;")
+  assert.generate_c("local x =  3 / -4",                 "x = -0.75;")
+  assert.generate_c("local x = -3 / -4",                 "x = 0.75;")
+  assert.generate_c("local a,b = 1,2; local x=a/b",      "x = a / (double)b;")
+  assert.generate_c("local a,b = 1.0,2.0; local x=a/b",  "x = a / b;")
 end)
 
 it("binary operator `idiv`", function()
-  assert.scoped_generate_c("local x = 3 // 2",      "x = 1;")
-  assert.scoped_generate_c("local x = 3 // 2.0",    "x = 1.0;")
-  assert.scoped_generate_c("local x = 3.0 // 2.0",  "x = 1.0;")
-  assert.scoped_generate_c("local x = 3.0 // 2",    "x = 1.0;")
-  assert.scoped_generate_c("local x =  7 //  3",    "x = 2;")
-  assert.scoped_generate_c("local x = -7 //  3",    "x = -3;")
-  assert.scoped_generate_c("local x =  7 // -3",    "x = -3;")
-  assert.scoped_generate_c("local x = -7 // -3",    "x = 2;")
-  assert.scoped_generate_c("local x =  7 //  3.0",  "x = 2.0;")
-  assert.scoped_generate_c("local x = -7 //  3.0",  "x = -3.0;")
-  assert.scoped_generate_c("local x =  7 // -3.0",  "x = -3.0;")
-  assert.scoped_generate_c("local x = -7 // -3.0",  "x = 2.0;")
-  assert.scoped_generate_c("local a,b = 1_u,2_u; local x=a//b",      "x = a / b;")
-  assert.scoped_generate_c("local a,b = 1,2; local x=a//b",      "x = nelua_idiv_i64(a, b);")
-  assert.scoped_generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = floor(a / b);")
+  assert.generate_c("local x = 3 // 2",      "x = 1;")
+  assert.generate_c("local x = 3 // 2.0",    "x = 1.0;")
+  assert.generate_c("local x = 3.0 // 2.0",  "x = 1.0;")
+  assert.generate_c("local x = 3.0 // 2",    "x = 1.0;")
+  assert.generate_c("local x =  7 //  3",    "x = 2;")
+  assert.generate_c("local x = -7 //  3",    "x = -3;")
+  assert.generate_c("local x =  7 // -3",    "x = -3;")
+  assert.generate_c("local x = -7 // -3",    "x = 2;")
+  assert.generate_c("local x =  7 //  3.0",  "x = 2.0;")
+  assert.generate_c("local x = -7 //  3.0",  "x = -3.0;")
+  assert.generate_c("local x =  7 // -3.0",  "x = -3.0;")
+  assert.generate_c("local x = -7 // -3.0",  "x = 2.0;")
+  assert.generate_c("local a,b = 1_u,2_u; local x=a//b",      "x = a / b;")
+  assert.generate_c("local a,b = 1,2; local x=a//b",      "x = nelua_idiv_i64(a, b);")
+  assert.generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = floor(a / b);")
   assert.run_c([[
     do
       local a, b = 7, 3
@@ -570,25 +570,25 @@ it("binary operator `idiv`", function()
 end)
 
 it("binary operator `mod`", function()
-  --assert.scoped_generate_c("local x = a % b")
-  assert.scoped_generate_c("local x = 3 % 2",       "x = 1;")
-  assert.scoped_generate_c("local x = 3.0 % 2.0",   "x = 1.0;")
-  assert.scoped_generate_c("local x = 3.0 % 2",     "x = 1.0;")
-  assert.scoped_generate_c("local x = 3 % 2.0",     "x = 1.0;")
-  assert.scoped_generate_c("local x =  7 %  3",     "x = 1;")
-  assert.scoped_generate_c("local x = -7 %  3",     "x = 2;")
-  assert.scoped_generate_c("local x =  7 % -3",     "x = -2;")
-  assert.scoped_generate_c("local x = -7 % -3",     "x = -1;")
-  assert.scoped_generate_c("local x =  7 %  3.0",   "x = 1.0;")
-  assert.scoped_generate_c("local x = -7 %  3.0",   "x = 2.0;")
-  assert.scoped_generate_c("local x =  7 % -3.0",   "x = -2.0;")
-  assert.scoped_generate_c("local x = -7 % -3.0",   "x = -1.0;")
-  assert.scoped_generate_c("local x = -7.0 % 3.0",  "x = 2.0;")
-  assert.scoped_generate_c("local a, b = 3, 2;     local x = a % b", "x = nelua_imod_i64(a, b);")
-  assert.scoped_generate_c("local a, b = 3_u, 2_u; local x = a % b", "x = a % b;")
-  assert.scoped_generate_c("local a, b = 3.0, 2;   local x = a % b", "x = nelua_fmod(a, b);")
-  assert.scoped_generate_c("local a, b = 3, 2.0;   local x = a % b", "x = nelua_fmod(a, b);")
-  assert.scoped_generate_c("local a, b = 3.0, 2.0; local x = a % b", "x = nelua_fmod(a, b);")
+  --assert.generate_c("local x = a % b")
+  assert.generate_c("local x = 3 % 2",       "x = 1;")
+  assert.generate_c("local x = 3.0 % 2.0",   "x = 1.0;")
+  assert.generate_c("local x = 3.0 % 2",     "x = 1.0;")
+  assert.generate_c("local x = 3 % 2.0",     "x = 1.0;")
+  assert.generate_c("local x =  7 %  3",     "x = 1;")
+  assert.generate_c("local x = -7 %  3",     "x = 2;")
+  assert.generate_c("local x =  7 % -3",     "x = -2;")
+  assert.generate_c("local x = -7 % -3",     "x = -1;")
+  assert.generate_c("local x =  7 %  3.0",   "x = 1.0;")
+  assert.generate_c("local x = -7 %  3.0",   "x = 2.0;")
+  assert.generate_c("local x =  7 % -3.0",   "x = -2.0;")
+  assert.generate_c("local x = -7 % -3.0",   "x = -1.0;")
+  assert.generate_c("local x = -7.0 % 3.0",  "x = 2.0;")
+  assert.generate_c("local a, b = 3, 2;     local x = a % b", "x = nelua_imod_i64(a, b);")
+  assert.generate_c("local a, b = 3_u, 2_u; local x = a % b", "x = a % b;")
+  assert.generate_c("local a, b = 3.0, 2;   local x = a % b", "x = nelua_fmod(a, b);")
+  assert.generate_c("local a, b = 3, 2.0;   local x = a % b", "x = nelua_fmod(a, b);")
+  assert.generate_c("local a, b = 3.0, 2.0; local x = a % b", "x = nelua_fmod(a, b);")
   assert.run_c([[
     do
       local a, b = 7, 3
@@ -610,56 +610,56 @@ it("binary operator `mod`", function()
 end)
 
 it("binary operator `pow`", function()
-  --assert.scoped_generate_c("local x = a ^ b")
-  assert.scoped_generate_c("local a,b = 2,2; local x = a ^ b", "x = pow(a, b);")
-  assert.scoped_generate_c("local x = 2 ^ 2", "x = 4.0;")
-  assert.scoped_generate_c("local x = 2_f32 ^ 2_f32", "x = 4.0f;")
-  assert.scoped_generate_c("local a,b = 2_f32,2_f32; local x = a ^ b", "x = powf(a, b);")
+  --assert.generate_c("local x = a ^ b")
+  assert.generate_c("local a,b = 2,2; local x = a ^ b", "x = pow(a, b);")
+  assert.generate_c("local x = 2 ^ 2", "x = 4.0;")
+  assert.generate_c("local x = 2_f32 ^ 2_f32", "x = 4.0f;")
+  assert.generate_c("local a,b = 2_f32,2_f32; local x = a ^ b", "x = powf(a, b);")
 end)
 
 it("binary operator `band`", function()
-  assert.scoped_generate_c("local x = 3 & 5",                   "x = 1;")
-  assert.scoped_generate_c("local x = -0xfffffffd & 5",         "x = 1;")
-  assert.scoped_generate_c("local x = -3 & -5",                 "x = -7;")
-  assert.scoped_generate_c("local x = -3_i32 & 0xfffffffb_u32", "x = -7;")
+  assert.generate_c("local x = 3 & 5",                   "x = 1;")
+  assert.generate_c("local x = -0xfffffffd & 5",         "x = 1;")
+  assert.generate_c("local x = -3 & -5",                 "x = -7;")
+  assert.generate_c("local x = -3_i32 & 0xfffffffb_u32", "x = -7;")
 end)
 
 it("binary operator `bor`", function()
-  assert.scoped_generate_c("local a,b = 1,2; local x = a | b", "a | b;")
-  assert.scoped_generate_c("local x = 3 | 5", "x = 7;")
-  assert.scoped_generate_c("local x = 3 | -5", "x = -5;")
-  assert.scoped_generate_c("local x = -0xfffffffffffffffd | 5", "x = 7;")
-  assert.scoped_generate_c("local x = -3 | -5", "x = -1;")
+  assert.generate_c("local a,b = 1,2; local x = a | b", "a | b;")
+  assert.generate_c("local x = 3 | 5", "x = 7;")
+  assert.generate_c("local x = 3 | -5", "x = -5;")
+  assert.generate_c("local x = -0xfffffffffffffffd | 5", "x = 7;")
+  assert.generate_c("local x = -3 | -5", "x = -1;")
 end)
 
 it("binary operator `bxor`", function()
-  assert.scoped_generate_c("local a,b = 1,2; local x = a ~ b", "a ^ b;")
-  assert.scoped_generate_c("local x = 3 ~ 5", "x = 6;")
-  assert.scoped_generate_c("local x = 3 ~ -5", "x = -8;")
-  assert.scoped_generate_c("local x = -3 ~ -5", "x = 6;")
+  assert.generate_c("local a,b = 1,2; local x = a ~ b", "a ^ b;")
+  assert.generate_c("local x = 3 ~ 5", "x = 6;")
+  assert.generate_c("local x = 3 ~ -5", "x = -8;")
+  assert.generate_c("local x = -3 ~ -5", "x = 6;")
 end)
 
 it("binary operator `shl`", function()
-  assert.scoped_generate_c("local a,b = 1,2; local x = a << b", "a << b;")
-  assert.scoped_generate_c("local x = 6 << 1", "x = 12;")
-  assert.scoped_generate_c("local x = 6 << 0", "x = 6;")
-  assert.scoped_generate_c("local x = 6 << -1", "x = 3;")
+  assert.generate_c("local a,b = 1,2; local x = a << b", "a << b;")
+  assert.generate_c("local x = 6 << 1", "x = 12;")
+  assert.generate_c("local x = 6 << 0", "x = 6;")
+  assert.generate_c("local x = 6 << -1", "x = 3;")
 end)
 
 it("binary operator `shr`", function()
-  assert.scoped_generate_c("local a,b = 1,2; local x = a >> b", "a >> b;")
-  assert.scoped_generate_c("local x = 6 >> 1", "x = 3;")
-  assert.scoped_generate_c("local x = 6 >> 0", "x = 6;")
-  assert.scoped_generate_c("local x = 6 >> -1", "x = 12;")
+  assert.generate_c("local a,b = 1,2; local x = a >> b", "a >> b;")
+  assert.generate_c("local x = 6 >> 1", "x = 3;")
+  assert.generate_c("local x = 6 >> 0", "x = 6;")
+  assert.generate_c("local x = 6 >> -1", "x = 12;")
 end)
 
 it("binary operator `concat`", function()
-  assert.scoped_generate_c("local x = 'a' .. 'b'", [["ab"]])
+  assert.generate_c("local x = 'a' .. 'b'", [["ab"]])
 end)
 
 it("string comparisons", function()
-  assert.generate_c("do local a,b = 'a','b'; local x = a == b end", "nelua_string_eq(a, b)")
-  assert.generate_c("do local a,b = 'a','b'; local x = a ~= b end", "nelua_string_ne(a, b)")
+  assert.generate_c("local a,b = 'a','b'; local x = a == b", "nelua_string_eq(a, b)")
+  assert.generate_c("local a,b = 'a','b'; local x = a ~= b", "nelua_string_ne(a, b)")
   assert.run_c([[
     assert('a' == 'a')
     assert(not ('a' ~= 'a'))
@@ -675,24 +675,24 @@ it("string comparisons", function()
 end)
 
 it("binary conditional operators", function()
-  assert.scoped_generate_c("local a, b; do return a or b end",  [[({
-        nelua_any t1_ = a; nelua_unused(t1_);
-        nelua_any t2_ = {0}; nelua_unused(t2_);
-        bool cond_ = nelua_any_to_nelua_boolean(t1_);
-        if(cond_)
-          t2_ = b;
-        cond_ ? t1_ : t2_;
-      })]])
-  assert.scoped_generate_c("local a, b; return a and b",  [[({
+  assert.generate_c("local a, b; do return a or b end",  [[({
       nelua_any t1_ = a; nelua_unused(t1_);
       nelua_any t2_ = {0}; nelua_unused(t2_);
       bool cond_ = nelua_any_to_nelua_boolean(t1_);
-      if(cond_) {
+      if(cond_)
         t2_ = b;
-        cond_ = nelua_any_to_nelua_boolean(t2_);
-      }
-      cond_ ? t2_ : (nelua_any){0};
+      cond_ ? t1_ : t2_;
     })]])
+  assert.generate_c("local a, b; return a and b",  [[({
+    nelua_any t1_ = a; nelua_unused(t1_);
+    nelua_any t2_ = {0}; nelua_unused(t2_);
+    bool cond_ = nelua_any_to_nelua_boolean(t1_);
+    if(cond_) {
+      t2_ = b;
+      cond_ = nelua_any_to_nelua_boolean(t2_);
+    }
+    cond_ ? t2_ : (nelua_any){0};
+  })]])
   assert.run_c([[
     local a = 2 or 3
     assert(a == 2)
@@ -772,30 +772,32 @@ it("expressions with side effects", function()
 end)
 
 it("c types", function()
-  assert.generate_c("do local a: integer end", "int64_t a = 0;")
-  assert.generate_c("do local a: number end", "double a = 0.0;")
-  assert.generate_c("do local a: byte end", "uint8_t a = 0U;")
-  assert.generate_c("do local a: float64 end", "double a = 0.0;")
-  assert.generate_c("do local a: float32 end", "float a = 0.0f;")
-  assert.generate_c("do local a: pointer end", "void* a = NULL;")
-  assert.generate_c("do local a: int64 end", "int64_t a = 0;")
-  assert.generate_c("do local a: int32 end", "int32_t a = 0;")
-  assert.generate_c("do local a: int16 end", "int16_t a = 0;")
-  assert.generate_c("do local a: int8 end", "int8_t a = 0;")
-  assert.generate_c("do local a: isize end", "intptr_t a = 0;")
-  assert.generate_c("do local a: uint64 end", "uint64_t a = 0U;")
-  assert.generate_c("do local a: uint32 end", "uint32_t a = 0U;")
-  assert.generate_c("do local a: uint16 end", "uint16_t a = 0U;")
-  assert.generate_c("do local a: uint8 end", "uint8_t a = 0U;")
-  assert.generate_c("do local a: usize end", "uintptr_t a = 0U;")
-  assert.generate_c("do local a: boolean end", "bool a = false;")
+  assert.generate_c("local a: integer", "int64_t a = 0;")
+  assert.generate_c("local a: number", "double a = 0.0;")
+  assert.generate_c("local a: byte", "uint8_t a = 0U;")
+  assert.generate_c("local a: float64", "double a = 0.0;")
+  assert.generate_c("local a: float32", "float a = 0.0f;")
+  assert.generate_c("local a: pointer", "void* a = NULL;")
+  assert.generate_c("local a: int64", "int64_t a = 0;")
+  assert.generate_c("local a: int32", "int32_t a = 0;")
+  assert.generate_c("local a: int16", "int16_t a = 0;")
+  assert.generate_c("local a: int8", "int8_t a = 0;")
+  assert.generate_c("local a: isize", "intptr_t a = 0;")
+  assert.generate_c("local a: uint64", "uint64_t a = 0U;")
+  assert.generate_c("local a: uint32", "uint32_t a = 0U;")
+  assert.generate_c("local a: uint16", "uint16_t a = 0U;")
+  assert.generate_c("local a: uint8", "uint8_t a = 0U;")
+  assert.generate_c("local a: usize", "uintptr_t a = 0U;")
+  assert.generate_c("local a: boolean", "bool a = false;")
 end)
 
 it("reserved names quoting", function()
+  assert.config.inputname = 'mymod'
   assert.generate_c("local default: integer", "int64_t mymod_default = 0;")
   assert.generate_c("local NULL: integer = 0", "int64_t mymod_NULL = 0;")
   assert.generate_c("do local default: integer end", "int64_t default_ = 0;")
   assert.generate_c("do local NULL: integer = 0 end", "int64_t NULL_ = 0;")
+  assert.config.inputname = nil
   assert.run_c([[
     local function struct(double: integer)
       local default: integer
@@ -827,7 +829,7 @@ end)
 
 it("any type", function()
   assert.generate_c(
-    "do local a: any end",
+    "local a: any",
     "nelua_any a = {0};")
   assert.generate_c(
     "do local a: any; local b: any = a end",
@@ -1063,7 +1065,7 @@ it("record globals", function()
     local MathNumber = Math.Number
     local a: MathNumber = 1
     assert(a == 1)
-  ]], "double mymod_Math_PI = 3.14")
+  ]], "double Math_PI = 3.14")
   assert.run_c([[
     local Math = @record{}
     global Math.PI = 3.14
@@ -1143,7 +1145,7 @@ it("automatic dereference", function()
 end)
 
 it("nilptr", function()
-  assert.generate_c("do local p: pointer = nilptr end", "void* p = NULL")
+  assert.generate_c("local p: pointer = nilptr", "void* p = NULL")
   assert.run_c([[
     local p: pointer = nilptr
     assert(p == nilptr)
@@ -1180,15 +1182,15 @@ end)
 
 it("annotations", function()
   assert.generate_c("local huge: number <cimport'HUGE_VAL',cinclude'<math.h>',nodecl>", "include <math.h>")
-  assert.generate_c("local a: int64 <volatile, codename 'a'>", "volatile int64_t mymod_a")
-  assert.generate_c("local a: int64 <register>", "register int64_t mymod_a")
-  assert.generate_c("local a: int64 <restrict>", "restrict int64_t mymod_a")
+  assert.generate_c("local a: int64 <volatile, codename 'a'>", "volatile int64_t a")
+  assert.generate_c("local a: int64 <register>", "register int64_t a")
+  assert.generate_c("local a: int64 <restrict>", "restrict int64_t a")
   assert.generate_c("local a: int64 <nodecl>", "")
-  assert.generate_c("local a: int64 <noinit>", "mymod_a;")
-  assert.generate_c("local a: int64 <cexport>", "extern int64_t mymod_a;")
+  assert.generate_c("local a: int64 <noinit>", "a;")
+  assert.generate_c("local a: int64 <cexport>", "extern int64_t a;")
   assert.generate_c("do local a <static> = 1 end", "static int64_t a = 1;", true)
-  assert.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t mymod_a __attribute__((vector_size(16)))")
-  assert.generate_c("local a: number <cqualifier 'in'> = 1", "in double mymod_a = 1.0;")
+  assert.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t a __attribute__((vector_size(16)))")
+  assert.generate_c("local a: number <cqualifier 'in'> = 1", "in double a = 1.0;")
   assert.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R", "__attribute__((aligned(16)));")
   assert.generate_c("local function f() <inline> end", "inline void")
   assert.generate_c("local function f() <noreturn> end", "nelua_noreturn void")
@@ -1381,8 +1383,8 @@ it("context states", function()
     ## noinit = false
     local b: integer
   ]], {
-    "\nstatic int64_t mymod_a;\n",
-    "\nstatic int64_t mymod_b = 0;\n"
+    "\nstatic int64_t a;\n",
+    "\nstatic int64_t b = 0;\n"
   })
 
   assert.generate_c([[
@@ -1391,8 +1393,8 @@ it("context states", function()
     ## nostatic = false
     local b: integer
   ]], {
-    "\nint64_t mymod_a = 0;\n",
-    "\nstatic int64_t mymod_b = 0;\n"
+    "\nint64_t a = 0;\n",
+    "\nstatic int64_t b = 0;\n"
   })
 
   assert.generate_c([[
@@ -1408,8 +1410,8 @@ it("context states", function()
     ## nostatic = false
     local b: integer
   ]], {
-    "\nint64_t mymod_a = 0;\n",
-    "\nstatic int64_t mymod_b = 0;\n"
+    "\nint64_t a = 0;\n",
+    "\nstatic int64_t b = 0;\n"
   })
 
   assert.generate_c([[
@@ -1502,6 +1504,15 @@ it("name collision", function()
     local function foo() print 'c' end
     foo()
   ]], "a\nb\nc\n")
+end)
+
+it("top scope variables prefix", function()
+  assert.config.inputname = 'mymod'
+  assert.generate_c("local a = 1", "int64_t mymod_a = 1;")
+  assert.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
+  assert.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
+  assert.generate_c("local function f() end", "void mymod_f() {\n}")
+  assert.config.inputname = nil
 end)
 
 end)

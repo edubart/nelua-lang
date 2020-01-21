@@ -387,7 +387,7 @@ function visitors.TypeInstance(context, node, symbol)
   if symbol and not attr.value:is_primitive() then
     local prefix
     if context.nohashcodenames then
-      prefix = context.modname or context.ast.modname
+      prefix = context.modname or context.ast.modname or ''
     end
     attr.value:suggest_nick(symbol.name, prefix)
   end

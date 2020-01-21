@@ -24,11 +24,13 @@ local function run(argv, redirect)
   end
 
   -- determine input
-  local input = config.input
-  local infile
-  if not config.eval then
-    infile = input
-    input = fs.readfile(input)
+  local input, infile
+  if config.eval then
+    infile = 'eval_' .. stringer.hash(config.input, 8)
+    input = config.input
+  else
+    infile = config.input
+    input = fs.readfile(infile)
   end
 
   -- parse ast

@@ -32,6 +32,28 @@ function Scope:is_topscope()
   return self.main or (self.parent and self.parent.main)
 end
 
+--[[
+function Scope:is_onheap()
+  local scope = self
+  while scope do
+    if scope.kind == 'function' then
+      if scope.parent and scope.parent.kind == 'root' then
+        return true
+      else
+        -- nested function
+        return false
+      end
+    elseif scope.kind == 'root' then
+      return true
+    else
+      assert(scope.kind == 'block')
+    end
+    scope = scope.parent
+  end
+  return false
+end
+]]
+
 function Scope:get_parent_of_kind(kind)
   local parent = self
   repeat

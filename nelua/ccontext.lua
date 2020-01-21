@@ -35,7 +35,7 @@ function CContext:declname(node)
     if not attr.cimport and not attr.metavar then
       if attr.staticstorage then
         local modname = attr.modname or node.modname
-        if modname ~= '' then
+        if modname then
           declname = string.format('%s_%s', modname, declname)
         end
       end
