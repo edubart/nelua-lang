@@ -495,6 +495,20 @@ it("macros", function()
   print(counter)
   counter = counter + 1
 ]=])
+
+  assert.ast_type_equals([=[
+  ## local function gettype(T)
+    local t = @#(T)#
+    ## return t.value
+  ## end
+
+  local T: type = @#[gettype('byte')]#
+  local v: T = 0
+]=],[=[
+  local t = @byte
+  local T: type = @t
+  local v: T = 0
+]=])
 end)
 
 

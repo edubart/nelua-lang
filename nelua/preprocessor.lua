@@ -6,7 +6,9 @@ local Context = require 'nelua.context'
 local PPContext = require 'nelua.ppcontext'
 local Emitter = require 'nelua.emitter'
 local except = require 'nelua.utils.except'
+local errorer = require 'nelua.utils.errorer'
 local config = require 'nelua.configer'.get()
+local stringer = require 'nelua.utils.stringer'
 
 local function pp_default_visitor(self, node, emitter, ...)
   for i=1,node.nargs or #node do
@@ -57,7 +59,6 @@ function visitors.Block(ppcontext, node, emitter)
   local blockregidx = ppcontext:getregistryindex(node)
   emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess = function(blocknode)')
   emitter:inc_indent()
-  emitter:add_indent_ln('local ppstatnode')
   emitter:add_indent_ln('local ppstatnodes = ppcontext:push_statnodes()')
   emitter:add_indent_ln('local injectnode = function(node) table.insert(ppstatnodes, node) context:traverse(node) end')
   emitter:add_indent_ln('blocknode[1] = ppstatnodes')
@@ -65,10 +66,9 @@ function visitors.Block(ppcontext, node, emitter)
   emitter:inc_indent()
   for _,statnode in ipairs(statnodes) do
     local statregidx = ppcontext:getregistryindex(statnode)
-    emitter:add_indent_ln('ppstatnode = ppcontext:get_registry(', statregidx, ')')
     ppcontext:traverse(statnode, emitter)
     if statnode.tag ~= 'Preprocess' then
-      emitter:add_indent_ln('injectnode(ppstatnode:clone())')
+      emitter:add_indent_ln('injectnode(ppregistry[', statregidx, ']:clone())')
     end
   end
   emitter:dec_indent()
@@ -140,6 +140,15 @@ function preprocessor.preprocess(context, ast)
 
   -- generate the preprocess function`
   local ppcode = emitter:generate()
+
+  local function raise_preprocess_error(msg, ...)
+    msg = stringer.pformat(msg, ...)
+    local lineno = debug.getinfo(3).currentline
+    msg = errorer.get_pretty_source_line_errmsg(ppcode, 'preprocessor', lineno, msg)
+    except.raise(msg, 2)
+  end
+
+
   local env
   env = setmetatable({
     context = context,
@@ -155,7 +164,7 @@ function preprocessor.preprocess(context, ast)
         else
           msg = 'static assertion failed: ' .. msg
         end
-        ppcontext.lastregnode:raisef(msg, ...)
+        raise_preprocess_error(msg, ...)
       end
       return status
     end,
@@ -174,7 +183,7 @@ function preprocessor.preprocess(context, ast)
         local args = tabler.pack(...)
         local ok, err = typedefs.call_pragmas[key](args)
         if not ok then
-          ppcontext.lastregnode:raisef("invalid arguments for preprocess function '%s': %s", key, err)
+          raise_preprocess_error("invalid arguments for preprocess function '%s': %s", key, err)
         end
         ppcontext:add_statnode(aster.PragmaCall{key, tabler.pack(...)})
       end
@@ -185,7 +194,7 @@ function preprocessor.preprocess(context, ast)
     if typedefs.field_pragmas[key] then
       local ok, err = typedefs.field_pragmas[key](value)
       if not ok then
-        ppcontext.lastregnode:raisef("invalid type for preprocess variable '%s': %s", key, err)
+        raise_preprocess_error("invalid type for preprocess variable '%s': %s", key, err)
       end
       context[key] = value
     else
@@ -194,13 +203,13 @@ function preprocessor.preprocess(context, ast)
   end})
 
   -- try to run the preprocess otherwise capture and show the error
-  local ppfunc, err = compat.load(ppcode, '@pp', "t", env)
+  local ppfunc, err = compat.load(ppcode, '@preprocessor', "t", env)
   local ok = not err
   if ppfunc then
     ok, err = except.trycall(ppfunc)
   end
   if not ok then
-    ast:raisef('error while preprocessing file: %s', err)
+    ast:raisef('error while preprocessing: %s', err)
   end
 end
 

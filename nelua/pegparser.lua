@@ -257,7 +257,7 @@ function PEGParser:parse(input, inputname, pegname)
   local ast, syntaxlabel, errpos = self:match(pegname, input, inputname)
   if not ast then
     local errmsg = self.syntax_errors[syntaxlabel] or syntaxlabel
-    local message = errorer.get_pretty_source_errmsg(input, inputname or 'input', errpos, errmsg, 'syntax error')
+    local message = errorer.get_pretty_source_pos_errmsg(input, inputname or 'input', errpos, errmsg, 'syntax error')
     except.raise({
       label = 'ParseError',
       message = message,

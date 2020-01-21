@@ -13,12 +13,6 @@ function PPContext:_init(visitors, context)
   self.registry = {}
 end
 
-function PPContext:get_registry(index)
-  local node = self.registry[index]
-  self.lastregnode = node
-  return node
-end
-
 function PPContext:push_statnodes()
   local statnodes = {oldstatnodes = self.statnodes}
   self.statnodes = statnodes

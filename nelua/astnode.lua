@@ -106,7 +106,7 @@ end
 function ASTNode:format_errmsg(message, ...)
   message = stringer.pformat(message, ...)
   if self.src and self.pos then
-    message = errorer.get_pretty_source_errmsg(self.src, self.srcname, self.pos, message)
+    message = errorer.get_pretty_source_pos_errmsg(self.src, self.srcname, self.pos, message)
   end
   return message
 end

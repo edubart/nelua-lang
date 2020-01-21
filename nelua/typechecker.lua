@@ -980,7 +980,9 @@ end
 
 function visitors.Block(context, node, scopecb)
   if node.preprocess then
-    local ok, err = except.trycall(function() node:preprocess() end)
+    local ok, err = except.trycall(function()
+      node:preprocess()
+    end)
     if not ok then
       node:raisef('error while preprocessing block: %s', err)
     end
