@@ -456,6 +456,48 @@ it("preprocessor functions", function()
   ]=])
 end)
 
+it("macros", function()
+  assert.ast_type_equals([=[
+  ## function increment(a, amount)
+    #(a.name)# = #(a.name)# + #[amount]#
+  ## end
+  local x = 0
+  ## increment(x, 4)
+  print(x)
+]=],[=[
+  local x = 0
+  x = x + 4
+  print(x)
+]=])
+
+  assert.ast_type_equals([=[
+  ##[[
+  function unroll(count, block)
+    for i=1,count do
+      block()
+    end
+  end
+  ]]
+
+  local counter = 1
+  ## unroll(4, function()
+    print(counter) -- outputs: 1 2 3 4
+    counter = counter + 1
+  ## end)
+]=],[=[
+  local counter = 1
+  print(counter)
+  counter = counter + 1
+  print(counter)
+  counter = counter + 1
+  print(counter)
+  counter = counter + 1
+  print(counter)
+  counter = counter + 1
+]=])
+end)
+
+
 it("run brainfuck", function()
   assert.run('--generator c examples/brainfuck.nelua', 'Hello World!')
 end)

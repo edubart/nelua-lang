@@ -419,6 +419,49 @@ do -- Name replacement
   #('foo' .. 1)#() -- outputs: foo
 end
 
+do -- Macros
+  ## function increment(a, amount)
+    -- 'a' in the preprocessor context is a symbol, we access its name here
+    -- 'amount' in the processor context is a lua number
+    #(a.name)# = #(a.name)# + #[amount]#
+  ## end
+  local x = 0
+  ## increment(x, 4)
+  print(x)
+
+  -- unroll
+  ##[[
+  function unroll(count, block)
+    for i=1,count do
+      block()
+    end
+  end
+  ]]
+
+  local counter = 1
+  ## unroll(4, function()
+    print(counter) -- outputs: 1 2 3 4
+    counter = counter + 1
+  ## end)
+
+  -- generic
+  ## function Point(PointT, T)
+    local #(PointT)# = @record { x: #(T)#, y: #(T)# }
+    function #(PointT)#:squaredlength()
+      return self.x*self.x + self.y*self.y
+    end
+  ## end
+
+  ## Point('PointFloat', 'float64')
+  ## Point('PointInt', 'int64')
+
+  local pa: PointFloat = {x=1,y=2}
+  print(pa:squaredlength()) -- outputs: 5
+
+  local pb: PointInt = {x=1,y=2}
+  print(pb:squaredlength()) -- outputs: 5.000000
+end
+
 do -- Processing on the fly
   local Weekends = @enum { Friday=0, Saturday, Sunday }
   ## for i,field in ipairs(Weekends.value.fields) do

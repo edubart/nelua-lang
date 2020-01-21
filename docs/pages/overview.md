@@ -709,7 +709,7 @@ print(counter) -- outputs 2
 
 Lazy functions are functions which contains arguments that it's proprieties can
 only be known when calling the function at compile time,
-they are processed and defined lazily and lately after trying to call it.
+they are processed and defined lazily (lately) after trying to call it.
 They are memoized (only defined once for each kind of arguments).
 
 ```nelua
@@ -808,7 +808,7 @@ Using the lua preprocessor you can generate complex codes at compile time.
 
 ### Emitting AST nodes
 
-It's also possible to emit new AST node while preprocessing:
+It's possible to emit new AST node while preprocessing:
 
 ```nelua
 local a = #[aster.Number{'dec','1'}]#
@@ -860,6 +860,82 @@ The above code compile exactly as:
 local myvar = 1
 local function foo1() print 'foo' end
 foo1()
+```
+
+### Preprocessor macros
+
+Macros can be created by declaring functions in the preprocessor with its body
+containing normal code:
+
+```nelua
+## function increment(a, amount)
+  -- 'a' in the preprocessor context is a symbol, we need to use its name
+  -- 'amount' in the processor context is a lua number
+  #(a.name)# = #(a.name)# + #[amount]#
+## end
+local x = 0
+## increment(x, 4)
+print(x)
+```
+
+The above code compile exactly as:
+
+```nelua
+local x = 0
+x = x + 4
+print(x)
+```
+
+Block of codes can be passed to macros by surrounding it inside a function:
+
+```nelua
+##[[
+function unroll(count, block)
+  for i=1,count do
+    block()
+  end
+end
+]]
+
+local counter = 1
+## unroll(4, function()
+  print(counter) -- outputs: 1 2 3 4
+  counter = counter + 1
+## end)
+```
+
+The above code compile exactly as:
+
+```nelua
+local counter = 1
+print(counter)
+counter = counter + 1
+print(counter)
+counter = counter + 1
+print(counter)
+counter = counter + 1
+print(counter)
+counter = counter + 1
+```
+
+Using macros its possible to create generic code:
+
+```nelua
+## function Point(PointT, T)
+  local #(PointT)# = @record { x: #(T)#, y: #(T)# }
+  function #(PointT)#:squaredlength()
+    return self.x*self.x + self.y*self.y
+  end
+## end
+
+## Point('PointFloat', 'float64')
+## Point('PointInt', 'int64')
+
+local pa: PointFloat = {x=1,y=2}
+print(pa:squaredlength()) -- outputs: 5
+
+local pb: PointInt = {x=1,y=2}
+print(pb:squaredlength()) -- outputs: 5.000000
 ```
 
 ### Processing on the fly
