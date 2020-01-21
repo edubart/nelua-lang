@@ -1402,6 +1402,9 @@ local function visitor_FuncDef_variable(context, varscope, varnode)
   if decl then
     varnode.attr.funcdecl = true
   end
+  if context.nostatic then
+    varnode.attr.nostatic = true
+  end
   local symbol = context:traverse(varnode)
   if symbol and symbol.metafunc then
     decl = true

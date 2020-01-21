@@ -1390,11 +1390,15 @@ it("context states", function()
   assert.generate_c([[
     ## nostatic = true
     local a: integer
+    local function f() end
     ## nostatic = false
     local b: integer
+    local function g() end
   ]], {
     "\nint64_t a = 0;\n",
-    "\nstatic int64_t b = 0;\n"
+    "\nstatic int64_t b = 0;\n",
+    "\nvoid f()",
+    "\nstatic void g()",
   })
 
   assert.generate_c([[
