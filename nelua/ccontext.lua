@@ -148,7 +148,7 @@ function CContext:add_definition(code, name)
   table.insert(self.definitions, code)
 end
 
-function CContext:is_declarated(name)
+function CContext:is_declared(name)
   return self.declarations[name] == true
 end
 

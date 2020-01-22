@@ -556,7 +556,7 @@ local function visitor_Record_FieldIndex(_, node, objtype, name)
   local field = objtype:get_field(name)
   local type = field and field.type
   if not type then
-    node:raisef("cannot index field '%s' on enum '%s'", name, objtype:prettyname())
+    node:raisef("cannot index field '%s' on record '%s'", name, objtype:prettyname())
   end
   node.attr.type = type
 end

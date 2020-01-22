@@ -13,7 +13,7 @@ order: 2
 
 This is a quick overview of the language features that are currently implemented by examples.
 All the features and examples presented here should work with the latest Nelua, for
-features not implemented yet please see the [draft](/draft/)
+features not implemented yet please see the [draft](/draft/).
 
 ## A note for Lua users
 
@@ -22,7 +22,7 @@ are similar to Lua, thus if you know Lua you probably know Nelua too. However Ne
 additions to code with type annotations, to make more efficient code and to meta program.
 This overview try to focus more on those features.
 
-Although copying Lua code without or minor is a goal of Nelua, not all Lua
+Although copying Lua code without or minor changes is a goal of Nelua, not all Lua
 features are implemented yet. Mostly the dynamic part such as tables and dynamic typing
 are not implemented yet, thus at the moment is best to try Nelua using type notations.
 
@@ -37,7 +37,7 @@ Nelua tries to expose most of C features without overhead, thus expect
 to get near C performance when coding in the C style, that is using
 type notations, manual memory management, pointers, records (structs).
 
-The semantics are not exactly as C semantics but close. There are modifications
+The semantics are not exactly as C semantics but close. There are slight differences
 to minimize undefined behaviors (like initialize to zero by default) and
 other ones to keep Lua semantics (like integer division rounds towards minus infinity).
 However there are ways to get C semantics for each case when needed.
@@ -175,6 +175,44 @@ print(a) -- outputs: 1
 ```
 
 Const annotation can also be used for function arguments.
+
+--------------------------------------------------------------------------------
+## Symbols
+
+Symbols are named identifiers for functions, types or variables.
+
+### Local symbol
+
+Local symbols are only visible in the current and inner scopes:
+
+```nelua
+do
+  local a = 1
+  do
+    print(a) -- outputs: 1
+  end
+end
+-- this would trigger a compiler error because `a` is not visible:
+-- a = 1
+```
+
+### Global symbol
+
+Global symbols are visible in other source files, they can only be declared in the top scope:
+
+```nelua
+global global_a = 1
+global function f()
+end
+```
+
+If the above is saved into a file in the same directory as `globals.nelua`, then we can run:
+
+```nelua
+require 'globals'
+print(global_a) -- outputs: 1
+print(global_f()) -- outputs: f
+```
 
 --------------------------------------------------------------------------------
 ## Control flow
@@ -959,7 +997,7 @@ print 'Saturday 1'
 print 'Sunday 2'
 ```
 
-You can even manipulate what is already been processed:
+You can even manipulate what has already been processed:
 
 ```nelua
 local Person = @record{name: string}
@@ -976,7 +1014,7 @@ local p: Person = {nick='Joe'}
 print(p.nick) -- outputs 'Joe'
 ```
 
-As the compiler is implemented and runs using Lua, and the preprocess
+The compiler is implemented and runs using Lua and the preprocess
 is actually a lua function that the compiler is running, thus it's possible to even modify
 or inject code to the compiler itself on the fly.
 
@@ -1042,6 +1080,9 @@ print(b) -- outputs: 1
 Nelua can import C functions from C headers:
 
 ```nelua
+-- `cimport` informs the compiler the function name from C that should be imported
+-- `cinclude` informs the compiler which C header its declared
+-- `nodecl` informs the compiler that it doesn't need to declare it (C header already declares)
 local function malloc(size: usize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
 local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
 local function free(ptr: pointer) <cimport'free',cinclude'<stdlib.h>',nodecl> end

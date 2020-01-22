@@ -142,7 +142,7 @@ local function emit_type_attributes(decemitter, type)
 end
 
 typevisitors[types.ArrayType] = function(context, type)
-  if type.nodecl or context:is_declarated(type.codename) then return end
+  if type.nodecl or context:is_declared(type.codename) then return end
   local decemitter = CEmitter(context, 0)
   decemitter:add('typedef struct {', type.subtype, ' data[', type.length, '];} ', type.codename)
   emit_type_attributes(decemitter, type)
@@ -151,14 +151,14 @@ typevisitors[types.ArrayType] = function(context, type)
 end
 
 typevisitors[types.PointerType] = function(context, type)
-  if type.nodecl or context:is_declarated(type.codename) then return end
+  if type.nodecl or context:is_declared(type.codename) then return end
   local decemitter = CEmitter(context, 0)
   decemitter:add_ln('typedef ', type.subtype, '* ', type.codename, ';')
   context:add_declaration(decemitter:generate(), type.codename)
 end
 
 typevisitors[types.RecordType] = function(context, type)
-  if type.nodecl or context:is_declarated(type.codename) then return end
+  if type.nodecl or context:is_declared(type.codename) then return end
   local decemitter = CEmitter(context, 0)
   decemitter:add('typedef struct ', type.codename)
   if #type.fields > 0 then
@@ -176,7 +176,7 @@ typevisitors[types.RecordType] = function(context, type)
 end
 
 typevisitors[types.EnumType] = function(context, type)
-  if type.nodecl or context:is_declarated(type.codename) then return end
+  if type.nodecl or context:is_declared(type.codename) then return end
   local decemitter = CEmitter(context, 0)
   decemitter:add_ln('typedef ', type.subtype, ' ', type.codename, ';')
   decemitter:add_ln('enum {')
@@ -188,7 +188,7 @@ typevisitors[types.EnumType] = function(context, type)
 end
 
 typevisitors[types.Type] = function(context, type)
-  if type.nodecl or context:is_declarated(type.codename) then return end
+  if type.nodecl or context:is_declared(type.codename) then return end
   if type:is_string() then
     context:ensure_runtime_builtin('nelua_string')
   elseif type:is_function() then --luacov:disable

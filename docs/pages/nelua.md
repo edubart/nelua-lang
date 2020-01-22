@@ -1,6 +1,6 @@
 <img width="96" src="https://nelua.io/assets/images/nelua-logo.svg?sanitize=true" alt="Nelua Logo">
 
-# The Nelua Programming Language
+# Nelua Programming Language
 
 [![Build Status](https://travis-ci.org/edubart/nelua-lang.svg?branch=master)](https://travis-ci.org/edubart/nelua-lang)
 [![Coverage Status](https://coveralls.io/repos/github/edubart/nelua-lang/badge.svg?branch=master)](https://coveralls.io/github/edubart/nelua-lang?branch=master)

@@ -66,6 +66,27 @@ do -- Const variables
   --a = 2
 end
 
+do -- Local sumbol
+  do
+    local a = 1
+    do
+      print(a) -- outputs: 1
+    end
+  end
+  -- this would trigger a compiler error because `a` is not visible:
+  -- a = 1
+end
+
+--do -- Global symbols
+  global global_a = 1
+  global function global_f()
+    return 'f'
+  end
+  -- require 'globals'
+  print(global_a) -- outputs: 1
+  print(global_f()) -- outputs: f
+--end
+
 do -- If
   local a = 1 -- change this to 2 or 3 to trigger other ifs
   if a == 1 then
@@ -516,6 +537,9 @@ do -- Variable annotations
 end
 
 do -- Mixing C code
+  -- `cimport` informs the compiler the function name from C that should be imported
+  -- `cinclude` informs the compiler which C header its declared
+  -- `nodecl` informs the compiler that it doesn't need to declare it (C header already declares)
   local function malloc(size: usize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
   local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
   local function free(ptr: pointer) <cimport'free',cinclude'<stdlib.h>',nodecl> end
