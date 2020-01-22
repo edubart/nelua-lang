@@ -1,0 +1,233 @@
+-- generate pretty name on C source files
+## modname = 'list'
+## nohashcodenames = true
+
+-- import C memory functions
+local function malloc(size: csize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
+local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',nodecl> end
+
+## local function define_list(listname, tname)
+  ## local nodename = listname..'Node'
+  local T = @#(tname)#
+  local #(nodename)# = @record {
+    prev: #(nodename)#*,
+    next: #(nodename)#*,
+    value: T
+  }
+  local ListNode = #(listname..'Node')#
+
+  local function new_node(prev: ListNode*, next: ListNode*, value: T): ListNode*
+    local node = (@ListNode*)(malloc(#@ListNode))
+    node.prev = prev
+    node.next = next
+    node.value = value
+    return node
+  end
+
+  local #(listname)# = @record{
+    head: ListNode*,
+    tail: ListNode*
+  }
+  local List = #(listname)#
+
+  function List.new(): List
+    return (@List){}
+  end
+
+  function List:prepend(value: T)
+    local node = new_node(nilptr, self.head, value)
+    if likely(self.head) then
+      assert(not self.head.prev)
+      self.head.prev = node
+    end
+    if unlikely(not self.tail) then
+      self.tail = node
+    end
+    self.head = node
+  end
+
+  function List:append(value: T)
+    local node = new_node(self.tail, nilptr, value)
+    if likely(self.tail) then
+      assert(not self.tail.next)
+      self.tail.next = node
+    end
+    if unlikely(not self.head) then
+      self.head = node
+    end
+    self.tail = node
+  end
+
+  function List:find(value: T): ListNode*
+    local it = self.head
+    while it do
+      if it.value == value then
+        return it
+      end
+      it = it.next
+    end
+    return nilptr
+  end
+
+  function List:contains(value: T): boolean
+    return self:find(value) ~= nilptr
+  end
+
+  function List:erase(node: ListNode*): ListNode*
+    if node == self.head then
+      self.head = node.next
+    end
+    if node == self.tail then
+      self.tail = node.prev
+    end
+    if node.prev then
+      node.prev.next = node.next
+    end
+    if node.next then
+      node.next.prev = node.prev
+    end
+    local next = node.next
+    free(node)
+    return next
+  end
+
+  function List:remove_first()
+    assert(self.head)
+    local node = self.head
+    self.head = node.next
+    if likely(self.head) then
+      self.head.prev = nilptr
+    end
+    if unlikely(self.tail == node) then
+      self.tail = nilptr
+    end
+    free(node)
+  end
+
+  function List:remove_last()
+    assert(self.tail)
+    local node = self.tail
+    self.tail = node.prev
+    if likely(self.tail) then
+      self.tail.next = nilptr
+    end
+    if unlikely(self.head == node) then
+      self.head = nilptr
+    end
+    free(node)
+  end
+
+  function List:clear()
+    local it = self.head
+    while it do
+      local next = it.next
+      free(it)
+      it = next
+    end
+    self.head = nilptr
+    self.tail = nilptr
+  end
+
+  function List:len(): integer
+    local count = 0
+    local it = self.head
+    while it do
+      count = count + 1
+      it = it.next
+    end
+    return count
+  end
+
+  function List:empty(): boolean
+    return self.head == nilptr
+  end
+## end
+
+-- TODO: insert() -- (like lua, supports append and prepend)
+-- TODO: remove() -- (like lua, supports first and last)
+
+## define_list('ListInteger', 'integer')
+
+-----------------------------------------------------------------------
+-- tests
+do
+  local l = ListInteger.new()
+  assert(l:len() == 0 and l:empty())
+  l:append(1)    assert(l.head.value == 1) assert(l.tail.value == 1)
+  assert(l:len() == 1 and not l:empty())
+  l:append(2)    assert(l.head.value == 1) assert(l.tail.value == 2)
+  l:prepend(3)   assert(l.head.value == 3) assert(l.tail.value == 2)
+  assert(l:len() == 3)
+  assert(l:contains(1) and l:contains(2) and l:contains(3))
+  assert(not l:contains(0))
+  l:clear()
+  assert(not l.head and not l.tail)
+  assert(l:empty())
+end
+
+do -- erase
+  local l = ListInteger.new()
+  l:append(1)
+  assert(l:erase(l.tail) == nilptr)
+  assert(l:empty())
+
+  l:append(1)
+  assert(l:erase(l.head) == nilptr)
+  assert(l:empty())
+
+  l:append(1) l:append(2)
+  assert(l:erase(l.head) == l.tail)
+  l:clear()
+
+  l:append(1) l:append(2)
+  assert(l:erase(l.tail) == nilptr)
+  l:clear()
+
+  l:append(1) l:append(2) l:append(3)
+  local it = l.head.next
+  assert(it.value == 2)
+  assert(l:erase(it) == l.tail)
+  assert(l:erase(l.head) == l.tail)
+  assert(l:erase(l.tail) == nilptr)
+  assert(l:empty())
+end
+
+do -- find
+  local l = ListInteger.new()
+  l:append(1) l:append(2) l:append(3)
+  assert(l:find(1) == l.head)
+  assert(l:find(2) == l.head.next and l:find(2) == l.tail.prev)
+  assert(l:find(3) == l.tail)
+  l:clear()
+  assert(l:empty())
+end
+
+do -- remove_last
+  local l = ListInteger.new()
+  l:append(1) l:append(2) l:append(3)
+  l:remove_last()
+  assert(l.tail.value == 2)
+  assert(l.head.value == 1)
+  assert(l.tail.next == nilptr and l.head.prev == nilptr)
+  l:remove_last()
+  assert(l.tail.value == 1)
+  assert(l.head.value == 1)
+  assert(l.tail.next == nilptr and l.head.prev == nilptr)
+  l:remove_last()
+  assert(l:empty())
+end
+
+do -- remove_first
+  local l = ListInteger.new()
+  l:append(1) l:append(2) l:append(3)
+  l:remove_first()
+  assert(l.tail.value == 3)
+  assert(l.head.value == 2)
+  assert(l.tail.next == nilptr and l.head.prev == nilptr)
+  l:remove_first()
+  assert(l.tail.value == 3)
+  assert(l.head.value == 3)
+  assert(l.tail.next == nilptr and l.head.prev == nilptr)
+  l:remove_first()
+  assert(l:empty())
+end
