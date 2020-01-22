@@ -229,7 +229,7 @@ it("print types", function()
     local ta = 'array(int64, 2)'
     local tf = 'function(int64, int64): (int64, int64)'
     local tR = 'type'
-    local tRmt = 'metatype{foo: function(pointer(record{a:int64, b:int64})): int64, v: int64}'
+    local tRmt = 'metatype{foo: function(pointer(R)): int64, v: int64}'
     local tr = 'record{a:int64, b:int64}'
   ]=])
 end)

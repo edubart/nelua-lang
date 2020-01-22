@@ -378,19 +378,23 @@ function visitors.Type(context, node)
   attr.value = value
 end
 
-function visitors.TypeInstance(context, node, symbol)
-  local typenode = node[1]
-  context:traverse(typenode)
-  -- inherit attributes from inner node
-  local attr = typenode.attr
-  node.attr = attr
-  if symbol and not attr.value:is_primitive() then
+local function suggest_type_nick(context, type, symbol)
+  if symbol and not type:is_primitive() and not type.nick then
     local prefix
     if context.nohashcodenames then
       prefix = context.modname or context.ast.modname or ''
     end
-    attr.value:suggest_nick(symbol.name, prefix)
+    type:suggest_nick(symbol.name, prefix)
   end
+end
+
+function visitors.TypeInstance(context, node, symbol)
+  local typenode = node[1]
+  context:traverse(typenode, symbol)
+  -- inherit attributes from inner node
+  local attr = typenode.attr
+  node.attr = attr
+  suggest_type_nick(context, attr.value, symbol)
 end
 
 function visitors.FuncType(context, node)
@@ -406,25 +410,31 @@ function visitors.FuncType(context, node)
   attr.value = type
 end
 
-function visitors.RecordFieldType(context, node)
+function visitors.RecordFieldType(context, node, recordtype)
   local attr = node.attr
   if attr.type then return end
   local name, typenode = node:args()
   context:traverse(typenode)
   attr.type = typenode.attr.type
   attr.value = typenode.attr.value
+  recordtype:add_field(name, typenode.attr.value)
 end
 
-function visitors.RecordType(context, node)
+function visitors.RecordType(context, node, symbol)
   local attr = node.attr
   if attr.type then return end
-  local fieldnodes = node:args()
-  context:traverse(fieldnodes)
-  local fields = tabler.imap(fieldnodes, function(fieldnode)
-    return {name = fieldnode[1], type=fieldnode.attr.value}
-  end)
+  local recordtype = types.RecordType(node)
   attr.type = primtypes.type
-  attr.value = types.RecordType(node, fields)
+  attr.value = recordtype
+  if symbol then
+    -- must populate this type symbol early in case its used in the records fields
+    assert((not symbol.type or symbol.type == primtypes.type) and not symbol.value)
+    symbol.type = primtypes.type
+    symbol.value = recordtype
+    suggest_type_nick(context, recordtype, symbol)
+  end
+  local fieldnodes = node:args()
+  context:traverse(fieldnodes, recordtype)
 end
 
 function visitors.EnumFieldType(context, node)

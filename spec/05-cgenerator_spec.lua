@@ -969,9 +969,9 @@ it("records", function()
     "typedef struct record_%w+ record_%w+;", true)
   assert.generate_c(
     "local t: record{a: boolean}",
-    [[typedef struct record_%w+ {
+    [[struct record_%w+ {
   bool a;
-} record_%w+]], true)
+};]], true)
   assert.run_c([[
     local p: record{
       x: integer,
@@ -1072,6 +1072,20 @@ it("record globals", function()
     assert(Math.PI == 3.14)
     Math.PI = 3
     assert(Math.PI == 3)
+  ]])
+end)
+
+it("records referencing itself", function()
+  assert.run_c([[
+    local NodeA = @record{next: NodeA*}
+    local ap: NodeA*
+    local a: NodeA
+    assert(ap == nilptr and a.next == nilptr)
+
+    local NodeB = @record{next: NodeB*}
+    local b: NodeB
+    local bp: NodeB*
+    assert(bp == nilptr and b.next == nilptr)
   ]])
 end)
 
@@ -1240,7 +1254,8 @@ it("type codenames", function()
     local r = myrecord{}
     return r:foo()
   ]], {
-    "typedef struct myrecord {\n  int64_t x;\n} myrecord;",
+    "typedef struct myrecord myrecord;",
+    "struct myrecord {\n  int64_t x;\n};",
     "static int64_t myrecord_foo(myrecord_ptr self);"
   })
 end)

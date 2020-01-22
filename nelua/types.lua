@@ -1142,11 +1142,17 @@ local function compute_record_size(fields, pack)
 end
 
 function RecordType:_init(node, fields)
+  fields = fields or {}
   local size = compute_record_size(fields)
   Type._init(self, 'record', size, node)
   self.fields = fields
   self.codename = gencodename(self)
   self.metatype = MetaType()
+end
+
+function RecordType:add_field(name, type)
+  table.insert(self.fields, {name = name, type = type})
+  self.size = compute_record_size(self.fields)
 end
 
 function RecordType:get_field(name)
@@ -1250,7 +1256,8 @@ end
 
 function PointerType:__tostring()
   if not self.subtype:is_void() then
-    return sstream(self.name, '(', self.subtype, ')'):tostring()
+    local subtypenick = self.subtype.nick or self.subtype.name
+    return sstream(self.name, '(', subtypenick, ')'):tostring()
   else
     return self.name
   end

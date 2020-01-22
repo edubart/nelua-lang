@@ -152,27 +152,38 @@ end
 
 typevisitors[types.PointerType] = function(context, type)
   if type.nodecl or context:is_declared(type.codename) then return end
+  context.declarations[type.codename] = true
   local decemitter = CEmitter(context, 0)
+  local index = nil
+  if type.subtype:is_record() and not type.subtype.nodecl and not context.declarations[type.subtype.codename] then
+    -- offset declaration of pointers before records
+    index = #context.declarations+2
+  end
   decemitter:add_ln('typedef ', type.subtype, '* ', type.codename, ';')
-  context:add_declaration(decemitter:generate(), type.codename)
+  if not index then
+    index = #context.declarations+1
+  end
+  table.insert(context.declarations, index, decemitter:generate())
 end
 
 typevisitors[types.RecordType] = function(context, type)
   if type.nodecl or context:is_declared(type.codename) then return end
+  context.declarations[type.codename] = true
   local decemitter = CEmitter(context, 0)
-  decemitter:add('typedef struct ', type.codename)
+  decemitter:add_ln('typedef struct ', type.codename, ' ', type.codename, ';')
+  table.insert(context.declarations, decemitter:generate())
+  local defemitter = CEmitter(context, 0)
   if #type.fields > 0 then
-    decemitter:add_ln(' {')
+    defemitter:add('struct ', type.codename)
+    defemitter:add_ln(' {')
     for _,field in ipairs(type.fields) do
-      decemitter:add_ln('  ', field.type, ' ', field.name, ';')
+      defemitter:add_ln('  ', field.type, ' ', field.name, ';')
     end
-    decemitter:add('} ', type.codename)
-    emit_type_attributes(decemitter, type)
-    decemitter:add_ln(';')
-  else
-    decemitter:add_ln(' ', type.codename, ';')
+    defemitter:add('}')
+    emit_type_attributes(defemitter, type)
+    defemitter:add_ln(';')
   end
-  context:add_declaration(decemitter:generate(), type.codename)
+  table.insert(context.declarations, defemitter:generate())
 end
 
 typevisitors[types.EnumType] = function(context, type)
