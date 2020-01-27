@@ -1,4 +1,5 @@
 local traits = require 'nelua.utils.traits'
+local tabler = require 'nelua.utils.tabler'
 local class = require 'nelua.utils.class'
 local bn = require 'nelua.utils.bn'
 local typedefs = require 'nelua.typedefs'
@@ -11,22 +12,34 @@ function PPContext:_init(visitors, context)
   Context._init(self, visitors)
   self.context = context
   self.registry = {}
+  self.state = {}
 end
 
-function PPContext:push_statnodes()
-  local statnodes = {oldstatnodes = self.statnodes}
-  self.statnodes = statnodes
-  return statnodes
+function PPContext:push_state(scope, statnodes)
+  self.state = {scope=scope, statnodes=statnodes, oldstate=self.state}
 end
 
-function PPContext:pop_statnodes()
-  local curstatnodes = self.statnodes
-  self.statnodes = curstatnodes.oldstatnodes
-  curstatnodes.oldstatnodes = nil
+function PPContext:pop_state()
+  self.state = self.state.oldstate
+end
+
+function PPContext:get_symbol(key)
+  return self.state.scope.symbols[key]
+end
+
+function PPContext:make_hygienize(statnodes)
+  return function(f)
+    return function(...)
+      self:push_state(self.context.scope, statnodes)
+      local rets = tabler.pack(f(...))
+      self:pop_state()
+      return tabler.unpack(rets)
+    end
+  end
 end
 
 function PPContext:add_statnode(node)
-  table.insert(self.statnodes, node)
+  table.insert(self.state.statnodes, node)
   self.context:traverse(node)
 end
 
@@ -39,6 +52,14 @@ end
 function PPContext:tovalue(val, orignode)
   local node
   local aster = self.context.astbuilder.aster
+  local primtypes = require 'nelua.typedefs'.primtypes
+  if val == table then
+    val = primtypes.table
+  elseif val == string then
+    val = primtypes.string
+  elseif val == type then
+    val = primtypes.type
+  end
   if traits.is_astnode(val) then
     node = val
   elseif traits.is_type(val) then
@@ -53,6 +74,8 @@ function PPContext:tovalue(val, orignode)
     node.pattr = pattr
   elseif traits.is_string(val) then
     node = aster.String{val}
+  elseif traits.is_symbol(val) then
+    node = aster.Id{val.name}
   elseif traits.is_number(val) or traits.is_bignumber(val) then
     local num = bn.new(val)
     local neg = false

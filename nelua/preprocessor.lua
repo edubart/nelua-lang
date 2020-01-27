@@ -59,20 +59,21 @@ function visitors.Block(ppcontext, node, emitter)
   local blockregidx = ppcontext:getregistryindex(node)
   emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess = function(blocknode)')
   emitter:inc_indent()
-  emitter:add_indent_ln('local ppstatnodes = ppcontext:push_statnodes()')
-  emitter:add_indent_ln('local injectnode = function(node) table.insert(ppstatnodes, node) context:traverse(node) end')
+  emitter:add_indent_ln('local ppscope = context:push_scope("block")')
+  emitter:add_indent_ln('local ppstatnodes = {}')
+  emitter:add_indent_ln('ppcontext:push_state(ppscope, ppstatnodes)')
+  emitter:add_indent_ln('local hygienize = ppcontext:make_hygienize(ppscope, ppstatnodes)')
   emitter:add_indent_ln('blocknode[1] = ppstatnodes')
-  emitter:add_indent_ln('context:push_scope("block")')
   emitter:inc_indent()
   for _,statnode in ipairs(statnodes) do
     local statregidx = ppcontext:getregistryindex(statnode)
     ppcontext:traverse(statnode, emitter)
     if statnode.tag ~= 'Preprocess' then
-      emitter:add_indent_ln('injectnode(ppregistry[', statregidx, ']:clone())')
+      emitter:add_indent_ln('ppcontext:add_statnode(ppregistry[', statregidx, ']:clone())')
     end
   end
   emitter:dec_indent()
-  emitter:add_indent_ln('ppcontext:pop_statnodes()')
+  emitter:add_indent_ln('ppcontext:pop_state()')
   emitter:add_indent_ln('context:pop_scope()')
   emitter:dec_indent()
   emitter:add_indent_ln('end')
@@ -135,6 +136,7 @@ function preprocessor.preprocess(context, ast)
   emitter:add_ln("local context = context")
   emitter:add_ln("local ppcontext = ppcontext")
   emitter:add_ln("local ppregistry = ppcontext.registry")
+  emitter:add_ln("local ppscope = nil")
   emitter:add_ln("local context = ppcontext.context")
   ppcontext:traverse(ast, emitter)
 
@@ -148,7 +150,7 @@ function preprocessor.preprocess(context, ast)
     except.raise(msg, 2)
   end
 
-
+  local primtypes = require 'nelua.typedefs'.primtypes
   local env
   env = setmetatable({
     context = context,
@@ -156,7 +158,22 @@ function preprocessor.preprocess(context, ast)
     ast = ast,
     aster = aster,
     config = config,
-    primtypes = require 'nelua.typedefs'.primtypes,
+    primtypes = primtypes,
+    injectnode = function(node)
+        ppcontext:add_statnode(node)
+    end,
+    afterinfer = function(f)
+      if not traits.is_function(f) then
+        raise_preprocess_error("invalid arguments for preprocess function")
+      end
+      local oldscope = ppcontext.state.scope
+      local function fproxy()
+        ppcontext:push_state(oldscope)
+        f()
+        ppcontext:pop_state()
+      end
+      ppcontext:add_statnode(aster.PragmaCall{'afterinfer', {fproxy}})
+    end,
     staticassert = function(status, msg, ...)
       if not status then
         if not msg then
@@ -173,7 +190,7 @@ function preprocessor.preprocess(context, ast)
     if v ~= nil then
       return v
     end
-    local symbol = context.scope.symbols[key]
+    local symbol = ppcontext:get_symbol(key)
     if symbol then
       return symbol
     elseif typedefs.field_pragmas[key] then
@@ -187,8 +204,12 @@ function preprocessor.preprocess(context, ast)
         end
         ppcontext:add_statnode(aster.PragmaCall{key, tabler.pack(...)})
       end
-    else
+    elseif _G[key] ~= nil then
       return _G[key]
+    elseif primtypes[key] then
+      return primtypes[key]
+    else
+      return nil
     end
   end, __newindex = function(_, key, value)
     if typedefs.field_pragmas[key] then

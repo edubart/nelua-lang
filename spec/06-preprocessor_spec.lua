@@ -443,6 +443,23 @@ it("report errors", function()
   assert.analyze_error("##[[ ast:raisef('ast error') ]]", "ast error")
 end)
 
+it("preprocessor replacement", function()
+  assert.ast_type_equals([=[
+  local str = #[string]#
+  local a: str
+]=],[=[
+  local str = @string
+  local a: string
+]=])
+  assert.ast_type_equals([=[
+  local int = @integer
+  local a: #[int]#
+]=],[=[
+  local int = @integer
+  local a: int
+]=])
+end)
+
 it("preprocessor functions", function()
   assert.ast_type_equals([=[
     ## function f(name, tyname)
@@ -499,7 +516,7 @@ it("macros", function()
   assert.ast_type_equals([=[
   ## local function gettype(T)
     local t = @#(T)#
-    ## return t.value
+    ## return t
   ## end
 
   local T: type = @#[gettype('byte')]#
@@ -510,7 +527,6 @@ it("macros", function()
   local v: T = 0
 ]=])
 end)
-
 
 it("run brainfuck", function()
   assert.run('--generator c examples/brainfuck.nelua', 'Hello World!')

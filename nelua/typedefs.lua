@@ -64,6 +64,9 @@ primtypes.number   = primtypes.float64
 primtypes.byte     = primtypes.uint8
 primtypes.cdouble  = primtypes.float64
 primtypes.cfloat   = primtypes.float32
+primtypes[_G.table]   = primtypes.table
+primtypes[_G.string]  = primtypes.string
+primtypes[_G.type]    = primtypes.type
 
 -- signed types
 typedefs.integral_signed_types = {
