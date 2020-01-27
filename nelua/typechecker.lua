@@ -1,6 +1,7 @@
 local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
 local tabler = require 'nelua.utils.tabler'
+local errorer = require 'nelua.utils.errorer'
 local typedefs = require 'nelua.typedefs'
 local Context = require 'nelua.context'
 local Symbol = require 'nelua.symbol'
@@ -369,9 +370,10 @@ function visitors.Type(context, node)
   local value = typedefs.primtypes[tyname]
   if not value then
     local symbol = context.scope:get_symbol(tyname)
-    if not (symbol and symbol.type == primtypes.type and symbol.value) then
+    if not (symbol and symbol.type == primtypes.type) then
       node:raisef("symbol '%s' is an invalid type", tyname)
     end
+    errorer.assertf(symbol.value, "symbol '%s' is a type with unknown value", tyname)
     value = symbol.value
   end
   attr.type = primtypes.type
@@ -856,47 +858,48 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
         node:raisef("in call of function '%s': expected at most %d arguments but got %d",
           calleetype:prettyname(), #pseudoargtypes, #argnodes)
       end
-      local argtypes = {}
+      local args = {}
       local knownallargs = true
       for i,funcargtype,argnode,argtype in izipargnodes(pseudoargtypes, argnodes) do
+        local arg
         if argnode then
           argnode.desiredtype = funcargtype
           context:traverse(argnode)
           argtype = argnode.attr.type
+          if argtype then
+            arg = argnode.attr
+          end
+        else
+          arg = argtype
         end
         if argtype and argtype:is_nil() and not funcargtype:is_nilable() then
           node:raisef("in call of function '%s': expected an argument at index %d but got nothing",
             calleetype:prettyname(), i)
         end
-        if argtype then
+        if arg then
           if funcargtype then
-            local ok, err = funcargtype:is_convertible_from(argnode or argtype)
+            local ok, err = funcargtype:is_convertible_from(arg)
             if not ok then
               node:raisef("in call of function '%s' at argument %d: %s",
                 calleetype:prettyname(), i, err)
             end
           end
-          argtypes[i] = argtype
+          args[i] = arg
         else
           knownallargs = false
         end
       end
       if methodcalleenode then
-        tabler.insert(argtypes, funcargtypes[1])
+        tabler.insert(args, funcargtypes[1])
       end
       if calleetype.lazyfunction then
         local lazycalleetype = calleetype
         calleetype = nil
         if knownallargs then
-          local lazysym, err = lazycalleetype:eval_lazy_for_argtypes(argtypes)
-          if err then --luacov:disable
-            --TODO: actually this error is impossible because of the previous check
-            node:raisef("in call of function '%s': %s", lazycalleetype:prettyname(), err)
-          end --luacov:enable
-
-          if traits.is_attr(lazysym) and lazysym.type then
-            calleetype = lazysym.type
-            attr.lazysym = lazysym
+          local lazyeval = lazycalleetype:eval_lazy_for_args(args)
+          if lazyeval and lazyeval.node and lazyeval.node.attr.type then
+            attr.lazyeval = lazyeval
+            calleetype = lazyeval.node.attr.type
           else
             lazycalleetype.node.attr.delayresolution = true
           end
@@ -1332,18 +1335,20 @@ function visitors.Return(context, node)
   end
 end
 
-local function resolve_function_argtypes(symbol, varnode, argnodes, scope)
+local function resolve_function_argtypes(symbol, varnode, argnodes, scope, checklazy)
   local islazyparent = false
+  local argattrs = {}
   local argtypes = {}
 
   for i,argnode in ipairs(argnodes) do
     local argattr = argnode.attr
     -- function arguments types must be known ahead, fallbacks to any if untyped
     local argtype = argattr.type or primtypes.any
-    if argtype.lazyable or argattr.comptime then
+    if checklazy and (argtype.lazyable or argattr.comptime) then
       islazyparent = true
     end
     argtypes[i] = argtype
+    argattrs[i] = argattr
   end
 
   if varnode.tag == 'ColonIndex' and symbol and symbol.metafunc then
@@ -1358,7 +1363,7 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope)
     end
   end
 
-  return argtypes, islazyparent
+  return argattrs, argtypes, islazyparent
 end
 
 local function block_endswith_return(blocknode)
@@ -1456,11 +1461,11 @@ function visitors.FuncDef(context, node, lazysymbol)
   local returntypes = visitor_FuncDef_returns(context, node.attr.type, retnodes)
 
   -- repeat scope to resolve function variables and return types
-  local islazyparent, argtypes
+  local islazyparent, argtypes, argattrs
   local funcscope = context:repeat_scope_until_resolution('function', function(scope)
     scope.returntypes = returntypes
     context:traverse(argnodes)
-    argtypes, islazyparent = resolve_function_argtypes(symbol, varnode, argnodes, scope)
+    argattrs, argtypes, islazyparent = resolve_function_argtypes(symbol, varnode, argnodes, scope, not lazysymbol)
 
     if not islazyparent then
       -- lazy functions never traverse the blocknode by itself
@@ -1477,7 +1482,7 @@ function visitors.FuncDef(context, node, lazysymbol)
   if islazyparent then
     assert(not lazysymbol)
     if not type then
-      type = types.LazyFunctionType(node, argtypes, returntypes)
+      type = types.LazyFunctionType(node, argattrs, returntypes)
     end
   elseif not returntypes.has_unknown then
     type = types.FunctionType(node, argtypes, returntypes)
@@ -1539,27 +1544,25 @@ function visitors.FuncDef(context, node, lazysymbol)
 
   -- traverse lazy function nodes
   if islazyparent then
-    for i,lazy in ipairs(node.lazys) do
-      local lazysym, lazyargtypes, lazynode
-      if traits.is_attr(lazy) then
-        lazysym = lazy
-      else
-        lazyargtypes = lazy
-      end
-      if not lazysym then
+    for _,lazyeval in ipairs(type.evals) do
+      local lazynode = lazyeval.node
+      if not lazynode then
         lazynode = node:clone()
-        lazynode.attr.lazynode = lazynode
-        lazynode.attr.lazyargtypes = lazyargtypes
+        lazyeval.node = lazynode
         local lazyargnodes = lazynode[3]
-        for j,lazyargtype in ipairs(lazyargtypes) do
-          lazyargnodes[j].attr.type = lazyargtype
+        for j,lazyarg in ipairs(lazyeval.args) do
+          local lazyargattr = lazyargnodes[j].attr
+          if traits.is_attr(lazyarg) then
+            lazyargattr.type = lazyarg.type
+            lazyargattr.value = lazyarg.value
+          else
+            lazyargattr.type = lazyarg
+          end
+          assert(traits.is_type(lazyargattr.type))
         end
-      else
-        lazynode = lazysym.lazynode
       end
       context:traverse(lazynode, symbol)
-      assert(lazynode.attr._symbol)
-      node.lazys[i] = lazynode.attr
+      assert(traits.is_symbol(lazynode.attr))
     end
   end
 end

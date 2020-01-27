@@ -67,10 +67,10 @@ it("boolean", function()
 end)
 
 it("nil", function()
-  assert.generate_c("local a: nilable", "nelua_nilable a = NELUA_NIL;")
-  assert.generate_c("local a: nilable = nil", "nelua_nilable a = NELUA_NIL;")
+  assert.generate_c("local a: nilable", "nelua_nilable a = NULL;")
+  assert.generate_c("local a: nilable = nil", "nelua_nilable a = NULL;")
   assert.generate_c("local a = nil", "nelua_any a = (nelua_any){0};")
-  assert.generate_c("local function f(a: nilable) end f(nil)", "f(NELUA_NIL);")
+  assert.generate_c("local function f(a: nilable) end f(nil)", "f(NULL);")
 end)
 
 it("call", function()
@@ -305,8 +305,20 @@ it("lazy functions", function()
     assert(printtype(false) == false)
     printtype()
   ]])
-
 end)
+
+it("lazy functions with comptime arguments", function()
+  assert.run_c([[
+    local function cast(T: type, value: auto)
+      return (@T)(value)
+    end
+
+    local a = cast(@number, 1)
+    assert(type(a) == 'number')
+    print(a)
+  ]])
+end)
+
 it("global function definition", function()
   assert.generate_c("function f() end", "static void f();")
   assert.run_c([[

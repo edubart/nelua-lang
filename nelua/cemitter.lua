@@ -31,12 +31,10 @@ function CEmitter:zeroinit(type)
     s = '0U'
   elseif type:is_arithmetic() then
     s = '0'
-  elseif type:is_pointer() then
+  elseif type:is_pointer() or type:is_nil() or type:is_comptime() then
     s = 'NULL'
   elseif type:is_boolean() then
     s = 'false'
-  elseif type:is_nil() then
-    s = self:add_builtin('NELUA_NIL')
   else
     s = '{0}'
   end
@@ -138,6 +136,11 @@ function CEmitter:add_cstring2string(val)
 end
 
 function CEmitter:add_val2type(type, val, valtype)
+  if type:is_comptime() then
+    self:add('NULL')
+    return
+  end
+
   if not valtype and traits.is_astnode(val) then
     valtype = val.attr.type
   end
@@ -181,7 +184,7 @@ function CEmitter:add_val2type(type, val, valtype)
 end
 
 function CEmitter:add_nil_literal()
-  self:add_builtin('NELUA_NIL')
+  self:add('NULL')
 end
 
 function CEmitter:add_numeric_literal(valattr, valtype)

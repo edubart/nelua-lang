@@ -64,12 +64,11 @@ end
 
 -- nil
 function builtins.nelua_nilable(context)
-  define_builtin(context, 'nelua_nilable', "typedef struct nelua_nilable {uint8_t dummy;} nelua_nilable;\n")
+  define_builtin(context, 'nelua_nilable', "typedef void* nelua_nilable;\n")
 end
 
-function builtins.NELUA_NIL(context)
-  context:ensure_runtime_builtin('nelua_nilable')
-  define_builtin(context, 'NELUA_NIL', "#define NELUA_NIL (nelua_nilable){0}\n")
+function builtins.nelua_unusedvar(context)
+  define_builtin(context, 'nelua_unusedvar', "typedef void* nelua_unusedvar;\n")
 end
 
 -- panic

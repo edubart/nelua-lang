@@ -175,6 +175,7 @@ function Type:is_string() return self.string end
 function Type:is_cstring() return self.cstring end
 function Type:is_record() return self.record end
 function Type:is_function() return self.Function end
+function Type:is_lazyfunction() return self.lazyfunction end
 function Type:is_boolean() return self.boolean end
 function Type:is_table() return self.table end
 function Type:is_array() return self.array end
@@ -1038,41 +1039,42 @@ types.LazyFunctionType = LazyFunctionType
 LazyFunctionType.Function = true
 LazyFunctionType.lazyfunction = true
 
-function LazyFunctionType:_init(node, argtypes, returntypes)
+function LazyFunctionType:_init(node, args, returntypes)
   Type._init(self, 'lazyfunction', 0, node)
-  if not node.lazys then
-    node.lazys = {}
-  end
-  self.argtypes = argtypes or {}
+  self.args = args or {}
+  self.argtypes = tabler.imap(self.args, function(arg) return arg.type end)
   self.returntypes = returntypes or {}
+  self.evals = {}
   self.codename = gencodename(self)
 end
 
-function LazyFunctionType:get_lazy(argtypes)
-  for _,lazy in ipairs(self.node.lazys) do
-    local lazyargtypes
-    if traits.is_attr(lazy) then
-      lazyargtypes = lazy.lazyargtypes
-    else
-      lazyargtypes = lazy
+local function lazy_args_matches(largs, rargs)
+  for _,larg,rarg in iters.izip(largs, rargs) do
+    --TODO: if traits.is_attr(larg) and traits.is_attr(rargs)
+    local ltype = traits.is_attr(larg) and larg.type or larg
+    local rtype = traits.is_attr(rarg) and rarg.type or rarg
+    if ltype ~= rtype then
+      return false
     end
-    if tabler.deepcompare(lazyargtypes, argtypes) then
-      return lazy
+  end
+  return true
+end
+
+function LazyFunctionType:get_lazy_eval(args)
+  for _,lazyeval in ipairs(self.evals) do
+    if lazy_args_matches(lazyeval.args, args) then
+      return lazyeval
     end
   end
 end
 
-function LazyFunctionType:eval_lazy_for_argtypes(argtypes)
-  local lazy = self:get_lazy(argtypes)
-  if not lazy then
-    local ok, err = types.are_types_convertible(argtypes, self.argtypes)
-    if not ok then --luacov:disable
-      return nil, 'in lazy function evaluation: ' .. err
-    end --luacov:enable
-    lazy = argtypes
-    table.insert(self.node.lazys, lazy)
+function LazyFunctionType:eval_lazy_for_args(args)
+  local lazyeval = self:get_lazy_eval(args)
+  if not lazyeval then
+    lazyeval = { args = args }
+    table.insert(self.evals, lazyeval)
   end
-  return lazy
+  return lazyeval
 end
 
 LazyFunctionType.is_equal = FunctionType.is_equal
@@ -1347,8 +1349,8 @@ end
 
 --TODO: refactor to use this function
 --luacov:disable
-function types.are_types_convertible(atypes, btypes)
-  for i,atype,btype in iters.izip(atypes, btypes) do
+function types.are_types_convertible(largs, rargs)
+  for i,atype,btype in iters.izip(largs, rargs) do
     if atype and btype then
       local ok, err = btype:is_convertible_from(atype)
       if not ok then

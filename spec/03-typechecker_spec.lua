@@ -459,7 +459,18 @@ it("lazy function definition", function()
     local a = 1
     f(a)
   ]])
-
+  assert.analyze_ast([[
+    local function f(T: type): integer
+      return 1
+    end
+    f(@number)
+  ]])
+  assert.analyze_ast([[
+    local function cast(T: type, value: auto)
+      return (@T)(value)
+    end
+    local a = cast(@number, 1)
+  ]])
 end)
 
 it("function return", function()

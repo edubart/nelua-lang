@@ -333,7 +333,11 @@ visitors.PointerType = visitors.Type
 function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
   local type = attr.type
-  assert(not (type:is_comptime() or attr.comptime))
+  assert(not attr.comptime)
+  if type:is_comptime() then
+    emitter:add(context:ensure_runtime_builtin('nelua_unusedvar'), ' ', context:declname(node))
+    return
+  end
   if attr.funcdecl then
     emitter:add(context:declname(node))
     return
@@ -487,8 +491,8 @@ local function visitor_Call(context, node, emitter, argnodes, callee, isblockcal
       if attr.pointercall then
         emitter:add('(*')
       end
-      if attr.lazysym then
-        emitter:add(context:declname(attr.lazysym))
+      if attr.lazyeval then
+        emitter:add(context:declname(attr.lazyeval.node.attr))
       else
         emitter:add(callee)
       end
@@ -831,17 +835,18 @@ function visitors.Assign(context, node, emitter)
 end
 
 function visitors.FuncDef(context, node, emitter)
-  if node.lazys then
-    for _,lazysym in ipairs(node.lazys) do
-      emitter:add(lazysym.lazynode)
+  local attr = node.attr
+  local type = attr.type
+
+  if type:is_lazyfunction() then
+    for _,lazyeval in ipairs(type.evals) do
+      emitter:add(lazyeval.node)
     end
     return
   end
 
   local varscope, varnode, argnodes, retnodes, annotnodes, blocknode = node:args()
 
-  local attr = node.attr
-  local type = attr.type
   local numrets = type:get_return_count()
   local qualifier = ''
   if not attr.entrypoint and not attr.nostatic and not attr.cexport then
