@@ -2,7 +2,7 @@ local traits = require 'nelua.utils.traits'
 local tabler = require 'nelua.utils.tabler'
 local compat = require 'pl.compat'
 local typedefs = require 'nelua.typedefs'
-local Context = require 'nelua.context'
+local Context = require 'nelua.analyzercontext'
 local PPContext = require 'nelua.ppcontext'
 local Emitter = require 'nelua.emitter'
 local except = require 'nelua.utils.except'
@@ -126,7 +126,7 @@ function preprocessor.preprocess(context, ast)
 
   -- second pass, emit the preprocess lua code
   local ppcontext = PPContext(visitors, context)
-  local aster = context.astbuilder.aster
+  local aster = context.parser.astbuilder.aster
   local emitter = Emitter(ppcontext, 0)
   emitter:add_ln("local ppcontext, ppregistry = ppcontext, ppcontext.registry")
   ppcontext:traverse(ast, emitter)

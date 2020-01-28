@@ -3,14 +3,14 @@ local traits = require 'nelua.utils.traits'
 local tabler = require 'nelua.utils.tabler'
 local errorer = require 'nelua.utils.errorer'
 local typedefs = require 'nelua.typedefs'
-local Context = require 'nelua.context'
+local AnalyzerContext = require 'nelua.analyzercontext'
 local Symbol = require 'nelua.symbol'
 local types = require 'nelua.types'
 local bn = require 'nelua.utils.bn'
 local except = require 'nelua.utils.except'
 local preprocessor = require 'nelua.preprocessor'
 local builtins = require 'nelua.builtins'
-local typechecker = {}
+local analyzer = {}
 
 local primtypes = typedefs.primtypes
 local visitors = {}
@@ -339,9 +339,10 @@ function visitors.IdDecl(context, node)
   else
     -- global record field
     assert(namenode.tag == 'DotIndex')
-    context.state.inglobaldecl = node
+    local state = context:push_state()
+    state.inglobaldecl = node
     symbol = context:traverse(namenode)
-    context.state.inglobaldecl = nil
+    context:pop_state()
   end
   local attr = symbol
   if type then
@@ -1452,10 +1453,11 @@ end
 function visitors.FuncDef(context, node, lazysymbol)
   local varscope, varnode, argnodes, retnodes, annotnodes, blocknode = node:args()
 
-  context.state.infuncdef = node
-  context.state.inlazydef = lazysymbol
+  local state = context:push_state()
+  state.infuncdef = node
+  state.inlazydef = lazysymbol
   local symbol, decl = visitor_FuncDef_variable(context, varscope, varnode)
-  context.state.infuncdef = nil
+  context:pop_state()
 
   local returntypes = visitor_FuncDef_returns(context, node.attr.type, retnodes)
 
@@ -1653,11 +1655,8 @@ function visitors.BinaryOp(context, node)
   end
 end
 
-function typechecker.analyze(ast, parser, parentcontext)
-  local context = Context(visitors, parentcontext)
-  context.ast = ast
-  context.parser = parser
-  context.astbuilder = parser.astbuilder
+function analyzer.analyze(ast, parser, parentcontext)
+  local context = AnalyzerContext(visitors, parentcontext, ast, parser)
 
   -- phase 1 traverse: preprocess
   preprocessor.preprocess(context, ast)
@@ -1667,9 +1666,11 @@ function typechecker.analyze(ast, parser, parentcontext)
   context.rootscope:resolve()
 
   -- phase 3 traverse: infer unset types to 'any' type
-  context.state.anyphase = true
+  local state = context:push_state()
+  state.anyphase = true
   context:traverse(ast)
   context.rootscope:resolve()
+  context:pop_state()
 
   -- forward global attributes to ast
   if context.nofloatsuffix then
@@ -1679,4 +1680,4 @@ function typechecker.analyze(ast, parser, parentcontext)
   return context
 end
 
-return typechecker
+return analyzer

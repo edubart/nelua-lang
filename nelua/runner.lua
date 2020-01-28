@@ -6,7 +6,7 @@ local except = require 'nelua.utils.except'
 local executor = require 'nelua.utils.executor'
 local configer = require 'nelua.configer'
 local syntaxdefs = require 'nelua.syntaxdefs'
-local typechecker = require 'nelua.typechecker'
+local analyzer = require 'nelua.analyzer'
 
 local runner = {}
 
@@ -53,7 +53,7 @@ local function run(argv, redirect)
   end
 
   -- analyze the ast
-  local context = typechecker.analyze(ast, parser)
+  local context = analyzer.analyze(ast, parser)
 
   if config.timing then
     console.debugf('analyze AST     %.1f ms', timer:elapsedrestart())

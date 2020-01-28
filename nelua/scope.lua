@@ -25,7 +25,7 @@ function Scope:fork(kind)
 end
 
 function Scope:is_topscope()
-  return self.kind == 'root' or self.parent and self.parent.kind == 'root'
+  return self.parent and self.parent.kind == 'root'
 end
 
 function Scope:clear_symbols()

@@ -2,13 +2,13 @@ local traits = require 'nelua.utils.traits'
 local class = require 'nelua.utils.class'
 local bn = require 'nelua.utils.bn'
 local typedefs = require 'nelua.typedefs'
-local Context = require 'nelua.context'
+local VisitorContext = require 'nelua.analyzercontext'
 local Attr = require 'nelua.attr'
 
-local PPContext = class(Context)
+local PPContext = class(VisitorContext)
 
 function PPContext:_init(visitors, context)
-  Context._init(self, visitors)
+  VisitorContext._init(self, visitors)
   self.context = context
   self.registry = {}
   self.statnodes = nil
@@ -57,7 +57,7 @@ end
 
 function PPContext:tovalue(val, orignode)
   local node
-  local aster = self.context.astbuilder.aster
+  local aster = self.context.parser.astbuilder.aster
   local primtypes = require 'nelua.typedefs'.primtypes
   if val == table then
     val = primtypes.table

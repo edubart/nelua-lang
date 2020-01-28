@@ -40,9 +40,9 @@ function builtins.require(context, node)
   local ast = context.parser:parse(input, filepath)
 
   -- analyze it
-  local typechecker = require 'nelua.typechecker'
+  local analyzer = require 'nelua.analyzer'
   context:push_scope(context.rootscope)
-  typechecker.analyze(ast, context.parser, context)
+  analyzer.analyze(ast, context.parser, context)
   context:pop_scope()
   attr.loadedast = ast
 

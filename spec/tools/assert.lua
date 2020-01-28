@@ -3,7 +3,7 @@ local stringer = require 'nelua.utils.stringer'
 local except = require 'nelua.utils.except'
 local errorer = require 'nelua.utils.errorer'
 local runner = require 'nelua.runner'
-local typechecker = require 'nelua.typechecker'
+local analyzer = require 'nelua.analyzer'
 local fs = require 'nelua.utils.fs'
 local traits = require 'nelua.utils.traits'
 local lua_generator = require 'nelua.luagenerator'
@@ -220,7 +220,7 @@ function assert.analyze_ast(code, expected_ast)
   local ast = assert.parse_ast(nelua_parser, code)
   local context
   pretty_input_onerror(code, function()
-    context = typechecker.analyze(ast, nelua_parser)
+    context = analyzer.analyze(ast, nelua_parser)
   end)
   if expected_ast then
     assert.same_string(tostring(expected_ast), tostring(ast))
@@ -259,7 +259,7 @@ end
 function assert.analyze_error(code, expected_error)
   local ast = assert.parse_ast(nelua_parser, code)
   local ok, e = except.try(function()
-    typechecker.analyze(ast, nelua_parser)
+    analyzer.analyze(ast, nelua_parser)
   end)
   pretty_input_onerror(code, function()
     if expected_error then

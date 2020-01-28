@@ -1,4 +1,4 @@
-local Context = require 'nelua.context'
+local Context = require 'nelua.analyzercontext'
 local class = require 'nelua.utils.class'
 local cdefs = require 'nelua.cdefs'
 local traits = require 'nelua.utils.traits'
