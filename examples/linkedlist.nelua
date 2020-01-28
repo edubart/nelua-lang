@@ -1,20 +1,20 @@
 -- generate pretty name on C source files
 ## modname = 'list'
+## strict = true
 ## nohashcodenames = true
 
 -- import C memory functions
 local function malloc(size: csize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
 local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',nodecl> end
 
-## local function define_list(listname, tname)
-  ## local nodename = listname..'Node'
-  local T = @#(tname)#
-  local #(nodename)# = @record {
-    prev: #(nodename)#*,
-    next: #(nodename)#*,
+## local memoize = require 'nelua.utils.memoize'
+## local list = hygienize(memoize(function(T)
+  local T = @#[T]#
+  local ListNode <codename #['ListNode_'..T.name]#> = @record {
+    prev: ListNode*,
+    next: ListNode*,
     value: T
   }
-  local ListNode = #(listname..'Node')#
 
   local function new_node(prev: ListNode*, next: ListNode*, value: T): ListNode*
     local node = (@ListNode*)(malloc(#@ListNode))
@@ -24,11 +24,10 @@ local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',node
     return node
   end
 
-  local #(listname)# = @record{
+  local List <codename #['List_'..T.name]#> = @record{
     head: ListNode*,
     tail: ListNode*
   }
-  local List = #(listname)#
 
   function List.new(): List
     return (@List){}
@@ -141,12 +140,14 @@ local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',node
   function List:empty(): boolean
     return self.head == nilptr
   end
-## end
+
+  ## return List
+## end))
 
 -- TODO: insert() -- (like lua, supports append and prepend)
 -- TODO: remove() -- (like lua, supports first and last)
 
-## define_list('ListInteger', 'integer')
+local ListInteger = #[list(integer)]#
 
 -----------------------------------------------------------------------
 -- tests
