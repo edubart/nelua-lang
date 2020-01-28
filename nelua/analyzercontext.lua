@@ -6,8 +6,9 @@ local VisitorContext = require 'nelua.visitorcontext'
 
 local AnalyzerContext = class(VisitorContext)
 
-function AnalyzerContext:_init(visitors, ast, parser)
+function AnalyzerContext:_init(visitors, parser)
   VisitorContext._init(self, visitors)
+  self.parser = parser
   self.rootscope = Scope(self, 'root')
   self.usedbuiltins = {}
   self.env = {}
@@ -16,8 +17,24 @@ function AnalyzerContext:_init(visitors, ast, parser)
   self.scopestack = {}
   self.state = {}
   self.statestack = {}
-  self.ast = ast
-  self.parser = parser
+  self.pragmas = {}
+  self.pragmastack = {}
+end
+
+function AnalyzerContext:reset_pragmas()
+  tabler.clear(self.pragmas)
+end
+
+function AnalyzerContext:push_pragmas()
+  table.insert(self.pragmastack, self.pragmas)
+  local newpragmas = tabler.copy(self.pragmas)
+  self.pragmas = newpragmas
+  return newpragmas
+end
+
+function AnalyzerContext:pop_pragmas()
+  self.pragmas = table.remove(self.pragmastack)
+  assert(self.pragmas)
 end
 
 function AnalyzerContext:push_state()

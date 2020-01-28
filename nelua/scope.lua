@@ -139,7 +139,7 @@ function Scope:add_symbol(symbol)
     symbol.shadows = true
   end
   if oldsymbol then
-    if self.context.strict then
+    if self.context.pragmas.strict then
       return nil, stringer.pformat("symbol '%s' shadows pre declared symbol with the same name", key)
     end
 
@@ -148,8 +148,8 @@ function Scope:add_symbol(symbol)
     end
     symbol.shadows = true
   end
-  if self.context.modname then
-    symbol.modname = self.context.modname
+  if self.context.pragmas.modname then
+    symbol.modname = self.context.pragmas.modname
   end
   self.symbols[key] = symbol
   return true

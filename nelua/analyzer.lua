@@ -15,7 +15,7 @@ local analyzer = {}
 local primtypes = typedefs.primtypes
 local visitors = {}
 
-function visitors.Number(_, node)
+function visitors.Number(context, node)
   local attr = node.attr
   if attr.type then return end
   local base, int, frac, exp, literal = node:args()
@@ -41,6 +41,9 @@ function visitors.Number(_, node)
     else
       attr.type = primtypes.number
     end
+  end
+  if context.pragmas.nofloatsuffix then
+    attr.nofloatsuffix = true
   end
   attr.base = base
   attr.comptime = true
@@ -298,7 +301,7 @@ end
 function visitors.Id(context, node)
   local name = node[1]
   local symbol = context.scope:get_symbol(name)
-  if not symbol and context.strict then
+  if not symbol and context.pragmas.strict then
     node:raisef("undeclared symbol '%s'", name)
   end
   if not symbol then
@@ -384,8 +387,8 @@ end
 local function suggest_type_nick(context, type, symbol)
   if symbol and not type:is_primitive() and not type.nick then
     local prefix
-    if context.nohashcodenames then
-      prefix = context.modname or context.ast.modname or ''
+    if context.pragmas.nohashcodenames then
+      prefix = context.pragmas.modname or ''
     end
     type:suggest_nick(symbol.name, prefix)
   end
@@ -1176,7 +1179,7 @@ function visitors.VarDecl(context, node)
     if varscope == 'global' or context.scope:is_topscope() then
       varnode.attr.staticstorage = true
     end
-    if context.nostatic then
+    if context.pragmas.nostatic then
       varnode.attr.nostatic = true
     end
     local symbol = context:traverse(varnode)
@@ -1216,7 +1219,7 @@ function visitors.VarDecl(context, node)
         valnode.attr.initializer = true
       end
     else
-      if context.noinit then
+      if context.pragmas.noinit then
         varnode.attr.noinit = true
       end
     end
@@ -1422,7 +1425,7 @@ local function visitor_FuncDef_variable(context, varscope, varnode)
   if decl then
     varnode.attr.funcdecl = true
   end
-  if context.nostatic then
+  if context.pragmas.nostatic then
     varnode.attr.nostatic = true
   end
   local symbol = context:traverse(varnode)
@@ -1537,11 +1540,11 @@ function visitors.FuncDef(context, node, lazysymbol)
 
     -- annotation entrypoint
     if attr.entrypoint then
-      if context.ast.attr.entrypoint and context.ast.attr.entrypoint ~= node then
+      if context.entrypoint and context.entrypoint ~= node then
         node:raisef("cannot have more than one function entrypoint")
       end
       attr.declname = attr.codename
-      context.ast.attr.entrypoint = node
+      context.entrypoint = node
     end
   end
 
@@ -1659,7 +1662,7 @@ end
 
 function analyzer.analyze(ast, parser, context)
   if not context then
-    context = AnalyzerContext(visitors, ast, parser)
+    context = AnalyzerContext(visitors, parser)
   end
 
   -- phase 1 traverse: preprocess
@@ -1675,11 +1678,6 @@ function analyzer.analyze(ast, parser, context)
   context:traverse(ast)
   context.rootscope:resolve()
   context:pop_state()
-
-  -- forward global attributes to ast
-  if context.nofloatsuffix then
-    ast.attr.nofloatsuffix = true
-  end
 
   return context
 end

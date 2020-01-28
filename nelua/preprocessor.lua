@@ -210,7 +210,7 @@ function preprocessor.preprocess(context, ast)
     if symbol then
       return symbol
     elseif typedefs.field_pragmas[key] then
-      return context[key]
+      return context.pragmas[key]
     elseif typedefs.call_pragmas[key] then
       return function(...)
         local args = tabler.pack(...)
@@ -233,7 +233,7 @@ function preprocessor.preprocess(context, ast)
       if not ok then
         raise_preprocess_error("invalid type for preprocess variable '%s': %s", key, err)
       end
-      context[key] = value
+      context.pragmas[key] = value
     else
       rawset(ppcontext.context.env, key, value)
     end

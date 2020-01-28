@@ -1052,7 +1052,7 @@ local function emit_main(ast, context)
 
   local mainemitter = CEmitter(context, -1)
 
-  if not ast.attr.entrypoint then
+  if not context.entrypoint then
     mainemitter:inc_indent()
     mainemitter:add_ln("int nelua_main() {")
     mainemitter:add_traversal(ast)
@@ -1073,7 +1073,7 @@ local function emit_main(ast, context)
     mainemitter:dec_indent()
   end
 
-  if not ast.attr.entrypoint then
+  if not context.entrypoint then
     mainemitter:add_indent_ln('int main(int argc, char **argv) {')
     mainemitter:inc_indent(2)
 

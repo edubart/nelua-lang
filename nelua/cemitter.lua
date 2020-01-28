@@ -23,7 +23,7 @@ end
 -- Return string functions
 function CEmitter:zeroinit(type)
   local s
-  if type:is_float32() and not self.context.ast.attr.nofloatsuffix then
+  if type:is_float32() and not self.context.pragmas.nofloatsuffix then
     s = '0.0f'
   elseif type:is_float() then
     s = '0.0'
@@ -217,7 +217,7 @@ function CEmitter:add_numeric_literal(valattr, valtype)
   end
 
   -- suffixes
-  if valtype:is_float32() and not self.context.ast.attr.nofloatsuffix then
+  if valtype:is_float32() and not valattr.nofloatsuffix then
     self:add('f')
   elseif valtype:is_unsigned() then
     self:add('U')
