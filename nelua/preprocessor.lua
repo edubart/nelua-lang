@@ -59,10 +59,10 @@ function visitors.Block(ppcontext, node, emitter)
   local blockregidx = ppcontext:getregistryindex(node)
   emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess = function(blocknode)')
   emitter:inc_indent()
-  emitter:add_indent_ln('local ppscope = context:push_scope("block")')
+  emitter:add_indent_ln('local ppscope = context:push_forked_scope("block", blocknode)')
   emitter:add_indent_ln('local ppstatnodes = {}')
-  emitter:add_indent_ln('ppcontext:push_state(ppscope, ppstatnodes)')
-  emitter:add_indent_ln('local hygienize = ppcontext:make_hygienize(ppscope, ppstatnodes)')
+  emitter:add_indent_ln('ppcontext:push_statnodes(ppstatnodes)')
+  emitter:add_indent_ln('local hygienize = ppcontext:make_hygienize()')
   emitter:add_indent_ln('blocknode[1] = ppstatnodes')
   emitter:inc_indent()
   for _,statnode in ipairs(statnodes) do
@@ -73,7 +73,7 @@ function visitors.Block(ppcontext, node, emitter)
     end
   end
   emitter:dec_indent()
-  emitter:add_indent_ln('ppcontext:pop_state()')
+  emitter:add_indent_ln('ppcontext:pop_statnodes()')
   emitter:add_indent_ln('context:pop_scope()')
   emitter:dec_indent()
   emitter:add_indent_ln('end')
@@ -166,11 +166,11 @@ function preprocessor.preprocess(context, ast)
       if not traits.is_function(f) then
         raise_preprocess_error("invalid arguments for preprocess function")
       end
-      local oldscope = ppcontext.state.scope
+      local oldscope = context.scope
       local function fproxy()
-        ppcontext:push_state(oldscope)
+        context:push_scope(oldscope)
         f()
-        ppcontext:pop_state()
+        context:pop_scope()
       end
       ppcontext:add_statnode(aster.PragmaCall{'afterinfer', {fproxy}})
     end,
@@ -190,7 +190,7 @@ function preprocessor.preprocess(context, ast)
     if v ~= nil then
       return v
     end
-    local symbol = ppcontext:get_symbol(key)
+    local symbol = context.scope.symbols[key]
     if symbol then
       return symbol
     elseif typedefs.field_pragmas[key] then

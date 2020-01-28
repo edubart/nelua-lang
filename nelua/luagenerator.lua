@@ -3,7 +3,6 @@ local traits = require 'nelua.utils.traits'
 local luadefs = require 'nelua.luadefs'
 local luabuiltins = require 'nelua.luabuiltins'
 local config = require 'nelua.configer'.get()
-local Context = require 'nelua.context'
 local Emitter = require 'nelua.emitter'
 
 local visitors = {}
@@ -116,7 +115,7 @@ end
 function visitors.Block(context, node, emitter)
   local stats = node:args()
   emitter:inc_indent()
-  context:push_scope('block')
+  context:push_forked_scope('block', node)
   emitter:add_traversal_list(stats, '')
   context:pop_scope()
   emitter:dec_indent()
@@ -196,12 +195,13 @@ function visitors.Repeat(_, node, emitter)
   emitter:add_indent_ln('until ', cond)
 end
 
-function visitors.ForNum(_, node, emitter)
+function visitors.ForNum(context, node, emitter)
   local itvar, begval, comp, endval, incrval, block  = node:args()
   if not comp then
     comp = 'le'
   end
   node:assertraisef(comp == 'le', 'for comparator not supported yet')
+  context:push_forked_scope('loop', node)
   emitter:add_indent("for ", itvar, '=', begval, ',', endval)
   if incrval then
     emitter:add(',', incrval)
@@ -209,10 +209,12 @@ function visitors.ForNum(_, node, emitter)
   emitter:add_ln(' do')
   emitter:add(block)
   emitter:add_indent_ln("end")
+  context:pop_scope()
 end
 
-function visitors.ForIn(_, node, emitter)
+function visitors.ForIn(context, node, emitter)
   local itvars, iterator, block = node:args()
+  context:push_forked_scope('loop', node)
   if itvars then
     emitter:add_indent("for ", itvars)
   else
@@ -221,6 +223,7 @@ function visitors.ForIn(_, node, emitter)
   emitter:add_ln(' in ', iterator, ' do')
   emitter:add(block)
   emitter:add_indent_ln("end")
+  context:pop_scope()
 end
 
 function visitors.Break(_, _, emitter)
@@ -290,7 +293,7 @@ function visitors.FuncDef(context, node, emitter)
     emitter:add('local ')
   end
   emitter:add('function ', name)
-  context:push_scope('function')
+  context:push_forked_scope('function', node)
   emitter:add_ln('(', args, ')')
   emitter:add(block)
   context:pop_scope()
@@ -340,15 +343,12 @@ end
 
 local generator = {}
 
-function generator.generate(ast)
-  local context = Context(visitors)
+function generator.generate(ast, context)
+  context:set_visitors(visitors)
   context.builtins = luabuiltins.builtins
   local emitter = Emitter(context, -1)
   context.emitter = emitter
-  local main_scope = context:push_scope('function')
-  main_scope.main = true
   emitter:add_traversal(ast)
-  context:pop_scope()
   return emitter:generate()
 end
 

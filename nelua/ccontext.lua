@@ -8,8 +8,8 @@ local cbuiltins = require 'nelua.cbuiltins'
 
 local CContext = class(Context)
 
-function CContext:_init(visitors, typevisitors)
-  Context._init(self, visitors)
+function CContext:init(visitors, typevisitors)
+  self:set_visitors(visitors)
   self.typevisitors = typevisitors
   self.declarations = {}
   self.definitions = {}
@@ -20,6 +20,12 @@ function CContext:_init(visitors, typevisitors)
   }
   self.uniquecounters = {}
   self.builtins = cbuiltins.builtins
+end
+
+function CContext.promote_context(self, visitors, typevisitors)
+  setmetatable(self, CContext)
+  self:init(visitors, typevisitors)
+  return self
 end
 
 function CContext:declname(node)

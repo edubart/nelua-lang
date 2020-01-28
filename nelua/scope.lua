@@ -16,12 +16,7 @@ function Scope:_init(parent, kind)
     self.parent = parent
     self.context = parent.context
   end
-  self.symbols = {}
-  self.possible_returntypes = {}
-  self.resolved_returntypes = {}
-  if parent then
-    metamagic.setmetaindex(self.symbols, parent.symbols)
-  end
+  self:clear_symbols()
 end
 
 function Scope:fork(kind)
@@ -29,7 +24,17 @@ function Scope:fork(kind)
 end
 
 function Scope:is_topscope()
-  return self.main or (self.parent and self.parent.main)
+  return self.parent and self.parent.kind == 'root'
+end
+
+function Scope:clear_symbols()
+  self.symbols = {}
+  if self.parent then
+    metamagic.setmetaindex(self.symbols, self.parent.symbols)
+  end
+  self.possible_returntypes = {}
+  self.resolved_returntypes = {}
+  self.has_unknown_return = nil
 end
 
 --[[

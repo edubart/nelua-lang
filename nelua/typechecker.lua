@@ -1002,7 +1002,7 @@ function visitors.Block(context, node, scopecb)
     node.preprocess = nil
   end
   local statnodes = node:args()
-  context:repeat_scope_until_resolution('block', function()
+  context:repeat_scope_until_resolution('block', node, function()
     context:traverse(statnodes)
     if scopecb then
       scopecb()
@@ -1071,7 +1071,7 @@ function visitors.ForIn(context, node)
       infunctype:prettyname())
   end
   context:traverse(inexpnodes)
-  context:repeat_scope_until_resolution('loop', function()
+  context:repeat_scope_until_resolution('loop', node, function()
   --[[
   if itvarnodes then
     for i,itvarnode in ipairs(itvarnodes) do
@@ -1083,7 +1083,7 @@ function visitors.ForIn(context, node)
     end
   end
     ]]
-  context:traverse(blocknode)
+    context:traverse(blocknode)
   end)
 end
 
@@ -1098,7 +1098,7 @@ function visitors.ForNum(context, node)
     context:traverse(stepvalnode)
     stype = stepvalnode.attr.type
   end
-  context:repeat_scope_until_resolution('loop', function()
+  context:repeat_scope_until_resolution('loop', node, function()
     local itsymbol = context:traverse(itvarnode)
     local ittype = itvarnode.attr.type
     if ittype then
@@ -1309,7 +1309,7 @@ end
 function visitors.Return(context, node)
   local retnodes = node:args()
   context:traverse(retnodes)
-  local funcscope = context.scope:get_parent_of_kind('function')
+  local funcscope = context.scope:get_parent_of_kind('function') or context.rootscope
   if funcscope.returntypes then
     for i,funcrettype,retnode,rettype in izipargnodes(funcscope.returntypes, retnodes) do
       if rettype then
@@ -1462,7 +1462,7 @@ function visitors.FuncDef(context, node, lazysymbol)
 
   -- repeat scope to resolve function variables and return types
   local islazyparent, argtypes, argattrs
-  local funcscope = context:repeat_scope_until_resolution('function', function(scope)
+  local funcscope = context:repeat_scope_until_resolution('function', node, function(scope)
     scope.returntypes = returntypes
     context:traverse(argnodes)
     argattrs, argtypes, islazyparent = resolve_function_argtypes(symbol, varnode, argnodes, scope, not lazysymbol)
@@ -1660,35 +1660,24 @@ function typechecker.analyze(ast, parser, parentcontext)
   context.parser = parser
   context.astbuilder = parser.astbuilder
 
-  local mainscope = context:push_scope('function')
-  mainscope.main = true
+  -- phase 1 traverse: preprocess
   preprocessor.preprocess(context, ast)
-  context:pop_scope()
 
-  local function analyze_ast()
-    mainscope = context:repeat_scope_until_resolution('function', function(scope)
-      scope.main = true
-      context:traverse(ast)
-    end)
-    context.rootscope:resolve()
-  end
+  -- phase 2 traverse: infer and check types
+  context:traverse(ast)
+  context.rootscope:resolve()
 
-  -- phase 1 traverse: infer and check types
-  analyze_ast()
-
-  -- phase 2 traverse: infer unset types to 'any' type
+  -- phase 3 traverse: infer unset types to 'any' type
   context.anyinference = true
-  analyze_ast()
+  context:traverse(ast)
+  context.rootscope:resolve()
 
   -- forward global attributes to ast
   if context.nofloatsuffix then
     ast.attr.nofloatsuffix = true
   end
 
-  -- used when calling
-  context.scope = mainscope
-
-  return ast
+  return context
 end
 
 return typechecker

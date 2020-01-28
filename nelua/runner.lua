@@ -53,7 +53,7 @@ local function run(argv, redirect)
   end
 
   -- analyze the ast
-  typechecker.analyze(ast, parser)
+  local context = typechecker.analyze(ast, parser)
 
   if config.timing then
     console.debugf('analyze AST     %.1f ms', timer:elapsedrestart())
@@ -67,7 +67,7 @@ local function run(argv, redirect)
   if config.analyze then return 0 end
 
   -- generate the code
-  local code, compileopts = generator.generate(ast)
+  local code, compileopts = generator.generate(ast, context)
 
   if config.timing then
     console.debugf('generate code   %.1f ms', timer:elapsedrestart())

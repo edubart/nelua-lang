@@ -41,7 +41,9 @@ function builtins.require(context, node)
 
   -- analyze it
   local typechecker = require 'nelua.typechecker'
+  context:push_scope(context.rootscope)
   typechecker.analyze(ast, context.parser, context)
+  context:pop_scope()
   attr.loadedast = ast
 
   context.requires[filepath] = node

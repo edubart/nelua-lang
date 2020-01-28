@@ -50,22 +50,43 @@ function Context:_init(visitors, parentcontext)
     self.parentcontext = self
   end
   self.scope = self.rootscope
-  self.visitors = visitors
-  if visitors.default_visitor == nil then
-    visitors.default_visitor = traverser_default_visitor
-  end
+  self.scopestack = {}
+  self:set_visitors(visitors)
   self.strict = false
   self.nodes = {}
 end
 
-function Context:push_scope(kind)
-  local scope = self.scope:fork(kind)
+function Context:set_visitors(visitors)
+  self.visitors = visitors
+  if visitors.default_visitor == nil then
+    visitors.default_visitor = traverser_default_visitor
+  end
+end
+
+function Context:push_scope(scope)
+  table.insert(self.scopestack, self.scope)
   self.scope = scope
+end
+
+function Context:push_forked_scope(kind, node)
+  local scope
+  if node.scope then
+    scope = node.scope
+    assert(scope.kind == kind)
+    --bdump(scope.kind)
+    --dump('kind', scope.kind, scope.parent.kind, self.scope.kind)
+    assert(scope.parent == self.scope)
+    scope:clear_symbols()
+  else
+    scope = self.scope:fork(kind)
+    node.scope = scope
+  end
+  self:push_scope(scope)
   return scope
 end
 
 function Context:pop_scope()
-  self.scope = self.scope.parent
+  self.scope = table.remove(self.scopestack)
 end
 
 function Context:get_parent_node()
@@ -96,10 +117,10 @@ function Context:traverse(node, ...)
 end
 traverse = Context.traverse
 
-function Context:repeat_scope_until_resolution(scope_kind, after_push)
+function Context:repeat_scope_until_resolution(scope_kind, node, after_push)
   local scope
   repeat
-    scope = self:push_scope(scope_kind)
+    scope = self:push_forked_scope(scope_kind, node)
     after_push(scope)
     local resolutions_count = scope:resolve()
     self:pop_scope()

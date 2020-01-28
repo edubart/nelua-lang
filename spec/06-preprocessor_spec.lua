@@ -333,6 +333,11 @@ it("strict mode", function()
 end)
 
 it("function pragmas", function()
+  assert.analyze_ast("## cinclude '<stdio.h>'")
+  assert.analyze_error("## cinclude(false)", "invalid arguments for preprocess")
+end)
+
+it("call codes after inference", function()
   assert.analyze_ast("## afterinfer(function() end)")
   assert.analyze_error("## afterinfer(false)", "invalid arguments for preprocess")
 end)
@@ -445,11 +450,15 @@ end)
 
 it("preprocessor replacement", function()
   assert.ast_type_equals([=[
-  local str = #[string]#
-  local a: str
+  local s = #[string]#
+  local t = #[table]#
+  local ty = #[type]#
+  local n = #[number]#
 ]=],[=[
-  local str = @string
-  local a: string
+  local s = @string
+  local t = @table
+  local ty = @type
+  local n = @number
 ]=])
   assert.ast_type_equals([=[
   local int = @integer
@@ -525,6 +534,46 @@ it("macros", function()
   local t = @byte
   local T: type = @t
   local v: T = 0
+]=])
+end)
+
+it("non hygienic macros", function()
+  assert.ast_type_equals([=[
+## local function inc()
+  a = a + 1
+## end
+local a = 1
+## inc()
+]=],[=[
+local a = 1
+a = a + 1
+]=])
+end)
+
+it("hygienic macros", function()
+  assert.ast_type_equals([=[
+## local point = hygienize(function(T)
+  print('start')
+  local T = #[T]#
+  local Point = @record {x: T, y: T}
+  print('end')
+  ## return Point
+## end)
+
+do
+  local PointInt = #[point(integer)]#
+  local a: PointInt = {1,2}
+end
+]=],[=[
+print('start')
+local T = @integer
+local Point = @record {x: T, y: T}
+print('end')
+
+do
+  local PointInt = @Point
+  local a: PointInt = {1,2}
+end
 ]=])
 end)
 

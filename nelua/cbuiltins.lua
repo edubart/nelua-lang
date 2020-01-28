@@ -754,7 +754,7 @@ function inlines.panic(context)
   return context:ensure_runtime_builtin('nelua_panic_string')
 end
 
-function inlines.require(_, node, emitter)
+function inlines.require(context, node, emitter)
   if node.attr.alreadyrequired then
     return
   end
@@ -770,7 +770,9 @@ function inlines.require(_, node, emitter)
   local bracepos = emitter:get_pos()
   emitter:add_indent_ln('{')
   local lastpos = emitter:get_pos()
+  context:push_scope(context.rootscope)
   emitter:add(ast)
+  context:pop_scope()
   if emitter:get_pos() == lastpos then
     emitter:remove_until_pos(bracepos)
   else

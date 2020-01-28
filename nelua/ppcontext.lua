@@ -12,34 +12,47 @@ function PPContext:_init(visitors, context)
   Context._init(self, visitors)
   self.context = context
   self.registry = {}
-  self.state = {}
+  self.statnodes = {}
+  self.statnodestack = {}
 end
 
-function PPContext:push_state(scope, statnodes)
-  self.state = {scope=scope, statnodes=statnodes, oldstate=self.state}
+function PPContext:push_statnodes(statnodes)
+  table.insert(self.statnodestack, self.statnodes)
+  self.statnodes = statnodes
 end
 
-function PPContext:pop_state()
-  self.state = self.state.oldstate
+function PPContext:pop_statnodes()
+  self.statnodes = table.remove(self.statnodestack)
 end
 
-function PPContext:get_symbol(key)
-  return self.state.scope.symbols[key]
-end
-
-function PPContext:make_hygienize(statnodes)
+function PPContext:make_hygienize()
+  local scope = self.context.scope
+  local statnodes = self.statnodes
+  local addindex = #statnodes+1
   return function(f)
     return function(...)
-      self:push_state(self.context.scope, statnodes)
+      statnodes.addindex = addindex
+      self:push_statnodes(statnodes)
+      self.context:push_scope(scope)
       local rets = tabler.pack(f(...))
-      self:pop_state()
+      self:pop_statnodes()
+      self.context:pop_scope()
+      statnodes.addindex = nil
       return tabler.unpack(rets)
     end
   end
 end
 
 function PPContext:add_statnode(node)
-  table.insert(self.state.statnodes, node)
+  local statnodes = self.statnodes
+  local addindex
+  if statnodes.addindex then
+    addindex = statnodes.addindex
+    statnodes.addindex = statnodes.addindex + 1
+  else
+    addindex = #statnodes+1
+  end
+  table.insert(self.statnodes, addindex, node)
   self.context:traverse(node)
 end
 

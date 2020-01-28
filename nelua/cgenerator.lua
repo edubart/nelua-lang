@@ -585,7 +585,7 @@ end
 function visitors.Block(context, node, emitter)
   local statnodes = node:args()
   emitter:inc_indent()
-  context:push_scope('block')
+  context:push_forked_scope('block', node)
   do
     emitter:add_traversal_list(statnodes, '')
   end
@@ -595,10 +595,10 @@ end
 
 function visitors.Return(context, node, emitter)
   local retnodes = node:args()
-  local funcscope = context.scope:get_parent_of_kind('function')
+  local funcscope = context.scope:get_parent_of_kind('function') or context.rootscope
   local numretnodes = #retnodes
   funcscope.has_return = true
-  if funcscope.main then
+  if funcscope == context.rootscope then
     -- in main body
     node:assertraisef(numretnodes <= 1, "multiple returns in main is not supported yet")
     if numretnodes == 0 then
@@ -748,7 +748,7 @@ function visitors.ForNum(context, node, emitter)
   local fixedstep = node.attr.fixedstep
   local fixedend = node.attr.fixedend
   local itmutate = itvarnode.attr.mutate
-  context:push_scope('for')
+  context:push_forked_scope('loop', node)
   do
     local ccompop = cdefs.compare_ops[compop]
     local ittype = itvarnode.attr.type
@@ -895,7 +895,7 @@ function visitors.FuncDef(context, node, emitter)
 
   decemitter:add(varnode)
   defemitter:add(varnode)
-  local funcscope = context:push_scope('function')
+  local funcscope = context:push_forked_scope('function', node)
   funcscope.functype = type
   do
     decemitter:add('(')
@@ -1052,13 +1052,11 @@ local function emit_main(ast, context)
 
   local mainemitter = CEmitter(context, -1)
 
-  local main_scope = context:push_scope('function')
-  main_scope.main = true
   if not ast.attr.entrypoint then
     mainemitter:inc_indent()
     mainemitter:add_ln("int nelua_main() {")
     mainemitter:add_traversal(ast)
-    if not main_scope.has_return then
+    if not context.rootscope.has_return then
       -- main() must always return an integer
       mainemitter:inc_indent()
       mainemitter:add_indent_ln("return 0;")
@@ -1074,7 +1072,6 @@ local function emit_main(ast, context)
     mainemitter:add_traversal(ast)
     mainemitter:dec_indent()
   end
-  context:pop_scope()
 
   if not ast.attr.entrypoint then
     mainemitter:add_indent_ln('int main(int argc, char **argv) {')
@@ -1099,9 +1096,8 @@ local function emit_main(ast, context)
   end
 end
 
-function generator.generate(ast)
-  local context = CContext(visitors, typevisitors)
-  context.ast = ast
+function generator.generate(ast, context)
+  CContext.promote_context(context, visitors, typevisitors)
   context.runtime_path = fs.join(config.runtime_path, 'c')
 
   emit_main(ast, context)

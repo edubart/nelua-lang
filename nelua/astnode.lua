@@ -144,6 +144,7 @@ local ignored_stringfy_keys = {
   desiredtype = true,
   preprocess = true,
   node = true,
+  scope = true,
 }
 local function stringfy_val2str(val)
   local vstr = tostring(val)
