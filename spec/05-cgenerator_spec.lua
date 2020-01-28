@@ -316,6 +316,18 @@ it("lazy functions with comptime arguments", function()
     local a = cast(@number, 1)
     assert(type(a) == 'number')
     print(a)
+
+    local function iszero(x: auto)
+      if x == 0 then
+        return true
+      else
+        return false
+      end
+    end
+
+    assert(iszero(0) == true)
+    assert(iszero(1) == false)
+    assert(iszero(2) == false)
   ]])
 end)
 

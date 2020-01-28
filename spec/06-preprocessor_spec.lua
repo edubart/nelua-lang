@@ -420,24 +420,20 @@ it("lazy function", function()
   assert.analyze_ast([=[
     ## local printtypes = {}
     local function printtype(x: auto)
-      ##[[
-      if x.type:is_float() then
-        table.insert(printtypes, 'float')
-      elseif x.type:is_integral() then
-        table.insert(printtypes, 'integral')
-      elseif x.type:is_boolean() then
-        table.insert(printtypes, 'boolean')
-      end
-      ]]
+      ## table.insert(printtypes, x.type.name)
       return x
     end
     assert(printtype(1) == 1)
     assert(printtype(3.14) == 3.14)
     assert(printtype(true) == true)
     assert(printtype(false) == false)
+    local a: uint64 = 1
+    assert(printtype(a) == 1)
+    local b: uint64 = 1
+    assert(printtype(b) == 1)
     ##[[ afterinfer(function()
       local types = table.concat(printtypes, ' ')
-      staticassert(types == 'integral float boolean', types)
+      staticassert(types == 'int64 float64 boolean boolean uint64', types)
     end) ]]
   ]=])
 end)

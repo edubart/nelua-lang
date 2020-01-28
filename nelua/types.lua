@@ -1050,11 +1050,14 @@ end
 
 local function lazy_args_matches(largs, rargs)
   for _,larg,rarg in iters.izip(largs, rargs) do
-    --TODO: if traits.is_attr(larg) and traits.is_attr(rargs)
     local ltype = traits.is_attr(larg) and larg.type or larg
     local rtype = traits.is_attr(rarg) and rarg.type or rarg
     if ltype ~= rtype then
       return false
+    elseif traits.is_attr(larg) and larg.comptime then
+      if not traits.is_attr(rarg) or larg.value ~= rarg.value then
+        return false
+      end
     end
   end
   return true
