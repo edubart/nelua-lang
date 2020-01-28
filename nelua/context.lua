@@ -49,10 +49,11 @@ function Context:_init(visitors, parentcontext)
     self.requires = {}
     self.parentcontext = self
   end
+  self:set_visitors(visitors)
   self.scope = self.rootscope
   self.scopestack = {}
-  self:set_visitors(visitors)
-  self.strict = false
+  self.state = {}
+  self.statestack = {}
   self.nodes = {}
 end
 
@@ -62,6 +63,18 @@ function Context:set_visitors(visitors)
     visitors.default_visitor = traverser_default_visitor
   end
 end
+
+--[[
+function Context:push_state(state)
+  table.insert(self.statestack, self.state)
+  self.state = state
+end
+
+function Context:pop_state()
+  self.state = table.remove(self.statestack)
+  assert(self.state)
+end
+]]
 
 function Context:push_scope(scope)
   table.insert(self.scopestack, self.scope)

@@ -212,7 +212,7 @@ function visitors.PragmaCall(context, node)
   local pragmashape = typedefs.call_pragmas[name]
   node:assertraisef(pragmashape, "pragma '%s' is undefined", name)
 
-  if name == 'afterinfer' and context.anyinference and not node.attr.afterinfer then
+  if name == 'afterinfer' and context.state.anyphase and not node.attr.afterinfer then
     node.attr.afterinfer = true
     args[1]()
   end
@@ -339,9 +339,9 @@ function visitors.IdDecl(context, node)
   else
     -- global record field
     assert(namenode.tag == 'DotIndex')
-    context.inglobaldecl = node
+    context.state.inglobaldecl = node
     symbol = context:traverse(namenode)
-    context.inglobaldecl = nil
+    context.state.inglobaldecl = nil
   end
   local attr = symbol
   if type then
@@ -592,11 +592,11 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     symbol.metavar = true
     symbol.codename = string.format('%s_%s', objtype.codename, name)
     local parentnode = context:get_parent_node()
-    if context.infuncdef == parentnode then
+    if context.state.infuncdef == parentnode then
       -- declaration of record global function
       symbol.metafunc = true
       symbol.metarecordtype = types.get_pointer_type(objtype)
-    elseif context.inglobaldecl == parentnode then
+    elseif context.state.inglobaldecl == parentnode then
       -- declaration of record global variable
       symbol.metafield = true
     else
@@ -608,7 +608,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     -- add symbol to scope to enable type deduction
     local ok = context.rootscope:add_symbol(symbol)
     assert(ok)
-  elseif context.infuncdef or context.inglobaldecl then
+  elseif context.state.infuncdef or context.state.inglobaldecl then
     if symbol.node ~= node then
       node:raisef("cannot redefine meta type field '%s'", name)
     end
@@ -1124,8 +1124,8 @@ function visitors.ForNum(context, node)
         end
       end
     else
-      itsymbol:add_possible_type(btype, true)
-      itsymbol:add_possible_type(etype, true)
+      itsymbol:add_possible_type(btype)
+      itsymbol:add_possible_type(etype)
     end
     context:traverse(blocknode)
   end)
@@ -1452,11 +1452,10 @@ end
 function visitors.FuncDef(context, node, lazysymbol)
   local varscope, varnode, argnodes, retnodes, annotnodes, blocknode = node:args()
 
-  context.infuncdef = node
-  context.inlazydef = lazysymbol
+  context.state.infuncdef = node
+  context.state.inlazydef = lazysymbol
   local symbol, decl = visitor_FuncDef_variable(context, varscope, varnode)
-  context.infuncdef = nil
-  context.inlazyfuncdef = nil
+  context.state.infuncdef = nil
 
   local returntypes = visitor_FuncDef_returns(context, node.attr.type, retnodes)
 
@@ -1668,7 +1667,7 @@ function typechecker.analyze(ast, parser, parentcontext)
   context.rootscope:resolve()
 
   -- phase 3 traverse: infer unset types to 'any' type
-  context.anyinference = true
+  context.state.anyphase = true
   context:traverse(ast)
   context.rootscope:resolve()
 

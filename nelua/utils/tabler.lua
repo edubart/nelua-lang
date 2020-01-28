@@ -69,6 +69,13 @@ function tabler.iall(t, f)
   return true
 end
 
+function tabler.clear(t)
+  for k in pairs(t) do
+    t[k] = nil
+  end
+  return t
+end
+
 -- compare two tables
 function tabler.deepcompare(t1,t2,ignore_mt)
   local ty1 = type(t1)

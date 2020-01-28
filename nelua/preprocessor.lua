@@ -59,11 +59,7 @@ function visitors.Block(ppcontext, node, emitter)
   local blockregidx = ppcontext:getregistryindex(node)
   emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess = function(blocknode)')
   emitter:inc_indent()
-  emitter:add_indent_ln('local ppscope = context:push_forked_scope("block", blocknode)')
-  emitter:add_indent_ln('local ppstatnodes = {}')
-  emitter:add_indent_ln('ppcontext:push_statnodes(ppstatnodes)')
-  emitter:add_indent_ln('local hygienize = ppcontext:make_hygienize()')
-  emitter:add_indent_ln('blocknode[1] = ppstatnodes')
+  emitter:add_indent_ln('ppcontext:begin_block(blocknode)')
   emitter:inc_indent()
   for _,statnode in ipairs(statnodes) do
     local statregidx = ppcontext:getregistryindex(statnode)
@@ -73,8 +69,7 @@ function visitors.Block(ppcontext, node, emitter)
     end
   end
   emitter:dec_indent()
-  emitter:add_indent_ln('ppcontext:pop_statnodes()')
-  emitter:add_indent_ln('context:pop_scope()')
+  emitter:add_indent_ln('ppcontext:end_block()')
   emitter:dec_indent()
   emitter:add_indent_ln('end')
 end
@@ -133,11 +128,7 @@ function preprocessor.preprocess(context, ast)
   local ppcontext = PPContext(visitors, context)
   local aster = context.astbuilder.aster
   local emitter = Emitter(ppcontext, 0)
-  emitter:add_ln("local context = context")
-  emitter:add_ln("local ppcontext = ppcontext")
-  emitter:add_ln("local ppregistry = ppcontext.registry")
-  emitter:add_ln("local ppscope = nil")
-  emitter:add_ln("local context = ppcontext.context")
+  emitter:add_ln("local ppcontext, ppregistry = ppcontext, ppcontext.registry")
   ppcontext:traverse(ast, emitter)
 
   -- generate the preprocess function`
@@ -160,13 +151,31 @@ function preprocessor.preprocess(context, ast)
     config = config,
     primtypes = primtypes,
     injectnode = function(node)
-        ppcontext:add_statnode(node)
+      ppcontext:add_statnode(node)
+    end,
+    hygienize = function(f)
+      local scope = ppcontext.context.scope
+      local checkpoint = scope:make_checkpoint()
+      local statnodes = ppcontext.statnodes
+      local addindex = #statnodes+1
+      return function(...)
+        statnodes.addindex = addindex
+        ppcontext:push_statnodes(statnodes)
+        scope:push_checkpoint(checkpoint)
+        ppcontext.context:push_scope(scope)
+        local rets = tabler.pack(f(...))
+        ppcontext:pop_statnodes()
+        ppcontext.context:pop_scope()
+        scope:pop_checkpoint()
+        statnodes.addindex = nil
+        return tabler.unpack(rets)
+      end
     end,
     afterinfer = function(f)
       if not traits.is_function(f) then
         raise_preprocess_error("invalid arguments for preprocess function")
       end
-      local oldscope = context.scope
+      local oldscope = ppcontext.context.scope
       local function fproxy()
         context:push_scope(oldscope)
         f()
@@ -186,11 +195,11 @@ function preprocessor.preprocess(context, ast)
       return status
     end,
   }, { __index = function(_, key)
-    local v = rawget(context.env, key)
+    local v = rawget(ppcontext.context.env, key)
     if v ~= nil then
       return v
     end
-    local symbol = context.scope.symbols[key]
+    local symbol = ppcontext.context.scope.symbols[key]
     if symbol then
       return symbol
     elseif typedefs.field_pragmas[key] then
@@ -219,7 +228,7 @@ function preprocessor.preprocess(context, ast)
       end
       context[key] = value
     else
-      rawset(context.env, key, value)
+      rawset(ppcontext.context.env, key, value)
     end
   end})
 

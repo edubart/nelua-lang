@@ -47,7 +47,7 @@ function CContext:declname(node)
       end
       declname = cdefs.quotename(declname)
     end
-    if attr.shadowed or
+    if attr.shadows or
       (attr.type:is_function() and not attr.staticstorage) then
       declname = self:genuniquename(declname, '%s__%d')
     end

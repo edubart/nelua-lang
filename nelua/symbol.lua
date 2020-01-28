@@ -26,19 +26,13 @@ end
 
 function Symbol:clear_possible_types()
   self.possibletypes = nil
-  self.requnknown = nil
   self.hasunknown = nil
-  self.resolvefail = nil
 end
 
-function Symbol:add_possible_type(type, required)
+function Symbol:add_possible_type(type)
   if self.type then return end
   if not type then
-    if required then
-      self.requnknown = true
-    else
-      self.hasunknown = true
-    end
+    self.hasunknown = true
     return
   end
   if not self.possibletypes then
@@ -48,8 +42,11 @@ function Symbol:add_possible_type(type, required)
   table.insert(self.possibletypes, type)
 end
 
-function Symbol:resolve_type()
-  if self.type or self.requnknown or self.resolvefail then
+function Symbol:resolve_type(ignoreunknown)
+  if self.type then
+    return false
+  end
+  if not ignoreunknown and self.hasunknown then
     return false
   end
   local resolvetype = types.find_common_type(self.possibletypes)
@@ -58,7 +55,6 @@ function Symbol:resolve_type()
     self:clear_possible_types()
     return true
   else
-    self.resolvefail = true
     return false
   end
 end

@@ -1,5 +1,4 @@
 local traits = require 'nelua.utils.traits'
-local tabler = require 'nelua.utils.tabler'
 local class = require 'nelua.utils.class'
 local bn = require 'nelua.utils.bn'
 local typedefs = require 'nelua.typedefs'
@@ -12,7 +11,7 @@ function PPContext:_init(visitors, context)
   Context._init(self, visitors)
   self.context = context
   self.registry = {}
-  self.statnodes = {}
+  self.statnodes = nil
   self.statnodestack = {}
 end
 
@@ -21,26 +20,20 @@ function PPContext:push_statnodes(statnodes)
   self.statnodes = statnodes
 end
 
-function PPContext:pop_statnodes()
-  self.statnodes = table.remove(self.statnodestack)
+function PPContext:begin_block(blocknode)
+  local statnodes = {}
+  self:push_statnodes(statnodes)
+  self.context:push_forked_scope("block", blocknode)
+  blocknode[1] = statnodes
 end
 
-function PPContext:make_hygienize()
-  local scope = self.context.scope
-  local statnodes = self.statnodes
-  local addindex = #statnodes+1
-  return function(f)
-    return function(...)
-      statnodes.addindex = addindex
-      self:push_statnodes(statnodes)
-      self.context:push_scope(scope)
-      local rets = tabler.pack(f(...))
-      self:pop_statnodes()
-      self.context:pop_scope()
-      statnodes.addindex = nil
-      return tabler.unpack(rets)
-    end
-  end
+function PPContext:end_block()
+  self:pop_statnodes()
+  self.context:pop_scope()
+end
+
+function PPContext:pop_statnodes()
+  self.statnodes = table.remove(self.statnodestack)
 end
 
 function PPContext:add_statnode(node)

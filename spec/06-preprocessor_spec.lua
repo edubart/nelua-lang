@@ -320,7 +320,7 @@ it("strict mode", function()
     end
     f(1)
   ]=], [[
-    print 'false'
+    print 'nil'
     ## strict = true
     print 'true'
     local function f(a: integer)
@@ -548,6 +548,15 @@ local a = 1
 local a = 1
 a = a + 1
 ]=])
+
+  assert.analyze_error([=[
+## strict = true
+## local function redeclare()
+  local a = 1
+## end
+local a = 1
+## redeclare()
+]=], "symbol 'a' shadows pre declared symbol")
 end)
 
 it("hygienic macros", function()
@@ -575,6 +584,15 @@ do
   local a: PointInt = {1,2}
 end
 ]=])
+
+  assert.analyze_error([=[
+## strict = true
+## local inc = hygienize(function()
+  a = a + 1
+## end)
+local a = 1
+## inc()
+]=], "undeclared symbol 'a'")
 end)
 
 it("run brainfuck", function()

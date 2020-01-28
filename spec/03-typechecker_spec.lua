@@ -395,6 +395,24 @@ it("recursive late deduction", function()
     local limit = 1_integer
     for i:integer=1,limit do end
   ]])
+  assert.ast_type_equals([[
+    a = a + 1
+    local x = a
+  ]], [[
+    a = a + 1
+    local x: any = a
+  ]])
+  assert.ast_type_equals([[
+    local a
+    a = a + 1
+    local x = a
+    local a = 2
+  ]], [[
+    local a: any
+    a = a + 1
+    local x: any = a
+    local a: integer = 2
+  ]])
 end)
 
 it("function definition", function()
