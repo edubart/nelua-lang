@@ -588,16 +588,18 @@ end
 local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   local attr = node.attr
   local symbol = objtype:get_metafield(name)
+  local parentnode = context:get_parent_node()
+  local infuncdef = context.state.infuncdef == parentnode
+  local inglobaldecl = context.state.inglobaldecl == parentnode
   if not symbol then
     symbol = Symbol.promote_attr(attr, nil, node)
     symbol.metavar = true
     symbol.codename = string.format('%s_%s', objtype.codename, name)
-    local parentnode = context:get_parent_node()
-    if context.state.infuncdef == parentnode then
+    if infuncdef then
       -- declaration of record global function
       symbol.metafunc = true
       symbol.metarecordtype = types.get_pointer_type(objtype)
-    elseif context.state.inglobaldecl == parentnode then
+    elseif inglobaldecl then
       -- declaration of record global variable
       symbol.metafield = true
     else
@@ -609,7 +611,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     -- add symbol to scope to enable type deduction
     local ok = context.rootscope:add_symbol(symbol)
     assert(ok)
-  elseif context.state.infuncdef or context.state.inglobaldecl then
+  elseif infuncdef or inglobaldecl then
     if symbol.node ~= node then
       node:raisef("cannot redefine meta type field '%s'", name)
     end
@@ -1655,8 +1657,10 @@ function visitors.BinaryOp(context, node)
   end
 end
 
-function analyzer.analyze(ast, parser, parentcontext)
-  local context = AnalyzerContext(visitors, parentcontext, ast, parser)
+function analyzer.analyze(ast, parser, context)
+  if not context then
+    context = AnalyzerContext(visitors, ast, parser)
+  end
 
   -- phase 1 traverse: preprocess
   preprocessor.preprocess(context, ast)

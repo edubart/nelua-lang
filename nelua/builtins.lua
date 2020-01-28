@@ -3,9 +3,16 @@ local fs = require 'nelua.utils.fs'
 local config = require 'nelua.configer'.get()
 
 function builtins.require(context, node)
+  local analyzer = require 'nelua.analyzer'
+
   local attr = node.attr
-  if attr.loadedast or attr.alreadyrequired then
-    -- already loaded
+  if attr.loadedast then
+    context:push_scope(context.rootscope)
+    context:traverse(attr.loadedast)
+    context:pop_scope()
+    return
+  elseif attr.alreadyrequired then
+    -- already tried to load
     return
   end
 
@@ -40,7 +47,6 @@ function builtins.require(context, node)
   local ast = context.parser:parse(input, filepath)
 
   -- analyze it
-  local analyzer = require 'nelua.analyzer'
   context:push_scope(context.rootscope)
   analyzer.analyze(ast, context.parser, context)
   context:pop_scope()

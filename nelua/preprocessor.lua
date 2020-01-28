@@ -2,7 +2,7 @@ local traits = require 'nelua.utils.traits'
 local tabler = require 'nelua.utils.tabler'
 local compat = require 'pl.compat'
 local typedefs = require 'nelua.typedefs'
-local Context = require 'nelua.analyzercontext'
+local VisitorContext = require 'nelua.analyzercontext'
 local PPContext = require 'nelua.ppcontext'
 local Emitter = require 'nelua.emitter'
 local except = require 'nelua.utils.except'
@@ -114,7 +114,13 @@ local preprocessor = {}
 function preprocessor.preprocess(context, ast)
   assert(ast.tag == 'Block')
 
-  local markercontext = Context(marker_visitors)
+  local ppcontext = context.ppcontext
+  if not ppcontext then
+    ppcontext = PPContext(visitors, context)
+    context.ppcontext = ppcontext
+  end
+
+  local markercontext = VisitorContext(marker_visitors)
 
   -- first pass, mark blocks that needs preprocess
   markercontext:traverse(ast)
@@ -125,10 +131,8 @@ function preprocessor.preprocess(context, ast)
   end
 
   -- second pass, emit the preprocess lua code
-  local ppcontext = PPContext(visitors, context)
   local aster = context.parser.astbuilder.aster
   local emitter = Emitter(ppcontext, 0)
-  emitter:add_ln("local ppcontext, ppregistry = ppcontext, ppcontext.registry")
   ppcontext:traverse(ast, emitter)
 
   -- generate the preprocess function`
@@ -142,14 +146,16 @@ function preprocessor.preprocess(context, ast)
   end
 
   local primtypes = require 'nelua.typedefs'.primtypes
-  local env
-  env = setmetatable({
+  local ppenv = {
     context = context,
     ppcontext = ppcontext,
+    ppregistry = ppcontext.registry,
     ast = ast,
     aster = aster,
     config = config,
-    primtypes = primtypes,
+    primtypes = primtypes
+  }
+  tabler.update(ppenv, {
     injectnode = function(node)
       ppcontext:add_statnode(node)
     end,
@@ -194,7 +200,8 @@ function preprocessor.preprocess(context, ast)
       end
       return status
     end,
-  }, { __index = function(_, key)
+  })
+  setmetatable(ppenv, { __index = function(_, key)
     local v = rawget(ppcontext.context.env, key)
     if v ~= nil then
       return v
@@ -233,7 +240,7 @@ function preprocessor.preprocess(context, ast)
   end})
 
   -- try to run the preprocess otherwise capture and show the error
-  local ppfunc, err = compat.load(ppcode, '@preprocessor', "t", env)
+  local ppfunc, err = compat.load(ppcode, '@preprocessor', "t", ppenv)
   local ok = not err
   if ppfunc then
     ok, err = except.trycall(ppfunc)

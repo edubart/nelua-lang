@@ -6,21 +6,12 @@ local VisitorContext = require 'nelua.visitorcontext'
 
 local AnalyzerContext = class(VisitorContext)
 
-function AnalyzerContext:_init(visitors, parentcontext, ast, parser)
+function AnalyzerContext:_init(visitors, ast, parser)
   VisitorContext._init(self, visitors)
-  if parentcontext then
-    self.rootscope = parentcontext.rootscope
-    self.usedbuiltins = parentcontext.usedbuiltins
-    self.env = parentcontext.env
-    self.requires = parentcontext.requires
-    self.parentcontext = parentcontext
-  else
-    self.rootscope = Scope(self, 'root')
-    self.usedbuiltins = {}
-    self.env = {}
-    self.requires = {}
-    self.parentcontext = self
-  end
+  self.rootscope = Scope(self, 'root')
+  self.usedbuiltins = {}
+  self.env = {}
+  self.requires = {}
   self.scope = self.rootscope
   self.scopestack = {}
   self.state = {}

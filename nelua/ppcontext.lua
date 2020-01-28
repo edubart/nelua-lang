@@ -15,11 +15,6 @@ function PPContext:_init(visitors, context)
   self.statnodestack = {}
 end
 
-function PPContext:push_statnodes(statnodes)
-  table.insert(self.statnodestack, self.statnodes)
-  self.statnodes = statnodes
-end
-
 function PPContext:begin_block(blocknode)
   local statnodes = {}
   self:push_statnodes(statnodes)
@@ -30,6 +25,11 @@ end
 function PPContext:end_block()
   self:pop_statnodes()
   self.context:pop_scope()
+end
+
+function PPContext:push_statnodes(statnodes)
+  table.insert(self.statnodestack, self.statnodes)
+  self.statnodes = statnodes
 end
 
 function PPContext:pop_statnodes()
