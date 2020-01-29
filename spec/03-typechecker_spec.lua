@@ -846,8 +846,8 @@ it("records", function()
   ]])
   assert.analyze_ast([[
     local Record = @record{x: boolean}
-    local a <comptime> = Record{}
-    local b <comptime> = Record{x=true}
+    local a <const> = Record{}
+    local b <const> = Record{x=true}
   ]])
   assert.analyze_error([[
     local Record: type = @record{x: integer, y: integer}
@@ -864,9 +864,7 @@ it("records", function()
     b = a
   ]], "no viable type conversion")
   assert.analyze_error([[
-    local b = false
-    local Record = @record{x: boolean}
-    local a <comptime> = Record{x = b}
+    local a <comptime> = Record{}
   ]], "can only assign to compile time expressions")
   assert.ast_type_equals(
     "local a: record {x: boolean}; local b = a.x",

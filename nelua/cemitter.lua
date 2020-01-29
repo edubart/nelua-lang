@@ -35,8 +35,10 @@ function CEmitter:zeroinit(type)
     s = 'NULL'
   elseif type:is_boolean() then
     s = 'false'
-  else
+  elseif type.size > 0 then
     s = '{0}'
+  else
+    s = '{}'
   end
   return s
 end
@@ -47,15 +49,7 @@ function CEmitter:add_zeroinit(type)
   self:add(self:zeroinit(type))
 end
 
-function CEmitter:add_nodezerotype(node)
-  local type = node.attr.type
-  if not (type:is_boolean() or type:is_arithmetic() or type:is_pointer()) then
-    self:add_nodectypecast(node)
-  end
-  self:add(self:zeroinit(type))
-end
-
-function CEmitter:add_castedzerotype(type)
+function CEmitter:add_ctyped_zerotype(type)
   if not (type:is_boolean() or type:is_arithmetic() or type:is_pointer()) then
     self:add_ctypecast(type)
   end
@@ -69,16 +63,6 @@ end
 function CEmitter:add_ctypecast(type)
   self:add('(')
   self:add_ctype(type)
-  self:add(')')
-end
-
-function CEmitter:add_nodectypecast(node)
-  if node.attr.initializer then
-    -- skip casting inside initializers
-    return
-  end
-  self:add('(')
-  self:add_ctype(node.attr.type)
   self:add(')')
 end
 

@@ -105,7 +105,7 @@ function CContext:runctype(type)
 end
 
 function CContext:funcretctype(functype)
-  if functype:has_multiple_returns() then
+  if functype:has_enclosed_return() then
     return functype.codename .. '_ret'
   else
     return self:ctype(functype:get_return_type(1))

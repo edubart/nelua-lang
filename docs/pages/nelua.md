@@ -104,7 +104,7 @@ for existing Lua projects by generating Lua code.
 * We want type safety and optimizations.
 * We want to have efficient code while maintaining readability and safety.
 * We want the language features and manual to be minimalistic and fit our brain.
-* We want to deploy anywhere Lua or C runs.
+* We want to deploy anywhere C runs.
 * We want to extended the language features by meta programming or modding the compiler.
 * We want to code with or without garbage collection depending on our use case.
 * We want to abuse of static dispatch instead of dynamic dispatch to gain performance and correctness.

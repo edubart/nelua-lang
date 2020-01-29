@@ -89,13 +89,9 @@ local function visitor_ArrayTable_literal(context, node, littype)
     context:traverse(childnode)
     local childtype = childnode.attr.type
     if childtype then
-      if childtype == subtype then
-        childnode.attr.initializer = true
-      else
-        local ok, err = subtype:is_convertible_from(childnode.attr)
-        if not ok then
-          childnode:raisef("in array table literal at index %d: %s", i, err)
-        end
+      local ok, err = subtype:is_convertible_from(childnode.attr)
+      if not ok then
+        childnode:raisef("in array table literal at index %d: %s", i, err)
       end
     end
   end
@@ -118,13 +114,12 @@ local function visitor_Array_literal(context, node, littype)
     context:traverse(childnode)
     local childtype = childnode.attr.type
     if childtype then
-      if childtype == subtype then
-        childnode.attr.initializer = true
-      else
-        local ok, err = subtype:is_convertible_from(childnode.attr)
-        if not ok then
-          childnode:raisef("in array literal at index %d: %s", i, err)
-        end
+      if not childtype:is_initializable_from_attr(childnode.attr) then
+        comptime = nil
+      end
+      local ok, err = subtype:is_convertible_from(childnode.attr)
+      if not ok then
+        childnode:raisef("in array literal at index %d: %s", i, err)
       end
     end
     if not childnode.attr.comptime then
@@ -168,24 +163,23 @@ local function visitor_Record_literal(context, node, littype)
     lastfieldindex = fieldindex
     local fieldvaltype = fieldvalnode.attr.type
     if fieldvaltype then
-      if fieldvaltype == fieldtype then
-        fieldvalnode.attr.initializer = true
-      else
-        local ok, err = fieldtype:is_convertible_from(fieldvalnode.attr)
-        if not ok then
-          childnode:raisef("in record literal field '%s': %s", fieldname, err)
-        end
+      if not fieldvaltype:is_initializable_from_attr(fieldvalnode.attr) then
+        comptime = nil
+      end
+      local ok, err = fieldtype:is_convertible_from(fieldvalnode.attr)
+      if not ok then
+        childnode:raisef("in record literal field '%s': %s", fieldname, err)
       end
     end
-    childnode.attr.parenttype = littype
     if not fieldvalnode.attr.comptime then
       comptime = nil
     end
+    childnode.attr.parenttype = littype
+    childnode.attr.fieldname = fieldname
   end
   attr.type = littype
   attr.comptime = comptime
 end
-
 
 local function visitor_Table_literal(context, node)
   local attr = node.attr
@@ -193,7 +187,6 @@ local function visitor_Table_literal(context, node)
   context:traverse(childnodes)
   attr.type = primtypes.table
 end
-
 
 function visitors.Table(context, node)
   local desiredtype = node.desiredtype
@@ -833,8 +826,10 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
       argnode:raisef("in type assertion: %s", err)
     end
     if argnode.attr.comptime then
-      attr.comptime = argnode.attr.comptime
       attr.value = type:normalize_value(argnode.attr.value)
+      if attr.value or argtype == type then
+        attr.comptime = true
+      end
     end
   end
   attr.sideeffect = argnode.attr.sideeffect
@@ -1215,7 +1210,7 @@ function visitors.VarDecl(context, node)
         varnode:raisef("cannot assign imported variables, only imported types can be assigned")
       end
 
-      if valtype == vartype and valnode.attr.comptime then
+      if vartype and vartype:is_initializable_from_attr(valnode.attr) then
         valnode.attr.initializer = true
       end
     else

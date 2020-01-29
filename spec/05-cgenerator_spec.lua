@@ -69,7 +69,7 @@ end)
 it("nil", function()
   assert.generate_c("local a: nilable", "nelua_nilable a = NULL;")
   assert.generate_c("local a: nilable = nil", "nelua_nilable a = NULL;")
-  assert.generate_c("local a = nil", "nelua_any a = (nelua_any){0};")
+  assert.generate_c("local a = nil", "nelua_any a = {0};")
   assert.generate_c("local function f(a: nilable) end f(nil)", "f(NULL);")
 end)
 
@@ -941,6 +941,20 @@ it("spans", function()
     assert(s[0] == 0)
     s[0] = 0xf
     assert(s[0] == 0xf)
+
+    local arr = (@integer[4]) {1,2,3,4}
+    local s = arr[0:1]
+    assert(s[0] == 1 and s[1] == 2)
+    local s: span(integer) = arr[2:3]
+    assert(s[0] == 3 and s[1] == 4)
+
+    do
+      local arr = (@integer[4]) {1,2,3,4}
+      local s = arr[0:1]
+      assert(s[0] == 1 and s[1] == 2)
+      local s: span(integer) = arr[2:3]
+      assert(s[0] == 3 and s[1] == 4)
+    end
   ]])
 end)
 
@@ -970,7 +984,7 @@ end)
 it("arrays", function()
   assert.generate_c(
     "local a: array(boolean, 10)",
-    "bool data[10];")
+    {"data[10];} nelua_boolean_arr10"})
   assert.run_c([[
     local a: array(boolean, 1)
     assert(a[0] == false)
@@ -983,8 +997,75 @@ it("arrays", function()
   assert.run_c([[
     local a: array(integer, 4) = {1,2,3,4}
     local b: array(integer, 4) = a
-    print(b[0], b[1], b[2], b[3], #b)
-  ]], "1\t2\t3\t4\t4")
+
+    assert(b[0] == 1 and b[1] == 2 and b[2] == 3 and b[3] == 4)
+    assert(#b == 4)
+  ]])
+end)
+
+it("arrays inside records", function()
+  assert.run_c([[
+    local R = @record{v: integer[4]}
+    local a: R
+    a.v[0]=1 a.v[1]=2 a.v[2]=3 a.v[3]=4
+    assert(a.v[0]==1 and a.v[1]==2 and a.v[2]==3 and a.v[3]==4)
+    a.v = {5,6,7,8}
+    assert(a.v[0]==5 and a.v[1]==6 and a.v[2]==7 and a.v[3]==8)
+
+    local b: R = {v = {1,2,3,4}}
+    assert(b.v[0]==1 and b.v[1]==2 and b.v[2]==3 and b.v[3]==4)
+
+    local function f(): integer[2][2]
+      local a: integer[2][2]
+      a[0][0] = 1
+      a[0][1] = 2
+      a[1][0] = 3
+      a[1][1] = 4
+      return a
+    end
+    assert(f()[0][0] == 1)
+    assert(f()[0][1] == 2)
+    assert(f()[1][0] == 3)
+    assert(f()[1][1] == 4)
+
+    local function g(): integer[2][2]
+      return (@integer[2][2]){{1,2},{3,4}}
+    end
+    assert(g()[0][0] == 1)
+    assert(g()[0][1] == 2)
+    assert(g()[1][0] == 3)
+    assert(g()[1][1] == 4)
+
+    local R = @record{v: integer[4]}
+    local v = (@integer[4]){1,2,3,4}
+    local a: R = {v=v}
+    assert(a.v[0] == 1 and a.v[1] == 2 and a.v[2] == 3 and a.v[3] == 4)
+  ]])
+end)
+
+it("multi dimensional arrays", function()
+  assert.run_c([[
+    local function f(): integer[2][2]
+      local a: integer[2][2]
+      a[0][0] = 1
+      a[0][1] = 2
+      a[1][0] = 3
+      a[1][1] = 4
+      return a
+    end
+    assert(f()[0][0] == 1)
+    assert(f()[0][1] == 2)
+    assert(f()[1][0] == 3)
+    assert(f()[1][1] == 4)
+
+    local function g(): integer[2][2]
+      return (@integer[2][2]){{1,2},{3,4}}
+    end
+    print(g()[0][0])
+    print(g()[0][1])
+    print(g()[1][0])
+    print(g()[1][1])
+  ]])
 end)
 
 it("records", function()
@@ -1035,6 +1116,10 @@ it("records", function()
     end
   ]])
   assert.run_c([[
+    local P = @record{x: byte, y: byte}
+    local p <const> = P{x=1,y=2}
+    assert(p.x == 1 and p.y == 2)
+
     local r: record {x: array(integer, 1)} =  {x={1}}
     assert(r.x[0] == 1)
   ]])

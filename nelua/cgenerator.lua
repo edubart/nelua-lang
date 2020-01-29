@@ -70,11 +70,14 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
           decemitter:add('static ')
         end
         decemitter:add(varnode)
-        if valnode and (valnode.attr.comptime or varattr.const or varattr.comptime) then
+        if valnode and valnode.attr.initializer then
           -- initialize to const values
           decemitter:add(' = ')
           assert(not lastcallindex)
+          local state = context:push_state()
+          state.ininitializer = true
           decemitter:add_val2type(vartype, valnode)
+          context:pop_state()
           defined = true
         else
           -- pre initialize to zeros
@@ -107,10 +110,11 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
 
       if not declared or (not defined and (valnode or lastcallindex)) then
         -- declare or define if needed
+        defemitter:add_indent()
         if not declared then
-          defemitter:add_indent(varnode)
+          defemitter:add(varnode)
         else
-          defemitter:add_indent(context:declname(varnode))
+          defemitter:add(context:declname(varnode))
         end
         if valnode or not noinit then
           -- initialize variable
@@ -177,7 +181,17 @@ typevisitors[types.RecordType] = function(context, type)
     defemitter:add('struct ', type.codename)
     defemitter:add_ln(' {')
     for _,field in ipairs(type.fields) do
-      defemitter:add_ln('  ', field.type, ' ', field.name, ';')
+      local fieldctype
+      if field.type:is_array() then
+        fieldctype = field.type.subtype
+      else
+        fieldctype = context:ctype(field.type)
+      end
+      defemitter:add('  ', fieldctype, ' ', field.name)
+      if field.type:is_array() then
+        defemitter:add('[', field.type.length, ']')
+      end
+      defemitter:add_ln(';')
     end
     defemitter:add('}')
     emit_type_attributes(defemitter, type)
@@ -224,10 +238,10 @@ end
 
 local visitors = {}
 
-function visitors.Number(_, node, emitter)
+function visitors.Number(context, node, emitter)
   local attr = node.attr
-  if not attr.type:is_float() and not attr.untyped then
-    emitter:add_nodectypecast(node)
+  if not attr.type:is_float() and not attr.untyped and not context.state.ininitializer then
+    emitter:add_ctypecast(attr.type)
   end
   emitter:add_numeric_literal(attr)
 end
@@ -249,16 +263,56 @@ function visitors.Varargs(_, _, emitter)
 end
 
 function visitors.Table(context, node, emitter)
-  local childnodes, type = node[1], node.attr.type
+  local attr = node.attr
+  local childnodes, type = node[1], attr.type
   local len = #childnodes
   if len == 0 and (type:is_record() or type:is_array() or type:is_arraytable()) then
-    emitter:add_nodezerotype(node)
+    if not context.state.ininitializer then
+      emitter:add_ctypecast(type)
+    end
+    emitter:add_zeroinit(type)
   elseif type:is_record() then
-    emitter:add_nodectypecast(node)
-    emitter:add('{', childnodes, '}')
+    if context.state.ininitializer then
+      local state = context:push_state()
+      state.inrecordinitializer = true
+      emitter:add('{', childnodes, '}')
+      context:pop_state()
+    else
+      emitter:add_ln('({')
+      emitter:inc_indent()
+      emitter:add_indent(type, ' __record = ')
+      emitter:add_zeroinit(type)
+      emitter:add_ln(';')
+      for _,childnode in ipairs(childnodes) do
+        local fieldname = childnode.attr.fieldname
+        local childvalnode
+        if childnode.tag  == 'Pair' then
+          childvalnode = childnode[2]
+        else
+          childvalnode = childnode
+        end
+        local childvaltype = childvalnode.attr.type
+        if childvaltype:is_array() then
+          emitter:add_indent_ln('(*(', childvaltype, '*)__record.', fieldname, ') = ',  childvalnode, ';')
+        else
+          emitter:add_indent_ln('__record.', fieldname, ' = ',  childvalnode, ';')
+        end
+      end
+      emitter:add_indent_ln('__record;')
+      emitter:dec_indent()
+      emitter:add_indent('})')
+    end
   elseif type:is_array() then
-    emitter:add_nodectypecast(node)
-    emitter:add('{{', childnodes, '}}')
+    if context.state.ininitializer then
+      if context.state.inrecordinitializer then
+        emitter:add('{', childnodes, '}')
+      else
+        emitter:add('{{', childnodes, '}}')
+      end
+    else
+      emitter:add_ctypecast(type)
+      emitter:add('{{', childnodes, '}}')
+    end
   elseif type:is_arraytable() then
     emitter:add(context:typename(type), '_create((', type.subtype, '[', len, ']){', childnodes, '},', len, ')')
   else --luacov:disable
@@ -357,9 +411,15 @@ end
 -- indexing
 function visitors.DotIndex(context, node, emitter)
   local name, objnode = node:args()
-  local type = objnode.attr.type
-  if type:is_type() then
-    local objtype = node.attr.indextype
+  local type = node.attr.type
+  local objtype = objnode.attr.type
+  local poparray = false
+  if type:is_array() then
+    emitter:add('(*(', type, '*)')
+    poparray = true
+  end
+  if objtype:is_type() then
+    objtype = node.attr.indextype
     if objtype:is_enum() then
       emitter:add(objtype:get_field(name).value)
     elseif objtype:is_record() then
@@ -372,10 +432,13 @@ function visitors.DotIndex(context, node, emitter)
     else --luacov:disable
       error('not implemented yet')
     end --luacov:enable
-  elseif type:is_pointer() then
+  elseif objtype:is_pointer() then
     emitter:add(objnode, '->', cdefs.quotename(name))
   else
     emitter:add(objnode, '.', cdefs.quotename(name))
+  end
+  if poparray then
+    emitter:add(')')
   end
 end
 
@@ -400,7 +463,7 @@ function visitors.ArrayIndex(context, node, emitter)
     emitter:inc_indent()
     emitter:add_indent_ln(indextype, ' __range = ', indexnode, ';')
     emitter:add_indent()
-    emitter:add_nodectypecast(node)
+    emitter:add_ctypecast(node.attr.type)
     emitter:add('{&(')
     index = '__range.low'
   end
@@ -426,7 +489,7 @@ function visitors.ArrayIndex(context, node, emitter)
   if indextype:is_range() then
     emitter:add_ln('), __range.high - __range.low };')
     emitter:dec_indent()
-    emitter:add_indent_ln('})')
+    emitter:add_indent('})')
   end
 end
 
@@ -516,7 +579,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, isblockcal
     end
     emitter:add(')')
 
-    if calleetype:has_multiple_returns() and not attr.multirets then
+    if calleetype:has_enclosed_return() and not attr.multirets then
       -- get just the first result in multiple return functions
       emitter:add('.r1')
     end
@@ -614,22 +677,24 @@ function visitors.Return(context, node, emitter)
   else
     local functype = funcscope.functype
     local numfuncrets = functype:get_return_count()
-    if numfuncrets == 0 then
-      -- no returns
-      assert(numretnodes == 0)
-      emitter:add_indent_ln('return;')
-    elseif numfuncrets == 1 then
-      -- one return
-      local retnode, rettype = retnodes[1], functype:get_return_type(1)
-      emitter:add_indent('return ')
-      if retnode then
-        -- return value is present
-        emitter:add_val2type(rettype, retnode)
-        emitter:add_ln(';')
-      else
-        -- no return value present, generate a zeroed one
-        emitter:add_castedzerotype(rettype)
-        emitter:add_ln(';')
+    if not functype:has_enclosed_return() then
+      if numfuncrets == 0 then
+        -- no returns
+        assert(numretnodes == 0)
+        emitter:add_indent_ln('return;')
+      elseif numfuncrets == 1 then
+        -- one return
+        local retnode, rettype = retnodes[1], functype:get_return_type(1)
+        emitter:add_indent('return ')
+        if retnode then
+          -- return value is present
+          emitter:add_val2type(rettype, retnode)
+          emitter:add_ln(';')
+        else
+          -- no return value present, generate a zeroed one
+          emitter:add_ctyped_zerotype(rettype)
+          emitter:add_ln(';')
+        end
       end
     else
       -- multiple returns
@@ -874,7 +939,7 @@ function visitors.FuncDef(context, node, emitter)
 
   local decemitter, defemitter, implemitter = CEmitter(context), CEmitter(context), CEmitter(context)
   local retctype = context:funcretctype(type)
-  if numrets > 1 then
+  if type:has_enclosed_return() then
     node:assertraisef(declare, 'functions with multiple returns must be declared')
 
     local retemitter = CEmitter(context)

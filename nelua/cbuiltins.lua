@@ -619,7 +619,7 @@ end
 
 function operators.range(node, emitter, lnode, rnode)
   local subtype = node.attr.type.subtype
-  emitter:add_nodectypecast(node)
+  emitter:add_ctypecast(node.attr.type)
   emitter:add('{')
   emitter:add_val2type(subtype, lnode)
   emitter:add(',')

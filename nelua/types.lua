@@ -158,6 +158,12 @@ function Type:is_equal(type)
     (type.name == self.name and getmetatable(type) == getmetatable(self)))
 end
 
+function Type:is_initializable_from_attr(attr)
+  if attr and self == attr.type and attr.comptime then
+    return true
+  end
+end
+
 function Type:is_comptime() return self.comptime end
 function Type:is_primitive() return self.primitive end
 function Type:is_auto() return self.auto end
@@ -512,6 +518,15 @@ end
 
 function ArithmeticType:is_convertible_from_type(type, explicit)
   return Type.is_convertible_from_type(self, type, explicit)
+end
+
+function ArithmeticType:is_initializable_from_attr(attr)
+  if Type.is_initializable_from_attr(self, attr) then
+    return true
+  end
+  if attr.type and attr.type:is_arithmetic() and attr.comptime and attr.untyped then
+    return true
+  end
 end
 
 ArithmeticType.unary_operators.unm = function(ltype, lattr)
@@ -1014,6 +1029,10 @@ end
 
 function FunctionType:has_multiple_returns()
   return #self.returntypes > 1
+end
+
+function FunctionType:has_enclosed_return()
+  return self:has_multiple_returns()
 end
 
 function FunctionType:get_return_count()

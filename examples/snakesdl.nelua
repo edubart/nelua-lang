@@ -215,12 +215,13 @@ end
 
 local function draw_tile(pos: Point2D, color: Color)
   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255)
-  SDL_RenderFillRect(renderer, &SDL_Rect{
+  local rect = SDL_Rect{
     x = (@cint)(pos.x * TILE_SIZE),
     y = (@cint)(pos.y * TILE_SIZE),
     w = TILE_SIZE,
     h = TILE_SIZE
-  })
+  }
+  SDL_RenderFillRect(renderer, &rect)
 end
 
 local function draw_apple()
