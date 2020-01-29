@@ -118,10 +118,9 @@ cdefs.binary_ops = {
 cdefs.compiler_base_flags = {
   cflags_warn = {
     "-Wall",
-    "-Wextra",
     "-Wno-incompatible-pointer-types", -- importing C functions can cause this warn
-    "-Wno-missing-field-initializers", -- records without all fields explicity initialized
-    "-Wno-unused-parameter", -- functions with unused parameters
+    --"-Wno-missing-field-initializers", -- records without all fields explicity initialized
+    --"-Wno-unused-parameter", -- functions with unused parameters
     "-Wno-unused-const-variable", -- consts can be left unused
     "-Wno-unused-function", -- local functions can be left unused
     "-Wno-missing-braces", -- C zero initialization for anything
