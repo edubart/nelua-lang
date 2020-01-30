@@ -28,27 +28,18 @@ function CContext.promote_context(self, visitors, typevisitors)
   return self
 end
 
-function CContext:declname(node)
-  local attr = node.attr
-  if node._symbol then
-    attr = node
-  end
+function CContext:declname(attr)
+  assert(traits.is_attr(attr))
   if attr.declname then
     return attr.declname
   end
   local declname = attr.codename
+  assert(attr.codename)
   if not attr.nodecl then
-    if not attr.cimport and not attr.metavar then
-      if attr.staticstorage then
-        local modname = attr.modname or node.modname
-        if modname then
-          declname = string.format('%s_%s', modname, declname)
-        end
-      end
+    if not attr.cimport then
       declname = cdefs.quotename(declname)
     end
-    if attr.shadows or
-      (attr.type:is_function() and not attr.staticstorage) then
+    if attr.shadows or (attr.type:is_function() and not attr.staticstorage) then
       declname = self:genuniquename(declname, '%s__%d')
     end
   end

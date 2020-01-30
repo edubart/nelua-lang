@@ -105,7 +105,6 @@ function PPContext:tovalue(val, orignode)
     orignode:raisef('unable to convert preprocess value of type "%s" to a const value', type(val))
   end
   node.srcname = orignode.srcname
-  node.modname = orignode.modname
   node.src = orignode.src
   node.pos = orignode.pos
   return node

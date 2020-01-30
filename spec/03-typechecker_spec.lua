@@ -7,7 +7,7 @@ local bn = require 'nelua.utils.bn'
 describe("Nelua should check types for", function()
 
 it("analyzed ast transform", function()
-  assert.analyze_ast("local a = 1; f(a)",
+  assert.analyze_ast("local a = 1;",
     n.Block{{
       n.VarDecl{'local',
         { n.IdDecl{
@@ -20,12 +20,6 @@ it("analyzed ast transform", function()
             base='dec', type='int64', untyped=true, value=bn.fromdec('1')
           },'dec', '1'
         }}
-      },
-      n.Call{
-        attr = {calleetype = 'any', sideeffect = true, type='varanys'},
-        {n.Id{ attr = {codename='a', name='a', staticstorage=true, type='int64', lvalue=true}, "a"}},
-        n.Id{ attr = {codename='f', name='f', global=true, staticstorage=true, type='any', lvalue=true}, "f"},
-        true
       }
   }})
 end)
@@ -37,7 +31,8 @@ it("local variable", function()
   assert.analyze_error("local a: byte = 1.1", "is fractional")
   assert.analyze_error("local a: byte = {1.0}", "cannot be initialized using a table literal")
   assert.analyze_error("local a, b = 1,2,3", "extra expressions in declaration")
-  assert.analyze_error("local a: void", "variable declaration cannot be of the type")
+  assert.analyze_error("local a: void", "variable declaration cannot be of the empty type")
+  assert.analyze_error("local a: varanys", "variable declaration cannot be of the type")
   assert.analyze_error("local a: integer = 'string'_s", "string literals are not supported yet")
 end)
 
@@ -815,6 +810,7 @@ it("range indexing", function()
 end)
 
 it("records", function()
+  assert.analyze_ast([[local R = @record{} local r: R]])
   assert.analyze_ast([[local a: record {x: boolean}; a.x = true]])
   assert.analyze_ast([[local a: record {x: boolean} = {}]])
   assert.analyze_ast([[local a: record {x: boolean} = {x = true}]])

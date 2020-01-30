@@ -11,10 +11,12 @@ local function define_function(name, args, rets)
   type.sideeffect = false
   local symbol = Symbol{
     name = name,
-    codename = name,
+    codename = 'nelua_' .. name,
     type = type,
     const = true,
     builtin = true,
+    staticstorage = true,
+    modname = 'nelua',
   }
   symdefs[name] = symbol
 end
@@ -22,11 +24,13 @@ end
 local function define_const(name, type, value)
   local symbol = Symbol{
     name = name,
-    codename = name,
+    codename = 'nelua_' .. name,
     type = type,
     const = value == nil,
     value = value,
     builtin = true,
+    staticstorage = true,
+    modname = 'nelua',
   }
   symdefs[name] = symbol
 end

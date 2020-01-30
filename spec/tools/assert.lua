@@ -19,7 +19,7 @@ config.check_ast_shape = true
 -- use cache subfolder while testing
 config.cache_dir = fs.join(config.cache_dir, 'spec')
 
-assert.config = { inputname = nil }
+assert.config = { srcname = nil }
 
 function assert.same_string(expected, passedin)
   if expected ~= passedin then --luacov:disable
@@ -72,7 +72,7 @@ function assert.peg_match_none(peg, subjects)
 end
 
 function assert.parse_ast(parser, input, expected_ast)
-  local ast = assert(parser:parse(input, assert.config.inputname))
+  local ast = assert(parser:parse(input, assert.config.srcname))
   if expected_ast then
     assert.ast_equals(expected_ast, ast)
   else
@@ -83,7 +83,7 @@ end
 
 function assert.parse_ast_error(parser, input, expected_error)
   local ast,e = except.try(function()
-    parser:parse(input, assert.config.inputname)
+    parser:parse(input, assert.config.srcname)
   end)
   errorer.assertf(ast == nil and e.label == 'ParseError' and e.syntaxlabel == expected_error,
          'expected error "%s" while parsing', expected_error)

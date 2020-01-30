@@ -33,12 +33,10 @@ function Type:_init(name, size, node)
   metamagic.setmetaindex(self.binary_operators, mt.binary_operators)
 end
 
-function Type:suggest_nick(nick, prefix)
+function Type:suggest_nick(nick, usehash)
   if self.nick then return end
-  if not prefix then
+  if usehash then
     self.codename = self.codename:gsub(string.format('^%s_', self.name), nick .. '_')
-  elseif prefix ~= '' then
-    self.codename = string.format('%s_%s', prefix, nick)
   else
     self.codename = nick
   end
@@ -1073,7 +1071,7 @@ local function lazy_args_matches(largs, rargs)
     local rtype = traits.is_attr(rarg) and rarg.type or rarg
     if ltype ~= rtype then
       return false
-    elseif traits.is_attr(larg) and larg.comptime then
+    elseif traits.is_attr(larg) and rtype:is_comptime() then
       if not traits.is_attr(rarg) or larg.value ~= rarg.value then
         return false
       end

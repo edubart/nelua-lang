@@ -148,9 +148,6 @@ function Scope:add_symbol(symbol)
     end
     symbol.shadows = true
   end
-  if self.context.pragmas.modname then
-    symbol.modname = self.context.pragmas.modname
-  end
   self.symbols[key] = symbol
   return true
 end
@@ -162,7 +159,7 @@ function Scope:resolve_symbols()
   for _,symbol in pairs(self.symbols) do
     if symbol.delayresolution then
       count = count + 1
-      symbol.delayresolution = false
+      symbol.delayresolution = nil
     end
     if symbol:resolve_type() then
       count = count + 1

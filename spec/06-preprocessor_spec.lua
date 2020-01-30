@@ -418,6 +418,14 @@ it("lazy function", function()
     ## afterinfer(function() assert(x.type == primtypes.number) end)
   ]])
   assert.analyze_ast([=[
+    local function inc(x: auto)
+      local y = x + 1
+      return y
+    end
+    assert(inc(0) == 1)
+    assert(inc(1) == 2)
+    assert(inc(2.0) == 3.0)
+
     ## local printtypes = {}
     local function printtype(x: auto)
       ## table.insert(printtypes, x.type.name)
@@ -433,7 +441,7 @@ it("lazy function", function()
     assert(printtype(b) == 1)
     ##[[ afterinfer(function()
       local types = table.concat(printtypes, ' ')
-      staticassert(types == 'int64 float64 boolean boolean uint64', types)
+      staticassert(types == 'int64 float64 boolean uint64', types)
     end) ]]
   ]=])
 end)

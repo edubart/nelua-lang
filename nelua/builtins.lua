@@ -2,6 +2,7 @@ local builtins = {}
 local fs = require 'nelua.utils.fs'
 local config = require 'nelua.configer'.get()
 local preprocessor = require 'nelua.preprocessor'
+local pegger = require 'nelua.utils.pegger'
 
 function builtins.require(context, node)
   local attr = node.attr
@@ -49,15 +50,19 @@ function builtins.require(context, node)
   end
 
   -- analyze it
+  local ast = attr.loadedast
   local state = context:push_state()
+  if ast.srcname then
+    state.modname = pegger.filename_to_modulename(ast.srcname)
+  end
   context:push_scope(context.rootscope)
   context:push_pragmas()
   context:reset_pragmas()
   state.inrequire = true
   if justloaded then
-    preprocessor.preprocess(context, attr.loadedast)
+    preprocessor.preprocess(context, ast)
   end
-  context:traverse(attr.loadedast)
+  context:traverse(ast)
   context:pop_scope()
   context:pop_state()
   context:pop_pragmas()

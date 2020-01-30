@@ -2,6 +2,7 @@ local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
 local tabler = require 'nelua.utils.tabler'
 local errorer = require 'nelua.utils.errorer'
+local pegger = require 'nelua.utils.pegger'
 local typedefs = require 'nelua.typedefs'
 local AnalyzerContext = require 'nelua.analyzercontext'
 local Symbol = require 'nelua.symbol'
@@ -287,6 +288,9 @@ function visitors.Annotation(context, node, symbol)
       attr.codename = params
     elseif type then
       type.codename = symbol.name
+    else
+      assert(attr.name)
+      attr.codename = attr.name
     end
   end
 end
@@ -303,6 +307,9 @@ function visitors.Id(context, node)
     assert(ok, err)
     symbol.global = true
     symbol.staticstorage = true
+    if not symbol.codename then
+      symbol.codename = context:choose_codename(name)
+    end
   else
     symbol:link_node(node)
   end
@@ -328,6 +335,13 @@ function visitors.IdDecl(context, node)
     else
       scope = context.scope
     end
+    if not symbol.codename then
+      if node.attr.staticstorage then
+        symbol.codename = context:choose_codename(namenode)
+      else
+        symbol.codename = namenode
+      end
+    end
     local ok, err = scope:add_symbol(symbol)
     if not ok then
       node:raisef(err)
@@ -343,6 +357,10 @@ function visitors.IdDecl(context, node)
   local attr = symbol
   if type then
     attr.type = type
+
+    if type:is_void() then
+      node:raisef("variable declaration cannot be of the empty type '%s'", type)
+    end
   end
   if annotnodes then
     context:traverse(annotnodes, symbol)
@@ -379,11 +397,7 @@ end
 
 local function suggest_type_nick(context, type, symbol)
   if symbol and not type:is_primitive() and not type.nick then
-    local prefix
-    if context.pragmas.nohashcodenames then
-      prefix = context.pragmas.modname or ''
-    end
-    type:suggest_nick(symbol.name, prefix)
+    type:suggest_nick(symbol.name, not context.pragmas.nohashcodenames)
   end
 end
 
@@ -587,22 +601,36 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   local parentnode = context:get_parent_node()
   local infuncdef = context.state.infuncdef == parentnode
   local inglobaldecl = context.state.inglobaldecl == parentnode
+  local inlazydef = context.state.inlazydef and symbol == context.state.inlazydef
+  if inlazydef then
+    assert(infuncdef)
+    if traits.is_symbol(attr) then
+      symbol = attr
+    else
+      symbol = nil
+    end
+  end
   if not symbol then
     symbol = Symbol.promote_attr(attr, nil, node)
-    symbol.metavar = true
     symbol.codename = string.format('%s_%s', objtype.codename, name)
+    symbol:link_node(parentnode)
     if infuncdef then
       -- declaration of record global function
       symbol.metafunc = true
-      symbol.metarecordtype = types.get_pointer_type(objtype)
+      if node.tag == 'ColonIndex' then
+        symbol.metafuncselftype = types.get_pointer_type(objtype)
+      end
     elseif inglobaldecl then
       -- declaration of record global variable
       symbol.metafield = true
     else
       node:raisef("cannot index record meta field '%s'", name)
     end
-    objtype:set_metafield(name, symbol)
-    symbol:link_node(parentnode)
+    if not inlazydef then
+      objtype:set_metafield(name, symbol)
+    else
+      symbol.shadows = true
+    end
 
     -- add symbol to scope to enable type deduction
     local ok = context.rootscope:add_symbol(symbol)
@@ -838,16 +866,16 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
   attr.calleetype = primtypes.type
 end
 
-local function visitor_Call(context, node, argnodes, calleetype, methodcalleenode)
+local function visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)
   local attr = node.attr
   if calleetype then
     if calleetype:is_function() then
       -- function call
       local funcargtypes = calleetype.argtypes
       local pseudoargtypes = funcargtypes
-      if methodcalleenode then
+      if calleeobjnode then
         pseudoargtypes = tabler.copy(funcargtypes)
-        local ok, err = funcargtypes[1]:is_convertible_from(methodcalleenode)
+        local ok, err = funcargtypes[1]:is_convertible_from(calleeobjnode)
         if not ok then
           node:raisef("in call of function '%s' at argument %d: %s",
             calleetype:prettyname(), 1, err)
@@ -889,17 +917,20 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
         else
           knownallargs = false
         end
+        if calleeobjnode and argtype and pseudoargtypes[i]:is_auto() then
+          pseudoargtypes[i] = argtype
+        end
       end
-      if methodcalleenode then
-        tabler.insert(args, funcargtypes[1])
+      if calleeobjnode then
+        tabler.insert(args, 1, funcargtypes[1])
       end
-      if calleetype.lazyfunction then
+      if calleetype:is_lazyfunction() then
         local lazycalleetype = calleetype
         calleetype = nil
         if knownallargs then
           local lazyeval = lazycalleetype:eval_lazy_for_args(args)
           if lazyeval and lazyeval.node and lazyeval.node.attr.type then
-            attr.lazyeval = lazyeval
+            calleesym = lazyeval.node.attr
             calleetype = lazyeval.node.attr.type
           else
             lazycalleetype.node.attr.delayresolution = true
@@ -925,6 +956,7 @@ local function visitor_Call(context, node, argnodes, calleetype, methodcalleenod
       node:raisef("cannot call type '%s'", calleetype:prettyname())
     end
     attr.calleetype = calleetype
+    attr.calleesym = calleesym
   end
 end
 
@@ -937,6 +969,10 @@ function visitors.Call(context, node)
 
   local calleeattr = calleenode.attr
   local calleetype = calleeattr.type
+  local calleesym
+  if traits.is_symbol(calleeattr) then
+    calleesym = calleeattr
+  end
   if calleetype and calleetype:is_pointer() then
     calleetype = calleetype.subtype
     assert(calleetype)
@@ -946,7 +982,7 @@ function visitors.Call(context, node)
   if calleetype and calleetype:is_type() then
     visitor_Call_typeassertion(context, node, argnodes, calleeattr.value)
   else
-    visitor_Call(context, node, argnodes, calleetype)
+    visitor_Call(context, node, argnodes, calleetype, calleesym)
 
     if calleeattr.builtin then
       local builtinfunc = builtins[calleeattr.name]
@@ -958,13 +994,14 @@ function visitors.Call(context, node)
 end
 
 function visitors.CallMethod(context, node)
-  local name, argnodes, calleenode, isblockcall = node:args()
+  local name, argnodes, calleeobjnode, isblockcall = node:args()
   local attr = node.attr
 
   context:traverse(argnodes)
-  context:traverse(calleenode)
+  context:traverse(calleeobjnode)
 
-  local calleetype = calleenode.attr.type
+  local calleetype = calleeobjnode.attr.type
+  local calleesym = nil
   if calleetype then
     if calleetype:is_pointer() then
       calleetype = calleetype.subtype
@@ -975,12 +1012,11 @@ function visitors.CallMethod(context, node)
     attr.calleetype = calleetype
     if calleetype:is_record() then
       --TODO: consider lazy functions
-      local symbol = calleetype:get_metafield(name)
-      if not symbol then
+      calleesym = calleetype:get_metafield(name)
+      if not calleesym then
         node:raisef("cannot index record meta field '%s'", name)
       end
-      calleetype = symbol.type
-      attr.methodsym = symbol
+      calleetype = calleesym.type
     elseif calleetype:is_string() then
       --TODO: string methods
       calleetype = primtypes.any
@@ -989,7 +1025,7 @@ function visitors.CallMethod(context, node)
     end
   end
 
-  visitor_Call(context, node, argnodes, calleetype, calleenode)
+  visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)
 end
 
 function visitors.Block(context, node, scopecb)
@@ -1180,7 +1216,7 @@ function visitors.VarDecl(context, node)
     local symbol = context:traverse(varnode)
     assert(symbol)
     local vartype = varnode.attr.type
-    if vartype and (vartype:is_void() or vartype:is_varanys()) then
+    if vartype and vartype:is_varanys() then
       varnode:raisef("variable declaration cannot be of the type '%s'", vartype:prettyname())
     end
     assert(symbol.type == vartype)
@@ -1354,10 +1390,16 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope, check
 
   if varnode.tag == 'ColonIndex' and symbol and symbol.metafunc then
     -- inject 'self' type as first argument
-    table.insert(argtypes, 1, symbol.metarecordtype)
-    local selfsym = Symbol()
-    selfsym:init('self')
-    selfsym.type = symbol.metarecordtype
+    local selfsym = symbol.selfsym
+    if not selfsym then
+      selfsym = Symbol()
+      selfsym:init('self')
+      selfsym.codename = 'self'
+      selfsym.type = symbol.metafuncselftype
+      symbol.selfsym = selfsym
+    end
+    table.insert(argtypes, 1, symbol.metafuncselftype)
+    table.insert(argattrs, 1, selfsym)
     local ok, err = scope:add_symbol(selfsym)
     if not ok then
       varnode:raisef(err)
@@ -1538,7 +1580,8 @@ function visitors.FuncDef(context, node, lazysymbol)
       if context.entrypoint and context.entrypoint ~= node then
         node:raisef("cannot have more than one function entrypoint")
       end
-      attr.declname = attr.codename
+      attr.codename = attr.name
+      attr.declname = attr.name
       context.entrypoint = node
     end
   end
@@ -1552,14 +1595,21 @@ function visitors.FuncDef(context, node, lazysymbol)
         lazyeval.node = lazynode
         local lazyargnodes = lazynode[3]
         for j,lazyarg in ipairs(lazyeval.args) do
-          local lazyargattr = lazyargnodes[j].attr
-          if traits.is_attr(lazyarg) then
-            lazyargattr.type = lazyarg.type
-            lazyargattr.value = lazyarg.value
-          else
-            lazyargattr.type = lazyarg
+          if varnode.tag == 'ColonIndex' then
+            j = j - 1
           end
-          assert(traits.is_type(lazyargattr.type))
+          if lazyargnodes[j] then
+            local lazyargattr = lazyargnodes[j].attr
+            if traits.is_attr(lazyarg) then
+              lazyargattr.type = lazyarg.type
+              if lazyarg.type:is_comptime() then
+                lazyargattr.value = lazyarg.value
+              end
+            else
+              lazyargattr.type = lazyarg
+            end
+            assert(traits.is_type(lazyargattr.type))
+          end
         end
       end
       context:traverse(lazynode, symbol)
@@ -1660,6 +1710,11 @@ function analyzer.analyze(ast, parser, context)
     context = AnalyzerContext(visitors, parser)
   end
 
+  if ast.srcname then
+    local state = context:push_state()
+    state.modname = pegger.filename_to_modulename(ast.srcname)
+  end
+
   -- phase 1 traverse: preprocess
   preprocessor.preprocess(context, ast)
 
@@ -1673,6 +1728,10 @@ function analyzer.analyze(ast, parser, context)
   context:traverse(ast)
   context.rootscope:resolve()
   context:pop_state()
+
+  if ast.srcname then
+    context:pop_state()
+  end
 
   return context
 end

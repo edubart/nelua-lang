@@ -13,7 +13,6 @@ function Symbol:init(name, node)
   end
   if name then
     self.name = name
-    self.codename = name
   end
   self:clear_possible_types()
 end

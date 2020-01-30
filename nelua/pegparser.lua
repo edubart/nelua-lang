@@ -42,9 +42,8 @@ function PEGParser:set_astbuilder(astbuilder)
   local function to_astnode(pos, tag, ...)
     local node = astbuilder:create(tag, ...)
     node.pos = pos
-    node.src = self.input
-    node.srcname = self.inputname
-    node.modname = self.modulename
+    node.src = self.src
+    node.srcname = self.srcname
     return node
   end
 
@@ -182,18 +181,14 @@ function PEGParser:set_pegs(combined_patts, defs, modf)
   end
 end
 
-function PEGParser:match(pegname, input, inputname)
+function PEGParser:match(pegname, src, srcname)
   local peg = self.defs[pegname]
   errorer.assertf(peg, 'cannot match an input to inexistent peg "%s"', pegname)
-  self.input = input
-  self.inputname = inputname
-  if inputname then
-    self.modulename = pegger.filename_to_modulename(inputname)
-  end
-  local res, errlabel, errpos = peg:match(input)
-  self.input = nil
-  self.inputname = nil
-  self.modulename = nil
+  self.src = src
+  self.srcname = srcname
+  local res, errlabel, errpos = peg:match(src)
+  self.src = nil
+  self.srcname = nil
   return res, errlabel, errpos
 end
 
@@ -250,14 +245,14 @@ function PEGParser:add_syntax_errors(syntax_errors)
   tabler.update(self.syntax_errors, syntax_errors)
 end
 
-function PEGParser:parse(input, inputname, pegname)
+function PEGParser:parse(src, srcname, pegname)
   if not pegname then
     pegname = 'sourcecode'
   end
-  local ast, syntaxlabel, errpos = self:match(pegname, input, inputname)
+  local ast, syntaxlabel, errpos = self:match(pegname, src, srcname)
   if not ast then
     local errmsg = self.syntax_errors[syntaxlabel] or syntaxlabel
-    local message = errorer.get_pretty_source_pos_errmsg(input, inputname or 'input', errpos, errmsg, 'syntax error')
+    local message = errorer.get_pretty_source_pos_errmsg(src, srcname or 'input', errpos, errmsg, 'syntax error')
     except.raise({
       label = 'ParseError',
       message = message,

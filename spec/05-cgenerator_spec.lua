@@ -307,15 +307,55 @@ it("lazy functions", function()
   ]])
 end)
 
+it("lazy function for records", function()
+  assert.run_c([[
+    local R = @record{}
+    function R.f(x: auto)
+      return x
+    end
+    assert(R.f(1) == 1)
+    assert(R.f(2) == 2)
+    assert(R.f(true) == true)
+    assert(R.f(false) == false)
+    local i: integer, b: boolean
+    assert(R.f(i) == 0 and R.f(b) == false)
+
+    local R = @record{v: integer}
+    function R:f(x: auto)
+      return x
+    end
+    function R:setget(v: auto)
+      self.v = v
+      return v
+    end
+    local r: R
+    local x = r:setget(1)
+    assert(r:f(1) == 1)
+    assert(r:f('x') == 'x')
+    assert(x == 1)
+    assert(r.v == 1)
+    assert(r:setget(2) == 2)
+    assert(r.v == 2)
+  ]])
+end)
+
 it("lazy functions with comptime arguments", function()
   assert.run_c([[
     local function cast(T: type, value: auto)
       return (@T)(value)
     end
 
-    local a = cast(@number, 1)
-    assert(type(a) == 'number')
-    print(a)
+    local a = cast(@boolean, 1)
+    assert(type(a) == 'boolean')
+    assert(a == true)
+
+    local b = cast(@number, 1)
+    assert(type(b) == 'number')
+    assert(b == 1.0)
+
+    local c = cast(@number, 2)
+    assert(type(c) == 'number')
+    assert(c == 2.0)
 
     local function iszero(x: auto)
       if x == 0 then
@@ -816,12 +856,12 @@ it("c types", function()
 end)
 
 it("reserved names quoting", function()
-  assert.config.inputname = 'mymod'
+  assert.config.srcname = 'mymod'
   assert.generate_c("local default: integer", "int64_t mymod_default = 0;")
   assert.generate_c("local NULL: integer = 0", "int64_t mymod_NULL = 0;")
   assert.generate_c("do local default: integer end", "int64_t default_ = 0;")
   assert.generate_c("do local NULL: integer = 0 end", "int64_t NULL_ = 0;")
-  assert.config.inputname = nil
+  assert.config.srcname = nil
   assert.run_c([[
     local function struct(double: integer)
       local default: integer
@@ -1635,12 +1675,12 @@ it("name collision", function()
 end)
 
 it("top scope variables prefix", function()
-  assert.config.inputname = 'mymod'
+  assert.config.srcname = 'mymod'
   assert.generate_c("local a = 1", "int64_t mymod_a = 1;")
   assert.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
   assert.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
   assert.generate_c("local function f() end", "void mymod_f() {\n}")
-  assert.config.inputname = nil
+  assert.config.srcname = nil
 end)
 
 end)

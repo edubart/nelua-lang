@@ -102,4 +102,12 @@ function AnalyzerContext:ensure_runtime_builtin(name, p1, p2)
   return name
 end
 
+function AnalyzerContext:choose_codename(name)
+  local modname = self.pragmas.modname or self.state.modname
+  if modname then
+    return modname .. '_' .. name
+  end
+  return name
+end
+
 return AnalyzerContext

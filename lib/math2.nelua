@@ -1,14 +1,16 @@
 ##[[
 strict = true
-modname = 'nelua'
 nohashcodenames = true
+modname = 'nelua'
 ]]
 
+global math = @record{}
+
 -- constants
-global math_pi: float64 <comptime> = 3.141592653589793
-global math_huge: float64 <const,cimport'HUGE_VAL',nodecl>
-global math_maxinteger: integer <comptime> = 9223372036854775807
-global math_mininteger: integer <comptime> = -9223372036854775808
+global math.pi: float64 <comptime> = 3.141592653589793
+global math.huge: float64 <const,cimport'HUGE_VAL',nodecl>
+global math.maxinteger: integer <comptime> = 9223372036854775807
+global math.mininteger: integer <comptime> = -9223372036854775808
 
 -- compile time utilities
 ##[[
@@ -70,9 +72,9 @@ local function modf_f32(x: float32, y: float32*): float32 <cimport'modff',nodecl
 ##[[
 local mathfuncs1 = {'abs','ceil','floor','sqrt','exp','acos','asin','cos','sin','tan'}
 for _,name in ipairs(mathfuncs1) do
-  local libname, namef64, namef32 = 'math_'..name, name..'_f64', name..'_f32'
+  local namef64, namef32 = name..'_f64', name..'_f32'
 ]]
-local function #(libname)#(x: auto) <inline,nosideeffect>
+function math.#(name)#(x: auto) <inline,nosideeffect>
   ## check_arithmetic(x)
   ## if x.type:is_float32() then
     return #(namef32)#(x)
@@ -94,9 +96,9 @@ end
 ##[[
 local mathfuncs2 = { 'max', 'min', 'fmod', 'pow' }
 for _,name in ipairs(mathfuncs2) do
-  local libname, namef64, namef32 = 'math_'..name, name..'_f64', name..'_f32'
+  local namef64, namef32 = name..'_f64', name..'_f32'
 ]]
-local function #(libname)#(x: auto, y: auto) <inline,nosideeffect>
+function math.#(name)#(x: auto, y: auto) <inline,nosideeffect>
   ## check_arithmetic(x, y)
   ## if x.type:is_float32() then
     return #(namef32)#(x, y)
@@ -114,7 +116,7 @@ local function #(libname)#(x: auto, y: auto) <inline,nosideeffect>
 end
 ## end
 
-local function math_atan(y: auto, x: auto) <inline,nosideeffect>
+function math.atan(y: auto, x: auto) <inline,nosideeffect>
   ## check_arithmetic(y)
   ## if not x.type:is_nil() then
     ## check_arithmetic(x)
@@ -132,7 +134,7 @@ local function math_atan(y: auto, x: auto) <inline,nosideeffect>
   ## end
 end
 
-local function math_log(x: auto, base: auto) <inline,nosideeffect>
+function math.log(x: auto, base: auto) <inline,nosideeffect>
   ## check_arithmetic(x)
   ## local suffix = x.type:is_float32() and '_f32' or '_f64'
   ## local log2, log10, log = 'log2'..suffix, 'log10'..suffix, 'log'..suffix
@@ -149,19 +151,19 @@ local function math_log(x: auto, base: auto) <inline,nosideeffect>
   ## end
 end
 
-local function math_deg(x: auto) <inline,nosideeffect>
+function math.deg(x: auto) <inline,nosideeffect>
   ## check_arithmetic(x)
-  local factor: #[choose_float_type(x)]# <comptime> = 180 / math_pi
+  local factor: #[choose_float_type(x)]# <comptime> = 180 / math.pi
   return x * factor
 end
 
-local function math_rad(x: auto) <inline,nosideeffect>
+function math.rad(x: auto) <inline,nosideeffect>
   ## check_arithmetic(x)
-  local factor: #[choose_float_type(x)]# <comptime> = math_pi / 180.0
+  local factor: #[choose_float_type(x)]# <comptime> = math.pi / 180.0
   return x * factor
 end
 
-local function math_modf(x: auto) <inline,nosideeffect>
+function math.modf(x: auto) <inline,nosideeffect>
   ## check_arithmetic(x)
   ## local rettype = choose_float_type(x)
   local i: #[rettype]#
@@ -174,7 +176,7 @@ local function math_modf(x: auto) <inline,nosideeffect>
   return i, f
 end
 
-local function math_tointeger(x: auto) <inline,nosideeffect>
+function math.tointeger(x: auto) <inline,nosideeffect>
   ## if x.type:is_integral() then
     return (@integer)(x)
   ## elseif x.type:is_float() then
@@ -189,7 +191,7 @@ local function math_tointeger(x: auto) <inline,nosideeffect>
   ## end
 end
 
-local function math_type(x: auto) <inline,nosideeffect>
+function math.type(x: auto) <inline,nosideeffect>
   ## if x.type:is_float() then
     return 'float'
   ## elseif x.type:is_integral() then
@@ -199,7 +201,7 @@ local function math_type(x: auto) <inline,nosideeffect>
   ## end
 end
 
-local function math_ult(m: auto, n: auto): boolean <inline>
+function math.ult(m: auto, n: auto): boolean <inline>
   ## check_arithmetic(m, n)
   ## if m.type:is_integral() and n.type:is_integral() then
     return (@uinteger)(m) < (@uinteger)(n)
@@ -208,7 +210,7 @@ local function math_ult(m: auto, n: auto): boolean <inline>
     if likely(mi == m and ni == n) then
       return (@uinteger)(mi) < (@uinteger)(ni)
     else
-      panic('math_ult: m or n has no integer representation')
+      panic('math.ult: m or n has no integer representation')
     end
   ## end
 end
@@ -257,19 +259,19 @@ local default_random = xoshiro256{state={
   0x65CE039BAEBE74B4, 0x4911ADA153B51EEF, 0xFB71FBB497C00950, 0xF83CCF6AC1B74755
 }}
 
-local function math_randomseed(x: auto) <inline>
+function math.randomseed(x: auto) <inline>
   ## check_arithmetic(x)
   default_random:seed((@uint64)(x), 0)
 end
 
-local function math_random(m: auto, n: auto) <inline>
+function math.random(m: auto, n: auto) <inline>
   local r: number = default_random:random()
   ## if not m.type:is_nil() and not n.type:is_nil() then
     ## check_arithmetic(m, n)
     local low: integer, up: integer = (@integer)(m), (@integer)(n)
     if not likely(low < up) then
       panic("random: interval is empty")
-    elseif not likely(low >= 0 or up < math_maxinteger + low) then
+    elseif not likely(low >= 0 or up < math.maxinteger + low) then
       panic("random: interval too large")
     end
     r = r * ((@number)(up - low) + 1.0)
@@ -289,128 +291,128 @@ end
 
 -- test utilities
 local function asserteq(x: number, y: number)
-  assert(math_abs(x - y) < 1e-7)
+  assert(math.abs(x - y) < 1e-7)
 end
 local e: float64 <comptime> = 2.718281828459045
 local e_f32: float32 <comptime> = 2.718281828459045_f32
 
 -- constants
-assert(math_min(math_huge, -math_huge) == -math_huge)
-assert(math_max(math_huge, -math_huge) == math_huge)
+assert(math.min(math.huge, -math.huge) == -math.huge)
+assert(math.max(math.huge, -math.huge) == math.huge)
 
 -- float64
-assert(math_abs(-1.0) == 1.0) assert(math_abs(1.0) == 1.0)
-assert(math_ceil(0.0) == 0.0) assert(math_ceil(-1.0) == -1.0)
-assert(math_ceil(1.1) == 2.0) assert(math_ceil(-1.1) == -1.0)
-assert(math_floor(0.0) == 0.0) assert(math_floor(-1.0) == -1.0)
-assert(math_floor(1.1) == 1.0) assert(math_floor(-1.1) == -2.0)
-assert(math_min(1.0, -1.0) == -1.0) assert(math_min(-1.0, 1.0) == -1.0)
-assert(math_max(1.0, -1.0) == 1.0) assert(math_max(-1.0, 1.0) == 1.0)
-asserteq(math_acos(-1.0), math_pi) asserteq(math_acos(1.0), 0)
-asserteq(math_asin(0.0), 0.0) asserteq(math_asin(1.0), math_pi/2.0)
-asserteq(math_atan(0.0), 0.0) asserteq(math_atan(1.0), math_pi/4.0)
-asserteq(math_atan(0.0, -1.0), math_pi)
-asserteq(math_atan(-1.0, -1.0), -math_pi*3.0/4.0)
-asserteq(math_cos(math_pi), -1.0) asserteq(math_cos(0.0), 1.0)
-asserteq(math_sin(math_pi/2.0), 1.0) asserteq(math_sin(0.0), 0.0)
-asserteq(math_tan(math_pi/4.0), 1.0) asserteq(math_tan(0.0), 0.0)
-asserteq(math_sqrt(4.0), 2.0) asserteq(math_sqrt(9.0), 3.0)
-asserteq(math_exp(0.0), 1.0) asserteq(math_exp(1.0), e)
-asserteq(math_log(1.0), 0.0) asserteq(math_log(e), 1.0)
-asserteq(math_log(1e8, 10.0), 8.0) asserteq(math_log(1e-8, 10.0), -8.0)
-asserteq(math_log(1024.0, 2.0), 10.0) asserteq(math_log(1.0/1024.0, 2.0), -10.0)
-asserteq(math_pow(2.0, 10.0), 1024.0) asserteq(math_pow(2.0, -10.0), 1.0/1024.0)
-asserteq(math_fmod(5.0, 2.0), 1.0) asserteq(math_fmod(2.3, 5.7), 2.3)
-asserteq(math_deg(math_pi / 2.0), 90.0) asserteq(math_deg(0.0), 0.0)
-asserteq(math_rad(90.0), math_pi / 2.0) asserteq(math_rad(0.0), 0.0)
+assert(math.abs(-1.0) == 1.0) assert(math.abs(1.0) == 1.0)
+assert(math.ceil(0.0) == 0.0) assert(math.ceil(-1.0) == -1.0)
+assert(math.ceil(1.1) == 2.0) assert(math.ceil(-1.1) == -1.0)
+assert(math.floor(0.0) == 0.0) assert(math.floor(-1.0) == -1.0)
+assert(math.floor(1.1) == 1.0) assert(math.floor(-1.1) == -2.0)
+assert(math.min(1.0, -1.0) == -1.0) assert(math.min(-1.0, 1.0) == -1.0)
+assert(math.max(1.0, -1.0) == 1.0) assert(math.max(-1.0, 1.0) == 1.0)
+asserteq(math.acos(-1.0), math.pi) asserteq(math.acos(1.0), 0)
+asserteq(math.asin(0.0), 0.0) asserteq(math.asin(1.0), math.pi/2.0)
+asserteq(math.atan(0.0), 0.0) asserteq(math.atan(1.0), math.pi/4.0)
+asserteq(math.atan(0.0, -1.0), math.pi)
+asserteq(math.atan(-1.0, -1.0), -math.pi*3.0/4.0)
+asserteq(math.cos(math.pi), -1.0) asserteq(math.cos(0.0), 1.0)
+asserteq(math.sin(math.pi/2.0), 1.0) asserteq(math.sin(0.0), 0.0)
+asserteq(math.tan(math.pi/4.0), 1.0) asserteq(math.tan(0.0), 0.0)
+asserteq(math.sqrt(4.0), 2.0) asserteq(math.sqrt(9.0), 3.0)
+asserteq(math.exp(0.0), 1.0) asserteq(math.exp(1.0), e)
+asserteq(math.log(1.0), 0.0) asserteq(math.log(e), 1.0)
+asserteq(math.log(1e8, 10.0), 8.0) asserteq(math.log(1e-8, 10.0), -8.0)
+asserteq(math.log(1024.0, 2.0), 10.0) asserteq(math.log(1.0/1024.0, 2.0), -10.0)
+asserteq(math.pow(2.0, 10.0), 1024.0) asserteq(math.pow(2.0, -10.0), 1.0/1024.0)
+asserteq(math.fmod(5.0, 2.0), 1.0) asserteq(math.fmod(2.3, 5.7), 2.3)
+asserteq(math.deg(math.pi / 2.0), 90.0) asserteq(math.deg(0.0), 0.0)
+asserteq(math.rad(90.0), math.pi / 2.0) asserteq(math.rad(0.0), 0.0)
 
 -- float32
-local math_pi_f32 = (@float32)(math_pi)
-assert(math_abs(-1.0_f32) == 1.0_f32) assert(math_abs(1.0_f32) == 1.0_f32)
-assert(math_ceil(0.0_f32) == 0.0_f32) assert(math_ceil(-1.0_f32) == -1.0_f32)
-assert(math_ceil(1.1_f32) == 2.0_f32) assert(math_ceil(-1.1_f32) == -1.0_f32)
-assert(math_floor(0.0_f32) == 0.0_f32) assert(math_floor(-1.0_f32) == -1.0_f32)
-assert(math_floor(1.1_f32) == 1.0_f32) assert(math_floor(-1.1_f32) == -2.0_f32)
-assert(math_min(1.0_f32, -1.0_f32) == -1.0_f32) assert(math_min(-1.0_f32, 1.0_f32) == -1.0_f32)
-assert(math_max(1.0_f32, -1.0_f32) == 1.0_f32)  assert(math_max(-1.0_f32, 1.0_f32) == 1.0_f32)
-asserteq(math_acos(-1.0_f32), math_pi_f32) asserteq(math_acos(1.0_f32), 0)
-asserteq(math_asin(0.0_f32), 0.0_f32) asserteq(math_asin(1.0_f32), math_pi_f32/2.0_f32)
-asserteq(math_atan(0.0_f32), 0.0_f32) asserteq(math_atan(1.0_f32), math_pi_f32/4.0_f32)
-asserteq(math_atan(0.0_f32, -1.0_f32), math_pi_f32)
-asserteq(math_atan(-1.0_f32, -1.0_f32), -math_pi_f32*3.0_f32/4.0_f32)
-asserteq(math_cos(math_pi_f32), -1.0_f32) asserteq(math_cos(0.0_f32), 1.0_f32)
-asserteq(math_sin(math_pi_f32/2.0_f32), 1.0_f32) asserteq(math_sin(0.0_f32), 0.0_f32)
-asserteq(math_tan(math_pi_f32/4.0_f32), 1.0_f32) asserteq(math_tan(0.0_f32), 0.0_f32)
-asserteq(math_sqrt(4.0_f32), 2.0_f32) asserteq(math_sqrt(9.0_f32), 3.0_f32)
-asserteq(math_exp(0.0_f32), 1.0_f32)
-asserteq(math_exp(1.0_f32), e_f32)
-asserteq(math_log(1.0_f32), 0.0_f32) asserteq(math_log(e_f32), 1.0_f32)
-asserteq(math_log(1e8_f32, 10.0_f32), 8.0_f32) asserteq(math_log(1e-8_f32, 10.0_f32), -8.0_f32)
-asserteq(math_log(1024.0_f32, 2.0_f32), 10.0_f32) asserteq(math_log(1.0_f32/1024.0_f32, 2.0_f32), -10.0_f32)
-asserteq(math_pow(2.0_f32, 10.0_f32), 1024.0_f32) asserteq(math_pow(2.0_f32, -10.0_f32), 1.0_f32/1024.0_f32)
-asserteq(math_fmod(5.0_f32, 2.0_f32), 1.0_f32) asserteq(math_fmod(2.3_f32, 5.7_f32), 2.3_f32)
-asserteq(math_deg(math_pi_f32 / 2.0_f32), 90.0_f32) asserteq(math_deg(0.0_f32), 0.0_f32)
-asserteq(math_rad(90.0_f32), math_pi / 2.0_f32) asserteq(math_rad(0.0_f32), 0.0_f32)
+global math.pi_f32 = (@float32)(math.pi)
+assert(math.abs(-1.0_f32) == 1.0_f32) assert(math.abs(1.0_f32) == 1.0_f32)
+assert(math.ceil(0.0_f32) == 0.0_f32) assert(math.ceil(-1.0_f32) == -1.0_f32)
+assert(math.ceil(1.1_f32) == 2.0_f32) assert(math.ceil(-1.1_f32) == -1.0_f32)
+assert(math.floor(0.0_f32) == 0.0_f32) assert(math.floor(-1.0_f32) == -1.0_f32)
+assert(math.floor(1.1_f32) == 1.0_f32) assert(math.floor(-1.1_f32) == -2.0_f32)
+assert(math.min(1.0_f32, -1.0_f32) == -1.0_f32) assert(math.min(-1.0_f32, 1.0_f32) == -1.0_f32)
+assert(math.max(1.0_f32, -1.0_f32) == 1.0_f32)  assert(math.max(-1.0_f32, 1.0_f32) == 1.0_f32)
+asserteq(math.acos(-1.0_f32), math.pi_f32) asserteq(math.acos(1.0_f32), 0)
+asserteq(math.asin(0.0_f32), 0.0_f32) asserteq(math.asin(1.0_f32), math.pi_f32/2.0_f32)
+asserteq(math.atan(0.0_f32), 0.0_f32) asserteq(math.atan(1.0_f32), math.pi_f32/4.0_f32)
+asserteq(math.atan(0.0_f32, -1.0_f32), math.pi_f32)
+asserteq(math.atan(-1.0_f32, -1.0_f32), -math.pi_f32*3.0_f32/4.0_f32)
+asserteq(math.cos(math.pi_f32), -1.0_f32) asserteq(math.cos(0.0_f32), 1.0_f32)
+asserteq(math.sin(math.pi_f32/2.0_f32), 1.0_f32) asserteq(math.sin(0.0_f32), 0.0_f32)
+asserteq(math.tan(math.pi_f32/4.0_f32), 1.0_f32) asserteq(math.tan(0.0_f32), 0.0_f32)
+asserteq(math.sqrt(4.0_f32), 2.0_f32) asserteq(math.sqrt(9.0_f32), 3.0_f32)
+asserteq(math.exp(0.0_f32), 1.0_f32)
+asserteq(math.exp(1.0_f32), e_f32)
+asserteq(math.log(1.0_f32), 0.0_f32) asserteq(math.log(e_f32), 1.0_f32)
+asserteq(math.log(1e8_f32, 10.0_f32), 8.0_f32) asserteq(math.log(1e-8_f32, 10.0_f32), -8.0_f32)
+asserteq(math.log(1024.0_f32, 2.0_f32), 10.0_f32) asserteq(math.log(1.0_f32/1024.0_f32, 2.0_f32), -10.0_f32)
+asserteq(math.pow(2.0_f32, 10.0_f32), 1024.0_f32) asserteq(math.pow(2.0_f32, -10.0_f32), 1.0_f32/1024.0_f32)
+asserteq(math.fmod(5.0_f32, 2.0_f32), 1.0_f32) asserteq(math.fmod(2.3_f32, 5.7_f32), 2.3_f32)
+asserteq(math.deg(math.pi_f32 / 2.0_f32), 90.0_f32) asserteq(math.deg(0.0_f32), 0.0_f32)
+asserteq(math.rad(90.0_f32), math.pi / 2.0_f32) asserteq(math.rad(0.0_f32), 0.0_f32)
 
 -- integer
-assert(math_abs(-1) == 1) assert(math_abs(1) == 1)
-assert(math_ceil(0) == 0) assert(math_ceil(1) == 1) assert( math_ceil(-1) == -1)
-assert(math_floor(0) == 0) assert(math_floor(1) == 1) assert(math_floor(-1) == -1)
-assert(math_min(1, -1) == -1) assert(math_min(-1, 1) == -1)
-assert(math_max(1, -1) == 1) assert(math_max(-1, 1) == 1)
-asserteq(math_acos(-1), math_pi) asserteq(math_acos(1), 0)
-asserteq(math_asin(0), 0) asserteq(math_asin(1), math_pi/2)
-asserteq(math_atan(0), 0) asserteq(math_atan(1), math_pi/4)
-asserteq(math_atan(0, -1), math_pi)
-asserteq(math_atan(-1, -1), -math_pi*3/4)
-asserteq(math_cos(0), 1)
-asserteq(math_sin(0), 0)
-asserteq(math_tan(0), 0)
-asserteq(math_sqrt(4), 2) asserteq(math_sqrt(9), 3)
-asserteq(math_exp(0), 1)
-asserteq(math_exp(1), e)
-asserteq(math_log(1), 0) asserteq(math_log(e), 1)
-asserteq(math_log(100000000, 10), 8)
-asserteq(math_log(1024, 2), 10)
-asserteq(math_pow(2, 10), 1024)
-asserteq(math_fmod(5, 2), 1)
-asserteq(math_deg(math_pi / 2), 90) asserteq(math_deg(0), 0)
-asserteq(math_rad(90), math_pi / 2) asserteq(math_rad(0), 0)
+assert(math.abs(-1) == 1) assert(math.abs(1) == 1)
+assert(math.ceil(0) == 0) assert(math.ceil(1) == 1) assert( math.ceil(-1) == -1)
+assert(math.floor(0) == 0) assert(math.floor(1) == 1) assert(math.floor(-1) == -1)
+assert(math.min(1, -1) == -1) assert(math.min(-1, 1) == -1)
+assert(math.max(1, -1) == 1) assert(math.max(-1, 1) == 1)
+asserteq(math.acos(-1), math.pi) asserteq(math.acos(1), 0)
+asserteq(math.asin(0), 0) asserteq(math.asin(1), math.pi/2)
+asserteq(math.atan(0), 0) asserteq(math.atan(1), math.pi/4)
+asserteq(math.atan(0, -1), math.pi)
+asserteq(math.atan(-1, -1), -math.pi*3/4)
+asserteq(math.cos(0), 1)
+asserteq(math.sin(0), 0)
+asserteq(math.tan(0), 0)
+asserteq(math.sqrt(4), 2) asserteq(math.sqrt(9), 3)
+asserteq(math.exp(0), 1)
+asserteq(math.exp(1), e)
+asserteq(math.log(1), 0) asserteq(math.log(e), 1)
+asserteq(math.log(100000000, 10), 8)
+asserteq(math.log(1024, 2), 10)
+asserteq(math.pow(2, 10), 1024)
+asserteq(math.fmod(5, 2), 1)
+asserteq(math.deg(math.pi / 2), 90) asserteq(math.deg(0), 0)
+asserteq(math.rad(90), math.pi / 2) asserteq(math.rad(0), 0)
 
 -- modf
 do
   local i: number, f: number
-  i, f = math_modf( 4.0)  asserteq(i, 4.0)  asserteq(f, 0.0)
-  i, f = math_modf( 4.5)  asserteq(i, 4.0)  asserteq(f, 0.5)
-  i, f = math_modf(-4.5)  asserteq(i,-4.0)  asserteq(f,-0.5)
+  i, f = math.modf( 4.0)  asserteq(i, 4.0)  asserteq(f, 0.0)
+  i, f = math.modf( 4.5)  asserteq(i, 4.0)  asserteq(f, 0.5)
+  i, f = math.modf(-4.5)  asserteq(i,-4.0)  asserteq(f,-0.5)
 end
 do
   local i: float32, f: float32
-  i, f = math_modf( 4.0_f32)  asserteq(i, 4_f32)  asserteq(f, 0.0_f32)
-  i, f = math_modf( 4.5_f32)  asserteq(i, 4_f32)  asserteq(f, 0.5_f32)
-  i, f = math_modf(-4.5_f32)  asserteq(i,-4_f32)  asserteq(f,-0.5_f32)
+  i, f = math.modf( 4.0_f32)  asserteq(i, 4_f32)  asserteq(f, 0.0_f32)
+  i, f = math.modf( 4.5_f32)  asserteq(i, 4_f32)  asserteq(f, 0.5_f32)
+  i, f = math.modf(-4.5_f32)  asserteq(i,-4_f32)  asserteq(f,-0.5_f32)
 end
 
--- math_tointeger
---assert(math_tointeger(1.1) == 1_integer)
---assert(math_tointeger('s') == nil)
-assert(math_tointeger(1) == 1_integer)
+-- math.tointeger
+--assert(math.tointeger(1.1) == 1_integer)
+--assert(math.tointeger('s') == nil)
+assert(math.tointeger(1) == 1_integer)
 
--- math_type
-assert(math_type(1) == 'integer')
-assert(math_type(1_u8) == 'integer')
-assert(math_type(1.0) == 'float')
-assert(math_type(1.0_f32) == 'float')
---assert(math_type('s') == nil)
+-- math.type
+assert(math.type(1) == 'integer')
+assert(math.type(1_u8) == 'integer')
+assert(math.type(1.0) == 'float')
+assert(math.type(1.0_f32) == 'float')
+--assert(math.type('s') == nil)
 
--- math_ult
-assert(math_ult(math_maxinteger, math_mininteger))
+-- math.ult
+assert(math.ult(math.maxinteger, math.mininteger))
 
 -- random
-math_randomseed(0)
+math.randomseed(0)
 do
   for i=1,10 do
-    local x,y,z = math_random(), math_random(10), math_random(-10,0)
+    local x,y,z = math.random(), math.random(10), math.random(-10,0)
     assert(x >= 0 and x <= 1)
     assert(y >= 0 and y <= 10)
     assert(z >= -10 and z <= 0)

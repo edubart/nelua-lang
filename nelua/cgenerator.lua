@@ -114,7 +114,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         if not declared then
           defemitter:add(varnode)
         else
-          defemitter:add(context:declname(varnode))
+          defemitter:add(context:declname(varattr))
         end
         if valnode or not noinit then
           -- initialize variable
@@ -177,7 +177,7 @@ typevisitors[types.RecordType] = function(context, type)
   decemitter:add_ln('typedef struct ', type.codename, ' ', type.codename, ';')
   table.insert(context.declarations, decemitter:generate())
   local defemitter = CEmitter(context, 0)
-  if #type.fields > 0 then
+  --if #type.fields > 0 then
     defemitter:add('struct ', type.codename)
     defemitter:add_ln(' {')
     for _,field in ipairs(type.fields) do
@@ -196,7 +196,7 @@ typevisitors[types.RecordType] = function(context, type)
     defemitter:add('}')
     emit_type_attributes(defemitter, type)
     defemitter:add_ln(';')
-  end
+  --end
   table.insert(context.declarations, defemitter:generate())
 end
 
@@ -370,7 +370,7 @@ function visitors.Id(context, node, emitter)
   elseif attr.comptime then
     emitter:add_literal(attr)
   else
-    emitter:add(context:declname(node))
+    emitter:add(context:declname(attr))
   end
 end
 
@@ -387,13 +387,12 @@ visitors.PointerType = visitors.Type
 function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
   local type = attr.type
-  assert(not attr.comptime)
-  if type:is_comptime() then
-    emitter:add(context:ensure_runtime_builtin('nelua_unusedvar'), ' ', context:declname(node))
+  if attr.comptime or type:is_comptime() then
+    emitter:add(context:ensure_runtime_builtin('nelua_unusedvar'), ' ', context:declname(attr))
     return
   end
   if attr.funcdecl then
-    emitter:add(context:declname(node))
+    emitter:add(context:declname(attr))
     return
   end
   if type:is_type() then return end
@@ -404,14 +403,15 @@ function visitors.IdDecl(context, node, emitter)
   if attr.register then emitter:add('register ') end
   if attr.static then emitter:add('static ') end
   if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
-  emitter:add(type, ' ', context:declname(node))
+  emitter:add(type, ' ', context:declname(attr))
   if attr.cattribute then emitter:add(' __attribute__((', attr.cattribute, '))') end
 end
 
 -- indexing
 function visitors.DotIndex(context, node, emitter)
   local name, objnode = node:args()
-  local type = node.attr.type
+  local attr = node.attr
+  local type = attr.type
   local objtype = objnode.attr.type
   local poparray = false
   if type:is_array() then
@@ -419,15 +419,14 @@ function visitors.DotIndex(context, node, emitter)
     poparray = true
   end
   if objtype:is_type() then
-    objtype = node.attr.indextype
+    objtype = attr.indextype
     if objtype:is_enum() then
       emitter:add(objtype:get_field(name).value)
     elseif objtype:is_record() then
-      local symbol = objtype:get_metafield(name)
-      if symbol.comptime then
-        emitter:add_literal(symbol)
+      if attr.comptime then
+        emitter:add_literal(attr)
       else
-        emitter:add(context:declname(symbol))
+        emitter:add(context:declname(attr))
       end
     else --luacov:disable
       error('not implemented yet')
@@ -548,14 +547,14 @@ local function visitor_Call(context, node, emitter, argnodes, callee, isblockcal
     end
 
     if ismethod then
-      emitter:add(context:declname(attr.methodsym), '(')
+      emitter:add(context:declname(attr.calleesym), '(')
       emitter:add_val2type(calleetype.argtypes[1], callee)
     else
       if attr.pointercall then
         emitter:add('(*')
       end
-      if attr.lazyeval then
-        emitter:add(context:declname(attr.lazyeval.node.attr))
+      if attr.calleesym then
+        emitter:add(context:declname(attr.calleesym))
       else
         emitter:add(callee)
       end
@@ -575,6 +574,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, isblockcal
           arg = tmpargs[i]
         end
       end
+
       emitter:add_val2type(funcargtype, arg, argtype)
     end
     emitter:add(')')
@@ -812,12 +812,13 @@ function visitors.ForNum(context, node, emitter)
   compop = node.attr.compop
   local fixedstep = node.attr.fixedstep
   local fixedend = node.attr.fixedend
-  local itmutate = itvarnode.attr.mutate
+  local itvarattr = itvarnode.attr
+  local itmutate = itvarattr.mutate
   context:push_forked_scope('loop', node)
   do
     local ccompop = cdefs.compare_ops[compop]
-    local ittype = itvarnode.attr.type
-    local itname = context:declname(itvarnode)
+    local ittype = itvarattr.type
+    local itname = context:declname(itvarattr)
     local itforname = itmutate and '__it' or itname
     emitter:add_indent('for(', ittype, ' ', itforname, ' = ')
     emitter:add_val2type(ittype, begvalnode)
@@ -966,8 +967,8 @@ function visitors.FuncDef(context, node, emitter)
     decemitter:add('(')
     defemitter:add('(')
     if varnode.tag == 'ColonIndex' then
-      decemitter:add(node.attr.metarecordtype, ' self')
-      defemitter:add(node.attr.metarecordtype, ' self')
+      decemitter:add(node.attr.metafuncselftype, ' self')
+      defemitter:add(node.attr.metafuncselftype, ' self')
       if #argnodes > 0 then
         decemitter:add(', ')
         defemitter:add(', ')

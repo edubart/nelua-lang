@@ -73,7 +73,6 @@ function ASTNode:clone()
   node.pos = self.pos
   node.src = self.src
   node.srcname = self.srcname
-  node.modname = self.modname
   node.preprocess = self.preprocess
   node.uid = genuid()
   return node
@@ -139,7 +138,7 @@ end
 -- pretty print ast
 -------------------
 local ignored_stringfy_keys = {
-  pos = true, src = true, srcname=true, modname=true,
+  pos = true, src = true, srcname=true,
   uid = true,
   desiredtype = true,
   preprocess = true,
