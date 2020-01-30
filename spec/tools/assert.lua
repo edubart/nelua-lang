@@ -192,6 +192,10 @@ function assert.generate_c(nelua_code, expected_code, ispattern)
   end
 end
 
+function assert.run_c_from_file(file, expected_stdout, expected_stderr)
+  assert.run({'--generator', 'c', file}, expected_stdout, expected_stderr)
+end
+
 function assert.run_c(nelua_code, expected_stdout, expected_stderr)
   assert.run({'--generator', 'c', '--eval', nelua_code}, expected_stdout, expected_stderr)
 end

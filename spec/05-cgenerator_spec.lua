@@ -287,6 +287,13 @@ it("lazy functions", function()
     assert(f(1) == 1)
     assert(f(true,2) == true)
 
+    global function get(x: auto)
+      return x, x+1
+    end
+    local i: number, f: number
+    i, f = get(1)
+    assert(f == 2)
+
     local function printtype(x: auto)
       ## if x.type:is_float() then
         print('float', x)
@@ -1304,6 +1311,19 @@ it("automatic dereference", function()
     a = 2
     assert(f(p) == 2)
     assert(g() == 2)
+
+    local vec2 = @record {x: number, y: number}
+    function vec2:add(a: vec2): vec2
+      return vec2{self.x + a.x, self.y + a.y}
+    end
+
+    local a = vec2{1,2}
+    local b = vec2{1,2}
+    local c = vec2{0,0}
+    local pa = &a
+    local pb = &b
+    local pc = &c
+    $pc = pb:add(pc)
   ]])
 end)
 

@@ -142,6 +142,7 @@ local ignored_stringfy_keys = {
   uid = true,
   desiredtype = true,
   preprocess = true,
+  loadedast = true,
   node = true,
   scope = true,
 }

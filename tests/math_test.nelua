@@ -1,0 +1,133 @@
+## strict = true
+
+require 'math'
+
+-- test utilities
+local function asserteq(x: number, y: number)
+  assert(math.abs(x - y) < 1e-6)
+end
+local e: float64 <comptime> = 2.718281828459045
+local e_f32: float32 <comptime> = 2.718281828459045_f32
+
+-- constants
+assert(math.min(math.huge, -math.huge) == -math.huge)
+assert(math.max(math.huge, -math.huge) == math.huge)
+
+-- float64
+assert(math.abs(-1.0) == 1.0) assert(math.abs(1.0) == 1.0)
+assert(math.ceil(0.0) == 0.0) assert(math.ceil(-1.0) == -1.0)
+assert(math.ceil(1.1) == 2.0) assert(math.ceil(-1.1) == -1.0)
+assert(math.floor(0.0) == 0.0) assert(math.floor(-1.0) == -1.0)
+assert(math.floor(1.1) == 1.0) assert(math.floor(-1.1) == -2.0)
+assert(math.min(1.0, -1.0) == -1.0) assert(math.min(-1.0, 1.0) == -1.0)
+assert(math.max(1.0, -1.0) == 1.0) assert(math.max(-1.0, 1.0) == 1.0)
+asserteq(math.acos(-1.0), math.pi) asserteq(math.acos(1.0), 0)
+asserteq(math.asin(0.0), 0.0) asserteq(math.asin(1.0), math.pi/2.0)
+asserteq(math.atan(0.0), 0.0) asserteq(math.atan(1.0), math.pi/4.0)
+asserteq(math.atan(0.0, -1.0), math.pi)
+asserteq(math.atan(-1.0, -1.0), -math.pi*3.0/4.0)
+asserteq(math.cos(math.pi), -1.0) asserteq(math.cos(0.0), 1.0)
+asserteq(math.sin(math.pi/2.0), 1.0) asserteq(math.sin(0.0), 0.0)
+asserteq(math.tan(math.pi/4.0), 1.0) asserteq(math.tan(0.0), 0.0)
+asserteq(math.sqrt(4.0), 2.0) asserteq(math.sqrt(9.0), 3.0)
+asserteq(math.exp(0.0), 1.0) asserteq(math.exp(1.0), e)
+asserteq(math.log(1.0), 0.0) asserteq(math.log(e), 1.0)
+asserteq(math.log(1e8, 10.0), 8.0) asserteq(math.log(1e-8, 10.0), -8.0)
+asserteq(math.log(1024.0, 2.0), 10.0) asserteq(math.log(1.0/1024.0, 2.0), -10.0)
+asserteq(math.pow(2.0, 10.0), 1024.0) asserteq(math.pow(2.0, -10.0), 1.0/1024.0)
+asserteq(math.fmod(5.0, 2.0), 1.0) asserteq(math.fmod(2.3, 5.7), 2.3)
+asserteq(math.deg(math.pi / 2.0), 90.0) asserteq(math.deg(0.0), 0.0)
+asserteq(math.rad(90.0), math.pi / 2.0) asserteq(math.rad(0.0), 0.0)
+
+-- float32
+global math.pi_f32 = (@float32)(math.pi)
+assert(math.abs(-1.0_f32) == 1.0_f32) assert(math.abs(1.0_f32) == 1.0_f32)
+assert(math.ceil(0.0_f32) == 0.0_f32) assert(math.ceil(-1.0_f32) == -1.0_f32)
+assert(math.ceil(1.1_f32) == 2.0_f32) assert(math.ceil(-1.1_f32) == -1.0_f32)
+assert(math.floor(0.0_f32) == 0.0_f32) assert(math.floor(-1.0_f32) == -1.0_f32)
+assert(math.floor(1.1_f32) == 1.0_f32) assert(math.floor(-1.1_f32) == -2.0_f32)
+assert(math.min(1.0_f32, -1.0_f32) == -1.0_f32) assert(math.min(-1.0_f32, 1.0_f32) == -1.0_f32)
+assert(math.max(1.0_f32, -1.0_f32) == 1.0_f32)  assert(math.max(-1.0_f32, 1.0_f32) == 1.0_f32)
+asserteq(math.acos(-1.0_f32), math.pi_f32) asserteq(math.acos(1.0_f32), 0)
+asserteq(math.asin(0.0_f32), 0.0_f32) asserteq(math.asin(1.0_f32), math.pi_f32/2.0_f32)
+asserteq(math.atan(0.0_f32), 0.0_f32) asserteq(math.atan(1.0_f32), math.pi_f32/4.0_f32)
+asserteq(math.atan(0.0_f32, -1.0_f32), math.pi_f32)
+asserteq(math.atan(-1.0_f32, -1.0_f32), -math.pi_f32*3.0_f32/4.0_f32)
+asserteq(math.cos(math.pi_f32), -1.0_f32) asserteq(math.cos(0.0_f32), 1.0_f32)
+asserteq(math.sin(math.pi_f32/2.0_f32), 1.0_f32) asserteq(math.sin(0.0_f32), 0.0_f32)
+asserteq(math.tan(math.pi_f32/4.0_f32), 1.0_f32) asserteq(math.tan(0.0_f32), 0.0_f32)
+asserteq(math.sqrt(4.0_f32), 2.0_f32) asserteq(math.sqrt(9.0_f32), 3.0_f32)
+asserteq(math.exp(0.0_f32), 1.0_f32)
+asserteq(math.exp(1.0_f32), e_f32)
+asserteq(math.log(1.0_f32), 0.0_f32) asserteq(math.log(e_f32), 1.0_f32)
+asserteq(math.log(1e8_f32, 10.0_f32), 8.0_f32) asserteq(math.log(1e-8_f32, 10.0_f32), -8.0_f32)
+asserteq(math.log(1024.0_f32, 2.0_f32), 10.0_f32) asserteq(math.log(1.0_f32/1024.0_f32, 2.0_f32), -10.0_f32)
+asserteq(math.pow(2.0_f32, 10.0_f32), 1024.0_f32) asserteq(math.pow(2.0_f32, -10.0_f32), 1.0_f32/1024.0_f32)
+asserteq(math.fmod(5.0_f32, 2.0_f32), 1.0_f32) asserteq(math.fmod(2.3_f32, 5.7_f32), 2.3_f32)
+asserteq(math.deg(math.pi_f32 / 2.0_f32), 90.0_f32) asserteq(math.deg(0.0_f32), 0.0_f32)
+asserteq(math.rad(90.0_f32), math.pi / 2.0_f32) asserteq(math.rad(0.0_f32), 0.0_f32)
+
+-- integer
+assert(math.abs(-1) == 1) assert(math.abs(1) == 1)
+assert(math.ceil(0) == 0) assert(math.ceil(1) == 1) assert( math.ceil(-1) == -1)
+assert(math.floor(0) == 0) assert(math.floor(1) == 1) assert(math.floor(-1) == -1)
+assert(math.min(1, -1) == -1) assert(math.min(-1, 1) == -1)
+assert(math.max(1, -1) == 1) assert(math.max(-1, 1) == 1)
+asserteq(math.acos(-1), math.pi) asserteq(math.acos(1), 0)
+asserteq(math.asin(0), 0) asserteq(math.asin(1), math.pi/2)
+asserteq(math.atan(0), 0) asserteq(math.atan(1), math.pi/4)
+asserteq(math.atan(0, -1), math.pi)
+asserteq(math.atan(-1, -1), -math.pi*3/4)
+asserteq(math.cos(0), 1)
+asserteq(math.sin(0), 0)
+asserteq(math.tan(0), 0)
+asserteq(math.sqrt(4), 2) asserteq(math.sqrt(9), 3)
+asserteq(math.exp(0), 1)
+asserteq(math.exp(1), e)
+asserteq(math.log(1), 0) asserteq(math.log(e), 1)
+asserteq(math.log(100000000, 10), 8)
+asserteq(math.log(1024, 2), 10)
+asserteq(math.pow(2, 10), 1024)
+asserteq(math.fmod(5, 2), 1)
+asserteq(math.deg(math.pi / 2), 90) asserteq(math.deg(0), 0)
+asserteq(math.rad(90), math.pi / 2) asserteq(math.rad(0), 0)
+
+-- modf
+do
+  local i: number, f: number
+  i, f = math.modf( 4.0)  asserteq(i, 4.0)  asserteq(f, 0.0)
+  i, f = math.modf( 4.5)  asserteq(i, 4.0)  asserteq(f, 0.5)
+  i, f = math.modf(-4.5)  asserteq(i,-4.0)  asserteq(f,-0.5)
+end
+do
+  local i: float32, f: float32
+  i, f = math.modf( 4.0_f32)  asserteq(i, 4_f32)  asserteq(f, 0.0_f32)
+  i, f = math.modf( 4.5_f32)  asserteq(i, 4_f32)  asserteq(f, 0.5_f32)
+  i, f = math.modf(-4.5_f32)  asserteq(i,-4_f32)  asserteq(f,-0.5_f32)
+end
+
+-- math.tointeger
+--assert(math.tointeger(1.1) == 1_integer)
+--assert(math.tointeger('s') == nil)
+assert(math.tointeger(1) == 1_integer)
+
+-- math.type
+assert(math.type(1) == 'integer')
+assert(math.type(1_u8) == 'integer')
+assert(math.type(1.0) == 'float')
+assert(math.type(1.0_f32) == 'float')
+--assert(math.type('s') == nil)
+
+-- math.ult
+assert(math.ult(math.maxinteger, math.mininteger))
+
+-- random
+math.randomseed(0)
+do
+  for i=1,10 do
+    local x,y,z = math.random(), math.random(10), math.random(-10,0)
+    assert(x >= 0 and x <= 1)
+    assert(y >= 0 and y <= 10)
+    assert(z >= -10 and z <= 0)
+  end
+end

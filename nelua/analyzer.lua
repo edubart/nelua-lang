@@ -611,7 +611,8 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     end
   end
   if not symbol then
-    symbol = Symbol.promote_attr(attr, nil, node)
+    local symname = string.format('%s.%s', objtype.name, name)
+    symbol = Symbol.promote_attr(attr, symname, node)
     symbol.codename = string.format('%s_%s', objtype.codename, name)
     symbol:link_node(parentnode)
     if infuncdef then
@@ -633,7 +634,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     end
 
     -- add symbol to scope to enable type deduction
-    local ok = context.rootscope:add_symbol(symbol)
+    local ok = context.rootscope:add_symbol(symbol, true)
     assert(ok)
   elseif infuncdef or inglobaldecl then
     if symbol.node ~= node then
@@ -927,16 +928,19 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       if calleetype:is_lazyfunction() then
         local lazycalleetype = calleetype
         calleetype = nil
+        calleesym = nil
         if knownallargs then
           local lazyeval = lazycalleetype:eval_lazy_for_args(args)
           if lazyeval and lazyeval.node and lazyeval.node.attr.type then
             calleesym = lazyeval.node.attr
             calleetype = lazyeval.node.attr.type
           else
-            lazycalleetype.node.attr.delayresolution = true
+            -- must traverse the lazy function scope again to infer types for assignment to this call
+            context.rootscope:delay_resolution()
           end
         end
       end
+      attr.calleesym = calleesym
       if calleetype then
         attr.type = calleetype:get_return_type(1)
         assert(calleetype.sideeffect ~= nil)
@@ -956,7 +960,6 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       node:raisef("cannot call type '%s'", calleetype:prettyname())
     end
     attr.calleetype = calleetype
-    attr.calleesym = calleesym
   end
 end
 
@@ -1485,7 +1488,7 @@ local function visitor_FuncDef_returns(context, functype, retnodes)
       -- single void type means no returns
       returntypes = {}
     end
-  elseif functype and not functype.returntypes.has_unknown then
+  elseif functype and functype:is_function() and not functype.returntypes.has_unknown then
     -- use return types from previous traversal only if fully resolved
     returntypes = functype.returntypes
   end
@@ -1719,8 +1722,10 @@ function analyzer.analyze(ast, parser, context)
   preprocessor.preprocess(context, ast)
 
   -- phase 2 traverse: infer and check types
-  context:traverse(ast)
-  context.rootscope:resolve()
+  repeat
+    context:traverse(ast)
+    local resolutions_count = context.rootscope:resolve()
+  until resolutions_count == 0
 
   -- phase 3 traverse: infer unset types to 'any' type
   local state = context:push_state()

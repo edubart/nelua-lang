@@ -126,8 +126,13 @@ function Scope:pop_checkpoint()
   self:merge_checkpoint(oldcheckpoint)
 end
 
-function Scope:add_symbol(symbol)
-  local key = symbol.name or symbol
+function Scope:add_symbol(symbol, annon)
+  local key
+  if annon then
+    key = symbol
+  else
+    key = symbol.name
+  end
   local oldsymbol = self.symbols[key]
   if oldsymbol == symbol then
     return true
@@ -152,15 +157,19 @@ function Scope:add_symbol(symbol)
   return true
 end
 
+function Scope:delay_resolution()
+  local parent = self
+  repeat
+    parent.delay = true
+    parent = parent.parent
+  until not parent
+end
+
 function Scope:resolve_symbols()
   local count = 0
   local unknownlist = {}
   -- first resolve any symbol with known possible types
   for _,symbol in pairs(self.symbols) do
-    if symbol.delayresolution then
-      count = count + 1
-      symbol.delayresolution = nil
-    end
     if symbol:resolve_type() then
       count = count + 1
     elseif count == 0 then
@@ -214,6 +223,10 @@ end
 function Scope:resolve()
   local count = self:resolve_symbols()
   self:resolve_returntypes()
+  if self.delay then
+    count = count + 1
+    self.delay = nil
+  end
   return count
 end
 

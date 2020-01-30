@@ -118,6 +118,9 @@ cdefs.binary_ops = {
 cdefs.compiler_base_flags = {
   cflags_warn = {
     "-Wall",
+    "-Wno-unknown-warning-option",
+    "-Wno-unused-variable", -- TODO: remove this once we have dead code elimination
+    "-Wno-discarded-qualifiers", -- for ignoring const* on pointers
     "-Wno-incompatible-pointer-types", -- importing C functions can cause this warn
     --"-Wno-missing-field-initializers", -- records without all fields explicity initialized
     --"-Wno-unused-parameter", -- functions with unused parameters

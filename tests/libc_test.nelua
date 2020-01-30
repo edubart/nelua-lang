@@ -1,0 +1,11 @@
+## strict = true
+
+require 'C.math'
+
+assert(C.fabs(-1.0) == 1.0)
+assert(C.fabsf(-2.0_f32) == 2.0_f32)
+assert(C.fabsl(-3.0_clongdouble) == 3.0_clongdouble)
+
+assert(C.isnan(C.NAN))
+assert(C.isinf(C.INFINITY))
+assert(C.NAN ~= C.NAN)

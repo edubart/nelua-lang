@@ -6,7 +6,7 @@ local pegger = require 'nelua.utils.pegger'
 
 function builtins.require(context, node)
   local attr = node.attr
-  if attr.alreadyrequired then
+  if attr.alreadyrequired or attr.runtime_require then
     -- already tried to load
     return
   end

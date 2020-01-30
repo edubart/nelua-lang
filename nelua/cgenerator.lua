@@ -32,7 +32,8 @@ local function izipargnodes(vars, argnodes)
         local argtype = calleetype:get_return_type(callretindex)
         return i, var, argnode, argtype, callretindex, calleetype
       else
-        return i, var, argnode, argnode.attr.type, nil
+        local argtype = argnode and argnode.attr.type
+        return i, var, argnode, argtype, nil
       end
     end
   else
