@@ -1495,6 +1495,11 @@ describe("preprocessor", function()
       n.Block{{
         n.Preprocess{"f()"}
     }})
+    assert.parse_ast(nelua_parser, "##\nlocal a",
+      n.Block{{
+        n.Preprocess{""},
+        n.VarDecl{'local', { n.IdDecl{'a'}}}
+    }})
   end)
   it("multiline", function()
     assert.parse_ast(nelua_parser, "##[[if true then\nend]]",

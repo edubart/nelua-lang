@@ -158,7 +158,6 @@ local function get_parser(std)
   %RCURLY       <- '}'
   %LANGLE       <- '<'
   %RANGLE       <- '>'
-  %PPSHORT      <- '##'
 
   -- binary operators
   %ADD          <- '+'
@@ -183,7 +182,7 @@ local function get_parser(std)
 
   -- unary operators
   %UNM          <- !'--' '-'
-  %LEN          <- !%PPSHORT !%LPPEXPR !%LPPNAME '#'
+  %LEN          <- !'##' !%LPPEXPR !%LPPNAME '#'
   %BNOT         <- !%NE '~'
   %DEREF        <- '$'
   %REF          <- '&'
@@ -531,7 +530,7 @@ local function get_parser(std)
     ppexpr <- ({} %LPPEXPR -> 'PreprocessExpr' {expr -> 0} eRPPEXPR) -> to_astnode
     ppname <- ({} %LPPNAME -> 'PreprocessName' {expr -> 0} eRPPNAME) -> to_astnode
     ppstring <- (pplong_string / ppshort_string) %SKIP
-    ppshort_string    <- %PPSHORT {(!%LINEBREAK .)*} %LINEBREAK?
+    ppshort_string    <- '##' {(!%LINEBREAK .)*} %LINEBREAK?
     pplong_string     <- pplong_open ({pplong_content*} pplong_close / %{UnclosedLongPreprocessString})
     pplong_content    <- !pplong_close .
     pplong_open       <- '##[' {:eq: '='*:} '[' %SKIP
