@@ -407,6 +407,14 @@ it("lazy function", function()
     f(1)
   ]])
   assert.analyze_ast([[
+    local function f(T: type, x: usize)
+       ## assert(x.type == primtypes.usize and T.value == primtypes.integer)
+       return x
+    end
+
+    f(@integer, 1)
+  ]])
+  assert.analyze_ast([[
     local function f(x: auto)
       local r = 1.0 + x
       r = r + x

@@ -888,7 +888,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         node:raisef("in call of function '%s': expected at most %d arguments but got %d",
           calleetype:prettyname(), #pseudoargtypes, #argnodes)
       end
-      local args = {}
+      local lazyargs = {}
       local knownallargs = true
       for i,funcargtype,argnode,argtype in izipargnodes(pseudoargtypes, argnodes) do
         local arg
@@ -902,6 +902,15 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         else
           arg = argtype
         end
+
+        if calleetype:is_lazyfunction() then
+          if funcargtype.lazyable then
+            lazyargs[i] = arg
+          else
+            lazyargs[i] = funcargtype
+          end
+        end
+
         if argtype and argtype:is_nil() and not funcargtype:is_nilable() then
           node:raisef("in call of function '%s': expected an argument at index %d but got nothing",
             calleetype:prettyname(), i)
@@ -914,7 +923,6 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
                 calleetype:prettyname(), i, err)
             end
           end
-          args[i] = arg
         else
           knownallargs = false
         end
@@ -923,14 +931,14 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         end
       end
       if calleeobjnode then
-        tabler.insert(args, 1, funcargtypes[1])
+        tabler.insert(lazyargs, 1, funcargtypes[1])
       end
       if calleetype:is_lazyfunction() then
         local lazycalleetype = calleetype
         calleetype = nil
         calleesym = nil
         if knownallargs then
-          local lazyeval = lazycalleetype:eval_lazy_for_args(args)
+          local lazyeval = lazycalleetype:eval_lazy_for_args(lazyargs)
           if lazyeval and lazyeval.node and lazyeval.node.attr.type then
             calleesym = lazyeval.node.attr
             calleetype = lazyeval.node.attr.type
@@ -1384,7 +1392,7 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope, check
     local argattr = argnode.attr
     -- function arguments types must be known ahead, fallbacks to any if untyped
     local argtype = argattr.type or primtypes.any
-    if checklazy and (argtype.lazyable or argattr.comptime) then
+    if checklazy and argtype.lazyable then
       islazyparent = true
     end
     argtypes[i] = argtype
