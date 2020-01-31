@@ -1013,7 +1013,7 @@ function visitors.UnaryOp(_, node, emitter)
   if surround then emitter:add(')') end
 end
 
-function visitors.BinaryOp(context, node, emitter)
+function visitors.BinaryOp(_, node, emitter)
   if node.attr.comptime then
     emitter:add_literal(node.attr)
     return
@@ -1051,9 +1051,8 @@ function visitors.BinaryOp(context, node, emitter)
       emitter:add_indent(type, ' t1_ = ')
       emitter:add_val2type(type, lnode)
       --TODO: be smart and remove this unused code
-      context:ensure_runtime_builtin('nelua_unused')
-      emitter:add_ln('; nelua_unused(t1_);')
-      emitter:add_indent_ln(type, ' t2_ = {0}; nelua_unused(t2_);')
+      emitter:add_ln(';')
+      emitter:add_indent_ln(type, ' t2_ = {0};')
       if opname == 'and' then
         assert(not node.attr.ternaryand)
         emitter:add_indent('bool cond_ = ')
@@ -1144,8 +1143,6 @@ local function emit_main(ast, context)
     mainemitter:add_indent_ln('int main(int argc, char **argv) {')
     mainemitter:inc_indent(2)
 
-    context:ensure_runtime_builtin('nelua_unused')
-    mainemitter:add_indent_ln('nelua_unused(argv);')
     if context.has_gc then
       mainemitter:add_indent_ln('nelua_gc_start(&nelua_gc, &argc);')
       mainemitter:add_indent_ln('int (*volatile inner_main)(void) = nelua_main;')
@@ -1153,7 +1150,6 @@ local function emit_main(ast, context)
       mainemitter:add_indent_ln('nelua_gc_stop(&nelua_gc);')
       mainemitter:add_indent_ln('return result;')
     else
-      mainemitter:add_indent_ln('nelua_unused(argc);')
       mainemitter:add_indent_ln('return nelua_main();')
     end
     mainemitter:dec_indent(2)

@@ -26,7 +26,7 @@ local mystring <codename 'nelua_mystring'> = @mystringobj*
 
 local emptystringobj <codename 'nelua_emptystringobj'> = @record{len: usize, zero: byte}
 local emptystringo: emptystringobj <const,codename 'nelua_emptystringo'> = {}
-local emptystring <const,codename 'nelua_emptystring'> = (@mystring)(&emptystringo)
+local emptystring <codename 'nelua_emptystring'> = (@mystring)(&emptystringo)
 
 local function mystring_create(len: usize): mystring
   local self = (@mystring)(malloc(#mystringobj + len + 1))

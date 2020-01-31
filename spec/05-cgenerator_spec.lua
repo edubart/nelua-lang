@@ -747,16 +747,16 @@ end)
 
 it("binary conditional operators", function()
   assert.generate_c("local a, b; do return a or b end",  [[({
-      nelua_any t1_ = a; nelua_unused(t1_);
-      nelua_any t2_ = {0}; nelua_unused(t2_);
+      nelua_any t1_ = a;
+      nelua_any t2_ = {0};
       bool cond_ = nelua_any_to_nelua_boolean(t1_);
       if(cond_)
         t2_ = b;
       cond_ ? t1_ : t2_;
     })]])
   assert.generate_c("local a, b; return a and b",  [[({
-    nelua_any t1_ = a; nelua_unused(t1_);
-    nelua_any t2_ = {0}; nelua_unused(t2_);
+    nelua_any t1_ = a;
+    nelua_any t2_ = {0};
     bool cond_ = nelua_any_to_nelua_boolean(t1_);
     if(cond_) {
       t2_ = b;

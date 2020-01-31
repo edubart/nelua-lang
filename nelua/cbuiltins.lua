@@ -39,10 +39,6 @@ function builtins.nelua_unlikely(context)
   context:ensure_runtime_builtin('nelua_likely')
 end
 
-function builtins.nelua_unused(context)
-  define_builtin(context, 'nelua_unused', "#define nelua_unused(x) (void)(x)\n")
-end
-
 function builtins.nelua_noinline(context)
   define_builtin(context, 'nelua_noinline', "#define nelua_noinline __attribute__((noinline))\n")
 end
