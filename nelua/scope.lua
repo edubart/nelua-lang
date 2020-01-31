@@ -158,11 +158,7 @@ function Scope:add_symbol(symbol, annon)
 end
 
 function Scope:delay_resolution()
-  local parent = self
-  repeat
-    parent.delay = true
-    parent = parent.parent
-  until not parent
+  self.delay = true
 end
 
 function Scope:resolve_symbols()
@@ -182,7 +178,8 @@ function Scope:resolve_symbols()
     end
   end
   -- if nothing was resolved previously then try resolve symbol with unknown possible types
-  if not self.context.state.anyphase and count == 0 and #unknownlist > 0 then
+  if count == 0 and #unknownlist > 0 and
+    not self.context.state.anyphase and not self.context.rootscope.delay then
     -- [disabled] try to infer the type only for the first unknown symbol
     --table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)
     for _,symbol in ipairs(unknownlist) do

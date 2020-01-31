@@ -1272,7 +1272,6 @@ function visitors.VarDecl(context, node)
       if valtype:is_void() then
         varnode:raisef("cannot assign to expressions of type 'void'")
       end
-      local foundtype = true
       local assignvaltype = false
       if varnode.attr.comptime then
         -- for comptimes the type must be known ahead
@@ -1284,8 +1283,6 @@ function visitors.VarDecl(context, node)
         assert(valnode and valnode.attr.value)
         assignvaltype = vartype ~= valtype
         symbol.value = valnode.attr.value
-      else
-        foundtype = false
       end
 
       if vartype and vartype:is_auto() then
@@ -1301,9 +1298,6 @@ function visitors.VarDecl(context, node)
           -- must traverse again annotation node early once type is found ahead
           context:traverse(annotnode, symbol)
         end
-      elseif not foundtype then
-        -- lazy type evaluation
-        symbol:add_possible_type(valtype)
       end
       if vartype and assigning then
         local ok, err = vartype:is_convertible_from(valnode or valtype)
@@ -1311,6 +1305,9 @@ function visitors.VarDecl(context, node)
           varnode:raisef("in variable '%s' declaration: %s", symbol.name, err)
         end
       end
+    end
+    if assigning then
+      symbol:add_possible_type(valtype)
     end
   end
 end
@@ -1753,8 +1750,10 @@ function analyzer.analyze(ast, parser, context)
   -- phase 3 traverse: infer unset types to 'any' type
   local state = context:push_state()
   state.anyphase = true
-  context:traverse(ast)
-  context.rootscope:resolve()
+  repeat
+    context:traverse(ast)
+    local resolutions_count = context.rootscope:resolve()
+  until resolutions_count == 0
   context:pop_state()
 
   if ast.srcname then

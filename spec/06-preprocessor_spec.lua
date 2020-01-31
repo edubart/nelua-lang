@@ -427,6 +427,17 @@ it("lazy function", function()
     local x = f(1.0)
     ## afterinfer(function() assert(x.type == primtypes.number) end)
   ]])
+  assert.analyze_ast([[
+    local function f(T: type)
+      return (@pointer(T))(nilptr)
+    end
+
+    do
+      local p = f(@integer)
+      ## afterinfer(function() assert(p.type:is_pointer()) end)
+      p = nilptr
+    end
+  ]])
   assert.analyze_ast([=[
     local function inc(x: auto)
       local y = x + 1
