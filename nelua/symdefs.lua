@@ -1,11 +1,12 @@
 local typedefs = require 'nelua.typedefs'
+local tabler = require 'nelua.utils.tabler'
 local types = require 'nelua.types'
 local Symbol = require 'nelua.symbol'
 local primtypes = typedefs.primtypes
 
 local symdefs = {}
 
-local function define_function(name, args, rets)
+local function define_function(name, args, rets, props)
   local type = types.FunctionType(nil, args, rets)
   type:suggest_nick(name)
   type.sideeffect = false
@@ -18,6 +19,9 @@ local function define_function(name, args, rets)
     staticstorage = true,
     modname = 'nelua',
   }
+  if props then
+    tabler.update(symbol, props)
+  end
   symdefs[name] = symbol
 end
 
@@ -38,6 +42,7 @@ end
 -- nelua only
 define_function('likely', {primtypes.boolean}, {primtypes.boolean})
 define_function('unlikely', {primtypes.boolean}, {primtypes.boolean})
+define_function('check', {primtypes.boolean, primtypes.string}, {}, {name='assert', codename='nelua_assert_string'})
 define_const('panic', primtypes.any)
 define_const('nilptr', primtypes.nilptr)
 define_const('C', primtypes.type, types.RecordType(nil, {}))

@@ -189,12 +189,16 @@ function preprocessor.preprocess(context, ast)
       end
       ppcontext:add_statnode(aster.PragmaCall{'afterinfer', {fproxy}})
     end,
+    staticerror = function(msg, ...)
+      if not msg then
+        msg = 'static error!'
+      end
+      raise_preprocess_error(msg, ...)
+    end,
     staticassert = function(status, msg, ...)
       if not status then
         if not msg then
           msg = 'static assertion failed!'
-        else
-          msg = 'static assertion failed: ' .. msg
         end
         raise_preprocess_error(msg, ...)
       end

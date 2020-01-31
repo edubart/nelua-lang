@@ -955,10 +955,12 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         attr.sideeffect = calleetype.sideeffect
       end
     elseif calleetype:is_table() then
+      context:traverse(argnodes)
       -- table call (allowed for tables with metamethod __index)
       attr.type = primtypes.varanys
       attr.sideeffect = true
     elseif calleetype:is_any() then
+      context:traverse(argnodes)
       -- call on any values
       attr.type = primtypes.varanys
       -- builtins usually don't have side effects
@@ -968,6 +970,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       node:raisef("cannot call type '%s'", calleetype:prettyname())
     end
     attr.calleetype = calleetype
+  else
+    context:traverse(argnodes)
   end
 end
 
@@ -975,7 +979,6 @@ function visitors.Call(context, node)
   local attr = node.attr
   local argnodes, calleenode, isblockcall = node:args()
 
-  context:traverse(argnodes)
   context:traverse(calleenode)
 
   local calleeattr = calleenode.attr
@@ -1633,6 +1636,9 @@ function visitors.UnaryOp(context, node)
   local attr = node.attr
   local opname, argnode = node:args()
 
+  if node.desiredtype == primtypes.boolean then
+    argnode.desiredtype = primtypes.boolean
+  end
   context:traverse(argnode)
 
   -- quick return for already resolved type
@@ -1669,8 +1675,14 @@ end
 function visitors.BinaryOp(context, node)
   local opname, lnode, rnode = node:args()
   local attr = node.attr
+  local isbinaryconditional = opname == 'or' or opname == 'and'
 
-  if opname == 'or' and lnode.tag == 'BinaryOp' and lnode[1] == 'and' then
+  local wantsboolean
+  if isbinaryconditional and node.desiredtype == primtypes.boolean then
+    lnode.desiredtype = primtypes.boolean
+    rnode.desiredtype = primtypes.boolean
+    wantsboolean =  true
+  elseif opname == 'or' and lnode.tag == 'BinaryOp' and lnode[1] == 'and' then
     lnode.attr.ternaryand = true
     attr.ternaryor = true
   end
@@ -1687,8 +1699,8 @@ function visitors.BinaryOp(context, node)
   lattr.inoperator = true
   rattr.inoperator = true
 
-  local isbinaryconditional = opname == 'or' or opname == 'and'
-  if rtype and ltype and isbinaryconditional and (not rtype:is_boolean() or not ltype:is_boolean()) then
+  if not wantsboolean and isbinaryconditional and rtype and ltype and
+    (not rtype:is_boolean() or not ltype:is_boolean()) then
     attr.dynamic_conditional = true
   end
   attr.sideeffect = lattr.sideeffect or rattr.sideeffect or nil
@@ -1699,6 +1711,9 @@ function visitors.BinaryOp(context, node)
     type, value, err = ltype:binary_operator(opname, rtype, lattr, rattr)
     if err then
       lnode:raisef("in binary operation `%s`: %s", opname, err)
+    end
+    if wantsboolean then
+      type = primtypes.boolean
     end
     if value ~= nil then
       attr.comptime = true

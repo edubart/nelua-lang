@@ -764,6 +764,15 @@ it("binary conditional operators", function()
     }
     cond_ ? t2_ : (nelua_any){0};
   })]])
+  assert.generate_c([[
+    local p: pointer
+    local i: integer = 1
+    local b: boolean = i == 0 or p
+    local b2 = (@boolean)(i == 0 or p)
+  ]], {
+    "b = (i == 0) || p;",
+    "b2 = (i == 0) || p;"
+  })
   assert.run_c([[
     local a = 2 or 3
     assert(a == 2)

@@ -368,6 +368,8 @@ end)
 
 it("check function", function()
   assert.analyze_ast([[ ## staticassert(true) ]])
+  assert.analyze_error([[ ## staticerror() ]], 'static error!')
+  assert.analyze_error([[ ## staticerror('my fail') ]], 'my fail')
   assert.analyze_error([[ ## staticassert(false) ]], 'static assertion failed')
   assert.analyze_error([[ ## staticassert(false, 'myfail') ]], 'myfail')
 
