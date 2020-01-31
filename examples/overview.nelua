@@ -392,15 +392,16 @@ do -- Dereferencing and referencing
   print($ap) -- outputs 3
 end
 
+
 do -- Allocating memory
-  require 'C.stdlib'
+  require 'memory'
 
   local Person = @record{name: string, age: integer}
-  local p = (@Person*)(C.malloc(#Person))
+  local p: Person* = memory.new(@Person)
   p.name = "John"
   p.age = 20
   print(p.name, p.age)
-  C.free(p)
+  memory.delete(p)
   p = nilptr
 end
 

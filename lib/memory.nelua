@@ -92,19 +92,11 @@ end
 -- compile time checks utilities
 
 ##[[
-local function check_ptrspan_subtype(v)
-  staticassert(v.type:is_pointer() and v.type.subtype:is_span(),
-    "in argument '%s': expected 'span(T)*' but got type '%s'",
+local function check_span_subtype(v)
+  staticassert(v.type:is_span(),
+    "in argument '%s': expected 'span(T)' but got type '%s'",
     v.name, v.type)
-  return v.type.subtype.subtype
-end
-
-local function check_span(v)
-  local stype = v.type:is_pointer() and v.type.subtype or v.type
-  staticassert(stype:is_span(),
-    "in argument '%s': expected 'span(T)' or 'span(T)*' but got type '%s'",
-    v.name, v.type)
-  return stype
+  return v.type.subtype
 end
 
 local function check_type_match(a, b)
@@ -114,10 +106,10 @@ local function check_type_match(a, b)
 end
 
 local function check_span_subtype_match(s, x)
-  local stype = check_span(s)
-  staticassert(stype.subtype == x.type,
+  local stype = check_span_subtype(s)
+  staticassert(stype == x.type,
     "in argument '%s': type '%s' differs from argument '%s' type '%s",
-    s.name, x.name, stype.subtype, x.type)
+    s.name, x.name, stype, x.type)
 end
 ]]
 
@@ -145,7 +137,7 @@ function memory.spanalloc0(T: type, size: usize)
 end
 
 function memory.spanrealloc(s: auto, size: usize)
-  local T: type = #[check_ptrspan_subtype(s)]#
+  local T: type = #[check_span_subtype(s)]#
   if unlikely(size == 0) then
     free(s.data)
     s.data = nilptr
@@ -155,10 +147,11 @@ function memory.spanrealloc(s: auto, size: usize)
     check(s.data, 'memory.spanrealloc0: allocation fail')
     s.size = size
   end
+  return s
 end
 
 function memory.spanrealloc0(s: auto, size: usize)
-  local T: type = #[check_ptrspan_subtype(s)]#
+  local T: type = #[check_span_subtype(s)]#
   if unlikely(size == 0) then
     free(s.data)
     s.data = nilptr
@@ -171,17 +164,16 @@ function memory.spanrealloc0(s: auto, size: usize)
     end
     s.size = size
   end
+  return s
 end
 
 function memory.spandealloc(s: auto)
-  ## check_ptrspan_subtype(s)
+  ## check_span_subtype(s)
   free(s.data)
-  s.data = nilptr
-  s.size = 0
 end
 
 function memory.spancopy(dest: auto, src: auto)
-  local T: type = #[check_span(dest).subtype]#
+  local T: type = #[check_span_subtype(dest)]#
   ## check_type_match(dest, src)
   check(dest.size == src.size, 'memory.spancopy: span sizes must be equal')
   if likely(src.size > 0_u) then
@@ -190,7 +182,7 @@ function memory.spancopy(dest: auto, src: auto)
 end
 
 function memory.spanmove(dest: auto, src: auto)
-  local T: type = #[check_span(dest).subtype]#
+  local T: type = #[check_span_subtype(dest)]#
   ## check_type_match(dest, src)
   check(dest.size == src.size, 'memory.spanmove: span sizes must be equal')
   if likely(src.size > 0_u) then
@@ -208,7 +200,7 @@ function memory.spanset(dest: auto, x: auto)
 end
 
 function memory.spancompare(a: auto, b: auto): int32
-  ## check_span(a) check_type_match(a, b)
+  ## check_span_subtype(a) check_type_match(a, b)
   local size: usize <noinit>
   if a.size < b.size then
     size = a.size
@@ -230,7 +222,7 @@ function memory.spancompare(a: auto, b: auto): int32
 end
 
 function memory.spanequals(a: auto, b: auto): boolean
-  ## check_span(a) check_type_match(a, b)
+  ## check_span_subtype(a) check_type_match(a, b)
   local ret: boolean = a.size == b.size
   if ret and likely(a.size > 0_u) then
     ret = memcmp(a.data, b.data, a.size) == 0
@@ -258,4 +250,28 @@ function memory.spancontains(s: auto, x: auto): boolean
     end
   end
   return false
+end
+
+--------------------------------------------------------------------------------
+-- new and delete
+
+function memory.new(T: type, size: auto)
+  ## if not size.type:is_nil() then
+    ## staticassert(size.type:is_integral(), 'memory.new: size must be an integral type')
+    ## if not size.type:is_unsigned() then
+      check(size > 0, 'memory.new: size must be greater than 0')
+    ## end
+    return memory.spanalloc0(T, (@usize)(size))
+  ## else
+    return (@T*)(memory.alloc0(#T))
+  ## end
+end
+
+function memory.delete(s: auto)
+  ## staticassert(s.type:is_pointer() or s.type:is_span(), "memory.delete: invalid type '%s'", s.type)
+  ## if s.type:is_span() then
+    memory.spandealloc(s)
+  ## else -- pointer
+    memory.dealloc(s)
+  ## end
 end

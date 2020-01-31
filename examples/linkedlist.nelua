@@ -3,9 +3,7 @@
 ## strict = true
 ## nohashcodenames = true
 
--- import C memory functions
-local function malloc(size: csize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
-local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',nodecl> end
+require 'memory'
 
 ## local memoize = require 'nelua.utils.memoize'
 ## local list = hygienize(memoize(function(T)
@@ -17,7 +15,7 @@ local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',node
   }
 
   local function new_node(prev: ListNode*, next: ListNode*, value: T): ListNode*
-    local node = (@ListNode*)(malloc(#@ListNode))
+    local node = memory.new(@ListNode)
     node.prev = prev
     node.next = next
     node.value = value
@@ -28,10 +26,6 @@ local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',node
     head: ListNode*,
     tail: ListNode*
   }
-
-  function List.new(): List
-    return (@List){}
-  end
 
   function List:prepend(value: T)
     local node = new_node(nilptr, self.head, value)
@@ -86,7 +80,7 @@ local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',node
       node.next.prev = node.prev
     end
     local next = node.next
-    free(node)
+    memory.delete(node)
     return next
   end
 
@@ -100,7 +94,7 @@ local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',node
     if unlikely(self.tail == node) then
       self.tail = nilptr
     end
-    free(node)
+    memory.delete(node)
   end
 
   function List:remove_last()
@@ -113,14 +107,14 @@ local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',node
     if unlikely(self.head == node) then
       self.head = nilptr
     end
-    free(node)
+    memory.delete(node)
   end
 
   function List:clear()
     local it = self.head
     while it do
       local next = it.next
-      free(it)
+      memory.delete(it)
       it = next
     end
     self.head = nilptr
@@ -152,7 +146,7 @@ local ListInteger = #[list(integer)]#
 -----------------------------------------------------------------------
 -- tests
 do
-  local l = ListInteger.new()
+  local l: ListInteger
   assert(l:len() == 0 and l:empty())
   l:append(1)    assert(l.head.value == 1) assert(l.tail.value == 1)
   assert(l:len() == 1 and not l:empty())
@@ -167,7 +161,7 @@ do
 end
 
 do -- erase
-  local l = ListInteger.new()
+  local l: ListInteger
   l:append(1)
   assert(l:erase(l.tail) == nilptr)
   assert(l:empty())
@@ -194,7 +188,7 @@ do -- erase
 end
 
 do -- find
-  local l = ListInteger.new()
+  local l: ListInteger
   l:append(1) l:append(2) l:append(3)
   assert(l:find(1) == l.head)
   assert(l:find(2) == l.head.next and l:find(2) == l.tail.prev)
@@ -204,7 +198,7 @@ do -- find
 end
 
 do -- remove_last
-  local l = ListInteger.new()
+  local l: ListInteger
   l:append(1) l:append(2) l:append(3)
   l:remove_last()
   assert(l.tail.value == 2)
@@ -219,7 +213,7 @@ do -- remove_last
 end
 
 do -- remove_first
-  local l = ListInteger.new()
+  local l: ListInteger
   l:append(1) l:append(2) l:append(3)
   l:remove_first()
   assert(l.tail.value == 3)

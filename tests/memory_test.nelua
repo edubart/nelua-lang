@@ -128,10 +128,10 @@ end
 do -- spanalloc and spandealloc
   local p = memory.spanalloc(@vec2, 2)
   assert(p.data ~= nilptr and p.size == 2)
-  memory.spandealloc(&p)
+  memory.spandealloc(p)
+  p = (@span(vec2)){}
   assert(p.data == nilptr and p.size == 0)
-  memory.spandealloc(&p)
-  assert(p.data == nilptr and p.size == 0)
+  memory.spandealloc(p)
   p = memory.spanalloc(@vec2, 0)
   assert(p.data == nilptr and p.size == 0)
 end
@@ -141,7 +141,7 @@ do -- spanalloc0
   assert(p.data ~= nilptr and p.size == 2)
   assert(p[0].x == 0 and p[0].y == 0)
   assert(p[1].x == 0 and p[1].y == 0)
-  memory.spandealloc(&p)
+  memory.spandealloc(p)
   p = memory.spanalloc0(@vec2, 0)
   assert(p.data == nilptr and p.size == 0)
 end
@@ -149,13 +149,13 @@ end
 do -- spanrealloc
   local p = memory.spanalloc(@vec2, 1)
   assert(p.data ~= nilptr and p.size == 1)
-  memory.spanrealloc(&p, 4)
+  p = memory.spanrealloc(p, 4)
   assert(p.data ~= nilptr and p.size == 4)
-  memory.spanrealloc(&p, 1)
+  p = memory.spanrealloc(p, 1)
   assert(p.data ~= nilptr and p.size == 1)
-  memory.spanrealloc(&p, 0)
+  p = memory.spanrealloc(p, 0)
   assert(p.data == nilptr and p.size == 0)
-  memory.spandealloc(&p)
+  memory.spandealloc(p)
   assert(p.data == nilptr and p.size == 0)
 end
 
@@ -164,16 +164,16 @@ do -- spanrealloc0
   assert(p.data ~= nilptr and p.size == 1)
   assert(p[0].x == 0 and p[0].y == 0)
   p[0] = vec2{x=1, y=2}
-  memory.spanrealloc0(&p, 2)
+  p = memory.spanrealloc0(p, 2)
   assert(p.data ~= nilptr and p.size == 2)
   assert(p[0].x == 1 and p[0].y == 2)
   assert(p[1].x == 0 and p[1].y == 0)
-  memory.spanrealloc0(&p, 1)
+  p = memory.spanrealloc0(p, 1)
   assert(p.data ~= nilptr and p.size == 1)
   assert(p[0].x == 1 and p[0].y == 2)
-  memory.spanrealloc0(&p, 0)
+  p = memory.spanrealloc0(p, 0)
   assert(p.data == nilptr and p.size == 0)
-  memory.spandealloc(&p)
+  memory.spandealloc(p)
 end
 
 do -- spancopy
@@ -182,8 +182,8 @@ do -- spancopy
   pa[0] = {x=1,y=2}
   memory.spancopy(pb, pa)
   assert(pb[0].x == 1 and pb[0].y == 2)
-  memory.spandealloc(&pa)
-  memory.spandealloc(&pb)
+  memory.spandealloc(pa)
+  memory.spandealloc(pb)
 end
 
 do -- spanmove
@@ -194,7 +194,7 @@ do -- spanmove
   local db = (@span(integer))({ data=&(((@integer[0]*)(p.data))[1]), size=3 })
   memory.spanmove(db, sb)
   --assert(pa.x == 1 and pa.y == 1 and pb.x == 2 and pb.y == 3)
-  memory.spandealloc(&p)
+  memory.spandealloc(p)
 end
 
 do -- spanset
@@ -202,7 +202,7 @@ do -- spanset
   memory.spanset(p, (@vec2){x=1,y=2})
   assert(p[0].x == 1 and p[0].y == 2)
   assert(p[1].x == 1 and p[1].y == 2)
-  memory.spandealloc(&p)
+  memory.spandealloc(p)
 end
 
 do -- spancompare
@@ -215,8 +215,8 @@ do -- spancompare
   assert(memory.spancompare(pa, pb) == 1)
   pa[0].x = 2 pb[0].x = 2
   assert(memory.spancompare(pa, pb) == 0)
-  memory.spandealloc(&pa)
-  memory.spandealloc(&pb)
+  memory.spandealloc(pa)
+  memory.spandealloc(pb)
 end
 
 do -- spanequals
@@ -225,8 +225,8 @@ do -- spanequals
   assert(memory.spanequals(pa, pb))
   pa[0].x = 1
   assert(not memory.spanequals(pa, pb))
-  memory.spandealloc(&pa)
-  memory.spandealloc(&pb)
+  memory.spandealloc(pa)
+  memory.spandealloc(pb)
 end
 
 do -- spanscan
@@ -236,7 +236,7 @@ do -- spanscan
   assert(memory.spanscan(p, (@vec2){1,2}) == 0)
   assert(memory.spanscan(p, (@vec2){3,4}) == 1)
   assert(memory.spanscan(p, (@vec2){5,6}) == -1)
-  memory.spandealloc(&p)
+  memory.spandealloc(p)
 end
 
 do -- spancontains
@@ -246,5 +246,27 @@ do -- spancontains
   assert(memory.spancontains(p, (@vec2){1,2}))
   assert(memory.spancontains(p, (@vec2){3,4}))
   assert(not memory.spancontains(p, (@vec2){5,6}))
-  memory.spandealloc(&p)
+  memory.spandealloc(p)
+end
+
+--------------------------------------------------------------------------------
+-- new and delete
+
+do -- new for pointers
+  local v = memory.new(@vec2)
+  assert(v.x == 0 and v.y == 0)
+  v.x = 1 v.y = 2
+  assert(v.x == 1 and v.y == 2)
+  memory.delete(v)
+end
+
+do -- new for spans
+  local v = memory.new(@vec2, 2)
+  assert(v[0].x == 0 and v[0].y == 0)
+  assert(v[1].x == 0 and v[1].y == 0)
+  v[0].x = 1 v[0].y = 2
+  v[1].x = 3 v[1].y = 4
+  assert(v[0].x == 1 and v[0].y == 2)
+  assert(v[1].x == 3 and v[1].y == 4)
+  memory.delete(v)
 end
