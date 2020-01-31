@@ -1,23 +1,250 @@
 ## strict = true
+## modname = 'test'
+## nohashcodenames = true
+--## cflags '-fsanitize=address -fsanitize=undefined -fsanitize=leak'
 
 require 'memory'
 
-local function assertmem(s: span(byte), x: byte)
-  for i=0_usize,<s.size do
-    assert(s[i] == x)
-  end
+-- utilities
+local vec2 = @record{x: integer, y: integer}
+
+--------------------------------------------------------------------------------
+-- raw pointers
+
+do -- alloc and dealloc
+  local p = memory.alloc(4)
+  assert(p)
+  memory.dealloc(p)
+  p = nilptr
+  memory.dealloc(p)
 end
 
-local mem = memory.alloc(4)
-assert(mem.size == 4)
-assertmem(mem, 0)
+do -- alloc0
+  local p = (@vec2*)(memory.alloc0(#@vec2))
+  assert(p)
+  assert(p.x == 0 and p.y == 0)
+  memory.dealloc(p)
+end
 
-memory.realloc(mem, 8)
-assert(mem.size == 8)
-assertmem(mem, 0)
+do -- realloc
+  local p = memory.alloc(1)
+  assert(p)
+  p = memory.realloc(p, 4)
+  assert(p)
+  p = memory.realloc(p, 1)
+  memory.dealloc(p)
+end
 
-memory.set(mem, 0xff)
-assertmem(mem, 0xff)
+do -- realloc0
+  local p = (@vec2[0]*)(memory.alloc0(#@vec2))
+  assert(p)
+  assert(p[0].x == 0 and p[0].y == 0)
+  p[0] = vec2{x=1, y=2}
+  p = (@vec2[0]*)(memory.realloc0(p, 2*#@vec2, #@vec2))
+  assert(p)
+  assert(p[0].x == 1 and p[0].y == 2)
+  assert(p[1].x == 0 and p[1].y == 0)
+  p = (@vec2[0]*)(memory.realloc0(p, #@vec2, #@vec2))
+  assert(p)
+  assert(p[0].x == 1 and p[0].y == 2)
+  p = (@vec2[0]*)(memory.realloc0(p, #@vec2, 0))
+  assert(p)
+  assert(p[0].x == 0 and p[0].y == 0)
+  memory.dealloc(p)
+end
 
-memory.dealloc(mem)
-assert(mem.size == 0)
+do -- copy
+  local pa = (@vec2*)(memory.alloc0(#@vec2))
+  local pb = (@vec2*)(memory.alloc0(#@vec2))
+  $pa = {x=1,y=2}
+  memory.copy(pb, pa, #@vec2)
+  assert(pb.x == 1 and pb.y == 2)
+  memory.dealloc(pa)
+  memory.dealloc(pb)
+end
+
+do -- move
+  local p = (@vec2[0]*)(memory.alloc0(2*#@vec2))
+  local pa, pb = &p[0], &p[1]
+  $pa, $pb = {x=1,y=2}, {x=3,y=4}
+  memory.move(&((@integer[0]*)(p))[1], p, 3 * #@integer)
+  assert(pa.x == 1 and pa.y == 1 and pb.x == 2 and pb.y == 3)
+  memory.dealloc(p)
+end
+
+do -- set
+  local p = (@vec2*)(memory.alloc0(#@vec2))
+  memory.set(p, 0xff, #@vec2)
+  assert(p.x == 0xffffffffffffffff and p.y == 0xffffffffffffffff)
+  memory.dealloc(p)
+end
+
+do -- compare
+  local pa = (@vec2*)(memory.alloc0(#@vec2))
+  local pb = (@vec2*)(memory.alloc0(#@vec2))
+  assert(memory.compare(pa, pb, #@vec2) == 0)
+  pa.x = 1 pb.x = 2
+  assert(memory.compare(pa, pb, #@vec2) == -1)
+  pa.x = 2 pb.x = 1
+  assert(memory.compare(pa, pb, #@vec2) == 1)
+  pa.x = 2 pb.x = 2
+  assert(memory.compare(pa, pb, #@vec2) == 0)
+  memory.dealloc(pa)
+  memory.dealloc(pb)
+end
+
+do -- equals
+  local pa = (@vec2*)(memory.alloc0(#@vec2))
+  local pb = (@vec2*)(memory.alloc0(#@vec2))
+  assert(memory.equals(pa, pb, #@vec2))
+  pa.x = 1
+  assert(not memory.equals(pa, pb, #@vec2))
+  memory.dealloc(pa)
+  memory.dealloc(pb)
+end
+
+do -- scan
+  local p = (@vec2*)(memory.alloc0(#@vec2))
+  p.x = 1 p.y = 2
+  assert(memory.scan(p, 1, #@vec2) == &p.x)
+  assert(memory.scan(p, 2, #@vec2) == &p.y)
+  assert(memory.scan(p, 3, #@vec2) == nilptr)
+  memory.dealloc(p)
+end
+
+do -- contains
+  local p = (@vec2*)(memory.alloc0(#@vec2))
+  p.x = 1 p.y = 2
+  assert(memory.contains(p, 0, #@vec2))
+  assert(memory.contains(p, 1, #@vec2))
+  assert(memory.contains(p, 2, #@vec2))
+  assert(not memory.contains(p, 3, #@vec2))
+  memory.dealloc(p)
+end
+
+--------------------------------------------------------------------------------
+-- span
+
+do -- spanalloc and spandealloc
+  local p = memory.spanalloc(@vec2, 2)
+  assert(p.data ~= nilptr and p.size == 2)
+  memory.spandealloc(&p)
+  assert(p.data == nilptr and p.size == 0)
+  memory.spandealloc(&p)
+  assert(p.data == nilptr and p.size == 0)
+  p = memory.spanalloc(@vec2, 0)
+  assert(p.data == nilptr and p.size == 0)
+end
+
+do -- spanalloc0
+  local p = memory.spanalloc0(@vec2, 2)
+  assert(p.data ~= nilptr and p.size == 2)
+  assert(p[0].x == 0 and p[0].y == 0)
+  assert(p[1].x == 0 and p[1].y == 0)
+  memory.spandealloc(&p)
+  p = memory.spanalloc0(@vec2, 0)
+  assert(p.data == nilptr and p.size == 0)
+end
+
+do -- spanrealloc
+  local p = memory.spanalloc(@vec2, 1)
+  assert(p.data ~= nilptr and p.size == 1)
+  memory.spanrealloc(&p, 4)
+  assert(p.data ~= nilptr and p.size == 4)
+  memory.spanrealloc(&p, 1)
+  assert(p.data ~= nilptr and p.size == 1)
+  memory.spanrealloc(&p, 0)
+  assert(p.data == nilptr and p.size == 0)
+  memory.spandealloc(&p)
+  assert(p.data == nilptr and p.size == 0)
+end
+
+do -- spanrealloc0
+  local p = memory.spanalloc0(@vec2, 1)
+  assert(p.data ~= nilptr and p.size == 1)
+  assert(p[0].x == 0 and p[0].y == 0)
+  p[0] = vec2{x=1, y=2}
+  memory.spanrealloc0(&p, 2)
+  assert(p.data ~= nilptr and p.size == 2)
+  assert(p[0].x == 1 and p[0].y == 2)
+  assert(p[1].x == 0 and p[1].y == 0)
+  memory.spanrealloc0(&p, 1)
+  assert(p.data ~= nilptr and p.size == 1)
+  assert(p[0].x == 1 and p[0].y == 2)
+  memory.spanrealloc0(&p, 0)
+  assert(p.data == nilptr and p.size == 0)
+  memory.spandealloc(&p)
+end
+
+do -- spancopy
+  local pa = memory.spanalloc0(@vec2, 1)
+  local pb = memory.spanalloc0(@vec2, 1)
+  pa[0] = {x=1,y=2}
+  memory.spancopy(pb, pa)
+  assert(pb[0].x == 1 and pb[0].y == 2)
+  memory.spandealloc(&pa)
+  memory.spandealloc(&pb)
+end
+
+do -- spanmove
+  local p = memory.spanalloc0(@vec2, 2)
+  local pa, pb = &p[0], &p[1]
+  $pa, $pb = {x=1,y=2}, {x=3,y=4}
+  local sb = (@span(integer))({ data=&(((@integer[0]*)(p.data))[0]), size=3 })
+  local db = (@span(integer))({ data=&(((@integer[0]*)(p.data))[1]), size=3 })
+  memory.spanmove(db, sb)
+  --assert(pa.x == 1 and pa.y == 1 and pb.x == 2 and pb.y == 3)
+  memory.spandealloc(&p)
+end
+
+do -- spanset
+  local p = memory.spanalloc0(@vec2, 2)
+  memory.spanset(p, (@vec2){x=1,y=2})
+  assert(p[0].x == 1 and p[0].y == 2)
+  assert(p[1].x == 1 and p[1].y == 2)
+  memory.spandealloc(&p)
+end
+
+do -- spancompare
+  local pa = memory.spanalloc0(@vec2, 1)
+  local pb = memory.spanalloc0(@vec2, 1)
+  assert(memory.spancompare(pa, pb) == 0)
+  pa[0].x = 1 pb[0].x = 2
+  assert(memory.spancompare(pa, pb) == -1)
+  pa[0].x = 2 pb[0].x = 1
+  assert(memory.spancompare(pa, pb) == 1)
+  pa[0].x = 2 pb[0].x = 2
+  assert(memory.spancompare(pa, pb) == 0)
+  memory.spandealloc(&pa)
+  memory.spandealloc(&pb)
+end
+
+do -- spanequals
+  local pa = memory.spanalloc0(@vec2, 1)
+  local pb = memory.spanalloc0(@vec2, 1)
+  assert(memory.spanequals(pa, pb))
+  pa[0].x = 1
+  assert(not memory.spanequals(pa, pb))
+  memory.spandealloc(&pa)
+  memory.spandealloc(&pb)
+end
+
+do -- spanscan
+  local p = memory.spanalloc0(@vec2, 2)
+  p[0].x = 1 p[0].y = 2
+  p[1].x = 3 p[1].y = 4
+  assert(memory.spanscan(p, (@vec2){1,2}) == 0)
+  assert(memory.spanscan(p, (@vec2){3,4}) == 1)
+  assert(memory.spanscan(p, (@vec2){5,6}) == -1)
+  memory.spandealloc(&p)
+end
+
+do -- spancontains
+  local p = memory.spanalloc0(@vec2, 2)
+  p[0].x = 1 p[0].y = 2
+  p[1].x = 3 p[1].y = 4
+  assert(memory.spancontains(p, (@vec2){1,2}))
+  assert(memory.spancontains(p, (@vec2){3,4}))
+  assert(not memory.spancontains(p, (@vec2){5,6}))
+  memory.spandealloc(&p)
+end

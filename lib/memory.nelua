@@ -2,70 +2,260 @@
 ## modname = 'nelua'
 ## nohashcodenames = true
 
-## cinclude '<stdlib.h>'
-## cinclude '<string.h>'
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport'memcpy',cinclude'<string.h>',nodecl> end
+local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport'memmove',cinclude'<string.h>',nodecl> end
+local function memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
+local function memcmp(s1: pointer, s2: pointer, n: csize): cint <cimport'memcmp',cinclude'<string.h>',nodecl> end
+local function memchr(s: pointer, c: cint, n: csize): pointer <cimport'memchr',cinclude'<string.h>',nodecl> end
 
-local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport'memcpy',nodecl> end
-local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport'memmove',nodecl> end
-local function memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',nodecl> end
-
-local function malloc(size: csize): pointer <cimport'malloc',nodecl> end
-local function calloc(nmemb: csize, size: csize): pointer <cimport'calloc',nodecl> end
-local function realloc(ptr: pointer, size: csize): pointer <cimport'realloc',nodecl> end
-local function free(ptr: pointer): void <cimport'free',nodecl> end
+local function malloc(size: csize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
+local function calloc(nmemb: csize, size: csize): pointer <cimport'calloc',cinclude'<stdlib.h>',nodecl> end
+local function realloc(ptr: pointer, size: csize): pointer <cimport'realloc',cinclude'<stdlib.h>',nodecl> end
+local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',nodecl> end
 
 global memory = @record{}
 
-function memory.allocnoinit(size: usize): span(byte)
-  assert(size > 0)
-  local data = (@byte*)(malloc(size))
-  assert(data)
-  return (@span(byte)) { data, size }
+--------------------------------------------------------------------------------
+-- raw pointer functions
+
+function memory.alloc(size: usize): pointer
+  check(size > 0_u, 'memory.alloc: size cannot be zero')
+  local p: pointer = malloc(size)
+  check(p, 'memory.alloc: allocation fail')
+  return p
 end
 
-function memory.alloc(size: usize): span(byte)
-  assert(size > 0)
-  local data = (@byte*)(calloc(1, size))
-  assert(data)
-  return (@span(byte)) { data, size }
+function memory.alloc0(size: usize): pointer
+  check(size > 0_u, 'memory.alloc0: size must be greater than 0')
+  local p: pointer = calloc(size, 1)
+  check(p, 'memory.alloc0: allocation fail')
+  return p
 end
 
-function memory.reallocnoinit(s: span(byte)*, size: usize)
-  assert(size > 0)
-  s.data = (@byte*)(realloc(s.data, size))
-  assert(s.data)
-  s.size = size
+function memory.realloc(p: pointer, size: usize): pointer
+  check(size > 0_u, 'memory.realloc: size must be greater than 0')
+  p = realloc(p, size)
+  check(size == 0 or p, 'memory.realloc: allocation fail')
+  return p
 end
 
-function memory.realloc(s: span(byte)*, size: usize)
-  assert(size > 0)
-  s.data = (@byte*)(realloc(s.data, size))
-  assert(s.data)
-  if size > s.size then
-    memset(&s[s.size], 0, size - s.size)
+function memory.realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
+  check(newsize > 0_u, 'memory.realloc0: size must be greater than 0')
+  p = realloc(p, newsize)
+  check(newsize == 0_u or p, 'memory.realloc0: allocation fail')
+  if likely(newsize > oldsize) then
+    memset(&(@byte[0]*)(p)[oldsize], 0, newsize - oldsize)
   end
-  s.size = size
+  return p
 end
 
-function memory.dealloc(s: span(byte)*)
-  if s.size == 0 then
-    return
+function memory.dealloc(p: pointer)
+  free(p)
+end
+
+function memory.copy(dest: pointer, src: pointer, size: usize)
+  check(dest and src, 'memory.copy: invalid pointer')
+  memcpy(dest, src, size)
+end
+
+function memory.move(dest: pointer, src: pointer, size: usize)
+  check(dest and src, 'memory.move: invalid pointer')
+  memmove(dest, src, size)
+end
+
+function memory.set(dest: pointer, x: byte, size: usize)
+  check(dest, 'memory.set: invalid pointer')
+  memset(dest, x, size)
+end
+
+function memory.compare(a: pointer, b: pointer, size: usize): int32
+  check(a and b, 'memory.move: invalid pointer')
+  return memcmp(a, b, size)
+end
+
+function memory.equals(a: pointer, b: pointer, size: usize): boolean
+  check(a and b, 'memory.equals: invalid pointer')
+  return memcmp(a, b, size) == 0
+end
+
+function memory.scan(p: pointer, x: byte, size: usize): pointer
+  check(p, 'memory.scan: invalid pointer')
+  return memchr(p, x, size)
+end
+
+function memory.contains(p: pointer, x: byte, size: usize): boolean
+  check(p, 'memory.contains: invalid pointer')
+  return memchr(p, x, size) ~= nilptr
+end
+
+--------------------------------------------------------------------------------
+-- compile time checks utilities
+
+##[[
+local function check_ptrspan_subtype(v)
+  staticassert(v.type:is_pointer() and v.type.subtype:is_span(),
+    "in argument '%s': expected 'span(T)*' but got type '%s'",
+    v.name, v.type)
+  return v.type.subtype.subtype
+end
+
+local function check_span(v)
+  local stype = v.type:is_pointer() and v.type.subtype or v.type
+  staticassert(stype:is_span(),
+    "in argument '%s': expected 'span(T)' or 'span(T)*' but got type '%s'",
+    v.name, v.type)
+  return stype
+end
+
+local function check_type_match(a, b)
+  staticassert(a.type == b.type,
+    "argument '%s' type '%s' differs from argument '%s' type '%s",
+    a.name, b.name, a.type, b.type)
+end
+
+local function check_span_subtype_match(s, x)
+  local stype = check_span(s)
+  staticassert(stype.subtype == x.type,
+    "in argument '%s': type '%s' differs from argument '%s' type '%s",
+    s.name, x.name, stype.subtype, x.type)
+end
+]]
+
+--------------------------------------------------------------------------------
+-- span functions
+
+function memory.spanalloc(T: type, size: usize)
+  local s: span(T)
+  if likely(size > 0_u) then
+    s.data = (@T*)(malloc(size * #T))
+    check(s.data, 'memory.spanalloc: allocation fail')
+    s.size = size
   end
+  return s
+end
+
+function memory.spanalloc0(T: type, size: usize)
+  local s: span(T)
+  if likely(size > 0_u) then
+    s.data = (@T*)(calloc(size, #T))
+    check(s.data, 'memory.spanalloc0: allocation fail')
+    s.size = size
+  end
+  return s
+end
+
+function memory.spanrealloc(s: auto, size: usize)
+  local T: type = #[check_ptrspan_subtype(s)]#
+  if unlikely(size == 0) then
+    free(s.data)
+    s.data = nilptr
+    s.size = 0
+  else
+    s.data = (@T*)(realloc(s.data, size * #T))
+    check(s.data, 'memory.spanrealloc0: allocation fail')
+    s.size = size
+  end
+end
+
+function memory.spanrealloc0(s: auto, size: usize)
+  local T: type = #[check_ptrspan_subtype(s)]#
+  if unlikely(size == 0) then
+    free(s.data)
+    s.data = nilptr
+    s.size = 0
+  else
+    s.data = (@T*)(realloc(s.data, size * #T))
+    check(s.data, 'memory.spanrealloc0: allocation fail')
+    if likely(size > s.size) then
+      memset(&s[s.size], 0, (size - s.size) * #T)
+    end
+    s.size = size
+  end
+end
+
+function memory.spandealloc(s: auto)
+  ## check_ptrspan_subtype(s)
   free(s.data)
   s.data = nilptr
   s.size = 0
 end
 
-function memory.copy(dest: span(byte), src: span(byte))
-  assert(dest.size >= src.size)
-  memcpy(dest.data, src.data, src.size)
+function memory.spancopy(dest: auto, src: auto)
+  local T: type = #[check_span(dest).subtype]#
+  ## check_type_match(dest, src)
+  check(dest.size == src.size, 'memory.spancopy: span sizes must be equal')
+  if likely(src.size > 0_u) then
+    memcpy(dest.data, src.data, src.size * #T)
+  end
 end
 
-function memory.move(dest: span(byte), src: span(byte))
-  assert(dest.size >= src.size)
-  memcpy(dest.data, src.data, src.size)
+function memory.spanmove(dest: auto, src: auto)
+  local T: type = #[check_span(dest).subtype]#
+  ## check_type_match(dest, src)
+  check(dest.size == src.size, 'memory.spanmove: span sizes must be equal')
+  if likely(src.size > 0_u) then
+    memmove(dest.data, src.data, src.size * #T)
+  end
 end
 
-function memory.set(dest: span(byte), x: byte)
-  memset(dest.data, x, dest.size)
+function memory.spanset(dest: auto, x: auto)
+  ## check_span_subtype_match(dest, x)
+  if likely(dest.size > 0_u) then
+    for i:usize=0,<dest.size do
+      dest[i] = x
+    end
+  end
+end
+
+function memory.spancompare(a: auto, b: auto): int32
+  ## check_span(a) check_type_match(a, b)
+  local size: usize <noinit>
+  if a.size < b.size then
+    size = a.size
+  else
+    size = b.size
+  end
+  local ret: int32
+  if likely(size > 0_u) then
+    ret = memcmp(a.data, b.data, size)
+  end
+  if ret == 0 and a.size ~= b.size then
+    if a.size < b.size then
+      ret = -1
+    else
+      ret = 1
+    end
+  end
+  return ret
+end
+
+function memory.spanequals(a: auto, b: auto): boolean
+  ## check_span(a) check_type_match(a, b)
+  local ret: boolean = a.size == b.size
+  if ret and likely(a.size > 0_u) then
+    ret = memcmp(a.data, b.data, a.size) == 0
+  end
+  return ret
+end
+
+function memory.spanscan(s: auto, x: auto): integer
+  ## check_span_subtype_match(s, x)
+  local T: type = #[x.type]#
+  for i:usize=0,<s.size do
+    if memcmp(&s[i], &x, #T) == 0 then
+      return (@integer)(i)
+    end
+  end
+  return -1
+end
+
+function memory.spancontains(s: auto, x: auto): boolean
+  ## check_span_subtype_match(s, x)
+  local T: type = #[x.type]#
+  for i:usize=0,<s.size do
+    if memcmp(&s[i], &x, #T) == 0 then
+      return true
+    end
+  end
+  return false
 end

@@ -22,7 +22,7 @@ it("run simple programs", function()
   assert.run({'--generator', 'lua', '--eval', "print(arg[1])", "hello"}, 'hello')
   assert.run({'--generator', 'c', '--eval', ""})
   assert.run({'--generator', 'c', '--cflags="-Wall"', '--eval',
-    "## cflags '-Wextra' linklib 'm' ldflags '-s'"})
+    "## cflags '-w' linklib 'm' ldflags '-s'"})
 end)
 
 it("error on parsing an invalid program" , function()
