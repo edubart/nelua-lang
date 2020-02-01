@@ -1043,6 +1043,11 @@ it("pointers", function()
     b = nilptr
     a = nilptr
   ]])
+  assert.analyze_ast([[
+    local x: usize = 1
+    local p: pointer = (@pointer)(x)
+    x = (@usize)(p)
+  ]])
   assert.ast_type_equals(
     "local a = (@pointer)(nilptr) a = nilptr",
     "local a: pointer = (@pointer)(nilptr) a = nilptr")
@@ -1070,6 +1075,14 @@ it("pointers", function()
     local b: pointer(cchar)
     b = a
   ]])
+  assert.analyze_error([[
+    local x: byte = 1
+    local p: pointer = (@pointer)(x)
+  ]], "no viable type conversion")
+  assert.analyze_error([[
+    local p: pointer
+    local x: byte = (@byte)(p)
+  ]], "no viable type conversion")
   assert.analyze_error([[
     local a: pointer(integer)
     local b: pointer(boolean)

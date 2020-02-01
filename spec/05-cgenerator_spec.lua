@@ -1276,13 +1276,27 @@ it("pointers", function()
     local function f(a: pointer): pointer return a end
     local i: integer = 1
     local p: pointer(integer) = &i
-    print($p)
+    assert($p == 1)
     p = (@pointer(int64))(f(p))
     i = 2
-    print($p)
+    assert($p == 2)
     $p = 3
-    print(i)
-  ]], "1\n2\n3")
+    assert(i == 3)
+
+    do
+      local x: usize = 0xffffffff
+      local p: pointer = (@pointer)(x)
+      x = (@usize)(p)
+      assert(x == 0xffffffff)
+    end
+
+    do
+      local x: isize = -1
+      local p: pointer = (@pointer)(x)
+      x = (@isize)(p)
+      assert(x == -1)
+    end
+  ]])
 end)
 
 it("function pointers", function()

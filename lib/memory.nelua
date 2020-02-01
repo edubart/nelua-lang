@@ -192,10 +192,9 @@ end
 
 function memory.spanset(dest: auto, x: auto)
   ## check_span_subtype_match(dest, x)
-  if likely(dest.size > 0_u) then
-    for i:usize=0,<dest.size do
-      dest[i] = x
-    end
+  local T: type = #[x.type]#
+  for i:usize=0,<dest.size do
+    memcpy(&dest[i], &x, #T)
   end
 end
 

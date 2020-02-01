@@ -208,15 +208,21 @@ end
 do -- spancompare
   local pa = memory.spanalloc0(@vec2, 1)
   local pb = memory.spanalloc0(@vec2, 1)
+  local pc = memory.spanalloc0(@vec2, 0)
   assert(memory.spancompare(pa, pb) == 0)
   pa[0].x = 1 pb[0].x = 2
   assert(memory.spancompare(pa, pb) == -1)
+  assert(memory.spancompare(pb, pa) == 1)
   pa[0].x = 2 pb[0].x = 1
   assert(memory.spancompare(pa, pb) == 1)
+  assert(memory.spancompare(pb, pa) == -1)
   pa[0].x = 2 pb[0].x = 2
   assert(memory.spancompare(pa, pb) == 0)
+  assert(memory.spancompare(pa, pc) == 1)
+  assert(memory.spancompare(pc, pa) == -1)
   memory.spandealloc(pa)
   memory.spandealloc(pb)
+  memory.spandealloc(pc)
 end
 
 do -- spanequals
