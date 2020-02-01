@@ -91,9 +91,6 @@ function Type:is_convertible_from_type(type)
   elseif type:is_any() then
     -- anything can be converted to and from `any`
     return true
-  elseif type:is_pointer_of(self) then
-    -- automatic deref
-    return true
   else
     return false, stringer.pformat(
       "no viable type conversion from `%s` to `%s`",
@@ -151,9 +148,7 @@ end
 function Type.promote_type_for_value() return nil end
 
 function Type:is_equal(type)
-  return type and (
-    rawequal(type, self) or
-    (type.name == self.name and getmetatable(type) == getmetatable(self)))
+  return type.name == self.name and getmetatable(type) == getmetatable(self)
 end
 
 function Type:is_initializable_from_attr(attr)
@@ -200,7 +195,7 @@ function Type:__tostring()
 end
 
 function Type:__eq(type)
-  return self:is_equal(type) and type:is_equal(self)
+  return rawequal(self, type) or (traits.is_type(type) and self:is_equal(type))
 end
 
 local function promote_type_for_attrs(lattr, rattr)
@@ -404,7 +399,7 @@ function StringType:_init(name, size)
 end
 
 function StringType:is_convertible_from_type(type, explicit)
-  if self:is_string() and type:is_cstring() and explicit then
+  if explicit and self:is_string() and type:is_cstring() then
     -- explicit cstring to string cast
     return true
   end
@@ -609,7 +604,9 @@ function IntegralType:_init(name, size, unsigned)
 end
 
 function IntegralType:is_convertible_from_type(type, explicit)
-  if type:is_integral() and self:is_inrange(type.min) and self:is_inrange(type.max) then
+  if type == self then
+    return true
+  elseif type:is_integral() and self:is_inrange(type.min) and self:is_inrange(type.max) then
     return true
   elseif explicit then
     if type:is_arithmetic() then
@@ -960,6 +957,14 @@ function ArrayType:__tostring()
   return sstream(self.name, '(', self.subtype, ', ', self.length, ')'):tostring()
 end
 
+function ArrayType:is_convertible_from_type(type, explicit)
+  if not explicit and type:is_pointer_of(self) then
+    -- automatic deref
+    return true
+  end
+  return Type.is_convertible_from_type(self, type, explicit)
+end
+
 ArrayType.unary_operators.len = function(ltype)
   return primtypes.integer, bn.new(ltype.length)
 end
@@ -1209,6 +1214,14 @@ function RecordType:set_metafield(name, symbol)
   return self.metatype:set_field(name, symbol)
 end
 
+function RecordType:is_convertible_from_type(type, explicit)
+  if not explicit and type:is_pointer_of(self) then
+    -- automatic deref
+    return true
+  end
+  return Type.is_convertible_from_type(self, type, explicit)
+end
+
 --------------------------------------------------------------------------------
 local PointerType = typeclass()
 types.PointerType = PointerType
@@ -1233,9 +1246,9 @@ function PointerType:_init(node, subtype)
 end
 
 function PointerType:is_convertible_from_attr(attr, explicit)
-  local nodetype = attr.type
-  if self.subtype == nodetype then
-    -- automatic reference
+  local type = attr.type
+  if not explicit and self.subtype == type and (type:is_record() or type:is_array()) then
+    -- automatic ref
     if not attr.lvalue then
       return false, stringer.pformat('cannot automatic reference rvalue to pointer type "%s"', self)
     end
@@ -1246,10 +1259,10 @@ function PointerType:is_convertible_from_attr(attr, explicit)
 end
 
 function PointerType:is_convertible_from_type(type, explicit)
-  if type:is_pointer() then
+  if type == self then
+    return true
+  elseif type:is_pointer() then
     if explicit then
-      return true
-    elseif type:is_pointer_of(self.subtype) then
       return true
     elseif self:is_generic_pointer() then
       return true
@@ -1260,6 +1273,7 @@ function PointerType:is_convertible_from_type(type, explicit)
   elseif type:is_nilptr() then
     return true
   elseif explicit and type:is_integral() and type.size == cpusize then
+    -- conversion from pointer to integral
     return true
   end
   return Type.is_convertible_from_type(self, type, explicit)

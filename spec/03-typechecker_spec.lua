@@ -1098,47 +1098,86 @@ it("pointers", function()
   assert.analyze_error("local a: type*", "is invalid for 'pointer' type")
 end)
 
-it("automatic referencing", function()
-  assert.analyze_ast([[local p: pointer(integer); local i = 1; p = &i]])
+it("dereferencing and referencing", function()
   assert.analyze_ast([[local p: pointer(integer); local i = $p]])
-  assert.analyze_ast([[local p: pointer(integer); local a: integer; p = a]])
+  assert.analyze_ast([[local p: pointer(integer); local i = 1; p = &i]])
+end)
+
+it("automatic referencing", function()
+  assert.analyze_error(
+    [[local p: pointer(integer); local a: integer; p = a]],
+    "no viable type conversion")
   assert.analyze_ast([[local a: integer; local function f(a: integer*) end; f(p)]])
   assert.analyze_ast([[
-    local p: pointer(integer)
-    local r: record{x: integer}
+    local R = @record{x: integer}
+    local p: pointer(R)
+    local r: record{x: R}
     p = r.x
   ]])
   assert.analyze_ast([[
-    local p: pointer(integer)
-    local a: integer
-    local function f(): integer* return a end
+    local R = @record{x: integer}
+    local p: pointer(R)
+    local a: R
+    local function f(): R* return a end
     p = f()
   ]])
   assert.analyze_error([[
-    local p: pointer(integer)
-    p = 1
+    local R = @record{x: integer}
+    local p: pointer(R)
+    local r: record{x: R}
+    p = (@pointer(R))(r.x)
+  ]], 'no viable type conversion')
+  assert.analyze_error([[
+    local R = @record{x: integer}
+    local p: pointer(R)
+    p = R{}
   ]], 'cannot automatic reference rvalue')
   assert.analyze_error([[
-    local p: pointer(integer)
-    local function f(): integer return 1 end
+    local R = @record{x: integer}
+    local p: pointer(R)
+    local function f(): R return R{} end
     p = f()
   ]], 'cannot automatic reference rvalue')
   assert.analyze_error([[
-    local p: pointer(integer)
-    local Record = @record{x: integer}
-    p = (Record{x=1}).x
+    local R = @record{x: integer}
+    local p: pointer(R)
+    local Record = @record{x: R}
+    p = (Record{x=R{}}).x
   ]], 'cannot automatic reference rvalue')
 end)
 
 it("automatic dereferencing", function()
   assert.analyze_ast([[
-    local p: pointer(integer)
-    local a: integer = p
+    local R = @record{x: integer}
+    local p: pointer(R)
+    local a: R = p
   ]])
   assert.analyze_ast([[
+    local A = @integer[4]
+    local p: pointer(A)
+    local a: A = p
+  ]])
+  assert.analyze_ast([[
+    local R = @record{x: integer}
+    local function f(x: R): R return x end
+    local p: pointer(R)
+    local r: record{x: R*}
+    f(r.x)
+  ]])
+  assert.analyze_error([[
+    local R = @record{x: integer}
+    local p: pointer(R)
+    local a: R = (@R)(p)
+  ]], 'no viable type conversion')
+  assert.analyze_error([[
     local p: pointer(integer)
-    local a: integer
-    local function f(x: integer): integer return p end
+    local a: integer = p
+  ]], 'no viable type conversion')
+  assert.analyze_ast([[
+    local R = @record{x: integer}
+    local p: pointer(R)
+    local a: R
+    local function f(x: R): R return p end
     f(p)
   ]])
   assert.analyze_error([[
@@ -1150,12 +1189,6 @@ it("automatic dereferencing", function()
     local p: pointer
     local a: number = 1
     p = a
-  ]], 'no viable type conversion')
-  assert.analyze_error([[
-    local function f(x: number): number return x end
-    local p: pointer(integer)
-    local r: record{x: integer*}
-    f(r.x)
   ]], 'no viable type conversion')
 end)
 

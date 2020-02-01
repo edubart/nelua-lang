@@ -1309,31 +1309,35 @@ end)
 
 it("automatic reference", function()
   assert.run_c([[
-    local p: integer*, q: integer*
-    local a: integer = 1
+    local R = @record{x: integer}
+    local p: R*, q: R*
+    local a: R = R{1}
     p = a
     q = &a
-    assert(p == q)
-    assert($p == 1)
-    local function f(p: integer*) return $p end
-    assert(f(a) == 1)
-    local function g(): integer* return a end
-    assert($g() == 1)
+    assert(p.x == q.x)
+    assert(($p).x == 1)
+    local function f(p: R*) return $p end
+    assert(f(a).x == 1)
+    local function g(): (integer, R*) return 1, a end
+    local function h(): (integer, R) return 1, p end
+    local _, r: R = g()
+    assert(r.x == 1)
   ]])
 end)
 
 it("automatic dereference", function()
   assert.run_c([[
-    local a: integer = 1
-    local p: integer* = &a
-    local b: integer
+    local A = @integer[1]
+    local a: A = {1}
+    local p: A* = &a
+    local b: A
     b = p
-    assert(b == 1)
-    local function f(x: integer) return x end
-    local function g(): integer return p end
-    a = 2
-    assert(f(p) == 2)
-    assert(g() == 2)
+    assert(b[0] == 1)
+    local function f(x: A) return x end
+    local function g(): A return p end
+    a[0] = 2
+    assert(f(p)[0] == 2)
+    assert(g()[0] == 2)
 
     local vec2 = @record {x: number, y: number}
     function vec2:add(a: vec2): vec2

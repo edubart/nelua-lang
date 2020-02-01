@@ -149,11 +149,11 @@ function CEmitter:add_val2type(type, val, valtype)
       self:add_string2cstring(val)
     elseif type:is_string() and valtype:is_cstring() then
       self:add_cstring2string(val)
-    elseif type:is_pointer() and type.subtype == valtype then
+    elseif type:is_pointer() and val and val.attr.autoref then
       -- automatic reference
-      assert(val and val.attr.autoref)
       self:add('&', val)
-    elseif valtype:is_pointer() and valtype.subtype == type then
+    elseif valtype:is_pointer() and valtype.subtype == type and
+           (type:is_record() or type:is_array()) then
       -- automatic dereference
       self:add('*', val)
     else
