@@ -198,6 +198,11 @@ it("for", function()
     x = 0
     for i=10,1,step do x = x + 1 end
     assert(x == 5)
+    local s: usize = 0
+    for i=10_usize,>0_usize,-1 do
+      s = s + i
+    end
+    assert(s == 55)
   ]])
 end)
 

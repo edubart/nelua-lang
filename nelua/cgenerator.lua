@@ -823,31 +823,31 @@ function visitors.ForNum(context, node, emitter)
     local itforname = itmutate and '__it' or itname
     emitter:add_indent('for(', ittype, ' ', itforname, ' = ')
     emitter:add_val2type(ittype, begvalnode)
+    local cmpval
     if not fixedend or not compop then
       emitter:add(', __end = ')
       emitter:add_val2type(ittype, endvalnode)
+      cmpval = '__end'
+    else
+      cmpval = endvalnode
     end
+    local stepval
     if not fixedstep then
       emitter:add(', __step = ')
       emitter:add_val2type(ittype, stepvalnode)
+      stepval = '__step'
+    else
+      stepval = fixedstep
     end
     emitter:add('; ')
     if compop then
-      emitter:add(itforname, ' ', ccompop, ' ', fixedend or '__end')
+      emitter:add(itforname, ' ', ccompop, ' ', cmpval)
     else
       -- step is an expression, must detect the compare operation at runtime
       assert(not fixedstep)
       emitter:add('__step >= 0 ? ', itforname, ' <= __end : ', itforname, ' >= __end')
     end
-    emitter:add('; ', itforname, ' = ', itforname, ' + ')
-    if not fixedstep then
-      emitter:add('__step')
-    elseif stepvalnode then
-      emitter:add_val2type(ittype, stepvalnode)
-    else
-      emitter:add('1')
-    end
-    emitter:add_ln(') {')
+    emitter:add_ln('; ', itforname, ' = ', itforname, ' + ', stepval, ') {')
     emitter:inc_indent()
     if itmutate then
       emitter:add_indent_ln(itvarnode, ' = __it;')

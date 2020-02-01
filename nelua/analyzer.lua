@@ -1144,14 +1144,16 @@ function visitors.ForNum(context, node)
   context:traverse(begvalnode)
   context:traverse(endvalnode)
   local btype, etype = begvalnode.attr.type, endvalnode.attr.type
-  local stype
+  local sattr, stype
   if stepvalnode then
     context:traverse(stepvalnode)
-    stype = stepvalnode.attr.type
+    sattr = stepvalnode.attr
+    stype = sattr.type
   end
   context:repeat_scope_until_resolution('loop', node, function()
     local itsymbol = context:traverse(itvarnode)
-    local ittype = itvarnode.attr.type
+    local itattr = itvarnode.attr
+    local ittype = itattr.type
     if ittype then
       if not (ittype:is_arithmetic() or (ittype:is_any() and not ittype:is_varanys())) then
         itvarnode:raisef("`for` variable '%s' must be a number, but got type '%s'", itname, ittype)
@@ -1169,8 +1171,11 @@ function visitors.ForNum(context, node)
         end
       end
       if stype then
-        local ok, err = ittype:is_convertible_from(stepvalnode)
-        if not ok then
+        local optype, _, err = ittype:binary_operator('add', stype, itattr, sattr)
+        if stype:is_float() and ittype:is_integral() then
+          err = 'cannot have fractional step for an integral iterator'
+        end
+        if err then
           stepvalnode:raisef("in `for` step variable '%s': %s", itname, err)
         end
       end
@@ -1181,24 +1186,27 @@ function visitors.ForNum(context, node)
     context:traverse(blocknode)
   end)
   local fixedstep
+  local stepvalue
   if stype and stype:is_arithmetic() and stepvalnode.attr.comptime then
     -- constant step
-    fixedstep = stepvalnode.attr.value
-    if fixedstep:iszero() then
+    fixedstep = stepvalnode
+    stepvalue = stepvalnode.attr.value
+    if stepvalue:iszero() then
       stepvalnode:raisef("`for` step cannot be zero")
     end
   elseif not stepvalnode then
     -- default step is '1'
-    fixedstep = bn.new(1)
+    stepvalue = bn.new(1)
+    fixedstep = '1'
   end
   local fixedend
   if etype and etype:is_arithmetic() and endvalnode.attr.comptime then
-    fixedend = endvalnode.attr.value
+    fixedend = true
   end
-  if not compop and fixedstep then
+  if not compop and stepvalue then
     -- we now that the step is a constant numeric value
     -- compare operation must be `ge` ('>=') when step is negative
-    compop = fixedstep:isneg() and 'ge' or 'le'
+    compop = stepvalue:isneg() and 'ge' or 'le'
   end
   node.attr.fixedstep = fixedstep
   node.attr.fixedend = fixedend
