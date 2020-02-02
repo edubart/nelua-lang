@@ -54,6 +54,11 @@ end)
 it("type assertion", function()
   assert.generate_c("do local b = 1_u64; local a = (@int16)(b) end", "int16_t a = (int16_t)b")
   assert.generate_c("do local b = 1_u8; local a = (@int64)(b) end", "int64_t a = (int64_t)b")
+  assert.generate_c([[
+    local a: usize
+    local b: number
+    local x = (@usize)((a + 1) / b)
+  ]], "x = (uintptr_t)((a + 1) / b);")
 end)
 
 it("string", function()
@@ -485,26 +490,26 @@ it("unary operator `not`", function()
   assert.generate_c("local x = not nil", "x = true;")
   assert.generate_c("local x = not nilptr", "x = true;")
   assert.generate_c("local x = not 'a'", "x = false;")
-  assert.generate_c("local a = true; local x = not a", "x = !a;")
+  assert.generate_c("local a = true; local x = not a", "x = (!a);")
   --assert.generate_c("local a = nil; local x = not a", "x = true;")
   --assert.generate_c("local a = nilptr; local x = not a", "x = !a;")
 end)
 
 it("unary operator `ref`", function()
-  assert.generate_c("local a = 1; local x = &a", "x = &a;")
+  assert.generate_c("local a = 1; local x = &a", "x = (&a);")
 end)
 
 it("unary operator `unm`", function()
-  assert.generate_c("local a = 1; local x = -a", "-a;")
+  assert.generate_c("local a = 1; local x = -a", "(-a);")
 end)
 
 it("unary operator `deref`", function()
-  assert.generate_c("local a: integer*; local x = $a", "x = *a;")
+  assert.generate_c("local a: integer*; local x = $a", "x = (*a);")
 end)
 
 it("unary operator `bnot`", function()
-  assert.generate_c("local a = 1; local x = ~a", "~a;")
-  assert.generate_c("local a = 2; local x=~a",      "x = ~a;")
+  assert.generate_c("local a = 1; local x = ~a", "(~a);")
+  assert.generate_c("local a = 2; local x=~a",      "x = (~a);")
   assert.generate_c("local x = ~1", "x = -2;")
   assert.generate_c("local x = ~-2", "x = 1;")
   assert.generate_c("local x = ~0x2_u8", "x = 253U;")
@@ -564,7 +569,7 @@ it("binary operator `eq`", function()
   assert.generate_c("local x = 1 == '1'", "x = false;")
   assert.generate_c("local x = '1' == 1", "x = false;")
   assert.generate_c("local x = '1' == '1'", "x = true;")
-  assert.generate_c("local a,b = 1,2; local x = a == b", "x = a == b;")
+  assert.generate_c("local a,b = 1,2; local x = a == b", "x = (a == b);")
 end)
 
 it("binary operator `ne`", function()
@@ -573,11 +578,11 @@ it("binary operator `ne`", function()
   assert.generate_c("local x = 1 ~= 2", "x = true;")
   assert.generate_c("local x = 1 ~= 's'", "x = true;")
   assert.generate_c("local x = 's' ~= 1", "x = true;")
-  assert.generate_c("local a,b = 1,2; local x = a ~= b", "x = a != b;")
+  assert.generate_c("local a,b = 1,2; local x = a ~= b", "x = (a != b);")
 end)
 
 it("binary operator `add`", function()
-  assert.generate_c("local a, b = 1, 2; local x = a + b",       "a + b;")
+  assert.generate_c("local a, b = 1, 2; local x = a + b",       "a + b")
   assert.generate_c("local x = 3 + 2",       "x = 5;")
   assert.generate_c("local x = 3.0 + 2.0",   "x = 5.0;")
 end)
@@ -605,8 +610,8 @@ it("binary operator `div`", function()
   assert.generate_c("local x = -3 /  4",                 "x = -0.75;")
   assert.generate_c("local x =  3 / -4",                 "x = -0.75;")
   assert.generate_c("local x = -3 / -4",                 "x = 0.75;")
-  assert.generate_c("local a,b = 1,2; local x=a/b",      "x = a / (double)b;")
-  assert.generate_c("local a,b = 1.0,2.0; local x=a/b",  "x = a / b;")
+  assert.generate_c("local a,b = 1,2; local x=a/b",      "x = (a / (double)b);")
+  assert.generate_c("local a,b = 1.0,2.0; local x=a/b",  "x = (a / b);")
 end)
 
 it("binary operator `idiv`", function()
@@ -622,9 +627,9 @@ it("binary operator `idiv`", function()
   assert.generate_c("local x = -7 //  3.0",  "x = -3.0;")
   assert.generate_c("local x =  7 // -3.0",  "x = -3.0;")
   assert.generate_c("local x = -7 // -3.0",  "x = 2.0;")
-  assert.generate_c("local a,b = 1_u,2_u; local x=a//b",      "x = a / b;")
-  assert.generate_c("local a,b = 1,2; local x=a//b",      "x = nelua_idiv_i64(a, b);")
-  assert.generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = floor(a / b);")
+  assert.generate_c("local a,b = 1_u,2_u; local x=a//b",      "x = (a / b);")
+  assert.generate_c("local a,b = 1,2; local x=a//b",      "x = (nelua_idiv_i64(a, b));")
+  assert.generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = (floor(a / b));")
   assert.run_c([[
     do
       local a, b = 7, 3
@@ -660,11 +665,11 @@ it("binary operator `mod`", function()
   assert.generate_c("local x =  7 % -3.0",   "x = -2.0;")
   assert.generate_c("local x = -7 % -3.0",   "x = -1.0;")
   assert.generate_c("local x = -7.0 % 3.0",  "x = 2.0;")
-  assert.generate_c("local a, b = 3, 2;     local x = a % b", "x = nelua_imod_i64(a, b);")
-  assert.generate_c("local a, b = 3_u, 2_u; local x = a % b", "x = a % b;")
-  assert.generate_c("local a, b = 3.0, 2;   local x = a % b", "x = nelua_fmod(a, b);")
-  assert.generate_c("local a, b = 3, 2.0;   local x = a % b", "x = nelua_fmod(a, b);")
-  assert.generate_c("local a, b = 3.0, 2.0; local x = a % b", "x = nelua_fmod(a, b);")
+  assert.generate_c("local a, b = 3, 2;     local x = a % b", "x = (nelua_imod_i64(a, b));")
+  assert.generate_c("local a, b = 3_u, 2_u; local x = a % b", "x = (a % b);")
+  assert.generate_c("local a, b = 3.0, 2;   local x = a % b", "x = (nelua_fmod(a, b));")
+  assert.generate_c("local a, b = 3, 2.0;   local x = a % b", "x = (nelua_fmod(a, b));")
+  assert.generate_c("local a, b = 3.0, 2.0; local x = a % b", "x = (nelua_fmod(a, b));")
   assert.run_c([[
     do
       local a, b = 7, 3
@@ -687,10 +692,10 @@ end)
 
 it("binary operator `pow`", function()
   --assert.generate_c("local x = a ^ b")
-  assert.generate_c("local a,b = 2,2; local x = a ^ b", "x = pow(a, b);")
+  assert.generate_c("local a,b = 2,2; local x = a ^ b", "x = (pow(a, b));")
   assert.generate_c("local x = 2 ^ 2", "x = 4.0;")
   assert.generate_c("local x = 2_f32 ^ 2_f32", "x = 4.0f;")
-  assert.generate_c("local a,b = 2_f32,2_f32; local x = a ^ b", "x = powf(a, b);")
+  assert.generate_c("local a,b = 2_f32,2_f32; local x = a ^ b", "x = (powf(a, b));")
 end)
 
 it("binary operator `band`", function()
@@ -701,7 +706,7 @@ it("binary operator `band`", function()
 end)
 
 it("binary operator `bor`", function()
-  assert.generate_c("local a,b = 1,2; local x = a | b", "a | b;")
+  assert.generate_c("local a,b = 1,2; local x = a | b", "(a | b);")
   assert.generate_c("local x = 3 | 5", "x = 7;")
   assert.generate_c("local x = 3 | -5", "x = -5;")
   assert.generate_c("local x = -0xfffffffffffffffd | 5", "x = 7;")
@@ -709,21 +714,21 @@ it("binary operator `bor`", function()
 end)
 
 it("binary operator `bxor`", function()
-  assert.generate_c("local a,b = 1,2; local x = a ~ b", "a ^ b;")
+  assert.generate_c("local a,b = 1,2; local x = a ~ b", "(a ^ b);")
   assert.generate_c("local x = 3 ~ 5", "x = 6;")
   assert.generate_c("local x = 3 ~ -5", "x = -8;")
   assert.generate_c("local x = -3 ~ -5", "x = 6;")
 end)
 
 it("binary operator `shl`", function()
-  assert.generate_c("local a,b = 1,2; local x = a << b", "a << b;")
+  assert.generate_c("local a,b = 1,2; local x = a << b", "(a << b);")
   assert.generate_c("local x = 6 << 1", "x = 12;")
   assert.generate_c("local x = 6 << 0", "x = 6;")
   assert.generate_c("local x = 6 << -1", "x = 3;")
 end)
 
 it("binary operator `shr`", function()
-  assert.generate_c("local a,b = 1,2; local x = a >> b", "a >> b;")
+  assert.generate_c("local a,b = 1,2; local x = a >> b", "(a >> b);")
   assert.generate_c("local x = 6 >> 1", "x = 3;")
   assert.generate_c("local x = 6 >> 0", "x = 6;")
   assert.generate_c("local x = 6 >> -1", "x = 12;")
@@ -775,8 +780,8 @@ it("binary conditional operators", function()
     local b: boolean = i == 0 or p
     local b2 = (@boolean)(i == 0 or p)
   ]], {
-    "b = (i == 0) || p;",
-    "b2 = (i == 0) || p;"
+    "b = ((i == 0) || p);",
+    "b2 = ((i == 0) || p);"
   })
   assert.generate_c([[
     local p: integer*
@@ -847,16 +852,16 @@ it("expressions with side effects", function()
   assert.generate_c([[do
     local function f() return 1 end
     local a = f() + 1
-  end]],  "int64_t a = f__1() + 1")
+  end]],  "int64_t a = (f__1() + 1)")
   assert.generate_c([[do
     local function f() return 1 end
     local function g() return 1 end
     local a = f() + g()
-  end]],  [[int64_t a = ({
+  end]],  [[int64_t a = (({
       int64_t t1_ = f__1();
       int64_t t2_ = g__1();
       t1_ + t2_;
-    });]])
+    }));]])
   assert.run_c([[
     local function f() return 1 end
     local function g() return 2 end
@@ -985,7 +990,7 @@ it("array tables", function()
     "nelua_boolean_arrtab t = {0};")
   assert.generate_c(
     "do local t: arraytable(boolean); local a = #t end",
-    "int64_t a = nelua_boolean_arrtab_length(&t);")
+    "int64_t a = (nelua_boolean_arrtab_length(&t));")
   assert.run_c([[
     local t: arraytable(boolean)
     print(t[0], #t)

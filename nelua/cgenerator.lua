@@ -377,7 +377,8 @@ end
 
 function visitors.Paren(_, node, emitter)
   local innernode = node:args()
-  emitter:add('(', innernode, ')')
+  emitter:add(innernode)
+  --emitter:add('(', innernode, ')')
 end
 
 visitors.FuncType = visitors.Type
@@ -1002,7 +1003,7 @@ function visitors.UnaryOp(_, node, emitter)
   local opname, argnode = node:args()
   local op = cdefs.unary_ops[opname]
   assert(op)
-  local surround = attr.inoperator
+  local surround = not node.attr.inconditional
   if surround then emitter:add('(') end
   if traits.is_string(op) then
     emitter:add(op, argnode)
@@ -1022,7 +1023,7 @@ function visitors.BinaryOp(_, node, emitter)
   local type = node.attr.type
   local op = cdefs.binary_ops[opname]
   assert(op)
-  local surround = node.attr.inoperator
+  local surround = not node.attr.inconditional
   if surround then emitter:add('(') end
   if node.attr.dynamic_conditional then
     emitter:add_ln('({')
