@@ -778,6 +778,15 @@ it("binary conditional operators", function()
     "b = (i == 0) || p;",
     "b2 = (i == 0) || p;"
   })
+  assert.generate_c([[
+    local p: integer*
+    local a: pointer, b: pointer
+    if p and a == b then end
+    while p and a == b do end
+  ]], {
+    "if(p && (a == b))",
+    "while(p && (a == b))"
+  })
   assert.run_c([[
     local a = 2 or 3
     assert(a == 2)

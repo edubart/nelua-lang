@@ -1065,6 +1065,7 @@ function visitors.If(context, node)
   local iflist, elsenode = node:args()
   for _,ifpair in ipairs(iflist) do
     local ifcondnode, ifblocknode = ifpair[1], ifpair[2]
+    ifcondnode.desiredtype = primtypes.boolean
     context:traverse(ifcondnode)
     context:traverse(ifblocknode)
   end
@@ -1098,12 +1099,14 @@ end
 
 function visitors.While(context, node)
   local condnode, blocknode = node:args()
+  condnode.desiredtype = primtypes.boolean
   context:traverse(condnode)
   context:traverse(blocknode)
 end
 
 function visitors.Repeat(context, node)
   local blocknode, condnode = node:args()
+  condnode.desiredtype = primtypes.boolean
   context:traverse(blocknode, function()
     context:traverse(condnode)
   end)
