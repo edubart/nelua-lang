@@ -1673,11 +1673,11 @@ it("require builtin", function()
   assert.run_error_c([[
     local a = 'mylib'
     require(a)
-  ]], "runtime require is not supported in C")
-
+  ]], "runtime require unsupported")
   assert.run_error_c([[
     require 'invalid_file'
-  ]], "compile time module 'invalid_file' not found")
+  ]], "module 'invalid_file' not found")
+  assert.run_c_from_file('tests/memory_test.nelua')
 end)
 
 it("name collision", function()

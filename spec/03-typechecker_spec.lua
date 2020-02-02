@@ -3,6 +3,7 @@ require 'busted.runner'()
 local assert = require 'spec.tools.assert'
 local n = require 'nelua.syntaxdefs'().astbuilder.aster
 local bn = require 'nelua.utils.bn'
+local config = require 'nelua.configer'.get()
 
 describe("Nelua should check types for", function()
 
@@ -180,12 +181,6 @@ it("numeric ranges", function()
   assert.ast_type_equals("local a = -9223372036854775809", "local a: number = -9223372036854775809")
   assert.ast_type_equals("local a = 9223372036854775807", "local a: integer = 9223372036854775807")
   assert.ast_type_equals("local a = 9223372036854775808", "local a: number = 9223372036854775808")
-end)
-
-it("typed var initialization", function()
-  assert.lua_gencode_equals("local a: integer", "local a: integer = 0")
-  assert.lua_gencode_equals("local a: boolean", "local a: boolean = false")
-  assert.lua_gencode_equals("local a: arraytable(integer)", "local a: arraytable(integer) = {}")
 end)
 
 it("type declaration", function()
@@ -1236,9 +1231,15 @@ it("builtins", function()
 end)
 
 it("require builtin", function()
+  config.generator = 'lua'
   assert.analyze_ast("require 'examples.helloworld'")
   assert.analyze_ast("require 'somelualib'")
   assert.analyze_ast("local a = 'dynamiclib'; require(a)")
+  config.generator = 'c'
+  assert.analyze_ast("require 'examples.helloworld'")
+  assert.analyze_error("require 'somelualib'", 'not found')
+  assert.analyze_error("local a = 'dynamiclib'; require(a)", 'runtime require unsupported')
+  config.generator = nil
 end)
 
 it("strict mode", function()

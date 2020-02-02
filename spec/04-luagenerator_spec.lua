@@ -175,5 +175,10 @@ it("lua 5.1 compat operators", function()
   assert.generate_lua("return a >> b", "return bit.rshift(a, b)")
   config.lua_version = '5.3'
 end)
+it("typed var initialization", function()
+  assert.lua_gencode_equals("local a: integer", "local a: integer = 0")
+  assert.lua_gencode_equals("local a: boolean", "local a: boolean = false")
+  assert.lua_gencode_equals("local a: arraytable(integer)", "local a: arraytable(integer) = {}")
+end)
 
 end)

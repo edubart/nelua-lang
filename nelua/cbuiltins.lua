@@ -755,14 +755,7 @@ function inlines.require(context, node, emitter)
     return
   end
   local ast = node.attr.loadedast
-  if node.attr.runtime_require then
-    if node.attr.unitname then
-      node:raisef("compile time module '%s' not found", node.attr.unitname)
-    else
-      node:raisef('runtime require is not supported in C backend yet')
-    end
-  end
-  assert(ast)
+  assert(not node.attr.runtime_require and ast)
   local bracepos = emitter:get_pos()
   emitter:add_indent_ln('{')
   local lastpos = emitter:get_pos()

@@ -392,10 +392,9 @@ do -- Dereferencing and referencing
   print($ap) -- outputs 3
 end
 
+require 'memory'
 
 do -- Allocating memory
-  require 'memory'
-
   local Person = @record{name: string, age: integer}
   local p: Person* = memory.new(@Person)
   p.name = "John"

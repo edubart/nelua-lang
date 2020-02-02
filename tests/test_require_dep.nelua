@@ -1,0 +1,32 @@
+-- globals
+global a = 1
+
+## if true then
+global b = 2
+## end
+
+## function def_c()
+global c = 3
+## end
+
+## def_d = hygienize(function()
+global d = 4
+## end)
+
+-- locals
+local la = 1
+assert(la == 1)
+
+## if true then
+local lb = 2
+assert(lb == 2)
+## end
+
+## function def_lc()
+local lc = 3
+## end
+
+## def_ld = hygienize(function()
+local ld = 4
+assert(ld == 4)
+## end)

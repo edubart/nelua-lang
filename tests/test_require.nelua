@@ -1,0 +1,15 @@
+## strict = true
+
+require 'tests.test_require_deps'
+
+assert(a == 1)
+assert(b == 2)
+## def_c()
+assert(c == 3)
+## def_d()
+assert(d == 4)
+
+## def_lc()
+assert(lc == 3)
+## def_ld()
+## assert(ld == nil)

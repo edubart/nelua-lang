@@ -11,15 +11,21 @@ function builtins.require(context, node)
     return
   end
 
+
   local justloaded = false
   if not attr.loadedast then
+    local canloadatruntime = config.generator == 'lua'
     local argnode = node[1][1]
     if not (argnode and
             argnode.attr.type and argnode.attr.type:is_string() and
-            argnode.attr.comptime) then
+            argnode.attr.comptime) or not context.scope:is_topscope() then
       -- not a compile time require
-      attr.runtime_require = true
-      return
+      if canloadatruntime then
+        attr.runtime_require = true
+        return
+      else
+        node:raisef('runtime require unsupported, use require with a compile time string in top scope')
+      end
     end
 
     local unitname = argnode.attr.value
@@ -28,9 +34,13 @@ function builtins.require(context, node)
     -- load it and parse
     local filepath = fs.findmodulefile(unitname, config.path)
     if not filepath then
-      -- maybe it would succeed at runtime
-      attr.runtime_require = true
-      return
+      if canloadatruntime then
+        -- maybe it would succeed at runtime
+        attr.runtime_require = true
+        return
+      else
+        node:raisef("in require: module '%s' not found", unitname)
+      end
     end
 
     local reqnode = context.requires[filepath]
