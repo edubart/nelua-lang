@@ -1,6 +1,5 @@
 ## strict = true
 ## modname = 'test'
-## nohashcodenames = true
 --## cflags '-fsanitize=address -fsanitize=undefined -fsanitize=leak'
 
 require 'memory'

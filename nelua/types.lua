@@ -33,12 +33,12 @@ function Type:_init(name, size, node)
   metamagic.setmetaindex(self.binary_operators, mt.binary_operators)
 end
 
-function Type:suggest_nick(nick, usehash)
-  if self.nick then return end
-  if usehash then
-    self.codename = self.codename:gsub(string.format('^%s_', self.name), nick .. '_')
+function Type:suggest_nick(nick, codename)
+  if self:is_primitive() or self.nick then return end
+  if codename then
+    self.codename = codename
   else
-    self.codename = nick
+    self.codename = self.codename:gsub(string.format('^%s_', self.name), nick .. '_')
   end
   self.nick = nick
 end

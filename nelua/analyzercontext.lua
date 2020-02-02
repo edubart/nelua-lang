@@ -19,6 +19,7 @@ function AnalyzerContext:_init(visitors, parser)
   self.statestack = {}
   self.pragmas = {}
   self.pragmastack = {}
+  self.usedcodenames = {}
 end
 
 function AnalyzerContext:reset_pragmas()
@@ -105,8 +106,15 @@ end
 function AnalyzerContext:choose_codename(name)
   local modname = self.pragmas.modname or self.state.modname
   if modname then
-    return modname .. '_' .. name
+    name = modname .. '_' .. name
   end
+  local count = self.usedcodenames[name]
+  if count then
+    count = count + 1
+    self.usedcodenames[name] = count
+    name = string.format('%s__%d', name, count)
+  end
+  self.usedcodenames[name] = 1
   return name
 end
 

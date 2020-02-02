@@ -395,11 +395,6 @@ function visitors.Type(context, node)
   attr.value = value
 end
 
-local function suggest_type_nick(context, type, symbol)
-  if symbol and not type:is_primitive() and not type.nick then
-    type:suggest_nick(symbol.name, not context.pragmas.nohashcodenames)
-  end
-end
 
 function visitors.TypeInstance(context, node, symbol)
   local typenode = node[1]
@@ -407,7 +402,9 @@ function visitors.TypeInstance(context, node, symbol)
   -- inherit attributes from inner node
   local attr = typenode.attr
   node.attr = attr
-  suggest_type_nick(context, attr.value, symbol)
+  if symbol then
+    attr.value:suggest_nick(symbol.name, symbol.staticstorage and symbol.codename)
+  end
 end
 
 function visitors.FuncType(context, node)
@@ -444,7 +441,7 @@ function visitors.RecordType(context, node, symbol)
     assert((not symbol.type or symbol.type == primtypes.type) and not symbol.value)
     symbol.type = primtypes.type
     symbol.value = recordtype
-    suggest_type_nick(context, recordtype, symbol)
+    recordtype:suggest_nick(symbol.name, symbol.staticstorage and symbol.codename)
   end
   local fieldnodes = node:args()
   context:traverse(fieldnodes, recordtype)

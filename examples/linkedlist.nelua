@@ -1,7 +1,6 @@
 -- generate pretty name on C source files
 ## modname = 'list'
 ## strict = true
-## nohashcodenames = true
 
 require 'memory'
 

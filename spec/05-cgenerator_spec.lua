@@ -1240,7 +1240,6 @@ end)
 
 it("record globals", function()
   assert.generate_c([[
-    ## nohashcodenames = true
     local Math = @record{}
     global Math.PI: number <const> = 3.14
     global Math.E <const> = 2.7
