@@ -22,11 +22,11 @@ function builtins.require(context, node)
       return
     end
 
-    local modulename = argnode.attr.value
-    attr.modulename = modulename
+    local unitname = argnode.attr.value
+    attr.unitname = pegger.filename_to_unitname(unitname)
 
     -- load it and parse
-    local filepath = fs.findmodulefile(modulename, config.path)
+    local filepath = fs.findmodulefile(unitname, config.path)
     if not filepath then
       -- maybe it would succeed at runtime
       attr.runtime_require = true
@@ -52,12 +52,9 @@ function builtins.require(context, node)
   -- analyze it
   local ast = attr.loadedast
   local state = context:push_state()
-  if ast.srcname then
-    state.modname = pegger.filename_to_modulename(ast.srcname)
-  end
   context:push_scope(context.rootscope)
   context:push_pragmas()
-  context:reset_pragmas()
+  context.pragmas.unitname = attr.unitname
   state.inrequire = true
   if justloaded then
     preprocessor.preprocess(context, ast)

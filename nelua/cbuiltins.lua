@@ -756,8 +756,8 @@ function inlines.require(context, node, emitter)
   end
   local ast = node.attr.loadedast
   if node.attr.runtime_require then
-    if node.attr.modulename then
-      node:raisef("compile time module '%s' not found", node.attr.modulename)
+    if node.attr.unitname then
+      node:raisef("compile time module '%s' not found", node.attr.unitname)
     else
       node:raisef('runtime require is not supported in C backend yet')
     end

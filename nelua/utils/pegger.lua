@@ -133,15 +133,15 @@ function pegger.split_execargs(s)
   return split_execargs_patt:match(s)
 end
 
-local filename_to_modulename_patt = re.compile[[
+local filename_to_unitname_patt = re.compile[[
   p <- {~ filebeg? c* ~}
   c <- extend -> '' / [_%w] / (%s+ / [_/\.-]) -> '_' / . -> 'X'
   filebeg <- [./\]+ -> ''
   extend <- '.' [_%w]+ !.
 ]]
 
-function pegger.filename_to_modulename(s)
-  return filename_to_modulename_patt:match(s)
+function pegger.filename_to_unitname(s)
+  return filename_to_unitname_patt:match(s)
 end
 
 local template_peg = re.compile([[

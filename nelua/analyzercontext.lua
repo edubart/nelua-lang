@@ -22,10 +22,6 @@ function AnalyzerContext:_init(visitors, parser)
   self.usedcodenames = {}
 end
 
-function AnalyzerContext:reset_pragmas()
-  tabler.clear(self.pragmas)
-end
-
 function AnalyzerContext:push_pragmas()
   table.insert(self.pragmastack, self.pragmas)
   local newpragmas = tabler.copy(self.pragmas)
@@ -104,9 +100,9 @@ function AnalyzerContext:ensure_runtime_builtin(name, p1, p2)
 end
 
 function AnalyzerContext:choose_codename(name)
-  local modname = self.pragmas.modname or self.state.modname
-  if modname then
-    name = modname .. '_' .. name
+  local unitname = self.pragmas.unitname or self.state.unitname
+  if unitname and unitname ~= '' then
+    name = unitname .. '_' .. name
   end
   local count = self.usedcodenames[name]
   if count then

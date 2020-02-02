@@ -1,5 +1,5 @@
 ## strict = true
-## modname = 'test'
+
 --## cflags '-fsanitize=address -fsanitize=undefined -fsanitize=leak'
 
 require 'memory'

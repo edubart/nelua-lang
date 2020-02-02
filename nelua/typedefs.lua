@@ -156,7 +156,7 @@ typedefs.field_pragmas = {
   noinit = shaper.boolean,
   nostatic = shaper.boolean,
   nofloatsuffix = shaper.boolean,
-  modname = shaper.string:is_optional(),
+  unitname = shaper.string:is_optional(),
 }
 
 local common_annots = {

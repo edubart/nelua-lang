@@ -1,5 +1,5 @@
 ## strict = true
-## modname = 'nelua'
+## unitname = 'nelua'
 
 global math = @record{}
 

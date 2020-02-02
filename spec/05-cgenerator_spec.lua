@@ -1648,7 +1648,7 @@ it("context states", function()
   })
 
   assert.generate_c([[
-    ## modname = 'mylib'
+    ## unitname = 'mylib'
     local function foo() <cexport>
     end
   ]], "extern void mylib_foo();")

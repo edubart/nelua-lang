@@ -2,7 +2,6 @@
 --TODO: optional parameters/returns
 
 ## strict = true
-## modname = 'mystring'
 
 --------------------------------------------------------------------------------
 -- C imports

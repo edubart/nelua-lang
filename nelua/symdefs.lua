@@ -16,8 +16,7 @@ local function define_function(name, args, rets, props)
     type = type,
     const = true,
     builtin = true,
-    staticstorage = true,
-    modname = 'nelua',
+    staticstorage = true
   }
   if props then
     tabler.update(symbol, props)
@@ -33,8 +32,7 @@ local function define_const(name, type, value)
     const = value == nil,
     value = value,
     builtin = true,
-    staticstorage = true,
-    modname = 'nelua',
+    staticstorage = true
   }
   symdefs[name] = symbol
 end

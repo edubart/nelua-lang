@@ -1,5 +1,3 @@
--- generate pretty name on C source files
-## modname = 'list'
 ## strict = true
 
 require 'memory'

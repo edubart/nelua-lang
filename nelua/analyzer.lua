@@ -1744,9 +1744,9 @@ function analyzer.analyze(ast, parser, context)
     context = AnalyzerContext(visitors, parser)
   end
 
+  context:push_pragmas()
   if ast.srcname then
-    local state = context:push_state()
-    state.modname = pegger.filename_to_modulename(ast.srcname)
+    context.pragmas.unitname = pegger.filename_to_unitname(ast.srcname)
   end
 
   -- phase 1 traverse: preprocess
@@ -1767,9 +1767,7 @@ function analyzer.analyze(ast, parser, context)
   until resolutions_count == 0
   context:pop_state()
 
-  if ast.srcname then
-    context:pop_state()
-  end
+  context:pop_pragmas()
 
   return context
 end
