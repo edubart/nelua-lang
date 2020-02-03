@@ -99,6 +99,7 @@ build = {
       ['runtime/c/nelua_arrtab.h'] = 'runtime/c/nelua_arrtab.h',
       ['lib/io.nelua']             = 'lib/io.nelua',
       ['lib/math.nelua']           = 'lib/math.nelua',
+      ['lib/memory.nelua']         = 'lib/memory.nelua',
       ['lib/myarraytable.nelua']   = 'lib/myarraytable.nelua',
       ['lib/mystring.nelua']       = 'lib/mystring.nelua',
       ['lib/mytable.nelua']        = 'lib/mytable.nelua',

@@ -1,6 +1,7 @@
 return {
   default = {
     verbose = true,
+    lpath = "./?.lua;./?/init.lua",
     ['sort-files'] = true,
     ['auto-insulate'] = false,
   }

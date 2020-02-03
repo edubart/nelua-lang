@@ -157,7 +157,7 @@ local template_peg = re.compile([[
 ]])
 
 function pegger.render_template(text, env)
-  if text == '' then return '' end
+  if not text or text == '' then return '' end
   local out = {}
   env = env or {}
   env.render = function(s) table.insert(out, s) end
