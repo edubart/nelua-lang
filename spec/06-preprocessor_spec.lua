@@ -344,7 +344,7 @@ end)
 
 it("inject nodes", function()
   assert.ast_type_equals([=[
-    ## injectnode(aster.Call{{aster.String{"hello"}}, aster.Id{'print'}, true})
+    ## ppcontext:add_statnode(aster.Call{{aster.String{"hello"}}, aster.Id{'print'}, true})
   ]=], [[
     print 'hello'
   ]])

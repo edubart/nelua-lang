@@ -156,9 +156,6 @@ function preprocessor.preprocess(context, ast)
     primtypes = primtypes
   }
   tabler.update(ppenv, {
-    injectnode = function(node)
-      ppcontext:add_statnode(node)
-    end,
     hygienize = function(f)
       local scope = ppcontext.context.scope
       local checkpoint = scope:make_checkpoint()
@@ -173,6 +170,7 @@ function preprocessor.preprocess(context, ast)
         ppcontext:pop_statnodes()
         ppcontext.context:pop_scope()
         scope:pop_checkpoint()
+        addindex = statnodes.addindex
         statnodes.addindex = nil
         return tabler.unpack(rets)
       end

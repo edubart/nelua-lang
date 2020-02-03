@@ -54,8 +54,11 @@ function VisitorContext:traverse(node, ...)
 end
 traverse = VisitorContext.traverse
 
-function VisitorContext:get_parent_node()
-  return self.visiting_nodes[#self.visiting_nodes - 1]
+function VisitorContext:get_parent_node(upindex)
+  if not upindex then
+    upindex = 1
+  end
+  return self.visiting_nodes[#self.visiting_nodes - upindex]
 end
 
 function VisitorContext:iterate_parent_nodes()

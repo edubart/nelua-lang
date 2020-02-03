@@ -1,0 +1,177 @@
+--------------------------------------------------------------------------------
+-- naive inheritance example without compile time magic
+
+local ShapeKind = @enum(integer) {
+  None = 0,
+  Rectangle = 1,
+  Circle = 2,
+}
+
+local Shape = @record{
+  kind: ShapeKind,
+  x: number, y: number
+}
+
+local Rectangle = @record{
+  kind: ShapeKind,
+  x: number, y: number,
+  w: number, h: number
+}
+
+local Circle = @record{
+  kind: ShapeKind,
+  x: number, y: number,
+  r: number
+}
+
+function Rectangle.create(x: number, y: number, w: number, h: number): Rectangle
+  return Rectangle{kind=ShapeKind.Rectangle, x=x, y=y, w=w, h=h}
+end
+
+function Rectangle:area(): number
+  return self.w * self.h
+end
+
+function Circle.create(x: number, y: number, r: number): Circle
+  return Circle{kind=ShapeKind.Circle, x=x, y=y, r=r}
+end
+
+function Circle:area(): number
+  return 3.14 * self.r * self.r
+end
+
+function Shape:area(): number
+  switch self.kind
+  case ShapeKind.Rectangle then
+    return Rectangle.area((@Rectangle*)(self))
+  case ShapeKind.Circle then
+    return Circle.area((@Circle*)(self))
+  else
+    return 0
+  end
+end
+
+do -- test it
+  local circle = Circle.create(0, 0, 1)
+  local rectangle = Rectangle.create(0, 0, 2, 2)
+
+  print 'naive example =>'
+  print('      rectangle area is', rectangle:area())
+  print('         circle area is', circle:area())
+
+  local shape: Shape*
+  shape = (@Shape*)(&rectangle)
+  print('   circle shape area is', shape:area())
+  shape = (@Shape*)(&circle)
+  print('rectangle shape area is', shape:area())
+  print ''
+end
+
+--------------------------------------------------------------------------------
+-- meta programming utilities for inheritance
+
+##[[
+local function check_record_type(sym)
+  staticassert(sym and sym.type and sym.type:is_type() and sym.value:is_record(),
+    "symbol '%s' must be a type holding a record type", sym.name)
+  return sym.value
+end
+
+local function class(recordsym, basesym)
+  local rectype = check_record_type(recordsym)
+  local kindid
+  if basesym then -- derived record
+    local basetype = check_record_type(basesym)
+    table.insert(basetype.classes, rectype)
+    kindid = #basetype.classes
+    for i,field in ipairs(basetype.fields) do
+      rectype:add_field(field.name, field.type, i)
+    end
+    rectype.base = basetype
+  else -- base record
+    assert(rectype:get_field('__kind'), 'missing __kind field')
+    rectype.classes = {}
+    rectype.methods = {}
+    kindid = 0
+  end
+  rectype.kindid = kindid
+]]
+  global #(recordsym.name)#.KindId: integer <comptime> = #[kindid]#
+## end
+
+##[[
+local function overrideable()
+  local fundefnode = context:get_parent_node()[2]
+  local rectype, name = fundefnode[2].attr.value
+  local name = context:get_parent_node()[2][1]
+  -- hygienize saves the current traversing scope for a callback
+  rectype.methods[name] = hygienize(function(f) f() end)
+end
+]]
+
+##[[
+local function override()
+  local fundefnode = context:get_parent_node()[2]
+  local rectype, name = fundefnode[2].attr.value, fundefnode[1]
+  local method = rectype.base.methods[name]
+  method(function()]]
+    -- no problem to use ifs instead of switches because C compilers usually optimizes as a switch
+    if self.__kind == #[rectype.kindid]# then
+      return (@#[rectype]#*)(self):#(name)#()
+    end ##[[
+  end)
+end
+]]
+
+--------------------------------------------------------------------------------
+-- inheritance example via meta programming
+
+local Shape = @record{
+  __kind: integer,
+  x: number, y: number
+} ## class(Shape)
+
+function Shape:area(): number ## overrideable()
+  return 0
+end
+
+local Rectangle = @record{
+  w: number,
+  h: number
+} ## class(Rectangle, Shape)
+
+local Circle = @record{
+  r: number
+} ## class(Circle, Shape)
+
+function Rectangle.create(x: number, y: number, w: number, h: number): Rectangle
+  return Rectangle{__kind = Rectangle.KindId, x=x, y=y, w=w, h=h}
+end
+
+function Rectangle:area(): number ## override()
+  return self.w * self.h
+end
+
+function Circle.create(x: number, y: number, r: number): Circle
+  return Circle{__kind = Circle.KindId, x=x, y=y, r=r}
+end
+
+function Circle:area(): number ## override()
+  return 3.14 * self.r * self.r
+end
+
+do -- test it
+  local circle = Circle.create(0, 0, 1)
+  local rectangle = Rectangle.create(0, 0, 2, 2)
+
+  print 'meta programming example =>'
+  print('      rectangle area is', rectangle:area())
+  print('         circle area is', circle:area())
+
+  local shape: Shape*
+  shape = (@Shape*)(&rectangle)
+  print('   circle shape area is', shape:area())
+  shape = (@Shape*)(&circle)
+  print('rectangle shape area is', shape:area())
+  print ''
+end

@@ -1181,8 +1181,11 @@ function RecordType:_init(node, fields)
   self.metatype = MetaType()
 end
 
-function RecordType:add_field(name, type)
-  table.insert(self.fields, {name = name, type = type})
+function RecordType:add_field(name, type, pos)
+  if not pos then
+    pos = #self.fields + 1
+  end
+  table.insert(self.fields, pos, {name = name, type = type})
   self.size = compute_record_size(self.fields)
 end
 

@@ -11,7 +11,6 @@ function builtins.require(context, node)
     return
   end
 
-
   local justloaded = false
   if not attr.loadedast then
     local canloadatruntime = config.generator == 'lua'

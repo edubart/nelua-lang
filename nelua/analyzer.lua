@@ -1020,9 +1020,7 @@ function visitors.CallMethod(context, node)
       attr.pointercall = true
     end
 
-    attr.calleetype = calleetype
     if calleetype:is_record() then
-      --TODO: consider lazy functions
       calleesym = calleetype:get_metafield(name)
       if not calleesym then
         node:raisef("cannot index record meta field '%s'", name)
