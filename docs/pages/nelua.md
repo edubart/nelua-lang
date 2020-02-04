@@ -117,17 +117,18 @@ to get a quick view of the language syntax, features and usage.
 * Check out the language [tutorial](https://nelua.io/tutorial/)
 for learning the basics.
 
-## Installation
+## Quick Installation
 
-You will need [luarocks](https://luarocks.org/) and a C compiler
-like GCC or Clang installed first.
-In your shell do the following command to install:
+With [luarocks](https://luarocks.org/) and a C compiler properly installed first, in your shell
+do the following command:
 
 ```bash
 luarocks install https://raw.githubusercontent.com/edubart/nelua-lang/master/rockspecs/nelua-dev-1.rockspec
 ```
 
 After installing the nelua compiler should be available in the luarocks binary path ready to be run.
+
+For complete instructions on how to install on Windows see the [installing tutorial](https://nelua.io/installing/)
 
 ## Running
 
@@ -142,17 +143,10 @@ Running by compiling to C then to native code (requires a GCC compiler):
 nelua helloworld.nelua
 ```
 
-Running by compiling to Lua and using your system Lua's interpreter:
-```shell
-nelua -g lua helloworld.nelua
-```
-
-Both ways it will output  ```Hello world!```
-
-
 ## Examples
 
-The folder `examples` contains some examples in Nelua, including some games,
+The folder [examples](https://github.com/edubart/nelua-lang/tree/master/examples)
+contains some examples in Nelua, including some games,
 most of the examples currently work only with the default C generator backend.
 
 To run the Snake demo for example run:

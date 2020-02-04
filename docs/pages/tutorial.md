@@ -11,21 +11,8 @@ order: 3
 
 # Tutorial
 
-This is a basic tutorial for the Nelua Programming Language.
-
-## Installing
-
-To install Nelua you first need a C compiler and [luarocks](https://luarocks.org/)
-installed. Now in your terminal run the following:
-
-```bash
-luarocks install https://raw.githubusercontent.com/edubart/nelua-lang/master/rockspecs/nelua-dev-1.rockspec
-```
-
-If the installation was successful the Nelua compiler should reside in the luarocks binary path.
-Add the luarocks binary path (usually `~/.luarocks/bin`) to your
-$PATH environment variable if you haven't yet to use the Nelua compiler with more ease.
-Now run `nelua -h` and if everything is correctly you should see the nelua help.
+This is a basic tutorial for the Nelua Programming Language, if you don't have installed
+Nelua yet, please see the [installing tutorial](/installing) first.
 
 ## Your first program
 
@@ -68,7 +55,7 @@ If your machine does not have GCC you can use other C compiler using the flag `-
 For example if you are on MacOS you probability want to use Clang then 
 do `nelua --cc clang examples/helloworld.nelua`,
 or if you are on Windows you probably want to use MinGW then
-do `nelua --cc i686-w64-mingw32-gcc examples/helloworld.nelua`.
+do `nelua --cc x86_64-w64-mingw32-gcc examples/helloworld.nelua`.
 
 ## Syntax highlighting for editors
 
@@ -79,7 +66,7 @@ At the moment only Sublime Text have full definition, so I recommend using it.
 If you use other code editor you can use Lua syntax highlighting,
 as it very similar but of course incomplete.
 
-I recommend using the syntax highlighter, 
+I recommend using the syntax highlighter,
 it makes the experience of playing around with the language more pleasant because
 it can highlight type notations.
 
@@ -91,8 +78,10 @@ A quick tour of the language features can be seen in the [overview page](/overvi
 
 As the language is being developed this tutorial still quite short.
 However you can see more interesting examples of the language usage in the
-[examples](https://github.com/edubart/nelua-lang/tree/master/examples) or
-[benchmarks](https://github.com/edubart/nelua-lang/tree/master/benchmarks) folder.
+[examples](https://github.com/edubart/nelua-lang/tree/master/examples),
+[benchmarks](https://github.com/edubart/nelua-lang/tree/master/benchmarks) or
+[tests](https://github.com/edubart/nelua-lang/tree/master/tests)
+ folders.
 
 The most interesing examples are:
 * `examples/fibonacci.nelua` multiple implementations of the classic [Fibonnaci sequence](https://en.wikipedia.org/wiki/Fibonacci_number)
