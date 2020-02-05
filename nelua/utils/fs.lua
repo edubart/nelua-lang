@@ -75,9 +75,9 @@ function fs.findbinfile(name)
   if name == fs.getbasename(name) then
     for d in os.getenv("PATH"):gmatch(path_pattern) do
       local binpath = fs.abspath(fs.join(d, name))
-      if fs.isfile(binpath) then
-        return binpath
-      end
+      if fs.isfile(binpath) then return binpath end
+      binpath = binpath .. '.exe'
+      if fs.isfile(binpath) then return binpath end
     end
   else --luacov:disable
     local binpath = fs.abspath(name)
@@ -85,6 +85,12 @@ function fs.findbinfile(name)
       return binpath
     end
   end --luacov:enable
+end
+
+function fs.tmpfile()
+  local name = fs.gettmpname()
+  local f = io.open(name, 'a+')
+  return f, name
 end
 
 return fs

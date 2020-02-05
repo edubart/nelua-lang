@@ -109,7 +109,8 @@ local function run(args)
     args = stringer.split(args)
     setmetatable(args, nil)
   end
-  local tmperr, tmpout = io.tmpfile(), io.tmpfile()
+  local tmperr, tmperrname = fs.tmpfile()
+  local tmpout, tmpoutname = fs.tmpfile()
   local function rprint(...) return tmpout:write(stringer.pconcat(...) .. "\n") end
   -- hook print, stderr and stdout
   local ostderr, ostdout, oprint = io.stderr, io.stdout, _G.print
@@ -130,6 +131,7 @@ local function run(args)
   tmperr:seek('set') tmpout:seek('set')
   local serr, sout = tmperr:read("*a"), tmpout:read("*a")
   tmperr:close() tmpout:close()
+  fs.deletefile(tmperrname) fs.deletefile(tmpoutname)
   return status, sout, serr
 end
 

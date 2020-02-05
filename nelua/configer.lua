@@ -72,15 +72,15 @@ local function get_path(arg0)
 end
 
 local function get_cc()
-  do
-    local cc = os.getenv('CC')
-    if cc and fs.findbinfile(cc) then return cc end
-  end
-  for _,cc in ipairs(cdefs.search_compilers) do
-    if fs.findbinfile(cc) then
-      return cc
+  local envcc = os.getenv('CC')
+  if envcc and fs.findbinfile(envcc) then return envcc end
+  local cc = 'cc'
+  for _,candidate in ipairs(cdefs.search_compilers) do
+    if fs.findbinfile(candidate) then
+      cc = candidate
     end
   end
+  return cc
 end
 
 function configer.parse(args)
