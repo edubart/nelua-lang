@@ -40,26 +40,79 @@ environment is probably missing the luarocks environment variables, to fix execu
 ## Installing on Windows
 
 Getting an environment with Git, Lua, LuaRocks and a C compiler working on Windows itself can
-be some troublesome and would need to manually download, install, compile packages,
-create folders and configure many environment variables. All through UIs which would take
-effort and time. This tutorial will show an alternative way using ArchLinux subsystem on Windows
+be tricky, there are multiple ways. Here we show two ways with lesser steps.
+The first using MSYS2 with Mingw-w64 and the second using WSL (Windows Subsystem for Linux).
+I recommend the second one for users familiar with Linux systems or if the first doesn't work out.
+
+### Installing on Windows (with MSYS2)
+
+#### 1.Install MSYS2
+
+Download and install [MSYS2](https://www.msys2.org/). Choose the x86_64
+installer, because the i686 is known to not work wheel with MSYS's luarocks.
+After installing open its terminal and update:
+
+```bash
+pacman -Syu --noconfirm
+```
+
+After the update finishes, you may be asked to close the terminal and reopen to update
+using the same command a second time.
+
+#### 2. Install required tools in MSYS2
+
+After updating, install all the required build tools:
+
+```bash
+pacman -S --noconfirm unzip git
+pacman -S --noconfirm mingw-w64-x86_64-toolchain
+pacman -S --noconfirm mingw-w64-x86_64-lua51-luarocks
+```
+
+#### 3. Install Nelua
+
+```bash
+luarocks install https://raw.githubusercontent.com/edubart/nelua-lang/master/rockspecs/nelua-dev-1.rockspec
+```
+
+This command may take a while. Nelua now should be working, check it running `nelua.bat -h`,
+you can clone and test examples from the official repository:
+
+```bash
+wget https://raw.githubusercontent.com/edubart/nelua-lang/master/examples/helloworld.nelua
+nelua.bat helloword.nelua
+```
+
+Note that luarocks installs Nelua as `nelua.bat`.
+
+To run snakesdl demo:
+
+```bash
+pacman -S --noconfirm mingw-w64-x86_64-SDL2
+wget https://raw.githubusercontent.com/edubart/nelua-lang/master/examples/snakesdl.nelua
+nelua.bat snakesdl.nelua
+```
+
+### Installing on Windows (with WSL)
+
+This alternative way uses ArchLinux subsystem on Windows
 through WSL (Windows Subsystem for Linux) with all Nelua requirements in a few commands,
 inside the system you will be able to compile Windows binaries, Linux binaries and
 even WebAssembly binaries too.
 
 Before going through these steps make sure that you are using an **updated Windows 10**.
 
-### 1. Install Scoop
+#### 1. Install Scoop
 
-[Scoop](https://scoop.sh/) is a command line installer for windows, we use it to install
-ArchWSL. Open "Windows PowerShell" then execute:
+Download and install [Scoop](https://scoop.sh/), a command line installer for windows,
+we use it to install ArchWSL. Open "Windows PowerShell" then execute:
 
 ```bash
 Set-ExecutionPolicy RemoteSigned -scope CurrentUser
 iwr -useb get.scoop.sh | iex
 ```
 
-### 2. Install ArchWSL
+#### 2. Install ArchWSL
 
 Get [ArchWSL](https://github.com/yuk7/ArchWSL) from scoop:
 
@@ -90,7 +143,7 @@ Install required dependencies for compiling packages:
 pacman -S --needed --noconfirm git autoconf automake binutils bison flex gcc libtool m4 make cmake patch pkgconf texinfo
 ```
 
-### 3. Install Lua, LuaRocks and Nelua
+#### 3. Install Lua, LuaRocks and Nelua
 
 Install Lua and LuaRocks:
 
@@ -116,7 +169,7 @@ Note this is compiling Linux binaries using GCC, thus this way you are only be a
 inside WSL therefore limiting to command line applications. To run graphical applications you need
 to compile actual Windows binaries, proceed bellow.
 
-### 4. Install Mingw-w64
+#### 4. Install Mingw-w64
 
 Continue here only if you want to compile Windows binaries in the ArchWSL.
 
@@ -157,7 +210,7 @@ cp /usr/x86_64-w64-mingw32/bin/SDL2.dll .
 nelua --cc=x86_64-w64-mingw32-gcc snakesdl.nelua
 ```
 
-### Developing setup on Windows
+#### Developing setup on ArchWSL
 
 You can use your favorite text editor to edit Nelua projects and save them in your user home in Windows,
 the files will be located somewhere in `/mnt/c/Users/<user>/` on ArchWSL. Use the WSL terminal

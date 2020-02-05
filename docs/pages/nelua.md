@@ -128,7 +128,7 @@ luarocks install https://raw.githubusercontent.com/edubart/nelua-lang/master/roc
 
 After installing the nelua compiler should be available in the luarocks binary path ready to be run.
 
-For complete instructions on how to install on Windows see the [installing tutorial](https://nelua.io/installing/)
+For complete instructions on how to install on Windows see the [installing tutorial](https://nelua.io/installing/).
 
 ## Running
 
