@@ -154,14 +154,14 @@ To run snakesdl demo:
 ```bash
 wget https://raw.githubusercontent.com/edubart/nelua-lang/master/examples/snakesdl.nelua
 cp /usr/x86_64-w64-mingw32/bin/SDL2.dll .
-nelua --cc=x86_64-w64-mingw32-gcc --binary-suffix=.exe snakesdl.nelua
+nelua --cc=x86_64-w64-mingw32-gcc snakesdl.nelua
 ```
 
 ### Developing setup on Windows
 
-For Windows the ArchWSL folder home is located at `%HOMEPATH%\scoop\persist\archwsl\data\rootfs\root`,
-you can place your nelua projects there and edit them using your favorite source editor on windows.
-Then use the WSL terminal to run.
+You can use your favorite text editor to edit Nelua projects and save them in your user home in Windows,
+the files will be located somewhere in `/mnt/c/Users/<user>/` on ArchWSL. Use the WSL terminal
+to change to that path and run the nelua compiler.
 
 ### Note for users wanting to use Nelua with MSVC
 

@@ -13,6 +13,8 @@ fs.getbasename = plpath.basename
 fs.getpathdir = plpath.dirname
 fs.getfiletime = plfile.modified_time
 fs.isfile = plpath.isfile
+fs.gettmpname = plpath.tmpname
+fs.deletefile = plfile.delete
 
 function fs.ensurefilepath(file)
   local outdir = plpath.dirname(file)
@@ -66,6 +68,23 @@ function fs.findmodulefile(name, path)
       return fs.abspath(trypath)
     end
   end
+end
+
+local path_pattern = string.format('[^%s]+', plpath.dirsep)
+function fs.findbinfile(name)
+  if name == fs.getbasename(name) then
+    for d in os.getenv("PATH"):gmatch(path_pattern) do
+      local binpath = fs.abspath(fs.join(d, name))
+      if fs.isfile(binpath) then
+        return binpath
+      end
+    end
+  else --luacov:disable
+    local binpath = fs.abspath(name)
+    if fs.isfile(binpath) then
+      return binpath
+    end
+  end --luacov:enable
 end
 
 return fs

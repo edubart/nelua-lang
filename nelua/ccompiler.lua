@@ -37,19 +37,42 @@ local function get_compile_args(cfile, binfile, compileopts)
 end
 
 local last_ccinfos = {}
-local function get_cc_info()
-  local cccmd = string.format('%s -v -x c -E /dev/null', config.cc)
+function compiler.get_cc_info()
   local last_ccinfo = last_ccinfos[config.cc]
   if last_ccinfo then return last_ccinfo end
-  local ok, ret, stdout, ccinfo = executor.execex(cccmd)
-  except.assertraisef(ok and ret == 0, "failed to retrive compiler information: %s", ccinfo or '')
+  local cccmd = string.format('%s -v', config.cc)
+  local ok, ret, stdout, stderr = executor.execex(cccmd)
+  except.assertraisef(ok and ret == 0, "failed to retrieve compiler information: %s", stderr)
+  local text = stderr and stderr ~= '' and stderr or stdout
+  local ccinfo = {
+    target = text:match('Target: ([-_%w]+)'),
+    thread_model = text:match('Thread model: ([-_%w]+)'),
+    version = text:match('version ([.%d]+)'),
+    name = text:match('([-_%w]+) version') or config.cc,
+    exe = config.cc,
+    text = text
+  }
   last_ccinfos[config.cc] = ccinfo
   return ccinfo
 end
 
+function compiler.get_c_defines(headers)
+  local tmpname = fs.gettmpname()
+  local code = {}
+  for _,header in ipairs(headers) do
+    table.insert(code, '#include ' .. header)
+  end
+  fs.writefile(tmpname, table.concat(code))
+  local cccmd = string.format('%s -x c -E -dM %s', config.cc, tmpname)
+  local ok, ret, stdout, ccinfo = executor.execex(cccmd)
+  fs.deletefile(tmpname)
+  except.assertraisef(ok and ret == 0, "failed to retrieve compiler information: %s", ccinfo or '')
+  return pegger.parse_c_defines(stdout)
+end
+
 function compiler.compile_code(ccode, outfile, compileopts)
   local cfile = outfile .. '.c'
-  local ccinfo = get_cc_info()
+  local ccinfo = compiler.get_cc_info().text
   local ccmd = get_compile_args(cfile, outfile, compileopts)
 
   -- file heading
@@ -78,9 +101,11 @@ end
 
 function compiler.compile_binary(cfile, outfile, compileopts)
   local binfile = outfile
-  if config.binary_suffix then
-    binfile = outfile .. config.binary_suffix
-  end
+
+  local ccinfo = compiler.get_cc_info()
+  if ccinfo.target and ccinfo.target:match('windows') or ccinfo.target:match('mingw') then --luacov:disable
+    binfile = outfile .. '.exe'
+  end --luacov:enable
 
   -- if the file with that hash already exists skip recompiling it
   if not config.no_cache then

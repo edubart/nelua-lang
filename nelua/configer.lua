@@ -3,13 +3,12 @@ local tabler = require 'nelua.utils.tabler'
 local metamagic = require 'nelua.utils.metamagic'
 local except = require 'nelua.utils.except'
 local fs = require 'nelua.utils.fs'
+local cdefs = require 'nelua.cdefs'
 
 local configer = {}
 local config = {}
 local defconfig = {
-  cc = 'gcc',
   generator = 'c',
-  cflags = '',
   lua = 'lua',
   lua_version = '5.3',
   cache_dir = 'nelua_cache',
@@ -46,7 +45,6 @@ local function create_parser(argv)
   argparser:option('--lua-options', "Lua options to use when running", d.lua_options)
   argparser:option('--cache-dir', "Compilation cache directory", d.cache_dir)
   argparser:option('--path', "Nelua modules search path", d.path)
-  argparser:option('--binary-suffix', "Binary suffix for the C generator", d.binary_suffix)
   argparser:argument("input", "Input source file"):action(function(options, _, v)
     -- hacky way to stop handling options
     local index = tabler.ifind(argv, v) + 1
@@ -73,6 +71,18 @@ local function get_path(arg0)
     fs.join('.','?','init.nelua')
 end
 
+local function get_cc()
+  do
+    local cc = os.getenv('CC')
+    if cc and fs.findbinfile(cc) then return cc end
+  end
+  for _,cc in ipairs(cdefs.search_compilers) do
+    if fs.findbinfile(cc) then
+      return cc
+    end
+  end
+end
+
 function configer.parse(args)
   local argparser = create_parser(tabler.copy(args))
   local ok, options = argparser:pparse(args)
@@ -91,8 +101,8 @@ end
 local function init_default_configs()
   defconfig.path = get_path()
   defconfig.runtime_path = get_runtime_path()
-  defconfig.cc = os.getenv('CC') or defconfig.cc
-  defconfig.cflags = os.getenv('CFLAGS') or defconfig.cflags
+  defconfig.cc = get_cc()
+  defconfig.cflags = os.getenv('CFLAGS') or ''
   metamagic.setmetaindex(config, defconfig)
 end
 

@@ -168,5 +168,34 @@ function pegger.render_template(text, env)
   return table.concat(out)
 end
 
+local c_defines_peg = re.compile([[
+  defines   <- %s* {| define* |}
+  define    <- '#define ' {| {define_name} (' '+ {define_content} / define_content) |} linebreak?
+  define_name <- [_%w]+
+  define_content <- (!linebreak .)*
+]]..
+"linebreak <- [%nl]'\r' / '\r'[%nl] / [%nl] / '\r'")
+
+function pegger.parse_c_defines(text)
+  local t = c_defines_peg:match(text)
+  local defs = {}
+  for _,v in ipairs(t) do
+    local name = v[1]
+    local value = v[2]
+    if not value or value == '' then
+      -- define without content, treat as boolean
+      value = true
+    else
+      -- try to convert to a number
+      local numvalue = tonumber(value)
+      if numvalue and tostring(numvalue) == value then
+        value = numvalue
+      end
+    end
+    defs[name] = value
+  end
+  return defs
+end
+
 return pegger
 

@@ -133,6 +133,13 @@ cdefs.compiler_base_flags = {
   cflags_debug = "-g"
 }
 
+cdefs.search_compilers = {
+  'gcc', 'clang',
+  'x86_64-w64-mingw32-gcc', 'x86_64-w64-mingw32-clang',
+  'i686-w64-mingw32-gcc', 'i686-w64-mingw32-clang',
+  'cc'
+}
+
 cdefs.compilers_flags = {
   gcc = {
     cflags_release = "-O2 -fno-plt -flto -Wl,-O1,--sort-common,-z,relro,-z,now"

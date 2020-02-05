@@ -620,6 +620,15 @@ local a = 1
 ]=], "undeclared symbol 'a'")
 end)
 
+it("compiler information", function()
+  assert.analyze_ast([=[##[[
+    local compiler = require 'nelua.ccompiler'
+    assert(compiler.get_cc_info())
+    local defs = compiler.get_c_defines({'<stdbool.h>'})
+    assert(defs.bool == '_Bool')
+  ]]]=])
+end)
+
 it("run brainfuck", function()
   assert.run('--generator c examples/brainfuck.nelua', 'Hello World!')
 end)

@@ -1,7 +1,6 @@
 local argparse = require 'argparse'
 local nanotime = require 'chronos'.nanotime
 local executor = require 'nelua.utils.executor'
-local binary_suffix = '.out'
 
 local benchmarks = {
   'ackermann',
@@ -67,18 +66,17 @@ local function run_benchmark(name)
     config.ntimes)
   benchmark(
     string.format('| %12s | %9s', name, 'nelua'),
-    string.format('./nelua_cache/benchmarks/%s%s', name, binary_suffix),
+    string.format('./nelua_cache/benchmarks/%s', name),
     config.ntimes)
   benchmark(
     string.format('| %12s | %9s', name, 'c'),
-    string.format('./nelua_cache/benchmarks/c%s%s', name, binary_suffix),
+    string.format('./nelua_cache/benchmarks/c%s', name),
     config.ntimes)
 end
 
 local function nelua_compile(name, generator)
   local file = 'benchmarks/' .. name .. '.nelua'
   local flags = '-q -b -r \
- --binary-suffix='..binary_suffix..'\
  --lua-version=5.1 \
  --cache-dir nelua_cache \
  --cflags="-march=native"'
@@ -89,7 +87,7 @@ end
 
 local function c_compile(name)
   local cfile = 'benchmarks/c/' .. name .. '.c'
-  local ofile = 'nelua_cache/benchmarks/c' .. name .. binary_suffix
+  local ofile = 'nelua_cache/benchmarks/c' .. name
   local cflags = "-Wall -Wextra " ..
                  "-O2 -fno-plt -march=native -Wl,-O1,--sort-common,-z,relro,-z,now"
   local command = string.format('gcc %s -o %s %s', cflags, ofile, cfile)

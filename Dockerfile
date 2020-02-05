@@ -21,6 +21,6 @@ RUN sudo luarocks-5.3 install --only-deps nelua-dev-1.rockspec
 
 # nelua global config (to force testing it)
 RUN mkdir -p /.config/nelua
-RUN echo "return { binary_suffix = '.out' }" >> /.config/nelua/neluacfg.lua
+RUN echo "return {}" >> /.config/nelua/neluacfg.lua
 
 WORKDIR /nelua

@@ -5,12 +5,11 @@ local assert = require 'spec.tools.assert'
 describe("Nelua runner should", function()
 
 it("compile simple programs" , function()
-  assert.run('--generator lua --no-cache --compile --binary-suffix=.out examples/helloworld.nelua')
+  assert.run('--generator lua --no-cache --compile examples/helloworld.nelua')
   assert.run('--generator c --no-cache --compile examples/helloworld.nelua')
   assert.run('--generator lua --compile-binary examples/helloworld.nelua')
-  assert.run('--generator c --compile-binary --binary-suffix=.out  examples/helloworld.nelua')
   -- force reusing the cache:
-  assert.run('--generator c --compile-binary --binary-suffix=.out  examples/helloworld.nelua')
+  assert.run('--generator c --compile-binary examples/helloworld.nelua')
 end)
 
 it("run simple programs", function()
@@ -31,7 +30,7 @@ it("error on parsing an invalid program" , function()
   assert.run_error('--lint invalid', 'invalid: No such file or directory')
   --assert.run_error({'--generator', 'c', '--eval', "f()"}, 'undefined')
   assert.run_error({'--generator', 'lua', '--eval', "local a = 1_x"}, "literal suffix '_x' is undefined")
-  assert.run_error('--generator c --cc invgcc examples/helloworld.nelua', 'failed to retrive compiler information')
+  assert.run_error('--generator c --cc invgcc examples/helloworld.nelua', 'failed to retrieve compiler information')
 end)
 
 it("print correct generated AST" , function()
