@@ -18,6 +18,10 @@ function Symbol:init(name, node)
 end
 
 function Symbol.promote_attr(attr, name, node)
+  if getmetatable(attr) == Symbol then
+    attr:clear_possible_types()
+    return attr
+  end
   local self = setmetatable(attr, Symbol)
   self:init(name, node)
   return self

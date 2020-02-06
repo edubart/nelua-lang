@@ -509,9 +509,7 @@ function ArithmeticType:_init(name, size)
   self.bitsize = size * 8
 end
 
-function ArithmeticType:is_convertible_from_type(type, explicit)
-  return Type.is_convertible_from_type(self, type, explicit)
-end
+ArithmeticType.is_convertible_from_type = Type.is_convertible_from_type
 
 function ArithmeticType:is_initializable_from_attr(attr)
   if Type.is_initializable_from_attr(self, attr) then
@@ -1253,7 +1251,9 @@ function PointerType:is_convertible_from_attr(attr, explicit)
   if not explicit and self.subtype == type and (type:is_record() or type:is_array()) then
     -- automatic ref
     if not attr.lvalue then
-      return false, stringer.pformat('cannot automatic reference rvalue to pointer type "%s"', self)
+      return false, stringer.pformat(
+        'cannot automatic reference rvalue of type "%s" to pointer type "%s"',
+        attr.type, self)
     end
     attr.autoref = true
     return true

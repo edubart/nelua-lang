@@ -12,13 +12,14 @@ local function traverse_node(self, node, ...)
   table.remove(self.visiting_nodes) -- pop node
   return ret
 end
+VisitorContext.traverse_node = traverse_node
 
-local traverse
 local function traverse_nodes(self, nodes, ...)
   for i=1,#nodes do
-    traverse(self, nodes[i], ...)
+    traverse_node(self, nodes[i], ...)
   end
 end
+VisitorContext.traverse_nodes = traverse_nodes
 
 local function traverser_default_visitor(self, node, ...)
   for i=1,node.nargs or #node do
@@ -52,13 +53,9 @@ function VisitorContext:traverse(node, ...)
     return traverse_nodes(self, node, ...)
   end
 end
-traverse = VisitorContext.traverse
 
-function VisitorContext:get_parent_node(upindex)
-  if not upindex then
-    upindex = 1
-  end
-  return self.visiting_nodes[#self.visiting_nodes - upindex]
+function VisitorContext:get_parent_node()
+  return self.visiting_nodes[#self.visiting_nodes - 1]
 end
 
 function VisitorContext:iterate_parent_nodes()

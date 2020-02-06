@@ -1116,6 +1116,11 @@ it("automatic referencing", function()
     local function f(): R* return a end
     p = f()
   ]])
+  assert.analyze_ast([[
+    local A = @record{x: integer}
+    local B = @record{a: A}
+    function B:f() local i: A* = self.a end
+  ]])
   assert.analyze_error([[
     local R = @record{x: integer}
     local p: pointer(R)

@@ -14,9 +14,10 @@ local nelua_syntax = require 'nelua.syntaxdefs'()
 local config = require 'nelua.configer'.get()
 local nelua_parser = nelua_syntax.parser
 
--- enable ast shape checking
+-- config setup for the test suite
 config.check_ast_shape = true
 config.quiet = true
+config.lua_version = '5.3'
 
 -- use cache subfolder while testing
 config.cache_dir = fs.join(config.cache_dir, 'spec')

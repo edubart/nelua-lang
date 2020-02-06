@@ -32,51 +32,65 @@ function ASTNode:args()
   return tabler.unpack(self, 1, self.nargs)
 end
 
-local function clone_nodetable(t)
+local clone_attr = Attr.clone
+local clone_nodetable, clone_node
+
+clone_nodetable = function(t)
   local ct = {}
-  for i,v in ipairs(t) do
-    if traits.is_astnode(v) then
-      ct[i] = v:clone()
-    elseif traits.is_table(v) then
-      ct[i] = clone_nodetable(v)
-    --luacov:disable
-    elseif traits.is_number(v) or traits.is_bignumber(v) or traits.is_string(v) or
-           traits.is_boolean(v) or traits.is_function(v) then
-      ct[i] = v
-    else
-      errorer.errorf("invalid value type '%s' in node clone", type(v))
+  for i=1,t.n or #t do
+    local v = t[i]
+    local tv = type(v)
+    if tv == 'table' then
+      if v._astnode then
+        ct[i] = clone_node(v)
+      elseif getmetatable(v) == nil then
+        ct[i] = clone_nodetable(v)
+      else --luacov:disable
+        errorer.errorf("invalid table metatable in node clone")
+      end --luacov:enable
+    else --luacov:disable
+      if tv == 'number' or tv == 'userdata' or tv == 'string' or
+         tv == 'boolean' or tv == 'function' then
+        ct[i] = v
+      else
+        errorer.errorf("invalid value type '%s' in node clone", tv)
+      end
     end --luacov:enable
   end
   -- in case of packed tables
-  if t.n then ct.n = t.n end
+  ct.n = t.n
   return ct
 end
 
-function ASTNode:clone()
-  local node = setmetatable({}, getmetatable(self))
-  for i=1,self.nargs do
-    local arg = self[i]
-    if traits.is_astnode(arg) then
-      arg = arg:clone()
-    elseif traits.is_table(arg) then
-      arg = clone_nodetable(arg)
+clone_node = function(node)
+  local cloned = setmetatable({}, getmetatable(node))
+  for i=1,node.nargs do
+    local arg = node[i]
+    if type(arg) == 'table' then
+      if arg._astnode then
+        arg = clone_node(arg)
+      else
+        arg = clone_nodetable(arg)
+      end
     end
-    node[i] = arg
+    cloned[i] = arg
   end
-  if self.pattr then
+  if node.pattr then
     -- copy persistent attributes
-    node.attr = self.pattr:clone()
-    node.pattr = self.pattr
+    cloned.attr = clone_attr(node.pattr)
+    cloned.pattr = node.pattr
   else
-    node.attr = setmetatable({}, Attr)
+    cloned.attr = setmetatable({}, Attr)
   end
-  node.pos = self.pos
-  node.src = self.src
-  node.srcname = self.srcname
-  node.preprocess = self.preprocess
-  node.uid = genuid()
-  return node
+  cloned.pos = node.pos
+  cloned.src = node.src
+  cloned.srcname = node.srcname
+  cloned.preprocess = node.preprocess
+  cloned.uid = genuid()
+  return cloned
 end
+
+ASTNode.clone = clone_node
 
 --[[
 local function iterate_children_visitor(node, depth)

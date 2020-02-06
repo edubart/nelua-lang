@@ -137,21 +137,20 @@ function Scope:add_symbol(symbol, annon)
   if oldsymbol == symbol then
     return true
   end
-  if oldsymbol and oldsymbol == self.context.state.inlazydef then
-    -- symbol definition of a lazy function
-    key = symbol
-    oldsymbol = nil
-    symbol.shadows = true
-  end
   if oldsymbol then
-    if self.context.pragmas.strict then
-      return nil, stringer.pformat("symbol '%s' shadows pre declared symbol with the same name", key)
+    if oldsymbol == self.context.state.inlazydef then
+      -- symbol definition of a lazy function
+      key = symbol
+      symbol.shadows = true
+    else
+      if self.context.pragmas.strict then
+        return nil, stringer.pformat("symbol '%s' shadows pre declared symbol with the same name", key)
+      end
+      if rawget(self.symbols, key) == oldsymbol then
+        self.symbols[oldsymbol] = oldsymbol
+      end
+      symbol.shadows = true
     end
-
-    if rawget(self.symbols, key) == oldsymbol then
-      self.symbols[oldsymbol] = oldsymbol
-    end
-    symbol.shadows = true
   end
   self.symbols[key] = symbol
   return true
