@@ -49,7 +49,7 @@ I recommend the second one for users familiar with Linux systems or if the first
 #### 1.Install MSYS2
 
 Download and install [MSYS2](https://www.msys2.org/). Choose the x86_64
-installer, because the i686 is known to not work wheel with MSYS's luarocks.
+installer, because the i686 is known to not work well with MSYS's luarocks.
 After installing open its terminal and update:
 
 ```bash

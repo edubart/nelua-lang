@@ -89,7 +89,7 @@ end
 
 function fs.tmpfile()
   local name = fs.gettmpname()
-  local f = io.open(name, 'a+')
+  local f = io.open(name, 'a+b')
   return f, name
 end
 

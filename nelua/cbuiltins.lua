@@ -362,6 +362,7 @@ end
 
 function builtins.nelua_stdout_write_any(context)
   context:add_include('<stdio.h>')
+  context:add_include('<inttypes.h>')
   context:ensure_runtime_builtin('nelua_runtype_', 'nelua_boolean')
   context:ensure_runtime_builtin('nelua_runtype_', 'nelua_isize')
   context:ensure_runtime_builtin('nelua_runtype_', 'nelua_usize')
@@ -383,25 +384,25 @@ function builtins.nelua_stdout_write_any(context)
   if(a.type == &nelua_runtype_nelua_boolean) {
     nelua_stdout_write_boolean(a.value._nelua_boolean);
   } else if(a.type == &nelua_runtype_nelua_isize) {
-    fprintf(stdout, "%ti", a.value._nelua_isize);
+    fprintf(stdout, "%" PRIiPTR, a.value._nelua_isize);
   } else if(a.type == &nelua_runtype_nelua_usize) {
-    fprintf(stdout, "%tu", a.value._nelua_usize);
+    fprintf(stdout, "%" PRIuPTR, a.value._nelua_usize);
   } else if(a.type == &nelua_runtype_nelua_int8) {
-    fprintf(stdout, "%hhi", a.value._nelua_int8);
+    fprintf(stdout, "%" PRIi8, a.value._nelua_int8);
   } else if(a.type == &nelua_runtype_nelua_int16) {
-    fprintf(stdout, "%hi", a.value._nelua_int16);
+    fprintf(stdout, "%" PRIi16, a.value._nelua_int16);
   } else if(a.type == &nelua_runtype_nelua_int32) {
-    fprintf(stdout, "%i", a.value._nelua_int32);
+    fprintf(stdout, "%" PRIi32, a.value._nelua_int32);
   } else if(a.type == &nelua_runtype_nelua_int64) {
-    fprintf(stdout, "%li", a.value._nelua_int64);
+    fprintf(stdout, "%" PRIi64, a.value._nelua_int64);
   } else if(a.type == &nelua_runtype_nelua_uint8) {
-    fprintf(stdout, "%hhu", a.value._nelua_uint8);
+    fprintf(stdout, "%" PRIu8, a.value._nelua_uint8);
   } else if(a.type == &nelua_runtype_nelua_uint16) {
-    fprintf(stdout, "%hu", a.value._nelua_uint16);
+    fprintf(stdout, "%" PRIu16, a.value._nelua_uint16);
   } else if(a.type == &nelua_runtype_nelua_uint32) {
-    fprintf(stdout, "%u", a.value._nelua_uint32);
+    fprintf(stdout, "%" PRIu32, a.value._nelua_uint32);
   } else if(a.type == &nelua_runtype_nelua_uint64) {
-    fprintf(stdout, "%lu", a.value._nelua_uint64);
+    fprintf(stdout, "%" PRIu64, a.value._nelua_uint64);
   } else if(a.type == &nelua_runtype_nelua_float32) {
     fprintf(stdout, "%f", a.value._nelua_float32);
   } else if(a.type == &nelua_runtype_nelua_float64) {
@@ -638,6 +639,7 @@ function inlines.assert(context, node)
 end
 
 function inlines.print(context, node)
+  context:add_include('<inttypes.h>')
   local argnodes = node:args()
   local funcname = context:genuniquename('nelua_print')
 
@@ -695,7 +697,7 @@ function inlines.print(context, node)
       local tyformat = cdefs.types_printf_format[ty.codename]
       node:assertraisef(tyformat, 'invalid type "%s" for printf format', ty)
       defemitter:add_builtin('nelua_stdout_write_format')
-      defemitter:add_ln('("',tyformat,'", a',i,');')
+      defemitter:add_ln('(',tyformat,', a',i,');')
     else --luacov:disable
       node:raisef('cannot handle type "%s" in print', argtype)
     end --luacov:enable

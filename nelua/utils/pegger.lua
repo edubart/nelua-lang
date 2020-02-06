@@ -197,5 +197,16 @@ function pegger.parse_c_defines(text)
   return defs
 end
 
+local crlf_to_lf_peg = re.compile([[
+  text <- {~ (linebreak / .)* ~}
+]]..
+"linebreak <- ([%nl]'\r' / '\r'[%nl] / [%nl] / '\r') -> ln",
+{ln = function() return '\n' end})
+
+
+function pegger.normalize_newlines(text)
+  return crlf_to_lf_peg:match(text)
+end
+
 return pegger
 

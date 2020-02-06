@@ -2,6 +2,7 @@ local assert = require 'luassert'
 local stringer = require 'nelua.utils.stringer'
 local except = require 'nelua.utils.except'
 local errorer = require 'nelua.utils.errorer'
+local pegger = require 'nelua.utils.pegger'
 local runner = require 'nelua.runner'
 local analyzer = require 'nelua.analyzer'
 local fs = require 'nelua.utils.fs'
@@ -15,6 +16,7 @@ local nelua_parser = nelua_syntax.parser
 
 -- enable ast shape checking
 config.check_ast_shape = true
+config.quiet = true
 
 -- use cache subfolder while testing
 config.cache_dir = fs.join(config.cache_dir, 'spec')
@@ -26,6 +28,12 @@ function assert.same_string(expected, passedin)
     error('Expected strings to be the same, difference:\n' ..
       differ(expected, passedin):tostring({colored = true, context=3}))
   end --luacov:enable
+end
+
+function assert.contains(expected, passedin)
+  errorer.assertf(passedin:find(expected, 1, true),
+    "Expected string to contains.\nPassed in:\n%s\nExpected:\n%s",
+    passedin, expected)
 end
 
 function assert.ast_equals(expected_ast, ast)
@@ -130,15 +138,10 @@ local function run(args)
   _G.ostderr, _G.ostdout, _G.oprint = nil, nil, nil
   tmperr:seek('set') tmpout:seek('set')
   local serr, sout = tmperr:read("*a"), tmpout:read("*a")
+  serr, sout = pegger.normalize_newlines(serr), pegger.normalize_newlines(sout)
   tmperr:close() tmpout:close()
   fs.deletefile(tmperrname) fs.deletefile(tmpoutname)
   return status, sout, serr
-end
-
-function assert.contains(expected, passedin)
-  errorer.assertf(passedin:find(expected, 1, true),
-    "Expected string to contains.\nPassed in:\n%s\nExpected:\n%s",
-    passedin, expected)
 end
 
 function assert.run(args, expected_stdout, expected_stderr)

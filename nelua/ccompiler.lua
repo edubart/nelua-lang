@@ -112,9 +112,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
     local cfile_mtime = fs.getfiletime(cfile)
     local binfile_mtime = fs.getfiletime(binfile)
     if cfile_mtime and binfile_mtime and cfile_mtime <= binfile_mtime then
-      if not config.quiet then
-        console.info("using cached binary " .. binfile)
-      end
+      if not config.quiet then console.info("using cached binary " .. binfile) end
       return binfile
     end
   end
