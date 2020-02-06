@@ -10,7 +10,7 @@ local config = {}
 local defconfig = {
   generator = 'c',
   lua = 'lua',
-  lua_version = '5.3',
+  lua_version = _VERSION:match('%d+%.%d+'),
   cache_dir = 'nelua_cache',
   standard = 'default',
   cpu_bits = 64
@@ -33,8 +33,6 @@ local function create_parser(argv)
   argparser:flag('--print-ast', 'Print the AST only')
   argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only')
   argparser:flag('--print-code', 'Print the generated code only')
-  argparser:flag('--no-compile-gc', 'Disable compiler GC (faster but uses more mem)'):action(
-    function() collectgarbage('stop') end, d.no_compile_gc)
   argparser:option('-g --generator', "Code generator to use (lua/c)", d.generator)
   argparser:option('-d --standard', "Source standard (default/luacompat)", d.standard)
   argparser:option('--cc', "C compiler to use", d.cc)

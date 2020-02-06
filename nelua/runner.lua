@@ -1,3 +1,7 @@
+-- make the lua garbage collector less aggressive to speed up compilation
+collectgarbage("setpause", 800)
+collectgarbage("setstepmul", 400)
+
 local timer = require 'nelua.utils.nanotimer'()
 local stringer = require 'nelua.utils.stringer'
 local console = require 'nelua.utils.console'
