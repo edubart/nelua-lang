@@ -103,7 +103,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   local binfile = outfile
 
   local ccinfo = compiler.get_cc_info()
-  if ccinfo.target and ccinfo.target:match('windows') or ccinfo.target:match('mingw') then --luacov:disable
+  if ccinfo.target and (ccinfo.target:match('windows') or ccinfo.target:match('mingw')) then --luacov:disable
     binfile = outfile .. '.exe'
   end --luacov:enable
 
