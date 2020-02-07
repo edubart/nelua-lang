@@ -1034,7 +1034,7 @@ end
 
 function visitors.Block(context, node)
   if node.preprocess then
-    local scope = context:push_forked_scope("block", node)
+    local scope = context:push_forked_scope('block', node)
 
     local ok, err = except.trycall(function()
       node:preprocess()
@@ -1051,9 +1051,14 @@ function visitors.Block(context, node)
     end
   end
   local statnodes = node[1]
-  context:repeat_scope_until_resolution('block', node, function()
+
+  local scope
+  repeat
+    scope = context:push_forked_scope('block', node)
     context:traverse_nodes(statnodes)
-  end)
+    local resolutions_count = scope:resolve()
+    context:pop_scope()
+  until resolutions_count == 0
 end
 
 function visitors.If(context, node)
@@ -1125,7 +1130,9 @@ function visitors.ForIn(context, node)
       infunctype:prettyname())
   end
   context:traverse_nodes(inexpnodes)
-  context:repeat_scope_until_resolution('loop', node, function()
+
+  repeat
+    local scope = context:push_forked_scope('loop', node)
   --[[
   if itvarnodes then
     for i,itvarnode in ipairs(itvarnodes) do
@@ -1138,7 +1145,10 @@ function visitors.ForIn(context, node)
   end
     ]]
     context:traverse_node(blocknode)
-  end)
+
+    local resolutions_count = scope:resolve()
+    context:pop_scope()
+  until resolutions_count == 0
 end
 
 function visitors.ForNum(context, node)
@@ -1154,7 +1164,10 @@ function visitors.ForNum(context, node)
     sattr = stepvalnode.attr
     stype = sattr.type
   end
-  context:repeat_scope_until_resolution('loop', node, function()
+
+  repeat
+    local scope = context:push_forked_scope('loop', node)
+
     local itsymbol = context:traverse_node(itvarnode)
     local itattr = itvarnode.attr
     local ittype = itattr.type
@@ -1188,7 +1201,11 @@ function visitors.ForNum(context, node)
       itsymbol:add_possible_type(etype)
     end
     context:traverse_node(blocknode)
-  end)
+
+    local resolutions_count = scope:resolve()
+    context:pop_scope()
+  until resolutions_count == 0
+
   local fixedstep
   local stepvalue
   if stype and stype:is_arithmetic() and stepvalnode.attr.comptime then
@@ -1529,16 +1546,23 @@ function visitors.FuncDef(context, node, lazysymbol)
 
   -- repeat scope to resolve function variables and return types
   local islazyparent, argtypes, argattrs
-  local funcscope = context:repeat_scope_until_resolution('function', node, function(scope)
-    scope.returntypes = returntypes
+
+  local funcscope
+  repeat
+    funcscope = context:push_forked_scope('function', node)
+
+    funcscope.returntypes = returntypes
     context:traverse_nodes(argnodes)
-    argattrs, argtypes, islazyparent = resolve_function_argtypes(symbol, varnode, argnodes, scope, not lazysymbol)
+    argattrs, argtypes, islazyparent = resolve_function_argtypes(symbol, varnode, argnodes, funcscope, not lazysymbol)
 
     if not islazyparent then
       -- lazy functions never traverse the blocknode by itself
       context:traverse_node(blocknode)
     end
-  end)
+
+    local resolutions_count = funcscope:resolve()
+    context:pop_scope()
+  until resolutions_count == 0
 
   if not islazyparent and not returntypes then
     returntypes = funcscope.resolved_returntypes

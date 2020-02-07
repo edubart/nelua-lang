@@ -58,17 +58,6 @@ function AnalyzerContext:pop_scope()
   self.scope = table.remove(self.scopestack)
 end
 
-function AnalyzerContext:repeat_scope_until_resolution(scope_kind, node, after_push)
-  local scope
-  repeat
-    scope = self:push_forked_scope(scope_kind, node)
-    after_push(scope)
-    local resolutions_count = scope:resolve()
-    self:pop_scope()
-  until resolutions_count == 0
-  return scope
-end
-
 function AnalyzerContext:ensure_runtime_builtin(name, p1, p2)
   if not (p1 or p2) and self.usedbuiltins[name] then
     return name
