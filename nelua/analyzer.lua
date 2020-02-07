@@ -4,6 +4,7 @@ local tabler = require 'nelua.utils.tabler'
 local pegger = require 'nelua.utils.pegger'
 local typedefs = require 'nelua.typedefs'
 local AnalyzerContext = require 'nelua.analyzercontext'
+local Attr = require 'nelua.attr'
 local Symbol = require 'nelua.symbol'
 local types = require 'nelua.types'
 local bn = require 'nelua.utils.bn'
@@ -447,12 +448,12 @@ end
 
 function visitors.EnumFieldType(context, node)
   local name, numnode = node[1], node[2]
-  local field = {name = name}
+  local field = Attr{name = name}
   if numnode then
     local desiredtype = node.desiredtype
     context:traverse_node(numnode)
     local numattr = numnode.attr
-    local value, numtype = numattr.value, numattr.type
+    local numtype = numattr.type
     if not numattr.comptime then
       numnode:raisef("in enum field '%s': enum fields can only be assigned to compile time values", name)
     elseif not numtype:is_integral() then
@@ -463,7 +464,9 @@ function visitors.EnumFieldType(context, node)
     if not ok then
       numnode:raisef("in enum field '%s': %s", name, err)
     end
-    field.value = value
+    field.value = numnode.attr.value
+    field.comptime = true
+    field.type = desiredtype
   end
   return field
 end
@@ -486,12 +489,15 @@ function visitors.EnumType(context, node)
         fnode:raisef("first enum field requires an initial value", field.name)
       else
         field.value = fields[i-1].value:add(1)
+        field.comptime = true
+        field.type = subtype
       end
     end
     if not subtype:is_inrange(field.value) then
       fnode:raisef("in enum field '%s': value %s is out of range for type '%s'",
         field.name, field.value:todec(), subtype:prettyname())
     end
+    assert(field.name)
     fields[i] = field
   end
   attr.type = primtypes.type

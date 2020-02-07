@@ -971,6 +971,7 @@ end
 local EnumType = typeclass(IntegralType)
 types.EnumType = EnumType
 EnumType.enum = true
+EnumType.primitive = false
 
 function EnumType:_init(node, subtype, fields)
   IntegralType._init(self, 'enum', subtype.size, subtype.unsigned)
@@ -978,9 +979,6 @@ function EnumType:_init(node, subtype, fields)
   self.subtype = subtype
   self.fields = fields
   self.codename = gencodename(self)
-  for _,field in ipairs(fields) do
-    field.codename = self.codename .. '_' .. field.name
-  end
 end
 
 function EnumType:get_field(name)

@@ -205,11 +205,6 @@ typevisitors[types.EnumType] = function(context, type)
   if type.nodecl or context:is_declared(type.codename) then return end
   local decemitter = CEmitter(context, 0)
   decemitter:add_ln('typedef ', type.subtype, ' ', type.codename, ';')
-  decemitter:add_ln('enum {')
-  for _,field in ipairs(type.fields) do
-    decemitter:add_ln('  ', field.name, ' = ', field.value, ',')
-  end
-  decemitter:add_ln('};')
   context:add_declaration(decemitter:generate(), type.codename)
 end
 
@@ -423,7 +418,8 @@ function visitors.DotIndex(context, node, emitter)
   if objtype:is_type() then
     objtype = attr.indextype
     if objtype:is_enum() then
-      emitter:add(objtype:get_field(name).value)
+      local field = objtype:get_field(name)
+      emitter:add_numeric_literal(field)
     elseif objtype:is_record() then
       if attr.comptime then
         emitter:add_literal(attr)

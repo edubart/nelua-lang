@@ -997,6 +997,10 @@ it("enums", function()
     local Enum = @enum(byte){A=255}
   ]])
   assert.analyze_error([[
+    local e: enum(byte){A=255}
+    e = 257
+  ]], "is out of range")
+  assert.analyze_error([[
     local Enum = @enum(byte){A=256}
   ]], "is out of range")
   assert.analyze_error([[

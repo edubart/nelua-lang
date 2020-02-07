@@ -1275,7 +1275,13 @@ end)
 it("enums", function()
   assert.generate_c(
     "local e: enum{A=0}",
-    [[enum {]])
+    [[typedef int64_t enum_]])
+  assert.generate_c([[
+    local E = @enum{A=1, B=2}
+    local i: E = 1
+    local E = @enum{A=1, B=2}
+    local i: E = 1
+  ]], {"typedef int64_t E", "typedef int64_t E__1"})
   assert.run_c([[
     local Enum = @enum{A=0,B=1,C}
     local e: Enum; assert(e == 0)

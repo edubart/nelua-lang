@@ -48,10 +48,7 @@ function CContext:declname(attr)
 end
 
 function CContext:genuniquename(kind, fmt)
-  local count = self.uniquecounters[kind]
-  if not count then
-    count = 0
-  end
+  local count = self.uniquecounters[kind] or 0
   count = count + 1
   self.uniquecounters[kind] = count
   if not fmt then
