@@ -90,7 +90,7 @@ end
 
 function Emitter:add_traversal(node, ...)
   local context = self.context
-  context:traverse(node, self, ...)
+  context:traverse_node(node, self, ...)
 end
 
 function Emitter:add_traversal_list(nodelist, separator, ...)

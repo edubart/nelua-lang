@@ -75,12 +75,12 @@ clone_node = function(node)
     end
     cloned[i] = arg
   end
-  if node.pattr then
+  if not node.pattr then
+    cloned.attr = setmetatable({}, Attr)
+  else
     -- copy persistent attributes
     cloned.attr = clone_attr(node.pattr)
     cloned.pattr = node.pattr
-  else
-    cloned.attr = setmetatable({}, Attr)
   end
   cloned.pos = node.pos
   cloned.src = node.src

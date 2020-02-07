@@ -10,13 +10,16 @@ local errorer = require 'nelua.utils.errorer'
 local config = require 'nelua.configer'.get()
 local stringer = require 'nelua.utils.stringer'
 
+local traverse_node = VisitorContext.traverse_node
 local function pp_default_visitor(self, node, emitter, ...)
   for i=1,node.nargs or #node do
     local arg = node[i]
-    if traits.is_astnode(arg) then
-      self:traverse(arg, emitter, node, i, ...)
-    elseif traits.is_table(arg) then
-      pp_default_visitor(self, arg, emitter, ...)
+    if type(arg) == 'table' then
+      if arg._astnode then
+        traverse_node(self, arg, emitter, node, i, ...)
+      else
+        pp_default_visitor(self, arg, emitter, ...)
+      end
     end
   end
 end
@@ -25,20 +28,16 @@ local visitors = { default_visitor = pp_default_visitor }
 
 function visitors.PreprocessName(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
-  local parentregindex = ppcontext:getregistryindex(parent)
-  local selfregindex = ppcontext:getregistryindex(node)
-  emitter:add_indent_ln(
-    'ppregistry[', parentregindex, '][', parentindex, ']',
-    ' = ppcontext:toname(', luacode, ', ppregistry[', selfregindex, '])')
+  local pindex, nindex = ppcontext:getregistryindex(parent), ppcontext:getregistryindex(node)
+  emitter:add_indent_ln('ppregistry[', pindex, '][', parentindex, ']',
+                        ' = ppcontext:toname(', luacode, ', ppregistry[', nindex, '])')
 end
 
 function visitors.PreprocessExpr(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
-  local parentregindex = ppcontext:getregistryindex(parent)
-  local selfregindex = ppcontext:getregistryindex(node)
-  emitter:add_indent_ln(
-    'ppregistry[', parentregindex, '][', parentindex, ']',
-    ' = ppcontext:tovalue(', luacode, ', ppregistry[', selfregindex, '])')
+  local pindex, nindex = ppcontext:getregistryindex(parent), ppcontext:getregistryindex(node)
+  emitter:add_indent_ln('ppregistry[', pindex, '][', parentindex, ']',
+                        ' = ppcontext:tovalue(', luacode, ', ppregistry[', nindex, '])')
 end
 
 function visitors.Preprocess(_, node, emitter)
@@ -48,52 +47,38 @@ end
 
 function visitors.Block(ppcontext, node, emitter)
   local statnodes = node[1]
-
   if not node.needprocess then
-    ppcontext:traverse(statnodes, emitter)
+    ppcontext:traverse_nodes(statnodes, emitter)
     return
   end
-
   node.needprocess = nil
 
   local blockregidx = ppcontext:getregistryindex(node)
   emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess = function(blocknode)')
   emitter:inc_indent()
-  emitter:add_indent_ln('ppcontext:begin_block(blocknode)')
-  emitter:inc_indent()
-  for _,statnode in ipairs(statnodes) do
-    local statregidx = ppcontext:getregistryindex(statnode)
-    ppcontext:traverse(statnode, emitter)
+  emitter:add_indent_ln('blocknode[1] = ppcontext:push_statnodes()')
+  local statsregidx = ppcontext:getregistryindex(statnodes)
+  for i=1,#statnodes do
+    local statnode = statnodes[i]
+    ppcontext:traverse_node(statnode, emitter)
     if statnode.tag ~= 'Preprocess' then
-      emitter:add_indent_ln('ppcontext:add_statnode(ppregistry[', statregidx, ']:clone())')
+      emitter:add_indent_ln('ppcontext:add_statnode(ppregistry[', statsregidx, '][', i, ']:clone())')
     end
   end
-  emitter:dec_indent()
-  emitter:add_indent_ln('ppcontext:end_block()')
+  emitter:add_indent_ln('ppcontext:pop_statnodes()')
   emitter:dec_indent()
   emitter:add_indent_ln('end')
 end
 
 local function mark_process_visitor(markercontext)
-  local topppblocknode = markercontext:get_parent_node_if(function(pnode)
-    return pnode.needprocess
-  end)
-  if topppblocknode then
-    -- mark all blocks between top pp block and this block
-    for pnode in markercontext:iterate_parent_nodes() do
-      if pnode.tag == 'Block' then
-        if pnode == topppblocknode then
-          break
-        end
-        pnode.needprocess = true
-      end
+  local nodes = markercontext.visiting_nodes
+  -- mark nearest parent block above
+  for i=#nodes-1,1,-1 do
+    local pnode = nodes[i]
+    if pnode.tag == 'Block' then
+      pnode.needprocess = true
+      break
     end
-  else
-    -- mark parent block
-    local parentblocknode = markercontext:get_parent_node_if(function(pnode)
-      return pnode.tag == 'Block'
-    end)
-    parentblocknode.needprocess = true
   end
   markercontext.needprocess = true
 end
@@ -105,8 +90,7 @@ local marker_visitors = {
 }
 
 function marker_visitors.Block(markercontext, node)
-  local statnodes = node[1]
-  markercontext:traverse(statnodes)
+  markercontext:traverse_nodes(node[1])
 end
 
 local preprocessor = {}
@@ -123,7 +107,7 @@ function preprocessor.preprocess(context, ast)
   local markercontext = VisitorContext(marker_visitors)
 
   -- first pass, mark blocks that needs preprocess
-  markercontext:traverse(ast)
+  markercontext:traverse_node(ast)
 
   if not markercontext.needprocess then
     -- no preprocess directive found for this block, finished
@@ -133,7 +117,7 @@ function preprocessor.preprocess(context, ast)
   -- second pass, emit the preprocess lua code
   local aster = context.parser.astbuilder.aster
   local emitter = Emitter(ppcontext, 0)
-  ppcontext:traverse(ast, emitter)
+  ppcontext:traverse_node(ast, emitter)
 
   -- generate the preprocess function`
   local ppcode = emitter:generate()

@@ -15,8 +15,6 @@ function AnalyzerContext:_init(visitors, parser)
   self.requires = {}
   self.scope = self.rootscope
   self.scopestack = {}
-  self.state = {}
-  self.statestack = {}
   self.pragmas = {}
   self.pragmastack = {}
   self.usedcodenames = {}
@@ -32,18 +30,6 @@ end
 function AnalyzerContext:pop_pragmas()
   self.pragmas = table.remove(self.pragmastack)
   assert(self.pragmas)
-end
-
-function AnalyzerContext:push_state()
-  table.insert(self.statestack, self.state)
-  local newstate = tabler.copy(self.state)
-  self.state = newstate
-  return newstate
-end
-
-function AnalyzerContext:pop_state()
-  self.state = table.remove(self.statestack)
-  assert(self.state)
 end
 
 function AnalyzerContext:push_scope(scope)

@@ -68,7 +68,7 @@ function builtins.require(context, node)
   if justloaded then
     preprocessor.preprocess(context, ast)
   end
-  context:traverse(ast)
+  context:traverse_node(ast)
   context:pop_scope()
   context:pop_state()
   context:pop_pragmas()

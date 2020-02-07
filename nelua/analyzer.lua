@@ -1032,8 +1032,10 @@ function visitors.CallMethod(context, node)
   visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)
 end
 
-function visitors.Block(context, node, scopecb)
+function visitors.Block(context, node)
   if node.preprocess then
+    local scope = context:push_forked_scope("block", node)
+
     local ok, err = except.trycall(function()
       node:preprocess()
     end)
@@ -1041,13 +1043,16 @@ function visitors.Block(context, node, scopecb)
       node:raisef('error while preprocessing block: %s', err)
     end
     node.preprocess = nil
+
+    local resolutions_count = scope:resolve()
+    context:pop_scope()
+    if resolutions_count == 0 then
+      return
+    end
   end
   local statnodes = node[1]
   context:repeat_scope_until_resolution('block', node, function()
     context:traverse_nodes(statnodes)
-    if scopecb then
-      scopecb()
-    end
   end)
 end
 
@@ -1100,9 +1105,11 @@ function visitors.Repeat(context, node)
   local blocknode, condnode = node[1], node[2]
   condnode.desiredtype = primtypes.boolean
   condnode.attr.inconditional = true
-  context:traverse_node(blocknode, function()
-    context:traverse_node(condnode)
-  end)
+  context:traverse_node(blocknode)
+
+  context:push_scope(blocknode.scope)
+  context:traverse_node(condnode)
+  context:pop_scope()
 end
 
 function visitors.ForIn(context, node)

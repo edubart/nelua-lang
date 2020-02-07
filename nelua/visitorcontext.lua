@@ -1,4 +1,5 @@
 local class = require 'nelua.utils.class'
+local tabler = require 'nelua.utils.tabler'
 
 local VisitorContext = class()
 
@@ -37,6 +38,8 @@ end
 function VisitorContext:_init(visitors)
   self:set_visitors(visitors)
   self.visiting_nodes = {}
+  self.state = {}
+  self.statestack = {}
 end
 
 function VisitorContext:set_visitors(visitors)
@@ -46,31 +49,20 @@ function VisitorContext:set_visitors(visitors)
   end
 end
 
-function VisitorContext:traverse(node, ...)
-  if node._astnode then
-    return traverse_node(self, node, ...)
-  else
-    return traverse_nodes(self, node, ...)
-  end
-end
-
 function VisitorContext:get_parent_node()
   return self.visiting_nodes[#self.visiting_nodes - 1]
 end
 
-function VisitorContext:iterate_parent_nodes()
-  local i = #self.visiting_nodes
-  return function(nodes)
-    i = i - 1
-    if i <= 0 then return nil end
-    return nodes[i]
-  end, self.visiting_nodes
+function VisitorContext:push_state()
+  table.insert(self.statestack, self.state)
+  local newstate = tabler.copy(self.state)
+  self.state = newstate
+  return newstate
 end
 
-function VisitorContext:get_parent_node_if(f)
-  for node in self:iterate_parent_nodes() do
-    if f(node) then return node end
-  end
+function VisitorContext:pop_state()
+  self.state = table.remove(self.statestack)
+  assert(self.state)
 end
 
 return VisitorContext
