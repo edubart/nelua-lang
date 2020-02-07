@@ -1271,10 +1271,6 @@ function visitors.VarDecl(context, node)
         (vartype == primtypes.type or (vartype == nil and valtype == primtypes.type)) then
         varnode:raisef("cannot assign imported variables, only imported types can be assigned")
       end
-
-      if vartype and vartype:is_initializable_from_attr(valnode.attr) then
-        valnode.attr.initializer = true
-      end
     else
       if context.pragmas.noinit then
         varnode.attr.noinit = true
@@ -1311,7 +1307,10 @@ function visitors.VarDecl(context, node)
           context:traverse_node(annotnode, symbol)
         end
       end
-      if vartype and assigning then
+      if vartype then
+        if valnode and vartype:is_initializable_from_attr(valnode.attr) then
+          valnode.attr.initializer = true
+        end
         local ok, err = vartype:is_convertible_from(valnode or valtype)
         if not ok then
           varnode:raisef("in variable '%s' declaration: %s", symbol.name, err)

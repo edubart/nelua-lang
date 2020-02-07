@@ -167,25 +167,23 @@ function Scope:resolve_symbols()
   for _,symbol in pairs(self.symbols) do
     if symbol:resolve_type() then
       count = count + 1
-    elseif count == 0 then
+    elseif count == 0 and symbol.type == nil then
       table.insert(unknownlist, symbol)
-    end
-    if self.context.state.anyphase and symbol.type == nil then
-      symbol.type = typedefs.primtypes.any
-      symbol:clear_possible_types()
-      count = count + 1
     end
   end
   -- if nothing was resolved previously then try resolve symbol with unknown possible types
-  if count == 0 and #unknownlist > 0 and
-    not self.context.state.anyphase and not self.context.rootscope.delay then
+  if count == 0 and #unknownlist > 0 and not self.context.rootscope.delay then
     -- [disabled] try to infer the type only for the first unknown symbol
     --table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)
     for _,symbol in ipairs(unknownlist) do
       if symbol:resolve_type(true) then
         count = count + 1
-        --break
+      elseif self.context.state.anyphase then
+        symbol.type = typedefs.primtypes.any
+        symbol:clear_possible_types()
+        count = count + 1
       end
+      --break
     end
   end
   return count
