@@ -178,6 +178,7 @@ typedefs.function_annots = {
   nodecl = true,
   nosideeffect = true,
   entrypoint = true,
+  hookmain = true,
   cexport = true,
 }
 

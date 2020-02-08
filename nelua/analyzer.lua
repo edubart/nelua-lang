@@ -1481,7 +1481,7 @@ end
 local function check_function_returns(node, returntypes, blocknode)
   local attr = node.attr
   local functype = attr.type
-  if not functype or functype.lazyfunction or attr.nodecl or attr.cimport then
+  if not functype or functype.lazyfunction or attr.nodecl or attr.cimport or attr.hookmain then
     return
   end
   if #returntypes > 0 then
@@ -1621,6 +1621,9 @@ function visitors.FuncDef(context, node, lazysymbol)
     if attr.cimport then
       if #blocknode[1] ~= 0 then
         blocknode:raisef("body of an import function must be empty")
+      end
+      if attr.codename == 'nelua_main' then
+        context.hookmain = true
       end
     end
 

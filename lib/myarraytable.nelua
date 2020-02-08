@@ -2,112 +2,88 @@
 --TODO: record metamethods
 
 ## strict = true
+## unitname = 'nelua'
 
 require 'memory'
 
 local T = @byte
-local myarraytableobj <codename 'myarraytable'> = @record{
-  len: usize,
-  cap: usize,
+local ArrayTableObj = @record{
+  size: usize,
   data: span(T)
 }
-local myarraytable = @myarraytableobj*
 
-function myarraytable.create(): myarraytable
-  return (@myarraytable)(memory.alloc(#myarraytableobj).data)
+function ArrayTableObj.create(): ArrayTableObj*
+  return (@ArrayTableObj*)(memory.new(ArrayTableObj))
 end
 
-function myarraytable:reserve(cap: usize)
-  memory.realloc(self.data, (cap + 1) * #T)
-  if unlikely(not self.data.data) then
-    error 'myarraytable_reserve: not enough memory'
-  end
-  if unlikely(self.cap == 0) then
+function ArrayTableObj:reserve(cap: usize)
+  memory.spanrealloc0(self.data, cap + 1)
+  if unlikely(self.data.size == 0) then
     local t: T
     self.data[0] = t
   end
-  self.cap = cap
+  self.data.size = cap
 end
 
-function myarraytable:grow()
-  local cap = self.cap == 0 and 1_usize or (self.cap << 1)
+function ArrayTableObj:grow()
+  local cap = self.data.size == 0 and 1_usize or (self.data.size << 1)
   self:reserve(cap)
 end
 
-function myarraytable:resize_zero(n: usize)
-  local addn = n - self.len
+function ArrayTableObj:resize(n: usize, v: T)
+  local addn = n - self.size
   if addn > 0 then
     self:reserve(n)
-    memory.set((@span(T)){&self.data[self.len+1], addn}, 0)
-    self.len = n
-  end
-end
-
-function myarraytable:resize(n: usize, v: T)
-  local addn = n - self.len
-  if addn > 0 then
-    self:reserve(n)
-    for i=self.len+1,<n do
+    for i=self.size+1,<n do
       self.data[i+1] = v
     end
-    self.len = n
+    self.size = n
   end
 end
 
-function myarraytable:push(v: T)
-  self.len = self.len + 1
-  if unlikely(self.len > self.cap) then
+function ArrayTableObj:push(v: T)
+  self.size = self.size + 1
+  if unlikely(self.size > self.data.size) then
     self:grow()
   end
-  self.data[self.len] = v
+  self.data[self.size] = v
 end
 
-function myarraytable:pop(): T
-  if unlikely(self.len == 0) then
-    error 'myarraytable_pop: length is 0'
+function ArrayTableObj:pop(): T
+  if unlikely(self.size == 0) then
+    error 'ArrayTable_pop: length is 0'
   end
-  local i = self.len
-  self.len = self.len - 1
+  local i = self.size
+  self.size = self.size - 1
   return self.data[i]
 end
 
-function myarraytable:at(i: usize): T*
-  if unlikely(i > self.len) then
-    if unlikely(i ~= self.len + 1) then
-      error 'myarraytable_at: index out of range'
+function ArrayTableObj:at(i: usize): T*
+  if unlikely(i > self.size) then
+    if unlikely(i ~= self.size + 1) then
+      error 'ArrayTable_at: index out of range'
     end
-    self.len = self.len + 1
-    if unlikely(self.len > self.cap) then
+    self.size = self.size + 1
+    if unlikely(self.size > self.data.size) then
       self:grow()
     end
-  elseif unlikely(i == 0 and self.cap == 0) then
+  elseif unlikely(i == 0 and self.data.size == 0) then
     self:grow()
   end
   return &self.data[i]
 end
 
-function myarraytable:get(i: usize): T*
-  if unlikely(i > self.len) then
-    error 'myarraytable_get: index out of range'
-  elseif unlikely(i == 0 and self.cap == 0) then
+function ArrayTableObj:get(i: usize): T*
+  if unlikely(i > self.size) then
+    error 'ArrayTable_get: index out of range'
+  elseif unlikely(i == 0 and self.data.size == 0) then
     self:grow()
   end
   return &self.data[i]
 end
 
-function myarraytable:length(): usize
-  return self.len
+function ArrayTableObj:length(): usize
+  return self.size
 end
 
--- tests
-local t = myarraytable.create()
-assert(t:length() == 0)
-assert($t:at(0) == 0)
-assert(t:length() == 0)
-local i = t:at(0); $i = 1
-assert($t:get(0) == 1)
-t:push(0xf)
-assert($t:get(1) == 0xf)
-assert(t:length() == 1)
-t:pop()
-assert(t:length() == 0)
+global myarraytable = @ArrayTableObj*

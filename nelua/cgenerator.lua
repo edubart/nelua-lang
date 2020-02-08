@@ -983,7 +983,7 @@ function visitors.FuncDef(context, node, emitter)
   end
   if define then
     context:add_definition(defemitter:generate())
-    if attr.entrypoint then
+    if attr.entrypoint and not context.hookmain then
       context:add_definition(function() return context.mainemitter:generate() end)
     end
     context:add_definition(implemitter:generate())
@@ -1112,10 +1112,12 @@ local function emit_main(ast, context)
   context:add_include('<stddef.h>')
   context:add_include('<stdint.h>')
   context:add_include('<stdbool.h>')
+  context:ensure_runtime_builtin('nelua_noinline')
 
   local mainemitter = CEmitter(context, -1)
+  context.mainemitter = mainemitter
 
-  if not context.entrypoint then
+  if not context.entrypoint or context.hookmain then
     mainemitter:inc_indent()
     mainemitter:add_ln("int nelua_main() {")
     mainemitter:add_traversal(ast)
@@ -1128,9 +1130,8 @@ local function emit_main(ast, context)
     mainemitter:add_ln("}")
     mainemitter:dec_indent()
 
-    context:add_declaration('int nelua_main();\n')
+    context:add_declaration('nelua_noinline int nelua_main();\n')
   else
-    context.mainemitter = mainemitter
     mainemitter:inc_indent()
     mainemitter:add_traversal(ast)
     mainemitter:dec_indent()
@@ -1142,8 +1143,7 @@ local function emit_main(ast, context)
 
     if context.has_gc then
       mainemitter:add_indent_ln('nelua_gc_start(&nelua_gc, &argc);')
-      mainemitter:add_indent_ln('int (*volatile inner_main)(void) = nelua_main;')
-      mainemitter:add_indent_ln('int result = inner_main();')
+      mainemitter:add_indent_ln('int result = nelua_main();')
       mainemitter:add_indent_ln('nelua_gc_stop(&nelua_gc);')
       mainemitter:add_indent_ln('return result;')
     else
@@ -1151,7 +1151,9 @@ local function emit_main(ast, context)
     end
     mainemitter:dec_indent(2)
     mainemitter:add_indent_ln('}')
+  end
 
+  if not context.entrypoint or context.hookmain then
     context:add_definition(mainemitter:generate())
   end
 end

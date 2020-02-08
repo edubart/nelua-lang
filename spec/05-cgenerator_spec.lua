@@ -1491,6 +1491,19 @@ it("entrypoint", function()
   ]], "hello\nwonderful\nworld")
 end)
 
+it("hook main", function()
+  assert.run_c([[
+    local function nelua_main(): cint <cimport,nodecl> end
+    local function main(argc: cint, argv: cchar**): cint <entrypoint>
+      print 'before'
+      local ret = nelua_main()
+      print('after')
+      return ret
+    end
+    print 'inside'
+  ]], "before\ninside\nafter")
+end)
+
 it("print builtin", function()
   assert.run_c([[
     print(1,0.2,1e2,0xf,0b01)

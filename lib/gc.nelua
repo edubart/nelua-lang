@@ -1,0 +1,523 @@
+-- Tiny and simple mark and sweep garbage collector
+-- Implementation based on https://github.com/orangeduck/tgc
+
+##[[
+strict = true
+unitname = 'nelua'
+cinclude '<setjmp.h>'
+]]
+
+require 'memory'
+
+local jmp_buf <cimport,nodecl> = @record{dummy: usize}
+local function setjmp(env: jmp_buf) <cimport,nodecl> end
+
+local GCFlags = @enum(usize) {
+  MARK = 1,
+  ROOT = 2,
+  LEAF = 4
+}
+local UINTPTR_MAX <comptime> = (@usize)(-1)
+
+local FinalizerPtr: type = @pointer
+
+local GCItem = @record{
+  ptr: pointer,
+  flags: usize,
+  size: usize,
+  hash: usize,
+  finalizer: FinalizerPtr,
+}
+
+local GC = @record{
+  bottom: pointer,
+  paused: boolean,
+  minptr: usize, maxptr: usize,
+  items: span(GCItem), frees: span(GCItem),
+  loadfactor: number, sweepfactor: number,
+  nitems: usize, nslots: usize, mitems: usize, nfrees: usize
+}
+
+function GC:_hash(ptr: pointer): usize
+  return (@usize)(ptr) >> 3
+end
+
+function GC:_probe(i: usize, h: usize): usize
+  local v: isize = i - (h - 1_isize)
+  if v < 0 then
+    v = self.nslots + v
+  end
+  return (@usize)(v)
+end
+
+function GC:_get_ptr(ptr: pointer): GCItem*
+  local i: usize = self:_hash(ptr) % self.nslots
+  local j: usize = 0
+  while true do
+    local h: usize = self.items[i].hash
+    if h == 0 or j > self:_probe(i, h) then
+      return nilptr
+    end
+    if self.items[i].ptr == ptr then
+      return &self.items[i]
+    end
+    i = (i + 1) % self.nslots
+    j = j + 1
+  end
+  return nilptr
+end
+
+function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerPtr)
+  local i: usize = self:_hash(ptr) % self.nslots
+  local item: GCItem = {
+    ptr = ptr,
+    flags = flags,
+    size = size,
+    hash = i+1,
+    finalizer = finalizer
+  }
+
+  local j: usize = 0
+  while true do
+    local h: usize = self.items[i].hash
+    if h == 0 then
+      self.items[i] = item
+      return
+    end
+    if self.items[i].ptr == item.ptr then
+      return
+    end
+    local p: usize = self:_probe(i, h)
+    if j >= p then
+      self.items[i], item = item, self.items[i]
+      j = p
+    end
+    i = (i+1) % self.nslots
+    j = j + 1
+  end
+end
+
+function GC:_rem_ptr(ptr: pointer)
+  if self.nitems == 0 then
+    return
+  end
+
+  for i:usize=0,<self.nfrees do
+    if self.frees[i].ptr == ptr then
+      self.frees[i].ptr = nilptr
+    end
+  end
+
+  local i: usize = self:_hash(ptr) % self.nslots
+  local j: usize = 0
+  while true do
+    local h: usize = self.items[i].hash
+    if h == 0 or j > self:_probe(i, h) then
+      return
+    end
+    if self.items[i].ptr == ptr then
+      memory.set(&self.items[i], 0, #GCItem)
+      j = i
+      while true do
+        local nj: usize = (j+1) % self.nslots
+        local nh: usize = self.items[nj].hash
+        if nh ~= 0 and self:_probe(nj, nh) > 0 then
+          memory.copy(&self.items[j], &self.items[nj], #GCItem)
+          memory.set(&self.items[nj], 0, #GCItem)
+          j = nj
+        else
+          break
+        end
+      end
+      self.nitems = self.nitems - 1
+      return
+    end
+    i = (i+1) % self.nslots
+    j = j + 1
+  end
+end
+
+local GC_PRIMES_COUNT <comptime> = 24
+local GC_primes: usize[GC_PRIMES_COUNT] <const> = {
+  0,       1,       5,       11,
+  23,      53,      101,     197,
+  389,     683,     1259,    2417,
+  4733,    9371,    18617,   37097,
+  74093,   148073,  296099,  592019,
+  1100009, 2200013, 4400021, 8800019
+}
+
+function GC:_ideal_size(size: usize): usize
+  size = (@usize)((size+1) / self.loadfactor)
+  for i:usize=0,<GC_PRIMES_COUNT do
+    if GC_primes[i] >= size then
+      return GC_primes[i]
+    end
+  end
+  local last: usize = GC_primes[GC_PRIMES_COUNT-1]
+  local i: usize = 0
+  while true do
+    if last * i >= size then
+      return last * i
+    end
+    i = i + 1
+  end
+  return 0
+end
+
+function GC:_rehash(newsize: usize): boolean
+  local olditems: span(GCItem) = self.items
+  local oldsize: usize = self.nslots
+
+  self.nslots = newsize
+  self.items = memory.spanalloc0(@GCItem, self.nslots)
+
+  if self.items.size == 0 then
+    self.nslots = oldsize
+    self.items = olditems
+    return false
+  end
+
+  for i:usize=0,<oldsize do
+    if olditems[i].hash ~= 0 then
+      self:_add_ptr(olditems[i].ptr, olditems[i].size, olditems[i].flags, olditems[i].finalizer)
+    end
+  end
+  memory.spandealloc(olditems)
+  return true
+end
+
+function GC:_resize_more(): boolean
+  local newsize: usize = self:_ideal_size(self.nitems)
+  local oldsize: usize = self.nslots
+  if newsize > oldsize then
+    return self:_rehash(newsize)
+  else
+    return true
+  end
+end
+
+function GC:_resize_less(): boolean
+  local newsize: usize = self:_ideal_size(self.nitems)
+  local oldsize: usize = self.nslots
+  if newsize < oldsize then
+    return self:_rehash(newsize)
+  else
+    return true
+  end
+end
+
+function GC:_mark_ptr(ptr: pointer)
+  if (@usize)(ptr) < self.minptr or (@usize)(ptr) > self.maxptr then
+    return
+  end
+
+  local i: usize = self:_hash(ptr) % self.nslots
+  local j: usize = 0
+
+  while true do
+    local h: usize = self.items[i].hash
+    if h == 0 or j > self:_probe(i, h) then
+      return
+    end
+    if ptr == self.items[i].ptr then
+      if self.items[i].flags & GCFlags.MARK ~= 0 then
+        return
+      end
+      self.items[i].flags = self.items[i].flags | GCFlags.MARK
+      if self.items[i].flags & GCFlags.LEAF ~= 0 then
+        return
+      end
+      for k:usize=0,<(self.items[i].size // #@pointer) do
+        self:_mark_ptr(((@pointer[0]*)(self.items[i].ptr))[k])
+      end
+      return
+    end
+    i = (i+1) % self.nslots
+    j = j + 1
+  end
+end
+
+function GC:_mark_stack() <noinline>
+  local stk: pointer
+  local bot: usize = (@usize)(self.bottom)
+  local top: usize = (@usize)(&stk)
+
+  if bot == top then
+    return
+  end
+
+  if bot < top then
+    for pi:usize=top,>=bot,-#@pointer do
+      self:_mark_ptr($(@pointer*)(pi))
+    end
+  end
+
+  if bot > top then
+    for pi:usize=top,<=bot,#@pointer do
+      self:_mark_ptr($(@pointer*)(pi))
+    end
+  end
+end
+
+function GC:_mark() <noinline>
+  if self.nitems == 0 then
+    return
+  end
+
+  for i:usize=0,<self.nslots do
+    if self.items[i].hash == 0 or
+       self.items[i].flags & GCFlags.MARK ~= 0 then
+      continue
+    end
+    if self.items[i].flags & GCFlags.ROOT ~= 0 then
+      self.items[i].flags = self.items[i].flags | GCFlags.MARK
+      if self.items[i].flags & GCFlags.LEAF ~= 0 then
+        continue
+      end
+      for k:usize=0,<self.items[i].size//#@pointer do
+        self:_mark_ptr(((@pointer[0]*)(self.items[i].ptr))[k])
+      end
+      continue
+    end
+  end
+
+  -- dump registers into the stack
+  local env: jmp_buf
+  setjmp(env)
+  self:_mark_stack()
+end
+
+function GC:_sweep() <noinline>
+  if self.nitems == 0 then
+    return
+  end
+
+  self.nfrees = 0
+  for j:usize=0,<self.nslots do
+    if not (self.items[j].hash == 0 or
+            self.items[j].flags & GCFlags.MARK ~= 0 or
+            self.items[j].flags & GCFlags.ROOT ~= 0) then
+      self.nfrees = self.nfrees + 1
+    end
+  end
+
+  self.frees = memory.spanrealloc0(self.frees, self.nfrees)
+  if self.frees.size == 0 then
+    return
+  end
+
+  local i: usize = 0
+  local k: usize = 0
+  while i < self.nslots do
+    if self.items[i].hash == 0 or
+       self.items[i].flags & GCFlags.MARK ~= 0 or
+       self.items[i].flags & GCFlags.ROOT ~= 0 then
+      i = i + 1
+      continue
+    end
+
+    self.frees[k] = self.items[i]
+    k = k + 1
+    memory.set(&self.items[i], 0, #GCItem)
+
+    local j: usize = i
+    while true do
+      local nj: usize = (j+1) % self.nslots
+      local nh: usize = self.items[nj].hash
+      if nh ~= 0 and self:_probe(nj, nh) > 0 then
+        memory.copy(&self.items[j], &self.items[nj], #GCItem)
+        memory.set(&self.items[nj], 0, #GCItem)
+        j = nj
+      else
+        break
+      end
+    end
+    self.nitems = self.nitems - 1
+  end
+
+  for j:usize=0,<self.nslots do
+    if self.items[j].hash ~= 0 then
+      if self.items[j].flags & GCFlags.MARK ~= 0 then
+        self.items[j].flags = self.items[j].flags & ~GCFlags.MARK
+      end
+    end
+  end
+
+  self:_resize_less()
+
+  self.mitems = self.nitems + (@usize)(self.nitems * self.sweepfactor) + 1
+
+  for j:usize=0,<self.nfrees do
+    if self.frees[j].ptr then
+      if self.frees[j].finalizer then 
+        --self.frees[j].finalizer(self.frees[j].ptr)
+      end
+      memory.dealloc(self.frees[j].ptr)
+    end
+  end
+
+  memory.spandealloc(self.frees)
+  self.frees = {}
+  self.nfrees = 0
+end
+
+function GC:start(stack: pointer)
+  $self = {}
+  self.bottom = stack
+  self.paused = false
+  self.minptr = UINTPTR_MAX
+  self.loadfactor = 0.9
+  self.sweepfactor = 0.5
+end
+
+function GC:stop()
+  self:_sweep()
+  memory.spandealloc(self.items)
+  memory.spandealloc(self.frees)
+  $self = {}
+  self.paused = true
+end
+
+function GC:pause()
+  self.paused = true
+end
+
+function GC:resume()
+  self.paused = false
+end
+
+function GC:run()
+  self:_mark()
+  self:_sweep()
+end
+
+function GC:add(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerPtr): pointer
+  self.nitems = self.nitems + 1
+
+  local uptr: usize = (@usize)(ptr)
+  if uptr + size > self.maxptr then
+    self.maxptr = uptr + size
+  end
+  if uptr < self.minptr then
+    self.minptr = uptr
+  end
+
+  if self:_resize_more() then
+    self:_add_ptr(ptr, size, flags, finalizer)
+    if not self.paused and self.nitems > self.mitems then
+      self:run()
+    end
+    return ptr
+  else
+    self.nitems = self.nitems - 1
+    memory.dealloc(ptr)
+    return nilptr
+  end
+end
+
+function GC:rem(ptr: pointer)
+  self:_rem_ptr(ptr)
+  self:_resize_less()
+  self.mitems = self.nitems + self.nitems // 2 + 1
+end
+
+function GC:alloc0_opt(size: usize, flags: usize, finalizer: FinalizerPtr): pointer
+  local ptr: pointer = memory.alloc0(size)
+  if ptr then
+    ptr = self:add(ptr, size, flags, finalizer)
+  end
+  return ptr
+end
+
+function GC:alloc0(size: usize): pointer
+  return self:alloc0_opt(size, 0, nilptr)
+end
+
+function GC:realloc0(ptr: pointer, size: usize, oldsize: usize): pointer
+  local qtr: pointer = memory.realloc0(ptr, size, oldsize)
+
+  if not qtr then
+    self:rem(ptr)
+    return qtr
+  end
+
+  if not ptr then
+    self:add(qtr, size, 0, nilptr)
+    return qtr
+  end
+
+  local p: GCItem* = self:_get_ptr(ptr)
+  if p then
+    if qtr == ptr then
+      p.size = size
+    else
+      local flags: usize = p.flags
+      local finalizer: FinalizerPtr = p.finalizer
+      self:rem(ptr)
+      self:add(qtr, size, flags, finalizer)
+    end
+    return qtr
+  end
+  return nilptr
+end
+
+function GC:dealloc(ptr: pointer)
+  local p: GCItem* = self:_get_ptr(ptr)
+  if p then
+    if p.finalizer then
+      --p.finalizer(ptr)
+    end
+    memory.dealloc(ptr)
+    self:rem(ptr)
+  end
+end
+
+function GC:set_finalizer(ptr: pointer, finalizer: FinalizerPtr)
+  local p: GCItem* = self:_get_ptr(ptr)
+  if p then
+    p.finalizer = finalizer
+  end
+end
+
+function GC:set_flags(ptr: pointer, flags: usize)
+  local p: GCItem* = self:_get_ptr(ptr)
+  if p then
+    p.flags = flags
+  end
+end
+
+function GC:get_flags(ptr: pointer): usize
+  local p: GCItem* = self:_get_ptr(ptr)
+  if p then
+    return p.flags
+  end
+  return 0
+end
+
+function GC:get_finalizer(ptr: pointer): FinalizerPtr
+  local p: GCItem* = self:_get_ptr(ptr)
+  if p then
+    return p.finalizer
+  end
+  return nilptr
+end
+
+function GC:get_size(ptr: pointer): usize
+  local p: GCItem* = self:_get_ptr(ptr)
+  if p then
+    return p.size
+  end
+  return 0
+end
+
+global gc = GC{}
+
+local function nelua_main(): cint <cimport,nodecl> end
+
+local function main(argc: cint, argv: cchar**): cint <entrypoint>
+  gc:start(&argc)
+  local ret: cint = nelua_main()
+  gc:stop()
+  return ret
+end
