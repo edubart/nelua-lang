@@ -393,14 +393,15 @@ do -- Dereferencing and referencing
 end
 
 require 'memory'
+require 'allocators.generic_allocator'
 
 do -- Allocating memory
   local Person = @record{name: string, age: integer}
-  local p: Person* = memory.new(@Person)
+  local p: Person* = generic_allocator.new(@Person)
   p.name = "John"
   p.age = 20
   print(p.name, p.age)
-  memory.delete(p)
+  generic_allocator.delete(p)
   p = nilptr
 end
 

@@ -790,14 +790,15 @@ print($ap) -- outputs 3
 Memory can be allocated using C malloc and free.
 
 ```nelua
-require 'C.stdlib'
+require 'memory'
+require 'allocators.generic_allocator'
 
 local Person = @record{name: string, age: integer}
-local p = (@Person*)(C.malloc(#Person))
+local p: Person* = generic_allocator.new(@Person)
 p.name = "John"
 p.age = 20
 print(p.name, p.age)
-C.free(p)
+generic_allocator.delete(p)
 p = nilptr
 ```
 

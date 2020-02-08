@@ -39,42 +39,7 @@ local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',node
 global memory = @record{}
 
 --------------------------------------------------------------------------------
--- raw pointer functions
-
-function memory.alloc(size: usize): pointer
-  check(size > 0_u, 'memory.alloc: size cannot be zero')
-  local p: pointer = malloc(size)
-  check(p, 'memory.alloc: allocation fail')
-  return p
-end
-
-function memory.alloc0(size: usize): pointer
-  check(size > 0_u, 'memory.alloc0: size must be greater than 0')
-  local p: pointer = calloc(size, 1)
-  check(p, 'memory.alloc0: allocation fail')
-  return p
-end
-
-function memory.realloc(p: pointer, size: usize): pointer
-  check(size > 0_u, 'memory.realloc: size must be greater than 0')
-  p = realloc(p, size)
-  check(size == 0 or p, 'memory.realloc: allocation fail')
-  return p
-end
-
-function memory.realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
-  check(newsize > 0_u, 'memory.realloc0: size must be greater than 0')
-  p = realloc(p, newsize)
-  check(newsize == 0_u or p, 'memory.realloc0: allocation fail')
-  if likely(newsize > oldsize) then
-    memset(&(@byte[0]*)(p)[oldsize], 0, newsize - oldsize)
-  end
-  return p
-end
-
-function memory.dealloc(p: pointer)
-  free(p)
-end
+-- pointer functions
 
 function memory.copy(dest: pointer, src: pointer, size: usize)
   check(dest and src, 'memory.copy: invalid pointer')
@@ -89,6 +54,11 @@ end
 function memory.set(dest: pointer, x: byte, size: usize)
   check(dest, 'memory.set: invalid pointer')
   memset(dest, x, size)
+end
+
+function memory.zero(dest: pointer, size: usize)
+  check(dest, 'memory.set: invalid pointer')
+  memset(dest, 0, size)
 end
 
 function memory.compare(a: pointer, b: pointer, size: usize): int32
@@ -114,62 +84,6 @@ end
 --------------------------------------------------------------------------------
 -- span functions
 
-function memory.spanalloc(T: type, size: usize)
-  local s: span(T)
-  if likely(size > 0_u) then
-    s.data = (@T*)(malloc(size * #T))
-    check(s.data, 'memory.spanalloc: allocation fail')
-    s.size = size
-  end
-  return s
-end
-
-function memory.spanalloc0(T: type, size: usize)
-  local s: span(T)
-  if likely(size > 0_u) then
-    s.data = (@T*)(calloc(size, #T))
-    check(s.data, 'memory.spanalloc0: allocation fail')
-    s.size = size
-  end
-  return s
-end
-
-function memory.spanrealloc(s: auto, size: usize)
-  local T: type = #[check_span_subtype(s)]#
-  if unlikely(size == 0) then
-    free(s.data)
-    s.data = nilptr
-    s.size = 0
-  else
-    s.data = (@T*)(realloc(s.data, size * #T))
-    check(s.data, 'memory.spanrealloc0: allocation fail')
-    s.size = size
-  end
-  return s
-end
-
-function memory.spanrealloc0(s: auto, size: usize)
-  local T: type = #[check_span_subtype(s)]#
-  if unlikely(size == 0) then
-    free(s.data)
-    s.data = nilptr
-    s.size = 0
-  else
-    s.data = (@T*)(realloc(s.data, size * #T))
-    check(s.data, 'memory.spanrealloc0: allocation fail')
-    if likely(size > s.size) then
-      memset(&s[s.size], 0, (size - s.size) * #T)
-    end
-    s.size = size
-  end
-  return s
-end
-
-function memory.spandealloc(s: auto)
-  ## check_span_subtype(s)
-  free(s.data)
-end
-
 function memory.spancopy(dest: auto, src: auto)
   local T: type = #[check_span_subtype(dest)]#
   ## check_type_match(dest, src)
@@ -194,6 +108,12 @@ function memory.spanset(dest: auto, x: auto)
   for i:usize=0,<dest.size do
     memcpy(&dest[i], &x, #T)
   end
+end
+
+function memory.spanzero(dest: auto)
+  ## check_span_subtype(dest)
+  local T: type = #[dest.type.subtype]#
+  memset(dest.data, 0, dest.size * #T)
 end
 
 function memory.spancompare(a: auto, b: auto): int32
@@ -247,28 +167,4 @@ function memory.spancontains(s: auto, x: auto): boolean
     end
   end
   return false
-end
-
---------------------------------------------------------------------------------
--- new and delete
-
-function memory.new(T: type, size: auto)
-  ## if not size.type:is_nil() then
-    ## staticassert(size.type:is_integral(), 'memory.new: size must be an integral type')
-    ## if not size.type:is_unsigned() then
-      check(size > 0, 'memory.new: size must be greater than 0')
-    ## end
-    return memory.spanalloc0(T, (@usize)(size))
-  ## else
-    return (@T*)(memory.alloc0(#T))
-  ## end
-end
-
-function memory.delete(s: auto)
-  ## staticassert(s.type:is_pointer() or s.type:is_span(), "memory.delete: invalid type '%s'", s.type)
-  ## if s.type:is_span() then
-    memory.spandealloc(s)
-  ## else -- pointer
-    memory.dealloc(s)
-  ## end
 end

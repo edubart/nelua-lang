@@ -1,0 +1,109 @@
+##[[
+strict = true
+unitname = 'nelua'
+
+--------------------------------------------------------------------------------
+-- compile time checks utilities
+local function check_span_subtype(v)
+  staticassert(v.type:is_span(),
+    "in argument '%s': expected 'span(T)' but got type '%s'",
+    v.name, v.type)
+  return v.type.subtype
+end
+
+local function check_type_match(a, b)
+  staticassert(a.type == b.type,
+    "argument '%s' type '%s' differs from argument '%s' type '%s",
+    a.name, b.name, a.type, b.type)
+end
+
+local function check_span_subtype_match(s, x)
+  local stype = check_span_subtype(s)
+  staticassert(stype == x.type,
+    "in argument '%s': type '%s' differs from argument '%s' type '%s",
+    s.name, x.name, stype, x.type)
+end
+]]
+
+## function implement_allocator_interface(allocator)
+
+local allocator = #[allocator]#
+
+function allocator.spanalloc(T: type, size: usize)
+  local s: span(T)
+  if likely(size > 0_u) then
+    s.data = (@T*)(allocator.alloc(size * #T))
+    check(s.data, 'allocator.spanalloc: allocation fail')
+    s.size = size
+  end
+  return s
+end
+
+function allocator.spanalloc0(T: type, size: usize)
+  local s: span(T)
+  if likely(size > 0_u) then
+    s.data = (@T*)(allocator.alloc0(size * #T))
+    check(s.data, 'allocator.spanalloc0: allocation fail')
+    s.size = size
+  end
+  return s
+end
+
+function allocator.spanrealloc(s: auto, size: usize)
+  local T: type = #[check_span_subtype(s)]#
+  if unlikely(size == 0) then
+    allocator.dealloc(s.data)
+    s.data = nilptr
+    s.size = 0
+  else
+    s.data = (@T*)(allocator.realloc(s.data, size * #T))
+    check(s.data, 'allocator.spanrealloc0: allocation fail')
+    s.size = size
+  end
+  return s
+end
+
+function allocator.spanrealloc0(s: auto, size: usize)
+  local T: type = #[check_span_subtype(s)]#
+  if unlikely(size == 0) then
+    allocator.dealloc(s.data)
+    s.data = nilptr
+    s.size = 0
+  else
+    s.data = (@T*)(allocator.realloc(s.data, size * #T))
+    check(s.data, 'allocator.spanrealloc0: allocation fail')
+    if likely(size > s.size) then
+      memset(&s[s.size], 0, (size - s.size) * #T)
+    end
+    s.size = size
+  end
+  return s
+end
+
+function allocator.spandealloc(s: auto)
+  ## check_span_subtype(s)
+  allocator.dealloc(s.data)
+end
+
+function allocator.new(T: type, size: auto)
+  ## if not size.type:is_nil() then
+    ## staticassert(size.type:is_integral(), 'allocator.new: size must be an integral type')
+    ## if not size.type:is_unsigned() then
+      check(size > 0, 'allocator.new: size must be greater than 0')
+    ## end
+    return allocator.spanalloc0(T, (@usize)(size))
+  ## else
+    return (@T*)(allocator.alloc0(#T))
+  ## end
+end
+
+function allocator.delete(s: auto)
+  ## staticassert(s.type:is_pointer() or s.type:is_span(), "allocator.delete: invalid type '%s'", s.type)
+  ## if s.type:is_span() then
+    allocator.spandealloc(s)
+  ## else -- pointer
+    allocator.dealloc(s)
+  ## end
+end
+
+## end

@@ -4,86 +4,114 @@
 ## strict = true
 ## unitname = 'nelua'
 
-require 'memory'
+require 'allocators.gc_allocator'
 
-local T = @byte
-local ArrayTableObj = @record{
-  size: usize,
-  data: span(T)
-}
+local allocator = @gc_allocator
 
-function ArrayTableObj.create(): ArrayTableObj*
-  return (@ArrayTableObj*)(memory.new(ArrayTableObj))
-end
+## local memoize = require 'nelua.utils.memoize'
+## myarraytable = hygienize(memoize(function(T)
+  local T = @#[T]#
+  local ArrayTableImpl <codename #['nelua_ArrayTableImpl_'..T.name]#> = @record {
+    size: usize,
+    data: span(T)
+  }
+  local ArrayTable <codename #['nelua_ArrayTable_'..T.name]#> = @record{
+    impl: ArrayTableImpl*
+  }
 
-function ArrayTableObj:reserve(cap: usize)
-  memory.spanrealloc0(self.data, cap + 1)
-  if unlikely(self.data.size == 0) then
-    local t: T
-    self.data[0] = t
-  end
-  self.data.size = cap
-end
-
-function ArrayTableObj:grow()
-  local cap = self.data.size == 0 and 1_usize or (self.data.size << 1)
-  self:reserve(cap)
-end
-
-function ArrayTableObj:resize(n: usize, v: T)
-  local addn = n - self.size
-  if addn > 0 then
-    self:reserve(n)
-    for i=self.size+1,<n do
-      self.data[i+1] = v
+  function ArrayTable:_create_impl() <inline>
+    if unlikely(not self.impl) then
+      self.impl = (@ArrayTableImpl*)(allocator.alloc0(#ArrayTableImpl))
     end
-    self.size = n
   end
-end
 
-function ArrayTableObj:push(v: T)
-  self.size = self.size + 1
-  if unlikely(self.size > self.data.size) then
-    self:grow()
-  end
-  self.data[self.size] = v
-end
-
-function ArrayTableObj:pop(): T
-  if unlikely(self.size == 0) then
-    error 'ArrayTable_pop: length is 0'
-  end
-  local i = self.size
-  self.size = self.size - 1
-  return self.data[i]
-end
-
-function ArrayTableObj:at(i: usize): T*
-  if unlikely(i > self.size) then
-    if unlikely(i ~= self.size + 1) then
-      error 'ArrayTable_at: index out of range'
+  function ArrayTable:_grow()
+    local cap: usize
+    if self.impl.data.size ~= 0 then
+      cap = self.impl.data.size * 2
+    else
+      cap = 2
     end
-    self.size = self.size + 1
-    if unlikely(self.size > self.data.size) then
-      self:grow()
+    self.impl.data = allocator.spanrealloc(self.impl.data, cap)
+  end
+
+  function ArrayTable:reserve(n: usize)
+    self:_create_impl()
+    local cap = n + 1
+    if self.impl.data.size < cap then
+      self.impl.data = allocator.spanrealloc(self.impl.data, cap)
     end
-  elseif unlikely(i == 0 and self.data.size == 0) then
-    self:grow()
   end
-  return &self.data[i]
-end
 
-function ArrayTableObj:get(i: usize): T*
-  if unlikely(i > self.size) then
-    error 'ArrayTable_get: index out of range'
-  elseif unlikely(i == 0 and self.data.size == 0) then
-    self:grow()
+  function ArrayTable:resize(n: usize, v: T)
+    self:_create_impl()
+    local addn = n - self.impl.size
+    if addn > 0 then
+      self:reserve(n)
+      for i=self.impl.size+1,<n do
+        self.impl.data[i+1] = v
+      end
+      self.impl.size = n
+    end
   end
-  return &self.data[i]
-end
 
-function ArrayTableObj:length(): usize
-  return self.size
-end
+  function ArrayTable:push(v: T)
+    self:_create_impl()
+    self.impl.size = self.impl.size + 1
+    if unlikely(self.impl.size + 1 >= self.impl.data.size) then
+      self:_grow()
+    end
+    self.impl.data[self.impl.size] = v
+  end
 
-global myarraytable = @ArrayTableObj*
+  function ArrayTable:pop(): T
+    check(self.impl and self.impl.size > 0, 'arraytable: length is 0')
+    local i = self.impl.size
+    self.impl.size = self.impl.size - 1
+    return self.impl.data[i]
+  end
+
+  function ArrayTable:at(i: usize): T*
+    self:_create_impl()
+    if unlikely(i > self.impl.size) then
+      check(i == self.impl.size + 1, 'arraytable.at: index out of range')
+      self.impl.size = self.impl.size + 1
+    end
+    if unlikely(self.impl.size + 1 > self.impl.data.size) then
+      self:_grow()
+      memory.zero(&self.impl.data[i], #T)
+    end
+    return &self.impl.data[i]
+  end
+
+  function ArrayTable:get(i: usize): T*
+    check(self.impl and i <= self.impl.size, 'arraytable.get: index out of range')
+    if unlikely(i == 0 and self.impl.data.size == 0) then
+      self:_grow()
+    end
+    return &self.impl.data[i]
+  end
+
+  function ArrayTable:length(): usize
+    if unlikely(not self.impl) then
+      return 0
+    end
+    return self.impl.size
+  end
+
+  function ArrayTable:clear()
+    if likely(self.impl) then
+      self.impl.size = 0
+    end
+  end
+
+  function ArrayTable:reset()
+    if likely(self.impl) then
+      allocator.spandealloc(self.impl.data)
+      allocator.dealloc(self.impl)
+      self.impl = nilptr
+    end
+  end
+
+  ## return ArrayTable
+## end))

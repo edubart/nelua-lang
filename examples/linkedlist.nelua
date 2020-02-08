@@ -1,6 +1,9 @@
 ## strict = true
 
 require 'memory'
+require 'allocators.generic_allocator'
+
+local allocator = @generic_allocator
 
 ## local memoize = require 'nelua.utils.memoize'
 ## local list = hygienize(memoize(function(T)
@@ -12,7 +15,7 @@ require 'memory'
   }
 
   local function new_node(prev: ListNode*, next: ListNode*, value: T): ListNode*
-    local node = memory.new(@ListNode)
+    local node = allocator.new(@ListNode)
     node.prev = prev
     node.next = next
     node.value = value
@@ -77,7 +80,7 @@ require 'memory'
       node.next.prev = node.prev
     end
     local next = node.next
-    memory.delete(node)
+    allocator.delete(node)
     return next
   end
 
@@ -91,7 +94,7 @@ require 'memory'
     if unlikely(self.tail == node) then
       self.tail = nilptr
     end
-    memory.delete(node)
+    allocator.delete(node)
   end
 
   function List:remove_last()
@@ -104,14 +107,14 @@ require 'memory'
     if unlikely(self.head == node) then
       self.head = nilptr
     end
-    memory.delete(node)
+    allocator.delete(node)
   end
 
   function List:clear()
     local it = self.head
     while it do
       local next = it.next
-      memory.delete(it)
+      allocator.delete(it)
       it = next
     end
     self.head = nilptr
