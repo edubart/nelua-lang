@@ -369,6 +369,7 @@ end
 
 function visitors.Paren(context, node, ...)
   local innernode = node[1]
+  innernode.desiredtype = node.desiredtype
   local ret = context:traverse_node(innernode, ...)
   -- inherit attributes from inner node
   node.attr = innernode.attr
@@ -1679,7 +1680,7 @@ function visitors.UnaryOp(context, node)
   local attr = node.attr
   local opname, argnode = node[1], node[2]
 
-  if node.desiredtype == primtypes.boolean then
+  if node.desiredtype == primtypes.boolean or opname == 'not' then
     argnode.desiredtype = primtypes.boolean
   end
   context:traverse_node(argnode)

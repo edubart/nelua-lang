@@ -845,6 +845,13 @@ it("binary conditional operators", function()
       assert(a >= b == false) assert(a >= a == true)
       assert(b >= a == true)  assert(b >= b == true)
     end
+
+    do
+      local p: pointer
+      local b: boolean = true
+      assert(not (p or b) == false)
+      assert(not (b and p) == true)
+    end
   ]])
 end)
 
