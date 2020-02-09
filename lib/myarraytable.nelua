@@ -11,21 +11,29 @@ local allocator = @gc_allocator
 ## local memoize = require 'nelua.utils.memoize'
 ## myarraytable = hygienize(memoize(function(T)
   local T = @#[T]#
-  local ArrayTableImpl <codename #['nelua_ArrayTableImpl_'..T.name]#> = @record {
+  local ArrayTableImplT <codename #['nelua_ArrayTableImpl_'..T.name]#> = @record {
     size: usize,
     data: span(T)
   }
-  local ArrayTable <codename #['nelua_ArrayTable_'..T.name]#> = @record{
-    impl: ArrayTableImpl*
+  global ArrayTableT <codename #['nelua_ArrayTable_'..T.name]#> = @record{
+    impl: ArrayTableImplT*
   }
 
-  function ArrayTable:_init() <inline>
+  function ArrayTableT:init() <inline>
     if unlikely(not self.impl) then
-      self.impl = (@ArrayTableImpl*)(allocator.alloc0(#ArrayTableImpl))
+      self.impl = (@ArrayTableImplT*)(allocator.alloc0(#ArrayTableImplT))
     end
   end
 
-  function ArrayTable:_grow() <noinline>
+  function ArrayTableT:reset()
+    if likely(self.impl) then
+      allocator.spandealloc(self.impl.data)
+      allocator.dealloc(self.impl)
+      self.impl = nilptr
+    end
+  end
+
+  function ArrayTableT:_grow() <noinline>
     local cap: usize
     if self.impl.data.size ~= 0 then
       cap = self.impl.data.size * 2
@@ -35,16 +43,16 @@ local allocator = @gc_allocator
     self.impl.data = allocator.spanrealloc(self.impl.data, cap)
   end
 
-  function ArrayTable:reserve(n: usize <autocast>) <noinline>
-    self:_init()
+  function ArrayTableT:reserve(n: usize <autocast>) <noinline>
+    self:init()
     local cap = n + 1
     if self.impl.data.size < cap then
       self.impl.data = allocator.spanrealloc(self.impl.data, cap)
     end
   end
 
-  function ArrayTable:resize(n: usize <autocast>, v: T)
-    self:_init()
+  function ArrayTableT:resize(n: usize <autocast>, v: T)
+    self:init()
     local addn = n - self.impl.size
     if addn > 0 then
       self:reserve(n)
@@ -55,22 +63,17 @@ local allocator = @gc_allocator
     end
   end
 
-  function ArrayTable:clear()
+  function ArrayTableT:clear()
     if likely(self.impl) then
       self.impl.size = 0
+      if likely(self.impl.data.size > 0) then
+        memory.zero(&self.impl.data[0], #T)
+      end
     end
   end
 
-  function ArrayTable:reset()
-    if likely(self.impl) then
-      allocator.spandealloc(self.impl.data)
-      allocator.dealloc(self.impl)
-      self.impl = nilptr
-    end
-  end
-
-  function ArrayTable:push(v: T) <inline>
-    self:_init()
+  function ArrayTableT:push(v: T) <inline>
+    self:init()
     self.impl.size = self.impl.size + 1
     if unlikely(self.impl.size + 1 >= self.impl.data.size) then
       self:_grow()
@@ -78,15 +81,15 @@ local allocator = @gc_allocator
     self.impl.data[self.impl.size] = v
   end
 
-  function ArrayTable:pop(): T <inline>
+  function ArrayTableT:pop(): T <inline>
     check(self.impl and self.impl.size > 0, 'arraytable.pop: length is 0')
     local i = self.impl.size
     self.impl.size = self.impl.size - 1
     return self.impl.data[i]
   end
 
-  function ArrayTable:at(i: usize <autocast>): T* <inline>
-    self:_init()
+  function ArrayTableT:at(i: usize <autocast>): T* <inline>
+    self:init()
     if unlikely(i > self.impl.size) then
       check(i == self.impl.size + 1, 'arraytable.at: index out of range')
       self.impl.size = self.impl.size + 1
@@ -98,8 +101,8 @@ local allocator = @gc_allocator
     return &self.impl.data[i]
   end
 
-  function ArrayTable:set(i: usize <autocast>, v: T) <inline>
-    self:_init()
+  function ArrayTableT:set(i: usize <autocast>, v: T) <inline>
+    self:init()
     if unlikely(i > self.impl.size) then
       check(i == self.impl.size + 1, 'arraytable.at: index out of range')
       self.impl.size = self.impl.size + 1
@@ -110,7 +113,7 @@ local allocator = @gc_allocator
     self.impl.data[i] = v
   end
 
-  function ArrayTable:get(i: usize <autocast>): T <inline>
+  function ArrayTableT:get(i: usize <autocast>): T <inline>
     if unlikely(i == 0 and (not self.impl or self.impl.data.size == 0)) then
       local v: T
       return v
@@ -120,12 +123,12 @@ local allocator = @gc_allocator
     end
   end
 
-  function ArrayTable:len(): isize <inline>
+  function ArrayTableT:len(): isize <inline>
     if unlikely(not self.impl) then
       return 0
     end
     return (@isize)(self.impl.size)
   end
 
-  ## return ArrayTable
+  ## return ArrayTableT
 ## end))
