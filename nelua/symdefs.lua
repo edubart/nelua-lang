@@ -2,12 +2,14 @@ local typedefs = require 'nelua.typedefs'
 local tabler = require 'nelua.utils.tabler'
 local types = require 'nelua.types'
 local Symbol = require 'nelua.symbol'
+local Attr = require 'nelua.attr'
 local primtypes = typedefs.primtypes
 
 local symdefs = {}
 
-local function define_function(name, args, rets, props)
-  local type = types.FunctionType(nil, args, rets)
+local function define_function(name, argtypes, rettypes, props)
+  local args = tabler.imap(argtypes, function(argtype) return Attr{type = argtype} end)
+  local type = types.FunctionType(nil, args, rettypes)
   type:suggest_nick(name)
   type.sideeffect = false
   local symbol = Symbol{

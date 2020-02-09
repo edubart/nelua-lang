@@ -1385,6 +1385,39 @@ it("automatic dereference", function()
   ]])
 end)
 
+it("automatic casting", function()
+  assert.generate_c([[
+    local a = (@uint8)(-1)
+    local b: uint8 <autocast> = -1
+  ]], {"a = 255U", "b = 255U"})
+  assert.run_c([[
+    do
+      local i8: int8 <autocast>
+      local u8: uint8 = 255
+      i8 = u8
+      assert(i8 == -1)
+    end
+    do
+      local i8: int8 = -1
+      local u8: uint8 <autocast>
+      u8 = i8
+      assert(u8 == 255)
+    end
+
+    local function f(x: uint8 <autocast>)
+      return x
+    end
+    local function g(x: int8 <autocast>)
+      return x
+    end
+
+    local i: int8 = -1
+    local u: uint8 = 255
+    assert(f(i) == 255)
+    assert(g(u) == -1)
+  ]])
+end)
+
 it("nilptr", function()
   assert.generate_c("local p: pointer = nilptr", "void* p = NULL")
   assert.run_c([[

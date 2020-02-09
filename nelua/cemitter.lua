@@ -177,6 +177,10 @@ function CEmitter:add_numeric_literal(valattr, valtype)
   valtype = valtype or valattr.type
   local val, base = valattr.value, valattr.base
 
+  if val:isneg() and valtype:is_unsigned() then
+    val = valtype:normalize_value(val)
+  end
+
   local minusone = false
   if valtype:is_integral() and valtype:is_signed() and val == valtype.min then
     -- workaround C warning `integer constant is so large that it is unsigned`

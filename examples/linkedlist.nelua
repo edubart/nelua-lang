@@ -121,8 +121,8 @@ local allocator = @generic_allocator
     self.tail = nilptr
   end
 
-  function List:len(): integer
-    local count = 0
+  function List:len(): isize
+    local count: isize = 0
     local it = self.head
     while it do
       count = count + 1

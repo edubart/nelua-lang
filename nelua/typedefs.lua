@@ -197,7 +197,8 @@ typedefs.variable_annots = {
   noinit = true,
   cexport = true,
   comptime = true,
-  const = true
+  const = true,
+  autocast = true,
 }
 
 typedefs.type_annots = {

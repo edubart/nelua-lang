@@ -252,6 +252,7 @@ local function filter_ast_for_check(t)
       v.codename = nil
       v.name = nil
       v.methodsym = nil
+      v.pseudoargattrs = nil
       v.pseudoargtypes = nil
     end
   end

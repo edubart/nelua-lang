@@ -1002,9 +1002,10 @@ local FunctionType = typeclass()
 types.FunctionType = FunctionType
 FunctionType.Function = true
 
-function FunctionType:_init(node, argtypes, returntypes)
+function FunctionType:_init(node, argattrs, returntypes)
   Type._init(self, 'function', cpusize, node)
-  self.argtypes = argtypes or {}
+  self.argattrs = argattrs or {}
+  self.argtypes = tabler.imap(self.argattrs, function(arg) return arg.type end)
   self.returntypes = returntypes or {}
   self.codename = gencodename(self)
 end

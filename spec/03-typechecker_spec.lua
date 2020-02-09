@@ -132,6 +132,42 @@ it("narrow casting", function()
     local i32 = (@int32) (-0x8000000000000000)
     local i64 = (@int64) (-0x8000000000000000)
   ]])
+
+  assert.analyze_ast([[
+    local i: integer <autocast>
+    local u: uinteger
+    i = u
+  ]])
+  assert.analyze_error([[
+    local i: integer
+    local u: uinteger
+    i = u
+  ]], "no viable type conversion")
+
+  assert.analyze_ast([[
+    local u: uinteger
+    local i: integer <autocast> = u
+  ]])
+  assert.analyze_error([[
+    local u: uinteger
+    local i: integer = u
+  ]], "no viable type conversion")
+
+  assert.analyze_ast([[
+    local function f(u: uinteger <autocast>)
+      return u
+    end
+    local i: integer
+    f(i)
+  ]])
+  assert.analyze_error([[
+    local function f(u: uinteger)
+      return u
+    end
+    local i: integer
+    f(i)
+  ]], "no viable type conversion")
+
 end)
 
 it("numeric ranges", function()

@@ -414,7 +414,7 @@ function visitors.FuncType(context, node)
   context:traverse_nodes(argnodes)
   context:traverse_nodes(retnodes)
   local type = types.FunctionType(node,
-    tabler.imap(argnodes, function(argnode) return argnode.attr.value end),
+    tabler.imap(argnodes, function(argnode) return Attr{type = argnode.attr.value} end),
     tabler.imap(retnodes, function(retnode) return retnode.attr.value end))
   attr.type = primtypes.type
   attr.value = type
@@ -872,25 +872,34 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
     if calleetype:is_function() then
       -- function call
       local funcargtypes = calleetype.argtypes
+      local funcargattrs = calleetype.argattrs or calleetype.args
       local pseudoargtypes = funcargtypes
+      local pseudoargattrs = funcargattrs
       if calleeobjnode then
         pseudoargtypes = tabler.copy(funcargtypes)
+        pseudoargattrs = tabler.copy(funcargattrs)
         local ok, err = funcargtypes[1]:is_convertible_from(calleeobjnode)
         if not ok then
           node:raisef("in call of function '%s' at argument %d: %s",
             calleetype:prettyname(), 1, err)
         end
         table.remove(pseudoargtypes, 1)
+        table.remove(pseudoargattrs, 1)
         attr.pseudoargtypes = pseudoargtypes
+        attr.pseudoargattrs = pseudoargtypes
       end
-      if #argnodes > #pseudoargtypes then
+      if #argnodes > #pseudoargattrs then
         node:raisef("in call of function '%s': expected at most %d arguments but got %d",
-          calleetype:prettyname(), #pseudoargtypes, #argnodes)
+          calleetype:prettyname(), #pseudoargattrs, #argnodes)
       end
       local lazyargs = {}
       local knownallargs = true
-      for i,funcargtype,argnode,argtype in izipargnodes(pseudoargtypes, argnodes) do
+      for i,funcarg,argnode,argtype in izipargnodes(pseudoargattrs, argnodes) do
         local arg
+        local funcargtype
+        if traits.is_type(funcarg) then funcargtype = funcarg else
+          funcargtype = funcarg.type
+        end
         if argnode then
           argnode.desiredtype = funcargtype
           context:traverse_node(argnode)
@@ -916,7 +925,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         end
         if arg then
           if funcargtype then
-            local ok, err = funcargtype:is_convertible_from(arg)
+            local ok, err = funcargtype:is_convertible_from(arg, traits.is_attr(funcarg) and funcarg.autocast)
             if not ok then
               node:raisef("in call of function '%s' at argument %d: %s",
                 calleetype:prettyname(), i, err)
@@ -1335,7 +1344,7 @@ function visitors.VarDecl(context, node)
         if valnode and vartype:is_initializable_from_attr(valnode.attr) then
           valnode.attr.initializer = true
         end
-        local ok, err = vartype:is_convertible_from(valnode or valtype)
+        local ok, err = vartype:is_convertible_from(valnode or valtype, varnode.attr.autocast)
         if not ok then
           varnode:raisef("in variable '%s' declaration: %s", symbol.name, err)
         end
@@ -1355,8 +1364,9 @@ function visitors.Assign(context, node)
   for i,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
     local symbol = context:traverse_node(varnode)
     local vartype = varnode.attr.type
+    local varattr = varnode.attr
     varnode.assign = true
-    if varnode.attr.const or varnode.attr.comptime then
+    if varattr.const or varattr.comptime then
       varnode:raisef("cannot assign a constant variable")
     end
     if valnode then
@@ -1381,7 +1391,7 @@ function visitors.Assign(context, node)
       varnode:raisef("variable assignment at index '%d' is assigning to nothing in the expression", i)
     end
     if vartype and valtype then
-      local ok, err = vartype:is_convertible_from(valnode or valtype)
+      local ok, err = vartype:is_convertible_from(valnode or valtype, varattr.autocast)
       if not ok then
         varnode:raisef("in variable assignment: %s", err)
       end
@@ -1425,14 +1435,19 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope, check
 
   for i,argnode in ipairs(argnodes) do
     local argattr = argnode.attr
+    local argtype = argattr.type
+    if not argtype then
     -- function arguments types must be known ahead, fallbacks to any if untyped
-    local argtype = argattr.type or primtypes.any
+      argtype = primtypes.any
+      argattr.type = argtype
+    end
     if checklazy and argtype.lazyable then
       islazyparent = true
     end
     argtypes[i] = argtype
     argattrs[i] = argattr
   end
+
 
   if varnode.tag == 'ColonIndex' and symbol and symbol.metafunc then
     -- inject 'self' type as first argument
@@ -1583,7 +1598,7 @@ function visitors.FuncDef(context, node, lazysymbol)
       type = types.LazyFunctionType(node, argattrs, returntypes)
     end
   elseif not returntypes.has_unknown then
-    type = types.FunctionType(node, argtypes, returntypes)
+    type = types.FunctionType(node, argattrs, returntypes)
   end
 
   if symbol then -- symbol may be nil in case of array/dot index
