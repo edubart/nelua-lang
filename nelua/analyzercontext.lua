@@ -18,6 +18,7 @@ function AnalyzerContext:_init(visitors, parser)
   self.pragmas = {}
   self.pragmastack = {}
   self.usedcodenames = {}
+  self.afteranalyze = {}
 end
 
 function AnalyzerContext:push_pragmas()
@@ -43,11 +44,12 @@ function AnalyzerContext:push_forked_scope(kind, node)
     scope = node.scope
     assert(scope.kind == kind)
     assert(scope.parent == self.scope)
+    assert(scope.node == node)
 
     -- symbols will be repopulated again
     scope:clear_symbols()
   else
-    scope = self.scope:fork(kind)
+    scope = self.scope:fork(kind, node)
     node.scope = scope
   end
   self:push_scope(scope)

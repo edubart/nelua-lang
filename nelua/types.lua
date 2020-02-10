@@ -189,6 +189,7 @@ function Type:is_unsigned() return self.unsigned end
 function Type:is_signed() return self.arithmetic and not self.unsigned end
 function Type:is_generic_pointer() return self.genericpointer end
 function Type.is_pointer_of() return false end
+function Type.has_pointer() return false end
 
 function Type:__tostring()
   return self.name
@@ -488,6 +489,8 @@ end
 function AnyType.is_convertible_from_type()
   return true
 end
+
+function AnyType.has_pointer() return true end
 
 --------------------------------------------------------------------------------
 local VaranysType = typeclass(AnyType)
@@ -929,6 +932,8 @@ function ArrayTableType:__tostring()
   return sstream(self.name, '(', self.subtype, ')'):tostring()
 end
 
+function ArrayTableType.has_pointer() return true end
+
 ArrayTableType.unary_operators.len = 'integer'
 
 --------------------------------------------------------------------------------
@@ -961,6 +966,10 @@ function ArrayType:is_convertible_from_type(type, explicit)
     return true
   end
   return Type.is_convertible_from_type(self, type, explicit)
+end
+
+function ArrayType:has_pointer()
+  return self.subtype:has_pointer()
 end
 
 ArrayType.unary_operators.len = function(ltype)
@@ -1222,6 +1231,12 @@ function RecordType:is_convertible_from_type(type, explicit)
   return Type.is_convertible_from_type(self, type, explicit)
 end
 
+function RecordType:has_pointer()
+  return tabler.ifindif(self.fields, function(f)
+    return f.type:has_pointer()
+  end) ~= nil
+end
+
 --------------------------------------------------------------------------------
 local PointerType = typeclass()
 types.PointerType = PointerType
@@ -1307,6 +1322,10 @@ function PointerType:__tostring()
   end
 end
 
+function PointerType.has_pointer()
+  return true
+end
+
 --------------------------------------------------------------------------------
 local SpanType = typeclass(RecordType)
 types.SpanType = SpanType
@@ -1333,6 +1352,10 @@ end
 
 function SpanType:__tostring()
   return sstream(self.name, '(', self.subtype, ')'):tostring()
+end
+
+function SpanType.has_pointer()
+  return true
 end
 
 --------------------------------------------------------------------------------

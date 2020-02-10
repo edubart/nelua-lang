@@ -73,7 +73,11 @@ function PPContext:tovalue(val, orignode)
     node = aster.String{val}
   elseif traits.is_symbol(val) then
     node = aster.Id{val.name}
-    node.pattr = val
+    local pattr = Attr({
+      foreignsymbol = val
+    })
+    node.attr:merge(pattr)
+    node.pattr = pattr
   elseif traits.is_number(val) or traits.is_bignumber(val) then
     local num = bn.new(val)
     local neg = false

@@ -30,4 +30,12 @@ function Attr:is_empty()
   return next(self) == nil
 end
 
+function Attr:is_static_vardecl()
+  if self.vardecl and self.staticstorage and not self.comptime then
+    if not self.type or self.type.size > 0 then
+      return true
+    end
+  end
+end
+
 return Attr

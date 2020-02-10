@@ -8,20 +8,23 @@ local stringer = require 'nelua.utils.stringer'
 
 local Scope = class()
 
-function Scope:_init(parent, kind)
+function Scope:_init(parent, kind, node)
   self.kind = kind
+  self.node = node
   if kind == 'root' then
     self.context = parent
   else
     self.parent = parent
     self.context = parent.context
+    table.insert(parent.children, self)
   end
+  self.children = {}
   self.checkpointstack = {}
   self:clear_symbols()
 end
 
-function Scope:fork(kind)
-  return Scope(self, kind)
+function Scope:fork(kind, node)
+  return Scope(self, kind, node)
 end
 
 function Scope:is_topscope()
@@ -153,6 +156,7 @@ function Scope:add_symbol(symbol, annon)
     end
   end
   self.symbols[key] = symbol
+  table.insert(self.symbols, symbol)
   return true
 end
 
@@ -164,7 +168,8 @@ function Scope:resolve_symbols()
   local count = 0
   local unknownlist = {}
   -- first resolve any symbol with known possible types
-  for _,symbol in pairs(self.symbols) do
+  for i=1,#self.symbols do
+    local symbol = self.symbols[i]
     if symbol:resolve_type() then
       count = count + 1
     elseif count == 0 and symbol.type == nil then
@@ -175,7 +180,8 @@ function Scope:resolve_symbols()
   if count == 0 and #unknownlist > 0 and not self.context.rootscope.delay then
     -- [disabled] try to infer the type only for the first unknown symbol
     --table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)
-    for _,symbol in ipairs(unknownlist) do
+    for i=1,#unknownlist do
+      local symbol = unknownlist[i]
       if symbol:resolve_type(true) then
         count = count + 1
       elseif self.context.state.anyphase then

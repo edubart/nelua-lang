@@ -39,6 +39,8 @@ local GC = @record{
   nitems: usize, nslots: usize, mitems: usize, nfrees: usize
 }
 
+global gc = GC{}
+
 function GC:_hash(ptr: pointer): usize
   return (@usize)(ptr) >> 3
 end
@@ -528,15 +530,35 @@ function GC:get_size(ptr: pointer): usize
   return 0
 end
 
-global gc = GC{}
+function GC:_mark_statics()
+  ## local emit_mark_static = hygienize(function(sym, symtype)
+    gc:add(&#[sym]#, #[symtype.size]#, GCFlags.ROOT, nilptr)
+  ## end)
+
+  ##[[
+  afteranalyze(function()
+    local function search_scope(scope)
+      for i=1,#scope.symbols do
+        local sym = scope.symbols[i]
+        local symtype = sym.type or primtypes.any
+        if sym:is_static_vardecl() and symtype:has_pointer() and sym ~= gc then
+          emit_mark_static(sym, symtype)
+        end
+      end
+    end
+    search_scope(context.rootscope)
+    for _,childscope in ipairs(context.rootscope.children) do
+      search_scope(childscope)
+    end
+  end)
+  ]]
+end
 
 local function nelua_main(): cint <cimport,nodecl> end
 
-local static_top: pointer <volatile>
-local static_bottom: pointer <volatile>
-
 local function main(argc: cint, argv: cchar**): cint <entrypoint>
   gc:start(&argc)
+  gc:_mark_statics()
   local ret: cint = nelua_main()
   gc:stop()
   return ret

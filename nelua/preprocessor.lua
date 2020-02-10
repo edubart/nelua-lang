@@ -159,6 +159,12 @@ function preprocessor.preprocess(context, ast)
         return tabler.unpack(rets)
       end
     end,
+    afteranalyze = function(f)
+      if not traits.is_function(f) then
+        raise_preprocess_error("invalid arguments for preprocess function")
+      end
+      table.insert(context.afteranalyze, { f=f, node = context:get_current_node() })
+    end,
     afterinfer = function(f)
       if not traits.is_function(f) then
         raise_preprocess_error("invalid arguments for preprocess function")

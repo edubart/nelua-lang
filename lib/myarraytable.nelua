@@ -15,7 +15,7 @@ local allocator = @gc_allocator
     size: usize,
     data: span(T)
   }
-  global ArrayTableT <codename #['nelua_ArrayTable_'..T.name]#> = @record{
+  local ArrayTableT <codename #['nelua_ArrayTable_'..T.name]#> = @record{
     impl: ArrayTableImplT*
   }
 

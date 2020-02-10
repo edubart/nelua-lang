@@ -1807,4 +1807,57 @@ it("top scope variables prefix", function()
   assert.config.srcname = nil
 end)
 
+it("GC requirements", function()
+  assert.generate_c([=[
+    global gp: pointer
+    global gs: span(integer)
+    global gr: record{x: pointer}
+    global ga: integer*[4]
+    global g
+    local p: pointer
+    local s: span(integer)
+    local r: record{x: pointer}
+    local a: integer*[4]
+    local l
+
+    local function markp(what: pointer)
+    end
+
+    local function mark()
+      ## emit_mark_static = hygienize(function(sym)
+        markp(&#[sym]#)
+      ## end)
+
+      ##[[
+      afteranalyze(function()
+        local function search_scope(scope)
+          for i=1,#scope.symbols do
+            local sym = scope.symbols[i]
+            local symtype = sym.type or primtypes.any
+            if sym:is_static_vardecl() and symtype:has_pointer() then
+              emit_mark_static(sym, symtype)
+            end
+          end
+        end
+        search_scope(context.rootscope)
+        for _,childscope in ipairs(context.rootscope.children) do
+          search_scope(childscope)
+        end
+      end)
+      ]]
+    end
+  ]=], [[void mark() {
+  markp((void*)(&gp));
+  markp((void*)(&gs));
+  markp((void*)(&gr));
+  markp((void*)(&ga));
+  markp((void*)(&g));
+  markp((void*)(&p));
+  markp((void*)(&s));
+  markp((void*)(&r));
+  markp((void*)(&a));
+  markp((void*)(&l));
+}]])
+end)
+
 end)

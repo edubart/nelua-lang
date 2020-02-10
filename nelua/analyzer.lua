@@ -299,6 +299,11 @@ end
 
 function visitors.Id(context, node)
   local name = node[1]
+  if node.attr.foreignsymbol then
+    local symbol = node.attr.foreignsymbol
+    symbol:link_node(node)
+    return symbol
+  end
   local symbol = context.scope:get_symbol(name)
   if not symbol then
     if context.pragmas.strict then
@@ -1260,6 +1265,7 @@ function visitors.VarDecl(context, node)
   end
   for _,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
     assert(varnode.tag == 'IdDecl')
+    varnode.attr.vardecl = true
     if varscope == 'global' then
       if not context.scope:is_topscope() then
         varnode:raisef("global variables can only be declared in top scope")
@@ -1808,6 +1814,15 @@ function analyzer.analyze(ast, parser, context)
     context:traverse_node(ast)
     local resolutions_count = context.rootscope:resolve()
   until resolutions_count == 0
+
+  for _,cb in ipairs(context.afteranalyze) do
+    local ok, err = except.trycall(function()
+      cb.f()
+    end)
+    if not ok then
+      cb.node:raisef('error while executing after analyze: %s', err)
+    end
+  end
 
   -- phase 3 traverse: infer unset types to 'any' type
   local state = context:push_state()

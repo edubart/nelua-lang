@@ -342,6 +342,12 @@ it("call codes after inference", function()
   assert.analyze_error("## afterinfer(false)", "invalid arguments for preprocess")
 end)
 
+it("call codes after analyze pass", function()
+  assert.analyze_ast("## afteranalyze(function() end)")
+  assert.analyze_error("## afteranalyze(function() error 'errmsg' end)", "errmsg")
+  assert.analyze_error("## afteranalyze(false)", "invalid arguments for preprocess")
+end)
+
 it("inject nodes", function()
   assert.ast_type_equals([=[
     ## ppcontext:add_statnode(aster.Call{{aster.String{"hello"}}, aster.Id{'print'}, true})

@@ -53,6 +53,10 @@ function VisitorContext:get_parent_node()
   return self.visiting_nodes[#self.visiting_nodes - 1]
 end
 
+function VisitorContext:get_current_node()
+  return self.visiting_nodes[#self.visiting_nodes]
+end
+
 function VisitorContext:push_state()
   table.insert(self.statestack, self.state)
   local newstate = tabler.copy(self.state)
