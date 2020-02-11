@@ -98,18 +98,20 @@ function visitors.ArrayIndex(_, node, emitter)
   emitter:add(obj, '[', index, ']')
 end
 
-function visitors.Call(_, node, emitter)
-  local args, callee, block_call = node:args()
-  if block_call then emitter:add_indent() end
+function visitors.Call(context, node, emitter)
+  local args, callee = node:args()
+  local isblockcall = context:get_parent_node().tag == 'Block'
+  if isblockcall then emitter:add_indent() end
   emitter:add(callee, '(', args, ')')
-  if block_call then emitter:add_ln() end
+  if isblockcall then emitter:add_ln() end
 end
 
-function visitors.CallMethod(_, node, emitter)
-  local name, args, callee, block_call = node:args()
-  if block_call then emitter:add_indent() end
+function visitors.CallMethod(context, node, emitter)
+  local name, args, callee = node:args()
+  local isblockcall = context:get_parent_node().tag == 'Block'
+  if isblockcall then emitter:add_indent() end
   emitter:add(callee, ':', name, '(', args, ')')
-  if block_call then emitter:add_ln() end
+  if isblockcall then emitter:add_ln() end
 end
 
 function visitors.Block(context, node, emitter)

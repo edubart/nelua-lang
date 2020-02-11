@@ -55,8 +55,6 @@ local function get_operator_in_oplist(self, oplist, opname, arg1, arg2, arg3)
   local type, value, err
   if traits.is_function(opret) then
     type, value, err = opret(self, arg1, arg2, arg3)
-  elseif traits.is_string(opret) then
-    type, value = primtypes[opret], nil
   else
     type, value = opret, nil
   end
@@ -173,6 +171,7 @@ function Type:is_type() return self.typetype end
 function Type:is_string() return self.string end
 function Type:is_cstring() return self.cstring end
 function Type:is_record() return self.record end
+function Type:is_user_record() return self.record and not (self.span or self.range) end
 function Type:is_function() return self.Function end
 function Type:is_lazyfunction() return self.lazyfunction end
 function Type:is_boolean() return self.boolean end
@@ -413,7 +412,7 @@ StringType.unary_operators.len = function(_, lattr)
   if lval then
     reval = bn.new(#lval)
   end
-  return primtypes.integer, reval
+  return primtypes.isize, reval
 end
 
 local function make_string_cmp_opfunc(cmpfunc)
@@ -934,7 +933,9 @@ end
 
 function ArrayTableType.has_pointer() return true end
 
-ArrayTableType.unary_operators.len = 'integer'
+ArrayTableType.unary_operators.len = function()
+  return primtypes.isize
+end
 
 --------------------------------------------------------------------------------
 local ArrayType = typeclass()
@@ -973,7 +974,7 @@ function ArrayType:has_pointer()
 end
 
 ArrayType.unary_operators.len = function(ltype)
-  return primtypes.integer, bn.new(ltype.length)
+  return primtypes.isize, bn.new(ltype.length)
 end
 
 --------------------------------------------------------------------------------
@@ -1356,6 +1357,10 @@ end
 
 function SpanType.has_pointer()
   return true
+end
+
+SpanType.unary_operators.len = function()
+  return primtypes.isize
 end
 
 --------------------------------------------------------------------------------

@@ -4,12 +4,15 @@
 ## strict = true
 ## unitname = 'nelua'
 
-require 'allocators.gc_allocator'
-
-local allocator = @gc_allocator
-
 ## local memoize = require 'nelua.utils.memoize'
-## myarraytable = hygienize(memoize(function(T)
+## myarraytable = hygienize(memoize(function(T, allocator)
+  ## if allocator then
+  local allocator = #[allocator]#
+  ## else
+  require 'allocators.gc_allocator'
+  local allocator = @gc_allocator
+  ## end
+
   local T = @#[T]#
   local ArrayTableImplT <codename #['nelua_ArrayTableImpl_'..T.name]#> = @record {
     size: usize,
@@ -23,6 +26,12 @@ local allocator = @gc_allocator
     if unlikely(not self.impl) then
       self.impl = (@ArrayTableImplT*)(allocator.alloc0(#ArrayTableImplT))
     end
+  end
+
+  function ArrayTableT.create(): ArrayTableT <inline>
+    local self: ArrayTableT
+    self:init()
+    return self
   end
 
   function ArrayTableT:reset()

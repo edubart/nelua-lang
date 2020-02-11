@@ -730,7 +730,7 @@ it("array tables", function()
     local len = #a
   ]],[[
     local a: arraytable(boolean)
-    local len: integer = #a
+    local len: isize = #a
   ]])
   assert.ast_type_equals([[
     local a: arraytable(boolean)
@@ -766,6 +766,7 @@ it("spans", function()
     a.size = 0
     local b: boolean = a[0]
     a[0] = b
+    local len = #a
   ]])
   assert.analyze_ast([[
     local a: span(boolean)
@@ -899,6 +900,40 @@ it("records", function()
   assert.ast_type_equals(
     "local a: record {x: boolean}; local b; b = a.x",
     "local a: record {x: boolean}; local b: boolean; b = a.x")
+end)
+
+it("records metamethods", function()
+  assert.analyze_ast([[
+    local R = @record{}
+    function R:__atindex(x: integer): integer* return nilptr end
+    function R:__len(): integer return 0 end
+    local r: R
+    local x = r[0]
+    r[0] = x
+    local len = #r
+  ]])
+  assert.analyze_error([[
+    local R = @record{}
+    function R:__atindex(x: integer): integer return 0 end
+    local r: R
+    r[0] = 1
+  ]], "must return a pointer")
+  assert.analyze_error([[
+    local R = @record{}
+    function R:__atindex(x: integer) return 0 end
+    local r: R
+    r[0] = 1
+  ]], "must return a pointer")
+  assert.analyze_error([[
+    local R = @record{}
+    local r: R
+    local x = r[0]
+  ]], "cannot index record")
+  assert.analyze_error([[
+    local R = @record{}
+    local r: R
+    local x = #r
+  ]], "no metamethod")
 end)
 
 it("dependent functions resolution", function()

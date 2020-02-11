@@ -589,31 +589,31 @@ describe("call", function()
   it("simple", function()
     assert.parse_ast(nelua_parser, "a()",
       n.Block{{
-        n.Call{{}, n.Id{'a'}, true},
+        n.Call{{}, n.Id{'a'}},
     }})
   end)
   it("dot index", function()
     assert.parse_ast(nelua_parser, "a.b()",
       n.Block{{
-        n.Call{{}, n.DotIndex{'b', n.Id{'a'}}, true}
+        n.Call{{}, n.DotIndex{'b', n.Id{'a'}}}
     }})
   end)
   it("array index", function()
     assert.parse_ast(nelua_parser, "a['b']()",
       n.Block{{
-        n.Call{{}, n.ArrayIndex{n.String{'b'}, n.Id{'a'}}, true}
+        n.Call{{}, n.ArrayIndex{n.String{'b'}, n.Id{'a'}}}
     }})
   end)
   it("method", function()
     assert.parse_ast(nelua_parser, "a:b()",
       n.Block{{
-        n.CallMethod{'b', {}, n.Id{'a'}, true}
+        n.CallMethod{'b', {}, n.Id{'a'}}
     }})
   end)
   it("nested", function()
     assert.parse_ast(nelua_parser, "a(b())",
       n.Block{{
-        n.Call{{n.Call{{}, n.Id{'b'}}}, n.Id{'a'}, true},
+        n.Call{{n.Call{{}, n.Id{'b'}}}, n.Id{'a'}},
     }})
   end)
 end)
@@ -688,7 +688,7 @@ describe("statement do", function()
   it("with statements", function()
     assert.parse_ast(nelua_parser, "do print() end",
       n.Block{{
-        n.Do{n.Block{{ n.Call{{}, n.Id{'print'}, true} }}}
+        n.Do{n.Block{{ n.Call{{}, n.Id{'print'}} }}}
     }})
   end)
 end)
@@ -721,7 +721,7 @@ describe("loop statement", function()
     assert.parse_ast(nelua_parser, "repeat print() until a==b",
       n.Block{{
         n.Repeat{
-          n.Block{{ n.Call{{}, n.Id{'print'}, true} }},
+          n.Block{{ n.Call{{}, n.Id{'print'}} }},
           n.BinaryOp{'eq', n.Id{'a'}, n.Id{'b'}}
     }}})
   end)
@@ -807,7 +807,7 @@ describe("statement goto", function()
     assert.parse_ast(nelua_parser, "::mylabel:: f() if a then goto mylabel end",
       n.Block{{
         n.Label{'mylabel'},
-        n.Call{{}, n.Id{'f'}, true},
+        n.Call{{}, n.Id{'f'}},
         n.If{{ {n.Id{'a'}, n.Block{{n.Goto{'mylabel'}}} } }}
     }})
   end)
@@ -1519,26 +1519,26 @@ describe("preprocessor", function()
     assert.parse_ast(nelua_parser, "##[[if true then]] print 'hello' ##[[end]]",
       n.Block{{
         n.Preprocess{"if true then"},
-        n.Call{{n.String {"hello"}}, n.Id{"print"},true},
+        n.Call{{n.String {"hello"}}, n.Id{"print"}},
         n.Preprocess{"end"}
     }})
   end)
   it("eval expression", function()
     assert.parse_ast(nelua_parser, "print #['hello ' .. 'world']#",
       n.Block{{
-        n.Call{{n.PreprocessExpr{"'hello ' .. 'world'"}}, n.Id{"print"},true}
+        n.Call{{n.PreprocessExpr{"'hello ' .. 'world'"}}, n.Id{"print"}}
     }})
     assert.parse_ast(nelua_parser, "print(#['hello ' .. 'world']#)",
       n.Block{{
-        n.Call{{n.PreprocessExpr{"'hello ' .. 'world'"}}, n.Id{"print"},true}
+        n.Call{{n.PreprocessExpr{"'hello ' .. 'world'"}}, n.Id{"print"}}
     }})
     assert.parse_ast(nelua_parser, "print #[a[1]]#",
       n.Block{{
-        n.Call{{n.PreprocessExpr{"a[1]"}}, n.Id{"print"},true}
+        n.Call{{n.PreprocessExpr{"a[1]"}}, n.Id{"print"}}
     }})
     assert.parse_ast(nelua_parser, "#[a]#()",
       n.Block{{
-        n.Call{{}, n.PreprocessExpr{"a"},true}
+        n.Call{{}, n.PreprocessExpr{"a"}}
     }})
   end)
   it("eval name", function()
@@ -1566,7 +1566,7 @@ describe("preprocessor", function()
     }})
     assert.parse_ast(nelua_parser, "#(a)#:#(b)#()",
       n.Block{{
-        n.CallMethod{n.PreprocessName{"b"}, {}, n.Id{n.PreprocessName{"a"}}, true},
+        n.CallMethod{n.PreprocessName{"b"}, {}, n.Id{n.PreprocessName{"a"}}},
     }})
     assert.parse_ast(nelua_parser, "return {#(a)# = b}",
       n.Block{{

@@ -83,16 +83,13 @@ function PEGParser:set_astbuilder(astbuilder)
   end
 
   local unpack = tabler.unpack
-  defs.to_chain_index_or_call = function(primary_expr, exprs, inblock)
+  defs.to_chain_index_or_call = function(primary_expr, exprs)
     local last_expr = primary_expr
     if exprs then
       for _,expr in ipairs(exprs) do
         table.insert(expr, last_expr)
         last_expr = to_astnode(unpack(expr))
       end
-    end
-    if inblock then
-      table.insert(last_expr, true)
     end
     return last_expr
   end

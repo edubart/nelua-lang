@@ -583,168 +583,6 @@ function visitors.PointerType(context, node)
   attr.type = primtypes.type
 end
 
-local function visitor_Record_FieldIndex(_, node, objtype, name)
-  local field = objtype:get_field(name)
-  local type = field and field.type
-  if not type then
-    node:raisef("cannot index field '%s' on record '%s'", name, objtype:prettyname())
-  end
-  node.attr.type = type
-end
-
-local function visitor_EnumType_FieldIndex(_, node, objtype, name)
-  local attr = node.attr
-  local field = objtype:get_field(name)
-  if not field then
-    node:raisef("cannot index field '%s' on enum '%s'", name, objtype:prettyname())
-  end
-  attr.comptime = true
-  attr.value = field.value
-  attr.type = objtype
-end
-
-local function visitor_RecordType_FieldIndex(context, node, objtype, name)
-  local attr = node.attr
-  local symbol = objtype:get_metafield(name)
-  local parentnode = context:get_parent_node()
-  local infuncdef = context.state.infuncdef == parentnode
-  local inglobaldecl = context.state.inglobaldecl == parentnode
-  local inlazydef = context.state.inlazydef and symbol == context.state.inlazydef
-  if inlazydef then
-    assert(infuncdef)
-    if traits.is_symbol(attr) then
-      symbol = attr
-    else
-      symbol = nil
-    end
-  end
-  if not symbol then
-    local symname = string.format('%s.%s', objtype.name, name)
-    symbol = Symbol.promote_attr(attr, symname, node)
-    symbol.codename = string.format('%s_%s', objtype.codename, name)
-    symbol:link_node(parentnode)
-    if infuncdef then
-      -- declaration of record global function
-      symbol.metafunc = true
-      if node.tag == 'ColonIndex' then
-        symbol.metafuncselftype = types.get_pointer_type(objtype)
-      end
-    elseif inglobaldecl then
-      -- declaration of record global variable
-      symbol.metafield = true
-    else
-      node:raisef("cannot index record meta field '%s'", name)
-    end
-    if not inlazydef then
-      objtype:set_metafield(name, symbol)
-    else
-      symbol.shadows = true
-    end
-
-    -- add symbol to scope to enable type deduction
-    local ok = context.rootscope:add_symbol(symbol, true)
-    assert(ok)
-  elseif infuncdef or inglobaldecl then
-    if symbol.node ~= node then
-      node:raisef("cannot redefine meta type field '%s'", name)
-    end
-  else
-    symbol:link_node(node)
-  end
-  return symbol
-end
-
-local function visitor_Type_FieldIndex(context, node, objtype, name)
-  local attr = node.attr
-  if objtype:is_pointer() and objtype.subtype:is_record() then
-    -- allow to access method and fields on record pointer types
-    objtype = objtype.subtype
-  end
-  attr.indextype = objtype
-  if objtype:is_enum() then
-    return visitor_EnumType_FieldIndex(context, node, objtype, name)
-  elseif objtype:is_record() then
-    return visitor_RecordType_FieldIndex(context, node, objtype, name)
-  else
-    node:raisef("cannot index fields on type '%s'", objtype:prettyname())
-  end
-end
-
-local function visitor_FieldIndex(context, node)
-  local attr = node.attr
-  local name, objnode = node[1], node[2]
-  context:traverse_node(objnode)
-  local objtype = objnode.attr.type
-  local ret
-  if objtype then
-    if objtype:is_pointer() then
-      -- dereference when accessing fields for pointers
-      objtype = objtype.subtype
-    end
-    if objtype:is_record() then
-      ret = visitor_Record_FieldIndex(context, node, objtype, name)
-    elseif objtype:is_type() then
-      ret = visitor_Type_FieldIndex(context, node, objnode.attr.value, name)
-    elseif objtype:is_table() or objtype:is_any() then
-      attr.type = primtypes.any
-    else
-      node:raisef("cannot index field '%s' on type '%s'", name, objtype.name)
-    end
-  end
-  if objnode.attr.lvalue then
-    attr.lvalue = true
-  end
-  return ret
-end
-
-visitors.DotIndex = visitor_FieldIndex
-visitors.ColonIndex = visitor_FieldIndex
-
-function visitors.ArrayIndex(context, node)
-  local indexnode, objnode = node[1], node[2]
-  context:traverse_node(indexnode)
-  context:traverse_node(objnode)
-  local type = node.attr.type
-  if type then return end
-  local objtype = objnode.attr.type
-  if objtype then
-    if objtype:is_pointer() then
-      objtype = objtype.subtype
-    end
-
-    if objtype:is_arraytable() or objtype:is_array() or objtype:is_span() then
-      local indextype = indexnode.attr.type
-      if indextype then
-        if indextype:is_integral() then
-          local indexvalue = indexnode.attr.value
-          if indexvalue then
-            if indexvalue:isneg() then
-              indexnode:raisef("cannot index negative value %s", indexvalue:todec())
-            end
-            if objtype:is_array() and objtype.length ~= 0 and not (indexvalue < bn.new(objtype.length)) then
-              indexnode:raisef("index %s is out of bounds, array maximum index is %d",
-                indexvalue:todec(), objtype.length - 1)
-            end
-          end
-          type = objtype.subtype
-        elseif indextype:is_range() and (objtype:is_array() or objtype:is_span()) then
-          type = types.SpanType(node, objtype.subtype)
-        else
-          indexnode:raisef("cannot index with value of type '%s'", indextype:prettyname())
-        end
-      end
-    elseif objtype:is_table() or objtype:is_any() then
-      type = primtypes.any
-    else
-      node:raisef("cannot index variable of type '%s'", objtype.name)
-    end
-  end
-  if objnode.attr.lvalue then
-    node.attr.lvalue = true
-  end
-  node.attr.type = type
-end
-
 local function iargnodes(argnodes)
   local i = 0
   local lastargindex = #argnodes
@@ -1051,6 +889,197 @@ function visitors.CallMethod(context, node)
   end
 
   visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)
+end
+
+local function visitor_Record_FieldIndex(_, node, objtype, name)
+  local field = objtype:get_field(name)
+  local type = field and field.type
+  if not type then
+    node:raisef("cannot index field '%s' on record '%s'", name, objtype:prettyname())
+  end
+  node.attr.type = type
+end
+
+local function visitor_EnumType_FieldIndex(_, node, objtype, name)
+  local attr = node.attr
+  local field = objtype:get_field(name)
+  if not field then
+    node:raisef("cannot index field '%s' on enum '%s'", name, objtype:prettyname())
+  end
+  attr.comptime = true
+  attr.value = field.value
+  attr.type = objtype
+end
+
+local function visitor_RecordType_FieldIndex(context, node, objtype, name)
+  local attr = node.attr
+  local symbol = objtype:get_metafield(name)
+  local parentnode = context:get_parent_node()
+  local infuncdef = context.state.infuncdef == parentnode
+  local inglobaldecl = context.state.inglobaldecl == parentnode
+  local inlazydef = context.state.inlazydef and symbol == context.state.inlazydef
+  if inlazydef then
+    assert(infuncdef)
+    if traits.is_symbol(attr) then
+      symbol = attr
+    else
+      symbol = nil
+    end
+  end
+  if not symbol then
+    local symname = string.format('%s.%s', objtype.name, name)
+    symbol = Symbol.promote_attr(attr, symname, node)
+    symbol.codename = string.format('%s_%s', objtype.codename, name)
+    symbol:link_node(parentnode)
+    if infuncdef then
+      -- declaration of record global function
+      symbol.metafunc = true
+      if node.tag == 'ColonIndex' then
+        symbol.metafuncselftype = types.get_pointer_type(objtype)
+      end
+    elseif inglobaldecl then
+      -- declaration of record global variable
+      symbol.metafield = true
+    else
+      node:raisef("cannot index record meta field '%s'", name)
+    end
+    if not inlazydef then
+      objtype:set_metafield(name, symbol)
+    else
+      symbol.shadows = true
+    end
+
+    -- add symbol to scope to enable type deduction
+    local ok = context.rootscope:add_symbol(symbol, true)
+    assert(ok)
+  elseif infuncdef or inglobaldecl then
+    if symbol.node ~= node then
+      node:raisef("cannot redefine meta type field '%s'", name)
+    end
+  else
+    symbol:link_node(node)
+  end
+  return symbol
+end
+
+local function visitor_Type_FieldIndex(context, node, objtype, name)
+  local attr = node.attr
+  if objtype:is_pointer() and objtype.subtype:is_record() then
+    -- allow to access method and fields on record pointer types
+    objtype = objtype.subtype
+  end
+  attr.indextype = objtype
+  if objtype:is_enum() then
+    return visitor_EnumType_FieldIndex(context, node, objtype, name)
+  elseif objtype:is_record() then
+    return visitor_RecordType_FieldIndex(context, node, objtype, name)
+  else
+    node:raisef("cannot index fields on type '%s'", objtype:prettyname())
+  end
+end
+
+local function visitor_FieldIndex(context, node)
+  local attr = node.attr
+  local name, objnode = node[1], node[2]
+  context:traverse_node(objnode)
+  local objtype = objnode.attr.type
+  local ret
+  if objtype then
+    if objtype:is_pointer() then
+      -- dereference when accessing fields for pointers
+      objtype = objtype.subtype
+    end
+    if objtype:is_record() then
+      ret = visitor_Record_FieldIndex(context, node, objtype, name)
+    elseif objtype:is_type() then
+      ret = visitor_Type_FieldIndex(context, node, objnode.attr.value, name)
+    elseif objtype:is_table() or objtype:is_any() then
+      attr.type = primtypes.any
+    else
+      node:raisef("cannot index field '%s' on type '%s'", name, objtype.name)
+    end
+  end
+  if objnode.attr.lvalue then
+    attr.lvalue = true
+  end
+  return ret
+end
+
+visitors.DotIndex = visitor_FieldIndex
+visitors.ColonIndex = visitor_FieldIndex
+
+local function visitor_Record_ArrayIndex(context, node, objtype, objnode, indexnode)
+  local attr = node.attr
+  local indexsym = objtype:get_metafield('__index')
+  local indexretype
+  if not indexsym then
+    indexsym = objtype:get_metafield('__atindex')
+    if indexsym and indexsym.type then
+      indexretype = indexsym.type:get_return_type(1)
+      if indexretype and not indexretype:is_pointer() then
+        indexsym.node:raisef("metamethod `__atindex` must return a pointer, but got type '%s'",
+          indexretype:prettyname())
+      else
+        indexretype = indexretype.subtype
+        attr.lvalue = true
+      end
+    end
+  end
+  if indexsym then
+    visitor_Call(context, node, {indexnode}, indexsym.type, indexsym, objnode)
+    node.attr.type = indexretype
+  else
+    node:raisef("cannot index record of type '%s': no `__index` or `__atindex` metamethod found", objtype:prettyname())
+  end
+end
+
+function visitors.ArrayIndex(context, node)
+  local indexnode, objnode = node[1], node[2]
+  context:traverse_node(indexnode)
+  context:traverse_node(objnode)
+  local type = node.attr.type
+  if type then return end
+  local objtype = objnode.attr.type
+  if objtype then
+    if objtype:is_pointer() then
+      objtype = objtype.subtype
+    end
+
+    if objtype:is_arraytable() or objtype:is_array() or objtype:is_span() then
+      local indextype = indexnode.attr.type
+      if indextype then
+        if indextype:is_integral() then
+          local indexvalue = indexnode.attr.value
+          if indexvalue then
+            if indexvalue:isneg() then
+              indexnode:raisef("cannot index negative value %s", indexvalue:todec())
+            end
+            if objtype:is_array() and objtype.length ~= 0 and not (indexvalue < bn.new(objtype.length)) then
+              indexnode:raisef("index %s is out of bounds, array maximum index is %d",
+                indexvalue:todec(), objtype.length - 1)
+            end
+          end
+          type = objtype.subtype
+        elseif indextype:is_range() and (objtype:is_array() or objtype:is_span()) then
+          type = types.SpanType(node, objtype.subtype)
+        else
+          indexnode:raisef("cannot index with value of type '%s'", indextype:prettyname())
+        end
+      end
+      if objnode.attr.lvalue then
+        node.attr.lvalue = true
+      end
+    elseif objtype:is_record() then
+      visitor_Record_ArrayIndex(context, node, objtype, objnode, indexnode)
+    elseif objtype:is_table() or objtype:is_any() then
+      type = primtypes.any
+    else
+      node:raisef("cannot index variable of type '%s'", objtype.name)
+    end
+  end
+  if type then
+    node.attr.type = type
+  end
 end
 
 function visitors.Block(context, node)
@@ -1697,6 +1726,11 @@ function visitors.FuncDef(context, node, lazysymbol)
   end
 end
 
+local blocked_metamethod_operators = {
+  ['ref'] = true,
+  ['deref'] = true,
+  ['not'] = true
+}
 function visitors.UnaryOp(context, node)
   local attr = node.attr
   local opname, argnode = node[1], node[2]
@@ -1714,15 +1748,25 @@ function visitors.UnaryOp(context, node)
   local argtype = argattr.type
   local type
   if argtype then
-    local value, err
-    type, value, err = argtype:unary_operator(opname, argattr)
-    if err then
-      argnode:raisef("in unary operation `%s`: %s", opname, err)
-    end
-    if value ~= nil then
-      attr.comptime = true
-      attr.value = value
-      attr.untyped = argattr.untyped or not argattr.comptime
+    if argtype:is_user_record() and not blocked_metamethod_operators[opname] then
+      local mtname = '__' .. opname
+      local mtsym = argtype:get_metafield(mtname)
+      if mtsym then
+        visitor_Call(context, node, {}, mtsym.type, mtsym, argnode)
+      else
+        argnode:raisef("no metamethod `%s` for record '%s'", mtname, argtype:prettyname())
+      end
+    else
+      local value, err
+      type, value, err = argtype:unary_operator(opname, argattr)
+      if err then
+        argnode:raisef("in unary operation `%s`: %s", opname, err)
+      end
+      if value ~= nil then
+        attr.comptime = true
+        attr.value = value
+        attr.untyped = argattr.untyped or not argattr.comptime
+      end
     end
   elseif opname == 'not' then
     type = primtypes.boolean

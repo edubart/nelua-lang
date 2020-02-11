@@ -308,7 +308,7 @@ local function get_parser(std)
     callable <-
       ({} ''->'UnaryOp' {| op_deref* |} callable_suffix) -> to_chain_unary_op
     callable_suffix <-
-      (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |} ctrue) -> to_chain_index_or_call
+      (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |}) -> to_chain_index_or_call
   ]])
 
   grammar:add_group_peg('stat', 'preprocess', [[
@@ -454,7 +454,6 @@ local function get_parser(std)
     annot_arg <- %cNUMBER / %cSTRING / %cBOOLEAN / ppexpr
 
     cnil <- '' -> to_nil
-    ctrue <- '' -> to_true
     cfalse <- '' -> to_false
 
     typexpr <- typexpr0

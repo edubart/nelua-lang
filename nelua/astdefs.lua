@@ -111,7 +111,7 @@ astbuilder:register('ArrayTableType', {
   ntypes.Node, -- subtype typexpr
 })
 astbuilder:register('ArrayType', {
-  ntypes.Node, -- subtype typeexpt
+  ntypes.Node, -- subtype typeexpr
   ntypes.Node, -- size expr
 })
 astbuilder:register('PointerType', {
@@ -136,13 +136,11 @@ astbuilder:register('Function', {
 astbuilder:register('Call', {
   stypes.array_of(ntypes.Node), -- args exprs
   ntypes.Node, -- caller expr
-  stypes.boolean:is_optional(), -- is called from a block
 })
 astbuilder:register('CallMethod', {
   stypes.string + ntypes.PreprocessName, -- method name
   stypes.array_of(ntypes.Node), -- args exprs
   ntypes.Node, -- caller expr
-  stypes.boolean:is_optional(), -- is called from a block
 })
 
 -- block

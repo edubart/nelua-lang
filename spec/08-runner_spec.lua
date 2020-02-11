@@ -45,8 +45,7 @@ it("print correct generated AST" , function()
       },
       Id {
         "print"
-      },
-      true
+      }
     }
   }
 }]])

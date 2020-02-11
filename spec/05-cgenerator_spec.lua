@@ -997,7 +997,7 @@ it("array tables", function()
     "nelua_boolean_arrtab t = {0};")
   assert.generate_c(
     "do local t: arraytable(boolean); local a = #t end",
-    "int64_t a = (nelua_boolean_arrtab_length(&t));")
+    "intptr_t a = (nelua_boolean_arrtab_length(&t));")
   assert.run_c([[
     local t: arraytable(boolean)
     print(t[0], #t)
@@ -1019,6 +1019,7 @@ it("spans", function()
     local buff: array(integer, 10)
     local s: span(integer) = {&buff[0], 10}
     assert(s.size == 10)
+    assert(#s == 10)
     assert(s.data == &buff[0])
     assert(s[0] == 0)
     s[0] = 0xf
@@ -1242,6 +1243,28 @@ it("record methods", function()
     local Math = @record{}
     function Math.abs(x: number): number <cimport'fabs',cinclude'<math.h>'> end
     assert(Math.abs(-1) == 1)
+  ]])
+end)
+
+it("record metametods", function()
+  assert.run_c([[
+    local intarray = @record {
+      data: integer[100]
+    }
+    function intarray:__atindex(i: usize <autocast>): integer* <inline>
+      return &self.data[i]
+    end
+    function intarray:__len(): isize <inline>
+      return #self.data
+    end
+
+    local a: intarray
+    assert(a[0] == 0 and a[1] == 0)
+    a[0] = 1 a[1] = 2
+    assert(a:__atindex(0) == &a.data[0])
+    assert(a[0] == 1 and a[1] == 2)
+    assert(#a == 100)
+    assert(a:__len() == 100)
   ]])
 end)
 
