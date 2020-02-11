@@ -187,11 +187,12 @@ local function visitor_Table_literal(context, node)
   local childnodes = node[1]
   context:traverse_nodes(childnodes)
   attr.type = primtypes.table
+  attr.node = node
 end
 
 function visitors.Table(context, node)
   local desiredtype = node.desiredtype
-  if not desiredtype or desiredtype:is_table() then
+  if not desiredtype or (desiredtype:is_table() or desiredtype.lazyable) then
     visitor_Table_literal(context, node)
   elseif desiredtype:is_arraytable() then
     visitor_ArrayTable_literal(context, node, desiredtype)
@@ -200,6 +201,7 @@ function visitors.Table(context, node)
   elseif desiredtype:is_record() then
     visitor_Record_literal(context, node, desiredtype)
   else
+    -- concept will be traversed again later
     node:raisef("type '%s' cannot be initialized using a table literal", desiredtype:prettyname())
   end
 end
@@ -744,7 +746,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           funcargtype = funcarg.type
         end
         if argnode then
-          argnode.desiredtype = funcargtype
+          argnode.desiredtype = argnode.desiredtype or funcargtype
           context:traverse_node(argnode)
           argtype = argnode.attr.type
           if argtype then
@@ -752,6 +754,28 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           end
         else
           arg = argtype
+        end
+
+        if argtype and argtype:is_nil() and not funcargtype:is_nilable() then
+          node:raisef("in call of function '%s': expected an argument at index %d but got nothing",
+            calleetype:prettyname(), i)
+        end
+        if arg then
+          local explicit = traits.is_attr(funcarg) and funcarg.autocast
+          local wantedtype, err = funcargtype:is_convertible_from(arg, explicit)
+          if not wantedtype then
+            node:raisef("in call of function '%s' at argument %d: %s",
+              calleetype:prettyname(), i, err)
+          end
+
+          if funcargtype ~= wantedtype and argnode then
+            -- new type suggested, need to traverse again
+            argnode.desiredtype = wantedtype
+            context:traverse_node(argnode)
+          end
+          funcargtype = wantedtype
+        else
+          knownallargs = false
         end
 
         if calleetype:is_lazyfunction() then
@@ -762,21 +786,6 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           end
         end
 
-        if argtype and argtype:is_nil() and not funcargtype:is_nilable() then
-          node:raisef("in call of function '%s': expected an argument at index %d but got nothing",
-            calleetype:prettyname(), i)
-        end
-        if arg then
-          if funcargtype then
-            local ok, err = funcargtype:is_convertible_from(arg, traits.is_attr(funcarg) and funcarg.autocast)
-            if not ok then
-              node:raisef("in call of function '%s' at argument %d: %s",
-                calleetype:prettyname(), i, err)
-            end
-          end
-        else
-          knownallargs = false
-        end
         if calleeobjnode and argtype and pseudoargtypes[i]:is_auto() then
           pseudoargtypes[i] = argtype
         end
@@ -1310,7 +1319,7 @@ function visitors.VarDecl(context, node)
     local symbol = context:traverse_node(varnode)
     assert(symbol)
     local vartype = varnode.attr.type
-    if vartype and vartype:is_varanys() then
+    if vartype and vartype.nolvalue then
       varnode:raisef("variable declaration cannot be of the type '%s'", vartype:prettyname())
     end
     assert(symbol.type == vartype)
@@ -1482,7 +1491,6 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope, check
     argtypes[i] = argtype
     argattrs[i] = argattr
   end
-
 
   if varnode.tag == 'ColonIndex' and symbol and symbol.metafunc then
     -- inject 'self' type as first argument

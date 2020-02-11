@@ -1,5 +1,4 @@
 --TODO: lazy functions to make it generic
---TODO: record metamethods
 
 ## strict = true
 ## unitname = 'nelua'
@@ -42,7 +41,7 @@
     end
   end
 
-  function ArrayTableT:_grow() <noinline>
+  function ArrayTableT:_grow()
     local cap: usize
     if self.impl.data.size ~= 0 then
       cap = self.impl.data.size * 2
@@ -52,7 +51,7 @@
     self.impl.data = allocator.spanrealloc(self.impl.data, cap)
   end
 
-  function ArrayTableT:reserve(n: usize <autocast>) <noinline>
+  function ArrayTableT:reserve(n: usize <autocast>)
     self:init()
     local cap = n + 1
     if self.impl.data.size < cap then
@@ -97,7 +96,7 @@
     return self.impl.data[i]
   end
 
-  function ArrayTableT:at(i: usize <autocast>): T* <inline>
+  function ArrayTableT:__atindex(i: usize <autocast>): T* <inline>
     self:init()
     if unlikely(i > self.impl.size) then
       check(i == self.impl.size + 1, 'arraytable.at: index out of range')
@@ -110,29 +109,7 @@
     return &self.impl.data[i]
   end
 
-  function ArrayTableT:set(i: usize <autocast>, v: T) <inline>
-    self:init()
-    if unlikely(i > self.impl.size) then
-      check(i == self.impl.size + 1, 'arraytable.at: index out of range')
-      self.impl.size = self.impl.size + 1
-    end
-    if unlikely(self.impl.size + 1 > self.impl.data.size) then
-      self:_grow()
-    end
-    self.impl.data[i] = v
-  end
-
-  function ArrayTableT:get(i: usize <autocast>): T <inline>
-    if unlikely(i == 0 and (not self.impl or self.impl.data.size == 0)) then
-      local v: T
-      return v
-    else
-      check(self.impl and i <= self.impl.size, 'arraytable.get: index out of range')
-      return self.impl.data[i]
-    end
-  end
-
-  function ArrayTableT:len(): isize <inline>
+  function ArrayTableT:__len(): isize <inline>
     if unlikely(not self.impl) then
       return 0
     end

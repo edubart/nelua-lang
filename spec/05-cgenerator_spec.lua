@@ -1883,4 +1883,32 @@ it("GC requirements", function()
 }]])
 end)
 
+it("concepts", function()
+  assert.run_c([=[
+    ## strict = true
+
+    local an_array = #[concept(function(attr)
+      if attr.type and attr.type:is_array() then
+        return true
+      end
+    end)]#
+
+    local an_arithmetic = #[concept(function(attr)
+      if attr.type:is_arithmetic() then
+        return true
+      end
+    end)]#
+
+    local function f(a: an_array, x: an_arithmetic, len: integer)
+      ## print(a.type)
+      assert(a[0] == x)
+    end
+
+    local a: integer[4] = {1,2,3,4}
+    local b: number[3] = {5,6,7}
+    f(a, a[0], #a)
+    f(b, b[0], #b)
+  ]=])
+end)
+
 end)

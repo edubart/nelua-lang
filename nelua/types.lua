@@ -85,10 +85,10 @@ end
 function Type:is_convertible_from_type(type)
   if self == type then
     -- the type itself
-    return true
+    return self
   elseif type:is_any() then
     -- anything can be converted to and from `any`
-    return true
+    return self
   else
     return false, stringer.pformat(
       "no viable type conversion from `%s` to `%s`",
@@ -114,7 +114,7 @@ function Type:is_convertible_from_attr(attr, explicit)
           attr.value:todec(), self, self.min:todec(), self.max:todec())
       else
         -- in range and integral, a valid constant conversion
-        return true
+        return self
       end
     end
   end
@@ -187,7 +187,9 @@ function Type:is_integral() return self.integral end
 function Type:is_unsigned() return self.unsigned end
 function Type:is_signed() return self.arithmetic and not self.unsigned end
 function Type:is_generic_pointer() return self.genericpointer end
+function Type:is_concept() return self.concept end
 function Type.is_pointer_of() return false end
+function Type.is_array_of() return false end
 function Type.has_pointer() return false end
 
 function Type:__tostring()
@@ -300,6 +302,7 @@ end
 local VoidType = typeclass()
 types.VoidType = VoidType
 VoidType.nodecl = true
+VoidType.nolvalue = true
 VoidType.comptime = true
 VoidType.void = true
 VoidType.primitive = true
@@ -323,8 +326,8 @@ function AutoType:_init(name)
   Type._init(self, name, 0)
 end
 
-function AutoType.is_convertible_from_type()
-  return true
+function AutoType.is_convertible_from_type(_, type)
+  return type
 end
 
 --------------------------------------------------------------------------------
@@ -369,6 +372,7 @@ end
 --------------------------------------------------------------------------------
 local NilptrType = typeclass()
 types.NilptrType = NilptrType
+NilptrType.nolvalue = true
 NilptrType.nilptr = true
 NilptrType.primitive = true
 NilptrType.unpointable = true
@@ -401,7 +405,7 @@ end
 function StringType:is_convertible_from_type(type, explicit)
   if explicit and self:is_string() and type:is_cstring() then
     -- explicit cstring to string cast
-    return true
+    return self
   end
   return Type.is_convertible_from_type(self, type, explicit)
 end
@@ -461,8 +465,8 @@ function BooleanType:_init(name, size)
   Type._init(self, name, size)
 end
 
-function BooleanType.is_convertible_from_type()
-  return true
+function BooleanType:is_convertible_from_type()
+  return self
 end
 
 BooleanType.unary_operators['not'] = function(ltype, lattr)
@@ -485,8 +489,8 @@ function AnyType:_init(name, size)
   Type._init(self, name, size)
 end
 
-function AnyType.is_convertible_from_type()
-  return true
+function AnyType:is_convertible_from_type()
+  return self
 end
 
 function AnyType.has_pointer() return true end
@@ -495,6 +499,7 @@ function AnyType.has_pointer() return true end
 local VaranysType = typeclass(AnyType)
 types.VaranysType = VaranysType
 VaranysType.varanys = true
+VaranysType.nolvalue = true
 
 function VaranysType:_init(name, size)
   Type._init(self, name, size)
@@ -605,14 +610,14 @@ end
 
 function IntegralType:is_convertible_from_type(type, explicit)
   if type == self then
-    return true
+    return self
   elseif type:is_integral() and self:is_inrange(type.min) and self:is_inrange(type.max) then
-    return true
+    return self
   elseif explicit then
     if type:is_arithmetic() then
-      return true
+      return self
     elseif type:is_pointer() and self.size == cpusize then
-      return true
+      return self
     end
   end
   return ArithmeticType.is_convertible_from_type(self, type, explicit)
@@ -831,7 +836,7 @@ end
 
 function FloatType:is_convertible_from_type(type, explicit)
   if type:is_arithmetic() then
-    return true
+    return self
   end
   return ArithmeticType.is_convertible_from_type(self, type, explicit)
 end
@@ -964,9 +969,13 @@ end
 function ArrayType:is_convertible_from_type(type, explicit)
   if not explicit and type:is_pointer_of(self) then
     -- automatic deref
-    return true
+    return self
   end
   return Type.is_convertible_from_type(self, type, explicit)
+end
+
+function ArrayType:is_array_of(subtype)
+  return self.subtype == subtype
 end
 
 function ArrayType:has_pointer()
@@ -1227,7 +1236,7 @@ end
 function RecordType:is_convertible_from_type(type, explicit)
   if not explicit and type:is_pointer_of(self) then
     -- automatic deref
-    return true
+    return self
   end
   return Type.is_convertible_from_type(self, type, explicit)
 end
@@ -1271,28 +1280,28 @@ function PointerType:is_convertible_from_attr(attr, explicit)
         attr.type, self)
     end
     attr.autoref = true
-    return true
+    return self
   end
   return Type.is_convertible_from_attr(self, attr, explicit)
 end
 
 function PointerType:is_convertible_from_type(type, explicit)
   if type == self then
-    return true
+    return self
   elseif type:is_pointer() then
     if explicit then
-      return true
+      return self
     elseif self:is_generic_pointer() then
-      return true
+      return self
     end
   end
   if self:is_cstring() and type:is_string() then
-    return true
+    return self
   elseif type:is_nilptr() then
-    return true
+    return self
   elseif explicit and type:is_integral() and type.size == cpusize then
     -- conversion from pointer to integral
-    return true
+    return self
   end
   return Type.is_convertible_from_type(self, type, explicit)
 end
@@ -1389,6 +1398,33 @@ end
 
 function RangeType:__tostring()
   return sstream(self.name, '(', self.subtype, ')'):tostring()
+end
+
+--------------------------------------------------------------------------------
+local ConceptType = typeclass()
+types.ConceptType = ConceptType
+ConceptType.nodecl = true
+ConceptType.nolvalue = true
+ConceptType.comptime = true
+ConceptType.unpointable = true
+ConceptType.lazyable = true
+ConceptType.concept = true
+
+function ConceptType:_init(func)
+  Type._init(self, 'concept', 0)
+  self.func = func
+end
+
+function ConceptType:is_convertible_from_attr(attr, explicit)
+  local type, err = self.func(attr, explicit)
+  if not type and not err then
+    err = stringer.pformat("could not match concept '%s'", self:prettyname())
+  end
+  if type == true then
+    assert(attr.type)
+    type = attr.type
+  end
+  return type, err
 end
 
 --------------------------------------------------------------------------------

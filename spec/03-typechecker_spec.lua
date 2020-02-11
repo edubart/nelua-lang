@@ -102,7 +102,6 @@ it("nil type" , function()
   assert.ast_type_equals("local a = nil", "local a: any = nil")
 end)
 
-
 it("numeric types coercion", function()
   assert.analyze_ast([[
     local u:usize, u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 1,1,1,1,1
@@ -1340,6 +1339,32 @@ it("strict mode", function()
     local self;
     local A = @record{}
     function A:f() end]=], "shadows pre declared symbol")
+end)
+
+it("concepts", function()
+  assert.analyze_ast([[
+    local an_integral = #[concept(function(x)
+      return x.type:is_integral()
+    end)]#
+    local an_integer_array = #[concept(function(x)
+      return x.type:is_array_of(integer)
+    end)]#
+    local function f(x: an_integral) return x end
+    local function g(x: an_integer_array) return #x end
+    f(1_uinteger)
+    f(2_uinteger)
+    f(3)
+    f(4)
+    g((@integer[2]){1,2})
+    g((@integer[3]){1,2,3})
+  ]])
+  assert.analyze_error([[
+    local an_integral = #[concept(function(x)
+      return x.type:is_integral()
+    end)]#
+    local function f(x: an_integral) return x end
+    f(true)
+  ]], "could not match concept")
 end)
 
 end)

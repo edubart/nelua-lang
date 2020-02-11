@@ -1,6 +1,7 @@
 local traits = require 'nelua.utils.traits'
 local tabler = require 'nelua.utils.tabler'
 local compat = require 'pl.compat'
+local types = require 'nelua.types'
 local typedefs = require 'nelua.typedefs'
 local VisitorContext = require 'nelua.analyzercontext'
 local PPContext = require 'nelua.ppcontext'
@@ -129,7 +130,7 @@ function preprocessor.preprocess(context, ast)
     except.raise(msg, 2)
   end
 
-  local primtypes = require 'nelua.typedefs'.primtypes
+  local primtypes = typedefs.primtypes
   local ppenv = {
     context = context,
     ppcontext = ppcontext,
@@ -137,6 +138,7 @@ function preprocessor.preprocess(context, ast)
     ast = ast,
     aster = aster,
     config = config,
+    types = types,
     primtypes = primtypes
   }
   tabler.update(ppenv, {
@@ -192,6 +194,11 @@ function preprocessor.preprocess(context, ast)
       end
       return status
     end,
+    concept = function(f)
+      local type = types.ConceptType(f)
+      type.node = context:get_current_node()
+      return type
+    end
   })
   setmetatable(ppenv, { __index = function(_, key)
     local v = rawget(ppcontext.context.env, key)
