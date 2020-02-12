@@ -12,6 +12,14 @@
   local allocator = @gc_allocator
   ## end
 
+  local an_array_of_T = #[concept(function(x)
+    if x.type:is_table() then
+      return types.ArrayType(nil, T, #x.node[1])
+    elseif x.type:is_array_of(T) then
+      return true
+    end
+  end)]#
+
   local T = @#[T]#
   local ArrayTableImplT <codename #['nelua_ArrayTableImpl_'..T.name]#> = @record {
     size: usize,
@@ -94,6 +102,12 @@
     local i = self.impl.size
     self.impl.size = self.impl.size - 1
     return self.impl.data[i]
+  end
+
+  function ArrayTableT:__assign(values: an_array_of_T)
+    self:reserve(#values)
+    memory.zero(&self.impl.data[0], #T)
+    memory.copy(&self.impl.data[1], &values[0], #values * #T)
   end
 
   function ArrayTableT:__atindex(i: usize <autocast>): T* <inline>

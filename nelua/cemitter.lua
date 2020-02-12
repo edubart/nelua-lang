@@ -120,10 +120,12 @@ function CEmitter:add_cstring2string(val)
 end
 
 function CEmitter:add_val2type(type, val, valtype)
-  if type:is_comptime() then
+  if type:is_type() then
     self:add('NULL')
     return
   end
+
+  assert(not type:is_comptime())
 
   if not valtype and traits.is_astnode(val) then
     valtype = val.attr.type

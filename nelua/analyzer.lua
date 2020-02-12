@@ -786,7 +786,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           end
         end
 
-        if calleeobjnode and argtype and pseudoargtypes[i]:is_auto() then
+        if calleeobjnode and argtype and pseudoargtypes[i].lazyable then
           pseudoargtypes[i] = argtype
         end
       end
