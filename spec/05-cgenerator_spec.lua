@@ -1257,7 +1257,6 @@ it("record metametods", function()
     function intarray:__len(): isize <inline>
       return #self.data
     end
-
     local a: intarray
     assert(a[0] == 0 and a[1] == 0)
     a[0] = 1 a[1] = 2
@@ -1265,6 +1264,47 @@ it("record metametods", function()
     assert(a[0] == 1 and a[1] == 2)
     assert(#a == 100)
     assert(a:__len() == 100)
+
+    local R = @record {
+      x: integer
+    }
+    function R.__convert(x: integer): R
+      local self: R
+      self.x = x
+      return self
+    end
+    local r: R = 1
+    assert(r.x == 1)
+    r = R.__convert(2)
+    assert(r.x == 2)
+    r = 3
+    assert(r.x == 3)
+    local function f()
+      local r: R = 1
+      assert(r.x == 1)
+      r = R.__convert(2)
+      assert(r.x == 2)
+      r = 3
+      assert(r.x == 3)
+    end
+    f()
+    local function g(r: R)
+      return r.x
+    end
+    assert(g(r) == 3)
+    assert(g(4) == 4)
+
+    local R = @record {
+      x: integer[2]
+    }
+    ## R.value.choose_braces_type = function() return types.ArrayType(nil, integer, 2) end
+    function R.__convert(x: auto): R
+      local self: R
+      self.x = x
+      return self
+    end
+    local r: R = {1,2}
+    assert(r.x[0] == 1 and r.x[1] == 2)
   ]])
 end)
 
@@ -1908,13 +1948,13 @@ it("concepts", function()
     local R = @record {
       x: integer
     }
-    function R:__assign(x: an_arithmetic)
+    function R:__convert(x: an_arithmetic)
       self.x = x
     end
     local r: R
-    R.__assign(&r, 1)
+    R.__convert(&r, 1)
     assert(r.x == 1)
-    r:__assign(2)
+    r:__convert(2)
     assert(r.x == 2)
   ]=])
 end)

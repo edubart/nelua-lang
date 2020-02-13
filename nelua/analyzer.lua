@@ -47,6 +47,7 @@ function visitors.Number(context, node)
     attr.nofloatsuffix = true
   end
   attr.base = base
+  attr.literal = true
   attr.comptime = true
 end
 
@@ -59,6 +60,7 @@ function visitors.String(_, node)
   end
   attr.type = primtypes.string
   attr.value = value
+  attr.literal = true
   attr.comptime = true
 end
 
@@ -69,6 +71,7 @@ function visitors.Boolean(_, node)
   attr.value = value
   attr.type = primtypes.boolean
   attr.comptime = true
+  attr.literal = true
 end
 
 function visitors.Nil(_, node)
@@ -76,6 +79,7 @@ function visitors.Nil(_, node)
   if attr.type then return end
   attr.type = primtypes.nilable
   attr.comptime = true
+  attr.literal = true
 end
 
 local function visitor_ArrayTable_literal(context, node, littype)
@@ -192,6 +196,10 @@ end
 
 function visitors.Table(context, node)
   local desiredtype = node.desiredtype
+  node.attr.literal = true
+  if desiredtype and desiredtype:is_record() and desiredtype.choose_braces_type then
+    desiredtype = desiredtype.choose_braces_type(node)
+  end
   if not desiredtype or (desiredtype:is_table() or desiredtype.lazyable) then
     visitor_Table_literal(context, node)
   elseif desiredtype:is_arraytable() then
@@ -201,7 +209,6 @@ function visitors.Table(context, node)
   elseif desiredtype:is_record() then
     visitor_Record_literal(context, node, desiredtype)
   else
-    -- concept will be traversed again later
     node:raisef("type '%s' cannot be initialized using a table literal", desiredtype:prettyname())
   end
 end
@@ -411,6 +418,7 @@ function visitors.TypeInstance(context, node, symbol)
   node.attr = attr
   if symbol then
     attr.value:suggest_nick(symbol.name, symbol.staticstorage and symbol.codename)
+    attr.value.symbol = symbol
   end
 end
 
@@ -449,6 +457,7 @@ function visitors.RecordType(context, node, symbol)
     symbol.type = primtypes.type
     symbol.value = recordtype
     recordtype:suggest_nick(symbol.name, symbol.staticstorage and symbol.codename)
+    recordtype.symbol = symbol
   end
   local fieldnodes = node[1]
   context:traverse_nodes(fieldnodes, recordtype)
@@ -711,6 +720,31 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
   attr.calleetype = primtypes.type
 end
 
+local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype)
+  if not (valtype and vartype and vartype:is_user_record() and vartype ~= valtype) then
+    -- convert cannot be overridden
+    return valnode, valtype
+  end
+  if valtype:is_pointer_of(vartype) or vartype:is_pointer_of(valtype) then
+    -- ignore automatic deref/ref
+    return valnode, valtype
+  end
+  local mtsym = vartype:get_metafield('__convert')
+  if not mtsym then
+    return valnode, valtype
+  end
+  local n = context.parser.astbuilder.aster
+  assert(vartype.symbol)
+  local idnode = n.Id{vartype.symbol.name}
+  local pattr = Attr{foreignsymbol=vartype.symbol}
+  idnode.attr:merge(pattr)
+  idnode.pattr = pattr
+  local newvalnode = n.Call{{valnode}, n.DotIndex{'__convert', idnode}}
+  parent[parentindex] = newvalnode
+  context:traverse_node(newvalnode)
+  return newvalnode, newvalnode.attr.type
+end
+
 local function visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)
   local attr = node.attr
   if calleetype then
@@ -749,6 +783,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           argnode.desiredtype = argnode.desiredtype or funcargtype
           context:traverse_node(argnode)
           argtype = argnode.attr.type
+          argnode, argtype = visitor_convert(context, argnodes, i, funcargtype, argnode, argtype)
           if argtype then
             arg = argnode.attr
           end
@@ -1301,7 +1336,7 @@ function visitors.VarDecl(context, node)
     node:raisef("extra expressions in declaration, expected at most %d but got %d",
     #varnodes, #valnodes)
   end
-  for _,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
+  for i,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
     assert(varnode.tag == 'IdDecl')
     varnode.attr.vardecl = true
     if varscope == 'global' then
@@ -1328,9 +1363,11 @@ function visitors.VarDecl(context, node)
       varnode:raisef("const variables must have an initial value")
     end
     if valnode then
-      valnode.desiredtype = vartype
+      valnode.desiredtype = valnode.desiredtype or vartype
       context:traverse_node(valnode, symbol)
       valtype = valnode.attr.type
+      valnode, valtype = visitor_convert(context, valnodes, i, vartype, valnode, valtype)
+
       if valtype then
         if valtype:is_varanys() then
           -- varanys are always stored as any in variables
@@ -1343,7 +1380,7 @@ function visitors.VarDecl(context, node)
       if varnode.attr.comptime and not (valnode.attr.comptime and valtype) then
         varnode:raisef("compile time variables can only assign to compile time expressions")
       elseif vartype and not valtype and vartype:is_auto() then
-        valnode:raisef("auto variables must be assigned to expressions where type is known ahead")
+        varnode:raisef("auto variables must be assigned to expressions where type is known ahead")
       elseif varnode.attr.cimport and not
         (vartype == primtypes.type or (vartype == nil and valtype == primtypes.type)) then
         varnode:raisef("cannot assign imported variables, only imported types can be assigned")
@@ -1417,6 +1454,7 @@ function visitors.Assign(context, node)
       valnode.desiredtype = vartype
       context:traverse_node(valnode)
       valtype = valnode.attr.type
+      valnode, valtype = visitor_convert(context, valnodes, i, vartype, valnode, valtype)
     end
     if valtype then
       if valtype:is_void() then
@@ -1435,7 +1473,8 @@ function visitors.Assign(context, node)
       varnode:raisef("variable assignment at index '%d' is assigning to nothing in the expression", i)
     end
     if vartype and valtype then
-      local ok, err = vartype:is_convertible_from(valnode or valtype, varattr.autocast)
+      local from = valnode or valtype
+      local ok, err = vartype:is_convertible_from(from, varattr.autocast)
       if not ok then
         varnode:raisef("in variable assignment: %s", err)
       end

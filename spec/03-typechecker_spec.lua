@@ -13,12 +13,24 @@ it("analyzed ast transform", function()
       n.VarDecl{'local',
         { n.IdDecl{
           assign=true,
-          attr = {codename='a', name='a', staticstorage=true, type='int64', vardecl=true, lvalue=true},
+          attr = {
+            codename='a',
+            name='a',
+            staticstorage=true,
+            type='int64',
+            vardecl=true,
+            lvalue=true
+          },
           'a' }},
         { n.Number{
           attr = {
-            comptime=true, initializer=true,
-            base='dec', type='int64', untyped=true, value=bn.fromdec('1')
+            comptime=true,
+            initializer=true,
+            literal=true,
+            base='dec',
+            type='int64',
+            untyped=true,
+            value=bn.fromdec('1')
           },'dec', '1'
         }}
       }

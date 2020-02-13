@@ -10,6 +10,7 @@ local except = require 'nelua.utils.except'
 local errorer = require 'nelua.utils.errorer'
 local config = require 'nelua.configer'.get()
 local stringer = require 'nelua.utils.stringer'
+local memoize = require 'nelua.utils.memoize'
 
 local traverse_node = VisitorContext.traverse_node
 local function pp_default_visitor(self, node, emitter, ...)
@@ -198,7 +199,8 @@ function preprocessor.preprocess(context, ast)
       local type = types.ConceptType(f)
       type.node = context:get_current_node()
       return type
-    end
+    end,
+    memoize = memoize
   })
   setmetatable(ppenv, { __index = function(_, key)
     local v = rawget(ppcontext.context.env, key)

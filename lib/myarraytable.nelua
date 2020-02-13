@@ -3,22 +3,13 @@
 ## strict = true
 ## unitname = 'nelua'
 
-## local memoize = require 'nelua.utils.memoize'
 ## myarraytable = hygienize(memoize(function(T, allocator)
   ## if allocator then
-  local allocator = #[allocator]#
+  local allocator: type = #[allocator]#
   ## else
   require 'allocators.gc_allocator'
-  local allocator = @gc_allocator
+  local allocator: type = @gc_allocator
   ## end
-
-  local an_array_of_T = #[concept(function(x)
-    if x.type:is_table() then
-      return types.ArrayType(nil, T, #x.node[1])
-    elseif x.type:is_array_of(T) then
-      return true
-    end
-  end)]#
 
   local T = @#[T]#
   local ArrayTableImplT <codename #['nelua_ArrayTableImpl_'..T.name]#> = @record {
@@ -28,6 +19,17 @@
   local ArrayTableT <codename #['nelua_ArrayTable_'..T.name]#> = @record{
     impl: ArrayTableImplT*
   }
+  ##[[
+  ArrayTableT.value.choose_braces_type = function(node)
+    return types.ArrayType(nil, T, #node[1])
+  end
+  ]]
+
+  local convertible_concept: type = #[concept(function(x)
+    if x.type:is_array_of(T) then
+      return true
+    end
+  end)]#
 
   function ArrayTableT:init() <inline>
     if unlikely(not self.impl) then
@@ -61,7 +63,7 @@
 
   function ArrayTableT:reserve(n: usize <autocast>)
     self:init()
-    local cap = n + 1
+    local cap: usize = n + 1
     if self.impl.data.size < cap then
       self.impl.data = allocator.spanrealloc(self.impl.data, cap)
     end
@@ -69,8 +71,7 @@
 
   function ArrayTableT:resize(n: usize <autocast>, v: T)
     self:init()
-    local addn = n - self.impl.size
-    if addn > 0 then
+    if n > self.impl.size then
       self:reserve(n)
       for i=self.impl.size+1,<n do
         self.impl.data[i+1] = v
@@ -99,15 +100,9 @@
 
   function ArrayTableT:pop(): T <inline>
     check(self.impl and self.impl.size > 0, 'arraytable.pop: length is 0')
-    local i = self.impl.size
+    local i: usize = self.impl.size
     self.impl.size = self.impl.size - 1
     return self.impl.data[i]
-  end
-
-  function ArrayTableT:__assign(values: an_array_of_T)
-    self:reserve(#values)
-    memory.zero(&self.impl.data[0], #T)
-    memory.copy(&self.impl.data[1], &values[0], #values * #T)
   end
 
   function ArrayTableT:__atindex(i: usize <autocast>): T* <inline>
@@ -128,6 +123,18 @@
       return 0
     end
     return (@isize)(self.impl.size)
+  end
+
+  function ArrayTableT.__convert(values: convertible_concept): ArrayTableT <inline>
+    local self: ArrayTableT
+    local len: usize = (@usize)(#values)
+    self:reserve(len)
+    self.impl.size = len
+    memory.zero(&self.impl.data[0], #T)
+    for i:usize=1,len do
+      self.impl.data[i] = values[i-1]
+    end
+    return self
   end
 
   ## return ArrayTableT
