@@ -1300,13 +1300,6 @@ describe("type expression", function()
             {n.Type{'string'}, n.Type{'boolean'}}}}}
     }}})
   end)
-  it("array table type", function()
-    assert.parse_ast(nelua_parser, "local t: arraytable(integer)",
-      n.Block{{
-        n.VarDecl{'local',
-          { n.IdDecl{'t', n.ArrayTableType{n.Type{'integer'}}}}
-    }}})
-  end)
   it("array type", function()
     assert.parse_ast(nelua_parser, "local a: array(integer, 10)",
       n.Block{{
@@ -1347,14 +1340,14 @@ describe("type expression", function()
             n.RecordFieldType{'b', n.Type{'boolean'}}}}}}
     }}})
     assert.parse_ast(nelua_parser,
-      "local r: record{f: function(integer, uinteger):(string, boolean), t: arraytable(integer)}",
+      "local r: record{f: function(integer, uinteger):(string, boolean), t: span(integer)}",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'r', n.RecordType{{
             n.RecordFieldType{'f', n.FuncType{
               {n.Type{'integer'}, n.Type{'uinteger'}},
               {n.Type{'string'}, n.Type{'boolean'}}}},
-            n.RecordFieldType{'t', n.ArrayTableType{ n.Type{'integer'}}}}}}}
+            n.RecordFieldType{'t', n.SpanType{n.Type{'integer'}}}}}}}
     }}})
     assert.parse_ast(nelua_parser, "local r: record{a: record{c: integer}, b: boolean}",
       n.Block{{

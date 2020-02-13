@@ -82,27 +82,6 @@ function visitors.Nil(_, node)
   attr.literal = true
 end
 
-local function visitor_ArrayTable_literal(context, node, littype)
-  local attr = node.attr
-  local childnodes = node[1]
-  local subtype = littype.subtype
-  for i, childnode in ipairs(childnodes) do
-    if childnode.tag == 'Pair' then
-      childnode:raisef("fields are disallowed for array table literal")
-    end
-    childnode.desiredtype = subtype
-    context:traverse_node(childnode)
-    local childtype = childnode.attr.type
-    if childtype then
-      local ok, err = subtype:is_convertible_from(childnode.attr)
-      if not ok then
-        childnode:raisef("in array table literal at index %d: %s", i, err)
-      end
-    end
-  end
-  attr.type = littype
-end
-
 local function visitor_Array_literal(context, node, littype)
   local attr = node.attr
   local childnodes = node[1]
@@ -202,8 +181,6 @@ function visitors.Table(context, node)
   end
   if not desiredtype or (desiredtype:is_table() or desiredtype.lazyable) then
     visitor_Table_literal(context, node)
-  elseif desiredtype:is_arraytable() then
-    visitor_ArrayTable_literal(context, node, desiredtype)
   elseif desiredtype:is_array() then
     visitor_Array_literal(context, node, desiredtype)
   elseif desiredtype:is_record() then
@@ -520,15 +497,6 @@ function visitors.EnumType(context, node)
   attr.value = types.EnumType(node, subtype, fields)
 end
 
-function visitors.ArrayTableType(context, node)
-  local attr = node.attr
-  if attr.type then return end
-  local subtypenode = node[1]
-  context:traverse_node(subtypenode)
-  attr.type = primtypes.type
-  attr.value = types.ArrayTableType(node, subtypenode.attr.value)
-end
-
 function visitors.SpanType(context, node)
   local attr = node.attr
   if attr.type then return end
@@ -626,7 +594,7 @@ function visitors.GenericType(context, node)
     node:raisef(err)
   end
   attr.type = primtypes.type
-  attr.value = symbol.value:eval_type(params)
+  attr.value = type
 end
 
 local function iargnodes(argnodes)
@@ -1127,7 +1095,7 @@ function visitors.ArrayIndex(context, node)
       objtype = objtype.subtype
     end
 
-    if objtype:is_arraytable() or objtype:is_array() or objtype:is_span() then
+    if objtype:is_array() or objtype:is_span() then
       local indextype = indexnode.attr.type
       if indextype then
         if indextype:is_integral() then

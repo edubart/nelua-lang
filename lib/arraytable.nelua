@@ -1,9 +1,7 @@
---TODO: lazy functions to make it generic
-
 ## strict = true
 ## unitname = 'nelua'
 
-## local myarraytable = hygienize(memoize(function(T, allocator)
+## local make_arraytable = hygienize(memoize(function(T, allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
   ## if allocator then
   local allocator: type = #[allocator]#
@@ -25,12 +23,6 @@
     return types.ArrayType(nil, T, #node[1])
   end
   ]]
-
-  local convertible_concept: type = #[concept(function(x)
-    if x.type:is_array_of(T) then
-      return true
-    end
-  end)]#
 
   function ArrayTableT:init() <inline>
     if unlikely(not self.impl) then
@@ -126,7 +118,11 @@
     return (@isize)(self.impl.size)
   end
 
-  function ArrayTableT.__convert(values: convertible_concept): ArrayTableT <inline>
+  function ArrayTableT.__convert(values: #[concept(function(x)
+    if x.type:is_array_of(T) then
+      return true
+    end
+  end)]#): ArrayTableT <inline>
     local self: ArrayTableT
     local len: usize = (@usize)(#values)
     self:reserve(len)
@@ -141,4 +137,4 @@
   ## return ArrayTableT
 ## end))
 
-global myarraytable = #[generic(myarraytable)]#
+global arraytable = #[generic(make_arraytable)]#

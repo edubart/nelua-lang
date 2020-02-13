@@ -487,9 +487,7 @@ cbuiltins.operators = operators
 
 function operators.len(node, emitter, argnode)
   local type = argnode.attr.type
-  if type:is_arraytable() then
-    emitter:add(type, '_length(&', argnode, ')')
-  elseif type:is_span() then
+  if type:is_span() then
     emitter:add('(intptr_t)(', argnode, '.size)')
   else --luacov:disable
     node:errorf('not implemented')

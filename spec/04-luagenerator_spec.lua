@@ -178,7 +178,7 @@ end)
 it("typed var initialization", function()
   assert.lua_gencode_equals("local a: integer", "local a: integer = 0")
   assert.lua_gencode_equals("local a: boolean", "local a: boolean = false")
-  assert.lua_gencode_equals("local a: arraytable(integer)", "local a: arraytable(integer) = {}")
+  assert.lua_gencode_equals("local a: table", "local a: table = {}")
 end)
 
 end)

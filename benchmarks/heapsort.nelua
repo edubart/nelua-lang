@@ -1,3 +1,5 @@
+require 'arraytable'
+
 local function heapsort(a: arraytable(number))
   local n = #a
   local j, i, t

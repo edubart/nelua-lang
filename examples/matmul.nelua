@@ -1,3 +1,5 @@
+require 'arraytable'
+
 local Matrix = @arraytable(arraytable(number))
 
 local function matrix_transpose(a: Matrix, n: integer): Matrix

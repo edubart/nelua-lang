@@ -718,56 +718,6 @@ it("for in", function()
   ]=]
 end)
 
-it("array tables", function()
-  assert.analyze_ast([[
-    local a: arraytable(boolean)
-    local b: arraytable(boolean)
-    b = a
-  ]])
-  assert.analyze_ast([[
-    local a: arraytable(boolean)
-    local len = #a
-  ]])
-  assert.analyze_ast([[
-    local a: arraytable(boolean) = {}
-    local b: arraytable(boolean) = {false, true}
-    local c = (@arraytable(boolean)){false, true}
-    local d: arraytable(boolean); d = {false, true}
-    local function f(a: arraytable(boolean)) end
-    f({false, true})
-  ]])
-  assert.ast_type_equals([[
-    local a: arraytable(boolean)
-    local len = #a
-  ]],[[
-    local a: arraytable(boolean)
-    local len: isize = #a
-  ]])
-  assert.ast_type_equals([[
-    local a: arraytable(boolean)
-    local b = a[0]
-  ]],[[
-    local a: arraytable(boolean)
-    local b: boolean = a[0]
-  ]])
-  assert.analyze_error([[
-    local a: arraytable(integer)
-    local b: arraytable(boolean)
-    b = a
-  ]], "no viable type conversion")
-  assert.analyze_error([[
-    local a: arraytable(integer) = {false}
-  ]], "no viable type conversion")
-  assert.analyze_error([[
-    local a: arraytable(integer) = {a = 1}
-  ]], "fields are disallowed")
-  assert.analyze_error([[
-    local a: arraytable(boolean)
-    local b: arraytable(integer)
-    b = a
-  ]], "no viable type conversion")
-end)
-
 it("spans", function()
   assert.analyze_ast([[
     local a: span(boolean)

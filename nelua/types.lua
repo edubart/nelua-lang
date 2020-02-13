@@ -180,7 +180,6 @@ function Type:is_table() return self.table end
 function Type:is_array() return self.array end
 function Type:is_enum() return self.enum end
 function Type:is_void() return self.void end
-function Type:is_arraytable() return self.arraytable end
 function Type:is_pointer() return self.pointer end
 function Type:is_span() return self.span end
 function Type:is_range() return self.range end
@@ -915,33 +914,6 @@ TableType.table = true
 
 function TableType:_init(name)
   Type._init(self, name, cpusize)
-end
-
---------------------------------------------------------------------------------
-local ArrayTableType = typeclass()
-types.ArrayTableType = ArrayTableType
-ArrayTableType.arraytable = true
-
-function ArrayTableType:_init(node, subtype)
-  Type._init(self, 'arraytable', cpusize*3, node)
-  self.subtype = subtype
-  self.codename = subtype.codename .. '_arrtab'
-end
-
-function ArrayTableType:is_equal(type)
-  return type.name == self.name and
-         getmetatable(type) == getmetatable(self) and
-         type.subtype == self.subtype
-end
-
-function ArrayTableType:__tostring()
-  return sstream(self.name, '(', self.subtype, ')'):tostring()
-end
-
-function ArrayTableType.has_pointer() return true end
-
-ArrayTableType.unary_operators.len = function()
-  return primtypes.isize
 end
 
 --------------------------------------------------------------------------------

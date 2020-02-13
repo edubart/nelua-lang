@@ -2,8 +2,6 @@ local Context = require 'nelua.analyzercontext'
 local class = require 'nelua.utils.class'
 local cdefs = require 'nelua.cdefs'
 local traits = require 'nelua.utils.traits'
-local pegger = require 'nelua.utils.pegger'
-local fs = require 'nelua.utils.fs'
 local cbuiltins = require 'nelua.cbuiltins'
 
 local CContext = class(Context)
@@ -98,32 +96,6 @@ function CContext:funcretctype(functype)
   else
     return self:ctype(functype:get_return_type(1))
   end
-end
-
-function CContext:use_gc()
-  self:ensure_runtime('nelua_gc')
-  self.has_gc = true
-end
-
-local function late_template_render(context, filename, params)
-  params = params or {}
-  params.context = context
-  local file = fs.join(context.runtime_path, filename)
-  return function()
-    local content = fs.tryreadfile(file)
-    return pegger.render_template(content, params)
-  end
-end
-
-function CContext:ensure_runtime(name, template, params)
-  if self.definitions[name] then return end
-  if not template then
-    template = name
-  end
-  local deccode = late_template_render(self, template .. '.h', params)
-  local defcode = late_template_render(self, template .. '.c', params)
-  self:add_declaration(deccode, name)
-  self:add_definition(defcode, name)
 end
 
 function CContext:add_declaration(code, name)

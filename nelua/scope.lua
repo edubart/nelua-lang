@@ -89,7 +89,7 @@ function Scope:make_checkpoint()
     resolved_returntypes = tabler.copy(self.resolved_returntypes),
     has_unknown_return = self.has_unknown_return
   }
-  if self.parent then
+  if self.parent and self.parent.kind ~= 'root' then
     checkpoint.parentcheck = self.parent:make_checkpoint()
   end
   return checkpoint

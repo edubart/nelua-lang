@@ -218,14 +218,6 @@ typevisitors[types.Type] = function(context, type)
     context:ensure_runtime_builtin('nelua_any')
   elseif type:is_nil() then
     context:ensure_runtime_builtin('nelua_nilable')
-  elseif type:is_arraytable() then
-    local subctype = context:ctype(type.subtype)
-    context:ensure_runtime(type.codename, 'nelua_arrtab', {
-      tyname = type.codename,
-      ctype = subctype,
-      type = type
-    })
-    context:use_gc()
   else
     errorer.assertf(cdefs.primitive_ctypes[type.codename],
       'C type visitor for "%s" is not defined', type)
@@ -262,7 +254,7 @@ function visitors.Table(context, node, emitter)
   local attr = node.attr
   local childnodes, type = node[1], attr.type
   local len = #childnodes
-  if len == 0 and (type:is_record() or type:is_array() or type:is_arraytable()) then
+  if len == 0 and (type:is_record() or type:is_array()) then
     if not context.state.ininitializer then
       emitter:add_ctypecast(type)
     end
@@ -309,8 +301,6 @@ function visitors.Table(context, node, emitter)
       emitter:add_ctypecast(type)
       emitter:add('{{', childnodes, '}}')
     end
-  elseif type:is_arraytable() then
-    emitter:add(context:typename(type), '_create((', type.subtype, '[', len, ']){', childnodes, '},', len, ')')
   else --luacov:disable
     error('not implemented yet')
   end --luacov:enable
@@ -377,7 +367,6 @@ function visitors.Paren(_, node, emitter)
 end
 
 visitors.FuncType = visitors.Type
-visitors.ArrayTableType = visitors.Type
 visitors.ArrayType = visitors.Type
 visitors.PointerType = visitors.Type
 
@@ -619,11 +608,6 @@ function visitors.ArrayIndex(context, node, emitter)
     index = '__range.low'
   end
 
-  if objtype:is_arraytable() then
-    emitter:add('*', context:typename(objtype))
-    emitter:add(node.assign and '_at(&' or '_get(&')
-  end
-
   if objtype:is_record() and not objtype:is_span() then
     if node.attr.lvalue then
       emitter:add('(*')
@@ -639,9 +623,7 @@ function visitors.ArrayIndex(context, node, emitter)
       emitter:add(objnode)
     end
 
-    if objtype:is_arraytable() then
-      emitter:add(', ', index, ')')
-    elseif objtype:is_array() or objtype:is_span() then
+    if objtype:is_array() or objtype:is_span() then
       emitter:add('.data[', index, ']')
     else --luacov:disable
       error('not implemented yet')
@@ -1157,15 +1139,7 @@ local function emit_main(ast, context)
   if not context.entrypoint then
     mainemitter:add_indent_ln('int main(int argc, char **argv) {')
     mainemitter:inc_indent(2)
-
-    if context.has_gc then
-      mainemitter:add_indent_ln('nelua_gc_start(&nelua_gc, &argc);')
-      mainemitter:add_indent_ln('int result = nelua_main();')
-      mainemitter:add_indent_ln('nelua_gc_stop(&nelua_gc);')
-      mainemitter:add_indent_ln('return result;')
-    else
-      mainemitter:add_indent_ln('return nelua_main();')
-    end
+    mainemitter:add_indent_ln('return nelua_main();')
     mainemitter:dec_indent(2)
     mainemitter:add_indent_ln('}')
   end

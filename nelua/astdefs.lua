@@ -107,9 +107,6 @@ astbuilder:register('EnumType', {
   ntypes.Type:is_optional(), -- primitive type
   stypes.array_of(ntypes.EnumFieldType), -- field types
 })
-astbuilder:register('ArrayTableType', {
-  ntypes.Node, -- subtype typexpr
-})
 astbuilder:register('ArrayType', {
   ntypes.Node, -- subtype typeexpr
   ntypes.Node, -- size expr

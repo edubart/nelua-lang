@@ -991,29 +991,6 @@ it("cstring and string conversions", function()
   ]], "hello\nhello\nhello")
 end)
 
-it("array tables", function()
-  assert.generate_c(
-    "do local t: arraytable(boolean) end",
-    "nelua_boolean_arrtab t = {0};")
-  assert.generate_c(
-    "do local t: arraytable(boolean); local a = #t end",
-    "intptr_t a = (nelua_boolean_arrtab_length(&t));")
-  assert.run_c([[
-    local t: arraytable(boolean)
-    print(t[0], #t)
-    t[1] = true
-    print(t[1], #t)
-  ]], "false\t0\ntrue\t1")
-  assert.run_c([[
-    local t: arraytable(integer) = {}
-    print(t[0],#t)
-  ]], "0\t0")
-  assert.run_c([[
-    local t: arraytable(integer) = {1, 2}
-    print(t[0], t[1], t[2], #t)
-  ]], "0\t1\t2\t2")
-end)
-
 it("spans", function()
   assert.run_c([[
     local buff: array(integer, 10)

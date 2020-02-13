@@ -76,7 +76,6 @@ function visitors.Paren(_, node, emitter)
 end
 function visitors.Type() end
 function visitors.FuncType() end
-function visitors.ArrayTableType() end
 function visitors.ArrayType() end
 function visitors.IdDecl(_, node, emitter)
   local name = node:args()
@@ -269,7 +268,7 @@ function visitors.VarDecl(context, node, emitter)
     for i=istart,#varnodes do
       if i > 1 then emitter:add(', ') end
       local varnode = varnodes[i]
-      if varnode.attr.type:is_table() or varnode.attr.type:is_arraytable() then
+      if varnode.attr.type:is_table() then
         emitter:add('{}')
       elseif varnode.attr.type:is_arithmetic() then
         emitter:add('0')

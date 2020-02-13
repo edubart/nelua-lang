@@ -2,7 +2,6 @@ local re = require 'relabel'
 local errorer = require 'nelua.utils.errorer'
 local tabler = require 'nelua.utils.tabler'
 local metamagic = require 'nelua.utils.metamagic'
-local compat = require 'pl.compat'
 
 local pegger = {}
 
@@ -144,6 +143,7 @@ function pegger.filename_to_unitname(s)
   return filename_to_unitname_patt:match(s)
 end
 
+--[=[
 local template_peg = re.compile([[
   peg           <- {~ (text / code_eq / code)+ ~}
   text          <- '' -> ' render([==[' text_contents  '' -> ']==]) '
@@ -156,6 +156,7 @@ local template_peg = re.compile([[
   code_close    <- '%}' -> '' / %{UnclosedCode}
 ]])
 
+local compat = require 'pl.compat'
 function pegger.render_template(text, env)
   if not text or text == '' then return '' end
   local out = {}
@@ -167,6 +168,7 @@ function pegger.render_template(text, env)
   run()
   return table.concat(out)
 end
+]=]
 
 local c_defines_peg = re.compile([[
   defines   <- %s* {| define* |}
