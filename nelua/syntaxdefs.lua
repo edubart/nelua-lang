@@ -443,6 +443,15 @@ local function get_parser(std)
     expr_list <- (expr (%COMMA expr)*)?
     eexpr_list <- eexpr (%COMMA expr)*
 
+    type_or_param_expr <- typexpr / expr
+    etype_or_param_expr_list <- etype_or_param_expr (%COMMA type_or_param_expr)*
+
+    type_param_expr <-
+      %cNUMBER /
+      id /
+      ppexpr /
+      (%LPAREN eexpr eRPAREN)
+
     annot_list <- %LANGLE {| (eannot_expr (%COMMA eannot_expr)*) |} eRANGLE
 
     eannot_expr <-
@@ -468,12 +477,13 @@ local function get_parser(std)
       span_type /
       range_type /
       pointer_type /
+      generic_type /
       primtype /
       ppexpr
 
     unary_typexpr_op <-
       {| {} %MUL -> 'PointerType' |} /
-      {| {} %LBRACKET -> 'ArrayType' cnil typexpr_param_expr eRBRACKET |}
+      {| {} %LBRACKET -> 'ArrayType' cnil etype_param_expr eRBRACKET |}
 
     func_type <- (
       {} '' -> 'FuncType'
@@ -484,21 +494,14 @@ local function get_parser(std)
         {| (%COLON (%LPAREN etypexpr_list eRPAREN / etypexpr))? |}
       ) -> to_astnode
 
-    typexpr_param_expr <-
-      %cNUMBER /
-      id /
-      ppexpr /
-      (%LPAREN eexpr eRPAREN) /
-      %{ExpectedExpression}
-
-    record_type <- ({} %TRECORD -> 'RecordType' eLCURLY
+    record_type <- ({} %TRECORD -> 'RecordType' %LCURLY
         {| (record_field (%SEPARATOR record_field)* %SEPARATOR?)? |}
       eRCURLY) -> to_astnode
     record_field <- ({} '' -> 'RecordFieldType'
        name eCOLON etypexpr
       ) -> to_astnode
     enum_type <- ({} %TENUM -> 'EnumType'
-        ((%LPAREN eprimtype eRPAREN) / cnil) eLCURLY
+        ((%LPAREN eprimtype eRPAREN) / cnil) %LCURLY
         {| eenumfield (%SEPARATOR enumfield)* %SEPARATOR? |}
       eRCURLY) -> to_astnode
     enumfield <- ({} '' -> 'EnumFieldType'
@@ -506,24 +509,29 @@ local function get_parser(std)
       ) -> to_astnode
     arraytable_type <- (
       {} 'arraytable' -> 'ArrayTableType'
-        eLPAREN etypexpr eRPAREN
+        %LPAREN etypexpr eRPAREN
       ) -> to_astnode
     span_type <- (
       {} 'span' -> 'SpanType'
-        eLPAREN etypexpr eRPAREN
+        %LPAREN etypexpr eRPAREN
       ) -> to_astnode
     range_type <- (
       {} 'range' -> 'RangeType'
-        eLPAREN etypexpr eRPAREN
+        %LPAREN etypexpr eRPAREN
       ) -> to_astnode
     array_type <- (
       {} 'array' -> 'ArrayType'
-        eLPAREN etypexpr eCOMMA typexpr_param_expr eRPAREN
+        %LPAREN etypexpr eCOMMA etype_param_expr eRPAREN
       ) -> to_astnode
     pointer_type <- (
       {} 'pointer' -> 'PointerType'
         ((%LPAREN etypexpr eRPAREN) / %SKIP)
       ) -> to_astnode
+    generic_type <- (
+      {} '' -> 'GenericType'
+        name %LPAREN {| etype_or_param_expr_list |} eRPAREN
+      ) -> to_astnode
+
     primtype   <- ({} '' -> 'Type' name) -> to_astnode
 
     ppexpr <- ({} %LPPEXPR -> 'PreprocessExpr' {expr -> 0} eRPPEXPR) -> to_astnode
@@ -574,28 +582,30 @@ local function get_parser(std)
 
   -- syntax expected captures with errors
   grammar:set_pegs([[
-    eRPAREN         <- %RPAREN        / %{UnclosedParenthesis}
-    eRBRACKET       <- %RBRACKET      / %{UnclosedBracket}
-    eRPPEXPR        <- %RPPEXPR       / %{UnclosedBracket}
-    eRPPNAME        <- %RPPNAME       / %{UnclosedParenthesis}
-    eRCURLY         <- %RCURLY        / %{UnclosedCurly}
-    eRANGLE         <- %RANGLE        / %{UnclosedAngle}
-    eLPAREN         <- %LPAREN        / %{ExpectedParenthesis}
-    eLCURLY         <- %LCURLY        / %{ExpectedCurly}
-    eLANGLE         <- %LANGLE        / %{ExpectedAngle}
-    eLBRACKET       <- %LBRACKET      / %{ExpectedBracket}
-    eCOLON          <- %COLON         / %{ExpectedColon}
-    eCOMMA          <- %COMMA         / %{ExpectedComma}
-    eEND            <- %END           / %{ExpectedEnd}
-    eTHEN           <- %THEN          / %{ExpectedThen}
-    eUNTIL          <- %UNTIL         / %{ExpectedUntil}
-    eDO             <- %DO            / %{ExpectedDo}
-    ename           <- name           / %{ExpectedName}
-    eexpr           <- expr           / %{ExpectedExpression}
-    etypexpr        <- typexpr        / %{ExpectedTypeExpression}
-    ecallargs       <- callargs       / %{ExpectedCall}
-    eenumfield      <- enumfield      / %{ExpectedEnumFieldType}
-    eprimtype       <- primtype       / %{ExpectedPrimitiveTypeExpression}
+    eRPAREN             <- %RPAREN            / %{UnclosedParenthesis}
+    eRBRACKET           <- %RBRACKET          / %{UnclosedBracket}
+    eRPPEXPR            <- %RPPEXPR           / %{UnclosedBracket}
+    eRPPNAME            <- %RPPNAME           / %{UnclosedParenthesis}
+    eRCURLY             <- %RCURLY            / %{UnclosedCurly}
+    eRANGLE             <- %RANGLE            / %{UnclosedAngle}
+    eLPAREN             <- %LPAREN            / %{ExpectedParenthesis}
+    eLCURLY             <- %LCURLY            / %{ExpectedCurly}
+    eLANGLE             <- %LANGLE            / %{ExpectedAngle}
+    eLBRACKET           <- %LBRACKET          / %{ExpectedBracket}
+    eCOLON              <- %COLON             / %{ExpectedColon}
+    eCOMMA              <- %COMMA             / %{ExpectedComma}
+    eEND                <- %END               / %{ExpectedEnd}
+    eTHEN               <- %THEN              / %{ExpectedThen}
+    eUNTIL              <- %UNTIL             / %{ExpectedUntil}
+    eDO                 <- %DO                / %{ExpectedDo}
+    ename               <- name               / %{ExpectedName}
+    eexpr               <- expr               / %{ExpectedExpression}
+    etypexpr            <- typexpr            / %{ExpectedTypeExpression}
+    etype_or_param_expr <- type_or_param_expr / %{ExpectedExpression}
+    etype_param_expr    <- type_param_expr    / %{ExpectedExpression}
+    ecallargs           <- callargs           / %{ExpectedCall}
+    eenumfield          <- enumfield          / %{ExpectedEnumFieldType}
+    eprimtype           <- primtype           / %{ExpectedPrimitiveTypeExpression}
   ]])
 
   -- compile whole grammar

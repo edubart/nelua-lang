@@ -408,7 +408,6 @@ function visitors.Type(context, node)
   attr.value = value
 end
 
-
 function visitors.TypeInstance(context, node, symbol)
   local typenode = node[1]
   if node.attr.type then return end
@@ -594,6 +593,42 @@ function visitors.PointerType(context, node)
   attr.type = primtypes.type
 end
 
+function visitors.GenericType(context, node)
+  local attr = node.attr
+  local name, argnodes = node[1], node[2]
+  if attr.type then return end
+  local symbol = context.scope:get_symbol(name)
+  if not symbol or not symbol.type or not symbol.type:is_type() or symbol.type:is_generic() then
+    node:raisef("symbol '%s' doesn't hold a generic type", name)
+  end
+  local params = {}
+  for i=1,#argnodes do
+    local argnode = argnodes[i]
+    context:traverse_node(argnode)
+    local argattr = argnode.attr
+    if not (argattr.comptime or argattr.type:is_comptime()) then
+      node:raisef("in generic '%s': argument #%d isn't a compile time value", name, i)
+    end
+    local value = argattr.value
+    if traits.is_bignumber(value) then
+      value = value:tonumber()
+    elseif not (traits.is_type(value) or
+                traits.is_string(value) or
+                traits.is_boolean(value) or
+                traits.is_bignumber(value)) then
+      node:raisef("in generic '%s': argument #%d of type '%s' is invalid for generics",
+        name, i, argattr.type:prettyname())
+    end
+    params[i] = value
+  end
+  local type, err = symbol.value:eval_type(params)
+  if err then
+    node:raisef(err)
+  end
+  attr.type = primtypes.type
+  attr.value = symbol.value:eval_type(params)
+end
+
 local function iargnodes(argnodes)
   local i = 0
   local lastargindex = #argnodes
@@ -694,8 +729,11 @@ end
 local function visitor_Call_typeassertion(context, node, argnodes, type)
   local attr = node.attr
   assert(type)
+  if type:is_generic() then
+    node:raisef("assertion to generic '%s': cannot do assertion on generics", type:prettyname())
+  end
   if #argnodes ~= 1 then
-    node:raisef("assertion to type '%s' expected one argument, but got %d",
+    node:raisef("assertion to type '%s': expected one argument, but got %d",
       type:prettyname(), #argnodes)
   end
   local argnode = argnodes[1]
@@ -1405,6 +1443,8 @@ function visitors.VarDecl(context, node)
         assert(valnode and valnode.attr.value)
         assignvaltype = vartype ~= valtype
         symbol.value = valnode.attr.value
+        symbol.value:suggest_nick(symbol.name, symbol.staticstorage and symbol.codename)
+        symbol.value.symbol = symbol
       end
 
       if vartype and vartype:is_auto() then

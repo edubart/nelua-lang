@@ -1379,4 +1379,52 @@ it("concepts", function()
   ]], "could not match concept")
 end)
 
+it("generics", function()
+  assert.analyze_ast([[
+    local myarray = #[generic(function(T, N) return types.ArrayType(nil, T, N) end)]#
+    local M: integer <comptime> = 4
+    local x = @myarray(integer, (M))
+  ]])
+  assert.analyze_ast([[
+    local int = @integer
+    local proxy = #[generic(function(T) return int end)]#
+    local x = @proxy(integer)
+  ]])
+  assert.analyze_error([[
+    local proxy = #[generic(function(T) staticerror('my fail') end)]#
+    local x = @proxy(integer)
+  ]], 'my fail')
+  assert.analyze_error([[
+    local myarray = #[generic(function(T, N) return types.ArrayType(nil, T, N) end)]#
+    local M: integer = 4
+    local x = @myarray(integer, (M))
+  ]], "isn't a compile time value")
+  assert.analyze_error([[
+    local myarray = #[generic(function(T, N) return types.ArrayType(nil, T, N) end)]#
+    local M: span(integer) <comptime> = {}
+    local x = @myarray(integer, (M))
+  ]], "is invalid for generics")
+  assert.analyze_error([[
+    local x = @integer(integer)
+  ]], "doesn't hold a generic type")
+  assert.analyze_error([[
+    local myarray = #[generic(function() end)]#
+    local i = 1
+    local x = @integer(i)
+  ]], "doesn't hold a generic type")
+  assert.analyze_error([[
+    local myarray = #[generic(function() end)]#
+    local x = myarray(integer)
+  ]], "cannot do assertion on generics")
+  assert.analyze_error([[
+    local myarray = #[generic(function() end)]#
+    local x = @myarray(integer)
+  ]], "expected a type or symbol in generic return")
+  assert.analyze_error([[
+    local X = 1
+    local myarray = #[generic(function() return X end)]#
+    local x = @myarray(integer)
+  ]], "expected a symbol holding a type in generic return")
+end)
+
 end)

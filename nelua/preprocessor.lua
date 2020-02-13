@@ -140,6 +140,7 @@ function preprocessor.preprocess(context, ast)
     aster = aster,
     config = config,
     types = types,
+    traits = traits,
     primtypes = primtypes
   }
   tabler.update(ppenv, {
@@ -197,6 +198,11 @@ function preprocessor.preprocess(context, ast)
     end,
     concept = function(f)
       local type = types.ConceptType(f)
+      type.node = context:get_current_node()
+      return type
+    end,
+    generic = function(f)
+      local type = types.GenericType(f)
       type.node = context:get_current_node()
       return type
     end,

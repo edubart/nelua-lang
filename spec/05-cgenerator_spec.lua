@@ -1959,4 +1959,25 @@ it("concepts", function()
   ]=])
 end)
 
+it("generics", function()
+  assert.run_c([=[
+    local arrayproxy = #[generic(hygienize(memoize(function(T, size)
+      return types.ArrayType(nil, T, size)
+    end)))]#
+
+    local intarray = @arrayproxy(integer, 4)
+    local j: arrayproxy(integer, 4) = {1,2,3,4}
+    assert(j[0] == 1)
+    local i = (@arrayproxy(integer, 4)){1,2,3,4}
+    assert(i[0] == 1)
+
+    local function f(x: arrayproxy(integer, 4))
+      assert(x[0] == 1)
+    end
+
+    f(i)
+    f(j)
+  ]=])
+end)
+
 end)

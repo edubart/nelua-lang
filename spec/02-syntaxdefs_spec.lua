@@ -1417,6 +1417,21 @@ describe("type expression", function()
           { n.IdDecl{'r', n.RangeType{n.Type{'integer'}}}}
     }}})
   end)
+  it("generic type", function()
+    assert.parse_ast(nelua_parser, "local r: somegeneric(integer, 4)",
+      n.Block{{
+        n.VarDecl{'local', {
+          n.IdDecl{'r', n.GenericType{"somegeneric", {
+            n.Type{'integer'}, n.Number{"dec", "4"}}}}}
+    }}})
+    assert.parse_ast(nelua_parser, "local r: somegeneric(span(integer), integer*)",
+      n.Block{{
+        n.VarDecl{'local', {
+          n.IdDecl{'r', n.GenericType{"somegeneric", {
+            n.SpanType{n.Type{'integer'}},
+            n.PointerType{n.Type{"integer"}}
+    }}}}}}})
+  end)
   it("complex types", function()
     assert.parse_ast(nelua_parser, "local p: integer*[10]*[10]",
       n.Block{{

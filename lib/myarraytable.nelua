@@ -3,7 +3,8 @@
 ## strict = true
 ## unitname = 'nelua'
 
-## myarraytable = hygienize(memoize(function(T, allocator)
+## local myarraytable = hygienize(memoize(function(T, allocator)
+  ## staticassert(traits.is_type(T), "invalid type '%s'", T)
   ## if allocator then
   local allocator: type = #[allocator]#
   ## else
@@ -139,3 +140,5 @@
 
   ## return ArrayTableT
 ## end))
+
+global myarraytable = #[generic(myarraytable)]#

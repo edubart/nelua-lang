@@ -7,6 +7,7 @@ local sstream = require 'nelua.utils.sstream'
 local metamagic = require 'nelua.utils.metamagic'
 local config = require 'nelua.configer'.get()
 local bn = require 'nelua.utils.bn'
+local except = require 'nelua.utils.except'
 local typedefs, primtypes
 
 local types = {}
@@ -188,6 +189,7 @@ function Type:is_unsigned() return self.unsigned end
 function Type:is_signed() return self.arithmetic and not self.unsigned end
 function Type:is_generic_pointer() return self.genericpointer end
 function Type:is_concept() return self.concept end
+function Type:is_generic() return self.generic end
 function Type.is_pointer_of() return false end
 function Type.is_array_of() return false end
 function Type.has_pointer() return false end
@@ -1425,6 +1427,42 @@ function ConceptType:is_convertible_from_attr(attr, explicit)
     type = attr.type
   end
   return type, err
+end
+
+--------------------------------------------------------------------------------
+local GenericType = typeclass()
+types.GenericType = GenericType
+GenericType.nodecl = true
+GenericType.nolvalue = true
+GenericType.comptime = true
+GenericType.unpointable = true
+GenericType.generic = true
+
+function GenericType:_init(func)
+  Type._init(self, 'generic', 0)
+  self.func = func
+end
+
+function GenericType:eval_type(params)
+  local ret
+  local ok, err = except.trycall(function()
+    ret = self.func(tabler.unpack(params))
+  end)
+  if err then
+    return nil, err
+  end
+  if traits.is_symbol(ret) then
+    if not ret.type or not ret.type:is_type() then
+      ret = nil
+      err = stringer.pformat("expected a symbol holding a type in generic return, but got something else")
+    else
+      ret = ret.value
+    end
+  elseif not traits.is_type(ret) then
+    ret = nil
+    err = stringer.pformat("expected a type or symbol in generic return, but got '%s'", type(ret))
+  end
+  return ret, err
 end
 
 --------------------------------------------------------------------------------

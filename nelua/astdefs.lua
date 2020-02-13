@@ -123,6 +123,10 @@ astbuilder:register('SpanType', {
 astbuilder:register('RangeType', {
   ntypes.Node, -- subtype typexpr
 })
+astbuilder:register('GenericType', {
+  stypes.string + ntypes.PreprocessName, -- generic name
+  stypes.array_of(ntypes.Node), -- list of typexpr or param expr
+})
 
 -- function
 astbuilder:register('Function', {

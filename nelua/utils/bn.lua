@@ -192,6 +192,15 @@ function bn.tointeger(v)
   end
 end
 
+local orig_tonumber = bn.tonumber
+function bn.tonumber(v)
+  local vint = v:trunc()
+  if v == vint then
+    return tonumber(tostring(vint))
+  end
+  return orig_tonumber(v)
+end
+
 --------------------------------------------------------------------------------
 -- Utilities
 
