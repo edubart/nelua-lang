@@ -1,6 +1,6 @@
-require 'arraytable'
+require 'sequence'
 
-local function heapsort(a: arraytable(number))
+local function heapsort(a: sequence(number))
   local n = #a
   local j, i, t
   local l = (n // 2) + 1
@@ -41,7 +41,7 @@ local function random_int(seed: integer)
 end
 
 local N = 1000000
-local a: arraytable(number)
+local a: sequence(number)
 local rand = 123456789
 for i=1,N do
   rand = random_int(rand)

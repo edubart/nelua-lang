@@ -143,26 +143,39 @@ function preprocessor.preprocess(context, ast)
     traits = traits,
     primtypes = primtypes
   }
+  local function concept(f)
+    local type = types.ConceptType(f)
+    type.node = context:get_current_node()
+    return type
+  end
+  local function generic(f)
+    local type = types.GenericType(f)
+    type.node = context:get_current_node()
+    return type
+  end
+  local function hygienize(f)
+    local scope = ppcontext.context.scope
+    local checkpoint = scope:make_checkpoint()
+    local statnodes = ppcontext.statnodes
+    local addindex = #statnodes+1
+    return function(...)
+      statnodes.addindex = addindex
+      ppcontext:push_statnodes(statnodes)
+      scope:push_checkpoint(checkpoint)
+      ppcontext.context:push_scope(scope)
+      local rets = tabler.pack(f(...))
+      ppcontext:pop_statnodes()
+      ppcontext.context:pop_scope()
+      scope:pop_checkpoint()
+      addindex = statnodes.addindex
+      statnodes.addindex = nil
+      return tabler.unpack(rets)
+    end
+  end
+  local function generalize(f)
+    return generic(memoize(hygienize(f)))
+  end
   tabler.update(ppenv, {
-    hygienize = function(f)
-      local scope = ppcontext.context.scope
-      local checkpoint = scope:make_checkpoint()
-      local statnodes = ppcontext.statnodes
-      local addindex = #statnodes+1
-      return function(...)
-        statnodes.addindex = addindex
-        ppcontext:push_statnodes(statnodes)
-        scope:push_checkpoint(checkpoint)
-        ppcontext.context:push_scope(scope)
-        local rets = tabler.pack(f(...))
-        ppcontext:pop_statnodes()
-        ppcontext.context:pop_scope()
-        scope:pop_checkpoint()
-        addindex = statnodes.addindex
-        statnodes.addindex = nil
-        return tabler.unpack(rets)
-      end
-    end,
     afteranalyze = function(f)
       if not traits.is_function(f) then
         raise_preprocess_error("invalid arguments for preprocess function")
@@ -196,17 +209,11 @@ function preprocessor.preprocess(context, ast)
       end
       return status
     end,
-    concept = function(f)
-      local type = types.ConceptType(f)
-      type.node = context:get_current_node()
-      return type
-    end,
-    generic = function(f)
-      local type = types.GenericType(f)
-      type.node = context:get_current_node()
-      return type
-    end,
-    memoize = memoize
+    concept = concept,
+    generic = generic,
+    hygienize = hygienize,
+    generalize = generalize,
+    memoize = memoize,
   })
   setmetatable(ppenv, { __index = function(_, key)
     local v = rawget(ppcontext.context.env, key)

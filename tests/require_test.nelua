@@ -1,4 +1,4 @@
-require 'tests.test_require_deps'
+require 'tests.require_test_dep'
 
 assert(a == 1)
 assert(b == 2)

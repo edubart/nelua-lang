@@ -56,7 +56,7 @@ function allocator.spanrealloc(s: auto, size: usize)
     s.size = 0
   else
     s.data = (@T*)(allocator.realloc(s.data, size * #T))
-    check(s.data, 'allocator.spanrealloc0: allocation fail')
+    check(s.data, 'allocator.spanrealloc: allocation fail')
     s.size = size
   end
   return s
@@ -69,11 +69,8 @@ function allocator.spanrealloc0(s: auto, size: usize)
     s.data = nilptr
     s.size = 0
   else
-    s.data = (@T*)(allocator.realloc(s.data, size * #T))
+    s.data = (@T*)(allocator.realloc0(s.data, size * #T, s.size * #T))
     check(s.data, 'allocator.spanrealloc0: allocation fail')
-    if likely(size > s.size) then
-      memset(&s[s.size], 0, (size - s.size) * #T)
-    end
     s.size = size
   end
   return s

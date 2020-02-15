@@ -1,0 +1,61 @@
+require 'sequence'
+
+do -- manual init and reset
+  local seq: sequence(integer)
+  assert(#seq == 0 and seq.impl == nilptr)
+  seq:init()
+  assert(seq.impl ~= nilptr)
+  seq:reset()
+  assert(seq.impl == nilptr)
+end
+
+do -- braces initializer
+  local seq: sequence(integer) = {}
+  assert(#seq == 0 and seq.impl ~= nilptr)
+  seq = {1,2,3}
+  assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)
+  seq = {4}
+  assert(#seq == 1 and seq[0] == 0 and seq[1] == 4)
+  seq = {}
+end
+
+do -- indexing new elements and clearing
+  local seq: sequence(integer) = {}
+  seq[0] = 1
+  assert(seq[0] == 1)
+  assert(seq[1] == 0)
+  assert(seq[2] == 0)
+  seq[3] = 1
+  assert(seq[3] == 1)
+  assert(#seq == 3)
+  seq:clear()
+  assert(#seq == 0)
+end
+
+do -- push and pop
+  local seq: sequence(integer) = {}
+  seq:push(1)
+  assert(#seq == 1 and seq[0] == 0 and seq[1] == 1)
+  seq:pop()
+  assert(#seq == 0 and seq[0] == 0)
+  seq:push(1) seq:push(2) seq:push(3)
+  assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)
+end
+
+do -- passing by reference
+  local seqa: sequence(integer) = {1}
+  local seqb: sequence(integer)
+  seqb = seqa
+  assert(#seqb == 1 and seqb[1] == 1)
+  seqa:push(2)
+  assert(#seqb == 2 and seqb[1] == 1 and seqb[2] == 2)
+  seqa:clear()
+  assert(#seqb == 0)
+end
+
+require 'allocators.generic_allocator'
+do -- custom allocator
+  local seq: sequence(integer, generic_allocator) = {1,2,3}
+  assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)
+  seq:reset()
+end

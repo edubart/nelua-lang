@@ -1,6 +1,6 @@
-require 'arraytable'
+require 'sequence'
 
-local Matrix = @arraytable(arraytable(number))
+local Matrix = @sequence(sequence(number))
 
 local function matrix_transpose(a: Matrix, n: integer): Matrix
   local x: Matrix = {}

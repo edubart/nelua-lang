@@ -364,6 +364,7 @@ function GC:start(stack: pointer)
 end
 
 function GC:stop()
+  self:_unmark_all()
   self:_sweep()
   allocator.spandealloc(self.items)
   allocator.spandealloc(self.frees)

@@ -1935,9 +1935,9 @@ end)
 
 it("generics", function()
   assert.run_c([=[
-    local arrayproxy = #[generic(hygienize(memoize(function(T, size)
+    local arrayproxy = #[generalize(function(T, size)
       return types.ArrayType(nil, T, size)
-    end)))]#
+    end)]#
 
     local intarray = @arrayproxy(integer, 4)
     local j: arrayproxy(integer, 4) = {1,2,3,4}
