@@ -1,5 +1,3 @@
-## strict = true
-
 require 'memory'
 require 'allocators.generic_allocator'
 

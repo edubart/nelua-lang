@@ -1,4 +1,3 @@
-## strict = true
 ## cinclude '<stdlib.h>'
 
 -- Memory management

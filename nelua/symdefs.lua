@@ -54,6 +54,7 @@ define_const('warn', primtypes.any)
 define_const('print', primtypes.any)
 define_function('type', {primtypes.any}, {primtypes.string})
 define_const('require', primtypes.any)
+define_const('_G', primtypes.table)
 
 --dofile
 --select

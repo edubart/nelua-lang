@@ -1,7 +1,6 @@
 -- Tiny and simple mark and sweep garbage collector
 -- Implementation based on https://github.com/orangeduck/tgc
 
-## strict = true
 ## unitname = 'nelua'
 ## cinclude '<setjmp.h>'
 

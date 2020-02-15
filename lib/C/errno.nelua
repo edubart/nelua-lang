@@ -1,4 +1,3 @@
-## strict = true
 ## cinclude '<errno.h>'
 
 -- Global variables

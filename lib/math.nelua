@@ -1,4 +1,3 @@
-## strict = true
 ## unitname = 'nelua'
 
 global math = @record{}

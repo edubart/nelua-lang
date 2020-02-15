@@ -4,7 +4,6 @@ local types = require 'nelua.types'
 local typedefs = require 'nelua.typedefs'
 local symdefs = require 'nelua.symdefs'
 local tabler = require 'nelua.utils.tabler'
-local stringer = require 'nelua.utils.stringer'
 
 local Scope = class()
 
@@ -146,9 +145,6 @@ function Scope:add_symbol(symbol, annon)
       key = symbol
       symbol.shadows = true
     else
-      if self.context.pragmas.strict then
-        return nil, stringer.pformat("symbol '%s' shadows pre declared symbol with the same name", key)
-      end
       if rawget(self.symbols, key) == oldsymbol then
         self.symbols[oldsymbol] = oldsymbol
       end

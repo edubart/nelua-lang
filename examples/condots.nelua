@@ -1,5 +1,3 @@
-## strict = true
-
 ## if EMSCRIPTEN then
 --TODO: default output file as html for emcc
 --TODO: pass ifdef via compile command

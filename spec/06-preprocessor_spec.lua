@@ -128,7 +128,6 @@ end)
 
 it("check symbols inside functions", function()
   assert.analyze_ast([=[
-    ## strict = true
     local function f(x: integer)
       ## assert(x.type == require 'nelua.typedefs'.primtypes.integer)
     end
@@ -306,30 +305,18 @@ assert.ast_type_equals([=[
   ]=], [[
     local a = 'test'
   ]])
-end)
 
-it("strict mode", function()
   assert.ast_type_equals([=[
-    print(#[tostring(strict)]#)
-    ## strict = true
-    print(#[tostring(strict)]#)
-    local function f(a: integer)
-      ## if true then
-        print(a)
-      ## end
-    end
-    f(1)
+    print(#[tostring(unitname)]#)
+    ## unitname = 'unit'
+    print(#[tostring(unitname)]#)
   ]=], [[
     print 'nil'
     ## strict = true
-    print 'true'
-    local function f(a: integer)
-      print(a)
-    end
-    f(1)
+    print 'unit'
   ]])
 
-  assert.analyze_error("## strict = 1", "invalid type for preprocess")
+  assert.analyze_error("## unitname = 1", "invalid type for preprocess")
 end)
 
 it("function pragmas", function()
@@ -579,15 +566,6 @@ local a = 1
 local a = 1
 a = a + 1
 ]=])
-
-  assert.analyze_error([=[
-## strict = true
-## local function redeclare()
-  local a = 1
-## end
-local a = 1
-## redeclare()
-]=], "symbol 'a' shadows pre declared symbol")
 end)
 
 it("hygienic macros", function()
@@ -617,7 +595,6 @@ end
 ]=])
 
   assert.analyze_error([=[
-## strict = true
 ## local inc = hygienize(function()
   a = a + 1
 ## end)

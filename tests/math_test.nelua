@@ -1,5 +1,3 @@
-## strict = true
-
 require 'math'
 
 -- test utilities

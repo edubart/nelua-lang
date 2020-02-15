@@ -1,5 +1,4 @@
 -- SDL2 Snake Game Demo
-## strict = true
 ## linklib 'SDL2'
 
 -- import SDL structures

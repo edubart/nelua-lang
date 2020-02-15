@@ -18,7 +18,7 @@ it("run simple programs", function()
   assert.run('--generator c examples/helloworld.nelua', 'hello world')
   assert.run({'--generator', 'lua', '--eval', ""}, '')
   assert.run({'--lint', '--eval', ""})
-  assert.run({'--generator', 'lua', '--eval', "print(arg[1])", "hello"}, 'hello')
+  assert.run({'--generator', 'lua', '--eval', "print(_G.arg[1])", "hello"}, 'hello')
   assert.run({'--generator', 'c', '--eval', ""})
   assert.run({'--generator', 'c', '--cflags="-Wall"', '--eval',
     "## cflags '-w' linklib 'm' ldflags '--as-needed'"})

@@ -1,5 +1,3 @@
-## strict = true
-
 require 'C.math'
 
 assert(C.fabs(-1.0) == 1.0)

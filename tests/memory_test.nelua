@@ -1,6 +1,4 @@
-## strict = true
-
---## cflags '-fsanitize=address -fsanitize=undefined'
+## cflags '-fsanitize=address -fsanitize=leak -fsanitize=undefined'
 
 require 'memory'
 require 'allocators.generic_allocator'

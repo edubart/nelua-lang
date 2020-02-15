@@ -1,4 +1,3 @@
-## strict = true
 ## unitname = 'nelua'
 
 --TODO: optional params/returns

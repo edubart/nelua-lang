@@ -1,4 +1,3 @@
-## strict = true
 ## cinclude '<stdio.h>'
 
 local FILE <cimport'FILE',nodecl> = @record{}

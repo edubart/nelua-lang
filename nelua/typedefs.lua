@@ -152,7 +152,6 @@ typedefs.call_pragmas = {
 }
 
 typedefs.field_pragmas = {
-  strict = shaper.boolean,
   noinit = shaper.boolean,
   nostatic = shaper.boolean,
   nofloatsuffix = shaper.boolean,

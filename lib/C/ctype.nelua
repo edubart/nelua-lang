@@ -1,4 +1,3 @@
-## strict = true
 ## cinclude '<ctype.h>'
 
 -- Character classification functions

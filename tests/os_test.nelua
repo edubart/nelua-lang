@@ -1,5 +1,3 @@
-## strict = true
-
 require 'os'
 
 assert(os.clock() >= 0)

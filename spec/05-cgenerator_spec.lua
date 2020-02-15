@@ -79,18 +79,18 @@ it("nil", function()
 end)
 
 it("call", function()
-  assert.generate_c("f()", "f();")
-  assert.generate_c("f(g())", "f(g())")
-  assert.generate_c("f(a, b)", "f(a, b)")
-  assert.generate_c("f(a)(b)", "f(a)(b)")
-  assert.generate_c("a.f()", "a.f()")
+  assert.generate_c("local f; f()", "f();")
+  assert.generate_c("local f,g; f(g())", "f(g())")
+  assert.generate_c("local f,a,b; f(a, b)", "f(a, b)")
+  assert.generate_c("local f,a,b; f(a)(b)", "f(a)(b)")
+  assert.generate_c("local a; a.f()", "a.f()")
   --assert.generate_c("a:f(a)", "a.f(a, a)")
-  assert.generate_c("do f() end", "f();")
-  assert.generate_c("do return f() end", "return nelua_any_to_nelua_cint(f());")
-  assert.generate_c("do f(g()) end", "f(g())")
-  assert.generate_c("do f(a, b) end", "f(a, b)")
-  assert.generate_c("do f(a)(b) end", "f(a)(b)")
-  assert.generate_c("do a.f() end", "a.f()")
+  assert.generate_c("local f; do f() end", "f();")
+  assert.generate_c("local f; do return f() end", "return nelua_any_to_nelua_cint(f());")
+  assert.generate_c("local f,g; do f(g()) end", "f(g())")
+  assert.generate_c("local f,a,b; do f(a, b) end", "f(a, b)")
+  assert.generate_c("local f,a,b; do f(a)(b) end", "f(a)(b)")
+  assert.generate_c("local a; do a.f() end", "a.f()")
   --assert.generate_c("do a:f() end", "a.f(a)")
 end)
 
@@ -98,7 +98,7 @@ it("if", function()
   assert.generate_c("if nilptr then\nend","if(false) {\n")
   assert.generate_c("if nil then\nend","if(false) {\n")
   assert.generate_c("if 1 then\nend","if(true) {\n")
-  assert.generate_c("if a then\nend","if(nelua_any_to_nelua_boolean(a)) {\n")
+  assert.generate_c("local a; if a then\nend","if(nelua_any_to_nelua_boolean(a)) {\n")
   assert.generate_c("if true then\nend","if(true) {\n  }")
   assert.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
   assert.generate_c("if true then\nelse\nend", "if(true) {\n  } else {\n  }")
@@ -117,7 +117,7 @@ it("if", function()
 end)
 
 it("switch", function()
-  assert.generate_c("do switch a case 1 then f() case 2 then g() else h() end end",[[
+  assert.generate_c("local a,f,g,h; do switch a case 1 then f() case 2 then g() else h() end end",[[
     switch(a) {
       case 1: {
         f();
@@ -172,12 +172,12 @@ it("repeat", function()
 end)
 
 it("for", function()
-  assert.generate_c("for i=a,b do end", {
+  assert.generate_c("local a,b; for i=a,b do end", {
     "for(nelua_any i = a, __end = b; i <= __end; i = i + 1) {"})
-  assert.generate_c("for i=a,b do i=c end", {
+  assert.generate_c("local a,b,c; for i=a,b do i=c end", {
     "for(nelua_any __it = a, __end = b; __it <= __end; __it = __it + 1) {",
     "nelua_any i = __it;"})
-  assert.generate_c("for i=a,b,c do end",
+  assert.generate_c("local a,b,c; for i=a,b,c do end",
     "for(nelua_any i = a, __end = b, __step = c; " ..
     "__step >= 0 ? i <= __end : i >= __end; i = i + __step) {")
   assert.generate_c(
@@ -389,9 +389,8 @@ it("lazy functions with comptime arguments", function()
 end)
 
 it("global function definition", function()
-  assert.generate_c("function f() end", "static void f();")
+  assert.generate_c("local function f() end", "static void f();")
   assert.run_c([[
-    ## strict = true
     global function f(x: integer) return x+1 end
     assert(f(1) == 2)
   ]])
@@ -1521,14 +1520,13 @@ it("annotations", function()
     "local function cos(x: number): number <cimport'myfunc',cinclude'<myheader.h>',nodecl> end",
     "#include <myheader.h>")
   assert.generate_c([[
-    ## strict = true
     do
       ## cemit(function(e) e:add_ln('#define SOMETHING') end)
     end
   ]], "#define SOMETHING")
   assert.run_c([[
     local function exit(x: int32) <cimport'exit',cinclude'<stdlib.h>',nodecl> end
-    function puts(s: cstring): int32 <cimport'puts',cinclude'<stdio.h>',nodecl> end
+    local function puts(s: cstring): int32 <cimport'puts',cinclude'<stdio.h>',nodecl> end
     local function perror(s: cstring): void <cimport,nodecl> end
     local function f() <noinline, noreturn>
       local i: int32 <register, volatile, codename 'i'> = 0
@@ -1902,7 +1900,6 @@ end)
 
 it("concepts", function()
   assert.run_c([=[
-    ## strict = true
     local an_array = #[concept(function(attr)
       if attr.type and attr.type:is_array() then
         return true

@@ -1,4 +1,3 @@
-## strict = true
 ## cinclude '<string.h>'
 
 -- Memory manipulation

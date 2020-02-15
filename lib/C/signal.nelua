@@ -1,4 +1,3 @@
-## strict = true
 ## cinclude '<signal.h>'
 
 function C.signal(sig: cint, handler: pointer): pointer <cimport'signal'> end

@@ -1,5 +1,3 @@
-## strict = true
-
 require 'tests.test_require_deps'
 
 assert(a == 1)

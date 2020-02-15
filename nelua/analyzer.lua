@@ -292,21 +292,9 @@ function visitors.Id(context, node)
   end
   local symbol = context.scope:get_symbol(name)
   if not symbol then
-    if context.pragmas.strict then
-      node:raisef("undeclared symbol '%s'", name)
-    end
-    symbol = Symbol.promote_attr(node.attr, name, node)
-    local ok, err = context.scope:add_symbol(symbol)
-    assert(ok, err)
-    symbol.global = true
-    symbol.staticstorage = true
-    symbol.lvalue = true
-    if not symbol.codename then
-      symbol.codename = context:choose_codename(name)
-    end
-  else
-    symbol:link_node(node)
+    node:raisef("undeclared symbol '%s'", name)
   end
+  symbol:link_node(node)
   return symbol
 end
 
@@ -338,10 +326,7 @@ function visitors.IdDecl(context, node)
         symbol.codename = namenode
       end
     end
-    local ok, err = scope:add_symbol(symbol)
-    if not ok then
-      node:raisef(err)
-    end
+    scope:add_symbol(symbol)
   else
     -- global record field
     assert(namenode.tag == 'DotIndex')
@@ -1000,8 +985,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     end
 
     -- add symbol to scope to enable type deduction
-    local ok = context.rootscope:add_symbol(symbol, true)
-    assert(ok)
+    context.rootscope:add_symbol(symbol, true)
   elseif infuncdef or inglobaldecl then
     if symbol.node ~= node then
       node:raisef("cannot redefine meta type field '%s'", name)
@@ -1552,10 +1536,7 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope, check
     end
     table.insert(argtypes, 1, symbol.metafuncselftype)
     table.insert(argattrs, 1, selfsym)
-    local ok, err = scope:add_symbol(selfsym)
-    if not ok then
-      varnode:raisef(err)
-    end
+    scope:add_symbol(selfsym)
   end
 
   return argattrs, argtypes, islazyparent

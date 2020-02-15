@@ -107,7 +107,7 @@ it("auto type" , function()
   assert.ast_type_equals("local a: auto <comptime> = 1", "local a: integer <comptime> = 1")
   assert.ast_type_equals("local a: auto = 's'", "local a: string = 's'")
   assert.ast_type_equals("local a: auto = @integer", "local a: type = @integer")
-  assert.analyze_error("local a: auto = b", "must be assigned to expressions where type is known ahead")
+  assert.analyze_error("local b; local a: auto = b", "must be assigned to expressions where type is known ahead")
 end)
 
 it("nil type" , function()
@@ -258,7 +258,7 @@ it("variable assignments", function()
 end)
 
 it("unary operators", function()
-  assert.ast_type_equals("local a = not b", "local a: boolean = not b")
+  assert.ast_type_equals("local a = not 1", "local a: boolean = not 1")
   assert.ast_type_equals("local a = -1", "local a: integer = -1")
   assert.ast_type_equals("local a = -1.0", "local a: number = -1.0")
   assert.analyze_error("local x = &1", "cannot reference compile time value")
@@ -282,7 +282,7 @@ it("binary operator shift", function()
 end)
 
 it("binary operator add", function()
-  assert.ast_type_equals("local a = b + c", "local a: any = b + c")
+  assert.ast_type_equals("local b,c; local a = b + c", "local b: any, c:any; local a: any = b + c")
   assert.ast_type_equals("local a = 1 + 2", "local a: integer = 1 + 2")
   assert.ast_type_equals("local a = 1 + 2.0", "local a: number = 1 + 2.0")
   assert.ast_type_equals("local a = 1_f32 + 2_f32", "local a: float32 = 1_f32 + 2_f32")
@@ -433,9 +433,11 @@ it("recursive late deduction", function()
     for i:integer=1,limit do end
   ]])
   assert.ast_type_equals([[
+    local a
     a = a + 1
     local x = a
   ]], [[
+    local a
     a = a + 1
     local x: any = a
   ]])
@@ -557,7 +559,7 @@ it("function return", function()
     local function f(): integer return 1 end
     local function f(): integer if true then return 1 else return 2 end end
     local function f(): integer do return 1 end end
-    local function f(): integer switch a case 1 then return 1 else return 2 end end
+    local function f(): integer switch 1 case 1 then return 1 else return 2 end end
   ]])
   assert.analyze_error([[
     local function f() end
@@ -575,7 +577,7 @@ it("function return", function()
     local function f(): integer end
   ]], "return statement is missing")
   assert.analyze_error([[
-    local function f(): integer if a then return 1 end end
+    local function f(): integer if false then return 1 end end
   ]], "return statement is missing")
   assert.analyze_error([[
     local function f(x: boolean): integer
@@ -678,7 +680,7 @@ it("switch", function()
     "switch 's' case 1 then end",
     'must be convertible to an integral')
   assert.analyze_error(
-    "switch a case 1 then case 1.1 then else end",
+    "local a; switch a case 1 then case 1.1 then else end",
     'must evaluate to a compile time integral value')
 end)
 
@@ -699,8 +701,8 @@ it("function call", function()
 end)
 
 it("for in", function()
-  assert.analyze_ast([[for a in a,b,c do end]])
-  assert.analyze_ast([[in a,b,c do end]])
+  assert.analyze_ast([[local a,b,c; for i in a,b,c do end]])
+  assert.analyze_ast([[local a,b,c; in a,b,c do end]])
   assert.analyze_error(
     [[local a = 1; for i in a do end]],
     "first argument of `in` statement must be a function")
@@ -781,7 +783,9 @@ it("arrays", function()
   assert.analyze_error([[local a: array(integer, 2); a[-1] = 1]], 'cannot index negative value')
   assert.analyze_error([[local a: array(integer, 2); a[2] = 1]], 'is out of bounds')
   assert.analyze_error([[local a: array(integer, 2); a['s'] = 1]], 'cannot index with value of type')
-  assert.analyze_error([[local a: array(integer, 2) <comptime> = {1,b}]], 'can only assign to compile time expressions')
+  assert.analyze_error(
+    [[local b; local a: array(integer, 2) <comptime> = {1,b}]],
+    'can only assign to compile time expressions')
 end)
 
 it("indexing", function()
@@ -853,6 +857,7 @@ it("records", function()
     b = a
   ]], "no viable type conversion")
   assert.analyze_error([[
+    local Record
     local a <comptime> = Record{}
   ]], "can only assign to compile time expressions")
   assert.ast_type_equals(
@@ -1138,7 +1143,6 @@ it("automatic referencing", function()
   assert.analyze_error(
     [[local p: pointer(integer); local a: integer; p = a]],
     "no viable type conversion")
-  assert.analyze_ast([[local a: integer; local function f(a: integer*) end; f(p)]])
   assert.analyze_ast([[
     local R = @record{x: integer}
     local p: pointer(R)
@@ -1263,7 +1267,7 @@ it("annotations", function()
 end)
 
 it("builtins", function()
-  assert.ast_type_equals("local a = type(x)", "local a: string = type(x)")
+  assert.ast_type_equals("local x; local a = type(x)", "local x; local a: string = type(x)")
   assert.ast_type_equals("local a = #@integer", "local a: integer = #@integer")
   assert.ast_type_equals("local a = likely(a)", "local a: boolean = likely(a)")
   assert.ast_type_equals("local a = unlikely(a)", "local a: boolean = unlikely(a)")
@@ -1285,22 +1289,14 @@ end)
 
 it("strict mode", function()
   assert.analyze_ast([[
-    ## strict = true
     local a = 1
     local function f() return 3 end
     global b = 2
     global function g() return 4 end
     assert(a == 1 and b == 2 and f() == 3 and g() == 4)
   ]])
-  assert.analyze_error("##[[ strict = true ]] function f() return 0 end", "undeclared symbol")
-  assert.analyze_error("##[[ strict = true ]] a = 1", "undeclared symbol")
-  assert.analyze_error("##[[ strict = true ]] local a; local a", "shadows pre declared symbol")
-  assert.analyze_error("##[[ strict = true ]] global a; global a", "shadows pre declared symbol")
-  assert.analyze_error([=[
-    ##[[ strict = true ]]
-    local self;
-    local A = @record{}
-    function A:f() end]=], "shadows pre declared symbol")
+  assert.analyze_error("function f() return 0 end", "undeclared symbol")
+  assert.analyze_error("a = 1", "undeclared symbol")
 end)
 
 it("concepts", function()

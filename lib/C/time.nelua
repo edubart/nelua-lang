@@ -1,4 +1,3 @@
-## strict = true
 ## cinclude '<time.h>'
 
 ##[=[cemit([[
