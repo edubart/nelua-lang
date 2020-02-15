@@ -1,9 +1,7 @@
-require 'sequence'
-
-local function heapsort(a: sequence(number))
+local function heapsort(a)
   local n = #a
   local j, i, t
-  local l = (n // 2) + 1
+  local l = math.floor(n / 2) + 1
   local k = n
   while true do
     if l > 1 then
@@ -36,12 +34,12 @@ local function heapsort(a: sequence(number))
   end
 end
 
-local function random_int(seed: integer)
+local function random_int(seed)
   return (214013 * seed + 2531011) % 2147483648
 end
 
 local N = 1000000
-local a: sequence(number) = {}
+local a = {}
 local rand = 123456789
 for i=1,N do
   rand = random_int(rand)
@@ -50,7 +48,7 @@ end
 
 heapsort(a)
 
-local sum: number = 0.0
+local sum = 0.0
 for i=1,N-1 do
   assert(a[i] <= a[i+1])
   sum = sum + (a[i+1] - a[i])

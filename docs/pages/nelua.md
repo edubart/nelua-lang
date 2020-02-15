@@ -163,17 +163,17 @@ by nelua compiler, as it can compile to Lua too.
 
 The benchmarks can be run with `make benchmark`, this is my last results:
 
-|    benchmark |  lua 5.3   | luajit 2.1 |      nelua |          c |
-|--------------|------------|------------|------------|------------|
-|    ackermann |  2441.9 ms |   150.8 ms |    64.6 ms |    51.6 ms |
-|    fibonacci |  2607.6 ms |   934.4 ms |   387.6 ms |   319.7 ms |
-|       mandel |  2628.9 ms |   103.0 ms |    92.3 ms |    92.7 ms |
-|        sieve |  1252.8 ms |   282.0 ms |    98.7 ms |    70.7 ms |
-|     heapsort |  2680.6 ms |   298.4 ms |   186.5 ms |   145.7 ms |
+|    benchmark |  lua 5.3 | luajit 2.1 |    nelua |        c |
+|--------------|----------|------------|----------|----------|
+|    ackermann | 2457.2 ms | 147.2 ms  |  47.9 ms |  47.3 ms |
+|    fibonacci | 2612.4 ms | 951.7 ms  | 400.4 ms | 323.2 ms |
+|       mandel | 2622.6 ms | 101.0 ms  |  91.9 ms |  93.8 ms |
+|        sieve | 1266.1 ms | 298.9 ms  | 101.9 ms |  71.7 ms |
+|     heapsort | 2792.1 ms | 287.7 ms  | 171.3 ms | 142.2 ms |
 
-*NOTE*: Nelua can match C speed if the benchmarks were coded using arrays instead of tables,
+*NOTE*: Nelua can match C speed if the benchmarks were coded using optimized structures,
 however to make the benchmarks comparisons fair with Lua/LuaJIT they were coded in Lua style
-(using tables and its API).
+(using sequence tables and a garbage collector).
 
 Environment that this benchmark was run:
 LuaJIT 2.1.0-beta3,

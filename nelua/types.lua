@@ -916,6 +916,16 @@ function TableType:_init(name)
   Type._init(self, name, cpusize)
 end
 
+--[[
+function TableType.unary_operator()
+  return primtypes.any
+end
+
+function TableType.binary_operator()
+  return primtypes.any
+end
+]]
+
 --------------------------------------------------------------------------------
 local ArrayType = typeclass()
 types.ArrayType = ArrayType

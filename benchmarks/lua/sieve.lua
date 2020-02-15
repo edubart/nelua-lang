@@ -1,7 +1,5 @@
-require 'sequence'
-
-local function sieve(N: integer)
-  local is_prime: sequence(boolean) = {}
+local function sieve(N)
+  local is_prime = {}
   is_prime[1] = false
   for n=2,N do
     is_prime[n] = true

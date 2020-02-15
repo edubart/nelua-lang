@@ -58,11 +58,11 @@ end
 local function run_benchmark(name)
   benchmark(
     string.format('| %12s | %9s', name, 'lua'),
-    string.format('lua ./nelua_cache/benchmarks/%s.lua', name),
+    string.format('lua ./benchmarks/lua/%s.lua', name),
     config.ntimes)
   benchmark(
     string.format('| %12s | %9s', name, 'luajit'),
-    string.format('luajit ./nelua_cache/benchmarks/%s.lua', name),
+    string.format('luajit ./benchmarks/lua/%s.lua', name),
     config.ntimes)
   benchmark(
     string.format('| %12s | %9s', name, 'nelua'),
@@ -96,8 +96,8 @@ local function c_compile(name)
 end
 
 local function compile_benchmark(name)
-  printf('%11s  %s', name, 'nelua (lua)')
-  nelua_compile(name, 'lua')
+  --printf('%11s  %s', name, 'nelua (lua)')
+  --nelua_compile(name, 'lua')
   printf('%11s  %s', name, 'nelua (c)')
   nelua_compile(name, 'c')
   printf('%11s  %s', name, 'c')
