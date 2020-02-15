@@ -93,12 +93,11 @@ build = {
       ['nelua'] = 'nelua.lua'
     },
     conf = {
-      ['lib/allocators/allocator_interface.nelua'] = 'lib/allocators/allocator_interface.nelua',
-      ['lib/allocators/generic_allocator.nelua']   = 'lib/allocators/generic_allocator.nelua',
-      ['lib/allocators/gc_allocator.nelua']        = 'lib/allocators/gc_allocator.nelua',
+      ['lib/allocators/interface.nelua'] = 'lib/allocators/interface.nelua',
+      ['lib/allocators/generic.nelua']   = 'lib/allocators/generic.nelua',
+      ['lib/allocators/gc.nelua']        = 'lib/allocators/gc.nelua',
       ['lib/io.nelua']             = 'lib/io.nelua',
       ['lib/math.nelua']           = 'lib/math.nelua',
-      ['lib/gc.nelua']             = 'lib/gc.nelua',
       ['lib/memory.nelua']         = 'lib/memory.nelua',
       ['lib/sequence.nelua']       = 'lib/sequence.nelua',
       ['lib/mystring.nelua']       = 'lib/mystring.nelua',

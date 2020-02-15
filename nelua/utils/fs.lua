@@ -50,7 +50,8 @@ function fs.getdatapath(arg0)
       path = fs.join(fs.getpathdir(path), 'conf')
     end
   else --luacov:enable
-    path = fs.getpathdir(fs.getpathdir(fs.getpathdir(fs.abspath(debug.getinfo(1).short_src))))
+    local thispath = debug.getinfo(1).short_src
+    path = fs.getpathdir(fs.getpathdir(fs.getpathdir(fs.abspath(thispath))))
   end
   return path
 end

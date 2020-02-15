@@ -1,6 +1,4 @@
 ##[[
-unitname = 'nelua'
-
 --------------------------------------------------------------------------------
 -- compile time checks utilities
 local function check_span_subtype(v)

@@ -393,7 +393,7 @@ do -- Dereferencing and referencing
 end
 
 require 'memory'
-require 'allocators.generic_allocator'
+require 'allocators.generic'
 
 do -- Allocating memory
   local Person = @record{name: string, age: integer}

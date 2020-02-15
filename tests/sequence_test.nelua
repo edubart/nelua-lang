@@ -53,7 +53,7 @@ do -- passing by reference
   assert(#seqb == 0)
 end
 
-require 'allocators.generic_allocator'
+require 'allocators.generic'
 do -- custom allocator
   local seq: sequence(integer, generic_allocator) = {1,2,3}
   assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)

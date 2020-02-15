@@ -315,8 +315,6 @@ assert.ast_type_equals([=[
     ## strict = true
     print 'unit'
   ]])
-
-  assert.analyze_error("## unitname = 1", "invalid type for preprocess")
 end)
 
 it("function pragmas", function()

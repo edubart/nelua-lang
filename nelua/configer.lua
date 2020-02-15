@@ -55,12 +55,8 @@ local function create_parser(argv)
   return argparser
 end
 
-local function get_runtime_path(arg0)
-  return fs.join(fs.getdatapath(arg0), 'runtime')
-end
-
-local function get_path(arg0)
-  local libdir = fs.join(fs.getdatapath(arg0), 'lib')
+local function get_path(data_path)
+  local libdir = fs.join(data_path, 'lib')
   return
     fs.join(libdir,'?.nelua')..';'..
     fs.join(libdir,'?','init.nelua')..';'..
@@ -84,8 +80,8 @@ function configer.parse(args)
   local argparser = create_parser(tabler.copy(args))
   local ok, options = argparser:pparse(args)
   except.assertraise(ok, options)
-  config.runtime_path = get_runtime_path(args[0])
-  config.path = get_path(args[0])
+  config.data_path = fs.getdatapath(args[0])
+  config.path = get_path(config.data_path)
   metamagic.setmetaindex(options, defconfig)
   metamagic.setmetaindex(config, options, true)
   return config
@@ -96,8 +92,8 @@ function configer.get()
 end
 
 local function init_default_configs()
-  defconfig.path = get_path()
-  defconfig.runtime_path = get_runtime_path()
+  defconfig.data_path = fs.getdatapath()
+  defconfig.path = get_path(defconfig.data_path)
   defconfig.cc = get_cc()
   defconfig.cflags = os.getenv('CFLAGS') or ''
   metamagic.setmetaindex(config, defconfig)

@@ -151,13 +151,6 @@ typedefs.call_pragmas = {
   afterinfer = shaper.shape{n=shaper.number, shaper.func},
 }
 
-typedefs.field_pragmas = {
-  noinit = shaper.boolean,
-  nostatic = shaper.boolean,
-  nofloatsuffix = shaper.boolean,
-  unitname = shaper.string:is_optional(),
-}
-
 local common_annots = {
   cimport = shaper.shape{shaper.string:is_optional()},
   onestring = shaper.shape{shaper.string},

@@ -8,19 +8,16 @@
 -- By default its use the garbage collector unless explicitly told not to do so,
 -- thus by default there is no need to manually reset the sequence.
 
-
-## unitname = 'nelua'
-
 require 'memory'
 
 ## local make_sequence = generalize(function(T, allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
-  ## local codenameprefix = 'nelua_sequence_'..T.name
+  ## local codenameprefix = 'sequence_'..T.name
   ## if allocator then
   local allocator: type = #[allocator]#
   ## codenameprefix = codenameprefix..'_'..allocator.nick
   ## else
-  require 'allocators.gc_allocator'
+  require 'allocators.gc'
   local allocator: type = @gc_allocator
   ## end
 

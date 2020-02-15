@@ -1,5 +1,5 @@
 require 'memory'
-require 'allocators.generic_allocator'
+require 'allocators.generic'
 
 local allocator = @generic_allocator
 

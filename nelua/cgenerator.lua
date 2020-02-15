@@ -4,8 +4,6 @@ local traits = require 'nelua.utils.traits'
 local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
 local tabler = require 'nelua.utils.tabler'
-local fs = require 'nelua.utils.fs'
-local config = require 'nelua.configer'.get()
 local cdefs = require 'nelua.cdefs'
 local cbuiltins = require 'nelua.cbuiltins'
 local typedefs = require 'nelua.typedefs'
@@ -1151,7 +1149,6 @@ end
 
 function generator.generate(ast, context)
   CContext.promote_context(context, visitors, typevisitors)
-  context.runtime_path = fs.join(config.runtime_path, 'c')
 
   emit_main(ast, context)
 

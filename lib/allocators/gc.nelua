@@ -1,11 +1,10 @@
 -- Tiny and simple mark and sweep garbage collector
 -- Implementation based on https://github.com/orangeduck/tgc
 
-## unitname = 'nelua'
 ## cinclude '<setjmp.h>'
 
 require 'memory'
-require 'allocators.generic_allocator'
+require 'allocators.generic'
 
 local jmp_buf <cimport,nodecl> = @record{dummy: usize}
 local function setjmp(env: jmp_buf) <cimport,nodecl> end
@@ -335,14 +334,13 @@ function GC:_sweep() <noinline>
     self.nitems = self.nitems - 1
   end
 
-  self:_unmark_all()
   self:_resize_less()
 
   self.mitems = self.nitems + (@usize)(self.nitems * self.sweepfactor) + 1
 
   for j:usize=0,<self.nfrees do
     if self.frees[j].ptr then
-      if self.frees[j].finalizer then 
+      if self.frees[j].finalizer then
         --self.frees[j].finalizer(self.frees[j].ptr)
       end
       allocator.dealloc(self.frees[j].ptr)
@@ -492,44 +490,6 @@ function GC:dealloc(ptr: pointer)
   end
 end
 
-function GC:set_finalizer(ptr: pointer, finalizer: FinalizerPtr)
-  local p: GCItem* = self:_get_ptr(ptr)
-  if p then
-    p.finalizer = finalizer
-  end
-end
-
-function GC:set_flags(ptr: pointer, flags: usize)
-  local p: GCItem* = self:_get_ptr(ptr)
-  if p then
-    p.flags = flags
-  end
-end
-
-function GC:get_flags(ptr: pointer): usize
-  local p: GCItem* = self:_get_ptr(ptr)
-  if p then
-    return p.flags
-  end
-  return 0
-end
-
-function GC:get_finalizer(ptr: pointer): FinalizerPtr
-  local p: GCItem* = self:_get_ptr(ptr)
-  if p then
-    return p.finalizer
-  end
-  return nilptr
-end
-
-function GC:get_size(ptr: pointer): usize
-  local p: GCItem* = self:_get_ptr(ptr)
-  if p then
-    return p.size
-  end
-  return 0
-end
-
 function GC:_mark_statics()
   ## local emit_mark_static = hygienize(function(sym, symtype)
     gc:add(&#[sym]#, #[symtype.size]#, GCFlags.ROOT, nilptr)
@@ -563,3 +523,41 @@ local function main(argc: cint, argv: cchar**): cint <entrypoint>
   gc:stop()
   return ret
 end
+
+require 'allocators.interface'
+
+global gc_allocator = @record{}
+
+function gc_allocator.alloc(size: usize): pointer
+  check(size > 0_u, 'gc_allocator.alloc: size cannot be zero')
+  local p: pointer = gc:alloc(size)
+  check(p, 'gc_allocator.alloc: allocation fail')
+  return p
+end
+
+function gc_allocator.alloc0(size: usize): pointer
+  check(size > 0_u, 'gc_allocator.alloc0: size must be greater than 0')
+  local p: pointer = gc:alloc0(size)
+  check(p, 'gc_allocator.alloc0: allocation fail')
+  return p
+end
+
+function gc_allocator.realloc(p: pointer, size: usize): pointer
+  check(size > 0_u, 'gc_allocator.realloc: size must be greater than 0')
+  p = gc:realloc(p, size)
+  check(size == 0 or p, 'gc_allocator.realloc: allocation fail')
+  return p
+end
+
+function gc_allocator.realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
+  check(newsize > 0_u, 'gc_allocator.realloc0: size must be greater than 0')
+  p = gc:realloc0(p, newsize, oldsize)
+  check(newsize == 0_u or p, 'gc_allocator.realloc0: allocation fail')
+  return p
+end
+
+function gc_allocator.dealloc(p: pointer)
+  gc:dealloc(p)
+end
+
+## implement_allocator_interface(gc_allocator)

@@ -1,5 +1,3 @@
-## unitname = 'nelua'
-
 --TODO: optional params/returns
 
 --------------------------------------------------------------------------------
@@ -55,7 +53,7 @@ end
 
 function os.date(): string
   --TODO: implement os date
-  return 'NIY (not implementet yet)'
+  return 'NIY (not implemented yet)'
 end
 
 function os.difftime(t1: integer, t2: integer): integer

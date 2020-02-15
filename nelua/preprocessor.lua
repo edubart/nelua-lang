@@ -223,8 +223,6 @@ function preprocessor.preprocess(context, ast)
     local symbol = ppcontext.context.scope.symbols[key]
     if symbol then
       return symbol
-    elseif typedefs.field_pragmas[key] then
-      return context.pragmas[key]
     elseif typedefs.call_pragmas[key] then
       return function(...)
         local args = tabler.pack(...)
@@ -242,15 +240,7 @@ function preprocessor.preprocess(context, ast)
       return nil
     end
   end, __newindex = function(_, key, value)
-    if typedefs.field_pragmas[key] then
-      local ok, err = typedefs.field_pragmas[key](value)
-      if not ok then
-        raise_preprocess_error("invalid type for preprocess variable '%s': %s", key, err)
-      end
-      context.pragmas[key] = value
-    else
-      rawset(ppcontext.context.env, key, value)
-    end
+    rawset(ppcontext.context.env, key, value)
   end})
 
   -- try to run the preprocess otherwise capture and show the error

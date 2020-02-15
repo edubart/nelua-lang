@@ -1702,11 +1702,11 @@ it("type builtin", function()
   ]])
 end)
 
-it("context states", function()
+it("context pragmas", function()
   assert.generate_c([[
-    ## noinit = true
+    ## context.pragmas.noinit = true
     local a: integer
-    ## noinit = false
+    ## context.pragmas.noinit = false
     local b: integer
   ]], {
     "\nstatic int64_t a;\n",
@@ -1714,10 +1714,10 @@ it("context states", function()
   })
 
   assert.generate_c([[
-    ## nostatic = true
+    ## context.pragmas.nostatic = true
     local a: integer
     local function f() end
-    ## nostatic = false
+    ## context.pragmas.nostatic = false
     local b: integer
     local function g() end
   ]], {
@@ -1728,16 +1728,16 @@ it("context states", function()
   })
 
   assert.generate_c([[
-    ## nofloatsuffix = true
+    ## context.pragmas.nofloatsuffix = true
     local a: float32 = 0
   ]], {
     "a = 0.0;",
   })
 
   assert.generate_c([[
-    ## nostatic = true
+    ## context.pragmas.nostatic = true
     local a: integer
-    ## nostatic = false
+    ## context.pragmas.nostatic = false
     local b: integer
   ]], {
     "\nint64_t a = 0;\n",
@@ -1745,7 +1745,7 @@ it("context states", function()
   })
 
   assert.generate_c([[
-    ## unitname = 'mylib'
+    ## context.pragmas.unitname = 'mylib'
     local function foo() <cexport>
     end
   ]], "extern void mylib_foo();")
