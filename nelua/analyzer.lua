@@ -1811,6 +1811,9 @@ function visitors.UnaryOp(context, node)
     -- for loops needs to know if an Id symbol could mutate
     argattr.mutate = true
   end
+  if opname == 'deref' then
+    attr.lvalue = true
+  end
   if type then
     attr.type = type
   end

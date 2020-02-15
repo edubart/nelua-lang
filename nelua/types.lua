@@ -1265,7 +1265,7 @@ function PointerType:is_convertible_from_attr(attr, explicit)
     if not attr.lvalue then
       return false, stringer.pformat(
         'cannot automatic reference rvalue of type "%s" to pointer type "%s"',
-        attr.type, self)
+        attr.type:prettyname(), self)
     end
     attr.autoref = true
     return self
