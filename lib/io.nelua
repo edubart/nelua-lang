@@ -1,5 +1,3 @@
---TODO: optional arguments/returns
-
 --------------------------------------------------------------------------------
 -- C imports
 
@@ -81,7 +79,7 @@ end
 --------------------------------------------------------------------------------
 -- io module
 
-local io = @record{}
+global io = @record{}
 
 function io.close(file: filestream)
   --TODO: optional argument
@@ -141,19 +139,3 @@ end
 
 -- io.lines
 -- io.type
-
---------------------------------------------------------------------------------
--- tests
-
-local f = io.open('testfile', 'r')
-assert(f.f == nilptr)
-
-f = io.open('LICENSE', 'r')
-assert(f.f ~= nilptr)
-assert(f:flush() == true)
-assert(f:flush() == true)
-assert(f:close() == true)
-
-f = io.open('LICENSE', 'r')
-assert(io.flush(f) == true)
-assert(io.close(f) == true)

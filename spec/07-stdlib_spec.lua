@@ -22,5 +22,8 @@ end)
 it("vector", function()
   assert.run_c_from_file('tests/vector_test.nelua')
 end)
+it("io", function()
+  assert.run_c_from_file('tests/io_test.nelua')
+end)
 
 end)

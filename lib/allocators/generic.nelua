@@ -1,5 +1,3 @@
-require 'allocators.interface'
-
 local function memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
 local function malloc(size: csize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
 local function calloc(nmemb: csize, size: csize): pointer <cimport'calloc',cinclude'<stdlib.h>',nodecl> end
@@ -42,5 +40,7 @@ end
 function generic_allocator.dealloc(p: pointer)
   free(p)
 end
+
+require 'allocators.interface'
 
 ## implement_allocator_interface(generic_allocator)

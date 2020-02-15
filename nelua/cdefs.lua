@@ -118,17 +118,14 @@ cdefs.binary_ops = {
 cdefs.compiler_base_flags = {
   cflags_warn = {
     "-Wall",
+    "-Wno-unused", -- the code generator may generate unused variables, parameters, functions
     "-Wno-unknown-warning-option",
-    "-Wno-unused-parameter", --TODO: improve C generate to remove this
-    "-Wno-unused-variable", -- TODO: remove this once we have dead code elimination
-    "-Wno-unused-const-variable", -- consts can be left unused
-    "-Wno-unused-function", -- local functions can be left unused
     "-Wno-discarded-qualifiers", -- for ignoring const* on pointers
     "-Wno-incompatible-pointer-types", -- importing C functions can cause this warn
     --"-Wno-missing-field-initializers", -- records without all fields explicitly initialized
     "-Wno-missing-braces", -- C zero initialization for anything
-    "-Werror=implicit-function-declaration", -- throw error on missing C bindings
     "-Wno-attributes", -- ignore C attributes used in GC
+    "-Werror=implicit-function-declaration", -- throw error on missing C bindings
   },
   cflags_base = "-lm",
   cflags_release = "-O2",

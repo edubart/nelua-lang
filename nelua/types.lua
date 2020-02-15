@@ -1396,6 +1396,7 @@ ConceptType.nolvalue = true
 ConceptType.comptime = true
 ConceptType.unpointable = true
 ConceptType.lazyable = true
+ConceptType.nilable = true
 ConceptType.concept = true
 
 function ConceptType:_init(func)

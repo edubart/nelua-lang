@@ -787,8 +787,12 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             calleetype:prettyname(), i)
         end
         if arg then
+          local argattr = arg
+          if traits.is_type(arg) then
+            argattr = Attr{type=arg}
+          end
           local explicit = traits.is_attr(funcarg) and funcarg.autocast
-          local wantedtype, err = funcargtype:is_convertible_from(arg, explicit)
+          local wantedtype, err = funcargtype:is_convertible_from_attr(argattr, explicit)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
               calleetype:prettyname(), i, err)

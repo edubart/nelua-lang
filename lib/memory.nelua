@@ -1,42 +1,21 @@
-##[[
+-- Memory utilities
+
 --------------------------------------------------------------------------------
--- compile time checks utilities
-local function check_span_subtype(v)
-  staticassert(v.type:is_span(),
-    "in argument '%s': expected 'span(T)' but got type '%s'",
-    v.name, v.type)
-  return v.type.subtype
-end
-
-local function check_type_match(a, b)
-  staticassert(a.type == b.type,
-    "argument '%s' type '%s' differs from argument '%s' type '%s",
-    a.name, b.name, a.type, b.type)
-end
-
-local function check_span_subtype_match(s, x)
-  local stype = check_span_subtype(s)
-  staticassert(stype == x.type,
-    "in argument '%s': type '%s' differs from argument '%s' type '%s",
-    s.name, x.name, stype, x.type)
-end
-]]
-
+-- C imports
 local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport'memcpy',cinclude'<string.h>',nodecl> end
 local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport'memmove',cinclude'<string.h>',nodecl> end
 local function memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
 local function memcmp(s1: pointer, s2: pointer, n: csize): cint <cimport'memcmp',cinclude'<string.h>',nodecl> end
 local function memchr(s: pointer, c: cint, n: csize): pointer <cimport'memchr',cinclude'<string.h>',nodecl> end
-
 local function malloc(size: csize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
 local function calloc(nmemb: csize, size: csize): pointer <cimport'calloc',cinclude'<stdlib.h>',nodecl> end
 local function realloc(ptr: pointer, size: csize): pointer <cimport'realloc',cinclude'<stdlib.h>',nodecl> end
 local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',nodecl> end
 
-global memory = @record{}
-
 --------------------------------------------------------------------------------
 -- pointer functions
+
+global memory = @record{}
 
 function memory.copy(dest: pointer, src: pointer, size: usize)
   check(dest and src, 'memory.copy: invalid pointer')
@@ -81,8 +60,23 @@ end
 --------------------------------------------------------------------------------
 -- span functions
 
-function memory.spancopy(dest: auto, src: auto)
-  local T: type = #[check_span_subtype(dest)]#
+local is_span = #[concept(function(x) return x.type:is_span() end)]#
+
+##[[
+local function check_type_match(a, b)
+  staticassert(a.type == b.type,
+    "argument '%s' type '%s' differs from argument '%s' type '%s",
+    a.name, b.name, a.type, b.type)
+end
+local function check_span_subtype_match(s, x)
+  staticassert(s.type.subtype == x.type,
+    "in argument '%s': type '%s' differs from argument '%s' type '%s",
+    s.name, x.name, s.type.subtype, x.type)
+end
+]]
+
+function memory.spancopy(dest: is_span, src: is_span)
+  local T: type = #[dest.type.subtype]#
   ## check_type_match(dest, src)
   check(dest.size == src.size, 'memory.spancopy: span sizes must be equal')
   if likely(src.size > 0_u) then
@@ -90,8 +84,8 @@ function memory.spancopy(dest: auto, src: auto)
   end
 end
 
-function memory.spanmove(dest: auto, src: auto)
-  local T: type = #[check_span_subtype(dest)]#
+function memory.spanmove(dest: is_span, src: is_span)
+  local T: type = #[dest.type.subtype]#
   ## check_type_match(dest, src)
   check(dest.size == src.size, 'memory.spanmove: span sizes must be equal')
   if likely(src.size > 0_u) then
@@ -99,7 +93,7 @@ function memory.spanmove(dest: auto, src: auto)
   end
 end
 
-function memory.spanset(dest: auto, x: auto)
+function memory.spanset(dest: is_span, x: auto)
   ## check_span_subtype_match(dest, x)
   local T: type = #[x.type]#
   for i:usize=0,<dest.size do
@@ -107,14 +101,13 @@ function memory.spanset(dest: auto, x: auto)
   end
 end
 
-function memory.spanzero(dest: auto)
-  ## check_span_subtype(dest)
+function memory.spanzero(dest: is_span)
   local T: type = #[dest.type.subtype]#
   memset(dest.data, 0, dest.size * #T)
 end
 
-function memory.spancompare(a: auto, b: auto): int32
-  ## check_span_subtype(a) check_type_match(a, b)
+function memory.spancompare(a: is_span, b: is_span): int32
+  ## check_type_match(a, b)
   local size: usize <noinit>
   if a.size < b.size then
     size = a.size
@@ -135,8 +128,8 @@ function memory.spancompare(a: auto, b: auto): int32
   return ret
 end
 
-function memory.spanequals(a: auto, b: auto): boolean
-  ## check_span_subtype(a) check_type_match(a, b)
+function memory.spanequals(a: is_span, b: is_span): boolean
+  ## check_type_match(a, b)
   local ret: boolean = a.size == b.size
   if ret and likely(a.size > 0_u) then
     ret = memcmp(a.data, b.data, a.size) == 0
@@ -144,7 +137,7 @@ function memory.spanequals(a: auto, b: auto): boolean
   return ret
 end
 
-function memory.spanscan(s: auto, x: auto): integer
+function memory.spanscan(s: is_span, x: auto): integer
   ## check_span_subtype_match(s, x)
   local T: type = #[x.type]#
   for i:usize=0,<s.size do
@@ -155,7 +148,7 @@ function memory.spanscan(s: auto, x: auto): integer
   return -1
 end
 
-function memory.spancontains(s: auto, x: auto): boolean
+function memory.spancontains(s: is_span, x: auto): boolean
   ## check_span_subtype_match(s, x)
   local T: type = #[x.type]#
   for i:usize=0,<s.size do
