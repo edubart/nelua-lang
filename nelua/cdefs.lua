@@ -128,6 +128,7 @@ cdefs.compiler_base_flags = {
     --"-Wno-missing-field-initializers", -- records without all fields explicitly initialized
     "-Wno-missing-braces", -- C zero initialization for anything
     "-Werror=implicit-function-declaration", -- throw error on missing C bindings
+    "-Wno-attributes", -- ignore C attributes used in GC
   },
   cflags_base = "-lm",
   cflags_release = "-O2",

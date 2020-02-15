@@ -1,0 +1,56 @@
+require 'vector'
+
+do -- braces initializer
+  local vec: vector(integer) = {}
+  assert(#vec == 0 and vec:capacity() == 0)
+  vec = {1,2,3}
+  assert(#vec == 3 and vec[0] == 1 and vec[1] == 2 and vec[2] == 3)
+  vec = {4}
+  assert(#vec == 1 and vec[0] == 4)
+  vec = {}
+  assert(#vec == 0)
+end
+
+do -- reset and clear
+  local vec: vector(integer)
+  assert(#vec == 0 and vec:capacity() == 0)
+  vec = {1,2,3}
+  assert(#vec == 3 and vec:capacity() == 3)
+  vec:clear()
+  assert(#vec == 0 and vec:capacity() == 3)
+  vec:reset()
+  assert(#vec == 0 and vec:capacity() == 0)
+end
+
+do -- reserve and resize
+  local vec: vector(integer) = {}
+  assert(vec:capacity() == 0)
+  vec:push(1)
+  assert(vec:capacity() == 1)
+  vec:reserve(4)
+  assert(vec:capacity() == 4)
+  vec:resize(2, 1)
+  assert(#vec == 2 and vec[0] == 1 and vec[1] == 1)
+  vec:resize(4, 2)
+  assert(#vec == 4 and vec[0] == 1 and vec[1] == 1 and vec[2] == 2 and vec[3] == 2)
+end
+
+do -- push and pop
+  local vec: vector(integer)
+  assert(#vec == 0)
+  vec:push(1)
+  assert(#vec == 1 and vec[0] == 1 and vec:capacity() == 1)
+  vec:push(2)
+  assert(#vec == 2 and vec[0] == 1 and vec[1] == 2 and vec:capacity() == 2)
+  assert(vec:pop() == 2)
+  assert(#vec == 1 and vec[0] == 1)
+  assert(vec:pop() == 1)
+  assert(#vec == 0)
+end
+
+require 'allocators.generic'
+do -- custom allocator
+  local vec: vector(integer, generic_allocator) = {1,2,3}
+  assert(#vec == 3 and vec[0] == 1 and vec[1] == 2 and vec[2] == 3)
+  vec:reset()
+end

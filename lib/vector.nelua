@@ -1,0 +1,125 @@
+-- Vector type
+--
+-- This type is typically used as an efficient vector.
+-- Its elements starts at index 0 and go up to length-1 (like C arrays),
+-- at the moment this should not be passed as value, only as reference.
+--
+-- By default its use the garbage collector unless explicitly told not to do so,
+-- thus by default there is no need to manually reset the vector.
+
+## local make_vector = generalize(function(T, allocator)
+  ## staticassert(traits.is_type(T), "invalid type '%s'", T)
+  ## local codename = 'nelua_vector_'..T.name
+  ## if allocator then
+  local allocator: type = #[allocator]#
+  ## codename = codename..'_'..allocator.nick
+  ## else
+  require 'allocators.gc'
+  local allocator: type = @gc_allocator
+  ## end
+
+  local T = @#[T]#
+  local VectorT <codename #[codename]#> = @record {
+    size: usize,
+    data: span(T)
+  }
+
+  function VectorT:_grow()
+    local cap: usize = 1
+    if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
+    self.data = allocator.spanrealloc0(self.data, cap)
+  end
+
+  -- Resets and removes all elements from the vector.
+  function VectorT:clear()
+    local zero: T
+    for i:usize=0,<self.size do
+      self.data[i] = zero
+    end
+    self.size = 0
+  end
+
+  -- Resets the vector to zeroed state, freeing all used resources.
+  -- This is more useful to free resources when not using the garbage collector.
+  function VectorT:reset()
+    self:clear()
+    allocator.spandealloc(self.data)
+    self.data = (@span(T)){}
+    self.size = 0
+  end
+
+  -- Reserve at least `n` elements on the vector storage.
+  function VectorT:reserve(cap: usize <autocast>)
+    if likely(self.data.size >= cap) then return end
+    self.data = allocator.spanrealloc0(self.data, cap)
+  end
+
+  -- Resizes the vector so that it contains `n` elements assigned to `v`.
+  function VectorT:resize(n: usize <autocast>, v: T)
+    if n <= self.size then return end
+    self:reserve(n)
+    for i=self.size,<n do
+      self.data[i] = v
+    end
+    self.size = n
+  end
+
+  -- Adds a new element at the end of the vector.
+  function VectorT:push(x: T)
+    local newsize: usize = self.size + 1
+    if unlikely(newsize >= self.data.size) then
+      self:_grow()
+    end
+    self.data[self.size] = x
+    self.size = newsize
+  end
+
+  -- Removes the last element in the vector and returns its value.
+  -- If the vector is empty, then throws a runtime error.
+  function VectorT:pop()
+    check(self.size > 0, 'vector.pop: length is 0')
+    local zero: T
+    self.size = self.size - 1
+    local ret: T = self.data[self.size]
+    self.data[self.size] = zero
+    return ret
+  end
+
+  -- Returns reference to element at index `i`.
+  -- If `i` is greater of equal to vector size, then throws a runtime error.
+  function VectorT:__atindex(i: usize <autocast>): T* <inline>
+    check(i < self.size, 'vector.at: index out of range')
+    return &self.data[i]
+  end
+
+  -- Returns the number of elements the vector can store before triggering a reallocation.
+  function VectorT:capacity(): isize
+    return (@isize)(self.data.size)
+  end
+
+  -- Returns the number of elements in the vector.
+  function VectorT:__len(): isize
+    return (@isize)(self.size)
+  end
+
+  -- Initializes vector elements from a fixed array.
+  -- This allows to use vector initialization with braces.
+  function VectorT.__convert(values: #[concept(function(x)
+    if x.type:is_array_of(T) then return true end
+  end)]#): VectorT <inline>
+    local self: VectorT
+    self:reserve(#values)
+    self.size = #values
+    for i:usize=0,<#values do
+      self.data[i] = values[i]
+    end
+    return self
+  end
+  ##[[VectorT.value.choose_braces_type = function(node)
+    return types.ArrayType(nil, T, #node[1])
+  end]]
+
+  ## return VectorT
+## end)
+
+global vector: type = #[make_vector]#

@@ -17,9 +17,10 @@ do -- braces initializer
   seq = {4}
   assert(#seq == 1 and seq[0] == 0 and seq[1] == 4)
   seq = {}
+  assert(#seq == 0)
 end
 
-do -- indexing new elements and clearing
+do -- indexing new elements and clear
   local seq: sequence(integer) = {}
   seq[0] = 1
   assert(seq[0] == 1)
@@ -32,11 +33,24 @@ do -- indexing new elements and clearing
   assert(#seq == 0)
 end
 
+do -- reserve and resize
+  local seq: sequence(integer) = {}
+  assert(seq:capacity() == 0)
+  seq:push(1)
+  assert(seq:capacity() == 1)
+  seq:reserve(4)
+  assert(seq:capacity() == 4)
+  seq:resize(2, 1)
+  assert(#seq == 2 and seq[0] == 0 and seq[1] == 1 and seq[2] == 1)
+  seq:resize(4, 2)
+  assert(#seq == 4 and seq[0] == 0 and seq[1] == 1 and seq[2] == 1 and seq[3] == 2 and seq[4] == 2)
+end
+
 do -- push and pop
   local seq: sequence(integer) = {}
   seq:push(1)
   assert(#seq == 1 and seq[0] == 0 and seq[1] == 1)
-  seq:pop()
+  assert(seq:pop() == 1)
   assert(#seq == 0 and seq[0] == 0)
   seq:push(1) seq:push(2) seq:push(3)
   assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)
