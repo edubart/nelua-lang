@@ -398,6 +398,7 @@ local StringType = typeclass()
 types.StringType = StringType
 StringType.string = true
 StringType.primitive = true
+StringType.maxfieldsize = cpusize
 
 function StringType:_init(name, size)
   Type._init(self, name, size)
@@ -1154,31 +1155,34 @@ local function compute_record_size(fields, pack)
     return 0
   end
   local size = 0
-  local maxfsize = 0
+  local maxfieldsize = 0
   for i=1,#fields do
-    local fsize = fields[i].type.size
-    maxfsize = math.max(maxfsize, fsize)
+    local ftype = fields[i].type
+    local fsize = ftype.size
+    local mfsize = ftype.maxfieldsize or fsize
+    maxfieldsize = math.max(maxfieldsize, mfsize)
     local pad = 0
-    if not pack and size % fsize > 0 then
-      pad = fsize - (size % fsize)
+    if not pack and size % mfsize > 0 then
+      pad = fsize - (size % mfsize)
     end
     size = size + pad + fsize
   end
   local pad = 0
-  if not pack and size % maxfsize > 0 then
-    pad = maxfsize - (size % maxfsize)
+  if not pack and size % maxfieldsize > 0 then
+    pad = maxfieldsize - (size % maxfieldsize)
   end
   size = size + pad
-  return size
+  return size, maxfieldsize
 end
 
 function RecordType:_init(node, fields)
   fields = fields or {}
-  local size = compute_record_size(fields)
+  local size, maxfieldsize = compute_record_size(fields)
   Type._init(self, 'record', size, node)
   self.fields = fields
   self.codename = gencodename(self)
   self.metatype = MetaType()
+  self.maxfieldsize = maxfieldsize
 end
 
 function RecordType:add_field(name, type, pos)

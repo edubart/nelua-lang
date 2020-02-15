@@ -71,6 +71,7 @@ local function get_cc()
   for _,candidate in ipairs(cdefs.search_compilers) do
     if fs.findbinfile(candidate) then
       cc = candidate
+      break
     end
   end
   return cc

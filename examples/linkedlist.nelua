@@ -1,31 +1,29 @@
-require 'memory'
 require 'allocators.generic'
 
 local allocator = @generic_allocator
 
-## local memoize = require 'nelua.utils.memoize'
-## local list = hygienize(memoize(function(T)
+## local make_list = generalize(function(T)
   local T = @#[T]#
-  local ListNode <codename #['ListNode_'..T.name]#> = @record {
-    prev: ListNode*,
-    next: ListNode*,
+  local ListNodeT <codename #['ListNode_'..T.name]#> = @record {
+    prev: ListNodeT*,
+    next: ListNodeT*,
     value: T
   }
 
-  local function new_node(prev: ListNode*, next: ListNode*, value: T): ListNode*
-    local node = allocator.new(@ListNode)
+  local function new_node(prev: ListNodeT*, next: ListNodeT*, value: T): ListNodeT*
+    local node = allocator.new(@ListNodeT)
     node.prev = prev
     node.next = next
     node.value = value
     return node
   end
 
-  local List <codename #['List_'..T.name]#> = @record{
-    head: ListNode*,
-    tail: ListNode*
+  local ListT <codename #['List_'..T.name]#> = @record{
+    head: ListNodeT*,
+    tail: ListNodeT*
   }
 
-  function List:prepend(value: T)
+  function ListT:prepend(value: T)
     local node = new_node(nilptr, self.head, value)
     if likely(self.head) then
       assert(not self.head.prev)
@@ -37,7 +35,7 @@ local allocator = @generic_allocator
     self.head = node
   end
 
-  function List:append(value: T)
+  function ListT:append(value: T)
     local node = new_node(self.tail, nilptr, value)
     if likely(self.tail) then
       assert(not self.tail.next)
@@ -49,7 +47,7 @@ local allocator = @generic_allocator
     self.tail = node
   end
 
-  function List:find(value: T): ListNode*
+  function ListT:find(value: T): ListNodeT*
     local it = self.head
     while it do
       if it.value == value then
@@ -60,11 +58,11 @@ local allocator = @generic_allocator
     return nilptr
   end
 
-  function List:contains(value: T): boolean
+  function ListT:contains(value: T): boolean
     return self:find(value) ~= nilptr
   end
 
-  function List:erase(node: ListNode*): ListNode*
+  function ListT:erase(node: ListNodeT*): ListNodeT*
     if node == self.head then
       self.head = node.next
     end
@@ -82,7 +80,7 @@ local allocator = @generic_allocator
     return next
   end
 
-  function List:remove_first()
+  function ListT:remove_first()
     assert(self.head)
     local node = self.head
     self.head = node.next
@@ -95,7 +93,7 @@ local allocator = @generic_allocator
     allocator.delete(node)
   end
 
-  function List:remove_last()
+  function ListT:remove_last()
     assert(self.tail)
     local node = self.tail
     self.tail = node.prev
@@ -108,7 +106,7 @@ local allocator = @generic_allocator
     allocator.delete(node)
   end
 
-  function List:clear()
+  function ListT:clear()
     local it = self.head
     while it do
       local next = it.next
@@ -119,7 +117,7 @@ local allocator = @generic_allocator
     self.tail = nilptr
   end
 
-  function List:len(): isize
+  function ListT:__len(): isize
     local count: isize = 0
     local it = self.head
     while it do
@@ -129,28 +127,28 @@ local allocator = @generic_allocator
     return count
   end
 
-  function List:empty(): boolean
+  function ListT:empty(): boolean
     return self.head == nilptr
   end
 
-  ## return List
-## end))
+  -- TODO: insert() -- (like lua, supports append and prepend)
+  -- TODO: remove() -- (like lua, supports first and last)
 
--- TODO: insert() -- (like lua, supports append and prepend)
--- TODO: remove() -- (like lua, supports first and last)
+  ## return ListT
+## end)
 
-local ListInteger = #[list(integer)]#
+local list = #[make_list]#
 
 -----------------------------------------------------------------------
 -- tests
 do
-  local l: ListInteger
-  assert(l:len() == 0 and l:empty())
+  local l: list(integer)
+  assert(#l == 0 and l:empty())
   l:append(1)    assert(l.head.value == 1) assert(l.tail.value == 1)
-  assert(l:len() == 1 and not l:empty())
+  assert(#l == 1 and not l:empty())
   l:append(2)    assert(l.head.value == 1) assert(l.tail.value == 2)
   l:prepend(3)   assert(l.head.value == 3) assert(l.tail.value == 2)
-  assert(l:len() == 3)
+  assert(#l == 3)
   assert(l:contains(1) and l:contains(2) and l:contains(3))
   assert(not l:contains(0))
   l:clear()
@@ -159,7 +157,7 @@ do
 end
 
 do -- erase
-  local l: ListInteger
+  local l: list(integer)
   l:append(1)
   assert(l:erase(l.tail) == nilptr)
   assert(l:empty())
@@ -186,7 +184,7 @@ do -- erase
 end
 
 do -- find
-  local l: ListInteger
+  local l: list(integer)
   l:append(1) l:append(2) l:append(3)
   assert(l:find(1) == l.head)
   assert(l:find(2) == l.head.next and l:find(2) == l.tail.prev)
@@ -196,7 +194,7 @@ do -- find
 end
 
 do -- remove_last
-  local l: ListInteger
+  local l: list(integer)
   l:append(1) l:append(2) l:append(3)
   l:remove_last()
   assert(l.tail.value == 2)
@@ -211,7 +209,7 @@ do -- remove_last
 end
 
 do -- remove_first
-  local l: ListInteger
+  local l: list(integer)
   l:append(1) l:append(2) l:append(3)
   l:remove_first()
   assert(l.tail.value == 3)

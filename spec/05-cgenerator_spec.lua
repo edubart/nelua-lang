@@ -1184,6 +1184,28 @@ it("records", function()
   ]])
 end)
 
+it("records size", function()
+  assert.run_c([=[
+    do
+      local R = @record { a: usize, b: span(integer) }
+      local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
+      assert(#R == s)
+    end
+
+    do
+      local R = @record { a: cint, b: cchar }
+      local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
+      assert(#R == s)
+    end
+
+    do
+      local R = @record { a: cint, b: float64, c: cchar }
+      local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
+      assert(#R == s)
+    end
+  ]=])
+end)
+
 it("record methods", function()
   assert.run_c([[
     local vec2 = @record{x: integer, y: integer}

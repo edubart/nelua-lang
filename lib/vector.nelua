@@ -9,7 +9,7 @@
 
 ## local make_vector = generalize(function(T, allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
-  ## local codename = 'nelua_vector_'..T.name
+  ## local codename = 'nelua_vector_'..T.codename
   ## if allocator then
   local allocator: type = #[allocator]#
   ## codename = codename..'_'..allocator.nick

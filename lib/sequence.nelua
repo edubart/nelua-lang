@@ -10,7 +10,7 @@
 
 ## local make_sequence = generalize(function(T, allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
-  ## local codenameprefix = 'nelua_sequence_'..T.name
+  ## local codenameprefix = 'nelua_sequence_'..T.codename
   ## if allocator then
   local allocator: type = #[allocator]#
   ## codenameprefix = codenameprefix..'_'..allocator.nick
