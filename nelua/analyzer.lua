@@ -1784,15 +1784,24 @@ function visitors.UnaryOp(context, node)
   local argtype = argattr.type
   local type
   if argtype then
-    if argtype.is_record and not blocked_metamethod_operators[opname] then
-      local mtname = '__' .. opname
-      local mtsym = argtype:get_metafield(mtname)
-      if mtsym then
-        visitor_Call(context, node, {}, mtsym.type, mtsym, argnode)
-      else
-        argnode:raisef("no metamethod `%s` for record '%s'", mtname, argtype:prettyname())
+    local overridden = false
+    if not blocked_metamethod_operators[opname]  then
+      local objtype = argtype
+      if argtype.is_pointer and argtype.subtype then
+        objtype = argtype.subtype
       end
-    else
+      if objtype.is_record then
+        local mtname = '__' .. opname
+        local mtsym = objtype:get_metafield(mtname)
+        if mtsym then
+          visitor_Call(context, node, {}, mtsym.type, mtsym, argnode)
+          overridden = true
+        else
+          argnode:raisef("no metamethod `%s` for record '%s'", mtname, objtype:prettyname())
+        end
+      end
+    end
+    if not overridden then
       local value, err
       type, value, err = argtype:unary_operator(opname, argattr)
       if err then

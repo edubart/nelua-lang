@@ -974,7 +974,6 @@ function visitors.UnaryOp(context, node, emitter)
   local op = cdefs.unary_ops[opname]
   assert(op)
   if attr.calleesym then
-    assert(argnode.attr.type.is_record)
     visitor_Call(context, node, emitter, {}, nil, argnode)
   else
     local surround = not node.attr.inconditional

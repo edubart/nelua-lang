@@ -1226,6 +1226,7 @@ it("record metametods", function()
     assert(a:__len() == 100)
     local pa = &a
     assert(#$pa == 100)
+    assert(#pa == 100)
 
     local R = @record {
       x: integer
