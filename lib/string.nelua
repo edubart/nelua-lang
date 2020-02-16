@@ -1,0 +1,187 @@
+require 'span'
+require 'memory'
+require 'allocators.gc'
+
+local allocator = @gc_allocator
+
+-- C imports
+local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
+local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+
+local StringImpl <codename 'nelua_nstring_impl'> = @record{
+  size: usize,
+  data: byte[0]
+}
+
+global String <codename 'nelua_nstring'> = @record{
+  impl: StringImpl*
+}
+
+function String._create(size: usize <autocast>): String <inline>
+  local self: String
+  self.impl = (@StringImpl*)(allocator.alloc(#@usize + size + 1))
+  self.impl.data[size] = 0
+  self.impl.size = size
+  return self
+end
+
+function String:reset() <inline>
+  self.impl = nilptr
+end
+
+function String.fromspan(s: span(byte)): String
+  if unlikely(s.size == 0) then return (@String){} end
+  local self = String._create(s.size)
+  self.impl.size = s.size
+  memory.copy(&self.impl.data[0], s.data, s.size)
+  return self
+end
+
+function String.fromcstring(s: cstring): String <inline>
+  if unlikely(s == nilptr) then return (@String){} end
+  local size: usize = strlen(s)
+  return String.fromspan((@span(byte)){data = (@byte*)(s), size = size})
+end
+
+local empty_cstring: cstring <const> = ''
+function String:__tocstring(): cstring <inline>
+  if unlikely(not self.impl) then return empty_cstring end
+  return (@cstring)(&self.impl.data[0])
+end
+
+function String:__len(): isize <inline>
+  if unlikely(not self.impl) then return 0 end
+  return (@isize)(self.impl.size)
+end
+
+function String:len(): isize <inline>
+  return #self
+end
+
+function String.__eq(a: String, b: String): boolean
+  if a.impl == b.impl then return true end
+  if unlikely(not a.impl or not b.impl) then return false end
+  return a.impl.size == b.impl.size and
+         memory.equals(&a.impl.data[0], &b.impl.data[0], a.impl.size)
+end
+
+function String.__lt(a: String, b: String): boolean
+  if unlikely(not a.impl) then
+    return 0 < #b
+  elseif unlikely(not b.impl) then
+    return #a < 0
+  else
+    if a.impl.size < b.impl.size then
+      return memory.compare(&a.impl.data[0], &b.impl.data[0], a.impl.size) <= 0
+    else
+      return memory.compare(&a.impl.data[0], &b.impl.data[0], b.impl.size) < 0
+    end
+  end
+end
+
+function String.__le(a: String, b: String): boolean
+  if unlikely(not a.impl) then
+    return 0 <= #b
+  elseif unlikely(not b.impl) then
+    return #a <= 0
+  else
+    if a.impl.size <= b.impl.size then
+      return memory.compare(&a.impl.data[0], &b.impl.data[0], a.impl.size) <= 0
+    else
+      return memory.compare(&a.impl.data[0], &b.impl.data[0], b.impl.size) < 0
+    end
+  end
+end
+
+function String.__concat(a: String, b: String): String
+  if #a == 0 then
+    return b
+  elseif #b == 0 then
+    return a
+  end
+  local s: String = String._create(a.impl.size + b.impl.size)
+  memory.copy(&s.impl.data[0], &a.impl.data[0], a.impl.size)
+  memory.copy(&s.impl.data[a.impl.size], &b.impl.data[0], b.impl.size)
+  return s
+end
+
+function String:byte(i: isize <autocast>): byte
+  if unlikely(not self.impl) then return 0 end
+  if unlikely(i < 0) then
+    i = self.impl.size + i + 1
+  end
+  --TODO: return nil instead on failure
+  check(i >= 1 and i <= self.impl.size, 'string.byte: index out of range')
+  return self.impl.data[i-1]
+end
+
+function String:sub(i: isize <autocast>, j: isize <autocast>): String
+  if unlikely(not self.impl) then return self end
+  if unlikely(i < 0) then i = self.impl.size + i + 1 end
+  if unlikely(i <= 0) then i = 1 end
+  if unlikely(j < 0) then j = self.impl.size + j + 1 end
+  if unlikely(j > self.impl.size) then j = self.impl.size end
+  if unlikely(i == 1 and j == self.impl.size) then return self end
+  if unlikely(i > j) then return (@String){} end
+  local size: usize = (@usize)(j - i + 1)
+  local s: String = String._create(size)
+  memory.copy(&s.impl.data[0], &self.impl.data[i-1], size)
+  return s
+end
+
+function String:rep(n: isize <autocast>): String
+  if unlikely(not self.impl or n <= 0) then return (@String){} end
+  if unlikely(n == 1) then return self end
+  local s: String = String._create(n * self.impl.size)
+  for i:isize=0,<n do
+    memory.copy(&s.impl.data[i*self.impl.size], &self.impl.data[0], self.impl.size)
+  end
+  return s
+end
+
+function String:reverse(): String
+  if unlikely(not self.impl) then return self end
+  local s: String = String._create(self.impl.size)
+  for i:usize=0,<self.impl.size do
+    s.impl.data[i] = self.impl.data[self.impl.size - i - 1]
+  end
+  return s
+end
+
+function String:upper(): String
+  if unlikely(not self.impl) then return self end
+  local s: String = String._create(self.impl.size)
+  for i:usize=0,<self.impl.size do
+    s.impl.data[i] = (@byte)(toupper(self.impl.data[i]))
+  end
+  return s
+end
+
+function String:lower(): String
+  if unlikely(not self.impl) then return self end
+  local s: String = String._create(self.impl.size)
+  for i:usize=0,<self.impl.size do
+    s.impl.data[i] = (@byte)(tolower(self.impl.data[i]))
+  end
+  return s
+end
+
+-- TODO: implement functions bellow
+-- String.char(...)
+-- String:find(pattern, init, plain)
+-- String:match(pattern, init)
+-- String:gmatch(pattern)
+-- String:gsub(pattern, repl, n)
+-- String.format(fmt, ...)
+-- String.pack(fmt, v1, v2, ..)
+-- String.unpack(fmt, s, pos)
+-- String.packsize(fmt)
+-- String.__add(a, b)
+-- String.__sub(a, b)
+-- String.__mul(a, b)
+-- String.__mod(a, b)
+-- String.__pow(a, b)
+-- String.__div(a, b)
+-- String.__idiv(a, b)
+-- String.__unm(a)

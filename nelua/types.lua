@@ -156,6 +156,10 @@ function Type:is_initializable_from_attr(attr)
   end
 end
 
+function Type:auto_deref_type()
+  return self
+end
+
 function Type.is_pointer_of() return false end
 function Type.is_array_of() return false end
 function Type.has_pointer() return false end
@@ -1292,6 +1296,13 @@ end
 
 function PointerType:is_pointer_of(subtype)
   return self.subtype == subtype
+end
+
+function PointerType:auto_deref_type()
+  if self.subtype and self.subtype.is_record or self.subtype.is_array then
+    return self.subtype
+  end
+  return self
 end
 
 function PointerType:__tostring()

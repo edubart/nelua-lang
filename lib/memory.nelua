@@ -105,7 +105,9 @@ end
 
 function memory.spanzero(dest: is_span)
   local T: type = #[dest.type.subtype]#
-  memset(dest.data, 0, dest.size * #T)
+  if likely(dest.size > 0_u) then
+    memset(dest.data, 0, dest.size * #T)
+  end
 end
 
 function memory.spancompare(a: is_span, b: is_span): int32

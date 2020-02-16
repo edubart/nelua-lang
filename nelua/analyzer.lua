@@ -176,8 +176,11 @@ end
 function visitors.Table(context, node)
   local desiredtype = node.desiredtype
   node.attr.literal = true
-  if desiredtype and desiredtype.is_record and desiredtype.choose_braces_type then
-    desiredtype = desiredtype.choose_braces_type(node)
+  if desiredtype then
+    local objtype = desiredtype:auto_deref_type()
+    if objtype.is_record and desiredtype.choose_braces_type then
+      desiredtype = desiredtype.choose_braces_type(node)
+    end
   end
   if not desiredtype or (desiredtype.is_table or desiredtype.is_lazyable) then
     visitor_Table_literal(context, node)
@@ -703,7 +706,8 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
 end
 
 local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype)
-  if not (valtype and vartype and vartype.is_record and vartype ~= valtype) then
+  local objtype = vartype and vartype:auto_deref_type()
+  if not (valtype and objtype and objtype.is_record and vartype ~= valtype) then
     -- convert cannot be overridden
     return valnode, valtype
   end
@@ -711,14 +715,17 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
     -- ignore automatic deref/ref
     return valnode, valtype
   end
-  local mtsym = vartype:get_metafield('__convert')
+  if valtype.is_nilptr and vartype.is_pointer then
+    return valnode, valtype
+  end
+  local mtsym = objtype:get_metafield('__convert')
   if not mtsym then
     return valnode, valtype
   end
   local n = context.parser.astbuilder.aster
-  assert(vartype.symbol)
-  local idnode = n.Id{vartype.symbol.name}
-  local pattr = Attr{foreignsymbol=vartype.symbol}
+  assert(objtype.symbol)
+  local idnode = n.Id{objtype.symbol.name}
+  local pattr = Attr{foreignsymbol=objtype.symbol}
   idnode.attr:merge(pattr)
   idnode.pattr = pattr
   local newvalnode = n.Call{{valnode}, n.DotIndex{'__convert', idnode}}
@@ -996,10 +1003,7 @@ end
 
 local function visitor_Type_FieldIndex(context, node, objtype, name)
   local attr = node.attr
-  if objtype.is_pointer and objtype.subtype.is_record then
-    -- allow to access method and fields on record pointer types
-    objtype = objtype.subtype
-  end
+  objtype = objtype:auto_deref_type()
   attr.indextype = objtype
   if objtype.is_enum then
     return visitor_EnumType_FieldIndex(context, node, objtype, name)
@@ -1017,10 +1021,7 @@ local function visitor_FieldIndex(context, node)
   local objtype = objnode.attr.type
   local ret
   if objtype then
-    if objtype.is_pointer then
-      -- dereference when accessing fields for pointers
-      objtype = objtype.subtype
-    end
+    objtype = objtype:auto_deref_type()
     if objtype.is_record then
       ret = visitor_Record_FieldIndex(context, node, objtype, name)
     elseif objtype.is_type then
@@ -1073,10 +1074,7 @@ function visitors.ArrayIndex(context, node)
   if type then return end
   local objtype = objnode.attr.type
   if objtype then
-    if objtype.is_pointer then
-      objtype = objtype.subtype
-    end
-
+    objtype = objtype:auto_deref_type()
     if objtype.is_array then
       local indextype = indexnode.attr.type
       if indextype then
@@ -1787,9 +1785,7 @@ function visitors.UnaryOp(context, node)
     local overridden = false
     if not blocked_metamethod_operators[opname]  then
       local objtype = argtype
-      if argtype.is_pointer and argtype.subtype then
-        objtype = argtype.subtype
-      end
+      objtype = objtype:auto_deref_type()
       if objtype.is_record then
         local mtname = '__' .. opname
         local mtsym = objtype:get_metafield(mtname)
