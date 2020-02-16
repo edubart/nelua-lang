@@ -72,7 +72,7 @@ end
 
 ##[[
 local function check_record_type(sym)
-  staticassert(sym and sym.type and sym.type:is_type() and sym.value:is_record(),
+  staticassert(sym and sym.type and sym.type.is_type and sym.value.is_record,
     "symbol '%s' must be a type holding a record type", sym.name)
   return sym.value
 end

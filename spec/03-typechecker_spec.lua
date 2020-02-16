@@ -1293,7 +1293,7 @@ end)
 it("concepts", function()
   assert.analyze_ast([[
     local an_integral = #[concept(function(x)
-      return x.type:is_integral()
+      return x.type.is_integral
     end)]#
     local an_integer_array = #[concept(function(x)
       return x.type:is_array_of(integer)
@@ -1309,7 +1309,7 @@ it("concepts", function()
   ]])
   assert.analyze_error([[
     local an_integral = #[concept(function(x)
-      return x.type:is_integral()
+      return x.type.is_integral
     end)]#
     local function f(x: an_integral) return x end
     f(true)

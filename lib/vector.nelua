@@ -24,7 +24,7 @@
     data: span(T)
   }
 
-  ## VectorT.value.contiguous = true
+  ## VectorT.value.is_contiguous = true
   ## VectorT.value.is_vector = true
   ## VectorT.value.subtype = T
 

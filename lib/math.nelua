@@ -12,16 +12,16 @@ global math.mininteger: integer <comptime> = -9223372036854775808
 
 -- concepts
 local is_arithmetic = #[concept(function(x)
-  return x.type:is_arithmetic()
+  return x.type.is_arithmetic
 end)]#
 local is_optional_arithmetic = #[concept(function(x)
-  return x.type:is_arithmetic() or x.type:is_nil()
+  return x.type.is_arithmetic or x.type.is_nil
 end)]#
 
 -- compile time utilities
 ##[[
 local function choose_float_type(x)
-  if x.type:is_float32() then
+  if x.type.is_float32 then
     return primtypes.float32
   else
     return primtypes.float64
@@ -74,9 +74,9 @@ for _,name in ipairs(mathfuncs1) do
   local namef64, namef32 = name..'_f64', name..'_f32'
 ]]
 function math.#(name)#(x: is_arithmetic) <inline,nosideeffect>
-  ## if x.type:is_float32() then
+  ## if x.type.is_float32 then
     return #(namef32)#(x)
-  ## elseif x.type:is_float() then
+  ## elseif x.type.is_float then
     return #(namef64)#(x)
   ## else
     ## if name == 'abs' then
@@ -97,9 +97,9 @@ for _,name in ipairs(mathfuncs2) do
   local namef64, namef32 = name..'_f64', name..'_f32'
 ]]
 function math.#(name)#(x: is_arithmetic, y: is_arithmetic) <inline,nosideeffect>
-  ## if x.type:is_float32() then
+  ## if x.type.is_float32 then
     return #(namef32)#(x, y)
-  ## elseif x.type:is_float() then
+  ## elseif x.type.is_float then
     return #(namef64)#(x, y)
   ## else
     ## if name == 'min' then
@@ -114,14 +114,14 @@ end
 ## end
 
 function math.atan(y: is_arithmetic, x: is_optional_arithmetic) <inline,nosideeffect>
-  ## if not x.type:is_nil() then
-    ## if y.type:is_float32() and x.type:is_float32() then
+  ## if not x.type.is_nil then
+    ## if y.type.is_float32 and x.type.is_float32 then
       return atan2_f32(y, x)
     ## else
       return atan2_f64(y, x)
     ## end
   ## else
-    ## if y.type:is_float32() then
+    ## if y.type.is_float32 then
       return atan_f32(y)
     ## else
       return atan_f64(y)
@@ -130,9 +130,9 @@ function math.atan(y: is_arithmetic, x: is_optional_arithmetic) <inline,nosideef
 end
 
 function math.log(x: is_arithmetic, base: is_optional_arithmetic) <inline,nosideeffect>
-  ## local suffix = x.type:is_float32() and '_f32' or '_f64'
+  ## local suffix = x.type.is_float32 and '_f32' or '_f64'
   ## local log2, log10, log = 'log2'..suffix, 'log10'..suffix, 'log'..suffix
-  ## if not base.type:is_nil() then
+  ## if not base.type.is_nil then
     if base == 2 then
       return #(log2)#(x)
     elseif base == 10 then
@@ -161,7 +161,7 @@ function math.modf(x: is_arithmetic) <inline,nosideeffect>
   local R: type = #[choose_float_type(x)]#
   local i: R
   local f: R <noinit>
-  ## if x.type:is_float32() then
+  ## if x.type.is_float32 then
     f = modf_f32(x, &i)
   ## else
     f = modf_f64(x, &i)
@@ -170,9 +170,9 @@ function math.modf(x: is_arithmetic) <inline,nosideeffect>
 end
 
 function math.tointeger(x: is_arithmetic) <inline,nosideeffect>
-  ## if x.type:is_integral() then
+  ## if x.type.is_integral then
     return (@integer)(x)
-  ## elseif x.type:is_float() then
+  ## elseif x.type.is_float then
     local r = (@integer)(x)
     if likely(x == r) then
       return r
@@ -185,9 +185,9 @@ function math.tointeger(x: is_arithmetic) <inline,nosideeffect>
 end
 
 function math.type(x: is_arithmetic) <inline,nosideeffect>
-  ## if x.type:is_float() then
+  ## if x.type.is_float then
     return 'float'
-  ## elseif x.type:is_integral() then
+  ## elseif x.type.is_integral then
     return 'integer'
   ## else
     return nil
@@ -195,9 +195,9 @@ function math.type(x: is_arithmetic) <inline,nosideeffect>
 end
 
 function math.ult(m: is_arithmetic, n: is_arithmetic): boolean <inline>
-  ## if m.type:is_integral() and n.type:is_integral() then
+  ## if m.type.is_integral and n.type.is_integral then
     return (@uinteger)(m) < (@uinteger)(n)
-  ## elseif x.type:is_float() then
+  ## elseif x.type.is_float then
     local mi, ni = (@integer)(m), (@integer)(n)
     if likely(mi == m and ni == n) then
       return (@uinteger)(mi) < (@uinteger)(ni)
@@ -257,7 +257,7 @@ end
 
 function math.random(m: is_optional_arithmetic, n: is_optional_arithmetic) <inline>
   local r: number = default_random:random()
-  ## if not m.type:is_nil() and not n.type:is_nil() then
+  ## if not m.type.is_nil and not n.type.is_nil then
     local low: integer, up: integer = (@integer)(m), (@integer)(n)
     if not likely(low < up) then
       panic("random: interval is empty")
@@ -266,7 +266,7 @@ function math.random(m: is_optional_arithmetic, n: is_optional_arithmetic) <inli
     end
     r = r * ((@number)(up - low) + 1.0)
     return (@integer)(r) + low
-  ## elseif not m.type:is_nil() then
+  ## elseif not m.type.is_nil then
     local low: integer = (@integer)(m)
     r = r * (@number)(low)
     return (@integer)(r)

@@ -176,14 +176,14 @@ end
 function visitors.Table(context, node)
   local desiredtype = node.desiredtype
   node.attr.literal = true
-  if desiredtype and desiredtype:is_record() and desiredtype.choose_braces_type then
+  if desiredtype and desiredtype.is_record and desiredtype.choose_braces_type then
     desiredtype = desiredtype.choose_braces_type(node)
   end
-  if not desiredtype or (desiredtype:is_table() or desiredtype.lazyable) then
+  if not desiredtype or (desiredtype.is_table or desiredtype.is_lazyable) then
     visitor_Table_literal(context, node)
-  elseif desiredtype:is_array() then
+  elseif desiredtype.is_array then
     visitor_Array_literal(context, node, desiredtype)
-  elseif desiredtype:is_record() then
+  elseif desiredtype.is_record then
     visitor_Record_literal(context, node, desiredtype)
   else
     node:raisef("type '%s' cannot be initialized using a table literal", desiredtype:prettyname())
@@ -220,10 +220,10 @@ function visitors.Annotation(context, node, symbol)
       return
     end
     local annotype
-    if symboltype:is_function() then
+    if symboltype.is_function then
       paramshape = typedefs.function_annots[name]
       annotype = 'functions'
-    elseif symboltype:is_type() then
+    elseif symboltype.is_type then
       paramshape = typedefs.type_annots[name]
       annotype = 'types'
     else
@@ -265,7 +265,7 @@ function visitors.Annotation(context, node, symbol)
   end
 
   local objattr
-  if symboltype and symboltype:is_type() then
+  if symboltype and symboltype.is_type then
     objattr = symbol.value
   else
     objattr = symbol
@@ -306,7 +306,7 @@ function visitors.IdDecl(context, node)
     context:traverse_node(typenode)
     type = typenode.attr.value
     attr.type = type
-    if type:is_void() then
+    if type.is_void then
       node:raisef("variable declaration cannot be of the empty type '%s'", type)
     end
   end
@@ -434,7 +434,7 @@ function visitors.EnumFieldType(context, node)
     local numtype = numattr.type
     if not numattr.comptime then
       numnode:raisef("in enum field '%s': enum fields can only be assigned to compile time values", name)
-    elseif not numtype:is_integral() then
+    elseif not numtype.is_integral then
       numnode:raisef("in enum field '%s': only integral types are allowed in enums, but got type '%s'",
         name, numtype:prettyname())
     end
@@ -488,7 +488,7 @@ function visitors.RangeType(context, node)
   local subtypenode = node[1]
   context:traverse_node(subtypenode)
   local subtype = subtypenode.attr.value
-  if not subtype:is_integral() then
+  if not subtype.is_integral then
     subtypenode:raisef("range subtype '%s' is not an integral type", subtype:prettyname())
   end
   attr.type = primtypes.type
@@ -506,7 +506,7 @@ function visitors.ArrayType(context, node)
     lengthnode:raisef("unknown comptime value for expression")
   end
   local length = lengthnode.attr.value:tointeger()
-  if not lengthnode.attr.type:is_integral() then
+  if not lengthnode.attr.type.is_integral then
     lengthnode:raisef("cannot have non integral type '%s' for array size",
       lengthnode.attr.type:prettyname())
   elseif length < 0 then
@@ -538,7 +538,7 @@ function visitors.GenericType(context, node)
   local name, argnodes = node[1], node[2]
   if attr.type then return end
   local symbol = context.scope:get_symbol(name)
-  if not symbol or not symbol.type or not symbol.type:is_type() or symbol.type:is_generic() then
+  if not symbol or not symbol.type or not symbol.type.is_type or symbol.type.is_generic then
     node:raisef("symbol '%s' doesn't hold a generic type", name)
   end
   local params = {}
@@ -546,7 +546,7 @@ function visitors.GenericType(context, node)
     local argnode = argnodes[i]
     context:traverse_node(argnode)
     local argattr = argnode.attr
-    if not (argattr.comptime or argattr.type:is_comptime()) then
+    if not (argattr.comptime or argattr.type.is_comptime) then
       node:raisef("in generic '%s': argument #%d isn't a compile time value", name, i)
     end
     local value = argattr.value
@@ -579,7 +579,7 @@ local function iargnodes(argnodes)
   local lastargnode = argnodes[#argnodes]
   local calleetype = lastargnode and lastargnode.attr.calleetype
   if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and calleetype and
-    not calleetype:is_type() and not calleetype:is_any() then
+    not calleetype.is_type and not calleetype.is_any then
     -- last arg is a runtime call with known return type at compile time
     return function()
       i = i + 1
@@ -612,17 +612,17 @@ local function izipargnodes(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
   local calleetype = lastargnode and lastargnode.attr.calleetype
-  if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and (not calleetype or not calleetype:is_type()) then
+  if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and (not calleetype or not calleetype.is_type) then
     -- last arg is a runtime call
     if calleetype then
-      if calleetype:is_any() then
+      if calleetype.is_any then
         -- calling any types makes last arguments always a varanys
         return function()
           local i, var, argnode = iter()
           local argtype = argnode and argnode.attr.type
           if not i then return nil end
           if i == lastargindex then
-            assert(argtype and argtype:is_varanys())
+            assert(argtype and argtype.is_varanys)
           end
           return i, var, argnode, argtype
         end
@@ -673,7 +673,7 @@ end
 local function visitor_Call_typeassertion(context, node, argnodes, type)
   local attr = node.attr
   assert(type)
-  if type:is_generic() then
+  if type.is_generic then
     node:raisef("assertion to generic '%s': cannot do assertion on generics", type:prettyname())
   end
   if #argnodes ~= 1 then
@@ -703,7 +703,7 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
 end
 
 local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype)
-  if not (valtype and vartype and vartype:is_record() and vartype ~= valtype) then
+  if not (valtype and vartype and vartype.is_record and vartype ~= valtype) then
     -- convert cannot be overridden
     return valnode, valtype
   end
@@ -733,7 +733,7 @@ end
 local function visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)
   local attr = node.attr
   if calleetype then
-    if calleetype:is_function() then
+    if calleetype.is_function then
       -- function call
       local funcargtypes = calleetype.argtypes
       local funcargattrs = calleetype.argattrs or calleetype.args
@@ -776,7 +776,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           arg = argtype
         end
 
-        if argtype and argtype:is_nil() and not funcargtype:is_nilable() then
+        if argtype and argtype.is_nil and not funcargtype.is_nilable then
           node:raisef("in call of function '%s': expected an argument at index %d but got nothing",
             calleetype:prettyname(), i)
         end
@@ -802,22 +802,22 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           knownallargs = false
         end
 
-        if calleetype:is_lazyfunction() then
-          if funcargtype.lazyable then
+        if calleetype.is_lazyfunction then
+          if funcargtype.is_lazyable then
             lazyargs[i] = arg
           else
             lazyargs[i] = funcargtype
           end
         end
 
-        if calleeobjnode and argtype and pseudoargtypes[i].lazyable then
+        if calleeobjnode and argtype and pseudoargtypes[i].is_lazyable then
           pseudoargtypes[i] = argtype
         end
       end
       if calleeobjnode then
         tabler.insert(lazyargs, 1, funcargtypes[1])
       end
-      if calleetype:is_lazyfunction() then
+      if calleetype.is_lazyfunction then
         local lazycalleetype = calleetype
         calleetype = nil
         calleesym = nil
@@ -838,12 +838,12 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         assert(calleetype.sideeffect ~= nil)
         attr.sideeffect = calleetype.sideeffect
       end
-    elseif calleetype:is_table() then
+    elseif calleetype.is_table then
       context:traverse_nodes(argnodes)
       -- table call (allowed for tables with metamethod __index)
       attr.type = primtypes.varanys
       attr.sideeffect = true
-    elseif calleetype:is_any() then
+    elseif calleetype.is_any then
       context:traverse_nodes(argnodes)
       -- call on any values
       attr.type = primtypes.varanys
@@ -871,13 +871,13 @@ function visitors.Call(context, node)
   if traits.is_symbol(calleeattr) then
     calleesym = calleeattr
   end
-  if calleetype and calleetype:is_pointer() then
+  if calleetype and calleetype.is_pointer then
     calleetype = calleetype.subtype
     assert(calleetype)
     attr.pointercall = true
   end
 
-  if calleetype and calleetype:is_type() then
+  if calleetype and calleetype.is_type then
     visitor_Call_typeassertion(context, node, argnodes, calleeattr.value)
   else
     visitor_Call(context, node, argnodes, calleetype, calleesym)
@@ -901,22 +901,22 @@ function visitors.CallMethod(context, node)
   local calleetype = calleeobjnode.attr.type
   local calleesym = nil
   if calleetype then
-    if calleetype:is_pointer() then
+    if calleetype.is_pointer then
       calleetype = calleetype.subtype
       assert(calleetype)
       attr.pointercall = true
     end
 
-    if calleetype:is_record() then
+    if calleetype.is_record then
       calleesym = calleetype:get_metafield(name)
       if not calleesym then
         node:raisef("cannot index record meta field '%s'", name)
       end
       calleetype = calleesym.type
-    elseif calleetype:is_string() then
+    elseif calleetype.is_string then
       --TODO: string methods
       calleetype = primtypes.any
-    elseif calleetype:is_any() then
+    elseif calleetype.is_any then
       calleetype = primtypes.any
     end
   end
@@ -996,14 +996,14 @@ end
 
 local function visitor_Type_FieldIndex(context, node, objtype, name)
   local attr = node.attr
-  if objtype:is_pointer() and objtype.subtype:is_record() then
+  if objtype.is_pointer and objtype.subtype.is_record then
     -- allow to access method and fields on record pointer types
     objtype = objtype.subtype
   end
   attr.indextype = objtype
-  if objtype:is_enum() then
+  if objtype.is_enum then
     return visitor_EnumType_FieldIndex(context, node, objtype, name)
-  elseif objtype:is_record() then
+  elseif objtype.is_record then
     return visitor_RecordType_FieldIndex(context, node, objtype, name)
   else
     node:raisef("cannot index fields on type '%s'", objtype:prettyname())
@@ -1017,15 +1017,15 @@ local function visitor_FieldIndex(context, node)
   local objtype = objnode.attr.type
   local ret
   if objtype then
-    if objtype:is_pointer() then
+    if objtype.is_pointer then
       -- dereference when accessing fields for pointers
       objtype = objtype.subtype
     end
-    if objtype:is_record() then
+    if objtype.is_record then
       ret = visitor_Record_FieldIndex(context, node, objtype, name)
-    elseif objtype:is_type() then
+    elseif objtype.is_type then
       ret = visitor_Type_FieldIndex(context, node, objnode.attr.value, name)
-    elseif objtype:is_table() or objtype:is_any() then
+    elseif objtype.is_table or objtype.is_any then
       attr.type = primtypes.any
     else
       node:raisef("cannot index field '%s' on type '%s'", name, objtype.name)
@@ -1048,7 +1048,7 @@ local function visitor_Record_ArrayIndex(context, node, objtype, objnode, indexn
     indexsym = objtype:get_metafield('__atindex')
     if indexsym and indexsym.type then
       indexretype = indexsym.type:get_return_type(1)
-      if indexretype and not indexretype:is_pointer() then
+      if indexretype and not indexretype.is_pointer then
         indexsym.node:raisef("metamethod `__atindex` must return a pointer, but got type '%s'",
           indexretype:prettyname())
       else
@@ -1073,20 +1073,20 @@ function visitors.ArrayIndex(context, node)
   if type then return end
   local objtype = objnode.attr.type
   if objtype then
-    if objtype:is_pointer() then
+    if objtype.is_pointer then
       objtype = objtype.subtype
     end
 
-    if objtype:is_array() then
+    if objtype.is_array then
       local indextype = indexnode.attr.type
       if indextype then
-        if indextype:is_integral() then
+        if indextype.is_integral then
           local indexvalue = indexnode.attr.value
           if indexvalue then
             if indexvalue:isneg() then
               indexnode:raisef("cannot index negative value %s", indexvalue:todec())
             end
-            if objtype:is_array() and objtype.length ~= 0 and not (indexvalue < bn.new(objtype.length)) then
+            if objtype.is_array and objtype.length ~= 0 and not (indexvalue < bn.new(objtype.length)) then
               indexnode:raisef("index %s is out of bounds, array maximum index is %d",
                 indexvalue:todec(), objtype.length - 1)
             end
@@ -1099,9 +1099,9 @@ function visitors.ArrayIndex(context, node)
       if objnode.attr.lvalue then
         node.attr.lvalue = true
       end
-    elseif objtype:is_record() then
+    elseif objtype.is_record then
       visitor_Record_ArrayIndex(context, node, objtype, objnode, indexnode)
-    elseif objtype:is_table() or objtype:is_any() then
+    elseif objtype.is_table or objtype.is_any then
       type = primtypes.any
     else
       node:raisef("cannot index variable of type '%s'", objtype.name)
@@ -1163,7 +1163,7 @@ function visitors.Switch(context, node)
   local valnode, caseparts, elsenode = node[1], node[2], node[3]
   context:traverse_node(valnode)
   local valtype = valnode.attr.type
-  if valtype and not (valtype:is_any() or valtype:is_integral()) then
+  if valtype and not (valtype.is_any or valtype.is_integral) then
     valnode:raisef(
       "`switch` statement must be convertible to an integral type, but got type `%s` (non integral)",
       valtype:prettyname())
@@ -1171,7 +1171,7 @@ function visitors.Switch(context, node)
   for _,casepart in ipairs(caseparts) do
     local casenode, blocknode = casepart[1], casepart[2]
     context:traverse_node(casenode)
-    if not (casenode.attr.type and casenode.attr.type:is_integral() and
+    if not (casenode.attr.type and casenode.attr.type.is_integral and
            (casenode.attr.comptime or casenode.attr.cimport)) then
       casenode:raisef("`case` statement must evaluate to a compile time integral value")
     end
@@ -1209,7 +1209,7 @@ function visitors.ForIn(context, node)
   end
   local infuncnode = inexpnodes[1]
   local infunctype = infuncnode.attr.type
-  if infunctype and not (infunctype:is_any() or infunctype:is_function()) then
+  if infunctype and not (infunctype.is_any or infunctype.is_function) then
     node:raisef("first argument of `in` statement must be a function, but got type '%s'",
       infunctype:prettyname())
   end
@@ -1221,7 +1221,7 @@ function visitors.ForIn(context, node)
   if itvarnodes then
     for i,itvarnode in ipairs(itvarnodes) do
       local itsymbol = context:traverse_node(itvarnode)
-      if infunctype and infunctype:is_function() then
+      if infunctype and infunctype.is_function then
         local fittype = infunctype:get_return_type(i)
         itsymbol:add_possible_type(fittype)
       end
@@ -1256,7 +1256,7 @@ function visitors.ForNum(context, node)
     local itattr = itvarnode.attr
     local ittype = itattr.type
     if ittype then
-      if not (ittype:is_arithmetic() or (ittype:is_any() and not ittype:is_varanys())) then
+      if not (ittype.is_arithmetic or (ittype.is_any and not ittype.is_varanys)) then
         itvarnode:raisef("`for` variable '%s' must be a number, but got type '%s'", itname, ittype)
       end
       if btype then
@@ -1273,7 +1273,7 @@ function visitors.ForNum(context, node)
       end
       if stype then
         local optype, _, err = ittype:binary_operator('add', stype, itattr, sattr)
-        if stype:is_float() and ittype:is_integral() then
+        if stype.is_float and ittype.is_integral then
           err = 'cannot have fractional step for an integral iterator'
         end
         if err then
@@ -1292,7 +1292,7 @@ function visitors.ForNum(context, node)
 
   local fixedstep
   local stepvalue
-  if stype and stype:is_arithmetic() and stepvalnode.attr.comptime then
+  if stype and stype.is_arithmetic and stepvalnode.attr.comptime then
     -- constant step
     fixedstep = stepvalnode
     stepvalue = stepvalnode.attr.value
@@ -1305,7 +1305,7 @@ function visitors.ForNum(context, node)
     fixedstep = '1'
   end
   local fixedend
-  if etype and etype:is_arithmetic() and endvalnode.attr.comptime then
+  if etype and etype.is_arithmetic and endvalnode.attr.comptime then
     fixedend = true
   end
   if not compop and stepvalue then
@@ -1344,7 +1344,7 @@ function visitors.VarDecl(context, node)
     local symbol = context:traverse_node(varnode)
     assert(symbol)
     local vartype = varnode.attr.type
-    if vartype and vartype.nolvalue then
+    if vartype and vartype.is_nolvalue then
       varnode:raisef("variable declaration cannot be of the type '%s'", vartype:prettyname())
     end
     assert(symbol.type == vartype)
@@ -1359,17 +1359,17 @@ function visitors.VarDecl(context, node)
       valnode, valtype = visitor_convert(context, valnodes, i, vartype, valnode, valtype)
 
       if valtype then
-        if valtype:is_varanys() then
+        if valtype.is_varanys then
           -- varanys are always stored as any in variables
           valtype = primtypes.any
-        elseif not vartype and valtype:is_nil() then
+        elseif not vartype and valtype.is_nil then
           -- untyped variables assigned to nil always store as any type
           valtype = primtypes.any
         end
       end
       if varnode.attr.comptime and not (valnode.attr.comptime and valtype) then
         varnode:raisef("compile time variables can only assign to compile time expressions")
-      elseif vartype and not valtype and vartype:is_auto() then
+      elseif vartype and not valtype and vartype.is_auto then
         varnode:raisef("auto variables must be assigned to expressions where type is known ahead")
       elseif varnode.attr.cimport and not
         (vartype == primtypes.type or (vartype == nil and valtype == primtypes.type)) then
@@ -1381,7 +1381,7 @@ function visitors.VarDecl(context, node)
       end
     end
     if assigning and valtype then
-      if valtype:is_void() then
+      if valtype.is_void then
         varnode:raisef("cannot assign to expressions of type 'void'")
       end
       local assignvaltype = false
@@ -1390,7 +1390,7 @@ function visitors.VarDecl(context, node)
         assert(valnode)
         assignvaltype = not vartype
         symbol.value = valnode.attr.value
-      elseif valtype:is_type() then
+      elseif valtype.is_type then
         -- for 'type' types the type must also be known ahead
         assert(valnode and valnode.attr.value)
         assignvaltype = vartype ~= valtype
@@ -1399,7 +1399,7 @@ function visitors.VarDecl(context, node)
         symbol.value.symbol = symbol
       end
 
-      if vartype and vartype:is_auto() then
+      if vartype and vartype.is_auto then
         assignvaltype = vartype ~= valtype
       end
 
@@ -1449,10 +1449,10 @@ function visitors.Assign(context, node)
       valnode, valtype = visitor_convert(context, valnodes, i, vartype, valnode, valtype)
     end
     if valtype then
-      if valtype:is_void() then
+      if valtype.is_void then
         varnode:raisef("cannot assign to expressions of type 'void'")
       end
-      if valtype and valtype:is_varanys() then
+      if valtype and valtype.is_varanys then
         -- varanys are always stored as any in variables
         valtype = primtypes.any
       end
@@ -1461,7 +1461,7 @@ function visitors.Assign(context, node)
       symbol:add_possible_type(valtype)
       symbol.mutate = true
     end
-    if not valnode and valtype and valtype:is_nil() then
+    if not valnode and valtype and valtype.is_nil then
       varnode:raisef("variable assignment at index '%d' is assigning to nothing in the expression", i)
     end
     if vartype and valtype then
@@ -1482,7 +1482,7 @@ function visitors.Return(context, node)
     for i,funcrettype,retnode,rettype in izipargnodes(funcscope.returntypes, retnodes) do
       if rettype then
         if funcrettype then
-          if rettype:is_nil() and not funcrettype:is_nilable() then
+          if rettype.is_nil and not funcrettype.is_nilable then
             node:raisef("missing return expression at index %d of type '%s'", i, funcrettype:prettyname())
           end
           local ok, err = funcrettype:is_convertible_from(retnode or rettype)
@@ -1516,7 +1516,7 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope, check
       argtype = primtypes.any
       argattr.type = argtype
     end
-    if checklazy and argtype.lazyable then
+    if checklazy and argtype.is_lazyable then
       islazyparent = true
     end
     argtypes[i] = argtype
@@ -1568,12 +1568,12 @@ end
 local function check_function_returns(node, returntypes, blocknode)
   local attr = node.attr
   local functype = attr.type
-  if not functype or functype.lazyfunction or attr.nodecl or attr.cimport or attr.hookmain then
+  if not functype or functype.is_lazyfunction or attr.nodecl or attr.cimport or attr.hookmain then
     return
   end
   if #returntypes > 0 then
     local canbeempty = tabler.iall(returntypes, function(rettype)
-      return rettype:is_nilable()
+      return rettype.is_nilable
     end)
     if not canbeempty and not block_endswith_return(blocknode) then
       node:raisef("a return statement is missing before function end")
@@ -1614,11 +1614,11 @@ local function visitor_FuncDef_returns(context, functype, retnodes)
       return retnode.attr.value
     end)
 
-    if #returntypes == 1 and returntypes[1]:is_void() then
+    if #returntypes == 1 and returntypes[1].is_void then
       -- single void type means no returns
       returntypes = {}
     end
-  elseif functype and functype:is_function() and not functype.returntypes.has_unknown then
+  elseif functype and functype.is_function and not functype.returntypes.has_unknown then
     -- use return types from previous traversal only if fully resolved
     returntypes = functype.returntypes
   end
@@ -1746,7 +1746,7 @@ function visitors.FuncDef(context, node, lazysymbol)
             local lazyargattr = lazyargnodes[j].attr
             if traits.is_attr(lazyarg) then
               lazyargattr.type = lazyarg.type
-              if lazyarg.type:is_comptime() then
+              if lazyarg.type.is_comptime then
                 lazyargattr.value = lazyarg.value
               end
             else
@@ -1784,7 +1784,7 @@ function visitors.UnaryOp(context, node)
   local argtype = argattr.type
   local type
   if argtype then
-    if argtype:is_record() and not blocked_metamethod_operators[opname] then
+    if argtype.is_record and not blocked_metamethod_operators[opname] then
       local mtname = '__' .. opname
       local mtsym = argtype:get_metafield(mtname)
       if mtsym then
@@ -1848,7 +1848,7 @@ function visitors.BinaryOp(context, node)
   rattr.inoperator = true
 
   if not wantsboolean and isbinaryconditional and rtype and ltype and
-    (not rtype:is_boolean() or not ltype:is_boolean()) then
+    (not rtype.is_boolean or not ltype.is_boolean) then
     attr.dynamic_conditional = true
   end
   attr.sideeffect = lattr.sideeffect or rattr.sideeffect or nil

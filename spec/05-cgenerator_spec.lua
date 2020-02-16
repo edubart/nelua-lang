@@ -305,11 +305,11 @@ it("lazy functions", function()
     assert(f == 2)
 
     local function printtype(x: auto)
-      ## if x.type:is_float() then
+      ## if x.type.is_float then
         print('float', x)
-      ## elseif x.type:is_integral() then
+      ## elseif x.type.is_integral then
         print('integral', x)
-      ## elseif x.type:is_boolean() then
+      ## elseif x.type.is_boolean then
         print('boolean', x)
       ## else
         print('unknown')
@@ -1883,12 +1883,12 @@ end)
 it("concepts", function()
   assert.run_c([=[
     local an_array = #[concept(function(attr)
-      if attr.type and attr.type:is_array() then
+      if attr.type and attr.type.is_array then
         return true
       end
     end)]#
     local an_arithmetic = #[concept(function(attr)
-      if attr.type:is_arithmetic() then
+      if attr.type.is_arithmetic then
         return true
       end
     end)]#

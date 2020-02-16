@@ -28,7 +28,7 @@
     impl: SequenceImplT*
   }
 
-  ## SequenceT.value.contiguous = true
+  ## SequenceT.value.is_contiguous = true
   ## SequenceT.value.is_sequence = true
   ## SequenceT.value.subtype = T
 

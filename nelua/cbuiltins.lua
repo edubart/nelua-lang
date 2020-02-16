@@ -274,7 +274,7 @@ function builtins.nelua_any_to_(context, type)
   local ctype = context:ctype(type)
   context:ensure_runtime_builtin('nelua_any')
   context:ensure_runtime_builtin('nelua_runtype_', typename)
-  if type:is_boolean() then
+  if type.is_boolean then
     context:ensure_runtime_builtin('nelua_runtype_', 'nelua_pointer')
     define_inline_builtin(context, name, ctype, '(const nelua_any a)',
       string.format([[{
@@ -418,7 +418,7 @@ function builtins.nelua_stdout_write_any(context)
 end
 
 function builtins.nelua_lt_(context, ltype, rtype)
-  if ltype:is_signed() and rtype:is_unsigned() then
+  if ltype.is_signed and rtype.is_unsigned then
     local name = string.format('nelua_lt_i%du%d', ltype.bitsize, rtype.bitsize)
     if context.usedbuiltins[name] then return name end
     define_inline_builtin(context, name,
@@ -427,7 +427,7 @@ function builtins.nelua_lt_(context, ltype, rtype)
       string.format("{ return a < 0 || (uint%d_t)a < b; }", ltype.bitsize))
     return name
   else
-    assert(ltype:is_unsigned() and rtype:is_signed())
+    assert(ltype.is_unsigned and rtype.is_signed)
     local name = string.format('nelua_lt_u%di%d', ltype.bitsize, rtype.bitsize)
     if context.usedbuiltins[name] then return name end
     define_inline_builtin(context, name,
@@ -468,7 +468,7 @@ end
 
 function builtins.nelua_fmod_(context, type)
   local ctype = context:ctype(type)
-  local cfmod = type:is_float32() and 'fmodf' or 'fmod'
+  local cfmod = type.is_float32 and 'fmodf' or 'fmod'
   local name = 'nelua_' .. cfmod
   if context.usedbuiltins[name] then return name end
   context:add_include('<math.h>')
@@ -487,9 +487,9 @@ cbuiltins.operators = operators
 
 function operators.div(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  if ltype:is_arithmetic() and rtype:is_arithmetic() then
-    if not rtype:is_float() and not ltype:is_float() then
-      assert(type:is_float())
+  if ltype.is_arithmetic and rtype.is_arithmetic then
+    if not rtype.is_float and not ltype.is_float then
+      assert(type.is_float)
       emitter:add(lname, ' / (', type, ')', rname)
     else
       emitter:add(lname, ' / ', rname)
@@ -501,12 +501,12 @@ end
 
 function operators.idiv(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  if ltype:is_arithmetic() and rtype:is_arithmetic() then
-    if ltype:is_float() or rtype:is_float() then
-      local floorname = type:is_float32() and 'floorf' or 'floor'
+  if ltype.is_arithmetic and rtype.is_arithmetic then
+    if ltype.is_float or rtype.is_float then
+      local floorname = type.is_float32 and 'floorf' or 'floor'
       emitter.context:add_include('<math.h>')
       emitter:add(floorname, '(', lname, ' / ', rname, ')')
-    elseif type:is_integral() and (ltype:is_signed() or rtype:is_signed()) then
+    elseif type.is_integral and (ltype.is_signed or rtype.is_signed) then
       local op = emitter.context:ensure_runtime_builtin('nelua_idiv_', type)
       emitter:add(op, '(', lname, ', ', rname, ')')
     else
@@ -519,11 +519,11 @@ end
 
 function operators.mod(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  if ltype:is_arithmetic() and rtype:is_arithmetic() then
-    if ltype:is_float() or rtype:is_float() then
+  if ltype.is_arithmetic and rtype.is_arithmetic then
+    if ltype.is_float or rtype.is_float then
       local op = emitter.context:ensure_runtime_builtin('nelua_fmod_', type)
       emitter:add(op, '(', lname, ', ', rname, ')')
-    elseif type:is_integral() and (ltype:is_signed() or rtype:is_signed()) then
+    elseif type.is_integral and (ltype.is_signed or rtype.is_signed) then
       local op = emitter.context:ensure_runtime_builtin('nelua_imod_', type)
       emitter:add(op, '(', lname, ', ', rname, ')')
     else
@@ -536,8 +536,8 @@ end
 
 function operators.pow(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  if ltype:is_arithmetic() and rtype:is_arithmetic() then
-    local powname = type:is_float32() and 'powf' or 'pow'
+  if ltype.is_arithmetic and rtype.is_arithmetic then
+    local powname = type.is_float32 and 'powf' or 'pow'
     emitter.context:add_include('<math.h>')
     emitter:add(powname, '(', lname, ', ', rname, ')')
   else --luacov:disable
@@ -547,7 +547,7 @@ end
 
 function operators.lt(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype:is_integral() and rtype:is_integral() and ltype:is_unsigned() ~= rtype:is_unsigned() then
+  if ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
     local op = emitter.context:ensure_runtime_builtin('nelua_lt_', ltype, rtype)
     emitter:add(op, '(', lname, ', ', rname, ')')
   else
@@ -557,7 +557,7 @@ end
 
 function operators.gt(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype:is_integral() and rtype:is_integral() and ltype:is_unsigned() ~= rtype:is_unsigned() then
+  if ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
     local op = emitter.context:ensure_runtime_builtin('nelua_lt_', rtype, ltype)
     emitter:add(op, '(', rname, ', ', lname, ')')
   else
@@ -567,7 +567,7 @@ end
 
 function operators.le(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype:is_integral() and rtype:is_integral() and ltype:is_unsigned() ~= rtype:is_unsigned() then
+  if ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
     local op = emitter.context:ensure_runtime_builtin('nelua_lt_', rtype, ltype)
     emitter:add('!', op, '(', rname, ', ', lname, ')')
   else
@@ -577,7 +577,7 @@ end
 
 function operators.ge(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype:is_integral() and rtype:is_integral() and ltype:is_unsigned() ~= rtype:is_unsigned() then
+  if ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
     local op = emitter.context:ensure_runtime_builtin('nelua_lt_', ltype, rtype)
     emitter:add('!', op, '(', lname, ', ', rname, ')')
   else
@@ -587,7 +587,7 @@ end
 
 function operators.eq(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype:is_string() and rtype:is_string() then
+  if ltype.is_string and rtype.is_string then
     emitter:add_builtin('nelua_string_eq')
     emitter:add('(', lname, ', ', rname, ')')
   else
@@ -597,7 +597,7 @@ end
 
 function operators.ne(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype:is_string() and rtype:is_string() then
+  if ltype.is_string and rtype.is_string then
     emitter:add_builtin('nelua_string_ne')
     emitter:add('(', lname, ', ', rname, ')')
   else
@@ -665,24 +665,24 @@ function inlines.print(context, node)
       defemitter:add_ln('("\\t");')
       defemitter:add_indent()
     end
-    if argtype:is_any() then
+    if argtype.is_any then
       defemitter:add_builtin('nelua_stdout_write_any')
       defemitter:add_ln('(a',i,');')
-    elseif argtype:is_string() then
+    elseif argtype.is_string then
       defemitter:add_builtin('nelua_stdout_write_string')
       defemitter:add_ln('(a',i,');')
-    elseif argtype:is_cstring() then
+    elseif argtype.is_cstring then
       defemitter:add_builtin('nelua_stdout_write_cstring')
       defemitter:add_ln('(a',i,');')
-    elseif argtype:is_nil() then
+    elseif argtype.is_nil then
       defemitter:add_builtin('nelua_stdout_write_nil')
       defemitter:add_ln('();')
-    elseif argtype:is_boolean() then
+    elseif argtype.is_boolean then
       defemitter:add_builtin('nelua_stdout_write_boolean')
       defemitter:add_ln('(a',i,');')
-    elseif argtype:is_arithmetic() then
+    elseif argtype.is_arithmetic then
       local ty = node:assertraisef(argtype, 'type is not defined in AST node')
-      if ty:is_enum() then
+      if ty.is_enum then
         ty = ty.subtype
       end
       local tyformat = cdefs.types_printf_format[ty.codename]
@@ -709,11 +709,11 @@ function inlines.type(_, node, emitter)
   local argnode = node[1][1]
   local type = argnode.attr.type
   local typename
-  if type:is_arithmetic() then
+  if type.is_arithmetic then
     typename = 'number'
-  elseif type:is_nilptr() then
+  elseif type.is_nilptr then
     typename = 'pointer'
-  elseif type:is_any() then --luacov:disable
+  elseif type.is_any then --luacov:disable
     node:raisef('type() for any values not implemented yet')
   else --luacov:enable
     typename = type.name

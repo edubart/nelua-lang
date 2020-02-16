@@ -1025,15 +1025,15 @@ the preprocessor:
 
 ```nelua
 local function pow(x: auto, n: integer)
-## staticassert(x.type:is_arithmetic(), 'cannot pow variable of type "%s"', x.type)
-## if x.type:is_integral() then
+## staticassert(x.type.is_arithmetic, 'cannot pow variable of type "%s"', x.type)
+## if x.type.is_integral then
   -- x is an integral type (any unsigned/signed integer)
   local r: #[x.type]# = 1
   for i=1,n do
     r = r * x
   end
   return r
-## elseif x.type:is_float() then
+## elseif x.type.is_float then
   -- x is a floating point type
   return x ^ n
 ## end

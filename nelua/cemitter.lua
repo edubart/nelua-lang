@@ -23,17 +23,17 @@ end
 -- Return string functions
 function CEmitter:zeroinit(type)
   local s
-  if type:is_float32() and not self.context.pragmas.nofloatsuffix then
+  if type.is_float32 and not self.context.pragmas.nofloatsuffix then
     s = '0.0f'
-  elseif type:is_float() then
+  elseif type.is_float then
     s = '0.0'
-  elseif type:is_unsigned() then
+  elseif type.is_unsigned then
     s = '0U'
-  elseif type:is_arithmetic() then
+  elseif type.is_arithmetic then
     s = '0'
-  elseif type:is_pointer() or type:is_nil() or type:is_comptime() then
+  elseif type.is_pointer or type.is_nil or type.is_comptime then
     s = 'NULL'
-  elseif type:is_boolean() then
+  elseif type.is_boolean then
     s = 'false'
   elseif type.size > 0 then
     s = '{0}'
@@ -50,7 +50,7 @@ function CEmitter:add_zeroinit(type)
 end
 
 function CEmitter:add_ctyped_zerotype(type)
-  if not (type:is_boolean() or type:is_arithmetic() or type:is_pointer()) then
+  if not (type.is_boolean or type.is_arithmetic or type.is_pointer) then
     self:add_ctypecast(type)
   end
   self:add(self:zeroinit(type))
@@ -77,9 +77,9 @@ end
 
 function CEmitter:add_val2any(val, valtype)
   valtype = valtype or val.attr.type
-  assert(not valtype:is_any())
+  assert(not valtype.is_any)
   self:add('(', primtypes.any, ')')
-  if valtype:is_nil() then
+  if valtype.is_nil then
     self:add('{0}')
   else
     local runctype = self.context:runctype(valtype)
@@ -90,13 +90,13 @@ end
 
 function CEmitter:add_val2boolean(val, valtype)
   valtype = valtype or val.attr.type
-  assert(not valtype:is_boolean())
-  if valtype:is_any() then
+  assert(not valtype.is_boolean)
+  if valtype.is_any then
     self:add_builtin('nelua_any_to_', typedefs.primtypes.boolean)
     self:add('(', val, ')')
-  elseif valtype:is_nil() or valtype:is_nilptr() then
+  elseif valtype.is_nil or valtype.is_nilptr then
     self:add('false')
-  elseif valtype:is_pointer() then
+  elseif valtype.is_pointer then
     self:add(val, ' != NULL')
   else
     self:add('true')
@@ -120,12 +120,12 @@ function CEmitter:add_cstring2string(val)
 end
 
 function CEmitter:add_val2type(type, val, valtype)
-  if type:is_type() then
+  if type.is_type then
     self:add('NULL')
     return
   end
 
-  assert(not type:is_comptime())
+  assert(not type.is_comptime)
 
   if not valtype and traits.is_astnode(val) then
     valtype = val.attr.type
@@ -135,27 +135,27 @@ function CEmitter:add_val2type(type, val, valtype)
     assert(valtype)
     if type == valtype then
       self:add(val)
-    elseif valtype:is_arithmetic() and type:is_arithmetic() and
-           (type:is_float() or valtype:is_integral()) and
+    elseif valtype.is_arithmetic and type.is_arithmetic and
+           (type.is_float or valtype.is_integral) and
            traits.is_astnode(val) and val.attr.comptime then
       self:add_numeric_literal(val.attr, type)
-    elseif valtype:is_nilptr() and type:is_pointer() then
+    elseif valtype.is_nilptr and type.is_pointer then
       self:add(val)
-    elseif type:is_any() then
+    elseif type.is_any then
       self:add_val2any(val, valtype)
-    elseif type:is_boolean() then
+    elseif type.is_boolean then
       self:add_val2boolean(val, valtype)
-    elseif valtype:is_any() then
+    elseif valtype.is_any then
       self:add_any2type(type, val)
-    elseif type:is_cstring() and valtype:is_string() then
+    elseif type.is_cstring and valtype.is_string then
       self:add_string2cstring(val)
-    elseif type:is_string() and valtype:is_cstring() then
+    elseif type.is_string and valtype.is_cstring then
       self:add_cstring2string(val)
-    elseif type:is_pointer() and traits.is_astnode(val) and val.attr.autoref then
+    elseif type.is_pointer and traits.is_astnode(val) and val.attr.autoref then
       -- automatic reference
       self:add('&', val)
-    elseif valtype:is_pointer() and valtype.subtype == type and
-           (type:is_record() or type:is_array()) then
+    elseif valtype.is_pointer and valtype.subtype == type and
+           (type.is_record or type.is_array) then
       -- automatic dereference
       self:add('*', val)
     else
@@ -179,18 +179,18 @@ function CEmitter:add_numeric_literal(valattr, valtype)
   valtype = valtype or valattr.type
   local val, base = valattr.value, valattr.base
 
-  if val:isneg() and valtype:is_unsigned() then
+  if val:isneg() and valtype.is_unsigned then
     val = valtype:normalize_value(val)
   end
 
   local minusone = false
-  if valtype:is_integral() and valtype:is_signed() and val == valtype.min then
+  if valtype.is_integral and valtype.is_signed and val == valtype.min then
     -- workaround C warning `integer constant is so large that it is unsigned`
     minusone = true
     val = val:add(1)
   end
 
-  if valtype:is_float() then
+  if valtype.is_float then
     local valstr = val:todecsci(valtype.maxdigits)
     self:add(valstr)
 
@@ -207,9 +207,9 @@ function CEmitter:add_numeric_literal(valattr, valtype)
   end
 
   -- suffixes
-  if valtype:is_float32() and not valattr.nofloatsuffix then
+  if valtype.is_float32 and not valattr.nofloatsuffix then
     self:add('f')
-  elseif valtype:is_unsigned() then
+  elseif valtype.is_unsigned then
     self:add('U')
   end
 
@@ -231,13 +231,13 @@ end
 
 function CEmitter:add_literal(valattr)
   local valtype = valattr.type
-  if valtype:is_boolean() then
+  if valtype.is_boolean then
     self:add_booleanlit(valattr.value)
-  elseif valtype:is_arithmetic() then
+  elseif valtype.is_arithmetic then
     self:add_numeric_literal(valattr)
-  elseif valtype:is_string() then
+  elseif valtype.is_string then
     self:add_string_literal(valattr.value)
-  --elseif valtype:is_record() then
+  --elseif valtype.is_record then
     --self:add(valattr)
   else --luacov:disable
     errorer.errorf('not implemented: `CEmitter:add_literal` for valtype `%s`', valtype)

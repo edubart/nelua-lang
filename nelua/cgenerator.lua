@@ -16,7 +16,7 @@ local function izipargnodes(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
   local calleetype = lastargnode and lastargnode.attr.calleetype
-  if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and (not calleetype or not calleetype:is_type()) then
+  if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and (not calleetype or not calleetype.is_type) then
     -- last arg is a runtime call
     assert(calleetype)
     -- we know the callee type
@@ -59,7 +59,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
     local varattr = varnode.attr
     local noinit = varattr.noinit or varattr.cexport
     local vartype = varattr.type
-    if not vartype:is_type() and not varattr.nodecl and not varattr.comptime then
+    if not vartype.is_type and not varattr.nodecl and not varattr.comptime then
       local declared, defined = false, false
       if decl and varattr.staticstorage then
         -- declare main variables in the top scope
@@ -158,7 +158,7 @@ typevisitors[types.PointerType] = function(context, type)
   context.declarations[type.codename] = true
   local decemitter = CEmitter(context, 0)
   local index = nil
-  if type.subtype:is_record() and not type.subtype.nodecl and not context.declarations[type.subtype.codename] then
+  if type.subtype.is_record and not type.subtype.nodecl and not context.declarations[type.subtype.codename] then
     -- offset declaration of pointers before records
     index = #context.declarations+2
   end
@@ -181,13 +181,13 @@ typevisitors[types.RecordType] = function(context, type)
     defemitter:add_ln(' {')
     for _,field in ipairs(type.fields) do
       local fieldctype
-      if field.type:is_array() then
+      if field.type.is_array then
         fieldctype = field.type.subtype
       else
         fieldctype = context:ctype(field.type)
       end
       defemitter:add('  ', fieldctype, ' ', field.name)
-      if field.type:is_array() then
+      if field.type.is_array then
         defemitter:add('[', field.type.length, ']')
       end
       defemitter:add_ln(';')
@@ -208,13 +208,13 @@ end
 
 typevisitors[types.Type] = function(context, type)
   if type.nodecl or context:is_declared(type.codename) then return end
-  if type:is_string() then
+  if type.is_string then
     context:ensure_runtime_builtin('nelua_string')
-  elseif type:is_function() then --luacov:disable
+  elseif type.is_function then --luacov:disable
     error('ctype for functions not implemented yet')
-  elseif type:is_any() then --luacov:enable
+  elseif type.is_any then --luacov:enable
     context:ensure_runtime_builtin('nelua_any')
-  elseif type:is_nil() then
+  elseif type.is_nil then
     context:ensure_runtime_builtin('nelua_nilable')
   else
     errorer.assertf(cdefs.primitive_ctypes[type.codename],
@@ -226,7 +226,7 @@ local visitors = {}
 
 function visitors.Number(context, node, emitter)
   local attr = node.attr
-  if not attr.type:is_float() and not attr.untyped and not context.state.ininitializer then
+  if not attr.type.is_float and not attr.untyped and not context.state.ininitializer then
     emitter:add_ctypecast(attr.type)
   end
   emitter:add_numeric_literal(attr)
@@ -252,12 +252,12 @@ function visitors.Table(context, node, emitter)
   local attr = node.attr
   local childnodes, type = node[1], attr.type
   local len = #childnodes
-  if len == 0 and (type:is_record() or type:is_array()) then
+  if len == 0 and (type.is_record or type.is_array) then
     if not context.state.ininitializer then
       emitter:add_ctypecast(type)
     end
     emitter:add_zeroinit(type)
-  elseif type:is_record() then
+  elseif type.is_record then
     if context.state.ininitializer then
       local state = context:push_state()
       state.inrecordinitializer = true
@@ -278,7 +278,7 @@ function visitors.Table(context, node, emitter)
           childvalnode = childnode
         end
         local childvaltype = childvalnode.attr.type
-        if childvaltype:is_array() then
+        if childvaltype.is_array then
           emitter:add_indent_ln('(*(', childvaltype, '*)__record.', fieldname, ') = ',  childvalnode, ';')
         else
           emitter:add_indent_ln('__record.', fieldname, ' = ',  childvalnode, ';')
@@ -288,7 +288,7 @@ function visitors.Table(context, node, emitter)
       emitter:dec_indent()
       emitter:add_indent('})')
     end
-  elseif type:is_array() then
+  elseif type.is_array then
     if context.state.ininitializer then
       if context.state.inrecordinitializer then
         emitter:add('{', childnodes, '}')
@@ -307,7 +307,7 @@ end
 function visitors.Pair(_, node, emitter)
   local namenode, valuenode = node:args()
   local parenttype = node.attr.parenttype
-  if parenttype and parenttype:is_record() then
+  if parenttype and parenttype.is_record then
     assert(traits.is_string(namenode))
     emitter:add('.', cdefs.quotename(namenode), ' = ', valuenode)
   else --luacov:disable
@@ -348,8 +348,8 @@ end
 
 function visitors.Id(context, node, emitter)
   local attr = node.attr
-  assert(not attr.type:is_comptime())
-  if attr.type:is_nilptr() then
+  assert(not attr.type.is_comptime)
+  if attr.type.is_nilptr then
     emitter:add_null()
   elseif attr.comptime then
     emitter:add_literal(attr)
@@ -371,7 +371,7 @@ visitors.PointerType = visitors.Type
 function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
   local type = attr.type
-  if attr.comptime or type:is_comptime() then
+  if attr.comptime or type.is_comptime then
     emitter:add(context:ensure_runtime_builtin('nelua_unusedvar'), ' ', context:declname(attr))
     return
   end
@@ -379,7 +379,7 @@ function visitors.IdDecl(context, node, emitter)
     emitter:add(context:declname(attr))
     return
   end
-  if type:is_type() then return end
+  if type.is_type then return end
   if attr.cexport then emitter:add('extern ') end
   if attr.const then emitter:add('const ') end
   if attr.volatile then emitter:add('volatile ') end
@@ -398,7 +398,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
   end
   local attr = node.attr
   local calleetype = attr.calleetype
-  if calleetype:is_function() then
+  if calleetype.is_function then
     -- function call
     local tmpargs = {}
     local tmpcount = 0
@@ -510,7 +510,7 @@ function visitors.Call(context, node, emitter)
     local builtin = cbuiltins.inlines[calleenode.attr.name]
     callee = builtin(context, node, emitter)
   end
-  if calleetype:is_type() then
+  if calleetype.is_type then
     -- type assertion
     assert(#argnodes == 1)
     local argnode = argnodes[1]
@@ -552,16 +552,16 @@ function visitors.DotIndex(context, node, emitter)
   local type = attr.type
   local objtype = objnode.attr.type
   local poparray = false
-  if type:is_array() then
+  if type.is_array then
     emitter:add('(*(', type, '*)')
     poparray = true
   end
-  if objtype:is_type() then
+  if objtype.is_type then
     objtype = attr.indextype
-    if objtype:is_enum() then
+    if objtype.is_enum then
       local field = objtype:get_field(name)
       emitter:add_numeric_literal(field)
-    elseif objtype:is_record() then
+    elseif objtype.is_record then
       if attr.comptime then
         emitter:add_literal(attr)
       else
@@ -570,7 +570,7 @@ function visitors.DotIndex(context, node, emitter)
     else --luacov:disable
       error('not implemented yet')
     end --luacov:enable
-  elseif objtype:is_pointer() then
+  elseif objtype.is_pointer then
     emitter:add(objnode, '->', cdefs.quotename(name))
   else
     emitter:add(objnode, '.', cdefs.quotename(name))
@@ -586,7 +586,7 @@ function visitors.ArrayIndex(context, node, emitter)
   local indexnode, objnode = node:args()
   local objtype = objnode.attr.type
   local pointer = false
-  if objtype:is_pointer() and not objtype:is_generic_pointer() then
+  if objtype.is_pointer and not objtype.is_genericpointer then
     -- indexing a pointer to an array
     objtype = objtype.subtype
     pointer = true
@@ -594,7 +594,7 @@ function visitors.ArrayIndex(context, node, emitter)
 
   local index = indexnode
 
-  if objtype:is_record() then
+  if objtype.is_record then
     if node.attr.lvalue then
       emitter:add('(*')
     end
@@ -609,7 +609,7 @@ function visitors.ArrayIndex(context, node, emitter)
       emitter:add(objnode)
     end
 
-    if objtype:is_array() then
+    if objtype.is_array then
       emitter:add('.data[', index, ']')
     else --luacov:disable
       error('not implemented yet')
@@ -876,7 +876,7 @@ function visitors.FuncDef(context, node, emitter)
   local attr = node.attr
   local type = attr.type
 
-  if type:is_lazyfunction() then
+  if type.is_lazyfunction then
     for _,lazyeval in ipairs(type.evals) do
       emitter:add(lazyeval.node)
     end
@@ -974,7 +974,7 @@ function visitors.UnaryOp(context, node, emitter)
   local op = cdefs.unary_ops[opname]
   assert(op)
   if attr.calleesym then
-    assert(argnode.attr.type:is_record())
+    assert(argnode.attr.type.is_record)
     visitor_Call(context, node, emitter, {}, nil, argnode)
   else
     local surround = not node.attr.inconditional

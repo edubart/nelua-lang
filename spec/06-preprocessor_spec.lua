@@ -425,7 +425,7 @@ it("lazy function", function()
 
     do
       local p = f(@integer)
-      ## afterinfer(function() assert(p.type:is_pointer()) end)
+      ## afterinfer(function() assert(p.type.is_pointer) end)
       p = nilptr
     end
   ]])

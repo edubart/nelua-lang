@@ -253,7 +253,7 @@ function visitors.VarDecl(context, node, emitter)
   emitter:add(varnodes)
   local doassigns = valnodes or not is_local
   for _,varnode in ipairs(varnodes) do
-    if not varnode.attr.type:is_any() then
+    if not varnode.attr.type.is_any then
       doassigns = true
       break
     end
@@ -268,11 +268,11 @@ function visitors.VarDecl(context, node, emitter)
     for i=istart,#varnodes do
       if i > 1 then emitter:add(', ') end
       local varnode = varnodes[i]
-      if varnode.attr.type:is_table() then
+      if varnode.attr.type.is_table then
         emitter:add('{}')
-      elseif varnode.attr.type:is_arithmetic() then
+      elseif varnode.attr.type.is_arithmetic then
         emitter:add('0')
-      elseif varnode.attr.type:is_boolean() then
+      elseif varnode.attr.type.is_boolean then
         emitter:add('false')
       else
         emitter:add('nil')

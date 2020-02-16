@@ -35,7 +35,7 @@ function Type:_init(name, size, node)
 end
 
 function Type:suggest_nick(nick, codename)
-  if self:is_primitive() or self.nick then return end
+  if self.is_primitive or self.nick then return end
   if codename then
     self.codename = codename
   else
@@ -59,7 +59,7 @@ local function get_operator_in_oplist(self, oplist, opname, arg1, arg2, arg3)
   else
     type, value = opret, nil
   end
-  if not type and self:is_any() then
+  if not type and self.is_any then
     type, value = self, nil
   end
   return type, value, err
@@ -87,7 +87,7 @@ function Type:is_convertible_from_type(type)
   if self == type then
     -- the type itself
     return self
-  elseif type:is_any() then
+  elseif type.is_any then
     -- anything can be converted to and from `any`
     return self
   else
@@ -103,8 +103,8 @@ function Type:is_convertible_from_attr(attr, explicit)
 
   -- check for comptime number conversions
   if attr.type and attr.comptime and attr.value and
-    self:is_arithmetic() and type:is_arithmetic() and not explicit then
-    if self:is_integral() then
+    self.is_arithmetic and type.is_arithmetic and not explicit then
+    if self.is_integral then
       if not attr.value:isintegral() then
         return false, stringer.pformat(
           "constant value `%s` is fractional which is invalid for the type '%s'",
@@ -156,49 +156,18 @@ function Type:is_initializable_from_attr(attr)
   end
 end
 
-function Type:is_comptime() return self.comptime end
-function Type:is_primitive() return self.primitive end
-function Type:is_auto() return self.auto end
-function Type:is_arithmetic() return self.arithmetic end
-function Type:is_float32() return self.float32 end
-function Type:is_float64() return self.float64 end
-function Type:is_float() return self.float end
-function Type:is_any() return self.any end
-function Type:is_varanys() return self.varanys end
-function Type:is_nil() return self.Nil end
-function Type:is_nilable() return self.nilable end
-function Type:is_nilptr() return self.nilptr end
-function Type:is_type() return self.typetype end
-function Type:is_string() return self.string end
-function Type:is_cstring() return self.cstring end
-function Type:is_record() return self.record end
-function Type:is_function() return self.Function end
-function Type:is_lazyfunction() return self.lazyfunction end
-function Type:is_boolean() return self.boolean end
-function Type:is_table() return self.table end
-function Type:is_array() return self.array end
-function Type:is_enum() return self.enum end
-function Type:is_void() return self.void end
-function Type:is_pointer() return self.pointer end
-function Type:is_range() return self.range end
-function Type:is_integral() return self.integral end
-function Type:is_unsigned() return self.unsigned end
-function Type:is_signed() return self.arithmetic and not self.unsigned end
-function Type:is_generic_pointer() return self.genericpointer end
-function Type:is_concept() return self.concept end
-function Type:is_generic() return self.generic end
 function Type.is_pointer_of() return false end
 function Type.is_array_of() return false end
 function Type.has_pointer() return false end
 function Type:is_contiguous_of(type)
-  if not self.contiguous then return false end
+  if not self.is_contiguous then return false end
   if self:is_array_of(type) then
     return true
-  elseif self:is_record() then
+  elseif self.is_record then
     local mtatindex = self:get_metafield('__atindex')
     local mtlen = self:get_metafield('__len')
     if mtatindex and mtatindex.type:get_return_type(1):is_pointer_of(type) and
-       mtlen and mtlen.type:get_return_type(1):is_integral() then
+       mtlen and mtlen.type:get_return_type(1).is_integral then
       return true
     end
   end
@@ -238,7 +207,7 @@ Type.unary_operators.ref = function(ltype, lattr)
 end
 
 Type.binary_operators.eq = function(ltype, rtype, lattr, rattr)
-  if ltype:is_comptime() or rtype:is_comptime() then
+  if ltype.is_comptime or rtype.is_comptime then
     return primtypes.boolean, ltype == rtype and lattr.value == rattr.value
   end
   local reval
@@ -261,7 +230,7 @@ Type.binary_operators['and'] = function(ltype, rtype, lattr, rattr)
   local reval
   local retype = promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype) or primtypes.any
   local lval, rval = lattr.value, rattr.value
-  if retype:is_boolean() and lval ~= nil and rval ~= nil then
+  if retype.is_boolean and lval ~= nil and rval ~= nil then
     reval = not not (lval and rval)
   end
   return retype, reval
@@ -271,7 +240,7 @@ Type.binary_operators['or'] = function(ltype, rtype, lattr, rattr)
   local reval
   local retype = promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype) or primtypes.any
   local lval, rval = lattr.value, rattr.value
-  if retype:is_boolean() and lval ~= nil and rval ~= nil then
+  if retype.is_boolean and lval ~= nil and rval ~= nil then
     reval = lval or rval
   end
   return retype, reval
@@ -314,10 +283,10 @@ end
 local VoidType = typeclass()
 types.VoidType = VoidType
 VoidType.nodecl = true
-VoidType.nolvalue = true
-VoidType.comptime = true
-VoidType.void = true
-VoidType.primitive = true
+VoidType.is_nolvalue = true
+VoidType.is_comptime = true
+VoidType.is_void = true
+VoidType.is_primitive = true
 
 function VoidType:_init(name)
   Type._init(self, name, 0)
@@ -326,13 +295,13 @@ end
 --------------------------------------------------------------------------------
 local AutoType = typeclass()
 types.AutoType = AutoType
-AutoType.auto = true
+AutoType.is_auto = true
 AutoType.nodecl = true
-AutoType.comptime = true
-AutoType.nilable = true
-AutoType.primitive = true
-AutoType.unpointable = true
-AutoType.lazyable = true
+AutoType.is_comptime = true
+AutoType.is_nilable = true
+AutoType.is_primitive = true
+AutoType.is_unpointable = true
+AutoType.is_lazyable = true
 
 function AutoType:_init(name)
   Type._init(self, name, 0)
@@ -345,11 +314,11 @@ end
 --------------------------------------------------------------------------------
 local TypeType = typeclass()
 types.TypeType = TypeType
-TypeType.typetype = true
-TypeType.comptime = true
+TypeType.is_type = true
+TypeType.is_comptime = true
 TypeType.nodecl = true
-TypeType.unpointable = true
-TypeType.lazyable = true
+TypeType.is_unpointable = true
+TypeType.is_lazyable = true
 
 function TypeType:_init(name)
   Type._init(self, name, 0)
@@ -368,10 +337,10 @@ end
 --------------------------------------------------------------------------------
 local NilableType = typeclass()
 types.NilableType = NilableType
-NilableType.Nil = true
-NilableType.nilable = true
-NilableType.primitive = true
-NilableType.unpointable = true
+NilableType.is_nil = true
+NilableType.is_nilable = true
+NilableType.is_primitive = true
+NilableType.is_unpointable = true
 
 function NilableType:_init(name)
   Type._init(self, name, 0)
@@ -384,17 +353,17 @@ end
 --------------------------------------------------------------------------------
 local NilptrType = typeclass()
 types.NilptrType = NilptrType
-NilptrType.nolvalue = true
-NilptrType.nilptr = true
-NilptrType.primitive = true
-NilptrType.unpointable = true
+NilptrType.is_nolvalue = true
+NilptrType.is_nilptr = true
+NilptrType.is_primitive = true
+NilptrType.is_unpointable = true
 
 function NilptrType:_init(name, size)
   Type._init(self, name, size)
 end
 
 function NilptrType:promote_type(type)
-  if type:is_pointer() then
+  if type.is_pointer then
     return type
   end
   return Type.promote_type(self, type)
@@ -407,8 +376,8 @@ end
 --------------------------------------------------------------------------------
 local StringType = typeclass()
 types.StringType = StringType
-StringType.string = true
-StringType.primitive = true
+StringType.is_string = true
+StringType.is_primitive = true
 StringType.maxfieldsize = cpusize
 
 function StringType:_init(name, size)
@@ -416,7 +385,7 @@ function StringType:_init(name, size)
 end
 
 function StringType:is_convertible_from_type(type, explicit)
-  if explicit and self:is_string() and type:is_cstring() then
+  if explicit and self.is_string and type.is_cstring then
     -- explicit cstring to string cast
     return self
   end
@@ -434,7 +403,7 @@ end
 
 local function make_string_cmp_opfunc(cmpfunc)
   return function(_, rtype, lattr, rattr)
-    if rtype:is_string() then
+    if rtype.is_string then
       local reval
       local lval, rval = lattr.value, rattr.value
       if lval and rval then
@@ -458,7 +427,7 @@ StringType.binary_operators.gt = make_string_cmp_opfunc(function(a,b)
   return a>b
 end)
 StringType.binary_operators.concat = function(ltype, rtype, lattr, rattr)
-  if rtype:is_string() then
+  if rtype.is_string then
     local reval
     local lval, rval = lattr.value, rattr.value
     if lval and rval then
@@ -471,8 +440,8 @@ end
 --------------------------------------------------------------------------------
 local BooleanType = typeclass()
 types.BooleanType = BooleanType
-BooleanType.boolean = true
-BooleanType.primitive = true
+BooleanType.is_boolean = true
+BooleanType.is_primitive = true
 
 function BooleanType:_init(name, size)
   Type._init(self, name, size)
@@ -494,9 +463,9 @@ end
 --------------------------------------------------------------------------------
 local AnyType = typeclass()
 types.AnyType = AnyType
-AnyType.any = true
-AnyType.nilable = true
-AnyType.primitive = true
+AnyType.is_any = true
+AnyType.is_nilable = true
+AnyType.is_primitive = true
 
 function AnyType:_init(name, size)
   Type._init(self, name, size)
@@ -511,8 +480,8 @@ function AnyType.has_pointer() return true end
 --------------------------------------------------------------------------------
 local VaranysType = typeclass(AnyType)
 types.VaranysType = VaranysType
-VaranysType.varanys = true
-VaranysType.nolvalue = true
+VaranysType.is_varanys = true
+VaranysType.is_nolvalue = true
 
 function VaranysType:_init(name, size)
   Type._init(self, name, size)
@@ -521,8 +490,8 @@ end
 --------------------------------------------------------------------------------
 local ArithmeticType = typeclass()
 types.ArithmeticType = ArithmeticType
-ArithmeticType.arithmetic = true
-ArithmeticType.primitive = true
+ArithmeticType.is_arithmetic = true
+ArithmeticType.is_primitive = true
 
 function ArithmeticType:_init(name, size)
   Type._init(self, name, size)
@@ -535,7 +504,7 @@ function ArithmeticType:is_initializable_from_attr(attr)
   if Type.is_initializable_from_attr(self, attr) then
     return true
   end
-  if attr.type and attr.type:is_arithmetic() and attr.comptime and attr.untyped then
+  if attr.type and attr.type.is_arithmetic and attr.comptime and attr.untyped then
     return true
   end
 end
@@ -553,7 +522,7 @@ end
 
 ArithmeticType.binary_operators.eq = function(_, rtype, lattr, rattr)
   local reval
-  if rtype:is_arithmetic() then
+  if rtype.is_arithmetic then
     local lval, rval = lattr.value, rattr.value
     if lval and rval then
       reval = lval == rval
@@ -566,7 +535,7 @@ end
 
 local function make_arithmetic_cmp_opfunc(cmpfunc)
   return function(_, rtype, lattr, rattr)
-    if rtype:is_arithmetic() then
+    if rtype.is_arithmetic then
       return primtypes.boolean, cmpfunc(lattr, rattr)
     end
   end
@@ -601,11 +570,11 @@ end)
 --------------------------------------------------------------------------------
 local IntegralType = typeclass(ArithmeticType)
 types.IntegralType = IntegralType
-IntegralType.integral = true
+IntegralType.is_integral = true
 
-local function get_integral_range(bits, unsigned)
+local function get_integral_range(bits, is_unsigned)
   local min, max
-  if unsigned then
+  if is_unsigned then
     min =  bn.new(0)
     max =  bn.pow(2, bits) - 1
   else -- signed
@@ -615,21 +584,22 @@ local function get_integral_range(bits, unsigned)
   return min, max
 end
 
-function IntegralType:_init(name, size, unsigned)
+function IntegralType:_init(name, size, is_unsigned)
   ArithmeticType._init(self, name, size)
-  self.min, self.max = get_integral_range(self.bitsize, unsigned)
-  self.unsigned = unsigned
+  self.min, self.max = get_integral_range(self.bitsize, is_unsigned)
+  self.is_unsigned = is_unsigned
+  self.is_signed = not is_unsigned
 end
 
 function IntegralType:is_convertible_from_type(type, explicit)
   if type == self then
     return self
-  elseif type:is_integral() and self:is_inrange(type.min) and self:is_inrange(type.max) then
+  elseif type.is_integral and self:is_inrange(type.min) and self:is_inrange(type.max) then
     return self
   elseif explicit then
-    if type:is_arithmetic() then
+    if type.is_arithmetic then
       return self
-    elseif type:is_pointer() and self.size == cpusize then
+    elseif type.is_pointer and self.size == cpusize then
       return self
     end
   end
@@ -641,7 +611,7 @@ function IntegralType:normalize_value(value)
     value = value:trunc()
   end
   if not self:is_inrange(value) then
-    if self:is_signed() and value > self.max then
+    if self.is_signed and value > self.max then
       value = -bn.bnorm(-value, self.bitsize)
     else
       value = bn.bnorm(value, self.bitsize)
@@ -673,18 +643,18 @@ function IntegralType:promote_type_for_value(value)
 end
 
 function IntegralType:promote_type(type)
-  if type == self or type:is_float() then
+  if type == self or type.is_float then
     return type
-  elseif not type:is_integral() then
+  elseif not type.is_integral then
     return
   end
-  if self:is_unsigned() == type:is_unsigned() then
+  if self.is_unsigned == type.is_unsigned then
     -- promote to bigger of the same signess
     return type.size >= self.size and type or self
   else
     -- promote to best signed type that fits both types
-    local signedsize = self:is_signed() and self.bitsize or type.bitsize
-    local unsignedsize = self:is_unsigned() and self.bitsize or type.bitsize
+    local signedsize = self.is_signed and self.bitsize or type.bitsize
+    local unsignedsize = self.is_unsigned and self.bitsize or type.bitsize
     if signedsize < unsignedsize * 2 then
       signedsize = math.min(unsignedsize * 2, 64)
     end
@@ -697,14 +667,14 @@ function IntegralType:is_inrange(value)
 end
 
 local function integral_arithmetic_operation(ltype, rtype, lattr, rattr)
-  if not rtype:is_arithmetic() then
+  if not rtype.is_arithmetic then
     return
   end
   return promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype)
 end
 
 local function integral_fractional_operation(_, rtype)
-  if rtype:is_float() then
+  if rtype.is_float then
     return rtype
   else
     return primtypes.number
@@ -712,7 +682,7 @@ local function integral_fractional_operation(_, rtype)
 end
 
 local function integral_bitwise_operation(ltype, rtype, lattr, rattr)
-  if not rtype:is_integral() then
+  if not rtype.is_integral then
     return
   end
   local retype = promote_type_for_attrs(lattr, rattr)
@@ -723,7 +693,7 @@ local function integral_bitwise_operation(ltype, rtype, lattr, rattr)
 end
 
 local function integral_shift_operation(ltype, rtype)
-  if not rtype:is_integral() then
+  if not rtype.is_integral then
     return
   end
   return ltype
@@ -835,20 +805,21 @@ IntegralType.binary_operators.range = integral_range_operation
 --------------------------------------------------------------------------------
 local FloatType = typeclass(ArithmeticType)
 types.FloatType = FloatType
-FloatType.float = true
+FloatType.is_float = true
+FloatType.is_signed = true
 
 function FloatType:_init(name, size, maxdigits)
   ArithmeticType._init(self, name, size)
   self.maxdigits = maxdigits
   if self.bitsize == 32 then
-    self.float32 = true
+    self.is_float32 = true
   elseif self.bitsize == 64 then
-    self.float64 = true
+    self.is_float64 = true
   end
 end
 
 function FloatType:is_convertible_from_type(type, explicit)
-  if type:is_arithmetic() then
+  if type.is_arithmetic then
     return self
   end
   return ArithmeticType.is_convertible_from_type(self, type, explicit)
@@ -862,9 +833,9 @@ function FloatType:promote_type_for_value()
 end
 
 function FloatType:promote_type(type)
-  if type == self or type:is_integral() then
+  if type == self or type.is_integral then
     return self
-  elseif not type:is_float() then
+  elseif not type.is_float then
     return
   end
   if type.size > self.size then
@@ -874,7 +845,7 @@ function FloatType:promote_type(type)
 end
 
 local function float_arithmetic_operation(ltype, rtype)
-  if not rtype:is_arithmetic() then
+  if not rtype.is_arithmetic then
     return
   end
   return ltype:promote_type(rtype)
@@ -922,7 +893,7 @@ end)
 --------------------------------------------------------------------------------
 local TableType = typeclass()
 types.TableType = TableType
-TableType.table = true
+TableType.is_table = true
 
 function TableType:_init(name)
   Type._init(self, name, cpusize)
@@ -941,8 +912,8 @@ end
 --------------------------------------------------------------------------------
 local ArrayType = typeclass()
 types.ArrayType = ArrayType
-ArrayType.array = true
-ArrayType.contiguous = true
+ArrayType.is_array = true
+ArrayType.is_contiguous = true
 
 function ArrayType:_init(node, subtype, length)
   local size = subtype.size * length
@@ -986,11 +957,11 @@ end
 --------------------------------------------------------------------------------
 local EnumType = typeclass(IntegralType)
 types.EnumType = EnumType
-EnumType.enum = true
-EnumType.primitive = false
+EnumType.is_enum = true
+EnumType.is_primitive = false
 
 function EnumType:_init(node, subtype, fields)
-  IntegralType._init(self, 'enum', subtype.size, subtype.unsigned)
+  IntegralType._init(self, 'enum', subtype.size, subtype.is_unsigned)
   self.node = node
   self.subtype = subtype
   self.fields = fields
@@ -1016,7 +987,7 @@ end
 --------------------------------------------------------------------------------
 local FunctionType = typeclass()
 types.FunctionType = FunctionType
-FunctionType.Function = true
+FunctionType.is_function = true
 
 function FunctionType:_init(node, argattrs, returntypes)
   Type._init(self, 'function', cpusize, node)
@@ -1037,7 +1008,7 @@ function FunctionType:get_return_type(index)
   local returntypes = self.returntypes
   local lastindex = #returntypes
   local lastret = returntypes[lastindex]
-  if lastret and lastret:is_varanys() and index > lastindex then
+  if lastret and lastret.is_varanys and index > lastindex then
     return primtypes.any
   end
   local rettype = returntypes[index]
@@ -1075,8 +1046,8 @@ end
 --------------------------------------------------------------------------------
 local LazyFunctionType = typeclass()
 types.LazyFunctionType = LazyFunctionType
-LazyFunctionType.Function = true
-LazyFunctionType.lazyfunction = true
+LazyFunctionType.is_function = true
+LazyFunctionType.is_lazyfunction = true
 
 function LazyFunctionType:_init(node, args, returntypes)
   Type._init(self, 'lazyfunction', 0, node)
@@ -1093,7 +1064,7 @@ local function lazy_args_matches(largs, rargs)
     local rtype = traits.is_attr(rarg) and rarg.type or rarg
     if ltype ~= rtype then
       return false
-    elseif traits.is_attr(larg) and rtype:is_comptime() then
+    elseif traits.is_attr(larg) and rtype.is_comptime then
       if not traits.is_attr(rarg) or larg.value ~= rarg.value then
         return false
       end
@@ -1125,7 +1096,7 @@ LazyFunctionType.__tostring = FunctionType.__tostring
 --------------------------------------------------------------------------------
 local MetaType = typeclass()
 types.MetaType = MetaType
-MetaType.metatype = true
+MetaType.is_metatype = true
 
 function MetaType:_init(node, fields)
   self.fields = fields or {}
@@ -1159,7 +1130,7 @@ end
 --------------------------------------------------------------------------------
 local RecordType = typeclass()
 types.RecordType = RecordType
-RecordType.record = true
+RecordType.is_record = true
 
 local function compute_record_size(fields, pack)
   local nfields = #fields
@@ -1250,19 +1221,19 @@ end
 --------------------------------------------------------------------------------
 local PointerType = typeclass()
 types.PointerType = PointerType
-PointerType.pointer = true
+PointerType.is_pointer = true
 
 function PointerType:_init(node, subtype)
   Type._init(self, 'pointer', cpusize, node)
   self.subtype = subtype
-  if subtype:is_void() then
+  if subtype.is_void then
     self.nodecl = true
-    self.genericpointer = true
-    self.primitive = true
+    self.is_genericpointer = true
+    self.is_primitive = true
   elseif subtype.name == 'cchar' then
     self.nodecl = true
-    self.cstring = true
-    self.primitive = true
+    self.is_cstring = true
+    self.is_primitive = true
     self.codename = 'nelua_cstring'
   else
     self.codename = subtype.codename .. '_ptr'
@@ -1272,7 +1243,7 @@ end
 
 function PointerType:is_convertible_from_attr(attr, explicit)
   local type = attr.type
-  if not explicit and self.subtype == type and (type:is_record() or type:is_array()) then
+  if not explicit and self.subtype == type and (type.is_record or type.is_array) then
     -- automatic ref
     if not attr.lvalue then
       return false, stringer.pformat(
@@ -1288,18 +1259,18 @@ end
 function PointerType:is_convertible_from_type(type, explicit)
   if type == self then
     return self
-  elseif type:is_pointer() then
+  elseif type.is_pointer then
     if explicit then
       return self
-    elseif self:is_generic_pointer() then
+    elseif self.is_genericpointer then
       return self
     end
   end
-  if self:is_cstring() and type:is_string() then
+  if self.is_cstring and type.is_string then
     return self
-  elseif type:is_nilptr() then
+  elseif type.is_nilptr then
     return self
-  elseif explicit and type:is_integral() and type.size == cpusize then
+  elseif explicit and type.is_integral and type.size == cpusize then
     -- conversion from pointer to integral
     return self
   end
@@ -1307,7 +1278,7 @@ function PointerType:is_convertible_from_type(type, explicit)
 end
 
 function PointerType:promote_type(type)
-  if type:is_nilptr() then
+  if type.is_nilptr then
     return self
   end
   return Type.promote_type(self, type)
@@ -1324,7 +1295,7 @@ function PointerType:is_pointer_of(subtype)
 end
 
 function PointerType:__tostring()
-  if not self.subtype:is_void() then
+  if not self.subtype.is_void then
     local subtypenick = self.subtype.nick or self.subtype.name
     return sstream(self.name, '(', subtypenick, ')'):tostring()
   else
@@ -1339,7 +1310,7 @@ end
 --------------------------------------------------------------------------------
 local RangeType = typeclass(RecordType)
 types.RangeType = RangeType
-RangeType.range = true
+RangeType.is_range = true
 
 function RangeType:_init(node, subtype)
   local fields = {
@@ -1368,12 +1339,12 @@ end
 local ConceptType = typeclass()
 types.ConceptType = ConceptType
 ConceptType.nodecl = true
-ConceptType.nolvalue = true
-ConceptType.comptime = true
-ConceptType.unpointable = true
-ConceptType.lazyable = true
-ConceptType.nilable = true
-ConceptType.concept = true
+ConceptType.is_nolvalue = true
+ConceptType.is_comptime = true
+ConceptType.is_unpointable = true
+ConceptType.is_lazyable = true
+ConceptType.is_nilable = true
+ConceptType.is_concept = true
 
 function ConceptType:_init(func)
   Type._init(self, 'concept', 0)
@@ -1396,10 +1367,10 @@ end
 local GenericType = typeclass()
 types.GenericType = GenericType
 GenericType.nodecl = true
-GenericType.nolvalue = true
-GenericType.comptime = true
-GenericType.unpointable = true
-GenericType.generic = true
+GenericType.is_nolvalue = true
+GenericType.is_comptime = true
+GenericType.is_unpointable = true
+GenericType.is_generic = true
 
 function GenericType:_init(func)
   Type._init(self, 'generic', 0)
@@ -1415,7 +1386,7 @@ function GenericType:eval_type(params)
     return nil, err
   end
   if traits.is_symbol(ret) then
-    if not ret.type or not ret.type:is_type() then
+    if not ret.type or not ret.type.is_type then
       ret = nil
       err = stringer.pformat("expected a symbol holding a type in generic return, but got something else")
     else
@@ -1437,7 +1408,7 @@ end
 function types.get_pointer_type(subtype)
   if subtype == primtypes.cchar then
     return primtypes.cstring
-  elseif not subtype.unpointable then
+  elseif not subtype.is_unpointable then
     return types.PointerType(nil, subtype)
   end
 end
@@ -1464,7 +1435,7 @@ function types.are_types_convertible(largs, rargs)
         return nil, stringer.pformat("at index %d: %s", i, err)
       end
     elseif not atype then
-      if not btype:is_nilable() then
+      if not btype.is_nilable then
         return nil, stringer.format("at index %d: parameter of type '%s' is missing", i, atype)
       end
     else

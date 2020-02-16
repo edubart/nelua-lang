@@ -16,7 +16,7 @@
     size: usize
   }
 
-  ## SpanT.value.contiguous = true
+  ## SpanT.value.is_contiguous = true
   ## SpanT.value.is_span = true
   ## SpanT.value.subtype = T
 
@@ -34,7 +34,7 @@
 
   -- Initializes span from pointers to other arrays.
   function SpanT.__convert(values: #[concept(function(x)
-    if x.type:is_pointer() and x.type.subtype and x.type.subtype:is_contiguous_of(T) then
+    if x.type.is_pointer and x.type.subtype and x.type.subtype:is_contiguous_of(T) then
       return true
     end
   end)]#): SpanT <inline>
