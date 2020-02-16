@@ -553,15 +553,14 @@ print(rb.low, rb.high) -- outputs: 0 100
 
 ### Span
 
-Span are pointers to a block of contiguous elements at runtime.
+Span are pointers to a block of contiguous elements which size is known at runtime.
 
 ```nelua
+require 'span'
 local arr = (@integer[4]) {1,2,3,4}
-local s = arr[0:1]
+local s: span(integer) = &arr
 print(s[0], s[1]) -- outputs: 1 2
-
-local s: span(integer) = arr[2:3]
-print(s[0], s[1]) -- outputs: 3 4
+print(#s) -- outputs 4
 ```
 
 ### Nilable

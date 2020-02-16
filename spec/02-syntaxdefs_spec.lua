@@ -1340,14 +1340,14 @@ describe("type expression", function()
             n.RecordFieldType{'b', n.Type{'boolean'}}}}}}
     }}})
     assert.parse_ast(nelua_parser,
-      "local r: record{f: function(integer, uinteger):(string, boolean), t: span(integer)}",
+      "local r: record{f: function(integer, uinteger):(string, boolean), t: array(integer, 4)}",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'r', n.RecordType{{
             n.RecordFieldType{'f', n.FuncType{
               {n.Type{'integer'}, n.Type{'uinteger'}},
               {n.Type{'string'}, n.Type{'boolean'}}}},
-            n.RecordFieldType{'t', n.SpanType{n.Type{'integer'}}}}}}}
+            n.RecordFieldType{'t', n.ArrayType{n.Type{'integer'}, n.Number{'dec', '4'}}}}}}}
     }}})
     assert.parse_ast(nelua_parser, "local r: record{a: record{c: integer}, b: boolean}",
       n.Block{{
@@ -1396,13 +1396,6 @@ describe("type expression", function()
           { n.IdDecl{'p', n.PointerType{n.PointerType{n.Type{'integer'}}}}}
     }}})
   end)
-  it("span type", function()
-    assert.parse_ast(nelua_parser, "local s: span(integer)",
-      n.Block{{
-        n.VarDecl{'local',
-          { n.IdDecl{'s', n.SpanType{n.Type{'integer'}}}}
-    }}})
-  end)
   it("range type", function()
     assert.parse_ast(nelua_parser, "local r: range(integer)",
       n.Block{{
@@ -1417,11 +1410,11 @@ describe("type expression", function()
           n.IdDecl{'r', n.GenericType{"somegeneric", {
             n.Type{'integer'}, n.Number{"dec", "4"}}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local r: somegeneric(span(integer), integer*)",
+    assert.parse_ast(nelua_parser, "local r: somegeneric(array(integer, 4), integer*)",
       n.Block{{
         n.VarDecl{'local', {
           n.IdDecl{'r', n.GenericType{"somegeneric", {
-            n.SpanType{n.Type{'integer'}},
+            n.ArrayType{n.Type{'integer'}, n.Number{'dec', '4'}},
             n.PointerType{n.Type{"integer"}}
     }}}}}}})
   end)

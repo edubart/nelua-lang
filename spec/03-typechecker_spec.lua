@@ -722,6 +722,7 @@ end)
 
 it("spans", function()
   assert.analyze_ast([[
+    require 'span'
     local a: span(boolean)
     local dataptr = a.data
     local size = a.size
@@ -732,16 +733,18 @@ it("spans", function()
     local len = #a
   ]])
   assert.analyze_ast([[
+    require 'span'
     local a: span(boolean)
     local b: span(boolean)
     b = a
   ]])
   assert.analyze_error([[
+    require 'span'
     local a: span(float64)
     local b: span(int64)
     b = a
-  ]], 'no viable type conversion')
-  assert.analyze_error([[local a: span(void) ]], 'spans cannot be of')
+  ]], 'could not match concept')
+  assert.analyze_error([[require 'span' local a: span(void) ]], 'spans cannot be of')
 end)
 
 it("ranges", function()
@@ -792,18 +795,6 @@ it("indexing", function()
   assert.analyze_ast([[local a; local c = a[2] ]])
   assert.analyze_error([[local a = 1; a[1] = 2]], 'cannot index variable of type')
   assert.analyze_error([[local a = 1; a.b = 2]], 'cannot index field')
-end)
-
-it("range indexing", function()
-  assert.ast_type_equals([[
-    local a: integer[8]
-    local s = a[0:3]
-    local s2 = s[0:1]
-  ]],[[
-    local a: array(integer,8)
-    local s: span(integer) = a[0:3]
-    local s2: span(integer) = s[0:1]
-  ]])
 end)
 
 it("records", function()
@@ -1347,7 +1338,7 @@ it("generics", function()
   ]], "isn't a compile time value")
   assert.analyze_error([[
     local myarray = #[generic(function(T, N) return types.ArrayType(nil, T, N) end)]#
-    local M: span(integer) <comptime> = {}
+    local M: record{x: integer} <comptime> = {}
     local x = @myarray(integer, (M))
   ]], "is invalid for generics")
   assert.analyze_error([[

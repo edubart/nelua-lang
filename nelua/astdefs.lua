@@ -114,9 +114,6 @@ astbuilder:register('ArrayType', {
 astbuilder:register('PointerType', {
   ntypes.Node:is_optional(), -- subtype typexpr
 })
-astbuilder:register('SpanType', {
-  ntypes.Node, -- subtype typexpr
-})
 astbuilder:register('RangeType', {
   ntypes.Node, -- subtype typexpr
 })

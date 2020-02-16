@@ -38,17 +38,23 @@ local function get_pretty_source_pos_errmsg(src, srcname, errline, errcol, errms
   local lineend = line:sub(errcol)
   local linehelper = string.rep(' ', #linebegin) ..
     colors.bright .. colors.green .. '^' .. colors.reset
+  local errmsg1, errmsg2 = errmsg, ''
+  local tracebackpos = errmsg:find('stack traceback:', 1, true)
+  if tracebackpos then
+    errmsg1 = errmsg:sub(1, tracebackpos)
+    errmsg2 = '\n' .. errmsg:sub(tracebackpos)
+  end
   return string.format(
-    "%s:%s%d:%d: %s%s:%s %s%s\n%s%s\n%s\n",
+    "%s:%s%d:%d: %s%s:%s %s%s\n%s%s\n%s\n%s",
     srcname or '',
     tostring(colors.bright),
     errline, errcol,
     tostring(colors.red),
     errname or 'error',
-    colors.reset .. colors.bright, errmsg,
-    tostring(colors.reset),
+    colors.reset .. colors.bright, errmsg1, tostring(colors.reset),
     linebegin, lineend,
-    linehelper)
+    linehelper,
+    errmsg2)
 end
 
 function errorer.get_pretty_source_pos_errmsg(src, srcname, errpos, errmsg, errname)

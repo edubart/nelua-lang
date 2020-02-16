@@ -482,19 +482,6 @@ function visitors.EnumType(context, node)
   attr.value = types.EnumType(node, subtype, fields)
 end
 
-function visitors.SpanType(context, node)
-  local attr = node.attr
-  if attr.type then return end
-  local subtypenode = node[1]
-  context:traverse_node(subtypenode)
-  local subtype = subtypenode.attr.value
-  if subtype:is_comptime() then
-    subtypenode:raisef("spans cannot be of type '%s'", subtype.name)
-  end
-  attr.type = primtypes.type
-  attr.value = types.SpanType(node, subtype)
-end
-
 function visitors.RangeType(context, node)
   local attr = node.attr
   if attr.type then return end
@@ -576,7 +563,11 @@ function visitors.GenericType(context, node)
   end
   local type, err = symbol.value:eval_type(params)
   if err then
-    node:raisef(err)
+    if except.isexception(err) then
+      except.reraise(err)
+    else
+      node:raisef('error in generic instantiation: %s', err)
+    end
   end
   attr.type = primtypes.type
   attr.value = type
@@ -712,7 +703,7 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
 end
 
 local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype)
-  if not (valtype and vartype and vartype:is_user_record() and vartype ~= valtype) then
+  if not (valtype and vartype and vartype:is_record() and vartype ~= valtype) then
     -- convert cannot be overridden
     return valnode, valtype
   end
@@ -731,6 +722,9 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   idnode.attr:merge(pattr)
   idnode.pattr = pattr
   local newvalnode = n.Call{{valnode}, n.DotIndex{'__convert', idnode}}
+  newvalnode.srcname = valnode.srcname
+  newvalnode.src = valnode.src
+  newvalnode.pos = valnode.pos
   parent[parentindex] = newvalnode
   context:traverse_node(newvalnode)
   return newvalnode, newvalnode.attr.type
@@ -1083,7 +1077,7 @@ function visitors.ArrayIndex(context, node)
       objtype = objtype.subtype
     end
 
-    if objtype:is_array() or objtype:is_span() then
+    if objtype:is_array() then
       local indextype = indexnode.attr.type
       if indextype then
         if indextype:is_integral() then
@@ -1098,8 +1092,6 @@ function visitors.ArrayIndex(context, node)
             end
           end
           type = objtype.subtype
-        elseif indextype:is_range() and (objtype:is_array() or objtype:is_span()) then
-          type = types.SpanType(node, objtype.subtype)
         else
           indexnode:raisef("cannot index with value of type '%s'", indextype:prettyname())
         end
@@ -1128,7 +1120,11 @@ function visitors.Block(context, node)
       node:preprocess()
     end)
     if not ok then
-      node:raisef('error while preprocessing block: %s', err)
+      if except.isexception(err) then
+        except.reraise(err)
+      else
+        node:raisef('error while preprocessing block: %s', err)
+      end
     end
     node.preprocess = nil
 
@@ -1788,7 +1784,7 @@ function visitors.UnaryOp(context, node)
   local argtype = argattr.type
   local type
   if argtype then
-    if argtype:is_user_record() and not blocked_metamethod_operators[opname] then
+    if argtype:is_record() and not blocked_metamethod_operators[opname] then
       local mtname = '__' .. opname
       local mtsym = argtype:get_metafield(mtname)
       if mtsym then

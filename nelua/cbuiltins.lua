@@ -485,15 +485,6 @@ end
 local operators = {}
 cbuiltins.operators = operators
 
-function operators.len(node, emitter, argnode)
-  local type = argnode.attr.type
-  if type:is_span() then
-    emitter:add('(intptr_t)(', argnode, '.size)')
-  else --luacov:disable
-    node:errorf('not implemented')
-  end --luacov:enable
-end
-
 function operators.div(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   if ltype:is_arithmetic() and rtype:is_arithmetic() then

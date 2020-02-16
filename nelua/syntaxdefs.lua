@@ -473,7 +473,6 @@ local function get_parser(std)
       record_type /
       enum_type /
       array_type /
-      span_type /
       range_type /
       pointer_type /
       generic_type /
@@ -505,10 +504,6 @@ local function get_parser(std)
       eRCURLY) -> to_astnode
     enumfield <- ({} '' -> 'EnumFieldType'
         name (%ASSIGN eexpr)?
-      ) -> to_astnode
-    span_type <- (
-      {} 'span' -> 'SpanType'
-        %LPAREN etypexpr eRPAREN
       ) -> to_astnode
     range_type <- (
       {} 'range' -> 'RangeType'

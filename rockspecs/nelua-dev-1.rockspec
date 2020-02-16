@@ -100,6 +100,7 @@ build = {
       ['lib/math.nelua']           = 'lib/math.nelua',
       ['lib/memory.nelua']         = 'lib/memory.nelua',
       ['lib/sequence.nelua']       = 'lib/sequence.nelua',
+      ['lib/span.nelua']           = 'lib/span.nelua',
       ['lib/vector.nelua']         = 'lib/vector.nelua',
       ['lib/mystring.nelua']       = 'lib/mystring.nelua',
       ['lib/mytable.nelua']        = 'lib/mytable.nelua',

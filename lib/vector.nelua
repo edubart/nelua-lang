@@ -1,10 +1,10 @@
 -- Vector type
 --
 -- This type is typically used as an efficient vector.
--- Its elements starts at index 0 and go up to length-1 (like C arrays),
--- at the moment this should not be passed as value, only as reference.
+-- Its elements starts at index 0 and go up to length-1 (like C arrays).
+-- At the moment this should not be passed as value, only as reference.
 --
--- By default its use the garbage collector unless explicitly told not to do so,
+-- By default it uses the garbage collector unless explicitly told not to do so,
 -- thus by default there is no need to manually reset the vector.
 
 ## local make_vector = generalize(function(T, allocator)
@@ -23,6 +23,10 @@
     size: usize,
     data: span(T)
   }
+
+  ## VectorT.value.contiguous = true
+  ## VectorT.value.is_vector = true
+  ## VectorT.value.subtype = T
 
   function VectorT:_grow()
     local cap: usize = 1

@@ -1,11 +1,11 @@
 -- Sequence type
 --
 -- This type is typically used as a more efficient lua table that can hold only sequences.
--- Its elements starts at index 1 and go up to its length (like lua tables),
--- internally it just contains a pointer, so it's passed by reference by default
+-- Its elements starts at index 1 and go up to its length (like lua tables).
+-- Internally it just contains a pointer, so it's passed by reference by default
 -- (like lua tables again).
 --
--- By default its use the garbage collector unless explicitly told not to do so,
+-- By default it uses the garbage collector unless explicitly told not to do so,
 -- thus by default there is no need to manually reset the sequence.
 
 ## local make_sequence = generalize(function(T, allocator)
@@ -27,6 +27,10 @@
   local SequenceT <codename #[codenameprefix]#> = @record{
     impl: SequenceImplT*
   }
+
+  ## SequenceT.value.contiguous = true
+  ## SequenceT.value.is_sequence = true
+  ## SequenceT.value.subtype = T
 
   -- Resets and removes all elements from the sequence.
   function SequenceT:clear()

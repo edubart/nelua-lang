@@ -172,7 +172,6 @@ function Type:is_type() return self.typetype end
 function Type:is_string() return self.string end
 function Type:is_cstring() return self.cstring end
 function Type:is_record() return self.record end
-function Type:is_user_record() return self.record and not (self.span or self.range) end
 function Type:is_function() return self.Function end
 function Type:is_lazyfunction() return self.lazyfunction end
 function Type:is_boolean() return self.boolean end
@@ -181,7 +180,6 @@ function Type:is_array() return self.array end
 function Type:is_enum() return self.enum end
 function Type:is_void() return self.void end
 function Type:is_pointer() return self.pointer end
-function Type:is_span() return self.span end
 function Type:is_range() return self.range end
 function Type:is_integral() return self.integral end
 function Type:is_unsigned() return self.unsigned end
@@ -192,6 +190,19 @@ function Type:is_generic() return self.generic end
 function Type.is_pointer_of() return false end
 function Type.is_array_of() return false end
 function Type.has_pointer() return false end
+function Type:is_contiguous_of(type)
+  if not self.contiguous then return false end
+  if self:is_array_of(type) then
+    return true
+  elseif self:is_record() then
+    local mtatindex = self:get_metafield('__atindex')
+    local mtlen = self:get_metafield('__len')
+    if mtatindex and mtatindex.type:get_return_type(1):is_pointer_of(type) and
+       mtlen and mtlen.type:get_return_type(1):is_integral() then
+      return true
+    end
+  end
+end
 
 function Type:__tostring()
   return self.name
@@ -931,6 +942,7 @@ end
 local ArrayType = typeclass()
 types.ArrayType = ArrayType
 ArrayType.array = true
+ArrayType.contiguous = true
 
 function ArrayType:_init(node, subtype, length)
   local size = subtype.size * length
@@ -1151,11 +1163,11 @@ RecordType.record = true
 
 local function compute_record_size(fields, pack)
   local nfields = #fields
-  if nfields == 0 then
-    return 0
-  end
   local size = 0
   local maxfieldsize = 0
+  if nfields == 0 then
+    return size, maxfieldsize
+  end
   for i=1,#fields do
     local ftype = fields[i].type
     local fsize = ftype.size
@@ -1190,7 +1202,7 @@ function RecordType:add_field(name, type, pos)
     pos = #self.fields + 1
   end
   table.insert(self.fields, pos, {name = name, type = type})
-  self.size = compute_record_size(self.fields)
+  self.size, self.maxfieldsize = compute_record_size(self.fields)
 end
 
 function RecordType:get_field(name)
@@ -1322,42 +1334,6 @@ end
 
 function PointerType.has_pointer()
   return true
-end
-
---------------------------------------------------------------------------------
-local SpanType = typeclass(RecordType)
-types.SpanType = SpanType
-SpanType.span = true
-
-function SpanType:_init(node, subtype)
-  local fields = {
-    {name = 'data', type = PointerType(node, subtype)},
-    {name = 'size', type = primtypes.usize}
-  }
-  RecordType._init(self, node, fields)
-  self.name = 'span'
-  self.fields = fields
-  self.codename = subtype.codename .. '_span'
-  self.metatype = MetaType()
-  self.subtype = subtype
-end
-
-function SpanType:is_equal(type)
-  return type.name == self.name and
-         getmetatable(type) == getmetatable(self) and
-         type.subtype == self.subtype
-end
-
-function SpanType:__tostring()
-  return sstream(self.name, '(', self.subtype, ')'):tostring()
-end
-
-function SpanType.has_pointer()
-  return true
-end
-
-SpanType.unary_operators.len = function()
-  return primtypes.isize
 end
 
 --------------------------------------------------------------------------------

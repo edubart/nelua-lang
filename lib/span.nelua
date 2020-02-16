@@ -1,0 +1,50 @@
+-- Span type
+--
+-- This type is used as view to elements of a contiguous memory block.
+-- Contiguous containers like vector, sequence and array can be viewed as a span.
+-- Its elements starts at index 0 and go up to length-1 (like C arrays).
+--
+-- This type is specially useful for making functions with arguments that
+-- are agnostic to the input container type.
+
+## local make_span = generalize(function(T, allocator)
+  ## staticassert(traits.is_type(T), "invalid type '%s", T)
+  ## staticassert(T.size > 0, "spans cannot be of '%s'", T)
+  local T = @#[T]#
+  local SpanT <codename #['nelua_span_'..T.codename]#> = @record {
+    data: T*,
+    size: usize
+  }
+
+  ## SpanT.value.contiguous = true
+  ## SpanT.value.is_span = true
+  ## SpanT.value.subtype = T
+
+  -- Returns reference to element at index `i`.
+  -- If `i` is greater of equal to span size, then throws a runtime error.
+  function SpanT:__atindex(i: usize <autocast>): T* <inline>
+    check(i < self.size, 'vector.at: index out of range')
+    return &((@T[0]*)(self.data))[i]
+  end
+
+  -- Returns the number of elements in the span.
+  function SpanT:__len(): isize
+    return (@isize)(self.size)
+  end
+
+  -- Initializes span from pointers to other arrays.
+  function SpanT.__convert(values: #[concept(function(x)
+    if x.type:is_pointer() and x.type.subtype and x.type.subtype:is_contiguous_of(T) then
+      return true
+    end
+  end)]#): SpanT <inline>
+    local self: SpanT
+    self.data = &values[#[values.type.subtype.is_sequence and 1 or 0]#]
+    self.size = (@usize)(#$values)
+    return self
+  end
+
+  ## return SpanT
+## end)
+
+global span = #[make_span]#

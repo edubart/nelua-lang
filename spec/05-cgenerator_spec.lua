@@ -990,53 +990,14 @@ it("cstring and string conversions", function()
   ]], "hello\nhello\nhello")
 end)
 
-it("spans", function()
-  assert.run_c([[
-    local buff: array(integer, 10)
-    local s: span(integer) = {&buff[0], 10}
-    assert(s.size == 10)
-    assert(#s == 10)
-    assert(s.data == &buff[0])
-    assert(s[0] == 0)
-    s[0] = 0xf
-    assert(s[0] == 0xf)
-
-    local arr = (@integer[4]) {1,2,3,4}
-    local s = arr[0:1]
-    assert(s[0] == 1 and s[1] == 2)
-    local s: span(integer) = arr[2:3]
-    assert(s[0] == 3 and s[1] == 4)
-
-    do
-      local arr = (@integer[4]) {1,2,3,4}
-      local s = arr[0:1]
-      assert(s[0] == 1 and s[1] == 2)
-      local s: span(integer) = arr[2:3]
-      assert(s[0] == 3 and s[1] == 4)
-    end
-  ]])
-end)
-
 it("ranges", function()
   assert.run_c([[
     local a: range(integer)
     assert(a.low == 0 and a.high == 0)
-    a = 2:3
+    a = (2:3)
     assert(a.low == 2 and a.high == 3)
-    a = -1:0
+    a = (-1:0)
     assert(a.low == -1 and a.high == 0)
-
-    local buff: array(integer, 10)
-    local span1 = buff[0:9]
-    local span2 = span1[0:9]
-    assert(span2[0] == 0)
-    span2[0] = 2
-    span2[9] = 3
-    assert(buff[0] == 2 and buff[9] == 3)
-
-    local arr = (@integer[4]){1,2,3,4}
-    local s = arr[1:2]
-    assert(s[0] == 2 and s[1] == 3)
   ]])
 end)
 
@@ -1186,6 +1147,7 @@ end)
 
 it("records size", function()
   assert.run_c([=[
+    require 'span'
     do
       local R = @record { a: usize, b: span(integer) }
       local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
@@ -1872,12 +1834,10 @@ end)
 it("GC requirements", function()
   assert.generate_c([=[
     global gp: pointer
-    global gs: span(integer)
     global gr: record{x: pointer}
     global ga: integer*[4]
     global g
     local p: pointer
-    local s: span(integer)
     local r: record{x: pointer}
     local a: integer*[4]
     local l
@@ -1910,12 +1870,10 @@ it("GC requirements", function()
     end
   ]=], [[void mark() {
   markp((void*)(&gp));
-  markp((void*)(&gs));
   markp((void*)(&gr));
   markp((void*)(&ga));
   markp((void*)(&g));
   markp((void*)(&p));
-  markp((void*)(&s));
   markp((void*)(&r));
   markp((void*)(&a));
   markp((void*)(&l));

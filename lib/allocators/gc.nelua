@@ -3,6 +3,7 @@
 
 ## cinclude '<setjmp.h>'
 
+require 'span'
 require 'memory'
 require 'allocators.generic'
 

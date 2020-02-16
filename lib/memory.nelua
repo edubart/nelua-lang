@@ -60,7 +60,9 @@ end
 --------------------------------------------------------------------------------
 -- span functions
 
-local is_span = #[concept(function(x) return x.type:is_span() end)]#
+require 'span'
+
+local is_span = #[concept(function(x) return x.type.is_span end)]#
 
 ##[[
 local function check_type_match(a, b)

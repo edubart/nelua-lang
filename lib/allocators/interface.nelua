@@ -1,5 +1,5 @@
 ## function implement_allocator_interface(allocator)
-  local is_span = #[concept(function(x) return x.type:is_span() end)]#
+  local is_span = #[concept(function(x) return x.type.is_span end)]#
   local allocator = #[allocator]#
 
   function allocator.spanalloc(T: type, size: usize)
@@ -67,8 +67,8 @@
   end
 
   function allocator.delete(s: auto)
-    ## staticassert(s.type:is_pointer() or s.type:is_span(), "allocator.delete: invalid type '%s'", s.type)
-    ## if s.type:is_span() then
+    ## staticassert(s.type:is_pointer() or s.type.is_span, "allocator.delete: invalid type '%s'", s.type)
+    ## if s.type.is_span then
       allocator.spandealloc(s)
     ## else -- pointer
       allocator.dealloc(s)

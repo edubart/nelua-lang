@@ -592,21 +592,9 @@ function visitors.ArrayIndex(context, node, emitter)
     pointer = true
   end
 
-  local indextype = indexnode.attr.type
   local index = indexnode
-  if indextype:is_range() then
-    assert(node.attr.type:is_span())
-    -- index is a range type, result is a span
-    emitter:add_ln('({')
-    emitter:inc_indent()
-    emitter:add_indent_ln(indextype, ' __range = ', indexnode, ';')
-    emitter:add_indent()
-    emitter:add_ctypecast(node.attr.type)
-    emitter:add('{&(')
-    index = '__range.low'
-  end
 
-  if objtype:is_record() and not objtype:is_span() then
+  if objtype:is_record() then
     if node.attr.lvalue then
       emitter:add('(*')
     end
@@ -621,17 +609,11 @@ function visitors.ArrayIndex(context, node, emitter)
       emitter:add(objnode)
     end
 
-    if objtype:is_array() or objtype:is_span() then
+    if objtype:is_array() then
       emitter:add('.data[', index, ']')
     else --luacov:disable
       error('not implemented yet')
     end --luacov:enable
-  end
-
-  if indextype:is_range() then
-    emitter:add_ln('), __range.high - __range.low };')
-    emitter:dec_indent()
-    emitter:add_indent('})')
   end
 end
 
@@ -992,17 +974,13 @@ function visitors.UnaryOp(context, node, emitter)
   local op = cdefs.unary_ops[opname]
   assert(op)
   if attr.calleesym then
-    assert(argnode.attr.type:is_user_record())
+    assert(argnode.attr.type:is_record())
     visitor_Call(context, node, emitter, {}, nil, argnode)
   else
     local surround = not node.attr.inconditional
     if surround then emitter:add('(') end
-    if traits.is_string(op) then
-      emitter:add(op, argnode)
-    else
-      local builtin = cbuiltins.operators[opname]
-      builtin(node, emitter, argnode)
-    end
+    assert(traits.is_string(op))
+    emitter:add(op, argnode)
     if surround then emitter:add(')') end
   end
 end
