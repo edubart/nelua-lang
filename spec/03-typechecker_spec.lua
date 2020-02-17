@@ -891,6 +891,11 @@ it("records metamethods", function()
     local r: R
     local x = #r
   ]], "no metamethod")
+  assert.analyze_error([[
+    local R = @record{}
+    local r: R
+    local x = r + r
+  ]], "no metamethod")
 end)
 
 it("dependent functions resolution", function()

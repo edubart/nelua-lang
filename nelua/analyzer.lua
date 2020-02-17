@@ -56,7 +56,7 @@ function visitors.String(_, node)
   if attr.type then return end
   local value, literal = node[1], node[2]
   if literal then
-    node:raisef("string literals are not supported yet")
+    node:raisef("custom string literals are not supported yet")
   end
   attr.type = primtypes.string
   attr.value = value
@@ -706,7 +706,22 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
 end
 
 local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype)
-  local objtype = vartype and vartype:auto_deref_type()
+  if not vartype or not valtype then
+    return valnode, valtype
+  end
+  local objsym
+  local mtname
+  local objtype = vartype:auto_deref_type()
+  local valobjtype = valtype:auto_deref_type()
+  if vartype.is_cstring and valobjtype.is_record then
+    objtype = valobjtype
+    mtname = '__tocstring'
+  elseif vartype.is_string and valobjtype.is_record then
+    objtype = valobjtype
+    mtname = '__tostring'
+  else
+    mtname = '__convert'
+  end
   if not (valtype and objtype and objtype.is_record and vartype ~= valtype) then
     -- convert cannot be overridden
     return valnode, valtype
@@ -718,17 +733,18 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   if valtype.is_nilptr and vartype.is_pointer then
     return valnode, valtype
   end
-  local mtsym = objtype:get_metafield('__convert')
+  local mtsym = objtype:get_metafield(mtname)
   if not mtsym then
     return valnode, valtype
   end
+  objsym = objtype.symbol
+  assert(objsym)
   local n = context.parser.astbuilder.aster
-  assert(objtype.symbol)
-  local idnode = n.Id{objtype.symbol.name}
-  local pattr = Attr{foreignsymbol=objtype.symbol}
+  local idnode = n.Id{objsym.name}
+  local pattr = Attr{foreignsymbol=objsym}
   idnode.attr:merge(pattr)
   idnode.pattr = pattr
-  local newvalnode = n.Call{{valnode}, n.DotIndex{'__convert', idnode}}
+  local newvalnode = n.Call{{valnode}, n.DotIndex{mtname, idnode}}
   newvalnode.srcname = valnode.srcname
   newvalnode.src = valnode.src
   newvalnode.pos = valnode.pos
@@ -1483,9 +1499,14 @@ function visitors.Return(context, node)
           if rettype.is_nil and not funcrettype.is_nilable then
             node:raisef("missing return expression at index %d of type '%s'", i, funcrettype:prettyname())
           end
-          local ok, err = funcrettype:is_convertible_from(retnode or rettype)
-          if not ok then
-            (retnode or node):raisef("return at index %d: %s", i, err)
+          if retnode and rettype then
+            retnode, rettype = visitor_convert(context, retnodes, i, funcrettype, retnode, rettype)
+          end
+          if rettype then
+            local ok, err = funcrettype:is_convertible_from(retnode or rettype)
+            if not ok then
+              (retnode or node):raisef("return at index %d: %s", i, err)
+            end
           end
         else
           if #retnodes ~= 0 then
@@ -1760,11 +1781,27 @@ function visitors.FuncDef(context, node, lazysymbol)
   end
 end
 
-local blocked_metamethod_operators = {
-  ['ref'] = true,
-  ['deref'] = true,
-  ['not'] = true
+local overridable_operators = {
+  ['eq'] = true,
+  ['lt'] = true,
+  ['le'] = true,
+  ['bor'] = true,
+  ['bxor'] = true,
+  ['band'] = true,
+  ['shl'] = true,
+  ['shr'] = true,
+  ['concat'] = true,
+  ['add'] = true,
+  ['sub'] = true,
+  ['mul'] = true,
+  ['idiv'] = true,
+  ['div'] = true,
+  ['pow'] = true,
+  ['mod'] = true,
+  ['len'] = true,
+  ['unm'] = true
 }
+
 function visitors.UnaryOp(context, node)
   local attr = node.attr
   local opname, argnode = node[1], node[2]
@@ -1783,9 +1820,8 @@ function visitors.UnaryOp(context, node)
   local type
   if argtype then
     local overridden = false
-    if not blocked_metamethod_operators[opname]  then
-      local objtype = argtype
-      objtype = objtype:auto_deref_type()
+    if overridable_operators[opname] then
+      local objtype = argtype:auto_deref_type()
       if objtype.is_record then
         local mtname = '__' .. opname
         local mtsym = objtype:get_metafield(mtname)
@@ -1825,6 +1861,33 @@ function visitors.UnaryOp(context, node)
   attr.sideeffect = argattr.sideeffect
 end
 
+local function override_binary_op(context, node, opname, lnode, rnode, ltype, rtype)
+  if not overridable_operators[opname] then return end
+  if not (ltype.is_record or rtype.is_record) then return end
+  local objtype, objnode, argnode = ltype, lnode, rnode
+  if not ltype.is_record then
+    objtype, objnode, argnode = rtype, rnode, lnode
+  end
+  local mtname = '__' .. opname
+  local mtsym = objtype:get_metafield(mtname)
+  if not mtsym then
+    argnode:raisef("no metamethod `%s` for record '%s'", mtname, objtype:prettyname())
+  end
+
+  -- transform into call
+  local n = context.parser.astbuilder.aster
+  local objsym = objtype.symbol
+  assert(objsym)
+  local idnode = n.Id{objsym.name}
+  local pattr = Attr{foreignsymbol=objsym}
+  idnode.attr:merge(pattr)
+  idnode.pattr = pattr
+  local newnode = n.Call{{objnode, argnode}, n.DotIndex{mtname, idnode}}
+  node:transform(newnode)
+  context:traverse_node(newnode)
+  return true
+end
+
 function visitors.BinaryOp(context, node)
   local opname, lnode, rnode = node[1], node[2], node[3]
   local attr = node.attr
@@ -1860,6 +1923,10 @@ function visitors.BinaryOp(context, node)
 
   local type
   if ltype and rtype then
+    if override_binary_op(context, node, opname, lnode, rnode, ltype, rtype) then
+      return
+    end
+
     local value, err
     type, value, err = ltype:binary_operator(opname, rtype, lattr, rattr)
     if err then

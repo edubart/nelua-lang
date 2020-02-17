@@ -1271,6 +1271,82 @@ it("record metametods", function()
   ]])
 end)
 
+it("record string conversions", function()
+  assert.run_c([[
+    local R = @record{x: integer}
+    function R:__tocstring(): cstring return (@cstring)('R') end
+    function R:__tostring(): string return 'R' end
+    local r: R
+    local s: string = r
+    assert(s == 'R')
+    local cs: cstring = r
+    assert((@string)(cs) == 'R')
+  ]])
+end)
+
+it("record operator overloading", function()
+  assert.run_c([[
+    local R = @record{x: integer}
+    function R:__eq(r: R): boolean return false end
+    function R:__lt(r: R): boolean return true end
+    function R:__le(r: R): boolean return false end
+    function R:__bor(r: R): R return R{1} end
+    function R:__bxor(r: R): R return R{2} end
+    function R:__band(r: R): R return R{3} end
+    function R:__shl(r: R): R return R{4} end
+    function R:__shr(r: R): R return R{5} end
+    function R:__concat(r: R): R return R{6} end
+    function R:__add(r: R): R return R{7} end
+    function R:__sub(r: R): R return R{8} end
+    function R:__mul(r: R): R return R{9} end
+    function R:__idiv(r: R): R return R{10} end
+    function R:__div(r: R): R return R{11} end
+    function R:__pow(r: R): R return R{12} end
+    function R:__mod(r: R): R return R{13} end
+    function R:__len(): R return R{14} end
+    function R:__unm(): R return R{15} end
+    local r: R
+    assert((r == r) == false)
+    assert((r <= r) == false)
+    assert((r < r) == true)
+    assert((r | r).x == 1)
+    assert((r ~ r).x == 2)
+    assert((r & r).x == 3)
+    assert((r << r).x == 4)
+    assert((r >> r).x == 5)
+    assert((r .. r).x == 6)
+    assert((r + r).x == 7)
+    assert((r - r).x == 8)
+    assert((r * r).x == 9)
+    assert((r // r).x == 10)
+    assert((r / r).x == 11)
+    assert((r ^ r).x == 12)
+    assert((r % r).x == 13)
+    assert((#r).x == 14)
+    assert((-r).x == 15)
+
+    local vec2 = @record{x: number, y: number}
+    ## vec2.value.is_vec2 = true
+    function vec2.__mul(a: vec2, b: #[concept(function(b)
+        return b.type.is_vec2 or b.type.is_arithmetic
+      end)]#): vec2
+      ## if b.type.is_arithmetic then
+        return vec2{a.x * b, a.y * b}
+      ## else
+        return vec2{a.x * b.x, a.y * b.y}
+      ## end
+    end
+    function vec2.__eq(a: vec2, b: vec2): boolean
+      return a.x == b.x and a.y == b.y
+    end
+    local v: vec2 = {1,2}
+    assert((v*2) == vec2{2,4})
+    assert((2*v) == vec2{2,4})
+    assert((v*v) == vec2{1,4})
+    assert((v*v) == vec2{1,4})
+  ]])
+end)
+
 it("record globals", function()
   assert.generate_c([[
     local Math = @record{}

@@ -32,6 +32,17 @@ function ASTNode:args()
   return tabler.unpack(self, 1, self.nargs)
 end
 
+function ASTNode:transform(node)
+  local nargs = self.nargs
+  setmetatable(self, getmetatable(node))
+  nargs = math.max(nargs, self.nargs)
+  for i=1,nargs do
+    self[i] = node[i]
+  end
+  self.attr = node.attr
+  self.pattr = node.pattr
+end
+
 local clone_attr = Attr.clone
 local clone_nodetable, clone_node
 
