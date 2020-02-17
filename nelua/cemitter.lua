@@ -219,13 +219,19 @@ function CEmitter:add_numeric_literal(valattr, valtype)
 end
 
 function CEmitter:add_string_literal(val)
+  local varname = self.context.stringliterals[val]
+  if varname then
+    self:add('((const ', primtypes.string, ')&', varname, ')')
+    return
+  end
+  varname = self.context:genuniquename('strlit')
+  self.context.stringliterals[val] = varname
   local decemitter = CEmitter(self.context)
   local len = #val
-  local varname = self.context:genuniquename('strlit')
   local quoted_value = pegger.double_quote_c_string(val)
   decemitter:add_indent('static const struct { uintptr_t len; char data[', len + 1, ']; }')
   decemitter:add_indent_ln(' ', varname, ' = {', len, ', ', quoted_value, '};')
-  self:add('(const ', primtypes.string, ')&', varname)
+  self:add('((const ', primtypes.string, ')&', varname, ')')
   self.context:add_declaration(decemitter:generate(), varname)
 end
 
