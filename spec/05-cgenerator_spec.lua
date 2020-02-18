@@ -929,6 +929,10 @@ it("variable shadowing", function()
 
     local a2 = 4
     assert(a2 == 4)
+
+    local x, y = 1, 2
+    local x = x + y
+    assert(x == 3)
   ]])
 end)
 

@@ -452,6 +452,13 @@ it("recursive late deduction", function()
     local x: any = a
     local a: integer = 2
   ]])
+  assert.ast_type_equals([[
+    local x: integer, y: integer = 1, 2
+    local x = x + y
+  ]], [[
+    local x: integer, y: integer = 1, 2
+    local x: integer = x + y
+  ]])
 end)
 
 it("function definition", function()
@@ -1265,8 +1272,8 @@ end)
 it("builtins", function()
   assert.ast_type_equals("local x; local a = type(x)", "local x; local a: string = type(x)")
   assert.ast_type_equals("local a = #@integer", "local a: integer = #@integer")
-  assert.ast_type_equals("local a = likely(a)", "local a: boolean = likely(a)")
-  assert.ast_type_equals("local a = unlikely(a)", "local a: boolean = unlikely(a)")
+  assert.ast_type_equals("local a = likely(true)", "local a: boolean = likely(true)")
+  assert.ast_type_equals("local a = unlikely(true)", "local a: boolean = unlikely(true)")
   assert.analyze_ast("error 'an error'")
   assert.analyze_ast("warn 'an warn'")
 end)

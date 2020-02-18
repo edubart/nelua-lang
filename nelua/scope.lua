@@ -128,9 +128,9 @@ function Scope:pop_checkpoint()
   self:merge_checkpoint(oldcheckpoint)
 end
 
-function Scope:add_symbol(symbol, annon)
+function Scope:add_symbol(symbol)
   local key
-  if annon then
+  if symbol.annonymous then
     key = symbol
   else
     key = symbol.name

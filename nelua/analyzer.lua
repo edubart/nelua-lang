@@ -329,7 +329,7 @@ function visitors.IdDecl(context, node)
         symbol.codename = namenode
       end
     end
-    scope:add_symbol(symbol)
+    symbol.scope = scope
   else
     -- global record field
     assert(namenode.tag == 'DotIndex')
@@ -338,6 +338,7 @@ function visitors.IdDecl(context, node)
     symbol = context:traverse_node(namenode)
     attr = symbol
     context:pop_state()
+    symbol.scope = context.rootscope
   end
   if annotnodes then
     context:traverse_nodes(annotnodes, symbol)
@@ -1004,9 +1005,8 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     else
       symbol.shadows = true
     end
-
-    -- add symbol to scope to enable type deduction
-    context.rootscope:add_symbol(symbol, true)
+    symbol.annonymous = true
+    symbol.scope = context.rootscope
   elseif infuncdef or inglobaldecl then
     if symbol.node ~= node then
       node:raisef("cannot redefine meta type field '%s'", name)
@@ -1298,6 +1298,7 @@ function visitors.ForNum(context, node)
       itsymbol:add_possible_type(btype)
       itsymbol:add_possible_type(etype)
     end
+    itsymbol.scope:add_symbol(itsymbol)
     context:traverse_node(blocknode)
 
     local resolutions_count = scope:resolve()
@@ -1357,6 +1358,11 @@ function visitors.VarDecl(context, node)
     end
     local symbol = context:traverse_node(varnode)
     assert(symbol)
+    local inscope = false
+    if valnode and valnode.tag == 'TypeInstance' then
+      symbol.scope:add_symbol(symbol)
+      inscope = true
+    end
     local vartype = varnode.attr.type
     if vartype and vartype.is_nolvalue then
       varnode:raisef("variable declaration cannot be of the type '%s'", vartype:prettyname())
@@ -1393,6 +1399,9 @@ function visitors.VarDecl(context, node)
       if context.pragmas.noinit then
         varnode.attr.noinit = true
       end
+    end
+    if not inscope then
+      symbol.scope:add_symbol(symbol)
     end
     if assigning and valtype then
       if valtype.is_void then
@@ -1652,6 +1661,9 @@ function visitors.FuncDef(context, node, lazysymbol)
   state.infuncdef = node
   state.inlazydef = lazysymbol
   local symbol, decl = visitor_FuncDef_variable(context, varscope, varnode)
+  if symbol then
+    symbol.scope:add_symbol(symbol)
+  end
   context:pop_state()
 
   local returntypes = visitor_FuncDef_returns(context, node.attr.type, retnodes)
@@ -1665,6 +1677,11 @@ function visitors.FuncDef(context, node, lazysymbol)
 
     funcscope.returntypes = returntypes
     context:traverse_nodes(argnodes)
+    for _,argnode in ipairs(argnodes) do
+      if argnode.attr.scope then
+        argnode.attr.scope:add_symbol(argnode.attr)
+      end
+    end
     argattrs, argtypes, islazyparent = resolve_function_argtypes(symbol, varnode, argnodes, funcscope, not lazysymbol)
 
     if not islazyparent then
@@ -1884,7 +1901,7 @@ local function override_binary_op(context, node, opname, lnode, rnode, ltype, rt
   idnode.pattr = pattr
   local newnode = n.Call{{objnode, argnode}, n.DotIndex{mtname, idnode}}
   node:transform(newnode)
-  context:traverse_node(newnode)
+  context:traverse_node(node)
   return true
 end
 
