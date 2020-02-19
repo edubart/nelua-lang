@@ -1008,6 +1008,14 @@ function FunctionType:is_equal(type)
          tabler.deepcompare(type.returntypes, self.returntypes)
 end
 
+function FunctionType:has_destroyable_return()
+  for i=1,#self.returntypes do
+    if self.returntypes[i].is_destroyable then
+      return true
+    end
+  end
+end
+
 function FunctionType:get_return_type(index)
   local returntypes = self.returntypes
   local lastindex = #returntypes
@@ -1205,6 +1213,9 @@ function RecordType:get_metafield(name)
 end
 
 function RecordType:set_metafield(name, symbol)
+  if name == '__destroy' then
+    self.is_destroyable = true
+  end
   return self.metatype:set_field(name, symbol)
 end
 

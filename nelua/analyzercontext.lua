@@ -45,14 +45,17 @@ function AnalyzerContext:push_forked_scope(kind, node)
     assert(scope.kind == kind)
     assert(scope.parent == self.scope)
     assert(scope.node == node)
-
-    -- symbols will be repopulated again
-    scope:clear_symbols()
   else
     scope = self.scope:fork(kind, node)
     node.scope = scope
   end
   self:push_scope(scope)
+  return scope
+end
+
+function AnalyzerContext:push_forked_cleaned_scope(kind, node)
+  local scope = self:push_forked_scope(kind, node)
+  scope:clear_symbols()
   return scope
 end
 

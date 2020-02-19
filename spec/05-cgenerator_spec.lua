@@ -422,7 +422,7 @@ it("function multiple returns", function()
   end]], {
     "int64_t a = __ret%d+%.r1;",
     "bool b = __ret%d+%.r2;",
-    "int64_t c = f__%d+%(%)%.r1;"
+    "int64_t c = %({%s+function_%w+_ret __ret%d = f.*__ret%d.r1;%s+}%)",
   }, true)
   assert.run_c([[
     local function f(): (integer, boolean) return 1, true end
@@ -453,6 +453,48 @@ it("function multiple returns", function()
     assert(a == true and b == 1)
     a,b = boo()
     assert(a == true and b == 1)
+
+    local function f1(): integer
+      return 1
+    end
+    local function f2(): (integer, integer)
+      return 1, 2
+    end
+    local function g1(x: integer)
+      assert(x == 1)
+    end
+    local function g2(x: integer, y: integer)
+      assert(x == 1)
+      assert(y == 2)
+    end
+    local function h1(): integer
+      return f1()
+    end
+    local function h2(): (integer, integer)
+      return f2()
+    end
+    local function hh2(): (integer, integer)
+      return f2(), 2
+    end
+    g1(f1())
+    g1(f2())
+    g2(f1(), 2)
+    g2(f2())
+    g1(h1())
+    g2(h2())
+    local a: integer = f1()
+    g2(hh2())
+    local a: integer = f1()
+    assert(a == 1)
+    local a: integer = f2()
+    assert(a == 1)
+    local a: integer, b: integer = f2()
+    assert(a == 1 and b == 2)
+    a, b = f2()
+    assert(a == 1 and b == 2)
+    local a: integer, b: integer = f2(), 3
+    assert(a == 1 and b == 3)
+    assert(f1() == 1)
   ]])
 end)
 

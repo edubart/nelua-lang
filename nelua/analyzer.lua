@@ -1128,7 +1128,7 @@ end
 
 function visitors.Block(context, node)
   if node.preprocess then
-    local scope = context:push_forked_scope('block', node)
+    local scope = context:push_forked_cleaned_scope('block', node)
 
     local ok, err = except.trycall(function()
       node:preprocess()
@@ -1152,7 +1152,7 @@ function visitors.Block(context, node)
 
   local scope
   repeat
-    scope = context:push_forked_scope('block', node)
+    scope = context:push_forked_cleaned_scope('block', node)
     context:traverse_nodes(statnodes)
     local resolutions_count = scope:resolve()
     context:pop_scope()
@@ -1230,7 +1230,7 @@ function visitors.ForIn(context, node)
   context:traverse_nodes(inexpnodes)
 
   repeat
-    local scope = context:push_forked_scope('loop', node)
+    local scope = context:push_forked_cleaned_scope('loop', node)
   --[[
   if itvarnodes then
     for i,itvarnode in ipairs(itvarnodes) do
@@ -1264,7 +1264,7 @@ function visitors.ForNum(context, node)
   end
 
   repeat
-    local scope = context:push_forked_scope('loop', node)
+    local scope = context:push_forked_cleaned_scope('loop', node)
 
     local itsymbol = context:traverse_node(itvarnode)
     local itattr = itvarnode.attr
@@ -1576,6 +1576,7 @@ local function block_endswith_return(blocknode)
   local laststat = statnodes[#statnodes]
   if not laststat then return false end
   if laststat.tag == 'Return' then
+    blocknode.attr.returnending = true
     return true
   elseif laststat.tag == 'Do' then
     return block_endswith_return(laststat[1])
@@ -1673,7 +1674,7 @@ function visitors.FuncDef(context, node, lazysymbol)
 
   local funcscope
   repeat
-    funcscope = context:push_forked_scope('function', node)
+    funcscope = context:push_forked_cleaned_scope('function', node)
 
     funcscope.returntypes = returntypes
     context:traverse_nodes(argnodes)

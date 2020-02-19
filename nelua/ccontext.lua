@@ -1,10 +1,10 @@
-local Context = require 'nelua.analyzercontext'
+local AnalyzerContext = require 'nelua.analyzercontext'
 local class = require 'nelua.utils.class'
 local cdefs = require 'nelua.cdefs'
 local traits = require 'nelua.utils.traits'
 local cbuiltins = require 'nelua.cbuiltins'
 
-local CContext = class(Context)
+local CContext = class(AnalyzerContext)
 
 function CContext:init(visitors, typevisitors)
   self:set_visitors(visitors)

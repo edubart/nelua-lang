@@ -46,6 +46,44 @@ local function izipargnodes(vars, argnodes)
   end
 end
 
+local function destroy_callee_returns(context, emitter, retvalname, calleetype, ignoreindexes)
+  for i,returntype in ipairs(calleetype.returntypes) do
+    if returntype.is_destroyable and not ignoreindexes[i] then
+      local destroymt = returntype:get_metafield('__destroy')
+      local retargname
+      if calleetype:has_enclosed_return() then
+        retargname = string.format('%s.r%d', retvalname, i)
+      else
+        retargname = retvalname
+      end
+      emitter:add_indent_ln(context:declname(destroymt), '(&', retargname, ');')
+    end
+  end
+end
+
+local function destroy_scope_variables(context, emitter, scope, ignoresyms)
+  for i=#scope.symbols,1,-1 do
+    local symbol = scope.symbols[i]
+    if not ignoresyms or not ignoresyms[symbol] then
+      local symtype = scope.symbols[i].type
+      if symbol.autodestroy and not symbol.nodestroy then
+        local destroymt = symtype:get_metafield('__destroy')
+        emitter:add_indent_ln(context:declname(destroymt), '(&', context:declname(symbol), ');')
+      end
+    end
+  end
+end
+
+local function destroy_upscopes_variables(context, emitter, kind, ignoresyms)
+  local scope = context.scope
+  repeat
+    destroy_scope_variables(context, emitter, scope, ignoresyms)
+    scope = scope.parent
+  until (scope.kind == kind or scope == context.rootscope)
+  destroy_scope_variables(context, emitter, scope, ignoresyms)
+  return scope
+end
+
 local function visit_assignments(context, emitter, varnodes, valnodes, decl)
   local defemitter = emitter
   local usetemporary = false
@@ -389,6 +427,9 @@ function visitors.IdDecl(context, node, emitter)
   if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
   emitter:add(type, ' ', context:declname(attr))
   if attr.cattribute then emitter:add(' __attribute__((', attr.cattribute, '))') end
+  if type.is_destroyable then
+    attr.autodestroy = true
+  end
 end
 
 local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjnode)
@@ -404,6 +445,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     local tmpcount = 0
     local lastcalltmp
     local sequential = false
+    local serialized = false
     local callargtypes = attr.pseudoargtypes or calleetype.argtypes
     local ismethod = attr.pseudoargtypes ~= nil
     for i,_,argnode,_,lastcallindex in izipargnodes(callargtypes, argnodes) do
@@ -420,18 +462,33 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
           -- only need to evaluate in sequence mode if we have two or more temporaries
           -- or the last argument is a multiple return call
           sequential = true
+          serialized = true
         end
       end
     end
 
-    if sequential then
-      -- begin sequential expression
+    local handlereturns
+    local retvalname
+    local returnfirst
+    local enclosed = calleetype:has_enclosed_return()
+    local destroyable = calleetype:has_destroyable_return()
+    if not attr.multirets and (enclosed or destroyable) then
+      -- we are handling the returns
+      returnfirst = not isblockcall
+      handlereturns = true
+      serialized = true
+    end
+
+    if serialized then
+      -- break apart the call into many statements
       if not isblockcall then
         emitter:add('(')
       end
       emitter:add_ln('{')
       emitter:inc_indent()
+    end
 
+    if sequential then
       for _,tmparg,argnode,argtype,_,lastcalletype in izipargnodes(tmpargs, argnodes) do
         -- set temporary values in sequence
         if tmparg then
@@ -442,8 +499,16 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
           emitter:add_indent_ln(argtype, ' ', tmparg, ' = ', argnode, ';')
         end
       end
+    end
 
+    if serialized then
       emitter:add_indent()
+      if handlereturns then
+        -- save the return type
+        local retctype = context:funcretctype(calleetype)
+        retvalname = context:genuniquename('ret')
+        emitter:add(retctype, ' ', retvalname, ' = ')
+      end
     end
 
     if ismethod then
@@ -479,14 +544,24 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     end
     emitter:add(')')
 
-    if calleetype:has_enclosed_return() and not attr.multirets then
-      -- get just the first result in multiple return functions
-      emitter:add('.r1')
-    end
-
-    if sequential then
+    if serialized then
       -- end sequential expression
       emitter:add_ln(';')
+      if handlereturns and destroyable then
+        local ignoredestroyindexes = {}
+        if returnfirst then
+          ignoredestroyindexes[1] = true
+        end
+        destroy_callee_returns(context, emitter, retvalname, calleetype, ignoredestroyindexes)
+      end
+      if returnfirst then
+        -- get just the first result in multiple return functions
+        if enclosed then
+          emitter:add_indent_ln(retvalname, '.r1;')
+        else
+          emitter:add_indent_ln(retvalname, ';')
+        end
+      end
       emitter:dec_indent()
       emitter:add_indent('}')
       if not isblockcall then
@@ -620,9 +695,12 @@ end
 function visitors.Block(context, node, emitter)
   local statnodes = node:args()
   emitter:inc_indent()
-  context:push_forked_scope('block', node)
+  local scope = context:push_forked_scope('block', node)
   do
     emitter:add_traversal_list(statnodes, '')
+  end
+  if not node.attr.returnending and not scope.alreadydestroyed then
+    destroy_scope_variables(context, emitter, scope)
   end
   context:pop_scope()
   emitter:dec_indent()
@@ -630,8 +708,12 @@ end
 
 function visitors.Return(context, node, emitter)
   local retnodes = node:args()
-  local funcscope = context.scope:get_parent_of_kind('function') or context.rootscope
   local numretnodes = #retnodes
+  local retsyms = tabler.imap(retnodes, function(retnode) return true,retnode.attr end)
+
+  -- destroy parent blocks
+  local funcscope = destroy_upscopes_variables(context, emitter, 'function', retsyms)
+  context.scope.alreadydestroyed = true
   funcscope.has_return = true
   if funcscope == context.rootscope then
     -- in main body
@@ -674,10 +756,14 @@ function visitors.Return(context, node, emitter)
       local retemitter = CEmitter(context, emitter.depth)
       local multiretvalname
       retemitter:add('return (', funcretctype, '){')
-      for i,funcrettype,retnode,rettype,lastcallindex in izipargnodes(functype.returntypes, retnodes) do
+      local ignoredestroyindexes = {}
+      local usedlastcalletype
+      for i,funcrettype,retnode,rettype,lastcallindex,lastcalletype in izipargnodes(functype.returntypes, retnodes) do
         if i>1 then retemitter:add(', ') end
         if lastcallindex == 1 then
-          -- last assigment value may be a multiple return call
+          usedlastcalletype = lastcalletype
+          assert(usedlastcalletype)
+          -- last assignment value may be a multiple return call
           emitter:add_indent_ln('{')
           emitter:inc_indent()
           multiretvalname = context:genuniquename('ret')
@@ -687,11 +773,15 @@ function visitors.Return(context, node, emitter)
         if lastcallindex then
           local retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
           retemitter:add_val2type(funcrettype, retvalname, rettype)
+          ignoredestroyindexes[lastcallindex] = true
         else
           retemitter:add_val2type(funcrettype, retnode)
         end
       end
       retemitter:add_ln('};')
+      if usedlastcalletype then
+        destroy_callee_returns(context, emitter, multiretvalname, usedlastcalletype, ignoredestroyindexes)
+      end
       emitter:add_indent(retemitter:generate())
       if multiretvalname then
         emitter:dec_indent()
@@ -844,11 +934,15 @@ function visitors.ForIn(_, node, emitter)
 end
 ]]
 
-function visitors.Break(_, _, emitter)
+function visitors.Break(context, _, emitter)
+  destroy_upscopes_variables(context, emitter, 'loop')
+  context.scope.alreadydestroyed = true
   emitter:add_indent_ln('break;')
 end
 
-function visitors.Continue(_, _, emitter)
+function visitors.Continue(context, _, emitter)
+  destroy_upscopes_variables(context, emitter, 'loop')
+  context.scope.alreadydestroyed = true
   emitter:add_indent_ln('continue;')
 end
 
@@ -949,6 +1043,11 @@ function visitors.FuncDef(context, node, emitter)
     decemitter:add_ln(argnodes, ');')
     defemitter:add_ln(argnodes, ') {')
     implemitter:add(blocknode)
+    if not blocknode.attr.returnending then
+      implemitter:inc_indent()
+      destroy_scope_variables(context, implemitter, funcscope)
+      implemitter:dec_indent()
+    end
   end
   context:pop_scope()
   implemitter:add_indent_ln('}')

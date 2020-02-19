@@ -1,0 +1,219 @@
+## context.pragmas.unitname = ''
+
+local Obj  = @record{
+  id: integer
+}
+
+local counter: integer = 0
+function Obj:__destroy()
+  print('destroy', self.id)
+  assert(self.id ~= 0)
+  counter = counter + self.id
+end
+
+------------------------------------------------------------------------
+-- test destroy on scope termination
+
+do counter = 0
+  local a: Obj = {1}
+end
+assert(counter == 1)
+
+do counter = 0
+  local a: Obj
+  a.id = 1
+end
+assert(counter == 1)
+
+do
+  local function f()
+    local o: Obj = {1}
+  end
+
+  do counter = 0
+    f()
+    assert(counter == 1)
+  end
+end
+
+do
+  local function f(o: Obj)
+  end
+
+  do counter = 0
+    f({1})
+    assert(counter == 1)
+  end
+end
+
+------------------------------------------------------------------------
+-- test destroy bypass on function returns
+
+do
+  local function f(o: Obj): Obj
+    return o
+  end
+
+  do counter = 0
+    f({1})
+    assert(counter == 1)
+  end
+
+  do counter = 0
+    local o: Obj = f({1})
+    assert(counter == 0)
+  end
+  assert(counter == 1)
+end
+do
+  local function f(): (Obj, Obj)
+    local a: Obj, b: Obj = {1}, {2}
+    return a, b
+  end
+  local function ff(): (Obj, Obj)
+    return f(), Obj{4}
+  end
+  local function fff(): (Obj, Obj)
+    return Obj{4}, f()
+  end
+  local function ffff(): (Obj, Obj)
+    return f()
+  end
+  local function fffff(): Obj
+    return f()
+  end
+
+  do counter = 0
+    f()
+    assert(counter == 3)
+  end
+
+  do counter = 0
+    local a, b = f()
+    assert(counter == 0)
+  end
+  assert(counter == 3)
+
+  do counter = 0
+    local a = f()
+    assert(counter == 2)
+  end
+  assert(counter == 3)
+
+  do counter = 0
+    f()
+    assert(counter == 3)
+  end
+
+  do counter = 0
+    ff()
+    assert(counter == 7)
+  end
+  assert(counter == 7)
+
+  do counter = 0
+    fff()
+    assert(counter == 7)
+  end
+
+  do counter = 0
+    ffff()
+    assert(counter == 3)
+  end
+
+  do counter = 0
+    fffff()
+    assert(counter == 3)
+  end
+end
+
+do
+  local function f(): (Obj, Obj, Obj)
+    local a: Obj, b: Obj, c: Obj = {1}, {2}, {4}
+    return a, b, c
+  end
+  local function ff(): (Obj, Obj)
+    return f()
+  end
+  local function fff(): (Obj)
+    return f()
+  end
+
+  do counter = 0
+    f()
+    assert(counter == 7)
+  end
+
+  do counter = 0
+    ff()
+    assert(counter == 7)
+  end
+
+  do counter = 0
+    fff()
+    assert(counter == 7)
+  end
+
+  do counter = 0
+    local a = f()
+    assert(counter == 6)
+  end
+end
+
+------------------------------------------------------------------------
+-- test destroy on early returns
+
+do
+  local function f()
+    local a: Obj = {1}
+    if true then
+      return
+    end
+  end
+
+  do counter = 0
+    f()
+    assert(counter == 1)
+  end
+end
+
+do
+  local function f(o0: Obj, b: boolean)
+    local o1: Obj = {2}
+    do
+      local o2: Obj = {4}
+      if b then
+        local o3: Obj = {8}
+        return
+      end
+      local o4: Obj = {16}
+    end
+    local o5: Obj = {32}
+  end
+
+  do counter = 0
+    f({1}, true)
+    print(counter)
+    assert(counter == 1+2+4+8)
+    counter = 0
+    f({1}, false)
+    assert(counter == 1+2+4+16+32)
+  end
+end
+
+------------------------------------------------------------------------
+-- test destroy on break and continue
+
+do counter = 0
+  print('is', counter)
+  for i=1,10 do
+    local o1: Obj = {1}
+    if i == 2 then
+      local o2: Obj = {2}
+      break
+    end
+    local o3: Obj = {4}
+  end
+  print(counter)
+  assert(counter == 1+4+1+2)
+end
