@@ -822,6 +822,13 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             context:traverse_node(argnode)
           end
           funcargtype = wantedtype
+
+          -- check again the new type
+          wantedtype, err = funcargtype:is_convertible_from_attr(argattr, explicit)
+          if not wantedtype then
+            node:raisef("in call of function '%s' at argument %d: %s",
+              calleetype:prettyname(), i, err)
+          end
         else
           knownallargs = false
         end

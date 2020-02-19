@@ -1,0 +1,115 @@
+local Obj  = @record{
+  id: integer
+}
+
+local acount: integer, dcount: integer, ccount: integer = 0, 0, 0
+
+function Obj:__destroy()
+  --print('destroy', self.id)
+  assert(self.id ~= 0)
+  acount = acount - 1
+  dcount = dcount + 1
+  self.id = 0
+end
+
+function Obj:__copy(): Obj
+  --print('copy', self.id)
+  assert(self.id ~= 0)
+  acount = acount + 1
+  ccount = ccount + 1
+  return $self
+end
+
+function Obj.make(id: integer): Obj
+  acount = acount + 1
+  return Obj{id}
+end
+
+local function reset()
+  acount = 0 ccount = 0 dcount = 0
+end
+
+local function check(a: integer, c: integer, d: integer)
+  --print(acount, ccount, dcount)
+  assert(acount == a) assert(ccount == c) assert(dcount == d)
+end
+
+------------------------------------------------------------------------
+-- test copy/destroy on assignment
+
+do reset()
+  local o1: Obj = Obj.make(1)
+  local o2: Obj = Obj.make(2)
+  check(2, 0, 0)
+  o1 = o2
+  check(2, 1, 1)
+end check(0, 1, 3)
+
+do reset()
+  local o1: Obj = Obj.make(1)
+  check(1, 0, 0)
+  o1 = Obj.make(2)
+  check(1, 0, 1)
+  o1 = o1
+  check(1, 1, 2)
+end check(0, 1, 3)
+
+do reset()
+  local function f(x: Obj)
+  end
+  f(Obj.make(1))
+  check(0, 0, 1)
+end check(0, 0, 1)
+
+do reset()
+  local function f(x: Obj)
+    return x
+  end
+  f(Obj.make(1))
+  check(0, 0, 1)
+end check(0, 0, 1)
+
+do reset()
+  local function f(x: Obj)
+    return x
+  end
+  local x = f(Obj.make(1))
+  check(1, 0, 0)
+end check(0, 0, 1)
+
+do reset()
+  local function f(x: Obj)
+    return x
+  end
+  local x = f(Obj.make(1))
+  check(1, 0, 0)
+end check(0, 0, 1)
+
+do reset()
+  local function f(x: Obj): (Obj, Obj)
+    return x, x
+  end
+  f(Obj.make(1))
+  check(0, 1, 2)
+end check(0, 1, 2)
+
+do reset()
+  local function f(x: Obj): (Obj, Obj, Obj)
+    return x, x ,x
+  end
+  f(Obj.make(1))
+  check(0, 2, 3)
+end check(0, 2, 3)
+
+--[[
+do reset()
+  local function f(x: Obj, y: Obj, z: Obj): (Obj, Obj, Obj)
+    return x, x ,x
+  end
+  local function g(x: Obj): (Obj, Obj, Obj)
+    return f(x, x, x)
+  end
+  g(Obj.make(1))
+  check(0, 2, 3)
+end check(0, 2, 3)
+]]

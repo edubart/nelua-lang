@@ -163,6 +163,7 @@ end
 function Type.is_pointer_of() return false end
 function Type.is_array_of() return false end
 function Type.has_pointer() return false end
+function Type.has_destroyable() return false end
 function Type:is_contiguous_of(type)
   if not self.is_contiguous then return false end
   if self:is_array_of(type) then
@@ -1010,7 +1011,7 @@ end
 
 function FunctionType:has_destroyable_return()
   for i=1,#self.returntypes do
-    if self.returntypes[i].is_destroyable then
+    if self.returntypes[i]:has_destroyable() then
       return true
     end
   end
@@ -1230,6 +1231,13 @@ end
 function RecordType:has_pointer()
   return tabler.ifindif(self.fields, function(f)
     return f.type:has_pointer()
+  end) ~= nil
+end
+
+function RecordType:has_destroyable()
+  if self.is_destroyable then return true end
+  return tabler.ifindif(self.fields, function(f)
+    return f.type:has_destroyable()
   end) ~= nil
 end
 

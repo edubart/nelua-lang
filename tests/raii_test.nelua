@@ -4,35 +4,48 @@ local Obj  = @record{
   id: integer
 }
 
-local counter: integer = 0
+local dcount: integer = 0
 function Obj:__destroy()
-  print('destroy', self.id)
+  --print('destroy', self.id)
   assert(self.id ~= 0)
-  counter = counter + self.id
+  dcount = dcount + self.id
+end
+
+local ccount: integer = 0
+function Obj:__copy(): Obj
+  --print('copy', self.id)
+  assert(self.id ~= 0)
+  ccount = ccount + self.id
+  return $self
+end
+
+local function reset()
+  dcount = 0
+  ccount = 0
 end
 
 ------------------------------------------------------------------------
 -- test destroy on scope termination
 
-do counter = 0
+do reset()
   local a: Obj = {1}
 end
-assert(counter == 1)
+assert(dcount == 1)
 
-do counter = 0
+do reset()
   local a: Obj
   a.id = 1
 end
-assert(counter == 1)
+assert(dcount == 1)
 
 do
   local function f()
     local o: Obj = {1}
   end
 
-  do counter = 0
+  do reset()
     f()
-    assert(counter == 1)
+    assert(dcount == 1)
   end
 end
 
@@ -40,9 +53,9 @@ do
   local function f(o: Obj)
   end
 
-  do counter = 0
+  do reset()
     f({1})
-    assert(counter == 1)
+    assert(dcount == 1)
   end
 end
 
@@ -54,16 +67,16 @@ do
     return o
   end
 
-  do counter = 0
+  do reset()
     f({1})
-    assert(counter == 1)
+    assert(dcount == 1)
   end
 
-  do counter = 0
+  do reset()
     local o: Obj = f({1})
-    assert(counter == 0)
+    assert(dcount == 0)
   end
-  assert(counter == 1)
+  assert(dcount == 1)
 end
 do
   local function f(): (Obj, Obj)
@@ -83,47 +96,47 @@ do
     return f()
   end
 
-  do counter = 0
+  do reset()
     f()
-    assert(counter == 3)
+    assert(dcount == 3)
   end
 
-  do counter = 0
+  do reset()
     local a, b = f()
-    assert(counter == 0)
+    assert(dcount == 0)
   end
-  assert(counter == 3)
+  assert(dcount == 3)
 
-  do counter = 0
+  do reset()
     local a = f()
-    assert(counter == 2)
+    assert(dcount == 2)
   end
-  assert(counter == 3)
+  assert(dcount == 3)
 
-  do counter = 0
+  do reset()
     f()
-    assert(counter == 3)
+    assert(dcount == 3)
   end
 
-  do counter = 0
+  do reset()
     ff()
-    assert(counter == 7)
+    assert(dcount == 7)
   end
-  assert(counter == 7)
+  assert(dcount == 7)
 
-  do counter = 0
+  do reset()
     fff()
-    assert(counter == 7)
+    assert(dcount == 7)
   end
 
-  do counter = 0
+  do reset()
     ffff()
-    assert(counter == 3)
+    assert(dcount == 3)
   end
 
-  do counter = 0
+  do reset()
     fffff()
-    assert(counter == 3)
+    assert(dcount == 3)
   end
 end
 
@@ -139,24 +152,24 @@ do
     return f()
   end
 
-  do counter = 0
+  do reset()
     f()
-    assert(counter == 7)
+    assert(dcount == 7)
   end
 
-  do counter = 0
+  do reset()
     ff()
-    assert(counter == 7)
+    assert(dcount == 7)
   end
 
-  do counter = 0
+  do reset()
     fff()
-    assert(counter == 7)
+    assert(dcount == 7)
   end
 
-  do counter = 0
+  do reset()
     local a = f()
-    assert(counter == 6)
+    assert(dcount == 6)
   end
 end
 
@@ -171,9 +184,9 @@ do
     end
   end
 
-  do counter = 0
+  do reset()
     f()
-    assert(counter == 1)
+    assert(dcount == 1)
   end
 end
 
@@ -191,21 +204,19 @@ do
     local o5: Obj = {32}
   end
 
-  do counter = 0
+  do reset()
     f({1}, true)
-    print(counter)
-    assert(counter == 1+2+4+8)
-    counter = 0
+    assert(dcount == 1+2+4+8)
+    reset()
     f({1}, false)
-    assert(counter == 1+2+4+16+32)
+    assert(dcount == 1+2+4+16+32)
   end
 end
 
 ------------------------------------------------------------------------
 -- test destroy on break and continue
 
-do counter = 0
-  print('is', counter)
+do reset()
   for i=1,10 do
     local o1: Obj = {1}
     if i == 2 then
@@ -214,6 +225,18 @@ do counter = 0
     end
     local o3: Obj = {4}
   end
-  print(counter)
-  assert(counter == 1+4+1+2)
+  assert(dcount == 1+4+1+2)
+end
+
+------------------------------------------------------------------------
+-- test nested destroy
+
+do
+  local ParentObj = @record {
+    o: Obj
+  }
+  do reset()
+    local a: ParentObj = {{1}}
+  end
+  assert(dcount == 1)
 end

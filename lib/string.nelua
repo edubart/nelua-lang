@@ -1,8 +1,8 @@
 require 'span'
 require 'memory'
-require 'allocators.gc'
+require 'allocators.generic'
 
-local allocator = @gc_allocator
+local allocator = @generic_allocator
 
 -- C imports
 local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
@@ -10,6 +10,7 @@ local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 
 local StringImpl <codename 'nelua_nstring_impl'> = @record{
+  refs: usize,
   size: usize,
   data: byte[0]
 }
@@ -20,10 +21,27 @@ global String <codename 'nelua_nstring'> = @record{
 
 function String._create(size: usize <autocast>): String <inline>
   local self: String
-  self.impl = (@StringImpl*)(allocator.alloc(#@usize + size + 1))
+  self.impl = (@StringImpl*)(allocator.alloc(2*(#@usize) + size + 1))
   self.impl.data[size] = 0
   self.impl.size = size
+  self.impl.refs = 1
   return self
+end
+
+function String:__copy(): String
+  if likely(self.impl) then
+    self.impl.refs = self.impl.refs + 1
+  end
+  return $self
+end
+
+function String:__destroy()
+  if unlikely(not self.impl) then return end
+  self.impl.refs = self.impl.refs - 1
+  if self.impl.refs == 0 then
+    allocator.dealloc(self.impl)
+    self.impl = nilptr
+  end
 end
 
 function String:reset() <inline>

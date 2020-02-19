@@ -46,52 +46,65 @@ local function izipargnodes(vars, argnodes)
   end
 end
 
+local function destroy_variable(context, emitter, vartype, varname)
+  if not vartype:has_destroyable() then return end
+  local destroymt = vartype:get_metafield('__destroy')
+  if destroymt then
+    emitter:add_indent_ln(context:declname(destroymt), '(&', varname, ');')
+  end
+  for _,field in ipairs(vartype.fields) do
+    if field.type:has_destroyable() then
+      destroy_variable(context, emitter, field.type, varname..'.'..field.name)
+    end
+  end
+end
+
 local function destroy_callee_returns(context, emitter, retvalname, calleetype, ignoreindexes)
   for i,returntype in ipairs(calleetype.returntypes) do
-    if returntype.is_destroyable and not ignoreindexes[i] then
-      local destroymt = returntype:get_metafield('__destroy')
+    if returntype:has_destroyable() and not ignoreindexes[i] then
       local retargname
       if calleetype:has_enclosed_return() then
         retargname = string.format('%s.r%d', retvalname, i)
       else
         retargname = retvalname
       end
-      emitter:add_indent_ln(context:declname(destroymt), '(&', retargname, ');')
+      destroy_variable(context, emitter, returntype, retargname)
     end
   end
 end
 
-local function destroy_scope_variables(context, emitter, scope, ignoresyms)
+local function destroy_scope_variables(context, emitter, scope)
   for i=#scope.symbols,1,-1 do
     local symbol = scope.symbols[i]
-    if not ignoresyms or not ignoresyms[symbol] then
+    if not symbol.moved then
       local symtype = scope.symbols[i].type
-      if symbol.autodestroy and not symbol.nodestroy then
-        local destroymt = symtype:get_metafield('__destroy')
-        emitter:add_indent_ln(context:declname(destroymt), '(&', context:declname(symbol), ');')
+      if symbol.scopedestroy then
+        destroy_variable(context, emitter, symtype, context:declname(symbol))
       end
     end
   end
 end
 
-local function destroy_upscopes_variables(context, emitter, kind, ignoresyms)
+local function destroy_upscopes_variables(context, emitter, kind)
   local scope = context.scope
   repeat
-    destroy_scope_variables(context, emitter, scope, ignoresyms)
+    destroy_scope_variables(context, emitter, scope)
     scope = scope.parent
   until (scope.kind == kind or scope == context.rootscope)
-  destroy_scope_variables(context, emitter, scope, ignoresyms)
-  return scope
+  destroy_scope_variables(context, emitter, scope)
+end
+
+local function create_value(_, emitter, type, valnode, valtype)
+  emitter:add_val2type(type, valnode, valtype)
 end
 
 local function visit_assignments(context, emitter, varnodes, valnodes, decl)
-  local defemitter = emitter
   local usetemporary = false
   if not decl and #valnodes > 1 then
     -- multiple assignments must assign to a temporary first (in case of a swap)
     usetemporary = true
-    defemitter = CEmitter(context, emitter.depth)
   end
+  local defemitter = CEmitter(context, emitter.depth)
   local multiretvalname
   for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
     local varattr = varnode.attr
@@ -135,14 +148,22 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', valnode, ';')
       end
 
+      local dodestroy = not decl and vartype.is_record and traits.is_astnode(valnode) and
+        vartype:has_destroyable()
+      if dodestroy then
+        usetemporary = true
+      end
       local retvalname
       if lastcallindex then
         retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
       elseif usetemporary then
         retvalname = context:genuniquename('asgntmp')
         emitter:add_indent(vartype, ' ', retvalname, ' = ')
-        emitter:add_val2type(vartype, valnode)
+        create_value(context, emitter, vartype, valnode)
         emitter:add_ln(';')
+        if dodestroy then
+          destroy_variable(context, emitter, vartype, context:declname(varnode.attr))
+        end
       end
 
       if not declared or (not defined and (valnode or lastcallindex)) then
@@ -169,9 +190,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
       context:add_include(varattr.cinclude)
     end
   end
-  if usetemporary then
-    emitter:add(defemitter:generate())
-  end
+  emitter:add(defemitter:generate())
 end
 
 local typevisitors = {}
@@ -317,10 +336,12 @@ function visitors.Table(context, node, emitter)
         end
         local childvaltype = childvalnode.attr.type
         if childvaltype.is_array then
-          emitter:add_indent_ln('(*(', childvaltype, '*)__record.', fieldname, ') = ',  childvalnode, ';')
+          emitter:add_indent('(*(', childvaltype, '*)__record.', fieldname, ') = ')
         else
-          emitter:add_indent_ln('__record.', fieldname, ' = ',  childvalnode, ';')
+          emitter:add_indent('__record.', fieldname, ' = ')
         end
+        create_value(context, emitter, childvaltype,  childvalnode)
+        emitter:add_ln(';')
       end
       emitter:add_indent_ln('__record;')
       emitter:dec_indent()
@@ -342,12 +363,13 @@ function visitors.Table(context, node, emitter)
   end --luacov:enable
 end
 
-function visitors.Pair(_, node, emitter)
+function visitors.Pair(context, node, emitter)
   local namenode, valuenode = node:args()
   local parenttype = node.attr.parenttype
   if parenttype and parenttype.is_record then
     assert(traits.is_string(namenode))
-    emitter:add('.', cdefs.quotename(namenode), ' = ', valuenode)
+    emitter:add('.', cdefs.quotename(namenode), ' = ')
+    create_value(context, emitter, valuenode.attr.type, valuenode)
   else --luacov:disable
     error('not implemented yet')
   end --luacov:enable
@@ -427,8 +449,8 @@ function visitors.IdDecl(context, node, emitter)
   if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
   emitter:add(type, ' ', context:declname(attr))
   if attr.cattribute then emitter:add(' __attribute__((', attr.cattribute, '))') end
-  if type.is_destroyable then
-    attr.autodestroy = true
+  if type:has_destroyable() then
+    attr.scopedestroy = true
   end
 end
 
@@ -540,7 +562,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
         end
       end
 
-      emitter:add_val2type(funcargtype, arg, argtype)
+      create_value(context, emitter, funcargtype, arg, argtype)
     end
     emitter:add(')')
 
@@ -709,10 +731,11 @@ end
 function visitors.Return(context, node, emitter)
   local retnodes = node:args()
   local numretnodes = #retnodes
-  local retsyms = tabler.imap(retnodes, function(retnode) return true,retnode.attr end)
 
   -- destroy parent blocks
-  local funcscope = destroy_upscopes_variables(context, emitter, 'function', retsyms)
+  local defemitter = CEmitter(context, emitter.depth)
+  local desemitter = CEmitter(context, emitter.depth)
+  local funcscope = context.scope:get_parent_of_kind('function') or context.rootscope
   context.scope.alreadydestroyed = true
   funcscope.has_return = true
   if funcscope == context.rootscope then
@@ -720,13 +743,14 @@ function visitors.Return(context, node, emitter)
     node:assertraisef(numretnodes <= 1, "multiple returns in main is not supported yet")
     if numretnodes == 0 then
       -- main must always return an integer
-      emitter:add_indent_ln('return 0;')
+      defemitter:add_indent_ln('return 0;')
     else
       -- return one value (an integer expected)
       local retnode = retnodes[1]
-      emitter:add_indent('return ')
-      emitter:add_val2type(primtypes.cint, retnode)
-      emitter:add_ln(';')
+      defemitter:add_indent('return ')
+      retnode.attr.canmove = true
+      defemitter:add_val2type(primtypes.cint, retnode)
+      defemitter:add_ln(';')
     end
   else
     local functype = funcscope.functype
@@ -735,25 +759,26 @@ function visitors.Return(context, node, emitter)
       if numfuncrets == 0 then
         -- no returns
         assert(numretnodes == 0)
-        emitter:add_indent_ln('return;')
+        defemitter:add_indent_ln('return;')
       elseif numfuncrets == 1 then
         -- one return
         local retnode, rettype = retnodes[1], functype:get_return_type(1)
-        emitter:add_indent('return ')
+        defemitter:add_indent('return ')
         if retnode then
           -- return value is present
-          emitter:add_val2type(rettype, retnode)
-          emitter:add_ln(';')
+          retnode.attr.canmove = true
+          defemitter:add_val2type(rettype, retnode)
+          defemitter:add_ln(';')
         else
           -- no return value present, generate a zeroed one
-          emitter:add_ctyped_zerotype(rettype)
-          emitter:add_ln(';')
+          defemitter:add_ctyped_zerotype(rettype)
+          defemitter:add_ln(';')
         end
       end
     else
       -- multiple returns
       local funcretctype = context:funcretctype(functype)
-      local retemitter = CEmitter(context, emitter.depth)
+      local retemitter = CEmitter(context, defemitter.depth)
       local multiretvalname
       retemitter:add('return (', funcretctype, '){')
       local ignoredestroyindexes = {}
@@ -764,31 +789,35 @@ function visitors.Return(context, node, emitter)
           usedlastcalletype = lastcalletype
           assert(usedlastcalletype)
           -- last assignment value may be a multiple return call
-          emitter:add_indent_ln('{')
-          emitter:inc_indent()
+          defemitter:add_indent_ln('{')
+          defemitter:inc_indent()
           multiretvalname = context:genuniquename('ret')
           local retctype = context:funcretctype(retnode.attr.calleetype)
-          emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', retnode, ';')
+          defemitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', retnode, ';')
         end
         if lastcallindex then
           local retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
           retemitter:add_val2type(funcrettype, retvalname, rettype)
           ignoredestroyindexes[lastcallindex] = true
         else
+          retnode.attr.canmove = true
           retemitter:add_val2type(funcrettype, retnode)
         end
       end
       retemitter:add_ln('};')
       if usedlastcalletype then
-        destroy_callee_returns(context, emitter, multiretvalname, usedlastcalletype, ignoredestroyindexes)
+        destroy_callee_returns(context, defemitter, multiretvalname, usedlastcalletype, ignoredestroyindexes)
       end
-      emitter:add_indent(retemitter:generate())
+      defemitter:add_indent(retemitter:generate())
       if multiretvalname then
-        emitter:dec_indent()
-        emitter:add_indent_ln('}')
+        defemitter:dec_indent()
+        defemitter:add_indent_ln('}')
       end
     end
   end
+  destroy_upscopes_variables(context, desemitter, 'function')
+  emitter:add(desemitter:generate())
+  emitter:add(defemitter:generate())
 end
 
 function visitors.If(_, node, emitter)
