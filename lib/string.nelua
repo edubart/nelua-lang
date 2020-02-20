@@ -28,14 +28,14 @@ function String._create(size: usize <autocast>): String <inline>
   return self
 end
 
-function String:__copy(): String
+function String:__copy(o: String*) <inline>
+  self.impl = o.impl
   if likely(self.impl) then
     self.impl.refs = self.impl.refs + 1
   end
-  return $self
 end
 
-function String:__destroy()
+function String:__destroy() <inline>
   if unlikely(not self.impl) then return end
   self.impl.refs = self.impl.refs - 1
   if self.impl.refs == 0 then

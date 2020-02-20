@@ -801,8 +801,9 @@ it("binary conditional operators", function()
       nelua_any t1_ = a;
       nelua_any t2_ = {0};
       bool cond_ = nelua_any_to_nelua_boolean(t1_);
-      if(cond_)
+      if(!cond_) {
         t2_ = b;
+      }
       cond_ ? t1_ : t2_;
     })]])
   assert.generate_c("local a, b; return a and b",  [[({

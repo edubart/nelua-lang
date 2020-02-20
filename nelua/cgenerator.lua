@@ -94,8 +94,44 @@ local function destroy_upscopes_variables(context, emitter, kind)
   destroy_scope_variables(context, emitter, scope)
 end
 
-local function create_value(_, emitter, type, valnode, valtype)
-  emitter:add_val2type(type, valnode, valtype)
+local function copy_variable(context, emitter, vartype, varname, srcvarname)
+  local copymt = vartype:get_metafield('__copy')
+  if copymt then
+    emitter:add_indent_ln(context:declname(copymt), '(&', varname, ', &', srcvarname, ');')
+  end
+  for _,field in ipairs(vartype.fields) do
+    if field.type:has_copyable() then
+      copy_variable(context, emitter, field.type, varname..'.'..field.name, srcvarname..'.'..field.name)
+    end
+  end
+end
+
+local function create_variable(context, emitter, type, val, valtype)
+  if not valtype and traits.is_astnode(val) then
+    valtype = val.attr.type
+  end
+  local copying = false
+  if type == valtype and traits.is_astnode(val) and val.attr.lvalue and type:has_copyable() then
+    if not val.attr.maymove or val.attr.moved then
+      copying = true
+    else
+      val.attr.moved = true
+    end
+  end
+  if copying then
+    emitter:add_ln('({')
+    emitter:inc_indent()
+    emitter:add_indent_ln(type, ' _t1 = {0};')
+    emitter:add_indent(type, '* _t2 = &')
+    emitter:add_val2type(type, val, valtype)
+    emitter:add_ln(';')
+    copy_variable(context, emitter, type, '_t1', '(*_t2)')
+    emitter:add_indent_ln('_t1;')
+    emitter:dec_indent()
+    emitter:add_indent('})')
+  else
+    emitter:add_val2type(type, val, valtype)
+  end
 end
 
 local function visit_assignments(context, emitter, varnodes, valnodes, decl)
@@ -148,9 +184,9 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', valnode, ';')
       end
 
-      local dodestroy = not decl and vartype.is_record and traits.is_astnode(valnode) and
-        vartype:has_destroyable()
-      if dodestroy then
+      local dodestroy = not decl and vartype:has_destroyable() and traits.is_astnode(valnode)
+      local docopy = vartype:has_copyable() and traits.is_astnode(valnode)
+      if docopy or dodestroy then
         usetemporary = true
       end
       local retvalname
@@ -159,7 +195,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
       elseif usetemporary then
         retvalname = context:genuniquename('asgntmp')
         emitter:add_indent(vartype, ' ', retvalname, ' = ')
-        create_value(context, emitter, vartype, valnode)
+        create_variable(context, emitter, vartype, valnode)
         emitter:add_ln(';')
         if dodestroy then
           destroy_variable(context, emitter, vartype, context:declname(varnode.attr))
@@ -340,7 +376,7 @@ function visitors.Table(context, node, emitter)
         else
           emitter:add_indent('__record.', fieldname, ' = ')
         end
-        create_value(context, emitter, childvaltype,  childvalnode)
+        create_variable(context, emitter, childvaltype,  childvalnode)
         emitter:add_ln(';')
       end
       emitter:add_indent_ln('__record;')
@@ -369,7 +405,7 @@ function visitors.Pair(context, node, emitter)
   if parenttype and parenttype.is_record then
     assert(traits.is_string(namenode))
     emitter:add('.', cdefs.quotename(namenode), ' = ')
-    create_value(context, emitter, valuenode.attr.type, valuenode)
+    create_variable(context, emitter, valuenode.attr.type, valuenode)
   else --luacov:disable
     error('not implemented yet')
   end --luacov:enable
@@ -562,7 +598,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
         end
       end
 
-      create_value(context, emitter, funcargtype, arg, argtype)
+      create_variable(context, emitter, funcargtype, arg, argtype)
     end
     emitter:add(')')
 
@@ -748,7 +784,6 @@ function visitors.Return(context, node, emitter)
       -- return one value (an integer expected)
       local retnode = retnodes[1]
       defemitter:add_indent('return ')
-      retnode.attr.canmove = true
       defemitter:add_val2type(primtypes.cint, retnode)
       defemitter:add_ln(';')
     end
@@ -766,8 +801,8 @@ function visitors.Return(context, node, emitter)
         defemitter:add_indent('return ')
         if retnode then
           -- return value is present
-          retnode.attr.canmove = true
-          defemitter:add_val2type(rettype, retnode)
+          retnode.attr.maymove = true
+          create_variable(context, defemitter, rettype, retnode)
           defemitter:add_ln(';')
         else
           -- no return value present, generate a zeroed one
@@ -797,11 +832,11 @@ function visitors.Return(context, node, emitter)
         end
         if lastcallindex then
           local retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
-          retemitter:add_val2type(funcrettype, retvalname, rettype)
+          create_variable(context, retemitter, funcrettype, retvalname, rettype)
           ignoredestroyindexes[lastcallindex] = true
         else
-          retnode.attr.canmove = true
-          retemitter:add_val2type(funcrettype, retnode)
+          retnode.attr.maymove = true
+          create_variable(context, retemitter, funcrettype, retnode)
         end
       end
       retemitter:add_ln('};')
@@ -1112,7 +1147,7 @@ function visitors.UnaryOp(context, node, emitter)
   end
 end
 
-function visitors.BinaryOp(_, node, emitter)
+function visitors.BinaryOp(context, node, emitter)
   if node.attr.comptime then
     emitter:add_literal(node.attr)
     return
@@ -1134,7 +1169,7 @@ function visitors.BinaryOp(_, node, emitter)
       emitter:add_ln(';')
       emitter:add_indent_ln('if(cond_) {')
       emitter:add_indent('  t_ = ')
-      emitter:add_val2type(type, lnode[3])
+      create_variable(context, emitter, type, lnode[3])
       emitter:add_ln(';')
       emitter:add_indent('  cond_ = ')
       emitter:add_val2type(primtypes.boolean, 't_', type)
@@ -1142,13 +1177,13 @@ function visitors.BinaryOp(_, node, emitter)
       emitter:add_indent_ln('}')
       emitter:add_indent_ln('if(!cond_) {')
       emitter:add_indent('  t_ = ')
-      emitter:add_val2type(type, rnode)
+      create_variable(context, emitter, type, rnode)
       emitter:add_ln(';')
       emitter:add_indent_ln('}')
       emitter:add_indent_ln('t_;')
     else
       emitter:add_indent(type, ' t1_ = ')
-      emitter:add_val2type(type, lnode)
+      create_variable(context, emitter, type, lnode)
       --TODO: be smart and remove this unused code
       emitter:add_ln(';')
       emitter:add_indent_ln(type, ' t2_ = {0};')
@@ -1158,22 +1193,29 @@ function visitors.BinaryOp(_, node, emitter)
         emitter:add_val2type(primtypes.boolean, 't1_', type)
         emitter:add_ln(';')
         emitter:add_indent_ln('if(cond_) {')
-        emitter:add_indent('  t2_ = ')
-        emitter:add_val2type(type, rnode)
+        emitter:inc_indent()
+        emitter:add_indent('t2_ = ')
+        create_variable(context, emitter, type, rnode)
         emitter:add_ln(';')
-        emitter:add_indent('  cond_ = ')
+        emitter:add_indent('cond_ = ')
         emitter:add_val2type(primtypes.boolean, 't2_', type)
         emitter:add_ln(';')
+        emitter:dec_indent()
         emitter:add_indent_ln('}')
+        destroy_variable(context, emitter, type, 't1_')
         emitter:add_indent_ln('cond_ ? t2_ : (', type, '){0};')
       elseif opname == 'or' then
         emitter:add_indent('bool cond_ = ')
         emitter:add_val2type(primtypes.boolean, 't1_', type)
         emitter:add_ln(';')
-        emitter:add_indent_ln('if(cond_)')
-        emitter:add_indent('  t2_ = ')
-        emitter:add_val2type(type, rnode)
+        emitter:add_indent_ln('if(!cond_) {')
+        emitter:inc_indent()
+        emitter:add_indent('t2_ = ')
+        create_variable(context, emitter, type, rnode)
         emitter:add_ln(';')
+        destroy_variable(context, emitter, type, 't1_')
+        emitter:dec_indent()
+        emitter:add_indent_ln('}')
         emitter:add_indent_ln('cond_ ? t1_ : t2_;')
       end
     end

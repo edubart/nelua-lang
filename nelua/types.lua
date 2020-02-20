@@ -164,6 +164,7 @@ function Type.is_pointer_of() return false end
 function Type.is_array_of() return false end
 function Type.has_pointer() return false end
 function Type.has_destroyable() return false end
+function Type.has_copyable() return false end
 function Type:is_contiguous_of(type)
   if not self.is_contiguous then return false end
   if self:is_array_of(type) then
@@ -1216,6 +1217,8 @@ end
 function RecordType:set_metafield(name, symbol)
   if name == '__destroy' then
     self.is_destroyable = true
+  elseif name == '__copy' then
+    self.is_copyable = true
   end
   return self.metatype:set_field(name, symbol)
 end
@@ -1238,6 +1241,13 @@ function RecordType:has_destroyable()
   if self.is_destroyable then return true end
   return tabler.ifindif(self.fields, function(f)
     return f.type:has_destroyable()
+  end) ~= nil
+end
+
+function RecordType:has_copyable()
+  if self.is_copyable then return true end
+  return tabler.ifindif(self.fields, function(f)
+    return f.type:has_copyable()
   end) ~= nil
 end
 

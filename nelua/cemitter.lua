@@ -135,22 +135,7 @@ function CEmitter:add_val2type(type, val, valtype)
     assert(valtype)
 
     if type == valtype then
-      local popcopy = false
-      if type.is_record and traits.is_astnode(val) and val.attr.lvalue then
-        if not val.attr.canmove or val.attr.moved then
-          local copymt = type:get_metafield('__copy')
-          if copymt then
-            self:add(self.context:declname(copymt), '(&')
-            popcopy = true
-          end
-        else
-          val.attr.moved = true
-        end
-      end
       self:add(val)
-      if popcopy then
-        self:add(')')
-      end
     elseif valtype.is_arithmetic and type.is_arithmetic and
            (type.is_float or valtype.is_integral) and
            traits.is_astnode(val) and val.attr.comptime then
