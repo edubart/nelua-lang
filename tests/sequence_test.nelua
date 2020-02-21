@@ -56,6 +56,33 @@ do -- push and pop
   assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)
 end
 
+do -- remove
+  local seq: sequence(integer) = {1,2,3,4}
+  seq[0] = 10
+  assert(#seq == 4)
+  assert(seq:remove(2) == 2)
+  assert(#seq == 3 and seq[1] == 1 and seq[2] == 3 and seq[3] == 4)
+  assert(seq:remove(3) == 4)
+  assert(#seq == 2 and seq[1] == 1 and seq[2] == 3)
+  assert(seq:remove(1) == 1)
+  assert(#seq == 1 and seq[1] == 3)
+  assert(seq:remove(1) == 3)
+  assert(#seq == 0)
+  assert(seq[0] == 10)
+end
+
+do -- insert
+  local seq: sequence(integer)
+  seq:insert(1, 3)
+  assert(#seq == 1 and seq[1] == 3)
+  seq:insert(1, 1)
+  assert(#seq == 2 and seq[1] == 1 and seq[2] == 3)
+  seq:insert(3, 4)
+  assert(#seq == 3 and seq[1] == 1 and seq[2] == 3 and seq[3] == 4)
+  seq:insert(2, 2)
+  assert(#seq == 4 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3 and seq[4] == 4)
+end
+
 do -- passing by reference
   local seqa: sequence(integer) = {1}
   local seqb: sequence(integer)

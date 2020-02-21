@@ -8,6 +8,8 @@
 -- By default it uses the garbage collector unless explicitly told not to do so,
 -- thus by default there is no need to manually reset the sequence.
 
+require 'memory'
+
 ## local make_sequence = generalize(function(T, allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
   ## local codenameprefix = 'nelua_sequence_'..T.codename
@@ -107,6 +109,35 @@
     return ret
   end
 
+  -- Inserts element `v` at position `pos` in the sequence.
+  -- Elements with index greater or equal than `pos` are shifted up.
+  -- If the `pos` is out of range, then throws a runtime error.
+  function SequenceT:insert(pos: usize <autocast>, v: T)
+    self:init()
+    check(pos > 0 and pos <= self.impl.size + 1, 'sequence.insert: position out of bounds')
+    if unlikely(self.impl.size + 2 >= self.impl.data.size) then
+      self:_grow()
+    end
+    self.impl.size = self.impl.size + 1
+    if self.impl.size > pos then
+      memory.move(&self.impl.data[pos + 1], &self.impl.data[pos], (self.impl.size - pos) * #T)
+      memory.zero(&self.impl.data[pos], #T)
+    end
+    self.impl.data[pos] = v
+  end
+
+  -- Removes element at position `pos` in the sequence and returns its value.
+  -- Elements with index greater than `pos` are shifted down.
+  -- If the `pos` is out of range, then throws a runtime error.
+  function SequenceT:remove(pos: usize <autocast>): T
+    check(self.impl and self.impl.size > 0, 'sequence.remove: position out of bounds')
+    local ret: T = self.impl.data[pos]
+    memory.move(&self.impl.data[pos], &self.impl.data[pos+1], (self.impl.size - pos) * #T)
+    memory.zero(&self.impl.data[self.impl.size], #T)
+    self.impl.size = self.impl.size - 1
+    return ret
+  end
+
   -- Returns the number of elements the sequence can store before triggering a reallocation.
   function SequenceT:capacity(): isize <inline>
     if unlikely(not self.impl or self.impl.data.size == 0) then return 0 end
@@ -119,7 +150,7 @@
   function SequenceT:__atindex(i: usize <autocast>): T* <inline>
     self:init()
     if unlikely(i > self.impl.size) then
-      check(i == self.impl.size + 1, 'sequence.__atindex: index out of range')
+      check(i == self.impl.size + 1, 'sequence.__atindex: position out of bounds')
       self.impl.size = self.impl.size + 1
     end
     if unlikely(self.impl.size + 1 > self.impl.data.size) then

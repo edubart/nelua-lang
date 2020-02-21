@@ -23,7 +23,7 @@
   -- Returns reference to element at index `i`.
   -- If `i` is greater of equal to span size, then throws a runtime error.
   function SpanT:__atindex(i: usize <autocast>): T* <inline>
-    check(i < self.size, 'vector.at: index out of range')
+    check(i < self.size, 'span.at: index out of range')
     return &((@T[0]*)(self.data))[i]
   end
 
