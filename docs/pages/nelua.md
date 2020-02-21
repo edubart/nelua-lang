@@ -4,8 +4,7 @@
 
 [![Build Status](https://travis-ci.org/edubart/nelua-lang.svg?branch=master)](https://travis-ci.org/edubart/nelua-lang)
 [![Coverage Status](https://coveralls.io/repos/github/edubart/nelua-lang/badge.svg?branch=master)](https://coveralls.io/github/edubart/nelua-lang?branch=master)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?label=license)](https://opensource.org/licenses/MIT)
-[![Gitter](https://badges.gitter.im/nelua-lang/community.svg)](https://gitter.im/nelua-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Gitter](https://img.shields.io/discord/680417078959800322.svg)](https://discord.gg/dQv3z8H)
 <a href="https://patreon.com/edubart">
 <img height="20" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.herokuapp.com%2Fedubart%2Fpledgesssss&style=for-the-badge"
 style="max-width:100%;"/>
