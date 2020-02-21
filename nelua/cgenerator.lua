@@ -645,15 +645,18 @@ function visitors.Call(context, node, emitter)
   end
   if calleetype.is_type then
     -- type assertion
-    assert(#argnodes == 1)
-    local argnode = argnodes[1]
     local type = node.attr.type
-    if argnode.attr.type ~= type then
-      -- type really differs, cast it
-      emitter:add_val2type(type, argnode)
+    if #argnodes == 1 then
+      local argnode = argnodes[1]
+      if argnode.attr.type ~= type then
+        -- type really differs, cast it
+        emitter:add_val2type(type, argnode)
+      else
+        -- same type, no need to cast
+        emitter:add(argnode)
+      end
     else
-      -- same type, no need to cast
-      emitter:add(argnode)
+      emitter:add_ctyped_zerotype(type)
     end
   elseif callee then
     visitor_Call(context, node, emitter, argnodes, callee, nil)

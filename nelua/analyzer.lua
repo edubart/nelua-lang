@@ -680,27 +680,29 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
   if type.is_generic then
     node:raisef("assertion to generic '%s': cannot do assertion on generics", type:prettyname())
   end
-  if #argnodes ~= 1 then
-    node:raisef("assertion to type '%s': expected one argument, but got %d",
+  if #argnodes > 1 then
+    node:raisef("assertion to type '%s': expected at most 1 argument, but got %d",
       type:prettyname(), #argnodes)
   end
   local argnode = argnodes[1]
-  argnode.desiredtype = type
-  context:traverse_node(argnode)
-  local argtype = argnode.attr.type
-  if argtype then
-    local ok, err = type:is_convertible_from(argnode, true)
-    if not ok then
-      argnode:raisef("in type assertion: %s", err)
-    end
-    if argnode.attr.comptime then
-      attr.value = type:normalize_value(argnode.attr.value)
-      if attr.value or argtype == type then
-        attr.comptime = true
+  if argnode then
+    argnode.desiredtype = type
+    context:traverse_node(argnode)
+    local argtype = argnode.attr.type
+    if argtype then
+      local ok, err = type:is_convertible_from(argnode, true)
+      if not ok then
+        argnode:raisef("in type assertion: %s", err)
+      end
+      if argnode.attr.comptime then
+        attr.value = type:normalize_value(argnode.attr.value)
+        if attr.value or argtype == type then
+          attr.comptime = true
+        end
       end
     end
+    attr.sideeffect = argnode.attr.sideeffect
   end
-  attr.sideeffect = argnode.attr.sideeffect
   attr.typeassertion = true
   attr.type = type
   attr.calleetype = primtypes.type

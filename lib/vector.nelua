@@ -38,9 +38,8 @@ require 'memory'
 
   -- Resets and removes all elements from the vector.
   function VectorT:clear()
-    local zero: T
     for i:usize=0,<self.size do
-      self.data[i] = zero
+      self.data[i] = (@T)()
     end
     self.size = 0
   end
@@ -84,10 +83,9 @@ require 'memory'
   -- If the vector is empty, then throws a runtime error.
   function VectorT:pop(): T
     check(self.size > 0, 'vector.pop: length is 0')
-    local zero: T
     self.size = self.size - 1
     local ret: T = self.data[self.size]
-    self.data[self.size] = zero
+    self.data[self.size] = (@T)()
     return ret
   end
 

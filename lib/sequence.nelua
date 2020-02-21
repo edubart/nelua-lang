@@ -38,9 +38,8 @@ require 'memory'
   function SequenceT:clear()
     if not self.impl then return end
     if self.impl.data.size ~= 0 then
-      local zero: T
       for i:usize=0,self.impl.size do
-        self.impl.data[i] = zero
+        self.impl.data[i] = (@T)()
       end
     end
     self.impl.size = 0
@@ -102,9 +101,8 @@ require 'memory'
   -- If the sequence is empty, then throws a runtime error.
   function SequenceT:pop(): T <inline>
     check(self.impl and self.impl.size > 0, 'sequence.pop: length is 0')
-    local zero: T
     local ret: T = self.impl.data[self.impl.size]
-    self.impl.data[self.impl.size] = zero
+    self.impl.data[self.impl.size] = (@T)()
     self.impl.size = self.impl.size - 1
     return ret
   end

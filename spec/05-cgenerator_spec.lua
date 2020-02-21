@@ -59,6 +59,25 @@ it("type assertion", function()
     local b: number
     local x = (@usize)((a + 1) / b)
   ]], "x = (uintptr_t)((a + 1) / b);")
+
+  assert.generate_c([[
+    local R = @record{x: integer}
+    local a = (@integer[4])()
+    local i = (@integer)()
+    local u = (@uinteger)()
+    local b = (@boolean)()
+    local p = (@pointer)()
+    local n = (@number)()
+    local f = (@float32)()
+    local r = (@R)()
+  ]],[[a = (nelua_int64_arr4){0};
+  i = 0;
+  u = 0U;
+  b = false;
+  p = NULL;
+  n = 0.0;
+  f = 0.0f;
+  r = (R){0};]])
 end)
 
 it("string", function()
