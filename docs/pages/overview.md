@@ -432,21 +432,34 @@ The types `isize` and `usize` types are usually 32 wide bits on 32-bit systems,
 and 64 bits wide on 64-bit systems. When you need an integer value you should use `integer`
 unless you have a specific reason to use a sized or unsigned integer type.
 
-### String
+### Strings
 
-Strings are just like in Lua:
+There are two types of strings, the `string` used for strings allocated at runtime,
+and `stringview` used for strings literals defined at compile time and as views
+of runtime strings too.
 
 ```nelua
-local emptystr: string -- empty string
-local str1 = "string one" -- string
-local str2 = 'string two' -- also a string
-print(emptystr, str1, str2) -- outputs: "" "string one" "string two"
+require 'string'
+
+local mystr: string -- empty string
+local str1: string = 'my string' -- variable of type 'string'
+local str2 = "static stringview" -- variable of type 'stringview'
+local str3: stringview = 'stringview two' -- also a 'stringview'
+print(str1, str2, str3) -- outputs: "" "string one" "string two"
 ```
 
 Like in lua strings are immutable, this make the semantics similar to lua and
-allows the compiler to use deferred reference counting instead of garbage collector
-for managing strings memory improving the application performance. If the programmer wants
+allows the compiler to use reference counting instead of garbage collector
+for managing strings memory. If the programmer wants
 a mutable string he can always implement his own string object.
+
+The major difference of `stringview` and `string` is that `stringview` doesn't
+manage the string memory, i.e. it doesn't allocates or free strings.
+The `string` type is usually allocated at runtime and it frees the string memory
+once it reference count reaches 0. The `stringview` uses weak references, thus
+any `stringview` pointing to a `string` is invalidated once the `string` is freed.
+Both types can be converted from one to another.
+
 
 ### Array
 

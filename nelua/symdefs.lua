@@ -39,20 +39,46 @@ local function define_const(name, type, value)
   symdefs[name] = symbol
 end
 
+
 -- nelua only
 define_function('likely', {primtypes.boolean}, {primtypes.boolean})
 define_function('unlikely', {primtypes.boolean}, {primtypes.boolean})
-define_function('check', {primtypes.boolean, primtypes.string}, {}, {name='assert', codename='nelua_assert_string'})
+define_function('check', {primtypes.boolean, primtypes.stringview}, {}, {
+  name='assert', codename='nelua_assert_stringview'
+})
 define_const('panic', primtypes.any)
 define_const('nilptr', primtypes.nilptr)
 define_const('C', primtypes.type, types.RecordType(nil, {}))
+
+-- nelua primitive types
+local function define_type(name, type)
+  local symbol = Symbol{
+    name = name,
+    codename = type.codename,
+    type = primtypes.type,
+    value = type,
+    staticstorage = true,
+    vardecl = true,
+    lvalue = true,
+    global = true,
+  }
+  type.symbol = symbol
+  symdefs[name] = symbol
+end
+
+local ignored_primtypes = {nilptr = true, type = true}
+for name,type in pairs(primtypes) do
+  if not ignored_primtypes[name] then
+    define_type(name, type)
+  end
+end
 
 -- lua
 define_const('assert', primtypes.any)
 define_const('error', primtypes.any)
 define_const('warn', primtypes.any)
 define_const('print', primtypes.any)
-define_function('type', {primtypes.any}, {primtypes.string})
+define_function('type', {primtypes.any}, {primtypes.stringview})
 define_const('require', primtypes.any)
 define_const('_G', primtypes.table)
 

@@ -1,3 +1,6 @@
+require 'span'
+require 'string'
+
 do -- Comments
   -- one line comment
   --[[
@@ -208,10 +211,11 @@ do -- Numbers
 end
 
 do -- String
-  local emptystr: string -- empty string
-  local str1 = "string one" -- string
-  local str2 = 'string two' -- also a string
-  print(emptystr, str1, str2) -- outputs: "" "string one" "string two"
+  local mystr: string -- empty string
+  local str1: string = 'my string' -- variable of type 'string'
+  local str2 = "static stringview" -- variable of type 'stringview'
+  local str3: stringview = 'stringview two' -- also a 'stringview'
+  print(str1, str2, str3) -- outputs: "" "string one" "string two"
 end
 
 do -- The "type" type
@@ -294,7 +298,6 @@ do -- Range
   print(rb.low, rb.high) -- outputs: 0 100
 end
 
-require 'span'
 do -- Span
   local arr = (@integer[4]) {1,2,3,4}
   local s: span(integer) = &arr

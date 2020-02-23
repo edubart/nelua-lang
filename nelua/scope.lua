@@ -34,6 +34,15 @@ function Scope:clear_symbols()
   self.symbols = {}
   if self.parent then
     metamagic.setmetaindex(self.symbols, self.parent.symbols)
+  else
+    metamagic.setmetaindex(self.symbols, function(symbols, key)
+      local symbol = symdefs[key]
+      if symbol then
+        symbol = symbol:clone()
+        symbols[key] = symbol
+        return symbol
+      end
+    end)
   end
   self.possible_returntypes = {}
   self.resolved_returntypes = {}
@@ -71,14 +80,7 @@ function Scope:get_parent_of_kind(kind)
 end
 
 function Scope:get_symbol(name)
-  local symbol = self.symbols[name]
-  if not symbol then
-    symbol = symdefs[name]
-    if symbol then
-      symbol = symbol:clone()
-    end
-  end
-  return symbol
+  return self.symbols[name]
 end
 
 function Scope:make_checkpoint()

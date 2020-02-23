@@ -1,3 +1,5 @@
+require 'string'
+
 --------------------------------------------------------------------------------
 -- C imports
 
@@ -39,7 +41,7 @@ global os = @record{}
 
 local function fileresult(status: cint): (boolean, string, integer)
   if status == -1 then
-    return false, (@string)(strerror(errno)), errno
+    return false, strerror(errno), errno
   else
     return true, '', 0
   end
@@ -92,7 +94,7 @@ end
 function os.getenv(varname: string): string
   local s = getenv(varname)
   if s then
-    return (@string)(s)
+    return s
   else
     return ''
   end
@@ -120,7 +122,7 @@ function os.setlocale(locale: string, category: string): string
   end
   local s = setlocale(cat, locale)
   if s then
-    return (@string)(s)
+    return s
   else
     return ''
   end
@@ -149,5 +151,5 @@ function os.tmpname(): string
     error "unable to generate a unique filename"
   end
   close(fd)
-  return (@string)(&buf[0])
+  return &buf[0]
 end

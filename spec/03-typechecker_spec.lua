@@ -105,7 +105,7 @@ end)
 it("auto type" , function()
   assert.ast_type_equals("local a: auto = 1", "local a: integer = 1")
   assert.ast_type_equals("local a: auto <comptime> = 1", "local a: integer <comptime> = 1")
-  assert.ast_type_equals("local a: auto = 's'", "local a: string = 's'")
+  assert.ast_type_equals("local a: auto = 's'", "local a: stringview = 's'")
   assert.ast_type_equals("local a: auto = @integer", "local a: type = @integer")
   assert.analyze_error("local b; local a: auto = b", "must be assigned to expressions where type is known ahead")
 end)
@@ -472,8 +472,8 @@ it("function definition", function()
     function f(a: integer) end
   ]])
   assert.analyze_ast([[
-    local f: function(integer): string
-    function f(a: integer): string return '' end
+    local f: function(integer): stringview
+    function f(a: integer): stringview return '' end
   ]])
   assert.analyze_error([[
     do
@@ -490,14 +490,14 @@ it("function definition", function()
   ]], "no viable type conversion")
   assert.analyze_error([[
     local function f(a: integer) end
-    function f(a: string) end
+    function f(a: stringview) end
   ]], "no viable type conversion")
   assert.analyze_error([[
-    local function f(): (integer, string) return 1, '' end
+    local function f(): (integer, stringview) return 1, '' end
     function f(): integer end
   ]], "no viable type conversion")
   assert.analyze_error([[
-    local f: function():(integer, string)
+    local f: function():(integer, stringview)
     function f(): integer end
   ]], "no viable type conversion")
 end)
@@ -578,7 +578,7 @@ it("function return", function()
     a = f()
   ]], "cannot assign to expressions of type 'void'")
   assert.analyze_error([[
-    local function f(): (integer, string) return 1 end
+    local function f(): (integer, stringview) return 1 end
   ]], "missing return expression at index")
   assert.analyze_error([[
     local function f(): integer end
@@ -595,16 +595,16 @@ it("function return", function()
     local function f(): integer return 1, 2 end
   ]], "invalid return expression at index")
   assert.analyze_error([[
-    local function f(): string return 0 end
+    local function f(): stringview return 0 end
   ]], "no viable type conversion")
 end)
 
 it("function multiple return", function()
   assert.analyze_ast([[
-    local function f(): (integer, string) return 1,'s'  end
-    local function g(a: boolean, b: integer, c: string) end
+    local function f(): (integer, stringview) return 1,'s'  end
+    local function g(a: boolean, b: integer, c: stringview) end
     g(false, f())
-    local a: integer, b: string = f()
+    local a: integer, b: stringview = f()
     local a: integer = f()
   ]])
   assert.analyze_ast([[
@@ -645,8 +645,8 @@ it("function multiple return", function()
     local a, b = g()
   ]],[[
     local function f() return true,1 end
-    local function g(): (string,boolean,integer) return 's', f() end
-    local a: string, b: boolean = g()
+    local function g(): (stringview,boolean,integer) return 's', f() end
+    local a: stringview, b: boolean = g()
   ]])
   assert.analyze_error([[
     local function f(): (integer, boolean) return 1,false  end
@@ -660,7 +660,7 @@ it("function multiple return", function()
   ]], 'is assigning to nothing in the expression')
   assert.analyze_error([[
     local function f(): (integer, boolean) return 1,false  end
-    local function g(a: boolean, b: integer, c: string) end
+    local function g(a: boolean, b: integer, c: stringview) end
     g(false, f())
   ]], 'no viable type conversion')
   assert.analyze_error([[
@@ -766,7 +766,7 @@ it("ranges", function()
   ]],[[
     local a: range(uint16) = 1_u8:2_u16
   ]])
-  assert.analyze_error([[local a: range(string) ]], 'is not an integral type')
+  assert.analyze_error([[local a: range(stringview) ]], 'is not an integral type')
 end)
 
 it("arrays", function()
@@ -897,12 +897,12 @@ it("records metamethods", function()
     local R = @record{}
     local r: R
     local x = #r
-  ]], "no metamethod")
+  ]], "invalid operation")
   assert.analyze_error([[
     local R = @record{}
     local r: R
     local x = r + r
-  ]], "no metamethod")
+  ]], "invalid operation")
 end)
 
 it("dependent functions resolution", function()
@@ -1052,7 +1052,7 @@ it("enums", function()
   assert.analyze_error([[
     local Enum = @enum{A=0,B=3}
     local e: Enum = Enum.A
-    local i: string = e
+    local i: stringview = e
   ]], "no viable type conversion")
   assert.analyze_error([[
     local Enum = @enum{A=0,B}
@@ -1246,7 +1246,7 @@ it("type construction", function()
   assert.analyze_ast("local a = (@integer)()")
   assert.analyze_ast("local a = (@integer)(0)")
   assert.analyze_ast("local a = (@boolean)(false)")
-  assert.analyze_ast("local a = (@string)('')")
+  assert.analyze_ast("local a = (@stringview)('')")
   assert.analyze_ast("local a = (@any)(nil)")
   assert.analyze_error("local a = (@integer)(1,2)", "expected at most 1 argument")
   assert.analyze_error("local a = (@integer)(false)", "no viable type conversion")
@@ -1270,7 +1270,7 @@ it("annotations", function()
 end)
 
 it("builtins", function()
-  assert.ast_type_equals("local x; local a = type(x)", "local x; local a: string = type(x)")
+  assert.ast_type_equals("local x; local a = type(x)", "local x; local a: stringview = type(x)")
   assert.ast_type_equals("local a = #@integer", "local a: integer = #@integer")
   assert.ast_type_equals("local a = likely(true)", "local a: boolean = likely(true)")
   assert.ast_type_equals("local a = unlikely(true)", "local a: boolean = unlikely(true)")
@@ -1308,7 +1308,7 @@ it("concepts", function()
       return x.type.is_integral
     end)]#
     local an_integer_array = #[concept(function(x)
-      return x.type:is_array_of(integer)
+      return x.type:is_array_of(primtypes.integer)
     end)]#
     local function f(x: an_integral) return x end
     local function g(x: an_integer_array) return #x end

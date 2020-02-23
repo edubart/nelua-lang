@@ -1,5 +1,6 @@
 local cdefs = require 'nelua.cdefs'
 local CEmitter = require 'nelua.cemitter'
+local primtypes = require 'nelua.typedefs'.primtypes
 
 local cbuiltins = {}
 
@@ -48,15 +49,6 @@ function builtins.nelua_noreturn(context)
 end
 
 -- string
-function builtins.nelua_string(context)
-  define_builtin(context, 'nelua_string',
-    [[typedef struct nelua_string_object {
-  intptr_t len;
-  char data[];
-} nelua_string_object;
-typedef nelua_string_object* nelua_string;
-]])
-end
 
 -- nil
 function builtins.nelua_nilable(context)
@@ -81,14 +73,14 @@ function builtins.nelua_panic_cstring(context)
 ]])
 end
 
-function builtins.nelua_panic_string(context)
-  context:ensure_runtime_builtin('nelua_string')
+function builtins.nelua_panic_stringview(context)
   context:ensure_runtime_builtin('nelua_panic_cstring')
   context:ensure_runtime_builtin('nelua_noreturn')
-  define_builtin(context, 'nelua_panic_string',
-    'static nelua_noreturn void nelua_panic_string(const nelua_string s);\n',
-    [[inline nelua_noreturn void nelua_panic_string(const nelua_string s) {
-  nelua_panic_cstring(s->data);
+  context:ctype(primtypes.stringview)
+  define_builtin(context, 'nelua_panic_stringview',
+    'static nelua_noreturn void nelua_panic_stringview(nelua_stringview s);\n',
+    [[inline nelua_noreturn void nelua_panic_stringview(nelua_stringview s) {
+  nelua_panic_cstring(s.data);
 }
 ]])
 end
@@ -107,27 +99,15 @@ function builtins.nelua_assert(context)
 ]])
 end
 
-function builtins.nelua_assert_cstring(context)
-  context:ensure_runtime_builtin('nelua_panic_cstring')
+function builtins.nelua_assert_stringview(context)
+  context:ensure_runtime_builtin('nelua_panic_stringview')
   context:ensure_runtime_builtin('nelua_unlikely')
-  define_builtin(context, 'nelua_assert_cstring',
-    'static void nelua_assert_cstring(bool cond, const char* s);\n',
-    [[inline void nelua_assert_cstring(bool cond, const char* s) {
+  context:ctype(primtypes.stringview)
+  define_builtin(context, 'nelua_assert_stringview',
+    'static void nelua_assert_stringview(bool cond, nelua_stringview s);\n',
+    [[inline void nelua_assert_stringview(bool cond, nelua_stringview s) {
   if(nelua_unlikely(!cond)) {
-    nelua_panic_cstring(s);
-  }
-}
-]])
-end
-
-function builtins.nelua_assert_string(context)
-  context:ensure_runtime_builtin('nelua_panic_string')
-  context:ensure_runtime_builtin('nelua_unlikely')
-  define_builtin(context, 'nelua_assert_string',
-    'static void nelua_assert_string(bool cond, const nelua_string s);\n',
-    [[inline void nelua_assert_string(bool cond, const nelua_string s) {
-  if(nelua_unlikely(!cond)) {
-    nelua_panic_string(s);
+    nelua_panic_stringview(s);
   }
 }
 ]])
@@ -146,57 +126,50 @@ function builtins.nelua_stderr_write_cstring(context)
 ]])
 end
 
-function builtins.nelua_stderr_write_string(context)
-  context:ensure_runtime_builtin('nelua_string')
+function builtins.nelua_stderr_write_stringview(context)
   context:ensure_runtime_builtin('nelua_stderr_write_cstring')
-  define_inline_builtin(context, 'nelua_stderr_write_string',
-    'void', '(const nelua_string s)', [[{
-  nelua_stderr_write_cstring(s->data);
+  context:ctype(primtypes.stringview)
+  define_inline_builtin(context, 'nelua_stderr_write_stringview',
+    'void', '(nelua_stringview s)', [[{
+  nelua_stderr_write_cstring(s.data);
 }]])
 end
 
 -- string
-function builtins.nelua_string_eq(context)
-  context:ensure_runtime_builtin('nelua_string')
+function builtins.nelua_stringview_eq(context)
   context:add_include('<string.h>')
-  define_inline_builtin(context,'nelua_string_eq',
-    'bool', '(const nelua_string a, const nelua_string b)', [[{
-  return a->len == b->len && memcmp(a->data, b->data, a->len) == 0;
+  context:ctype(primtypes.stringview)
+  define_inline_builtin(context,'nelua_stringview_eq',
+    'bool', '(nelua_stringview a, nelua_stringview b)', [[{
+  return a.size == b.size && (a.data == b.data || a.size == 0 || memcmp(a.data, b.data, a.size) == 0);
 }]])
 end
 
-function builtins.nelua_string_ne(context)
-  context:ensure_runtime_builtin('nelua_string')
-  context:ensure_runtime_builtin('nelua_string_eq')
-  define_inline_builtin(context, 'nelua_string_ne',
-    'bool', '(const nelua_string a, const nelua_string b)', [[{
-  return !nelua_string_eq(a, b);
+function builtins.nelua_stringview_ne(context)
+  context:ensure_runtime_builtin('nelua_stringview_eq')
+  define_inline_builtin(context, 'nelua_stringview_ne',
+    'bool', '(nelua_stringview a, nelua_stringview b)', [[{
+  return !nelua_stringview_eq(a, b);
 }]])
 end
 
-function builtins.nelua_cstring2string(context)
-  context:add_include('<stdlib.h>')
+function builtins.nelua_cstring2stringview(context)
   context:add_include('<string.h>')
-  context:ensure_runtime_builtin('nelua_string')
-  context:ensure_runtime_builtin('nelua_assert_cstring')
-  --TODO: free allocated strings
-  define_inline_builtin(context, 'nelua_cstring2string',
-    'nelua_string', '(const char *s)', [[{
-  nelua_assert_cstring(s != NULL, "NULL cstring while converting to string");
-  size_t slen = strlen(s);
-  nelua_string str = (nelua_string)malloc(sizeof(nelua_string_object) + slen+1);
-  str->len = slen;
-  memcpy(str->data, s, slen);
-  str->data[slen] = 0;
-  return str;
+  context:ctype(primtypes.stringview)
+  define_inline_builtin(context, 'nelua_cstring2stringview',
+    'nelua_stringview', '(const char *s)', [[{
+  if(s == NULL) return (nelua_stringview){0};
+  uintptr_t size = strlen(s);
+  if(size == 0) return (nelua_stringview){0};
+  return (nelua_stringview){s, size};
 }]])
 end
 
 -- runtime type
 function builtins.nelua_runtype(context)
-  context:ensure_runtime_builtin('nelua_string')
+  context:ctype(primtypes.stringview)
   define_builtin(context, 'nelua_runtype', [[typedef struct nelua_runtype {
-  nelua_string name;
+  nelua_stringview name;
 } nelua_runtype;
 ]])
 end
@@ -204,9 +177,10 @@ end
 function builtins.nelua_runtype_(context, typename)
   local name = 'nelua_runtype_' .. typename
   if context.usedbuiltins[name] then return name end
+  context:ctype(primtypes.stringview)
   context:ensure_runtime_builtin('nelua_runtype')
   context:ensure_runtime_builtin('nelua_static_string_', typename)
-  local code = string.format('static nelua_runtype %s = { (nelua_string)&nelua_static_string_%s };\n',
+  local code = string.format('static const nelua_runtype %s = { nelua_static_string_%s };\n',
     name,
     typename)
   define_builtin(context, name, code)
@@ -217,10 +191,11 @@ end
 function builtins.nelua_static_string_(context, s)
   local name = 'nelua_static_string_' .. s
   if context.usedbuiltins[name] then return name end
-  local len = #s
+  context:ctype(primtypes.stringview)
+  local size = #s
   local code = string.format(
-    'static const struct { uintptr_t len; char data[%d]; } %s = {%d,"%s"};\n',
-    len+1, name, len, s)
+    'static const nelua_stringview %s = {"%s", %d};\n',
+    name, s, size)
   define_builtin(context, name, code)
   return name
 end
@@ -245,7 +220,7 @@ function builtins.nelua_any(context)
     float _nelua_float32;
     double _nelua_float64;
     bool _nelua_boolean;
-    nelua_string _nelua_string;
+    nelua_stringview _nelua_stringview;
     char* _nelua_cstring;
     void* _nelua_pointer;
     char _nelua_cchar;
@@ -276,7 +251,7 @@ function builtins.nelua_any_to_(context, type)
   context:ensure_runtime_builtin('nelua_runtype_', typename)
   if type.is_boolean then
     context:ensure_runtime_builtin('nelua_runtype_', 'nelua_pointer')
-    define_inline_builtin(context, name, ctype, '(const nelua_any a)',
+    define_inline_builtin(context, name, ctype, '(nelua_any a)',
       string.format([[{
   if(a.type == &nelua_runtype_nelua_boolean) {
     return a.value._nelua_boolean;
@@ -289,7 +264,7 @@ function builtins.nelua_any_to_(context, type)
   else
     context:ensure_runtime_builtin('nelua_unlikely')
     context:ensure_runtime_builtin('nelua_panic_cstring')
-    define_inline_builtin(context, name, ctype, '(const nelua_any a)',
+    define_inline_builtin(context, name, ctype, '(nelua_any a)',
       string.format([[{
   if(nelua_unlikely(a.type != &nelua_runtype_%s)) {
     nelua_panic_cstring("type check fail");
@@ -309,13 +284,12 @@ function builtins.nelua_stdout_write_cstring(context)
 }]])
 end
 
-function builtins.nelua_stdout_write_string(context)
-  context:ensure_runtime_builtin('nelua_string')
+function builtins.nelua_stdout_write_stringview(context)
   context:add_include('<stdio.h>')
-  define_inline_builtin(context, 'nelua_stdout_write_string',
-    'void', '(const nelua_string s)', [[{
-  if(s && s->len > 0)
-    fwrite(s->data, s->len, 1, stdout);
+  define_inline_builtin(context, 'nelua_stdout_write_stringview',
+    'void', '(nelua_stringview s)', [[{
+  if(s.data && s.size > 0)
+    fwrite(s.data, s.size, 1, stdout);
 }]])
 end
 
@@ -380,7 +354,7 @@ function builtins.nelua_stdout_write_any(context)
   context:ensure_runtime_builtin('nelua_stdout_write_boolean')
   context:ensure_runtime_builtin('nelua_panic_cstring')
   define_inline_builtin(context, 'nelua_stdout_write_any',
-    'void', '(const nelua_any a)', [[{
+    'void', '(nelua_any a)', [[{
   if(a.type == &nelua_runtype_nelua_boolean) {
     nelua_stdout_write_boolean(a.value._nelua_boolean);
   } else if(a.type == &nelua_runtype_nelua_isize) {
@@ -587,8 +561,8 @@ end
 
 function operators.eq(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype.is_string and rtype.is_string then
-    emitter:add_builtin('nelua_string_eq')
+  if ltype.is_stringview and rtype.is_stringview then
+    emitter:add_builtin('nelua_stringview_eq')
     emitter:add('(', lname, ', ', rname, ')')
   else
     emitter:add(lname, ' == ', rname)
@@ -597,8 +571,8 @@ end
 
 function operators.ne(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype.is_string and rtype.is_string then
-    emitter:add_builtin('nelua_string_ne')
+  if ltype.is_stringview and rtype.is_stringview then
+    emitter:add_builtin('nelua_stringview_ne')
     emitter:add('(', lname, ', ', rname, ')')
   else
     emitter:add(lname, ' != ', rname)
@@ -621,7 +595,7 @@ cbuiltins.inlines = inlines
 function inlines.assert(context, node)
   local args = node:args()
   if #args == 2 then
-    return context:ensure_runtime_builtin('nelua_assert_string')
+    return context:ensure_runtime_builtin('nelua_assert_stringview')
   elseif #args == 1 then
     return context:ensure_runtime_builtin('nelua_assert')
   else
@@ -640,7 +614,7 @@ function inlines.print(context, node)
   decemitter:add('void ', funcname, '(')
   for i,argnode in ipairs(argnodes) do
     if i>1 then decemitter:add(', ') end
-    decemitter:add('const ', argnode.attr.type, ' a', i)
+    decemitter:add(argnode.attr.type, ' a', i)
   end
   decemitter:add_ln(');')
   context:add_declaration(decemitter:generate(), funcname)
@@ -650,7 +624,7 @@ function inlines.print(context, node)
   defemitter:add_indent('void ', funcname, '(')
   for i,argnode in ipairs(argnodes) do
     if i>1 then defemitter:add(', ') end
-    defemitter:add('const ', argnode.attr.type, ' a', i)
+    defemitter:add(argnode.attr.type, ' a', i)
   end
   defemitter:add(')')
 
@@ -668,12 +642,15 @@ function inlines.print(context, node)
     if argtype.is_any then
       defemitter:add_builtin('nelua_stdout_write_any')
       defemitter:add_ln('(a',i,');')
-    elseif argtype.is_string then
-      defemitter:add_builtin('nelua_stdout_write_string')
+    elseif argtype.is_stringview then
+      defemitter:add_builtin('nelua_stdout_write_stringview')
       defemitter:add_ln('(a',i,');')
     elseif argtype.is_cstring then
       defemitter:add_builtin('nelua_stdout_write_cstring')
       defemitter:add_ln('(a',i,');')
+    elseif argtype.is_string then
+      defemitter:add_builtin('nelua_stdout_write_stringview')
+      defemitter:add_ln('((nelua_stringview){(char*)&a',i,'.impl->data[0], a',i,'.impl->size});')
     elseif argtype.is_nil then
       defemitter:add_builtin('nelua_stdout_write_nil')
       defemitter:add_ln('();')
@@ -713,12 +690,13 @@ function inlines.type(_, node, emitter)
     typename = 'number'
   elseif type.is_nilptr then
     typename = 'pointer'
+  elseif type.is_stringview then
+    typename = 'string'
   elseif type.is_any then --luacov:disable
     node:raisef('type() for any values not implemented yet')
   else --luacov:enable
     typename = type.name
   end
-  emitter:add('(nelua_string)&')
   emitter:add_builtin('nelua_static_string_', typename)
   return nil
 end
@@ -732,15 +710,15 @@ function inlines.unlikely(context)
 end
 
 function inlines.error(context)
-  return context:ensure_runtime_builtin('nelua_panic_string')
+  return context:ensure_runtime_builtin('nelua_panic_stringview')
 end
 
 function inlines.warn(context)
-  return context:ensure_runtime_builtin('nelua_stderr_write_string')
+  return context:ensure_runtime_builtin('nelua_stderr_write_stringview')
 end
 
 function inlines.panic(context)
-  return context:ensure_runtime_builtin('nelua_panic_string')
+  return context:ensure_runtime_builtin('nelua_panic_stringview')
 end
 
 function inlines.require(context, node, emitter)

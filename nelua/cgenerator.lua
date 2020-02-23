@@ -301,9 +301,7 @@ end
 
 typevisitors[types.Type] = function(context, type)
   if type.nodecl or context:is_declared(type.codename) then return end
-  if type.is_string then
-    context:ensure_runtime_builtin('nelua_string')
-  elseif type.is_function then --luacov:disable
+  if type.is_function then --luacov:disable
     error('ctype for functions not implemented yet')
   elseif type.is_any then --luacov:enable
     context:ensure_runtime_builtin('nelua_any')
@@ -1130,7 +1128,7 @@ function visitors.FuncDef(context, node, emitter)
   end
 end
 
-function visitors.UnaryOp(context, node, emitter)
+function visitors.UnaryOp(_, node, emitter)
   local attr = node.attr
   if attr.comptime then
     emitter:add_literal(attr)
@@ -1139,15 +1137,11 @@ function visitors.UnaryOp(context, node, emitter)
   local opname, argnode = node:args()
   local op = cdefs.unary_ops[opname]
   assert(op)
-  if attr.calleesym then
-    visitor_Call(context, node, emitter, {}, nil, argnode)
-  else
-    local surround = not node.attr.inconditional
-    if surround then emitter:add('(') end
-    assert(traits.is_string(op))
-    emitter:add(op, argnode)
-    if surround then emitter:add(')') end
-  end
+  local surround = not node.attr.inconditional
+  if surround then emitter:add('(') end
+  assert(traits.is_string(op))
+  emitter:add(op, argnode)
+  if surround then emitter:add(')') end
 end
 
 function visitors.BinaryOp(context, node, emitter)

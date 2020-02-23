@@ -220,6 +220,12 @@ function preprocessor.preprocess(context, ast)
     if v ~= nil then
       return v
     end
+    if _G[key] ~= nil then
+      return _G[key]
+    end
+    if key == 'symbols' then
+      return ppcontext.context.scope.symbols
+    end
     local symbol = ppcontext.context.scope.symbols[key]
     if symbol then
       return symbol
@@ -232,10 +238,6 @@ function preprocessor.preprocess(context, ast)
         end
         ppcontext:add_statnode(aster.PragmaCall{key, tabler.pack(...)})
       end
-    elseif _G[key] ~= nil then
-      return _G[key]
-    elseif primtypes[key] then
-      return primtypes[key]
     else
       return nil
     end

@@ -49,7 +49,7 @@ it("print correct generated AST" , function()
     }
   }
 }]])
-  assert.run('--print-analyzed-ast examples/helloworld.nelua', [[type = "string"]])
+  assert.run('--print-analyzed-ast examples/helloworld.nelua', [[type = "stringview"]])
 end)
 
 it("print correct generated code", function()

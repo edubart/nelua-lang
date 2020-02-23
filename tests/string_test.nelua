@@ -1,0 +1,137 @@
+require 'string'
+
+do -- initialization, eq and reset
+  local arr: byte[6] = {0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00}
+  local a: string = (@cstring)(&arr[0])
+  local b: string = (@cstring)('hello')
+  assert(#a == 5 and #b == 5)
+  assert(a:len() == 5 and b:len() == 5)
+  assert(a == b)
+  local c: string = 'hello'
+  local d: string = (@cstring)('hello')
+  assert(a == c and a == d)
+  a:reset()
+  assert(#a == 0)
+  assert(not (a == b))
+  b:reset()
+  assert(a == b)
+  assert(#b == 0)
+  a = (@cstring)(nilptr)
+  assert(a == b)
+  assert('a' == 'a')
+end
+
+do -- operators < and <=
+  local a: string = '01'
+  local b: string = '11'
+  assert(not (a < a))
+  assert(a <= a)
+  assert(a < b and not (b < a))
+  assert(a <= b and not (b <= a))
+  b = '110'
+  assert(a < b and not (b < a))
+  assert(a <= b and not (b <= a))
+  b = '010'
+  assert(a < b and not (b < a))
+  assert(a <= b and not (b <= a))
+  b = a
+  assert(not (a < b) and not (b < a))
+  assert(a <= b and b <= a)
+  local e: string
+  assert(not (a < e) and e < a)
+  assert(not (a <= e) and e <= a)
+  assert('a' < 'b')
+  assert('a' <= 'a')
+end
+
+do -- concat
+  local a: string = 'ab'
+  local b: string = 'cd'
+  local c = a .. b
+  assert(#c == 4)
+  assert(c == 'abcd')
+  assert('abcd' == c)
+  local e: string
+  assert((a .. e) == a)
+  assert((e .. a) == a)
+  assert((e .. e) == e)
+  assert('a'..'b' == 'ab')
+end
+
+do -- byte
+  local arr: byte[4] = {1,2,3,0}
+  local a: string = (@cstring)(&arr[0])
+  assert(a:byte( 1) == 1 and a:byte( 2) == 2 and a:byte( 3) == 3)
+  assert(a:byte(-3) == 1 and a:byte(-2) == 2 and a:byte(-1) == 3)
+end
+
+do -- sub
+  local a: string = 'hello'
+  assert(a:sub(1,5) == a)
+  assert(a:sub(2,4) == 'ell')
+  assert(a:sub(-4,-2) == 'ell')
+  assert(a:sub(2,10) == 'ello')
+  assert(a:sub(10,1) == '')
+  assert(a:sub(-10,1) == 'h')
+  assert(a:sub(-10,10) == 'hello')
+  assert(a:sub(-10,-6) == '')
+  assert(a:sub(-10,-5) == 'h')
+  local e: string
+  assert(e:sub(1,2) == e)
+  assert(e:sub(-10,10) == e)
+end
+
+do -- rep
+  local a: string = 'hi'
+  assert(a:rep(-1) == '')
+  assert(a:rep(0) == '')
+  assert(a:rep(1) == a)
+  assert(a:rep(2) == 'hihi')
+  assert(a:rep(3) == 'hihihi')
+  local e: string
+  assert(e:rep(2) == e)
+  assert(e:rep(3) == e)
+end
+
+do -- reverse
+  local a: string = 'hello'
+  assert(a:reverse() == 'olleh')
+  local e: string
+  assert(e:reverse() == e)
+end
+
+do -- upper and lower
+  local a: string = 'hello1234'
+  local b: string = 'HELLO1234'
+  assert(a:upper() == 'HELLO1234')
+  assert(b:upper() == 'HELLO1234')
+  assert(a:lower() == 'hello1234')
+  assert(b:lower() == 'hello1234')
+  local e: string
+  assert(e:upper() == e)
+  assert(e:lower() == e)
+end
+
+do -- arithmetic operators
+  assert('2' + '3' == 5.0)
+  assert('2' - '3' == -1.0)
+  assert('2' * '3' == 6.0)
+  assert('2' / '3' == 2.0/3.0)
+  assert('2' // '3' == 0.0)
+  assert('2' % '3' == 2.0)
+  assert('2' ^ '3' == 8.0)
+  assert(-'2' == -2.0)
+  assert('2' & '3' == 2)
+  assert('2' | '1' == 3)
+  assert('2' ~ '3' == 1)
+  assert('2' << '3' == 16)
+  assert('2' >> '1' == 1)
+  assert(~'2' == -3)
+end
+
+do -- print
+  print('hello')
+  local s: string = 'world'
+  print(s)
+  print((@cstring)('!'))
+end

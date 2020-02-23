@@ -109,13 +109,13 @@ function CEmitter:add_any2type(type, anyval)
   self:add('(', anyval, ')')
 end
 
-function CEmitter:add_string2cstring(val)
-  self:add('(', val, ')->data')
+function CEmitter:add_stringview2cstring(val)
+  self:add(val, '.data')
 end
 
-function CEmitter:add_cstring2string(val)
+function CEmitter:add_cstring2stringview(val)
   --TODO: free allocated strings using reference counting
-  self:add_builtin('nelua_cstring2string')
+  self:add_builtin('nelua_cstring2stringview')
   self:add('(', val, ')')
 end
 
@@ -148,10 +148,10 @@ function CEmitter:add_val2type(type, val, valtype)
       self:add_val2boolean(val, valtype)
     elseif valtype.is_any then
       self:add_any2type(type, val)
-    elseif type.is_cstring and valtype.is_string then
-      self:add_string2cstring(val)
-    elseif type.is_string and valtype.is_cstring then
-      self:add_cstring2string(val)
+    elseif type.is_cstring and valtype.is_stringview then
+      self:add_stringview2cstring(val)
+    elseif type.is_stringview and valtype.is_cstring then
+      self:add_cstring2stringview(val)
     elseif type.is_pointer and traits.is_astnode(val) and val.attr.autoref then
       -- automatic reference
       self:add('&', val)
@@ -220,19 +220,18 @@ function CEmitter:add_numeric_literal(valattr, valtype)
 end
 
 function CEmitter:add_string_literal(val)
-  local varname = self.context.stringliterals[val]
+  local varname = self.context.stringviewerals[val]
   if varname then
-    self:add('((const ', primtypes.string, ')&', varname, ')')
+    self:add(varname)
     return
   end
   varname = self.context:genuniquename('strlit')
-  self.context.stringliterals[val] = varname
+  self.context.stringviewerals[val] = varname
   local decemitter = CEmitter(self.context)
-  local len = #val
+  local size = #val
   local quoted_value = pegger.double_quote_c_string(val)
-  decemitter:add_indent('static const struct { uintptr_t len; char data[', len + 1, ']; }')
-  decemitter:add_indent_ln(' ', varname, ' = {', len, ', ', quoted_value, '};')
-  self:add('((const ', primtypes.string, ')&', varname, ')')
+  decemitter:add_indent_ln('static const ', primtypes.stringview, ' ', varname, ' = {', quoted_value, ', ', size, '};')
+  self:add(varname)
   self.context:add_declaration(decemitter:generate(), varname)
 end
 
@@ -242,7 +241,7 @@ function CEmitter:add_literal(valattr)
     self:add_booleanlit(valattr.value)
   elseif valtype.is_arithmetic then
     self:add_numeric_literal(valattr)
-  elseif valtype.is_string then
+  elseif valtype.is_stringview then
     self:add_string_literal(valattr.value)
   --elseif valtype.is_record then
     --self:add(valattr)

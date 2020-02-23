@@ -184,7 +184,7 @@ function math.tointeger(x: is_arithmetic) <inline,nosideeffect>
   ## end
 end
 
-function math.type(x: is_arithmetic) <inline,nosideeffect>
+function math.type(x: is_arithmetic): stringview <inline,nosideeffect>
   ## if x.type.is_float then
     return 'float'
   ## elseif x.type.is_integral then

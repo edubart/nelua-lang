@@ -58,7 +58,7 @@ function visitors.String(_, node)
   if literal then
     node:raisef("custom string literals are not supported yet")
   end
-  attr.type = primtypes.string
+  attr.type = primtypes.stringview
   attr.value = value
   attr.literal = true
   attr.comptime = true
@@ -82,6 +82,63 @@ function visitors.Nil(_, node)
   attr.literal = true
 end
 
+local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype)
+  if not vartype or not valtype then
+    return valnode, valtype
+  end
+  local objsym
+  local mtname
+  local varobjtype = vartype:auto_deref_type()
+  local valobjtype = valtype:auto_deref_type()
+  local objtype
+  if valobjtype.is_record then
+    if vartype.is_cstring then
+      objtype = valobjtype
+      mtname = '__tocstring'
+    elseif vartype.is_string then
+      objtype = valobjtype
+      mtname = '__tostring'
+    elseif vartype.is_stringview then
+      objtype = valobjtype
+      mtname = '__tostringview'
+    end
+  end
+  if not objtype then
+    objtype = varobjtype
+    mtname = '__convert'
+  end
+  if not (valtype and objtype and objtype.is_record and vartype ~= valtype) then
+    -- convert cannot be overridden
+    return valnode, valtype
+  end
+  if valtype:is_pointer_of(vartype) or vartype:is_pointer_of(valtype) then
+    -- ignore automatic deref/ref
+    return valnode, valtype
+  end
+  if valtype.is_nilptr and vartype.is_pointer then
+    return valnode, valtype
+  end
+  local mtsym = objtype:get_metafield(mtname)
+  if not mtsym then
+    return valnode, valtype
+  end
+  objsym = objtype.symbol
+  assert(objsym)
+  local n = context.parser.astbuilder.aster
+  local idnode = n.Id{objsym.name}
+  local pattr = Attr{foreignsymbol=objsym}
+  idnode.attr:merge(pattr)
+  idnode.pattr = pattr
+  local newvalnode = n.Call{{valnode}, n.DotIndex{mtname, idnode}}
+  newvalnode.srcname = valnode.srcname
+  newvalnode.src = valnode.src
+  newvalnode.pos = valnode.pos
+  parent[parentindex] = newvalnode
+  context:traverse_node(newvalnode)
+  return newvalnode, newvalnode.attr.type
+end
+
+
 local function visitor_Array_literal(context, node, littype)
   local attr = node.attr
   local childnodes = node[1]
@@ -90,13 +147,14 @@ local function visitor_Array_literal(context, node, littype)
   if not (#childnodes == littype.length or #childnodes == 0) then
     node:raisef("expected %d values in array literal but got %d", littype.length, #childnodes)
   end
-  for i, childnode in ipairs(childnodes) do
+  for i,childnode in ipairs(childnodes) do
     if childnode.tag == 'Pair' then
       childnode:raisef("fields are disallowed for array literals")
     end
     childnode.desiredtype = subtype
     context:traverse_node(childnode)
     local childtype = childnode.attr.type
+    childnode, childtype = visitor_convert(context, childnodes, i, subtype, childnode, childtype)
     if childtype then
       if not childtype:is_initializable_from_attr(childnode.attr) then
         comptime = nil
@@ -119,7 +177,8 @@ local function visitor_Record_literal(context, node, littype)
   local childnodes = node[1]
   local comptime = true
   local lastfieldindex = 0
-  for _, childnode in ipairs(childnodes) do
+  for i, childnode in ipairs(childnodes) do
+    local parent, parentindex
     local fieldname, fieldvalnode, field, fieldindex
     if childnode.tag == 'Pair' then
       fieldname, fieldvalnode = childnode[1], childnode[2]
@@ -127,6 +186,8 @@ local function visitor_Record_literal(context, node, littype)
         childnode:raisef("only string literals are allowed in record's field names")
       end
       field, fieldindex = littype:get_field(fieldname)
+      parent = childnode
+      parentindex = 2
     else
       fieldindex = lastfieldindex + 1
       field = littype.fields[fieldindex]
@@ -136,6 +197,8 @@ local function visitor_Record_literal(context, node, littype)
       end
       fieldname = field.name
       fieldvalnode = childnode
+      parent = childnodes
+      parentindex = i
     end
     if not field then
       childnode:raisef("field '%s' is not present in record '%s'",
@@ -144,8 +207,9 @@ local function visitor_Record_literal(context, node, littype)
     local fieldtype = field.type
     fieldvalnode.desiredtype = fieldtype
     context:traverse_node(fieldvalnode)
-    lastfieldindex = fieldindex
     local fieldvaltype = fieldvalnode.attr.type
+    fieldvalnode, fieldvaltype = visitor_convert(context, parent, parentindex, fieldtype, fieldvalnode, fieldvaltype)
+    lastfieldindex = fieldindex
     if fieldvaltype then
       if not fieldvaltype:is_initializable_from_attr(fieldvalnode.attr) then
         comptime = nil
@@ -542,7 +606,7 @@ function visitors.GenericType(context, node)
   local name, argnodes = node[1], node[2]
   if attr.type then return end
   local symbol = context.scope:get_symbol(name)
-  if not symbol or not symbol.type or not symbol.type.is_type or symbol.type.is_generic then
+  if not symbol or not symbol.type or not symbol.type.is_type or not symbol.value.is_generic then
     node:raisef("symbol '%s' doesn't hold a generic type", name)
   end
   local params = {}
@@ -706,54 +770,6 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
   attr.typeassertion = true
   attr.type = type
   attr.calleetype = primtypes.type
-end
-
-local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype)
-  if not vartype or not valtype then
-    return valnode, valtype
-  end
-  local objsym
-  local mtname
-  local objtype = vartype:auto_deref_type()
-  local valobjtype = valtype:auto_deref_type()
-  if vartype.is_cstring and valobjtype.is_record then
-    objtype = valobjtype
-    mtname = '__tocstring'
-  elseif vartype.is_string and valobjtype.is_record then
-    objtype = valobjtype
-    mtname = '__tostring'
-  else
-    mtname = '__convert'
-  end
-  if not (valtype and objtype and objtype.is_record and vartype ~= valtype) then
-    -- convert cannot be overridden
-    return valnode, valtype
-  end
-  if valtype:is_pointer_of(vartype) or vartype:is_pointer_of(valtype) then
-    -- ignore automatic deref/ref
-    return valnode, valtype
-  end
-  if valtype.is_nilptr and vartype.is_pointer then
-    return valnode, valtype
-  end
-  local mtsym = objtype:get_metafield(mtname)
-  if not mtsym then
-    return valnode, valtype
-  end
-  objsym = objtype.symbol
-  assert(objsym)
-  local n = context.parser.astbuilder.aster
-  local idnode = n.Id{objsym.name}
-  local pattr = Attr{foreignsymbol=objsym}
-  idnode.attr:merge(pattr)
-  idnode.pattr = pattr
-  local newvalnode = n.Call{{valnode}, n.DotIndex{mtname, idnode}}
-  newvalnode.srcname = valnode.srcname
-  newvalnode.src = valnode.src
-  newvalnode.pos = valnode.pos
-  parent[parentindex] = newvalnode
-  context:traverse_node(newvalnode)
-  return newvalnode, newvalnode.attr.type
 end
 
 local function visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)
@@ -946,9 +962,6 @@ function visitors.CallMethod(context, node)
         node:raisef("cannot index record meta field '%s'", name)
       end
       calleetype = calleesym.type
-    elseif calleetype.is_string then
-      --TODO: string methods
-      calleetype = primtypes.any
     elseif calleetype.is_any then
       calleetype = primtypes.any
     end
@@ -1826,8 +1839,32 @@ local overridable_operators = {
   ['pow'] = true,
   ['mod'] = true,
   ['len'] = true,
-  ['unm'] = true
+  ['unm'] = true,
+  ['bnot'] = true,
 }
+
+local function override_unary_op(context, node, opname, objnode, objtype)
+  objtype = objtype:auto_deref_type()
+  if not overridable_operators[opname] or not objtype.is_record then return end
+  local mtname = '__' .. opname
+  local mtsym = objtype:get_metafield(mtname)
+  if not mtsym then
+    return
+  end
+
+  -- transform into call
+  local n = context.parser.astbuilder.aster
+  local objsym = objtype.symbol
+  assert(objsym)
+  local idnode = n.Id{objsym.name}
+  local pattr = Attr{foreignsymbol=objsym}
+  idnode.attr:merge(pattr)
+  idnode.pattr = pattr
+  local newnode = n.Call{{objnode}, n.DotIndex{mtname, idnode}}
+  node:transform(newnode)
+  context:traverse_node(node)
+  return true
+end
 
 function visitors.UnaryOp(context, node)
   local attr = node.attr
@@ -1846,31 +1883,18 @@ function visitors.UnaryOp(context, node)
   local argtype = argattr.type
   local type
   if argtype then
-    local overridden = false
-    if overridable_operators[opname] then
-      local objtype = argtype:auto_deref_type()
-      if objtype.is_record then
-        local mtname = '__' .. opname
-        local mtsym = objtype:get_metafield(mtname)
-        if mtsym then
-          visitor_Call(context, node, {}, mtsym.type, mtsym, argnode)
-          overridden = true
-        else
-          argnode:raisef("no metamethod `%s` for record '%s'", mtname, objtype:prettyname())
-        end
-      end
+    if override_unary_op(context, node, opname, argnode, argtype) then
+      return
     end
-    if not overridden then
-      local value, err
-      type, value, err = argtype:unary_operator(opname, argattr)
-      if err then
-        argnode:raisef("in unary operation `%s`: %s", opname, err)
-      end
-      if value ~= nil then
-        attr.comptime = true
-        attr.value = value
-        attr.untyped = argattr.untyped or not argattr.comptime
-      end
+    local value, err
+    type, value, err = argtype:unary_operator(opname, argattr)
+    if err then
+      argnode:raisef("in unary operation `%s`: %s", opname, err)
+    end
+    if value ~= nil then
+      attr.comptime = true
+      attr.value = value
+      attr.untyped = argattr.untyped or not argattr.comptime
     end
   elseif opname == 'not' then
     type = primtypes.boolean
@@ -1890,15 +1914,18 @@ end
 
 local function override_binary_op(context, node, opname, lnode, rnode, ltype, rtype)
   if not overridable_operators[opname] then return end
-  if not (ltype.is_record or rtype.is_record) then return end
-  local objtype, objnode, argnode = ltype, lnode, rnode
-  if not ltype.is_record then
+  local objtype, objnode, argnode, mtsym
+  local mtname = '__' .. opname
+  if ltype.is_record then
+    mtsym = ltype:get_metafield(mtname)
+    objtype, objnode, argnode = ltype, lnode, rnode
+  end
+  if not mtsym and rtype.is_record then
+    mtsym = rtype:get_metafield(mtname)
     objtype, objnode, argnode = rtype, rnode, lnode
   end
-  local mtname = '__' .. opname
-  local mtsym = objtype:get_metafield(mtname)
   if not mtsym then
-    argnode:raisef("no metamethod `%s` for record '%s'", mtname, objtype:prettyname())
+    return
   end
 
   -- transform into call

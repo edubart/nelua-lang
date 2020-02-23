@@ -799,8 +799,8 @@ it("binary operator `concat`", function()
 end)
 
 it("string comparisons", function()
-  assert.generate_c("local a,b = 'a','b'; local x = a == b", "nelua_string_eq(a, b)")
-  assert.generate_c("local a,b = 'a','b'; local x = a ~= b", "nelua_string_ne(a, b)")
+  assert.generate_c("local a,b = 'a','b'; local x = a == b", "nelua_stringview_eq(a, b)")
+  assert.generate_c("local a,b = 'a','b'; local x = a ~= b", "nelua_stringview_ne(a, b)")
   assert.run_c([[
     assert('a' == 'a')
     assert(not ('a' ~= 'a'))
@@ -1041,7 +1041,7 @@ it("any type", function()
   ]], "1\n2")
   assert.run_error_c([[
     local a: any = 1
-    local b: string = a
+    local b: stringview = a
   ]], "type check fail")
 end)
 
@@ -1051,9 +1051,19 @@ it("cstring and string conversions", function()
     print(a)
     local b: cstring = a
     print(b)
-    local c: string = (@string)(b)
-    print(c)
-  ]], "hello\nhello\nhello")
+
+    do
+      local c: cstring = 'hello'
+      local s: stringview = (@stringview)(c)
+      assert(s.data == c)
+    end
+
+    do
+      local s: stringview = 'hello'
+      local c: cstring = (@cstring)(s)
+      assert(s.data == c)
+    end
+  ]], "hello\nhello")
 end)
 
 it("ranges", function()
@@ -1326,7 +1336,7 @@ it("record metametods", function()
     local R = @record {
       x: integer[2]
     }
-    ## R.value.choose_braces_type = function() return types.ArrayType(nil, integer, 2) end
+    ## R.value.choose_braces_type = function() return types.ArrayType(nil, primtypes.integer, 2) end
     function R.__convert(x: auto): R
       local self: R
       self.x = x
@@ -1341,12 +1351,12 @@ it("record string conversions", function()
   assert.run_c([[
     local R = @record{x: integer}
     function R:__tocstring(): cstring return (@cstring)('R') end
-    function R:__tostring(): string return 'R' end
+    function R:__tostringview(): stringview return 'R' end
     local r: R
-    local s: string = r
+    local s: stringview = r
     assert(s == 'R')
     local cs: cstring = r
-    assert((@string)(cs) == 'R')
+    assert((@stringview){cs,1} == 'R')
   ]])
 end)
 
@@ -1714,7 +1724,7 @@ end)
 it("print builtin", function()
   assert.run_c([[
     print(1,0.2,1e2,0xf,0b01)
-    local i: integer, s: string, n: nilable
+    local i: integer, s: stringview, n: nilable
     print(i, s, n)
   ]],
     '1\t0.200000\t100.000000\t15\t1\n' ..
@@ -1767,7 +1777,7 @@ it("assert builtin", function()
     "nelua_assert(true)")
   assert.generate_c(
     "assert(true, 'assertion')",
-    'nelua_assert_string(true, ')
+    'nelua_assert_stringview(true, ')
   assert.run_c([[
     assert(true)
     assert(true, 'assertion')

@@ -196,7 +196,7 @@ end)
 it("print types", function()
   assert.ast_type_equals([[
     local n: float64
-    local s: string
+    local s: stringview
     local b: boolean
     local a: int64[2]
     local function f(a: int64, b: int64): (int64, int64) return 0,0 end
@@ -214,7 +214,7 @@ it("print types", function()
     local tr = #[tostring(r.type)]#
   ]], [=[
     local n: float64
-    local s: string
+    local s: stringview
     local b: boolean
     local a: int64[2]
     local function f(a: int64, b: int64): (int64, int64) return 0,0 end
@@ -223,13 +223,13 @@ it("print types", function()
     global R.v: integer = 1
     local r: R
     local tn = 'float64'
-    local ts = 'string'
+    local ts = 'stringview'
     local tb = 'boolean'
     local ta = 'array(int64, 2)'
     local tf = 'function(int64, int64): (int64, int64)'
     local tR = 'type'
     local tRmt = 'metatype{foo: function(pointer(R)): int64, v: int64}'
-    local tr = 'record{a:int64, b:int64}'
+    local tr = 'R'
   ]=])
 end)
 
@@ -466,11 +466,13 @@ end)
 
 it("preprocessor replacement", function()
   assert.ast_type_equals([=[
-  local s = #[string]#
-  local t = #[table]#
-  local ty = #[type]#
-  local n = #[number]#
+  require 'string'
+  local s = #[symbols.string]#
+  local t = #[primtypes.table]#
+  local ty = #[primtypes.type]#
+  local n = #[primtypes.number]#
 ]=],[=[
+  require 'string'
   local s = @string
   local t = @table
   local ty = @type
@@ -577,7 +579,7 @@ it("hygienic macros", function()
 ## end)
 
 do
-  local PointInt = #[point(integer)]#
+  local PointInt = #[point(primtypes.integer)]#
   local a: PointInt = {1,2}
 end
 ]=],[=[

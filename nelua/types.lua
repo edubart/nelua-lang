@@ -180,6 +180,7 @@ function Type:is_contiguous_of(type)
 end
 
 function Type:__tostring()
+  if self.nick then return self.nick end
   return self.name
 end
 
@@ -377,70 +378,6 @@ end
 
 NilptrType.unary_operators['not'] = function()
   return primtypes.boolean, true
-end
-
---------------------------------------------------------------------------------
-local StringType = typeclass()
-types.StringType = StringType
-StringType.is_string = true
-StringType.is_primitive = true
-StringType.maxfieldsize = cpusize
-
-function StringType:_init(name, size)
-  Type._init(self, name, size)
-end
-
-function StringType:is_convertible_from_type(type, explicit)
-  if explicit and self.is_string and type.is_cstring then
-    -- explicit cstring to string cast
-    return self
-  end
-  return Type.is_convertible_from_type(self, type, explicit)
-end
-
-StringType.unary_operators.len = function(_, lattr)
-  local lval = lattr.value
-  local reval
-  if lval then
-    reval = bn.new(#lval)
-  end
-  return primtypes.isize, reval
-end
-
-local function make_string_cmp_opfunc(cmpfunc)
-  return function(_, rtype, lattr, rattr)
-    if rtype.is_string then
-      local reval
-      local lval, rval = lattr.value, rattr.value
-      if lval and rval then
-        reval = cmpfunc(lval, rval)
-      end
-      return primtypes.boolean, reval
-    end
-  end
-end
-
-StringType.binary_operators.le = make_string_cmp_opfunc(function(a,b)
-  return a<=b
-end)
-StringType.binary_operators.ge = make_string_cmp_opfunc(function(a,b)
-  return a>=b
-end)
-StringType.binary_operators.lt = make_string_cmp_opfunc(function(a,b)
-  return a<b
-end)
-StringType.binary_operators.gt = make_string_cmp_opfunc(function(a,b)
-  return a>b
-end)
-StringType.binary_operators.concat = function(ltype, rtype, lattr, rattr)
-  if rtype.is_string then
-    local reval
-    local lval, rval = lattr.value, rattr.value
-    if lval and rval then
-      reval = lval .. rval
-    end
-    return ltype, reval
-  end
 end
 
 --------------------------------------------------------------------------------
@@ -926,6 +863,7 @@ function ArrayType:_init(node, subtype, length)
   Type._init(self, 'array', size, node)
   self.subtype = subtype
   self.length = length
+  self.maxfieldsize = subtype.size
   self.codename = string.format('%s_arr%d', subtype.codename, length)
 end
 
@@ -937,6 +875,7 @@ function ArrayType:is_equal(type)
 end
 
 function ArrayType:__tostring()
+  if self.nick then return self.nick end
   return sstream(self.name, '(', self.subtype, ', ', self.length, ')'):tostring()
 end
 
@@ -981,6 +920,7 @@ function EnumType:get_field(name)
 end
 
 function EnumType:__tostring()
+  if self.nick then return self.nick end
   local ss = sstream('enum(', self.subtype, '){')
   for i,field in ipairs(self.fields) do
     if i > 1 then ss:add(', ') end
@@ -1045,6 +985,7 @@ function FunctionType:get_return_count()
 end
 
 function FunctionType:__tostring()
+  if self.nick then return self.nick end
   local ss = sstream(self.name, '(', self.argtypes, ')')
   if self.returntypes and #self.returntypes > 0 then
     ss:add(': ')
@@ -1201,6 +1142,7 @@ function RecordType:is_equal(type)
 end
 
 function RecordType:__tostring()
+  if self.nick then return self.nick end
   local ss = sstream('record{')
   for i,field in ipairs(self.fields) do
     if i > 1 then ss:add(', ') end
@@ -1299,7 +1241,7 @@ function PointerType:is_convertible_from_type(type, explicit)
       return self
     end
   end
-  if self.is_cstring and type.is_string then
+  if type.is_stringview then
     return self
   elseif type.is_nilptr then
     return self
@@ -1335,6 +1277,7 @@ function PointerType:auto_deref_type()
 end
 
 function PointerType:__tostring()
+  if self.nick then return self.nick end
   if not self.subtype.is_void then
     local subtypenick = self.subtype.nick or self.subtype.name
     return sstream(self.name, '(', subtypenick, ')'):tostring()
@@ -1345,6 +1288,79 @@ end
 
 function PointerType.has_pointer()
   return true
+end
+
+--------------------------------------------------------------------------------
+local StringViewType = typeclass(RecordType)
+types.StringViewType = StringViewType
+StringViewType.is_stringview = true
+StringViewType.is_primitive = true
+StringViewType.maxfieldsize = cpusize
+
+function StringViewType:_init(name, size)
+  local fields = {
+    {name = 'data', type = primtypes.cstring},
+    {name = 'size', type = primtypes.usize}
+  }
+  RecordType._init(self, nil, fields)
+  self.name = 'stringview'
+  self.nick = 'stringview'
+  self.codename = 'nelua_stringview'
+  self.metatype = MetaType()
+  Type._init(self, name, size)
+end
+
+function StringViewType:is_convertible_from_type(type, explicit)
+  if explicit and self.is_stringview and type.is_cstring then
+    -- explicit cstring to string cast
+    return self
+  end
+  return Type.is_convertible_from_type(self, type, explicit)
+end
+
+StringViewType.unary_operators.len = function(_, lattr)
+  local lval = lattr.value
+  local reval
+  if lval then
+    reval = bn.new(#lval)
+  end
+  return primtypes.isize, reval
+end
+
+local function make_string_cmp_opfunc(cmpfunc)
+  return function(_, rtype, lattr, rattr)
+    if rtype.is_stringview then
+      local reval
+      local lval, rval = lattr.value, rattr.value
+      if lval and rval then
+        reval = cmpfunc(lval, rval)
+      end
+      return primtypes.boolean, reval
+    end
+  end
+end
+
+StringViewType.binary_operators.le = make_string_cmp_opfunc(function(a,b)
+  return a<=b
+end)
+StringViewType.binary_operators.ge = make_string_cmp_opfunc(function(a,b)
+  return a>=b
+end)
+StringViewType.binary_operators.lt = make_string_cmp_opfunc(function(a,b)
+  return a<b
+end)
+StringViewType.binary_operators.gt = make_string_cmp_opfunc(function(a,b)
+  return a>b
+end)
+StringViewType.binary_operators.concat = function(ltype, rtype, lattr, rattr)
+  if rtype.is_stringview then
+    local reval
+    local lval, rval = lattr.value, rattr.value
+    if lval and rval then
+      reval = lval .. rval
+    end
+    return ltype, reval
+  end
 end
 
 --------------------------------------------------------------------------------
@@ -1359,7 +1375,6 @@ function RangeType:_init(node, subtype)
   }
   RecordType._init(self, node, fields)
   self.name = 'range'
-  self.fields = fields
   self.codename = subtype.codename .. '_range'
   self.metatype = MetaType()
   self.subtype = subtype
@@ -1372,6 +1387,7 @@ function RangeType:is_equal(type)
 end
 
 function RangeType:__tostring()
+  if self.nick then return self.nick end
   return sstream(self.name, '(', self.subtype, ')'):tostring()
 end
 

@@ -50,14 +50,6 @@ end
 function PPContext:tovalue(val, orignode)
   local node
   local aster = self.context.parser.astbuilder.aster
-  local primtypes = require 'nelua.typedefs'.primtypes
-  if val == table then
-    val = primtypes.table
-  elseif val == string then
-    val = primtypes.string
-  elseif val == type then
-    val = primtypes.type
-  end
   if traits.is_astnode(val) then
     node = val
   elseif traits.is_type(val) then
