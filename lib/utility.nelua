@@ -1,0 +1,12 @@
+local function memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport'memcpy',cinclude'<string.h>',nodecl> end
+
+local is_pointer = #[concept(function(x) return x.type.is_pointer end)]#
+
+global function move(a: is_pointer) <inline>
+  local T: type = #[a.type.subtype]#
+  local ret: T <noinit>
+  memcpy(&ret, a, #T)
+  memset(a, 0, #T)
+  return ret
+end

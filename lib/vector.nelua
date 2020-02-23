@@ -8,6 +8,7 @@
 -- thus by default there is no need to manually reset the vector.
 
 require 'memory'
+require 'utility'
 
 ## local make_vector = generalize(function(T, allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
@@ -59,7 +60,9 @@ require 'memory'
     self.data = allocator.spanrealloc0(self.data, n)
   end
 
-  -- Resizes the vector so that it contains `n` elements assigned to `v`.
+  -- Resizes the vector so that it contains `n` elements.
+  -- When expanding new elements are zero initialized.
+  -- When shrinking removed elements are destroyed.
   function VectorT:resize(n: usize <autocast>, v: T)
     if n <= self.size then return end
     self:reserve(n)
@@ -75,7 +78,7 @@ require 'memory'
     if unlikely(newsize > self.data.size) then
       self:_grow()
     end
-    self.data[self.size] = v
+    self.data[self.size] = move(&v)
     self.size = newsize
   end
 
@@ -84,9 +87,7 @@ require 'memory'
   function VectorT:pop(): T
     check(self.size > 0, 'vector.pop: length is 0')
     self.size = self.size - 1
-    local ret: T = self.data[self.size]
-    self.data[self.size] = (@T)()
-    return ret
+    return move(&self.data[self.size])
   end
 
   -- Inserts element `v` at position `pos` in the vector.
@@ -101,7 +102,7 @@ require 'memory'
       memory.move(&self.data[pos + 1], &self.data[pos], (self.size - pos) * #T)
       memory.zero(&self.data[pos], #T)
     end
-    self.data[pos] = v
+    self.data[pos] = move(&v)
     self.size = self.size + 1
   end
 
@@ -110,8 +111,8 @@ require 'memory'
   -- If the `pos` is out of range, then throws a runtime error.
   function VectorT:remove(pos: usize <autocast>): T
     check(pos < self.size, 'vector.remove: position out of bounds')
-    local ret: T = self.data[pos]
     self.size = self.size - 1
+    local ret: T = move(&self.data[pos])
     memory.move(&self.data[pos], &self.data[pos+1], (self.size - pos) * #T)
     memory.zero(&self.data[self.size], #T)
     return ret

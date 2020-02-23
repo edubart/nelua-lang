@@ -1,0 +1,12 @@
+
+-- global
+do
+  local Obj: @record { x: integer }
+  function Obj:__copy(o: Obj*)
+    self.x = o.x + 1
+  end
+  function Obj:__destroy()
+    self.x
+  end
+  local a = move(a)
+end

@@ -33,7 +33,7 @@ function memory.set(dest: pointer, x: byte, size: usize)
 end
 
 function memory.zero(dest: pointer, size: usize)
-  check(dest, 'memory.set: invalid pointer')
+  check(dest, 'memory.zero: invalid pointer')
   memset(dest, 0, size)
 end
 
