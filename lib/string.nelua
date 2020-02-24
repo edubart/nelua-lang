@@ -33,7 +33,7 @@ do ##[[
 function string._create(size: usize <autocast>): string <inline>
   local self: string
   check(size > 0, 'cannot create string with size 0')
-  self.impl = (@string_object*)(allocator.alloc(2*(#@usize) + size + 1))
+  self.impl = (@string_object*)(allocator.alloc(#@string_object + size + 1))
   self.impl.data[size] = 0
   self.impl.size = size
   --self.impl.refs = 1

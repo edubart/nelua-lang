@@ -221,17 +221,20 @@ end
 
 function CEmitter:add_string_literal(val)
   local varname = self.context.stringviewerals[val]
+  if not self.context.state.ininitializer then
+    self:add_ctypecast(primtypes.stringview)
+  end
+  local size = #val
   if varname then
-    self:add(varname)
+    self:add('{', varname, ', ', size, '}')
     return
   end
   varname = self.context:genuniquename('strlit')
   self.context.stringviewerals[val] = varname
   local decemitter = CEmitter(self.context)
-  local size = #val
   local quoted_value = pegger.double_quote_c_string(val)
-  decemitter:add_indent_ln('static const ', primtypes.stringview, ' ', varname, ' = {', quoted_value, ', ', size, '};')
-  self:add(varname)
+  decemitter:add_indent_ln('static char ', varname, '[', size+1, '] = ', quoted_value, ';')
+  self:add('{', varname, ', ', size, '}')
   self.context:add_declaration(decemitter:generate(), varname)
 end
 

@@ -65,8 +65,8 @@ function builtins.nelua_panic_cstring(context)
   context:ensure_runtime_builtin('nelua_noreturn')
   context:ensure_runtime_builtin('nelua_stderr_write_cstring')
   define_builtin(context, 'nelua_panic_cstring',
-    'static nelua_noreturn void nelua_panic_cstring(const char* s);\n',
-    [[inline nelua_noreturn void nelua_panic_cstring(const char *s) {
+    'static nelua_noreturn void nelua_panic_cstring(char* s);\n',
+    [[inline nelua_noreturn void nelua_panic_cstring(char *s) {
   nelua_stderr_write_cstring(s);
   exit(-1);
 }
@@ -117,8 +117,8 @@ end
 function builtins.nelua_stderr_write_cstring(context)
   context:add_include('<stdio.h>')
   define_builtin(context, 'nelua_stderr_write_cstring',
-    'static void nelua_stderr_write_cstring(const char* s);\n',
-    [[void nelua_stderr_write_cstring(const char *s) {
+    'static void nelua_stderr_write_cstring(char* s);\n',
+    [[void nelua_stderr_write_cstring(char* s) {
   fputs(s, stderr);
   fputs("\n", stderr);
   fflush(stderr);
@@ -157,7 +157,7 @@ function builtins.nelua_cstring2stringview(context)
   context:add_include('<string.h>')
   context:ctype(primtypes.stringview)
   define_inline_builtin(context, 'nelua_cstring2stringview',
-    'nelua_stringview', '(const char *s)', [[{
+    'nelua_stringview', '(char *s)', [[{
   if(s == NULL) return (nelua_stringview){0};
   uintptr_t size = strlen(s);
   if(size == 0) return (nelua_stringview){0};
@@ -179,23 +179,9 @@ function builtins.nelua_runtype_(context, typename)
   if context.usedbuiltins[name] then return name end
   context:ctype(primtypes.stringview)
   context:ensure_runtime_builtin('nelua_runtype')
-  context:ensure_runtime_builtin('nelua_static_string_', typename)
-  local code = string.format('static const nelua_runtype %s = { nelua_static_string_%s };\n',
-    name,
-    typename)
-  define_builtin(context, name, code)
-  return name
-end
-
--- static string
-function builtins.nelua_static_string_(context, s)
-  local name = 'nelua_static_string_' .. s
-  if context.usedbuiltins[name] then return name end
-  context:ctype(primtypes.stringview)
-  local size = #s
-  local code = string.format(
-    'static const nelua_stringview %s = {"%s", %d};\n',
-    name, s, size)
+  local code = string.format('static nelua_runtype %s ='..
+    '{ {"%s", %d} };\n',
+    name, typename, #typename)
   define_builtin(context, name, code)
   return name
 end
@@ -279,7 +265,7 @@ end
 function builtins.nelua_stdout_write_cstring(context)
   context:add_include('<stdio.h>')
   define_inline_builtin(context, 'nelua_stdout_write_cstring',
-    'void', '(const char *s)', [[{
+    'void', '(char *s)', [[{
   fputs(s, stdout);
 }]])
 end
@@ -296,7 +282,7 @@ end
 function builtins.nelua_stdout_write_boolean(context)
   context:add_include('<stdio.h>')
   define_inline_builtin(context, 'nelua_stdout_write_boolean',
-    'void', '(const bool b)', [[{
+    'void', '(bool b)', [[{
   if(b) {
     fwrite("true", 4, 1, stdout);
   } else {
@@ -650,7 +636,7 @@ function inlines.print(context, node)
       defemitter:add_ln('(a',i,');')
     elseif argtype.is_string then
       defemitter:add_builtin('nelua_stdout_write_stringview')
-      defemitter:add_ln('((nelua_stringview){(char*)&a',i,'.impl->data[0], a',i,'.impl->size});')
+      defemitter:add_ln('((nelua_stringview){(char*)a',i,'.impl->data, a',i,'.impl->size});')
     elseif argtype.is_nil then
       defemitter:add_builtin('nelua_stdout_write_nil')
       defemitter:add_ln('();')
@@ -682,7 +668,7 @@ function inlines.print(context, node)
   return funcname
 end
 
-function inlines.type(_, node, emitter)
+function inlines.type(context, node, emitter)
   local argnode = node[1][1]
   local type = argnode.attr.type
   local typename
@@ -697,8 +683,8 @@ function inlines.type(_, node, emitter)
   else --luacov:enable
     typename = type.name
   end
-  emitter:add_builtin('nelua_static_string_', typename)
-  return nil
+  context:ensure_runtime_builtin('nelua_runtype_', typename)
+  emitter:add('nelua_runtype_',typename,'.name')
 end
 
 function inlines.likely(context)

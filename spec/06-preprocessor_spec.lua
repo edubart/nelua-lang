@@ -466,14 +466,12 @@ end)
 
 it("preprocessor replacement", function()
   assert.ast_type_equals([=[
-  require 'string'
-  local s = #[symbols.string]#
+  local s = #[symbols.stringview]#
   local t = #[primtypes.table]#
   local ty = #[primtypes.type]#
   local n = #[primtypes.number]#
 ]=],[=[
-  require 'string'
-  local s = @string
+  local s = @stringview
   local t = @table
   local ty = @type
   local n = @number

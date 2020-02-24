@@ -475,7 +475,7 @@ function visitors.IdDecl(context, node, emitter)
   end
   if type.is_type then return end
   if attr.cexport then emitter:add('extern ') end
-  if attr.const then emitter:add('const ') end
+  --if attr.const then emitter:add('const ') end
   if attr.volatile then emitter:add('volatile ') end
   if attr.restrict then emitter:add('restrict ') end
   if attr.register then emitter:add('register ') end

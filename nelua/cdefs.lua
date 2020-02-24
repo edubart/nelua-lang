@@ -49,7 +49,7 @@ cdefs.primitive_ctypes = {
   nelua_boolean = 'bool',
   nelua_cstring = 'char*',
   nelua_pointer = 'void*',
-  nelua_nilableptr  = 'void*',
+  nelua_nilptr  = 'void*',
   nelua_void    = 'void',
 
   nelua_cchar       = 'char',
