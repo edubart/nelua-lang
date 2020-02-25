@@ -141,10 +141,10 @@ cdefs.search_compilers = {
 
 cdefs.compilers_flags = {
   gcc = {
-    cflags_release = "-O2 -fno-plt -flto -Wl,-O1,--sort-common,-z,relro,-z,now"
+    cflags_release = "-O2 -fno-plt -flto"
   },
   clang = {
-    cflags_release = "-O2 -fno-plt -Wl,-O1,--sort-common,-z,relro,-z,now"
+    cflags_release = "-O2 -fno-plt"
   }
 }
 

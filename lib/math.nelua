@@ -4,11 +4,10 @@
 
 global math = @record{}
 
--- constants
-global math.pi: float64 <comptime> = 3.141592653589793
-global math.huge: float64 <const,cimport'HUGE_VAL',cinclude'<math.h>',nodecl>
-global math.maxinteger: integer <comptime> = 9223372036854775807
-global math.mininteger: integer <comptime> = -9223372036854775808
+global math.pi: number <comptime> = 3.1415926535897932
+global math.huge: number <const,cimport'HUGE_VAL',cinclude'<math.h>',nodecl>
+global math.maxinteger: integer <comptime> = #[primtypes.integer.max]#
+global math.mininteger: integer <comptime> = #[primtypes.integer.min]#
 
 -- concepts
 local is_arithmetic = #[concept(function(x)
@@ -147,7 +146,7 @@ end
 
 function math.deg(x: is_arithmetic) <inline,nosideeffect>
   local R: type = #[choose_float_type(x)]#
-  local factor: R <comptime> = 180 / math.pi
+  local factor: R <comptime> = 180.0 / math.pi
   return x * factor
 end
 

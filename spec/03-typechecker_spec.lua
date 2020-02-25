@@ -328,6 +328,14 @@ it("binary operator idiv", function()
   assert.analyze_error("local a = 1 // 0", "division by zero")
 end)
 
+it("binary operator mul", function()
+  assert.ast_type_equals("local a = 1 * 2", "local a: integer = 1 * 2")
+  assert.ast_type_equals("local a = 1_f32; local b = 2.0*a",
+                         "local a: float32 = 1_f32; local b: float32 = 2.0*a")
+  assert.ast_type_equals("local a = 1_f32; local b = a*2.0",
+                         "local a: float32 = 1_f32; local b: float32 = a*2.0")
+end)
+
 it("binary operator div", function()
   assert.ast_type_equals("local a = 2 / 2", "local a: number = 2 / 2")
   assert.ast_type_equals("local a = 2.0_f64 / 2_i64", "local a: number = 2.0_f64 / 2_i64")

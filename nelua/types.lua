@@ -787,9 +787,14 @@ function FloatType:promote_type(type)
   return self
 end
 
-local function float_arithmetic_operation(ltype, rtype)
+local function float_arithmetic_operation(ltype, rtype, lattr, rattr)
   if not rtype.is_arithmetic then
     return
+  end
+  if rtype.is_float32 and lattr.untyped then
+    return rtype
+  elseif ltype.is_float32 and rattr.untyped then
+    return ltype
   end
   return ltype:promote_type(rtype)
 end
