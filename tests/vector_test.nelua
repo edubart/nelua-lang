@@ -29,10 +29,10 @@ do -- reserve and resize
   assert(vec:capacity() == 1)
   vec:reserve(4)
   assert(vec:capacity() == 4)
-  vec:resize(2, 1)
-  assert(#vec == 2 and vec[0] == 1 and vec[1] == 1)
-  vec:resize(4, 2)
-  assert(#vec == 4 and vec[0] == 1 and vec[1] == 1 and vec[2] == 2 and vec[3] == 2)
+  vec:resize(2)
+  assert(#vec == 2 and vec[0] == 1 and vec[1] == 0)
+  vec:resize(4)
+  assert(#vec == 4 and vec[0] == 1 and vec[1] == 0 and vec[2] == 0 and vec[3] == 0)
 end
 
 do -- push and pop

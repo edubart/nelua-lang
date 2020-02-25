@@ -40,10 +40,10 @@ do -- reserve and resize
   assert(seq:capacity() == 1)
   seq:reserve(4)
   assert(seq:capacity() == 4)
-  seq:resize(2, 1)
-  assert(#seq == 2 and seq[0] == 0 and seq[1] == 1 and seq[2] == 1)
-  seq:resize(4, 2)
-  assert(#seq == 4 and seq[0] == 0 and seq[1] == 1 and seq[2] == 1 and seq[3] == 2 and seq[4] == 2)
+  seq:resize(2)
+  assert(#seq == 2 and seq[0] == 0 and seq[1] == 1 and seq[2] == 0)
+  seq:resize(4)
+  assert(#seq == 4 and seq[0] == 0 and seq[1] == 1 and seq[2] == 0 and seq[3] == 0 and seq[4] == 0)
 end
 
 do -- push and pop

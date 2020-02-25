@@ -68,7 +68,7 @@ function builtins.nelua_panic_cstring(context)
     'static nelua_noreturn void nelua_panic_cstring(char* s);\n',
     [[inline nelua_noreturn void nelua_panic_cstring(char *s) {
   nelua_stderr_write_cstring(s);
-  exit(-1);
+  abort();
 }
 ]])
 end

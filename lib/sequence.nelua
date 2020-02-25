@@ -76,14 +76,9 @@ require 'memory'
     self.impl.data = allocator.spanrealloc0(self.impl.data, cap)
   end
 
-  -- Resizes the sequence so that it contains `n` elements assigned to `v`.
-  function SequenceT:resize(n: usize <autocast>, v: T)
-    self:init()
-    if n <= self.impl.size then return end
+  -- Resizes the sequence so that it contains `n` elements initialized to zeros.
+  function SequenceT:resize(n: usize <autocast>)
     self:reserve(n)
-    for i=self.impl.size+1,n do
-      self.impl.data[i] = v
-    end
     self.impl.size = n
   end
 

@@ -4,7 +4,7 @@ local allocator = @generic_allocator
 
 ## local make_list = generalize(function(T)
   local T = @#[T]#
-  local ListNodeT <codename #['ListNode_'..T.name]#> = @record {
+  local ListNodeT <codename #['ListNode_'..T.codename]#> = @record {
     prev: ListNodeT*,
     next: ListNodeT*,
     value: T
@@ -18,7 +18,7 @@ local allocator = @generic_allocator
     return node
   end
 
-  local ListT <codename #['List_'..T.name]#> = @record{
+  local ListT <codename #['List_'..T.codename]#> = @record{
     head: ListNodeT*,
     tail: ListNodeT*
   }

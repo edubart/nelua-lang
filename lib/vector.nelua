@@ -59,13 +59,9 @@ require 'memory'
     self.data = allocator.spanrealloc0(self.data, n)
   end
 
-  -- Resizes the vector so that it contains `n` elements assigned to `v`.
-  function VectorT:resize(n: usize <autocast>, v: T)
-    if n <= self.size then return end
+  -- Resizes the vector so that it contains `n` elements initialized to zeros.
+  function VectorT:resize(n: usize <autocast>)
     self:reserve(n)
-    for i=self.size,<n do
-      self.data[i] = v
-    end
     self.size = n
   end
 
