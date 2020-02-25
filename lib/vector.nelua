@@ -59,9 +59,14 @@ require 'memory'
     self.data = allocator.spanrealloc0(self.data, n)
   end
 
-  -- Resizes the vector so that it contains `n` elements initialized to zeros.
+  -- Resizes the vector so that it contains `n` elements.
+  -- When expanding new elements are zero initialized.
+  -- When shrinking removed elements are destroyed.
   function VectorT:resize(n: usize <autocast>)
     self:reserve(n)
+    for i:usize=n,<self.size do
+      self.data[i] = (@T)()
+    end
     self.size = n
   end
 
@@ -71,7 +76,7 @@ require 'memory'
     if unlikely(newsize > self.data.size) then
       self:_grow()
     end
-    self.data[self.size] = v
+    memory.swapval(&self.data[self.size], &v)
     self.size = newsize
   end
 
@@ -80,9 +85,7 @@ require 'memory'
   function VectorT:pop(): T
     check(self.size > 0, 'vector.pop: length is 0')
     self.size = self.size - 1
-    local ret: T = self.data[self.size]
-    self.data[self.size] = (@T)()
-    return ret
+    return memory.moveval(&self.data[self.size])
   end
 
   -- Inserts element `v` at position `pos` in the vector.
@@ -97,7 +100,7 @@ require 'memory'
       memory.move(&self.data[pos + 1], &self.data[pos], (self.size - pos) * #T)
       memory.zero(&self.data[pos], #T)
     end
-    self.data[pos] = v
+    memory.swapval(&self.data[pos], &v)
     self.size = self.size + 1
   end
 
@@ -106,11 +109,18 @@ require 'memory'
   -- If the `pos` is out of range, then throws a runtime error.
   function VectorT:remove(pos: usize <autocast>): T
     check(pos < self.size, 'vector.remove: position out of bounds')
-    local ret: T = self.data[pos]
     self.size = self.size - 1
-    memory.move(&self.data[pos], &self.data[pos+1], (self.size - pos) * #T)
-    memory.zero(&self.data[self.size], #T)
+    local ret: T = memory.moveval(&self.data[pos])
+    if self.size > pos then
+      memory.move(&self.data[pos], &self.data[pos+1], (self.size - pos) * #T)
+      memory.zero(&self.data[self.size], #T)
+    end
     return ret
+  end
+
+  -- Returns the number of elements the vector can store before triggering a reallocation.
+  function VectorT:capacity(): isize
+    return (@isize)(self.data.size)
   end
 
   -- Returns reference to element at index `pos`.
@@ -118,11 +128,6 @@ require 'memory'
   function VectorT:__atindex(i: usize <autocast>): T* <inline>
     check(i < self.size, 'vector.at: position out of bounds')
     return &self.data[i]
-  end
-
-  -- Returns the number of elements the vector can store before triggering a reallocation.
-  function VectorT:capacity(): isize
-    return (@isize)(self.data.size)
   end
 
   -- Returns the number of elements in the vector.

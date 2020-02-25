@@ -279,3 +279,33 @@ do -- new for spans
   assert(v[1].x == 3 and v[1].y == 4)
   allocator.delete(v)
 end
+
+--------------------------------------------------------------------------------
+-- moving and swapping values
+
+local NonCopyable = @record{x: integer}
+function NonCopyable:__copy(other: NonCopyable*)
+  error "copy not expected"
+end
+
+do -- moveval
+  local a: integer = 1
+  local b = memory.moveval(&a)
+  assert(a == 0 and b == 1)
+
+  local oa: NonCopyable = {1}
+  local ob = memory.moveval(&oa)
+  assert(oa.x == 0 and ob.x == 1)
+end
+
+do --swapval
+  local a: integer = 1
+  local b: integer = 2
+  memory.swapval(&a, &b)
+  assert(a == 2 and b == 1)
+
+  local oa: NonCopyable = {1}
+  local ob: NonCopyable = {2}
+  memory.swapval(&oa, &ob)
+  assert(oa.x == 2 and ob.x == 1)
+end

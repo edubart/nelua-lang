@@ -34,6 +34,19 @@ require 'memory'
   ## SequenceT.value.is_sequence = true
   ## SequenceT.value.subtype = T
 
+  function SequenceT:_grow()
+    local cap: usize = 2
+    if likely(self.impl.data.size ~= 0) then cap = self.impl.data.size * 2 end
+    self.impl.data = allocator.spanrealloc0(self.impl.data, cap)
+  end
+
+  -- Initializes sequence internal implementation if needed.
+  -- This is already implicitly called by other sequence functions when needed.
+  function SequenceT:init() <inline>
+    if likely(self.impl) then return end
+    self.impl = (@SequenceImplT*)(allocator.alloc0(#SequenceImplT))
+  end
+
   -- Resets and removes all elements from the sequence.
   function SequenceT:clear()
     if not self.impl then return end
@@ -55,19 +68,6 @@ require 'memory'
     self.impl = nilptr
   end
 
-  function SequenceT:_grow()
-    local cap: usize = 2
-    if likely(self.impl.data.size ~= 0) then cap = self.impl.data.size * 2 end
-    self.impl.data = allocator.spanrealloc0(self.impl.data, cap)
-  end
-
-  -- Initializes sequence internal implementation if needed.
-  -- This is already implicitly called by other sequence functions when needed.
-  function SequenceT:init() <inline>
-    if likely(self.impl) then return end
-    self.impl = (@SequenceImplT*)(allocator.alloc0(#SequenceImplT))
-  end
-
   -- Reserve at least `n` elements on the sequence storage.
   function SequenceT:reserve(n: usize <autocast>)
     self:init()
@@ -76,9 +76,14 @@ require 'memory'
     self.impl.data = allocator.spanrealloc0(self.impl.data, cap)
   end
 
-  -- Resizes the sequence so that it contains `n` elements initialized to zeros.
+  -- Resizes the sequence so that it contains `n` elements.
+  -- When expanding new elements are zero initialized.
+  -- When shrinking removed elements are destroyed.
   function SequenceT:resize(n: usize <autocast>)
     self:reserve(n)
+    for i:usize=n+1,self.impl.size do
+      self.impl.data[i] = (@T)()
+    end
     self.impl.size = n
   end
 
@@ -89,15 +94,14 @@ require 'memory'
     if unlikely(self.impl.size + 1 >= self.impl.data.size) then
       self:_grow()
     end
-    self.impl.data[self.impl.size] = v
+    memory.swapval(&self.impl.data[self.impl.size], &v)
   end
 
   -- Removes the last element in the sequence and returns its value.
   -- If the sequence is empty, then throws a runtime error.
   function SequenceT:pop(): T <inline>
     check(self.impl and self.impl.size > 0, 'sequence.pop: length is 0')
-    local ret: T = self.impl.data[self.impl.size]
-    self.impl.data[self.impl.size] = (@T)()
+    local ret: T = memory.moveval(&self.impl.data[self.impl.size])
     self.impl.size = self.impl.size - 1
     return ret
   end
@@ -116,7 +120,7 @@ require 'memory'
       memory.move(&self.impl.data[pos + 1], &self.impl.data[pos], (self.impl.size - pos) * #T)
       memory.zero(&self.impl.data[pos], #T)
     end
-    self.impl.data[pos] = v
+    memory.swapval(&self.impl.data[pos], &v)
   end
 
   -- Removes element at position `pos` in the sequence and returns its value.
@@ -124,9 +128,11 @@ require 'memory'
   -- If the `pos` is out of range, then throws a runtime error.
   function SequenceT:remove(pos: usize <autocast>): T
     check(self.impl and self.impl.size > 0, 'sequence.remove: position out of bounds')
-    local ret: T = self.impl.data[pos]
-    memory.move(&self.impl.data[pos], &self.impl.data[pos+1], (self.impl.size - pos) * #T)
-    memory.zero(&self.impl.data[self.impl.size], #T)
+    local ret: T = memory.moveval(&self.impl.data[pos])
+    if self.impl.size > pos then
+      memory.move(&self.impl.data[pos], &self.impl.data[pos+1], (self.impl.size - pos) * #T)
+      memory.zero(&self.impl.data[self.impl.size], #T)
+    end
     self.impl.size = self.impl.size - 1
     return ret
   end

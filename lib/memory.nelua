@@ -33,7 +33,7 @@ function memory.set(dest: pointer, x: byte, size: usize)
 end
 
 function memory.zero(dest: pointer, size: usize)
-  check(dest, 'memory.set: invalid pointer')
+  check(dest, 'memory.zero: invalid pointer')
   memset(dest, 0, size)
 end
 
@@ -161,4 +161,32 @@ function memory.spancontains(s: is_span, x: auto): boolean
     end
   end
   return false
+end
+
+--------------------------------------------------------------------------------
+-- moving values
+
+local is_value_pointer = #[concept(function(x)
+  return x.type.is_pointer and x.type.subtype.size > 0
+end)]#
+
+-- Returns a memory copy of the dereference of pointer `a` leaving its contents zero filled.
+-- This is mainly used as an optimization to skip value __copy.
+function memory.moveval(a: is_value_pointer) <inline>
+  local T: type = #[a.type.subtype]#
+  local ret: T <noinit>
+  memcpy(&ret, a, #T)
+  memset(a, 0, #T)
+  return ret
+end
+
+-- Swaps memory of the dereference of pointer `a` and `b`.
+-- This is mainly used as an optimization to skip value __copy or __destroy.
+function memory.swapval(a: is_value_pointer, b: is_value_pointer) <inline>
+  ## staticassert(a.type == b.type, 'cannot swap different types')
+  local N: usize <comptime> = #[a.type.subtype.size]#
+  local tmp: byte[N] <noinit>
+  memcpy(&tmp[0], a, N)
+  memcpy(a, b, N)
+  memcpy(b, &tmp[0], N)
 end
