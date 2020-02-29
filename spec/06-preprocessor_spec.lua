@@ -30,14 +30,14 @@ end)
 
 it("evaluate names", function()
   assert.ast_type_equals([[
-    #('print')# 'hello'
+    #|'print'|# 'hello'
   ]], [[
     print 'hello'
   ]])
   assert.ast_type_equals([[
-    local a <#('codename')# 'a'>
+    local a <#|'codename'|# 'a'>
     local b <codename 'b'>
-    local c <#('codename')##['c']#>
+    local c <#|'codename'|##['c']#>
   ]], [[
     local a <codename 'a'>
     local b <codename 'b'>
@@ -158,7 +158,7 @@ it("print symbol", function()
   assert.ast_type_equals([[
     ## local aval = 1
     ## if true then
-      local #('a')#: #('integer')# <comptime> = #[aval]#
+      local #|'a'|#: #|'integer'|# <comptime> = #[aval]#
       print #[tostring(context.scope:get_symbol('a'))]#
     ## end
   ]], [[
@@ -236,7 +236,7 @@ end)
 it("generate functions", function()
   assert.ast_type_equals([=[
     ## local function make_pow(N)
-      local function #('pow' .. N)#(x: integer)
+      local function #|'pow' .. N|#(x: integer)
         local r = 1
         ## for i=1,N do
           r = r*x
@@ -488,7 +488,7 @@ end)
 it("preprocessor functions", function()
   assert.ast_type_equals([=[
     ## function f(name, tyname)
-      global #(name)#: #(tyname)#
+      global #|name|#: #|tyname|#
     ## end
     ## f('i', 'integer')
     ## f('n', 'number')
@@ -501,7 +501,7 @@ end)
 it("macros", function()
   assert.ast_type_equals([=[
   ## function increment(a, amount)
-    #(a.name)# = #(a.name)# + #[amount]#
+    #|a.name|# = #|a.name|# + #[amount]#
   ## end
   local x = 0
   ## increment(x, 4)
@@ -540,7 +540,7 @@ it("macros", function()
 
   assert.ast_type_equals([=[
   ## local function gettype(T)
-    local t = @#(T)#
+    local t = @#|T|#
     ## return t
   ## end
 

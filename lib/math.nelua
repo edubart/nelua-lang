@@ -37,10 +37,10 @@ for _,name in ipairs(cmathfuncs1) do
   local cnamef64, cnamef32 = cname, cname..'f'
   local namef64, namef32 = name..'_f64', name..'_f32'
 ]]
-  local function #(namef64)#(x: float64): float64
+  local function #|namef64|#(x: float64): float64
     <cimport#[cnamef64]#,cinclude'<math.h>',nodecl,nosideeffect>
   end
-  local function #(namef32)#(x: float32): float32
+  local function #|namef32|#(x: float32): float32
     <cimport#[cnamef32]#,cinclude'<math.h>',nodecl,nosideeffect>
   end
 ## end
@@ -54,10 +54,10 @@ for _,name in ipairs(cmathfuncs2) do
   local cnamef64, cnamef32 = cname, cname..'f'
   local namef64, namef32 = name..'_f64', name..'_f32'
 ]]
-  local function #(namef64)#(x: float64, y: float64): float64
+  local function #|namef64|#(x: float64, y: float64): float64
     <cimport#[cnamef64]#,cinclude'<math.h>',nodecl,nosideeffect>
   end
-  local function #(namef32)#(x: float32, y: float32): float32
+  local function #|namef32|#(x: float32, y: float32): float32
     <cimport#[cnamef32]#,cinclude'<math.h>',nodecl,nosideeffect>
   end
 ## end
@@ -72,18 +72,18 @@ local mathfuncs1 = {'abs','ceil','floor','sqrt','exp','acos','asin','cos','sin',
 for _,name in ipairs(mathfuncs1) do
   local namef64, namef32 = name..'_f64', name..'_f32'
 ]]
-function math.#(name)#(x: is_arithmetic) <inline,nosideeffect>
+function math.#|name|#(x: is_arithmetic) <inline,nosideeffect>
   ## if x.type.is_float32 then
-    return #(namef32)#(x)
+    return #|namef32|#(x)
   ## elseif x.type.is_float then
-    return #(namef64)#(x)
+    return #|namef64|#(x)
   ## else
     ## if name == 'abs' then
       if x < 0 then return -x else return x end
     ## elseif name == 'ceil' or name == 'floor' then
       return x
     ## else
-      return #(namef64)#(x)
+      return #|namef64|#(x)
     ## end
   ## end
 end
@@ -95,18 +95,18 @@ local mathfuncs2 = { 'max', 'min', 'fmod', 'pow' }
 for _,name in ipairs(mathfuncs2) do
   local namef64, namef32 = name..'_f64', name..'_f32'
 ]]
-function math.#(name)#(x: is_arithmetic, y: is_arithmetic) <inline,nosideeffect>
+function math.#|name|#(x: is_arithmetic, y: is_arithmetic) <inline,nosideeffect>
   ## if x.type.is_float32 then
-    return #(namef32)#(x, y)
+    return #|namef32|#(x, y)
   ## elseif x.type.is_float then
-    return #(namef64)#(x, y)
+    return #|namef64|#(x, y)
   ## else
     ## if name == 'min' then
       if x < y then return x else return y end
     ## elseif name == 'max' then
       if x < y then return y else return x end
     ## else
-      return #(namef64)#(x, y)
+      return #|namef64|#(x, y)
     ## end
   ## end
 end
@@ -133,14 +133,14 @@ function math.log(x: is_arithmetic, base: is_optional_arithmetic) <inline,noside
   ## local log2, log10, log = 'log2'..suffix, 'log10'..suffix, 'log'..suffix
   ## if not base.type.is_nil then
     if base == 2 then
-      return #(log2)#(x)
+      return #|log2|#(x)
     elseif base == 10 then
-      return #(log10)#(x)
+      return #|log10|#(x)
     else
-      return #(log)#(x) / #(log)#(base)
+      return #|log|#(x) / #|log|#(base)
     end
   ## else
-    return #(log)#(x)
+    return #|log|#(x)
   ## end
 end
 

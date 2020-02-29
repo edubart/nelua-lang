@@ -436,18 +436,18 @@ do -- Expression replacement
 end
 
 do -- Name replacement
-  local #('my' .. 'var')# = 1
+  local #|'my' .. 'var'|# = 1
   print(myvar) -- outputs: 1
 
   local function foo1() print 'foo' end
-  #('foo' .. 1)#() -- outputs: foo
+  #|'foo' .. 1|#() -- outputs: foo
 end
 
 do -- Macros
   ## function increment(a, amount)
     -- 'a' in the preprocessor context is a symbol, we access its name here
     -- 'amount' in the processor context is a lua number
-    #(a.name)# = #(a.name)# + #[amount]#
+    #|a.name|# = #|a.name|# + #[amount]#
   ## end
   local x = 0
   ## increment(x, 4)
@@ -470,8 +470,8 @@ do -- Macros
 
   -- generic
   ## function Point(PointT, T)
-    local #(PointT)# = @record { x: #(T)#, y: #(T)# }
-    function #(PointT)#:squaredlength()
+    local #|PointT|# = @record { x: #|T|#, y: #|T|# }
+    function #|PointT|#:squaredlength()
       return self.x*self.x + self.y*self.y
     end
   ## end

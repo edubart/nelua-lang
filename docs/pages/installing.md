@@ -65,7 +65,7 @@ After updating, install all the required build tools:
 
 ```bash
 pacman -S --noconfirm unzip git
-pacman -S --noconfirm mingw-w64-x86_64-toolchain
+pacman -S --noconfirm mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc
 pacman -S --noconfirm mingw-w64-x86_64-lua51-luarocks
 ```
 
@@ -80,7 +80,7 @@ you can clone and test examples from the official repository:
 
 ```bash
 wget https://raw.githubusercontent.com/edubart/nelua-lang/master/examples/helloworld.nelua
-nelua.bat helloword.nelua
+nelua.bat hellowolrd.nelua
 ```
 
 Note that luarocks installs Nelua as `nelua.bat`.

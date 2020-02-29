@@ -50,7 +50,8 @@ function compiler.get_cc_info()
     version = text:match('version ([.%d]+)'),
     name = text:match('([-_%w]+) version') or config.cc,
     exe = config.cc,
-    text = text
+    text = text,
+    is_emscripten = text:match('Emscripten') ~= nil
   }
   last_ccinfos[config.cc] = ccinfo
   return ccinfo
@@ -105,6 +106,8 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   local ccinfo = compiler.get_cc_info()
   if ccinfo.target and (ccinfo.target:match('windows') or ccinfo.target:match('mingw')) then --luacov:disable
     binfile = outfile .. '.exe'
+  elseif ccinfo.is_emscripten then
+    binfile = outfile .. '.html'
   end --luacov:enable
 
   -- if the file with that hash already exists skip recompiling it

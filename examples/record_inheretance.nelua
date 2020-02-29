@@ -96,7 +96,7 @@ local function class(recordsym, basesym)
   end
   rectype.kindid = kindid
 ]]
-  global #(recordsym.name)#.KindId: integer <comptime> = #[kindid]#
+  global #|recordsym.name|#.KindId: integer <comptime> = #[kindid]#
 ## end
 
 ##[[
@@ -117,7 +117,7 @@ local function override()
   method(function()]]
     -- no problem to use ifs instead of switches because C compilers usually optimizes as a switch
     if self.__kind == #[rectype.kindid]# then
-      return (@#[rectype]#*)(self):#(name)#()
+      return (@#[rectype]#*)(self):#|name|#()
     end ##[[
   end)
 end
