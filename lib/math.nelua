@@ -228,11 +228,10 @@ function xoshiro256:nextrand(): uint64
   return res
 end
 
-function xoshiro256:random(): float64
-  local FLOAT64_MANT_DIGS <comptime> = 53
+function xoshiro256:random(): number
+  ## local MANT_DIGITS = primtypes.number.is_float32 and 24 or 53
   local rv: uint64 = self:nextrand()
-  local v: uint64 = rv >> (64_i32 - FLOAT64_MANT_DIGS)
-  return v / (1_uint64 << FLOAT64_MANT_DIGS)
+  return (rv >> (64 - #[MANT_DIGITS]#)) / (1_u64 << #[MANT_DIGITS]#)
 end
 
 function xoshiro256:seed(a: uint64, b: uint64)
