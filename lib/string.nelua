@@ -23,12 +23,14 @@ global string <codename 'nelua_string'> = @record{
   impl: string_object*
 }
 
-do ##[[
+##[[
   local stringtype = context.rootscope.symbols.string.value
   stringtype.is_string = true
   stringtype.nick = 'string'
   stringtype.name = 'string'
-]] end
+  primtypes.stringview.metatype = types.MetaType()
+  primtypes.stringview.metatype:inherit(stringtype.metatype)
+]]
 
 function string._create(size: usize <autocast>): string <inline>
   local self: string
@@ -99,8 +101,6 @@ function string.__convert(s: #[concept(function(s)
   ## end
 end
 
-local stringview = @stringview
-## stringview.value.metatype = types.MetaType()
 function stringview.__tostring(s: stringview) <inline>
   if unlikely(s.size == 0) then return (@string){} end
   local ret: string = string._create(s.size)
@@ -152,8 +152,8 @@ function string.__concat(a: stringview, b: stringview): string
   return s
 end
 
-function string.len(self: string): isize <inline>
-  return (@isize)(self.impl.size)
+function string.len(self: stringview): isize <inline>
+  return (@isize)(self.size)
 end
 
 function string.byte(self: string, i: isize <autocast>): byte
@@ -218,6 +218,41 @@ function string.lower(self: string): string
   return s
 end
 
+function string.char(c: byte)
+  --TODO: handle more arguments
+  local s: string = string._create(1)
+  s.impl.data[0] = c
+  return s
+end
+
+function string.find(self: string,
+                     pattern: stringview,
+                     init: isize <autocast>,
+                     plain: boolean): (isize, isize)
+  --TODO: handle patterns and returns them
+  --TODO: return nil if not found instead of zeros
+  check(plain, 'string.find: patterns not supported yet')
+  if unlikely(not self.impl) then return pattern.size == 0 and 1 or 0, 0 end
+  if unlikely(init < 0) then init = self.impl.size + init + 1 end
+  if unlikely(init > self.impl.size) then return 0, 0 end
+  if unlikely(init <= 0) then init = 1 end
+  local found = memory.find(&self.impl.data[init-1], self.impl.size, pattern.data, pattern.size)
+  if found then
+    local sbegin: isize = (@isize)((@usize)(found) - (@usize)(&self.impl.data[0]))
+    return sbegin + 1, sbegin + pattern.size
+  end
+  return 0, 0
+end
+
+-- TODO: implement functions bellow
+-- string.format(fmt, ...)
+-- string:match(pattern, init)
+-- string:gmatch(pattern)
+-- string:gsub(pattern, repl, n)
+-- string.pack(fmt, v1, v2, ..)
+-- string.unpack(fmt, s, pos)
+-- string.packsize(fmt)
+
 local function str2int(a: stringview): integer
   local endptr: cstring
   errno = 0
@@ -233,70 +268,58 @@ local function str2num(a: stringview): number
   check(endptr ~= a.data and errno == 0, 'failed to convert string to number')
   return n
 end
-
-function stringview.__add(a: stringview, b: stringview): number
+function string.__add(a: stringview, b: stringview): number
   return str2num(a) + str2num(b)
 end
 
-function stringview.__sub(a: stringview, b: stringview): number
+function string.__sub(a: stringview, b: stringview): number
   return str2num(a) - str2num(b)
 end
 
-function stringview.__mul(a: stringview, b: stringview): number
+function string.__mul(a: stringview, b: stringview): number
   return str2num(a) * str2num(b)
 end
 
-function stringview.__div(a: stringview, b: stringview): number
+function string.__div(a: stringview, b: stringview): number
   return str2num(a) / str2num(b)
 end
 
-function stringview.__idiv(a: stringview, b: stringview): number
+function string.__idiv(a: stringview, b: stringview): number
   return str2num(a) // str2num(b)
 end
 
-function stringview.__mod(a: stringview, b: stringview): number
+function string.__mod(a: stringview, b: stringview): number
   return str2num(a) % str2num(b)
 end
 
-function stringview.__pow(a: stringview, b: stringview): number
+function string.__pow(a: stringview, b: stringview): number
   return str2num(a) ^ str2num(b)
 end
 
-function stringview.__unm(a: stringview): number
+function string.__unm(a: stringview): number
   return -str2num(a)
 end
 
-function stringview.__band(a: stringview, b: stringview): integer
+function string.__band(a: stringview, b: stringview): integer
   return str2int(a) & str2int(b)
 end
 
-function stringview.__bor(a: stringview, b: stringview): integer
+function string.__bor(a: stringview, b: stringview): integer
   return str2int(a) | str2int(b)
 end
 
-function stringview.__bxor(a: stringview, b: stringview): integer
+function string.__bxor(a: stringview, b: stringview): integer
   return str2int(a) ~ str2int(b)
 end
 
-function stringview.__shl(a: stringview, b: stringview): integer
+function string.__shl(a: stringview, b: stringview): integer
   return str2int(a) << str2int(b)
 end
 
-function stringview.__shr(a: stringview, b: stringview): integer
+function string.__shr(a: stringview, b: stringview): integer
   return str2int(a) >> str2int(b)
 end
 
-function stringview.__bnot(a: stringview): integer
+function string.__bnot(a: stringview): integer
   return ~str2int(a)
 end
-
--- TODO: implement functions bellow
--- string.char(...)
--- string:find(pattern, init, plain)
--- string:match(pattern, init)
--- string:gmatch(pattern)
--- string:gsub(pattern, repl, n)
--- string.format(fmt, ...)
--- string.pack(fmt, v1, v2, ..)
--- string.unpack(fmt, s, pos)
--- string.packsize(fmt)

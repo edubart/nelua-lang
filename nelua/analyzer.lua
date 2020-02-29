@@ -1040,9 +1040,8 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
 end
 
 local function visitor_Type_FieldIndex(context, node, objtype, name)
-  local attr = node.attr
   objtype = objtype:auto_deref_type()
-  attr.indextype = objtype
+  node.indextype = objtype
   if objtype.is_enum then
     return visitor_EnumType_FieldIndex(context, node, objtype, name)
   elseif objtype.is_record then

@@ -52,9 +52,23 @@ function memory.scan(p: pointer, x: byte, size: usize): pointer
   return memchr(p, x, size)
 end
 
-function memory.contains(p: pointer, x: byte, size: usize): boolean
-  check(p, 'memory.contains: invalid pointer')
-  return memchr(p, x, size) ~= nilptr
+function memory.find(heystack: pointer, heystacksize: usize,
+                     needle: pointer, needlesize: usize): pointer
+  if unlikely(needlesize == 0 or heystack == needle) then return heystack
+  elseif unlikely(needlesize > heystacksize) then return nilptr
+  else
+    check(heystack and needle, 'memory.find: invalid pointer')
+    if needlesize == 1 then
+      return memchr(heystack, $(@byte*)(needle), heystacksize)
+    end
+    for i:usize=0,heystacksize do
+      local heystackbegin: pointer = (@pointer)((@usize)(heystack) + i)
+      if memcmp(heystackbegin, needle, needlesize) == 0 then
+        return heystackbegin
+      end
+    end
+    return nilptr
+  end
 end
 
 --------------------------------------------------------------------------------
@@ -141,12 +155,12 @@ function memory.spanequals(a: is_span, b: is_span): boolean
   return ret
 end
 
-function memory.spanscan(s: is_span, x: auto): integer
+function memory.spanfind(s: is_span, x: auto): isize
   ## check_span_subtype_match(s, x)
   local T: type = #[x.type]#
   for i:usize=0,<s.size do
     if memcmp(&s[i], &x, #T) == 0 then
-      return (@integer)(i)
+      return (@isize)(i)
     end
   end
   return -1

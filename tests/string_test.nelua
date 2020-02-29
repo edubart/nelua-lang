@@ -1,24 +1,42 @@
 require 'string'
 
-do -- initialization, eq and reset
+do -- initialization, len, eq and reset
   local arr: byte[6] = {0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00}
   local a: string = (@cstring)(&arr[0])
   local b: string = (@cstring)('hello')
-  assert(#a == 5 and #b == 5)
-  assert(a:len() == 5 and b:len() == 5)
+  assert('a' == 'a')
+  assert('' == '')
+  assert(not ('a' == 'b'))
   assert(a == b)
   local c: string = 'hello'
   local d: string = (@cstring)('hello')
   assert(a == c and a == d)
   a:reset()
-  assert(#a == 0)
+  assert(a == '')
   assert(not (a == b))
   b:reset()
   assert(a == b)
-  assert(#b == 0)
   a = (@cstring)(nilptr)
   assert(a == b)
   assert('a' == 'a')
+end
+
+do -- len
+  local a: string = 'hello'
+  local e: string
+  assert(#a == 5)
+  --assert(a:len() == 5)
+  assert(string.len(a) == 5)
+  assert(string.len(&a) == 5)
+  assert(#('hello') == 5)
+  assert(('hello'):len() == 5)
+  assert(string.len('hello') == 5)
+  assert(#e == 0)
+  --assert(e:len() == 0)
+  assert(string.len(e) == 0)
+  assert(#('') == 0)
+  assert((''):len() == 0)
+  assert(string.len('') == 0)
 end
 
 do -- operators < and <=
@@ -49,6 +67,9 @@ do -- concat
   local b: string = 'cd'
   local c = a .. b
   assert(#c == 4)
+  assert(#'' == 0)
+  assert(#'a' == 1)
+  assert(#'ab' == 2)
   assert(c == 'abcd')
   assert('abcd' == c)
   local e: string
@@ -127,6 +148,27 @@ do -- arithmetic operators
   assert('2' << '3' == 16)
   assert('2' >> '1' == 1)
   assert(~'2' == -3)
+end
+
+do -- find
+  local s: string = 'hello world'
+  local b, e
+  b, e = s:find('h', 1, true) assert(b == 1 and e == 1)
+  b, e = s:find('he', 1, true) assert(b == 1 and e == 2)
+  b, e = s:find('hel', 1, true) assert(b == 1 and e == 3)
+  b, e = s:find('d', 1, true) assert(b == 11 and e == 11)
+  b, e = s:find('h', -11, true) assert(b == 1 and e == 1)
+  b, e = s:find('h', -10, true) assert(b == 0 and e == 0)
+  b, e = s:find('', 1, true) assert(b == 1 and e == 0)
+  b, e = s:find('a', 1, true) assert(b == 0 and e == 0)
+  s = ''
+  b, e = s:find('', 1, true) assert(b == 1 and e == 0)
+  b, e = s:find('a', 1, true) assert(b == 0 and e == 0)
+end
+
+do -- char
+  local c = string.char(0x41)
+  assert(c == 'A')
 end
 
 do -- print

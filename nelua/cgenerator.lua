@@ -691,7 +691,7 @@ function visitors.DotIndex(context, node, emitter)
     poparray = true
   end
   if objtype.is_type then
-    objtype = attr.indextype
+    objtype = node.indextype
     if objtype.is_enum then
       local field = objtype:get_field(name)
       emitter:add_numeric_literal(field)

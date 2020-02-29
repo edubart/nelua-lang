@@ -112,13 +112,12 @@ do -- scan
   allocator.dealloc(p)
 end
 
-do -- contains
+do -- find
   local p = (@vec2*)(allocator.alloc0(#@vec2))
   p.x = 1 p.y = 2
-  assert(memory.contains(p, 0, #@vec2))
-  assert(memory.contains(p, 1, #@vec2))
-  assert(memory.contains(p, 2, #@vec2))
-  assert(not memory.contains(p, 3, #@vec2))
+  local x: integer, y: integer = 1, 2
+  assert(memory.find(p, #@vec2, &x, #@integer) == &p.x)
+  assert(memory.find(p, #@vec2, &y, #@integer) == &p.y)
   allocator.dealloc(p)
 end
 
@@ -238,23 +237,13 @@ do -- spanequals
   allocator.spandealloc(pb)
 end
 
-do -- spanscan
+do -- spanfind
   local p = allocator.spanalloc0(@vec2, 2)
   p[0].x = 1 p[0].y = 2
   p[1].x = 3 p[1].y = 4
-  assert(memory.spanscan(p, (@vec2){1,2}) == 0)
-  assert(memory.spanscan(p, (@vec2){3,4}) == 1)
-  assert(memory.spanscan(p, (@vec2){5,6}) == -1)
-  allocator.spandealloc(p)
-end
-
-do -- spancontains
-  local p = allocator.spanalloc0(@vec2, 2)
-  p[0].x = 1 p[0].y = 2
-  p[1].x = 3 p[1].y = 4
-  assert(memory.spancontains(p, (@vec2){1,2}))
-  assert(memory.spancontains(p, (@vec2){3,4}))
-  assert(not memory.spancontains(p, (@vec2){5,6}))
+  assert(memory.spanfind(p, (@vec2){1,2}) == 0)
+  assert(memory.spanfind(p, (@vec2){3,4}) == 1)
+  assert(memory.spanfind(p, (@vec2){5,6}) == -1)
   allocator.spandealloc(p)
 end
 

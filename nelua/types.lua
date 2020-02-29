@@ -1072,6 +1072,10 @@ function MetaType:set_field(name, symbol)
   self.fields[name] = symbol
 end
 
+function MetaType:inherit(metatype)
+  metamagic.setmetaindex(self.fields, metatype.fields)
+end
+
 function MetaType:__tostring()
   local ss = sstream('metatype{')
   local first = true
