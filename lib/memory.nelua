@@ -61,10 +61,11 @@ function memory.find(heystack: pointer, heystacksize: usize,
     if needlesize == 1 then
       return memchr(heystack, $(@byte*)(needle), heystacksize)
     end
-    for i:usize=0,heystacksize do
-      local heystackbegin: pointer = (@pointer)((@usize)(heystack) + i)
-      if memcmp(heystackbegin, needle, needlesize) == 0 then
-        return heystackbegin
+    local heystackbegin = (@usize)(heystack)
+    for i:usize=heystackbegin,heystackbegin+(heystacksize-needlesize) do
+      local p: pointer = (@pointer)(i)
+      if memcmp(p, needle, needlesize) == 0 then
+        return p
       end
     end
     return nilptr

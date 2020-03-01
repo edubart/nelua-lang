@@ -155,6 +155,8 @@ do -- find
   local b, e
   b, e = s:find('h', 1, true) assert(b == 1 and e == 1)
   b, e = s:find('he', 1, true) assert(b == 1 and e == 2)
+  b, e = s:find('ld', 1, true) print(b,e) assert(b == 10 and e == 11)
+  b, e = s:find('heo', 1, true) assert(b == 0 and e == 0)
   b, e = s:find('hel', 1, true) assert(b == 1 and e == 3)
   b, e = s:find('d', 1, true) assert(b == 11 and e == 11)
   b, e = s:find('h', -11, true) assert(b == 1 and e == 1)
