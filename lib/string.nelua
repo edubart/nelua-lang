@@ -101,6 +101,31 @@ function string.__convert(s: #[concept(function(s)
   ## end
 end
 
+global function tostring(x: auto): string
+  ## if x.type.is_arithmetic then
+    local size: cint
+    ##[[
+    local tyformat = require'nelua.cdefs'.types_printf_format[x.type.codename]
+    staticassert(tyformat)
+    cinclude '<stdio.h>'
+    cemit('size = snprintf(NULL, 0, '..tyformat..', x);')
+    ]]
+    if unlikely(size == 0) then return (@string){} end
+    local self: string = string._create(size)
+    local dest: cstring = (@cstring)(&self.impl.data[0])
+    local n: csize = (@csize)(size+1)
+    ## cemit('snprintf(dest, n, '..tyformat..', x);')
+    return self
+  ## elseif x.type.is_boolean then
+    if x == true then
+      return 'true'
+    end
+    return 'false'
+  ## else
+  ##   staticerror("tostring: cannot convert type '%s' to a string", x.type)
+  ## end
+end
+
 function stringview.__tostring(s: stringview) <inline>
   if unlikely(s.size == 0) then return (@string){} end
   local ret: string = string._create(s.size)

@@ -179,3 +179,11 @@ do -- print
   print(s)
   print((@cstring)('!'))
 end
+
+do -- tostring
+  assert(tostring(2) == '2')
+  assert(tostring(0xff) == '255')
+  assert(tostring(-2) == '-2')
+  assert(tostring(false) == 'false')
+  assert(tostring(true) == 'true')
+end
