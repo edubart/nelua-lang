@@ -1200,15 +1200,19 @@ it("records", function()
     assert(Point({1,y=2}).x == 1)
   ]])
   assert.run_c([[
+    local Point = @record {x: integer, y: integer}
     do
-      local Point = @record {x: integer, y: integer}
       local p = Point{x=1, y=2}
       assert(p.x == 1 and p.y == 2)
     end
     do
-      local Point = @record {x: integer, y: integer}
       local p: Point = {x=1, y=2}
       assert(p.x == 1 and p.y == 2)
+    end
+    do
+      local V <comptime> = 2
+      local p: Point = {V, V}
+      assert(p.x == 2 and p.y == 2)
     end
   ]])
   assert.run_c([[

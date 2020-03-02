@@ -361,7 +361,7 @@ function visitors.Table(context, node, emitter)
       emitter:add_zeroinit(type)
       emitter:add_ln(';')
       for _,childnode in ipairs(childnodes) do
-        local fieldname = childnode.attr.fieldname
+        local fieldname = childnode.fieldname
         local childvalnode
         if childnode.tag  == 'Pair' then
           childvalnode = childnode[2]
@@ -399,7 +399,7 @@ end
 
 function visitors.Pair(context, node, emitter)
   local namenode, valuenode = node:args()
-  local parenttype = node.attr.parenttype
+  local parenttype = node.parenttype
   if parenttype and parenttype.is_record then
     assert(traits.is_string(namenode))
     emitter:add('.', cdefs.quotename(namenode), ' = ')

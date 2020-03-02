@@ -222,8 +222,8 @@ local function visitor_Record_literal(context, node, littype)
     if not fieldvalnode.attr.comptime then
       comptime = nil
     end
-    childnode.attr.parenttype = littype
-    childnode.attr.fieldname = fieldname
+    childnode.parenttype = littype
+    childnode.fieldname = fieldname
   end
   attr.type = littype
   attr.comptime = comptime
