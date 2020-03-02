@@ -868,7 +868,7 @@ function ArrayType:_init(node, subtype, length)
   Type._init(self, 'array', size, node)
   self.subtype = subtype
   self.length = length
-  self.maxfieldsize = subtype.size
+  self.maxfieldsize = subtype.maxfieldsize or subtype.size
   self.codename = string.format('%s_arr%d', subtype.codename, length)
 end
 

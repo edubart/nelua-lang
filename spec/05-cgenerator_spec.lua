@@ -1241,6 +1241,12 @@ it("records size", function()
       local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
       assert(#R == s)
     end
+
+    do
+      local R = @record { a: float64[64][64], c: cchar }
+      local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
+      assert(#R == s)
+    end
   ]=])
 end)
 
