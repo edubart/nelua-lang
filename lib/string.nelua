@@ -108,6 +108,7 @@ global function tostring(x: auto): string
     local tyformat = require'nelua.cdefs'.types_printf_format[x.type.codename]
     staticassert(tyformat)
     cinclude '<stdio.h>'
+    cinclude '<inttypes.h>'
     cemit('size = snprintf(NULL, 0, '..tyformat..', x);')
     ]]
     if unlikely(size == 0) then return (@string){} end
