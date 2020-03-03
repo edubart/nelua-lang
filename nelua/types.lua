@@ -1103,18 +1103,20 @@ local function compute_record_size(fields, pack)
   if nfields == 0 then
     return size, maxfieldsize
   end
+  local pad
   for i=1,#fields do
     local ftype = fields[i].type
     local fsize = ftype.size
     local mfsize = ftype.maxfieldsize or fsize
     maxfieldsize = math.max(maxfieldsize, mfsize)
-    local pad = 0
+    pad = 0
     if not pack and size % mfsize > 0 then
       pad = fsize - (size % mfsize)
     end
     size = size + pad + fsize
   end
-  local pad = 0
+  size = size - pad
+  pad = 0
   if not pack and size % maxfieldsize > 0 then
     pad = maxfieldsize - (size % maxfieldsize)
   end

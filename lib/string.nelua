@@ -265,7 +265,7 @@ function string.find(self: string,
   local found = memory.find(&self.impl.data[init-1], self.impl.size, pattern.data, pattern.size)
   if found then
     local sbegin: isize = (@isize)((@usize)(found) - (@usize)(&self.impl.data[0]))
-    return sbegin + 1, sbegin + pattern.size
+    return sbegin + 1, sbegin + (@isize)(pattern.size)
   end
   return 0, 0
 end

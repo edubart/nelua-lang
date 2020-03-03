@@ -45,9 +45,9 @@ function GC:_hash(ptr: pointer): usize
 end
 
 function GC:_probe(i: usize, h: usize): usize
-  local v: isize = i - (h - 1_isize)
+  local v: isize = (@isize)(i) - ((@isize)(h) - 1_isize)
   if v < 0 then
-    v = self.nslots + v
+    v = (@isize)(self.nslots) + v
   end
   return (@usize)(v)
 end
