@@ -121,6 +121,8 @@ assert(math.ult(math.maxinteger, math.mininteger))
 
 -- random
 math.randomseed(0)
+assert(math.random(0,0) == 0)
+assert(math.random(2,2) == 2)
 do
   for i=1,10 do
     local x,y,z = math.random(), math.random(10), math.random(-10,0)

@@ -279,7 +279,7 @@ end
 -- string.unpack(fmt, s, pos)
 -- string.packsize(fmt)
 
-local function str2int(a: stringview): integer
+local function str2int(a: stringview): integer <nosideeffect>
   local endptr: cstring
   errno = 0
   local i: clonglong = strtoll(a.data, &endptr, 10)
@@ -287,13 +287,14 @@ local function str2int(a: stringview): integer
   return (@integer)(i)
 end
 
-local function str2num(a: stringview): number
+local function str2num(a: stringview): number <nosideeffect>
   local endptr: cstring
   errno = 0
   local n: float64 = strtod(a.data, &endptr)
   check(endptr ~= a.data and errno == 0, 'failed to convert string to number')
   return n
 end
+
 function string.__add(a: stringview, b: stringview): number
   return str2num(a) + str2num(b)
 end

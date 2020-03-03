@@ -257,7 +257,7 @@ function math.random(m: is_optional_arithmetic, n: is_optional_arithmetic) <inli
   local r: number = default_random:random()
   ## if not m.type.is_nil and not n.type.is_nil then
     local low: integer, up: integer = (@integer)(m), (@integer)(n)
-    if not likely(low < up) then
+    if not likely(low <= up) then
       panic("random: interval is empty")
     elseif not likely(low >= 0 or up < math.maxinteger + low) then
       panic("random: interval too large")
