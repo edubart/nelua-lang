@@ -113,6 +113,21 @@ it("call", function()
   --assert.generate_c("do a:f() end", "a.f(a)")
 end)
 
+it("callbacks", function()
+  assert.run_c([[
+local function call_callback(callback: function(integer, integer): integer): integer
+  return callback(1, 2)
+end
+
+local function mycallback(x: integer, y: integer): integer
+  assert(x == 1 and y == 2)
+  return x + y
+end
+
+assert(call_callback(mycallback) == 3)
+]])
+end)
+
 it("if", function()
   assert.generate_c("if nilptr then\nend","if(false) {\n")
   assert.generate_c("if nil then\nend","if(false) {\n")

@@ -460,6 +460,7 @@ function visitors.FuncType(context, node)
   local type = types.FunctionType(node,
     tabler.imap(argnodes, function(argnode) return Attr{type = argnode.attr.value} end),
     tabler.imap(retnodes, function(retnode) return retnode.attr.value end))
+  type.sideeffect = true
   attr.type = primtypes.type
   attr.value = type
 end

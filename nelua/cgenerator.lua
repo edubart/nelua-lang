@@ -299,11 +299,23 @@ typevisitors[types.EnumType] = function(context, type)
   context:add_declaration(decemitter:generate(), type.codename)
 end
 
+typevisitors[types.FunctionType] = function(context, type)
+  if type.nodecl or context:is_declared(type.codename) then return end
+  local decemitter = CEmitter(context, 0)
+  decemitter:add('typedef ', context:funcretctype(type), ' (*', type.codename, ')(')
+  for i,argtype in ipairs(type.argtypes) do
+    if i>1 then
+      decemitter:add(', ')
+    end
+    decemitter:add(argtype)
+  end
+  decemitter:add_ln(');')
+  context:add_declaration(decemitter:generate(), type.codename)
+end
+
 typevisitors[types.Type] = function(context, type)
   if type.nodecl or context:is_declared(type.codename) then return end
-  if type.is_function then --luacov:disable
-    error('ctype for functions not implemented yet')
-  elseif type.is_any then --luacov:enable
+  if type.is_any then --luacov:enable
     context:ensure_runtime_builtin('nelua_any')
   elseif type.is_nil then
     context:ensure_runtime_builtin('nelua_nilable')
