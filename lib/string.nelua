@@ -258,7 +258,10 @@ function string.find(self: string,
   --TODO: handle patterns and returns them
   --TODO: return nil if not found instead of zeros
   check(plain, 'string.find: patterns not supported yet')
-  if unlikely(not self.impl) then return pattern.size == 0 and 1 or 0, 0 end
+  if unlikely(not self.impl) then
+    if pattern.size == 0 then return 1, 0 end
+    return 0, 0
+  end
   if unlikely(init < 0) then init = self.impl.size + init + 1 end
   if unlikely(init > self.impl.size) then return 0, 0 end
   if unlikely(init <= 0) then init = 1 end
