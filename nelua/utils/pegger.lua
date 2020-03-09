@@ -28,10 +28,10 @@ local c_quote_patt_end = "\
 
 local quotes_defs = {
   to_special_character_lua = function(s)
-    return '\\' .. string.byte(s)
+    return string.format('\\%03d', string.byte(s))
   end,
   to_special_character_c = function(s)
-    return string.format('\\x%02x', string.byte(s))
+    return string.format('\\%03o', string.byte(s))
   end
 }
 

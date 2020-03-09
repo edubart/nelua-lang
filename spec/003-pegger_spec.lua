@@ -18,8 +18,8 @@ it("c double quoting", function()
   assert.same(q "\n", [["\n"]])
   assert.same(q "\r", [["\r"]])
   assert.same(q "\v", [["\v"]])
-  assert.same(q "\001", [["\x01"]])
-  assert.same(q "\255", [["\xff"]])
+  assert.same(q "\001", [["\001"]])
+  assert.same(q "\255", [["\377"]])
 
   -- trigraphs
   assert.same(q "??=", [["?\?="]])

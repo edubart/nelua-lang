@@ -82,7 +82,7 @@ end)
 
 it("string", function()
   assert.generate_c([[local a = "hello"]], [["hello"]])
-  assert.generate_c([[local a = "\x01"]], [["\x01"]])
+  assert.generate_c([[local a = "\001"]], [["\001"]])
 end)
 
 it("boolean", function()
