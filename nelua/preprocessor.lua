@@ -119,6 +119,11 @@ function preprocessor.preprocess(context, ast)
   -- second pass, emit the preprocess lua code
   local aster = context.parser.astbuilder.aster
   local emitter = Emitter(ppcontext, 0)
+  if config.define then
+    for _,define in ipairs(config.define) do
+      emitter:add_ln(define)
+    end
+  end
   ppcontext:traverse_node(ast, emitter)
 
   -- generate the preprocess function`

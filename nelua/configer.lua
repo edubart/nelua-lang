@@ -4,6 +4,7 @@ local metamagic = require 'nelua.utils.metamagic'
 local except = require 'nelua.utils.except'
 local fs = require 'nelua.utils.fs'
 local cdefs = require 'nelua.cdefs'
+local compat = require 'pl.compat'
 
 local configer = {}
 local config = {}
@@ -32,16 +33,26 @@ local function create_parser(argv)
   argparser:flag('--print-ast', 'Print the AST only')
   argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only')
   argparser:flag('--print-code', 'Print the generated code only')
+  argparser:option('-D --define', 'Define values in the preprocessor'):count("*"):convert(function(param)
+    if param:match('^%a[_%w]*$') then
+      param = param .. ' = true'
+    end
+    local f, err = compat.load(param, '@define', "t")
+    if err then
+      return nil, string.format("failed parsing define '%s':\n  %s", param, err)
+    end
+    return param
+  end)
   argparser:option('-g --generator', "Code generator to use (lua/c)", d.generator)
   argparser:option('-d --standard', "Source standard (default/luacompat)", d.standard)
   argparser:option('--cc', "C compiler to use", d.cc)
-  argparser:option('--cpu-bits', "Target CPU architecture bit size", d.cpu_bits)
+  argparser:option('--cpu-bits', "Target CPU architecture bit size (64/32)", d.cpu_bits)
   argparser:option('--cflags', "Additional C flags to use on compilation", d.cflags)
+  argparser:option('--cache-dir', "Compilation cache directory", d.cache_dir)
+  argparser:option('--path', "Nelua modules search path", d.path)
   argparser:option('--lua', "Lua interpreter to use when runnning", d.lua)
   argparser:option('--lua-version', "Target lua version for lua generator", d.lua_version)
   argparser:option('--lua-options', "Lua options to use when running", d.lua_options)
-  argparser:option('--cache-dir', "Compilation cache directory", d.cache_dir)
-  argparser:option('--path', "Nelua modules search path", d.path)
   argparser:argument("input", "Input source file"):action(function(options, _, v)
     -- hacky way to stop handling options
     local index = tabler.ifind(argv, v) + 1
