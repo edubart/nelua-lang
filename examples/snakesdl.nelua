@@ -1,3 +1,5 @@
+require 'math'
+
 -- SDL2 Snake Game Demo
 ## linklib 'SDL2'
 
@@ -54,7 +56,6 @@ local function SDL_RenderClear(renderer: SDL_Renderer*) <cimport> end
 local function SDL_SetRenderDrawColor(renderer: SDL_Renderer*, r: uint8, g: uint8, b: uint8, a: uint8): cint <cimport> end
 local function SDL_RenderFillRect(renderer: SDL_Renderer*, rect: SDL_Rect*): cint <cimport> end
 local function SDL_GetTicks(): uint32 <cimport> end
-local function rand(): int32 <cimport'rand'> end
 
 -- game types
 local Point2D = @record{x: integer, y: integer}
@@ -113,8 +114,8 @@ local function respawn_apple()
   -- respawn until there is no collision with its body
   repeat
     applepos = Point2D{
-      x = rand() % GRID_SIZE,
-      y = rand() % GRID_SIZE
+      x = math.random(GRID_SIZE) - 1,
+      y = math.random(GRID_SIZE) - 1
     }
   until not has_tile(applepos)
 end

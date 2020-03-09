@@ -1,20 +1,11 @@
-## if EMSCRIPTEN then
---TODO: default output file as html for emcc
---TODO: pass ifdef via compile command
---TODO: function pointers
-## cinclude '<emscripten.h>'
-## cflags '-O3 -s USE_SDL=2 -o nelua_cache/condots.html'
-local function emscripten_set_main_loop_arg(func: function(pointer), arg: pointer, fps: cint, simulate_infinite_loop: cint) <cimport,nodecl> end
-## else
--- optimize for performance
-## cflags '-O3 -ffast-math -march=native -fno-plt -fopenmp -rdynamic -g'
-## linklib 'SDL2'
-## end
+## cflags '-O3 -ffast-math -march=native -fopenmp'
+
+require 'math'
+require 'memory'
 
 --------------------------------------------------------------------------------
 -- SDL
--- import SDL headers
-## cdefine 'SDL_DISABLE_IMMINTRIN_H'
+## linklib 'SDL2'
 ## cinclude '<SDL2/SDL.h>'
 
 -- import SDL types
@@ -97,14 +88,6 @@ local function SDL_SetRenderDrawBlendMode(renderer: SDL_Renderer*, blendMode: in
 local function SDL_SetTextureBlendMode(texture: SDL_Texture*, blendMode: int32): cint <cimport,nodecl> end
 local function SDL_UpdateTexture(texture: SDL_Texture*, rect: SDL_Rect*, pixels: pointer, pitch: cint): cint <cimport,nodecl> end
 local function SDL_GetError(): cstring <cimport,nodecl> end
-
-
---------------------------------------------------------------------------------
--- math functions
-
-require 'math'
-
-local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
 
 --------------------------------------------------------------------------------
 local vec4b = @record{x: byte, y: byte, z: byte, w: byte}
@@ -230,7 +213,7 @@ end
 
 local function draw_scene()
   -- clear screen
-  memset(&pixels[0], 255, SCREEN_WIDTH*SCREEN_HEIGHT*4)
+  memory.set(&pixels[0], 255, SCREEN_WIDTH*SCREEN_HEIGHT*4)
 
   for i=0,<NUM_PARTICLES do
     local p = &particles[i].p
@@ -309,33 +292,26 @@ local function go()
   SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE)
 
   -- draw
-  ## if not EMSCRIPTEN then
-    local lastticks = SDL_GetTicks()
-    local fps = 0
-    repeat
-      local ticks = SDL_GetTicks()
-      if ticks - lastticks >= 1000 then
-        print('FPS', fps)
-        lastticks = ticks
-        fps = 0
-      end
-
-      local quit = not poll_events()
-      draw()
-      fps = fps + 1
-    until quit
-
-    -- cleanup and finish
-    SDL_DestroyTexture(texture)
-    SDL_DestroyRenderer(renderer)
-    SDL_DestroyWindow(window)
-    SDL_Quit()
-  ## else
-    local function emdraw(context: pointer)
-      draw()
+  local lastticks = SDL_GetTicks()
+  local fps = 0
+  repeat
+    local ticks = SDL_GetTicks()
+    if ticks - lastticks >= 1000 then
+      print('FPS', fps)
+      lastticks = ticks
+      fps = 0
     end
-    emscripten_set_main_loop_arg(emdraw, nilptr, -1, 1)
-  ## end
+
+    local quit = not poll_events()
+    draw()
+    fps = fps + 1
+  until quit
+
+  -- cleanup and finish
+  SDL_DestroyTexture(texture)
+  SDL_DestroyRenderer(renderer)
+  SDL_DestroyWindow(window)
+  SDL_Quit()
 end
 
 go()

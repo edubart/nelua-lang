@@ -267,8 +267,6 @@ do
 end
 ```
 
-They are also useful to create arbitrary scopes for **defer** statement.
-
 ### Goto
 
 Gotos are useful to get out of nested loops and jump between codes:
@@ -327,7 +325,7 @@ Numeric for loops always evaluate it's begin, end and step expressions only once
 variable type is automatically deduced using the begin and end expressions.
 
 #### Exclusive
-An exclusive to for is available to do exclusive for loops, they work using
+An exclusive for is available to do exclusive for loops, they work using
 comparison operators `~=` `<=` `>=` `<` `>`:
 
 ```nelua
@@ -431,6 +429,9 @@ The following table shows Nelua primitive numeric types and is related type in C
 The types `isize` and `usize` types are usually 32 wide bits on 32-bit systems,
 and 64 bits wide on 64-bit systems. When you need an integer value you should use `integer`
 unless you have a specific reason to use a sized or unsigned integer type.
+The `integer`, `uinteger` and `number` are intended to be configurable. By default
+they are 64 bits for all architectures, but this can be changed at compile time
+using the processor if needed.
 
 ### Strings
 
@@ -459,7 +460,6 @@ The `string` type is usually allocated at runtime and it frees the string memory
 once it reference count reaches 0. The `stringview` uses weak references, thus
 any `stringview` pointing to a `string` is invalidated once the `string` is freed.
 Both types can be converted from one to another.
-
 
 ### Array
 
@@ -540,6 +540,7 @@ d.name = "John"
 d.age  = 22
 print(d.name, d.age)
 ```
+
 ### Pointer
 
 Pointer is like in C, points to a region in memory of a specific type:

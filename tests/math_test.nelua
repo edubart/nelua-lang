@@ -121,13 +121,14 @@ assert(math.ult(math.maxinteger, math.mininteger))
 
 -- random
 math.randomseed(0)
+assert(math.random(1) == 1)
 assert(math.random(0,0) == 0)
 assert(math.random(2,2) == 2)
 do
   for i=1,10 do
-    local x,y,z = math.random(), math.random(10), math.random(-10,0)
+    local x,y,z = math.random(), math.random(3), math.random(-3,0)
     assert(x >= 0 and x <= 1)
-    assert(y >= 0 and y <= 10)
-    assert(z >= -10 and z <= 0)
+    assert(y >= 0 and y <= 3)
+    assert(z >= -3 and z <= 0)
   end
 end
