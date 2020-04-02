@@ -3,7 +3,6 @@ local plfile = require 'pl.file'
 local plpath = require 'pl.path'
 local except = require 'nelua.utils.except'
 local stringer = require 'nelua.utils.stringer'
-
 local fs = {}
 
 fs.join = plpath.join
@@ -15,6 +14,11 @@ fs.getfiletime = plfile.modified_time
 fs.isfile = plpath.isfile
 fs.gettmpname = plpath.tmpname
 fs.deletefile = plfile.delete
+fs.exists = plpath.exists
+
+function fs.isdir(path)
+  return fs.exists(path) and not fs.isfile(path)
+end
 
 function fs.ensurefilepath(file)
   local outdir = plpath.dirname(file)
@@ -63,12 +67,15 @@ end
 function fs.findmodulefile(name, path)
   name = name:gsub('%.', plpath.sep)
   local paths = stringer.split(path, ';')
+  local triedpaths = {}
   for _,trypath in ipairs(paths) do
     trypath = trypath:gsub('%?', name)
     if plpath.isfile(trypath) then
       return fs.abspath(trypath)
     end
+    table.insert(triedpaths, trypath)
   end
+  return nil, "\tno file '" .. table.concat(triedpaths, "'\n\tno file '") .. "'"
 end
 
 local path_pattern = string.format('[^%s]+', plpath.dirsep)

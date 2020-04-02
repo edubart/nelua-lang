@@ -21,10 +21,13 @@ function tabler.ifind(t, val, idx)
 end
 
 -- insert values
-function tabler.insertvalues(t, st)
-  local tlen = #t
+function tabler.insertvalues(t, pos, st)
+  if not st then
+    st = pos
+    pos = #t + 1
+  end
   for i=1,#st do
-    t[tlen + i] = st[i]
+    t[pos + i - 1] = st[i]
   end
   return t
 end

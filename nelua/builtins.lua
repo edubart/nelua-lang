@@ -29,14 +29,14 @@ function builtins.require(context, node)
 
     -- load it and parse
     local unitpath = argnode.attr.value
-    local filepath = fs.findmodulefile(unitpath, config.path)
+    local filepath, err = fs.findmodulefile(unitpath, config.path)
     if not filepath then
       if canloadatruntime then
         -- maybe it would succeed at runtime
         attr.runtime_require = true
         return
       else
-        node:raisef("in require: module '%s' not found", unitpath)
+        node:raisef("in require: module '%s' not found:\n%s", unitpath, err)
       end
     end
 

@@ -1,6 +1,7 @@
 require 'busted.runner'()
 
 local assert = require 'spec.tools.assert'
+local configer = require 'nelua.configer'
 
 describe("Nelua runner should", function()
 
@@ -71,6 +72,33 @@ it("define option", function()
       ## assert(DEF4 == 'asd')
     ]]})
   assert.run_error('-D1 examples/helloworld.nelua', "failed parsing define '1'")
+end)
+
+it("configure module search paths", function()
+  assert.run({'-L', './examples', '--eval',[[
+    require 'helloworld'
+  ]]}, 'hello world')
+  assert.run_error({'--eval',[[
+    require 'helloworld'
+  ]]}, "module 'helloworld' not found")
+
+  assert.run_error({'-L', './examples/invalid', '--analyze', '--eval',[[--nothing]]}, 'is not a valid directory')
+  assert.run({'-L', './examples/?.lua', '--analyze', '--eval',[[
+    ## assert(config.path:find('examples'))
+  ]]})
+
+  local defconfig = configer.get_default()
+  local oldlibpath = defconfig.lib_path
+  defconfig.lib_path = {'/tests'}
+  assert.run({'-L', './examples', '--analyze', '--eval',[[
+    ## assert(config.path:find('examples'))
+    ## assert(config.path:find('tests'))
+  ]]})
+  defconfig.lib_path = oldlibpath
+
+  assert.run({'--path', './examples', '--analyze', '--eval',[[
+    ## assert(config.path == './examples')
+  ]]})
 end)
 
 end)
