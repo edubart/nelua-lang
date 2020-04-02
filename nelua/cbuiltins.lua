@@ -398,6 +398,40 @@ function builtins.nelua_lt_(context, ltype, rtype)
   end
 end
 
+function builtins.nelua_eq_(context, type)
+  assert(type.is_record)
+  local name = string.format('nelua_eq_%s', type.codename)
+  if context.usedbuiltins[name] then return name end
+  local ctype = context:ctype(type)
+  local defemitter = CEmitter(context)
+  defemitter:add_ln('{')
+  defemitter:inc_indent()
+  defemitter:add_indent('return ')
+  for i,field in ipairs(type.fields) do
+    if i > 1 then
+      defemitter:add(' && ')
+    end
+    if field.type.is_record then
+      local op = context:ensure_runtime_builtin('nelua_eq_', field.type)
+      defemitter:add(op, '(a.', field.name, ', b.', field.name, ')')
+    elseif field.type.is_array then
+      context:add_include('<string.h>')
+      defemitter:add('memcmp(a.', field.name, ', ', 'b.', field.name, ', sizeof(', type, ')) == 0')
+    else
+      defemitter:add('a.', field.name, ' == ', 'b.', field.name)
+    end
+  end
+  defemitter:add_ln(';')
+  defemitter:dec_indent()
+  defemitter:add_ln('}')
+  define_inline_builtin(context, name,
+    'bool',
+    string.format('(%s a, %s b)', ctype, ctype),
+    defemitter:generate())
+  return name
+end
+
+
 function builtins.nelua_idiv_(context, type)
   local name = string.format('nelua_idiv_i%d', type.bitsize)
   if context.usedbuiltins[name] then return name end
@@ -547,9 +581,18 @@ end
 
 function operators.eq(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype.is_stringview and rtype.is_stringview then
+  if ltype.is_stringview then
+    assert(rtype.is_stringview)
     emitter:add_builtin('nelua_stringview_eq')
     emitter:add('(', lname, ', ', rname, ')')
+  elseif ltype.is_record then
+    assert(ltype == rtype)
+    local op = emitter.context:ensure_runtime_builtin('nelua_eq_', ltype)
+    emitter:add(op, '(', lname, ', ', rname, ')')
+  elseif ltype.is_array then
+    assert(ltype == rtype)
+    emitter.context:add_include('<string.h>')
+    emitter:add('(memcmp(&', lname, '.data[0], &', rname, '.data[0], sizeof(', ltype, ')) == 0)')
   else
     emitter:add(lname, ' == ', rname)
   end
@@ -560,6 +603,14 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
   if ltype.is_stringview and rtype.is_stringview then
     emitter:add_builtin('nelua_stringview_ne')
     emitter:add('(', lname, ', ', rname, ')')
+  elseif ltype.is_record then
+    assert(ltype == rtype)
+    local op = emitter.context:ensure_runtime_builtin('nelua_eq_', ltype)
+    emitter:add('!', op, '(', lname, ', ', rname, ')')
+  elseif ltype.is_array then
+    assert(ltype == rtype)
+    emitter.context:add_include('<string.h>')
+    emitter:add('(memcmp(&', lname, '.data[0], &', rname, '.data[0], sizeof(', ltype, ')) != 0)')
   else
     emitter:add(lname, ' != ', rname)
   end

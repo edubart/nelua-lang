@@ -43,8 +43,6 @@ local function merge_configs(conf, pconf)
   for k,v in pairs(pconf) do
     if conf[k] == nil then
       conf[k] = v
-    elseif type(conf[k]) == 'table' and type(v) == 'table' and #v > 0 then
-      tabler.insertvalues(conf[k], 1, v)
     end
   end
 
@@ -52,10 +50,10 @@ local function merge_configs(conf, pconf)
     local ss = sstream()
     for _,libpath in ipairs(conf.lib_path) do
       if libpath:find('?') then
-        ss:add(libpath)
+        ss:add(libpath, ';')
       else
-        ss:add(libpath .. '/?.nelua;')
-        ss:add(libpath .. '/?/init.nelua;')
+        ss:add(libpath, '/?.nelua;')
+        ss:add(libpath, '/?/init.nelua;')
       end
     end
     ss:add(conf.path)
@@ -82,11 +80,11 @@ local function create_parser(args)
   argparser:flag('-t --timing', 'Debug compile timing information', defconfig.timing)
   argparser:flag('--no-cache', "Don't use any cached compilation", defconfig.no_cache)
   argparser:option('-D --define', 'Define values in the preprocessor')
-    :count("*"):convert(convert_define, defconfig.define)
+    :count("*"):convert(convert_define, tabler.copy(defconfig.define or {}))
   argparser:option('-g --generator', "Code generator to use (lua/c)", defconfig.generator)
   argparser:option('-d --standard', "Source standard (default/luacompat)", defconfig.standard)
   argparser:option('-p --path', "Set module search path", defconfig.path)
-  argparser:option('-L --lib-path', "Add module search path", defconfig.lib_path)
+  argparser:option('-L --lib-path', "Add module search path", tabler.copy(defconfig.lib_path or {}))
     :count("*"):convert(convert_add_path)
   argparser:option('--cc', "C compiler to use", defconfig.cc)
   argparser:option('--cpu-bits', "Target CPU architecture bit size (64/32)", defconfig.cpu_bits)

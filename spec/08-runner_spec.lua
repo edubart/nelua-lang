@@ -97,7 +97,7 @@ it("configure module search paths", function()
   defconfig.lib_path = oldlibpath
 
   assert.run({'--path', './examples', '--analyze', '--eval',[[
-    ## assert(config.path == './examples')
+    ## assert(config.path:match('examples'))
   ]]})
 end)
 

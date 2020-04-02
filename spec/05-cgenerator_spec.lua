@@ -830,6 +830,59 @@ it("string comparisons", function()
   ]])
 end)
 
+it("array comparisons", function()
+  assert.run_c([[
+    local A = @integer[4]
+    local a: A = {1,2,3,4}
+    local b: A = {1,2,3,4}
+    local c: A = {1,2,3,5}
+    assert(a == a)
+    assert(a == (@integer[4]){1,2,3,4})
+    assert(a == b)
+    assert(not (a ~= b))
+    assert(not (a == c))
+    assert(a ~= c)
+]])
+end)
+
+it("record comparisons", function()
+  assert.run_c([[
+    local R = @record{x: integer, y: integer}
+    local a: R = {1,1}
+    local b: R = {1,1}
+    local c: R = {2,2}
+
+    assert(a == a)
+    assert(a == R{1,1})
+    assert(a == b)
+    assert(not (a ~= b))
+    assert(not (a == c))
+    assert(a ~= c)
+
+
+    local P = @record{x: R}
+    local a: P = {{1}}
+    local b: P = {{1}}
+    local c: P = {{2}}
+    assert(a == a)
+    assert(a == b)
+    assert(not (a ~= b))
+    assert(not (a == c))
+    assert(a ~= c)
+
+
+    local Q = @record{x: integer[2]}
+    local a: Q = {{1,2}}
+    local b: Q = {{1,2}}
+    local c: Q = {{1,3}}
+    assert(a == a)
+    assert(a == b)
+    assert(not (a ~= b))
+    assert(not (a == c))
+    assert(a ~= c)
+]])
+end)
+
 it("binary conditional operators", function()
   assert.generate_c("local a, b; do return a or b end",  [[({
       nelua_any t1_ = a;
