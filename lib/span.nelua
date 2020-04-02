@@ -12,7 +12,7 @@
   ## staticassert(T.size > 0, "spans cannot be of '%s'", T)
   local T = @#[T]#
   local SpanT <codename #['nelua_span_'..T.codename]#> = @record {
-    data: T*,
+    data: T[0]*,
     size: usize
   }
 

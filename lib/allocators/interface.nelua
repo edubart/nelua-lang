@@ -5,7 +5,7 @@
   function allocator.spanalloc(T: type, size: usize)
     local s: span(T)
     if likely(size > 0_u) then
-      s.data = (@T*)(allocator.alloc(size * #T))
+      s.data = (@T[0]*)(allocator.alloc(size * #T))
       check(s.data, 'allocator.spanalloc: allocation fail')
       s.size = size
     end
@@ -15,7 +15,7 @@
   function allocator.spanalloc0(T: type, size: usize)
     local s: span(T)
     if likely(size > 0_u) then
-      s.data = (@T*)(allocator.alloc0(size * #T))
+      s.data = (@T[0]*)(allocator.alloc0(size * #T))
       check(s.data, 'allocator.spanalloc0: allocation fail')
       s.size = size
     end
@@ -29,7 +29,7 @@
       s.data = nilptr
       s.size = 0
     else
-      s.data = (@T*)(allocator.realloc(s.data, size * #T))
+      s.data = (@T[0]*)(allocator.realloc(s.data, size * #T))
       check(s.data, 'allocator.spanrealloc: allocation fail')
       s.size = size
     end
@@ -43,7 +43,7 @@
       s.data = nilptr
       s.size = 0
     else
-      s.data = (@T*)(allocator.realloc0(s.data, size * #T, s.size * #T))
+      s.data = (@T[0]*)(allocator.realloc0(s.data, size * #T, s.size * #T))
       check(s.data, 'allocator.spanrealloc0: allocation fail')
       s.size = size
     end

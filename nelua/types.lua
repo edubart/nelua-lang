@@ -1250,6 +1250,12 @@ function PointerType:is_convertible_from_type(type, explicit)
       return self
     elseif self.is_genericpointer then
       return self
+    elseif type.subtype:is_array_of(self.subtype) and type.subtype.length == 0 then
+      -- implicit casting from unchecked arrays pointers to pointers
+      return self
+    elseif self.subtype:is_array_of(type.subtype) and self.subtype.length == 0 then
+      -- implicit casting from pointers to unchecked arrays pointers
+      return self
     end
   end
   if type.is_stringview then

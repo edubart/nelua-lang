@@ -645,6 +645,7 @@ it("binary operator `eq`", function()
   assert.generate_c("local x = '1' == 1", "x = false;")
   assert.generate_c("local x = '1' == '1'", "x = true;")
   assert.generate_c("local a,b = 1,2; local x = a == b", "x = (a == b);")
+  assert.generate_c("local a: pointer, b: boolean*; local x = a == b", "x = (a == (void*)b);")
 end)
 
 it("binary operator `ne`", function()
@@ -1679,6 +1680,19 @@ it("automatic casting", function()
     local u: uint8 = 255
     assert(f(i) == 255)
     assert(g(u) == -1)
+  ]])
+end)
+
+it("implicit casting for unchecked arrays", function()
+  assert.run_c([[
+    local i: integer = 1
+    local p: integer* = &i
+    local a: integer[0]*
+    a = p
+    p = a
+    assert(i == 1)
+    assert(a[0] == 1)
+    assert($p == 1)
   ]])
 end)
 

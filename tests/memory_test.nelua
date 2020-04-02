@@ -189,8 +189,8 @@ do -- spanmove
   local p = allocator.spanalloc0(@vec2, 2)
   local pa, pb = &p[0], &p[1]
   $pa, $pb = {x=1,y=2}, {x=3,y=4}
-  local sb = (@span(integer))({ data=&(((@integer[0]*)(p.data))[0]), size=3 })
-  local db = (@span(integer))({ data=&(((@integer[0]*)(p.data))[1]), size=3 })
+  local sb = (@span(integer))({ data=(@integer[0]*)(p.data), size=3 })
+  local db = (@span(integer))({ data=(@integer[0]*)(&((@integer[0]*)(p.data))[1]), size=3 })
   memory.spanmove(db, sb)
   --assert(pa.x == 1 and pa.y == 1 and pb.x == 2 and pb.y == 3)
   allocator.spandealloc(p)

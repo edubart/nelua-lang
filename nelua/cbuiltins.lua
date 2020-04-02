@@ -592,9 +592,14 @@ function operators.eq(_, emitter, lnode, rnode, lname, rname)
   elseif ltype.is_array then
     assert(ltype == rtype)
     emitter.context:add_include('<string.h>')
-    emitter:add('(memcmp(&', lname, '.data[0], &', rname, '.data[0], sizeof(', ltype, ')) == 0)')
+    emitter:add('memcmp(&', lname, '.data[0], &', rname, '.data[0], sizeof(', ltype, ')) == 0')
   else
-    emitter:add(lname, ' == ', rname)
+    emitter:add(lname, ' == ')
+    if ltype ~= rtype then
+      emitter:add_val2type(ltype, rnode, rtype)
+    else
+      emitter:add(rname)
+    end
   end
 end
 
@@ -610,9 +615,14 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
   elseif ltype.is_array then
     assert(ltype == rtype)
     emitter.context:add_include('<string.h>')
-    emitter:add('(memcmp(&', lname, '.data[0], &', rname, '.data[0], sizeof(', ltype, ')) != 0)')
+    emitter:add('memcmp(&', lname, '.data[0], &', rname, '.data[0], sizeof(', ltype, ')) != 0')
   else
-    emitter:add(lname, ' != ', rname)
+    emitter:add(lname, ' != ')
+    if ltype ~= rtype then
+      emitter:add_val2type(ltype, rnode, rtype)
+    else
+      emitter:add(rname)
+    end
   end
 end
 
