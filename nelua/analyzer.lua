@@ -828,8 +828,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           if traits.is_type(arg) then
             argattr = Attr{type=arg}
           end
-          local explicit = traits.is_attr(funcarg) and funcarg.autocast
-          local wantedtype, err = funcargtype:is_convertible_from_attr(argattr, explicit)
+          local wantedtype, err = funcargtype:is_convertible_from_attr(argattr)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
               calleetype:prettyname(), i, err)
@@ -843,7 +842,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           funcargtype = wantedtype
 
           -- check again the new type
-          wantedtype, err = funcargtype:is_convertible_from_attr(argattr, explicit)
+          wantedtype, err = funcargtype:is_convertible_from_attr(argattr)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
               calleetype:prettyname(), i, err)
@@ -1462,7 +1461,7 @@ function visitors.VarDecl(context, node)
         if valnode and vartype:is_initializable_from_attr(valnode.attr) then
           valnode.attr.initializer = true
         end
-        local ok, err = vartype:is_convertible_from(valnode or valtype, varnode.attr.autocast)
+        local ok, err = vartype:is_convertible_from(valnode or valtype)
         if not ok then
           varnode:raisef("in variable '%s' declaration: %s", symbol.name, err)
         end
@@ -1511,7 +1510,7 @@ function visitors.Assign(context, node)
     end
     if vartype and valtype then
       local from = valnode or valtype
-      local ok, err = vartype:is_convertible_from(from, varattr.autocast)
+      local ok, err = vartype:is_convertible_from(from)
       if not ok then
         varnode:raisef("in variable assignment: %s", err)
       end

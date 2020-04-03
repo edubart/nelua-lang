@@ -32,7 +32,7 @@ global string <codename 'nelua_string'> = @record{
   primtypes.stringview.metatype:inherit(stringtype.metatype)
 ]]
 
-function string._create(size: usize <autocast>): string <inline>
+function string._create(size: usize): string <inline>
   local self: string
   check(size > 0, 'cannot create string with size 0')
   self.impl = (@string_object*)(allocator.alloc(#@string_object + size + 1))
@@ -182,7 +182,7 @@ function string.len(self: stringview): isize <inline>
   return (@isize)(self.size)
 end
 
-function string.byte(self: string, i: isize <autocast>): byte
+function string.byte(self: string, i: isize): byte
   if unlikely(not self.impl) then return 0 end
   if unlikely(i < 0) then
     i = self.impl.size + i + 1
@@ -192,7 +192,7 @@ function string.byte(self: string, i: isize <autocast>): byte
   return self.impl.data[i-1]
 end
 
-function string.sub(self: string, i: isize <autocast>, j: isize <autocast>): string
+function string.sub(self: string, i: isize, j: isize): string
   if unlikely(not self.impl) then return self end
   if unlikely(i < 0) then i = self.impl.size + i + 1 end
   if unlikely(i <= 0) then i = 1 end
@@ -207,7 +207,7 @@ function string.sub(self: string, i: isize <autocast>, j: isize <autocast>): str
   return s
 end
 
-function string.rep(self: string, n: isize <autocast>): string
+function string.rep(self: string, n: isize): string
   if unlikely(not self.impl or n <= 0) then return (@string){} end
   if unlikely(n == 1) then return self end
   local s: string = string._create(n * self.impl.size)
@@ -253,7 +253,7 @@ end
 
 function string.find(self: string,
                      pattern: stringview,
-                     init: isize <autocast>,
+                     init: isize,
                      plain: boolean): (isize, isize)
   --TODO: handle patterns and returns them
   --TODO: return nil if not found instead of zeros

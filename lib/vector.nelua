@@ -54,7 +54,7 @@ require 'memory'
   end
 
   -- Reserve at least `n` elements in the vector storage.
-  function VectorT:reserve(n: usize <autocast>)
+  function VectorT:reserve(n: usize)
     if likely(self.data.size >= n) then return end
     self.data = allocator.spanrealloc0(self.data, n)
   end
@@ -62,7 +62,7 @@ require 'memory'
   -- Resizes the vector so that it contains `n` elements.
   -- When expanding new elements are zero initialized.
   -- When shrinking removed elements are destroyed.
-  function VectorT:resize(n: usize <autocast>)
+  function VectorT:resize(n: usize)
     self:reserve(n)
     for i:usize=n,<self.size do
       self.data[i] = (@T)()
@@ -91,7 +91,7 @@ require 'memory'
   -- Inserts element `v` at position `pos` in the vector.
   -- Elements with index greater or equal than `pos` are shifted up.
   -- If the `pos` is out of range, then throws a runtime error.
-  function VectorT:insert(pos: usize <autocast>, v: T)
+  function VectorT:insert(pos: usize, v: T)
     check(pos <= self.size, 'vector.insert: position out of bounds')
     if unlikely(self.size + 1 >= self.data.size) then
       self:_grow()
@@ -107,7 +107,7 @@ require 'memory'
   -- Removes element at position `pos` in the vector and returns its value.
   -- Elements with index greater than `pos` are shifted down.
   -- If the `pos` is out of range, then throws a runtime error.
-  function VectorT:remove(pos: usize <autocast>): T
+  function VectorT:remove(pos: usize): T
     check(pos < self.size, 'vector.remove: position out of bounds')
     self.size = self.size - 1
     local ret: T = memory.moveval(&self.data[pos])
@@ -125,7 +125,7 @@ require 'memory'
 
   -- Returns reference to element at index `pos`.
   -- If `pos` is greater of equal to vector size, then throws a runtime error.
-  function VectorT:__atindex(i: usize <autocast>): T* <inline>
+  function VectorT:__atindex(i: usize): T* <inline>
     check(i < self.size, 'vector.at: position out of bounds')
     return &self.data[i]
   end

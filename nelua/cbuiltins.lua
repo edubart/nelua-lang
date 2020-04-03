@@ -62,10 +62,11 @@ end
 -- panic
 function builtins.nelua_panic_cstring(context)
   context:add_include('<stdlib.h>')
+  context:ensure_runtime_builtin('nelua_noinline')
   context:ensure_runtime_builtin('nelua_noreturn')
   context:ensure_runtime_builtin('nelua_stderr_write_cstring')
   define_builtin(context, 'nelua_panic_cstring',
-    'static nelua_noreturn void nelua_panic_cstring(char* s);\n',
+    'static nelua_noreturn nelua_noinline void nelua_panic_cstring(char* s);\n',
     [[inline nelua_noreturn void nelua_panic_cstring(char *s) {
   nelua_stderr_write_cstring(s);
   abort();
@@ -375,6 +376,27 @@ function builtins.nelua_stdout_write_any(context)
     nelua_panic_cstring("invalid type for nelua_fwrite_any");
   }
 }]])
+end
+
+function builtins.nelua_narrow_cast_(context, dtype, stype)
+  assert(dtype.is_integral and stype.is_arithmetic)
+  local dctype = context:ctype(dtype)
+  local sctype = context:ctype(stype)
+  local name = string.format('nelua_narrow_cast_%s%s', stype.name, dtype.name)
+  if context.usedbuiltins[name] then return name end
+  context:ensure_runtime_builtin('nelua_unlikely')
+  context:ensure_runtime_builtin('nelua_panic_cstring')
+  define_inline_builtin(context, name,
+    dctype,
+    string.format('(%s x)', sctype),
+    string.format([[{
+  %s r = x;
+  if(nelua_unlikely(r != x)) {
+    nelua_panic_cstring("narrow casting from %s to %s failed");
+  }
+  return r;
+}]], dctype, dtype.name, stype.name))
+  return name
 end
 
 function builtins.nelua_lt_(context, ltype, rtype)

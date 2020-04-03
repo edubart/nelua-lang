@@ -1374,7 +1374,7 @@ it("record metametods", function()
     local intarray = @record {
       data: integer[100]
     }
-    function intarray:__atindex(i: usize <autocast>): integer* <inline>
+    function intarray:__atindex(i: usize): integer* <inline>
       return &self.data[i]
     end
     function intarray:__len(): isize <inline>
@@ -1653,33 +1653,33 @@ end)
 it("automatic casting", function()
   assert.generate_c([[
     local a = (@uint8)(-1)
-    local b: uint8 <autocast> = -1
+    local b: uint8 = (@uint8)(-1)
   ]], {"a = 255U", "b = 255U"})
   assert.run_c([[
     do
-      local i8: int8 <autocast>
+      local i8: int8
       local u8: uint8 = 255
-      i8 = u8
+      i8 = (@int8)(u8)
       assert(i8 == -1)
     end
     do
       local i8: int8 = -1
-      local u8: uint8 <autocast>
-      u8 = i8
+      local u8: uint8
+      u8 = (@uint8)(i8)
       assert(u8 == 255)
     end
 
-    local function f(x: uint8 <autocast>)
+    local function f(x: uint8)
       return x
     end
-    local function g(x: int8 <autocast>)
+    local function g(x: int8)
       return x
     end
 
     local i: int8 = -1
     local u: uint8 = 255
-    assert(f(i) == 255)
-    assert(g(u) == -1)
+    assert(f((@uint8)(i)) == 255)
+    assert(g((@int8)(u)) == -1)
   ]])
 end)
 

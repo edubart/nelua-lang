@@ -539,12 +539,11 @@ function IntegralType:is_convertible_from_type(type, explicit)
     return self
   elseif type.is_integral and self:is_inrange(type.min) and self:is_inrange(type.max) then
     return self
-  elseif explicit then
-    if type.is_arithmetic then
-      return self
-    elseif type.is_pointer and self.size == cpusize then
-      return self
-    end
+  elseif type.is_arithmetic then
+    -- implicit narrowing cast
+    return self
+  elseif explicit and type.is_pointer and self.size == cpusize then
+    return self
   end
   return ArithmeticType.is_convertible_from_type(self, type, explicit)
 end

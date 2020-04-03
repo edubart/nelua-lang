@@ -595,7 +595,7 @@ print(a) -- outputs: 0
 
 The '@' symbol is required to infer types expressions.
 
-### Type conversion
+### Explicit type conversion
 
 The expression `(@type)(variable)` can be called to explicitly convert a
 variable to a new type.
@@ -614,6 +614,31 @@ local MyNumber = @number
 local i = 1
 local f = MyNumber(i) -- convert 'i' to the type 'number'
 print(i, f) -- outputs: 1 1.000000
+```
+
+### Implicit type conversion
+
+Some types can be implicit converted, for example any arithmetic type can be
+converted to any other arithmetic type:
+
+```nelua
+local i: integer = 1
+local u: uinteger = i
+print(u) -- outputs: 1
+```
+
+When implicit conversion is used the compiler checks if there is no loss
+in the conversion at runtime,
+if that happens the application crashes with a narrow casting error.
+These checks can be avoided by doing explicit casting:
+
+```nelua
+local ni: integer = -1
+-- the following would crash with "narrow casting from int64 to uint64 failed"
+--local nu: uinteger = ni
+
+local nu: uinteger = (@uinteger)(ni) -- explicit cast works, no checks are done
+print(nu) -- outputs: 18446744073709551615
 ```
 
 --------------------------------------------------------------------------------

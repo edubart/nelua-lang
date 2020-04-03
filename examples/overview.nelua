@@ -224,7 +224,7 @@ do -- The "type" type
   print(a) -- outputs: 0
 end
 
-do -- Type conversion
+do -- Explicit type conversion
   local i = 1
   local f = (@number)(i) -- convert 'i' to the type 'number'
   print(i, f) -- outputs: 1 1.000000
@@ -233,6 +233,16 @@ do -- Type conversion
   local i = 1
   local f = MyNumber(i) -- convert 'i' to the type 'number'
   print(i, f) -- outputs: 1 1.000000
+end
+
+do print('Implicit type conversion')
+  local i: integer = 1
+  local u: uinteger = i
+  print(u) -- outputs: 1
+
+  local ni: integer = -1
+  local nu: uinteger = (@uinteger)(ni) -- explicit cast works, no checks are done
+  print(nu)
 end
 
 do -- Array

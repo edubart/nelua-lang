@@ -74,7 +74,7 @@ function os.execute_check(): boolean
 end
 
 function os.exit(code: integer)
-  exit((@cint)(code))
+  exit(code)
 end
 
 function os.exit_boolean(code: boolean)

@@ -216,8 +216,8 @@ end
 local function draw_tile(pos: Point2D, color: Color)
   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255)
   local rect = SDL_Rect{
-    x = (@cint)(pos.x * TILE_SIZE),
-    y = (@cint)(pos.y * TILE_SIZE),
+    x = pos.x * TILE_SIZE,
+    y = pos.y * TILE_SIZE,
     w = TILE_SIZE,
     h = TILE_SIZE
   }

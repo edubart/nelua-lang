@@ -69,7 +69,7 @@ require 'memory'
   end
 
   -- Reserve at least `n` elements on the sequence storage.
-  function SequenceT:reserve(n: usize <autocast>)
+  function SequenceT:reserve(n: usize)
     self:init()
     local cap: usize = n + 1
     if self.impl.data.size >= cap then return end
@@ -79,7 +79,7 @@ require 'memory'
   -- Resizes the sequence so that it contains `n` elements.
   -- When expanding new elements are zero initialized.
   -- When shrinking removed elements are destroyed.
-  function SequenceT:resize(n: usize <autocast>)
+  function SequenceT:resize(n: usize)
     self:reserve(n)
     for i:usize=n+1,self.impl.size do
       self.impl.data[i] = (@T)()
@@ -109,7 +109,7 @@ require 'memory'
   -- Inserts element `v` at position `pos` in the sequence.
   -- Elements with index greater or equal than `pos` are shifted up.
   -- If the `pos` is out of range, then throws a runtime error.
-  function SequenceT:insert(pos: usize <autocast>, v: T)
+  function SequenceT:insert(pos: usize, v: T)
     self:init()
     check(pos > 0 and pos <= self.impl.size + 1, 'sequence.insert: position out of bounds')
     if unlikely(self.impl.size + 2 >= self.impl.data.size) then
@@ -126,7 +126,7 @@ require 'memory'
   -- Removes element at position `pos` in the sequence and returns its value.
   -- Elements with index greater than `pos` are shifted down.
   -- If the `pos` is out of range, then throws a runtime error.
-  function SequenceT:remove(pos: usize <autocast>): T
+  function SequenceT:remove(pos: usize): T
     check(self.impl and self.impl.size > 0, 'sequence.remove: position out of bounds')
     local ret: T = memory.moveval(&self.impl.data[pos])
     if self.impl.size > pos then
@@ -146,7 +146,7 @@ require 'memory'
   -- Returns reference to element at index `i`.
   -- If `i` is the sequence size plus 1, then a zeroed element is added and return its reference.
   -- If `i` is larger then the sequence size plus 1, then throws a runtime error.
-  function SequenceT:__atindex(i: usize <autocast>): T* <inline>
+  function SequenceT:__atindex(i: usize): T* <inline>
     self:init()
     if unlikely(i > self.impl.size) then
       check(i == self.impl.size + 1, 'sequence.__atindex: position out of bounds')

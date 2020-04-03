@@ -660,7 +660,7 @@ function visitors.Call(context, node, emitter)
       local argnode = argnodes[1]
       if argnode.attr.type ~= type then
         -- type really differs, cast it
-        emitter:add_val2type(type, argnode)
+        emitter:add_val2type(type, argnode, argnode.attr.type, true)
       else
         -- same type, no need to cast
         emitter:add(argnode)
