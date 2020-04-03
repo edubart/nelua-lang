@@ -14,15 +14,13 @@ local compiler = {}
 local function get_compile_args(cfile, binfile, compileopts)
   local compiler_flags = cdefs.compilers_flags[config.cc] or cdefs.compiler_base_flags
   local cflags = sstream(compiler_flags.cflags_base)
-  cflags:add(' ')
-  cflags:addlist(compiler_flags.cflags_warn, ' ')
   cflags:add(' ', config.release and compiler_flags.cflags_release or compiler_flags.cflags_debug)
-  if config.cflags then
+  if #config.cflags > 0 then
     cflags:add(' ', config.cflags)
   end
   if #compileopts.cflags > 0 then
     cflags:add(' ')
-    cflags:addlist(compileopts.cflags, ' ')
+    cflags:addlist(compileopts.cflags)
   end
   if #compileopts.ldflags > 0 then
     cflags:add(' -Wl,')

@@ -1261,7 +1261,36 @@ end
 
 local generator = {}
 
+local function emit_warn_setup(context)
+  local emitter = CEmitter(context)
+  emitter:add_ln('#if defined(__GNUC__) || defined(__clang__)')
+
+  -- throw error on missing C bindings
+  emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
+  -- importing C functions can cause this warn
+  emitter:add_ln('#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
+  -- C zero initialization for anything
+  emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-braces"')
+  -- ignore unknown C attributes used in GC
+  emitter:add_ln('#pragma GCC diagnostic ignored "-Wattributes"')
+
+  -- the code generator may generate unused variables, parameters, functions
+  emitter:add_ln('#if defined(__clang__)')
+    emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused"')
+  emitter:add_ln('#else')
+    emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-variable"')
+    emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-function"')
+    emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-but-set-variable"')
+    -- for ignoring const* on pointers
+    emitter:add_ln('#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
+  emitter:add_ln('#endif')
+
+  emitter:add_ln('#endif')
+  context:add_declaration(emitter:generate())
+end
+
 local function emit_main(ast, context)
+  emit_warn_setup(context)
   context:add_include('<stddef.h>')
   context:add_include('<stdint.h>')
   context:add_include('<stdbool.h>')

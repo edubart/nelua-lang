@@ -242,7 +242,7 @@ do print('Implicit type conversion')
 
   local ni: integer = -1
   local nu: uinteger = (@uinteger)(ni) -- explicit cast works, no checks are done
-  print(nu)
+  print(nu) -- outputs: 18446744073709551615
 end
 
 do -- Array
