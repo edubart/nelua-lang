@@ -17,37 +17,37 @@ local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',node
 
 global memory = @record{}
 
-function memory.copy(dest: pointer, src: pointer, size: usize)
+function memory.copy(dest: pointer, src: pointer, size: usize) <inline>
   check(dest and src, 'memory.copy: invalid pointer')
   memcpy(dest, src, size)
 end
 
-function memory.move(dest: pointer, src: pointer, size: usize)
+function memory.move(dest: pointer, src: pointer, size: usize) <inline>
   check(dest and src, 'memory.move: invalid pointer')
   memmove(dest, src, size)
 end
 
-function memory.set(dest: pointer, x: byte, size: usize)
+function memory.set(dest: pointer, x: byte, size: usize) <inline>
   check(dest, 'memory.set: invalid pointer')
   memset(dest, x, size)
 end
 
-function memory.zero(dest: pointer, size: usize)
+function memory.zero(dest: pointer, size: usize) <inline>
   check(dest, 'memory.zero: invalid pointer')
   memset(dest, 0, size)
 end
 
-function memory.compare(a: pointer, b: pointer, size: usize): int32
+function memory.compare(a: pointer, b: pointer, size: usize): int32 <inline>
   check(a and b, 'memory.move: invalid pointer')
   return memcmp(a, b, size)
 end
 
-function memory.equals(a: pointer, b: pointer, size: usize): boolean
+function memory.equals(a: pointer, b: pointer, size: usize): boolean <inline>
   check(a and b, 'memory.equals: invalid pointer')
   return memcmp(a, b, size) == 0
 end
 
-function memory.scan(p: pointer, x: byte, size: usize): pointer
+function memory.scan(p: pointer, x: byte, size: usize): pointer <inline>
   check(p, 'memory.scan: invalid pointer')
   return memchr(p, x, size)
 end
@@ -92,7 +92,7 @@ local function check_span_subtype_match(s, x)
 end
 ]]
 
-function memory.spancopy(dest: is_span, src: is_span)
+function memory.spancopy(dest: is_span, src: is_span) <inline>
   local T: type = #[dest.type.subtype]#
   ## check_type_match(dest, src)
   check(dest.size == src.size, 'memory.spancopy: span sizes must be equal')
@@ -101,7 +101,7 @@ function memory.spancopy(dest: is_span, src: is_span)
   end
 end
 
-function memory.spanmove(dest: is_span, src: is_span)
+function memory.spanmove(dest: is_span, src: is_span) <inline>
   local T: type = #[dest.type.subtype]#
   ## check_type_match(dest, src)
   check(dest.size == src.size, 'memory.spanmove: span sizes must be equal')
@@ -118,7 +118,7 @@ function memory.spanset(dest: is_span, x: auto)
   end
 end
 
-function memory.spanzero(dest: is_span)
+function memory.spanzero(dest: is_span) <inline>
   local T: type = #[dest.type.subtype]#
   if likely(dest.size > 0_u) then
     memset(dest.data, 0, dest.size * #T)
@@ -147,7 +147,7 @@ function memory.spancompare(a: is_span, b: is_span): int32
   return ret
 end
 
-function memory.spanequals(a: is_span, b: is_span): boolean
+function memory.spanequals(a: is_span, b: is_span): boolean <inline>
   ## check_type_match(a, b)
   local ret: boolean = a.size == b.size
   if ret and likely(a.size > 0_u) then

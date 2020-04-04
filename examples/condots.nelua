@@ -97,7 +97,7 @@ local window, renderer, texture
 
 local SCREEN_WIDTH <comptime> = 1280
 local SCREEN_HEIGHT <comptime> = 720
-local pixels: vec4b[SCREEN_WIDTH][SCREEN_HEIGHT] <aligned(16)>
+local pixels: vec4b[SCREEN_WIDTH][SCREEN_HEIGHT]
 
 local NUM_PARTICLES <comptime> = 200
 local RADIUS <comptime> = 3

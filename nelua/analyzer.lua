@@ -1115,6 +1115,7 @@ function visitors.ArrayIndex(context, node)
     objtype = objtype:auto_deref_type()
     if objtype.is_array then
       local indextype = indexnode.attr.type
+      local checked = false
       if indextype then
         if indextype.is_integral then
           local indexvalue = indexnode.attr.value
@@ -1126,11 +1127,15 @@ function visitors.ArrayIndex(context, node)
               indexnode:raisef("index %s is out of bounds, array maximum index is %d",
                 indexvalue:todec(), objtype.length - 1)
             end
+            checked = true
           end
           type = objtype.subtype
         else
           indexnode:raisef("cannot index with value of type '%s'", indextype:prettyname())
         end
+      end
+      if not context.pragmas.nochecks and not checked and objtype.length > 0 then
+        node.attr.checkbounds = true
       end
       if objnode.attr.lvalue then
         node.attr.lvalue = true

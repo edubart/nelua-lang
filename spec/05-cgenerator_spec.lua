@@ -1151,21 +1151,37 @@ it("arrays", function()
     "local a: array(boolean, 10)",
     {"data[10];} nelua_boolean_arr10"})
   assert.run_c([[
-    local a: array(boolean, 1)
-    assert(a[0] == false)
-    assert(#a == 1)
-    a[0] = true
-    assert(a[0] == true)
-    a = {}
-    assert(a[0] == false)
-  ]])
-  assert.run_c([[
-    local a: array(integer, 4) = {1,2,3,4}
-    local b: array(integer, 4) = a
+    do
+      local a: array(boolean, 1)
+      assert(a[0] == false)
+      assert(#a == 1)
+      a[0] = true
+      assert(a[0] == true)
+      a = {}
+      assert(a[0] == false)
+    end
 
-    assert(b[0] == 1 and b[1] == 2 and b[2] == 3 and b[3] == 4)
-    assert(#b == 4)
+    do
+      local a: array(integer, 4) = {1,2,3,4}
+      local b: array(integer, 4) = a
+
+      assert(b[0] == 1 and b[1] == 2 and b[2] == 3 and b[3] == 4)
+      assert(#b == 4)
+    end
   ]])
+end)
+
+it("array bounds checking", function()
+  assert.run_error_c([[
+    local a: integer[4]
+    local i = 4
+    print(a[i])
+  ]], "array index: position out of bounds")
+  assert.run_error_c([[
+    local a: integer[4]
+    local i = -1
+    print(a[i])
+  ]], "array index: position out of bounds")
 end)
 
 it("arrays inside records", function()

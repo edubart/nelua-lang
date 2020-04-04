@@ -743,8 +743,6 @@ function visitors.ArrayIndex(context, node, emitter)
     pointer = true
   end
 
-  local index = indexnode
-
   if objtype.is_record then
     if node.attr.lvalue then
       emitter:add('(*')
@@ -754,17 +752,23 @@ function visitors.ArrayIndex(context, node, emitter)
       emitter:add(')')
     end
   else
-    if pointer then
-      emitter:add('(*', objnode, ')')
-    else
-      emitter:add(objnode)
-    end
-
-    if objtype.is_array then
-      emitter:add('.data[', index, ']')
-    else --luacov:disable
+    if not objtype.is_array then --luacov:disable
       error('not implemented yet')
     end --luacov:enable
+
+    if pointer then
+      emitter:add('((', objtype.subtype, '*)', objnode, ')[')
+    else
+      emitter:add(objnode, '.data[')
+    end
+    if not node.attr.checkbounds then
+      emitter:add(indexnode)
+    else
+      local indextype = indexnode.attr.type
+      emitter:add(context:ensure_runtime_builtin('nelua_assert_bounds_', indextype))
+      emitter:add('(', indexnode, ', ', objtype.length, ')')
+    end
+    emitter:add(']')
   end
 end
 

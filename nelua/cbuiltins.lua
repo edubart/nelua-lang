@@ -119,6 +119,24 @@ function builtins.nelua_assert_stringview(context)
 ]])
 end
 
+function builtins.nelua_assert_bounds_(context, indextype)
+  local name = 'nelua_assert_bounds_' .. indextype.name
+  if context.usedbuiltins[name] then return name end
+  local indexctype = context:ctype(indextype)
+  context:ensure_runtime_builtin('nelua_panic_cstring')
+  context:ensure_runtime_builtin('nelua_unlikely')
+  define_inline_builtin(context, name,
+    indexctype,
+    string.format('(%s index, uintptr_t len)', indexctype),
+    [[{
+  if(nelua_unlikely(index < 0 || (uintptr_t)index >= len)) {
+    nelua_panic_cstring("array index: position out of bounds");
+  }
+  return index;
+}]])
+  return name
+end
+
 -- stderr write
 function builtins.nelua_stderr_write_cstring(context)
   context:add_include('<stdio.h>')
@@ -619,7 +637,7 @@ function operators.eq(_, emitter, lnode, rnode, lname, rname)
   elseif ltype.is_array then
     assert(ltype == rtype)
     emitter.context:add_include('<string.h>')
-    emitter:add('memcmp(&', lname, '.data[0], &', rname, '.data[0], sizeof(', ltype, ')) == 0')
+    emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) == 0')
   else
     emitter:add(lname, ' == ')
     if ltype ~= rtype then
@@ -642,7 +660,7 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
   elseif ltype.is_array then
     assert(ltype == rtype)
     emitter.context:add_include('<string.h>')
-    emitter:add('memcmp(&', lname, '.data[0], &', rname, '.data[0], sizeof(', ltype, ')) != 0')
+    emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) != 0')
   else
     emitter:add(lname, ' != ')
     if ltype ~= rtype then
