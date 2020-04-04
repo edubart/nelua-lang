@@ -1893,6 +1893,26 @@ it("assert builtin", function()
   ]], "assertion failed!")
 end)
 
+it("check builtin", function()
+  assert.run_c([[
+    local count = 0
+    local function f(): boolean
+      count = count + 1
+      return true
+    end
+    check(f(), 'check1')
+    ## context.pragmas.nochecks = true
+    check(false, 'check2')
+    ## context.pragmas.nochecks = nil
+    check(f(), 'check3')
+    assert(count == 2)
+  ]])
+  assert.run_error_c([[
+    check(false, "check failed!")
+  ]], "check failed!")
+end)
+
+
 it("error builtin", function()
   assert.run_error_c([[
     error 'got an error!'

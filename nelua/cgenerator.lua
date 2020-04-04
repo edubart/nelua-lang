@@ -590,7 +590,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
       if attr.pointercall then
         emitter:add('(*')
       end
-      if attr.calleesym then
+      if not traits.is_string(callee) and attr.calleesym then
         emitter:add(context:declname(attr.calleesym))
       else
         emitter:add(callee)
@@ -650,6 +650,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
 end
 
 function visitors.Call(context, node, emitter)
+  if node.attr.omitcall then return end
   local argnodes, calleenode = node:args()
   local calleetype = node.attr.calleetype
   local callee = calleenode

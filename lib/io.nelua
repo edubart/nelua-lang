@@ -32,20 +32,20 @@ local filestream = @record{
 }
 
 function filestream:close()
-  assert(self.f, 'attempt to use a closed file')
+  check(self.f, 'attempt to use a closed file')
   local status = fclose(self.f)
   self.f = nilptr
   return fileresult(status == 0)
 end
 
 function filestream:flush()
-  assert(self.f, 'attempt to use a closed file')
+  check(self.f, 'attempt to use a closed file')
   return fileresult(fflush(self.f))
 end
 
 function filestream:seek(whence: string, offset: integer)
   --TODO: return correct optional values
-  assert(self.f, 'attempt to use a closed file')
+  check(self.f, 'attempt to use a closed file')
   local op
   if whence == 'set' then op = SEEK_SET
   elseif whence == 'end' then op = SEEK_END
@@ -65,7 +65,7 @@ function filestream:seek(whence: string, offset: integer)
 end
 
 function filestream:setvbuf(mode: string, size: integer)
-  assert(self.f, 'attempt to use a closed file')
+  check(self.f, 'attempt to use a closed file')
 end
 
 -- filestream:lines

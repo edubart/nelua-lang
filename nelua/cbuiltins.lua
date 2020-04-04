@@ -677,6 +677,12 @@ function inlines.assert(context, node)
   end
 end
 
+function inlines.check(context, node)
+  local args = node:args()
+  assert(#args == 2)
+  return context:ensure_runtime_builtin('nelua_assert_stringview')
+end
+
 function inlines.print(context, node)
   context:add_include('<inttypes.h>')
   local argnodes = node:args()

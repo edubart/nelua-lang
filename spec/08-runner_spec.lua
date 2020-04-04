@@ -71,7 +71,23 @@ it("define option", function()
       ## assert(DEF3 == 1)
       ## assert(DEF4 == 'asd')
     ]]})
-  assert.run_error('-D1 examples/helloworld.nelua', "failed parsing define '1'")
+  assert.run_error('-D1 examples/helloworld.nelua', "failed parsing parameter '1'")
+end)
+
+it("pragma option", function()
+  assert.run({
+    '--generator', 'lua',
+    '--analyze',
+    '--pragma', 'DEF1',
+    '-PDEF2',
+    '-P', 'DEF3=1',
+    "-PDEF4='asd'",
+    '--eval',[[
+      ## assert(context.pragmas.DEF1 == true)
+      ## assert(context.pragmas.DEF2 == true)
+      ## assert(context.pragmas.DEF3 == 1)
+      ## assert(context.pragmas.DEF4 == 'asd')
+    ]]})
 end)
 
 it("configure module search paths", function()

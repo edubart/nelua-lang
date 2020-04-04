@@ -11,6 +11,7 @@ local bn = require 'nelua.utils.bn'
 local except = require 'nelua.utils.except'
 local preprocessor = require 'nelua.preprocessor'
 local builtins = require 'nelua.builtins'
+local config = require 'nelua.configer'.get()
 local analyzer = {}
 
 local primtypes = typedefs.primtypes
@@ -2009,7 +2010,11 @@ function analyzer.analyze(ast, parser, context)
     context = AnalyzerContext(visitors, parser)
   end
 
+  if config.pragma then
+    tabler.update(context.pragmas, config.pragma)
+  end
   context:push_pragmas()
+
   if ast.srcname then
     context.pragmas.unitname = pegger.filename_to_unitname(ast.srcname)
   end

@@ -80,4 +80,10 @@ function builtins.require(context, node)
   context:pop_pragmas()
 end
 
+function builtins.check(context, node)
+  if context.pragmas.nochecks then
+    node.attr.omitcall = true
+  end
+end
+
 return builtins

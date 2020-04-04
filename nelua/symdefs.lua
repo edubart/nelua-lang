@@ -7,7 +7,7 @@ local primtypes = typedefs.primtypes
 
 local symdefs = {}
 
-local function define_function(name, argtypes, rettypes, props)
+local function define_function(name, argtypes, rettypes)
   local args = tabler.imap(argtypes, function(argtype) return Attr{type = argtype} end)
   local type = types.FunctionType(nil, args, rettypes)
   type:suggest_nick(name)
@@ -20,9 +20,6 @@ local function define_function(name, argtypes, rettypes, props)
     builtin = true,
     staticstorage = true
   }
-  if props then
-    tabler.update(symbol, props)
-  end
   symdefs[name] = symbol
 end
 
@@ -43,9 +40,7 @@ end
 -- nelua only
 define_function('likely', {primtypes.boolean}, {primtypes.boolean})
 define_function('unlikely', {primtypes.boolean}, {primtypes.boolean})
-define_function('check', {primtypes.boolean, primtypes.stringview}, {}, {
-  name='assert', codename='nelua_assert_stringview'
-})
+define_function('check', {primtypes.boolean, primtypes.stringview})
 define_const('panic', primtypes.any)
 define_const('nilptr', primtypes.nilptr)
 define_const('C', primtypes.type, types.RecordType(nil, {}))

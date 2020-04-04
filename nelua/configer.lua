@@ -21,13 +21,13 @@ local defconfig = {
 }
 metamagic.setmetaindex(config, defconfig)
 
-local function convert_define(param)
+local function convert_param(param)
   if param:match('^%a[_%w]*$') then
     param = param .. ' = true'
   end
   local f, err = compat.load(param, '@define', "t")
   if err then
-    return nil, string.format("failed parsing define '%s':\n  %s", param, err)
+    return nil, string.format("failed parsing parameter '%s':\n  %s", param, err)
   end
   return param
 end
@@ -59,6 +59,19 @@ local function merge_configs(conf, pconf)
     ss:add(conf.path)
     conf.path = ss:tostring()
   end
+
+  if conf.pragma then
+    local pragmas = {}
+    for _,code in ipairs(conf.pragma) do
+      local f, err = compat.load(code, '@pragma', "t", pragmas)
+      local ok
+      if f then
+        ok, err = pcall(f)
+      end
+      except.assertraisef(ok, "failed parsing pragma '%s':\n  %s", code, err)
+    end
+    conf.pragma = pragmas
+  end
 end
 
 local function action_print_config(options) --luacov:disable
@@ -80,7 +93,9 @@ local function create_parser(args)
   argparser:flag('-t --timing', 'Debug compile timing information', defconfig.timing)
   argparser:flag('--no-cache', "Don't use any cached compilation", defconfig.no_cache)
   argparser:option('-D --define', 'Define values in the preprocessor')
-    :count("*"):convert(convert_define, tabler.copy(defconfig.define or {}))
+    :count("*"):convert(convert_param, tabler.copy(defconfig.define or {}))
+  argparser:option('-P --pragma', 'Set initial compiler pragma')
+    :count("*"):convert(convert_param, tabler.copy(defconfig.pragma or {}))
   argparser:option('-g --generator', "Code generator to use (lua/c)", defconfig.generator)
   argparser:option('-d --standard', "Source standard (default/luacompat)", defconfig.standard)
   argparser:option('-p --path', "Set module search path", defconfig.path)
