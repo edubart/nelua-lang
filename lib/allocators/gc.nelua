@@ -246,7 +246,7 @@ function GC:_mark_ptr(ptr: pointer)
   end
 end
 
-function GC:_mark_stack() <noinline, cattribute 'no_sanitize(("address"))'>
+function GC:_mark_stack() <noinline, nosanitizeaddress>
   local stk: pointer
   local bot: usize = (@usize)(self.bottom)
   local top: usize = (@usize)(&stk)

@@ -41,14 +41,19 @@ function builtins.nelua_unlikely(context)
 end
 
 function builtins.nelua_noinline(context)
-  define_builtin(context, 'nelua_noinline', "#define nelua_noinline __attribute__((noinline))\n")
+  define_builtin(context, 'nelua_noinline',
+    "#define nelua_noinline __attribute__((noinline))\n")
 end
 
 function builtins.nelua_noreturn(context)
-  define_builtin(context, 'nelua_noreturn', "#define nelua_noreturn __attribute__((noreturn))\n")
+  define_builtin(context, 'nelua_noreturn',
+    "#define nelua_noreturn __attribute__((noreturn))\n")
 end
 
--- string
+function builtins.nelua_nosanitizeaddress(context)
+  define_builtin(context, 'nelua_nosanitizeaddress',
+    "#define nelua_nosanitizeaddress __attribute__((no_sanitize_address))\n")
+end
 
 -- nil
 function builtins.nelua_nilable(context)
@@ -67,7 +72,7 @@ function builtins.nelua_panic_cstring(context)
   context:ensure_runtime_builtin('nelua_stderr_write_cstring')
   define_builtin(context, 'nelua_panic_cstring',
     'static nelua_noreturn nelua_noinline void nelua_panic_cstring(char* s);\n',
-    [[inline nelua_noreturn void nelua_panic_cstring(char *s) {
+    [[nelua_noreturn nelua_noinline void nelua_panic_cstring(char *s) {
   nelua_stderr_write_cstring(s);
   abort();
 }

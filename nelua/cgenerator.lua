@@ -243,6 +243,8 @@ typevisitors[types.ArrayType] = function(context, type)
   decemitter:add('typedef struct {', type.subtype, ' data[', type.length, '];} ', type.codename)
   emit_type_attributes(decemitter, type)
   decemitter:add_ln(';')
+  decemitter:add_ln('nelua_static_assert(sizeof(',type.codename,') == ', type.size,
+                    ', "Nelua and C disagree on type size");')
   context:add_declaration(decemitter:generate(), type.codename)
 end
 
@@ -289,6 +291,8 @@ typevisitors[types.RecordType] = function(context, type)
     emit_type_attributes(defemitter, type)
     defemitter:add_ln(';')
   --end
+  defemitter:add_ln('nelua_static_assert(sizeof(',type.codename,') == ', type.size,
+                    ', "Nelua and C disagree on type size");')
   table.insert(context.declarations, defemitter:generate())
 end
 
@@ -1071,11 +1075,24 @@ function visitors.FuncDef(context, node, emitter)
     define = false
   end
 
-  if attr.cexport then qualifier = qualifier .. 'extern ' end
-  if attr.volatile then qualifier = qualifier .. 'volatile ' end
-  if attr.inline then qualifier = qualifier .. 'inline ' end
-  if attr.noinline then qualifier = qualifier .. context:ensure_runtime_builtin('nelua_noinline') .. ' ' end
-  if attr.noreturn then qualifier = qualifier .. context:ensure_runtime_builtin('nelua_noreturn') .. ' ' end
+  if attr.cexport then
+    qualifier = qualifier .. 'extern '
+  end
+  if attr.volatile then
+    qualifier = qualifier .. 'volatile '
+  end
+  if attr.inline then
+    qualifier = qualifier .. 'inline '
+  end
+  if attr.noinline then
+    qualifier = qualifier .. context:ensure_runtime_builtin('nelua_noinline') .. ' '
+  end
+  if attr.noreturn then
+    qualifier = qualifier .. context:ensure_runtime_builtin('nelua_noreturn') .. ' '
+  end
+  if attr.nosanitizeaddress then
+    qualifier = qualifier .. context:ensure_runtime_builtin('nelua_nosanitizeaddress') .. ' '
+  end
   if attr.cqualifier then qualifier = qualifier .. attr.cqualifier .. ' ' end
   if attr.cattribute then
     qualifier = string.format('%s__attribute__((%s)) ', qualifier, attr.cattribute)
@@ -1261,40 +1278,49 @@ end
 
 local generator = {}
 
-local function emit_warn_setup(context)
+local function emit_features_setup(context)
   local emitter = CEmitter(context)
-  emitter:add_ln('#if defined(__GNUC__) || defined(__clang__)')
+  do -- warnings
+    emitter:add_ln('#ifdef __GNUC__')
 
-  -- throw error on missing C bindings
-  emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
-  -- importing C functions can cause this warn
-  emitter:add_ln('#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
-  -- C zero initialization for anything
-  emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-braces"')
-  -- ignore unknown C attributes used in GC
-  emitter:add_ln('#pragma GCC diagnostic ignored "-Wattributes"')
+      -- throw error on missing C bindings
+      emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
+      -- importing C functions can cause this warn
+      emitter:add_ln('#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
+      -- C zero initialization for anything
+      emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-braces"')
 
-  -- the code generator may generate unused variables, parameters, functions
-  emitter:add_ln('#if defined(__clang__)')
-    emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused"')
-  emitter:add_ln('#else')
-    emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-variable"')
-    emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-function"')
-    emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-but-set-variable"')
-    -- for ignoring const* on pointers
-    emitter:add_ln('#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
-  emitter:add_ln('#endif')
+      -- the code generator may generate unused variables, parameters, functions
+      emitter:add_ln('#if defined(__clang__)')
+        emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused"')
+      emitter:add_ln('#else')
+        emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-variable"')
+        emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-function"')
+        emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-but-set-variable"')
+        -- for ignoring const* on pointers
+        emitter:add_ln('#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
+      emitter:add_ln('#endif')
 
-  emitter:add_ln('#endif')
+    emitter:add_ln('#endif')
+  end
+  do -- static assert macro
+    emitter:add([[#if __STDC_VERSION__ >= 201112L
+#define nelua_static_assert _Static_assert
+#else
+#define nelua_static_assert(x, y)
+#endif
+]])
+    emitter:add_ln('nelua_static_assert(sizeof(void*) == ', primtypes.pointer.size,
+                ', "Nelua and C disagree on architecture size");')
+  end
   context:add_declaration(emitter:generate())
 end
 
 local function emit_main(ast, context)
-  emit_warn_setup(context)
+  emit_features_setup(context)
   context:add_include('<stddef.h>')
   context:add_include('<stdint.h>')
   context:add_include('<stdbool.h>')
-  context:ensure_runtime_builtin('nelua_noinline')
 
   local mainemitter = CEmitter(context, -1)
   context.mainemitter = mainemitter
@@ -1312,6 +1338,7 @@ local function emit_main(ast, context)
     mainemitter:add_ln("}")
     mainemitter:dec_indent()
 
+    context:ensure_runtime_builtin('nelua_noinline')
     context:add_declaration('nelua_noinline int nelua_main();\n')
   else
     mainemitter:inc_indent()
