@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <assert.h>
+#include <inttypes.h>
 
 static int64_t ack(int64_t m, int64_t n) {
     if(m == 0) {
@@ -14,7 +15,7 @@ static int64_t ack(int64_t m, int64_t n) {
 
 int main() {
     int64_t res = ack(3, 10);
-    printf("%li\n", res);
+    printf("%" PRIi64 "\n", res);
     assert(res == 8189);
     return 0;
 }

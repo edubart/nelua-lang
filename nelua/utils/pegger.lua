@@ -122,10 +122,10 @@ end
 
 local split_execargs_patt = re.compile[[
   args <- %s* {| arg+ |}
-  arg <- (squoted_arg / dquoted_arg / simple_arg) %s*
-  simple_arg <- {(!%s .)+}
-  squoted_arg <- "'" {~ ("\'" -> "'" / !"'" {.})+ ~} "'"
-  dquoted_arg <- '"' {~ ('\"' -> '"' / !'"' {.})+ ~} '"'
+  arg <- ({~ squoted_arg ~} / {~ dquoted_arg ~} / {~ simple_arg ~}) %s*
+  simple_arg <- (!%s (squoted_arg / dquoted_arg / .))+
+  squoted_arg <- "'"->'' (!"'" .)+ "'"->''
+  dquoted_arg <- '"'->'' (!'"' .)+ '"'->''
 ]]
 function pegger.split_execargs(s)
   if not s then return {} end

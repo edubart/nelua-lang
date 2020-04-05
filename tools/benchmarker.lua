@@ -76,10 +76,10 @@ end
 
 local function nelua_compile(name, generator)
   local file = 'benchmarks/' .. name .. '.nelua'
-  local flags = '-q -b -r \
- --lua-version=5.1 \
+  local flags = '-q -b -r -Pnochecks \
+ "--lua-version=5.1" \
  --cache-dir nelua_cache \
- --cflags="-march=native"'
+ --cflags="-march=native -flto"'
   local command = string.format('lua ./nelua.lua %s -g %s %s', flags, generator, file)
   local success = executor.exec(command)
   assert(success, 'failed to compile nelua benchmark ' .. name)
@@ -88,8 +88,7 @@ end
 local function c_compile(name)
   local cfile = 'benchmarks/c/' .. name .. '.c'
   local ofile = 'nelua_cache/benchmarks/c' .. name
-  local cflags = "-Wall -Wextra " ..
-                 "-O2 -fno-plt -march=native -Wl,-O1,--sort-common,-z,relro,-z,now"
+  local cflags = "-Wall -lm -O3 -fno-plt -march=native -flto"
   local command = string.format('gcc %s -o %s %s', cflags, ofile, cfile)
   local success = executor.exec(command)
   assert(success, 'failed to compile c benchmark ' .. name)

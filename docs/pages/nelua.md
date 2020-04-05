@@ -164,23 +164,23 @@ The benchmarks can be run with `make benchmark`, this is my last results:
 
 |    benchmark |  lua 5.3 | luajit 2.1 |    nelua |        c |
 |--------------|----------|------------|----------|----------|
-|    ackermann | 2457.2 ms | 147.2 ms  |  47.9 ms |  47.3 ms |
-|    fibonacci | 2612.4 ms | 951.7 ms  | 400.4 ms | 323.2 ms |
-|       mandel | 2622.6 ms | 101.0 ms  |  91.9 ms |  93.8 ms |
-|        sieve | 1266.1 ms | 298.9 ms  | 101.9 ms |  71.7 ms |
-|     heapsort | 2792.1 ms | 287.7 ms  | 171.3 ms | 142.2 ms |
+|    ackermann | 2448.2 ms | 145.2 ms  |  47.8 ms |  47.4 ms |
+|    fibonacci | 2612.4 ms | 951.7 ms  | 279.9 ms | 280.9 ms |
+|       mandel | 2549.6 ms |  97.0 ms  |  88.5 ms |  88.2 ms |
+|        sieve | 1240.4 ms | 265.3 ms  |  88.7 ms |  60.1 ms |
+|     heapsort | 2602.1 ms | 274.0 ms  | 170.9 ms | 127.5 ms |
 
-*NOTE*: Nelua can match C speed if the benchmarks were coded using optimized structures,
+*NOTE*: Nelua can match C speed if all benchmarks were coded using optimized structures,
 however to make the benchmarks comparisons fair with Lua/LuaJIT they were coded in Lua style
 (using sequence tables and a garbage collector).
 
 Environment that this benchmark was run:
 LuaJIT 2.1.0-beta3,
-GCC 9.2.0 with,
+GCC 9.3.0,
 Lua 5.3.5,
-CPU Intel Core i7-3770K CPU @ 3.50GH,
+CPU Intel Core i7-3770K CPU @ 3.50GHz,
 OS ArchLinux
-compiled with C flags `-O2 -fno-plt -march=native`
+CFLAGS `-O3 -fno-plt -march=native -flto`
 
 ## Tests
 

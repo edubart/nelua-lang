@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include <assert.h>
 
-static int64_t fibmod(int64_t n, int64_t m) {
-    int64_t a = 0;
-    int64_t b = 1;
-    for(int64_t i = 1; i <= n; i += 1) {
-        int64_t nb = (a + b) % m;
+static uint64_t fibmod(uint64_t n, uint64_t m) {
+    uint64_t a = 0;
+    uint64_t b = 1;
+    for(uint64_t i = 1; i <= n; i += 1) {
+        uint64_t nb = (a + b) % m;
         a = b;
         b = nb;
     }
@@ -14,8 +14,8 @@ static int64_t fibmod(int64_t n, int64_t m) {
 }
 
 int main() {
-    int64_t res = fibmod(100000000, 1000000000000);
-    printf("%li\n", res);
+    uint64_t res = fibmod(100000000, 1000000000000);
+    printf("%lu\n", res);
     assert(res == 167760546875);
     return 0;
 }

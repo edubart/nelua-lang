@@ -1,6 +1,6 @@
-local function fibmod(n: integer, m: integer)
-  local a, b = 0, 1
-  for i=1,n do
+local function fibmod(n: uinteger, m: uinteger)
+  local a, b = 0_u, 1_u
+  for i=1_u,n do
     a, b = b, (a + b) % m
   end
   return a

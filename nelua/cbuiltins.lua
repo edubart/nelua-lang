@@ -67,26 +67,27 @@ end
 -- panic
 function builtins.nelua_panic_cstring(context)
   context:add_include('<stdlib.h>')
-  context:ensure_runtime_builtin('nelua_noinline')
-  context:ensure_runtime_builtin('nelua_noreturn')
-  context:ensure_runtime_builtin('nelua_stderr_write_cstring')
+  context:add_include('<stdio.h>')
   define_builtin(context, 'nelua_panic_cstring',
-    'static nelua_noreturn nelua_noinline void nelua_panic_cstring(char* s);\n',
-    [[nelua_noreturn nelua_noinline void nelua_panic_cstring(char *s) {
-  nelua_stderr_write_cstring(s);
+    'static void nelua_panic_cstring(char* s);\n',
+    [[void nelua_panic_cstring(char *s) {
+  fprintf(stderr, "%s\n", s);
   abort();
 }
 ]])
 end
 
 function builtins.nelua_panic_stringview(context)
-  context:ensure_runtime_builtin('nelua_panic_cstring')
-  context:ensure_runtime_builtin('nelua_noreturn')
+  context:add_include('<stdlib.h>')
+  context:add_include('<stdio.h>')
   context:ctype(primtypes.stringview)
   define_builtin(context, 'nelua_panic_stringview',
-    'static nelua_noreturn void nelua_panic_stringview(nelua_stringview s);\n',
-    [[inline nelua_noreturn void nelua_panic_stringview(nelua_stringview s) {
-  nelua_panic_cstring(s.data);
+    'static void nelua_panic_stringview(nelua_stringview s);\n',
+    [[void nelua_panic_stringview(nelua_stringview s) {
+  if(s.data && s.size > 0) {
+    fprintf(stderr, "%s\n", s.data);
+  }
+  abort();
 }
 ]])
 end
@@ -137,25 +138,14 @@ function builtins.nelua_assert_bounds_(context, indextype)
   return name
 end
 
--- stderr write
-function builtins.nelua_stderr_write_cstring(context)
+function builtins.nelua_warn(context)
   context:add_include('<stdio.h>')
-  define_builtin(context, 'nelua_stderr_write_cstring',
-    'static void nelua_stderr_write_cstring(char* s);\n',
-    [[void nelua_stderr_write_cstring(char* s) {
-  fputs(s, stderr);
-  fputs("\n", stderr);
-  fflush(stderr);
-}
-]])
-end
-
-function builtins.nelua_stderr_write_stringview(context)
-  context:ensure_runtime_builtin('nelua_stderr_write_cstring')
   context:ctype(primtypes.stringview)
-  define_inline_builtin(context, 'nelua_stderr_write_stringview',
+  define_inline_builtin(context, 'nelua_warn',
     'void', '(nelua_stringview s)', [[{
-  nelua_stderr_write_cstring(s.data);
+  if(s.data && s.size > 0) {
+    fprintf(stderr, "%s\n", s.data);
+  }
 }]])
 end
 
@@ -286,61 +276,13 @@ function builtins.nelua_any_to_(context, type)
 end
 
 -- writing
-function builtins.nelua_stdout_write_cstring(context)
-  context:add_include('<stdio.h>')
-  define_inline_builtin(context, 'nelua_stdout_write_cstring',
-    'void', '(char *s)', [[{
-  fputs(s, stdout);
-}]])
-end
-
 function builtins.nelua_stdout_write_stringview(context)
   context:add_include('<stdio.h>')
   define_inline_builtin(context, 'nelua_stdout_write_stringview',
     'void', '(nelua_stringview s)', [[{
-  if(s.data && s.size > 0)
+  if(s.data && s.size > 0) {
     fwrite(s.data, s.size, 1, stdout);
-}]])
-end
-
-function builtins.nelua_stdout_write_boolean(context)
-  context:add_include('<stdio.h>')
-  define_inline_builtin(context, 'nelua_stdout_write_boolean',
-    'void', '(bool b)', [[{
-  if(b) {
-    fwrite("true", 4, 1, stdout);
-  } else {
-    fwrite("false", 5, 1, stdout);
   }
-}]])
-end
-
-function builtins.nelua_stdout_write_nil(context)
-  context:add_include('<stdio.h>')
-  define_inline_builtin(context, 'nelua_stdout_write_nil',
-    'void', '()', [[{
-  fwrite("nil", 3, 1, stdout);
-}]])
-end
-
-function builtins.nelua_stdout_write_newline(context)
-  context:add_include('<stdio.h>')
-  define_inline_builtin(context, 'nelua_stdout_write_newline',
-    'void', '()', [[{
-  fwrite("\n", 1, 1, stdout);
-  fflush(stdout);
-}]])
-end
-
-function builtins.nelua_stdout_write_format(context)
-  context:add_include('<stdio.h>')
-  context:add_include('<stdarg.h>')
-  define_inline_builtin(context, 'nelua_stdout_write_format',
-    'void', '(char *format, ...)', [[{
-  va_list args;
-  va_start(args, format);
-  vfprintf(stdout, format, args);
-  va_end(args);
 }]])
 end
 
@@ -361,40 +303,39 @@ function builtins.nelua_stdout_write_any(context)
   context:ensure_runtime_builtin('nelua_runtype_', 'nelua_float32')
   context:ensure_runtime_builtin('nelua_runtype_', 'nelua_float64')
   context:ensure_runtime_builtin('nelua_runtype_', 'nelua_pointer')
-  context:ensure_runtime_builtin('nelua_stdout_write_boolean')
   context:ensure_runtime_builtin('nelua_panic_cstring')
   define_inline_builtin(context, 'nelua_stdout_write_any',
     'void', '(nelua_any a)', [[{
   if(a.type == &nelua_runtype_nelua_boolean) {
-    nelua_stdout_write_boolean(a.value._nelua_boolean);
+    printf(a.value._nelua_boolean ? "true" : "false");
   } else if(a.type == &nelua_runtype_nelua_isize) {
-    fprintf(stdout, "%" PRIiPTR, a.value._nelua_isize);
+    printf("%" PRIiPTR, a.value._nelua_isize);
   } else if(a.type == &nelua_runtype_nelua_usize) {
-    fprintf(stdout, "%" PRIuPTR, a.value._nelua_usize);
+    printf("%" PRIuPTR, a.value._nelua_usize);
   } else if(a.type == &nelua_runtype_nelua_int8) {
-    fprintf(stdout, "%" PRIi8, a.value._nelua_int8);
+    printf("%" PRIi8, a.value._nelua_int8);
   } else if(a.type == &nelua_runtype_nelua_int16) {
-    fprintf(stdout, "%" PRIi16, a.value._nelua_int16);
+    printf("%" PRIi16, a.value._nelua_int16);
   } else if(a.type == &nelua_runtype_nelua_int32) {
-    fprintf(stdout, "%" PRIi32, a.value._nelua_int32);
+    printf("%" PRIi32, a.value._nelua_int32);
   } else if(a.type == &nelua_runtype_nelua_int64) {
-    fprintf(stdout, "%" PRIi64, a.value._nelua_int64);
+    printf("%" PRIi64, a.value._nelua_int64);
   } else if(a.type == &nelua_runtype_nelua_uint8) {
-    fprintf(stdout, "%" PRIu8, a.value._nelua_uint8);
+    printf("%" PRIu8, a.value._nelua_uint8);
   } else if(a.type == &nelua_runtype_nelua_uint16) {
-    fprintf(stdout, "%" PRIu16, a.value._nelua_uint16);
+    printf("%" PRIu16, a.value._nelua_uint16);
   } else if(a.type == &nelua_runtype_nelua_uint32) {
-    fprintf(stdout, "%" PRIu32, a.value._nelua_uint32);
+    printf("%" PRIu32, a.value._nelua_uint32);
   } else if(a.type == &nelua_runtype_nelua_uint64) {
-    fprintf(stdout, "%" PRIu64, a.value._nelua_uint64);
+    printf("%" PRIu64, a.value._nelua_uint64);
   } else if(a.type == &nelua_runtype_nelua_float32) {
-    fprintf(stdout, "%f", a.value._nelua_float32);
+    printf("%f", a.value._nelua_float32);
   } else if(a.type == &nelua_runtype_nelua_float64) {
-    fprintf(stdout, "%lf", a.value._nelua_float64);
+    printf("%lf", a.value._nelua_float64);
   } else if(a.type == &nelua_runtype_nelua_pointer) {
-    fprintf(stdout, "%p", a.value._nelua_pointer);
+    printf("%p", a.value._nelua_pointer);
   } else if(a.type == NULL) {
-    fprintf(stdout, "nil");
+    printf("nil");
   } else {
     nelua_panic_cstring("invalid type for nelua_fwrite_any");
   }
@@ -702,13 +643,14 @@ function inlines.check(context, node)
 end
 
 function inlines.print(context, node)
+  context:add_include('<stdio.h>')
   context:add_include('<inttypes.h>')
   local argnodes = node:args()
   local funcname = context:genuniquename('nelua_print')
 
   --function declaration
   local decemitter = CEmitter(context)
-  decemitter:add_indent('static inline ')
+  decemitter:add_indent('static ')
   decemitter:add('void ', funcname, '(')
   for i,argnode in ipairs(argnodes) do
     if i>1 then decemitter:add(', ') end
@@ -719,7 +661,7 @@ function inlines.print(context, node)
 
   --function head
   local defemitter = CEmitter(context)
-  defemitter:add_indent('void ', funcname, '(')
+  defemitter:add_indent('inline void ', funcname, '(')
   for i,argnode in ipairs(argnodes) do
     if i>1 then defemitter:add(', ') end
     defemitter:add(argnode.attr.type, ' a', i)
@@ -733,8 +675,7 @@ function inlines.print(context, node)
     local argtype = argnode.attr.type
     defemitter:add_indent()
     if i > 1 then
-      defemitter:add_builtin('nelua_stdout_write_cstring')
-      defemitter:add_ln('("\\t");')
+      defemitter:add_ln("putchar('\\t');")
       defemitter:add_indent()
     end
     if argtype.is_any then
@@ -744,17 +685,14 @@ function inlines.print(context, node)
       defemitter:add_builtin('nelua_stdout_write_stringview')
       defemitter:add_ln('(a',i,');')
     elseif argtype.is_cstring then
-      defemitter:add_builtin('nelua_stdout_write_cstring')
-      defemitter:add_ln('(a',i,');')
+      defemitter:add_ln('printf("%s", a',i,');')
     elseif argtype.is_string then
       defemitter:add_builtin('nelua_stdout_write_stringview')
       defemitter:add_ln('((nelua_stringview){(char*)a',i,'.impl->data, a',i,'.impl->size});')
     elseif argtype.is_nil then
-      defemitter:add_builtin('nelua_stdout_write_nil')
-      defemitter:add_ln('();')
+      defemitter:add_ln('printf("nil");')
     elseif argtype.is_boolean then
-      defemitter:add_builtin('nelua_stdout_write_boolean')
-      defemitter:add_ln('(a',i,');')
+      defemitter:add_ln('printf(a',i,' ? "true" : "false");')
     elseif argtype.is_arithmetic then
       local ty = node:assertraisef(argtype, 'type is not defined in AST node')
       if ty.is_enum then
@@ -762,16 +700,12 @@ function inlines.print(context, node)
       end
       local tyformat = cdefs.types_printf_format[ty.codename]
       node:assertraisef(tyformat, 'invalid type "%s" for printf format', ty)
-      defemitter:add_builtin('nelua_stdout_write_format')
-      defemitter:add_ln('(',tyformat,', a',i,');')
+      defemitter:add_ln('printf(', tyformat,', a',i,');')
     else --luacov:disable
       node:raisef('cannot handle type "%s" in print', argtype)
     end --luacov:enable
   end
-  defemitter:add_indent()
-  defemitter:add_builtin('nelua_stdout_write_newline')
-  defemitter:add_ln('();')
-  defemitter:dec_indent()
+  defemitter:add_indent_ln('printf("\\n");')
   defemitter:add_ln('}')
 
   context:add_definition(defemitter:generate(), funcname)
@@ -812,7 +746,7 @@ function inlines.error(context)
 end
 
 function inlines.warn(context)
-  return context:ensure_runtime_builtin('nelua_stderr_write_stringview')
+  return context:ensure_runtime_builtin('nelua_warn')
 end
 
 function inlines.panic(context)

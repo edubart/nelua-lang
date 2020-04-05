@@ -117,7 +117,7 @@ cdefs.binary_ops = {
 
 cdefs.compiler_base_flags = {
   cflags_base = "-Wall -lm",
-  cflags_release = "-O2 -fno-plt",
+  cflags_release = "-O3 -fno-plt",
   cflags_debug = "-g"
 }
 
