@@ -214,7 +214,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
           -- initialize variable
           defemitter:add(' = ')
           if retvalname then
-            defemitter:add_val2type(vartype, retvalname, valtype)
+            defemitter:add_val2type(vartype, retvalname, valtype, varnode.checkcast)
           else
             defemitter:add_val2type(vartype, valnode)
           end
@@ -665,7 +665,7 @@ function visitors.Call(context, node, emitter)
       local argnode = argnodes[1]
       if argnode.attr.type ~= type then
         -- type really differs, cast it
-        emitter:add_val2type(type, argnode, argnode.attr.type, true)
+        emitter:add_val2type(type, argnode, argnode.attr.type)
       else
         -- same type, no need to cast
         emitter:add(argnode)
@@ -1343,8 +1343,7 @@ local function emit_main(ast, context)
     mainemitter:add_ln("}")
     mainemitter:dec_indent()
 
-    context:ensure_runtime_builtin('nelua_noinline')
-    context:add_declaration('nelua_noinline int nelua_main();\n')
+    context:add_declaration('int nelua_main();\n')
   else
     mainemitter:inc_indent()
     mainemitter:add_traversal(ast)

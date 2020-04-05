@@ -164,6 +164,9 @@ local function visitor_Array_literal(context, node, littype)
       if not ok then
         childnode:raisef("in array literal at index %d: %s", i, err)
       end
+      if not context.pragmas.nochecks and subtype ~= childtype then
+        childnode.checkcast = true
+      end
     end
     if not childnode.attr.comptime then
       comptime = nil
@@ -218,6 +221,9 @@ local function visitor_Record_literal(context, node, littype)
       local ok, err = fieldtype:is_convertible_from(fieldvalnode.attr)
       if not ok then
         childnode:raisef("in record literal field '%s': %s", fieldname, err)
+      end
+      if not context.pragmas.nochecks and fieldtype ~= fieldvaltype then
+        fieldvalnode.checkcast = true
       end
     end
     if not fieldvalnode.attr.comptime then
@@ -848,6 +854,10 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             node:raisef("in call of function '%s' at argument %d: %s",
               calleetype:prettyname(), i, err)
           end
+
+          if not context.pragmas.nochecks and funcargtype ~= argtype and argnode then
+            argnode.checkcast = true
+          end
         else
           knownallargs = false
         end
@@ -1305,11 +1315,17 @@ function visitors.ForNum(context, node)
         if not ok then
           begvalnode:raisef("in `for` begin variable '%s': %s", itname, err)
         end
+        if not context.pragmas.nochecks and ittype ~= btype then
+          begvalnode.checkcast = true
+        end
       end
       if etype then
         local ok, err = ittype:is_convertible_from(endvalnode)
         if not ok then
           endvalnode:raisef("in `for` end variable '%s': %s", itname, err)
+        end
+        if not context.pragmas.nochecks and ittype ~= etype then
+          endvalnode.checkcast = true
         end
       end
       if stype then
@@ -1471,6 +1487,10 @@ function visitors.VarDecl(context, node)
         if not ok then
           varnode:raisef("in variable '%s' declaration: %s", symbol.name, err)
         end
+        if not context.pragmas.nochecks and valnode and vartype ~= valtype then
+          valnode.checkcast = true
+          varnode.checkcast = true
+        end
       end
     end
     if assigning then
@@ -1520,6 +1540,10 @@ function visitors.Assign(context, node)
       if not ok then
         varnode:raisef("in variable assignment: %s", err)
       end
+      if not context.pragmas.nochecks and valnode and vartype ~= valtype then
+        valnode.checkcast = true
+        varnode.checkcast = true
+      end
     end
   end
 end
@@ -1542,6 +1566,9 @@ function visitors.Return(context, node)
             local ok, err = funcrettype:is_convertible_from(retnode or rettype)
             if not ok then
               (retnode or node):raisef("return at index %d: %s", i, err)
+            end
+            if not context.pragmas.nochecks and retnode and funcrettype ~= rettype then
+              retnode.checkcast = true
             end
           end
         else

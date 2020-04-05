@@ -119,7 +119,7 @@ function CEmitter:add_cstring2stringview(val)
   self:add('(', val, ')')
 end
 
-function CEmitter:add_val2type(type, val, valtype, explicit)
+function CEmitter:add_val2type(type, val, valtype, checkcast)
   if type.is_type then
     self:add('NULL')
     return
@@ -127,8 +127,11 @@ function CEmitter:add_val2type(type, val, valtype, explicit)
 
   assert(not type.is_comptime)
 
-  if not valtype and traits.is_astnode(val) then
-    valtype = val.attr.type
+  if traits.is_astnode(val) then
+    if not valtype then
+      valtype = val.attr.type
+    end
+    checkcast = val.checkcast
   end
 
   if val then
@@ -160,7 +163,7 @@ function CEmitter:add_val2type(type, val, valtype, explicit)
       -- automatic dereference
       self:add('*', val)
     else
-      if not explicit and type.is_integral and valtype.is_arithmetic and
+      if checkcast and type.is_integral and valtype.is_arithmetic and
         (type.size < valtype.size or type.is_signed ~= valtype.is_signed) then
         self:add_builtin('nelua_narrow_cast_', type, valtype)
         self:add('(', val, ')')
