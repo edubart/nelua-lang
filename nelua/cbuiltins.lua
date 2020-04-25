@@ -688,7 +688,7 @@ function inlines.print(context, node)
       defemitter:add_ln('printf("%s", a',i,');')
     elseif argtype.is_string then
       defemitter:add_builtin('nelua_stdout_write_stringview')
-      defemitter:add_ln('((nelua_stringview){(char*)a',i,'.impl->data, a',i,'.impl->size});')
+      defemitter:add_ln('((nelua_stringview){(char*)a',i,'.data, a',i,'.size});')
     elseif argtype.is_nil then
       defemitter:add_ln('printf("nil");')
     elseif argtype.is_boolean then

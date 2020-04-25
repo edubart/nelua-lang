@@ -13,14 +13,10 @@ local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function strtoll(str: cstring, endptr: cstring*, base: cint): clonglong <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strtod(str: cstring, endptr: cstring*): float64 <cimport,cinclude'<stdlib.h>',nodecl> end
 
-local string_object <codename 'nelua_string_object'> = @record{
-  --refs: usize,
-  size: usize,
-  data: byte[0]
-}
-
 global string <codename 'nelua_string'> = @record{
-  impl: string_object*
+  --refs: usize*,
+  data: byte[0]*,
+  size: usize
 }
 
 ##[[
@@ -35,21 +31,21 @@ global string <codename 'nelua_string'> = @record{
 function string._create(size: usize): string <inline>
   local self: string
   check(size > 0, 'cannot create string with size 0')
-  self.impl = (@string_object*)(allocator.alloc(#@string_object + size + 1))
-  self.impl.data[size] = 0
-  self.impl.size = size
-  --self.impl.refs = 1
+  self.size = size
+  self.data = (@byte[0]*)(allocator.alloc(size+1))
+  self.data[size] = 0
+  --self.refs = 1
   return self
 end
 
 function string:reset() <inline>
-  self.impl = nilptr
+  $self = {}
 end
 
 function string.fromspan(s: span(byte)): string
   if unlikely(s.size == 0) then return (@string){} end
   local self = string._create(s.size)
-  memory.copy(&self.impl.data[0], s.data, s.size)
+  memory.copy(&self.data[0], s.data, s.size)
   return self
 end
 
@@ -58,44 +54,44 @@ function string.fromcstring(s: cstring): string <inline>
   local size: usize = strlen(s)
   if unlikely(size == 0) then return (@string){} end
   local self: string = string._create(size)
-  memory.copy(&self.impl.data[0], s, size)
+  memory.copy(&self.data[0], s, size)
   return self
 end
 
 --[[
 function string:__copy(o: string*) <inline>
-  self.impl = o.impl
-  if likely(self.impl) then
-    self.impl.refs = self.impl.refs + 1
+  self = o
+  if likely(self) then
+    self.refs = self.refs + 1
   end
 end
 
 function string:__destroy() <inline>
-  if unlikely(not self.impl) then return end
-  self.impl.refs = self.impl.refs - 1
-  if self.impl.refs == 0 then
-    allocator.dealloc(self.impl)
-    self.impl = nilptr
+  if unlikely(self.size == 0) then return end
+  self.refs = self.refs - 1
+  if self.refs == 0 then
+    allocator.dealloc(self)
+    self = nilptr
   end
 end
 ]]
 
 local empty_cstring: cstring <const> = ''
 function string.__tocstring(s: string): cstring <inline>
-  if unlikely(not s.impl) then return empty_cstring end
-  return (@cstring)(&s.impl.data[0])
+  if unlikely(s.size == 0) then return empty_cstring end
+  return (@cstring)(&s.data[0])
 end
 
 function string.__tostringview(s: string): stringview <inline>
-  if unlikely(not s.impl) then return (@stringview){} end
-  return (@stringview){data = (@cstring)(&s.impl.data[0]), size = s.impl.size}
+  if unlikely(s.size == 0) then return (@stringview){} end
+  return (@stringview){data = (@cstring)(&s.data[0]), size = s.size}
 end
 
 function string.__convert(s: #[concept(function(s)
     return s.type.is_stringview or s.type.is_cstring
   end)]#): string <inline>
   ## if s.type.is_stringview then
-    return (@string){impl=(@string_object*)(s)}
+    return (@string){size=s.size, data=s.data}
   ## elseif s.type.is_cstring then
     return string.fromcstring(s)
   ## end
@@ -113,7 +109,7 @@ global function tostring(x: auto): string
     ]]
     if unlikely(size == 0) then return (@string){} end
     local self: string = string._create(size)
-    local dest: cstring = (@cstring)(&self.impl.data[0])
+    local dest: cstring = (@cstring)(&self.data[0])
     local n: csize = (@csize)(size+1)
     ## cemit('snprintf(dest, n, '..tyformat..', x);')
     return self
@@ -130,7 +126,7 @@ end
 function stringview.__tostring(s: stringview) <inline>
   if unlikely(s.size == 0) then return (@string){} end
   local ret: string = string._create(s.size)
-  memory.copy(&ret.impl.data[0], s.data, s.size)
+  memory.copy(&ret.data[0], s.data, s.size)
   return ret
 end
 
@@ -173,8 +169,8 @@ function string.__concat(a: stringview, b: stringview): string
     return a
   end
   local s: string = string._create(a.size + b.size)
-  memory.copy(&s.impl.data[0], a.data, a.size)
-  memory.copy(&s.impl.data[a.size], b.data, b.size)
+  memory.copy(&s.data[0], a.data, a.size)
+  memory.copy(&s.data[a.size], b.data, b.size)
   return s
 end
 
@@ -183,63 +179,63 @@ function string.len(self: stringview): isize <inline>
 end
 
 function string.byte(self: string, i: isize): byte
-  if unlikely(not self.impl) then return 0 end
+  if unlikely(self.size == 0) then return 0 end
   if unlikely(i < 0) then
-    i = self.impl.size + i + 1
+    i = self.size + i + 1
   end
   --TODO: return nil instead on failure
-  check(i >= 1 and i <= self.impl.size, 'string.byte: index out of range')
-  return self.impl.data[i-1]
+  check(i >= 1 and i <= self.size, 'string.byte: index out of range')
+  return self.data[i-1]
 end
 
 function string.sub(self: string, i: isize, j: isize): string
-  if unlikely(not self.impl) then return self end
-  if unlikely(i < 0) then i = self.impl.size + i + 1 end
+  if unlikely(self.size == 0) then return self end
+  if unlikely(i < 0) then i = self.size + i + 1 end
   if unlikely(i <= 0) then i = 1 end
-  if unlikely(j < 0) then j = self.impl.size + j + 1 end
-  if unlikely(j > self.impl.size) then j = self.impl.size end
-  if unlikely(i == 1 and j == self.impl.size) then return self end
+  if unlikely(j < 0) then j = self.size + j + 1 end
+  if unlikely(j > self.size) then j = self.size end
+  if unlikely(i == 1 and j == self.size) then return self end
   if unlikely(i > j) then return (@string){} end
   local size: usize = (@usize)(j - i + 1)
   if unlikely(size == 0) then return (@string){} end
   local s: string = string._create(size)
-  memory.copy(&s.impl.data[0], &self.impl.data[i-1], size)
+  memory.copy(&s.data[0], &self.data[i-1], size)
   return s
 end
 
 function string.rep(self: string, n: isize): string
-  if unlikely(not self.impl or n <= 0) then return (@string){} end
+  if unlikely(self.size == 0 or n <= 0) then return (@string){} end
   if unlikely(n == 1) then return self end
-  local s: string = string._create(n * self.impl.size)
+  local s: string = string._create(n * self.size)
   for i:isize=0,<n do
-    memory.copy(&s.impl.data[i*self.impl.size], &self.impl.data[0], self.impl.size)
+    memory.copy(&s.data[i*self.size], &self.data[0], self.size)
   end
   return s
 end
 
 function string.reverse(self: string): string
-  if unlikely(not self.impl) then return self end
-  local s: string = string._create(self.impl.size)
-  for i:usize=0,<self.impl.size do
-    s.impl.data[i] = self.impl.data[self.impl.size - i - 1]
+  if unlikely(self.size == 0) then return self end
+  local s: string = string._create(self.size)
+  for i:usize=0,<self.size do
+    s.data[i] = self.data[self.size - i - 1]
   end
   return s
 end
 
 function string.upper(self: string): string
-  if unlikely(not self.impl) then return self end
-  local s: string = string._create(self.impl.size)
-  for i:usize=0,<self.impl.size do
-    s.impl.data[i] = (@byte)(toupper(self.impl.data[i]))
+  if unlikely(self.size == 0) then return self end
+  local s: string = string._create(self.size)
+  for i:usize=0,<self.size do
+    s.data[i] = (@byte)(toupper(self.data[i]))
   end
   return s
 end
 
 function string.lower(self: string): string
-  if unlikely(not self.impl) then return self end
-  local s: string = string._create(self.impl.size)
-  for i:usize=0,<self.impl.size do
-    s.impl.data[i] = (@byte)(tolower(self.impl.data[i]))
+  if unlikely(self.size == 0) then return self end
+  local s: string = string._create(self.size)
+  for i:usize=0,<self.size do
+    s.data[i] = (@byte)(tolower(self.data[i]))
   end
   return s
 end
@@ -247,7 +243,7 @@ end
 function string.char(c: byte)
   --TODO: handle more arguments
   local s: string = string._create(1)
-  s.impl.data[0] = c
+  s.data[0] = c
   return s
 end
 
@@ -258,16 +254,16 @@ function string.find(self: string,
   --TODO: handle patterns and returns them
   --TODO: return nil if not found instead of zeros
   check(plain, 'string.find: patterns not supported yet')
-  if unlikely(not self.impl) then
+  if unlikely(self.size == 0) then
     if pattern.size == 0 then return 1, 0 end
     return 0, 0
   end
-  if unlikely(init < 0) then init = self.impl.size + init + 1 end
-  if unlikely(init > self.impl.size) then return 0, 0 end
+  if unlikely(init < 0) then init = self.size + init + 1 end
+  if unlikely(init > self.size) then return 0, 0 end
   if unlikely(init <= 0) then init = 1 end
-  local found = memory.find(&self.impl.data[init-1], self.impl.size, pattern.data, pattern.size)
+  local found = memory.find(&self.data[init-1], self.size-init+1, pattern.data, pattern.size)
   if found then
-    local sbegin: isize = (@isize)((@usize)(found) - (@usize)(&self.impl.data[0]))
+    local sbegin: isize = (@isize)((@usize)(found) - (@usize)(&self.data[0]))
     return sbegin + 1, sbegin + (@isize)(pattern.size)
   end
   return 0, 0
