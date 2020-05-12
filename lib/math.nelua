@@ -30,7 +30,10 @@ end
 
 -- import C math functions with 1 argument
 ##[[
-local cmathfuncs1 = {'abs','ceil','floor','sqrt','exp','log','log2','log10','acos','asin','atan','cos','sin','tan'}
+local cmathfuncs1 = {
+  'abs','ceil','floor','sqrt','exp','log','log2','log10','acos','asin','atan','cos','sin','tan',
+  'cosh','sinh','tanh','log10'
+}
 local cmathrenames1 = {abs='fabs'}
 for _,name in ipairs(cmathfuncs1) do
   local cname = cmathrenames1[name] or name
@@ -65,10 +68,17 @@ for _,name in ipairs(cmathfuncs2) do
 -- manually import special math functions with 2 arguments
 local function modf_f64(x: float64, y: float64*): float64 <cimport'modf',nodecl,nosideeffect> end
 local function modf_f32(x: float32, y: float32*): float32 <cimport'modff',nodecl,nosideeffect> end
+local function frexp_f64(x: float64, exp: int32*): float64 <cimport'frexp',nodecl,nosideeffect> end
+local function frexp_f32(x: float32, exp: int32*): float32 <cimport'frexpf',nodecl,nosideeffect> end
+local function ldexp_f64(x: float64, exp: int32): float64 <cimport'ldexp',nodecl,nosideeffect> end
+local function ldexp_f32(x: float32, exp: int32): float32 <cimport'ldexpf',nodecl,nosideeffect> end
 
 -- define common math functions with 1 argument
 ##[[
-local mathfuncs1 = {'abs','ceil','floor','sqrt','exp','acos','asin','cos','sin','tan'}
+local mathfuncs1 = {
+  'abs','ceil','floor','sqrt','exp','acos','asin','cos','sin','tan',
+  'cosh','sinh','tanh','log10'
+}
 for _,name in ipairs(mathfuncs1) do
   local namef64, namef32 = name..'_f64', name..'_f32'
 ]]
@@ -91,7 +101,10 @@ end
 
 -- define common math functions with 2 arguments
 ##[[
-local mathfuncs2 = { 'max', 'min', 'fmod', 'pow' }
+local mathfuncs2 = {
+  'max', 'min', 'fmod',
+  'atan2', 'pow'
+}
 for _,name in ipairs(mathfuncs2) do
   local namef64, namef32 = name..'_f64', name..'_f32'
 ]]
@@ -166,6 +179,26 @@ function math.modf(x: is_arithmetic) <inline,nosideeffect>
     f = modf_f64(x, &i)
   ## end
   return i, f
+end
+
+function math.frexp(x: is_arithmetic) <inline,nosideeffect>
+  local R: type = #[choose_float_type(x)]#
+  local n: R
+  local exp: int32 <noinit>
+  ## if x.type.is_float32 then
+    n = frexp_f32(x, &exp)
+  ## else
+    n = frexp_f64(x, &exp)
+  ## end
+  return n, (@integer)(exp)
+end
+
+function math.ldexp(x: is_arithmetic, y: is_arithmetic) <inline,nosideeffect>
+  ## if x.type.is_float32 then
+    return ldexp_f32(x, (@int32)(y))
+  ## else
+    return ldexp_f64(x, (@int32)(y))
+  ## end
 end
 
 function math.tointeger(x: is_arithmetic) <inline,nosideeffect>
