@@ -12,6 +12,7 @@ local hasposix, posix_pexec = pcall(function()
   local unistd = require 'posix.unistd'
   local wait = require 'posix.sys.wait'.wait
   local plpath = require 'pl.path'
+  local poll = require 'posix.poll'
 
   return function(exe, args, redirect)
     args = args or {}
@@ -36,7 +37,6 @@ local hasposix, posix_pexec = pcall(function()
       return false, 127, "", string.format("%s: command not found\n", exe)
     end
     args[0] = exe
-
 
     -- piped fork and exec
     io.stderr:flush()
@@ -63,16 +63,25 @@ local hasposix, posix_pexec = pcall(function()
     if redirect then
       unistd.close(outwfd)
       unistd.close(errwfd)
-      while true do
-        local r = unistd.read(outfd, 8192)
-        if not r or #r == 0 then break end
-        table.insert(ssout, r)
-      end
-      while true do
-        local r = unistd.read(errfd, 8192)
-        if not r or #r == 0  then break end
-        table.insert(sserr, r)
-      end
+      local fds = {
+         [outfd] = {events={IN=true}, ss=ssout},
+         [errfd] = {events={IN=true}, ss=sserr}
+      }
+      repeat
+        poll.poll(fds, -1)
+        for fd in pairs(fds) do
+          if fds[fd].revents.IN then
+            local r = unistd.read(fd, 8192)
+            if r and #r > 0 then
+              table.insert(fds[fd].ss, r)
+            end
+          end
+          if fds[fd].revents.HUP then
+            unistd.close(fd)
+            fds[fd] = nil
+          end
+        end
+      until not next(fds)
     end
     local _, reason, status = wait(pid)
     local ok = (reason == 'exited') and status == 0
