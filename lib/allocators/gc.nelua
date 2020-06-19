@@ -53,6 +53,9 @@ function GC:_probe(i: usize, h: usize): usize
 end
 
 function GC:_get_ptr(ptr: pointer): GCItem*
+  if self.nslots == 0 then
+    return nilptr
+  end
   local i: usize = self:_hash(ptr) % self.nslots
   local j: usize = 0
   while true do
@@ -70,6 +73,7 @@ function GC:_get_ptr(ptr: pointer): GCItem*
 end
 
 function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerPtr)
+  assert(self.nslots > 0)
   local i: usize = self:_hash(ptr) % self.nslots
   local item: GCItem = {
     ptr = ptr,
@@ -546,14 +550,14 @@ end
 function gc_allocator.realloc(p: pointer, size: usize): pointer
   check(size > 0_u, 'gc_allocator.realloc: size must be greater than 0')
   p = gc:realloc(p, size)
-  check(size == 0 or p, 'gc_allocator.realloc: allocation fail')
+  check(p, 'gc_allocator.realloc: allocation fail')
   return p
 end
 
 function gc_allocator.realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
   check(newsize > 0_u, 'gc_allocator.realloc0: size must be greater than 0')
   p = gc:realloc0(p, newsize, oldsize)
-  check(newsize == 0_u or p, 'gc_allocator.realloc0: allocation fail')
+  check(p, 'gc_allocator.realloc0: allocation fail')
   return p
 end
 

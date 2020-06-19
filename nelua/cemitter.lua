@@ -78,13 +78,13 @@ end
 function CEmitter:add_val2any(val, valtype)
   valtype = valtype or val.attr.type
   assert(not valtype.is_any)
-  self:add('(', primtypes.any, ')')
+  self:add('((', primtypes.any, ')')
   if valtype.is_nil then
-    self:add('{0}')
+    self:add('{0})')
   else
     local runctype = self.context:runctype(valtype)
     local typename = self.context:typename(valtype)
-    self:add('{&', runctype, ', {._', typename, ' = ', val, '}}')
+    self:add('{&', runctype, ', {._', typename, ' = ', val, '}})')
   end
 end
 
@@ -229,11 +229,15 @@ end
 function CEmitter:add_string_literal(val)
   local varname = self.context.stringviewerals[val]
   if not self.context.state.ininitializer then
+    self:add('(')
     self:add_ctypecast(primtypes.stringview)
   end
   local size = #val
   if varname then
     self:add('{', varname, ', ', size, '}')
+    if not self.context.state.ininitializer then
+      self:add(')')
+    end
     return
   end
   varname = self.context:genuniquename('strlit')
@@ -243,6 +247,9 @@ function CEmitter:add_string_literal(val)
   decemitter:add_indent_ln('static char ', varname, '[', size+1, '] = ', quoted_value, ';')
   self:add('{', varname, ', ', size, '}')
   self.context:add_declaration(decemitter:generate(), varname)
+  if not self.context.state.ininitializer then
+    self:add(')')
+  end
 end
 
 function CEmitter:add_literal(valattr)

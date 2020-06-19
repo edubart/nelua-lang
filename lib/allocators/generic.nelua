@@ -23,14 +23,14 @@ end
 function generic_allocator.realloc(p: pointer, size: usize): pointer
   check(size > 0_u, 'generic_allocator.realloc: size must be greater than 0')
   p = realloc(p, size)
-  check(size == 0 or p, 'generic_allocator.realloc: allocation fail')
+  check(p, 'generic_allocator.realloc: allocation fail')
   return p
 end
 
 function generic_allocator.realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
   check(newsize > 0_u, 'generic_allocator.realloc0: size must be greater than 0')
   p = realloc(p, newsize)
-  check(newsize == 0_u or p, 'generic_allocator.realloc0: allocation fail')
+  check(p, 'generic_allocator.realloc0: allocation fail')
   if likely(newsize > oldsize) then
     memset(&(@byte[0]*)(p)[oldsize], 0, newsize - oldsize)
   end

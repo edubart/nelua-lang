@@ -68,8 +68,9 @@ end
 function builtins.nelua_panic_cstring(context)
   context:add_include('<stdlib.h>')
   context:add_include('<stdio.h>')
+  context:ensure_runtime_builtin('nelua_noreturn')
   define_builtin(context, 'nelua_panic_cstring',
-    'static void nelua_panic_cstring(char* s);\n',
+    'static nelua_noreturn void nelua_panic_cstring(char* s);\n',
     [[void nelua_panic_cstring(char *s) {
   fprintf(stderr, "%s\n", s);
   abort();
@@ -80,9 +81,10 @@ end
 function builtins.nelua_panic_stringview(context)
   context:add_include('<stdlib.h>')
   context:add_include('<stdio.h>')
+  context:ensure_runtime_builtin('nelua_noreturn')
   context:ctype(primtypes.stringview)
   define_builtin(context, 'nelua_panic_stringview',
-    'static void nelua_panic_stringview(nelua_stringview s);\n',
+    'static nelua_noreturn void nelua_panic_stringview(nelua_stringview s);\n',
     [[void nelua_panic_stringview(nelua_stringview s) {
   if(s.data && s.size > 0) {
     fprintf(stderr, "%s\n", s.data);
