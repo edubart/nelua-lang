@@ -21,6 +21,28 @@ Type._type = true
 Type.unary_operators = {}
 Type.binary_operators = {}
 
+local idcounter = 0
+local typeid_by_typecodename = {}
+local function genid(codename)
+  assert(codename)
+  local id = typeid_by_typecodename[codename]
+  if not id then
+    id = idcounter
+    idcounter = idcounter + 1
+  end
+  return id
+end
+
+function Type:set_codename(codename, alias)
+  self.codename = codename
+  if alias then
+    assert(self.id)
+    typeid_by_typecodename[codename] = self.id
+  else
+    self.id = genid(codename)
+  end
+end
+
 function Type:_init(name, size, node)
   assert(name)
   self.name = name
@@ -28,7 +50,9 @@ function Type:_init(name, size, node)
   self.size = size or 0
   self.unary_operators = {}
   self.binary_operators = {}
-  self.codename = string.format('nelua_%s', self.name)
+  if not self.codename then
+    self:set_codename(string.format('nelua_%s', self.name))
+  end
   local mt = getmetatable(self)
   metamagic.setmetaindex(self.unary_operators, mt.unary_operators)
   metamagic.setmetaindex(self.binary_operators, mt.binary_operators)
@@ -37,9 +61,10 @@ end
 function Type:suggest_nick(nick, codename)
   if self.is_primitive or self.nick then return end
   if codename then
-    self.codename = codename
+    self:set_codename(codename, true)
   else
-    self.codename = self.codename:gsub(string.format('^%s_', self.name), nick .. '_')
+    codename = self.codename:gsub(string.format('^%s_', self.name), nick .. '_')
+    self:set_codename(codename, true)
   end
   self.nick = nick
 end
@@ -268,10 +293,10 @@ local function genkey(name, node)
   return string.format('%s%s%d', name, srcname, uid)
 end
 
-local function gencodename(self)
-  self.key = genkey(self.name, self.node)
+local function gencodename(self, name, node)
+  self.key = genkey(name, node)
   local hash = stringer.hash(self.key, 16)
-  return string.format('%s_%s', self.name, hash)
+  return string.format('%s_%s', name, hash)
 end
 
 local function typeclass(base)
@@ -864,11 +889,11 @@ ArrayType.is_contiguous = true
 
 function ArrayType:_init(node, subtype, length)
   local size = subtype.size * length
+  self:set_codename(string.format('%s_arr%d', subtype.codename, length))
   Type._init(self, 'array', size, node)
   self.subtype = subtype
   self.length = length
   self.maxfieldsize = subtype.maxfieldsize or subtype.size
-  self.codename = string.format('%s_arr%d', subtype.codename, length)
 end
 
 function ArrayType:is_equal(type)
@@ -910,11 +935,11 @@ EnumType.is_enum = true
 EnumType.is_primitive = false
 
 function EnumType:_init(node, subtype, fields)
+  self:set_codename(gencodename(self, 'enum', node))
   IntegralType._init(self, 'enum', subtype.size, subtype.is_unsigned)
   self.node = node
   self.subtype = subtype
   self.fields = fields
-  self.codename = gencodename(self)
 end
 
 function EnumType:get_field(name)
@@ -940,11 +965,11 @@ types.FunctionType = FunctionType
 FunctionType.is_function = true
 
 function FunctionType:_init(node, argattrs, returntypes)
+  self:set_codename(gencodename(self, 'function', node))
   Type._init(self, 'function', cpusize, node)
   self.argattrs = argattrs or {}
   self.argtypes = tabler.imap(self.argattrs, function(arg) return arg.type end)
   self.returntypes = returntypes or {}
-  self.codename = gencodename(self)
 end
 
 function FunctionType:is_equal(type)
@@ -1009,12 +1034,12 @@ LazyFunctionType.is_function = true
 LazyFunctionType.is_lazyfunction = true
 
 function LazyFunctionType:_init(node, args, returntypes)
+  self:set_codename(gencodename(self, 'lazyfunction', node))
   Type._init(self, 'lazyfunction', 0, node)
   self.args = args or {}
   self.argtypes = tabler.imap(self.args, function(arg) return arg.type end)
   self.returntypes = returntypes or {}
   self.evals = {}
-  self.codename = gencodename(self)
 end
 
 local function lazy_args_matches(largs, rargs)
@@ -1059,8 +1084,8 @@ MetaType.is_metatype = true
 
 function MetaType:_init(node, fields)
   self.fields = fields or {}
+  self:set_codename(gencodename(self, 'metatype', node))
   Type._init(self, 'metatype', 0, node)
-  self.codename = gencodename(self)
 end
 
 function MetaType:get_field(name)
@@ -1110,7 +1135,7 @@ local function compute_record_size(fields, pack)
     maxfieldsize = math.max(maxfieldsize, mfsize)
     pad = 0
     if not pack and size % mfsize > 0 then
-      pad = fsize - (size % mfsize)
+      pad = size % mfsize
     end
     size = size + pad + fsize
   end
@@ -1126,9 +1151,11 @@ end
 function RecordType:_init(node, fields)
   fields = fields or {}
   local size, maxfieldsize = compute_record_size(fields)
+  if not self.codename then
+    self:set_codename(gencodename(self, 'record', node))
+  end
   Type._init(self, 'record', size, node)
   self.fields = fields
-  self.codename = gencodename(self)
   self.metatype = MetaType()
   self.maxfieldsize = maxfieldsize
 end
@@ -1209,7 +1236,6 @@ types.PointerType = PointerType
 PointerType.is_pointer = true
 
 function PointerType:_init(node, subtype)
-  Type._init(self, 'pointer', cpusize, node)
   self.subtype = subtype
   if subtype.is_void then
     self.nodecl = true
@@ -1219,10 +1245,11 @@ function PointerType:_init(node, subtype)
     self.nodecl = true
     self.is_cstring = true
     self.is_primitive = true
-    self.codename = 'nelua_cstring'
+    self:set_codename('nelua_cstring')
   else
-    self.codename = subtype.codename .. '_ptr'
+    self:set_codename(subtype.codename .. '_ptr')
   end
+  Type._init(self, 'pointer', cpusize, node)
   self.unary_operators['deref'] = subtype
 end
 
@@ -1318,10 +1345,10 @@ function StringViewType:_init(name, size)
     {name = 'data', type = primtypes.cstring},
     {name = 'size', type = primtypes.usize}
   }
+  self:set_codename('nelua_stringview')
   RecordType._init(self, nil, fields)
   self.name = 'stringview'
   self.nick = 'stringview'
-  self.codename = 'nelua_stringview'
   self.metatype = MetaType()
   Type._init(self, name, size)
 end
@@ -1391,7 +1418,7 @@ function RangeType:_init(node, subtype)
   }
   RecordType._init(self, node, fields)
   self.name = 'range'
-  self.codename = subtype.codename .. '_range'
+  self:set_codename(subtype.codename .. '_range')
   self.metatype = MetaType()
   self.subtype = subtype
 end

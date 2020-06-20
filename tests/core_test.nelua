@@ -1,0 +1,14 @@
+require 'core'
+
+assert(true)
+assert(true, 'test')
+assert(true, (@cstring)('test'))
+
+assert(likely(true) == true)
+assert(likely(false) == false)
+assert(unlikely(true) == true)
+assert(unlikely(false) == false)
+assert(likely(1 == 1) == true)
+assert(likely(1 == 0) == false)
+assert(unlikely(1 == 1) == true)
+assert(unlikely(1 == 0) == false)

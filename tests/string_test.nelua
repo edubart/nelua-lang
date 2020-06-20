@@ -187,3 +187,10 @@ do -- tostring
   assert(tostring(false) == 'false')
   assert(tostring(true) == 'true')
 end
+
+do --tonumber
+  assert(tonumber(1337) == 1337)
+  assert(tonumber('1337') == 1337)
+  assert(tonumber(0) == 0)
+  assert(tonumber('0') == 0)
+end

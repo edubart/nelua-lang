@@ -1,0 +1,135 @@
+-- Core global functions
+
+--------------------------------------------------------------------
+-- Nelua basic functions
+
+##[[
+cemit([=[#ifdef __GNUC__
+#define nelua_likely(x) __builtin_expect(x, 1)
+#define nelua_unlikely(x) __builtin_expect(x, 0)
+#else
+#define nelua_likely(x) (x)
+#define nelua_unlikely(x) (x)
+#endif
+]=], 'declaration')
+]]
+
+global function likely(x: boolean): boolean <cimport 'nelua_likely', nodecl> end
+global function unlikely(x: boolean): boolean <cimport 'nelua_unlikely', nodecl> end
+
+--------------------------------------------------------------------------------
+-- Lua 5.4 core functions
+
+local FILE <cimport,nodecl,cinclude'<stdio.h>'> = @record{}
+local function fwrite(ptr: void*, size: csize, n: csize, s: FILE*): csize <cimport'fwrite',nodecl,cinclude'<stdio.h>'> end
+local function fputc(c: cint, stream: FILE*): cint <cimport,nodecl,cinclude'<stdio.h>'> end
+local function abort(): void <cimport,nodecl,cinclude'<stdlib.h>'> end
+local stderr: FILE* <cimport,nodecl,cinclude'<stdio.h>'>
+
+global function panic(msg: stringview) <noreturn>
+  fwrite(msg.data, msg.size, 1, stderr)
+  fputc(0x0a, stderr) -- '\n'
+  abort()
+end
+
+global function error(msg: stringview) <noreturn>
+  panic(msg)
+end
+
+--[[
+global function warn(msg: stringview)
+  local warn_enabled: boolean <static> = false
+  if msg == '@on' then
+    warn_enabled = true
+  elseif msg == '@off' then
+    warn_enabled = false
+  else
+    if warn_enabled then
+      print('Nelua warning:', msg)
+    end
+  end
+end
+]]
+
+global function assert(cond: auto, msg: auto) <inline>
+  if unlikely(not cond) then
+    ## if msg.type.is_nil then
+      error('assertion failed!')
+    ## elseif msg.type.is_string or msg.type.is_stringview or msg.type.is_cstring then
+      error((@stringview)(msg))
+    ## else
+      ## staticerror('error object is a %s', msg.type)
+    ## end
+  end
+  return cond
+end
+
+--[[
+global function ipairs()
+  error('not implemented yet')
+end
+
+global function next()
+  error('not implemented yet')
+end
+
+global function pairs()
+  error('not implemented yet')
+end
+
+global function load()
+  error('not implemented yet')
+end
+
+global function loadfile()
+  error('not implemented yet')
+end
+
+global function pcall()
+  error('not implemented yet')
+end
+
+global function xpcall()
+  error('not implemented yet')
+end
+
+global function rawequal()
+  error('not implemented yet')
+end
+
+global function rawget()
+  error('not implemented yet')
+end
+
+global function rawlen()
+  error('not implemented yet')
+end
+
+global function rawset()
+  error('not implemented yet')
+end
+
+global function setmetatable()
+  error('not implemented yet')
+end
+
+global function getmetatable()
+  error('not implemented yet')
+end
+
+global function collectgarbage()
+  error('not implemented yet')
+end
+
+global function select()
+  error('not implemented yet')
+end
+]]
+
+-- tostring/tonumber is implemented in string.nelua
+-- type is implemented in traits.nelua
+-- require is implemented by the nelua compiler
+-- TODO: move print to here
+
+--_VERSION
+--_G

@@ -1,0 +1,35 @@
+require 'traits'
+
+do -- type
+  assert(type(1) == 'number')
+  assert(type(false) == 'boolean')
+  assert(type(true) == 'boolean')
+  assert(type(nilptr) == 'pointer')
+  assert(type(nil) == 'nil')
+  assert(type('a') == 'string')
+  local function f() end
+  local R = @record{x:integer}
+  local r: R
+  assert(r.x == 0)
+  assert(type(f) == 'function')
+  assert(type(R) == 'type')
+  assert(type(r) == 'record')
+  assert(type(&r) == 'pointer')
+
+  local x = 1
+  assert(type(x) == 'number')
+end
+
+do -- typeid_of
+  assert(typeid_of(@nilable) == 0)
+  assert(typeid_of(@stringview) == typeid_of('a'))
+  assert(typeid_of(@integer) == typeid_of(1))
+  assert(typeid_of(@integer) == typeid_of(1))
+end
+
+do -- typeinfo_of
+  local nilable_typeinfo = typeinfo_of(@nilable)
+  assert(nilable_typeinfo.id == 0)
+  assert(nilable_typeinfo.name == 'nilable')
+  assert(nilable_typeinfo.codename == 'nelua_nilable')
+end

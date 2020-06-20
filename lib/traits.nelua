@@ -1,0 +1,36 @@
+global typeid = @uint32
+
+global function typeid_of(x: auto): typeid
+  ## local xtype = x.type.is_type and x.value or x.type
+  return #[xtype.id]#
+end
+
+global function type(x: auto): stringview
+  ## local xtype = x.type
+  ## if xtype.is_arithmetic then
+    return 'number'
+  ## elseif xtype.is_nilptr or xtype.is_pointer then
+    return 'pointer'
+  ## elseif xtype.is_stringview or xtype.is_string then
+    return 'string'
+  ## elseif x.type.is_nil then
+    return 'nil'
+  ## else
+    return #[xtype.name]#
+  ## end
+end
+
+global typeinfo = @record {
+  id: typeid,
+  name: stringview,
+  codename: stringview
+}
+
+global function typeinfo_of(x: auto): typeinfo
+  ## local xtype = x.type.is_type and x.value or x.type
+  return (@typeinfo){
+    id = #[xtype.id]#,
+    name = #[xtype.name]#,
+    codename = #[xtype.codename]#
+  }
+end

@@ -349,3 +349,14 @@ end
 function string.__bnot(a: stringview): integer
   return ~str2int(a)
 end
+
+global function tonumber(x: auto): number
+  ## if x.type.is_arithmetic then
+    return (@number)(x)
+  ## elseif x.type.is_string or x.type.is_stringview or x.type.is_string then
+    -- TODO: return nil in case of fail (like lua)
+    return str2num((@stringview)(x))
+  ## else
+    ## staticerror("unable to convert value of type '%s' to a number", x.type)
+  ## end
+end

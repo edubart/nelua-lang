@@ -4,6 +4,12 @@ local assert = require 'spec.tools.assert'
 
 describe("Nelua stdlib", function()
 
+it("core", function()
+  assert.run_c_from_file('tests/core_test.nelua')
+end)
+it("traits", function()
+  assert.run_c_from_file('tests/traits_test.nelua')
+end)
 it("libc", function()
   assert.run_c_from_file('tests/libc_test.nelua')
 end)
