@@ -1,6 +1,6 @@
 local types = require 'nelua.types'
 local config = require 'nelua.configer'.get()
-local shaper = require 'tableshape'.types
+local shaper = require 'nelua.thirdparty.tableshape'.types
 
 local primtypes = {}
 local typedefs = {primtypes=primtypes}

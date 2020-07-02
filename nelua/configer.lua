@@ -1,4 +1,4 @@
-local argparse = require 'nelua.utils.argparse'
+local argparse = require 'nelua.thirdparty.argparse'
 local tabler = require 'nelua.utils.tabler'
 local metamagic = require 'nelua.utils.metamagic'
 local except = require 'nelua.utils.except'

@@ -5,7 +5,7 @@ local metamagic = require 'nelua.utils.metamagic'
 local iters = require 'nelua.utils.iterators'
 local ASTNode = require 'nelua.astnode'
 local config = require 'nelua.configer'.get()
-local shapetypes = require 'tableshape'.types
+local shapetypes = require 'nelua.thirdparty.tableshape'.types
 
 local ASTBuilder = class()
 
