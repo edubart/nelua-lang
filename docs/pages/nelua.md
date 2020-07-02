@@ -187,7 +187,8 @@ CFLAGS `-O3 -fno-plt -march=native -flto`
 To run the language test suit at your home do:
 
 ```
-make test
+luarocks install busted
+busted
 ```
 
 You can run using docker if your system environment is not properly configured:

@@ -15,8 +15,15 @@ RUN sudo ln -s /usr/bin/luarocks-5.3 /usr/bin/luarocks
 
 COPY rockspecs/nelua-dev-1.rockspec .
 
-# nelua lua dependencies
+# nelua dependencies
 RUN sudo luarocks install --only-deps nelua-dev-1.rockspec
+
+# nelua dev dependencies
+RUN sudo luarocks install busted
+RUN sudo luarocks install luacheck
+RUN sudo luarocks install luacov
+RUN sudo luarocks install cluacov
+RUN sudo luarocks install dumper
 
 # nelua global config (to force testing it)
 RUN mkdir -p /.config/nelua
