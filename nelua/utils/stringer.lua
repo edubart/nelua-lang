@@ -1,4 +1,3 @@
-local stringx = require 'pl.stringx'
 local hasher = require 'hasher'
 
 local stringer = {}
@@ -24,10 +23,28 @@ function stringer.pformat(format, ...)
   return string.format(format, ...)
 end
 
-stringer.startswith = stringx.startswith
-stringer.endswith = stringx.endswith
-stringer.split = stringx.split
-stringer.rstrip = stringx.rstrip
-stringer.count = stringx.count
+--[[
+function stringer.startswith(s, prefix)
+  return string.find(s,prefix,1,true) == 1
+end
+]]
+
+function stringer.endswith(s, suffix)
+  return #s >= #suffix and string.find(s, suffix, #s-#suffix+1, true) and true or false
+end
+
+function stringer.rtrim(s)
+  return (s:gsub("%s*$", ""))
+end
+
+function stringer.split(s, sep)
+  sep = sep or ' '
+  local res = {}
+  local regex = string.format("([^%s]+)", sep or ' ')
+  for each in s:gmatch(regex) do
+    table.insert(res, each)
+  end
+  return res
+end
 
 return stringer

@@ -1,6 +1,12 @@
 local re = require 'relabel'
-local file = require 'pl.file'
-local colors = require 'term.colors'
+local colors = require 'nelua.thirdparty.term'.colors
+
+local function readfile(filename)
+  local f = assert(io.open(filename,'r'))
+  local res = assert(f:read('*a'))
+  f:close()
+  return res
+end
 
 local function colored_percent(value)
   local colored_value
@@ -14,7 +20,7 @@ end
 
 local function report_coverage(reportfile)
   reportfile = reportfile or 'luacov.report.out'
-  local reportdata = file.read(reportfile)
+  local reportdata = readfile(reportfile)
   if not reportdata then
     error('no coverage report found')
   end

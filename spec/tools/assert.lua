@@ -178,7 +178,7 @@ function assert.generate_lua(nelua_code, expected_code)
   pretty_input_onerror(nelua_code, function()
     generated_code = assert(lua_generator.generate(ast, context))
   end)
-  assert.same_string(stringer.rstrip(expected_code), stringer.rstrip(generated_code))
+  assert.same_string(stringer.rtrim(expected_code), stringer.rtrim(generated_code))
 end
 
 function assert.generate_c(nelua_code, expected_code, ispattern)

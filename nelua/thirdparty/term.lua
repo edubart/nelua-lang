@@ -100,6 +100,8 @@ for c, v in pairs(colorvalues) do
   colors[c] = makecolor(v)
 end
 
+term.colors = colors
+
 ------------------------------------------------------------------------
 -- cursor
 local cursor = {
@@ -113,5 +115,7 @@ local cursor = {
 }
 
 cursor.jump = cursor['goto']
+
+term.cursor = cursor
 
 return term
