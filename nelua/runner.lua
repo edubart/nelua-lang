@@ -35,7 +35,7 @@ local function run(argv, redirect)
     input = config.input
   else
     infile = config.input
-    input = fs.readfile(infile)
+    input = fs.ereadfile(infile)
   end
 
   -- parse ast

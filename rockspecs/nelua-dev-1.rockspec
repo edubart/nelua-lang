@@ -20,7 +20,7 @@ It can work statically or dynamically depending on the code style and compiles t
 
 dependencies = {
   'lua >= 5.3',
-  'penlight >= 1.7.0',
+  'luafilesystem >= 1.8.0',
   'lpeglabel >= 1.6.0',
   'hasher >= 0.1.0',
   'chronos >= 0.2',

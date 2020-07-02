@@ -47,4 +47,8 @@ function stringer.split(s, sep)
   return res
 end
 
+function stringer.at(s,i)
+  return string.sub(s,i,i)
+end
+
 return stringer

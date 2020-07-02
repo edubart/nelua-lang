@@ -56,12 +56,12 @@ function compiler.get_cc_info()
 end
 
 function compiler.get_c_defines(headers)
-  local tmpname = fs.gettmpname()
+  local tmpname = fs.tmpname()
   local code = {}
   for _,header in ipairs(headers) do
     table.insert(code, '#include ' .. header)
   end
-  fs.writefile(tmpname, table.concat(code))
+  fs.ewritefile(tmpname, table.concat(code))
   local cccmd = string.format('%s -x c -E -dM %s', config.cc, tmpname)
   local ok, ret, stdout, ccinfo = executor.execex(cccmd)
   fs.deletefile(tmpname)
@@ -85,14 +85,14 @@ function compiler.compile_code(ccode, outfile, compileopts)
   local sourcecode = heading .. ccode
 
   -- check if write is actually needed
-  local current_sourcecode = fs.tryreadfile(cfile)
+  local current_sourcecode = fs.readfile(cfile)
   if not config.no_cache and current_sourcecode and current_sourcecode == sourcecode then
     if not config.quiet then console.info("using cached generated " .. cfile) end
     return cfile
   end
 
-  fs.ensurefilepath(cfile)
-  fs.writefile(cfile, sourcecode)
+  fs.eensurefilepath(cfile)
+  fs.ewritefile(cfile, sourcecode)
   if not config.quiet then console.info("generated " .. cfile) end
 
   return cfile
@@ -110,15 +110,15 @@ function compiler.compile_binary(cfile, outfile, compileopts)
 
   -- if the file with that hash already exists skip recompiling it
   if not config.no_cache then
-    local cfile_mtime = fs.getfiletime(cfile)
-    local binfile_mtime = fs.getfiletime(binfile)
+    local cfile_mtime = fs.getmodtime(cfile)
+    local binfile_mtime = fs.getmodtime(binfile)
     if cfile_mtime and binfile_mtime and cfile_mtime <= binfile_mtime then
       if not config.quiet then console.info("using cached binary " .. binfile) end
       return binfile
     end
   end
 
-  fs.ensurefilepath(binfile)
+  fs.eensurefilepath(binfile)
 
   -- generate compile command
   local cccmd = get_compile_args(cfile, binfile, compileopts)

@@ -55,7 +55,7 @@ function builtins.require(context, node)
       return
     end
 
-    local input = fs.readfile(filepath)
+    local input = fs.ereadfile(filepath)
     local ast = context.parser:parse(input, filepath)
     attr.loadedast = ast
 
