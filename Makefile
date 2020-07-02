@@ -11,21 +11,13 @@ LUA=lua
 test:
 	@busted
 
-test-luajit:
-	@echo -n "test luajit "
-	@busted --lua=luajit
-
-test-luajit-quick:
-	@echo -n "test luajit quick "
-	@busted --lua=luajit --no-keep-going -e 'jit.off\(\)'
-
 test-lua5.3:
 	@echo -n "test lua-5.3 "
 	@busted --lua=lua5.3
 
-test-lua5.1:
-	@echo -n "test lua-5.1 "
-	@busted --lua=lua5.1
+test-lua5.4:
+	@echo -n "test lua-5.4 "
+	@busted --lua=lua5.4
 
 check:
 	@luacheck -q .
@@ -66,7 +58,7 @@ _clear-stdout:
 	@clear
 
 devtest: _clear-stdout coverage-test check compile-examples
-devtestlight: _clear-stdout test-luajit-quick check
+devtestlight: _clear-stdout test check
 
 test-full: test coverage check compile-examples
 
@@ -114,11 +106,10 @@ docker-term:
 	docker run $(DFLAGS) /bin/bash
 
 install-dev:
-	luarocks install --lua-version=5.3 --local rockspecs/nelua-dev-1.rockspec
+	luarocks install --local rockspecs/nelua-dev-1.rockspec
 
 install-dev-deps:
-	luarocks install --lua-version=5.1 --only-deps rockspecs/nelua-dev-1.rockspec --local
-	luarocks install --lua-version=5.3 --only-deps rockspecs/nelua-dev-1.rockspec --local
+	luarocks install --local --only-deps rockspecs/nelua-dev-1.rockspec
 
 upload-dev-rocks:
 	luarocks upload --api-key=$(LUAROCKS_APIKEY) --force rockspecs/nelua-dev-1.rockspec

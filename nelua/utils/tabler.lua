@@ -106,10 +106,6 @@ tabler.insert = table.insert
 tabler.remove = table.remove
 tabler.sort = table.sort
 
--- compability with lua 5.1
-tabler.unpack = table.unpack or unpack
-tabler.pack = table.pack or function(...) return {n=select('#',...), ...} end
-
 --- tabler wrapper for using in chain mode
 do
   local tablewrapper = {}

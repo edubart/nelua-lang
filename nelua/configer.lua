@@ -5,7 +5,6 @@ local except = require 'nelua.utils.except'
 local sstream = require 'nelua.utils.sstream'
 local fs = require 'nelua.utils.fs'
 local cdefs = require 'nelua.cdefs'
-local compat = require 'pl.compat'
 local pretty = require 'pl.pretty'
 local console = require 'nelua.utils.console'
 
@@ -16,7 +15,6 @@ local defconfig = {
   lua = 'lua',
   lua_version = _VERSION:match('%d+%.%d+'),
   cache_dir = 'nelua_cache',
-  standard = 'default',
   cpu_bits = 64
 }
 metamagic.setmetaindex(config, defconfig)
@@ -25,7 +23,7 @@ local function convert_param(param)
   if param:match('^%a[_%w]*$') then
     param = param .. ' = true'
   end
-  local f, err = compat.load(param, '@define', "t")
+  local f, err = load(param, '@define', "t")
   if err then
     return nil, string.format("failed parsing parameter '%s':\n  %s", param, err)
   end
@@ -63,7 +61,7 @@ local function merge_configs(conf, pconf)
   if conf.pragma then
     local pragmas = {}
     for _,code in ipairs(conf.pragma) do
-      local f, err = compat.load(code, '@pragma', "t", pragmas)
+      local f, err = load(code, '@pragma', "t", pragmas)
       local ok
       if f then
         ok, err = pcall(f)
@@ -97,7 +95,6 @@ local function create_parser(args)
   argparser:option('-P --pragma', 'Set initial compiler pragma')
     :count("*"):convert(convert_param, tabler.copy(defconfig.pragma or {}))
   argparser:option('-g --generator', "Code generator to use (lua/c)", defconfig.generator)
-  argparser:option('-d --standard', "Source standard (default/luacompat)", defconfig.standard)
   argparser:option('-p --path', "Set module search path", defconfig.path)
   argparser:option('-L --lib-path', "Add module search path", tabler.copy(defconfig.lib_path or {}))
     :count("*"):convert(convert_add_path)

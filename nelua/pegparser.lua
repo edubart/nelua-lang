@@ -61,7 +61,7 @@ function PEGParser:set_astbuilder(astbuilder)
     for i=1,#opnodes do
       local op = opnodes[i]
       op[3] = expr
-      expr = to_astnode(tabler.unpack(op))
+      expr = to_astnode(table.unpack(op))
     end
     return expr
   end
@@ -82,7 +82,7 @@ function PEGParser:set_astbuilder(astbuilder)
     return lhs
   end
 
-  local unpack = tabler.unpack
+  local unpack = table.unpack
   defs.to_chain_index_or_call = function(primary_expr, exprs)
     local last_expr = primary_expr
     if exprs then

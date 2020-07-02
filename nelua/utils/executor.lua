@@ -1,7 +1,8 @@
-local plutil = require 'pl.utils'
 local tabler = require 'nelua.utils.tabler'
 local stringer = require 'nelua.utils.stringer'
 local pegger = require 'nelua.utils.pegger'
+local platform = require 'nelua.utils.platform'
+local fs = require 'nelua.utils.fs'
 
 local executor = {}
 
@@ -11,22 +12,21 @@ local executor = {}
 local hasposix, posix_pexec = pcall(function()
   local unistd = require 'posix.unistd'
   local wait = require 'posix.sys.wait'.wait
-  local plpath = require 'pl.path'
   local poll = require 'posix.poll'
 
   return function(exe, args, redirect)
     args = args or {}
 
     -- find the executable
-    local exepath = plpath.abspath(exe)
-    if exe ~= exepath and not exe:find(plpath.sep, 1, true) then
+    local exepath = fs.abspath(exe)
+    if exe ~= exepath and not exe:find(fs.sep, 1, true) then
       exepath = nil
       local envpath = os.getenv('PATH')
       if envpath then
         local paths = stringer.split(envpath, ':')
         for _, pathprefix in ipairs(paths) do
-          local trypath = plpath.join(pathprefix, exe)
-          if plpath.isfile(trypath) then
+          local trypath = fs.join(pathprefix, exe)
+          if fs.isfile(trypath) then
             exepath = trypath
             break
           end
@@ -96,20 +96,93 @@ local hasposix, posix_pexec = pcall(function()
   end
 end)
 
-local function pl_pexec(exe, args, redirect)
-  local command = exe
-  if args and #args > 0 then
-    local strargs = tabler(args):imap(plutil.quote_arg):concat(' '):value()
-    command = command .. ' ' .. strargs
+-- execute a shell command, in a compatible and platform independent way
+local function execute(cmd)
+  local res1,res2,res3 = os.execute(cmd)
+  if res2 == "No error" and res3 == 0 and platform.is_windows then
+    -- os.execute bug in Lua 5.2+ not reporting -1 properly on Windows
+    res3 = -1
   end
-  if redirect then
-    return plutil.executeex(command)
+  if platform.is_windows then
+    return res3==0, res3
   else
-    return plutil.execute(command)
+    return not not res1, res3
   end
 end
 
-local pexec = hasposix and posix_pexec or pl_pexec
+-- quote and escape an argument of a command
+local function quote_arg(argument)
+  if type(argument) == "table" then
+    -- encode an entire table
+    local r = {}
+    for i, arg in ipairs(argument) do
+      r[i] = quote_arg(arg)
+    end
+
+    return table.concat(r, " ")
+  end
+  -- only a single argument
+  if platform.is_windows then
+    if argument == "" or argument:find('[ \f\t\v]') then
+      -- need to quote the argument, quotes need to be escaped with backslashes
+      -- additionally, backslashes before a quote, escaped or not, need to be doubled
+      -- see documentation for CommandLineToArgvW Windows function
+      argument = '"' .. argument:gsub([[(\*)"]], [[%1%1\"]]):gsub([[\+$]], "%0%0") .. '"'
+    end
+
+    -- os.execute() uses system() C function, which on Windows passes command
+    -- to cmd.exe. Escape its special characters.
+    return (argument:gsub('["^<>!|&%%]', "^%0"))
+  else
+    if argument == "" or argument:find('[^a-zA-Z0-9_@%+=:,./-]') then
+      -- to quote arguments on posix-like systems use single quotes
+      -- to represent an embedded single quote close quoted string (')
+      -- add escaped quote (\'), open quoted string again (')
+      argument = "'" .. argument:gsub("'", [['\'']]) .. "'"
+    end
+
+    return argument
+  end
+end
+
+local function executeex(cmd, bin)
+  local outfile = os.tmpname()
+  local errfile = os.tmpname()
+
+  if platform.is_windows then
+    if not outfile:find(':') then
+      outfile = os.getenv('TEMP')..outfile
+      errfile = os.getenv('TEMP')..errfile
+    end
+  else
+    -- adding '{' '}' braces captures crash messages to stderr
+    -- in case of segfault of the running command
+    cmd = '{ ' .. cmd .. '; }'
+  end
+  cmd = cmd .. " > " .. quote_arg(outfile) .. " 2> " .. quote_arg(errfile)
+
+  local success, retcode = execute(cmd)
+  local outcontent = fs.tryreadfile(outfile, bin)
+  local errcontent = fs.tryreadfile(errfile, bin)
+  os.remove(outfile)
+  os.remove(errfile)
+  return success, retcode, (outcontent or ""), (errcontent or "")
+end
+
+local function lua_pexec(exe, args, redirect)
+  local command = exe
+  if args and #args > 0 then
+    local strargs = tabler(args):imap(quote_arg):concat(' '):value()
+    command = command .. ' ' .. strargs
+  end
+  if redirect then
+    return executeex(command)
+  else
+    return execute(command)
+  end
+end
+
+local pexec = hasposix and posix_pexec or lua_pexec
 
 --luacov:enable
 

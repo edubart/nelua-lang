@@ -19,7 +19,7 @@ It can work statically or dynamically depending on the code style and compiles t
 }
 
 dependencies = {
-  'lua >= 5.1',
+  'lua >= 5.3',
   'penlight >= 1.7.0',
   'lpeglabel >= 1.6.0',
   'tableshape >= 2.1.0',
@@ -30,11 +30,11 @@ dependencies = {
   'lbc >= 20180729',
 
   -- dev dependencies only
-  'busted >= 2.0.0',
-  'luacheck >= 0.23.0',
-  'luacov >= 0.13.0',
-  'cluacov >= 0.1.1',
-  'dumper >= 0.1.1',
+  --'busted >= 2.0.0',
+  --'luacheck >= 0.23.0',
+  --'luacov >= 0.13.0',
+  --'cluacov >= 0.1.1',
+  --'dumper >= 0.1.1',
 }
 
 build = {
@@ -80,9 +80,11 @@ build = {
     ['nelua.utils.fs'] = 'nelua/utils/fs.lua',
     ['nelua.utils.iterators'] = 'nelua/utils/iterators.lua',
     ['nelua.utils.nanotimer'] = 'nelua/utils/nanotimer.lua',
+    ['nelua.utils.luaver'] = 'nelua/utils/luaver.lua',
     ['nelua.utils.memoize'] = 'nelua/utils/memoize.lua',
     ['nelua.utils.metamagic'] = 'nelua/utils/metamagic.lua',
     ['nelua.utils.pegger'] = 'nelua/utils/pegger.lua',
+    ['nelua.utils.platform'] = 'nelua/utils/platform.lua',
     ['nelua.utils.sstream'] = 'nelua/utils/sstream.lua',
     ['nelua.utils.stringer'] = 'nelua/utils/stringer.lua',
     ['nelua.utils.tabler'] = 'nelua/utils/tabler.lua',

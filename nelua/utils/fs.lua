@@ -1,10 +1,12 @@
 local pldir = require 'pl.dir'
 local plfile = require 'pl.file'
 local plpath = require 'pl.path'
+local platform = require 'nelua.utils.platform'
 local except = require 'nelua.utils.except'
 local stringer = require 'nelua.utils.stringer'
 local fs = {}
 
+fs.sep = platform.dir_separator
 fs.join = plpath.join
 fs.tryreadfile = plfile.read
 fs.abspath = plpath.abspath

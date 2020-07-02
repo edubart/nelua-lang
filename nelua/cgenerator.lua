@@ -3,7 +3,6 @@ local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
 local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
-local tabler = require 'nelua.utils.tabler'
 local cdefs = require 'nelua.cdefs'
 local cbuiltins = require 'nelua.cbuiltins'
 local typedefs = require 'nelua.typedefs'
@@ -430,9 +429,9 @@ end
 function visitors.PragmaCall(context, node, emitter)
   local name, args = node:args()
   if name == 'cinclude' then
-    context:add_include(tabler.unpack(args))
+    context:add_include(table.unpack(args))
   elseif name == 'cemit' then
-    local code, scope = tabler.unpack(args)
+    local code, scope = table.unpack(args)
     if traits.is_string(code) and not stringer.endswith(code, '\n') then
       code = code .. '\n'
     end

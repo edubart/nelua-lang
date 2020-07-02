@@ -14,7 +14,7 @@ order: 4
 To use Nelua you need a system with the following:
 
 * Git (for cloning nelua)
-* Lua (for running nelua compiler, can be lua 5.1, lua 5.3 or luajit)
+* Lua (for running nelua compiler, lua 5.3 or 5.4)
 * LuaRocks (lua package manager for installing nelua)
 * A C compiler (for compiling C generated code such as GCC or Clang)
 
@@ -23,7 +23,7 @@ To use Nelua you need a system with the following:
 Use your system package manager to install Lua, LuaRocks and GCC first. For example in Ubuntu:
 
 ```bash
-sudo apt-get install lua5.1 git luarocks gcc
+sudo apt-get install lua5.3 git luarocks gcc
 ```
 
 Then install nelua from master with the following command:

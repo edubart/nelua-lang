@@ -143,33 +143,6 @@ function pegger.filename_to_unitname(s)
   return filename_to_unitname_patt:match(s)
 end
 
---[=[
-local template_peg = re.compile([[
-  peg           <- {~ (text / code_eq / code)+ ~}
-  text          <- '' -> ' render([==[' text_contents  '' -> ']==]) '
-  text_contents <- {(!code_open_eq !code_open .)+}
-  code_eq       <- code_open_eq -> ' render(tostring(' code_contents ''->')) ' code_close
-  code          <- code_open code_contents code_close %nl*
-  code_contents <- {(!code_close .)*}
-  code_open     <- (' '* '{%' !'=') -> ' '
-  code_open_eq  <- ('{%=' ' '*) -> ''
-  code_close    <- '%}' -> '' / %{UnclosedCode}
-]])
-
-local compat = require 'pl.compat'
-function pegger.render_template(text, env)
-  if not text or text == '' then return '' end
-  local out = {}
-  env = env or {}
-  env.render = function(s) table.insert(out, s) end
-  setmetatable(env, { __index = _G })
-  local luacode = assert(template_peg:match(text), 'template peg parse failed')
-  local run = assert(compat.load(luacode, nil, "t", env))
-  run()
-  return table.concat(out)
-end
-]=]
-
 local c_defines_peg = re.compile([[
   defines   <- %s* {| define* |}
   define    <- '#define ' {| {define_name} (' '+ {define_content} / define_content) |} linebreak?

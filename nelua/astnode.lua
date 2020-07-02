@@ -1,7 +1,6 @@
 local pegger = require 'nelua.utils.pegger'
 local class = require 'nelua.utils.class'
 local errorer = require 'nelua.utils.errorer'
-local tabler = require 'nelua.utils.tabler'
 local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
 local except = require 'nelua.utils.except'
@@ -29,7 +28,7 @@ function ASTNode:_init(...)
 end
 
 function ASTNode:args()
-  return tabler.unpack(self, 1, self.nargs)
+  return table.unpack(self, 1, self.nargs)
 end
 
 function ASTNode:transform(node)

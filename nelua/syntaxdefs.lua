@@ -3,9 +3,7 @@ local PEGBuilder = require 'nelua.pegbuilder'
 local astbuilder = require 'nelua.astdefs'
 local memoize = require 'nelua.utils.memoize'
 
-local function get_parser(std)
-  local is_luacompat = std == 'luacompat'
-
+local function get_parser()
   --------------------------------------------------------------------------------
   -- Lexer
   --------------------------------------------------------------------------------
@@ -45,14 +43,9 @@ local function get_parser(std)
     "and", "break", "do", "else", "elseif", "end", "for", "false",
     "function", "goto", "if", "in", "local", "nil", "not", "or",
     "repeat", "return", "then", "true", "until", "while",
+    -- nelua additional keywords
+    "switch", "case", "continue", "global"
   })
-
-  if not is_luacompat then
-    parser:add_keywords({
-      -- nelua additional keywords
-      "switch", "case", "continue", "global"
-    })
-  end
 
   -- names and identifiers (names for variables, functions, etc)
   parser:set_token_pegs([[
@@ -323,47 +316,45 @@ local function get_parser(std)
     ) -> to_astnode
   ]])
 
-  if not is_luacompat then
-    grammar:add_group_peg('stat', 'vardecl', [[
-    ({} '' -> 'VarDecl'
-      ( %LOCAL -> 'local'
-        {| etyped_idlist |}
-      / (%GLOBAL ->'global')
-        {| eglobal_typed_idlist |}
-      ) (%ASSIGN {| eexpr_list |})?
+  grammar:add_group_peg('stat', 'vardecl', [[
+  ({} '' -> 'VarDecl'
+    ( %LOCAL -> 'local'
+      {| etyped_idlist |}
+    / (%GLOBAL ->'global')
+      {| eglobal_typed_idlist |}
+    ) (%ASSIGN {| eexpr_list |})?
+  ) -> to_astnode
+
+  eglobal_typed_idlist <-
+    (global_typed_id / %{ExpectedName}) (%COMMA global_typed_id)*
+  global_typed_id <- ({} '' -> 'IdDecl'
+      ((id {| dot_index+ |}) -> to_chain_index_or_call / name)
+      (%COLON etypexpr / cnil)
+      annot_list?
     ) -> to_astnode
+  ]], nil, true)
 
-    eglobal_typed_idlist <-
-      (global_typed_id / %{ExpectedName}) (%COMMA global_typed_id)*
-    global_typed_id <- ({} '' -> 'IdDecl'
-        ((id {| dot_index+ |}) -> to_chain_index_or_call / name)
-        (%COLON etypexpr / cnil)
-        annot_list?
-      ) -> to_astnode
-    ]], nil, true)
+  grammar:add_group_peg('stat', 'funcdef', [[
+    ({} '' -> 'FuncDef' (%LOCAL -> 'local' / %GLOBAL -> 'global') %FUNCTION func_iddecl function_body) -> to_astnode /
+    ({} %FUNCTION -> 'FuncDef' cnil func_name function_body) -> to_astnode
 
-    grammar:add_group_peg('stat', 'funcdef', [[
-      ({} '' -> 'FuncDef' (%LOCAL -> 'local' / %GLOBAL -> 'global') %FUNCTION func_iddecl function_body) -> to_astnode /
-      ({} %FUNCTION -> 'FuncDef' cnil func_name function_body) -> to_astnode
+    func_name <- (id {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
+    func_iddecl <- ({} '' -> 'IdDecl' name) -> to_astnode
+  ]], nil, true)
 
-      func_name <- (id {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
-      func_iddecl <- ({} '' -> 'IdDecl' name) -> to_astnode
-    ]], nil, true)
+  grammar:add_group_peg('stat', 'switch', [[
+    ({} %SWITCH -> 'Switch' eexpr
+      {|(
+        ({| %CASE eexpr eTHEN block |})+ / %{ExpectedCase})
+      |}
+      (%ELSE block)?
+      eEND
+    ) -> to_astnode
+  ]])
 
-    grammar:add_group_peg('stat', 'switch', [[
-      ({} %SWITCH -> 'Switch' eexpr
-        {|(
-          ({| %CASE eexpr eTHEN block |})+ / %{ExpectedCase})
-        |}
-        (%ELSE block)?
-        eEND
-      ) -> to_astnode
-    ]])
-
-    grammar:add_group_peg('stat', 'continue', [[
-      ({} %CONTINUE -> 'Continue') -> to_astnode
-    ]])
-  end
+  grammar:add_group_peg('stat', 'continue', [[
+    ({} %CONTINUE -> 'Continue') -> to_astnode
+  ]])
 
   -- expressions
   grammar:set_pegs([[
@@ -643,13 +634,8 @@ local function get_parser(std)
     ExpectedCall = "expected call",
     ExpectedEnumFieldType = "expected at least one enum field",
     ExpectedPrimitiveTypeExpression = "expected a primitive type expression",
+    ExpectedCase = "expected `case` keyword"
   })
-
-  if not is_luacompat then
-    parser:add_syntax_errors({
-      ExpectedCase = "expected `case` keyword"
-    })
-  end
 
   return {
     astbuilder = astbuilder,

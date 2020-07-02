@@ -1,6 +1,4 @@
 local stringx = require 'pl.stringx'
-local tabler = require 'nelua.utils.tabler'
-local metamagic = require 'nelua.utils.metamagic'
 local hasher = require 'hasher'
 
 local stringer = {}
@@ -12,7 +10,7 @@ function stringer.hash(s, len, key)
 end
 
 function stringer.pconcat(...)
-  local t = tabler.pack(...)
+  local t = table.pack(...)
   for i=1,t.n do
     t[i] = tostring(t[i])
   end
@@ -23,14 +21,7 @@ function stringer.pformat(format, ...)
   if select('#', ...) == 0 then
     return format
   end
-  -- compability with lua5.1
-  local args = tabler.pack(...)
-  for i=1,args.n do
-    if metamagic.hasmetamethod(args[i], '__tostring') then
-      args[i] = tostring(args[i])
-    end
-  end
-  return string.format(format, tabler.unpack(args))
+  return string.format(format, ...)
 end
 
 stringer.startswith = stringx.startswith

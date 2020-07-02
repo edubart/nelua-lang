@@ -1,3 +1,5 @@
+require 'nelua.utils.luaver'.check()
+
 -- make the lua garbage collector less aggressive to speed up compilation
 collectgarbage("setpause", 800)
 collectgarbage("setstepmul", 400)
@@ -21,7 +23,7 @@ local function run(argv, redirect)
     console.debugf('startup         %.1f ms', timer:elapsedrestart())
   end
 
-  local syntax = syntaxdefs(config.standard)
+  local syntax = syntaxdefs()
   if config.timing then
     console.debugf('compile grammar %.1f ms', timer:elapsedrestart())
   end

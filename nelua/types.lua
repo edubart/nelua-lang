@@ -1479,7 +1479,7 @@ end
 function GenericType:eval_type(params)
   local ret
   local ok, err = except.trycall(function()
-    ret = self.func(tabler.unpack(params))
+    ret = self.func(table.unpack(params))
   end)
   if err then
     return nil, err

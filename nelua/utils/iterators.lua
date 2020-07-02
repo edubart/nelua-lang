@@ -1,10 +1,8 @@
-local tabler = require 'nelua.utils.tabler'
-
 local iterators = {}
 
 -- iterate multiples values for multiple arrays, returning its index and values
 -- stops only when all values in the arrays are nil
-local pack, unpack = tabler.pack, tabler.unpack
+local pack, unpack = table.pack, table.unpack
 function iterators.izip(...)
   local arrays, ans = pack(...), {}
   local n = arrays.n
@@ -31,7 +29,7 @@ end
 -- stops only when all values are nil
 --[[
 function iterators.izipit(...)
-  local fs, ans = tabler.pack(...), {}
+  local fs, ans = table.pack(...), {}
   local n = fs.n
   local i = 0
   return function()
@@ -47,7 +45,7 @@ function iterators.izipit(...)
     if not found then
       return nil
     end
-    return i, tabler.unpack(ans, 1, n)
+    return i, table.unpack(ans, 1, n)
   end
 end
 ]]

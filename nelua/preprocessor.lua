@@ -1,6 +1,5 @@
 local traits = require 'nelua.utils.traits'
 local tabler = require 'nelua.utils.tabler'
-local compat = require 'pl.compat'
 local types = require 'nelua.types'
 local typedefs = require 'nelua.typedefs'
 local VisitorContext = require 'nelua.analyzercontext'
@@ -168,13 +167,13 @@ function preprocessor.preprocess(context, ast)
       ppcontext:push_statnodes(statnodes)
       scope:push_checkpoint(checkpoint)
       ppcontext.context:push_scope(scope)
-      local rets = tabler.pack(f(...))
+      local rets = table.pack(f(...))
       ppcontext:pop_statnodes()
       ppcontext.context:pop_scope()
       scope:pop_checkpoint()
       addindex = statnodes.addindex
       statnodes.addindex = nil
-      return tabler.unpack(rets)
+      return table.unpack(rets)
     end
   end
   local function generalize(f)
@@ -236,12 +235,12 @@ function preprocessor.preprocess(context, ast)
       return symbol
     elseif typedefs.call_pragmas[key] then
       return function(...)
-        local args = tabler.pack(...)
+        local args = table.pack(...)
         local ok, err = typedefs.call_pragmas[key](args)
         if not ok then
           raise_preprocess_error("invalid arguments for preprocess function '%s': %s", key, err)
         end
-        ppcontext:add_statnode(aster.PragmaCall{key, tabler.pack(...)})
+        ppcontext:add_statnode(aster.PragmaCall{key, table.pack(...)})
       end
     else
       return nil
@@ -251,7 +250,7 @@ function preprocessor.preprocess(context, ast)
   end})
 
   -- try to run the preprocess otherwise capture and show the error
-  local ppfunc, err = compat.load(ppcode, '@preprocessor', "t", ppenv)
+  local ppfunc, err = load(ppcode, '@preprocessor', "t", ppenv)
   local ok = not err
   if ppfunc then
     ok, err = except.trycall(ppfunc)
