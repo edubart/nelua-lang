@@ -1,4 +1,7 @@
 -- source taken from https://github.com/leafo/tableshape
+-- tableshape 2.1.0
+-- Library for verifying the shape (schema, structure, etc.) of a table,
+-- and transforming it if necessary
 
 -- The MIT License (MIT)
 

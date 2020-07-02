@@ -69,6 +69,7 @@ build = {
     ['nelua.types'] = 'nelua/types.lua',
     ['nelua.visitorcontext'] = 'nelua/visitorcontext.lua',
     ['nelua.thirdparty.argparse'] = 'nelua/thirdparty/argparse.lua',
+    ['nelua.thirdparty.inspect'] = 'nelua/thirdparty/inspect.lua',
     ['nelua.thirdparty.tableshape'] = 'nelua/thirdparty/tableshape.lua',
     ['nelua.thirdparty.term'] = 'nelua/thirdparty/term.lua',
     ['nelua.utils.bn'] = 'nelua/utils/bn.lua',

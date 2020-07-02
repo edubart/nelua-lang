@@ -1,11 +1,11 @@
 local argparse = require 'nelua.thirdparty.argparse'
+local inspect = require 'nelua.thirdparty.inspect'
 local tabler = require 'nelua.utils.tabler'
 local metamagic = require 'nelua.utils.metamagic'
 local except = require 'nelua.utils.except'
 local sstream = require 'nelua.utils.sstream'
 local fs = require 'nelua.utils.fs'
 local cdefs = require 'nelua.cdefs'
-local pretty = require 'pl.pretty'
 local console = require 'nelua.utils.console'
 
 local configer = {}
@@ -74,7 +74,7 @@ end
 
 local function action_print_config(options) --luacov:disable
   merge_configs(options, defconfig)
-  console.info(pretty.write(options))
+  console.info(inspect(options))
   os.exit(0)
 end --luacov:enable
 

@@ -1,4 +1,5 @@
 -- source based form https://github.com/hoelzro/lua-term
+-- lua-term 0.7
 
 -- The MIT License (MIT)
 
