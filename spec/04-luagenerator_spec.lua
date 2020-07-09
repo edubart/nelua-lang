@@ -14,14 +14,14 @@ it("return", function()
   assert.generate_lua("return 1, 2")
 end)
 it("number", function()
-  assert.generate_lua("return 1, 1.2, 1e2, 0x1f, 0b10",
-                      "return 1, 1.2, 1e2, 0x1f, 0x2")
+  assert.generate_lua("return 1, 1.2, 1e2, 1.2e3, 0x1f, 0b10",
+                      "return 1, 1.2, 1e2, 1.2e3, 0x1f, 0x2")
   assert.generate_lua("return 0x3p5, 0x3.5, 0x3.5p7, 0xfa.d7p-5, 0b11.11p2",
                       "return 0x60, 3.3125, 0x1a8, 7.8387451171875, 0xf")
   assert.generate_lua("return 0x0, 0xffffp4",
                       "return 0x0, 0xffff0")
   assert.generate_lua("return 0xffffffffffffffff.001",
-                      "return 18446744073709551615.000244140625")
+                      "return 1.8446744073709552e+19")
 end)
 it("string", function()
   assert.generate_lua([[return 'a', "b", [=[c]=] ]], [[return "a", "b", "c"]])

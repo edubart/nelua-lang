@@ -24,7 +24,6 @@
 -- IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 -- CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
---luacov:disable
 local function deep_update(t1, t2)
   for k, v in pairs(t2) do
     if type(v) == "table" then
@@ -2103,4 +2102,3 @@ setmetatable(argparse, {__call = function(_, ...)
 end})
 
 return argparse
---luacov:enable

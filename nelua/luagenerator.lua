@@ -4,13 +4,14 @@ local luadefs = require 'nelua.luadefs'
 local luabuiltins = require 'nelua.luabuiltins'
 local config = require 'nelua.configer'.get()
 local Emitter = require 'nelua.emitter'
+local bn = require 'nelua.utils.bn'
 
 local visitors = {}
 
 function visitors.Number(_, node, emitter)
   local base, int, frac, exp, literal = node:args()
   node:assertraisef(literal == nil, 'literals are not supported in lua')
-  emitter:add_composed_number(base, int, frac, exp, node.attr.value:abs())
+  emitter:add_composed_number(base, int, frac, exp, bn.abs(node.attr.value))
 end
 
 function visitors.String(_, node, emitter)

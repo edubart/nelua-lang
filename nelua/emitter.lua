@@ -1,6 +1,7 @@
 local class = require 'nelua.utils.class'
 local traits = require 'nelua.utils.traits'
 local errorer = require 'nelua.utils.errorer'
+local bn = require 'nelua.utils.bn'
 
 local Emitter = class()
 
@@ -60,7 +61,7 @@ function Emitter:add_one(what)
     if #what > 0 then
       table.insert(self.codes, what)
     end
-  elseif traits.is_number(what) or traits.is_bignumber(what) then
+  elseif bn.isnumeric(what) then
     table.insert(self.codes, tostring(what))
   elseif traits.is_astnode(what) then
     self:add_traversal(what)
@@ -111,10 +112,10 @@ function Emitter:add_composed_number(base, int, frac, exp, value)
       self:add('e', exp)
     end
   elseif base == 'hex' or base == 'bin' then
-    if value:isintegral() then
-      self:add('0x', value:tohex())
+    if bn.isintegral(value) then
+      self:add('0x', bn.tohex(value))
     else
-      self:add(value:todec())
+      self:add(bn.todecsci(value))
     end
   end
 end

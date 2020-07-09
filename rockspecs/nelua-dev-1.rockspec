@@ -24,7 +24,6 @@ dependencies = {
   'lpeglabel >= 1.6.0',
   'hasher >= 0.1.0',
   'chronos >= 0.2',
-  'lbc >= 20180729',
 
   -- dev dependencies only
   --'busted >= 2.0.0',
@@ -69,6 +68,7 @@ build = {
     ['nelua.types'] = 'nelua/types.lua',
     ['nelua.visitorcontext'] = 'nelua/visitorcontext.lua',
     ['nelua.thirdparty.argparse'] = 'nelua/thirdparty/argparse.lua',
+    ['nelua.thirdparty.bint'] = 'nelua/thirdparty/bint.lua',
     ['nelua.thirdparty.inspect'] = 'nelua/thirdparty/inspect.lua',
     ['nelua.thirdparty.tableshape'] = 'nelua/thirdparty/tableshape.lua',
     ['nelua.thirdparty.term'] = 'nelua/thirdparty/term.lua',

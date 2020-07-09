@@ -7,7 +7,7 @@ local typedefs = {primtypes=primtypes}
 types.set_typedefs(typedefs)
 
 -- CPU word size in bytes (size of size_t)
-local cpusize = math.floor(config.cpu_bits / 8)
+local cpusize = config.cpu_bits // 8
 
 -- C int is at least 2 bytes and max 4 bytes
 local cintsize = math.max(math.min(cpusize, 4), 2)

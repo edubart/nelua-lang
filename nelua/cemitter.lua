@@ -4,6 +4,7 @@ local traits = require 'nelua.utils.traits'
 local typedefs = require 'nelua.typedefs'
 local errorer = require 'nelua.utils.errorer'
 local pegger = require 'nelua.utils.pegger'
+local bn = require 'nelua.utils.bn'
 local CEmitter = class(Emitter)
 local primtypes = typedefs.primtypes
 
@@ -182,12 +183,12 @@ function CEmitter:add_nil_literal()
 end
 
 function CEmitter:add_numeric_literal(valattr, valtype)
-  assert(traits.is_bignumber(valattr.value))
+  assert(bn.isnumeric(valattr.value))
 
   valtype = valtype or valattr.type
   local val, base = valattr.value, valattr.base
 
-  if val:isneg() and valtype.is_unsigned then
+  if bn.isneg(val) and valtype.is_unsigned then
     val = valtype:normalize_value(val)
   end
 
@@ -195,11 +196,11 @@ function CEmitter:add_numeric_literal(valattr, valtype)
   if valtype.is_integral and valtype.is_signed and val == valtype.min then
     -- workaround C warning `integer constant is so large that it is unsigned`
     minusone = true
-    val = val:add(1)
+    val = val + 1
   end
 
   if valtype.is_float then
-    local valstr = val:todecsci(valtype.maxdigits)
+    local valstr = bn.todecsci(val, valtype.maxdigits)
     self:add(valstr)
 
     -- make sure it has decimals
@@ -210,7 +211,7 @@ function CEmitter:add_numeric_literal(valattr, valtype)
     if base == 'hex' or base == 'bin' then
       self:add('0x', val:tohex())
     else
-      self:add(val:todec())
+      self:add(bn.todec(val))
     end
   end
 

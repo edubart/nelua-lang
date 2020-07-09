@@ -11,7 +11,7 @@ local except = require 'nelua.utils.except'
 local typedefs, primtypes
 
 local types = {}
-local cpusize = math.floor(config.cpu_bits / 8)
+local cpusize = config.cpu_bits // 8
 
 --------------------------------------------------------------------------------
 local Type = class()
@@ -130,14 +130,14 @@ function Type:is_convertible_from_attr(attr, explicit)
   if attr.type and attr.comptime and attr.value and
     self.is_arithmetic and type.is_arithmetic and not explicit then
     if self.is_integral then
-      if not attr.value:isintegral() then
+      if not bn.isintegral(attr.value) then
         return false, stringer.pformat(
           "constant value `%s` is fractional which is invalid for the type '%s'",
-          attr.value:todec(), type:prettyname())
+          attr.value, type:prettyname())
       elseif not self:is_inrange(attr.value) then
         return false, stringer.pformat(
           "constant value `%s` for type `%s` is out of range, the minimum is `%s` and maximum is `%s`",
-          attr.value:todec(), self, self.min:todec(), self.max:todec())
+          attr.value, self, self.min, self.max)
       else
         -- in range and integral, a valid constant conversion
         return self
@@ -543,11 +543,11 @@ IntegralType.is_integral = true
 local function get_integral_range(bits, is_unsigned)
   local min, max
   if is_unsigned then
-    min =  bn.new(0)
-    max =  bn.pow(2, bits) - 1
+    min =  bn.zero()
+    max =  (bn.one() << bits) - 1
   else -- signed
-    min = -bn.pow(2, bits) / 2
-    max =  bn.pow(2, bits) / 2 - 1
+    min = -(bn.one() << bits) // 2
+    max = ((bn.one() << bits) // 2) - 1
   end
   return min, max
 end
@@ -574,21 +574,21 @@ function IntegralType:is_convertible_from_type(type, explicit)
 end
 
 function IntegralType:normalize_value(value)
-  if not value:isintegral() then
-    value = value:trunc()
+  if not bn.isintegral(value) then
+    value = bn.trunc(value)
   end
   if not self:is_inrange(value) then
     if self.is_signed and value > self.max then
-      value = -bn.bnorm(-value, self.bitsize)
+      value = -bn.bwrap(-value, self.bitsize)
     else
-      value = bn.bnorm(value, self.bitsize)
+      value = bn.bwrap(value, self.bitsize)
     end
   end
   return value
 end
 
 function IntegralType:promote_type_for_value(value)
-  if value:isintegral() then
+  if bn.isintegral(value) then
     if self:is_inrange(value) then
       -- this type already fits
       return self
@@ -692,7 +692,7 @@ IntegralType.unary_operators.bnot = function(ltype, lattr)
   local reval
   local lval = lattr.value
   if lval ~= nil then
-    reval = ltype:normalize_value(bn.bnot(lval,ltype.bitsize))
+    reval = ltype:normalize_value(~lval)
   end
   return ltype, reval
 end
@@ -711,7 +711,7 @@ end)
 
 IntegralType.binary_operators.div = make_integral_binary_opfunc(function(ltype, rtype, lattr, rattr)
   local rval = rattr.value
-  if rval and rval:iszero() then
+  if rval and bn.iszero(rval) then
     return nil, 'division by zero is not allowed'
   end
   return integral_fractional_operation(ltype, rtype, lattr, rattr)
@@ -721,26 +721,22 @@ end)
 
 IntegralType.binary_operators.idiv = make_integral_binary_opfunc(function(ltype, rtype, lattr, rattr)
   local rval = rattr.value
-  if rval and rval:iszero() then
+  if rval and bn.iszero(rval) then
     return nil, 'division by zero is not allowed'
   end
   return integral_arithmetic_operation(ltype, rtype, lattr, rattr)
 end, function(a,b)
-  return (a / b):floor()
+  return a // b
 end)
 
 IntegralType.binary_operators.mod = make_integral_binary_opfunc(function(ltype, rtype, lattr, rattr)
   local rval = rattr.value
-  if rval and rval:iszero() then
+  if rval and bn.iszero(rval) then
     return nil, 'division by zero is not allowed'
   end
   return integral_arithmetic_operation(ltype, rtype, lattr, rattr)
 end, function(a,b)
-  local r = a % b
-  if (a * b):isneg() then
-    r = r + b
-  end
-  return r
+  return a % b
 end)
 
 IntegralType.binary_operators.pow = make_integral_binary_opfunc(integral_fractional_operation, function(a,b)
@@ -748,23 +744,23 @@ IntegralType.binary_operators.pow = make_integral_binary_opfunc(integral_fractio
 end)
 
 IntegralType.binary_operators.bor = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
-  return t:normalize_value(bn.bor(a,b,t.bitsize))
+  return t:normalize_value(a | b)
 end)
 
 IntegralType.binary_operators.bxor = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
-  return t:normalize_value(bn.bxor(a,b,t.bitsize))
+  return t:normalize_value(a ~ b)
 end)
 
 IntegralType.binary_operators.band = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
-  return t:normalize_value(bn.band(a,b,t.bitsize))
+  return t:normalize_value(a & b)
 end)
 
 IntegralType.binary_operators.shl = make_integral_binary_opfunc(integral_shift_operation, function(a,b,t)
-  return t:normalize_value(bn.lshift(a,b,t.bitsize))
+  return t:normalize_value(a << b)
 end)
 
 IntegralType.binary_operators.shr = make_integral_binary_opfunc(integral_shift_operation, function(a,b,t)
-  return t:normalize_value(bn.rshift(a,b,t.bitsize))
+  return t:normalize_value(a >> b)
 end)
 
 IntegralType.binary_operators.range = integral_range_operation
@@ -795,7 +791,7 @@ end
 function FloatType.is_inrange() return true end
 
 function FloatType:promote_type_for_value()
-  --assert(traits.is_bignumber(value))
+  --assert(traits.isnumeric(value))
   return self
 end
 
@@ -849,14 +845,10 @@ FloatType.binary_operators.div = make_float_binary_opfunc(float_arithmetic_opera
   return a / b
 end)
 FloatType.binary_operators.idiv = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
-  return (a / b):floor()
+  return a // b
 end)
 FloatType.binary_operators.mod = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
-  local r = a % b
-  if (a * b):isneg() then
-    r = r + b
-  end
-  return r
+  return a % b
 end)
 FloatType.binary_operators.pow = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
   return a ^ b

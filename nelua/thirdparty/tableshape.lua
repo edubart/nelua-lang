@@ -24,7 +24,6 @@
 -- IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 -- CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
---luacov:disable
 local OptionalType, TaggedType, types
 local FailedTransform = { }
 local unpack = unpack or table.unpack
@@ -2232,4 +2231,3 @@ return {
   FailedTransform = FailedTransform,
   VERSION = "2.1.0"
 }
---luacov:enable

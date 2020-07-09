@@ -21,7 +21,7 @@ function visitors.Number(context, node)
   local attr = node.attr
   if attr.type then return end
   local base, int, frac, exp, literal = node[1], node[2], node[3], node[4], node[5]
-  attr.value = bn.frombase(base, int, frac, exp)
+  attr.value = bn.from(base, int, frac, exp)
   if literal then
     attr.type = typedefs.number_literal_types[literal]
     if not attr.type then
@@ -314,7 +314,7 @@ function visitors.Annotation(context, node, symbol)
 
   local params = tabler.imap(argnodes, function(argnode)
     local value = argnode.attr.value
-    if traits.is_bignumber(value) then
+    if bn.isnumeric(value) then
       return value:tointeger()
     end
     return value
@@ -542,7 +542,7 @@ function visitors.EnumType(context, node)
       if i == 1 then
         fnode:raisef("first enum field requires an initial value", field.name)
       else
-        field.value = fields[i-1].value:add(1)
+        field.value = fields[i-1].value + 1
         field.comptime = true
         field.type = subtype
       end
@@ -581,7 +581,7 @@ function visitors.ArrayType(context, node)
   if not lengthnode.attr.value then
     lengthnode:raisef("unknown comptime value for expression")
   end
-  local length = lengthnode.attr.value:tointeger()
+  local length = bn.tointeger(lengthnode.attr.value)
   if not lengthnode.attr.type.is_integral then
     lengthnode:raisef("cannot have non integral type '%s' for array size",
       lengthnode.attr.type:prettyname())
@@ -626,12 +626,12 @@ function visitors.GenericType(context, node)
       node:raisef("in generic '%s': argument #%d isn't a compile time value", name, i)
     end
     local value = argattr.value
-    if traits.is_bignumber(value) then
-      value = value:tonumber()
+    if bn.isnumeric(value) then
+      value = bn.tonumber(value)
     elseif not (traits.is_type(value) or
                 traits.is_string(value) or
                 traits.is_boolean(value) or
-                traits.is_bignumber(value)) then
+                bn.isnumeric(value)) then
       node:raisef("in generic '%s': argument #%d of type '%s' is invalid for generics",
         name, i, argattr.type:prettyname())
     end
@@ -1130,8 +1130,8 @@ function visitors.ArrayIndex(context, node)
         if indextype.is_integral then
           local indexvalue = indexnode.attr.value
           if indexvalue then
-            if indexvalue:isneg() then
-              indexnode:raisef("cannot index negative value %s", indexvalue:todec())
+            if bn.isneg(indexvalue) then
+              indexnode:raisef("cannot index negative value %s", bn.todec(indexvalue))
             end
             if objtype.is_array and objtype.length ~= 0 and not (indexvalue < bn.new(objtype.length)) then
               indexnode:raisef("index %s is out of bounds, array maximum index is %d",
@@ -1359,7 +1359,7 @@ function visitors.ForNum(context, node)
     end
   elseif not stepvalnode then
     -- default step is '1'
-    stepvalue = bn.new(1)
+    stepvalue = bn.one()
     fixedstep = '1'
   end
   local fixedend
@@ -1369,7 +1369,7 @@ function visitors.ForNum(context, node)
   if not compop and stepvalue then
     -- we now that the step is a constant numeric value
     -- compare operation must be `ge` ('>=') when step is negative
-    compop = stepvalue:isneg() and 'ge' or 'le'
+    compop = bn.isneg(stepvalue) and 'ge' or 'le'
   end
   node.attr.fixedstep = fixedstep
   node.attr.fixedend = fixedend

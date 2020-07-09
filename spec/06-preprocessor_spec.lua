@@ -9,13 +9,13 @@ it("evaluate expressions", function()
     local a = #['he' .. 'llo']#
     local b = #[math.sin(-math.pi/2)]#
     local c = #[true]#
-    local d = #[math.pi]#
+    local d, d2, d3 = #[1.5e-30]#, #[1.5]#, #[1e-30]#
     local e = #[aster.Number{'dec','1'}]#
   ]=], [[
     local a = 'hello'
     local b = -1
     local c = true
-    local d = 3.1415926535897931
+    local d, d2, d3 = 1.5e-30, 1.5, 1e-30
     local e = 1
   ]])
   assert.ast_type_equals([=[

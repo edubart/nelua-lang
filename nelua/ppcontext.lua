@@ -70,18 +70,26 @@ function PPContext:tovalue(val, orignode)
     })
     node.attr:merge(pattr)
     node.pattr = pattr
-  elseif traits.is_number(val) or traits.is_bignumber(val) then
-    local num = bn.new(val)
+  elseif bn.isnumeric(val) then
+    local num = bn.parse(val)
     local neg = false
-    if num:isneg() then
-      num = num:abs()
+    if bn.isneg(num) then
+      num = bn.abs(num)
       neg = true
     end
-    if num:isintegral() then
-      node = aster.Number{'dec', num:todec()}
+    if bn.isintegral(num) then
+      node = aster.Number{'dec', bn.todec(num)}
     else
-      local int, frac = num:todec():match('^(-?%d+).(%d+)$')
-      node = aster.Number{'dec', int, frac}
+      local snum = bn.todecsci(num)
+      local int, frac, exp = snum:match('^(-?%d+)[.]?(%d+)[eE]?([+-]?%d*)$')
+      if not int then
+        int, exp = snum:match('^(-?%d+)[eE]?([+-]?%d*)$')
+      end
+      assert(int)
+      if exp == '' then
+        exp = nil
+      end
+      node = aster.Number{'dec', int, frac, exp}
     end
     if neg then
       node = aster.UnaryOp{'unm', node}
