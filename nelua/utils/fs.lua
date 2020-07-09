@@ -249,7 +249,7 @@ end
 function fs.eensurefilepath(file)
   local outdir = fs.dirname(file)
   local ok, err = fs.makepath(outdir)
-  except.assertraisef(ok, 'failed to create path for file "%s": %s', err)
+  except.assertraisef(ok, 'failed to create path for file "%s": %s', file, err)
 end
 
 -- return the contents of a file as a string.

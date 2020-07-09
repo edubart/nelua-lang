@@ -1,7 +1,7 @@
 local luaver = {}
 
 function luaver.getversion()
-  return _VERSION:match('Lua ([0-9.]+)')
+  return _VERSION:match('%w+ ([0-9.]+)')
 end
 
 local supported_versions = {'5.3', '5.4'}
