@@ -1,5 +1,5 @@
 -- source taken from https://github.com/edubart/lua-bint
--- lua-bint 0.2
+-- lua-bint 0.3
 --[[
 The MIT License (MIT)
 
@@ -50,13 +50,21 @@ when using the proper methods.
 All the lua arithmetic operators (+, -, *, //, /, %) and bitwise operators (&, |, ~, <<, >>)
 are implemented as metamethods.
 
+The integer size must be fixed in advance and the library is designed to be efficient only when
+working with integers of sizes between 64-4096 bits. If you need to work with really huge numbers
+without size restrictions then use other library. This choice has been made to have more efficiency
+in that specific size range.
+
 ## Usage
 
-First on you should configure how many bits the library will work with,
-to do that call @{bint.scale} once on startup with the desired number of bits in multiples of 32,
-for example bint.scale(1024).
-By default bint uses 256 bits integers in case you never call scale.
+First on you should require the bint file including how many bits the bint module will work with,
+by calling the returned function from the require, for example:
 
+```lua
+local bint = require 'bint'(1024)
+```
+
+For more information about its arguments see @{newmodule}.
 Then when you need create a bint, you can use one of the following functions:
 
 * @{bint.fromuinteger} (convert from lua integers, but read as unsigned integer)
@@ -102,22 +110,10 @@ as this will throw assertions.
 * Remember that casting back to lua integers or numbers precision can be lost.
 * For dividing while preserving integers use the @{bint.__idiv} (the '//' operator).
 * For doing power operation preserving integers use the @{bint.ipow} function.
-* Configure the internal integer fixed width using @{bint.scale}
 to the proper size you intend to work with, otherwise large integers may wraps around.
+* Never mix operations between bint classes of different bit sizes
 
 ]]
-
-local bint = {}
-bint.__index = bint
-
--- Constants used internally and modified by bint.scale
-local BIGINT_BITS
-local BIGINT_SIZE
-local BIGINT_WORDBITS
-local BIGINT_WORDMAX
-local BIGINT_WORDMSB
-local BIGINT_MATHMININTEGER
-local BIGINT_MATHMAXINTEGER
 
 -- Returns number of bits of the internal lua integer type.
 local function luainteger_bitsize()
@@ -130,24 +126,44 @@ local function luainteger_bitsize()
   return i
 end
 
---- Scale bint's integer width to represent integers of the desired bit size.
--- Must be called only once on startup.
+local memo = {}
+
+--- Create a new bint module representing integers of the desired bit size.
+-- This is the returned function when `require 'bint'` is called.
+-- @function newmodule
 -- @param bits Number of bits for the integer representation, must be multiple of wordbits and
 -- at least 64.
--- @param[opt] wordbits Number of the bits for the internal world, defaults to 32.
-function bint.scale(bits, wordbits)
-  wordbits = wordbits or 32
-  assert(bits % wordbits == 0, 'bitsize is not multiple of word bitsize')
-  assert(2*wordbits <= luainteger_bitsize(), 'word bitsize must be half of the lua integer bitsize')
-  assert(bits >= 64, 'bitsize must be >= 64')
-  BIGINT_BITS = bits
-  BIGINT_SIZE = bits // wordbits
-  BIGINT_WORDBITS = wordbits
-  BIGINT_WORDMAX = (1 << BIGINT_WORDBITS) - 1
-  BIGINT_WORDMSB = (1 << (BIGINT_WORDBITS - 1))
-  BIGINT_MATHMININTEGER = bint.new(math.mininteger)
-  BIGINT_MATHMAXINTEGER = bint.new(math.maxinteger)
+-- @param[opt] wordbits Number of the bits for the internal word, defaults to 32.
+local function newmodule(bits, wordbits)
+
+bits = bits or 256
+wordbits = wordbits or 32
+
+-- Memoize bint modules
+local memoindex = bits * 64 + wordbits
+if memo[memoindex] then
+  return memo[memoindex]
 end
+
+-- Validate
+assert(bits % wordbits == 0, 'bitsize is not multiple of word bitsize')
+assert(2*wordbits <= luainteger_bitsize(), 'word bitsize must be half of the lua integer bitsize')
+assert(bits >= 64, 'bitsize must be >= 64')
+
+-- Create bint class
+local bint = {}
+bint.__index = bint
+
+--- Number of bits representing a bint instance.
+bint.bits = bits
+
+-- Constants used internally
+local BINT_BITS = bits
+local BINT_WORDBITS = wordbits
+local BINT_SIZE = BINT_BITS // BINT_WORDBITS
+local BINT_WORDMAX = (1 << BINT_WORDBITS) - 1
+local BINT_WORDMSB = (1 << (BINT_WORDBITS - 1))
+local BINT_MATHMININTEGER, BINT_MATHMAXINTEGER
 
 -- Create a new bint without initializing.
 local function bint_newempty()
@@ -180,9 +196,9 @@ end
 
 -- Assign bint to an unsigned integer.  Used only internally.
 function bint:_fromuinteger(x)
-  for i=1,BIGINT_SIZE do
-    self[i] = x & BIGINT_WORDMAX
-    x = x >> BIGINT_WORDBITS
+  for i=1,BINT_SIZE do
+    self[i] = x & BINT_WORDMAX
+    x = x >> BINT_WORDBITS
   end
   return self
 end
@@ -315,8 +331,8 @@ end
 function bint.touinteger(x)
   if isbint(x) then
     local n = 0
-    for i=1,BIGINT_SIZE do
-      n = n | (x[i] << (BIGINT_WORDBITS * (i - 1)))
+    for i=1,BINT_SIZE do
+      n = n | (x[i] << (BINT_WORDBITS * (i - 1)))
     end
     return n
   else
@@ -338,8 +354,8 @@ function bint.tointeger(x)
     if neg then
       x = -x
     end
-    for i=1,BIGINT_SIZE do
-      n = n | (x[i] << (BIGINT_WORDBITS * (i - 1)))
+    for i=1,BINT_SIZE do
+      n = n | (x[i] << (BINT_WORDBITS * (i - 1)))
     end
     if neg then
       n = -n
@@ -362,7 +378,7 @@ end
 -- @see bint.tointeger
 function bint.tonumber(x)
   if isbint(x) then
-    if x >= BIGINT_MATHMININTEGER and x <= BIGINT_MATHMAXINTEGER then
+    if x >= BINT_MATHMININTEGER and x <= BINT_MATHMAXINTEGER then
       return x:tointeger()
     else
       return tonumber(tostring(x))
@@ -411,7 +427,7 @@ function bint.tobase(x, base, unsigned)
     unsigned = base ~= 10
   end
   if base == 10 or base == 16 then
-    local inluarange = x >= BIGINT_MATHMININTEGER and x <= BIGINT_MATHMAXINTEGER
+    local inluarange = x >= BINT_MATHMININTEGER and x <= BINT_MATHMAXINTEGER
     if inluarange then
       -- integer is small, use tostring or string.format (faster)
       local n = x:tointeger()
@@ -475,7 +491,7 @@ function bint.new(x)
   if isbint(x) then
     -- return a clone
     local n = bint_newempty()
-    for i=1,BIGINT_SIZE do
+    for i=1,BINT_SIZE do
       n[i] = x[i]
     end
     return n
@@ -530,7 +546,7 @@ end
 -- @param x A bint or a lua number.
 function bint.iszero(x)
   if isbint(x) then
-    for i=1,BIGINT_SIZE do
+    for i=1,BINT_SIZE do
       if x[i] ~= 0 then
         return false
       end
@@ -548,7 +564,7 @@ function bint.isone(x)
     if x[1] ~= 1 then
       return false
     end
-    for i=2,BIGINT_SIZE do
+    for i=2,BINT_SIZE do
       if x[i] ~= 0 then
         return false
       end
@@ -563,8 +579,8 @@ end
 -- @param x A bint or a lua number.
 function bint.isminusone(x)
   if isbint(x) then
-    for i=1,BIGINT_SIZE do
-      if x[i] ~= BIGINT_WORDMAX then
+    for i=1,BINT_SIZE do
+      if x[i] ~= BINT_WORDMAX then
         return false
       end
     end
@@ -592,9 +608,9 @@ function bint.isnumeric(x)
   return isbint(x) or type(x) == 'number'
 end
 
---- Check the number type of the input (bint, integer or float).
+--- Get the number type of the input (bint, integer or float).
 -- @param x Any lua value.
--- Returns "bint" for bints, "integer" fot lua integers,
+-- @return Returns "bint" for bints, "integer" for lua integers,
 -- "float" from lua floats or nil otherwise.
 function bint.type(x)
   if isbint(x) then
@@ -609,7 +625,7 @@ end
 -- @param x A bint or a lua number.
 function bint.isneg(x)
   if isbint(x) then
-    return x[BIGINT_SIZE] & BIGINT_WORDMSB ~= 0
+    return x[BINT_SIZE] & BINT_WORDMSB ~= 0
   else
     return x < 0
   end
@@ -648,7 +664,7 @@ end
 --- Create a new bint with 0 value.
 function bint.zero()
   local x = bint_newempty()
-  for i=1,BIGINT_SIZE do
+  for i=1,BINT_SIZE do
     x[i] = 0
   end
   return x
@@ -658,7 +674,7 @@ end
 function bint.one()
   local x = bint_newempty()
   x[1] = 1
-  for i=2,BIGINT_SIZE do
+  for i=2,BINT_SIZE do
     x[i] = 0
   end
   return x
@@ -667,46 +683,46 @@ end
 --- Create a new bint with the maximum possible integer value.
 function bint.maxinteger()
   local x = bint_newempty()
-  for i=1,BIGINT_SIZE-1 do
-    x[i] = BIGINT_WORDMAX
+  for i=1,BINT_SIZE-1 do
+    x[i] = BINT_WORDMAX
   end
-  x[BIGINT_SIZE] = BIGINT_WORDMAX ~ BIGINT_WORDMSB
+  x[BINT_SIZE] = BINT_WORDMAX ~ BINT_WORDMSB
   return x
 end
 
 --- Create a new bint with the minimum possible integer value.
 function bint.mininteger()
   local x = bint_newempty()
-  for i=1,BIGINT_SIZE-1 do
+  for i=1,BINT_SIZE-1 do
     x[i] = 0
   end
-  x[BIGINT_SIZE] = BIGINT_WORDMSB
+  x[BINT_SIZE] = BINT_WORDMSB
   return x
 end
 
 --- Bitwise left shift a bint in one bit (in-place).
 function bint:_shlone()
-  local wordbitsm1 = BIGINT_WORDBITS - 1
-  for i=BIGINT_SIZE,2,-1 do
-    self[i] = ((self[i] << 1) | (self[i-1] >> wordbitsm1)) & BIGINT_WORDMAX
+  local wordbitsm1 = BINT_WORDBITS - 1
+  for i=BINT_SIZE,2,-1 do
+    self[i] = ((self[i] << 1) | (self[i-1] >> wordbitsm1)) & BINT_WORDMAX
   end
-  self[1] = (self[1] << 1) & BIGINT_WORDMAX
+  self[1] = (self[1] << 1) & BINT_WORDMAX
   return self
 end
 
 --- Bitwise right shift a bint in one bit (in-place).
 function bint:_shrone()
-  local wordbitsm1 = BIGINT_WORDBITS - 1
-  for i=1,BIGINT_SIZE-1 do
-    self[i] = ((self[i] >> 1) | (self[i+1] << wordbitsm1)) & BIGINT_WORDMAX
+  local wordbitsm1 = BINT_WORDBITS - 1
+  for i=1,BINT_SIZE-1 do
+    self[i] = ((self[i] >> 1) | (self[i+1] << wordbitsm1)) & BINT_WORDMAX
   end
-  self[BIGINT_SIZE] = self[BIGINT_SIZE] >> 1
+  self[BINT_SIZE] = self[BINT_SIZE] >> 1
   return self
 end
 
 -- Bitwise left shift words of a bint (in-place). Used only internally.
 function bint:_shlwords(n)
-  for i=BIGINT_SIZE,n+1,-1 do
+  for i=BINT_SIZE,n+1,-1 do
     self[i] = self[i - n]
   end
   for i=1,n do
@@ -717,15 +733,15 @@ end
 
 -- Bitwise right shift words of a bint (in-place). Used only internally.
 function bint:_shrwords(n)
-  if n < BIGINT_SIZE then
-    for i=1,BIGINT_SIZE-n+1 do
+  if n < BINT_SIZE then
+    for i=1,BINT_SIZE-n do
       self[i] = self[i + n]
     end
-    for i=BIGINT_SIZE-n,BIGINT_SIZE do
+    for i=BINT_SIZE-n+1,BINT_SIZE do
       self[i] = 0
     end
   else
-    for i=1,BIGINT_SIZE do
+    for i=1,BINT_SIZE do
       self[i] = 0
     end
   end
@@ -734,9 +750,9 @@ end
 
 --- Increment a bint by one (in-place).
 function bint:_inc()
-  for i=1,BIGINT_SIZE do
+  for i=1,BINT_SIZE do
     local tmp = self[i]
-    local v = (tmp + 1) & BIGINT_WORDMAX
+    local v = (tmp + 1) & BINT_WORDMAX
     self[i] = v
     if v > tmp then
       break
@@ -758,9 +774,9 @@ end
 
 --- Decrement a bint by one (in-place).
 function bint:_dec()
-  for i=1,BIGINT_SIZE do
+  for i=1,BINT_SIZE do
     local tmp = self[i]
-    local v = (tmp - 1) & BIGINT_WORDMAX
+    local v = (tmp - 1) & BINT_WORDMAX
     self[i] = v
     if not (v > tmp) then
       break
@@ -785,7 +801,7 @@ end
 -- @raise Asserts in case inputs are not convertible to integers.
 function bint:_assign(y)
   y = bint_assert_convert(y)
-  for i=1,BIGINT_SIZE do
+  for i=1,BINT_SIZE do
     self[i] = y[i]
   end
   return self
@@ -830,17 +846,45 @@ function bint.ceil(x)
   end
 end
 
--- Wrap around bits of an integer (discarding left bits) considering bints.
+--- Wrap around bits of an integer (discarding left bits) considering bints.
 -- @param x A bint or a lua integer.
 -- @param y Number of right bits to preserve.
 function bint.bwrap(x, y)
   x = bint_assert_convert(x)
   if y <= 0 then
     return bint.zero()
-  elseif y < BIGINT_BITS then
+  elseif y < BINT_BITS then
     return x & (bint.one() << y):_dec()
   else
     return bint.new(x)
+  end
+end
+
+--- Rotate left integer x by y bits considering bints.
+-- @param x A bint or a lua integer.
+-- @param y Number of bits to rotate.
+function bint.brol(x, y)
+  x, y = bint_assert_convert(x), bint_assert_tointeger(y)
+  if y > 0 then
+    return (x << y) | (x >> (BINT_BITS - y))
+  elseif y < 0 then
+    return x:bror(-y)
+  else
+    return x
+  end
+end
+
+--- Rotate right integer x by y bits considering bints.
+-- @param x A bint or a lua integer.
+-- @param y Number of bits to rotate.
+function bint.bror(x, y)
+  x, y = bint_assert_convert(x), bint_assert_tointeger(y)
+  if y > 0 then
+    return (x >> y) | (x << (BINT_BITS - y))
+  elseif y < 0 then
+    return x:brol(-y)
+  else
+    return x
   end
 end
 
@@ -897,10 +941,10 @@ end
 function bint:_add(y)
   y = bint_assert_convert(y)
   local carry = 0
-  for i=1,BIGINT_SIZE do
+  for i=1,BINT_SIZE do
     local tmp = self[i] + y[i] + carry
-    carry = tmp > BIGINT_WORDMAX and 1 or 0
-    self[i] = tmp & BIGINT_WORDMAX
+    carry = tmp > BINT_WORDMAX and 1 or 0
+    self[i] = tmp & BINT_WORDMAX
   end
   return self
 end
@@ -913,10 +957,10 @@ function bint.__add(x, y)
   if ix and iy then
     local z = bint_newempty()
     local carry = 0
-    for i=1,BIGINT_SIZE do
+    for i=1,BINT_SIZE do
       local tmp = ix[i] + iy[i] + carry
-      carry = tmp > BIGINT_WORDMAX and 1 or 0
-      z[i] = tmp & BIGINT_WORDMAX
+      carry = tmp > BINT_WORDMAX and 1 or 0
+      z[i] = tmp & BINT_WORDMAX
     end
     return z
   else
@@ -930,11 +974,11 @@ end
 function bint:_sub(y)
   y = bint_assert_convert(y)
   local borrow = 0
-  local wordmaxp1 = BIGINT_WORDMAX + 1
-  for i=1,BIGINT_SIZE do
+  local wordmaxp1 = BINT_WORDMAX + 1
+  for i=1,BINT_SIZE do
     local res = (self[i] + wordmaxp1) - (y[i] + borrow)
-    self[i] = res & BIGINT_WORDMAX
-    borrow = res <= BIGINT_WORDMAX and 1 or 0
+    self[i] = res & BINT_WORDMAX
+    borrow = res <= BINT_WORDMAX and 1 or 0
   end
   return self
 end
@@ -947,11 +991,11 @@ function bint.__sub(x, y)
   if ix and iy then
     local z = bint_newempty()
     local borrow = 0
-    local wordmaxp1 = BIGINT_WORDMAX + 1
-    for i=1,BIGINT_SIZE do
+    local wordmaxp1 = BINT_WORDMAX + 1
+    for i=1,BINT_SIZE do
       local res = (ix[i] + wordmaxp1) - (iy[i] + borrow)
-      z[i] = res & BIGINT_WORDMAX
-      borrow = res <= BIGINT_WORDMAX and 1 or 0
+      z[i] = res & BINT_WORDMAX
+      borrow = res <= BINT_WORDMAX and 1 or 0
     end
     return z
   else
@@ -966,10 +1010,10 @@ function bint.__mul(x, y)
   local ix, iy = bint.tobint(x), bint.tobint(y)
   if ix and iy then
     local z = bint.zero()
-    local sizep1 = BIGINT_SIZE+1
+    local sizep1 = BINT_SIZE+1
     local s = sizep1
     local e = 0
-    for i=1,BIGINT_SIZE do
+    for i=1,BINT_SIZE do
       if ix[i] ~= 0 or iy[i] ~= 0 then
         e = math.max(e, i)
         s = math.min(s, i)
@@ -980,11 +1024,11 @@ function bint.__mul(x, y)
         local a = ix[i] * iy[j]
         if a ~= 0 then
           local carry = 0
-          for k=i+j-1,BIGINT_SIZE do
-            local tmp = z[k] + (a & BIGINT_WORDMAX) + carry
-            carry = tmp > BIGINT_WORDMAX and 1 or 0
-            z[k] = tmp & BIGINT_WORDMAX
-            a = a >> BIGINT_WORDBITS
+          for k=i+j-1,BINT_SIZE do
+            local tmp = z[k] + (a & BINT_WORDMAX) + carry
+            carry = tmp > BINT_WORDMAX and 1 or 0
+            z[k] = tmp & BINT_WORDMAX
+            a = a >> BINT_WORDBITS
           end
         end
       end
@@ -996,7 +1040,7 @@ function bint.__mul(x, y)
 end
 
 local function findleftbit(x)
-  for i=BIGINT_SIZE,1,-1 do
+  for i=BINT_SIZE,1,-1 do
     local v = x[i]
     if v ~= 0 then
       local j = 0
@@ -1004,7 +1048,7 @@ local function findleftbit(x)
         v = v >> 1
         j = j + 1
       until v == 0
-      return (i-1)*BIGINT_WORDBITS + j - 1, i
+      return (i-1)*BINT_WORDBITS + j - 1, i
     end
   end
 end
@@ -1023,19 +1067,23 @@ function bint.udivmod(x, y)
   local divisor = bint_assert_convert(y)
   local quot = bint.zero()
   assert(not divisor:iszero(), 'attempt to divide by zero')
-  if dividend:ult(divisor) then
+  if divisor:isone() then
+    return dividend, bint.zero()
+  elseif dividend:ult(divisor) then
     return quot, dividend
   end
   -- align leftmost digits in dividend and divisor
   local divisorlbit = findleftbit(divisor)
-  local divdendlbit, size = findleftbit(dividend)
+  local divdendlbit, divdendsize = findleftbit(dividend)
   local bit = divdendlbit - divisorlbit
   divisor = divisor << bit
-  local wordmaxp1 = BIGINT_WORDMAX + 1
-  local wordbitsm1 = BIGINT_WORDBITS - 1
+  local wordmaxp1 = BINT_WORDMAX + 1
+  local wordbitsm1 = BINT_WORDBITS - 1
+  local divisorsize = divdendsize
   while bit >= 0 do
     -- compute divisor <= dividend
     local le = true
+    local size = math.max(divdendsize, divisorsize)
     for i=size,1,-1 do
       local a, b = divisor[i], dividend[i]
       if a ~= b then
@@ -1049,18 +1097,28 @@ function bint.udivmod(x, y)
       local borrow = 0
       for i=1,size do
         local res = (dividend[i] + wordmaxp1) - (divisor[i] + borrow)
-        dividend[i] = res & BIGINT_WORDMAX
-        borrow = res <= BIGINT_WORDMAX and 1 or 0
+        dividend[i] = res & BINT_WORDMAX
+        borrow = res <= BINT_WORDMAX and 1 or 0
       end
       -- concatenate 1 to the right bit of the quotient
-      local i = (bit // BIGINT_WORDBITS) + 1
-      quot[i] = quot[i] | (1 << (bit % BIGINT_WORDBITS))
+      local i = (bit // BINT_WORDBITS) + 1
+      quot[i] = quot[i] | (1 << (bit % BINT_WORDBITS))
     end
     -- shift right the divisor in one bit
-    for i=1,size-1 do
-      divisor[i] = ((divisor[i] >> 1) | (divisor[i+1] << wordbitsm1)) & BIGINT_WORDMAX
+    for i=1,divisorsize-1 do
+      divisor[i] = ((divisor[i] >> 1) | (divisor[i+1] << wordbitsm1)) & BINT_WORDMAX
     end
-    divisor[size] = divisor[size] >> 1
+    local lastdivisorword = divisor[divisorsize] >> 1
+    divisor[divisorsize] = lastdivisorword
+    -- recalculate divisor size (optimization)
+    if lastdivisorword == 0 then
+      while divisor[divisorsize] == 0 do
+        divisorsize = divisorsize - 1
+      end
+      if divisorsize == 0 then
+        break
+      end
+    end
     -- decrement current set bit for the quotient
     bit = bit - 1
   end
@@ -1237,17 +1295,17 @@ function bint.__shl(x, y)
   if y < 0 then
     return x >> -y
   end
-  local nvals = y // BIGINT_WORDBITS
+  local nvals = y // BINT_WORDBITS
   if nvals ~= 0 then
     x:_shlwords(nvals)
-    y = y - nvals * BIGINT_WORDBITS
+    y = y - nvals * BINT_WORDBITS
   end
   if y ~= 0 then
-    local wordbitsmy = BIGINT_WORDBITS - y
-    for i=BIGINT_SIZE,2,-1 do
-      x[i] = ((x[i] << y) | (x[i-1] >> wordbitsmy)) & BIGINT_WORDMAX
+    local wordbitsmy = BINT_WORDBITS - y
+    for i=BINT_SIZE,2,-1 do
+      x[i] = ((x[i] << y) | (x[i-1] >> wordbitsmy)) & BINT_WORDMAX
     end
-    x[1] = (x[1] << y) & BIGINT_WORDMAX
+    x[1] = (x[1] << y) & BINT_WORDMAX
   end
   return x
 end
@@ -1262,17 +1320,17 @@ function bint.__shr(x, y)
   if y < 0 then
     return x << -y
   end
-  local nvals = y // BIGINT_WORDBITS
+  local nvals = y // BINT_WORDBITS
   if nvals ~= 0 then
     x:_shrwords(nvals)
-    y = y - nvals * BIGINT_WORDBITS
+    y = y - nvals * BINT_WORDBITS
   end
   if y ~= 0 then
-    local wordbitsmy = BIGINT_WORDBITS - y
-    for i=1,BIGINT_SIZE-1 do
-      x[i] = ((x[i] >> y) | (x[i+1] << wordbitsmy)) & BIGINT_WORDMAX
+    local wordbitsmy = BINT_WORDBITS - y
+    for i=1,BINT_SIZE-1 do
+      x[i] = ((x[i] >> y) | (x[i+1] << wordbitsmy)) & BINT_WORDMAX
     end
-    x[BIGINT_SIZE] = x[BIGINT_SIZE] >> y
+    x[BINT_SIZE] = x[BINT_SIZE] >> y
   end
   return x
 end
@@ -1282,7 +1340,7 @@ end
 -- @raise Asserts in case inputs are not convertible to integers.
 function bint:_band(y)
   y = bint_assert_convert(y)
-  for i=1,BIGINT_SIZE do
+  for i=1,BINT_SIZE do
     self[i] = self[i] & y[i]
   end
   return self
@@ -1301,7 +1359,7 @@ end
 -- @raise Asserts in case inputs are not convertible to integers.
 function bint:_bor(y)
   y = bint_assert_convert(y)
-  for i=1,BIGINT_SIZE do
+  for i=1,BINT_SIZE do
     self[i] = self[i] | y[i]
   end
   return self
@@ -1320,7 +1378,7 @@ end
 -- @raise Asserts in case inputs are not convertible to integers.
 function bint:_bxor(y)
   y = bint_assert_convert(y)
-  for i=1,BIGINT_SIZE do
+  for i=1,BINT_SIZE do
     self[i] = self[i] ~ y[i]
   end
   return self
@@ -1336,8 +1394,8 @@ end
 
 --- Bitwise NOT a bint (in-place).
 function bint:_bnot()
-  for i=1,BIGINT_SIZE do
-    self[i] = (~self[i]) & BIGINT_WORDMAX
+  for i=1,BINT_SIZE do
+    self[i] = (~self[i]) & BINT_WORDMAX
   end
   return self
 end
@@ -1347,8 +1405,8 @@ end
 -- @raise Asserts in case inputs are not convertible to integers.
 function bint.__bnot(x)
   local y = bint_newempty()
-  for i=1,BIGINT_SIZE do
-    y[i] = (~x[i]) & BIGINT_WORDMAX
+  for i=1,BINT_SIZE do
+    y[i] = (~x[i]) & BINT_WORDMAX
   end
   return y
 end
@@ -1368,7 +1426,7 @@ end
 -- @param x A bint to compare.
 -- @param y A bint to compare.
 function bint.__eq(x, y)
-  for i=1,BIGINT_SIZE do
+  for i=1,BINT_SIZE do
     if x[i] ~= y[i] then
       return false
     end
@@ -1390,7 +1448,7 @@ end
 -- @see bint.__lt
 function bint.ult(x, y)
   x, y = bint_assert_convert(x), bint_assert_convert(y)
-  for i=BIGINT_SIZE,1,-1 do
+  for i=BINT_SIZE,1,-1 do
     local a, b = x[i], y[i]
     if a ~= b then
       return a < b
@@ -1406,7 +1464,7 @@ end
 -- @see bint.__le
 function bint.ule(x, y)
   x, y = bint_assert_convert(x), bint_assert_convert(y)
-  for i=BIGINT_SIZE,1,-1 do
+  for i=BINT_SIZE,1,-1 do
     local a, b = x[i], y[i]
     if a ~= b then
       return a < b
@@ -1422,10 +1480,10 @@ end
 function bint.__lt(x, y)
   local ix, iy = bint.tobint(x), bint.tobint(y)
   if ix and iy then
-    local xneg = ix[BIGINT_SIZE] & BIGINT_WORDMSB ~= 0
-    local yneg = iy[BIGINT_SIZE] & BIGINT_WORDMSB ~= 0
+    local xneg = ix[BINT_SIZE] & BINT_WORDMSB ~= 0
+    local yneg = iy[BINT_SIZE] & BINT_WORDMSB ~= 0
     if xneg == yneg then
-      for i=BIGINT_SIZE,1,-1 do
+      for i=BINT_SIZE,1,-1 do
         local a, b = ix[i], iy[i]
         if a ~= b then
           return a < b
@@ -1447,10 +1505,10 @@ end
 function bint.__le(x, y)
   local ix, iy = bint.tobint(x), bint.tobint(y)
   if ix and iy then
-    local xneg = ix[BIGINT_SIZE] & BIGINT_WORDMSB ~= 0
-    local yneg = iy[BIGINT_SIZE] & BIGINT_WORDMSB ~= 0
+    local xneg = ix[BINT_SIZE] & BINT_WORDMSB ~= 0
+    local yneg = iy[BINT_SIZE] & BINT_WORDMSB ~= 0
     if xneg == yneg then
-      for i=BIGINT_SIZE,1,-1 do
+      for i=BINT_SIZE,1,-1 do
         local a, b = ix[i], iy[i]
         if a ~= b then
           return a < b
@@ -1471,13 +1529,18 @@ function bint:__tostring()
   return self:tobase(10)
 end
 
+-- Allow creating bints by calling bint itself
 setmetatable(bint, {
   __call = function(_, x)
     return bint.new(x)
   end
 })
 
--- set default scale
-bint.scale(256)
+BINT_MATHMININTEGER, BINT_MATHMAXINTEGER = bint.new(math.mininteger), bint.new(math.maxinteger)
+memo[memoindex] = bint
 
 return bint
+
+end
+
+return newmodule

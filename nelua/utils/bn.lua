@@ -1,6 +1,4 @@
-local bn = require 'nelua.thirdparty.bint'
-
-bn.scale(160)
+local bn = require 'nelua.thirdparty.bint'(160)
 
 local function from(base, expbase, int, frac, exp)
   local n = bn.zero()
