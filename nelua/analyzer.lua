@@ -464,9 +464,21 @@ function visitors.FuncType(context, node)
   local argnodes, retnodes = node[1], node[2]
   context:traverse_nodes(argnodes)
   context:traverse_nodes(retnodes)
-  local type = types.FunctionType(node,
-    tabler.imap(argnodes, function(argnode) return Attr{type = argnode.attr.value} end),
-    tabler.imap(retnodes, function(retnode) return retnode.attr.value end))
+  local argattrs = {}
+  for i,argnode in ipairs(argnodes) do
+    if argnode.tag == 'IdDecl' then
+      argattrs[i] = argnode.attr
+    else
+      assert(argnode.tag == 'Type')
+      argattrs[i] = Attr{type = argnode.attr.value}
+    end
+  end
+  local rettypes = tabler.imap(retnodes, function(retnode) return retnode.attr.value end)
+  if #rettypes == 1 and rettypes[1].is_void then
+    -- single void type means no returns
+    rettypes = {}
+  end
+  local type = types.FunctionType(node, argattrs, rettypes)
   type.sideeffect = true
   attr.type = primtypes.type
   attr.value = type
@@ -1692,7 +1704,7 @@ local function visitor_FuncDef_returns(context, functype, retnodes)
   local returntypes
   context:traverse_nodes(retnodes)
   if #retnodes > 0 then
-    -- returns types are predeclared
+    -- returns types are pre declared
     returntypes = tabler.imap(retnodes, function(retnode)
       return retnode.attr.value
     end)

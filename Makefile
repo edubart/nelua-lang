@@ -6,10 +6,13 @@ DFLAGS=-u $(UID):$(GID) $(DRFLAGS)
 LUAMONFLAGS=-w nelua,spec,tools,examples,lib,tests -e lua,nelua -q -x
 EXAMPLES=$(wildcard examples/*.nelua)
 BENCHMARKS=$(wildcard benchmarks/*.nelua)
-LUA=lua
+LUA?=lua
 
 test:
-	@busted
+	@busted --lua=$(LUA)
+
+test-quick:
+	@busted --lua=$(LUA) --no-keep-going
 
 test-lua5.3:
 	@echo -n "test lua-5.3 "
@@ -58,7 +61,7 @@ _clear-stdout:
 	@clear
 
 devtest: _clear-stdout coverage-test check compile-examples
-devtestlight: _clear-stdout test check
+devtestlight: _clear-stdout test-quick check
 
 test-full: test coverage check compile-examples
 

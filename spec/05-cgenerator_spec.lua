@@ -115,6 +115,8 @@ it("call", function()
 end)
 
 it("callbacks", function()
+  assert.generate_c("local f: function(x: integer): integer",
+    "typedef int64_t %(%*function_%w+%)%(int64_t%);", true)
   assert.run_c([[
 local function call_callback(callback: function(integer, integer): integer): integer
   return callback(1, 2)
@@ -125,6 +127,8 @@ local function mycallback(x: integer, y: integer): integer
   return x + y
 end
 
+local mycallback_proxy = mycallback
+assert(mycallback(1, 2) == 3)
 assert(call_callback(mycallback) == 3)
 ]])
 end)

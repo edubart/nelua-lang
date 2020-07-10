@@ -696,6 +696,18 @@ it("function call", function()
   assert.analyze_error([[local function f(a: integer) end; f()]], "expected an argument at index 1")
 end)
 
+it("callbacks", function()
+  assert.analyze_ast([[
+    local callback_type = @function(x: integer, stringview): (number, boolean)
+    local callback: callback_type = nilptr
+  ]])
+  assert.ast_type_equals([[
+    local f: function()
+  ]],[[
+    local f: function(): void
+  ]])
+end)
+
 it("for in", function()
   assert.analyze_ast([[local a,b,c; for i in a,b,c do end]])
   assert.analyze_ast([[local a,b,c; in a,b,c do end]])

@@ -478,10 +478,13 @@ local function get_parser()
       {} '' -> 'FuncType'
         %FUNCTION
         eLPAREN ({|
-          (typexpr_list (%COMMA %cVARARGS)? / %cVARARGS)?
+          (ftyped_idlist (%COMMA %cVARARGS)? / %cVARARGS)?
         |}) eRPAREN
         {| (%COLON (%LPAREN etypexpr_list eRPAREN / etypexpr))? |}
       ) -> to_astnode
+
+    ftyped_idlist <- (ftyped_id / typexpr) (%COMMA (ftyped_id / typexpr))*
+    ftyped_id <- ({} '' -> 'IdDecl' name %COLON etypexpr) -> to_astnode
 
     record_type <- ({} %TRECORD -> 'RecordType' %LCURLY
         {| (record_field (%SEPARATOR record_field)* %SEPARATOR?)? |}

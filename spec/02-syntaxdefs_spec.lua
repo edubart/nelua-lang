@@ -1292,6 +1292,18 @@ describe("type expression", function()
         n.VarDecl{'local',
           { n.IdDecl{'f', n.FuncType{{n.Type{'integer'}}, {n.Type{'string'}}}}}
     }}})
+    assert.parse_ast(nelua_parser, "local f: function(x: integer): string",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'f', n.FuncType{{n.IdDecl{'x',n.Type{'integer'}}}, {n.Type{'string'}}}}}
+    }}})
+    assert.parse_ast(nelua_parser, "local f: function(x: integer, y: integer): string",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'f', n.FuncType{
+            { n.IdDecl{'x',n.Type{'integer'}}, n.IdDecl{'y',n.Type{'integer'} }
+          }, {n.Type{'string'}}}}}
+    }}})
     assert.parse_ast(nelua_parser, "local f: function(integer, uinteger):(string, boolean)",
       n.Block{{
         n.VarDecl{'local',
