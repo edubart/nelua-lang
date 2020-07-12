@@ -1,5 +1,5 @@
 -- source taken from https://github.com/edubart/lua-bint
--- lua-bint 0.3
+-- lua-bint 0.3.1
 --[[
 The MIT License (MIT)
 
@@ -28,9 +28,10 @@ SOFTWARE.
 Small portable arbitrary-precision integer arithmetic library in pure Lua for
 computing with large integers.
 
-Different from most arbitrary precision integer libraries in pure Lua out there this one
+Different from most arbitrary-precision integer libraries in pure Lua out there this one
 uses an array of lua integers as underlying data-type in its implementation instead of
-using strings or large tables, so regarding that aspect this library should be more efficient.
+using strings or large tables, this make it efficient for working with fixed width integers
+and to make bitwise operations.
 
 ## Design goals
 
@@ -42,7 +43,7 @@ integer overflow warps around,
 signed integers are implemented using two-complement arithmetic rules,
 integer division operations rounds towards minus infinity,
 any mixed operations with float numbers promotes the value to a float,
-and the usual division/power operation always promote to floats.
+and the usual division/power operation always promotes to floats.
 
 The library is designed to be possible to work with only unsigned integer arithmetic
 when using the proper methods.
@@ -50,9 +51,9 @@ when using the proper methods.
 All the lua arithmetic operators (+, -, *, //, /, %) and bitwise operators (&, |, ~, <<, >>)
 are implemented as metamethods.
 
-The integer size must be fixed in advance and the library is designed to be efficient only when
+The integer size must be fixed in advance and the library is designed to be more efficient when
 working with integers of sizes between 64-4096 bits. If you need to work with really huge numbers
-without size restrictions then use other library. This choice has been made to have more efficiency
+without size restrictions then use another library. This choice has been made to have more efficiency
 in that specific size range.
 
 ## Usage
@@ -92,7 +93,7 @@ get the output from one of the following functions:
 * @{bint.tobase} (convert to a string in any base)
 * @{bint.__tostring} (convert to a string in base 10)
 
-To output very large integer with no loss you probably want to use @{bint.tobase}
+To output a very large integer with no loss you probably want to use @{bint.tobase}
 or call `tostring` to get a string representation.
 
 ## Precautions
@@ -104,14 +105,14 @@ however the user should take care in some situations:
 * Don't mix integers and float operations if you want to work with integers only.
 * Don't use the regular equal operator ('==') to compare values from this library,
 unless you know in advance that both values are of the same primitive type,
-otherwise it will always returns false, use @{bint.eq} to be safe.
+otherwise it will always return false, use @{bint.eq} to be safe.
 * Don't pass fractional numbers to functions that an integer is expected
+* Don't mix operations between bint classes with different sizes as this is not supported.
 as this will throw assertions.
 * Remember that casting back to lua integers or numbers precision can be lost.
 * For dividing while preserving integers use the @{bint.__idiv} (the '//' operator).
 * For doing power operation preserving integers use the @{bint.ipow} function.
-to the proper size you intend to work with, otherwise large integers may wraps around.
-* Never mix operations between bint classes of different bit sizes
+* Configure the proper integer size you intend to work with, otherwise large integers may wrap around.
 
 ]]
 
@@ -247,7 +248,7 @@ end
 
 local basesteps = {}
 
--- Compute the read/write step for frombase/tobase functions.
+-- Compute the read step for frombase function
 local function getbasestep(base)
   local step = basesteps[base]
   if step then
@@ -324,7 +325,7 @@ end
 --- Convert a bint to an unsigned integer.
 -- Note that large unsigned integers may be represented as negatives in lua integers.
 -- Note that lua cannot represent values larger than 64 bits,
--- in that case integer values wraps around.
+-- in that case integer values wrap around.
 -- @param x A bint or a number to be converted into an unsigned integer.
 -- @return An integer or nil in case the input cannot be represented by an integer.
 -- @see bint.tointeger
@@ -343,7 +344,7 @@ end
 --- Convert a bint to a signed integer.
 -- It works by taking absolute values then applying the sign bit in case needed.
 -- Note that lua cannot represent values larger than 64 bits,
--- in that case integer values wraps around.
+-- in that case integer values wrap around.
 -- @param x A bint or value to be converted into an unsigned integer.
 -- @return An integer or nil in case the input cannot be represented by an integer.
 -- @see bint.touinteger
@@ -371,14 +372,14 @@ local function bint_assert_tointeger(x)
 end
 
 --- Convert a bint to a lua float in case integer would wrap around or lua integer otherwise.
--- Different from @{bint.tointeger} the operation does not wraps around integers,
+-- Different from @{bint.tointeger} the operation does not wrap around integers,
 -- but digits precision are lost in the process of converting to a float.
 -- @param x A bint or value to be converted into a lua number.
 -- @return A lua number or nil in case the input cannot be represented by a number.
 -- @see bint.tointeger
 function bint.tonumber(x)
   if isbint(x) then
-    if x >= BINT_MATHMININTEGER and x <= BINT_MATHMAXINTEGER then
+    if x <= BINT_MATHMAXINTEGER and x >= BINT_MATHMININTEGER then
       return x:tointeger()
     else
       return tonumber(tostring(x))
@@ -396,18 +397,11 @@ do
   end
 end
 
--- Get the quotient and remainder for a lua integer division
-local function idivmod(x, y)
-  local quot = x // y
-  local rem = x - (quot * y)
-  return quot, rem
-end
-
 --- Convert a bint to a string in the desired base.
 -- @param x The bint to be converted from.
 -- @param[opt] base Base to be represented, defaults to 10.
 -- Must be at least 2 and at most 36.
--- @param[opt] unsigned Whether to output as unsigned integer.
+-- @param[opt] unsigned Whether to output as an unsigned integer.
 -- Defaults to false for base 10 and true for others.
 -- When unsigned is false the symbol '-' is prepended in negative values.
 -- @return A string representing the input.
@@ -426,9 +420,8 @@ function bint.tobase(x, base, unsigned)
   if unsigned == nil then
     unsigned = base ~= 10
   end
-  if base == 10 or base == 16 then
-    local inluarange = x >= BINT_MATHMININTEGER and x <= BINT_MATHMAXINTEGER
-    if inluarange then
+  if (base == 10 and not unsigned) or (base == 16 and unsigned) then
+    if x <= BINT_MATHMAXINTEGER and x >= BINT_MATHMININTEGER then
       -- integer is small, use tostring or string.format (faster)
       local n = x:tointeger()
       if base == 10 then
@@ -442,28 +435,48 @@ function bint.tobase(x, base, unsigned)
   local neg = not unsigned and x:isneg()
   if neg then
     x = x:abs()
+  else
+    x = bint.new(x)
   end
-  local step = getbasestep(base)
-  local divisor = bint.new(ipow(1, base, step))
-  local stop = x:iszero()
-  if stop then
+  local xiszero = x:iszero()
+  if xiszero then
     return '0'
   end
-  while not stop do
-    local ix
-    x, ix = bint.udivmod(x, divisor)
-    ix = ix:tointeger()
-    stop = x:iszero()
+  -- calculate basepow
+  local step = 0
+  local basepow = 1
+  local limit = (BINT_WORDMSB - 1) // base
+  repeat
+    step = step + 1
+    basepow = basepow * base
+  until basepow >= limit
+  -- serialize base digits
+  local size = BINT_SIZE
+  local xd, carry, d
+  repeat
+    -- single word division
+    carry = 0
+    xiszero = true
+    for i=size,1,-1 do
+      carry = carry | x[i]
+      d, xd = carry // basepow, carry % basepow
+      if xiszero and d ~= 0 then
+        size = i
+        xiszero = false
+      end
+      x[i] = d
+      carry = xd << BINT_WORDBITS
+    end
+    -- digit division
     for _=1,step do
-      local d
-      ix, d = idivmod(ix, base)
-      if stop and ix == 0 and d == 0 then
+      xd, d = xd // base, xd % base
+      if xiszero and xd == 0 and d == 0 then
         -- stop on leading zeros
         break
       end
       table.insert(ss, 1, BASE_LETTERS[d])
     end
-  end
+  until xiszero
   if neg then
     table.insert(ss, 1, '-')
   end
@@ -526,7 +539,7 @@ local function bint_assert_convert(x)
 end
 
 --- Convert a value to a bint if possible otherwise to a lua number.
--- Useful to prepare values that you are unsure if its going to be a integer or float.
+-- Useful to prepare values that you are unsure if it's going to be an integer or float.
 -- @param x A value to be converted (string, number or another bint).
 -- @param[opt] clone A boolean that tells if a new bint reference should be returned.
 -- Defaults to false.
@@ -826,8 +839,8 @@ function bint.abs(x)
   end
 end
 
---- Take floor of a number considering bints.
--- @param x A bint or a lua number to perform the floor.
+--- Take the floor of a number considering bints.
+-- @param x A bint or a lua number to perform the floor operation.
 function bint.floor(x)
   if isbint(x) then
     return bint.new(x)
@@ -837,7 +850,7 @@ function bint.floor(x)
 end
 
 --- Take ceil of a number considering bints.
--- @param x A bint or a lua number to perform the ceil.
+-- @param x A bint or a lua number to perform the ceil operation.
 function bint.ceil(x)
   if isbint(x) then
     return bint.new(x)
@@ -943,7 +956,7 @@ function bint:_add(y)
   local carry = 0
   for i=1,BINT_SIZE do
     local tmp = self[i] + y[i] + carry
-    carry = tmp > BINT_WORDMAX and 1 or 0
+    carry = tmp >> BINT_WORDBITS
     self[i] = tmp & BINT_WORDMAX
   end
   return self
@@ -959,7 +972,7 @@ function bint.__add(x, y)
     local carry = 0
     for i=1,BINT_SIZE do
       local tmp = ix[i] + iy[i] + carry
-      carry = tmp > BINT_WORDMAX and 1 or 0
+      carry = tmp >> BINT_WORDBITS
       z[i] = tmp & BINT_WORDMAX
     end
     return z
@@ -976,15 +989,15 @@ function bint:_sub(y)
   local borrow = 0
   local wordmaxp1 = BINT_WORDMAX + 1
   for i=1,BINT_SIZE do
-    local res = (self[i] + wordmaxp1) - (y[i] + borrow)
+    local res = self[i] + wordmaxp1 - y[i] - borrow
     self[i] = res & BINT_WORDMAX
-    borrow = res <= BINT_WORDMAX and 1 or 0
+    borrow = (res >> BINT_WORDBITS) ~ 1
   end
   return self
 end
 
 --- Subtract two numbers considering bints.
--- @param x A bint or a lua number to be subtract from.
+-- @param x A bint or a lua number to be subtracted from.
 -- @param y A bint or a lua number to subtract.
 function bint.__sub(x, y)
   local ix, iy = bint.tobint(x), bint.tobint(y)
@@ -993,9 +1006,9 @@ function bint.__sub(x, y)
     local borrow = 0
     local wordmaxp1 = BINT_WORDMAX + 1
     for i=1,BINT_SIZE do
-      local res = (ix[i] + wordmaxp1) - (iy[i] + borrow)
+      local res = ix[i] + wordmaxp1 - iy[i] - borrow
       z[i] = res & BINT_WORDMAX
-      borrow = res <= BINT_WORDMAX and 1 or 0
+      borrow = (res >> BINT_WORDBITS) ~ 1
     end
     return z
   else
@@ -1026,7 +1039,7 @@ function bint.__mul(x, y)
           local carry = 0
           for k=i+j-1,BINT_SIZE do
             local tmp = z[k] + (a & BINT_WORDMAX) + carry
-            carry = tmp > BINT_WORDMAX and 1 or 0
+            carry = tmp >> BINT_WORDBITS
             z[k] = tmp & BINT_WORDMAX
             a = a >> BINT_WORDBITS
           end
@@ -1053,6 +1066,19 @@ local function findleftbit(x)
   end
 end
 
+-- Single word division modulus
+local function sudivmod(nume, deno)
+  local rema
+  local carry = 0
+  for i=BINT_SIZE,1,-1 do
+    carry = carry | nume[i]
+    nume[i] = carry // deno
+    rema = carry % deno
+    carry = rema << BINT_WORDBITS
+  end
+  return rema
+end
+
 --- Perform unsigned division and modulo operation between two integers considering bints.
 -- This is effectively the same of @{bint.udiv} and @{bint.umod}.
 -- @param x The numerator, must be a bint or a lua integer.
@@ -1063,67 +1089,86 @@ end
 -- @see bint.udiv
 -- @see bint.umod
 function bint.udivmod(x, y)
-  local dividend = bint.new(x)
-  local divisor = bint_assert_convert(y)
-  local quot = bint.zero()
-  assert(not divisor:iszero(), 'attempt to divide by zero')
-  if divisor:isone() then
-    return dividend, bint.zero()
-  elseif dividend:ult(divisor) then
-    return quot, dividend
+  local nume = bint.new(x)
+  local deno = bint_assert_convert(y)
+  -- compute if high bits of denominator are all zeros
+  local ishighzero = true
+  for i=2,BINT_SIZE do
+    if deno[i] ~= 0 then
+      ishighzero = false
+      break
+    end
   end
-  -- align leftmost digits in dividend and divisor
-  local divisorlbit = findleftbit(divisor)
-  local divdendlbit, divdendsize = findleftbit(dividend)
-  local bit = divdendlbit - divisorlbit
-  divisor = divisor << bit
+  if ishighzero then
+    -- try to divide by a single word (optimization)
+    local low = deno[1]
+    assert(low ~= 0, 'attempt to divide by zero')
+    if low == 1 then
+      -- denominator is one
+      return nume, bint.zero()
+    elseif low <= (BINT_WORDMSB - 1) then
+      -- can do single word division
+      local rema = sudivmod(nume, low)
+      return nume, bint.fromuinteger(rema)
+    end
+  end
+  if nume:ult(deno) then
+    -- denominator is greater than denominator
+    return bint.zero(), nume
+  end
+  -- align leftmost digits in numerator and denominator
+  local denolbit = findleftbit(deno)
+  local numelbit, numesize = findleftbit(nume)
+  local bit = numelbit - denolbit
+  deno = deno << bit
   local wordmaxp1 = BINT_WORDMAX + 1
   local wordbitsm1 = BINT_WORDBITS - 1
-  local divisorsize = divdendsize
+  local denosize = numesize
+  local quot = bint.zero()
   while bit >= 0 do
-    -- compute divisor <= dividend
+    -- compute denominator <= numerator
     local le = true
-    local size = math.max(divdendsize, divisorsize)
+    local size = math.max(numesize, denosize)
     for i=size,1,-1 do
-      local a, b = divisor[i], dividend[i]
+      local a, b = deno[i], nume[i]
       if a ~= b then
         le = a < b
         break
       end
     end
-    -- if the portion of the dividend above the divisor is greater or equal than to the divisor
+    -- if the portion of the numerator above the denominator is greater or equal than to the denominator
     if le then
-      -- subtract divisor from the portion of the dividend
+      -- subtract denominator from the portion of the numerator
       local borrow = 0
       for i=1,size do
-        local res = (dividend[i] + wordmaxp1) - (divisor[i] + borrow)
-        dividend[i] = res & BINT_WORDMAX
-        borrow = res <= BINT_WORDMAX and 1 or 0
+        local res = nume[i] + wordmaxp1 - deno[i] - borrow
+        nume[i] = res & BINT_WORDMAX
+        borrow = (res >> BINT_WORDBITS) ~ 1
       end
       -- concatenate 1 to the right bit of the quotient
       local i = (bit // BINT_WORDBITS) + 1
       quot[i] = quot[i] | (1 << (bit % BINT_WORDBITS))
     end
-    -- shift right the divisor in one bit
-    for i=1,divisorsize-1 do
-      divisor[i] = ((divisor[i] >> 1) | (divisor[i+1] << wordbitsm1)) & BINT_WORDMAX
+    -- shift right the denominator in one bit
+    for i=1,denosize-1 do
+      deno[i] = ((deno[i] >> 1) | (deno[i+1] << wordbitsm1)) & BINT_WORDMAX
     end
-    local lastdivisorword = divisor[divisorsize] >> 1
-    divisor[divisorsize] = lastdivisorword
-    -- recalculate divisor size (optimization)
-    if lastdivisorword == 0 then
-      while divisor[divisorsize] == 0 do
-        divisorsize = divisorsize - 1
+    local lastdenoword = deno[denosize] >> 1
+    deno[denosize] = lastdenoword
+    -- recalculate denominator size (optimization)
+    if lastdenoword == 0 then
+      while deno[denosize] == 0 do
+        denosize = denosize - 1
       end
-      if divisorsize == 0 then
+      if denosize == 0 then
         break
       end
     end
     -- decrement current set bit for the quotient
     bit = bit - 1
   end
-  -- the remaining dividend is the remainder
-  return quot, dividend
+  -- the remaining numerator is the remainder
+  return quot, nume
 end
 
 --- Perform unsigned division between two integers considering bints.
@@ -1143,8 +1188,8 @@ end
 -- @raise Asserts on attempt to divide by zero
 -- or if the inputs are not convertible to integers.
 function bint.umod(x, y)
-  local _, rem = bint.udivmod(x, y)
-  return rem
+  local _, rema = bint.udivmod(x, y)
+  return rema
 end
 
 --- Perform integer floor division and modulo operation between two numbers considering bints.
@@ -1158,30 +1203,35 @@ end
 function bint.idivmod(x, y)
   local ix, iy = bint.tobint(x), bint.tobint(y)
   if ix and iy then
-    if iy:isminusone() then
-      return -ix, bint.zero()
+    local isnumeneg = ix[BINT_SIZE] & BINT_WORDMSB ~= 0
+    local isdenoneg = iy[BINT_SIZE] & BINT_WORDMSB ~= 0
+    if isnumeneg then
+      ix = -ix
     end
-    local quot, rem = bint.udivmod(ix:abs(), iy:abs())
-    local isnumneg, isdenomneg = ix:isneg(), iy:isneg()
-    if isnumneg ~= isdenomneg then
+    if isdenoneg then
+      iy = -iy
+    end
+    local quot, rema = bint.udivmod(ix, iy)
+    if isnumeneg ~= isdenoneg then
       quot:_unm()
       -- round quotient towards minus infinity
-      if not rem:iszero() then
+      if not rema:iszero() then
         quot:_dec()
         -- adjust the remainder
-        if isnumneg and not isdenomneg then
-          rem:_unm():_add(y)
-        elseif isdenomneg and not isnumneg then
-          rem:_add(y)
+        if isnumeneg and not isdenoneg then
+          rema:_unm():_add(y)
+        elseif isdenoneg and not isnumeneg then
+          rema:_add(y)
         end
       end
-    elseif isnumneg then
+    elseif isnumeneg then
       -- adjust the remainder
-      rem:_unm()
+      rema:_unm()
     end
-    return quot, rem
+    return quot, rema
   else
-    return idivmod(bint.tonumber(x), bint.tonumber(y))
+    local nx, ny = bint.tonumber(x), bint.tonumber(y)
+    return nx // ny, nx % ny
   end
 end
 
@@ -1193,11 +1243,32 @@ end
 -- @return The quotient, a bint or lua number.
 -- @raise Asserts on attempt to divide by zero.
 function bint.__idiv(x, y)
-  return (bint.idivmod(x, y))
+  local ix, iy = bint.tobint(x), bint.tobint(y)
+  if ix and iy then
+    local isnumeneg = ix[BINT_SIZE] & BINT_WORDMSB ~= 0
+    local isdenoneg = iy[BINT_SIZE] & BINT_WORDMSB ~= 0
+    if isnumeneg then
+      ix = -ix
+    end
+    if isdenoneg then
+      iy = -iy
+    end
+    local quot, rema = bint.udivmod(ix, iy)
+    if isnumeneg ~= isdenoneg then
+      quot:_unm()
+      -- round quotient towards minus infinity
+      if not rema:iszero() then
+        quot:_dec()
+      end
+    end
+    return quot, rema
+  else
+    return bint.tonumber(x) // bint.tonumber(y)
+  end
 end
 
 --- Perform division between two numbers considering bints.
--- This always cast inputs to floats, for integer division only use @{bint.__idiv}.
+-- This always casts inputs to floats, for integer division only use @{bint.__idiv}.
 -- @param x The numerator, a bint or lua number.
 -- @param y The denominator, a bint or lua number.
 -- @return The quotient, a lua number.
@@ -1213,12 +1284,12 @@ end
 -- @return The remainder, a bint or lua number.
 -- @raise Asserts on attempt to divide by zero.
 function bint.__mod(x, y)
-  local _, rem = bint.idivmod(x, y)
-  return rem
+  local _, rema = bint.idivmod(x, y)
+  return rema
 end
 
 --- Perform integer power between two integers considering bints.
--- If y is negative then pow is performed as unsigned integers.
+-- If y is negative then pow is performed as an unsigned integer.
 -- @param x The base, an integer.
 -- @param y The exponent, an integer.
 -- @return The result of the pow operation, a bint.
@@ -1276,7 +1347,7 @@ function bint.upowmod(x, y, m)
 end
 
 --- Perform numeric power between two numbers considering bints.
--- This always cast inputs to floats, for integer power only use @{bint.ipow}.
+-- This always casts inputs to floats, for integer power only use @{bint.ipow}.
 -- @param x The base, a bint or lua number.
 -- @param y The exponent, a bint or lua number.
 -- @return The result of the pow operation, a lua number.
@@ -1411,12 +1482,12 @@ function bint.__bnot(x)
   return y
 end
 
---- Negate a bint (in-place). This apply effectively apply two's complements.
+--- Negate a bint (in-place). This effectively applies two's complements.
 function bint:_unm()
   return self:_bnot():_inc()
 end
 
---- Negate a bint. This apply effectively apply two's complements.
+--- Negate a bint. This effectively applies two's complements.
 -- @param x A bint to perform negation.
 function bint.__unm(x)
   return (~x):_inc()
