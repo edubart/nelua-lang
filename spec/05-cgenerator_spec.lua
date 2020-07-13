@@ -1708,12 +1708,15 @@ it("implicit casting for unchecked arrays", function()
   assert.run_c([[
     local i: integer = 1
     local p: integer* = &i
+    local a4: integer[4]
     local a: integer[0]*
     a = p
     p = a
     assert(i == 1)
     assert(a[0] == 1)
     assert($p == 1)
+    a = &a4
+    assert(a == &a4)
   ]])
 end)
 
