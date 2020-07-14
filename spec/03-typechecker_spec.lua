@@ -1264,7 +1264,8 @@ it("annotations", function()
   assert.analyze_error(
     "local function f() <cimport,nodecl> return 0 end",
     "body of an import function must be empty")
-  assert.analyze_error("local a <cimport,nodecl> = 2", "cannot assign imported variables")
+  assert.analyze_error("local a <cimport>", "must have an explicit type")
+  assert.analyze_error("local a: integer <cimport,nodecl> = 2", "cannot assign imported variables")
   assert.analyze_error([[
     local function main1() <entrypoint> end
     local function main2() <entrypoint> end

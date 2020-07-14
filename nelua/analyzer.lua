@@ -297,6 +297,9 @@ function visitors.Annotation(context, node, symbol)
   else
     symboltype = symbol.type
     if not symboltype then
+      if name == 'cimport' and context.state.anyphase then
+        node:raisef('imported variables from C must have an explicit type')
+      end
       -- in the next traversal we will have the type
       return
     end
