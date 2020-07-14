@@ -1276,15 +1276,15 @@ function PointerType:is_convertible_from_type(type, explicit)
     elseif self.is_genericpointer then
       return self
     elseif type.subtype:is_array_of(self.subtype) and type.subtype.length == 0 then
-      -- implicit casting from unchecked arrays pointers to pointers
+      -- implicit casting from unbounded arrays pointers to pointers
       return self
     elseif self.subtype:is_array_of(type.subtype) and self.subtype.length == 0 then
-      -- implicit casting from pointers to unchecked arrays pointers
+      -- implicit casting from pointers to unbounded arrays pointers
       return self
     elseif self.subtype.is_array and type.subtype.is_array and
            self.subtype.length == 0 and
            self.subtype.subtype == type.subtype.subtype then
-      -- implicit casting from checked arrays pointers to unchecked arrays pointers
+      -- implicit casting from checked arrays pointers to unbounded arrays pointers
       return self
     end
   end

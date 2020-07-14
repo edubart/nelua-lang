@@ -1251,6 +1251,20 @@ it("multi dimensional arrays", function()
     print(g()[0][1])
     print(g()[1][0])
     print(g()[1][1])
+
+    do
+      local Object = @record {
+        values: integer[0]*[0]*
+      }
+      local b: integer[4] = {1,2,3,4}
+      local a: integer[0]*[4] = {&b, &b, &b, &b}
+      local o: Object
+      o.values = &a
+      assert(o.values[0][0] == 1)
+      assert(o.values[0][1] == 2)
+      assert(o.values[2][2] == 3)
+      assert(o.values[3][3] == 4)
+    end
   ]])
 end)
 
@@ -1704,7 +1718,7 @@ it("automatic casting", function()
   ]])
 end)
 
-it("implicit casting for unchecked arrays", function()
+it("implicit casting for unbounded arrays", function()
   assert.run_c([[
     local i: integer = 1
     local p: integer* = &i

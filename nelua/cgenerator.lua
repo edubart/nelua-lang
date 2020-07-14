@@ -757,6 +757,8 @@ function visitors.ArrayIndex(context, node, emitter)
 
     if pointer then
       emitter:add('((', objtype.subtype, '*)', objnode, ')[')
+    elseif objtype.length == 0 then
+      emitter:add('((', objtype.subtype, '*)&', objnode, ')[')
     else
       emitter:add(objnode, '.data[')
     end
