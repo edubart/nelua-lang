@@ -822,19 +822,51 @@ it("binary operator `bxor`", function()
 end)
 
 it("binary operator `shl`", function()
-  assert.generate_c("local a,b = 1,2; local x = a << b", "(a << b);")
+  assert.generate_c("local a,b = 1,2; local x = a << b", "nelua_shl_int64(a, b)")
   assert.generate_c("local x = 6 << 1", "x = 12;")
   assert.generate_c("local x = 6 << 0", "x = 6;")
   assert.generate_c("local x = 6 << -1", "x = 3;")
 end)
 
 it("binary operator `shr`", function()
-  assert.generate_c("local a,b = 1,2; local x = a >> b", "(a >> b);")
+  assert.generate_c("local a,b = 1,2; local x = a >> b", "nelua_shr_int64(a, b)")
   assert.generate_c("local x = 6 >> 1", "x = 3;")
   assert.generate_c("local x = 6 >> 0", "x = 6;")
   assert.generate_c("local x = 6 >> -1", "x = 12;")
 end)
 
+it("binary shifting", function()
+  assert.run_c([[
+    local a: int64 = 6
+    assert((a << 64) == 0)
+    assert((a >> 64) == 0)
+    assert((a << -64) == 0)
+    assert((a >> -64) == 0)
+    assert((a >> 1) == 3)
+    assert((a >> 63) == 0)
+    assert((a << 63) == 0)
+    assert((a << 62) == -9223372036854775808)
+    assert((a >> -1) == 12)
+    assert((a << 1) == 12)
+    assert((a << -1) == 3)
+
+    do
+      local a: int64, b: int64 = -8, 32
+      assert((a >> b) == 0xffffffff)
+      assert((a >> 32) == 0xffffffff)
+      assert((-8 >> 32) == 0xffffffff)
+      assert((-8 >> b) == 0xffffffff)
+    end
+
+    do
+      local a: int64, b: int64 = 0x4000000000000000, 1
+      assert((a << b) == (@int64)(0x8000000000000000))
+      assert((a << 1) == (@int64)(0x8000000000000000))
+      assert((0x4000000000000000 << b) == (@int64)(0x8000000000000000))
+      assert((0x4000000000000000 << 1) == (@int64)(0x8000000000000000))
+    end
+  ]])
+end)
 it("binary operator `concat`", function()
   assert.generate_c("local x = 'a' .. 'b'", [["ab"]])
 end)

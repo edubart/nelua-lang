@@ -760,6 +760,11 @@ IntegralType.binary_operators.shl = make_integral_binary_opfunc(integral_shift_o
 end)
 
 IntegralType.binary_operators.shr = make_integral_binary_opfunc(integral_shift_operation, function(a,b,t)
+  if a < 0 then
+    -- perform logical shift right
+    local msb = (bn.one() << (t.bitsize - 1))
+    a = bn.bwrap(a | msb, t.bitsize)
+  end
   return t:normalize_value(a >> b)
 end)
 
