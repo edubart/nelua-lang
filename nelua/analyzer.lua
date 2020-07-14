@@ -471,7 +471,7 @@ function visitors.FuncType(context, node)
     if argnode.tag == 'IdDecl' then
       argattrs[i] = argnode.attr
     else
-      assert(argnode.tag == 'Type')
+      assert(argnode.attr.type.is_type)
       argattrs[i] = Attr{type = argnode.attr.value}
     end
   end

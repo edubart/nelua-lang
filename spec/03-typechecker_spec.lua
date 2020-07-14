@@ -701,6 +701,10 @@ it("callbacks", function()
     local callback_type = @function(x: integer, stringview): (number, boolean)
     local callback: callback_type = nilptr
   ]])
+  assert.analyze_ast([[
+    local callback_type = @function(integer*, integer[4], record{x:integer}): (integer[4], boolean)
+    local callback: callback_type = nilptr
+  ]])
   assert.ast_type_equals([[
     local f: function()
   ]],[[
