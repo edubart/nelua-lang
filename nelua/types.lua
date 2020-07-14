@@ -133,7 +133,7 @@ function Type:is_convertible_from_attr(attr, explicit)
       if not bn.isintegral(attr.value) then
         return false, stringer.pformat(
           "constant value `%s` is fractional which is invalid for the type '%s'",
-          attr.value, type:prettyname())
+          attr.value, self:prettyname())
       elseif not self:is_inrange(attr.value) then
         return false, stringer.pformat(
           "constant value `%s` for type `%s` is out of range, the minimum is `%s` and maximum is `%s`",

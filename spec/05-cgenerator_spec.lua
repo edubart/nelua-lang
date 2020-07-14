@@ -743,6 +743,11 @@ it("binary operator `idiv`", function()
       assert(-a // -b == 2.0)
       assert(a // a == 1.0)
     end
+    do
+      local a: int64, b: int64 = (@int64)(0x8000000000000000), -1
+      assert(a // b == a)
+      assert(a % b == 0)
+    end
   ]])
 end)
 

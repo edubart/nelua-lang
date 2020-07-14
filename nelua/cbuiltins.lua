@@ -424,10 +424,12 @@ function builtins.nelua_idiv_(context, type)
   local name = string.format('nelua_idiv_i%d', type.bitsize)
   if context.usedbuiltins[name] then return name end
   local ictype = string.format('int%d_t', type.bitsize)
+  context:ensure_runtime_builtin('nelua_unlikely')
   define_inline_builtin(context, name,
     ictype,
     string.format('(%s a, %s b)', ictype, ictype),
     string.format([[{
+  if(nelua_unlikely(b == -1)) return 0 - a;
   %s d = a / b;
   return d * b == a ? d : d - ((a < 0) ^ (b < 0));
 }]], ictype))
@@ -438,10 +440,12 @@ function builtins.nelua_imod_(context, type)
   local name = string.format('nelua_imod_i%d', type.bitsize)
   if context.usedbuiltins[name] then return name end
   local ictype = string.format('int%d_t', type.bitsize)
+  context:ensure_runtime_builtin('nelua_unlikely')
   define_inline_builtin(context, name,
     ictype,
     string.format('(%s a, %s b)', ictype, ictype),
     string.format([[{
+  if(nelua_unlikely(b == -1)) return 0;
   %s r = a %% b;
   return (r != 0 && (a ^ b) < 0) ? r + b : r;
 }]], ictype))
