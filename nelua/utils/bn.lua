@@ -1,12 +1,17 @@
 local bn = require 'nelua.thirdparty.bint'(160)
 
 local function from(base, expbase, int, frac, exp)
-  local n = bn.zero()
   local neg = false
   if int:match('^%-') then
     neg = true
     int = int:sub(2)
   end
+  if int == 'inf' then
+    return not neg and math.huge or -math.huge
+  elseif int == 'nan' then
+    return 0.0/0.0
+  end
+  local n = bn.zero()
   for i=1,#int do
     local d = tonumber(int:sub(i,i), base)
     assert(d)
@@ -52,6 +57,21 @@ function bn.fromdec(int, frac, exp)
   else
     return from(10, 10, int)
   end
+end
+
+function bn.splitdecsci(s)
+  if s == 'inf' or s == '-inf' or s == 'nan' or s == '-nan' then
+    return s
+  end
+  local int, frac, exp = s:match('^(-?%d+)[.]?(%d+)[eE]?([+-]?%d*)$')
+  if not int then
+    int, exp = s:match('^(-?%d+)[eE]?([+-]?%d*)$')
+  end
+  assert(int)
+  if exp == '' then
+    exp = nil
+  end
+  return int, frac, exp
 end
 
 function bn.from(base, int, frac, exp)
@@ -106,6 +126,14 @@ function bn.todecsci(v, maxdigits)
     end
   end
   return string.format('%.'..maxdigits..'g', v)
+end
+
+function bn.isnan(x)
+  return x ~= x
+end
+
+function bn.isinfinite(x)
+  return math.type(x) == 'float' and math.abs(x) == math.huge
 end
 
 return bn

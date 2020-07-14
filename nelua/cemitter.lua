@@ -193,21 +193,42 @@ function CEmitter:add_numeric_literal(valattr, valtype)
   end
 
   local minusone = false
-  if valtype.is_integral and valtype.is_signed and val == valtype.min then
-    -- workaround C warning `integer constant is so large that it is unsigned`
-    minusone = true
-    val = val + 1
-  end
-
   if valtype.is_float then
-    local valstr = bn.todecsci(val, valtype.maxdigits)
-    self:add(valstr)
+    if bn.isnan(val) then
+      self.context:add_include('<math.h>')
+      if valtype.is_float32 then
+        self:add('nanf()')
+      else
+        self:add('nan()')
+      end
+      return
+    elseif bn.isinfinite(val) then
+      self.context:add_include('<math.h>')
+      if val < 0 then
+        self:add('-')
+      end
+      if valtype.is_float32 then
+        self:add('HUGE_VALF')
+      else
+        self:add('HUGE_VAL')
+      end
+      return
+    else
+      local valstr = bn.todecsci(val, valtype.maxdigits)
+      self:add(valstr)
 
-    -- make sure it has decimals
-    if valstr:match('^-?[0-9]+$') then
-      self:add('.0')
+      -- make sure it has decimals
+      if valstr:match('^-?[0-9]+$') then
+        self:add('.0')
+      end
     end
   else
+    if valtype.is_integral and valtype.is_signed and val == valtype.min then
+      -- workaround C warning `integer constant is so large that it is unsigned`
+      minusone = true
+      val = val + 1
+    end
+
     if base == 'hex' or base == 'bin' then
       self:add('0x', val:tohex())
     else

@@ -283,6 +283,21 @@ it("operation on comptime variables", function()
     local a <comptime>, b <comptime> = 1, 2
     local c <const> = (@int32)(a * b)
   ]], "static int32_t c = 2;")
+  assert.generate_c([[
+    local huge1: float64 = #[math.huge]#
+    local huge2: float64 = #[-math.huge]#
+    local nan: float64 = #[0.0/0.0]#
+    local huge1f: float32 = #[math.huge]#
+    local huge2f: float32 = #[-math.huge]#
+    local nanf: float32 = #[0.0/0.0]#
+  ]], {
+    "huge1 = HUGE_VAL",
+    "huge2 = -HUGE_VAL",
+    "nan = nan()",
+    "huge1f = HUGE_VALF",
+    "huge2f = -HUGE_VALF",
+    "nanf = nanf()",
+  })
 
   assert.run_c([[
     -- sum/sub/mul

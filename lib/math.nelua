@@ -4,8 +4,8 @@
 
 global math = @record{}
 
-global math.pi: number <comptime> = 3.1415926535897932
-global math.huge: number <const,cimport'HUGE_VAL',cinclude'<math.h>',nodecl>
+global math.pi: number <comptime> = #[math.pi]#
+global math.huge: number <comptime> = #[math.huge]#
 global math.maxinteger: integer <comptime> = #[primtypes.integer.max]#
 global math.mininteger: integer <comptime> = #[primtypes.integer.min]#
 

@@ -46,7 +46,7 @@ asserteq(math.log10(10.0), 1.0) asserteq(math.log10(1000.0), 3.0)
 asserteq(math.ldexp(1.0, 10), 1024.0) asserteq(math.ldexp(8.0, 7), 1024.0)
 
 -- float32
-global math.pi_f32 = (@float32)(math.pi)
+global math.pi_f32 <comptime> = (@float32)(math.pi)
 assert(math.abs(-1.0_f32) == 1.0_f32) assert(math.abs(1.0_f32) == 1.0_f32)
 assert(math.ceil(0.0_f32) == 0.0_f32) assert(math.ceil(-1.0_f32) == -1.0_f32)
 assert(math.ceil(1.1_f32) == 2.0_f32) assert(math.ceil(-1.1_f32) == -1.0_f32)

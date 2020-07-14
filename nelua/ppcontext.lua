@@ -81,14 +81,7 @@ function PPContext:tovalue(val, orignode)
       node = aster.Number{'dec', bn.todec(num)}
     else
       local snum = bn.todecsci(num)
-      local int, frac, exp = snum:match('^(-?%d+)[.]?(%d+)[eE]?([+-]?%d*)$')
-      if not int then
-        int, exp = snum:match('^(-?%d+)[eE]?([+-]?%d*)$')
-      end
-      assert(int)
-      if exp == '' then
-        exp = nil
-      end
+      local int, frac, exp = bn.splitdecsci(snum)
       node = aster.Number{'dec', int, frac, exp}
     end
     if neg then
