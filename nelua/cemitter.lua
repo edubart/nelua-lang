@@ -248,17 +248,21 @@ function CEmitter:add_numeric_literal(valattr, valtype)
   end
 end
 
-function CEmitter:add_string_literal(val)
-  local varname = self.context.stringviewerals[val]
-  if not self.context.state.ininitializer then
-    self:add('(')
-    self:add_ctypecast(primtypes.stringview)
-  end
+function CEmitter:add_string_literal(val, ascstring)
   local size = #val
+  local varname = self.context.stringviewerals[val]
   if varname then
-    self:add('{', varname, ', ', size, '}')
-    if not self.context.state.ininitializer then
-      self:add(')')
+    if ascstring then
+      self:add(varname)
+    else
+      if not self.context.state.ininitializer then
+        self:add('(')
+        self:add_ctypecast(primtypes.stringview)
+      end
+      self:add('{', varname, ', ', size, '}')
+      if not self.context.state.ininitializer then
+        self:add(')')
+      end
     end
     return
   end
@@ -267,10 +271,18 @@ function CEmitter:add_string_literal(val)
   local decemitter = CEmitter(self.context)
   local quoted_value = pegger.double_quote_c_string(val)
   decemitter:add_indent_ln('static char ', varname, '[', size+1, '] = ', quoted_value, ';')
-  self:add('{', varname, ', ', size, '}')
   self.context:add_declaration(decemitter:generate(), varname)
-  if not self.context.state.ininitializer then
-    self:add(')')
+  if ascstring then
+    self:add(varname)
+  else
+    if not self.context.state.ininitializer then
+      self:add('(')
+      self:add_ctypecast(primtypes.stringview)
+    end
+    self:add('{', varname, ', ', size, '}')
+    if not self.context.state.ininitializer then
+      self:add(')')
+    end
   end
 end
 

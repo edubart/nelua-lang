@@ -59,7 +59,12 @@ function visitors.String(_, node)
   if literal then
     node:raisef("custom string literals are not supported yet")
   end
-  attr.type = primtypes.stringview
+  local desiredtype = node.desiredtype
+  if desiredtype and desiredtype.is_cstring then
+    attr.type = primtypes.cstring
+  else
+    attr.type = primtypes.stringview
+  end
   attr.value = value
   attr.literal = true
   attr.comptime = true

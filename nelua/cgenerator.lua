@@ -339,7 +339,7 @@ function visitors.Number(context, node, emitter)
 end
 
 function visitors.String(_, node, emitter)
-  emitter:add_string_literal(node.attr.value)
+  emitter:add_string_literal(node.attr.value, node.attr.type.is_cstring)
 end
 
 function visitors.Boolean(_, node, emitter)

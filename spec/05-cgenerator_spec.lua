@@ -1225,6 +1225,16 @@ it("arrays", function()
       assert(b[0] == 1 and b[1] == 2 and b[2] == 3 and b[3] == 4)
       assert(#b == 4)
     end
+
+    do
+      local words: cstring[2] = {
+        "hello",
+        "world",
+      }
+      assert(words[0] == "hello")
+      assert(words[1] == "world")
+      assert(#words == 2)
+    end
   ]])
 end)
 
