@@ -666,6 +666,7 @@ it("binary operator `eq`", function()
   assert.generate_c("local x = '1' == '1'", "x = true;")
   assert.generate_c("local a,b = 1,2; local x = a == b", "x = (a == b);")
   assert.generate_c("local a: pointer, b: boolean*; local x = a == b", "x = (a == (void*)b);")
+  assert.generate_c("local x = 0e12 == 0", "x = true;")
 end)
 
 it("binary operator `ne`", function()

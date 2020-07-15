@@ -493,7 +493,7 @@ ArithmeticType.binary_operators.eq = function(_, rtype, lattr, rattr)
   if rtype.is_arithmetic then
     local lval, rval = lattr.value, rattr.value
     if lval and rval then
-      reval = lval == rval
+      reval = bn.eq(lval, rval)
     end
   else
     reval = false
