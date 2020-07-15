@@ -294,62 +294,6 @@ local function str2num(a: stringview): number <nosideeffect>
   return n
 end
 
-function string.__add(a: stringview, b: stringview): number
-  return str2num(a) + str2num(b)
-end
-
-function string.__sub(a: stringview, b: stringview): number
-  return str2num(a) - str2num(b)
-end
-
-function string.__mul(a: stringview, b: stringview): number
-  return str2num(a) * str2num(b)
-end
-
-function string.__div(a: stringview, b: stringview): number
-  return str2num(a) / str2num(b)
-end
-
-function string.__idiv(a: stringview, b: stringview): number
-  return str2num(a) // str2num(b)
-end
-
-function string.__mod(a: stringview, b: stringview): number
-  return str2num(a) % str2num(b)
-end
-
-function string.__pow(a: stringview, b: stringview): number
-  return str2num(a) ^ str2num(b)
-end
-
-function string.__unm(a: stringview): number
-  return -str2num(a)
-end
-
-function string.__band(a: stringview, b: stringview): integer
-  return str2int(a) & str2int(b)
-end
-
-function string.__bor(a: stringview, b: stringview): integer
-  return str2int(a) | str2int(b)
-end
-
-function string.__bxor(a: stringview, b: stringview): integer
-  return str2int(a) ~ str2int(b)
-end
-
-function string.__shl(a: stringview, b: stringview): integer
-  return str2int(a) << str2int(b)
-end
-
-function string.__shr(a: stringview, b: stringview): integer
-  return str2int(a) >> str2int(b)
-end
-
-function string.__bnot(a: stringview): integer
-  return ~str2int(a)
-end
-
 global function tonumber(x: auto): number
   ## if x.type.is_arithmetic then
     return (@number)(x)
@@ -359,4 +303,75 @@ global function tonumber(x: auto): number
   ## else
     ## staticerror("unable to convert value of type '%s' to a number", x.type)
   ## end
+end
+
+global function tointeger(x: auto): integer
+  ## if x.type.is_arithmetic then
+    return (@integer)(x)
+  ## elseif x.type.is_string or x.type.is_stringview or x.type.is_string then
+    -- TODO: return nil in case of fail (like lua)
+    return str2int((@stringview)(x))
+  ## else
+    ## staticerror("unable to convert value of type '%s' to an integer", x.type)
+  ## end
+end
+
+local is_arithmetic_convertible = #[concept(function(x)
+  return x.type.is_string or x.type.is_stringview or x.type.is_string or x.type.is_arithmetic
+end)]#
+
+function string.__add(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
+  return tonumber(a) + tonumber(b)
+end
+
+function string.__sub(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
+  return tonumber(a) - tonumber(b)
+end
+
+function string.__mul(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
+  return tonumber(a) * tonumber(b)
+end
+
+function string.__div(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
+  return tonumber(a) / tonumber(b)
+end
+
+function string.__idiv(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
+  return tonumber(a) // tonumber(b)
+end
+
+function string.__mod(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
+  return tonumber(a) % tonumber(b)
+end
+
+function string.__pow(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
+  return tonumber(a) ^ tonumber(b)
+end
+
+function string.__unm(a: is_arithmetic_convertible): number
+  return -tonumber(a)
+end
+
+function string.__band(a: is_arithmetic_convertible, b: is_arithmetic_convertible): integer
+  return tointeger(a) & tointeger(b)
+end
+
+function string.__bor(a: is_arithmetic_convertible, b: is_arithmetic_convertible): integer
+  return tointeger(a) | tointeger(b)
+end
+
+function string.__bxor(a: is_arithmetic_convertible, b: is_arithmetic_convertible): integer
+  return tointeger(a) ~ tointeger(b)
+end
+
+function string.__shl(a: is_arithmetic_convertible, b: is_arithmetic_convertible): integer
+  return tointeger(a) << tointeger(b)
+end
+
+function string.__shr(a: is_arithmetic_convertible, b: is_arithmetic_convertible): integer
+  return tointeger(a) >> tointeger(b)
+end
+
+function string.__bnot(a: is_arithmetic_convertible): integer
+  return ~tointeger(a)
 end

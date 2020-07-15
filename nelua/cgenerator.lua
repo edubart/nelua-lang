@@ -145,7 +145,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
     local varattr = varnode.attr
     local noinit = varattr.noinit or varattr.cexport
     local vartype = varattr.type
-    if not vartype.is_type and not varattr.nodecl and not varattr.comptime then
+    if not vartype.is_type and (not varattr.nodecl or not decl) and not varattr.comptime then
       local declared, defined = false, false
       if decl and varattr.staticstorage then
         -- declare main variables in the top scope
