@@ -3,8 +3,8 @@ local metamagic = require 'nelua.utils.metamagic'
 local cdefs = {}
 
 cdefs.types_printf_format = {
-  nelua_float32 = '"%f"',
-  nelua_float64 = '"%lf"',
+  nelua_float32 = '"%.7g"',
+  nelua_float64 = '"%.14g"',
   nelua_pointer = '"%p"',
   nelua_isize   = '"%" PRIiPTR',
   nelua_int8    = '"%" PRIi8',
@@ -30,7 +30,7 @@ cdefs.types_printf_format = {
   nelua_culong      = '"%lu"',
   nelua_culonglong  = '"%llu"',
   nelua_csize       = '"%lu"',
-  nelua_clongdouble = '"%llf"',
+  nelua_clongdouble = '"%.19Lg"',
 }
 
 cdefs.primitive_ctypes = {

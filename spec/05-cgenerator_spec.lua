@@ -1927,7 +1927,7 @@ it("print builtin", function()
     local i: integer, s: stringview, n: nilable
     print(i, s, n)
   ]],
-    '1\t0.200000\t100.000000\t15\t1\n' ..
+    '1\t0.2\t100\t15\t1\n' ..
     '0\t\tnil')
 end)
 
