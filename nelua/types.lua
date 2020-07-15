@@ -510,14 +510,20 @@ local function make_arithmetic_cmp_opfunc(cmpfunc)
 end
 
 ArithmeticType.binary_operators.le = make_arithmetic_cmp_opfunc(function(a,b)
-  if a == b then return true end
+  -- floats can differs at runtime in case of NaNs
+  if a == b and not a.type.is_float then
+    return true
+  end
   if a.value and b.value then
     return a.value <= b.value
   end
 end)
 
 ArithmeticType.binary_operators.ge = make_arithmetic_cmp_opfunc(function(a,b)
-  if a == b then return true end
+  -- floats can differs at runtime in case of NaNs
+  if a == b and not a.type.is_float then
+    return true
+  end
   if a.value and b.value then
     return a.value >= b.value
   end

@@ -173,3 +173,13 @@ do
     assert(z >= -3 and z <= 0)
   end
 end
+
+do -- NaNs
+  local NaN = 0.0/0.0
+  assert(NaN ~= NaN)
+  assert(not (NaN == NaN))
+  assert(not (NaN < NaN))
+  assert(not (NaN <= NaN))
+  assert(not (NaN > NaN))
+  assert(not (NaN >= NaN))
+end
