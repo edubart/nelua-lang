@@ -188,9 +188,31 @@ do -- tostring
   assert(tostring(true) == 'true')
 end
 
-do --tonumber
+do -- string implicit conversion
+  local v: stringview
+  local s: string
+  local c: cstring
+  v = 'hello'
+  s = v; assert(s == 'hello')
+  c = v; assert(c == 'hello')
+  s = 'world'
+  v = s; assert(v == 'world')
+  c = s; assert(c == 'world')
+  c = 'text'
+  s = c; assert(s == 'text')
+  v = c; assert(v == 'text')
+end
+
+do -- tonumber
   assert(tonumber(1337) == 1337)
   assert(tonumber('1337') == 1337)
   assert(tonumber(0) == 0)
   assert(tonumber('0') == 0)
+
+  local v: stringview = '1337'
+  assert(tonumber(v) == 1337)
+  local s: string = '1337'
+  assert(tonumber(s) == 1337)
+  local c: cstring = '1337'
+  assert(tonumber(c) == 1337)
 end

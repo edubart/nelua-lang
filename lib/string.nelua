@@ -22,6 +22,7 @@ global string <codename 'nelua_string'> = @record{
 ##[[
   local stringtype = context.rootscope.symbols.string.value
   stringtype.is_string = true
+  stringtype.is_stringy = true
   stringtype.nick = 'string'
   stringtype.name = 'string'
   primtypes.stringview.metatype = types.MetaType()
@@ -297,9 +298,9 @@ end
 global function tonumber(x: auto): number
   ## if x.type.is_arithmetic then
     return (@number)(x)
-  ## elseif x.type.is_string or x.type.is_stringview or x.type.is_string then
+  ## elseif x.type.is_stringy then
     -- TODO: return nil in case of fail (like lua)
-    return str2num((@stringview)(x))
+    return str2num(x)
   ## else
     ## staticerror("unable to convert value of type '%s' to a number", x.type)
   ## end
@@ -308,9 +309,9 @@ end
 global function tointeger(x: auto): integer
   ## if x.type.is_arithmetic then
     return (@integer)(x)
-  ## elseif x.type.is_string or x.type.is_stringview or x.type.is_string then
+  ## elseif x.type.is_stringy then
     -- TODO: return nil in case of fail (like lua)
-    return str2int((@stringview)(x))
+    return str2int(x)
   ## else
     ## staticerror("unable to convert value of type '%s' to an integer", x.type)
   ## end

@@ -90,6 +90,11 @@ end
 
 local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype)
   if not vartype or not valtype then
+    -- convert possible only when types are known
+    return valnode, valtype
+  end
+  if vartype.is_concept or vartype.is_auto then
+    -- convert ignored on concepts
     return valnode, valtype
   end
   local objsym
@@ -110,6 +115,12 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
     end
   end
   if not objtype then
+    if vartype.is_stringview or vartype.is_cstring or
+       (vartype.is_string and not valtype.is_stringy) then
+      -- __convert not allowed on stringy types
+      -- because we have __tocstring, __tostring, __tostringview
+      return valnode, valtype
+    end
     objtype = varobjtype
     mtname = '__convert'
   end
@@ -141,6 +152,13 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   newvalnode.pos = valnode.pos
   parent[parentindex] = newvalnode
   context:traverse_node(newvalnode)
+  if newvalnode.attr.type then
+    if mtname == '__convert' then
+      assert(newvalnode.attr.type == objtype)
+    else
+      assert(vartype == newvalnode.attr.type)
+    end
+  end
   return newvalnode, newvalnode.attr.type
 end
 

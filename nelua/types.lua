@@ -1248,6 +1248,7 @@ function PointerType:_init(node, subtype)
   elseif subtype.name == 'cchar' then
     self.nodecl = true
     self.is_cstring = true
+    self.is_stringy = true
     self.is_primitive = true
     self:set_codename('nelua_cstring')
   else
@@ -1346,6 +1347,7 @@ end
 local StringViewType = typeclass(RecordType)
 types.StringViewType = StringViewType
 StringViewType.is_stringview = true
+StringViewType.is_stringy = true
 StringViewType.is_primitive = true
 StringViewType.maxfieldsize = cpusize
 
@@ -1363,8 +1365,8 @@ function StringViewType:_init(name, size)
 end
 
 function StringViewType:is_convertible_from_type(type, explicit)
-  if explicit and self.is_stringview and type.is_cstring then
-    -- explicit cstring to string cast
+  if type.is_cstring then
+    -- implicit cast cstring to stringview
     return self
   end
   return Type.is_convertible_from_type(self, type, explicit)

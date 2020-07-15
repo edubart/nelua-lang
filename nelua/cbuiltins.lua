@@ -791,7 +791,7 @@ function inlines.type(context, node, emitter)
     typename = 'number'
   elseif type.is_nilptr then
     typename = 'pointer'
-  elseif type.is_stringview then
+  elseif type.is_stringy then
     typename = 'string'
   elseif type.is_any then --luacov:disable
     node:raisef('type() for any values not implemented yet')
