@@ -1968,15 +1968,15 @@ end
 
 local function override_binary_op(context, node, opname, lnode, rnode, ltype, rtype)
   if not overridable_operators[opname] then return end
-  local objtype, objnode, argnode, mtsym
+  local objtype, mtsym
   local mtname = '__' .. opname
   if ltype.is_record then
     mtsym = ltype:get_metafield(mtname)
-    objtype, objnode, argnode = ltype, lnode, rnode
+    objtype = ltype
   end
   if not mtsym and rtype.is_record then
     mtsym = rtype:get_metafield(mtname)
-    objtype, objnode, argnode = rtype, rnode, lnode
+    objtype = rtype
   end
   if not mtsym then
     return
@@ -1990,7 +1990,7 @@ local function override_binary_op(context, node, opname, lnode, rnode, ltype, rt
   local pattr = Attr{foreignsymbol=objsym}
   idnode.attr:merge(pattr)
   idnode.pattr = pattr
-  local newnode = n.Call{{objnode, argnode}, n.DotIndex{mtname, idnode}}
+  local newnode = n.Call{{lnode, rnode}, n.DotIndex{mtname, idnode}}
   node:transform(newnode)
   context:traverse_node(node)
   return true

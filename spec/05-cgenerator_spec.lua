@@ -1588,11 +1588,14 @@ it("record operator overloading", function()
 
     local vec2 = @record{x: number, y: number}
     ## vec2.value.is_vec2 = true
-    function vec2.__mul(a: vec2, b: #[concept(function(b)
-        return b.type.is_vec2 or b.type.is_arithmetic
-      end)]#): vec2
+    local is_vec2_or_arithmetic = #[concept(function(b)
+      return b.type.is_vec2 or b.type.is_arithmetic
+    end)]#
+    function vec2.__mul(a: is_vec2_or_arithmetic, b: is_vec2_or_arithmetic): vec2
       ## if b.type.is_arithmetic then
         return vec2{a.x * b, a.y * b}
+      ## elseif a.type.is_arithmetic then
+        return vec2{a * b.x, a * b.y}
       ## else
         return vec2{a.x * b.x, a.y * b.y}
       ## end
