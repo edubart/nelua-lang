@@ -293,10 +293,10 @@ it("operation on comptime variables", function()
   ]], {
     "huge1 = HUGE_VAL",
     "huge2 = -HUGE_VAL",
-    "nan = nan()",
+    "nan = (0.0/0.0)",
     "huge1f = HUGE_VALF",
     "huge2f = -HUGE_VALF",
-    "nanf = nanf()",
+    "nanf = (0.0f/0.0f)",
   })
 
   assert.run_c([[

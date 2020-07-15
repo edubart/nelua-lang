@@ -195,11 +195,10 @@ function CEmitter:add_numeric_literal(valattr, valtype)
   local minusone = false
   if valtype.is_float then
     if bn.isnan(val) then
-      self.context:add_include('<math.h>')
       if valtype.is_float32 then
-        self:add('nanf()')
+        self:add('(0.0f/0.0f)')
       else
-        self:add('nan()')
+        self:add('(0.0/0.0)')
       end
       return
     elseif bn.isinfinite(val) then

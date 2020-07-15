@@ -709,34 +709,34 @@ IntegralType.binary_operators.mul = make_integral_binary_opfunc(integral_arithme
   return a * b
 end)
 
-IntegralType.binary_operators.div = make_integral_binary_opfunc(function(ltype, rtype, lattr, rattr)
-  local rval = rattr.value
-  if rval and bn.iszero(rval) then
-    return nil, 'division by zero is not allowed'
-  end
-  return integral_fractional_operation(ltype, rtype, lattr, rattr)
-end, function(a,b)
-  return a / b
+IntegralType.binary_operators.div = make_integral_binary_opfunc(integral_fractional_operation, function(a,b)
+  return bn.tonumber(a) / bn.tonumber(b)
 end)
 
 IntegralType.binary_operators.idiv = make_integral_binary_opfunc(function(ltype, rtype, lattr, rattr)
-  local rval = rattr.value
-  if rval and bn.iszero(rval) then
-    return nil, 'division by zero is not allowed'
+  if ltype.is_integral and rtype.is_integral and bn.iszero(rattr.value) then
+    return nil, 'attempt to divide by zero'
   end
   return integral_arithmetic_operation(ltype, rtype, lattr, rattr)
-end, function(a,b)
-  return a // b
+end, function(a,b,t)
+  if t.is_float then
+    return bn.tonumber(a) // bn.tonumber(b)
+  else
+    return a // b
+  end
 end)
 
 IntegralType.binary_operators.mod = make_integral_binary_opfunc(function(ltype, rtype, lattr, rattr)
-  local rval = rattr.value
-  if rval and bn.iszero(rval) then
-    return nil, 'division by zero is not allowed'
+  if ltype.is_integral and rtype.is_integral and bn.iszero(rattr.value) then
+    return nil, 'attempt to perform mod zero'
   end
   return integral_arithmetic_operation(ltype, rtype, lattr, rattr)
-end, function(a,b)
-  return a % b
+end, function(a,b,t)
+  if t.is_float then
+    return bn.tonumber(a) % bn.tonumber(b)
+  else
+    return a % b
+  end
 end)
 
 IntegralType.binary_operators.pow = make_integral_binary_opfunc(integral_fractional_operation, function(a,b)
@@ -847,13 +847,13 @@ FloatType.binary_operators.mul = make_float_binary_opfunc(float_arithmetic_opera
   return a * b
 end)
 FloatType.binary_operators.div = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
-  return a / b
+  return bn.tonumber(a) / bn.tonumber(b)
 end)
 FloatType.binary_operators.idiv = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
-  return a // b
+  return bn.tonumber(a) // bn.tonumber(b)
 end)
 FloatType.binary_operators.mod = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
-  return a % b
+  return bn.tonumber(a) % bn.tonumber(b)
 end)
 FloatType.binary_operators.pow = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
   return a ^ b
