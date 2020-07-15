@@ -118,6 +118,10 @@ function math.#|name|#(x: is_arithmetic, y: is_arithmetic) <inline,nosideeffect>
       if x < y then return x else return y end
     ## elseif name == 'max' then
       if x < y then return y else return x end
+    ## elseif name == 'fmod' and x.type.is_integral and y.type.is_integral then
+      local z: #[x.type]# <noinit>
+      ## cemit '  z = x % y;'
+      return z
     ## else
       return #|namef64|#(x, y)
     ## end
