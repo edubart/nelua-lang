@@ -20,7 +20,7 @@ local function get_compile_args(cfile, binfile, compileopts)
   end
   if #compileopts.cflags > 0 then
     cflags:add(' ')
-    cflags:addlist(compileopts.cflags)
+    cflags:addlist(compileopts.cflags, ' ')
   end
   if #compileopts.ldflags > 0 then
     cflags:add(' -Wl,')
