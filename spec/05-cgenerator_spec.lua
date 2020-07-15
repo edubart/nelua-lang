@@ -129,7 +129,13 @@ end
 
 local mycallback_proxy = mycallback
 assert(mycallback(1, 2) == 3)
+assert(mycallback_proxy(1 ,2) == 3)
 assert(call_callback(mycallback) == 3)
+
+local callback_type = @function(x: integer, y: integer): integer
+local mycallback_proxy2: callback_type
+mycallback_proxy2 = mycallback
+assert(mycallback_proxy2(1, 2) == 3)
 ]])
 end)
 

@@ -489,13 +489,16 @@ function builtins.nelua_fmod_(context, type)
   local cfmod = type.is_float32 and 'fmodf' or 'fmod'
   local name = 'nelua_' .. cfmod
   if context.usedbuiltins[name] then return name end
+  context:ensure_runtime_builtin('nelua_unlikely')
   context:add_include('<math.h>')
   define_inline_builtin(context, name,
     ctype,
     string.format('(%s a, %s b)', ctype, ctype),
     string.format([[{
   %s r = %s(a, b);
-  return r * b >= 0 ? r : r +b;
+  if(nelua_unlikely((r > 0 && b < 0) || (r < 0 && b > 0)))
+    r += b;
+  return r;
 }]], ctype, cfmod))
   return name
 end
