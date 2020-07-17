@@ -192,7 +192,7 @@ end
 
 local is_optional_isize = #[concept(function(x)
   if x.type.is_nil then return true end
-  return primtypes.isize:is_convertible_from(x.type)
+  return primtypes.isize
 end)]#
 
 function string.byte(self: stringview, i: is_optional_isize): byte
@@ -229,7 +229,7 @@ end
 
 local is_optional_string = #[concept(function(x)
   if x.type.is_nil then return true end
-  return primtypes.stringview:is_convertible_from(x.type)
+  return primtypes.stringview
 end)]#
 
 function string.rep(self: stringview, n: isize, sep: is_optional_string): string
@@ -321,28 +321,17 @@ end
 -- string.unpack(fmt, s, pos)
 -- string.packsize(fmt)
 
-local function str2int(a: stringview): integer <nosideeffect>
-  local endptr: cstring
-  errno = 0
-  local i: clonglong = strtoll(a.data, &endptr, 10)
-  check(endptr ~= a.data and errno == 0, 'failed to convert string to integer')
-  return (@integer)(i)
-end
-
-local function str2num(a: stringview): number <nosideeffect>
-  local endptr: cstring
-  errno = 0
-  local n: float64 = strtod(a.data, &endptr)
-  check(endptr ~= a.data and errno == 0, 'failed to convert string to number')
-  return n
-end
-
 global function tonumber(x: auto): number
+  -- TODO: return nil in case of fail (like lua)
   ## if x.type.is_arithmetic then
     return (@number)(x)
   ## elseif x.type.is_stringy then
-    -- TODO: return nil in case of fail (like lua)
-    return str2num(x)
+    local x: cstring = x
+    local endptr: cstring
+    errno = 0
+    local n: float64 = strtod(x, &endptr)
+    check(endptr ~= x and errno == 0, 'failed to convert string to number')
+    return n
   ## else
     ## staticerror("unable to convert value of type '%s' to a number", x.type)
   ## end
@@ -352,15 +341,19 @@ global function tointeger(x: auto): integer
   ## if x.type.is_arithmetic then
     return (@integer)(x)
   ## elseif x.type.is_stringy then
-    -- TODO: return nil in case of fail (like lua)
-    return str2int(x)
+    local x: cstring = x
+    local endptr: cstring
+    errno = 0
+    local i: clonglong = strtoll(x, &endptr, 10)
+    check(endptr ~= x and errno == 0, 'failed to convert string to integer')
+    return (@integer)(i)
   ## else
     ## staticerror("unable to convert value of type '%s' to an integer", x.type)
   ## end
 end
 
 local is_arithmetic_convertible = #[concept(function(x)
-  return x.type.is_string or x.type.is_stringview or x.type.is_string or x.type.is_arithmetic
+  return x.type.is_stringy or x.type.is_arithmetic
 end)]#
 
 function string.__add(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number

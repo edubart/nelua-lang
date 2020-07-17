@@ -2299,7 +2299,7 @@ it("concepts", function()
   assert.run_c([=[
     local is_optional_integer = #[concept(function(x)
       if x.type.is_nil then return true end
-      return primtypes.integer:is_convertible_from(x.type)
+      return primtypes.integer
     end)]#
     local function g(a: integer, b: is_optional_integer): integer
       ## if b.type.is_nil then
@@ -2311,8 +2311,29 @@ it("concepts", function()
     local function f(a: integer): integer
       return a
     end
+    local R = @record {
+      x: integer
+    }
     assert(g(f(2)) == 2)
     assert(g(f(2), 10) == 4)
+  ]=])
+  assert.run_c([=[
+    local R = @record {x: integer}
+    function R.__convert(x: integer): R
+      return R{x=x}
+    end
+    local is_optional_R = #[concept(function(x)
+      if x.type.is_nil then return true end
+      return R
+    end)]#
+    local function f(x: is_optional_R): integer
+      ## if x.type.is_nil then
+      return a
+      ## else
+      return x.x
+      ## end
+    end
+    print(f(R{x=1}))
   ]=])
 end)
 

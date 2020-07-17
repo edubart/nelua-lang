@@ -1469,6 +1469,21 @@ function ConceptType:is_convertible_from_attr(attr, explicit)
   if type == true then
     assert(attr.type)
     type = attr.type
+  elseif traits.is_symbol(type) then
+    if type.type == primtypes.type and traits.is_type(type.value) then
+      type = type.value
+    else
+      type = nil
+      err = stringer.pformat("invalid return for concept '%s': cannot be non type symbol", self)
+    end
+  elseif traits.is_type(type) then
+    if type.is_comptime then
+      type = nil
+      err = stringer.pformat("invalid return for concept '%s': cannot be of the type '%s'", self, type)
+    end
+  elseif not (type == false or type == nil) then
+    type = nil
+    err = stringer.pformat("invalid return for concept '%s': must be a boolean or a type", self)
   end
   return type, err
 end

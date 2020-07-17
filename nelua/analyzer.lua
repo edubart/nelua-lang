@@ -93,7 +93,14 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
     -- convert possible only when types are known
     return valnode, valtype
   end
-  if vartype.is_concept or vartype.is_auto then
+  if vartype.is_concept then
+    vartype = vartype:is_convertible_from_attr(valnode.attr)
+    if not vartype then
+      -- concept failed
+      return valnode, valtype
+    end
+  end
+  if vartype.is_auto then
     -- convert ignored on concepts
     return valnode, valtype
   end

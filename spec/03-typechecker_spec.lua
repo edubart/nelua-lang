@@ -1345,6 +1345,28 @@ it("concepts", function()
     local function f(x: my_concept) return x end
     f(true)
   ]], "no viable type conversion")
+  assert.analyze_error([[
+    local an_integral = #[concept(function(x)
+      return primtypes.type
+    end)]#
+    local function f(x: an_integral) return x end
+    f(true)
+  ]], "invalid return for concept")
+  assert.analyze_error([[
+    local an_integral = #[concept(function(x)
+      return 1
+    end)]#
+    local function f(x: an_integral) return x end
+    f(true)
+  ]], "invalid return for concept")
+  assert.analyze_error([[
+    local R = 1
+    local an_integral = #[concept(function(x)
+      return R
+    end)]#
+    local function f(x: an_integral) return x end
+    f(true)
+  ]], "invalid return for concept")
 end)
 
 it("generics", function()
