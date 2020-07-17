@@ -2296,6 +2296,24 @@ it("concepts", function()
     r:__convert(2)
     assert(r.x == 2)
   ]=])
+  assert.run_c([=[
+    local is_optional_integer = #[concept(function(x)
+      if x.type.is_nil then return true end
+      return primtypes.integer:is_convertible_from(x.type)
+    end)]#
+    local function g(a: integer, b: is_optional_integer): integer
+      ## if b.type.is_nil then
+      return a
+      ## else
+      return a*a
+      ## end
+    end
+    local function f(a: integer): integer
+      return a
+    end
+    assert(g(f(2)) == 2)
+    assert(g(f(2), 10) == 4)
+  ]=])
 end)
 
 it("generics", function()
