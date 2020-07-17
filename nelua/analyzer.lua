@@ -228,8 +228,7 @@ local function visitor_Record_literal(context, node, littype)
       parentindex = i
     end
     if not field then
-      childnode:raisef("field '%s' is not present in record '%s'",
-      fieldname, littype:prettyname())
+      childnode:raisef("field '%s' is not present in record '%s'", fieldname, littype)
     end
     local fieldtype = field.type
     fieldvalnode.desiredtype = fieldtype
@@ -285,7 +284,7 @@ function visitors.Table(context, node)
   elseif desiredtype.is_record then
     visitor_Record_literal(context, node, desiredtype)
   else
-    node:raisef("type '%s' cannot be initialized using a table literal", desiredtype:prettyname())
+    node:raisef("type '%s' cannot be initialized using a table literal", desiredtype)
   end
 end
 
@@ -552,7 +551,7 @@ function visitors.EnumFieldType(context, node)
       numnode:raisef("in enum field '%s': enum fields can only be assigned to compile time values", name)
     elseif not numtype.is_integral then
       numnode:raisef("in enum field '%s': only integral types are allowed in enums, but got type '%s'",
-        name, numtype:prettyname())
+        name, numtype)
     end
     local ok, err = desiredtype:is_convertible_from_attr(numattr)
     if not ok then
@@ -589,7 +588,7 @@ function visitors.EnumType(context, node)
     end
     if not subtype:is_inrange(field.value) then
       fnode:raisef("in enum field '%s': value %s is out of range for type '%s'",
-        field.name, field.value:todec(), subtype:prettyname())
+        field.name, field.value:todec(), subtype)
     end
     assert(field.name)
     fields[i] = field
@@ -605,7 +604,7 @@ function visitors.RangeType(context, node)
   context:traverse_node(subtypenode)
   local subtype = subtypenode.attr.value
   if not subtype.is_integral then
-    subtypenode:raisef("range subtype '%s' is not an integral type", subtype:prettyname())
+    subtypenode:raisef("range subtype '%s' is not an integral type", subtype)
   end
   attr.type = primtypes.type
   attr.value = types.RangeType(node, subtype)
@@ -624,7 +623,7 @@ function visitors.ArrayType(context, node)
   local length = bn.tointeger(lengthnode.attr.value)
   if not lengthnode.attr.type.is_integral then
     lengthnode:raisef("cannot have non integral type '%s' for array size",
-      lengthnode.attr.type:prettyname())
+      lengthnode.attr.type)
   elseif length < 0 then
     lengthnode:raisef("cannot have negative array size %d", length)
   end
@@ -641,7 +640,7 @@ function visitors.PointerType(context, node)
     local subtype = subtypenode.attr.value
     attr.value = types.get_pointer_type(subtype)
     if not attr.value then
-      node:raisef("subtype '%s' is invalid for 'pointer' type", subtype:prettyname())
+      node:raisef("subtype '%s' is invalid for 'pointer' type", subtype)
     end
   else
     attr.value = primtypes.pointer
@@ -673,7 +672,7 @@ function visitors.GenericType(context, node)
                 traits.is_boolean(value) or
                 bn.isnumeric(value)) then
       node:raisef("in generic '%s': argument #%d of type '%s' is invalid for generics",
-        name, i, argattr.type:prettyname())
+        name, i, argattr.type)
     end
     params[i] = value
   end
@@ -790,11 +789,11 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
   local attr = node.attr
   assert(type)
   if type.is_generic then
-    node:raisef("assertion to generic '%s': cannot do assertion on generics", type:prettyname())
+    node:raisef("assertion to generic '%s': cannot do assertion on generics", type)
   end
   if #argnodes > 1 then
     node:raisef("assertion to type '%s': expected at most 1 argument, but got %d",
-      type:prettyname(), #argnodes)
+      type, #argnodes)
   end
   local argnode = argnodes[1]
   if argnode then
@@ -835,7 +834,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         local ok, err = funcargtypes[1]:is_convertible_from(calleeobjnode)
         if not ok then
           node:raisef("in call of function '%s' at argument %d: %s",
-            calleetype:prettyname(), 1, err)
+            calleetype, 1, err)
         end
         table.remove(pseudoargtypes, 1)
         table.remove(pseudoargattrs, 1)
@@ -844,7 +843,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       end
       if #argnodes > #pseudoargattrs then
         node:raisef("in call of function '%s': expected at most %d arguments but got %d",
-          calleetype:prettyname(), #pseudoargattrs, #argnodes)
+          calleesym.name, #pseudoargattrs, #argnodes)
       end
       local lazyargs = {}
       local knownallargs = true
@@ -868,7 +867,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
 
         if argtype and argtype.is_nil and not funcargtype.is_nilable then
           node:raisef("in call of function '%s': expected an argument at index %d but got nothing",
-            calleetype:prettyname(), i)
+            calleesym.name, i)
         end
         if arg then
           local argattr = arg
@@ -878,7 +877,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           local wantedtype, err = funcargtype:is_convertible_from_attr(argattr)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
-              calleetype:prettyname(), i, err)
+              calleesym.name, i, err)
           end
 
           if funcargtype ~= wantedtype and argnode then
@@ -892,7 +891,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           wantedtype, err = funcargtype:is_convertible_from_attr(argattr)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
-              calleetype:prettyname(), i, err)
+              calleesym.name, i, err)
           end
 
           if not context.pragmas.nochecks and funcargtype ~= argtype and argnode then
@@ -951,7 +950,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       attr.sideeffect = not attr.builtin
     else
       -- call on invalid types (i.e: numbers)
-      node:raisef("cannot call type '%s'", calleetype:prettyname())
+      node:raisef("cannot call type '%s'", calleetype)
     end
     attr.calleetype = calleetype
   else
@@ -1031,7 +1030,7 @@ local function visitor_Record_FieldIndex(_, node, objtype, name)
   local field = objtype:get_field(name)
   local type = field and field.type
   if not type then
-    node:raisef("cannot index field '%s' on record '%s'", name, objtype:prettyname())
+    node:raisef("cannot index field '%s' on record '%s'", name, objtype)
   end
   node.attr.type = type
 end
@@ -1040,7 +1039,7 @@ local function visitor_EnumType_FieldIndex(_, node, objtype, name)
   local attr = node.attr
   local field = objtype:get_field(name)
   if not field then
-    node:raisef("cannot index field '%s' on enum '%s'", name, objtype:prettyname())
+    node:raisef("cannot index field '%s' on enum '%s'", name, objtype)
   end
   attr.comptime = true
   attr.value = field.value
@@ -1063,7 +1062,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     end
   end
   if not symbol then
-    local symname = string.format('%s.%s', objtype.name, name)
+    local symname = string.format('%s.%s', objtype.nick or objtype.name, name)
     symbol = Symbol.promote_attr(attr, symname, node)
     symbol.codename = context:choose_codename(string.format('%s_%s', objtype.codename, name))
     symbol:link_node(parentnode)
@@ -1102,7 +1101,7 @@ local function visitor_Type_FieldIndex(context, node, objtype, name)
   elseif objtype.is_record then
     return visitor_RecordType_FieldIndex(context, node, objtype, name)
   else
-    node:raisef("cannot index fields on type '%s'", objtype:prettyname())
+    node:raisef("cannot index fields on type '%s'", objtype)
   end
 end
 
@@ -1143,7 +1142,7 @@ local function visitor_Record_ArrayIndex(context, node, objtype, objnode, indexn
       indexretype = indexsym.type:get_return_type(1)
       if indexretype and not indexretype.is_pointer then
         indexsym.node:raisef("metamethod `__atindex` must return a pointer, but got type '%s'",
-          indexretype:prettyname())
+          indexretype)
       else
         indexretype = indexretype.subtype
         attr.lvalue = true
@@ -1154,7 +1153,7 @@ local function visitor_Record_ArrayIndex(context, node, objtype, objnode, indexn
     visitor_Call(context, node, {indexnode}, indexsym.type, indexsym, objnode)
     node.attr.type = indexretype
   else
-    node:raisef("cannot index record of type '%s': no `__index` or `__atindex` metamethod found", objtype:prettyname())
+    node:raisef("cannot index record of type '%s': no `__index` or `__atindex` metamethod found", objtype)
   end
 end
 
@@ -1185,7 +1184,7 @@ function visitors.ArrayIndex(context, node)
           end
           type = objtype.subtype
         else
-          indexnode:raisef("cannot index with value of type '%s'", indextype:prettyname())
+          indexnode:raisef("cannot index with value of type '%s'", indextype)
         end
       end
       if not context.pragmas.nochecks and not checked and objtype.length > 0 then
@@ -1261,7 +1260,7 @@ function visitors.Switch(context, node)
   if valtype and not (valtype.is_any or valtype.is_integral) then
     valnode:raisef(
       "`switch` statement must be convertible to an integral type, but got type `%s` (non integral)",
-      valtype:prettyname())
+      valtype)
   end
   for _,casepart in ipairs(caseparts) do
     local casenode, blocknode = casepart[1], casepart[2]
@@ -1306,7 +1305,7 @@ function visitors.ForIn(context, node)
   local infunctype = infuncnode.attr.type
   if infunctype and not (infunctype.is_any or infunctype.is_procedure) then
     node:raisef("first argument of `in` statement must be a function, but got type '%s'",
-      infunctype:prettyname())
+      infunctype)
   end
   context:traverse_nodes(inexpnodes)
 
@@ -1452,7 +1451,7 @@ function visitors.VarDecl(context, node)
     end
     local vartype = varnode.attr.type
     if vartype and vartype.is_nolvalue then
-      varnode:raisef("variable declaration cannot be of the type '%s'", vartype:prettyname())
+      varnode:raisef("variable declaration cannot be of the type '%s'", vartype)
     end
     assert(symbol.type == vartype)
     varnode.assign = true
@@ -1601,7 +1600,7 @@ function visitors.Return(context, node)
       if rettype then
         if funcrettype then
           if rettype.is_nil and not funcrettype.is_nilable then
-            node:raisef("missing return expression at index %d of type '%s'", i, funcrettype:prettyname())
+            node:raisef("missing return expression at index %d of type '%s'", i, funcrettype)
           end
           if retnode and rettype then
             retnode, rettype = visitor_convert(context, retnodes, i, funcrettype, retnode, rettype)

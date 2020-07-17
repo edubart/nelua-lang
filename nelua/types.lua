@@ -62,18 +62,15 @@ function Type:suggest_nick(nick, codename)
   if self.is_primitive or self.nick then return end
   if codename then
     self:set_codename(codename, true)
-  else
+  elseif codename ~= false then
     codename = self.codename:gsub(string.format('^%s_', self.name), nick .. '_')
     self:set_codename(codename, true)
   end
   self.nick = nick
 end
 
-function Type:prettyname()
-  if self.nick then
-    return self.nick
-  end
-  return tostring(self)
+function Type:typedesc()
+  return self.name
 end
 
 local function get_operator_in_oplist(self, oplist, opname, arg1, arg2, arg3)
@@ -93,7 +90,7 @@ end
 function Type:unary_operator(opname, attr)
   local type, value, err = get_operator_in_oplist(self, self.unary_operators, opname, attr)
   if not type and not err then
-    err = stringer.pformat("invalid operation for type '%s'", self:prettyname())
+    err = stringer.pformat("invalid operation for type '%s'", self)
   end
   return type, value, err
 end
@@ -102,7 +99,7 @@ function Type:binary_operator(opname, rtype, lattr, rattr)
   local type, value, err = get_operator_in_oplist(self, self.binary_operators, opname, rtype, lattr, rattr)
   if not type and not err then
     err = stringer.pformat("invalid operation between types '%s' and '%s'",
-      self:prettyname(), rtype:prettyname())
+      self, rtype)
   end
   return type, value, err
 end
@@ -118,7 +115,7 @@ function Type:is_convertible_from_type(type)
   else
     return false, stringer.pformat(
       "no viable type conversion from `%s` to `%s`",
-      type:prettyname(), self:prettyname())
+      type, self)
   end
 end
 
@@ -133,7 +130,7 @@ function Type:is_convertible_from_attr(attr, explicit)
       if not bn.isintegral(attr.value) then
         return false, stringer.pformat(
           "constant value `%s` is fractional which is invalid for the type '%s'",
-          attr.value, self:prettyname())
+          attr.value, self)
       elseif not self:is_inrange(attr.value) then
         return false, stringer.pformat(
           "constant value `%s` for type `%s` is out of range, the minimum is `%s` and maximum is `%s`",
@@ -205,8 +202,11 @@ function Type:is_contiguous_of(type)
 end
 
 function Type:__tostring()
-  if self.nick then return self.nick end
-  return self.name
+  if self.nick then
+    return self.nick
+  else
+    return self:typedesc()
+  end
 end
 
 function Type:__eq(type)
@@ -906,8 +906,7 @@ function ArrayType:is_equal(type)
          self.length == type.length
 end
 
-function ArrayType:__tostring()
-  if self.nick then return self.nick end
+function ArrayType:typedesc()
   return sstream(self.name, '(', self.subtype, ', ', self.length, ')'):tostring()
 end
 
@@ -951,8 +950,7 @@ function EnumType:get_field(name)
   end)
 end
 
-function EnumType:__tostring()
-  if self.nick then return self.nick end
+function EnumType:typedesc()
   local ss = sstream('enum(', self.subtype, '){')
   for i,field in ipairs(self.fields) do
     if i > 1 then ss:add(', ') end
@@ -1024,8 +1022,7 @@ function FunctionType:is_convertible_from_type(type, explicit)
   return Type.is_convertible_from_type(self, type, explicit)
 end
 
-function FunctionType:__tostring()
-  if self.nick then return self.nick end
+function FunctionType:typedesc()
   local ss = sstream(self.name, '(', self.argtypes, ')')
   if self.returntypes and #self.returntypes > 0 then
     ss:add(': ')
@@ -1086,7 +1083,7 @@ function LazyFunctionType:eval_lazy_for_args(args)
 end
 
 LazyFunctionType.is_equal = FunctionType.is_equal
-LazyFunctionType.__tostring = FunctionType.__tostring
+LazyFunctionType.typedesc = FunctionType.typedesc
 
 --------------------------------------------------------------------------------
 local MetaType = typeclass()
@@ -1111,7 +1108,7 @@ function MetaType:inherit(metatype)
   metamagic.setmetaindex(self.fields, metatype.fields)
 end
 
-function MetaType:__tostring()
+function MetaType:typedesc()
   local ss = sstream('metatype{')
   local first = true
   for name,sym in iters.opairs(self.fields) do
@@ -1189,8 +1186,7 @@ function RecordType:is_equal(type)
   return type.name == self.name and type.key == self.key
 end
 
-function RecordType:__tostring()
-  if self.nick then return self.nick end
+function RecordType:typedesc()
   local ss = sstream('record{')
   for i,field in ipairs(self.fields) do
     if i > 1 then ss:add(', ') end
@@ -1272,7 +1268,7 @@ function PointerType:is_convertible_from_attr(attr, explicit)
     if not attr.lvalue then
       return false, stringer.pformat(
         'cannot automatic reference rvalue of type "%s" to pointer type "%s"',
-        attr.type:prettyname(), self)
+        attr.type, self)
     end
     attr.autoref = true
     return self
@@ -1336,11 +1332,9 @@ function PointerType:auto_deref_type()
   return self
 end
 
-function PointerType:__tostring()
-  if self.nick then return self.nick end
+function PointerType:typedesc()
   if not self.subtype.is_void then
-    local subtypenick = self.subtype.nick or self.subtype.name
-    return sstream(self.name, '(', subtypenick, ')'):tostring()
+    return sstream(self.name, '(', self.subtype, ')'):tostring()
   else
     return self.name
   end
@@ -1447,8 +1441,7 @@ function RangeType:is_equal(type)
          type.subtype == self.subtype
 end
 
-function RangeType:__tostring()
-  if self.nick then return self.nick end
+function RangeType:typedesc()
   return sstream(self.name, '(', self.subtype, ')'):tostring()
 end
 
@@ -1471,7 +1464,7 @@ end
 function ConceptType:is_convertible_from_attr(attr, explicit)
   local type, err = self.func(attr, explicit)
   if not type and not err then
-    err = stringer.pformat("type '%s' could not match concept '%s'", attr.type:prettyname(), self:prettyname())
+    err = stringer.pformat("type '%s' could not match concept '%s'", attr.type, self)
   end
   if type == true then
     assert(attr.type)
