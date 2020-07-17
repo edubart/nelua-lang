@@ -87,7 +87,7 @@ function builtins.nelua_panic_stringview(context)
     'static nelua_noreturn void nelua_panic_stringview(nelua_stringview s);\n',
     [[void nelua_panic_stringview(nelua_stringview s) {
   if(s.data && s.size > 0) {
-    fprintf(stderr, "%s\n", s.data);
+    fprintf(stderr, "%s\n", (char*)s.data);
   }
   abort();
 }
@@ -146,7 +146,7 @@ function builtins.nelua_warn(context)
   define_inline_builtin(context, 'nelua_warn',
     'void', '(nelua_stringview s)', [[{
   if(s.data && s.size > 0) {
-    fprintf(stderr, "%s\n", s.data);
+    fprintf(stderr, "%s\n", (char*)s.data);
   }
 }]])
 end
@@ -283,7 +283,7 @@ function builtins.nelua_stdout_write_stringview(context)
   define_inline_builtin(context, 'nelua_stdout_write_stringview',
     'void', '(nelua_stringview s)', [[{
   if(s.data && s.size > 0) {
-    fwrite(s.data, s.size, 1, stdout);
+    fwrite((char*)s.data, s.size, 1, stdout);
   }
 }]])
 end

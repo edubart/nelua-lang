@@ -111,7 +111,7 @@ function CEmitter:add_any2type(type, anyval)
 end
 
 function CEmitter:add_stringview2cstring(val)
-  self:add(val, '.data')
+  self:add('((char*)(', val, '.data', '))')
 end
 
 function CEmitter:add_cstring2stringview(val)
@@ -121,7 +121,7 @@ function CEmitter:add_cstring2stringview(val)
 end
 
 function CEmitter:add_val2type(type, val, valtype, checkcast)
-  if type.is_type then
+  if type.is_type or type.is_lazyfunction then
     self:add('NULL')
     return
   end

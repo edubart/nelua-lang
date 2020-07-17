@@ -966,6 +966,7 @@ end
 local FunctionType = typeclass()
 types.FunctionType = FunctionType
 FunctionType.is_function = true
+FunctionType.is_procedure = true
 
 function FunctionType:_init(node, argattrs, returntypes)
   self:set_codename(gencodename(self, 'function', node))
@@ -1040,7 +1041,7 @@ end
 --------------------------------------------------------------------------------
 local LazyFunctionType = typeclass()
 types.LazyFunctionType = LazyFunctionType
-LazyFunctionType.is_function = true
+LazyFunctionType.is_procedure = true
 LazyFunctionType.is_lazyfunction = true
 
 function LazyFunctionType:_init(node, args, returntypes)
@@ -1359,7 +1360,7 @@ StringViewType.maxfieldsize = cpusize
 
 function StringViewType:_init(name, size)
   local fields = {
-    {name = 'data', type = primtypes.cstring},
+    {name = 'data', type = types.PointerType(nil, types.ArrayType(nil, primtypes.cchar, 0)) },
     {name = 'size', type = primtypes.usize}
   }
   self:set_codename('nelua_stringview')

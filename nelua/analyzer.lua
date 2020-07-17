@@ -322,7 +322,7 @@ function visitors.Annotation(context, node, symbol)
       return
     end
     local annotype
-    if symboltype.is_function then
+    if symboltype.is_procedure then
       paramshape = typedefs.function_annots[name]
       annotype = 'functions'
     elseif symboltype.is_type then
@@ -823,7 +823,7 @@ end
 local function visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)
   local attr = node.attr
   if calleetype then
-    if calleetype.is_function then
+    if calleetype.is_procedure then
       -- function call
       local funcargtypes = calleetype.argtypes
       local funcargattrs = calleetype.argattrs or calleetype.args
@@ -1015,6 +1015,12 @@ function visitors.CallMethod(context, node)
       calleetype = calleesym.type
     elseif calleetype.is_any then
       calleetype = primtypes.any
+    end
+
+    if calleetype and calleetype.is_procedure then
+      -- convert callee object if needed
+      calleeobjnode = visitor_convert(context, node, 3,
+        calleetype.argtypes[1], calleeobjnode, calleeobjnode.attr.type)
     end
   end
 
@@ -1298,7 +1304,7 @@ function visitors.ForIn(context, node)
   end
   local infuncnode = inexpnodes[1]
   local infunctype = infuncnode.attr.type
-  if infunctype and not (infunctype.is_any or infunctype.is_function) then
+  if infunctype and not (infunctype.is_any or infunctype.is_procedure) then
     node:raisef("first argument of `in` statement must be a function, but got type '%s'",
       infunctype:prettyname())
   end
@@ -1310,7 +1316,7 @@ function visitors.ForIn(context, node)
   if itvarnodes then
     for i,itvarnode in ipairs(itvarnodes) do
       local itsymbol = context:traverse_node(itvarnode)
-      if infunctype and infunctype.is_function then
+      if infunctype and infunctype.is_procedure then
         local fittype = infunctype:get_return_type(i)
         itsymbol:add_possible_type(fittype)
       end
@@ -1739,7 +1745,7 @@ local function visitor_FuncDef_returns(context, functype, retnodes)
       -- single void type means no returns
       returntypes = {}
     end
-  elseif functype and functype.is_function and not functype.returntypes.has_unknown then
+  elseif functype and functype.is_procedure and not functype.returntypes.has_unknown then
     -- use return types from previous traversal only if fully resolved
     returntypes = functype.returntypes
   end

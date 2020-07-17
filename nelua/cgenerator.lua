@@ -316,6 +316,13 @@ typevisitors[types.FunctionType] = function(context, type)
   context:add_declaration(decemitter:generate(), type.codename)
 end
 
+typevisitors[types.LazyFunctionType] = function(context, type)
+  if type.nodecl or context:is_declared(type.codename) then return end
+  local decemitter = CEmitter(context, 0)
+  decemitter:add_ln('typedef void* ', type.codename, ';')
+  context:add_declaration(decemitter:generate(), type.codename)
+end
+
 typevisitors[types.Type] = function(context, type)
   if type.nodecl or context:is_declared(type.codename) then return end
   if type.is_any then --luacov:enable
@@ -510,7 +517,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
   end
   local attr = node.attr
   local calleetype = attr.calleetype
-  if calleetype.is_function then
+  if calleetype.is_procedure then
     -- function call
     local tmpargs = {}
     local tmpcount = 0
