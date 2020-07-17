@@ -424,15 +424,16 @@ function builtins.nelua_idiv_(context, type)
   local name = string.format('nelua_idiv_i%d', type.bitsize)
   if context.usedbuiltins[name] then return name end
   local ictype = string.format('int%d_t', type.bitsize)
+  local uctype = string.format('uint%d_t', type.bitsize)
   context:ensure_runtime_builtin('nelua_unlikely')
   define_inline_builtin(context, name,
     ictype,
     string.format('(%s a, %s b)', ictype, ictype),
     string.format([[{
-  if(nelua_unlikely(b == -1)) return 0 - a;
+  if(nelua_unlikely(b == -1)) return 0U - (%s)a;
   %s d = a / b;
   return d * b == a ? d : d - ((a < 0) ^ (b < 0));
-}]], ictype))
+}]], uctype, ictype))
   return name
 end
 
@@ -559,12 +560,8 @@ function operators.shl(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   if ltype.is_arithmetic and rtype.is_arithmetic then
     assert(ltype.is_integral and rtype.is_integral)
-    if rnode.attr.comptime and rnode.attr.value >= 0 and rnode.attr.value < ltype.bitsize then
-      emitter:add('(', lname, ' << ', rname, ')')
-    else
-      local op = emitter.context:ensure_runtime_builtin('nelua_shl_', type)
-      emitter:add(op, '(', lname, ', ', rname, ')')
-    end
+    local op = emitter.context:ensure_runtime_builtin('nelua_shl_', type)
+    emitter:add(op, '(', lname, ', ', rname, ')')
   else --luacov:disable
     node:errorf('not implemented')
   end --luacov:enable
@@ -574,13 +571,8 @@ function operators.shr(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   if ltype.is_arithmetic and rtype.is_arithmetic then
     assert(ltype.is_integral and rtype.is_integral)
-    if rnode.attr.comptime and rnode.attr.value >= 0 and rnode.attr.value < ltype.bitsize then
-      local ultype = primtypes['uint'..ltype.bitsize]
-      emitter:add('((',ltype,')((', ultype,')', lname, ' >> ', rname, '))')
-    else
-      local op = emitter.context:ensure_runtime_builtin('nelua_shr_', type)
-      emitter:add(op, '(', lname, ', ', rname, ')')
-    end
+    local op = emitter.context:ensure_runtime_builtin('nelua_shr_', type)
+    emitter:add(op, '(', lname, ', ', rname, ')')
   else --luacov:disable
     node:errorf('not implemented')
   end --luacov:enable
