@@ -1059,7 +1059,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   if not symbol then
     local symname = string.format('%s.%s', objtype.name, name)
     symbol = Symbol.promote_attr(attr, symname, node)
-    symbol.codename = string.format('%s_%s', objtype.codename, name)
+    symbol.codename = context:choose_codename(string.format('%s_%s', objtype.codename, name))
     symbol:link_node(parentnode)
     if infuncdef then
       -- declaration of record global function
@@ -1075,8 +1075,6 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     end
     if not inlazydef then
       objtype:set_metafield(name, symbol)
-    else
-      symbol.shadows = true
     end
     symbol.annonymous = true
     symbol.scope = context.rootscope
@@ -1804,6 +1802,7 @@ function visitors.FuncDef(context, node, lazysymbol)
   end
 
   if symbol then -- symbol may be nil in case of array/dot index
+    symbol.funcdef = true
     if decl then
       -- declaration always set the type
       symbol.type = type

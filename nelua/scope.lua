@@ -36,6 +36,7 @@ function Scope:clear_symbols()
     metamagic.setmetaindex(self.symbols, self.parent.symbols)
   else
     metamagic.setmetaindex(self.symbols, function(symbols, key)
+      -- return predefined symbol definition if nothing is found
       local symbol = symdefs[key]
       if symbol then
         symbol = symbol:clone()
@@ -142,12 +143,14 @@ function Scope:add_symbol(symbol)
     return true
   end
   if oldsymbol then
+    -- shadowing a symbol with the same name
     if oldsymbol == self.context.state.inlazydef then
       -- symbol definition of a lazy function
       key = symbol
-      symbol.shadows = true
     else
+      -- shadowing an usual variable
       if rawget(self.symbols, key) == oldsymbol then
+        -- this symbol will be overridden but we still need to list it for the resolution
         self.symbols[oldsymbol] = oldsymbol
       end
       symbol.shadows = true
