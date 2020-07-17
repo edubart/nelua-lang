@@ -121,6 +121,9 @@ describe("numbers", function()
       [".0"] = n.Number{"dec", "0", "0"},
       ["0."] = n.Number{"dec", "0", "0"},
       ["0123.456789"] = n.Number{"dec", "0123", "456789"},
+      ["0x.FfffFFFF"] = n.Number{"hex", "0", "FfffFFFF"},
+      ["0x.00000001"] = n.Number{"hex", "0", "00000001"},
+      ["0Xabcdef.0"] = n.Number{"hex", "abcdef", "0"},
     })
   end)
   it("exponential", function()
@@ -136,6 +139,8 @@ describe("numbers", function()
       ["0x3.3p3"] = n.Number{"hex", "3", "3", "3"},
       ["0x5.5P-5"] = n.Number{"hex", "5", "5", "-5"},
       ["0b1.1p2"] = n.Number{"bin", "1", "1", "2"},
+      ["0x.0p-3"] = n.Number{"hex", "0", "0", "-3"},
+      ["0x.ABCDEFp+24"] = n.Number{"hex", "0", "ABCDEF", "+24"},
     })
   end)
   it("literal", function()
@@ -152,6 +157,7 @@ describe("numbers", function()
     assert.peg_error_all(pegs.cNUMBER, "MalformedBinaryNumber", {
       "0b",
       "0b2",
+      "0ba",
       "0b012"
     })
     assert.peg_error_all(pegs.cNUMBER, "MalformedExponentialNumber", {

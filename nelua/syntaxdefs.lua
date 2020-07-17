@@ -67,15 +67,17 @@ local function get_parser()
                    '' -> 'bin' binary /
                    '' -> 'dec' decimal
     literal     <- %cNAME
-    hexadecimal <-  '0' [xX] ({hex} '.' ({hex} / '' -> '0') / '' -> '0' '.' {hex} / {hex} nil)
-                    ([pP] {exp} / nil)
-    binary      <-  '0' [bB] ({bin} '.' ({bin} / '' -> '0') / '' -> '0' '.' {bin} / {bin} nil)
-                    ([pP] {exp} / nil)
-    decimal     <-  ({dec} '.' ({dec} / '' -> '0') / '' -> '0' '.' {dec} / {dec} nil)
+    hexadecimal <-  '0' [xX] (({hex} '.'
+      ({hex} / '' -> '0') / '' -> '0' '.' {hex} / {hex} nil)  / %{MalformedHexadecimalNumber})
+      ([pP] {exp} / nil)
+    binary      <-  '0' [bB]
+      (({bin} '.' ({bin} / '' -> '0') / '' -> '0' '.' {bin} / {bin} nil) / %{MalformedBinaryNumber})
+      ([pP] {exp} / nil)
+    decimal     <- ({dec} '.' ({dec} / '' -> '0') / '' -> '0' '.' {dec} / {dec} nil)
                     ([eE] {exp} / nil)
     dec         <- %d+
-    bin         <- ([01]+ !%d / %{MalformedBinaryNumber})
-    hex         <- (%x+ / %{MalformedHexadecimalNumber})
+    bin         <- [01]+ !%d
+    hex         <- %x+
     exp         <- ([+-])? %d+ / %{MalformedExponentialNumber}
     nil         <- '' -> to_nil
   ]])
