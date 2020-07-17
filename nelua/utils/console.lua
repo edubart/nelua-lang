@@ -1,6 +1,6 @@
 local stringer = require 'nelua.utils.stringer'
 local tabler = require 'nelua.utils.tabler'
-local term = require 'nelua.thirdparty.term'
+local term = require 'term'
 local colors = term.colors
 
 local console = {}

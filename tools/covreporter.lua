@@ -1,5 +1,5 @@
 local re = require 'relabel'
-local colors = require 'nelua.thirdparty.term'.colors
+local colors = require 'term'.colors
 
 local function readfile(filename)
   local f = assert(io.open(filename,'r'))

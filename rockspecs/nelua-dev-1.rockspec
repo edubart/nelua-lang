@@ -21,6 +21,7 @@ It can work statically or dynamically depending on the code style and compiles t
 dependencies = {
   'lua >= 5.3',
   'luafilesystem >= 1.8.0',
+  'lua-term >= 0.7',
   'lpeglabel >= 1.6.0',
   'hasher >= 0.1.0',
   'chronos >= 0.2',
@@ -71,7 +72,6 @@ build = {
     ['nelua.thirdparty.bint'] = 'nelua/thirdparty/bint.lua',
     ['nelua.thirdparty.inspect'] = 'nelua/thirdparty/inspect.lua',
     ['nelua.thirdparty.tableshape'] = 'nelua/thirdparty/tableshape.lua',
-    ['nelua.thirdparty.term'] = 'nelua/thirdparty/term.lua',
     ['nelua.utils.bn'] = 'nelua/utils/bn.lua',
     ['nelua.utils.class'] = 'nelua/utils/class.lua',
     ['nelua.utils.console'] = 'nelua/utils/console.lua',
