@@ -227,13 +227,32 @@ function string.sub(self: stringview, i: isize, j: is_optional_isize): string
   return s
 end
 
-function string.rep(self: stringview, n: isize): string
-  if unlikely(self.size == 0 or n <= 0) then return (@string){} end
+local is_optional_string = #[concept(function(x)
+  if x.type.is_nil then return true end
+  return primtypes.stringview:is_convertible_from(x.type)
+end)]#
+
+function string.rep(self: stringview, n: isize, sep: is_optional_string): string
+  if unlikely(n <= 0) then return (@string){} end
   if unlikely(n == 1) then return self end
+  ## if sep.type.is_nil then
+  if unlikely(self.size == 0) then return (@string){} end
   local s: string = string._create(n * self.size)
   for i:isize=0,<n do
     memory.copy(&s.data[i*self.size], &self.data[0], self.size)
   end
+  ## else
+  local sep: stringview = sep
+  local partsize: usize = self.size + sep.size
+  if unlikely(partsize <= 0) then return (@string){} end
+  local s: string = string._create(n * partsize - sep.size)
+  for i:isize=0,<n do
+    memory.copy(&s.data[i*partsize], &self.data[0], self.size)
+    if i ~= n-1 then
+      memory.copy(&s.data[i*partsize + self.size], &sep.data[0], sep.size)
+    end
+  end
+  ## end
   return s
 end
 

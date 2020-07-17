@@ -170,6 +170,12 @@ do -- rep
   assert(string.rep('tes\00te', 2) == 'tes\0tetes\000te')
   assert(string.rep('', 10) == '')
   for i=0,30 do assert(string.len(string.rep('a', i)) == i) end
+  assert(string.rep('teste', 0, 'xuxu') == '')
+  assert(string.rep('teste', 1, 'xuxu') == 'teste')
+  assert(string.rep('teste', 2, 'xuxu') == 'testexuxuteste')
+  assert(string.rep('teste', 3, 'xuxu') == 'testexuxutestexuxuteste')
+  assert(string.rep('\1\0\1', 2, '\0\0') == '\1\0\1\0\0\1\0\1')
+  assert(string.rep('', 10, '.') == string.rep('.', 9))
 end
 
 do -- reverse
