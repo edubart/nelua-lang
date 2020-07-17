@@ -189,7 +189,15 @@ function string.byte(self: string, i: isize): byte
   return self.data[i-1]
 end
 
-function string.sub(self: string, i: isize, j: isize): string
+local is_optional_isize = #[concept(function(x)
+  if x.type.is_nil then return true end
+  return primtypes.isize:is_convertible_from(x.type)
+end)]#
+
+function string.sub(self: string, i: isize, j: is_optional_isize): string
+  ## if j.type.is_nil then
+  local j: isize = -1
+  ## end
   if unlikely(self.size == 0) then return self end
   if unlikely(i < 0) then i = self.size + i + 1 end
   if unlikely(i <= 0) then i = 1 end

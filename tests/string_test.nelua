@@ -89,7 +89,10 @@ end
 do -- sub
   local a: string = 'hello'
   assert(a:sub(1,5) == a)
+  assert(a:sub(1,-1) == 'hello')
+  assert(a:sub(1) == 'hello')
   assert(a:sub(2,4) == 'ell')
+  assert(a:sub(2) == 'ello')
   assert(a:sub(-4,-2) == 'ell')
   assert(a:sub(2,10) == 'ello')
   assert(a:sub(10,1) == '')

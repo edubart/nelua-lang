@@ -1470,7 +1470,7 @@ end
 function ConceptType:is_convertible_from_attr(attr, explicit)
   local type, err = self.func(attr, explicit)
   if not type and not err then
-    err = stringer.pformat("could not match concept '%s'", self:prettyname())
+    err = stringer.pformat("type '%s' could not match concept '%s'", attr.type:prettyname(), self:prettyname())
   end
   if type == true then
     assert(attr.type)
