@@ -93,9 +93,7 @@ function string.__tostringview(s: string): stringview <inline>
   return (@stringview){data = &s.data[0], size = s.size}
 end
 
-function string.__convert(s: #[concept(function(s)
-    return s.type.is_stringview or s.type.is_cstring
-  end)]#): string <inline>
+function string.__convert(s: #[overload_concept({stringview,cstring},true)]#): string <inline>
   ## if s.type.is_stringview then
     return (@string){size=s.size, data=s.data}
   ## elseif s.type.is_cstring then
@@ -158,12 +156,7 @@ function string.len(self: stringview): isize <inline>
   return (@isize)(self.size)
 end
 
-local is_optional_isize = #[concept(function(x)
-  if x.type.is_nil then return true end
-  return primtypes.isize
-end)]#
-
-function string.byte(self: stringview, i: is_optional_isize): byte
+function string.byte(self: stringview, i: #[optional_concept(isize)]#): byte
   -- TODO: j argument and multiple returns
   ## if i.type.is_nil then
   local i: isize = 1
@@ -177,7 +170,7 @@ function string.byte(self: stringview, i: is_optional_isize): byte
   return (@byte)(self.data[i-1])
 end
 
-function string.sub(self: stringview, i: isize, j: is_optional_isize): string
+function string.sub(self: stringview, i: isize, j: #[optional_concept(isize)]#): string
   ## if j.type.is_nil then
   local j: isize = -1
   ## end
@@ -195,12 +188,7 @@ function string.sub(self: stringview, i: isize, j: is_optional_isize): string
   return s
 end
 
-local is_optional_string = #[concept(function(x)
-  if x.type.is_nil then return true end
-  return primtypes.stringview
-end)]#
-
-function string.rep(self: stringview, n: isize, sep: is_optional_string): string
+function string.rep(self: stringview, n: isize, sep: #[optional_concept(stringview)]#): string
   if unlikely(n <= 0) then return (@string){} end
   if unlikely(n == 1) then return self end
   ## if sep.type.is_nil then
@@ -349,11 +337,6 @@ function string.__bnot(a: is_arithmetic_convertible): integer
   return ~tointeger(a)
 end
 
-local is_optional_integer = #[concept(function(x)
-  if x.type.is_nil then return true end
-  return primtypes.integer
-end)]#
-
 local function str2intbase(s: stringview, base: uinteger): integer
   assert(s.size > 0, "invalid number format")
   ## if base.type.is_nil then
@@ -393,7 +376,7 @@ local function str2intbase(s: stringview, base: uinteger): integer
   return (@integer)(n)
 end
 
-global function tonumber(x: auto, base: is_optional_integer)
+global function tonumber(x: auto, base: #[optional_concept(integer)]#)
   -- TODO: return nil in case of fail (like lua)
   ## if not base.type.is_nil then
     ## staticassert(x.type.is_stringy, "string expected, got something else")
@@ -412,7 +395,7 @@ global function tonumber(x: auto, base: is_optional_integer)
   ## end
 end
 
-global function tointeger(x: auto, base: is_optional_integer): integer
+global function tointeger(x: auto, base: #[optional_concept(integer)]#): integer
   ## if not base.type.is_nil then
     ## staticassert(x.type.is_stringy, "string expected, got something else")
     return str2intbase(x, base)

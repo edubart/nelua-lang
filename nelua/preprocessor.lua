@@ -10,6 +10,7 @@ local errorer = require 'nelua.utils.errorer'
 local config = require 'nelua.configer'.get()
 local stringer = require 'nelua.utils.stringer'
 local memoize = require 'nelua.utils.memoize'
+local sstream = require 'nelua.utils.sstream'
 
 local traverse_node = VisitorContext.traverse_node
 local function pp_default_visitor(self, node, emitter, ...)
@@ -152,6 +153,52 @@ function preprocessor.preprocess(context, ast)
     type.node = context:get_current_node()
     return type
   end
+  local function overload_concept(syms, noconvert)
+    return concept(function(x)
+      local accepttypes = {}
+      for i,sym in ipairs(syms) do
+        local type
+        if traits.is_type(sym) then
+          type = sym
+        elseif traits.is_symbol(sym) then
+          assert(sym.type == primtypes.type)
+          type = sym.value
+        end
+        if not type then
+          context:get_current_node():raisef("invalid type in overload concept at index #%d", i)
+        end
+        accepttypes[i] = type
+      end
+
+      -- try to match exact type first
+      for _,type in ipairs(accepttypes) do
+        if type == x.type then
+          return type
+        end
+      end
+
+      -- else try to convert one
+      local errs = {}
+      if not noconvert then
+        for _,type in ipairs(accepttypes) do
+          local ok, err = type:is_convertible_from(x.type)
+          if ok then
+            return type
+          else
+            table.insert(errs, err)
+          end
+        end
+      end
+
+      local ss = sstream()
+      ss:add('cannot match overload concept:\n    ')
+      ss:addlist(errs, '\n    ')
+      return nil, ss:tostring()
+    end)
+  end
+  local function optional_concept(sym, noconvert)
+    return overload_concept({sym, primtypes.nilable}, noconvert)
+  end
   local function generic(f)
     local type = types.GenericType(f)
     type.node = context:get_current_node()
@@ -214,6 +261,8 @@ function preprocessor.preprocess(context, ast)
       return status
     end,
     concept = concept,
+    overload_concept = overload_concept,
+    optional_concept = optional_concept,
     generic = generic,
     hygienize = hygienize,
     generalize = generalize,

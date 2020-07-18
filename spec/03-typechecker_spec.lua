@@ -1367,6 +1367,14 @@ it("concepts", function()
     local function f(x: an_integral) return x end
     f(true)
   ]], "invalid return for concept")
+  assert.analyze_error([[
+    local function f(x: #[overload_concept({integer, stringview})]#) return x end
+    f(true)
+  ]], "cannot match overload concept")
+  assert.analyze_error([[
+    local function f(x: #[overload_concept({integer, 1})]#) return x end
+    f(true)
+  ]], "invalid type in overload concept")
 end)
 
 it("generics", function()
