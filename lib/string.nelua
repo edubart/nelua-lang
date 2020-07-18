@@ -12,6 +12,10 @@ local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function strtoll(str: cstring, endptr: cstring*, base: cint): clonglong <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strtod(str: cstring, endptr: cstring*): float64 <cimport,cinclude'<stdlib.h>',nodecl> end
+local function strspn(s: cstring, accept: cstring): csize <cimport'strspn',cinclude'<string.h>',nodecl> end
+local function isalnum(x: cint): cint <cimport'isalnum',cinclude'<ctype.h>',nodecl> end
+local function isdigit(x: cint): cint <cimport'isdigit',cinclude'<ctype.h>',nodecl> end
+local function toupper(c: cint): cint <cimport'toupper',cinclude'<ctype.h>',nodecl> end
 
 global string <codename 'nelua_string'> = @record{
   --refs: usize*,
@@ -321,24 +325,74 @@ end
 -- string.unpack(fmt, s, pos)
 -- string.packsize(fmt)
 
-global function tonumber(x: auto): number
+local is_optional_integer = #[concept(function(x)
+  if x.type.is_nil then return true end
+  return primtypes.integer
+end)]#
+
+local function str2intbase(s: stringview, base: uinteger): integer
+  assert(s.size > 0, "invalid number format")
+  ## if base.type.is_nil then
+  local base: uinteger <const> = 10
+  ## else
+  check(base >= 2 and base <= 36, "base out of range")
+  ## end
+  local SPACECHARS: cstring <const> = " \f\n\r\t\v"
+  local pos: usize = strspn(s, SPACECHARS) -- skip initial spaces
+  local neg: boolean = false
+  if s.data[pos] == #[string.byte'-']# then -- negative sign
+    pos = pos + 1
+    neg = true
+  elseif s.data[pos] == #[string.byte'+']# then -- skip positive sign
+    pos = pos + 1
+  end
+  local n: uinteger = 0
+  repeat
+    local digit: cint = s.data[pos]
+    local x: cint
+    if isdigit(digit) ~= 0 then -- is a digit [0-9]
+      x = digit - #[string.byte'0']#
+    elseif isalnum(digit) ~= 0 then -- is a alphanumeric [a-zA-Z]
+      x = toupper(digit) - #[string.byte'A']# + 10
+    else -- else spaces or invalid character
+      break
+    end
+    assert(x < base, "invalid number format")
+    n = n * base + (@uinteger)(x)
+    pos = pos + 1
+  until pos >= s.size
+  pos = pos + strspn(&s.data[pos], SPACECHARS) -- skip trailing spaces
+  check(pos == s.size, "invalid number format") -- fully parsed?
+  if neg then -- negate
+    n = -n
+  end
+  return (@integer)(n)
+end
+
+global function tonumber(x: auto, base: is_optional_integer)
   -- TODO: return nil in case of fail (like lua)
-  ## if x.type.is_arithmetic then
-    return (@number)(x)
+  ## if not base.type.is_nil then
+    ## staticassert(x.type.is_stringy, "string expected, got something else")
+    return str2intbase(x, base)
+  ## elseif x.type.is_arithmetic then
+    return x
   ## elseif x.type.is_stringy then
     local x: cstring = x
     local endptr: cstring
     errno = 0
     local n: float64 = strtod(x, &endptr)
     check(endptr ~= x and errno == 0, 'failed to convert string to number')
-    return n
+    return (@number)(n)
   ## else
     ## staticerror("unable to convert value of type '%s' to a number", x.type)
   ## end
 end
 
-global function tointeger(x: auto): integer
-  ## if x.type.is_arithmetic then
+global function tointeger(x: auto, base: is_optional_integer): integer
+  ## if not base.type.is_nil then
+    ## staticassert(x.type.is_stringy, "string expected, got something else")
+    return str2intbase(x, base)
+  ## elseif x.type.is_arithmetic then
     return (@integer)(x)
   ## elseif x.type.is_stringy then
     local x: cstring = x

@@ -293,3 +293,32 @@ do -- tonumber
   local c: cstring = '1337'
   assert(tonumber(c) == 1337)
 end
+
+do -- tonumber with base
+  assert(tonumber('0', 10) == 0)
+  assert(tonumber('+0', 10) == 0)
+  assert(tonumber('-0', 10) == 0)
+  assert(tonumber('1', 10) == 1)
+  assert(tonumber('+1', 10) == 1)
+  assert(tonumber('-1', 10) == -1)
+  assert(tonumber('1234567890', 10) == 1234567890)
+  assert(tonumber('-1234567890', 10) == -1234567890)
+  assert(tonumber('f',16) == 15)
+  assert(tonumber('-f',16) == -15)
+  assert(tonumber('+f',16) == 15)
+  assert(tonumber('abcdef019',16) == 0xabcdef019)
+  assert(tonumber('+abcdef019',16) == 0xabcdef019)
+  assert(tonumber('-abcdef019',16) == -0xabcdef019)
+  assert(tonumber(' \f\n\r\t\vfe',16) == 254)
+  assert(tonumber(' \f\n\r\t\vff \f\n\r\t\v',16) == 255)
+  assert(tonumber('1111', 2) == 15)
+  assert(tonumber(tostring(maxi), 10) == maxi)
+  assert(tonumber(tostring(mini), 10) == mini)
+  assert(tonumber(tostring(maxi+1), 10) == maxi+1)
+  assert(tonumber(tostring(mini+1), 10) == mini+1)
+  assert(tonumber(tostring(maxi-1), 10) == maxi-1)
+  assert(tonumber(tostring(mini-1), 10) == mini-1)
+  assert(tonumber(tostring(maxi)..'00', 10) == maxi * 100)
+  assert(tonumber(tostring(mini)..'00', 10) == mini * 100)
+  assert(tonumber('thequickbrownfoxjumpsoverthelazydog', 36) == 447430708471575744)
+end
