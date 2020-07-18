@@ -92,10 +92,10 @@ it("boolean", function()
 end)
 
 it("nil", function()
-  assert.generate_c("local a: nilable", "nelua_nilable a = NULL;")
-  assert.generate_c("local a: nilable = nil", "nelua_nilable a = NULL;")
+  assert.generate_c("local a: niltype", "nelua_niltype a = NULL;")
+  assert.generate_c("local a: niltype = nil", "nelua_niltype a = NULL;")
   assert.generate_c("local a = nil", "nelua_any a = {0};")
-  assert.generate_c("local function f(a: nilable) end f(nil)", "f(NULL);")
+  assert.generate_c("local function f(a: niltype) end f(nil)", "f(NULL);")
 end)
 
 it("call", function()
@@ -1934,7 +1934,7 @@ end)
 it("print builtin", function()
   assert.run_c([[
     print(1,0.2,1e2,0xf,0b01)
-    local i: integer, s: stringview, n: nilable
+    local i: integer, s: stringview, n: niltype
     print(i, s, n)
   ]],
     '1\t0.2\t100\t15\t1\n' ..
@@ -2067,7 +2067,7 @@ it("type builtin", function()
     assert(type(r) == 'record')
     assert(type(&r) == 'pointer')
     assert(type(nilptr) == 'pointer')
-    assert(type(nil) == 'nilable')
+    assert(type(nil) == 'niltype')
   ]])
 end)
 
@@ -2298,11 +2298,11 @@ it("concepts", function()
   ]=])
   assert.run_c([=[
     local is_optional_integer = #[concept(function(x)
-      if x.type.is_nil then return true end
+      if x.type.is_niltype then return true end
       return primtypes.integer
     end)]#
     local function g(a: integer, b: is_optional_integer): integer
-      ## if b.type.is_nil then
+      ## if b.type.is_niltype then
       return a
       ## else
       return a*a
@@ -2323,11 +2323,11 @@ it("concepts", function()
       return R{x=x}
     end
     local is_optional_R = #[concept(function(x)
-      if x.type.is_nil then return true end
+      if x.type.is_niltype then return true end
       return R
     end)]#
     local function f(x: is_optional_R): integer
-      ## if x.type.is_nil then
+      ## if x.type.is_niltype then
       return a
       ## else
       return x.x

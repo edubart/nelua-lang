@@ -14,7 +14,7 @@ local is_arithmetic = #[concept(function(x)
   return x.type.is_arithmetic
 end)]#
 local is_optional_arithmetic = #[concept(function(x)
-  return x.type.is_arithmetic or x.type.is_nil
+  return x.type.is_arithmetic or x.type.is_niltype
 end)]#
 
 -- compile time utilities
@@ -130,7 +130,7 @@ end
 ## end
 
 function math.atan(y: is_arithmetic, x: is_optional_arithmetic) <inline,nosideeffect>
-  ## if not x.type.is_nil then
+  ## if not x.type.is_niltype then
     ## if y.type.is_float32 and x.type.is_float32 then
       return atan2_f32(y, x)
     ## else
@@ -148,7 +148,7 @@ end
 function math.log(x: is_arithmetic, base: is_optional_arithmetic) <inline,nosideeffect>
   ## local suffix = x.type.is_float32 and '_f32' or '_f64'
   ## local log2, log10, log = 'log2'..suffix, 'log10'..suffix, 'log'..suffix
-  ## if not base.type.is_nil then
+  ## if not base.type.is_niltype then
     if base == 2 then
       return #|log2|#(x)
     elseif base == 10 then
@@ -292,13 +292,13 @@ end
 
 function math.random(m: is_optional_arithmetic, n: is_optional_arithmetic) <inline>
   local r: number = default_random:random()
-  ## if not m.type.is_nil and not n.type.is_nil then
+  ## if not m.type.is_niltype and not n.type.is_niltype then
     local low: integer, up: integer = (@integer)(m), (@integer)(n)
     check(low <= up, "math.random: interval is empty")
     check(low >= 0 or up < math.maxinteger + low, "math.random: interval too large")
     r = r * ((@number)(up - low) + 1.0)
     return (@integer)(r) + low
-  ## elseif not m.type.is_nil then
+  ## elseif not m.type.is_niltype then
     local low: integer <comptime> = 1
     local high: integer = (@integer)(m)
     check(high > 0, "math.random: interval is empty")

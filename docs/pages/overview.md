@@ -577,9 +577,9 @@ print(s[0], s[1]) -- outputs: 1 2
 print(#s) -- outputs 4
 ```
 
-### Nilable
+### Niltype
 
-Nilable type is not useful by itself, it's only useful when using with unions to create the
+Niltype type is not useful by itself, it's only useful when using with unions to create the
 optional type or for detecting nil arguments in lazy functions.
 
 ### The "type" type

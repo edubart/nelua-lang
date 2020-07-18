@@ -158,7 +158,7 @@ end
 
 function string.byte(self: stringview, i: #[optional_concept(isize)]#): byte
   -- TODO: j argument and multiple returns
-  ## if i.type.is_nil then
+  ## if i.type.is_niltype then
   local i: isize = 1
   ## end
   if unlikely(self.size == 0) then return 0 end
@@ -171,7 +171,7 @@ function string.byte(self: stringview, i: #[optional_concept(isize)]#): byte
 end
 
 function string.sub(self: stringview, i: isize, j: #[optional_concept(isize)]#): string
-  ## if j.type.is_nil then
+  ## if j.type.is_niltype then
   local j: isize = -1
   ## end
   if unlikely(self.size == 0) then return self end
@@ -191,7 +191,7 @@ end
 function string.rep(self: stringview, n: isize, sep: #[optional_concept(stringview)]#): string
   if unlikely(n <= 0) then return (@string){} end
   if unlikely(n == 1) then return self end
-  ## if sep.type.is_nil then
+  ## if sep.type.is_niltype then
   if unlikely(self.size == 0) then return (@string){} end
   local s: string = string._create(n * self.size)
   for i:isize=0,<n do
@@ -339,7 +339,7 @@ end
 
 local function str2intbase(s: stringview, base: uinteger): integer
   assert(s.size > 0, "invalid number format")
-  ## if base.type.is_nil then
+  ## if base.type.is_niltype then
   local base: uinteger <const> = 10
   ## else
   check(base >= 2 and base <= 36, "base out of range")
@@ -378,7 +378,7 @@ end
 
 global function tonumber(x: auto, base: #[optional_concept(integer)]#)
   -- TODO: return nil in case of fail (like lua)
-  ## if not base.type.is_nil then
+  ## if not base.type.is_niltype then
     ## staticassert(x.type.is_stringy, "string expected, got something else")
     return str2intbase(x, base)
   ## elseif x.type.is_arithmetic then
@@ -396,7 +396,7 @@ global function tonumber(x: auto, base: #[optional_concept(integer)]#)
 end
 
 global function tointeger(x: auto, base: #[optional_concept(integer)]#): integer
-  ## if not base.type.is_nil then
+  ## if not base.type.is_niltype then
     ## staticassert(x.type.is_stringy, "string expected, got something else")
     return str2intbase(x, base)
   ## elseif x.type.is_arithmetic then
@@ -454,7 +454,7 @@ global function tostring(x: auto): string
     return 'false'
   ## elseif x.type.is_stringy then
     return x
-  ## elseif x.type.is_nil then
+  ## elseif x.type.is_niltype then
     return 'nil'
   ## elseif x.type.is_lazyfunction then
     return 'lazyfunction'

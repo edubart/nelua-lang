@@ -197,7 +197,7 @@ function preprocessor.preprocess(context, ast)
     end)
   end
   local function optional_concept(sym, noconvert)
-    return overload_concept({sym, primtypes.nilable}, noconvert)
+    return overload_concept({sym, primtypes.niltype}, noconvert)
   end
   local function generic(f)
     local type = types.GenericType(f)

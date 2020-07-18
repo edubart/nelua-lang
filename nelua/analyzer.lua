@@ -83,7 +83,7 @@ end
 function visitors.Nil(_, node)
   local attr = node.attr
   if attr.type then return end
-  attr.type = primtypes.nilable
+  attr.type = primtypes.niltype
   attr.comptime = true
   attr.literal = true
 end
@@ -713,7 +713,7 @@ local function iargnodes(argnodes)
         local callretindex = i - lastargindex + 1
         local argtype = calleetype:get_return_type(callretindex)
         if not argtype then return nil end
-        if callretindex > 1 and not argtype.is_nil then
+        if callretindex > 1 and not argtype.is_niltype then
           -- mark node as multiple returns for usage later
           lastargnode.attr.multirets = true
         end
@@ -757,8 +757,8 @@ local function izipargnodes(vars, argnodes)
             -- argnode does not exists, fill with multiple returns type
             -- in case it doest not exists, the argtype will be nil type
             local callretindex = i - lastargindex + 1
-            local argtype = calleetype:get_return_type(callretindex) or primtypes.nilable
-            if callretindex > 1 and not argtype.is_nil then
+            local argtype = calleetype:get_return_type(callretindex) or primtypes.niltype
+            if callretindex > 1 and not argtype.is_niltype then
               lastargnode.attr.multirets = true
             end
             return i, var, argnode, argtype, callretindex
@@ -785,7 +785,7 @@ local function izipargnodes(vars, argnodes)
       if argnode then
         argtype = argnode.attr.type
       else
-        argtype = primtypes.nilable
+        argtype = primtypes.niltype
       end
       return i, var, argnode, argtype
     end
@@ -872,7 +872,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           arg = argtype
         end
 
-        if argtype and argtype.is_nil and not funcargtype.is_nilable then
+        if argtype and argtype.is_niltype and not funcargtype.is_nilable then
           node:raisef("in call of function '%s': expected an argument at index %d but got nothing",
             calleesym.name, i)
         end
@@ -1475,7 +1475,7 @@ function visitors.VarDecl(context, node)
         if valtype.is_varanys then
           -- varanys are always stored as any in variables
           valtype = primtypes.any
-        elseif not vartype and valtype.is_nil then
+        elseif not vartype and valtype.is_niltype then
           -- untyped variables assigned to nil always store as any type
           valtype = primtypes.any
         end
@@ -1581,7 +1581,7 @@ function visitors.Assign(context, node)
       symbol:add_possible_type(valtype)
       symbol.mutate = true
     end
-    if not valnode and valtype and valtype.is_nil then
+    if not valnode and valtype and valtype.is_niltype then
       varnode:raisef("variable assignment at index '%d' is assigning to nothing in the expression", i)
     end
     if vartype and valtype then
@@ -1606,7 +1606,7 @@ function visitors.Return(context, node)
     for i,funcrettype,retnode,rettype in izipargnodes(funcscope.returntypes, retnodes) do
       if rettype then
         if funcrettype then
-          if rettype.is_nil and not funcrettype.is_nilable then
+          if rettype.is_niltype and not funcrettype.is_nilable then
             node:raisef("missing return expression at index %d of type '%s'", i, funcrettype)
           end
           if retnode and rettype then

@@ -13,7 +13,7 @@ global function type(x: auto): stringview
     return 'pointer'
   ## elseif xtype.is_stringview or xtype.is_string then
     return 'string'
-  ## elseif x.type.is_nil then
+  ## elseif x.type.is_niltype then
     return 'nil'
   ## else
     return #[xtype.name]#

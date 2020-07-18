@@ -53,7 +53,7 @@ end
 
 global function assert(cond: auto, msg: auto) <inline>
   if unlikely(not cond) then
-    ## if msg.type.is_nil then
+    ## if msg.type.is_niltype then
       error('assertion failed!')
     ## elseif msg.type.is_string or msg.type.is_stringview or msg.type.is_cstring then
       error((@stringview)(msg))

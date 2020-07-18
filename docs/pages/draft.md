@@ -127,18 +127,18 @@ Tables triggers usage of the garbage collector.
 
 ### Optional
 
-Optional type is actually a union of a `nilable` and any other type, it
+Optional type is actually a union of a `niltype` and any other type, it
 is used to declare a variable that may hold or not a variable:
 
 ```nelua
-local a: union{nilable,string} -- variable that may hold a string, initialized to 'nil'
+local a: union{niltype,string} -- variable that may hold a string, initialized to 'nil'
 assert(a == nil)
 assert(not a)
 print(a) -- outputs 'nil'
 a = 'hi'
 print(a) -- outputs 'hi'
 
--- syntax sugar for union union{nilable,string}
+-- syntax sugar for union union{niltype,string}
 local v: string?
 ```
 

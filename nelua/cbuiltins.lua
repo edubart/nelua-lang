@@ -56,8 +56,8 @@ function builtins.nelua_nosanitizeaddress(context)
 end
 
 -- nil
-function builtins.nelua_nilable(context)
-  define_builtin(context, 'nelua_nilable', "typedef void* nelua_nilable;\n")
+function builtins.nelua_niltype(context)
+  define_builtin(context, 'nelua_niltype', "typedef void* nelua_niltype;\n")
 end
 
 function builtins.nelua_unusedvar(context)
@@ -204,7 +204,7 @@ end
 
 -- any
 function builtins.nelua_any(context)
-  context:ensure_runtime_builtin('nelua_nilable')
+  context:ensure_runtime_builtin('nelua_niltype')
   context:ensure_runtime_builtin('nelua_runtype')
   define_builtin(context, 'nelua_any', [[typedef struct nelua_any {
   nelua_runtype *type;
@@ -238,7 +238,7 @@ function builtins.nelua_any(context)
     unsigned long _nelua_culong;
     unsigned long long _nelua_culonglong;
     size_t _nelua_csize;
-    nelua_nilable _nelua_nilable;
+    nelua_niltype _nelua_niltype;
   } value;
 } nelua_any;
 ]])
@@ -753,7 +753,7 @@ function inlines.print(context, node)
     elseif argtype.is_string then
       defemitter:add_builtin('nelua_stdout_write_stringview')
       defemitter:add_ln('((nelua_stringview){(char*)a',i,'.data, a',i,'.size});')
-    elseif argtype.is_nil then
+    elseif argtype.is_niltype then
       defemitter:add_ln('printf("nil");')
     elseif argtype.is_boolean then
       defemitter:add_ln('printf(a',i,' ? "true" : "false");')

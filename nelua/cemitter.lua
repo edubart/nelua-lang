@@ -32,7 +32,7 @@ function CEmitter:zeroinit(type)
     s = '0U'
   elseif type.is_arithmetic then
     s = '0'
-  elseif type.is_pointer or type.is_nil or type.is_comptime then
+  elseif type.is_pointer or type.is_niltype or type.is_comptime then
     s = 'NULL'
   elseif type.is_boolean then
     s = 'false'
@@ -80,7 +80,7 @@ function CEmitter:add_val2any(val, valtype)
   valtype = valtype or val.attr.type
   assert(not valtype.is_any)
   self:add('((', primtypes.any, ')')
-  if valtype.is_nil then
+  if valtype.is_niltype then
     self:add('{0})')
   else
     local runctype = self.context:runctype(valtype)
@@ -95,7 +95,7 @@ function CEmitter:add_val2boolean(val, valtype)
   if valtype.is_any then
     self:add_builtin('nelua_any_to_', typedefs.primtypes.boolean)
     self:add('(', val, ')')
-  elseif valtype.is_nil or valtype.is_nilptr then
+  elseif valtype.is_niltype or valtype.is_nilptr then
     self:add('false')
   elseif valtype.is_pointer then
     self:add(val, ' != NULL')

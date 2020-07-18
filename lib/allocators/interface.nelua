@@ -55,7 +55,7 @@
   end
 
   function allocator.new(T: type, size: auto)
-    ## if not size.type.is_nil then
+    ## if not size.type.is_niltype then
       ## staticassert(size.type.is_integral, 'allocator.new: size must be an integral type')
       ## if not size.type.is_unsigned then
         check(size > 0, 'allocator.new: size must be greater than 0')

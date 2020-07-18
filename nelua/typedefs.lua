@@ -16,7 +16,7 @@ local cintsize = math.max(math.min(cpusize, 4), 2)
 local clongsize = math.max(cpusize, 4)
 
 -- primitive types
-primtypes.nilable     = types.NilableType('nilable')
+primtypes.niltype     = types.NiltypeType('niltype')
 primtypes.void        = types.VoidType('void', 0) -- the type for nothing
 primtypes.any         = types.AnyType('any', 2*cpusize) -- the type for anything
 primtypes.type        = types.TypeType('type', 0) -- the type for types

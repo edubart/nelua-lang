@@ -327,8 +327,8 @@ typevisitors[types.Type] = function(context, type)
   if type.nodecl or context:is_declared(type.codename) then return end
   if type.is_any then --luacov:enable
     context:ensure_runtime_builtin('nelua_any')
-  elseif type.is_nil then
-    context:ensure_runtime_builtin('nelua_nilable')
+  elseif type.is_niltype then
+    context:ensure_runtime_builtin('nelua_niltype')
   else
     errorer.assertf(cdefs.primitive_ctypes[type.codename],
       'C type visitor for "%s" is not defined', type)

@@ -21,15 +21,15 @@ do -- type
 end
 
 do -- typeid_of
-  assert(typeid_of(@nilable) == 0)
+  assert(typeid_of(@niltype) == 0)
   assert(typeid_of(@stringview) == typeid_of('a'))
   assert(typeid_of(@integer) == typeid_of(1))
   assert(typeid_of(@integer) == typeid_of(1))
 end
 
 do -- typeinfo_of
-  local nilable_typeinfo = typeinfo_of(@nilable)
-  assert(nilable_typeinfo.id == 0)
-  assert(nilable_typeinfo.name == 'nilable')
-  assert(nilable_typeinfo.codename == 'nelua_nilable')
+  local niltype_typeinfo = typeinfo_of(@niltype)
+  assert(niltype_typeinfo.id == 0)
+  assert(niltype_typeinfo.name == 'niltype')
+  assert(niltype_typeinfo.codename == 'nelua_niltype')
 end
