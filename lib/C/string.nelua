@@ -9,9 +9,14 @@ function C.memcmp(s1: pointer, s2: pointer, n: csize): cint <cimport'memcmp',nod
 function C.memchr(s: pointer, c: cint, n: csize): pointer <cimport'memchr',nodecl> end
 
 -- String examination
+function C.strcpy(dest: cstring, src: cstring): cstring <cimport'strcpy',nodecl> end
+function C.strncpy(dest: cstring, src: cstring, n: csize): cstring <cimport'strncpy',nodecl> end
+function C.strcat(dest: cstring, src: cstring): cstring <cimport'strcat',nodecl> end
+function C.strncat(dest: cstring, src: cstring, n: csize): cstring <cimport'strncat',nodecl> end
 function C.strcmp(s1: cstring, s2: cstring): cint <cimport'strcmp',nodecl> end
 function C.strncmp(s1: cstring, s2: cstring, n: csize): cint <cimport'strncmp',nodecl> end
 function C.strcoll(s1: cstring, s2: cstring): cint <cimport'strcoll',nodecl> end
+function C.strxfrm(dest: cstring, src: cstring, n: csize): csize <cimport'strxfrm',nodecl> end
 function C.strchr(s: cstring, c: cint): cstring <cimport'strchr',nodecl> end
 function C.strrchr(s: cstring, c: cint): cstring <cimport'strrchr',nodecl> end
 function C.strcspn(s: cstring, reject: cstring): csize <cimport'strcspn',nodecl> end

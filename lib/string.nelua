@@ -7,15 +7,16 @@ local allocator = @gc_allocator
 
 -- C imports
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
-local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
-local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function strtoll(str: cstring, endptr: cstring*, base: cint): clonglong <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strtod(str: cstring, endptr: cstring*): float64 <cimport,cinclude'<stdlib.h>',nodecl> end
-local function strspn(s: cstring, accept: cstring): csize <cimport'strspn',cinclude'<string.h>',nodecl> end
-local function isalnum(x: cint): cint <cimport'isalnum',cinclude'<ctype.h>',nodecl> end
-local function isdigit(x: cint): cint <cimport'isdigit',cinclude'<ctype.h>',nodecl> end
-local function toupper(c: cint): cint <cimport'toupper',cinclude'<ctype.h>',nodecl> end
+local function strspn(s: cstring, accept: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
+local function strchr(s: cstring, c: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
+local function strcpy(dest: cstring, src: cstring): cstring <cimport,cinclude'<string.h>',nodecl> end
+local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
+local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 
 global string <codename 'nelua_string'> = @record{
   --refs: usize*,
@@ -89,7 +90,7 @@ end
 
 function string.__tostringview(s: string): stringview <inline>
   if unlikely(s.size == 0) then return (@stringview){} end
-  return (@stringview){data = (@cstring)(&s.data[0]), size = s.size}
+  return (@stringview){data = &s.data[0], size = s.size}
 end
 
 function string.__convert(s: #[concept(function(s)
@@ -348,7 +349,6 @@ function string.__bnot(a: is_arithmetic_convertible): integer
   return ~tointeger(a)
 end
 
-
 local is_optional_integer = #[concept(function(x)
   if x.type.is_nil then return true end
   return primtypes.integer
@@ -478,4 +478,200 @@ global function tostring(x: auto): string
   ## else
   ##   staticerror("tostring: cannot convert type '%s' to a string", x.type)
   ## end
+end
+
+-- Utility class used locally to compose strings
+local stringbuffer = @record {
+  size: usize,
+  data: span(byte)
+}
+
+function stringbuffer.new(size: usize): stringbuffer
+  return (@stringbuffer){
+    size = 0,
+    data = allocator.spanalloc(@byte, size)
+  }
+end
+
+function stringbuffer:delete()
+  allocator.spandealloc(self.data)
+  $self = {}
+end
+
+function stringbuffer:prep(size: usize): cstring
+  local needed: usize = self.size + size
+  local cap: usize = self.data.size
+  if unlikely(needed > cap) then
+    repeat
+      cap = cap * 2
+    until cap >= needed
+    self.data = allocator.spanrealloc(self.data, cap)
+  end
+  return (@cstring)(&self.data[self.size])
+end
+
+function stringbuffer:add(c: byte)
+  if unlikely(self.size + 1 > self.data.size) then
+    self.data = allocator.spanrealloc(self.data, self.size*2)
+  end
+  self.data[self.size] = c
+  self.size = self.size + 1
+end
+
+function stringbuffer:addsize(size: usize)
+  self.size = self.size + size
+end
+
+function stringbuffer:promotestring(): string
+  if unlikely(self.size == 0) then
+    self:delete()
+    return (@string){}
+  end
+  local size: usize = self.size
+  local data: span(byte) = allocator.spanrealloc(self.data, size + 1) -- shrink
+  data[size] = 0 -- cstring line ending
+  $self = {} -- destroy itself
+  return (@string) {
+    data = data.data,
+    size = size
+  }
+end
+
+-- Utilities for string.format
+local function snprintf_1ci(s: cstring, maxlen: csize, format: cstring, x: cint): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf_1i(s: cstring, maxlen: csize, format: cstring, x: integer): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf_1p(s: cstring, maxlen: csize, format: cstring, x: pointer): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf_1n(s: cstring, maxlen: csize, format: cstring, x: number): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf_1cs(s: cstring, maxlen: csize, format: cstring, x: cstring): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+
+local MAX_FORMAT <comptime> = 32
+
+local function scanformat(strfmt: byte[0]*, form: byte[MAX_FORMAT]*): usize
+  local L_FMTFLAGS: stringview <const> = "-+ #0"
+  local p: usize = 0
+  while strfmt[p] ~= 0 and strchr(L_FMTFLAGS, strfmt[p]) ~= nilptr do
+    p = p + 1  -- skip flags
+  end
+  if p >= (#L_FMTFLAGS + 1) // #@byte then
+    error("invalid format (repeated flags)")
+  end
+  if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- skip width
+  if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- (2 digits at most)
+  if strfmt[p] == #[string.byte'.']# then
+    p = p + 1
+    if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- skip precision
+    if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- (2 digits at most)
+  end
+  if isdigit(strfmt[p]) ~= 0 then
+    error("invalid format (width or precision too long)")
+  end
+  form[0] = #[string.byte'%']#
+  memory.copy(&form[1], &strfmt[p], (p + 1) * #@byte)
+  form[p + 2] = 0
+  return p
+end
+
+local function addlenmod(form: byte[MAX_FORMAT]*, lenmod: cstring, lenmodsize: csize)
+  local l: csize = strlen(&form[0])
+  local spec: byte = form[l - 1]
+  strcpy(&form[l - 1], lenmod)
+  form[l + lenmodsize - 1] = spec
+  form[l + lenmodsize] = 0
+end
+
+function string.format(fmt: stringview, arg1: auto): string
+  -- TODO: properly handle multiple arguments
+  local L_ESC: byte <comptime> = #[string.byte'%']#
+  local MAX_ITEM <comptime> = 120
+  local pos: usize = 0
+  local b: stringbuffer = stringbuffer.new(MAX_ITEM)
+  local argi: integer = 0
+  while pos < fmt.size do
+    local c: byte = fmt.data[pos]
+    pos = pos + 1
+    if c ~= L_ESC then
+      b:add(c)
+    else
+      c = fmt.data[pos]
+      if c == L_ESC then -- %%
+        b:add(L_ESC)
+        pos = pos + 1
+      else -- format item
+        local form: byte[MAX_FORMAT] -- to store the format ('%...')
+        local maxitem: usize = MAX_ITEM
+        local buff: cstring = b:prep(MAX_ITEM) -- to put formatted item
+        local nb: cint = 0 -- number of bytes in added item
+        -- scan format
+        pos = pos + scanformat(&fmt.data[pos], &form)
+        c = fmt.data[pos]
+        pos = pos + 1
+        argi = argi + 1
+        assert(argi == 1, 'format with multiple arguments not supported yet')
+        ## if primtypes.cint:is_convertible_from(arg1.type) then
+          if c == #[string.byte'c']# then
+            local n: cint = (@cint)(arg1)
+            nb = snprintf_1ci(buff, maxitem, &form[0], n)
+            goto next
+          end
+        ## end
+        ## if primtypes.integer:is_convertible_from(arg1.type) then
+          if c == #[string.byte'd']# or
+             c == #[string.byte'i']# or
+             c == #[string.byte'o']# or
+             c == #[string.byte'u']# or
+             c == #[string.byte'x']# or
+             c == #[string.byte'X']# then
+            local lenmod: cstring <noinit>
+            ## cemit('lenmod = PRIi' .. primtypes.integer.bitsize .. ';')
+            addlenmod(&form, lenmod, strlen(lenmod) - 1)
+            local n: integer = (@integer)(arg1)
+            nb = snprintf_1i(buff, maxitem, &form[0], n)
+            goto next
+          end
+        ## end
+        ## if primtypes.number:is_convertible_from(arg1.type) then
+          if c == #[string.byte'a']# or
+             c == #[string.byte'A']# or
+             c == #[string.byte'f']# or
+             c == #[string.byte'e']# or
+             c == #[string.byte'E']# or
+             c == #[string.byte'g']# or
+             c == #[string.byte'G']# then
+            local n: number = (@number)(arg1)
+            nb = snprintf_1n(buff, maxitem, &form[0], n)
+            goto next
+          end
+        ## end
+        ## if primtypes.pointer:is_convertible_from(arg1.type) then
+          if c == #[string.byte'p']# then
+            local p: pointer = (@pointer)(arg1)
+            if p == nilptr then
+              strcpy(buff, "(null)")
+              nb = 6
+            else
+              nb = snprintf_1p(buff, maxitem, &form[0], p)
+            end
+            goto next
+          end
+        ## end
+        ## if arg1.type.is_stringy then
+          if c == #[string.byte's']# then
+            local s: stringview = arg1
+            maxitem = #s + 1
+            buff = b:prep(maxitem)
+            nb = snprintf_1cs(buff, maxitem, &form[0], arg1)
+            goto next
+          end
+        ## end
+        --TODO: 'q'
+        local s: string = "invalid conversion '"..((@cstring)(&form[0]))..
+                          "' for format argument #"..tostring(argi)
+        error(s:__tostringview())
+::next::
+        assert(nb < maxitem)
+        b:addsize(nb)
+      end
+    end
+  end
+  return b:promotestring()
 end

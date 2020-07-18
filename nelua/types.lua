@@ -568,7 +568,7 @@ end
 function IntegralType:is_convertible_from_type(type, explicit)
   if type == self then
     return self
-  elseif type.is_integral and self:is_inrange(type.min) and self:is_inrange(type.max) then
+  elseif type.is_integral and self:is_type_inrange(type) then
     return self
   elseif type.is_arithmetic then
     -- implicit narrowing cast
@@ -577,6 +577,12 @@ function IntegralType:is_convertible_from_type(type, explicit)
     return self
   end
   return ArithmeticType.is_convertible_from_type(self, type, explicit)
+end
+
+function IntegralType:is_type_inrange(type)
+  if type.is_integral and self:is_inrange(type.min) and self:is_inrange(type.max) then
+    return true
+  end
 end
 
 function IntegralType:normalize_value(value)
@@ -782,9 +788,10 @@ types.FloatType = FloatType
 FloatType.is_float = true
 FloatType.is_signed = true
 
-function FloatType:_init(name, size, maxdigits)
+function FloatType:_init(name, size, maxdigits, fmtdigits)
   ArithmeticType._init(self, name, size)
   self.maxdigits = maxdigits
+  self.fmtdigits = fmtdigits
   if self.bitsize == 32 then
     self.is_float32 = true
   elseif self.bitsize == 64 then
@@ -1295,6 +1302,9 @@ function PointerType:is_convertible_from_type(type, explicit)
            self.subtype.subtype == type.subtype.subtype then
       -- implicit casting from checked arrays pointers to unbounded arrays pointers
       return self
+    elseif (self.is_cstring and type.subtype == primtypes.byte) or
+           (type.is_cstring and self.subtype == primtypes.byte) then
+      return self
     end
   end
   if type.is_stringview then
@@ -1354,7 +1364,7 @@ StringViewType.maxfieldsize = cpusize
 
 function StringViewType:_init(name, size)
   local fields = {
-    {name = 'data', type = types.PointerType(nil, types.ArrayType(nil, primtypes.cchar, 0)) },
+    {name = 'data', type = types.PointerType(nil, types.ArrayType(nil, primtypes.byte, 0)) },
     {name = 'size', type = primtypes.usize}
   }
   self:set_codename('nelua_stringview')

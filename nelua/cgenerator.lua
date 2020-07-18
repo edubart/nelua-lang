@@ -1310,6 +1310,7 @@ local function emit_features_setup(context)
         emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-variable"')
         emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-function"')
         emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-but-set-variable"')
+        emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-label"')
         -- for ignoring const* on pointers
         emitter:add_ln('#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
       emitter:add_ln('#endif')

@@ -152,7 +152,7 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
       self:add_val2boolean(val, valtype)
     elseif valtype.is_any then
       self:add_any2type(type, val)
-    elseif type.is_cstring and valtype.is_stringview then
+    elseif type.is_pointer and valtype.is_stringview then
       self:add_stringview2cstring(val)
     elseif type.is_stringview and valtype.is_cstring then
       self:add_cstring2stringview(val)
@@ -165,7 +165,7 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
       self:add('*', val)
     else
       if checkcast and type.is_integral and valtype.is_arithmetic and
-        (type.size < valtype.size or type.is_signed ~= valtype.is_signed) then
+        not type:is_type_inrange(valtype) then
         self:add_builtin('nelua_narrow_cast_', type, valtype)
         self:add('(', val, ')')
       else

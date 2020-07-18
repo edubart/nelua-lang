@@ -1547,7 +1547,7 @@ it("record string conversions", function()
     local s: stringview = r
     assert(s == 'R')
     local cs: cstring = r
-    assert((@stringview){size=1,data=cs} == 'R')
+    assert((@stringview){size=1,data=(@byte[0]*)(cs)} == 'R')
   ]])
 end)
 
