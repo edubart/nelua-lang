@@ -61,7 +61,7 @@ function memory.find(heystack: pointer, heystacksize: usize,
     if needlesize == 1 then
       return memchr(heystack, $(@byte*)(needle), heystacksize)
     end
-    local heystackbegin = (@usize)(heystack)
+    local heystackbegin: usize = (@usize)(heystack)
     for i:usize=heystackbegin,heystackbegin+(heystacksize-needlesize) do
       local p: pointer = (@pointer)(i)
       if memcmp(p, needle, needlesize) == 0 then

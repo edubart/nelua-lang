@@ -25,13 +25,13 @@ global string <codename 'nelua_string'> = @record{
 }
 
 ##[[
-  local stringtype = context.rootscope.symbols.string.value
-  stringtype.is_string = true
-  stringtype.is_stringy = true
-  stringtype.nick = 'string'
-  stringtype.name = 'string'
-  primtypes.stringview.metatype = types.MetaType()
-  primtypes.stringview.metatype:inherit(stringtype.metatype)
+local stringtype = context.rootscope.symbols.string.value
+stringtype.is_string = true
+stringtype.is_stringy = true
+stringtype.nick = 'string'
+stringtype.name = 'string'
+primtypes.stringview.metatype = types.MetaType()
+primtypes.stringview.metatype:inherit(stringtype.metatype)
 ]]
 
 function string._create(size: usize): string <inline>
@@ -50,7 +50,7 @@ end
 
 function string.fromspan(s: span(byte)): string
   if unlikely(s.size == 0) then return (@string){} end
-  local self = string._create(s.size)
+  local self: string = string._create(s.size)
   memory.copy(&self.data[0], s.data, s.size)
   return self
 end
@@ -260,7 +260,7 @@ function string.find(self: stringview,
   if unlikely(init < 0) then init = self.size + init + 1 end
   if unlikely(init > self.size) then return 0, 0 end
   if unlikely(init <= 0) then init = 1 end
-  local found = memory.find(&self.data[init-1], self.size-init+1, pattern.data, pattern.size)
+  local found: pointer = memory.find(&self.data[init-1], self.size-init+1, pattern.data, pattern.size)
   if found then
     local sbegin: isize = (@isize)((@usize)(found) - (@usize)(&self.data[0]))
     return sbegin + 1, sbegin + (@isize)(pattern.size)
@@ -390,9 +390,7 @@ global function tonumber(x: auto, base: #[optional_concept(integer)]#)
     local n: float64 = strtod(x, &endptr)
     check(endptr ~= x and errno == 0, 'failed to convert string to number')
     return (@number)(n)
-  ## else
-    ## staticerror("unable to convert value of type '%s' to a number", x.type)
-  ## end
+  ## else staticerror("unable to convert value of type '%s' to a number", x.type) end
 end
 
 global function tointeger(x: auto, base: #[optional_concept(integer)]#): integer
@@ -408,9 +406,7 @@ global function tointeger(x: auto, base: #[optional_concept(integer)]#): integer
     local i: clonglong = strtoll(x, &endptr, 10)
     check(endptr ~= x and errno == 0, 'failed to convert string to integer')
     return (@integer)(i)
-  ## else
-    ## staticerror("unable to convert value of type '%s' to an integer", x.type)
-  ## end
+  ## else staticerror("unable to convert value of type '%s' to an integer", x.type) end
 end
 
 global function tostring(x: auto): string
@@ -458,9 +454,7 @@ global function tostring(x: auto): string
     return 'nil'
   ## elseif x.type.is_lazyfunction then
     return 'lazyfunction'
-  ## else
-  ##   staticerror("tostring: cannot convert type '%s' to a string", x.type)
-  ## end
+  ## else staticerror("tostring: cannot convert type '%s' to a string", x.type) end
 end
 
 -- Utility class used locally to compose strings
@@ -596,8 +590,7 @@ function string.format(fmt: stringview, arg1: auto): string
             nb = snprintf_1ci(buff, maxitem, &form[0], n)
             goto next
           end
-        ## end
-        ## if primtypes.integer:is_convertible_from(arg1.type) then
+        ## end if primtypes.integer:is_convertible_from(arg1.type) then
           if c == #[string.byte'd']# or
              c == #[string.byte'i']# or
              c == #[string.byte'o']# or
@@ -611,8 +604,7 @@ function string.format(fmt: stringview, arg1: auto): string
             nb = snprintf_1i(buff, maxitem, &form[0], n)
             goto next
           end
-        ## end
-        ## if primtypes.number:is_convertible_from(arg1.type) then
+        ## end if primtypes.number:is_convertible_from(arg1.type) then
           if c == #[string.byte'a']# or
              c == #[string.byte'A']# or
              c == #[string.byte'f']# or
@@ -624,8 +616,7 @@ function string.format(fmt: stringview, arg1: auto): string
             nb = snprintf_1n(buff, maxitem, &form[0], n)
             goto next
           end
-        ## end
-        ## if primtypes.pointer:is_convertible_from(arg1.type) then
+        ## end if primtypes.pointer:is_convertible_from(arg1.type) then
           if c == #[string.byte'p']# then
             local p: pointer = (@pointer)(arg1)
             if p == nilptr then
@@ -636,8 +627,7 @@ function string.format(fmt: stringview, arg1: auto): string
             end
             goto next
           end
-        ## end
-        ## if arg1.type.is_stringy then
+        ## end if arg1.type.is_stringy then
           if c == #[string.byte's']# then
             local s: stringview = arg1
             maxitem = #s + 1

@@ -1,14 +1,12 @@
 -- Tiny and simple mark and sweep garbage collector
 -- Implementation based on https://github.com/orangeduck/tgc
 
-## cinclude '<setjmp.h>'
-
 require 'span'
 require 'memory'
 require 'allocators.generic'
 
 local jmp_buf <cimport,nodecl> = @record{dummy: usize}
-local function setjmp(env: jmp_buf) <cimport,nodecl> end
+local function setjmp(env: jmp_buf) <cimport,cinclude'<setjmp.h>',nodecl> end
 
 local allocator = @generic_allocator
 
@@ -17,9 +15,9 @@ global GCFlags = @enum(usize) {
   ROOT = 2,
   LEAF = 4
 }
-local UINTPTR_MAX <comptime> = (@usize)(-1)
+local UINTPTR_MAX: usize <comptime> = (@usize)(-1)
 
-local FinalizerPtr: type = @pointer
+local FinalizerPtr = @pointer
 
 local GCItem = @record{
   ptr: pointer,
@@ -38,7 +36,7 @@ local GC = @record{
   nitems: usize, nslots: usize, mitems: usize, nfrees: usize
 }
 
-global gc = GC{}
+global gc: GC
 
 function GC:_hash(ptr: pointer): usize
   return (@usize)(ptr) >> 3
