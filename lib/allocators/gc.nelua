@@ -5,7 +5,7 @@ require 'span'
 require 'memory'
 require 'allocators.generic'
 
-local jmp_buf <cimport,nodecl> = @record{dummy: usize}
+local jmp_buf <cimport,cinclude'<setjmp.h>',nodecl> = @record{dummy: usize}
 local function setjmp(env: jmp_buf) <cimport,cinclude'<setjmp.h>',nodecl> end
 
 local allocator = @generic_allocator
@@ -17,14 +17,14 @@ global GCFlags = @enum(usize) {
 }
 local UINTPTR_MAX: usize <comptime> = (@usize)(-1)
 
-local FinalizerPtr = @pointer
+local FinalizerCallback = @function(p: pointer): void
 
 local GCItem = @record{
   ptr: pointer,
   flags: usize,
   size: usize,
   hash: usize,
-  finalizer: FinalizerPtr,
+  finalizer: FinalizerCallback,
 }
 
 local GC = @record{
@@ -70,7 +70,7 @@ function GC:_get_ptr(ptr: pointer): GCItem*
   return nilptr
 end
 
-function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerPtr)
+function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerCallback)
   assert(self.nslots > 0)
   local i: usize = self:_hash(ptr) % self.nslots
   local item: GCItem = {
@@ -344,7 +344,7 @@ function GC:_sweep() <noinline>
   for j:usize=0,<self.nfrees do
     if self.frees[j].ptr then
       if self.frees[j].finalizer then
-        --self.frees[j].finalizer(self.frees[j].ptr)
+        self.frees[j].finalizer(self.frees[j].ptr)
       end
       allocator.dealloc(self.frees[j].ptr)
     end
@@ -386,7 +386,7 @@ function GC:run()
   self:_sweep()
 end
 
-function GC:add(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerPtr): boolean
+function GC:add(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerCallback): boolean
   self.nitems = self.nitems + 1
 
   local uptr: usize = (@usize)(ptr)
@@ -415,7 +415,7 @@ function GC:rem(ptr: pointer)
   self.mitems = self.nitems + self.nitems // 2 + 1
 end
 
-function GC:_alloc(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerPtr): pointer <inline>
+function GC:_alloc(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerCallback): pointer <inline>
   if ptr then
     if not self:add(ptr, size, flags, finalizer) then
       allocator.dealloc(ptr)
@@ -425,12 +425,12 @@ function GC:_alloc(ptr: pointer, size: usize, flags: usize, finalizer: Finalizer
   return ptr
 end
 
-function GC:alloc_opt(size: usize, flags: usize, finalizer: FinalizerPtr): pointer
+function GC:alloc_opt(size: usize, flags: usize, finalizer: FinalizerCallback): pointer
   local ptr: pointer = allocator.alloc(size)
   return self:_alloc(ptr, size, flags, finalizer)
 end
 
-function GC:alloc0_opt(size: usize, flags: usize, finalizer: FinalizerPtr): pointer
+function GC:alloc0_opt(size: usize, flags: usize, finalizer: FinalizerCallback): pointer
   local ptr: pointer = allocator.alloc0(size)
   return self:_alloc(ptr, size, flags, finalizer)
 end
@@ -463,7 +463,7 @@ function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer <inline>
       p.size = size
     else
       local flags: usize = p.flags
-      local finalizer: FinalizerPtr = p.finalizer
+      local finalizer: FinalizerCallback = p.finalizer
       self:rem(ptr)
       self:add(qtr, size, flags, finalizer)
     end
@@ -486,7 +486,7 @@ function GC:dealloc(ptr: pointer)
   local p: GCItem* = self:_get_ptr(ptr)
   if p then
     if p.finalizer then
-      --p.finalizer(ptr)
+      p.finalizer(ptr)
     end
     allocator.dealloc(ptr)
     self:rem(ptr)

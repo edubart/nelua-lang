@@ -32,7 +32,7 @@ function CEmitter:zeroinit(type)
     s = '0U'
   elseif type.is_arithmetic then
     s = '0'
-  elseif type.is_pointer or type.is_niltype or type.is_comptime then
+  elseif type.is_pointer or type.is_function or type.is_niltype or type.is_comptime then
     s = 'NULL'
   elseif type.is_boolean then
     s = 'false'
@@ -97,7 +97,7 @@ function CEmitter:add_val2boolean(val, valtype)
     self:add('(', val, ')')
   elseif valtype.is_niltype or valtype.is_nilptr then
     self:add('false')
-  elseif valtype.is_pointer then
+  elseif valtype.is_pointer or valtype.is_function then
     self:add(val, ' != NULL')
   else
     self:add('true')

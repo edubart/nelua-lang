@@ -1024,7 +1024,7 @@ end
 
 function FunctionType:is_convertible_from_type(type, explicit)
   if type.is_nilptr then
-    return true
+    return self
   end
   return Type.is_convertible_from_type(self, type, explicit)
 end

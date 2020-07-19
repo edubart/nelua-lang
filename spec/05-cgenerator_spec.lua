@@ -134,7 +134,11 @@ assert(call_callback(mycallback) == 3)
 
 local callback_type = @function(x: integer, y: integer): integer
 local mycallback_proxy2: callback_type
+assert(not mycallback_proxy2)
+assert(mycallback_proxy2 == nilptr)
 mycallback_proxy2 = mycallback
+assert(mycallback_proxy2)
+assert(mycallback_proxy2 ~= nilptr)
 assert(mycallback_proxy2(1, 2) == 3)
 ]])
 end)
