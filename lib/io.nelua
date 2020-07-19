@@ -1,143 +1,108 @@
-require 'string'
+require 'filestream'
 
 --------------------------------------------------------------------------------
 -- C imports
 
-## cinclude '<stdio.h>'
-## cinclude '<errno.h>'
-
-local errno: cint <cimport,nodecl>
-local SEEK_SET: cint <cimport,nodecl>
-local SEEK_END: cint <cimport,nodecl>
-local SEEK_CUR: cint <cimport,nodecl>
-local function strerror(errnum: cint): cstring <cimport,nodecl> end
-local function fopen(pathname: cstring, mode: cstring): pointer <cimport,nodecl> end
-local function fclose(stream: pointer): cint <cimport,nodecl> end
-local function fflush(stream: pointer): cint <cimport,nodecl> end
-local function fseek(stream: pointer, offset: clong, whence: cint): cint <cimport,nodecl> end
-local function ftell(stream: pointer): clong <cimport,nodecl> end
+local FILEptr = @pointer
+local errno: cint <cimport,cinclude'<errno.h>',nodecl>
+local stdin: FILEptr <cimport,cinclude'<stdio.h>',nodecl>
+local stdout: FILEptr <cimport,cinclude'<stdio.h>',nodecl>
+local stderr: FILEptr <cimport,cinclude'<stdio.h>',nodecl>
+local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
+local function tmpfile(): FILEptr <cimport,cinclude'<stdio.h>',nodecl> end
 
 --------------------------------------------------------------------------------
--- file stream
-
-local function fileresult(success: boolean): (boolean, string, integer)
-  if not success then
-    return false, strerror(errno), errno
-  end
-  return true, '', 0
-end
-
-local filestream = @record{
-  f: pointer
-}
-
-function filestream:close()
-  check(self.f, 'attempt to use a closed file')
-  local status = fclose(self.f)
-  self.f = nilptr
-  return fileresult(status == 0)
-end
-
-function filestream:flush()
-  check(self.f, 'attempt to use a closed file')
-  return fileresult(fflush(self.f))
-end
-
-function filestream:seek(whence: string, offset: integer)
-  --TODO: return correct optional values
-  check(self.f, 'attempt to use a closed file')
-  local op
-  if whence == 'set' then op = SEEK_SET
-  elseif whence == 'end' then op = SEEK_END
-  elseif whence == 'cur' then op = SEEK_CUR
-  else error "invalid option '%s'"
-  end
-  local len
-  local errmsg, status
-  if fseek(self.f, (@clong)(offset), op) == 0 then
-    len = ftell(self.f)
-  else
-    len = -1
-    local success
-    success, errmsg, status = fileresult(false)
-  end
-  return len, errmsg, status
-end
-
-function filestream:setvbuf(mode: string, size: integer)
-  check(self.f, 'attempt to use a closed file')
-end
-
--- filestream:lines
-
---[[
-function filestream:read(...)
-end
-
-function filestream:write(...)
-end
-]]
-
---------------------------------------------------------------------------------
--- io module
+-- io
 
 global io = @record{}
 
-function io.close(file: filestream)
-  --TODO: optional argument
-  return file:close()
+global io.stderr: filestream = {fp = stderr}
+global io.stdout: filestream = {fp = stdout}
+global io.stdin: filestream = {fp = stdin}
+
+function io.open(filename: stringview,
+                 mode: #[optional_concept(stringview)]#) : (filestream, stringview, integer)
+  return filestream.open(filename, mode)
 end
 
-function io.open(filename: string, mode: string)
-  --TODO: optional argument and returns
-  --TODO: check modes
-  local f = fopen(filename, mode)
-  if not f then
-    return filestream{}, strerror(errno), errno
-  end
-  return filestream{f = f}, '', 0
-end
-
-function io.popen(prog: string, mode: string)
-  return filestream{}
-end
-
-function io.output()
-  return filestream{}
-end
-
-function io.input()
-  return filestream{}
-end
-
-function io.stderr()
-  return filestream{}
-end
-
-function io.stdin()
-  return filestream{}
-end
-
-function io.stdout()
-  return filestream{}
-end
-
-function io.tmpfile()
-  return filestream{}
-end
-function io.flush(file: filestream)
+function io.flush(file: filestream): boolean
   return file:flush()
 end
 
---[[
-function io.read(...)
-  return io.input():read(...)
+function io.close(file: #[concept(function(x)
+  if x.type.is_filestream then
+    -- force taking the file by reference
+    return types.PointerType(filestream.value)
+  elseif x.type:is_pointer_of(filestream.value) or x.type.is_niltype then
+    return true
+  end
+  return nil, 'value type is not an addressable `filestream` or `niltype`'
+end)]#)
+  ## if file.type.is_niltype then
+    if io.stdout.fp == stdout then
+      return false, 'cannot close standard file', -1
+    end
+    return io.stdout:close()
+  ## else
+    return file:close()
+  ## end
 end
 
-function io.write(...)
-  return io.output():write(...)
+function io.input(file: #[overload_concept{stringview,filestream,niltype}]#): filestream
+  ## if file.type.is_stringview then
+    local fin: filestream, err: stringview = io.open(file, "r")
+    if not fin:isopen() then error(err) end
+    io.stdin = fin
+  ## elseif file.type.is_filestream then
+    if not file:isopen() then error('attempt to use a closed file') end
+    io.stdin = file
+  ## end
+  return io.stdin
 end
-]]
 
--- io.lines
--- io.type
+function io.output(file: #[overload_concept{stringview,filestream,niltype}]#): filestream
+  ## if file.type.is_stringview then
+    local fout: filestream, err: stringview = io.open(file, "w")
+    if not fout:isopen() then error(err) end
+    io.stdout = fout
+  ## elseif file.type.is_filestream then
+    if not file:isopen() then error('attempt to use a closed file') end
+    io.stdout = file
+  ## end
+  return io.stdout
+end
+
+function io.tmpfile(): (filestream, stringview, integer)
+  local fp: FILEptr = tmpfile()
+  if not fp then
+    return filestream{}, strerror(errno), errno
+  end
+  return filestream{fp=fp}, '', 0
+end
+
+function io.read(fmt: #[overload_concept{integer,stringview,niltype}]#): (string, stringview, integer)
+  return io.stdin:read(fmt)
+end
+
+function io.write(s: stringview): (boolean, stringview, integer)
+  return io.stdout:write(s)
+end
+
+function io.type(x: auto)
+  ## if x.type.is_filestream then
+    if x:isopen() then
+      return "file"
+    else
+      return "closed file"
+    end
+  ## else
+    return nil
+  ## end
+end
+
+function io.isopen(file: filestream): boolean
+  return file:isopen()
+end
+
+-- TODO: io.lines
+-- TODO: io.popen

@@ -1,0 +1,53 @@
+-- Stringstream type
+--
+-- This type is used to dynamically compose strings.
+-- Mostly it used by Nelua internals, but can be used as a standalone class too.
+
+require 'allocators.gc'
+
+local allocator = @gc_allocator
+
+local INIT_CAPACITY <comptime> = 128
+
+global stringstream = @record {
+  size: usize,
+  data: span(byte)
+}
+
+function stringstream:reset()
+  allocator.spandealloc(self.data)
+  $self = {}
+end
+
+function stringstream:prepare(size: usize): byte[0]*
+  local needed: usize = self.size + size
+  local cap: usize = self.data.size
+  if unlikely(needed > cap) then
+    if unlikely(cap == 0) then
+      cap = INIT_CAPACITY
+    end
+    repeat cap = cap * 2 until cap >= needed
+    self.data = allocator.spanrealloc(self.data, cap)
+  end
+  return (@byte[0]*)(&self.data[self.size])
+end
+
+function stringstream:commit(size: usize)
+  local newsize: usize = self.size + size
+  check(newsize <= self.data.size, 'stringstream.commit: not enough space in string buffer')
+  self.size = newsize
+end
+
+function stringstream:addbyte(c: byte)
+  if unlikely(self.size + 1 > self.data.size) then
+    local cap: usize = self.data.size
+    if unlikely(cap == 0) then
+      cap = INIT_CAPACITY
+    else
+      cap = cap * 2
+    end
+    self.data = allocator.spanrealloc(self.data, cap)
+  end
+  self.data[self.size] = c
+  self.size = self.size + 1
+end

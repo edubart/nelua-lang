@@ -1,14 +1,156 @@
+require 'os'
 require 'io'
 
-local f = io.open('testfile', 'r')
-assert(f.f == nilptr)
+local file: filestream
+local err: stringview
+local code: integer
+local ok: boolean
+local stdin: filestream = io.stdin
+local stdout: filestream = io.stdout
+local stderr: filestream = io.stderr
 
-f = io.open('LICENSE', 'r')
-assert(f.f ~= nilptr)
-assert(f:flush() == true)
-assert(f:flush() == true)
-assert(f:close() == true)
+do -- basic io.open/io.isopen/io.close
+  file, err, code = io.open('invalidfile', 'r')
+  assert(not file:isopen())
+  assert(#err > 0)
+  assert(code ~= 0)
 
-f = io.open('LICENSE', 'r')
-assert(io.flush(f) == true)
-assert(io.close(f) == true)
+  file = io.open('LICENSE', 'r')
+  assert(file:isopen())
+  assert(file:flush() == true)
+  assert(file:flush() == true)
+  assert(file:close() == true)
+  assert(not file:isopen())
+
+  file = io.open('LICENSE', 'r')
+  assert(io.isopen(file) == true)
+  assert(io.flush(file) == true)
+  assert(io.flush(file) == true)
+  assert(io.close(file) == true)
+  assert(not io.isopen(file))
+end
+
+do -- io.type
+  file = io.open('LICENSE', 'r')
+  assert(io.isopen(file))
+  assert(io.type(file) == 'file')
+  file:close()
+  assert(io.type(file) == 'closed file')
+  assert(io.type(nil) == nil)
+  assert(io.type(0) == nil)
+  assert(io.type(false) == nil)
+  assert(io.type('') == nil)
+end
+
+do -- io.close for default output
+  ok, err = io.close()
+  assert(not ok)
+  assert(err == "cannot close standard file")
+end
+
+do -- io.tmpfile
+  file = io.tmpfile()
+  assert(file:isopen())
+  assert(file:close())
+  assert(not file:isopen())
+end
+
+do -- filestream:read, filestream:write and filestream:seek
+  file = io.open('test.tmp', 'w')
+  local text = 'line1\nline2\nline3\nline4\n'
+  assert(file:isopen())
+  assert(file:write(text) == true)
+  assert(file:close())
+
+  file = io.open('test.tmp', 'r')
+  assert(file:isopen())
+
+  local size = file:seek('end')
+  assert(size > 0)
+  assert(file:seek('set') == 0)
+  assert(file:read() == 'line1')
+  assert(file:read('l') == 'line2')
+  assert(file:read('*L') == 'line3\n')
+  assert(file:read(6) == 'line4\n')
+  assert(file:read(1) == '')
+  assert(file:seek() == size)
+  assert(file:seek('cur', -1) == size-1)
+  assert(file:read(1) == '\n')
+  assert(file:seek() == size)
+  assert(file:read() == '')
+  assert(file:seek('set') == 0)
+  assert(file:read('a') == text)
+  assert(file:close())
+  assert(not file:isopen())
+
+  os.remove('test.tmp')
+end
+
+do -- filestream:setvbuf
+  file = io.open('test.tmp', 'w')
+  assert(file:isopen())
+  assert(file:setvbuf("no") == true)
+  assert(file:setvbuf("full") == true)
+  assert(file:setvbuf("line") == true)
+  assert(file:close())
+  os.remove('test.tmp')
+end
+
+do -- io.output/io.write
+  assert(io.output() == stdout)
+  os.remove('test.tmp')
+
+  -- writing to an input file
+  file = io.open('test1.tmp', 'w')
+  assert(file:isopen())
+  assert(io.output(file) == file)
+  assert(io.stdout == file)
+  assert(io.stdout ~= stdout)
+  assert(io.write('test1') == true)
+  assert(io.stdout:write('!!\n') == true)
+  assert(io.output(stdout) == stdout)
+  assert(io.stdout == stdout)
+  assert(io.stdout:isopen())
+  assert(file:close())
+
+  -- writing to an output filename
+  assert(io.output('test2.tmp') ~= stdout)
+  assert(io.stdout ~= stdout)
+  assert(io.stdout:isopen())
+  assert(io.write('test2') == true)
+  assert(io.stdout:write('!!\n') == true)
+  assert(io.stdout:close())
+  assert(io.output(stdout) == stdout)
+  assert(io.stdout == stdout)
+  assert(io.stdout:isopen())
+end
+
+do -- io.input/io.read
+  assert(io.input() == stdin)
+
+  -- reading from an input file
+  file = io.open('test1.tmp', 'r')
+  assert(file:isopen())
+  assert(io.input(file) == file)
+  assert(io.stdin == file)
+  assert(io.read() == 'test1!!')
+  assert(io.input(stdin) == stdin)
+  assert(io.stdin == stdin)
+  assert(io.stdin:isopen())
+  assert(file:close())
+
+  -- reading from an input filename
+  assert(io.input('test2.tmp') ~= stdin)
+  assert(io.stdin:isopen())
+  assert(io.read() == 'test2!!')
+  assert(io.stdin:close())
+  assert(io.input(stdin) == stdin)
+  assert(io.stdin:isopen())
+end
+
+do -- os.rename, os.remove
+  os.remove('test3.tmp')
+  assert(os.rename('test1.tmp', 'test3.tmp') == true)
+  assert(os.remove('test3.tmp'))
+  assert(os.remove('test2.tmp'))
+end

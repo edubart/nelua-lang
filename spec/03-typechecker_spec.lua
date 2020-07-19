@@ -1374,7 +1374,12 @@ it("concepts", function()
   assert.analyze_error([[
     local function f(x: #[overload_concept({integer, 1})]#) return x end
     f(true)
-  ]], "invalid type in overload concept")
+  ]], "in overload concept definition")
+
+  assert.analyze_error([[
+    local function f(x: #[overload_concept(integer)]#) return x end
+    f(true)
+  ]], "in overload concept definition")
 end)
 
 it("generics", function()

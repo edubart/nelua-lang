@@ -155,6 +155,9 @@ function preprocessor.preprocess(context, ast)
   end
   local function overload_concept(syms, noconvert)
     return concept(function(x)
+      if getmetatable(syms) ~= nil then
+        context:get_current_node():raisef("in overload concept definition: use a raw tables for listing types")
+      end
       local accepttypes = {}
       for i,sym in ipairs(syms) do
         local type
@@ -165,7 +168,7 @@ function preprocessor.preprocess(context, ast)
           type = sym.value
         end
         if not type then
-          context:get_current_node():raisef("invalid type in overload concept at index #%d", i)
+          context:get_current_node():raisef("in overload concept definition argument #%d: invalid type", i)
         end
         accepttypes[i] = type
       end

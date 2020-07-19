@@ -1249,7 +1249,7 @@ local PointerType = typeclass()
 types.PointerType = PointerType
 PointerType.is_pointer = true
 
-function PointerType:_init(node, subtype)
+function PointerType:_init(subtype)
   self.subtype = subtype
   if subtype.is_void then
     self.nodecl = true
@@ -1264,7 +1264,7 @@ function PointerType:_init(node, subtype)
   else
     self:set_codename(subtype.codename .. '_ptr')
   end
-  Type._init(self, 'pointer', cpusize, node)
+  Type._init(self, 'pointer', cpusize)
   self.unary_operators['deref'] = subtype
 end
 
@@ -1375,7 +1375,7 @@ StringViewType.maxfieldsize = cpusize
 
 function StringViewType:_init(name, size)
   local fields = {
-    {name = 'data', type = types.PointerType(nil, types.ArrayType(nil, primtypes.byte, 0)) },
+    {name = 'data', type = types.PointerType(types.ArrayType(nil, primtypes.byte, 0)) },
     {name = 'size', type = primtypes.usize}
   }
   self:set_codename('nelua_stringview')
@@ -1555,7 +1555,7 @@ function types.get_pointer_type(subtype)
   if subtype == primtypes.cchar then
     return primtypes.cstring
   elseif not subtype.is_unpointable then
-    return types.PointerType(nil, subtype)
+    return types.PointerType(subtype)
   end
 end
 

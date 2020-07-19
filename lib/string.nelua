@@ -1,8 +1,8 @@
 require 'span'
 require 'memory'
---require 'allocators.generic'
-
+require 'stringstream'
 require 'allocators.gc'
+
 local allocator = @gc_allocator
 
 -- C imports
@@ -64,6 +64,21 @@ function string.fromcstring(s: cstring): string <inline>
   return self
 end
 
+function string.fromstringstream(ss: stringstream*): string
+  if unlikely(ss.size == 0) then
+    ss:reset()
+    return (@string){}
+  end
+  local size: usize = ss.size
+  local data: span(byte) = allocator.spanrealloc(ss.data, size + 1) -- shrink
+  data[size] = 0 -- cstring line ending
+  $ss = {} -- destroy
+  return (@string) {
+    data = data.data,
+    size = size
+  }
+end
+
 --[[
 function string:__copy(o: string*) <inline>
   self = o
@@ -101,7 +116,7 @@ function string.__convert(s: #[overload_concept({stringview,cstring},true)]#): s
   ## end
 end
 
-function stringview.__tostring(s: stringview) <inline>
+function stringview.__tostring(s: stringview): string <inline>
   if unlikely(s.size == 0) then return (@string){} end
   local ret: string = string._create(s.size)
   memory.copy(&ret.data[0], s.data, s.size)
@@ -457,62 +472,7 @@ global function tostring(x: auto): string
   ## else staticerror("tostring: cannot convert type '%s' to a string", x.type) end
 end
 
--- Utility class used locally to compose strings
-local stringbuffer = @record {
-  size: usize,
-  data: span(byte)
-}
 
-function stringbuffer.new(size: usize): stringbuffer
-  return (@stringbuffer){
-    size = 0,
-    data = allocator.spanalloc(@byte, size)
-  }
-end
-
-function stringbuffer:delete()
-  allocator.spandealloc(self.data)
-  $self = {}
-end
-
-function stringbuffer:prep(size: usize): cstring
-  local needed: usize = self.size + size
-  local cap: usize = self.data.size
-  if unlikely(needed > cap) then
-    repeat
-      cap = cap * 2
-    until cap >= needed
-    self.data = allocator.spanrealloc(self.data, cap)
-  end
-  return (@cstring)(&self.data[self.size])
-end
-
-function stringbuffer:add(c: byte)
-  if unlikely(self.size + 1 > self.data.size) then
-    self.data = allocator.spanrealloc(self.data, self.size*2)
-  end
-  self.data[self.size] = c
-  self.size = self.size + 1
-end
-
-function stringbuffer:addsize(size: usize)
-  self.size = self.size + size
-end
-
-function stringbuffer:promotestring(): string
-  if unlikely(self.size == 0) then
-    self:delete()
-    return (@string){}
-  end
-  local size: usize = self.size
-  local data: span(byte) = allocator.spanrealloc(self.data, size + 1) -- shrink
-  data[size] = 0 -- cstring line ending
-  $self = {} -- destroy itself
-  return (@string) {
-    data = data.data,
-    size = size
-  }
-end
 
 -- Utilities for string.format
 local function snprintf_1ci(s: cstring, maxlen: csize, format: cstring, x: cint): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
@@ -561,22 +521,22 @@ function string.format(fmt: stringview, arg1: auto): string
   local L_ESC: byte <comptime> = #[string.byte'%']#
   local MAX_ITEM <comptime> = 120
   local pos: usize = 0
-  local b: stringbuffer = stringbuffer.new(MAX_ITEM)
+  local b: stringstream
   local argi: integer = 0
   while pos < fmt.size do
     local c: byte = fmt.data[pos]
     pos = pos + 1
     if c ~= L_ESC then
-      b:add(c)
+      b:addbyte(c)
     else
       c = fmt.data[pos]
       if c == L_ESC then -- %%
-        b:add(L_ESC)
+        b:addbyte(L_ESC)
         pos = pos + 1
       else -- format item
         local form: byte[MAX_FORMAT] -- to store the format ('%...')
         local maxitem: usize = MAX_ITEM
-        local buff: cstring = b:prep(MAX_ITEM) -- to put formatted item
+        local buff: cstring = (@cstring)(b:prepare(MAX_ITEM)) -- to put formatted item
         local nb: cint = 0 -- number of bytes in added item
         -- scan format
         pos = pos + scanformat(&fmt.data[pos], &form)
@@ -631,7 +591,7 @@ function string.format(fmt: stringview, arg1: auto): string
           if c == #[string.byte's']# then
             local s: stringview = arg1
             maxitem = #s + 1
-            buff = b:prep(maxitem)
+            buff = (@cstring)(b:prepare(maxitem))
             nb = snprintf_1cs(buff, maxitem, &form[0], arg1)
             goto next
           end
@@ -642,9 +602,9 @@ function string.format(fmt: stringview, arg1: auto): string
         error(s:__tostringview())
 ::next::
         assert(nb < maxitem)
-        b:addsize(nb)
+        b:commit(nb)
       end
     end
   end
-  return b:promotestring()
+  return string.fromstringstream(b)
 end

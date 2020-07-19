@@ -1,0 +1,205 @@
+require 'stringstream'
+require 'string'
+
+--------------------------------------------------------------------------------
+-- C imports
+
+local FILEptr = @pointer
+local errno: cint <cimport,cinclude'<errno.h>',nodecl>
+local SEEK_SET: cint <const,cimport,cinclude'<stdio.h>',nodecl>
+local SEEK_END: cint <const,cimport,cinclude'<stdio.h>',nodecl>
+local SEEK_CUR: cint <const,cimport,cinclude'<stdio.h>',nodecl>
+local _IOFBF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
+local _IOLBF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
+local _IONBF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
+local EOF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
+local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
+local function fopen(pathname: cstring, mode: cstring): FILEptr <cimport,cinclude'<stdio.h>',nodecl> end
+local function fclose(fp: FILEptr): cint <cimport,cinclude'<stdio.h>',nodecl> end
+local function fflush(fp: FILEptr): cint <cimport,cinclude'<stdio.h>',nodecl> end
+local function fread(ptr: pointer, size: csize, n: csize, fp: FILEptr): csize <cimport,cinclude'<stdio.h>',nodecl> end
+local function fwrite(ptr: pointer, size: csize, n: csize, fp: FILEptr): csize <cimport,cinclude'<stdio.h>',nodecl> end
+local function fseek(fp: FILEptr, offset: clong, whence: cint): cint <cimport,cinclude'<stdio.h>',nodecl> end
+local function ftell(fp: FILEptr): clong <cimport,cinclude'<stdio.h>',nodecl> end
+local function ferror(fp: FILEptr): cint <cimport,cinclude'<stdio.h>',nodecl> end
+local function setvbuf(fp: FILEptr, buf: cstring, modes: cint, n: csize): cint <cimport,cinclude'<stdio.h>',nodecl> end
+local function clearerr(fp: FILEptr): void <cimport,cinclude'<stdio.h>',nodecl> end
+local function getc(fp: FILEptr): cint <cimport,cinclude'<stdio.h>',nodecl> end
+
+--------------------------------------------------------------------------------
+-- filestream
+
+global filestream = @record{
+  fp: FILEptr
+}
+## filestream.value.is_filestream = true
+
+local function fileresult(success: boolean): (boolean, stringview, integer)
+  if not success then
+    return false, strerror(errno), errno
+  end
+  return true, '', 0
+end
+
+function filestream.open(filename: stringview, mode: #[optional_concept(stringview)]#) : (filestream, stringview, integer)
+  ## if mode.type.is_nil then
+  local mode: stringview = "r"
+  ## end
+  --TODO: check modes
+  local fp: FILEptr = fopen(filename, mode)
+  if not fp then
+    return filestream{}, strerror(errno), errno
+  end
+  return filestream{fp = fp}, '', 0
+end
+
+function filestream:flush(): (boolean, stringview, integer)
+  if not self.fp then error('attempt to use a closed file') end
+  return fileresult(fflush(self.fp) == 0)
+end
+
+function filestream:close(): (boolean, stringview, integer)
+  if not self.fp then error('attempt to use a closed file') end
+  local res: cint = fclose(self.fp)
+  self.fp = nilptr
+  return fileresult(res == 0)
+end
+
+function filestream:seek(whence: #[optional_concept(stringview)]#,
+                         offset: #[optional_concept(integer)]#): (integer, stringview, integer)
+  if not self.fp then error('attempt to use a closed file') end
+  ## if whence.type.is_niltype then
+    local len: integer = ftell(self.fp)
+    return len, '', 0
+  ## else
+    ## if offset.type.is_niltype then
+    local offset: integer = 0
+    ## end
+    local op: cint
+    if whence == 'set' then op = SEEK_SET
+    elseif whence == 'end' then op = SEEK_END
+    elseif whence == 'cur' then op = SEEK_CUR
+    else error "invalid option '%s'" end
+    local len: integer, errmsg: stringview, status: integer
+    if fseek(self.fp, (@clong)(offset), op) == 0 then
+      len = ftell(self.fp)
+    else
+      len = -1
+      local success: boolean
+      success, errmsg, status = fileresult(false)
+    end
+    return len, errmsg, status
+  ## end
+end
+
+function filestream:setvbuf(mode: stringview, size: #[optional_concept(integer)]#)
+  ## if size.type.is_niltype then
+  local size: csize = 1024
+  ## end
+  if not self.fp then error('attempt to use a closed file') end
+  local op: cint
+  if mode == 'no' then op = _IONBF
+  elseif mode == 'full' then op = _IOFBF
+  elseif mode == 'line' then op = _IOLBF
+  else error('invalid mode for setvbuf') end
+  return fileresult(setvbuf(self.fp, nilptr, op, size) == 0)
+end
+
+local READ_CHUNK_SIZE <comptime> = 1024
+
+local function readline(ss: stringstream*, fp: FILEptr, chop: boolean): boolean
+  -- TODO: lock file on POSIX?
+  local NL: byte <comptime> = #[string.byte'\n']#
+  local c: cint
+  repeat
+    local nr: uint32 = 0
+    local buff: byte[0]* = ss:prepare(READ_CHUNK_SIZE) -- preallocate buffer space
+    while nr < READ_CHUNK_SIZE do -- read up to buffer limit
+      c = getc(fp)
+      if c == EOF or c == NL then -- end of line
+        break
+      end
+      buff[nr] = c
+      nr = nr + 1
+    end
+    ss:commit(nr)
+  until c == EOF or c == NL -- until end of line
+  if not chop and c == NL then -- want a newline and have one?
+    ss:addbyte(c) -- add ending newline to result
+  end
+  -- return ok if read something (either a newline or something else)
+  return (c == NL or ss.size > 0)
+end
+
+local function readchars(ss: stringstream*, fp: FILEptr, n: usize): boolean
+  local p: pointer = ss:prepare(n)
+  local nr: csize = fread(p, 1, n, fp)
+  ss:commit(nr)
+  return nr > 0
+end
+
+local function readall(ss: stringstream*, fp: FILEptr): boolean
+  repeat -- read in chunks
+    local p: pointer = ss:prepare(READ_CHUNK_SIZE)
+    local nr: csize = fread(p, 1, READ_CHUNK_SIZE, fp)
+    ss:commit(nr)
+  until nr < READ_CHUNK_SIZE
+  return true
+end
+
+function filestream:read(fmt: #[overload_concept{integer,stringview,niltype}]#): (string, stringview, integer)
+  --TODO: multiple arguments
+  if not self.fp then error('attempt to use a closed file') end
+  local ss: stringstream
+  local success: boolean
+  clearerr(self.fp)
+  ## if fmt.type.is_niltype then
+    success = readline(&ss, self.fp, true)
+  ## elseif fmt.type.is_arithmetic then
+    success = readchars(&ss, self.fp, fmt)
+  ## elseif fmt.type.is_stringview then
+    local c: byte = fmt.data[0]
+    if c == #[string.byte'*']# then -- skip optional '*' (for compatibility)
+      c = fmt.data[1]
+    end
+    -- TODO: handle 'n' to read number
+    if c == #[string.byte'l']# then -- line
+      success = readline(&ss, self.fp, true)
+    elseif c == #[string.byte'L']# then -- line with end-of-line
+      success = readline(&ss, self.fp, false)
+    elseif c == #[string.byte'a']# then -- entire file
+      success = readall(&ss, self.fp)
+    else
+      error('invalid read format')
+    end
+  ## end
+  local errmsg: stringview
+  local status: integer = 0
+  if ferror(self.fp) ~= 0 then
+    success, errmsg, status = fileresult(false)
+  end
+  local s: string
+  if success then
+    s = string.fromstringstream(ss)
+  else
+    ss:reset()
+  end
+  return s, errmsg, status
+end
+
+function filestream:write(s: stringview): (boolean, stringview, integer)
+  --TODO: multiple arguments
+  --TODO: return file itself
+  if not self.fp then error('attempt to use a closed file') end
+  local len: csize = #s
+  if fwrite(s, 1, len, self.fp) == len then
+    return true, '', 0
+  end
+  return fileresult(false)
+end
+
+function filestream:isopen(): boolean
+  return self.fp ~= nilptr
+end
+
+-- TODO: filestream:lines

@@ -37,7 +37,7 @@ primtypes.boolean     = types.BooleanType('boolean', 1)
 primtypes.varanys     = types.VaranysType('varanys')
 primtypes.table       = types.TableType('table')
 primtypes.nilptr      = types.NilptrType('nilptr', cpusize)
-primtypes.pointer     = types.PointerType(nil, primtypes.void)
+primtypes.pointer     = types.PointerType(primtypes.void)
 
 -- for C compability
 primtypes.cschar      = types.IntegralType('cschar', 1)
@@ -54,7 +54,7 @@ primtypes.culong      = types.IntegralType('culong', clongsize, true)
 primtypes.culonglong  = types.IntegralType('culonglong', 8, true)
 primtypes.csize       = types.IntegralType('csize', cpusize, true)
 primtypes.clongdouble = types.FloatType('clongdouble', 16, 36)
-primtypes.cstring     = types.PointerType(nil, primtypes.cchar)
+primtypes.cstring     = types.PointerType(primtypes.cchar)
 
 -- type aliases
 primtypes.integer  = primtypes.int64

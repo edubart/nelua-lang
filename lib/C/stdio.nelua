@@ -24,7 +24,7 @@ function C.fscanf(stream: FILE*, format: cstring, ...): cint <cimport'fscanf',no
 function C.sscanf(s: cstring, format: cstring, ...): cint <cimport'sscanf',nodecl> end
 
 function C.vscanf(format: cstring, ...): cint <cimport'vscanf',nodecl> end
-function C.vfscanf(s: FILE*, format: cstring, ...): cint <cimport'vfscanf',nodecl> end
+function C.vfscanf(stream: FILE*, format: cstring, ...): cint <cimport'vfscanf',nodecl> end
 function C.vsscanf(s: cstring, format: cstring, ...): cint <cimport'vsscanf',nodecl> end
 
 function C.printf(format: cstring, ...): cint <cimport'printf',nodecl> end
@@ -33,7 +33,7 @@ function C.sprintf(s: cstring, format: cstring, ...): cint <cimport'sprintf',nod
 function C.snprintf(s: cstring, maxlen: csize, format: cstring, ...): cint <cimport'snprintf',nodecl> end
 
 function C.vprintf(format: cstring, ...): cint <cimport'vprintf',nodecl> end
-function C.vfprintf(s: FILE*, format: cstring, ...): cint <cimport'vfprintf',nodecl> end
+function C.vfprintf(stream: FILE*, format: cstring, ...): cint <cimport'vfprintf',nodecl> end
 function C.vsprintf(s: cstring, format: cstring, ...): cint <cimport'vsprintf',nodecl> end
 function C.vsnprintf(s: cstring, maxlen: csize, format: cstring, ...): cint <cimport'vsnprintf',nodecl> end
 
@@ -57,7 +57,7 @@ function C.ungetc(c: cint, stream: FILE*): cint <cimport'ungetc',nodecl> end
 
 -- Direct input/output
 function C.fread(ptr: pointer, size: csize, n: csize, stream: FILE*): csize <cimport'fread',nodecl> end
-function C.fwrite(ptr: void*, size: csize, n: csize, s: FILE*): csize <cimport'fwrite',nodecl> end
+function C.fwrite(ptr: void*, size: csize, n: csize, sream: FILE*): csize <cimport'fwrite',nodecl> end
 
 -- File positioning
 function C.fgetpos(stream: FILE*, pos: fpos_t*): cint <cimport'fgetpos',nodecl> end
