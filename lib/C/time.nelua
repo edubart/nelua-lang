@@ -1,13 +1,15 @@
-## cinclude '<time.h>'
+##[[
+cinclude '<time.h>'
 
-##[=[cemit([[
-typedef struct timespec timespec_t;
+cemit([==[
 typedef struct tm tm_t;
-]],'declaration')]=]
+]==],'declaration')
 
-local time_t <cimport'time_t',nodecl> = @clong
-local clock_t <cimport'clock_t',nodecl> = @clong
+local neluatypes = require 'nelua.types'
+]]
 
+local clock_t <cimport'clock_t',nodecl> = #[neluatypes.IntegralType('clock_t', primtypes.clong.size)]#
+local time_t <cimport'time_t',nodecl> = #[neluatypes.IntegralType('time_t', primtypes.clong.size)]#
 local tm <cimport'tm_t',nodecl> = @record{
   tm_sec: cint,
   tm_min: cint,
@@ -19,7 +21,6 @@ local tm <cimport'tm_t',nodecl> = @record{
   tm_yday: cint,
   tm_isdst: cint
 }
-
 local timespec <cimport'timespec_t',nodecl> = @record {
   tv_sec: time_t,
   tv_nsec: clong
@@ -29,6 +30,7 @@ local timespec <cimport'timespec_t',nodecl> = @record {
 function C.clock(): clock_t <cimport'clock',nodecl> end
 function C.difftime(time1: time_t, time0: time_t): float64 <cimport'difftime',nodecl> end
 function C.mktime(tp: tm*): time_t <cimport'mktime',nodecl> end
+function C.strftime(s: cstring, maxsize: csize, format: cstring, tp: tm*): csize <cimport'strftime',nodecl> end
 function C.time(timer: time_t*): time_t <cimport'time',nodecl> end
 
 -- Conversion

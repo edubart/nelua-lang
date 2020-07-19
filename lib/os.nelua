@@ -3,15 +3,35 @@ require 'string'
 --------------------------------------------------------------------------------
 -- C imports
 
-## cinclude '<unistd.h>'
-## cinclude '<time.h>'
-## cinclude '<stdlib.h>'
-## cinclude '<stdio.h>'
-## cinclude '<string.h>'
-## cinclude '<locale.h>'
-## cinclude '<errno.h>'
+##[[
+cinclude '<unistd.h>'
+cinclude '<time.h>'
+cinclude '<stdlib.h>'
+cinclude '<stdio.h>'
+cinclude '<string.h>'
+cinclude '<locale.h>'
+cinclude '<errno.h>'
 
-local CLOCKS_PER_SEC: clong <cimport,nodecl>
+cemit([==[
+typedef struct tm tm_t;
+]==],'declaration')
+
+local neluatypes = require 'nelua.types'
+]]
+
+local clock_t <cimport,nodecl> = #[neluatypes.IntegralType('clock_t', primtypes.clong.size)]#
+local time_t <cimport,nodecl> = #[neluatypes.IntegralType('time_t', primtypes.clong.size)]#
+
+local tm <cimport'tm_t',nodecl> = @record {
+  tm_year: cint,
+  tm_mon: cint,
+  tm_mday: cint,
+  tm_hour: cint,
+  tm_min: cint,
+  tm_sec: cint,
+  tm_isdst: cint
+}
+local CLOCKS_PER_SEC: clock_t <cimport,nodecl>
 local LC_ALL: cint <cimport,nodecl>
 local LC_COLLATE: cint <cimport,nodecl>
 local LC_CTYPE: cint <cimport,nodecl>
@@ -21,7 +41,7 @@ local LC_TIME: cint <cimport,nodecl>
 local EXIT_SUCCESS: cint <cimport,nodecl>
 local EXIT_FAILURE: cint <cimport,nodecl>
 local errno: cint <cimport,nodecl>
-local function clock(): clong <cimport,nodecl> end
+local function clock(): clock_t <cimport,nodecl> end
 local function getenv(name: cstring): cstring <cimport,nodecl> end
 local function exit(status: cint) <cimport,nodecl> end
 local function mkstemp(s: cstring): cint <cimport,nodecl> end
@@ -32,66 +52,59 @@ local function strerror(errnum: cint): cstring <cimport,nodecl> end
 local function rename(old: cstring, new: cstring): cint <cimport,nodecl> end
 local function remove(pathname: cstring): cint <cimport,nodecl> end
 local function setlocale(category: cint, locale: cstring): cstring <cimport,nodecl> end
-local function ctime(tloc: pointer): clong <cimport'time',nodecl> end
+local function time(tloc: pointer): time_t <cimport,nodecl> end
+local function mktime(tp: tm*): time_t <cimport,nodecl> end
+local function localtime(timer: time_t*): tm* <cimport,nodecl> end
+local function strftime(s: cstring, maxsize: csize, format: cstring, tp: tm*): csize <cimport,nodecl> end
 
 --------------------------------------------------------------------------------
 -- os module
 
 global os = @record{}
 
-local function fileresult(status: cint): (boolean, string, integer)
-  if status == -1 then
-    return false, strerror(errno), errno
-  else
-    return true, '', 0
-  end
-end
-
 function os.clock(): number
   return clock() / CLOCKS_PER_SEC
 end
 
 function os.date(): string
-  --TODO: implement os date
-  return 'NIY (not implemented yet)'
+  --TODO: all the other options from Lua
+  local t: time_t = time(nilptr);
+  local ts: tm = localtime(&t)
+  local buf: cchar[250]
+  local size: csize = strftime(&buf[0], 250, "%c", &ts)
+  return &buf[0]
 end
 
 function os.difftime(t1: integer, t2: integer): integer
   return t2 - t1
 end
 
-function os.execute(command: string): (boolean, string, integer)
-  local status = system(command)
-  if status == -1 then
-    return fileresult(status)
-  end
-  return true,'exit',status
+function os.execute(command: #[overload_concept{stringview, boolean}]#)
+  ## if command.type.is_stringview then
+    errno = 0
+    local status: integer = system(command)
+    if status ~= 0 and errno ~= 0 then -- error with an errno?
+      return false, (@stringview)(strerror(errno)), errno
+    end
+    --TODO: translate status codes for POSIX system
+    return status == 0, 'exit', status
+  ## else
+    local status: cint = system(nilptr)
+    return status ~= 0
+  ## end
 end
 
-function os.execute_check(): boolean
-  local status = system(nilptr)
-  return status ~= 0
+function os.exit(code: #[overload_concept{integer,boolean,niltype}]#)
+  ## if code.type.is_arithmetic then
+    exit(code)
+  ## elseif code.type.is_boolean then
+    exit(code and EXIT_SUCCESS or EXIT_FAILURE)
+  ## else
+    exit(EXIT_SUCCESS)
+  ## end
 end
 
-function os.exit(code: integer)
-  exit(code)
-end
-
-function os.exit_boolean(code: boolean)
-  local ecode
-  if code then
-    ecode = EXIT_SUCCESS
-  else
-    ecode = EXIT_FAILURE
-  end
-  exit(ecode)
-end
-
-function os.exit_default()
-  exit(EXIT_SUCCESS)
-end
-
-function os.getenv(varname: string): string
+function os.getenv(varname: stringview): string
   local s = getenv(varname)
   if s then
     return s
@@ -100,44 +113,70 @@ function os.getenv(varname: string): string
   end
 end
 
-function os.remove(filename: string): (boolean, string, integer)
-  return fileresult(remove(filename))
-end
-
-function os.rename(oldname: string, newname: string): (boolean, string, integer)
-  return fileresult(rename(oldname, newname))
-end
-
-function os.setlocale(locale: string, category: string): string
-  local cat
-  if category == 'all' then cat = LC_ALL
-  elseif category == 'collate' then cat = LC_COLLATE
-  elseif category == 'ctype' then cat = LC_CTYPE
-  elseif category == 'monetary' then cat = LC_MONETARY
-  elseif category == 'numeric' then cat = LC_NUMERIC
-  elseif category == 'time' then cat = LC_TIME
-  else
-    --TODO: string format with option name
-    error "invalid option '%s'"
+function os.remove(filename: stringview): (boolean, stringview, integer)
+  if remove(filename) == -1 then
+    return false, strerror(errno), errno
   end
-  local s = setlocale(cat, locale)
-  if s then
-    return s
-  else
-    return ''
-  end
+  return true, '', 0
 end
 
-function os.setlocale_default(locale: string): string
-  return os.setlocale(locale, 'all')
+function os.rename(oldname: stringview, newname: stringview): (boolean, stringview, integer)
+  if rename(oldname, newname) == -1 then
+    return false, strerror(errno), errno
+  end
+  return true, '', 0
 end
 
-function os.time_default(): integer
-  --TODO: optional table argument
-  local t = ctime(nilptr)
-  if t == -1 then
-    error 'time result cannot be represented in this installation'
-  end
+function os.setlocale(locale: stringview, category: #[optional_concept(stringview)]#): string
+  ## if category.type.is_niltype then
+    return os.setlocale(locale, 'all')
+  ## else
+    local cat: cint
+    if category == 'all' then cat = LC_ALL
+    elseif category == 'collate' then cat = LC_COLLATE
+    elseif category == 'ctype' then cat = LC_CTYPE
+    elseif category == 'monetary' then cat = LC_MONETARY
+    elseif category == 'numeric' then cat = LC_NUMERIC
+    elseif category == 'time' then cat = LC_TIME
+    else
+      --TODO: string format with option name
+      error "invalid option '%s'"
+    end
+    local s: cstring = setlocale(cat, locale)
+    if s then
+      return s
+    else
+      return ''
+    end
+  ## end
+end
+
+global os_time_desc = @record {
+  year: integer, month: integer, day: integer,
+  hour: integer, min: integer, sec: integer,
+  isdst: boolean
+}
+
+function os.time(desc: #[optional_concept(os_time_desc)]#): integer
+  local t: time_t
+  ## if desc.type.is_niltype then
+    t = time(nilptr)
+    if t == -1 then
+      error 'time result cannot be represented in this installation'
+    end
+  ## else
+    --TODO: change desc to table and update fields with normalize values
+    --TODO: make default hour 12
+    local ts: tm
+    ts.tm_year = desc.year - 1900
+    ts.tm_mon = desc.month - 1
+    ts.tm_mday = desc.day
+    ts.tm_hour = desc.hour
+    ts.tm_min = desc.min
+    ts.tm_sec = desc.sec
+    ts.tm_isdst = desc.isdst and 1 or 0
+    t = mktime(&ts)
+  ## end
   return t
 end
 
@@ -146,7 +185,7 @@ function os.tmpname(): string
   local TMPBUFSIZE <comptime> = 32
   local buf: cchar[TMPBUFSIZE]
   strncpy(&buf[0], "/tmp/lua_XXXXXX", TMPBUFSIZE)
-  local fd = mkstemp(&buf[0])
+  local fd: cint = mkstemp(&buf[0])
   if fd == -1 then
     error "unable to generate a unique filename"
   end
