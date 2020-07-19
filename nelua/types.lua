@@ -1354,6 +1354,17 @@ function PointerType.has_pointer()
   return true
 end
 
+PointerType.unary_operators.len = function(_, lattr)
+  if lattr.type.is_cstring then
+    local lval = lattr.value
+    local reval
+    if lval then
+      reval = bn.new(#lval)
+    end
+    return primtypes.isize, reval
+  end
+end
+
 --------------------------------------------------------------------------------
 local StringViewType = typeclass(RecordType)
 types.StringViewType = StringViewType

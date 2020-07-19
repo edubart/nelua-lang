@@ -1181,8 +1181,12 @@ function visitors.UnaryOp(_, node, emitter)
   assert(op)
   local surround = not node.attr.inconditional
   if surround then emitter:add('(') end
-  assert(traits.is_string(op))
-  emitter:add(op, argnode)
+  if traits.is_string(op) then
+    emitter:add(op, argnode)
+  else
+    local builtin = cbuiltins.operators[opname]
+    builtin(node, emitter, argnode)
+  end
   if surround then emitter:add(')') end
 end
 

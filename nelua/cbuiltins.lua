@@ -676,6 +676,18 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
   end
 end
 
+function operators.len(_, emitter, argnode)
+  local type = argnode.attr.type
+  if type.is_stringview then
+    emitter:add('((intptr_t)(', argnode, ').size)')
+  elseif type.is_cstring then
+    emitter.context:add_include('<string.h>')
+    emitter:add('((intptr_t)strlen(', argnode, '))')
+  else --luacov:disable
+    argnode:errorf('not implemented')
+  end --luacov:enable
+end
+
 function operators.range(node, emitter, lnode, rnode)
   local subtype = node.attr.type.subtype
   emitter:add_ctypecast(node.attr.type)

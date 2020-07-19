@@ -1178,7 +1178,7 @@ it("any type", function()
   ]], "type check fail")
 end)
 
-it("cstring and string conversions", function()
+it("cstring and string", function()
   assert.run_c([[
     local a = 'hello'
     print(a)
@@ -1188,14 +1188,18 @@ it("cstring and string conversions", function()
     do
       local c: cstring = 'hello'
       local s: stringview = (@stringview)(c)
-      --assert(s.data == c)
+      assert(#s == 5)
+      assert(#c == 5)
     end
 
     do
       local s: stringview = 'hello'
       local c: cstring = (@cstring)(s)
-      --assert(s.data == c)
+      assert(#s == 5)
+      assert(#c == 5)
     end
+
+    assert(#(@cstring)('hello') == 5)
   ]], "hello\nhello")
 end)
 

@@ -1071,7 +1071,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   if not symbol then
     local symname = string.format('%s.%s', objtype.nick or objtype.name, name)
     symbol = Symbol.promote_attr(attr, symname, node)
-    symbol.codename = context:choose_codename(string.format('%s_%s', objtype.codename, name))
+    symbol.codename = context:choose_codename(string.format('%s_%s', objtype.nick or objtype.name, name))
     symbol:link_node(parentnode)
     if infuncdef then
       -- declaration of record global function
