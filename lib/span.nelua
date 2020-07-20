@@ -7,7 +7,7 @@
 -- This type is specially useful for making functions with arguments that
 -- are agnostic to the input container type.
 
-## local make_span = generalize(function(T, allocator)
+## local make_span = generalize(function(T)
   ## staticassert(traits.is_type(T), "invalid type '%s", T)
   ## staticassert(T.size > 0, "spans cannot be of '%s'", T)
   local T = @#[T]#

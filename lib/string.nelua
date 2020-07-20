@@ -1,6 +1,6 @@
 require 'span'
 require 'memory'
-require 'stringstream'
+require 'stringbuffer'
 require 'allocators.gc'
 
 local allocator = @gc_allocator
@@ -64,19 +64,16 @@ function string.fromcstring(s: cstring): string <inline>
   return self
 end
 
-function string.fromstringstream(ss: stringstream*): string
-  if unlikely(ss.size == 0) then
-    ss:reset()
+function stringbuffer:promotestring(): string
+  if unlikely(self.size == 0) then
+    self:reset()
     return (@string){}
   end
-  local size: usize = ss.size
-  local data: span(byte) = allocator.spanrealloc(ss.data, size + 1) -- shrink
+  local size: usize = self.size
+  local data: span(byte) = allocator.spanrealloc(self.data, size + 1) -- shrink
   data[size] = 0 -- cstring line ending
-  $ss = {} -- destroy
-  return (@string) {
-    data = data.data,
-    size = size
-  }
+  $self = {} -- destroy
+  return (@string){data = data.data, size = size}
 end
 
 --[[
@@ -521,7 +518,7 @@ function string.format(fmt: stringview, arg1: auto): string
   local L_ESC: byte <comptime> = #[string.byte'%']#
   local MAX_ITEM <comptime> = 120
   local pos: usize = 0
-  local b: stringstream
+  local b: stringbuffer
   local argi: integer = 0
   while pos < fmt.size do
     local c: byte = fmt.data[pos]
@@ -606,5 +603,5 @@ function string.format(fmt: stringview, arg1: auto): string
       end
     end
   end
-  return string.fromstringstream(b)
+  return b:promotestring()
 end

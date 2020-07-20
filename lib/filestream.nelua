@@ -1,4 +1,4 @@
-require 'stringstream'
+require 'stringbuffer'
 require 'string'
 
 --------------------------------------------------------------------------------
@@ -113,7 +113,7 @@ end
 
 local READ_CHUNK_SIZE <comptime> = 1024
 
-local function readline(ss: stringstream*, fp: FILEptr, chop: boolean): boolean
+local function readline(ss: stringbuffer*, fp: FILEptr, chop: boolean): boolean
   -- TODO: lock file on POSIX?
   local NL: byte <comptime> = #[string.byte'\n']#
   local c: cint
@@ -137,14 +137,14 @@ local function readline(ss: stringstream*, fp: FILEptr, chop: boolean): boolean
   return (c == NL or ss.size > 0)
 end
 
-local function readchars(ss: stringstream*, fp: FILEptr, n: usize): boolean
+local function readchars(ss: stringbuffer*, fp: FILEptr, n: usize): boolean
   local p: pointer = ss:prepare(n)
   local nr: csize = fread(p, 1, n, fp)
   ss:commit(nr)
   return nr > 0
 end
 
-local function readall(ss: stringstream*, fp: FILEptr): boolean
+local function readall(ss: stringbuffer*, fp: FILEptr): boolean
   repeat -- read in chunks
     local p: pointer = ss:prepare(READ_CHUNK_SIZE)
     local nr: csize = fread(p, 1, READ_CHUNK_SIZE, fp)
@@ -156,7 +156,7 @@ end
 function filestream:read(fmt: #[overload_concept{integer,stringview,niltype}]#): (string, stringview, integer)
   --TODO: multiple arguments
   if not self.fp then error('attempt to use a closed file') end
-  local ss: stringstream
+  local ss: stringbuffer
   local success: boolean
   clearerr(self.fp)
   ## if fmt.type.is_niltype then
@@ -186,7 +186,7 @@ function filestream:read(fmt: #[overload_concept{integer,stringview,niltype}]#):
   end
   local s: string
   if success then
-    s = string.fromstringstream(ss)
+    s = ss:promotestring()
   else
     ss:reset()
   end
