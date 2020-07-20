@@ -22,12 +22,12 @@ require 'span'
 require 'memory'
 require 'allocators.generic'
 
--- Constants used in the slot pool,
+-- Constants used in the slot pool.
 local SLOT_SHIFT <comptime> = 32
 local SLOT_MASK <comptime> = (1 << SLOT_SHIFT) - 1
 local INIT_SIZE <comptime> = 64
 
--- Auxiliary class to allocate slot ids .
+-- Auxiliary class to allocate slot ids.
 local SlotPool = @record {
   size: uint32, -- size of the slot pool
   queue_top: uint32, -- points to the next entry in the free queue
@@ -185,7 +185,7 @@ end
     return slot_id, &self.items[slot_index]
   end
 
-  -- Allocate a new resource in the pool returning initializing from `v`.
+  -- Allocate a new resource in the pool returning its id, initializes the contents from `v`.
   function ResourcePoolT:allocinit(v: T): uint64 <inline>
     local id: uint64, res: T* = self:alloc()
     $res = memory.moveval(&v)

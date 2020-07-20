@@ -36,7 +36,6 @@ local function atexit(func: function()): cint <cimport,cinclude'<stdlib.h>',node
 -- filestream
 
 global filestream = @record{
-  fp: FILEptr,
   id: uint64
 }
 ## filestream.value.is_filestream = true
@@ -55,7 +54,7 @@ local function free_pool() pool:reset() end
 atexit(free_pool)
 
 function filestream._from_fp(fp: FILEptr): filestream
-  return filestream{fp = fp, id = pool:allocinit(fp)}
+  return filestream{id = pool:allocinit(fp)}
 end
 
 function filestream:_get_fp(): FILEptr
