@@ -39,9 +39,6 @@ function io.close(file: #[concept(function(x)
   return nil, 'value type is not an addressable `filestream` or `niltype`'
 end)]#)
   ## if file.type.is_niltype then
-    if io.stdout.fp == stdout then
-      return false, 'cannot close standard file', -1
-    end
     return io.stdout:close()
   ## else
     return file:close()

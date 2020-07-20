@@ -44,8 +44,13 @@ end
 
 do -- io.close for default output
   ok, err = io.close()
-  assert(not ok)
+  assert(not ok and err == "cannot close standard file")
+  ok, err = io.stdin:close()
   assert(err == "cannot close standard file")
+  ok, err = io.stdout:close()
+  assert(not ok and err == "cannot close standard file")
+  ok, err = io.stderr:close()
+  assert(not ok and err == "cannot close standard file")
 end
 
 do -- io.tmpfile

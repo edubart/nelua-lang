@@ -6,6 +6,9 @@ require 'string'
 
 local FILEptr = @pointer
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
+local stdin: FILEptr <cimport,cinclude'<stdio.h>',nodecl>
+local stdout: FILEptr <cimport,cinclude'<stdio.h>',nodecl>
+local stderr: FILEptr <cimport,cinclude'<stdio.h>',nodecl>
 local SEEK_SET: cint <const,cimport,cinclude'<stdio.h>',nodecl>
 local SEEK_END: cint <const,cimport,cinclude'<stdio.h>',nodecl>
 local SEEK_CUR: cint <const,cimport,cinclude'<stdio.h>',nodecl>
@@ -60,6 +63,9 @@ end
 
 function filestream:close(): (boolean, stringview, integer)
   if not self.fp then error('attempt to use a closed file') end
+  if self.fp == stdout or self.fp == stderr or self.fp == stdin then
+    return false, 'cannot close standard file', -1
+  end
   local res: cint = fclose(self.fp)
   self.fp = nilptr
   return fileresult(res == 0)
