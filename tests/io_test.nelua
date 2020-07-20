@@ -159,3 +159,13 @@ do -- os.rename, os.remove
   assert(os.remove('test3.tmp'))
   assert(os.remove('test2.tmp'))
 end
+
+do -- tostring
+  file = io.open('LICENSE', 'r')
+  assert(tostring(file):sub(1,8) == 'file (0x')
+  local file2 = file
+  file:close()
+  assert(not file2:isopen())
+  assert(tostring(file) == 'file (closed)')
+  assert(tostring(file2) == 'file (closed)')
+end

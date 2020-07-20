@@ -16,9 +16,9 @@ local function tmpfile(): FILEptr <cimport,cinclude'<stdio.h>',nodecl> end
 
 global io = @record{}
 
-global io.stderr: filestream = {fp = stderr}
-global io.stdout: filestream = {fp = stdout}
-global io.stdin: filestream = {fp = stdin}
+global io.stderr: filestream = filestream._from_fp(stderr)
+global io.stdout: filestream = filestream._from_fp(stdout)
+global io.stdin: filestream = filestream._from_fp(stdin)
 
 function io.open(filename: stringview,
                  mode: #[optional_concept(stringview)]#) : (filestream, stringview, integer)
@@ -74,7 +74,7 @@ function io.tmpfile(): (filestream, stringview, integer)
   if not fp then
     return filestream{}, strerror(errno), errno
   end
-  return filestream{fp=fp}, '', 0
+  return filestream._from_fp(fp), '', 0
 end
 
 function io.read(fmt: #[overload_concept{integer,stringview,niltype}]#): (string, stringview, integer)

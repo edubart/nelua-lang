@@ -1,5 +1,7 @@
 require 'stringbuffer'
 require 'string'
+require 'resourcepool'
+require 'allocators.generic'
 
 --------------------------------------------------------------------------------
 -- C imports
@@ -28,12 +30,14 @@ local function ferror(fp: FILEptr): cint <cimport,cinclude'<stdio.h>',nodecl> en
 local function setvbuf(fp: FILEptr, buf: cstring, modes: cint, n: csize): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function clearerr(fp: FILEptr): void <cimport,cinclude'<stdio.h>',nodecl> end
 local function getc(fp: FILEptr): cint <cimport,cinclude'<stdio.h>',nodecl> end
+local function atexit(func: function()): cint <cimport,cinclude'<stdlib.h>',nodecl> end
 
 --------------------------------------------------------------------------------
 -- filestream
 
 global filestream = @record{
-  fp: FILEptr
+  fp: FILEptr,
+  id: uint64
 }
 ## filestream.value.is_filestream = true
 
@@ -42,6 +46,22 @@ local function fileresult(success: boolean): (boolean, stringview, integer)
     return false, strerror(errno), errno
   end
   return true, '', 0
+end
+
+local pool: resourcepool(FILEptr, generic_allocator)
+
+-- free the pool on exit
+local function free_pool() pool:reset() end
+atexit(free_pool)
+
+function filestream._from_fp(fp: FILEptr): filestream
+  return filestream{fp = fp, id = pool:allocinit(fp)}
+end
+
+function filestream:_get_fp(): FILEptr
+  local p: FILEptr* = pool:get(self.id)
+  if p then return $p end
+  return nilptr
 end
 
 function filestream.open(filename: stringview, mode: #[optional_concept(stringview)]#) : (filestream, stringview, integer)
@@ -53,29 +73,32 @@ function filestream.open(filename: stringview, mode: #[optional_concept(stringvi
   if not fp then
     return filestream{}, strerror(errno), errno
   end
-  return filestream{fp = fp}, '', 0
+  return filestream._from_fp(fp), '', 0
 end
 
 function filestream:flush(): (boolean, stringview, integer)
-  if not self.fp then error('attempt to use a closed file') end
-  return fileresult(fflush(self.fp) == 0)
+  local fp: FILEptr = self:_get_fp()
+  if not fp then error('attempt to use a closed file') end
+  return fileresult(fflush(fp) == 0)
 end
 
 function filestream:close(): (boolean, stringview, integer)
-  if not self.fp then error('attempt to use a closed file') end
-  if self.fp == stdout or self.fp == stderr or self.fp == stdin then
+  local fp: FILEptr = self:_get_fp()
+  if not fp then error('attempt to use a closed file') end
+  if fp == stdout or fp == stderr or fp == stdin then
     return false, 'cannot close standard file', -1
   end
-  local res: cint = fclose(self.fp)
-  self.fp = nilptr
+  local res: cint = fclose(fp)
+  pool:free(self.id)
   return fileresult(res == 0)
 end
 
 function filestream:seek(whence: #[optional_concept(stringview)]#,
                          offset: #[optional_concept(integer)]#): (integer, stringview, integer)
-  if not self.fp then error('attempt to use a closed file') end
+  local fp: FILEptr = self:_get_fp()
+  if not fp then error('attempt to use a closed file') end
   ## if whence.type.is_niltype then
-    local len: integer = ftell(self.fp)
+    local len: integer = ftell(fp)
     return len, '', 0
   ## else
     ## if offset.type.is_niltype then
@@ -87,8 +110,8 @@ function filestream:seek(whence: #[optional_concept(stringview)]#,
     elseif whence == 'cur' then op = SEEK_CUR
     else error "invalid option '%s'" end
     local len: integer, errmsg: stringview, status: integer
-    if fseek(self.fp, (@clong)(offset), op) == 0 then
-      len = ftell(self.fp)
+    if fseek(fp, (@clong)(offset), op) == 0 then
+      len = ftell(fp)
     else
       len = -1
       local success: boolean
@@ -102,13 +125,14 @@ function filestream:setvbuf(mode: stringview, size: #[optional_concept(integer)]
   ## if size.type.is_niltype then
   local size: csize = 1024
   ## end
-  if not self.fp then error('attempt to use a closed file') end
+  local fp: FILEptr = self:_get_fp()
+  if not fp then error('attempt to use a closed file') end
   local op: cint
   if mode == 'no' then op = _IONBF
   elseif mode == 'full' then op = _IOFBF
   elseif mode == 'line' then op = _IOLBF
   else error('invalid mode for setvbuf') end
-  return fileresult(setvbuf(self.fp, nilptr, op, size) == 0)
+  return fileresult(setvbuf(fp, nilptr, op, size) == 0)
 end
 
 local READ_CHUNK_SIZE <comptime> = 1024
@@ -155,14 +179,15 @@ end
 
 function filestream:read(fmt: #[overload_concept{integer,stringview,niltype}]#): (string, stringview, integer)
   --TODO: multiple arguments
-  if not self.fp then error('attempt to use a closed file') end
+  local fp: FILEptr = self:_get_fp()
+  if not fp then error('attempt to use a closed file') end
   local ss: stringbuffer
   local success: boolean
-  clearerr(self.fp)
+  clearerr(fp)
   ## if fmt.type.is_niltype then
-    success = readline(&ss, self.fp, true)
+    success = readline(&ss, fp, true)
   ## elseif fmt.type.is_arithmetic then
-    success = readchars(&ss, self.fp, fmt)
+    success = readchars(&ss, fp, fmt)
   ## elseif fmt.type.is_stringview then
     local c: byte = fmt.data[0]
     if c == #[string.byte'*']# then -- skip optional '*' (for compatibility)
@@ -170,18 +195,18 @@ function filestream:read(fmt: #[overload_concept{integer,stringview,niltype}]#):
     end
     -- TODO: handle 'n' to read number
     if c == #[string.byte'l']# then -- line
-      success = readline(&ss, self.fp, true)
+      success = readline(&ss, fp, true)
     elseif c == #[string.byte'L']# then -- line with end-of-line
-      success = readline(&ss, self.fp, false)
+      success = readline(&ss, fp, false)
     elseif c == #[string.byte'a']# then -- entire file
-      success = readall(&ss, self.fp)
+      success = readall(&ss, fp)
     else
       error('invalid read format')
     end
   ## end
   local errmsg: stringview
   local status: integer = 0
-  if ferror(self.fp) ~= 0 then
+  if ferror(fp) ~= 0 then
     success, errmsg, status = fileresult(false)
   end
   local s: string
@@ -196,16 +221,26 @@ end
 function filestream:write(s: stringview): (boolean, stringview, integer)
   --TODO: multiple arguments
   --TODO: return file itself
-  if not self.fp then error('attempt to use a closed file') end
+  local fp: FILEptr = self:_get_fp()
+  if not fp then error('attempt to use a closed file') end
   local len: csize = #s
-  if fwrite(s, 1, len, self.fp) == len then
+  if fwrite(s, 1, len, fp) == len then
     return true, '', 0
   end
   return fileresult(false)
 end
 
 function filestream:isopen(): boolean
-  return self.fp ~= nilptr
+  return pool:has(self.id)
+end
+
+function filestream:__tostring(): string
+  local fp: FILEptr = self:_get_fp()
+  if not fp then
+    return 'file (closed)'
+  else
+    return string.format('file (%p)', fp)
+  end
 end
 
 -- TODO: filestream:lines

@@ -108,6 +108,7 @@ build = {
       ['lib/vector.nelua']         = 'lib/vector.nelua',
       ['lib/string.nelua']         = 'lib/string.nelua',
       ['lib/stringbuffer.nelua']   = 'lib/stringbuffer.nelua',
+      ['lib/resourcepool.nelua']   = 'lib/resourcepool.nelua',
       ['lib/filestream.nelua']     = 'lib/filestream.nelua',
       ['lib/table.nelua']          = 'lib/table.nelua',
       ['lib/traits.nelua']         = 'lib/traits.nelua',

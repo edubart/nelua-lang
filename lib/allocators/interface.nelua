@@ -6,7 +6,7 @@
     local s: span(T)
     if likely(size > 0_u) then
       s.data = (@T[0]*)(allocator.alloc(size * #T))
-      check(s.data, 'allocator.spanalloc: allocation fail')
+      assert(s.data, 'allocator.spanalloc: allocation fail')
       s.size = size
     end
     return s
@@ -16,7 +16,7 @@
     local s: span(T)
     if likely(size > 0_u) then
       s.data = (@T[0]*)(allocator.alloc0(size * #T))
-      check(s.data, 'allocator.spanalloc0: allocation fail')
+      assert(s.data, 'allocator.spanalloc0: allocation fail')
       s.size = size
     end
     return s
@@ -30,7 +30,7 @@
       s.size = 0
     else
       s.data = (@T[0]*)(allocator.realloc(s.data, size * #T))
-      check(s.data, 'allocator.spanrealloc: allocation fail')
+      assert(s.data, 'allocator.spanrealloc: allocation fail')
       s.size = size
     end
     return s
@@ -44,7 +44,7 @@
       s.size = 0
     else
       s.data = (@T[0]*)(allocator.realloc0(s.data, size * #T, s.size * #T))
-      check(s.data, 'allocator.spanrealloc0: allocation fail')
+      assert(s.data, 'allocator.spanrealloc0: allocation fail')
       s.size = size
     end
     return s
