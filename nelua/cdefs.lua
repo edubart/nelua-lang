@@ -111,7 +111,6 @@ cdefs.binary_ops = {
   ['idiv'] = true,
   ['pow'] = true,
   ['mod'] = true,
-  ['range'] = true,
   --TODO: concat
 }
 

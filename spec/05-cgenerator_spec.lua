@@ -1207,17 +1207,6 @@ it("cstring and string", function()
   ]], "hello\nhello")
 end)
 
-it("ranges", function()
-  assert.run_c([[
-    local a: range(integer)
-    assert(a.low == 0 and a.high == 0)
-    a = (2:3)
-    assert(a.low == 2 and a.high == 3)
-    a = (-1:0)
-    assert(a.low == -1 and a.high == 0)
-  ]])
-end)
-
 it("arrays", function()
   assert.generate_c(
     "local a: array(boolean, 10)",

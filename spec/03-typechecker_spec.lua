@@ -765,21 +765,6 @@ it("spans", function()
   assert.analyze_error([[require 'span' local a: span(void) ]], 'spans cannot be of')
 end)
 
-it("ranges", function()
-  assert.analyze_ast([[
-    local a: range(integer)
-    local low, high = a.low, a.high
-    local b = 1:2
-    low, high = b.low, b.high
-  ]])
-  assert.ast_type_equals([[
-    local a = 1_u8:2_u16
-  ]],[[
-    local a: range(uint16) = 1_u8:2_u16
-  ]])
-  assert.analyze_error([[local a: range(stringview) ]], 'is not an integral type')
-end)
-
 it("arrays", function()
   --assert.analyze_ast([[local a: array(integer, (2 << 1)) ]])
   assert.analyze_ast([[local N <comptime> = 10; local a: array(integer, N) ]])

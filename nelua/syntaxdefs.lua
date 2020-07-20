@@ -370,8 +370,8 @@ local function get_parser()
     expr6  <- ({} ''->'BinaryOp'  {| expr7  (op_band     expr7 )* |})    -> to_chain_binary_op
     expr7  <- ({} ''->'BinaryOp'  {| expr8  (op_bshift   expr8 )* |})    -> to_chain_binary_op
     expr8  <- ({} ''->'BinaryOp'     expr9  (op_concat   expr8 )?   )    -> to_binary_op
-    expr9  <- ({} ''->'BinaryOp'     expr10 (op_range    expr9 )?   )    -> to_binary_op
-    expr10  <- ({} ''->'BinaryOp' {| expr11 (op_add      expr11)* |})    -> to_chain_binary_op
+    expr9  <- expr10 -- (free op slot, range operation was removed from here)
+    expr10 <- ({} ''->'BinaryOp'  {| expr11 (op_add      expr11)* |})    -> to_chain_binary_op
     expr11 <- ({} ''->'BinaryOp'  {| expr12 (op_mul      expr12)* |})    -> to_chain_binary_op
     expr12 <- ({} ''->'UnaryOp'   {| op_unary* |} expr13)                -> to_chain_unary_op
     expr13 <- ({} ''->'BinaryOp' simple_expr (op_pow      expr12)?   )   -> to_binary_op
@@ -466,7 +466,6 @@ local function get_parser()
       record_type /
       enum_type /
       array_type /
-      range_type /
       pointer_type /
       generic_type /
       primtype /
@@ -500,10 +499,6 @@ local function get_parser()
       eRCURLY) -> to_astnode
     enumfield <- ({} '' -> 'EnumFieldType'
         name (%ASSIGN eexpr)?
-      ) -> to_astnode
-    range_type <- (
-      {} 'range' -> 'RangeType'
-        %LPAREN etypexpr eRPAREN
       ) -> to_astnode
     array_type <- (
       {} 'array' -> 'ArrayType'
@@ -563,7 +558,6 @@ local function get_parser()
                   op_deref
     op_deref  <-  %DEREF -> 'deref'
     op_pow    <-  %POW -> 'pow'
-    op_range  <-  %COLON -> 'range' ![({"']
   ]])
 
   -- syntax expected captures with errors

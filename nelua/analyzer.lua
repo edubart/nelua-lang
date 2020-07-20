@@ -604,19 +604,6 @@ function visitors.EnumType(context, node)
   attr.value = types.EnumType(node, subtype, fields)
 end
 
-function visitors.RangeType(context, node)
-  local attr = node.attr
-  if attr.type then return end
-  local subtypenode = node[1]
-  context:traverse_node(subtypenode)
-  local subtype = subtypenode.attr.value
-  if not subtype.is_integral then
-    subtypenode:raisef("range subtype '%s' is not an integral type", subtype)
-  end
-  attr.type = primtypes.type
-  attr.value = types.RangeType(node, subtype)
-end
-
 function visitors.ArrayType(context, node)
   local attr = node.attr
   if attr.type then return end

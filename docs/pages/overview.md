@@ -202,7 +202,7 @@ Global symbols are visible in other source files, they can only be declared in t
 
 ```nelua
 global global_a = 1
-global function f()
+global function global_f()
 end
 ```
 
@@ -552,17 +552,6 @@ local i: pointer(integer) -- pointer to an integer
 
 -- syntax sugar
 local i: integer*
-```
-
-### Range
-
-Ranges are used to specifying ranges for spans.
-
-```nelua
-local ra = 1:10
-print(ra.low, ra.high) -- outputs: 1 10
-local rb: range(integer) = 0:100
-print(rb.low, rb.high) -- outputs: 0 100
 ```
 
 ### Span

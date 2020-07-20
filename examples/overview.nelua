@@ -301,13 +301,6 @@ do -- Record
   print(d.name, d.age)
 end
 
-do -- Range
-  local ra = 1:10
-  print(ra.low, ra.high) -- outputs: 1 10
-  local rb: range(integer) = 0:100
-  print(rb.low, rb.high) -- outputs: 0 100
-end
-
 do -- Span
   local arr = (@integer[4]) {1,2,3,4}
   local s: span(integer) = &arr

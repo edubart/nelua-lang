@@ -1414,13 +1414,6 @@ describe("type expression", function()
           { n.IdDecl{'p', n.PointerType{n.PointerType{n.Type{'integer'}}}}}
     }}})
   end)
-  it("range type", function()
-    assert.parse_ast(nelua_parser, "local r: range(integer)",
-      n.Block{{
-        n.VarDecl{'local',
-          { n.IdDecl{'r', n.RangeType{n.Type{'integer'}}}}
-    }}})
-  end)
   it("generic type", function()
     assert.parse_ast(nelua_parser, "local r: somegeneric(integer, 4)",
       n.Block{{

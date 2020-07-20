@@ -688,16 +688,6 @@ function operators.len(_, emitter, argnode)
   end --luacov:enable
 end
 
-function operators.range(node, emitter, lnode, rnode)
-  local subtype = node.attr.type.subtype
-  emitter:add_ctypecast(node.attr.type)
-  emitter:add('{')
-  emitter:add_val2type(subtype, lnode)
-  emitter:add(',')
-  emitter:add_val2type(subtype, rnode)
-  emitter:add('}')
-end
-
 local inlines = {}
 cbuiltins.inlines = inlines
 

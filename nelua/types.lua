@@ -678,11 +678,6 @@ local function integral_shift_operation(ltype, rtype)
   return ltype
 end
 
-local function integral_range_operation(ltype, rtype, lattr, rattr)
-  local subtype = integral_arithmetic_operation(ltype, rtype, lattr, rattr)
-  return types.RangeType(nil, subtype)
-end
-
 local function make_integral_binary_opfunc(optypefunc, opvalfunc)
   return function(ltype, rtype, lattr, rattr)
     local retype, err = optypefunc(ltype, rtype, lattr, rattr)
@@ -779,8 +774,6 @@ IntegralType.binary_operators.shr = make_integral_binary_opfunc(integral_shift_o
   end
   return t:normalize_value(a >> b)
 end)
-
-IntegralType.binary_operators.range = integral_range_operation
 
 --------------------------------------------------------------------------------
 local FloatType = typeclass(ArithmeticType)
@@ -1437,33 +1430,6 @@ StringViewType.binary_operators.concat = function(ltype, rtype, lattr, rattr)
     end
     return ltype, reval
   end
-end
-
---------------------------------------------------------------------------------
-local RangeType = typeclass(RecordType)
-types.RangeType = RangeType
-RangeType.is_range = true
-
-function RangeType:_init(node, subtype)
-  local fields = {
-    {name = 'low', type = subtype},
-    {name = 'high', type = subtype}
-  }
-  RecordType._init(self, node, fields)
-  self.name = 'range'
-  self:set_codename(subtype.codename .. '_range')
-  self.metatype = MetaType()
-  self.subtype = subtype
-end
-
-function RangeType:is_equal(type)
-  return type.name == self.name and
-         getmetatable(type) == getmetatable(self) and
-         type.subtype == self.subtype
-end
-
-function RangeType:typedesc()
-  return sstream(self.name, '(', self.subtype, ')'):tostring()
 end
 
 --------------------------------------------------------------------------------
