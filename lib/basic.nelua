@@ -1,30 +1,23 @@
--- Core global functions
+-- Nelua global basic functions
 
---------------------------------------------------------------------
--- Nelua basic functions
-
-##[[
-cemit([=[#ifdef __GNUC__
+-- C imports
+##[[cemit([=[#ifdef __GNUC__
 #define nelua_likely(x) __builtin_expect(x, 1)
 #define nelua_unlikely(x) __builtin_expect(x, 0)
 #else
 #define nelua_likely(x) (x)
 #define nelua_unlikely(x) (x)
 #endif
-]=], 'declaration')
-]]
-
-global function likely(x: boolean): boolean <cimport 'nelua_likely', nodecl> end
-global function unlikely(x: boolean): boolean <cimport 'nelua_unlikely', nodecl> end
-
---------------------------------------------------------------------------------
--- Lua 5.4 core functions
-
+]=], 'declaration')]]
 local FILE <cimport,nodecl,cinclude'<stdio.h>'> = @record{}
 local function fwrite(ptr: void*, size: csize, n: csize, s: FILE*): csize <cimport'fwrite',nodecl,cinclude'<stdio.h>'> end
 local function fputc(c: cint, stream: FILE*): cint <cimport,nodecl,cinclude'<stdio.h>'> end
 local function abort(): void <cimport,nodecl,cinclude'<stdlib.h>'> end
 local stderr: FILE* <cimport,nodecl,cinclude'<stdio.h>'>
+
+
+global function likely(x: boolean): boolean <cimport 'nelua_likely', nodecl> end
+global function unlikely(x: boolean): boolean <cimport 'nelua_unlikely', nodecl> end
 
 global function panic(msg: stringview) <noreturn>
   fwrite(msg.data, msg.size, 1, stderr)
@@ -131,5 +124,6 @@ end
 -- require is implemented by the nelua compiler
 -- TODO: move print to here
 
---_VERSION
+-- Global variable that holds a string containing the running Nelua version.
+global _VERSION: stringview = "Nelua 0.1"
 --_G

@@ -361,7 +361,7 @@ function builtins.nelua_narrow_cast_(context, dtype, stype)
     nelua_panic_cstring("narrow casting from %s to %s failed");
   }
   return r;
-}]], dctype, dtype.name, stype.name))
+}]], dctype, stype.name, dtype.name))
   return name
 end
 

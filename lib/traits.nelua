@@ -5,18 +5,23 @@ global function typeid_of(x: auto): typeid <inline,nosideeffect>
   return #[xtype.id]#
 end
 
+-- Returns the type of its only argument, coded as a string.
+-- The niltype returns "nil",
+-- the nilptr type returns "pointer",
+-- arithmetic types returns "number",
+-- types that represents a string returns "string",
+-- other types returns the underlying type name.
 global function type(x: auto): stringview <inline,nosideeffect>
-  ## local xtype = x.type
-  ## if xtype.is_arithmetic then
-    return 'number'
-  ## elseif xtype.is_nilptr or xtype.is_pointer then
-    return 'pointer'
-  ## elseif xtype.is_stringview or xtype.is_string then
-    return 'string'
-  ## elseif x.type.is_niltype then
+  ## if x.type.is_niltype then
     return 'nil'
+  ## elseif x.type.is_nilptr then
+    return 'pointer'
+  ## elseif x.type.is_arithmetic then
+    return 'number'
+  ## elseif x.type.is_stringy then
+    return 'string'
   ## else
-    return #[xtype.name]#
+    return #[x.type.name]#
   ## end
 end
 

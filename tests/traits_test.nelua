@@ -10,6 +10,7 @@ do -- type
   local function f() end
   local R = @record{x:integer}
   local r: R
+  assert(type(r) == 'record')
   assert(r.x == 0)
   assert(type(f) == 'function')
   assert(type(R) == 'type')

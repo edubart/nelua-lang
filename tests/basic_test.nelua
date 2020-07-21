@@ -1,4 +1,4 @@
-require 'core'
+require 'basic'
 
 assert(true)
 assert(true, 'test')
