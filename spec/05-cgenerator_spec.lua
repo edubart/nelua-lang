@@ -388,6 +388,22 @@ it("lazy functions", function()
   ]])
 end)
 
+it("lazy function aliases", function()
+  assert.run_c([[
+    local function f(x: auto) return x + 1 end
+    local g = f
+    assert(g(1) == 2)
+    assert(g(1.0) == 2.0)
+
+    local Foo = @record{}
+    function Foo.foo(x: auto) return x + 1 end
+    local Boo = @record{}
+    global Boo.boo = Foo.foo
+    assert(Boo.boo(1) == 2)
+    assert(Boo.boo(1.0) == 2.0)
+  ]])
+end)
+
 it("lazy function for records", function()
   assert.run_c([[
     local R = @record{}

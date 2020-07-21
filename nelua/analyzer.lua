@@ -1528,6 +1528,10 @@ function visitors.VarDecl(context, node)
           valnode.checkcast = true
           varnode.checkcast = true
         end
+        if vartype.is_lazyfunction then
+          -- skip declaration for lazy function aliases
+          varnode.attr.nodecl = true
+        end
       end
     end
     if assigning then
