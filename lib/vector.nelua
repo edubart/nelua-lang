@@ -119,7 +119,7 @@ require 'memory'
   end
 
   -- Returns the number of elements the vector can store before triggering a reallocation.
-  function VectorT:capacity(): isize
+  function VectorT:capacity(): isize <inline,nosideeffect>
     return (@isize)(self.data.size)
   end
 
@@ -131,7 +131,7 @@ require 'memory'
   end
 
   -- Returns the number of elements in the vector.
-  function VectorT:__len(): isize
+  function VectorT:__len(): isize <inline,nosideeffect>
     return (@isize)(self.size)
   end
 

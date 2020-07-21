@@ -10,8 +10,8 @@
 -- for the same index.
 --
 -- It's main use is to give the possibility to detect dangling accesses,
--- that is trying to access an object which no longer exists or that
--- has been reused. These situations is not possible to detect when using
+-- that is, trying to access an object which no longer exists or that
+-- has been reused. Is not possible to detect these situations when using
 -- just raw pointers.
 --
 -- CAUTION: When using this class don't store pointers for resources allocated
@@ -112,6 +112,7 @@ function SlotPool:alloc_slot(): (uint64, uint32)
   return slot_id, slot_index
 end
 
+-- Macro to create a resource pool using the specified allocator.
 ## local make_resourcepool = generalize(function(T, allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
   ## local codename = 'nelua_resourcepool_'..T.codename
@@ -206,4 +207,5 @@ end
   ## return ResourcePoolT
 ## end)
 
-global resourcepool = #[make_resourcepool]#
+-- The resource pool generic type.
+global resourcepool: type = #[make_resourcepool]#

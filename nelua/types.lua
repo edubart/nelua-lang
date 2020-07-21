@@ -1104,10 +1104,6 @@ function MetaType:set_field(name, symbol)
   self.fields[name] = symbol
 end
 
-function MetaType:inherit(metatype)
-  metamagic.setmetaindex(self.fields, metatype.fields)
-end
-
 function MetaType:typedesc()
   local ss = sstream('metatype{')
   local first = true
@@ -1250,6 +1246,7 @@ function PointerType:_init(subtype)
     self.is_primitive = true
   elseif subtype.name == 'cchar' then
     self.nodecl = true
+    self.nick = 'cstring'
     self.is_cstring = true
     self.is_stringy = true
     self.is_primitive = true
@@ -1300,7 +1297,7 @@ function PointerType:is_convertible_from_type(type, explicit)
       return self
     end
   end
-  if type.is_stringview then
+  if type.is_stringview and (self.is_cstring or self:is_pointer_of(primtypes.byte)) then
     return self
   elseif type.is_nilptr then
     return self

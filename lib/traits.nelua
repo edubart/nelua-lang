@@ -1,11 +1,11 @@
 global typeid = @uint32
 
-global function typeid_of(x: auto): typeid
+global function typeid_of(x: auto): typeid <inline,nosideeffect>
   ## local xtype = x.type.is_type and x.value or x.type
   return #[xtype.id]#
 end
 
-global function type(x: auto): stringview
+global function type(x: auto): stringview <inline,nosideeffect>
   ## local xtype = x.type
   ## if xtype.is_arithmetic then
     return 'number'
@@ -26,7 +26,7 @@ global typeinfo = @record {
   codename: stringview
 }
 
-global function typeinfo_of(x: auto): typeinfo
+global function typeinfo_of(x: auto): typeinfo <inline,nosideeffect>
   ## local xtype = x.type.is_type and x.value or x.type
   return (@typeinfo){
     id = #[xtype.id]#,

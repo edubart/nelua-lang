@@ -28,7 +28,7 @@ local stderr: FILE* <cimport,nodecl,cinclude'<stdio.h>'>
 
 global function panic(msg: stringview) <noreturn>
   fwrite(msg.data, msg.size, 1, stderr)
-  fputc(0x0a, stderr) -- '\n'
+  fputc(#[string.byte'\n']#, stderr)
   abort()
 end
 
@@ -126,7 +126,7 @@ global function select()
 end
 ]]
 
--- tostring/tonumber is implemented in string.nelua
+-- tostring/tonumber is implemented in stringview.nelua/string.nelua
 -- type is implemented in traits.nelua
 -- require is implemented by the nelua compiler
 -- TODO: move print to here

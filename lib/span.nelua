@@ -28,7 +28,7 @@
   end
 
   -- Returns the number of elements in the span.
-  function SpanT:__len(): isize
+  function SpanT:__len(): isize <inline,nosideeffect>
     return (@isize)(self.size)
   end
 
@@ -37,7 +37,7 @@
     if x.type.is_pointer and x.type.subtype and x.type.subtype:is_contiguous_of(T) then
       return true
     end
-  end)]#): SpanT <inline>
+  end)]#): SpanT <inline,nosideeffect>
     local self: SpanT
     self.data = &values[#[values.type.subtype.is_sequence and 1 or 0]#]
     self.size = (@usize)(#$values)

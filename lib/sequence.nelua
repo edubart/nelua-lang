@@ -138,7 +138,7 @@ require 'memory'
   end
 
   -- Returns the number of elements the sequence can store before triggering a reallocation.
-  function SequenceT:capacity(): isize <inline>
+  function SequenceT:capacity(): isize <inline,nosideeffect>
     if unlikely(not self.impl or self.impl.data.size == 0) then return 0 end
     return (@isize)(self.impl.data.size) - 1
   end
@@ -159,7 +159,7 @@ require 'memory'
   end
 
   -- Returns the number of elements in the sequence. It never counts the element at 0.
-  function SequenceT:__len(): isize <inline>
+  function SequenceT:__len(): isize <inline,nosideeffect>
     if unlikely(not self.impl) then return 0 end
     return (@isize)(self.impl.size)
   end

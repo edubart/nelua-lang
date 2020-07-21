@@ -956,12 +956,12 @@ it("record methods", function()
   assert.analyze_error([[
     local vec2 = @record{x: integer, y: integer}
     local v: vec2 = vec2.create(1,2)
-  ]], "cannot index record meta field")
+  ]], "cannot index meta field")
   assert.analyze_error([[
     local vec2 = @record{x: integer, y: integer}
     local v: vec2
     local x = v:length()
-  ]], "cannot index record meta field")
+  ]], "cannot index meta field")
   assert.analyze_error([[
     local vec2 = @record{x: integer, y: integer}
     function vec2.create(x: integer, y: integer) return vec2{x,y} end
@@ -1352,6 +1352,11 @@ it("concepts", function()
     local function f(x: an_integral) return x end
     f(true)
   ]], "invalid return for concept")
+  assert.analyze_ast([[
+    local io = @record{x: integer}
+    local function f(x: #[overload_concept({io})]#): integer return x.x end
+    f(io{})
+  ]])
   assert.analyze_error([[
     local function f(x: #[overload_concept({integer, stringview})]#) return x end
     f(true)

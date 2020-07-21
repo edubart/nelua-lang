@@ -1,40 +1,58 @@
-require 'span'
-require 'memory'
-require 'stringbuffer'
-require 'allocators.gc'
+-- String type
+--
+-- Strings points to an immutable contiguous sequence of characters.
+-- It manages the memory on its own by allocating when needed and
+-- deallocating when unused.
+--
+-- The string type and its methods are defined here,
+-- currently it depends on the garbage collector to allocate
+-- strings, in the future this may be improved by using
+-- reference counted strings.
+--
+-- If you don't want to trigger the garbage collector
+-- then does not use this module. Try to use just stringview
+-- type or create your own string module.
 
+-- These modules are used to implement the string.
+require 'memory'
+require 'stringview'
+require 'stringbuffer'
+
+-- Currently strings requires the garbage collector
+require 'allocators.gc'
 local allocator = @gc_allocator
 
--- C imports
-local errno: cint <cimport,cinclude'<errno.h>',nodecl>
-local function strtoll(str: cstring, endptr: cstring*, base: cint): clonglong <cimport,cinclude'<stdlib.h>',nodecl> end
-local function strtod(str: cstring, endptr: cstring*): float64 <cimport,cinclude'<stdlib.h>',nodecl> end
-local function strspn(s: cstring, accept: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
+-- C imports.
 local function strchr(s: cstring, c: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
 local function strcpy(dest: cstring, src: cstring): cstring <cimport,cinclude'<string.h>',nodecl> end
 local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
-local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function snprintf_1ci(s: cstring, maxlen: csize, format: cstring, x: cint): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf_1i(s: cstring, maxlen: csize, format: cstring, x: integer): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf_1p(s: cstring, maxlen: csize, format: cstring, x: pointer): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf_1n(s: cstring, maxlen: csize, format: cstring, x: number): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf_1cs(s: cstring, maxlen: csize, format: cstring, x: cstring): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 
+-- Define the string type.
 global string <codename 'nelua_string'> = @record{
-  --refs: usize*,
   data: byte[0]*,
   size: usize
+  --refs: usize*,
 }
 
+-- This sets some values to be used internally at compile time
+-- to make the compiler known that this type represents a string.
 ##[[
-local stringtype = context.rootscope.symbols.string.value
+local stringtype = symbols.string.value
 stringtype.is_string = true
 stringtype.is_stringy = true
-stringtype.nick = 'string'
 stringtype.name = 'string'
-primtypes.stringview.metatype = types.MetaType()
-primtypes.stringview.metatype:inherit(stringtype.metatype)
 ]]
 
-function string._create(size: usize): string <inline>
+-- Allocate a new string to be filled. Used internally.
+function string._create(size: usize): string
   local self: string
   check(size > 0, 'cannot create string with size 0')
   self.size = size
@@ -44,29 +62,13 @@ function string._create(size: usize): string <inline>
   return self
 end
 
-function string:reset() <inline>
+-- Cleanup a string. Used internally.
+function string:_reset() <inline>
   $self = {}
-end
-
-function string.fromspan(s: span(byte)): string
-  if unlikely(s.size == 0) then return (@string){} end
-  local self: string = string._create(s.size)
-  memory.copy(&self.data[0], s.data, s.size)
-  return self
-end
-
-function string.fromcstring(s: cstring): string <inline>
-  if unlikely(not s) then return (@string){} end
-  local size: usize = strlen(s)
-  if unlikely(size == 0) then return (@string){} end
-  local self: string = string._create(size)
-  memory.copy(&self.data[0], s, size)
-  return self
 end
 
 function stringbuffer:promotestring(): string
   if unlikely(self.size == 0) then
-    self:reset()
     return (@string){}
   end
   local size: usize = self.size
@@ -74,6 +76,13 @@ function stringbuffer:promotestring(): string
   data[size] = 0 -- cstring line ending
   $self = {} -- destroy
   return (@string){data = data.data, size = size}
+end
+
+function stringview.__tostring(s: stringview): string
+  if unlikely(s.size == 0) then return (@string){} end
+  local ret: string = string._create(s.size)
+  memory.copy(&ret.data[0], s.data, s.size)
+  return ret
 end
 
 --[[
@@ -95,61 +104,27 @@ end
 ]]
 
 local empty_cstring: cstring <const> = ''
-function string.__tocstring(s: string): cstring <inline>
+function string.__tocstring(s: string): cstring <inline,nosideeffect>
   if unlikely(s.size == 0) then return empty_cstring end
   return (@cstring)(&s.data[0])
 end
 
-function string.__tostringview(s: string): stringview <inline>
+function string.__tostringview(s: string): stringview <inline,nosideeffect>
   if unlikely(s.size == 0) then return (@stringview){} end
   return (@stringview){data = &s.data[0], size = s.size}
 end
 
-function string.__convert(s: #[overload_concept({stringview,cstring},true)]#): string <inline>
+function string.__convert(s: #[overload_concept({stringview,cstring},true)]#): string
   ## if s.type.is_stringview then
     return (@string){size=s.size, data=s.data}
   ## elseif s.type.is_cstring then
-    return string.fromcstring(s)
+    if unlikely(not s) then return (@string){} end
+    local size: usize = strlen(s)
+    if unlikely(size == 0) then return (@string){} end
+    local self: string = string._create(size)
+    memory.copy(&self.data[0], s, size)
+    return self
   ## end
-end
-
-function stringview.__tostring(s: stringview): string <inline>
-  if unlikely(s.size == 0) then return (@string){} end
-  local ret: string = string._create(s.size)
-  memory.copy(&ret.data[0], s.data, s.size)
-  return ret
-end
-
-function string.__len(a: stringview): isize <inline>
-  return (@isize)(a.size)
-end
-
-function string.__eq(a: stringview, b: stringview): boolean
-  return a.size == b.size and (a.size == 0 or memory.equals(a.data, b.data, a.size))
-end
-
-function string.__lt(a: stringview, b: stringview): boolean
-  if unlikely(a.size == 0 or b.size == 0) then
-    return a.size < b.size
-  else
-    if a.size < b.size then
-      return memory.compare(a.data, b.data, a.size) <= 0
-    else
-      return memory.compare(a.data, b.data, b.size) < 0
-    end
-  end
-end
-
-function string.__le(a: stringview, b: stringview): boolean
-  if unlikely(a.size == 0 or b.size == 0) then
-    return a.size <= b.size
-  else
-    if a.size <= b.size then
-      return memory.compare(a.data, b.data, a.size) <= 0
-    else
-      return memory.compare(a.data, b.data, b.size) < 0
-    end
-  end
 end
 
 function string.__concat(a: stringview, b: stringview): string
@@ -162,24 +137,6 @@ function string.__concat(a: stringview, b: stringview): string
   memory.copy(&s.data[0], a.data, a.size)
   memory.copy(&s.data[a.size], b.data, b.size)
   return s
-end
-
-function string.len(self: stringview): isize <inline>
-  return (@isize)(self.size)
-end
-
-function string.byte(self: stringview, i: #[optional_concept(isize)]#): byte
-  -- TODO: j argument and multiple returns
-  ## if i.type.is_niltype then
-  local i: isize = 1
-  ## end
-  if unlikely(self.size == 0) then return 0 end
-  if unlikely(i < 0) then
-    i = self.size + i + 1
-  end
-  --TODO: return nil instead on failure
-  check(i >= 1 and i <= self.size, 'string.byte: index out of range')
-  return (@byte)(self.data[i-1])
 end
 
 function string.sub(self: stringview, i: isize, j: #[optional_concept(isize)]#): string
@@ -258,169 +215,6 @@ function string.char(c: byte): string
   return s
 end
 
-function string.find(self: stringview,
-                     pattern: stringview,
-                     init: isize,
-                     plain: boolean): (isize, isize)
-  --TODO: handle patterns and returns them
-  --TODO: return nil if not found instead of zeros
-  check(plain, 'string.find: patterns not supported yet')
-  if unlikely(self.size == 0) then
-    if pattern.size == 0 then return 1, 0 end
-    return 0, 0
-  end
-  if unlikely(init < 0) then init = self.size + init + 1 end
-  if unlikely(init > self.size) then return 0, 0 end
-  if unlikely(init <= 0) then init = 1 end
-  local found: pointer = memory.find(&self.data[init-1], self.size-init+1, pattern.data, pattern.size)
-  if found then
-    local sbegin: isize = (@isize)((@usize)(found) - (@usize)(&self.data[0]))
-    return sbegin + 1, sbegin + (@isize)(pattern.size)
-  end
-  return 0, 0
-end
-
--- TODO: implement functions bellow
--- string.format(fmt, ...)
--- string:match(pattern, init)
--- string:gmatch(pattern)
--- string:gsub(pattern, repl, n)
--- string.pack(fmt, v1, v2, ..)
--- string.unpack(fmt, s, pos)
--- string.packsize(fmt)
-
-local is_arithmetic_convertible = #[concept(function(x)
-  return x.type.is_stringy or x.type.is_arithmetic
-end)]#
-
-function string.__add(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
-  return tonumber(a) + tonumber(b)
-end
-
-function string.__sub(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
-  return tonumber(a) - tonumber(b)
-end
-
-function string.__mul(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
-  return tonumber(a) * tonumber(b)
-end
-
-function string.__div(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
-  return tonumber(a) / tonumber(b)
-end
-
-function string.__idiv(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
-  return tonumber(a) // tonumber(b)
-end
-
-function string.__mod(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
-  return tonumber(a) % tonumber(b)
-end
-
-function string.__pow(a: is_arithmetic_convertible, b: is_arithmetic_convertible): number
-  return tonumber(a) ^ tonumber(b)
-end
-
-function string.__unm(a: is_arithmetic_convertible): number
-  return -tonumber(a)
-end
-
-function string.__band(a: is_arithmetic_convertible, b: is_arithmetic_convertible): integer
-  return tointeger(a) & tointeger(b)
-end
-
-function string.__bor(a: is_arithmetic_convertible, b: is_arithmetic_convertible): integer
-  return tointeger(a) | tointeger(b)
-end
-
-function string.__bxor(a: is_arithmetic_convertible, b: is_arithmetic_convertible): integer
-  return tointeger(a) ~ tointeger(b)
-end
-
-function string.__shl(a: is_arithmetic_convertible, b: is_arithmetic_convertible): integer
-  return tointeger(a) << tointeger(b)
-end
-
-function string.__shr(a: is_arithmetic_convertible, b: is_arithmetic_convertible): integer
-  return tointeger(a) >> tointeger(b)
-end
-
-function string.__bnot(a: is_arithmetic_convertible): integer
-  return ~tointeger(a)
-end
-
-local function str2intbase(s: stringview, base: uinteger): integer
-  assert(s.size > 0, "invalid number format")
-  ## if base.type.is_niltype then
-  local base: uinteger <const> = 10
-  ## else
-  check(base >= 2 and base <= 36, "base out of range")
-  ## end
-  local SPACECHARS: cstring <const> = " \f\n\r\t\v"
-  local pos: usize = strspn(s, SPACECHARS) -- skip initial spaces
-  local neg: boolean = false
-  if s.data[pos] == #[string.byte'-']# then -- negative sign
-    pos = pos + 1
-    neg = true
-  elseif s.data[pos] == #[string.byte'+']# then -- skip positive sign
-    pos = pos + 1
-  end
-  local n: uinteger = 0
-  repeat
-    local digit: cint = s.data[pos]
-    local x: cint
-    if isdigit(digit) ~= 0 then -- is a digit [0-9]
-      x = digit - #[string.byte'0']#
-    elseif isalnum(digit) ~= 0 then -- is a alphanumeric [a-zA-Z]
-      x = toupper(digit) - #[string.byte'A']# + 10
-    else -- else spaces or invalid character
-      break
-    end
-    assert(x < base, "invalid number format")
-    n = n * base + (@uinteger)(x)
-    pos = pos + 1
-  until pos >= s.size
-  pos = pos + strspn(&s.data[pos], SPACECHARS) -- skip trailing spaces
-  check(pos == s.size, "invalid number format") -- fully parsed?
-  if neg then -- negate
-    n = -n
-  end
-  return (@integer)(n)
-end
-
-global function tonumber(x: auto, base: #[optional_concept(integer)]#)
-  -- TODO: return nil in case of fail (like lua)
-  ## if not base.type.is_niltype then
-    ## staticassert(x.type.is_stringy, "string expected, got something else")
-    return str2intbase(x, base)
-  ## elseif x.type.is_arithmetic then
-    return x
-  ## elseif x.type.is_stringy then
-    local x: cstring = x
-    local endptr: cstring
-    errno = 0
-    local n: float64 = strtod(x, &endptr)
-    check(endptr ~= x and errno == 0, 'failed to convert string to number')
-    return (@number)(n)
-  ## else staticerror("unable to convert value of type '%s' to a number", x.type) end
-end
-
-global function tointeger(x: auto, base: #[optional_concept(integer)]#): integer
-  ## if not base.type.is_niltype then
-    ## staticassert(x.type.is_stringy, "string expected, got something else")
-    return str2intbase(x, base)
-  ## elseif x.type.is_arithmetic then
-    return (@integer)(x)
-  ## elseif x.type.is_stringy then
-    local x: cstring = x
-    local endptr: cstring
-    errno = 0
-    local i: clonglong = strtoll(x, &endptr, 10)
-    check(endptr ~= x and errno == 0, 'failed to convert string to integer')
-    return (@integer)(i)
-  ## else staticerror("unable to convert value of type '%s' to an integer", x.type) end
-end
-
 global function tostring(x: auto): string
   ## if x.type.is_arithmetic or x.type.is_function or x.type.is_pointer then
     local size: cint
@@ -470,15 +264,6 @@ global function tostring(x: auto): string
     return x:__tostring()
   ## else staticerror("tostring: cannot convert type '%s' to a string", x.type) end
 end
-
-
-
--- Utilities for string.format
-local function snprintf_1ci(s: cstring, maxlen: csize, format: cstring, x: cint): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function snprintf_1i(s: cstring, maxlen: csize, format: cstring, x: integer): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function snprintf_1p(s: cstring, maxlen: csize, format: cstring, x: pointer): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function snprintf_1n(s: cstring, maxlen: csize, format: cstring, x: number): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function snprintf_1cs(s: cstring, maxlen: csize, format: cstring, x: cstring): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 
 local MAX_FORMAT <comptime> = 32
 
@@ -607,3 +392,43 @@ function string.format(fmt: stringview, arg1: auto): string
   end
   return b:promotestring()
 end
+
+-- Import methods from stringview to string.
+global string.__len = stringview.__len
+global string.__eq = stringview.__eq
+global string.__lt = stringview.__lt
+global string.__le = stringview.__le
+global string.__add = stringview.__add
+global string.__sub = stringview.__sub
+global string.__mul = stringview.__mul
+global string.__div = stringview.__div
+global string.__idiv = stringview.__idiv
+global string.__mod = stringview.__mod
+global string.__pow = stringview.__pow
+global string.__unm = stringview.__unm
+global string.__band = stringview.__band
+global string.__bor = stringview.__bor
+global string.__bxor = stringview.__bxor
+global string.__shl = stringview.__shl
+global string.__shr = stringview.__shr
+global string.__bnot = stringview.__bnot
+global string.len = stringview.len
+global string.byte = stringview.byte
+global string.find = stringview.find
+
+-- Export string methods to stringview.
+global stringview.__concat = string.__concat
+global stringview.rep = string.rep
+global stringview.sub = string.sub
+global stringview.reverse = string.reverse
+global stringview.upper = string.upper
+global stringview.lower = string.lower
+global stringview.format = string.format
+
+-- TODO: implement functions bellow
+-- string:match(pattern, init)
+-- string:gmatch(pattern)
+-- string:gsub(pattern, repl, n)
+-- string.pack(fmt, v1, v2, ..)
+-- string.unpack(fmt, s, pos)
+-- string.packsize(fmt)

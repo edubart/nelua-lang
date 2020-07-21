@@ -10,8 +10,10 @@ local traits = require 'nelua.utils.traits'
 local lua_generator = require 'nelua.luagenerator'
 local c_generator = require 'nelua.cgenerator'
 local differ = require 'spec.tools.differ'
+local types = require 'nelua.types'
 local nelua_syntax = require 'nelua.syntaxdefs'()
 local config = require 'nelua.configer'.get()
+local primtypes = require 'nelua.typedefs'.primtypes
 local nelua_parser = nelua_syntax.parser
 
 -- config setup for the test suite
@@ -113,7 +115,13 @@ local function pretty_traceback_errhandler(e)
 end
 --luacov:enable
 
+local function cleanup_nelua_state()
+  -- cleanup nelua state by previous runs
+  primtypes.stringview.metatype = types.MetaType()
+end
+
 local function run(args)
+  cleanup_nelua_state()
   if type(args) == 'string' then
     args = stringer.split(args)
     setmetatable(args, nil)

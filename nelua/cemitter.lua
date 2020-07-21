@@ -32,7 +32,7 @@ function CEmitter:zeroinit(type)
     s = '0U'
   elseif type.is_arithmetic then
     s = '0'
-  elseif type.is_pointer or type.is_function or type.is_niltype or type.is_comptime then
+  elseif type.is_pointer or type.is_procedure or type.is_niltype or type.is_comptime then
     s = 'NULL'
   elseif type.is_boolean then
     s = 'false'
@@ -115,7 +115,6 @@ function CEmitter:add_stringview2cstring(val)
 end
 
 function CEmitter:add_cstring2stringview(val)
-  --TODO: free allocated strings using reference counting
   self:add_builtin('nelua_cstring2stringview')
   self:add('(', val, ')')
 end
@@ -152,7 +151,7 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
       self:add_val2boolean(val, valtype)
     elseif valtype.is_any then
       self:add_any2type(type, val)
-    elseif type.is_pointer and valtype.is_stringview then
+    elseif valtype.is_stringview and (type.is_cstring or type:is_pointer_of(primtypes.byte)) then
       self:add_stringview2cstring(val)
     elseif type.is_stringview and valtype.is_cstring then
       self:add_cstring2stringview(val)
@@ -249,7 +248,7 @@ end
 
 function CEmitter:add_string_literal(val, ascstring)
   local size = #val
-  local varname = self.context.stringviewerals[val]
+  local varname = self.context.stringliterals[val]
   if varname then
     if ascstring then
       self:add(varname)
@@ -266,7 +265,7 @@ function CEmitter:add_string_literal(val, ascstring)
     return
   end
   varname = self.context:genuniquename('strlit')
-  self.context.stringviewerals[val] = varname
+  self.context.stringliterals[val] = varname
   local decemitter = CEmitter(self.context)
   local quoted_value = pegger.double_quote_c_string(val)
   decemitter:add_indent_ln('static char ', varname, '[', size+1, '] = ', quoted_value, ';')

@@ -1003,7 +1003,7 @@ function visitors.CallMethod(context, node)
     if calleetype.is_record then
       calleesym = calleetype:get_metafield(name)
       if not calleesym then
-        node:raisef("cannot index record meta field '%s'", name)
+        node:raisef("cannot index meta field '%s' in record '%s'", name, calleetype)
       end
       calleetype = calleesym.type
     elseif calleetype.is_any then
@@ -1070,7 +1070,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
       -- declaration of record global variable
       symbol.metafield = true
     else
-      node:raisef("cannot index record meta field '%s'", name)
+      node:raisef("cannot index meta field '%s' in record '%s'", name, objtype)
     end
     if not inlazydef then
       objtype:set_metafield(name, symbol)
@@ -1079,7 +1079,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     symbol.scope = context.rootscope
   elseif infuncdef or inglobaldecl then
     if symbol.node ~= node then
-      node:raisef("cannot redefine meta type field '%s'", name)
+      node:raisef("cannot redefine meta type field '%s' in record '%s'", name, objtype)
     end
   else
     symbol:link_node(node)

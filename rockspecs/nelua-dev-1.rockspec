@@ -107,6 +107,7 @@ build = {
       ['lib/span.nelua']           = 'lib/span.nelua',
       ['lib/vector.nelua']         = 'lib/vector.nelua',
       ['lib/string.nelua']         = 'lib/string.nelua',
+      ['lib/stringview.nelua']     = 'lib/stringview.nelua',
       ['lib/stringbuffer.nelua']   = 'lib/stringbuffer.nelua',
       ['lib/resourcepool.nelua']   = 'lib/resourcepool.nelua',
       ['lib/filestream.nelua']     = 'lib/filestream.nelua',

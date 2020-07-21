@@ -14,10 +14,10 @@ do -- initialization, len, eq and reset
   local c: string = 'hello'
   local d: string = (@cstring)('hello')
   assert(a == c and a == d)
-  a:reset()
+  a:_reset()
   assert(a == '')
   assert(not (a == b))
-  b:reset()
+  b:_reset()
   assert(a == b)
   a = (@cstring)(nilptr)
   assert(a == b)

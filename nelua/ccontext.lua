@@ -16,7 +16,7 @@ function CContext:init(visitors, typevisitors)
     ldflags = {},
     linklibs = {}
   }
-  self.stringviewerals = {}
+  self.stringliterals = {}
   self.uniquecounters = {}
   self.builtins = cbuiltins.builtins
 end

@@ -97,6 +97,14 @@ end
 
 local preprocessor = {}
 
+local function table2key(t)
+  for k,v in pairs(_G) do
+    if v == t then
+      return k
+    end
+  end
+end
+
 function preprocessor.preprocess(context, ast)
   assert(ast.tag == 'Block')
 
@@ -166,6 +174,13 @@ function preprocessor.preprocess(context, ast)
         elseif traits.is_symbol(sym) then
           assert(sym.type == primtypes.type)
           type = sym.value
+        elseif traits.is_table(sym) then
+          local symname = table2key(sym)
+          if symname then
+            sym = ppcontext.context.scope.symbols[symname]
+            assert(sym.type == primtypes.type)
+            type = sym.value
+          end
         end
         if not type then
           context:get_current_node():raisef("in overload concept definition argument #%d: invalid type", i)

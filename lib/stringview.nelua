@@ -1,0 +1,225 @@
+-- String view methods
+--
+-- String views points to an immutable contiguous sequence of characters.
+-- Internally it just holds a pointer and its size. It never manage its
+-- memory.
+--
+-- The stringview type is defined by the compiler, however it does not have
+-- methods implemented, this file implements basic methods for it with
+-- that does not require any allocation. More methods for the stringview
+-- that triggers allocations are implemented in the string module.
+
+require 'memory'
+
+-- C imports
+local errno: cint <cimport,cinclude'<errno.h>',nodecl>
+local function strtoll(str: cstring, endptr: cstring*, base: cint): clonglong <cimport,cinclude'<stdlib.h>',nodecl> end
+local function strtod(str: cstring, endptr: cstring*): float64 <cimport,cinclude'<stdlib.h>',nodecl> end
+local function strspn(s: cstring, accept: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
+local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+
+-- Return length of a string.
+function stringview.__len(a: stringview): isize <inline,nosideeffect>
+  return (@isize)(a.size)
+end
+
+-- Compare two string.
+function stringview.__eq(a: stringview, b: stringview): boolean <nosideeffect>
+  return a.size == b.size and (a.size == 0 or memory.equals(a.data, b.data, a.size))
+end
+
+-- Compare if string `a` is less than string `b` in lexicographical order.
+function stringview.__lt(a: stringview, b: stringview): boolean <nosideeffect>
+  if unlikely(a.size == 0 or b.size == 0) then
+    return a.size < b.size
+  else
+    if a.size < b.size then
+      return memory.compare(a.data, b.data, a.size) <= 0
+    else
+      return memory.compare(a.data, b.data, b.size) < 0
+    end
+  end
+end
+
+-- Compare if string `a` is less or equal than string `b` in lexicographical order.
+function stringview.__le(a: stringview, b: stringview): boolean <nosideeffect>
+  if unlikely(a.size == 0 or b.size == 0) then
+    return a.size <= b.size
+  else
+    if a.size <= b.size then
+      return memory.compare(a.data, b.data, a.size) <= 0
+    else
+      return memory.compare(a.data, b.data, b.size) < 0
+    end
+  end
+end
+
+-- Return length of a string.
+function stringview.len(self: stringview): isize <inline,nosideeffect>
+  return (@isize)(self.size)
+end
+
+-- Returns the internal numeric codes of the character at position `i`.
+function stringview.byte(self: stringview, i: #[optional_concept(isize)]#): byte <nosideeffect>
+  -- TODO: j argument and multiple returns
+  ## if i.type.is_niltype then
+  local i: isize = 1
+  ## end
+  if unlikely(self.size == 0) then return 0 end
+  if unlikely(i < 0) then
+    i = self.size + i + 1
+  end
+  --TODO: return nil instead on failure
+  check(i >= 1 and i <= self.size, 'index out of range')
+  return (@byte)(self.data[i-1])
+end
+
+-- Search for the first match of a pattern in the string.
+function stringview.find(self: stringview,
+                         pattern: stringview,
+                         init: isize,
+                         plain: boolean): (isize, isize)
+  --TODO: handle patterns and returns them
+  --TODO: return nil if not found instead of zeros
+  check(plain, 'patterns not supported yet')
+  if unlikely(self.size == 0) then
+    if pattern.size == 0 then return 1, 0 end
+    return 0, 0
+  end
+  if unlikely(init < 0) then init = self.size + init + 1 end
+  if unlikely(init > self.size) then return 0, 0 end
+  if unlikely(init <= 0) then init = 1 end
+  local found: pointer = memory.find(&self.data[init-1], self.size-init+1, pattern.data, pattern.size)
+  if found then
+    local sbegin: isize = (@isize)((@usize)(found) - (@usize)(&self.data[0]))
+    return sbegin + 1, sbegin + (@isize)(pattern.size)
+  end
+  return 0, 0
+end
+
+-- Convert a string to an integer in the desired base.
+local function str2intbase(s: stringview, base: uinteger): integer
+  assert(s.size > 0, "invalid number format")
+  ## if base.type.is_niltype then
+  local base: uinteger <const> = 10
+  ## else
+  check(base >= 2 and base <= 36, "base out of range")
+  ## end
+  local SPACECHARS: cstring <const> = " \f\n\r\t\v"
+  local pos: usize = strspn(s, SPACECHARS) -- skip initial spaces
+  local neg: boolean = false
+  if s.data[pos] == #[string.byte'-']# then -- negative sign
+    pos = pos + 1
+    neg = true
+  elseif s.data[pos] == #[string.byte'+']# then -- skip positive sign
+    pos = pos + 1
+  end
+  local n: uinteger = 0
+  repeat
+    local digit: cint = s.data[pos]
+    local x: cint
+    if isdigit(digit) ~= 0 then -- is a digit [0-9]
+      x = digit - #[string.byte'0']#
+    elseif isalnum(digit) ~= 0 then -- is a alphanumeric [a-zA-Z]
+      x = toupper(digit) - #[string.byte'A']# + 10
+    else -- else spaces or invalid character
+      break
+    end
+    assert(x < base, "invalid number format")
+    n = n * base + (@uinteger)(x)
+    pos = pos + 1
+  until pos >= s.size
+  pos = pos + strspn(&s.data[pos], SPACECHARS) -- skip trailing spaces
+  check(pos == s.size, "invalid number format") -- fully parsed?
+  if neg then -- negate
+    n = -n
+  end
+  return (@integer)(n)
+end
+
+-- Convert a value to a number.
+global function tonumber(x: auto, base: #[optional_concept(integer)]#)
+  -- TODO: return nil in case of fail (like lua)
+  ## if not base.type.is_niltype then
+    ## staticassert(x.type.is_stringy, "string expected, got something else")
+    return str2intbase(x, base)
+  ## elseif x.type.is_arithmetic then
+    local n: integer = x
+    return n
+  ## elseif x.type.is_stringy then
+    local x: cstring = x
+    local endptr: cstring
+    errno = 0
+    local n: float64 = strtod(x, &endptr)
+    check(endptr ~= x and errno == 0, 'failed to convert string to number')
+    return (@number)(n)
+  ## else staticerror("unable to convert value of type '%s' to a number", x.type) end
+end
+
+-- Convert a value to an integer.
+global function tointeger(x: auto, base: #[optional_concept(integer)]#): integer
+  ## if not base.type.is_niltype then
+    ## staticassert(x.type.is_stringy, "string expected, got something else")
+    return str2intbase(x, base)
+  ## elseif x.type.is_arithmetic then
+    return x
+  ## elseif x.type.is_stringy then
+    local x: cstring = x
+    local endptr: cstring
+    errno = 0
+    local i: clonglong = strtoll(x, &endptr, 10)
+    check(endptr ~= x and errno == 0, 'failed to convert string to integer')
+    return i
+  ## else staticerror("unable to convert value of type '%s' to an integer", x.type) end
+end
+
+-- Concept to check if a value can possibly be a number.
+local arithmetic_coercion_concept = #[concept(function(x)
+  return x.type.is_stringy or x.type.is_arithmetic
+end)]#
+
+-- Implement numeric operators for string view.
+function stringview.__add(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+  return tonumber(a) + tonumber(b)
+end
+function stringview.__sub(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+  return tonumber(a) - tonumber(b)
+end
+function stringview.__mul(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+  return tonumber(a) * tonumber(b)
+end
+function stringview.__div(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+  return tonumber(a) / tonumber(b)
+end
+function stringview.__idiv(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+  return tonumber(a) // tonumber(b)
+end
+function stringview.__mod(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+  return tonumber(a) % tonumber(b)
+end
+function stringview.__pow(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+  return tonumber(a) ^ tonumber(b)
+end
+function stringview.__unm(a: arithmetic_coercion_concept): number
+  return -tonumber(a)
+end
+function stringview.__band(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
+  return tointeger(a) & tointeger(b)
+end
+function stringview.__bor(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
+  return tointeger(a) | tointeger(b)
+end
+function stringview.__bxor(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
+  return tointeger(a) ~ tointeger(b)
+end
+function stringview.__shl(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
+  return tointeger(a) << tointeger(b)
+end
+function stringview.__shr(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
+  return tointeger(a) >> tointeger(b)
+end
+function stringview.__bnot(a: arithmetic_coercion_concept): integer
+  return ~tointeger(a)
+end
