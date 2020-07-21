@@ -504,7 +504,10 @@ function GC:_mark_statics()
       for i=1,#scope.symbols do
         local sym = scope.symbols[i]
         local symtype = sym.type or primtypes.any
-        if sym:is_static_vardecl() and symtype:has_pointer() and sym ~= gc then
+        if sym:is_static_vardecl() and
+           symtype:has_pointer() and
+           not sym.cimport and
+           sym ~= gc then
           emit_mark_static(sym, symtype)
         end
       end
