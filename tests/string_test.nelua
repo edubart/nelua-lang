@@ -226,7 +226,7 @@ do -- find
   local b, e
   b, e = s:find('h', 1, true) assert(b == 1 and e == 1)
   b, e = s:find('he', 1, true) assert(b == 1 and e == 2)
-  b, e = s:find('ld', 1, true) print(b,e) assert(b == 10 and e == 11)
+  b, e = s:find('ld', 1, true) assert(b == 10 and e == 11)
   b, e = s:find('heo', 1, true) assert(b == 0 and e == 0)
   b, e = s:find('hel', 1, true) assert(b == 1 and e == 3)
   b, e = s:find('d', 1, true) assert(b == 11 and e == 11)
@@ -265,8 +265,8 @@ do -- tostring
   assert(type(tostring(nil)) == 'string')
   assert(type(tostring(12)) == 'string')
   local function f() end
-  assert(tostring(f):sub(1,12) == 'function: 0x')
-  assert(tostring(string.lower):sub(1,12) == 'function: 0x')
+  assert(tostring(f):sub(1,10) == 'function: ')
+  assert(tostring(string.lower):sub(1,10) == 'function: ')
   assert(tostring(tostring) == 'lazyfunction')
 end
 
@@ -341,15 +341,15 @@ do -- string format
   assert(string.format('%X', 0xC001) == 'C001')
   assert(string.format('%d', #[math.maxinteger]#) == '9223372036854775807')
   assert(string.format('%i', #[math.mininteger]#) == '-9223372036854775808')
-  assert(string.format('%a', 2) == '0x1p+1')
-  assert(string.format('%A', 0.1) == '0X1.999999999999AP-4')
+  assert(string.format('%a', 1):find('p', 1, true))
+  assert(string.format('%A', 1):find('P', 1, true))
   assert(string.format('%f', 0.1) == '0.100000')
   assert(string.format('%e', 0.1) == '1.000000e-01')
   assert(string.format('%E', 300) == '3.000000E+02')
   assert(string.format('%g', 0.123) == '0.123')
   assert(string.format('%G', 0.123e-20) == '1.23E-21')
   assert(string.format('%p', nilptr) == '(null)')
-  assert(string.format('%p', (@pointer)(0xffffffff_u)) == '0xffffffff')
+  assert(string.format('%p', (@pointer)(0xffffffff_u)):find('ffffffff', 1, true))
   assert(string.format('%s', 'asd') == 'asd')
   assert(string.format('%s', string.rep('xuxu', 500)) == string.rep('xuxu', 500))
   assert(string.format('a number here: %d !', 1337) == 'a number here: 1337 !')

@@ -53,12 +53,16 @@ do -- io.close for default output
   assert(not ok and err == "cannot close standard file")
 end
 
+-- this test may fail on some machines with "Permission denied"
+-- so we test at compile time with Lua first
+## local f = io.tmpfile() if f then f:close()
 do -- io.tmpfile
   file = io.tmpfile()
   assert(file:isopen())
   assert(file:close())
   assert(not file:isopen())
 end
+## end
 
 do -- filestream:read, filestream:write and filestream:seek
   file = io.open('test.tmp', 'w')
@@ -162,7 +166,8 @@ end
 
 do -- tostring
   file = io.open('LICENSE', 'r')
-  assert(tostring(file):sub(1,8) == 'file (0x')
+  assert(file:isopen())
+  assert(tostring(file):sub(1,6) == 'file (')
   local file2 = file
   file:close()
   assert(not file2:isopen())
