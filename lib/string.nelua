@@ -127,18 +127,6 @@ function string.__convert(s: #[overload_concept({stringview,cstring},true)]#): s
   ## end
 end
 
-function string.__concat(a: stringview, b: stringview): string
-  if a.size == 0 then
-    return b
-  elseif b.size == 0 then
-    return a
-  end
-  local s: string = string._create(a.size + b.size)
-  memory.copy(&s.data[0], a.data, a.size)
-  memory.copy(&s.data[a.size], b.data, b.size)
-  return s
-end
-
 function string.sub(self: stringview, i: isize, j: #[optional_concept(isize)]#): string
   ## if j.type.is_niltype then
   local j: isize = -1
@@ -391,6 +379,33 @@ function string.format(fmt: stringview, arg1: auto): string
     end
   end
   return b:promotestring()
+end
+
+-- Concept to check if a value can possibly be a string.
+local string_coercion_concept = #[concept(function(x)
+  if x.type.is_stringy then
+    return primtypes.stringview
+  elseif x.type.is_arithmetic then
+    return true
+  end
+end)]#
+
+function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string
+  ## if not a.type.is_stringview then
+  local a: string = tostring(a)
+  ## end
+  ## if not b.type.is_stringview then
+  local b: string = tostring(b)
+  ## end
+  if a.size == 0 then
+    return b
+  elseif b.size == 0 then
+    return a
+  end
+  local s: string = string._create(a.size + b.size)
+  memory.copy(&s.data[0], a.data, a.size)
+  memory.copy(&s.data[a.size], b.data, b.size)
+  return s
 end
 
 -- Import methods from stringview to string.
