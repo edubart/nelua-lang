@@ -6,38 +6,37 @@ local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',node
 
 global generic_allocator = @record{}
 
-function generic_allocator.alloc(size: usize): pointer
+function generic_allocator.alloc(size: usize): pointer <inline>
   check(size > 0_u, 'generic_allocator.alloc: size cannot be zero')
-  local p: pointer = malloc(size)
-  assert(p, 'generic_allocator.alloc: allocation fail')
-  return p
+  return malloc(size)
 end
 
-function generic_allocator.alloc0(size: usize): pointer
+function generic_allocator.alloc0(size: usize): pointer <inline>
   check(size > 0_u, 'generic_allocator.alloc0: size must be greater than 0')
-  local p: pointer = calloc(size, 1)
-  assert(p, 'generic_allocator.alloc0: allocation fail')
-  return p
+  return calloc(size, 1)
 end
 
-function generic_allocator.realloc(p: pointer, size: usize): pointer
-  check(size > 0_u, 'generic_allocator.realloc: size must be greater than 0')
-  p = realloc(p, size)
-  assert(p, 'generic_allocator.realloc: allocation fail')
-  return p
+function generic_allocator.realloc(p: pointer, size: usize): pointer <inline>
+  if unlikely(size == 0_u) then
+    free(p)
+    return nilptr
+  end
+  return realloc(p, size)
 end
 
-function generic_allocator.realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
-  check(newsize > 0_u, 'generic_allocator.realloc0: size must be greater than 0')
+function generic_allocator.realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+  if unlikely(newsize == 0) then
+    free(p)
+    return nilptr
+  end
   p = realloc(p, newsize)
-  assert(p, 'generic_allocator.realloc0: allocation fail')
-  if likely(newsize > oldsize) then
+  if likely(newsize > oldsize and p ~= nilptr) then
     memset(&(@byte[0]*)(p)[oldsize], 0, newsize - oldsize)
   end
   return p
 end
 
-function generic_allocator.dealloc(p: pointer)
+function generic_allocator.dealloc(p: pointer) <inline>
   free(p)
 end
 

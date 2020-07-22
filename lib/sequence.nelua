@@ -38,6 +38,7 @@ require 'memory'
     local cap: usize = 2
     if likely(self.impl.data.size ~= 0) then cap = self.impl.data.size * 2 end
     self.impl.data = allocator.spanrealloc0(self.impl.data, cap)
+    check(self.impl.data.size > 0_u, 'sequence.grow: out of memory')
   end
 
   -- Initializes sequence internal implementation if needed.
@@ -45,6 +46,7 @@ require 'memory'
   function SequenceT:init() <inline>
     if likely(self.impl) then return end
     self.impl = (@SequenceImplT*)(allocator.alloc0(#SequenceImplT))
+    check(self.impl ~= nilptr, 'sequence.init: out of memory')
   end
 
   -- Resets and removes all elements from the sequence.
@@ -74,6 +76,7 @@ require 'memory'
     local cap: usize = n + 1
     if self.impl.data.size >= cap then return end
     self.impl.data = allocator.spanrealloc0(self.impl.data, cap)
+    check(self.impl.data.size > 0_u, 'sequence.reserve: out of memory')
   end
 
   -- Resizes the sequence so that it contains `n` elements.

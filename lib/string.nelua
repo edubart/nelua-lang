@@ -57,6 +57,7 @@ function string._create(size: usize): string
   check(size > 0, 'string._create: attempt to create an empty string')
   self.size = size
   self.data = (@byte[0]*)(allocator.alloc(size+1))
+  check(self.data ~= nilptr, 'string._create: out of memory')
   self.data[size] = 0
   --self.refs = 1
   return self
@@ -74,6 +75,7 @@ function stringbuffer:promotestring(): string
   end
   local size: usize = self.size
   local data: span(byte) = allocator.spanrealloc(self.data, size + 1) -- shrink
+  check(data.size > 0_u, 'stringbuffer.promotestring: out of memory')
   data[size] = 0 -- cstring line ending
   $self = {} -- destroy
   return (@string){data = data.data, size = size}

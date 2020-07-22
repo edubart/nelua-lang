@@ -34,7 +34,7 @@ require 'memory'
     local cap: usize = 1
     if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
     self.data = allocator.spanrealloc0(self.data, cap)
-    check(self.data.size == cap, 'vector._grow: out of memory')
+    check(self.data.size > 0_u, 'vector._grow: out of memory')
   end
 
   -- Resets and removes all elements from the vector.
@@ -57,6 +57,7 @@ require 'memory'
   function VectorT:reserve(n: usize)
     if likely(self.data.size >= n) then return end
     self.data = allocator.spanrealloc0(self.data, n)
+    check(self.data.size > 0_u, 'vector.reserve: out of memory')
   end
 
   -- Resizes the vector so that it contains `n` elements.

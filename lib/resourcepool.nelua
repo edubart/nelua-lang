@@ -42,8 +42,10 @@ function SlotPool:reserve(size: uint32)
   check(size > 0, 'size cannot be 0')
   -- slot 0 is reserved for the 'invalid id', so bump the pool size by 1
   self.gen_ctrs = generic_allocator.spanrealloc0(self.gen_ctrs, size+1)
+  check(#self.gen_ctrs > 0, 'out of memory')
   -- can only reserve 'size' here
   self.free_queue = generic_allocator.spanrealloc0(self.free_queue, size)
+  check(#self.free_queue > 0, 'out of memory')
   -- never allocate the zero-th pool item since the invalid id is 0
   for i=size,self.size+1,-1 do
     self.free_queue[self.queue_top] = i
@@ -141,6 +143,7 @@ end
     if self.items.size < self.slot_pool.gen_ctrs.size then
       -- slot pool has grown, allocate more space
       self.items = allocator.spanrealloc0(self.items, self.slot_pool.gen_ctrs.size)
+      check(#self.items > 0, 'resurcepool.reserve: out of memory')
     end
   end
 
@@ -184,6 +187,7 @@ end
     if unlikely(self.items.size < self.slot_pool.gen_ctrs.size) then
       -- slot pool has grown, allocate more space
       self.items = allocator.spanrealloc0(self.items, self.slot_pool.gen_ctrs.size)
+      check(#self.items > 0, 'resurcepool.alloc: out of memory')
     end
     return slot_id, &self.items[slot_index]
   end

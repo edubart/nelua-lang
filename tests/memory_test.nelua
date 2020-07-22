@@ -30,7 +30,9 @@ do -- realloc
   p = allocator.realloc(p, 4)
   assert(p)
   p = allocator.realloc(p, 1)
-  allocator.dealloc(p)
+  assert(p)
+  p = allocator.realloc(p, 0)
+  assert(p == nilptr)
 end
 
 do -- realloc0
@@ -48,7 +50,8 @@ do -- realloc0
   p = (@vec2[0]*)(allocator.realloc0(p, #@vec2, 0))
   assert(p)
   assert(p[0].x == 0 and p[0].y == 0)
-  allocator.dealloc(p)
+  p = (@vec2[0]*)(allocator.realloc0(p, 0, #@vec2))
+  assert(p == nilptr)
 end
 
 do -- copy

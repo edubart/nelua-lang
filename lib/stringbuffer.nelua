@@ -26,6 +26,7 @@ function stringbuffer:prepare(size: usize): byte[0]*
     end
     repeat cap = cap * 2 until cap >= needed
     self.data = allocator.spanrealloc(self.data, cap)
+    check(self.data.size > 0_u, 'stringbuffer.prepare: out of memory')
   end
   return (@byte[0]*)(&self.data[self.size])
 end
@@ -45,6 +46,7 @@ function stringbuffer:addbyte(c: byte)
       cap = cap * 2
     end
     self.data = allocator.spanrealloc(self.data, cap)
+    check(self.data.size > 0_u, 'stringbuffer.addbyte: out of memory')
   end
   self.data[self.size] = c
   self.size = self.size + 1

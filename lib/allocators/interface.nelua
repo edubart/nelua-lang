@@ -6,7 +6,6 @@
     local s: span(T)
     if likely(size > 0_u) then
       s.data = (@T[0]*)(allocator.alloc(size * #T))
-      assert(s.data, 'allocator.spanalloc: allocation fail')
       s.size = size
     end
     return s
@@ -16,7 +15,6 @@
     local s: span(T)
     if likely(size > 0_u) then
       s.data = (@T[0]*)(allocator.alloc0(size * #T))
-      assert(s.data, 'allocator.spanalloc0: allocation fail')
       s.size = size
     end
     return s
@@ -30,7 +28,6 @@
       s.size = 0
     else
       s.data = (@T[0]*)(allocator.realloc(s.data, size * #T))
-      assert(s.data, 'allocator.spanrealloc: allocation fail')
       s.size = size
     end
     return s
@@ -44,7 +41,6 @@
       s.size = 0
     else
       s.data = (@T[0]*)(allocator.realloc0(s.data, size * #T, s.size * #T))
-      assert(s.data, 'allocator.spanrealloc0: allocation fail')
       s.size = size
     end
     return s
@@ -54,20 +50,21 @@
     allocator.dealloc(s.data)
   end
 
-  function allocator.new(T: type, size: auto)
+  function allocator.new(T: type, size: #[optional_concept(usize)]#)
     ## if not size.type.is_niltype then
-      ## staticassert(size.type.is_integral, 'allocator.new: size must be an integral type')
-      ## if not size.type.is_unsigned then
-        check(size > 0, 'allocator.new: size must be greater than 0')
-      ## end
-      return allocator.spanalloc0(T, (@usize)(size))
+      local spn: span(T) = allocator.spanalloc0(T, (@usize)(size))
+      check(spn.size > 0_u, 'allocator.new: out of memory')
+      return spn
     ## else
-      return (@T*)(allocator.alloc0(#T))
+      local ptr: T* = (@T*)(allocator.alloc0(#T))
+      check(ptr ~= nilptr, 'allocator.new: out of memory')
+      return ptr
     ## end
   end
 
-  function allocator.delete(s: auto)
-    ## staticassert(s.type.is_pointer or s.type.is_span, "allocator.delete: invalid type '%s'", s.type)
+  function allocator.delete(s: #[concept(function(x)
+    return x.type.is_pointer or x.type.is_span end
+  )]#)
     ## if s.type.is_span then
       allocator.spandealloc(s)
     ## else -- pointer
