@@ -165,7 +165,6 @@ typedefs.function_annots = {
   inline = true,
   noreturn = true,
   noinline = true,
-  nosanitizeaddress = true,
   volatile = true,
   nodecl = true,
   nosideeffect = true,

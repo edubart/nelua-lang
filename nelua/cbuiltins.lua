@@ -50,11 +50,6 @@ function builtins.nelua_noreturn(context)
     "#define nelua_noreturn __attribute__((noreturn))\n")
 end
 
-function builtins.nelua_nosanitizeaddress(context)
-  define_builtin(context, 'nelua_nosanitizeaddress',
-    "#define nelua_nosanitizeaddress __attribute__((no_sanitize_address))\n")
-end
-
 -- nil
 function builtins.nelua_niltype(context)
   define_builtin(context, 'nelua_niltype', "typedef void* nelua_niltype;\n")

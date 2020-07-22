@@ -217,7 +217,7 @@ function GC:_unmark_all() <noinline>
   end
 end
 
-function GC:_mark_ptr(ptr: pointer)
+function GC:_mark_ptr(ptr: pointer) <noinline, cattribute'no_sanitize_memory'>
   if (@usize)(ptr) < self.minptr or (@usize)(ptr) > self.maxptr then
     return
   end
@@ -248,7 +248,7 @@ function GC:_mark_ptr(ptr: pointer)
   end
 end
 
-function GC:_mark_stack() <noinline, nosanitizeaddress>
+function GC:_mark_stack() <noinline, cattribute'no_sanitize_address'>
   local stk: pointer
   local bot: usize = (@usize)(self.bottom)
   local top: usize = (@usize)(&stk)

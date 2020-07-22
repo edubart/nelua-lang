@@ -1103,9 +1103,6 @@ function visitors.FuncDef(context, node, emitter)
   if attr.noreturn then
     qualifier = qualifier .. context:ensure_runtime_builtin('nelua_noreturn') .. ' '
   end
-  if attr.nosanitizeaddress then
-    qualifier = qualifier .. context:ensure_runtime_builtin('nelua_nosanitizeaddress') .. ' '
-  end
   if attr.cqualifier then qualifier = qualifier .. attr.cqualifier .. ' ' end
   if attr.cattribute then
     qualifier = string.format('%s__attribute__((%s)) ', qualifier, attr.cattribute)
@@ -1306,6 +1303,8 @@ local function emit_features_setup(context)
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
       -- C zero initialization for anything
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-braces"')
+      -- usage of no_sanitize_memory/no_sanitize_address cause this warning
+      emitter:add_ln('#pragma GCC diagnostic ignored "-Wattributes"')
 
       -- the code generator may generate unused variables, parameters, functions
       emitter:add_ln('#if defined(__clang__)')
