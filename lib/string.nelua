@@ -54,7 +54,7 @@ stringtype.name = 'string'
 -- Allocate a new string to be filled. Used internally.
 function string._create(size: usize): string
   local self: string
-  check(size > 0, 'cannot create string with size 0')
+  check(size > 0, 'string._create: attempt to create an empty string')
   self.size = size
   self.data = (@byte[0]*)(allocator.alloc(size+1))
   self.data[size] = 0
@@ -64,6 +64,7 @@ end
 
 -- Cleanup a string. Used internally.
 function string:_reset() <inline>
+  allocator.dealloc(self.data)
   $self = {}
 end
 
@@ -262,7 +263,7 @@ local function scanformat(strfmt: byte[0]*, form: byte[MAX_FORMAT]*): usize
     p = p + 1  -- skip flags
   end
   if p >= (#L_FMTFLAGS + 1) // #@byte then
-    error("invalid format (repeated flags)")
+    error("string.format: invalid format (repeated flags)")
   end
   if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- skip width
   if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- (2 digits at most)
@@ -272,7 +273,7 @@ local function scanformat(strfmt: byte[0]*, form: byte[MAX_FORMAT]*): usize
     if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- (2 digits at most)
   end
   if isdigit(strfmt[p]) ~= 0 then
-    error("invalid format (width or precision too long)")
+    error("string.format: invalid format (width or precision too long)")
   end
   form[0] = #[string.byte'%']#
   memory.copy(&form[1], &strfmt[p], (p + 1) * #@byte)
@@ -315,7 +316,7 @@ function string.format(fmt: stringview, arg1: auto): string
         c = fmt.data[pos]
         pos = pos + 1
         argi = argi + 1
-        assert(argi == 1, 'format with multiple arguments not supported yet')
+        assert(argi == 1, 'string.format: format with multiple arguments not supported yet')
         ## if primtypes.cint:is_convertible_from(arg1.type) then
           if c == #[string.byte'c']# then
             local n: cint = (@cint)(arg1)
@@ -368,10 +369,7 @@ function string.format(fmt: stringview, arg1: auto): string
             goto next
           end
         ## end
-        --TODO: 'q'
-        local s: string = "invalid conversion '"..((@cstring)(&form[0]))..
-                          "' for format argument #"..tostring(argi)
-        error(s:__tostringview())
+        error('string.format: invalid conversion for format argument')
 ::next::
         assert(nb < maxitem)
         b:commit(nb)

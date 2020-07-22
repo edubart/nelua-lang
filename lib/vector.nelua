@@ -34,6 +34,7 @@ require 'memory'
     local cap: usize = 1
     if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
     self.data = allocator.spanrealloc0(self.data, cap)
+    check(self.data.size == cap, 'vector._grow: out of memory')
   end
 
   -- Resets and removes all elements from the vector.
@@ -49,8 +50,7 @@ require 'memory'
   function VectorT:reset()
     self:clear()
     allocator.spandealloc(self.data)
-    self.data = (@span(T)){}
-    self.size = 0
+    $self = {}
   end
 
   -- Reserve at least `n` elements in the vector storage.
@@ -83,7 +83,7 @@ require 'memory'
   -- Removes the last element in the vector and returns its value.
   -- If the vector is empty, then throws a runtime error.
   function VectorT:pop(): T
-    check(self.size > 0, 'vector.pop: length is 0')
+    check(self.size > 0, 'vector.pop: attempt to pop an empty vector')
     self.size = self.size - 1
     return memory.moveval(&self.data[self.size])
   end

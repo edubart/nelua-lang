@@ -209,7 +209,7 @@ function math.tointeger(x: is_arithmetic) <inline,nosideeffect>
   ## if x.type.is_integral then
     return (@integer)(x)
   ## elseif x.type.is_float then
-    local r = (@integer)(x)
+    local r: integer = (@integer)(x)
     if likely(x == r) then
       return r
     else
@@ -234,7 +234,7 @@ function math.ult(m: is_arithmetic, n: is_arithmetic): boolean <inline>
   ## if m.type.is_integral and n.type.is_integral then
     return (@uinteger)(m) < (@uinteger)(n)
   ## elseif x.type.is_float then
-    local mi, ni = (@integer)(m), (@integer)(n)
+    local mi: integer, ni: integer = (@integer)(m), (@integer)(n)
     if likely(mi == m and ni == n) then
       return (@uinteger)(mi) < (@uinteger)(ni)
     else

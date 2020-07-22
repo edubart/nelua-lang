@@ -51,7 +51,7 @@ function io.input(file: #[overload_concept{stringview,filestream,niltype}]#): fi
     if not fin:isopen() then error(err) end
     io.stdin = fin
   ## elseif file.type.is_filestream then
-    if not file:isopen() then error('attempt to use a closed file') end
+    if not file:isopen() then error('io.input: attempt to use a closed file') end
     io.stdin = file
   ## end
   return io.stdin
@@ -63,7 +63,7 @@ function io.output(file: #[overload_concept{stringview,filestream,niltype}]#): f
     if not fout:isopen() then error(err) end
     io.stdout = fout
   ## elseif file.type.is_filestream then
-    if not file:isopen() then error('attempt to use a closed file') end
+    if not file:isopen() then error('io.output: attempt to use a closed file') end
     io.stdout = file
   ## end
   return io.stdout

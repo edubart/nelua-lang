@@ -130,8 +130,7 @@ function os.setlocale(locale: stringview, category: #[optional_concept(stringvie
     elseif category == 'numeric' then cat = LC_NUMERIC
     elseif category == 'time' then cat = LC_TIME
     else
-      --TODO: string format with option name
-      error "invalid option '%s'"
+      error("os.setlocale: invalid category")
     end
     local s: cstring = setlocale(cat, locale)
     if s then
@@ -153,7 +152,7 @@ function os.time(desc: #[optional_concept(os_time_desc)]#): integer
   ## if desc.type.is_niltype then
     t = time(nilptr)
     if t == -1 then
-      error 'time result cannot be represented in this installation'
+      error 'os.time: time result cannot be represented in this installation'
     end
   ## else
     --TODO: change desc to table and update fields with normalize values
@@ -178,7 +177,7 @@ function os.tmpname(): string
   strncpy(&buf[0], "/tmp/lua_XXXXXX", TMPBUFSIZE)
   local fd: cint = mkstemp(&buf[0])
   if fd == -1 then
-    error "unable to generate a unique filename"
+    error "os.tmpname: unable to generate a unique filename"
   end
   close(fd)
   return &buf[0]

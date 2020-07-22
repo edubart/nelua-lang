@@ -72,7 +72,7 @@ function stringview.byte(self: stringview, i: #[optional_concept(isize)]#): byte
     i = self.size + i + 1
   end
   --TODO: return nil instead on failure
-  check(i >= 1 and i <= self.size, 'index out of range')
+  check(i >= 1 and i <= self.size, 'stringview.byte: index out of range')
   return (@byte)(self.data[i-1])
 end
 
@@ -83,7 +83,7 @@ function stringview.find(self: stringview,
                          plain: boolean): (isize, isize)
   --TODO: handle patterns and returns them
   --TODO: return nil if not found instead of zeros
-  check(plain, 'patterns not supported yet')
+  check(plain, 'stringview.find: patterns not supported yet')
   if unlikely(self.size == 0) then
     if pattern.size == 0 then return 1, 0 end
     return 0, 0
@@ -101,11 +101,11 @@ end
 
 -- Convert a string to an integer in the desired base.
 local function str2intbase(s: stringview, base: uinteger): integer
-  assert(s.size > 0, "invalid number format")
+  assert(s.size > 0, "str2intbase: invalid number format")
   ## if base.type.is_niltype then
   local base: uinteger <const> = 10
   ## else
-  check(base >= 2 and base <= 36, "base out of range")
+  check(base >= 2 and base <= 36, "str2intbase: base out of range")
   ## end
   local SPACECHARS: cstring <const> = " \f\n\r\t\v"
   local pos: usize = strspn(s, SPACECHARS) -- skip initial spaces
@@ -127,12 +127,12 @@ local function str2intbase(s: stringview, base: uinteger): integer
     else -- else spaces or invalid character
       break
     end
-    assert(x < base, "invalid number format")
+    assert(x < base, "str2intbase: invalid number format")
     n = n * base + (@uinteger)(x)
     pos = pos + 1
   until pos >= s.size
   pos = pos + strspn(&s.data[pos], SPACECHARS) -- skip trailing spaces
-  check(pos == s.size, "invalid number format") -- fully parsed?
+  check(pos == s.size, "str2intbase: invalid number format") -- fully parsed?
   if neg then -- negate
     n = -n
   end
@@ -153,7 +153,7 @@ global function tonumber(x: auto, base: #[optional_concept(integer)]#)
     local endptr: cstring
     errno = 0
     local n: float64 = strtod(x, &endptr)
-    check(endptr ~= x and errno == 0, 'failed to convert string to number')
+    check(endptr ~= x and errno == 0, 'tonumber: failed to convert string to number')
     return (@number)(n)
   ## else staticerror("unable to convert value of type '%s' to a number", x.type) end
 end
@@ -170,7 +170,7 @@ global function tointeger(x: auto, base: #[optional_concept(integer)]#): integer
     local endptr: cstring
     errno = 0
     local i: clonglong = strtoll(x, &endptr, 10)
-    check(endptr ~= x and errno == 0, 'failed to convert string to integer')
+    check(endptr ~= x and errno == 0, 'tointeger: failed to convert string to integer')
     return i
   ## else staticerror("unable to convert value of type '%s' to an integer", x.type) end
 end
