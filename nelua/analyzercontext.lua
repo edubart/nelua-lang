@@ -2,6 +2,7 @@ local class = require 'nelua.utils.class'
 local tabler = require 'nelua.utils.tabler'
 local Scope = require 'nelua.scope'
 local errorer = require 'nelua.utils.errorer'
+local stringer = require 'nelua.utils.stringer'
 local VisitorContext = require 'nelua.visitorcontext'
 
 local AnalyzerContext = class(VisitorContext)
@@ -82,7 +83,10 @@ end
 function AnalyzerContext:choose_codename(name)
   local unitname = self.pragmas.unitname or self.state.unitname
   if unitname and unitname ~= '' then
-    name = unitname .. '_' .. name
+    unitname = unitname .. '_'
+    if not stringer.startswith(name, unitname) then
+      name = unitname .. name
+    end
   end
   local count = self.usedcodenames[name]
   if count then

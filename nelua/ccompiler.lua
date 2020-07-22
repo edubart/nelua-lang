@@ -136,7 +136,24 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   return binfile
 end
 
+function compiler.get_gdb_version()
+  local ok, ret, stdout, stderr = executor.execex(config.gdb .. ' -v')
+  if ok and ret and stdout:match("GNU gdb") then
+    local version = stdout:match('%d+%.%d+')
+    return version
+  end
+end
+
 function compiler.get_run_command(binaryfile, runargs)
+  if config.debug then --luacov:disable
+    local gdbver = compiler.get_gdb_version()
+    if gdbver then
+      local gdbargs = {'-q', '-ex', 'run', '-ex', 'bt', '-ex', 'quit', binaryfile}
+      tabler.insertvalues(gdbargs, runargs)
+      return config.gdb, gdbargs
+    end
+  end --luacov:enable
+
   return fs.abspath(binaryfile), tabler.copy(runargs)
 end
 

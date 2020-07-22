@@ -13,6 +13,7 @@ local config = {}
 local defconfig = {
   generator = 'c',
   lua = 'lua',
+  gdb = 'gdb',
   lua_version = _VERSION:match('%d+%.%d+'),
   cache_dir = 'nelua_cache',
   cpu_bits = 64
@@ -96,7 +97,8 @@ local function create_parser(args)
   argparser:flag('-q --quiet', "Don't print any information while compiling", defconfig.quiet)
   argparser:flag('-a --analyze', 'Analyze the code only', defconfig.analyze)
   argparser:flag('-r --release', 'Release mode build', defconfig.release)
-  argparser:flag('-t --timing', 'Debug compile timing information', defconfig.timing)
+  argparser:flag('-t --timing', 'Inform compile processing time', defconfig.timing)
+  argparser:flag('-d --debug', 'Run through GDB to get crash backtraces', defconfig.debug)
   argparser:flag('--no-cache', "Don't use any cached compilation", defconfig.no_cache)
   argparser:option('-D --define', 'Define values in the preprocessor')
     :count("*"):convert(convert_param, tabler.copy(defconfig.define or {}))

@@ -23,11 +23,9 @@ function stringer.pformat(format, ...)
   return string.format(format, ...)
 end
 
---[[
 function stringer.startswith(s, prefix)
   return string.find(s,prefix,1,true) == 1
 end
-]]
 
 function stringer.endswith(s, suffix)
   return #s >= #suffix and string.find(s, suffix, #s-#suffix+1, true) and true or false
