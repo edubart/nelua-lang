@@ -71,7 +71,7 @@ it("type assertion", function()
     local n = (@number)()
     local f = (@float32)()
     local r = (@R)()
-  ]],[[a = (nelua_int64_arr4){0};
+  ]],[[a = (nlint64_arr4){0};
   i = 0;
   u = 0U;
   b = false;
@@ -92,9 +92,9 @@ it("boolean", function()
 end)
 
 it("nil", function()
-  assert.generate_c("local a: niltype", "nelua_niltype a = NULL;")
-  assert.generate_c("local a: niltype = nil", "nelua_niltype a = NULL;")
-  assert.generate_c("local a = nil", "nelua_any a = {0};")
+  assert.generate_c("local a: niltype", "nlniltype a = NULL;")
+  assert.generate_c("local a: niltype = nil", "nlniltype a = NULL;")
+  assert.generate_c("local a = nil", "nlany a = {0};")
   assert.generate_c("local function f(a: niltype) end f(nil)", "f(NULL);")
 end)
 
@@ -106,7 +106,7 @@ it("call", function()
   assert.generate_c("local a; a.f()", "a.f()")
   --assert.generate_c("a:f(a)", "a.f(a, a)")
   assert.generate_c("local f; do f() end", "f();")
-  assert.generate_c("local f; do return f() end", "return nelua_any_to_nelua_cint(f());")
+  assert.generate_c("local f; do return f() end", "return nlany_to_nlcint(f());")
   assert.generate_c("local f,g; do f(g()) end", "f(g())")
   assert.generate_c("local f,a,b; do f(a, b) end", "f(a, b)")
   assert.generate_c("local f,a,b; do f(a)(b) end", "f(a)(b)")
@@ -147,7 +147,7 @@ it("if", function()
   assert.generate_c("if nilptr then\nend","if(false) {\n")
   assert.generate_c("if nil then\nend","if(false) {\n")
   assert.generate_c("if 1 then\nend","if(true) {\n")
-  assert.generate_c("local a; if a then\nend","if(nelua_any_to_nelua_boolean(a)) {\n")
+  assert.generate_c("local a; if a then\nend","if(nlany_to_nlboolean(a)) {\n")
   assert.generate_c("if true then\nend","if(true) {\n  }")
   assert.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
   assert.generate_c("if true then\nelse\nend", "if(true) {\n  } else {\n  }")
@@ -222,12 +222,12 @@ end)
 
 it("for", function()
   assert.generate_c("local a,b; for i=a,b do end", {
-    "for(nelua_any i = a, __end = b; i <= __end; i = i + 1) {"})
+    "for(nlany i = a, __end = b; i <= __end; i = i + 1) {"})
   assert.generate_c("local a,b,c; for i=a,b do i=c end", {
-    "for(nelua_any __it = a, __end = b; __it <= __end; __it = __it + 1) {",
-    "nelua_any i = __it;"})
+    "for(nlany __it = a, __end = b; __it <= __end; __it = __it + 1) {",
+    "nlany i = __it;"})
   assert.generate_c("local a,b,c; for i=a,b,c do end",
-    "for(nelua_any i = a, __end = b, __step = c; " ..
+    "for(nlany i = a, __end = b, __step = c; " ..
     "__step >= 0 ? i <= __end : i >= __end; i = i + __step) {")
   assert.generate_c(
     "for i=1,<2 do end",
@@ -482,7 +482,7 @@ it("function return", function()
   ]], "int64_t f() {\n  return 0;")
   assert.generate_c([[
     local function f(): any return end
-  ]], "nelua_any f() {\n  return (nelua_any){0};")
+  ]], "nlany f() {\n  return (nlany){0};")
   assert.generate_c([[
     local function f() return end
   ]], "return;")
@@ -970,23 +970,23 @@ end)
 
 it("binary conditional operators", function()
   assert.generate_c("local a, b; do return a or b end",  [[({
-      nelua_any t1_ = a;
-      nelua_any t2_ = {0};
-      bool cond_ = nelua_any_to_nelua_boolean(t1_);
+      nlany t1_ = a;
+      nlany t2_ = {0};
+      bool cond_ = nlany_to_nlboolean(t1_);
       if(!cond_) {
         t2_ = b;
       }
       cond_ ? t1_ : t2_;
     })]])
   assert.generate_c("local a, b; return a and b",  [[({
-    nelua_any t1_ = a;
-    nelua_any t2_ = {0};
-    bool cond_ = nelua_any_to_nelua_boolean(t1_);
+    nlany t1_ = a;
+    nlany t2_ = {0};
+    bool cond_ = nlany_to_nlboolean(t1_);
     if(cond_) {
       t2_ = b;
-      cond_ = nelua_any_to_nelua_boolean(t2_);
+      cond_ = nlany_to_nlboolean(t2_);
     }
-    cond_ ? t2_ : (nelua_any){0};
+    cond_ ? t2_ : (nlany){0};
   })]])
   assert.generate_c([[
     local p: pointer
@@ -1154,13 +1154,13 @@ end)
 it("any type", function()
   assert.generate_c(
     "local a: any",
-    "nelua_any a = {0};")
+    "nlany a = {0};")
   assert.generate_c(
     "do local a: any; local b: any = a end",
-    "nelua_any b = a;")
+    "nlany b = a;")
   assert.generate_c(
     "do local a: any = 1; local b: integer = a end",
-    "int64_t b = nelua_any_to_nelua_int64(a);")
+    "int64_t b = nlany_to_nlint64(a);")
   assert.run_c([[
     local a: any = 1
     local b: integer = a
@@ -1226,7 +1226,7 @@ end)
 it("arrays", function()
   assert.generate_c(
     "local a: array(boolean, 10)",
-    {"data[10];} nelua_boolean_arr10"})
+    {"data[10];} nlboolean_arr10"})
   assert.run_c([[
     do
       local a: array(boolean, 1)

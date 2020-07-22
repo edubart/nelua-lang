@@ -87,8 +87,8 @@ end
 
 function CContext:runctype(type)
   local typename = self:typename(type)
-  self:ensure_runtime_builtin('nelua_runtype_', typename)
-  return 'nelua_runtype_' .. typename
+  self:ensure_runtime_builtin('nlruntype_', typename)
+  return 'nlruntype_' .. typename
 end
 
 function CContext:funcretctype(functype)

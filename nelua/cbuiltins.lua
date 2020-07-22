@@ -51,12 +51,12 @@ function builtins.nelua_noreturn(context)
 end
 
 -- nil
-function builtins.nelua_niltype(context)
-  define_builtin(context, 'nelua_niltype', "typedef void* nelua_niltype;\n")
+function builtins.nlniltype(context)
+  define_builtin(context, 'nlniltype', "typedef void* nlniltype;\n")
 end
 
-function builtins.nelua_unusedvar(context)
-  define_builtin(context, 'nelua_unusedvar', "typedef void* nelua_unusedvar;\n")
+function builtins.nlunusedvar(context)
+  define_builtin(context, 'nlunusedvar', "typedef void* nlunusedvar;\n")
 end
 
 -- panic
@@ -79,8 +79,8 @@ function builtins.nelua_panic_stringview(context)
   context:ensure_runtime_builtin('nelua_noreturn')
   context:ctype(primtypes.stringview)
   define_builtin(context, 'nelua_panic_stringview',
-    'static nelua_noreturn void nelua_panic_stringview(nelua_stringview s);\n',
-    [[void nelua_panic_stringview(nelua_stringview s) {
+    'static nelua_noreturn void nelua_panic_stringview(nlstringview s);\n',
+    [[void nelua_panic_stringview(nlstringview s) {
   if(s.data && s.size > 0) {
     fprintf(stderr, "%s\n", (char*)s.data);
   }
@@ -108,8 +108,8 @@ function builtins.nelua_assert_stringview(context)
   context:ensure_runtime_builtin('nelua_unlikely')
   context:ctype(primtypes.stringview)
   define_builtin(context, 'nelua_assert_stringview',
-    'static void nelua_assert_stringview(bool cond, nelua_stringview s);\n',
-    [[inline void nelua_assert_stringview(bool cond, nelua_stringview s) {
+    'static void nelua_assert_stringview(bool cond, nlstringview s);\n',
+    [[inline void nelua_assert_stringview(bool cond, nlstringview s) {
   if(nelua_unlikely(!cond)) {
     nelua_panic_stringview(s);
   }
@@ -139,7 +139,7 @@ function builtins.nelua_warn(context)
   context:add_include('<stdio.h>')
   context:ctype(primtypes.stringview)
   define_inline_builtin(context, 'nelua_warn',
-    'void', '(nelua_stringview s)', [[{
+    'void', '(nlstringview s)', [[{
   if(s.data && s.size > 0) {
     fprintf(stderr, "%s\n", (char*)s.data);
   }
@@ -151,7 +151,7 @@ function builtins.nelua_stringview_eq(context)
   context:add_include('<string.h>')
   context:ctype(primtypes.stringview)
   define_inline_builtin(context,'nelua_stringview_eq',
-    'bool', '(nelua_stringview a, nelua_stringview b)', [[{
+    'bool', '(nlstringview a, nlstringview b)', [[{
   return a.size == b.size && (a.data == b.data || a.size == 0 || memcmp(a.data, b.data, a.size) == 0);
 }]])
 end
@@ -159,7 +159,7 @@ end
 function builtins.nelua_stringview_ne(context)
   context:ensure_runtime_builtin('nelua_stringview_eq')
   define_inline_builtin(context, 'nelua_stringview_ne',
-    'bool', '(nelua_stringview a, nelua_stringview b)', [[{
+    'bool', '(nlstringview a, nlstringview b)', [[{
   return !nelua_stringview_eq(a, b);
 }]])
 end
@@ -168,29 +168,29 @@ function builtins.nelua_cstring2stringview(context)
   context:add_include('<string.h>')
   context:ctype(primtypes.stringview)
   define_inline_builtin(context, 'nelua_cstring2stringview',
-    'nelua_stringview', '(char *s)', [[{
-  if(s == NULL) return (nelua_stringview){0};
+    'nlstringview', '(char *s)', [[{
+  if(s == NULL) return (nlstringview){0};
   uintptr_t size = strlen(s);
-  if(size == 0) return (nelua_stringview){0};
-  return (nelua_stringview){s, size};
+  if(size == 0) return (nlstringview){0};
+  return (nlstringview){s, size};
 }]])
 end
 
 -- runtime type
-function builtins.nelua_runtype(context)
+function builtins.nlruntype(context)
   context:ctype(primtypes.stringview)
-  define_builtin(context, 'nelua_runtype', [[typedef struct nelua_runtype {
-  nelua_stringview name;
-} nelua_runtype;
+  define_builtin(context, 'nlruntype', [[typedef struct nlruntype {
+  nlstringview name;
+} nlruntype;
 ]])
 end
 
-function builtins.nelua_runtype_(context, typename)
-  local name = 'nelua_runtype_' .. typename
+function builtins.nlruntype_(context, typename)
+  local name = 'nlruntype_' .. typename
   if context.usedbuiltins[name] then return name end
   context:ctype(primtypes.stringview)
-  context:ensure_runtime_builtin('nelua_runtype')
-  local code = string.format('static nelua_runtype %s ='..
+  context:ensure_runtime_builtin('nlruntype')
+  local code = string.format('static nlruntype %s ='..
     '{ {"%s", %d} };\n',
     name, typename, #typename)
   define_builtin(context, name, code)
@@ -198,62 +198,62 @@ function builtins.nelua_runtype_(context, typename)
 end
 
 -- any
-function builtins.nelua_any(context)
-  context:ensure_runtime_builtin('nelua_niltype')
-  context:ensure_runtime_builtin('nelua_runtype')
-  define_builtin(context, 'nelua_any', [[typedef struct nelua_any {
-  nelua_runtype *type;
+function builtins.nlany(context)
+  context:ensure_runtime_builtin('nlniltype')
+  context:ensure_runtime_builtin('nlruntype')
+  define_builtin(context, 'nlany', [[typedef struct nlany {
+  nlruntype *type;
   union {
-    intptr_t _nelua_isize;
-    int8_t _nelua_int8;
-    int16_t _nelua_int16;
-    int32_t _nelua_int32;
-    int64_t _nelua_int64;
-    uintptr_t _nelua_usize;
-    uint8_t _nelua_uint8;
-    uint16_t _nelua_uint16;
-    uint32_t _nelua_uint32;
-    uint64_t _nelua_uint64;
-    float _nelua_float32;
-    double _nelua_float64;
-    bool _nelua_boolean;
-    nelua_stringview _nelua_stringview;
-    char* _nelua_cstring;
-    void* _nelua_pointer;
-    char _nelua_cchar;
-    signed char _nelua_cschar;
-    short _nelua_cshort;
-    int _nelua_cint;
-    long _nelua_clong;
-    long long _nelua_clonglong;
-    ptrdiff_t _nelua_cptrdiff;
-    unsigned char _nelua_cuchar;
-    unsigned short _nelua_cushort;
-    unsigned int _nelua_cuint;
-    unsigned long _nelua_culong;
-    unsigned long long _nelua_culonglong;
-    size_t _nelua_csize;
-    nelua_niltype _nelua_niltype;
+    intptr_t _nlisize;
+    int8_t _nlint8;
+    int16_t _nlint16;
+    int32_t _nlint32;
+    int64_t _nlint64;
+    uintptr_t _nlusize;
+    uint8_t _nluint8;
+    uint16_t _nluint16;
+    uint32_t _nluint32;
+    uint64_t _nluint64;
+    float _nlfloat32;
+    double _nlfloat64;
+    bool _nlboolean;
+    nlstringview _nlstringview;
+    char* _nlcstring;
+    void* _nlpointer;
+    char _nlcchar;
+    signed char _nlcschar;
+    short _nlcshort;
+    int _nlcint;
+    long _nlclong;
+    long long _nlclonglong;
+    ptrdiff_t _nlcptrdiff;
+    unsigned char _nlcuchar;
+    unsigned short _nlcushort;
+    unsigned int _nlcuint;
+    unsigned long _nlculong;
+    unsigned long long _nlculonglong;
+    size_t _nlcsize;
+    nlniltype _nlniltype;
   } value;
-} nelua_any;
+} nlany;
 ]])
 end
 
-function builtins.nelua_any_to_(context, type)
+function builtins.nlany_to_(context, type)
   local typename = context:typename(type)
-  local name = 'nelua_any_to_' .. typename
+  local name = 'nlany_to_' .. typename
   if context.usedbuiltins[name] then return name end
   local ctype = context:ctype(type)
-  context:ensure_runtime_builtin('nelua_any')
-  context:ensure_runtime_builtin('nelua_runtype_', typename)
+  context:ensure_runtime_builtin('nlany')
+  context:ensure_runtime_builtin('nlruntype_', typename)
   if type.is_boolean then
-    context:ensure_runtime_builtin('nelua_runtype_', 'nelua_pointer')
-    define_inline_builtin(context, name, ctype, '(nelua_any a)',
+    context:ensure_runtime_builtin('nlruntype_', 'nlpointer')
+    define_inline_builtin(context, name, ctype, '(nlany a)',
       string.format([[{
-  if(a.type == &nelua_runtype_nelua_boolean) {
-    return a.value._nelua_boolean;
-  } else if(a.type == &nelua_runtype_nelua_pointer) {
-    return a.value._nelua_pointer != NULL;
+  if(a.type == &nlruntype_nlboolean) {
+    return a.value._nlboolean;
+  } else if(a.type == &nlruntype_nlpointer) {
+    return a.value._nlpointer != NULL;
   } else {
     return a.type != NULL;
   }
@@ -261,9 +261,9 @@ function builtins.nelua_any_to_(context, type)
   else
     context:ensure_runtime_builtin('nelua_unlikely')
     context:ensure_runtime_builtin('nelua_panic_cstring')
-    define_inline_builtin(context, name, ctype, '(nelua_any a)',
+    define_inline_builtin(context, name, ctype, '(nlany a)',
       string.format([[{
-  if(nelua_unlikely(a.type != &nelua_runtype_%s)) {
+  if(nelua_unlikely(a.type != &nlruntype_%s)) {
     nelua_panic_cstring("type check fail");
   }
   return a.value._%s;
@@ -276,7 +276,7 @@ end
 function builtins.nelua_stdout_write_stringview(context)
   context:add_include('<stdio.h>')
   define_inline_builtin(context, 'nelua_stdout_write_stringview',
-    'void', '(nelua_stringview s)', [[{
+    'void', '(nlstringview s)', [[{
   if(s.data && s.size > 0) {
     fwrite((char*)s.data, s.size, 1, stdout);
   }
@@ -286,51 +286,51 @@ end
 function builtins.nelua_stdout_write_any(context)
   context:add_include('<stdio.h>')
   context:add_include('<inttypes.h>')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_boolean')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_isize')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_usize')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_int8')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_int16')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_int32')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_int64')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_uint8')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_uint16')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_uint32')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_uint64')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_float32')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_float64')
-  context:ensure_runtime_builtin('nelua_runtype_', 'nelua_pointer')
+  context:ensure_runtime_builtin('nlruntype_', 'nlboolean')
+  context:ensure_runtime_builtin('nlruntype_', 'nlisize')
+  context:ensure_runtime_builtin('nlruntype_', 'nlusize')
+  context:ensure_runtime_builtin('nlruntype_', 'nlint8')
+  context:ensure_runtime_builtin('nlruntype_', 'nlint16')
+  context:ensure_runtime_builtin('nlruntype_', 'nlint32')
+  context:ensure_runtime_builtin('nlruntype_', 'nlint64')
+  context:ensure_runtime_builtin('nlruntype_', 'nluint8')
+  context:ensure_runtime_builtin('nlruntype_', 'nluint16')
+  context:ensure_runtime_builtin('nlruntype_', 'nluint32')
+  context:ensure_runtime_builtin('nlruntype_', 'nluint64')
+  context:ensure_runtime_builtin('nlruntype_', 'nlfloat32')
+  context:ensure_runtime_builtin('nlruntype_', 'nlfloat64')
+  context:ensure_runtime_builtin('nlruntype_', 'nlpointer')
   context:ensure_runtime_builtin('nelua_panic_cstring')
   define_inline_builtin(context, 'nelua_stdout_write_any',
-    'void', '(nelua_any a)', [[{
-  if(a.type == &nelua_runtype_nelua_boolean) {
-    printf(a.value._nelua_boolean ? "true" : "false");
-  } else if(a.type == &nelua_runtype_nelua_isize) {
-    printf("%" PRIiPTR, a.value._nelua_isize);
-  } else if(a.type == &nelua_runtype_nelua_usize) {
-    printf("%" PRIuPTR, a.value._nelua_usize);
-  } else if(a.type == &nelua_runtype_nelua_int8) {
-    printf("%" PRIi8, a.value._nelua_int8);
-  } else if(a.type == &nelua_runtype_nelua_int16) {
-    printf("%" PRIi16, a.value._nelua_int16);
-  } else if(a.type == &nelua_runtype_nelua_int32) {
-    printf("%" PRIi32, a.value._nelua_int32);
-  } else if(a.type == &nelua_runtype_nelua_int64) {
-    printf("%" PRIi64, a.value._nelua_int64);
-  } else if(a.type == &nelua_runtype_nelua_uint8) {
-    printf("%" PRIu8, a.value._nelua_uint8);
-  } else if(a.type == &nelua_runtype_nelua_uint16) {
-    printf("%" PRIu16, a.value._nelua_uint16);
-  } else if(a.type == &nelua_runtype_nelua_uint32) {
-    printf("%" PRIu32, a.value._nelua_uint32);
-  } else if(a.type == &nelua_runtype_nelua_uint64) {
-    printf("%" PRIu64, a.value._nelua_uint64);
-  } else if(a.type == &nelua_runtype_nelua_float32) {
-    printf("%f", a.value._nelua_float32);
-  } else if(a.type == &nelua_runtype_nelua_float64) {
-    printf("%lf", a.value._nelua_float64);
-  } else if(a.type == &nelua_runtype_nelua_pointer) {
-    printf("%p", a.value._nelua_pointer);
+    'void', '(nlany a)', [[{
+  if(a.type == &nlruntype_nlboolean) {
+    printf(a.value._nlboolean ? "true" : "false");
+  } else if(a.type == &nlruntype_nlisize) {
+    printf("%" PRIiPTR, a.value._nlisize);
+  } else if(a.type == &nlruntype_nlusize) {
+    printf("%" PRIuPTR, a.value._nlusize);
+  } else if(a.type == &nlruntype_nlint8) {
+    printf("%" PRIi8, a.value._nlint8);
+  } else if(a.type == &nlruntype_nlint16) {
+    printf("%" PRIi16, a.value._nlint16);
+  } else if(a.type == &nlruntype_nlint32) {
+    printf("%" PRIi32, a.value._nlint32);
+  } else if(a.type == &nlruntype_nlint64) {
+    printf("%" PRIi64, a.value._nlint64);
+  } else if(a.type == &nlruntype_nluint8) {
+    printf("%" PRIu8, a.value._nluint8);
+  } else if(a.type == &nlruntype_nluint16) {
+    printf("%" PRIu16, a.value._nluint16);
+  } else if(a.type == &nlruntype_nluint32) {
+    printf("%" PRIu32, a.value._nluint32);
+  } else if(a.type == &nlruntype_nluint64) {
+    printf("%" PRIu64, a.value._nluint64);
+  } else if(a.type == &nlruntype_nlfloat32) {
+    printf("%f", a.value._nlfloat32);
+  } else if(a.type == &nlruntype_nlfloat64) {
+    printf("%lf", a.value._nlfloat64);
+  } else if(a.type == &nlruntype_nlpointer) {
+    printf("%p", a.value._nlpointer);
   } else if(a.type == NULL) {
     printf("nil");
   } else {
@@ -749,7 +749,7 @@ function inlines.print(context, node)
       defemitter:add_ln('printf("%s", a',i,');')
     elseif argtype.is_string then
       defemitter:add_builtin('nelua_stdout_write_stringview')
-      defemitter:add_ln('((nelua_stringview){(char*)a',i,'.data, a',i,'.size});')
+      defemitter:add_ln('((nlstringview){(char*)a',i,'.data, a',i,'.size});')
     elseif argtype.is_niltype then
       defemitter:add_ln('printf("nil");')
     elseif argtype.is_boolean then
@@ -790,8 +790,8 @@ function inlines.type(context, node, emitter)
   else --luacov:enable
     typename = type.name
   end
-  context:ensure_runtime_builtin('nelua_runtype_', typename)
-  emitter:add('nelua_runtype_',typename,'.name')
+  context:ensure_runtime_builtin('nlruntype_', typename)
+  emitter:add('nlruntype_',typename,'.name')
 end
 
 function inlines.likely(context)

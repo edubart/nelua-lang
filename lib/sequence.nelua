@@ -12,7 +12,7 @@ require 'memory'
 
 ## local make_sequence = generalize(function(T, allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
-  ## local codenameprefix = 'nelua_sequence_'..T.codename
+  ## local codenameprefix = 'nlsequence_'..T.codename
   ## if allocator then
   local allocator: type = #[allocator]#
   ## codenameprefix = codenameprefix..'_'..allocator.nick

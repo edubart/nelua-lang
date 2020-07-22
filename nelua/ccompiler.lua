@@ -136,13 +136,13 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   return binfile
 end
 
-function compiler.get_gdb_version()
+function compiler.get_gdb_version() --luacov:disable
   local ok, ret, stdout, stderr = executor.execex(config.gdb .. ' -v')
   if ok and ret and stdout:match("GNU gdb") then
     local version = stdout:match('%d+%.%d+')
     return version
   end
-end
+end --luacov:enable
 
 function compiler.get_run_command(binaryfile, runargs)
   if config.debug then --luacov:disable

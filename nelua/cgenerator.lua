@@ -326,9 +326,9 @@ end
 typevisitors[types.Type] = function(context, type)
   if type.nodecl or context:is_declared(type.codename) then return end
   if type.is_any then --luacov:enable
-    context:ensure_runtime_builtin('nelua_any')
+    context:ensure_runtime_builtin('nlany')
   elseif type.is_niltype then
-    context:ensure_runtime_builtin('nelua_niltype')
+    context:ensure_runtime_builtin('nlniltype')
   else
     errorer.assertf(cdefs.primitive_ctypes[type.codename],
       'C type visitor for "%s" is not defined', type)
@@ -379,7 +379,7 @@ function visitors.Table(context, node, emitter)
     else
       emitter:add_ln('({')
       emitter:inc_indent()
-      emitter:add_indent(type, ' __record = ')
+      emitter:add_indent(type, ' __rec = ')
       emitter:add_zeroinit(type)
       emitter:add_ln(';')
       for _,childnode in ipairs(childnodes) do
@@ -392,14 +392,14 @@ function visitors.Table(context, node, emitter)
         end
         local childvaltype = childvalnode.attr.type
         if childvaltype.is_array then
-          emitter:add_indent('(*(', childvaltype, '*)__record.', fieldname, ') = ')
+          emitter:add_indent('(*(', childvaltype, '*)__rec.', fieldname, ') = ')
         else
-          emitter:add_indent('__record.', fieldname, ' = ')
+          emitter:add_indent('__rec.', fieldname, ' = ')
         end
         create_variable(context, emitter, childvaltype,  childvalnode)
         emitter:add_ln(';')
       end
-      emitter:add_indent_ln('__record;')
+      emitter:add_indent_ln('__rec;')
       emitter:dec_indent()
       emitter:add_indent('})')
     end
@@ -488,7 +488,7 @@ function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
   local type = attr.type
   if attr.comptime or type.is_comptime then
-    emitter:add(context:ensure_runtime_builtin('nelua_unusedvar'), ' ', context:declname(attr))
+    emitter:add(context:ensure_runtime_builtin('nlunusedvar'), ' ', context:declname(attr))
     return
   end
   if attr.funcdecl then

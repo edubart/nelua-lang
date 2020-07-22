@@ -11,7 +11,7 @@
   ## staticassert(traits.is_type(T), "invalid type '%s", T)
   ## staticassert(T.size > 0, "spans cannot be of '%s'", T)
   local T = @#[T]#
-  local SpanT <codename #['nelua_span_'..T.codename]#> = @record {
+  local SpanT <codename #['nlspan_'..T.codename]#> = @record {
     data: T[0]*,
     size: usize
   }

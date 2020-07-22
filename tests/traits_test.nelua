@@ -32,5 +32,5 @@ do -- typeinfo_of
   local niltype_typeinfo = typeinfo_of(@niltype)
   assert(niltype_typeinfo.id == 0)
   assert(niltype_typeinfo.name == 'niltype')
-  assert(niltype_typeinfo.codename == 'nelua_niltype')
+  assert(niltype_typeinfo.codename == 'nlniltype')
 end

@@ -36,7 +36,7 @@ local function snprintf_1n(s: cstring, maxlen: csize, format: cstring, x: number
 local function snprintf_1cs(s: cstring, maxlen: csize, format: cstring, x: cstring): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 
 -- Define the string type.
-global string <codename 'nelua_string'> = @record{
+global string <codename 'nlstring'> = @record{
   data: byte[0]*,
   size: usize
   --refs: usize*,

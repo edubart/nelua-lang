@@ -117,7 +117,7 @@ end
 -- Macro to create a resource pool using the specified allocator.
 ## local make_resourcepool = generalize(function(T, allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
-  ## local codename = 'nelua_resourcepool_'..T.codename
+  ## local codename = 'nlresourcepool_'..T.codename
   ## if allocator then
   local allocator: type = #[allocator]#
   ## codename = codename..'_'..allocator.nick

@@ -51,7 +51,7 @@ function Type:_init(name, size, node)
   self.unary_operators = {}
   self.binary_operators = {}
   if not self.codename then
-    self:set_codename(string.format('nelua_%s', self.name))
+    self:set_codename(string.format('nl%s', self.name))
   end
   local mt = getmetatable(self)
   metamagic.setmetaindex(self.unary_operators, mt.unary_operators)
@@ -1250,7 +1250,7 @@ function PointerType:_init(subtype)
     self.is_cstring = true
     self.is_stringy = true
     self.is_primitive = true
-    self:set_codename('nelua_cstring')
+    self:set_codename('nlcstring')
   else
     self:set_codename(subtype.codename .. '_ptr')
   end
@@ -1368,7 +1368,7 @@ function StringViewType:_init(name, size)
     {name = 'data', type = types.PointerType(types.ArrayType(nil, primtypes.byte, 0)) },
     {name = 'size', type = primtypes.usize}
   }
-  self:set_codename('nelua_stringview')
+  self:set_codename('nlstringview')
   RecordType._init(self, nil, fields)
   self.name = 'stringview'
   self.nick = 'stringview'
