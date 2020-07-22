@@ -54,8 +54,16 @@ local function merge_configs(conf, pconf)
         ss:add(libpath, '/?/init.nelua;')
       end
     end
-    ss:add(conf.path)
-    conf.path = ss:tostring()
+    -- try to insert the lib path after the local lib path
+    local libpath = ss:tostring()
+    local localpath = fs.join('.','?.nelua')..';'..fs.join('.','?','init.nelua')
+    local localpathpos = conf.path:find(localpath, 1, true)
+    if localpathpos then
+      localpathpos = #localpath+1
+      conf.path = conf.path:sub(1,localpathpos) .. libpath .. conf.path:sub(localpathpos+1)
+    else
+      conf.path = libpath .. conf.path
+    end
   end
 
   if conf.pragma then
@@ -142,10 +150,10 @@ local function get_search_path(datapath)
   local path = os.getenv('NELUA_PATH')
   if path then return path end
   local libdir = fs.join(datapath, 'lib')
-  path = fs.join(libdir,'?.nelua')..';'..
-         fs.join(libdir,'?','init.nelua')..';'..
-         fs.join('.','?.nelua')..';'..
-         fs.join('.','?','init.nelua')
+  path = fs.join('.','?.nelua')..';'..
+         fs.join('.','?','init.nelua')..';'..
+         fs.join(libdir,'?.nelua')..';'..
+         fs.join(libdir,'?','init.nelua')
   return path
 end
 

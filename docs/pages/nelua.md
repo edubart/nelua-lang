@@ -73,17 +73,12 @@ Lua today with a language that have syntax and semantics similar to Lua, but
 without loosing performance or the ability to go low level. Therefore unifying the
 syntax and semantics across both compiled and dynamic language.
 
-As the Nelua syntax intends to be a superset of Lua syntax,
-it can also be used to have basic type checking and extended features
-for existing Lua projects by generating Lua code.
-
 ## Goals
 
 * Be minimalistic with a small syntax, manual and API, but powerful
 * Be efficient by compiling to optimized C code then native code
 * Have syntax, semantics and features similar to Lua
 * Optionally statically typed with type checking
-* Generate native dependency free executable
 * Achieve classes, generics, polymorphism and other higher constructs by meta programming
 * Have an optional garbage collector
 * Make possible to create clean DSLs by extending the language grammar
