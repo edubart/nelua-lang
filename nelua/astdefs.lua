@@ -99,6 +99,13 @@ astbuilder:register('RecordFieldType', {
 astbuilder:register('RecordType', {
   stypes.array_of(ntypes.RecordFieldType), -- field types
 })
+astbuilder:register('UnionFieldType', {
+  (stypes.string + ntypes.PreprocessName):is_optional(), -- field name
+  ntypes.Node, -- field typexpr
+})
+astbuilder:register('UnionType', {
+  stypes.array_of(ntypes.Node), -- union field types or typexpr
+})
 astbuilder:register('EnumFieldType', {
   stypes.string + ntypes.PreprocessName, -- field name
   ntypes.Node:is_optional() -- field numeric value expr
@@ -113,6 +120,9 @@ astbuilder:register('ArrayType', {
 })
 astbuilder:register('PointerType', {
   ntypes.Node:is_optional(), -- subtype typexpr
+})
+astbuilder:register('OptionalType', {
+  ntypes.Node -- subtype typexpr
 })
 astbuilder:register('GenericType', {
   stypes.string + ntypes.PreprocessName, -- generic name

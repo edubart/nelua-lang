@@ -1377,6 +1377,50 @@ describe("type expression", function()
             n.RecordFieldType{'b', n.Type{'boolean'}}}}}}
     }}})
   end)
+  it("union type", function()
+    assert.parse_ast(nelua_parser, "local u: union{a: integer, b: number}",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'u', n.UnionType{{
+            n.UnionFieldType{'a', n.Type{'integer'}},
+            n.UnionFieldType{'b', n.Type{'number'}}}}}}
+    }}})
+    assert.parse_ast(nelua_parser, "local u: union{integer, number, pointer}",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'u', n.UnionType{{
+            n.Type{'integer'},
+            n.Type{'number'},
+            n.PointerType{}}}}}
+    }}})
+    assert.parse_ast(nelua_parser, "local u: integer | niltype",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'u', n.UnionType{{
+            n.Type{'integer'},
+            n.Type{'niltype'}}}}}
+    }}})
+    assert.parse_ast(nelua_parser, "local u: integer | string | niltype",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'u', n.UnionType{{
+            n.Type{'integer'},
+            n.Type{'string'},
+            n.Type{'niltype'}}}}}
+    }}})
+  end)
+  it("optional type", function()
+    assert.parse_ast(nelua_parser, "local u: integer?",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'u', n.OptionalType{n.Type{'integer'}}}}
+    }}})
+    assert.parse_ast(nelua_parser, "local u: integer*?",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'u', n.OptionalType{n.PointerType{n.Type{'integer'}}}}}
+    }}})
+  end)
   it("enum type", function()
     assert.parse_ast(nelua_parser, "local e: enum{a}",
       n.Block{{

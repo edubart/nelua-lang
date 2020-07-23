@@ -57,6 +57,14 @@ function PEGParser:set_astbuilder(astbuilder)
     return expr
   end
 
+  defs.to_list_astnode = function(pos, tag, exprs)
+    if #exprs == 1 then
+      return exprs[1]
+    else
+      return to_astnode(pos, tag, exprs)
+    end
+  end
+
   defs.to_chain_late_unary_op = function(expr, opnodes)
     for i=1,#opnodes do
       local op = opnodes[i]

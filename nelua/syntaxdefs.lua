@@ -198,6 +198,7 @@ local function get_parser()
 
   -- used by types
   %TRECORD      <- 'record'
+  %TUNION       <- 'union'
   %TENUM        <- 'enum'
   ]])
 
@@ -459,11 +460,13 @@ local function get_parser()
     cfalse <- '' -> to_false
 
     typexpr <- typexpr0
-    typexpr0 <- (simple_typexpr {| unary_typexpr_op* |}) -> to_chain_late_unary_op
+    typexpr0 <- ({} '' -> 'UnionType' {| typexpr1 (%BOR typexpr1)* |}) -> to_list_astnode
+    typexpr1 <- (simple_typexpr {| unary_typexpr_op* |}) -> to_chain_late_unary_op
 
     simple_typexpr <-
       func_type /
       record_type /
+      union_type /
       enum_type /
       array_type /
       pointer_type /
@@ -473,6 +476,7 @@ local function get_parser()
 
     unary_typexpr_op <-
       {| {} %MUL -> 'PointerType' |} /
+      {| {} %QUESTION -> 'OptionalType' |} /
       {| {} %LBRACKET -> 'ArrayType' cnil etype_param_expr eRBRACKET |}
 
     func_type <- (
@@ -493,6 +497,15 @@ local function get_parser()
     record_field <- ({} '' -> 'RecordFieldType'
        name eCOLON etypexpr
       ) -> to_astnode
+
+    union_type <- ({} %TUNION -> 'UnionType' %LCURLY
+        {| (
+            (unionfield %SEPARATOR unionfield / %{ExpectedUnionFieldType})
+            (%SEPARATOR unionfield)* %SEPARATOR?)?
+        |}
+      eRCURLY) -> to_astnode
+    unionfield <- (({} '' -> 'UnionFieldType' name %COLON etypexpr) -> to_astnode / typexpr)
+
     enum_type <- ({} %TENUM -> 'EnumType'
         ((%LPAREN eprimtype eRPAREN) / cnil) %LCURLY
         {| eenumfield (%SEPARATOR enumfield)* %SEPARATOR? |}
@@ -500,14 +513,17 @@ local function get_parser()
     enumfield <- ({} '' -> 'EnumFieldType'
         name (%ASSIGN eexpr)?
       ) -> to_astnode
+
     array_type <- (
       {} 'array' -> 'ArrayType'
         %LPAREN etypexpr eCOMMA etype_param_expr eRPAREN
       ) -> to_astnode
+
     pointer_type <- (
       {} 'pointer' -> 'PointerType'
         ((%LPAREN etypexpr eRPAREN) / %SKIP)
       ) -> to_astnode
+
     generic_type <- (
       {} '' -> 'GenericType'
         name %LPAREN {| etype_or_param_expr_list |} eRPAREN
@@ -631,7 +647,8 @@ local function get_parser()
     ExpectedExpression = "expected an expression",
     ExpectedTypeExpression = "expected a type expression",
     ExpectedCall = "expected call",
-    ExpectedEnumFieldType = "expected at least one enum field",
+    ExpectedEnumFieldType = "expected at least one field in enum",
+    ExpectedUnionFieldType = "expected at least two fields in union",
     ExpectedPrimitiveTypeExpression = "expected a primitive type expression",
     ExpectedCase = "expected `case` keyword"
   })
