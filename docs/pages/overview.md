@@ -1029,9 +1029,9 @@ You can even manipulate what has already been processed:
 
 ```nelua
 local Person = @record{name: string}
-## Person.value.fields[1].name = 'nick' -- rename field 'name' to 'nick'
-local p: Person = {nick='Joe'}
-print(p.nick) -- outputs 'Joe'
+## Person.value:add_field('age', primtypes.integer) -- add field 'age' to 'Person'
+local p: Person = {name='Joe', age=21}
+print(p.age) -- outputs '21'
 ```
 
 The above code compile exactly as:

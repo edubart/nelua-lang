@@ -162,7 +162,7 @@ end
 function configer.parse(args)
   defconfig.data_path = fs.getdatapath(args[0])
   defconfig.path = get_search_path(defconfig.data_path)
-  local argparser = create_parser(tabler.copy(args))
+  local argparser = create_parser(tabler.icopy(args))
   local ok, options = argparser:pparse(args)
   except.assertraise(ok, options)
   merge_configs(options, defconfig)

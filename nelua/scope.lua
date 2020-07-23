@@ -1,5 +1,4 @@
 local class = require 'nelua.utils.class'
-local metamagic = require 'nelua.utils.metamagic'
 local types = require 'nelua.types'
 local typedefs = require 'nelua.typedefs'
 local symdefs = require 'nelua.symdefs'
@@ -18,7 +17,6 @@ function Scope:_init(parent, kind, node)
     table.insert(parent.children, self)
   end
   self.children = {}
-  self.checkpointstack = {}
   self:clear_symbols()
 end
 
@@ -30,20 +28,23 @@ function Scope:is_topscope()
   return self.parent and self.parent.kind == 'root'
 end
 
+local default_symbols_mt = {
+  __index =  function(symbols, key)
+    -- return predefined symbol definition if nothing is found
+    local symbol = symdefs[key]
+    if symbol then
+      symbol = symbol:clone()
+      symbols[key] = symbol
+      return symbol
+    end
+  end
+}
+
 function Scope:clear_symbols()
-  self.symbols = {}
   if self.parent then
-    metamagic.setmetaindex(self.symbols, self.parent.symbols)
+    self.symbols = setmetatable({}, {__index = self.parent.symbols})
   else
-    metamagic.setmetaindex(self.symbols, function(symbols, key)
-      -- return predefined symbol definition if nothing is found
-      local symbol = symdefs[key]
-      if symbol then
-        symbol = symbol:clone()
-        symbols[key] = symbol
-        return symbol
-      end
-    end)
+    self.symbols = setmetatable({}, default_symbols_mt)
   end
   self.possible_returntypes = {}
   self.resolved_returntypes = {}
@@ -78,10 +79,6 @@ function Scope:get_parent_of_kind(kind)
     parent = parent.parent
   until (not parent or parent.kind == kind)
   return parent
-end
-
-function Scope:get_symbol(name)
-  return self.symbols[name]
 end
 
 function Scope:make_checkpoint()
@@ -121,6 +118,9 @@ function Scope:merge_checkpoint(checkpoint)
 end
 
 function Scope:push_checkpoint(checkpoint)
+  if not self.checkpointstack then
+    self.checkpointstack = {}
+  end
   table.insert(self.checkpointstack, self:make_checkpoint())
   self:set_checkpoint(checkpoint)
 end
@@ -133,16 +133,16 @@ end
 
 function Scope:add_symbol(symbol)
   local key
-  if symbol.annonymous then
-    key = symbol
-  else
+  if not symbol.annonymous then
     key = symbol.name
+  else
+    key = symbol
   end
   local oldsymbol = self.symbols[key]
-  if oldsymbol == symbol then
-    return true
-  end
   if oldsymbol then
+    if oldsymbol == symbol then
+      return true
+    end
     -- shadowing a symbol with the same name
     if oldsymbol == self.context.state.inlazydef then
       -- symbol definition of a lazy function
@@ -171,10 +171,12 @@ function Scope:resolve_symbols()
   -- first resolve any symbol with known possible types
   for i=1,#self.symbols do
     local symbol = self.symbols[i]
-    if symbol:resolve_type() then
-      count = count + 1
-    elseif count == 0 and symbol.type == nil then
-      table.insert(unknownlist, symbol)
+    if symbol.type == nil then
+      if symbol:resolve_type() then
+        count = count + 1
+      elseif count == 0 then
+        table.insert(unknownlist, symbol)
+      end
     end
   end
   -- if nothing was resolved previously then try resolve symbol with unknown possible types
@@ -197,28 +199,24 @@ function Scope:resolve_symbols()
 end
 
 function Scope:add_return_type(index, type)
+  if not type then
+    self.has_unknown_return = true
+  end
   local returntypes = self.possible_returntypes[index]
   if not returntypes then
-    returntypes = {}
-    self.possible_returntypes[index] = returntypes
-  elseif type and tabler.ifind(returntypes, type) then
-    return
-  end
-  if type then
+    self.possible_returntypes[index] = {[1] = type}
+  elseif type and not tabler.ifind(returntypes, type) then
     table.insert(returntypes, type)
-  else
-    self.has_unknown_return = true
   end
 end
 
 function Scope:resolve_returntypes()
-  local resolved_returntypes = {}
-  for i,returntypes in pairs(self.possible_returntypes) do
+  if #self.possible_returntypes == 0 then return end
+  local resolved_returntypes = self.resolved_returntypes
+  resolved_returntypes.has_unknown = self.has_unknown_return
+  for i,returntypes in ipairs(self.possible_returntypes) do
     resolved_returntypes[i] = types.find_common_type(returntypes) or typedefs.primtypes.any
   end
-  resolved_returntypes.has_unknown = self.has_unknown_return
-  self.resolved_returntypes = resolved_returntypes
-  return resolved_returntypes
 end
 
 function Scope:resolve()

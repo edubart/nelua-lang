@@ -219,7 +219,8 @@ local function visitor_Record_literal(context, node, littype)
       if not traits.is_string(fieldname) then
         childnode:raisef("only string literals are allowed in record's field names")
       end
-      field, fieldindex = littype:get_field(fieldname)
+      field = littype:get_field(fieldname)
+      fieldindex = field and field.index or nil
       parent = childnode
       parentindex = 2
     else
@@ -398,7 +399,7 @@ function visitors.Id(context, node)
     symbol:link_node(node)
     return symbol
   end
-  local symbol = context.scope:get_symbol(name)
+  local symbol = context.scope.symbols[name]
   if not symbol then
     node:raisef("undeclared symbol '%s'", name)
   end
@@ -468,7 +469,7 @@ function visitors.Type(context, node)
   local tyname = node[1]
   local value = typedefs.primtypes[tyname]
   if not value then
-    local symbol = context.scope:get_symbol(tyname)
+    local symbol = context.scope.symbols[tyname]
     if not (symbol and symbol.type == primtypes.type) then
       node:raisef("symbol '%s' is an invalid type", tyname)
     end
@@ -646,7 +647,7 @@ function visitors.GenericType(context, node)
   local attr = node.attr
   local name, argnodes = node[1], node[2]
   if attr.type then return end
-  local symbol = context.scope:get_symbol(name)
+  local symbol = context.scope.symbols[name]
   if not symbol or not symbol.type or not symbol.type.is_type or not symbol.value.is_generic then
     node:raisef("symbol '%s' doesn't hold a generic type", name)
   end
@@ -823,8 +824,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       local pseudoargtypes = funcargtypes
       local pseudoargattrs = funcargattrs
       if calleeobjnode then
-        pseudoargtypes = tabler.copy(funcargtypes)
-        pseudoargattrs = tabler.copy(funcargattrs)
+        pseudoargtypes = tabler.icopy(funcargtypes)
+        pseudoargattrs = tabler.icopy(funcargattrs)
         local ok, err = funcargtypes[1]:is_convertible_from(calleeobjnode)
         if not ok then
           node:raisef("in call of function '%s' at argument %d: %s",
@@ -1021,16 +1022,19 @@ function visitors.CallMethod(context, node)
 end
 
 local function visitor_Record_FieldIndex(_, node, objtype, name)
+  local attr = node.attr
+  if attr.type then return end
   local field = objtype:get_field(name)
   local type = field and field.type
   if not type then
     node:raisef("cannot index field '%s' on record '%s'", name, objtype)
   end
-  node.attr.type = type
+  attr.type = type
 end
 
 local function visitor_EnumType_FieldIndex(_, node, objtype, name)
   local attr = node.attr
+  if attr.type then return end
   local field = objtype:get_field(name)
   if not field then
     node:raisef("cannot index field '%s' on enum '%s'", name, objtype)

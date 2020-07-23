@@ -47,7 +47,9 @@ end
 
 function ASTBuilder:create(tag, ...)
   local klass = self.nodes[tag]
-  errorer.assertf(klass, "AST with name '%s' is not registered", tag)
+  if not klass then
+    errorer.errorf("AST with name '%s' is not registered", tag)
+  end
   local node = klass(...)
   if config.check_ast_shape then
     local shape = self.shapes[tag]

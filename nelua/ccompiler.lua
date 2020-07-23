@@ -154,7 +154,7 @@ function compiler.get_run_command(binaryfile, runargs)
     end
   end --luacov:enable
 
-  return fs.abspath(binaryfile), tabler.copy(runargs)
+  return fs.abspath(binaryfile), tabler.icopy(runargs)
 end
 
 return compiler

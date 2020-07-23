@@ -159,7 +159,7 @@ it("print symbol", function()
     ## local aval = 1
     ## if true then
       local #|'a'|#: #|'integer'|# <comptime> = #[aval]#
-      print #[tostring(context.scope:get_symbol('a'))]#
+      print #[tostring(context.scope.symbols['a'])]#
     ## end
   ]], [[
     local a <comptime> = 1
@@ -179,6 +179,15 @@ it("print enums", function()
     print 'Friday 0'
     print 'Saturday 1'
     print 'Sunday 2'
+  ]])
+end)
+
+it("inject fields", function()
+  assert.ast_type_equals([[
+    local R = @record{x: integer, z: integer}
+    ## R.value:add_field('y', primtypes.integer, 2)
+  ]], [[
+    local R = @record{x: integer, y: integer, z: integer}
   ]])
 end)
 

@@ -16,7 +16,7 @@ local traverse_node = VisitorContext.traverse_node
 local function pp_default_visitor(self, node, emitter, ...)
   for i=1,node.nargs or #node do
     local arg = node[i]
-    if type(arg) == 'table' then
+    if arg and type(arg) == 'table' then
       if arg._astnode then
         traverse_node(self, arg, emitter, node, i, ...)
       else

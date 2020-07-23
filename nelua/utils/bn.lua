@@ -1,5 +1,7 @@
 local bn = require 'nelua.thirdparty.bint'(160)
 
+bn._bn = true
+
 local function from(base, expbase, int, frac, exp)
   local neg = false
   if int:match('^%-') then

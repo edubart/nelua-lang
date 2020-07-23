@@ -4,13 +4,15 @@ local tabler = require 'nelua.utils.tabler'
 local VisitorContext = class()
 
 local function traverse_node(self, node, ...)
-  local visitor_func = self.visitors[node.tag] or self.visitors.default_visitor
+  local visitor_func = self.visitors[node.tag] or self.default_visitor
   if not visitor_func then --luacov:disable
     node:errorf("visitor for AST node '%s' does not exist", node.tag)
   end --luacov:enable
-  table.insert(self.visiting_nodes, node) -- push node
+  local nodes = self.visiting_nodes
+  local nodeindex = #nodes+1
+  nodes[nodeindex] = node -- push node
   local ret = visitor_func(self, node, ...)
-  table.remove(self.visiting_nodes) -- pop node
+  nodes[nodeindex] = nil-- pop node
   return ret
 end
 VisitorContext.traverse_node = traverse_node
@@ -44,17 +46,17 @@ end
 
 function VisitorContext:set_visitors(visitors)
   self.visitors = visitors
-  if visitors.default_visitor == nil then
-    visitors.default_visitor = traverser_default_visitor
-  end
+  self.default_visitor = visitors.default_visitor or traverser_default_visitor
 end
 
 function VisitorContext:get_parent_node()
-  return self.visiting_nodes[#self.visiting_nodes - 1]
+  local nodes = self.visiting_nodes
+  return nodes[#nodes - 1]
 end
 
 function VisitorContext:get_current_node()
-  return self.visiting_nodes[#self.visiting_nodes]
+  local nodes = self.visiting_nodes
+  return nodes[#nodes]
 end
 
 function VisitorContext:push_state()

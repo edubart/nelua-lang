@@ -1,5 +1,4 @@
 local class = require 'nelua.utils.class'
-local traits = require 'nelua.utils.traits'
 local errorer = require 'nelua.utils.errorer'
 local bn = require 'nelua.utils.bn'
 
@@ -27,19 +26,17 @@ function Emitter:dec_indent(count)
 end
 
 function Emitter:add_indent(what, ...)
-  local depth = math.max(self.depth, 0)
-  local indent = string.rep(self.indent, depth)
-  self:add(indent, what, ...)
+  self:add(string.rep(self.indent, math.max(self.depth, 0)), what, ...)
 end
 
 function Emitter:add_indent_ln(what, ...)
-  self:add_indent()
-  self:add_ln(what, ...)
+  self:add_ln(string.rep(self.indent, math.max(self.depth, 0)), what, ...)
 end
 
 function Emitter:add_ln(what, ...)
   self:add(what, ...)
-  self:add('\n')
+  local codes = self.codes
+  codes[#codes+1] = '\n'
 end
 
 function Emitter:get_pos()
@@ -57,16 +54,23 @@ function Emitter:remove_until_pos(pos)
 end
 
 function Emitter:add_one(what)
-  if traits.is_string(what) then
+  local ty = type(what)
+  local codes = self.codes
+  local pos = #codes+1
+  if ty == 'string' then
     if #what > 0 then
-      table.insert(self.codes, what)
+      codes[pos] = what
     end
-  elseif bn.isnumeric(what) then
-    table.insert(self.codes, tostring(what))
-  elseif traits.is_astnode(what) then
-    self:add_traversal(what)
-  elseif traits.is_table(what) then
-    self:add_traversal_list(what)
+  elseif ty == 'number' then
+    codes[pos] = tostring(what)
+  elseif ty == 'table' then
+    if what._astnode then
+      self:add_traversal(what)
+    -- elseif what._bn then
+    --   codes[pos] = tostring(what)
+    else
+      self:add_traversal_list(what)
+    end
   --elseif traits.is_function(what) then
     --what(self)
   else --luacov:disable
@@ -78,8 +82,7 @@ function Emitter:add(what, ...)
   if what then
     self:add_one(what)
   end
-  local numargs = select('#', ...)
-  if numargs > 0 then
+  if select('#', ...) > 0 then
     self:add(...)
   end
 end

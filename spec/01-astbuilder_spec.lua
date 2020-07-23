@@ -19,6 +19,7 @@ it("error on invalid ASTNode", function()
   assert.has_error(function() n.Invalid{} end)
   assert.has_error(function() n.Block{1} end)
   assert.has_error(function() n.Block{ {1} } end)
+  assert.has_error(function() astbuilder:create('Invalid') end)
 end)
 
 it("clone different ASTNode", function()

@@ -49,23 +49,11 @@ clone_nodetable = function(t)
   local ct = {}
   for i=1,t.n or #t do
     local v = t[i]
-    local tv = type(v)
-    if tv == 'table' then
-      if v._astnode then
-        ct[i] = clone_node(v)
-      elseif getmetatable(v) == nil then
-        ct[i] = clone_nodetable(v)
-      else --luacov:disable
-        errorer.errorf("invalid table metatable in node clone")
-      end --luacov:enable
-    else --luacov:disable
-      if tv == 'number' or tv == 'userdata' or tv == 'string' or
-         tv == 'boolean' or tv == 'function' then
-        ct[i] = v
-      else
-        errorer.errorf("invalid value type '%s' in node clone", tv)
-      end
-    end --luacov:enable
+    if v._astnode then
+      ct[i] = clone_node(v)
+    else
+      ct[i] = clone_nodetable(v)
+    end
   end
   -- in case of packed tables
   ct.n = t.n

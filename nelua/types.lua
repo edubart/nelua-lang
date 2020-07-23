@@ -48,14 +48,12 @@ function Type:_init(name, size, node)
   self.name = name
   self.node = node
   self.size = size or 0
-  self.unary_operators = {}
-  self.binary_operators = {}
   if not self.codename then
     self:set_codename(string.format('nl%s', self.name))
   end
   local mt = getmetatable(self)
-  metamagic.setmetaindex(self.unary_operators, mt.unary_operators)
-  metamagic.setmetaindex(self.binary_operators, mt.binary_operators)
+  self.unary_operators = setmetatable({}, {__index = mt.unary_operators})
+  self.binary_operators = setmetatable({}, {__index = mt.binary_operators})
 end
 
 function Type:suggest_nick(nick, codename)
@@ -124,17 +122,18 @@ function Type:is_convertible_from_attr(attr, explicit)
   local type = attr.type
 
   -- check for comptime number conversions
-  if attr.type and attr.comptime and attr.value and
+  local value = attr.value
+  if type and value and attr.comptime and
     self.is_arithmetic and type.is_arithmetic and not explicit then
     if self.is_integral then
-      if not bn.isintegral(attr.value) then
+      if not bn.isintegral(value) then
         return false, stringer.pformat(
           "constant value `%s` is fractional which is invalid for the type '%s'",
-          attr.value, self)
-      elseif not self:is_inrange(attr.value) then
+          value, self)
+      elseif not self:is_inrange(value) then
         return false, stringer.pformat(
           "constant value `%s` for type `%s` is out of range, the minimum is `%s` and maximum is `%s`",
-          attr.value, self, self.min, self.max)
+          value, self, self.min, self.max)
       else
         -- in range and integral, a valid constant conversion
         return self
@@ -209,8 +208,8 @@ function Type:__tostring()
   end
 end
 
-function Type:__eq(type)
-  return rawequal(self, type) or (traits.is_type(type) and self:is_equal(type))
+function Type:__eq(t)
+  return type(t) == 'table' and t._type and self:is_equal(t)
 end
 
 local function promote_type_for_attrs(lattr, rattr)
@@ -896,14 +895,13 @@ function ArrayType:_init(node, subtype, length)
   Type._init(self, 'array', size, node)
   self.subtype = subtype
   self.length = length
-  self.maxfieldsize = subtype.maxfieldsize or subtype.size
+  self.align = subtype.align or subtype.size
 end
 
 function ArrayType:is_equal(type)
-  return type.name == self.name and
-         getmetatable(type) == getmetatable(self) and
-         self.subtype == type.subtype and
-         self.length == type.length
+  return self.subtype == type.subtype and
+         self.length == type.length and
+         type.is_array
 end
 
 function ArrayType:typedesc()
@@ -941,13 +939,16 @@ function EnumType:_init(node, subtype, fields)
   IntegralType._init(self, 'enum', subtype.size, subtype.is_unsigned)
   self.node = node
   self.subtype = subtype
+  for i=1,#fields do
+    local field = fields[i]
+    field.index = i
+    fields[field.name] = field
+  end
   self.fields = fields
 end
 
 function EnumType:get_field(name)
-  return tabler.ifindif(self.fields, function(f)
-    return f.name == name
-  end)
+  return self.fields[name]
 end
 
 function EnumType:typedesc()
@@ -970,13 +971,23 @@ function FunctionType:_init(node, argattrs, returntypes)
   self:set_codename(gencodename(self, 'function', node))
   Type._init(self, 'function', cpusize, node)
   self.argattrs = argattrs or {}
-  self.argtypes = tabler.imap(self.argattrs, function(arg) return arg.type end)
-  self.returntypes = returntypes or {}
+  local argtypes = {}
+  for i=1,#argattrs do
+    argtypes[i] = argattrs[i].type
+  end
+  self.argtypes = argtypes
+  if returntypes then
+    self.returntypes = returntypes
+    local lastindex = #returntypes
+    local lastret = returntypes[lastindex]
+    self.returnvaranys = lastret and lastret.is_varanys
+  else
+    self.returntypes = {}
+  end
 end
 
 function FunctionType:is_equal(type)
-  return type.name == self.name and
-         getmetatable(type) == getmetatable(self) and
+  return type.is_function and
          tabler.deepcompare(type.argtypes, self.argtypes) and
          tabler.deepcompare(type.returntypes, self.returntypes)
 end
@@ -991,16 +1002,15 @@ end
 
 function FunctionType:get_return_type(index)
   local returntypes = self.returntypes
-  local lastindex = #returntypes
-  local lastret = returntypes[lastindex]
-  if lastret and lastret.is_varanys and index > lastindex then
+  if self.returnvaranys and index > #returntypes then
     return primtypes.any
   end
   local rettype = returntypes[index]
-  if not rettype and index == 1 then
+  if rettype then
+    return rettype
+  elseif index == 1 then
     return primtypes.void
   end
-  return rettype
 end
 
 function FunctionType:has_multiple_returns()
@@ -1045,7 +1055,11 @@ function LazyFunctionType:_init(node, args, returntypes)
   self:set_codename(gencodename(self, 'lazyfunction', node))
   Type._init(self, 'lazyfunction', 0, node)
   self.args = args or {}
-  self.argtypes = tabler.imap(self.args, function(arg) return arg.type end)
+  local argtypes = {}
+  for i=1,#args do
+    argtypes[i] = args[i].type
+  end
+  self.argtypes = argtypes
   self.returntypes = returntypes or {}
   self.evals = {}
 end
@@ -1056,8 +1070,8 @@ local function lazy_args_matches(largs, rargs)
     local rtype = traits.is_attr(rarg) and rarg.type or rarg
     if ltype ~= rtype then
       return false
-    elseif traits.is_attr(larg) and rtype.is_comptime then
-      if not traits.is_attr(rarg) or larg.value ~= rarg.value then
+    elseif rtype.is_comptime and traits.is_attr(larg) then
+      if larg.value ~= rarg.value or not traits.is_attr(rarg) then
         return false
       end
     end
@@ -1066,7 +1080,9 @@ local function lazy_args_matches(largs, rargs)
 end
 
 function LazyFunctionType:get_lazy_eval(args)
-  for _,lazyeval in ipairs(self.evals) do
+  local lazyevals = self.evals
+  for i=1,#lazyevals do
+    local lazyeval = lazyevals[i]
     if lazy_args_matches(lazyeval.args, args) then
       return lazyeval
     end
@@ -1127,16 +1143,16 @@ RecordType.is_record = true
 local function compute_record_size(fields, pack)
   local nfields = #fields
   local size = 0
-  local maxfieldsize = 0
+  local align = 0
   if nfields == 0 then
-    return size, maxfieldsize
+    return size, align
   end
   local pad
   for i=1,#fields do
     local ftype = fields[i].type
     local fsize = ftype.size
-    local mfsize = ftype.maxfieldsize or fsize
-    maxfieldsize = math.max(maxfieldsize, mfsize)
+    local mfsize = ftype.align or fsize
+    align = math.max(align, mfsize)
     pad = 0
     if not pack and size % mfsize > 0 then
       pad = size % mfsize
@@ -1145,37 +1161,46 @@ local function compute_record_size(fields, pack)
   end
   size = size - pad
   pad = 0
-  if not pack and size % maxfieldsize > 0 then
-    pad = maxfieldsize - (size % maxfieldsize)
+  if not pack and size % align > 0 then
+    pad = align - (size % align)
   end
   size = size + pad
-  return size, maxfieldsize
+  return size, align
 end
 
 function RecordType:_init(node, fields)
   fields = fields or {}
-  local size, maxfieldsize = compute_record_size(fields)
+  for i=1,#fields do
+    local field = fields[i]
+    field.index = i
+    fields[field.name] = field
+  end
+  local size, align = compute_record_size(fields)
   if not self.codename then
     self:set_codename(gencodename(self, 'record', node))
   end
   Type._init(self, 'record', size, node)
   self.fields = fields
   self.metatype = MetaType()
-  self.maxfieldsize = maxfieldsize
+  self.align = align
 end
 
-function RecordType:add_field(name, type, pos)
-  if not pos then
-    pos = #self.fields + 1
+function RecordType:add_field(name, type, index)
+  local fields = self.fields
+  local field = {name = name, type = type}
+  if not index then
+    index = #fields + 1
+    fields[index] = field
+  else
+    table.insert(fields, index, field)
   end
-  table.insert(self.fields, pos, {name = name, type = type})
-  self.size, self.maxfieldsize = compute_record_size(self.fields)
+  field.index = index
+  self.fields[field.name] = field
+  self.size, self.align = compute_record_size(fields)
 end
 
 function RecordType:get_field(name)
-  return tabler.ifindif(self.fields, function(f)
-    return f.name == name
-  end)
+  return self.fields[name]
 end
 
 function RecordType:is_equal(type)
@@ -1265,7 +1290,7 @@ function PointerType:is_convertible_from_attr(attr, explicit)
     if not attr.lvalue then
       return false, stringer.pformat(
         'cannot automatic reference rvalue of type "%s" to pointer type "%s"',
-        attr.type, self)
+        type, self)
     end
     attr.autoref = true
     return self
@@ -1316,9 +1341,7 @@ function PointerType:promote_type(type)
 end
 
 function PointerType:is_equal(type)
-  return type.name == self.name and
-         getmetatable(type) == getmetatable(self) and
-         type.subtype == self.subtype
+  return type.subtype == self.subtype and type.is_pointer
 end
 
 function PointerType:is_pointer_of(subtype)
@@ -1361,7 +1384,7 @@ types.StringViewType = StringViewType
 StringViewType.is_stringview = true
 StringViewType.is_stringy = true
 StringViewType.is_primitive = true
-StringViewType.maxfieldsize = cpusize
+StringViewType.align = cpusize
 
 function StringViewType:_init(name, size)
   local fields = {
@@ -1447,9 +1470,6 @@ end
 
 function ConceptType:is_convertible_from_attr(attr, explicit)
   local type, err = self.func(attr, explicit)
-  if not type and not err then
-    err = stringer.pformat("type '%s' could not match concept '%s'", attr.type, self)
-  end
   if type == true then
     assert(attr.type)
     type = attr.type
@@ -1465,6 +1485,9 @@ function ConceptType:is_convertible_from_attr(attr, explicit)
       type = nil
       err = stringer.pformat("invalid return for concept '%s': cannot be of the type '%s'", self, type)
     end
+  elseif not type and not err then
+    type = nil
+    err = stringer.pformat("type '%s' could not match concept '%s'", attr.type, self)
   elseif not (type == false or type == nil) then
     type = nil
     err = stringer.pformat("invalid return for concept '%s': must be a boolean or a type", self)
