@@ -19,10 +19,20 @@ local visitors = {}
 
 function visitors.Number(context, node)
   local attr = node.attr
-  if attr.type then return end
   local base, int, frac, exp, literal = node[1], node[2], node[3], node[4], node[5]
   attr.value = bn.from(base, int, frac, exp)
-  if literal then
+  if not literal then
+    attr.untyped = true
+    if not (frac or exp) then
+      if base ~= 'dec' or primtypes.integer:is_inrange(attr.value) then
+        attr.type = primtypes.integer
+      else
+        attr.type = primtypes.number
+      end
+    else
+      attr.type = primtypes.number
+    end
+  else
     attr.type = typedefs.number_literal_types[literal]
     if not attr.type then
       node:raisef("literal suffix '%s' is undefined", literal)
@@ -32,17 +42,6 @@ function visitors.Number(context, node)
         "the minimum is `%s` and maximum is `%s`",
         attr.value:todec(), attr.type, attr.type.min:todec(), attr.type.max:todec())
     end
-  else
-    attr.untyped = true
-    if not (frac or exp) then
-      if primtypes.integer:is_inrange(attr.value) or base ~= 'dec' then
-        attr.type = primtypes.integer
-      else
-        attr.type = primtypes.number
-      end
-    else
-      attr.type = primtypes.number
-    end
   end
   if context.pragmas.nofloatsuffix then
     attr.nofloatsuffix = true
@@ -50,42 +49,45 @@ function visitors.Number(context, node)
   attr.base = base
   attr.literal = true
   attr.comptime = true
+  node.done = true
 end
 
 function visitors.String(_, node)
   local attr = node.attr
-  if attr.type then return end
   local value, literal = node[1], node[2]
   if literal then
     node:raisef("custom string literals are not supported yet")
   end
-  local desiredtype = node.desiredtype
-  if desiredtype and desiredtype.is_cstring then
+  if node.desiredtype and node.desiredtype.is_cstring then
     attr.type = primtypes.cstring
   else
     attr.type = primtypes.stringview
   end
   attr.value = value
-  attr.literal = true
   attr.comptime = true
+  attr.literal = true
+  node.done = true
 end
 
 function visitors.Boolean(_, node)
   local attr = node.attr
-  if attr.type then return end
-  local value = node:args(1)
-  attr.value = value
+  attr.value = node[1]
   attr.type = primtypes.boolean
   attr.comptime = true
   attr.literal = true
+  node.done = true
 end
 
 function visitors.Nil(_, node)
   local attr = node.attr
-  if attr.type then return end
   attr.type = primtypes.niltype
   attr.comptime = true
   attr.literal = true
+  node.done = true
+end
+
+function visitors.Varargs(_, node)
+  node.done = true
 end
 
 local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype)
@@ -169,7 +171,6 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   return newvalnode, newvalnode.attr.type
 end
 
-
 local function visitor_Array_literal(context, node, littype)
   local attr = node.attr
   local childnodes = node[1]
@@ -178,7 +179,9 @@ local function visitor_Array_literal(context, node, littype)
   if not (#childnodes == littype.length or #childnodes == 0) then
     node:raisef("expected %d values in array literal but got %d", littype.length, #childnodes)
   end
-  for i,childnode in ipairs(childnodes) do
+  local done = true
+  for i=1,#childnodes do
+    local childnode = childnodes[i]
     if childnode.tag == 'Pair' then
       childnode:raisef("fields are disallowed for array literals")
     end
@@ -201,9 +204,13 @@ local function visitor_Array_literal(context, node, littype)
     if not childnode.attr.comptime then
       comptime = nil
     end
+    if not childnode.done then
+      done = nil
+    end
   end
   attr.type = littype
   attr.comptime = comptime
+  node.done = done
 end
 
 local function visitor_Record_literal(context, node, littype)
@@ -211,7 +218,9 @@ local function visitor_Record_literal(context, node, littype)
   local childnodes = node[1]
   local comptime = true
   local lastfieldindex = 0
-  for i, childnode in ipairs(childnodes) do
+  local done = true
+  for i=1,#childnodes do
+    local childnode = childnodes[i]
     local parent, parentindex
     local fieldname, fieldvalnode, field, fieldindex
     if childnode.tag == 'Pair' then
@@ -261,9 +270,13 @@ local function visitor_Record_literal(context, node, littype)
     end
     childnode.parenttype = littype
     childnode.fieldname = fieldname
+    if not fieldvalnode.done then
+      done = nil
+    end
   end
   attr.type = littype
   attr.comptime = comptime
+  node.done = done
 end
 
 local function visitor_Table_literal(context, node)
@@ -297,22 +310,18 @@ function visitors.Table(context, node)
 end
 
 function visitors.PragmaCall(context, node)
-  local name, args = node[1], node[2]
+  local name = node[1]
   local pragmashape = typedefs.call_pragmas[name]
   node:assertraisef(pragmashape, "pragma '%s' is undefined", name)
-
   if name == 'afterinfer' and context.state.anyphase and not node.attr.afterinfer then
     node.attr.afterinfer = true
+    local args = node[2]
     args[1]()
   end
 end
 
 function visitors.Annotation(context, node, symbol)
-  local attr = node.attr
-  if attr.parsed then return end
-
   assert(symbol)
-
   local name = node[1]
 
   local paramshape
@@ -389,31 +398,31 @@ function visitors.Annotation(context, node, symbol)
     end
   end
 
-  attr.parsed = true
+  node.done = true
 end
 
 function visitors.Id(context, node)
   local name = node[1]
-  if node.attr.foreignsymbol then
-    local symbol = node.attr.foreignsymbol
-    symbol:link_node(node)
-    return symbol
-  end
-  local symbol = context.scope.symbols[name]
-  if not symbol then
-    node:raisef("undeclared symbol '%s'", name)
+  local symbol
+  if not node.attr.foreignsymbol then
+    symbol = context.scope.symbols[name]
+    if not symbol then
+      node:raisef("undeclared symbol '%s'", name)
+    end
+  else
+    symbol = node.attr.foreignsymbol
   end
   symbol:link_node(node)
+  node.done = symbol
   return symbol
 end
 
 function visitors.IdDecl(context, node)
   local namenode, typenode, annotnodes = node[1], node[2], node[3]
   local attr = node.attr
-  local type = attr.type
-  if not type and typenode then
+  if not attr.type and typenode then
     context:traverse_node(typenode)
-    type = typenode.attr.value
+    local type = typenode.attr.value
     attr.type = type
     if type.is_void then
       node:raisef("variable declaration cannot be of the empty type '%s'", type)
@@ -421,35 +430,40 @@ function visitors.IdDecl(context, node)
   end
   local symbol
   if traits.is_string(namenode) then
-    symbol = Symbol.promote_attr(attr, namenode, node)
-    local scope
-    if symbol.global then
-      scope = context.rootscope
+    if attr._symbol then
+      symbol = attr
+      symbol:clear_possible_types()
     else
-      scope = context.scope
-    end
-    if not symbol.codename then
-      if symbol.staticstorage then
-        symbol.codename = context:choose_codename(namenode)
+      symbol = Symbol.promote_attr(attr, namenode, node)
+      local scope
+      if symbol.global then
+        scope = context.rootscope
       else
-        symbol.codename = namenode
+        scope = context.scope
       end
+      if not symbol.codename then
+        if not symbol.staticstorage then
+          symbol.codename = namenode
+        else
+          symbol.codename = context:choose_codename(namenode)
+        end
+      end
+      symbol.scope = scope
+      symbol.lvalue = true
     end
-    symbol.scope = scope
   else
     -- global record field
     assert(namenode.tag == 'DotIndex')
     local state = context:push_state()
     state.inglobaldecl = node
     symbol = context:traverse_node(namenode)
-    attr = symbol
     context:pop_state()
     symbol.scope = context.rootscope
+    symbol.lvalue = true
   end
   if annotnodes then
     context:traverse_nodes(annotnodes, symbol)
   end
-  attr.lvalue = true
   return symbol
 end
 
@@ -459,13 +473,18 @@ function visitors.Paren(context, node, ...)
   local ret = context:traverse_node(innernode, ...)
   -- inherit attributes from inner node
   node.attr = innernode.attr
+  node.done = innernode.done
   -- forward anything from inner node traverse
   return ret
 end
 
 function visitors.Type(context, node)
   local attr = node.attr
-  if attr.type then return end
+  if attr.type then
+    assert(traits.is_type(attr.value))
+    node.done = true
+    return
+  end
   local tyname = node[1]
   local value = typedefs.primtypes[tyname]
   if not value then
@@ -478,11 +497,11 @@ function visitors.Type(context, node)
   end
   attr.type = primtypes.type
   attr.value = value
+  node.done = true
 end
 
 function visitors.TypeInstance(context, node, symbol)
   local typenode = node[1]
-  if node.attr.type then return end
   context:traverse_node(typenode, symbol)
   -- inherit attributes from inner node
   local attr = typenode.attr
@@ -491,11 +510,11 @@ function visitors.TypeInstance(context, node, symbol)
     attr.value:suggest_nick(symbol.name, symbol.staticstorage and symbol.codename)
     attr.value.symbol = symbol
   end
+  node.done = true
 end
 
 function visitors.FuncType(context, node)
   local attr = node.attr
-  if attr.type then return end
   local argnodes, retnodes = node[1], node[2]
   context:traverse_nodes(argnodes)
   context:traverse_nodes(retnodes)
@@ -509,29 +528,25 @@ function visitors.FuncType(context, node)
     end
   end
   local rettypes = tabler.imap(retnodes, function(retnode) return retnode.attr.value end)
-  if #rettypes == 1 and rettypes[1].is_void then
-    -- single void type means no returns
-    rettypes = {}
-  end
   local type = types.FunctionType(node, argattrs, rettypes)
   type.sideeffect = true
   attr.type = primtypes.type
   attr.value = type
+  attr.done = true
 end
 
 function visitors.RecordFieldType(context, node, recordtype)
   local attr = node.attr
-  if attr.type then return end
   local name, typenode = node[1], node[2]
   context:traverse_node(typenode)
   attr.type = typenode.attr.type
   attr.value = typenode.attr.value
   recordtype:add_field(name, typenode.attr.value)
+  node.done = true
 end
 
 function visitors.RecordType(context, node, symbol)
   local attr = node.attr
-  if attr.type then return end
   local recordtype = types.RecordType(node)
   attr.type = primtypes.type
   attr.value = recordtype
@@ -545,6 +560,7 @@ function visitors.RecordType(context, node, symbol)
   end
   local fieldnodes = node[1]
   context:traverse_nodes(fieldnodes, recordtype)
+  node.done = true
 end
 
 function visitors.EnumFieldType(context, node)
@@ -574,7 +590,6 @@ end
 
 function visitors.EnumType(context, node)
   local attr = node.attr
-  if attr.type then return end
   local typenode, fieldnodes = node[1], node[2]
   local subtype = primtypes.integer
   if typenode then
@@ -603,11 +618,11 @@ function visitors.EnumType(context, node)
   end
   attr.type = primtypes.type
   attr.value = types.EnumType(node, subtype, fields)
+  node.done = true
 end
 
 function visitors.ArrayType(context, node)
   local attr = node.attr
-  if attr.type then return end
   local subtypenode, lengthnode = node[1], node[2]
   context:traverse_node(subtypenode)
   local subtype = subtypenode.attr.value
@@ -624,11 +639,11 @@ function visitors.ArrayType(context, node)
   end
   attr.type = primtypes.type
   attr.value = types.ArrayType(node, subtype, length)
+  node.done = true
 end
 
 function visitors.PointerType(context, node)
   local attr = node.attr
-  if attr.type then return end
   local subtypenode = node[1]
   if subtypenode then
     context:traverse_node(subtypenode)
@@ -641,12 +656,12 @@ function visitors.PointerType(context, node)
     attr.value = primtypes.pointer
   end
   attr.type = primtypes.type
+  node.done = true
 end
 
 function visitors.GenericType(context, node)
   local attr = node.attr
   local name, argnodes = node[1], node[2]
-  if attr.type then return end
   local symbol = context.scope.symbols[name]
   if not symbol or not symbol.type or not symbol.type.is_type or not symbol.value.is_generic then
     node:raisef("symbol '%s' doesn't hold a generic type", name)
@@ -681,6 +696,7 @@ function visitors.GenericType(context, node)
   end
   attr.type = primtypes.type
   attr.value = type
+  node.done = true
 end
 
 local function iargnodes(argnodes)
@@ -791,6 +807,7 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
       type, #argnodes)
   end
   local argnode = argnodes[1]
+  local done = true
   if argnode then
     argnode.desiredtype = type
     context:traverse_node(argnode)
@@ -808,10 +825,14 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
       end
     end
     attr.sideeffect = argnode.attr.sideeffect
+    if not argnode.done then
+      done = nil
+    end
   end
   attr.typeassertion = true
   attr.type = type
   attr.calleetype = primtypes.type
+  node.done = done
 end
 
 local function visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)
@@ -1023,7 +1044,6 @@ end
 
 local function visitor_Record_FieldIndex(_, node, objtype, name)
   local attr = node.attr
-  if attr.type then return end
   local field = objtype:get_field(name)
   local type = field and field.type
   if not type then
@@ -1034,7 +1054,6 @@ end
 
 local function visitor_EnumType_FieldIndex(_, node, objtype, name)
   local attr = node.attr
-  if attr.type then return end
   local field = objtype:get_field(name)
   if not field then
     node:raisef("cannot index field '%s' on enum '%s'", name, objtype)
@@ -1052,12 +1071,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   local inglobaldecl = context.state.inglobaldecl == parentnode
   local inlazydef = context.state.inlazydef and symbol == context.state.inlazydef
   if inlazydef then
-    assert(infuncdef)
-    if traits.is_symbol(attr) then
-      symbol = attr
-    else
-      symbol = nil
-    end
+    symbol = attr._symbol and attr or nil
   end
   if not symbol then
     local symname = string.format('%s.%s', objtype.nick or objtype.name, name)
@@ -1104,25 +1118,29 @@ local function visitor_Type_FieldIndex(context, node, objtype, name)
 end
 
 local function visitor_FieldIndex(context, node)
-  local attr = node.attr
   local name, objnode = node[1], node[2]
   context:traverse_node(objnode)
-  local objtype = objnode.attr.type
+  local objattr = objnode.attr
+  local objtype = objattr.type
   local ret
   if objtype then
+    local attr = node.attr
     objtype = objtype:auto_deref_type()
     if objtype.is_record then
       ret = visitor_Record_FieldIndex(context, node, objtype, name)
     elseif objtype.is_type then
-      ret = visitor_Type_FieldIndex(context, node, objnode.attr.value, name)
+      ret = visitor_Type_FieldIndex(context, node, objattr.value, name)
     elseif objtype.is_table or objtype.is_any then
       attr.type = primtypes.any
     else
       node:raisef("cannot index field '%s' on type '%s'", name, objtype.name)
     end
-  end
-  if objnode.attr.lvalue then
-    attr.lvalue = true
+    if objattr.lvalue then
+      attr.lvalue = true
+    end
+    if ret and objnode.done then
+      node.done = ret
+    end
   end
   return ret
 end
@@ -1160,7 +1178,12 @@ function visitors.ArrayIndex(context, node)
   context:traverse_node(indexnode)
   context:traverse_node(objnode)
   local type = node.attr.type
-  if type then return end
+  if type then
+    if indexnode.done and objnode.done then
+      node.done = true
+    end
+    return
+  end
   local objtype = objnode.attr.type
   if objtype then
     objtype = objtype:auto_deref_type()
@@ -1201,6 +1224,9 @@ function visitors.ArrayIndex(context, node)
   end
   if type then
     node.attr.type = type
+    if indexnode.done and objnode.done then
+      node.done = true
+    end
   end
 end
 
@@ -1219,6 +1245,7 @@ function visitors.Block(context, node)
       end
     end
     node.preprocess = nil
+    node.preprocessed = true
 
     local resolutions_count = scope:resolve()
     context:pop_scope()
@@ -1226,6 +1253,7 @@ function visitors.Block(context, node)
       return
     end
   end
+
   local statnodes = node[1]
 
   local scope
@@ -1235,6 +1263,22 @@ function visitors.Block(context, node)
     local resolutions_count = scope:resolve()
     context:pop_scope()
   until resolutions_count == 0
+
+  -- preprocessed blocks can never be done
+  -- because new statements may be injected at anytime
+  -- TODO: improve this later
+  if not node.preprocessed then
+    local done = true
+    for i=1,#statnodes do
+      if not statnodes[i].done then
+        done = nil
+        break
+      end
+    end
+    if done then
+      node.done = true
+    end
+  end
 end
 
 function visitors.If(context, node)
@@ -1415,6 +1459,22 @@ function visitors.ForNum(context, node)
   node.attr.fixedstep = fixedstep
   node.attr.fixedend = fixedend
   node.attr.compop = compop
+end
+
+function visitors.Break(_, node)
+  node.done = true
+end
+
+function visitors.Continue(_, node)
+  node.done = true
+end
+
+function visitors.Label(_, node)
+  node.done = true
+end
+
+function visitors.Goto(_, node)
+  node.done = true
 end
 
 function visitors.VarDecl(context, node)
@@ -1954,7 +2014,12 @@ function visitors.UnaryOp(context, node)
   context:traverse_node(argnode)
 
   -- quick return for already resolved type
-  if attr.type then return end
+  if attr.type then
+    if argnode.done then
+      node.done = true
+    end
+    return
+  end
 
   local argattr = argnode.attr
   argattr.inoperator = true
@@ -1986,6 +2051,9 @@ function visitors.UnaryOp(context, node)
   end
   if type then
     attr.type = type
+    if argnode.done then
+      node.done = true
+    end
   end
   attr.sideeffect = argattr.sideeffect
 end
@@ -2039,7 +2107,12 @@ function visitors.BinaryOp(context, node)
   context:traverse_node(rnode)
 
   -- quick return for already resolved type
-  if attr.type then return end
+  if attr.type then
+    if lnode.done and rnode.done then
+      node.done = true
+    end
+    return
+  end
 
   local lattr, rattr = lnode.attr, rnode.attr
   local ltype, rtype = lattr.type, rattr.type
@@ -2080,6 +2153,9 @@ function visitors.BinaryOp(context, node)
   end
   if type then
     attr.type = type
+    if lnode.done and rnode.done then
+      node.done = true
+    end
   end
 end
 
@@ -2087,6 +2163,7 @@ function analyzer.analyze(ast, parser, context)
   if not context then
     context = AnalyzerContext(visitors, parser)
   end
+  context.analyzing = true
 
   if config.pragma then
     tabler.update(context.pragmas, config.pragma)
@@ -2126,6 +2203,7 @@ function analyzer.analyze(ast, parser, context)
 
   context:pop_pragmas()
 
+  context.analyzing = nil
   return context
 end
 

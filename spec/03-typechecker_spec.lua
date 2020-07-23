@@ -530,6 +530,13 @@ it("lazy function definition", function()
     end
     local a = cast(@number, 1)
   ]])
+  assert.analyze_ast([[
+    local R = @record{}
+    function R.foo(x: auto)
+      return 1
+    end
+    local x = R.foo(2)
+  ]])
 end)
 
 it("function return", function()

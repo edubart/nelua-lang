@@ -46,8 +46,11 @@ local clone_attr = Attr.clone
 local clone_nodetable, clone_node
 
 clone_nodetable = function(t)
-  local ct = {}
-  for i=1,t.n or #t do
+  local n = t.n
+  local ct = {
+    n = n -- in case of packed tables
+  }
+  for i=1,n or #t do
     local v = t[i]
     if v._astnode then
       ct[i] = clone_node(v)
@@ -55,13 +58,23 @@ clone_nodetable = function(t)
       ct[i] = clone_nodetable(v)
     end
   end
-  -- in case of packed tables
-  ct.n = t.n
   return ct
 end
 
 clone_node = function(node)
-  local cloned = setmetatable({}, getmetatable(node))
+  local cloned = setmetatable({
+    pos = node.pos,
+    src = node.src,
+    srcname = node.srcname,
+    preprocess = node.preprocess,
+    uid = genuid(),
+    attr = setmetatable({}, Attr)
+  }, getmetatable(node))
+  local pattr = node.pattr
+  if pattr then
+    cloned.attr = clone_attr(pattr)
+    cloned.pattr = pattr
+  end
   for i=1,node.nargs do
     local arg = node[i]
     if type(arg) == 'table' then
@@ -73,43 +86,10 @@ clone_node = function(node)
     end
     cloned[i] = arg
   end
-  if not node.pattr then
-    cloned.attr = setmetatable({}, Attr)
-  else
-    -- copy persistent attributes
-    cloned.attr = clone_attr(node.pattr)
-    cloned.pattr = node.pattr
-  end
-  cloned.pos = node.pos
-  cloned.src = node.src
-  cloned.srcname = node.srcname
-  cloned.preprocess = node.preprocess
-  cloned.uid = genuid()
   return cloned
 end
 
 ASTNode.clone = clone_node
-
---[[
-local function iterate_children_visitor(node, depth)
-  local nargs = traits.is_astnode(node) and node.nargs or #node
-  for _,arg in iters.inpairs(node, nargs) do
-    if traits.is_astnode(arg) then
-      coroutine.yield(arg, depth)
-      iterate_children_visitor(arg, depth+1)
-    elseif traits.is_table(arg) then
-      iterate_children_visitor(arg, depth+1)
-    end
-  end
-end
-
-function ASTNode:iterate_children()
-  return coroutine.wrap(function()
-    coroutine.yield(self, 0)
-    iterate_children_visitor(self, 1)
-  end)
-end
-]]
 
 -------------------
 -- error handling
@@ -154,9 +134,11 @@ local ignored_stringfy_keys = {
   uid = true,
   desiredtype = true,
   preprocess = true,
+  preprocessed = true,
   loadedast = true,
   node = true,
   scope = true,
+  done = true,
 }
 local function stringfy_val2str(val)
   local vstr = tostring(val)

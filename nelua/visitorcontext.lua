@@ -3,7 +3,32 @@ local tabler = require 'nelua.utils.tabler'
 
 local VisitorContext = class()
 
+--[[
+local nodetravs = {}
+local numretravs = {}
+local numtravs = {}
+local function bench_traverse(node)
+  if node._astnode then
+    local tag = node.tag
+    numtravs[tag] = (numtravs[tag] or 0) + 1
+    if nodetravs[node] then
+      numretravs[tag] = (numretravs[tag] or 0) + 1
+    end
+    nodetravs[node] = true
+  end
+end
+]]
+
 local function traverse_node(self, node, ...)
+  if self.analyzing then
+    local done = node.done
+    if done == true then
+      return
+    elseif done then
+      return done
+    end
+    -- bench_traverse(node)
+  end
   local visitor_func = self.visitors[node.tag] or self.default_visitor
   if not visitor_func then --luacov:disable
     node:errorf("visitor for AST node '%s' does not exist", node.tag)
@@ -60,15 +85,28 @@ function VisitorContext:get_current_node()
 end
 
 function VisitorContext:push_state()
-  table.insert(self.statestack, self.state)
+  local statestack = self.statestack
+  statestack[#statestack+1] = self.state
   local newstate = tabler.copy(self.state)
   self.state = newstate
   return newstate
 end
 
 function VisitorContext:pop_state()
-  self.state = table.remove(self.statestack)
+  local statestack = self.statestack
+  local index = #statestack
+  self.state = statestack[index]
   assert(self.state)
+  statestack[index] = nil
+
+  --[[
+  if #self.statestack == 0 then
+    print '============================report'
+    for k,v in pairs(numretravs) do
+      print(v,k, string.format('%.2f', v*100/numtravs[k]))
+    end
+  end
+  ]]
 end
 
 return VisitorContext

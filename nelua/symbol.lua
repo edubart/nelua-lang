@@ -13,14 +13,9 @@ function Symbol:init(name, node)
 end
 
 function Symbol.promote_attr(attr, name, node)
-  if getmetatable(attr) == Symbol then
-    attr:clear_possible_types()
-    return attr
-  end
-  local self = setmetatable(attr, Symbol)
-  self.node = node
-  self.name = name
-  return self
+  attr.node = node
+  attr.name = name
+  return setmetatable(attr, Symbol)
 end
 
 function Symbol:clear_possible_types()

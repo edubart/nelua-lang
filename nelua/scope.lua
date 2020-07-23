@@ -138,7 +138,8 @@ function Scope:add_symbol(symbol)
   else
     key = symbol
   end
-  local oldsymbol = self.symbols[key]
+  local symbols = self.symbols
+  local oldsymbol = symbols[key]
   if oldsymbol then
     if oldsymbol == symbol then
       return true
@@ -149,15 +150,15 @@ function Scope:add_symbol(symbol)
       key = symbol
     else
       -- shadowing an usual variable
-      if rawget(self.symbols, key) == oldsymbol then
+      if rawget(symbols, key) == oldsymbol then
         -- this symbol will be overridden but we still need to list it for the resolution
-        self.symbols[oldsymbol] = oldsymbol
+        symbols[oldsymbol] = oldsymbol
       end
       symbol.shadows = true
     end
   end
-  self.symbols[key] = symbol
-  table.insert(self.symbols, symbol)
+  symbols[key] = symbol
+  symbols[#symbols+1] = symbol
   return true
 end
 
@@ -169,13 +170,14 @@ function Scope:resolve_symbols()
   local count = 0
   local unknownlist = {}
   -- first resolve any symbol with known possible types
-  for i=1,#self.symbols do
-    local symbol = self.symbols[i]
+  local symbols = self.symbols
+  for i=1,#symbols do
+    local symbol = symbols[i]
     if symbol.type == nil then
       if symbol:resolve_type() then
         count = count + 1
       elseif count == 0 then
-        table.insert(unknownlist, symbol)
+        unknownlist[#unknownlist+1] = symbol
       end
     end
   end
@@ -206,7 +208,7 @@ function Scope:add_return_type(index, type)
   if not returntypes then
     self.possible_returntypes[index] = {[1] = type}
   elseif type and not tabler.ifind(returntypes, type) then
-    table.insert(returntypes, type)
+    returntypes[#returntypes+1] = type
   end
 end
 

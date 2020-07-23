@@ -977,10 +977,15 @@ function FunctionType:_init(node, argattrs, returntypes)
   end
   self.argtypes = argtypes
   if returntypes then
-    self.returntypes = returntypes
-    local lastindex = #returntypes
-    local lastret = returntypes[lastindex]
-    self.returnvaranys = lastret and lastret.is_varanys
+    if #returntypes == 1 and returntypes[1].is_void then
+      -- single void type means no returns
+      self.returntypes = {}
+    else
+      self.returntypes = returntypes
+      local lastindex = #returntypes
+      local lastret = returntypes[lastindex]
+      self.returnvaranys = lastret and lastret.is_varanys
+    end
   else
     self.returntypes = {}
   end

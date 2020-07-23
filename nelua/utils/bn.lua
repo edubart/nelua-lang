@@ -1,4 +1,4 @@
-local bn = require 'nelua.thirdparty.bint'(160)
+local bn = require 'nelua.thirdparty.bint'(128)
 
 bn._bn = true
 

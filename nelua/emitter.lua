@@ -55,19 +55,19 @@ end
 
 function Emitter:add_one(what)
   local ty = type(what)
-  local codes = self.codes
-  local pos = #codes+1
   if ty == 'string' then
-    if #what > 0 then
-      codes[pos] = what
+    if what ~= '' then
+      local codes = self.codes
+      codes[#codes+1] = what
     end
   elseif ty == 'number' then
-    codes[pos] = tostring(what)
+    local codes = self.codes
+    codes[#codes+1] = tostring(what)
   elseif ty == 'table' then
     if what._astnode then
       self:add_traversal(what)
     -- elseif what._bn then
-    --   codes[pos] = tostring(what)
+    --   codes[#codes+1] = tostring(what)
     else
       self:add_traversal_list(what)
     end

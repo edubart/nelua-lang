@@ -11,10 +11,10 @@ function AnalyzerContext:_init(visitors, parser)
   VisitorContext._init(self, visitors)
   self.parser = parser
   self.rootscope = Scope(self, 'root')
+  self.scope = self.rootscope
   self.usedbuiltins = {}
   self.env = {}
   self.requires = {}
-  self.scope = self.rootscope
   self.scopestack = {}
   self.pragmas = {}
   self.pragmastack = {}
@@ -35,7 +35,8 @@ function AnalyzerContext:pop_pragmas()
 end
 
 function AnalyzerContext:push_scope(scope)
-  table.insert(self.scopestack, self.scope)
+  local scopestack = self.scopestack
+  scopestack[#scopestack+1] = self.scope
   self.scope = scope
 end
 
@@ -43,9 +44,7 @@ function AnalyzerContext:push_forked_scope(kind, node)
   local scope
   if node.scope then
     scope = node.scope
-    assert(scope.kind == kind)
-    assert(scope.parent == self.scope)
-    assert(scope.node == node)
+    assert(scope.kind == kind and scope.parent == self.scope and scope.node == node)
   else
     scope = self.scope:fork(kind, node)
     node.scope = scope
@@ -61,7 +60,10 @@ function AnalyzerContext:push_forked_cleaned_scope(kind, node)
 end
 
 function AnalyzerContext:pop_scope()
-  self.scope = table.remove(self.scopestack)
+  local scopestack = self.scopestack
+  local index = #scopestack
+  self.scope = scopestack[index]
+  scopestack[index] = nil
 end
 
 function AnalyzerContext:ensure_runtime_builtin(name, p1, p2)

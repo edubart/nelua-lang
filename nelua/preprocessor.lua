@@ -32,14 +32,14 @@ function visitors.PreprocessName(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
   local pindex, nindex = ppcontext:getregistryindex(parent), ppcontext:getregistryindex(node)
   emitter:add_indent_ln('ppregistry[', pindex, '][', parentindex, ']',
-                        ' = ppcontext:toname(', luacode, ', ppregistry[', nindex, '])')
+                        '=ppcontext:toname(', luacode, ',ppregistry[', nindex, '])')
 end
 
 function visitors.PreprocessExpr(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
   local pindex, nindex = ppcontext:getregistryindex(parent), ppcontext:getregistryindex(node)
   emitter:add_indent_ln('ppregistry[', pindex, '][', parentindex, ']',
-                        ' = ppcontext:tovalue(', luacode, ', ppregistry[', nindex, '])')
+                        '=ppcontext:tovalue(', luacode, ',ppregistry[', nindex, '])')
 end
 
 function visitors.Preprocess(_, node, emitter)
@@ -56,15 +56,15 @@ function visitors.Block(ppcontext, node, emitter)
   node.needprocess = nil
 
   local blockregidx = ppcontext:getregistryindex(node)
-  emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess = function(blocknode)')
+  emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess=function(blocknode)')
   emitter:inc_indent()
-  emitter:add_indent_ln('blocknode[1] = ppcontext:push_statnodes()')
+  emitter:add_indent_ln('blocknode[1]=ppcontext:push_statnodes()')
   local statsregidx = ppcontext:getregistryindex(statnodes)
   for i=1,#statnodes do
     local statnode = statnodes[i]
     ppcontext:traverse_node(statnode, emitter)
     if statnode.tag ~= 'Preprocess' then
-      emitter:add_indent_ln('ppcontext:add_statnode(ppregistry[', statsregidx, '][', i, ']:clone())')
+      emitter:add_indent_ln('ppcontext:add_statnode(ppregistry[', statsregidx, '][', i, '],true)')
     end
   end
   emitter:add_indent_ln('ppcontext:pop_statnodes()')

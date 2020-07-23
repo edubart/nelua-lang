@@ -19,25 +19,31 @@ function PPContext:push_statnodes(statnodes)
   if not statnodes then
     statnodes = {}
   end
-  table.insert(self.statnodestack, self.statnodes)
+  local statnodestack = self.statnodestack
+  statnodestack[#statnodestack+1] = self.statnodes
   self.statnodes = statnodes
   return statnodes
 end
 
 function PPContext:pop_statnodes()
-  self.statnodes = table.remove(self.statnodestack)
+  local statnodestack = self.statnodestack
+  local index = #statnodestack
+  self.statnodes = statnodestack[index]
+  statnodestack[index] = nil
 end
 
-function PPContext:add_statnode(node)
-  local statnodes = self.statnodes
-  local addindex
-  if statnodes.addindex then
-    addindex = statnodes.addindex
-    statnodes.addindex = statnodes.addindex + 1
-  else
-    addindex = #statnodes+1
+function PPContext:add_statnode(node, clone)
+  if clone then
+    node = node:clone()
   end
-  table.insert(self.statnodes, addindex, node)
+  local statnodes = self.statnodes
+  if statnodes.addindex then
+    local addindex = statnodes.addindex
+    statnodes.addindex = addindex + 1
+    table.insert(self.statnodes, addindex, node)
+  else
+    self.statnodes[#statnodes+1] = node
+  end
   self.context:traverse_node(node)
 end
 

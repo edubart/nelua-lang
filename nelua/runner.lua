@@ -1,4 +1,5 @@
 require 'nelua.utils.luaver'.check()
+-- local profiler = require 'profiler'
 
 -- make the lua garbage collector less aggressive to speed up compilation
 collectgarbage("setpause", 800)
@@ -59,7 +60,10 @@ local function run(argv, redirect)
 
   -- analyze the ast
   local analyzer = require 'nelua.analyzer'
+  -- profiler.start()
   local context = analyzer.analyze(ast, parser)
+  -- profiler.stop()
+  -- profiler.report('profile.log')
 
   if config.timing then
     console.debugf('analyze AST     %.1f ms', timer:elapsedrestart())
