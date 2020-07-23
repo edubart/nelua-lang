@@ -27,7 +27,7 @@ do -- analytic
     local fn: number = n
     local p = (1.0 + math.sqrt(5.0)) / 2.0
     local q = 1.0 / p
-    return ((p ^ fn) + (q ^ fn)) / math.sqrt(5.0)
+    return math.floor(((p ^ fn) + (q ^ fn)) / math.sqrt(5.0))
   end
   print(fibonacci(10))
 end

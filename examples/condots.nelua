@@ -161,10 +161,10 @@ end
 local INTERP_RADIUS <comptime> = 1
 
 local function draw_circle(p: vec2, radius: number)
-  local sx: integer = math.max(p.x-radius-INTERP_RADIUS, 0)
-  local ex: integer = math.min(p.x+radius+INTERP_RADIUS, SCREEN_WIDTH-1)
-  local sy: integer = math.max(p.y-radius-INTERP_RADIUS, 0)
-  local ey: integer = math.min(p.y+radius+INTERP_RADIUS, SCREEN_HEIGHT-1)
+  local sx: integer = math.floor(math.max(p.x-radius-INTERP_RADIUS, 0))
+  local ex: integer = math.floor(math.min(p.x+radius+INTERP_RADIUS, SCREEN_WIDTH-1))
+  local sy: integer = math.floor(math.max(p.y-radius-INTERP_RADIUS, 0))
+  local ey: integer = math.floor(math.min(p.y+radius+INTERP_RADIUS, SCREEN_HEIGHT-1))
   for iy=sy,ey do
     for ix=sx,ex do
       local d = math.sqrt((ix-p.x)*(ix-p.x) + (iy-p.y)*(iy-p.y))
@@ -190,10 +190,10 @@ local function draw_line(a: vec2, b: vec2, radius: number, opacity: number)
   local sx, sy = delta.x >= 0 and 1 or -1, delta.y >= 0 and 1 or -1
   if math.abs(delta.y) < 1 or math.abs(delta.x) < 1 then return end
   for j=-INTERP_RADIUS-radius,math.abs(delta.x)+radius+INTERP_RADIUS do
-    local ix: integer = a.x + j*sx
+    local ix: integer = math.floor(a.x + j*sx)
     if ix >= 0 and ix < SCREEN_WIDTH then
       for i=-INTERP_RADIUS-radius,math.abs(delta.y)+radius+INTERP_RADIUS do
-        local iy: integer = a.y + i*sy
+        local iy: integer = math.floor(a.y + i*sy)
         if iy >= 0 and iy < SCREEN_HEIGHT then
           local p = vec2{ix, iy}
           local d = line_dist(a, b, p)
