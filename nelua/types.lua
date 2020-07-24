@@ -883,10 +883,10 @@ types.ArrayType = ArrayType
 ArrayType.is_array = true
 ArrayType.is_contiguous = true
 
-function ArrayType:_init(node, subtype, length)
+function ArrayType:_init(subtype, length)
   local size = subtype.size * length
   self:set_codename(string.format('%s_arr%d', subtype.codename, length))
-  Type._init(self, 'array', size, node)
+  Type._init(self, 'array', size)
   self.subtype = subtype
   self.length = length
   self.align = subtype.align or subtype.size
@@ -928,10 +928,9 @@ types.EnumType = EnumType
 EnumType.is_enum = true
 EnumType.is_primitive = false
 
-function EnumType:_init(node, subtype, fields)
-  self:set_codename(gencodename(self, 'enum', node))
+function EnumType:_init(subtype, fields)
+  self:set_codename(gencodename(self, 'enum'))
   IntegralType._init(self, 'enum', subtype.size, subtype.is_unsigned)
-  self.node = node
   self.subtype = subtype
   for i=1,#fields do
     local field = fields[i]
@@ -961,7 +960,7 @@ types.FunctionType = FunctionType
 FunctionType.is_function = true
 FunctionType.is_procedure = true
 
-function FunctionType:_init(node, argattrs, returntypes)
+function FunctionType:_init(argattrs, returntypes, node)
   self:set_codename(gencodename(self, 'function', node))
   Type._init(self, 'function', cpusize, node)
   self.argattrs = argattrs or {}
@@ -1050,7 +1049,7 @@ types.LazyFunctionType = LazyFunctionType
 LazyFunctionType.is_procedure = true
 LazyFunctionType.is_lazyfunction = true
 
-function LazyFunctionType:_init(node, args, returntypes)
+function LazyFunctionType:_init(args, returntypes, node)
   self:set_codename(gencodename(self, 'lazyfunction', node))
   Type._init(self, 'lazyfunction', 0, node)
   self.args = args or {}
@@ -1105,7 +1104,7 @@ local MetaType = typeclass()
 types.MetaType = MetaType
 MetaType.is_metatype = true
 
-function MetaType:_init(node, fields)
+function MetaType:_init(fields, node)
   self.fields = fields or {}
   self:set_codename(gencodename(self, 'metatype', node))
   Type._init(self, 'metatype', 0, node)
@@ -1167,7 +1166,7 @@ local function compute_record_size(fields, pack)
   return size, align
 end
 
-function RecordType:_init(node, fields)
+function RecordType:_init(fields, node)
   fields = fields or {}
   for i=1,#fields do
     local field = fields[i]
@@ -1387,11 +1386,11 @@ StringViewType.align = cpusize
 
 function StringViewType:_init(name, size)
   local fields = {
-    {name = 'data', type = types.PointerType(types.ArrayType(nil, primtypes.byte, 0)) },
+    {name = 'data', type = types.PointerType(types.ArrayType(primtypes.byte, 0)) },
     {name = 'size', type = primtypes.usize}
   }
   self:set_codename('nlstringview')
-  RecordType._init(self, nil, fields)
+  RecordType._init(self, fields)
   self.name = 'stringview'
   self.nickname = 'stringview'
   self.metatype = MetaType()

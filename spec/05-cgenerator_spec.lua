@@ -1540,7 +1540,7 @@ it("record metametods", function()
     local R = @record {
       x: integer[2]
     }
-    ## R.value.choose_braces_type = function() return types.ArrayType(nil, primtypes.integer, 2) end
+    ## R.value.choose_braces_type = function() return types.ArrayType(primtypes.integer, 2) end
     function R.__convert(x: auto): R
       local self: R
       self.x = x
@@ -2354,7 +2354,7 @@ end)
 it("generics", function()
   assert.run_c([=[
     local arrayproxy = #[generalize(function(T, size)
-      return types.ArrayType(nil, T, size)
+      return types.ArrayType(T, size)
     end)]#
 
     local intarray = @arrayproxy(integer, 4)

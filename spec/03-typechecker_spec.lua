@@ -1381,7 +1381,7 @@ end)
 
 it("generics", function()
   assert.analyze_ast([[
-    local myarray = #[generic(function(T, N) return types.ArrayType(nil, T, N) end)]#
+    local myarray = #[generic(function(T, N) return types.ArrayType(T, N) end)]#
     local M: integer <comptime> = 4
     local x = @myarray(integer, (M))
   ]])
@@ -1395,12 +1395,12 @@ it("generics", function()
     local x = @proxy(integer)
   ]], 'my fail')
   assert.analyze_error([[
-    local myarray = #[generic(function(T, N) return types.ArrayType(nil, T, N) end)]#
+    local myarray = #[generic(function(T, N) return types.ArrayType(T, N) end)]#
     local M: integer = 4
     local x = @myarray(integer, (M))
   ]], "isn't a compile time value")
   assert.analyze_error([[
-    local myarray = #[generic(function(T, N) return types.ArrayType(nil, T, N) end)]#
+    local myarray = #[generic(function(T, N) return types.ArrayType(T, N) end)]#
     local M: record{x: integer} <comptime> = {}
     local x = @myarray(integer, (M))
   ]], "is invalid for generics")

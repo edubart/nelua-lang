@@ -29,9 +29,11 @@ require 'memory'
   }
 
   ##[[
-  SequenceT.value.is_contiguous = true
-  SequenceT.value.is_sequence = true
-  SequenceT.value.subtype = T
+  local SequenceT = SequenceT.value
+  SequenceT.is_contiguous = true
+  SequenceT.is_sequence = true
+  SequenceT.subtype = T
+  SequenceT.choose_braces_type = function(node) return types.ArrayType(T, #node[1]) end
   ]]
 
   function SequenceT:_grow()
@@ -180,9 +182,6 @@ require 'memory'
     end
     return self
   end
-  ##[[SequenceT.value.choose_braces_type = function(node)
-    return types.ArrayType(nil, T, #node[1])
-  end]]
 
   ## return SequenceT
 ## end)

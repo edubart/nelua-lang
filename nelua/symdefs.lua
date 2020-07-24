@@ -9,7 +9,7 @@ local symdefs = {}
 
 local function define_function(name, argtypes, rettypes)
   local args = tabler.imap(argtypes, function(argtype) return Attr{type = argtype} end)
-  local type = types.FunctionType(nil, args, rettypes)
+  local type = types.FunctionType(args, rettypes)
   type:suggest_nickname(name)
   type.sideeffect = false
   local symbol = Symbol{
@@ -43,7 +43,7 @@ define_function('unlikely', {primtypes.boolean}, {primtypes.boolean})
 define_function('check', {primtypes.boolean, primtypes.stringview})
 define_const('panic', primtypes.any)
 define_const('nilptr', primtypes.nilptr)
-define_const('C', primtypes.type, types.RecordType(nil, {}))
+define_const('C', primtypes.type, types.RecordType({}))
 
 -- nelua primitive types
 local function define_type(name, type)

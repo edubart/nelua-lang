@@ -24,9 +24,13 @@ require 'memory'
     data: span(T)
   }
 
-  ## VectorT.value.is_contiguous = true
-  ## VectorT.value.is_vector = true
-  ## VectorT.value.subtype = T
+  ##[[
+  local VectorT = VectorT.value
+  VectorT.is_contiguous = true
+  VectorT.is_vector = true
+  VectorT.subtype = T
+  VectorT.choose_braces_type = function(node) return types.ArrayType(T, #node[1]) end
+  ]]
 
   function VectorT:_grow()
     local cap: usize = 1
@@ -48,7 +52,7 @@ require 'memory'
   function VectorT:reset()
     self:clear()
     allocator.spandealloc(self.data)
-    $self = {}
+    $self = (@VectorT)()
   end
 
   -- Reserve at least `n` elements in the vector storage.
@@ -147,9 +151,6 @@ require 'memory'
     end
     return self
   end
-  ##[[VectorT.value.choose_braces_type = function(node)
-    return types.ArrayType(nil, T, #node[1])
-  end]]
 
   ## return VectorT
 ## end)

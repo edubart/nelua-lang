@@ -549,7 +549,7 @@ function visitors.FuncType(context, node)
     end
   end
   local rettypes = tabler.imap(retnodes, function(retnode) return retnode.attr.value end)
-  local type = types.FunctionType(node, argattrs, rettypes)
+  local type = types.FunctionType(argattrs, rettypes, node)
   type.sideeffect = true
   attr.type = primtypes.type
   attr.value = type
@@ -568,7 +568,7 @@ end
 
 function visitors.RecordType(context, node, symbol)
   local attr = node.attr
-  local recordtype = types.RecordType(node)
+  local recordtype = types.RecordType({}, node)
   attr.type = primtypes.type
   attr.value = recordtype
   if symbol then
@@ -638,7 +638,9 @@ function visitors.EnumType(context, node)
     fields[i] = field
   end
   attr.type = primtypes.type
-  attr.value = types.EnumType(node, subtype, fields)
+  local type = types.EnumType(subtype, fields)
+  type.node = node
+  attr.value = type
   node.done = true
 end
 
@@ -659,7 +661,9 @@ function visitors.ArrayType(context, node)
     lengthnode:raisef("cannot have negative array size %d", length)
   end
   attr.type = primtypes.type
-  attr.value = types.ArrayType(node, subtype, length)
+  local type = types.ArrayType(subtype, length)
+  type.node = node
+  attr.value = type
   node.done = true
 end
 
@@ -1883,10 +1887,10 @@ function visitors.FuncDef(context, node, lazysymbol)
   if islazyparent then
     assert(not lazysymbol)
     if not type then
-      type = types.LazyFunctionType(node, argattrs, returntypes)
+      type = types.LazyFunctionType(argattrs, returntypes, node)
     end
   elseif not returntypes.has_unknown then
-    type = types.FunctionType(node, argattrs, returntypes)
+    type = types.FunctionType(argattrs, returntypes, node)
   end
 
   if symbol then -- symbol may be nil in case of array/dot index

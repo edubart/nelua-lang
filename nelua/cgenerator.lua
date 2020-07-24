@@ -1297,8 +1297,9 @@ local function emit_features_setup(context)
   do -- warnings
     emitter:add_ln('#ifdef __GNUC__')
 
-      -- throw error on missing C bindings
+      -- throw error on implict declarations
       emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
+      emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-int"')
       -- importing C functions can cause this warn
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
       -- C zero initialization for anything
