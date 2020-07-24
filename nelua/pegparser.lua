@@ -40,11 +40,7 @@ function PEGParser:set_astbuilder(astbuilder)
   self.astbuilder = astbuilder
 
   local function to_astnode(pos, tag, ...)
-    local node = astbuilder:create(tag, ...)
-    node.pos = pos
-    node.src = self.src
-    node.srcname = self.srcname
-    return node
+    return astbuilder:_create(tag, pos, self.src, self.srcname, ...)
   end
 
   local defs = self.defs
@@ -94,8 +90,9 @@ function PEGParser:set_astbuilder(astbuilder)
   defs.to_chain_index_or_call = function(primary_expr, exprs)
     local last_expr = primary_expr
     if exprs then
-      for _,expr in ipairs(exprs) do
-        table.insert(expr, last_expr)
+      for i=1,#exprs do
+        local expr = exprs[i]
+        expr[#expr+1] = last_expr
         last_expr = to_astnode(unpack(expr))
       end
     end

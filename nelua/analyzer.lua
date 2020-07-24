@@ -1259,9 +1259,7 @@ function visitors.Block(context, node)
   if node.preprocess then
     local scope = context:push_forked_cleaned_scope('block', node)
 
-    local ok, err = except.trycall(function()
-      node:preprocess()
-    end)
+    local ok, err = except.trycall(node.preprocess, node)
     if not ok then
       if except.isexception(err) then
         except.reraise(err)
@@ -2214,9 +2212,7 @@ function analyzer.analyze(ast, parser, context)
   until resolutions_count == 0
 
   for _,cb in ipairs(context.afteranalyze) do
-    local ok, err = except.trycall(function()
-      cb.f()
-    end)
+    local ok, err = except.trycall(cb.f)
     if not ok then
       cb.node:raisef('error while executing after analyze: %s', err)
     end

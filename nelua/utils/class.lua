@@ -5,8 +5,7 @@ local class = {}
 -- called when creating a new object
 local function createobject(klass, ...)
   local object = setmetatable({}, klass)
-  local init = object._init
-  if init then init(object, ...) end
+  object:_init(...)
   return object
 end
 

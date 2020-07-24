@@ -19,6 +19,8 @@ local function genuid()
   return uid
 end
 
+ASTNode.genuid = genuid
+
 function ASTNode:_init(...)
   for i=1,select('#', ...) do
     self[i] = select(i, ...)

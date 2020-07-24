@@ -113,8 +113,8 @@ function except.try(f, handler)
 end
 
 -- try and catch any error
-function except.trycall(f)
-  return xpcall(f, tryerrhandler)
+function except.trycall(f, ...)
+  return xpcall(f, tryerrhandler, ...)
 end
 
 return except

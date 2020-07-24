@@ -3,6 +3,7 @@ local errorer = require 'nelua.utils.errorer'
 local tabler = require 'nelua.utils.tabler'
 local metamagic = require 'nelua.utils.metamagic'
 local iters = require 'nelua.utils.iterators'
+local Attr = require 'nelua.attr'
 local ASTNode = require 'nelua.astnode'
 local config = require 'nelua.configer'.get()
 local shapetypes = require 'nelua.thirdparty.tableshape'.types
@@ -55,6 +56,22 @@ function ASTBuilder:create(tag, ...)
     local shape = self.shapes[tag]
     local ok, err = shape(node)
     errorer.assertf(ok, 'invalid shape while creating AST node "%s": %s', tag, err)
+  end
+  return node
+end
+
+local genuid = ASTNode.genuid
+
+function ASTBuilder:_create(tag, pos, src, srcname, ...)
+  local node = setmetatable({
+    pos = pos,
+    src = src,
+    srcname = srcname,
+    uid = genuid(),
+    attr = setmetatable({}, Attr),
+  }, self.nodes[tag])
+  for i=1,select('#', ...) do
+    node[i] = select(i, ...)
   end
   return node
 end
