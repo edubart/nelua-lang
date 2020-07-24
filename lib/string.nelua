@@ -409,36 +409,36 @@ function string.__concat(a: string_coercion_concept, b: string_coercion_concept)
 end
 
 -- Import methods from stringview to string.
-global string.__len = stringview.__len
-global string.__eq = stringview.__eq
-global string.__lt = stringview.__lt
-global string.__le = stringview.__le
-global string.__add = stringview.__add
-global string.__sub = stringview.__sub
-global string.__mul = stringview.__mul
-global string.__div = stringview.__div
-global string.__idiv = stringview.__idiv
-global string.__mod = stringview.__mod
-global string.__pow = stringview.__pow
-global string.__unm = stringview.__unm
-global string.__band = stringview.__band
-global string.__bor = stringview.__bor
-global string.__bxor = stringview.__bxor
-global string.__shl = stringview.__shl
-global string.__shr = stringview.__shr
-global string.__bnot = stringview.__bnot
-global string.len = stringview.len
-global string.byte = stringview.byte
-global string.find = stringview.find
+global string.__len: auto = stringview.__len
+global string.__eq: auto = stringview.__eq
+global string.__lt: auto = stringview.__lt
+global string.__le: auto = stringview.__le
+global string.__add: auto = stringview.__add
+global string.__sub: auto = stringview.__sub
+global string.__mul: auto = stringview.__mul
+global string.__div: auto = stringview.__div
+global string.__idiv: auto = stringview.__idiv
+global string.__mod: auto = stringview.__mod
+global string.__pow: auto = stringview.__pow
+global string.__unm: auto = stringview.__unm
+global string.__band: auto = stringview.__band
+global string.__bor: auto = stringview.__bor
+global string.__bxor: auto = stringview.__bxor
+global string.__shl: auto = stringview.__shl
+global string.__shr: auto = stringview.__shr
+global string.__bnot: auto = stringview.__bnot
+global string.len: auto = stringview.len
+global string.byte: auto = stringview.byte
+global string.find: auto = stringview.find
 
 -- Export string methods to stringview.
-global stringview.__concat = string.__concat
-global stringview.rep = string.rep
-global stringview.sub = string.sub
-global stringview.reverse = string.reverse
-global stringview.upper = string.upper
-global stringview.lower = string.lower
-global stringview.format = string.format
+global stringview.__concat: auto = string.__concat
+global stringview.rep: auto = string.rep
+global stringview.sub: auto = string.sub
+global stringview.reverse: auto = string.reverse
+global stringview.upper: auto = string.upper
+global stringview.lower: auto = string.lower
+global stringview.format: auto = string.format
 
 -- TODO: implement functions bellow
 -- string:match(pattern, init)

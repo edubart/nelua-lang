@@ -47,7 +47,7 @@ function SlotPool:reserve(size: uint32)
   self.free_queue = generic_allocator.spanrealloc0(self.free_queue, size)
   check(#self.free_queue > 0, 'out of memory')
   -- never allocate the zero-th pool item since the invalid id is 0
-  for i=size,self.size+1,-1 do
+  for i:uint32=size,self.size+1,-1 do
     self.free_queue[self.queue_top] = i
     self.queue_top = self.queue_top + 1
   end
@@ -152,7 +152,7 @@ end
   -- because while the resources may use a GC allocator the slot pool does not.
   function ResourcePoolT:reset()
     -- destroy all items
-    for i=0,<self.items.size do
+    for i:usize=0,<self.items.size do
       self.items[i] = (@T)()
     end
     allocator.spandealloc(self.items)
