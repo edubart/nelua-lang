@@ -320,6 +320,18 @@ function visitors.PragmaCall(context, node)
   end
 end
 
+local function choose_type_symbol_names(context, symbol)
+  local type = symbol.value
+  if type:suggest_nickname(symbol.name) then
+    if symbol.staticstorage and symbol.codename then
+      type:set_codename(symbol.codename)
+    else
+      local codename = context:choose_codename(symbol.name)
+      type:set_codename(codename)
+    end
+  end
+end
+
 function visitors.Annotation(context, node, symbol)
   assert(symbol)
   local name = node[1]
@@ -391,11 +403,18 @@ function visitors.Annotation(context, node, symbol)
   objattr[name] = params
 
   if name == 'cimport' then
+    objattr.cimport = true
     if traits.is_string(params) then
       objattr.codename = params
     else
       objattr.codename = symbol.name
     end
+  elseif name == 'nickname' then
+    assert(objattr._type and not objattr.is_primitive)
+    local type, nickname = objattr, params
+    local codename = context:choose_codename(nickname)
+    symbol.codename = codename
+    type:set_codename(codename)
   end
 
   node.done = true
@@ -507,8 +526,10 @@ function visitors.TypeInstance(context, node, symbol)
   local attr = typenode.attr
   node.attr = attr
   if symbol then
-    attr.value:suggest_nick(symbol.name, symbol.staticstorage and symbol.codename)
-    attr.value.symbol = symbol
+    local type = attr.value
+    symbol.value = type
+    choose_type_symbol_names(context, symbol)
+    type.symbol = symbol
   end
   node.done = true
 end
@@ -555,7 +576,7 @@ function visitors.RecordType(context, node, symbol)
     assert((not symbol.type or symbol.type == primtypes.type) and not symbol.value)
     symbol.type = primtypes.type
     symbol.value = recordtype
-    recordtype:suggest_nick(symbol.name, symbol.staticstorage and symbol.codename)
+    choose_type_symbol_names(context, symbol)
     recordtype.symbol = symbol
   end
   local fieldnodes = node[1]
@@ -1074,7 +1095,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     symbol = attr._symbol and attr or nil
   end
   if not symbol then
-    local symname = string.format('%s.%s', objtype.nick or objtype.name, name)
+    local symname = string.format('%s.%s', objtype.nickname or objtype.name, name)
     symbol = Symbol.promote_attr(attr, symname, node)
     symbol.codename = context:choose_codename(string.format('%s_%s', objtype.codename, name))
     symbol:link_node(parentnode)
@@ -1562,7 +1583,7 @@ function visitors.VarDecl(context, node)
         assert(valnode and valnode.attr.value)
         assignvaltype = vartype ~= valtype
         symbol.value = valnode.attr.value
-        symbol.value:suggest_nick(symbol.name, symbol.staticstorage and symbol.codename)
+        choose_type_symbol_names(context, symbol)
         symbol.value.symbol = symbol
       end
 
@@ -2162,6 +2183,7 @@ end
 function analyzer.analyze(ast, parser, context)
   if not context then
     context = AnalyzerContext(visitors, parser)
+    context.rootscope.node = ast
   end
   context.analyzing = true
 

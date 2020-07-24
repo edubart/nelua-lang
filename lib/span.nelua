@@ -8,17 +8,21 @@
 -- are agnostic to the input container type.
 
 ## local make_span = generalize(function(T)
-  ## staticassert(traits.is_type(T), "invalid type '%s", T)
-  ## staticassert(T.size > 0, "spans cannot be of '%s'", T)
+  ##[[
+  staticassert(traits.is_type(T), "invalid type '%s", T)
+  staticassert(T.size > 0, "spans cannot be of '%s'", T)
+  ]]
   local T = @#[T]#
-  local SpanT <codename #['nlspan_'..T.codename]#> = @record {
+  local SpanT <nickname #[string.format('span(%s)', T)]#> = @record {
     data: T[0]*,
     size: usize
   }
 
-  ## SpanT.value.is_contiguous = true
-  ## SpanT.value.is_span = true
-  ## SpanT.value.subtype = T
+  ##[[
+  SpanT.value.is_contiguous = true
+  SpanT.value.is_span = true
+  SpanT.value.subtype = T
+  ]]
 
   -- Returns reference to element at index `i`.
   -- If `i` is greater of equal to span size, then throws a runtime error.

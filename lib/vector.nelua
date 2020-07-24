@@ -11,17 +11,15 @@ require 'memory'
 
 ## local make_vector = generalize(function(T, allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
-  ## local codename = 'nlvector_'..T.codename
   ## if allocator then
   local allocator: type = #[allocator]#
-  ## codename = codename..'_'..allocator.nick
   ## else
   require 'allocators.gc'
   local allocator: type = @gc_allocator
   ## end
 
   local T = @#[T]#
-  local VectorT <codename #[codename]#> = @record {
+  local VectorT <nickname #[string.format('vector(%s)', T)]#> = @record {
     size: usize,
     data: span(T)
   }

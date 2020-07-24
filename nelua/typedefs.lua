@@ -196,6 +196,7 @@ typedefs.type_annots = {
   aligned = common_annots.oneinteger,
   cimport = common_annots.cimport,
   cinclude = common_annots.onestring,
+  nickname = common_annots.onestring,
   codename = common_annots.onestring,
   nodecl = true,
   packed = true,

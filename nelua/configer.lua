@@ -119,6 +119,7 @@ local function create_parser(args)
   argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only')
   argparser:flag('--print-code', 'Print the generated code only')
   argparser:flag('--print-config', "Print config variables only"):action(action_print_config)
+  argparser:flag('--debug-resolved', "Print information about resolved types")
   argparser:argument("input", "Input source file")
     :action(function(options, _, v)
     -- hacky way to stop handling options

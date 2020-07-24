@@ -117,4 +117,10 @@ it("configure module search paths", function()
   ]]})
 end)
 
+it("debug options", function()
+  assert.run({'--debug-resolved', '--analyze', '--eval',[[
+    local x = 1
+  ]]}, "symbol 'x' resolved to type 'int64'")
+end)
+
 end)

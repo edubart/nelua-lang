@@ -117,10 +117,8 @@ end
 -- Macro to create a resource pool using the specified allocator.
 ## local make_resourcepool = generalize(function(T, allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
-  ## local codename = 'nlresourcepool_'..T.codename
   ## if allocator then
   local allocator: type = #[allocator]#
-  ## codename = codename..'_'..allocator.nick
   ## else
   require 'allocators.gc'
   local allocator: type = @gc_allocator
@@ -129,13 +127,15 @@ end
   local T = @#[T]#
 
   -- The resource pool class specialyzed for type T.
-  local ResourcePoolT = @record {
+  local ResourcePoolT <nickname #[string.format('resourcepool(%s)', T)]#> = @record {
     slot_pool: SlotPool, -- pool of slots id
     items: span(T) -- span holding all resources
   }
 
-  ## ResourcePoolT.value.is_resourcepool = true
-  ## ResourcePoolT.value.subtype = T
+  ##[[
+  ResourcePoolT.value.is_resourcepool = true
+  ResourcePoolT.value.subtype = T
+  ]]
 
   -- Reserve the pool to contains at least `size` resources.
   function ResourcePoolT:reserve(size: usize)
@@ -214,4 +214,4 @@ end
 ## end)
 
 -- The resource pool generic type.
-global resourcepool: type = #[make_resourcepool]#
+global resourcepool = #[make_resourcepool]#

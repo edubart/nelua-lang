@@ -10,7 +10,7 @@ local symdefs = {}
 local function define_function(name, argtypes, rettypes)
   local args = tabler.imap(argtypes, function(argtype) return Attr{type = argtype} end)
   local type = types.FunctionType(nil, args, rettypes)
-  type:suggest_nick(name)
+  type:suggest_nickname(name)
   type.sideeffect = false
   local symbol = Symbol{
     name = name,

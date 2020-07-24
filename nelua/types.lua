@@ -33,10 +33,9 @@ local function genid(codename)
   return id
 end
 
-function Type:set_codename(codename, alias)
+function Type:set_codename(codename)
   self.codename = codename
-  if alias then
-    assert(self.id)
+  if self.id then
     typeid_by_typecodename[codename] = self.id
   else
     self.id = genid(codename)
@@ -56,15 +55,10 @@ function Type:_init(name, size, node)
   self.binary_operators = setmetatable({}, {__index = mt.binary_operators})
 end
 
-function Type:suggest_nick(nick, codename)
-  if self.is_primitive or self.nick then return end
-  if codename then
-    self:set_codename(codename, true)
-  elseif codename ~= false then
-    codename = self.codename:gsub(string.format('^%s_', self.name), nick .. '_')
-    self:set_codename(codename, true)
-  end
-  self.nick = nick
+function Type:suggest_nickname(nickname)
+  if self.is_primitive or self.nickname then return false end
+  self.nickname = nickname
+  return true
 end
 
 function Type:typedesc()
@@ -201,8 +195,8 @@ function Type:is_contiguous_of(type)
 end
 
 function Type:__tostring()
-  if self.nick then
-    return self.nick
+  if self.nickname then
+    return self.nickname
   else
     return self:typedesc()
   end
@@ -1276,7 +1270,7 @@ function PointerType:_init(subtype)
     self.is_primitive = true
   elseif subtype.name == 'cchar' then
     self.nodecl = true
-    self.nick = 'cstring'
+    self.nickname = 'cstring'
     self.is_cstring = true
     self.is_stringy = true
     self.is_primitive = true
@@ -1399,7 +1393,7 @@ function StringViewType:_init(name, size)
   self:set_codename('nlstringview')
   RecordType._init(self, nil, fields)
   self.name = 'stringview'
-  self.nick = 'stringview'
+  self.nickname = 'stringview'
   self.metatype = MetaType()
   Type._init(self, name, size)
 end

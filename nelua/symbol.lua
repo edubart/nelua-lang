@@ -1,9 +1,12 @@
 local tabler = require 'nelua.utils.tabler'
 local class = require 'nelua.utils.class'
 local sstream = require 'nelua.utils.sstream'
+local traits = require 'nelua.utils.traits'
+local console = require 'nelua.utils.console'
 local types = require 'nelua.types'
 local Attr = require 'nelua.attr'
 local Symbol = class(Attr)
+local config = require 'nelua.configer'.get()
 
 Symbol._symbol = true
 
@@ -36,18 +39,23 @@ function Symbol:add_possible_type(type)
   end
 end
 
-function Symbol:resolve_type(ignoreunknown)
-  if self.type or (not ignoreunknown and self.hasunknown) then
+function Symbol:resolve_type(force)
+  if self.type or (not force and self.hasunknown) then
     return false
   end
   local resolvetype = types.find_common_type(self.possibletypes)
   if resolvetype then
     self.type = resolvetype
     self:clear_possible_types()
-    return true
+  elseif traits.is_type(force) then
+    self.type = force
   else
     return false
   end
+  if config.debug_resolved then
+    console.info(self.node:format_errmsg("symbol '%s' resolved to type '%s'", self.name, self.type))
+  end
+  return true
 end
 
 function Symbol:link_node(node)

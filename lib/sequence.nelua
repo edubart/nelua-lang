@@ -12,27 +12,27 @@ require 'memory'
 
 ## local make_sequence = generalize(function(T, allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
-  ## local codenameprefix = 'nlsequence_'..T.codename
   ## if allocator then
   local allocator: type = #[allocator]#
-  ## codenameprefix = codenameprefix..'_'..allocator.nick
   ## else
   require 'allocators.gc'
   local allocator: type = @gc_allocator
   ## end
 
   local T = @#[T]#
-  local SequenceImplT <codename #[codenameprefix..'_impl']#> = @record {
+  local SequenceImplT <nickname #[string.format('sequence_impl(%s)', T)]#> = @record {
     size: usize,
     data: span(T)
   }
-  local SequenceT <codename #[codenameprefix]#> = @record{
+  local SequenceT <nickname #[string.format('sequence(%s)', T)]#> = @record{
     impl: SequenceImplT*
   }
 
-  ## SequenceT.value.is_contiguous = true
-  ## SequenceT.value.is_sequence = true
-  ## SequenceT.value.subtype = T
+  ##[[
+  SequenceT.value.is_contiguous = true
+  SequenceT.value.is_sequence = true
+  SequenceT.value.subtype = T
+  ]]
 
   function SequenceT:_grow()
     local cap: usize = 2
