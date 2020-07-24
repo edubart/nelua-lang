@@ -1414,8 +1414,15 @@ function visitors.ForNum(context, node)
     local scope = context:push_forked_cleaned_scope('loop', node)
 
     local itsymbol = context:traverse_node(itvarnode)
-    local itattr = itvarnode.attr
-    local ittype = itattr.type
+    local ittype = itsymbol.type
+    if not ittype then
+      itsymbol:add_possible_type(btype)
+      itsymbol:add_possible_type(etype)
+      if btype and etype then
+        itsymbol:resolve_type()
+        ittype = itsymbol.type
+      end
+    end
     if ittype then
       if not (ittype.is_arithmetic or (ittype.is_any and not ittype.is_varanys)) then
         itvarnode:raisef("`for` variable '%s' must be a number, but got type '%s'", itname, ittype)
@@ -1439,7 +1446,7 @@ function visitors.ForNum(context, node)
         end
       end
       if stype then
-        local optype, _, err = ittype:binary_operator('add', stype, itattr, sattr)
+        local optype, _, err = ittype:binary_operator('add', stype, itsymbol, sattr)
         if stype.is_float and ittype.is_integral then
           err = 'cannot have fractional step for an integral iterator'
         end
@@ -1447,9 +1454,6 @@ function visitors.ForNum(context, node)
           stepvalnode:raisef("in `for` step variable '%s': %s", itname, err)
         end
       end
-    else
-      itsymbol:add_possible_type(btype)
-      itsymbol:add_possible_type(etype)
     end
     itsymbol.scope:add_symbol(itsymbol)
     context:traverse_node(blocknode)
