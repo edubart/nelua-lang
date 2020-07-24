@@ -32,8 +32,8 @@ local function getline(text, lineno)
   return string.sub(text, linestart, lineend)
 end
 
-local function get_pretty_source_pos_errmsg(src, srcname, errline, errcol, errmsg, errname)
-  local line = getline(src, errline)
+local function get_pretty_source_pos_errmsg(src, errline, errcol, errmsg, errname)
+  local line = getline(src.content, errline)
   local linebegin = line:sub(1, errcol-1)
   local lineend = line:sub(errcol)
   local linehelper = string.rep(' ', #linebegin) ..
@@ -46,7 +46,7 @@ local function get_pretty_source_pos_errmsg(src, srcname, errline, errcol, errms
   end
   return string.format(
     "%s:%s%d:%d: %s%s:%s %s%s\n%s%s\n%s\n%s",
-    srcname or '',
+    src and src.name or '',
     tostring(colors.bright),
     errline, errcol,
     tostring(colors.red),
@@ -57,14 +57,14 @@ local function get_pretty_source_pos_errmsg(src, srcname, errline, errcol, errms
     errmsg2)
 end
 
-function errorer.get_pretty_source_pos_errmsg(src, srcname, errpos, errmsg, errname)
-  local line, col = re.calcline(src, errpos)
-  return get_pretty_source_pos_errmsg(src, srcname, line, col, errmsg, errname)
+function errorer.get_pretty_source_pos_errmsg(src, errpos, errmsg, errname)
+  local line, col = re.calcline(src.content, errpos)
+  return get_pretty_source_pos_errmsg(src, line, col, errmsg, errname)
 end
 
-function errorer.get_pretty_source_line_errmsg(src, srcname, errline, errmsg, errname)
+function errorer.get_pretty_source_line_errmsg(src, errline, errmsg, errname)
   local line, col = errline, 1
-  return get_pretty_source_pos_errmsg(src, srcname, line, col, errmsg, errname)
+  return get_pretty_source_pos_errmsg(src, line, col, errmsg, errname)
 end
 
 return errorer

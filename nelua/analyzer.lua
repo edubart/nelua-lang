@@ -156,7 +156,6 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   idnode.attr:merge(pattr)
   idnode.pattr = pattr
   local newvalnode = n.Call{{valnode}, n.DotIndex{mtname, idnode}}
-  newvalnode.srcname = valnode.srcname
   newvalnode.src = valnode.src
   newvalnode.pos = valnode.pos
   parent[parentindex] = newvalnode
@@ -2198,8 +2197,8 @@ function analyzer.analyze(ast, parser, context)
   end
   context:push_pragmas()
 
-  if ast.srcname then
-    context.pragmas.unitname = pegger.filename_to_unitname(ast.srcname)
+  if ast.src and ast.src.name then
+    context.pragmas.unitname = pegger.filename_to_unitname(ast.src.name)
   end
 
   -- phase 1 traverse: preprocess

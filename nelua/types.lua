@@ -277,7 +277,7 @@ local function genkey(name, node)
   local srcname
   if node then
     uid = node.uid
-    srcname = node.srcname or ''
+    srcname = node.src.name or ''
   else
     uidcounter = uidcounter + 1
     uid = uidcounter

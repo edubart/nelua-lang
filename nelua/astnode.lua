@@ -67,7 +67,6 @@ clone_node = function(node)
   local cloned = setmetatable({
     pos = node.pos,
     src = node.src,
-    srcname = node.srcname,
     preprocess = node.preprocess,
     uid = genuid(),
     attr = setmetatable({}, Attr)
@@ -99,7 +98,7 @@ ASTNode.clone = clone_node
 function ASTNode:format_errmsg(message, ...)
   message = stringer.pformat(message, ...)
   if self.src and self.pos then
-    message = errorer.get_pretty_source_pos_errmsg(self.src, self.srcname, self.pos, message)
+    message = errorer.get_pretty_source_pos_errmsg(self.src, self.pos, message)
   end
   return message
 end
@@ -132,7 +131,7 @@ end
 -- pretty print ast
 -------------------
 local ignored_stringfy_keys = {
-  pos = true, src = true, srcname=true,
+  pos = true, src = true,
   uid = true,
   desiredtype = true,
   preprocess = true,

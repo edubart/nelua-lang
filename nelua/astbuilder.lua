@@ -62,11 +62,10 @@ end
 
 local genuid = ASTNode.genuid
 
-function ASTBuilder:_create(tag, pos, src, srcname, ...)
+function ASTBuilder:_create(tag, pos, src, ...)
   local node = setmetatable({
     pos = pos,
     src = src,
-    srcname = srcname,
     uid = genuid(),
     attr = setmetatable({}, Attr),
   }, self.nodes[tag])
