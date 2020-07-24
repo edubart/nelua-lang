@@ -1,5 +1,5 @@
 require 'nelua.utils.luaver'.check()
--- local profiler = require 'profiler'
+-- local profiler = require 'play.tools.profiler'
 
 -- make the lua garbage collector less aggressive to speed up compilation
 collectgarbage("setpause", 800)

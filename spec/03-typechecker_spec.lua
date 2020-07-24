@@ -625,6 +625,10 @@ it("function multiple return", function()
     local a: boolean, b: integer = g()
   ]])
   assert.analyze_ast([[
+    local f: any
+    local a, b = f()
+  ]])
+  assert.analyze_ast([[
     local R = @record{x: integer}
     function R.foo(self: R*): (boolean, integer) return true, self.x end
     function R:boo(): (boolean, integer) return true, self.x end

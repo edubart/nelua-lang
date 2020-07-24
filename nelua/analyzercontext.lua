@@ -20,6 +20,8 @@ function AnalyzerContext:_init(visitors, parser)
   self.pragmastack = {}
   self.usedcodenames = {}
   self.afteranalyze = {}
+  self.afterinfers = {}
+  self.unresolvedcount = 0
 end
 
 function AnalyzerContext:push_pragmas()

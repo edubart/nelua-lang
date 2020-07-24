@@ -146,8 +146,7 @@ typedefs.call_pragmas = {
   cdefine = shaper.shape{n=shaper.number, shaper.string},
   cflags = shaper.shape{n=shaper.number, shaper.string},
   ldflags = shaper.shape{n=shaper.number, shaper.string},
-  linklib = shaper.shape{n=shaper.number, shaper.string},
-  afterinfer = shaper.shape{n=shaper.number, shaper.func},
+  linklib = shaper.shape{n=shaper.number, shaper.string}
 }
 
 local common_annots = {

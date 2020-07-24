@@ -121,7 +121,7 @@ function preprocessor.preprocess(context, ast)
 
   if not markercontext.needprocess then
     -- no preprocess directive found for this block, finished
-    return
+    return false
   end
 
   -- second pass, emit the preprocess lua code
@@ -235,6 +235,8 @@ function preprocessor.preprocess(context, ast)
       local rets = table.pack(f(...))
       ppcontext:pop_statnodes()
       ppcontext.context:pop_scope()
+      -- must delay resolution to fully parse the new added nodes later
+      ppcontext.context.rootscope:delay_resolution()
       scope:pop_checkpoint()
       addindex = statnodes.addindex
       statnodes.addindex = nil
@@ -261,7 +263,7 @@ function preprocessor.preprocess(context, ast)
         f()
         context:pop_scope()
       end
-      ppcontext:add_statnode(aster.PragmaCall{'afterinfer', {fproxy}})
+      table.insert(context.afterinfers, fproxy)
     end,
     staticerror = function(msg, ...)
       if not msg then
@@ -325,6 +327,8 @@ function preprocessor.preprocess(context, ast)
   if not ok then
     ast:raisef('error while preprocessing: %s', err)
   end
+
+  return true
 end
 
 return preprocessor

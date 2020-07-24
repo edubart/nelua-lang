@@ -3,6 +3,8 @@ local types = require 'nelua.types'
 local typedefs = require 'nelua.typedefs'
 local symdefs = require 'nelua.symdefs'
 local tabler = require 'nelua.utils.tabler'
+local config = require 'nelua.configer'.get()
+local console = require 'nelua.utils.console'
 
 local Scope = class()
 
@@ -16,6 +18,7 @@ function Scope:_init(parent, kind, node)
     self.context = parent.context
     table.insert(parent.children, self)
   end
+  self.unresolved_symbols = {}
   self.children = {}
   self:clear_symbols()
 end
@@ -157,8 +160,12 @@ function Scope:add_symbol(symbol)
       symbol.shadows = true
     end
   end
-  symbols[key] = symbol
-  symbols[#symbols+1] = symbol
+  symbols[key] = symbol -- store by key
+  symbols[#symbols+1] = symbol -- store in order
+  if not symbol.type and not self.unresolved_symbols[symbol] then
+    self.unresolved_symbols[symbol] = true
+    self.context.unresolvedcount = self.context.unresolvedcount + 1
+  end
   return true
 end
 
@@ -167,18 +174,23 @@ function Scope:delay_resolution()
 end
 
 function Scope:resolve_symbols()
+  local unresolved_symbols = self.unresolved_symbols
+  if not next(unresolved_symbols) then return 0 end
+
   local count = 0
   local unknownlist = {}
   -- first resolve any symbol with known possible types
-  local symbols = self.symbols
-  for i=1,#symbols do
-    local symbol = symbols[i]
+  for symbol in next,unresolved_symbols do
     if symbol.type == nil then
       if symbol:resolve_type() then
         count = count + 1
       elseif count == 0 then
         unknownlist[#unknownlist+1] = symbol
       end
+    end
+    if symbol.type then
+      unresolved_symbols[symbol] = nil
+      self.context.unresolvedcount = self.context.unresolvedcount - 1
     end
   end
   -- if nothing was resolved previously then try resolve symbol with unknown possible types
@@ -189,6 +201,8 @@ function Scope:resolve_symbols()
       local symbol = unknownlist[i]
       local force = self.context.state.anyphase and typedefs.primtypes.any or true
       if symbol:resolve_type(force) then
+        unresolved_symbols[symbol] = nil
+        self.context.unresolvedcount = self.context.unresolvedcount - 1
         count = count + 1
       end
       --break
@@ -210,22 +224,29 @@ function Scope:add_return_type(index, type)
 end
 
 function Scope:resolve_returntypes()
-  if #self.possible_returntypes == 0 then return end
+  local count = 0
+  if not next(self.possible_returntypes) then return count end
   local resolved_returntypes = self.resolved_returntypes
   resolved_returntypes.has_unknown = self.has_unknown_return
-  for i,returntypes in ipairs(self.possible_returntypes) do
+  for i,returntypes in pairs(self.possible_returntypes) do
     resolved_returntypes[i] = types.find_common_type(returntypes) or typedefs.primtypes.any
+    count = count + 1
   end
+  return count
 end
 
 function Scope:resolve()
   local count = self:resolve_symbols()
   self:resolve_returntypes()
+  if count > 0 and config.debug_scope_resolve then
+    console.info(self.node:format_errmsg("scope resolved %d symbols", count))
+  end
   if self.delay then
+    self.delay = false
     count = count + 1
-    self.delay = nil
   end
   return count
 end
+
 
 return Scope

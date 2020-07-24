@@ -36,6 +36,8 @@ function Symbol:add_possible_type(type)
     self.possibletypes = {[1] = type}
   elseif not tabler.ifind(self.possibletypes, type) then
     table.insert(self.possibletypes, type)
+  else
+    return
   end
 end
 
@@ -52,7 +54,7 @@ function Symbol:resolve_type(force)
   else
     return false
   end
-  if config.debug_resolved then
+  if config.debug_resolve then
     console.info(self.node:format_errmsg("symbol '%s' resolved to type '%s'", self.name, self.type))
   end
   return true

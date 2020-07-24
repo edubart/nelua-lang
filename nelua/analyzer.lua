@@ -308,15 +308,10 @@ function visitors.Table(context, node)
   end
 end
 
-function visitors.PragmaCall(context, node)
+function visitors.PragmaCall(_, node)
   local name = node[1]
   local pragmashape = typedefs.call_pragmas[name]
   node:assertraisef(pragmashape, "pragma '%s' is undefined", name)
-  if name == 'afterinfer' and context.state.anyphase and not node.attr.afterinfer then
-    node.attr.afterinfer = true
-    local args = node[2]
-    args[1]()
-  end
 end
 
 local function choose_type_symbol_names(context, symbol)
@@ -760,27 +755,26 @@ end
 local function izipargnodes(vars, argnodes)
   local iter = iters.izip(vars, argnodes)
   local lastargindex = #argnodes
-  local lastargnode = argnodes[#argnodes]
-  local calleetype = lastargnode and lastargnode.attr.calleetype
-  if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and (not calleetype or not calleetype.is_type) then
+  local lastargnode = argnodes[lastargindex]
+  local lastcalleetype = lastargnode and lastargnode.attr.calleetype
+  if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and
+     (not lastcalleetype or not lastcalleetype.is_type) then
     -- last arg is a runtime call
-    if calleetype then
-      if calleetype.is_any then
-        -- calling any types makes last arguments always a varanys
-        return function()
-          local i, var, argnode = iter()
+    return function()
+      local i, var, argnode = iter()
+      if not i then return nil end
+      -- NOTE: the calletype may change while iterating
+      local calleetype = argnodes[lastargindex].attr.calleetype
+      if calleetype then
+        if calleetype.is_any then
+          -- calling any types makes last arguments always a varanys
           local argtype = argnode and argnode.attr.type
-          if not i then return nil end
           if i == lastargindex then
             assert(argtype and argtype.is_varanys)
           end
           return i, var, argnode, argtype
-        end
-      else
-        -- we know the callee type
-        return function()
-          local i, var, argnode = iter()
-          if not i then return nil end
+        else
+          -- we know the callee type
           if i >= lastargindex then
             -- argnode does not exists, fill with multiple returns type
             -- in case it doest not exists, the argtype will be nil type
@@ -794,12 +788,8 @@ local function izipargnodes(vars, argnodes)
             return i, var, argnode, argnode.attr.type, nil
           end
         end
-      end
-    else
-      -- call type is now known yet, argtype will be nil
-      return function()
-        local i, var, argnode = iter()
-        if not i then return end
+      else
+        -- call type is now known yet, argtype will be nil
         return i, var, argnode, argnode and argnode.attr.type
       end
     end
@@ -2218,13 +2208,21 @@ function analyzer.analyze(ast, parser, context)
   end
 
   -- phase 3 traverse: infer unset types to 'any' type
-  local state = context:push_state()
-  state.anyphase = true
-  repeat
-    context:traverse_node(ast)
-    local resolutions_count = context.rootscope:resolve()
-  until resolutions_count == 0
-  context:pop_state()
+  if context.unresolvedcount ~= 0 then
+    local state = context:push_state()
+    state.anyphase = true
+    repeat
+      context:traverse_node(ast)
+      local resolutions_count = context.rootscope:resolve()
+    until resolutions_count == 0
+    assert(context.unresolvedcount == 0)
+    context:pop_state()
+  end
+
+  -- execute after inferance callbacks
+  for _,f in ipairs(context.afterinfers) do
+    f()
+  end
 
   context:pop_pragmas()
 
