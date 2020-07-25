@@ -73,6 +73,7 @@ function pegger.single_quote_c_string(str)
 end
 ]=]
 
+local function split_cb(v) return {name = v[1], patt = v[2]} end
 local combined_grammar_peg_pat = re.compile([[
 pegs       <- {| (comment/peg)+ |}
 peg        <- {| peg_head {peg_char*} |}
@@ -86,9 +87,7 @@ comment    <- %s* '--' (!linebreak .)* linebreak?
 function pegger.split_grammar_patts(combined_patts)
   local pattdescs = combined_grammar_peg_pat:match(combined_patts)
   errorer.assertf(pattdescs, 'invalid multiple pegs patterns syntax: %s', combined_patts)
-  return tabler.imap(pattdescs, function(v)
-    return {name = v[1], patt = v[2]}
-  end)
+  return tabler.imap(pattdescs, split_cb)
 end
 
 local combined_parser_peg_pat = re.compile([[
@@ -104,9 +103,7 @@ comment    <- %s* '--' (!linebreak .)* linebreak?
 function pegger.split_parser_patts(combined_patts)
   local pattdescs = combined_parser_peg_pat:match(combined_patts)
   errorer.assertf(pattdescs, 'invalid multiple pegs patterns syntax: %s', combined_patts)
-  return tabler.imap(pattdescs, function(v)
-    return {name = v[1], patt = v[2]}
-  end)
+  return tabler.imap(pattdescs, split_cb)
 end
 
 local substitute_vars = {}

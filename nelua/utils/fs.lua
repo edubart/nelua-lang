@@ -298,8 +298,8 @@ function fs.findmodulefile(name, path)
   name = name:gsub('%.', fs.sep)
   local paths = stringer.split(path, ';')
   local triedpaths = {}
-  for _,trypath in ipairs(paths) do
-    trypath = trypath:gsub('%?', name)
+  for i=1,#paths do
+    local trypath = paths[i]:gsub('%?', name)
     if fs.isfile(trypath) then
       return fs.abspath(trypath)
     end

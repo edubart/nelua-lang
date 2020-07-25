@@ -219,7 +219,6 @@ it("print types", function()
     local ta = #[tostring(a.type)]#
     local tf = #[tostring(f.type)]#
     local tR = #[tostring(R.type)]#
-    local tRmt = #[tostring(R.value.metatype)]#
     local tr = #[tostring(r.type)]#
   ]], [=[
     local n: float64
@@ -237,7 +236,6 @@ it("print types", function()
     local ta = 'array(int64, 2)'
     local tf = 'function(int64, int64): (int64, int64)'
     local tR = 'type'
-    local tRmt = 'metatype{foo: function(pointer(R)): int64, v: int64}'
     local tr = 'R'
   ]=])
 end)

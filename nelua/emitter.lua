@@ -99,7 +99,8 @@ end
 
 function Emitter:add_traversal_list(nodelist, separator, ...)
   separator = separator or ', '
-  for i,node in ipairs(nodelist) do
+  for i=1,#nodelist do
+    local node = nodelist[i]
     if i > 1 then self:add(separator) end
     self:add_traversal(node, ...)
   end

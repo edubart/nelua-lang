@@ -189,7 +189,8 @@ function preprocessor.preprocess(context, ast)
       end
 
       -- try to match exact type first
-      for _,type in ipairs(accepttypes) do
+      for i=1,#accepttypes do
+        local type = accepttypes[i]
         if type == x.type then
           return type
         end
@@ -198,7 +199,8 @@ function preprocessor.preprocess(context, ast)
       -- else try to convert one
       local errs = {}
       if not noconvert then
-        for _,type in ipairs(accepttypes) do
+        for i=1,#accepttypes do
+          local type = accepttypes[i]
           local ok, err = type:is_convertible_from(x.type)
           if ok then
             return type

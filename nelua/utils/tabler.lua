@@ -32,23 +32,11 @@ function tabler.insertvalues(t, pos, st)
   return t
 end
 
--- find values inside an array table using a custom if function
-function tabler.ifindif(t, fn, idx)
-  for i=idx or 1,#t do
-    local val = t[i]
-    if fn(val) then
-      return val,i
-    end
-  end
-  return nil
-end
-
 -- create a new table of mapped array values
-function tabler.imap(t, f)
+function tabler.imap(t, fn)
   local ot = {}
   for i=1,#t do
-    local nv, ni = f(t[i], i)
-    ot[ni or i] = nv
+    ot[i] = fn(t[i])
   end
   return ot
 end
@@ -72,9 +60,9 @@ function tabler.copy(t)
 end
 
 -- check if all values of a list pass test
-function tabler.iall(t, f)
+function tabler.iall(t, field)
   for i=1,#t do
-    if not f(t[i],i) then
+    if not t[i][field] then
       return false
     end
   end
@@ -100,11 +88,11 @@ local function tabler_deepcompare(t1,t2,ignore_mt)
     local mt = getmetatable(t1)
     if mt and mt.__eq then return t1 == t2 end
   end
-  for k1,v1 in pairs(t1) do
+  for k1,v1 in next,t1 do
     local v2 = t2[k1]
     if v2 == nil or not tabler_deepcompare(v1,v2) then return false end
   end
-  for k2,v2 in pairs(t2) do
+  for k2,v2 in next,t2 do
     local v1 = t1[k2]
     if v1 == nil or not tabler_deepcompare(v1,v2) then return false end
   end

@@ -143,10 +143,10 @@ function Type:is_convertible_from(what, explicit)
     return self:is_convertible_from_attr(what.attr, explicit)
   elseif traits.is_type(what) then
     return self:is_convertible_from_type(what, explicit)
-  else
+  else --luacov:disable
     assert(traits.is_attr(what))
     return self:is_convertible_from_attr(what, explicit)
-  end
+  end --luacov:enable
 end
 
 function Type.normalize_value(_, value)
@@ -465,7 +465,7 @@ function ArithmeticType:is_initializable_from_attr(attr)
   if Type.is_initializable_from_attr(self, attr) then
     return true
   end
-  if attr.type and attr.type.is_arithmetic and attr.comptime and attr.untyped then
+  if attr and attr.comptime and attr.untyped and attr.type and attr.type.is_arithmetic then
     return true
   end
 end
@@ -600,7 +600,9 @@ function IntegralType:promote_type_for_value(value)
     end
 
     -- try to use signed version until fit the size
-    for _,dtype in ipairs(typedefs.promote_signed_types) do
+    local signedtypes = typedefs.promote_signed_types
+    for i=1,#signedtypes do
+      local dtype = signedtypes[i]
       if dtype:is_inrange(value) and dtype.size >= self.size then
         -- both value and prev type fits
         return dtype
@@ -1100,40 +1102,6 @@ LazyFunctionType.is_equal = FunctionType.is_equal
 LazyFunctionType.typedesc = FunctionType.typedesc
 
 --------------------------------------------------------------------------------
-local MetaType = typeclass()
-types.MetaType = MetaType
-MetaType.is_metatype = true
-
-function MetaType:_init(fields, node)
-  self.fields = fields or {}
-  self:set_codename(gencodename(self, 'metatype', node))
-  Type._init(self, 'metatype', 0, node)
-end
-
-function MetaType:get_field(name)
-  return self.fields[name]
-end
-
-function MetaType:set_field(name, symbol)
-  self.fields[name] = symbol
-end
-
-function MetaType:typedesc()
-  local ss = sstream('metatype{')
-  local first = true
-  for name,sym in iters.opairs(self.fields) do
-    if not first then
-      ss:add(', ')
-    else
-      first = false
-    end
-    ss:add(name, ': ', sym.type)
-  end
-  ss:add('}')
-  return ss:tostring()
-end
-
---------------------------------------------------------------------------------
 local RecordType = typeclass()
 types.RecordType = RecordType
 RecordType.is_record = true
@@ -1179,7 +1147,7 @@ function RecordType:_init(fields, node)
   end
   Type._init(self, 'record', size, node)
   self.fields = fields
-  self.metatype = MetaType()
+  self.metafields = {}
   self.align = align
 end
 
@@ -1216,7 +1184,7 @@ function RecordType:typedesc()
 end
 
 function RecordType:get_metafield(name)
-  return self.metatype:get_field(name)
+  return self.metafields[name]
 end
 
 function RecordType:set_metafield(name, symbol)
@@ -1225,7 +1193,7 @@ function RecordType:set_metafield(name, symbol)
   elseif name == '__copy' then
     self.is_copyable = true
   end
-  return self.metatype:set_field(name, symbol)
+  self.metafields[name] = symbol
 end
 
 function RecordType:is_convertible_from_type(type, explicit)
@@ -1237,23 +1205,29 @@ function RecordType:is_convertible_from_type(type, explicit)
 end
 
 function RecordType:has_pointer()
-  return tabler.ifindif(self.fields, function(f)
-    return f.type:has_pointer()
-  end) ~= nil
+  local fields = self.fields
+  for i=1,#fields do
+    if fields[i].type:has_pointer() then return true end
+  end
+  return false
 end
 
 function RecordType:has_destroyable()
   if self.is_destroyable then return true end
-  return tabler.ifindif(self.fields, function(f)
-    return f.type:has_destroyable()
-  end) ~= nil
+  local fields = self.fields
+  for i=1,#fields do
+    if fields[i].type:has_destroyable() then return true end
+  end
+  return false
 end
 
 function RecordType:has_copyable()
   if self.is_copyable then return true end
-  return tabler.ifindif(self.fields, function(f)
-    return f.type:has_copyable()
-  end) ~= nil
+  local fields = self.fields
+  for i=1,#fields do
+    if fields[i].type:has_copyable() then return true end
+  end
+  return false
 end
 
 --------------------------------------------------------------------------------
@@ -1393,7 +1367,7 @@ function StringViewType:_init(name, size)
   RecordType._init(self, fields)
   self.name = 'stringview'
   self.nickname = 'stringview'
-  self.metatype = MetaType()
+  self.metafields = {}
   Type._init(self, name, size)
 end
 
@@ -1508,13 +1482,11 @@ function GenericType:_init(func)
 end
 
 function GenericType:eval_type(params)
-  local ret
-  local ok, err = except.trycall(function()
-    ret = self.func(table.unpack(params))
-  end)
-  if err then
-    return nil, err
+  local ok, ret = except.trycall(self.func, table.unpack(params))
+  if not ok then
+    return nil, ret
   end
+  local err
   if traits.is_symbol(ret) then
     if not ret.type or not ret.type.is_type then
       ret = nil
