@@ -1,6 +1,7 @@
 local cdefs = require 'nelua.cdefs'
 local CEmitter = require 'nelua.cemitter'
 local primtypes = require 'nelua.typedefs'.primtypes
+local config = require 'nelua.configer'.get()
 
 local cbuiltins = {}
 
@@ -64,11 +65,12 @@ function builtins.nelua_panic_cstring(context)
   context:add_include('<stdlib.h>')
   context:add_include('<stdio.h>')
   context:ensure_runtime_builtin('nelua_noreturn')
+  local abort = config.no_abort and 'exit(-1)' or 'abort()'
   define_builtin(context, 'nelua_panic_cstring',
     'static nelua_noreturn void nelua_panic_cstring(char* s);\n',
     [[void nelua_panic_cstring(char *s) {
   fprintf(stderr, "%s\n", s);
-  abort();
+  ]]..abort..[[;
 }
 ]])
 end
@@ -78,13 +80,14 @@ function builtins.nelua_panic_stringview(context)
   context:add_include('<stdio.h>')
   context:ensure_runtime_builtin('nelua_noreturn')
   context:ctype(primtypes.stringview)
+  local abort = config.no_abort and 'exit(-1)' or 'abort()'
   define_builtin(context, 'nelua_panic_stringview',
     'static nelua_noreturn void nelua_panic_stringview(nlstringview s);\n',
     [[void nelua_panic_stringview(nlstringview s) {
   if(s.data && s.size > 0) {
     fprintf(stderr, "%s\n", (char*)s.data);
   }
-  abort();
+  ]]..abort..[[;
 }
 ]])
 end

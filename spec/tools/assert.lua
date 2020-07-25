@@ -20,6 +20,7 @@ local nelua_parser = nelua_syntax.parser
 config.check_ast_shape = true
 config.quiet = true
 config.lua_version = '5.3'
+config.no_abort = true
 
 -- use cache subfolder while testing
 config.cache_dir = fs.join(config.cache_dir, 'spec')

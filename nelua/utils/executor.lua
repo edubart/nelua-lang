@@ -13,6 +13,7 @@ local hasposix, posix_pexec = pcall(function()
   local unistd = require 'posix.unistd'
   local wait = require 'posix.sys.wait'.wait
   local poll = require 'posix.poll'
+  local envpath = os.getenv('PATH')
 
   return function(exe, args, redirect)
     args = args or {}
@@ -21,7 +22,6 @@ local hasposix, posix_pexec = pcall(function()
     local exepath = fs.abspath(exe)
     if exe ~= exepath and not exe:find(fs.sep, 1, true) then
       exepath = nil
-      local envpath = os.getenv('PATH')
       if envpath then
         local paths = stringer.split(envpath, ':')
         for _, pathprefix in ipairs(paths) do
