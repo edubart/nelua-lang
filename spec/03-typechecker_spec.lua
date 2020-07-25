@@ -401,7 +401,7 @@ it("operation with parenthesis", function()
   assert.ast_type_equals("local a = -(1)", "local a: integer = -(1)")
 end)
 
-it("recursive late deduction", function()
+it("late deduction", function()
   assert.ast_type_equals([[
     local a, b, c
     a = 1
@@ -453,6 +453,21 @@ it("recursive late deduction", function()
   ]], [[
     local x: integer, y: integer = 1, 2
     local x: integer = x + y
+  ]])
+  assert.ast_type_equals([[
+    local a = false
+    local b = 2
+    do
+       local c = b == 1
+       a = c
+    end
+  ]],[[
+    local a: boolean = false
+    local b: integer = 2
+    do
+       local c: boolean = b == 1
+       a = c
+    end
   ]])
 end)
 

@@ -211,6 +211,13 @@ function Scope:resolve_symbols()
   return count
 end
 
+function Scope:resolve_symbol(symbol)
+  if self.unresolved_symbols[symbol] and symbol:resolve_type() then
+    self.unresolved_symbols[symbol] = nil
+    self.context.unresolvedcount = self.context.unresolvedcount - 1
+  end
+end
+
 function Scope:add_return_type(index, type)
   if not type then
     self.has_unknown_return = true

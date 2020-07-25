@@ -1401,12 +1401,13 @@ function visitors.ForNum(context, node)
     local scope = context:push_forked_cleaned_scope('loop', node)
 
     local itsymbol = context:traverse_node(itvarnode)
+    itsymbol.scope:add_symbol(itsymbol)
     local ittype = itsymbol.type
     if not ittype then
-      itsymbol:add_possible_type(btype)
-      itsymbol:add_possible_type(etype)
+      itsymbol:add_possible_type(btype, begvalnode)
+      itsymbol:add_possible_type(etype, endvalnode)
       if btype and etype then
-        itsymbol:resolve_type()
+        scope:resolve_symbol(itsymbol)
         ittype = itsymbol.type
       end
     end
@@ -1442,7 +1443,6 @@ function visitors.ForNum(context, node)
         end
       end
     end
-    itsymbol.scope:add_symbol(itsymbol)
     context:traverse_node(blocknode)
 
     local resolutions_count = scope:resolve()
@@ -1615,7 +1615,7 @@ function visitors.VarDecl(context, node)
       end
     end
     if assigning then
-      symbol:add_possible_type(valtype)
+      symbol:add_possible_type(valtype, varnode)
     end
   end
 end
@@ -1649,7 +1649,7 @@ function visitors.Assign(context, node)
       end
     end
     if symbol then -- symbol may nil in case of array/dot index
-      symbol:add_possible_type(valtype)
+      symbol:add_possible_type(valtype, varnode)
       symbol.mutate = true
     end
     if not valnode and valtype and valtype.is_niltype then
@@ -1898,7 +1898,7 @@ function visitors.FuncDef(context, node, lazysymbol)
           node:raisef("in function definition: %s", err)
         end
       else
-        symbol:add_possible_type(type)
+        symbol:add_possible_type(type, varnode)
       end
     end
     symbol:link_node(node)

@@ -1,6 +1,7 @@
 nelua_cache
 *.out
 *.tmp
+*.log
 .vscode
 tempCodeRunner.*
 neluacfg.lua

@@ -918,14 +918,22 @@ print(myvar) -- outputs: 1
 
 local function foo1() print 'foo' end
 #|'foo' .. 1|#() -- outputs: foo
+
+local Weekends = @enum { Friday=0, Saturday, Sunday }
+print(Weekends.#|'S'..string.lower('UNDAY')|#)
 ```
 
 The above code compile exactly as:
 
 ```nelua
 local myvar = 1
+print(myvar)
+
 local function foo1() print 'foo' end
 foo1()
+
+local Weekends = @enum { Friday=0, Saturday, Sunday }
+print(Weekends.Sunday)
 ```
 
 ### Preprocessor macros
@@ -1037,9 +1045,9 @@ print(p.age) -- outputs '21'
 The above code compile exactly as:
 
 ```nelua
-local Person = @record{nick: string}
-local p: Person = {nick='Joe'}
-print(p.nick) -- outputs 'Joe'
+local Person = @record{name: string}
+local p: Person = {name='Joe', age: integer}
+print(p.age) -- outputs '21'
 ```
 
 The compiler is implemented and runs using Lua and the preprocess

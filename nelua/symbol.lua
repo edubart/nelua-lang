@@ -23,14 +23,25 @@ end
 
 function Symbol:clear_possible_types()
   self.possibletypes = nil
-  self.hasunknown = nil
+  self.unknownrefs = nil
 end
 
-function Symbol:add_possible_type(type)
+function Symbol:add_possible_type(type, refnode)
   if self.type then return end
+  local unknownrefs = self.unknownrefs
   if not type then
-    self.hasunknown = true
+    assert(refnode)
+    if not unknownrefs then
+      self.unknownrefs = {[refnode] = true}
+    else
+      unknownrefs[refnode] = true
+    end
     return
+  elseif unknownrefs and unknownrefs[refnode] then
+    unknownrefs[refnode] = nil
+    if #unknownrefs == 0 then
+      self.unknownrefs = nil
+    end
   end
   if not self.possibletypes then
     self.possibletypes = {[1] = type}
@@ -42,7 +53,7 @@ function Symbol:add_possible_type(type)
 end
 
 function Symbol:resolve_type(force)
-  if self.type or (not force and self.hasunknown) then
+  if self.type or (not force and self.unknownrefs) then
     return false
   end
   local resolvetype = types.find_common_type(self.possibletypes)

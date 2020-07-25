@@ -4,7 +4,7 @@ local tabler = {}
 
 --- copy a table into another, in-place.
 function tabler.update(t, src)
-  for k,v in pairs(src) do
+  for k,v in next,src do
     t[k] = v
   end
   return t
@@ -65,7 +65,7 @@ end
 -- shallow copy for table
 function tabler.copy(t)
   local ot = {}
-  for i,v in pairs(t) do
+  for i,v in next,t do
     ot[i] = v
   end
   return ot
@@ -82,7 +82,7 @@ function tabler.iall(t, f)
 end
 
 function tabler.clear(t)
-  for k in pairs(t) do
+  for k in next,t do
     t[k] = nil
   end
   return t
