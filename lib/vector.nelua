@@ -29,7 +29,7 @@ require 'memory'
   VectorT.is_contiguous = true
   VectorT.is_vector = true
   VectorT.subtype = T
-  VectorT.choose_braces_type = function(node) return types.ArrayType(T, #node[1]) end
+  VectorT.choose_braces_type = function(nodes) return types.ArrayType(T, #nodes) end
   ]]
 
   function VectorT:_grow()

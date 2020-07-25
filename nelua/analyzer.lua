@@ -295,10 +295,13 @@ function visitors.Table(context, node)
   node.attr.literal = true
   if desiredtype then
     local objtype = desiredtype:auto_deref_type()
-    if objtype.is_record and desiredtype.choose_braces_type then
+    if objtype.is_record and objtype.choose_braces_type then
       local err
-      desiredtype, err = desiredtype.choose_braces_type(node)
-      node:assertraisef(desiredtype, 'failed choose braces type: %s', err or 'nil type')
+      desiredtype, err = objtype.choose_braces_type(node[1])
+      if not traits.is_type(desiredtype) then
+        node:raisef("failed initialize record '%s' from braces: %s",
+          objtype, err or 'choose_braces_type failed')
+      end
     end
   end
   if not desiredtype or (desiredtype.is_table or desiredtype.is_lazyable) then

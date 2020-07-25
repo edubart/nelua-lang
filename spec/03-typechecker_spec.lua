@@ -1446,4 +1446,36 @@ it("generics", function()
   ]], "expected a symbol holding a type in generic return")
 end)
 
+it("custom braces initialization", function()
+  assert.analyze_ast([==[
+    local vector = @record{data: integer[4]}
+    ##[[
+    vector.value.choose_braces_type = function(nodes)
+      return types.ArrayType(primtypes.integer, 4)
+    end
+    ]]
+    function vector.__convert(data: integer[4]): vector
+      local v: vector
+      v.data = data
+      return v
+    end
+    local v: vector = {1,2,3,4}
+    assert(v.data[0] == 1 and v.data[1] == 2 and v.data[2] == 3 and v.data[3] == 4)
+  ]==])
+  assert.analyze_error([==[
+    local vector = @record{data: integer[4]}
+    ##[[
+    vector.value.choose_braces_type = function(nodes)
+      return nil
+    end
+    ]]
+    function vector.__convert(data: integer[4]): vector
+      local v: vector
+      v.data = data
+      return v
+    end
+    local v: vector = {1,2,3,4}
+    assert(v.data[0] == 1 and v.data[1] == 2 and v.data[2] == 3 and v.data[3] == 4)
+  ]==], "choose_braces_type failed")
+end)
 end)

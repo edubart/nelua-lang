@@ -33,7 +33,7 @@ require 'memory'
   SequenceT.is_contiguous = true
   SequenceT.is_sequence = true
   SequenceT.subtype = T
-  SequenceT.choose_braces_type = function(node) return types.ArrayType(T, #node[1]) end
+  SequenceT.choose_braces_type = function(nodes) return types.ArrayType(T, #nodes) end
   ]]
 
   function SequenceT:_grow()
