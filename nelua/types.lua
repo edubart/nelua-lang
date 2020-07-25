@@ -632,7 +632,7 @@ function IntegralType:promote_type(type)
     if signedsize < unsignedsize * 2 then
       signedsize = math.min(unsignedsize * 2, 64)
     end
-    return primtypes['int' .. signedsize]
+    return primtypes[string.format('int%d', signedsize)]
   end
 end
 
@@ -891,7 +891,7 @@ function ArrayType:_init(subtype, length)
   Type._init(self, 'array', size)
   self.subtype = subtype
   self.length = length
-  self.align = subtype.align or math.min(subtype.size, cpusize)
+  self.align = subtype.align or subtype.size--math.min(subtype.size, cpusize)
 end
 
 function ArrayType:is_equal(type)
@@ -1117,7 +1117,7 @@ local function compute_record_size(fields, pack)
   for i=1,#fields do
     local ftype = fields[i].type
     local fsize = ftype.size
-    local falign = ftype.align or math.min(fsize, cpusize)
+    local falign = ftype.align or fsize --math.min(fsize, cpusize)
     align = math.max(align, falign)
     pad = 0
     if not pack and size % falign > 0 then
