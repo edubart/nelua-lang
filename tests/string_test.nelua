@@ -1,7 +1,7 @@
 require 'string'
 
-local maxi: integer <comptime> = #[primtypes.integer.max]#
-local mini: integer <comptime> = #[primtypes.integer.min]#
+local maxi: integer <comptime> = #[primtypes.isize.max]#
+local mini: integer <comptime> = #[primtypes.isize.min]#
 
 do -- initialization, len, eq and reset
   local arr: byte[6] = {0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00}
@@ -208,7 +208,7 @@ do -- arithmetic operators
   assert('2' + '3' == 5.0) assert('2' + 3 == 5.0) assert(2 + '3' == 5.0)
   assert('2' - '3' == -1.0) assert('2' - 3 == -1.0) assert(2 - '3' == -1.0)
   assert('2' * '3' == 6.0) assert('2' * 3 == 6.0) assert(2 * '3' == 6.0)
-  assert('2' / '3' == 2.0/3.0) assert(2 / '3' == 2.0/3.0) assert('2' / 3 == 2.0/3.0)
+  assert('1' / '2' == 0.5) assert(1 / '2' == 0.5) assert('1' / 2 == 0.5)
   assert('2' // '3' == 0.0) assert(2 // '3' == 2.0//3.0) assert('2' // 3 == 2.0//3.0)
   assert('2' % '3' == 2.0) assert('2' % 3 == 2.0) assert(2 % '3' == 2.0)
   assert('2' ^ '3' == 8.0) assert('2' ^ 3 == 8.0) assert(2 ^ '3' == 8.0)
@@ -349,7 +349,7 @@ do -- string format
   assert(string.format('%g', 0.123) == '0.123')
   assert(string.format('%G', 0.123e-20):sub(1,6) == '1.23E-')
   assert(string.format('%p', nilptr) == '(null)')
-  assert(string.format('%p', (@pointer)(0xffffffff_u)):lower():find('ffffffff', 1, true))
+  assert(string.format('%p', (@pointer)(0xffffffff_usize)):lower():find('ffffffff', 1, true))
   assert(string.format('%s', 'asd') == 'asd')
   assert(string.format('%s', string.rep('xuxu', 500)) == string.rep('xuxu', 500))
   assert(string.format('a number here: %d !', 1337) == 'a number here: 1337 !')
