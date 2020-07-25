@@ -891,7 +891,7 @@ function ArrayType:_init(subtype, length)
   Type._init(self, 'array', size)
   self.subtype = subtype
   self.length = length
-  self.align = subtype.align or subtype.size
+  self.align = subtype.align or math.min(subtype.size, cpusize)
 end
 
 function ArrayType:is_equal(type)
@@ -1117,11 +1117,11 @@ local function compute_record_size(fields, pack)
   for i=1,#fields do
     local ftype = fields[i].type
     local fsize = ftype.size
-    local mfsize = ftype.align or fsize
-    align = math.max(align, mfsize)
+    local falign = ftype.align or math.min(fsize, cpusize)
+    align = math.max(align, falign)
     pad = 0
-    if not pack and size % mfsize > 0 then
-      pad = size % mfsize
+    if not pack and size % falign > 0 then
+      pad = size % falign
     end
     size = size + pad + fsize
   end

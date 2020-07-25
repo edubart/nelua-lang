@@ -69,7 +69,7 @@ function stringview.byte(self: stringview, i: #[optional_concept(isize)]#): byte
   ## end
   if unlikely(self.size == 0) then return 0 end
   if unlikely(i < 0) then
-    i = self.size + i + 1
+    i = (@isize)(self.size) + i + 1
   end
   --TODO: return nil instead on failure
   check(i >= 1 and i <= self.size, 'stringview.byte: index out of range')
@@ -88,7 +88,7 @@ function stringview.find(self: stringview,
     if pattern.size == 0 then return 1, 0 end
     return 0, 0
   end
-  if unlikely(init < 0) then init = self.size + init + 1 end
+  if unlikely(init < 0) then init = (@isize)(self.size) + init + 1 end
   if unlikely(init > self.size) then return 0, 0 end
   if unlikely(init <= 0) then init = 1 end
   local found: pointer = memory.find(&self.data[init-1], self.size-init+1, pattern.data, pattern.size)
