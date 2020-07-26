@@ -404,37 +404,49 @@ function builtins.nelua_lt_(context, ltype, rtype)
   end
 end
 
-function builtins.nelua_eq_(context, type)
-  assert(type.is_record)
-  local name = string.format('nelua_eq_%s', type.codename)
-  if context.usedbuiltins[name] then return name end
-  local ctype = context:ctype(type)
-  local defemitter = CEmitter(context)
-  defemitter:add_ln('{')
-  defemitter:inc_indent()
-  defemitter:add_indent('return ')
-  for i,field in ipairs(type.fields) do
-    if i > 1 then
-      defemitter:add(' && ')
+function builtins.nelua_eq_(context, ltype, rtype)
+  if not rtype then
+    local type = ltype
+    assert(type.is_record)
+    local name = string.format('nelua_eq_%s', type.codename)
+    if context.usedbuiltins[name] then return name end
+    local ctype = context:ctype(type)
+    local defemitter = CEmitter(context)
+    defemitter:add_ln('{')
+    defemitter:inc_indent()
+    defemitter:add_indent('return ')
+    for i,field in ipairs(type.fields) do
+      if i > 1 then
+        defemitter:add(' && ')
+      end
+      if field.type.is_record then
+        local op = context:ensure_runtime_builtin('nelua_eq_', field.type)
+        defemitter:add(op, '(a.', field.name, ', b.', field.name, ')')
+      elseif field.type.is_array then
+        context:add_include('<string.h>')
+        defemitter:add('memcmp(a.', field.name, ', ', 'b.', field.name, ', sizeof(', type, ')) == 0')
+      else
+        defemitter:add('a.', field.name, ' == ', 'b.', field.name)
+      end
     end
-    if field.type.is_record then
-      local op = context:ensure_runtime_builtin('nelua_eq_', field.type)
-      defemitter:add(op, '(a.', field.name, ', b.', field.name, ')')
-    elseif field.type.is_array then
-      context:add_include('<string.h>')
-      defemitter:add('memcmp(a.', field.name, ', ', 'b.', field.name, ', sizeof(', type, ')) == 0')
-    else
-      defemitter:add('a.', field.name, ' == ', 'b.', field.name)
-    end
+    defemitter:add_ln(';')
+    defemitter:dec_indent()
+    defemitter:add_ln('}')
+    define_inline_builtin(context, name,
+      'bool',
+      string.format('(%s a, %s b)', ctype, ctype),
+      defemitter:generate())
+    return name
+  else
+    assert(ltype.is_integral and ltype.is_signed and rtype.is_unsigned)
+    local name = string.format('nelua_eq_i%du%d', ltype.bitsize, rtype.bitsize)
+    if context.usedbuiltins[name] then return name end
+    define_inline_builtin(context, name,
+      'bool',
+      string.format('(int%d_t a, uint%d_t b)', ltype.bitsize, rtype.bitsize),
+      string.format("{ return a == b && a >= 0; }", ltype.bitsize))
+    return name
   end
-  defemitter:add_ln(';')
-  defemitter:dec_indent()
-  defemitter:add_ln('}')
-  define_inline_builtin(context, name,
-    'bool',
-    string.format('(%s a, %s b)', ctype, ctype),
-    defemitter:generate())
-  return name
 end
 
 
@@ -610,6 +622,7 @@ end
 function operators.lt(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
   if ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
+    -- comparision between unsigned and signed
     local op = emitter.context:ensure_runtime_builtin('nelua_lt_', ltype, rtype)
     emitter:add(op, '(', lname, ', ', rname, ')')
   else
@@ -620,6 +633,7 @@ end
 function operators.gt(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
   if ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
+    -- comparision between unsigned and signed
     local op = emitter.context:ensure_runtime_builtin('nelua_lt_', rtype, ltype)
     emitter:add(op, '(', rname, ', ', lname, ')')
   else
@@ -630,6 +644,7 @@ end
 function operators.le(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
   if ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
+    -- comparision between unsigned and signed
     local op = emitter.context:ensure_runtime_builtin('nelua_lt_', rtype, ltype)
     emitter:add('!', op, '(', rname, ', ', lname, ')')
   else
@@ -640,6 +655,7 @@ end
 function operators.ge(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
   if ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
+    -- comparision between unsigned and signed
     local op = emitter.context:ensure_runtime_builtin('nelua_lt_', ltype, rtype)
     emitter:add('!', op, '(', lname, ', ', rname, ')')
   else
@@ -661,6 +677,15 @@ function operators.eq(_, emitter, lnode, rnode, lname, rname)
     assert(ltype == rtype)
     emitter.context:add_include('<string.h>')
     emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) == 0')
+  elseif ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
+    -- comparision between unsigned and signed
+    if not ltype.is_unsigned then
+      local op = emitter.context:ensure_runtime_builtin('nelua_eq_', ltype, rtype)
+      emitter:add(op, '(', lname, ', ', rname, ')')
+    else
+      local op = emitter.context:ensure_runtime_builtin('nelua_eq_', rtype, ltype)
+      emitter:add(op, '(', rname, ', ', lname, ')')
+    end
   else
     emitter:add(lname, ' == ')
     if ltype ~= rtype then
@@ -684,6 +709,15 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
     assert(ltype == rtype)
     emitter.context:add_include('<string.h>')
     emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) != 0')
+  elseif ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
+    -- comparision between unsigned and signed
+    if not ltype.is_unsigned then
+      local op = emitter.context:ensure_runtime_builtin('nelua_eq_', ltype, rtype)
+      emitter:add('!', op, '(', lname, ', ', rname, ')')
+    else
+      local op = emitter.context:ensure_runtime_builtin('nelua_eq_', rtype, ltype)
+      emitter:add('!', op, '(', rname, ', ', lname, ')')
+    end
   else
     emitter:add(lname, ' != ')
     if ltype ~= rtype then

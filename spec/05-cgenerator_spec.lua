@@ -938,6 +938,24 @@ it("array comparisons", function()
 ]])
 end)
 
+it("signed and unsigned comparisons", function()
+  assert.run_c([[
+    local a: int32 = -1
+    local b: uint32 = 0xffffffff
+    assert(not (@uint32)(a) ~= b)
+    assert((@uint32)(a) == b)
+    assert((@uint32)(a) <= b)
+    assert((@uint32)(a) >= b)
+    assert(not ((@uint32)(a) < b))
+    assert(not (b > (@uint32)(a)))
+    assert(not (a == b))
+    assert(a ~= b)
+    assert(a <= b)
+    assert(b >= a)
+    assert(a < b)
+    assert(b > a)
+]])
+end)
 it("record comparisons", function()
   assert.run_c([[
     local R = @record{x: integer, y: integer}

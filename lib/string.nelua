@@ -138,10 +138,10 @@ function string.sub(self: stringview, i: isize, j: #[optional_concept(isize)]#):
   if unlikely(i < 0) then i = (@isize)(self.size) + i + 1 end
   if unlikely(i <= 0) then i = 1 end
   if unlikely(j < 0) then j = (@isize)(self.size) + j + 1 end
-  if unlikely(j > self.size) then j = self.size end
+  if unlikely(j > self.size) then j = (@isize)(self.size) end
   if unlikely(i == 1 and j == self.size) then return self end
   if unlikely(i > j) then return (@string){} end
-  local size: usize = j + 1 - i
+  local size: usize = (@usize)(j + 1 - i)
   if unlikely(size == 0) then return (@string){} end
   local s: string = string._create(size)
   memory.copy(&s.data[0], &self.data[i-1], size)
@@ -153,7 +153,7 @@ function string.rep(self: stringview, n: isize, sep: #[optional_concept(stringvi
   if unlikely(n == 1) then return self end
   ## if sep.type.is_niltype then
   if unlikely(self.size == 0) then return (@string){} end
-  local s: string = string._create(n * self.size)
+  local s: string = string._create((@usize)(n) * self.size)
   for i:isize=0,<n do
     memory.copy(&s.data[i*self.size], &self.data[0], self.size)
   end
@@ -161,7 +161,7 @@ function string.rep(self: stringview, n: isize, sep: #[optional_concept(stringvi
   local sep: stringview = sep
   local partsize: usize = self.size + sep.size
   if unlikely(partsize <= 0) then return (@string){} end
-  local s: string = string._create(n * partsize - sep.size)
+  local s: string = string._create((@usize)(n) * partsize - sep.size)
   for i:isize=0,<n do
     memory.copy(&s.data[i*partsize], &self.data[0], self.size)
     if i ~= n-1 then
@@ -221,15 +221,15 @@ global function tostring(x: auto): string
     cinclude '<inttypes.h>'
     cemit('size = snprintf(NULL, 0, '..tyformat..', x);')
     ]]
-    if unlikely(size == 0) then return (@string){} end
-    local s: string = string._create(size)
+    if unlikely(size <= 0) then return (@string){} end
+    local s: string = string._create((@usize)(size))
     local dest: cstring = (@cstring)(&s.data[0])
     local n: csize = (@csize)(size+1)
     ## cemit('snprintf(dest, n, '..tyformat..', x);')
     ## if x.type.is_float then
       -- add a least one decimal if needed
       local onlydigits: boolean = true
-      for i=0,<s.size do
+      for i:usize=0,<s.size do
         if not (isdigit(s.data[i]) or s.data[i] == #[string.byte'-']#) then
           onlydigits = false
           break

@@ -222,7 +222,7 @@ function filestream:write(s: stringview): (boolean, stringview, integer)
   --TODO: return file itself
   local fp: FILEptr = self:_get_fp()
   if not fp then error('filestream.write: attempt to use a closed file') end
-  local len: csize = #s
+  local len: csize = s.size
   if fwrite(s.data, 1, len, fp) == len then
     return true, '', 0
   end
