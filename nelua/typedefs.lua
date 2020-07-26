@@ -140,6 +140,13 @@ typedefs.promote_signed_types = {
   primtypes.int64
 }
 
+typedefs.promote_unsigned_types = {
+  primtypes.uint8,
+  primtypes.uint16,
+  primtypes.uint32,
+  primtypes.uint64
+}
+
 typedefs.call_pragmas = {
   cinclude = shaper.shape{n=shaper.number, shaper.string},
   cemit = shaper.shape{n=shaper.number, shaper.string + shaper.func, shaper.string:is_optional()},

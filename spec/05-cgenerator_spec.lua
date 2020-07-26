@@ -294,6 +294,14 @@ it("operation on comptime variables", function()
     local c <const> = (@int32)(a * b)
   ]], "static int32_t c = 2;")
   assert.generate_c([[
+    local a <comptime> = 0xffffffffffffffff_u
+    local c <const> = a + a
+  ]], "static uint64_t c = 18446744073709551614U;")
+  assert.generate_c([[
+    local a <comptime> = 0x7fffffffffffffff
+    local c <const> = a + a
+  ]], "static int64_t c = -2;")
+  assert.generate_c([[
     local huge1: float64 = #[math.huge]#
     local huge2: float64 = #[-math.huge]#
     local nan: float64 = #[0.0/0.0]#

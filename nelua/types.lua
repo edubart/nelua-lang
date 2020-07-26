@@ -601,18 +601,26 @@ function IntegralType:promote_type_for_value(value)
       return self
     end
 
-    -- try to use signed version until fit the size
-    local signedtypes = typedefs.promote_signed_types
-    for i=1,#signedtypes do
-      local dtype = signedtypes[i]
+    -- try to use a type of same signess until fit the size
+    local dtypes
+    local fallbacktype
+    if self.is_unsigned and value >= 0 then
+      dtypes = typedefs.promote_unsigned_types
+      fallbacktype =  primtypes.uint64
+    else
+      dtypes = typedefs.promote_signed_types
+      fallbacktype =  primtypes.int64
+    end
+
+    for i=1,#dtypes do
+      local dtype = dtypes[i]
       if dtype:is_inrange(value) and dtype.size >= self.size then
         -- both value and prev type fits
         return dtype
       end
     end
 
-    -- can only be int64 now
-    return primtypes.int64
+    return fallbacktype
   else
     return primtypes.number
   end
