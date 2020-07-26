@@ -2,6 +2,7 @@ local cdefs = require 'nelua.cdefs'
 local CEmitter = require 'nelua.cemitter'
 local primtypes = require 'nelua.typedefs'.primtypes
 local config = require 'nelua.configer'.get()
+local bn = require 'nelua.utils.bn'
 
 local cbuiltins = {}
 
@@ -350,16 +351,35 @@ function builtins.nelua_narrow_cast_(context, dtype, stype)
   if context.usedbuiltins[name] then return name end
   context:ensure_runtime_builtin('nelua_unlikely')
   context:ensure_runtime_builtin('nelua_panic_cstring')
+  local cond
+  assert(dtype.is_integral)
+  if stype.is_float then -- float -> integral
+    cond = string.format('((%s)(x)) != x', dctype)
+  elseif stype.is_signed and dtype.is_unsigned then -- signed -> unsigned
+    cond = 'x < 0'
+    if stype.is_float or stype.max > dtype.max then
+      cond = cond .. ' || x > 0x' .. bn.tohex(dtype.max)
+    end
+  elseif stype.is_unsigned and dtype.is_signed then -- unsigned -> signed
+    cond = 'x > 0x' .. bn.tohex(dtype.max) .. 'U'
+  else -- signed -> signed / unsigned -> unsigned
+    cond = 'x > 0x' .. bn.tohex(dtype.max) .. (stype.is_unsigned and 'U' or '')
+    if stype.is_signed then -- signed -> signed
+      cond = cond .. ' || x < ' .. bn.todec(dtype.min)
+    end
+  end
+
+  local body = string.format([[{
+  if(nelua_unlikely(%s)) {
+    nelua_panic_cstring("narrow casting from %s to %s failed");
+  }
+  return x;
+}]], cond, stype.name, dtype.name)
+
   define_inline_builtin(context, name,
     dctype,
     string.format('(%s x)', sctype),
-    string.format([[{
-  %s r = x;
-  if(nelua_unlikely(r != x)) {
-    nelua_panic_cstring("narrow casting from %s to %s failed");
-  }
-  return r;
-}]], dctype, stype.name, dtype.name))
+    body)
   return name
 end
 

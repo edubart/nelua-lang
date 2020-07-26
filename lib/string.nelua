@@ -139,9 +139,9 @@ function string.sub(self: stringview, i: isize, j: #[optional_concept(isize)]#):
   if unlikely(i <= 0) then i = 1 end
   if unlikely(j < 0) then j = (@isize)(self.size) + j + 1 end
   if unlikely(j > self.size) then j = self.size end
-  if unlikely(i == 1 and j == (@isize)(self.size)) then return self end
+  if unlikely(i == 1 and j == self.size) then return self end
   if unlikely(i > j) then return (@string){} end
-  local size: usize = (@usize)(j - i + 1)
+  local size: usize = j + 1 - i
   if unlikely(size == 0) then return (@string){} end
   local s: string = string._create(size)
   memory.copy(&s.data[0], &self.data[i-1], size)

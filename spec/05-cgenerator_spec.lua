@@ -1803,6 +1803,43 @@ it("automatic casting", function()
   ]])
 end)
 
+it("narrow casting", function()
+  assert.run_c([[
+    do
+      local a: float64 = -15
+      local b: int64 = a
+    end
+    do
+      local a: int64 = 0xffff
+      local b: int32 = a
+    end
+    do
+      local a: uint32 = 0xffff
+      local b: int32 = a
+    end
+    do
+      local a: int32 = 0xffff
+      local b: uint32 = a
+    end
+  ]])
+  assert.run_error_c([[
+    local a: float64 = 1.5
+    local b: int64 = a
+  ]], "narrow casting")
+  assert.run_error_c([[
+    local a: int64 = 0xffffffff
+    local b: int32 = a
+  ]], "narrow casting")
+  assert.run_error_c([[
+    local a: uint32 = 0xffffffff
+    local b: int32 = a
+  ]], "narrow casting")
+  assert.run_error_c([[
+    local a: int32 = -10
+    local b: uint32 = a
+  ]], "narrow casting")
+end)
+
 it("implicit casting for unbounded arrays", function()
   assert.run_c([[
     local i: integer = 1

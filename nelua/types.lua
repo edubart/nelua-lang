@@ -556,6 +556,8 @@ function IntegralType:_init(name, size, is_unsigned)
   self.min, self.max = get_integral_range(self.bitsize, is_unsigned)
   self.is_unsigned = is_unsigned
   self.is_signed = not is_unsigned
+  local isname = (is_unsigned and 'is_uint' or 'is_int')..self.bitsize
+  self[isname] = true
 end
 
 function IntegralType:is_convertible_from_type(type, explicit)
@@ -780,11 +782,7 @@ function FloatType:_init(name, size, maxdigits, fmtdigits)
   ArithmeticType._init(self, name, size)
   self.maxdigits = maxdigits
   self.fmtdigits = fmtdigits
-  if self.bitsize == 32 then
-    self.is_float32 = true
-  elseif self.bitsize == 64 then
-    self.is_float64 = true
-  end
+  self['is_float'..self.bitsize] = true
 end
 
 function FloatType:is_convertible_from_type(type, explicit)
