@@ -73,7 +73,7 @@ Then when you need create a bint, you can use one of the following functions:
 * @{bint.frombase} (convert from arbitrary bases, like hexadecimal)
 * @{bint.trunc} (convert from lua numbers, truncating the fractional part)
 * @{bint.new} (convert from anything, asserts on invalid integers)
-* @{bint.tobint} (convert form anything, returns nil on invalid integers)
+* @{bint.tobint} (convert from anything, returns nil on invalid integers)
 * @{bint.parse} (convert from anything, returns a lua number as fallback)
 * @{bint.zero}
 * @{bint.one}
@@ -107,8 +107,8 @@ however the user should take care in some situations:
 unless you know in advance that both values are of the same primitive type,
 otherwise it will always return false, use @{bint.eq} to be safe.
 * Don't pass fractional numbers to functions that an integer is expected
-* Don't mix operations between bint classes with different sizes as this is not supported.
-as this will throw assertions.
+* Don't mix operations between bint classes with different sizes as this is not supported, this
+will throw assertions.
 * Remember that casting back to lua integers or numbers precision can be lost.
 * For dividing while preserving integers use the @{bint.__idiv} (the '//' operator).
 * For doing power operation preserving integers use the @{bint.ipow} function.
@@ -118,11 +118,9 @@ as this will throw assertions.
 
 -- Returns number of bits of the internal lua integer type.
 local function luainteger_bitsize()
-  local n = -1
-  local i = 0
+  local n, i = -1, 0
   repeat
-    i = i + 1
-    n = n >> 1
+    n, i = n >> 16, i + 16
   until n==0
   return i
 end
@@ -134,11 +132,13 @@ local memo = {}
 -- @function newmodule
 -- @param bits Number of bits for the integer representation, must be multiple of wordbits and
 -- at least 64.
--- @param[opt] wordbits Number of the bits for the internal word, defaults to 32.
+-- @param[opt] wordbits Number of the bits for the internal word,
+-- defaults to half of Lua's integer size.
 local function newmodule(bits, wordbits)
 
+local intbits = luainteger_bitsize()
 bits = bits or 256
-wordbits = wordbits or 32
+wordbits = wordbits or (intbits // 2)
 
 -- Memoize bint modules
 local memoindex = bits * 64 + wordbits
@@ -148,7 +148,7 @@ end
 
 -- Validate
 assert(bits % wordbits == 0, 'bitsize is not multiple of word bitsize')
-assert(2*wordbits <= luainteger_bitsize(), 'word bitsize must be half of the lua integer bitsize')
+assert(2*wordbits <= intbits, 'word bitsize must be half of the lua integer bitsize')
 assert(bits >= 64, 'bitsize must be >= 64')
 
 -- Create bint class
@@ -420,7 +420,8 @@ function bint.tobase(x, base, unsigned)
   if unsigned == nil then
     unsigned = base ~= 10
   end
-  if (base == 10 and not unsigned) or (base == 16 and unsigned) then
+  local isxneg = x:isneg()
+  if (base == 10 and not unsigned) or (base == 16 and unsigned and not isxneg) then
     if x <= BINT_MATHMAXINTEGER and x >= BINT_MATHMININTEGER then
       -- integer is small, use tostring or string.format (faster)
       local n = x:tointeger()
@@ -432,7 +433,7 @@ function bint.tobase(x, base, unsigned)
     end
   end
   local ss = {}
-  local neg = not unsigned and x:isneg()
+  local neg = not unsigned and isxneg
   if neg then
     x = x:abs()
   else
@@ -1113,7 +1114,7 @@ function bint.udivmod(x, y)
     end
   end
   if nume:ult(deno) then
-    -- denominator is greater than denominator
+    -- denominator is greater than numerator
     return bint.zero(), nume
   end
   -- align leftmost digits in numerator and denominator

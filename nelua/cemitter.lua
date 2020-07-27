@@ -187,8 +187,12 @@ function CEmitter:add_numeric_literal(valattr, valtype)
   valtype = valtype or valattr.type
   local val, base = valattr.value, valattr.base
 
-  if bn.isneg(val) and valtype.is_unsigned then
-    val = valtype:normalize_value(val)
+  if valtype.is_integral then
+    if bn.isneg(val) and valtype.is_unsigned then
+      val = valtype:normalize_value(val)
+    elseif not valtype:is_inrange(val) then
+      val = valtype:normalize_value(val)
+    end
   end
 
   local minusone = false
@@ -227,10 +231,10 @@ function CEmitter:add_numeric_literal(valattr, valtype)
       val = val + 1
     end
 
-    if base == 'hex' or base == 'bin' then
-      self:add('0x', val:tohex())
-    else
+    if not base or base == 'dec' or val:isneg() then
       self:add(bn.todec(val))
+    else
+      self:add('0x', bn.tohex(val))
     end
   end
 

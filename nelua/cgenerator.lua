@@ -497,10 +497,10 @@ function visitors.IdDecl(context, node, emitter)
   end
   if type.is_type then return end
   if attr.cexport then emitter:add('extern ') end
+  if attr.register then emitter:add('register ') end
   --if attr.const then emitter:add('const ') end
   if attr.volatile then emitter:add('volatile ') end
   if attr.restrict then emitter:add('restrict ') end
-  if attr.register then emitter:add('register ') end
   if attr.static then emitter:add('static ') end
   if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
   emitter:add(type, ' ', context:declname(attr))
@@ -996,7 +996,12 @@ function visitors.ForNum(context, node, emitter)
     end
     emitter:add('; ')
     if compop then
-      emitter:add(itforname, ' ', ccompop, ' ', cmpval)
+      emitter:add(itforname, ' ', ccompop, ' ')
+      if traits.is_string(cmpval) then
+        emitter:add(cmpval)
+      else
+        emitter:add_val2type(ittype, cmpval)
+      end
     else
       -- step is an expression, must detect the compare operation at runtime
       assert(not fixedstep)
@@ -1296,7 +1301,6 @@ local function emit_features_setup(context)
   local emitter = CEmitter(context)
   do -- warnings
     emitter:add_ln('#ifdef __GNUC__')
-
       -- throw error on implict declarations
       emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
       emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-int"')
@@ -1304,10 +1308,11 @@ local function emit_features_setup(context)
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
       -- C zero initialization for anything
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-braces"')
+      emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-field-initializers"')
       -- usage of no_sanitize_memory/no_sanitize_address cause this warning
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wattributes"')
-
       -- the code generator may generate unused variables, parameters, functions
+      emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-parameter"')
       emitter:add_ln('#if defined(__clang__)')
         emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused"')
       emitter:add_ln('#else')
@@ -1318,7 +1323,8 @@ local function emit_features_setup(context)
         -- for ignoring const* on pointers
         emitter:add_ln('#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
       emitter:add_ln('#endif')
-
+      -- the code generator may generate always true/false expressions for integers
+      emitter:add_ln('#pragma GCC diagnostic ignored "-Wtype-limits"')
     emitter:add_ln('#endif')
   end
   do -- static assert macro

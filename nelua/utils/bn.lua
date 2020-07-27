@@ -88,13 +88,19 @@ function bn.from(base, int, frac, exp)
 end
 
 -- Convert to hexadecimal base (integers only)
-function bn.tohex(v)
-  return bn.tobase(v, 16, false)
+function bn.tohex(v, bits)
+  if bits then
+    v = v:bwrap(bits)
+  end
+  return bn.tobase(v, 16, true)
 end
 
 -- Convert to binary base (integers only)
-function bn.tobin(v)
-  return bn.tobase(v, 2, false)
+function bn.tobin(v, bits)
+  if bits then
+    v = v:bwrap(bits)
+  end
+  return bn.tobase(v, 2, true)
 end
 
 -- Convert to decimal base (integers only)

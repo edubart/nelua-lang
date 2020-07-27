@@ -1278,7 +1278,8 @@ it("arrays", function()
         "world",
       }
       assert(words[0] == "hello")
-      assert(words[1] == "world")
+      local i: usize = 1
+      assert(words[i] == "world")
       assert(#words == 2)
     end
   ]])

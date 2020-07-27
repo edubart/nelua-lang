@@ -140,6 +140,7 @@ local ignored_stringfy_keys = {
   node = true,
   scope = true,
   done = true,
+  untyped = true,
   checked = true,
 }
 local function stringfy_val2str(val)

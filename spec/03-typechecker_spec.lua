@@ -332,8 +332,8 @@ it("binary operator div", function()
   assert.analyze_ast("local a = 1.0 / 0")
   assert.analyze_ast("local a = 1 / 0.0")
   assert.ast_type_equals(
-    "local a, b = 1, 2; a = b / 1",
-    "local a: number, b: integer = 1, 2; a = b / 1")
+    "local a, b = 1.0, 2; a = b / 1",
+    "local a: number, b: integer = 1.0, 2; a = b / 1")
 end)
 
 it("binary operator mod", function()

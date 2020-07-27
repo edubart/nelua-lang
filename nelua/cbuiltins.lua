@@ -127,11 +127,15 @@ function builtins.nelua_assert_bounds_(context, indextype)
   local indexctype = context:ctype(indextype)
   context:ensure_runtime_builtin('nelua_panic_cstring')
   context:ensure_runtime_builtin('nelua_unlikely')
+  local cond = '(uintptr_t)index >= len'
+  if not indextype.is_unsigned then
+    cond = cond .. ' || index < 0'
+  end
   define_inline_builtin(context, name,
     indexctype,
     string.format('(%s index, uintptr_t len)', indexctype),
     [[{
-  if(nelua_unlikely(index < 0 || (uintptr_t)index >= len)) {
+  if(nelua_unlikely(]]..cond..[[)) {
     nelua_panic_cstring("array index: position out of bounds");
   }
   return index;
@@ -440,11 +444,13 @@ function builtins.nelua_eq_(context, ltype, rtype)
   else
     assert(ltype.is_integral and ltype.is_signed and rtype.is_unsigned)
     local name = string.format('nelua_eq_i%du%d', ltype.bitsize, rtype.bitsize)
+    local maxbitsize = math.max(ltype.bitsize, rtype.bitsize)
     if context.usedbuiltins[name] then return name end
     define_inline_builtin(context, name,
       'bool',
       string.format('(int%d_t a, uint%d_t b)', ltype.bitsize, rtype.bitsize),
-      string.format("{ return a == b && a >= 0; }", ltype.bitsize))
+      string.format("{ return (uint%d_t)a == (uint%d_t)b && a >= 0; }",
+        maxbitsize, maxbitsize, ltype.bitsize))
     return name
   end
 end

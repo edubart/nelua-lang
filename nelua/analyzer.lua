@@ -22,15 +22,26 @@ function visitors.Number(context, node)
   local base, int, frac, exp, literal = node[1], node[2], node[3], node[4], node[5]
   local value = bn.from(base, int, frac, exp)
   if not literal then
-    attr.untyped = true
-    if not (frac or exp) then
-      if base ~= 'dec' or primtypes.integer:is_inrange(value) then
-        attr.type = primtypes.integer
+    local desiredtype = node.desiredtype
+    -- if the parent node needs an unsigned or float type, we want to use it
+    if desiredtype and
+       (desiredtype.is_unsigned or desiredtype.is_float) and
+       desiredtype:is_inrange(value) then
+      attr.type = desiredtype
+    else
+      attr.untyped = true
+      if not (frac or exp) then -- no exponents or fractional part
+        if base ~= 'dec' then
+          -- the value may still be out range here, but will be wrapped later
+          attr.type = primtypes.integer
+        elseif primtypes.integer:is_inrange(value) then
+          attr.type = primtypes.integer
+        else
+          attr.type = primtypes.number
+        end
       else
         attr.type = primtypes.number
       end
-    else
-      attr.type = primtypes.number
     end
   else
     local type = typedefs.number_literal_types[literal]

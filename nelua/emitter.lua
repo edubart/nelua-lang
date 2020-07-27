@@ -116,7 +116,7 @@ function Emitter:add_composed_number(base, int, frac, exp, value)
       self:add('e', exp)
     end
   elseif base == 'hex' or base == 'bin' then
-    if bn.isintegral(value) then
+    if bn.isintegral(value) and not value.isneg(value) then
       self:add('0x', bn.tohex(value))
     else
       self:add(bn.todecsci(value))
