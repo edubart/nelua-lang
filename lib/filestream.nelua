@@ -148,13 +148,13 @@ local function readline(ss: stringbuffer*, fp: FILEptr, chop: boolean): boolean
       if c == EOF or c == NL then -- end of line
         break
       end
-      buff[nr] = c
+      buff[nr] = (@byte)(c)
       nr = nr + 1
     end
     ss:commit(nr)
   until c == EOF or c == NL -- until end of line
   if not chop and c == NL then -- want a newline and have one?
-    ss:addbyte(c) -- add ending newline to result
+    ss:addbyte((@byte)(c)) -- add ending newline to result
   end
   -- return ok if read something (either a newline or something else)
   return (c == NL or ss.size > 0)

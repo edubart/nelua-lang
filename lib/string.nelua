@@ -366,7 +366,7 @@ function string.format(fmt: stringview, arg1: auto): string
         ## end if arg1.type.is_stringy then
           if c == #[string.byte's']# then
             local s: stringview = arg1
-            maxitem = #s + 1
+            maxitem = s.size + 1
             buff = (@cstring)(b:prepare(maxitem))
             nb = snprintf_1cs(buff, maxitem, &form[0], arg1)
             goto next
@@ -374,8 +374,9 @@ function string.format(fmt: stringview, arg1: auto): string
         ## end
         error('string.format: invalid conversion for format argument')
 ::next::
-        assert(nb < maxitem)
-        b:commit(nb)
+        assert(nb >= 0 and nb < maxitem,
+          'string.format: unexpect number of bytes written in sprintf')
+        b:commit((@usize)(nb))
       end
     end
   end

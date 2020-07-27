@@ -1835,18 +1835,32 @@ it("narrow casting", function()
     do
       local a: float64 = -15
       local b: int64 = a
+      assert(b == -15)
     end
     do
       local a: int64 = 0xffff
       local b: int32 = a
+      assert(b == 0xffff)
     end
     do
       local a: uint32 = 0xffff
       local b: int32 = a
+      assert(b == 0xffff)
     end
     do
       local a: int32 = 0xffff
       local b: uint32 = a
+      assert(b == 0xffff)
+    end
+    do
+      local a: int64 = 0xffff
+      local b: uint32 = a
+      assert(b == 0xffff)
+    end
+    do
+      local a: number = 3.0
+      local b: uint32 = a
+      assert(b == 3)
     end
   ]])
   assert.run_error_c([[

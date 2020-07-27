@@ -238,7 +238,7 @@ function math.ult(m: is_arithmetic, n: is_arithmetic): boolean <inline>
     if likely(mi == m and ni == n) then
       return (@uinteger)(mi) < (@uinteger)(ni)
     else
-      panic('math.ult: m or n has no integer representation')
+      error('math.ult: m or n has no integer representation')
     end
   ## end
 end
