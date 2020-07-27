@@ -231,7 +231,7 @@ global function tostring(x: auto): string
       -- add a least one decimal if needed
       local onlydigits: boolean = true
       for i:usize=0,<s.size do
-        if not (isdigit(s.data[i]) or s.data[i] == #[string.byte'-']#) then
+        if not (isdigit(s.data[i]) or s.data[i] == '-'_byte) then
           onlydigits = false
           break
         end
@@ -270,7 +270,7 @@ local function scanformat(strfmt: byte[0]*, form: byte[MAX_FORMAT]*): usize
   end
   if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- skip width
   if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- (2 digits at most)
-  if strfmt[p] == #[string.byte'.']# then
+  if strfmt[p] == '.'_byte then
     p = p + 1
     if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- skip precision
     if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- (2 digits at most)
@@ -278,7 +278,7 @@ local function scanformat(strfmt: byte[0]*, form: byte[MAX_FORMAT]*): usize
   if isdigit(strfmt[p]) ~= 0 then
     error("string.format: invalid format (width or precision too long)")
   end
-  form[0] = #[string.byte'%']#
+  form[0] = '%'_byte
   memory.copy(&form[1], &strfmt[p], (p + 1) * #@byte)
   form[p + 2] = 0
   return p
@@ -294,7 +294,7 @@ end
 
 function string.format(fmt: stringview, arg1: auto): string
   -- TODO: properly handle multiple arguments
-  local L_ESC: byte <comptime> = #[string.byte'%']#
+  local L_ESC: byte <comptime> = '%'_byte
   local MAX_ITEM <comptime> = 120
   local pos: usize = 0
   local b: stringbuffer
@@ -321,18 +321,18 @@ function string.format(fmt: stringview, arg1: auto): string
         argi = argi + 1
         assert(argi == 1, 'string.format: format with multiple arguments not supported yet')
         ## if primtypes.cint:is_convertible_from(arg1.type) then
-          if c == #[string.byte'c']# then
+          if c == 'c'_byte then
             local n: cint = (@cint)(arg1)
             nb = snprintf_1ci(buff, maxitem, &form[0], n)
             goto next
           end
         ## end if primtypes.integer:is_convertible_from(arg1.type) then
-          if c == #[string.byte'd']# or
-             c == #[string.byte'i']# or
-             c == #[string.byte'o']# or
-             c == #[string.byte'u']# or
-             c == #[string.byte'x']# or
-             c == #[string.byte'X']# then
+          if c == 'd'_byte or
+             c == 'i'_byte or
+             c == 'o'_byte or
+             c == 'u'_byte or
+             c == 'x'_byte or
+             c == 'X'_byte then
             local lenmod: cstring <noinit>
             ## cemit('lenmod = PRIi' .. primtypes.integer.bitsize .. ';')
             addlenmod(&form, lenmod, strlen(lenmod) - 1)
@@ -341,19 +341,19 @@ function string.format(fmt: stringview, arg1: auto): string
             goto next
           end
         ## end if primtypes.number:is_convertible_from(arg1.type) then
-          if c == #[string.byte'a']# or
-             c == #[string.byte'A']# or
-             c == #[string.byte'f']# or
-             c == #[string.byte'e']# or
-             c == #[string.byte'E']# or
-             c == #[string.byte'g']# or
-             c == #[string.byte'G']# then
+          if c == 'a'_byte or
+             c == 'A'_byte or
+             c == 'f'_byte or
+             c == 'e'_byte or
+             c == 'E'_byte or
+             c == 'g'_byte or
+             c == 'G'_byte then
             local n: number = (@number)(arg1)
             nb = snprintf_1n(buff, maxitem, &form[0], n)
             goto next
           end
         ## end if primtypes.pointer:is_convertible_from(arg1.type) then
-          if c == #[string.byte'p']# then
+          if c == 'p'_byte then
             local p: pointer = (@pointer)(arg1)
             if p == nilptr then
               strcpy(buff, "(null)")
@@ -364,7 +364,7 @@ function string.format(fmt: stringview, arg1: auto): string
             goto next
           end
         ## end if arg1.type.is_stringy then
-          if c == #[string.byte's']# then
+          if c == 's'_byte then
             local s: stringview = arg1
             maxitem = s.size + 1
             buff = (@cstring)(b:prepare(maxitem))

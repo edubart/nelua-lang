@@ -46,7 +46,7 @@ function visitors.Number(context, node)
   else
     local type = typedefs.number_literal_types[literal]
     if not type then
-      node:raisef("literal suffix '%s' is undefined", literal)
+      node:raisef("literal suffix '%s' is undefined for numbers", literal)
     end
     if not type:is_inrange(value) then
       node:raisef("value `%s` for literal type `%s` is out of range, "..
@@ -69,12 +69,21 @@ function visitors.String(_, node)
   local attr = node.attr
   local value, literal = node[1], node[2]
   if literal then
-    node:raisef("custom string literals are not supported yet")
-  end
-  if node.desiredtype and node.desiredtype.is_cstring then
-    attr.type = primtypes.cstring
+    local type = typedefs.string_literals_types[literal]
+    if not type then
+      node:raisef("literal suffix '%s' is undefined for strings", literal)
+    end
+    if #value ~= 1 then
+      node:raisef("literal suffix '%s' expects a string of length 1")
+    end
+    attr.type = type
+    value = bn.new(string.byte(value))
   else
-    attr.type = primtypes.stringview
+    if node.desiredtype and node.desiredtype.is_cstring then
+      attr.type = primtypes.cstring
+    else
+      attr.type = primtypes.stringview
+    end
   end
   attr.value = value
   attr.comptime = true

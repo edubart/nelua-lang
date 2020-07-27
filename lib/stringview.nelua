@@ -108,10 +108,10 @@ local function str2intbase(s: stringview, base: uinteger): integer
   local SPACECHARS: cstring <const> = " \f\n\r\t\v"
   local pos: usize = strspn(s, SPACECHARS) -- skip initial spaces
   local neg: boolean = false
-  if s.data[pos] == #[string.byte'-']# then -- negative sign
+  if s.data[pos] == '-'_byte then -- negative sign
     pos = pos + 1
     neg = true
-  elseif s.data[pos] == #[string.byte'+']# then -- skip positive sign
+  elseif s.data[pos] == '+'_byte then -- skip positive sign
     pos = pos + 1
   end
   local n: uinteger = 0
@@ -119,9 +119,9 @@ local function str2intbase(s: stringview, base: uinteger): integer
     local digit: cint = s.data[pos]
     local x: cint
     if isdigit(digit) ~= 0 then -- is a digit [0-9]
-      x = digit - #[string.byte'0']#
+      x = digit - '0'_byte
     elseif isalnum(digit) ~= 0 then -- is a alphanumeric [a-zA-Z]
-      x = toupper(digit) - #[string.byte'A']# + 10
+      x = toupper(digit) - 'A'_byte + 10
     else -- else spaces or invalid character
       break
     end

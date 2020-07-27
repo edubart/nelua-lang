@@ -21,7 +21,7 @@ global function unlikely(x: boolean): boolean <cimport 'nelua_unlikely', nodecl>
 
 global function panic(msg: stringview) <noreturn>
   fwrite(msg.data, msg.size, 1, stderr)
-  fputc(#[string.byte'\n']#, stderr)
+  fputc('\n'_cchar, stderr)
   abort()
 end
 

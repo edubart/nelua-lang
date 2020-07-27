@@ -138,7 +138,7 @@ local READ_CHUNK_SIZE <comptime> = 1024
 
 local function readline(ss: stringbuffer*, fp: FILEptr, chop: boolean): boolean
   -- TODO: lock file on POSIX?
-  local NL: byte <comptime> = #[string.byte'\n']#
+  local NL: byte <comptime> = '\n'_byte
   local c: cint
   repeat
     local nr: uint32 = 0
@@ -189,15 +189,15 @@ function filestream:read(fmt: #[overload_concept{integer,stringview,niltype}]#):
     success = readchars(&ss, fp, fmt)
   ## elseif fmt.type.is_stringview then
     local c: byte = fmt.data[0]
-    if c == #[string.byte'*']# then -- skip optional '*' (for compatibility)
+    if c == '*'_byte then -- skip optional '*' (for compatibility)
       c = fmt.data[1]
     end
     -- TODO: handle 'n' to read number
-    if c == #[string.byte'l']# then -- line
+    if c == 'l'_byte then -- line
       success = readline(&ss, fp, true)
-    elseif c == #[string.byte'L']# then -- line with end-of-line
+    elseif c == 'L'_byte then -- line with end-of-line
       success = readline(&ss, fp, false)
-    elseif c == #[string.byte'a']# then -- entire file
+    elseif c == 'a'_byte then -- entire file
       success = readall(&ss, fp)
     else
       error('filestream.read: invalid format')

@@ -3,6 +3,7 @@ local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
 local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
+local bn = require 'nelua.utils.bn'
 local cdefs = require 'nelua.cdefs'
 local cbuiltins = require 'nelua.cbuiltins'
 local typedefs = require 'nelua.typedefs'
@@ -346,7 +347,16 @@ function visitors.Number(context, node, emitter)
 end
 
 function visitors.String(_, node, emitter)
-  emitter:add_string_literal(node.attr.value, node.attr.type.is_cstring)
+  local attr = node.attr
+  if attr.type.is_stringy then
+    emitter:add_string_literal(attr.value, attr.type.is_cstring)
+  else
+    if attr.type == primtypes.cchar then
+      emitter:add("'", string.char(bn.tointeger(attr.value)), "'")
+    else
+      emitter:add_numeric_literal(attr)
+    end
+  end
 end
 
 function visitors.Boolean(_, node, emitter)

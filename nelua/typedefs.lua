@@ -133,6 +133,15 @@ typedefs.number_literal_types = {
   _clongdouble = primtypes.clongdouble,
 }
 
+typedefs.string_literals_types = {
+  _b           = primtypes.byte,    _byte       = primtypes.byte,
+  _i8          = primtypes.int8,    _int8       = primtypes.int8,
+  _u8          = primtypes.int8,    _uint8      = primtypes.uint8,
+  _cchar       = primtypes.cchar,
+  _cuchar      = primtypes.cuchar,
+  _cschar      = primtypes.cschar,
+}
+
 typedefs.promote_signed_types = {
   primtypes.int8,
   primtypes.int16,
