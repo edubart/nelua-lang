@@ -141,7 +141,7 @@ function string.sub(self: stringview, i: isize, j: #[optional_concept(isize)]#):
   if unlikely(j > self.size) then j = (@isize)(self.size) end
   if unlikely(i == 1 and j == self.size) then return self end
   if unlikely(i > j) then return (@string){} end
-  local size: usize = (@usize)(j + 1 - i)
+  local size: usize = (@usize)(j - i + 1)
   if unlikely(size == 0) then return (@string){} end
   local s: string = string._create(size)
   memory.copy(&s.data[0], &self.data[i-1], size)
@@ -151,18 +151,19 @@ end
 function string.rep(self: stringview, n: isize, sep: #[optional_concept(stringview)]#): string
   if unlikely(n <= 0) then return (@string){} end
   if unlikely(n == 1) then return self end
+  local un: usize = (@usize)(n)
   ## if sep.type.is_niltype then
   if unlikely(self.size == 0) then return (@string){} end
-  local s: string = string._create((@usize)(n) * self.size)
-  for i:isize=0,<n do
+  local s: string = string._create(un * self.size)
+  for i:usize=0,<un do
     memory.copy(&s.data[i*self.size], &self.data[0], self.size)
   end
   ## else
   local sep: stringview = sep
   local partsize: usize = self.size + sep.size
   if unlikely(partsize <= 0) then return (@string){} end
-  local s: string = string._create((@usize)(n) * partsize - sep.size)
-  for i:isize=0,<n do
+  local s: string = string._create(un * partsize - sep.size)
+  for i:usize=0,<un do
     memory.copy(&s.data[i*partsize], &self.data[0], self.size)
     if i ~= n-1 then
       memory.copy(&s.data[i*partsize + self.size], &sep.data[0], sep.size)

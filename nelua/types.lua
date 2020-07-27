@@ -604,7 +604,7 @@ function IntegralType:promote_type_for_value(value)
     -- try to use a type of same signess until fit the size
     local dtypes
     local fallbacktype
-    if self.is_unsigned and value >= 0 then
+    if self.is_unsigned and not bn.isneg(value) then
       dtypes = typedefs.promote_unsigned_types
       fallbacktype =  primtypes.uint64
     else
@@ -630,19 +630,17 @@ function IntegralType:promote_type(type)
   if type == self or type.is_float then
     return type
   elseif not type.is_integral then
-    return
+    return nil
   end
   if self.is_unsigned == type.is_unsigned then
     -- promote to bigger of the same signess
     return type.size >= self.size and type or self
   else
-    -- promote to best signed type that fits both types
-    local signedsize = self.is_signed and self.bitsize or type.bitsize
-    local unsignedsize = self.is_unsigned and self.bitsize or type.bitsize
-    if signedsize < unsignedsize * 2 then
-      signedsize = math.min(unsignedsize * 2, 64)
-    end
-    return primtypes[string.format('int%d', signedsize)]
+    -- promote to signed version of largest type
+    local maxbitsize = math.max(self.bitsize, type.bitsize)
+    local rettype = primtypes[string.format('int%d', maxbitsize)]
+    assert(rettype)
+    return rettype
   end
 end
 

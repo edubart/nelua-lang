@@ -30,6 +30,7 @@ benchmark:
 
 coverage-clean:
 	@rm -f luacov.report.out luacov.stats.out
+	@rm -f *.gcov *.gcda
 
 coverage-genreport:
 	@luacov

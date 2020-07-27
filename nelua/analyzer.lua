@@ -2242,6 +2242,7 @@ function analyzer.analyze(ast, parser, context)
   if not context then
     context = AnalyzerContext(visitors, parser)
     context.rootscope.node = ast
+    analyzer.context = context
   end
   context.analyzing = true
 

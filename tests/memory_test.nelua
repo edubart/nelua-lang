@@ -121,6 +121,9 @@ do -- find
   local x: integer, y: integer = 1, 2
   assert(memory.find(p, #@vec2, &x, #@integer) == &p.x)
   assert(memory.find(p, #@vec2, &y, #@integer) == &p.y)
+  assert(memory.find(&x, #@integer, p, #@vec2) == nilptr)
+  assert(memory.find(p, #@vec2, p, #@vec2) == p)
+  assert(memory.find(p, #@vec2, nilptr, 0) == p)
   allocator.dealloc(p)
 end
 
