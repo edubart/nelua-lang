@@ -1285,6 +1285,7 @@ end)
 it("annotations", function()
   assert.analyze_ast("local r: record{x: integer} <aligned(8)>")
   assert.analyze_ast("local Record <aligned(8)> = @record{x: integer}")
+  assert.analyze_ast("local Record: type <aligned(8)> = @record{x: integer}")
   assert.analyze_error(
     "local function f() <cimport,nodecl> return 0 end",
     "body of an import function must be empty")

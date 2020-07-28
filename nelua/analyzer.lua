@@ -364,7 +364,7 @@ function visitors.Annotation(context, node, symbol)
     paramshape = true
   else
     symboltype = symbol.type
-    if not symboltype then
+    if not symboltype or (symboltype.is_type and not symbol.value) then
       if name == 'cimport' and context.state.anyphase then
         node:raisef('imported variables from C must have an explicit type')
       end
