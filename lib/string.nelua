@@ -17,10 +17,9 @@
 require 'memory'
 require 'stringview'
 require 'stringbuffer'
+require 'allocators.default'
 
--- Currently strings requires the garbage collector
-require 'allocators.gc'
-local allocator = @gc_allocator
+local allocator = @default_allocator
 
 -- C imports.
 local function strchr(s: cstring, c: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
@@ -39,7 +38,6 @@ local function snprintf_1cs(s: cstring, maxlen: csize, format: cstring, x: cstri
 global string <codename 'nlstring'> = @record{
   data: byte[0]*,
   size: usize
-  --refs: usize*,
 }
 
 -- This sets some values to be used internally at compile time
@@ -63,8 +61,8 @@ function string._create(size: usize): string
   return self
 end
 
--- Cleanup a string. Used internally.
-function string:_reset() <inline>
+-- Destroys a string freeing its resources.
+function string:destroy() <inline>
   allocator.dealloc(self.data)
   $self = {}
 end
@@ -87,24 +85,6 @@ function stringview.__tostring(s: stringview): string
   memory.copy(&ret.data[0], s.data, s.size)
   return ret
 end
-
---[[
-function string:__copy(o: string*) <inline>
-  self = o
-  if likely(self) then
-    self.refs = self.refs + 1
-  end
-end
-
-function string:__destroy() <inline>
-  if unlikely(self.size == 0) then return end
-  self.refs = self.refs - 1
-  if self.refs == 0 then
-    allocator.dealloc(self)
-    self = nilptr
-  end
-end
-]]
 
 local empty_cstring: cstring <const> = ''
 function string.__tocstring(s: string): cstring <inline,nosideeffect>

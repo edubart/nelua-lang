@@ -1,3 +1,5 @@
+require 'span'
+
 ## function implement_allocator_interface(allocator)
   local is_span = #[concept(function(x) return x.type.is_span end)]#
   local allocator = #[allocator]#
@@ -52,7 +54,7 @@
 
   function allocator.new(T: type, size: #[optional_concept(usize)]#)
     ## if not size.type.is_niltype then
-      local spn: span(T) = allocator.spanalloc0(T, (@usize)(size))
+      local spn: span(T) = allocator.spanalloc0(T, size)
       check(spn.size > 0_u, 'allocator.new: out of memory')
       return spn
     ## else

@@ -1,0 +1,7 @@
+## if not pragmas.nogc then
+require 'allocators.gc'
+global default_allocator = @gc_allocator
+## else
+require 'allocators.generic'
+global default_allocator = @generic_allocator
+## end

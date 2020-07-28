@@ -147,6 +147,7 @@ function preprocessor.preprocess(context, ast)
   local primtypes = typedefs.primtypes
   local ppenv = {
     context = context,
+    pragmas = context.pragmas,
     ppcontext = ppcontext,
     ppregistry = ppcontext.registry,
     ast = ast,

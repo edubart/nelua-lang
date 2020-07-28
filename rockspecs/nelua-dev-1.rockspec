@@ -96,6 +96,7 @@ build = {
       ['nelua'] = 'nelua.lua'
     },
     conf = {
+      ['lib/allocators/default.nelua']   = 'lib/allocators/default.nelua',
       ['lib/allocators/interface.nelua'] = 'lib/allocators/interface.nelua',
       ['lib/allocators/generic.nelua']   = 'lib/allocators/generic.nelua',
       ['lib/allocators/gc.nelua']        = 'lib/allocators/gc.nelua',

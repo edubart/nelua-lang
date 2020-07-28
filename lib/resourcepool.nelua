@@ -18,7 +18,6 @@
 -- with it because every new resource allocation may trigger a global reallocation
 -- in the pool and possibly invalidating all pointers.
 
-require 'span'
 require 'memory'
 require 'allocators.generic'
 
@@ -27,142 +26,147 @@ local SLOT_SHIFT <comptime> = 32
 local SLOT_MASK <comptime> = (1 << SLOT_SHIFT) - 1
 local INIT_SIZE <comptime> = 64
 
--- Auxiliary class to allocate slot ids.
-local SlotPool = @record {
-  size: uint32, -- size of the slot pool
-  queue_top: uint32, -- points to the next entry in the free queue
-  gen_ctrs: span(uint32), -- generation counters indexable by pool slot index
-  free_queue: span(uint32) -- list of free slot indexes
-}
+## local make_slotpool = generalize(function(allocator)
+  local allocator: type = #[allocator]#
 
--- Reserve space in the slot pool.
-function SlotPool:reserve(size: uint32)
-  -- return early if there is already enough space
-  if size <= self.size then return end
-  check(size > 0, 'size cannot be 0')
-  -- slot 0 is reserved for the 'invalid id', so bump the pool size by 1
-  self.gen_ctrs = generic_allocator.spanrealloc0(self.gen_ctrs, size+1)
-  check(#self.gen_ctrs > 0, 'out of memory')
-  -- can only reserve 'size' here
-  self.free_queue = generic_allocator.spanrealloc0(self.free_queue, size)
-  check(#self.free_queue > 0, 'out of memory')
-  -- never allocate the zero-th pool item since the invalid id is 0
-  for i:uint32=size,self.size+1,-1 do
-    self.free_queue[self.queue_top] = i
-    self.queue_top = self.queue_top + 1
-  end
-  self.size = size
-end
+  -- Auxiliary class to allocate slot ids.
+  local slotpool: type = @record {
+    size: uint32, -- size of the slot pool
+    queue_top: uint32, -- points to the next entry in the free queue
+    gen_ctrs: span(uint32), -- generation counters indexable by pool slot index
+    free_queue: span(uint32) -- list of free slot indexes
+  }
 
--- Clean the slot pool and reset its state.
-function SlotPool:reset()
-  generic_allocator.spandealloc(self.free_queue)
-  generic_allocator.spandealloc(self.gen_ctrs)
-  $self = {}
-end
-
--- Allocate a slot index in the slot pool, growing the pool as needed.
-function SlotPool:alloc_index(): uint32
-  if unlikely(self.queue_top == 0) then
-    -- free list is empty, allocate more space
-    local newsize: uint32
-    if self.size == 0 then
-      newsize = INIT_SIZE
-    else
-      check(self.size < 0x80000000, 'slot pool exhausted')
-      newsize = self.size * 2
+  -- Reserve space in the slot pool.
+  function slotpool:reserve(size: uint32)
+    -- return early if there is already enough space
+    if size <= self.size then return end
+    check(size > 0, 'size cannot be 0')
+    -- slot 0 is reserved for the 'invalid id', so bump the pool size by 1
+    self.gen_ctrs = allocator.spanrealloc0(self.gen_ctrs, size+1)
+    check(#self.gen_ctrs > 0, 'out of memory')
+    -- can only reserve 'size' here
+    self.free_queue = allocator.spanrealloc0(self.free_queue, size)
+    check(#self.free_queue > 0, 'out of memory')
+    -- never allocate the zero-th pool item since the invalid id is 0
+    for i:uint32=size,self.size+1,-1 do
+      self.free_queue[self.queue_top] = i
+      self.queue_top = self.queue_top + 1
     end
-    self:reserve(newsize)
+    self.size = size
   end
-  self.queue_top = self.queue_top - 1
-  local slot_index: uint32 = self.free_queue[self.queue_top]
-  check(slot_index > 0 and slot_index <= self.size, 'invalid slot index')
-  return slot_index
-end
 
--- Free an index from the slot pool to be reused, bumps the generation counter.
-function SlotPool:free_index(slot_index: uint32)
-  check(self.queue_top <= self.size, 'invalid slot pool')
-  check(slot_index > 0 and slot_index <= self.size, 'invalid slot index')
-  self.free_queue[self.queue_top] = slot_index
-  self.queue_top = self.queue_top + 1
-  check(self.gen_ctrs[slot_index] < SLOT_MASK, 'generation counter overflow')
-  self.gen_ctrs[slot_index] = self.gen_ctrs[slot_index] + 1 -- increment generation
-  check(self.queue_top <= self.size, 'slot queue overflow')
-end
+  -- Clean the slot pool and reset its state.
+  function slotpool:destroy()
+    allocator.spandealloc(self.free_queue)
+    allocator.spandealloc(self.gen_ctrs)
+    $self = {}
+  end
 
--- Retrieve the slot index from a slot id.
--- Invalid ids or from old generations is returned as 0.
-function SlotPool:get_slot_index(id: uint64): uint32
-  -- the slot index is the low bits of the id
-  local slot_index: uint32 = (@uint32)(id & SLOT_MASK)
-  -- check invalid slot index
-  if slot_index == 0 or slot_index > self.size then return 0 end
-  -- the generation id is the higher bits of the id
-  local slot_genid: uint32 = (@uint32)(id >> SLOT_SHIFT)
-  -- check for invalid ids from old generations
-  if slot_genid ~= self.gen_ctrs[slot_index] then return 0 end
-  return slot_index
-end
+  -- Allocate a slot index in the slot pool, growing the pool as needed.
+  function slotpool:alloc_index(): uint32
+    if unlikely(self.queue_top == 0) then
+      -- free list is empty, allocate more space
+      local newsize: uint32
+      if self.size == 0 then
+        newsize = INIT_SIZE
+      else
+        check(self.size < 0x80000000, 'slot pool exhausted')
+        newsize = self.size * 2
+      end
+      self:reserve(newsize)
+    end
+    self.queue_top = self.queue_top - 1
+    local slot_index: uint32 = self.free_queue[self.queue_top]
+    check(slot_index > 0 and slot_index <= self.size, 'invalid slot index')
+    return slot_index
+  end
 
--- Allocate a slot in the slot pool, growing the pool as needed.
--- Returning it's generational id.
-function SlotPool:alloc_slot(): (uint64, uint32)
-  local slot_index: uint32 = self:alloc_index()
-  local slot_genid: uint32 = self.gen_ctrs[slot_index]
-  local slot_id: uint64 = ((@uint64)(slot_genid) << SLOT_SHIFT) | (slot_index & SLOT_MASK)
-  return slot_id, slot_index
-end
+  -- Free an index from the slot pool to be reused, bumps the generation counter.
+  function slotpool:free_index(slot_index: uint32)
+    check(self.queue_top <= self.size, 'invalid slot pool')
+    check(slot_index > 0 and slot_index <= self.size, 'invalid slot index')
+    self.free_queue[self.queue_top] = slot_index
+    self.queue_top = self.queue_top + 1
+    check(self.gen_ctrs[slot_index] < SLOT_MASK, 'generation counter overflow')
+    self.gen_ctrs[slot_index] = self.gen_ctrs[slot_index] + 1 -- increment generation
+    check(self.queue_top <= self.size, 'slot queue overflow')
+  end
+
+  -- Retrieve the slot index from a slot id.
+  -- Invalid ids or from old generations is returned as 0.
+  function slotpool:get_slot_index(id: uint64): uint32
+    -- the slot index is the low bits of the id
+    local slot_index: uint32 = (@uint32)(id & SLOT_MASK)
+    -- check invalid slot index
+    if slot_index == 0 or slot_index > self.size then return 0 end
+    -- the generation id is the higher bits of the id
+    local slot_genid: uint32 = (@uint32)(id >> SLOT_SHIFT)
+    -- check for invalid ids from old generations
+    if slot_genid ~= self.gen_ctrs[slot_index] then return 0 end
+    return slot_index
+  end
+
+  -- Allocate a slot in the slot pool, growing the pool as needed.
+  -- Returning it's generational id.
+  function slotpool:alloc_slot(): (uint64, uint32)
+    local slot_index: uint32 = self:alloc_index()
+    local slot_genid: uint32 = self.gen_ctrs[slot_index]
+    local slot_id: uint64 = ((@uint64)(slot_genid) << SLOT_SHIFT) | (slot_index & SLOT_MASK)
+    return slot_id, slot_index
+  end
+
+  ## return slotpool
+## end)
 
 -- Macro to create a resource pool using the specified allocator.
-## local make_resourcepool = generalize(function(T, allocator)
+## local make_resourcepool = generalize(function(T, allocator, slot_allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
-  ## if allocator then
-  local allocator: type = #[allocator]#
-  ## else
-  require 'allocators.gc'
-  local allocator: type = @gc_allocator
+  ## if not allocator then
+  require 'allocators.default'
+  ## allocator = default_allocator
   ## end
 
-  local T = @#[T]#
+  local slotpool: type = #[make_slotpool(slot_allocator or allocator)]#
+  local allocator: type = #[allocator]#
+  local T: type = @#[T]#
 
   -- The resource pool class specialyzed for type T.
-  local ResourcePoolT <nickname #[string.format('resourcepool(%s)', T)]#> = @record {
-    slot_pool: SlotPool, -- pool of slots id
+  local resourcepoolT: type <nickname #[string.format('resourcepool(%s)', T)]#> = @record {
+    slot_pool: slotpool, -- pool of slots id
     items: span(T) -- span holding all resources
   }
 
   ##[[
-  ResourcePoolT.value.is_resourcepool = true
-  ResourcePoolT.value.subtype = T
+  resourcepoolT.value.is_resourcepool = true
+  resourcepoolT.value.subtype = T
   ]]
 
   -- Reserve the pool to contains at least `size` resources.
-  function ResourcePoolT:reserve(size: usize)
+  function resourcepoolT:reserve(size: usize)
     self.slot_pool:reserve(size)
     if self.items.size < self.slot_pool.gen_ctrs.size then
       -- slot pool has grown, allocate more space
       self.items = allocator.spanrealloc0(self.items, self.slot_pool.gen_ctrs.size)
-      check(#self.items > 0, 'resurcepool.reserve: out of memory')
+      check(#self.items > 0, 'resourcepool.reserve: out of memory')
     end
   end
 
   -- Resets the pool to zeroed state, freeing all resources.
-  -- This must be called manually to avoid memory leaks,
-  -- because while the resources may use a GC allocator the slot pool does not.
-  function ResourcePoolT:reset()
+  -- This must be called manually to avoid memory leaks when not using a GC allocator.
+  function resourcepoolT:destroy()
     -- destroy all items
     for i:usize=0,<self.items.size do
       self.items[i] = (@T)()
     end
     allocator.spandealloc(self.items)
-    self.slot_pool:reset()
+    self.slot_pool:destroy()
     $self = {}
   end
 
   -- Return a pointer to a resource associated with an id.
   -- In case the resource id is invalid then throws a runtime error.
-  function ResourcePoolT:at(id: uint64): T*
+  function resourcepoolT:at(id: uint64): T*
     local slot_index: uint32 = self.slot_pool:get_slot_index(id)
     check(slot_index ~= 0, 'resourcepool.at: invalid id')
     return &self.items[slot_index]
@@ -170,30 +174,30 @@ end
 
   -- Return a pointer to a resource associated with an id.
   -- In case the resource id is invalid then returns nilptr.
-  function ResourcePoolT:get(id: uint64): T*
+  function resourcepoolT:get(id: uint64): T*
     local slot_index: uint32 = self.slot_pool:get_slot_index(id)
     if unlikely(slot_index == 0) then return nilptr end
     return &self.items[slot_index]
   end
 
   -- Check if the pool contains an id.
-  function ResourcePoolT:has(id: uint64): boolean
+  function resourcepoolT:has(id: uint64): boolean
     return self.slot_pool:get_slot_index(id) ~= 0
   end
 
   -- Allocate a new resource in the pool returning its id fallowed by its pointer.
-  function ResourcePoolT:alloc(): (uint64, T*)
+  function resourcepoolT:alloc(): (uint64, T*)
     local slot_id: uint64, slot_index: uint32 = self.slot_pool:alloc_slot()
     if unlikely(self.items.size < self.slot_pool.gen_ctrs.size) then
       -- slot pool has grown, allocate more space
       self.items = allocator.spanrealloc0(self.items, self.slot_pool.gen_ctrs.size)
-      check(#self.items > 0, 'resurcepool.alloc: out of memory')
+      check(#self.items > 0, 'resourcepool.alloc: out of memory')
     end
     return slot_id, &self.items[slot_index]
   end
 
   -- Allocate a new resource in the pool returning its id, initializes the contents from `v`.
-  function ResourcePoolT:allocinit(v: T): uint64 <inline>
+  function resourcepoolT:allocinit(v: T): uint64 <inline>
     local id: uint64, res: T* = self:alloc()
     $res = memory.moveval(&v)
     return id
@@ -202,7 +206,7 @@ end
   -- Free a resource associated with an id from the pool.
   -- In case the resource id is 0 does nothing.
   -- In case the resource id is invalid then throws a runtime error.
-  function ResourcePoolT:free(id: uint64) <inline>
+  function resourcepoolT:free(id: uint64) <inline>
     if id == 0 then return end
     local slot_index: uint32 = self.slot_pool:get_slot_index(id)
     check(slot_index ~= 0, 'resourcepool.free: invalid slot index')
@@ -210,8 +214,8 @@ end
     self.items[slot_index] = (@T)() -- zero the resource
   end
 
-  ## return ResourcePoolT
+  ## return resourcepoolT
 ## end)
 
 -- The resource pool generic type.
-global resourcepool = #[make_resourcepool]#
+global resourcepool: type = #[make_resourcepool]#

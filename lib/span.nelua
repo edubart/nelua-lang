@@ -13,42 +13,42 @@
   staticassert(T.size > 0, "spans cannot be of '%s'", T)
   ]]
   local T = @#[T]#
-  local SpanT <nickname #[string.format('span(%s)', T)]#> = @record {
+  local spanT <nickname #[string.format('span(%s)', T)]#> = @record {
     data: T[0]*,
     size: usize
   }
 
   ##[[
-  SpanT.value.is_contiguous = true
-  SpanT.value.is_span = true
-  SpanT.value.subtype = T
+  spanT.value.is_contiguous = true
+  spanT.value.is_span = true
+  spanT.value.subtype = T
   ]]
 
   -- Returns reference to element at index `i`.
   -- If `i` is greater of equal to span size, then throws a runtime error.
-  function SpanT:__atindex(i: usize): T* <inline>
+  function spanT:__atindex(i: usize): T* <inline>
     check(i < self.size, 'span.__atindex: index out of range')
     return &self.data[i]
   end
 
   -- Returns the number of elements in the span.
-  function SpanT:__len(): isize <inline,nosideeffect>
+  function spanT:__len(): isize <inline,nosideeffect>
     return (@isize)(self.size)
   end
 
   -- Initializes span from pointers to other arrays.
-  function SpanT.__convert(values: #[concept(function(x)
+  function spanT.__convert(values: #[concept(function(x)
     if x.type.is_pointer and x.type.subtype and x.type.subtype:is_contiguous_of(T) then
       return true
     end
-  end)]#): SpanT <inline,nosideeffect>
-    local self: SpanT
+  end)]#): spanT <inline,nosideeffect>
+    local self: spanT
     self.data = &values[#[values.type.subtype.is_sequence and 1 or 0]#]
     self.size = (@usize)(#$values)
     return self
   end
 
-  ## return SpanT
+  ## return spanT
 ## end)
 
 global span = #[make_span]#

@@ -1,9 +1,10 @@
 -- This type is used to dynamically compose strings.
 -- Mostly it used by Nelua internals, but can be used as a standalone class too.
 
-require 'allocators.gc'
+require 'span'
+require 'allocators.default'
 
-local allocator = @gc_allocator
+local allocator = @default_allocator
 
 local INIT_CAPACITY <comptime> = 128
 
@@ -12,7 +13,7 @@ global stringbuffer = @record {
   data: span(byte)
 }
 
-function stringbuffer:reset()
+function stringbuffer:destroy()
   allocator.spandealloc(self.data)
   $self = {}
 end

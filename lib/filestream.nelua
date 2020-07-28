@@ -50,7 +50,7 @@ end
 local pool: resourcepool(FILEptr, generic_allocator)
 
 -- free the pool on exit
-local function free_pool() pool:reset() end
+local function free_pool() pool:destroy() end
 atexit(free_pool)
 
 function filestream._from_fp(fp: FILEptr): filestream
@@ -212,7 +212,7 @@ function filestream:read(fmt: #[overload_concept{integer,stringview,niltype}]#):
   if success then
     s = ss:promotestring()
   else
-    ss:reset()
+    ss:destroy()
   end
   return s, errmsg, status
 end

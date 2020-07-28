@@ -5,19 +5,23 @@ do -- manual init and reset
   assert(#seq == 0 and seq.impl == nilptr)
   seq:init()
   assert(seq.impl ~= nilptr)
-  seq:reset()
+  seq:destroy()
   assert(seq.impl == nilptr)
 end
 
 do -- braces initializer
   local seq: sequence(integer) = {}
   assert(#seq == 0 and seq.impl ~= nilptr)
+  seq:destroy()
   seq = {1,2,3}
   assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)
+  seq:destroy()
   seq = {4}
   assert(#seq == 1 and seq[0] == 0 and seq[1] == 4)
+  seq:destroy()
   seq = {}
   assert(#seq == 0)
+  seq:destroy()
 end
 
 do -- indexing new elements and clear
@@ -31,6 +35,7 @@ do -- indexing new elements and clear
   assert(#seq == 3)
   seq:clear()
   assert(#seq == 0)
+  seq:destroy()
 end
 
 do -- reserve and resize
@@ -44,6 +49,7 @@ do -- reserve and resize
   assert(#seq == 2 and seq[0] == 0 and seq[1] == 1 and seq[2] == 0)
   seq:resize(4)
   assert(#seq == 4 and seq[0] == 0 and seq[1] == 1 and seq[2] == 0 and seq[3] == 0 and seq[4] == 0)
+  seq:destroy()
 end
 
 do -- push and pop
@@ -54,6 +60,7 @@ do -- push and pop
   assert(#seq == 0 and seq[0] == 0)
   seq:push(1) seq:push(2) seq:push(3)
   assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)
+  seq:destroy()
 end
 
 do -- remove
@@ -69,6 +76,7 @@ do -- remove
   assert(seq:remove(1) == 3)
   assert(#seq == 0)
   assert(seq[0] == 10)
+  seq:destroy()
 end
 
 do -- insert
@@ -81,6 +89,7 @@ do -- insert
   assert(#seq == 3 and seq[1] == 1 and seq[2] == 3 and seq[3] == 4)
   seq:insert(2, 2)
   assert(#seq == 4 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3 and seq[4] == 4)
+  seq:destroy()
 end
 
 do -- passing by reference
@@ -92,11 +101,12 @@ do -- passing by reference
   assert(#seqb == 2 and seqb[1] == 1 and seqb[2] == 2)
   seqa:clear()
   assert(#seqb == 0)
+  seqa:destroy()
 end
 
 require 'allocators.generic'
 do -- custom allocator
   local seq: sequence(integer, generic_allocator) = {1,2,3}
   assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)
-  seq:reset()
+  seq:destroy()
 end
