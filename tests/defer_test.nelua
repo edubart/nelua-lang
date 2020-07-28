@@ -1,0 +1,105 @@
+require 'string'
+
+-- return
+local function f()
+  local s: string = 'a'
+  defer s = s..'d' end
+  defer s = s..'c' end
+  s = s..'b'
+  return s
+end
+assert(f() == 'abcd')
+
+-- do block
+local function f()
+  local s: string = 'a'
+  defer s = s..'d' end
+  do
+    defer s = s..'b' end
+  end
+  s = s..'c'
+  return s
+end
+assert(f() == 'abcd')
+
+-- nested do blocks
+local function f()
+  local s: string = 'a'
+  defer s = s..'e' end
+  do
+    defer s = s..'c' end
+    do
+      defer s = s..'b' end
+    end
+  end
+  s = s..'d'
+  return s
+end
+assert(f() == 'abcde')
+
+-- return in middle nested
+local function f()
+  local s: string = 'a'
+  defer s = s..'d' end
+  if true then
+    defer s = s..'c' end
+    if true then
+      defer s = s..'b' end
+    end
+    return s
+  end
+  return s
+end
+assert(f() == 'abcd')
+
+-- middle return
+local function f()
+  local s: string = 'a'
+  defer s = s..'d' end
+  if true then
+    defer s = s..'c' end
+    return s
+    if true then
+      defer s = s..'b' end
+    end
+  end
+  return s
+end
+assert(f() == 'acd')
+
+-- while and break
+local function f()
+  local s: string = 'a'
+  defer s = s..'c' end
+  while true do
+    defer s = s..'b' end
+    break
+  end
+  return s
+end
+assert(f() == 'abc')
+
+-- for and continue
+local function f()
+  local s: string = 'a'
+  defer s = s..'c' end
+  for i=1,3 do
+    defer s = s..'b' end
+    continue
+    defer s = s..' ' end
+  end
+  return s
+end
+assert(f() == 'abbbc')
+
+-- repeat
+local function f()
+  local s: string = 'a'
+  defer s = s..'c' end
+  repeat
+    defer s = s..'b' end
+    local x = true
+  until x
+  return s
+end
+assert(f() == 'abc')

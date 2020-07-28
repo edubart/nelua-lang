@@ -267,6 +267,24 @@ do
 end
 ```
 
+### Defer
+
+Defer statement is useful for executing code at scope termination.
+
+```nelua
+do
+  defer
+    print 'world'
+  end
+  print 'hello'
+end
+-- outputs 'hello' then 'world'
+```
+
+Defer is meant to be used for releasing resources in a deterministic manner on scope termination.
+The syntax and functionality is inspired by the similar statement in the Go language.
+It's guaranteed to be executed before any "return", "break" or "continue".
+
 ### Goto
 
 Gotos are useful to get out of nested loops and jump between codes:

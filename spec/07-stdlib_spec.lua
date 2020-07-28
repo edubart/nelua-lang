@@ -43,6 +43,7 @@ end)
 it("copy/destroy", function()
   assert.run_c_from_file('tests/raii_test.nelua')
   assert.run_c_from_file('tests/raii_test2.nelua')
+  assert.run_c_from_file('tests/defer_test.nelua')
 end)
 
 end)

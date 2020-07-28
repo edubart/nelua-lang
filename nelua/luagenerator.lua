@@ -183,18 +183,22 @@ function visitors.Do(_, node, emitter)
   emitter:add_indent_ln("end")
 end
 
-function visitors.While(_, node, emitter)
+function visitors.While(context, node, emitter)
   local cond, block = node:args()
   emitter:add_indent_ln("while ", cond, ' do')
+  context:push_forked_scope('loop', node)
   emitter:add(block)
+  context:pop_scope()
   emitter:add_indent_ln("end")
 end
 
-function visitors.Repeat(_, node, emitter)
+function visitors.Repeat(context, node, emitter)
   local block, cond = node:args()
   emitter:add_indent_ln("repeat")
+  context:push_forked_cleaned_scope('loop', node)
   emitter:add(block)
   emitter:add_indent_ln('until ', cond)
+  context:pop_scope()
 end
 
 function visitors.ForNum(context, node, emitter)

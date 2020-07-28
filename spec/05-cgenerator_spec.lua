@@ -193,6 +193,16 @@ it("do", function()
   assert.generate_c("do\n  return\nend", "return 0;\n")
 end)
 
+it("defer", function()
+  assert.generate_c("do local x: int64 = 1 defer x = 2 end x = 3 end", [[{
+    int64_t x = 1;
+    x = 3;
+    {
+      x = 2;
+    }
+  }]])
+end)
+
 it("while", function()
   assert.generate_c("while true do\nend", "while(true) {")
 end)

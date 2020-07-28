@@ -44,7 +44,7 @@ local function get_parser()
     "function", "goto", "if", "in", "local", "nil", "not", "or",
     "repeat", "return", "then", "true", "until", "while",
     -- nelua additional keywords
-    "switch", "case", "continue", "global"
+    "switch", "case", "continue", "global", "defer"
   })
 
   -- names and identifiers (names for variables, functions, etc)
@@ -242,6 +242,10 @@ local function get_parser()
 
   grammar:add_group_peg('stat', 'do', [[
     ({} %DO -> 'Do' block eEND) -> to_astnode
+  ]])
+
+  grammar:add_group_peg('stat', 'defer', [[
+    ({} %DEFER -> 'Defer' block eEND) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'while', [[

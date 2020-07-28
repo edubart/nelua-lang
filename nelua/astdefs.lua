@@ -164,6 +164,9 @@ astbuilder:register('If', {
 astbuilder:register('Do', {
   ntypes.Block -- block
 })
+astbuilder:register('Defer', {
+  ntypes.Block -- block
+})
 astbuilder:register('While', {
   ntypes.Node, -- expr
   ntypes.Block -- block

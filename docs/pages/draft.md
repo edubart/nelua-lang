@@ -44,21 +44,6 @@ for i,b in multiples_countdown(10, 0) do
 end
 ```
 
-## Defer
-
-Defer statement is useful for executing code at scope termination.
-
-```nelua
-do
-  defer
-    print 'world'
-  end
-  print 'hello'
-end
--- outputs 'hello' then 'world'
-```
-
-
 ## Multiple cases switch
 
 Switch statement is similar to C switches:

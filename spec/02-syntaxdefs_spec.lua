@@ -700,6 +700,25 @@ describe("statement do", function()
 end)
 
 --------------------------------------------------------------------------------
+-- defer statement
+--------------------------------------------------------------------------------
+describe("statement defer", function()
+  it("simple", function()
+    assert.parse_ast(nelua_parser, "defer end",
+      n.Block{{
+        n.Defer{n.Block{{}}}
+    }})
+  end)
+  it("with statements", function()
+    assert.parse_ast(nelua_parser, "defer print() end",
+      n.Block{{
+        n.Defer{n.Block{{ n.Call{{}, n.Id{'print'}} }}}
+    }})
+  end)
+end)
+
+
+--------------------------------------------------------------------------------
 -- simple loop statements
 --------------------------------------------------------------------------------
 describe("loop statement", function()

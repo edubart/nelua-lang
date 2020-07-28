@@ -1486,4 +1486,5 @@ it("custom braces initialization", function()
     assert(v.data[0] == 1 and v.data[1] == 2 and v.data[2] == 3 and v.data[3] == 4)
   ]==], "choose_braces_type failed")
 end)
+
 end)

@@ -83,6 +83,16 @@ local function destroy_scope_variables(context, emitter, scope)
       end
     end
   end
+  if scope.deferblocks then
+    for i=#scope.deferblocks,1,-1 do
+      local deferblock = scope.deferblocks[i]
+      emitter:add_indent_ln('{')
+      context:push_scope(deferblock.scope.parent)
+      emitter:add(deferblock)
+      context:pop_scope()
+      emitter:add_indent_ln('}')
+    end
+  end
 end
 
 local function destroy_upscopes_variables(context, emitter, kind)
@@ -948,18 +958,31 @@ function visitors.Do(context, node, emitter)
   emitter:add_indent_ln("}")
 end
 
-function visitors.While(_, node, emitter)
+function visitors.Defer(context, node)
+  local blocknode = node:args()
+  local deferblocks = context.scope.deferblocks
+  if not deferblocks then
+    deferblocks = {}
+    context.scope.deferblocks = deferblocks
+  end
+  table.insert(deferblocks, blocknode)
+end
+
+function visitors.While(context, node, emitter)
   local condnode, blocknode = node:args()
   emitter:add_indent("while(")
   emitter:add_val2type(primtypes.boolean, condnode)
   emitter:add_ln(') {')
+  context:push_forked_scope('loop', node)
   emitter:add(blocknode)
+  context:pop_scope()
   emitter:add_indent_ln("}")
 end
 
-function visitors.Repeat(_, node, emitter)
+function visitors.Repeat(context, node, emitter)
   local blocknode, condnode = node:args()
   emitter:add_indent_ln("while(true) {")
+  context:push_forked_cleaned_scope('loop', node)
   emitter:add(blocknode)
   emitter:inc_indent()
   emitter:add_indent('if(')
@@ -969,6 +992,7 @@ function visitors.Repeat(_, node, emitter)
   emitter:add_indent_ln('break;')
   emitter:dec_indent()
   emitter:add_indent_ln('}')
+  context:pop_scope()
   emitter:dec_indent()
   emitter:add_indent_ln('}')
 end

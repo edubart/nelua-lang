@@ -255,5 +255,4 @@ function Scope:resolve()
   return count
 end
 
-
 return Scope

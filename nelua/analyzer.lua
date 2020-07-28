@@ -1393,16 +1393,20 @@ function visitors.While(context, node)
   condnode.desiredtype = primtypes.boolean
   condnode.attr.inconditional = true
   context:traverse_node(condnode)
+  context:push_forked_cleaned_scope('loop', node)
   context:traverse_node(blocknode)
+  context:pop_scope()
 end
 
 function visitors.Repeat(context, node)
   local blocknode, condnode = node[1], node[2]
   condnode.desiredtype = primtypes.boolean
   condnode.attr.inconditional = true
+  context:push_forked_cleaned_scope('loop', node)
   context:traverse_node(blocknode)
   context:push_scope(blocknode.scope)
   context:traverse_node(condnode)
+  context:pop_scope()
   context:pop_scope()
 end
 

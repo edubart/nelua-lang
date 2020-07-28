@@ -124,6 +124,16 @@ do -- Do
   end
 end
 
+do -- Defer
+  do
+    defer
+      print 'world'
+    end
+    print 'hello'
+  end
+  -- outputs 'hello' then 'world'
+end
+
 do -- Goto
   local haserr = true
   if haserr then
