@@ -7,11 +7,10 @@ require 'string'
 cemit([==[
 typedef struct tm tm_t;
 ]==],'declaration')
-local neluatypes = require 'nelua.types'
 ]]
 
-local clock_t <cimport,nodecl> = #[neluatypes.IntegralType('clock_t', primtypes.clong.size)]#
-local time_t <cimport,nodecl> = #[neluatypes.IntegralType('time_t', primtypes.clong.size)]#
+local clock_t <cimport,nodecl> = #[types.IntegralType('clock_t', primtypes.clong.size)]#
+local time_t <cimport,nodecl> = #[types.IntegralType('time_t', primtypes.clong.size)]#
 
 local tm <cimport'tm_t',nodecl> = @record {
   tm_year: cint,

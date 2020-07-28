@@ -855,10 +855,10 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
   local attr = node.attr
   assert(type)
   if type.is_generic then
-    node:raisef("assertion to generic '%s': cannot do assertion on generics", type)
+    node:raisef("type assertion to generic '%s': cannot do assertion on generics", type)
   end
   if #argnodes > 1 then
-    node:raisef("assertion to type '%s': expected at most 1 argument, but got %d",
+    node:raisef("type assertion to type '%s': expected at most 1 argument, but got %d",
       type, #argnodes)
   end
   local argnode = argnodes[1]

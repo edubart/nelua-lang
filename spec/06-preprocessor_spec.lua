@@ -25,7 +25,7 @@ it("evaluate expressions", function()
     local a: integer[10]
     a[0] = 1
   ]])
-  assert.analyze_error("local a = #[function() end]#", "unable to convert preprocess value of type")
+  assert.analyze_error("local a = #[function() end]#", "unable to convert preprocess value of lua type")
 end)
 
 it("evaluate names", function()
@@ -598,7 +598,6 @@ do
   local a: PointInt = {1,2}
 end
 ]=])
-
   assert.analyze_error([=[
 ## local inc = hygienize(function()
   a = a + 1
@@ -606,6 +605,42 @@ end
 local a = 1
 ## inc()
 ]=], "undeclared symbol 'a'")
+end)
+
+it("generalize macro", function()
+  assert.analyze_ast([=[
+    ## local make_record = generalize(function(T)
+      local RecordT = @record { x: #[T]# }
+      ## return RecordT
+    ## end)
+    local Foo = #[make_record(primtypes.integer)]#
+    local foo: Foo
+    ## assert(foo.type.fields.x.type == primtypes.integer)
+]=])
+  assert.analyze_ast([=[
+    ## local make_record = generalize(function(T)
+      local RecordT = @record { x: #[T]# }
+      ## return RecordT
+    ## end)
+    local Record = #[make_record]#
+    local foo: Record(integer)
+    ## assert(foo.type.fields.x.type == primtypes.integer)
+]=])
+  assert.analyze_error([=[
+    ## local make_record = generalize(function(T)
+      local RecordT = @record { x: #[T]# }
+    ## end)
+    local Record = #[make_record]#
+    local foo: Record(integer)
+]=], "expected a type or symbol in generic return")
+  assert.analyze_error([=[
+    ## local make_record = generalize(function(T)
+      local RecordT = @record { x: #[T]# }
+      ## return 1
+    ## end)
+    local Record = #[make_record]#
+    local foo: Record(integer)
+]=], "expected a type or symbol in generic return")
 end)
 
 it("compiler information", function()

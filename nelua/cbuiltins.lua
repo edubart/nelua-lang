@@ -361,7 +361,7 @@ function builtins.nelua_narrow_cast_(context, dtype, stype)
     cond = string.format('((%s)(x)) != x', dctype)
   elseif stype.is_signed and dtype.is_unsigned then -- signed -> unsigned
     cond = 'x < 0'
-    if stype.is_float or stype.max > dtype.max then
+    if stype.max > dtype.max then
       cond = cond .. ' || x > 0x' .. bn.tohex(dtype.max)
     end
   elseif stype.is_unsigned and dtype.is_signed then -- unsigned -> signed

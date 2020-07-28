@@ -97,7 +97,7 @@ function PPContext:tovalue(val, orignode)
     node = aster.Boolean{val}
   --TODO: table, nil
   else
-    orignode:raisef('unable to convert preprocess value of type "%s" to a const value', type(val))
+    orignode:raisef('unable to convert preprocess value of lua type "%s" to a compile time value', type(val))
   end
   node.src = orignode.src
   node.pos = orignode.pos

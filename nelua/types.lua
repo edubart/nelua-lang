@@ -1505,6 +1505,10 @@ function GenericType:eval_type(params)
   return ret, err
 end
 
+function GenericType:__call(params)
+  return self:eval_type({params})
+end
+
 --------------------------------------------------------------------------------
 function types.set_typedefs(t)
   typedefs = t

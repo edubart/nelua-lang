@@ -998,8 +998,13 @@ it("record methods", function()
   assert.analyze_error([[
     local A = @record{}
     global A.a: integer
-    global A.a: integer]],
-    "cannot redefine meta type field")
+    global A.a: integer
+  ]], "cannot redefine meta type field")
+  assert.analyze_error([[
+    local B = @record {a: integer}
+    global B.lol: function():integer
+    function B.lol() return 1 end
+  ]], "cannot redefine meta type field")
 end)
 
 it("record globals", function()
