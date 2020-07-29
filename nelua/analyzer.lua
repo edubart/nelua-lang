@@ -1547,11 +1547,17 @@ function visitors.ForNum(context, node)
   end
 end
 
-function visitors.Break(_, node)
+function visitors.Break(context, node)
+  if not context.scope:get_parent_of_kind('loop') then
+    node:raisef("`break` statement is not inside a loop")
+  end
   node.done = true
 end
 
-function visitors.Continue(_, node)
+function visitors.Continue(context, node)
+  if not context.scope:get_parent_of_kind('loop') then
+    node:raisef("`continue` statement is not inside a loop")
+  end
   node.done = true
 end
 

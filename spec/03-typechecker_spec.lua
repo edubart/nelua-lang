@@ -221,7 +221,7 @@ it("type declaration", function()
   assert.analyze_error("local a: invalid = 2", "is an invalid type")
 end)
 
-it("loop variables", function()
+it("for loop variables", function()
   assert.ast_type_equals("for i=1,10 do end", "for i:integer=1,10 do end")
   assert.ast_type_equals("for i=1,10,2 do end", "for i:integer=1,10,2 do end")
   assert.ast_type_equals("for i=0_is,1_is-1 do end", "for i:isize=0_is,1_is-1 do end")
@@ -764,6 +764,22 @@ it("for in", function()
   for i:integer in iter do end
   ]])
   ]=]
+end)
+
+it("break", function()
+  assert.analyze_ast("for i=1,10 do break end")
+  assert.analyze_ast("while true do break end")
+  assert.analyze_ast("repeat break until true")
+  assert.analyze_error("break", "is not inside a loop")
+  assert.analyze_error("do break end", "is not inside a loop")
+  assert.analyze_error("if true then break end", "is not inside a loop")
+end)
+
+it("continue", function()
+  assert.analyze_ast("for i=1,10 do continue end")
+  assert.analyze_ast("while true do continue end")
+  assert.analyze_ast("repeat continue until true")
+  assert.analyze_error("continue", "is not inside a loop")
 end)
 
 it("spans", function()
