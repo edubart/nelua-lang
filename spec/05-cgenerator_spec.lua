@@ -280,8 +280,9 @@ it("break and continue", function()
   assert.generate_c("while true do break end", "break;")
   assert.generate_c("while true do continue end", "continue;")
 end)
+
 it("goto", function()
-  assert.generate_c("::mylabel::\ngoto mylabel", "mylabel:\n  goto mylabel;")
+  assert.generate_c("::mylabel::\ngoto mylabel", "mylabel:;\n  goto mylabel;")
 end)
 
 it("variable declaration", function()

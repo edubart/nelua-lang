@@ -1079,14 +1079,12 @@ function visitors.Continue(context, _, emitter)
   emitter:add_indent_ln('continue;')
 end
 
-function visitors.Label(_, node, emitter)
-  local name = node:args()
-  emitter:add_ln(cdefs.quotename(name), ':')
+function visitors.Label(context, node, emitter)
+  emitter:add_ln(context:declname(node.attr), ':;')
 end
 
-function visitors.Goto(_, node, emitter)
-  local labelname = node:args()
-  emitter:add_indent_ln('goto ', cdefs.quotename(labelname), ';')
+function visitors.Goto(context, node, emitter)
+  emitter:add_indent_ln('goto ', context:declname(node.attr.label), ';')
 end
 
 function visitors.VarDecl(context, node, emitter)

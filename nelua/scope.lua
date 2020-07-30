@@ -20,6 +20,7 @@ function Scope:_init(parent, kind, node)
   end
   self.unresolved_symbols = {}
   self.children = {}
+  self.labels = {}
   self:clear_symbols()
 end
 
@@ -82,6 +83,22 @@ function Scope:get_parent_of_kind(kind)
     parent = parent.parent
   until (not parent or parent.kind == kind)
   return parent
+end
+
+function Scope:find_label(name)
+  local parent = self
+  repeat
+    local label = parent.labels[name]
+    if label then
+      return label
+    end
+    parent = parent.parent
+  until (not parent or parent.kind == 'function')
+  return nil
+end
+
+function Scope:add_label(label)
+  self.labels[label.name] = label
 end
 
 function Scope:make_checkpoint()
@@ -252,6 +269,7 @@ function Scope:resolve()
     self.delay = false
     count = count + 1
   end
+  self.resolved_once = true
   return count
 end
 

@@ -1561,11 +1561,35 @@ function visitors.Continue(context, node)
   node.done = true
 end
 
-function visitors.Label(_, node)
+function visitors.Label(context, node)
+  local labelname = node[1]
+  local label = context.scope:find_label(labelname)
+  if not label then
+    label = node.attr
+    label.name = labelname
+    label.scope = context.scope
+    label.codename = context:choose_codename(labelname)
+    label.node = node
+    context.scope:add_label(label)
+  elseif label ~= node.attr then
+    node:raisef("label '%s' already defined", labelname)
+  end
   node.done = true
 end
 
-function visitors.Goto(_, node)
+function visitors.Goto(context, node)
+  local labelname = node[1]
+  local label = context.scope:find_label(labelname)
+  if not label then
+    local funcscope = context.scope:get_parent_of_kind('function') or context.rootscope
+    if not funcscope.resolved_once then
+      -- we should find it in the next traversal
+      funcscope:delay_resolution()
+      return
+    end
+    node:raisef("no visible label '%s' found for `goto`", labelname)
+  end
+  node.attr.label = label
   node.done = true
 end
 
