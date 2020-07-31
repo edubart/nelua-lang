@@ -16,7 +16,8 @@ function AnalyzerContext:_init(visitors, parser)
   self.env = {}
   self.requires = {}
   self.scopestack = {}
-  self.pragmas = {}
+  self.globalpragmas = {}
+  self.pragmas = setmetatable({}, {__index = self.globalpragmas})
   self.pragmastack = {}
   self.usedcodenames = {}
   self.afteranalyze = {}
@@ -26,7 +27,7 @@ end
 
 function AnalyzerContext:push_pragmas()
   table.insert(self.pragmastack, self.pragmas)
-  local newpragmas = tabler.copy(self.pragmas)
+  local newpragmas = setmetatable(tabler.copy(self.pragmas), getmetatable(self.pragmas))
   self.pragmas = newpragmas
   return newpragmas
 end
