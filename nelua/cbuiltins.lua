@@ -143,6 +143,23 @@ function builtins.nelua_assert_bounds_(context, indextype)
   return name
 end
 
+function builtins.nelua_assert_deref_(context, indextype)
+  local name = 'nelua_assert_deref_' .. indextype.codename
+  if context.usedbuiltins[name] then return name end
+  local indexctype = context:ctype(indextype)
+  context:ensure_runtime_builtin('nelua_panic_cstring')
+  context:ensure_runtime_builtin('nelua_unlikely')
+  define_inline_builtin(context, name,
+    indexctype,
+    string.format('(%s p)', indexctype), [[{
+  if(nelua_unlikely(p == NULL)) {
+    nelua_panic_cstring("attempt to dereference a null pointer");
+  }
+  return p;
+}]])
+  return name
+end
+
 function builtins.nelua_warn(context)
   context:add_include('<stdio.h>')
   context:ctype(primtypes.stringview)
@@ -731,6 +748,15 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
     else
       emitter:add(rname)
     end
+  end
+end
+
+function operators.deref(_, emitter, argnode)
+  if argnode.checkderef then
+    local op = emitter.context:ensure_runtime_builtin('nelua_assert_deref_', argnode.attr.type)
+    emitter:add('*', op, '(', argnode, ')')
+  else
+    emitter:add('*', argnode)
   end
 end
 

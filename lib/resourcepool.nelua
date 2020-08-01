@@ -60,7 +60,10 @@ local INIT_SIZE <comptime> = 64
   function slotpool:destroy()
     allocator.spandealloc(self.free_queue)
     allocator.spandealloc(self.gen_ctrs)
-    $self = {}
+    self.size = 0
+    self.queue_top = 0
+    self.gen_ctrs = {}
+    self.free_queue = {}
   end
 
   -- Allocate a slot index in the slot pool, growing the pool as needed.
@@ -159,9 +162,9 @@ local INIT_SIZE <comptime> = 64
     for i:usize=0,<self.items.size do
       self.items[i] = (@T)()
     end
-    allocator.spandealloc(self.items)
     self.slot_pool:destroy()
-    $self = {}
+    allocator.spandealloc(self.items)
+    self.items = {}
   end
 
   -- Return a pointer to a resource associated with an id.

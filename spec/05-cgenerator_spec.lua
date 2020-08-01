@@ -1,3 +1,5 @@
+local config = require 'nelua.configer'.get()
+
 require 'busted.runner'()
 
 local assert = require 'spec.tools.assert'
@@ -650,7 +652,10 @@ it("unary operator `unm`", function()
 end)
 
 it("unary operator `deref`", function()
+  assert.generate_c("local a: integer*; local x = $a", "x = (*nelua_assert_deref_nlint64_ptr(a));")
+  config.pragma.nochecks = true
   assert.generate_c("local a: integer*; local x = $a", "x = (*a);")
+  config.pragma.nochecks = nil
 end)
 
 it("unary operator `bnot`", function()

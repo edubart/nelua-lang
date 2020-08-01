@@ -2170,6 +2170,9 @@ function visitors.UnaryOp(context, node)
     argattr.mutate = true
   elseif opname == 'deref' then
     attr.lvalue = true
+    if not context.pragmas.nochecks then
+      argnode.checkderef = true
+    end
   end
   if type then
     attr.type = type

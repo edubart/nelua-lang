@@ -73,8 +73,8 @@ cdefs.unary_ops = {
   ['unm'] = '-',
   ['bnot'] = '~',
   ['ref'] = '&',
-  ['deref'] = '*',
   -- builtins
+  ['deref'] = true,
   ['len'] = true
 }
 

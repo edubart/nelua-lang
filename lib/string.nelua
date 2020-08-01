@@ -64,7 +64,8 @@ end
 -- Destroys a string freeing its resources.
 function string:destroy() <inline>
   allocator.dealloc(self.data)
-  $self = {}
+  self.data = nilptr
+  self.size = 0
 end
 
 function stringbuffer:promotestring(): string

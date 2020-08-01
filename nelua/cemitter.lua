@@ -161,7 +161,13 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
     elseif valtype.is_pointer and valtype.subtype == type and
            (type.is_record or type.is_array) then
       -- automatic dereference
-      self:add('*', val)
+      self:add('*')
+      if checkcast then
+        self:add_builtin('nelua_assert_deref_', valtype)
+        self:add('(', val, ')')
+      else
+        self:add(val)
+      end
     else
       if checkcast and type.is_integral and valtype.is_arithmetic and
         not type:is_type_inrange(valtype) then

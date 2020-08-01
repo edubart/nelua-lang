@@ -5,6 +5,8 @@ require 'span'
 require 'memory'
 require 'allocators.generic'
 
+## pragmas.nochecks = true
+
 local jmp_buf <cimport,cinclude'<setjmp.h>',nodecl> = @record{dummy: usize}
 local function setjmp(env: jmp_buf) <cimport,cinclude'<setjmp.h>',nodecl> end
 
