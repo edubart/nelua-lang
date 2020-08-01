@@ -140,7 +140,7 @@ function preprocessor.preprocess(context, ast)
   local function raise_preprocess_error(msg, ...)
     msg = stringer.pformat(msg, ...)
     local lineno = debug.getinfo(3).currentline
-    msg = errorer.get_pretty_source_line_errmsg({content=ppcode, name='preprocessor'}, lineno, msg)
+    msg = errorer.get_pretty_source_line_errmsg({content=ppcode, name='preprocessor'}, lineno, msg, 'error')
     except.raise(msg, 2)
   end
 

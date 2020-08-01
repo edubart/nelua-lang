@@ -3,14 +3,16 @@ local tabler = require 'nelua.utils.tabler'
 local Scope = require 'nelua.scope'
 local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
+local sstream = require 'nelua.utils.sstream'
 local VisitorContext = require 'nelua.visitorcontext'
 
 local AnalyzerContext = class(VisitorContext)
 
-function AnalyzerContext:_init(visitors, parser)
+function AnalyzerContext:_init(visitors, parser, ast)
   VisitorContext._init(self, visitors)
   self.parser = parser
-  self.rootscope = Scope(self, 'root')
+  self.rootscope = Scope(self, 'root', ast)
+  self.ast = ast
   self.scope = self.rootscope
   self.usedbuiltins = {}
   self.env = {}
@@ -101,6 +103,18 @@ function AnalyzerContext:choose_codename(name)
   end
   self.usedcodenames[name] = 1
   return name
+end
+
+function AnalyzerContext:traceback()
+  local nodes = self.visiting_nodes
+  local ss = sstream()
+  for i=1,#nodes-1 do
+    local node = nodes[i]
+    if node.tag ~= 'Block' then
+      ss:add(node:format_message('from', 'AST node %s', node.tag))
+    end
+  end
+  return ss:tostring()
 end
 
 return AnalyzerContext

@@ -5,6 +5,7 @@ local errorer = require 'nelua.utils.errorer'
 local pegger = require 'nelua.utils.pegger'
 local runner = require 'nelua.runner'
 local analyzer = require 'nelua.analyzer'
+local AnalyzerContext = require 'nelua.analyzercontext'
 local fs = require 'nelua.utils.fs'
 local traits = require 'nelua.utils.traits'
 local lua_generator = require 'nelua.luagenerator'
@@ -236,9 +237,9 @@ end
 
 function assert.analyze_ast(code, expected_ast)
   local ast = assert.parse_ast(nelua_parser, code)
-  local context
+  local context = AnalyzerContext(analyzer.visitors, nelua_parser, ast)
   pretty_input_onerror(code, function()
-    context = analyzer.analyze(ast, nelua_parser)
+    analyzer.analyze(context)
   end)
   if expected_ast then
     assert.same_string(tostring(expected_ast), tostring(ast))
@@ -278,7 +279,8 @@ end
 function assert.analyze_error(code, expected_error)
   local ast = assert.parse_ast(nelua_parser, code)
   local ok, e = except.try(function()
-    analyzer.analyze(ast, nelua_parser)
+    local context = AnalyzerContext(analyzer.visitors, nelua_parser, ast)
+    analyzer.analyze(context)
   end)
   pretty_input_onerror(code, function()
     if expected_error then

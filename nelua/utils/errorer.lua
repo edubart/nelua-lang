@@ -44,13 +44,17 @@ local function get_pretty_source_pos_errmsg(src, errline, errcol, errmsg, errnam
     errmsg1 = errmsg:sub(1, tracebackpos)
     errmsg2 = '\n' .. errmsg:sub(tracebackpos)
   end
+  local errcolor = colors.reset
+  if errname == 'error' then
+    errcolor = tostring(colors.red)
+  end
   return string.format(
     "%s:%s%d:%d: %s%s:%s %s%s\n%s%s\n%s\n%s",
     src and src.name or '',
     tostring(colors.bright),
     errline, errcol,
-    tostring(colors.red),
-    errname or 'error',
+    errcolor,
+    errname,
     colors.reset .. colors.bright, errmsg1, tostring(colors.reset),
     linebegin, lineend,
     linehelper,

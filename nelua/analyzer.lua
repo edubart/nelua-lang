@@ -3,7 +3,6 @@ local traits = require 'nelua.utils.traits'
 local tabler = require 'nelua.utils.tabler'
 local pegger = require 'nelua.utils.pegger'
 local typedefs = require 'nelua.typedefs'
-local AnalyzerContext = require 'nelua.analyzercontext'
 local Attr = require 'nelua.attr'
 local Symbol = require 'nelua.symbol'
 local types = require 'nelua.types'
@@ -16,6 +15,7 @@ local analyzer = {}
 
 local primtypes = typedefs.primtypes
 local visitors = {}
+analyzer.visitors = visitors
 
 function visitors.Number(context, node)
   local attr = node.attr
@@ -2284,12 +2284,9 @@ function visitors.BinaryOp(context, node)
   end
 end
 
-function analyzer.analyze(ast, parser, context)
-  if not context then
-    context = AnalyzerContext(visitors, parser)
-    context.rootscope.node = ast
-    analyzer.context = context
-  end
+function analyzer.analyze(context)
+  local ast = context.ast
+  analyzer.current_context = context
   context.analyzing = true
 
   if config.pragma then

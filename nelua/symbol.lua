@@ -66,7 +66,7 @@ function Symbol:resolve_type(force)
     return false
   end
   if config.debug_resolve then
-    console.info(self.node:format_errmsg("symbol '%s' resolved to type '%s'", self.name, self.type))
+    console.info(self.node:format_message('info', "symbol '%s' resolved to type '%s'", self.name, self.type))
   end
   return true
 end

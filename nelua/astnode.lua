@@ -95,36 +95,36 @@ ASTNode.clone = clone_node
 -------------------
 -- error handling
 -------------------
-function ASTNode:format_errmsg(message, ...)
+function ASTNode:format_message(category, message, ...)
   message = stringer.pformat(message, ...)
   if self.src and self.pos then
-    message = errorer.get_pretty_source_pos_errmsg(self.src, self.pos, message)
+    message = errorer.get_pretty_source_pos_errmsg(self.src, self.pos, message, category)
   end
   return message
 end
 
 --luacov:disable
 function ASTNode:errorf(message, ...)
-  error(self:format_errmsg(message, ...), 2)
+  error(self:format_message('error', message, ...), 2)
 end
 
 function ASTNode:assertf(cond, message, ...)
   if not cond then
-    error(self:format_errmsg(message, ...), 2)
+    error(self:format_message('error', message, ...), 2)
   end
   return cond
 end
 
 function ASTNode:assertraisef(cond, message, ...)
   if not cond then
-    except.raise(self:format_errmsg(message, ...), 2)
+    except.raise(self:format_message('error', message, ...), 2)
   end
   return cond
 end
 --luacov:enable
 
 function ASTNode:raisef(message, ...)
-  except.raise(self:format_errmsg(message, ...), 2)
+  except.raise(self:format_message('error', message, ...), 2)
 end
 
 -------------------

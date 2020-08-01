@@ -13,6 +13,8 @@ local except = require 'nelua.utils.except'
 local executor = require 'nelua.utils.executor'
 local configer = require 'nelua.configer'
 local syntaxdefs = require 'nelua.syntaxdefs'
+local analyzer = require 'nelua.analyzer'
+local AnalyzerContext = require 'nelua.analyzercontext'
 
 local runner = {}
 
@@ -59,9 +61,13 @@ local function run(argv, redirect)
   end
 
   -- analyze the ast
-  local analyzer = require 'nelua.analyzer'
   -- profiler.start()
-  local context = analyzer.analyze(ast, parser)
+  local context = AnalyzerContext(analyzer.visitors, parser, ast)
+  except.try(function()
+    context = analyzer.analyze(context)
+  end, function(e)
+    e.message = context:traceback() .. e:get_message()
+  end)
   -- profiler.stop()
   -- profiler.report('profile.log')
 

@@ -263,7 +263,7 @@ function Scope:resolve()
   local count = self:resolve_symbols()
   self:resolve_returntypes()
   if count > 0 and config.debug_scope_resolve then
-    console.info(self.node:format_errmsg("scope resolved %d symbols", count))
+    console.info(self.node:format_message('info', "scope resolved %d symbols", count))
   end
   if self.delay then
     self.delay = false
