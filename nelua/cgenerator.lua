@@ -729,7 +729,7 @@ function visitors.DotIndex(context, node, emitter)
   local type = attr.type
   local objtype = objnode.attr.type
   local poparray = false
-  if type.is_array then
+  if type.is_array and not attr.globalfield then
     emitter:add('(*(', type, '*)')
     poparray = true
   end

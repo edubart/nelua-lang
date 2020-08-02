@@ -1696,6 +1696,13 @@ it("record globals", function()
     assert(Math.PI == 3.14)
     Math.PI = 3
     assert(Math.PI == 3)
+
+    local R = @record{x: integer}
+    global R.values: integer[4] = {1,2,3,4}
+    assert(R.values[0] == 1)
+    assert(R.values[1] == 2)
+    assert(R.values[2] == 3)
+    assert(R.values[3] == 4)
   ]])
 end)
 
