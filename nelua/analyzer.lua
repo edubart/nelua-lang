@@ -1521,7 +1521,7 @@ function visitors.ForNum(context, node)
     -- constant step
     fixedstep = stepvalnode
     stepvalue = sattr.value
-    if stepvalue:iszero() then
+    if bn.iszero(stepvalue) then
       stepvalnode:raisef("`for` step cannot be zero")
     end
   elseif not stepvalnode then
