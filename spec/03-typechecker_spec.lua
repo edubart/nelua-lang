@@ -471,6 +471,25 @@ it("late deduction", function()
        a = c
     end
   ]])
+  assert.ast_type_equals([[
+    local ONE: integer <comptime> = 1
+    local z = ONE
+    for y=1,z do
+      for x=0,y do
+        local a = x
+      end
+    end
+    z = 2.0
+  ]],[[
+    local ONE: integer <comptime> = 1
+    local z:number = ONE
+    for y:number=1,z do
+      for x:number=0,y do
+        local a:number = x
+      end
+    end
+    z = 2.0
+  ]])
 end)
 
 it("function definition", function()

@@ -52,6 +52,32 @@ function Symbol:add_possible_type(type, refnode)
   end
 end
 
+function Symbol:is_waiting_resolution(ignoresyms)
+  if self.unknownrefs then
+    -- ignoresyms is needed to cycles of references
+    if not ignoresyms then
+      ignoresyms = {[self]=true}
+    else
+      ignoresyms[self] = true
+    end
+    for refnode in pairs(self.unknownrefs) do
+      local sym = refnode.attr
+      if sym._symbol then
+        if ignoresyms[sym] then
+          return false
+        elseif sym:is_waiting_resolution(ignoresyms) then
+          return true
+        end
+      end
+    end
+    ignoresyms[self] = nil
+  end
+  if self.possibletypes and #self.possibletypes > 0 then
+    return true
+  end
+  return false
+end
+
 function Symbol:resolve_type(force)
   if self.type or (not force and self.unknownrefs) then
     return false

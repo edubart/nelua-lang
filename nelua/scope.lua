@@ -216,7 +216,7 @@ function Scope:resolve_symbols()
     --table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)
     for i=1,#unknownlist do
       local symbol = unknownlist[i]
-      local force = self.context.state.anyphase and typedefs.primtypes.any or true
+      local force = self.context.state.anyphase and typedefs.primtypes.any or not symbol:is_waiting_resolution()
       if symbol:resolve_type(force) then
         unresolved_symbols[symbol] = nil
         self.context.unresolvedcount = self.context.unresolvedcount - 1
