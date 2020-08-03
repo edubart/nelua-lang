@@ -79,6 +79,25 @@ do -- remove
   seq:destroy()
 end
 
+do -- remove_value
+  local seq: sequence(integer)
+  assert(seq:remove_value(0) == false)
+  seq = {1,2,3,4}
+  seq[0] = 10
+  assert(#seq == 4)
+  assert(seq:remove_value(3) == true)
+  assert(#seq == 3 and seq[3] == 4)
+  assert(seq:remove_value(3) == false)
+  assert(seq:remove_value(1) == true)
+  assert(#seq == 2 and seq[1] == 2)
+  assert(seq:remove_value(2) == true)
+  assert(#seq == 1 and seq[1] == 4)
+  assert(seq:remove_value(4) == true)
+  assert(#seq == 0)
+  assert(seq:remove_value(4) == false)
+  seq:destroy()
+end
+
 do -- insert
   local seq: sequence(integer)
   seq:insert(1, 3)

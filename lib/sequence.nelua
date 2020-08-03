@@ -142,6 +142,20 @@ require 'memory'
     return ret
   end
 
+  -- Removes the first item from the sequence whose value is given.
+  -- The remaining elements are shifted.
+  -- Ruturns true if the an item was removed and false otherwise.
+  function sequenceT:remove_value(v: T): boolean
+    if not self.impl then return false end
+    for i:usize=1,self.impl.size do
+      if self.impl.data[i] == v then
+        self:remove(i)
+        return true
+      end
+    end
+    return false
+  end
+
   -- Returns the number of elements the sequence can store before triggering a reallocation.
   function sequenceT:capacity(): isize <inline,nosideeffect>
     if unlikely(not self.impl or self.impl.data.size == 0) then return 0 end
