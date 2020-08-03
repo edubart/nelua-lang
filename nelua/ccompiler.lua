@@ -14,7 +14,19 @@ local compiler = {}
 local function get_compile_args(cfile, binfile, compileopts)
   local compiler_flags = cdefs.compilers_flags[config.cc] or cdefs.compiler_base_flags
   local cflags = sstream(compiler_flags.cflags_base)
-  cflags:add(' ', config.release and compiler_flags.cflags_release or compiler_flags.cflags_debug)
+  --luacov:disable
+  if config.release then
+    cflags:add(' ', compiler_flags.cflags_release)
+    if config.cflags_release then
+      cflags:add(' ', config.cflags_release)
+    end
+  else
+    cflags:add(' ', compiler_flags.cflags_debug)
+    if config.cflags_debug then
+      cflags:add(' ', config.cflags_debug)
+    end
+  end
+  --luacov:enable
   if #config.cflags > 0 then
     cflags:add(' ', config.cflags)
   end

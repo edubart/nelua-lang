@@ -87,6 +87,7 @@ asserteq(math.ldexp(1.0_f32, 10), 1024.0_f32) asserteq(math.ldexp(8.0_f32, 7), 1
 assert(math.abs(-1) == 1) assert(math.abs(1) == 1)
 assert(math.ceil(0) == 0) assert(math.ceil(1) == 1) assert( math.ceil(-1) == -1)
 assert(math.floor(0) == 0) assert(math.floor(1) == 1) assert(math.floor(-1) == -1)
+assert(math.ifloor(0.0) == 0) assert(math.ifloor(1.1) == 1) assert(math.ifloor(-1) == -1)
 assert(math.min(1, -1) == -1) assert(math.min(-1, 1) == -1)
 assert(math.max(1, -1) == 1) assert(math.max(-1, 1) == 1)
 asserteq(math.acos(-1), math.pi) asserteq(math.acos(1), 0)

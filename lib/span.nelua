@@ -40,11 +40,19 @@
   function spanT.__convert(values: #[concept(function(x)
     if x.type.is_pointer and x.type.subtype and x.type.subtype:is_contiguous_of(T) then
       return true
+    elseif x.type.is_stringview and (T.is_int8 or T.is_uint8 or
+                                     T.is_cchar or T.is_uchar) then
+      return true
     end
   end)]#): spanT <inline,nosideeffect>
     local self: spanT
-    self.data = &values[#[values.type.subtype.is_sequence and 1 or 0]#]
-    self.size = (@usize)(#$values)
+    ## if values.type.is_stringview then
+      self.data = values.data
+      self.size = values.size
+    ## else
+      self.data = &values[#[values.type.subtype.is_sequence and 1 or 0]#]
+      self.size = (@usize)(#$values)
+      ## end
     return self
   end
 

@@ -205,6 +205,10 @@ function math.ldexp(x: is_arithmetic, y: is_arithmetic) <inline,nosideeffect>
   ## end
 end
 
+function math.ifloor(x: is_arithmetic): integer <inline,nosideeffect>
+  return math.floor(x)
+end
+
 function math.tointeger(x: is_arithmetic) <inline,nosideeffect>
   ## if x.type.is_integral then
     return (@integer)(x)

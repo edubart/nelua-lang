@@ -8,6 +8,13 @@ do -- pointer to span
   assert(arr[0] == 5)
 end
 
+do -- stringview to span
+  local sv: stringview = 'AB'
+  local s: span(byte) = sv
+  assert(s[0] == 0x41 and s[1] == 0x42)
+  assert(#s == 2)
+end
+
 do -- array to span
   local arr: array(integer, 4) = {1,2,3,4}
   local s: span(integer) = &arr
