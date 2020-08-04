@@ -758,6 +758,15 @@ it("callbacks", function()
     local callback_type = @function(integer*, integer[4], record{x:integer}): (integer[4], boolean)
     local callback: callback_type = nilptr
   ]])
+  assert.analyze_ast([[
+    local Callback = @function(void*)
+    local g: function(integer*)
+    local f: Callback = (@Callback)(g)
+    local f: Callback = (@Callback)(nilptr)
+    local p: pointer
+    local f: Callback = (@Callback)(p)
+    p = (@pointer)(f)
+  ]])
   assert.ast_type_equals([[
     local f: function()
   ]],[[

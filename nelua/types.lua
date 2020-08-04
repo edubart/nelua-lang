@@ -1033,6 +1033,9 @@ function FunctionType:is_convertible_from_type(type, explicit)
   if type.is_nilptr then
     return self
   end
+  if explicit and (type.is_genericpointer or type.is_function) then
+    return self
+  end
   return Type.is_convertible_from_type(self, type, explicit)
 end
 
@@ -1298,6 +1301,8 @@ function PointerType:is_convertible_from_type(type, explicit)
            (type.is_cstring and self.subtype == primtypes.byte) then
       return self
     end
+  elseif type.is_function and self.is_genericpointer and explicit then
+    return self
   end
   if type.is_stringview and (self.is_cstring or self:is_pointer_of(primtypes.byte)) then
     return self
