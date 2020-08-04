@@ -160,7 +160,14 @@ function compiler.get_run_command(binaryfile, runargs)
   if config.debug then --luacov:disable
     local gdbver = compiler.get_gdb_version()
     if gdbver then
-      local gdbargs = {'-q', '-ex', 'run', '-ex', 'bt', '-ex', 'quit', binaryfile}
+      local gdbargs = {
+        '-q',
+        '-ex', 'run',
+        '-ex', 'bt -frame-info source-and-location',
+        '-ex', 'set confirm off',
+        '-ex', 'quit',
+        binaryfile
+      }
       tabler.insertvalues(gdbargs, runargs)
       return config.gdb, gdbargs
     end
