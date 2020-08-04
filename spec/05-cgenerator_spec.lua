@@ -1494,6 +1494,12 @@ it("records size", function()
       local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
       assert(#R == s)
     end
+
+    do
+      local R = @record {a: int32, b: boolean, c: pointer, d: pointer}
+      local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
+      assert(#R == s)
+    end
   ]=])
 end)
 

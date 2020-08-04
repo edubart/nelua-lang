@@ -895,7 +895,7 @@ function ArrayType:_init(subtype, length)
   Type._init(self, 'array', size)
   self.subtype = subtype
   self.length = length
-  self.align = subtype.align or subtype.size--math.min(subtype.size, cpusize)
+  self.align = subtype.align or subtype.size
 end
 
 function ArrayType:is_equal(type)
@@ -1110,6 +1110,12 @@ local RecordType = typeclass()
 types.RecordType = RecordType
 RecordType.is_record = true
 
+local function compute_pad(size, align)
+  if align <= 1 or size == 0 then return 0 end
+  if size % align == 0 then return 0 end
+  return align - (size % align)
+end
+
 local function compute_record_size(fields, pack)
   local nfields = #fields
   local size = 0
@@ -1117,24 +1123,19 @@ local function compute_record_size(fields, pack)
   if nfields == 0 then
     return size, align
   end
-  local pad
   for i=1,#fields do
     local ftype = fields[i].type
     local fsize = ftype.size
-    local falign = ftype.align or fsize --math.min(fsize, cpusize)
+    local falign = ftype.align or fsize
     align = math.max(align, falign)
-    pad = 0
-    if not pack and size % falign > 0 then
-      pad = size % falign
+    if not pack then
+      size = size + compute_pad(size, falign)
     end
-    size = size + pad + fsize
+    size = size + fsize
   end
-  size = size - pad
-  pad = 0
-  if not pack and size % align > 0 then
-    pad = align - (size % align)
+  if not pack then
+    size = size + compute_pad(size, align)
   end
-  size = size + pad
   return size, align
 end
 
