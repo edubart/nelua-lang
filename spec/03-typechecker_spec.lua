@@ -763,6 +763,7 @@ it("callbacks", function()
   ]],[[
     local f: function(): void
   ]])
+  assert.analyze_error([[local r: record{f: function(x: integer)} r.f(true)]], "no viable type conversion")
 end)
 
 it("for in", function()

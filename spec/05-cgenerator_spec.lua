@@ -126,28 +126,32 @@ it("callbacks", function()
   assert.generate_c("local f: function(x: integer): integer",
     "typedef int64_t %(%*function_%w+%)%(int64_t%);", true)
   assert.run_c([[
-local function call_callback(callback: function(integer, integer): integer): integer
-  return callback(1, 2)
-end
+    local function call_callback(callback: function(integer, integer): integer): integer
+      return callback(1, 2)
+    end
 
-local function mycallback(x: integer, y: integer): integer
-  assert(x == 1 and y == 2)
-  return x + y
-end
+    local function mycallback(x: integer, y: integer): integer
+      assert(x == 1 and y == 2)
+      return x + y
+    end
 
-local mycallback_proxy = mycallback
-assert(mycallback(1, 2) == 3)
-assert(mycallback_proxy(1 ,2) == 3)
-assert(call_callback(mycallback) == 3)
+    local mycallback_proxy = mycallback
+    assert(mycallback(1, 2) == 3)
+    assert(mycallback_proxy(1 ,2) == 3)
+    assert(call_callback(mycallback) == 3)
 
-local callback_type = @function(x: integer, y: integer): integer
-local mycallback_proxy2: callback_type
-assert(not mycallback_proxy2)
-assert(mycallback_proxy2 == nilptr)
-mycallback_proxy2 = mycallback
-assert(mycallback_proxy2)
-assert(mycallback_proxy2 ~= nilptr)
-assert(mycallback_proxy2(1, 2) == 3)
+    local callback_type = @function(x: integer, y: integer): integer
+    local mycallback_proxy2: callback_type
+    assert(not mycallback_proxy2)
+    assert(mycallback_proxy2 == nilptr)
+    mycallback_proxy2 = mycallback
+    assert(mycallback_proxy2)
+    assert(mycallback_proxy2 ~= nilptr)
+    assert(mycallback_proxy2(1, 2) == 3)
+
+    local function f(x: integer) return x + 1 end
+    local r: record{f: function(x: integer):integer} = {f=f}
+    assert(r.f(1) == 2)
 ]])
 end)
 

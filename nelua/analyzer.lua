@@ -897,6 +897,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
   if calleetype then
     if calleetype.is_procedure then
       -- function call
+      local calleename = calleesym and calleesym.name or calleetype
       local funcargtypes = calleetype.argtypes
       local funcargattrs = calleetype.argattrs or calleetype.args
       local pseudoargtypes = funcargtypes
@@ -916,7 +917,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       end
       if #argnodes > #pseudoargattrs then
         node:raisef("in call of function '%s': expected at most %d arguments but got %d",
-          calleesym.name, #pseudoargattrs, #argnodes)
+          calleename, #pseudoargattrs, #argnodes)
       end
       local lazyargs = {}
       local knownallargs = true
@@ -940,7 +941,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
 
         if argtype and argtype.is_niltype and not funcargtype.is_nilable then
           node:raisef("in call of function '%s': expected an argument at index %d but got nothing",
-            calleesym.name, i)
+            calleename, i)
         end
         if arg then
           local argattr = arg
@@ -950,7 +951,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           local wantedtype, err = funcargtype:is_convertible_from_attr(argattr)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
-              calleesym.name, i, err)
+              calleename, i, err)
           end
 
           if funcargtype ~= wantedtype and argnode then
@@ -964,7 +965,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           wantedtype, err = funcargtype:is_convertible_from_attr(argattr)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
-              calleesym.name, i, err)
+              calleename, i, err)
           end
 
           if not context.pragmas.nochecks and funcargtype ~= argtype and argnode then
