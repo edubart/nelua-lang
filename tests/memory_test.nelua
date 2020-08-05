@@ -256,7 +256,7 @@ end
 --------------------------------------------------------------------------------
 -- new and delete
 
-do -- new for pointers
+do -- new
   local v = allocator.new(@vec2)
   assert(v.x == 0 and v.y == 0)
   v.x = 1 v.y = 2
@@ -264,10 +264,29 @@ do -- new for pointers
   allocator.delete(v)
 end
 
-do -- new for spans
-  local v = allocator.new(@vec2, 2)
+do -- new with initialization
+  local v = allocator.new((@integer)(2))
+  assert($v == 2)
+  allocator.delete(v)
+end
+
+do -- spannew
+  local v = allocator.spannew(@vec2, 2)
+  assert(#v == 2)
   assert(v[0].x == 0 and v[0].y == 0)
   assert(v[1].x == 0 and v[1].y == 0)
+  v[0].x = 1 v[0].y = 2
+  v[1].x = 3 v[1].y = 4
+  assert(v[0].x == 1 and v[0].y == 2)
+  assert(v[1].x == 3 and v[1].y == 4)
+  allocator.delete(v)
+end
+
+do -- spannew with initialization
+  local v = allocator.spannew((@vec2){1,2}, 2)
+  assert(#v == 2)
+  assert(v[0].x == 1 and v[0].y == 2)
+  assert(v[1].x == 1 and v[1].y == 2)
   v[0].x = 1 v[0].y = 2
   v[1].x = 3 v[1].y = 4
   assert(v[0].x == 1 and v[0].y == 2)

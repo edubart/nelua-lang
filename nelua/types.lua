@@ -1450,8 +1450,8 @@ function ConceptType:_init(func)
   self.func = func
 end
 
-function ConceptType:is_convertible_from_attr(attr, explicit)
-  local type, err = self.func(attr, explicit)
+function ConceptType:is_convertible_from_attr(attr, _, argattrs)
+  local type, err = self.func(attr, argattrs)
   if type == true then
     assert(attr.type)
     type = attr.type

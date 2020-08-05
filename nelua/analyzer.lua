@@ -112,13 +112,13 @@ function visitors.Varargs(_, node)
   node.done = true
 end
 
-local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype)
+local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype, conceptargs)
   if not vartype or not valtype then
     -- convert possible only when types are known
     return valnode, valtype
   end
   if vartype.is_concept then
-    vartype = vartype:is_convertible_from_attr(valnode.attr)
+    vartype = vartype:is_convertible_from_attr(valnode.attr, nil, conceptargs)
     if not vartype then
       -- concept failed
       return valnode, valtype
@@ -897,6 +897,10 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
   if calleetype then
     if calleetype.is_procedure then
       -- function call
+      local argattrs = {}
+      for i=1,#argnodes do
+        argattrs[i] = argnodes[i].attr
+      end
       local calleename = calleesym and calleesym.name or calleetype
       local funcargtypes = calleetype.argtypes
       local funcargattrs = calleetype.argattrs or calleetype.args
@@ -905,7 +909,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       if calleeobjnode then
         pseudoargtypes = tabler.icopy(funcargtypes)
         pseudoargattrs = tabler.icopy(funcargattrs)
-        local ok, err = funcargtypes[1]:is_convertible_from_attr(calleeobjnode.attr)
+        local ok, err = funcargtypes[1]:is_convertible_from_attr(calleeobjnode.attr, nil, argattrs)
         if not ok then
           node:raisef("in call of function '%s' at argument %d: %s",
             calleetype, 1, err)
@@ -931,7 +935,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           argnode.desiredtype = argnode.desiredtype or funcargtype
           context:traverse_node(argnode)
           argtype = argnode.attr.type
-          argnode, argtype = visitor_convert(context, argnodes, i, funcargtype, argnode, argtype)
+          argnode, argtype = visitor_convert(context, argnodes, i, funcargtype, argnode, argtype, argattrs)
           if argtype then
             arg = argnode.attr
           end
@@ -948,7 +952,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           if traits.is_type(arg) then
             argattr = Attr{type=arg}
           end
-          local wantedtype, err = funcargtype:is_convertible_from_attr(argattr)
+          local wantedtype, err = funcargtype:is_convertible_from_attr(argattr, nil, argattrs)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
               calleename, i, err)
@@ -962,7 +966,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           funcargtype = wantedtype
 
           -- check again the new type
-          wantedtype, err = funcargtype:is_convertible_from_attr(argattr)
+          wantedtype, err = funcargtype:is_convertible_from_attr(argattr, nil, argattrs)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
               calleename, i, err)

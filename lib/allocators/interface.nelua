@@ -1,6 +1,8 @@
 require 'span'
 
 ## function implement_allocator_interface(allocator)
+  local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport'memcpy',cinclude'<string.h>',nodecl> end
+
   local is_span = #[concept(function(x) return x.type.is_span end)]#
   local allocator = #[allocator]#
 
@@ -52,21 +54,39 @@ require 'span'
     allocator.dealloc(s.data)
   end
 
-  function allocator.new(T: type, size: #[optional_concept(usize)]#)
-    ## if not size.type.is_niltype then
+  function allocator.spannew(what: auto, size: usize) <inline>
+    ## if what.type.is_type then
+      local T = what
       local spn: span(T) = allocator.spanalloc0(T, size)
       check(spn.size > 0_u, 'allocator.new: out of memory')
-      return spn
     ## else
+      local T = #[what.type]#
+      local spn: span(T) = allocator.spanalloc(T, size)
+      check(spn.size > 0_u, 'allocator.new: out of memory')
+      for i:usize=0,<size do
+        memcpy(&spn[i], &what, #T)
+      end
+    ## end
+    return spn
+  end
+
+  function allocator.new(what: auto) <inline>
+    ## if what.type.is_type then
+      local T = what
       local ptr: T* = (@T*)(allocator.alloc0(#T))
       check(ptr ~= nilptr, 'allocator.new: out of memory')
-      return ptr
+    ## else
+      local T = #[what.type]#
+      local ptr: T* = (@T*)(allocator.alloc(#T))
+      check(ptr ~= nilptr, 'allocator.new: out of memory')
+      memcpy(ptr, &what, #T)
     ## end
+    return ptr
   end
 
   function allocator.delete(s: #[concept(function(x)
     return x.type.is_pointer or x.type.is_span end
-  )]#)
+  )]#) <inline>
     ## if s.type.is_span then
       allocator.spandealloc(s)
     ## else -- pointer
