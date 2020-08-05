@@ -120,6 +120,32 @@ require 'memory'
     return ret
   end
 
+  -- Removes the first item from the vector whose value is given.
+  -- The remaining elements are shifted.
+  -- Ruturns true if the an item was removed and false otherwise.
+  function vectorT:remove_value(v: T): boolean
+    for i:usize=0,<self.size do
+      if self.data[i] == v then
+        self:remove(i)
+        return true
+      end
+    end
+    return false
+  end
+
+  -- Removes all elements from the vector where `pred` function returns true.
+  -- The remaining elements are shifted.
+  function vectorT:remove_if(pred: #[concept(function(x) return x.type.is_function end)]#)
+    local j: usize = 0
+    for i:usize=0,<self.size do
+      if not pred(self.data[i]) then
+        self.data[j] = memory.moveval(&self.data[i])
+        j = j + 1
+      end
+    end
+    self.size = j
+  end
+
   -- Returns the number of elements the vector can store before triggering a reallocation.
   function vectorT:capacity(): isize <inline,nosideeffect>
     return (@isize)(self.data.size)

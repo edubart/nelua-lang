@@ -98,6 +98,16 @@ do -- remove_value
   seq:destroy()
 end
 
+do -- remove_if
+  local seq: sequence(integer) = {1,2,3,4,5,7,8,9}
+  local function is_odd(x: integer) return x % 2 == 1 end
+  seq:remove_if(is_odd)
+  assert(#seq == 3 and seq[1] == 2 and seq[2] == 4 and seq[3] == 8)
+  local function is_even(x: integer) return x % 2 == 0 end
+  seq:remove_if(is_even)
+  assert(#seq == 0)
+end
+
 do -- insert
   local seq: sequence(integer)
   seq:insert(1, 3)

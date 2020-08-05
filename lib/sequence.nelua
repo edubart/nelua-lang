@@ -156,6 +156,20 @@ require 'memory'
     return false
   end
 
+  -- Removes all elements from the sequence where `pred` function returns true.
+  -- The remaining elements are shifted.
+  function sequenceT:remove_if(pred: #[concept(function(x) return x.type.is_function end)]#)
+    if not self.impl then return end
+    local j: usize = 1
+    for i:usize=1,self.impl.size do
+      if not pred(self.impl.data[i]) then
+        self.impl.data[j] = memory.moveval(&self.impl.data[i])
+        j = j + 1
+      end
+    end
+    self.impl.size = j - 1
+  end
+
   -- Returns the number of elements the sequence can store before triggering a reallocation.
   function sequenceT:capacity(): isize <inline,nosideeffect>
     if unlikely(not self.impl or self.impl.data.size == 0) then return 0 end

@@ -1493,12 +1493,12 @@ it("generics", function()
   ]], "is invalid for generics")
   assert.analyze_error([[
     local x = @integer(integer)
-  ]], "doesn't hold a generic type")
+  ]], "not a generic type")
   assert.analyze_error([[
     local myarray = #[generic(function() end)]#
     local i = 1
     local x = @integer(i)
-  ]], "doesn't hold a generic type")
+  ]], "not a generic type")
   assert.analyze_error([[
     local myarray = #[generic(function() end)]#
     local x = myarray(integer)

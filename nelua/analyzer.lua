@@ -725,7 +725,7 @@ function visitors.GenericType(context, node)
   local name, argnodes = node[1], node[2]
   local symbol = context.scope.symbols[name]
   if not symbol or not symbol.type or not symbol.type.is_type or not symbol.value.is_generic then
-    node:raisef("symbol '%s' doesn't hold a generic type", name)
+    node:raisef("symbol '%s' not defined or not a generic type", name)
   end
   local params = {}
   for i=1,#argnodes do
