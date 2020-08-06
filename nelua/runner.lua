@@ -13,8 +13,6 @@ local except = require 'nelua.utils.except'
 local executor = require 'nelua.utils.executor'
 local configer = require 'nelua.configer'
 local syntaxdefs = require 'nelua.syntaxdefs'
-local analyzer = require 'nelua.analyzer'
-local AnalyzerContext = require 'nelua.analyzercontext'
 
 local runner = {}
 
@@ -59,6 +57,10 @@ local function run(argv, redirect)
     console.info(tostring(ast))
     return 0
   end
+
+  -- this is required here because the config may affect how they load
+  local analyzer = require 'nelua.analyzer'
+  local AnalyzerContext = require 'nelua.analyzercontext'
 
   -- analyze the ast
   -- profiler.start()
