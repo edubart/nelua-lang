@@ -245,6 +245,9 @@ local function emit_type_attributes(decemitter, type)
   if type.aligned then
     decemitter:add(' __attribute__((aligned(', type.aligned, ')))')
   end
+  if type.packed then
+    decemitter:add(' __attribute__((packed))')
+  end
 end
 
 typevisitors[types.ArrayType] = function(context, type)

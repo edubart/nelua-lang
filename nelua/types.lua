@@ -1117,7 +1117,7 @@ local function compute_pad(size, align)
   return align - (size % align)
 end
 
-local function compute_record_size(fields, pack)
+local function compute_record_size(fields, packed, aligned)
   local nfields = #fields
   local size = 0
   local align = 0
@@ -1129,13 +1129,17 @@ local function compute_record_size(fields, pack)
     local fsize = ftype.size
     local falign = ftype.align or fsize
     align = math.max(align, falign)
-    if not pack then
+    if not packed then
       size = size + compute_pad(size, falign)
     end
     size = size + fsize
   end
-  if not pack then
+  if not packed then
     size = size + compute_pad(size, align)
+  end
+  if aligned then
+    size = size + compute_pad(size, aligned)
+    align = math.max(aligned, align)
   end
   return size, align
 end
@@ -1157,6 +1161,10 @@ function RecordType:_init(fields, node)
   self.align = align
 end
 
+function RecordType:_update_sizealign()
+  self.size, self.align = compute_record_size(self.fields, self.packed, self.aligned)
+end
+
 function RecordType:add_field(name, type, index)
   local fields = self.fields
   local field = {name = name, type = type}
@@ -1168,7 +1176,7 @@ function RecordType:add_field(name, type, index)
   end
   field.index = index
   self.fields[field.name] = field
-  self.size, self.align = compute_record_size(fields)
+  self:_update_sizealign()
 end
 
 function RecordType:get_field(name)

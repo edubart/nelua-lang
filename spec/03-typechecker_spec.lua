@@ -1499,6 +1499,10 @@ it("generics", function()
     local x = @proxy(integer)
   ]], 'my fail')
   assert.analyze_error([[
+    local proxy = 1
+    local x = @proxy(integer)
+  ]], 'is not a type')
+  assert.analyze_error([[
     local myarray = #[generic(function(T, N) return types.ArrayType(T, N) end)]#
     local M: integer = 4
     local x = @myarray(integer, (M))
@@ -1510,12 +1514,12 @@ it("generics", function()
   ]], "is invalid for generics")
   assert.analyze_error([[
     local x = @integer(integer)
-  ]], "not a generic type")
+  ]], "cannot generalize")
   assert.analyze_error([[
     local myarray = #[generic(function() end)]#
     local i = 1
     local x = @integer(i)
-  ]], "not a generic type")
+  ]], "cannot generalize")
   assert.analyze_error([[
     local myarray = #[generic(function() end)]#
     local x = myarray(integer)

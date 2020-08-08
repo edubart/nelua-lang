@@ -1987,7 +1987,10 @@ it("annotations", function()
   assert.generate_c("do local a <static> = 1 end", "static int64_t a = 1;", true)
   assert.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t a __attribute__((vector_size(16)))")
   assert.generate_c("local a: number <cqualifier 'in'> = 1", "in double a = 1.0;")
-  assert.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R", "__attribute__((aligned(16)));")
+  assert.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R",
+    {"__attribute__((aligned(16)));", "sizeof(R) == 16"})
+  assert.generate_c("local R <packed> = @record{x: integer, y: byte}; local r: R",
+    {"__attribute__((packed));", "sizeof(R) == 9"})
   assert.generate_c("local function f() <inline> end", "inline void")
   assert.generate_c("local function f() <noreturn> end", "nelua_noreturn void")
   assert.generate_c("local function f() <noinline> end", "nelua_noinline void")

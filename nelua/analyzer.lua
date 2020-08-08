@@ -438,6 +438,10 @@ function visitors.Annotation(context, node, symbol)
     local codename = context:choose_codename(nickname)
     symbol.codename = codename
     type:set_codename(codename)
+  elseif name == 'packed' or name == 'aligned' then
+    if objattr._type then
+      objattr:_update_sizealign()
+    end
   end
 
   node.done = true
@@ -724,8 +728,12 @@ function visitors.GenericType(context, node)
   local attr = node.attr
   local name, argnodes = node[1], node[2]
   local symbol = context.scope.symbols[name]
-  if not symbol or not symbol.type or not symbol.type.is_type or not symbol.value.is_generic then
-    node:raisef("symbol '%s' not defined or not a generic type", name)
+  if not symbol or not symbol.type or not symbol.type.is_type then
+    node:raisef("in generic evaluation: symbol '%s' is not a type", name)
+  end
+  local generic_type = symbol.value.is_generic and symbol.value or symbol.value.generic
+  if not generic_type or not traits.is_type(generic_type) or not generic_type.is_generic then
+    node:raisef("in generic evaluation: symbol '%s' of type '%s' cannot generalize", name, symbol.type)
   end
   local params = {}
   for i=1,#argnodes do
@@ -733,7 +741,7 @@ function visitors.GenericType(context, node)
     context:traverse_node(argnode)
     local argattr = argnode.attr
     if not (argattr.comptime or argattr.type.is_comptime) then
-      node:raisef("in generic '%s': argument #%d isn't a compile time value", name, i)
+      node:raisef("in generic evaluation '%s': argument #%d isn't a compile time value", name, i)
     end
     local value = argattr.value
     if bn.isnumeric(value) then
@@ -747,7 +755,7 @@ function visitors.GenericType(context, node)
     end
     params[i] = value
   end
-  local type, err = symbol.value:eval_type(params)
+  local type, err = generic_type:eval_type(params)
   if err then
     if except.isexception(err) then
       except.reraise(err)
