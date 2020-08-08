@@ -74,6 +74,26 @@ function stringview.byte(self: stringview, i: #[optional_concept(isize)]#): byte
   return (@byte)(self.data[i-1])
 end
 
+-- Return a sub string view from this string view.
+-- NOTE: Use with caution, when using the GC the view will not hold reference
+-- on the original string, and the data may be collect. To be safe use string.sub
+-- instead unless you want to optimize allocations and you know what you are doing.
+function stringview.subview(self: stringview, i: isize, j: #[optional_concept(isize)]#): stringview
+  ## if j.type.is_niltype then
+  local j: isize = -1
+  ## end
+  if unlikely(self.size == 0) then return self end
+  if unlikely(i < 0) then i = (@isize)(self.size) + i + 1 end
+  if unlikely(i <= 0) then i = 1 end
+  if unlikely(j < 0) then j = (@isize)(self.size) + j + 1 end
+  if unlikely(j > self.size) then j = (@isize)(self.size) end
+  if unlikely(i == 1 and j == self.size) then return self end
+  if unlikely(i > j) then return (@stringview){} end
+  local size: usize = (@usize)(j - i + 1)
+  if unlikely(size == 0) then return (@stringview){} end
+  return (@stringview){data=&self.data[i-1], size=size}
+end
+
 -- Search for the first match of a pattern in the string.
 function stringview.find(self: stringview,
                          pattern: stringview,

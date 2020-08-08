@@ -110,7 +110,7 @@ function AnalyzerContext:traceback()
   local ss = sstream()
   for i=1,#nodes-1 do
     local node = nodes[i]
-    if node.tag ~= 'Block' then
+    if node._astnode and node.tag ~= 'Block' then
       ss:add(node:format_message('from', 'AST node %s', node.tag))
     end
   end

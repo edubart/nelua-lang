@@ -3,14 +3,14 @@
 
 require 'span'
 require 'memory'
-require 'allocators.generic'
+require 'allocators.general'
 
 ## pragmas.nochecks = true
 
 local jmp_buf <cimport,cinclude'<setjmp.h>',nodecl> = @record{dummy: usize}
 local function setjmp(env: jmp_buf) <cimport,cinclude'<setjmp.h>',nodecl> end
 
-local allocator = @generic_allocator
+local allocator: auto = general_allocator
 
 global GCFlags = @enum(usize) {
   MARK = 1,
@@ -176,7 +176,7 @@ function GC:_rehash(newsize: usize): boolean
   local oldsize: usize = self.nslots
 
   self.nslots = newsize
-  self.items = allocator.spanalloc0(@GCItem, self.nslots)
+  self.items = allocator:spanalloc0(@GCItem, self.nslots)
 
   if self.items.size == 0 then
     self.nslots = oldsize
@@ -189,7 +189,7 @@ function GC:_rehash(newsize: usize): boolean
       self:_add_ptr(olditems[i].ptr, olditems[i].size, olditems[i].flags, olditems[i].finalizer)
     end
   end
-  allocator.spandealloc(olditems)
+  allocator:spandealloc(olditems)
   return true
 end
 
@@ -305,8 +305,8 @@ function GC:_sweep() <noinline>
     end
   end
 
-  self.frees = allocator.spanrealloc(self.frees, self.nfrees)
-  if self.frees.size == 0 then
+  self.frees = allocator:spanrealloc(self.frees, self.nfrees)
+  if self.frees.size ~= self.nfrees then
     return
   end
 
@@ -348,11 +348,11 @@ function GC:_sweep() <noinline>
       if self.frees[j].finalizer then
         self.frees[j].finalizer(self.frees[j].ptr)
       end
-      allocator.dealloc(self.frees[j].ptr)
+      allocator:dealloc(self.frees[j].ptr)
     end
   end
 
-  allocator.spandealloc(self.frees)
+  allocator:spandealloc(self.frees)
   self.frees = {}
   self.nfrees = 0
 end
@@ -369,8 +369,8 @@ end
 function GC:stop()
   self:_unmark_all()
   self:_sweep()
-  allocator.spandealloc(self.items)
-  allocator.spandealloc(self.frees)
+  allocator:spandealloc(self.items)
+  allocator:spandealloc(self.frees)
   $self = {}
   self.paused = true
 end
@@ -420,7 +420,7 @@ end
 function GC:_alloc(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerCallback): pointer <inline>
   if ptr then
     if not self:add(ptr, size, flags, finalizer) then
-      allocator.dealloc(ptr)
+      allocator:dealloc(ptr)
       ptr = nilptr
     end
   end
@@ -428,20 +428,22 @@ function GC:_alloc(ptr: pointer, size: usize, flags: usize, finalizer: Finalizer
 end
 
 function GC:alloc_opt(size: usize, flags: usize, finalizer: FinalizerCallback): pointer
-  local ptr: pointer = allocator.alloc(size)
+  local ptr: pointer = allocator:alloc(size)
   return self:_alloc(ptr, size, flags, finalizer)
 end
 
 function GC:alloc0_opt(size: usize, flags: usize, finalizer: FinalizerCallback): pointer
-  local ptr: pointer = allocator.alloc0(size)
+  local ptr: pointer = allocator:alloc0(size)
   return self:_alloc(ptr, size, flags, finalizer)
 end
 
 function GC:alloc(size: usize): pointer
+  check(size > 0_u, 'GCAllocator.alloc: size cannot be zero')
   return self:alloc_opt(size, 0, nilptr)
 end
 
 function GC:alloc0(size: usize): pointer
+  check(size > 0_u, 'GCAllocator.alloc0: size must be greater than 0')
   return self:alloc0_opt(size, 0, nilptr)
 end
 
@@ -453,7 +455,7 @@ function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer <inline>
 
   if not ptr then
     if not self:add(qtr, size, 0, nilptr) then
-      allocator.dealloc(qtr)
+      allocator:dealloc(qtr)
       qtr = nilptr
     end
     return qtr
@@ -475,12 +477,14 @@ function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer <inline>
 end
 
 function GC:realloc(ptr: pointer, size: usize): pointer
-  local qtr: pointer = allocator.realloc(ptr, size)
+  local qtr: pointer = allocator:realloc(ptr, size)
+  if not qtr then return nilptr end
   return self:_realloc(qtr, ptr, size)
 end
 
 function GC:realloc0(ptr: pointer, size: usize, oldsize: usize): pointer
-  local qtr: pointer = allocator.realloc0(ptr, size, oldsize)
+  local qtr: pointer = allocator:realloc0(ptr, size, oldsize)
+  if not qtr then return nilptr end
   return self:_realloc(qtr, ptr, size)
 end
 
@@ -490,7 +494,7 @@ function GC:dealloc(ptr: pointer)
     if p.finalizer then
       p.finalizer(ptr)
     end
-    allocator.dealloc(ptr)
+    allocator:dealloc(ptr)
     self:rem(ptr)
   end
 end
@@ -534,28 +538,28 @@ end
 
 require 'allocators.interface'
 
-global gc_allocator = @record{}
+global GCAllocator = @record{}
 
-function gc_allocator.alloc(size: usize): pointer
-  check(size > 0_u, 'gc_allocator.alloc: size cannot be zero')
+function GCAllocator:alloc(size: usize): pointer
   return gc:alloc(size)
 end
 
-function gc_allocator.alloc0(size: usize): pointer
-  check(size > 0_u, 'gc_allocator.alloc0: size must be greater than 0')
+function GCAllocator:alloc0(size: usize): pointer
   return gc:alloc0(size)
 end
 
-function gc_allocator.realloc(p: pointer, size: usize): pointer
+function GCAllocator:realloc(p: pointer, size: usize): pointer
   return gc:realloc(p, size)
 end
 
-function gc_allocator.realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
+function GCAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
   return gc:realloc0(p, newsize, oldsize)
 end
 
-function gc_allocator.dealloc(p: pointer)
+function GCAllocator:dealloc(p: pointer)
   gc:dealloc(p)
 end
 
-## implement_allocator_interface(gc_allocator)
+## implement_allocator_interface(GCAllocator)
+
+global gc_allocator: GCAllocator

@@ -1,0 +1,247 @@
+-- String Builder
+--
+-- This class is used to build dynamic sized strings, configurable with custom allocators.
+-- Use it when you don't want to use the GC and want to manage your strings memory.
+--
+-- It is used by string class to compose formatted strings.
+
+require 'span'
+require 'memory'
+
+-- C imports
+local function strchr(s: cstring, c: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
+local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
+local function strcpy(dest: cstring, src: cstring): cstring <cimport,cinclude'<string.h>',nodecl> end
+local function snprintf_1ci(s: cstring, maxlen: csize, format: cstring, x: cint): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf_1i(s: cstring, maxlen: csize, format: cstring, x: integer): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf_1p(s: cstring, maxlen: csize, format: cstring, x: pointer): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf_1n(s: cstring, maxlen: csize, format: cstring, x: number): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf_1cs(s: cstring, maxlen: csize, format: cstring, x: cstring): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+
+-- format utilities
+local MAX_FORMAT <comptime> = 32
+
+local function scanformat(strfmt: byte[0]*, form: byte[MAX_FORMAT]*): usize
+  local L_FMTFLAGS: stringview <const> = "-+ #0"
+  local p: usize = 0
+  while strfmt[p] ~= 0 and strchr(L_FMTFLAGS, strfmt[p]) ~= nilptr do
+    p = p + 1  -- skip flags
+  end
+  if p >= #L_FMTFLAGS + 1 then
+    error("scanformat: invalid format (repeated flags)")
+  end
+  if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- skip width
+  if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- (2 digits at most)
+  if strfmt[p] == '.'_byte then
+    p = p + 1
+    if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- skip precision
+    if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- (2 digits at most)
+  end
+  if isdigit(strfmt[p]) ~= 0 then
+    error("scanformat: invalid format (width or precision too long)")
+  end
+  form[0] = '%'_byte
+  memory.copy(&form[1], &strfmt[0], p + 1)
+  form[p + 2] = 0
+  return p
+end
+
+local function addlenmod(form: byte[MAX_FORMAT]*, lenmod: cstring, lenmodsize: csize)
+  local l: csize = strlen(&form[0])
+  local spec: byte = form[l - 1]
+  strcpy(&form[l - 1], lenmod)
+  form[l + lenmodsize - 1] = spec
+  form[l + lenmodsize] = 0
+end
+
+-- the string builder with custom allocators
+## local make_generic_stringbuilder = generalize(function(Allocator)
+  ## if not Allocator then
+  require 'allocators.default'
+  ## Allocator = DefaultAllocator
+  ## end
+
+  local Allocator: type = #[Allocator]#
+
+  local INIT_CAPACITY <comptime> = 128
+
+  local stringbuilderA = @record {
+    data: span(byte),
+    size: usize,
+    allocator: Allocator
+  }
+
+  function stringbuilderA:destroy()
+    self.allocator:spandealloc(self.data)
+    $self = (@stringbuilderA)()
+  end
+
+  function stringbuilderA:clear()
+    memory.spanzero(self.data)
+    self.size = 0
+  end
+
+  function stringbuilderA:prepare(size: usize): byte[0]*
+    -- allocate 1 additional byte to allow casting to cstring
+    local needed: usize = self.size + size + 1
+    local cap: usize = self.data.size
+    if unlikely(needed > cap) then
+      if unlikely(cap == 0) then
+        cap = INIT_CAPACITY
+      end
+      repeat cap = cap * 2 until cap >= needed
+      self.data = self.allocator:spanrealloc0(self.data, cap)
+      if unlikely(self.data.size ~= cap) then
+        -- reallocation failed, try to allocate the minimum
+        self.data = self.allocator:spanrealloc0(self.data, needed)
+        if self.data.size ~= needed then
+          return nilptr
+        end
+      end
+    end
+    return (@byte[0]*)(&self.data[self.size])
+  end
+
+  function stringbuilderA:commit(size: usize)
+    local newsize: usize = self.size + size
+    check(newsize <= self.data.size, 'stringbuilder.commit: not enough space in string buffer')
+    self.size = newsize
+  end
+
+  function stringbuilderA:write_byte(c: byte): boolean
+    local p: byte[0]* = self:prepare(1)
+    if unlikely(p == nilptr) then return false end
+    p[0] = c
+    self.size = self.size + 1
+    return true
+  end
+
+  function stringbuilderA:write_string(s: stringview): boolean
+    local p: byte[0]* = self:prepare(s.size)
+    if unlikely(p == nilptr) then return false end
+    memory.copy(p, s.data, s.size)
+    self.size = self.size + s.size
+    return true
+  end
+
+  function stringbuilderA:write_format(fmt: stringview, arg1: auto): boolean
+    -- TODO: properly handle multiple arguments
+    local L_ESC: byte <comptime> = '%'_byte
+    local MAX_ITEM <comptime> = 120
+    local pos: usize = 0
+    local argi: integer = 0
+    while pos < fmt.size do
+      local c: byte = fmt.data[pos]
+      pos = pos + 1
+      if c ~= L_ESC then
+        if not self:write_byte(c) then return false end
+      else
+        c = fmt.data[pos]
+        if c == L_ESC then -- %%
+          if not self:write_byte(L_ESC) then return false end
+          pos = pos + 1
+        else -- format item
+          local form: byte[MAX_FORMAT] -- to store the format ('%...')
+          local maxitem: usize = MAX_ITEM
+          local buff: cstring = (@cstring)(self:prepare(MAX_ITEM)) -- to put formatted item
+          if not buff then
+            return false
+          end
+          local nb: cint = 0 -- number of bytes in added item
+          -- scan format
+          pos = pos + scanformat(&fmt.data[pos], &form)
+          c = fmt.data[pos]
+          pos = pos + 1
+          argi = argi + 1
+          assert(argi == 1, 'string.format: format with multiple arguments not supported yet')
+          ## if primtypes.cint:is_convertible_from(arg1.type) then
+            if c == 'c'_byte then
+              local n: cint = (@cint)(arg1)
+              nb = snprintf_1ci(buff, maxitem, &form[0], n)
+              goto next
+            end
+          ## end if primtypes.integer:is_convertible_from(arg1.type) then
+            if c == 'd'_byte or
+               c == 'i'_byte or
+               c == 'o'_byte or
+               c == 'u'_byte or
+               c == 'x'_byte or
+               c == 'X'_byte then
+              local lenmod: cstring <noinit>
+              ##[[
+                cinclude '<inttypes.h>'
+                cemit('lenmod = PRIi' .. primtypes.integer.bitsize .. ';')
+              ]]
+              addlenmod(&form, lenmod, strlen(lenmod) - 1)
+              local n: integer = (@integer)(arg1)
+              nb = snprintf_1i(buff, maxitem, &form[0], n)
+              goto next
+            end
+          ## end if primtypes.number:is_convertible_from(arg1.type) then
+            if c == 'a'_byte or
+               c == 'A'_byte or
+               c == 'f'_byte or
+               c == 'e'_byte or
+               c == 'E'_byte or
+               c == 'g'_byte or
+               c == 'G'_byte then
+              local n: number = (@number)(arg1)
+              nb = snprintf_1n(buff, maxitem, &form[0], n)
+              goto next
+            end
+          ## end if primtypes.pointer:is_convertible_from(arg1.type) then
+            if c == 'p'_byte then
+              local p: pointer = (@pointer)(arg1)
+              if p == nilptr then
+                strcpy(buff, "(null)")
+                nb = 6
+              else
+                nb = snprintf_1p(buff, maxitem, &form[0], p)
+              end
+              goto next
+            end
+          ## end if arg1.type.is_stringy then
+            if c == 's'_byte then
+              local s: stringview = arg1
+              maxitem = s.size + 1
+              buff = (@cstring)(self:prepare(maxitem))
+              if not buff then
+                return false
+              end
+              nb = snprintf_1cs(buff, maxitem, &form[0], arg1)
+              goto next
+            end
+          ## end
+          error('string.format: invalid conversion for format argument')
+  ::next::
+          assert(nb >= 0 and nb < maxitem,
+            'string.format: unexpect number of bytes written in sprintf')
+          self:commit((@usize)(nb))
+        end
+      end
+    end
+    return true
+  end
+
+  function stringbuilderA:__tocstring(): cstring <inline,nosideeffect>
+    if unlikely(self.size == 0) then return (@cstring)('') end
+    return (@cstring)(&self.data[0])
+  end
+
+  function stringbuilderA:__tostringview() <inline,nosideeffect>
+    if unlikely(self.size == 0) then return (@stringview){} end
+    return (@stringview){data = &self.data[0], size = self.size}
+  end
+
+  ## return stringbuilderA
+## end)
+
+global stringbuilder: type = #[make_generic_stringbuilder()]#
+
+-- this allows instantiating `stringbuilder` as generic too
+## stringbuilder.value.generic = types.GenericType(make_generic_stringbuilder)
+
+function stringbuilder.make(allocator: auto)
+  return (@stringbuilder(#[allocator.type]#)){allocator = allocator}
+end

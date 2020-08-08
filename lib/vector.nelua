@@ -9,18 +9,19 @@
 
 require 'memory'
 
-## local make_vector = generalize(function(T, allocator)
+## local make_generic_vector = generalize(function(T, Allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
-  ## if not allocator then
+  ## if not Allocator then
   require 'allocators.default'
-  ## allocator = default_allocator
+  ## Allocator = DefaultAllocator
   ## end
 
-  local allocator: type = #[allocator]#
-  local T = @#[T]#
+  local Allocator: type = #[Allocator]#
+  local T: type = @#[T]#
   local vectorT <nickname #[string.format('vector(%s)', T)]#> = @record {
     size: usize,
-    data: span(T)
+    data: span(T),
+    allocator: Allocator
   }
 
   ##[[
@@ -34,8 +35,8 @@ require 'memory'
   function vectorT:_grow()
     local cap: usize = 1
     if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
-    self.data = allocator.spanrealloc0(self.data, cap)
-    check(self.data.size > 0_u, 'vector._grow: out of memory')
+    self.data = self.allocator:spanrealloc0(self.data, cap)
+    check(self.data.size == cap, 'vector._grow: out of memory')
   end
 
   -- Removes all elements from the vector.
@@ -50,15 +51,15 @@ require 'memory'
   -- This is more useful to free resources when not using the garbage collector.
   function vectorT:destroy()
     self:clear()
-    allocator.spandealloc(self.data)
+    self.allocator:spandealloc(self.data)
     $self = (@vectorT)()
   end
 
   -- Reserve at least `n` elements in the vector storage.
   function vectorT:reserve(n: usize)
     if likely(self.data.size >= n) then return end
-    self.data = allocator.spanrealloc0(self.data, n)
-    check(self.data.size > 0_u, 'vector.reserve: out of memory')
+    self.data = self.allocator:spanrealloc0(self.data, n)
+    check(self.data.size == n, 'vector.reserve: out of memory')
   end
 
   -- Resizes the vector so that it contains `n` elements.
@@ -180,4 +181,4 @@ require 'memory'
   ## return vectorT
 ## end)
 
-global vector: type = #[make_vector]#
+global vector: type = #[make_generic_vector]#

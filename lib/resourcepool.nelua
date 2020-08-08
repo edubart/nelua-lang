@@ -19,22 +19,23 @@
 -- in the pool and possibly invalidating all pointers.
 
 require 'memory'
-require 'allocators.generic'
+require 'allocators.general'
 
 -- Constants used in the slot pool.
 local SLOT_SHIFT <comptime> = 32
 local SLOT_MASK <comptime> = (1 << SLOT_SHIFT) - 1
 local INIT_SIZE <comptime> = 64
 
-## local make_slotpool = generalize(function(allocator)
-  local allocator: type = #[allocator]#
+## local make_generic_slotpool = generalize(function(Allocator)
+  local Allocator: type = #[Allocator]#
 
   -- Auxiliary class to allocate slot ids.
   local slotpool: type = @record {
     size: uint32, -- size of the slot pool
     queue_top: uint32, -- points to the next entry in the free queue
     gen_ctrs: span(uint32), -- generation counters indexable by pool slot index
-    free_queue: span(uint32) -- list of free slot indexes
+    free_queue: span(uint32), -- list of free slot indexes
+    allocator: Allocator
   }
 
   -- Reserve space in the slot pool.
@@ -43,11 +44,11 @@ local INIT_SIZE <comptime> = 64
     if size <= self.size then return end
     check(size > 0, 'size cannot be 0')
     -- slot 0 is reserved for the 'invalid id', so bump the pool size by 1
-    self.gen_ctrs = allocator.spanrealloc0(self.gen_ctrs, size+1)
-    check(#self.gen_ctrs > 0, 'out of memory')
+    self.gen_ctrs = self.allocator:spanrealloc0(self.gen_ctrs, size+1)
+    check(self.gen_ctrs.size == size+1, 'out of memory')
     -- can only reserve 'size' here
-    self.free_queue = allocator.spanrealloc0(self.free_queue, size)
-    check(#self.free_queue > 0, 'out of memory')
+    self.free_queue = self.allocator:spanrealloc0(self.free_queue, size)
+    check(self.free_queue.size == size, 'out of memory')
     -- never allocate the zero-th pool item since the invalid id is 0
     for i:uint32=size,self.size+1,-1 do
       self.free_queue[self.queue_top] = i
@@ -58,8 +59,8 @@ local INIT_SIZE <comptime> = 64
 
   -- Clean the slot pool and reset its state.
   function slotpool:destroy()
-    allocator.spandealloc(self.free_queue)
-    allocator.spandealloc(self.gen_ctrs)
+    self.allocator:spandealloc(self.free_queue)
+    self.allocator:spandealloc(self.gen_ctrs)
     self.size = 0
     self.queue_top = 0
     self.gen_ctrs = {}
@@ -123,21 +124,22 @@ local INIT_SIZE <comptime> = 64
 ## end)
 
 -- Macro to create a resource pool using the specified allocator.
-## local make_resourcepool = generalize(function(T, allocator, slot_allocator)
+## local make_generic_resourcepool = generalize(function(T, Allocator, SlotAllocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
-  ## if not allocator then
+  ## if not Allocator then
   require 'allocators.default'
-  ## allocator = default_allocator
+  ## Allocator = DefaultAllocator
   ## end
 
-  local slotpool: type = #[make_slotpool(slot_allocator or allocator)]#
-  local allocator: type = #[allocator]#
+  local slotpool: type = #[make_generic_slotpool(SlotAllocator or Allocator)]#
+  local Allocator: type = #[Allocator]#
   local T: type = @#[T]#
 
   -- The resource pool class specialyzed for type T.
   local resourcepoolT: type <nickname #[string.format('resourcepool(%s)', T)]#> = @record {
     slot_pool: slotpool, -- pool of slots id
-    items: span(T) -- span holding all resources
+    items: span(T), -- span holding all resources
+    allocator: Allocator
   }
 
   ##[[
@@ -150,8 +152,8 @@ local INIT_SIZE <comptime> = 64
     self.slot_pool:reserve(size)
     if self.items.size < self.slot_pool.gen_ctrs.size then
       -- slot pool has grown, allocate more space
-      self.items = allocator.spanrealloc0(self.items, self.slot_pool.gen_ctrs.size)
-      check(#self.items > 0, 'resourcepool.reserve: out of memory')
+      self.items = self.allocator:spanrealloc0(self.items, self.slot_pool.gen_ctrs.size)
+      check(self.items.size == self.slot_pool.gen_ctrs.size, 'resourcepool.reserve: out of memory')
     end
   end
 
@@ -163,7 +165,7 @@ local INIT_SIZE <comptime> = 64
       self.items[i] = (@T)()
     end
     self.slot_pool:destroy()
-    allocator.spandealloc(self.items)
+    self.allocator:spandealloc(self.items)
     self.items = {}
   end
 
@@ -193,8 +195,8 @@ local INIT_SIZE <comptime> = 64
     local slot_id: uint64, slot_index: uint32 = self.slot_pool:alloc_slot()
     if unlikely(self.items.size < self.slot_pool.gen_ctrs.size) then
       -- slot pool has grown, allocate more space
-      self.items = allocator.spanrealloc0(self.items, self.slot_pool.gen_ctrs.size)
-      check(#self.items > 0, 'resourcepool.alloc: out of memory')
+      self.items = self.allocator:spanrealloc0(self.items, self.slot_pool.gen_ctrs.size)
+      check(self.items.size == self.slot_pool.gen_ctrs.size, 'resourcepool.alloc: out of memory')
     end
     return slot_id, &self.items[slot_index]
   end
@@ -221,4 +223,4 @@ local INIT_SIZE <comptime> = 64
 ## end)
 
 -- The resource pool generic type.
-global resourcepool: type = #[make_resourcepool]#
+global resourcepool: type = #[make_generic_resourcepool]#

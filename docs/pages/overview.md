@@ -836,14 +836,14 @@ Memory can be allocated using C malloc and free.
 
 ```nelua
 require 'memory'
-require 'allocators.generic'
+require 'allocators.general'
 
 local Person = @record{name: string, age: integer}
-local p: Person* = generic_allocator.new(@Person)
+local p: Person* = general_allocator:new(@Person)
 p.name = "John"
 p.age = 20
 print(p.name, p.age)
-generic_allocator.delete(p)
+general_allocator:delete(p)
 p = nilptr
 ```
 

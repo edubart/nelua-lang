@@ -1,7 +1,7 @@
 require 'memory'
-require 'allocators.generic'
+require 'allocators.general'
 
-local allocator = @generic_allocator
+local allocator: auto = general_allocator
 
 -- utilities
 local vec2 = @record{x: integer, y: integer}
@@ -10,81 +10,81 @@ local vec2 = @record{x: integer, y: integer}
 -- raw pointers
 
 do -- alloc and dealloc
-  local p = allocator.alloc(4)
+  local p = allocator:alloc(4)
   assert(p)
-  allocator.dealloc(p)
+  allocator:dealloc(p)
   p = nilptr
-  allocator.dealloc(p)
+  allocator:dealloc(p)
 end
 
 do -- alloc0
-  local p = (@vec2*)(allocator.alloc0(#@vec2))
+  local p = (@vec2*)(allocator:alloc0(#@vec2))
   assert(p)
   assert(p.x == 0 and p.y == 0)
-  allocator.dealloc(p)
+  allocator:dealloc(p)
 end
 
 do -- realloc
-  local p = allocator.alloc(1)
+  local p = allocator:alloc(1)
   assert(p)
-  p = allocator.realloc(p, 4)
+  p = allocator:realloc(p, 4)
   assert(p)
-  p = allocator.realloc(p, 1)
+  p = allocator:realloc(p, 1)
   assert(p)
-  p = allocator.realloc(p, 0)
+  p = allocator:realloc(p, 0)
   assert(p == nilptr)
 end
 
 do -- realloc0
-  local p = (@vec2[0]*)(allocator.alloc0(#@vec2))
+  local p = (@vec2[0]*)(allocator:alloc0(#@vec2))
   assert(p)
   assert(p[0].x == 0 and p[0].y == 0)
   p[0] = vec2{x=1, y=2}
-  p = (@vec2[0]*)(allocator.realloc0(p, 2*#@vec2, #@vec2))
+  p = (@vec2[0]*)(allocator:realloc0(p, 2*#@vec2, #@vec2))
   assert(p)
   assert(p[0].x == 1 and p[0].y == 2)
   assert(p[1].x == 0 and p[1].y == 0)
-  p = (@vec2[0]*)(allocator.realloc0(p, #@vec2, #@vec2))
+  p = (@vec2[0]*)(allocator:realloc0(p, #@vec2, #@vec2))
   assert(p)
   assert(p[0].x == 1 and p[0].y == 2)
-  p = (@vec2[0]*)(allocator.realloc0(p, #@vec2, 0))
+  p = (@vec2[0]*)(allocator:realloc0(p, #@vec2, 0))
   assert(p)
   assert(p[0].x == 0 and p[0].y == 0)
-  p = (@vec2[0]*)(allocator.realloc0(p, 0, #@vec2))
+  p = (@vec2[0]*)(allocator:realloc0(p, 0, #@vec2))
   assert(p == nilptr)
 end
 
 do -- copy
-  local pa = (@vec2*)(allocator.alloc0(#@vec2))
-  local pb = (@vec2*)(allocator.alloc0(#@vec2))
+  local pa = (@vec2*)(allocator:alloc0(#@vec2))
+  local pb = (@vec2*)(allocator:alloc0(#@vec2))
   $pa = {x=1,y=2}
   memory.copy(pb, pa, #@vec2)
   assert(pb.x == 1 and pb.y == 2)
-  allocator.dealloc(pa)
-  allocator.dealloc(pb)
+  allocator:dealloc(pa)
+  allocator:dealloc(pb)
 end
 
 do -- move
-  local p = (@vec2[0]*)(allocator.alloc0(2*#@vec2))
+  local p = (@vec2[0]*)(allocator:alloc0(2*#@vec2))
   local pa, pb = &p[0], &p[1]
   $pa, $pb = {x=1,y=2}, {x=3,y=4}
   memory.move(&((@integer[0]*)(p))[1], p, 3 * #@integer)
   assert(pa.x == 1 and pa.y == 1 and pb.x == 2 and pb.y == 3)
-  allocator.dealloc(p)
+  allocator:dealloc(p)
 end
 
 do -- set and zero
-  local p = (@vec2*)(allocator.alloc0(#@vec2))
+  local p = (@vec2*)(allocator:alloc0(#@vec2))
   memory.set(p, 0xff, #@vec2)
   assert(p.x == 0xffffffffffffffff and p.y == 0xffffffffffffffff)
   memory.zero(p, #@vec2)
   assert(p.x == 0 and p.y == 0)
-  allocator.dealloc(p)
+  allocator:dealloc(p)
 end
 
 do -- compare
-  local pa = (@vec2*)(allocator.alloc0(#@vec2))
-  local pb = (@vec2*)(allocator.alloc0(#@vec2))
+  local pa = (@vec2*)(allocator:alloc0(#@vec2))
+  local pb = (@vec2*)(allocator:alloc0(#@vec2))
   assert(memory.compare(pa, pb, #@vec2) == 0)
   pa.x = 1 pb.x = 2
   assert(memory.compare(pa, pb, #@vec2) == -1)
@@ -92,31 +92,31 @@ do -- compare
   assert(memory.compare(pa, pb, #@vec2) == 1)
   pa.x = 2 pb.x = 2
   assert(memory.compare(pa, pb, #@vec2) == 0)
-  allocator.dealloc(pa)
-  allocator.dealloc(pb)
+  allocator:dealloc(pa)
+  allocator:dealloc(pb)
 end
 
 do -- equals
-  local pa = (@vec2*)(allocator.alloc0(#@vec2))
-  local pb = (@vec2*)(allocator.alloc0(#@vec2))
+  local pa = (@vec2*)(allocator:alloc0(#@vec2))
+  local pb = (@vec2*)(allocator:alloc0(#@vec2))
   assert(memory.equals(pa, pb, #@vec2))
   pa.x = 1
   assert(not memory.equals(pa, pb, #@vec2))
-  allocator.dealloc(pa)
-  allocator.dealloc(pb)
+  allocator:dealloc(pa)
+  allocator:dealloc(pb)
 end
 
 do -- scan
-  local p = (@vec2*)(allocator.alloc0(#@vec2))
+  local p = (@vec2*)(allocator:alloc0(#@vec2))
   p.x = 1 p.y = 2
   assert(memory.scan(p, 1, #@vec2) == &p.x)
   assert(memory.scan(p, 2, #@vec2) == &p.y)
   assert(memory.scan(p, 3, #@vec2) == nilptr)
-  allocator.dealloc(p)
+  allocator:dealloc(p)
 end
 
 do -- find
-  local p = (@vec2*)(allocator.alloc0(#@vec2))
+  local p = (@vec2*)(allocator:alloc0(#@vec2))
   p.x = 1 p.y = 2
   local x: integer, y: integer = 1, 2
   assert(memory.find(p, #@vec2, &x, #@integer) == &p.x)
@@ -124,99 +124,99 @@ do -- find
   assert(memory.find(&x, #@integer, p, #@vec2) == nilptr)
   assert(memory.find(p, #@vec2, p, #@vec2) == p)
   assert(memory.find(p, #@vec2, nilptr, 0) == p)
-  allocator.dealloc(p)
+  allocator:dealloc(p)
 end
 
 --------------------------------------------------------------------------------
 -- span
 
 do -- spanalloc and spandealloc
-  local p = allocator.spanalloc(@vec2, 2)
+  local p = allocator:spanalloc(@vec2, 2)
   assert(p.data ~= nilptr and p.size == 2)
-  allocator.spandealloc(p)
+  allocator:spandealloc(p)
   p = (@span(vec2)){}
   assert(p.data == nilptr and p.size == 0)
-  allocator.spandealloc(p)
-  p = allocator.spanalloc(@vec2, 0)
+  allocator:spandealloc(p)
+  p = allocator:spanalloc(@vec2, 0)
   assert(p.data == nilptr and p.size == 0)
 end
 
 do -- spanalloc0
-  local p = allocator.spanalloc0(@vec2, 2)
+  local p = allocator:spanalloc0(@vec2, 2)
   assert(p.data ~= nilptr and p.size == 2)
   assert(p[0].x == 0 and p[0].y == 0)
   assert(p[1].x == 0 and p[1].y == 0)
-  allocator.spandealloc(p)
-  p = allocator.spanalloc0(@vec2, 0)
+  allocator:spandealloc(p)
+  p = allocator:spanalloc0(@vec2, 0)
   assert(p.data == nilptr and p.size == 0)
 end
 
 do -- spanrealloc
-  local p = allocator.spanalloc(@vec2, 1)
+  local p = allocator:spanalloc(@vec2, 1)
   assert(p.data ~= nilptr and p.size == 1)
-  p = allocator.spanrealloc(p, 4)
+  p = allocator:spanrealloc(p, 4)
   assert(p.data ~= nilptr and p.size == 4)
-  p = allocator.spanrealloc(p, 1)
+  p = allocator:spanrealloc(p, 1)
   assert(p.data ~= nilptr and p.size == 1)
-  p = allocator.spanrealloc(p, 0)
+  p = allocator:spanrealloc(p, 0)
   assert(p.data == nilptr and p.size == 0)
-  allocator.spandealloc(p)
+  allocator:spandealloc(p)
   assert(p.data == nilptr and p.size == 0)
 end
 
 do -- spanrealloc0
-  local p = allocator.spanalloc0(@vec2, 1)
+  local p = allocator:spanalloc0(@vec2, 1)
   assert(p.data ~= nilptr and p.size == 1)
   assert(p[0].x == 0 and p[0].y == 0)
   p[0] = vec2{x=1, y=2}
-  p = allocator.spanrealloc0(p, 2)
+  p = allocator:spanrealloc0(p, 2)
   assert(p.data ~= nilptr and p.size == 2)
   assert(p[0].x == 1 and p[0].y == 2)
   assert(p[1].x == 0 and p[1].y == 0)
-  p = allocator.spanrealloc0(p, 1)
+  p = allocator:spanrealloc0(p, 1)
   assert(p.data ~= nilptr and p.size == 1)
   assert(p[0].x == 1 and p[0].y == 2)
-  p = allocator.spanrealloc0(p, 0)
+  p = allocator:spanrealloc0(p, 0)
   assert(p.data == nilptr and p.size == 0)
-  allocator.spandealloc(p)
+  allocator:spandealloc(p)
 end
 
 do -- spancopy
-  local pa = allocator.spanalloc0(@vec2, 1)
-  local pb = allocator.spanalloc0(@vec2, 1)
+  local pa = allocator:spanalloc0(@vec2, 1)
+  local pb = allocator:spanalloc0(@vec2, 1)
   pa[0] = {x=1,y=2}
   memory.spancopy(pb, pa)
   assert(pb[0].x == 1 and pb[0].y == 2)
-  allocator.spandealloc(pa)
-  allocator.spandealloc(pb)
+  allocator:spandealloc(pa)
+  allocator:spandealloc(pb)
 end
 
 do -- spanmove
-  local p = allocator.spanalloc0(@vec2, 2)
+  local p = allocator:spanalloc0(@vec2, 2)
   local pa, pb = &p[0], &p[1]
   $pa, $pb = {x=1,y=2}, {x=3,y=4}
   local sb = (@span(integer))({ data=(@integer[0]*)(p.data), size=3 })
   local db = (@span(integer))({ data=(@integer[0]*)(&((@integer[0]*)(p.data))[1]), size=3 })
   memory.spanmove(db, sb)
   --assert(pa.x == 1 and pa.y == 1 and pb.x == 2 and pb.y == 3)
-  allocator.spandealloc(p)
+  allocator:spandealloc(p)
 end
 
 do -- spanset and spanzero
-  local p = allocator.spanalloc0(@vec2, 2)
+  local p = allocator:spanalloc0(@vec2, 2)
   memory.spanset(p, (@vec2){x=1,y=2})
   assert(p[0].x == 1 and p[0].y == 2)
   assert(p[1].x == 1 and p[1].y == 2)
   memory.spanzero(p)
   assert(p[0].x == 0 and p[0].y == 0)
   assert(p[1].x == 0 and p[1].y == 0)
-  allocator.spandealloc(p)
+  allocator:spandealloc(p)
 end
 
 do -- spancompare
-  local pa = allocator.spanalloc0(@vec2, 1)
-  local pb = allocator.spanalloc0(@vec2, 1)
-  local pc = allocator.spanalloc0(@vec2, 0)
+  local pa = allocator:spanalloc0(@vec2, 1)
+  local pb = allocator:spanalloc0(@vec2, 1)
+  local pc = allocator:spanalloc0(@vec2, 0)
   assert(memory.spancompare(pa, pb) == 0)
   pa[0].x = 1 pb[0].x = 2
   assert(memory.spancompare(pa, pb) == -1)
@@ -228,50 +228,50 @@ do -- spancompare
   assert(memory.spancompare(pa, pb) == 0)
   assert(memory.spancompare(pa, pc) == 1)
   assert(memory.spancompare(pc, pa) == -1)
-  allocator.spandealloc(pa)
-  allocator.spandealloc(pb)
-  allocator.spandealloc(pc)
+  allocator:spandealloc(pa)
+  allocator:spandealloc(pb)
+  allocator:spandealloc(pc)
 end
 
 do -- spanequals
-  local pa = allocator.spanalloc0(@vec2, 1)
-  local pb = allocator.spanalloc0(@vec2, 1)
+  local pa = allocator:spanalloc0(@vec2, 1)
+  local pb = allocator:spanalloc0(@vec2, 1)
   assert(memory.spanequals(pa, pb))
   pa[0].x = 1
   assert(not memory.spanequals(pa, pb))
-  allocator.spandealloc(pa)
-  allocator.spandealloc(pb)
+  allocator:spandealloc(pa)
+  allocator:spandealloc(pb)
 end
 
 do -- spanfind
-  local p = allocator.spanalloc0(@vec2, 2)
+  local p = allocator:spanalloc0(@vec2, 2)
   p[0].x = 1 p[0].y = 2
   p[1].x = 3 p[1].y = 4
   assert(memory.spanfind(p, (@vec2){1,2}) == 0)
   assert(memory.spanfind(p, (@vec2){3,4}) == 1)
   assert(memory.spanfind(p, (@vec2){5,6}) == -1)
-  allocator.spandealloc(p)
+  allocator:spandealloc(p)
 end
 
 --------------------------------------------------------------------------------
 -- new and delete
 
 do -- new
-  local v = allocator.new(@vec2)
+  local v = allocator:new(@vec2)
   assert(v.x == 0 and v.y == 0)
   v.x = 1 v.y = 2
   assert(v.x == 1 and v.y == 2)
-  allocator.delete(v)
+  allocator:delete(v)
 end
 
 do -- new with initialization
-  local v = allocator.new((@integer)(2))
+  local v = allocator:new((@integer)(2))
   assert($v == 2)
-  allocator.delete(v)
+  allocator:delete(v)
 end
 
 do -- spannew
-  local v = allocator.spannew(@vec2, 2)
+  local v = allocator:spannew(@vec2, 2)
   assert(#v == 2)
   assert(v[0].x == 0 and v[0].y == 0)
   assert(v[1].x == 0 and v[1].y == 0)
@@ -279,11 +279,11 @@ do -- spannew
   v[1].x = 3 v[1].y = 4
   assert(v[0].x == 1 and v[0].y == 2)
   assert(v[1].x == 3 and v[1].y == 4)
-  allocator.delete(v)
+  allocator:delete(v)
 end
 
 do -- spannew with initialization
-  local v = allocator.spannew((@vec2){1,2}, 2)
+  local v = allocator:spannew((@vec2){1,2}, 2)
   assert(#v == 2)
   assert(v[0].x == 1 and v[0].y == 2)
   assert(v[1].x == 1 and v[1].y == 2)
@@ -291,7 +291,7 @@ do -- spannew with initialization
   v[1].x = 3 v[1].y = 4
   assert(v[0].x == 1 and v[0].y == 2)
   assert(v[1].x == 3 and v[1].y == 4)
-  allocator.delete(v)
+  allocator:delete(v)
 end
 
 --------------------------------------------------------------------------------

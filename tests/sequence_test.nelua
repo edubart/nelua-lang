@@ -133,9 +133,9 @@ do -- passing by reference
   seqa:destroy()
 end
 
-require 'allocators.generic'
+require 'allocators.general'
 do -- custom allocator
-  local seq: sequence(integer, generic_allocator) = {1,2,3}
+  local seq: sequence(integer, GeneralAllocator) = {1,2,3}
   assert(#seq == 3 and seq[0] == 0 and seq[1] == 1 and seq[2] == 2 and seq[3] == 3)
   seq:destroy()
 end

@@ -4,19 +4,19 @@ local function calloc(nmemb: csize, size: csize): pointer <cimport'calloc',cincl
 local function realloc(ptr: pointer, size: csize): pointer <cimport'realloc',cinclude'<stdlib.h>',nodecl> end
 local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',nodecl> end
 
-global generic_allocator = @record{}
+global GeneralAllocator = @record{}
 
-function generic_allocator.alloc(size: usize): pointer <inline>
-  check(size > 0_u, 'generic_allocator.alloc: size cannot be zero')
+function GeneralAllocator:alloc(size: usize): pointer <inline>
+  check(size > 0_u, 'general_allocator.alloc: size cannot be zero')
   return malloc(size)
 end
 
-function generic_allocator.alloc0(size: usize): pointer <inline>
-  check(size > 0_u, 'generic_allocator.alloc0: size must be greater than 0')
+function GeneralAllocator:alloc0(size: usize): pointer <inline>
+  check(size > 0_u, 'general_allocator.alloc0: size must be greater than 0')
   return calloc(size, 1)
 end
 
-function generic_allocator.realloc(p: pointer, size: usize): pointer <inline>
+function GeneralAllocator:realloc(p: pointer, size: usize): pointer <inline>
   if unlikely(size == 0_u) then
     free(p)
     return nilptr
@@ -24,7 +24,7 @@ function generic_allocator.realloc(p: pointer, size: usize): pointer <inline>
   return realloc(p, size)
 end
 
-function generic_allocator.realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+function GeneralAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
   if unlikely(newsize == 0) then
     free(p)
     return nilptr
@@ -36,10 +36,12 @@ function generic_allocator.realloc0(p: pointer, newsize: usize, oldsize: usize):
   return p
 end
 
-function generic_allocator.dealloc(p: pointer) <inline>
+function GeneralAllocator:dealloc(p: pointer) <inline>
   free(p)
 end
 
 require 'allocators.interface'
 
-## implement_allocator_interface(generic_allocator)
+## implement_allocator_interface(GeneralAllocator)
+
+global general_allocator: GeneralAllocator

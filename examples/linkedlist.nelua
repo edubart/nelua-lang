@@ -1,6 +1,6 @@
-require 'allocators.generic'
+require 'allocators.general'
 
-local allocator = @generic_allocator
+local allocator: auto = general_allocator
 
 ## local make_list = generalize(function(T)
   local T = @#[T]#
@@ -11,7 +11,7 @@ local allocator = @generic_allocator
   }
 
   local function new_node(prev: ListNodeT*, next: ListNodeT*, value: T): ListNodeT*
-    local node = allocator.new(@ListNodeT)
+    local node = allocator:new(@ListNodeT)
     node.prev = prev
     node.next = next
     node.value = value
@@ -76,7 +76,7 @@ local allocator = @generic_allocator
       node.next.prev = node.prev
     end
     local next = node.next
-    allocator.delete(node)
+    allocator:delete(node)
     return next
   end
 
@@ -90,7 +90,7 @@ local allocator = @generic_allocator
     if unlikely(self.tail == node) then
       self.tail = nilptr
     end
-    allocator.delete(node)
+    allocator:delete(node)
   end
 
   function ListT:remove_last()
@@ -103,14 +103,14 @@ local allocator = @generic_allocator
     if unlikely(self.head == node) then
       self.head = nilptr
     end
-    allocator.delete(node)
+    allocator:delete(node)
   end
 
   function ListT:clear()
     local it = self.head
     while it do
       local next = it.next
-      allocator.delete(it)
+      allocator:delete(it)
       it = next
     end
     self.head = nilptr

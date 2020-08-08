@@ -16,23 +16,16 @@
 -- These modules are used to implement the string.
 require 'memory'
 require 'stringview'
-require 'stringbuffer'
+require 'stringbuilder'
 require 'allocators.default'
 
-local allocator = @default_allocator
+local string_allocator: auto = default_allocator
 
 -- C imports.
-local function strchr(s: cstring, c: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
-local function strcpy(dest: cstring, src: cstring): cstring <cimport,cinclude'<string.h>',nodecl> end
 local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
 local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function snprintf_1ci(s: cstring, maxlen: csize, format: cstring, x: cint): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function snprintf_1i(s: cstring, maxlen: csize, format: cstring, x: integer): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function snprintf_1p(s: cstring, maxlen: csize, format: cstring, x: pointer): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function snprintf_1n(s: cstring, maxlen: csize, format: cstring, x: number): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function snprintf_1cs(s: cstring, maxlen: csize, format: cstring, x: cstring): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 
 -- Define the string type.
 global string <codename 'nlstring'> = @record{
@@ -54,7 +47,7 @@ function string._create(size: usize): string
   local self: string
   check(size > 0, 'string._create: attempt to create an empty string')
   self.size = size
-  self.data = (@byte[0]*)(allocator.alloc(size+1))
+  self.data = (@byte[0]*)(string_allocator:alloc(size+1))
   check(self.data ~= nilptr, 'string._create: out of memory')
   self.data[size] = 0
   --self.refs = 1
@@ -63,18 +56,18 @@ end
 
 -- Destroys a string freeing its resources.
 function string:destroy() <inline>
-  allocator.dealloc(self.data)
+  string_allocator:dealloc(self.data)
   self.data = nilptr
   self.size = 0
 end
 
-function stringbuffer:promotestring(): string
+function stringbuilder:promotestring(): string
   if unlikely(self.size == 0) then
     return (@string){}
   end
   local size: usize = self.size
-  local data: span(byte) = allocator.spanrealloc(self.data, size + 1) -- shrink
-  check(data.size > 0_u, 'stringbuffer.promotestring: out of memory')
+  local data: span(byte) = self.allocator:spanrealloc(self.data, size + 1) -- shrink
+  check(data.size == size + 1, 'stringbuilder.promotestring: out of memory')
   data[size] = 0 -- cstring line ending
   $self = {} -- destroy
   return (@string){data = data.data, size = size}
@@ -87,9 +80,8 @@ function stringview.__tostring(s: stringview): string
   return ret
 end
 
-local empty_cstring: cstring <const> = ''
 function string.__tocstring(s: string): cstring <inline,nosideeffect>
-  if unlikely(s.size == 0) then return empty_cstring end
+  if unlikely(s.size == 0) then return (@cstring)('') end
   return (@cstring)(&s.data[0])
 end
 
@@ -240,128 +232,10 @@ end
 
 local MAX_FORMAT <comptime> = 32
 
-local function scanformat(strfmt: byte[0]*, form: byte[MAX_FORMAT]*): usize
-  local L_FMTFLAGS: stringview <const> = "-+ #0"
-  local p: usize = 0
-  while strfmt[p] ~= 0 and strchr(L_FMTFLAGS, strfmt[p]) ~= nilptr do
-    p = p + 1  -- skip flags
-  end
-  if p >= (#L_FMTFLAGS + 1) // #@byte then
-    error("string.format: invalid format (repeated flags)")
-  end
-  if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- skip width
-  if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- (2 digits at most)
-  if strfmt[p] == '.'_byte then
-    p = p + 1
-    if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- skip precision
-    if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- (2 digits at most)
-  end
-  if isdigit(strfmt[p]) ~= 0 then
-    error("string.format: invalid format (width or precision too long)")
-  end
-  form[0] = '%'_byte
-  memory.copy(&form[1], &strfmt[p], (p + 1) * #@byte)
-  form[p + 2] = 0
-  return p
-end
-
-local function addlenmod(form: byte[MAX_FORMAT]*, lenmod: cstring, lenmodsize: csize)
-  local l: csize = strlen(&form[0])
-  local spec: byte = form[l - 1]
-  strcpy(&form[l - 1], lenmod)
-  form[l + lenmodsize - 1] = spec
-  form[l + lenmodsize] = 0
-end
-
 function string.format(fmt: stringview, arg1: auto): string
-  -- TODO: properly handle multiple arguments
-  local L_ESC: byte <comptime> = '%'_byte
-  local MAX_ITEM <comptime> = 120
-  local pos: usize = 0
-  local b: stringbuffer
-  local argi: integer = 0
-  while pos < fmt.size do
-    local c: byte = fmt.data[pos]
-    pos = pos + 1
-    if c ~= L_ESC then
-      b:addbyte(c)
-    else
-      c = fmt.data[pos]
-      if c == L_ESC then -- %%
-        b:addbyte(L_ESC)
-        pos = pos + 1
-      else -- format item
-        local form: byte[MAX_FORMAT] -- to store the format ('%...')
-        local maxitem: usize = MAX_ITEM
-        local buff: cstring = (@cstring)(b:prepare(MAX_ITEM)) -- to put formatted item
-        local nb: cint = 0 -- number of bytes in added item
-        -- scan format
-        pos = pos + scanformat(&fmt.data[pos], &form)
-        c = fmt.data[pos]
-        pos = pos + 1
-        argi = argi + 1
-        assert(argi == 1, 'string.format: format with multiple arguments not supported yet')
-        ## if primtypes.cint:is_convertible_from(arg1.type) then
-          if c == 'c'_byte then
-            local n: cint = (@cint)(arg1)
-            nb = snprintf_1ci(buff, maxitem, &form[0], n)
-            goto next
-          end
-        ## end if primtypes.integer:is_convertible_from(arg1.type) then
-          if c == 'd'_byte or
-             c == 'i'_byte or
-             c == 'o'_byte or
-             c == 'u'_byte or
-             c == 'x'_byte or
-             c == 'X'_byte then
-            local lenmod: cstring <noinit>
-            ## cemit('lenmod = PRIi' .. primtypes.integer.bitsize .. ';')
-            addlenmod(&form, lenmod, strlen(lenmod) - 1)
-            local n: integer = (@integer)(arg1)
-            nb = snprintf_1i(buff, maxitem, &form[0], n)
-            goto next
-          end
-        ## end if primtypes.number:is_convertible_from(arg1.type) then
-          if c == 'a'_byte or
-             c == 'A'_byte or
-             c == 'f'_byte or
-             c == 'e'_byte or
-             c == 'E'_byte or
-             c == 'g'_byte or
-             c == 'G'_byte then
-            local n: number = (@number)(arg1)
-            nb = snprintf_1n(buff, maxitem, &form[0], n)
-            goto next
-          end
-        ## end if primtypes.pointer:is_convertible_from(arg1.type) then
-          if c == 'p'_byte then
-            local p: pointer = (@pointer)(arg1)
-            if p == nilptr then
-              strcpy(buff, "(null)")
-              nb = 6
-            else
-              nb = snprintf_1p(buff, maxitem, &form[0], p)
-            end
-            goto next
-          end
-        ## end if arg1.type.is_stringy then
-          if c == 's'_byte then
-            local s: stringview = arg1
-            maxitem = s.size + 1
-            buff = (@cstring)(b:prepare(maxitem))
-            nb = snprintf_1cs(buff, maxitem, &form[0], arg1)
-            goto next
-          end
-        ## end
-        error('string.format: invalid conversion for format argument')
-::next::
-        assert(nb >= 0 and nb < maxitem,
-          'string.format: unexpect number of bytes written in sprintf')
-        b:commit((@usize)(nb))
-      end
-    end
-  end
-  return b:promotestring()
+  local sb: stringbuilder
+  sb:write_format(fmt, arg1)
+  return sb:promotestring()
 end
 
 -- Concept to check if a value can possibly be a string.
@@ -413,6 +287,7 @@ global string.__bnot: auto = stringview.__bnot
 global string.len: auto = stringview.len
 global string.byte: auto = stringview.byte
 global string.find: auto = stringview.find
+global string.subview: auto = stringview.subview
 
 -- Export string methods to stringview.
 global stringview.__concat: auto = string.__concat

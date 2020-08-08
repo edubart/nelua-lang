@@ -158,6 +158,41 @@ do -- sub
   assert(("\000123456789"):sub(8) == "789")
 end
 
+do -- sub
+  local a: string = 'hello'
+  assert(a:subview(1,5) == a)
+  assert(a:subview(1,-1) == 'hello')
+  assert(a:subview(1) == 'hello')
+  assert(a:subview(2,4) == 'ell')
+  assert(a:subview(2) == 'ello')
+  assert(a:subview(-4,-2) == 'ell')
+  assert(a:subview(2,10) == 'ello')
+  assert(a:subview(10,1) == '')
+  assert(a:subview(-10,1) == 'h')
+  assert(a:subview(-10,10) == 'hello')
+  assert(a:subview(-10,-6) == '')
+  assert(a:subview(-10,-5) == 'h')
+  local e: string
+  assert(e:subview(1,2) == e)
+  assert(e:subview(-10,10) == e)
+  assert(string.subview("123456789",2,4) == "234")
+  assert(string.subview("123456789",7) == "789")
+  assert(string.subview("123456789",7,6) == "")
+  assert(string.subview("123456789",7,7) == "7")
+  assert(string.subview("123456789",0,0) == "")
+  assert(string.subview("123456789",-10,10) == "123456789")
+  assert(string.subview("123456789",1,9) == "123456789")
+  assert(string.subview("123456789",-10,-20) == "")
+  assert(string.subview("123456789",-1) == "9")
+  assert(string.subview("123456789",-4) == "6789")
+  assert(string.subview("123456789",-6, -4) == "456")
+  assert(string.subview("123456789", mini, -4) == "123456")
+  assert(string.subview("123456789", mini, maxi) == "123456789")
+  assert(string.subview("123456789", mini, mini) == "")
+  assert(string.subview("\000123456789",3,5) == "234")
+  assert(("\000123456789"):subview(8) == "789")
+end
+
 do -- rep
   local a: string = 'hi'
   assert(a:rep(-1) == '')
@@ -336,6 +371,7 @@ do -- string format
   assert(string.format('%%', 1) == '%')
   assert(string.format('%c', 0x41) == 'A')
   assert(string.format('%x', 0xff) == 'ff')
+  assert(string.format('%04x', 0xff) == '00ff')
   assert(string.format('%u', -1) == '18446744073709551615')
   assert(string.format('%o', 0xff) == '377')
   assert(string.format('%X', 0xC001) == 'C001')
@@ -344,6 +380,7 @@ do -- string format
   assert(string.format('%a', 1):find('p', 1, true))
   assert(string.format('%A', 1):find('P', 1, true))
   assert(string.format('%f', 0.1) == '0.100000')
+  assert(string.format('%.2f', 3.14) == '3.14')
   assert(string.format('%e', 0.1):sub(1,10) == '1.000000e-')
   assert(string.format('%E', 300):sub(1,10) == '3.000000E+')
   assert(string.format('%g', 0.123) == '0.123')

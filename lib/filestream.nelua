@@ -1,7 +1,7 @@
-require 'stringbuffer'
+require 'stringbuilder'
 require 'string'
 require 'resourcepool'
-require 'allocators.generic'
+require 'allocators.general'
 
 --------------------------------------------------------------------------------
 -- C imports
@@ -47,7 +47,7 @@ local function fileresult(success: boolean): (boolean, stringview, integer)
   return true, '', 0
 end
 
-local pool: resourcepool(FILEptr, generic_allocator)
+local pool: resourcepool(FILEptr, GeneralAllocator)
 
 -- free the pool on exit
 local function free_pool() pool:destroy() end
@@ -136,13 +136,13 @@ end
 
 local READ_CHUNK_SIZE <comptime> = 1024
 
-local function readline(ss: stringbuffer*, fp: FILEptr, chop: boolean): boolean
+local function readline(sb: stringbuilder*, fp: FILEptr, chop: boolean): boolean
   -- TODO: lock file on POSIX?
   local NL: byte <comptime> = '\n'_byte
   local c: cint
   repeat
     local nr: uint32 = 0
-    local buff: byte[0]* = ss:prepare(READ_CHUNK_SIZE) -- preallocate buffer space
+    local buff: byte[0]* = sb:prepare(READ_CHUNK_SIZE) -- preallocate buffer space
     while nr < READ_CHUNK_SIZE do -- read up to buffer limit
       c = getc(fp)
       if c == EOF or c == NL then -- end of line
@@ -151,27 +151,27 @@ local function readline(ss: stringbuffer*, fp: FILEptr, chop: boolean): boolean
       buff[nr] = (@byte)(c)
       nr = nr + 1
     end
-    ss:commit(nr)
+    sb:commit(nr)
   until c == EOF or c == NL -- until end of line
   if not chop and c == NL then -- want a newline and have one?
-    ss:addbyte((@byte)(c)) -- add ending newline to result
+    sb:write_byte((@byte)(c)) -- add ending newline to result
   end
   -- return ok if read something (either a newline or something else)
-  return (c == NL or ss.size > 0)
+  return (c == NL or sb.size > 0)
 end
 
-local function readchars(ss: stringbuffer*, fp: FILEptr, n: usize): boolean
-  local p: pointer = ss:prepare(n)
+local function readchars(sb: stringbuilder*, fp: FILEptr, n: usize): boolean
+  local p: pointer = sb:prepare(n)
   local nr: csize = fread(p, 1, n, fp)
-  ss:commit(nr)
+  sb:commit(nr)
   return nr > 0
 end
 
-local function readall(ss: stringbuffer*, fp: FILEptr): boolean
+local function readall(sb: stringbuilder*, fp: FILEptr): boolean
   repeat -- read in chunks
-    local p: pointer = ss:prepare(READ_CHUNK_SIZE)
+    local p: pointer = sb:prepare(READ_CHUNK_SIZE)
     local nr: csize = fread(p, 1, READ_CHUNK_SIZE, fp)
-    ss:commit(nr)
+    sb:commit(nr)
   until nr < READ_CHUNK_SIZE
   return true
 end
@@ -180,13 +180,13 @@ function filestream:read(fmt: #[overload_concept{integer,stringview,niltype}]#):
   --TODO: multiple arguments
   local fp: FILEptr = self:_get_fp()
   if not fp then error('filestream.read: attempt to use a closed file') end
-  local ss: stringbuffer
+  local sb: stringbuilder
   local success: boolean
   clearerr(fp)
   ## if fmt.type.is_niltype then
-    success = readline(&ss, fp, true)
+    success = readline(&sb, fp, true)
   ## elseif fmt.type.is_arithmetic then
-    success = readchars(&ss, fp, fmt)
+    success = readchars(&sb, fp, fmt)
   ## elseif fmt.type.is_stringview then
     local c: byte = fmt.data[0]
     if c == '*'_byte then -- skip optional '*' (for compatibility)
@@ -194,11 +194,11 @@ function filestream:read(fmt: #[overload_concept{integer,stringview,niltype}]#):
     end
     -- TODO: handle 'n' to read number
     if c == 'l'_byte then -- line
-      success = readline(&ss, fp, true)
+      success = readline(&sb, fp, true)
     elseif c == 'L'_byte then -- line with end-of-line
-      success = readline(&ss, fp, false)
+      success = readline(&sb, fp, false)
     elseif c == 'a'_byte then -- entire file
-      success = readall(&ss, fp)
+      success = readall(&sb, fp)
     else
       error('filestream.read: invalid format')
     end
@@ -210,9 +210,9 @@ function filestream:read(fmt: #[overload_concept{integer,stringview,niltype}]#):
   end
   local s: string
   if success then
-    s = ss:promotestring()
+    s = sb:promotestring()
   else
-    ss:destroy()
+    sb:destroy()
   end
   return s, errmsg, status
 end

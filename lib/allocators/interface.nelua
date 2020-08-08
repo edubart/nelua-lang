@@ -6,63 +6,61 @@ require 'span'
   local is_span = #[concept(function(x) return x.type.is_span end)]#
   local allocator = #[allocator]#
 
-  function allocator.spanalloc(T: type, size: usize)
+  function allocator:spanalloc(T: type, size: usize)
     local s: span(T)
     if likely(size > 0_u) then
-      s.data = (@T[0]*)(allocator.alloc(size * #T))
+      s.data = (@T[0]*)(self:alloc(size * #T))
       s.size = size
     end
     return s
   end
 
-  function allocator.spanalloc0(T: type, size: usize)
+  function allocator:spanalloc0(T: type, size: usize)
     local s: span(T)
     if likely(size > 0_u) then
-      s.data = (@T[0]*)(allocator.alloc0(size * #T))
+      s.data = (@T[0]*)(self:alloc0(size * #T))
       s.size = size
     end
     return s
   end
 
-  function allocator.spanrealloc(s: is_span, size: usize)
+  function allocator:spanrealloc(s: is_span, size: usize)
     local T: type = #[s.type.subtype]#
-    if unlikely(size == 0) then
-      allocator.dealloc(s.data)
-      s.data = nilptr
-      s.size = 0
-    else
-      s.data = (@T[0]*)(allocator.realloc(s.data, size * #T))
-      s.size = size
+    local p: T[0]* = (@T[0]*)(self:realloc(s.data, size * #T))
+    if unlikely(size > 0_u and p == nilptr) then
+      -- reallocation failed, return the original span
+      return s
     end
+    s.data = p
+    s.size = size
     return s
   end
 
-  function allocator.spanrealloc0(s: is_span, size: usize)
+  function allocator:spanrealloc0(s: is_span, size: usize)
     local T: type = #[s.type.subtype]#
-    if unlikely(size == 0) then
-      allocator.dealloc(s.data)
-      s.data = nilptr
-      s.size = 0
-    else
-      s.data = (@T[0]*)(allocator.realloc0(s.data, size * #T, s.size * #T))
-      s.size = size
+    local p: T[0]* = (@T[0]*)(self:realloc0(s.data, size * #T, s.size * #T))
+    if unlikely(size > 0_u and p == nilptr) then
+      -- reallocation failed, return the original span
+      return s
     end
+    s.data = p
+    s.size = size
     return s
   end
 
-  function allocator.spandealloc(s: is_span)
-    allocator.dealloc(s.data)
+  function allocator:spandealloc(s: is_span)
+    self:dealloc(s.data)
   end
 
-  function allocator.spannew(what: auto, size: usize) <inline>
+  function allocator:spannew(what: auto, size: usize) <inline>
     ## if what.type.is_type then
       local T = what
-      local spn: span(T) = allocator.spanalloc0(T, size)
-      check(spn.size > 0_u, 'allocator.new: out of memory')
+      local spn: span(T) = self:spanalloc0(T, size)
+      check(spn.size > 0_u, 'allocator.spannew: out of memory')
     ## else
       local T = #[what.type]#
-      local spn: span(T) = allocator.spanalloc(T, size)
-      check(spn.size > 0_u, 'allocator.new: out of memory')
+      local spn: span(T) = self:spanalloc(T, size)
+      check(spn.size > 0_u, 'allocator.spannew: out of memory')
       for i:usize=0,<size do
         memcpy(&spn[i], &what, #T)
       end
@@ -70,27 +68,27 @@ require 'span'
     return spn
   end
 
-  function allocator.new(what: auto) <inline>
+  function allocator:new(what: auto) <inline>
     ## if what.type.is_type then
       local T = what
-      local ptr: T* = (@T*)(allocator.alloc0(#T))
+      local ptr: T* = (@T*)(self:alloc0(#T))
       check(ptr ~= nilptr, 'allocator.new: out of memory')
     ## else
       local T = #[what.type]#
-      local ptr: T* = (@T*)(allocator.alloc(#T))
+      local ptr: T* = (@T*)(self:alloc(#T))
       check(ptr ~= nilptr, 'allocator.new: out of memory')
       memcpy(ptr, &what, #T)
     ## end
     return ptr
   end
 
-  function allocator.delete(s: #[concept(function(x)
+  function allocator:delete(s: #[concept(function(x)
     return x.type.is_pointer or x.type.is_span end
   )]#) <inline>
     ## if s.type.is_span then
-      allocator.spandealloc(s)
+      self:spandealloc(s)
     ## else -- pointer
-      allocator.dealloc(s)
+      self:dealloc(s)
     ## end
   end
 ## end

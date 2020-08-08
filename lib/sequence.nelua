@@ -10,21 +10,23 @@
 
 require 'memory'
 
-## local make_sequence = generalize(function(T, allocator)
+## local make_generic_sequence = generalize(function(T, Allocator)
   ## staticassert(traits.is_type(T), "invalid type '%s'", T)
-  ## if not allocator then
+  ## if not Allocator then
   require 'allocators.default'
-  ## allocator = default_allocator
+  ## Allocator = DefaultAllocator
   ## end
 
-  local allocator: type = #[allocator]#
+  local Allocator: type = #[Allocator]#
   local T: type = @#[T]#
   local sequenceimplT <nickname #[string.format('sequenceimpl(%s)', T)]#> = @record {
     size: usize,
     data: span(T)
   }
+
   local sequenceT <nickname #[string.format('sequence(%s)', T)]#> = @record{
-    impl: sequenceimplT*
+    impl: sequenceimplT*,
+    allocator: Allocator
   }
 
   ##[[
@@ -38,15 +40,15 @@ require 'memory'
   function sequenceT:_grow()
     local cap: usize = 2
     if likely(self.impl.data.size ~= 0) then cap = self.impl.data.size * 2 end
-    self.impl.data = allocator.spanrealloc0(self.impl.data, cap)
-    check(self.impl.data.size > 0_u, 'sequence.grow: out of memory')
+    self.impl.data = self.allocator:spanrealloc0(self.impl.data, cap)
+    check(self.impl.data.size == cap, 'sequence.grow: out of memory')
   end
 
   -- Initializes sequence internal implementation if needed.
   -- This is already implicitly called by other sequence functions when needed.
   function sequenceT:init() <inline>
     if likely(self.impl) then return end
-    self.impl = (@sequenceimplT*)(allocator.alloc0(#sequenceimplT))
+    self.impl = (@sequenceimplT*)(self.allocator:alloc0(#sequenceimplT))
     check(self.impl ~= nilptr, 'sequence.init: out of memory')
   end
 
@@ -61,14 +63,14 @@ require 'memory'
     self.impl.size = 0
   end
 
-  -- Resets the sequence to zeroed state, freeing all used resources.
+  -- Resets the sequence to zero state, freeing all used resources.
   -- This is more useful to free resources when not using the garbage collector.
   function sequenceT:destroy()
     if not self.impl then return end
     self:clear()
-    allocator.spandealloc(self.impl.data)
+    self.allocator:spandealloc(self.impl.data)
     self.impl.data = {}
-    allocator.dealloc(self.impl)
+    self.allocator:dealloc(self.impl)
     self.impl = nilptr
   end
 
@@ -77,8 +79,8 @@ require 'memory'
     self:init()
     local cap: usize = n + 1
     if self.impl.data.size >= cap then return end
-    self.impl.data = allocator.spanrealloc0(self.impl.data, cap)
-    check(self.impl.data.size > 0_u, 'sequence.reserve: out of memory')
+    self.impl.data = self.allocator:spanrealloc0(self.impl.data, cap)
+    check(self.impl.data.size == cap, 'sequence.reserve: out of memory')
   end
 
   -- Resizes the sequence so that it contains `n` elements.
@@ -214,4 +216,4 @@ require 'memory'
   ## return sequenceT
 ## end)
 
-global sequence = #[make_sequence]#
+global sequence = #[make_generic_sequence]#

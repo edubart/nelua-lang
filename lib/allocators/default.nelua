@@ -1,7 +1,9 @@
 ## if not pragmas.nogc then
 require 'allocators.gc'
-global default_allocator = @gc_allocator
+global default_allocator: auto = &gc_allocator
+global DefaultAllocator: auto = GCAllocator
 ## else
-require 'allocators.generic'
-global default_allocator = @generic_allocator
+require 'allocators.general'
+global default_allocator: auto = &general_allocator
+global DefaultAllocator: auto = GeneralAllocator
 ## end

@@ -108,9 +108,9 @@ do -- insert
   vec:destroy()
 end
 
-require 'allocators.generic'
+require 'allocators.general'
 do -- custom allocator
-  local vec: vector(integer, generic_allocator) = {1,2,3}
+  local vec: vector(integer, GeneralAllocator) = {1,2,3}
   assert(#vec == 3 and vec[0] == 1 and vec[1] == 2 and vec[2] == 3)
   vec:destroy()
 end
