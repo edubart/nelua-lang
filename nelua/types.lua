@@ -388,9 +388,7 @@ function NilptrType:_init(name, size)
 end
 
 function NilptrType:promote_type(type)
-  if type.is_pointer then
-    return type
-  end
+  if type.is_pointer then return type end
   return Type.promote_type(self, type)
 end
 
@@ -1316,9 +1314,7 @@ function PointerType:is_convertible_from_type(type, explicit)
 end
 
 function PointerType:promote_type(type)
-  if type.is_nilptr then
-    return self
-  end
+  if type.is_nilptr then return self end
   return Type.promote_type(self, type)
 end
 

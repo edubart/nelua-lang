@@ -28,6 +28,7 @@ end
 
 function Symbol:add_possible_type(type, refnode)
   if self.type then return end
+  if type and type.is_nolvalue then return end
   local unknownrefs = self.unknownrefs
   if not type then
     assert(refnode)

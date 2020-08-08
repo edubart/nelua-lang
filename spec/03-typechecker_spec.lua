@@ -490,6 +490,23 @@ it("late deduction", function()
     end
     z = 2.0
   ]])
+  assert.ast_type_equals([[
+    local R = @record{x: integer}
+    function R:f() return (@pointer)(self) end
+    local r = (@R)()
+    do
+      local p = r:f()
+      p = nilptr
+    end
+  ]],[[
+    local R = @record{x: integer}
+    function R:f(): pointer return (@pointer)(self) end
+    local r: R = (@R)()
+    do
+      local p: pointer = r:f()
+      p = nilptr
+    end
+  ]])
 end)
 
 it("function definition", function()
