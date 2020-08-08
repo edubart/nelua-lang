@@ -1017,6 +1017,9 @@ it("record comparisons", function()
     assert(not (a ~= b))
     assert(not (a == c))
     assert(a ~= c)
+
+    local r: record{}
+    assert(r == r)
 ]])
 end)
 

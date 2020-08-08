@@ -436,19 +436,23 @@ function builtins.nelua_eq_(context, ltype, rtype)
     defemitter:add_ln('{')
     defemitter:inc_indent()
     defemitter:add_indent('return ')
-    for i,field in ipairs(type.fields) do
-      if i > 1 then
-        defemitter:add(' && ')
+    if #type.fields > 0 then
+      for i,field in ipairs(type.fields) do
+        if i > 1 then
+          defemitter:add(' && ')
+        end
+        if field.type.is_record then
+          local op = context:ensure_runtime_builtin('nelua_eq_', field.type)
+          defemitter:add(op, '(a.', field.name, ', b.', field.name, ')')
+        elseif field.type.is_array then
+          context:add_include('<string.h>')
+          defemitter:add('memcmp(a.', field.name, ', ', 'b.', field.name, ', sizeof(', type, ')) == 0')
+        else
+          defemitter:add('a.', field.name, ' == ', 'b.', field.name)
+        end
       end
-      if field.type.is_record then
-        local op = context:ensure_runtime_builtin('nelua_eq_', field.type)
-        defemitter:add(op, '(a.', field.name, ', b.', field.name, ')')
-      elseif field.type.is_array then
-        context:add_include('<string.h>')
-        defemitter:add('memcmp(a.', field.name, ', ', 'b.', field.name, ', sizeof(', type, ')) == 0')
-      else
-        defemitter:add('a.', field.name, ' == ', 'b.', field.name)
-      end
+    else
+      defemitter:add('true')
     end
     defemitter:add_ln(';')
     defemitter:dec_indent()
