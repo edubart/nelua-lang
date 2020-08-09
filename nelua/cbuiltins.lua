@@ -585,7 +585,7 @@ function operators.idiv(node, emitter, lnode, rnode, lname, rname)
       local floorname = type.is_float32 and 'floorf' or 'floor'
       emitter.context:add_include('<math.h>')
       emitter:add(floorname, '(', lname, ' / ', rname, ')')
-    elseif type.is_integral and (ltype.is_signed or rtype.is_signed) then
+    elseif type.is_integral and (lnode.attr:is_maybe_negative() or rnode.attr:is_maybe_negative()) then
       local op = emitter.context:ensure_runtime_builtin('nelua_idiv_', type)
       emitter:add(op, '(', lname, ', ', rname, ')')
     else

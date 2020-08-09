@@ -34,4 +34,17 @@ function Attr:is_static_vardecl()
   end
 end
 
+function Attr:is_maybe_negative()
+  local type = self.type
+  if type and type.is_arithmetic then
+    if type.is_unsigned then
+      return false
+    end
+    if self.comptime and self.value >= 0 then
+      return false
+    end
+  end
+  return true
+end
+
 return Attr
