@@ -88,7 +88,11 @@ function os.exit(code: #[overload_concept{integer,boolean,niltype}]#)
   ## if code.type.is_arithmetic then
     exit(code)
   ## elseif code.type.is_boolean then
-    exit(code and EXIT_SUCCESS or EXIT_FAILURE)
+    local status: cint = EXIT_FAILURE
+    if code then
+      status = EXIT_SUCCESS
+    end
+    exit(status)
   ## else
     exit(EXIT_SUCCESS)
   ## end
@@ -163,7 +167,9 @@ function os.time(desc: #[optional_concept(os_time_desc)]#): integer
     ts.tm_hour = desc.hour
     ts.tm_min = desc.min
     ts.tm_sec = desc.sec
-    ts.tm_isdst = desc.isdst and 1 or 0
+    if desc.isdst then
+      ts.tm_isdst = 1
+    end
     t = mktime(&ts)
   ## end
   return t

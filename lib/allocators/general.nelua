@@ -37,6 +37,7 @@ function GeneralAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): 
 end
 
 function GeneralAllocator:dealloc(p: pointer) <inline>
+  if unlikely(p == nilptr) then return end
   free(p)
 end
 

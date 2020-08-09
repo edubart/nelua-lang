@@ -23,7 +23,7 @@ local function snprintf_1cs(s: cstring, maxlen: csize, format: cstring, x: cstri
 local MAX_FORMAT <comptime> = 32
 
 local function scanformat(strfmt: byte[0]*, form: byte[MAX_FORMAT]*): usize
-  local L_FMTFLAGS: stringview <const> = "-+ #0"
+  local L_FMTFLAGS <comptime> = "-+ #0"
   local p: usize = 0
   while strfmt[p] ~= 0 and strchr(L_FMTFLAGS, strfmt[p]) ~= nilptr do
     p = p + 1  -- skip flags
@@ -215,7 +215,7 @@ end
           ## end
           error('string.format: invalid conversion for format argument')
   ::next::
-          assert(nb >= 0 and nb < maxitem,
+          assert(nb >= 0 and nb < (@isize)(maxitem),
             'string.format: unexpect number of bytes written in sprintf')
           self:commit((@usize)(nb))
         end

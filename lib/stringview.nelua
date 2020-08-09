@@ -70,7 +70,7 @@ function stringview.byte(self: stringview, i: #[optional_concept(isize)]#): byte
   if unlikely(self.size == 0) then return 0 end
   if unlikely(i < 0) then i = self.size + i + 1 end
   --TODO: return nil instead on failure
-  check(i >= 1 and i <= self.size, 'stringview.byte: index out of range')
+  check(i >= 1 and (@usize)(i) <= self.size, 'stringview.byte: index out of range')
   return (@byte)(self.data[i-1])
 end
 
@@ -82,16 +82,17 @@ function stringview.subview(self: stringview, i: isize, j: #[optional_concept(is
   ## if j.type.is_niltype then
   local j: isize = -1
   ## end
-  if unlikely(self.size == 0) then return self end
-  if unlikely(i < 0) then i = (@isize)(self.size) + i + 1 end
+  local size: isize = (@isize)(self.size)
+  if unlikely(size == 0) then return self end
+  if unlikely(i < 0) then i = size + i + 1 end
   if unlikely(i <= 0) then i = 1 end
-  if unlikely(j < 0) then j = (@isize)(self.size) + j + 1 end
-  if unlikely(j > self.size) then j = (@isize)(self.size) end
-  if unlikely(i == 1 and j == self.size) then return self end
+  if unlikely(j < 0) then j = size + j + 1 end
+  if unlikely(j > size) then j = size end
+  if unlikely(i == 1 and j == size) then return self end
   if unlikely(i > j) then return (@stringview){} end
-  local size: usize = (@usize)(j - i + 1)
-  if unlikely(size == 0) then return (@stringview){} end
-  return (@stringview){data=&self.data[i-1], size=size}
+  local subsize: usize = (@usize)(j - i + 1)
+  if unlikely(subsize == 0) then return (@stringview){} end
+  return (@stringview){data=&self.data[i-1], size=subsize}
 end
 
 -- Search for the first match of a pattern in the string.
@@ -107,7 +108,7 @@ function stringview.find(self: stringview,
     return 0, 0
   end
   if unlikely(init < 0) then init = self.size + init + 1 end
-  if unlikely(init > self.size) then return 0, 0 end
+  if unlikely((@usize)(init) > self.size) then return 0, 0 end
   if unlikely(init <= 0) then init = 1 end
   local found: pointer = memory.find(&self.data[init-1], self.size+1-(@usize)(init), pattern.data, pattern.size)
   if found then
@@ -145,7 +146,7 @@ local function str2intbase(s: stringview, base: uinteger): integer
     else -- else spaces or invalid character
       break
     end
-    assert(x < base, "str2intbase: invalid number format")
+    assert(x < (@cint)(base), "str2intbase: invalid number format")
     n = n * base + (@uinteger)(x)
     pos = pos + 1
   until pos >= s.size

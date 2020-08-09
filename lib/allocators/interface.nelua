@@ -49,6 +49,7 @@ require 'span'
   end
 
   function allocator:spandealloc(s: is_span)
+    if unlikely(s.size == 0) then return end
     self:dealloc(s.data)
   end
 

@@ -1,5 +1,3 @@
-## pragmas.nogc = true
-
 require 'stringbuilder'
 require 'allocators.fixedlinear'
 

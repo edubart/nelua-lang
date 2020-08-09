@@ -85,6 +85,7 @@ end
   end
 
   function FixedLinearAllocatorN:dealloc(p: pointer)
+    if unlikely(p == nilptr) then return end
     local pos: usize = (@usize)(p) - (@usize)(&self.memory[0])
     if pos == self.last_pos then -- shrink last allocation
       memory.zero(&self.memory[pos], self.next_pos - pos)
