@@ -8,7 +8,7 @@ require 'span'
 
   function allocator:spanalloc(T: type, size: usize)
     local s: span(T)
-    if likely(size > 0_u) then
+    if likely(size > 0) then
       s.data = (@T[0]*)(self:alloc(size * #T))
       s.size = size
     end
@@ -17,7 +17,7 @@ require 'span'
 
   function allocator:spanalloc0(T: type, size: usize)
     local s: span(T)
-    if likely(size > 0_u) then
+    if likely(size > 0) then
       s.data = (@T[0]*)(self:alloc0(size * #T))
       s.size = size
     end
@@ -27,7 +27,7 @@ require 'span'
   function allocator:spanrealloc(s: is_span, size: usize)
     local T: type = #[s.type.subtype]#
     local p: T[0]* = (@T[0]*)(self:realloc(s.data, size * #T))
-    if unlikely(size > 0_u and p == nilptr) then
+    if unlikely(size > 0 and p == nilptr) then
       -- reallocation failed, return the original span
       return s
     end
@@ -39,7 +39,7 @@ require 'span'
   function allocator:spanrealloc0(s: is_span, size: usize)
     local T: type = #[s.type.subtype]#
     local p: T[0]* = (@T[0]*)(self:realloc0(s.data, size * #T, s.size * #T))
-    if unlikely(size > 0_u and p == nilptr) then
+    if unlikely(size > 0 and p == nilptr) then
       -- reallocation failed, return the original span
       return s
     end
@@ -56,11 +56,11 @@ require 'span'
     ## if what.type.is_type then
       local T = what
       local spn: span(T) = self:spanalloc0(T, size)
-      check(spn.size > 0_u, 'allocator.spannew: out of memory')
+      check(spn.size > 0, 'allocator.spannew: out of memory')
     ## else
       local T = #[what.type]#
       local spn: span(T) = self:spanalloc(T, size)
-      check(spn.size > 0_u, 'allocator.spannew: out of memory')
+      check(spn.size > 0, 'allocator.spannew: out of memory')
       for i:usize=0,<size do
         memcpy(&spn[i], &what, #T)
       end

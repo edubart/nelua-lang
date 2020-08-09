@@ -646,10 +646,24 @@ function operators.pow(node, emitter, lnode, rnode, lname, rname)
   end --luacov:enable
 end
 
+local function needs_signed_unsigned_comparision(lnode, rnode)
+  local lattr, rattr = lnode.attr, rnode.attr
+  local ltype, rtype = lattr.type, rattr.type
+  if not ltype.is_integral or not rtype.is_integral then
+    return false
+  end
+  if ltype.is_unsigned == rtype.is_unsigned then
+    return false
+  end
+  if lattr.comptime or rattr.comptime then
+    return false
+  end
+  return true
+end
+
 function operators.lt(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
-    -- comparision between unsigned and signed
+  if needs_signed_unsigned_comparision(lnode, rnode) then
     local op = emitter.context:ensure_runtime_builtin('nelua_lt_', ltype, rtype)
     emitter:add(op, '(', lname, ', ', rname, ')')
   else
@@ -659,8 +673,7 @@ end
 
 function operators.gt(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
-    -- comparision between unsigned and signed
+  if needs_signed_unsigned_comparision(lnode, rnode) then
     local op = emitter.context:ensure_runtime_builtin('nelua_lt_', rtype, ltype)
     emitter:add(op, '(', rname, ', ', lname, ')')
   else
@@ -670,8 +683,7 @@ end
 
 function operators.le(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
-    -- comparision between unsigned and signed
+  if needs_signed_unsigned_comparision(lnode, rnode) then
     local op = emitter.context:ensure_runtime_builtin('nelua_lt_', rtype, ltype)
     emitter:add('!', op, '(', rname, ', ', lname, ')')
   else
@@ -681,8 +693,7 @@ end
 
 function operators.ge(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
-    -- comparision between unsigned and signed
+  if needs_signed_unsigned_comparision(lnode, rnode) then
     local op = emitter.context:ensure_runtime_builtin('nelua_lt_', ltype, rtype)
     emitter:add('!', op, '(', lname, ', ', rname, ')')
   else
@@ -704,8 +715,7 @@ function operators.eq(_, emitter, lnode, rnode, lname, rname)
     assert(ltype == rtype)
     emitter.context:add_include('<string.h>')
     emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) == 0')
-  elseif ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
-    -- comparision between unsigned and signed
+  elseif needs_signed_unsigned_comparision(lnode, rnode) then
     if not ltype.is_unsigned then
       local op = emitter.context:ensure_runtime_builtin('nelua_eq_', ltype, rtype)
       emitter:add(op, '(', lname, ', ', rname, ')')
@@ -736,8 +746,7 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
     assert(ltype == rtype)
     emitter.context:add_include('<string.h>')
     emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) != 0')
-  elseif ltype.is_integral and rtype.is_integral and ltype.is_unsigned ~= rtype.is_unsigned then
-    -- comparision between unsigned and signed
+  elseif needs_signed_unsigned_comparision(lnode, rnode) then
     if not ltype.is_unsigned then
       local op = emitter.context:ensure_runtime_builtin('nelua_eq_', ltype, rtype)
       emitter:add('!', op, '(', lname, ', ', rname, ')')

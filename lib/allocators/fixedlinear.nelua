@@ -15,7 +15,7 @@
 -- deallocations, just leave the scope ends to have a quick cleanup.
 --
 -- Take care to not use a large space when using it on the stack, or the program may crash
--- with not enough stack space.
+-- with not enough stack space. On some system for example the stack is limited to 1MB.
 --
 -- By default allocations are aligned to 8 bytes unless explicit told otherwise.
 -- By default allocations are filled with zeros even for normal alloc/realloc functions.
@@ -56,7 +56,7 @@ end
 
   function FixedLinearAllocatorN:realloc(p: pointer, size: usize): pointer
     local pos: usize = (@usize)(p) - (@usize)(&self.memory[0])
-    if pos == self.last_pos then -- grow last allocation
+    if pos == self.last_pos then -- modify last allocation
       local advanced_pos: usize = pos + size
       if unlikely(advanced_pos > N) then return nilptr end
       local old_next_pos: usize = self.next_pos
@@ -94,7 +94,7 @@ end
 
   -- Free all allocations, effectively resetting the allocator to the zeroed state.
   function FixedLinearAllocatorN:dealloc_all()
-    memory.zero(&self.memory[0], #self.memory)
+    memory.zero(&self.memory[0], self.next_pos)
     self.last_pos = 0
     self.next_pos = 0
   end

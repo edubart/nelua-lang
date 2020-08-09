@@ -76,7 +76,7 @@ end
 
 -- Return a sub string view from this string view.
 -- NOTE: Use with caution, when using the GC the view will not hold reference
--- on the original string, and the data may be collect. To be safe use string.sub
+-- of string allocated at runtime and the data may be collected. To be safe use string.sub
 -- instead unless you want to optimize allocations and you know what you are doing.
 function stringview.subview(self: stringview, i: isize, j: #[optional_concept(isize)]#): stringview
   ## if j.type.is_niltype then

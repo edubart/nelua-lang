@@ -7,17 +7,17 @@ local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',node
 global GeneralAllocator = @record{}
 
 function GeneralAllocator:alloc(size: usize): pointer <inline>
-  check(size > 0_u, 'general_allocator.alloc: size cannot be zero')
+  check(size > 0, 'general_allocator.alloc: size cannot be zero')
   return malloc(size)
 end
 
 function GeneralAllocator:alloc0(size: usize): pointer <inline>
-  check(size > 0_u, 'general_allocator.alloc0: size must be greater than 0')
+  check(size > 0, 'general_allocator.alloc0: size must be greater than 0')
   return calloc(size, 1)
 end
 
 function GeneralAllocator:realloc(p: pointer, size: usize): pointer <inline>
-  if unlikely(size == 0_u) then
+  if unlikely(size == 0) then
     free(p)
     return nilptr
   end

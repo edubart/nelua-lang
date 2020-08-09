@@ -96,7 +96,7 @@ function memory.spancopy(dest: is_span, src: is_span) <inline>
   local T: type = #[dest.type.subtype]#
   ## check_type_match(dest, src)
   check(dest.size == src.size, 'memory.spancopy: span sizes must be equal')
-  if likely(src.size > 0_u) then
+  if likely(src.size > 0) then
     memcpy(dest.data, src.data, src.size * #T)
   end
 end
@@ -105,7 +105,7 @@ function memory.spanmove(dest: is_span, src: is_span) <inline>
   local T: type = #[dest.type.subtype]#
   ## check_type_match(dest, src)
   check(dest.size == src.size, 'memory.spanmove: span sizes must be equal')
-  if likely(src.size > 0_u) then
+  if likely(src.size > 0) then
     memmove(dest.data, src.data, src.size * #T)
   end
 end
@@ -120,7 +120,7 @@ end
 
 function memory.spanzero(dest: is_span) <inline>
   local T: type = #[dest.type.subtype]#
-  if likely(dest.size > 0_u) then
+  if likely(dest.size > 0) then
     memset(dest.data, 0, dest.size * #T)
   end
 end
@@ -134,7 +134,7 @@ function memory.spancompare(a: is_span, b: is_span): int32
     size = b.size
   end
   local ret: int32
-  if likely(size > 0_u) then
+  if likely(size > 0) then
     ret = memcmp(a.data, b.data, size)
   end
   if ret == 0 and a.size ~= b.size then
@@ -150,7 +150,7 @@ end
 function memory.spanequals(a: is_span, b: is_span): boolean <inline>
   ## check_type_match(a, b)
   local ret: boolean = a.size == b.size
-  if ret and likely(a.size > 0_u) then
+  if ret and likely(a.size > 0) then
     ret = memcmp(a.data, b.data, a.size) == 0
   end
   return ret

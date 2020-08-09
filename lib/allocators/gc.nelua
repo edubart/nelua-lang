@@ -438,12 +438,12 @@ function GC:alloc0_opt(size: usize, flags: usize, finalizer: FinalizerCallback):
 end
 
 function GC:alloc(size: usize): pointer
-  check(size > 0_u, 'GCAllocator.alloc: size cannot be zero')
+  check(size > 0, 'GCAllocator.alloc: size cannot be zero')
   return self:alloc_opt(size, 0, nilptr)
 end
 
 function GC:alloc0(size: usize): pointer
-  check(size > 0_u, 'GCAllocator.alloc0: size must be greater than 0')
+  check(size > 0, 'GCAllocator.alloc0: size must be greater than 0')
   return self:alloc0_opt(size, 0, nilptr)
 end
 
