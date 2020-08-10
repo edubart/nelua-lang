@@ -147,7 +147,6 @@ function preprocessor.preprocess(context, ast)
   local primtypes = typedefs.primtypes
   local ppenv = {
     context = context,
-    pragmas = context.pragmas,
     ppcontext = ppcontext,
     ppregistry = ppcontext.registry,
     ast = ast,
@@ -301,6 +300,8 @@ function preprocessor.preprocess(context, ast)
     end
     if key == 'symbols' then
       return ppcontext.context.scope.symbols
+    elseif key == 'pragmas' then
+      return ppcontext.context.pragmas
     end
     local symbol = ppcontext.context.scope.symbols[key]
     if symbol then

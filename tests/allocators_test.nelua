@@ -1,36 +1,34 @@
-require 'allocators.fixedlinear'
+require 'allocators.arena'
 
 do -- basic tests on alloc/realloc/dealloc
-  local allocator: FixedLinearAllocator(1024)
-  local i: integer* = (@integer*)(allocator:alloc(#integer))
+  local allocator: ArenaAllocator(1024,8)
+  local i: integer* = (@integer*)(allocator:alloc0(#integer))
   assert($i == 0)
   $i = 0xff
   assert($i == 0xff)
-  print(allocator.next_pos)
-  assert(allocator.last_pos == 0 and allocator.next_pos == 8)
+  assert(allocator.prev_offset == 0 and allocator.curr_offset == 8)
   allocator:dealloc(i)
-  assert(allocator.last_pos == 0 and allocator.next_pos == 0)
-  local ni: integer* = (@integer*)(allocator:alloc(#integer))
+  assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
+  local ni: integer* = (@integer*)(allocator:alloc0(#integer))
   assert(ni == i and $ni == 0)
-  assert(allocator.last_pos == 0 and allocator.next_pos == 8)
-  local a: integer[0]* = (@integer[0]*)(allocator:realloc(i, 32 * #@integer))
+  assert(allocator.prev_offset == 0 and allocator.curr_offset == 8)
+  local a: integer[0]* = (@integer[0]*)(allocator:realloc0(i, 32 * #@integer, #@integer))
   assert((@integer*)(a) == i)
-  assert(allocator.last_pos == 0 and allocator.next_pos == 8*32)
+  assert(allocator.prev_offset == 0 and allocator.curr_offset == 8*32)
   for i=0,<32 do a[i] = 0xff end
-  a = (@integer[0]*)(allocator:realloc(i, 8 * #@integer))
-  assert(allocator.last_pos == 0 and allocator.next_pos == 8*8)
+  a = (@integer[0]*)(allocator:realloc0(i, 8 * #@integer, 32 * #@integer))
+  assert(allocator.prev_offset == 0 and allocator.curr_offset == 8*8)
   for i=0,<8 do assert(a[i] == 0xff) end
-  for i=8,<32 do assert(a[i] == 0) end
-  a = (@integer[0]*)(allocator:realloc(i, 0))
-  for i=0,<32 do assert(a[i] == 0) end
-  assert(allocator.last_pos == 0 and allocator.next_pos == 0)
-  a = (@integer[0]*)(allocator:alloc(1024))
+  a = (@integer[0]*)(allocator:realloc0(i, 0, 8 * #@integer))
+  for i=0,<32 do assert(a[i] == 0xff) end
+  assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
+  a = (@integer[0]*)(allocator:alloc0(1024))
   assert(a ~= nilptr)
-  assert(allocator.last_pos == 0 and allocator.next_pos == 1024)
-  assert(allocator:alloc(1) == nilptr)
+  assert(allocator.prev_offset == 0 and allocator.curr_offset == 1024)
+  assert(allocator:alloc0(1) == nilptr)
   allocator:dealloc_all()
-  assert(allocator.last_pos == 0 and allocator.next_pos == 0)
+  assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
   for i=0,<1024 do
-    assert(allocator.memory[i] == 0)
+    assert(allocator.buffer[i] == 0)
   end
 end

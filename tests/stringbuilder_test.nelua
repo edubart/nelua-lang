@@ -1,8 +1,8 @@
 require 'stringbuilder'
-require 'allocators.fixedlinear'
+require 'allocators.arena'
 
 do
-  local allocator: FixedLinearAllocator(256, 1)
+  local allocator: ArenaAllocator(256, 1)
   local sb = stringbuilder.make(&allocator)
   sb:write_string('hello world')
   sb:write_byte('\n'_byte)

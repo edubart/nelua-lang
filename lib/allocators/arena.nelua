@@ -1,0 +1,127 @@
+-- Arena Allocator
+--
+-- The arena allocator, sometimes also know as linear, monotonic or region allocator,
+-- allocates everything from a contiguous buffer by incrementing a pointer every new allocation.
+--
+-- The purpose of this allocator is to have very fast allocations with almost
+-- no runtime cost when the maximum used space is known ahead
+-- and to quickly deallocate many allocated objects at once with almost no runtime cost too.
+--
+-- Reallocations and deallocations does not free space unless once for the last recent allocation.
+-- To free space `dealloc_all` should be called when all operations on its allocations are finished.
+--
+-- The allocator buffer will reside on the stack when declared inside a function,
+-- or on the static memory storage when declared in a top scope,
+-- or on the heap if allocated by the general allocator.
+--
+-- When declaring on the stack there is no need to perform deallocations at the end of the scope,
+-- just leave the scope ends to have a quick cleanup.
+-- Also take care to not use a large buffer on the stack,
+-- or the program may crash with not enough stack space,
+-- on some system for example the stack is limited to 1MB.
+--
+-- By default allocations are aligned to 8 bytes unless explicit told otherwise.
+-- When there is not enough space a nil pointer is returned on allocations.
+-- Remember to use the proper alignment for the allocated objects to have fast memory access.
+
+require 'memory'
+require 'allocators.interface'
+
+local function align_forward(addr: usize, align: usize): usize <inline>
+  return (addr + (align-1)) & ~(align-1)
+end
+
+## local make_aligned_arena_allocator = generalize(function(Size, Align)
+  ## Align = Align or 8
+  ## staticassert(Size % Align == 0, 'ArenaAllocator: Size must be multiple of Align')
+  ## staticassert(Align & (Align-1) == 0, 'ArenaAllocator: Align must be a power of two')
+
+  local Size <comptime> = #[Size]#
+  local Align <comptime> = #[Align]#
+  local ArenaAllocatorT = @record{
+    prev_offset: usize,
+    curr_offset: usize,
+    buffer: byte[Size]
+  }
+
+  function ArenaAllocatorT:alloc(size: usize): pointer
+    local base: usize = (@usize)(&self.buffer[0])
+    local offset: usize = align_forward(base + self.curr_offset, Align) - base
+    local next_offset: usize = offset + size
+    if unlikely(next_offset > Size) then return nilptr end
+    local p: pointer = &self.buffer[offset]
+    self.prev_offset = self.curr_offset
+    self.curr_offset = next_offset
+    return p
+  end
+
+  function ArenaAllocatorT:alloc0(size: usize): pointer
+    local p: pointer = self:alloc(size)
+    if likely(p ~= nilptr) then
+      memory.zero(p, size)
+    end
+    return p
+  end
+
+  function ArenaAllocatorT:_realloc(p: pointer, size: usize, oldsize: usize): pointer
+    local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
+    check(offset < Size, 'ArenaAllocator.realloc: buffer is out of bounds')
+    if offset == self.prev_offset then -- modify last allocation
+      if likely(size > 0) then
+        local next_offset: usize = offset + size
+        if unlikely(next_offset > Size) then return nilptr end
+        self.curr_offset = next_offset
+      else
+        self.curr_offset = offset
+      end
+      return p
+    else -- move to a new allocation
+      if unlikely(size == 0) then return nilptr end
+      local newp: pointer = self:alloc(size)
+      if likely(newp ~= nilptr) then
+        memory.move(newp, p, oldsize)
+      end
+      return newp
+    end
+  end
+
+  function ArenaAllocatorT:realloc(p: pointer, size: usize): pointer
+    if p == nilptr then
+      return self:alloc(size)
+    else
+      -- as we don't know the old size this may copy some extra junk but is fine
+      return self:_realloc(p, size, size)
+    end
+  end
+
+  function ArenaAllocatorT:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
+    if p == nilptr then
+      return self:alloc0(newsize)
+    end
+    p = self:_realloc(p, newsize, oldsize)
+    if likely(newsize > oldsize and p ~= nilptr) then
+      memory.zero(&(@byte[0]*)(p)[oldsize], newsize - oldsize)
+    end
+    return p
+  end
+
+  function ArenaAllocatorT:dealloc(p: pointer)
+    if unlikely(p == nilptr) then return end
+    local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
+    if offset == self.prev_offset then
+      self.curr_offset = offset
+    end
+  end
+
+  -- Free all allocations.
+  function ArenaAllocatorT:dealloc_all()
+    self.prev_offset = 0
+    self.curr_offset = 0
+  end
+
+  ## implement_allocator_interface(ArenaAllocatorT)
+
+  ## return ArenaAllocatorT
+## end)
+
+global ArenaAllocator: type = #[make_aligned_arena_allocator]#
