@@ -23,7 +23,7 @@ do -- Arena
   a = (@integer[0]*)(allocator:realloc0(i, 0, 8 * #@integer))
   for i=0,<32 do assert(a[i] == 0xff) end
   assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
-  a = (@integer[0]*)(allocator:alloc0(1024))
+  a = (@integer[0]*)(allocator:realloc0(nilptr, 1024, 0))
   assert(a ~= nilptr)
   assert(allocator.prev_offset == 0 and allocator.curr_offset == 1024)
   assert(allocator:alloc0(1) == nilptr)
@@ -39,7 +39,7 @@ do -- Pool
     x: integer,
     y: integer
   }
-  local allocator: PoolAllocator(@Object, 2)
+  local allocator: PoolAllocator(Object, 2)
   local o: Object* = (@Object*)(allocator:alloc0(#Object))
   assert(allocator.initialized == true)
   assert(o.x == 0)
@@ -61,6 +61,6 @@ do -- Pool
   -- should use the same address
   assert(i == ri)
   -- should deallocate
-  ri = (@integer*)(allocator:realloc(ri, 0))
+  ri = (@integer*)(allocator:realloc(ri, 0, 2*#integer))
   assert(ri == nilptr)
 end

@@ -27,14 +27,14 @@ do -- alloc0
 end
 
 do -- realloc
-  assert(allocator:realloc(nilptr, 0) == nilptr)
-  local p = allocator:alloc(1)
+  assert(allocator:realloc(nilptr, 0, 0) == nilptr)
+  local p = allocator:realloc(nilptr, 1, 0)
   assert(p)
-  p = allocator:realloc(p, 4)
+  p = allocator:realloc(p, 4, 1)
   assert(p)
-  p = allocator:realloc(p, 1)
+  p = allocator:realloc(p, 1, 4)
   assert(p)
-  p = allocator:realloc(p, 0)
+  p = allocator:realloc(p, 0, 1)
   assert(p == nilptr)
 end
 

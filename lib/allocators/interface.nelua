@@ -6,9 +6,53 @@ require 'span'
 
 ## function implement_allocator_interface(allocator)
   local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport'memcpy',cinclude'<string.h>',nodecl> end
+  local function memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
 
   local is_span = #[concept(function(x) return x.type.is_span end)]#
   local allocator = #[allocator]#
+
+  ## if not allocator.value:get_metafield('realloc') then
+  -- naive implementation for realloc
+  function allocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
+    if unlikely(p == nilptr) then
+      return self:alloc(newsize)
+    elseif unlikely(newsize == 0) then
+      self:dealloc(p)
+      return nilptr
+    elseif unlikely(newsize == oldsize) then
+      return p
+    else
+      local newp: pointer = self:alloc(newsize)
+      if likely(newp ~= nilptr and p ~= nilptr and oldsize ~= 0) then
+        memcpy(newp, p, oldsize)
+      end
+      return nilptr
+    end
+  end
+  ## end
+
+  ## if not allocator.value:get_metafield('alloc0') then
+  -- naive implementation for alloc0
+  function allocator:alloc0(size: usize): pointer
+    local p: pointer = self:alloc(size)
+    if likely(p ~= nilptr and size ~= 0) then
+      memset(p, 0, size)
+    end
+    return p
+  end
+  ## end
+
+  ## if not allocator.value:get_metafield('realloc0') then
+  -- naive implementation for realloc0
+  function allocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
+    p = self:realloc(p, newsize, oldsize)
+    if likely(newsize > oldsize and p ~= nilptr) then
+      -- zero the grown part
+      memset(&(@byte[0]*)(p)[oldsize], 0, newsize - oldsize)
+    end
+    return p
+  end
+  ## end
 
   function allocator:spanalloc(T: type, size: usize)
     local s: span(T)
@@ -30,7 +74,7 @@ require 'span'
 
   function allocator:spanrealloc(s: is_span, size: usize)
     local T: type = #[s.type.subtype]#
-    local p: T[0]* = (@T[0]*)(self:realloc(s.data, size * #T))
+    local p: T[0]* = (@T[0]*)(self:realloc(s.data, size * #T, s.size))
     if unlikely(size > 0 and p == nilptr) then
       -- reallocation failed, return the original span
       return s

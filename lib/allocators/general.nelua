@@ -22,28 +22,16 @@ function GeneralAllocator:alloc0(size: usize): pointer <inline>
   return calloc(size, 1)
 end
 
-function GeneralAllocator:realloc(p: pointer, size: usize): pointer <inline>
-  if unlikely(size == 0) then
-    if likely(p ~= nilptr) then
-      free(p)
-    end
-    return nilptr
-  end
-  return realloc(p, size)
-end
-
-function GeneralAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+function GeneralAllocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
   if unlikely(newsize == 0) then
     if likely(p ~= nilptr) then
       free(p)
     end
     return nilptr
+  elseif unlikely(newsize == oldsize) then
+    return p
   end
-  p = realloc(p, newsize)
-  if likely(newsize > oldsize and p ~= nilptr) then
-    memset(&(@byte[0]*)(p)[oldsize], 0, newsize - oldsize)
-  end
-  return p
+  return realloc(p, newsize)
 end
 
 function GeneralAllocator:dealloc(p: pointer) <inline>

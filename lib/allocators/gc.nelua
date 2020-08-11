@@ -6,13 +6,14 @@
 -- The implementation is based on https://github.com/orangeduck/tgc
 
 require 'span'
-require 'memory'
 require 'allocators.general'
 
 ## pragmas.nochecks = true
 
 local jmp_buf <cimport,cinclude'<setjmp.h>',nodecl> = @record{dummy: usize}
 local function setjmp(env: jmp_buf) <cimport,cinclude'<setjmp.h>',nodecl> end
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport'memcpy',cinclude'<string.h>',nodecl> end
+local function memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
 
 local allocator: auto = general_allocator
 
@@ -126,14 +127,14 @@ function GC:_rem_ptr(ptr: pointer)
       return
     end
     if self.items[i].ptr == ptr then
-      memory.set(&self.items[i], 0, #GCItem)
+      memset(&self.items[i], 0, #GCItem)
       j = i
       while true do
         local nj: usize = (j+1) % self.nslots
         local nh: usize = self.items[nj].hash
         if nh ~= 0 and self:_probe(nj, nh) > 0 then
-          memory.copy(&self.items[j], &self.items[nj], #GCItem)
-          memory.set(&self.items[nj], 0, #GCItem)
+          memcpy(&self.items[j], &self.items[nj], #GCItem)
+          memset(&self.items[nj], 0, #GCItem)
           j = nj
         else
           break
@@ -326,15 +327,15 @@ function GC:_sweep() <noinline>
 
     self.frees[k] = self.items[i]
     k = k + 1
-    memory.set(&self.items[i], 0, #GCItem)
+    memset(&self.items[i], 0, #GCItem)
 
     local j: usize = i
     while true do
       local nj: usize = (j+1) % self.nslots
       local nh: usize = self.items[nj].hash
       if nh ~= 0 and self:_probe(nj, nh) > 0 then
-        memory.copy(&self.items[j], &self.items[nj], #GCItem)
-        memory.set(&self.items[nj], 0, #GCItem)
+        memcpy(&self.items[j], &self.items[nj], #GCItem)
+        memset(&self.items[nj], 0, #GCItem)
         j = nj
       else
         break
@@ -480,8 +481,8 @@ function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer <inline>
   return nilptr
 end
 
-function GC:realloc(ptr: pointer, size: usize): pointer
-  local qtr: pointer = allocator:realloc(ptr, size)
+function GC:realloc(ptr: pointer, size: usize, oldsize: usize): pointer
+  local qtr: pointer = allocator:realloc(ptr, size, oldsize)
   if not qtr then return nilptr end
   return self:_realloc(qtr, ptr, size)
 end
@@ -552,8 +553,8 @@ function GCAllocator:alloc0(size: usize): pointer
   return gc:alloc0(size)
 end
 
-function GCAllocator:realloc(p: pointer, size: usize): pointer
-  return gc:realloc(p, size)
+function GCAllocator:realloc(p: pointer, size: usize, oldsize: usize): pointer
+  return gc:realloc(p, size, oldsize)
 end
 
 function GCAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer

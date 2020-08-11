@@ -12,26 +12,24 @@
 --
 -- The implementation is based on https://www.gingerbill.org/article/2019/02/16/memory-allocation-strategies-004/
 
-require 'memory'
 require 'allocators.interface'
 
 ## local make_pool_allocator = generalize(function(T, Size, error_on_failure)
   ##[[
+  staticassert(traits.is_type(T), 'PoolAllocator: T must be a type')
+  local ChunkSize = T.size
+  local ChunkAlign = math.max(T.align, primtypes.pointer.size)
   staticassert(traits.is_number(Size), 'PoolAllocator: size must be a number')
-  staticassert(Size > 0, 'PoolAllocator: size must be greater than 0')
-  staticassert(traits.is_type(T), 'PoolAllocator: T must be a valid type')
-  staticassert(T.size >= primtypes.pointer.size, 'PoolAllocator: T size must be at least a pointer in size')
-  staticassert(T.align & (primtypes.pointer.size-1) == 0, 'PoolAllocator: T must be aligned to pointers')
+  staticassert(Size * ChunkSize > 0, 'PoolAllocator: size must be greater than 0')
+  staticassert(ChunkSize >= primtypes.pointer.size, 'PoolAllocator: chunk size must be at least a pointer in size')
   ]]
 
-  local T = #[T]#
-  local PoolFreeNode = @record{
-    next: PoolFreeNode*
-  }
+  local PoolFreeNode = @record{next: PoolFreeNode*}
+  local PoolChunk <aligned(#[ChunkAlign]#)> = @record {data: byte[#[ChunkSize]#]}
   local PoolAllocatorT = @record{
     initialized: boolean,
     head: PoolFreeNode*,
-    buffer: T[#[Size]#]
+    buffer: PoolChunk[#[Size]#]
   }
 
   -- Free all allocations.
@@ -45,17 +43,6 @@ require 'allocators.interface'
     end
   end
 
-  function PoolAllocatorT:dealloc(p: pointer)
-    if unlikely(p == nilptr) then return end
-    -- is this pointer really valid?
-    local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
-    check(offset // #T < #self.buffer and offset % #T == 0, 'PoolAllocator.dealloc: pointer not in buffer bounds')
-    -- push free node
-    local node: PoolFreeNode* = (@PoolFreeNode*)(p)
-    node.next = self.head
-    self.head = node
-  end
-
   -- Initialize the pool allocator.
   -- There is not need to call this if zero initialized, it's called automatically on first alloc.
   function PoolAllocatorT:init()
@@ -64,7 +51,7 @@ require 'allocators.interface'
   end
 
   function PoolAllocatorT:alloc(size: usize): pointer
-    if unlikely(size > #T) then
+    if unlikely(size > #PoolChunk) then
       ## if error_on_failure then
         error('PoolAllocator.alloc: attempt to allocate a size greater than chunk size')
       ## end
@@ -92,21 +79,24 @@ require 'allocators.interface'
     return node
   end
 
-  function PoolAllocatorT:alloc0(size: usize): pointer
-    local p: pointer = self:alloc(size)
-    if likely(p ~= nilptr and size ~= 0) then
-      memory.zero(p, size)
-    end
-    return p
+  function PoolAllocatorT:dealloc(p: pointer)
+    if unlikely(p == nilptr) then return end
+    -- is this pointer really valid?
+    local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
+    check(offset // #PoolChunk < #self.buffer and offset % #PoolChunk == 0, 'PoolAllocator.dealloc: pointer not in buffer bounds')
+    -- push free node
+    local node: PoolFreeNode* = (@PoolFreeNode*)(p)
+    node.next = self.head
+    self.head = node
   end
 
-  function PoolAllocatorT:realloc(p: pointer, size: usize): pointer
+  function PoolAllocatorT:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
     if unlikely(p == nilptr) then
-      return self:alloc(size)
-    elseif unlikely(size == 0) then
+      return self:alloc(newsize)
+    elseif unlikely(newsize == 0) then
       self:dealloc(p)
       return nilptr
-    elseif unlikely(size > #T) then
+    elseif unlikely(newsize > #PoolChunk) then
       ## if error_on_failure then
         error('PoolAllocator.realloc: attempt to allocate a size greater than chunk size')
       ## end
@@ -114,15 +104,6 @@ require 'allocators.interface'
     else
       return p
     end
-  end
-
-  function PoolAllocatorT:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
-    p = self:realloc(p, newsize)
-    if likely(newsize > oldsize and p ~= nilptr) then
-      -- zero the grown part
-      memory.zero(&(@byte[0]*)(p)[oldsize], newsize - oldsize)
-    end
-    return p
   end
 
   ## implement_allocator_interface(PoolAllocatorT)

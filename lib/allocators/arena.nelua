@@ -28,14 +28,15 @@
 --
 -- The implementation is based on https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/
 
-require 'memory'
 require 'allocators.interface'
 
 local function align_forward(addr: usize, align: usize): usize <inline>
   return (addr + (align-1)) & ~(align-1)
 end
 
-## local make_aligned_arena_allocator = generalize(function(Size, Align, error_on_failure)
+local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport'memmove',cinclude'<string.h>',nodecl> end
+
+## local make_arena_allocator = generalize(function(Size, Align, error_on_failure)
   ## Align = Align or 8
   ## staticassert(Size % Align == 0, 'ArenaAllocator: size must be multiple of align')
   ## staticassert(Align & (Align-1) == 0, 'ArenaAllocator: align must be a power of two')
@@ -47,6 +48,12 @@ end
     curr_offset: usize,
     buffer: byte[Size]
   }
+
+  -- Free all allocations.
+  function ArenaAllocatorT:dealloc_all()
+    self.prev_offset = 0
+    self.curr_offset = 0
+  end
 
   function ArenaAllocatorT:alloc(size: usize): pointer
     local base: usize = (@usize)(&self.buffer[0])
@@ -64,20 +71,24 @@ end
     return p
   end
 
-  function ArenaAllocatorT:alloc0(size: usize): pointer
-    local p: pointer = self:alloc(size)
-    if likely(p ~= nilptr and size ~= 0) then
-      memory.zero(p, size)
+  function ArenaAllocatorT:dealloc(p: pointer)
+    local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
+    if offset == self.prev_offset then
+      self.curr_offset = offset
     end
-    return p
   end
 
-  function ArenaAllocatorT:_realloc(p: pointer, size: usize, oldsize: usize): pointer
+  function ArenaAllocatorT:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
+    if unlikely(p == nilptr) then
+      return self:alloc(newsize)
+    elseif unlikely(newsize == oldsize) then
+      return p
+    end
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
     check(offset < Size, 'ArenaAllocator.realloc: pointer not in buffer of bounds')
     if offset == self.prev_offset then -- modify last allocation
-      if likely(size > 0) then
-        local next_offset: usize = offset + size
+      if likely(newsize > 0) then
+        local next_offset: usize = offset + newsize
         if unlikely(next_offset > Size) then
           ## if error_on_failure then
             error('ArenaAllocator.realloc: out of memory')
@@ -90,52 +101,14 @@ end
       end
       return p
     else -- move to a new allocation
-      if unlikely(size == 0) then return nilptr end
-      local newp: pointer = self:alloc(size)
-      if likely(newp ~= nilptr and oldsize ~= 0) then
+      if unlikely(newsize == 0) then return nilptr end
+      local newp: pointer = self:alloc(newsize)
+      if likely(newp ~= nilptr and p ~= nilptr and oldsize ~= 0) then
         -- move the mem to the new location, as the memory may overlap
-        memory.move(newp, p, oldsize)
+        memmove(newp, p, oldsize)
       end
       return newp
     end
-  end
-
-  function ArenaAllocatorT:realloc(p: pointer, size: usize): pointer
-    if unlikely(p == nilptr) then
-      -- do an usual alloc
-      return self:alloc(size)
-    else
-      -- as we don't know the old size this may copy some extra junk but is fine
-      return self:_realloc(p, size, size)
-    end
-  end
-
-  function ArenaAllocatorT:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
-    if unlikely(p == nilptr) then
-      -- do an usual alloc0
-      return self:alloc0(newsize)
-    else
-      p = self:_realloc(p, newsize, oldsize)
-      if likely(newsize > oldsize and p ~= nilptr) then
-        -- zero the grown part
-        memory.zero(&(@byte[0]*)(p)[oldsize], newsize - oldsize)
-      end
-      return p
-    end
-  end
-
-  function ArenaAllocatorT:dealloc(p: pointer)
-    if unlikely(p == nilptr) then return end
-    local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
-    if offset == self.prev_offset then
-      self.curr_offset = offset
-    end
-  end
-
-  -- Free all allocations.
-  function ArenaAllocatorT:dealloc_all()
-    self.prev_offset = 0
-    self.curr_offset = 0
   end
 
   ## implement_allocator_interface(ArenaAllocatorT)
@@ -143,4 +116,4 @@ end
   ## return ArenaAllocatorT
 ## end)
 
-global ArenaAllocator: type = #[make_aligned_arena_allocator]#
+global ArenaAllocator: type = #[make_arena_allocator]#
