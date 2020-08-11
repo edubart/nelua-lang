@@ -1,5 +1,9 @@
--- Tiny and simple mark and sweep garbage collector
--- Implementation based on https://github.com/orangeduck/tgc
+-- GC Allocator
+-- This is an allocator that uses a tiny and simple mark and sweep garbage collector.
+-- It is a conservative garbage collector, that is, it scan the stack/heap memory
+-- marking pointers without references to be freed once the memory grow too much.
+--
+-- The implementation is based on https://github.com/orangeduck/tgc
 
 require 'span'
 require 'memory'

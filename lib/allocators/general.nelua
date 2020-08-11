@@ -1,3 +1,9 @@
+-- General Allocator
+--
+-- The general allocator uses the system's general purpose allocator to allocate dynamic memory,
+-- usually this an efficient allocator for the "general" case.
+-- It uses the C malloc/calloc/realloc/free functions.
+
 local function memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
 local function malloc(size: csize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
 local function calloc(nmemb: csize, size: csize): pointer <cimport'calloc',cinclude'<stdlib.h>',nodecl> end
@@ -7,18 +13,20 @@ local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',node
 global GeneralAllocator = @record{}
 
 function GeneralAllocator:alloc(size: usize): pointer <inline>
-  check(size > 0, 'general_allocator.alloc: size cannot be zero')
+  if unlikely(size == 0) then return nilptr end
   return malloc(size)
 end
 
 function GeneralAllocator:alloc0(size: usize): pointer <inline>
-  check(size > 0, 'general_allocator.alloc0: size must be greater than 0')
+  if unlikely(size == 0) then return nilptr end
   return calloc(size, 1)
 end
 
 function GeneralAllocator:realloc(p: pointer, size: usize): pointer <inline>
   if unlikely(size == 0) then
-    free(p)
+    if likely(p ~= nilptr) then
+      free(p)
+    end
     return nilptr
   end
   return realloc(p, size)
@@ -26,7 +34,9 @@ end
 
 function GeneralAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
   if unlikely(newsize == 0) then
-    free(p)
+    if likely(p ~= nilptr) then
+      free(p)
+    end
     return nilptr
   end
   p = realloc(p, newsize)

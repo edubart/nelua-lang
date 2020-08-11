@@ -1,3 +1,7 @@
+-- Allocator Interface
+--
+-- This is an interface with additional functions that usually allocators usually should implement.
+
 require 'span'
 
 ## function implement_allocator_interface(allocator)

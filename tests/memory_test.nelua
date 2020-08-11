@@ -10,6 +10,7 @@ local vec2 = @record{x: integer, y: integer}
 -- raw pointers
 
 do -- alloc and dealloc
+  assert(allocator:alloc(0) == nilptr)
   local p = allocator:alloc(4)
   assert(p)
   allocator:dealloc(p)
@@ -18,6 +19,7 @@ do -- alloc and dealloc
 end
 
 do -- alloc0
+  assert(allocator:alloc0(0) == nilptr)
   local p = (@vec2*)(allocator:alloc0(#@vec2))
   assert(p)
   assert(p.x == 0 and p.y == 0)
@@ -25,6 +27,7 @@ do -- alloc0
 end
 
 do -- realloc
+  assert(allocator:realloc(nilptr, 0) == nilptr)
   local p = allocator:alloc(1)
   assert(p)
   p = allocator:realloc(p, 4)
@@ -36,6 +39,7 @@ do -- realloc
 end
 
 do -- realloc0
+  assert(allocator:realloc0(nilptr, 0, 0) == nilptr)
   local p = (@vec2[0]*)(allocator:alloc0(#@vec2))
   assert(p)
   assert(p[0].x == 0 and p[0].y == 0)

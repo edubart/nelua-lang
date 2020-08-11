@@ -1,3 +1,11 @@
+-- Default Allocator
+--
+-- The default allocator by default is the garbage collector, however it can be changed
+-- to the general allocator when using the pragma `nogc`. When using that pragma the user
+-- is responsible for managing the memory, as the GC is removed and nothing will be free
+-- automatically, in this case the user is encouraged to try to use other allocators
+-- to have more efficiency and to assist managing the memory.
+
 ## if not pragmas.nogc then
 require 'allocators.gc'
 global default_allocator: auto = &gc_allocator
