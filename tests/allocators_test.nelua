@@ -1,6 +1,7 @@
 require 'allocators.arena'
+require 'allocators.pool'
 
-do -- basic tests on alloc/realloc/dealloc
+do -- Arena
   local allocator: ArenaAllocator(1024,8)
   local i: integer* = (@integer*)(allocator:alloc0(#integer))
   assert($i == 0)
@@ -31,4 +32,35 @@ do -- basic tests on alloc/realloc/dealloc
   for i=0,<1024 do
     assert(allocator.buffer[i] == 0)
   end
+end
+
+do -- Pool
+  local Object = @record {
+    x: integer,
+    y: integer
+  }
+  local allocator: PoolAllocator(@Object, 2)
+  local o: Object* = (@Object*)(allocator:alloc0(#Object))
+  assert(allocator.initialized == true)
+  assert(o.x == 0)
+  o.x = 0xff
+  assert(o.x == 0xff)
+  allocator:dealloc(o)
+  -- must reuse the same free address
+  local no: Object* = (@Object*)(allocator:alloc0(#Object))
+  assert(no == o and no.x == 0)
+  -- last avail memory
+  allocator:alloc0(#Object)
+  -- should be out of memory
+  assert(allocator:alloc0(#Object) == nilptr)
+  -- free all
+  allocator:dealloc_all()
+  -- realloc
+  local i: integer* = (@integer*)(allocator:realloc0(nilptr, #integer, 0))
+  local ri: integer* = (@integer*)(allocator:realloc0(i, 2*#integer, #integer))
+  -- should use the same address
+  assert(i == ri)
+  -- should deallocate
+  ri = (@integer*)(allocator:realloc(ri, 0))
+  assert(ri == nilptr)
 end

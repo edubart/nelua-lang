@@ -454,6 +454,7 @@ ArithmeticType.is_primitive = true
 
 function ArithmeticType:_init(name, size)
   Type._init(self, name, size)
+  self.align = size
   self.bitsize = size * 8
 end
 
