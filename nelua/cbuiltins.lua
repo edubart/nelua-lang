@@ -617,8 +617,13 @@ function operators.shl(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   if ltype.is_arithmetic and rtype.is_arithmetic then
     assert(ltype.is_integral and rtype.is_integral)
-    local op = emitter.context:ensure_runtime_builtin('nelua_shl_', type)
-    emitter:add(op, '(', lname, ', ', rname, ')')
+    if ltype.is_unsigned and rnode.attr.comptime and rnode.attr.value >= 0 and rnode.attr.value < ltype.bitsize then
+      -- no overflow possible, can use plain C shift
+      emitter:add(lname, ' << ', rname)
+    else
+      local op = emitter.context:ensure_runtime_builtin('nelua_shl_', type)
+      emitter:add(op, '(', lname, ', ', rname, ')')
+    end
   else --luacov:disable
     node:errorf('not implemented')
   end --luacov:enable
@@ -628,8 +633,13 @@ function operators.shr(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   if ltype.is_arithmetic and rtype.is_arithmetic then
     assert(ltype.is_integral and rtype.is_integral)
-    local op = emitter.context:ensure_runtime_builtin('nelua_shr_', type)
-    emitter:add(op, '(', lname, ', ', rname, ')')
+    if ltype.is_unsigned and rnode.attr.comptime and rnode.attr.value >= 0 and rnode.attr.value < ltype.bitsize then
+      -- no overflow possible, can use plain C shift
+      emitter:add(lname, ' >> ', rname)
+    else
+      local op = emitter.context:ensure_runtime_builtin('nelua_shr_', type)
+      emitter:add(op, '(', lname, ', ', rname, ')')
+    end
   else --luacov:disable
     node:errorf('not implemented')
   end --luacov:enable
