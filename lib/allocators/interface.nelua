@@ -23,12 +23,15 @@ require 'span'
       return p
     else
       local newp: pointer = self:alloc(newsize)
-      if likely(newp ~= nilptr and p ~= nilptr and oldsize ~= 0) then
-        local copysize = oldsize
-        if newsize < oldsize then
-          copysize = newsize
+      if likely(p ~= nilptr) then
+        if likely(newp ~= nilptr and oldsize ~= 0) then
+          local copysize = oldsize
+          if newsize < oldsize then
+            copysize = newsize
+          end
+          memcpy(newp, p, copysize)
         end
-        memcpy(newp, p, copysize)
+        self:dealloc(p)
       end
       return newp
     end
