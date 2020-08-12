@@ -26,7 +26,7 @@ require 'span'
       if likely(newp ~= nilptr and p ~= nilptr and oldsize ~= 0) then
         memcpy(newp, p, oldsize)
       end
-      return nilptr
+      return newp
     end
   end
   ## end
