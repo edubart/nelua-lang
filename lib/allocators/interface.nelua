@@ -5,8 +5,8 @@
 require 'span'
 
 ## function implement_allocator_interface(allocator)
-  local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport'memcpy',cinclude'<string.h>',nodecl> end
-  local function memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
+  local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
+  local function memset(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 
   local is_span = #[concept(function(x) return x.type.is_span end)]#
   local allocator = #[allocator]#
@@ -24,7 +24,11 @@ require 'span'
     else
       local newp: pointer = self:alloc(newsize)
       if likely(newp ~= nilptr and p ~= nilptr and oldsize ~= 0) then
-        memcpy(newp, p, oldsize)
+        local copysize = oldsize
+        if newsize < oldsize then
+          copysize = newsize
+        end
+        memcpy(newp, p, copysize)
       end
       return newp
     end

@@ -34,7 +34,7 @@ local function align_forward(addr: usize, align: usize): usize <inline>
   return (addr + (align-1)) & ~(align-1)
 end
 
-local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport'memmove',cinclude'<string.h>',nodecl> end
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 
 ## local make_arena_allocator = generalize(function(Size, Align, error_on_failure)
   ## Align = Align or 8
@@ -100,14 +100,16 @@ local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport'
         self.curr_offset = offset
       end
       return p
-    else -- move to a new allocation
+    elseif newsize > oldsize then -- growing, move to a new allocation
       if unlikely(newsize == 0) then return nilptr end
       local newp: pointer = self:alloc(newsize)
       if likely(newp ~= nilptr and p ~= nilptr and oldsize ~= 0) then
-        -- move the mem to the new location, as the memory may overlap
-        memmove(newp, p, oldsize)
+        -- copy the mem to the new location
+        memcpy(newp, p, oldsize)
       end
       return newp
+    else -- shrinking, can return the same pointer
+      return p
     end
   end
 

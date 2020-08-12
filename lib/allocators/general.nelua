@@ -5,10 +5,10 @@
 -- It uses the C malloc/calloc/realloc/free functions.
 
 local function memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
-local function malloc(size: csize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
-local function calloc(nmemb: csize, size: csize): pointer <cimport'calloc',cinclude'<stdlib.h>',nodecl> end
-local function realloc(ptr: pointer, size: csize): pointer <cimport'realloc',cinclude'<stdlib.h>',nodecl> end
-local function free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',nodecl> end
+local function malloc(size: csize): pointer <cimport,cinclude'<stdlib.h>',nodecl> end
+local function calloc(nmemb: csize, size: csize): pointer <cimport,cinclude'<stdlib.h>',nodecl> end
+local function realloc(ptr: pointer, size: csize): pointer <cimport,cinclude'<stdlib.h>',nodecl> end
+local function free(ptr: pointer): void <cimport,cinclude'<stdlib.h>',nodecl> end
 
 global GeneralAllocator = @record{}
 

@@ -2,11 +2,11 @@
 
 --------------------------------------------------------------------------------
 -- C imports
-local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport'memcpy',cinclude'<string.h>',nodecl> end
-local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport'memmove',cinclude'<string.h>',nodecl> end
-local function memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
-local function memcmp(s1: pointer, s2: pointer, n: csize): cint <cimport'memcmp',cinclude'<string.h>',nodecl> end
-local function memchr(s: pointer, c: cint, n: csize): pointer <cimport'memchr',cinclude'<string.h>',nodecl> end
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
+local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
+local function memset(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
+local function memcmp(s1: pointer, s2: pointer, n: csize): cint <cimport,cinclude'<string.h>',nodecl> end
+local function memchr(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 
 --------------------------------------------------------------------------------
 -- pointer functions
