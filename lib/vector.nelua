@@ -39,6 +39,14 @@ require 'memory'
     check(self.data.size == cap, 'vector._grow: out of memory')
   end
 
+  -- Create a vector using a custom allocator instance.
+  -- This is only to be used when not using the default allocator.
+  function vectorT.make(allocator: Allocator): vectorT
+    local v: vectorT
+    v.allocator = allocator
+    return v
+  end
+
   -- Removes all elements from the vector.
   function vectorT:clear()
     for i:usize=0,<self.size do

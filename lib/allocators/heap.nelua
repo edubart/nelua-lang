@@ -1,0 +1,438 @@
+-- Heap Allocator
+--
+-- This is a minimal general purpose allocator, that could serve as replacement to
+-- the system's general allocator. It requires a pre allocated memory region in advance.
+-- It's purpose is to have predictable allocation and deallocation time
+-- when you can allocate the maximum memory usage in advance.
+--
+-- It uses linked lists to search the best free node. It tries to have a fast alloc/dealloc.
+-- However it may fragment more than other allocators.
+--
+-- In some cases it can be faster than the general purpose allocator.
+-- However usually your are better off with the system's general purposes allocator.
+-- This may be more useful to have reliable alloc/dealloc time on realtime applications,
+-- or if you want to avoid the system's default allocator for some reason,
+-- or if the system does not have an allocator.
+--
+-- It's memory cannot grow automatically, use the system's general purpose allocator for that.
+-- The allocator is not thread safe, it was designed to be used in single thread applications.
+-- Allocations are always 16 byte aligned.
+--
+-- NOTE: This is experimental, a bunch tests were done but is not really battle tested.
+--
+-- The implementation was originally based on
+-- https://github.com/CCareaga/heap_allocator
+-- however it has heavy customized to have more performance, constant time allocations
+-- and alignment.
+
+-- the minimum allocation size for joining and splitting chunks
+local MIN_ALLOC_SIZE: usize <comptime> = 8
+-- do not change this alignment, the code have this in mind
+local ALLOC_ALIGN: usize <comptime> = 16
+-- how many lists for "pools" of different chunks sizes
+local BIN_COUNT <comptime> = 8
+-- cookie used to identify invalid realloc/dealloc on invalid pointers
+local NODE_COOKIE: usize <comptime> = 0xA7512BCF_usize
+
+-- each chunk have this node as heading before its data,
+-- this node will be 32 bytes on 64bit systems
+-- or 16 bytes on 32bit systems, perfect for the 16 byte alignment requirement
+local Node = @record{
+  size: usize,
+  prev_adj: Node*,
+  next: Node*,
+  prev: Node*
+}
+
+-- the double linked list for free nodes
+local Bin = @record{
+  head: Node*
+}
+
+-- the heap stores bins for different chunk sizes
+local Heap = @record{
+  bins: Bin[BIN_COUNT]
+}
+
+function Node:set_used() <inline>
+  -- the lower bits of the pointer should be always 0 because we allocate with alignment
+  -- so it's impossible to have conflicts in next/prev with these values due to alignment
+  self.next = (@Node*)(1_usize)
+  self.prev = (@Node*)(NODE_COOKIE)
+end
+
+function Node:is_used() <inline>
+  return self.next == (@Node*)(1_usize) and self.prev == (@Node*)(NODE_COOKIE)
+end
+
+-- import efficient clz (compute leading zeros) from C
+-- used to compute the bin
+##[==[ cemit([[
+#if __GNUC__
+#define c_clz(x) __builtin_clz(x)
+#else
+inline uint32_t c_clz(uint32_t v) {
+  static const int MultiplyDeBruijnBitPosition[32] = {
+    0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
+    8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
+  };
+  v |= v >> 1;
+  v |= v >> 2;
+  v |= v >> 4;
+  v |= v >> 8;
+  v |= v >> 16;
+  return 31 - MultiplyDeBruijnBitPosition[(uint32_t)(v * 0x07C4ACDDU) >> 27];
+}
+#endif
+]], 'declaration')
+]==]
+local function c_clz(x: uint32): uint32 <cimport,nodecl> end
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
+
+-- this function is the hashing function that converts
+-- alloc size => bin index, changing this function will change
+-- the binning policy of the heap
+local function get_bin_index(size: usize): uint32 <inline>
+  if unlikely(size <= (1<<3)) then
+    return 0
+  elseif unlikely(size >= 1<<(3+(BIN_COUNT<<1))) then
+    return BIN_COUNT - 1
+  else
+    return (28 - c_clz((@uint32)(size))) >> 1
+  end
+end
+
+-- align an address
+local function align_forward(addr: usize, align: usize): usize <inline>
+  return (addr + (align-1)) & ~(align-1)
+end
+
+-- insert a node inside the bin linked list
+local function add_node(bin: Bin*, node: Node*) <inline>
+  node.next = bin.head
+  node.prev = nilptr
+  if bin.head then
+    bin.head.prev = node
+  end
+  bin.head = node
+end
+
+-- remove a node from the bin linked list
+local function remove_node(bin: Bin*, node: Node*) <inline>
+  if node == bin.head then
+    bin.head = node.next
+  end
+  if node.prev ~= nilptr then
+    node.prev.next = node.next
+  end
+  if node.next ~= nilptr then
+    node.next.prev = node.prev
+  end
+end
+
+-- find the first free node that can accommodate `size` bytes
+local function get_best_fit(bin: Bin*, size: usize): Node* <inline>
+  local temp: Node* = bin.head
+  while temp ~= nilptr do
+    if temp.size >= size then
+      break -- found fit
+    end
+    temp = temp.next
+  end
+  return temp
+end
+
+-- return next adjacent node
+local function get_next_adj_node(node: Node*): Node* <inline>
+  return (@Node*)((@usize)(node) + #@Node + node.size)
+end
+
+-- get a node given a pointer
+local function get_ptr_node(p: pointer): Node* <inline>
+  local addr: usize = (@usize)(p)
+  -- check for misaligned invalid pointers
+  if unlikely(addr & (ALLOC_ALIGN-1) ~= 0) then
+    return nilptr
+  end
+  -- the actual head of the node is not p, it is p minus the size of the node
+  local node: Node* = (@Node*)(addr - #@Node)
+  -- check if is a valid allocator node
+  if unlikely(not node:is_used()) then
+    return nilptr
+  end
+  return node
+end
+
+-- add more memory to the heap
+function Heap:add_memory_region(region: pointer, region_size: usize)
+  local region_start: usize = (@usize)(region)
+
+  -- we want to start the heap aligned
+  local heap_start: usize = align_forward(region_start, ALLOC_ALIGN)
+
+  -- calculate the offset for the heap
+  local region_offset: usize = heap_start - region_start
+
+  -- the heap size is the region size minus alignment offset and ending node space
+  local heap_size: usize = region_size - region_offset - #@Node
+
+  -- first we create the initial region
+  -- the heap starts as just one big chunk of allocable memory
+  local start_node: Node* = (@Node*)(heap_start)
+  start_node.size = heap_size - #@Node -- this node itself use some metadata space
+  start_node.prev_adj = nilptr
+  start_node.next = nilptr
+  start_node.prev = nilptr
+
+  -- set the ending node
+  local end_node: Node* = (@Node*)(heap_start + heap_size)
+  end_node.size = 0
+  end_node.prev_adj = start_node
+  end_node:set_used() -- the end node is never free
+
+  -- now we add the region to the correct bin
+  add_node(self.bins[get_bin_index(start_node.size)], start_node)
+end
+
+-- this is the allocation function of the heap, it takes
+-- the size of the chunk we,
+-- this function will search through the bins until
+-- it finds a suitable chunk, it will then split the chunk
+-- if necessary and return the start of the chunk
+function Heap:alloc(size: usize): pointer
+  -- ignore 0 size allocations
+  if unlikely(size == 0) then return nilptr end
+
+  -- we always want to allocate aligned sizes
+  size = align_forward(size + #@Node, ALLOC_ALIGN) - #@Node
+
+  -- first get the bin index that this chunk size should be in
+  local index: uint32 = get_bin_index(size)
+  local found: Node*
+
+  -- while no chunk if found advance through the bins until we
+  -- find a chunk that fits
+  repeat
+    found = get_best_fit(self.bins[index], size)
+    if found ~= nilptr then
+      break
+    end
+    index = index + 1
+  until index >= BIN_COUNT
+
+  if unlikely(found == nilptr) then -- out of memory
+    return nilptr
+  end
+
+  -- if the difference between the found chunk and the requested chunk
+  -- is bigger than the metadata + min alloc size
+  -- then we should split this chunk, otherwise just return the chunk
+  if found.size > size + (#@Node + MIN_ALLOC_SIZE) then
+    -- do the math to get where to split at, then set its metadata
+    local split_size: usize = found.size - size - #@Node
+    found.size = size
+    local split: Node* = get_next_adj_node(found)
+    split.size = split_size
+
+    -- update adjacent links
+    split.prev_adj = found
+    get_next_adj_node(split).prev_adj = split
+
+    -- now we need to get the new index for this split chunk
+    -- place it in the correct bin
+    add_node(self.bins[get_bin_index(split_size)], split)
+  end
+
+  remove_node(self.bins[index], found) -- remove it from its bin
+  found:set_used() -- not free anymore
+
+  -- return the pointer for the chunk, it should be properly aligned
+  return (@pointer)((@usize)(found) + #@Node)
+end
+
+-- this is the free function of the heap, it takes the
+-- heap struct pointer and the pointer provided by the
+-- heap_alloc function. the given chunk will be possibly
+-- coalesced  and then placed in the correct bin
+function Heap:dealloc(p: pointer)
+  -- ignore nil pointers
+  if unlikely(p == nilptr) then return end
+
+  -- the actual head of the node is not p, it is p minus the size of the node
+  local head: Node* = get_ptr_node(p)
+  if unlikely(head == nilptr) then
+    error('invalid pointer passed in Heap dealloc')
+  end
+
+  local prev: Node* = head.prev_adj
+  local next: Node*
+
+  -- if the previous node is free we can coalesce!
+  if likely(prev ~= nilptr) and not prev:is_used() then
+    -- remove the previous node from its bin
+    local list: Bin* = self.bins[get_bin_index(prev.size)]
+    remove_node(list, prev)
+
+    -- re-calculate the size of this node and link next adjacent node
+    prev.size = prev.size + #@Node + head.size
+    next = get_next_adj_node(prev)
+    next.prev_adj = prev
+
+    -- invalidate the head contents
+    -- in case user tries to deallocate this pointer again (double free)
+    head.next = nilptr
+    head.prev = nilptr
+
+    -- previous is now the node we are working with, we head to prev
+    -- because the next if statement will coalesce with the next node
+    -- and we want that statement to work even when we coalesce with prev
+    head = prev
+  else
+    next = get_next_adj_node(head)
+  end
+
+  -- if the next node is free coalesce!
+  if not next:is_used() then
+    -- remove it from its bin
+    local list: Bin* = self.bins[get_bin_index(next.size)]
+    remove_node(list, next)
+
+    -- re-calculate the new size of head
+    head.size = head.size + #@Node + next.size
+
+    -- link next adjacent node
+    get_next_adj_node(head).prev_adj = head
+  end
+
+  -- this chunk is now free, so put it in the right bin
+  add_node(self.bins[get_bin_index(head.size)], head)
+end
+
+function Heap:realloc(p: pointer, size: usize)
+  if unlikely(p == nilptr) then
+    -- no previous allocation, just alloc
+    return self:alloc(size)
+  elseif unlikely(size == 0) then
+    -- the new size is 0, just dealloc
+    self:dealloc(p)
+    return nilptr
+  end
+
+  -- we always want to allocate aligned sizes
+  size = align_forward(size + #@Node, ALLOC_ALIGN) - #@Node
+
+  -- the actual head of the node is not p, it is p minus the size of the node
+  local head: Node* = get_ptr_node(p)
+  if unlikely(head == nilptr) then
+    error('invalid pointer passed in Heap realloc')
+  end
+
+  -- is the chunk growing?
+  if likely(size > head.size) then
+    -- we can only grow if the next adjacent node
+    -- is not the end, is free and has enough space
+    local next: Node* = get_next_adj_node(head)
+    if not next:is_used() and
+       head.size + next.size + #@Node >= size then
+      -- remove it from its bin
+      local list: Bin* = self.bins[get_bin_index(next.size)]
+      remove_node(list, next)
+
+      -- re-calculate the new size of head
+      head.size = head.size + next.size + #@Node
+
+      -- link next adjacent node
+      get_next_adj_node(head).prev_adj = head
+
+      -- the chunk is now merged with a larger chunk
+      -- however it may be shrinked yet
+    else
+      -- the next node has not enough space,
+      -- we need to allocate a new chunk and move data there
+      local newp: pointer = self:alloc(size)
+      if newp == nilptr then
+        -- out of memory, cancel the realloc
+        return nilptr
+      end
+      memcpy(newp, p, head.size)
+      self:dealloc(p)
+      return newp
+    end
+  end
+
+  -- do we need to shrink the chunk?
+  if head.size > size then
+    -- it's only useful to shrink if the freed size
+    -- is bigger than the metadata + min alloc size
+    if head.size > size + (#@Node + MIN_ALLOC_SIZE) then
+      -- do the math to get where to split at, then set its metadata
+      local split_size: usize = head.size - size - #@Node
+      head.size = size
+      local split: Node* = get_next_adj_node(head)
+      split.size = split_size
+
+      -- update adjacent links
+      split.prev_adj = head
+      get_next_adj_node(split).prev_adj = split
+
+      -- now we need to get the new index for this split chunk
+      -- place it in the correct bin
+      add_node(self.bins[get_bin_index(split_size)], split)
+    end
+  end
+
+  return p
+end
+
+## local make_heap_allocator = generalize(function(HEAP_SIZE, error_on_failure)
+  ## staticassert(traits.is_number(HEAP_SIZE), 'HeapAllocator: size must be a number')
+
+  local HEAP_SIZE: usize <comptime> = #[HEAP_SIZE]#
+
+  local HeapAllocatorN = @record{
+    initialized: boolean,
+    heap: Heap,
+    buffer: byte[HEAP_SIZE]
+  }
+
+  -- Initialize the heap allocator.
+  -- This is called automatically when needed on first alloc/realloc.
+  function HeapAllocatorN:init()
+    self.heap = {}
+    self.heap:add_memory_region(&self.buffer[0], HEAP_SIZE)
+    self.initialized = true
+  end
+
+  function HeapAllocatorN:alloc(size: usize)
+    if unlikely(not self.initialized) then self:init() end
+    local p: pointer = self.heap:alloc(size)
+    ## if error_on_failure then
+      assert(p ~= nilptr or size == 0, 'HeapAllocator.alloc: out of memory')
+    ## end
+    return p
+  end
+
+  function HeapAllocatorN:dealloc(p: pointer)
+    self.heap:dealloc(p)
+  end
+
+  function HeapAllocatorN:realloc(p: pointer, newsize: usize, oldsize: usize)
+    if unlikely(not self.initialized) then self:init() end
+    if unlikely(newsize == oldsize) then
+      return p
+    end
+    p = self.heap:realloc(p, newsize)
+    ## if error_on_failure then
+      assert(p ~= nilptr, 'HeapAllocator.realloc: out of memory')
+    ## end
+    return p
+  end
+
+  require 'allocators.interface'
+
+  ## implement_allocator_interface(HeapAllocatorN)
+
+  ## return HeapAllocatorN
+## end)
+
+global HeapAllocator: type = #[make_heap_allocator]#

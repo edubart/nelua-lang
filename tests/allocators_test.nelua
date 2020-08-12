@@ -1,5 +1,7 @@
 require 'allocators.arena'
 require 'allocators.pool'
+require 'allocators.heap'
+require 'vector'
 
 do -- Arena
   local allocator: ArenaAllocator(1024,8)
@@ -63,4 +65,18 @@ do -- Pool
   -- should deallocate
   ri = (@integer*)(allocator:realloc(ri, 0, 2*#integer))
   assert(ri == nilptr)
+end
+
+do -- Heap
+  local Allocator = @HeapAllocator(65536, true)
+  local IntVector = @vector(integer, Allocator)
+  local allocator: Allocator
+  local va = IntVector.make(&allocator)
+  local vb = IntVector.make(&allocator)
+  for i=1,100 do
+    va:push(1)
+    vb:push(1)
+  end
+  vb:destroy()
+  va:destroy()
 end
