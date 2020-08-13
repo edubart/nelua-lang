@@ -93,6 +93,7 @@ do -- remove_if
   local function is_even(x: integer) return x % 2 == 0 end
   vec:remove_if(is_even)
   assert(#vec == 0)
+  vec:destroy()
 end
 
 do -- insert

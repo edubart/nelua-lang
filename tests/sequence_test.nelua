@@ -106,6 +106,7 @@ do -- remove_if
   local function is_even(x: integer) return x % 2 == 0 end
   seq:remove_if(is_even)
   assert(#seq == 0)
+  seq:destroy()
 end
 
 do -- insert

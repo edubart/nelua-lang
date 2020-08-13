@@ -11,7 +11,7 @@
 --
 -- It's main use is to give the possibility to detect dangling accesses,
 -- that is, trying to access an object which no longer exists or that
--- has been reused. Is not possible to detect these situations when using
+-- has been reused. It's not possible to detect these situations when using
 -- just raw pointers.
 --
 -- CAUTION: When using this class don't store pointers for resources allocated

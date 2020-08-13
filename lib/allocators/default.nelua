@@ -6,12 +6,39 @@
 -- automatically, in this case the user is encouraged to try to use other allocators
 -- to have more efficiency and to assist managing the memory.
 
-## if not pragmas.nogc then
+## if pragmas.default_allocator then
+
+local allocator: auto = #[pragmas.default_allocator]#
+require 'allocators.interface'
+global DefaultAllocator = @record{}
+function DefaultAllocator:alloc(size: usize): pointer <inline>
+  return allocator:alloc(size)
+end
+function DefaultAllocator:alloc0(size: usize): pointer <inline>
+  return allocator:alloc0(size)
+end
+function DefaultAllocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+  return allocator:realloc(p, newsize, oldsize)
+end
+function DefaultAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+  return allocator:realloc0(p, newsize, oldsize)
+end
+function DefaultAllocator:dealloc(p: pointer) <inline>
+  allocator:dealloc(p)
+end
+## implement_allocator_interface(DefaultAllocator)
+global default_allocator: DefaultAllocator
+
+## elseif not pragmas.nogc then
+
 require 'allocators.gc'
 global default_allocator: auto = &gc_allocator
 global DefaultAllocator: auto = GCAllocator
+
 ## else
+
 require 'allocators.general'
 global default_allocator: auto = &general_allocator
 global DefaultAllocator: auto = GeneralAllocator
+
 ## end
