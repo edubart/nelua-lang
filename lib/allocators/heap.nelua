@@ -25,12 +25,17 @@
 -- however it has heavy customized to have more performance, constant time allocations
 -- and alignment.
 
--- the minimum allocation size for joining and splitting chunks
-local MIN_ALLOC_SIZE: usize <comptime> = 8
 -- do not change this alignment, the code have this in mind
 local ALLOC_ALIGN: usize <comptime> = 16
--- how many lists for "pools" of different chunks sizes
-local BIN_COUNT <comptime> = 8
+-- the minimum allocation size for joining and splitting chunks
+local MIN_ALLOC_SIZE: usize <comptime> = 16
+-- number of bin for different chunks sizes,
+-- lowering this may increase performance at cost of more fragmentation when doing big allocs
+-- 24 is set to work well with at most 64MB in a single alloc
+local BIN_COUNT <comptime> = 24
+-- number of maximum lookups per bin when searching for a free chunk
+-- this is necessary to break long loops in alloc for edge cases
+local BIN_MAX_LOOKUPS <comptime> = 16
 -- cookie used to identify invalid realloc/dealloc on invalid pointers
 local NODE_COOKIE: usize <comptime> = 0xA7512BCF_usize
 
@@ -68,7 +73,7 @@ end
 -- import efficient clz (compute leading zeros) from C
 -- used to compute the bin
 ##[==[ cemit([[
-#if __GNUC__
+#ifdef __GNUC__
 #define c_clz(x) __builtin_clz(x)
 #else
 inline uint32_t c_clz(uint32_t v) {
@@ -95,10 +100,10 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
 local function get_bin_index(size: usize): uint32 <inline>
   if unlikely(size <= (1<<3)) then
     return 0
-  elseif unlikely(size >= 1<<(3+(BIN_COUNT<<1))) then
+  elseif unlikely(size >= 1<<(3+(BIN_COUNT<<0))) then
     return BIN_COUNT - 1
   else
-    return (28 - c_clz((@uint32)(size))) >> 1
+    return (28 - c_clz((@uint32)(size)))>>0
   end
 end
 
@@ -107,39 +112,40 @@ local function align_forward(addr: usize, align: usize): usize <inline>
   return (addr + (align-1)) & ~(align-1)
 end
 
--- insert a node inside the bin linked list
-local function add_node(bin: Bin*, node: Node*) <inline>
-  node.next = bin.head
+-- insert a node inside a bin linked list
+function Heap:add_node(node: Node*) <inline>
+  local bin: Bin* = &self.bins[get_bin_index(node.size)]
   node.prev = nilptr
-  if bin.head then
+  if likely(bin.head ~= nilptr) then
+    -- bin is not empty, forward the head
+    node.next = bin.head
     bin.head.prev = node
+  else
+    node.next = nilptr
   end
   bin.head = node
 end
 
--- remove a node from the bin linked list
-local function remove_node(bin: Bin*, node: Node*) <inline>
+-- remove a node from a bin linked list
+function Heap:remove_bin_node(bin_index: uint32, node: Node*) <inline>
+  local bin: Bin* = &self.bins[bin_index]
+  -- update the head in case we are removing it
   if node == bin.head then
     bin.head = node.next
   end
+  -- link prev node
   if node.prev ~= nilptr then
     node.prev.next = node.next
   end
+  -- link next node
   if node.next ~= nilptr then
     node.next.prev = node.prev
   end
 end
 
--- find the first free node that can accommodate `size` bytes
-local function get_best_fit(bin: Bin*, size: usize): Node* <inline>
-  local temp: Node* = bin.head
-  while temp ~= nilptr do
-    if temp.size >= size then
-      break -- found fit
-    end
-    temp = temp.next
-  end
-  return temp
+-- remove a node from a bin linked list
+function Heap:remove_node(node: Node*) <inline>
+  self:remove_bin_node(get_bin_index(node.size), node)
 end
 
 -- return next adjacent node
@@ -149,13 +155,12 @@ end
 
 -- get a node given a pointer
 local function get_ptr_node(p: pointer): Node* <inline>
-  local addr: usize = (@usize)(p)
   -- check for misaligned invalid pointers
-  if unlikely(addr & (ALLOC_ALIGN-1) ~= 0) then
+  if unlikely((@usize)(p) & (ALLOC_ALIGN-1) ~= 0) then
     return nilptr
   end
   -- the actual head of the node is not p, it is p minus the size of the node
-  local node: Node* = (@Node*)(addr - #@Node)
+  local node: Node* = (@Node*)((@usize)(p) - #@Node)
   -- check if is a valid allocator node
   if unlikely(not node:is_used()) then
     return nilptr
@@ -191,7 +196,7 @@ function Heap:add_memory_region(region: pointer, region_size: usize)
   end_node:set_used() -- the end node is never free
 
   -- now we add the region to the correct bin
-  add_node(self.bins[get_bin_index(start_node.size)], start_node)
+  self:add_node(start_node)
 end
 
 -- this is the allocation function of the heap, it takes
@@ -206,24 +211,44 @@ function Heap:alloc(size: usize): pointer
   -- we always want to allocate aligned sizes
   size = align_forward(size + #@Node, ALLOC_ALIGN) - #@Node
 
-  -- first get the bin index that this chunk size should be in
-  local index: uint32 = get_bin_index(size)
   local found: Node*
 
-  -- while no chunk if found advance through the bins until we
-  -- find a chunk that fits
+  -- advance through the bins until we find a chunk that fits the size
+  local bin_index: uint32 = get_bin_index(size)
   repeat
-    found = get_best_fit(self.bins[index], size)
-    if found ~= nilptr then
-      break
+    found = self.bins[bin_index].head
+    -- limit the number of max lookups here to advancete to next bin early
+    -- thus allocating faster
+    for i:uint32=0,<BIN_MAX_LOOKUPS do
+      if found == nilptr then
+        break
+      elseif found.size >= size then
+        -- found a free chunk!
+        goto found_free_node
+      end
+      found = found.next
     end
-    index = index + 1
-  until index >= BIN_COUNT
+    bin_index = bin_index + 1
+  until bin_index == BIN_COUNT
 
-  if unlikely(found == nilptr) then -- out of memory
-    return nilptr
-  end
+  -- this is rare, maybe there is free memory available however it could be too fragmented
+  -- so try to search again without limits
+  bin_index = get_bin_index(size)
+  repeat
+    found = self.bins[bin_index].head
+    while found ~= nilptr do
+      if found.size >= size then
+        goto found_free_node
+      end
+      found = found.next
+    end
+    bin_index = bin_index + 1
+  until bin_index == BIN_COUNT
 
+  -- no free chunk found, out of memory
+  do return nilptr end
+
+::found_free_node::
   -- if the difference between the found chunk and the requested chunk
   -- is bigger than the metadata + min alloc size
   -- then we should split this chunk, otherwise just return the chunk
@@ -238,12 +263,11 @@ function Heap:alloc(size: usize): pointer
     split.prev_adj = found
     get_next_adj_node(split).prev_adj = split
 
-    -- now we need to get the new index for this split chunk
-    -- place it in the correct bin
-    add_node(self.bins[get_bin_index(split_size)], split)
+    -- add it in the correct bin
+    self:add_node(split)
   end
 
-  remove_node(self.bins[index], found) -- remove it from its bin
+  self:remove_bin_node(bin_index, found) -- remove it from its bin
   found:set_used() -- not free anymore
 
   -- return the pointer for the chunk, it should be properly aligned
@@ -261,7 +285,7 @@ function Heap:dealloc(p: pointer)
   -- the actual head of the node is not p, it is p minus the size of the node
   local head: Node* = get_ptr_node(p)
   if unlikely(head == nilptr) then
-    error('invalid pointer passed in Heap dealloc')
+    panic('invalid pointer passed in heap dealloc')
   end
 
   local prev: Node* = head.prev_adj
@@ -270,8 +294,7 @@ function Heap:dealloc(p: pointer)
   -- if the previous node is free we can coalesce!
   if likely(prev ~= nilptr) and not prev:is_used() then
     -- remove the previous node from its bin
-    local list: Bin* = self.bins[get_bin_index(prev.size)]
-    remove_node(list, prev)
+    self:remove_node(prev)
 
     -- re-calculate the size of this node and link next adjacent node
     prev.size = prev.size + #@Node + head.size
@@ -294,8 +317,7 @@ function Heap:dealloc(p: pointer)
   -- if the next node is free coalesce!
   if not next:is_used() then
     -- remove it from its bin
-    local list: Bin* = self.bins[get_bin_index(next.size)]
-    remove_node(list, next)
+    self:remove_node(next)
 
     -- re-calculate the new size of head
     head.size = head.size + #@Node + next.size
@@ -305,7 +327,7 @@ function Heap:dealloc(p: pointer)
   end
 
   -- this chunk is now free, so put it in the right bin
-  add_node(self.bins[get_bin_index(head.size)], head)
+  self:add_node(head)
 end
 
 function Heap:realloc(p: pointer, size: usize)
@@ -324,7 +346,7 @@ function Heap:realloc(p: pointer, size: usize)
   -- the actual head of the node is not p, it is p minus the size of the node
   local head: Node* = get_ptr_node(p)
   if unlikely(head == nilptr) then
-    error('invalid pointer passed in Heap realloc')
+    panic('invalid pointer passed in heap realloc')
   end
 
   -- is the chunk growing?
@@ -332,11 +354,9 @@ function Heap:realloc(p: pointer, size: usize)
     -- we can only grow if the next adjacent node
     -- is not the end, is free and has enough space
     local next: Node* = get_next_adj_node(head)
-    if not next:is_used() and
-       head.size + next.size + #@Node >= size then
+    if not next:is_used() and head.size + next.size + #@Node >= size then
       -- remove it from its bin
-      local list: Bin* = self.bins[get_bin_index(next.size)]
-      remove_node(list, next)
+      self:remove_node(next)
 
       -- re-calculate the new size of head
       head.size = head.size + next.size + #@Node
@@ -377,7 +397,7 @@ function Heap:realloc(p: pointer, size: usize)
 
       -- now we need to get the new index for this split chunk
       -- place it in the correct bin
-      add_node(self.bins[get_bin_index(split_size)], split)
+      self:add_node(split)
     end
   end
 
