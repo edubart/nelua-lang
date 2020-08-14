@@ -4,16 +4,17 @@
 
 require 'span'
 
-## function implement_allocator_interface(allocator)
+## function implement_allocator_interface(Allocator)
   local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
+  local function memmove(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
   local function memset(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 
   local is_span = #[concept(function(x) return x.type.is_span end)]#
-  local allocator = #[allocator]#
+  local Allocator = #[Allocator]#
 
-  ## if not allocator.value:get_metafield('realloc') then
+  ## if not Allocator.value:get_metafield('realloc') then
   -- naive implementation for realloc
-  function allocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
+  function Allocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
     if unlikely(p == nilptr) then
       return self:alloc(newsize)
     elseif unlikely(newsize == 0) then
@@ -21,15 +22,18 @@ require 'span'
       return nilptr
     elseif unlikely(newsize == oldsize) then
       return p
-    else
+    else -- shrinking or growing
       local newp: pointer = self:alloc(newsize)
       if likely(p ~= nilptr) then
         if likely(newp ~= nilptr and oldsize ~= 0) then
-          local copysize = oldsize
+          -- copy the old size when growing or the new size when shrinking
+          local minsize: usize = oldsize
           if newsize < oldsize then
-            copysize = newsize
+            minsize = newsize
           end
-          memcpy(newp, p, copysize)
+          -- use memmove instead of memcpy because we don't really know
+          -- if the Allocator can overlap memory
+          memmove(newp, p, minsize)
         end
         self:dealloc(p)
       end
@@ -38,9 +42,9 @@ require 'span'
   end
   ## end
 
-  ## if not allocator.value:get_metafield('alloc0') then
+  ## if not Allocator.value:get_metafield('alloc0') then
   -- naive implementation for alloc0
-  function allocator:alloc0(size: usize): pointer
+  function Allocator:alloc0(size: usize): pointer
     local p: pointer = self:alloc(size)
     if likely(p ~= nilptr and size ~= 0) then
       memset(p, 0, size)
@@ -49,9 +53,9 @@ require 'span'
   end
   ## end
 
-  ## if not allocator.value:get_metafield('realloc0') then
+  ## if not Allocator.value:get_metafield('realloc0') then
   -- naive implementation for realloc0
-  function allocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
+  function Allocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
     p = self:realloc(p, newsize, oldsize)
     if likely(newsize > oldsize and p ~= nilptr) then
       -- zero the grown part
@@ -61,7 +65,7 @@ require 'span'
   end
   ## end
 
-  function allocator:spanalloc(T: type, size: usize)
+  function Allocator:spanalloc(T: type, size: usize)
     local s: span(T)
     if likely(size > 0) then
       s.data = (@T[0]*)(self:alloc(size * #T))
@@ -70,7 +74,7 @@ require 'span'
     return s
   end
 
-  function allocator:spanalloc0(T: type, size: usize)
+  function Allocator:spanalloc0(T: type, size: usize)
     local s: span(T)
     if likely(size > 0) then
       s.data = (@T[0]*)(self:alloc0(size * #T))
@@ -79,7 +83,7 @@ require 'span'
     return s
   end
 
-  function allocator:spanrealloc(s: is_span, size: usize)
+  function Allocator:spanrealloc(s: is_span, size: usize)
     local T: type = #[s.type.subtype]#
     local p: T[0]* = (@T[0]*)(self:realloc(s.data, size * #T, s.size))
     if unlikely(size > 0 and p == nilptr) then
@@ -91,7 +95,7 @@ require 'span'
     return s
   end
 
-  function allocator:spanrealloc0(s: is_span, size: usize)
+  function Allocator:spanrealloc0(s: is_span, size: usize)
     local T: type = #[s.type.subtype]#
     local p: T[0]* = (@T[0]*)(self:realloc0(s.data, size * #T, s.size * #T))
     if unlikely(size > 0 and p == nilptr) then
@@ -103,20 +107,20 @@ require 'span'
     return s
   end
 
-  function allocator:spandealloc(s: is_span)
+  function Allocator:spandealloc(s: is_span)
     if unlikely(s.size == 0) then return end
     self:dealloc(s.data)
   end
 
-  function allocator:spannew(what: auto, size: usize) <inline>
+  function Allocator:spannew(what: auto, size: usize) <inline>
     ## if what.type.is_type then
       local T = what
       local spn: span(T) = self:spanalloc0(T, size)
-      check(spn.size > 0, 'allocator.spannew: out of memory')
+      check(spn.size > 0, 'Allocator.spannew: out of memory')
     ## else
       local T = #[what.type]#
       local spn: span(T) = self:spanalloc(T, size)
-      check(spn.size > 0, 'allocator.spannew: out of memory')
+      check(spn.size > 0, 'Allocator.spannew: out of memory')
       for i:usize=0,<size do
         memcpy(&spn[i], &what, #T)
       end
@@ -124,21 +128,21 @@ require 'span'
     return spn
   end
 
-  function allocator:new(what: auto) <inline>
+  function Allocator:new(what: auto) <inline>
     ## if what.type.is_type then
       local T = what
       local ptr: T* = (@T*)(self:alloc0(#T))
-      check(ptr ~= nilptr, 'allocator.new: out of memory')
+      check(ptr ~= nilptr, 'Allocator.new: out of memory')
     ## else
       local T = #[what.type]#
       local ptr: T* = (@T*)(self:alloc(#T))
-      check(ptr ~= nilptr, 'allocator.new: out of memory')
+      check(ptr ~= nilptr, 'Allocator.new: out of memory')
       memcpy(ptr, &what, #T)
     ## end
     return ptr
   end
 
-  function allocator:delete(s: #[concept(function(x)
+  function Allocator:delete(s: #[concept(function(x)
     return x.type.is_pointer or x.type.is_span end
   )]#) <inline>
     ## if s.type.is_span then

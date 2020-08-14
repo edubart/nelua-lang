@@ -1,0 +1,128 @@
+-- Stack Allocator
+--
+-- The stack allocator, allocates everything from fixed size contiguous buffer
+-- by incrementing an offset every new allocation and decrementing on every
+-- deallocation that follows the LIFO (last-in, first-out) principle.
+-- This allocator is an evolution of the Arena allocator,
+-- thus understand the arena allocator first before using this.
+--
+-- The purpose of this allocator is to have very fast allocations with almost
+-- no runtime cost when the maximum used space is known ahead.
+--
+-- Deallocations out of order will cause a runtime error.
+-- By default alignment should be at least 4 because this allocator stores
+-- a header for allocation metadata with this requirement.
+-- By default allocations are aligned to 8 bytes unless explicit told otherwise.
+-- By default when there is not enough space a nil pointer is returned on allocations,
+-- this can be changed to runtime errors by setting `error_on_failure` to true.
+--
+-- The implementation is based on
+-- https://www.gingerbill.org/article/2019/02/15/memory-allocation-strategies-003/
+
+require 'allocators.interface'
+
+local function align_forward(addr: usize, align: usize): usize <inline>
+  return (addr + (align-1)) & ~(align-1)
+end
+
+local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
+
+local StackAllocHeader = @record {
+  prev_offset: uint32,
+  curr_offset: uint32
+}
+
+## local make_stack_allocator = generalize(function(SIZE, ALIGN, error_on_failure)
+  ##[[
+  ALIGN = ALIGN or 8
+  staticassert(ALIGN >= 4, 'StackAllocator: align must be at least 4')
+  staticassert(ALIGN & (ALIGN-1) == 0, 'StackAllocator: align must be a power of two')
+  staticassert(SIZE <= 0xffffffff, 'StackAllocator: size too large')
+  staticassert(SIZE % ALIGN == 0, 'StackAllocator: size must be multiple of align')
+  ]]
+
+  local SIZE <comptime> = #[SIZE]#
+  local ALIGN <comptime> = #[ALIGN]#
+
+  local StackAllocatorT = @record{
+    prev_offset: usize,
+    curr_offset: usize,
+    buffer: byte[SIZE]
+  }
+
+  -- Free all allocations.
+  function StackAllocatorT:dealloc_all()
+    self.prev_offset = 0
+    self.curr_offset = 0
+  end
+
+  function StackAllocatorT:alloc(size: usize): pointer
+    local base: usize = (@usize)(&self.buffer[0])
+    local offset: usize = align_forward(base + self.curr_offset + #@StackAllocHeader, ALIGN) - base
+    local next_offset: usize = offset + size
+    if unlikely(next_offset > SIZE) then
+      ## if error_on_failure then
+        error('StackAllocator.alloc: out of memory')
+      ## end
+      return nilptr
+    end
+    local p: pointer = &self.buffer[offset]
+    -- push the current state in the stack header
+    local header: StackAllocHeader* = (@StackAllocHeader*)(&self.buffer[offset - #@StackAllocHeader])
+    header.prev_offset = (@uint32)(self.prev_offset)
+    header.curr_offset = (@uint32)(self.curr_offset)
+    self.prev_offset = offset
+    self.curr_offset = next_offset
+    return p
+  end
+
+  function StackAllocatorT:dealloc(p: pointer)
+    if unlikely(p == nilptr) then return end
+    local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
+    if likely(offset == self.prev_offset) then -- is the very last allocation?
+      local header: StackAllocHeader* = (@StackAllocHeader*)(&self.buffer[offset - #@StackAllocHeader])
+      -- pop the current state from the stack header
+      self.prev_offset = header.prev_offset
+      self.curr_offset = header.curr_offset
+    else
+      error('StackAllocator.dealloc: out of order or invalid dealloc')
+    end
+  end
+
+  function StackAllocatorT:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
+    if unlikely(p == nilptr) then
+      return self:alloc(newsize)
+    elseif unlikely(newsize == 0) then
+      self:dealloc(p)
+      return nilptr
+    end
+    local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
+    check(offset < SIZE, 'StackAllocatorT.realloc: pointer not in buffer of bounds')
+    if likely(offset == self.prev_offset) then -- is the very last allocation?
+      -- we can just update the offset here to grow or shrink
+      local next_offset: usize = offset + newsize
+      if unlikely(next_offset > SIZE) then
+        ## if error_on_failure then
+          error('StackAllocatorT.realloc: out of memory')
+        ## end
+        return nilptr
+      end
+      self.curr_offset = next_offset
+      return p
+    elseif newsize > oldsize then -- growing
+      -- we cannot grow an out of order allocation in this allocator
+      ## if error_on_failure then
+        error('StackAllocatorT.realloc: out of order realloc')
+      ## end
+      return nilptr
+    else -- same size or shrinking, can return the same pointer
+      return p
+    end
+  end
+
+  ## implement_allocator_interface(StackAllocatorT)
+
+  ## return StackAllocatorT
+## end)
+
+global StackAllocator: type = #[make_stack_allocator]#

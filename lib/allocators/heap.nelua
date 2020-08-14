@@ -14,7 +14,7 @@
 -- or if you want to avoid the system's default allocator for some reason,
 -- or if the system does not have an allocator.
 --
--- It's memory cannot grow automatically, use the system's general purpose allocator for that.
+-- Its memory cannot grow automatically, use the system's general purpose allocator for that.
 -- The allocator is not thread safe, it was designed to be used in single thread applications.
 -- Allocations are always 16 byte aligned.
 --
@@ -409,7 +409,7 @@ end
 
   local HEAP_SIZE: usize <comptime> = #[HEAP_SIZE]#
 
-  local HeapAllocatorN = @record{
+  local HeapAllocatorT = @record{
     initialized: boolean,
     heap: Heap,
     buffer: byte[HEAP_SIZE]
@@ -417,13 +417,13 @@ end
 
   -- Initialize the heap allocator.
   -- This is called automatically when needed on first alloc/realloc.
-  function HeapAllocatorN:init()
+  function HeapAllocatorT:init()
     self.heap = {}
     self.heap:add_memory_region(&self.buffer[0], HEAP_SIZE)
     self.initialized = true
   end
 
-  function HeapAllocatorN:alloc(size: usize)
+  function HeapAllocatorT:alloc(size: usize)
     if unlikely(not self.initialized) then self:init() end
     local p: pointer = self.heap:alloc(size)
     ## if error_on_failure then
@@ -432,11 +432,11 @@ end
     return p
   end
 
-  function HeapAllocatorN:dealloc(p: pointer)
+  function HeapAllocatorT:dealloc(p: pointer)
     self.heap:dealloc(p)
   end
 
-  function HeapAllocatorN:realloc(p: pointer, newsize: usize, oldsize: usize)
+  function HeapAllocatorT:realloc(p: pointer, newsize: usize, oldsize: usize)
     if unlikely(not self.initialized) then self:init() end
     if unlikely(newsize == oldsize) then
       return p
@@ -450,9 +450,9 @@ end
 
   require 'allocators.interface'
 
-  ## implement_allocator_interface(HeapAllocatorN)
+  ## implement_allocator_interface(HeapAllocatorT)
 
-  ## return HeapAllocatorN
+  ## return HeapAllocatorT
 ## end)
 
 global HeapAllocator: type = #[make_heap_allocator]#

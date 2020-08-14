@@ -26,7 +26,8 @@
 -- this can be changed to runtime errors by setting `error_on_failure` to true.
 -- Remember to use the proper alignment for the allocated objects to have fast memory access.
 --
--- The implementation is based on https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/
+-- The implementation is based on
+-- https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/
 
 require 'allocators.interface'
 
@@ -36,17 +37,17 @@ end
 
 local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 
-## local make_arena_allocator = generalize(function(Size, Align, error_on_failure)
-  ## Align = Align or 8
-  ## staticassert(Size % Align == 0, 'ArenaAllocator: size must be multiple of align')
-  ## staticassert(Align & (Align-1) == 0, 'ArenaAllocator: align must be a power of two')
+## local make_arena_allocator = generalize(function(SIZE, ALIGN, error_on_failure)
+  ## ALIGN = ALIGN or 8
+  ## staticassert(SIZE % ALIGN == 0, 'ArenaAllocator: size must be multiple of align')
+  ## staticassert(ALIGN & (ALIGN-1) == 0, 'ArenaAllocator: align must be a power of two')
 
-  local Size <comptime> = #[Size]#
-  local Align <comptime> = #[Align]#
+  local SIZE <comptime> = #[SIZE]#
+  local ALIGN <comptime> = #[ALIGN]#
   local ArenaAllocatorT = @record{
     prev_offset: usize,
     curr_offset: usize,
-    buffer: byte[Size]
+    buffer: byte[SIZE]
   }
 
   -- Free all allocations.
@@ -57,23 +58,28 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
 
   function ArenaAllocatorT:alloc(size: usize): pointer
     local base: usize = (@usize)(&self.buffer[0])
-    local offset: usize = align_forward(base + self.curr_offset, Align) - base
+    local offset: usize = align_forward(base + self.curr_offset, ALIGN) - base
     local next_offset: usize = offset + size
-    if unlikely(next_offset > Size) then
+    if unlikely(next_offset > SIZE) then
       ## if error_on_failure then
         error('ArenaAllocator.alloc: out of memory')
       ## end
       return nilptr
     end
     local p: pointer = &self.buffer[offset]
-    self.prev_offset = self.curr_offset
+    self.prev_offset = offset
     self.curr_offset = next_offset
     return p
   end
 
   function ArenaAllocatorT:dealloc(p: pointer)
+    if unlikely(p == nilptr) then return end
+    -- get offset for this pointer
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
-    if offset == self.prev_offset then
+    check(offset < SIZE, 'ArenaAllocator.dealloc: pointer not in buffer of bounds')
+    -- we can only dealloc the most recent allocation once
+    -- any other allocation we can do nothing about
+    if likely(offset == self.prev_offset) then
       self.curr_offset = offset
     end
   end
@@ -81,34 +87,34 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
   function ArenaAllocatorT:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
     if unlikely(p == nilptr) then
       return self:alloc(newsize)
-    elseif unlikely(newsize == oldsize) then
-      return p
+    elseif unlikely(newsize == 0) then
+      self:dealloc(p)
+      return nilptr
     end
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
-    check(offset < Size, 'ArenaAllocator.realloc: pointer not in buffer of bounds')
-    if offset == self.prev_offset then -- modify last allocation
-      if likely(newsize > 0) then
-        local next_offset: usize = offset + newsize
-        if unlikely(next_offset > Size) then
-          ## if error_on_failure then
-            error('ArenaAllocator.realloc: out of memory')
-          ## end
-          return nilptr
-        end
-        self.curr_offset = next_offset
-      else
-        self.curr_offset = offset
+    check(offset < SIZE, 'ArenaAllocator.realloc: pointer not in buffer of bounds')
+    if likely(offset == self.prev_offset) then -- is the very last allocation?
+      -- we can just update the offset here to grow or shrink
+      local next_offset: usize = offset + newsize
+      if unlikely(next_offset > SIZE) then
+        ## if error_on_failure then
+          error('ArenaAllocator.realloc: out of memory')
+        ## end
+        return nilptr
       end
+      self.curr_offset = next_offset
       return p
-    elseif newsize > oldsize then -- growing, move to a new allocation
+    elseif newsize > oldsize then -- growing
+      -- when growing we need to move to a new allocation
       if unlikely(newsize == 0) then return nilptr end
       local newp: pointer = self:alloc(newsize)
       if likely(newp ~= nilptr and p ~= nilptr and oldsize ~= 0) then
         -- copy the mem to the new location
         memcpy(newp, p, oldsize)
       end
+      -- no dealloc is done on old pointer because it's not possible in this allocator
       return newp
-    else -- shrinking, can return the same pointer
+    else -- same size or shrinking, can return the same pointer
       return p
     end
   end

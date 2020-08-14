@@ -1,4 +1,5 @@
 require 'allocators.arena'
+require 'allocators.stack'
 require 'allocators.pool'
 require 'allocators.heap'
 require 'vector'
@@ -22,7 +23,7 @@ do -- Arena
   a = (@integer[0]*)(allocator:realloc0(i, 8 * #@integer, 32 * #@integer))
   assert(allocator.prev_offset == 0 and allocator.curr_offset == 8*8)
   for i=0,<8 do assert(a[i] == 0xff) end
-  a = (@integer[0]*)(allocator:realloc0(i, 0, 8 * #@integer))
+  assert(allocator:realloc0(i, 0, 8 * #@integer) == nilptr)
   for i=0,<32 do assert(a[i] == 0xff) end
   assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
   a = (@integer[0]*)(allocator:realloc0(nilptr, 1024, 0))
@@ -34,6 +35,31 @@ do -- Arena
   for i=0,<1024 do
     assert(allocator.buffer[i] == 0)
   end
+end
+
+do -- Stack
+  local allocator: StackAllocator(1024, 16)
+  assert(allocator:alloc0(1024) == nilptr)
+  local a = allocator:alloc0(3)
+  assert(a ~= nilptr and (@usize)(a) % 16 == 0)
+  local b = allocator:alloc0(7)
+  assert(b ~= nilptr and (@usize)(b) % 16 == 0)
+  local c = allocator:alloc0(33)
+  assert(c ~= nilptr and (@usize)(c) % 16 == 0)
+  local nc = allocator:realloc0(c, 133, 33)
+  assert(nc == c)
+  assert(allocator:realloc0(b, 99, 7) == nilptr)
+  assert(allocator:realloc0(b, 1, 7) == b)
+  local d = allocator:alloc0(1)
+  allocator:dealloc(d)
+  allocator:dealloc(c)
+  allocator:dealloc(b)
+  allocator:dealloc(a)
+  assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
+  a = allocator:alloc0(3)
+  b = allocator:alloc0(7)
+  allocator:dealloc_all()
+  assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
 end
 
 do -- Pool

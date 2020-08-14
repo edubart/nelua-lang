@@ -1,35 +1,36 @@
 -- Pool Allocator
 --
--- The pool allocator allocate chunks from fixed contiguous buffer of many chunks, allocations
--- pops a free chunk from the pool and deallocations pushes a chunk back. It works
--- by using a single linked list of free chunks.
+-- The pool allocator allocate chunks from fixed contiguous buffer of many chunks,
+-- allocations pops a free chunk from the pool and deallocations pushes a chunk back.
+-- It works by using a single linked list of free chunks.
 --
 -- The purpose of this allocator is to have very fast allocations with almost
 -- no runtime cost when the maximum used space is known ahead.
 --
 -- Reallocations and deallocations free space (unlikely the Arena allocator).
--- Reallocations greater than the chunk size will always fails.
+-- Allocations greater than the chunk size will always fails.
 --
--- The implementation is based on https://www.gingerbill.org/article/2019/02/16/memory-allocation-strategies-004/
+-- The implementation is based on
+-- https://www.gingerbill.org/article/2019/02/16/memory-allocation-strategies-004/
 
 require 'allocators.interface'
 
-## local make_pool_allocator = generalize(function(T, Size, error_on_failure)
+## local make_pool_allocator = generalize(function(T, SIZE, error_on_failure)
   ##[[
   staticassert(traits.is_type(T), 'PoolAllocator: T must be a type')
-  local ChunkSize = T.size
-  local ChunkAlign = math.max(T.align, primtypes.pointer.size)
-  staticassert(traits.is_number(Size), 'PoolAllocator: size must be a number')
-  staticassert(Size * ChunkSize > 0, 'PoolAllocator: size must be greater than 0')
-  staticassert(ChunkSize >= primtypes.pointer.size, 'PoolAllocator: chunk size must be at least a pointer in size')
+  local CHUNK_SIZE = T.size
+  local CHUNK_ALIGN = math.max(T.align, primtypes.pointer.size)
+  staticassert(traits.is_number(SIZE), 'PoolAllocator: size must be a number')
+  staticassert(SIZE * CHUNK_SIZE > 0, 'PoolAllocator: size must be greater than 0')
+  staticassert(CHUNK_SIZE >= primtypes.pointer.size, 'PoolAllocator: chunk size must be at least a pointer in size')
   ]]
 
   local PoolFreeNode = @record{next: PoolFreeNode*}
-  local PoolChunk <aligned(#[ChunkAlign]#)> = @record {data: byte[#[ChunkSize]#]}
+  local PoolChunk <aligned(#[CHUNK_ALIGN]#)> = @record {data: byte[#[CHUNK_SIZE]#]}
   local PoolAllocatorT = @record{
     initialized: boolean,
     head: PoolFreeNode*,
-    buffer: PoolChunk[#[Size]#]
+    buffer: PoolChunk[#[SIZE]#]
   }
 
   -- Free all allocations.
