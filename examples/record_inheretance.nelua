@@ -89,7 +89,7 @@ local function class(recordsym, basesym)
     end
     rectype.base = basetype
   else -- base record
-    assert(rectype:get_field('__kind'), 'missing __kind field')
+    assert(rectype.fields.__kind, 'missing __kind field')
     rectype.classes = {}
     rectype.methods = {}
     kindid = 0

@@ -3,6 +3,7 @@ local class = require 'nelua.utils.class'
 local cdefs = require 'nelua.cdefs'
 local traits = require 'nelua.utils.traits'
 local cbuiltins = require 'nelua.cbuiltins'
+local config = require 'nelua.configer'.get()
 
 local CContext = class(AnalyzerContext)
 
@@ -71,6 +72,9 @@ function CContext:typename(type)
   until visitor
 
   if visitor then
+    if config.check_ast_shape then
+      assert(type:shape())
+    end
     visitor(self, type)
   end
   return type.codename
@@ -92,7 +96,7 @@ function CContext:runctype(type)
 end
 
 function CContext:funcretctype(functype)
-  if functype:has_enclosed_return() then
+  if functype:has_multiple_returns() then
     return functype.codename .. '_ret'
   else
     return self:ctype(functype:get_return_type(1))

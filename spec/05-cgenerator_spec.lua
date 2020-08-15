@@ -1666,9 +1666,8 @@ it("record operator overloading", function()
     assert((-r).x == 15)
 
     local vec2 = @record{x: number, y: number}
-    ## vec2.value.is_vec2 = true
     local is_vec2_or_arithmetic = #[concept(function(b)
-      return b.type.is_vec2 or b.type.is_arithmetic
+      return b.type.nickname == 'vec2' or b.type.is_arithmetic
     end)]#
     function vec2.__mul(a: is_vec2_or_arithmetic, b: is_vec2_or_arithmetic): vec2
       ## if b.type.is_arithmetic then
@@ -2374,7 +2373,7 @@ it("GC requirements", function()
           for i=1,#scope.symbols do
             local sym = scope.symbols[i]
             local symtype = sym.type or primtypes.any
-            if sym:is_static_vardecl() and symtype:has_pointer() then
+            if sym:is_on_static_storage() and symtype:has_pointer() then
               emit_mark_static(sym, symtype)
             end
           end

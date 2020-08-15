@@ -245,6 +245,7 @@ it("unary operators", function()
   assert.ast_type_equals("local a = -1", "local a: integer = -1")
   assert.ast_type_equals("local a = -1.0", "local a: number = -1.0")
   assert.analyze_error("local x = &1", "cannot reference compile time value")
+  assert.analyze_error("local x: niltype; local b = &x", "cannot reference not addressable type")
   assert.analyze_error("local a = -'s'", "invalid operation")
   assert.ast_type_equals([[
     local x = 1_usize * #@integer
@@ -414,6 +415,13 @@ it("late deduction", function()
     a = 1
     b = 2
     c = a + b
+  ]])
+  assert.ast_type_equals([[
+    local a = 1
+    a = true
+  ]],[[
+    local a: any = 1
+    a = true
   ]])
   assert.ast_type_equals([[
     local a = 1_integer
@@ -1239,8 +1247,8 @@ it("pointers", function()
     a = b
   ]], "no viable type conversion")
   assert.analyze_error([[local a: integer*, b: number*; b = a]], "no viable type conversion")
-  assert.analyze_error("local a: auto*", "is invalid for 'pointer' type")
-  assert.analyze_error("local a: type*", "is invalid for 'pointer' type")
+  assert.analyze_error("local a: auto*", "is not addressable thus cannot have a pointer")
+  assert.analyze_error("local a: type*", "is not addressable thus cannot have a pointer")
 end)
 
 it("dereferencing and referencing", function()

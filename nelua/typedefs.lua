@@ -31,8 +31,8 @@ primtypes.uint8       = types.IntegralType('uint8', 1, true)
 primtypes.uint16      = types.IntegralType('uint16', 2, true)
 primtypes.uint32      = types.IntegralType('uint32', 4, true)
 primtypes.uint64      = types.IntegralType('uint64', 8, true)
-primtypes.float32     = types.FloatType('float32', 4, 9, 7)
-primtypes.float64     = types.FloatType('float64', 8, 17, 15)
+primtypes.float32     = types.FloatType('float32', 4, 9)
+primtypes.float64     = types.FloatType('float64', 8, 17)
 primtypes.boolean     = types.BooleanType('boolean', 1)
 primtypes.varanys     = types.VaranysType('varanys')
 primtypes.table       = types.TableType('table')
@@ -65,7 +65,7 @@ primtypes.cdouble  = primtypes.float64
 primtypes.cfloat   = primtypes.float32
 
 -- complex types
-primtypes.stringview   = types.StringViewType('stringview', cpusize*2)
+primtypes.stringview   = types.StringViewType('stringview')
 
 -- signed types
 typedefs.integral_signed_types = {

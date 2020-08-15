@@ -60,10 +60,10 @@ local function destroy_variable(context, emitter, vartype, varname)
 end
 
 local function destroy_callee_returns(context, emitter, retvalname, calleetype, ignoreindexes)
-  for i,returntype in ipairs(calleetype.returntypes) do
+  for i,returntype in ipairs(calleetype.rettypes) do
     if returntype:has_destroyable() and not ignoreindexes[i] then
       local retargname
-      if calleetype:has_enclosed_return() then
+      if calleetype:has_multiple_returns() then
         retargname = string.format('%s.r%d', retvalname, i)
       else
         retargname = retvalname
@@ -571,7 +571,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     local handlereturns
     local retvalname
     local returnfirst
-    local enclosed = calleetype:has_enclosed_return()
+    local enclosed = calleetype:has_multiple_returns()
     local destroyable = calleetype:has_destroyable_return()
     if not attr.multirets and (enclosed or destroyable) then
       -- we are handling the returns
@@ -739,8 +739,8 @@ function visitors.DotIndex(context, node, emitter)
   if objtype.is_type then
     objtype = node.indextype
     if objtype.is_enum then
-      local field = objtype:get_field(name)
-      emitter:add_numeric_literal(field)
+      local field = objtype.fields[name]
+      emitter:add_numeric_literal(field, objtype.subtype)
     elseif objtype.is_record then
       if attr.comptime then
         emitter:add_literal(attr)
@@ -766,7 +766,7 @@ function visitors.ArrayIndex(context, node, emitter)
   local indexnode, objnode = node:args()
   local objtype = objnode.attr.type
   local pointer = false
-  if objtype.is_pointer and not objtype.is_genericpointer then
+  if objtype.is_pointer and not objtype.is_generic_pointer then
     -- indexing a pointer to an array
     objtype = objtype.subtype
     pointer = true
@@ -843,7 +843,7 @@ function visitors.Return(context, node, emitter)
   else
     local functype = funcscope.functype
     local numfuncrets = functype:get_return_count()
-    if not functype:has_enclosed_return() then
+    if not functype:has_multiple_returns() then
       if numfuncrets == 0 then
         -- no returns
         assert(numretnodes == 0)
@@ -871,7 +871,7 @@ function visitors.Return(context, node, emitter)
       retemitter:add('return (', funcretctype, '){')
       local ignoredestroyindexes = {}
       local usedlastcalletype
-      for i,funcrettype,retnode,rettype,lastcallindex,lastcalletype in izipargnodes(functype.returntypes, retnodes) do
+      for i,funcrettype,retnode,rettype,lastcallindex,lastcalletype in izipargnodes(functype.rettypes, retnodes) do
         if i>1 then retemitter:add(', ') end
         if lastcallindex == 1 then
           usedlastcalletype = lastcalletype
@@ -1150,7 +1150,7 @@ function visitors.FuncDef(context, node, emitter)
 
   local decemitter, defemitter, implemitter = CEmitter(context), CEmitter(context), CEmitter(context)
   local retctype = context:funcretctype(type)
-  if type:has_enclosed_return() then
+  if type:has_multiple_returns() then
     node:assertraisef(declare, 'functions with multiple returns must be declared')
 
     local retemitter = CEmitter(context)

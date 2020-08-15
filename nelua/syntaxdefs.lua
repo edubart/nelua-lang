@@ -20,7 +20,7 @@ local function get_parser()
   -- shebang, e.g. "#!/usr/bin/nelua"
   parser:set_peg("SHEBANG", "'#!' (!%LINEBREAK .)*")
 
-  -- multiline and single line comments
+  -- multi-line and single line comments
   parser:set_pegs([[
     %LONGCOMMENT  <- (open (contents close / %{UnclosedLongComment})) -> 0
     contents      <- (!close .)*
@@ -202,7 +202,7 @@ local function get_parser()
   %TENUM        <- 'enum'
   ]])
 
-  --- capture varargs values
+  -- capture varargs values
   parser:set_token_pegs([[
     %cVARARGS <- ({} %ELLIPSIS -> 'Varargs') -> to_astnode
   ]])

@@ -130,8 +130,8 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   end
   local objsym
   local mtname
-  local varobjtype = vartype:auto_deref_type()
-  local valobjtype = valtype:auto_deref_type()
+  local varobjtype = vartype:implict_deref_type()
+  local valobjtype = valtype:implict_deref_type()
   local objtype
   if valobjtype.is_record then
     if vartype.is_cstring then
@@ -250,7 +250,7 @@ local function visitor_Record_literal(context, node, littype)
       if not traits.is_string(fieldname) then
         childnode:raisef("only string literals are allowed in record's field names")
       end
-      field = littype:get_field(fieldname)
+      field = littype.fields[fieldname]
       fieldindex = field and field.index or nil
       parent = childnode
       parentindex = 2
@@ -314,7 +314,7 @@ function visitors.Table(context, node)
   local desiredtype = node.desiredtype
   node.attr.literal = true
   if desiredtype then
-    local objtype = desiredtype:auto_deref_type()
+    local objtype = desiredtype:implict_deref_type()
     if objtype.is_record and objtype.choose_braces_type then
       local err
       desiredtype, err = objtype.choose_braces_type(node[1])
@@ -340,18 +340,6 @@ function visitors.PragmaCall(_, node)
   local pragmashape = typedefs.call_pragmas[name]
   node:assertraisef(pragmashape, "pragma '%s' is undefined", name)
   node.done = true
-end
-
-local function choose_type_symbol_names(context, symbol)
-  local type = symbol.value
-  if type:suggest_nickname(symbol.name) then
-    if symbol.staticstorage and symbol.codename then
-      type:set_codename(symbol.codename)
-    else
-      local codename = context:choose_codename(symbol.name)
-      type:set_codename(codename)
-    end
-  end
 end
 
 function visitors.Annotation(context, node, symbol)
@@ -440,7 +428,7 @@ function visitors.Annotation(context, node, symbol)
     type:set_codename(codename)
   elseif name == 'packed' or name == 'aligned' then
     if objattr._type then
-      objattr:_update_sizealign()
+      objattr:update_fields()
     end
   end
 
@@ -556,18 +544,9 @@ function visitors.TypeInstance(context, node, symbol)
   if symbol then
     local type = attr.value
     symbol.value = type
-    choose_type_symbol_names(context, symbol)
-    type.symbol = symbol
+    context:choose_type_symbol_names(symbol)
   end
   node.done = true
-end
-
-local function retnodes_to_rettypes(retnodes)
-  local rettypes = {}
-  for i=1,#retnodes do
-    rettypes[i] = retnodes[i].attr.value
-  end
-  return rettypes
 end
 
 function visitors.FuncType(context, node)
@@ -585,7 +564,7 @@ function visitors.FuncType(context, node)
       argattrs[i] = Attr{type = argnode.attr.value}
     end
   end
-  local rettypes = retnodes_to_rettypes(retnodes)
+  local rettypes = types.typenodes_to_types(retnodes)
   local type = types.FunctionType(argattrs, rettypes, node)
   type.sideeffect = true
   attr.type = primtypes.type
@@ -607,6 +586,7 @@ end
 function visitors.RecordType(context, node, symbol)
   local attr = node.attr
   local recordtype = types.RecordType({}, node)
+  recordtype.node = node
   attr.type = primtypes.type
   attr.value = recordtype
   if symbol then
@@ -614,7 +594,7 @@ function visitors.RecordType(context, node, symbol)
     assert((not symbol.type or symbol.type == primtypes.type) and not symbol.value)
     symbol.type = primtypes.type
     symbol.value = recordtype
-    choose_type_symbol_names(context, symbol)
+    context:choose_type_symbol_names(symbol)
     recordtype.symbol = symbol
   end
   local fieldnodes = node[1]
@@ -641,8 +621,6 @@ function visitors.EnumFieldType(context, node)
       numnode:raisef("in enum field '%s': %s", name, err)
     end
     field.value = numnode.attr.value
-    field.comptime = true
-    field.type = desiredtype
   end
   node.done = field
   return field
@@ -666,8 +644,6 @@ function visitors.EnumType(context, node)
         fnode:raisef("first enum field requires an initial value", field.name)
       else
         field.value = fields[i-1].value + 1
-        field.comptime = true
-        field.type = subtype
       end
     end
     if not subtype:is_inrange(field.value) then
@@ -713,9 +689,10 @@ function visitors.PointerType(context, node)
   if subtypenode then
     context:traverse_node(subtypenode)
     local subtype = subtypenode.attr.value
-    attr.value = types.get_pointer_type(subtype)
-    if not attr.value then
-      node:raisef("subtype '%s' is invalid for 'pointer' type", subtype)
+    if not subtype.is_unpointable then
+      attr.value = types.PointerType(subtype)
+    else
+      node:raisef("subtype '%s' is not addressable thus cannot have a pointer", subtype)
     end
   else
     attr.value = primtypes.pointer
@@ -1114,7 +1091,7 @@ end
 
 local function visitor_Record_FieldIndex(_, node, objtype, name)
   local attr = node.attr
-  local field = objtype:get_field(name)
+  local field = objtype.fields[name]
   local type = field and field.type
   if not type then
     node:raisef("cannot index field '%s' on record '%s'", name, objtype)
@@ -1126,7 +1103,7 @@ end
 
 local function visitor_EnumType_FieldIndex(_, node, objtype, name)
   local attr = node.attr
-  local field = objtype:get_field(name)
+  local field = objtype.fields[name]
   if not field then
     node:raisef("cannot index field '%s' on enum '%s'", name, objtype)
   end
@@ -1156,7 +1133,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
       -- declaration of record global function
       symbol.metafunc = true
       if node.tag == 'ColonIndex' then
-        symbol.metafuncselftype = types.get_pointer_type(objtype)
+        symbol.metafuncselftype = types.PointerType(objtype)
       end
     elseif inglobaldecl then
       -- declaration of record global variable
@@ -1182,7 +1159,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
 end
 
 local function visitor_Type_FieldIndex(context, node, objtype, name)
-  objtype = objtype:auto_deref_type()
+  objtype = objtype:implict_deref_type()
   node.indextype = objtype
   if objtype.is_enum then
     return visitor_EnumType_FieldIndex(context, node, objtype, name)
@@ -1202,7 +1179,7 @@ local function visitor_FieldIndex(context, node)
   local ret
   if objtype then
     local attr = node.attr
-    objtype = objtype:auto_deref_type()
+    objtype = objtype:implict_deref_type()
     if objtype.is_record then
       ret = visitor_Record_FieldIndex(context, node, objtype, name)
     elseif objtype.is_type then
@@ -1293,7 +1270,7 @@ function visitors.ArrayIndex(context, node)
   if node.checked then return end
   local objtype = objnode.attr.type
   if objtype then
-    objtype = objtype:auto_deref_type()
+    objtype = objtype:implict_deref_type()
     if objtype.is_array then
       visitor_Array_ArrayIndex(context, node, objtype, objnode, indexnode)
     elseif objtype.is_record then
@@ -1692,8 +1669,7 @@ function visitors.VarDecl(context, node)
         assert(valnode and valnode.attr.value)
         assignvaltype = vartype ~= valtype
         symbol.value = valnode.attr.value
-        choose_type_symbol_names(context, symbol)
-        symbol.value.symbol = symbol
+        context:choose_type_symbol_names(symbol)
       end
 
       if vartype and vartype.is_auto then
@@ -1786,8 +1762,8 @@ function visitors.Return(context, node)
   local retnodes = node[1]
   context:traverse_nodes(retnodes)
   local funcscope = context.scope:get_parent_of_kind('function') or context.rootscope
-  if funcscope.returntypes then
-    for i,funcrettype,retnode,rettype in izipargnodes(funcscope.returntypes, retnodes) do
+  if funcscope.rettypes then
+    for i,funcrettype,retnode,rettype in izipargnodes(funcscope.rettypes, retnodes) do
       if rettype then
         if funcrettype then
           if rettype.is_niltype and not funcrettype.is_nilable then
@@ -1885,14 +1861,14 @@ local function block_endswith_return(blocknode)
   return false
 end
 
-local function check_function_returns(node, returntypes, blocknode)
+local function check_function_returns(node, rettypes, blocknode)
   local attr = node.attr
   local functype = attr.type
   if not functype or functype.is_lazyfunction or attr.nodecl or attr.cimport or attr.hookmain then
     return
   end
-  if #returntypes > 0 then
-    local canbeempty = tabler.iall(returntypes, 'is_nilable')
+  if #rettypes > 0 then
+    local canbeempty = tabler.iall(rettypes, 'is_nilable')
     if not canbeempty and not block_endswith_return(blocknode) then
       node:raisef("a return statement is missing before function end")
     end
@@ -1924,21 +1900,21 @@ local function visitor_FuncDef_variable(context, varscope, varnode)
 end
 
 local function visitor_FuncDef_returns(context, functype, retnodes)
-  local returntypes
+  local rettypes
   context:traverse_nodes(retnodes)
   if #retnodes > 0 then
     -- returns types are pre declared
-    returntypes = retnodes_to_rettypes(retnodes)
+    rettypes = types.typenodes_to_types(retnodes)
 
-    if #returntypes == 1 and returntypes[1].is_void then
+    if #rettypes == 1 and rettypes[1].is_void then
       -- single void type means no returns
-      returntypes = {}
+      rettypes = {}
     end
-  elseif functype and functype.is_procedure and not functype.returntypes.has_unknown then
+  elseif functype and functype.is_procedure and not functype.rettypes.has_unknown then
     -- use return types from previous traversal only if fully resolved
-    returntypes = functype.returntypes
+    rettypes = functype.rettypes
   end
-  return returntypes
+  return rettypes
 end
 
 function visitors.FuncDef(context, node, lazysymbol)
@@ -1954,7 +1930,7 @@ function visitors.FuncDef(context, node, lazysymbol)
   end
   context:pop_state()
 
-  local returntypes = visitor_FuncDef_returns(context, node.attr.type, retnodes)
+  local rettypes = visitor_FuncDef_returns(context, node.attr.type, retnodes)
 
   -- repeat scope to resolve function variables and return types
   local islazyparent, argtypes, argattrs
@@ -1963,7 +1939,7 @@ function visitors.FuncDef(context, node, lazysymbol)
   repeat
     funcscope = context:push_forked_cleaned_scope('function', node)
 
-    funcscope.returntypes = returntypes
+    funcscope.rettypes = rettypes
     context:traverse_nodes(argnodes)
     for i=1,#argnodes do
       local argnode = argnodes[i]
@@ -1982,8 +1958,8 @@ function visitors.FuncDef(context, node, lazysymbol)
     context:pop_scope()
   until resolutions_count == 0
 
-  if not islazyparent and not returntypes then
-    returntypes = funcscope.resolved_returntypes
+  if not islazyparent and not rettypes then
+    rettypes = funcscope.resolved_rettypes
   end
 
   -- set the function type
@@ -1991,10 +1967,10 @@ function visitors.FuncDef(context, node, lazysymbol)
   if islazyparent then
     assert(not lazysymbol)
     if not type then
-      type = types.LazyFunctionType(argattrs, returntypes, node)
+      type = types.LazyFunctionType(argattrs, rettypes, node)
     end
-  elseif not returntypes.has_unknown then
-    type = types.FunctionType(argattrs, returntypes, node)
+  elseif not rettypes.has_unknown then
+    type = types.FunctionType(argattrs, rettypes, node)
   end
 
   if symbol then -- symbol may be nil in case of array/dot index
@@ -2025,7 +2001,7 @@ function visitors.FuncDef(context, node, lazysymbol)
   end
 
   -- type checking for returns
-  check_function_returns(node, returntypes, blocknode)
+  check_function_returns(node, rettypes, blocknode)
 
   do -- handle attributes and annotations
     local attr = node.attr
@@ -2118,7 +2094,7 @@ local function override_unary_op(context, node, opname, objnode, objtype)
   if not overridable_operators[opname] then return end
   if opname == 'len' then
     -- allow calling len on pointers for arrays/records
-    objtype = objtype:auto_deref_type()
+    objtype = objtype:implict_deref_type()
   end
   if not objtype.is_record then return end
   local mtname = '__' .. opname

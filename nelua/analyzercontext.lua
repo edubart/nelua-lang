@@ -105,6 +105,19 @@ function AnalyzerContext:choose_codename(name)
   return name
 end
 
+function AnalyzerContext:choose_type_symbol_names(symbol)
+  local type = symbol.value
+  if type:suggest_nickname(symbol.name) then
+    if symbol.staticstorage and symbol.codename then
+      type:set_codename(symbol.codename)
+    else
+      local codename = self:choose_codename(symbol.name)
+      type:set_codename(codename)
+    end
+    type.symbol = symbol
+  end
+end
+
 function AnalyzerContext:traceback()
   local nodes = self.visiting_nodes
   local ss = sstream()

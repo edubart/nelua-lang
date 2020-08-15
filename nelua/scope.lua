@@ -50,8 +50,8 @@ function Scope:clear_symbols()
   else
     self.symbols = setmetatable({}, default_symbols_mt)
   end
-  self.possible_returntypes = {}
-  self.resolved_returntypes = {}
+  self.possible_rettypes = {}
+  self.resolved_rettypes = {}
   self.has_unknown_return = nil
 end
 
@@ -104,8 +104,8 @@ end
 function Scope:make_checkpoint()
   local checkpoint = {
     symbols = tabler.copy(self.symbols),
-    possible_returntypes = tabler.copy(self.possible_returntypes),
-    resolved_returntypes = tabler.copy(self.resolved_returntypes),
+    possible_rettypes = tabler.copy(self.possible_rettypes),
+    resolved_rettypes = tabler.copy(self.resolved_rettypes),
     has_unknown_return = self.has_unknown_return
   }
   if self.parent and self.parent.kind ~= 'root' then
@@ -116,11 +116,11 @@ end
 
 function Scope:set_checkpoint(checkpoint)
   tabler.clear(self.symbols)
-  tabler.clear(self.possible_returntypes)
-  tabler.clear(self.resolved_returntypes)
+  tabler.clear(self.possible_rettypes)
+  tabler.clear(self.resolved_rettypes)
   tabler.update(self.symbols, checkpoint.symbols)
-  tabler.update(self.possible_returntypes, checkpoint.possible_returntypes)
-  tabler.update(self.resolved_returntypes, checkpoint.resolved_returntypes)
+  tabler.update(self.possible_rettypes, checkpoint.possible_rettypes)
+  tabler.update(self.resolved_rettypes, checkpoint.resolved_rettypes)
   self.has_unknown_return = checkpoint.has_unknown_return
   if checkpoint.parentcheck then
     self.parent:set_checkpoint(checkpoint.parentcheck)
@@ -129,8 +129,8 @@ end
 
 function Scope:merge_checkpoint(checkpoint)
   tabler.update(self.symbols, checkpoint.symbols)
-  tabler.update(self.possible_returntypes, checkpoint.possible_returntypes)
-  tabler.update(self.resolved_returntypes, checkpoint.resolved_returntypes)
+  tabler.update(self.possible_rettypes, checkpoint.possible_rettypes)
+  tabler.update(self.resolved_rettypes, checkpoint.resolved_rettypes)
   self.has_unknown_return = checkpoint.has_unknown_return
   if checkpoint.parentcheck then
     self.parent:merge_checkpoint(checkpoint.parentcheck)
@@ -239,21 +239,21 @@ function Scope:add_return_type(index, type)
   if not type then
     self.has_unknown_return = true
   end
-  local returntypes = self.possible_returntypes[index]
-  if not returntypes then
-    self.possible_returntypes[index] = {[1] = type}
-  elseif type and not tabler.ifind(returntypes, type) then
-    returntypes[#returntypes+1] = type
+  local rettypes = self.possible_rettypes[index]
+  if not rettypes then
+    self.possible_rettypes[index] = {[1] = type}
+  elseif type and not tabler.ifind(rettypes, type) then
+    rettypes[#rettypes+1] = type
   end
 end
 
-function Scope:resolve_returntypes()
+function Scope:resolve_rettypes()
   local count = 0
-  if not next(self.possible_returntypes) then return count end
-  local resolved_returntypes = self.resolved_returntypes
-  resolved_returntypes.has_unknown = self.has_unknown_return
-  for i,returntypes in pairs(self.possible_returntypes) do
-    resolved_returntypes[i] = types.find_common_type(returntypes) or typedefs.primtypes.any
+  if not next(self.possible_rettypes) then return count end
+  local resolved_rettypes = self.resolved_rettypes
+  resolved_rettypes.has_unknown = self.has_unknown_return
+  for i,rettypes in pairs(self.possible_rettypes) do
+    resolved_rettypes[i] = types.find_common_type(rettypes) or typedefs.primtypes.any
     count = count + 1
   end
   return count
@@ -261,7 +261,7 @@ end
 
 function Scope:resolve()
   local count = self:resolve_symbols()
-  self:resolve_returntypes()
+  self:resolve_rettypes()
   if count > 0 and config.debug_scope_resolve then
     console.info(self.node:format_message('info', "scope resolved %d symbols", count))
   end

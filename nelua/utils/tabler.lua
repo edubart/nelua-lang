@@ -2,7 +2,7 @@ local metamagic = require 'nelua.utils.metamagic'
 
 local tabler = {}
 
---- copy a table into another, in-place.
+-- Copy a table into another, in-place.
 function tabler.update(t, src)
   for k,v in next,src do
     t[k] = v
@@ -10,7 +10,7 @@ function tabler.update(t, src)
   return t
 end
 
--- find a value inside an array table
+-- Find a value inside an array table.
 function tabler.ifind(t, val, idx)
   for i=idx or 1,#t do
     if t[i] == val then
@@ -20,7 +20,7 @@ function tabler.ifind(t, val, idx)
   return nil
 end
 
--- insert values
+-- Insert values in a list table.
 function tabler.insertvalues(t, pos, st)
   if not st then
     st = pos

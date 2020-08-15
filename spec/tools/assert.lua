@@ -251,6 +251,7 @@ local function filter_ast_for_check(t)
   for k,v in pairs(t) do
     if type(k) == 'number' then
       if traits.is_astnode(v) and v.attr.type and v.attr.type.is_type then
+        assert(v.attr.value:shape())
         -- remove type nodes because they are optional
         t[k] = nil
       elseif type(v) == 'table' then
