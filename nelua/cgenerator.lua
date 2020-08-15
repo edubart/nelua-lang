@@ -688,7 +688,7 @@ function visitors.Call(context, node, emitter)
     callee = builtin(context, node, emitter)
   end
   if calleetype.is_type then
-    -- type assertion
+    -- type cast
     local type = node.attr.type
     if #argnodes == 1 then
       local argnode = argnodes[1]

@@ -1521,7 +1521,7 @@ describe("type expression", function()
           { n.TypeInstance{n.RecordType{{n.RecordFieldType{'a', n.Type{'integer'}}}}}}
     }}})
   end)
-  it("type assertion", function()
+  it("type cast", function()
     assert.parse_ast(nelua_parser, "local a = (@integer)(0)",
       n.Block{{
         n.VarDecl{'local',

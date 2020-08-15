@@ -1523,7 +1523,7 @@ it("generics", function()
   assert.analyze_error([[
     local myarray = #[generic(function() end)]#
     local x = myarray(integer)
-  ]], "cannot do assertion on generics")
+  ]], "cannot do type cast on generics")
   assert.analyze_error([[
     local myarray = #[generic(function() end)]#
     local x = @myarray(integer)

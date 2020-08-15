@@ -860,14 +860,14 @@ local function izipargnodes(vars, argnodes)
   end
 end
 
-local function visitor_Call_typeassertion(context, node, argnodes, type)
+local function visitor_Call_type_cast(context, node, argnodes, type)
   local attr = node.attr
   assert(type)
   if type.is_generic then
-    node:raisef("type assertion to generic '%s': cannot do assertion on generics", type)
+    node:raisef("type cast to generic '%s': cannot do type cast on generics", type)
   end
   if #argnodes > 1 then
-    node:raisef("type assertion to type '%s': expected at most 1 argument, but got %d",
+    node:raisef("type cast to type '%s': expected at most 1 argument, but got %d",
       type, #argnodes)
   end
   local argnode = argnodes[1]
@@ -880,7 +880,7 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
     if argtype then
       local ok, err = type:is_convertible_from_attr(argattr, true)
       if not ok then
-        argnode:raisef("in type assertion: %s", err)
+        argnode:raisef("in type cast: %s", err)
       end
       if argattr.comptime then
         attr.value = type:normalize_value(argattr.value)
@@ -894,7 +894,7 @@ local function visitor_Call_typeassertion(context, node, argnodes, type)
       done = nil
     end
   end
-  attr.typeassertion = true
+  attr.typecast = true
   attr.type = type
   attr.calleetype = primtypes.type
   node.done = done
@@ -1063,7 +1063,7 @@ function visitors.Call(context, node)
   end
 
   if calleetype and calleetype.is_type then
-    visitor_Call_typeassertion(context, node, argnodes, calleeattr.value)
+    visitor_Call_type_cast(context, node, argnodes, calleeattr.value)
   else
     visitor_Call(context, node, argnodes, calleetype, calleesym)
 

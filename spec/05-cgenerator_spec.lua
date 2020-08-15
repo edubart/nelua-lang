@@ -60,7 +60,7 @@ it("number literals", function()
   assert.generate_c("local a = ' '_cuchar", "unsigned char a = 32U;")
 end)
 
-it("type assertion", function()
+it("type cast", function()
   assert.generate_c("do local b = 1_u64; local a = (@int16)(b) end", "int16_t a = (int16_t)b")
   assert.generate_c("do local b = 1_u8; local a = (@int64)(b) end", "int64_t a = (int64_t)b")
   assert.generate_c([[
