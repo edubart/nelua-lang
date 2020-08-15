@@ -305,6 +305,12 @@ do -- tostring
   assert(tostring(tostring) == 'lazyfunction')
 end
 
+do -- tostringview
+  assert(tostringview('a') == 'a')
+  local s: string = 'test'
+  assert(tostringview(s) == 'test')
+end
+
 do -- string implicit conversion
   local v: stringview
   local s: string
@@ -325,6 +331,8 @@ do -- tonumber
   assert(tonumber('1337') == 1337)
   assert(tonumber(0) == 0)
   assert(tonumber('0') == 0)
+  assert(tonumber(3.4) == 3.4)
+  assert(tonumber(1/0) == 1/0)
 
   local v: stringview = '1337'
   assert(tonumber(v) == 1337)

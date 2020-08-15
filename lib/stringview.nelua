@@ -118,6 +118,17 @@ function stringview.find(self: stringview,
   return 0, 0
 end
 
+-- Convert a type to a string view.
+global function tostringview(x: auto): stringview
+  ## if x.type.is_stringview then
+    return x
+  ## elseif x.type.is_record and x.type:get_metafield('__tostringview') then
+    return x:__tostringview()
+  ## else
+    staticerror("tostringview: cannot convert type '%s' to a string", x.type)
+  ## end
+end
+
 -- Convert a string to an integer in the desired base.
 local function str2intbase(s: stringview, base: uinteger): integer
   assert(s.size > 0, "str2intbase: invalid number format")
@@ -164,8 +175,11 @@ global function tonumber(x: auto, base: #[optional_concept(integer)]#)
   ## if not base.type.is_niltype then
     ## staticassert(x.type.is_stringy, "string expected, got something else")
     return str2intbase(x, base)
-  ## elseif x.type.is_arithmetic then
+  ## elseif x.type.is_integral then
     local n: integer = x
+    return n
+  ## elseif x.type.is_float then
+    local n: number = x
     return n
   ## elseif x.type.is_stringy then
     local x: cstring = x
@@ -183,7 +197,8 @@ global function tointeger(x: auto, base: #[optional_concept(integer)]#): integer
     ## staticassert(x.type.is_stringy, "string expected, got something else")
     return str2intbase(x, base)
   ## elseif x.type.is_arithmetic then
-    return x
+    local n: integer = x
+    return n
   ## elseif x.type.is_stringy then
     local x: cstring = x
     local endptr: cstring
