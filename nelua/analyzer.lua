@@ -324,7 +324,7 @@ function visitors.Table(context, node)
       end
     end
   end
-  if not desiredtype or (desiredtype.is_table or desiredtype.is_lazyable) then
+  if not desiredtype or (desiredtype.is_table or desiredtype.is_polymorphic) then
     visitor_Table_literal(context, node)
   elseif desiredtype.is_array then
     visitor_Array_literal(context, node, desiredtype)
@@ -908,7 +908,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         node:raisef("in call of function '%s': expected at most %d arguments but got %d",
           calleename, #pseudoargattrs, #argnodes)
       end
-      local lazyargs = {}
+      local polyargs = {}
       local knownallargs = true
       for i,funcarg,argnode,argtype in izipargnodes(pseudoargattrs, argnodes) do
         local arg
@@ -964,32 +964,32 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           knownallargs = false
         end
 
-        if calleetype.is_lazyfunction then
-          if funcargtype.is_lazyable then
-            lazyargs[i] = arg
+        if calleetype.is_polyfunction then
+          if funcargtype.is_polymorphic then
+            polyargs[i] = arg
           else
-            lazyargs[i] = funcargtype
+            polyargs[i] = funcargtype
           end
         end
 
-        if calleeobjnode and argtype and pseudoargtypes[i].is_lazyable then
+        if calleeobjnode and argtype and pseudoargtypes[i].is_polymorphic then
           pseudoargtypes[i] = argtype
         end
       end
       if calleeobjnode then
-        tabler.insert(lazyargs, 1, funcargtypes[1])
+        tabler.insert(polyargs, 1, funcargtypes[1])
       end
-      if calleetype.is_lazyfunction then
-        local lazycalleetype = calleetype
+      if calleetype.is_polyfunction then
+        local polycalleetype = calleetype
         calleetype = nil
         calleesym = nil
         if knownallargs then
-          local lazyeval = lazycalleetype:eval_lazy_for_args(lazyargs)
-          if lazyeval and lazyeval.node and lazyeval.node.attr.type then
-            calleesym = lazyeval.node.attr
-            calleetype = lazyeval.node.attr.type
+          local polyeval = polycalleetype:eval_poly_for_args(polyargs)
+          if polyeval and polyeval.node and polyeval.node.attr.type then
+            calleesym = polyeval.node.attr
+            calleetype = polyeval.node.attr.type
           else
-            -- must traverse the lazy function scope again to infer types for assignment to this call
+            -- must traverse the poly function scope again to infer types for assignment to this call
             context.rootscope:delay_resolution()
           end
         end
@@ -1120,8 +1120,8 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   local parentnode = context:get_parent_node()
   local infuncdef = context.state.infuncdef == parentnode
   local inglobaldecl = context.state.inglobaldecl == parentnode
-  local inlazydef = context.state.inlazydef and symbol == context.state.inlazydef
-  if inlazydef then
+  local inpolydef = context.state.inpolydef and symbol == context.state.inpolydef
+  if inpolydef then
     symbol = attr._symbol and attr or nil
   end
   if not symbol then
@@ -1141,7 +1141,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     else
       node:raisef("cannot index meta field '%s' in record '%s'", name, objtype)
     end
-    if not inlazydef then
+    if not inpolydef then
       objtype:set_metafield(name, symbol)
     end
     symbol.annonymous = true
@@ -1698,8 +1698,8 @@ function visitors.VarDecl(context, node)
           valnode.checkcast = true
           varnode.checkcast = true
         end
-        if vartype.is_lazyfunction then
-          -- skip declaration for lazy function aliases
+        if vartype.is_polyfunction then
+          -- skip declaration for poly function aliases
           varnode.attr.nodecl = true
         end
       end
@@ -1795,8 +1795,8 @@ function visitors.Return(context, node)
   end
 end
 
-local function resolve_function_argtypes(symbol, varnode, argnodes, scope, checklazy)
-  local islazyparent = false
+local function resolve_function_argtypes(symbol, varnode, argnodes, scope, checkpoly)
+  local ispolyparent = false
   local argattrs = {}
   local argtypes = {}
 
@@ -1809,8 +1809,8 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope, check
       argtype = primtypes.any
       argattr.type = argtype
     end
-    if checklazy and argtype.is_lazyable then
-      islazyparent = true
+    if checkpoly and argtype.is_polymorphic then
+      ispolyparent = true
     end
     argtypes[i] = argtype
     argattrs[i] = argattr
@@ -1832,7 +1832,7 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope, check
     scope:add_symbol(selfsym)
   end
 
-  return argattrs, argtypes, islazyparent
+  return argattrs, argtypes, ispolyparent
 end
 
 local function block_endswith_return(blocknode)
@@ -1864,7 +1864,7 @@ end
 local function check_function_returns(node, rettypes, blocknode)
   local attr = node.attr
   local functype = attr.type
-  if not functype or functype.is_lazyfunction or attr.nodecl or attr.cimport or attr.hookmain then
+  if not functype or functype.is_polyfunction or attr.nodecl or attr.cimport or attr.hookmain then
     return
   end
   if #rettypes > 0 then
@@ -1917,13 +1917,13 @@ local function visitor_FuncDef_returns(context, functype, retnodes)
   return rettypes
 end
 
-function visitors.FuncDef(context, node, lazysymbol)
+function visitors.FuncDef(context, node, polysymbol)
   local varscope, varnode, argnodes, retnodes, annotnodes, blocknode =
         node[1], node[2], node[3], node[4], node[5], node[6]
 
   local state = context:push_state()
   state.infuncdef = node
-  state.inlazydef = lazysymbol
+  state.inpolydef = polysymbol
   local symbol, decl = visitor_FuncDef_variable(context, varscope, varnode)
   if symbol then
     symbol.scope:add_symbol(symbol)
@@ -1933,7 +1933,7 @@ function visitors.FuncDef(context, node, lazysymbol)
   local rettypes = visitor_FuncDef_returns(context, node.attr.type, retnodes)
 
   -- repeat scope to resolve function variables and return types
-  local islazyparent, argtypes, argattrs
+  local ispolyparent, argtypes, argattrs
 
   local funcscope
   repeat
@@ -1947,10 +1947,10 @@ function visitors.FuncDef(context, node, lazysymbol)
         argnode.attr.scope:add_symbol(argnode.attr)
       end
     end
-    argattrs, argtypes, islazyparent = resolve_function_argtypes(symbol, varnode, argnodes, funcscope, not lazysymbol)
+    argattrs, argtypes, ispolyparent = resolve_function_argtypes(symbol, varnode, argnodes, funcscope, not polysymbol)
 
-    if not islazyparent then
-      -- lazy functions never traverse the blocknode by itself
+    if not ispolyparent then
+      -- poly functions never traverse the blocknode by itself
       context:traverse_node(blocknode)
     end
 
@@ -1958,16 +1958,16 @@ function visitors.FuncDef(context, node, lazysymbol)
     context:pop_scope()
   until resolutions_count == 0
 
-  if not islazyparent and not rettypes then
+  if not ispolyparent and not rettypes then
     rettypes = funcscope.resolved_rettypes
   end
 
   -- set the function type
   local type = node.attr.type
-  if islazyparent then
-    assert(not lazysymbol)
+  if ispolyparent then
+    assert(not polysymbol)
     if not type then
-      type = types.LazyFunctionType(argattrs, rettypes, node)
+      type = types.PolyFunctionType(argattrs, rettypes, node)
     end
   elseif not rettypes.has_unknown then
     type = types.FunctionType(argattrs, rettypes, node)
@@ -2032,38 +2032,38 @@ function visitors.FuncDef(context, node, lazysymbol)
     end
   end
 
-  -- traverse lazy function nodes
-  if islazyparent then
+  -- traverse poly function nodes
+  if ispolyparent then
     local evals = type.evals
     for i=1,#evals do
-      local lazyeval = evals[i]
-      local lazynode = lazyeval.node
-      if not lazynode then
-        lazynode = node:clone()
-        lazyeval.node = lazynode
-        local lazyargnodes = lazynode[3]
-        local lazyargs = lazyeval.args
-        for j=1,#lazyargs do
-          local lazyarg = lazyargs[j]
+      local polyeval = evals[i]
+      local polynode = polyeval.node
+      if not polynode then
+        polynode = node:clone()
+        polyeval.node = polynode
+        local polyargnodes = polynode[3]
+        local polyargs = polyeval.args
+        for j=1,#polyargs do
+          local polyarg = polyargs[j]
           if varnode.tag == 'ColonIndex' then
             j = j - 1
           end
-          if lazyargnodes[j] then
-            local lazyargattr = lazyargnodes[j].attr
-            if traits.is_attr(lazyarg) then
-              lazyargattr.type = lazyarg.type
-              if lazyarg.type.is_comptime then
-                lazyargattr.value = lazyarg.value
+          if polyargnodes[j] then
+            local polyargattr = polyargnodes[j].attr
+            if traits.is_attr(polyarg) then
+              polyargattr.type = polyarg.type
+              if polyarg.type.is_comptime then
+                polyargattr.value = polyarg.value
               end
             else
-              lazyargattr.type = lazyarg
+              polyargattr.type = polyarg
             end
-            assert(traits.is_type(lazyargattr.type))
+            assert(traits.is_type(polyargattr.type))
           end
         end
       end
-      context:traverse_node(lazynode, symbol)
-      assert(traits.is_symbol(lazynode.attr))
+      context:traverse_node(polynode, symbol)
+      assert(traits.is_symbol(polynode.attr))
     end
   end
 end

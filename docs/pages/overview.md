@@ -147,7 +147,7 @@ local a: auto = 1 -- a is deduced to be of type 'integer'
 print(a) -- outputs: 1
 ```
 
-Auto variables are more useful when used in **lazy functions**.
+Auto variables are more useful when used in **poly functions**.
 
 ### Comptime variables
 
@@ -158,7 +158,7 @@ local a <comptime> = 1 + 2 -- constant variable of value '3' evaluated and known
 ```
 
 The compiler takes advantages of constants to make optimizations, constants are also useful
-for using as compile time parameters in **lazy functions**.
+for using as compile time parameters in **poly functions**.
 
 ### Const variables
 
@@ -587,7 +587,7 @@ print(#s) -- outputs 4
 ### Niltype
 
 Niltype type is not useful by itself, it's only useful when using with unions to create the
-optional type or for detecting nil arguments in lazy functions.
+optional type or for detecting nil arguments in poly functions.
 
 ### The "type" type
 
@@ -788,12 +788,14 @@ print(counter) -- outputs 2
 ```
 
 --------------------------------------------------------------------------------
-## Lazy functions
+## Polymorphic functions
 
-Lazy functions are functions which contains arguments that it's proprieties can
-only be known when calling the function at compile time,
-they are processed and defined lazily (lately) after trying to call it.
-They are memoized (only defined once for each kind of arguments).
+Polymorphic functions, or in short poly functions in the sources,
+are functions which contains arguments that proprieties can
+only be known when calling the function at compile time.
+They are defined and processed lately when calling it for the first time.
+The are used to specialize the function different arguments types.
+They are memoized (only defined once for each kind of specialization).
 
 ```nelua
 local function add(a: auto, b: auto)
@@ -811,7 +813,7 @@ print(b) -- outputs: 3.000000
 In the above, the `auto` type is used as a generic placeholder to replace the function argument
 by the incoming call type, this makes possible to make a generic function for multiple types.
 
-Later we will show how lazy functions are a lot more useful when used in combination with the **preprocessor**.
+Later we will show how poly functions are more useful when used in combination with the **preprocessor**.
 
 --------------------------------------------------------------------------------
 ## Memory management
@@ -1072,9 +1074,9 @@ The compiler is implemented and runs using Lua and the preprocess
 is actually a lua function that the compiler is running, thus it's possible to even modify
 or inject code to the compiler itself on the fly.
 
-### Preprocessing lazy functions
+### Preprocessing poly functions
 
-Lazy functions can make compile time dynamic functions when used in combination with
+Poly functions can make compile time dynamic functions when used in combination with
 the preprocessor:
 
 ```nelua

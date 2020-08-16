@@ -165,8 +165,8 @@ function Scope:add_symbol(symbol)
       return true
     end
     -- shadowing a symbol with the same name
-    if oldsymbol == self.context.state.inlazydef then
-      -- symbol definition of a lazy function
+    if oldsymbol == self.context.state.inpolydef then
+      -- symbol definition of a poly function
       key = symbol
     else
       -- shadowing an usual variable

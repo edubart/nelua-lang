@@ -399,7 +399,7 @@ it("multiple blocks", function()
   ]])
 end)
 
-it("lazy function", function()
+it("poly function", function()
   assert.analyze_ast([[
     local function f(a: auto)
       ## assert(a.type == primtypes.integer)

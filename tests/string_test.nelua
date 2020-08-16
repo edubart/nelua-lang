@@ -302,7 +302,7 @@ do -- tostring
   local function f() end
   assert(tostring(f):sub(1,10) == 'function: ')
   assert(tostring(string.lower):sub(1,10) == 'function: ')
-  assert(tostring(tostring) == 'lazyfunction')
+  assert(tostring(tostring) == 'polyfunction')
 end
 
 do -- tostringview

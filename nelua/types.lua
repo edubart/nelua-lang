@@ -405,7 +405,7 @@ AutoType.is_comptime = true
 AutoType.is_nilable = true
 AutoType.is_primitive = true
 AutoType.is_unpointable = true
-AutoType.is_lazyable = true
+AutoType.is_polymorphic = true
 
 function AutoType:_init(name)
   Type._init(self, name, 0)
@@ -422,7 +422,7 @@ TypeType.is_type = true
 TypeType.is_comptime = true
 TypeType.nodecl = true
 TypeType.is_unpointable = true
-TypeType.is_lazyable = true
+TypeType.is_polymorphic = true
 TypeType.is_primitive = true
 
 function TypeType:_init(name)
@@ -1187,12 +1187,12 @@ function FunctionType:typedesc()
 end
 
 --------------------------------------------------------------------------------
-local LazyFunctionType = typeclass()
-types.LazyFunctionType = LazyFunctionType
-LazyFunctionType.is_procedure = true
-LazyFunctionType.is_lazyfunction = true
+local PolyFunctionType = typeclass()
+types.PolyFunctionType = PolyFunctionType
+PolyFunctionType.is_procedure = true
+PolyFunctionType.is_polyfunction = true
 
-LazyFunctionType.shape = shaper.fork_shape(Type.shape, {
+PolyFunctionType.shape = shaper.fork_shape(Type.shape, {
   -- List of arguments attrs, they contain the type with annotations.
   args = shaper.array_of(shaper.attr),
   -- List of arguments types.
@@ -1211,9 +1211,9 @@ LazyFunctionType.shape = shaper.fork_shape(Type.shape, {
   sideeffect = shaper.optional_boolean,
 })
 
-function LazyFunctionType:_init(args, rettypes, node)
-  self:set_codename(gencodename(self, 'lazyfunction', node))
-  Type._init(self, 'lazyfunction', 0, node)
+function PolyFunctionType:_init(args, rettypes, node)
+  self:set_codename(gencodename(self, 'polyfunction', node))
+  Type._init(self, 'polyfunction', 0, node)
   self.args = args or {}
   local argtypes = {}
   for i=1,#args do
@@ -1224,7 +1224,7 @@ function LazyFunctionType:_init(args, rettypes, node)
   self.evals = {}
 end
 
-local function lazy_args_matches(largs, rargs)
+local function poly_args_matches(largs, rargs)
   for _,larg,rarg in iters.izip(largs, rargs) do
     local ltype = traits.is_attr(larg) and larg.type or larg
     local rtype = traits.is_attr(rarg) and rarg.type or rarg
@@ -1239,27 +1239,27 @@ local function lazy_args_matches(largs, rargs)
   return true
 end
 
-function LazyFunctionType:get_lazy_eval(args)
-  local lazyevals = self.evals
-  for i=1,#lazyevals do
-    local lazyeval = lazyevals[i]
-    if lazy_args_matches(lazyeval.args, args) then
-      return lazyeval
+function PolyFunctionType:get_poly_eval(args)
+  local polyevals = self.evals
+  for i=1,#polyevals do
+    local polyeval = polyevals[i]
+    if poly_args_matches(polyeval.args, args) then
+      return polyeval
     end
   end
 end
 
-function LazyFunctionType:eval_lazy_for_args(args)
-  local lazyeval = self:get_lazy_eval(args)
-  if not lazyeval then
-    lazyeval = { args = args }
-    table.insert(self.evals, lazyeval)
+function PolyFunctionType:eval_poly_for_args(args)
+  local polyeval = self:get_poly_eval(args)
+  if not polyeval then
+    polyeval = { args = args }
+    table.insert(self.evals, polyeval)
   end
-  return lazyeval
+  return polyeval
 end
 
-LazyFunctionType.is_equal = FunctionType.is_equal
-LazyFunctionType.typedesc = FunctionType.typedesc
+PolyFunctionType.is_equal = FunctionType.is_equal
+PolyFunctionType.typedesc = FunctionType.typedesc
 
 --------------------------------------------------------------------------------
 -- Record Type
@@ -1325,13 +1325,15 @@ function RecordType:update_fields()
   local offset, align = 0, 0
   if #fields > 0 then
     local packed, aligned = self.packed, self.aligned
+    -- compute fields offset and record align
     for i=1,#fields do
       local field = fields[i]
       local fieldtype = field.type
       local fieldsize = fieldtype.size
       local fieldalign = fieldtype.align
+      -- the record align is computed as the max field align
       align = math.max(align, fieldalign)
-      if not packed then
+      if not packed then -- align the field
         offset = align_forward(offset, fieldalign)
       end
       field.offset = offset
@@ -1339,10 +1341,10 @@ function RecordType:update_fields()
       fields[field.name] = field
       offset = offset + fieldsize
     end
-    if not packed then
+    if not packed then -- align the record to the smallest field align
       offset = align_forward(offset, align)
     end
-    if aligned then
+    if aligned then -- customized align by the user
       offset = align_forward(offset, aligned)
       align = math.max(aligned, align)
     end
@@ -1449,11 +1451,11 @@ PointerType.shape = shaper.fork_shape(Type.shape, {
 
 function PointerType:_init(subtype)
   self.subtype = subtype
-  if subtype.is_void then
+  if subtype.is_void then -- generic pointer
     self.nodecl = true
     self.is_generic_pointer = true
     self.is_primitive = true
-  elseif subtype.name == 'cchar' then
+  elseif subtype.name == 'cchar' then -- cstring
     self.nodecl = true
     self.nickname = 'cstring'
     self.is_cstring = true
@@ -1617,7 +1619,7 @@ end
 -- Compile time string view length.
 StringViewType.unary_operators.len = function(_, lattr)
   local lval, reval = lattr.value, nil
-  if lval then
+  if lval then -- is a compile time stringview
     reval = bn.new(#lval)
   end
   return primtypes.isize, reval
@@ -1664,7 +1666,7 @@ ConceptType.nodecl = true
 ConceptType.is_nolvalue = true
 ConceptType.is_comptime = true
 ConceptType.is_unpointable = true
-ConceptType.is_lazyable = true
+ConceptType.is_polymorphic = true
 ConceptType.is_nilable = true
 ConceptType.is_concept = true
 
@@ -1737,7 +1739,7 @@ function GenericType:eval_type(params)
       ret = nil
       err = stringer.pformat("expected a symbol holding a type in generic return, but got something else")
     end
-  elseif not traits.is_type(ret) then -- generic did not return a type
+  elseif not traits.is_type(ret) then -- generic didn't return a type
     ret = nil
     err = stringer.pformat("expected a type or symbol in generic return, but got '%s'", type(ret))
   end

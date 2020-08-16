@@ -385,7 +385,7 @@ end
   print(counter) -- outputs 2
 --end
 
-do -- Lazy functions
+do -- Poly functions
   local function add(a: auto, b: auto)
     return a + b
   end
@@ -511,7 +511,7 @@ do -- Processing on the fly
   print(p.age) -- outputs '21'
 end
 
-do -- Preprocessing lazy functions
+do -- Preprocessing poly functions
   local function pow(x: auto, n: integer)
     ## staticassert(x.type.is_arithmetic, 'cannot pow variable of type "%s"', x.type)
     ## if x.type.is_integral then

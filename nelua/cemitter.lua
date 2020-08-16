@@ -120,7 +120,7 @@ function CEmitter:add_cstring2stringview(val)
 end
 
 function CEmitter:add_val2type(type, val, valtype, checkcast)
-  if type.is_type or type.is_lazyfunction then
+  if type.is_type or type.is_polyfunction then
     self:add('NULL')
     return
   end

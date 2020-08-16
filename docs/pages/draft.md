@@ -201,7 +201,7 @@ because we don't need to promote to heap variables or use the garbage collector,
 
 ### Variable arguments
 
-Variable arguments functions can be implemented as lazy functions, the syntax is like in Lua
+Variable arguments functions can be implemented as poly functions, the syntax is like in Lua
 using the `...`, and can be used to forward to another variable argument function:
 
 ```nelua
@@ -239,7 +239,7 @@ print_all(get_two()) -- outputs "1 2"
 
 ### Generics
 
-Generics can be achieved with lazy functions:
+Generics can be achieved with poly functions:
 
 ```nelua
 local function Point(T: type)
@@ -254,9 +254,9 @@ local PointFloat32 = Point(@float32)
 local b: PointFloat32
 ```
 
-### Lazy functions with blocks
+### Poly functions with blocks
 
-Blocks can be passed to lazy functions, in this case the entire function code will be always
+Blocks can be passed to poly functions, in this case the entire function code will be always
 inlined in the call placement.
 
 ```nelua

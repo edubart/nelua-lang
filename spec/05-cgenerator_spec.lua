@@ -383,7 +383,7 @@ it("function definition", function()
     "int64_t f(int64_t a) {\n  return a;\n}")
 end)
 
-it("lazy functions", function()
+it("poly functions", function()
   assert.run_c([[
     local function f(x: auto, y: auto)
       return x
@@ -419,7 +419,7 @@ it("lazy functions", function()
   ]])
 end)
 
-it("lazy function aliases", function()
+it("poly function aliases", function()
   assert.run_c([[
     local function f(x: auto) return x + 1 end
     local g = f
@@ -435,7 +435,7 @@ it("lazy function aliases", function()
   ]])
 end)
 
-it("lazy function for records", function()
+it("poly function for records", function()
   assert.run_c([[
     local R = @record{}
     function R.f(x: auto)
@@ -467,7 +467,7 @@ it("lazy function for records", function()
   ]])
 end)
 
-it("lazy functions with comptime arguments", function()
+it("poly functions with comptime arguments", function()
   assert.run_c([[
     local function cast(T: type, value: auto)
       return (@T)(value)

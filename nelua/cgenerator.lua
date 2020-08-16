@@ -330,7 +330,7 @@ typevisitors[types.FunctionType] = function(context, type)
   context:add_declaration(decemitter:generate(), type.codename)
 end
 
-typevisitors[types.LazyFunctionType] = function(context, type)
+typevisitors[types.PolyFunctionType] = function(context, type)
   if type.nodecl or context:is_declared(type.codename) then return end
   local decemitter = CEmitter(context, 0)
   decemitter:add_ln('typedef void* ', type.codename, ';')
@@ -1104,9 +1104,9 @@ function visitors.FuncDef(context, node, emitter)
   local attr = node.attr
   local type = attr.type
 
-  if type.is_lazyfunction then
-    for _,lazyeval in ipairs(type.evals) do
-      emitter:add(lazyeval.node)
+  if type.is_polyfunction then
+    for _,polyeval in ipairs(type.evals) do
+      emitter:add(polyeval.node)
     end
     return
   end

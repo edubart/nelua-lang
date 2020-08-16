@@ -224,8 +224,8 @@ global function tostring(x: auto): string
     return x
   ## elseif x.type.is_niltype then
     return 'nil'
-  ## elseif x.type.is_lazyfunction then
-    return 'lazyfunction'
+  ## elseif x.type.is_polyfunction then
+    return 'polyfunction'
   ## elseif x.type.is_record and x.type:get_metafield('__tostring') then
     return x:__tostring()
   ## else staticerror("tostring: cannot convert type '%s' to a string", x.type) end

@@ -558,7 +558,7 @@ it("function definition", function()
   ]], "no viable type conversion")
 end)
 
-it("lazy function definition", function()
+it("poly function definition", function()
   assert.analyze_ast([[
     local function f(x: auto) end
     f(1)
