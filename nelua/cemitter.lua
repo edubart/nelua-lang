@@ -195,9 +195,9 @@ function CEmitter:add_numeric_literal(valattr, valtype)
 
   if valtype.is_integral then
     if bn.isneg(val) and valtype.is_unsigned then
-      val = valtype:normalize_value(val)
+      val = valtype:wrap_value(val)
     elseif not valtype:is_inrange(val) then
-      val = valtype:normalize_value(val)
+      val = valtype:wrap_value(val)
     end
   end
 

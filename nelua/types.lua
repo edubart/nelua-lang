@@ -12,16 +12,30 @@ local traits = require 'nelua.utils.traits'
 local stringer = require 'nelua.utils.stringer'
 local sstream = require 'nelua.utils.sstream'
 local metamagic = require 'nelua.utils.metamagic'
-local config = require 'nelua.configer'.get()
 local bn = require 'nelua.utils.bn'
 local except = require 'nelua.utils.except'
 local shaper = require 'nelua.utils.shaper'
-local typedefs, primtypes
+local config = require 'nelua.configer'.get()
 
 local types = {}
+
+-- Size of CPU word in bits.
 local cpusize = config.cpu_bits // 8
 
+-- Counter that increment on every new defined type that are fundamentally different.
+local typeid_counter = 0
+
+-- Table of type's id by its codename.
+local typeid_by_codename = {}
+
+-- These are set by types.set_typedefs when typedefs file is loaded.
+local typedefs, primtypes
+
 --------------------------------------------------------------------------------
+-- Type
+--
+-- Type is the base class that all other types are derived form.
+
 local Type = class()
 types.Type = Type
 
@@ -47,9 +61,9 @@ Type.shape = shaper.shape {
   symbol = shaper.symbol:is_optional(),
   -- Node that defined the type.
   node = shaper.astnode:is_optional(),
-  -- Compile time unary operators defined for the type.
+  -- Unary operators defined for the type.
   unary_operators = shaper.table,
-  -- Compile time binary operators defined for the type.
+  -- Binary operators defined for the type.
   binary_operators = shaper.table,
   -- A generic type that the type can represent when used as generic.
   generic = shaper.type:is_optional(),
@@ -59,23 +73,69 @@ Type.shape = shaper.shape {
   cimport = shaper.optional_boolean,
   -- C header that the code generator should include C when using the type.
   cinclude = shaper.string:is_optional(),
-  -- The value passed in <aligned(X)> annotation, this will change the computed align.
+  -- The value passed in <aligned(X)> annotation, see also align.
   aligned = shaper.integer:is_optional(),
   -- Whether the type is a primitive type, true for non user defined types.
   is_primitive = shaper.optional_boolean,
-  -- Whether the type can turn represents a string, true for stringview, string and cstring.
+  -- Whether the type can turn represents a string (e.g. stringview, string and cstring).
   is_stringy = shaper.optional_boolean,
-  -- Whether the type represents a contiguous buffer.
-  -- True for arrays, span and vector defined in the lib.
-  -- This is used to allow casting to/from span.
+  -- Whether the type represents a contiguous buffer (e.g. arrays, spans and vector in the lib).
   is_contiguous = shaper.optional_boolean,
-  -- Booleans for checking the underlying type.
-  is_generic_pointer = shaper.optional_boolean,
-  is_cstring = shaper.optional_boolean,
+  -- Whether the type is a compile time type (e.g concepts, generics)
+  is_comptime = shaper.optional_boolean,
+  -- Whether the type is used as a polymorphic argument in poly functions.
+  is_polymorphic = shaper.optional_boolean,
+  -- Whether the type cannot be a l-value.
+  is_nolvalue = shaper.optional_boolean,
+  -- Whether the type can perform arithmetic operations (e.g. sum, add, mul, ...).
+  is_arithmetic = shaper.optional_boolean,
+  -- Whether the type is a floating point number type (fractional numbers).
+  is_float = shaper.optional_boolean,
+  -- Whether the type is an integral type (whole numbers).
+  is_integral = shaper.optional_boolean,
+  -- Whether the type can have a negative sign (e.g. int64, float64, ...).
+  is_signed = shaper.optional_boolean,
+  -- Whether the type is a procedure (e.g. a function or a poly function).
+  is_procedure = shaper.optional_boolean,
+  -- Whether the type is not addressable in memory (e.g. type, concept, ...)
+  is_unpointable = shaper.optional_boolean,
+
+  -- Booleans for checking the underlying type (arithmetic types),
   is_float32 = shaper.optional_boolean,
   is_float64 = shaper.optional_boolean,
   is_float128 = shaper.optional_boolean,
-  -- Booleans for checking the underlying type. (lib types)
+  is_int8 = shaper.optional_boolean,
+  is_int16 = shaper.optional_boolean,
+  is_int32 = shaper.optional_boolean,
+  is_int64 = shaper.optional_boolean,
+  is_uint8 = shaper.optional_boolean,
+  is_uint16 = shaper.optional_boolean,
+  is_uint32 = shaper.optional_boolean,
+  is_uint64 = shaper.optional_boolean,
+
+  -- Booleans for checking the underlying type (primitive types).
+  is_any = shaper.optional_boolean,
+  is_array = shaper.optional_boolean,
+  is_auto = shaper.optional_boolean,
+  is_boolean = shaper.optional_boolean,
+  is_concept = shaper.optional_boolean,
+  is_enum = shaper.optional_boolean,
+  is_function = shaper.optional_boolean,
+  is_generic = shaper.optional_boolean,
+  is_nilable = shaper.optional_boolean,
+  is_niltype = shaper.optional_boolean,
+  is_pointer = shaper.optional_boolean,
+  is_polyfunction = shaper.optional_boolean,
+  is_record = shaper.optional_boolean,
+  is_stringview = shaper.optional_boolean,
+  is_table = shaper.optional_boolean,
+  is_type = shaper.optional_boolean,
+  is_varanys = shaper.optional_boolean,
+  is_void = shaper.optional_boolean,
+  is_generic_pointer = shaper.optional_boolean,
+  is_cstring = shaper.optional_boolean,
+
+  -- Booleans for checking the underlying type (lib types).
   is_allocator = shaper.optional_boolean,
   is_resourcepool = shaper.optional_boolean,
   is_string = shaper.optional_boolean,
@@ -84,96 +144,106 @@ Type.shape = shaper.shape {
   is_sequence = shaper.optional_boolean,
   is_filestream = shaper.optional_boolean,
 
-  -- REMOVE:
+  -- TODO: remove this, because it was deprecated
   is_copyable = shaper.optional_boolean,
   is_destroyable = shaper.optional_boolean,
-
-  -- TODO: rethink
-  key = shaper.string:is_optional(),
 }
 
 Type._type = true
 Type.unary_operators = {}
 Type.binary_operators = {}
 
-local idcounter = 0
-local typeid_by_typecodename = {}
-local function genid(codename)
-  assert(codename)
-  local id = typeid_by_typecodename[codename]
-  if not id then
-    id = idcounter
-    idcounter = idcounter + 1
-  end
-  return id
-end
-
-function Type:set_codename(codename)
-  self.codename = codename
-  if self.id then
-    typeid_by_typecodename[codename] = self.id
-  else
-    self.id = genid(codename)
-  end
-end
-
-function Type:_init(name, size, node)
-  assert(name)
+function Type:_init(name, size)
   self.name = name
-  self.node = node
   self.size = size or 0
   self.bitsize = self.size * 8
-  self.align = self.size
-  if not self.codename then
-    self:set_codename('nl' .. self.name)
+
+  -- set the default alignment for this type,
+  -- usually the default alignment on primitive types is the primitive size itself
+  if not self.align then
+    self.align = self.size
   end
+
+  -- generate a codename in case not set yet
+  if not self.codename then
+    self.codename = 'nl' .. self.name
+  end
+
+  -- generate an unique id for this type in case not generated yet for this codename
+  local id = typeid_by_codename[self.codename]
+  if not id then -- generate an id
+    id = typeid_counter
+    typeid_counter = typeid_counter + 1
+    typeid_by_codename[self.codename] = id
+  end
+  self.id = id
+
+  -- set unary and binary operators tables
   local mt = getmetatable(self)
   self.unary_operators = setmetatable({}, {__index = mt.unary_operators})
   self.binary_operators = setmetatable({}, {__index = mt.binary_operators})
 end
 
+-- Set a new codename for this type, storing it in the typeid table.
+function Type:set_codename(codename)
+  self.codename = codename
+  typeid_by_codename[codename] = self.id
+end
+
+-- Set a nickname for this type if not set yet.
 function Type:suggest_nickname(nickname)
-  if self.is_primitive or self.nickname then return false end
+  if self.nickname then -- nickname already set
+    return false
+  end
+  if self.is_primitive then -- changing nicknames for primitives is not allowed
+    return false
+  end
   self.nickname = nickname
   return true
 end
 
+-- Return description for type as a string.
 function Type:typedesc()
   return self.name
 end
 
-local function get_operator_in_oplist(self, oplist, opname, arg1, arg2, arg3)
-  local opret = oplist[opname]
+-- Helper to perform an operation returning the resulting type, compile time value and error.
+local function perform_op_from_list(self, oplist, opname, arg1, arg2, arg3)
+  local op = oplist[opname]
   local type, value, err
-  if traits.is_function(opret) then
-    type, value, err = opret(self, arg1, arg2, arg3)
+  if traits.is_function(op) then
+    -- op is a function, get the results by running it
+    type, value, err = op(self, arg1, arg2, arg3)
   else
-    type, value = opret, nil
+    -- op must be fixed type or nil
+    type, value = op, nil
   end
   if not type and self.is_any then
+    -- operations on any values must always results in any too
     type, value = self, nil
   end
   return type, value, err
 end
 
+-- Perform an unary operation on attr returning the resulting type, compile time value and error.
 function Type:unary_operator(opname, attr)
-  local type, value, err = get_operator_in_oplist(self, self.unary_operators, opname, attr)
-  if not type and not err then
+  local type, value, err = perform_op_from_list(self, self.unary_operators, opname, attr)
+  if not type and not err then -- no resulting type, but no error, thus generate one
     err = stringer.pformat("invalid operation for type '%s'", self)
   end
   return type, value, err
 end
 
+-- Perform a binary operation on attrs returning the resulting type, compile time value and error.
 function Type:binary_operator(opname, rtype, lattr, rattr)
-  local type, value, err = get_operator_in_oplist(self, self.binary_operators, opname, rtype, lattr, rattr)
-  if not type and not err then
-    err = stringer.pformat("invalid operation between types '%s' and '%s'",
-      self, rtype)
+  local type, value, err = perform_op_from_list(self, self.binary_operators, opname, rtype, lattr, rattr)
+  if not type and not err then -- no resulting type, but no error, thus generate one
+    err = stringer.pformat("invalid operation between types '%s' and '%s'", self, rtype)
   end
   return type, value, err
 end
 
--- Used to check conversion from `type` to `self`
+-- Checks if this type is convertible from another type.
 function Type:is_convertible_from_type(type)
   if self == type then
     -- the type itself
@@ -186,31 +256,9 @@ function Type:is_convertible_from_type(type)
   end
 end
 
--- Used to check conversion from `attr` type to `self` type
+-- Checks if this type is convertible from an attr.
 function Type:is_convertible_from_attr(attr, explicit)
-  local type = attr.type
-
-  -- check for comptime number conversions
-  local value = attr.value
-  if type and value and attr.comptime and
-    self.is_arithmetic and type.is_arithmetic and not explicit then
-    if self.is_integral then
-      if not bn.isintegral(value) then
-        return false, stringer.pformat(
-          "constant value `%s` is fractional which is invalid for the type '%s'",
-          value, self)
-      elseif not self:is_inrange(value) then
-        return false, stringer.pformat(
-          "constant value `%s` for type `%s` is out of range, the minimum is `%s` and maximum is `%s`",
-          value, self, self.min, self.max)
-      else
-        -- in range and integral, a valid constant conversion
-        return self
-      end
-    end
-  end
-
-  return self:is_convertible_from_type(type, explicit)
+  return self:is_convertible_from_type(attr.type, explicit)
 end
 
 function Type:is_convertible_from(what, explicit)
@@ -224,68 +272,75 @@ function Type:is_convertible_from(what, explicit)
   end --luacov:enable
 end
 
-function Type.normalize_value(_, value)
+-- Wrap a compile time value to be fitted on this type.
+function Type.wrap_value(_, value)
   return value
 end
 
+-- Returns the resulting type when trying to fit a compile time value into this type.
+-- Promoting to a larger type when required.
+function Type.promote_type_for_value() return nil end
+
+-- Returns the resulting type when mixing this type with another type.
 function Type:promote_type(type)
   if self == type then
     return self
   end
+  return nil
 end
 
-function Type.promote_type_for_value() return nil end
-
-function Type:is_equal(type)
-  return type.name == self.name and getmetatable(type) == getmetatable(self)
-end
-
+-- Checks if this type can initialize from the attr (succeeds only for compile time attrs).
 function Type:is_initializable_from_attr(attr)
-  if attr and self == attr.type and attr.comptime then
-    return true
-  end
+  return attr and self == attr.type and attr.comptime
 end
 
+-- Checks if this type equals to another type.
+-- Usually this is overwritten by derived types, but this is a fallback implementation.
+function Type:is_equal(type)
+  return type.id == self.id
+end
+
+-- Give the underlying type when implicit dereferencing this type.
 function Type:implict_deref_type()
   return self
 end
 
+-- Checks if this type is pointing to the subtype.
 function Type.is_pointer_of() return false end
+
+-- Checks if this type is an array of the subtype.
 function Type.is_array_of() return false end
+
+-- Checks if this type has pointers, used by the garbage collector.
 function Type.has_pointer() return false end
+
 function Type.has_destroyable() return false end
 function Type.has_copyable() return false end
-function Type:is_contiguous_of(type)
-  if not self.is_contiguous then return false end
-  if self:is_array_of(type) then
-    return true
-  elseif self.is_record then
-    local mtatindex = self:get_metafield('__atindex')
-    local mtlen = self:get_metafield('__len')
-    if mtatindex and mtatindex.type:get_return_type(1):is_pointer_of(type) and
-       mtlen and mtlen.type:get_return_type(1).is_integral then
-      return true
-    end
-  end
-end
 
+-- Checks if this type can be represented as a contiguous array of the subtype.
+function Type.is_contiguous_of() return false end
+
+-- Return a pretty string representing the type.
+-- Usually returns the type's nickname when available or a verbose description otherwise.
 function Type:__tostring()
   if self.nickname then
+    -- use the nickname when available because it's compact and prettier
     return self.nickname
   else
+    -- use the typedesc when no nickname is available
+    -- however this can be too verbose for complex types
     return self:typedesc()
   end
 end
 
+-- Compare if two types are equal.
 function Type:__eq(t)
-  return type(t) == 'table' and t._type and self:is_equal(t)
-end
-
-local function promote_type_for_attrs(lattr, rattr)
-  if not lattr.untyped and rattr.comptime and rattr.untyped then
-    return lattr.type:promote_type_for_value(rattr.value)
-  elseif not rattr.untyped and lattr.comptime and lattr.untyped then
-    return rattr.type:promote_type_for_value(lattr.value)
+  if type(t) == 'table' and t._type then -- t is a type
+    if self.id == t.id then -- early check for same type (optimization)
+      -- types with the same type id should always be the same
+      return true
+    end
+    return self:is_equal(t)
   end
 end
 
@@ -332,7 +387,7 @@ end
 
 Type.binary_operators['and'] = function(ltype, rtype, lattr, rattr)
   local reval
-  local retype = promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype) or primtypes.any
+  local retype = types.promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype) or primtypes.any
   local lval, rval = lattr.value, rattr.value
   if retype.is_boolean and lval ~= nil and rval ~= nil then
     reval = not not (lval and rval)
@@ -342,7 +397,7 @@ end
 
 Type.binary_operators['or'] = function(ltype, rtype, lattr, rattr)
   local reval
-  local retype = promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype) or primtypes.any
+  local retype = types.promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype) or primtypes.any
   local lval, rval = lattr.value, rattr.value
   if retype.is_boolean and lval ~= nil and rval ~= nil then
     reval = lval or rval
@@ -350,28 +405,42 @@ Type.binary_operators['or'] = function(ltype, rtype, lattr, rattr)
   return retype, reval
 end
 
-local uidcounter = 0
-local function genkey(name, node)
+--------------------------------------------------------------------------------
+-- Type utilities
+
+-- Counter used to generate unique codenames.
+local gencodename_uid = 0
+
+-- Generate a unique codename based on the type name and a node position.
+function types.gencodename(name, node)
   local uid
   local srcname
   if node then
     uid = node.uid
     srcname = node.src.name or ''
   else
-    uidcounter = uidcounter + 1
-    uid = uidcounter
+    gencodename_uid = gencodename_uid + 1
+    uid = gencodename_uid
     srcname = '__nonode__'
   end
-  return string.format('%s%s%d', name, srcname, uid)
-end
-
-local function gencodename(self, name, node)
-  self.key = genkey(name, node)
-  local hash = stringer.hash(self.key, 16)
+  -- make a hash combining the type name, code source file and uid
+  local key = string.format('%s%s%d', name, srcname, uid)
+  -- take hash of the key
+  local hash = stringer.hash(key, 12)
+  -- combine the name and hash to generate our codename
   return string.format('%s_%s', name, hash)
 end
 
-local function typeclass(base)
+-- Used internally, set the typedefs and primtypes locals.
+-- This exists because typedefs and types modules have recursive dependency on each other.
+function types.set_typedefs(t)
+  typedefs = t
+  primtypes = t.primtypes
+end
+
+-- Make a new type class derived from base type class.
+-- Unary and binary operators are inherited.
+function types.typeclass(base)
   if not base then
     base = Type
   end
@@ -383,8 +452,56 @@ local function typeclass(base)
   return klass
 end
 
+-- Promote all types from a list to a single common type.
+-- Used on type resolution.
+function types.find_common_type(possibletypes)
+  if not possibletypes then return end
+  local commontype = possibletypes[1]
+  for i=2,#possibletypes do
+    commontype = commontype:promote_type(possibletypes[i])
+    if not commontype then -- no common type found
+      return nil
+    end
+  end
+  return commontype -- found the common type
+end
+
+-- Convert a list of nodes holding a type to a list of the holding types.
+function types.typenodes_to_types(nodes)
+  local typelist = {}
+  for i=1,#nodes do
+    local nodeattr = nodes[i].attr
+    assert(nodeattr.type._type)
+    typelist[i] = nodes[i].attr.value
+  end
+  return typelist
+end
+
+-- Convert a list of attrs to a list its types.
+function types.attrs_to_types(attrs)
+  local typelist = {}
+  for i=1,#attrs do
+    typelist[i] = attrs[i].type
+  end
+  return typelist
+end
+
+-- Promote compile time attrs to a common type.
+function types.promote_type_for_attrs(lattr, rattr)
+  if not lattr.untyped and rattr.comptime and rattr.untyped then
+    return lattr.type:promote_type_for_value(rattr.value)
+  elseif not rattr.untyped and lattr.comptime and lattr.untyped then
+    return rattr.type:promote_type_for_value(lattr.value)
+  end
+end
+
 --------------------------------------------------------------------------------
-local VoidType = typeclass()
+-- Void type
+--
+-- Void type is more used internally to represent an empty type,
+-- and also to represent the void type from C.
+
+local VoidType = types.typeclass()
 types.VoidType = VoidType
 VoidType.nodecl = true
 VoidType.is_nolvalue = true
@@ -397,7 +514,13 @@ function VoidType:_init(name)
 end
 
 --------------------------------------------------------------------------------
-local AutoType = typeclass()
+-- Auto Type
+--
+-- The auto type is a placeholder type to inform the compiler that the
+-- type should be deduced right away from another symbol type.
+-- It's commonly used in polymorphic functions arguments.
+
+local AutoType = types.typeclass()
 types.AutoType = AutoType
 AutoType.is_auto = true
 AutoType.nodecl = true
@@ -411,12 +534,18 @@ function AutoType:_init(name)
   Type._init(self, name, 0)
 end
 
+-- Checks if this type is convertible from another type.
 function AutoType.is_convertible_from_type(_, type)
+  -- the auto type can convert to anything
   return type
 end
 
 --------------------------------------------------------------------------------
-local TypeType = typeclass()
+-- Type Type
+--
+-- The 'type' type is the type of a type.
+
+local TypeType = types.typeclass()
 types.TypeType = TypeType
 TypeType.is_type = true
 TypeType.is_comptime = true
@@ -429,18 +558,22 @@ function TypeType:_init(name)
   Type._init(self, name, 0)
 end
 
-TypeType.unary_operators.len = function(_, lattr)
+-- Length operator for the type type, it returns the size of the type in bytes.
+TypeType.unary_operators.len = function(_, attr)
   local reval
-  local lval = lattr.value
-  if lval then
-    assert(traits.is_type(lval))
-    reval = bn.new(lval.size)
+  local holdedtype = attr.value
+  if holdedtype then
+    reval = bn.new(holdedtype.size)
   end
-  return primtypes.integer, reval
+  return primtypes.isize, reval
 end
 
 --------------------------------------------------------------------------------
-local NiltypeType = typeclass()
+-- Niltype Type
+--
+-- The niltype is the type of 'nil'.
+
+local NiltypeType = types.typeclass()
 types.NiltypeType = NiltypeType
 NiltypeType.is_niltype = true
 NiltypeType.is_nilable = true
@@ -451,12 +584,17 @@ function NiltypeType:_init(name)
   Type._init(self, name, 0)
 end
 
+-- Negation operator for niltype type.
 NiltypeType.unary_operators['not'] = function()
   return primtypes.boolean, true
 end
 
 --------------------------------------------------------------------------------
-local NilptrType = typeclass()
+-- Nilptr Type
+--
+-- The nilptr is the type of 'nilptr'. Used when working with pointers.
+
+local NilptrType = types.typeclass()
 types.NilptrType = NilptrType
 NilptrType.is_nolvalue = true
 NilptrType.is_nilptr = true
@@ -467,17 +605,26 @@ function NilptrType:_init(name, size)
   Type._init(self, name, size)
 end
 
+-- Returns the resulting type when mixing this type with another type.
 function NilptrType:promote_type(type)
-  if type.is_pointer then return type end
+  if type.is_pointer or type.is_function then
+    -- preserve pointer or function types
+    return type
+  end
   return Type.promote_type(self, type)
 end
 
+-- Negation operator for nilptr type.
 NilptrType.unary_operators['not'] = function()
   return primtypes.boolean, true
 end
 
 --------------------------------------------------------------------------------
-local BooleanType = typeclass()
+-- Boolean Type
+--
+-- The boolean type is the type for 'true' and 'false'.
+
+local BooleanType = types.typeclass()
 types.BooleanType = BooleanType
 BooleanType.is_boolean = true
 BooleanType.is_primitive = true
@@ -487,20 +634,26 @@ function BooleanType:_init(name, size)
 end
 
 function BooleanType:is_convertible_from_type()
+  -- anything is convertible to a boolean
   return self
 end
 
+-- Negation operator for boolean type.
 BooleanType.unary_operators['not'] = function(ltype, lattr)
   local lval = lattr.value
   local reval
-  if lval ~= nil then
+  if lval ~= nil then -- compile time value
     reval = not lval
   end
   return ltype, reval
 end
 
 --------------------------------------------------------------------------------
-local AnyType = typeclass()
+-- Any Type
+--
+-- The any type is a special type that can store a runtime value of any type.
+
+local AnyType = types.typeclass()
 types.AnyType = AnyType
 AnyType.is_any = true
 AnyType.is_nilable = true
@@ -510,14 +663,22 @@ function AnyType:_init(name, size)
   Type._init(self, name, size)
 end
 
+-- Checks if this type is convertible from another type.
 function AnyType:is_convertible_from_type()
+  -- anything can convert to an any
   return self
 end
 
+-- Checks if this type has pointers, used by the garbage collector.
 function AnyType.has_pointer() return true end
 
 --------------------------------------------------------------------------------
-local VaranysType = typeclass(AnyType)
+-- Varanys Type
+--
+-- The varanys type is used only for the last return type of functions that
+-- can return a variable number of anys at runtime.
+
+local VaranysType = types.typeclass(AnyType)
 types.VaranysType = VaranysType
 VaranysType.is_varanys = true
 VaranysType.is_nolvalue = true
@@ -528,87 +689,103 @@ function VaranysType:_init(name, size)
 end
 
 --------------------------------------------------------------------------------
-local ArithmeticType = typeclass()
+-- Arithmetic Type
+--
+-- The arithmetic type is used as a base type for creating the Integral and Float types.
+-- Arithmetic types can perform arithmetic operations
+-- like addition, subtraction, multiplication, division, etc.
+
+local ArithmeticType = types.typeclass()
 types.ArithmeticType = ArithmeticType
 ArithmeticType.is_arithmetic = true
 ArithmeticType.is_primitive = true
+ArithmeticType.is_convertible_from_type = Type.is_convertible_from_type
 
 function ArithmeticType:_init(name, size)
   Type._init(self, name, size)
 end
 
-ArithmeticType.is_convertible_from_type = Type.is_convertible_from_type
-
+-- Checks if this type can initialize from the attr (succeeds only for compile time attrs).
 function ArithmeticType:is_initializable_from_attr(attr)
-  if Type.is_initializable_from_attr(self, attr) then
-    return true
-  end
   if attr and attr.comptime and attr.untyped and attr.type and attr.type.is_arithmetic then
+    -- initializing from an untyped compile time arithmetic is always possible
     return true
   end
+  return Type.is_initializable_from_attr(self, attr)
 end
 
+-- Negation operator for arithmetic types.
 ArithmeticType.unary_operators.unm = function(ltype, lattr)
   local reval
   local retype = ltype
   local lval = lattr.value
-  if lval ~= nil then
+  if lval then -- is compile time value
     reval = -lval
     retype = ltype:promote_type_for_value(reval)
   end
   return retype, reval
 end
 
-ArithmeticType.binary_operators.eq = function(_, rtype, lattr, rattr)
+-- Equality operator from arithmetic types.
+ArithmeticType.binary_operators.eq = function(ltype, rtype, lattr, rattr)
   local reval
+  if lattr == rattr and not ltype.is_float then
+    -- same symbol and not a float, we can optimize away and return always true
+    -- floats are ignored because x == x is false when x is NaN
+    return primtypes.boolean, true
+  end
   if rtype.is_arithmetic then
     local lval, rval = lattr.value, rattr.value
-    if lval and rval then
+    if lval and rval then -- both are compile time values
       reval = bn.eq(lval, rval)
     end
   else
+    -- equality is always false when comparing another type
     reval = false
   end
   return primtypes.boolean, reval
 end
 
-local function make_arithmetic_cmp_opfunc(cmpfunc)
-  return function(_, rtype, lattr, rattr)
+-- Helper to create an comparison operation functions for arithmetic type.
+local function make_arith_cmpop(cmpfunc)
+  return function(ltype, rtype, lattr, rattr)
     if rtype.is_arithmetic then
-      return primtypes.boolean, cmpfunc(lattr, rattr)
+      -- we can optimize away the operation when the attr is the same and not a float
+      -- float are ignored because x <= x is false when x is NaN
+      local same = lattr == rattr and not ltype.is_float
+      local reval = cmpfunc(lattr.value, rattr.value, same)
+      return primtypes.boolean, reval
     end
   end
 end
 
-ArithmeticType.binary_operators.le = make_arithmetic_cmp_opfunc(function(a,b)
-  -- floats can differs at runtime in case of NaNs
-  if a == b and not a.type.is_float then
+-- Implement all the arithmetic comparison operations.
+ArithmeticType.binary_operators.le = make_arith_cmpop(function(a,b,same)
+  if same then
     return true
-  end
-  if a.value and b.value then
-    return a.value <= b.value
+  elseif a and b then
+    return a <= b
   end
 end)
-
-ArithmeticType.binary_operators.ge = make_arithmetic_cmp_opfunc(function(a,b)
-  -- floats can differs at runtime in case of NaNs
-  if a == b and not a.type.is_float then
+ArithmeticType.binary_operators.ge = make_arith_cmpop(function(a,b,same)
+  if same then
     return true
-  end
-  if a.value and b.value then
-    return a.value >= b.value
-  end
-end)
-
-ArithmeticType.binary_operators.lt = make_arithmetic_cmp_opfunc(function(a,b)
-  if a.value and b.value then
-    return a.value < b.value
+  elseif a and b then
+    return a >= b
   end
 end)
-
-ArithmeticType.binary_operators.gt = make_arithmetic_cmp_opfunc(function(a,b)
-  if a.value and b.value then
-    return a.value > b.value
+ArithmeticType.binary_operators.lt = make_arith_cmpop(function(a,b,same)
+  if same then
+    return false
+  elseif a and b then
+    return a < b
+  end
+end)
+ArithmeticType.binary_operators.gt = make_arith_cmpop(function(a,b,same)
+  if same then
+    return false
+  elseif a and b then
+    return a > b
   end
 end)
 
@@ -616,10 +793,10 @@ end)
 -- Integral Type
 --
 -- Integral type is used for unsigned and signed integer (whole numbers) types,
--- i.e. 'int64', 'uint64', ...
+-- e.g. 'int64', 'uint64', ...
 -- They have min and max values and cannot be fractional.
 
-local IntegralType = typeclass(ArithmeticType)
+local IntegralType = types.typeclass(ArithmeticType)
 types.IntegralType = IntegralType
 IntegralType.is_integral = true
 
@@ -644,238 +821,281 @@ function IntegralType:_init(name, size, is_unsigned)
 
   -- compute the min and max values
   if is_unsigned then
-    self.is_unsigned = true
-    self['is_uint'..self.bitsize] = true
     self.min =  bn.zero()
     self.max =  (bn.one() << self.bitsize) - 1
+    self.is_unsigned = true
+    self['is_uint'..self.bitsize] = true
   else -- signed
-    self.is_signed = true
-    self['is_int'..self.bitsize] = true
     self.min = -(bn.one() << self.bitsize) // 2
     self.max = ((bn.one() << self.bitsize) // 2) - 1
+    self.is_signed = true
+    self['is_int'..self.bitsize] = true
   end
 end
 
+-- Checks if this type is convertible from an attr.
+function IntegralType:is_convertible_from_attr(attr, explicit)
+  if not explicit and attr.comptime and attr.type.is_arithmetic then
+    -- implicit conversion between two compile time arithmetic types,
+    -- we can convert only if the compiler time value does not overflow/underflow the type
+    local value = attr.value
+    if not traits.is_integral(value) then -- the value must be and integral
+      return false, stringer.pformat(
+        "constant value `%s` is fractional which is invalid for the type '%s'",
+        value, self)
+    elseif not self:is_inrange(value) then -- the value must be in our range
+      return false, stringer.pformat(
+        "constant value `%s` for type `%s` is out of range, the minimum is `%s` and maximum is `%s`",
+        value, self, self.min, self.max)
+    else
+      -- in range and integral, thus a valid conversion
+      return self
+    end
+  end
+  return ArithmeticType.is_convertible_from_attr(self, attr, explicit)
+end
+
+-- Checks if this type is convertible from another type.
 function IntegralType:is_convertible_from_type(type, explicit)
-  if type == self then
+  if type == self then -- early return for the same type
     return self
   elseif type.is_integral and self:is_type_inrange(type) then
+    -- implicit conversion from another integral that fits this integral
     return self
   elseif type.is_arithmetic then
     -- implicit narrowing cast
     return self
-  elseif explicit and type.is_pointer and self.size == cpusize then
+  elseif explicit and type.is_pointer and self.size >= type.size then
+    -- explicit cast from a pointer to an integral that can fit the pointer
     return self
   end
   return ArithmeticType.is_convertible_from_type(self, type, explicit)
 end
 
+-- Checks if this type arithmetic type can fit another arithmetic type.
+-- To fit both min and max values of the other type must be in this type range.
 function IntegralType:is_type_inrange(type)
   if type.is_integral and self:is_inrange(type.min) and self:is_inrange(type.max) then
+    -- both min and max is in range
     return true
   end
+  return false
 end
 
-function IntegralType:normalize_value(value)
-  if not bn.isintegral(value) then
-    value = bn.trunc(value)
-  end
-  if not self:is_inrange(value) then
-    if self.is_signed and value > self.max then
-      value = -bn.bwrap(-value, self.bitsize)
-    else
-      value = bn.bwrap(value, self.bitsize)
+-- Wrap a compile time value to be fitted on this integral type.
+-- Float values are truncated, integer value wraps around in case of overflow/underflow.
+function IntegralType:wrap_value(value)
+  if traits.is_integral(value) then
+    -- wrap around in case the value is not in range
+    if not self:is_inrange(value) then
+      if self.is_signed and value > self.max then
+        -- special case for wrapping signed integers
+        value = -bn.bwrap(-value, self.bitsize)
+      else
+        value = bn.bwrap(value, self.bitsize)
+      end
     end
+  else -- must be a float
+    value = bn.trunc(value)
   end
   return value
 end
 
+-- Returns the resulting type when trying to fit a compile time value into this type.
+-- Promoting to a larger type when required.
 function IntegralType:promote_type_for_value(value)
-  if bn.isintegral(value) then
+  if traits.is_integral(value) then
     if self:is_inrange(value) then
       -- this type already fits
       return self
     end
 
     -- try to use a type of same signess until fit the size
-    local dtypes
+    local promotetypes
     local fallbacktype
-    if self.is_unsigned and not bn.isneg(value) then
-      dtypes = typedefs.promote_unsigned_types
-      fallbacktype =  primtypes.uint64
-    else
-      dtypes = typedefs.promote_signed_types
-      fallbacktype =  primtypes.int64
+    if self.is_unsigned and not bn.isneg(value) then -- preserve unsigned when possible
+      promotetypes = typedefs.promote_unsigned_types
+      fallbacktype = primtypes.uint64
+    else -- is signed
+      promotetypes = typedefs.promote_signed_types
+      fallbacktype = primtypes.int64
     end
-
-    for i=1,#dtypes do
-      local dtype = dtypes[i]
-      if dtype:is_inrange(value) and dtype.size >= self.size then
+    for i=1,#promotetypes do
+      local type = promotetypes[i]
+      if type.size >= self.size and type:is_inrange(value) then
         -- both value and prev type fits
-        return dtype
+        return type
       end
     end
-
     return fallbacktype
   else
+    -- non integrals use the default number type
     return primtypes.number
   end
 end
 
+-- Returns the resulting type when mixing this type with another type.
+-- Promoting to the largest type when required.
 function IntegralType:promote_type(type)
-  if type == self or type.is_float then
+  if type == self then -- is the same type
+    return self
+  elseif type.is_float then -- float always wins when mixing with integers
     return type
-  elseif not type.is_integral then
+  elseif not type.is_integral then -- not an arithmetic
     return nil
   end
   if self.is_unsigned == type.is_unsigned then
-    -- promote to bigger of the same signess
+    -- promote to largest type of the same signess
     return type.size >= self.size and type or self
   else
     -- promote to signed version of largest type
     local maxbitsize = math.max(self.bitsize, type.bitsize)
-    local rettype = primtypes[string.format('int%d', maxbitsize)]
-    assert(rettype)
-    return rettype
+    return primtypes[string.format('int%d', maxbitsize)]
   end
 end
 
+-- Checks if the value can fit in this type min and max range.
 function IntegralType:is_inrange(value)
   return value >= self.min and value <= self.max
 end
 
-local function integral_arithmetic_operation(ltype, rtype, lattr, rattr)
+-- Helper to determine the resulting type of an arithmetic operation on an integral.
+local function integral_arith_op_type(ltype, rtype, lattr, rattr)
   if not rtype.is_arithmetic then
-    return
+    -- cannot do arithmetic operations for on a non arithmetic
+    return nil
   end
-  return promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype)
+  return types.promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype)
 end
 
-local function integral_fractional_operation(_, rtype)
-  if rtype.is_float then
+-- Helper to determine the resulting type of division operation on an integral.
+local function integral_arith_div_op_type(ltype, rtype, lattr, rattr)
+  if ltype.is_integral and rtype.is_integral and bn.iszero(rattr.value) then
+    -- division by zero is not allowed with integral types
+    return nil, 'attempt to divide by zero'
+  end
+  return integral_arith_op_type(ltype, rtype, lattr, rattr)
+end
+
+-- Helper to determine the resulting type of an operation with an integral and a float.
+local function integral_float_op_type(_, rtype)
+  if rtype.is_float then --  preserve the same from other type
     return rtype
-  else
+  else -- fallback to the default number type
     return primtypes.number
   end
 end
 
-local function integral_bitwise_operation(ltype, rtype, lattr, rattr)
+-- Helper to determine the resulting type of a bitwise operation on integrals.
+local function integral_bitwise_op_type(ltype, rtype, lattr, rattr)
   if not rtype.is_integral then
-    return
+    return nil, stringer.pformat(
+      'attempt to perform a bitwise operation with non integral type %s', rtype)
   end
-  local retype = promote_type_for_attrs(lattr, rattr)
+  local retype = types.promote_type_for_attrs(lattr, rattr)
   if not retype then
-    retype = rtype.size > ltype.size and rtype or ltype
+    -- the largest type always wins
+    if rtype.size > ltype.size then
+      retype = rtype
+    else
+      retype = ltype
+    end
   end
   return retype
 end
 
-local function integral_shift_operation(ltype, rtype)
-  if not rtype.is_integral then
-    return
+-- Helper to determine the resulting type of a shift operation on integrals.
+local function integral_shift_op_type(ltype, rtype)
+  if not rtype.is_integral then -- cannot do bitwise operations on non integrals
+    return nil, stringer.pformat(
+      'attempt to perform a bitwise operation with non integral type %s', rtype)
   end
   return ltype
 end
 
-local function make_integral_binary_opfunc(optypefunc, opvalfunc)
+-- Helper to create a binary operation function for integrals.
+local function make_integral_binary_op(optypefunc, opvalfunc)
   return function(ltype, rtype, lattr, rattr)
     local retype, err = optypefunc(ltype, rtype, lattr, rattr)
-    local lval, rval = lattr.value, rattr.value
-    if retype and lval and rval then
-      local reval
-      reval, err = opvalfunc(lval, rval, retype)
-      if reval then
-        retype = retype:promote_type_for_value(reval)
-        reval = retype:normalize_value(reval)
+    local lval, rval, reval = lattr.value, rattr.value, nil
+    if retype and lval and rval then -- compile time operation
+      if retype.is_float then -- promote both to floats before if the result is a float
+        lval, rval = bn.tonumber(lval), bn.tonumber(rval)
       end
-      return retype, reval, err
+      reval = opvalfunc(lval, rval, retype)
+      if reval then
+        -- promote to a larger type if needed
+        retype = retype:promote_type_for_value(reval)
+        -- wrap the compile time value in case of overflow/underflow
+        reval = retype:wrap_value(reval)
+      end
     end
-    return retype, nil, err
+    return retype, reval, err
   end
 end
 
+-- Implement basic integral arithmetic operations.
+IntegralType.binary_operators.add = make_integral_binary_op(integral_arith_op_type, function(a,b)
+  return a + b
+end)
+IntegralType.binary_operators.sub = make_integral_binary_op(integral_arith_op_type, function(a,b)
+  return a - b
+end)
+IntegralType.binary_operators.mul = make_integral_binary_op(integral_arith_op_type, function(a,b)
+  return a * b
+end)
+IntegralType.binary_operators.idiv = make_integral_binary_op(integral_arith_div_op_type, function(a,b)
+  return a // b
+end)
+IntegralType.binary_operators.mod = make_integral_binary_op(integral_arith_div_op_type, function(a,b)
+  return a % b
+end)
+IntegralType.binary_operators.div = make_integral_binary_op(integral_float_op_type, function(a,b)
+  return a / b
+end)
+IntegralType.binary_operators.pow = make_integral_binary_op(integral_float_op_type, function(a,b)
+  return a ^ b
+end)
+
+-- Implement bitwise integral arithmetic operations.
+-- All results are wrapped around beforehand.
+IntegralType.binary_operators.bor = make_integral_binary_op(integral_bitwise_op_type, function(a,b,t)
+  return t:wrap_value(a | b)
+end)
+IntegralType.binary_operators.bxor = make_integral_binary_op(integral_bitwise_op_type, function(a,b,t)
+  return t:wrap_value(a ~ b)
+end)
+IntegralType.binary_operators.band = make_integral_binary_op(integral_bitwise_op_type, function(a,b,t)
+  return t:wrap_value(a & b)
+end)
+IntegralType.binary_operators.shl = make_integral_binary_op(integral_shift_op_type, function(a,b,t)
+  return t:wrap_value(a << b)
+end)
+IntegralType.binary_operators.shr = make_integral_binary_op(integral_shift_op_type, function(a,b,t)
+  if bn.isneg(a) and bn.ispos(b) then
+    -- operation is on negative integer, must perform logical shift right
+    local msb = (bn.one() << (t.bitsize - 1))
+    a = bn.bwrap(a | msb, t.bitsize)
+  end
+  return t:wrap_value(a >> b)
+end)
 IntegralType.unary_operators.bnot = function(ltype, lattr)
-  local reval
-  local lval = lattr.value
-  if lval ~= nil then
-    reval = ltype:normalize_value(~lval)
+  local lval, reval = lattr.value, nil
+  if lval then -- compile time value
+    reval = ltype:wrap_value(~lval)
   end
   return ltype, reval
 end
 
-IntegralType.binary_operators.add = make_integral_binary_opfunc(integral_arithmetic_operation, function(a,b)
-  return a + b
-end)
-
-IntegralType.binary_operators.sub = make_integral_binary_opfunc(integral_arithmetic_operation, function(a,b)
-  return a - b
-end)
-
-IntegralType.binary_operators.mul = make_integral_binary_opfunc(integral_arithmetic_operation, function(a,b)
-  return a * b
-end)
-
-IntegralType.binary_operators.div = make_integral_binary_opfunc(integral_fractional_operation, function(a,b)
-  return bn.tonumber(a) / bn.tonumber(b)
-end)
-
-IntegralType.binary_operators.idiv = make_integral_binary_opfunc(function(ltype, rtype, lattr, rattr)
-  if ltype.is_integral and rtype.is_integral and bn.iszero(rattr.value) then
-    return nil, 'attempt to divide by zero'
-  end
-  return integral_arithmetic_operation(ltype, rtype, lattr, rattr)
-end, function(a,b,t)
-  if t.is_float then
-    return bn.tonumber(a) // bn.tonumber(b)
-  else
-    return a // b
-  end
-end)
-
-IntegralType.binary_operators.mod = make_integral_binary_opfunc(function(ltype, rtype, lattr, rattr)
-  if ltype.is_integral and rtype.is_integral and bn.iszero(rattr.value) then
-    return nil, 'attempt to perform mod zero'
-  end
-  return integral_arithmetic_operation(ltype, rtype, lattr, rattr)
-end, function(a,b,t)
-  if t.is_float then
-    return bn.tonumber(a) % bn.tonumber(b)
-  else
-    return a % b
-  end
-end)
-
-IntegralType.binary_operators.pow = make_integral_binary_opfunc(integral_fractional_operation, function(a,b)
-  return a ^ b
-end)
-
-IntegralType.binary_operators.bor = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
-  return t:normalize_value(a | b)
-end)
-
-IntegralType.binary_operators.bxor = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
-  return t:normalize_value(a ~ b)
-end)
-
-IntegralType.binary_operators.band = make_integral_binary_opfunc(integral_bitwise_operation, function(a,b,t)
-  return t:normalize_value(a & b)
-end)
-
-IntegralType.binary_operators.shl = make_integral_binary_opfunc(integral_shift_operation, function(a,b,t)
-  return t:normalize_value(a << b)
-end)
-
-IntegralType.binary_operators.shr = make_integral_binary_opfunc(integral_shift_operation, function(a,b,t)
-  if a < 0 then
-    -- perform logical shift right
-    local msb = (bn.one() << (t.bitsize - 1))
-    a = bn.bwrap(a | msb, t.bitsize)
-  end
-  return t:normalize_value(a >> b)
-end)
-
 --------------------------------------------------------------------------------
-local FloatType = typeclass(ArithmeticType)
+-- Float Type
+--
+-- Float type is used for floating point numbers, that is, numbers that can have a fractional part.
+-- Unlikely integral type it has no min and max values,
+-- floats can sometimes be in NaN (not a number) or Inf (infinite) states when doing
+-- invalid math operations, either at compile time or runtime.
+
+local FloatType = types.typeclass(ArithmeticType)
 types.FloatType = FloatType
 FloatType.is_float = true
 FloatType.is_signed = true
@@ -895,81 +1115,109 @@ function FloatType:_init(name, size, maxdigits)
   self['is_float'..self.bitsize] = true
 end
 
+-- Checks if this type is convertible from another type.
 function FloatType:is_convertible_from_type(type, explicit)
   if type.is_arithmetic then
+    -- any arithmetic can convert to a float
     return self
   end
   return ArithmeticType.is_convertible_from_type(self, type, explicit)
 end
 
-function FloatType.is_inrange() return true end
-
-function FloatType:promote_type_for_value()
-  --assert(traits.isnumeric(value))
-  return self
+-- Checks if the value can fit in this type min and max range.
+function FloatType.is_inrange(_, value)
+  -- any arithmetic is in float range
+  return traits.is_arithmetic(value)
 end
 
+-- Returns the resulting type when trying to fit a compile time value into this type.
+-- Promoting to a larger type when required.
+function FloatType:promote_type_for_value(value)
+  if traits.is_arithmetic(value) then -- any arithmetic can turn into a float
+    return self
+  end
+end
+
+-- Returns the resulting type when mixing this type with another type.
+-- Promoting to the largest type when required.
 function FloatType:promote_type(type)
   if type == self or type.is_integral then
+    -- when mixing floats and integrals, floats always wins
     return self
   elseif not type.is_float then
-    return
+    -- the other type is not an arithmetic, fail
+    return nil
   end
+  -- return the largest float type
   if type.size > self.size then
     return type
+  else
+    return self
   end
-  return self
 end
 
-local function float_arithmetic_operation(ltype, rtype, lattr, rattr)
-  if not rtype.is_arithmetic then
-    return
+-- Helper to get the resulting type in a binary operation with a float.
+local function float_arith_op(ltype, rtype, lattr, rattr)
+  if not ltype.is_arithmetic or not rtype.is_arithmetic then -- both must be arithmetic
+    return nil
   end
+  -- try to preserve float32 type when operating with untyped values
   if rtype.is_float32 and lattr.untyped then
     return rtype
   elseif ltype.is_float32 and rattr.untyped then
     return ltype
   end
+  -- return the promotion between the two arithmetic types
   return ltype:promote_type(rtype)
 end
 
+-- Helper to create a binary operation function for floats.
 local function make_float_binary_opfunc(optypefunc, opvalfunc)
   return function(ltype, rtype, lattr, rattr)
-    local retype, err = optypefunc(ltype, rtype, lattr, rattr)
-    local lval, rval = lattr.value, rattr.value
-    if retype and lval and rval then
-      local reval
-      reval, err = opvalfunc(lval, rval, retype)
-      return retype, reval, err
+    local retype = optypefunc(ltype, rtype, lattr, rattr)
+    if retype then -- we have a common type
+      local lval, rval, reval = lattr.value, rattr.value, nil
+      if lval and rval then -- both are compile time variables
+        -- must convert both to a float before
+        lval, rval = bn.tonumber(lval), bn.tonumber(rval)
+        reval = opvalfunc(lval, rval, retype)
+      end
+      return retype, reval
+    else -- operation between the types failed
+      return nil
     end
-    return retype, err
   end
 end
 
-FloatType.binary_operators.add = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
+-- Implement the float binary operations.
+FloatType.binary_operators.add = make_float_binary_opfunc(float_arith_op, function(a,b)
   return a + b
 end)
-FloatType.binary_operators.sub = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
+FloatType.binary_operators.sub = make_float_binary_opfunc(float_arith_op, function(a,b)
   return a - b
 end)
-FloatType.binary_operators.mul = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
+FloatType.binary_operators.mul = make_float_binary_opfunc(float_arith_op, function(a,b)
   return a * b
 end)
-FloatType.binary_operators.div = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
-  return bn.tonumber(a) / bn.tonumber(b)
+FloatType.binary_operators.div = make_float_binary_opfunc(float_arith_op, function(a,b)
+  return a / b
 end)
-FloatType.binary_operators.idiv = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
-  return bn.tonumber(a) // bn.tonumber(b)
+FloatType.binary_operators.idiv = make_float_binary_opfunc(float_arith_op, function(a,b)
+  return a // b
 end)
-FloatType.binary_operators.mod = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
-  return bn.tonumber(a) % bn.tonumber(b)
+FloatType.binary_operators.mod = make_float_binary_opfunc(float_arith_op, function(a,b)
+  return a % b
 end)
-FloatType.binary_operators.pow = make_float_binary_opfunc(float_arithmetic_operation, function(a,b)
+FloatType.binary_operators.pow = make_float_binary_opfunc(float_arith_op, function(a,b)
   return a ^ b
 end)
 
 --------------------------------------------------------------------------------
-local TableType = typeclass()
+-- Table type
+--
+-- The table type is he type used for lua style tables.
+
+local TableType = types.typeclass()
 types.TableType = TableType
 TableType.is_primitive = true
 TableType.is_table = true
@@ -978,18 +1226,12 @@ function TableType:_init(name)
   Type._init(self, name, cpusize)
 end
 
---[[
-function TableType.unary_operator()
-  return primtypes.any
-end
-
-function TableType.binary_operator()
-  return primtypes.any
-end
-]]
-
 --------------------------------------------------------------------------------
-local ArrayType = typeclass()
+-- Array Type
+--
+-- Arrays are contiguous lists where the size is fixed and known at compile time.
+
+local ArrayType = types.typeclass()
 types.ArrayType = ArrayType
 ArrayType.is_array = true
 ArrayType.is_contiguous = true
@@ -997,27 +1239,35 @@ ArrayType.is_contiguous = true
 ArrayType.shape = shaper.fork_shape(Type.shape, {
   -- Fixed length for the array.
   length = shaper.integer,
-  -- The sub type for the array.
+  -- The subtype for the array.
   subtype = shaper.type,
 })
 
 function ArrayType:_init(subtype, length)
   local size = subtype.size * length
-  self:set_codename(string.format('%s_arr%d', subtype.codename, length))
+  self.codename = string.format('%s_arr%d', subtype.codename, length)
   Type._init(self, 'array', size)
   self.subtype = subtype
   self.length = length
   self.align = subtype.align
 end
 
+-- Checks if this type equals to another type.
 function ArrayType:is_equal(type)
   return self.subtype == type.subtype and self.length == type.length and type.is_array
 end
 
+-- Checks if this type can be represented as a contiguous array of the subtype.
+function ArrayType:is_contiguous_of(subtype)
+  return self.subtype == subtype
+end
+
+-- Return description for type as a string.
 function ArrayType:typedesc()
   return sstream(self.name, '(', self.subtype, ', ', self.length, ')'):tostring()
 end
 
+-- Checks if this type is convertible from another type.
 function ArrayType:is_convertible_from_type(type, explicit)
   if not explicit and type:is_pointer_of(self) then
     -- implicit automatic dereference
@@ -1026,20 +1276,28 @@ function ArrayType:is_convertible_from_type(type, explicit)
   return Type.is_convertible_from_type(self, type, explicit)
 end
 
+-- Checks if this type is an array of the subtype.
 function ArrayType:is_array_of(subtype)
   return self.subtype == subtype
 end
 
+-- Checks if this type has pointers, used by the garbage collector.
 function ArrayType:has_pointer()
   return self.subtype:has_pointer()
 end
 
+-- Length operator for arrays.
 ArrayType.unary_operators.len = function(ltype)
-  return primtypes.isize, bn.new(ltype.length)
+  local size = bn.new(ltype.length)
+  return primtypes.isize, size
 end
 
 --------------------------------------------------------------------------------
-local EnumType = typeclass(IntegralType)
+-- Enum Type
+--
+-- Enums are used to list constant compile time values in sequential order.
+
+local EnumType = types.typeclass(IntegralType)
 types.EnumType = EnumType
 EnumType.is_enum = true
 EnumType.is_primitive = false -- to allow using custom nicknames
@@ -1054,19 +1312,20 @@ EnumType.shape = shaper.fork_shape(IntegralType.shape, {
     -- The field value.
     value = shaper.integral,
   }),
-  -- The integral sub type for the enum.
+  -- The integral subtype for the enum.
   subtype = shaper.type,
 })
 
-function EnumType:_init(subtype, fields)
-  self:set_codename(gencodename(self, 'enum'))
+function EnumType:_init(subtype, fields, node)
+  self.codename = types.gencodename('enum', node)
+  self.node = node
   IntegralType._init(self, 'enum', subtype.size, subtype.is_unsigned)
   self.subtype = subtype
   self.fields = fields
   self:update_fields()
 end
 
--- Update fields internal values when they are changed.
+-- Update fields internal values, called when they are changed.
 function EnumType:update_fields()
   local fields = self.fields
   for i=1,#fields do
@@ -1076,6 +1335,7 @@ function EnumType:update_fields()
   end
 end
 
+-- Return description for type as a string.
 function EnumType:typedesc()
   local ss = sstream('enum(', self.subtype, '){')
   for i,field in ipairs(self.fields) do
@@ -1087,7 +1347,12 @@ function EnumType:typedesc()
 end
 
 --------------------------------------------------------------------------------
-local FunctionType = typeclass()
+-- Function Type
+--
+-- Function type is the type used for all runtime functions,
+-- they are really pointers in C so they can be explicitly cast to/from pointers.
+
+local FunctionType = types.typeclass()
 types.FunctionType = FunctionType
 FunctionType.is_function = true
 FunctionType.is_procedure = true
@@ -1100,34 +1365,28 @@ FunctionType.shape = shaper.fork_shape(Type.shape, {
   -- List of return types.
   rettypes = shaper.array_of(shaper.type),
   -- Whether this functions trigger side effects.
-  -- A function trigger side effects when it throw errors or operate on global variables.
+  -- A function trigger side effects when it can throw errors or operate on global variables.
   sideeffect = shaper.optional_boolean,
 })
 
 function FunctionType:_init(argattrs, rettypes, node)
-  self:set_codename(gencodename(self, 'function', node))
-  Type._init(self, 'function', cpusize, node)
+  self.codename = types.gencodename('function', node)
+  self.node = node
+  Type._init(self, 'function', cpusize)
+
+  -- set the arguments
   self.argattrs = argattrs or {}
-  local argtypes = {}
-  for i=1,#argattrs do
-    argtypes[i] = argattrs[i].type
+  self.argtypes = types.attrs_to_types(self.argattrs)
+
+  -- set the return types
+  if rettypes and #rettypes == 1 and rettypes[1].is_void then
+    -- single void type means no returns
+    rettypes = {}
   end
-  self.argtypes = argtypes
-  if rettypes then
-    if #rettypes == 1 and rettypes[1].is_void then
-      -- single void type means no returns
-      self.rettypes = {}
-    else
-      self.rettypes = rettypes
-      local lastindex = #rettypes
-      local lastret = rettypes[lastindex]
-      self.returnvaranys = lastret and lastret.is_varanys
-    end
-  else
-    self.rettypes = {}
-  end
+  self.rettypes = rettypes or {}
 end
 
+-- Checks if this type equals to another type.
 function FunctionType:is_equal(type)
   return type.is_function and
          tabler.deepcompare(type.argtypes, self.argtypes) and
@@ -1142,37 +1401,51 @@ function FunctionType:has_destroyable_return()
   end
 end
 
+-- Get the return type in the specified index.
+-- For functions with no return the index 1 type returns 'void'.
 function FunctionType:get_return_type(index)
   local rettypes = self.rettypes
-  if self.returnvaranys and index > #rettypes then
+  if index > #rettypes and rettypes[#rettypes] == primtypes.varanys then
+    -- the function has runtime variable any returns
     return primtypes.any
   end
   local rettype = rettypes[index]
-  if rettype then
+  if rettype then -- has a return type for that index
     return rettype
-  elseif index == 1 then
+  elseif index == 1 then -- no returns
     return primtypes.void
   end
 end
 
-function FunctionType:has_multiple_returns()
-  return #self.rettypes > 1
-end
-
+-- Get the number of returns for function.
 function FunctionType:get_return_count()
   return #self.rettypes
 end
 
+-- Return this if this function has more than 1 return.
+function FunctionType:has_multiple_returns()
+  return #self.rettypes > 1
+end
+
+-- Checks if this type is convertible from another type.
 function FunctionType:is_convertible_from_type(type, explicit)
   if type.is_nilptr then
+    -- allow setting a function to a nil pointer
     return self
   end
-  if explicit and (type.is_generic_pointer or type.is_function) then
-    return self
+  if explicit then
+    if type.is_generic_pointer then
+      -- explicit casting from a generic pointer
+      return self
+    elseif type.is_function then
+      -- explicit casting from another function type
+      return self
+    end
   end
   return Type.is_convertible_from_type(self, type, explicit)
 end
 
+-- Return description for type as a string.
 function FunctionType:typedesc()
   local ss = sstream(self.name, '(', self.argtypes, ')')
   if self.rettypes and #self.rettypes > 0 then
@@ -1187,10 +1460,21 @@ function FunctionType:typedesc()
 end
 
 --------------------------------------------------------------------------------
-local PolyFunctionType = typeclass()
+-- Poly Function Type
+--
+-- Polymorphic functions, or in short poly functions in the sources,
+-- are functions which contains arguments that proprieties can
+-- only be known when calling the function at compile time.
+-- They are defined and processed lately when calling it for the first time.
+-- The are used to specialize the function different arguments types.
+-- They are memoized (only defined once for each kind of specialization).
+
+local PolyFunctionType = types.typeclass()
 types.PolyFunctionType = PolyFunctionType
 PolyFunctionType.is_procedure = true
 PolyFunctionType.is_polyfunction = true
+PolyFunctionType.is_equal = FunctionType.is_equal
+PolyFunctionType.typedesc = FunctionType.typedesc
 
 PolyFunctionType.shape = shaper.fork_shape(Type.shape, {
   -- List of arguments attrs, they contain the type with annotations.
@@ -1212,14 +1496,11 @@ PolyFunctionType.shape = shaper.fork_shape(Type.shape, {
 })
 
 function PolyFunctionType:_init(args, rettypes, node)
-  self:set_codename(gencodename(self, 'polyfunction', node))
-  Type._init(self, 'polyfunction', 0, node)
+  self.codename = types.gencodename('polyfunction', node)
+  self.node = node
+  Type._init(self, 'polyfunction', 0)
   self.args = args or {}
-  local argtypes = {}
-  for i=1,#args do
-    argtypes[i] = args[i].type
-  end
-  self.argtypes = argtypes
+  self.argtypes = types.attrs_to_types(args)
   self.rettypes = rettypes or {}
   self.evals = {}
 end
@@ -1249,7 +1530,7 @@ function PolyFunctionType:get_poly_eval(args)
   end
 end
 
-function PolyFunctionType:eval_poly_for_args(args)
+function PolyFunctionType:eval_poly(args)
   local polyeval = self:get_poly_eval(args)
   if not polyeval then
     polyeval = { args = args }
@@ -1258,15 +1539,12 @@ function PolyFunctionType:eval_poly_for_args(args)
   return polyeval
 end
 
-PolyFunctionType.is_equal = FunctionType.is_equal
-PolyFunctionType.typedesc = FunctionType.typedesc
-
 --------------------------------------------------------------------------------
 -- Record Type
 --
--- Record type is defined by a structure of fields, it really is the 'struct' under C.
+-- Records are defined by a structure of fields, they really are structs from C.
 
-local RecordType = typeclass()
+local RecordType = types.typeclass()
 types.RecordType = RecordType
 RecordType.is_record = true
 
@@ -1301,9 +1579,10 @@ RecordType.shape = shaper.fork_shape(Type.shape, {
 
 function RecordType:_init(fields, node)
   if not self.codename then
-    self:set_codename(gencodename(self, 'record', node))
+    self.codename = types.gencodename('record', node)
   end
-  Type._init(self, 'record', 0, node)
+  self.node = node
+  Type._init(self, self.name or 'record', 0)
 
   -- compute this record size and align according to the fields
   self.fields = fields or {}
@@ -1372,9 +1651,24 @@ function RecordType:get_field(name) --luacov:disable
   return self.fields[name]
 end --luacov:enable
 
--- Check if this type equals to another type.
+-- Checks if this type equals to another type.
 function RecordType:is_equal(type)
-  return type.name == self.name and type.key == self.key
+  return type.id == self.id -- they are only really equal when the typeid matches
+end
+
+-- Checks if this type can be represented as a contiguous array of the subtype.
+function RecordType:is_contiguous_of(subtype)
+  if self.is_contiguous then
+    local mt_atindex = self:get_metafield('__atindex')
+    local mt_len = self:get_metafield('__len')
+    if mt_atindex and mt_atindex.type:get_return_type(1):is_pointer_of(subtype) and
+       mt_len and mt_len.type:get_return_type(1).is_integral then
+      -- the __atindex method is a pointer to the subtype
+      -- and the __len method returns an integral
+      return true
+    end
+  end
+  return false
 end
 
 -- Get the symbol of a meta field for this record type.
@@ -1392,7 +1686,7 @@ function RecordType:set_metafield(name, symbol)
   self.metafields[name] = symbol
 end
 
--- Check if this type is convertible from another type.
+-- Checks if this type is convertible from another type.
 function RecordType:is_convertible_from_type(type, explicit)
   if not explicit and type:is_pointer_of(self) then
     -- perform implicit automatic dereference on a pointer to this record
@@ -1401,7 +1695,7 @@ function RecordType:is_convertible_from_type(type, explicit)
   return Type.is_convertible_from_type(self, type, explicit)
 end
 
--- Check if this type can hold pointers, used by the garbage collector.
+-- Checks if this type has pointers, used by the garbage collector.
 function RecordType:has_pointer()
   local fields = self.fields
   for i=1,#fields do
@@ -1428,7 +1722,7 @@ function RecordType:has_copyable()
   return false
 end
 
--- Return description of this type as a string.
+-- Return description for type as a string.
 function RecordType:typedesc()
   local ss = sstream('record{')
   for i,field in ipairs(self.fields) do
@@ -1440,7 +1734,11 @@ function RecordType:typedesc()
 end
 
 --------------------------------------------------------------------------------
-local PointerType = typeclass()
+-- Pointer Type
+--
+-- Pointers points to a region in memory of a specific type, like the C pointers.
+
+local PointerType = types.typeclass()
 types.PointerType = PointerType
 PointerType.is_pointer = true
 
@@ -1453,23 +1751,25 @@ function PointerType:_init(subtype)
   self.subtype = subtype
   if subtype.is_void then -- generic pointer
     self.nodecl = true
+    self.nickname = 'pointer'
+    self.codename = 'nlpointer'
     self.is_generic_pointer = true
     self.is_primitive = true
   elseif subtype.name == 'cchar' then -- cstring
     self.nodecl = true
     self.nickname = 'cstring'
+    self.codename = 'nlcstring'
     self.is_cstring = true
     self.is_stringy = true
     self.is_primitive = true
-    self:set_codename('nlcstring')
   else
-    self:set_codename(subtype.codename .. '_ptr')
+    self.codename = subtype.codename .. '_ptr'
   end
   Type._init(self, 'pointer', cpusize)
   self.unary_operators['deref'] = subtype
 end
 
--- Check if this type is convertible from an attr.
+-- Checks if this type is convertible from an attr.
 function PointerType:is_convertible_from_attr(attr, explicit)
   local type = attr.type
   if not explicit and self.subtype == type and (type.is_record or type.is_array) then
@@ -1486,7 +1786,7 @@ function PointerType:is_convertible_from_attr(attr, explicit)
   return Type.is_convertible_from_attr(self, attr, explicit)
 end
 
--- Check if this type is convertible from another type.
+-- Checks if this type is convertible from another type.
 function PointerType:is_convertible_from_type(type, explicit)
   if type == self then
     -- early check for the same type (optimization)
@@ -1532,25 +1832,25 @@ function PointerType:is_convertible_from_type(type, explicit)
   return Type.is_convertible_from_type(self, type, explicit)
 end
 
--- Check if this type equals to another type.
+-- Returns the resulting type when mixing this type with another type.
 function PointerType:promote_type(type)
-  if type.is_nilptr then
+  if type.is_nilptr then -- nilptr can promote to any pointer
     return self
   end
   return Type.promote_type(self, type)
 end
 
--- Check if this type equals to another type.
+-- Checks if this type equals to another type.
 function PointerType:is_equal(type)
   return type.subtype == self.subtype and type.is_pointer
 end
 
--- Check if this type is pointing to another type.
+-- Checks if this type is pointing to the subtype.
 function PointerType:is_pointer_of(subtype)
   return self.subtype == subtype
 end
 
--- Give the underlying type when implicit dereferencing the pointer.
+-- Give the underlying type when implicit dereferencing this type.
 function PointerType:implict_deref_type()
   -- implicit dereference is only allowed for records and arrays subtypes
   if self.subtype and self.subtype.is_record or self.subtype.is_array then
@@ -1559,7 +1859,7 @@ function PointerType:implict_deref_type()
   return self
 end
 
--- Check if this type can hold pointers, used by the garbage collector.
+-- Checks if this type has pointers, used by the garbage collector.
 function PointerType.has_pointer()
   return true
 end
@@ -1575,13 +1875,9 @@ PointerType.unary_operators.len = function(_, lattr)
   end
 end
 
--- Return description of this type as a string.
+-- Return description for type as a string.
 function PointerType:typedesc()
-  if not self.subtype.is_void then
-    return sstream(self.name, '(', self.subtype, ')'):tostring()
-  else
-    return self.name
-  end
+  return sstream(self.name, '(', self.subtype, ')'):tostring()
 end
 
 --------------------------------------------------------------------------------
@@ -1592,23 +1888,23 @@ end
 -- to a buffer and a size. It's buffer is always null terminated ('\0') by default
 -- to have more compatibility with C.
 
-local StringViewType = typeclass(RecordType)
+local StringViewType = types.typeclass(RecordType)
 types.StringViewType = StringViewType
 StringViewType.is_stringview = true
 StringViewType.is_stringy = true
 StringViewType.is_primitive = true
 
 function StringViewType:_init(name)
-  self:set_codename('nlstringview')
-  self.nickname = name
+  self.codename = 'nlstringview'
   RecordType._init(self, {
     {name = 'data', type = types.PointerType(types.ArrayType(primtypes.byte, 0)) },
     {name = 'size', type = primtypes.usize}
   })
   self.name = name
+  self.nickname = name
 end
 
--- Check if this type is convertible from another type.
+-- Checks if this type is convertible from another type.
 function StringViewType:is_convertible_from_type(type, explicit)
   if type.is_cstring then -- implicit cast cstring to stringview
     return self
@@ -1616,7 +1912,7 @@ function StringViewType:is_convertible_from_type(type, explicit)
   return Type.is_convertible_from_type(self, type, explicit)
 end
 
--- Compile time string view length.
+-- String view length operator.
 StringViewType.unary_operators.len = function(_, lattr)
   local lval, reval = lattr.value, nil
   if lval then -- is a compile time stringview
@@ -1625,7 +1921,7 @@ StringViewType.unary_operators.len = function(_, lattr)
   return primtypes.isize, reval
 end
 
--- Compile time string view concatenation.
+-- String view concatenation operator.
 StringViewType.binary_operators.concat = function(ltype, rtype, lattr, rattr)
   if ltype.is_stringview and rtype.is_stringview then
     local lval, rval, reval = lattr.value, rattr.value, nil
@@ -1636,7 +1932,7 @@ StringViewType.binary_operators.concat = function(ltype, rtype, lattr, rattr)
   end
 end
 
--- Utility to create the string view comparison functions at compile time.
+-- Helper to create the string view comparison operation function.
 local function make_string_cmp_opfunc(cmpfunc)
   return function(ltype, rtype, lattr, rattr)
     if ltype.is_stringview and rtype.is_stringview then -- comparing string views?
@@ -1649,7 +1945,7 @@ local function make_string_cmp_opfunc(cmpfunc)
   end
 end
 
--- Implement all the string view comparison functions.
+-- Implement all the string view comparison operations.
 StringViewType.binary_operators.le = make_string_cmp_opfunc(function(a,b) return a<=b end)
 StringViewType.binary_operators.ge = make_string_cmp_opfunc(function(a,b) return a>=b end)
 StringViewType.binary_operators.lt = make_string_cmp_opfunc(function(a,b) return a<b end)
@@ -1660,7 +1956,7 @@ StringViewType.binary_operators.gt = make_string_cmp_opfunc(function(a,b) return
 --
 -- Concept type is used to choose or match incoming types to function arguments at compile time.
 
-local ConceptType = typeclass()
+local ConceptType = types.typeclass()
 types.ConceptType = ConceptType
 ConceptType.nodecl = true
 ConceptType.is_nolvalue = true
@@ -1676,7 +1972,7 @@ function ConceptType:_init(func)
   self.func = func
 end
 
--- Check if an attr can match a concept.
+-- Checks if an attr can match a concept.
 function ConceptType:is_convertible_from_attr(attr, _, argattrs)
   local type, err = self.func(attr, argattrs)
   if type == true then -- concept returned true, use the incoming type
@@ -1711,7 +2007,7 @@ end
 --
 -- Generic type is used to create another type at compile time using the preprocessor.
 
-local GenericType = typeclass()
+local GenericType = types.typeclass()
 types.GenericType = GenericType
 GenericType.nodecl = true
 GenericType.is_nolvalue = true
@@ -1749,41 +2045,6 @@ end
 -- Permits evaluating generics by directly calling it's symbol in the preprocessor.
 function GenericType:__call(params)
   return self:eval_type({params})
-end
-
---------------------------------------------------------------------------------
--- Utilities
-
--- Promote all types from a list to a single common type.
--- Used on type resolution.
-function types.find_common_type(possibletypes)
-  if not possibletypes then return end
-  local commontype = possibletypes[1]
-  for i=2,#possibletypes do
-    commontype = commontype:promote_type(possibletypes[i])
-    if not commontype then -- no common type found
-      return nil
-    end
-  end
-  return commontype -- found the common type
-end
-
--- Convert a list of nodes holding a type to a list of the holding types.
-function types.typenodes_to_types(nodes)
-  local typelist = {}
-  for i=1,#nodes do
-    local nodeattr = nodes[i].attr
-    assert(nodeattr.type._type)
-    typelist[i] = nodes[i].attr.value
-  end
-  return typelist
-end
-
--- Used internally, set the typedefs and primtypes locals.
--- This exists because typedefs and types modules have recursive dependency on each other.
-function types.set_typedefs(t)
-  typedefs = t
-  primtypes = t.primtypes
 end
 
 return types

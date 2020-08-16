@@ -7,4 +7,5 @@ nelua_cache
 .vscode
 tempCodeRunner.*
 neluacfg.lua
+.neluacfg.lua
 /play

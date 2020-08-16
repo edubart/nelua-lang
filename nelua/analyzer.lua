@@ -654,8 +654,7 @@ function visitors.EnumType(context, node)
     fields[i] = field
   end
   attr.type = primtypes.type
-  local type = types.EnumType(subtype, fields)
-  type.node = node
+  local type = types.EnumType(subtype, fields, node)
   attr.value = type
   node.done = true
 end
@@ -860,7 +859,7 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
         argnode:raisef("in type cast: %s", err)
       end
       if argattr.comptime then
-        attr.value = type:normalize_value(argattr.value)
+        attr.value = type:wrap_value(argattr.value)
         if attr.value or argtype == type then
           attr.comptime = true
         end
@@ -984,7 +983,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         calleetype = nil
         calleesym = nil
         if knownallargs then
-          local polyeval = polycalleetype:eval_poly_for_args(polyargs)
+          local polyeval = polycalleetype:eval_poly(polyargs)
           if polyeval and polyeval.node and polyeval.node.attr.type then
             calleesym = polyeval.node.attr
             calleetype = polyeval.node.attr.type

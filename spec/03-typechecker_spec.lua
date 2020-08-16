@@ -341,7 +341,7 @@ end)
 
 it("binary operator mod", function()
   assert.ast_type_equals("local a = 2_u32 % 2_u32", "local a: uint32 = 2_u32 % 2_u32")
-  assert.analyze_error("local a = 1 % 0", "mod zero")
+  assert.analyze_error("local a = 1 % 0", "divide by zero")
   assert.analyze_ast("local a = 1.0 % 0")
   assert.analyze_ast("local a = 1 % 0.0")
 end)
@@ -358,28 +358,28 @@ end)
 
 it("binary operator bor", function()
   assert.ast_type_equals("local a = 1 | 2", "local a: integer = 1 | 2")
-  assert.analyze_error("local a = 1 | 's'", "invalid operation")
+  assert.analyze_error("local a = 1 | 's'", "attempt to perform a bitwise operation")
 end)
 
 it("binary operator band", function()
   assert.ast_type_equals("local a = 1 & 2", "local a: integer = 1 & 2")
   assert.ast_type_equals("local a = 1_i32 & 1", "local a: int32 = 1_i32 & 1")
-  assert.analyze_error("local a = 1 & 's'", "invalid operation")
+  assert.analyze_error("local a = 1 & 's'", "attempt to perform a bitwise operation")
 end)
 
 it("binary operator bxor", function()
   assert.ast_type_equals("local a = 1 ~ 2", "local a: integer = 1 ~ 2")
-  assert.analyze_error("local a = 1 ~ 's'", "invalid operation")
+  assert.analyze_error("local a = 1 ~ 's'", "attempt to perform a bitwise operation")
 end)
 
 it("binary operator shl", function()
   assert.ast_type_equals("local a = 1 << 2", "local a: integer = 1 << 2")
-  assert.analyze_error("local a = 1 << 's'", "invalid operation")
+  assert.analyze_error("local a = 1 << 's'", "attempt to perform a bitwise operation")
 end)
 
 it("binary operator shr", function()
   assert.ast_type_equals("local a = 1 >> 2", "local a: integer = 1 >> 2")
-  assert.analyze_error("local a = 1 >> 's'", "invalid operation")
+  assert.analyze_error("local a = 1 >> 's'", "attempt to perform a bitwise operation")
 end)
 
 it("binary conditional and", function()
@@ -514,6 +514,13 @@ it("late deduction", function()
       local p: pointer = r:f()
       p = nilptr
     end
+  ]])
+  assert.ast_type_equals([[
+    local i: integer
+    local a: auto = nilptr or &i
+  ]],[[
+    local i: integer
+    local a: integer* = nilptr or &i
   ]])
 end)
 
@@ -1387,7 +1394,7 @@ end)
 
 it("builtins", function()
   assert.ast_type_equals("local x; local a = type(x)", "local x; local a: stringview = type(x)")
-  assert.ast_type_equals("local a = #@integer", "local a: integer = #@integer")
+  assert.ast_type_equals("local a = #@integer", "local a: isize = #@integer")
   assert.ast_type_equals("local a = likely(true)", "local a: boolean = likely(true)")
   assert.ast_type_equals("local a = unlikely(true)", "local a: boolean = unlikely(true)")
   assert.analyze_ast("error 'an error'")

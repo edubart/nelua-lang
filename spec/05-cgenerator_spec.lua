@@ -1103,14 +1103,16 @@ it("binary conditional operators", function()
     do
       local a: auto = -1_i16
       local b: auto = 1_u32
-      assert(a < b == true)
-      assert(b < a == false)
+      assert(a < b == true)   assert(a < a == false)
+      assert(b < a == false)  assert(b < b == false)
       assert(a <= b == true)  assert(a <= a == true)
       assert(b <= a == false) assert(b <= b == true)
-      assert(a > b == false)
-      assert(b > a == true)
+      assert(a > b == false)  assert(a > a == false)
+      assert(b > a == true)   assert(b > b == false)
       assert(a >= b == false) assert(a >= a == true)
       assert(b >= a == true)  assert(b >= b == true)
+      assert(a == b == false) assert(a == a == true)
+      assert(b == a == false) assert(b == b == true)
     end
 
     do
@@ -1557,6 +1559,9 @@ it("record metametods", function()
     function intarray:__len(): isize <inline>
       return #self.data
     end
+    ## intarray.value.is_contiguous = true
+    ## assert(intarray.value:is_contiguous_of(symbols.integer.value))
+    ## assert(not intarray.value:is_contiguous_of(symbols.number.value))
     local a: intarray
     assert(a[0] == 0 and a[1] == 0)
     a[0] = 1 a[1] = 2
