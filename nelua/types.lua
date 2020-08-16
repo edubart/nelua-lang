@@ -52,8 +52,9 @@ Type.shape = shaper.shape {
   align = shaper.integer,
   -- Short name of the type, e.g. 'int64', 'record', 'enum' ...
   name = shaper.string,
-  -- First identifier name defined in the sources for the type, not applicable to primitive types.
-  -- It is used to generate a pretty name on code generation and to show name on type errors.
+  -- Nickname for the type, usually it's the first identifier name that defined it in the sources.
+  -- The nickname is used to generate pretty names for compile time type errors,
+  -- also used to assist the compiler generating pretty code names in C.
   nickname = shaper.string:is_optional(),
   -- The actual name of the type used in the code generator when emitting C code.
   codename = shaper.string,
@@ -69,9 +70,9 @@ Type.shape = shaper.shape {
   generic = shaper.type:is_optional(),
   -- Whether the code generator should omit the type declaration.
   nodecl = shaper.optional_boolean,
-  -- Whether the code generator should is importing the type from C.
+  -- Whether the code generator should import the type from C.
   cimport = shaper.optional_boolean,
-  -- C header that the code generator should include C when using the type.
+  -- C header that the code generator should include when using the type.
   cinclude = shaper.string:is_optional(),
   -- The value passed in <aligned(X)> annotation, see also align.
   aligned = shaper.integer:is_optional(),
@@ -477,7 +478,7 @@ function types.typenodes_to_types(nodes)
   return typelist
 end
 
--- Convert a list of attrs to a list its types.
+-- Convert a list of attrs to a list of its types.
 function types.attrs_to_types(attrs)
   local typelist = {}
   for i=1,#attrs do
@@ -1365,7 +1366,8 @@ FunctionType.shape = shaper.fork_shape(Type.shape, {
   -- List of return types.
   rettypes = shaper.array_of(shaper.type),
   -- Whether this functions trigger side effects.
-  -- A function trigger side effects when it can throw errors or operate on global variables.
+  -- A function triggers side effects when it can throw errors or manipulate external variables.
+  -- The compiler uses this to know if it should use a strict evaluation order when calling it.
   sideeffect = shaper.optional_boolean,
 })
 
