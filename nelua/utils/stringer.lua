@@ -63,4 +63,21 @@ function stringer.at(s, i)
   return string.sub(s, i, i)
 end
 
+-- Extract a specific line number from a text.
+function stringer.getline(text, lineno)
+  local i = 0
+  local lineend = 0
+  local linestart
+  repeat  -- count the new lines until the desired line number is reached
+    linestart = lineend+1
+    lineend = string.find(text, '\n', linestart)
+    i = i + 1
+  until not lineend or i == lineno
+  if i ~= lineno then return nil end -- line number not found
+  if lineend then -- adjust the line ending
+    lineend = lineend - 1
+  end
+  return string.sub(text, linestart, lineend)
+end
+
 return stringer

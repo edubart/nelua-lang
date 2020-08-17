@@ -1,10 +1,14 @@
+-- Erroer module
+--
+-- The erroer module is used by the compiler to generate and print pretty error messages.
+
 local re = require 'relabel'
 local colors = require 'nelua.utils.console'.colors
 local stringer = require 'nelua.utils.stringer'
 
 local errorer = {}
 
---luacov:disable
+-- Throw a formatted error message if condition is not met.
 function errorer.assertf(cond, message, ...)
   if not cond then
     error(stringer.pformat(message, ...), 2)
@@ -12,60 +16,50 @@ function errorer.assertf(cond, message, ...)
   return cond
 end
 
+-- Throw a formatted error message.
 function errorer.errorf(message, ...)
   error(stringer.pformat(message, ...), 2)
 end
---luacov:enable
 
-local function getline(text, lineno)
-  local i = 0
-  local lineend = 0
-  local linestart
-  repeat
-    linestart = lineend+1
-    lineend = string.find(text, '\n', linestart)
-    i = i + 1
-  until not lineend or i == lineno
-  if lineend then
-    lineend = lineend - 1
-  end
-  return string.sub(text, linestart, lineend)
-end
-
+-- Helper to generate pretty error messages associated with line and column from a source.
 local function get_pretty_source_pos_errmsg(src, errline, errcol, errmsg, errname)
-  local line = getline(src.content, errline)
-  local linebegin = line:sub(1, errcol-1)
-  local lineend = line:sub(errcol)
-  local linehelper = string.rep(' ', #linebegin) ..
-    colors.bright .. colors.green .. '^' .. colors.reset
-  local errmsg1, errmsg2 = errmsg, ''
+  local srcname = src and src.name or ''
+  local colbright, colreset = colors.bright, colors.reset
+
+  -- extract the line from the source
+  local line = stringer.getline(src.content, errline)
+
+  -- generate a line helper to assist showing the exact line column for the error
+  local linehelper = string.rep(' ', errcol-1)..colbright..colors.green..'^'..colreset
+  local errtraceback = ''
+
+  -- extract traceback from message, to move it to the end of the message
   local tracebackpos = errmsg:find('stack traceback:', 1, true)
   if tracebackpos then
-    errmsg1 = errmsg:sub(1, tracebackpos)
-    errmsg2 = '\n' .. errmsg:sub(tracebackpos)
+    errtraceback = '\n' .. errmsg:sub(tracebackpos)
+    errmsg = errmsg:sub(1, tracebackpos)
   end
-  local errcolor = colors.reset
-  if errname == 'error' then
-    errcolor = tostring(colors.red)
+
+  -- choose the color for the message
+  local errcolor = colreset
+  if string.find(errname, 'error', 1, true) then
+    errcolor = colors.error
   end
-  return string.format(
-    "%s:%s%d:%d: %s%s:%s %s%s\n%s%s\n%s\n%s",
-    src and src.name or '',
-    tostring(colors.bright),
-    errline, errcol,
-    errcolor,
-    errname,
-    colors.reset .. colors.bright, errmsg1, tostring(colors.reset),
-    linebegin, lineend,
-    linehelper,
-    errmsg2)
+  local errmsgcolor = colreset..colbright
+
+  -- generate the error message
+  return string.format("%s:%d:%d: %s: %s\n%s\n%s\n%s",
+    srcname..colbright, errline, errcol, errcolor..errname, errmsgcolor..errmsg..colreset,
+    line, linehelper, errtraceback)
 end
 
+-- Generate a pretty error message associated with a character position from a source.
 function errorer.get_pretty_source_pos_errmsg(src, errpos, errmsg, errname)
   local line, col = re.calcline(src.content, errpos)
   return get_pretty_source_pos_errmsg(src, line, col, errmsg, errname)
 end
 
+-- Generate a pretty error message associated with line and column from a source.
 function errorer.get_pretty_source_line_errmsg(src, errline, errmsg, errname)
   local line, col = errline, 1
   return get_pretty_source_pos_errmsg(src, line, col, errmsg, errname)
