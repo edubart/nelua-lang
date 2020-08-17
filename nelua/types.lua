@@ -150,7 +150,10 @@ Type.shape = shaper.shape {
   is_destroyable = shaper.optional_boolean,
 }
 
+-- This is used to check if a table is a 'bn'.
 Type._type = true
+
+-- Lists of operators defined for all types.
 Type.unary_operators = {}
 Type.binary_operators = {}
 
@@ -1391,8 +1394,8 @@ end
 -- Checks if this type equals to another type.
 function FunctionType:is_equal(type)
   return type.is_function and
-         tabler.deepcompare(type.argtypes, self.argtypes) and
-         tabler.deepcompare(type.rettypes, self.rettypes)
+         tabler.icompare(type.argtypes, self.argtypes) and
+         tabler.icompare(type.rettypes, self.rettypes)
 end
 
 function FunctionType:has_destroyable_return()

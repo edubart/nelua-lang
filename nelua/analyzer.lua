@@ -1867,7 +1867,7 @@ local function check_function_returns(node, rettypes, blocknode)
     return
   end
   if #rettypes > 0 then
-    local canbeempty = tabler.iall(rettypes, 'is_nilable')
+    local canbeempty = tabler.iallfield(rettypes, 'is_nilable')
     if not canbeempty and not block_endswith_return(blocknode) then
       node:raisef("a return statement is missing before function end")
     end

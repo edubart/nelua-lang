@@ -1,3 +1,7 @@
+-- Tabler module
+--
+-- Tabler module contains some utilities used in the compiler for working with lua tables.
+
 local metamagic = require 'nelua.utils.metamagic'
 
 local tabler = {}
@@ -20,7 +24,7 @@ function tabler.ifind(t, val, idx)
   return nil
 end
 
--- Insert values in a list table.
+-- Insert values into an array table.
 function tabler.insertvalues(t, pos, st)
   if not st then
     st = pos
@@ -32,7 +36,7 @@ function tabler.insertvalues(t, pos, st)
   return t
 end
 
--- create a new table of mapped array values
+-- Create a new table of mapped array values.
 function tabler.imap(t, fn)
   local ot = {}
   for i=1,#t do
@@ -41,7 +45,7 @@ function tabler.imap(t, fn)
   return ot
 end
 
--- shallow copy for an array
+-- Shallow copy for an array.
 function tabler.icopy(t)
   local ot = {}
   for i=1,#t do
@@ -50,7 +54,7 @@ function tabler.icopy(t)
   return ot
 end
 
--- shallow copy for table
+-- Shallow copy for table.
 function tabler.copy(t)
   local ot = {}
   for i,v in next,t do
@@ -59,8 +63,8 @@ function tabler.copy(t)
   return ot
 end
 
--- check if all values of a list pass test
-function tabler.iall(t, field)
+-- Check if a field is present in all values of an array table.
+function tabler.iallfield(t, field)
   for i=1,#t do
     if not t[i][field] then
       return false
@@ -69,6 +73,7 @@ function tabler.iall(t, field)
   return true
 end
 
+-- Clear a table.
 function tabler.clear(t)
   for k in next,t do
     t[k] = nil
@@ -76,45 +81,30 @@ function tabler.clear(t)
   return t
 end
 
--- compare two tables
-local function tabler_deepcompare(t1,t2,ignore_mt)
-  local ty1 = type(t1)
-  local ty2 = type(t2)
-  if ty1 ~= ty2 then return false end
-  -- non-table types can be directly compared
-  if ty1 ~= 'table' and ty2 ~= 'table' then return t1 == t2 end
-  -- as well as tables which have the metamethod __eq
-  if not ignore_mt then
-    local mt = getmetatable(t1)
-    if mt and mt.__eq then return t1 == t2 end
-  end
-  for k1,v1 in next,t1 do
-    local v2 = t2[k1]
-    if v2 == nil or not tabler_deepcompare(v1,v2) then return false end
-  end
-  for k2,v2 in next,t2 do
-    local v1 = t1[k2]
-    if v1 == nil or not tabler_deepcompare(v1,v2) then return false end
+-- Shallow compare two array tables.
+function tabler.icompare(t1, t2)
+  for i=1,math.max(#t1, #t2) do
+    if t1[i] ~= t2[i] then
+      return false
+    end
   end
   return true
 end
-tabler.deepcompare = tabler_deepcompare
 
--- inject lua table methods to use in chain mode
+-- Add lua table methods to allow using them in chain mode.
 tabler.concat = table.concat
 tabler.insert = table.insert
 tabler.remove = table.remove
 tabler.sort = table.sort
 
---- tabler wrapper for using in chain mode
-do
+do -- Wrapper for using tabler in chain mode.
   local tablewrapper = {}
   local tablewrapper_mt = { __index = tablewrapper}
   local function createtablewrapper(v)
     return setmetatable({_v = v}, tablewrapper_mt)
   end
 
-  -- function for returning the wrapper table
+  -- function for returning the wrapped table
   function tablewrapper:value()
     return self._v
   end

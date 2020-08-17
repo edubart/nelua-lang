@@ -1,15 +1,20 @@
+-- Class module
+--
+-- The class module is used to create object oriented classes using Lua metatables.
+-- Used in many parts of the compiler.
+
 local metamagic = require 'nelua.utils.metamagic'
 
 local class = {}
 
--- called when creating a new object
+-- Helper called when creating a new object to initialize it.
 local function createobject(klass, ...)
   local object = setmetatable({}, klass)
   object:_init(...)
   return object
 end
 
--- called when creating a new class
+-- Create a new class derived from base.
 function class.new(base)
   local klass = {}
   if base then
@@ -23,7 +28,7 @@ function class.new(base)
   return setmetatable(klass, { __index = base, __call = createobject })
 end
 
--- check if a value is an instance of a class
+-- Check if a value is an instance of a class.
 function class.is(val, T)
   local mt = getmetatable(val)
   while mt do
@@ -34,7 +39,7 @@ function class.is(val, T)
   return false
 end
 
--- implement class() call to create a new class
+-- Allow calling class() call to create a new class.
 metamagic.setmetacall(class, class.new)
 
 return class
