@@ -176,7 +176,7 @@ function PEGParser:remove_peg(name)
 end
 
 function PEGParser:set_pegs(combined_patts, defs, modf)
-  local pattdescs = pegger.split_parser_patts(combined_patts)
+  local pattdescs = pegger.split_grammar_extern_patts(combined_patts)
   for _,pattdesc in ipairs(pattdescs) do
     local patt = string.format('%s <- %s', pattdesc.name, pattdesc.patt)
     self:set_peg(pattdesc.name, patt, defs, modf)

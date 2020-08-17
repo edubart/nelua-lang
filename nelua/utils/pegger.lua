@@ -1,3 +1,11 @@
+-- Pegger module
+--
+-- This module defines miscellaneous PEG (Parse Expression Grammars)
+-- for parsing or transforming large strings. It uses the LPEG library.
+--
+-- For more information how these patterns works see
+-- http://www.inf.puc-rio.br/~roberto/lpeg/re.html
+
 local re = require 'relabel'
 local errorer = require 'nelua.utils.errorer'
 local tabler = require 'nelua.utils.tabler'
@@ -25,7 +33,6 @@ local lua_quote_patt_end = "\
 local c_quote_patt_end = "\
   ('??' {[=/'%(%)!<>%-]}) -> '?\\?%1' / -- C trigraphs \
   [^%g%s] -> to_special_character_c     -- special characters"
-
 local quotes_defs = {
   to_special_character_lua = function(s)
     return string.format('\\%03d', string.byte(s))
@@ -34,30 +41,36 @@ local quotes_defs = {
     return string.format('\\%03o', string.byte(s))
   end
 }
-
 local c_double_peg = re.compile(
   double_patt_begin ..
   quote_patt_begin ..
   double_quote_patt ..
   c_quote_patt_end, quotes_defs)
-function pegger.double_quote_c_string(str)
-  return c_double_peg:match(str)
-end
-
 local lua_double_peg = re.compile(
   double_patt_begin ..
   quote_patt_begin ..
   double_quote_patt ..
   lua_quote_patt_end, quotes_defs)
-function pegger.double_quote_lua_string(str)
-  return lua_double_peg:match(str)
-end
-
 local lua_single_peg = re.compile(
   single_patt_begin ..
   quote_patt_begin ..
   single_quote_patt ..
   lua_quote_patt_end, quotes_defs)
+
+-- Quote a string using double quotes to be used in C code,
+-- escaping special characters as necessary.
+function pegger.double_quote_c_string(str)
+  return c_double_peg:match(str)
+end
+
+-- Quote a string using double quotes to be used in Lua code,
+-- escaping special characters as necessary.
+function pegger.double_quote_lua_string(str)
+  return lua_double_peg:match(str)
+end
+
+-- Quote a string using single quotes to be used in Lua code,
+-- escaping special characters as necessary.
 function pegger.single_quote_lua_string(str)
   return lua_single_peg:match(str)
 end
@@ -84,6 +97,8 @@ comment    <- %s* '--' (!linebreak .)* linebreak?
 ]] ..
 "linebreak <- [%nl]'\r' / '\r'[%nl] / [%nl] / '\r'"
 )
+
+-- Split patterns of a grammar into a table.
 function pegger.split_grammar_patts(combined_patts)
   local pattdescs = combined_grammar_peg_pat:match(combined_patts)
   errorer.assertf(pattdescs, 'invalid multiple pegs patterns syntax: %s', combined_patts)
@@ -100,7 +115,9 @@ comment    <- %s* '--' (!linebreak .)* linebreak?
 ]] ..
 "linebreak <- [%nl]'\r' / '\r'[%nl] / [%nl] / '\r'"
 )
-function pegger.split_parser_patts(combined_patts)
+
+-- Split patterns prefixed with '%' of a grammar into a table.
+function pegger.split_grammar_extern_patts(combined_patts)
   local pattdescs = combined_parser_peg_pat:match(combined_patts)
   errorer.assertf(pattdescs, 'invalid multiple pegs patterns syntax: %s', combined_patts)
   return tabler.imap(pattdescs, split_cb)
@@ -112,6 +129,9 @@ local substitute_patt = re.compile([[
   pat <- {~ (var / .)* ~}
   var <- ('$(' {[_%a]+} ')') -> to_var
 ]], substitute_defs)
+
+-- Substitute keywords between '$()' from a text using values from table.
+-- E.g. substitute('$(cc) $(cflags)', {cc='gcc', cflags='-w'}) -> 'gcc -w'.
 function pegger.substitute(format, vars)
   metamagic.setmetaindex(substitute_vars, vars, true)
   return substitute_patt:match(format)
@@ -124,6 +144,9 @@ local split_execargs_patt = re.compile[[
   squoted_arg <- "'"->'' (!"'" .)+ "'"->''
   dquoted_arg <- '"'->'' (!'"' .)+ '"'->''
 ]]
+
+-- Split arguments from a command line into a table, removing quotes as necessary.
+-- E.g. split_execargs('./a.out -a "b"') -> {'./a.out', '-a', 'b'}
 function pegger.split_execargs(s)
   if not s then return {} end
   return split_execargs_patt:match(s)
@@ -136,6 +159,8 @@ local filename_to_unitname_patt = re.compile[[
   extend <- '.' [_%w]+ !.
 ]]
 
+-- Convert a file name to an unit name. Used for prefixing functions in C generated code.
+-- E.g. filename_to_unitname('app/utils/tools.nelua') -> 'app_utils_tools'
 function pegger.filename_to_unitname(s)
   return filename_to_unitname_patt:match(s)
 end
@@ -148,6 +173,7 @@ local c_defines_peg = re.compile([[
 ]]..
 "linebreak <- [%nl]'\r' / '\r'[%nl] / [%nl] / '\r'")
 
+-- Parse C defines from a C header into a table.
 function pegger.parse_c_defines(text)
   local t = c_defines_peg:match(text)
   local defs = {}
@@ -175,7 +201,8 @@ local crlf_to_lf_peg = re.compile([[
 "linebreak <- ([%nl]'\r' / '\r'[%nl] / [%nl] / '\r') -> ln",
 {ln = function() return '\n' end})
 
-
+-- Normalize new lines for different platforms.
+-- Converting LF-CR / CR-LF / CR -> LF.
 function pegger.normalize_newlines(text)
   return crlf_to_lf_peg:match(text)
 end
