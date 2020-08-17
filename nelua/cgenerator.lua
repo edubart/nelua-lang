@@ -12,7 +12,7 @@ local types = require 'nelua.types'
 local primtypes = typedefs.primtypes
 
 local function izipargnodes(vars, argnodes)
-  local iter = iters.izip(vars, argnodes)
+  local iter, ts, i = iters.izip2(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
   local calleetype = lastargnode and lastargnode.attr.calleetype
@@ -21,7 +21,8 @@ local function izipargnodes(vars, argnodes)
     assert(calleetype)
     -- we know the callee type
     return function()
-      local i, var, argnode = iter()
+      local var, argnode
+      i, var, argnode = iter(ts, i)
       if not i then return nil end
       if i >= lastargindex and lastargnode.attr.multirets then
         -- argnode does not exists, fill with multiple returns type
@@ -37,7 +38,8 @@ local function izipargnodes(vars, argnodes)
   else
     -- no calls from last argument
     return function()
-      local i, var, argnode = iter()
+      local var, argnode
+      i, var, argnode = iter(ts, i)
       if not i then return end
       -- we are sure this argument have no type, set argtype to false
       local argtype = argnode and argnode.attr.type

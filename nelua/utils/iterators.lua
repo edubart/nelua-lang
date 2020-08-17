@@ -1,10 +1,83 @@
+-- Iterators module
+--
+-- The iterators module contains some custom iterators used by the compiler to do 'for in' loops.
+
 local iterators = {}
 
--- iterate multiples values for multiple arrays, returning its index and values
--- stops only when all values in the arrays are nil
-local pack, unpack = table.pack, table.unpack
+-- Helper for the izip2 iterator.
+local function izip2_next(ts, i)
+  i = i + 1
+  local v1, v2 = ts[1][i], ts[2][i]
+  if v1 == nil and v2 == nil then
+    return nil
+  end
+  return i, v1, v2
+end
+
+-- Iterate multiples values for multiple arrays, returning the iterator index and values
+-- Stops only when all values in the arrays are nil.
+function iterators.izip2(t1, t2)
+  return izip2_next, {t1,t2}, 0
+end
+
+-- Helper for the spairs iterator.
+local function spairs_next(t, k)
+  local v
+  repeat
+    k, v = next(t, k)
+    if k == nil then return nil end
+  until type(k) == 'string'
+  return k, v
+end
+
+-- Like 'pairs' but only iterate on string keys.
+function iterators.spairs(t)
+  return spairs_next, t, nil
+end
+
+-- Like 'pairs' but only iterate on string keys with ordering.
+function iterators.ospairs(t)
+  local okeys = {}
+  for k,_ in pairs(t) do
+    if type(k) == 'string' then
+      okeys[#okeys + 1] = k
+    end
+  end
+  table.sort(okeys)
+  local i = 1
+  return function()
+    local k = okeys[i]
+    local v = t[k]
+    i = i + 1
+    if v ~= nil then
+      return k, v
+    end
+  end
+end
+
+--[[
+-- Like 'pairs' but ordered by keys.
+function iterators.opairs(t)
+  local okeys = { }
+  for k,_ in pairs(t) do
+    okeys[#okeys + 1] = k
+  end
+  table.sort(okeys)
+  local i = 1
+  return function()
+    local k = okeys[i]
+    local v = t[k]
+    i = i + 1
+    if v ~= nil then
+      return k, v
+    end
+  end
+end
+
+-- Iterate multiples values for multiple arrays, returning the iterator index and values
+-- Stops only when all values in the arrays are nil.
 function iterators.izip(...)
-  local arrays, ans = pack(...), {}
+  local arrays, ans = table.pack(...), {}
   local n = arrays.n
   local i = 0
   return function()
@@ -20,14 +93,13 @@ function iterators.izip(...)
     if not found then
       return nil
     end
-    return i, unpack(ans, 1, n)
+    return i, table.unpack(ans, 1, n)
   end
 end
 
--- iterate multiples values from multiple iterators,
--- returning a index and first value of each iterator
--- stops only when all values are nil
---[[
+-- Iterate multiples values from multiple iterators,
+-- returning an index and the first value of each iterator,
+-- stops only when all values are nil.
 function iterators.izipit(...)
   local fs, ans = table.pack(...), {}
   local n = fs.n
@@ -49,58 +121,5 @@ function iterators.izipit(...)
   end
 end
 ]]
-
--- ordered pairs iterator
---[[
-function iterators.opairs(t)
-  local okeys = { }
-  for k,_ in pairs(t) do
-    okeys[#okeys + 1] = k
-  end
-  table.sort(okeys)
-  local i = 1
-  return function()
-    local k = okeys[i]
-    local v = t[k]
-    i = i + 1
-    if v ~= nil then
-      return k, v
-    end
-  end
-end
-]]
-
--- pairs() for string keys only
-function iterators.spairs(t)
-  return function(st, k)
-    local v
-    repeat
-      k, v = next(st, k)
-    until k == nil or type(k) == 'string'
-    if k ~= nil then
-      return k, v
-    end
-  end, t, nil
-end
-
--- ordered pairs for string keys only
-function iterators.ospairs(t)
-  local okeys = {}
-  for k,_ in pairs(t) do
-    if type(k) == 'string' then
-      okeys[#okeys + 1] = k
-    end
-  end
-  table.sort(okeys)
-  local i = 1
-  return function()
-    local k = okeys[i]
-    local v = t[k]
-    i = i + 1
-    if v ~= nil then
-      return k, v
-    end
-  end
-end
 
 return iterators

@@ -779,7 +779,7 @@ local function iargnodes(argnodes)
 end
 
 local function izipargnodes(vars, argnodes)
-  local iter = iters.izip(vars, argnodes)
+  local iter, ts, i = iters.izip2(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[lastargindex]
   local lastcalleetype = lastargnode and lastargnode.attr.calleetype
@@ -787,7 +787,8 @@ local function izipargnodes(vars, argnodes)
      (not lastcalleetype or not lastcalleetype.is_type) then
     -- last arg is a runtime call
     return function()
-      local i, var, argnode = iter()
+      local var, argnode
+      i, var, argnode = iter(ts, i)
       if not i then return nil end
       -- NOTE: the calletype may change while iterating
       local calleetype = argnodes[lastargindex].attr.calleetype
@@ -822,8 +823,9 @@ local function izipargnodes(vars, argnodes)
   else
     -- no calls from last argument
     return function()
-      local i, var, argnode = iter()
-      if not i then return end
+      local var, argnode
+      i, var, argnode = iter(ts, i)
+      if not i then return nil end
       -- in case this is inexistent, set argtype to nil type
       local argtype
       if argnode then

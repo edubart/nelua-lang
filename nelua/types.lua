@@ -1511,7 +1511,7 @@ function PolyFunctionType:_init(args, rettypes, node)
 end
 
 local function poly_args_matches(largs, rargs)
-  for _,larg,rarg in iters.izip(largs, rargs) do
+  for _,larg,rarg in iters.izip2(largs, rargs) do
     local ltype = traits.is_attr(larg) and larg.type or larg
     local rtype = traits.is_attr(rarg) and rarg.type or rarg
     if ltype ~= rtype then
