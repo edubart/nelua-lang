@@ -7,13 +7,13 @@
 -- to mix operation between different integers ranges at compile time,
 -- and to do error checking on invalid large integers.
 
--- BN is actually the bint module created with 128bits and with extended functions.
+-- BN is actually a bint class created with 128bits and with some extensions.
 local bn = require 'nelua.thirdparty.bint'(128)
 
 -- This is used to check if a table is a 'bn'.
 bn._bn = true
 
--- Helper to convert composed strings parts in any base to a big number.
+-- Helper to convert a number composed of strings parts in any base to a big number.
 local function from(base, expbase, int, frac, exp)
   local neg = false
   -- we need to read as positive, we can negate later
@@ -52,7 +52,7 @@ local function from(base, expbase, int, frac, exp)
   return n
 end
 
--- Converts a hexadecimal number composed of strings to a big number.
+-- Converts a hexadecimal number composed of string parts to a big number.
 function bn.fromhex(int, frac, exp)
   if frac and exp then -- hexadecimal float with fraction and exponent
     return tonumber(string.format('0x%s.%sp%s', int, frac, exp))
@@ -83,7 +83,7 @@ function bn.fromdec(int, frac, exp)
   end
 end
 
--- Split a number string into string parts `int`, `frac` and `exp`.
+-- Split a number string into string parts.
 function bn.splitdecsci(s)
   -- handle nans and infs
   if s == 'inf' or s == '-inf' or s == 'nan' or s == '-nan' then
@@ -135,7 +135,7 @@ function bn.todec(v)
 end
 
 -- Convert to a string in decimal base considering fractional values,
--- possibly using scientific notation if the output is too big or too small
+-- possibly using scientific notation for float numbers, to have a shorter output.
 function bn.todecsci(v, maxdigits)
   if bn.isbint(v) then
     -- in case of bints we can just it as string

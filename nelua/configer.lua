@@ -24,7 +24,7 @@ local function convert_param(param)
   if param:match('^%a[_%w]*$') then
     param = param .. ' = true'
   end
-  local f, err = load(param, '@define', "t")
+  local _, err = load(param, '@define', "t")
   if err then
     return nil, string.format("failed parsing parameter '%s':\n  %s", param, err)
   end
@@ -100,6 +100,7 @@ local function create_parser(args)
   argparser:flag('-t --timing', 'Inform compile processing time', defconfig.timing)
   argparser:flag('-d --debug', 'Run through GDB to get crash backtraces', defconfig.debug)
   argparser:flag('--no-cache', "Don't use any cached compilation", defconfig.no_cache)
+  argparser:flag('--no-color', 'Disable colorized output in the terminal.', defconfig.no_color)
   argparser:option('-D --define', 'Define values in the preprocessor')
     :count("*"):convert(convert_param, tabler.copy(defconfig.define or {}))
   argparser:option('-P --pragma', 'Set initial compiler pragma')

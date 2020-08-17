@@ -1,50 +1,67 @@
+-- Console module
+--
+-- The console module is used by the compiler to print colored information on the terminal
+-- when compiling, such as errors, warnings and information.
+
 local stringer = require 'nelua.utils.stringer'
-local tabler = require 'nelua.utils.tabler'
 local term = require 'term'
-local colors = term.colors
-
-local console = {}
-
-do --luacov:disable
-  -- check if colored output is supported
-  local isatty = io.type(io.stdout) == 'file' and term.isatty and term.isatty(io.stdout)
-  if not isatty then
-    colors = tabler.copy(colors)
-    for k,_ in pairs(colors) do
-      colors[k] = ''
-    end
-  end
-end --luacov:enable
-
-console.colors = colors
-
-local color_reset = tostring(colors.reset)
-local color_debug = tostring(colors.cyan)
-local color_error = tostring(colors.red) .. tostring(colors.bright)
-local color_warn = tostring(colors.yellow) .. tostring(colors.bright)
-local color_info = nil
-
-local function logcf(out, color, text)
-  if color then out:write(color) end
-  out:write(text)
-  out:write('\n')
-  if color then out:write(color_reset) end
-  out:flush()
-end
-
 local pformat, pconcat = stringer.pformat, stringer.pconcat
 
-function console.warnf(format, ...)  logcf(io.stderr, color_warn,  pformat(format, ...)) end
-function console.errorf(format, ...) logcf(io.stderr, color_error, pformat(format, ...)) end
-function console.debugf(format, ...) logcf(io.stdout, color_debug, pformat(format, ...)) end
-function console.infof(format, ...)  logcf(io.stdout, color_info,  pformat(format, ...)) end
+local console = {colors={}}
+local colors = console.colors
 
-function console.warn(...)  logcf(io.stderr, color_warn,  pconcat(...)) end
-function console.error(...) logcf(io.stderr, color_error, pconcat(...)) end
-function console.debug(...) logcf(io.stdout, color_debug, pconcat(...)) end
-function console.info(...)  logcf(io.stdout, color_info,  pconcat(...)) end
+-- Helper to setup the default colors used for errors, warnings, etc..
+local function setup_default_colors()
+  colors.debug = colors.cyan
+  colors.error = colors.red
+  colors.warn = colors.yellow .. colors.bright
+  colors.info = nil
+end
 
-function console.log(...)   logcf(io.stdout, nil,  pconcat(...)) end
-function console.logerr(...)logcf(io.stderr, nil,  pconcat(...)) end
+-- Check whether the console supports colored output.
+function console.is_colors_supported()
+  -- coloring is supported if the stdout is a file and a TTY terminal
+  return io.type(io.stdout) == 'file' and term.isatty ~= nil and term.isatty(io.stdout) == true
+end
+
+-- Enable or disable the coloring output in the console.
+function console.set_colors_enabled(enabled)
+  if colors.enabled == enabled then return end
+  colors.enabled = enabled
+  -- disable/enable by overwriting the colors table
+  for k,v in pairs(term.colors) do
+    colors[k] = enabled and v or ''
+  end
+  -- need to setup the default colors
+  setup_default_colors()
+end
+
+-- Print a colored text to the a console output.
+function console.logex(out, color, text)
+  if color then out:write(tostring(color)) end
+  out:write(text)
+  out:write('\n')
+  if color then out:write(tostring(colors.reset)) end
+  out:flush()
+end
+local logex = console.logex
+
+-- Formatted logging functions (string.format style)
+function console.warnf(format, ...)  logex(io.stderr, colors.warn,  pformat(format, ...)) end
+function console.errorf(format, ...) logex(io.stderr, colors.error, pformat(format, ...)) end
+function console.debugf(format, ...) logex(io.stdout, colors.debug, pformat(format, ...)) end
+function console.infof(format, ...)  logex(io.stdout, colors.info,  pformat(format, ...)) end
+
+-- Logging functions (print style).
+function console.warn(...)  logex(io.stderr, colors.warn,  pconcat(...)) end
+function console.error(...) logex(io.stderr, colors.error, pconcat(...)) end
+function console.debug(...) logex(io.stdout, colors.debug, pconcat(...)) end
+function console.info(...)  logex(io.stdout, colors.info,  pconcat(...)) end
+
+function console.log(...)   logex(io.stdout, nil,  pconcat(...)) end
+function console.logerr(...)logex(io.stderr, nil,  pconcat(...)) end
+
+-- Guess if colors should be enabled on the running terminal.
+console.set_colors_enabled(console.is_colors_supported())
 
 return console
