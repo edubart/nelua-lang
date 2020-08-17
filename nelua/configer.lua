@@ -194,7 +194,7 @@ local function init_default_configs()
   defconfig.cc = get_cc()
   defconfig.cflags = os.getenv('CFLAGS') or ''
 
-  load_configs(fs.getuserconfpath('neluacfg.lua'))
+  load_configs(fs.getuserconfpath(fs.join('nelua', 'neluacfg.lua')))
   load_configs('.neluacfg.lua')
 end
 

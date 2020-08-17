@@ -1,46 +1,53 @@
+-- FS module
+--
+-- The fs (stands for filesystem) module is used by the compiler to manage files and directories.
+
 local lfs = require 'lfs'
 local platform = require 'nelua.utils.platform'
 local except = require 'nelua.utils.except'
 local stringer = require 'nelua.utils.stringer'
 local fs = {}
 
-local other_sep = platform.is_windows and '/' or nil
-fs.sep = platform.is_windows and '\\' or '/'
-fs.dirsep = platform.is_windows and ';' or ':'
-fs.deletefile = os.remove
+-- Platform dependent variables.
+fs.sep = platform.dir_separator
+fs.pathsep = platform.path_separator
+fs.othersep = fs.sep ~= '/' and '/' or nil
 
--- return the contents of a file as a string
-function fs.readfile(filename,is_bin)
+-- Delete a file.
+function fs.deletefile(file)
+  return os.remove(file)
+end
+
+-- Return the contents of a file as a string.
+function fs.readfile(filename, is_bin)
   local mode = is_bin and 'b' or ''
   local f,open_err = io.open(filename,'r'..mode)
   if not f then return nil, open_err end
   local res,read_err = f:read('*a')
   f:close()
-  -- errors in io.open have "filename: " prefix,
-  -- error in file:write don't, add it.
+  -- errors in io.open have "filename: " prefix, but errors in file:write don't, add it
   if not res then return nil, filename..": "..read_err end
   return res
 end
 
--- write a string to a file
-function fs.writefile(filename,str,is_bin)
+-- Write a string to a file.
+function fs.writefile(filename, str, is_bin)
   local mode = is_bin and 'b' or ''
   local f,err = io.open(filename,'w'..mode)
   if not f then return nil, err end
   local ok, write_err = f:write(str)
   f:close()
-  -- errors in io.open have "filename: " prefix,
-  -- error in file:write don't, add it.
+  -- errors in io.open have "filename: " prefix, but errors in file:write don't, add it
   if not ok then return nil, filename..": "..write_err end
   return true
 end
 
--- given a path, return the directory part and a file part.
--- if there's no directory part, the first value will be empty
+-- Given a path, return the directory part and a file part.
+-- If there's no directory part, the first value will be empty.
 function fs.splitpath(p)
   local i = #p
   local ch = stringer.at(p,i)
-  while i > 0 and ch ~= fs.sep and ch ~= other_sep do
+  while i > 0 and ch ~= fs.sep and ch ~= fs.othersep do
     i = i - 1
     ch = stringer.at(p,i)
   end
@@ -51,29 +58,29 @@ function fs.splitpath(p)
   end
 end
 
--- return the directory part of a path
+-- Return the directory part of a path.
 function fs.dirname(p)
   local p1 = fs.splitpath(p)
   return p1
 end
 
--- return the file part of a path
+-- Return the file part of a path.
 function fs.basename(p)
   local _,p2 = fs.splitpath(p)
   return p2
 end
 
---- is this an absolute path?
+-- Is this an absolute path?
 function fs.isabs(p)
   if stringer.at(p,1) == '/' then return true end
   if platform.is_windows and stringer.at(p,1)=='\\' or stringer.at(p,2)==':' then return true end
   return false
 end
 
--- return the path resulting from combining the individual paths.
--- if the second (or later) path is absolute then we return the last absolute path
+-- Return the path resulting from combining the individual paths.
+-- If the second (or later) path is absolute then we return the last absolute path
 -- (joined with any non-absolute paths following).
--- empty elements (except the last) will be ignored.
+-- Empty elements (except the last) will be ignored.
 function fs.join(p1, p2, ...)
   if select('#',...) > 0 then
     local p = fs.join(p1,p2)
@@ -85,14 +92,14 @@ function fs.join(p1, p2, ...)
   end
   if fs.isabs(p2) then return p2 end
   local endc = stringer.at(p1,#p1)
-  if endc ~= fs.sep and endc ~= other_sep and endc ~= "" then
+  if endc ~= fs.sep and endc ~= fs.othersep and endc ~= "" then
     p1 = p1..fs.sep
   end
   return p1..p2
 end
 
--- normalize a path name.
--- `A//B`, `A/./B`, and `A/foo/../B` all become `A/B`
+-- Normalize a path name.
+-- E.g. `A//B`, `A/./B`, and `A/foo/../B` all become `A/B`
 function fs.normpath(p)
   -- split path into anchor and relative path.
   local anchor = ''
@@ -142,7 +149,7 @@ function fs.normpath(p)
   return p
 end
 
--- return an absolute path.
+-- Return an absolute path.
 function fs.abspath(p, pwd)
   local use_pwd = pwd ~= nil
   p = p:gsub('[\\/]$','')
@@ -156,8 +163,8 @@ function fs.abspath(p, pwd)
   return fs.normpath(p)
 end
 
--- relative path from current directory or optional start point
-function fs.relpath(p,start)
+-- Return relative path from current directory or optional start point.
+function fs.relpath(p, start)
   p = fs.abspath(p,start)
   start = start or lfs.currentdir()
   local compare
@@ -185,7 +192,7 @@ function fs.relpath(p,start)
   return table.concat(rell,fs.sep)
 end
 
--- replace a starting '~' with the user's home directory.
+-- Replace a starting '~' with the user's home directory.
 function fs.expanduser(p)
   assert(stringer.at(p,1) == '~')
   local home = os.getenv('HOME')
@@ -196,6 +203,7 @@ function fs.expanduser(p)
   return home..string.sub(p,2)
 end
 
+-- Return a temporary file name.
 function fs.tmpname()
   local res = os.tmpname()
   -- on Windows if Lua is compiled using MSVC14 os.tmpname
@@ -207,22 +215,22 @@ function fs.tmpname()
   return res
 end
 
---- is this a directory?
+-- Is this a directory?
 function fs.isdir(p)
   return lfs.attributes(p, 'mode') == 'directory'
 end
 
---- is this a file?
+-- Is this a file?
 function fs.isfile(p)
   return lfs.attributes(p, 'mode') == 'file'
 end
 
--- return the time of last modification time.
+-- Return the time of last modification time.
 function fs.getmodtime(p)
   return lfs.attributes(p, 'modification')
 end
 
--- create a directory path.
+-- Create a directory path.
 function fs.makepath(path)
   if platform.is_windows then --luacov:disable
     path:gsub('/', fs.sep)
@@ -244,28 +252,29 @@ function fs.makepath(path)
   end
 end
 
--- ensure directory exists for a file
--- throws an exception in case of an error.
+-- Ensure directory exists for a file.
+-- Raises an exception in case of an error.
 function fs.eensurefilepath(file)
   local outdir = fs.dirname(file)
   local ok, err = fs.makepath(outdir)
   except.assertraisef(ok, 'failed to create path for file "%s": %s', file, err)
 end
 
--- return the contents of a file as a string.
--- throws an exception in case of an error.
+-- Return the contents of a file as a string.
+-- Raises an exception in case of an error.
 function fs.ereadfile(file)
   local content, err = fs.readfile(file)
   return except.assertraisef(content, 'failed to read file "%s": %s', file, err)
 end
 
--- write a string to a file
--- throws an exception in case of an error.
+-- Write a string to a file.
+-- Raises an exception in case of an error.
 function fs.ewritefile(file, content)
   local ok, err = fs.writefile(file, content)
   except.assertraisef(ok, 'failed to create file "%s": %s', file, err)
 end
 
+-- Choose file path inside a cache directory for an input file path.
 function fs.getcachepath(infile, cachedir)
   local path = infile:gsub('%.[^.]+$','')
   path = fs.relpath(path)
@@ -275,6 +284,7 @@ function fs.getcachepath(infile, cachedir)
   return path
 end
 
+-- Get the data path for the application being executed.
 function fs.getdatapath(arg0)
   local path
   if arg0 then --luacov:disable
@@ -290,13 +300,16 @@ function fs.getdatapath(arg0)
   return path
 end
 
-function fs.getuserconfpath(filename)
-  return fs.expanduser(fs.join('~', '.config', 'nelua', filename))
+-- Prefix a path with the user config path.
+function fs.getuserconfpath(path)
+  return fs.expanduser(fs.join('~', '.config', path))
 end
 
-function fs.findmodulefile(name, path)
+-- Search for a module using a path string.
+-- The path string must be a string like './?.nelua;./?/init.nelua'.
+function fs.findmodulefile(name, pathstr)
   name = name:gsub('%.', fs.sep)
-  local paths = stringer.split(path, ';')
+  local paths = stringer.split(pathstr, ';')
   local triedpaths = {}
   for i=1,#paths do
     local trypath = paths[i]:gsub('%?', name)
@@ -308,9 +321,10 @@ function fs.findmodulefile(name, path)
   return nil, "\tno file '" .. table.concat(triedpaths, "'\n\tno file '") .. "'"
 end
 
-local path_pattern = string.format('[^%s]+', fs.dirsep)
+-- Search for a file inside the system's PATH variable.
 function fs.findbinfile(name)
   if name == fs.basename(name) then
+    local path_pattern = string.format('[^%s]+', fs.pathsep)
     for d in os.getenv("PATH"):gmatch(path_pattern) do
       local binpath = fs.abspath(fs.join(d, name))
       if fs.isfile(binpath) then return binpath end
@@ -325,9 +339,9 @@ function fs.findbinfile(name)
   end --luacov:enable
 end
 
--- return a suitable full path to a new temporary file name.
--- unlike os.tmpname(), it always gives you a writeable path
--- (uses TEMP environment variable on Windows)
+-- Return a suitable full path for a new temporary file name.
+-- Unlike os.tmpname(), it always gives you a writeable path
+-- (uses TEMP environment variable on Windows).
 function fs.tmpfile()
   local name = fs.tmpname()
   local f = io.open(name, 'a+b')

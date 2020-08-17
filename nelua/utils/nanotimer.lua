@@ -1,6 +1,6 @@
 -- Nanotimer class
 --
--- The nano timer is a utility used to count elapsed time.
+-- The nano timer is a utility used to count elapsed time in milliseconds.
 -- Used in the compiler to debug compile times.
 
 local metamagic = require 'nelua.utils.metamagic'

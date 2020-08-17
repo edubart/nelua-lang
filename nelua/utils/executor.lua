@@ -1,3 +1,8 @@
+-- Executor module
+--
+-- The executor module is used by the compiler to execute system commands,
+-- such as running a C compiler or a built binary.
+
 local tabler = require 'nelua.utils.tabler'
 local stringer = require 'nelua.utils.stringer'
 local pegger = require 'nelua.utils.pegger'
@@ -8,7 +13,11 @@ local executor = {}
 
 -- luacov:disable
 
--- try to use luaposix exec (faster because we skip shell creation)
+-- This does a custom implementation of the system's exec command for POSIX platforms.
+-- It's only used when luaposix is available.
+-- Usually it's faster than the lua execute function because it skips shell creation,
+-- by doing a fork + exec.
+-- When this is available the compiler test suite runs faster.
 local hasposix, posix_pexec = pcall(function()
   local unistd = require 'posix.unistd'
   local wait = require 'posix.sys.wait'.wait
@@ -47,6 +56,7 @@ local hasposix, posix_pexec = pcall(function()
       errfd, errwfd = unistd.pipe()
     end
     local pid, errmsg = unistd.fork()
+    assert(pid, errmsg)
     if pid == 0 then
       if redirect then
         unistd.close(outfd) unistd.close(errfd)
@@ -96,7 +106,7 @@ local hasposix, posix_pexec = pcall(function()
   end
 end)
 
--- execute a shell command, in a compatible and platform independent way
+-- Execute a shell command, in a compatible and platform independent way.
 local function execute(cmd)
   local res1,res2,res3 = os.execute(cmd)
   if res2 == "No error" and res3 == 0 and platform.is_windows then
@@ -110,7 +120,7 @@ local function execute(cmd)
   end
 end
 
--- quote and escape an argument of a command
+-- Quote and escape an argument for a command.
 local function quote_arg(argument)
   if type(argument) == "table" then
     -- encode an entire table
@@ -145,16 +155,12 @@ local function quote_arg(argument)
   end
 end
 
+-- Execute a shell command capturing stdout/stderr to a temporary files and returning the contents.
 local function executeex(cmd, bin)
-  local outfile = os.tmpname()
-  local errfile = os.tmpname()
+  local outfile = fs.tmpname()
+  local errfile = fs.tmpname()
 
-  if platform.is_windows then
-    if not outfile:find(':') then
-      outfile = os.getenv('TEMP')..outfile
-      errfile = os.getenv('TEMP')..errfile
-    end
-  else
+  if not platform.is_windows then
     -- adding '{' '}' braces captures crash messages to stderr
     -- in case of segfault of the running command
     cmd = '{ ' .. cmd .. '; }'
@@ -169,13 +175,14 @@ local function executeex(cmd, bin)
   return success, retcode, (outcontent or ""), (errcontent or "")
 end
 
-local function lua_pexec(exe, args, redirect)
+-- Execute a command capturing the stdour/stderr output if required.
+local function lua_pexec(exe, args, capture)
   local command = exe
   if args and #args > 0 then
     local strargs = tabler(args):imap(quote_arg):concat(' '):value()
     command = command .. ' ' .. strargs
   end
-  if redirect then
+  if capture then
     return executeex(command)
   else
     return execute(command)
@@ -184,8 +191,7 @@ end
 
 local pexec = hasposix and posix_pexec or lua_pexec
 
---luacov:enable
-
+-- Helper to split arguments to a table.
 local function convertargs(exe, args)
   if not args then
     args = pegger.split_execargs(exe)
@@ -195,13 +201,19 @@ local function convertargs(exe, args)
   return exe, args
 end
 
--- luacov:disable
+-- Execute a command.
+-- Args must be a table or nil, if args is nil then the args is extracted from exe.
+-- Returns a true when successful and status code.
 function executor.exec(exe, args)
   exe, args = convertargs(exe, args)
   return pexec(exe, args)
 end
---luacov:enable
 
+-- luacov:enable
+
+-- Execute a command capturing stdout/stderr.
+-- Args must be a table or nil, if args is nil then the args is extracted from exe.
+-- Returns a true when successful, the status code, stdout and stderr contents.
 function executor.execex(exe, args)
   exe, args = convertargs(exe, args)
   return pexec(exe, args, true)

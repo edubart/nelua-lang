@@ -28,20 +28,20 @@ local function from(base, expbase, int, frac, exp)
     -- 0.0/0.0 always is a nan in lua
     return 0.0/0.0
   end
-  -- read the integral part
+  -- parse the integral part
   local n = bn.zero()
   for i=1,#int do
     local d = tonumber(int:sub(i,i), base)
     assert(d)
     n = (n * base) + d
   end
-  -- read the fractional part
+  -- parse the fractional part
   if frac then
     local fracnum = from(base, expbase, frac)
     local fracdiv = bn.ipow(base, #frac)
     n = n + fracnum / fracdiv
   end
-  -- read the exponential part
+  -- parse the exponential part
   if exp then
     n = n * bn.ipow(expbase, tonumber(exp))
   end
