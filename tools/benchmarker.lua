@@ -1,5 +1,5 @@
-local argparse = require 'argparse'
-local nanotime = require 'chronos'.nanotime
+local argparse = require 'nelua.thirdparty.argparse'
+local nanotime = require 'nelua.utils.nanotimer'.nanotime
 local executor = require 'nelua.utils.executor'
 
 local benchmarks = {
@@ -11,12 +11,11 @@ local benchmarks = {
 }
 
 local config
+local luabin = arg[-1]
 
 local function parse_args()
   local argparser = argparse("benchmarker")
   argparser:option('-n --ntimes', "Number of times that each test is executed", 4)
-  argparser:option('-b --benchmark', "Run a single benchmark")
-  argparser:option('-l --lang', "List of languages to run benchmark", "lua,luajit,nelua,c")
   config = argparser:parse(arg)
 end
 
@@ -80,7 +79,7 @@ local function nelua_compile(name, generator)
  "--lua-version=5.1" \
  --cache-dir nelua_cache \
  --cflags="-march=native -flto"'
-  local command = string.format('lua ./nelua.lua %s -g %s %s', flags, generator, file)
+  local command = string.format(luabin .. ' ./nelua.lua %s -g %s %s', flags, generator, file)
   local success = executor.exec(command)
   assert(success, 'failed to compile nelua benchmark ' .. name)
 end

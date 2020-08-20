@@ -1,6 +1,6 @@
 -- FS module
 --
--- The fs (stands for filesystem) module is used by the compiler to manage files and directories.
+-- The fs (stands for filesystem) module is used to manage files and directories.
 
 local lfs = require 'lfs'
 local platform = require 'nelua.utils.platform'
@@ -281,22 +281,6 @@ function fs.getcachepath(infile, cachedir)
   path = path:gsub('%.%.[/\\]+', '')
   path = fs.join(cachedir, path)
   path = fs.normpath(path)
-  return path
-end
-
--- Get the data path for the application being executed.
-function fs.getdatapath(arg0)
-  local path
-  if arg0 then --luacov:disable
-    path = fs.dirname(arg0)
-    -- luarocks install, use the bin/../conf/runtime dir
-    if fs.basename(path) == 'bin' then
-      path = fs.join(fs.dirname(path), 'conf')
-    end
-  else --luacov:enable
-    local thispath = debug.getinfo(1).short_src
-    path = fs.dirname(fs.dirname(fs.dirname(fs.abspath(thispath))))
-  end
   return path
 end
 

@@ -82,9 +82,8 @@ function Emitter:add(what, ...)
   if what then
     self:add_one(what)
   end
-  if select('#', ...) > 0 then
-    self:add(...)
-  end
+  if select('#', ...) == 0 then return end
+  self:add(...)
 end
 
 function Emitter:add_builtin(name, ...)

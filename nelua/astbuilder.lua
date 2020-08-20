@@ -63,16 +63,16 @@ end
 local genuid = ASTNode.genuid
 
 function ASTBuilder:_create(tag, pos, src, ...)
-  local node = setmetatable({
+  local node = {
     pos = pos,
     src = src,
     uid = genuid(),
     attr = setmetatable({}, Attr),
-  }, self.nodes[tag])
+  }
   for i=1,select('#', ...) do
     node[i] = select(i, ...)
   end
-  return node
+  return setmetatable(node, self.nodes[tag])
 end
 
 function ASTBuilder:clone()

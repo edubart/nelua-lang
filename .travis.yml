@@ -4,7 +4,6 @@ services:
 dist: xenial
 before_install:
   - sudo apt-get install luarocks
-  - sudo luarocks install cluacov
   - sudo luarocks install luacov-coveralls
   - make docker-image
 script:

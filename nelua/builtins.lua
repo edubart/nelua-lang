@@ -42,8 +42,7 @@ function builtins.require(context, node)
 
     -- nelua internal libs have unit name of just 'nelua'
     local unitname = pegger.filename_to_unitname(unitpath)
-    local nelualibpath = fs.join(config.data_path, 'lib')
-    if filepath:find(nelualibpath, 1, true) then
+    if filepath:find(config.lib_path, 1, true) then
       unitname = 'nelua'
     end
     attr.unitname = unitname

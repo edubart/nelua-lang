@@ -1,6 +1,6 @@
 -- Iterators module
 --
--- The iterators module contains some custom iterators used by the compiler to do 'for in' loops.
+-- The iterators module contains some custom iterators to do 'for in' loops.
 
 local iterators = {}
 

@@ -45,25 +45,25 @@ local function merge_configs(conf, pconf)
     end
   end
 
-  if conf.lib_path then
+  if conf.add_path then
     local ss = sstream()
-    for _,libpath in ipairs(conf.lib_path) do
-      if libpath:find('?') then
-        ss:add(libpath, ';')
+    for _,addpath in ipairs(conf.add_path) do
+      if addpath:find('?') then
+        ss:add(addpath, ';')
       else
-        ss:add(libpath, '/?.nelua;')
-        ss:add(libpath, '/?/init.nelua;')
+        ss:add(addpath, '/?.nelua;')
+        ss:add(addpath, '/?/init.nelua;')
       end
     end
     -- try to insert the lib path after the local lib path
-    local libpath = ss:tostring()
+    local addpath = ss:tostring()
     local localpath = fs.join('.','?.nelua')..';'..fs.join('.','?','init.nelua')
     local localpathpos = conf.path:find(localpath, 1, true)
     if localpathpos then
       localpathpos = #localpath+1
-      conf.path = conf.path:sub(1,localpathpos) .. libpath .. conf.path:sub(localpathpos+1)
+      conf.path = conf.path:sub(1,localpathpos) .. addpath .. conf.path:sub(localpathpos+1)
     else
-      conf.path = libpath .. conf.path
+      conf.path = addpath .. conf.path
     end
   end
 
@@ -107,7 +107,7 @@ local function create_parser(args)
     :count("*"):convert(convert_param, tabler.copy(defconfig.pragma or {}))
   argparser:option('-g --generator', "Code generator to use (lua/c)", defconfig.generator)
   argparser:option('-p --path', "Set module search path", defconfig.path)
-  argparser:option('-L --lib-path', "Add module search path", tabler.copy(defconfig.lib_path or {}))
+  argparser:option('-L --add-path', "Add module search path", tabler.copy(defconfig.add_path or {}))
     :count("*"):convert(convert_add_path)
   argparser:option('--cc', "C compiler to use", defconfig.cc)
   argparser:option('--cpu-bits', "Target CPU architecture bit size (64/32)", defconfig.cpu_bits)
@@ -152,20 +152,46 @@ local function get_cc()
   return cc
 end
 
-local function get_search_path(datapath)
+-- Detect where is the Nelua's lib directory.
+-- First it detects if this is a Nelua repository clone,
+-- a system wide install or a luarocks install.
+-- Then returns the appropriate path for the Nelua's lib directory.
+local function get_nelua_lib_path()
+  local thispath = debug.getinfo(1).source:sub(2)
+  local dirpath = fs.dirname(fs.dirname(thispath))
+  local libpath
+  --luacov:disable
+  if fs.isfile(fs.join(dirpath, 'lib', 'math.nelua')) then
+    -- in a repository clone
+    libpath = fs.join(dirpath, 'lib')
+  elseif fs.basename(dirpath) == 'lualib' then
+    -- in a system install
+    -- this file should be in a path like "/usr/lib/nelua/lualib/nelua/configer.lua"
+    libpath = fs.join(fs.dirname(dirpath), "lib")
+  else
+    -- we should be in a luarocks install,
+    -- arg 0 is probably in "bin/" thus we should go to "../conf/lib"
+    libpath = fs.join(fs.dirname(fs.dirname(_G.arg[0])), 'conf', 'lib')
+  end
+  libpath = fs.abspath(libpath)
+  if fs.isfile(fs.join(libpath, 'math.nelua')) then
+    return libpath
+  end
+  --luacov:enable
+end
+
+local function get_search_path(libpath)
   local path = os.getenv('NELUA_PATH')
   if path then return path end
-  local libdir = fs.join(datapath, 'lib')
   path = fs.join('.','?.nelua')..';'..
          fs.join('.','?','init.nelua')..';'..
-         fs.join(libdir,'?.nelua')..';'..
-         fs.join(libdir,'?','init.nelua')
+         fs.join(libpath,'?.nelua')..';'..
+         fs.join(libpath,'?','init.nelua')
   return path
 end
 
+
 function configer.parse(args)
-  defconfig.data_path = fs.getdatapath(args[0])
-  defconfig.path = get_search_path(defconfig.data_path)
   local argparser = create_parser(tabler.icopy(args))
   local ok, options = argparser:pparse(args)
   except.assertraise(ok, options)
@@ -189,8 +215,13 @@ local function load_configs(configfile)
 end
 
 local function init_default_configs()
-  defconfig.data_path = fs.getdatapath()
-  defconfig.path = get_search_path(defconfig.data_path)
+  local libpath = get_nelua_lib_path()
+  if not libpath then --luacov:disable
+    console.error('Nelua installation is broken, lib path was not found!')
+    os.exit(1)
+  end --luacov:enable
+  defconfig.lib_path = libpath
+  defconfig.path = get_search_path(defconfig.lib_path)
   defconfig.cc = get_cc()
   defconfig.cflags = os.getenv('CFLAGS') or ''
 

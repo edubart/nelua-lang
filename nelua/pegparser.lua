@@ -1,5 +1,5 @@
 local lpeg = require 'lpeglabel'
-local re = require 'relabel'
+local re = require 'nelua.thirdparty.relabel'
 local class = require 'nelua.utils.class'
 local tabler = require 'nelua.utils.tabler'
 local errorer = require 'nelua.utils.errorer'

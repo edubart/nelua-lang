@@ -6,7 +6,7 @@
 -- For more information how these patterns works see
 -- http://www.inf.puc-rio.br/~roberto/lpeg/re.html
 
-local re = require 'relabel'
+local re = require 'nelua.thirdparty.relabel'
 local errorer = require 'nelua.utils.errorer'
 local tabler = require 'nelua.utils.tabler'
 local metamagic = require 'nelua.utils.metamagic'

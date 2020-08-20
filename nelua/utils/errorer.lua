@@ -1,8 +1,8 @@
 -- Erroer module
 --
--- The erroer module is used by the compiler to generate and print pretty error messages.
+-- The erroer module is used to generate and print pretty error messages.
 
-local re = require 'relabel'
+local re = require 'nelua.thirdparty.relabel'
 local colors = require 'nelua.utils.console'.colors
 local stringer = require 'nelua.utils.stringer'
 

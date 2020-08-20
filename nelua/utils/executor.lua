@@ -1,6 +1,6 @@
 -- Executor module
 --
--- The executor module is used by the compiler to execute system commands,
+-- The executor module is used to execute system commands,
 -- such as running a C compiler or a built binary.
 
 local tabler = require 'nelua.utils.tabler'

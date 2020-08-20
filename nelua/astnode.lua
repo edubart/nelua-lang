@@ -64,13 +64,13 @@ clone_nodetable = function(t)
 end
 
 clone_node = function(node)
-  local cloned = setmetatable({
+  local cloned = {
     pos = node.pos,
     src = node.src,
     preprocess = node.preprocess,
     uid = genuid(),
     attr = setmetatable({}, Attr)
-  }, getmetatable(node))
+  }
   local pattr = node.pattr
   if pattr then
     cloned.attr = clone_attr(pattr)
@@ -87,7 +87,7 @@ clone_node = function(node)
     end
     cloned[i] = arg
   end
-  return cloned
+  return setmetatable(cloned, getmetatable(node))
 end
 
 ASTNode.clone = clone_node

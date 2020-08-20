@@ -1,6 +1,6 @@
 -- Tabler module
 --
--- Tabler module contains some utilities used in the compiler for working with lua tables.
+-- Tabler module contains some utilities for working with lua tables.
 
 local metamagic = require 'nelua.utils.metamagic'
 

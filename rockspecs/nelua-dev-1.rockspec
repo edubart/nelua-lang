@@ -20,13 +20,15 @@ It can work statically or dynamically depending on the code style and compiles t
 
 dependencies = {
   'lua >= 5.3',
-  'luafilesystem >= 1.8.0',
-  'lua-term >= 0.7',
-  'lpeglabel >= 1.6.0',
-  'hasher >= 0.1.0',
-  'chronos >= 0.2',
 
-  -- dev dependencies only
+  -- nelua originally depended on these, however they were bundled
+  -- 'luafilesystem >= 1.8.0',
+  -- 'lua-term >= 0.7',
+  -- 'lpeglabel >= 1.6.0',
+  -- 'hasher >= 0.1.0',
+  -- 'chronos >= 0.2',
+
+  -- dev dependencies only (used only for testing)
   --'busted >= 2.0.0',
   --'luacheck >= 0.23.0',
   --'luacov >= 0.13.0',
@@ -37,6 +39,19 @@ dependencies = {
 build = {
   type = 'builtin',
   modules = {
+    -- Bundled C libraries
+    lfs = {sources = {"src/lfs.c"}},
+    sys = {sources = {"src/sys.c"}},
+    hasher = {sources = {"src/hasher.c" }},
+    lpeglabel = {sources = {
+      "src/lpeglabel/lpcap.c",
+      "src/lpeglabel/lpcode.c",
+      "src/lpeglabel/lpprint.c",
+      "src/lpeglabel/lptree.c",
+      "src/lpeglabel/lpvm.c"
+    }},
+
+    -- Nelua compiler sources
     ['nelua.astbuilder'] = 'nelua/astbuilder.lua',
     ['nelua.astdefs'] = 'nelua/astdefs.lua',
     ['nelua.astnode'] = 'nelua/astnode.lua',
@@ -71,6 +86,7 @@ build = {
     ['nelua.thirdparty.argparse'] = 'nelua/thirdparty/argparse.lua',
     ['nelua.thirdparty.bint'] = 'nelua/thirdparty/bint.lua',
     ['nelua.thirdparty.inspect'] = 'nelua/thirdparty/inspect.lua',
+    ['nelua.thirdparty.relabel'] = 'nelua/thirdparty/relabel.lua',
     ['nelua.thirdparty.tableshape'] = 'nelua/thirdparty/tableshape.lua',
     ['nelua.utils.bn'] = 'nelua/utils/bn.lua',
     ['nelua.utils.class'] = 'nelua/utils/class.lua',

@@ -1,5 +1,5 @@
-local re = require 'relabel'
-local colors = require 'term'.colors
+local re = require 'nelua.thirdparty.relabel'
+local colors = require 'nelua.utils.console'.colors
 
 local function readfile(filename)
   local f = assert(io.open(filename,'r'))
@@ -11,9 +11,9 @@ end
 local function colored_percent(value)
   local colored_value
   if value == 100 then
-    colored_value = colors.green(string.format('%.2f%%', value))
+    colored_value = colors.green..string.format('%.2f%%', value)..colors.reset
   else
-    colored_value = colors.red(string.format('%.2f%%', value))
+    colored_value = colors.red..string.format('%.2f%%', value)..colors.reset
   end
   return colored_value
 end
@@ -67,7 +67,7 @@ sp      <- %s+
               if last and last ~= i - 1 then
                 print()
               end
-              print(colors.cyan(string.format('%6d\t',i)) .. line)
+              print(colors.cyan..string.format('%6d\t',i)..colors.reset..line)
               last = i
             end
           end

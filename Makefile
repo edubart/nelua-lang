@@ -1,134 +1,186 @@
-UID=$(shell id -u $(USER))
-GID=$(shell id -g $(USER))
+# Paths in the current source directory
 PWD=$(shell pwd)
-DRFLAGS=--rm -it -v "$(PWD):/nelua" nelua
-DFLAGS=-u $(UID):$(GID) $(DRFLAGS)
-LUAMONFLAGS=-w nelua,spec,tools,examples,lib,tests -e lua,nelua -q -x
 EXAMPLES=$(wildcard examples/*.nelua)
 BENCHMARKS=$(wildcard benchmarks/*.nelua)
-LUA?=lua
+EXAMPLESDIR=$(abspath examples)
+NELUALUA=src/nelua-lua
+NELUAEXE=nelua.sh
 
-test:
-	@busted --lua=$(LUA)
+# LuaRocks related
+ROCKSPEC_DEV=rockspecs/nelua-dev-1.rockspec
+LUAROCKS_BUILTFILES=*.so *.dll src/*.o src/lua/*.o src/lpeglabel/*.o
 
-test-quick:
-	@busted --lua=$(LUA) --no-keep-going
+# Install variables
+PREFIX=/usr/local
+DPREFIX=$(DESTDIR)$(PREFIX)
+INSTALL_BIN=$(DPREFIX)/bin
+INSTALL_LIB=$(DPREFIX)/lib/nelua
+INSTALL_LUALIB=$(DPREFIX)/lib/nelua/lualib
+TMPDIR=/tmp
 
-test-lua5.3:
-	@echo -n "test lua-5.3 "
-	@busted --lua=lua5.3
+# All used utilities
+RM=rm -f
+RM_R=rm -rf
+MKDIR=mkdir -p
+INSTALL_X=install -Dm755
+INSTALL_F=install -Dm644
+UNINSTALL=rm -f
+LUACHECK=luacheck
+LUAROCKS=luarocks
+BUSTED=busted
+LUACOV=luacov
+LUAMON=luamon -w nelua,spec,tools,examples,lib,tests -e lua,nelua -q -x
+JEKYLL=bundle exec jekyll
 
-test-lua5.4:
-	@echo -n "test lua-5.4 "
-	@busted --lua=lua5.4
+## Variables for Docker
+UID=$(shell id -u $(USER))
+GID=$(shell id -g $(USER))
+DOCKER=docker
+DOCKER_RUN=$(DOCKER) run -u $(UID):$(GID) --rm -it -v "$(PWD):/nelua" nelua
 
+## Host system detection.
+SYS:=$(shell uname -s)
+ifneq (,$(findstring MINGW,$(SYS)))
+	SYS=Windows
+endif
+ifneq (,$(findstring MSYS,$(SYS)))
+	SYS=Windows
+endif
+
+## Detect the lua interpreter to use.
+ifeq ($(SYS), Windows)
+	LUA=$(NELUALUA)
+else
+	LUA=$(NELUALUA)
+endif
+
+## The default target.
+default: nelua-lua
+
+## Compile Nelua's bundled Lua interpreter.
+nelua-lua:
+	@$(MAKE) --no-print-directory -C src
+
+## Run test suite.
+test: nelua-lua
+	$(BUSTED) --lua=$(LUA)
+
+## Run test suite, stop on the first error.
+test-quick: nelua-lua
+	$(BUSTED) --lua=$(LUA) --no-keep-going
+
+## Run lua static analysis using lua check.
 check:
-	@luacheck -q .
+	$(LUACHECK) -q .
 
-benchmark:
-	$(LUA) ./tools/benchmarker.lua
+## Run nelua benchmarks.
+benchmark: nelua-lua
+	$(LUA) tools/benchmarker.lua
 
-coverage-clean:
-	@rm -f luacov.report.out luacov.stats.out
-	@rm -f *.gcov *.gcda
-
+## Generate coverage report.
 coverage-genreport:
-	@luacov
-	@$(LUA) -e "os.exit(require('tools.covreporter')() and 0 or 1)"
+	$(LUACOV)
+	@$(LUA) -e "require('tools.covreporter')()"
 
-coverage:
-	$(MAKE) coverage-clean
-	@busted --coverage > /dev/null
-	$(MAKE) coverage-genreport
+## Run the test suite analyzing code coverage.
+coverage-test: nelua-lua
+	@$(MAKE) clean-coverage
+	$(BUSTED) --lua=$(LUA) --coverage
+	@$(MAKE) coverage-genreport
 
-coverage-test:
-	$(MAKE) coverage-clean
-	@busted --coverage --no-keep-going
-	$(MAKE) coverage-genreport
-	$(MAKE) coverage-clean
-
-check-duplication:
-	@simian \
-		-threshold=6 \
-		-ignoreCharacterCase- \
-		-ignoreStringCase- \
-		-ignoreModifiers- \
-		-balanceParentheses+ \
-		-balanceCurlyBraces+ \
-		-reportDuplicateText+ \
-		`find nelua -name '*.lua'` | tail +5 | head -n -2
-
-_clear-stdout:
-	@clear
-
-devtest: _clear-stdout coverage-test check compile-examples
-devtestlight: _clear-stdout test-quick check
-
-test-full: test coverage check compile-examples
-
-compile-examples:
-	@echo -n "compile examples "
+## Compile all examples and benchmarks.
+compile-examples: nelua-lua
 	@for FILE in $(EXAMPLES); do \
+		echo 'compiling ' $$FILE; \
 		$(LUA) nelua.lua -qb $$FILE || exit 1; \
-		echo -n '+'; \
 	done
 	@for FILE in $(BENCHMARKS); do \
+		echo 'compiling ' $$FILE; \
 		$(LUA) nelua.lua -qb $$FILE || exit 1; \
-		echo -n '+'; \
 	done
-	@echo ""
 
-livedev:
-	luamon $(LUAMONFLAGS) "make -Ss devtest"
+## Run the test suite, code coverage, lua checker and compile all examples.
+test-full: nelua-lua coverage-test check compile-examples
 
-livedevlight:
-	luamon $(LUAMONFLAGS) "make -Ss devtestlight"
+## Run the test suite on any file change (requires luamon).
+live-dev:
+	$(LUAMON) "make -Ss _live-dev"
 
+_live-dev:
+	@clear
+	@$(MAKE) test-quick
+	@$(MAKE) check
+
+## Upload luarocks package.
+upload-rocks:
+	$(LUAROCKS) upload --api-key=$(LUAROCKS_APIKEY) --force rockspecs/nelua-dev-1.rockspec
+
+## Make the docker image used to test inside docker containers.
 docker-image:
-	docker build -t "nelua" .
+	$(DOCKER) build -t "nelua" --build-arg USER_ID=$(UID) --build-arg GROUP_ID=$(GID) .
 
+## Run tests inside a docker container.
 docker-test:
-	docker run $(DFLAGS) make -s test
+	$(DOCKER_RUN) make -s test
 
 _docker-test-rocks:
-	sudo luarocks-5.3 make rockspecs/nelua-dev-1.rockspec
-	cd /tmp && nelua -g lua /nelua/examples/helloworld.nelua
-	cd /tmp && nelua -g c /nelua/examples/helloworld.nelua
+	$(LUAROCKS) make --local $(ROCKSPEC_DEV)
+	# luarocks can leave built C files in the folder, remove them
+	$(RM) $(LUAROCKS_BUILTFILES)
+	# run a example anywhere in the system to test if works
+	cd $(TMPDIR) && ~/.luarocks/bin/nelua -g lua $(EXAMPLESDIR)/helloworld.nelua
+	cd $(TMPDIR) && ~/.luarocks/bin/nelua -g c $(EXAMPLESDIR)/helloworld.nelua
 
-docker-test-rocks:
-	docker run $(DRFLAGS) make -s _docker-test-rocks
-
-docker-test-all:
-	$(MAKE) cache-clean
-	docker run $(DFLAGS) make -s test-full
-
+## Run the test suite, code coverage, lua checker and compile all examples and install.
 docker-test-full:
-	$(MAKE) -s docker-test-all
-	$(MAKE) -s docker-test-rocks
+	@$(MAKE) -C src clean
+	@$(MAKE) clean
+	$(DOCKER_RUN) make coverage-test check compile-examples _docker-test-rocks
 
+## Get a shell inside a new docker container.
 docker-term:
-	docker run $(DFLAGS) /bin/bash
+	$(DOCKER_RUN) /bin/bash
 
-install-dev:
-	luarocks install --local rockspecs/nelua-dev-1.rockspec
-
-install-dev-deps:
-	luarocks install --local --only-deps rockspecs/nelua-dev-1.rockspec
-
-upload-dev-rocks:
-	luarocks upload --api-key=$(LUAROCKS_APIKEY) --force rockspecs/nelua-dev-1.rockspec
-
+## Compile documentation.
 docs:
-	cd docs && jekyll build
+	cd docs && $(JEKYLL) build
 .PHONY: docs
 
-docs-clean:
-	cd docs && jekyll clean
-
+## Serve documentation in a local web server, recompile on any change.
 docs-serve:
-	cd docs && bundle exec jekyll serve
+	cd docs && $(JEKYLL) serve
 
-cache-clean:
-	rm -rf nelua_cache
+## Clean documentation.
+docs-clean:
+	cd docs && $(JEKYLL) clean
 
-clean: cache-clean coverage-clean
+## Clean the nelua cache directory.
+clean-cache:
+	$(RM_R) nelua_cache
+
+## Clean coverage files.
+clean-coverage:
+	$(RM) luacov.report.out luacov.stats.out *.gcov *.gcda
+
+## Clean the Lua interpreter.
+clean-nelua-lua:
+	$(MAKE) -C src clean
+
+## Clean everything.
+clean: clean-cache clean-coverage clean-nelua-lua
+
+## Install Nelua using PREFIX into DESTDIR.
+install:
+	$(INSTALL_X) $(NELUALUA) $(INSTALL_BIN)/nelua-lua
+	$(INSTALL_X) $(NELUAEXE) $(INSTALL_BIN)/nelua
+	$(INSTALL_F) nelua.lua $(INSTALL_LUALIB)/nelua.lua
+	find nelua -name '*.lua' -exec $(INSTALL_F) {} $(INSTALL_LUALIB)/{} \;
+	find lib -name '*.nelua' -exec $(INSTALL_F) {} $(INSTALL_LIB)/{} \;
+
+## Uninstall Nelua
+uninstall:
+	$(UNINSTALL) $(INSTALL_BIN)/nelua-lua
+	$(UNINSTALL) $(INSTALL_BIN)/nelua
+	$(UNINSTALL) $(INSTALL_LUALIB)/nelua.lua
+	find nelua -name '*.lua' -exec $(UNINSTALL) $(INSTALL_LUALIB)/{} \;
+	find lib -name '*.nelua' -exec $(UNINSTALL) $(INSTALL_LIB)/{} \;

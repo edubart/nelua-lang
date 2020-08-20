@@ -1,6 +1,6 @@
 -- Platform module
 --
--- Define some platform specific values that is used in the compiler.
+-- Platform module defines platform specific values.
 
 local platform = {}
 

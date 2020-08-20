@@ -1,6 +1,6 @@
--- Memoize module
+-- Memoize function
 --
--- Memoize module is used by the compiler to cache a function,
+-- The memoize function is used to cache a function,
 -- to avoid repeated function evaluations thus increase efficiency in some compiler parts.
 
 -- Wrap a function into another function that cache calls.

@@ -1,14 +1,52 @@
 -- Console module
 --
--- The console module is used by the compiler to print colored information on the terminal
+-- The console module is used to print colored information on the terminal
 -- when compiling, such as errors, warnings and information.
 
 local stringer = require 'nelua.utils.stringer'
-local term = require 'term'
 local pformat, pconcat = stringer.pformat, stringer.pconcat
+local colors = {}
+local console = {colors=colors}
 
-local console = {colors={}}
-local colors = console.colors
+local colorvalues = {
+  -- attributes
+  reset      = 0,
+  clear      = 0,
+  default    = 0,
+  bright     = 1,
+  dim        = 2,
+  underscore = 4,
+  blink      = 5,
+  reverse    = 7,
+  hidden     = 8,
+
+  -- foreground
+  black   = 30,
+  red     = 31,
+  green   = 32,
+  yellow  = 33,
+  blue    = 34,
+  magenta = 35,
+  cyan    = 36,
+  white   = 37,
+
+  -- background
+  onblack   = 40,
+  onred     = 41,
+  ongreen   = 42,
+  onyellow  = 43,
+  onblue    = 44,
+  onmagenta = 45,
+  oncyan    = 46,
+  onwhite   = 47,
+}
+
+-- Create color string to be used in the console.
+local function remake_colors()
+  for k,v in pairs(colorvalues) do
+    colors[k] = colors.enabled and (string.char(27)..'['..tostring(v)..'m') or ''
+  end
+end
 
 -- Helper to setup the default colors used for errors, warnings, etc..
 local function setup_default_colors()
@@ -18,20 +56,32 @@ local function setup_default_colors()
   colors.info = nil
 end
 
+-- Find isatty() function in 'sys' or 'term' module.
+local function get_isatty() --luacov:disable
+  local has_sys, sys = pcall(require, 'sys')
+  if has_sys and sys.isatty then
+    return sys.isatty
+  else
+    local has_term, termcore = pcall(require, 'term')
+    if has_term and termcore.isatty then
+      return termcore.isatty
+    end
+    return nil
+  end
+end --luacov:enable
+
 -- Check whether the console supports colored output.
 function console.is_colors_supported()
+  local isatty = get_isatty()
   -- coloring is supported if the stdout is a file and a TTY terminal
-  return io.type(io.stdout) == 'file' and term.isatty ~= nil and term.isatty(io.stdout) == true
+  return io.type(io.stdout) == 'file' and isatty ~= nil and isatty(io.stdout) == true
 end
 
 -- Enable or disable the coloring output in the console.
 function console.set_colors_enabled(enabled)
   if colors.enabled == enabled then return end
   colors.enabled = enabled
-  -- disable/enable by overwriting the colors table
-  for k,v in pairs(term.colors) do
-    colors[k] = enabled and v or ''
-  end
+  remake_colors()
   -- need to setup the default colors
   setup_default_colors()
 end

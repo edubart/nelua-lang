@@ -1,3 +1,7 @@
+if debug.setcstacklimit then -- to work with Lua 5.4
+  debug.setcstacklimit(30000)
+end
+
 local function ack(m, n)
   if m == 0 then
     return n + 1

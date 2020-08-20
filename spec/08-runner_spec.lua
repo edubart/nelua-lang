@@ -104,13 +104,13 @@ it("configure module search paths", function()
   ]]})
 
   local defconfig = configer.get_default()
-  local oldlibpath = defconfig.lib_path
-  defconfig.lib_path = {'/tests'}
+  local oldaddpath = defconfig.add_path
+  defconfig.add_path = {'/tests'}
   assert.run({'-L', './examples', '--analyze', '--eval',[[
     ## assert(config.path:find('examples'))
     ## assert(config.path:find('tests'))
   ]]})
-  defconfig.lib_path = oldlibpath
+  defconfig.add_path = oldaddpath
 
   assert.run({'--path', './examples', '--analyze', '--eval',[[
     ## assert(config.path:match('examples'))

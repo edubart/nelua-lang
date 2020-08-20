@@ -1,6 +1,6 @@
 -- Stringer module
 --
--- Stringer module contains some utilities used in the compiler for working with lua strings.
+-- Stringer module contains some utilities for working with lua strings.
 
 local hasher = require 'hasher'
 
