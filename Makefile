@@ -4,7 +4,7 @@ EXAMPLES=$(wildcard examples/*.nelua)
 BENCHMARKS=$(wildcard benchmarks/*.nelua)
 EXAMPLESDIR=$(abspath examples)
 NELUALUA=src/nelua-lua
-NELUAEXE=nelua.sh
+NELUASH=nelua.sh
 
 # LuaRocks related
 ROCKSPEC_DEV=rockspecs/nelua-dev-1.rockspec
@@ -49,7 +49,7 @@ endif
 
 ## Detect the lua interpreter to use.
 ifeq ($(SYS), Windows)
-	LUA=$(NELUALUA)
+	LUA=$(realpath $(NELUALUA).exe)
 else
 	LUA=$(NELUALUA)
 endif
@@ -172,7 +172,7 @@ clean: clean-cache clean-coverage clean-nelua-lua
 ## Install Nelua using PREFIX into DESTDIR.
 install:
 	$(INSTALL_X) $(NELUALUA) $(INSTALL_BIN)/nelua-lua
-	$(INSTALL_X) $(NELUAEXE) $(INSTALL_BIN)/nelua
+	$(INSTALL_X) $(NELUASH) $(INSTALL_BIN)/nelua
 	$(INSTALL_F) nelua.lua $(INSTALL_LUALIB)/nelua.lua
 	find nelua -name '*.lua' -exec $(INSTALL_F) {} $(INSTALL_LUALIB)/{} \;
 	find lib -name '*.nelua' -exec $(INSTALL_F) {} $(INSTALL_LIB)/{} \;

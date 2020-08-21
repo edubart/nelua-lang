@@ -6,6 +6,7 @@ require 'memory'
 --------------------------------------------------------------------------------
 -- SDL
 ## linklib 'SDL2'
+## cdefine 'SDL_MAIN_HANDLED'
 ## cinclude '<SDL2/SDL.h>'
 
 -- import SDL types

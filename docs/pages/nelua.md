@@ -51,11 +51,11 @@ Nelua can do [extensible programming](https://en.wikipedia.org/wiki/Extensible_p
 as the programmer may add extensions to the language such as new grammars, [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) definitions, semantics, type checkers, code
 generation and behaviors to the compiler at compile time via the preprocessor.
 
-Nelua has multiple choices for
+Nelua has two choices for
 [memory management](https://en.wikipedia.org/wiki/Memory_management),
 it's the developer choice to use
-[garbage collection](https://en.wikipedia.org/wiki/Garbage_collection_(computer_science)),
-[automatic reference counting](https://en.wikipedia.org/wiki/Automatic_Reference_Counting) or
+[garbage collection](https://en.wikipedia.org/wiki/Garbage_collection_(computer_science))
+or
 [manual memory management](https://en.wikipedia.org/wiki/Manual_memory_management)
 depending on his use case.
 
@@ -87,7 +87,7 @@ syntax and semantics across both compiled and dynamic language.
 * Be modular and make users capable of creating compiler plugins to extended
 * Generate readable, simple and efficient C code
 * Possibility to output freestanding code (dependency free, for kernel dev or minimal runtime)
-* No single memory management model, choose for your use case GC, ARC or manual
+* No single memory management model, choose for your use case GC or manual
 
 ## Why?
 
@@ -115,29 +115,22 @@ in case you have questions or need help.
 
 ## Quick Installation
 
-With [luarocks](https://luarocks.org/) and a C compiler properly installed first, in your shell
-do the following command:
+In a system with build tools and a C compiler do:
 
 ```bash
-luarocks install https://raw.githubusercontent.com/edubart/nelua-lang/master/rockspecs/nelua-dev-1.rockspec
+git clone https://github.com/edubart/nelua-lang.git
+make
+make install
 ```
 
-After installing the nelua compiler should be available in the luarocks binary path ready to be run.
+The Nelua compiler should be available in `/usr/local/bin/nelua`,
+now run the hello world example:
 
-For complete instructions on how to install on Windows see the [installing tutorial](https://nelua.io/installing/).
-
-## Running
-
-Create a file named `helloworld.nelua` containing:
-
-```lua
-print 'Hello world!'
+```
+nelua examples/helloworld.nelua
 ```
 
-Running by compiling to C then to native code (requires a GCC compiler):
-```shell
-nelua helloworld.nelua
-```
+For complete instructions on how to install see the [installing tutorial](https://nelua.io/installing/).
 
 ## Examples
 
@@ -181,14 +174,8 @@ CFLAGS `-O3 -fno-plt -march=native -flto`
 
 ## Tests
 
-To run the language test suit at your home do:
+To run the language test suite use docker:
 
-```
-luarocks install busted
-busted
-```
-
-You can run using docker if your system environment is not properly configured:
 ```
 make docker-image
 make docker-test
@@ -218,7 +205,6 @@ in the [github's projects tab](https://github.com/edubart/nelua-lang/projects).
 ## Contributing
 
 You can support or contribute to Nelua in many ways,
-through a [donation or sponsorship](https://patreon.com/edubart),
 giving the project a star on github,
 testing out its features,
 reporting bugs,
@@ -226,9 +212,9 @@ discussing ideas,
 spreading it to the world,
 sharing projects made with it on github,
 creating tutorials or blog posts,
-creating [wiki](https://github.com/edubart/nelua-lang/wiki/Wiki-Home) pages that could be useful for newcomers
-or
-improving its documentation.
+creating [wiki](https://github.com/edubart/nelua-lang/wiki/Wiki-Home) pages that could be useful for newcomers,
+improving its documentation
+or through a [donation or sponsorship](https://patreon.com/edubart),
 
 [![Become a Patron](https://c5.patreon.com/external/logo/become_a_patron_button.png)](https://www.patreon.com/edubart)
 

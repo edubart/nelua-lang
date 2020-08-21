@@ -14,215 +14,105 @@ order: 4
 To use Nelua you need a system with the following:
 
 * Git (for cloning nelua)
-* Lua (for running nelua compiler, lua 5.3 or 5.4)
-* LuaRocks (lua package manager for installing nelua)
 * A C compiler (for compiling C generated code such as GCC or Clang)
+* The GDB debugger (in case you want to debug runtime errors)
+* Build tools (such as make)
 
 ## Installing on Linux
 
-Use your system package manager to install Lua, LuaRocks and GCC first. For example in Ubuntu:
+Use your system package manager to install all the required tools first,
+then clone, compile the dependencies and install using make.
+
+For example in Ubuntu:
 
 ```bash
-sudo apt-get install lua5.3 git luarocks gcc
+sudo apt-get install build-essential git gcc gdb
+git clone https://github.com/edubart/nelua-lang.git
+make
+make install
 ```
 
-Then install nelua from master with the following command:
+This will install in `/usr/local` by default,
+you can install somewhere else using the `PREFIX` argument,
+for example suppose you want to install in your home
+then use `PREFIX=$HOME/nelua`
+and Nelua compiler will be available at `PREFIX=$HOME/nelua/bin/nelua`.
 
-```bash
-luarocks install https://raw.githubusercontent.com/edubart/nelua-lang/master/rockspecs/nelua-dev-1.rockspec
-```
-
-After installing Nelua compiler binary should be available in the binary path then
-run `nelua -h` in terminal check if its working. If doesn't work your
-environment is probably missing the luarocks environment variables, to fix execute the output from
-`luarocks path` in your terminal.
+Proceed to the testing section.
 
 ## Installing on Windows
 
-Getting an environment with Git, Lua, LuaRocks and a C compiler working on Windows itself can
-be tricky, there are multiple ways. Here we show two ways with lesser steps.
-The first using MSYS2 with Mingw-w64 and the second using WSL (Windows Subsystem for Linux).
-I recommend the second one for users familiar with Linux systems or if the first doesn't work out.
+MSYS2 is the recommended and supported environment to use Nelua on Windows,
+although you could use other tools MSYS2 makes using Nelua very easy on Windows.
 
-### Installing on Windows (with MSYS2)
-
-#### 1.Install MSYS2
-
-Download and install [MSYS2](https://www.msys2.org/). Choose the x86_64
-installer, because the i686 is known to not work well with MSYS's luarocks.
-After installing open its terminal and update:
+Download and install [MSYS2](https://www.msys2.org/), choose the x86_64 installer.
+After installing open the 64 bit terminal and update:
 
 ```bash
-pacman -Syu --noconfirm
+pacman -Syu
 ```
 
-After the update finishes, you may be asked to close the terminal and reopen to update
-using the same command a second time.
+You may need open again the terminal and update a second time using the same command.
 
-#### 2. Install required tools in MSYS2
-
-After updating, install all the required build tools:
+Now install all the required tools first,
+then clone, compile the dependencies and install using make.
 
 ```bash
-pacman -S --noconfirm unzip git
-pacman -S --noconfirm mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc
-pacman -S --noconfirm mingw-w64-x86_64-lua51-luarocks
+pacman -S base-devel git mingw-w64-x86_64-toolchain gdb
+git clone https://github.com/edubart/nelua-lang.git
+make
+make install
 ```
 
-#### 3. Install Nelua
+Proceed to the testing section.
 
-```bash
-luarocks install https://raw.githubusercontent.com/edubart/nelua-lang/master/rockspecs/nelua-dev-1.rockspec
-```
+## Installing with LuaRocks
 
-This command may take a while. Nelua now should be working, check it running `nelua.bat -h`,
-you can clone and test examples from the official repository:
+If you already have a LuaRocks installation you could install Nelua with it.
+Although this is not recommended,
+because it won't use the bundled Lua's interpreter from Nelua,
+thus you will have worse compile speeds and if your system does not have Lua 5.3+ yet
+it won't work. Also trying this on Windows is not recommend,
+because getting LuaRocks to work there is troublesome.
 
-```bash
-wget https://raw.githubusercontent.com/edubart/nelua-lang/master/examples/helloworld.nelua
-nelua.bat hellowolrd.nelua
-```
-
-Note that luarocks installs Nelua as `nelua.bat`.
-
-To run snakesdl demo:
-
-```bash
-pacman -S --noconfirm mingw-w64-x86_64-SDL2
-wget https://raw.githubusercontent.com/edubart/nelua-lang/master/examples/snakesdl.nelua
-nelua.bat snakesdl.nelua
-```
-
-### Installing on Windows (with WSL)
-
-This alternative way uses ArchLinux subsystem on Windows
-through WSL (Windows Subsystem for Linux) with all Nelua requirements in a few commands,
-inside the system you will be able to compile Windows binaries, Linux binaries and
-even WebAssembly binaries too.
-
-Before going through these steps make sure that you are using an **updated Windows 10**.
-
-#### 1. Install Scoop
-
-Download and install [Scoop](https://scoop.sh/), a command line installer for windows,
-we use it to install ArchWSL. Open "Windows PowerShell" then execute:
-
-```bash
-Set-ExecutionPolicy RemoteSigned -scope CurrentUser
-iwr -useb get.scoop.sh | iex
-```
-
-#### 2. Install ArchWSL
-
-Get [ArchWSL](https://github.com/yuk7/ArchWSL) from scoop:
-
-```bash
-scoop install git
-scoop bucket add extras
-scoop install archwsl
-```
-
-Open another "Windows PowerShell" with Administrative privileges, then enable WSL feature:
-
-```bash
-Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
-```
-
-Restart the system if requested, then open the newly shortcut ArchLinux in startup menu,
-a new terminal will be shown, continue updating the subsystem:
-
-```bash
-pacman -Syy
-pacman -S archlinux-keyring --noconfirm
-pacman -Syu --noconfirm
-```
-
-Install required dependencies for compiling packages:
-
-```bash
-pacman -S --needed --noconfirm git autoconf automake binutils bison flex gcc libtool m4 make cmake patch pkgconf texinfo
-```
-
-#### 3. Install Lua, LuaRocks and Nelua
-
-Install Lua and LuaRocks:
-
-```bash
-pacman -S --noconfirm lua luarocks
-```
-
-Install Nelua:
+With a proper LuaRocks setup do:
 
 ```bash
 luarocks install https://raw.githubusercontent.com/edubart/nelua-lang/master/rockspecs/nelua-dev-1.rockspec
 ```
 
-Nelua now should be working, check it running `nelua -h`,
-you can clone and test examples from the official repository:
+After installing Nelua should be available in the LuaRocks binary path ready to be run.
+
+Proceed to the testing section.
+
+## Testing
+
+Nelua should be installed, run `nelua -h` in terminal check if its working.
+If doesn't work your environment PATH variable is missing the `bin` folder to Nelua installation,
+then fix it or find and execute the full path to the installed Nelua compiler to use it.
+
+Run the hello world example:
 
 ```bash
-wget https://raw.githubusercontent.com/edubart/nelua-lang/master/examples/helloworld.nelua
-nelua helloword.nelua
+nelua examples/helloworld.nelua
 ```
 
-Note this is compiling Linux binaries using GCC, thus this way you are only be able to run it
-inside WSL therefore limiting to command line applications. To run graphical applications you need
-to compile actual Windows binaries, proceed bellow.
+You can run any file in `examples` or `tests` directory,
+play with them test or to learn how to code in Nelua.
 
-#### 4. Install Mingw-w64
+The most interesting examples perhaps are the graphical ones,
+such as `snakesdl.nelua` and `condots.nelua`.
 
-Continue here only if you want to compile Windows binaries in the ArchWSL.
-
-Create a password-less privileged user for compiling packages and login with it:
+To run Snake SDL game demo for example you will need SDL2 library installed,
+install it using your system's package manager and run:
 
 ```bash
-useradd builduser -m
-passwd -d builduser
-echo 'builduser ALL=(ALL) ALL' >> /etc/sudoers
-su builduser
-cd ~
+# install SDL2 on MSYS2
+pacman -S mingw-w64-x86_64-SDL2
+# install SDL2 on Ubuntu
+sudo apt-get install libsdl2-dev
+
+nelua examples/snakesdl.nelua
 ```
-
-Install YAY package manager:
-
-```bash
-git clone https://aur.archlinux.org/yay-bin.git
-cd yay-bin
-makepkg -si --noconfirm
-```
-
-Install mingw-w64 compiler and SDL2 to run the graphical demo:
-
-```bash
-yay -S --noconfirm mingw-w64-gcc-bin mingw-w64-headers-bin mingw-w64-crt-bin mingw-w64-binutils-bin mingw-w64-winpthreads-bin
-yay -S --noconfirm mingw-w64-sdl2
-```
-
-You can now logout the builduser:
-```bash
-exit
-```
-
-To run snakesdl demo:
-```bash
-wget https://raw.githubusercontent.com/edubart/nelua-lang/master/examples/snakesdl.nelua
-cp /usr/x86_64-w64-mingw32/bin/SDL2.dll .
-nelua --cc=x86_64-w64-mingw32-gcc snakesdl.nelua
-```
-
-#### Developing setup on ArchWSL
-
-You can use your favorite text editor to edit Nelua projects and save them in your user home in Windows,
-the files will be located somewhere in `/mnt/c/Users/<user>/` on ArchWSL. Use the WSL terminal
-to change to that path and run the nelua compiler.
-
-### Note for users wanting to use Nelua with MSVC
-
-At the moment the language C code generator uses some C extensions that are supported by GCC and Clang
-but not by MSVC C compiler, for those really wanting to use MSVC they should install and use Clang
-support in Visual Studio.
-
-Getting Lua and LuaRocks working in MSVC is tricky, the user should try to follow
-LuaRocks website. I don't recommend using this method because is quite difficult.
 
 {% endraw %}
