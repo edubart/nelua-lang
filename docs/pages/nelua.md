@@ -118,9 +118,9 @@ in case you have questions or need help.
 In a system with build tools and a C compiler do:
 
 ```bash
-git clone https://github.com/edubart/nelua-lang.git
+git clone https://github.com/edubart/nelua-lang.git && cd nelua-lang
 make
-make install
+sudo make install
 ```
 
 The Nelua compiler should be available in `/usr/local/bin/nelua`,

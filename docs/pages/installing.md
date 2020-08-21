@@ -27,9 +27,9 @@ For example in Ubuntu:
 
 ```bash
 sudo apt-get install build-essential git gcc gdb
-git clone https://github.com/edubart/nelua-lang.git
+git clone https://github.com/edubart/nelua-lang.git && cd nelua-lang
 make
-make install
+sudo make install
 ```
 
 This will install in `/usr/local` by default,
@@ -59,7 +59,7 @@ then clone, compile the dependencies and install using make.
 
 ```bash
 pacman -S base-devel git mingw-w64-x86_64-toolchain gdb
-git clone https://github.com/edubart/nelua-lang.git
+git clone https://github.com/edubart/nelua-lang.git && cd nelua-lang
 make
 make install
 ```

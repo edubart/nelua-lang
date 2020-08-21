@@ -33,7 +33,7 @@ RUN sudo luarocks install luacov
 # cluacov
 RUN sudo luarocks install cluacov
 # luacheck
-RUN sudo luarocks install https://raw.githubusercontent.com/edubart/luacheck/myrocks/luacheck-dev-1.rockspec
+RUN sudo luarocks install luacheck
 
 # nelua global config (to force testing it)
 RUN mkdir -p /home/docker/.config/nelua
