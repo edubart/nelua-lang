@@ -58,8 +58,8 @@ typedef union Instruction {
 #define utf_to(inst)	(((inst)->i.key << 8) | (inst)->i.aux)
 
 
-void printpatt (Instruction *p, int n);
-const char *match (lua_State *L, const char *o, const char *s, const char *e,
+LUAI_FUNC void printpatt (Instruction *p, int n);
+LUAI_FUNC const char *match (lua_State *L, const char *o, const char *s, const char *e,
                    Instruction *op, Capture *capture, int ptop, short *labelf, const char **sfail); /* labeled failure */
 
 #endif

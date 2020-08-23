@@ -18,8 +18,8 @@
 #define VERSION         "1.6.0"
 
 
-#define PATTERN_T	"lpeg-pattern"
-#define MAXSTACKIDX	"lpeg-maxstack"
+#define PATTERN_T	"lpeglabel-pattern"
+#define MAXSTACKIDX	"lpeglabel-maxstack"
 
 
 /*
@@ -35,7 +35,7 @@
 #define lua_rawlen		lua_objlen
 
 #define luaL_setfuncs(L,f,n)	luaL_register(L,NULL,f)
-#define luaL_newlib(L,f)	luaL_register(L,"lpeg",f)
+#define luaL_newlib(L,f)	luaL_register(L,"lpeglabel",f)
 
 typedef size_t lua_Unsigned;
 

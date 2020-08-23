@@ -643,7 +643,7 @@ static void *L_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
 
 #endif /* LUA_USE_RPMALLOC */
 
-lua_State *newstate (void) {
+static lua_State *newstate (void) {
   lua_State *L = lua_newstate(L_alloc, NULL);
   if (L) {
     int *warnstate;  /* space for warning state */

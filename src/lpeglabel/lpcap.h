@@ -48,9 +48,9 @@ typedef struct CapState {
 } CapState;
 
 
-int runtimecap (CapState *cs, Capture *close, const char *s, int *rem);
-int getcaptures (lua_State *L, const char *s, const char *r, int ptop);
-int finddyncap (Capture *cap, Capture *last);
+LUAI_FUNC int runtimecap (CapState *cs, Capture *close, const char *s, int *rem);
+LUAI_FUNC int getcaptures (lua_State *L, const char *s, const char *r, int ptop);
+LUAI_FUNC int finddyncap (Capture *cap, Capture *last);
 
 #endif
 

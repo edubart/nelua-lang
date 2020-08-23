@@ -535,16 +535,18 @@ static int addoffsetinst (CompileState *compst, Opcode op) {
 
 /* labeled failure */
 static void codethrow (CompileState *compst, TTree *throw) {
-  int recov, aux;
+  int recov, aux, n;
   if (throw->u.ps != 0) {
     recov = addoffsetinst(compst, IThrowRec);
     assert(sib1(sib2(throw))->tag == TXInfo);
+    n = sib1(sib2(throw))->u.n;
   } else {
     recov = addinstruction(compst, IThrow, 0);
+    n = -1;
   }
   aux = nextinstruction(compst);
   getinstr(compst, aux).i.key = throw->key; /* next instruction keeps only rule name */
-  getinstr(compst, recov).i.key = sib1(sib2(throw))->u.n;  /* rule number */
+  getinstr(compst, recov).i.key = n;  /* rule number */
 }
 /* labeled failure */
 

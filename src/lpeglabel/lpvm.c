@@ -188,6 +188,9 @@ static int removedyncap (lua_State *L, Capture *capture,
 /*
 ** Opcode interpreter
 */
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute((optimize("no-crossjumping,no-gcse")))
+#endif
 const char *match (lua_State *L, const char *o, const char *s, const char *e,
                    Instruction *op, Capture *capture, int ptop, short *labelf, const char **sfail) { /* labeled failure */
   Stack stackbase[INITBACK];

@@ -23,7 +23,7 @@ static const int8_t b58digits_map[] = {
 };
 static const char b58digits_ordered[] = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
-bool base58_encode(char *b58, size_t *b58sz, const char *data, size_t binsz)
+static bool base58_encode(char *b58, size_t *b58sz, const char *data, size_t binsz)
 {
   const uint8_t *bin = (const uint8_t*)data;
   int carry;
@@ -67,7 +67,7 @@ bool base58_encode(char *b58, size_t *b58sz, const char *data, size_t binsz)
 }
 
 
-bool base58_decode(char *bin, size_t *binszp, const char *b58, size_t b58sz)
+static bool base58_decode(char *bin, size_t *binszp, const char *b58, size_t b58sz)
 {
   size_t binsz = *binszp;
   const unsigned char *b58u = (const unsigned char*)b58;
@@ -360,7 +360,7 @@ void blake2b_final(blake2b_ctx *ctx, uint8_t *hash)
   }
 }
 
-void blake2b(uint8_t       *hash   , size_t hash_size,
+static void blake2b(uint8_t       *hash   , size_t hash_size,
        const uint8_t *key    , size_t key_size,
        const uint8_t *message, size_t message_size)
 {

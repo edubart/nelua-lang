@@ -13,12 +13,12 @@
 
 #if defined(LPEG_DEBUG)
 
-void printpatt (Instruction *p, int n);
-void printtree (TTree *tree, int ident);
-void printktable (lua_State *L, int idx);
-void printcharset (const byte *st);
-void printcaplist (Capture *cap, Capture *limit);
-void printinst (const Instruction *op, const Instruction *p);
+LUAI_FUNC void printpatt (Instruction *p, int n);
+LUAI_FUNC void printtree (TTree *tree, int ident);
+LUAI_FUNC void printktable (lua_State *L, int idx);
+LUAI_FUNC void printcharset (const byte *st);
+LUAI_FUNC void printcaplist (Capture *cap, Capture *limit);
+LUAI_FUNC void printinst (const Instruction *op, const Instruction *p);
 
 #else
 

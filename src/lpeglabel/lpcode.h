@@ -11,14 +11,14 @@
 #include "lptree.h"
 #include "lpvm.h"
 
-int tocharset (TTree *tree, Charset *cs);
-int checkaux (TTree *tree, int pred);
-int fixedlen (TTree *tree);
-int hascaptures (TTree *tree);
-int lp_gc (lua_State *L);
-Instruction *compile (lua_State *L, Pattern *p);
-void realloccode (lua_State *L, Pattern *p, int nsize);
-int sizei (const Instruction *i);
+LUAI_FUNC int tocharset (TTree *tree, Charset *cs);
+LUAI_FUNC int checkaux (TTree *tree, int pred);
+LUAI_FUNC int fixedlen (TTree *tree);
+LUAI_FUNC int hascaptures (TTree *tree);
+LUAI_FUNC int lp_gc (lua_State *L);
+LUAI_FUNC Instruction *compile (lua_State *L, Pattern *p);
+LUAI_FUNC void realloccode (lua_State *L, Pattern *p, int nsize);
+LUAI_FUNC int sizei (const Instruction *i);
 
 
 #define PEnullable      0
