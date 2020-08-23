@@ -1,0 +1,17 @@
+-- Edit this file on REPL.it to try out Nelua in the browser
+-- Go to https://repl.it/github/edubart/nelua-lang
+-- find this file and run
+
+print 'Hello from REPL.it!'
+
+-- Replace the code bellow with anything.
+local function fibonacci(n: integer): integer
+  if n <= 2 then
+    return 1
+  else
+    return fibonacci(n - 1) + fibonacci(n - 2)
+  end
+end
+
+local num = fibonacci(10)
+print('The 10th fibonnacy number is', num)

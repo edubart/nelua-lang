@@ -5,6 +5,7 @@
 [![Build Status](https://travis-ci.org/edubart/nelua-lang.svg?branch=master)](https://travis-ci.org/edubart/nelua-lang)
 [![Coverage Status](https://coveralls.io/repos/github/edubart/nelua-lang/badge.svg?branch=master)](https://coveralls.io/github/edubart/nelua-lang?branch=master)
 [![Discord](https://img.shields.io/discord/680417078959800322.svg)](https://discord.gg/7aaGeG7)
+[![Try on Repl.it](https://repl.it/badge/github/edubart/nelua-lang)](https://repl.it/github/edubart/nelua-lang)
 <a href="https://patreon.com/edubart">
 <img height="20" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.herokuapp.com%2Fedubart%2Fpledgesssss&style=for-the-badge"
 style="max-width:100%;"/>
