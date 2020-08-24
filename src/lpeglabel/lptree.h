@@ -73,10 +73,7 @@ typedef struct Pattern {
 
 
 /* number of children for each tree */
-#ifndef LUAI_DDEC /* lua 5.1 doesn't define LUAI_DDEC */
-#define LUAI_DDEC(dec)  LUAI_FUNC dec
-#endif
-LUAI_DDEC(const byte numsiblings[];)
+LUAI_FUNC const byte numsiblings[];
 
 /* access to children */
 #define sib1(t)         ((t) + 1)
