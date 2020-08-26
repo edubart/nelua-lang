@@ -1,13 +1,14 @@
 {
   "index_name": "docsearch",
   "start_urls": ["https://nelua.io/"],
+  "sitemap_urls": ["https://nelua.io/sitemap.xml"],
   "selectors": {
-    "lvl0": "h1",
-    "lvl2": "h2",
-    "lvl2": "h3",
-    "lvl3": "h4",
-    "lvl4": "h5",
-    "lvl5": "h6",
-    "text": "p"
+    "lvl0": "main h1",
+    "lvl1": "main h2",
+    "lvl2": "main h3",
+    "lvl3": "main h4",
+    "lvl4": "main h5",
+    "lvl5": "main h6",
+    "text": "main p, main li"
   }
 }
