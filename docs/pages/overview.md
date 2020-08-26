@@ -1,15 +1,13 @@
 ---
-layout: default
+layout: docs
 title: Overview
 permalink: /overview/
+categories: docs toc
 toc: true
-categories: sidenav
 order: 2
 ---
 
 {% raw %}
-
-# Overview
 
 This is a quick overview of the language features that are currently implemented by examples.
 All the features and examples presented here should work with the latest Nelua, for

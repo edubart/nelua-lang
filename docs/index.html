@@ -1,0 +1,510 @@
+---
+layout: default
+---
+
+<main>
+  <div class="container-fluid py-4 text-center bg-primary-dark text-white">
+    <div class="row py-lg-4">
+      <div class="col-lg-6 col-md-8 mx-auto">
+        <div class="nelua-brand-big">{% include logo.svg %}</div>
+        <h1 class="font-weight-light"><span class="font-weight-bold">Nelua</span> Programming Language</h1>
+        <p class="lead">Minimal, efficient, statically typed, compiled, meta programmable, safe and extensible systems programming language with a <strong>Lua</strong> flavor.</p>
+        <p>
+          <a href="/overview" class="btn btn-primary my-2">Overview</a>
+          <a href="/installing" class="btn btn-outline-light my-2">Download</a>
+          <a href="https://repl.it/@edubart/nelua-lang#examples/replit.lua" class="btn btn-success my-2">Try Online</a>
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="container-xl">
+    <div class="row row-cols-1 row-cols-md-2 g-3 py-4">
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-type" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2.244 13.081l.943-2.803H6.66l.944 2.803H8.86L5.54 3.75H4.322L1 13.081h1.244zm2.7-7.923L6.34 9.314H3.51l1.4-4.156h.034zm9.146 7.027h.035v.896h1.128V8.125c0-1.51-1.114-2.345-2.646-2.345-1.736 0-2.59.916-2.666 2.174h1.108c.068-.718.595-1.19 1.517-1.19.971 0 1.518.52 1.518 1.464v.731H12.19c-1.647.007-2.522.8-2.522 2.058 0 1.319.957 2.18 2.345 2.18 1.06 0 1.716-.43 2.078-1.011zm-1.763.035c-.752 0-1.456-.397-1.456-1.244 0-.65.424-1.115 1.408-1.115h1.805v.834c0 .896-.752 1.525-1.757 1.525z"/>
+            </svg>
+          </span>
+          Statically typed
+        </h3>
+        <p>Nelua takes advantage of type notations to do type checks at compile time and
+        to generate efficient specialized code, most of the type notations are optional
+        and the compiler can infer them at compile time.
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-lightning" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09zM4.157 8.5H7a.5.5 0 0 1 .478.647L6.11 13.59l5.732-6.09H9a.5.5 0 0 1-.478-.647L9.89 2.41 4.157 8.5z"/>
+            </svg>
+          </span>
+          Efficient
+        </h3>
+        <p>
+        Nelua should be efficient as C when programming with manual memory management
+        and more efficient than Lua when using the optional garbage collector.
+        </p>
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-bounding-box-circles" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M12.5 2h-9V1h9v1zm-10 1.5v9h-1v-9h1zm11 9v-9h1v9h-1zM3.5 14h9v1h-9v-1z"/>
+              <path fill-rule="evenodd" d="M14 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 1a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 11a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 1a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM2 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 1a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 11a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 1a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/>
+            </svg>
+          </span>
+          Simple
+        </h3>
+        <p>
+        Nelua is simple and intuitive as Lua. Just some additions like
+        type annotations, efficient data structures and meta programming
+        utilities differs from Lua but all those are optional.
+        </p>
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 4.233 4.233" class="bi" fill="currentColor"  xmlns="http://www.w3.org/2000/svg" >
+              <path d="M2.117.477a1.639 1.639 0 00-1.64 1.64 1.639 1.639 0 001.64 1.639 1.639 1.639 0 001.639-1.64A1.639 1.639 0 002.116.478zm.53.55a.444.444 0 01.006 0 .444.444 0 01.444.444.444.444 0 01-.444.444.444.444 0 01-.444-.444.444.444 0 01.438-.445z"/>
+              <circle cx="2.117" cy="2.117" r="1.944" fill="none" stroke="#606060" stroke-width=".132" stroke-linecap="square" stroke-dasharray=".13229168,.26458336999999998"/>
+              <circle r=".444" cy=".582" cx="3.64"/>
+            </svg>
+          </span>
+          Lua flavored
+        </h3>
+        <p>
+        If you know how to code in Lua then you probably know
+        how to code in Nelua already because it tries to have the same syntax, semantics, features and APIs.
+        </p>
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-hdd" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M14 9H2a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1zM2 8a2 2 0 0 0-2 2v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1a2 2 0 0 0-2-2H2z"/>
+              <path d="M5 10.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-2 0a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/>
+              <path fill-rule="evenodd" d="M4.094 4a.5.5 0 0 0-.44.26l-2.47 4.532A1.5 1.5 0 0 0 1 9.51v.99H0v-.99c0-.418.105-.83.305-1.197l2.472-4.531A1.5 1.5 0 0 1 4.094 3h7.812a1.5 1.5 0 0 1 1.317.782l2.472 4.53c.2.368.305.78.305 1.198v.99h-1v-.99a1.5 1.5 0 0 0-.183-.718L12.345 4.26a.5.5 0 0 0-.439-.26H4.094z"/>
+            </svg>
+          </span>
+          Compiled
+        </h3>
+        <p>
+        Nelua takes advantage of ahead of time compilation
+        using powerful optimized C compilers such as GCC or Clang thus generating very
+        efficient native code, it doesn't use a interpreter at runtime.
+        </p>
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-box" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5 8.186 1.113zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z"/>
+            </svg>
+          </span>
+          Minimal
+        </h3>
+        <p>
+        Nelua tries to be minimal on its features, it doesn't have for example
+        object oriented constructs, however it's powerful enough to allow the user create
+        them at compile time through meta programming.
+        </p>
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-shield-shaded" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M5.443 1.991a60.17 60.17 0 0 0-2.725.802.454.454 0 0 0-.315.366C1.87 7.056 3.1 9.9 4.567 11.773c.736.94 1.533 1.636 2.197 2.093.333.228.626.394.857.5.116.053.21.089.282.11A.73.73 0 0 0 8 14.5c.007-.001.038-.005.097-.023.072-.022.166-.058.282-.111.23-.106.525-.272.857-.5a10.197 10.197 0 0 0 2.197-2.093C12.9 9.9 14.13 7.056 13.597 3.159a.454.454 0 0 0-.315-.366c-.626-.2-1.682-.526-2.725-.802C9.491 1.71 8.51 1.5 8 1.5c-.51 0-1.49.21-2.557.491zm-.256-.966C6.23.749 7.337.5 8 .5c.662 0 1.77.249 2.813.525a61.09 61.09 0 0 1 2.772.815c.528.168.926.623 1.003 1.184.573 4.197-.756 7.307-2.367 9.365a11.191 11.191 0 0 1-2.418 2.3 6.942 6.942 0 0 1-1.007.586c-.27.124-.558.225-.796.225s-.526-.101-.796-.225a6.908 6.908 0 0 1-1.007-.586 11.192 11.192 0 0 1-2.417-2.3C2.167 10.331.839 7.221 1.412 3.024A1.454 1.454 0 0 1 2.415 1.84a61.11 61.11 0 0 1 2.772-.815z"/>
+              <path d="M8 2.25c.909 0 3.188.685 4.254 1.022a.94.94 0 0 1 .656.773c.814 6.424-4.13 9.452-4.91 9.452V2.25z"/>
+            </svg>
+          </span>
+          Safe
+        </h3>
+        <p>Nelua tries to be safe by default for the user by
+        minimizing undefined behavior, doing compile time checks and runtime checks.
+        </p>
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-command" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M2 3.5A1.5 1.5 0 0 0 3.5 5H5V3.5a1.5 1.5 0 1 0-3 0zM6 6V3.5A2.5 2.5 0 1 0 3.5 6H6zm8-2.5A1.5 1.5 0 0 1 12.5 5H11V3.5a1.5 1.5 0 0 1 3 0zM10 6V3.5A2.5 2.5 0 1 1 12.5 6H10zm-8 6.5A1.5 1.5 0 0 1 3.5 11H5v1.5a1.5 1.5 0 0 1-3 0zM6 10v2.5A2.5 2.5 0 1 1 3.5 10H6zm8 2.5a1.5 1.5 0 0 0-1.5-1.5H11v1.5a1.5 1.5 0 0 0 3 0zM10 10v2.5a2.5 2.5 0 1 0 2.5-2.5H10z"/>
+              <path fill-rule="evenodd" d="M10 6H6v4h4V6zM5 5v6h6V5H5z"/>
+            </svg>
+          </span>
+          Low level
+        </h3>
+        <p>Nelua has C like features to work at low level to allow micro optimizing parts
+        of your code when needed.
+        </p>
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-hash" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8.39 12.648a1.32 1.32 0 0 0-.015.18c0 .305.21.508.5.508.266 0 .492-.172.555-.477l.554-2.703h1.204c.421 0 .617-.234.617-.547 0-.312-.188-.53-.617-.53h-.985l.516-2.524h1.265c.43 0 .618-.227.618-.547 0-.313-.188-.524-.618-.524h-1.046l.476-2.304a1.06 1.06 0 0 0 .016-.164.51.51 0 0 0-.516-.516.54.54 0 0 0-.539.43l-.523 2.554H7.617l.477-2.304c.008-.04.015-.118.015-.164a.512.512 0 0 0-.523-.516.539.539 0 0 0-.531.43L6.53 5.484H5.414c-.43 0-.617.22-.617.532 0 .312.187.539.617.539h.906l-.515 2.523H4.609c-.421 0-.609.219-.609.531 0 .313.188.547.61.547h.976l-.516 2.492c-.008.04-.015.125-.015.18 0 .305.21.508.5.508.265 0 .492-.172.554-.477l.555-2.703h2.242l-.515 2.492zm-1-6.109h2.266l-.515 2.563H6.859l.532-2.563z"/>
+            </svg>
+          </span>
+          Meta programmable
+        </h3>
+        <p>
+        Nelua allows to create generics, polymorphic functions and specialize
+        code at compile time by meta programming in Lua and using its concepts
+        system.
+        </p>
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-layers" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M3.188 8L.264 9.559a.5.5 0 0 0 0 .882l7.5 4a.5.5 0 0 0 .47 0l7.5-4a.5.5 0 0 0 0-.882L12.813 8l-1.063.567L14.438 10 8 13.433 1.562 10 4.25 8.567 3.187 8z"/>
+              <path fill-rule="evenodd" d="M7.765 1.559a.5.5 0 0 1 .47 0l7.5 4a.5.5 0 0 1 0 .882l-7.5 4a.5.5 0 0 1-.47 0l-7.5-4a.5.5 0 0 1 0-.882l7.5-4zM1.563 6L8 9.433 14.438 6 8 2.567 1.562 6z"/>
+            </svg>
+          </span>
+          Extensible
+        </h3>
+        <p>Nelua's compiler is written in Lua and is completely
+        modifiable on the fly via the preprocessor,
+        thus you can make advanced meta programming techniques
+        at compile time and extend the language by
+        adding new syntax, semantics or manipulating the AST.
+        </p>
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary font-monospace mx-2">C</span>
+          Compiles to C
+        </h3>
+        <p>
+        Nelua compiles to C first then to native, thus you can read and debug the generated C code,
+        mix other C code without costs, create or use C libraries, use C tools and reuse the generated C code.
+        You can think of Nelua being a "better C" heavily inspired by Lua.
+        </p>
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-hdd-stack" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M14 10H2a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1zM2 9a2 2 0 0 0-2 2v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1a2 2 0 0 0-2-2H2z"/>
+              <path d="M5 11.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-2 0a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/>
+              <path fill-rule="evenodd" d="M14 3H2a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zM2 2a2 2 0 0 0-2 2v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2z"/>
+              <path d="M5 4.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-2 0a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/>
+            </svg>
+          </span>
+          Run anywhere
+        </h3>
+        <p>
+        Nelua uses minimal dependencies
+        this means you can use it for any system that C is available,
+        including the web.
+        </p>
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-trash" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+              <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4L4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+            </svg>
+          </span>
+          Optional GC
+        </h3>
+        <p>
+        Nelua uses a garbage collector by default but it's completely optional and
+        can be replaced by manual memory management to have predictable runtime performance
+        to use in real-time applications
+        such as game engines and operational systems.
+        </p>
+      </div>
+      <div class="col">
+        <h3>
+          <span class="text-primary">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-box-seam" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l2.404.961L10.404 2l-2.218-.887zm3.564 1.426L5.596 5 8 5.961 14.154 3.5l-2.404-.961zm3.25 1.7l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z"/>
+            </svg>
+          </span>
+          Self contained
+        </h3>
+        <p>Nelua doesn't use external dependencies,
+          its standard library is written in Nelua
+          and you only need a C compiler to use it.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid bg-light">
+    <div class="container-xl">
+      <div class="row py-4">
+        <div class="col-md-4">
+          <h2>
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-file-text" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M4 1h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H4z"/>
+              <path fill-rule="evenodd" d="M4.5 10.5A.5.5 0 0 1 5 10h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 8h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 4h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z"/>
+            </svg>
+            Examples
+          </h2>
+          <p class="lead font-weight-normal">Small example in Nelua</p>
+          <p>It feels similar to Lua with type notations.</p>
+          <a href="/overview" class="btn btn-outline-primary my-2">Read more examples</a>
+        </div>
+        <div class="col-md-8">
+          <ul class="nav nav-tabs" id="examples-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <a class="nav-link active" id="ex1-tab" data-toggle="tab" href="#ex1" role="tab" aria-controls="ex1" aria-selected="true">Factorial</a>
+            </li>
+            <li class="nav-item" role="presentation">
+              <a class="nav-link" id="ex2-tab" data-toggle="tab" href="#ex2" role="tab" aria-controls="ex2" aria-selected="false">Loop</a>
+            </li>
+            <li class="nav-item" role="presentation">
+              <a class="nav-link" id="ex3-tab" data-toggle="tab" href="#ex3" role="tab" aria-controls="ex3" aria-selected="false">String</a>
+            </li>
+            <li class="nav-item" role="presentation">
+              <a class="nav-link" id="ex4-tab" data-toggle="tab" href="#ex4" role="tab" aria-controls="ex4" aria-selected="false">Record</a>
+            </li>
+          </ul>
+          <div class="tab-content" id="examples-tab-content">
+            <div class="tab-pane fade show active" id="ex1" role="tabpanel" aria-labelledby="ex1-tab">
+<pre class="rounded-0 rounded-bottom language-nelua p-2"><code>{% raw %}-- Calculates the factorial of a number.
+local function factorial(n: integer): integer
+  if n == 0 then
+    return 1
+  else
+    return n * factorial(n - 1)
+  end
+end
+
+local n = 5
+local res = factorial(n)
+print(n, 'factorial is', res)
+{% endraw %}</code></pre>
+            </div>
+            <div class="tab-pane fade" id="ex2" role="tabpanel" aria-labelledby="ex2-tab">
+<pre class="rounded-0 rounded-bottom language-nelua p-2"><code>{% raw %}-- Sum numbers from 1 to 10.
+local sum = 0
+for i = 1, 10 do
+  sum = sum + i
+end
+print('The sum is', sum)
+{% endraw %}</code></pre>
+            </div>
+            <div class="tab-pane fade" id="ex3" role="tabpanel" aria-labelledby="ex3-tab">
+<pre class="rounded-0 rounded-bottom language-nelua p-2"><code>{% raw %}-- Print "hello world" manipulating strings.
+require 'string'
+
+local s1 = 'olleh'
+local s2 = 'dlrow'
+
+print(s1:reverse() .. ' ' .. s2:reverse())
+{% endraw %}</code></pre>
+            </div>
+            <div class="tab-pane fade" id="ex4" role="tabpanel" aria-labelledby="ex4-tab">
+<pre class="rounded-0 rounded-bottom language-nelua p-2"><code>{% raw %}-- Create and print a record data structure.
+require 'string'
+local Person = @record{
+  name: string,
+  age: integer
+}
+local person: Person = {name = "John", age = 20}
+print(person.name, 'is', person.age, 'years old')
+{% endraw %}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+    <div class="container-xl">
+      <div class="row py-4">
+        <div class="col-md-8 order-2 order-md-1">
+          <table class="table table-bordered table-striped rounded">
+            <thead>
+              <tr>
+                <th scope="col">Benchmark</th>
+                <th scope="col">Lua</th>
+                <th scope="col">LuaJIT</th>
+                <th scope="col">Nelua</th>
+                <th scope="col">C</th>
+              </tr>
+            </thead>
+            <tbody>
+
+
+
+              <tr>
+                <th><a class="text-decoration-none link-secondary" href="https://github.com/edubart/nelua-lang/blob/master/benchmarks/ackermann.nelua">ackermann</a></th>
+                <td>1070.4 ms</td>
+                <td>125.0 ms</td>
+                <td><strong>38.9</strong> ms</td>
+                <td>38.4 ms</td>
+              </tr>
+              <tr>
+                <th><a class="text-decoration-none link-secondary" href="https://github.com/edubart/nelua-lang/blob/master/benchmarks/fibonacci.nelua">fibonacci</a></th>
+                <td>2118.4 ms</td>
+                <td>914.8 ms</td>
+                <td><strong>305.2</strong> ms</td>
+                <td>305.1 ms</td>
+              </tr>
+              <tr>
+                <th><a class="text-decoration-none link-secondary" href="https://github.com/edubart/nelua-lang/blob/master/benchmarks/mandel.nelua">mandel</a></th>
+                <td>1212.3 ms</td>
+                <td> 96.8 ms</td>
+                <td><strong>88.3</strong> ms</td>
+                <td>88.1 ms</td>
+              </tr>
+              <tr>
+                <th><a class="text-decoration-none link-secondary" href="https://github.com/edubart/nelua-lang/blob/master/benchmarks/sieve.nelua">sieve</a></th>
+                <td>1077.5 ms</td>
+                <td>266.1 ms</td>
+                <td><strong>87.1</strong> ms *</td>
+                <td>58.4 ms</td>
+              </tr>
+              <tr>
+                <th><a class="text-decoration-none link-secondary" href="https://github.com/edubart/nelua-lang/blob/master/benchmarks/heapsort.nelua">heapsort</a></th>
+                <td>1483.2 ms</td>
+                <td>276.5 ms</td>
+                <td><strong>158.4</strong> ms *</td>
+                <td>125.3 ms</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="small text-muted font-italic">
+            Lua 5.4, LuaJIT 2.1, GCC 10.1 were used in the benchmarks.
+          </p>
+        </div>
+        <div class="col-md-4 order-1 order-md-2">
+          <h2>
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-bar-chart" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5h-2v12h2V2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"/>
+            </svg>
+            Benchmarks
+          </h2>
+          <p>
+            Nelua is very efficient, these are some benchmarks for equivalent code run in Nelua, Lua, LuaJIT and C.
+            <p class="small text-muted">
+              * Nelua can match C performance when using optimized structures and doing manual memory management,
+              however to do justice with Lua in the comparisons the benchmarks were coded in the same style, i.e.
+              using the garbage collector and table like structures.
+            </p>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid bg-light">
+    <div class="container-xl">
+      <div class="row py-4">
+        <div class="col-md-4">
+          <h2>
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-terminal-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3zm9.5 5.5h-3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1zm-6.354-.354L4.793 6.5 3.146 4.854a.5.5 0 1 1 .708-.708l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708z"/>
+            </svg>
+            Installing
+          </h2>
+          <p class="lead font-weight-normal">Use your terminal to install Nelua</p>
+          <p>Requires git, build tools and a C compiler.
+          On Windows you should use MSYS2 with mingw-w64,
+          on Linux you can use GCC and
+          on MacOS you can use Clang.</p>
+          <a href="/installing" class="btn btn-outline-primary my-2">Read installation docs</a>
+        </div>
+        <div class="col-md-8">
+<pre class="rounded p-2 m-md-5"><code class="language-bash">{% raw %}git clone https://github.com/edubart/nelua-lang.git
+cd nelua-lang
+make
+make install
+nelua examples/helloworld.nelua
+{% endraw %}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+    <div class="container-xl">
+      <div class="row py-4">
+        <div class="col-md-6">
+          <h2>
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-question-circle" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+              <path d="M5.25 6.033h1.32c0-.781.458-1.384 1.36-1.384.685 0 1.313.343 1.313 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.007.463h1.307v-.355c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.326 0-2.786.647-2.754 2.533zm1.562 5.516c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"/>
+            </svg>
+            Why Nelua?
+          </h2>
+          <p>Nelua is being created by a <strong>Lua</strong> lover who after years working with
+          Lua in game projects wished a Lua flavored, efficient, simple and powerful at compile time language
+          to replace C/C++ codes of game projects. If you have more questions check
+          read the <a href="/faq">frequently asked questions</a>.
+        </div>
+        <div class="col-md-6">
+          <h2>
+            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-book" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" d="M3.214 1.072C4.813.752 6.916.71 8.354 2.146A.5.5 0 0 1 8.5 2.5v11a.5.5 0 0 1-.854.354c-.843-.844-2.115-1.059-3.47-.92-1.344.14-2.66.617-3.452 1.013A.5.5 0 0 1 0 13.5v-11a.5.5 0 0 1 .276-.447L.5 2.5l-.224-.447.002-.001.004-.002.013-.006a5.017 5.017 0 0 1 .22-.103 12.958 12.958 0 0 1 2.7-.869zM1 2.82v9.908c.846-.343 1.944-.672 3.074-.788 1.143-.118 2.387-.023 3.426.56V2.718c-1.063-.929-2.631-.956-4.09-.664A11.958 11.958 0 0 0 1 2.82z"/>
+              <path fill-rule="evenodd" d="M12.786 1.072C11.188.752 9.084.71 7.646 2.146A.5.5 0 0 0 7.5 2.5v11a.5.5 0 0 0 .854.354c.843-.844 2.115-1.059 3.47-.92 1.344.14 2.66.617 3.452 1.013A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.276-.447L15.5 2.5l.224-.447-.002-.001-.004-.002-.013-.006-.047-.023a12.582 12.582 0 0 0-.799-.34 12.96 12.96 0 0 0-2.073-.609zM15 2.82v9.908c-.846-.343-1.944-.672-3.074-.788-1.143-.118-2.387-.023-3.426.56V2.718c1.063-.929 2.631-.956 4.09-.664A11.956 11.956 0 0 1 15 2.82z"/>
+            </svg>
+            Learn more
+          </h2>
+          <p>Go to the documentation to learn more about what Nelua can do and how to use it.</p>
+          <a href="/docs" class="btn btn-outline-primary my-2">Read documentation</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-lg">
+    <div class="row">
+      <div class="alert alert-info" role="alert">
+        <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-info-circle" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+          <path d="M8.93 6.588l-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588z"/>
+          <circle cx="8" cy="4.5" r="1"/>
+        </svg>
+        Nelua is currently under development and in <strong>alpha</strong> status, nevertheless there are
+        <a href="https://github.com/search?p=1&q=%23nelua&type=Repositories">projects already using it on GitHub</a>, including games!
+        To know which features is planned to be implemented yet check the <a href="https://github.com/edubart/nelua-lang/projects">roadmap on GitHub</a>.
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid bg-dark text-white">
+    <div class="container-xl">
+      <div class="row py-4">
+        <div class="col-md-6">
+          <h2 class="text-center">
+            <svg width="1em" height="1em" viewBox="0 0 496 512" class="bi"  xmlns="http://www.w3.org/2000/svg">
+              <path fill="currentColor" d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z" class=""></path>
+            </svg>
+            Open Source
+          </h2>
+          <p>The Nelua compiler is open source and licensed under the <a class="link-light" href="https://github.com/edubart/nelua-lang/blob/master/LICENSE">MIT</a> license,
+          with most development taking place on <a class="link-light" href="https://github.com/edubart">GitHub</a>.
+          Be sure to watch the repository to get updates on Nelua's development
+          and star it to incentive the project.</p>
+          <div class="text-center">
+            <a href="https://github.com/edubart" class="btn btn-light">Source code</a>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <h2 class="text-center">
+            <svg width="1em" height="1em" viewBox="0 0 640 512" class="bi" xmlns="http://www.w3.org/2000/svg">
+              <path fill="currentColor" d="M434.7 64h-85.9c-8 0-15.7 3-21.6 8.4l-98.3 90c-.1.1-.2.3-.3.4-16.6 15.6-16.3 40.5-2.1 56 12.7 13.9 39.4 17.6 56.1 2.7.1-.1.3-.1.4-.2l79.9-73.2c6.5-5.9 16.7-5.5 22.6 1 6 6.5 5.5 16.6-1 22.6l-26.1 23.9L504 313.8c2.9 2.4 5.5 5 7.9 7.7V128l-54.6-54.6c-5.9-6-14.1-9.4-22.6-9.4zM544 128.2v223.9c0 17.7 14.3 32 32 32h64V128.2h-96zm48 223.9c-8.8 0-16-7.2-16-16s7.2-16 16-16 16 7.2 16 16-7.2 16-16 16zM0 384h64c17.7 0 32-14.3 32-32V128.2H0V384zm48-63.9c8.8 0 16 7.2 16 16s-7.2 16-16 16-16-7.2-16-16c0-8.9 7.2-16 16-16zm435.9 18.6L334.6 217.5l-30 27.5c-29.7 27.1-75.2 24.5-101.7-4.4-26.9-29.4-24.8-74.9 4.4-101.7L289.1 64h-83.8c-8.5 0-16.6 3.4-22.6 9.4L128 128v223.9h18.3l90.5 81.9c27.4 22.3 67.7 18.1 90-9.3l.2-.2 17.9 15.5c15.9 13 39.4 10.5 52.3-5.4l31.4-38.6 5.4 4.4c13.7 11.1 33.9 9.1 45-4.7l9.5-11.7c11.2-13.8 9.1-33.9-4.6-45.1z" class=""></path>
+            </svg>
+            Support Nelua
+          </h2>
+          <p>If you like Nelua please consider contributing in some way,
+          the simplest would be <strong>giving a star</strong> on <a class="link-light" href="https://github.com/edubart">GitHub</a>
+          or you could also try out Nelua and share your experience,
+          report bugs,
+          join the <a class="link-light" href="https://discord.gg/7aaGeG7">discord chat</a>,
+          spread it to the world,
+          share something created with it,
+          make blog post about it
+          or <a class="link-light" href="https://patreon.com/edubart">make a donation</a>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>

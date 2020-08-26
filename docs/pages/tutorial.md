@@ -1,15 +1,13 @@
 ---
-layout: default
+layout: docs
 title: Tutorial
 permalink: /tutorial/
+categories: docs toc
 toc: true
-categories: sidenav
 order: 3
 ---
 
 {% raw %}
-
-# Tutorial
 
 This is a basic tutorial for the Nelua Programming Language, if you don't have installed
 Nelua yet, please see the [installing tutorial](/installing) first.

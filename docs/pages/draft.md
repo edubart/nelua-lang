@@ -1,15 +1,12 @@
 ---
-layout: default
+layout: docs
 title: Draft
 permalink: /draft/
-toc: true
-categories: sidenav
-order: 5
+categories: docs toc
+order: 4
 ---
 
 {% raw %}
-
-# Draft
 
 This is a draft for features that are not implemented yet. Once a feature here is completed
 its text will be moved into the overview page. Don't expect any of the examples

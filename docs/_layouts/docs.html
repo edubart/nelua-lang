@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% include head.html %}
+
+<body data-spy="scroll" data-target="#nd-toc" data-offset="60">
+
+{% include navbar.html %}
+
+
+<main class="container-xxl">
+  <div class="row">
+    <div class="col-md-2 border-right py-2">
+      <ul class="nd-lnav nd-sidenav-sticky nav-pills nav flex-column">
+        {% assign sorted_pages = site.pages | sort:"order" %}
+        {% for page in sorted_pages %}
+          {% if page.categories contains 'docs' %}
+            {% if page.url == page.url %}
+              <li class="nav-item active" aria-current="page">
+                <a class="nav-link" href="{{ page.url | relative_url }}">{{ page.title }}</a>
+              </li>
+            {% else %}
+              <li class="nav-item">
+                <a class="nav-link" href="{{ page.url | relative_url }}">{{ page.title }}</a>
+              </li>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="col-md-8 p-4 pt-2 nd-content">
+      <h1 class="mb-3">{{page.title}}</h1>
+      {{content}}
+    </div>
+    {% if page.categories contains 'toc' %}
+      <div class="col-md-2 py-2">
+        {% include toc.html html=content id="nd-toc"
+          class="nav.nd-sidenav-sticky.flex-column.flex-nowrap.nav-pills.border-left"
+          submenu_class="nav.flex-column.flex-nowrap"
+          item_class="nav-item"
+          anchor_class="nav-link" %}
+      </div>
+    {% endif %}
+  </div>
+</main>
+
+{% include footer.html %}
+
+</body>
+</html>

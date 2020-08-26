@@ -1,22 +1,19 @@
 ---
-layout: default
+layout: docs
 title: Installing
 permalink: /installing/
-toc: true
-categories: sidenav
-order: 4
+categories: docs toc
+order: 1
 ---
 
 {% raw %}
 
-# Installing
-
 To use Nelua you need a system with the following:
 
-* Git (for cloning nelua)
-* A C compiler (for compiling C generated code such as GCC or Clang)
-* The GDB debugger (in case you want to debug runtime errors)
-* Build tools (such as make)
+* Git (for cloning Nelua).
+* A C compiler (GCC or Clang are recommended).
+* Build tools (such as make).
+* GDB debugger (in case you want to debug runtime errors).
 
 ## Installing on Linux
 

@@ -1,11 +1,11 @@
 ---
-layout: default
+layout: docs
 title: Manual
 permalink: /manual/
+categories: docs toc
 toc: true
+order: 4
 ---
-
-# Manual
 
 ## Functions
 
@@ -47,5 +47,3 @@ then      true      until     while
 | `::`  | label definition |
 | `--`  | comment |
 | `!`   | attribute |
-
-

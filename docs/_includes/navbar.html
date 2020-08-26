@@ -1,0 +1,28 @@
+<nav class="nd-tnav navbar navbar-expand-md navbar-dark bg-primary-dark fixed-top">
+  <div class="container-xl">
+    <a class="navbar-brand nelua-brand" href="/">
+      {% include logo.svg %}
+      <span class="nelua-name">Nelua</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+      <ul class="navbar-nav mr-auto mb-2 mb-md-0">
+        <li class="nav-item">
+          <a class="nav-link {% if page.url == '/' %}active{% endif %}" aria-current="page" href="/">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if page.url != '/' %}active{% endif %}" href="/docs">Documentation</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://github.com/edubart/nelua-lang/">GitHub</a>
+        </li>
+      </ul>
+      <form class="d-flex">
+        <input id="search-box" class="form-control mr-2" type="search" placeholder="Search" aria-label="Search">
+      </form>
+    </div>
+  </div>
+</nav>

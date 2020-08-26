@@ -1,0 +1,54 @@
+<footer class="bg-light border-top">
+<div class="container-sm py-2">
+  <div class="row justify-content-center">
+    <div class="col-md-3">
+      <ul class="list-unstyled">
+        <li class="font-weight-bold py-2">Documentation</li>
+        <li><a href="/overview/">Overview</a></li>
+        <li><a href="/installing/">Download</a></li>
+        <li><a href="/tutorial/">Tutorial</a></li>
+        <li><a href="/manual/">Manual</a></li>
+        <li><a href="/faq/">FAQ</a></li>
+      </ul>
+    </div>
+    <div class="col-md-3">
+      <ul class="list-unstyled">
+        <li class="font-weight-bold py-2">Community</li>
+        <li><a href="https://discord.gg/7aaGeG7">Discord</a></li>
+        <li><a href="https://reddit.com/r/nelua">Reddit</a></li>
+        <li><a href="https://github.com/edubart/nelua-lang">GitHub</a></li>
+      </ul>
+    </div>
+    <div class="col-md-3">
+      <ul class="list-unstyled">
+        <li class="font-weight-bold py-2">Contribute</li>
+        <li><a href="https://github.com/edubart/nelua-lang/issues">Issues</a></li>
+        <li><a href="https://patreon.com/edubart">Donate</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="row text-center">
+    <div class="nelua-brand my-2">{% include logo.svg %}</div>
+    <div class="text-center text-muted">Copyright © {{ site.time | date: '%Y' }} <a href="https://github.com/edubart">Eduardo Bart</a></div>
+  </div>
+</div>
+</footer>
+
+<!-- bootstrap v5 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.0-alpha1/js/bootstrap.bundle.min.js" integrity="sha512-UzofO1xJCmOl9xNdbqkMIaaW5raQxAE8WyMa977+mY2fT001KydNwvqSTJlHy70edjCN0nb20BXIgBgO/oj6MQ==" crossorigin="anonymous"></script>
+
+<!-- prism -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.21.0/prism.min.js" integrity="sha512-WkVkkoB31AoI9DAk6SEEEyacH9etQXKUov4JRRuM1Y681VsTq7jYgrRw06cbP6Io7kPsKx+tLFpH/HXZSZ2YEQ==" crossorigin="anonymous"></script>
+<script src="{{site.baseurl}}/assets/js/prism-langs.js"></script>
+
+<!-- docsearch -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.3/docsearch.min.js" integrity="sha512-PjI+WVy3+EZgAxjHNRx7NbRVD91/H4YfeSkXG38zCVFtWv+lj/wjnqohcwHr/qwajVVeRw+/MeojPsXGEK0BOg==" crossorigin="anonymous"></script>
+<script>
+docsearch({
+  apiKey: '{{ site.algolia.search_only_api_key }}',
+  indexName: '{{ site.algolia.index_name }}',
+  appId: '{{ site.algolia.application_id }}',
+  inputSelector: '#search-box',
+  debug: false,
+});
+</script>
