@@ -362,8 +362,8 @@ do -- Multiple returns
   end
 
   local a, b = get_multiple()
-  -- a is of type 'integer' with value 'false'
-  -- b is of type 'boolean' with value '1'
+  -- a is of type 'boolean' with value 'false'
+  -- b is of type 'integer' with value '1'
   print(a,b)
 
   local function get_multiple(): (boolean, integer)

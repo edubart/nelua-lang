@@ -21,7 +21,7 @@
 title: Nelua
 email: edub4rt@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
-  Minimal, efficient, statically typed, compiled, meta programmable,
+  Minimal, simple, efficient, statically typed, compiled, meta programmable,
   safe and extensible systems programming language with a Lua flavor.
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://nelua.io" # the base hostname & protocol for your site, e.g. http://example.com

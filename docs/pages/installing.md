@@ -32,7 +32,7 @@ sudo make install
 This will install in `/usr/local` by default,
 you can install somewhere else using the `PREFIX` argument,
 for example suppose you want to install in your home
-then use `PREFIX=$HOME/nelua`
+then use `sudo make install PREFIX=$HOME/nelua`
 and Nelua compiler will be available at `PREFIX=$HOME/nelua/bin/nelua`.
 
 Proceed to the testing section.

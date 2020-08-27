@@ -17,7 +17,7 @@ features not implemented yet please see the [draft](/draft/).
 
 Most of Nelua syntax and semantics
 are similar to Lua, thus if you know Lua you probably know Nelua too. However Nelua have many
-additions to code with type annotations, to make more efficient code and to meta program.
+additions to code with type notations, to make more efficient code and to meta program.
 This overview try to focus more on those features.
 
 Although copying Lua code with minor changes is a goal of Nelua, not all Lua
@@ -751,8 +751,8 @@ local function get_multiple()
 end
 
 local a, b = get_multiple()
--- a is of type 'integer' with value 'false'
--- b is of type 'boolean' with value '1'
+-- a is of type 'boolean' with value 'false'
+-- b is of type 'integer' with value '1'
 print(a,b) -- outputs: false 1
 ```
 

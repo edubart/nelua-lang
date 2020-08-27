@@ -11,13 +11,12 @@
 style="max-width:100%;"/>
 </a>
 
-Nelua is a minimalistic, efficient, optionally typed, ahead of time compiled, meta programmable,
-systems programming language with syntax and semantics similar to Lua.
-It can work statically or dynamically depending on the code style and
-compiles to native machine code. Nelua stands for *Native Extensible LUA*.
+Nelua is a minimal, simple, efficient, statically typed, compiled, meta programmable,
+safe and extensible systems programming language with a Lua flavor.
+It uses ahead of time compilation to compile to native code.
+Nelua stands for *Native Extensible Lua*.
 
-**NOTE: The language is in development.** Many features are implemented but some notable still
-missing. However there are benchmarks, examples and games available ready to be run.
+**NOTE: The language is in development and in alpha state.**
 
 ## About
 
@@ -29,7 +28,7 @@ It has syntax and semantics similar to Lua,
 but is designed to be able to work free from a Lua interpreter,
 instead it takes advantage of
 [ahead of time compilation](https://en.wikipedia.org/wiki/Ahead-of-time_compilation).
-When coding using Nelua idioms such as type annotations, records, arrays,
+When coding using Nelua idioms such as type notations, records, arrays,
 manual memory management, pointers the performance should be efficient as C.
 But when using Lua idioms such as tables, metatables and untyped variables the compiler
 uses a runtime library to provide the dynamic functionality.
@@ -76,7 +75,7 @@ syntax and semantics across both compiled and dynamic language.
 
 ## Goals
 
-* Be minimalistic with a small syntax, manual and API, but powerful
+* Be minimal with a small syntax, manual and API, but powerful
 * Be efficient by compiling to optimized C code then native code
 * Have syntax, semantics and features similar to Lua
 * Optionally statically typed with type checking
@@ -98,7 +97,7 @@ syntax and semantics across both compiled and dynamic language.
 * We want to reuse or mix existing C/C++/Lua code.
 * We want type safety and optimizations.
 * We want to have efficient code while maintaining readability and safety.
-* We want the language features and manual to be minimalistic and fit our brain.
+* We want the language features and manual to be minimal and fit our brain.
 * We want to deploy anywhere C runs.
 * We want to extended the language features by meta programming or modding the compiler.
 * We want to code with or without garbage collection depending on our use case.

@@ -83,7 +83,7 @@ it doesn't do any kind of interpreting or JIT at runtime, this means it
 can't parse and execute code generated at runtime. If you are looking
 for something that could do this then consider LuaJIT which is an outstanding
 JIT implementation for Lua or Ravi that is another JIT implementation
-for Lua that supports type annotations. However Nelua uses a Lua
+for Lua that supports type notations. However Nelua uses a Lua
 interpreter at compile time, to allow meta programming.
 
 ## What kind of application is Nelua good for?
@@ -102,15 +102,15 @@ like Nim, Odin, Zig.
 Nelua has syntax highlight plugins for [Sublime Text](https://github.com/edubart/nelua-sublime) and [Visual Studio Code](https://github.com/edubart/nelua-vscode). If you use
 other editor and make a plugin for Nelua let me know.
 
-## My application crashed, how can I debug?
+## How can I debug my application?
 
-You can get backtraces of your crashes by having GDB compiler installed
+You can get backtraces of crashes by having GDB debugger installed
 and running in debug mode with the `--debug` command line argument,
-when doing this Nelua will run your application through the GDB debugger
+when doing this Nelua will run your application through GDB
 and print out readable backtraces for your code. For more advanced debugging
 you could use any C debugger manually.
 
-## Why is my code not that efficient?
+## How to make my code more efficient?
 
 Nelua compiles by default with optimizations disable and runtime checks enabled.
 To compile with optimization enabled and runtime checks disabled you must use the
