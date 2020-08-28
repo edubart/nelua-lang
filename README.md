@@ -1,4 +1,5 @@
-![Nelua Logo](https://nelua.io/assets/img/nelua-logo.png)
+![Nelua Logo](https://nelua.io/assets/img/nelua-logo-64px.png)
+
 [nelua.io](https://nelua.io/)
 
 # Nelua Programming Language
