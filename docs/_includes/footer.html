@@ -4,11 +4,11 @@
     <div class="col-md-3">
       <ul class="list-unstyled">
         <li class="font-weight-bold py-2">Documentation</li>
-        <li><a href="/overview/">Overview</a></li>
-        <li><a href="/installing/">Download</a></li>
-        <li><a href="/tutorial/">Tutorial</a></li>
-        <li><a href="/manual/">Manual</a></li>
-        <li><a href="/faq/">FAQ</a></li>
+        <li><a href="/overview">Overview</a></li>
+        <li><a href="/installing">Download</a></li>
+        <li><a href="/tutorial">Tutorial</a></li>
+        <li><a href="/manual">Manual</a></li>
+        <li><a href="/faq">FAQ</a></li>
       </ul>
     </div>
     <div class="col-md-3">
@@ -37,11 +37,15 @@
 </footer>
 
 <!-- bootstrap v5 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.0-alpha1/js/bootstrap.bundle.min.js" integrity="sha512-UzofO1xJCmOl9xNdbqkMIaaW5raQxAE8WyMa977+mY2fT001KydNwvqSTJlHy70edjCN0nb20BXIgBgO/oj6MQ==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.0-alpha1/js/bootstrap.min.js" integrity="sha512-lmArColmgJ0LRo8c6rZwAhB3mVVSFSsrpqOrmtXMgOFYu8VOwdxTliXrHYdsdmututXwD0Xc1GiGvZlHgNAh4g==" crossorigin="anonymous"></script>
 
 <!-- prism -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.21.0/prism.min.js" integrity="sha512-WkVkkoB31AoI9DAk6SEEEyacH9etQXKUov4JRRuM1Y681VsTq7jYgrRw06cbP6Io7kPsKx+tLFpH/HXZSZ2YEQ==" crossorigin="anonymous"></script>
-<script src="{{site.baseurl}}/assets/js/prism-langs.js"></script>
+<script>{% include prismlangs.js %}</script>
+
+<!-- anchorjs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+<script>anchors.add();</script>
 
 <!-- docsearch -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/docsearch.js/2.6.3/docsearch.min.js" integrity="sha512-PjI+WVy3+EZgAxjHNRx7NbRVD91/H4YfeSkXG38zCVFtWv+lj/wjnqohcwHr/qwajVVeRw+/MeojPsXGEK0BOg==" crossorigin="anonymous"></script>
@@ -54,3 +58,4 @@ docsearch({
   debug: false,
 });
 </script>
+

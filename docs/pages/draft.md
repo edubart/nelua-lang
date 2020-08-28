@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Draft
-permalink: /draft/
+permalink: /draft
 categories: docs toc
 order: 4
 ---
@@ -9,10 +9,13 @@ order: 4
 {% raw %}
 
 This is a draft for features that are not implemented yet. Once a feature here is completed
-its text will be moved into the overview page. Don't expect any of the examples
-here to work or be implemented in the future exactly as presented here.
+its text will be moved into the overview page.
+{: .lead}
 
---------------------------------------------------------------------------------
+Don't expect any of the examples
+here **to work or be implemented** in the future exactly as presented here,
+these are mostly ideias.
+{: .callout.callout-warning}
 
 ## Iterated For
 
@@ -268,7 +271,6 @@ unroll(4, do a = a + 1 end) -- inline "a = a + 1" for times
 print(a) -- outputs 4
 ```
 
---------------------------------------------------------------------------------
 ## Modules
 
 ### Static Modules
@@ -334,7 +336,6 @@ for k,v in pairs(require 'hello') _G[k] = v end -- import all functions to _G
 foo()
 ```
 
---------------------------------------------------------------------------------
 ## Operators
 
 ### Operator overloading
@@ -347,7 +348,6 @@ local a = "hello " + "world"
 print(a) -- outputs hello world
 ```
 
---------------------------------------------------------------------------------
 ## Error handling
 
 ### Returning errors
@@ -382,7 +382,6 @@ except(e: any)
 end
 ```
 
---------------------------------------------------------------------------------
 ## Memory management
 
 ### Allocation
@@ -437,7 +436,6 @@ b.name = "John"
 print(a.name) -- outputs "John"
 ```
 
---------------------------------------------------------------------------------
 ## Object oriented programming
 
 The language has basic features for object oriented programming,
@@ -500,7 +498,6 @@ var& polygon = cast(@Polygon, square)
 print(polygon:area()) -- outputs 4
 ```
 
---------------------------------------------------------------------------------
 ## Standard library
 
 ### Dynamic arrays

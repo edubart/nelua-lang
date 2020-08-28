@@ -3,25 +3,25 @@
 
 {% include head.html %}
 
-<body data-spy="scroll" data-target="#nd-toc" data-offset="60">
+<body>
 
 {% include navbar.html %}
 
 
 <main class="container-xxl">
   <div class="row">
-    <div class="col-md-2 border-right py-2">
+    <div class="col-lg-2 border-right py-2">
       <ul class="nd-lnav nd-sidenav-sticky nav-pills nav flex-column">
         {% assign sorted_pages = site.pages | sort:"order" %}
-        {% for page in sorted_pages %}
-          {% if page.categories contains 'docs' %}
-            {% if page.url == page.url %}
-              <li class="nav-item active" aria-current="page">
-                <a class="nav-link" href="{{ page.url | relative_url }}">{{ page.title }}</a>
+        {% for docpage in sorted_pages %}
+          {% if docpage.categories contains 'docs' %}
+            {% if docpage.url == page.url %}
+              <li class="nav-item" aria-current="page">
+                <a class="nav-link active" href="{{ docpage.url | relative_url }}">{{ docpage.title }}</a>
               </li>
             {% else %}
               <li class="nav-item">
-                <a class="nav-link" href="{{ page.url | relative_url }}">{{ page.title }}</a>
+                <a class="nav-link" href="{{ docpage.url | relative_url }}">{{ docpage.title }}</a>
               </li>
             {% endif %}
           {% endif %}
@@ -29,18 +29,20 @@
       </ul>
     </div>
 
-    <div class="col-md-8 p-4 pt-2 nd-content">
+    <div class="col-lg-8 p-4 pt-2 nd-content">
       <h1 class="mb-3">{{page.title}}</h1>
       {{content}}
     </div>
     {% if page.categories contains 'toc' %}
-      <div class="col-md-2 py-2">
+    <div class="col-lg-2 border-left pr-0">
+      <div class="nd-sidenav-sticky">
         {% include toc.html html=content id="nd-toc"
-          class="nav.nd-sidenav-sticky.flex-column.flex-nowrap.nav-pills.border-left"
+          class="nav.flex-column.flex-nowrap.nav-pills"
           submenu_class="nav.flex-column.flex-nowrap"
           item_class="nav-item"
           anchor_class="nav-link" %}
       </div>
+    </div>
     {% endif %}
   </div>
 </main>

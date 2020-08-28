@@ -1,41 +1,40 @@
 ---
 layout: docs
 title: Manual
-permalink: /manual/
+permalink: /manual
 categories: docs toc
 toc: true
 order: 4
 ---
 
-## Functions
-
-By default variables are locally visible only in their scope and sub scopes.
-
-
-## Modules
-
-By default modules functions and variables are exported unless declared local.
+Technical specification of the Nelua language features. This still very incomplete.
+{: .lead}
 
 ## Keywords
 
 All Lua keywords:
-```
+
+```nelua
 and       break     do        else      elseif    end
 false     for       function  goto      if        in
 local     nil       not       or        repeat    return
 then      true      until     while
 ```
 
+Plus keywords used only by Nelua:
+```nelua
+case continue defer global switch
+```
 
-## Other symbols used in the language syntax
+## Tokens
 
-| Symbol| Syntax | Usage |
+| Symbol| Usage |
 |---|---|---|
 | `[]`  | array index |
 | `{}`  | listing |
 | `()`  | surrounding |
-| `<>`  | inner type definition |
-| `:`   | method access |
+| `<>`  | annotation |
+| `:`   | method index |
 | `.`   | field index |
 | `...` | varargs |
 | `,`   | separator |
@@ -43,7 +42,8 @@ then      true      until     while
 | `""`  | string quoting |
 | `''`  | alternative string quoting |
 | `;`   | statement separator |
-| `@`   | type inference |
+| `@`   | type expression |
 | `::`  | label definition |
 | `--`  | comment |
 | `!`   | attribute |
+{: .table.table-bordered.table-striped}

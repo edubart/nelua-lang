@@ -1,11 +1,14 @@
 ---
 layout: docs
 title: FAQ
-permalink: /faq/
+permalink: /faq
 categories: docs toc
 toc: true
 order: 5
 ---
+
+Answers to frequently asked questions about Nelua.
+{: .lead}
 
 ## Why Nelua?
 

@@ -1,25 +1,25 @@
 ---
 layout: docs
 title: Documentation
-permalink: /docs/
+permalink: /docs
 ---
 
-## [Installing](/installing)
+### [Installing](/installing)
 
 Instructions for downloading and installing the Nelua compiler.
 
-## [Overview](/overview)
+### [Overview](/overview)
 
 Overview features of Nelua.
 
-## [Tutorial](/overview)
+### [Tutorial](/overview)
 
 Tutorial for running your first programs using the Nelua compiler.
 
-## [Manual](/manual)
+### [Manual](/manual)
 
 Technical specification of Nelua.
 
-## [FAQ](/faq)
+### [FAQ](/faq)
 
 Answers to frequently asked questions about Nelua.

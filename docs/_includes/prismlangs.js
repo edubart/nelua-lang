@@ -8,7 +8,7 @@ Prism.languages.lua = {
         greedy: true
     },
     'number': /\b0x[a-f\d]+\.?[a-f\d]*(?:p[+-]?\d+)?\b|\b\d+(?:\.\B|\.?\d*(?:e[+-]?\d+)?\b)|\B\.\d+(?:e[+-]?\d+)?\b/i,
-    'builtin': /\b(?:false|true)\b/,
+    'builtin': /\b(?:false|true|nil)\b/,
     'keyword': /\b(?:and|break|do|else|elseif|end|for|function|goto|if|in|local|not|or|repeat|return|then|until|while)\b/,
     'operator': [
         /[-+*%^&|#]|\/\/?|<[<=]?|>[>=]?|[=~]=?/,

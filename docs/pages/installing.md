@@ -1,14 +1,17 @@
 ---
 layout: docs
 title: Installing
-permalink: /installing/
+permalink: /installing
 categories: docs toc
 order: 1
 ---
 
 {% raw %}
 
-To use Nelua you need a system with the following:
+Instructions for installing Nelua on Windows or Linux
+{: .lead}
+
+To install Nelua you need a system with the following:
 
 * Git (for cloning Nelua).
 * A C compiler (GCC or Clang are recommended).
@@ -35,12 +38,17 @@ for example suppose you want to install in your home
 then use `sudo make install PREFIX=$HOME/nelua`
 and Nelua compiler will be available at `PREFIX=$HOME/nelua/bin/nelua`.
 
+Alternatively you can just run the `nelua.sh` file to run directly if you do not wish
+to install anywhere on your system.
+
 Proceed to the testing section.
 
 ## Installing on Windows
 
 MSYS2 is the recommended and supported environment to use Nelua on Windows,
-although you could use other tools MSYS2 makes using Nelua very easy on Windows.
+although you could use other tools MSYS2 makes using Nelua very easy on Windows,
+plus there are many useful C packages on MSYS2 that you could use install with ease like
+SDL2.
 
 Download and install [MSYS2](https://www.msys2.org/), choose the x86_64 installer.
 After installing open the 64 bit terminal and update:
@@ -69,7 +77,7 @@ If you already have a LuaRocks installation you could install Nelua with it.
 Although this is not recommended,
 because it won't use the bundled Lua's interpreter from Nelua,
 thus you will have worse compile speeds and if your system does not have Lua 5.3+ yet
-it won't work. Also trying this on Windows is not recommend,
+it won't work. Also trying this on Windows is not recommend
 because getting LuaRocks to work there is troublesome.
 
 With a proper LuaRocks setup do:
@@ -108,7 +116,7 @@ install it using your system's package manager and run:
 pacman -S mingw-w64-x86_64-SDL2
 # install SDL2 on Ubuntu
 sudo apt-get install libsdl2-dev
-
+# run it
 nelua examples/snakesdl.nelua
 ```
 

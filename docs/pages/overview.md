@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Overview
-permalink: /overview/
+permalink: /overview
 categories: docs toc
 toc: true
 order: 2
@@ -10,8 +10,11 @@ order: 2
 {% raw %}
 
 This is a quick overview of the language features that are currently implemented by examples.
+{: .lead}
+
 All the features and examples presented here should work with the latest Nelua, for
-features not implemented yet please see the [draft](/draft/).
+features not implemented yet see the [draft](/draft).
+{: .callout.callout-info}
 
 ## A note for Lua users
 
@@ -49,10 +52,9 @@ Nelua generates everything compiled into a single readable C file,
 if you know C is recommended to read the generated C code sometimes
 to learn more what exactly the compiler outputs.
 
---------------------------------------------------------------------------------
 ## Hello world
 
-Simple hello world program, just like in Lua:
+Simple hello world program is just like in Lua:
 
 ```lua
 print 'Hello world!'
@@ -74,7 +76,6 @@ Comments are just like in Lua:
 ]=]
 ```
 
---------------------------------------------------------------------------------
 ## Variables
 
 Variables are declared or defined like in lua, but optionally
@@ -174,7 +175,6 @@ print(a) -- outputs: 1
 
 Const annotation can also be used for function arguments.
 
---------------------------------------------------------------------------------
 ## Symbols
 
 Symbols are named identifiers for functions, types or variables.
@@ -212,7 +212,6 @@ print(global_a) -- outputs: 1
 print(global_f()) -- outputs: f
 ```
 
---------------------------------------------------------------------------------
 ## Control flow
 
 ### If
@@ -384,7 +383,6 @@ for i=1,10 do
 end
 ```
 
---------------------------------------------------------------------------------
 ## Primitive types
 
 ### Boolean
@@ -441,6 +439,7 @@ The following table shows Nelua primitive numeric types and is related type in C
 | `uint64`          | `uint64_t`      | `_u64` `_uint64`    |
 | `float32`         | `float`         | `_f32` `_float32`   |
 | `float64`         | `double`        | `_f64` `_float64`   |
+{: .table.table-bordered.table-striped}
 
 The types `isize` and `usize` types are usually 32 wide bits on 32-bit systems,
 and 64 bits wide on 64-bit systems. When you need an integer value you should use `integer`
@@ -646,40 +645,40 @@ local nu: uinteger = (@uinteger)(ni) -- explicit cast works, no checks are done
 print(nu) -- outputs: 18446744073709551615
 ```
 
---------------------------------------------------------------------------------
 ## Operators
 
 All Lua operators are provided:
 
 | Name | Syntax | Type | Operation |
 |---|---|---|---|
-| or       | `a or b`      | binary   | conditional or            |
-| and      | `a and b`     | binary   | conditional and           |
-| lt       | `a < b`       | binary   | less than                 |
-| gt       | `a > b`       | binary   | greater than              |
-| le       | `a <= b`      | binary   | less or equal than        |
-| ge       | `a >= b`      | binary   | greater or equal than     |
-| ne       | `a ~= b`      | binary   | not equal                 |
-| eq       | `a == b`      | binary   | equal                     |
-| bor      | `a | b`       | binary   | bitwise or                |
-| band     | `a & b`       | binary   | bitwise and               |
-| bxor     | `a ~ b`       | binary   | bitwise xor               |
-| shl      | `a << b`      | binary   | bitwise left shift        |
-| shr      | `a >> b`      | binary   | bitwise right shift       |
-| bnot     | `~a`          | unary    | bitwise not               |
-| concat   | `a .. b`      | binary   | concatenation             |
-| add      | `a + b`       | binary   | arithmetic add            |
-| sub      | `a - b`       | binary   | arithmetic subtract       |
-| mul      | `a * b`       | binary   | arithmetic multiply       |
-| neg      | `-a`          | unary    | arithmetic negation       |
-| mod      | `a % b`       | binary   | arithmetic modulo         |
-| pow      | `a ^ b`       | binary   | arithmetic exponentiation |
-| div      | `a / b`       | binary   | arithmetic division       |
-| idiv     | `a // b`      | binary   | arithmetic floor division |
-| not      | `not a`       | unary    | boolean negation          |
-| len      | `#a`          | unary    | length                    |
-| deref    | `$a`          | unary    | pointer dereference       |
-| ref      | `&a`          | unary    | memory reference          |
+| or       | `a or b`{:.language-nelua}      | binary   | conditional or            |
+| and      | `a and b`{:.language-nelua}     | binary   | conditional and           |
+| lt       | `a < b`{:.language-nelua}       | binary   | less than                 |
+| gt       | `a > b`{:.language-nelua}       | binary   | greater than              |
+| le       | `a <= b`{:.language-nelua}      | binary   | less or equal than        |
+| ge       | `a >= b`{:.language-nelua}      | binary   | greater or equal than     |
+| ne       | `a ~= b`{:.language-nelua}      | binary   | not equal                 |
+| eq       | `a == b`{:.language-nelua}      | binary   | equal                     |
+| bor      | `a | b`{:.language-nelua}       | binary   | bitwise or                |
+| band     | `a & b`{:.language-nelua}       | binary   | bitwise and               |
+| bxor     | `a ~ b`{:.language-nelua}       | binary   | bitwise xor               |
+| shl      | `a << b`{:.language-nelua}      | binary   | bitwise left shift        |
+| shr      | `a >> b`{:.language-nelua}      | binary   | bitwise right shift       |
+| bnot     | `~a`{:.language-nelua}          | unary    | bitwise not               |
+| concat   | `a .. b`{:.language-nelua}      | binary   | concatenation             |
+| add      | `a + b`{:.language-nelua}       | binary   | arithmetic add            |
+| sub      | `a - b`{:.language-nelua}       | binary   | arithmetic subtract       |
+| mul      | `a * b`{:.language-nelua}       | binary   | arithmetic multiply       |
+| neg      | `-a`{:.language-nelua}          | unary    | arithmetic negation       |
+| mod      | `a % b`{:.language-nelua}       | binary   | arithmetic modulo         |
+| pow      | `a ^ b`{:.language-nelua}       | binary   | arithmetic exponentiation |
+| div      | `a / b`{:.language-nelua}       | binary   | arithmetic division       |
+| idiv     | `a // b`{:.language-nelua}      | binary   | arithmetic floor division |
+| not      | `not a`{:.language-nelua}       | unary    | boolean negation          |
+| len      | `#a`{:.language-nelua}          | unary    | length                    |
+| deref    | `$a`{:.language-nelua}          | unary    | pointer dereference       |
+| ref      | `&a`{:.language-nelua}          | unary    | memory reference          |
+{: .table.table-bordered.table-striped}
 
 The operators follows Lua semantics, for example, `%` and `//`
 rounds the quotient towards minus infinity (different from C).
@@ -692,7 +691,6 @@ print(5 // 2) -- integer division, outputs: 2
 print(5 / 2) -- float division, outputs: 2.500000
 ```
 
---------------------------------------------------------------------------------
 ## Functions
 
 Functions are declared like in lua:
@@ -785,7 +783,6 @@ increment()
 print(counter) -- outputs 2
 ```
 
---------------------------------------------------------------------------------
 ## Polymorphic functions
 
 Polymorphic functions, or in short poly functions in the sources,
@@ -813,7 +810,6 @@ by the incoming call type, this makes possible to make a generic function for mu
 
 Later we will show how poly functions are more useful when used in combination with the **preprocessor**.
 
---------------------------------------------------------------------------------
 ## Memory management
 
 ### Dereferencing and referencing
@@ -847,7 +843,6 @@ general_allocator:delete(p)
 p = nilptr
 ```
 
---------------------------------------------------------------------------------
 ## Meta programming
 
 The language offers advanced features for meta programming by having a full lua processor
@@ -1102,7 +1097,6 @@ print(a,b) -- outputs: 4 4.000000
 --pow('a', 2)
 ```
 
---------------------------------------------------------------------------------
 ## Annotations
 
 Annotations are used to inform the compiler different behaviors in the code
@@ -1128,7 +1122,6 @@ local b <volatile> = 1 -- C volatile variable
 print(b) -- outputs: 1
 ```
 
---------------------------------------------------------------------------------
 ## Mixing C code
 
 Nelua can import C functions from C headers:
@@ -1171,5 +1164,6 @@ For importing C functions, additional compatibility primitive types are provided
 | `culonglong`      | `unsigned long long` | `_culonglong`    |
 | `csize`           | `size_t`             | `_csize`         |
 | `clongdouble`     | `long double`        | `_clongdouble`   |
+{: .table.table-bordered.table-striped}
 
 {% endraw %}

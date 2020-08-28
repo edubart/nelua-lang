@@ -1,6 +1,5 @@
 body {
-  padding-top: 4.5rem;
-  position: relative;
+  padding-top: 4rem;
 }
 
 /* Darker primary color used in the navbar */
@@ -9,18 +8,14 @@ body {
 }
 
 /* Brand */
-.nelua-brand {
-  line-height: 2.8rem;
-}
-
 .nelua-brand svg {
   width: 2.8rem;
   height: 2.8rem;
 }
 
 .nelua-brand .nelua-name {
-  margin-left: 4px;
-  margin-right: 4px;
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
   font-weight: bold;
 }
 
@@ -38,7 +33,7 @@ body {
 .nd-content h6[id]:before {
   display: block;
   content: " ";
-  margin-top: -5rem;
+  margin-top: -4rem;
   height: 5rem;
   visibility: hidden;
 }
@@ -72,26 +67,24 @@ footer a:hover {
 }
 
 /* Fix side navbars */
+@media (min-width: 992px) {
 .nd-sidenav-sticky {
   position: sticky;
   top: 5rem;
-  max-height: calc(100vh - 5em);
+  max-height: calc(100vh - 7em);
   overflow-y: auto;
+}
 }
 
 /* Table of contents */
-#nd-toc {
-  padding-left: 4px;
-}
-
 #nd-toc .nav {
-  margin-left: 8px;
+  margin-left: 0.5rem;
 }
 
 #nd-toc a {
   color: var(--bs-secondary);
-  font-size: 14px;
-  padding: 2px 4px;
+  font-size: 0.75em;
+  padding: 0.1rem 0.2rem;
 }
 
 #nd-toc.nav-pills .nav-link.active, .nav-pills .show>.nav-link {
@@ -113,14 +106,52 @@ footer a:hover {
   text-decoration: none;
 }
 
+/* Margin for headings */
+.nd-content>h2:not(:first-child) {
+  margin-top: 2rem
+}
+.nd-content>h3 {
+  margin-top: 1.5rem
+}
+.nd-content>h1 {
+  margin-top: 1rem
+}
+
+/* Callout */
+.callout {
+  padding: 1.25rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #E9ECEF;
+  border-left-width: .25rem;
+  border-radius: .25rem;
+}
+
+.callout-info { border-left-color: var(--bs-info); }
+.callout-warning { border-left-color: var(--bs-warning); }
+.callout-danger { border-left-color: var(--bs-danger); }
+
+/* Theme for Prism.JS */
 pre[class*="language-"] {
   color: #F8F8F2;
   background: #282A36;
-  padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 0.2em;
+  padding: 0.2em 0.4em;
 }
 
-/* Theme for Prism.JS */
+:not(pre) > code {
+  background-color: rgb(235, 237, 240);
+  padding: 0.1em 0.2em;
+  border-radius: 0.2em;
+}
+
+:not(pre) > code[class*="language-"] {
+  color: #F8F8F2;
+  background: #282A36;
+  padding: 0.1em 0.2em;
+  border-radius: 0.2em;
+}
+
 .token.comment {
   color: #778090;
 }
@@ -165,7 +196,7 @@ pre[class*="language-"] {
 }
 
 .token.keyword {
-  color: hsl(338, 95%, 56%);
+  color: #ef3b7d;
   font-weight: bold;
 }
 

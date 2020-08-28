@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Tutorial
-permalink: /tutorial/
+permalink: /tutorial
 categories: docs toc
 toc: true
 order: 3
@@ -9,8 +9,12 @@ order: 3
 
 {% raw %}
 
-This is a basic tutorial for the Nelua Programming Language, if you don't have installed
-Nelua yet, please see the [installing tutorial](/installing) first.
+This is a basic tutorial for the Nelua Programming Language, for running
+your first application.
+{: .lead}
+
+**Don't have Nelua installed yet?** Then read the [installing tutorial](/installing) first.
+{: .callout.callout-info}
 
 ## Your first program
 
@@ -23,21 +27,21 @@ print 'Hello world'
 This example is already in the repository as an example, first clone the language repository
 if you haven't yet:
 
-```
+```bash
 git clone git@github.com:edubart/nelua-lang.git
 cd nelua-lang
 ```
 
 Now can run it doing:
-```sh
+```bash
 nelua examples/helloworld.nelua 
 ```
 
 When running you should get an output similar to this:
-```
-generated /home/bart/nelua-lang/nelua_cache/examples/helloworld.c
-gcc -o "/home/bart/nelua-lang/nelua_cache/examples/helloworld.out" "/home/bart/nelua-lang/nelua_cache/examples/helloworld.c" -lm -Wall -Wextra -Wno-missing-field-initializers -Wno-unused-parameter -Wno-unused-const-variable -Wno-unused-function -Wno-missing-braces -g
-/home/bart/nelua-lang/nelua_cache/examples/helloworld
+```bash
+generated /home/user/nelua-lang/nelua_cache/examples/helloworld.c
+gcc -o "/home/user/nelua-lang/nelua_cache/examples/helloworld" "/home/user/nelua-lang/nelua_cache/examples/helloworld.c" -Wall -lm -fwrapv -g
+/home/user/nelua-lang/nelua_cache/examples/helloworld
 hello world
 ```
 
