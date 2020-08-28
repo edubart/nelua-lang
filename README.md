@@ -1,4 +1,5 @@
-<img width="96" src="https://nelua.io/assets/img/nelua-logo.svg?sanitize=true" alt="Nelua Logo">
+![Nelua Logo](https://nelua.io/assets/img/nelua-logo.png)
+[nelua.io](https://nelua.io/)
 
 # Nelua Programming Language
 
@@ -6,10 +7,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/edubart/nelua-lang/badge.svg?branch=master)](https://coveralls.io/github/edubart/nelua-lang?branch=master)
 [![Discord](https://img.shields.io/discord/680417078959800322.svg)](https://discord.gg/7aaGeG7)
 [![Try on Repl.it](https://repl.it/badge/github/edubart/nelua-lang)](https://repl.it/@edubart/nelua-lang#examples/replit.lua)
-<a href="https://patreon.com/edubart">
-<img height="20" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.herokuapp.com%2Fedubart%2Fpledgesssss&style=for-the-badge"
-style="max-width:100%;"/>
-</a>
 
 Nelua is a minimal, simple, efficient, statically typed, compiled, meta programmable,
 safe and extensible systems programming language with a Lua flavor.
@@ -17,7 +14,7 @@ It uses ahead of time compilation to compile to native code.
 Nelua stands for *Native Extensible Lua*.
 
 **NOTE: The language is in development and in alpha state.**
-
+)
 ## About
 
 Nelua is a [systems programming language](https://en.wikipedia.org/wiki/System_programming_language)
@@ -172,30 +169,8 @@ CPU Intel Core i7-3770K CPU @ 3.50GHz,
 OS ArchLinux
 CFLAGS `-O3 -fno-plt -march=native -flto`
 
-## Tests
-
-To run the language test suite use docker:
-
-```
-make docker-image
-make docker-test
-```
-
 Previous test runs on the master branch can be seen in the
 [github's actions tab](https://github.com/edubart/nelua-lang/actions).
-
-## Syntax highlighting
-
-Syntax definitions for the language is available for
-Visual Studio Code in [nelua-vscode](https://github.com/edubart/nelua-vscode) and
-for Sublime Text in [nelua-sublime](https://github.com/edubart/nelua-sublime).
-At the moment only Sublime Text have full syntax definition, so I recommend using it.
-If you use other code editor you can use Lua syntax highlighting
-as Nelua syntax is very similar.
-
-I recommend using the syntax highlighter,
-it makes the experience of playing around with the language more pleasant because
-it can highlight type notations.
 
 ## Roadmap
 
