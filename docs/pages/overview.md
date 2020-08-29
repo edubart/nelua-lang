@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Overview
-permalink: /overview
+permalink: /overview/
 categories: docs toc
 order: 3
 ---
@@ -12,7 +12,7 @@ This is a quick overview of the language features that are currently implemented
 {: .lead}
 
 All the features and examples presented here should work with the latest Nelua, for
-features not implemented yet see the [draft](/draft).
+features not implemented yet see the [draft](/draft/).
 {: .callout.callout-info}
 
 ## A note for Lua users
@@ -1312,4 +1312,4 @@ For importing C functions, additional compatibility primitive types are provided
 
 {% endraw %}
 
-<a href="/manual" class="btn btn-outline-primary btn-lg float-right">Manual >></a>
+<a href="/manual/" class="btn btn-outline-primary btn-lg float-right">Manual >></a>

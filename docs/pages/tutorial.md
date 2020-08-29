@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Tutorial
-permalink: /tutorial
+permalink: /tutorial/
 categories: docs toc
 order: 2
 ---
@@ -12,7 +12,7 @@ This is a basic tutorial for the Nelua Programming Language, for running
 your first application.
 {: .lead}
 
-**Don't have Nelua installed yet?** Then read the [installing tutorial](/installing) first.
+**Don't have Nelua installed yet?** Then read the [installing tutorial](/installing/) first.
 {: .callout.callout-info}
 
 ## Your first program
@@ -75,7 +75,7 @@ it can highlight type notations.
 
 ## Language features
 
-A quick tour of the language features can be seen in the [overview page](/overview),
+A quick tour of the language features can be seen in the [overview page](/overview/),
 highly recommend to read it if you haven't yet.
 
 ## More examples 
@@ -93,6 +93,6 @@ The most interesing examples are:
 * `examples/snakesdl.nelua` the classic Snake game (requires SDL)
 * `examples/condots.nelua` connected dots graphic animation made in parallel (requires SDL and OpenMP)
 
-<a href="/overview" class="btn btn-outline-primary btn-lg float-right">Overview >></a>
+<a href="/overview/" class="btn btn-outline-primary btn-lg float-right">Overview >></a>
 
 {% endraw %}

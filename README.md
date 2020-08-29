@@ -104,9 +104,9 @@ syntax and semantics across both compiled and dynamic language.
 ## Learning
 
 More details about the language can be read on the following links:
-* Check out the language [overview](https://nelua.io/overview)
+* Check out the language [overview](https://nelua.io/overview/)
 to get a quick view of the language syntax, features and usage.
-* Check out the language [tutorial](https://nelua.io/tutorial)
+* Check out the language [tutorial](https://nelua.io/tutorial/)
 for learning the basics.
 * Join the language [discord chat](https://discord.gg/7aaGeG7)
 in case you have questions or need help.

@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Manual
-permalink: /manual
+permalink: /manual/
 categories: docs toc
 toc: true
 order: 4
@@ -51,4 +51,4 @@ case continue defer global switch
 | `!`   | attribute |
 {: .table.table-bordered.table-striped}
 
-<a href="/draft" class="btn btn-outline-primary btn-lg float-right">Draft >></a>
+<a href="/draft/" class="btn btn-outline-primary btn-lg float-right">Draft >></a>

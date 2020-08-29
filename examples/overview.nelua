@@ -510,7 +510,7 @@ end
 do -- Macros
   ## function increment(a, amount)
     -- 'a' in the preprocessor context is a symbol, we access its name here
-    -- 'amount' in the processor context is a lua number
+    -- 'amount' in the preprocessor context is a lua number
     #|a.name|# = #|a.name|# + #[amount]#
   ## end
   local x = 0

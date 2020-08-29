@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Installing
-permalink: /installing
+permalink: /installing/
 categories: docs toc
 order: 1
 ---
@@ -120,6 +120,6 @@ sudo apt-get install libsdl2-dev
 nelua examples/snakesdl.nelua
 ```
 
-<a href="/tutorial" class="btn btn-outline-primary btn-lg float-right">Tutorial >></a>
+<a href="/tutorial/" class="btn btn-outline-primary btn-lg float-right">Tutorial >></a>
 
 {% endraw %}
