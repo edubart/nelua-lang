@@ -8,13 +8,14 @@ permalink: /docs
 
 Instructions for downloading and installing the Nelua compiler.
 
-### [Overview](/overview)
-
-Overview features of Nelua.
-
-### [Tutorial](/overview)
+### [Tutorial](/tutorial)
 
 Tutorial for running your first programs using the Nelua compiler.
+
+### [Overview](/overview)
+
+Overview features of Nelua,
+the **most interesting page** to learn more about all the features and syntax
 
 ### [Manual](/manual)
 

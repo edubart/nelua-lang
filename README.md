@@ -15,7 +15,7 @@ It uses ahead of time compilation to compile to native code.
 Nelua stands for *Native Extensible Lua*.
 
 **NOTE: The language is in development and in alpha state.**
-)
+
 ## About
 
 Nelua is a [systems programming language](https://en.wikipedia.org/wiki/System_programming_language)

@@ -3,8 +3,7 @@ layout: docs
 title: Tutorial
 permalink: /tutorial
 categories: docs toc
-toc: true
-order: 3
+order: 2
 ---
 
 {% raw %}
@@ -40,7 +39,9 @@ nelua examples/helloworld.nelua
 When running you should get an output similar to this:
 ```bash
 generated /home/user/nelua-lang/nelua_cache/examples/helloworld.c
-gcc -o "/home/user/nelua-lang/nelua_cache/examples/helloworld" "/home/user/nelua-lang/nelua_cache/examples/helloworld.c" -Wall -lm -fwrapv -g
+gcc -o "/home/user/nelua-lang/nelua_cache/examples/helloworld" \
+       "/home/user/nelua-lang/nelua_cache/examples/helloworld.c" \
+       -Wall -lm -fwrapv -g
 /home/user/nelua-lang/nelua_cache/examples/helloworld
 hello world
 ```
@@ -48,7 +49,7 @@ hello world
 Note that the compiler has generated the `helloworld.c`,
 this is your program translated to C source code,
 if you know how to read C then I encourage to open it and have a look,
-the compiler tries to generate very efficient, compact and readable C sources.
+the compiler tries to generate efficient, compact and readable C sources.
 
 After the C source file was generated GCC is invoked to compile the C sources
 and then the program is executed.
@@ -74,12 +75,13 @@ it can highlight type notations.
 
 ## Language features
 
-A quick tour of the language features can be seen in the [overview page](/overview).
+A quick tour of the language features can be seen in the [overview page](/overview),
+highly recommend to read it if you haven't yet.
 
 ## More examples 
 
 As the language is being developed this tutorial still quite short.
-However you can see more interesting examples of the language usage in the
+However you can see and run more interesting examples of the language usage in the
 [examples](https://github.com/edubart/nelua-lang/tree/master/examples),
 [benchmarks](https://github.com/edubart/nelua-lang/tree/master/benchmarks) or
 [tests](https://github.com/edubart/nelua-lang/tree/master/tests)
@@ -90,5 +92,7 @@ The most interesing examples are:
 * `examples/brainfuck.nelua` use of meta-programing to code the esoteric [Brainfuck language](https://en.wikipedia.org/wiki/Brainfuck)
 * `examples/snakesdl.nelua` the classic Snake game (requires SDL)
 * `examples/condots.nelua` connected dots graphic animation made in parallel (requires SDL and OpenMP)
+
+<a href="/overview" class="btn btn-outline-primary btn-lg float-right">Overview >></a>
 
 {% endraw %}

@@ -7,8 +7,11 @@ toc: true
 order: 4
 ---
 
-Technical specification of the Nelua language features. This still very incomplete.
+Technical specification of the Nelua language.
 {: .lead}
+
+This page is under construction and very incomplete.
+{: .callout.callout-info}
 
 ## Keywords
 
@@ -47,3 +50,5 @@ case continue defer global switch
 | `--`  | comment |
 | `!`   | attribute |
 {: .table.table-bordered.table-striped}
+
+<a href="/draft" class="btn btn-outline-primary btn-lg float-right">Draft >></a>

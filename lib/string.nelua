@@ -90,17 +90,13 @@ function string.__tostringview(s: string): stringview <inline,nosideeffect>
   return (@stringview){data = &s.data[0], size = s.size}
 end
 
-function string.__convert(s: #[overload_concept({stringview,cstring},true)]#): string
-  ## if s.type.is_stringview then
-    return (@string){size=s.size, data=s.data}
-  ## elseif s.type.is_cstring then
-    if unlikely(not s) then return (@string){} end
-    local size: usize = strlen(s)
-    if unlikely(size == 0) then return (@string){} end
-    local self: string = string._create(size)
-    memory.copy(&self.data[0], s, size)
-    return self
-  ## end
+function string.__convert(s: cstring): string
+  if unlikely(not s) then return (@string){} end
+  local size: usize = strlen(s)
+  if unlikely(size == 0) then return (@string){} end
+  local self: string = string._create(size)
+  memory.copy(&self.data[0], s, size)
+  return self
 end
 
 function string.sub(self: stringview, i: isize, j: #[optional_concept(isize)]#): string

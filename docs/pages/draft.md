@@ -3,7 +3,7 @@ layout: docs
 title: Draft
 permalink: /draft
 categories: docs toc
-order: 4
+order: 5
 ---
 
 {% raw %}
@@ -143,21 +143,6 @@ local b = inc(nil)
 print(b) -- outputs 'nil'
 ```
 
-### Block
-
-Block variables are used to encapsulate arbitrary code inside a variable at compile time,
-when the block variable is called the compiler replaces the call code with the block code:
-
-```nelua
-local a: block = do
-  print 'hello'
-end -- a is of type 'block'
-a() -- compiler injects the block code here, prints 'hello world'
-```
-
-But block variables are not functions, think of block variables as a code replacement tool.
-Later will be shown how them are more useful to do *meta programming*.
-
 ### Closures
 
 Closure are functions declared inside another function
@@ -237,40 +222,6 @@ end
 print_all(get_two()) -- outputs "1 2"
 ```
 
-### Generics
-
-Generics can be achieved with poly functions:
-
-```nelua
-local function Point(T: type)
-  local PointT = @record{ x: T, y: T }
-  function PointT:length(a: T): T
-    return math.sqrt(self.x ^ @T(2), self.y ^ @T(2))
-  end
-  return PointT
-end
-
-local PointFloat32 = Point(@float32)
-local b: PointFloat32
-```
-
-### Poly functions with blocks
-
-Blocks can be passed to poly functions, in this case the entire function code will be always
-inlined in the call placement.
-
-```nelua
-local function unroll(count: integer <comptime>, body: block)
-  ## for i=1,count.value do
-    body()
-  ## end
-end
-
-local a = 0
-unroll(4, do a = a + 1 end) -- inline "a = a + 1" for times
-print(a) -- outputs 4
-```
-
 ## Modules
 
 ### Static Modules
@@ -280,72 +231,60 @@ type and function name clashing across the code base.
 
 Creating module `hello`:
 ```nelua
--- hello.lua
+-- mymodule.lua
+local mymodule = @record{}
+
 local a = 1 -- private variable
 local function get_a() -- private function
   return a
 end
 
-local b = 2 -- variable exported to the module
-local function foo()
+global mymodule.b = 2 -- variable exported to the module
+function mymodule.foo() -- function exported to the module
   return get_a()
 end
+
+return mymodule
 ```
 
 Using the module:
 ```nelua
-import hello
-hello.foo()
-print(hello.b)
-
-import hello as mymodule -- module name is mymodule
+local mymodule = require 'mymodule'
 mymodule.foo()
-
-use import hello -- all exported modules symbols are available in the current scope
-foo()
+print(mymodule.b)
 ```
 
 ### Dynamic Module
 
 Dynamic modules uses tables and it can change on runtime.
 
-Creating module `hello`:
+Creating module `mymodule`:
 ```nelua
--- hello.lua
-local M = {}
+-- mymodule.lua
+local mymodule = {}
 local a = 1 -- private variable
 local function get_a() -- private function
   return a
 end
 
-M.b = 2
-function M.foo()
+mymodule.b = 2
+function mymodule.foo()
   return get_a()
 end
 
-return M
+return mymodule
 ```
 
 Using the module:
 ```nelua
-local hello = require 'hello'
-hello.foo()
-print(hello.b)
+local mymodule = require 'mymodule'
+mymodule.foo()
+print(mymodule.b)
 
-for k,v in pairs(require 'hello') _G[k] = v end -- import all functions to _G
+for k,v in pairs(require 'mymodule')
+  _G[k] = v
+end -- import all functions to _G
 foo()
-```
-
-## Operators
-
-### Operator overloading
-```nelua
-local function `+`(a: string, b: string)
-  return a .. b
-end
-
-local a = "hello " + "world"
-print(a) -- outputs hello world
 ```
 
 ## Error handling
@@ -380,60 +319,6 @@ except(e: string)
 except(e: any)
   -- catch any error
 end
-```
-
-## Memory management
-
-### Allocation
-
-```nelua
-@import 'nelua.std.memory'
-
-local a = new(@integer) -- a type is: pointer(integer)
-a[0] = 1
-*a = 1
-var& ra = $a; ra = 1
-delete(a)
-
-local a = new(@array(integer,10)) -- a is pointer(array(integer, 10))
-for i=0,<10 do
-  a[i] = i
-end
-delete(a)
-```
-
-### Shared objects with smart pointers
-
-```nelua
-local shared_pointer = @import 'nelua.std.shared_pointer'
-
-local Person = @struct{
-  name: string,
-  age: int
-}
-
-local PersonPtr = shared_pointer(Person)
-
-local a = PersonPtr(new(@Person))
-local b = a
-b.name = "John"
-print(a.name) -- outputs "John"
-```
-
-### Shared objects with garbage collector
-
-```nelua
-@import 'nelua.std.gc'
-
-local Person = @struct{
-  name: string,
-  age: int
-}
-
-local a = gcnew(@Person)
-local b = a
-b.name = "John"
-print(a.name) -- outputs "John"
 ```
 
 ## Object oriented programming
@@ -496,26 +381,6 @@ local castPolygon()
 local square = newSquare{2, 2}
 var& polygon = cast(@Polygon, square)
 print(polygon:area()) -- outputs 4
-```
-
-## Standard library
-
-### Dynamic arrays
-
-```nelua
-local vector = @import 'nstd.vector'
-
-local a = @vector(int8) {1,2,3,4} -- dynamic array of int8
-local a: vector(string) -- dynamic array of string
-```
-
-### Maps
-
-```nelua
-local map = @import 'nstd.map'
-
-local m = @map(string, integer) {a = 1, b = 2} -- map of string -> integer
-local m: map(string, integer) -- map of string -> int
 ```
 
 {% endraw %}

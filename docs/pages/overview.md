@@ -3,8 +3,7 @@ layout: docs
 title: Overview
 permalink: /overview
 categories: docs toc
-toc: true
-order: 2
+order: 3
 ---
 
 {% raw %}
@@ -439,14 +438,14 @@ The following table shows Nelua primitive numeric types and is related type in C
 | `uint64`          | `uint64_t`      | `_u64` `_uint64`    |
 | `float32`         | `float`         | `_f32` `_float32`   |
 | `float64`         | `double`        | `_f64` `_float64`   |
-{: .table.table-bordered.table-striped}
+{: .table.table-bordered.table-striped.table-sm}
 
 The types `isize` and `usize` types are usually 32 wide bits on 32-bit systems,
 and 64 bits wide on 64-bit systems. When you need an integer value you should use `integer`
 unless you have a specific reason to use a sized or unsigned integer type.
 The `integer`, `uinteger` and `number` are intended to be configurable. By default
 they are 64 bits for all architectures, but this can be changed at compile time
-using the processor if needed.
+using the preprocessor if needed.
 
 ### Strings
 
@@ -455,6 +454,7 @@ and `stringview` used for strings literals defined at compile time and as views
 of runtime strings too.
 
 ```nelua
+-- to use the 'string' type we must import from the standard library
 require 'string'
 
 local mystr: string -- empty string
@@ -464,16 +464,15 @@ local str3: stringview = 'stringview two' -- also a 'stringview'
 print(str1, str2, str3) -- outputs: "" "string one" "string two"
 ```
 
-Like in lua strings are immutable, this make the semantics similar to lua and
-allows the compiler to use reference counting instead of garbage collector
-for managing strings memory. If the programmer wants
-a mutable string he can always implement his own string object.
+Like in Lua, strings are immutable, this make the semantics similar to Lua.
+If the programmer wants a mutable string he can always implement his own string class.
 
 The major difference of `stringview` and `string` is that `stringview` doesn't
 manage the string memory, i.e. it doesn't allocates or free strings.
 The `string` type is usually allocated at runtime and it frees the string memory
-once it reference count reaches 0. The `stringview` uses weak references, thus
-any `stringview` pointing to a `string` is invalidated once the `string` is freed.
+once it reference count reaches 0. When the garbage collector is disabled
+the `stringview` uses weak references, thus
+any `stringview` pointing to a `string` is invalidated once the related `string` is freed.
 Both types can be converted from one to another.
 
 ### Array
@@ -649,7 +648,7 @@ print(nu) -- outputs: 18446744073709551615
 
 All Lua operators are provided:
 
-| Name | Syntax | Type | Operation |
+| Name | Syntax | Kind | Operation |
 |---|---|---|---|
 | or       | `a or b`{:.language-nelua}      | binary   | conditional or            |
 | and      | `a and b`{:.language-nelua}     | binary   | conditional and           |
@@ -669,7 +668,7 @@ All Lua operators are provided:
 | add      | `a + b`{:.language-nelua}       | binary   | arithmetic add            |
 | sub      | `a - b`{:.language-nelua}       | binary   | arithmetic subtract       |
 | mul      | `a * b`{:.language-nelua}       | binary   | arithmetic multiply       |
-| neg      | `-a`{:.language-nelua}          | unary    | arithmetic negation       |
+| unm      | `-a`{:.language-nelua}          | unary    | arithmetic negation       |
 | mod      | `a % b`{:.language-nelua}       | binary   | arithmetic modulo         |
 | pow      | `a ^ b`{:.language-nelua}       | binary   | arithmetic exponentiation |
 | div      | `a / b`{:.language-nelua}       | binary   | arithmetic division       |
@@ -678,7 +677,7 @@ All Lua operators are provided:
 | len      | `#a`{:.language-nelua}          | unary    | length                    |
 | deref    | `$a`{:.language-nelua}          | unary    | pointer dereference       |
 | ref      | `&a`{:.language-nelua}          | unary    | memory reference          |
-{: .table.table-bordered.table-striped}
+{: .table.table-bordered.table-striped.table-sm}
 
 The operators follows Lua semantics, for example, `%` and `//`
 rounds the quotient towards minus infinity (different from C).
@@ -783,7 +782,7 @@ increment()
 print(counter) -- outputs 2
 ```
 
-## Polymorphic functions
+### Polymorphic functions
 
 Polymorphic functions, or in short poly functions in the sources,
 are functions which contains arguments that proprieties can
@@ -810,7 +809,169 @@ by the incoming call type, this makes possible to make a generic function for mu
 
 Later we will show how poly functions are more useful when used in combination with the **preprocessor**.
 
+### Record functions
+
+A record type can have functions defined for it, this makes useful to
+organize functions that are to be used just with that type.
+
+```nelua
+local Vec2 = @record{x: number, y: number}
+
+function Vec2.create(x: integer, y: integer): Vec2
+  return (@Vec2){x, y}
+end
+
+local v = Vec2.create(1,2)
+print(v.x, v.y) -- outputs: 1 2
+```
+
+### Record methods
+
+A method is function defined for record that takes a reference to the record type
+as its first argument, this first argument is visible as `self` inside the method.
+For defining or calling a method the semicolon token `:` must be used, just like in Lua.
+
+```nelua
+local Rect = @record{x: number, y: number, w: number, h: number}
+
+function Rect:translate(x: number, y: number)
+  self.x = self.x + x
+  self.y = self.y + y
+end
+
+function Rect:area()
+  return self.w * self.h
+end
+
+local v = Rect{0,0,2,3}
+v:translate(2,2)
+print(v.x, v.y) -- outputs 2 2
+print(v:area()) -- outputs 6
+```
+
+### Record metamethods
+
+Some special methods using the `__` prefix are used by the compiler to defines behaviors
+on certain operations with the record type,
+they are called metamethods and are similar to the Lua metamethods.
+
+```nelua
+require 'math'
+
+local Vec2 = @record{x: number, y: number}
+
+-- Called on the binary operator '+'
+function Vec2.__add(a: Vec2, b: Vec2)
+  return (@Vec2){a.x+b.x, a.y+b.y}
+end
+
+-- Called on the unary operator '#'
+function Vec2:__len()
+  return math.sqrt(self.x*self.x + self.y*self.y)
+end
+
+local a: Vec2 = {1, 2}
+local b: Vec2 = {3, 4}
+local c = a + b -- calls the __add metamethod
+print(c.x, c.y) -- outputs: 4 6
+local len = #c -- calls the __len metamethod
+print(len) -- outputs: 7.2
+```
+
+Complete list of the metamethods can that be defined for records:
+
+| Name | Syntax | Kind | Operation |
+|---|---|---|---|
+| `__lt`            | `a < b`{:.language-nelua}  | binary   | less than                   |
+| `__le`            | `a <= b`{:.language-nelua} | binary   | less or equal than          |
+| `__eq`            | `a == b`{:.language-nelua} | binary   | equal                       |
+| `__bor`           | `a | b`{:.language-nelua}  | binary   | bitwise or                  |
+| `__band`          | `a & b`{:.language-nelua}  | binary   | bitwise and                 |
+| `__bxor`          | `a ~ b`{:.language-nelua}  | binary   | bitwise xor                 |
+| `__shl`           | `a << b`{:.language-nelua} | binary   | bitwise left shift          |
+| `__shr`           | `a >> b`{:.language-nelua} | binary   | bitwise right shift         |
+| `__bnot`          | `~a`{:.language-nelua}     | unary    | bitwise not                 |
+| `__concat`        | `a .. b`{:.language-nelua} | binary   | concatenation               |
+| `__add`           | `a + b`{:.language-nelua}  | binary   | arithmetic add              |
+| `__sub`           | `a - b`{:.language-nelua}  | binary   | arithmetic subtract         |
+| `__mul`           | `a * b`{:.language-nelua}  | binary   | arithmetic multiply         |
+| `__unm`           | `-a`{:.language-nelua}     | unary    | arithmetic negation         |
+| `__mod`           | `a % b`{:.language-nelua}  | binary   | arithmetic modulo           |
+| `__pow`           | `a ^ b`{:.language-nelua}  | binary   | arithmetic exponentiation   |
+| `__div`           | `a / b`{:.language-nelua}  | binary   | arithmetic division         |
+| `__idiv`          | `a // b`{:.language-nelua} | binary   | arithmetic floor division   |
+| `__len`           | `#a`{:.language-nelua}     | unary    | length                      |
+| `__index`         | `a[b]`{:.language-nelua}   | indexing | array index                 |
+| `__atindex`       | `a[b]`{:.language-nelua}   | indexing | array index via reference   |
+| `__tocstring`     |                            | cast     | implicit cast to cstring    |
+| `__tostring'`     |                            | cast     | implicit cast to string     |
+| `__tostringview'` |                            | cast     | implicit cast to stringview |
+| `__cinvert'`      |                            | cast     | implicit cast to anything   |
+{: .table.table-bordered.table-striped.table-sm}
+
 ## Memory management
+
+By default Nelua uses a garbage collector to allocate and deallocate memory on its own.
+However it can be disabled with the pragma `nogc` via the command line or in the sources:
+
+```nelua
+## pragmas.nogc = true -- tells the compiler that we don't want to use the GC
+require 'string' -- the string class will be implemented without GC code
+local str = tostring(1) -- tostring needs to allocates a new string
+print(str) -- outputs: 1
+## if pragmas.nogc then -- the GC is disabled, must manually deallocate memory
+str:destroy() -- deallocates the string
+## end
+print(str) -- the string was destroyed and is now empty, outputs nothing
+```
+
+Notice that when disabling the garbage collector the coding style may
+be different from Lua usual style, because now you need to think of each allocation
+and dellocation, including for strings, otherwise memory in your application will leak,
+thus is best to leave the GC enabled when you need rapid prototyping.
+Disable the GC if you want to control the memory on your own for performance reasons,
+know how to deal with memory management and don't mind the additional cognitive load
+when coding without automatic memory management.
+
+### Allocating memory
+
+Nelua provides many allocators to assist managing memory.
+The most important ones are the `allocators.general` and `allocators.gc`.
+
+If you are using the GC, you must always use the `allocators.gc`, because
+it marks the allocated memory region for scanning for references:
+```nelua
+require 'string'
+require 'memory'
+require 'allocators.gc'
+
+local Person = @record{name: string, age: integer}
+local p: Person* = general_allocator:new(@Person)
+p.name = "John"
+p.age = 20
+print(p.name, p.age)
+p = nilptr
+-- we don't need to deallocate, the GC will do this on its own when needed!
+```
+
+If you are doing manual memory management you can use the general purpose allocator,
+that is based on the system's `malloc` and `free` functions:
+
+```nelua
+## pragmas.nogc = true -- disables the GC
+require 'string'
+require 'memory'
+require 'allocators.general'
+
+local Person = @record{name: string, age: integer}
+local p: Person* = general_allocator:new(@Person) -- allocate the appropriate size for Person
+p.name = tostring("John") -- another allocation here
+p.age = 20
+print(p.name, p.age)
+p.name:destroy() -- free the string allocation
+general_allocator:delete(p) -- free the Person allocation
+p = nilptr
+```
 
 ### Dereferencing and referencing
 
@@ -826,26 +987,9 @@ a = 3
 print($ap) -- outputs 3
 ```
 
-### Allocating memory
-
-Memory can be allocated using C malloc and free.
-
-```nelua
-require 'memory'
-require 'allocators.general'
-
-local Person = @record{name: string, age: integer}
-local p: Person* = general_allocator:new(@Person)
-p.name = "John"
-p.age = 20
-print(p.name, p.age)
-general_allocator:delete(p)
-p = nilptr
-```
-
 ## Meta programming
 
-The language offers advanced features for meta programming by having a full lua processor
+The language offers advanced features for meta programming by having a full Lua preprocessor
 at compile time that can generate and manipulate code when compiling.
 
 ### Preprocessor
@@ -854,7 +998,7 @@ At compile time a Lua preprocessor is available to render arbitrary code,
 it works similar to templates in the web development world because they emit
 code between it's statements.
 
-Lines beginning with `##` and between `##[[ ]]` are Lua code evaluated by the processor:
+Lines beginning with `##` and between `##[[ ]]` are Lua code evaluated by the preprocessor:
 
 
 ```nelua
@@ -903,7 +1047,7 @@ print(a) -- outputs: 1
 
 ### Expression replacement
 
-For placing values generated by the processor you should use `#[ ]#`:
+For placing values generated by the preprocessor you should use `#[ ]#`:
 
 ```nelua
 local deg2rad = #[math.pi/180.0]#
@@ -923,7 +1067,7 @@ print(deg2rad, hello, mybool)
 
 ### Name replacement
 
-For placing identifier names generated by the processor you should use `#| |#`:
+For placing identifier names generated by the preprocessor you should use `#| |#`:
 
 ```nelua
 local #|'my' .. 'var'|# = 1
@@ -957,7 +1101,7 @@ containing normal code:
 ```nelua
 ## function increment(a, amount)
   -- 'a' in the preprocessor context is a symbol, we need to use its name
-  -- 'amount' in the processor context is a lua number
+  -- 'amount' in the preprocessor context is a lua number
   #|a.name|# = #|a.name|# + #[amount]#
 ## end
 local x = 0
@@ -1025,7 +1169,7 @@ local pb: PointInt = {x=1,y=2}
 print(pb:squaredlength()) -- outputs: 5.000000
 ```
 
-### Processing on the fly
+### Preprocessing on the fly
 
 While the compiler is processing you can view what the compiler already knows
 to generate code:
@@ -1164,6 +1308,8 @@ For importing C functions, additional compatibility primitive types are provided
 | `culonglong`      | `unsigned long long` | `_culonglong`    |
 | `csize`           | `size_t`             | `_csize`         |
 | `clongdouble`     | `long double`        | `_clongdouble`   |
-{: .table.table-bordered.table-striped}
+{: .table.table-bordered.table-striped.table-sm}
 
 {% endraw %}
+
+<a href="/manual" class="btn btn-outline-primary btn-lg float-right">Manual >></a>

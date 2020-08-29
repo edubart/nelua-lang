@@ -10,6 +10,11 @@ order: 5
 Answers to frequently asked questions about Nelua.
 {: .lead}
 
+**Is your question not here?** Use the search bar to search in the documentation
+or ask in the [discord chat](https://discord.gg/7aaGeG7), common questions asked
+there will be moved here.
+{: .callout.callout-info}
+
 ## Why Nelua?
 
 Nelua was created with the intent to have an efficient compiled language
@@ -59,7 +64,7 @@ understanding of his code.
 * Makes easy to import or use C code without costs in Nelua.
 * C is simple to use and this makes the Nelua compiler simpler.
 
-## Why not just use LLVM?
+## Why Nelua does not use LLVM?
 
 * By using LLVM Nelua would have a huge dependency and this would go against of one of its goals of being simple to compile and use.
 * Being locked to LLVM would take out other great compilers that can perform better.
@@ -97,13 +102,18 @@ libraries or almost anything were one would use C.
 
 ## What have been the major influences in Nelua design?
 
-Obviously Lua and C, then most modern languages that tends to be a "better C",
+Obviously Lua and C, then modern languages that tends to be a "better C",
 like Nim, Odin, Zig.
 
 ## What about editor support?
 
-Nelua has syntax highlight plugins for [Sublime Text](https://github.com/edubart/nelua-sublime) and [Visual Studio Code](https://github.com/edubart/nelua-vscode). If you use
-other editor and make a plugin for Nelua let me know.
+Nelua has syntax highlight plugins for:
+
+* [Sublime Text](https://github.com/edubart/nelua-sublime)
+* [Visual Studio Code](https://github.com/edubart/nelua-vscode)
+* [Text Adept](https://github.com/Andre-LA/ta-nelua-mirror)
+
+If you use other editor and make a plugin for Nelua let me know.
 
 ## How can I debug my application?
 
@@ -115,7 +125,7 @@ you could use any C debugger manually.
 
 ## How to make my code more efficient?
 
-Nelua compiles by default with optimizations disable and runtime checks enabled.
+Nelua compiles by default with optimizations disabled and runtime checks enabled.
 To compile with optimization enabled and runtime checks disabled you must use the
 `--release -P nochecks` command line argument. Also Nelua uses the a conservative
 garbage collector by default, which can be heavy depending on use case,
@@ -123,8 +133,3 @@ users seeking performance and predictable runtimes should switch to
 manual memory management and disable the garbage collector with `-P nogc`.
 If wanting even more performance you could pass more aggresive
 compilation flags to your C compiler like `--cflags="-O3 -march=native -fno-plt -flto"`.
-
-## Have any other question?
-
-If you have any question that was not answered here then
-join and ask in the [discord chat](https://discord.gg/7aaGeG7).

@@ -35,13 +35,13 @@ sudo make install
 This will install in `/usr/local` by default,
 you can install somewhere else using the `PREFIX` argument,
 for example suppose you want to install in your home
-then use `sudo make install PREFIX=$HOME/nelua`
-and Nelua compiler will be available at `PREFIX=$HOME/nelua/bin/nelua`.
+then use `sudo make install PREFIX=~/nelua`
+and Nelua compiler will be available at `~/nelua/bin/nelua`.
 
 Alternatively you can just run the `nelua.sh` file to run directly if you do not wish
 to install anywhere on your system.
 
-Proceed to the testing section.
+Proceed to the [testing section](#testing).
 
 ## Installing on Windows
 
@@ -93,7 +93,7 @@ Proceed to the testing section.
 ## Testing
 
 Nelua should be installed, run `nelua -h` in terminal check if its working.
-If doesn't work your environment PATH variable is missing the `bin` folder to Nelua installation,
+If doesn't work your environment `PATH` variable is missing the `bin` folder to Nelua installation,
 then fix it or find and execute the full path to the installed Nelua compiler to use it.
 
 Run the hello world example:
@@ -119,5 +119,7 @@ sudo apt-get install libsdl2-dev
 # run it
 nelua examples/snakesdl.nelua
 ```
+
+<a href="/tutorial" class="btn btn-outline-primary btn-lg float-right">Tutorial >></a>
 
 {% endraw %}

@@ -1,5 +1,9 @@
 require 'span'
 require 'string'
+require 'math'
+require 'memory'
+require 'allocators.gc'
+require 'allocators.general'
 
 do -- Comments
   -- one line comment
@@ -385,7 +389,7 @@ end
   print(counter) -- outputs 2
 --end
 
-do -- Poly functions
+do -- Polymorphic functions
   local function add(a: auto, b: auto)
     return a + b
   end
@@ -398,6 +402,56 @@ do -- Poly functions
   print(b) -- outputs: 3.000000
 end
 
+do -- Record functions
+  local Vec2 = @record{x: number, y: number}
+
+  function Vec2.create(x: integer, y: integer): Vec2
+    return (@Vec2){x, y}
+  end
+
+  local v = Vec2.create(1,2)
+  print(v.x, v.y) -- outputs: 1 2
+end
+
+do -- Record methods
+  local Rect = @record{x: number, y: number, w: number, h: number}
+
+  function Rect:translate(x: number, y: number)
+    self.x = self.x + x
+    self.y = self.y + y
+  end
+
+  function Rect:area()
+    return self.w * self.h
+  end
+
+  local v = Rect{0,0,2,3}
+  v:translate(2,2)
+  print(v.x, v.y) -- outputs 2 2
+  print(v:area()) -- outputs 6
+end
+
+do -- Record metamethods
+  local Vec2 = @record{x: number, y: number}
+
+  -- Called on the binary operator '+'
+  function Vec2.__add(a: Vec2, b: Vec2)
+    return (@Vec2){a.x+b.x, a.y+b.y}
+  end
+
+  -- Called on the unary operator '#'
+  function Vec2:__len()
+    return math.sqrt(self.x*self.x + self.y*self.y)
+  end
+
+  local a: Vec2 = {1, 2}
+  local b: Vec2 = {3, 4}
+  local c = a + b -- calls the __add metamethod
+  print(c.x, c.y) -- outputs: 4 6
+  local len = #c -- calls the __len metamethod
+  print(len) -- outputs: 7.2
+end
+
 do -- Dereferencing and referencing
   local a = 1
   local ap = &a -- ap is a pointer to a
@@ -406,9 +460,6 @@ do -- Dereferencing and referencing
   a = 3
   print($ap) -- outputs 3
 end
-
-require 'memory'
-require 'allocators.general'
 
 do -- Allocating memory
   local Person = @record{name: string, age: integer}

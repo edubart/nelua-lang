@@ -3,20 +3,104 @@ layout: default
 ---
 
 <main>
-  <div class="container-fluid py-4 text-center bg-primary-dark text-white">
-    <div class="row py-lg-4">
-      <div class="col-lg-6 col-md-8 mx-auto">
-        <div class="nelua-brand-big">{% include logo.svg %}</div>
-        <h1 class="font-weight-light"><span class="font-weight-bold">Nelua</span> Programming Language</h1>
-        <p class="lead">Minimal, simple, efficient, statically typed, compiled, meta programmable, safe and extensible systems programming language with a <strong>Lua</strong> flavor.</p>
-        <p>
-          <a href="/overview" class="btn btn-primary my-2">Overview</a>
-          <a href="/installing" class="btn btn-outline-light my-2">Download</a>
-          <a href="https://repl.it/@edubart/nelua-lang#examples/replit.lua" class="btn btn-success my-2">Try Online</a>
-        </p>
+  <div class="container-fluid py-2 text-center bg-primary-dark text-white">
+    <div class="container">
+      <div class="row py-lg-4">
+        <div class="col-lg-8 mx-auto">
+          <div class="nelua-brand-big">{% include logo.svg %}</div>
+          <h1 class="font-weight-light"><span class="font-weight-bold">Nelua</span> Programming Language</h1>
+          <p class="lead">Minimal, simple, efficient, statically typed, compiled, meta programmable, safe and extensible systems programming language with a <strong>Lua</strong> flavor.</p>
+          <p>
+            <a href="/overview" class="btn btn-primary my-2">Overview</a>
+            <a href="/installing" class="btn btn-outline-light my-2">Download</a>
+            <a href="https://repl.it/@edubart/nelua-lang#examples/replit.lua" class="btn btn-success my-2">Try Online</a>
+          </p>
+        </div>
       </div>
     </div>
   </div>
+
+  <div class="container-fluid bg-light">
+    <div class="container-xl">
+      <div class="row py-4">
+        <div class="col-md-5">
+          <h2>What is Nelua?</h2>
+          <p>Nelua is a systems programming language
+for performance sensitive applications, like real-time applications and game engines.
+It has syntax and semantics similar to Lua,
+but is designed to be able to work with optional garbage collection, type notations
+and free from an interpreter.
+It uses ahead of time compilation to compile to optimized native binaries,
+is meta programmable at compile-time using Lua and is simple to use.</p>
+          <a href="/overview" class="btn btn-outline-primary my-2">Read language overview</a>
+        </div>
+        <div class="col-md-7">
+          <ul class="nav nav-tabs" id="examples-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <a class="nav-link active" id="ex1-tab" data-toggle="tab" href="#ex1" role="tab" aria-controls="ex1" aria-selected="true">Factorial</a>
+            </li>
+            <li class="nav-item" role="presentation">
+              <a class="nav-link" id="ex2-tab" data-toggle="tab" href="#ex2" role="tab" aria-controls="ex2" aria-selected="false">Loop</a>
+            </li>
+            <li class="nav-item" role="presentation">
+              <a class="nav-link" id="ex3-tab" data-toggle="tab" href="#ex3" role="tab" aria-controls="ex3" aria-selected="false">String</a>
+            </li>
+            <li class="nav-item" role="presentation">
+              <a class="nav-link" id="ex4-tab" data-toggle="tab" href="#ex4" role="tab" aria-controls="ex4" aria-selected="false">Record</a>
+            </li>
+          </ul>
+          <div class="tab-content" id="examples-tab-content">
+            <div class="tab-pane fade show active" id="ex1" role="tabpanel" aria-labelledby="ex1-tab">
+<pre class="rounded-0 rounded-bottom language-nelua p-2"><code>{% raw %}-- Calculates the factorial of a number.
+local function factorial(n: integer): integer
+  if n == 0 then
+    return 1
+  else
+    return n * factorial(n - 1)
+  end
+end
+
+local n = 5
+local res = factorial(n)
+print(n, 'factorial is', res)
+{% endraw %}</code></pre>
+            </div>
+            <div class="tab-pane fade" id="ex2" role="tabpanel" aria-labelledby="ex2-tab">
+<pre class="rounded-0 rounded-bottom language-nelua p-2"><code>{% raw %}-- Sum numbers from 1 to 10.
+local sum = 0
+for i = 1, 10 do
+  sum = sum + i
+end
+print('The sum is', sum)
+{% endraw %}</code></pre>
+            </div>
+            <div class="tab-pane fade" id="ex3" role="tabpanel" aria-labelledby="ex3-tab">
+<pre class="rounded-0 rounded-bottom language-nelua p-2"><code>{% raw %}-- Print "hello world" manipulating strings.
+require 'string'
+
+local s1 = 'olleh'
+local s2 = 'dlrow'
+
+print(s1:reverse() .. ' ' .. s2:reverse())
+{% endraw %}</code></pre>
+            </div>
+            <div class="tab-pane fade" id="ex4" role="tabpanel" aria-labelledby="ex4-tab">
+<pre class="rounded-0 rounded-bottom language-nelua p-2"><code>{% raw %}-- Create and print a record data structure.
+require 'string'
+local Person = @record{
+  name: string,
+  age: integer
+}
+local person: Person = {name = "John", age = 20}
+print(person.name, 'is', person.age, 'years old')
+{% endraw %}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="container-xl">
     <div class="row row-cols-1 row-cols-md-2 g-3 py-4">
       <div class="col">
@@ -229,88 +313,6 @@ layout: default
           its standard library is written in Nelua
           and you only need a C compiler to use it.
         </p>
-      </div>
-    </div>
-  </div>
-
-  <div class="container-fluid bg-light">
-    <div class="container-xl">
-      <div class="row py-4">
-        <div class="col-md-4">
-          <h2>
-            <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-file-text" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path fill-rule="evenodd" d="M4 1h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H4z"/>
-              <path fill-rule="evenodd" d="M4.5 10.5A.5.5 0 0 1 5 10h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 8h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 4h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z"/>
-            </svg>
-            Examples
-          </h2>
-          <p class="lead font-weight-normal">Small example in Nelua</p>
-          <p>It feels similar to Lua with type notations.</p>
-          <a href="/overview" class="btn btn-outline-primary my-2">Read more examples</a>
-        </div>
-        <div class="col-md-8">
-          <ul class="nav nav-tabs" id="examples-tab" role="tablist">
-            <li class="nav-item" role="presentation">
-              <a class="nav-link active" id="ex1-tab" data-toggle="tab" href="#ex1" role="tab" aria-controls="ex1" aria-selected="true">Factorial</a>
-            </li>
-            <li class="nav-item" role="presentation">
-              <a class="nav-link" id="ex2-tab" data-toggle="tab" href="#ex2" role="tab" aria-controls="ex2" aria-selected="false">Loop</a>
-            </li>
-            <li class="nav-item" role="presentation">
-              <a class="nav-link" id="ex3-tab" data-toggle="tab" href="#ex3" role="tab" aria-controls="ex3" aria-selected="false">String</a>
-            </li>
-            <li class="nav-item" role="presentation">
-              <a class="nav-link" id="ex4-tab" data-toggle="tab" href="#ex4" role="tab" aria-controls="ex4" aria-selected="false">Record</a>
-            </li>
-          </ul>
-          <div class="tab-content" id="examples-tab-content">
-            <div class="tab-pane fade show active" id="ex1" role="tabpanel" aria-labelledby="ex1-tab">
-<pre class="rounded-0 rounded-bottom language-nelua p-2"><code>{% raw %}-- Calculates the factorial of a number.
-local function factorial(n: integer): integer
-  if n == 0 then
-    return 1
-  else
-    return n * factorial(n - 1)
-  end
-end
-
-local n = 5
-local res = factorial(n)
-print(n, 'factorial is', res)
-{% endraw %}</code></pre>
-            </div>
-            <div class="tab-pane fade" id="ex2" role="tabpanel" aria-labelledby="ex2-tab">
-<pre class="rounded-0 rounded-bottom language-nelua p-2"><code>{% raw %}-- Sum numbers from 1 to 10.
-local sum = 0
-for i = 1, 10 do
-  sum = sum + i
-end
-print('The sum is', sum)
-{% endraw %}</code></pre>
-            </div>
-            <div class="tab-pane fade" id="ex3" role="tabpanel" aria-labelledby="ex3-tab">
-<pre class="rounded-0 rounded-bottom language-nelua p-2"><code>{% raw %}-- Print "hello world" manipulating strings.
-require 'string'
-
-local s1 = 'olleh'
-local s2 = 'dlrow'
-
-print(s1:reverse() .. ' ' .. s2:reverse())
-{% endraw %}</code></pre>
-            </div>
-            <div class="tab-pane fade" id="ex4" role="tabpanel" aria-labelledby="ex4-tab">
-<pre class="rounded-0 rounded-bottom language-nelua p-2"><code>{% raw %}-- Create and print a record data structure.
-require 'string'
-local Person = @record{
-  name: string,
-  age: integer
-}
-local person: Person = {name = "John", age = 20}
-print(person.name, 'is', person.age, 'years old')
-{% endraw %}</code></pre>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
