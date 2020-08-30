@@ -143,7 +143,7 @@ print(person.name, 'is', person.age, 'years old')
         <p>
         Nelua is simple and intuitive as Lua. Just some additions like
         type notations, efficient data structures and meta programming
-        utilities differs from Lua but all those are optional.
+        utilities are incremented over Lua but all those are optional.
         </p>
       </div>
       <div class="col">
@@ -189,9 +189,9 @@ print(person.name, 'is', person.age, 'years old')
           Minimal
         </div>
         <p>
-        Nelua tries to be minimal on its features, it doesn't have for example
-        object oriented constructs, however it's powerful enough to allow the user create
-        them at compile time through meta programming.
+        Nelua is provide mechanisms for implementing features, instead of providing a host of features directly in the language.
+        For example, although Nelua is not an object-oriented language,
+        it does provide mechanisms for implementing classes and inheritance efficiently at compile time with meta programming.
         </p>
       </div>
       <div class="col">
@@ -219,7 +219,7 @@ print(person.name, 'is', person.age, 'years old')
           Low level
         </div>
         <p>Nelua has C like features to work at low level to allow micro optimizing parts
-        of your code when needed.
+        of the code when needed.
         </p>
       </div>
       <div class="col">
@@ -232,9 +232,8 @@ print(person.name, 'is', person.age, 'years old')
           Meta programmable
         </div>
         <p>
-        Nelua allows to create generics, polymorphic functions and specialize
-        code at compile time by meta programming in Lua and using its concepts
-        system.
+        Nelua keeps its host features minimal and provides meta programming
+        mechanisms to bring new features, allowing the semantics to be extended in unconventional ways at compile time. For example nelua allows to create generics, polymorphic functions and specialize code at compile time using Lua and using its concepts system.
         </p>
       </div>
       <div class="col">
@@ -249,9 +248,9 @@ print(person.name, 'is', person.age, 'years old')
         </div>
         <p>Nelua's compiler is written in Lua and is completely
         modifiable on the fly via the preprocessor,
-        thus you can make advanced meta programming techniques
-        at compile time and extend the language by
-        adding new syntax, semantics or manipulating the AST.
+        thus you can make unconventional techniques on the compiler
+        at compile time, allowing for example to manipulate the AST, extend the language
+        syntax, semantics or code generator.
         </p>
       </div>
       <div class="col">

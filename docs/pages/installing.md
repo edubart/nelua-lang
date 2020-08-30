@@ -8,7 +8,7 @@ order: 1
 
 {% raw %}
 
-Instructions for installing Nelua on Windows or Linux
+Instructions for installing Nelua on Windows or Linux.
 {: .lead}
 
 To install Nelua you need a system with the following:
@@ -73,7 +73,8 @@ Proceed to the testing section.
 
 ## Installing with LuaRocks
 
-If you already have a LuaRocks installation you could install Nelua with it.
+If you already have a [LuaRocks](https://luarocks.org/)
+installation you could install Nelua with it.
 Although this is not recommended,
 because it won't use the bundled Lua's interpreter from Nelua,
 thus you will have worse compile speeds and if your system does not have Lua 5.3+ yet

@@ -44,7 +44,7 @@ local function get_parser()
     "function", "goto", "if", "in", "local", "nil", "not", "or",
     "repeat", "return", "then", "true", "until", "while",
     -- nelua additional keywords
-    "switch", "case", "continue", "global", "defer"
+    "case", "continue", "defer", "global", "switch"
   })
 
   -- names and identifiers (names for variables, functions, etc)
@@ -146,7 +146,7 @@ local function get_parser()
   %RPPEXPR      <- ']#'
   %RPPNAME      <- '|#'
   %LPAREN       <- '('
-  %RPAREN       <- !%RPPNAME ')'
+  %RPAREN       <- ')'
   %LBRACKET     <- !('[' '='* '[') '['
   %RBRACKET     <- !%RPPEXPR ']'
   %LCURLY       <- '{'
@@ -194,7 +194,6 @@ local function get_parser()
   %AT           <- '@'
   %DOLLAR       <- '$'
   %QUESTION     <- '?'
-  %EXCL         <- '!'
 
   -- used by types
   %TRECORD      <- 'record'

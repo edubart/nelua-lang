@@ -829,7 +829,7 @@ print(v.x, v.y) -- outputs: 1 2
 
 A method is function defined for record that takes a reference to the record type
 as its first argument, this first argument is visible as `self` inside the method.
-For defining or calling a method the semicolon token `:` must be used, just like in Lua.
+For defining or calling a method the colon token `:` must be used, just like in Lua.
 
 ```nelua
 local Rect = @record{x: number, y: number, w: number, h: number}

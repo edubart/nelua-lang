@@ -618,3 +618,4 @@ do -- Mixing C code
   assert(a[0] == 1)
   free(a)
 end
+
