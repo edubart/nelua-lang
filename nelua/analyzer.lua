@@ -311,7 +311,7 @@ local function visitor_Table_literal(context, node)
 end
 
 function visitors.Table(context, node)
-  local desiredtype = node.desiredtype
+  local desiredtype = node.desiredtype or node.attr.desiredtype
   node.attr.literal = true
   if desiredtype then
     local objtype = desiredtype:implict_deref_type()
