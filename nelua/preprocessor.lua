@@ -282,6 +282,9 @@ function preprocessor.preprocess(context, ast)
       end
       return status
     end,
+    inject_astnode = function(...)
+      return ppcontext:add_statnode(...)
+    end,
     concept = concept,
     overload_concept = overload_concept,
     optional_concept = optional_concept,
