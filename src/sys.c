@@ -23,6 +23,8 @@
     #warning "falling back to microsecond gettimeofday()"
     #include <sys/time.h>
   #endif
+  #elif defined(__APPLE__)
+    #include <sys/time.h>
   #endif
 #endif
 
