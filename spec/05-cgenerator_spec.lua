@@ -2474,6 +2474,52 @@ it("concepts", function()
     end
     print(f(R{x=1}))
   ]=])
+  assert.run_c([=[
+    -- Concept to check whether a type is indexable.
+    local indexable_concept = #[concept(function(symbol)
+      local type = symbol.type
+      if type.is_pointer then
+        type = type.subtype
+      end
+      if type.is_array then
+        return true
+      end
+      if not type.is_record then
+        return false, 'the container is not a record'
+      end
+      if not type.metafields.__index then
+        return false, 'the container must have the __index metamethod'
+      end
+      if not type.metafields.__len then
+        return false, 'the container must have the __len metamethod'
+      end
+      return true
+    end)]#
+
+    local function sum_container(container: indexable_concept)
+      local v: integer = 0
+      for i=0,<#container do
+        v = v + container[i]
+      end
+      return v
+    end
+
+    local MyArray = @record {data: integer[10]}
+
+    function MyArray:__index(i: integer)
+      return self.data[i]
+    end
+
+    function MyArray:__len()
+      return #self.data
+    end
+
+    local a: integer[10] = {1,2,3,4,5,6,7,8,9,10}
+    local b: MyArray = {data = a}
+
+    assert(sum_container(&a) == 55)
+    assert(sum_container(&b) == 55)
+  ]=])
 end)
 
 it("generics", function()

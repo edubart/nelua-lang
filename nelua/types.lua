@@ -1858,7 +1858,7 @@ end
 -- Give the underlying type when implicit dereferencing this type.
 function PointerType:implict_deref_type()
   -- implicit dereference is only allowed for records and arrays subtypes
-  if self.subtype and self.subtype.is_record or self.subtype.is_array then
+  if self.subtype and (self.subtype.is_record or self.subtype.is_array) then
     return self.subtype
   end
   return self
@@ -1870,13 +1870,15 @@ function PointerType.has_pointer()
 end
 
 -- Support for compile time length operator on cstring (pointer to cchar).
-PointerType.unary_operators.len = function(_, lattr)
-  if lattr.type.is_cstring then
-    local lval, reval = lattr.value, nil
+PointerType.unary_operators.len = function(type, attr)
+  if type.is_cstring then
+    local lval, reval = attr.value, nil
     if lval then
       reval = bn.new(#lval)
     end
     return primtypes.isize, reval
+  elseif type.subtype.is_array then
+    return primtypes.isize, bn.new(type.subtype.length)
   end
 end
 

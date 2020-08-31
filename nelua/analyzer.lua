@@ -1250,6 +1250,8 @@ local function visitor_Record_ArrayIndex(context, node, objtype, objnode, indexn
         attr.lvalue = true
       end
     end
+  else
+    indexretype = indexsym.type:get_return_type(1)
   end
   if indexsym then
     visitor_Call(context, node, {indexnode}, indexsym.type, indexsym, objnode)

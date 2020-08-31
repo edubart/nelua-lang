@@ -145,7 +145,7 @@ local a: auto = 1 -- a is deduced to be of type 'integer'
 print(a) -- outputs: 1
 ```
 
-Auto variables are more useful when used in **poly functions**.
+Auto variables are more useful when used in [polymorphic functions](#polymorphic-functions).
 
 ### Comptime variables
 
@@ -156,7 +156,7 @@ local a <comptime> = 1 + 2 -- constant variable of value '3' evaluated and known
 ```
 
 The compiler takes advantages of constants to make optimizations, constants are also useful
-for using as compile time parameters in **poly functions**.
+for using as compile time parameters in [polymorphic functions](#polymorphic-functions).
 
 ### Const variables
 
@@ -583,7 +583,7 @@ print(#s) -- outputs 4
 ### Niltype
 
 Niltype type is not useful by itself, it's only useful when using with unions to create the
-optional type or for detecting nil arguments in poly functions.
+optional type or for detecting nil arguments in [polymorphic functions](#polymorphic-functions).
 
 ### The "type" type
 
@@ -807,7 +807,7 @@ print(b) -- outputs: 3.000000
 In the above, the `auto` type is used as a generic placeholder to replace the function argument
 by the incoming call type, this makes possible to make a generic function for multiple types.
 
-Later we will show how poly functions are more useful when used in combination with the **preprocessor**.
+Later we will show how polymorphic functions are more useful when used in combination with the **preprocessor**.
 
 ### Record functions
 
@@ -1245,7 +1245,7 @@ print(counter)
 counter = counter + 1
 ```
 
-### Generics
+### Generic code
 
 Using macros its possible to create generic code:
 
@@ -1309,10 +1309,10 @@ The compiler is implemented and runs using Lua and the preprocess
 is actually a lua function that the compiler is running, thus it's possible to even modify
 or inject code to the compiler itself on the fly.
 
-### Preprocessing poly functions
+### Preprocessing polymorphic functions
 
-Poly functions can make compile time dynamic functions when used in combination with
-the preprocessor:
+Polymorphic functions can make compile time dynamic functions
+when used in combination with the preprocessor:
 
 ```nelua
 local function pow(x: auto, n: integer)
@@ -1338,6 +1338,271 @@ print(a,b) -- outputs: 4 4.000000
 --   error: cannot pow variable of type "string"
 --pow('a', 2)
 ```
+
+## Concepts
+
+Concepts is a powerful system used to specialize [polymorphic functions](#polymorphic-functions)
+with efficiency at compile time.
+
+An arguments of a polymorphic function can
+use the special concept type defined by a
+preprocessor function that when evaluated at compile time
+decides whether if the incoming variable type matches the concept requirements.
+
+To create a concept use preprocessor function `concept`:
+
+```nelua
+local an_arithmetic = #[concept(function(attr)
+  -- the first argument of the concept function is an Attr,
+  -- attr are stores different attributes for the incoming symbol, variable or node,
+  -- we want to check if the incoming attr type matches the concept
+  if attr.type.is_arithmetic then
+    -- the attr is an arithmetic type (can add, subtract, etc)
+    return true
+  end
+  -- the attr type does not match this concept
+  return false
+end)]#
+
+local function add(x: an_arithmetic, y: an_arithmetic)
+  return x + y
+end
+
+print(add(1 ,2)) -- outputs 3
+
+-- uncommenting the following will trigger the compile error:
+--   type 'boolean' could not match concept 'an_arithmetic_or_string'
+-- add(1,true)
+```
+
+When the concepts of a function is matched for the first time,
+a specialized function is defined just for that incoming types,
+thus the compiler generates different functions in C code for each different match,
+this means that the code is specialized
+for each type and handled efficiently because the runtime code does
+not need to do any runtime check, the type checking is only done at compile time.
+
+The property `type.is_arithmetic` is used here to check the incoming type,
+all the properties defined by the compiler to check the incoming types can be
+[seen here](https://github.com/edubart/nelua-lang/blob/master/nelua/types.lua#L44).
+{:.alert.alert-info}
+
+### Specializing with concepts
+
+A concept can match multiple types, thus is possible to specialize
+further a polymorphic function using a concept:
+
+```nelua
+require 'string'
+
+local an_arithmetic_or_string = #[concept(function(attr)
+  if attr.type.is_stringy then
+    -- we accept strings
+    return true
+  elseif attr.type.is_arithmetic then
+    -- we accept arithmetics
+    return true
+  end
+  return false
+end)]#
+
+local function add(x: an_arithmetic_or_string,
+                   y: an_arithmetic_or_string)
+  ## if x.type.is_stringy and y.type.is_stringy then
+    return x .. y
+  ## else
+    return x + y
+  ## end
+end
+
+-- add will be specialized for arithmetic types
+print(add(1, 2)) -- outputs 3
+-- add will be specialized for string types
+print(add('1', '2')) -- outputs 12
+```
+
+The compiler only defines new different specialized functions as needed,
+i.e. specialized functions for different argument types are memoized.
+
+### Specializing concepts for records
+
+Some times you want to check weather a record matches a concept,
+to do this you can set a field on its type to later check in the concept
+plus you can also use in the preprocessor to assist specializing code:
+
+```nelua
+local vec2 = @record{x: number, y: number}
+-- vec2 is a attr of the "type" type, vec2.value is it's holded type
+-- we set here is_vec2 at compile time to use later for checking whether a attr is a vec2
+## vec2.value.is_vec2 = true
+
+local vec2_or_arithmetic_concept = #[concept(function(attr)
+  -- match in case of arithmetic or vec2
+  return attr.type.is_arithmetic or attr.type.is_vec2
+end)]#
+
+-- we use a concepts on the metamethod __add to allow adding vec2 with numbers
+function vec2.__add(a: vec2_or_arithmetic_concept, b: vec2_or_arithmetic_concept)
+  -- specialize the function at compile time based on the argument type
+  ## if a.type.is_vec2 and b.type.is_vec2 then
+    return (@vec2){a.x + b.x, a.y + b.y}
+  ## elseif a.type.is_vec2 then
+    return (@vec2){a.x + b, a.y + b}
+  ## elseif b.type.is_vec2  then
+    return (@vec2){a + b.x, a + b.y}
+  ## end
+end
+
+local a: vec2 = {1, 2}
+local v: vec2
+v = a + 1 -- vec2 + arithmetic
+print(v.x, v.y) -- outputs: 2 3
+v = 1 + a -- arithmetic + vec2
+print(v.x, v.y) -- outputs: 2 3
+v = a + a -- vec2 + vec2
+print(v.x, v.y) -- outputs: 2 4
+```
+
+### Concepts with logic
+
+You can put some logic in your concept, to check for any kind of proprieties
+that the incoming attr should satisfy, and return compile time errors
+in explaining why the concept didn't match:
+
+```nelua
+-- Concept to check whether a type is indexable.
+local indexable_concept = #[concept(function(attr)
+  local type = attr.type
+  if type.is_pointer then -- accept pointer to containers
+    type = type.subtype
+  end
+  -- we accept arrays
+  if type.is_array then
+    return true
+  end
+  -- we expect a record
+  if not type.is_record then
+    return false, 'the container is not a record'
+  end
+  -- the record must have a __index metamethod or be an array
+  if not type.metafields.__index then
+    return false, 'the container must have the __index metamethod'
+  end
+  -- the data field must have a fixed length or the container must have a .size field
+  if not type.metafields.__len then
+    return false, 'the container must have the __len metamethod'
+  end
+  -- concept matched all the imposed requirements
+  return true
+end)]#
+
+-- Sum all elements of any container where index begins at 0.
+local function sum_container(container: indexable_concept)
+  local v: integer = 0
+  for i=0,<#container do
+    v = v + container[i]
+  end
+  return v
+end
+
+-- We create our customized array type.
+local MyArray = @record {data: integer[10]}
+function MyArray:__index(i: integer)
+  return self.data[i]
+end
+function MyArray:__len()
+  return #self.data
+end
+
+local a: integer[10] = {1,2,3,4,5,6,7,8,9,10}
+local b: MyArray = {data = a}
+
+-- sum_container can be called with 'a' because it matches the concept
+-- we pass as reference using & here to avoid an unnecessary copy
+print(sum_container(&a)) -- outputs: 55
+
+-- sum_container can also be called with 'b' because it matches the concept
+-- we pass as reference using & here to avoid an unnecessary copy
+print(sum_container(&b)) -- outputs: 55
+```
+
+### Concept that infers to another type
+
+Some times is useful to infer a concept to a different type
+from the incoming attr, for example suppose you want to specialize a function
+that optionally accepts any kind of arithmetic, but you really want it to be implemented
+as a integer:
+
+```nelua
+local optional_number_concept = #[concept(function(attr)
+  if attr.type.is_niltype then
+    -- niltype is the type when the argument is missing or when we use 'nil'
+    -- we accept it because the number is optional
+    return true
+  end
+  -- instead of returning true, we return the desired type to be implemented,
+  -- the compiler will take care to implicit cast the incoming attr to the desired type,
+  -- or throw an error if not possible,
+  -- here we want to force the function using this concept to implement as a 'number'
+  return primtypes.number
+end)]#
+
+local function get_number(x: optional_number_concept)
+  ## if x.type.is_niltype then
+    return 0
+  ## else
+    return x
+  ## end
+end
+
+print(get_number(nil)) -- prints 0
+print(get_number(2)) -- prints 0
+```
+
+### Optional concept
+
+Optional concept are common to use, thus there is
+a shortcut for creating them, for instance this the previous code is equivalent to:
+
+```nelua
+local function get_number(x: #[optional_concept(number)]#)
+  ## if x.type.is_niltype then
+    return 0
+  ## else
+    return x
+  ## end
+end
+
+print(get_number(nil)) -- prints 0
+print(get_number(2)) -- prints 0
+```
+
+Use this when you want to specialize optional arguments at compile time
+without any runtime costs.
+
+### Overload concept
+
+Using concepts to overload functions for different incoming types
+at compile time is a common use, so there is also a shortcut for creating overload concepts:
+
+```nelua
+local function foo(x: #[overload_concept{integer,stringview,niltype}]#)
+  ## if x.type.is_integral then
+    print('got integer ', x)
+  ## elseif x.type.is_stringview then
+    print('got string ', x)
+  ## else
+    print('got nothing')
+  ## end
+end
+
+foo(2) -- outputs: got integer 2
+foo('hello') -- outputs: got string hello
+foo(nil) -- outputs: got nothing
+```
+
+Use this when you want to specialize different argument typesat compile time
+without any runtime costs.
 
 ## Annotations
 
