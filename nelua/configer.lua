@@ -11,10 +11,10 @@ local console = require 'nelua.utils.console'
 local configer = {}
 local config = {}
 local defconfig = {
-  generator = 'c',
   lua = 'lua',
-  gdb = 'gdb',
   lua_version = _VERSION:match('%d+%.%d+'),
+  generator = 'c',
+  gdb = 'gdb',
   cache_dir = 'nelua_cache',
   cpu_bits = 64
 }
@@ -114,9 +114,9 @@ local function create_parser(args)
     :convert(function(x) return math.floor(x) end)
   argparser:option('--cflags', "Additional C flags to use on compilation", defconfig.cflags)
   argparser:option('--cache-dir', "Compilation cache directory", defconfig.cache_dir)
-  argparser:option('--lua', "Lua interpreter to use when runnning", defconfig.lua)
-  argparser:option('--lua-version', "Target lua version for lua generator", defconfig.lua_version)
-  argparser:option('--lua-options', "Lua options to use when running", defconfig.lua_options)
+  -- argparser:option('--lua', "Lua interpreter to use when runnning", defconfig.lua)
+  -- argparser:option('--lua-version', "Target lua version for lua generator", defconfig.lua_version)
+  -- argparser:option('--lua-options', "Lua options to use when running", defconfig.lua_options)
   argparser:flag('--print-ast', 'Print the AST only')
   argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only')
   argparser:flag('--print-code', 'Print the generated code only')
