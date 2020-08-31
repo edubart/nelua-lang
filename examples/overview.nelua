@@ -550,6 +550,37 @@ do -- Macros
   print(pb:squaredlength()) -- outputs: 5.000000
 end
 
+do -- Preprocessor macros emitting AST nodes
+  ##[[
+  -- Create a fixed array initializing to 1,2,3,4...n
+  local function create_sequence(attr_or_type, n)
+    local type
+    if traits.is_type(attr_or_type) then -- already a type
+      type = attr_or_type
+    elseif traits.is_attr(attr_or_type) then -- get a type from a symbol
+      type = attr_or_type.value
+    end
+    -- check if the inputs are valid, in case wrong input
+    static_assert(traits.is_type(type), 'expected a type or a symbol to a type')
+    static_assert(traits.is_number(n) and n > 0, 'expected n > 0')
+    -- create list of expression
+    local exprs = {}
+    for i=1,n do
+      -- aster.value convert any Lua value to the proper ASTNode
+      exprs[i] = aster.value(i)
+    end
+    -- create the Table ASTNode, it's used for any braces {} expression
+    return aster.Table{exprs, pattr = {
+      -- hint the compiler what type this braces should be evaluated
+      desiredtype = types.ArrayType(type, #exprs)}
+    }
+  end
+  ]]
+
+  local a = #[create_sequence(integer, 10)]#
+  assert(#a == 10 and a[0] == 1 and a[9] == 10)
+end
+
 do -- Processing on the fly
   local Weekends = @enum { Friday=0, Saturday, Sunday }
   ## for i,field in ipairs(Weekends.value.fields) do
@@ -564,7 +595,7 @@ end
 
 do -- Preprocessing poly functions
   local function pow(x: auto, n: integer)
-    ## staticassert(x.type.is_arithmetic, 'cannot pow variable of type "%s"', x.type)
+    ## static_assert(x.type.is_arithmetic, 'cannot pow variable of type "%s"', x.type)
     ## if x.type.is_integral then
       -- x is an integral type (any unsigned/signed integer)
       local r: #[x.type]# = 1

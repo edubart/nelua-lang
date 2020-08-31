@@ -330,14 +330,14 @@ it("function pragmas", function()
 end)
 
 it("call codes after inference", function()
-  assert.analyze_ast("## afterinfer(function() end)")
-  assert.analyze_error("## afterinfer(false)", "invalid arguments for preprocess")
+  assert.analyze_ast("## after_inference(function() end)")
+  assert.analyze_error("## after_inference(false)", "invalid arguments for preprocess")
 end)
 
 it("call codes after analyze pass", function()
-  assert.analyze_ast("## afteranalyze(function() end)")
-  assert.analyze_error("## afteranalyze(function() error 'errmsg' end)", "errmsg")
-  assert.analyze_error("## afteranalyze(false)", "invalid arguments for preprocess")
+  assert.analyze_ast("## after_analyze(function() end)")
+  assert.analyze_error("## after_analyze(function() error 'errmsg' end)", "errmsg")
+  assert.analyze_error("## after_analyze(false)", "invalid arguments for preprocess")
 end)
 
 it("inject nodes", function()
@@ -365,17 +365,17 @@ it("nested preprocessing", function()
 end)
 
 it("check function", function()
-  assert.analyze_ast([[ ## staticassert(true) ]])
-  assert.analyze_error([[ ## staticerror() ]], 'static error!')
-  assert.analyze_error([[ ## staticerror('my fail') ]], 'my fail')
-  assert.analyze_error([[ ## staticassert(false) ]], 'static assertion failed')
-  assert.analyze_error([[ ## staticassert(false, 'myfail') ]], 'myfail')
+  assert.analyze_ast([[ ## static_assert(true) ]])
+  assert.analyze_error([[ ## static_error() ]], 'static error!')
+  assert.analyze_error([[ ## static_error('my fail') ]], 'my fail')
+  assert.analyze_error([[ ## static_assert(false) ]], 'static assertion failed')
+  assert.analyze_error([[ ## static_assert(false, 'myfail') ]], 'myfail')
 
   assert.analyze_ast([[
     local a = 1
     local b = 1.0
-    ## afterinfer(function() staticassert(a.type == primtypes.integer) end)
-    ## afterinfer(function() staticassert(b.type == primtypes.number) end)
+    ## after_inference(function() static_assert(a.type == primtypes.integer) end)
+    ## after_inference(function() static_assert(b.type == primtypes.number) end)
   ]])
 end)
 
@@ -418,12 +418,12 @@ it("poly function", function()
     local function f(x: auto)
       local r = 1.0 + x
       r = r + x
-      ## afterinfer(function() assert(r.type == primtypes.number) end)
+      ## after_inference(function() assert(r.type == primtypes.number) end)
       return r
     end
 
     local x = f(1.0)
-    ## afterinfer(function() assert(x.type == primtypes.number) end)
+    ## after_inference(function() assert(x.type == primtypes.number) end)
   ]])
   assert.analyze_ast([[
     local function f(T: type)
@@ -432,7 +432,7 @@ it("poly function", function()
 
     do
       local p = f(@integer)
-      ## afterinfer(function() assert(p.type.is_pointer) end)
+      ## after_inference(function() assert(p.type.is_pointer) end)
       p = nilptr
     end
   ]])
@@ -458,9 +458,9 @@ it("poly function", function()
     assert(printtype(a) == 1)
     local b: uint64 = 1
     assert(printtype(b) == 1)
-    ##[[ afterinfer(function()
+    ##[[ after_inference(function()
       local types = table.concat(printtypes, ' ')
-      staticassert(types == 'int64 float64 boolean uint64', types)
+      static_assert(types == 'int64 float64 boolean uint64', types)
     end) ]]
   ]=])
 end)

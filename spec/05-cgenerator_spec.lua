@@ -2373,7 +2373,7 @@ it("GC requirements", function()
       ## end)
 
       ##[[
-      afteranalyze(function()
+      after_analyze(function()
         local function search_scope(scope)
           for i=1,#scope.symbols do
             local sym = scope.symbols[i]

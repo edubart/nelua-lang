@@ -22,8 +22,8 @@ function AnalyzerContext:_init(visitors, parser, ast)
   self.pragmas = setmetatable({}, {__index = self.globalpragmas})
   self.pragmastack = {}
   self.usedcodenames = {}
-  self.afteranalyze = {}
-  self.afterinfers = {}
+  self.after_analyze = {}
+  self.after_inferences = {}
   self.unresolvedcount = 0
 end
 

@@ -125,7 +125,7 @@ local INIT_SIZE <comptime> = 64
 
 -- Macro to create a resource pool using the specified allocator.
 ## local make_generic_resourcepool = generalize(function(T, Allocator, SlotAllocator)
-  ## staticassert(traits.is_type(T), "invalid type '%s'", T)
+  ## static_assert(traits.is_type(T), "invalid type '%s'", T)
   ## if not Allocator then
   require 'allocators.default'
   ## Allocator = DefaultAllocator

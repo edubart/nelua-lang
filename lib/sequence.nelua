@@ -11,7 +11,7 @@
 require 'memory'
 
 ## local make_generic_sequence = generalize(function(T, Allocator)
-  ## staticassert(traits.is_type(T), "invalid type '%s'", T)
+  ## static_assert(traits.is_type(T), "invalid type '%s'", T)
   ## if not Allocator then
   require 'allocators.default'
   ## Allocator = DefaultAllocator

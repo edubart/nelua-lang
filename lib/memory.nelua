@@ -77,12 +77,12 @@ local is_span = #[concept(function(x) return x.type.is_span end)]#
 
 ##[[
 local function check_type_match(a, b)
-  staticassert(a.type == b.type,
+  static_assert(a.type == b.type,
     "argument '%s' type '%s' differs from argument '%s' type '%s",
     a.name, b.name, a.type, b.type)
 end
 local function check_span_subtype_match(s, x)
-  staticassert(s.type.subtype == x.type,
+  static_assert(s.type.subtype == x.type,
     "in argument '%s': type '%s' differs from argument '%s' type '%s",
     s.name, x.name, s.type.subtype, x.type)
 end
@@ -194,7 +194,7 @@ end
 -- Swaps memory of the dereference of pointer `a` and `b`.
 -- This is mainly used as an optimization to skip value __copy or __destroy.
 function memory.swapval(a: is_value_pointer, b: is_value_pointer) <inline>
-  ## staticassert(a.type == b.type, 'cannot swap different types')
+  ## static_assert(a.type == b.type, 'cannot swap different types')
   local N: usize <comptime> = #[a.type.subtype.size]#
   local tmp: byte[N] <noinit>
   memcpy(&tmp[0], a, N)

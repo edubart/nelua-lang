@@ -39,8 +39,8 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
 
 ## local make_arena_allocator = generalize(function(SIZE, ALIGN, error_on_failure)
   ## ALIGN = ALIGN or 8
-  ## staticassert(SIZE % ALIGN == 0, 'ArenaAllocator: size must be multiple of align')
-  ## staticassert(ALIGN & (ALIGN-1) == 0, 'ArenaAllocator: align must be a power of two')
+  ## static_assert(SIZE % ALIGN == 0, 'ArenaAllocator: size must be multiple of align')
+  ## static_assert(ALIGN & (ALIGN-1) == 0, 'ArenaAllocator: align must be a power of two')
 
   local SIZE <comptime> = #[SIZE]#
   local ALIGN <comptime> = #[ALIGN]#

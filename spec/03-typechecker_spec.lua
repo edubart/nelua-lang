@@ -1510,7 +1510,7 @@ it("generics", function()
     local x = @proxy(integer)
   ]])
   assert.analyze_error([[
-    local proxy = #[generic(function(T) staticerror('my fail') end)]#
+    local proxy = #[generic(function(T) static_error('my fail') end)]#
     local x = @proxy(integer)
   ]], 'my fail')
   assert.analyze_error([[

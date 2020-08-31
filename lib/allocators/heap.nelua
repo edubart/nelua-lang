@@ -405,7 +405,7 @@ function Heap:realloc(p: pointer, size: usize)
 end
 
 ## local make_heap_allocator = generalize(function(HEAP_SIZE, error_on_failure)
-  ## staticassert(traits.is_number(HEAP_SIZE), 'HeapAllocator: size must be a number')
+  ## static_assert(traits.is_number(HEAP_SIZE), 'HeapAllocator: size must be a number')
 
   local HEAP_SIZE: usize <comptime> = #[HEAP_SIZE]#
 

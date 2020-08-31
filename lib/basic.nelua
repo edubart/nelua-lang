@@ -51,7 +51,7 @@ global function assert(cond: auto, msg: auto) <inline>
     ## elseif msg.type.is_string or msg.type.is_stringview or msg.type.is_cstring then
       error((@stringview)(msg))
     ## else
-      ## staticerror('error object is a %s', msg.type)
+      ## static_error('error object is a %s', msg.type)
     ## end
   end
   return cond

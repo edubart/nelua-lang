@@ -2300,7 +2300,7 @@ function analyzer.analyze(context)
     local resolutions_count = context.rootscope:resolve()
   until resolutions_count == 0
 
-  for _,cb in ipairs(context.afteranalyze) do
+  for _,cb in ipairs(context.after_analyze) do
     local ok, err = except.trycall(cb.f)
     if not ok then
       cb.node:raisef('error while executing after analyze: %s', err)
@@ -2320,7 +2320,7 @@ function analyzer.analyze(context)
   end
 
   -- execute after inferance callbacks
-  for _,f in ipairs(context.afterinfers) do
+  for _,f in ipairs(context.after_inferences) do
     f()
   end
 

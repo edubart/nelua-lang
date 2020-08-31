@@ -248,43 +248,48 @@ function preprocessor.preprocess(context, ast)
   local function generalize(f)
     return generic(memoize(hygienize(f)))
   end
-  tabler.update(ppenv, {
-    afteranalyze = function(f)
-      if not traits.is_function(f) then
-        raise_preprocess_error("invalid arguments for preprocess function")
-      end
-      table.insert(context.afteranalyze, { f=f, node = context:get_current_node() })
-    end,
-    afterinfer = function(f)
-      if not traits.is_function(f) then
-        raise_preprocess_error("invalid arguments for preprocess function")
-      end
-      local oldscope = ppcontext.context.scope
-      local function fproxy()
-        context:push_scope(oldscope)
-        f()
-        context:pop_scope()
-      end
-      table.insert(context.afterinfers, fproxy)
-    end,
-    staticerror = function(msg, ...)
+  local function after_analyze(f)
+    if not traits.is_function(f) then
+      raise_preprocess_error("invalid arguments for preprocess function")
+    end
+    table.insert(context.after_analyze, { f=f, node = context:get_current_node() })
+  end
+  local function after_inference(f)
+    if not traits.is_function(f) then
+      raise_preprocess_error("invalid arguments for preprocess function")
+    end
+    local oldscope = ppcontext.context.scope
+    local function fproxy()
+      context:push_scope(oldscope)
+      f()
+      context:pop_scope()
+    end
+    table.insert(context.after_inferences, fproxy)
+  end
+  local function static_error(msg, ...)
+    if not msg then
+      msg = 'static error!'
+    end
+    raise_preprocess_error(msg, ...)
+  end
+  local function static_assert(status, msg, ...)
+    if not status then
       if not msg then
-        msg = 'static error!'
+        msg = 'static assertion failed!'
       end
       raise_preprocess_error(msg, ...)
-    end,
-    staticassert = function(status, msg, ...)
-      if not status then
-        if not msg then
-          msg = 'static assertion failed!'
-        end
-        raise_preprocess_error(msg, ...)
-      end
-      return status
-    end,
-    inject_astnode = function(...)
-      return ppcontext:add_statnode(...)
-    end,
+    end
+    return status
+  end
+  local function inject_astnode(...)
+    return ppcontext:add_statnode(...)
+  end
+  tabler.update(ppenv, {
+    after_analyze = after_analyze,
+    after_inference = after_inference,
+    static_error = static_error,
+    static_assert = static_assert,
+    inject_astnode = inject_astnode,
     concept = concept,
     overload_concept = overload_concept,
     optional_concept = optional_concept,
@@ -292,6 +297,9 @@ function preprocessor.preprocess(context, ast)
     hygienize = hygienize,
     generalize = generalize,
     memoize = memoize,
+    -- deprecated aliases
+    staticerror = static_error,
+    staticassert = static_assert,
   })
   setmetatable(ppenv, { __index = function(_, key)
     local v = rawget(ppcontext.context.env, key)

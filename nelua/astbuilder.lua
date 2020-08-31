@@ -7,6 +7,9 @@ local Attr = require 'nelua.attr'
 local ASTNode = require 'nelua.astnode'
 local config = require 'nelua.configer'.get()
 local shapetypes = require 'nelua.thirdparty.tableshape'.types
+local traits = require 'nelua.utils.traits'
+local bn = require 'nelua.utils.bn'
+local typedefs = require 'nelua.typedefs'
 
 local ASTBuilder = class()
 
@@ -22,7 +25,60 @@ function ASTBuilder:_init()
   self.shapetypes = { node = { Node = get_astnode_shapetype(ASTNode) } }
   self.shapes = { Node = shapetypes.shape {} }
   self.aster = {}
+  self.aster.value = function(...) return self:create_value(...) end
   metamagic.setmetaindex(self.shapetypes, shapetypes)
+end
+
+-- Create an AST node from an Lua value.
+function ASTBuilder:create_value(val, srcnode)
+  local node
+  local aster = self.aster
+  if traits.is_astnode(val) then
+    node = val
+  elseif traits.is_type(val) then
+    node = aster.Type{'auto'}
+    -- inject persistent parsed type
+    local pattr = Attr({
+      type = typedefs.primtypes.type,
+      value = val
+    })
+    node.attr:merge(pattr)
+    node.pattr = pattr
+  elseif traits.is_string(val) then
+    node = aster.String{val}
+  elseif traits.is_symbol(val) then
+    node = aster.Id{val.name}
+    local pattr = Attr({
+      foreignsymbol = val
+    })
+    node.attr:merge(pattr)
+    node.pattr = pattr
+  elseif bn.isnumeric(val) then
+    local num = bn.parse(val)
+    local neg = false
+    if bn.isneg(num) then
+      num = bn.abs(num)
+      neg = true
+    end
+    if bn.isintegral(num) then
+      node = aster.Number{'dec', bn.todec(num)}
+    else
+      local snum = bn.todecsci(num)
+      local int, frac, exp = bn.splitdecsci(snum)
+      node = aster.Number{'dec', int, frac, exp}
+    end
+    if neg then
+      node = aster.UnaryOp{'unm', node}
+    end
+  elseif traits.is_boolean(val) then
+    node = aster.Boolean{val}
+  --TODO: table, nil
+  end
+  if node and srcnode then
+    node.src = srcnode.src
+    node.pos = srcnode.pos
+  end
+  return node
 end
 
 function ASTBuilder:register(tag, shape)
