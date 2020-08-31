@@ -1117,59 +1117,56 @@ x = x + 4
 print(x)
 ```
 
-### Preprocessor Code Blocks
+### Preprocessor code blocks
 
-Arbitrary Lua code can be put inside Preprocessor Code Blocks . Their syntax
-starts with `##[[` or `##[=[` (any number of `=` symbols you want between the
-braces) and ends with `]]` or `##]=]` (again, any number of `=` symbols you
-want between the braces).
+Arbitrary Lua code can be put inside Preprocessor code blocks. Their syntax
+starts with `##[[` or `##[=[` (any number of `=` tokens you want between the
+brackets) and ends with `]]` or `]=]` (matching the number of `=` tokens previously used).
 
 ```nelua
--- this is an inlined Preprocessor Code Block
+-- this is an preprocessor code block
 ##[[
-my_fancy_table = {
-  ["foo"] = "bar"
-}
-
-function variable_arguments_function(...)
-  local args = {...}
-  local bar = my_fancy_table["foo"]
+function my_compiletime_function(str)
+  print(str) -- print at compile time
+end
 ]]
 
 -- call the function defined in the block above
-## variable_arguments_function(1,2,3,4)
+## my_compiletime_function('hello from preprocessor')
 ```
 
-As shown in the last line, functions defined inside of the Preprocessor Code
-Blocks can be evaluated arbitrarily from any part of the code, at any point,
+As shown in the last line, functions defined inside of the preprocessor code
+blocks can be evaluated arbitrarily from any part of the code, at any point,
 using `##`.
 
-Although said block was defined inline for a single module, because
-declarations default to the global scope in Lua, it will be available for all
-modules required after them. If you'd like to avoid polluting other module's
-preprocessor scopes, declare it as `local`.
+Although said block was defined for a single module it will be available for all
+modules required after them, because declarations default to the global scope in Lua.
+If you'd like to avoid polluting other module's
+preprocessor environments then declare its functions as `local`.
 
 ### Preprocessor function modularity
 
 Suppose you want to use the same preprocessor function from multiple Nelua
-modules. As explained in the "Preprocessor Code Blocks" section, one idea is to
+modules. As explained in the [preprocessor code blocks](#preprocessor-code-blocks) section,
+one idea is to
 declare everything in that block as global, thus it would also be available in
 preprocessor evaluation from other modules.
 
-For example, on `module_A.nelua`
+For example, on `module_A.nelua`:
 
 ```nelua
 ##[[
 -- this function is declared as global, so it'll be available on module_B.nelua
 function foo()
-   print "bar"
+  print "bar"
 end
 ]]
 ```
 
-Then, on `module_B.nelua`
+Then, on `module_B.nelua`:
 
 ```nelua
+require 'module_A'
 -- even though foo is not declared in this file, since it's global, it'll be available here
 ## foo()
 ```
@@ -1181,26 +1178,21 @@ due to evaluation order.
 
 Fortunately, there's a more modular approach for code reuse which does not rely
 on global scope. Simply create a standalone Lua module and require it on all
-Nelua modules you would want to use it. The previous example would be
-refactored as follows:
+Nelua modules you would want to use it.
 
-1. Set $LUA_PATH to a pattern which matches your project's directory
-   (notice the `?.lua` at the end). You can skip this step if invoking
-   Nelua from the same directory where your modules are.
+The previous example would be refactored as follows:
 
-`export LUA_PATH="/projects/games/tetris/?.lua"`
-
-2. Create a `foo.lua` (or any name you want) file and paste your code there
+1\. Create a `foo.lua` (or any name you want) file and paste your code there:
 
 ```lua
 local function bar()
-   print "bar"
+  print "bar"
 end
 
 return { bar = bar }
 ```
 
-3. Then, in `module_A.nelua` and `module_B.nelua`
+2\. Then, in any source codes that uses that module:
 
 ```nelua
 ## local foo = require "foo"
@@ -1211,6 +1203,13 @@ return { bar = bar }
 Aside from modularity, this has the benefit of your preprocessor code being
 simply Lua code which can leverage all your editor's tooling and configuration,
 such as a code formatter, syntax highlighter, completions, etc.
+
+If the Lua module is not in the same directory where the compiler is running from the `require`
+will fail to find it, to solve this
+you can set `LUA_PATH` system's environment variable to the a pattern which matches that directory,
+for example doing `export LUA_PATH="/myprojects/mymodules/?.lua"`{:.language-bash} in your terminal,
+notice the `?.lua` at the end.
+{:.alert.alert-info}
 
 ### Code blocks as arguments to preprocessor functions
 
