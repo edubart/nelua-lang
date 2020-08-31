@@ -1117,6 +1117,103 @@ x = x + 4
 print(x)
 ```
 
+### Preprocessor Code Blocks
+
+Arbitrary Lua code can be put inside Preprocessor Code Blocks . Their syntax
+starts with `##[[` or `##[=[` (any number of `=` symbols you want between the
+braces) and ends with `]]` or `##]=]` (again, any number of `=` symbols you
+want between the braces).
+
+```nelua
+-- this is an inlined Preprocessor Code Block
+##[[
+my_fancy_table = {
+  ["foo"] = "bar"
+}
+
+function variable_arguments_function(...)
+  local args = {...}
+  local bar = my_fancy_table["foo"]
+]]
+
+-- call the function defined in the block above
+## variable_arguments_function(1,2,3,4)
+```
+
+As shown in the last line, functions defined inside of the Preprocessor Code
+Blocks can be evaluated arbitrarily from any part of the code, at any point,
+using `##`.
+
+Although said block was defined inline for a single module, because
+declarations default to the global scope in Lua, it will be available for all
+modules required after them. If you'd like to avoid polluting other module's
+preprocessor scopes, declare it as `local`.
+
+### Preprocessor function modularity
+
+Suppose you want to use the same preprocessor function from multiple Nelua
+modules. As explained in the "Preprocessor Code Blocks" section, one idea is to
+declare everything in that block as global, thus it would also be available in
+preprocessor evaluation from other modules.
+
+For example, on `module_A.nelua`
+
+```nelua
+##[[
+-- this function is declared as global, so it'll be available on module_B.nelua
+function foo()
+   print "bar"
+end
+]]
+```
+
+Then, on `module_B.nelua`
+
+```nelua
+-- even though foo is not declared in this file, since it's global, it'll be available here
+## foo()
+```
+
+Although this seems harmless, it can get messy if you define a function with
+the same name on different modules. It also means you're relying on global
+scope semantics from the preprocessor, which might be unpredictable or brittle
+due to evaluation order.
+
+Fortunately, there's a more modular approach for code reuse which does not rely
+on global scope. Simply create a standalone Lua module and require it on all
+Nelua modules you would want to use it. The previous example would be
+refactored as follows:
+
+1. Set $LUA_PATH to a pattern which matches your project's directory
+   (notice the `?.lua` at the end). You can skip this step if invoking
+   Nelua from the same directory where your modules are.
+
+`export LUA_PATH="/projects/games/tetris/?.lua"`
+
+2. Create a `foo.lua` (or any name you want) file and paste your code there
+
+```lua
+local function bar()
+   print "bar"
+end
+
+return { bar = bar }
+```
+
+3. Then, in `module_A.nelua` and `module_B.nelua`
+
+```nelua
+## local foo = require "foo"
+
+## foo.bar()
+```
+
+Aside from modularity, this has the benefit of your preprocessor code being
+simply Lua code which can leverage all your editor's tooling and configuration,
+such as a code formatter, syntax highlighter, completions, etc.
+
+### Code blocks as arguments to preprocessor functions
+
 Block of codes can be passed to macros by surrounding it inside a function:
 
 ```nelua
@@ -1148,6 +1245,8 @@ counter = counter + 1
 print(counter)
 counter = counter + 1
 ```
+
+### Generics
 
 Using macros its possible to create generic code:
 
