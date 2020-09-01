@@ -937,9 +937,11 @@ function visitors.Switch(_, node, emitter)
   emitter:add_indent_ln("switch(", valnode, ") {")
   emitter:inc_indent()
   for _,casepart in ipairs(caseparts) do
-    local casenode, blocknode = casepart[1], casepart[2]
-    emitter:add_indent_ln("case ", casenode, ': {')
-    emitter:add(blocknode)
+    for i=1, #casepart-2 do
+      emitter:add_indent_ln("case ", casepart[i], ":")
+    end
+    emitter:add_indent_ln("case ", casepart[#casepart-1], ': {') -- last case
+    emitter:add(casepart[#casepart]) -- block
     emitter:inc_indent() emitter:add_indent_ln('break;') emitter:dec_indent()
     emitter:add_indent_ln("}")
   end
