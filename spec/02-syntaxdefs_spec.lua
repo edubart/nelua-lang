@@ -679,6 +679,15 @@ describe("statement switch", function()
           n.Block{{}}
     }}})
   end)
+  it("multiple cases with shared block", function()
+    assert.parse_ast(nelua_parser, "switch a do case b, c then then else end",
+      n.Block{{
+        n.Switch{
+          n.Id{'a'},
+          { {n.Id{'b'}, n.Id{'c'}, n.Block{{}}} },
+          n.Block{{}}
+    }}})
+  end)
 end)
 
 --------------------------------------------------------------------------------
