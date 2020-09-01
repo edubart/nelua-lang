@@ -39,7 +39,7 @@ else ifeq ($(SYS), Windows)
 else ifeq ($(SYS), Darwin)
 	CC=clang
 	LDFLAGS=
-	DEFS+=-DLUA_USE_POSIX
+	DEFS+=-DLUA_USE_MACOSX
 else # probably POSIX
 	CC=cc
 	LDFLAGS+=-Wl,-E
