@@ -7,60 +7,32 @@
 [![Discord](https://img.shields.io/discord/680417078959800322.svg)](https://discord.gg/7aaGeG7)
 [![Try on Repl.it](https://repl.it/badge/github/edubart/nelua-lang)](https://repl.it/@edubart/nelua-lang#examples/replit.lua)
 
-Nelua (stands for **N**ative **E**xtensible **Lua**) is a minimal,
+Nelua (stands for **N**ative **E**xtensible **Lua**) is a minimal, efficient,
 statically-typed and meta-programmable systems programming language heavily
-inspired by Lua, which compiles to C.
+inspired by Lua, which compiles to C and native code.
 
 **Note:** The language is in alpha state and still evolving.
 
 ## Quick start
 
-- For basic information, first steps and how to install Nelua, start at the
-  [Tutorial](https://nelua.io/tutorial/).
+- For basic information check the [Website](https://nelua.io/).
+- For first steps and how to use Nelua, start at the [Tutorial](https://nelua.io/tutorial/).
 - Read the [Overview](https://nelua.io/overview/) for a tour of the language's
   syntax, features and usage.
-- Check out the [examples](./examples) folder for small programs written in
+- Check out the [Examples](./examples) folder for small programs written in
   Nelua.
+- Check for cool stuff made with Nelua in the
+  [Community Showcase](https://github.com/edubart/nelua-lang/wiki/Community-showcase) wiki page.
 
-After installing, you might want to check out the featured example: a Snake
-game leveraging the famous [SDL2](https://www.libsdl.org) game engine.
+After installing, you might want to check out the featured example, a Snake
+game leveraging the famous [SDL2](https://www.libsdl.org) library:
 
-``` nelua examples/snakesdl.nelua ```
+```bash
+nelua examples/snakesdl.nelua
+```
 
 Last, but not least, feel free to give feedback and ask questions over at the
 [Discord server](https://discord.gg/7aaGeG7).
-
-## Benchmarks
-
-The benchmark suite lives in the [benchmark](./benchmark) folder and can be
-ran with `make benchmark`. It compares:
-  
-- Pure C implementations
-- C-compiled Nelua implementations
-- Lua-compiled Nelua implementations
-
-Master branch benchmark runs are recorded through
-[Github Actions](https://github.com/edubart/nelua-lang/actions).
-
-### Exemplary measurement reports
-
-- LuaJIT 2.1.0-beta3
-- GCC 9.3.0 `-O3 -fno-plt -march=native -flto`
-- Lua 5.3.5
-- CPU Intel Core i7-3770K CPU @ 3.50GHz
-- Arch Linux
-
-|    benchmark |  lua 5.3 | luajit 2.1 |    nelua |        c |
-|--------------|----------|------------|----------|----------|
-|    ackermann | 2448.2 ms | 145.2 ms  |  47.8 ms |  47.4 ms |
-|    fibonacci  | 2612.4 ms | 951.7 ms  | 279.9 ms | 280.9 ms |
-|       mandel | 2549.6 ms |  97.0 ms  |  88.5 ms |  88.2 ms |
-|        sieve | 1240.4 ms | 265.3 ms  |  88.7 ms |  60.1 ms |
-|     heapsort | 2602.1 ms | 274.0 ms  | 170.9 ms | 127.5 ms |
-
-*NOTE*: Nelua could match C speed if all benchmarks were coded using optimized structures,
-but to make fair comparisons with Lua/LuaJIT they were coded in Lua style
-(using sequence tables and a garbage collector).
 
 ## About
 
@@ -105,7 +77,7 @@ memory management in a way that the developer can easily choose between either
 for each allocation in the program.
 
 Nelua first compiles to
-[C](https://en.wikipedia.org/wiki/C_(programming_language), then it executes a
+[C](https://en.wikipedia.org/wiki/C_(programming_language)), then it executes a
 C compiler to produce [native code](https://en.wikipedia.org/wiki/Machine_code).
 This way existing C code and libraries can be leveraged and new C libraries can
 be created. Another benefit is that Nelua can reach the same target platforms

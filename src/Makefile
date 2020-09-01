@@ -30,9 +30,6 @@ ifeq ($(SYS), Linux)
 	LDFLAGS+=-Wl,-E
 	LIBS+=-ldl
 	DEFS+=-DLUA_USE_LINUX
-	ifeq ($(CC), gcc)
-		CFLAGS+=-fno-ipa-sra  # fix for GCC bug https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96040
-	endif
 else ifeq ($(SYS), Windows)
 	CC=x86_64-w64-mingw32-gcc
 	EXE=nelua-lua.exe

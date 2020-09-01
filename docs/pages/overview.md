@@ -45,7 +45,7 @@ However there are ways to get C semantics for each case when needed.
 The preprocessor is much more powerful than C preprocessor,
 because it's actually the compiler running in Lua,
 thus you can interact with the compiler while parsing. The preprocessor should
-be used for making generic code and avoiding code duplication.
+be used for making generic code, code specialization and avoiding code duplication.
 
 Nelua generates everything compiled into a single readable C file,
 if you know C is recommended to read the generated C code sometimes
@@ -212,6 +212,9 @@ print(global_f()) -- outputs: f
 ```
 
 ## Control flow
+
+Nelua provides the same control flow mechanism from Lua, plus some additional
+ones to make low level coding easier, like `switch`, `defer` and `continue` statements.
 
 ### If
 
@@ -904,9 +907,9 @@ Complete list of the metamethods that can be defined for records:
 | `__index`         | `a[b]`{:.language-nelua}   | indexing | array index                 |
 | `__atindex`       | `a[b]`{:.language-nelua}   | indexing | array index via reference   |
 | `__tocstring`     |                            | cast     | implicit cast to cstring    |
-| `__tostring'`     |                            | cast     | implicit cast to string     |
-| `__tostringview'` |                            | cast     | implicit cast to stringview |
-| `__cinvert'`      |                            | cast     | implicit cast to anything   |
+| `__tostrin'`      |                            | cast     | implicit cast to string     |
+| `__tostringview`  |                            | cast     | implicit cast to stringview |
+| `__convert`       |                            | cast     | implicit cast to anything   |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## Memory management
@@ -946,7 +949,7 @@ require 'memory'
 require 'allocators.gc'
 
 local Person = @record{name: string, age: integer}
-local p: Person* = general_allocator:new(@Person)
+local p: Person* = gc_allocator:new(@Person)
 p.name = "John"
 p.age = 20
 print(p.name, p.age)
@@ -975,7 +978,7 @@ p = nilptr
 
 ### Dereferencing and referencing
 
-The operator '&' is used to get a reference a variable,
+The operator `&` is used to get a reference a variable,
 and the operator '$' is used to access the reference.
 
 ```nelua
@@ -1372,8 +1375,8 @@ print(p.age) -- outputs '21'
 The above code compile exactly as:
 
 ```nelua
-local Person = @record{name: string}
-local p: Person = {name='Joe', age: integer}
+local Person = @record{name: string, age: integer}
+local p: Person = {name='Joe', age=21}
 print(p.age) -- outputs '21'
 ```
 
@@ -1530,7 +1533,7 @@ plus you can also use in the preprocessor to assist specializing code:
 
 ```nelua
 local vec2 = @record{x: number, y: number}
--- vec2 is a attr of the "type" type, vec2.value is it's holded type
+-- vec2 is an attr of the "type" type, vec2.value is it's holded type
 -- we set here is_vec2 at compile time to use later for checking whether a attr is a vec2
 ## vec2.value.is_vec2 = true
 
