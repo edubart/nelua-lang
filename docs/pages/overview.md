@@ -22,14 +22,16 @@ are similar to Lua, thus if you know Lua you probably know Nelua too. However Ne
 additions to code with type notations, to make more efficient code and to meta program.
 This overview try to focus more on those features.
 
-Although copying Lua code with minor changes is a goal of Nelua, not all Lua
-features are implemented yet. Mostly the dynamic part such as tables and dynamic typing
-are not implemented yet, thus at the moment is best to try Nelua using type notations.
-
 There is no interpreter or VM, all the code is converted directly into native machine code,
 thus expect better efficiency than Lua. However this means that Nelua can't load
-code generated at runtime, the user is encouraged to generate code at compile time
+code generated at runtime, the user is encouraged to generate code at compile-time
 using the preprocessor.
+
+Although copying Lua code with minor changes is a goal of Nelua, not all Lua
+features are implemented yet. Mostly the dynamic part such as tables and handling dynamic types
+at runtime is not implemented yet, thus at the moment is best to try Nelua using
+records instead of tables and type notations in function definitions.
+{: .callout.callout-warning}
 
 ## A note for C users
 
@@ -77,7 +79,7 @@ Comments are just like in Lua:
 
 ## Variables
 
-Variables are declared or defined like in lua, but optionally
+Variables are declared or defined like in Lua, but optionally
 you can specify it's type when declaring:
 
 ```nelua
@@ -89,26 +91,32 @@ local pi: number = 3.14 --  of type 'number', initialized to 1
 print(a,b,s,one,pi) -- outputs: nil false test 1 3.1400000
 ```
 
-Nelua takes advantages of types to make checks and optimizations at compile time.
+The compiler takes advantages of types to make compile-time checks, runtime checks
+and generate **efficient code** for that **specific type**.
+{:.alert.alert-info}
 
 ### Type deduction
 
 When a variable has no specified type on its declaration, the type is automatically deduced
-and resolved at compile time:
+and resolved at compile-time:
 
 ```nelua
-local a -- type will be deduced and scope end
+local a -- type will be deduced at scope end
 a = 1
 a = 2
 print(a) -- outputs: 2
 -- end of scope, compiler deduced 'a' to be of type 'integer'
 ```
 
+The compiler does it best it can to deduce the type for you, in most situations
+it should work, but it some corner cases you may want to explicitly set a type for a variable.
+{:.alert.alert-info}
+
 ### Type collision
 
 In case of different types being assigned to a same variable,
 then the compiler deduces the variable type
-to the type `any` (a type that can hold anything an runtime), this makes nelua code compatible with lua values semantics:
+to the type `any`, a type that can hold anything an runtime, this makes Nelua code compatible with lua values semantics:
 
 ```nelua
 local a -- a type will be deduced
@@ -118,9 +126,13 @@ print(a) -- outputs: false
 -- a is deduced to be of type 'any', because it could hold an 'integer' or a 'boolean'
 ```
 
+The **any type is poorly supported** at the moment, so please at the moment **avoid this situation**, that is, avoid making the compiler deduce types collisions that would be deduced to the `any` type. Usually you don't want use any types anyway, as they are less efficient. Collision between different numeric types are fine,
+the compiler always resolves to the largest appropriate number type.
+{:.alert.alert-warning}
+
 ### Zero initialization
 
-Variables declared but not defined are always initialized to zeros automatically,
+Variables declared but not defined early are always initialized to zeros by default,
 this prevents undefined behaviors:
 
 ```nelua
@@ -129,11 +141,13 @@ local i: integer -- variable of type 'integer', initialized to 0
 print(a, i) --outputs: nil 0
 ```
 
-This can be optionally be disabled (for optimization reasons) using **annotations**.
+Zero initialization can be **optionally disabled** using the `<noinit>` [annotation](#annotations),
+although not advised, usually one would do this only for micro optimization purposes.
+{:.alert.alert-info}
 
 ### Auto variables
 
-Variables declared as auto have it's type deduced early using only the type of it's first assignment.
+Variables declared as `auto` have it's type deduced early based only in the type of it's first assignment:
 
 ```nelua
 local a: auto = 1 -- a is deduced to be of type 'integer'
@@ -145,22 +159,31 @@ local a: auto = 1 -- a is deduced to be of type 'integer'
 print(a) -- outputs: 1
 ```
 
-Auto variables are more useful when used in [polymorphic functions](#polymorphic-functions).
+Auto variables were not intended to be used in variable declarations
+like in the example above, because usually you can omit the type
+and the compiler will automatically deduce already,
+unless you want the compiler to deduce early.
+The `auto` type was really created to be used with [polymorphic functions](#polymorphic-functions).
+{:.alert.alert-warning}
 
-### Comptime variables
+### Compile time variables
 
-Comptime variables have its value known at compile time:
+Comptime variables have its value known at compile-time:
 
 ```nelua
-local a <comptime> = 1 + 2 -- constant variable of value '3' evaluated and known at compile time
+local a <comptime> = 1 + 2 -- constant variable of value '3' evaluated and known at compile-time
 ```
 
-The compiler takes advantages of constants to make optimizations, constants are also useful
-for using as compile time parameters in [polymorphic functions](#polymorphic-functions).
+The compiler takes advantages of compile-time variables to generate
+**efficient code**,
+because compile-time variables can be processed at compile-time.
+Compile time variables are also useful
+for using as compile-time parameters in [polymorphic functions](#polymorphic-functions).
+{:.alert.alert-info}
 
 ### Const variables
 
-Const variables can be assigned at runtime however it cannot mutate.
+Const variables can be assigned at once runtime however it cannot mutate.
 
 ```nelua
 local x <const> = 1
@@ -173,6 +196,10 @@ print(a) -- outputs: 1
 ```
 
 Const annotation can also be used for function arguments.
+
+The use of `<const>` annotation is mostly for aesthetic
+purposes, it's usage does not change efficiency.
+{:.alert.alert-info}
 
 ## Symbols
 
@@ -211,6 +238,19 @@ print(global_a) -- outputs: 1
 print(global_f()) -- outputs: f
 ```
 
+Unlike Lua, to declare a global variable you **must explicitly** use the
+`global` keyword.
+{:.alert.alert-info}
+
+### Symbols with special characters
+
+A symbol identifier, that is, the symbol name, can contain UTF-8 special characters:
+
+```nelua
+local π = 3.14
+print(π) -- outputs 3.14
+```
+
 ## Control flow
 
 Nelua provides the same control flow mechanism from Lua, plus some additional
@@ -218,7 +258,7 @@ ones to make low level coding easier, like `switch`, `defer` and `continue` stat
 
 ### If
 
-If statement is just like in Lua.
+If statement is just like in Lua:
 
 ```nelua
 local a = 1 -- change this to 2 or 3 to trigger other ifs
@@ -247,8 +287,9 @@ else
 end
 ```
 
-The case expression can only contain integral expressions known at compile time. The
-compiler can generate more optimized code when using a switch instead of an if for integers.
+The case expression can only contain **integral** numbers known at **compile-time**. The
+compiler can generate more optimized code when using a switch instead of many ifs for integers.
+{:.alert.alert-info}
 
 ### Do
 
@@ -280,9 +321,10 @@ end
 -- outputs 'hello' then 'world'
 ```
 
-Defer is meant to be used for releasing resources in a deterministic manner on scope termination.
+Defer is meant to be used for **releasing resources** in a deterministic manner **on scope termination**.
 The syntax and functionality is inspired by the similar statement in the Go language.
-It's guaranteed to be executed before any "return", "break" or "continue".
+It's guaranteed to be executed in reverse order before any `return`, `break` or `continue` statement.
+{:.alert.alert-info}
 
 ### Goto
 
@@ -324,7 +366,8 @@ repeat
 until stop
 ```
 
-Note that variables declared inside repeat scope are visible on it's condition expression.
+Note that like Lua, a variable declared inside `repeat` scope **is visible** inside it's condition expression.
+{:.alert.alert-info}
 
 ### Numeric For
 
@@ -338,10 +381,11 @@ for i = 0,5 do
 end
 ```
 
-Numeric for loops always evaluate it's begin, end and step expressions only once. The iterate
-variable type is automatically deduced using the begin and end expressions.
+Like in Lua, numeric for loops always evaluate it's begin, end and step expressions **only once**. The iterate
+variable type is automatically deduced using the begin and end expressions only.
+{:.alert.alert-info}
 
-#### Exclusive
+#### Exclusive For
 An exclusive for is available to do exclusive for loops, they work using
 comparison operators `~=` `<=` `>=` `<` `>`:
 
@@ -351,7 +395,7 @@ for i=0,<5 do
 end
 ```
 
-#### Stepped
+#### Stepped For
 The last parameter in for syntax is the step, it's counter is always incremented
 with `i = i + step`, by default step is always 1, when using negative steps reverse for is possible:
 
@@ -362,7 +406,7 @@ end
 ```
 
 ### Continue
-Continue statement is used to skip a for loop to it's next iteration.
+Continue statement is used to skip a loop to it's next iteration:
 
 ```nelua
 for i=1,10 do
@@ -374,7 +418,7 @@ end
 ```
 
 ### Break
-Break statement is used to break a for loop.
+Break statement is used to break a loop:
 
 ```nelua
 for i=1,10 do
@@ -387,6 +431,8 @@ end
 
 ## Primitive types
 
+Primitives types are all the basic types builtin in the compiler.
+
 ### Boolean
 
 ```nelua
@@ -396,7 +442,7 @@ local c = true
 print(a,b,c) -- outputs: false false true
 ```
 
-They are defined as `bool` in C code.
+The `boolean` is defined as `bool` in C code.
 
 ### Numbers
 
@@ -443,17 +489,20 @@ The following table shows Nelua primitive numeric types and is related type in C
 | `float64`         | `double`        | `_f64` `_float64`   |
 {: .table.table-bordered.table-striped.table-sm}
 
-The types `isize` and `usize` types are usually 32 wide bits on 32-bit systems,
-and 64 bits wide on 64-bit systems. When you need an integer value you should use `integer`
+The types `isize` and `usize` types are usually 32 bits wide on 32-bit systems,
+and 64 bits wide on 64-bit systems.
+
+When you need an integer value you **should use** `integer`
 unless you have a specific reason to use a sized or unsigned integer type.
-The `integer`, `uinteger` and `number` are intended to be configurable. By default
-they are 64 bits for all architectures, but this can be changed at compile time
-using the preprocessor if needed.
+The `integer`, `uinteger` and `number` **are intended to be configurable**, by default
+they are 64 bits for all architectures, but this can be customized by the user at compile-time
+via the preprocessor when needed.
+{:.alert.alert-info}
 
 ### Strings
 
 There are two types of strings, the `string` used for strings allocated at runtime,
-and `stringview` used for strings literals defined at compile time and as views
+and `stringview` used for strings literals defined at compile-time and as views
 of runtime strings too.
 
 ```nelua
@@ -467,20 +516,21 @@ local str3: stringview = 'stringview two' -- also a 'stringview'
 print(str1, str2, str3) -- outputs: "" "string one" "string two"
 ```
 
-Like in Lua, strings are immutable, this make the semantics similar to Lua.
-If the programmer wants a mutable string he can always implement his own string class.
-
 The major difference of `stringview` and `string` is that `stringview` doesn't
-manage the string memory, i.e. it doesn't allocates or free strings.
+manage the string memory, i.e. it doesn't allocates or deallocate strings.
 The `string` type is usually allocated at runtime and it frees the string memory
 once it reference count reaches 0. When the garbage collector is disabled
 the `stringview` uses weak references, thus
 any `stringview` pointing to a `string` is invalidated once the related `string` is freed.
 Both types can be converted from one to another.
 
+Like in Lua, `string` **is immutable**, this make the semantics similar to Lua.
+If the programmer wants a mutable string he can always implement his own string class.
+{:.alert.alert-info}
+
 ### Array
 
-Array is a list with where its size is fixed and known at compile time:
+Array is a list with where its size is fixed and known at compile-time:
 
 ```nelua
 local a: array(integer, 4) = {1,2,3,4}
@@ -488,7 +538,15 @@ print(a[0], a[1], a[2], a[3]) -- outputs: 1 2 3 4
 
 local b: integer[4] -- "integer[4]" is syntax sugar for "array(integer, 4)"
 print(b[0], b[1], b[2], b[3]) -- outputs: 0 0 0 0
+local len = #b -- get the length of the array, should be 4
+print(len) -- outputs: 4
 ```
+
+When passing an array to a function as an argument, it is **passed by value**,
+this means the array is copied and can incur in some performance overhead.
+Thus when calling functions you mostly want to pass arrays by reference
+using the [reference operator](#dereferencing-and-referencing) when appropriate.
+{:.alert.alert-warning}
 
 ### Enum
 
@@ -512,6 +570,7 @@ print(a) -- outputs: 1
 
 The programmer must always initialize the first enum value, this choice
 was made to makes the code more clear when reading.
+{:.alert.alert-info}
 
 ### Any
 
@@ -524,14 +583,19 @@ a = false -- now holds the type 'boolean' at runtime
 print(a) -- outputs false
 ```
 
-This type makes Nelua semantics compatible to Lua, you can use it to make untyped code
-just like in Lua, however the programmer should know that he pays the price in
+The `any` type makes Nelua semantics compatible to Lua, you can use it to make untyped code
+just like in Lua, however know that you pays the price in
 performance, as operations on `any` types generate lots of branches at runtime,
-thus less efficient code.
+thus **less efficient code**.
+{:.alert.alert-info}
+
+The **any type is poorly supported** at the moment, so please at the moment **avoid using it**.
+Usually you don't want use any types anyway, as they require runtime branching, thus less efficient.
+{:.alert.alert-warning}
 
 ### Record
 
-Record store variables in a block of memory (like C structs):
+Record store variables in a block of memory:
 
 ```nelua
 local Person = @record {
@@ -558,9 +622,12 @@ d.age  = 22
 print(d.name, d.age)
 ```
 
+Records are straight translated to C structs.
+{:.alert.alert-info}
+
 ### Pointer
 
-Pointer is like in C, points to a region in memory of a specific type:
+A pointer points to a region in memory of a specific type:
 
 ```nelua
 local n = nilptr -- a generic pointer, initialized to nilptr
@@ -571,9 +638,36 @@ local i: pointer(integer) -- pointer to an integer
 local i: integer*
 ```
 
+Pointers are straight translated to C raw pointers.
+{:.alert.alert-info}
+
+### Function type
+
+The function type, mostly used to store callbacks, is the type of a function:
+
+```nelua
+local function add_impl(x: integer, y: integer): integer
+  return x + y
+end
+
+local function double_add_impl(x: integer, y: integer): integer
+  return 2*(x + y)
+end
+
+local add: function(x: integer, y: integer): integer
+add = add_impl
+print(add(1,2)) -- outputs 3
+add = double_add_impl
+print(add(1,2)) -- outputs 6
+```
+
+The function type is just a pointer, thus can be converted to/from generic pointers.
+{:.alert.alert-info}
+
 ### Span
 
-Span are pointers to a block of contiguous elements which size is known at runtime.
+Span, also known as "fat pointers" or "slices" in other languages,
+are pointers to a block of contiguous elements which size is known at runtime:
 
 ```nelua
 require 'span'
@@ -583,15 +677,23 @@ print(s[0], s[1]) -- outputs: 1 2
 print(#s) -- outputs 4
 ```
 
+The advantage of using a span instead of a pointer it that spans generates runtime
+checks for out of bounds access, thus usually a code using a span is **more safe**.
+The runtime checks can be disabled in release builds.
+{:.alert.alert-info}
+
 ### Niltype
 
+The niltype is the type of `nil`.
+
 Niltype type is not useful by itself, it's only useful when using with unions to create the
-optional type or for detecting nil arguments in [polymorphic functions](#polymorphic-functions).
+optional type or for detecting `nil` arguments in [polymorphic functions](#polymorphic-functions).
+{:.alert.alert-info}
 
 ### The "type" type
 
-The "type" type is also a type, they can be stored in variables (actually symbols).
-Symbols with this type is used at compile time only, they are useful for aliasing types:
+The `type` type is the type of a symbol that refers to a type.
+Symbols with this type is used at compile-time only, they are useful for aliasing types:
 
 ```nelua
 local MyInt: type = @integer -- a symbol of type 'type' holding the type 'integer'
@@ -599,12 +701,39 @@ local a: MyInt -- variable of type 'MyInt' (actually an 'integer')
 print(a) -- outputs: 0
 ```
 
-The '@' symbol is required to infer types expressions.
+In the middle of statements the `@` token is required to precede a type expression,
+this token signs the compiler that a type expression is expect after it.
+{:.alert.alert-info}
+
+#### Size of a type
+
+You can use the operator `#` to get a size in bytes of any type:
+
+```nelua
+local Vec2 = @record{x: integer, y: integer}
+print(#Vec2) -- outputs: 8
+```
+
+### Implicit type conversion
+
+Some types can be implicit converted, for example any arithmetic type can be
+converted to any other arithmetic type:
+
+```nelua
+local i: integer = 1
+local u: uinteger = i
+print(u) -- outputs: 1
+```
+
+Implicit conversion generates **runtime checks** for **loss of precision**
+in the conversion, if this happens the application crashes with a narrow casting error.
+The runtime checks can be disabled in release builds.
+{:.alert.alert-warning}
 
 ### Explicit type conversion
 
-The expression `(@type)(variable)` can be called to explicitly convert a
-variable to a new type.
+The expression `(@type)(variable)` is used to explicitly convert a
+variable to another type.
 
 ```nelua
 local i = 1
@@ -622,21 +751,7 @@ local f = MyNumber(i) -- convert 'i' to the type 'number'
 print(i, f) -- outputs: 1 1.000000
 ```
 
-### Implicit type conversion
-
-Some types can be implicit converted, for example any arithmetic type can be
-converted to any other arithmetic type:
-
-```nelua
-local i: integer = 1
-local u: uinteger = i
-print(u) -- outputs: 1
-```
-
-When implicit conversion is used the compiler checks if there is no loss
-in the conversion at runtime,
-if that happens the application crashes with a narrow casting error.
-These checks can be avoided by doing explicit casting:
+Unlikely implicit conversion, explicit conversions skip runtime checks:
 
 ```nelua
 local ni: integer = -1
@@ -648,6 +763,14 @@ print(nu) -- outputs: 18446744073709551615
 ```
 
 ## Operators
+
+Unary and binary operators are provided for creating expressions:
+
+```nelua
+print(2 ^ 2) -- pow, outputs: 4.000000
+print(5 // 2) -- integer division, outputs: 2
+print(5 / 2) -- float division, outputs: 2.500000
+```
 
 All Lua operators are provided:
 
@@ -682,20 +805,43 @@ All Lua operators are provided:
 | ref      | `&a`{:.language-nelua}          | unary    | memory reference          |
 {: .table.table-bordered.table-striped.table-sm}
 
-The operators follows Lua semantics, for example, `%` and `//`
-rounds the quotient towards minus infinity (different from C).
+All the operators follows Lua semantics, i.e.:
+* `%` and `//` rounds the quotient towards minus infinity.
+* `/` and `^` promotes numbers to floats.
+* Integer overflows wrap around.
+* Bitwise shifts are defined for negative and large shifts.
+* `and`, `or`, `not`, `==`, `~=` can be used on any variable type.
 
-The only additional operators are `$` and `&`, used for working with pointers.
-
-```nelua
-print(2 ^ 2) -- pow, outputs: 4.000000
-print(5 // 2) -- integer division, outputs: 2
-print(5 / 2) -- float division, outputs: 2.500000
-```
+The only additional operators over Lua are `$` and `&`, used for working with pointers.
+{:.alert.alert-info}
 
 ## Functions
 
-Functions are declared like in lua:
+Functions are declared like in Lua,
+but arguments and returns can have the type explicitly specified:
+
+```nelua
+local function add(a: integer, b: integer): integer
+  return a + b
+end
+print(add(1, 2)) -- outputs 3
+```
+
+### Return type inference
+
+The return type can be automatically deduced when not specified:
+
+```nelua
+local function add(a: integer, b: integer)
+  return a + b -- return is of deduced type 'integer'
+end
+print(add(1, 2)) -- outputs 3
+```
+
+### Argument type inference
+
+When not specifying a type for an argument, the compiler assumes that the argument
+is of the `any` type:
 
 ```nelua
 local function get(a)
@@ -705,29 +851,16 @@ end
 print(get(1)) -- outputs: 1
 ```
 
-The function arguments can have the type specified and its return type will be automatically deduced:
-
-```nelua
-local function add(a: integer, b: integer)
-  return a + b -- return is of deduced type 'integer'
-end
-print(add(1, 2)) -- outputs 3
-```
-
-In contrast with variable declaration when the type is omitted from a function argument there is no
-automatic detection of the argument type, instead it's assumed the argument must
+In contrast with variable declaration,
+when the type is omitted from a function argument there is no
+automatic deducing of the argument type, instead it's assumed the argument must
 be of the `any` type, this makes Nelua semantics more compatible with Lua semantics.
+{:.alert.alert-info}
 
-### Return type inference
-
-The function return type can also be specified:
-
-```nelua
-local function add(a: integer, b: integer): integer
-  return a + b -- return is of deduced type 'integer'
-end
-print(add(1, 2)) -- outputs 3
-```
+At the moment avoid doing this and you must **explicty set types for functions arguments**,
+due to the poor support for `any` type yet. Omitting the type for the return type is fine,
+because the compiler can deduce it.
+{:.alert.alert-warning}
 
 ### Recursive calls
 
@@ -740,6 +873,10 @@ local function fib(n: integer): integer
 end
 print(fib(10)) -- outputs: 55
 ```
+
+Function that does recursive calls itself must **explicit set the return type**,
+i.e, the compiler cannot deduce the return type.
+{:.alert.alert-warning}
 
 ### Multiple returns
 
@@ -767,12 +904,13 @@ local a, b = get_multiple()
 print(a,b) -- outputs: false 1
 ```
 
+Multiple returns are efficient and packed into C structs in the code generator.
+{:.alert.alert-info}
+
 ### Top scope closures
 
-When declaring functions in the top scope the compiler takes advantages of the fact that
-top scope variables is always accessible in the heap to create lightweight closures without
-needing to hold upvalues references or use a garbage collector,
-thus they are more lightweight than a closure nested in a function.
+Functions declared in the top scope works as top scope closure,
+they have access to all local variables declared before it:
 
 ```nelua
 local counter = 1 -- 'a' lives in the heap because it's on the top scope
@@ -785,14 +923,21 @@ increment()
 print(counter) -- outputs 2
 ```
 
+Unlikely Lua,
+when declaring functions in the top scope the compiler takes advantages of the fact that
+top scope variables is always accessible in the program static storage memory
+to create lightweight closures without
+needing to hold a upvalue reference or use a garbage collector,
+thus they are very lightweight and does not incur costs like a closure nested in a function.
+{:.alert.alert-info}
+
 ### Polymorphic functions
 
 Polymorphic functions, or in short poly functions in the sources,
 are functions which contains arguments that proprieties can
-only be known when calling the function at compile time.
+only be known when calling the function at compile-time.
 They are defined and processed lately when calling it for the first time.
-The are used to specialize the function different arguments types.
-They are memoized (only defined once for each kind of specialization).
+They are used to specialize the function for different arguments types:
 
 ```nelua
 local function add(a: auto, b: auto)
@@ -810,12 +955,16 @@ print(b) -- outputs: 3.000000
 In the above, the `auto` type is used as a generic placeholder to replace the function argument
 by the incoming call type, this makes possible to make a generic function for multiple types.
 
-Later we will show how polymorphic functions are more useful when used in combination with the **preprocessor**.
+Polymorphic functions are memoized, that is, only defined once for each kind of specialization.
+{:.alert.alert-info}
+
+Later we will show how polymorphic functions are more useful when used in combination with the [preprocessor](#preprocessing-polymorphic-functions).
+{: .callout.callout-info}
 
 ### Record functions
 
 A record type can have functions defined for it, this makes useful to
-organize functions that are to be used just with that type.
+organize functions that are to be used just within the record:
 
 ```nelua
 local Vec2 = @record{x: number, y: number}
@@ -838,11 +987,13 @@ For defining or calling a method the colon token `:` must be used, just like in 
 local Rect = @record{x: number, y: number, w: number, h: number}
 
 function Rect:translate(x: number, y: number)
+  -- 'self' here is of the type 'Rect*'
   self.x = self.x + x
   self.y = self.y + y
 end
 
 function Rect:area()
+  -- 'self' here is of the type 'Rect*'
   return self.w * self.h
 end
 
@@ -852,11 +1003,16 @@ print(v.x, v.y) -- outputs 2 2
 print(v:area()) -- outputs 6
 ```
 
+When calling methods on records, the compiler automatically takes care
+to [automatically reference or dereference](#automatic-referencing-and-dereferencing)
+the object being called.
+{:.alert.alert-info}
+
 ### Record metamethods
 
 Some special methods using the `__` prefix are used by the compiler to defines behaviors
 on certain operations with the record type,
-they are called metamethods and are similar to the Lua metamethods.
+they are called metamethods and are similar to the Lua metamethods:
 
 ```nelua
 require 'math'
@@ -907,15 +1063,57 @@ Complete list of the metamethods that can be defined for records:
 | `__index`         | `a[b]`{:.language-nelua}   | indexing | array index                 |
 | `__atindex`       | `a[b]`{:.language-nelua}   | indexing | array index via reference   |
 | `__tocstring`     |                            | cast     | implicit cast to cstring    |
-| `__tostrin'`      |                            | cast     | implicit cast to string     |
+| `__tostring`      |                            | cast     | implicit cast to string     |
 | `__tostringview`  |                            | cast     | implicit cast to stringview |
-| `__convert`       |                            | cast     | implicit cast to anything   |
+| `__convert`       |                            | cast     | implicit cast from anything |
 {: .table.table-bordered.table-striped.table-sm}
+
+### Record globals
+
+Sometimes is useful to declare a global variable inside a record type,
+using the record as a "namespace":
+
+```nelua
+global Globals = @record{} -- record used just for name spacing
+global Globals.AppName: stringview
+Globals.AppName = "My App"
+print(Globals.AppName) -- outputs: My App
+```
+
+Record globals can be used to encapsulate modules,
+like tables are used to make modules in Lua.
+{:.alert.alert-info}
+
+### Calls on nested records
+
+You can define and later initialize complex records structures in a Lua like style:
+
+```nelua
+local WindowConfig = @record{
+  title: stringview,
+  pos: record {
+    x: integer,
+    y: integer
+  },
+  size: record {
+    x: integer,
+    y: integer
+  }
+}
+local function create_window(config: WindowConfig)
+  print(config.title, config.pos.x, config.pos.y)
+end
+
+-- the compiler knows that the argument should be parsed as WindowConfig
+-- notice that 'size' field is not set, so its initialized to zeros
+create_window({title="hi", pos={x=1, y=2}})
+```
 
 ## Memory management
 
 By default Nelua uses a garbage collector to allocate and deallocate memory on its own.
-However it can be disabled with the pragma `nogc` via the command line or in the sources:
+However it can be disabled with the pragma `nogc` via the command line using `-P nogc`
+or in the sources:
 
 ```nelua
 ## pragmas.nogc = true -- tells the compiler that we don't want to use the GC
@@ -928,21 +1126,23 @@ str:destroy() -- deallocates the string
 print(str) -- the string was destroyed and is now empty, outputs nothing
 ```
 
-Notice that when disabling the garbage collector the coding style may
-be different from Lua usual style, because now you need to think of each allocation
-and dellocation, including for strings, otherwise memory in your application will leak,
+Notice that when disabling the garbage collector the coding style is
+different from Lua usual style, because now you need to **think of each allocation
+and deallocation**, including for strings, otherwise memory in your application will leak,
 thus is best to leave the GC enabled when you need rapid prototyping.
+{:.alert.alert-warning}
+
 Disable the GC if you want to control the memory on your own for performance reasons,
 know how to deal with memory management and don't mind the additional cognitive load
 when coding without automatic memory management.
+{:.alert.alert-info}
 
-### Allocating memory
+### Allocating memory with the GC
 
 Nelua provides many allocators to assist managing memory.
 The most important ones are the `allocators.general` and `allocators.gc`.
 
-If you are using the GC, you must always use the `allocators.gc`, because
-it marks the allocated memory region for scanning for references:
+When using the GC you should allocated using the `gc_allocator`:
 ```nelua
 require 'string'
 require 'memory'
@@ -957,7 +1157,14 @@ p = nilptr
 -- we don't need to deallocate, the GC will do this on its own when needed!
 ```
 
-If you are doing manual memory management you can use the general purpose allocator,
+When the GC is enabled, you must **always allocate memory that contains pointers using**
+`gc_allocator` instead of other allocators,
+because it marks the allocated memory region for scanning for references.
+{:.alert.alert-warning}
+
+### Allocating memory manually
+
+For doing manual memory management you can use the general purpose allocator,
 that is based on the system's `malloc` and `free` functions:
 
 ```nelua
@@ -979,7 +1186,7 @@ p = nilptr
 ### Dereferencing and referencing
 
 The operator `&` is used to get a reference a variable,
-and the operator '$' is used to access the reference.
+and the operator `$` is used to access the reference.
 
 ```nelua
 local a = 1
@@ -990,19 +1197,59 @@ a = 3
 print($ap) -- outputs 3
 ```
 
+### Automatic referencing and dereferencing
+
+The compiler can perform automatic referencing or dereferencing for records or arrays:
+
+```nelua
+local Person = @record{name: stringview, age: integer}
+local p: Person = {"John", 20}
+local p_ref: Person* = p -- the referencing with `&` is implicit here
+local p_copy: Person = p_ref -- the dereferencing with `$` is implicit here
+```
+
+For instance, the above code is equivalent to:
+
+```nelua
+local Person = @record{name: stringview, age: integer}
+local p: Person = {"John", 20}
+local p_ref: Person* = &p
+local p_copy: Person = $p_ref
+```
+
+The above example is not much useful by itself,
+but permits auto referencing when doing method calls:
+
+```nelua
+local Person = @record{name: stringview, age: integer}
+
+-- note that this function only accept pointers
+function Person.print_info(self: Person*)
+  print(self.name, self.age)
+end
+
+local p: Person = {"John", 20}
+p:print_info() -- perform auto referencing of 'p' when calling here
+Person.print_info(p) -- equivalent, also performs auto referencing
+```
+
+The automatic referencing and dereferencing mechanism allows to use
+any unary operator, binary operator, function call or method call
+by value or by reference, for records or arrays.
+{:.alert.alert-info}
+
 ## Meta programming
 
 The language offers advanced features for meta programming by having a full Lua preprocessor
-at compile time that can generate and manipulate code when compiling.
+at compile-time that can generate and manipulate code when compiling.
 
 ### Preprocessor
 
-At compile time a Lua preprocessor is available to render arbitrary code,
+At compile-time a Lua preprocessor is available to render arbitrary code,
 it works similar to templates in the web development world because they emit
 code between it's statements.
 
 Lines beginning with `##` and between `##[[ ]]` are Lua code evaluated by the preprocessor:
-
 
 ```nelua
 local a = 0
@@ -1030,7 +1277,7 @@ a = a + 1
 print(a)
 ```
 
-Using the lua preprocessor you can generate complex codes at compile time.
+Using the lua preprocessor you can generate complex codes at compile-time.
 
 ### Emitting AST nodes (statements)
 
@@ -1203,7 +1450,7 @@ brackets) and ends with `]]` or `]=]` (matching the number of `=` tokens previou
 -- this is an preprocessor code block
 ##[[
 function my_compiletime_function(str)
-  print(str) -- print at compile time
+  print(str) -- print at compile-time
 end
 ]]
 
@@ -1390,7 +1637,7 @@ The preprocessor comes with some pre-defined functions to assist meta programmin
 
 #### static_error
 
-Used to throw compile time errors:
+Used to throw compile-time errors:
 
 ```nelua
 ##[[
@@ -1403,7 +1650,7 @@ end
 
 #### static_assert
 
-Used to throw compile time assertions:
+Used to throw compile-time assertions:
 
 ```nelua
 -- check the current Lua version in the preprocessor
@@ -1412,7 +1659,7 @@ Used to throw compile time assertions:
 
 ### Preprocessing polymorphic functions
 
-Polymorphic functions can make compile time dynamic functions
+Polymorphic functions can make compile-time dynamic functions
 when used in combination with the preprocessor:
 
 ```nelua
@@ -1443,11 +1690,11 @@ print(a,b) -- outputs: 4 4.000000
 ## Concepts
 
 Concepts is a powerful system used to specialize [polymorphic functions](#polymorphic-functions)
-with efficiency at compile time.
+with efficiency at compile-time.
 
 An argument of a polymorphic function can
 use the special concept type defined by a
-preprocessor function that when evaluated at compile time
+preprocessor function that when evaluated at compile-time
 decides whether if the incoming variable type matches the concept requirements.
 
 To create a concept use preprocessor function `concept`:
@@ -1480,8 +1727,8 @@ When the concepts of a function is matched for the first time,
 a specialized function is defined just for that incoming types,
 thus the compiler generates different functions in C code for each different match,
 this means that the code is specialized
-for each type and handled efficiently because the runtime code does
-not need to do any runtime check, the type checking is only done at compile time.
+for each type and handled efficiently because the code does
+not need to do runtime type branching, the type branching is only done at compile-time.
 
 The property `type.is_arithmetic` is used here to check the incoming type,
 all the properties defined by the compiler to check the incoming types can be
@@ -1527,47 +1774,47 @@ i.e. specialized functions for different argument types are memoized.
 
 ### Specializing concepts for records
 
-Some times you want to check weather a record matches a concept,
+Sometimes you want to check weather a record matches a concept,
 to do this you can set a field on its type to later check in the concept
 plus you can also use in the preprocessor to assist specializing code:
 
 ```nelua
-local vec2 = @record{x: number, y: number}
--- vec2 is an attr of the "type" type, vec2.value is it's holded type
--- we set here is_vec2 at compile time to use later for checking whether a attr is a vec2
-## vec2.value.is_vec2 = true
+local Vec2 = @record{x: number, y: number}
+-- Vec2 is an attr of the "type" type, Vec2.value is it's holded type
+-- we set here is_Vec2 at compile-time to use later for checking whether a attr is a Vec2
+## Vec2.value.is_Vec2 = true
 
-local vec2_or_arithmetic_concept = #[concept(function(attr)
-  -- match in case of arithmetic or vec2
-  return attr.type.is_arithmetic or attr.type.is_vec2
+local Vec2_or_arithmetic_concept = #[concept(function(attr)
+  -- match in case of arithmetic or Vec2
+  return attr.type.is_arithmetic or attr.type.is_Vec2
 end)]#
 
--- we use a concepts on the metamethod __add to allow adding vec2 with numbers
-function vec2.__add(a: vec2_or_arithmetic_concept, b: vec2_or_arithmetic_concept)
-  -- specialize the function at compile time based on the argument type
-  ## if a.type.is_vec2 and b.type.is_vec2 then
-    return (@vec2){a.x + b.x, a.y + b.y}
-  ## elseif a.type.is_vec2 then
-    return (@vec2){a.x + b, a.y + b}
-  ## elseif b.type.is_vec2  then
-    return (@vec2){a + b.x, a + b.y}
+-- we use a concepts on the metamethod __add to allow adding Vec2 with numbers
+function Vec2.__add(a: Vec2_or_arithmetic_concept, b: Vec2_or_arithmetic_concept)
+  -- specialize the function at compile-time based on the argument type
+  ## if a.type.is_Vec2 and b.type.is_Vec2 then
+    return (@Vec2){a.x + b.x, a.y + b.y}
+  ## elseif a.type.is_Vec2 then
+    return (@Vec2){a.x + b, a.y + b}
+  ## elseif b.type.is_Vec2  then
+    return (@Vec2){a + b.x, a + b.y}
   ## end
 end
 
-local a: vec2 = {1, 2}
-local v: vec2
-v = a + 1 -- vec2 + arithmetic
+local a: Vec2 = {1, 2}
+local v: Vec2
+v = a + 1 -- Vec2 + arithmetic
 print(v.x, v.y) -- outputs: 2 3
-v = 1 + a -- arithmetic + vec2
+v = 1 + a -- arithmetic + Vec2
 print(v.x, v.y) -- outputs: 2 3
-v = a + a -- vec2 + vec2
+v = a + a -- Vec2 + Vec2
 print(v.x, v.y) -- outputs: 2 4
 ```
 
 ### Concepts with logic
 
 You can put some logic in your concept, to check for any kind of proprieties
-that the incoming `attr` should satisfy, and return compile time errors
+that the incoming `attr` should satisfy, and return compile-time errors
 explaining why the concept didn't match:
 
 ```nelua
@@ -1629,7 +1876,7 @@ print(sum_container(&b)) -- outputs: 55
 
 ### Concept that infers to another type
 
-Some times is useful to infer a concept to a different type
+Sometimes is useful to infer a concept to a different type
 from the incoming `attr`, for example suppose you want to specialize a function
 that optionally accepts any kind of arithmetic, but you really want it to be implemented
 as an number:
@@ -1678,13 +1925,13 @@ print(get_number(nil)) -- prints 0
 print(get_number(2)) -- prints 0
 ```
 
-Use this when you want to specialize optional arguments at compile time
+Use this when you want to specialize optional arguments at compile-time
 without any runtime costs.
 
 ### Overload concept
 
 Using concepts to overload functions for different incoming types
-at compile time is a common use, so there is also a shortcut for creating overload concepts:
+at compile-time is a common use, so there is also a shortcut for creating overload concepts:
 
 ```nelua
 local function foo(x: #[overload_concept{integer,stringview,niltype}]#)
@@ -1702,8 +1949,8 @@ foo('hello') -- outputs: got string hello
 foo(nil) -- outputs: got nothing
 ```
 
-Use this when you want to specialize different argument typesat compile time
-without any runtime costs.
+Use this when you want to specialize different argument types at compile-time
+without runtime costs.
 
 ## Annotations
 
@@ -1775,5 +2022,10 @@ For importing C functions, additional compatibility primitive types are provided
 {: .table.table-bordered.table-striped.table-sm}
 
 {% endraw %}
+
+*[closure]: Closure are functions that captures variables from its parent scope.
+*[upvalue]: A variable captured from in a scope above the closure.
+*[integral]: A whole number, numbers that has not fractional part.
+*[GC]: Garbage Collector
 
 <a href="/manual/" class="btn btn-outline-primary btn-lg float-right">Manual >></a>

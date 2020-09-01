@@ -153,10 +153,6 @@ The following strings denote tokens used in the Nelua syntax:
 | `>=` | right angle bracket + equals | greater than |
 {: .table.table-bordered.table-striped.table-sm}
 
-*[free-form language]: A programming language in which the positioning of characters is insignificant.
-*[ASCII]: American Standard Code for Information Interchange
-*[UTF-8]: 8-bit Unicode Transformation Format
-
 ## 3.2 - Symbols
 TODO
 
@@ -174,5 +170,9 @@ TODO
 
 ## 6 - The Standard Libraries
 TODO
+
+*[free-form language]: A programming language in which the positioning of characters is insignificant.
+*[ASCII]: American Standard Code for Information Interchange
+*[UTF-8]: 8-bit Unicode Transformation Format
 
 <a href="/draft/" class="btn btn-outline-primary btn-lg float-right">Draft >></a>

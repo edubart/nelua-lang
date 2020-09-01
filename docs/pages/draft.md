@@ -70,15 +70,6 @@ a = {1,2}
 a[1] = 0
 ```
 
-### Function type
-
-Functions can be define inside variables like in lua:
-
-```nelua
-local f1: function(a: integer, b: integer): (boolean, boolean)
-local f2 = function(args) end
-```
-
 ### Union
 
 Union can store multiple types at the same block of memory:

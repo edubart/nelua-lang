@@ -185,6 +185,7 @@ pre[class*="language-"] {
 
 .token.preprocessor {
   background-color: hsl(140, 81%, 67%, 0.10);
+  padding: 0.2em 0em;
 }
 
 .token.annotation,
