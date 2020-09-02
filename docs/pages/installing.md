@@ -49,8 +49,9 @@ although you could use other tools MSYS2 makes using Nelua very easy on Windows,
 plus there are many useful C packages on MSYS2 that you could use install with ease like
 SDL2.
 
-Download and install [MSYS2](https://www.msys2.org/), choose the x86_64 installer.
-After installing open the 64 bit terminal and update:
+Download and install [MSYS2](https://www.msys2.org/).
+After installing open the **64 bit terminal**, that is,
+**msys64** and update:
 
 ```bash
 pacman -Syu

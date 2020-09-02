@@ -44,22 +44,6 @@ for i,b in multiples_countdown(10, 0) do
 end
 ```
 
-## Multiple cases switch
-
-Switch statement is similar to C switches:
-
-```nelua
-local a = 1 -- change this to 2 or 3 to trigger other ifs
-switch a
-case 1 then
-  print 'is 1'
-case 2, 3 then
-  print 'is 2 or 3'
-else
-  print 'else'
-end
-```
-
 ## Records as tuples
 
 Records can also be used as tuples:

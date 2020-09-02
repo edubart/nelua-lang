@@ -36,8 +36,8 @@ records instead of tables and type notations in function definitions.
 ## A note for C users
 
 Nelua tries to expose most of C features without overhead, thus expect
-to get near C performance when coding in the C style, that is using
-type notations, manual memory management, pointers, records (structs).
+to get near C performance when coding in the C style, that is, using
+type notations, manual memory management, pointers and records (structs).
 
 The semantics are not exactly as C semantics but close. There are slight differences
 to minimize undefined behaviors (like initialize to zero by default) and
@@ -109,14 +109,14 @@ print(a) -- outputs: 2
 ```
 
 The compiler does it best it can to deduce the type for you, in most situations
-it should work, but it some corner cases you may want to explicitly set a type for a variable.
+it should work, but in some corner cases you may want to explicitly set a type for a variable.
 {:.alert.alert-info}
 
 ### Type collision
 
 In case of different types being assigned to a same variable,
 then the compiler deduces the variable type
-to the type `any`, a type that can hold anything an runtime, this makes Nelua code compatible with lua values semantics:
+to the `any` type, a type that can hold anything an runtime, this makes Nelua code compatible with lua values semantics:
 
 ```nelua
 local a -- a type will be deduced
@@ -147,7 +147,7 @@ although not advised, usually one would do this only for micro optimization purp
 
 ### Auto variables
 
-Variables declared as `auto` have it's type deduced early based only in the type of it's first assignment:
+Variables declared as `auto` have its type deduced early based only in the type of its first assignment:
 
 ```nelua
 local a: auto = 1 -- a is deduced to be of type 'integer'
@@ -183,7 +183,7 @@ for using as compile-time parameters in [polymorphic functions](#polymorphic-fun
 
 ### Const variables
 
-Const variables can be assigned at once runtime however it cannot mutate.
+Const variables can be assigned once at runtime however they cannot mutate:
 
 ```nelua
 local x <const> = 1
@@ -277,11 +277,11 @@ Switch statement is similar to C switches:
 
 ```nelua
 local a = 1 -- change this to 2 or 3 to trigger other ifs
-switch a
+switch a do
 case 1 then
   print 'is 1'
-case 2 then
-  print 'is 2'
+case 2, 3 then
+  print 'is 2 or 3'
 else
   print 'else'
 end
@@ -639,7 +639,33 @@ local i: integer*
 ```
 
 Pointers are straight translated to C raw pointers.
+Unlikely C pointer arithmetic is disallowed,
+to do pointer arithmetic you must explicitly cast to and from integers.
 {:.alert.alert-info}
+
+#### Unbounded Array
+
+An an array with size 0 is an unbounded array,
+that is, an array with unknown size at compile time:
+
+```nelua
+local a: array(integer, 4) = {1,2,3,4}
+
+-- unbounded array only makes sense when used with pointer
+local a_ptr: pointer(array(integer, 0))
+a_ptr = &a -- takes the reference of 'a'
+print(a_ptr[1])
+```
+
+Unbounded array is useful to index pointers, because unlikely
+C you cannot index pointers unless it's a pointer
+of an unbounded array.
+{:.alert.alert-info}
+
+Unbounded arrays are **unsafe**, because bounds checking is
+not possible at compile-time or runtime, prefer the [span](#span)
+to have bounds checking.
+{:.alert.alert-warning}
 
 ### Function type
 
@@ -1084,7 +1110,7 @@ Record globals can be used to encapsulate modules,
 like tables are used to make modules in Lua.
 {:.alert.alert-info}
 
-### Calls on nested records
+### Calls with nested records
 
 You can define and later initialize complex records structures in a Lua like style:
 
@@ -1440,6 +1466,134 @@ The above code compile exactly as:
 local a = (@integer[10]){1,2,3,4,5,6,7,8,9,10}
 ```
 
+### Code blocks as arguments to preprocessor functions
+
+Block of codes can be passed to macros by surrounding it inside a function:
+
+```nelua
+##[[
+function unroll(count, block)
+  for i=1,count do
+    block()
+  end
+end
+]]
+
+local counter = 1
+## unroll(4, function()
+  print(counter) -- outputs: 1 2 3 4
+  counter = counter + 1
+## end)
+```
+
+The above code compile exactly as:
+
+```nelua
+local counter = 1
+print(counter)
+counter = counter + 1
+print(counter)
+counter = counter + 1
+print(counter)
+counter = counter + 1
+print(counter)
+counter = counter + 1
+```
+
+### Generic code via the preprocessor
+
+Using macros its possible to create generic code:
+
+```nelua
+## function Point(PointT, T)
+  local #|PointT|# = @record { x: #|T|#, y: #|T|# }
+  function #|PointT|#:squaredlength()
+    return self.x*self.x + self.y*self.y
+  end
+## end
+
+## Point('PointFloat', 'float64')
+## Point('PointInt', 'int64')
+
+local pa: PointFloat = {x=1,y=2}
+print(pa:squaredlength()) -- outputs: 5
+
+local pb: PointInt = {x=1,y=2}
+print(pb:squaredlength()) -- outputs: 5.000000
+```
+
+### Preprocessing on the fly
+
+While the compiler is processing you can view what the compiler already knows
+to generate arbitrary code:
+
+```nelua
+local Weekends = @enum { Friday=0, Saturday, Sunda }
+## for i,field in ipairs(Weekends.value.fields) do
+  print(#[field.name .. ' ' .. tostring(field.value)]#)
+## end
+```
+
+The above code compile exactly as:
+
+```nelua
+local Weekends = @enum { Friday=0, Saturday, Sunday }
+print 'Friday 0'
+print 'Saturday 1'
+print 'Sunday 2'
+```
+
+You can even manipulate what has already been processed:
+
+```nelua
+local Person = @record{name: string}
+## Person.value:add_field('age', primtypes.integer) -- add field 'age' to 'Person'
+local p: Person = {name='Joe', age=21}
+print(p.age) -- outputs '21'
+```
+
+The above code compile exactly as:
+
+```nelua
+local Person = @record{name: string, age: integer}
+local p: Person = {name='Joe', age=21}
+print(p.age) -- outputs '21'
+```
+
+The compiler is implemented and runs using Lua and the preprocess
+is actually a lua function that the compiler is running, thus it's possible to even modify
+or inject code to the compiler itself on the fly.
+
+### Preprocessing polymorphic functions
+
+Polymorphic functions can make compile-time dynamic functions
+when used in combination with the preprocessor:
+
+```nelua
+local function pow(x: auto, n: integer)
+## static_assert(x.type.is_arithmetic, 'cannot pow variable of type "%s"', x.type)
+## if x.type.is_integral then
+  -- x is an integral type (any unsigned/signed integer)
+  local r: #[x.type]# = 1
+  for i=1,n do
+    r = r * x
+  end
+  return r
+## elseif x.type.is_float then
+  -- x is a floating point type
+  return x ^ n
+## end
+end
+
+local a = pow(2, 2) -- use specialized implementation for integers
+local b = pow(2.0, 2) -- use pow implementation for floats
+print(a,b) -- outputs: 4 4.000000
+
+-- uncommenting the following will trigger the compile error:
+--   error: cannot pow variable of type "string"
+--pow('a', 2)
+```
+
 ### Preprocessor code blocks
 
 Arbitrary Lua code can be put inside preprocessor code blocks. Their syntax
@@ -1533,104 +1687,6 @@ you can set `LUA_PATH` system's environment variable to a pattern which matches 
 for example doing `export LUA_PATH="/myprojects/mymodules/?.lua"`{:.language-bash} in your terminal (notice the `?.lua` at the end).
 {:.alert.alert-info}
 
-### Code blocks as arguments to preprocessor functions
-
-Block of codes can be passed to macros by surrounding it inside a function:
-
-```nelua
-##[[
-function unroll(count, block)
-  for i=1,count do
-    block()
-  end
-end
-]]
-
-local counter = 1
-## unroll(4, function()
-  print(counter) -- outputs: 1 2 3 4
-  counter = counter + 1
-## end)
-```
-
-The above code compile exactly as:
-
-```nelua
-local counter = 1
-print(counter)
-counter = counter + 1
-print(counter)
-counter = counter + 1
-print(counter)
-counter = counter + 1
-print(counter)
-counter = counter + 1
-```
-
-### Generic code
-
-Using macros its possible to create generic code:
-
-```nelua
-## function Point(PointT, T)
-  local #|PointT|# = @record { x: #|T|#, y: #|T|# }
-  function #|PointT|#:squaredlength()
-    return self.x*self.x + self.y*self.y
-  end
-## end
-
-## Point('PointFloat', 'float64')
-## Point('PointInt', 'int64')
-
-local pa: PointFloat = {x=1,y=2}
-print(pa:squaredlength()) -- outputs: 5
-
-local pb: PointInt = {x=1,y=2}
-print(pb:squaredlength()) -- outputs: 5.000000
-```
-
-### Preprocessing on the fly
-
-While the compiler is processing you can view what the compiler already knows
-to generate arbitrary code:
-
-```nelua
-local Weekends = @enum { Friday=0, Saturday, Sunda }
-## for i,field in ipairs(Weekends.value.fields) do
-  print(#[field.name .. ' ' .. tostring(field.value)]#)
-## end
-```
-
-The above code compile exactly as:
-
-```nelua
-local Weekends = @enum { Friday=0, Saturday, Sunday }
-print 'Friday 0'
-print 'Saturday 1'
-print 'Sunday 2'
-```
-
-You can even manipulate what has already been processed:
-
-```nelua
-local Person = @record{name: string}
-## Person.value:add_field('age', primtypes.integer) -- add field 'age' to 'Person'
-local p: Person = {name='Joe', age=21}
-print(p.age) -- outputs '21'
-```
-
-The above code compile exactly as:
-
-```nelua
-local Person = @record{name: string, age: integer}
-local p: Person = {name='Joe', age=21}
-print(p.age) -- outputs '21'
-```
-
-The compiler is implemented and runs using Lua and the preprocess
-is actually a lua function that the compiler is running, thus it's possible to even modify
-or inject code to the compiler itself on the fly.
-
 ### Preprocessor utilities
 
 The preprocessor comes with some pre-defined functions to assist meta programming.
@@ -1655,36 +1711,6 @@ Used to throw compile-time assertions:
 ```nelua
 -- check the current Lua version in the preprocessor
 ## static_assert(_VERSION == 'Lua 5.4', 'not using Lua 5.4, got %s', _VERSION)
-```
-
-### Preprocessing polymorphic functions
-
-Polymorphic functions can make compile-time dynamic functions
-when used in combination with the preprocessor:
-
-```nelua
-local function pow(x: auto, n: integer)
-## static_assert(x.type.is_arithmetic, 'cannot pow variable of type "%s"', x.type)
-## if x.type.is_integral then
-  -- x is an integral type (any unsigned/signed integer)
-  local r: #[x.type]# = 1
-  for i=1,n do
-    r = r * x
-  end
-  return r
-## elseif x.type.is_float then
-  -- x is a floating point type
-  return x ^ n
-## end
-end
-
-local a = pow(2, 2) -- use specialized implementation for integers
-local b = pow(2.0, 2) -- use pow implementation for floats
-print(a,b) -- outputs: 4 4.000000
-
--- uncommenting the following will trigger the compile error:
---   error: cannot pow variable of type "string"
---pow('a', 2)
 ```
 
 ## Concepts
@@ -1977,27 +2003,194 @@ local b <volatile> = 1 -- C volatile variable
 print(b) -- outputs: 1
 ```
 
-## Mixing C code
+## C interoperability
 
-Nelua can import C functions from C headers:
+Nelua provides many utilities to interoperate with C code.
+
+### Importing C functions
+
+To import a C function you must use the `<cimport>` annotation:
 
 ```nelua
--- `cimport` informs the compiler the function name from C that should be imported
--- `cinclude` informs the compiler which C header its declared
--- `nodecl` informs the compiler that it doesn't need to declare it (C header already declares)
-local function malloc(size: usize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
-local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
-local function free(ptr: pointer) <cimport'free',cinclude'<stdlib.h>',nodecl> end
+-- import "puts" from C library
+local function puts(s: cstring <const>): cint <cimport>
+  -- cannot have any code here, because this function is imported
+end
 
-local a = (@int64[10]*)(malloc(10 * 8))
-memset(a, 0, 10*8)
-assert(a[0] == 0)
-a[0] = 1
-assert(a[0] == 1)
-free(a)
+puts('hello') -- outputs: hello
 ```
 
-This allows to use existing C libraries in Nelua code.
+The above code generates exactly this C code:
+
+```c
+/* DECLARATIONS */
+int puts(const char* s);
+static char __strlit1[6] = "hello";
+/* DEFINITIONS */
+int nelua_main() {
+  puts(__strlit1);
+  return 0;
+}
+```
+
+Notice that the `puts` functions is **declared automatically**,
+i.e., there is no need to include the header that declares the function.
+{:.alert.alert-info}
+
+### Importing C functions declared in headers
+
+Sometimes you need to import a C function that is declared
+in a C header, specially if its declared as a macro:
+
+```nelua
+-- `nodecl` is used because this function doesn't need to be declared by Nelua,
+-- as it will be declared in <stdio.h> header
+-- `cinclude` is used to make the compiler include the header when using the function
+local function puts(s: cstring <const>): cint <cimport, nodecl, cinclude '<stdio.h>'>
+end
+
+puts('hello') -- outputs: hello
+```
+
+The above code generates exactly this C code:
+
+```c
+/* DECLARATIONS */
+#include <stdio.h>
+static char __strlit1[6] = "hello";
+/* DEFINITIONS */
+int nelua_main() {
+  puts(__strlit1);
+  return 0;
+}
+```
+
+Notice that the `nodecl` is needed when importing any C function
+that is declared in a C header, otherwise the function will have duplicate declarations.
+{:.alert.alert-info}
+
+### Including C files with defines
+
+Sometimes you need to include a C file but defining something before the include:
+
+```nelua
+-- link SDL2 library
+## linklib 'SDL2'
+-- define SDL_MAIN_HANDLED before including SDL2
+## cdefine 'SDL_MAIN_HANDLED'
+-- include SDL2 header
+## cinclude '<SDL2/SDL.h>'
+
+-- import some constants defined in SDL2 header
+local SDL_INIT_VIDEO: uint32 <cimport, nodecl>
+
+-- import functions defined in SDL2 header
+local function SDL_Init(flags: uint32): int32 <cimport, nodecl> end
+local function SDL_Quit() <cimport, nodecl> end
+
+SDL_Init(SDL_INIT_VIDEO)
+SDL_Quit()
+```
+
+### Importing C functions using a different name
+
+The `<cimport>` annotation uses the same name of its symbol name,
+but it's possible import using a different name:
+
+```nelua
+-- we pass the C function name as a parameter for `cimport`
+local function c_puts(s: cstring): cint <cimport 'puts', nodecl, cinclude '<stdio.h>'>
+end
+
+c_puts('hello') -- outputs: hello
+```
+
+### Linking a C library
+
+When importing a function from a C library you also need to link the library,
+to do this use the `linklib` function in the preprocessor:
+
+```nelua
+-- link the SDL2 library when compiling
+## linklib 'SDL2'
+
+local function SDL_GetPlatform(): cstring <cimport> end
+
+print(SDL_GetPlatform()) -- outputs your platform name (Linux, Windows, ...)
+```
+
+Notice that we didn't need to include the SDL header in the above example,
+we could, but we let Nelua declare the function.
+{:.alert.alert-info}
+
+### Passing C flags
+
+It's possible to add custom C flags when compiling via the preprocessor:
+
+```nelua
+##[[
+if FAST then -- release build
+  cflags '-Ofast' -- C  compiler flags
+  ldflags '-s' -- linker flags
+else -- debug build
+  cflags '-Og'
+end
+]]
+```
+
+If we run the above example with `nelua -DFAST example.nelua`
+the C compiler will compile with the cflags `-Og` otherwise `-Og`.
+
+### Emitting raw C code
+
+Sometimes to do low level stuff in C, or skip Nelua default semantics,
+you may want to emit raw C code:
+
+```nelua
+local function do_stuff()
+  -- emits in the declarations section of the generated C file
+  ## cemitdecl '#include <stdio.h>'
+
+  -- emits inside this function in the generated C file
+  ##[==[ cemit([[
+    const char *msg = "hello from C\n";
+    printf(msg);
+  ]])]==]
+end
+
+do_stuff()
+```
+
+Nelua can emit C code in 3 different sections, in the global **declarations**
+section using `cemitdecl`, in the global **definitions** section using `cemitdef`
+or the **current scope** section using `cemit`. Usually you
+want to use `cemit`.
+{:.alert.alert-info}
+
+
+### Exporting named C functions
+
+You can use Nelua to create C libraries, when doing this
+you may want to fix the name of the generated C function and export it:
+
+```nelua
+-- `cexport` marks this function to be exported
+-- `codename` fix the generated C code name
+local function foo() <cexport, codename 'mylib_foo'>
+  return 1
+end
+```
+
+The above code generates exactly this C code:
+
+```c
+/* DECLARATIONS */
+extern int64_t mylib_foo();
+/* DEFINITIONS */
+int64_t mylib_foo() {
+  return 1;
+}
+```
 
 ### C primitives
 
@@ -2020,6 +2213,10 @@ For importing C functions, additional compatibility primitive types are provided
 | `csize`           | `size_t`             | `_csize`         |
 | `clongdouble`     | `long double`        | `_clongdouble`   |
 {: .table.table-bordered.table-striped.table-sm}
+
+Use this types for **importing C functions only**, for doing usual
+code prefer the other Nelua primitive types.
+{:.alert.alert-info}
 
 {% endraw %}
 

@@ -463,19 +463,27 @@ function visitors.PragmaCall(context, node, emitter)
   if name == 'cinclude' then
     context:add_include(table.unpack(args))
   elseif name == 'cemit' then
-    local code, scope = table.unpack(args)
+    local code = args[1]
     if traits.is_string(code) and not stringer.endswith(code, '\n') then
       code = code .. '\n'
     end
-    if scope == 'declaration' and traits.is_string(code) then
-      context:add_declaration(code)
-    elseif scope == 'definition' and traits.is_string(code)  then
-      context:add_definition(code)
-    elseif not scope and traits.is_function(code) then
-      code(emitter)
-    elseif not scope and traits.is_string(code) then
+    if traits.is_string(code) then
       emitter:add(code)
+    elseif traits.is_function(code) then
+      code(emitter)
     end
+  elseif name == 'cemitdecl' then
+    local code = args[1]
+    if traits.is_string(code) and not stringer.endswith(code, '\n') then
+      code = code .. '\n'
+    end
+    context:add_declaration(code)
+  elseif name == 'cemitdef' then
+    local code = args[1]
+    if traits.is_string(code) and not stringer.endswith(code, '\n') then
+      code = code .. '\n'
+    end
+    context:add_definition(code)
   elseif name == 'cdefine' then
     context:add_declaration(string.format('#define %s\n', args[1]))
   elseif name == 'cflags' then
@@ -523,7 +531,7 @@ function visitors.IdDecl(context, node, emitter)
   if type.is_type then return end
   if attr.cexport then emitter:add('extern ') end
   if attr.register then emitter:add('register ') end
-  --if attr.const then emitter:add('const ') end
+  if attr.const and attr.type.is_pointer then emitter:add('const ') end
   if attr.volatile then emitter:add('volatile ') end
   if attr.restrict then emitter:add('__restrict ') end
   if attr.static then emitter:add('static ') end

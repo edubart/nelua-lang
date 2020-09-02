@@ -1,9 +1,9 @@
 ##[[
 cinclude '<time.h>'
 
-cemit([==[
+cemitdecl([==[
 typedef struct tm tm_t;
-]==],'declaration')
+]==])
 
 local neluatypes = require 'nelua.types'
 ]]

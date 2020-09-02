@@ -4,9 +4,9 @@ require 'string'
 -- C imports
 
 ##[[
-cemit([==[
+cemitdecl([==[
 typedef struct tm tm_t;
-]==],'declaration')
+]==])
 ]]
 
 local clock_t <cimport,nodecl> = #[types.IntegralType('clock_t', primtypes.clong.size)]#

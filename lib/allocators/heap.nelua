@@ -72,7 +72,7 @@ end
 
 -- import efficient clz (compute leading zeros) from C
 -- used to compute the bin
-##[==[ cemit([[
+##[==[ cemitdecl([[
 #ifdef __GNUC__
 #define c_clz(x) __builtin_clz(x)
 #else
@@ -89,7 +89,7 @@ inline uint32_t c_clz(uint32_t v) {
   return 31 - MultiplyDeBruijnBitPosition[(uint32_t)(v * 0x07C4ACDDU) >> 27];
 }
 #endif
-]], 'declaration')
+]])
 ]==]
 local function c_clz(x: uint32): uint32 <cimport,nodecl> end
 local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end

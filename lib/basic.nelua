@@ -1,14 +1,14 @@
 -- Nelua global basic functions
 
 -- C imports
-##[[cemit([=[#ifdef __GNUC__
+##[[cemitdecl([=[#ifdef __GNUC__
 #define nelua_likely(x) __builtin_expect(x, 1)
 #define nelua_unlikely(x) __builtin_expect(x, 0)
 #else
 #define nelua_likely(x) (x)
 #define nelua_unlikely(x) (x)
 #endif
-]=], 'declaration')]]
+]=])]]
 local FILE <cimport,nodecl,cinclude'<stdio.h>'> = @record{}
 local function fwrite(ptr: void*, size: csize, n: csize, s: FILE*): csize <cimport'fwrite',nodecl,cinclude'<stdio.h>'> end
 local function fputc(c: cint, stream: FILE*): cint <cimport,nodecl,cinclude'<stdio.h>'> end
