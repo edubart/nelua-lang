@@ -8,12 +8,14 @@ SRCS=lua/onelua.c rpmalloc/rpmalloc.c lfs.c sys.c hasher.c lpeglabel/*.c
 HDRS=lua/*.h lpeglabel/*.h
 EXE=nelua-lua
 RM=rm -f
+PREFIX=/usr/local
 
 ## Tune some values for the Lua interpreter
 DEFS+=-DLUA_COMPAT_5_3 -DLUAI_MAXCSTACK=16384 -DLUA_USE_RPMALLOC
 
 ## Tune rpmalloc
 DEFS+=-DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
+
 
 ## Host system detection.
 SYS:=$(shell uname -s)
@@ -23,6 +25,16 @@ endif
 ifneq (,$(findstring MSYS,$(SYS)))
 	SYS=Windows
 endif
+
+## Prefix
+ifeq ($(SYS), Windows)
+	PREFIX=/usr
+else
+	PREFIX=/usr/local
+endif
+
+## Install path
+DEFS+=-DLUA_ROOT='"$(PREFIX)/"'
 
 ## Setup flags for the host system.
 ifeq ($(SYS), Linux)

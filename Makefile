@@ -11,7 +11,6 @@ ROCKSPEC_DEV=rockspecs/nelua-dev-1.rockspec
 LUAROCKS_BUILTFILES=*.so *.dll src/*.o src/lua/*.o src/lpeglabel/*.o
 
 # Install variables
-PREFIX=/usr/local
 DPREFIX=$(DESTDIR)$(PREFIX)
 INSTALL_BIN=$(DPREFIX)/bin
 INSTALL_LIB=$(DPREFIX)/lib/nelua
@@ -50,8 +49,10 @@ endif
 ## Detect the lua interpreter to use.
 ifeq ($(SYS), Windows)
 	LUA=$(realpath $(NELUALUA).exe)
+	PREFIX=/usr
 else
 	LUA=$(NELUALUA)
+	PREFIX=/usr/local
 endif
 
 ## The default target.
@@ -121,7 +122,7 @@ docker-image:
 
 ## Run tests inside a docker container.
 docker-test:
-	$(DOCKER_RUN) make -s test
+	$(DOCKER_RUN) make -s PREFIX=/usr test
 
 _docker-test-rocks:
 	$(LUAROCKS) make --local $(ROCKSPEC_DEV)
@@ -135,7 +136,7 @@ _docker-test-rocks:
 docker-test-full:
 	@$(MAKE) -C src clean
 	@$(MAKE) clean
-	$(DOCKER_RUN) make coverage-test check compile-examples _docker-test-rocks
+	$(DOCKER_RUN) make PREFIX=/usr coverage-test check compile-examples _docker-test-rocks
 
 ## Get a shell inside a new docker container.
 docker-term:
@@ -171,6 +172,7 @@ clean: clean-cache clean-coverage clean-nelua-lua
 
 ## Install Nelua using PREFIX into DESTDIR.
 install:
+	$(MAKE) --no-print-directory -C src
 	$(INSTALL_X) $(NELUALUA) $(INSTALL_BIN)/nelua-lua
 	$(INSTALL_X) $(NELUASH) $(INSTALL_BIN)/nelua
 	$(INSTALL_F) nelua.lua $(INSTALL_LUALIB)/nelua.lua
