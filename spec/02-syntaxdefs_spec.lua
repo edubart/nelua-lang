@@ -656,7 +656,7 @@ describe("statement switch", function()
       n.Block{{
         n.Switch{
           n.Id{'a'},
-          { {{n.Id{'b'}}, n.Block{{}}} }
+          { {n.Id{'b'}, n.Block{{}}} }
     }}})
   end)
   it("with else part", function()
@@ -664,7 +664,7 @@ describe("statement switch", function()
       n.Block{{
         n.Switch{
           n.Id{'a'},
-          { {{n.Id{'b'}}, n.Block{{}}} },
+          { {n.Id{'b'}, n.Block{{}}} },
           n.Block{{}}
     }}})
   end)
@@ -673,8 +673,8 @@ describe("statement switch", function()
       n.Block{{
         n.Switch{
           n.Id{'a'},
-          { {{n.Id{'b'}}, n.Block{{}}},
-            {{n.Id{'c'}}, n.Block{{}}}
+          { {n.Id{'b'}, n.Block{{}}},
+            {n.Id{'c'}, n.Block{{}}}
           },
           n.Block{{}}
     }}})
@@ -684,7 +684,7 @@ describe("statement switch", function()
       n.Block{{
         n.Switch{
           n.Id{'a'},
-          { {{n.Id{'b'}, n.Id{'c'}}, n.Block{{}}} },
+          { {n.Id{'b'}, n.Id{'c'}, n.Block{{}}} },
           n.Block{{}}
     }}})
   end)
