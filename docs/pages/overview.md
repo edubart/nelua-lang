@@ -2139,7 +2139,7 @@ end
 ```
 
 If we run the above example with `nelua -DFAST example.nelua`
-the C compiler will compile with the cflags `-Og` otherwise `-Og`.
+the C compiler will compile with the cflags `-Ofast` otherwise `-Og`.
 
 ### Emitting raw C code
 
