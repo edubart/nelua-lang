@@ -35,7 +35,7 @@ else ifeq ($(SYS), Windows)
 	EXE=nelua-lua.exe
 else ifeq ($(SYS), Darwin)
 	CC=clang
-	LDFLAGS=
+	LDFLAGS=-rdynamic
 	DEFS+=-DLUA_USE_MACOSX
 else # probably POSIX
 	CC=cc
