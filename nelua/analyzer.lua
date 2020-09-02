@@ -1369,9 +1369,10 @@ function visitors.Switch(context, node)
   end
   for i=1,#caseparts do
     local casepart = caseparts[i]
+    local caseexprs, caseblock = casepart[1], casepart[2]
 
-    for parti=1, #casepart-1 do
-      local casenode = casepart[parti]
+    for j=1,#caseexprs do
+      local casenode = caseexprs[j]
       context:traverse_node(casenode)
       if not (casenode.attr.type and casenode.attr.type.is_integral and
              (casenode.attr.comptime or casenode.attr.cimport)) then
@@ -1379,7 +1380,7 @@ function visitors.Switch(context, node)
       end
     end
 
-    context:traverse_node(casepart[#casepart])
+    context:traverse_node(caseblock)
   end
   if elsenode then
     context:traverse_node(elsenode)
