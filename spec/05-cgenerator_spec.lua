@@ -178,13 +178,15 @@ it("if", function()
 end)
 
 it("switch", function()
-  assert.generate_c("local a,f,g,h; do switch a case 1 then f() case 2 then g() else h() end end",[[
+  assert.generate_c("local a,f,g,h; do switch a do case 1 then f() case 2, 3, 4 then g() else h() end end",[[
     switch(a) {
       case 1: {
         f();
         break;
       }
-      case 2: {
+      case 2:
+      case 3:
+      case 4: {
         g();
         break;
       }

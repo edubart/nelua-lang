@@ -1369,13 +1369,17 @@ function visitors.Switch(context, node)
   end
   for i=1,#caseparts do
     local casepart = caseparts[i]
-    local casenode, blocknode = casepart[1], casepart[2]
-    context:traverse_node(casenode)
-    if not (casenode.attr.type and casenode.attr.type.is_integral and
-           (casenode.attr.comptime or casenode.attr.cimport)) then
-      casenode:raisef("`case` statement must evaluate to a compile time integral value")
+
+    for parti=1, #casepart-1 do
+      local casenode = casepart[parti]
+      context:traverse_node(casenode)
+      if not (casenode.attr.type and casenode.attr.type.is_integral and
+             (casenode.attr.comptime or casenode.attr.cimport)) then
+        casenode:raisef("`case` statement must evaluate to a compile time integral value")
+      end
     end
-    context:traverse_node(blocknode)
+
+    context:traverse_node(casepart[#casepart])
   end
   if elsenode then
     context:traverse_node(elsenode)

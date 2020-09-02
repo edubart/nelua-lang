@@ -227,7 +227,7 @@ astbuilder:register('BinaryOp', {
 -- nelua extesions to lua
 astbuilder:register('Switch', {
   ntypes.Node, -- switch expr
-  stypes.array_of(stypes.shape{ntypes.Node, ntypes.Block}), -- case list {expr, block}
+  stypes.array_of(stypes.shape{ stypes.array_of(ntypes.Node), ntypes.Block}), -- case list {expr list, block}
   ntypes.Block:is_optional() -- else block
 })
 

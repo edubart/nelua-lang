@@ -656,7 +656,7 @@ describe("statement switch", function()
       n.Block{{
         n.Switch{
           n.Id{'a'},
-          { {n.Id{'b'}, n.Block{{}}} }
+          { {n.Id{{'b'}}, n.Block{{}}} }
     }}})
   end)
   it("with else part", function()
@@ -664,7 +664,7 @@ describe("statement switch", function()
       n.Block{{
         n.Switch{
           n.Id{'a'},
-          { {n.Id{'b'}, n.Block{{}}} },
+          { {n.Id{{'b'}}, n.Block{{}}} },
           n.Block{{}}
     }}})
   end)
@@ -673,9 +673,18 @@ describe("statement switch", function()
       n.Block{{
         n.Switch{
           n.Id{'a'},
-          { {n.Id{'b'}, n.Block{{}}},
-            {n.Id{'c'}, n.Block{{}}}
+          { {n.Id{{'b'}}, n.Block{{}}},
+            {n.Id{{'c'}}, n.Block{{}}}
           },
+          n.Block{{}}
+    }}})
+  end)
+  it("multiple cases with shared block", function()
+    assert.parse_ast(nelua_parser, "switch a do case b, c then else end",
+      n.Block{{
+        n.Switch{
+          n.Id{'a'},
+          { {n.Id{{'b', 'c'}}, n.Block{{}}} },
           n.Block{{}}
     }}})
   end)

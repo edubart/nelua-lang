@@ -349,9 +349,9 @@ local function get_parser()
   ]], nil, true)
 
   grammar:add_group_peg('stat', 'switch', [[
-    ({} %SWITCH -> 'Switch' eexpr
+    ({} %SWITCH -> 'Switch' eexpr %DO*
       {|(
-        ({| %CASE eexpr eTHEN block |})+ / %{ExpectedCase})
+        ({| %CASE eexpr (%COMMA expr)* eTHEN block |})+ / %{ExpectedCase})
       |}
       (%ELSE block)?
       eEND
