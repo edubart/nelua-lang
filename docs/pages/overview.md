@@ -1365,7 +1365,7 @@ The above code compile exactly as:
 
 ```nelua
 local deg2rad = 0.017453292519943
-local hello = 'hello world'
+local hello = 'helloworld'
 local mybool = false
 print(deg2rad, hello, mybool)
 ```
@@ -1844,11 +1844,11 @@ local function add(x: an_arithmetic, y: an_arithmetic)
   return x + y
 end
 
-print(add(1 ,2)) -- outputs 3
+print(add(1, 2)) -- outputs 3
 
 -- uncommenting the following will trigger the compile error:
---   type 'boolean' could not match concept 'an_arithmetic_or_string'
--- add(1,true)
+--   type 'boolean' could not match concept 'an_arithmetic'
+-- add(1, true)
 ```
 
 When the concepts of a function is matched for the first time,
@@ -2032,7 +2032,7 @@ local function get_number(x: optional_number_concept)
 end
 
 print(get_number(nil)) -- prints 0
-print(get_number(2)) -- prints 0
+print(get_number(2)) -- prints 2
 ```
 
 ### Optional concept
@@ -2050,7 +2050,7 @@ local function get_number(x: #[optional_concept(number)]#)
 end
 
 print(get_number(nil)) -- prints 0
-print(get_number(2)) -- prints 0
+print(get_number(2)) -- prints 2
 ```
 
 Use this when you want to specialize optional arguments at compile-time

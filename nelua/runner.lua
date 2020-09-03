@@ -41,6 +41,10 @@ local function run(argv, redirect)
     input = fs.ereadfile(infile)
   end
 
+  if config.before_parse then
+    config.before_parse()
+  end
+
   -- parse ast
   local parser = syntax.parser
   local ast = parser:parse(input, infile)
