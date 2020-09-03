@@ -26,13 +26,6 @@ ifneq (,$(findstring MSYS,$(SYS)))
 	SYS=Windows
 endif
 
-## Prefix
-ifeq ($(SYS), Windows)
-	PREFIX=/usr
-else
-	PREFIX=/usr/local
-endif
-
 ## Install path
 DEFS+=-DLUA_ROOT='"$(PREFIX)/"'
 

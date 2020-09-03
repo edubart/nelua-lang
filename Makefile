@@ -30,6 +30,7 @@ BUSTED=busted
 LUACOV=luacov
 LUAMON=luamon -w nelua,spec,tools,examples,lib,tests -e lua,nelua -q -x
 JEKYLL=bundle exec jekyll
+PREFIX=/usr/local
 
 ## Variables for Docker
 UID=$(shell id -u $(USER))
@@ -49,10 +50,8 @@ endif
 ## Detect the lua interpreter to use.
 ifeq ($(SYS), Windows)
 	LUA=$(realpath $(NELUALUA).exe)
-	PREFIX=/usr
 else
 	LUA=$(NELUALUA)
-	PREFIX=/usr/local
 endif
 
 ## The default target.
