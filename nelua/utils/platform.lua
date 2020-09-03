@@ -15,4 +15,7 @@ platform.is_windows = platform.dir_separator == '\\'
 -- Usually ':' on Linux and ';' on Windows.
 platform.path_separator = platform.is_windows and ';' or ':'
 
+-- Host CPU word size in bits, usually 32 or 64
+platform.cpu_bits = string.packsize('T') * 8
+
 return platform

@@ -6,6 +6,7 @@ local except = require 'nelua.utils.except'
 local sstream = require 'nelua.utils.sstream'
 local fs = require 'nelua.utils.fs'
 local cdefs = require 'nelua.cdefs'
+local platform = require 'nelua.utils.platform'
 local console = require 'nelua.utils.console'
 
 local configer = {}
@@ -16,7 +17,7 @@ local defconfig = {
   generator = 'c',
   gdb = 'gdb',
   cache_dir = 'nelua_cache',
-  cpu_bits = 64
+  cpu_bits = platform.cpu_bits
 }
 metamagic.setmetaindex(config, defconfig)
 
