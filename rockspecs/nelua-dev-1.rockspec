@@ -122,6 +122,7 @@ build = {
       ['lib/allocators/stack.nelua']        = 'lib/allocators/stack.nelua',
       ['lib/allocators/heap.nelua']         = 'lib/allocators/heap.nelua',
       ['lib/allocators/pool.nelua']         = 'lib/allocators/pool.nelua',
+      ['lib/arg.nelua']            = 'lib/arg.nelua',
       ['lib/basic.nelua']          = 'lib/basic.nelua',
       ['lib/io.nelua']             = 'lib/io.nelua',
       ['lib/math.nelua']           = 'lib/math.nelua',

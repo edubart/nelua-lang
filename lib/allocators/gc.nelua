@@ -533,9 +533,12 @@ end
 
 local function nelua_main(): cint <cimport,nodecl> end
 
+global arg: span(cstring)
+
 local function main(argc: cint, argv: cchar**): cint <entrypoint>
   gc:start(&argc)
   gc:_mark_statics()
+  arg = {data=argv, size=argc}
   local ret: cint = nelua_main()
   gc:stop()
   return ret
