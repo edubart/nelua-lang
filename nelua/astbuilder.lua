@@ -9,7 +9,6 @@ local config = require 'nelua.configer'.get()
 local shapetypes = require 'nelua.thirdparty.tableshape'.types
 local traits = require 'nelua.utils.traits'
 local bn = require 'nelua.utils.bn'
-local typedefs = require 'nelua.typedefs'
 
 local ASTBuilder = class()
 
@@ -36,6 +35,7 @@ function ASTBuilder:create_value(val, srcnode)
   if traits.is_astnode(val) then
     node = val
   elseif traits.is_type(val) then
+    local typedefs = require 'nelua.typedefs'
     node = aster.Type{'auto'}
     -- inject persistent parsed type
     local pattr = Attr({
