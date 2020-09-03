@@ -216,7 +216,7 @@ do
     print(a) -- outputs: 1
   end
 end
--- this would trigger a compiler error because `a` is not visible:
+-- uncommenting this would trigger a compiler error because `a` is not visible:
 -- a = 1
 ```
 
@@ -513,7 +513,7 @@ local mystr: string -- empty string
 local str1: string = 'my string' -- variable of type 'string'
 local str2 = "static stringview" -- variable of type 'stringview'
 local str3: stringview = 'stringview two' -- also a 'stringview'
-print(str1, str2, str3) -- outputs: "" "string one" "string two"
+print(str1, str2, str3) -- outputs: "my string" "static stringview" "stringview two"
 ```
 
 The major difference of `stringview` and `string` is that `stringview` doesn't
@@ -1566,7 +1566,7 @@ or inject code to the compiler itself on the fly.
 
 ### Preprocessing polymorphic functions
 
-Polymorphic functions can make compile-time dynamic functions
+Polymorphic functions can be specialized at compile-time
 when used in combination with the preprocessor:
 
 ```nelua
@@ -1712,6 +1712,108 @@ Used to throw compile-time assertions:
 -- check the current Lua version in the preprocessor
 ## static_assert(_VERSION == 'Lua 5.4', 'not using Lua 5.4, got %s', _VERSION)
 ```
+
+## Generics
+
+A generic is a special type created using a preprocessor function
+that is evaluated at compile-time to generate a specialized type based
+on compile-time arguments, to do this the `generalize` macro is used.
+It's hard to explain in words, lets view a full example:
+
+```nelua
+-- Define a generic type for creating a specialized FixedStackArray
+## local make_FixedStackArray = generalize(function(T, maxsize)
+  -- alias compile-time parameters visible in the preprocessor to local symbols
+  local T = #[T]#
+  local MaxSize <comptime> = #[maxsize]#
+
+  -- Define a record using T and MaxSize compile-time parameters.
+  local FixedStackArrayT = @record {
+    data: T[MaxSize],
+    size: isize
+  }
+
+  -- Push a value into the stack array.
+  function FixedStackArrayT:push(v: T)
+    if self.size >= MaxSize then error('stack overflow') end
+    self.data[self.size] = v
+    self.size = self.size + 1
+  end
+
+  -- Pop a value from the stack array.
+  function FixedStackArrayT:pop(): T
+    if self.size == 0 then error('stack underflow') end
+    self.size = self.size - 1
+    return self.data[self.size]
+  end
+
+  -- Return the length of the stack array.
+  function FixedStackArrayT:__len(): isize
+    return self.size
+  end
+
+  -- return the new defined type to the compiler
+  ## return FixedStackArrayT
+## end)
+
+-- define FixedStackArray generic type in the scope
+local FixedStackArray: type = #[make_FixedStackArray]#
+
+do -- test with 'integer' type
+  local v: FixedStackArray(integer, 3)
+
+  -- push elements
+  v:push(1)
+  v:push(2)
+  v:push(3)
+  -- uncommenting would trigger a stack overflow error:
+  -- v:push(4)
+
+  -- check the stack array length
+  assert(#v == 3)
+
+  -- pop elements checking the values
+  assert(v:pop() == 3)
+  assert(v:pop() == 2)
+  assert(v:pop() == 1)
+  -- uncommenting would trigger a stack underflow error:
+  -- v:pop()
+end
+
+do -- test with 'number' type
+  local v: FixedStackArray(number, 3)
+
+  -- push elements
+  v:push(1.5)
+  v:push(2.5)
+  v:push(3.5)
+  -- uncommenting would trigger a stack overflow error:
+  -- v:push(4.5)
+
+  -- check the stack array length
+  assert(#v == 3)
+
+  -- pop elements checking the values
+  assert(v:pop() == 3.5)
+  assert(v:pop() == 2.5)
+  assert(v:pop() == 1.5)
+  -- uncommenting would trigger a stack underflow error:
+  -- v:pop()
+end
+```
+
+Generics are powerful to **specialize efficient code at compile-time**
+based on different compile-time arguments, they are used in many places in the
+standard library for example to create
+[vector](https://github.com/edubart/nelua-lang/blob/master/lib/vector.nelua)
+[sequence](https://github.com/edubart/nelua-lang/blob/master/lib/sequence.nelua)
+and [span](https://github.com/edubart/nelua-lang/blob/master/lib/span.nelua)
+classes. Generics is similar to C++ templates.
+{:.alert.alert-info}
+
+Generics are **memoized**, that is, they are evaluated and defined just once for the
+same compile-time arguments.
+{:.alert.alert-info}
 
 ## Concepts
 

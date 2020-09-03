@@ -2,6 +2,7 @@
 Prism.languages.lua = {
     'comment': /^#!.+|--(?:\[(=*)\[[\s\S]*?\]\1\]|.*)/m,
     // \z may be used to skip the following space
+    'special': /\bself\b/,
     'builtin': /\b(?:false|true|nil)\b/,
     'keyword': /\b(?:and|break|do|else|elseif|end|for|function|goto|if|in|local|not|or|repeat|return|then|until|while)\b/,
     'function': /(?!\d)\w+(?=\s*(?:[({'"]))/,
@@ -55,6 +56,7 @@ Prism.languages.nelua = {
         }
     }],
     'comment': /^#!.+|--(?:\[(=*)\[[\s\S]*?\]\1\]|.*)/m,
+    'special': /\bself\b/,
     'builtin': /\b(?:false|true|nil|nilptr)\b/,
     'keyword': /\b(?:and|break|do|else|elseif|end|for|function|goto|if|in|local|not|or|repeat|return|then|until|while|switch|case|continue|global|defer)\b/,
     'type': [{
