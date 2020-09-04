@@ -464,7 +464,8 @@ local function get_parser()
 
     typexpr <- typexpr0
     typexpr0 <- ({} '' -> 'UnionType' {| typexpr1 (%BOR typexpr1)* |}) -> to_list_astnode
-    typexpr1 <- (simple_typexpr {| unary_typexpr_op* |}) -> to_chain_late_unary_op
+    typexpr1 <- ({| unary_typexpr_op* |} typexpr2) -> to_chain_late_unary_op
+    typexpr2 <- (simple_typexpr {| unary_typexpr_op+ |}?) -> to_chain_late_unary_op_suffix
 
     simple_typexpr <-
       func_type /

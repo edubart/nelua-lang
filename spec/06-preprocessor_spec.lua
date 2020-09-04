@@ -19,10 +19,10 @@ it("evaluate expressions", function()
     local e = 1
   ]])
   assert.ast_type_equals([=[
-    local a: integer[10]
+    local a: [10]integer
     a[#[0]#] = 1
   ]=], [[
-    local a: integer[10]
+    local a: [10]integer
     a[0] = 1
   ]])
   assert.analyze_error("local a = #[function() end]#", "unable to convert preprocess value of lua type")
@@ -207,7 +207,7 @@ it("print types", function()
     local n: float64
     local s: stringview
     local b: boolean
-    local a: int64[2]
+    local a: [2]int64
     local function f(a: int64, b: int64): (int64, int64) return 0,0 end
     local R: type = @record{a: integer, b: integer}
     function R:foo() return 1 end
@@ -224,7 +224,7 @@ it("print types", function()
     local n: float64
     local s: stringview
     local b: boolean
-    local a: int64[2]
+    local a: [2]int64
     local function f(a: int64, b: int64): (int64, int64) return 0,0 end
     local R: type = @record{a: integer, b: integer}
     function R:foo() return 1 end

@@ -4,7 +4,7 @@ local maxi: integer <comptime> = #[primtypes.isize.max]#
 local mini: integer <comptime> = #[primtypes.isize.min]#
 
 do -- initialization, len, eq and reset
-  local arr: byte[6] = {0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00}
+  local arr: [6]byte = {0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00}
   local a: string = (@cstring)(&arr[0])
   local b: string = (@cstring)('hello')
   assert('a' == 'a')
@@ -110,7 +110,7 @@ do -- char
 end
 
 do -- byte
-  local arr: byte[4] = {1,2,3,0}
+  local arr: [4]byte = {1,2,3,0}
   local a: string = (@cstring)(&arr[0])
   assert(a:byte( 1) == 1 and a:byte( 2) == 2 and a:byte( 3) == 3)
   assert(a:byte(-3) == 1 and a:byte(-2) == 2 and a:byte(-1) == 3)

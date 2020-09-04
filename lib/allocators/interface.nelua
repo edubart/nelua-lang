@@ -61,7 +61,7 @@ require 'span'
     p = self:realloc(p, newsize, oldsize)
     if likely(newsize > oldsize and p ~= nilptr) then
       -- zero the grown part
-      memset(&(@byte[0]*)(p)[oldsize], 0, newsize - oldsize)
+      memset(&(@*[0]byte)(p)[oldsize], 0, newsize - oldsize)
     end
     return p
   end
@@ -70,7 +70,7 @@ require 'span'
   function Allocator:spanalloc(T: type, size: usize)
     local s: span(T)
     if likely(size > 0) then
-      s.data = (@T[0]*)(self:alloc(size * #T))
+      s.data = (@*[0]T)(self:alloc(size * #T))
       s.size = size
     end
     return s
@@ -79,7 +79,7 @@ require 'span'
   function Allocator:spanalloc0(T: type, size: usize)
     local s: span(T)
     if likely(size > 0) then
-      s.data = (@T[0]*)(self:alloc0(size * #T))
+      s.data = (@*[0]T)(self:alloc0(size * #T))
       s.size = size
     end
     return s
@@ -87,7 +87,7 @@ require 'span'
 
   function Allocator:spanrealloc(s: is_span, size: usize)
     local T: type = #[s.type.subtype]#
-    local p: T[0]* = (@T[0]*)(self:realloc(s.data, size * #T, s.size))
+    local p: *[0]T = (@*[0]T)(self:realloc(s.data, size * #T, s.size))
     if unlikely(size > 0 and p == nilptr) then
       -- reallocation failed, return the original span
       return s
@@ -99,7 +99,7 @@ require 'span'
 
   function Allocator:spanrealloc0(s: is_span, size: usize)
     local T: type = #[s.type.subtype]#
-    local p: T[0]* = (@T[0]*)(self:realloc0(s.data, size * #T, s.size * #T))
+    local p: *[0]T = (@*[0]T)(self:realloc0(s.data, size * #T, s.size * #T))
     if unlikely(size > 0 and p == nilptr) then
       -- reallocation failed, return the original span
       return s
@@ -133,11 +133,11 @@ require 'span'
   function Allocator:new(what: auto) <inline>
     ## if what.type.is_type then
       local T = what
-      local ptr: T* = (@T*)(self:alloc0(#T))
+      local ptr: *T = (@*T)(self:alloc0(#T))
       check(ptr ~= nilptr, 'Allocator.new: out of memory')
     ## else
       local T = #[what.type]#
-      local ptr: T* = (@T*)(self:alloc(#T))
+      local ptr: *T = (@*T)(self:alloc(#T))
       check(ptr ~= nilptr, 'Allocator.new: out of memory')
       memcpy(ptr, &what, #T)
     ## end

@@ -29,16 +29,16 @@ local timespec <cimport'timespec_t',nodecl> = @record {
 -- Time manipulation
 function C.clock(): clock_t <cimport'clock',nodecl> end
 function C.difftime(time1: time_t, time0: time_t): float64 <cimport'difftime',nodecl> end
-function C.mktime(tp: tm*): time_t <cimport'mktime',nodecl> end
-function C.strftime(s: cstring, maxsize: csize, format: cstring, tp: tm*): csize <cimport'strftime',nodecl> end
-function C.time(timer: time_t*): time_t <cimport'time',nodecl> end
+function C.mktime(tp: *tm): time_t <cimport'mktime',nodecl> end
+function C.strftime(s: cstring, maxsize: csize, format: cstring, tp: *tm): csize <cimport'strftime',nodecl> end
+function C.time(timer: *time_t): time_t <cimport'time',nodecl> end
 
 -- Conversion
-function C.asctime(tp: tm*): cstring <cimport'asctime',nodecl> end
-function C.ctime(timer: time_t*): cstring <cimport'ctime',nodecl> end
-function C.gmtime(timer: time_t*): tm* <cimport'gmtime',nodecl> end
-function C.localtime(timer: time_t*): tm* <cimport'localtime',nodecl> end
-function C.timespec_get(ts: timespec*, base: cint): cint <cimport'timespec_get',nodecl> end
+function C.asctime(tp: *tm): cstring <cimport'asctime',nodecl> end
+function C.ctime(timer: *time_t): cstring <cimport'ctime',nodecl> end
+function C.gmtime(timer: *time_t): *tm <cimport'gmtime',nodecl> end
+function C.localtime(timer: *time_t): *tm <cimport'localtime',nodecl> end
+function C.timespec_get(ts: *timespec, base: cint): cint <cimport'timespec_get',nodecl> end
 
 -- Constants
 global C.CLOCKS_PER_SEC: clock_t <const,cimport'CLOCKS_PER_SEC',nodecl>

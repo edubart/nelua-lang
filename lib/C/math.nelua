@@ -13,9 +13,9 @@ function C.remainder(x: float64, y: float64): float64 <cimport'remainder',nodecl
 function C.remainderf(x: float32, y: float32): float32 <cimport'remainderf',nodecl> end
 function C.remainderl(x: clongdouble, y: clongdouble): clongdouble <cimport'remainderl',nodecl> end
 
-function C.remquo(x: float64, y: float64, quo: cint*): float64 <cimport'remquo',nodecl> end
-function C.remquof(x: float32, y: float32, quo: cint*): float32 <cimport'remquof',nodecl> end
-function C.remquol(x: clongdouble, y: clongdouble, quo: cint*): clongdouble <cimport'remquol',nodecl> end
+function C.remquo(x: float64, y: float64, quo: *cint): float64 <cimport'remquo',nodecl> end
+function C.remquof(x: float32, y: float32, quo: *cint): float32 <cimport'remquof',nodecl> end
+function C.remquol(x: clongdouble, y: clongdouble, quo: *cint): clongdouble <cimport'remquol',nodecl> end
 
 function C.fma(x: float64, y: float64, z: float64): float64 <cimport'fma',nodecl> end
 function C.fmaf(x: float32, y: float32, z: float32): float32 <cimport'fmaf',nodecl> end
@@ -33,9 +33,9 @@ function C.fdim(x: float64, y: float64): float64 <cimport'fdim',nodecl> end
 function C.fdimf(x: float32, y: float32): float32 <cimport'fdimf',nodecl> end
 function C.fdiml(x: clongdouble, y: clongdouble): clongdouble <cimport'fdiml',nodecl> end
 
-function C.nan(tagb: cchar*): float64 <cimport'nan',nodecl> end
-function C.nanf(tagb: cchar*): float32 <cimport'nanf',nodecl> end
-function C.nanl(tagb: cchar*): clongdouble <cimport'nanl',nodecl> end
+function C.nan(tagb: cstring): float64 <cimport'nan',nodecl> end
+function C.nanf(tagb: cstring): float32 <cimport'nanf',nodecl> end
+function C.nanl(tagb: cstring): clongdouble <cimport'nanl',nodecl> end
 
 -- Exponential functions
 function C.exp(x: float64): float64 <cimport'exp',nodecl> end
@@ -200,17 +200,17 @@ function C.nearbyintf(x: float32): float32 <cimport'nearbyintf',nodecl> end
 function C.nearbyintl(x: clongdouble): clongdouble <cimport'nearbyintl',nodecl> end
 
 -- Floating-point manipulation functions
-function C.frexp(x: float64, exponent: cint*): float64 <cimport'frexp',nodecl> end
-function C.frexpf(x: float32, exponent: cint*): float32 <cimport'frexpf',nodecl> end
-function C.frexpl(x: clongdouble, exponent: cint*): clongdouble <cimport'frexpl',nodecl> end
+function C.frexp(x: float64, exponent: *cint): float64 <cimport'frexp',nodecl> end
+function C.frexpf(x: float32, exponent: *cint): float32 <cimport'frexpf',nodecl> end
+function C.frexpl(x: clongdouble, exponent: *cint): clongdouble <cimport'frexpl',nodecl> end
 
 function C.ldexp(x: float64, exponent: cint): float64 <cimport'ldexp',nodecl> end
 function C.ldexpf(x: float32, exponent: cint): float32 <cimport'ldexpf',nodecl> end
 function C.ldexpl(x: clongdouble, exponent: cint): clongdouble <cimport'ldexpl',nodecl> end
 
-function C.modf(x: float64, iptr: float64*): float64 <cimport'modf',nodecl> end
-function C.modff(x: float32, iptr: float32*): float32 <cimport'modff',nodecl> end
-function C.modfl(x: clongdouble, iptr: clongdouble*): clongdouble <cimport'modfl',nodecl> end
+function C.modf(x: float64, iptr: *float64): float64 <cimport'modf',nodecl> end
+function C.modff(x: float32, iptr: *float32): float32 <cimport'modff',nodecl> end
+function C.modfl(x: clongdouble, iptr: *clongdouble): clongdouble <cimport'modfl',nodecl> end
 
 function C.scalbln(x: float64, n: clong): float64 <cimport'scalbln',nodecl> end
 function C.scalblnf(x: float32, n: clong): float32 <cimport'scalblnf',nodecl> end

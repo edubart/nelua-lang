@@ -29,7 +29,7 @@ local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 
 -- Define the string type.
 global string <codename 'nlstring'> = @record{
-  data: byte[0]*,
+  data: *[0]byte,
   size: usize
 }
 
@@ -47,7 +47,7 @@ function string._create(size: usize): string
   local self: string
   check(size > 0, 'string._create: attempt to create an empty string')
   self.size = size
-  self.data = (@byte[0]*)(string_allocator:alloc(size+1))
+  self.data = (@*[0]byte)(string_allocator:alloc(size+1))
   check(self.data ~= nilptr, 'string._create: out of memory')
   self.data[size] = 0
   return self

@@ -25,7 +25,7 @@ require 'memory'
   }
 
   local sequenceT <nickname #[string.format('sequence(%s)', T)]#> = @record{
-    impl: sequenceimplT*,
+    impl: *sequenceimplT,
     allocator: Allocator
   }
 
@@ -48,7 +48,7 @@ require 'memory'
   -- This is already implicitly called by other sequence functions when needed.
   function sequenceT:init() <inline>
     if likely(self.impl) then return end
-    self.impl = (@sequenceimplT*)(self.allocator:alloc0(#sequenceimplT))
+    self.impl = (@*sequenceimplT)(self.allocator:alloc0(#sequenceimplT))
     check(self.impl ~= nilptr, 'sequence.init: out of memory')
   end
 
@@ -181,7 +181,7 @@ require 'memory'
   -- Returns reference to element at index `i`.
   -- If `i` is the sequence size plus 1, then a zeroed element is added and return its reference.
   -- If `i` is larger then the sequence size plus 1, then throws a runtime error.
-  function sequenceT:__atindex(i: usize): T* <inline>
+  function sequenceT:__atindex(i: usize): *T <inline>
     self:init()
     if unlikely(i > self.impl.size) then
       check(i == self.impl.size + 1, 'sequence.__atindex: position out of bounds')

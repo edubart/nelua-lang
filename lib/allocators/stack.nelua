@@ -47,7 +47,7 @@ local StackAllocHeader = @record {
   local StackAllocatorT = @record{
     prev_offset: usize,
     curr_offset: usize,
-    buffer: byte[SIZE]
+    buffer: [SIZE]byte
   }
 
   -- Free all allocations.
@@ -68,7 +68,7 @@ local StackAllocHeader = @record {
     end
     local p: pointer = &self.buffer[offset]
     -- push the current state in the stack header
-    local header: StackAllocHeader* = (@StackAllocHeader*)(&self.buffer[offset - #@StackAllocHeader])
+    local header: *StackAllocHeader = (@*StackAllocHeader)(&self.buffer[offset - #@StackAllocHeader])
     header.prev_offset = (@uint32)(self.prev_offset)
     header.curr_offset = (@uint32)(self.curr_offset)
     self.prev_offset = offset
@@ -80,7 +80,7 @@ local StackAllocHeader = @record {
     if unlikely(p == nilptr) then return end
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
     if likely(offset == self.prev_offset) then -- is the very last allocation?
-      local header: StackAllocHeader* = (@StackAllocHeader*)(&self.buffer[offset - #@StackAllocHeader])
+      local header: *StackAllocHeader = (@*StackAllocHeader)(&self.buffer[offset - #@StackAllocHeader])
       -- pop the current state from the stack header
       self.prev_offset = header.prev_offset
       self.curr_offset = header.curr_offset

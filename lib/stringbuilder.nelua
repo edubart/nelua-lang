@@ -22,7 +22,7 @@ local function snprintf_1cs(s: cstring, maxlen: csize, format: cstring, x: cstri
 -- format utilities
 local MAX_FORMAT <comptime> = 32
 
-local function scanformat(strfmt: byte[0]*, form: byte[MAX_FORMAT]*): usize
+local function scanformat(strfmt: *[0]byte, form: *[MAX_FORMAT]byte): usize
   local L_FMTFLAGS <comptime> = "-+ #0"
   local p: usize = 0
   while strfmt[p] ~= 0 and strchr(L_FMTFLAGS, strfmt[p]) ~= nilptr do
@@ -47,7 +47,7 @@ local function scanformat(strfmt: byte[0]*, form: byte[MAX_FORMAT]*): usize
   return p
 end
 
-local function addlenmod(form: byte[MAX_FORMAT]*, lenmod: cstring, lenmodsize: csize)
+local function addlenmod(form: *[MAX_FORMAT]byte, lenmod: cstring, lenmodsize: csize)
   local l: csize = strlen(&form[0])
   local spec: byte = form[l - 1]
   strcpy(&form[l - 1], lenmod)
@@ -82,7 +82,7 @@ end
     self.size = 0
   end
 
-  function stringbuilderA:prepare(size: usize): byte[0]*
+  function stringbuilderA:prepare(size: usize): *[0]byte
     -- allocate 1 additional byte to allow casting to cstring
     local needed: usize = self.size + size + 1
     local cap: usize = self.data.size
@@ -100,7 +100,7 @@ end
         end
       end
     end
-    return (@byte[0]*)(&self.data[self.size])
+    return (@*[0]byte)(&self.data[self.size])
   end
 
   function stringbuilderA:commit(size: usize)
@@ -110,7 +110,7 @@ end
   end
 
   function stringbuilderA:write_byte(c: byte): boolean
-    local p: byte[0]* = self:prepare(1)
+    local p: *[0]byte = self:prepare(1)
     if unlikely(p == nilptr) then return false end
     p[0] = c
     self.size = self.size + 1
@@ -118,7 +118,7 @@ end
   end
 
   function stringbuilderA:write_string(s: stringview): boolean
-    local p: byte[0]* = self:prepare(s.size)
+    local p: *[0]byte = self:prepare(s.size)
     if unlikely(p == nilptr) then return false end
     memory.copy(p, s.data, s.size)
     self.size = self.size + s.size
@@ -142,7 +142,7 @@ end
           if not self:write_byte(L_ESC) then return false end
           pos = pos + 1
         else -- format item
-          local form: byte[MAX_FORMAT] -- to store the format ('%...')
+          local form: [MAX_FORMAT]byte -- to store the format ('%...')
           local maxitem: usize = MAX_ITEM
           local buff: cstring = (@cstring)(self:prepare(MAX_ITEM)) -- to put formatted item
           if not buff then

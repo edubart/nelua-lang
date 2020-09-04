@@ -61,11 +61,24 @@ function PEGParser:set_astbuilder(astbuilder)
     end
   end
 
-  defs.to_chain_late_unary_op = function(expr, opnodes)
-    for i=1,#opnodes do
-      local op = opnodes[i]
-      op[3] = expr
-      expr = to_astnode(table.unpack(op))
+  defs.to_chain_late_unary_op = function(opnodes, expr)
+    if opnodes then
+      for i=#opnodes,1,-1 do
+        local op = opnodes[i]
+        op[3] = expr
+        expr = to_astnode(table.unpack(op))
+      end
+    end
+    return expr
+  end
+
+  defs.to_chain_late_unary_op_suffix = function(expr, opnodes)
+    if opnodes then
+      for i=1,#opnodes do
+        local op = opnodes[i]
+        op[3] = expr
+        expr = to_astnode(table.unpack(op))
+      end
     end
     return expr
   end

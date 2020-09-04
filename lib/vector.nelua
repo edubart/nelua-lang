@@ -162,7 +162,7 @@ require 'memory'
 
   -- Returns reference to element at index `pos`.
   -- If `pos` is greater of equal to vector size, then throws a runtime error.
-  function vectorT:__atindex(i: usize): T* <inline>
+  function vectorT:__atindex(i: usize): *T <inline>
     check(i < self.size, 'vector.at: position out of bounds')
     return &self.data[i]
   end

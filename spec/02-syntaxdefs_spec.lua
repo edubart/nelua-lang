@@ -1358,17 +1358,17 @@ describe("type expression", function()
           { n.IdDecl{'a', n.ArrayType{n.Type{'integer'},
             n.BinaryOp{"shr", n.Number{"dec", "2"}, n.Number{"dec", "1"}}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local a: integer[10]",
+    assert.parse_ast(nelua_parser, "local a: [10]integer",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'a', n.ArrayType{n.Type{'integer'}, n.Number{'dec', '10'}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local a: integer[10][10]",
+    assert.parse_ast(nelua_parser, "local a: [10][20]integer",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'a',
             n.ArrayType{
-              n.ArrayType{n.Type{'integer'}, n.Number{'dec', '10'}},
+              n.ArrayType{n.Type{'integer'}, n.Number{'dec', '20'}},
               n.Number{'dec', '10'}}}}
     }}})
   end)
@@ -1438,12 +1438,12 @@ describe("type expression", function()
     }}})
   end)
   it("optional type", function()
-    assert.parse_ast(nelua_parser, "local u: integer?",
+    assert.parse_ast(nelua_parser, "local u: ?integer",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'u', n.OptionalType{n.Type{'integer'}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local u: integer*?",
+    assert.parse_ast(nelua_parser, "local u: ?*integer",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'u', n.OptionalType{n.PointerType{n.Type{'integer'}}}}}
@@ -1475,12 +1475,12 @@ describe("type expression", function()
         n.VarDecl{'local',
           { n.IdDecl{'p', n.PointerType{n.Type{'integer'}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local p: integer*",
+    assert.parse_ast(nelua_parser, "local p: *integer",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'p', n.PointerType{n.Type{'integer'}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local p: integer**",
+    assert.parse_ast(nelua_parser, "local p: **integer",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'p', n.PointerType{n.PointerType{n.Type{'integer'}}}}}
@@ -1493,7 +1493,7 @@ describe("type expression", function()
           n.IdDecl{'r', n.GenericType{"somegeneric", {
             n.Type{'integer'}, n.Number{"dec", "4"}}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local r: somegeneric(array(integer, 4), integer*)",
+    assert.parse_ast(nelua_parser, "local r: somegeneric(array(integer, 4), *integer)",
       n.Block{{
         n.VarDecl{'local', {
           n.IdDecl{'r', n.GenericType{"somegeneric", {
@@ -1502,7 +1502,7 @@ describe("type expression", function()
     }}}}}}})
   end)
   it("complex types", function()
-    assert.parse_ast(nelua_parser, "local p: integer*[10]*[10]",
+    assert.parse_ast(nelua_parser, "local p: [10]*[10]*integer",
       n.Block{{
         n.VarDecl{'local',
           { n.IdDecl{'p',

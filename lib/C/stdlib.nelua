@@ -33,14 +33,14 @@ function C.atoi(nptr: cstring): cint <cimport'atoi',nodecl> end
 function C.atol(nptr: cstring): clong <cimport'atol',nodecl> end
 function C.atoll(nptr: cstring): clonglong <cimport'atoll',nodecl> end
 
-function C.strtof(nptr: cstring, endptr: cstring*): float32 <cimport'strtof',nodecl> end
-function C.strtod(nptr: cstring, endptr: cstring*): float64 <cimport'strtod',nodecl> end
-function C.strtold(nptr: cstring, endptr: cstring*): clongdouble <cimport'strtold',nodecl> end
+function C.strtof(nptr: cstring, endptr: *cstring): float32 <cimport'strtof',nodecl> end
+function C.strtod(nptr: cstring, endptr: *cstring): float64 <cimport'strtod',nodecl> end
+function C.strtold(nptr: cstring, endptr: *cstring): clongdouble <cimport'strtold',nodecl> end
 
-function C.strtol(nptr: cstring, endptr: cstring*, base: cint): clong <cimport'strtol',nodecl> end
-function C.strtoll(nptr: cstring, endptr: cstring*, base: cint): clonglong <cimport'strtoll',nodecl> end
-function C.strtoul(nptr: cstring, endptr: cstring*, base: cint): culong <cimport'strtoul',nodecl> end
-function C.strtoull(nptr: cstring, endptr: cstring*, base: cint): culonglong <cimport'strtoull',nodecl> end
+function C.strtol(nptr: cstring, endptr: *cstring, base: cint): clong <cimport'strtol',nodecl> end
+function C.strtoll(nptr: cstring, endptr: *cstring, base: cint): clonglong <cimport'strtoll',nodecl> end
+function C.strtoul(nptr: cstring, endptr: *cstring, base: cint): culong <cimport'strtoul',nodecl> end
+function C.strtoull(nptr: cstring, endptr: *cstring, base: cint): culonglong <cimport'strtoull',nodecl> end
 
 -- Integer arithmetics
 function C.abs(x: cint): cint <cimport'abs',nodecl> end

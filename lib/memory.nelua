@@ -55,7 +55,7 @@ function memory.find(heystack: pointer, heystacksize: usize,
   else
     check(heystack and needle, 'memory.find: invalid pointer')
     if needlesize == 1 then
-      return memchr(heystack, $(@byte*)(needle), heystacksize)
+      return memchr(heystack, $(@*byte)(needle), heystacksize)
     end
     local heystackbegin: usize = (@usize)(heystack)
     for i:usize=heystackbegin,heystackbegin+(heystacksize-needlesize) do
@@ -196,7 +196,7 @@ end
 function memory.swapval(a: is_value_pointer, b: is_value_pointer) <inline>
   ## static_assert(a.type == b.type, 'cannot swap different types')
   local N: usize <comptime> = #[a.type.subtype.size]#
-  local tmp: byte[N] <noinit>
+  local tmp: [N]byte <noinit>
   memcpy(&tmp[0], a, N)
   memcpy(a, b, N)
   memcpy(b, &tmp[0], N)

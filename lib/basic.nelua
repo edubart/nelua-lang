@@ -10,10 +10,10 @@
 #endif
 ]=])]]
 local FILE <cimport,nodecl,cinclude'<stdio.h>'> = @record{}
-local function fwrite(ptr: void*, size: csize, n: csize, s: FILE*): csize <cimport'fwrite',nodecl,cinclude'<stdio.h>'> end
-local function fputc(c: cint, stream: FILE*): cint <cimport,nodecl,cinclude'<stdio.h>'> end
+local function fwrite(ptr: *void, size: csize, n: csize, s: *FILE): csize <cimport'fwrite',nodecl,cinclude'<stdio.h>'> end
+local function fputc(c: cint, stream: *FILE): cint <cimport,nodecl,cinclude'<stdio.h>'> end
 local function abort(): void <cimport,nodecl,cinclude'<stdlib.h>'> end
-local stderr: FILE* <cimport,nodecl,cinclude'<stdio.h>'>
+local stderr: *FILE <cimport,nodecl,cinclude'<stdio.h>'>
 
 
 global function likely(x: boolean): boolean <cimport 'nelua_likely', nodecl> end

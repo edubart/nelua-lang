@@ -71,7 +71,7 @@ it("type cast", function()
 
   assert.generate_c([[
     local R = @record{x: integer}
-    local a = (@integer[4])()
+    local a = (@[4]integer)()
     local i = (@integer)()
     local u = (@uinteger)()
     local b = (@boolean)()
@@ -557,7 +557,7 @@ it("function multiple returns", function()
     assert(a == 2 and b == false and c == 1)
 
     local R = @record{x: integer}
-    function R.foo(self: R*): (boolean, integer) return true, self.x end
+    function R.foo(self: *R): (boolean, integer) return true, self.x end
     function R:boo(): (boolean, integer) return true, self.x end
     local r = R{1}
     local function foo(): (boolean, integer) return R.foo(r) end
@@ -658,9 +658,9 @@ it("unary operator `unm`", function()
 end)
 
 it("unary operator `deref`", function()
-  assert.generate_c("local a: integer*; local x = $a", "x = (*nelua_assert_deref_nlint64_ptr(a));")
+  assert.generate_c("local a: *integer; local x = $a", "x = (*nelua_assert_deref_nlint64_ptr(a));")
   config.pragma.nochecks = true
-  assert.generate_c("local a: integer*; local x = $a", "x = (*a);")
+  assert.generate_c("local a: *integer; local x = $a", "x = (*a);")
   config.pragma.nochecks = nil
 end)
 
@@ -675,7 +675,7 @@ end)
 it("unary operator `len`", function()
   assert.generate_c("local x = #@integer", "x = 8;")
   assert.generate_c("local x = #'asd'", "x = 3;")
-  assert.generate_c("local x = #@integer[4]", "x = 32;")
+  assert.generate_c("local x = #@[4]integer", "x = 32;")
   --assert.generate_c("a = 'asd'; local x = #a", "x = 3;")
 end)
 
@@ -727,7 +727,7 @@ it("binary operator `eq`", function()
   assert.generate_c("local x = '1' == 1", "x = false;")
   assert.generate_c("local x = '1' == '1'", "x = true;")
   assert.generate_c("local a,b = 1,2; local x = a == b", "x = (a == b);")
-  assert.generate_c("local a: pointer, b: boolean*; local x = a == b", "x = (a == (void*)b);")
+  assert.generate_c("local a: pointer, b: *boolean; local x = a == b", "x = (a == (void*)b);")
   assert.generate_c("local x = 0e12 == 0", "x = true;")
 end)
 
@@ -953,12 +953,12 @@ end)
 
 it("array comparisons", function()
   assert.run_c([[
-    local A = @integer[4]
+    local A = @[4]integer
     local a: A = {1,2,3,4}
     local b: A = {1,2,3,4}
     local c: A = {1,2,3,5}
     assert(a == a)
-    assert(a == (@integer[4]){1,2,3,4})
+    assert(a == (@[4]integer){1,2,3,4})
     assert(a == b)
     assert(not (a ~= b))
     assert(not (a == c))
@@ -1008,7 +1008,7 @@ it("record comparisons", function()
     assert(a ~= c)
 
 
-    local Q = @record{x: integer[2]}
+    local Q = @record{x: [2]integer}
     local a: Q = {{1,2}}
     local b: Q = {{1,2}}
     local c: Q = {{1,3}}
@@ -1053,7 +1053,7 @@ it("binary conditional operators", function()
     "b2 = ((i == 0) || p);"
   })
   assert.generate_c([[
-    local p: integer*
+    local p: *integer
     local a: pointer, b: pointer
     if p and a == b then end
     while p and a == b do end
@@ -1304,7 +1304,7 @@ it("arrays", function()
     end
 
     do
-      local words: cstring[2] = {
+      local words: [2]cstring = {
         "hello",
         "world",
       }
@@ -1318,12 +1318,12 @@ end)
 
 it("array bounds checking", function()
   assert.run_error_c([[
-    local a: integer[4]
+    local a: [4]integer
     local i = 4
     print(a[i])
   ]], "array index: position out of bounds")
   assert.run_error_c([[
-    local a: integer[4]
+    local a: [4]integer
     local i = -1
     print(a[i])
   ]], "array index: position out of bounds")
@@ -1331,7 +1331,7 @@ end)
 
 it("arrays inside records", function()
   assert.run_c([[
-    local R = @record{v: integer[4]}
+    local R = @record{v: [4]integer}
     local a: R
     a.v[0]=1 a.v[1]=2 a.v[2]=3 a.v[3]=4
     assert(a.v[0]==1 and a.v[1]==2 and a.v[2]==3 and a.v[3]==4)
@@ -1341,8 +1341,8 @@ it("arrays inside records", function()
     local b: R = {v = {1,2,3,4}}
     assert(b.v[0]==1 and b.v[1]==2 and b.v[2]==3 and b.v[3]==4)
 
-    local function f(): integer[2][2]
-      local a: integer[2][2]
+    local function f(): [2][2]integer
+      local a: [2][2]integer
       a[0][0] = 1
       a[0][1] = 2
       a[1][0] = 3
@@ -1354,16 +1354,16 @@ it("arrays inside records", function()
     assert(f()[1][0] == 3)
     assert(f()[1][1] == 4)
 
-    local function g(): integer[2][2]
-      return (@integer[2][2]){{1,2},{3,4}}
+    local function g(): [2][2]integer
+      return (@[2][2]integer){{1,2},{3,4}}
     end
     assert(g()[0][0] == 1)
     assert(g()[0][1] == 2)
     assert(g()[1][0] == 3)
     assert(g()[1][1] == 4)
 
-    local R = @record{v: integer[4]}
-    local v = (@integer[4]){1,2,3,4}
+    local R = @record{v: [4]integer}
+    local v = (@[4]integer){1,2,3,4}
     local a: R = {v=v}
     assert(a.v[0] == 1 and a.v[1] == 2 and a.v[2] == 3 and a.v[3] == 4)
   ]])
@@ -1371,8 +1371,8 @@ end)
 
 it("multi dimensional arrays", function()
   assert.run_c([[
-    local function f(): integer[2][2]
-      local a: integer[2][2]
+    local function f(): [2][2]integer
+      local a: [2][2]integer
       a[0][0] = 1
       a[0][1] = 2
       a[1][0] = 3
@@ -1384,8 +1384,8 @@ it("multi dimensional arrays", function()
     assert(f()[1][0] == 3)
     assert(f()[1][1] == 4)
 
-    local function g(): integer[2][2]
-      return (@integer[2][2]){{1,2},{3,4}}
+    local function g(): [2][2]integer
+      return (@[2][2]integer){{1,2},{3,4}}
     end
     print(g()[0][0])
     print(g()[0][1])
@@ -1394,10 +1394,10 @@ it("multi dimensional arrays", function()
 
     do
       local Object = @record {
-        values: integer[0]*[0]*
+        values: *[0]*[0]integer
       }
-      local b: integer[4] = {1,2,3,4}
-      local a: integer[0]*[4] = {&b, &b, &b, &b}
+      local b: [4]integer = {1,2,3,4}
+      local a: [4]*[0]integer = {&b, &b, &b, &b}
       local o: Object
       o.values = &a
       assert(o.values[0][0] == 1)
@@ -1491,7 +1491,7 @@ it("records size", function()
     end
 
     do
-      local R = @record { a: float64[64][64], c: cchar }
+      local R = @record { a: [64][64]float64, c: cchar }
       local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
       assert(#R == s)
     end
@@ -1533,14 +1533,14 @@ it("record methods", function()
     function vec2:length3() return self:length() end
     assert(v:length3() == 3)
 
-    function vec2.length4(self: vec2*) return self:length() end
+    function vec2.length4(self: *vec2) return self:length() end
     assert(v:length4() == 3)
     assert(vec2.length4(v) == 3)
 
     function vec2:lenmul(a: integer, b: integer) return (self.x + self.y)*a*b end
     assert(v:lenmul(2,3) == 18)
 
-    local vec2pointer = @vec2*
+    local vec2pointer = @*vec2
     function vec2pointer:len() return self.x + self.y end
     assert(v:len() == 3)
 
@@ -1553,9 +1553,9 @@ end)
 it("record metametods", function()
   assert.run_c([[
     local intarray = @record {
-      data: integer[100]
+      data: [100]integer
     }
-    function intarray:__atindex(i: usize): integer* <inline>
+    function intarray:__atindex(i: usize): *integer <inline>
       return &self.data[i]
     end
     function intarray:__len(): isize <inline>
@@ -1605,7 +1605,7 @@ it("record metametods", function()
     assert(g(4) == 4)
 
     local R = @record {
-      x: integer[2]
+      x: [2]integer
     }
     ## R.value.choose_braces_type = function() return types.ArrayType(primtypes.integer, 2) end
     function R.__convert(x: auto): R
@@ -1627,7 +1627,7 @@ it("record string conversions", function()
     local s: stringview = r
     assert(s == 'R')
     local cs: cstring = r
-    assert((@stringview){size=1,data=(@byte[0]*)(cs)} == 'R')
+    assert((@stringview){size=1,data=(@*[0]byte)(cs)} == 'R')
   ]])
 end)
 
@@ -1715,7 +1715,7 @@ it("record globals", function()
     assert(Math.PI == 3)
 
     local R = @record{x: integer}
-    global R.values: integer[4] = {1,2,3,4}
+    global R.values: [4]integer = {1,2,3,4}
     assert(R.values[0] == 1)
     assert(R.values[1] == 2)
     assert(R.values[2] == 3)
@@ -1725,14 +1725,14 @@ end)
 
 it("records referencing itself", function()
   assert.run_c([[
-    local NodeA = @record{next: NodeA*}
-    local ap: NodeA*
+    local NodeA = @record{next: *NodeA}
+    local ap: *NodeA
     local a: NodeA
     assert(ap == nilptr and a.next == nilptr)
 
-    local NodeB = @record{next: NodeB*}
+    local NodeB = @record{next: *NodeB}
     local b: NodeB
-    local bp: NodeB*
+    local bp: *NodeB
     assert(bp == nilptr and b.next == nilptr)
   ]])
 end)
@@ -1799,15 +1799,15 @@ end)
 it("automatic reference", function()
   assert.run_c([[
     local R = @record{x: integer}
-    local p: R*, q: R*
+    local p: *R, q: *R
     local a: R = R{1}
     p = a
     q = &a
     assert(p.x == q.x)
     assert(($p).x == 1)
-    local function f(p: R*) return $p end
+    local function f(p: *R) return $p end
     assert(f(a).x == 1)
-    local function g(): (integer, R*) return 1, a end
+    local function g(): (integer, *R) return 1, a end
     local function h(): (integer, R) return 1, p end
     local _, r: R = g()
     assert(r.x == 1)
@@ -1816,9 +1816,9 @@ end)
 
 it("automatic dereference", function()
   assert.run_c([[
-    local A = @integer[1]
+    local A = @[1]integer
     local a: A = {1}
-    local p: A* = &a
+    local p: *A = &a
     local b: A
     b = p
     assert(b[0] == 1)
@@ -1930,9 +1930,9 @@ end)
 it("implicit casting for unbounded arrays", function()
   assert.run_c([[
     local i: integer = 1
-    local p: integer* = &i
-    local a4: integer[4]
-    local a: integer[0]*
+    local p: *integer = &i
+    local a4: [4]integer
+    local a: *[0]integer
     a = p
     p = a
     assert(i == 1)
@@ -2061,8 +2061,8 @@ end)
 
 it("hook main", function()
   assert.run_c([[
-    local function nelua_main(argc: cint, nelua_argv: cstring*): cint <cimport,nodecl> end
-    local function main(argc: cint, argv: cstring*): cint <entrypoint>
+    local function nelua_main(argc: cint, nelua_argv: *cstring): cint <cimport,nodecl> end
+    local function main(argc: cint, argv: *cstring): cint <entrypoint>
       print 'before'
       local ret = nelua_main(argc, argv)
       print 'after'
@@ -2088,7 +2088,7 @@ it("sizeof builtin", function()
     assert(#@int16 == 2)
     assert(#@int32 == 4)
     assert(#@int64 == 8)
-    assert(#@int32[4] == 16)
+    assert(#@[4]int32 == 16)
 
     local A = @record{
       s: int16,   -- 2
@@ -2098,7 +2098,7 @@ it("sizeof builtin", function()
                   -- 3 pad
     }
     assert(#A == 12)
-    assert(#@A[8] == 96)
+    assert(#@[8]A == 96)
 
     local B = @record{
       i: int32,   -- 4
@@ -2359,11 +2359,11 @@ it("GC requirements", function()
   assert.generate_c([=[
     global gp: pointer
     global gr: record{x: pointer}
-    global ga: integer*[4]
+    global ga: [4]*integer
     global g
     local p: pointer
     local r: record{x: pointer}
-    local a: integer*[4]
+    local a: [4]*integer
     local l
 
     local function markp(what: pointer)
@@ -2420,8 +2420,8 @@ it("concepts", function()
       ## print(a.type)
       assert(a[0] == x)
     end
-    local a: integer[4] = {1,2,3,4}
-    local b: number[3] = {5,6,7}
+    local a: [4]integer = {1,2,3,4}
+    local b: [3]number = {5,6,7}
     f(a, a[0], #a)
     f(b, b[0], #b)
 
@@ -2506,7 +2506,7 @@ it("concepts", function()
       return v
     end
 
-    local MyArray = @record {data: integer[10]}
+    local MyArray = @record {data: [10]integer}
 
     function MyArray:__index(i: integer)
       return self.data[i]
@@ -2516,7 +2516,7 @@ it("concepts", function()
       return #self.data
     end
 
-    local a: integer[10] = {1,2,3,4,5,6,7,8,9,10}
+    local a: [10]integer = {1,2,3,4,5,6,7,8,9,10}
     local b: MyArray = {data = a}
 
     assert(sum_container(&a) == 55)

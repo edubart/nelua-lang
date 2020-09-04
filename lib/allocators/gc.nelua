@@ -57,7 +57,7 @@ function GC:_probe(i: usize, h: usize): usize
   return (@usize)(v)
 end
 
-function GC:_get_ptr(ptr: pointer): GCItem*
+function GC:_get_ptr(ptr: pointer): *GCItem
   if self.nslots == 0 then
     return nilptr
   end
@@ -149,7 +149,7 @@ function GC:_rem_ptr(ptr: pointer)
 end
 
 local GC_PRIMES_COUNT <comptime> = 24
-local GC_primes: usize[GC_PRIMES_COUNT] <const> = {
+local GC_primes: [GC_PRIMES_COUNT]usize <const> = {
   0,       1,       5,       11,
   23,      53,      101,     197,
   389,     683,     1259,    2417,
@@ -246,7 +246,7 @@ function GC:_mark_ptr(ptr: pointer) <noinline, cattribute'no_sanitize_memory'>
         return
       end
       for k:usize=0,<(self.items[i].size // #@pointer) do
-        self:_mark_ptr(((@pointer[0]*)(self.items[i].ptr))[k])
+        self:_mark_ptr(((@*[0]pointer)(self.items[i].ptr))[k])
       end
       return
     end
@@ -263,7 +263,7 @@ function GC:_mark_stack() <noinline, cattribute'no_sanitize_address'>
     bot, top = top, bot
   end
   for pi:usize=top,<=bot,#@pointer do
-    self:_mark_ptr($(@pointer*)(pi))
+    self:_mark_ptr($(@*pointer)(pi))
   end
 end
 
@@ -285,7 +285,7 @@ function GC:_mark() <noinline>
         continue
       end
       for k:usize=0,<self.items[i].size//(@usize)(#@pointer) do
-        self:_mark_ptr(((@pointer[0]*)(self.items[i].ptr))[k])
+        self:_mark_ptr(((@*[0]pointer)(self.items[i].ptr))[k])
       end
     end
   end
@@ -466,7 +466,7 @@ function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer <inline>
     return qtr
   end
 
-  local p: GCItem* = self:_get_ptr(ptr)
+  local p: *GCItem = self:_get_ptr(ptr)
   if p then
     if qtr == ptr then
       p.size = size
@@ -494,7 +494,7 @@ function GC:realloc0(ptr: pointer, size: usize, oldsize: usize): pointer
 end
 
 function GC:dealloc(ptr: pointer)
-  local p: GCItem* = self:_get_ptr(ptr)
+  local p: *GCItem = self:_get_ptr(ptr)
   if p then
     if p.finalizer then
       p.finalizer(ptr)
@@ -531,9 +531,9 @@ function GC:_mark_statics()
   ]]
 end
 
-local function nelua_main(argc: cint, argv: cstring*): cint <cimport,nodecl> end
+local function nelua_main(argc: cint, argv: *cstring): cint <cimport,nodecl> end
 
-local function main(argc: cint, argv: cstring*): cint <entrypoint>
+local function main(argc: cint, argv: *cstring): cint <entrypoint>
   gc:start(&argc)
   gc:_mark_statics()
   local ret: cint = nelua_main(argc, argv)

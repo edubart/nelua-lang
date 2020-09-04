@@ -25,12 +25,12 @@ require 'allocators.interface'
   static_assert(CHUNK_SIZE >= primtypes.pointer.size, 'PoolAllocator: chunk size must be at least a pointer in size')
   ]]
 
-  local PoolFreeNode = @record{next: PoolFreeNode*}
-  local PoolChunk <aligned(#[CHUNK_ALIGN]#)> = @record {data: byte[#[CHUNK_SIZE]#]}
+  local PoolFreeNode = @record{next: *PoolFreeNode}
+  local PoolChunk <aligned(#[CHUNK_ALIGN]#)> = @record {data: [#[CHUNK_SIZE]#]byte}
   local PoolAllocatorT = @record{
     initialized: boolean,
-    head: PoolFreeNode*,
-    buffer: PoolChunk[#[SIZE]#]
+    head: *PoolFreeNode,
+    buffer: [#[SIZE]#]PoolChunk
   }
 
   -- Free all allocations.
@@ -38,7 +38,7 @@ require 'allocators.interface'
     self.head = nilptr
     -- link all free nodes in reverse order
     for i:isize=#self.buffer-1,0,-1 do
-      local node: PoolFreeNode* = (@PoolFreeNode*)(&self.buffer[i])
+      local node: *PoolFreeNode = (@*PoolFreeNode)(&self.buffer[i])
       node.next = self.head
       self.head = node
     end
@@ -59,7 +59,7 @@ require 'allocators.interface'
       return nilptr
     end
     -- get the latest free node
-    local node: PoolFreeNode* = self.head
+    local node: *PoolFreeNode = self.head
     -- the node will be nilptr if not initialized or out of memory
     if unlikely(node == nilptr) then
       if not self.initialized then
@@ -86,7 +86,7 @@ require 'allocators.interface'
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
     check(offset // #PoolChunk < #self.buffer and offset % #PoolChunk == 0, 'PoolAllocator.dealloc: pointer not in buffer bounds')
     -- push free node
-    local node: PoolFreeNode* = (@PoolFreeNode*)(p)
+    local node: *PoolFreeNode = (@*PoolFreeNode)(p)
     node.next = self.head
     self.head = node
   end

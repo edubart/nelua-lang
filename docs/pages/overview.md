@@ -536,7 +536,7 @@ Array is a list with where its size is fixed and known at compile-time:
 local a: array(integer, 4) = {1,2,3,4}
 print(a[0], a[1], a[2], a[3]) -- outputs: 1 2 3 4
 
-local b: integer[4] -- "integer[4]" is syntax sugar for "array(integer, 4)"
+local b: [4]integer -- "[4]integer" is syntax sugar for "array(integer, 4)"
 print(b[0], b[1], b[2], b[3]) -- outputs: 0 0 0 0
 local len = #b -- get the length of the array, should be 4
 print(len) -- outputs: 4
@@ -635,7 +635,7 @@ local p: pointer --a generic pointer to anything, initialized to nilptr
 local i: pointer(integer) -- pointer to an integer
 
 -- syntax sugar
-local i: integer*
+local i: *integer
 ```
 
 Pointers are straight translated to C raw pointers.
@@ -697,7 +697,7 @@ are pointers to a block of contiguous elements which size is known at runtime:
 
 ```nelua
 require 'span'
-local arr = (@integer[4]) {1,2,3,4}
+local arr = (@[4]integer) {1,2,3,4}
 local s: span(integer) = &arr
 print(s[0], s[1]) -- outputs: 1 2
 print(#s) -- outputs 4
@@ -1013,13 +1013,13 @@ For defining or calling a method the colon token `:` must be used, just like in 
 local Rect = @record{x: number, y: number, w: number, h: number}
 
 function Rect:translate(x: number, y: number)
-  -- 'self' here is of the type 'Rect*'
+  -- 'self' here is of the type '*Rect'
   self.x = self.x + x
   self.y = self.y + y
 end
 
 function Rect:area()
-  -- 'self' here is of the type 'Rect*'
+  -- 'self' here is of the type '*Rect'
   return self.w * self.h
 end
 
@@ -1175,7 +1175,7 @@ require 'memory'
 require 'allocators.gc'
 
 local Person = @record{name: string, age: integer}
-local p: Person* = gc_allocator:new(@Person)
+local p: *Person = gc_allocator:new(@Person)
 p.name = "John"
 p.age = 20
 print(p.name, p.age)
@@ -1200,7 +1200,7 @@ require 'memory'
 require 'allocators.general'
 
 local Person = @record{name: string, age: integer}
-local p: Person* = general_allocator:new(@Person) -- allocate the appropriate size for Person
+local p: *Person = general_allocator:new(@Person) -- allocate the appropriate size for Person
 p.name = tostring("John") -- another allocation here
 p.age = 20
 print(p.name, p.age)
@@ -1230,7 +1230,7 @@ The compiler can perform automatic referencing or dereferencing for records or a
 ```nelua
 local Person = @record{name: stringview, age: integer}
 local p: Person = {"John", 20}
-local p_ref: Person* = p -- the referencing with `&` is implicit here
+local p_ref: *Person = p -- the referencing with `&` is implicit here
 local p_copy: Person = p_ref -- the dereferencing with `$` is implicit here
 ```
 
@@ -1239,7 +1239,7 @@ For instance, the above code is equivalent to:
 ```nelua
 local Person = @record{name: stringview, age: integer}
 local p: Person = {"John", 20}
-local p_ref: Person* = &p
+local p_ref: *Person = &p
 local p_copy: Person = $p_ref
 ```
 
@@ -1250,7 +1250,7 @@ but permits auto referencing when doing method calls:
 local Person = @record{name: stringview, age: integer}
 
 -- note that this function only accept pointers
-function Person.print_info(self: Person*)
+function Person.print_info(self: *Person)
   print(self.name, self.age)
 end
 
@@ -1463,7 +1463,7 @@ local a = #[create_sequence(integer, 10)]#
 The above code compile exactly as:
 
 ```nelua
-local a = (@integer[10]){1,2,3,4,5,6,7,8,9,10}
+local a = (@[10]integer){1,2,3,4,5,6,7,8,9,10}
 ```
 
 ### Code blocks as arguments to preprocessor functions
@@ -1729,7 +1729,7 @@ It's hard to explain in words, lets view a full example:
 
   -- Define a record using T and MaxSize compile-time parameters.
   local FixedStackArrayT = @record {
-    data: T[MaxSize],
+    data: [MaxSize]T,
     size: isize
   }
 
@@ -1982,7 +1982,7 @@ local function sum_container(container: indexable_concept)
 end
 
 -- We create our customized array type.
-local MyArray = @record {data: integer[10]}
+local MyArray = @record {data: [10]integer}
 function MyArray:__index(i: integer)
   return self.data[i]
 end
@@ -1990,7 +1990,7 @@ function MyArray:__len()
   return #self.data
 end
 
-local a: integer[10] = {1,2,3,4,5,6,7,8,9,10}
+local a: [10]integer = {1,2,3,4,5,6,7,8,9,10}
 local b: MyArray = {data = a}
 
 -- sum_container can be called with 'a' because it matches the concept

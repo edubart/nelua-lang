@@ -43,9 +43,9 @@ end
 function Shape:area(): number
   switch self.kind
   case ShapeKind.Rectangle then
-    return Rectangle.area((@Rectangle*)(self))
+    return Rectangle.area((@*Rectangle)(self))
   case ShapeKind.Circle then
-    return Circle.area((@Circle*)(self))
+    return Circle.area((@*Circle)(self))
   else
     return 0
   end
@@ -59,10 +59,10 @@ do -- test it
   print('      rectangle area is', rectangle:area())
   print('         circle area is', circle:area())
 
-  local shape: Shape*
-  shape = (@Shape*)(&rectangle)
+  local shape: *Shape
+  shape = (@*Shape)(&rectangle)
   print('   circle shape area is', shape:area())
-  shape = (@Shape*)(&circle)
+  shape = (@*Shape)(&circle)
   print('rectangle shape area is', shape:area())
   print ''
 end
@@ -117,7 +117,7 @@ local function override()
   method(function()]]
     -- no problem to use ifs instead of switches because C compilers usually optimizes as a switch
     if self.__kind == #[rectype.kindid]# then
-      return (@#[rectype]#*)(self):#|name|#()
+      return (@*#[rectype]#)(self):#|name|#()
     end ##[[
   end)
 end
@@ -168,10 +168,10 @@ do -- test it
   print('      rectangle area is', rectangle:area())
   print('         circle area is', circle:area())
 
-  local shape: Shape*
-  shape = (@Shape*)(&rectangle)
+  local shape: *Shape
+  shape = (@*Shape)(&rectangle)
   print('   circle shape area is', shape:area())
-  shape = (@Shape*)(&circle)
+  shape = (@*Shape)(&circle)
   print('rectangle shape area is', shape:area())
   print ''
 end

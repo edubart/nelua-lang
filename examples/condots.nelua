@@ -33,7 +33,7 @@ local SDL_Surface <cimport,nodecl> = @record{
   pitch: cint,
   pixels: pointer
 }
-local SDL_Event <cimport,nodecl> = @record{type: uint32, padding: byte[56]}
+local SDL_Event <cimport,nodecl> = @record{type: uint32, padding: [56]byte}
 local SDL_Rect <cimport,nodecl> = @record{x: cint, y: cint, w: cint, h: cint}
 local SDL_Window <cimport,nodecl> = @record{}
 local SDL_Renderer <cimport,nodecl> = @record{}
@@ -64,30 +64,30 @@ local SDL_TEXTUREACCESS_STREAMING: cint <cimport,nodecl>
 
 -- import SDL functions
 local function SDL_Init(flags: uint32): int32 <cimport,nodecl> end
-local function SDL_CreateWindow(title: cstring, x: cint, y: cint, w: cint, h: cint, flags: uint32): SDL_Window* <cimport,nodecl> end
+local function SDL_CreateWindow(title: cstring, x: cint, y: cint, w: cint, h: cint, flags: uint32): *SDL_Window <cimport,nodecl> end
 local function SDL_Quit() <cimport,nodecl> end
-local function SDL_DestroyWindow(window: SDL_Window*) <cimport,nodecl> end
-local function SDL_PollEvent(event: SDL_Event*): int32 <cimport,nodecl> end
+local function SDL_DestroyWindow(window: *SDL_Window) <cimport,nodecl> end
+local function SDL_PollEvent(event: *SDL_Event): int32 <cimport,nodecl> end
 local function SDL_GetTicks(): uint32 <cimport,nodecl> end
 local function SDL_Delay(ms: uint32) <cimport,nodecl> end
 local function SDL_CreateRGBSurfaceWithFormatFrom(pixels: pointer, width: cint,height: cint, depth: cint, pitch: cint,format: uint32): SDL_Surface <cimport,nodecl> end
 local function SDL_FreeSurface(surface: SDL_Surface) <cimport,nodecl> end
 local function SDL_LockSurface(surface: SDL_Surface) <cimport,nodecl> end
-local function SDL_GetWindowSurface(window: SDL_Window*): SDL_Surface <cimport,nodecl> end
-local function SDL_BlitSurface(src: SDL_Surface, srcrect: SDL_Rect*, dst: SDL_Surface, dstrect: SDL_Rect*): cint <cimport,nodecl> end
-local function SDL_UpdateWindowSurface(window: SDL_Window*) <cimport,nodecl> end
-local function SDL_CreateRenderer(window: SDL_Window*, index: cint, flags: uint32): SDL_Renderer* <cimport,nodecl> end
-local function SDL_DestroyRenderer(renderer: SDL_Renderer*) <cimport,nodecl> end
-local function SDL_RenderPresent(renderer: SDL_Renderer*) <cimport,nodecl> end
-local function SDL_RenderClear(renderer: SDL_Renderer*) <cimport,nodecl> end
-local function SDL_CreateTexture(renderer: SDL_Renderer*, format: uint32, access: cint, w: cint, h: cint): SDL_Texture* <cimport,nodecl> end
-local function SDL_DestroyTexture(texture: SDL_Texture*) <cimport,nodecl> end
-local function SDL_RenderCopy(renderer: SDL_Renderer*, texture: SDL_Texture*, srcrect: SDL_Rect*, dstrect: SDL_Rect*): cint <cimport,nodecl> end
-local function SDL_LockTexture(texture: SDL_Texture*, rect: SDL_Rect*, pixels: pointer*, pitch: cint*): cint <cimport,nodecl> end
-local function SDL_UnlockTexture(texture: SDL_Texture*) <cimport,nodecl> end
-local function SDL_SetRenderDrawBlendMode(renderer: SDL_Renderer*, blendMode: int32): cint <cimport,nodecl> end
-local function SDL_SetTextureBlendMode(texture: SDL_Texture*, blendMode: int32): cint <cimport,nodecl> end
-local function SDL_UpdateTexture(texture: SDL_Texture*, rect: SDL_Rect*, pixels: pointer, pitch: cint): cint <cimport,nodecl> end
+local function SDL_GetWindowSurface(window: *SDL_Window): SDL_Surface <cimport,nodecl> end
+local function SDL_BlitSurface(src: SDL_Surface, srcrect: *SDL_Rect, dst: SDL_Surface, dstrect: *SDL_Rect): cint <cimport,nodecl> end
+local function SDL_UpdateWindowSurface(window: *SDL_Window) <cimport,nodecl> end
+local function SDL_CreateRenderer(window: *SDL_Window, index: cint, flags: uint32): *SDL_Renderer <cimport,nodecl> end
+local function SDL_DestroyRenderer(renderer: *SDL_Renderer) <cimport,nodecl> end
+local function SDL_RenderPresent(renderer: *SDL_Renderer) <cimport,nodecl> end
+local function SDL_RenderClear(renderer: *SDL_Renderer) <cimport,nodecl> end
+local function SDL_CreateTexture(renderer: *SDL_Renderer, format: uint32, access: cint, w: cint, h: cint): *SDL_Texture <cimport,nodecl> end
+local function SDL_DestroyTexture(texture: *SDL_Texture) <cimport,nodecl> end
+local function SDL_RenderCopy(renderer: *SDL_Renderer, texture: *SDL_Texture, srcrect: *SDL_Rect, dstrect: *SDL_Rect): cint <cimport,nodecl> end
+local function SDL_LockTexture(texture: *SDL_Texture, rect: *SDL_Rect, pixels: *pointer, pitch: *cint): cint <cimport,nodecl> end
+local function SDL_UnlockTexture(texture: *SDL_Texture) <cimport,nodecl> end
+local function SDL_SetRenderDrawBlendMode(renderer: *SDL_Renderer, blendMode: int32): cint <cimport,nodecl> end
+local function SDL_SetTextureBlendMode(texture: *SDL_Texture, blendMode: int32): cint <cimport,nodecl> end
+local function SDL_UpdateTexture(texture: *SDL_Texture, rect: *SDL_Rect, pixels: pointer, pitch: cint): cint <cimport,nodecl> end
 local function SDL_GetError(): cstring <cimport,nodecl> end
 
 --------------------------------------------------------------------------------
@@ -98,7 +98,7 @@ local window, renderer, texture
 
 local SCREEN_WIDTH <comptime> = 1280
 local SCREEN_HEIGHT <comptime> = 720
-local pixels: vec4b[SCREEN_WIDTH][SCREEN_HEIGHT]
+local pixels: [SCREEN_HEIGHT][SCREEN_WIDTH]vec4b
 
 local NUM_PARTICLES <comptime> = 200
 local RADIUS <comptime> = 3
@@ -106,7 +106,7 @@ local MIN_DISTANCE <comptime> = 40
 local MAX_DISTANCE <comptime> = 80
 local MIN_DISTANCE2 <comptime> = MIN_DISTANCE * MIN_DISTANCE
 local MAX_DISTANCE2 <comptime> = MAX_DISTANCE * MAX_DISTANCE
-local particles: Particle[NUM_PARTICLES]
+local particles: [NUM_PARTICLES]Particle
 
 do
   for i=0,<NUM_PARTICLES do

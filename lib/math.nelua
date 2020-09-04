@@ -66,10 +66,10 @@ for _,name in ipairs(cmathfuncs2) do
 ## end
 
 -- manually import special math functions with 2 arguments
-local function modf_f64(x: float64, y: float64*): float64 <cimport'modf',nodecl,nosideeffect> end
-local function modf_f32(x: float32, y: float32*): float32 <cimport'modff',nodecl,nosideeffect> end
-local function frexp_f64(x: float64, exp: int32*): float64 <cimport'frexp',nodecl,nosideeffect> end
-local function frexp_f32(x: float32, exp: int32*): float32 <cimport'frexpf',nodecl,nosideeffect> end
+local function modf_f64(x: float64, y: *float64): float64 <cimport'modf',nodecl,nosideeffect> end
+local function modf_f32(x: float32, y: *float32): float32 <cimport'modff',nodecl,nosideeffect> end
+local function frexp_f64(x: float64, exp: *int32): float64 <cimport'frexp',nodecl,nosideeffect> end
+local function frexp_f32(x: float32, exp: *int32): float32 <cimport'frexpf',nodecl,nosideeffect> end
 local function ldexp_f64(x: float64, exp: int32): float64 <cimport'ldexp',nodecl,nosideeffect> end
 local function ldexp_f32(x: float32, exp: int32): float32 <cimport'ldexpf',nodecl,nosideeffect> end
 
@@ -248,14 +248,14 @@ function math.ult(m: is_arithmetic, n: is_arithmetic): boolean <inline>
 end
 
 -- Pseudo Random Number Generator based on xoshiro256**
-local xoshiro256 = @record{state: uint64[4]}
+local xoshiro256 = @record{state: [4]uint64}
 
 local function rotl(x: uint64, n: int32): uint64 <inline,nosideeffect>
   return (x << n) | (x >> (64 - n))
 end
 
 function xoshiro256:nextrand(): uint64
-  local state: uint64[4] = {
+  local state: [4]uint64 = {
     self.state[0],
     self.state[1],
     self.state[2] ~ self.state[0],

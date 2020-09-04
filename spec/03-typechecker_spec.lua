@@ -520,7 +520,7 @@ it("late deduction", function()
     local a: auto = nilptr or &i
   ]],[[
     local i: integer
-    local a: integer* = nilptr or &i
+    local a: *integer = nilptr or &i
   ]])
 end)
 
@@ -699,7 +699,7 @@ it("function multiple return", function()
   ]])
   assert.analyze_ast([[
     local R = @record{x: integer}
-    function R.foo(self: R*): (boolean, integer) return true, self.x end
+    function R.foo(self: *R): (boolean, integer) return true, self.x end
     function R:boo(): (boolean, integer) return true, self.x end
     local r = R{}
     local function foo(): (boolean, integer) return R.foo(r) end
@@ -788,12 +788,12 @@ it("callbacks", function()
     local callback: callback_type = nilptr
   ]])
   assert.analyze_ast([[
-    local callback_type = @function(integer*, integer[4], record{x:integer}): (integer[4], boolean)
+    local callback_type = @function(*integer, [4]integer, record{x:integer}): ([4]integer, boolean)
     local callback: callback_type = nilptr
   ]])
   assert.analyze_ast([[
-    local Callback = @function(void*)
-    local g: function(integer*)
+    local Callback = @function(*void)
+    local g: function(*integer)
     local f: Callback = (@Callback)(g)
     local f: Callback = (@Callback)(nilptr)
     local p: pointer
@@ -986,7 +986,7 @@ end)
 it("records metamethods", function()
   assert.analyze_ast([[
     local R = @record{}
-    function R:__atindex(x: integer): integer* return nilptr end
+    function R:__atindex(x: integer): *integer return nilptr end
     function R:__len(): integer return 0 end
     local r: R
     local x = r[0]
@@ -1064,7 +1064,7 @@ it("record methods", function()
     local v: vec2 = vec2.create(1,2)
     local l: integer = v:length()
 
-    local vec2pointer = @vec2*
+    local vec2pointer = @*vec2
     function vec2pointer:len() return self.x + self.y end
     l = v:len()
   ]])
@@ -1254,9 +1254,9 @@ it("pointers", function()
     local b: pointer
     a = b
   ]], "no viable type conversion")
-  assert.analyze_error([[local a: integer*, b: number*; b = a]], "no viable type conversion")
-  assert.analyze_error("local a: auto*", "is not addressable thus cannot have a pointer")
-  assert.analyze_error("local a: type*", "is not addressable thus cannot have a pointer")
+  assert.analyze_error([[local a: *integer, b: *number; b = a]], "no viable type conversion")
+  assert.analyze_error("local a: *auto", "is not addressable thus cannot have a pointer")
+  assert.analyze_error("local a: *type", "is not addressable thus cannot have a pointer")
 end)
 
 it("dereferencing and referencing", function()
@@ -1278,13 +1278,13 @@ it("automatic referencing", function()
     local R = @record{x: integer}
     local p: pointer(R)
     local a: R
-    local function f(): R* return a end
+    local function f(): *R return a end
     p = f()
   ]])
   assert.analyze_ast([[
     local A = @record{x: integer}
     local B = @record{a: A}
-    function B:f() local i: A* = self.a end
+    function B:f() local i: *A = self.a end
   ]])
   assert.analyze_error([[
     local R = @record{x: integer}
@@ -1318,7 +1318,7 @@ it("automatic dereferencing", function()
     local a: R = p
   ]])
   assert.analyze_ast([[
-    local A = @integer[4]
+    local A = @[4]integer
     local p: pointer(A)
     local a: A = p
   ]])
@@ -1326,7 +1326,7 @@ it("automatic dereferencing", function()
     local R = @record{x: integer}
     local function f(x: R): R return x end
     local p: pointer(R)
-    local r: record{x: R*}
+    local r: record{x: *R}
     f(r.x)
   ]])
   assert.analyze_error([[
@@ -1440,8 +1440,8 @@ it("concepts", function()
     f(2_uinteger)
     f(3)
     f(4)
-    g((@integer[2]){1,2})
-    g((@integer[3]){1,2,3})
+    g((@[2]integer){1,2})
+    g((@[3]integer){1,2,3})
   ]])
   assert.analyze_error([[
     local an_integral = #[concept(function(x)
@@ -1553,13 +1553,13 @@ end)
 
 it("custom braces initialization", function()
   assert.analyze_ast([==[
-    local vector = @record{data: integer[4]}
+    local vector = @record{data: [4]integer}
     ##[[
     vector.value.choose_braces_type = function(nodes)
       return types.ArrayType(primtypes.integer, 4)
     end
     ]]
-    function vector.__convert(data: integer[4]): vector
+    function vector.__convert(data: [4]integer): vector
       local v: vector
       v.data = data
       return v
@@ -1568,13 +1568,13 @@ it("custom braces initialization", function()
     assert(v.data[0] == 1 and v.data[1] == 2 and v.data[2] == 3 and v.data[3] == 4)
   ]==])
   assert.analyze_error([==[
-    local vector = @record{data: integer[4]}
+    local vector = @record{data: [4]integer}
     ##[[
     vector.value.choose_braces_type = function(nodes)
       return nil
     end
     ]]
-    function vector.__convert(data: integer[4]): vector
+    function vector.__convert(data: [4]integer): vector
       local v: vector
       v.data = data
       return v

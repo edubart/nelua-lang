@@ -3,7 +3,7 @@ require 'resourcepool'
 local SLOT_SHIFT <comptime> = 32
 local SLOT_MASK <comptime> = (1 << SLOT_SHIFT) - 1
 
-local id: uint64, p: integer*
+local id: uint64, p: *integer
 local pool: resourcepool(integer)
 
 assert(pool:get(0) == nilptr)

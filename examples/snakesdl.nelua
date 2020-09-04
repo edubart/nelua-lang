@@ -6,7 +6,7 @@ require 'math'
 -- import SDL structures
 local SDL_Event <cimport> = @record {
   type: uint32,
-  padding: byte[56]
+  padding: [56]byte
 }
 local SDL_Keysym <cimport> = @record {
   scancode: cint,
@@ -45,16 +45,16 @@ local SDL_RENDERER_PRESENTVSYNC <comptime> = 0x4
 
 -- import SDL functions
 local function SDL_Init(flags: uint32): int32 <cimport> end
-local function SDL_CreateWindow(title: cstring, x: cint, y: cint, w: cint, h: cint, flags: uint32): SDL_Window* <cimport> end
+local function SDL_CreateWindow(title: cstring, x: cint, y: cint, w: cint, h: cint, flags: uint32): *SDL_Window <cimport> end
 local function SDL_Quit() <cimport> end
-local function SDL_DestroyWindow(window: SDL_Window*) <cimport> end
-local function SDL_PollEvent(event: SDL_Event*): int32 <cimport> end
-local function SDL_CreateRenderer(window: SDL_Window*, index: cint, flags: uint32): SDL_Renderer* <cimport> end
-local function SDL_DestroyRenderer(renderer: SDL_Renderer*) <cimport> end
-local function SDL_RenderPresent(renderer: SDL_Renderer*) <cimport> end
-local function SDL_RenderClear(renderer: SDL_Renderer*) <cimport> end
-local function SDL_SetRenderDrawColor(renderer: SDL_Renderer*, r: uint8, g: uint8, b: uint8, a: uint8): cint <cimport> end
-local function SDL_RenderFillRect(renderer: SDL_Renderer*, rect: SDL_Rect*): cint <cimport> end
+local function SDL_DestroyWindow(window: *SDL_Window) <cimport> end
+local function SDL_PollEvent(event: *SDL_Event): int32 <cimport> end
+local function SDL_CreateRenderer(window: *SDL_Window, index: cint, flags: uint32): *SDL_Renderer <cimport> end
+local function SDL_DestroyRenderer(renderer: *SDL_Renderer) <cimport> end
+local function SDL_RenderPresent(renderer: *SDL_Renderer) <cimport> end
+local function SDL_RenderClear(renderer: *SDL_Renderer) <cimport> end
+local function SDL_SetRenderDrawColor(renderer: *SDL_Renderer, r: uint8, g: uint8, b: uint8, a: uint8): cint <cimport> end
+local function SDL_RenderFillRect(renderer: *SDL_Renderer, rect: *SDL_Rect): cint <cimport> end
 local function SDL_GetTicks(): uint32 <cimport> end
 
 -- game types
@@ -78,7 +78,7 @@ local quit = false
 local nextmove
 local score
 local headpos, tailpos, applepos
-local tiles: Direction[GRID_SIZE][GRID_SIZE]
+local tiles: [GRID_SIZE][GRID_SIZE]Direction
 
 local function move_point(pos: Point2D, dir: Direction)
   switch dir
@@ -145,7 +145,7 @@ local function poll_events()
     case SDL_QUIT then
       quit = true
     case SDL_KEYDOWN then
-      local kevent = (@SDL_KeyboardEvent*)(&event)
+      local kevent = (@*SDL_KeyboardEvent)(&event)
       local headdir = get_tile(headpos)
       switch kevent.keysym.sym
       case SDLK_UP then

@@ -17,7 +17,7 @@ function Obj:__destroy()
   self.id = 0
 end
 
-function Obj:__copy(o: Obj*)
+function Obj:__copy(o: *Obj)
   --print('copy', self.id)
   self.id = o.id
   assert(self.id ~= 0)

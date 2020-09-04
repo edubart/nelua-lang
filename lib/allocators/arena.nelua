@@ -47,7 +47,7 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
   local ArenaAllocatorT = @record{
     prev_offset: usize,
     curr_offset: usize,
-    buffer: byte[SIZE]
+    buffer: [SIZE]byte
   }
 
   -- Free all allocations.

@@ -20,7 +20,7 @@ end
 
 do -- alloc0
   assert(allocator:alloc0(0) == nilptr)
-  local p = (@vec2*)(allocator:alloc0(#@vec2))
+  local p = (@*vec2)(allocator:alloc0(#@vec2))
   assert(p)
   assert(p.x == 0 and p.y == 0)
   allocator:dealloc(p)
@@ -40,27 +40,27 @@ end
 
 do -- realloc0
   assert(allocator:realloc0(nilptr, 0, 0) == nilptr)
-  local p = (@vec2[0]*)(allocator:alloc0(#@vec2))
+  local p = (@*[0]vec2)(allocator:alloc0(#@vec2))
   assert(p)
   assert(p[0].x == 0 and p[0].y == 0)
   p[0] = vec2{x=1, y=2}
-  p = (@vec2[0]*)(allocator:realloc0(p, 2*#@vec2, #@vec2))
+  p = (@*[0]vec2)(allocator:realloc0(p, 2*#@vec2, #@vec2))
   assert(p)
   assert(p[0].x == 1 and p[0].y == 2)
   assert(p[1].x == 0 and p[1].y == 0)
-  p = (@vec2[0]*)(allocator:realloc0(p, #@vec2, #@vec2))
+  p = (@*[0]vec2)(allocator:realloc0(p, #@vec2, #@vec2))
   assert(p)
   assert(p[0].x == 1 and p[0].y == 2)
-  p = (@vec2[0]*)(allocator:realloc0(p, #@vec2, 0))
+  p = (@*[0]vec2)(allocator:realloc0(p, #@vec2, 0))
   assert(p)
   assert(p[0].x == 0 and p[0].y == 0)
-  p = (@vec2[0]*)(allocator:realloc0(p, 0, #@vec2))
+  p = (@*[0]vec2)(allocator:realloc0(p, 0, #@vec2))
   assert(p == nilptr)
 end
 
 do -- copy
-  local pa = (@vec2*)(allocator:alloc0(#@vec2))
-  local pb = (@vec2*)(allocator:alloc0(#@vec2))
+  local pa = (@*vec2)(allocator:alloc0(#@vec2))
+  local pb = (@*vec2)(allocator:alloc0(#@vec2))
   $pa = {x=1,y=2}
   memory.copy(pb, pa, #@vec2)
   assert(pb.x == 1 and pb.y == 2)
@@ -69,16 +69,16 @@ do -- copy
 end
 
 do -- move
-  local p = (@vec2[0]*)(allocator:alloc0(2*#@vec2))
+  local p = (@*[0]vec2)(allocator:alloc0(2*#@vec2))
   local pa, pb = &p[0], &p[1]
   $pa, $pb = {x=1,y=2}, {x=3,y=4}
-  memory.move(&((@integer[0]*)(p))[1], p, 3 * #@integer)
+  memory.move(&((@*[0]integer)(p))[1], p, 3 * #@integer)
   assert(pa.x == 1 and pa.y == 1 and pb.x == 2 and pb.y == 3)
   allocator:dealloc(p)
 end
 
 do -- set and zero
-  local p = (@vec2*)(allocator:alloc0(#@vec2))
+  local p = (@*vec2)(allocator:alloc0(#@vec2))
   memory.set(p, 0xff, #@vec2)
   assert(p.x == 0xffffffffffffffff and p.y == 0xffffffffffffffff)
   memory.zero(p, #@vec2)
@@ -87,8 +87,8 @@ do -- set and zero
 end
 
 do -- compare
-  local pa = (@vec2*)(allocator:alloc0(#@vec2))
-  local pb = (@vec2*)(allocator:alloc0(#@vec2))
+  local pa = (@*vec2)(allocator:alloc0(#@vec2))
+  local pb = (@*vec2)(allocator:alloc0(#@vec2))
   assert(memory.compare(pa, pb, #@vec2) == 0)
   pa.x = 1 pb.x = 2
   assert(memory.compare(pa, pb, #@vec2) == -1)
@@ -101,8 +101,8 @@ do -- compare
 end
 
 do -- equals
-  local pa = (@vec2*)(allocator:alloc0(#@vec2))
-  local pb = (@vec2*)(allocator:alloc0(#@vec2))
+  local pa = (@*vec2)(allocator:alloc0(#@vec2))
+  local pb = (@*vec2)(allocator:alloc0(#@vec2))
   assert(memory.equals(pa, pb, #@vec2))
   pa.x = 1
   assert(not memory.equals(pa, pb, #@vec2))
@@ -111,7 +111,7 @@ do -- equals
 end
 
 do -- scan
-  local p = (@vec2*)(allocator:alloc0(#@vec2))
+  local p = (@*vec2)(allocator:alloc0(#@vec2))
   p.x = 1 p.y = 2
   assert(memory.scan(p, 1, #@vec2) == &p.x)
   assert(memory.scan(p, 2, #@vec2) == &p.y)
@@ -120,7 +120,7 @@ do -- scan
 end
 
 do -- find
-  local p = (@vec2*)(allocator:alloc0(#@vec2))
+  local p = (@*vec2)(allocator:alloc0(#@vec2))
   p.x = 1 p.y = 2
   local x: integer, y: integer = 1, 2
   assert(memory.find(p, #@vec2, &x, #@integer) == &p.x)
@@ -199,8 +199,8 @@ do -- spanmove
   local p = allocator:spanalloc0(@vec2, 2)
   local pa, pb = &p[0], &p[1]
   $pa, $pb = {x=1,y=2}, {x=3,y=4}
-  local sb = (@span(integer))({ data=(@integer[0]*)(p.data), size=3 })
-  local db = (@span(integer))({ data=(@integer[0]*)(&((@integer[0]*)(p.data))[1]), size=3 })
+  local sb = (@span(integer))({ data=(@*[0]integer)(p.data), size=3 })
+  local db = (@span(integer))({ data=(@*[0]integer)(&((@*[0]integer)(p.data))[1]), size=3 })
   memory.spanmove(db, sb)
   --assert(pa.x == 1 and pa.y == 1 and pb.x == 2 and pb.y == 3)
   allocator:spandealloc(p)
@@ -302,7 +302,7 @@ end
 -- moving and swapping values
 
 local NonCopyable = @record{x: integer}
-function NonCopyable:__copy(other: NonCopyable*)
+function NonCopyable:__copy(other: *NonCopyable)
   error "copy not expected"
 end
 

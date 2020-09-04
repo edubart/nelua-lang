@@ -171,7 +171,7 @@ local INIT_SIZE <comptime> = 64
 
   -- Return a pointer to a resource associated with an id.
   -- In case the resource id is invalid then throws a runtime error.
-  function resourcepoolT:at(id: uint64): T*
+  function resourcepoolT:at(id: uint64): *T
     local slot_index: uint32 = self.slot_pool:get_slot_index(id)
     check(slot_index ~= 0, 'resourcepool.at: invalid id')
     return &self.items[slot_index]
@@ -179,7 +179,7 @@ local INIT_SIZE <comptime> = 64
 
   -- Return a pointer to a resource associated with an id.
   -- In case the resource id is invalid then returns nilptr.
-  function resourcepoolT:get(id: uint64): T*
+  function resourcepoolT:get(id: uint64): *T
     local slot_index: uint32 = self.slot_pool:get_slot_index(id)
     if unlikely(slot_index == 0) then return nilptr end
     return &self.items[slot_index]
@@ -191,7 +191,7 @@ local INIT_SIZE <comptime> = 64
   end
 
   -- Allocate a new resource in the pool returning its id fallowed by its pointer.
-  function resourcepoolT:alloc(): (uint64, T*)
+  function resourcepoolT:alloc(): (uint64, *T)
     local slot_id: uint64, slot_index: uint32 = self.slot_pool:alloc_slot()
     if unlikely(self.items.size < self.slot_pool.gen_ctrs.size) then
       -- slot pool has grown, allocate more space
@@ -203,7 +203,7 @@ local INIT_SIZE <comptime> = 64
 
   -- Allocate a new resource in the pool returning its id, initializes the contents from `v`.
   function resourcepoolT:allocinit(v: T): uint64 <inline>
-    local id: uint64, res: T* = self:alloc()
+    local id: uint64, res: *T = self:alloc()
     $res = memory.moveval(&v)
     return id
   end

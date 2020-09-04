@@ -44,30 +44,30 @@ local NODE_COOKIE: usize <comptime> = 0xA7512BCF_usize
 -- or 16 bytes on 32bit systems, perfect for the 16 byte alignment requirement
 local Node = @record{
   size: usize,
-  prev_adj: Node*,
-  next: Node*,
-  prev: Node*
+  prev_adj: *Node,
+  next: *Node,
+  prev: *Node
 }
 
 -- the double linked list for free nodes
 local Bin = @record{
-  head: Node*
+  head: *Node
 }
 
 -- the heap stores bins for different chunk sizes
 local Heap = @record{
-  bins: Bin[BIN_COUNT]
+  bins: [BIN_COUNT]Bin
 }
 
 function Node:set_used() <inline>
   -- the lower bits of the pointer should be always 0 because we allocate with alignment
   -- so it's impossible to have conflicts in next/prev with these values due to alignment
-  self.next = (@Node*)(1_usize)
-  self.prev = (@Node*)(NODE_COOKIE)
+  self.next = (@*Node)(1_usize)
+  self.prev = (@*Node)(NODE_COOKIE)
 end
 
 function Node:is_used() <inline>
-  return self.next == (@Node*)(1_usize) and self.prev == (@Node*)(NODE_COOKIE)
+  return self.next == (@*Node)(1_usize) and self.prev == (@*Node)(NODE_COOKIE)
 end
 
 -- import efficient clz (compute leading zeros) from C
@@ -113,8 +113,8 @@ local function align_forward(addr: usize, align: usize): usize <inline>
 end
 
 -- insert a node inside a bin linked list
-function Heap:add_node(node: Node*) <inline>
-  local bin: Bin* = &self.bins[get_bin_index(node.size)]
+function Heap:add_node(node: *Node) <inline>
+  local bin: *Bin = &self.bins[get_bin_index(node.size)]
   node.prev = nilptr
   if likely(bin.head ~= nilptr) then
     -- bin is not empty, forward the head
@@ -127,8 +127,8 @@ function Heap:add_node(node: Node*) <inline>
 end
 
 -- remove a node from a bin linked list
-function Heap:remove_bin_node(bin_index: uint32, node: Node*) <inline>
-  local bin: Bin* = &self.bins[bin_index]
+function Heap:remove_bin_node(bin_index: uint32, node: *Node) <inline>
+  local bin: *Bin = &self.bins[bin_index]
   -- update the head in case we are removing it
   if node == bin.head then
     bin.head = node.next
@@ -144,23 +144,23 @@ function Heap:remove_bin_node(bin_index: uint32, node: Node*) <inline>
 end
 
 -- remove a node from a bin linked list
-function Heap:remove_node(node: Node*) <inline>
+function Heap:remove_node(node: *Node) <inline>
   self:remove_bin_node(get_bin_index(node.size), node)
 end
 
 -- return next adjacent node
-local function get_next_adj_node(node: Node*): Node* <inline>
-  return (@Node*)((@usize)(node) + #@Node + node.size)
+local function get_next_adj_node(node: *Node): *Node <inline>
+  return (@*Node)((@usize)(node) + #@Node + node.size)
 end
 
 -- get a node given a pointer
-local function get_ptr_node(p: pointer): Node* <inline>
+local function get_ptr_node(p: pointer): *Node <inline>
   -- check for misaligned invalid pointers
   if unlikely((@usize)(p) & (ALLOC_ALIGN-1) ~= 0) then
     return nilptr
   end
   -- the actual head of the node is not p, it is p minus the size of the node
-  local node: Node* = (@Node*)((@usize)(p) - #@Node)
+  local node: *Node = (@*Node)((@usize)(p) - #@Node)
   -- check if is a valid allocator node
   if unlikely(not node:is_used()) then
     return nilptr
@@ -183,14 +183,14 @@ function Heap:add_memory_region(region: pointer, region_size: usize)
 
   -- first we create the initial region
   -- the heap starts as just one big chunk of allocable memory
-  local start_node: Node* = (@Node*)(heap_start)
+  local start_node: *Node = (@*Node)(heap_start)
   start_node.size = heap_size - #@Node -- this node itself use some metadata space
   start_node.prev_adj = nilptr
   start_node.next = nilptr
   start_node.prev = nilptr
 
   -- set the ending node
-  local end_node: Node* = (@Node*)(heap_start + heap_size)
+  local end_node: *Node = (@*Node)(heap_start + heap_size)
   end_node.size = 0
   end_node.prev_adj = start_node
   end_node:set_used() -- the end node is never free
@@ -211,7 +211,7 @@ function Heap:alloc(size: usize): pointer
   -- we always want to allocate aligned sizes
   size = align_forward(size + #@Node, ALLOC_ALIGN) - #@Node
 
-  local found: Node*
+  local found: *Node
 
   -- advance through the bins until we find a chunk that fits the size
   local bin_index: uint32 = get_bin_index(size)
@@ -256,7 +256,7 @@ function Heap:alloc(size: usize): pointer
     -- do the math to get where to split at, then set its metadata
     local split_size: usize = found.size - size - #@Node
     found.size = size
-    local split: Node* = get_next_adj_node(found)
+    local split: *Node = get_next_adj_node(found)
     split.size = split_size
 
     -- update adjacent links
@@ -283,13 +283,13 @@ function Heap:dealloc(p: pointer)
   if unlikely(p == nilptr) then return end
 
   -- the actual head of the node is not p, it is p minus the size of the node
-  local head: Node* = get_ptr_node(p)
+  local head: *Node = get_ptr_node(p)
   if unlikely(head == nilptr) then
     panic('invalid pointer passed in heap dealloc')
   end
 
-  local prev: Node* = head.prev_adj
-  local next: Node*
+  local prev: *Node = head.prev_adj
+  local next: *Node
 
   -- if the previous node is free we can coalesce!
   if likely(prev ~= nilptr) and not prev:is_used() then
@@ -344,7 +344,7 @@ function Heap:realloc(p: pointer, size: usize)
   size = align_forward(size + #@Node, ALLOC_ALIGN) - #@Node
 
   -- the actual head of the node is not p, it is p minus the size of the node
-  local head: Node* = get_ptr_node(p)
+  local head: *Node = get_ptr_node(p)
   if unlikely(head == nilptr) then
     panic('invalid pointer passed in heap realloc')
   end
@@ -353,7 +353,7 @@ function Heap:realloc(p: pointer, size: usize)
   if likely(size > head.size) then
     -- we can only grow if the next adjacent node
     -- is not the end, is free and has enough space
-    local next: Node* = get_next_adj_node(head)
+    local next: *Node = get_next_adj_node(head)
     if not next:is_used() and head.size + next.size + #@Node >= size then
       -- remove it from its bin
       self:remove_node(next)
@@ -388,7 +388,7 @@ function Heap:realloc(p: pointer, size: usize)
       -- do the math to get where to split at, then set its metadata
       local split_size: usize = head.size - size - #@Node
       head.size = size
-      local split: Node* = get_next_adj_node(head)
+      local split: *Node = get_next_adj_node(head)
       split.size = split_size
 
       -- update adjacent links
@@ -412,7 +412,7 @@ end
   local HeapAllocatorT = @record{
     initialized: boolean,
     heap: Heap,
-    buffer: byte[HEAP_SIZE]
+    buffer: [HEAP_SIZE]byte
   }
 
   -- Initialize the heap allocator.

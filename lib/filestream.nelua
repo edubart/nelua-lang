@@ -58,7 +58,7 @@ function filestream._from_fp(fp: FILEptr): filestream
 end
 
 function filestream:_get_fp(): FILEptr
-  local p: FILEptr* = pool:get(self.id)
+  local p: *FILEptr = pool:get(self.id)
   if p then return $p end
   return nilptr
 end
@@ -136,13 +136,13 @@ end
 
 local READ_CHUNK_SIZE <comptime> = 1024
 
-local function readline(sb: stringbuilder*, fp: FILEptr, chop: boolean): boolean
+local function readline(sb: *stringbuilder, fp: FILEptr, chop: boolean): boolean
   -- TODO: lock file on POSIX?
   local NL: byte <comptime> = '\n'_byte
   local c: cint
   repeat
     local nr: uint32 = 0
-    local buff: byte[0]* = sb:prepare(READ_CHUNK_SIZE) -- preallocate buffer space
+    local buff: *[0]byte = sb:prepare(READ_CHUNK_SIZE) -- preallocate buffer space
     while nr < READ_CHUNK_SIZE do -- read up to buffer limit
       c = getc(fp)
       if c == EOF or c == NL then -- end of line
@@ -160,14 +160,14 @@ local function readline(sb: stringbuilder*, fp: FILEptr, chop: boolean): boolean
   return (c == NL or sb.size > 0)
 end
 
-local function readchars(sb: stringbuilder*, fp: FILEptr, n: usize): boolean
+local function readchars(sb: *stringbuilder, fp: FILEptr, n: usize): boolean
   local p: pointer = sb:prepare(n)
   local nr: csize = fread(p, 1, n, fp)
   sb:commit(nr)
   return nr > 0
 end
 
-local function readall(sb: stringbuilder*, fp: FILEptr): boolean
+local function readall(sb: *stringbuilder, fp: FILEptr): boolean
   repeat -- read in chunks
     local p: pointer = sb:prepare(READ_CHUNK_SIZE)
     local nr: csize = fread(p, 1, READ_CHUNK_SIZE, fp)

@@ -5,12 +5,12 @@ local allocator: auto = general_allocator
 ## local make_list = generalize(function(T)
   local T = @#[T]#
   local ListNodeT <codename #['ListNode_'..T.codename]#> = @record {
-    prev: ListNodeT*,
-    next: ListNodeT*,
+    prev: *ListNodeT,
+    next: *ListNodeT,
     value: T
   }
 
-  local function new_node(prev: ListNodeT*, next: ListNodeT*, value: T): ListNodeT*
+  local function new_node(prev: *ListNodeT, next: *ListNodeT, value: T): *ListNodeT
     local node = allocator:new(@ListNodeT)
     node.prev = prev
     node.next = next
@@ -19,8 +19,8 @@ local allocator: auto = general_allocator
   end
 
   local ListT <codename #['List_'..T.codename]#> = @record{
-    head: ListNodeT*,
-    tail: ListNodeT*
+    head: *ListNodeT,
+    tail: *ListNodeT
   }
 
   function ListT:prepend(value: T)
@@ -47,7 +47,7 @@ local allocator: auto = general_allocator
     self.tail = node
   end
 
-  function ListT:find(value: T): ListNodeT*
+  function ListT:find(value: T): *ListNodeT
     local it = self.head
     while it do
       if it.value == value then
@@ -62,7 +62,7 @@ local allocator: auto = general_allocator
     return self:find(value) ~= nilptr
   end
 
-  function ListT:erase(node: ListNodeT*): ListNodeT*
+  function ListT:erase(node: *ListNodeT): *ListNodeT
     if node == self.head then
       self.head = node.next
     end

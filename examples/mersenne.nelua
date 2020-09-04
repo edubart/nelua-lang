@@ -21,7 +21,7 @@ end
 
 -- generates a random number on [0, 0xffffffff]
 function mt19937:random_uint32()
-  local MAG01: uint32[2] = {0x0, 0x9908b0df}
+  local MAG01: [2]uint32 = {0x0, 0x9908b0df}
   local MASK = @enum(uint32) { LOWER = 0x7fffffff, UPPER = 0x80000000 }
   local N <comptime>, M <comptime> = MT19937_N, MT19937_M
   local y

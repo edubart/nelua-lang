@@ -6,7 +6,7 @@ require 'allocators.general'
 
 -- Import argc and argv from C 'nelua_main'
 local nelua_argc: cint <cimport, nodecl>
-local nelua_argv: cstring[0]* <cimport, nodecl>
+local nelua_argv: *[0]cstring <cimport, nodecl>
 
 -- List of command line arguments.
 -- The index 0 usually is filled with the program executable.
