@@ -8,18 +8,18 @@ describe("Nelua should parse and generate C", function()
 
 it("empty file", function()
   assert.generate_c("", [[
-int nelua_main() {
+int nelua_main(int nelua_argc, char** nelua_argv) {
   return 0;
 }]])
 end)
 
 it("return", function()
   assert.generate_c("return", [[
-int nelua_main() {
+int nelua_main(int nelua_argc, char** nelua_argv) {
   return 0;
 }]])
   assert.generate_c("return 1", [[
-int nelua_main() {
+int nelua_main(int nelua_argc, char** nelua_argv) {
   return 1;
 }]])
   assert.generate_c("return 1")
@@ -2061,11 +2061,11 @@ end)
 
 it("hook main", function()
   assert.run_c([[
-    local function nelua_main(): cint <cimport,nodecl> end
-    local function main(argc: cint, argv: cchar**): cint <entrypoint>
+    local function nelua_main(argc: cint, nelua_argv: cstring*): cint <cimport,nodecl> end
+    local function main(argc: cint, argv: cstring*): cint <entrypoint>
       print 'before'
-      local ret = nelua_main()
-      print('after')
+      local ret = nelua_main(argc, argv)
+      print 'after'
       return ret
     end
     print 'inside'

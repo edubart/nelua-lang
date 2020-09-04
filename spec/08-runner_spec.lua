@@ -126,4 +126,14 @@ it("debug options", function()
   ]]}, "scope resolved 1 symbols")
 end)
 
+it("program arguments", function()
+  assert.run({'--eval',[[
+    require 'arg'
+    assert(arg[1] == 'a')
+    assert(arg[2] == 'b')
+    assert(arg[3] == 'c')
+    assert(#arg == 3)
+  ]], 'a', 'b', 'c'})
+end)
+
 end)

@@ -1,21 +1,25 @@
 -- Include this file to get have the global "arg"
--- with your program command line arguments.
+-- filled with your program command line arguments.
 
-## if pragmas.nogc then
+require 'sequence'
+require 'allocators.general'
 
-require 'span'
+-- Import argc and argv from C 'nelua_main'
+local nelua_argc: cint <cimport, nodecl>
+local nelua_argv: cstring[0]* <cimport, nodecl>
 
-global arg: span(cstring)
+-- List of command line arguments.
+-- The index 0 usually is filled with the program executable.
+-- The arguments goes from 1 up to #arg (like in Lua).
+global arg: sequence(stringview, GeneralAllocator)
 
-local function nelua_main(): cint <cimport,nodecl> end
-
-local function main(argc: cint, argv: cchar**): cint <entrypoint>
-  arg = {data=argv, size=argc}
-  return nelua_main()
+do -- setup args
+  local narg: usize = (@usize)(nelua_argc-1)
+  arg:reserve(narg)
+  for i:usize=0,narg do
+    arg[i] = nelua_argv[i]
+  end
 end
 
-## else
-
-require 'allocators.gc'
-
-## end
+-- NOTE: the memory of 'arg' is never freed,
+-- but this is fine, is not a leak for global variables.

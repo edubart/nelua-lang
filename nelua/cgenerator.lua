@@ -1400,7 +1400,7 @@ local function emit_main(ast, context)
 
   if not context.entrypoint or context.hookmain then
     mainemitter:inc_indent()
-    mainemitter:add_ln("int nelua_main() {")
+    mainemitter:add_ln("int nelua_main(int nelua_argc, char** nelua_argv) {")
     mainemitter:add_traversal(ast)
     if not context.rootscope.has_return then
       -- main() must always return an integer
@@ -1411,7 +1411,7 @@ local function emit_main(ast, context)
     mainemitter:add_ln("}")
     mainemitter:dec_indent()
 
-    context:add_declaration('int nelua_main();\n')
+    context:add_declaration('int nelua_main(int nelua_argc, char** nelua_argv);\n')
   else
     mainemitter:inc_indent()
     mainemitter:add_traversal(ast)
@@ -1421,7 +1421,7 @@ local function emit_main(ast, context)
   if not context.entrypoint then
     mainemitter:add_indent_ln('int main(int argc, char **argv) {')
     mainemitter:inc_indent(2)
-    mainemitter:add_indent_ln('return nelua_main();')
+    mainemitter:add_indent_ln('return nelua_main(argc, argv);')
     mainemitter:dec_indent(2)
     mainemitter:add_indent_ln('}')
   end

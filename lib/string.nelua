@@ -50,7 +50,6 @@ function string._create(size: usize): string
   self.data = (@byte[0]*)(string_allocator:alloc(size+1))
   check(self.data ~= nilptr, 'string._create: out of memory')
   self.data[size] = 0
-  --self.refs = 1
   return self
 end
 
