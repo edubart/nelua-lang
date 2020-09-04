@@ -647,7 +647,7 @@ it("compiler information", function()
   assert.analyze_ast([=[##[[
     local compiler = require 'nelua.ccompiler'
     assert(compiler.get_cc_info())
-    local defs = compiler.get_c_defines({'<stdbool.h>'})
+    local defs = compiler.get_cc_defines('<stdbool.h>')
     assert(defs.bool == '_Bool')
   ]]]=])
 end)

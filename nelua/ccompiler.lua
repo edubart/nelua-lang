@@ -8,6 +8,7 @@ local sstream = require 'nelua.utils.sstream'
 local console = require 'nelua.utils.console'
 local config = require 'nelua.configer'.get()
 local cdefs = require 'nelua.cdefs'
+local memoize = require 'nelua.utils.memoize'
 
 local compiler = {}
 
@@ -46,11 +47,8 @@ local function get_compile_args(cfile, binfile, compileopts)
   return pegger.substitute('$(cc) -o "$(binfile)" "$(cfile)" $(cflags)', env)
 end
 
-local last_ccinfos = {}
-function compiler.get_cc_info()
-  local last_ccinfo = last_ccinfos[config.cc]
-  if last_ccinfo then return last_ccinfo end
-  local cccmd = string.format('%s -v', config.cc)
+local function get_cc_info(cc)
+  local cccmd = string.format('%s -v', cc)
   local ok, ret, stdout, stderr = executor.execex(cccmd)
   except.assertraisef(ok and ret == 0, "failed to retrieve compiler information: %s", stderr)
   local text = stderr and stderr ~= '' and stderr or stdout
@@ -58,27 +56,37 @@ function compiler.get_cc_info()
     target = text:match('Target: ([-_%w]+)'),
     thread_model = text:match('Thread model: ([-_%w]+)'),
     version = text:match('version ([.%d]+)'),
-    name = text:match('([-_%w]+) version') or config.cc,
-    exe = config.cc,
+    name = text:match('([-_%w]+) version') or cc,
+    exe = cc,
     text = text,
     is_emscripten = text:match('Emscripten') ~= nil
   }
-  last_ccinfos[config.cc] = ccinfo
   return ccinfo
 end
+get_cc_info = memoize(get_cc_info)
 
-function compiler.get_c_defines(headers)
+function compiler.get_cc_info()
+  return get_cc_info(config.cc)
+end
+
+local function get_cc_defines(cc, ...)
   local tmpname = fs.tmpname()
   local code = {}
-  for _,header in ipairs(headers) do
+  for i=1,select('#', ...) do
+    local header = select(i, ...)
     table.insert(code, '#include ' .. header)
   end
   fs.ewritefile(tmpname, table.concat(code))
-  local cccmd = string.format('%s -x c -E -dM %s', config.cc, tmpname)
+  local cccmd = string.format('%s -x c -E -dM %s', cc, tmpname)
   local ok, ret, stdout, ccinfo = executor.execex(cccmd)
   fs.deletefile(tmpname)
   except.assertraisef(ok and ret == 0, "failed to retrieve compiler information: %s", ccinfo or '')
   return pegger.parse_c_defines(stdout)
+end
+get_cc_defines = memoize(get_cc_defines)
+
+function compiler.get_cc_defines(...)
+  return get_cc_defines(config.cc, ...)
 end
 
 function compiler.compile_code(ccode, outfile, compileopts)

@@ -34,9 +34,6 @@ local errno: cint <cimport,cinclude'<errno.h>',nodecl>
 local function clock(): clock_t <cimport,cinclude'<time.h>',nodecl> end
 local function getenv(name: cstring): cstring <cimport,cinclude'<stdlib.h>',nodecl> end
 local function exit(status: cint) <cimport,cinclude'<stdlib.h>',nodecl> end
-local function mkstemp(s: cstring): cint <cimport,cinclude'<stdlib.h>',nodecl> end
-local function close(fd: cint): cint <cimport,cinclude'<unistd.h>',nodecl> end
-local function strncpy(dest: cstring, src: cstring, n: usize): cstring <cimport,cinclude'<string.h>',nodecl> end
 local function system(command: cstring): cint <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
 local function rename(old: cstring, new: cstring): cint <cimport,cinclude'<stdio.h>',nodecl> end
@@ -62,7 +59,7 @@ function os.date(): string
   local ts: tm = localtime(&t)
   local buf: cchar[250]
   local size: csize = strftime(&buf[0], 250, "%c", &ts)
-  return &buf[0]
+  return tostring(&buf[0])
 end
 
 function os.difftime(t1: integer, t2: integer): integer
@@ -101,7 +98,7 @@ end
 function os.getenv(varname: stringview): string
   local s: cstring = getenv(varname)
   if s then
-    return s
+    return tostring(s)
   else
     return ''
   end
@@ -137,7 +134,7 @@ function os.setlocale(locale: stringview, category: #[optional_concept(stringvie
     end
     local s: cstring = setlocale(cat, locale)
     if s then
-      return s
+      return tostring(s)
     else
       return ''
     end
@@ -176,14 +173,29 @@ function os.time(desc: #[optional_concept(os_time_desc)]#): integer
 end
 
 function os.tmpname(): string
-  --TODO: windows implementation without POSIX
-  local TMPBUFSIZE <comptime> = 32
+  ## local ccdefs = require'nelua.ccompiler'.get_cc_defines()
+  ## if ccdefs._WIN32 then
+    local TMPBUFSIZE <comptime> = 260 -- safe max value
+    local function tmpnam(s: cstring): cstring <cimport,cinclude'<stdio.h>',nodecl> end
+  ## else
+    -- is not safe to use `tmpname` on POSIX, use mkstemp
+
+    local function mkstemp(s: cstring): cint <cimport,cinclude'<stdlib.h>',nodecl> end
+    local function strncpy(dest: cstring, src: cstring, n: usize): cstring <cimport,cinclude'<string.h>',nodecl> end
+    local function close(fd: cint): cint <cimport,cinclude'<unistd.h>',nodecl> end
+
+    local TMPBUFSIZE <comptime> = 32
+    local function tmpnam(buf: cstring)
+      strncpy(buf, "/tmp/lua_XXXXXX", TMPBUFSIZE)
+      local fd: cint = mkstemp(buf)
+      if fd == -1 then
+        error "os.tmpname: unable to generate a unique filename"
+      end
+      close(fd)
+    end
+  ## end
+
   local buf: cchar[TMPBUFSIZE]
-  strncpy(&buf[0], "/tmp/lua_XXXXXX", TMPBUFSIZE)
-  local fd: cint = mkstemp(&buf[0])
-  if fd == -1 then
-    error "os.tmpname: unable to generate a unique filename"
-  end
-  close(fd)
-  return &buf[0]
+  tmpnam(&buf[0])
+  return tostring(&buf[0])
 end

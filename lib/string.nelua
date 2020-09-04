@@ -177,7 +177,10 @@ function string.char(c: byte): string
 end
 
 global function tostring(x: auto): string
-  ## if x.type.is_arithmetic or x.type.is_function or x.type.is_pointer then
+  ## if x.type.is_stringy then
+    -- use implicit conversion
+    return x
+  ## elseif x.type.is_arithmetic or x.type.is_function or x.type.is_pointer then
     local size: cint
     ##[[
     local tyformat
@@ -215,8 +218,6 @@ global function tostring(x: auto): string
       return 'true'
     end
     return 'false'
-  ## elseif x.type.is_stringy then
-    return x
   ## elseif x.type.is_niltype then
     return 'nil'
   ## elseif x.type.is_polyfunction then

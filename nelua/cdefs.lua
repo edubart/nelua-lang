@@ -17,6 +17,7 @@ cdefs.types_printf_format = {
   nluint32  = '"%" PRIu32',
   nluint64  = '"%" PRIu64',
 
+  nlcstring     = '"%s"',
   nlcchar       = '"%c"',
   nlcschar      = '"%c"',
   nlcshort      = '"%i"',
