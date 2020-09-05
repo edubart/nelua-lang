@@ -23,6 +23,14 @@ the **most interesting page** to learn more about all the features and syntax.
 Technical specification of Nelua, this page is more technical
 thus can be dense to read, for a quick understanding of Nelua see the overview first.
 
+### [Libraries](/libraries/)
+
+List of built-in libraries in Nelua and their contents.
+
+### [Differences](/diffs/)
+
+Direct comparison of Lua and Nelua standard libraries.
+
 ### [FAQ](/faq/)
 
 Answers to frequently asked questions about Nelua,

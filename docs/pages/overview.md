@@ -1,10 +1,10 @@
----
-layout: docs
-title: Overview
-permalink: /overview/
-categories: docs toc
-order: 3
----
+  ---
+  layout: docs
+  title: Overview
+  permalink: /overview/
+  categories: docs toc
+  order: 3
+  ---
 
 {% raw %}
 
@@ -31,6 +31,7 @@ Although copying Lua code with minor changes is a goal of Nelua, not all Lua
 features are implemented yet. Mostly the dynamic part such as tables and handling dynamic types
 at runtime is not implemented yet, thus at the moment is best to try Nelua using
 records instead of tables and type notations in function definitions.
+Visit [this](/diffs/) page for the full list of available features.
 {: .callout.callout-warning}
 
 ## A note for C users
@@ -2327,4 +2328,4 @@ code prefer the other Nelua primitive types.
 *[integral]: A whole number, numbers that has not fractional part.
 *[GC]: Garbage Collector
 
-<a href="/manual/" class="btn btn-outline-primary btn-lg float-right">Manual >></a>
+<a href="/libraries/" class="btn btn-outline-primary btn-lg float-right">Libraries >></a>
