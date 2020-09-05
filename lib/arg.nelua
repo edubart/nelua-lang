@@ -14,10 +14,12 @@ local nelua_argv: *[0]cstring <cimport, nodecl>
 global arg: sequence(stringview, GeneralAllocator)
 
 do -- setup args
-  local narg: usize = (@usize)(nelua_argc-1)
-  arg:reserve(narg)
-  for i:usize=0,narg do
-    arg[i] = nelua_argv[i]
+  if nelua_argc > 0 then
+    local narg: usize = (@usize)(nelua_argc-1)
+    arg:reserve(narg)
+    for i:usize=0,narg do
+      arg[i] = nelua_argv[i]
+    end
   end
 end
 
