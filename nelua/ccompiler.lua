@@ -12,7 +12,7 @@ local memoize = require 'nelua.utils.memoize'
 
 local compiler = {}
 
-local function get_compile_args(cfile, binfile, compileopts)
+local function get_compiler_cflags(compileopts)
   local compiler_flags = cdefs.compilers_flags[config.cc] or cdefs.compiler_base_flags
   local cflags = sstream(compiler_flags.cflags_base)
   --luacov:disable
@@ -43,7 +43,11 @@ local function get_compile_args(cfile, binfile, compileopts)
     cflags:add(' -l')
     cflags:addlist(compileopts.linklibs, ' -l')
   end
-  local env = { cfile = cfile, binfile = binfile, cflags = cflags:tostring(), cc = config.cc }
+  return cflags:tostring()
+end
+
+local function get_compile_args(cfile, binfile, cflags)
+  local env = { cfile = cfile, binfile = binfile, cflags = cflags, cc = config.cc }
   return pegger.substitute('$(cc) -o "$(binfile)" "$(cfile)" $(cflags)', env)
 end
 
@@ -59,8 +63,11 @@ local function get_cc_info(cc)
     name = text:match('([-_%w]+) version') or cc,
     exe = cc,
     text = text,
-    is_emscripten = text:match('Emscripten') ~= nil
   }
+  ccinfo.is_emscripten = text:match('Emscripten') ~= nil
+  if ccinfo.target then
+    ccinfo.is_windows = ccinfo.target:match('windows') or ccinfo.target:match('mingw')
+  end
   return ccinfo
 end
 get_cc_info = memoize(get_cc_info)
@@ -92,7 +99,8 @@ end
 function compiler.compile_code(ccode, outfile, compileopts)
   local cfile = outfile .. '.c'
   local ccinfo = compiler.get_cc_info().text
-  local ccmd = get_compile_args(cfile, outfile, compileopts)
+  local cflags = get_compiler_cflags(compileopts)
+  local ccmd = get_compile_args(cfile, outfile, cflags)
 
   -- file heading
   local hash = stringer.hash(string.format("%s%s%s", ccode, ccinfo, ccmd))
@@ -118,15 +126,32 @@ function compiler.compile_code(ccode, outfile, compileopts)
   return cfile
 end
 
-function compiler.compile_binary(cfile, outfile, compileopts)
-  local binfile = outfile
+local function detect_binary_extension(ccinfo, cflags)
+  --luacov:disable
+  if ccinfo.is_emscripten then
+    return '.html'
+  elseif ccinfo.is_windows then
+    if cflags:find('-shared') then
+      return '.dll'
+    else
+      return '.exe'
+    end
+  else
+    if cflags:find('-shared') then
+      return '.so'
+    else
+      return ''
+    end
+  end
+  --luacov:enable
+end
 
+
+function compiler.compile_binary(cfile, outfile, compileopts)
+  local cflags = get_compiler_cflags(compileopts)
   local ccinfo = compiler.get_cc_info()
-  if ccinfo.target and (ccinfo.target:match('windows') or ccinfo.target:match('mingw')) then --luacov:disable
-    binfile = outfile .. '.exe'
-  elseif ccinfo.is_emscripten then
-    binfile = outfile .. '.html'
-  end --luacov:enable
+  local binext = detect_binary_extension(ccinfo, cflags)
+  local binfile = outfile .. binext
 
   -- if the file with that hash already exists skip recompiling it
   if not config.no_cache then
@@ -141,7 +166,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   fs.eensurefilepath(binfile)
 
   -- generate compile command
-  local cccmd = get_compile_args(cfile, binfile, compileopts)
+  local cccmd = get_compile_args(cfile, binfile, cflags)
   if not config.quiet then console.info(cccmd) end
 
   -- compile the file

@@ -38,6 +38,18 @@ function builtins.nelua_likely(context)
 ]])
 end
 
+function builtins.nelua_cexport(context)
+  define_builtin(context, 'nelua_cexport',
+[[#ifdef _WIN32
+#define nelua_cexport __declspec(dllexport)
+#elif defined(__GNUC__) && __GNUC__ >= 4
+#define nelua_cexport __attribute__((visibility ("default")))
+#else
+#define nelua_cexport
+#endif
+]])
+end
+
 function builtins.nelua_unlikely(context)
   context:ensure_runtime_builtin('nelua_likely')
 end
