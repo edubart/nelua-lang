@@ -1987,7 +1987,7 @@ it("annotations", function()
   assert.generate_c("local a: int64 <restrict>", "restrict int64_t a")
   assert.generate_c("local a: int64 <nodecl>", "")
   assert.generate_c("local a: int64 <noinit>", "a;")
-  assert.generate_c("local a: int64 <cexport>", "extern int64_t a;")
+  assert.generate_c("local a: int64 <cexport>", "nelua_cexport int64_t a;")
   assert.generate_c("do local a <static> = 1 end", "static int64_t a = 1;", true)
   assert.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t a __attribute__((vector_size(16)))")
   assert.generate_c("local a: number <cqualifier 'in'> = 1", "in double a = 1.0;")
@@ -2258,7 +2258,7 @@ it("context pragmas", function()
     ## context.pragmas.unitname = 'mylib'
     local function foo() <cexport>
     end
-  ]], "extern void mylib_foo();")
+  ]], "nelua_cexport void mylib_foo();")
 end)
 
 it("require builtin", function()
