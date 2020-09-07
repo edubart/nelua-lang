@@ -222,13 +222,15 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         else
           defemitter:add(context:declname(varattr))
         end
-        if valnode or not noinit then
+        if not noinit or not decl then
           -- initialize variable
           defemitter:add(' = ')
           if retvalname then
             defemitter:add_val2type(vartype, retvalname, valtype, varnode.checkcast)
-          else
+          elseif valnode then
             defemitter:add_val2type(vartype, valnode)
+          else
+            defemitter:add_zeroinit(vartype)
           end
         end
         defemitter:add_ln(';')

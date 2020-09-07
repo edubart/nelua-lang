@@ -1986,7 +1986,7 @@ it("annotations", function()
   assert.generate_c("local a: int64 <register>", "register int64_t a")
   assert.generate_c("local a: int64 <restrict>", "restrict int64_t a")
   assert.generate_c("local a: int64 <nodecl>", "")
-  assert.generate_c("local a: int64 <noinit>", "a;")
+  assert.generate_c("local a: int64 <noinit>; a = 2", {"a;", "a = 2;"})
   assert.generate_c("local a: int64 <cexport>", "nelua_cexport int64_t a;")
   assert.generate_c("do local a <static> = 1 end", "static int64_t a = 1;", true)
   assert.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t a __attribute__((vector_size(16)))")
@@ -2032,6 +2032,11 @@ it("annotations", function()
     local function div(numer: cint, denom: cint): div_t <cimport,nodecl> end
     local r = div(38,5)
     assert(r.quot == 7 and r.rem == 3)
+
+    local function f() return 1, 2 end
+    local a <noinit>, b <noinit>
+    a, b = f()
+    assert(a == 1 and b == 2)
   ]])
 end)
 
