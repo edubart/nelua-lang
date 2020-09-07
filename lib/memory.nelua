@@ -48,17 +48,17 @@ function memory.scan(p: pointer, x: byte, size: usize): pointer <inline>
   return memchr(p, x, size)
 end
 
-function memory.find(heystack: pointer, heystacksize: usize,
+function memory.find(haystack: pointer, haystacksize: usize,
                      needle: pointer, needlesize: usize): pointer
-  if unlikely(needlesize == 0 or heystack == needle) then return heystack
-  elseif unlikely(needlesize > heystacksize) then return nilptr
+  if unlikely(needlesize == 0 or haystack == needle) then return haystack
+  elseif unlikely(needlesize > haystacksize) then return nilptr
   else
-    check(heystack and needle, 'memory.find: invalid pointer')
+    check(haystack and needle, 'memory.find: invalid pointer')
     if needlesize == 1 then
-      return memchr(heystack, $(@*byte)(needle), heystacksize)
+      return memchr(haystack, $(@*byte)(needle), haystacksize)
     end
-    local heystackbegin: usize = (@usize)(heystack)
-    for i:usize=heystackbegin,heystackbegin+(heystacksize-needlesize) do
+    local haystackbegin: usize = (@usize)(haystack)
+    for i:usize=haystackbegin,haystackbegin+(haystacksize-needlesize) do
       local p: pointer = (@pointer)(i)
       if memcmp(p, needle, needlesize) == 0 then
         return p

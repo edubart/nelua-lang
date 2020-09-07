@@ -66,7 +66,7 @@ function os.difftime(t1: integer, t2: integer): integer
   return t2 - t1
 end
 
-function os.execute(command: #[overload_concept{stringview, boolean}]#)
+function os.execute(command: #[optional_concept(stringview)]#)
   ## if command.type.is_stringview then
     errno = 0
     local status: integer = system(command)
