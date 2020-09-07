@@ -149,6 +149,7 @@ typedefs.string_literals_types = {
   _cchar       = primtypes.cchar,
   _cuchar      = primtypes.cuchar,
   _cschar      = primtypes.cschar,
+  _cstring     = primtypes.cstring,
 }
 
 -- Ordered list of signed types for performing type promotion.

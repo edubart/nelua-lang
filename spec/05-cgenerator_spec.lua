@@ -58,6 +58,7 @@ it("number literals", function()
   assert.generate_c("local a = ' '_cchar", "char a = ' ';")
   assert.generate_c("local a = ' '_cschar", "signed char a = 32;")
   assert.generate_c("local a = ' '_cuchar", "unsigned char a = 32U;")
+  assert.generate_c("local a = 'str'_cstring", 'char* a = __strlit')
 end)
 
 it("type cast", function()

@@ -453,8 +453,9 @@ Number literals are defined similar as in Lua:
 local a = 1234 -- variable of type 'integer'
 local b = 0xff -- variable of type 'integer'
 local c = 3.14159 -- variable of type 'number'
-local d: integer
-print(a,b,c,d) -- outputs: 1234 255 3.141590 0
+local d = 'A'_uint8 -- variable of type 'uint8' set from an ASCII character
+local e: integer
+print(a,b,c,d,e) -- outputs: 1234 255 3.141590 65 0
 ```
 
 The `integer` is the default type for integral literals without suffix.
@@ -2315,6 +2316,7 @@ For importing C functions, additional compatibility primitive types are provided
 | `culonglong`      | `unsigned long long` | `_culonglong`    |
 | `csize`           | `size_t`             | `_csize`         |
 | `clongdouble`     | `long double`        | `_clongdouble`   |
+| `cstring`         | `char*`              | `_cstring`       |
 {: .table.table-bordered.table-striped.table-sm}
 
 Use this types for **importing C functions only**, for doing usual

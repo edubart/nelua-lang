@@ -73,11 +73,15 @@ function visitors.String(_, node)
     if not type then
       node:raisef("literal suffix '%s' is undefined for strings", literal)
     end
-    if #value ~= 1 then
-      node:raisef("literal suffix '%s' expects a string of length 1")
+    if type.is_arithmetic then
+      if #value ~= 1 then
+        node:raisef("literal suffix '%s' expects a string of length 1")
+      end
+      attr.type = type
+      value = bn.new(string.byte(value))
+    elseif type.is_cstring then
+      attr.type = primtypes.cstring
     end
-    attr.type = type
-    value = bn.new(string.byte(value))
   else
     if node.desiredtype and node.desiredtype.is_cstring then
       attr.type = primtypes.cstring
