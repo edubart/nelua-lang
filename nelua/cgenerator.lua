@@ -334,12 +334,35 @@ typevisitors[types.FunctionType] = function(context, type)
   context:add_declaration(decemitter:generate(), type.codename)
 end
 
+typevisitors.FunctionReturnType = function(context, functype)
+  if not functype:has_multiple_returns() then
+    return context:ctype(functype:get_return_type(1))
+  end
+  local retctype = functype.codename .. '_ret'
+  if context:is_declared(retctype) then return retctype end
+  local numrets = functype:get_return_count()
+  local retemitter = CEmitter(context)
+  retemitter:add_indent_ln('typedef struct ', retctype, ' {')
+  retemitter:inc_indent()
+  for i=1,numrets do
+    local rettype = functype:get_return_type(i)
+    assert(rettype)
+    retemitter:add_indent_ln(rettype, ' ', 'r', i, ';')
+  end
+  retemitter:dec_indent()
+  retemitter:add_indent_ln('} ', retctype, ';')
+  context:add_declaration(retemitter:generate(), retctype)
+  return retctype
+end
+
+--[[
 typevisitors[types.PolyFunctionType] = function(context, type)
   if type.nodecl or context:is_declared(type.codename) then return end
   local decemitter = CEmitter(context, 0)
   decemitter:add_ln('typedef void* ', type.codename, ';')
   context:add_declaration(decemitter:generate(), type.codename)
 end
+]]
 
 typevisitors[types.Type] = function(context, type)
   if type.nodecl or context:is_declared(type.codename) then return end
@@ -1129,7 +1152,6 @@ function visitors.FuncDef(context, node, emitter)
 
   local varscope, varnode, argnodes, retnodes, annotnodes, blocknode = node:args()
 
-  local numrets = type:get_return_count()
   local qualifier = ''
   if not attr.entrypoint and not attr.nostatic and not attr.cexport then
     qualifier = 'static '
@@ -1168,18 +1190,6 @@ function visitors.FuncDef(context, node, emitter)
   local retctype = context:funcretctype(type)
   if type:has_multiple_returns() then
     node:assertraisef(declare, 'functions with multiple returns must be declared')
-
-    local retemitter = CEmitter(context)
-    retemitter:add_indent_ln('typedef struct ', retctype, ' {')
-    retemitter:inc_indent()
-    for i=1,numrets do
-      local rettype = type:get_return_type(i)
-      assert(rettype)
-      retemitter:add_indent_ln(rettype, ' ', 'r', i, ';')
-    end
-    retemitter:dec_indent()
-    retemitter:add_indent_ln('} ', retctype, ';')
-    context:add_declaration(retemitter:generate())
   end
 
   decemitter:add_indent(qualifier, retctype, ' ')

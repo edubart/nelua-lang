@@ -610,6 +610,18 @@ it("function multiple returns", function()
     assert(a == 1 and b == 3)
     assert(f1() == 1)
   ]])
+
+  assert.run_c([[
+    local function getf()
+      local function f(): (integer, integer)
+        return 1, 2
+      end
+      return f
+    end
+    local f = getf()
+    local a,b = f()
+    assert(a == 1 and b == 2)
+  ]])
 end)
 
 it("call with multiple args", function()

@@ -563,6 +563,12 @@ it("function definition", function()
     local f: function():(integer, stringview)
     function f(): integer end
   ]], "no viable type conversion")
+  assert.analyze_error([[
+    local f: function(): type
+  ]], "return #1 cannot be of type")
+  assert.analyze_error([[
+    local function f(): type end
+  ]], "return #1 cannot be of type")
 end)
 
 it("poly function definition", function()

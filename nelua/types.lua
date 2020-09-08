@@ -1387,8 +1387,24 @@ function FunctionType:_init(argattrs, rettypes, node)
   if rettypes and #rettypes == 1 and rettypes[1].is_void then
     -- single void type means no returns
     rettypes = {}
+  elseif not rettypes then
+    rettypes = {}
   end
-  self.rettypes = rettypes or {}
+  self.rettypes = rettypes
+
+  -- validate return types
+  if rettypes then
+    for i=1,#rettypes do
+      local rettype = rettypes[i]
+      if rettypes[i].is_comptime then
+        if node then
+          node:raisef("in function return type: return #%d cannot be of type '%s'", i, rettype)
+        else --luacov:disable
+          error('invalid function return type')
+        end --luacov:enable
+      end
+    end
+  end
 end
 
 -- Checks if this type equals to another type.
@@ -1476,6 +1492,7 @@ end
 
 local PolyFunctionType = types.typeclass()
 types.PolyFunctionType = PolyFunctionType
+PolyFunctionType.is_comptime = true
 PolyFunctionType.is_procedure = true
 PolyFunctionType.is_polyfunction = true
 PolyFunctionType.is_equal = FunctionType.is_equal

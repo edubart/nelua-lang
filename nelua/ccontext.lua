@@ -96,11 +96,7 @@ function CContext:runctype(type)
 end
 
 function CContext:funcretctype(functype)
-  if functype:has_multiple_returns() then
-    return functype.codename .. '_ret'
-  else
-    return self:ctype(functype:get_return_type(1))
-  end
+  return self.typevisitors.FunctionReturnType(self, functype)
 end
 
 function CContext:add_declaration(code, name)
