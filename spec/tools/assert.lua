@@ -182,7 +182,7 @@ end
 
 function assert.generate_lua(nelua_code, expected_code)
   expected_code = expected_code or nelua_code
-  local ast, context = assert.analyze_ast(nelua_code)
+  local ast, context = assert.analyze_ast(nelua_code, nil, 'lua')
   local generated_code
   pretty_input_onerror(nelua_code, function()
     generated_code = assert(lua_generator.generate(ast, context))
@@ -191,7 +191,7 @@ function assert.generate_lua(nelua_code, expected_code)
 end
 
 function assert.generate_c(nelua_code, expected_code, ispattern)
-  local ast, context = assert.analyze_ast(nelua_code)
+  local ast, context = assert.analyze_ast(nelua_code, nil, 'c')
   local generated_code
   pretty_input_onerror(nelua_code, function()
     generated_code = assert(c_generator.generate(ast, context))
@@ -220,7 +220,7 @@ function assert.run_error_c(nelua_code, output)
 end
 
 function assert.lua_gencode_equals(code, expected_code)
-  local ast, context = assert.analyze_ast(code)
+  local ast, context = assert.analyze_ast(code, nil, 'lua')
   local expected_ast, expected_context = assert.analyze_ast(expected_code)
   local generated_code = assert(lua_generator.generate(ast, context))
   local expected_generated_code = assert(lua_generator.generate(expected_ast, expected_context))
@@ -228,16 +228,17 @@ function assert.lua_gencode_equals(code, expected_code)
 end
 
 function assert.c_gencode_equals(code, expected_code)
-  local ast, context = assert.analyze_ast(code)
-  local expected_ast, expected_context = assert.analyze_ast(expected_code)
+  local ast, context = assert.analyze_ast(code, nil, 'c')
+  local expected_ast, expected_context = assert.analyze_ast(expected_code, nil, 'c')
   local generated_code = assert(c_generator.generate(ast, context))
   local expected_generated_code = assert(c_generator.generate(expected_ast, expected_context))
   assert.same_string(expected_generated_code, generated_code)
 end
 
-function assert.analyze_ast(code, expected_ast)
+function assert.analyze_ast(code, expected_ast, generator)
   local ast = assert.parse_ast(nelua_parser, code)
-  local context = AnalyzerContext(analyzer.visitors, nelua_parser, ast)
+  generator = generator or config.generator
+  local context = AnalyzerContext(analyzer.visitors, nelua_parser, ast, generator)
   pretty_input_onerror(code, function()
     analyzer.analyze(context)
   end)
@@ -280,7 +281,7 @@ end
 function assert.analyze_error(code, expected_error)
   local ast = assert.parse_ast(nelua_parser, code)
   local ok, e = except.try(function()
-    local context = AnalyzerContext(analyzer.visitors, nelua_parser, ast)
+    local context = AnalyzerContext(analyzer.visitors, nelua_parser, ast, config.generator)
     analyzer.analyze(context)
   end)
   pretty_input_onerror(code, function()

@@ -134,6 +134,32 @@ do -- passing by reference
   seqa:destroy()
 end
 
+do -- ipairs
+  local seq: sequence(number) = {1,2,3,4}
+  do -- ipairs
+    local sum = 0.0
+    for i,v in ipairs(seq) do
+      sum = sum + i*v
+    end
+    assert(sum == 30)
+  end
+  do -- pairs
+    local sum = 0.0
+    for i,v in pairs(seq) do
+      sum = sum + i*v
+    end
+    assert(sum == 30)
+  end
+  do -- next
+    local sum = 0.0
+    for i,v in next,seq,-1 do
+      sum = sum + i*v
+    end
+    assert(sum == 30)
+  end
+  seq:destroy()
+end
+
 require 'allocators.general'
 do -- custom allocator
   local seq: sequence(integer, GeneralAllocator) = {1,2,3}

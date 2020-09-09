@@ -8,7 +8,7 @@ local VisitorContext = require 'nelua.visitorcontext'
 
 local AnalyzerContext = class(VisitorContext)
 
-function AnalyzerContext:_init(visitors, parser, ast)
+function AnalyzerContext:_init(visitors, parser, ast, generator)
   VisitorContext._init(self, visitors)
   self.parser = parser
   self.rootscope = Scope(self, 'root', ast)
@@ -25,6 +25,8 @@ function AnalyzerContext:_init(visitors, parser, ast)
   self.after_analyze = {}
   self.after_inferences = {}
   self.unresolvedcount = 0
+  assert(generator)
+  self.generator = generator
 end
 
 function AnalyzerContext:push_pragmas()

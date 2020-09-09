@@ -99,7 +99,9 @@ function ASTNode:format_message(category, message, ...)
   message = stringer.pformat(message, ...)
   if self.src and self.pos then
     message = errorer.get_pretty_source_pos_errmsg(self.src, self.pos, message, category)
-  end
+  else --luacov:disable
+    message = category .. ': ' .. message .. '\n'
+  end --luacov:enable
   return message
 end
 

@@ -1,6 +1,6 @@
 local traits = require 'nelua.utils.traits'
 local class = require 'nelua.utils.class'
-local VisitorContext = require 'nelua.analyzercontext'
+local VisitorContext = require 'nelua.visitorcontext'
 
 local PPContext = class(VisitorContext)
 

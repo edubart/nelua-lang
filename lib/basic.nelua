@@ -58,18 +58,6 @@ global function assert(cond: auto, msg: auto) <inline>
 end
 
 --[[
-global function ipairs()
-  error('not implemented yet')
-end
-
-global function next()
-  error('not implemented yet')
-end
-
-global function pairs()
-  error('not implemented yet')
-end
-
 global function load()
   error('not implemented yet')
 end
@@ -119,6 +107,7 @@ global function select()
 end
 ]]
 
+-- pairs/ipairs/next is implemented in iterators.nelua
 -- tostring/tonumber is implemented in stringview.nelua/string.nelua
 -- type is implemented in traits.nelua
 -- require is implemented by the nelua compiler

@@ -8,6 +8,7 @@
 -- thus by default there is no need to manually reset the vector.
 
 require 'memory'
+require 'iterators'
 
 ## local make_generic_vector = generalize(function(T, Allocator)
   ## static_assert(traits.is_type(T), "invalid type '%s'", T)

@@ -177,10 +177,7 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   objsym = objtype.symbol
   assert(objsym)
   local n = context.parser.astbuilder.aster
-  local idnode = n.Id{objsym.name}
-  local pattr = Attr{foreignsymbol=objsym}
-  idnode.attr:merge(pattr)
-  idnode.pattr = pattr
+  local idnode = n.Id{objsym.name, pattr={forcesymbol=objsym}}
   local newvalnode = n.Call{{valnode}, n.DotIndex{mtname, idnode}}
   newvalnode.src = valnode.src
   newvalnode.pos = valnode.pos
@@ -442,13 +439,13 @@ end
 function visitors.Id(context, node)
   local name = node[1]
   local symbol
-  if not node.attr.foreignsymbol then
+  if not node.attr.forcesymbol then
     symbol = context.scope.symbols[name]
     if not symbol then
       node:raisef("undeclared symbol '%s'", name)
     end
   else
-    symbol = node.attr.foreignsymbol
+    symbol = node.attr.forcesymbol
   end
   symbol:link_node(node)
   node.done = symbol
@@ -1413,40 +1410,6 @@ function visitors.Repeat(context, node)
   context:pop_scope()
 end
 
-function visitors.ForIn(context, node)
-  local _, inexpnodes, blocknode = node[1], node[2], node[3]
-  assert(#inexpnodes > 0)
-  if #inexpnodes > 3 then
-    node:raisef("`in` statement can have at most 3 arguments")
-  end
-  local infuncnode = inexpnodes[1]
-  local infunctype = infuncnode.attr.type
-  if infunctype and not (infunctype.is_any or infunctype.is_procedure) then
-    node:raisef("first argument of `in` statement must be a function, but got type '%s'",
-      infunctype)
-  end
-  context:traverse_nodes(inexpnodes)
-
-  repeat
-    local scope = context:push_forked_cleaned_scope('loop', node)
-  --[[
-  if itvarnodes then
-    for i,itvarnode in ipairs(itvarnodes) do
-      local itsymbol = context:traverse_node(itvarnode)
-      if infunctype and infunctype.is_procedure then
-        local fittype = infunctype:get_return_type(i)
-        itsymbol:add_possible_type(fittype)
-      end
-    end
-  end
-    ]]
-    context:traverse_node(blocknode)
-
-    local resolutions_count = scope:resolve()
-    context:pop_scope()
-  until resolutions_count == 0
-end
-
 function visitors.ForNum(context, node)
   local itvarnode, begvalnode, compop, endvalnode, stepvalnode, blocknode =
         node[1], node[2], node[3], node[4], node[5], node[6]
@@ -1547,6 +1510,67 @@ function visitors.ForNum(context, node)
 
   if ittype and btype and etype and (not stepvalnode or stype) then
     node.checked = true
+  end
+end
+
+function visitors.ForIn(context, node)
+  local itvarnodes, inexpnodes, blocknode = node[1], node[2], node[3]
+  assert(#itvarnodes > 0)
+  assert(#inexpnodes > 0)
+  if #inexpnodes > 3 then
+    node:raisef("`in` statement can have at most 3 arguments")
+  end
+
+  if context.generator == 'lua' then -- lua backend
+    context:traverse_nodes(inexpnodes)
+    repeat
+      local scope = context:push_forked_cleaned_scope('loop', node)
+      context:traverse_node(blocknode)
+      local resolutions_count = scope:resolve()
+      context:pop_scope()
+    until resolutions_count == 0
+  else -- on other backends must implement using while loops
+    local n = context.parser.astbuilder.aster
+
+    -- build extra nodes for the extra iterating values
+    local itvardeclnodes = {}
+    local itvaridnodes = {}
+    for i=1,#itvarnodes-1 do
+      local itvarnode = itvarnodes[i+1]
+      itvardeclnodes[i] = itvarnode
+      itvaridnodes[i] = n.Id{itvarnode[1], pattr={noinit=true}}
+    end
+
+    -- replace the for in node with a while loop
+    local newnode = n.Do{n.Block{{
+      n.VarDecl{'local', {
+          n.IdDecl{'__fornext'},
+          n.IdDecl{'__forstate'},
+          n.IdDecl{'__forit'}
+        },
+        inexpnodes
+      },
+      n.While{n.Boolean{true}, n.Block{{
+        n.VarDecl{'local', tabler.insertvalues({
+          n.IdDecl{'__forcont', pattr={noinit=true}}
+        }, itvardeclnodes)},
+        n.Assign{
+          tabler.insertvalues({
+            n.Id{'__forcont'},
+            n.Id{'__forit'}
+          }, itvaridnodes), {
+            n.Call{{n.Id{'__forstate'}, n.Id{'__forit'}}, n.Id{'__fornext'}}
+          }
+        },
+        n.If{{{n.UnaryOp{'not', n.Id{'__forcont'}}, n.Block{{
+          n.Break{}
+        }}}}},
+        n.VarDecl{'local', {itvarnodes[1]}, {n.Id{'__forit'}}},
+        n.Do{blocknode}
+      }}}
+    }}}
+    node:transform(newnode)
+    context:traverse_node(newnode)
   end
 end
 
@@ -2127,10 +2151,7 @@ local function override_unary_op(context, node, opname, objnode, objtype)
   local n = context.parser.astbuilder.aster
   local objsym = objtype.symbol
   assert(objsym)
-  local idnode = n.Id{objsym.name}
-  local pattr = Attr{foreignsymbol=objsym}
-  idnode.attr:merge(pattr)
-  idnode.pattr = pattr
+  local idnode = n.Id{objsym.name, pattr={forcesymbol=objsym}}
   local newnode = n.Call{{objnode}, n.DotIndex{mtname, idnode}}
   node:transform(newnode)
   context:traverse_node(node)
@@ -2227,10 +2248,7 @@ local function override_binary_op(context, node, opname, lnode, rnode, ltype, rt
   local n = context.parser.astbuilder.aster
   local objsym = objtype.symbol
   assert(objsym)
-  local idnode = n.Id{objsym.name}
-  local pattr = Attr{foreignsymbol=objsym}
-  idnode.attr:merge(pattr)
-  idnode.pattr = pattr
+  local idnode = n.Id{objsym.name, pattr={forcesymbol=objsym}}
   local newnode = n.Call{{lnode, rnode}, n.DotIndex{mtname, idnode}}
   if neg then
     newnode = n.UnaryOp{'not', newnode}

@@ -13,7 +13,7 @@ function builtins.require(context, node)
 
   local justloaded = false
   if not attr.loadedast then
-    local canloadatruntime = config.generator == 'lua'
+    local canloadatruntime = context.generator == 'lua'
     local argnode = node[1][1]
     if not (argnode and
             argnode.attr.type and argnode.attr.type.is_stringview and

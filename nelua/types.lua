@@ -82,6 +82,8 @@ Type.shape = shaper.shape {
   is_stringy = shaper.optional_boolean,
   -- Whether the type represents a contiguous buffer (e.g. arrays, spans and vector in the lib).
   is_contiguous = shaper.optional_boolean,
+  -- Weather the type uses 1-based indexing (e.g. sequence and table).
+  is_oneindexing = shaper.optional_boolean,
   -- Whether the type is a compile time type (e.g concepts, generics)
   is_comptime = shaper.optional_boolean,
   -- Whether the type is used as a polymorphic argument in poly functions.

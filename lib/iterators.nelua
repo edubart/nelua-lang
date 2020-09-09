@@ -1,0 +1,48 @@
+-- Include this file to get the globals "pairs", "ipairs" and "next",
+-- to be used with when iterating with "for in".
+
+-- Concept used to pass containers by reference.
+local list_reference_concept = #[concept(function(x)
+  local reftype
+  local containertype
+  if x.type.is_pointer then
+    reftype = x.type
+    containertype = reftype.subtype
+  elseif x.type.is_span or x.type.is_sequence then
+    reftype = x.type
+    containertype = reftype
+  else
+    containertype = x.type
+    reftype = types.PointerType(containertype)
+  end
+  if containertype.is_contiguous then
+    return reftype
+  end
+end)]#
+
+-- Macro that implements the next iterator for lists.
+## local function impl_ipairs_next(listtype)
+  index = index + 1
+  if index >= (#list + #[listtype.is_oneindexing and 1 or 0]#) then
+    return false, 0, #[listtype.subtype]#()
+  end
+  return true, index, list[index]
+## end
+
+-- Use with "for in" to iterate lists.
+global function ipairs(list: list_reference_concept) <inline>
+  ## local listvaltype = list.type:implict_deref_type()
+  local function ipairs_next(list: #[list.type]#, index: integer) <inline>
+    ## impl_ipairs_next(listvaltype)
+  end
+  return ipairs_next, list, #[listvaltype.is_oneindexing and 0 or -1]#
+end
+
+-- Get the next element from a container.
+global function next(list: list_reference_concept,
+                     index: #[optional_concept(integer)]#)
+  ## impl_ipairs_next(list.type:implict_deref_type())
+end
+
+-- at the moment pairs only works like ipairs
+global pairs: auto = ipairs

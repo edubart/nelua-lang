@@ -68,7 +68,7 @@ local function run(argv, redirect)
 
   -- analyze the ast
   -- profiler.start()
-  local context = AnalyzerContext(analyzer.visitors, parser, ast)
+  local context = AnalyzerContext(analyzer.visitors, parser, ast, config.generator)
   except.try(function()
     context = analyzer.analyze(context)
   end, function(e)

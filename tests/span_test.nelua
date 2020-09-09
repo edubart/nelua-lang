@@ -1,4 +1,5 @@
 require 'span'
+require 'iterators'
 
 do -- pointer to span
   local arr: array(integer, 4) = {1,2,3,4}
@@ -22,6 +23,32 @@ do -- array to span
   assert(#s == 4 and s[0] == 1 and s[1] == 2 and s[2] == 3 and s[3] == 4)
   s[0] = 5
   assert(arr[0] == 5)
+end
+
+do -- iterators
+  local arr: array(integer, 4) = {1,2,3,4}
+  local s: span(integer) = &arr
+  do -- ipairs
+    local sum = 0.0
+    for i,v in ipairs(s) do
+      sum = sum + (i+1)*v
+    end
+    assert(sum == 30)
+  end
+  do -- pairs
+    local sum = 0.0
+    for i,v in pairs(s) do
+      sum = sum + (i+1)*v
+    end
+    assert(sum == 30)
+  end
+  do -- next
+    local sum = 0.0
+    for i,v in next,s,-1 do
+      sum = sum + (i+1)*v
+    end
+    assert(sum == 30)
+  end
 end
 
 require 'vector'

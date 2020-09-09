@@ -109,6 +109,16 @@ do -- insert
   vec:destroy()
 end
 
+do -- ipairs
+  local vec: vector(number) = {1,2,3,4}
+  local sum: number = 0.0
+  for i,v in ipairs(vec) do
+    sum = sum + (i+1)*v
+  end
+  assert(sum == 30)
+  vec:destroy()
+end
+
 require 'allocators.general'
 do -- custom allocator
   local vec: vector(integer, GeneralAllocator) = {1,2,3}

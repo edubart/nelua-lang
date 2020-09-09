@@ -39,6 +39,17 @@ Basic library contains common functions.
 | `_VERSION`{:.language-nelua} | A string of Nelua version. |
 {: .table.table-bordered.table-striped.table-sm}
 
+## iterators
+
+Iterators library contains iterator related functions.
+
+| Variable Name | Description |
+|---------------|------|
+| `ipairs`{:.language-nelua} | Work with vector, sequence, span and array. |
+| `pairs`{:.language-nelua} | Alias to ipairs |
+| `next`{:.language-nelua} | Work with vector, sequence, span and array. |
+{: .table.table-bordered.table-striped.table-sm}
+
 ## filestream
 
 Filestream library contains filestream object, mainly used for `io` library.

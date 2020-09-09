@@ -1095,19 +1095,10 @@ function visitors.ForNum(context, node, emitter)
   context:pop_scope()
 end
 
---[[
-function visitors.ForIn(_, node, emitter)
-  local itvarnodes, inexpnodes, blocknode = node:args()
-  emitter:add_indent_ln("{")
-  emitter:inc_indent()
-  --visit_assignments(context, emitter, itvarnodes, inexpnodes, true)
-  emitter:add_indent("while(true) {")
-  emitter:add(blocknode)
-  emitter:add_indent_ln("}")
-  emitter:dec_indent()
-  emitter:add_indent_ln("}")
-end
-]]
+function visitors.ForIn() --luacov:disable
+  -- this should never happen
+  error('impossible')
+end --luacov:enable
 
 function visitors.Break(context, _, emitter)
   destroy_upscopes_variables(context, emitter, 'loop')

@@ -816,10 +816,9 @@ end)
 
 it("for in", function()
   assert.analyze_ast([[local a,b,c; for i in a,b,c do end]])
-  assert.analyze_ast([[local a,b,c; in a,b,c do end]])
   assert.analyze_error(
     [[local a = 1; for i in a do end]],
-    "first argument of `in` statement must be a function")
+    "cannot call type")
   assert.analyze_error(
     [[for i in a,b,c,d do end]],
     "`in` statement can have at most")

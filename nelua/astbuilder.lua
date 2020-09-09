@@ -36,23 +36,16 @@ function ASTBuilder:create_value(val, srcnode)
     node = val
   elseif traits.is_type(val) then
     local typedefs = require 'nelua.typedefs'
-    node = aster.Type{'auto'}
-    -- inject persistent parsed type
-    local pattr = Attr({
+    node = aster.Type{'auto', pattr={
       type = typedefs.primtypes.type,
       value = val
-    })
-    node.attr:merge(pattr)
-    node.pattr = pattr
+    }}
   elseif traits.is_string(val) then
     node = aster.String{val}
   elseif traits.is_symbol(val) then
-    node = aster.Id{val.name}
-    local pattr = Attr({
-      foreignsymbol = val
-    })
-    node.attr:merge(pattr)
-    node.pattr = pattr
+    node = aster.Id{val.name, pattr={
+      forcesymbol = val
+    }}
   elseif bn.isnumeric(val) then
     local num = bn.parse(val)
     local neg = false
@@ -96,6 +89,9 @@ function ASTBuilder:register(tag, shape)
     local node = self:create(tag, table.unpack(params, 1, nargs))
     for k,v in iters.spairs(params) do
       node[k] = v
+    end
+    if params.pattr then
+      node.attr:merge(params.pattr)
     end
     return node
   end

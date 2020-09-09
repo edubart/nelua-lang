@@ -221,11 +221,7 @@ end
 function visitors.ForIn(context, node, emitter)
   local itvars, iterator, block = node:args()
   context:push_forked_scope('loop', node)
-  if itvars then
-    emitter:add_indent("for ", itvars)
-  else
-    emitter:add_indent("for _")
-  end
+  emitter:add_indent("for ", itvars)
   emitter:add_ln(' in ', iterator, ' do')
   emitter:add(block)
   emitter:add_indent_ln("end")
