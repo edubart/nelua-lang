@@ -1629,6 +1629,33 @@ it("record metametods", function()
     local r: R = {1,2}
     assert(r.x[0] == 1 and r.x[1] == 2)
   ]])
+
+  assert.run_c([[
+    local R = @record{x: integer, diff: boolean}
+    function R.__eq(a: R, b: R): boolean
+      if a.diff or b.diff then return false end
+      return a.x == b.x
+    end
+    function R.__lt(a: R, b: R): boolean
+      return a.x < b.x
+    end
+    function R.__le(a: R, b: R): boolean
+      return a.x <= b.x
+    end
+
+    local a: R, b: R = {1}, {2}
+    assert(not (a == b)) assert(a ~= b)
+    assert(a <= b) assert(a < b)
+    assert(b >= a) assert(b > a)
+    assert(not (a >= b)) assert(not (a > b))
+
+    assert(a == a) assert(not (a ~= a))
+    assert(a <= a) assert(not (a < a))
+    assert(a >= a) assert(not (a > a))
+
+    a.diff = true
+    assert(not (a == a)) assert(a ~= a)
+  ]])
 end)
 
 it("record string conversions", function()

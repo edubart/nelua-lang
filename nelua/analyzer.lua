@@ -2082,8 +2082,11 @@ end
 
 local overridable_operators = {
   ['eq'] = true,
+  ['ne'] = true,
   ['lt'] = true,
   ['le'] = true,
+  ['ge'] = true,
+  ['gt'] = true,
   ['bor'] = true,
   ['bxor'] = true,
   ['band'] = true,
@@ -2100,6 +2103,11 @@ local overridable_operators = {
   ['len'] = true,
   ['unm'] = true,
   ['bnot'] = true,
+}
+
+local swap_overridable_operators = {
+  ['gt'] = 'lt',
+  ['ge'] = 'le',
 }
 
 local function override_unary_op(context, node, opname, objnode, objtype)
@@ -2188,9 +2196,21 @@ function visitors.UnaryOp(context, node)
 end
 
 local function override_binary_op(context, node, opname, lnode, rnode, ltype, rtype)
+  if not ltype.is_record and not rtype.is_record then return end
   if not overridable_operators[opname] then return end
-  local objtype, mtsym
-  local mtname = '__' .. opname
+
+  local objtype, mtsym, mtname
+  local neg
+  if swap_overridable_operators[opname] then -- '>=' or '>'
+    mtname = '__' .. swap_overridable_operators[opname]
+    -- must swap nodes
+    lnode, rnode = rnode, lnode
+  elseif opname == 'ne' then -- '~='
+    mtname = '__eq'
+    neg = true
+  else
+    mtname = '__' .. opname
+  end
   if ltype.is_record then
     mtsym = ltype:get_metafield(mtname)
     objtype = ltype
@@ -2212,6 +2232,9 @@ local function override_binary_op(context, node, opname, lnode, rnode, ltype, rt
   idnode.attr:merge(pattr)
   idnode.pattr = pattr
   local newnode = n.Call{{lnode, rnode}, n.DotIndex{mtname, idnode}}
+  if neg then
+    newnode = n.UnaryOp{'not', newnode}
+  end
   node:transform(newnode)
   context:traverse_node(node)
   return true
