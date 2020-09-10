@@ -1535,8 +1535,12 @@ local function poly_args_matches(largs, rargs)
     local rtype = traits.is_attr(rarg) and rarg.type or rarg
     if ltype ~= rtype then
       return false
-    elseif rtype.is_comptime and traits.is_attr(larg) then
+    elseif ltype.is_comptime and traits.is_attr(larg) then
       if larg.value ~= rarg.value or not traits.is_attr(rarg) then
+        return false
+      end
+    elseif traits.is_attr(larg) and larg.comptime then
+      if rarg.value ~= larg.value or not traits.is_attr(rarg) then
         return false
       end
     end

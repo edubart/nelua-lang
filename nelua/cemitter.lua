@@ -120,12 +120,10 @@ function CEmitter:add_cstring2stringview(val)
 end
 
 function CEmitter:add_val2type(type, val, valtype, checkcast)
-  if type.is_type or type.is_polyfunction then
+  if type.is_comptime then
     self:add('NULL')
     return
   end
-
-  assert(not type.is_comptime)
 
   if traits.is_astnode(val) then
     if not valtype then

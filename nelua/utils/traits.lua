@@ -58,6 +58,11 @@ function traits.is_arithmetic(v)
   return type(v) == 'number' or (type(v) == 'table' and v._bn)
 end
 
+-- Check if a value is a big number.
+function traits.is_bn(v)
+  return type(v) == 'table' and v._bn
+end
+
 -- Check if a value is an integral (whole number) for the compiler.
 function traits.is_integral(v)
   return math.type(v) == 'integer' or (type(v) == 'table' and v._bn)

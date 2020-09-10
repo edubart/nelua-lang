@@ -184,4 +184,17 @@ function bn.isinfinite(x)
   return math.type(x) == 'float' and math.abs(x) == math.huge
 end
 
+-- Convert a bn number to a lua integer/number no precision is lost.
+function bn.compress(x)
+  if bn.isbint(x) then
+    if x <= math.maxinteger and x >= math.mininteger then
+      return x:tointeger()
+    else
+      return x
+    end
+  else
+    return tonumber(x)
+  end
+end
+
 return bn

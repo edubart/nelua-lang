@@ -98,10 +98,6 @@ global function getmetatable()
   error('not implemented yet')
 end
 
-global function collectgarbage()
-  error('not implemented yet')
-end
-
 global function select()
   error('not implemented yet')
 end
@@ -111,6 +107,7 @@ end
 -- tostring/tonumber is implemented in stringview.nelua/string.nelua
 -- type is implemented in traits.nelua
 -- require is implemented by the nelua compiler
+-- collectgarbage is implemented in allocators/gc.nelua
 -- TODO: move print to here
 
 -- Global variable that holds a string containing the running Nelua version.

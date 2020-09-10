@@ -24,15 +24,15 @@ Never or N/A - ✖
 | `_G`{:.language-nelua} | ❌ | | `_G` doesn't exist in Nelua due to missing dynamic in C (rephrase me please). |
 | `_VERSION`{:.language-nelua} | ✔ | `basic`{:.language-nelua} | Returns Nelua version instead of Lua version. |
 | `assert`{:.language-nelua} | ✔ | `basic`{:.language-nelua} |  |
-| `collectgarbage`{:.language-nelua} | ❌ | `allocators.gc`{:.language-nelua} | |
+| `collectgarbage`{:.language-nelua} | ✔ | `allocators.gc`{:.language-nelua} | Only `collect`, `stop`, `restart`, `count` and `isrunning` arguments. |
 | `dofile`{:.language-nelua} | ✖ | | Nelua can't compile at the runtime. |
 | `error`{:.language-nelua} | ✔ | `basic`{:.language-nelua} |  |
 | `getmetatable`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
-| `ipairs`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
 | `load`{:.language-nelua} | ✖ | |  |
 | `loadfile`{:.language-nelua} | ✖ | |  |
-| `next`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
-| `pairs`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
+| `next`{:.language-nelua} | ✔ | `iterators`{:.language-nelua} |  |
+| `pairs`{:.language-nelua} | ✔ | `iterators`{:.language-nelua} | Aliased to ipairs right now. |
+| `ipairs`{:.language-nelua} | ✔ | `iterators`{:.language-nelua} |  |
 | `pcall`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
 | `print`{:.language-nelua} | ✔ | inlined | Nelua generates print function for each type. |
 | `rawequal`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |

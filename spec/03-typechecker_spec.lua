@@ -93,6 +93,10 @@ it("comptime variable" , function()
   assert.analyze_error("local a <comptime> = 1; a = 2", "cannot assign a constant variable")
   assert.analyze_error("local a = 1; local c <comptime> = a", "can only assign to compile time expressions")
   assert.analyze_error("local b = 1; local c <comptime> = 1 * 2 + b", "can only assign to compile time expressions")
+  assert.analyze_ast("local function f(a: integer <comptime>) end f(1)")
+  assert.analyze_error(
+    "local function f(a: integer <comptime>) end local a = 1 f(a)",
+    "expected a compile time argument")
 end)
 
 it("const variable" , function()

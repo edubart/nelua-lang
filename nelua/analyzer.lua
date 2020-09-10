@@ -967,7 +967,11 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         end
 
         if calleetype.is_polyfunction then
-          if funcargtype.is_polymorphic then
+          if funcarg.comptime and (not arg or arg.value == nil) then
+            node:raisef("in call of function '%s': expected a compile time argument at index %d",
+              calleename, i)
+          end
+          if funcargtype.is_polymorphic or funcarg.comptime then
             polyargs[i] = arg
           else
             polyargs[i] = funcargtype
@@ -1845,7 +1849,7 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope, check
       argtype = primtypes.any
       argattr.type = argtype
     end
-    if checkpoly and argtype.is_polymorphic then
+    if checkpoly and (argtype.is_polymorphic or argattr.comptime) then
       ispolyparent = true
     end
     argtypes[i] = argtype
@@ -2088,8 +2092,9 @@ function visitors.FuncDef(context, node, polysymbol)
             local polyargattr = polyargnodes[j].attr
             if traits.is_attr(polyarg) then
               polyargattr.type = polyarg.type
-              if polyarg.type.is_comptime then
-                polyargattr.value = polyarg.value
+              polyargattr.value = polyarg.value
+              if traits.is_bn(polyargattr.value) then
+                polyargattr.value = polyargattr.value:compress()
               end
             else
               polyargattr.type = polyarg

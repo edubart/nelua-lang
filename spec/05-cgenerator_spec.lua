@@ -355,6 +355,33 @@ it("operation on comptime variables", function()
     --assert(-3 & -5 == -1)
     --assert(-3_i32 & 0xfffffffb_u32 == -7)
   ]])
+
+  assert.run_c([[
+    local function f(a: stringview <comptime>)
+       ## if a.value == 'test' then
+          return 1
+       ## else
+          return 2
+       ## end
+    end
+
+    local function g(a: integer <comptime>)
+       ## if a.value == 1 then
+          return 1
+       ## elseif a.value == 2 then
+          return 2
+       ## else
+          return 0
+       ## end
+    end
+
+    assert(f('test') == 1) assert(f('test') == 1)
+    assert(f('else') == 2) assert(f('else') == 2)
+    assert(g(1) == 1) assert(g(1) == 1)
+    assert(g(2) == 2) assert(g(2) == 2)
+    assert(g(3) == 0) assert(g(3) == 0)
+    assert(g(4) == 0) assert(g(4) == 0)
+  ]])
 end)
 
 it("assignment", function()

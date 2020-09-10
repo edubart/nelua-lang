@@ -583,6 +583,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     local sequential = false
     local serialized = false
     local callargtypes = attr.pseudoargtypes or calleetype.argtypes
+    local callargattrs = attr.pseudoargattrs or calleetype.argattrs
     local ismethod = attr.pseudoargtypes ~= nil
     for i,_,argnode,_,lastcallindex in izipargnodes(callargtypes, argnodes) do
       if (argnode and argnode.attr.sideeffect) or lastcallindex == 1 then
@@ -676,7 +677,12 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
         end
       end
 
-      create_variable(context, emitter, funcargtype, arg, argtype)
+      if callargattrs[i].comptime then
+        -- compile time function argument
+        emitter:add('NULL')
+      else
+        create_variable(context, emitter, funcargtype, arg, argtype)
+      end
     end
     emitter:add(')')
 

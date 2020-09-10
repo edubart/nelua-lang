@@ -36,11 +36,12 @@ local GCItem = @record{
 
 local GC = @record{
   bottom: pointer,
-  paused: boolean,
+  stopped: boolean,
   minptr: usize, maxptr: usize,
   items: span(GCItem), frees: span(GCItem),
   loadfactor: number, sweepfactor: number,
-  nitems: usize, nslots: usize, mitems: usize, nfrees: usize
+  nitems: usize, nslots: usize, mitems: usize, nfrees: usize,
+  membytes: usize,
 }
 
 global gc: GC
@@ -93,6 +94,9 @@ function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: Finaliz
     local h: usize = self.items[i].hash
     if h == 0 then
       self.items[i] = item
+      if flags & GCFlags.ROOT == 0 then
+        self.membytes = self.membytes + size
+      end
       return
     end
     if self.items[i].ptr == item.ptr then
@@ -108,7 +112,7 @@ function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: Finaliz
   end
 end
 
-function GC:_rem_ptr(ptr: pointer)
+function GC:_remove_ptr(ptr: pointer)
   if self.nitems == 0 then
     return
   end
@@ -122,12 +126,16 @@ function GC:_rem_ptr(ptr: pointer)
   local i: usize = self:_hash(ptr) % self.nslots
   local j: usize = 0
   while true do
-    local h: usize = self.items[i].hash
+    local item: *GCItem = &self.items[i]
+    local h: usize = item.hash
     if h == 0 or j > self:_probe(i, h) then
       return
     end
-    if self.items[i].ptr == ptr then
-      memset(&self.items[i], 0, #GCItem)
+    if item.ptr == ptr then
+      if item.flags & GCFlags.ROOT == 0 then
+        self.membytes = self.membytes - item.size
+      end
+      memset(item, 0, #GCItem)
       j = i
       while true do
         local nj: usize = (j+1) % self.nslots
@@ -325,9 +333,13 @@ function GC:_sweep() <noinline>
       continue
     end
 
-    self.frees[k] = self.items[i]
+    local item: *GCItem = &self.items[i]
+    self.frees[k] = $item
     k = k + 1
-    memset(&self.items[i], 0, #GCItem)
+    if item.flags & GCFlags.ROOT == 0 then
+      self.membytes = self.membytes - item.size
+    end
+    memset(item, 0, #GCItem)
 
     local j: usize = i
     while true do
@@ -362,33 +374,69 @@ function GC:_sweep() <noinline>
   self.nfrees = 0
 end
 
-function GC:start(stack: pointer)
+function GC:_mark_statics()
+  ## local emit_mark_static = hygienize(function(sym, symtype)
+    gc:add(&#[sym]#, #[symtype.size]#, GCFlags.ROOT, nilptr)
+  ## end)
+
+  ##[[
+  after_analyze(function()
+    local function search_scope(scope)
+      for i=1,#scope.symbols do
+        local sym = scope.symbols[i]
+        local symtype = sym.type or primtypes.any
+        if sym:is_on_static_storage() and
+           symtype:has_pointer() and
+           not sym.cimport and
+           sym ~= gc then
+          emit_mark_static(sym, symtype)
+        end
+      end
+    end
+    search_scope(context.rootscope)
+    for _,childscope in ipairs(context.rootscope.children) do
+      search_scope(childscope)
+    end
+  end)
+  ]]
+end
+
+function GC:init(stack: pointer)
   $self = {}
   self.bottom = stack
-  self.paused = false
+  self.stopped = false
   self.minptr = UINTPTR_MAX
   self.loadfactor = 0.9
   self.sweepfactor = 0.5
+  self:_mark_statics()
 end
 
-function GC:stop()
+function GC:terminate()
   self:_unmark_all()
   self:_sweep()
   allocator:spandealloc(self.items)
   allocator:spandealloc(self.frees)
   $self = {}
-  self.paused = true
+  self.stopped = true
 end
 
-function GC:pause()
-  self.paused = true
+function GC:stop()
+  self.stopped = true
 end
 
-function GC:resume()
-  self.paused = false
+function GC:restart()
+  self.stopped = false
 end
 
-function GC:run()
+function GC:isrunning()
+  return not self.stopped
+end
+
+function GC:count()
+  return self.membytes / 1024.0
+end
+
+function GC:collect()
   self:_mark()
   self:_sweep()
 end
@@ -406,8 +454,8 @@ function GC:add(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerCal
 
   if self:_resize_more() then
     self:_add_ptr(ptr, size, flags, finalizer)
-    if not self.paused and self.nitems > self.mitems then
-      self:run()
+    if not self.stopped and self.nitems > self.mitems then
+      self:collect()
     end
     return true
   else
@@ -416,8 +464,8 @@ function GC:add(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerCal
   end
 end
 
-function GC:rem(ptr: pointer)
-  self:_rem_ptr(ptr)
+function GC:remove(ptr: pointer)
+  self:_remove_ptr(ptr)
   self:_resize_less()
   self.mitems = self.nitems + self.nitems // 2 + 1
 end
@@ -454,7 +502,7 @@ end
 
 function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer <inline>
   if not qtr then
-    self:rem(ptr)
+    self:remove(ptr)
     return nilptr
   end
 
@@ -473,7 +521,7 @@ function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer <inline>
     else
       local flags: usize = p.flags
       local finalizer: FinalizerCallback = p.finalizer
-      self:rem(ptr)
+      self:remove(ptr)
       self:add(qtr, size, flags, finalizer)
     end
     return qtr
@@ -500,46 +548,20 @@ function GC:dealloc(ptr: pointer)
       p.finalizer(ptr)
     end
     allocator:dealloc(ptr)
-    self:rem(ptr)
+    self:remove(ptr)
   end
 end
 
-function GC:_mark_statics()
-  ## local emit_mark_static = hygienize(function(sym, symtype)
-    gc:add(&#[sym]#, #[symtype.size]#, GCFlags.ROOT, nilptr)
-  ## end)
-
-  ##[[
-  after_analyze(function()
-    local function search_scope(scope)
-      for i=1,#scope.symbols do
-        local sym = scope.symbols[i]
-        local symtype = sym.type or primtypes.any
-        if sym:is_on_static_storage() and
-           symtype:has_pointer() and
-           not sym.cimport and
-           sym ~= gc then
-          emit_mark_static(sym, symtype)
-        end
-      end
-    end
-    search_scope(context.rootscope)
-    for _,childscope in ipairs(context.rootscope.children) do
-      search_scope(childscope)
-    end
-  end)
-  ]]
-end
-
+## if not pragmas.nogcentry then
 local function nelua_main(argc: cint, argv: *cstring): cint <cimport,nodecl> end
 
 local function main(argc: cint, argv: *cstring): cint <entrypoint>
-  gc:start(&argc)
-  gc:_mark_statics()
+  gc:init(&argc)
   local ret: cint = nelua_main(argc, argv)
-  gc:stop()
+  gc:terminate()
   return ret
 end
+## end
 
 require 'allocators.interface'
 
@@ -568,3 +590,17 @@ end
 ## implement_allocator_interface(GCAllocator)
 
 global gc_allocator: GCAllocator
+
+global function collectgarbage(opt: stringview <comptime>)
+  ## if opt.value == 'collect' then
+    gc:collect()
+  ## elseif opt.value == 'stop' then
+    gc:stop()
+  ## elseif opt.value == 'restart' then
+    gc:restart()
+  ## elseif opt.value == 'count' then
+    return gc:count()
+  ## elseif opt.value == 'isrunning' then
+    return gc:isrunning()
+  ## else static_error('invalid collect garbage argument %s', opt.value) end
+end

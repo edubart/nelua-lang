@@ -1,0 +1,30 @@
+require 'allocators.gc'
+
+local function alloc_test()
+  local p = gc_allocator:alloc(1024)
+  assert(p ~= nilptr)
+  assert(gc:count() == 1)
+  p = nilptr
+end
+
+do -- gc
+  assert(gc:isrunning())
+  gc:stop()
+  assert(not gc:isrunning())
+  gc:restart()
+  assert(gc:isrunning())
+  alloc_test()
+  gc:collect()
+  assert(gc:count() == 0)
+end
+
+do -- collectgarbage
+  assert(collectgarbage("isrunning"))
+  collectgarbage("stop")
+  assert(not collectgarbage("isrunning"))
+  collectgarbage("restart")
+  assert(collectgarbage("isrunning"))
+  alloc_test()
+  collectgarbage("collect")
+  assert(collectgarbage("count") == 0)
+end
