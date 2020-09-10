@@ -319,7 +319,10 @@ Vector type, typically used as an efficient vector.
 
 | Variable Name | Description |
 |---------------|------|
-| `vector(T)`{:.language-nelua} | Vector type constructor. |
+| `vector(T)`{:.language-nelua} | Generic vector type expression. |
+| `vectorT.size: usize`{:.language-nelua} | Number of elements in the vector. |
+| `vectorT.data: span(T)`{:.language-nelua} | Elements storage of the vector. |
+| `vectorT.allocator: Allocator`{:.language-nelua} | Allocator of the vector. |
 | `vectorT.make(allocator)`{:.language-nelua} | Create a vector using a custom allocator instance. |
 | `vectorT:clear()`{:.language-nelua} | Removes all elements from the vector. |
 | `vectorT:destroy()`{:.language-nelua} | Resets the vector to zeroed state, freeing all used resources. |
