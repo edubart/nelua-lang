@@ -1,10 +1,19 @@
 require 'allocators.gc'
+require 'memory'
 
-local function alloc_test()
-  local p = gc_allocator:alloc(1024)
-  assert(p ~= nilptr)
-  assert(gc:count() == 1)
-  p = nilptr
+local function alloc_test() <noinline>
+  for i=1,128 do
+    local p = gc_allocator:alloc(1024)
+    if i == 1 then
+      assert(gc:count() == 1)
+    end
+    assert(p ~= nilptr)
+    p = nilptr
+  end
+end
+
+local function clear_stack() <noinline>
+  local buffer: byte[1024] <volatile>
 end
 
 do -- gc
@@ -14,6 +23,7 @@ do -- gc
   gc:restart()
   assert(gc:isrunning())
   alloc_test()
+  clear_stack()
   gc:collect()
   assert(gc:count() == 0)
 end
@@ -25,6 +35,7 @@ do -- collectgarbage
   collectgarbage("restart")
   assert(collectgarbage("isrunning"))
   alloc_test()
+  clear_stack()
   collectgarbage("collect")
   assert(collectgarbage("count") == 0)
 end

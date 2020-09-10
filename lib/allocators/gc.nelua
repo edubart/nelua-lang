@@ -78,7 +78,7 @@ function GC:_get_ptr(ptr: pointer): *GCItem
   return nilptr
 end
 
-function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerCallback)
+function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerCallback, rehash: boolean)
   assert(self.nslots > 0)
   local i: usize = self:_hash(ptr) % self.nslots
   local item: GCItem = {
@@ -94,7 +94,7 @@ function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: Finaliz
     local h: usize = self.items[i].hash
     if h == 0 then
       self.items[i] = item
-      if flags & GCFlags.ROOT == 0 then
+      if not rehash and flags & GCFlags.ROOT == 0 then
         self.membytes = self.membytes + size
       end
       return
@@ -198,8 +198,9 @@ function GC:_rehash(newsize: usize): boolean
   end
 
   for i:usize=0,<oldsize do
-    if olditems[i].hash ~= 0 then
-      self:_add_ptr(olditems[i].ptr, olditems[i].size, olditems[i].flags, olditems[i].finalizer)
+    local olditem: *GCItem = &olditems[i]
+    if olditem.hash ~= 0 then
+      self:_add_ptr(olditem.ptr, olditem.size, olditem.flags, olditem.finalizer, true)
     end
   end
   allocator:spandealloc(olditems)
@@ -453,7 +454,7 @@ function GC:add(ptr: pointer, size: usize, flags: usize, finalizer: FinalizerCal
   end
 
   if self:_resize_more() then
-    self:_add_ptr(ptr, size, flags, finalizer)
+    self:_add_ptr(ptr, size, flags, finalizer, false)
     if not self.stopped and self.nitems > self.mitems then
       self:collect()
     end
