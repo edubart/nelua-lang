@@ -315,11 +315,25 @@ Desc
 
 ## vector
 
-Desc
+Vector type, typically used as an efficient vector.
 
 | Variable Name | Description |
 |---------------|------|
-| `vector`{:.language-nelua} | Vector constructor. |
+| `vector(T)`{:.language-nelua} | Vector type constructor. |
+| `vectorT.make(allocator)`{:.language-nelua} | Create a vector using a custom allocator instance. |
+| `vectorT:clear()`{:.language-nelua} | Removes all elements from the vector. |
+| `vectorT:destroy()`{:.language-nelua} | Resets the vector to zeroed state, freeing all used resources. |
+| `vectorT:reserve(n: usize)`{:.language-nelua} | Reserve at least `n` elements in the vector storage. |
+| `vectorT:resize(n: usize)`{:.language-nelua} | Resizes the vector so that it contains `n` elements. |
+| `vectorT:push(v: T)`{:.language-nelua} | Adds a element `v` at the end of the vector. |
+| `vectorT:pop(): T`{:.language-nelua} | Removes the last element in the vector and returns its value. |
+| `vectorT:insert(pos: usize, v: T)`{:.language-nelua} | Inserts element `v` at position `pos` in the vector. |
+| `vectorT:remove(pos: usize): T`{:.language-nelua} | Removes element at position `pos` in the vector and returns its value. |
+| `vectorT:remove_value(v: T)`{:.language-nelua} | Removes the first item from the vector whose value is given. |
+| `vectorT:remove_if(pred)`{:.language-nelua} | Removes all elements from the vector where `pred` function returns true. |
+| `vectorT:capacity(): isize`{:.language-nelua} | Returns the number of elements the vector can store before triggering a reallocation. |
+| `vectorT:__atindex(i: usize): *T`{:.language-nelua} | Returns reference to element at index `pos`. |
+| `vectorT:__len(): isize`{:.language-nelua} | Returns the number of elements in the vector. |
 {: .table.table-bordered.table-striped.table-sm}
 
 <a href="/diffs/" class="btn btn-outline-primary btn-lg float-right">Differences >></a>
