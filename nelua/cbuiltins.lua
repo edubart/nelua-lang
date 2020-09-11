@@ -725,14 +725,21 @@ end
 
 function operators.eq(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype.is_stringview then
-    assert(rtype.is_stringview)
+  if (ltype.is_stringview and (rtype.is_stringview or rtype.is_cstring)) or
+     (ltype.is_cstring and rtype.is_stringview) then
     emitter:add_builtin('nelua_stringview_eq')
-    emitter:add('(', lname, ', ', rname, ')')
-  elseif ltype.is_record then
-    assert(ltype == rtype)
-    local op = emitter.context:ensure_runtime_builtin('nelua_eq_', ltype)
-    emitter:add(op, '(', lname, ', ', rname, ')')
+    emitter:add('(')
+    emitter:add_val2type(primtypes.stringview, lname, ltype)
+    emitter:add(', ')
+    emitter:add_val2type(primtypes.stringview, rname, rtype)
+    emitter:add(')')
+  elseif ltype.is_record or rtype.is_record then
+    if ltype == rtype then
+      local op = emitter.context:ensure_runtime_builtin('nelua_eq_', ltype)
+      emitter:add(op, '(', lname, ', ', rname, ')')
+    else
+      emitter:add('false')
+    end
   elseif ltype.is_array then
     assert(ltype == rtype)
     emitter.context:add_include('<string.h>')
@@ -757,13 +764,21 @@ end
 
 function operators.ne(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if ltype.is_stringview and rtype.is_stringview then
+  if (ltype.is_stringview and (rtype.is_stringview or rtype.is_cstring)) or
+     (ltype.is_cstring and rtype.is_stringview) then
     emitter:add_builtin('nelua_stringview_ne')
-    emitter:add('(', lname, ', ', rname, ')')
+    emitter:add('(')
+    emitter:add_val2type(primtypes.stringview, lname, ltype)
+    emitter:add(', ')
+    emitter:add_val2type(primtypes.stringview, rname, rtype)
+    emitter:add(')')
   elseif ltype.is_record then
-    assert(ltype == rtype)
-    local op = emitter.context:ensure_runtime_builtin('nelua_eq_', ltype)
-    emitter:add('!', op, '(', lname, ', ', rname, ')')
+    if ltype == rtype then
+      local op = emitter.context:ensure_runtime_builtin('nelua_eq_', ltype)
+      emitter:add('!', op, '(', lname, ', ', rname, ')')
+    else
+      emitter:add('true')
+    end
   elseif ltype.is_array then
     assert(ltype == rtype)
     emitter.context:add_include('<string.h>')

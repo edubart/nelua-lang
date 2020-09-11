@@ -1060,6 +1060,10 @@ it("record comparisons", function()
 
     local r: record{}
     assert(r == r)
+
+    local pq: *Q = nilptr
+    assert(($pq == 0) == false)
+    assert(($pq ~= 0) == true)
 ]])
 end)
 
