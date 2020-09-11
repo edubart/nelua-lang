@@ -134,7 +134,7 @@ do -- passing by reference
   seqa:destroy()
 end
 
-do -- ipairs
+do -- ipairs/pairs/next
   local seq: sequence(number) = {1,2,3,4}
   do -- ipairs
     local sum = 0.0

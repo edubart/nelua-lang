@@ -29,6 +29,15 @@ end)]#
   return true, index, list[index]
 ## end
 
+-- Macro that implements the modifiable next iterator for lists.
+## local function impl_mipairs_next(listtype)
+  index = index + 1
+  if index >= (#list + #[listtype.is_oneindexing and 1 or 0]#) then
+    return false, 0, nilptr
+  end
+  return true, index, &list[index]
+## end
+
 -- Use with "for in" to iterate lists.
 global function ipairs(list: list_reference_concept) <inline>
   ## local listvaltype = list.type:implict_deref_type()
@@ -38,11 +47,27 @@ global function ipairs(list: list_reference_concept) <inline>
   return ipairs_next, list, #[listvaltype.is_oneindexing and 0 or -1]#
 end
 
+-- Like `ipairs` but yields reference to elements so that you can modify.
+global function mipairs(list: list_reference_concept) <inline>
+  ## local listvaltype = list.type:implict_deref_type()
+  local function mipairs_next(list: #[list.type]#, index: integer) <inline>
+    ## impl_mipairs_next(listvaltype)
+  end
+  return mipairs_next, list, #[listvaltype.is_oneindexing and 0 or -1]#
+end
+
 -- Get the next element from a container.
 global function next(list: list_reference_concept,
                      index: #[optional_concept(integer)]#)
   ## impl_ipairs_next(list.type:implict_deref_type())
 end
 
+-- Like `next` but returns reference to elements so that you can modify.
+global function mnext(list: list_reference_concept,
+                     index: #[optional_concept(integer)]#)
+  ## impl_mipairs_next(list.type:implict_deref_type())
+end
+
 -- at the moment pairs only works like ipairs
 global pairs: auto = ipairs
+global mpairs: auto = mipairs

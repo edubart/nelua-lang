@@ -45,9 +45,12 @@ This page is under construction and very incomplete.
 
 | Variable Name | Description |
 |---------------|------|
-| `global ipairs`{:.language-nelua} | Work with vector, sequence, span and array. |
-| `global pairs`{:.language-nelua} | Alias to ipairs |
-| `global next`{:.language-nelua} | Work with vector, sequence, span and array. |
+| `ipairs(list: L): (Next, *L, integer)`{:.language-nelua} | Work with vector, sequence, span and array. |
+| `mipairs(list: L): (Next, *L, integer)`{:.language-nelua} | Like `ipairs` but yields reference to elements so that you can modify. |
+| `pairs(list: L): (Next, *L, K)`{:.language-nelua} | Currently is an alias to `ipairs`. |
+| `mpairs(list: L): (Next, *L, K)`{:.language-nelua} | Like `mpairs` but yields reference to elements so that you can modify. |
+| `next(list: L, [index: K]): (boolean, K, T)`{:.language-nelua} | Works with vector, sequence, span and array. |
+| `mnext(list: L, [index: K]): (boolean, K, *T)`{:.language-nelua} | Like `next` but returns reference to elements so that you can modify. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## filestream

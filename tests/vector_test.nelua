@@ -109,13 +109,66 @@ do -- insert
   vec:destroy()
 end
 
-do -- ipairs
+do -- ipairs/mipairs
   local vec: vector(number) = {1,2,3,4}
   local sum: number = 0.0
   for i,v in ipairs(vec) do
     sum = sum + (i+1)*v
   end
   assert(sum == 30)
+  sum = 0
+  for i,v in mipairs(vec) do
+    sum = sum + (i+1)*$v
+    $v = 0
+  end
+  assert(sum == 30)
+  sum = 0
+  for i,v in ipairs(vec) do
+    sum = sum + (i+1)*v
+  end
+  assert(sum == 0)
+  vec:destroy()
+end
+
+do -- pairs/mpairs
+  local vec: vector(number) = {1,2,3,4}
+  local sum: number = 0.0
+  for i,v in pairs(vec) do
+    sum = sum + (i+1)*v
+  end
+  assert(sum == 30)
+  sum = 0
+  for i,v in mpairs(vec) do
+    sum = sum + (i+1)*$v
+    $v = 0
+  end
+  assert(sum == 30)
+  sum = 0
+  for i,v in pairs(vec) do
+    sum = sum + (i+1)*v
+  end
+  assert(sum == 0)
+  vec:destroy()
+end
+
+do -- next/mnext
+  local vec: vector(number) = {1,2,3,4}
+  local sum: number = 0.0
+  for i,v in next,vec,-1 do
+    sum = sum + (i+1)*v
+  end
+  assert(sum == 30)
+  sum = 0
+  for i,v in mnext,vec,-1 do
+    sum = sum + (i+1)*$v
+    $v = 0
+  end
+  assert(sum == 30)
+  sum = 0
+  for i,v in next,vec,-1 do
+    sum = sum + (i+1)*v
+  end
+  assert(sum == 0)
   vec:destroy()
 end
 
