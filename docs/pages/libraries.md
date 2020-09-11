@@ -18,7 +18,7 @@ This page is under construction and very incomplete.
 
 ## arg
 
-Arg library allows to use command line arguments from the entry point.
+[Arg library](https://github.com/edubart/nelua-lang/blob/master/lib/arg.nelua) allows to use command line arguments from the entry point.
 
 | Variable Name | Description |
 |---------------|------|
@@ -27,7 +27,7 @@ Arg library allows to use command line arguments from the entry point.
 
 ## basic
 
-Basic library contains common functions. 
+[Basic library](https://github.com/edubart/nelua-lang/blob/master/lib/basic.nelua) contains common functions. 
 
 | Variable Name | Description |
 |---------------|------|
@@ -41,7 +41,7 @@ Basic library contains common functions.
 
 ## iterators
 
-Iterators library contains iterator related functions.
+[Iterators library](https://github.com/edubart/nelua-lang/blob/master/lib/iterators.nelua) contains iterator related functions.
 
 | Variable Name | Description |
 |---------------|------|
@@ -52,7 +52,7 @@ Iterators library contains iterator related functions.
 
 ## filestream
 
-Filestream library contains filestream record, mainly used for `io` library.
+[Filestream library](https://github.com/edubart/nelua-lang/blob/master/lib/filestream.nelua) contains filestream record, mainly used for [`io`](https://nelua.io/libraries/#io) library.
 
 | Variable Name | Description |
 |---------------|------|
@@ -71,7 +71,7 @@ Filestream library contains filestream record, mainly used for `io` library.
 
 ## io
 
-IO library, copies Lua `io`{:.language-nelua} library. 
+[IO library](https://github.com/edubart/nelua-lang/blob/master/lib/io.nelua), copies Lua `io`{:.language-nelua} library. 
 
 | Variable Name | Description |
 |---------------|------|
@@ -93,7 +93,7 @@ IO library, copies Lua `io`{:.language-nelua} library.
 
 ## math
 
-Math library, copies Lua `math`{:.language-nelua} library with extra functions.
+[Math library](https://github.com/edubart/nelua-lang/blob/master/lib/math.nelua), copies Lua `math`{:.language-nelua} library with extra functions.
 
 | Variable Name | Description |
 |---------------|------|
@@ -138,7 +138,7 @@ Math library, copies Lua `math`{:.language-nelua} library with extra functions.
 
 ## memory
 
-Desc
+[Memory library](https://github.com/edubart/nelua-lang/blob/master/lib/memory.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -164,7 +164,7 @@ Desc
 
 ## os
 
-Desc
+[OS library](https://github.com/edubart/nelua-lang/blob/master/lib/os.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -184,7 +184,7 @@ Desc
 
 ## resourcepool
 
-Desc
+[Resource Pool](https://github.com/edubart/nelua-lang/blob/master/lib/resourcepool.nelua) library description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -193,7 +193,7 @@ Desc
 
 ## sequence
 
-Desc
+[Sequence library](https://github.com/edubart/nelua-lang/blob/master/lib/sequence.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -202,7 +202,7 @@ Desc
 
 ## span
 
-Desc
+[Span library](https://github.com/edubart/nelua-lang/blob/master/lib/span.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -211,7 +211,7 @@ Desc
 
 ## string
 
-Desc
+[String library](https://github.com/edubart/nelua-lang/blob/master/lib/string.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -261,7 +261,7 @@ Desc
 
 ## stringbuilder
 
-Desc
+[String Builder library](https://github.com/edubart/nelua-lang/blob/master/lib/stringbuilder.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -270,7 +270,7 @@ Desc
 
 ## stringview
 
-Desc
+[String View library](https://github.com/edubart/nelua-lang/blob/master/lib/stringview.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -303,7 +303,7 @@ Desc
 
 ## traits
 
-Desc
+[Traits library](https://github.com/edubart/nelua-lang/blob/master/lib/traits.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -316,7 +316,7 @@ Desc
 
 ## vector
 
-Vector type, typically used as an efficient vector.
+[Vector library](https://github.com/edubart/nelua-lang/blob/master/lib/vector.nelua), typically used as an efficient vector.
 
 | Variable Name | Description |
 |---------------|------|
