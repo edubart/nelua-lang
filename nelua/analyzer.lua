@@ -1454,30 +1454,39 @@ function visitors.ForNum(context, node)
         itvarnode:raisef("`for` variable '%s' must be a number, but got type '%s'", itname, ittype)
       end
       if btype then
+        if btype.is_comptime then
+          begvalnode:raisef("in `for` variable '%s' begin: cannot be of type '%s'", itname, btype)
+        end
         local ok, err = ittype:is_convertible_from_attr(battr)
         if not ok then
-          begvalnode:raisef("in `for` begin variable '%s': %s", itname, err)
+          begvalnode:raisef("in `for` variable '%s' begin: %s", itname, err)
         end
         if not context.pragmas.nochecks and ittype ~= btype then
           begvalnode.checkcast = true
         end
       end
       if etype then
+        if etype.is_comptime then
+          endvalnode:raisef("in `for` variable '%s' end: cannot be of type '%s'", itname, etype)
+        end
         local ok, err = ittype:is_convertible_from_attr(eattr)
         if not ok then
-          endvalnode:raisef("in `for` end variable '%s': %s", itname, err)
+          endvalnode:raisef("in `for` variable '%s' end: %s", itname, err)
         end
         if not context.pragmas.nochecks and ittype ~= etype then
           endvalnode.checkcast = true
         end
       end
       if stype then
+        if stype.is_comptime then
+          stepvalnode:raisef("in `for` variable '%s' step: cannot be of type '%s'", itname, etype)
+        end
         local optype, _, err = ittype:binary_operator('add', stype, itsymbol, sattr)
         if stype.is_float and ittype.is_integral then
           err = 'cannot have fractional step for an integral iterator'
         end
         if err then
-          stepvalnode:raisef("in `for` step variable '%s': %s", itname, err)
+          stepvalnode:raisef("in `for` variable '%s' step: %s", itname, err)
         end
       end
     end

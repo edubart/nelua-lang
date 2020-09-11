@@ -236,6 +236,9 @@ it("for loop variables", function()
   assert.analyze_error("for i='s','b' do end", "must be a number")
   assert.analyze_error("for i=1,2,'s' do end", "invalid operation")
   assert.analyze_error("for i=1,2,0 do end", "step cannot be zero")
+  assert.analyze_error("for i=integer,2 do end", "begin: cannot be of type")
+  assert.analyze_error("for i=1,integer do end", "end: cannot be of type")
+  assert.analyze_error("for i=1,2,integer do end", "step: cannot be of type")
 end)
 
 it("variable assignments", function()
@@ -826,6 +829,7 @@ it("for in", function()
   assert.analyze_error(
     [[for i in a,b,c,d do end]],
     "`in` statement can have at most")
+
   --[=[
   assert.ast_type_equals([[
   local function iter() return 1 end
