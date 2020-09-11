@@ -93,46 +93,47 @@ IO library, copies Lua `io`{:.language-nelua} library.
 
 ## math
 
-Desc
+Math library, copies Lua `math`{:.language-nelua} library with extra functions.
 
 | Variable Name | Description |
 |---------------|------|
-| `math.pi`{:.language-nelua} |  |
-| `math.huge`{:.language-nelua} |  |
-| `math.maxinteger`{:.language-nelua} |  |
-| `math.mininteger`{:.language-nelua} |  |
-| `result = math.abs(number)`{:.language-nelua} |  |
-| `result = math.ceil(number)`{:.language-nelua} |  |
-| `result = math.floor(number)`{:.language-nelua} |  |
-| `result = math.ifloor(number)`{:.language-nelua} |  |
-| `result = math.sqrt(number)`{:.language-nelua} |  |
-| `result = math.exp(number)`{:.language-nelua} |  |
-| `result = math.acos(number)`{:.language-nelua} |  |
-| `result = math.asin(number)`{:.language-nelua} |  |
-| `result = math.cos(number)`{:.language-nelua} |  |
-| `result = math.sin(number)`{:.language-nelua} |  |
-| `result = math.tan(number)`{:.language-nelua} |  |
-| `result = math.cosh(number)`{:.language-nelua} |  |
-| `result = math.sinh(number)`{:.language-nelua} |  |
-| `result = math.tanh(number)`{:.language-nelua} |  |
-| `result = math.log10(number)`{:.language-nelua} |  |
-| `result = math.max(number, number)`{:.language-nelua} |  |
-| `result = math.min(number, number)`{:.language-nelua} |  |
-| `result = math.fmod(base, modulator)`{:.language-nelua} |  |
-| `result = math.atan2(number, number)`{:.language-nelua} |  |
-| `result = math.pow(base, exponent)`{:.language-nelua} |  |
-| `result = math.atan(number, number)`{:.language-nelua} |  |
-| `result = math.log(number, base)`{:.language-nelua} |  |
-| `degrees = math.deg(radians)`{:.language-nelua} |  |
-| `radians = math.rad(degrees)`{:.language-nelua} |  |
-| `result = math.modf(base)`{:.language-nelua} |  |
-| `multiplier, exponent = math.frexp(number)`{:.language-nelua} |  |
-| `number = math.ldexp(multiplier, exponent)`{:.language-nelua} |  |
-| `integer = math.tointeger(number)`{:.language-nelua} |  |
-| `type = math.type(number)`{:.language-nelua} |  |
-| `result = math.ult(number, number)`{:.language-nelua} |  |
-| `math.randomseed(number[, number])`{:.language-nelua} |  |
-| `result = math.random([m[, n]])`{:.language-nelua} |  |
+| `math`{:.language-nelua} | `math` record |
+| `global math.pi`{:.language-nelua} | The value of `#[math.pi]#`{:.language-nelua} |
+| `global math.huge`{:.language-nelua} | The value of `#[math.huge]#`{:.language-nelua} |
+| `global math.maxinteger`{:.language-nelua} | The maximum value of `integer`{:.language-nelua} |
+| `global math.mininteger`{:.language-nelua} | The minimum value of `integer`{:.language-nelua} |
+| `math.abs(x)`{:.language-nelua} | Returns the absolute value of `x` |
+| `math.ceil(x)`{:.language-nelua} | Returns the smallest integral value greater than or equal to `x`. |
+| `math.floor(x)`{:.language-nelua} | Returns the largest integral value less than or equal to `x`. |
+| `math.ifloor(x): integer`{:.language-nelua} | Returns the result of `math.floor(x)`{:.language-nelua}, but returns an `integer`{:.language-nelua}. |
+| `math.sqrt(x)`{:.language-nelua} | Returns the square root of `x` |
+| `math.exp(x)`{:.language-nelua} | Returns the value eˣ (where e is the base of natural logarithms) |
+| `math.acos(x)`{:.language-nelua} | Returns the arc cosine of `x` (in radians). |
+| `math.asin(x)`{:.language-nelua} | Returns the arc sine of `x` (in radians). |
+| `math.cos(x)`{:.language-nelua} | Returns the cosine of `x` (assumed to be in radians). |
+| `math.sin(x)`{:.language-nelua} | Returns the sine of `x` (assumed to be in radians). |
+| `math.tan(x)`{:.language-nelua} | Returns the tangent of `x` (assumed to be in radians). |
+| `math.cosh(x)`{:.language-nelua} | Returns the hyperbolic cosine of `x`. |
+| `math.sinh(x)`{:.language-nelua} | Returns the hyperbolic sine of `x`. |
+| `math.tanh(x)`{:.language-nelua} | Returns the hyperbolic tangent of `x`. |
+| `math.log10(x)`{:.language-nelua} | Returns the base-10 logarithm of `x`. |
+| `math.max(x, y)`{:.language-nelua} | Returns the argument with the maximum value, according to the Nelua operator <. |
+| `math.min(x, y)`{:.language-nelua} | Returns the argument with the minimum value, according to the Nelua operator <. |
+| `math.fmod(x, y)`{:.language-nelua} | Returns the remainder of the division of `x` by `y` that rounds the quotient towards zero. |
+| `math.atan2(y, x)`{:.language-nelua} | Returns the arc tangent of `y`/`x` (in radians), but uses the signs of both parameters to find the quadrant of the result. (It also handles correctly the case of `x` being zero.). |
+| `math.pow(x, y)`{:.language-nelua} | Returns xʸ. (You can also use the expression `x^y`{:.language-nelua} to compute this value.) |
+| `math.atan(y[, x])`{:.language-nelua} | If `x` argument is passed, it returns the same value as `math.atan2(y, x)`, otherwise it returns the arc tangent of `y` (in radians). |
+| `math.log(x[, base])`{:.language-nelua} | If `base` argument is passed, it returns the logarithm of `x` in the given `base`, otherwise it returns the natural logarithm of `x`) |
+| `math.deg(x)`{:.language-nelua} | Converts the angle `x` from radians to degrees. |
+| `math.rad(x)`{:.language-nelua} | Returns the angle `x` (given in degrees) in radians. |
+| `math.modf(x)`{:.language-nelua} | Returns the integral part of `x` and the fractional part of `x`. |
+| `math.frexp(x)`{:.language-nelua} | Returns `m` (multiplier) and `e` (exponent) such that _x = m2ᵉ_, `e` is an `integer` and the absolute value of `m` is in the range [0.5, 1) (or zero when `x` is zero). |
+| `math.ldexp(m, e)`{:.language-nelua} | Returns _m2ᵉ_ (`e` should be an integral)|
+| `math.tointeger(x)`{:.language-nelua} | If the value `x` is convertible to an `integer`, returns that integer. Otherwise, returns `nil`. |
+| `math.type(x)`{:.language-nelua} | Returns `"integer"`{:.language-nelua} if `x` is an integral, "float" if it is a float, or `nil` if `x` is not a number. |
+| `math.ult(m, n)`{:.language-nelua} | Both `m` and `n` should be convertible to an `integer`; returns a `boolean`, `true` if and only if integer `m` is below integer `n` when they are compared as unsigned integers. |
+| `math.randomseed(x)`{:.language-nelua} | Sets `x` as the "seed" for the pseudo-random generator: equal seeds produce equal sequences of numbers. |
+| `math.random([m[, n]])`{:.language-nelua} | When called without arguments, returns a pseudo-random float with uniform distribution in the range [0,1). When called with two integers `m` and `n`, `math.random`{:.language-nelua} returns a pseudo-random `integer`{:.language-nelua} with uniform distribution in the range [`m`, `n`]. The call `math.random(n)`{:.language-nelua}, for a positive `n`, is equivalent to `math.random(1,n)`{:.language-nelua} |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## memory
