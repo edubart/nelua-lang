@@ -1245,6 +1245,10 @@ it("variable shadowing", function()
     local x, y = 1, 2
     local x = x + y
     assert(x == 3)
+
+    local function exit(code: cint) <cimport> end
+    local function exit(code: cint) <cimport> end
+    exit(0)
   ]])
 end)
 

@@ -416,10 +416,16 @@ function visitors.Annotation(context, node, symbol)
 
   if name == 'cimport' then
     objattr.cimport = true
+    local codename
     if traits.is_string(params) then
-      objattr.codename = params
+      codename = params
     else
-      objattr.codename = symbol.name
+      codename = symbol.name
+    end
+    if objattr._type then
+      objattr:set_codename(codename)
+    else
+      objattr.codename = codename
     end
   elseif name == 'nickname' then
     assert(objattr._type and not objattr.is_primitive)

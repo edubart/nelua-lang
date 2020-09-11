@@ -38,9 +38,9 @@ function CContext:declname(attr)
   if not attr.nodecl then
     if not attr.cimport then
       declname = cdefs.quotename(declname)
-    end
-    if attr.shadows or (attr.funcdef and not attr.staticstorage) then
-      declname = self:genuniquename(declname, '%s__%d')
+      if attr.shadows or (attr.funcdef and not attr.staticstorage) then
+        declname = self:genuniquename(declname, '%s__%d')
+      end
     end
   end
   attr.declname = declname
