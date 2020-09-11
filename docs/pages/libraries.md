@@ -22,7 +22,7 @@ Arg library allows to use command line arguments from the entry point.
 
 | Variable Name | Description |
 |---------------|------|
-| `arg`{:.language-nelua} | Array of command line arguments. |
+| `arg: sequence(stringview, GeneralAllocator)`{:.language-nelua} | Array of command line arguments. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## basic
@@ -31,12 +31,12 @@ Basic library contains common functions.
 
 | Variable Name | Description |
 |---------------|------|
-| `condition = likely(condition)`{:.language-nelua} | Binding for GNUC `__builtin_expect(boolean, 1)`. |
-| `condition = unlikely(condition)`{:.language-nelua} | Binding for GNUC `__builtin_expect(boolean, 0)`. |
-| `panic(errmsg)`{:.language-nelua} | Returns an error message and stops execution. |
-| `error(errmsg)`{:.language-nelua} | Alias of `panic`. |
-| `assert(condition, errmsg)`{:.language-nelua} | Asserts the condition and errors if it's false. |
-| `_VERSION`{:.language-nelua} | A string of Nelua version. |
+| `likely(x: boolean): boolean`{:.language-nelua} | Binding for GNUC `__builtin_expect(x, 1)`. |
+| `unlikely(x: boolean): boolean`{:.language-nelua} | Binding for GNUC `__builtin_expect(x, 0)`. |
+| `panic(msg: stringview)`{:.language-nelua} | Returns an error message and stops execution. |
+| `error(msg: stringview)`{:.language-nelua} | Alias of `panic`. |
+| `assert(cond: auto, msg: auto)`{:.language-nelua} | Asserts the condition `cond`and errors if it's false. |
+| `_VERSION: stringview`{:.language-nelua} | A string of Nelua version. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## iterators
@@ -56,15 +56,17 @@ Filestream library contains filestream record, mainly used for `io` library.
 
 | Variable Name | Description |
 |---------------|------|
-| `file, errstr, status = filestream.open(filepath[, mode])`{:.language-nelua} | Opens a file with given mode (default is `r`). Returns empty filesystem, error message and error code if failed. |
-| `result, errstr, errno = filestream:flush()`{:.language-nelua} | Flushes the file. |
-| `result, errstr, errno = filestream:close()`{:.language-nelua} | Closes the file. |
-| `result, errstr, errno = filestream:seek([whence[, offset]])`{:.language-nelua} | Returns the caret position or goes to given offset or returns the size. |
-| `result, errstr, errno = filestream:setvbuf(mode[, size])`{:.language-nelua} | Sets buffer size. |
-| `result, errstr, errno = filestream:read([format])`{:.language-nelua} | Reads the content of the file according to the given format. |
-| `result, errstr, errno = filestream:write(str)`{:.language-nelua} | Writes text to the file. |
-| `result = isopen`{:.language-nelua} | Returns open state of the file. |
 | `filestream`{:.language-nelua} | Filestream record. |
+| `filestream.id: uint64`{:.language-nelua} | file id. |
+| `filestream.open(filename: stringview[, mode: stringview]#) : (filestream, stringview, integer)`{:.language-nelua} | Opens a file with given mode (default is `r`). Returns empty filesystem, error message and error code if failed. |
+| `filestream:flush(): (boolean, stringview, integer)`{:.language-nelua} | Flushes the file. |
+| `filestream:close(): (boolean, stringview, integer)`{:.language-nelua} | Closes the file. |
+| `filestream:seek([whence: stringview[, offset: integer]]): (integer, stringview, integer)`{:.language-nelua} | Returns the caret position or goes to given offset or returns the size. |
+| `filestream:setvbuf(mode: stringview[, size: integer])`{:.language-nelua} | Sets buffer size. |
+| `filestream:read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Reads the content of the file according to the given format. |
+| `filestream:write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Writes text to the file. |
+| `filestream:isopen(): boolean`{:.language-nelua} | Returns open state of the file. |
+| `filestream:__tostring(): string`{:.language-nelua} | converts the handled `FILEptr` to `string`. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## io
@@ -73,19 +75,20 @@ IO library, copies Lua `io`{:.language-nelua} library.
 
 | Variable Name | Description |
 |---------------|------|
-| `io.stderr`{:.language-nelua} | Error file. |
-| `io.stdout`{:.language-nelua} | Output file used for io.write. |
-| `io.stdin`{:.language-nelua} | Input file used for io.read. |
-| `file, errstr, status = io.open(filename[, mode])`{:.language-nelua} | Opens a file. Alias of `filestream.open`{:.language-nelua}. |
-| `result, errstr, errno = io.flush(file)`{:.language-nelua} |  |
-| `result, errstr, errno = io.close([file])`{:.language-nelua} | Alias of `file:close`{:.language-nelua}. Closes `io.stdout`{:.language-nelua} if no file was given. |
-| `file = io.input([file])`{:.language-nelua} | Sets, opens or returns the input file. |
-| `file = io.output([file])`{:.language-nelua} | Sets, opens or returns the output file. |
-| `file, errstr, status = io.tmpfile()`{:.language-nelua} | Returns a temporary file. |
-| `result, errstr, errno = io.read([format])`{:.language-nelua} | Alias of `io.stdin:read`{:.language-nelua}. |
-| `result, errstr, errno = io.write(str)`{:.language-nelua} | Alias of `io.stdout:write`{:.language-nelua}. |
-| `result = io.type(file)`{:.language-nelua} | Returns a type of a file. Returns nil if not a file. |
-| `result = io.isopen(file)`{:.language-nelua} | Alias of `file:isopen`{:.language-nelua}. |
+| `io`{:.language-nelua} | `io` record. |
+| `global io.stderr: filestream`{:.language-nelua} | Error file. |
+| `global io.stdout: filestream`{:.language-nelua} | Output file used for io.write. |
+| `global io.stdin: filestream`{:.language-nelua} | Input file used for io.read. |
+| `io.open(filename: stringview[, mode: stringview]) : (filestream, stringview, integer)`{:.language-nelua} | Opens a file. Alias of `filestream.open`{:.language-nelua}. |
+| `io.flush(file: filestream): boolean`{:.language-nelua} | Flushes the `file` |
+| `io.close([file])`{:.language-nelua} | Alias of `file:close`{:.language-nelua}. Closes `io.stdout`{:.language-nelua} if no file was given. |
+| `io.input(file: [stringview, filestream, niltype]): filestream`{:.language-nelua} | Sets, opens or returns the input file. |
+| `io.output(file: [stringview, filestream, niltype]): filestream`{:.language-nelua} | Sets, opens or returns the output file. |
+| `io.tmpfile(): (filestream, stringview, integer)`{:.language-nelua} | Returns a temporary file. |
+| `io.read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Alias of `io.stdin:read`{:.language-nelua}. |
+| `io.write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Alias of `io.stdout:write`{:.language-nelua}. |
+| `io.type(x: auto)`{:.language-nelua} | Returns a type of a file. Returns nil if not a file. |
+| `io.isopen(file: filestream): boolean`{:.language-nelua} | Alias of `file:isopen`{:.language-nelua}. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## math
