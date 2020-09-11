@@ -57,8 +57,6 @@ Filestream library contains filestream object, mainly used for `io` library.
 | Variable Name | Description |
 |---------------|------|
 | `filestream`{:.language-nelua} | Filestream object. |
-| `filestream = filestream._from_fp(fileptr)`{:.language-nelua} | Wraps `FILEPtr` into `filestream`. Internal. |
-| `fileptr = filestream:_get_fp()`{:.language-nelua} | Returns the `FILEPtr` of `filestream` object. Internal. |
 | `file, errstr, status = filestream.open(filepath[, mode])`{:.language-nelua} | Opens a file with given mode (default is `r`). Returns empty filesystem, error message and error code if failed. |
 | `result, errstr, errno = filestream:flush()`{:.language-nelua} | Flushes the file. |
 | `result, errstr, errno = filestream:close()`{:.language-nelua} | Closes the file. |
@@ -215,7 +213,6 @@ Desc
 |---------------|------|
 | `string`{:.language-nelua} | String type. |
 | `tostring`{:.language-nelua} | Converts values to string using `__tostring`{:.language-nelua}. |
-| `string._create`{:.language-nelua} |  |
 | `string.__tocstring`{:.language-nelua} |  |
 | `string.__tostringview`{:.language-nelua} |  |
 | `string.__convert`{:.language-nelua} |  |
