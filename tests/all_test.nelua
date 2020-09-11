@@ -15,10 +15,6 @@ io.stdout:write('testing memory_test... ')
 require 'tests.memory_test'
 print 'OK!'
 
-io.stdout:write('testing gc... ')
-require 'tests.gc_test'
-print 'OK!'
-
 io.stdout:write('testing allocators_test... ')
 require 'tests.allocators_test'
 print 'OK!'

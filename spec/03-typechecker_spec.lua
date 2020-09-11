@@ -990,6 +990,14 @@ it("records", function()
   assert.ast_type_equals(
     "local a: record {x: boolean}; local b; b = a.x",
     "local a: record {x: boolean}; local b: boolean; b = a.x")
+  assert.analyze_error([[
+    local A, B = @record {x: boolean}, @record {x: boolean}
+    local a: A, b: B
+    b = a
+  ]], "no viable type conversion")
+  assert.analyze_error([[
+    local A = @record {x: type}
+  ]], "cannot be of compile-time type")
 end)
 
 it("records metamethods", function()

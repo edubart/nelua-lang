@@ -1636,6 +1636,16 @@ function RecordType:update_fields()
     for i=1,#fields do
       local field = fields[i]
       local fieldtype = field.type
+
+      -- validate field
+      if fieldtype.is_comptime then
+        if self.node then
+          self.node:raisef("record field '%s' cannot be of compile-time type '%s'", field.name, fieldtype)
+        else --luacov:disable
+          error('invalid record field type')
+        end --luacov:enable
+      end
+
       local fieldsize = fieldtype.size
       local fieldalign = fieldtype.align
       -- the record align is computed as the max field align
@@ -1647,6 +1657,7 @@ function RecordType:update_fields()
       field.index = i
       fields[field.name] = field
       offset = offset + fieldsize
+
     end
     if not packed then -- align the record to the smallest field align
       offset = align_forward(offset, align)
