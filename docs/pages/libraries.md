@@ -22,7 +22,7 @@ Arg library allows to use command line arguments from the entry point.
 
 | Variable Name | Description |
 |---------------|------|
-| `arg: sequence(stringview, GeneralAllocator)`{:.language-nelua} | Array of command line arguments. |
+| `global arg: sequence(stringview, GeneralAllocator)`{:.language-nelua} | Sequence of command line arguments. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## basic
@@ -58,7 +58,7 @@ Filestream library contains filestream record, mainly used for `io` library.
 |---------------|------|
 | `global filestream`{:.language-nelua} | `filestream` record. |
 | `filestream.id: uint64`{:.language-nelua} | file id. |
-| `filestream.open(filename: stringview[, mode: stringview]#) : (filestream, stringview, integer)`{:.language-nelua} | Opens a file with given mode (default is `r`). Returns empty filesystem, error message and error code if failed. |
+| `filestream.open(filename: stringview[, mode: stringview]): (filestream, stringview, integer)`{:.language-nelua} | Opens a file with given mode (default is `r`). Returns empty filesystem, error message and error code if failed. |
 | `filestream:flush(): (boolean, stringview, integer)`{:.language-nelua} | Flushes the file. |
 | `filestream:close(): (boolean, stringview, integer)`{:.language-nelua} | Closes the file. |
 | `filestream:seek([whence: stringview[, offset: integer]]): (integer, stringview, integer)`{:.language-nelua} | Returns the caret position or goes to given offset or returns the size. |
@@ -79,16 +79,16 @@ IO library, copies Lua `io`{:.language-nelua} library.
 | `global io.stderr: filestream`{:.language-nelua} | Error file. |
 | `global io.stdout: filestream`{:.language-nelua} | Output file used for io.write. |
 | `global io.stdin: filestream`{:.language-nelua} | Input file used for io.read. |
-| `io.open(filename: stringview[, mode: stringview]) : (filestream, stringview, integer)`{:.language-nelua} | Opens a file. Alias of `filestream.open`{:.language-nelua}. |
+| `io.open(filename: stringview[, mode: stringview]) : (filestream, stringview, integer)`{:.language-nelua} | Opens a file. Alias of `filestream.open`. |
 | `io.flush(file: filestream): boolean`{:.language-nelua} | Flushes the `file` |
-| `io.close([file])`{:.language-nelua} | Alias of `file:close`{:.language-nelua}. Closes `io.stdout`{:.language-nelua} if no file was given. |
+| `io.close([file])`{:.language-nelua} | Alias of `file:close`. Closes `io.stdout` if no file was given. |
 | `io.input(file: [stringview, filestream, niltype]): filestream`{:.language-nelua} | Sets, opens or returns the input file. |
 | `io.output(file: [stringview, filestream, niltype]): filestream`{:.language-nelua} | Sets, opens or returns the output file. |
 | `io.tmpfile(): (filestream, stringview, integer)`{:.language-nelua} | Returns a temporary file. |
-| `io.read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Alias of `io.stdin:read`{:.language-nelua}. |
-| `io.write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Alias of `io.stdout:write`{:.language-nelua}. |
+| `io.read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Alias of `io.stdin:read`. |
+| `io.write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Alias of `io.stdout:write`. |
 | `io.type(x: auto)`{:.language-nelua} | Returns a type of a file. Returns nil if not a file. |
-| `io.isopen(file: filestream): boolean`{:.language-nelua} | Alias of `file:isopen`{:.language-nelua}. |
+| `io.isopen(file: filestream): boolean`{:.language-nelua} | Alias of `file:isopen`. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## math
@@ -97,17 +97,17 @@ Math library, copies Lua `math`{:.language-nelua} library with extra functions.
 
 | Variable Name | Description |
 |---------------|------|
-| `global math.pi`{:.language-nelua} | The value of `#[math.pi]#`{:.language-nelua} |
-| `global math.huge`{:.language-nelua} | The value of `#[math.huge]#`{:.language-nelua} |
-| `global math.maxinteger`{:.language-nelua} | The maximum value of `integer`{:.language-nelua} |
-| `global math.mininteger`{:.language-nelua} | The minimum value of `integer`{:.language-nelua} |
-| `math.abs(x)`{:.language-nelua} | Returns the absolute value of `x` |
 | `global math`{:.language-nelua} | `math` record |
+| `global math.pi`{:.language-nelua} | The compile-time value of `#[math.pi]#`{:.language-nelua}, which is the the value of π. |
+| `global math.huge`{:.language-nelua} | The compile-time value of `#[math.huge]#`{:.language-nelua}, which is a value greater than any other numeric value. |
+| `global math.maxinteger`{:.language-nelua} | The maximum possible compile-time value of `integer`. |
+| `global math.mininteger`{:.language-nelua} | The minimum possible compile-time value of `integer`. |
+| `math.abs(x)`{:.language-nelua} | Returns the absolute value of `x`. |
 | `math.ceil(x)`{:.language-nelua} | Returns the smallest integral value greater than or equal to `x`. |
 | `math.floor(x)`{:.language-nelua} | Returns the largest integral value less than or equal to `x`. |
-| `math.ifloor(x): integer`{:.language-nelua} | Returns the result of `math.floor(x)`{:.language-nelua}, but returns an `integer`{:.language-nelua}. |
-| `math.sqrt(x)`{:.language-nelua} | Returns the square root of `x` |
-| `math.exp(x)`{:.language-nelua} | Returns the value eˣ (where e is the base of natural logarithms) |
+| `math.ifloor(x): integer`{:.language-nelua} | Returns the result of `math.floor(x)`{:.language-nelua}, but returns an `integer`. |
+| `math.sqrt(x)`{:.language-nelua} | Returns the square root of `x`. |
+| `math.exp(x)`{:.language-nelua} | Returns the value eˣ (where e is the base of natural logarithms). |
 | `math.acos(x)`{:.language-nelua} | Returns the arc cosine of `x` (in radians). |
 | `math.asin(x)`{:.language-nelua} | Returns the arc sine of `x` (in radians). |
 | `math.cos(x)`{:.language-nelua} | Returns the cosine of `x` (assumed to be in radians). |
@@ -121,19 +121,19 @@ Math library, copies Lua `math`{:.language-nelua} library with extra functions.
 | `math.min(x, y)`{:.language-nelua} | Returns the argument with the minimum value, according to the Nelua operator <. |
 | `math.fmod(x, y)`{:.language-nelua} | Returns the remainder of the division of `x` by `y` that rounds the quotient towards zero. |
 | `math.atan2(y, x)`{:.language-nelua} | Returns the arc tangent of `y`/`x` (in radians), but uses the signs of both parameters to find the quadrant of the result. (It also handles correctly the case of `x` being zero.). |
-| `math.pow(x, y)`{:.language-nelua} | Returns xʸ. (You can also use the expression `x^y`{:.language-nelua} to compute this value.) |
-| `math.atan(y[, x])`{:.language-nelua} | If `x` argument is passed, it returns the same value as `math.atan2(y, x)`, otherwise it returns the arc tangent of `y` (in radians). |
-| `math.log(x[, base])`{:.language-nelua} | If `base` argument is passed, it returns the logarithm of `x` in the given `base`, otherwise it returns the natural logarithm of `x`) |
+| `math.pow(x, y)`{:.language-nelua} | Returns xʸ. (You can also use the expression `x^y`{:.language-nelua} to compute this value.). |
+| `math.atan(y[, x])`{:.language-nelua} | If `x` argument is passed, it returns the same value as `math.atan2(y, x)`{:.language-nelua}, otherwise it returns the arc tangent of `y` (in radians). |
+| `math.log(x[, base])`{:.language-nelua} | If `base` argument is passed, it returns the logarithm of `x` in the given `base`, otherwise it returns the natural logarithm of `x`). |
 | `math.deg(x)`{:.language-nelua} | Converts the angle `x` from radians to degrees. |
 | `math.rad(x)`{:.language-nelua} | Returns the angle `x` (given in degrees) in radians. |
 | `math.modf(x)`{:.language-nelua} | Returns the integral part of `x` and the fractional part of `x`. |
 | `math.frexp(x)`{:.language-nelua} | Returns `m` (multiplier) and `e` (exponent) such that _x = m2ᵉ_, `e` is an `integer` and the absolute value of `m` is in the range [0.5, 1) (or zero when `x` is zero). |
-| `math.ldexp(m, e)`{:.language-nelua} | Returns _m2ᵉ_ (`e` should be an integral)|
+| `math.ldexp(m, e)`{:.language-nelua} | Returns _m2ᵉ_ (`e` should be an integral). |
 | `math.tointeger(x)`{:.language-nelua} | If the value `x` is convertible to an `integer`, returns that integer. Otherwise, returns `nil`. |
-| `math.type(x)`{:.language-nelua} | Returns `"integer"`{:.language-nelua} if `x` is an integral, "float" if it is a float, or `nil` if `x` is not a number. |
-| `math.ult(m, n)`{:.language-nelua} | Both `m` and `n` should be convertible to an `integer`; returns a `boolean`, `true` if and only if integer `m` is below integer `n` when they are compared as unsigned integers. |
+| `math.type(x)`{:.language-nelua} | Returns `"integer"`{:.language-nelua} if `x` is an integral, `"float"`{:.language-nelua} if it is a float, or `"nil"`{:.language-nelua} if `x` is not a number. |
+| `math.ult(m, n)`{:.language-nelua} | Both `m` and `n` should be convertible to an `integer`; returns `true` if and only if integer `m` is below integer `n` when they are compared as unsigned integers. |
 | `math.randomseed(x)`{:.language-nelua} | Sets `x` as the "seed" for the pseudo-random generator: equal seeds produce equal sequences of numbers. |
-| `math.random([m[, n]])`{:.language-nelua} | When called without arguments, returns a pseudo-random float with uniform distribution in the range [0,1). When called with two integers `m` and `n`, `math.random`{:.language-nelua} returns a pseudo-random `integer`{:.language-nelua} with uniform distribution in the range [`m`, `n`]. The call `math.random(n)`{:.language-nelua}, for a positive `n`, is equivalent to `math.random(1,n)`{:.language-nelua} |
+| `math.random([m[, n]])`{:.language-nelua} | When called without arguments, returns a pseudo-random float with uniform distribution in the range [0,1). When called with two integers `m` and `n`, it returns a pseudo-random `integer` with uniform distribution in the range [`m`, `n`]. The call `math.random(n)`{:.language-nelua}, for a positive `n`, is equivalent to `math.random(1,n)`{:.language-nelua}. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## memory
