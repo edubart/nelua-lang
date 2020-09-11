@@ -18,125 +18,127 @@ This page is under construction and very incomplete.
 
 ## arg
 
-Arg library allows to use command line arguments from the entry point.
+[Arg library](https://github.com/edubart/nelua-lang/blob/master/lib/arg.nelua) allows to use command line arguments from the entry point.
 
 | Variable Name | Description |
 |---------------|------|
-| `arg`{:.language-nelua} | Array of command line arguments. |
+| `global arg: sequence(stringview, GeneralAllocator)`{:.language-nelua} | Sequence of command line arguments. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## basic
 
-Basic library contains common functions. 
+[Basic library](https://github.com/edubart/nelua-lang/blob/master/lib/basic.nelua) contains common functions. 
 
 | Variable Name | Description |
 |---------------|------|
-| `condition = likely(condition)`{:.language-nelua} | Binding for GNUC `__builtin_expect(boolean, 1)`. |
-| `condition = unlikely(condition)`{:.language-nelua} | Binding for GNUC `__builtin_expect(boolean, 0)`. |
-| `panic(errmsg)`{:.language-nelua} | Returns an error message and stops execution. |
-| `error(errmsg)`{:.language-nelua} | Alias of `panic`. |
-| `assert(condition, errmsg)`{:.language-nelua} | Asserts the condition and errors if it's false. |
-| `_VERSION`{:.language-nelua} | A string of Nelua version. |
+| `global likely(x: boolean): boolean`{:.language-nelua} | Binding for GNUC `__builtin_expect(x, 1)`. |
+| `global unlikely(x: boolean): boolean`{:.language-nelua} | Binding for GNUC `__builtin_expect(x, 0)`. |
+| `global panic(msg: stringview)`{:.language-nelua} | Returns an error message and stops execution. |
+| `global error(msg: stringview)`{:.language-nelua} | Alias of `panic`. |
+| `global assert(cond: auto, msg: auto)`{:.language-nelua} | Asserts the condition `cond`and errors if it's false. |
+| `global _VERSION: stringview`{:.language-nelua} | A string of Nelua version. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## iterators
 
-Iterators library contains iterator related functions.
+[Iterators library](https://github.com/edubart/nelua-lang/blob/master/lib/iterators.nelua) contains iterator related functions.
 
 | Variable Name | Description |
 |---------------|------|
-| `ipairs`{:.language-nelua} | Work with vector, sequence, span and array. |
-| `pairs`{:.language-nelua} | Alias to ipairs |
-| `next`{:.language-nelua} | Work with vector, sequence, span and array. |
+| `global ipairs`{:.language-nelua} | Work with vector, sequence, span and array. |
+| `global pairs`{:.language-nelua} | Alias to ipairs |
+| `global next`{:.language-nelua} | Work with vector, sequence, span and array. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## filestream
 
-Filestream library contains filestream object, mainly used for `io` library.
+[Filestream library](https://github.com/edubart/nelua-lang/blob/master/lib/filestream.nelua) contains filestream record, mainly used for [`io`](https://nelua.io/libraries/#io) library.
 
 | Variable Name | Description |
 |---------------|------|
-| `filestream`{:.language-nelua} | Filestream object. |
-| `filestream = filestream._from_fp(fileptr)`{:.language-nelua} | Wraps `FILEPtr` into `filestream`. Internal. |
-| `fileptr = filestream:_get_fp()`{:.language-nelua} | Returns the `FILEPtr` of `filestream` object. Internal. |
-| `file, errstr, status = filestream.open(filepath[, mode])`{:.language-nelua} | Opens a file with given mode (default is `r`). Returns empty filesystem, error message and error code if failed. |
-| `result, errstr, errno = filestream:flush()`{:.language-nelua} | Flushes the file. |
-| `result, errstr, errno = filestream:close()`{:.language-nelua} | Closes the file. |
-| `result, errstr, errno = filestream:seek([whence[, offset]])`{:.language-nelua} | Returns the caret position or goes to given offset or returns the size. |
-| `result, errstr, errno = filestream:setvbuf(mode[, size])`{:.language-nelua} | Sets buffer size. |
-| `result, errstr, errno = filestream:read([format])`{:.language-nelua} | Reads the content of the file according to the given format. |
-| `result, errstr, errno = filestream:write(str)`{:.language-nelua} | Writes text to the file. |
-| `result = isopen`{:.language-nelua} | Returns open state of the file. |
+| `global filestream`{:.language-nelua} | `filestream` record. |
+| `filestream.id: uint64`{:.language-nelua} | file id. |
+| `filestream.open(filename: stringview[, mode: stringview]): (filestream, stringview, integer)`{:.language-nelua} | Opens a file with given mode (default is `r`). Returns empty filesystem, error message and error code if failed. |
+| `filestream:flush(): (boolean, stringview, integer)`{:.language-nelua} | Flushes the file. |
+| `filestream:close(): (boolean, stringview, integer)`{:.language-nelua} | Closes the file. |
+| `filestream:seek([whence: stringview[, offset: integer]]): (integer, stringview, integer)`{:.language-nelua} | Returns the caret position or goes to given offset or returns the size. |
+| `filestream:setvbuf(mode: stringview[, size: integer])`{:.language-nelua} | Sets buffer size. |
+| `filestream:read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Reads the content of the file according to the given format. |
+| `filestream:write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Writes text to the file. |
+| `filestream:isopen(): boolean`{:.language-nelua} | Returns open state of the file. |
+| `filestream:__tostring(): string`{:.language-nelua} | converts the handled `FILEptr` to `string`. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## io
 
-IO library, copies Lua `io`{:.language-nelua} library. 
+[IO library](https://github.com/edubart/nelua-lang/blob/master/lib/io.nelua), copies Lua `io`{:.language-nelua} library. 
 
 | Variable Name | Description |
 |---------------|------|
-| `io.stderr`{:.language-nelua} | Error file. |
-| `io.stdout`{:.language-nelua} | Output file used for io.write. |
-| `io.stdin`{:.language-nelua} | Input file used for io.read. |
-| `file, errstr, status = io.open(filename[, mode])`{:.language-nelua} | Opens a file. Alias of `filestream.open`{:.language-nelua}. |
-| `result, errstr, errno = io.flush(file)`{:.language-nelua} |  |
-| `result, errstr, errno = io.close([file])`{:.language-nelua} | Alias of `file:close`{:.language-nelua}. Closes `io.stdout`{:.language-nelua} if no file was given. |
-| `file = io.input([file])`{:.language-nelua} | Sets, opens or returns the input file. |
-| `file = io.output([file])`{:.language-nelua} | Sets, opens or returns the output file. |
-| `file, errstr, status = io.tmpfile()`{:.language-nelua} | Returns a temporary file. |
-| `result, errstr, errno = io.read([format])`{:.language-nelua} | Alias of `io.stdin:read`{:.language-nelua}. |
-| `result, errstr, errno = io.write(str)`{:.language-nelua} | Alias of `io.stdout:write`{:.language-nelua}. |
-| `result = io.type(file)`{:.language-nelua} | Returns a type of a file. Returns nil if not a file. |
-| `result = io.isopen(file)`{:.language-nelua} | Alias of `file:isopen`{:.language-nelua}. |
+| `global io`{:.language-nelua} | `io` record. |
+| `global io.stderr: filestream`{:.language-nelua} | Error file. |
+| `global io.stdout: filestream`{:.language-nelua} | Output file used for io.write. |
+| `global io.stdin: filestream`{:.language-nelua} | Input file used for io.read. |
+| `io.open(filename: stringview[, mode: stringview]) : (filestream, stringview, integer)`{:.language-nelua} | Opens a file. Alias of `filestream.open`. |
+| `io.flush(file: filestream): boolean`{:.language-nelua} | Flushes the `file` |
+| `io.close([file])`{:.language-nelua} | Alias of `file:close`. Closes `io.stdout` if no file was given. |
+| `io.input(file: [stringview, filestream, niltype]): filestream`{:.language-nelua} | Sets, opens or returns the input file. |
+| `io.output(file: [stringview, filestream, niltype]): filestream`{:.language-nelua} | Sets, opens or returns the output file. |
+| `io.tmpfile(): (filestream, stringview, integer)`{:.language-nelua} | Returns a temporary file. |
+| `io.read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Alias of `io.stdin:read`. |
+| `io.write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Alias of `io.stdout:write`. |
+| `io.type(x: auto)`{:.language-nelua} | Returns a type of a file. Returns nil if not a file. |
+| `io.isopen(file: filestream): boolean`{:.language-nelua} | Alias of `file:isopen`. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## math
 
-Desc
+[Math library](https://github.com/edubart/nelua-lang/blob/master/lib/math.nelua), copies Lua `math`{:.language-nelua} library with extra functions.
 
 | Variable Name | Description |
 |---------------|------|
-| `math.pi`{:.language-nelua} |  |
-| `math.huge`{:.language-nelua} |  |
-| `math.maxinteger`{:.language-nelua} |  |
-| `math.mininteger`{:.language-nelua} |  |
-| `result = math.abs(number)`{:.language-nelua} |  |
-| `result = math.ceil(number)`{:.language-nelua} |  |
-| `result = math.floor(number)`{:.language-nelua} |  |
-| `result = math.ifloor(number)`{:.language-nelua} |  |
-| `result = math.sqrt(number)`{:.language-nelua} |  |
-| `result = math.exp(number)`{:.language-nelua} |  |
-| `result = math.acos(number)`{:.language-nelua} |  |
-| `result = math.asin(number)`{:.language-nelua} |  |
-| `result = math.cos(number)`{:.language-nelua} |  |
-| `result = math.sin(number)`{:.language-nelua} |  |
-| `result = math.tan(number)`{:.language-nelua} |  |
-| `result = math.cosh(number)`{:.language-nelua} |  |
-| `result = math.sinh(number)`{:.language-nelua} |  |
-| `result = math.tanh(number)`{:.language-nelua} |  |
-| `result = math.log10(number)`{:.language-nelua} |  |
-| `result = math.max(number, number)`{:.language-nelua} |  |
-| `result = math.min(number, number)`{:.language-nelua} |  |
-| `result = math.fmod(base, modulator)`{:.language-nelua} |  |
-| `result = math.atan2(number, number)`{:.language-nelua} |  |
-| `result = math.pow(base, exponent)`{:.language-nelua} |  |
-| `result = math.atan(number, number)`{:.language-nelua} |  |
-| `result = math.log(number, base)`{:.language-nelua} |  |
-| `degrees = math.deg(radians)`{:.language-nelua} |  |
-| `radians = math.rad(degrees)`{:.language-nelua} |  |
-| `result = math.modf(base)`{:.language-nelua} |  |
-| `multiplier, exponent = math.frexp(number)`{:.language-nelua} |  |
-| `number = math.ldexp(multiplier, exponent)`{:.language-nelua} |  |
-| `integer = math.tointeger(number)`{:.language-nelua} |  |
-| `type = math.type(number)`{:.language-nelua} |  |
-| `result = math.ult(number, number)`{:.language-nelua} |  |
-| `math.randomseed(number[, number])`{:.language-nelua} |  |
-| `result = math.random([m[, n]])`{:.language-nelua} |  |
+| `global math`{:.language-nelua} | `math` record |
+| `global math.pi`{:.language-nelua} | The compile-time value of `#[math.pi]#`{:.language-nelua}, which is the the value of π. |
+| `global math.huge`{:.language-nelua} | The compile-time value of `#[math.huge]#`{:.language-nelua}, which is a value greater than any other numeric value. |
+| `global math.maxinteger`{:.language-nelua} | The maximum possible compile-time value of `integer`. |
+| `global math.mininteger`{:.language-nelua} | The minimum possible compile-time value of `integer`. |
+| `math.abs(x)`{:.language-nelua} | Returns the absolute value of `x`. |
+| `math.ceil(x)`{:.language-nelua} | Returns the smallest integral value greater than or equal to `x`. |
+| `math.floor(x)`{:.language-nelua} | Returns the largest integral value less than or equal to `x`. |
+| `math.ifloor(x): integer`{:.language-nelua} | Returns the result of `math.floor(x)`{:.language-nelua}, but returns an `integer`. |
+| `math.sqrt(x)`{:.language-nelua} | Returns the square root of `x`. |
+| `math.exp(x)`{:.language-nelua} | Returns the value eˣ (where e is the base of natural logarithms). |
+| `math.acos(x)`{:.language-nelua} | Returns the arc cosine of `x` (in radians). |
+| `math.asin(x)`{:.language-nelua} | Returns the arc sine of `x` (in radians). |
+| `math.cos(x)`{:.language-nelua} | Returns the cosine of `x` (assumed to be in radians). |
+| `math.sin(x)`{:.language-nelua} | Returns the sine of `x` (assumed to be in radians). |
+| `math.tan(x)`{:.language-nelua} | Returns the tangent of `x` (assumed to be in radians). |
+| `math.cosh(x)`{:.language-nelua} | Returns the hyperbolic cosine of `x`. |
+| `math.sinh(x)`{:.language-nelua} | Returns the hyperbolic sine of `x`. |
+| `math.tanh(x)`{:.language-nelua} | Returns the hyperbolic tangent of `x`. |
+| `math.log10(x)`{:.language-nelua} | Returns the base-10 logarithm of `x`. |
+| `math.max(x, y)`{:.language-nelua} | Returns the argument with the maximum value, according to the Nelua operator <. |
+| `math.min(x, y)`{:.language-nelua} | Returns the argument with the minimum value, according to the Nelua operator <. |
+| `math.fmod(x, y)`{:.language-nelua} | Returns the remainder of the division of `x` by `y` that rounds the quotient towards zero. |
+| `math.atan2(y, x)`{:.language-nelua} | Returns the arc tangent of `y`/`x` (in radians), but uses the signs of both parameters to find the quadrant of the result. (It also handles correctly the case of `x` being zero.). |
+| `math.pow(x, y)`{:.language-nelua} | Returns xʸ. (You can also use the expression `x^y`{:.language-nelua} to compute this value.). |
+| `math.atan(y[, x])`{:.language-nelua} | If `x` argument is passed, it returns the same value as `math.atan2(y, x)`{:.language-nelua}, otherwise it returns the arc tangent of `y` (in radians). |
+| `math.log(x[, base])`{:.language-nelua} | If `base` argument is passed, it returns the logarithm of `x` in the given `base`, otherwise it returns the natural logarithm of `x`). |
+| `math.deg(x)`{:.language-nelua} | Converts the angle `x` from radians to degrees. |
+| `math.rad(x)`{:.language-nelua} | Returns the angle `x` (given in degrees) in radians. |
+| `math.modf(x)`{:.language-nelua} | Returns the integral part of `x` and the fractional part of `x`. |
+| `math.frexp(x)`{:.language-nelua} | Returns `m` (multiplier) and `e` (exponent) such that _x = m2ᵉ_, `e` is an `integer` and the absolute value of `m` is in the range [0.5, 1) (or zero when `x` is zero). |
+| `math.ldexp(m, e)`{:.language-nelua} | Returns _m2ᵉ_ (`e` should be an integral). |
+| `math.tointeger(x)`{:.language-nelua} | If the value `x` is convertible to an `integer`, returns that integer. Otherwise, returns `nil`. |
+| `math.type(x)`{:.language-nelua} | Returns `"integer"`{:.language-nelua} if `x` is an integral, `"float"`{:.language-nelua} if it is a float, or `"nil"`{:.language-nelua} if `x` is not a number. |
+| `math.ult(m, n)`{:.language-nelua} | Both `m` and `n` should be convertible to an `integer`; returns `true` if and only if integer `m` is below integer `n` when they are compared as unsigned integers. |
+| `math.randomseed(x)`{:.language-nelua} | Sets `x` as the "seed" for the pseudo-random generator: equal seeds produce equal sequences of numbers. |
+| `math.random([m[, n]])`{:.language-nelua} | When called without arguments, returns a pseudo-random float with uniform distribution in the range [0,1). When called with two integers `m` and `n`, it returns a pseudo-random `integer` with uniform distribution in the range [`m`, `n`]. The call `math.random(n)`{:.language-nelua}, for a positive `n`, is equivalent to `math.random(1,n)`{:.language-nelua}. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## memory
 
-Desc
+[Memory library](https://github.com/edubart/nelua-lang/blob/master/lib/memory.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -162,7 +164,7 @@ Desc
 
 ## os
 
-Desc
+[OS library](https://github.com/edubart/nelua-lang/blob/master/lib/os.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -182,7 +184,7 @@ Desc
 
 ## resourcepool
 
-Desc
+[Resource Pool](https://github.com/edubart/nelua-lang/blob/master/lib/resourcepool.nelua) library description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -191,7 +193,7 @@ Desc
 
 ## sequence
 
-Desc
+[Sequence library](https://github.com/edubart/nelua-lang/blob/master/lib/sequence.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -200,7 +202,7 @@ Desc
 
 ## span
 
-Desc
+[Span library](https://github.com/edubart/nelua-lang/blob/master/lib/span.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -209,13 +211,12 @@ Desc
 
 ## string
 
-Desc
+[String library](https://github.com/edubart/nelua-lang/blob/master/lib/string.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
 | `string`{:.language-nelua} | String type. |
 | `tostring`{:.language-nelua} | Converts values to string using `__tostring`{:.language-nelua}. |
-| `string._create`{:.language-nelua} |  |
 | `string.__tocstring`{:.language-nelua} |  |
 | `string.__tostringview`{:.language-nelua} |  |
 | `string.__convert`{:.language-nelua} |  |
@@ -260,7 +261,7 @@ Desc
 
 ## stringbuilder
 
-Desc
+[String Builder library](https://github.com/edubart/nelua-lang/blob/master/lib/stringbuilder.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -269,7 +270,7 @@ Desc
 
 ## stringview
 
-Desc
+[String View library](https://github.com/edubart/nelua-lang/blob/master/lib/stringview.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -302,7 +303,7 @@ Desc
 
 ## traits
 
-Desc
+[Traits library](https://github.com/edubart/nelua-lang/blob/master/lib/traits.nelua) description (TODO)
 
 | Variable Name | Description |
 |---------------|------|
@@ -315,11 +316,28 @@ Desc
 
 ## vector
 
-Desc
+[Vector library](https://github.com/edubart/nelua-lang/blob/master/lib/vector.nelua), typically used as an efficient vector.
 
 | Variable Name | Description |
 |---------------|------|
-| `vector`{:.language-nelua} | Vector constructor. |
+| `vector(T)`{:.language-nelua} | Generic vector type expression. |
+| `vectorT.size: usize`{:.language-nelua} | Number of elements in the vector. |
+| `vectorT.data: span(T)`{:.language-nelua} | Elements storage of the vector. |
+| `vectorT.allocator: Allocator`{:.language-nelua} | Allocator of the vector. |
+| `vectorT.make(allocator)`{:.language-nelua} | Create a vector using a custom allocator instance. |
+| `vectorT:clear()`{:.language-nelua} | Removes all elements from the vector. |
+| `vectorT:destroy()`{:.language-nelua} | Resets the vector to zeroed state, freeing all used resources. |
+| `vectorT:reserve(n: usize)`{:.language-nelua} | Reserve at least `n` elements in the vector storage. |
+| `vectorT:resize(n: usize)`{:.language-nelua} | Resizes the vector so that it contains `n` elements. |
+| `vectorT:push(v: T)`{:.language-nelua} | Adds a element `v` at the end of the vector. |
+| `vectorT:pop(): T`{:.language-nelua} | Removes the last element in the vector and returns its value. |
+| `vectorT:insert(pos: usize, v: T)`{:.language-nelua} | Inserts element `v` at position `pos` in the vector. |
+| `vectorT:remove(pos: usize): T`{:.language-nelua} | Removes element at position `pos` in the vector and returns its value. |
+| `vectorT:remove_value(v: T)`{:.language-nelua} | Removes the first item from the vector whose value is given. |
+| `vectorT:remove_if(pred)`{:.language-nelua} | Removes all elements from the vector where `pred` function returns true. |
+| `vectorT:capacity(): isize`{:.language-nelua} | Returns the number of elements the vector can store before triggering a reallocation. |
+| `vectorT:__atindex(i: usize): *T`{:.language-nelua} | Returns reference to element at index `pos`. |
+| `vectorT:__len(): isize`{:.language-nelua} | Returns the number of elements in the vector. |
 {: .table.table-bordered.table-striped.table-sm}
 
 <a href="/diffs/" class="btn btn-outline-primary btn-lg float-right">Differences >></a>
