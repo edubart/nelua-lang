@@ -31,12 +31,12 @@ Basic library contains common functions.
 
 | Variable Name | Description |
 |---------------|------|
-| `likely(x: boolean): boolean`{:.language-nelua} | Binding for GNUC `__builtin_expect(x, 1)`. |
-| `unlikely(x: boolean): boolean`{:.language-nelua} | Binding for GNUC `__builtin_expect(x, 0)`. |
-| `panic(msg: stringview)`{:.language-nelua} | Returns an error message and stops execution. |
-| `error(msg: stringview)`{:.language-nelua} | Alias of `panic`. |
-| `assert(cond: auto, msg: auto)`{:.language-nelua} | Asserts the condition `cond`and errors if it's false. |
-| `_VERSION: stringview`{:.language-nelua} | A string of Nelua version. |
+| `global likely(x: boolean): boolean`{:.language-nelua} | Binding for GNUC `__builtin_expect(x, 1)`. |
+| `global unlikely(x: boolean): boolean`{:.language-nelua} | Binding for GNUC `__builtin_expect(x, 0)`. |
+| `global panic(msg: stringview)`{:.language-nelua} | Returns an error message and stops execution. |
+| `global error(msg: stringview)`{:.language-nelua} | Alias of `panic`. |
+| `global assert(cond: auto, msg: auto)`{:.language-nelua} | Asserts the condition `cond`and errors if it's false. |
+| `global _VERSION: stringview`{:.language-nelua} | A string of Nelua version. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## iterators
@@ -45,9 +45,9 @@ Iterators library contains iterator related functions.
 
 | Variable Name | Description |
 |---------------|------|
-| `ipairs`{:.language-nelua} | Work with vector, sequence, span and array. |
-| `pairs`{:.language-nelua} | Alias to ipairs |
-| `next`{:.language-nelua} | Work with vector, sequence, span and array. |
+| `global ipairs`{:.language-nelua} | Work with vector, sequence, span and array. |
+| `global pairs`{:.language-nelua} | Alias to ipairs |
+| `global next`{:.language-nelua} | Work with vector, sequence, span and array. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## filestream
@@ -56,7 +56,7 @@ Filestream library contains filestream record, mainly used for `io` library.
 
 | Variable Name | Description |
 |---------------|------|
-| `filestream`{:.language-nelua} | Filestream record. |
+| `global filestream`{:.language-nelua} | `filestream` record. |
 | `filestream.id: uint64`{:.language-nelua} | file id. |
 | `filestream.open(filename: stringview[, mode: stringview]#) : (filestream, stringview, integer)`{:.language-nelua} | Opens a file with given mode (default is `r`). Returns empty filesystem, error message and error code if failed. |
 | `filestream:flush(): (boolean, stringview, integer)`{:.language-nelua} | Flushes the file. |
@@ -75,7 +75,7 @@ IO library, copies Lua `io`{:.language-nelua} library.
 
 | Variable Name | Description |
 |---------------|------|
-| `io`{:.language-nelua} | `io` record. |
+| `global io`{:.language-nelua} | `io` record. |
 | `global io.stderr: filestream`{:.language-nelua} | Error file. |
 | `global io.stdout: filestream`{:.language-nelua} | Output file used for io.write. |
 | `global io.stdin: filestream`{:.language-nelua} | Input file used for io.read. |
@@ -97,12 +97,12 @@ Math library, copies Lua `math`{:.language-nelua} library with extra functions.
 
 | Variable Name | Description |
 |---------------|------|
-| `math`{:.language-nelua} | `math` record |
 | `global math.pi`{:.language-nelua} | The value of `#[math.pi]#`{:.language-nelua} |
 | `global math.huge`{:.language-nelua} | The value of `#[math.huge]#`{:.language-nelua} |
 | `global math.maxinteger`{:.language-nelua} | The maximum value of `integer`{:.language-nelua} |
 | `global math.mininteger`{:.language-nelua} | The minimum value of `integer`{:.language-nelua} |
 | `math.abs(x)`{:.language-nelua} | Returns the absolute value of `x` |
+| `global math`{:.language-nelua} | `math` record |
 | `math.ceil(x)`{:.language-nelua} | Returns the smallest integral value greater than or equal to `x`. |
 | `math.floor(x)`{:.language-nelua} | Returns the largest integral value less than or equal to `x`. |
 | `math.ifloor(x): integer`{:.language-nelua} | Returns the result of `math.floor(x)`{:.language-nelua}, but returns an `integer`{:.language-nelua}. |
