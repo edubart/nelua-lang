@@ -52,11 +52,10 @@ Iterators library contains iterator related functions.
 
 ## filestream
 
-Filestream library contains filestream object, mainly used for `io` library.
+Filestream library contains filestream record, mainly used for `io` library.
 
 | Variable Name | Description |
 |---------------|------|
-| `filestream`{:.language-nelua} | Filestream object. |
 | `file, errstr, status = filestream.open(filepath[, mode])`{:.language-nelua} | Opens a file with given mode (default is `r`). Returns empty filesystem, error message and error code if failed. |
 | `result, errstr, errno = filestream:flush()`{:.language-nelua} | Flushes the file. |
 | `result, errstr, errno = filestream:close()`{:.language-nelua} | Closes the file. |
@@ -65,6 +64,7 @@ Filestream library contains filestream object, mainly used for `io` library.
 | `result, errstr, errno = filestream:read([format])`{:.language-nelua} | Reads the content of the file according to the given format. |
 | `result, errstr, errno = filestream:write(str)`{:.language-nelua} | Writes text to the file. |
 | `result = isopen`{:.language-nelua} | Returns open state of the file. |
+| `filestream`{:.language-nelua} | Filestream record. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## io
