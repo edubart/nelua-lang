@@ -101,5 +101,17 @@ function io.isopen(file: filestream): boolean
   return file:isopen()
 end
 
--- TODO: io.lines
+function io.lines(filename: facultative(stringview), fmt: overload(integer,stringview,niltype))
+  ## if filename.type.is_niltype then
+    return io.stdin:lines()
+  ## else
+    -- TODO: close file using to be closed variables
+    local file: filestream = io.open(filename)
+    if not file:isopen() then
+      error('io.lines: cannot open file')
+    end
+    return file:lines(fmt)
+  ## end
+end
+
 -- TODO: io.popen

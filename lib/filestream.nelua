@@ -64,7 +64,7 @@ function filestream:_get_fp(): FILEptr
 end
 
 function filestream.open(filename: stringview, mode: facultative(stringview)) : (filestream, stringview, integer)
-  ## if mode.type.is_nil then
+  ## if mode.type.is_niltype then
   local mode: stringview = "r"
   ## end
   --TODO: check modes
@@ -212,6 +212,11 @@ function filestream:read(fmt: overload(integer,stringview,niltype)): (string, st
   if success then
     s = sb:promotestring()
   else
+    if #errmsg == 0 then
+      -- should be eof
+      errmsg = 'eof'
+      status = EOF
+    end
     sb:destroy()
   end
   return s, errmsg, status
@@ -229,6 +234,21 @@ function filestream:write(s: stringview): (boolean, stringview, integer)
   return fileresult(false)
 end
 
+function filestream:lines(fmt: overload(integer,stringview,niltype))
+  ## if fmt.type.is_niltype then
+  local fmt: stringview = 'l'
+  ## end
+  local LinesState = @record {
+    file: filestream,
+    fmt: #[fmt.type]#
+  }
+  local function lines_next(state: LinesState, prevstr: string): (boolean, string)
+    local str: string, errmsg: stringview, status: integer = state.file:read(state.fmt)
+    return status == 0, str
+  end
+  return lines_next, (@LinesState){file=$self,fmt=fmt}, (@string){}
+end
+
 function filestream:isopen(): boolean
   return pool:has(self.id)
 end
@@ -241,5 +261,3 @@ function filestream:__tostring(): string
     return string.format('file (%p)', fp)
   end
 end
-
--- TODO: filestream:lines

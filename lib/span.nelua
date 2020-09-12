@@ -52,7 +52,7 @@
     ## else
       self.data = &values[#[values.type.subtype.is_sequence and 1 or 0]#]
       self.size = (@usize)(#$values)
-      ## end
+    ## end
     return self
   end
 

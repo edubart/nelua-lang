@@ -68,7 +68,7 @@ Nelua has additional functions in this library. See [here](/libraries/#io).
 | `io.close`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
 | `io.flush`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
 | `io.input`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
-| `io.lines`{:.language-nelua} | ❌ | `io`{:.language-nelua} |  |
+| `io.lines`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
 | `io.open`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
 | `io.output`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
 | `io.popen`{:.language-nelua} | ❌ | `io`{:.language-nelua} |  |
@@ -79,13 +79,13 @@ Nelua has additional functions in this library. See [here](/libraries/#io).
 | `io.tmpfile`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
 | `io.type`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
 | `io.write`{:.language-nelua} | ✔ | `io`{:.language-nelua} | Doesn't support multiple arguments. |
-| `file:close`{:.language-nelua} | ✔ | `filesystem`{:.language-nelua} |  |
-| `file:flush`{:.language-nelua} | ✔ | `filesystem`{:.language-nelua} |  |
-| `file:lines`{:.language-nelua} | ✔ | `filesystem`{:.language-nelua} |  |
-| `file:read`{:.language-nelua} | ✔ | `filesystem`{:.language-nelua} | Doesn't support `*n` format and multiple arguments. |
-| `file:seek`{:.language-nelua} | ✔ | `filesystem`{:.language-nelua} |  |
-| `file:setvbuf`{:.language-nelua} | ✔ | `filesystem`{:.language-nelua} |  |
-| `file:write`{:.language-nelua} | ✔ | `filesystem`{:.language-nelua} | Doesn't support multiple arguments. Doesn't return the file itself. |
+| `file:close`{:.language-nelua} | ✔ | `filestream`{:.language-nelua} |  |
+| `file:flush`{:.language-nelua} | ✔ | `filestream`{:.language-nelua} |  |
+| `file:lines`{:.language-nelua} | ✔ | `filestream`{:.language-nelua} |  |
+| `file:read`{:.language-nelua} | ✔ | `filestream`{:.language-nelua} | Doesn't support `*n` format and multiple arguments. |
+| `file:seek`{:.language-nelua} | ✔ | `filestream`{:.language-nelua} |  |
+| `file:setvbuf`{:.language-nelua} | ✔ | `filestream`{:.language-nelua} |  |
+| `file:write`{:.language-nelua} | ✔ | `filestream`{:.language-nelua} | Doesn't support multiple arguments. Doesn't return the file itself. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## Math

@@ -91,11 +91,57 @@ do -- filestream:read, filestream:write and filestream:seek
   assert(file:read('a') == text)
   assert(file:close())
   assert(not file:isopen())
+end
+
+do -- filestream:lines
+  file = io.open('test.tmp', 'r')
+  local i = 1
+  for line in file:lines() do
+    assert(line == ('line'..i))
+    i = i + 1
+  end
+
+  file:seek('set')
+  i = 1
+  for line in file:lines('L') do
+    assert(line == ('line'..i..'\n'))
+    i = i + 1
+  end
+
+  file:seek('set')
+  i = 1
+  for line in file:lines(6) do
+    assert(line == ('line'..i..'\n'))
+    i = i + 1
+  end
+
+  file:close()
+end
+
+do -- io.lines
+  local i = 1
+  for line in io.lines('test.tmp') do
+    assert(line == ('line'..i))
+    i = i + 1
+  end
+
+  i = 1
+  for line in io.lines('test.tmp', 'L') do
+    assert(line == ('line'..i..'\n'))
+    i = i + 1
+  end
+
+  i = 1
+  for line in io.lines('test.tmp', 6) do
+    assert(line == ('line'..i..'\n'))
+    i = i + 1
+  end
 
   os.remove('test.tmp')
 end
 
 do -- filestream:setvbuf
+  os.remove('test.tmp')
   file = io.open('test.tmp', 'w')
   assert(file:isopen())
   assert(file:setvbuf("no") == true)
