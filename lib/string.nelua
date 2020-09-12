@@ -98,7 +98,7 @@ function string.__convert(s: cstring): string
   return self
 end
 
-function string.sub(self: stringview, i: isize, j: #[optional_concept(isize)]#): string
+function string.sub(self: stringview, i: isize, j: facultative(isize)): string
   ## if j.type.is_niltype then
   local j: isize = -1
   ## end
@@ -117,7 +117,7 @@ function string.sub(self: stringview, i: isize, j: #[optional_concept(isize)]#):
   return s
 end
 
-function string.rep(self: stringview, n: isize, sep: #[optional_concept(stringview)]#): string
+function string.rep(self: stringview, n: isize, sep: facultative(stringview)): string
   if unlikely(n <= 0) then return (@string){} end
   if unlikely(n == 1) then return self end
   local n: usize = (@usize)(n)

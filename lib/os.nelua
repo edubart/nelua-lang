@@ -66,7 +66,7 @@ function os.difftime(t1: integer, t2: integer): integer
   return t2 - t1
 end
 
-function os.execute(command: #[optional_concept(stringview)]#)
+function os.execute(command: facultative(stringview))
   ## if command.type.is_stringview then
     errno = 0
     local status: integer = system(command)
@@ -81,7 +81,7 @@ function os.execute(command: #[optional_concept(stringview)]#)
   ## end
 end
 
-function os.exit(code: #[overload_concept{integer,boolean,niltype}]#)
+function os.exit(code: overload(integer,boolean,niltype))
   ## if code.type.is_arithmetic then
     exit(code)
   ## elseif code.type.is_boolean then
@@ -118,7 +118,7 @@ function os.rename(oldname: stringview, newname: stringview): (boolean, stringvi
   return true, '', 0
 end
 
-function os.setlocale(locale: stringview, category: #[optional_concept(stringview)]#): string
+function os.setlocale(locale: stringview, category: facultative(stringview)): string
   ## if category.type.is_niltype then
     return os.setlocale(locale, 'all')
   ## else
@@ -147,7 +147,7 @@ global os_time_desc = @record {
   isdst: boolean
 }
 
-function os.time(desc: #[optional_concept(os_time_desc)]#): integer
+function os.time(desc: facultative(os_time_desc)): integer
   local t: time_t
   ## if desc.type.is_niltype then
     t = time(nilptr)

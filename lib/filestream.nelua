@@ -63,7 +63,7 @@ function filestream:_get_fp(): FILEptr
   return nilptr
 end
 
-function filestream.open(filename: stringview, mode: #[optional_concept(stringview)]#) : (filestream, stringview, integer)
+function filestream.open(filename: stringview, mode: facultative(stringview)) : (filestream, stringview, integer)
   ## if mode.type.is_nil then
   local mode: stringview = "r"
   ## end
@@ -92,8 +92,8 @@ function filestream:close(): (boolean, stringview, integer)
   return fileresult(res == 0)
 end
 
-function filestream:seek(whence: #[optional_concept(stringview)]#,
-                         offset: #[optional_concept(integer)]#): (integer, stringview, integer)
+function filestream:seek(whence: facultative(stringview),
+                         offset: facultative(integer)): (integer, stringview, integer)
   local fp: FILEptr = self:_get_fp()
   if not fp then error('filestream.seek: attempt to use a closed file') end
   ## if whence.type.is_niltype then
@@ -120,7 +120,7 @@ function filestream:seek(whence: #[optional_concept(stringview)]#,
   ## end
 end
 
-function filestream:setvbuf(mode: stringview, size: #[optional_concept(integer)]#)
+function filestream:setvbuf(mode: stringview, size: facultative(integer))
   ## if size.type.is_niltype then
   local size: csize = 1024
   ## end
@@ -176,7 +176,7 @@ local function readall(sb: *stringbuilder, fp: FILEptr): boolean
   return true
 end
 
-function filestream:read(fmt: #[overload_concept{integer,stringview,niltype}]#): (string, stringview, integer)
+function filestream:read(fmt: overload(integer,stringview,niltype)): (string, stringview, integer)
   --TODO: multiple arguments
   local fp: FILEptr = self:_get_fp()
   if not fp then error('filestream.read: attempt to use a closed file') end

@@ -58,13 +58,13 @@ end
 
 -- Get the next element from a container.
 global function next(list: list_reference_concept,
-                     index: #[optional_concept(integer)]#)
+                     index: facultative(integer))
   ## impl_ipairs_next(list.type:implict_deref_type())
 end
 
 -- Like `next` but returns reference to elements so that you can modify.
 global function mnext(list: list_reference_concept,
-                     index: #[optional_concept(integer)]#)
+                     index: facultative(integer))
   ## impl_mipairs_next(list.type:implict_deref_type())
 end
 

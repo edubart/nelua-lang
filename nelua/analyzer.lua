@@ -710,13 +710,30 @@ end
 function visitors.GenericType(context, node)
   local attr = node.attr
   local name, argnodes = node[1], node[2]
+  local generic_type
   local symbol = context.scope.symbols[name]
-  if not symbol or not symbol.type or not symbol.type.is_type then
-    node:raisef("in generic evaluation: symbol '%s' is not a type", name)
-  end
-  local generic_type = symbol.value.is_generic and symbol.value or symbol.value.generic
-  if not generic_type or not traits.is_type(generic_type) or not generic_type.is_generic then
-    node:raisef("in generic evaluation: symbol '%s' of type '%s' cannot generalize", name, symbol.type)
+  if not symbol then
+    if name == 'overload' then
+      generic_type = types.GenericType(function(...)
+        return types.make_overload_concept(context, ...)
+      end)
+      generic_type.node = node
+    elseif name == 'facultative' then
+      generic_type = types.GenericType(function(sym, noconvert)
+        return types.make_overload_concept(context, {sym, primtypes.niltype, noconvert=noconvert})
+      end)
+      generic_type.node = node
+    else
+      node:raisef("in generic evaluation: symbol '%s' is not defined", name)
+    end
+  else
+    if not symbol or not symbol.type or not symbol.type.is_type then
+      node:raisef("in generic evaluation: symbol '%s' is not a type", name)
+    end
+    generic_type = symbol.value.is_generic and symbol.value or symbol.value.generic
+    if not generic_type or not traits.is_type(generic_type) or not generic_type.is_generic then
+      node:raisef("in generic evaluation: symbol '%s' of type '%s' cannot generalize", name, symbol.type)
+    end
   end
   local params = {}
   for i=1,#argnodes do

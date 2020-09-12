@@ -91,6 +91,15 @@ function tabler.icompare(t1, t2)
   return true
 end
 
+-- Get the key for a table in _G.
+function tabler.globaltable2key(t)
+  for k,v in pairs(_G) do
+    if v == t then
+      return k
+    end
+  end
+end
+
 -- Add lua table methods to allow using them in chain mode.
 tabler.concat = table.concat
 tabler.insert = table.insert

@@ -76,7 +76,6 @@ end
 local function nelua_compile(name, generator)
   local file = 'benchmarks/' .. name .. '.nelua'
   local flags = '-q -b -r -Pnochecks \
- "--lua-version=5.1" \
  --cache-dir nelua_cache \
  --cflags="-O3 -march=native -fno-plt -flto"'
   local command = string.format(luabin .. ' ./nelua.lua %s -g %s %s', flags, generator, file)

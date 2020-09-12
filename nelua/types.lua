@@ -2043,6 +2043,64 @@ function ConceptType:is_convertible_from_attr(attr, _, argattrs)
   return type, err
 end
 
+function types.make_overload_concept(context, syms, ...)
+  if traits.is_symbol(syms) or traits.is_type(syms) then
+    syms = table.pack(syms, ...)
+  end
+  local type = types.ConceptType(function(x)
+    local accepttypes = {}
+    for i,sym in ipairs(syms) do
+      local type
+      if traits.is_type(sym) then
+        type = sym
+      elseif traits.is_symbol(sym) then
+        assert(sym.type == primtypes.type)
+        type = sym.value
+      elseif traits.is_table(sym) then
+        local symname = tabler.globaltable2key(sym)
+        if symname then
+          sym = context.scope.symbols[symname]
+          assert(sym.type == primtypes.type)
+          type = sym.value
+        end
+      end
+      if not type then
+        context:get_current_node():raisef("in overload concept definition argument #%d: invalid type", i)
+      end
+      accepttypes[i] = type
+    end
+
+    -- try to match exact type first
+    for i=1,#accepttypes do
+      local type = accepttypes[i]
+      if type == x.type then
+        return type
+      end
+    end
+
+    -- else try to convert one
+    local errs = {}
+    if not syms.noconvert then
+      for i=1,#accepttypes do
+        local type = accepttypes[i]
+        local ok, err = type:is_convertible_from(x.type)
+        if ok then
+          return type
+        else
+          table.insert(errs, err)
+        end
+      end
+    end
+
+    local ss = sstream()
+    ss:add('cannot match overload concept:\n    ')
+    ss:addlist(errs, '\n    ')
+    return nil, ss:tostring()
+  end)
+  type.node = context:get_current_node()
+  return type
+end
+
 --------------------------------------------------------------------------------
 -- Generic Type
 --

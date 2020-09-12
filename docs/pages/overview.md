@@ -2012,10 +2012,10 @@ that optionally accepts any kind of arithmetic, but you really want it to be imp
 as an number:
 
 ```nelua
-local optional_number_concept = #[concept(function(attr)
+local facultative_number_concept = #[concept(function(attr)
   if attr.type.is_niltype then
     -- niltype is the type when the argument is missing or when we use 'nil'
-    -- we accept it because the number is optional
+    -- we accept it because the number is facultative
     return true
   end
   -- instead of returning true, we return the desired type to be implemented,
@@ -2025,7 +2025,7 @@ local optional_number_concept = #[concept(function(attr)
   return primtypes.number
 end)]#
 
-local function get_number(x: optional_number_concept)
+local function get_number(x: facultative_number_concept)
   ## if x.type.is_niltype then
     return 0
   ## else
@@ -2037,13 +2037,13 @@ print(get_number(nil)) -- prints 0
 print(get_number(2)) -- prints 2
 ```
 
-### Optional concept
+### Facultative concept
 
-Optional concept are common to use, thus there is
+Facultative concept are common to use, thus there is
 a shortcut for creating them, for instance this the previous code is equivalent to:
 
 ```nelua
-local function get_number(x: #[optional_concept(number)]#)
+local function get_number(x: facultative(number))
   ## if x.type.is_niltype then
     return 0
   ## else
@@ -2064,7 +2064,7 @@ Using concepts to overload functions for different incoming types
 at compile-time is a common use, so there is also a shortcut for creating overload concepts:
 
 ```nelua
-local function foo(x: #[overload_concept{integer,stringview,niltype}]#)
+local function foo(x: overload(integer,stringview,niltype))
   ## if x.type.is_integral then
     print('got integer ', x)
   ## elseif x.type.is_stringview then

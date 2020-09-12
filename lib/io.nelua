@@ -21,7 +21,7 @@ global io.stdout: filestream = filestream._from_fp(stdout)
 global io.stdin: filestream = filestream._from_fp(stdin)
 
 function io.open(filename: stringview,
-                 mode: #[optional_concept(stringview)]#) : (filestream, stringview, integer)
+                 mode: facultative(stringview)) : (filestream, stringview, integer)
   return filestream.open(filename, mode)
 end
 
@@ -45,7 +45,7 @@ end)]#)
   ## end
 end
 
-function io.input(file: #[overload_concept{stringview,filestream,niltype}]#): filestream
+function io.input(file: overload(stringview,filestream,niltype)): filestream
   ## if file.type.is_stringview then
     local fin: filestream, err: stringview = io.open(file, "r")
     if not fin:isopen() then error(err) end
@@ -57,7 +57,7 @@ function io.input(file: #[overload_concept{stringview,filestream,niltype}]#): fi
   return io.stdin
 end
 
-function io.output(file: #[overload_concept{stringview,filestream,niltype}]#): filestream
+function io.output(file: overload(stringview,filestream,niltype)): filestream
   ## if file.type.is_stringview then
     local fout: filestream, err: stringview = io.open(file, "w")
     if not fout:isopen() then error(err) end
@@ -77,7 +77,7 @@ function io.tmpfile(): (filestream, stringview, integer)
   return filestream._from_fp(fp), '', 0
 end
 
-function io.read(fmt: #[overload_concept{integer,stringview,niltype}]#): (string, stringview, integer)
+function io.read(fmt: overload(integer,stringview,niltype)): (string, stringview, integer)
   return io.stdin:read(fmt)
 end
 

@@ -1463,6 +1463,11 @@ it("concepts", function()
     f(4)
     g((@[2]integer){1,2})
     g((@[3]integer){1,2,3})
+
+    local function h(x: #[facultative_concept(integer)]#) end
+    local function h(x: facultative(integer)) end
+    local function g(x: #[overload_concept(integer,niltype)]#) end
+    local function g(x: overload(integer,niltype)) end
   ]])
   assert.analyze_error([[
     local an_integral = #[concept(function(x)
@@ -1513,11 +1518,10 @@ it("concepts", function()
     local function f(x: #[overload_concept({integer, 1})]#) return x end
     f(true)
   ]], "in overload concept definition")
-
   assert.analyze_error([[
     local function f(x: #[overload_concept(integer)]#) return x end
     f(true)
-  ]], "in overload concept definition")
+  ]], "cannot match overload concept")
 end)
 
 it("generics", function()
@@ -1570,6 +1574,9 @@ it("generics", function()
     local myarray = #[generic(function() return X end)]#
     local x = @myarray(integer)
   ]], "expected a symbol holding a type in generic return")
+  assert.analyze_error([[
+    local x = @invalidgeneric(integer)
+  ]], "is not defined")
 end)
 
 it("custom braces initialization", function()

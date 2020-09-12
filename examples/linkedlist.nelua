@@ -4,26 +4,26 @@ local allocator: auto = general_allocator
 
 ## local make_list = generalize(function(T)
   local T = @#[T]#
-  local ListNodeT <codename #['ListNode_'..T.codename]#> = @record {
-    prev: *ListNodeT,
-    next: *ListNodeT,
+  local listnodeT <nickname #[string.format('listnode(%s)',T)]#> = @record {
+    prev: *listnodeT,
+    next: *listnodeT,
     value: T
   }
 
-  local function new_node(prev: *ListNodeT, next: *ListNodeT, value: T): *ListNodeT
-    local node = allocator:new(@ListNodeT)
+  local function new_node(prev: *listnodeT, next: *listnodeT, value: T): *listnodeT
+    local node = allocator:new(@listnodeT)
     node.prev = prev
     node.next = next
     node.value = value
     return node
   end
 
-  local ListT <codename #['List_'..T.codename]#> = @record{
-    head: *ListNodeT,
-    tail: *ListNodeT
+  local listT <nickname #[string.format('list(%s)',T)]#> = @record{
+    head: *listnodeT,
+    tail: *listnodeT
   }
 
-  function ListT:prepend(value: T)
+  function listT:prepend(value: T)
     local node = new_node(nilptr, self.head, value)
     if likely(self.head) then
       assert(not self.head.prev)
@@ -35,7 +35,7 @@ local allocator: auto = general_allocator
     self.head = node
   end
 
-  function ListT:append(value: T)
+  function listT:append(value: T)
     local node = new_node(self.tail, nilptr, value)
     if likely(self.tail) then
       assert(not self.tail.next)
@@ -47,7 +47,7 @@ local allocator: auto = general_allocator
     self.tail = node
   end
 
-  function ListT:find(value: T): *ListNodeT
+  function listT:find(value: T): *listnodeT
     local it = self.head
     while it do
       if it.value == value then
@@ -58,11 +58,11 @@ local allocator: auto = general_allocator
     return nilptr
   end
 
-  function ListT:contains(value: T): boolean
+  function listT:contains(value: T): boolean
     return self:find(value) ~= nilptr
   end
 
-  function ListT:erase(node: *ListNodeT): *ListNodeT
+  function listT:erase(node: *listnodeT): *listnodeT
     if node == self.head then
       self.head = node.next
     end
@@ -80,7 +80,7 @@ local allocator: auto = general_allocator
     return next
   end
 
-  function ListT:remove_first()
+  function listT:remove_first()
     assert(self.head)
     local node = self.head
     self.head = node.next
@@ -93,7 +93,7 @@ local allocator: auto = general_allocator
     allocator:delete(node)
   end
 
-  function ListT:remove_last()
+  function listT:remove_last()
     assert(self.tail)
     local node = self.tail
     self.tail = node.prev
@@ -106,7 +106,7 @@ local allocator: auto = general_allocator
     allocator:delete(node)
   end
 
-  function ListT:clear()
+  function listT:clear()
     local it = self.head
     while it do
       local next = it.next
@@ -117,7 +117,7 @@ local allocator: auto = general_allocator
     self.tail = nilptr
   end
 
-  function ListT:__len(): isize
+  function listT:__len(): isize
     local count: isize = 0
     local it = self.head
     while it do
@@ -127,14 +127,31 @@ local allocator: auto = general_allocator
     return count
   end
 
-  function ListT:empty(): boolean
+  function listT:__next(node: *listnodeT): (boolean, *listnodeT, T) <inline>
+    local nextnode: *listnodeT
+    if unlikely(node == nilptr) then
+      nextnode = self.head
+    else
+      nextnode = node.next
+    end
+    if unlikely(nextnode == nilptr) then
+      return false, nilptr, T()
+    end
+    return true, nextnode, nextnode.value
+  end
+
+  function listT:__pairs() <inline>
+    return listT.__next, self, nilptr
+  end
+
+  function listT:empty(): boolean
     return self.head == nilptr
   end
 
   -- TODO: insert() -- (like lua, supports append and prepend)
   -- TODO: remove() -- (like lua, supports first and last)
 
-  ## return ListT
+  ## return listT
 ## end)
 
 local list = #[make_list]#
@@ -221,4 +238,13 @@ do -- remove_first
   assert(l.tail.next == nilptr and l.head.prev == nilptr)
   l:remove_first()
   assert(l:empty())
+end
+
+do -- iterate
+  local l: list(integer)
+  l:append(1) l:append(2) l:append(3)
+  for _,v in l:__pairs() do
+    print(v)
+  end
+  l:clear()
 end
