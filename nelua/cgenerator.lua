@@ -407,7 +407,12 @@ function visitors.Nil(_, _, emitter)
   emitter:add_nil_literal()
 end
 
-function visitors.Varargs(_, _, emitter)
+function visitors.Varargs(_, _, emitter) --luacov:disable
+  assert('not implemented yet')
+  emitter:add('...')
+end --luacov:enable
+
+function visitors.VarargsType(_, _, emitter)
   emitter:add('...')
 end
 
@@ -584,7 +589,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     local serialized = false
     local callargtypes = attr.pseudoargtypes or calleetype.argtypes
     local callargattrs = attr.pseudoargattrs or calleetype.argattrs
-    local ismethod = attr.pseudoargtypes ~= nil
+    local ismethod = attr.ismethod
     for i,_,argnode,_,lastcallindex in izipargnodes(callargtypes, argnodes) do
       if (argnode and argnode.attr.sideeffect) or lastcallindex == 1 then
         -- expressions with side effects need to be evaluated in sequence

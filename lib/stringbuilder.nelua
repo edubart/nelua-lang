@@ -13,11 +13,7 @@ local function strchr(s: cstring, c: cint): cstring <cimport,cinclude'<string.h>
 local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
 local function strcpy(dest: cstring, src: cstring): cstring <cimport,cinclude'<string.h>',nodecl> end
-local function snprintf_1ci(s: cstring, maxlen: csize, format: cstring, x: cint): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function snprintf_1i(s: cstring, maxlen: csize, format: cstring, x: integer): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function snprintf_1p(s: cstring, maxlen: csize, format: cstring, x: pointer): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function snprintf_1n(s: cstring, maxlen: csize, format: cstring, x: number): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function snprintf_1cs(s: cstring, maxlen: csize, format: cstring, x: cstring): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
+local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 
 -- format utilities
 local MAX_FORMAT <comptime> = 32
@@ -158,7 +154,7 @@ end
           ## if primtypes.cint:is_convertible_from(arg1.type) then
             if c == 'c'_byte then
               local n: cint = (@cint)(arg1)
-              nb = snprintf_1ci(buff, maxitem, &form[0], n)
+              nb = snprintf(buff, maxitem, &form[0], n)
               goto next
             end
           ## end if primtypes.integer:is_convertible_from(arg1.type) then
@@ -169,13 +165,10 @@ end
                c == 'x'_byte or
                c == 'X'_byte then
               local lenmod: cstring <noinit>
-              ##[[
-                cinclude '<inttypes.h>'
-                cemit('lenmod = PRIi' .. primtypes.integer.bitsize .. ';')
-              ]]
+              local lenmod: cstring <cimport #['PRIi' .. primtypes.integer.bitsize]#,nodecl,cinclude'<inttypes.h>'>
               addlenmod(&form, lenmod, strlen(lenmod) - 1)
               local n: integer = (@integer)(arg1)
-              nb = snprintf_1i(buff, maxitem, &form[0], n)
+              nb = snprintf(buff, maxitem, &form[0], n)
               goto next
             end
           ## end if primtypes.number:is_convertible_from(arg1.type) then
@@ -187,7 +180,7 @@ end
                c == 'g'_byte or
                c == 'G'_byte then
               local n: number = (@number)(arg1)
-              nb = snprintf_1n(buff, maxitem, &form[0], n)
+              nb = snprintf(buff, maxitem, &form[0], n)
               goto next
             end
           ## end if primtypes.pointer:is_convertible_from(arg1.type) then
@@ -197,7 +190,7 @@ end
                 strcpy(buff, "(null)")
                 nb = 6
               else
-                nb = snprintf_1p(buff, maxitem, &form[0], p)
+                nb = snprintf(buff, maxitem, &form[0], p)
               end
               goto next
             end
@@ -209,7 +202,7 @@ end
               if not buff then
                 return false
               end
-              nb = snprintf_1cs(buff, maxitem, &form[0], arg1)
+              nb = snprintf(buff, maxitem, &form[0], s.data)
               goto next
             end
           ## end

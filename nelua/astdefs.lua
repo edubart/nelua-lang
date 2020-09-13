@@ -88,6 +88,9 @@ astbuilder:register('Type', {
 astbuilder:register('TypeInstance', {
   ntypes.Node, -- typexpr
 })
+astbuilder:register('VarargsType', {
+  (stypes.one_of{"varautos", "varanys", "cvarargs"}):is_optional()
+})
 astbuilder:register('FuncType', {
   stypes.array_of(ntypes.Node), -- arguments types
   stypes.array_of(ntypes.Node), -- returns types
@@ -131,7 +134,7 @@ astbuilder:register('GenericType', {
 
 -- function
 astbuilder:register('Function', {
-  stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
+  stypes.array_of(ntypes.IdDecl + ntypes.VarargsType), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
   stypes.array_of(ntypes.Annotation):is_optional(),
   ntypes.Node, -- block
@@ -207,7 +210,7 @@ astbuilder:register('Assign', {
 astbuilder:register('FuncDef', {
   stypes.one_of{"local","global"}:is_optional(), -- scope
   ntypes.IdDecl + ntypes.Id + ntypes.DotIndex + ntypes.ColonIndex, -- name
-  stypes.array_of(ntypes.IdDecl + ntypes.Varargs), -- typed arguments
+  stypes.array_of(ntypes.IdDecl + ntypes.VarargsType), -- typed arguments
   stypes.array_of(ntypes.Node), -- typed returns
   stypes.array_of(ntypes.Annotation):is_optional(),
   ntypes.Block -- block

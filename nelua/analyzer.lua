@@ -556,6 +556,20 @@ function visitors.TypeInstance(context, node, symbol)
   node.done = true
 end
 
+function visitors.VarargsType(_, node)
+  local attr = node.attr
+  local name = node[1]
+  local type
+  if name then
+    type = primtypes[name]
+    assert(type)
+  else
+    type = primtypes.varanys
+  end
+  attr.type = type
+  node.done = true
+end
+
 function visitors.FuncType(context, node)
   local attr = node.attr
   local argnodes, retnodes = node[1], node[2]
@@ -916,9 +930,15 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       local funcargattrs = calleetype.argattrs or calleetype.args
       local pseudoargtypes = funcargtypes
       local pseudoargattrs = funcargattrs
-      if calleeobjnode then
+      local hasvarargs = calleetype:has_varargs()
+      if calleeobjnode or hasvarargs then
         pseudoargtypes = tabler.icopy(funcargtypes)
         pseudoargattrs = tabler.icopy(funcargattrs)
+        attr.pseudoargtypes = pseudoargtypes
+        attr.pseudoargattrs = pseudoargtypes
+      end
+      if calleeobjnode then
+        attr.ismethod = true
         local ok, err = funcargtypes[1]:is_convertible_from_attr(calleeobjnode.attr, nil, argattrs)
         if not ok then
           node:raisef("in call of function '%s' at argument %d: %s",
@@ -926,10 +946,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         end
         table.remove(pseudoargtypes, 1)
         table.remove(pseudoargattrs, 1)
-        attr.pseudoargtypes = pseudoargtypes
-        attr.pseudoargattrs = pseudoargtypes
       end
-      if #argnodes > #pseudoargattrs then
+      if not hasvarargs and #argnodes > #pseudoargattrs then
         node:raisef("in call of function '%s': expected at most %d arguments but got %d",
           calleename, #pseudoargattrs, #argnodes)
       end
@@ -938,7 +956,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       for i,funcarg,argnode,argtype in izipargnodes(pseudoargattrs, argnodes) do
         local arg
         local funcargtype
-        if traits.is_type(funcarg) then funcargtype = funcarg else
+        if traits.is_type(funcarg) then funcargtype = funcarg
+        elseif funcarg then
           funcargtype = funcarg.type
         end
         if argnode then
@@ -951,6 +970,15 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           end
         else
           arg = argtype
+        end
+        if hasvarargs then
+          if not funcargtype or funcargtype.is_varargs then
+            funcargtype = argtype
+            if funcargtype then
+              pseudoargtypes[i] = funcargtype
+              pseudoargattrs[i] = Attr{type = funcargtype}
+            end
+          end
         end
 
         if argtype and argtype.is_niltype and not funcargtype.is_nilable then
@@ -990,11 +1018,12 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         end
 
         if calleetype.is_polyfunction then
-          if funcarg.comptime and (not arg or arg.value == nil) then
+          local funcargcomptime = funcarg and funcarg.comptime
+          if funcargcomptime and (not arg or arg.value == nil) then
             node:raisef("in call of function '%s': expected a compile time argument at index %d",
               calleename, i)
           end
-          if funcargtype.is_polymorphic or funcarg.comptime then
+          if funcargtype.is_polymorphic or funcargcomptime then
             polyargs[i] = arg
           else
             polyargs[i] = funcargtype

@@ -26,6 +26,7 @@ local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> e
 local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 
 -- Define the string type.
 global string <codename 'nlstring'> = @record{
@@ -181,7 +182,6 @@ global function tostring(x: auto): string
     -- use implicit conversion
     return x
   ## elseif x.type.is_arithmetic or x.type.is_function or x.type.is_pointer then
-    local size: cint
     ##[[
     local tyformat
     if x.type.is_function then
@@ -190,15 +190,14 @@ global function tostring(x: auto): string
       tyformat = require'nelua.cdefs'.types_printf_format[x.type.codename]
     end
     static_assert(tyformat)
-    cinclude '<stdio.h>'
-    cinclude '<inttypes.h>'
-    cemit('size = snprintf(NULL, 0, '..tyformat..', x);')
     ]]
+    local fmt: cstring <cimport #[tyformat]#, nodecl, cinclude '<inttypes.h>'>
+    local size: cint = snprintf(nilptr, 0, fmt, x)
     if unlikely(size <= 0) then return (@string){} end
     local s: string = string._create((@usize)(size))
     local dest: cstring = (@cstring)(&s.data[0])
     local n: csize = (@csize)(size+1)
-    ## cemit('snprintf(dest, n, '..tyformat..', x);')
+    snprintf(dest, n, fmt, x)
     ## if x.type.is_float then
       -- add a least one decimal if needed
       local onlydigits: boolean = true

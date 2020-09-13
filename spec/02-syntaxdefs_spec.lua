@@ -973,6 +973,18 @@ describe("statement function", function()
         n.FuncDef{nil, n.Id{'f'}, {}, {}, nil, n.Block{{}} }
     }})
   end)
+  it("varargs", function()
+    assert.parse_ast(nelua_parser, "function f(...) end",
+      n.Block{{
+        n.FuncDef{nil, n.Id{'f'}, {n.VarargsType{}}, {}, nil, n.Block{{}} }
+    }})
+  end)
+  it("typed varargs", function()
+    assert.parse_ast(nelua_parser, "function f(...: cvarargs) end",
+      n.Block{{
+        n.FuncDef{nil, n.Id{'f'}, {n.VarargsType{'cvarargs'}}, {}, nil, n.Block{{}} }
+    }})
+  end)
   it("local and typed", function()
     assert.parse_ast(nelua_parser, "local function f(a, b: integer): string end",
       n.Block{{

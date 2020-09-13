@@ -421,7 +421,7 @@ local function get_parser()
     function <- ({} %FUNCTION -> 'Function' function_body) -> to_astnode
     function_body <-
       eLPAREN (
-        {| (typed_idlist (%COMMA %cVARARGS)? / %cVARARGS)? |}
+        {| (typed_idlist (%COMMA varargs_type)? / varargs_type)? |}
       ) eRPAREN
       {| (%COLON (%LPAREN etypexpr_list eRPAREN / etypexpr))? |} (annot_list / cnil)
         block
@@ -487,13 +487,16 @@ local function get_parser()
       {} '' -> 'FuncType'
         %FUNCTION
         eLPAREN ({|
-          (ftyped_idlist (%COMMA %cVARARGS)? / %cVARARGS)?
+          (ftyped_idlist (%COMMA varargs_type)? / varargs_type)?
         |}) eRPAREN
         {| (%COLON (%LPAREN etypexpr_list eRPAREN / etypexpr))? |}
       ) -> to_astnode
 
     ftyped_idlist <- (ftyped_id / typexpr) (%COMMA (ftyped_id / typexpr))*
     ftyped_id <- ({} '' -> 'IdDecl' name %COLON etypexpr) -> to_astnode
+
+    varargs_type <-
+      ({} %ELLIPSIS -> 'VarargsType' (%COLON ename)?) -> to_astnode
 
     record_type <- ({} %TRECORD -> 'RecordType' %LCURLY
         {| (record_field (%SEPARATOR record_field)* %SEPARATOR?)? |}

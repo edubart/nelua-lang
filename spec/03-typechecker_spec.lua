@@ -537,6 +537,11 @@ it("function definition", function()
     function f() end
   ]])
   assert.analyze_ast([[
+    local function f(...) end
+    local function f(...: cvarargs) end
+    local function f(...: varanys) end
+  ]])
+  assert.analyze_ast([[
     global function f(a: integer) end
     local function f(a: integer) end
     function f(a: integer) end

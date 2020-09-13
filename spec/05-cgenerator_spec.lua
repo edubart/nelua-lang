@@ -2042,8 +2042,20 @@ end)
 
 it("C varargs", function()
   assert.generate_c(
-    "local function scanf(format: cstring, ...): cint <cimport'scanf'> end",
-    "int scanf(char* format, ...);")
+    "local function scanf(format: cstring <const>, ...: cvarargs): cint <cimport> end",
+    "int scanf(const char* format, ...);")
+
+  assert.run_c([=[
+    local function snprintf(str: cstring, size: csize, format: cstring, ...: cvarargs): cint
+      <cimport,nodecl,cinclude'<stdio.h>'>
+    end
+
+    local buf: [1024]cchar
+    snprintf(&buf[0], #buf, "%s %d %.2f", 'hi'_cstring, 2, 3.14)
+    assert(&buf[0] == 'hi 2 3.14')
+    snprintf(&buf[0], #buf, "%d %.2f %s", 2, 3.14, 'hi'_cstring)
+    assert(&buf[0] == '2 3.14 hi')
+  ]=])
 end)
 
 it("call pragmas", function()

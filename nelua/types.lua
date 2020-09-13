@@ -322,6 +322,7 @@ function Type.has_pointer() return false end
 
 function Type.has_destroyable() return false end
 function Type.has_copyable() return false end
+function Type.has_varargs() return false end
 
 -- Checks if this type can be represented as a contiguous array of the subtype.
 function Type.is_contiguous_of() return false end
@@ -687,10 +688,28 @@ function AnyType.has_pointer() return true end
 local VaranysType = types.typeclass(AnyType)
 types.VaranysType = VaranysType
 VaranysType.is_varanys = true
+VaranysType.is_varargs = true
 VaranysType.is_nolvalue = true
 VaranysType.is_primitive = true
 
 function VaranysType:_init(name, size)
+  Type._init(self, name, size)
+end
+
+--------------------------------------------------------------------------------
+-- CVarargs Type
+--
+-- The cvarargs type is used for the last argument type of C imported functions
+-- that can have variable number of arguments.
+
+local CVarargsType = types.typeclass(AnyType)
+types.CVarargsType = CVarargsType
+CVarargsType.is_cvarargs = true
+CVarargsType.is_varargs = true
+CVarargsType.is_nolvalue = true
+CVarargsType.is_primitive = true
+
+function CVarargsType:_init(name, size)
   Type._init(self, name, size)
 end
 
@@ -1414,6 +1433,11 @@ function FunctionType:is_equal(type)
   return type.is_function and
          tabler.icompare(type.argtypes, self.argtypes) and
          tabler.icompare(type.rettypes, self.rettypes)
+end
+
+function FunctionType:has_varargs()
+  local lasttype = self.argtypes[#self.argtypes]
+  return lasttype and lasttype.is_varargs
 end
 
 function FunctionType:has_destroyable_return()
