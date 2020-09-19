@@ -106,6 +106,7 @@ cdefs.binary_ops = {
   ['gt'] = true,
   ['shl'] = true,
   ['shr'] = true,
+  ['asr'] = true,
   ['ne'] = true,
   ['eq'] = true,
   ['div'] = true,

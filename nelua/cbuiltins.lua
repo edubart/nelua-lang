@@ -525,7 +525,7 @@ end
 function builtins.nelua_shl_(context, type)
   local ctype = context:ctype(type)
   local uctype = context:ctype(primtypes['uint'..type.bitsize])
-  local intctype = context:ctype(primtypes.integer)
+  local intctype = context:ctype(primtypes['int'..type.bitsize])
   local shlname = string.format('nelua_shl_%s', tostring(type))
   if context.usedbuiltins[shlname] then return shlname end
   context:ensure_runtime_builtin('nelua_unlikely')
@@ -552,6 +552,23 @@ end
 function builtins.nelua_shr_(context, type)
   context:ensure_runtime_builtin('nelua_shl_', type)
   return string.format('nelua_shr_%s', tostring(type))
+end
+
+function builtins.nelua_asr_(context, type)
+  context:ensure_runtime_builtin('nelua_shl_', type)
+  local ctype = context:ctype(type)
+  local intctype = context:ctype(primtypes['int'..type.bitsize])
+  local asrname = string.format('nelua_asr_%s', tostring(type))
+  if context.usedbuiltins[asrname] then return asrname end
+  define_inline_builtin(context, asrname,
+    ctype,
+    string.format('(%s a, %s b)', ctype, intctype),
+    string.format([[{
+  if(nelua_unlikely(b >= %d)) return a < 0 ? -1 : 0;
+  else if(nelua_unlikely(b < 0)) return nelua_shl_%s(a, -b);
+  else return a >> b;
+}]], type.bitsize, tostring(type)))
+  return asrname
 end
 
 function builtins.nelua_fmod_(context, type)
@@ -614,7 +631,7 @@ function operators.mod(node, emitter, lnode, rnode, lname, rname)
     if ltype.is_float or rtype.is_float then
       local op = emitter.context:ensure_runtime_builtin('nelua_fmod_', type)
       emitter:add(op, '(', lname, ', ', rname, ')')
-    elseif type.is_integral and (ltype.is_signed or rtype.is_signed) then
+    elseif type.is_integral and (lnode.attr:is_maybe_negative() or rnode.attr:is_maybe_negative()) then
       local op = emitter.context:ensure_runtime_builtin('nelua_imod_', type)
       emitter:add(op, '(', lname, ', ', rname, ')')
     else
@@ -650,6 +667,22 @@ function operators.shr(node, emitter, lnode, rnode, lname, rname)
       emitter:add(lname, ' >> ', rname)
     else
       local op = emitter.context:ensure_runtime_builtin('nelua_shr_', type)
+      emitter:add(op, '(', lname, ', ', rname, ')')
+    end
+  else --luacov:disable
+    node:errorf('not implemented')
+  end --luacov:enable
+end
+
+function operators.asr(node, emitter, lnode, rnode, lname, rname)
+  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
+  if ltype.is_arithmetic and rtype.is_arithmetic then
+    assert(ltype.is_integral and rtype.is_integral)
+    if rnode.attr.comptime and rnode.attr.value >= 0 and rnode.attr.value < ltype.bitsize then
+      -- no overflow possible, can use plain C shift
+      emitter:add(lname, ' >> ', rname)
+    else
+      local op = emitter.context:ensure_runtime_builtin('nelua_asr_', type)
       emitter:add(op, '(', lname, ', ', rname, ')')
     end
   else --luacov:disable

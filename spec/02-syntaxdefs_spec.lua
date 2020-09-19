@@ -273,6 +273,7 @@ it("operators and symbols", function()
   assert.peg_match_all(pegs.BOR, {'|'})
   assert.peg_match_all(pegs.SHL, {'<<'})
   assert.peg_match_all(pegs.SHR, {'>>'})
+  assert.peg_match_all(pegs.ASR, {'>>>'})
 
   assert.peg_match_all(pegs.EQ, {'=='})
   assert.peg_match_all(pegs.NE, {'~='})
@@ -1123,6 +1124,13 @@ describe("operator", function()
       n.Block{{
         n.Return{{
           n.BinaryOp{'shr', n.Id{'a'}, n.Id{'b'}
+    }}}}})
+  end)
+  it("'>>>'", function()
+    assert.parse_ast(nelua_parser, "return a >>> b",
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'asr', n.Id{'a'}, n.Id{'b'}
     }}}}})
   end)
   it("'..'", function()

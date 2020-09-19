@@ -253,6 +253,7 @@ do -- arithmetic operators
   assert('2' ~ '3' == 1) assert(2 ~ '3' == 1) assert('2' ~ 3 == 1)
   assert('2' << '3' == 16) assert(2 << '3' == 16) assert('2' << 3 == 16)
   assert('2' >> '1' == 1) assert(2 >> '1' == 1) assert('2' >> 1 == 1)
+  assert('-3' >>> '1' == -2) assert(-3 >>> '1' == -2) assert('-3' >>> 1 == -2)
   assert(~'2' == -3)
 end
 

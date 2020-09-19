@@ -938,6 +938,14 @@ it("binary operator `shr`", function()
   assert.generate_c("local x = 6 >> -1", "x = 12;")
 end)
 
+it("binary operator `asr`", function()
+  assert.generate_c("local a,b = 1,2; local x = a >>> b", "nelua_asr_int64(a, b)")
+  assert.generate_c("local x = 6 >>> 1", "x = 3;")
+  assert.generate_c("local x = 6 >>> 0", "x = 6;")
+  assert.generate_c("local x = 6 >>> -1", "x = 12;")
+  assert.generate_c("local x = -5 >>> 1", "x = -3;")
+end)
+
 it("binary shifting", function()
   assert.run_c([[
     local a: int64 = 6
@@ -967,6 +975,33 @@ it("binary shifting", function()
       assert((a << 1) == (@int64)(0x8000000000000000))
       assert((0x4000000000000000 << b) == (@int64)(0x8000000000000000))
       assert((0x4000000000000000 << 1) == (@int64)(0x8000000000000000))
+    end
+
+    do
+      local a = -0x4d
+      local i: [10]integer = {0,1,2,3,4,5,6,7,8,65}
+
+      assert(-0x4d >>> 0 == -77)
+      assert(-0x4d >>> 1 == -39)
+      assert(-0x4d >>> 2 == -20)
+      assert(-0x4d >>> 3 == -10)
+      assert(-0x4d >>> 4 == -5)
+      assert(-0x4d >>> 5 == -3)
+      assert(-0x4d >>> 6 == -2)
+      assert(-0x4d >>> 7 == -1)
+      assert(-0x4d >>> 8 == -1)
+      assert(-0x4d >>> 65 == -1)
+
+      assert(a >>> i[0] == -77) assert(-0x4d >>> i[0] == -77) assert(a >>> 0 == -77)
+      assert(a >>> i[1] == -39) assert(-0x4d >>> i[1] == -39) assert(a >>> 1 == -39)
+      assert(a >>> i[2] == -20) assert(-0x4d >>> i[2] == -20) assert(a >>> 2 == -20)
+      assert(a >>> i[3] == -10) assert(-0x4d >>> i[3] == -10) assert(a >>> 3 == -10)
+      assert(a >>> i[4] == -5) assert(-0x4d >>> i[4] == -5) assert(a >>> 4 == -5)
+      assert(a >>> i[5] == -3) assert(-0x4d >>> i[5] == -3) assert(a >>> 5 == -3)
+      assert(a >>> i[6] == -2) assert(-0x4d >>> i[6] == -2) assert(a >>> 6 == -2)
+      assert(a >>> i[7] == -1) assert(-0x4d >>> i[7] == -1) assert(a >>> 7 == -1)
+      assert(a >>> i[8] == -1) assert(-0x4d >>> i[8] == -1) assert(a >>> 8 == -1)
+      assert(a >>> i[9] == -1) assert(-0x4d >>> i[9] == -1) assert(a >>> 65 == -1)
     end
   ]])
 end)

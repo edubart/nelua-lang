@@ -165,13 +165,14 @@ local function get_parser()
   %BAND         <- '&'
   %BOR          <- !%RPPNAME '|'
   %SHL          <- '<<'
-  %SHR          <- '>>'
+  %ASR          <- '>>>'
+  %SHR          <- !%ASR '>>'
   %EQ           <- '=='
   %NE           <- '~='
   %LE           <- '<='
   %GE           <- '>='
   %LT           <- !%SHL !%LE '<'
-  %GT           <- !%SHR !%GE '>'
+  %GT           <- !%ASR !%SHR !%GE '>'
   %BXOR         <- !%NE '~'
   %ASSIGN       <- !%EQ '='
 
@@ -565,7 +566,8 @@ local function get_parser()
     op_xor    <-  %BXOR -> 'bxor'
     op_band   <-  %BAND -> 'band'
     op_bshift <-  %SHL -> 'shl' /
-                  %SHR -> 'shr'
+                  %SHR -> 'shr' /
+                  %ASR -> 'asr'
     op_concat <-  %CONCAT -> 'concat'
     op_add    <-  %ADD -> 'add' /
                   %SUB -> 'sub'

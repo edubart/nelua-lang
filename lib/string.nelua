@@ -279,6 +279,7 @@ global string.__bor: auto = stringview.__bor
 global string.__bxor: auto = stringview.__bxor
 global string.__shl: auto = stringview.__shl
 global string.__shr: auto = stringview.__shr
+global string.__asr: auto = stringview.__asr
 global string.__bnot: auto = stringview.__bnot
 global string.len: auto = stringview.len
 global string.byte: auto = stringview.byte

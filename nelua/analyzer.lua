@@ -2182,6 +2182,7 @@ local overridable_operators = {
   ['band'] = true,
   ['shl'] = true,
   ['shr'] = true,
+  ['asr'] = true,
   ['concat'] = true,
   ['add'] = true,
   ['sub'] = true,

@@ -252,6 +252,9 @@ end
 function stringview.__shr(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
   return tointeger(a) >> tointeger(b)
 end
+function stringview.__asr(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
+  return tointeger(a) >>> tointeger(b)
+end
 function stringview.__bnot(a: arithmetic_coercion_concept): integer
   return ~tointeger(a)
 end

@@ -1104,6 +1104,13 @@ IntegralType.binary_operators.shr = make_integral_binary_op(integral_shift_op_ty
   end
   return t:wrap_value(a >> b)
 end)
+IntegralType.binary_operators.asr = make_integral_binary_op(integral_shift_op_type, function(a,b,t)
+  if bn.isneg(a) and b > t.bitsize then
+    -- large arithmetic shift on negative integer, must return -1
+    return t:wrap_value(-1)
+  end
+  return t:wrap_value(a >> b)
+end)
 IntegralType.unary_operators.bnot = function(ltype, lattr)
   local lval, reval = lattr.value, nil
   if lval then -- compile time value
