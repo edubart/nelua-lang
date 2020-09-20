@@ -32,7 +32,10 @@ function CEmitter:zeroinit(type)
     s = '0U'
   elseif type.is_arithmetic then
     s = '0'
-  elseif type.is_pointer or type.is_procedure or type.is_niltype or type.is_comptime then
+  elseif type.is_comptime or type.is_niltype then
+    self.context:ensure_runtime_builtin('NLNIL')
+    s = 'NLNIL'
+  elseif type.is_pointer or type.is_procedure then
     s = 'NULL'
   elseif type.is_boolean then
     s = 'false'
@@ -121,7 +124,7 @@ end
 
 function CEmitter:add_val2type(type, val, valtype, checkcast)
   if type.is_comptime then
-    self:add('NULL')
+    self:add_builtin('NLNIL')
     return
   end
 
@@ -182,7 +185,7 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
 end
 
 function CEmitter:add_nil_literal()
-  self:add('NULL')
+  self:add_builtin('NLNIL')
 end
 
 function CEmitter:add_numeric_literal(valattr, valtype)

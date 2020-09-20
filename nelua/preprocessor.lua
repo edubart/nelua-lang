@@ -10,6 +10,7 @@ local errorer = require 'nelua.utils.errorer'
 local config = require 'nelua.configer'.get()
 local stringer = require 'nelua.utils.stringer'
 local memoize = require 'nelua.utils.memoize'
+local bn = require 'nelua.utils.bn'
 
 local traverse_node = VisitorContext.traverse_node
 local function pp_default_visitor(self, node, emitter, ...)
@@ -141,6 +142,7 @@ function preprocessor.preprocess(context, ast)
     ppcontext = ppcontext,
     ppregistry = ppcontext.registry,
     ast = ast,
+    bn = bn,
     aster = aster,
     config = config,
     types = types,

@@ -74,7 +74,6 @@ end
   end
 
   function stringbuilderA:clear()
-    memory.spanzero(self.data)
     self.size = 0
   end
 

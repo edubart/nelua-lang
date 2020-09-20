@@ -551,7 +551,7 @@ function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
   local type = attr.type
   if attr.comptime or type.is_comptime then
-    emitter:add(context:ensure_runtime_builtin('nlunusedvar'), ' ', context:declname(attr))
+    emitter:add(context:ensure_runtime_builtin('nlniltype'), ' ', context:declname(attr))
     return
   end
   if attr.funcdecl then
@@ -684,7 +684,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
 
       if callargattrs[i].comptime then
         -- compile time function argument
-        emitter:add('NULL')
+        emitter:add_nil_literal()
       else
         create_variable(context, emitter, funcargtype, arg, argtype)
       end

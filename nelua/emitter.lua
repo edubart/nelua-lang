@@ -60,7 +60,7 @@ function Emitter:add_one(what)
       local codes = self.codes
       codes[#codes+1] = what
     end
-  elseif ty == 'number' then
+  elseif ty == 'number' or ty == 'boolean' then
     local codes = self.codes
     codes[#codes+1] = tostring(what)
   elseif ty == 'table' then
@@ -79,7 +79,7 @@ function Emitter:add_one(what)
 end
 
 function Emitter:add(what, ...)
-  if what then
+  if what ~= nil then
     self:add_one(what)
   end
   if select('#', ...) == 0 then return end

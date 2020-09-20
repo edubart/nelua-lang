@@ -66,11 +66,12 @@ end
 
 -- nil
 function builtins.nlniltype(context)
-  define_builtin(context, 'nlniltype', "typedef void* nlniltype;\n")
+  define_builtin(context, 'nlniltype', "typedef struct{} nlniltype;\n")
 end
 
-function builtins.nlunusedvar(context)
-  define_builtin(context, 'nlunusedvar', "typedef void* nlunusedvar;\n")
+function builtins.NLNIL(context)
+  context:ensure_runtime_builtin('nlniltype')
+  define_builtin(context, 'NLNIL', "#define NLNIL (nlniltype){}\n")
 end
 
 -- panic
@@ -785,6 +786,8 @@ function operators.eq(_, emitter, lnode, rnode, lname, rname)
       local op = emitter.context:ensure_runtime_builtin('nelua_eq_', rtype, ltype)
       emitter:add(op, '(', rname, ', ', lname, ')')
     end
+  elseif ltype.is_niltype or rtype.is_niltype then
+    emitter:add('({(void)', lname, '; (void)', rname, '; ', ltype == rtype, ';})')
   else
     emitter:add(lname, ' == ')
     if ltype ~= rtype then
@@ -824,6 +827,8 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
       local op = emitter.context:ensure_runtime_builtin('nelua_eq_', rtype, ltype)
       emitter:add('!', op, '(', rname, ', ', lname, ')')
     end
+  elseif ltype.is_niltype or rtype.is_niltype then
+    emitter:add('({(void)', lname, '; (void)', rname, '; ', ltype ~= rtype, ';})')
   else
     emitter:add(lname, ' != ')
     if ltype ~= rtype then

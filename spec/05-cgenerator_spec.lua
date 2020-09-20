@@ -101,10 +101,14 @@ it("boolean", function()
 end)
 
 it("nil", function()
-  assert.generate_c("local a: niltype", "nlniltype a = NULL;")
-  assert.generate_c("local a: niltype = nil", "nlniltype a = NULL;")
+  assert.generate_c("local a: niltype", "nlniltype a = NLNIL;")
+  assert.generate_c("local a: niltype = nil", "nlniltype a = NLNIL;")
   assert.generate_c("local a = nil", "nlany a = {0};")
-  assert.generate_c("local function f(a: niltype) end f(nil)", "f(NULL);")
+  assert.generate_c("local function f(a: niltype) end f(nil)", "f(NLNIL);")
+  assert.generate_c("local function f() <nosideeffect> return nil end assert(f() == f())",
+    "({(void)f(); (void)f(); true;})")
+  assert.generate_c("local function f() <nosideeffect> return nil end assert(f() ~= f())",
+    "({(void)f(); (void)f(); false;})")
 end)
 
 it("call", function()
