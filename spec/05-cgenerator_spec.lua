@@ -379,12 +379,23 @@ it("operation on comptime variables", function()
        ## end
     end
 
+    local function h(a: auto <comptime>)
+      ## if a.type.is_niltype then
+        return 0
+      ## else
+        return a
+      ## end
+    end
+
     assert(f('test') == 1) assert(f('test') == 1)
     assert(f('else') == 2) assert(f('else') == 2)
     assert(g(1) == 1) assert(g(1) == 1)
     assert(g(2) == 2) assert(g(2) == 2)
     assert(g(3) == 0) assert(g(3) == 0)
     assert(g(4) == 0) assert(g(4) == 0)
+    assert(h(1) == 1) assert(h(1) == 1)
+    assert(h(2) == 2) assert(h(2) == 2)
+    assert(h() == 0) assert(h() == 0)
   ]])
 end)
 
