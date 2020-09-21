@@ -3,6 +3,7 @@ cinclude '<time.h>'
 
 cemitdecl([==[
 typedef struct tm tm_t;
+typedef struct timespec timespec_t;
 ]==])
 
 local neluatypes = require 'nelua.types'
