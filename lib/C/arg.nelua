@@ -1,0 +1,3 @@
+-- Import argc and argv from C 'nelua_main'
+global C.argc: cint <cimport 'nelua_argc', nodecl>
+global C.argv: *[0]cstring <cimport 'nelua_argv', nodecl>

@@ -858,6 +858,18 @@ function IntegralType:_init(name, size, is_unsigned)
   end
 end
 
+-- Return unsigned integral version of this type.
+function IntegralType:unsigned_type()
+  if self.is_unsigned then return self end
+  return primtypes['uint'..self.bitsize]
+end
+
+-- Return signed integral version of this type.
+function IntegralType:signed_type()
+  if self.is_signed then return self end
+  return primtypes['int'..self.bitsize]
+end
+
 -- Checks if this type is convertible from an attr.
 function IntegralType:is_convertible_from_attr(attr, explicit)
   if not explicit and attr.comptime and attr.type.is_arithmetic then
