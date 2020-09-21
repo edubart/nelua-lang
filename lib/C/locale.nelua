@@ -1,6 +1,6 @@
 ## cinclude '<locale.h>'
 
-local lconv = @record {
+global lconv = @record {
   decimal_point: cstring,
   thousands_sep: cstring,
   grouping: cstring,

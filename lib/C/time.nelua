@@ -9,9 +9,9 @@ typedef struct timespec timespec_t;
 local neluatypes = require 'nelua.types'
 ]]
 
-local clock_t <cimport'clock_t',nodecl> = #[neluatypes.IntegralType('clock_t', primtypes.clong.size)]#
-local time_t <cimport'time_t',nodecl> = #[neluatypes.IntegralType('time_t', primtypes.clong.size)]#
-local tm <cimport'tm_t',nodecl> = @record{
+global clock_t <cimport'clock_t',nodecl> = #[neluatypes.IntegralType('clock_t', primtypes.clong.size)]#
+global time_t <cimport'time_t',nodecl> = #[neluatypes.IntegralType('time_t', primtypes.clong.size)]#
+global tm <cimport'tm_t',nodecl> = @record{
   tm_sec: cint,
   tm_min: cint,
   tm_hour: cint,
@@ -22,7 +22,7 @@ local tm <cimport'tm_t',nodecl> = @record{
   tm_yday: cint,
   tm_isdst: cint
 }
-local timespec <cimport'timespec_t',nodecl> = @record {
+global timespec <cimport'timespec_t',nodecl> = @record {
   tv_sec: time_t,
   tv_nsec: clong
 }
@@ -43,3 +43,4 @@ function C.timespec_get(ts: *timespec, base: cint): cint <cimport'timespec_get',
 
 -- Constants
 global C.CLOCKS_PER_SEC: clock_t <const,cimport'CLOCKS_PER_SEC',nodecl>
+global C.TIME_UTC: cint <const,cimport'TIME_UTC',nodecl>
