@@ -1962,16 +1962,48 @@ local function block_endswith_return(blocknode)
   return false
 end
 
-local function check_function_returns(node, rettypes, blocknode)
+function visitors.DoExpr(context, node)
+  local blocknode = node[1]
+  local exprscope
+  repeat
+    exprscope = context:push_forked_cleaned_scope('function', node)
+    exprscope.doexpr = true
+    context:traverse_node(blocknode)
+    local resolutions_count = exprscope:resolve()
+    context:pop_scope()
+  until resolutions_count == 0
+
   local attr = node.attr
-  local functype = attr.type
-  if not functype or functype.is_polyfunction or attr.nodecl or attr.cimport or attr.hookmain then
-    return
+  if not node.checked then
+    -- this block requires a return
+    if not block_endswith_return(blocknode) then
+      node:raisef("a return statement is missing before end")
+    end
+    local firstnode = blocknode[1][1]
+    if firstnode.tag == 'Return' then -- forward attr from first expression
+      local exprattr = firstnode[1][1].attr
+      attr.sideeffect = exprattr.sideeffect
+      attr.comptime = exprattr.comptime
+      attr.untyped = exprattr.untyped
+      attr.value = exprattr.value
+    else -- statements inside may cause side effects
+      attr.sideeffect = true
+    end
+    node.checked = true
   end
-  if #rettypes > 0 then
-    local canbeempty = tabler.iallfield(rettypes, 'is_nilable')
-    if not canbeempty and not block_endswith_return(blocknode) then
-      node:raisef("a return statement is missing before function end")
+
+  if not attr.type then
+    local rettypes = exprscope.resolved_rettypes
+    if rettypes and not rettypes.has_unknown then -- known return type
+      if #rettypes ~= 1 then
+        node:raisef("do expression can only return one argument")
+      end
+      attr.type = rettypes[1]
+    else -- transform into a symbol to force resolution on top scopes
+      local symbol = Symbol.promote_attr(attr, nil, node)
+      symbol.annonymous = true
+      symbol:add_possible_type(nil, node)
+      context.scope:add_symbol(attr)
     end
   end
 end
@@ -2102,11 +2134,15 @@ function visitors.FuncDef(context, node, polysymbol)
   end
 
   -- type checking for returns
-  check_function_returns(node, rettypes, blocknode)
+  local attr = node.attr
+  if type and not type.is_polyfunction and #rettypes > 0 and not(attr.nodecl or attr.cimport or attr.hookmain) then
+    local canbeempty = tabler.iallfield(rettypes, 'is_nilable')
+    if not canbeempty and not block_endswith_return(blocknode) then
+      node:raisef("a return statement is missing before function end")
+    end
+  end
 
   do -- handle attributes and annotations
-    local attr = node.attr
-
     -- annotation cimport
     if attr.cimport then
       if #blocknode[1] ~= 0 then

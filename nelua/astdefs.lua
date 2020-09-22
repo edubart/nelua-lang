@@ -233,6 +233,9 @@ astbuilder:register('Switch', {
   stypes.array_of(stypes.shape{ stypes.array_of(ntypes.Node), ntypes.Block}), -- case list {expr list, block}
   ntypes.Block:is_optional() -- else block
 })
+astbuilder:register('DoExpr', {
+  ntypes.Block -- block
+})
 
 astbuilder:register('Continue', {})
 

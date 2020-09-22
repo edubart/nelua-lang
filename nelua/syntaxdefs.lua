@@ -387,6 +387,7 @@ local function get_parser()
       / %cBOOLEAN
       / %cNIL
       / %cVARARGS
+      / doexpr
       / function
       / table
       / type_instance
@@ -418,6 +419,9 @@ local function get_parser()
       eRCURLY) -> to_astnode
     table_row <- table_pair / expr
     table_pair <- ({} '' -> 'Pair' (%LBRACKET eexpr eRBRACKET / name) %ASSIGN eexpr) -> to_astnode
+
+    doexpr <-
+      ({} %LPAREN %DO -> 'DoExpr' block eEND eRPAREN) -> to_astnode
 
     function <- ({} %FUNCTION -> 'Function' function_body) -> to_astnode
     function_body <-

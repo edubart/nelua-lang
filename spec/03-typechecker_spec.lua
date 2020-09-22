@@ -1623,4 +1623,10 @@ it("custom braces initialization", function()
   ]==], "choose_braces_type failed")
 end)
 
+it("do expressions", function()
+  assert.analyze_ast("local a = (do return 1 end)")
+  assert.analyze_error("local a = (do end)", "a return statement is missing")
+  assert.analyze_error("local a = (do return 1, 2 end)", "can only return one argument")
+end)
+
 end)

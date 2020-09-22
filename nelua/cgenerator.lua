@@ -886,6 +886,8 @@ function visitors.Return(context, node, emitter)
       defemitter:add_val2type(primtypes.cint, retnode)
       defemitter:add_ln(';')
     end
+  elseif funcscope.doexpr then
+    defemitter:add_indent_ln('__expr = ', retnodes[1], ';')
   else
     local functype = funcscope.functype
     local numfuncrets = functype:get_return_count()
@@ -1011,6 +1013,25 @@ function visitors.Do(context, node, emitter)
   emitter:add_indent_ln("}")
 end
 
+function visitors.DoExpr(context, node, emitter)
+  local blocknode = node[1]
+  if blocknode[1][1].tag == 'Return' then -- single statement
+    emitter:add(blocknode[1][1][1][1])
+  else
+    emitter:add_ln("({")
+    emitter:inc_indent()
+    emitter:add_indent_ln(node.attr.type, ' __expr;')
+    emitter:dec_indent()
+    context:push_forked_scope('function', node)
+    emitter:add(blocknode)
+    context:pop_scope()
+    emitter:inc_indent()
+    emitter:add_indent_ln('__expr;')
+    emitter:dec_indent()
+    emitter:add_indent("})")
+  end
+end
+
 function visitors.Defer(context, node)
   local blocknode = node:args()
   local deferblocks = context.scope.deferblocks
@@ -1035,7 +1056,7 @@ end
 function visitors.Repeat(context, node, emitter)
   local blocknode, condnode = node:args()
   emitter:add_indent_ln("while(true) {")
-  context:push_forked_cleaned_scope('loop', node)
+  context:push_forked_scope('loop', node)
   emitter:add(blocknode)
   emitter:inc_indent()
   emitter:add_indent('if(')

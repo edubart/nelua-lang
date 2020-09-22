@@ -186,6 +186,20 @@ function preprocessor.preprocess(context, ast)
       return table.unpack(rets)
     end
   end
+  local function exprmacro(f)
+    return function(...)
+      local curnode = context:get_current_node()
+      local args = {...}
+      return aster.DoExpr{aster.Block{{},
+        preprocess = function(blocknode)
+          blocknode[1] = ppcontext:push_statnodes()
+          f(table.unpack(args))
+          ppcontext:pop_statnodes()
+        end,
+        pos = curnode.pos, src = curnode.src
+      }, pos = curnode.pos, src = curnode.src}
+    end
+  end
   local function generalize(f)
     return generic(memoize(hygienize(f)))
   end
@@ -238,6 +252,7 @@ function preprocessor.preprocess(context, ast)
     hygienize = hygienize,
     generalize = generalize,
     memoize = memoize,
+    exprmacro = exprmacro,
     -- deprecated aliases
     optional_concept = facultative_concept,
     staticerror = static_error,

@@ -540,6 +540,13 @@ describe("expression", function()
           n.CallMethod{'b', {}, n.Id{'a'}},
     }}}})
   end)
+  it("do expression", function()
+    assert.parse_ast(nelua_parser, "return (do return nil end)",
+      n.Block{{
+        n.Return{{
+          n.DoExpr{n.Block{{n.Return{{n.Nil{}}}}}},
+    }}}})
+  end)
 end)
 
 --------------------------------------------------------------------------------

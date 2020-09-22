@@ -1242,6 +1242,50 @@ it("expressions with side effects", function()
   ]])
 end)
 
+it("statement expressions", function()
+  assert.run_c([[
+    do
+      local x = 1
+      local a = (do return x end)
+      assert(a == 1)
+      assert((do return (1+4)*2 end) == 10)
+
+      local function f(cond1: boolean, cond2: boolean)
+        return (do
+          if cond1 and cond2 then
+            return 12
+          elseif cond1 then
+            return 1
+          elseif cond2 then
+            return 2
+          else
+            return 0
+          end
+        end)
+      end
+
+      assert(f(true, true) == 12)
+      assert(f(true, false) == 1)
+      assert(f(false, true) == 2)
+      assert(f(false, false) == 0)
+    end
+
+    do
+      ## local f = exprmacro(function(x, a, b)
+        local r = (#[x]# << #[a]#) >> #[b]#
+        r = r + 4
+        return r
+      ## end)
+
+      local x = 0xff
+      local y = #[f(x, 2, 3)]#
+      assert(y == 131)
+    end
+  ]])
+
+    assert.analyze_ast([=[
+  ]=])
+end)
 it("c types", function()
   assert.generate_c("local a: integer", "int64_t a = 0;")
   assert.generate_c("local a: number", "double a = 0.0;")

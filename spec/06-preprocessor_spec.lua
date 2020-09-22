@@ -560,6 +560,17 @@ it("macros", function()
 ]=])
 end)
 
+it("expression macros", function()
+  assert.analyze_ast([=[
+    ## local f = exprmacro(function(x, a, b)
+      return (#[x]# << #[a]#) >> #[b]#
+    ## end)
+
+    local y <comptime> = #[f(0xff, 2, 3)]#
+    ## assert(y.value:tonumber() == 127)
+  ]=])
+end)
+
 it("non hygienic macros", function()
   assert.ast_type_equals([=[
 ## local function inc()
