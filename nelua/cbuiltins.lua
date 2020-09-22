@@ -534,10 +534,10 @@ function builtins.nelua_shl_(context, type)
     ctype,
     string.format('(%s a, %s b)', ctype, intctype),
     string.format([[{
-  if(nelua_unlikely(b >= %d)) return 0;
-  else if(nelua_unlikely(b < 0)) return nelua_unlikely(b <= -%d) ? 0 : (%s)a >> -b;
-  else return (%s)a << b;
-}]], type.bitsize, type.bitsize, uctype, uctype))
+  if(nelua_likely(b >= 0 && b < %d)) return (%s)a << b;
+  else if(nelua_unlikely(b < 0 && b > -%d)) return (%s)a >> -b;
+  else return 0;
+}]], type.bitsize, uctype, type.bitsize, uctype))
   return shlname
 end
 
@@ -552,10 +552,10 @@ function builtins.nelua_shr_(context, type)
     ctype,
     string.format('(%s a, %s b)', ctype, intctype),
     string.format([[{
-  if(nelua_unlikely(b >= %d)) return 0;
-  else if(nelua_unlikely(b < 0)) return nelua_unlikely(b <= -%d) ? 0 : (%s)a << -b;
-  else return (%s)a >> b;
-}]], type.bitsize, type.bitsize, uctype, uctype))
+  if(nelua_likely(b >= 0 && b < %d)) return (%s)a >> b;
+  else if(nelua_unlikely(b < 0 && b > -%d)) return (%s)a << -b;
+  else return 0;
+}]], type.bitsize, uctype, type.bitsize, uctype))
   return shrname
 end
 
@@ -568,10 +568,11 @@ function builtins.nelua_asr_(context, type)
     ctype,
     string.format('(%s a, %s b)', ctype, intctype),
     string.format([[{
-  if(nelua_unlikely(b >= %d)) return a < 0 ? -1 : 0;
-  else if(nelua_unlikely(b < 0)) return nelua_unlikely(b <= -%d) ? 0 : a << -b;
-  else return a >> b;
-}]], type.bitsize, type.bitsize))
+  if(nelua_likely(b >= 0 && b < %d)) return a >> b;
+  else if(nelua_unlikely(b >= %d)) return a < 0 ? -1 : 0;
+  else if(nelua_unlikely(b < 0 && b > -%d)) return a << -b;
+  else return 0;
+}]], type.bitsize, type.bitsize, type.bitsize))
   return asrname
 end
 
