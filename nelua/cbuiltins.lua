@@ -525,8 +525,8 @@ end
 
 function builtins.nelua_shl_(context, type)
   local ctype = context:ctype(type)
-  local uctype = context:ctype(primtypes['uint'..type.bitsize])
-  local intctype = context:ctype(primtypes['int'..type.bitsize])
+  local uctype = context:ctype(type:unsigned_type())
+  local intctype = context:ctype(type:signed_type())
   local shlname = string.format('nelua_shl_%s', tostring(type))
   if context.usedbuiltins[shlname] then return shlname end
   context:ensure_runtime_builtin('nelua_unlikely')
@@ -535,30 +535,33 @@ function builtins.nelua_shl_(context, type)
     string.format('(%s a, %s b)', ctype, intctype),
     string.format([[{
   if(nelua_unlikely(b >= %d)) return 0;
-  else if(nelua_unlikely(b < 0)) return nelua_shr_%s(a, -b);
+  else if(nelua_unlikely(b < 0)) return nelua_unlikely(b <= -%d) ? 0 : (%s)a >> -b;
   else return (%s)a << b;
-}]], type.bitsize, tostring(type), uctype))
+}]], type.bitsize, type.bitsize, uctype, uctype))
+  return shlname
+end
+
+function builtins.nelua_shr_(context, type)
+  local ctype = context:ctype(type)
+  local uctype = context:ctype(type:unsigned_type())
+  local intctype = context:ctype(type:signed_type())
   local shrname = string.format('nelua_shr_%s', tostring(type))
+  if context.usedbuiltins[shrname] then return shrname end
+  context:ensure_runtime_builtin('nelua_unlikely')
   define_inline_builtin(context, shrname,
     ctype,
     string.format('(%s a, %s b)', ctype, intctype),
     string.format([[{
   if(nelua_unlikely(b >= %d)) return 0;
-  else if(nelua_unlikely(b < 0)) return nelua_shl_%s(a, -b);
+  else if(nelua_unlikely(b < 0)) return nelua_unlikely(b <= -%d) ? 0 : (%s)a << -b;
   else return (%s)a >> b;
-}]], type.bitsize, tostring(type), uctype))
-  return shlname
-end
-
-function builtins.nelua_shr_(context, type)
-  context:ensure_runtime_builtin('nelua_shl_', type)
-  return string.format('nelua_shr_%s', tostring(type))
+}]], type.bitsize, type.bitsize, uctype, uctype))
+  return shrname
 end
 
 function builtins.nelua_asr_(context, type)
-  context:ensure_runtime_builtin('nelua_shl_', type)
   local ctype = context:ctype(type)
-  local intctype = context:ctype(primtypes['int'..type.bitsize])
+  local intctype = context:ctype(type:signed_type())
   local asrname = string.format('nelua_asr_%s', tostring(type))
   if context.usedbuiltins[asrname] then return asrname end
   define_inline_builtin(context, asrname,
@@ -566,9 +569,9 @@ function builtins.nelua_asr_(context, type)
     string.format('(%s a, %s b)', ctype, intctype),
     string.format([[{
   if(nelua_unlikely(b >= %d)) return a < 0 ? -1 : 0;
-  else if(nelua_unlikely(b < 0)) return nelua_shl_%s(a, -b);
+  else if(nelua_unlikely(b < 0)) return nelua_unlikely(b <= -%d) ? 0 : a << -b;
   else return a >> b;
-}]], type.bitsize, tostring(type)))
+}]], type.bitsize, type.bitsize))
   return asrname
 end
 
@@ -647,7 +650,7 @@ function operators.shl(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   if ltype.is_arithmetic and rtype.is_arithmetic then
     assert(ltype.is_integral and rtype.is_integral)
-    if ltype.is_unsigned and rnode.attr.comptime and rnode.attr.value >= 0 and rnode.attr.value < ltype.bitsize then
+    if rnode.attr.comptime and rnode.attr.value >= 0 and rnode.attr.value < ltype.bitsize then
       -- no overflow possible, can use plain C shift
       emitter:add(lname, ' << ', rname)
     else
