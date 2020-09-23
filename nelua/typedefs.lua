@@ -36,14 +36,17 @@ primtypes.int8        = types.IntegralType('int8', 1)
 primtypes.int16       = types.IntegralType('int16', 2)
 primtypes.int32       = types.IntegralType('int32', 4)
 primtypes.int64       = types.IntegralType('int64', 8)
+primtypes.int128      = types.IntegralType('int128', 16)
 primtypes.isize       = types.IntegralType('isize', cpusize)
 primtypes.uint8       = types.IntegralType('uint8', 1, true)
 primtypes.uint16      = types.IntegralType('uint16', 2, true)
 primtypes.uint32      = types.IntegralType('uint32', 4, true)
 primtypes.uint64      = types.IntegralType('uint64', 8, true)
+primtypes.uint128     = types.IntegralType('uint128', 16, true)
 primtypes.usize       = types.IntegralType('usize', cpusize, true)
 primtypes.float32     = types.FloatType('float32', 4, 9)
 primtypes.float64     = types.FloatType('float64', 8, 17)
+primtypes.float128    = types.FloatType('float128', 16, 36)
 primtypes.byte        = primtypes.uint8
 
 -- Types for C compatibility.
@@ -76,37 +79,6 @@ primtypes.stringview  = types.StringViewType('stringview')
 primtypes.any         = types.AnyType('any', 2*cpusize)
 primtypes.varanys     = types.VaranysType('varanys')
 
--- List of signed types.
-typedefs.integral_signed_types = {
-  primtypes.int8,
-  primtypes.int16,
-  primtypes.int32,
-  primtypes.int64,
-  primtypes.isize,
-  primtypes.cschar,
-  primtypes.cshort,
-  primtypes.cint,
-  primtypes.clong,
-  primtypes.clonglong,
-  primtypes.cptrdiff,
-  primtypes.cchar
-}
-
--- List of unsigned types.
-typedefs.unsigned_types = {
-  primtypes.uint8,
-  primtypes.uint16,
-  primtypes.uint32,
-  primtypes.uint64,
-  primtypes.usize,
-  primtypes.cuchar,
-  primtypes.cushort,
-  primtypes.cuint,
-  primtypes.culong,
-  primtypes.culonglong,
-  primtypes.csize,
-}
-
 -- Map of literal suffixes for arithmetic types.
 typedefs.number_literal_types = {
   _i          = primtypes.integer,  _integer    = primtypes.integer,
@@ -118,13 +90,16 @@ typedefs.number_literal_types = {
   _i16        = primtypes.int16,    _int16      = primtypes.int16,
   _i32        = primtypes.int32,    _int32      = primtypes.int32,
   _i64        = primtypes.int64,    _int64      = primtypes.int64,
+  _i128       = primtypes.int128,   _int128     = primtypes.int128,
   _us         = primtypes.usize,    _usize      = primtypes.usize,
   _u8         = primtypes.uint8,    _uint8      = primtypes.uint8,
   _u16        = primtypes.uint16,   _uint16     = primtypes.uint16,
   _u32        = primtypes.uint32,   _uint32     = primtypes.uint32,
   _u64        = primtypes.uint64,   _uint64     = primtypes.uint64,
+  _u128       = primtypes.uint128,  _uint128    = primtypes.uint128,
   _f32        = primtypes.float32,  _float32    = primtypes.float32,
   _f64        = primtypes.float64,  _float64    = primtypes.float64,
+  _f128       = primtypes.float128, _float128   = primtypes.float128,
 
   _cchar       = primtypes.cchar,
   _cschar      = primtypes.cschar,

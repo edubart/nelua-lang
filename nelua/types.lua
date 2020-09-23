@@ -111,10 +111,12 @@ Type.shape = shaper.shape {
   is_int16 = shaper.optional_boolean,
   is_int32 = shaper.optional_boolean,
   is_int64 = shaper.optional_boolean,
+  is_int128 = shaper.optional_boolean,
   is_uint8 = shaper.optional_boolean,
   is_uint16 = shaper.optional_boolean,
   is_uint32 = shaper.optional_boolean,
   is_uint64 = shaper.optional_boolean,
+  is_uint128 = shaper.optional_boolean,
 
   -- Booleans for checking the underlying type (primitive types).
   is_any = shaper.optional_boolean,
@@ -830,15 +832,6 @@ IntegralType.shape = shaper.fork_shape(Type.shape, {
   min = shaper.arithmetic, max = shaper.arithmetic,
   -- Signess of the integral type.
   is_signed = shaper.optional_boolean, is_unsigned = shaper.optional_boolean,
-  -- Boolean to know the exactly underlying integral type.
-  is_uint64 = shaper.optional_boolean,
-  is_uint32 = shaper.optional_boolean,
-  is_uint16 = shaper.optional_boolean,
-  is_uint8 = shaper.optional_boolean,
-  is_int64 = shaper.optional_boolean,
-  is_int32 = shaper.optional_boolean,
-  is_int16 = shaper.optional_boolean,
-  is_int8 = shaper.optional_boolean,
 })
 
 function IntegralType:_init(name, size, is_unsigned)

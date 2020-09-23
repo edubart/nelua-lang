@@ -471,25 +471,31 @@ print(a,b) --outputs: 1234 1.000000
 
 The following table shows Nelua primitive numeric types and is related type in C:
 
-| Type              | C Type          | Suffixes            |
-|-------------------|-----------------|---------------------|
-| `integer`         | `int64_t`       | `_i` `_integer`     |
-| `uinteger`        | `unt64_t`       | `_u` `_uinteger`    |
-| `number`          | `double`        | `_n` `_number`      |
-| `byte`            | `uint8_t`       | `_b` `_byte`        |
-| `isize`           | `intptr_t`      | `_is` `_isize`      |
-| `int8`            | `int8_t`        | `_i8` `_int8`       |
-| `int16`           | `int16_t`       | `_i16` `_int16`     |
-| `int32`           | `int32_t`       | `_i32` `_int32`     |
-| `int64`           | `int64_t`       | `_i64` `_int64`     |
-| `usize`           | `uintptr_t`     | `_us` `_usize`      |
-| `uint8`           | `uint8_t`       | `_u8` `_uint8`      |
-| `uint16`          | `uint16_t`      | `_u16` `_uint16`    |
-| `uint32`          | `uint32_t`      | `_u32` `_uint32`    |
-| `uint64`          | `uint64_t`      | `_u64` `_uint64`    |
-| `float32`         | `float`         | `_f32` `_float32`   |
-| `float64`         | `double`        | `_f64` `_float64`   |
+| Type              | C Type              | Suffixes            |
+|-------------------|---------------------|---------------------|
+| `integer`         | `int64_t`           | `_i` `_integer`     |
+| `uinteger`        | `unt64_t`           | `_u` `_uinteger`    |
+| `number`          | `double`            | `_n` `_number`      |
+| `byte`            | `uint8_t`           | `_b` `_byte`        |
+| `isize`           | `intptr_t`          | `_is` `_isize`      |
+| `int8`            | `int8_t`            | `_i8` `_int8`       |
+| `int16`           | `int16_t`           | `_i16` `_int16`     |
+| `int32`           | `int32_t`           | `_i32` `_int32`     |
+| `int64`           | `int64_t`           | `_i64` `_int64`     |
+| `int128`*         | `__int128`          | `_i128` `_int128`   |
+| `usize`           | `uintptr_t`         | `_us` `_usize`      |
+| `uint8`           | `uint8_t`           | `_u8` `_uint8`      |
+| `uint16`          | `uint16_t`          | `_u16` `_uint16`    |
+| `uint32`          | `uint32_t`          | `_u32` `_uint32`    |
+| `uint64`          | `uint64_t`          | `_u64` `_uint64`    |
+| `uint128`*        | `unsigned __int128` | `_u128` `_uint128`  |
+| `float32`         | `float`             | `_f32` `_float32`   |
+| `float64`         | `double`            | `_f64` `_float64`   |
+| `float128`*       | `_Float128`         | `_f128` `_float128` |
 {: .table.table-bordered.table-striped.table-sm}
+
+*\* Only supported by some C compilers and architectures.*
+{:.text-muted}
 
 The types `isize` and `usize` types are usually 32 bits wide on 32-bit systems,
 and 64 bits wide on 64-bit systems.

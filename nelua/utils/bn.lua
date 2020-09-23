@@ -7,8 +7,8 @@
 -- to mix operation between different integers ranges at compile time,
 -- and to do error checking on invalid large integers.
 
--- BN is actually a bint class created with 128bits and with some extensions.
-local bn = require 'nelua.thirdparty.bint'(128)
+-- BN is actually a bint class created with 192bits and with some extensions.
+local bn = require 'nelua.thirdparty.bint'(192)
 
 -- This is used to check if a table is a 'bn'.
 bn._bn = true
