@@ -1977,7 +1977,7 @@ function visitors.DoExpr(context, node)
   if not node.checked then
     -- this block requires a return
     if not block_endswith_return(blocknode) then
-      node:raisef("a return statement is missing before end")
+      node:raisef("a return statement is missing inside do expression block")
     end
     local firstnode = blocknode[1][1]
     if firstnode.tag == 'Return' then -- forward attr from first expression
@@ -1996,7 +1996,7 @@ function visitors.DoExpr(context, node)
     local rettypes = exprscope.resolved_rettypes
     if rettypes and not rettypes.has_unknown then -- known return type
       if #rettypes ~= 1 then
-        node:raisef("do expression can only return one argument")
+        node:raisef("do expression block can only return one argument")
       end
       attr.type = rettypes[1]
     else -- transform into a symbol to force resolution on top scopes
@@ -2223,6 +2223,7 @@ local overridable_operators = {
   ['add'] = true,
   ['sub'] = true,
   ['mul'] = true,
+  ['tdiv'] = true,
   ['idiv'] = true,
   ['div'] = true,
   ['pow'] = true,

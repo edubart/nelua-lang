@@ -1182,6 +1182,13 @@ describe("operator", function()
           n.BinaryOp{'idiv', n.Id{'a'}, n.Id{'b'}
     }}}}})
   end)
+  it("'///'", function()
+    assert.parse_ast(nelua_parser, "return a /// b",
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'tdiv', n.Id{'a'}, n.Id{'b'}
+    }}}}})
+  end)
   it("'%'", function()
     assert.parse_ast(nelua_parser, "return a % b",
       n.Block{{

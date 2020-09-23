@@ -159,8 +159,9 @@ local function get_parser()
   %SUB          <- !'--' '-'
   %MUL          <- '*'
   %MOD          <- '%'
-  %IDIV         <- '//'
-  %DIV          <- !%IDIV '/'
+  %TDIV         <- '///'
+  %IDIV         <- !%TDIV '//'
+  %DIV          <- !%TDIV !%IDIV '/'
   %POW          <- '^'
   %BAND         <- '&'
   %BOR          <- !%RPPNAME '|'
@@ -577,6 +578,7 @@ local function get_parser()
                   %SUB -> 'sub'
     op_mul    <-  %MUL -> 'mul' /
                   %IDIV -> 'idiv' /
+                  %TDIV -> 'tdiv' /
                   %DIV -> 'div' /
                   %MOD -> 'mod'
     op_unary  <-  %NOT -> 'not' /

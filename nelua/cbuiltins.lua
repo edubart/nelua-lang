@@ -489,7 +489,6 @@ function builtins.nelua_eq_(context, ltype, rtype)
   end
 end
 
-
 function builtins.nelua_idiv_(context, type)
   local name = string.format('nelua_idiv_i%d', type.bitsize)
   if context.usedbuiltins[name] then return name end
@@ -501,8 +500,8 @@ function builtins.nelua_idiv_(context, type)
     string.format('(%s a, %s b)', ictype, ictype),
     string.format([[{
   if(nelua_unlikely(b == -1)) return 0U - (%s)a;
-  %s d = a / b;
-  return d * b == a ? d : d - ((a < 0) ^ (b < 0));
+  %s q = a / b;
+  return q * b == a ? q : q - ((a < 0) ^ (b < 0));
 }]], uctype, ictype))
   return name
 end
@@ -622,6 +621,21 @@ function operators.idiv(node, emitter, lnode, rnode, lname, rname)
     elseif type.is_integral and (lnode.attr:is_maybe_negative() or rnode.attr:is_maybe_negative()) then
       local op = emitter.context:ensure_runtime_builtin('nelua_idiv_', type)
       emitter:add(op, '(', lname, ', ', rname, ')')
+    else
+      emitter:add(lname, ' / ', rname)
+    end
+  else --luacov:disable
+    node:errorf('not implemented')
+  end --luacov:enable
+end
+
+function operators.tdiv(node, emitter, lnode, rnode, lname, rname)
+  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
+  if ltype.is_arithmetic and rtype.is_arithmetic then
+    if ltype.is_float or rtype.is_float then
+      local truncname = type.is_float32 and 'truncf' or 'trunc'
+      emitter.context:add_include('<math.h>')
+      emitter:add(truncname, '(', lname, ' / ', rname, ')')
     else
       emitter:add(lname, ' / ', rname)
     end

@@ -828,6 +828,7 @@ All Lua operators are provided:
 | pow      | `a ^ b`{:.language-nelua}       | binary   | arithmetic exponentiation      |
 | div      | `a / b`{:.language-nelua}       | binary   | arithmetic division            |
 | idiv     | `a // b`{:.language-nelua}      | binary   | arithmetic floor division      |
+| tdiv     | `a /// b`{:.language-nelua}     | binary   | arithmetic truncate division      |
 | not      | `not a`{:.language-nelua}       | unary    | boolean negation               |
 | len      | `#a`{:.language-nelua}          | unary    | length                         |
 | deref    | `$a`{:.language-nelua}          | unary    | pointer dereference            |
@@ -836,12 +837,14 @@ All Lua operators are provided:
 
 All the operators follows Lua semantics, i.e.:
 * `%` and `//` rounds the quotient towards minus infinity.
+* `///` rounds the quotient towards zero.
 * `/` and `^` promotes numbers to floats.
 * Integer overflows wrap around.
 * Bitwise shifts are defined for negative and large shifts.
 * `and`, `or`, `not`, `==`, `~=` can be used on any variable type.
 
-The additional operators over Lua are `>>>`, `$` and `&`, used for low level.
+The additional operators over Lua are `>>>`, `///`, `$` and `&`,
+used for low level programming.
 
 {:.alert.alert-info}
 
@@ -1090,6 +1093,7 @@ Complete list of the metamethods that can be defined for records:
 | `__pow`           | `a ^ b`{:.language-nelua}  | binary   | arithmetic exponentiation      |
 | `__div`           | `a / b`{:.language-nelua}  | binary   | arithmetic division            |
 | `__idiv`          | `a // b`{:.language-nelua} | binary   | arithmetic floor division      |
+| `__tdiv`          | `a /// b`{:.language-nelua}| binary   | arithmetic truncate division      |
 | `__len`           | `#a`{:.language-nelua}     | unary    | length                         |
 | `__index`         | `a[b]`{:.language-nelua}   | indexing | array index                    |
 | `__atindex`       | `a[b]`{:.language-nelua}   | indexing | array index via reference      |

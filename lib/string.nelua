@@ -271,6 +271,7 @@ global string.__sub: auto = stringview.__sub
 global string.__mul: auto = stringview.__mul
 global string.__div: auto = stringview.__div
 global string.__idiv: auto = stringview.__idiv
+global string.__tdiv: auto = stringview.__tdiv
 global string.__mod: auto = stringview.__mod
 global string.__pow: auto = stringview.__pow
 global string.__unm: auto = stringview.__unm

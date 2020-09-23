@@ -869,6 +869,45 @@ it("binary operator `idiv`", function()
   ]])
 end)
 
+it("binary operator `tdiv`", function()
+  assert.generate_c("local x = 3 /// 2",      "x = 1;")
+  assert.generate_c("local x = 3 /// 2.0",    "x = 1.0;")
+  assert.generate_c("local x = 3.0 /// 2.0",  "x = 1.0;")
+  assert.generate_c("local x = 3.0 /// 2",    "x = 1.0;")
+  assert.generate_c("local x =  7 ///  3",    "x = 2;")
+  assert.generate_c("local x = -7 ///  3",    "x = -2;")
+  assert.generate_c("local x =  7 /// -3",    "x = -2;")
+  assert.generate_c("local x = -7 /// -3",    "x = 2;")
+  assert.generate_c("local x =  7 ///  3.0",  "x = 2.0;")
+  assert.generate_c("local x = -7 ///  3.0",  "x = -2.0;")
+  assert.generate_c("local x =  7 /// -3.0",  "x = -2.0;")
+  assert.generate_c("local x = -7 /// -3.0",  "x = 2.0;")
+  assert.generate_c("local x =  7.0 ///  3.0",  "x = 2.0;")
+  assert.generate_c("local x = -7.0 ///  3.0",  "x = -2.0;")
+  assert.generate_c("local x =  7.0 /// -3.0",  "x = -2.0;")
+  assert.generate_c("local x = -7.0 /// -3.0",  "x = 2.0;")
+  assert.generate_c("local a,b = 1,2; local x=a///b",      "x = (a / b);")
+  assert.generate_c("local a,b = 1.0,2.0; local x=a///b",  "x = (trunc(a / b));")
+  assert.run_c([[
+    do
+      local a, b = 7, 3
+      assert(a /// b == 2)
+      assert(-a /// b == -2)
+      assert(a /// -b == -2)
+      assert(-a /// -b == 2)
+      assert(a /// a == 1)
+    end
+    do
+      local a, b = 7.0, 3.0
+      assert(a /// b == 2.0)
+      assert(-a /// b == -2.0)
+      assert(a /// -b == -2.0)
+      assert(-a /// -b == 2.0)
+      assert(a /// a == 1.0)
+    end
+  ]])
+end)
+
 it("binary operator `mod`", function()
   --assert.generate_c("local x = a % b")
   assert.generate_c("local x = 3 % 2",       "x = 1;")
@@ -1815,6 +1854,7 @@ it("record operator overloading", function()
     function R:__add(r: R): R return R{7} end
     function R:__sub(r: R): R return R{8} end
     function R:__mul(r: R): R return R{9} end
+    function R:__tdiv(r: R): R return R{16} end
     function R:__idiv(r: R): R return R{10} end
     function R:__div(r: R): R return R{11} end
     function R:__pow(r: R): R return R{12} end
@@ -1834,6 +1874,7 @@ it("record operator overloading", function()
     assert((r + r).x == 7)
     assert((r - r).x == 8)
     assert((r * r).x == 9)
+    assert((r /// r).x == 16)
     assert((r // r).x == 10)
     assert((r / r).x == 11)
     assert((r ^ r).x == 12)

@@ -240,6 +240,7 @@ This page is under construction and very incomplete.
 | `string.__mul`{:.language-nelua} |  |
 | `string.__div`{:.language-nelua} |  |
 | `string.__idiv`{:.language-nelua} |  |
+| `string.__tdiv`{:.language-nelua} |  |
 | `string.__mod`{:.language-nelua} |  |
 | `string.__pow`{:.language-nelua} |  |
 | `string.__unm`{:.language-nelua} |  |
@@ -293,6 +294,7 @@ This page is under construction and very incomplete.
 | `stringview.__mul`{:.language-nelua} |  |
 | `stringview.__div`{:.language-nelua} |  |
 | `stringview.__idiv`{:.language-nelua} |  |
+| `stringview.__tdiv`{:.language-nelua} |  |
 | `stringview.__mod`{:.language-nelua} |  |
 | `stringview.__pow`{:.language-nelua} |  |
 | `stringview.__unm`{:.language-nelua} |  |
