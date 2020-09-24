@@ -234,6 +234,9 @@ end
 function stringview.__mod(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
   return tonumber(a) % tonumber(b)
 end
+function stringview.__tmod(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+  return tonumber(a) %%% tonumber(b)
+end
 function stringview.__pow(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
   return tonumber(a) ^ tonumber(b)
 end

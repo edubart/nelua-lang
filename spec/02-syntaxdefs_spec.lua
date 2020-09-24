@@ -1196,6 +1196,13 @@ describe("operator", function()
           n.BinaryOp{'mod', n.Id{'a'}, n.Id{'b'}
     }}}}})
   end)
+  it("'%%%'", function()
+    assert.parse_ast(nelua_parser, "return a %%% b",
+      n.Block{{
+        n.Return{{
+          n.BinaryOp{'tmod', n.Id{'a'}, n.Id{'b'}
+    }}}}})
+  end)
   it("'not'", function()
     assert.parse_ast(nelua_parser, "return not a",
       n.Block{{

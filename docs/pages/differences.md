@@ -187,7 +187,6 @@ Nelua has additional functions in this library. See [here](/libraries/#stringvie
 | `string.__unm`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
 | `string.__div`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
 | `string.__idiv`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.__tdiv`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
 | `string.__mul`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
 | `string.__mod`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
 {: .table.table-bordered.table-striped.table-sm}

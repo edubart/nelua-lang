@@ -661,6 +661,21 @@ function operators.mod(node, emitter, lnode, rnode, lname, rname)
   end --luacov:enable
 end
 
+function operators.tmod(node, emitter, lnode, rnode, lname, rname)
+  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
+  if ltype.is_arithmetic and rtype.is_arithmetic then
+    if ltype.is_float or rtype.is_float then
+      local fmodname = type.is_float32 and 'fmodf' or 'fmod'
+      emitter.context:add_include('<math.h>')
+      emitter:add(fmodname, '(', lname, ', ', rname, ')')
+    else
+      emitter:add(lname, ' % ', rname)
+    end
+  else --luacov:disable
+    node:errorf('not implemented')
+  end --luacov:enable
+end
+
 function operators.shl(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   if ltype.is_arithmetic and rtype.is_arithmetic then

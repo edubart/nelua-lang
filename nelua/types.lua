@@ -1078,28 +1078,31 @@ IntegralType.binary_operators.idiv = make_integral_binary_op(integral_arith_div_
   return a // b
 end)
 IntegralType.binary_operators.tdiv = make_integral_binary_op(integral_arith_div_op_type, function(a,b,type)
-  local q
   if bn.isintegral(a) and bn.isintegral(b) then
-    q = a // b
     if bn.eq(a, type.min) and bn.eq(b, -1) then
       return nil, 'divide overflow'
     end
-    if not bn.eq(q * b, a) and bn.isneg(a) ~= bn.isneg(b) then
-      -- change rounding towards minus infinity to towards zero
-      q = q + 1
-    end
   else -- mixed operation with float
-    q = a / b
-    if q < 0 then
-      q = math.ceil(q)
-    else
-      q = math.floor(q)
+    if bn.iszero(b) then -- division by zero
+      return bn.tonumber(a) / 0
     end
   end
-  return q
+  return bn.tdiv(a, b)
 end)
 IntegralType.binary_operators.mod = make_integral_binary_op(integral_arith_div_op_type, function(a,b)
   return a % b
+end)
+IntegralType.binary_operators.tmod = make_integral_binary_op(integral_arith_div_op_type, function(a,b,type)
+  if bn.isintegral(a) and bn.isintegral(b) then
+    if bn.eq(a, type.min) and bn.eq(b, -1) then
+      return nil, 'divide overflow'
+    end
+  else -- mixed operation with float
+    if bn.iszero(b) then -- division by zero
+      return bn.tonumber(a) % 0.0
+    end
+  end
+  return bn.tmod(a, b)
 end)
 IntegralType.binary_operators.div = make_integral_binary_op(integral_float_op_type, function(a,b)
   return a / b
@@ -1274,6 +1277,13 @@ FloatType.binary_operators.tdiv = make_float_binary_opfunc(float_arith_op, funct
 end)
 FloatType.binary_operators.mod = make_float_binary_opfunc(float_arith_op, function(a,b)
   return a % b
+end)
+FloatType.binary_operators.tmod = make_float_binary_opfunc(float_arith_op, function(a,b)
+  local r = math.abs(a) % math.abs(b)
+  if a < 0 then
+    r = -r
+  end
+  return r
 end)
 FloatType.binary_operators.pow = make_float_binary_opfunc(float_arith_op, function(a,b)
   return a ^ b

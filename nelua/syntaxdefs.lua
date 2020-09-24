@@ -158,7 +158,8 @@ local function get_parser()
   %ADD          <- '+'
   %SUB          <- !'--' '-'
   %MUL          <- '*'
-  %MOD          <- '%'
+  %TMOD         <- '%%%'
+  %MOD          <- !%TMOD '%'
   %TDIV         <- '///'
   %IDIV         <- !%TDIV '//'
   %DIV          <- !%TDIV !%IDIV '/'
@@ -580,6 +581,7 @@ local function get_parser()
                   %IDIV -> 'idiv' /
                   %TDIV -> 'tdiv' /
                   %DIV -> 'div' /
+                  %TMOD -> 'tmod' /
                   %MOD -> 'mod'
     op_unary  <-  %NOT -> 'not' /
                   %LEN -> 'len' /

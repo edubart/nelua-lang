@@ -2228,6 +2228,7 @@ local overridable_operators = {
   ['div'] = true,
   ['pow'] = true,
   ['mod'] = true,
+  ['tmod'] = true,
   ['len'] = true,
   ['unm'] = true,
   ['bnot'] = true,

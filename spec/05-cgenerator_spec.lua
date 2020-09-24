@@ -948,6 +948,46 @@ it("binary operator `mod`", function()
   ]])
 end)
 
+it("binary operator `tmod`", function()
+  assert.generate_c("local x = 3 %%% 2",       "x = 1;")
+  assert.generate_c("local x = 3.0 %%% 2.0",   "x = 1.0;")
+  assert.generate_c("local x = 3.0 %%% 2",     "x = 1.0;")
+  assert.generate_c("local x = 3 %%% 2.0",     "x = 1.0;")
+  assert.generate_c("local x =  7 %%%  3",     "x = 1;")
+  assert.generate_c("local x = -7 %%%  3",     "x = -1;")
+  assert.generate_c("local x =  7 %%% -3",     "x = 1;")
+  assert.generate_c("local x = -7 %%% -3",     "x = -1;")
+  assert.generate_c("local x =  7 %%%  3.0",   "x = 1.0;")
+  assert.generate_c("local x = -7 %%%  3.0",   "x = -1.0;")
+  assert.generate_c("local x =  7 %%% -3.0",   "x = 1.0;")
+  assert.generate_c("local x = -7 %%% -3.0",   "x = -1.0;")
+  assert.generate_c("local x = -7.0 %%% 3.0",  "x = -1.0;")
+  assert.generate_c("local a, b = 3, 2;     local x = a %%% b", "x = (a % b);")
+  assert.generate_c("local a, b = 3_u, 2_u; local x = a %%% b", "x = (a % b);")
+  assert.generate_c("local a, b = 3.0, 2;   local x = a %%% b", "x = (fmod(a, b));")
+  assert.generate_c("local a, b = 3, 2.0;   local x = a %%% b", "x = (fmod(a, b));")
+  assert.generate_c("local a, b = 3.0, 2.0; local x = a %%% b", "x = (fmod(a, b));")
+  assert.run_c([[
+    do
+      local a, b = 7, 3
+      assert(a %%% b == 1)
+      assert(-a %%% b == -1)
+      assert(a %%% -b == 1)
+      assert(-a %%% -b == -1)
+      assert(a %%% a == 0)
+    end
+    do
+      local a, b = 7.0, 3.0
+      assert(a %%% b == 1.0)
+      assert(-a %%% b == -1.0)
+      assert(a %%% -b == 1.0)
+      assert(-a %%% -b == -1.0)
+      assert(a %%% a == 0.0)
+    end
+  ]])
+end)
+
+
 it("binary operator `pow`", function()
   --assert.generate_c("local x = a ^ b")
   assert.generate_c("local a,b = 2,2; local x = a ^ b", "x = (pow(a, b));")
@@ -1859,6 +1899,7 @@ it("record operator overloading", function()
     function R:__div(r: R): R return R{11} end
     function R:__pow(r: R): R return R{12} end
     function R:__mod(r: R): R return R{13} end
+    function R:__tmod(r: R): R return R{17} end
     function R:__len(): R return R{14} end
     function R:__unm(): R return R{15} end
     local r: R
@@ -1879,6 +1920,7 @@ it("record operator overloading", function()
     assert((r / r).x == 11)
     assert((r ^ r).x == 12)
     assert((r % r).x == 13)
+    assert((r %%% r).x == 17)
     assert((#r).x == 14)
     assert((-r).x == 15)
 

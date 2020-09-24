@@ -808,37 +808,38 @@ print(5 / 2) -- float division, outputs: 2.500000
 
 All Lua operators are provided:
 
-| Name | Syntax | Kind | Operation |
+| Name | Syntax | Operation |
 |---|---|---|---|
-| or       | `a or b`{:.language-nelua}      | binary   | conditional or                 |
-| and      | `a and b`{:.language-nelua}     | binary   | conditional and                |
-| lt       | `a < b`{:.language-nelua}       | binary   | less than                      |
-| gt       | `a > b`{:.language-nelua}       | binary   | greater than                   |
-| le       | `a <= b`{:.language-nelua}      | binary   | less or equal than             |
-| ge       | `a >= b`{:.language-nelua}      | binary   | greater or equal than          |
-| ne       | `a ~= b`{:.language-nelua}      | binary   | not equal                      |
-| eq       | `a == b`{:.language-nelua}      | binary   | equal                          |
-| bor      | `a | b`{:.language-nelua}       | binary   | bitwise or                     |
-| band     | `a & b`{:.language-nelua}       | binary   | bitwise and                    |
-| bxor     | `a ~ b`{:.language-nelua}       | binary   | bitwise xor                    |
-| shl      | `a << b`{:.language-nelua}      | binary   | bitwise logical left shift     |
-| shr      | `a >> b`{:.language-nelua}      | binary   | bitwise logical right shift    |
-| asr      | `a >>> b`{:.language-nelua}     | binary   | bitwise arithmetic right shift |
-| bnot     | `~a`{:.language-nelua}          | unary    | bitwise not                    |
-| concat   | `a .. b`{:.language-nelua}      | binary   | concatenation                  |
-| add      | `a + b`{:.language-nelua}       | binary   | arithmetic add                 |
-| sub      | `a - b`{:.language-nelua}       | binary   | arithmetic subtract            |
-| mul      | `a * b`{:.language-nelua}       | binary   | arithmetic multiply            |
-| unm      | `-a`{:.language-nelua}          | unary    | arithmetic negation            |
-| mod      | `a % b`{:.language-nelua}       | binary   | arithmetic modulo              |
-| pow      | `a ^ b`{:.language-nelua}       | binary   | arithmetic exponentiation      |
-| div      | `a / b`{:.language-nelua}       | binary   | arithmetic division            |
-| idiv     | `a // b`{:.language-nelua}      | binary   | arithmetic floor division      |
-| tdiv     | `a /// b`{:.language-nelua}     | binary   | arithmetic truncate division      |
-| not      | `not a`{:.language-nelua}       | unary    | boolean negation               |
-| len      | `#a`{:.language-nelua}          | unary    | length                         |
-| deref    | `$a`{:.language-nelua}          | unary    | pointer dereference            |
-| ref      | `&a`{:.language-nelua}          | unary    | memory reference               |
+| or     | `a or b`{:.language-nelua}   | conditional or                            |
+| and    | `a and b`{:.language-nelua}  | conditional and                           |
+| lt     | `a < b`{:.language-nelua}    | less than                                 |
+| gt     | `a > b`{:.language-nelua}    | greater than                              |
+| le     | `a <= b`{:.language-nelua}   | less or equal than                        |
+| ge     | `a >= b`{:.language-nelua}   | greater or equal than                     |
+| ne     | `a ~= b`{:.language-nelua}   | not equal                                 |
+| eq     | `a == b`{:.language-nelua}   | equal                                     |
+| bor    | `a | b`{:.language-nelua}    | bitwise or                                |
+| band   | `a & b`{:.language-nelua}    | bitwise and                               |
+| bxor   | `a ~ b`{:.language-nelua}    | bitwise xor                               |
+| shl    | `a << b`{:.language-nelua}   | bitwise logical left shift                |
+| shr    | `a >> b`{:.language-nelua}   | bitwise logical right shift               |
+| asr    | `a >>> b`{:.language-nelua}  | bitwise arithmetic right shift            |
+| bnot   | `~a`{:.language-nelua}       | bitwise not                               |
+| concat | `a .. b`{:.language-nelua}   | concatenation                             |
+| add    | `a + b`{:.language-nelua}    | arithmetic add                            |
+| sub    | `a - b`{:.language-nelua}    | arithmetic subtract                       |
+| mul    | `a * b`{:.language-nelua}    | arithmetic multiply                       |
+| div    | `a / b`{:.language-nelua}    | arithmetic division                       |
+| idiv   | `a // b`{:.language-nelua}   | arithmetic floor division                 |
+| tdiv   | `a /// b`{:.language-nelua}  | arithmetic truncate division              |
+| mod    | `a % b`{:.language-nelua}    | arithmetic floor division remainder       |
+| tmod   | `a %%%% b`{:.language-nelua} | arithmetic truncate division remainder    |
+| pow    | `a ^ b`{:.language-nelua}    | arithmetic exponentiation                 |
+| unm    | `-a`{:.language-nelua}       | arithmetic negation                       |
+| not    | `not a`{:.language-nelua}    | boolean negation                          |
+| len    | `#a`{:.language-nelua}       | length                                    |
+| deref  | `$a`{:.language-nelua}       | pointer dereference                       |
+| ref    | `&a`{:.language-nelua}       | memory reference                          |
 {: .table.table-bordered.table-striped.table-sm}
 
 All the operators follows Lua semantics, i.e.:
@@ -849,7 +850,7 @@ All the operators follows Lua semantics, i.e.:
 * Bitwise shifts are defined for negative and large shifts.
 * `and`, `or`, `not`, `==`, `~=` can be used on any variable type.
 
-The additional operators over Lua are `>>>`, `///`, `$` and `&`,
+The additional operators over Lua are `>>>`, `///`, `%%%`, `$` and `&`,
 used for low level programming.
 
 {:.alert.alert-info}
@@ -1080,33 +1081,34 @@ Complete list of the metamethods that can be defined for records:
 
 | Name | Syntax | Kind | Operation |
 |---|---|---|---|
-| `__lt`            | `a < b`{:.language-nelua}  | binary   | less than                      |
-| `__le`            | `a <= b`{:.language-nelua} | binary   | less or equal than             |
-| `__eq`            | `a == b`{:.language-nelua} | binary   | equal                          |
-| `__bor`           | `a | b`{:.language-nelua}  | binary   | bitwise or                     |
-| `__band`          | `a & b`{:.language-nelua}  | binary   | bitwise and                    |
-| `__bxor`          | `a ~ b`{:.language-nelua}  | binary   | bitwise xor                    |
-| `__shl`           | `a << b`{:.language-nelua} | binary   | bitwise logical left shift     |
-| `__shr`           | `a >> b`{:.language-nelua} | binary   | bitwise logical right shift    |
-| `__asr`           | `a >>> b`{:.language-nelua}| binary   | bitwise arithmetic right shift |
-| `__bnot`          | `~a`{:.language-nelua}     | unary    | bitwise not                    |
-| `__concat`        | `a .. b`{:.language-nelua} | binary   | concatenation                  |
-| `__add`           | `a + b`{:.language-nelua}  | binary   | arithmetic add                 |
-| `__sub`           | `a - b`{:.language-nelua}  | binary   | arithmetic subtract            |
-| `__mul`           | `a * b`{:.language-nelua}  | binary   | arithmetic multiply            |
-| `__unm`           | `-a`{:.language-nelua}     | unary    | arithmetic negation            |
-| `__mod`           | `a % b`{:.language-nelua}  | binary   | arithmetic modulo              |
-| `__pow`           | `a ^ b`{:.language-nelua}  | binary   | arithmetic exponentiation      |
-| `__div`           | `a / b`{:.language-nelua}  | binary   | arithmetic division            |
-| `__idiv`          | `a // b`{:.language-nelua} | binary   | arithmetic floor division      |
-| `__tdiv`          | `a /// b`{:.language-nelua}| binary   | arithmetic truncate division      |
-| `__len`           | `#a`{:.language-nelua}     | unary    | length                         |
-| `__index`         | `a[b]`{:.language-nelua}   | indexing | array index                    |
-| `__atindex`       | `a[b]`{:.language-nelua}   | indexing | array index via reference      |
-| `__tocstring`     |                            | cast     | implicit cast to cstring       |
-| `__tostring`      |                            | cast     | implicit cast to string        |
-| `__tostringview`  |                            | cast     | implicit cast to stringview    |
-| `__convert`       |                            | cast     | implicit cast from anything    |
+| `__lt`           | `a < b`{:.language-nelua}   | binary   | less than                              |
+| `__le`           | `a <= b`{:.language-nelua}  | binary   | less or equal than                     |
+| `__eq`           | `a == b`{:.language-nelua}  | binary   | equal                                  |
+| `__bor`          | `a | b`{:.language-nelua}   | binary   | bitwise or                             |
+| `__band`         | `a & b`{:.language-nelua}   | binary   | bitwise and                            |
+| `__bxor`         | `a ~ b`{:.language-nelua}   | binary   | bitwise xor                            |
+| `__shl`          | `a << b`{:.language-nelua}  | binary   | bitwise logical left shift             |
+| `__shr`          | `a >> b`{:.language-nelua}  | binary   | bitwise logical right shift            |
+| `__asr`          | `a >>> b`{:.language-nelua} | binary   | bitwise arithmetic right shift         |
+| `__bnot`         | `~a`{:.language-nelua}      | unary    | bitwise not                            |
+| `__concat`       | `a .. b`{:.language-nelua}  | binary   | concatenation                          |
+| `__add`          | `a + b`{:.language-nelua}   | binary   | arithmetic add                         |
+| `__sub`          | `a - b`{:.language-nelua}   | binary   | arithmetic subtract                    |
+| `__mul`          | `a * b`{:.language-nelua}   | binary   | arithmetic multiply                    |
+| `__div`          | `a / b`{:.language-nelua}   | binary   | arithmetic division                    |
+| `__idiv`         | `a // b`{:.language-nelua}  | binary   | arithmetic floor division              |
+| `__tdiv`         | `a /// b`{:.language-nelua} | binary   | arithmetic truncate division           |
+| `__mod`          | `a % b`{:.language-nelua}   | binary   | arithmetic floor division remainder    |
+| `__tmod`         | `a %%% b`{:.language-nelua} | binary   | arithmetic truncate division remainder |
+| `__pow`          | `a ^ b`{:.language-nelua}   | binary   | arithmetic exponentiation              |
+| `__unm`          | `-a`{:.language-nelua}      | unary    | arithmetic negation                    |
+| `__len`          | `#a`{:.language-nelua}      | unary    | length                                 |
+| `__index`        | `a[b]`{:.language-nelua}    | indexing | array index                            |
+| `__atindex`      | `a[b]`{:.language-nelua}    | indexing | array index via reference              |
+| `__tocstring`    |                             | cast     | implicit cast to cstring               |
+| `__tostring`     |                             | cast     | implicit cast to string                |
+| `__tostringview` |                             | cast     | implicit cast to stringview            |
+| `__convert`      |                             | cast     | implicit cast from anything            |
 {: .table.table-bordered.table-striped.table-sm}
 
 ### Record globals
