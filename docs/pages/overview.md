@@ -833,7 +833,7 @@ All Lua operators are provided:
 | idiv   | `a // b`{:.language-nelua}   | arithmetic floor division                 |
 | tdiv   | `a /// b`{:.language-nelua}  | arithmetic truncate division              |
 | mod    | `a % b`{:.language-nelua}    | arithmetic floor division remainder       |
-| tmod   | `a %%%% b`{:.language-nelua} | arithmetic truncate division remainder    |
+| tmod   | `a %%% b`{:.language-nelua}  | arithmetic truncate division remainder    |
 | pow    | `a ^ b`{:.language-nelua}    | arithmetic exponentiation                 |
 | unm    | `-a`{:.language-nelua}       | arithmetic negation                       |
 | not    | `not a`{:.language-nelua}    | boolean negation                          |
@@ -897,7 +897,7 @@ automatic deducing of the argument type, instead it's assumed the argument must
 be of the `any` type, this makes Nelua semantics more compatible with Lua semantics.
 {:.alert.alert-info}
 
-At the moment avoid doing this and you must **explicty set types for functions arguments**,
+At the moment avoid doing this and you must **explicit set types for functions arguments**,
 due to the poor support for `any` type yet. Omitting the type for the return type is fine,
 because the compiler can deduce it.
 {:.alert.alert-warning}

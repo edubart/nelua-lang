@@ -1151,6 +1151,7 @@ it("signed and unsigned comparisons", function()
     assert(a < b) assert(b > a)
 ]])
 end)
+
 it("record comparisons", function()
   assert.run_c([[
     local R = @record{x: integer, y: integer}
@@ -2023,6 +2024,8 @@ it("pointers", function()
     assert($p == 2)
     $p = 3
     assert(i == 3)
+    $&i = 4
+    assert(i == 4)
 
     do
       local x: usize = 0xffffffff

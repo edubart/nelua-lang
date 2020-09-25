@@ -1245,6 +1245,12 @@ describe("operator", function()
           {n.UnaryOp{'deref',n.Id{'a'}}},
           {n.Id{'b'}
     }}}})
+    assert.parse_ast(nelua_parser, "$(&i) = b",
+      n.Block{{
+        n.Assign{
+          {n.UnaryOp{'deref',n.Paren{n.UnaryOp{"ref", n.Id{"i"}}}}},
+          {n.Id{'b'}
+    }}}})
     assert.parse_ast(nelua_parser, "return $a",
       n.Block{{
         n.Return{{

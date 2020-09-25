@@ -299,16 +299,15 @@ local function get_parser()
 
     assignable_list <- assignable (%COMMA assignable)*
     assignable <-
-      ({} ''->'UnaryOp' {| op_deref* |} assignable_suffix) -> to_chain_unary_op
-    assignable_suffix <-
-      (primary_expr {| ((call_expr+ &index_expr) / index_expr)+ |}) -> to_chain_index_or_call
-      / id
+      ({} ''->'UnaryOp' op_deref eexpr) -> to_astnode /
+      (primary_expr {| ((call_expr+ &index_expr) / index_expr)+ |}) -> to_chain_index_or_call /
+      id
   ]])
 
   grammar:add_group_peg('stat', 'call', [[
-    callable
-    callable <-
-      ({} ''->'UnaryOp' {| op_deref* |} callable_suffix) -> to_chain_unary_op
+    ({} ''->'UnaryOp' op_deref callable_suffix) -> to_astnode /
+    callable_suffix
+
     callable_suffix <-
       (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |}) -> to_chain_index_or_call
   ]])
