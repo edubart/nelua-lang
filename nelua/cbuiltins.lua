@@ -495,11 +495,13 @@ function builtins.nelua_idiv_(context, type)
   local ictype = string.format('int%d_t', type.bitsize)
   local uctype = string.format('uint%d_t', type.bitsize)
   context:ensure_runtime_builtin('nelua_unlikely')
+  context:ensure_runtime_builtin('nelua_panic_cstring')
   define_inline_builtin(context, name,
     ictype,
     string.format('(%s a, %s b)', ictype, ictype),
     string.format([[{
   if(nelua_unlikely(b == -1)) return 0U - (%s)a;
+  if(nelua_unlikely(b == 0)) nelua_panic_cstring("division by zero");
   %s q = a / b;
   return q * b == a ? q : q - ((a < 0) ^ (b < 0));
 }]], uctype, ictype))
@@ -511,11 +513,13 @@ function builtins.nelua_imod_(context, type)
   if context.usedbuiltins[name] then return name end
   local ictype = string.format('int%d_t', type.bitsize)
   context:ensure_runtime_builtin('nelua_unlikely')
+  context:ensure_runtime_builtin('nelua_panic_cstring')
   define_inline_builtin(context, name,
     ictype,
     string.format('(%s a, %s b)', ictype, ictype),
     string.format([[{
   if(nelua_unlikely(b == -1)) return 0;
+  if(nelua_unlikely(b == 0)) nelua_panic_cstring("division by zero");
   %s r = a %% b;
   return (r != 0 && (a ^ b) < 0) ? r + b : r;
 }]], ictype))
