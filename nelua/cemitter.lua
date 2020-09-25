@@ -288,7 +288,7 @@ function CEmitter:add_string_literal(val, ascstring)
       self:add('(')
       self:add_ctypecast(primtypes.stringview)
     end
-    self:add('{', varname, ', ', size, '}')
+    self:add('{(uint8_t*)', varname, ', ', size, '}')
     if not self.context.state.ininitializer then
       self:add(')')
     end

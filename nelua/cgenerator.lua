@@ -274,7 +274,11 @@ typevisitors[types.PointerType] = function(context, type)
     -- offset declaration of pointers before records
     index = #context.declarations+2
   end
-  decemitter:add_ln('typedef ', type.subtype, '* ', type.codename, ';')
+  if type.subtype.is_array and type.subtype.length == 0 then
+    decemitter:add_ln('typedef ', type.subtype.subtype, '* ', type.codename, ';')
+  else
+    decemitter:add_ln('typedef ', type.subtype, '* ', type.codename, ';')
+  end
   if not index then
     index = #context.declarations+1
   end
@@ -778,9 +782,13 @@ function visitors.DotIndex(context, node, emitter)
   local type = attr.type
   local objtype = objnode.attr.type
   local poparray = false
-  if type.is_array and not attr.globalfield then
-    emitter:add('(*(', type, '*)')
-    poparray = true
+  if type.is_array then
+    if objtype:implict_deref_type().is_record and context.state.inarrayindex == node then
+       context.state.recordindexed = node
+    elseif not attr.globalfield then
+      emitter:add('(*(', type, '*)')
+      poparray = true
+    end
   end
   if objtype.is_type then
     objtype = node.indextype
@@ -832,11 +840,21 @@ function visitors.ArrayIndex(context, node, emitter)
     end --luacov:enable
 
     if pointer then
-      emitter:add('((', objtype.subtype, '*)', objnode, ')[')
+      if objtype.length == 0 then
+        emitter:add('(',objnode, ')[')
+      else
+        emitter:add('((', objtype.subtype, '*)', objnode, ')[')
+      end
     elseif objtype.length == 0 then
       emitter:add('((', objtype.subtype, '*)&', objnode, ')[')
     else
-      emitter:add(objnode, '.data[')
+      context:push_state().inarrayindex = objnode
+      emitter:add(objnode)
+      if context.state.recordindexed ~= objnode then
+        emitter:add('.data')
+      end
+      emitter:add('[')
+      context:pop_state()
     end
     if not node.attr.checkbounds then
       emitter:add(indexnode)

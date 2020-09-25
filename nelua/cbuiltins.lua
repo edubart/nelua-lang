@@ -66,7 +66,7 @@ end
 
 -- nil
 function builtins.nlniltype(context)
-  define_builtin(context, 'nlniltype', "typedef struct{} nlniltype;\n")
+  define_builtin(context, 'nlniltype', "typedef struct nlniltype {} nlniltype;\n")
 end
 
 function builtins.NLNIL(context)
@@ -210,7 +210,7 @@ function builtins.nelua_cstring2stringview(context)
   if(s == NULL) return (nlstringview){0};
   uintptr_t size = strlen(s);
   if(size == 0) return (nlstringview){0};
-  return (nlstringview){s, size};
+  return (nlstringview){(uint8_t*)s, size};
 }]])
 end
 
@@ -229,7 +229,7 @@ function builtins.nlruntype_(context, typename)
   context:ctype(primtypes.stringview)
   context:ensure_runtime_builtin('nlruntype')
   local code = string.format('static nlruntype %s ='..
-    '{ {"%s", %d} };\n',
+    '{ {(uint8_t*)"%s", %d} };\n',
     name, typename, #typename)
   define_builtin(context, name, code)
   return name
@@ -959,7 +959,7 @@ function inlines.print(context, node)
       defemitter:add_ln('printf("%s", a',i,');')
     elseif argtype.is_string then
       defemitter:add_builtin('nelua_stdout_write_stringview')
-      defemitter:add_ln('((nlstringview){(char*)a',i,'.data, a',i,'.size});')
+      defemitter:add_ln('((nlstringview){(uint8_t*)a',i,'.data, a',i,'.size});')
     elseif argtype.is_niltype then
       defemitter:add_ln('printf("nil");')
     elseif argtype.is_boolean then

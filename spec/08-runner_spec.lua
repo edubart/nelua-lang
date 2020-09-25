@@ -2,6 +2,7 @@ require 'busted.runner'()
 
 local assert = require 'spec.tools.assert'
 local configer = require 'nelua.configer'
+local config = configer.get()
 
 describe("Nelua runner should", function()
 
@@ -21,8 +22,10 @@ it("run simple programs", function()
   assert.run({'--lint', '--eval', ""})
   assert.run({'--generator', 'lua', '--eval', "print(_G.arg[1])", "hello"}, 'hello')
   assert.run({'--eval', ""})
-  assert.run({'--cflags="-Wall"', '--eval',
-    "## cflags '-w -g' linklib 'm' ldflags '-s'"})
+  if config.cc == 'gcc' then
+    assert.run({'--cflags="-Wall"', '--eval',
+      "## cflags '-w -g' linklib 'm' ldflags '-s'"})
+  end
 end)
 
 it("error on parsing an invalid program" , function()
