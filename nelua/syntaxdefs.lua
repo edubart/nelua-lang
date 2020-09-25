@@ -10,6 +10,7 @@ local function get_parser()
 
   local parser = PEGParser()
   parser:set_astbuilder(astbuilder)
+  local to_astnode = parser.defs.to_astnode
 
   -- spaces including new lines
   parser:set_peg("SPACE", "%s")
@@ -419,7 +420,9 @@ local function get_parser()
         {| (table_row (%SEPARATOR table_row)* %SEPARATOR?)? |}
       eRCURLY) -> to_astnode
     table_row <- table_pair / expr
-    table_pair <- ({} '' -> 'Pair' (%LBRACKET eexpr eRBRACKET / name) %ASSIGN eexpr) -> to_astnode
+    table_pair <-
+      ({} '' -> 'Pair' (%LBRACKET eexpr eRBRACKET / name) %ASSIGN eexpr) -> to_astnode /
+      ({} %ASSIGN -> 'Pair' name) -> to_punned_pair_astnode
 
     doexpr <-
       ({} %LPAREN %DO -> 'DoExpr' block eEND eRPAREN) -> to_astnode
@@ -555,7 +558,11 @@ local function get_parser()
 
     name    <- %cNAME / ppname
     id      <- ({} '' -> 'Id' name) -> to_astnode
-  ]])
+  ]], {
+    to_punned_pair_astnode = function(pos, tag, name)
+      return to_astnode(pos, tag, name, to_astnode(pos+1, 'Id', name))
+    end
+  })
 
   -- operators
   grammar:set_pegs([[

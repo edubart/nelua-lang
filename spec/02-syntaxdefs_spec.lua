@@ -446,7 +446,7 @@ describe("expression", function()
     }}}})
   end)
   it("table", function()
-    assert.parse_ast(nelua_parser, "return {}, {a}, {a,b}, {a=b}, {[a] = b}",
+    assert.parse_ast(nelua_parser, "return {}, {a}, {a,b}, {a=b}, {[a] = b}, {=a}",
       n.Block{{
         n.Return{{
           n.Table{{}},
@@ -454,6 +454,7 @@ describe("expression", function()
           n.Table{{ n.Id{'a'}, n.Id{'b'} }},
           n.Table{{ n.Pair{'a', n.Id{'b'}} }},
           n.Table{{ n.Pair{n.Id{'a'}, n.Id{'b'}} }},
+          n.Table{{ n.Pair{'a', n.Id{'a'}} }},
     }}}})
   end)
   it("surrounded expression", function()

@@ -1664,6 +1664,8 @@ it("records", function()
     assert(Point({1,2}).y == 2)
     assert(Point({x=1,2}).y == 2)
     assert(Point({1,y=2}).x == 1)
+    local x, y = 1, 2
+    assert(Point({=x,=y}).y == 2)
   ]])
   assert.run_c([[
     local Point = @record {x: integer, y: integer}
