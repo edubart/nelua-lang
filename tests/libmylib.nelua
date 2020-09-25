@@ -17,7 +17,7 @@ end
 
 -- Initialize the library.
 -- This function is marked as entry point, initialization code should be done here.
-local function init() <entrypoint, codename 'mylib_init'>
+local function init() <cexport, entrypoint, codename 'mylib_init'>
   -- Import and call nelua_main on initialization.
   -- This function run all code in top scope and initializes global variables.
   local function nelua_main(argc: cint, argv: *cstring): cint <cimport,nodecl> end
