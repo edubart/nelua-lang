@@ -34,7 +34,7 @@ function lua_compiler.compile_code(luacode, outfile)
 end
 
 function lua_compiler.compile_binary(luafile)
-  return luafile
+  return luafile, true
 end
 
 function lua_compiler.get_run_command(binaryfile, runargs)

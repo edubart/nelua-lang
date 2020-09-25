@@ -1,0 +1,18 @@
+-- Add the current folder to the linker's library search path,
+-- we expect that 'mylib' library is available in the current path.
+## cflags "-L. -Wl,-rpath,'$ORIGIN'"
+-- Link mylib C library.
+## linklib 'mylib'
+
+-- Import mylib functions.
+local function mylib_sum(x: integer, y: integer): integer <cimport> end
+local function mylib_init() <cimport> end
+local function mylib_terminate() <cimport> end
+
+-- Run example.
+mylib_init()
+local a = mylib_sum(1, 2)
+print('the sum is:')
+print(a)
+assert(a == 3)
+mylib_terminate()

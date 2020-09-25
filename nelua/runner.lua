@@ -105,9 +105,10 @@ local function run(argv, redirect)
   if not infile then infile = 'eval_' .. stringer.hash(code) end
 
   -- save the generated code
-  local outcachefile = fs.getcachepath(infile, config.cache_dir)
+  local outcacheprefix = fs.getcachepath(infile, config.cache_dir)
+  local outfile = config.output or outcacheprefix
   local compiler = generator.compiler
-  local sourcefile = compiler.compile_code(code, outcachefile, compileopts)
+  local sourcefile = compiler.compile_code(code, outcacheprefix, compileopts)
 
   if config.timing then
     console.debugf('compile code    %.1f ms', timer:elapsedrestart())
@@ -117,10 +118,14 @@ local function run(argv, redirect)
   local dobinarycompile = config.compile_binary or dorun
 
   -- compile the generated code
-  local binaryfile
+  local binaryfile, isexe
   if dobinarycompile then
-    binaryfile = compiler.compile_binary(sourcefile, outcachefile, compileopts)
+    binaryfile, isexe = compiler.compile_binary(sourcefile, outfile, compileopts)
 
+    if not isexe then
+      if not config.quiet then console.info('library compiled!') end
+      return 0
+    end
     if config.timing then
       console.debugf('compile binary  %.1f ms', timer:elapsedrestart())
     end

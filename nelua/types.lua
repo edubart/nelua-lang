@@ -58,6 +58,8 @@ Type.shape = shaper.shape {
   nickname = shaper.string:is_optional(),
   -- The actual name of the type used in the code generator when emitting C code.
   codename = shaper.string,
+  -- Fixed custom codename used in <codename> annotation.
+  fixedcodename = shaper.string:is_optional(),
   -- Symbol that defined the type, not applicable for primitive types.
   symbol = shaper.symbol:is_optional(),
   -- Node that defined the type.

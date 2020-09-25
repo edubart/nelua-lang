@@ -1464,7 +1464,7 @@ local function emit_main(ast, context)
     mainemitter:add_ln("}")
     mainemitter:dec_indent()
 
-    context:add_declaration('int nelua_main(int nelua_argc, char** nelua_argv);\n')
+    context:add_declaration('static int nelua_main(int nelua_argc, char** nelua_argv);\n')
   else
     mainemitter:inc_indent()
     mainemitter:add_traversal(ast)

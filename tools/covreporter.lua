@@ -28,7 +28,7 @@ local function report_coverage(reportfile)
 body    <- {| sfile* |} summary
 sfile   <- {| {:name: '' -> 'file' :} '='+%s+!'Summary'{:file: [-/_.%w]+ :}%s+'='+%nl (miss / sline / eline)* |}
 miss    <- !div '*'+'0 '{[^%nl]+} %nl
-sline   <- !div ' '* %d* ' '* {''} [^%nl]+ %nl
+sline   <- !div ' '* %d* ' '* {''} [^%nl]* %nl
 eline   <- [ ]* {''} %nl
 div     <- '==='+%s+[-/_.%w]+%s+'==='+%nl
 summary <- {| heading {| line+ |} footer |}

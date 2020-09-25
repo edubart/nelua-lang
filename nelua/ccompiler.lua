@@ -134,24 +134,24 @@ local function detect_binary_extension(ccinfo, cflags)
     if cflags:find('-shared') then
       return '.dll'
     else
-      return '.exe'
+      return '.exe', true
     end
   else
     if cflags:find('-shared') then
       return '.so'
     else
-      return ''
+      return '', true
     end
   end
   --luacov:enable
 end
 
-
 function compiler.compile_binary(cfile, outfile, compileopts)
   local cflags = get_compiler_cflags(compileopts)
   local ccinfo = compiler.get_cc_info()
-  local binext = detect_binary_extension(ccinfo, cflags)
-  local binfile = outfile .. binext
+  local binext, isexe = detect_binary_extension(ccinfo, cflags)
+  local binfile = outfile
+  if not stringer.endswith(binfile, binext) then binfile = binfile .. binext end
 
   -- if the file with that hash already exists skip recompiling it
   if not config.no_cache then
@@ -159,7 +159,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
     local binfile_mtime = fs.getmodtime(binfile)
     if cfile_mtime and binfile_mtime and cfile_mtime <= binfile_mtime then
       if not config.quiet then console.info("using cached binary " .. binfile) end
-      return binfile
+      return binfile, isexe
     end
   end
 
@@ -178,7 +178,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
     io.stderr:write(stderr)
   end
 
-  return binfile
+  return binfile, isexe
 end
 
 function compiler.get_gdb_version() --luacov:disable

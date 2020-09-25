@@ -437,6 +437,8 @@ function visitors.Annotation(context, node, symbol)
     if objattr._type then
       objattr:update_fields()
     end
+  elseif name == 'codename' then
+    objattr.fixedcodename = params
   end
 
   node.done = true
@@ -2163,8 +2165,10 @@ function visitors.FuncDef(context, node, polysymbol)
       if context.entrypoint and context.entrypoint ~= node then
         node:raisef("cannot have more than one function entrypoint")
       end
-      attr.codename = attr.name
-      attr.declname = attr.name
+      if not attr.fixedcodename then
+        attr.codename = attr.name
+      end
+      attr.declname = attr.codename
       context.entrypoint = node
     end
   end

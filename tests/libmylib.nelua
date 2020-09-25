@@ -1,0 +1,31 @@
+-- Disable the garbage collector,
+-- because libraries should not and cannot use the garbage collector,
+-- this means that you are responsible to manually manage the memory.
+## pragmas.nogc = true
+-- Prefix used when declaring C symbols for this file.
+-- With this an exported function named 'sum' will be exported as 'mylib_sum'
+## pragmas.unitname = 'mylib'
+-- Compilation flags needed for compiling C libraries.
+## cflags '-shared -fPIC'
+
+print 'mylib - in top scope'
+
+local function sum(x: integer, y: integer): integer <cexport>
+  print 'mylib - sum'
+  return x + y
+end
+
+-- Initialize the library.
+-- This function is marked as entry point, initialization code should be done here.
+local function init() <entrypoint, codename 'mylib_init'>
+  -- Import and call nelua_main on initialization.
+  -- This function run all code in top scope and initializes global variables.
+  local function nelua_main(argc: cint, argv: *cstring): cint <cimport,nodecl> end
+  print 'mylib - init'
+  nelua_main(0, nilptr)
+end
+
+-- Terminate the library.
+local function terminate() <cexport>
+  print 'mylib - terminate'
+end
