@@ -22,15 +22,21 @@ function errorer.errorf(message, ...)
 end
 
 -- Helper to generate pretty error messages associated with line and column from a source.
-local function get_pretty_source_pos_errmsg(src, errline, errcol, errmsg, errname)
+local function get_pretty_source_pos_errmsg(src, lineno, colno, errmsg, errname, len)
   local srcname = src and src.name or ''
   local colbright, colreset = colors.bright, colors.reset
 
   -- extract the line from the source
-  local line = stringer.getline(src.content, errline)
+  local line = stringer.getline(src.content, lineno)
 
   -- generate a line helper to assist showing the exact line column for the error
-  local linehelper = string.rep(' ', errcol-1)..colbright..colors.green..'^'..colreset
+  local linehelper = string.rep(' ', colno-1)..colbright..colors.green..'^'..colreset
+  if len and len > 1 then
+    -- remove commends and trailing spaces
+    local trimmedline = line:sub(1,colno+len-1):gsub('%-%-.*',''):gsub('%s+$','')
+    len = math.min(#trimmedline-colno, len)
+    linehelper = linehelper..colors.magenta..string.rep('~',len)..colreset
+  end
   local errtraceback = ''
 
   -- extract traceback from message, to move it to the end of the message
@@ -49,14 +55,15 @@ local function get_pretty_source_pos_errmsg(src, errline, errcol, errmsg, errnam
 
   -- generate the error message
   return string.format("%s:%d:%d: %s: %s\n%s\n%s\n%s",
-    srcname..colbright, errline, errcol, errcolor..errname, errmsgcolor..errmsg..colreset,
+    srcname..colbright, lineno, colno, errcolor..errname, errmsgcolor..errmsg..colreset,
     line, linehelper, errtraceback)
 end
 
 -- Generate a pretty error message associated with a character position from a source.
-function errorer.get_pretty_source_pos_errmsg(src, errpos, errmsg, errname)
-  local line, col = re.calcline(src.content, errpos)
-  return get_pretty_source_pos_errmsg(src, line, col, errmsg, errname)
+function errorer.get_pretty_source_pos_errmsg(src, pos, endpos, errmsg, errname)
+  local line, col = re.calcline(src.content, pos)
+  local ncols = endpos and (endpos-pos)
+  return get_pretty_source_pos_errmsg(src, line, col, errmsg, errname, ncols)
 end
 
 -- Generate a pretty error message associated with line and column from a source.

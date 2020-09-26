@@ -13,7 +13,7 @@ local function alloc_test() <noinline>
 end
 
 local function clear_stack() <noinline>
-  local buffer: byte[1024] <volatile>
+  local buffer: [1024]byte <volatile>
 end
 
 do -- gc

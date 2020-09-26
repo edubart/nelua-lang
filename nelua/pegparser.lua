@@ -40,61 +40,51 @@ function PEGParser:set_astbuilder(astbuilder)
   self.astbuilder = astbuilder
 
   local function to_astnode(pos, tag, ...)
-    return astbuilder:_create(tag, pos, self.src, ...)
+    return astbuilder:_create(tag, self.src, pos, ...)
   end
 
   local defs = self.defs
   defs.to_astnode = to_astnode
-  defs.to_chain_unary_op = function(pos, tag, opnames, expr)
-    for i=#opnames,1,-1 do
-      local opname = opnames[i]
-      expr = to_astnode(pos, tag, opname, expr)
+  defs.to_chain_unary_op = function(ops, expr, endpos)
+    for i=#ops,1,-2 do
+      local pos, opname = ops[i-1], ops[i]
+      expr = to_astnode(pos, 'UnaryOp', opname, expr, endpos)
     end
     return expr
   end
 
-  defs.to_list_astnode = function(pos, tag, exprs)
+  defs.to_list_astnode = function(pos, tag, exprs, endpos)
     if #exprs == 1 then
       return exprs[1]
     else
-      return to_astnode(pos, tag, exprs)
+      return to_astnode(pos, tag, exprs, endpos)
     end
   end
 
-  defs.to_chain_late_unary_op = function(opnodes, expr)
+  defs.to_chain_late_unary_op = function(opnodes, expr, endpos)
     if opnodes then
       for i=#opnodes,1,-1 do
         local op = opnodes[i]
         op[3] = expr
+        op[#op+1] = endpos
         expr = to_astnode(table.unpack(op))
       end
     end
     return expr
   end
 
-  defs.to_chain_late_unary_op_suffix = function(expr, opnodes)
-    if opnodes then
-      for i=1,#opnodes do
-        local op = opnodes[i]
-        op[3] = expr
-        expr = to_astnode(table.unpack(op))
-      end
-    end
-    return expr
-  end
-
-  defs.to_binary_op = function(pos, tag, lhs, opname, rhs)
+  defs.to_binary_op = function(pos, lhs, opname, rhs, endpos)
     if rhs then
-      return to_astnode(pos, tag, opname, lhs, rhs)
+      return to_astnode(pos, 'BinaryOp', opname, lhs, rhs, endpos)
     end
     return lhs
   end
 
-  defs.to_chain_binary_op = function(pos, tag, matches)
+  defs.to_chain_binary_op = function(pos, matches)
     local lhs = matches[1]
-    for i=2,#matches,2 do
-      local opname, rhs = matches[i], matches[i+1]
-      lhs = to_astnode(pos, tag, opname, lhs, rhs)
+    for i=2,#matches,3 do
+      local opname, rhs, endpos = matches[i], matches[i+1], matches[i+2]
+      lhs = to_astnode(pos, 'BinaryOp', opname, lhs, rhs, endpos)
     end
     return lhs
   end
@@ -105,7 +95,7 @@ function PEGParser:set_astbuilder(astbuilder)
     if exprs then
       for i=1,#exprs do
         local expr = exprs[i]
-        expr[#expr+1] = last_expr
+        table.insert(expr, #expr, last_expr)
         last_expr = to_astnode(unpack(expr))
       end
     end
@@ -266,7 +256,7 @@ function PEGParser:parse(srccontent, srcname, pegname)
   if not ast then
     local errmsg = self.syntax_errors[syntaxlabel] or syntaxlabel
     local src = {content=srccontent, name=srcname or 'input'}
-    local message = errorer.get_pretty_source_pos_errmsg(src, errpos, errmsg, 'syntax error')
+    local message = errorer.get_pretty_source_pos_errmsg(src, errpos, nil, errmsg, 'syntax error')
     except.raise({
       label = 'ParseError',
       message = message,

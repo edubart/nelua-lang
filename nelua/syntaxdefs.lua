@@ -63,7 +63,7 @@ local function get_parser()
 
   -- capture numbers (hexadecimal, binary, exponential, decimal or integer)
   parser:set_token_pegs([[
-    %cNUMBER    <- ({} '' -> 'Number' number literal?) -> to_astnode
+    %cNUMBER    <- ({} '' -> 'Number' number literal? {}) -> to_astnode
     number      <- '' -> 'hex' hexadecimal /
                    '' -> 'bin' binary /
                    '' -> 'dec' decimal
@@ -117,7 +117,7 @@ local function get_parser()
 
   -- capture long or short strings
   parser:set_token_pegs([[
-    %cSTRING        <- ({} '' -> 'String' (short_string / long_string) literal?) -> to_astnode
+    %cSTRING        <- ({} '' -> 'String' (short_string / long_string) literal? {}) -> to_astnode
     short_string    <- short_open ({~ short_content* ~} short_close / %{UnclosedShortString})
     short_content   <- %cESCAPESEQUENCE / !(=de / %LINEBREAK) .
     short_open      <- {:de: ['"] :}
@@ -131,12 +131,12 @@ local function get_parser()
 
   -- capture boolean (true or false)
   parser:set_token_pegs([[
-    %cBOOLEAN <- ({} '' -> 'Boolean' ((%FALSE -> to_false) / (%TRUE -> to_true))) -> to_astnode
+    %cBOOLEAN <- ({} '' -> 'Boolean' ((%FALSE -> to_false) / (%TRUE -> to_true)) {}) -> to_astnode
   ]])
 
   --- capture nil values
   parser:set_token_pegs([[
-    %cNIL <- ({} %NIL -> 'Nil') -> to_astnode
+    %cNIL <- ({} %NIL -> 'Nil' {}) -> to_astnode
   ]])
 
   -- tokened symbols
@@ -207,7 +207,7 @@ local function get_parser()
 
   -- capture varargs values
   parser:set_token_pegs([[
-    %cVARARGS <- ({} %ELLIPSIS -> 'Varargs') -> to_astnode
+    %cVARARGS <- ({} %ELLIPSIS -> 'Varargs' {}) -> to_astnode
   ]])
 
   --------------------------------------------------------------------------------
@@ -224,13 +224,13 @@ local function get_parser()
       (!. / %{UnexpectedSyntaxAtEOF})
 
     block <-
-      ({} '' -> 'Block' {| (stat / %SEMICOLON)* |}) -> to_astnode
+      ({} '' -> 'Block' {| (stat / %SEMICOLON)* |} {}) -> to_astnode
 
   ]==])
 
   -- statements
   grammar:add_group_peg('stat', 'return', [[
-    ({} %RETURN -> 'Return' {| expr_list |}) -> to_astnode
+    ({} %RETURN -> 'Return' {| expr_list |} {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'if', [[
@@ -240,23 +240,23 @@ local function get_parser()
         ({| %ELSEIF eexpr eTHEN block |})*
       |}
       (%ELSE block)?
-    eEND) -> to_astnode
+    eEND {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'do', [[
-    ({} %DO -> 'Do' block eEND) -> to_astnode
+    ({} %DO -> 'Do' block eEND {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'defer', [[
-    ({} %DEFER -> 'Defer' block eEND) -> to_astnode
+    ({} %DEFER -> 'Defer' block eEND {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'while', [[
-    ({} %WHILE -> 'While' eexpr eDO block eEND) -> to_astnode
+    ({} %WHILE -> 'While' eexpr eDO block eEND {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'repeat', [[
-    ({} %REPEAT -> 'Repeat' block eUNTIL eexpr) -> to_astnode
+    ({} %REPEAT -> 'Repeat' block eUNTIL eexpr {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'for', [[
@@ -266,47 +266,47 @@ local function get_parser()
       ({} '' -> 'ForNum'
         typed_id %ASSIGN eexpr %COMMA (op_cmp / cnil) eexpr (%COMMA eexpr / cnil)
         eDO block eEND
-      ) -> to_astnode
+      {}) -> to_astnode
 
     for_in <-
-      ({} '' -> 'ForIn' {| etyped_idlist |} %IN {| eexpr_list |} eDO block eEND) -> to_astnode
+      ({} '' -> 'ForIn' {| etyped_idlist |} %IN {| eexpr_list |} eDO block eEND {}) -> to_astnode
 
     for_in_empty <-
-      ({} %IN -> 'ForIn' cnil {| eexpr_list |} eDO block eEND) -> to_astnode
+      ({} %IN -> 'ForIn' cnil {| eexpr_list |} eDO block eEND {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'break', [[
-    ({} %BREAK -> 'Break') -> to_astnode
+    ({} %BREAK -> 'Break' {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'label', [[
-    ({} %DBLCOLON -> 'Label' ename (%DBLCOLON / %{UnclosedLabel})) -> to_astnode
+    ({} %DBLCOLON -> 'Label' ename (%DBLCOLON / %{UnclosedLabel}) {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'goto', [[
-    ({} %GOTO -> 'Goto' ename) -> to_astnode
+    ({} %GOTO -> 'Goto' ename {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'funcdef', [[
-    ({} '' -> 'FuncDef' %LOCAL -> 'local' %FUNCTION func_iddecl function_body) -> to_astnode /
-    ({} %FUNCTION -> 'FuncDef' cnil func_name function_body) -> to_astnode
+    ({} '' -> 'FuncDef' %LOCAL -> 'local' %FUNCTION func_iddecl function_body {}) -> to_astnode /
+    ({} %FUNCTION -> 'FuncDef' cnil func_name function_body {}) -> to_astnode
 
     func_name <- (id {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
-    func_iddecl <- ({} '' -> 'IdDecl' name) -> to_astnode
+    func_iddecl <- ({} '' -> 'IdDecl' name {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'assign', [[
-    ({} '' -> 'Assign' {| assignable_list |} %ASSIGN {| eexpr_list |}) -> to_astnode
+    ({} '' -> 'Assign' {| assignable_list |} %ASSIGN {| eexpr_list |} {}) -> to_astnode
 
     assignable_list <- assignable (%COMMA assignable)*
     assignable <-
-      ({} ''->'UnaryOp' op_deref eexpr) -> to_astnode /
+      ({} ''->'UnaryOp' op_deref eexpr {}) -> to_astnode /
       (primary_expr {| ((call_expr+ &index_expr) / index_expr)+ |}) -> to_chain_index_or_call /
       id
   ]])
 
   grammar:add_group_peg('stat', 'call', [[
-    ({} ''->'UnaryOp' op_deref callable_suffix) -> to_astnode /
+    ({} ''->'UnaryOp' op_deref callable_suffix {}) -> to_astnode /
     callable_suffix
 
     callable_suffix <-
@@ -314,7 +314,7 @@ local function get_parser()
   ]])
 
   grammar:add_group_peg('stat', 'preprocess', [[
-    ({} '' -> 'Preprocess' ppstring ) -> to_astnode
+    ({} '' -> 'Preprocess' ppstring {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'vardecl', [[
@@ -322,7 +322,7 @@ local function get_parser()
       %LOCAL -> 'local' cnil
       {| etyped_idlist |}
       (%ASSIGN {| eexpr_list |})?
-    ) -> to_astnode
+    {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'vardecl', [[
@@ -332,7 +332,7 @@ local function get_parser()
     / (%GLOBAL ->'global')
       {| eglobal_typed_idlist |}
     ) (%ASSIGN {| eexpr_list |})?
-  ) -> to_astnode
+  {}) -> to_astnode
 
   eglobal_typed_idlist <-
     (global_typed_id / %{ExpectedName}) (%COMMA global_typed_id)*
@@ -340,15 +340,18 @@ local function get_parser()
       ((id {| dot_index+ |}) -> to_chain_index_or_call / name)
       (%COLON etypexpr / cnil)
       annot_list?
-    ) -> to_astnode
+    {}) -> to_astnode
   ]], nil, true)
 
   grammar:add_group_peg('stat', 'funcdef', [[
-    ({} '' -> 'FuncDef' (%LOCAL -> 'local' / %GLOBAL -> 'global') %FUNCTION func_iddecl function_body) -> to_astnode /
-    ({} %FUNCTION -> 'FuncDef' cnil func_name function_body) -> to_astnode
+    ({} '' -> 'FuncDef'
+      (%LOCAL -> 'local' / %GLOBAL -> 'global')
+      %FUNCTION func_iddecl function_body
+    {}) -> to_astnode /
+    ({} %FUNCTION -> 'FuncDef' cnil func_name function_body {}) -> to_astnode
 
     func_name <- (id {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
-    func_iddecl <- ({} '' -> 'IdDecl' name) -> to_astnode
+    func_iddecl <- ({} '' -> 'IdDecl' name {}) -> to_astnode
   ]], nil, true)
 
   grammar:add_group_peg('stat', 'switch', [[
@@ -358,30 +361,30 @@ local function get_parser()
       |}
       (%ELSE block)?
       eEND
-    ) -> to_astnode
+    {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'continue', [[
-    ({} %CONTINUE -> 'Continue') -> to_astnode
+    ({} %CONTINUE -> 'Continue' {}) -> to_astnode
   ]])
 
   -- expressions
   grammar:set_pegs([[
     expr      <- expr1
 
-    expr1  <- ({} ''->'BinaryOp'  {| expr2  (op_or       expr2 )* |})    -> to_chain_binary_op
-    expr2  <- ({} ''->'BinaryOp'  {| expr3  (op_and      expr3 )* |})    -> to_chain_binary_op
-    expr3  <- ({} ''->'BinaryOp'  {| expr4  (op_cmp      expr4 )* |})    -> to_chain_binary_op
-    expr4  <- ({} ''->'BinaryOp'  {| expr5  (op_bor      expr5 )* |})    -> to_chain_binary_op
-    expr5  <- ({} ''->'BinaryOp'  {| expr6  (op_xor      expr6 )* |})    -> to_chain_binary_op
-    expr6  <- ({} ''->'BinaryOp'  {| expr7  (op_band     expr7 )* |})    -> to_chain_binary_op
-    expr7  <- ({} ''->'BinaryOp'  {| expr8  (op_bshift   expr8 )* |})    -> to_chain_binary_op
-    expr8  <- ({} ''->'BinaryOp'     expr9  (op_concat   expr8 )?   )    -> to_binary_op
-    expr9  <- expr10 -- (free op slot, range operation was removed from here)
-    expr10 <- ({} ''->'BinaryOp'  {| expr11 (op_add      expr11)* |})    -> to_chain_binary_op
-    expr11 <- ({} ''->'BinaryOp'  {| expr12 (op_mul      expr12)* |})    -> to_chain_binary_op
-    expr12 <- ({} ''->'UnaryOp'   {| op_unary* |} expr13)                -> to_chain_unary_op
-    expr13 <- ({} ''->'BinaryOp' simple_expr (op_pow      expr12)?   )   -> to_binary_op
+    expr1  <- ({} {| expr2  (op_or       expr2  {})* |})    -> to_chain_binary_op
+    expr2  <- ({} {| expr3  (op_and      expr3  {})* |})    -> to_chain_binary_op
+    expr3  <- ({} {| expr4  (op_cmp      expr4  {})* |})    -> to_chain_binary_op
+    expr4  <- ({} {| expr5  (op_bor      expr5  {})* |})    -> to_chain_binary_op
+    expr5  <- ({} {| expr6  (op_xor      expr6  {})* |})    -> to_chain_binary_op
+    expr6  <- ({} {| expr7  (op_band     expr7  {})* |})    -> to_chain_binary_op
+    expr7  <- ({} {| expr8  (op_bshift   expr8  {})* |})    -> to_chain_binary_op
+    expr8  <- ({}    expr9  (op_concat   expr8  {})?   )    -> to_binary_op
+    expr9  <- expr10 -- free op slot
+    expr10 <- ({} {| expr11 (op_add      expr11 {})* |})    -> to_chain_binary_op
+    expr11 <- ({} {| expr12 (op_mul      expr12 {})* |})    -> to_chain_binary_op
+    expr12 <- ({| ({} op_unary)* |}      expr13      {})    -> to_chain_unary_op
+    expr13 <- ({} simple_expr (op_pow    expr12)?    {})    -> to_binary_op
 
     simple_expr <-
         %cNUMBER
@@ -400,34 +403,34 @@ local function get_parser()
     primary_expr <-
       id /
       ppexpr /
-      ({} %LPAREN -> 'Paren' eexpr eRPAREN) -> to_astnode
+      ({} %LPAREN -> 'Paren' eexpr eRPAREN {}) -> to_astnode
 
     type_instance <-
-      ({} %AT -> 'TypeInstance' etypexpr) -> to_astnode
+      ({} %AT -> 'TypeInstance' etypexpr {}) -> to_astnode
 
     index_expr <- dot_index / array_index
-    dot_index <- {| {} %DOT -> 'DotIndex' ename |}
-    array_index <- {| {} %LBRACKET -> 'ArrayIndex' eexpr eRBRACKET |}
-    colon_index <- {| {} %COLON -> 'ColonIndex' ename |}
+    dot_index <- {| {} %DOT -> 'DotIndex' ename {} |}
+    array_index <- {| {} %LBRACKET -> 'ArrayIndex' eexpr eRBRACKET {} |}
+    colon_index <- {| {} %COLON -> 'ColonIndex' ename {} |}
 
     call_expr <-
-      {| {} %COLON -> 'CallMethod' ename callargs |} /
-      {| {} '' -> 'Call' callargs |}
+      {| {} %COLON -> 'CallMethod' ename callargs {} |} /
+      {| {} '' -> 'Call' callargs {} |}
     callargs <-
       {| (%LPAREN  expr_list eRPAREN / table / %cSTRING / ppexpr) |}
 
     table <- ({} '' -> 'Table' %LCURLY
         {| (table_row (%SEPARATOR table_row)* %SEPARATOR?)? |}
-      eRCURLY) -> to_astnode
+      eRCURLY {}) -> to_astnode
     table_row <- table_pair / expr
     table_pair <-
-      ({} '' -> 'Pair' (%LBRACKET eexpr eRBRACKET / name) %ASSIGN eexpr) -> to_astnode /
-      ({} %ASSIGN -> 'Pair' name) -> to_punned_pair_astnode
+      ({} '' -> 'Pair' (%LBRACKET eexpr eRBRACKET / name) %ASSIGN eexpr {}) -> to_astnode /
+      ({} %ASSIGN -> 'Pair' name {}) -> to_punned_pair_astnode
 
     doexpr <-
-      ({} %LPAREN %DO -> 'DoExpr' block eEND eRPAREN) -> to_astnode
+      ({} %LPAREN %DO -> 'DoExpr' block eEND eRPAREN {}) -> to_astnode
 
-    function <- ({} %FUNCTION -> 'Function' function_body) -> to_astnode
+    function <- ({} %FUNCTION -> 'Function' function_body {}) -> to_astnode
     function_body <-
       eLPAREN (
         {| (typed_idlist (%COMMA varargs_type)? / varargs_type)? |}
@@ -441,7 +444,7 @@ local function get_parser()
         name
         (%COLON etypexpr / cnil)
         annot_list?
-      ) -> to_astnode
+      {}) -> to_astnode
 
     typexpr_list <- typexpr (%COMMA typexpr)*
     etypexpr_list <- etypexpr (%COMMA typexpr)*
@@ -465,16 +468,15 @@ local function get_parser()
         (%LPAREN annot_arg (%COMMA annot_arg)* eRPAREN) /
         %cSTRING /
         ppexpr
-      )?|}) -> to_astnode
+      )?|} {}) -> to_astnode
     annot_arg <- %cNUMBER / %cSTRING / %cBOOLEAN / ppexpr
 
     cnil <- '' -> to_nil
     cfalse <- '' -> to_false
 
     typexpr <- typexpr0
-    typexpr0 <- ({} '' -> 'UnionType' {| typexpr1 (%BOR typexpr1)* |}) -> to_list_astnode
-    typexpr1 <- ({| unary_typexpr_op* |} typexpr2) -> to_chain_late_unary_op
-    typexpr2 <- (simple_typexpr {| unary_typexpr_op+ |}?) -> to_chain_late_unary_op_suffix
+    typexpr0 <- ({} '' -> 'UnionType' {| typexpr1 (%BOR typexpr1)* |} {}) -> to_list_astnode
+    typexpr1 <- ({| (unary_typexpr_op)* |} simple_typexpr {}) -> to_chain_late_unary_op
 
     simple_typexpr <-
       func_type /
@@ -490,7 +492,7 @@ local function get_parser()
     unary_typexpr_op <-
       {| {} %MUL -> 'PointerType' |} /
       {| {} %QUESTION -> 'OptionalType' |} /
-      {| {} %LBRACKET -> 'ArrayType' cnil etype_param_expr eRBRACKET |}
+      {| {} %LBRACKET -> 'ArrayType' cnil etype_param_expr eRBRACKET {} |}
 
     func_type <- (
       {} '' -> 'FuncType'
@@ -499,56 +501,56 @@ local function get_parser()
           (ftyped_idlist (%COMMA varargs_type)? / varargs_type)?
         |}) eRPAREN
         {| (%COLON (%LPAREN etypexpr_list eRPAREN / etypexpr))? |}
-      ) -> to_astnode
+      {}) -> to_astnode
 
     ftyped_idlist <- (ftyped_id / typexpr) (%COMMA (ftyped_id / typexpr))*
-    ftyped_id <- ({} '' -> 'IdDecl' name %COLON etypexpr) -> to_astnode
+    ftyped_id <- ({} '' -> 'IdDecl' name %COLON etypexpr {}) -> to_astnode
 
     varargs_type <-
-      ({} %ELLIPSIS -> 'VarargsType' (%COLON ename)?) -> to_astnode
+      ({} %ELLIPSIS -> 'VarargsType' (%COLON ename)? {}) -> to_astnode
 
     record_type <- ({} %TRECORD -> 'RecordType' %LCURLY
         {| (record_field (%SEPARATOR record_field)* %SEPARATOR?)? |}
-      eRCURLY) -> to_astnode
+      eRCURLY {}) -> to_astnode
     record_field <- ({} '' -> 'RecordFieldType'
        name eCOLON etypexpr
-      ) -> to_astnode
+      {}) -> to_astnode
 
     union_type <- ({} %TUNION -> 'UnionType' %LCURLY
         {| (
             (unionfield %SEPARATOR unionfield / %{ExpectedUnionFieldType})
             (%SEPARATOR unionfield)* %SEPARATOR?)?
         |}
-      eRCURLY) -> to_astnode
-    unionfield <- (({} '' -> 'UnionFieldType' name %COLON etypexpr) -> to_astnode / typexpr)
+      eRCURLY {}) -> to_astnode
+    unionfield <- (({} '' -> 'UnionFieldType' name %COLON etypexpr {}) -> to_astnode / typexpr)
 
     enum_type <- ({} %TENUM -> 'EnumType'
         ((%LPAREN eprimtype eRPAREN) / cnil) %LCURLY
         {| eenumfield (%SEPARATOR enumfield)* %SEPARATOR? |}
-      eRCURLY) -> to_astnode
+      eRCURLY {}) -> to_astnode
     enumfield <- ({} '' -> 'EnumFieldType'
         name (%ASSIGN eexpr)?
-      ) -> to_astnode
+      {}) -> to_astnode
 
     array_type <- (
       {} 'array' -> 'ArrayType'
         %LPAREN etypexpr eCOMMA etype_param_expr eRPAREN
-      ) -> to_astnode
+      {}) -> to_astnode
 
     pointer_type <- (
       {} 'pointer' -> 'PointerType'
         ((%LPAREN etypexpr eRPAREN) / %SKIP)
-      ) -> to_astnode
+      {}) -> to_astnode
 
     generic_type <- (
       {} '' -> 'GenericType'
         name %LPAREN {| etype_or_param_expr_list |} eRPAREN
-      ) -> to_astnode
+      {}) -> to_astnode
 
-    primtype   <- ({} '' -> 'Type' name) -> to_astnode
+    primtype   <- ({} '' -> 'Type' name {}) -> to_astnode
 
-    ppexpr <- ({} %LPPEXPR -> 'PreprocessExpr' {expr -> 0} eRPPEXPR) -> to_astnode
-    ppname <- ({} %LPPNAME -> 'PreprocessName' {expr -> 0} eRPPNAME) -> to_astnode
+    ppexpr <- ({} %LPPEXPR -> 'PreprocessExpr' {expr -> 0} eRPPEXPR {}) -> to_astnode
+    ppname <- ({} %LPPNAME -> 'PreprocessName' {expr -> 0} eRPPNAME {}) -> to_astnode
     ppstring <- (pplong_string / ppshort_string) %SKIP
     ppshort_string    <- '##' {(!%LINEBREAK .)*} %LINEBREAK?
     pplong_string     <- pplong_open ({pplong_content*} pplong_close / %{UnclosedLongPreprocessString})
@@ -557,10 +559,10 @@ local function get_parser()
     pplong_close      <- ']' =eq ']'
 
     name    <- %cNAME / ppname
-    id      <- ({} '' -> 'Id' name) -> to_astnode
+    id      <- ({} '' -> 'Id' name {}) -> to_astnode
   ]], {
-    to_punned_pair_astnode = function(pos, tag, name)
-      return to_astnode(pos, tag, name, to_astnode(pos+1, 'Id', name))
+    to_punned_pair_astnode = function(pos, tag, name, endpos)
+      return to_astnode(pos, tag, name, to_astnode(pos+1, 'Id', name, endpos), endpos)
     end
   })
 

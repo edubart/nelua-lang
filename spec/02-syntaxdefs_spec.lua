@@ -1732,7 +1732,7 @@ describe("live grammar change for", function()
     parser:add_keyword("do_return")
     grammar:set_pegs([[
       stat_return <-
-        ({} %DO_RETURN -> 'Return' {| (expr (%COMMA expr)*)? |} %SEMICOLON?) -> to_astnode
+        ({} %DO_RETURN -> 'Return' {| (expr (%COMMA expr)*)? |} %SEMICOLON? {}) -> to_astnode
     ]], { to_nothing = function() end }, true)
     parser:set_peg('sourcecode', grammar:build())
     parser:remove_keyword("return")

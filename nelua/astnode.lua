@@ -98,7 +98,7 @@ ASTNode.clone = clone_node
 function ASTNode:format_message(category, message, ...)
   message = stringer.pformat(message, ...)
   if self.src and self.pos then
-    message = errorer.get_pretty_source_pos_errmsg(self.src, self.pos, message, category)
+    message = errorer.get_pretty_source_pos_errmsg(self.src, self.pos, self.endpos, message, category)
   else --luacov:disable
     message = category .. ': ' .. message .. '\n'
   end --luacov:enable
@@ -133,7 +133,8 @@ end
 -- pretty print ast
 -------------------
 local ignored_stringfy_keys = {
-  pos = true, src = true,
+  src = true,
+  pos = true, endpos = true,
   uid = true,
   desiredtype = true,
   preprocess = true,
