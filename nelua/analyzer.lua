@@ -903,7 +903,7 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
         argattr = argnode.attr
         argtype = argnode.type
         -- test again
-        ok, err = type:is_convertible_from_attr(argattr)
+        ok, err = type:is_convertible_from_attr(argattr, true)
       end
       if not ok then
         argnode:raisef("in type cast: %s", err)
