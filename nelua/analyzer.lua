@@ -898,6 +898,14 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
     if argtype then
       local ok, err = type:is_convertible_from_attr(argattr, true)
       if not ok then
+        -- failed to convert, try to convert metamethods
+        argnode, argtype = visitor_convert(context, argnodes, 1, type, argnode, argtype)
+        argattr = argnode.attr
+        argtype = argnode.type
+        -- test again
+        ok, err = type:is_convertible_from_attr(argattr)
+      end
+      if not ok then
         argnode:raisef("in type cast: %s", err)
       end
       if argattr.comptime then

@@ -1878,6 +1878,7 @@ it("record string conversions", function()
     local s: stringview = r
     assert(s == 'R')
     local cs: cstring = r
+    local cs: cstring = (@cstring)(r)
     assert((@stringview){size=1,data=(@*[0]byte)(cs)} == 'R')
   ]])
 end)
