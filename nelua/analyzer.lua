@@ -746,7 +746,9 @@ function visitors.GenericType(context, node)
     if not symbol or not symbol.type or not symbol.type.is_type then
       node:raisef("in generic evaluation: symbol '%s' is not a type", name)
     end
-    generic_type = (symbol.value and symbol.value.is_generic) and symbol.value or symbol.value.generic
+    if symbol.value then
+      generic_type = symbol.value.is_generic and symbol.value or symbol.value.generic
+    end
     if not generic_type or not traits.is_type(generic_type) or not generic_type.is_generic then
       node:raisef("in generic evaluation: symbol '%s' of type '%s' cannot generalize", name, symbol.type)
     end
