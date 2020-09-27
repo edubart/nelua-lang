@@ -252,6 +252,14 @@ it("unary operators", function()
   assert.ast_type_equals("local a = -1", "local a: integer = -1")
   assert.ast_type_equals("local a = -1.0", "local a: number = -1.0")
   assert.analyze_error("local x = &1", "cannot reference compile time value")
+  assert.analyze_error([[
+    local function f(): integer return 1 end
+    local a = &f()
+  ]], "cannot reference rvalues")
+  assert.analyze_error([[
+    local i = 1
+    local a = &(-i)
+  ]], "cannot reference rvalues")
   assert.analyze_error("local x: niltype; local b = &x", "cannot reference not addressable type")
   assert.analyze_error("local a = -'s'", "invalid operation")
   assert.ast_type_equals([[

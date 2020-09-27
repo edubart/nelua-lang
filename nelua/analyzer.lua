@@ -918,6 +918,7 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
       end
     end
     attr.sideeffect = argnode.attr.sideeffect
+    attr.lvalue = argnode.attr.lvalue
     if not argnode.done then
       done = nil
     end
@@ -1246,9 +1247,9 @@ local function visitor_FieldIndex(context, node)
   if node.checked then return end
   local objattr = objnode.attr
   local objtype = objattr.type
+  local attr = node.attr
   local ret
   if objtype then
-    local attr = node.attr
     objtype = objtype:implict_deref_type()
     if objtype.is_record then
       ret = visitor_Record_FieldIndex(context, node, objtype, name)
@@ -1259,12 +1260,12 @@ local function visitor_FieldIndex(context, node)
     else
       node:raisef("cannot index field '%s' on type '%s'", name, objtype.name)
     end
-    if objattr.lvalue then
-      attr.lvalue = true
-    end
     if ret and objnode.done then
       node.done = ret
     end
+  end
+  if objattr.lvalue or (objtype and objtype.is_pointer) then
+    attr.lvalue = true
   end
   return ret
 end
@@ -1272,7 +1273,7 @@ end
 visitors.DotIndex = visitor_FieldIndex
 visitors.ColonIndex = visitor_FieldIndex
 
-local function visitor_Array_ArrayIndex(context, node, objtype, objnode, indexnode)
+local function visitor_Array_ArrayIndex(context, node, objtype, _, indexnode)
   local attr = node.attr
   local indexattr = indexnode.attr
   local indextype = indexattr.type
@@ -1297,9 +1298,6 @@ local function visitor_Array_ArrayIndex(context, node, objtype, objnode, indexno
   end
   if not context.pragmas.nochecks and not checked and objtype.length > 0 then
     attr.checkbounds = true
-  end
-  if objnode.attr.lvalue then
-    attr.lvalue = true
   end
 end
 
@@ -1340,7 +1338,8 @@ function visitors.ArrayIndex(context, node)
     return
   end
   if node.checked then return end
-  local objtype = objnode.attr.type
+  local objattr = objnode.attr
+  local objtype = objattr.type
   if objtype then
     objtype = objtype:implict_deref_type()
     if objtype.is_array then
@@ -1352,6 +1351,9 @@ function visitors.ArrayIndex(context, node)
     else
       node:raisef("cannot index variable of type '%s'", objtype.name)
     end
+  end
+  if objattr.lvalue or (objtype and objtype.is_pointer) then
+    attr.lvalue = true
   end
   if attr.type then
     node.checked = true
@@ -2330,9 +2332,14 @@ function visitors.UnaryOp(context, node)
   elseif opname == 'not' then
     type = primtypes.boolean
   end
-  if opname == 'ref' and argnode.tag == 'Id' then
-    -- for loops needs to know if an Id symbol could mutate
-    argattr.mutate = true
+  if opname == 'ref' then
+    if argnode.attr.type and not argnode.attr.lvalue then
+      node:raisef("in unary operation `%s`: cannot reference rvalues", opname)
+    end
+    if argnode.tag == 'Id' then
+      -- for loops needs to know if an Id symbol could mutate
+      argattr.mutate = true
+    end
   elseif opname == 'deref' then
     attr.lvalue = true
     if not context.pragmas.nochecks then

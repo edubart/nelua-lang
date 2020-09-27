@@ -827,11 +827,12 @@ function visitors.ArrayIndex(context, node, emitter)
   end
 
   if objtype.is_record then
-    if node.attr.lvalue then
+    local atindex = node.attr.calleesym and node.attr.calleesym.name:match('.__atindex')
+    if atindex then
       emitter:add('(*')
     end
     visitor_Call(context, node, emitter, {indexnode}, nil, objnode)
-    if node.attr.lvalue then
+    if atindex then
       emitter:add(')')
     end
   else
