@@ -461,6 +461,16 @@ it("poly functions", function()
     assert(printtype(true) == true)
     assert(printtype(false) == false)
     printtype()
+
+    do
+      local function f() <polymorphic>
+        ## assert(false)
+      end
+      local function g() <polymorphic>
+        return 1
+      end
+      assert(g() == 1)
+    end
   ]])
 end)
 

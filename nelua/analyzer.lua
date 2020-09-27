@@ -1913,6 +1913,11 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope, check
   local argattrs = {}
   local argtypes = {}
 
+  -- is the function forced to be polymorphic?
+  if checkpoly and symbol and symbol.polymorphic then
+    ispolyparent = true
+  end
+
   for i=1,#argnodes do
     local argnode = argnodes[i]
     local argattr = argnode.attr
@@ -2074,6 +2079,16 @@ function visitors.FuncDef(context, node, polysymbol)
     symbol.scope:add_symbol(symbol)
   end
   context:pop_state()
+
+  -- we must now if the symbols is going to be polymorphic
+  if symbol and annotnodes then
+    for i=1,#annotnodes do
+      if annotnodes[i][1] == 'polymorphic' then
+        symbol.polymorphic = true
+        break
+      end
+    end
+  end
 
   local rettypes = visitor_FuncDef_returns(context, node.attr.type, retnodes)
 

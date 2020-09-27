@@ -189,6 +189,8 @@ typedefs.function_annots = {
   entrypoint = true,
   -- Whether to export the function in C, declaring it with the 'extern' C qualifier.
   cexport = true,
+  -- Force a function to be polymorphic so it can be declared on demand.
+  polymorphic = true,
 }
 
 -- List of possible annotations for variables.
