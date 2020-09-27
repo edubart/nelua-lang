@@ -181,6 +181,7 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   local newvalnode = n.Call{{valnode}, n.DotIndex{mtname, idnode}}
   newvalnode.src = valnode.src
   newvalnode.pos = valnode.pos
+  newvalnode.endpos = valnode.endpos
   parent[parentindex] = newvalnode
   context:traverse_node(newvalnode)
   if newvalnode.attr.type then

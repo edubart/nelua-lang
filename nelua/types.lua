@@ -1844,7 +1844,7 @@ function RecordType:typedesc()
   local ss = sstream('record{')
   for i,field in ipairs(self.fields) do
     if i > 1 then ss:add(', ') end
-    ss:add(field.name, ':', field.type)
+    ss:add(field.name, ': ', field.type)
   end
   ss:add('}')
   return ss:tostring()

@@ -21,6 +21,11 @@ local function run(argv, redirect)
   local config = configer.parse(argv)
   if config.no_color then console.set_colors_enabled(false) end
 
+  if config.script then
+    dofile(config.input)
+    return 0
+  end
+
   local generator = require('nelua.' .. config.generator .. 'generator')
   if config.timing then
     console.debugf('startup         %.1f ms', timer:elapsedrestart())

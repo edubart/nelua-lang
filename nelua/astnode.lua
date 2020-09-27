@@ -66,6 +66,7 @@ end
 clone_node = function(node)
   local cloned = {
     pos = node.pos,
+    endpos = node.endpos,
     src = node.src,
     preprocess = node.preprocess,
     uid = genuid(),

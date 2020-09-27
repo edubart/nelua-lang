@@ -20,6 +20,9 @@ local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 
+-- This allows requiring this file from multiple test runs.
+## primtypes.stringview.metafields = {}
+
 -- Return length of a string.
 function stringview.__len(a: stringview): isize <inline,nosideeffect>
   return (@isize)(a.size)

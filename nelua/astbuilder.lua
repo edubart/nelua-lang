@@ -70,6 +70,7 @@ function ASTBuilder:create_value(val, srcnode)
   if node and srcnode then
     node.src = srcnode.src
     node.pos = srcnode.pos
+    node.endpos = srcnode.endpos
   end
   return node
 end

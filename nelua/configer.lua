@@ -14,6 +14,8 @@ local config = {}
 local defconfig = {
   lua = 'lua',
   lua_version = _VERSION:match('%d+%.%d+'),
+  lua_path = package.path,
+  lua_cpath = package.cpath,
   generator = 'c',
   gdb = 'gdb',
   cache_dir = 'nelua_cache',
@@ -118,6 +120,7 @@ local function create_parser(args)
   -- argparser:option('--lua', "Lua interpreter to use when runnning", defconfig.lua)
   -- argparser:option('--lua-version', "Target lua version for lua generator", defconfig.lua_version)
   -- argparser:option('--lua-options', "Lua options to use when running", defconfig.lua_options)
+  argparser:flag('--script', "Run lua a script instead of compiling")
   argparser:flag('--print-ast', 'Print the AST only')
   argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only')
   argparser:flag('--print-code', 'Print the generated code only')
