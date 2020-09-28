@@ -44,9 +44,13 @@ local function get_compiler_cflags(compileopts)
     cflags:add(' -Wl,')
     cflags:addlist(compileopts.ldflags, ',')
   end
-  if #compileopts.linklibs > 0 then
-    cflags:add(' -l')
-    cflags:addlist(compileopts.linklibs, ' -l')
+  if not config.static then
+    if #compileopts.linklibs > 0 then
+      cflags:add(' -l')
+      cflags:addlist(compileopts.linklibs, ' -l')
+    end
+    -- always link math library
+    cflags:add(' -lm')
   end
   return cflags:tostring()
 end

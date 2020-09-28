@@ -122,7 +122,7 @@ cdefs.binary_ops = {
 }
 
 cdefs.compiler_base_flags = {
-  cflags_base = "-Wall -lm -fwrapv",
+  cflags_base = "-Wall -fwrapv",
   cflags_release = "-O2 -fno-plt",
   cflags_debug = "-g"
 }
@@ -136,7 +136,7 @@ cdefs.search_compilers = {
 
 cdefs.compilers_flags = {
   tcc = {
-    cflags_base = "-w -lm"
+    cflags_base = "-w"
   }
 }
 
