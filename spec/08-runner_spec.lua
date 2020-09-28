@@ -139,8 +139,8 @@ it("program arguments", function()
   ]], 'a', 'b', 'c'})
 end)
 
-it("C libraries", function()
-  assert.run({'-o', 'libmylib', 'tests/libmylib.nelua'})
+it("shared libraries", function()
+  assert.run({'--shared', '-o', 'libmylib', 'tests/libmylib.nelua'})
   assert.run({'-o', 'mylib_test', 'tests/mylib_test.nelua'}, [[mylib - init
 mylib - in top scope
 mylib - sum
@@ -148,6 +148,19 @@ the sum is:
 3
 mylib - terminate]])
   os.remove('libmylib.so')
+  os.remove('mylib_test')
+end)
+
+it("static libraries", function()
+  assert.run({'--static', '-o', 'libmylib', 'tests/libmylib.nelua'})
+  assert.run({'-o', 'mylib_test', 'tests/mylib_test.nelua'}, [[mylib - init
+mylib - in top scope
+mylib - sum
+the sum is:
+3
+mylib - terminate]])
+  os.remove('libmylib.a')
+  os.remove('libmylib.o')
   os.remove('mylib_test')
 end)
 

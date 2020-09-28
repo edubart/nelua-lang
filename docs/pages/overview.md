@@ -843,16 +843,15 @@ All Lua operators are provided:
 {: .table.table-bordered.table-striped.table-sm}
 
 All the operators follows Lua semantics, i.e.:
-* `%` and `//` rounds the quotient towards minus infinity.
-* `///` rounds the quotient towards zero.
 * `/` and `^` promotes numbers to floats.
+* `//` and `%` rounds the quotient towards minus infinity.
+* `///` and `%%%` rounds the quotient towards zero.
 * Integer overflows wrap around.
 * Bitwise shifts are defined for negative and large shifts.
 * `and`, `or`, `not`, `==`, `~=` can be used on any variable type.
 
 The additional operators over Lua are `>>>`, `///`, `%%%`, `$` and `&`,
 used for low level programming.
-
 {:.alert.alert-info}
 
 ## Functions

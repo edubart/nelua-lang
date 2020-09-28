@@ -27,6 +27,11 @@ local function get_compiler_cflags(compileopts)
       cflags:add(' ', config.cflags_debug)
     end
   end
+  if config.shared then
+    cflags:add(' -shared -fPIC')
+  elseif config.static then
+    cflags:add(' -c')
+  end
   --luacov:enable
   if #config.cflags > 0 then
     cflags:add(' ', config.cflags)
@@ -126,19 +131,23 @@ function compiler.compile_code(ccode, outfile, compileopts)
   return cfile
 end
 
-local function detect_binary_extension(ccinfo, cflags)
+local function detect_binary_extension(ccinfo)
   --luacov:disable
   if ccinfo.is_emscripten then
     return '.html'
   elseif ccinfo.is_windows then
-    if cflags:find('-shared') then
+    if config.shared then
       return '.dll'
+    elseif config.static then
+      return '.a'
     else
       return '.exe', true
     end
   else
-    if cflags:find('-shared') then
+    if config.shared then
       return '.so'
+    elseif config.static then
+      return '.a'
     else
       return '', true
     end
@@ -146,10 +155,25 @@ local function detect_binary_extension(ccinfo, cflags)
   --luacov:enable
 end
 
+function compiler.compile_static_library(objfile, outfile)
+  local ar = config.cc:gsub('[a-z]+$', 'ar')
+  local arcmd = string.format('%s rcs %s %s', ar, outfile, objfile)
+  if not config.quiet then console.info(arcmd) end
+
+  -- compile the file
+  local success, status, stdout, stderr = executor.execex(arcmd)
+  except.assertraisef(success and status == 0,
+    "static library compilation for '%s' failed:\n%s", outfile, stderr or '')
+
+  if stderr then
+    io.stderr:write(stderr)
+  end
+end
+
 function compiler.compile_binary(cfile, outfile, compileopts)
   local cflags = get_compiler_cflags(compileopts)
   local ccinfo = compiler.get_cc_info()
-  local binext, isexe = detect_binary_extension(ccinfo, cflags)
+  local binext, isexe = detect_binary_extension(ccinfo)
   local binfile = outfile
   if not stringer.endswith(binfile, binext) then binfile = binfile .. binext end
 
@@ -165,8 +189,12 @@ function compiler.compile_binary(cfile, outfile, compileopts)
 
   fs.eensurefilepath(binfile)
 
+  local midfile = binfile
+  if config.static then -- compile to an object first for static libraries
+    midfile = binfile:gsub('.[a-z]+$', '.o')
+  end
   -- generate compile command
-  local cccmd = get_compile_args(cfile, binfile, cflags)
+  local cccmd = get_compile_args(cfile, midfile, cflags)
   if not config.quiet then console.info(cccmd) end
 
   -- compile the file
@@ -176,6 +204,10 @@ function compiler.compile_binary(cfile, outfile, compileopts)
 
   if stderr then
     io.stderr:write(stderr)
+  end
+
+  if config.static then
+    compiler.compile_static_library(midfile, binfile)
   end
 
   return binfile, isexe

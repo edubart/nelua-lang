@@ -5,8 +5,6 @@
 -- Prefix used when declaring C symbols for this file.
 -- With this an exported function named 'sum' will be exported as 'mylib_sum'
 ## pragmas.unitname = 'mylib'
--- Compilation flags needed for compiling C libraries.
-## cflags '-shared -fPIC'
 
 print 'mylib - in top scope'
 
