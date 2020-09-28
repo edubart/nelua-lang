@@ -40,11 +40,11 @@ local function get_compiler_cflags(compileopts)
     cflags:add(' ')
     cflags:addlist(compileopts.cflags, ' ')
   end
-  if #compileopts.ldflags > 0 then
-    cflags:add(' -Wl,')
-    cflags:addlist(compileopts.ldflags, ',')
-  end
   if not config.static then
+    if #compileopts.ldflags > 0 then
+      cflags:add(' -Wl,')
+      cflags:addlist(compileopts.ldflags, ',')
+    end
     if #compileopts.linklibs > 0 then
       cflags:add(' -l')
       cflags:addlist(compileopts.linklibs, ' -l')

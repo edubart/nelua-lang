@@ -332,4 +332,10 @@ function fs.tmpfile()
   return f, name
 end
 
+-- Return the relative path for the calling script.
+function fs.scriptname(level)
+  level = level or 2
+  return debug.getinfo(level, 'S').source:sub(2)
+end
+
 return fs

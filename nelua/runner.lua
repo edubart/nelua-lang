@@ -13,6 +13,7 @@ local except = require 'nelua.utils.except'
 local executor = require 'nelua.utils.executor'
 local configer = require 'nelua.configer'
 local syntaxdefs = require 'nelua.syntaxdefs'
+local platform = require 'nelua.utils.platform'
 
 local runner = {}
 
@@ -22,6 +23,13 @@ local function run(argv, redirect)
   if config.no_color then console.set_colors_enabled(false) end
 
   if config.script then
+    -- inject script directory into lua package path
+    local scriptdir = fs.dirname(fs.abspath(config.input))
+    package.path = fs.join(scriptdir,'?.lua')..platform.luapath_separator..
+                   fs.join(scriptdir,'?','init.lua')..platform.luapath_separator..
+                   package.path
+
+    -- run the script
     dofile(config.input)
     return 0
   end

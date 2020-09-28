@@ -18,4 +18,7 @@ platform.path_separator = platform.is_windows and ';' or ':'
 -- Host CPU word size in bits, usually 32 or 64
 platform.cpu_bits = string.packsize('T') * 8
 
+-- Separator of LUA_PATH variable.
+platform.luapath_separator = package.config:match('.[\r\n]+(.)')
+
 return platform

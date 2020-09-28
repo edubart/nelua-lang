@@ -163,7 +163,7 @@ end
 -- a system wide install or a luarocks install.
 -- Then returns the appropriate path for the Nelua's lib directory.
 local function get_nelua_lib_path()
-  local thispath = debug.getinfo(1).source:sub(2)
+  local thispath = fs.scriptname()
   local dirpath = fs.dirname(fs.dirname(thispath))
   local libpath
   --luacov:disable
