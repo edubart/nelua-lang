@@ -511,13 +511,25 @@ function visitors.PragmaCall(context, node, emitter)
     if traits.is_string(code) and not stringer.endswith(code, '\n') then
       code = code .. '\n'
     end
-    context:add_declaration(code)
+    if traits.is_string(code) then
+      context:add_declaration(code)
+    elseif traits.is_function(code) then
+      local decemitter = CEmitter(context)
+      code(decemitter)
+      context:add_declaration(decemitter:generate())
+    end
   elseif name == 'cemitdef' then
     local code = args[1]
     if traits.is_string(code) and not stringer.endswith(code, '\n') then
       code = code .. '\n'
     end
-    context:add_definition(code)
+    if traits.is_string(code) then
+      context:add_definition(code)
+    elseif traits.is_function(code) then
+      local defemitter = CEmitter(context)
+      code(defemitter)
+      context:add_definition(defemitter:generate())
+    end
   elseif name == 'cdefine' then
     context:add_declaration(string.format('#define %s\n', args[1]))
   elseif name == 'cflags' then

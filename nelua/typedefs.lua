@@ -146,8 +146,8 @@ typedefs.promote_unsigned_types = {
 
 typedefs.call_pragmas = {
   cinclude = shaper.shape{n=shaper.number, shaper.string},
-  cemitdecl = shaper.shape{n=shaper.number, shaper.string},
-  cemitdef = shaper.shape{n=shaper.number, shaper.string},
+  cemitdecl = shaper.shape{n=shaper.number, shaper.string + shaper.func},
+  cemitdef = shaper.shape{n=shaper.number, shaper.string + shaper.func},
   cemit = shaper.shape{n=shaper.number, shaper.string + shaper.func},
   cdefine = shaper.shape{n=shaper.number, shaper.string},
   cflags = shaper.shape{n=shaper.number, shaper.string},

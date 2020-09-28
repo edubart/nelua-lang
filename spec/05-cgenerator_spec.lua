@@ -2257,6 +2257,15 @@ it("call pragmas", function()
   assert.generate_c("## cemitdecl('#define SOMETHING')", "#define SOMETHING")
   assert.generate_c("## cemitdef('#define SOMETHING')", "#define SOMETHING")
   assert.generate_c("## cdefine 'SOMETHING'", "#define SOMETHING")
+  assert.generate_c([==[
+    do ##[[cemit(function(e) e:add_ln('#define SOMETHING') end)]] end
+  ]==], "#define SOMETHING")
+  assert.generate_c([==[
+    do ##[[cemitdecl(function(e) e:add_ln('#define SOMETHING') end)]] end
+  ]==], "#define SOMETHING")
+  assert.generate_c([==[
+    do ##[[cemitdef(function(e) e:add_ln('#define SOMETHING') end)]] end
+  ]==], "#define SOMETHING")
 end)
 
 it("annotations", function()
@@ -2289,11 +2298,6 @@ it("annotations", function()
   assert.generate_c(
     "local function cos(x: number): number <cimport'myfunc',cinclude'<myheader.h>',nodecl> end",
     "#include <myheader.h>")
-  assert.generate_c([[
-    do
-      ## cemit(function(e) e:add_ln('#define SOMETHING') end)
-    end
-  ]], "#define SOMETHING")
   assert.run_c([[
     local function exit(x: int32) <cimport'exit',cinclude'<stdlib.h>',nodecl> end
     local function puts(s: cstring): int32 <cimport'puts',cinclude'<stdio.h>',nodecl> end
