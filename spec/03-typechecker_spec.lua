@@ -1487,6 +1487,7 @@ it("concepts", function()
     local an_integral = #[concept(function(x)
       return x.type.is_integral
     end)]#
+    ## static_assert(an_integral.value:is_convertible_from_type(primtypes.integer))
     local an_integer_array = #[concept(function(x)
       return x.type:is_array_of(primtypes.integer)
     end)]#

@@ -15,6 +15,7 @@ local metamagic = require 'nelua.utils.metamagic'
 local bn = require 'nelua.utils.bn'
 local except = require 'nelua.utils.except'
 local shaper = require 'nelua.utils.shaper'
+local Attr = require 'nelua.attr'
 local config = require 'nelua.configer'.get()
 
 local types = {}
@@ -2132,6 +2133,12 @@ function ConceptType:get_convertible_from_attr(attr, _, argattrs)
     end
   end
   return type, err
+end
+
+-- Checks if this type is convertible from another type.
+function ConceptType:is_convertible_from_type(type, explicit)
+  local attr = Attr{type=type}
+  return self:get_convertible_from_attr(attr, explicit, {attr})
 end
 
 function types.make_overload_concept(context, syms, ...)
