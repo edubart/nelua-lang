@@ -3,6 +3,8 @@
 -- The memoize function is used to cache a function,
 -- to avoid repeated function evaluations thus increase efficiency in some compiler parts.
 
+local shallow_compare_nomt = require 'nelua.utils.tabler'.shallow_compare_nomt
+
 -- Wrap a function into another function that cache calls.
 local function memoize(f)
   local cache = {}
@@ -13,7 +15,9 @@ local function memoize(f)
       if n == params.n then
         local match = true
         for i=1,n do
-          if params[i] ~= select(i, ...)  then
+          local pv = params[i]
+          local av = select(i, ...)
+          if pv ~= av and not shallow_compare_nomt(pv, av) then
             match = false
             break
           end

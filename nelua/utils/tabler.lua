@@ -95,6 +95,21 @@ function tabler.icompare(t1, t2)
   return true
 end
 
+-- Shallow compare two tables without metatable set.
+function tabler.shallow_compare_nomt(t1, t2)
+  if type(t1) == 'table' and not getmetatable(t1) and
+     type(t2) == 'table' and not getmetatable(t2) then
+    for k,v in next,t1 do
+      if v ~= t2[k] then return false end
+    end
+    for k,v in next,t2 do
+      if v ~= t1[k] then return false end
+    end
+    return true
+  end
+  return false
+end
+
 -- Get the key for a table in _G.
 function tabler.globaltable2key(t)
   for k,v in pairs(_G) do
