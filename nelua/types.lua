@@ -2240,8 +2240,8 @@ function GenericType:eval_type(params)
 end
 
 -- Permits evaluating generics by directly calling it's symbol in the preprocessor.
-function GenericType:__call(params)
-  return self:eval_type({params})
+function GenericType:__call(...)
+  return self:eval_type({...})
 end
 
 return types
