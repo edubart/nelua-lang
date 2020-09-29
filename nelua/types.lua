@@ -359,14 +359,15 @@ function Type:__tostring()
 end
 
 -- Compare if two types are equal.
-function Type:__eq(t)
-  if type(t) == 'table' and t._type then -- t is a type
-    if self.id == t.id then -- early check for same type (optimization)
+function Type.__eq(t1, t2)
+  if type(t1) == 'table' and t1._type then -- t1 is a type
+    if t1.id == t2.id then -- early check for same type (optimization)
       -- types with the same type id should always be the same
       return true
     end
-    return self:is_equal(t)
+    return t1:is_equal(t2)
   end
+  return false
 end
 
 Type.unary_operators['not'] = function(_, attr)
