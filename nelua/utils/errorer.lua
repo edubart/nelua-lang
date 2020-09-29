@@ -29,8 +29,12 @@ local function get_pretty_source_pos_errmsg(src, lineno, colno, errmsg, errname,
   -- extract the line from the source
   local line = stringer.getline(src.content, lineno)
 
+  -- could number of tabs and spaces up to the text
+  local _, ntabs = line:sub(1,colno-1):gsub('\t','')
+  local nspaces = colno-1-ntabs
+
   -- generate a line helper to assist showing the exact line column for the error
-  local linehelper = string.rep(' ', colno-1)..colbright..colors.green..'^'..colreset
+  local linehelper = string.rep('\t', ntabs)..string.rep(' ', nspaces)..colbright..colors.green..'^'..colreset
   if len and len > 1 then
     -- remove commends and trailing spaces
     local trimmedline = line:sub(1,colno+len-1):gsub('%-%-.*',''):gsub('%s+$','')

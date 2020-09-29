@@ -360,7 +360,7 @@ end
 
 -- Compare if two types are equal.
 function Type.__eq(t1, t2)
-  if type(t1) == 'table' and t1._type then -- t1 is a type
+  if type(t1) == 'table' and type(t2) == 'table' and t1._type and t2._type then
     if t1.id == t2.id then -- early check for same type (optimization)
       -- types with the same type id should always be the same
       return true
