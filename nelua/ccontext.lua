@@ -72,7 +72,7 @@ function CContext:typename(type)
   until visitor
 
   if visitor then
-    if config.check_ast_shape then
+    if config.check_type_shape then
       assert(type:shape())
     end
     visitor(self, type)

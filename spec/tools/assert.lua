@@ -18,6 +18,7 @@ local nelua_parser = nelua_syntax.parser
 
 -- config setup for the test suite
 config.check_ast_shape = true
+config.check_type_shape = true
 config.quiet = true
 config.lua_version = '5.3'
 config.no_abort = true
