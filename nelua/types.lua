@@ -253,8 +253,8 @@ function Type:binary_operator(opname, rtype, lattr, rattr)
   return type, value, err
 end
 
--- Checks if this type is convertible from another type.
-function Type:is_convertible_from_type(type)
+-- Get the desired type when converting this type from another type.
+function Type:get_convertible_from_type(type)
   if self == type then
     -- the type itself
     return self
@@ -266,19 +266,32 @@ function Type:is_convertible_from_type(type)
   end
 end
 
--- Checks if this type is convertible from an attr.
-function Type:is_convertible_from_attr(attr, explicit)
-  return self:is_convertible_from_type(attr.type, explicit)
+-- Get the desired type when converting this type from an attr.
+function Type:get_convertible_from_attr(attr, explicit)
+  return self:get_convertible_from_type(attr.type, explicit)
 end
 
-function Type:is_convertible_from(what, explicit)
+-- Checks if this type is convertible from another type.
+function Type:is_convertible_from_type(type, explicit, ...)
+  local ok, err = self:get_convertible_from_type(type, explicit, ...)
+  return not not ok, err
+end
+
+-- Checks if this type is convertible from an attr.
+function Type:is_convertible_from_attr(attr, explicit, ...)
+  local ok, err = self:get_convertible_from_attr(attr, explicit, ...)
+  return not not ok, err
+end
+
+-- Checks if this type is convertible from a node, type or attr.
+function Type:is_convertible_from(what, explicit, ...)
   if traits.is_astnode(what) then
-    return self:is_convertible_from_attr(what.attr, explicit)
+    return self:is_convertible_from_attr(what.attr, explicit, ...)
   elseif traits.is_type(what) then
-    return self:is_convertible_from_type(what, explicit)
+    return self:is_convertible_from_type(what, explicit, ...)
   else --luacov:disable
     assert(traits.is_attr(what))
-    return self:is_convertible_from_attr(what, explicit)
+    return self:is_convertible_from_attr(what, explicit, ...)
   end --luacov:enable
 end
 
@@ -545,8 +558,8 @@ function AutoType:_init(name)
   Type._init(self, name, 0)
 end
 
--- Checks if this type is convertible from another type.
-function AutoType.is_convertible_from_type(_, type)
+-- Get the desired type when converting this type from another type.
+function AutoType.get_convertible_from_type(_, type)
   -- the auto type can convert to anything
   return type
 end
@@ -644,7 +657,7 @@ function BooleanType:_init(name, size)
   Type._init(self, name, size)
 end
 
-function BooleanType:is_convertible_from_type()
+function BooleanType:get_convertible_from_type()
   -- anything is convertible to a boolean
   return self
 end
@@ -674,8 +687,8 @@ function AnyType:_init(name, size)
   Type._init(self, name, size)
 end
 
--- Checks if this type is convertible from another type.
-function AnyType:is_convertible_from_type()
+-- Get the desired type when converting this type from another type.
+function AnyType:get_convertible_from_type()
   -- anything can convert to an any
   return self
 end
@@ -728,7 +741,7 @@ local ArithmeticType = types.typeclass()
 types.ArithmeticType = ArithmeticType
 ArithmeticType.is_arithmetic = true
 ArithmeticType.is_primitive = true
-ArithmeticType.is_convertible_from_type = Type.is_convertible_from_type
+ArithmeticType.get_convertible_from_type = Type.get_convertible_from_type
 
 function ArithmeticType:_init(name, size)
   Type._init(self, name, size)
@@ -865,8 +878,8 @@ function IntegralType:signed_type()
   return primtypes['int'..self.bitsize]
 end
 
--- Checks if this type is convertible from an attr.
-function IntegralType:is_convertible_from_attr(attr, explicit)
+-- Get the desired type when converting this type from an attr.
+function IntegralType:get_convertible_from_attr(attr, explicit)
   if not explicit and attr.comptime and attr.type.is_arithmetic then
     -- implicit conversion between two compile time arithmetic types,
     -- we can convert only if the compiler time value does not overflow/underflow the type
@@ -884,11 +897,11 @@ function IntegralType:is_convertible_from_attr(attr, explicit)
       return self
     end
   end
-  return ArithmeticType.is_convertible_from_attr(self, attr, explicit)
+  return ArithmeticType.get_convertible_from_attr(self, attr, explicit)
 end
 
--- Checks if this type is convertible from another type.
-function IntegralType:is_convertible_from_type(type, explicit)
+-- Get the desired type when converting this type from another type.
+function IntegralType:get_convertible_from_type(type, explicit)
   if type == self then -- early return for the same type
     return self
   elseif type.is_integral and self:is_type_inrange(type) then
@@ -901,7 +914,7 @@ function IntegralType:is_convertible_from_type(type, explicit)
     -- explicit cast from a pointer to an integral that can fit the pointer
     return self
   end
-  return ArithmeticType.is_convertible_from_type(self, type, explicit)
+  return ArithmeticType.get_convertible_from_type(self, type, explicit)
 end
 
 -- Checks if this type arithmetic type can fit another arithmetic type.
@@ -1178,13 +1191,13 @@ function FloatType:_init(name, size, maxdigits)
   self['is_float'..self.bitsize] = true
 end
 
--- Checks if this type is convertible from another type.
-function FloatType:is_convertible_from_type(type, explicit)
+-- Get the desired type when converting this type from another type.
+function FloatType:get_convertible_from_type(type, explicit)
   if type.is_arithmetic then
     -- any arithmetic can convert to a float
     return self
   end
-  return ArithmeticType.is_convertible_from_type(self, type, explicit)
+  return ArithmeticType.get_convertible_from_type(self, type, explicit)
 end
 
 -- Checks if the value can fit in this type min and max range.
@@ -1346,13 +1359,13 @@ function ArrayType:typedesc()
   return sstream(self.name, '(', self.subtype, ', ', self.length, ')'):tostring()
 end
 
--- Checks if this type is convertible from another type.
-function ArrayType:is_convertible_from_type(type, explicit)
+-- Get the desired type when converting this type from another type.
+function ArrayType:get_convertible_from_type(type, explicit)
   if not explicit and type:is_pointer_of(self) then
     -- implicit automatic dereference
     return self
   end
-  return Type.is_convertible_from_type(self, type, explicit)
+  return Type.get_convertible_from_type(self, type, explicit)
 end
 
 -- Checks if this type is an array of the subtype.
@@ -1528,8 +1541,8 @@ function FunctionType:has_multiple_returns()
   return #self.rettypes > 1
 end
 
--- Checks if this type is convertible from another type.
-function FunctionType:is_convertible_from_type(type, explicit)
+-- Get the desired type when converting this type from another type.
+function FunctionType:get_convertible_from_type(type, explicit)
   if type.is_nilptr then
     -- allow setting a function to a nil pointer
     return self
@@ -1543,7 +1556,7 @@ function FunctionType:is_convertible_from_type(type, explicit)
       return self
     end
   end
-  return Type.is_convertible_from_type(self, type, explicit)
+  return Type.get_convertible_from_type(self, type, explicit)
 end
 
 -- Return description for type as a string.
@@ -1803,13 +1816,13 @@ function RecordType:set_metafield(name, symbol)
   self.metafields[name] = symbol
 end
 
--- Checks if this type is convertible from another type.
-function RecordType:is_convertible_from_type(type, explicit)
+-- Get the desired type when converting this type from another type.
+function RecordType:get_convertible_from_type(type, explicit)
   if not explicit and type:is_pointer_of(self) then
     -- perform implicit automatic dereference on a pointer to this record
     return self
   end
-  return Type.is_convertible_from_type(self, type, explicit)
+  return Type.get_convertible_from_type(self, type, explicit)
 end
 
 -- Checks if this type has pointers, used by the garbage collector.
@@ -1886,8 +1899,8 @@ function PointerType:_init(subtype)
   self.unary_operators['deref'] = subtype
 end
 
--- Checks if this type is convertible from an attr.
-function PointerType:is_convertible_from_attr(attr, explicit)
+-- Get the desired type when converting this type from an attr.
+function PointerType:get_convertible_from_attr(attr, explicit)
   local type = attr.type
   if not explicit and self.subtype == type and (type.is_record or type.is_array) then
     -- implicit automatic reference for records and arrays
@@ -1900,11 +1913,11 @@ function PointerType:is_convertible_from_attr(attr, explicit)
     attr.autoref = true
     return self
   end
-  return Type.is_convertible_from_attr(self, attr, explicit)
+  return Type.get_convertible_from_attr(self, attr, explicit)
 end
 
--- Checks if this type is convertible from another type.
-function PointerType:is_convertible_from_type(type, explicit)
+-- Get the desired type when converting this type from another type.
+function PointerType:get_convertible_from_type(type, explicit)
   if type == self then
     -- early check for the same type (optimization)
     return self
@@ -1946,7 +1959,7 @@ function PointerType:is_convertible_from_type(type, explicit)
       return self
     end
   end
-  return Type.is_convertible_from_type(self, type, explicit)
+  return Type.get_convertible_from_type(self, type, explicit)
 end
 
 -- Returns the resulting type when mixing this type with another type.
@@ -2023,12 +2036,12 @@ function StringViewType:_init(name)
   self.nickname = name
 end
 
--- Checks if this type is convertible from another type.
-function StringViewType:is_convertible_from_type(type, explicit)
+-- Get the desired type when converting this type from another type.
+function StringViewType:get_convertible_from_type(type, explicit)
   if type.is_cstring then -- implicit cast cstring to stringview
     return self
   end
-  return Type.is_convertible_from_type(self, type, explicit)
+  return Type.get_convertible_from_type(self, type, explicit)
 end
 
 -- String view length operator.
@@ -2092,7 +2105,7 @@ function ConceptType:_init(func)
 end
 
 -- Checks if an attr can match a concept.
-function ConceptType:is_convertible_from_attr(attr, _, argattrs)
+function ConceptType:get_convertible_from_attr(attr, _, argattrs)
   local type, err = self.func(attr, argattrs)
   if type == true then -- concept returned true, use the incoming type
     assert(attr.type)

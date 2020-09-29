@@ -122,7 +122,7 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
     return valnode, valtype
   end
   if vartype.is_concept then
-    vartype = vartype:is_convertible_from_attr(valnode.attr, nil, conceptargs)
+    vartype = vartype:get_convertible_from_attr(valnode.attr, nil, conceptargs)
     if not vartype then
       -- concept failed
       return valnode, valtype
@@ -1004,7 +1004,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           if traits.is_type(arg) then
             argattr = Attr{type=arg}
           end
-          local wantedtype, err = funcargtype:is_convertible_from_attr(argattr, nil, argattrs)
+          local wantedtype, err = funcargtype:get_convertible_from_attr(argattr, nil, argattrs)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
               calleename, i, err)
@@ -1018,7 +1018,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           funcargtype = wantedtype
 
           -- check again the new type
-          wantedtype, err = funcargtype:is_convertible_from_attr(argattr, nil, argattrs)
+          wantedtype, err = funcargtype:get_convertible_from_attr(argattr, nil, argattrs)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
               calleename, i, err)
