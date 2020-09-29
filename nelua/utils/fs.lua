@@ -338,4 +338,15 @@ function fs.scriptname(level)
   return debug.getinfo(level, 'S').source:sub(2)
 end
 
+-- Iterate entries of a directory that matches the given pattern.
+function fs.dirmatch(path, patt)
+  local nextentry, state = lfs.dir(path)
+  return function(s, entry)
+    repeat
+      entry = nextentry(s, entry)
+    until not entry or entry:match(patt)
+    return entry
+  end, state
+end
+
 return fs

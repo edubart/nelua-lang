@@ -25,9 +25,9 @@ local function run(argv, redirect)
   if config.script then
     -- inject script directory into lua package path
     local scriptdir = fs.dirname(fs.abspath(config.input))
-    package.path = fs.join(scriptdir,'?.lua')..platform.luapath_separator..
-                   fs.join(scriptdir,'?','init.lua')..platform.luapath_separator..
-                   package.path
+    package.path = package.path..platform.luapath_separator..
+                   fs.join(scriptdir,'?.lua')..platform.luapath_separator..
+                   fs.join(scriptdir,'?','init.lua')
 
     -- run the script
     dofile(config.input)

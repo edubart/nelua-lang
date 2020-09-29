@@ -80,4 +80,17 @@ function stringer.getline(text, lineno)
   return string.sub(text, linestart, lineend)
 end
 
+-- Insert a text in the middle of string and return the new string.
+function stringer.insert(s, pos, text)
+  return s:sub(1, pos-1)..text..s:sub(pos)
+end
+
+-- Insert a text after another matched text and return the new string.
+function stringer.insertafter(s, matchtext, text)
+  local matchpos = s:find(matchtext, 1, true)
+  if matchpos then
+    return stringer.insert(s, matchpos+#matchtext+1, text)
+  end
+end
+
 return stringer

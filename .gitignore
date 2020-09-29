@@ -15,6 +15,7 @@ nelua_cache
 tempCodeRunner.*
 neluacfg.lua
 .neluacfg.lua
+.neluacfg.*.lua
 /play
 nelua-lua
 /pkg

@@ -29,6 +29,10 @@ function tabler.insertvalues(t, pos, st)
   if not st then
     st = pos
     pos = #t + 1
+  else
+    for i=#t,pos,-1 do
+      t[i+#st] = t[i]
+    end
   end
   for i=1,#st do
     t[pos + i - 1] = st[i]

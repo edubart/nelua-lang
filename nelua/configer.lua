@@ -8,14 +8,13 @@ local fs = require 'nelua.utils.fs'
 local cdefs = require 'nelua.cdefs'
 local platform = require 'nelua.utils.platform'
 local console = require 'nelua.utils.console'
+local stringer = require 'nelua.utils.stringer'
 
 local configer = {}
 local config = {}
 local defconfig = {
   lua = 'lua',
   lua_version = _VERSION:match('%d+%.%d+'),
-  lua_path = package.path,
-  lua_cpath = package.cpath,
   generator = 'c',
   gdb = 'gdb',
   cache_dir = 'nelua_cache',
@@ -23,6 +22,7 @@ local defconfig = {
 }
 metamagic.setmetaindex(config, defconfig)
 
+-- Convert defines and pragmas to lua assignment code.
 local function convert_param(param)
   if param:match('^%a[_%w]*$') then
     param = param .. ' = true'
@@ -41,32 +41,51 @@ local function convert_add_path(param)
   return param
 end
 
-local function merge_configs(conf, pconf)
-  for k,v in pairs(pconf) do
-    if conf[k] == nil then
+-- Combine two configs into one, merging tables as necessary.
+local function merge_configs(conf, baseconf)
+  for k,v in pairs(baseconf) do
+    local dv = conf[k]
+    if dv == nil then
       conf[k] = v
+    elseif type(dv) == 'table' then
+      assert(type(v) == 'table')
+      tabler.insertvalues(dv, 1, v)
     end
   end
+end
+
+-- Build configs that depends on other configs.
+local function build_configs(conf)
+  conf.lua_path = package.path
+  conf.lua_cpath = package.cpath
 
   if conf.add_path then
-    local ss = sstream()
+    local neluass = sstream()
+    local luass = sstream()
     for _,addpath in ipairs(conf.add_path) do
       if addpath:find('?') then
-        ss:add(addpath, ';')
+        neluass:add(addpath, ';')
+        luass:add(addpath, platform.luapath_separator)
       else
-        ss:add(addpath, '/?.nelua;')
-        ss:add(addpath, '/?/init.nelua;')
+        neluass:add(addpath, '/?.nelua;')
+        neluass:add(addpath, '/?/init.nelua;')
+        luass:add(addpath, '/?.lua', platform.luapath_separator)
+        luass:add(addpath, '/?/init.lua', platform.luapath_separator)
       end
     end
     -- try to insert the lib path after the local lib path
-    local addpath = ss:tostring()
-    local localpath = fs.join('.','?.nelua')..';'..fs.join('.','?','init.nelua')
-    local localpathpos = conf.path:find(localpath, 1, true)
-    if localpathpos then
-      localpathpos = #localpath+1
-      conf.path = conf.path:sub(1,localpathpos) .. addpath .. conf.path:sub(localpathpos+1)
-    else
-      conf.path = addpath .. conf.path
+    do -- nelua
+      local addpath = neluass:tostring()
+      local localpath = fs.join('.','?.nelua')..';'..fs.join('.','?','init.nelua')
+      conf.path = stringer.insertafter(conf.path, localpath, addpath) or
+                  addpath..conf.path
+    end
+    do -- lua
+      local addpath = luass:tostring()
+      local localpath = fs.join('.','?.lua')..platform.luapath_separator..fs.join('.','?','init.lua')
+      conf.lua_path = stringer.insertafter(conf.lua_path, localpath, addpath) or
+                      addpath..conf.lua_path
+      package.path = conf.lua_path
     end
   end
 
@@ -86,6 +105,7 @@ end
 
 local function action_print_config(options) --luacov:disable
   merge_configs(options, defconfig)
+  build_configs(options)
   console.info(inspect(options))
   os.exit(0)
 end --luacov:enable
@@ -103,14 +123,14 @@ local function create_parser(args)
   argparser:flag('-d --debug', 'Run through GDB to get crash backtraces', defconfig.debug)
   argparser:flag('--no-cache', "Don't use any cached compilation", defconfig.no_cache)
   argparser:flag('--no-color', 'Disable colorized output in the terminal.', defconfig.no_color)
-  argparser:option('-o --output', 'Copy output file to desired path.')
+  argparser:option('-o --output', 'Copy output file to desired path.', defconfig.output)
   argparser:option('-D --define', 'Define values in the preprocessor')
-    :count("*"):convert(convert_param, tabler.copy(defconfig.define or {}))
+    :count("*"):convert(convert_param)
   argparser:option('-P --pragma', 'Set initial compiler pragma')
-    :count("*"):convert(convert_param, tabler.copy(defconfig.pragma or {}))
+    :count("*"):convert(convert_param)
   argparser:option('-g --generator', "Code generator backend to use (lua/c)", defconfig.generator)
   argparser:option('-p --path', "Set module search path", defconfig.path)
-  argparser:option('-L --add-path', "Add module search path", tabler.copy(defconfig.add_path or {}))
+  argparser:option('-L --add-path', "Add module search path")
     :count("*"):convert(convert_add_path)
   argparser:option('--cc', "C compiler to use", defconfig.cc)
   argparser:option('--cpu-bits', "Target CPU architecture bit size (64/32)", defconfig.cpu_bits)
@@ -120,9 +140,9 @@ local function create_parser(args)
   -- argparser:option('--lua', "Lua interpreter to use when runnning", defconfig.lua)
   -- argparser:option('--lua-version', "Target lua version for lua generator", defconfig.lua_version)
   -- argparser:option('--lua-options', "Lua options to use when running", defconfig.lua_options)
-  argparser:flag('--script', "Run lua a script instead of compiling")
-  argparser:flag('--static', "Compile as a static library")
-  argparser:flag('--shared', "Compile as a shared library")
+  argparser:flag('--script', "Run lua a script instead of compiling", defconfig.script)
+  argparser:flag('--static', "Compile as a static library", defconfig.static)
+  argparser:flag('--shared', "Compile as a shared library", defconfig.shared)
   argparser:flag('--print-ast', 'Print the AST only')
   argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only')
   argparser:flag('--print-code', 'Print the generated code only')
@@ -145,7 +165,10 @@ local function create_parser(args)
   return argparser
 end
 
-local function get_cc()
+-- Detect the default C compiler in the user system.
+-- First reads the CC system environment variable,
+-- then try to search in the user binary directory.
+local function detect_cc()
   local envcc = os.getenv('CC')
   if envcc and fs.findbinfile(envcc) then return envcc end
   local cc = 'cc'
@@ -162,7 +185,7 @@ end
 -- First it detects if this is a Nelua repository clone,
 -- a system wide install or a luarocks install.
 -- Then returns the appropriate path for the Nelua's lib directory.
-local function get_nelua_lib_path()
+local function detect_nelua_lib_path()
   local thispath = fs.scriptname()
   local dirpath = fs.dirname(fs.dirname(thispath))
   local libpath
@@ -186,7 +209,10 @@ local function get_nelua_lib_path()
   --luacov:enable
 end
 
-local function get_search_path(libpath)
+-- Detect nelua's package path.
+-- It reads the NELUA_PATH system environment variable,
+-- otherwise build a default one.
+local function detect_search_path(libpath)
   local path = os.getenv('NELUA_PATH')
   if path then return path end
   path = fs.join('.','?.nelua')..';'..
@@ -202,6 +228,7 @@ function configer.parse(args)
   local ok, options = argparser:pparse(args)
   except.assertraise(ok, options)
   merge_configs(options, defconfig)
+  build_configs(options)
   metamagic.setmetaindex(config, options, true)
   return config
 end
@@ -214,25 +241,41 @@ function configer.get_default()
   return defconfig
 end
 
-local function load_configs(configfile)
+-- Load a config file and merge into default configs.
+local function load_config(configfile)
   if not fs.isfile(configfile) then return end
-  local homeconfig = dofile(configfile)
-  tabler.update(defconfig, homeconfig)
+  local ok, err = pcall(function()
+    local conf = dofile(configfile)
+    merge_configs(defconfig, conf)
+  end)
+  if not ok then --luacov:disable
+    console.errorf('failed to load config "%s": %s', configfile, err)
+  end --luacov:enable
 end
 
+-- Initializes default config by detecting system variables,
+-- and reading user and project configurations files.
 local function init_default_configs()
-  local libpath = get_nelua_lib_path()
+  local libpath = detect_nelua_lib_path()
   if not libpath then --luacov:disable
     console.error('Nelua installation is broken, lib path was not found!')
     os.exit(1)
   end --luacov:enable
   defconfig.lib_path = libpath
-  defconfig.path = get_search_path(defconfig.lib_path)
-  defconfig.cc = get_cc()
+  defconfig.path = detect_search_path(libpath)
+  defconfig.cc = detect_cc()
   defconfig.cflags = os.getenv('CFLAGS') or ''
 
-  load_configs(fs.getuserconfpath(fs.join('nelua', 'neluacfg.lua')))
-  load_configs('.neluacfg.lua')
+  -- load global user config
+  load_config(fs.getuserconfpath(fs.join('nelua', 'neluacfg.lua')))
+
+  -- load project plugins configs
+  for f in fs.dirmatch('.', '%.neluacfg.[-_%w]+.lua') do
+    load_config(f)
+  end
+
+  -- load project config
+  load_config('.neluacfg.lua')
 end
 
 init_default_configs()
