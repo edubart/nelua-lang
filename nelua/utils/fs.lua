@@ -300,6 +300,7 @@ function fs.findmodulefile(name, pathstr, relpath)
       fullpath = fs.abspath(fs.join(relpath, name))
     elseif name:match('^[.]+') then -- relative with '.'
       local dots, rest = name:match('^(%.+)(.*)')
+      rest = rest:gsub('%.', fs.sep)
       if #dots == 1 then
         fullpath = fs.abspath(fs.join(relpath, rest))
       else
