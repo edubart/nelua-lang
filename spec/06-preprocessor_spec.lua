@@ -415,6 +415,16 @@ it("poly function", function()
     f(@integer, 1)
   ]])
   assert.analyze_ast([[
+    ## local counter = 0
+    local function f() <polymorphic,alwayseval>
+       ## counter = counter + 1
+    end
+    local x = 1
+    f()
+    f()
+    ## after_inference(function() assert(counter == 2) end)
+  ]])
+  assert.analyze_ast([[
     local function f(x: auto)
       local r = 1.0 + x
       r = r + x

@@ -191,6 +191,8 @@ typedefs.function_annots = {
   cexport = true,
   -- Force a function to be polymorphic so it can be declared on demand.
   polymorphic = true,
+  -- Force a polymorphic function to always be evaluated.
+  alwayseval = true,
 }
 
 -- List of possible annotations for variables.

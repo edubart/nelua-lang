@@ -1610,6 +1610,8 @@ PolyFunctionType.shape = shaper.fork_shape(Type.shape, {
   -- Whether this functions trigger side effects.
   -- A function trigger side effects when it throw errors or operate on global variables.
   sideeffect = shaper.optional_boolean,
+  -- Weather to always evaluate the polymorphic function.
+  alwayseval = shaper.optional_boolean,
 })
 
 function PolyFunctionType:_init(args, rettypes, node)
@@ -1652,7 +1654,10 @@ function PolyFunctionType:get_poly_eval(args)
 end
 
 function PolyFunctionType:eval_poly(args, srcnode)
-  local polyeval = self:get_poly_eval(args)
+  local polyeval
+  if not self.alwayseval then
+    polyeval = self:get_poly_eval(args)
+  end
   if not polyeval then
     polyeval = { args = args, srcnode = srcnode}
     table.insert(self.evals, polyeval)

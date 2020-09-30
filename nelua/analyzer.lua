@@ -1056,7 +1056,11 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         calleetype = nil
         calleesym = nil
         if knownallargs then
-          local polyeval = polycalleetype:eval_poly(polyargs, node)
+          local polyeval = attr.polyeval
+          if not polyeval then
+            polyeval = polycalleetype:eval_poly(polyargs, node)
+            attr.polyeval = polyeval
+          end
           if polyeval and polyeval.node and polyeval.node.attr.type then
             calleesym = polyeval.node.attr
             calleetype = polyeval.node.attr.type
@@ -2161,6 +2165,10 @@ function visitors.FuncDef(context, node, polysymbol)
   -- once the type is know we can traverse annotation nodes
   if annotnodes then
     context:traverse_nodes(annotnodes, symbol)
+  end
+
+  if ispolyparent and symbol.alwayseval then
+    type.alwayseval = true
   end
 
   -- type checking for returns
