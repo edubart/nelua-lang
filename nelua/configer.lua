@@ -246,7 +246,10 @@ local function load_config(configfile)
   if not fs.isfile(configfile) then return end
   local ok, err = pcall(function()
     local conf = dofile(configfile)
-    merge_configs(defconfig, conf)
+    merge_configs(conf, defconfig)
+
+    -- overwrite defconfig without making a new reference
+    tabler.update(defconfig, conf)
   end)
   if not ok then --luacov:disable
     console.errorf('failed to load config "%s": %s', configfile, err)
