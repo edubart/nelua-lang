@@ -1491,6 +1491,7 @@ it("concepts", function()
     local an_integer_array = #[concept(function(x)
       return x.type:is_array_of(primtypes.integer)
     end)]#
+    ## static_assert(an_integral.value ~= an_integer_array.value)
     local function f(x: an_integral) return x end
     local function g(x: an_integer_array) return #x end
     f(1_uinteger)

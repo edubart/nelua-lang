@@ -2102,6 +2102,7 @@ ConceptType.is_concept = true
 
 -- Create a concept from a lua function defined in the preprocessor.
 function ConceptType:_init(func)
+  self.codename = types.gencodename('concept')
   Type._init(self, 'concept', 0)
   self.func = func
 end
@@ -2122,21 +2123,21 @@ function ConceptType:get_convertible_from_attr(attr, _, argattrs)
     if type.type == primtypes.type and traits.is_type(type.value) then
       type = type.value
     else -- the symbol is not holding a type
-      type = nil
       err = stringer.pformat("invalid return for concept '%s': cannot be non type symbol", self)
+      type = nil
     end
   elseif not type and not err then -- concept returned nothing
-    type = nil
     err = stringer.pformat("type '%s' could not match concept '%s'", attr.type, self)
+    type = nil
   elseif not (type == false or type == nil or traits.is_type(type)) then
     -- concept returned an invalid value
-    type = nil
     err = stringer.pformat("invalid return for concept '%s': must be a boolean or a type", self)
+    type = nil
   end
   if type then
     if type.is_comptime then -- concept cannot return compile time types
-      type = nil
       err = stringer.pformat("invalid return for concept '%s': cannot be of the type '%s'", self, type)
+      type = nil
     end
   end
   return type, err
@@ -2214,6 +2215,7 @@ GenericType.is_unpointable = true
 GenericType.is_generic = true
 
 function GenericType:_init(func)
+  self.codename = types.gencodename('generic')
   Type._init(self, 'generic', 0)
   self.func = func
 end
