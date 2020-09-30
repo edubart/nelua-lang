@@ -74,6 +74,16 @@ function VisitorContext:set_visitors(visitors)
   self.default_visitor = visitors.default_visitor or traverser_default_visitor
 end
 
+function VisitorContext:push_node(node)
+  local nodes = self.visiting_nodes
+  nodes[#nodes + 1] = node
+end
+
+function VisitorContext:pop_node()
+  local nodes = self.visiting_nodes
+  nodes[#nodes] = nil
+end
+
 function VisitorContext:get_parent_node()
   local nodes = self.visiting_nodes
   return nodes[#nodes - 1]

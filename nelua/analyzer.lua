@@ -1056,7 +1056,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         calleetype = nil
         calleesym = nil
         if knownallargs then
-          local polyeval = polycalleetype:eval_poly(polyargs)
+          local polyeval = polycalleetype:eval_poly(polyargs, node)
           if polyeval and polyeval.node and polyeval.node.attr.type then
             calleesym = polyeval.node.attr
             calleetype = polyeval.node.attr.type
@@ -2232,7 +2232,13 @@ function visitors.FuncDef(context, node, polysymbol)
           end
         end
       end
+      -- pop node and then push again to fix error message traceback
+      context:pop_node()
+      -- used to generate error messages
+      context:push_state().polysrcnode = polyeval.srcnode
       context:traverse_node(polynode, symbol)
+      context:pop_state()
+      context:push_node(node)
       assert(traits.is_symbol(polynode.attr))
     end
   end

@@ -123,6 +123,10 @@ end
 function AnalyzerContext:traceback()
   local nodes = self.visiting_nodes
   local ss = sstream()
+  local polysrcnode = self.state.polysrcnode
+  if polysrcnode then
+    ss:add(polysrcnode:format_message('from', 'polymorphic function instantiation'))
+  end
   for i=1,#nodes-1 do
     local node = nodes[i]
     if node._astnode and node.tag ~= 'Block' then

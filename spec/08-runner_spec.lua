@@ -164,4 +164,13 @@ mylib - terminate]])
   os.remove('mylib_test')
 end)
 
+it("error tracebacks", function()
+  assert.run_error({'--eval',[[
+    local function f(x: auto)
+      ## static_error('fail')
+    end
+    f(1)
+  ]]}, "polymorphic function instantiation")
+end)
+
 end)

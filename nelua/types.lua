@@ -1651,10 +1651,10 @@ function PolyFunctionType:get_poly_eval(args)
   end
 end
 
-function PolyFunctionType:eval_poly(args)
+function PolyFunctionType:eval_poly(args, srcnode)
   local polyeval = self:get_poly_eval(args)
   if not polyeval then
-    polyeval = { args = args }
+    polyeval = { args = args, srcnode = srcnode}
     table.insert(self.evals, polyeval)
   end
   return polyeval
@@ -2115,7 +2115,8 @@ end
 
 -- Checks if an attr can match a concept.
 function ConceptType:get_convertible_from_attr(attr, _, argattrs)
-  local type, err = self.func(attr, argattrs)
+  local concept_eval_func = self.func -- alias to have better error messages
+  local type, err = concept_eval_func(attr, argattrs)
   if type == true then -- concept returned true, use the incoming type
     assert(attr.type)
     type = attr.type
@@ -2222,7 +2223,8 @@ end
 
 -- Evaluate a generic to a type by calling it's function defined in the preprocessor.
 function GenericType:eval_type(params)
-  local ok, ret = except.trycall(self.func, table.unpack(params))
+  local generic_eval_func = self.func -- alias to have better error messages
+  local ok, ret = except.trycall(generic_eval_func, table.unpack(params))
   if not ok then
     -- the generic creation failed due to a lua error in preprocessor function
     return nil, ret

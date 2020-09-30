@@ -44,10 +44,10 @@ local function get_pretty_source_pos_errmsg(src, lineno, colno, errmsg, errname,
   local errtraceback = ''
 
   -- extract traceback from message, to move it to the end of the message
-  local tracebackpos = errmsg:find('stack traceback:', 1, true)
+  local tracebackpos = errmsg:find('%s*stack traceback%:')
   if tracebackpos then
-    errtraceback = '\n' .. errmsg:sub(tracebackpos)
-    errmsg = errmsg:sub(1, tracebackpos)
+    errtraceback = errmsg:sub(tracebackpos)
+    errmsg = errmsg:sub(1, tracebackpos-1)
   end
 
   -- choose the color for the message
