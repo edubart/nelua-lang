@@ -29,7 +29,8 @@ function builtins.require(context, node)
 
     -- load it and parse
     local unitpath = argnode.attr.value
-    local filepath, err = fs.findmodulefile(unitpath, config.path)
+    local reldir = argnode.src.name and fs.dirname(argnode.src.name) or nil
+    local filepath, err = fs.findmodulefile(unitpath, config.path, reldir)
     if not filepath then
       if canloadatruntime then
         -- maybe it would succeed at runtime

@@ -1,3 +1,4 @@
+require '.require_test_dep'
 require 'tests.require_test_dep'
 
 assert(a == 1)

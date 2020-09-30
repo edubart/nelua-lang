@@ -289,20 +289,53 @@ function fs.getuserconfpath(path)
   return fs.expanduser(fs.join('~', '.config', path))
 end
 
--- Search for a module using a path string.
+-- Search for a module using a path string or relative path.
 -- The path string must be a string like './?.nelua;./?/init.nelua'.
-function fs.findmodulefile(name, pathstr)
-  name = name:gsub('%.', fs.sep)
-  local paths = stringer.split(pathstr, ';')
-  local triedpaths = {}
-  for i=1,#paths do
-    local trypath = paths[i]:gsub('%?', name)
-    if fs.isfile(trypath) then
-      return fs.abspath(trypath)
+function fs.findmodulefile(name, pathstr, relpath)
+  local fullpath
+  if relpath then
+    if name:match('^/') then -- absolute path
+      fullpath = fs.abspath(name)
+    elseif name:match('^%.%.?/') then -- relative with '/'
+      fullpath = fs.abspath(fs.join(relpath, name))
+    elseif name:match('^[.]+') then -- relative with '.'
+      local dots, rest = name:match('^(%.+)(.*)')
+      if #dots == 1 then
+        fullpath = fs.abspath(fs.join(relpath, rest))
+      else
+        fullpath = fs.abspath(fs.join(relpath, string.rep('..'..fs.sep, #dots-1), rest))
+      end
     end
-    table.insert(triedpaths, trypath)
   end
-  return nil, "\tno file '" .. table.concat(triedpaths, "'\n\tno file '") .. "'"
+  local triedpaths = {}
+  if fullpath then -- full path of the file is known
+    local paths
+    if not fullpath:match('%.%w+$') then
+      paths = {
+        fullpath..'.nelua',
+        fs.join(fullpath,'init.nelua')
+      }
+    else
+      paths = {fullpath}
+    end
+    for _,trypath in ipairs(paths) do
+      if fs.isfile(trypath) then
+        return fs.abspath(trypath)
+      end
+      table.insert(triedpaths, trypath)
+    end
+  else -- search for a file in pathstr
+    name = name:gsub('%.', fs.sep)
+    local paths = stringer.split(pathstr, ';')
+    for i=1,#paths do
+      local trypath = paths[i]:gsub('%?', name)
+      if fs.isfile(trypath) then
+        return fs.abspath(trypath)
+      end
+      table.insert(triedpaths, trypath)
+    end
+  end
+  return nil, "\tno file '" .. table.concat(triedpaths, "'\n\tno file '") .. "'", triedpaths
 end
 
 -- Search for a file inside the system's PATH variable.
