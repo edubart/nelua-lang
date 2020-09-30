@@ -175,8 +175,12 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
         self:add_builtin('nelua_narrow_cast_', type, valtype)
         self:add('(', val, ')')
       else
+        local innertype = type.is_pointer and type.subtype or type
+        local surround = innertype.is_record or innertype.is_array
+        if surround then self:add('(') end
         self:add_ctypecast(type)
         self:add(val)
+        if surround then self:add(')') end
       end
     end
   else

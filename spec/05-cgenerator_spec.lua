@@ -88,6 +88,13 @@ it("type cast", function()
   n = 0.0;
   f = 0.0f;
   r = (R){0};]])
+
+  assert.generate_c([[
+    local recA = @record{a: integer}
+    local recB = @record{b: integer}
+    local x: recA
+    local y = ((@*recB)(&x).b)
+  ]], "y = ((recB_ptr)(&x))->b;")
 end)
 
 it("string", function()
