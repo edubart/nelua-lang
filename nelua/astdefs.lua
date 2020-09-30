@@ -1,8 +1,8 @@
 local ASTBuilder = require 'nelua.astbuilder'
 
 local astbuilder = ASTBuilder()
-local stypes = astbuilder.shapetypes
-local ntypes = stypes.node
+local stypes = astbuilder.shaper
+local ntypes = astbuilder.shaper.node
 
 -- primitives
 astbuilder:register('Number', {

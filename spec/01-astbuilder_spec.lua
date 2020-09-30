@@ -18,7 +18,9 @@ end)
 it("error on invalid ASTNode", function()
   assert.has_error(function() n.Invalid{} end)
   assert.has_error(function() n.Block{1} end)
-  assert.has_error(function() n.Block{ {1} } end)
+  assert.has_error(function() n.Block{{1}} end)
+  assert.has_error(function() n.Block{{'a'}} end,
+    [[invalid shape while creating AST node "Block": field 1: array item 1: expected "aster.Node"]])
   assert.has_error(function() astbuilder:create('Invalid') end)
 end)
 

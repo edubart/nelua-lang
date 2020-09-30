@@ -6,38 +6,30 @@ local iters = require 'nelua.utils.iterators'
 local Attr = require 'nelua.attr'
 local ASTNode = require 'nelua.astnode'
 local config = require 'nelua.configer'.get()
-local shapetypes = require 'nelua.thirdparty.tableshape'.types
+local shaper = require 'nelua.utils.shaper'
 local traits = require 'nelua.utils.traits'
 local bn = require 'nelua.utils.bn'
 
 local ASTBuilder = class()
 
-local function get_astnode_shapetype(nodeklass)
-  return shapetypes.custom(function(val)
-    if class.is(val, nodeklass) then return true end
-    return nil, string.format('expected type "ASTNode", got "%s"', type(val))
-  end)
-end
-
 function ASTBuilder:_init()
   self.nodes = { Node = ASTNode }
-  self.shapetypes = { node = { Node = get_astnode_shapetype(ASTNode) } }
-  self.shapes = { Node = shapetypes.shape {} }
+  self.shaper = { node = { Node = shaper.ast_node_of(ASTNode) } }
+  self.shapes = { Node = shaper.shape {} }
   self.aster = {}
   self.aster.value = function(...) return self:create_value(...) end
-  metamagic.setmetaindex(self.shapetypes, shapetypes)
+  metamagic.setmetaindex(self.shaper, shaper)
 end
 
--- Create an AST node from an Lua value.
+-- Create an AST node from a Lua value.
 function ASTBuilder:create_value(val, srcnode)
   local node
   local aster = self.aster
   if traits.is_astnode(val) then
     node = val
   elseif traits.is_type(val) then
-    local typedefs = require 'nelua.typedefs'
     node = aster.Type{'auto', pattr={
-      type = typedefs.primtypes.type,
+      type = require'nelua.typedefs'.primtypes.type,
       value = val
     }}
   elseif traits.is_string(val) then
@@ -75,23 +67,25 @@ function ASTBuilder:create_value(val, srcnode)
   return node
 end
 
+-- Register a new AST Node type described by a shape.
 function ASTBuilder:register(tag, shape)
-  shape.attr = shapetypes.table:is_optional()
-  shape.uid = shapetypes.number:is_optional()
-  shape = shapetypes.shape(shape)
+  shape.attr = shaper.table:is_optional()
+  shape.uid = shaper.number:is_optional()
+  -- create a new class for the AST Node
   local klass = class(ASTNode)
   klass.tag = tag
-  klass.nargs = #shape.shape
-  self.shapetypes.node[tag] = get_astnode_shapetype(klass)
-  self.shapes[tag] = shape
+  klass.nargs = #shape
   self.nodes[tag] = klass
+  self.shaper.node[tag] = shaper.ast_node_of(klass) -- shape checker used in astdefs
+  self.shapes[tag] = shaper.shape(shape) -- shape checker used with 'check_ast_shape'
+  -- allow calling the aster for creating any AST node.
   self.aster[tag] = function(params)
     local nargs = math.max(klass.nargs, #params)
     local node = self:create(tag, table.unpack(params, 1, nargs))
-    for k,v in iters.spairs(params) do
+    for k,v in iters.spairs(params) do -- set all string keys
       node[k] = v
     end
-    if params.pattr then
+    if params.pattr then -- merge persistent attributes
       node.attr:merge(params.pattr)
     end
     return node
@@ -99,6 +93,7 @@ function ASTBuilder:register(tag, shape)
   return klass
 end
 
+-- Create a new AST Node from a tag and arguments.
 function ASTBuilder:create(tag, ...)
   local klass = self.nodes[tag]
   if not klass then
@@ -115,6 +110,8 @@ end
 
 local genuid = ASTNode.genuid
 
+-- Create an AST Node from tag, src, pos, endpos and arguments.
+-- Used internally by the parser.
 function ASTBuilder:_create(tag, src, pos, ...)
   local n = select('#', ...)
   local endpos = select(n, ...)
@@ -135,7 +132,7 @@ function ASTBuilder:clone()
   local clone = ASTBuilder()
   tabler.update(clone.nodes, self.nodes)
   tabler.update(clone.shapes, self.shapes)
-  tabler.update(clone.shapetypes, self.shapetypes)
+  tabler.update(clone.shaper, self.shaper)
   return clone
 end
 
