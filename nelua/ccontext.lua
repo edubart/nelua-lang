@@ -75,7 +75,13 @@ function CContext:typename(type)
     if config.check_type_shape then
       assert(type:shape())
     end
-    visitor(self, type)
+    if type.cinclude then -- include headers before declaring
+      self:add_include(type.cinclude)
+    end
+    if not type.nodecl and not self:is_declared(type.codename) then
+      -- only declare when needed
+      visitor(self, type)
+    end
   end
   return type.codename
 end

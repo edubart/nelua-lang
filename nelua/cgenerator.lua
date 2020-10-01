@@ -255,7 +255,6 @@ local function emit_type_attributes(decemitter, type)
 end
 
 typevisitors[types.ArrayType] = function(context, type)
-  if type.nodecl or context:is_declared(type.codename) then return end
   local decemitter = CEmitter(context, 0)
   decemitter:add('typedef struct {', type.subtype, ' data[', type.length, '];} ', type.codename)
   emit_type_attributes(decemitter, type)
@@ -266,7 +265,6 @@ typevisitors[types.ArrayType] = function(context, type)
 end
 
 typevisitors[types.PointerType] = function(context, type)
-  if type.nodecl or context:is_declared(type.codename) then return end
   context.declarations[type.codename] = true
   local decemitter = CEmitter(context, 0)
   local index = nil
@@ -286,7 +284,6 @@ typevisitors[types.PointerType] = function(context, type)
 end
 
 typevisitors[types.RecordType] = function(context, type)
-  if type.nodecl or context:is_declared(type.codename) then return end
   context.declarations[type.codename] = true
   local decemitter = CEmitter(context, 0)
   decemitter:add_ln('typedef struct ', type.codename, ' ', type.codename, ';')
@@ -318,14 +315,12 @@ typevisitors[types.RecordType] = function(context, type)
 end
 
 typevisitors[types.EnumType] = function(context, type)
-  if type.nodecl or context:is_declared(type.codename) then return end
   local decemitter = CEmitter(context, 0)
   decemitter:add_ln('typedef ', type.subtype, ' ', type.codename, ';')
   context:add_declaration(decemitter:generate(), type.codename)
 end
 
 typevisitors[types.FunctionType] = function(context, type)
-  if type.nodecl or context:is_declared(type.codename) then return end
   local decemitter = CEmitter(context, 0)
   decemitter:add('typedef ', context:funcretctype(type), ' (*', type.codename, ')(')
   for i,argtype in ipairs(type.argtypes) do
@@ -369,7 +364,6 @@ end
 ]]
 
 typevisitors[types.Type] = function(context, type)
-  if type.nodecl or context:is_declared(type.codename) then return end
   if type.is_any then --luacov:enable
     context:ensure_runtime_builtin('nlany')
   elseif type.is_niltype then
