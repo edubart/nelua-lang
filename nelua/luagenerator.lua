@@ -117,7 +117,7 @@ end
 function visitors.Block(context, node, emitter)
   local stats = node:args()
   emitter:inc_indent()
-  context:push_forked_scope('block', node)
+  context:push_forked_scope(node)
   emitter:add_traversal_list(stats, '')
   context:pop_scope()
   emitter:dec_indent()
@@ -186,7 +186,7 @@ end
 function visitors.While(context, node, emitter)
   local cond, block = node:args()
   emitter:add_indent_ln("while ", cond, ' do')
-  context:push_forked_scope('loop', node)
+  context:push_forked_scope(node)
   emitter:add(block)
   context:pop_scope()
   emitter:add_indent_ln("end")
@@ -195,7 +195,7 @@ end
 function visitors.Repeat(context, node, emitter)
   local block, cond = node:args()
   emitter:add_indent_ln("repeat")
-  context:push_forked_cleaned_scope('loop', node)
+  context:push_forked_cleaned_scope(node)
   emitter:add(block)
   emitter:add_indent_ln('until ', cond)
   context:pop_scope()
@@ -207,7 +207,7 @@ function visitors.ForNum(context, node, emitter)
     comp = 'le'
   end
   node:assertraisef(comp == 'le', 'for comparator not supported yet')
-  context:push_forked_scope('loop', node)
+  context:push_forked_scope(node)
   emitter:add_indent("for ", itvar, '=', begval, ',', endval)
   if incrval then
     emitter:add(',', incrval)
@@ -220,7 +220,7 @@ end
 
 function visitors.ForIn(context, node, emitter)
   local itvars, iterator, block = node:args()
-  context:push_forked_scope('loop', node)
+  context:push_forked_scope(node)
   emitter:add_indent("for ", itvars)
   emitter:add_ln(' in ', iterator, ' do')
   emitter:add(block)
@@ -246,7 +246,7 @@ end
 
 function visitors.VarDecl(context, node, emitter)
   local varscope, varnodes, valnodes = node:args()
-  local is_local = (varscope == 'local') or not context.scope:is_topscope()
+  local is_local = (varscope == 'local') or not context.scope.is_topscope
   emitter:add_indent()
   if is_local then
     emitter:add('local ')
@@ -295,7 +295,7 @@ function visitors.FuncDef(context, node, emitter)
     emitter:add('local ')
   end
   emitter:add('function ', name)
-  context:push_forked_scope('function', node)
+  context:push_forked_scope(node)
   emitter:add_ln('(', args, ')')
   emitter:add(block)
   context:pop_scope()

@@ -108,6 +108,23 @@ function Symbol:link_node(node)
   end
 end
 
+-- Checks a symbol is directly accessible from a scope, without needing closures.
+function Symbol:is_directly_accesible_from_scope(scope)
+  if self.staticstorage or self.funcdecl then
+    -- symbol declared in the program static storage, thus always accessible
+    return true
+  end
+  if self.comptime or (self.type and self.type.is_comptime) then
+    -- compile time symbols are always accessible
+    return true
+  end
+  if self.scope:get_up_function_scope() == scope:get_up_function_scope() then
+    -- the scope and symbol's scope are inside the same function
+    return true
+  end
+  return false
+end
+
 function Symbol:__tostring()
   local ss = sstream(self.name or '<annonymous>')
   if self.type then

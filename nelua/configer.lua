@@ -273,9 +273,9 @@ local function init_default_configs()
   load_config(fs.getuserconfpath(fs.join('nelua', 'neluacfg.lua')))
 
   -- load project plugins configs
-  for f in fs.dirmatch('.', '%.neluacfg.[-_%w]+.lua') do
+  for f in fs.dirmatch('.', '%.neluacfg.[-_%w]+.lua') do --luacov:disable
     load_config(f)
-  end
+  end --luacov:enable
 
   -- load project config
   load_config('.neluacfg.lua')

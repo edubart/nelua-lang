@@ -102,7 +102,7 @@ local function destroy_upscopes_variables(context, emitter, kind)
   repeat
     destroy_scope_variables(context, emitter, scope)
     scope = scope.parent
-  until (scope.kind == kind or scope == context.rootscope)
+  until (scope[kind] or scope == context.rootscope)
   destroy_scope_variables(context, emitter, scope)
 end
 
@@ -883,7 +883,7 @@ end
 function visitors.Block(context, node, emitter)
   local statnodes = node:args()
   emitter:inc_indent()
-  local scope = context:push_forked_scope('block', node)
+  local scope = context:push_forked_scope(node)
   do
     emitter:add_traversal_list(statnodes, '')
   end
@@ -901,7 +901,7 @@ function visitors.Return(context, node, emitter)
   -- destroy parent blocks
   local defemitter = CEmitter(context, emitter.depth)
   local desemitter = CEmitter(context, emitter.depth)
-  local funcscope = context.scope:get_parent_of_kind('function') or context.rootscope
+  local funcscope = context.scope:get_up_return_scope() or context.rootscope
   context.scope.alreadydestroyed = true
   funcscope.has_return = true
   if funcscope == context.rootscope then
@@ -917,7 +917,7 @@ function visitors.Return(context, node, emitter)
       defemitter:add_val2type(primtypes.cint, retnode)
       defemitter:add_ln(';')
     end
-  elseif funcscope.doexpr then
+  elseif funcscope.is_doexpr then
     defemitter:add_indent_ln('__expr = ', retnodes[1], ';')
   else
     local functype = funcscope.functype
@@ -1053,7 +1053,7 @@ function visitors.DoExpr(context, node, emitter)
     emitter:inc_indent()
     emitter:add_indent_ln(node.attr.type, ' __expr;')
     emitter:dec_indent()
-    context:push_forked_scope('function', node)
+    context:push_forked_scope(node)
     emitter:add(blocknode)
     context:pop_scope()
     emitter:inc_indent()
@@ -1078,7 +1078,7 @@ function visitors.While(context, node, emitter)
   emitter:add_indent("while(")
   emitter:add_val2type(primtypes.boolean, condnode)
   emitter:add_ln(') {')
-  context:push_forked_scope('loop', node)
+  context:push_forked_scope(node)
   emitter:add(blocknode)
   context:pop_scope()
   emitter:add_indent_ln("}")
@@ -1087,7 +1087,7 @@ end
 function visitors.Repeat(context, node, emitter)
   local blocknode, condnode = node:args()
   emitter:add_indent_ln("while(true) {")
-  context:push_forked_scope('loop', node)
+  context:push_forked_scope(node)
   emitter:add(blocknode)
   emitter:inc_indent()
   emitter:add_indent('if(')
@@ -1109,7 +1109,7 @@ function visitors.ForNum(context, node, emitter)
   local fixedend = node.attr.fixedend
   local itvarattr = itvarnode.attr
   local itmutate = itvarattr.mutate
-  context:push_forked_scope('loop', node)
+  context:push_forked_scope(node)
   do
     local ccompop = cdefs.compare_ops[compop]
     local ittype = itvarattr.type
@@ -1164,13 +1164,13 @@ function visitors.ForIn() --luacov:disable
 end --luacov:enable
 
 function visitors.Break(context, _, emitter)
-  destroy_upscopes_variables(context, emitter, 'loop')
+  destroy_upscopes_variables(context, emitter, 'is_loop')
   context.scope.alreadydestroyed = true
   emitter:add_indent_ln('break;')
 end
 
 function visitors.Continue(context, _, emitter)
-  destroy_upscopes_variables(context, emitter, 'loop')
+  destroy_upscopes_variables(context, emitter, 'is_loop')
   context.scope.alreadydestroyed = true
   emitter:add_indent_ln('continue;')
 end
@@ -1251,7 +1251,7 @@ function visitors.FuncDef(context, node, emitter)
 
   decemitter:add(varnode)
   defemitter:add(varnode)
-  local funcscope = context:push_forked_scope('function', node)
+  local funcscope = context:push_forked_scope(node)
   funcscope.functype = type
   do
     decemitter:add('(')

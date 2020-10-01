@@ -620,6 +620,26 @@ it("function definition", function()
   ]], "return #1 cannot be of type")
 end)
 
+it("closures", function()
+  assert.analyze_ast([[
+    local x: integer = 1
+    do
+      local y: integer <comptime> = 1
+      local function foo()
+        print(x, y)
+      end
+    end
+  ]])
+  assert.analyze_error([[
+    do
+      local x: integer = 1
+      local function foo()
+        print(x)
+      end
+    end
+  ]], "attempt to access upvalue")
+end)
+
 it("poly function definition", function()
   assert.analyze_ast([[
     local function f(x: auto) end

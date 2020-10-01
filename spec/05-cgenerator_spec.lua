@@ -1379,9 +1379,6 @@ it("statement expressions", function()
       assert(y == 131)
     end
   ]])
-
-    assert.analyze_ast([=[
-  ]=])
 end)
 it("c types", function()
   assert.generate_c("local a: integer", "int64_t a = 0;")

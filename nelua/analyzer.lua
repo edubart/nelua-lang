@@ -457,6 +457,10 @@ function visitors.Id(context, node)
     symbol = node.attr.forcesymbol
   end
   symbol:link_node(node)
+  if context.generator ~= 'lua' and symbol.scope ~= context.rootscope and
+     not symbol:is_directly_accesible_from_scope(context.scope) then
+    node:raisef("attempt to access upvalue '%s', but closures are not supported", name)
+  end
   node.done = symbol
   return symbol
 end
@@ -1370,7 +1374,8 @@ end
 
 function visitors.Block(context, node)
   if node.preprocess then
-    local scope = context:push_forked_cleaned_scope('block', node)
+    local scope = context:push_forked_cleaned_scope(node)
+    scope.is_block = true
 
     local ok, err = except.trycall(node.preprocess, node)
     if not ok then
@@ -1395,7 +1400,8 @@ function visitors.Block(context, node)
   if #statnodes > 0 or not node.scope then
     local scope
     repeat
-      scope = context:push_forked_cleaned_scope('block', node)
+      scope = context:push_forked_cleaned_scope(node)
+      scope.is_block = true
       context:traverse_nodes(statnodes)
       local resolutions_count = scope:resolve()
       context:pop_scope()
@@ -1468,7 +1474,8 @@ function visitors.While(context, node)
   condnode.desiredtype = primtypes.boolean
   condnode.attr.inconditional = true
   context:traverse_node(condnode)
-  context:push_forked_cleaned_scope('loop', node)
+  local scope = context:push_forked_cleaned_scope(node)
+  scope.is_loop = true
   context:traverse_node(blocknode)
   context:pop_scope()
 end
@@ -1477,7 +1484,8 @@ function visitors.Repeat(context, node)
   local blocknode, condnode = node[1], node[2]
   condnode.desiredtype = primtypes.boolean
   condnode.attr.inconditional = true
-  context:push_forked_cleaned_scope('loop', node)
+  local scope = context:push_forked_cleaned_scope(node)
+  scope.is_loop = true
   context:traverse_node(blocknode)
   context:push_scope(blocknode.scope)
   context:traverse_node(condnode)
@@ -1501,7 +1509,8 @@ function visitors.ForNum(context, node)
   end
   local ittype
   repeat
-    local scope = context:push_forked_cleaned_scope('loop', node)
+    local scope = context:push_forked_cleaned_scope(node)
+    scope.is_loop = true
 
     local itsymbol = context:traverse_node(itvarnode)
     itsymbol.scope:add_symbol(itsymbol)
@@ -1608,7 +1617,8 @@ function visitors.ForIn(context, node)
   if context.generator == 'lua' then -- lua backend
     context:traverse_nodes(inexpnodes)
     repeat
-      local scope = context:push_forked_cleaned_scope('loop', node)
+      local scope = context:push_forked_cleaned_scope(node)
+      scope.is_loop = true
       context:traverse_node(blocknode)
       local resolutions_count = scope:resolve()
       context:pop_scope()
@@ -1659,14 +1669,14 @@ function visitors.ForIn(context, node)
 end
 
 function visitors.Break(context, node)
-  if not context.scope:get_parent_of_kind('loop') then
+  if not context.scope:get_up_scope_of_kind('is_loop') then
     node:raisef("`break` statement is not inside a loop")
   end
   node.done = true
 end
 
 function visitors.Continue(context, node)
-  if not context.scope:get_parent_of_kind('loop') then
+  if not context.scope:get_up_scope_of_kind('is_loop') then
     node:raisef("`continue` statement is not inside a loop")
   end
   node.done = true
@@ -1692,7 +1702,7 @@ function visitors.Goto(context, node)
   local labelname = node[1]
   local label = context.scope:find_label(labelname)
   if not label then
-    local funcscope = context.scope:get_parent_of_kind('function') or context.rootscope
+    local funcscope = context.scope:get_up_return_scope() or context.rootscope
     if not funcscope.resolved_once then
       -- we should find it in the next traversal
       funcscope:delay_resolution()
@@ -1716,12 +1726,12 @@ function visitors.VarDecl(context, node)
     assert(varnode.tag == 'IdDecl')
     varnode.attr.vardecl = true
     if varscope == 'global' then
-      if not context.scope:is_topscope() then
+      if not context.scope.is_topscope then
         varnode:raisef("global variables can only be declared in top scope")
       end
       varnode.attr.global = true
     end
-    if varscope == 'global' or context.scope:is_topscope() then
+    if varscope == 'global' or context.scope.is_topscope then
       varnode.attr.staticstorage = true
     end
     if context.pragmas.nostatic then
@@ -1881,7 +1891,7 @@ end
 function visitors.Return(context, node)
   local retnodes = node[1]
   context:traverse_nodes(retnodes)
-  local funcscope = context.scope:get_parent_of_kind('function') or context.rootscope
+  local funcscope = context.scope:get_up_return_scope() or context.rootscope
   if funcscope.rettypes then
     for i,funcrettype,retnode,rettype in izipargnodes(funcscope.rettypes, retnodes) do
       if rettype then
@@ -1915,7 +1925,7 @@ function visitors.Return(context, node)
   end
 end
 
-local function resolve_function_argtypes(symbol, varnode, argnodes, scope, checkpoly)
+local function resolve_function_argtypes(funcscope, symbol, varnode, argnodes, scope, checkpoly)
   local ispolyparent = false
   local argattrs = {}
   local argtypes = {}
@@ -1950,6 +1960,7 @@ local function resolve_function_argtypes(symbol, varnode, argnodes, scope, check
       selfsym.codename = 'self'
       selfsym.lvalue = true
       selfsym.type = symbol.metafuncselftype
+      selfsym.scope = funcscope
       symbol.selfsym = selfsym
     end
     table.insert(argtypes, 1, symbol.metafuncselftype)
@@ -1990,8 +2001,9 @@ function visitors.DoExpr(context, node)
   local blocknode = node[1]
   local exprscope
   repeat
-    exprscope = context:push_forked_cleaned_scope('function', node)
-    exprscope.doexpr = true
+    exprscope = context:push_forked_cleaned_scope(node)
+    exprscope.is_doexpr = true
+    exprscope.is_returnbreak = true
     context:traverse_node(blocknode)
     local resolutions_count = exprscope:resolve()
     context:pop_scope()
@@ -2035,12 +2047,12 @@ end
 local function visitor_FuncDef_variable(context, varscope, varnode)
   local decl = varscope ~= nil
   if varscope == 'global' then
-    if not context.scope:is_topscope() then
+    if not context.scope.is_topscope then
       varnode:raisef("global function can only be declared in top scope")
     end
     varnode.attr.global = true
   end
-  if varscope == 'global' or context.scope:is_topscope() then
+  if varscope == 'global' or context.scope.is_topscope then
     varnode.attr.staticstorage = true
   end
   if decl then
@@ -2104,7 +2116,9 @@ function visitors.FuncDef(context, node, polysymbol)
 
   local funcscope
   repeat
-    funcscope = context:push_forked_cleaned_scope('function', node)
+    funcscope = context:push_forked_cleaned_scope(node)
+    funcscope.is_function = true
+    funcscope.is_returnbreak = true
 
     funcscope.rettypes = rettypes
     context:traverse_nodes(argnodes)
@@ -2114,7 +2128,8 @@ function visitors.FuncDef(context, node, polysymbol)
         argnode.attr.scope:add_symbol(argnode.attr)
       end
     end
-    argattrs, argtypes, ispolyparent = resolve_function_argtypes(symbol, varnode, argnodes, funcscope, not polysymbol)
+    argattrs, argtypes, ispolyparent =
+      resolve_function_argtypes(funcscope, symbol, varnode, argnodes, funcscope,not polysymbol)
 
     if not ispolyparent then
       -- poly functions never traverse the blocknode by itself

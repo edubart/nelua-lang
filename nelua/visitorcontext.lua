@@ -3,6 +3,8 @@ local tabler = require 'nelua.utils.tabler'
 
 local VisitorContext = class()
 
+VisitorContext._context = true
+
 --[[
 local nodetravs = {}
 local numretravs = {}

@@ -17,7 +17,7 @@ function builtins.require(context, node)
     local argnode = node[1][1]
     if not (argnode and
             argnode.attr.type and argnode.attr.type.is_stringview and
-            argnode.attr.comptime) or not context.scope:is_topscope() then
+            argnode.attr.comptime) or not context.scope.is_topscope then
       -- not a compile time require
       if canloadatruntime then
         attr.runtime_require = true

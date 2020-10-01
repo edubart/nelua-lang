@@ -11,7 +11,7 @@ local AnalyzerContext = class(VisitorContext)
 function AnalyzerContext:_init(visitors, parser, ast, generator)
   VisitorContext._init(self, visitors)
   self.parser = parser
-  self.rootscope = Scope(self, 'root', ast)
+  self.rootscope = Scope(self, ast)
   self.ast = ast
   self.scope = self.rootscope
   self.usedbuiltins = {}
@@ -47,21 +47,21 @@ function AnalyzerContext:push_scope(scope)
   self.scope = scope
 end
 
-function AnalyzerContext:push_forked_scope(kind, node)
+function AnalyzerContext:push_forked_scope(node)
   local scope
   if node.scope then
     scope = node.scope
-    assert(scope.kind == kind and scope.parent == self.scope and scope.node == node)
+    assert(scope.parent == self.scope and scope.node == node)
   else
-    scope = self.scope:fork(kind, node)
+    scope = self.scope:fork(node)
     node.scope = scope
   end
   self:push_scope(scope)
   return scope
 end
 
-function AnalyzerContext:push_forked_cleaned_scope(kind, node)
-  local scope = self:push_forked_scope(kind, node)
+function AnalyzerContext:push_forked_cleaned_scope(node)
+  local scope = self:push_forked_scope(node)
   scope:clear_symbols()
   return scope
 end

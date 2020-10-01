@@ -8,11 +8,13 @@ local console = require 'nelua.utils.console'
 
 local Scope = class()
 
-function Scope:_init(parent, kind, node)
-  self.kind = kind
+function Scope:_init(parent, node)
+  assert(parent)
   self.node = node
-  if kind == 'root' then
+  if parent._context then -- the parent is a context
     self.context = parent
+    self.is_root = true
+    self.is_returnbreak = true
   else
     self.parent = parent
     self.context = parent.context
@@ -21,70 +23,65 @@ function Scope:_init(parent, kind, node)
   self.unresolved_symbols = {}
   self.children = {}
   self.labels = {}
+  if parent and parent.is_root then
+    self.is_topscope = true
+  end
   self:clear_symbols()
 end
 
-function Scope:fork(kind, node)
-  return Scope(self, kind, node)
+function Scope:fork(node)
+  return Scope(self, node)
 end
 
-function Scope:is_topscope()
-  return self.parent and self.parent.kind == 'root'
-end
-
-local default_symbols_mt = {
-  __index =  function(symbols, key)
-    -- return predefined symbol definition if nothing is found
-    local symbol = symdefs[key]
-    if symbol then
-      symbol = symbol:clone()
-      symbols[key] = symbol
-      return symbol
-    end
-  end
-}
-
+-- Clear the symbols and saved resolution data for this scope.
 function Scope:clear_symbols()
   if self.parent then
     self.symbols = setmetatable({}, {__index = self.parent.symbols})
   else
-    self.symbols = setmetatable({}, default_symbols_mt)
+    self.symbols = setmetatable({}, {
+      __index =  function(symbols, key)
+        -- return predefined symbol definition if nothing is found
+        local symbol = symdefs[key]
+        if symbol then
+          symbol = symbol:clone()
+          symbol.scope = self.context.rootscope
+          symbols[key] = symbol
+          return symbol
+        end
+      end
+    })
   end
   self.possible_rettypes = {}
   self.resolved_rettypes = {}
   self.has_unknown_return = nil
 end
 
---[[
-function Scope:is_onheap()
+-- Search for a up scope matching a property.
+function Scope:get_up_scope_of_kind(kind)
   local scope = self
-  while scope do
-    if scope.kind == 'function' then
-      if scope.parent and scope.parent.kind == 'root' then
-        return true
-      else
-        -- nested function
-        return false
-      end
-    elseif scope.kind == 'root' then
-      return true
-    else
-      assert(scope.kind == 'block')
-    end
+  while scope and not scope[kind] do
     scope = scope.parent
   end
-  return false
-end
-]]
-
-function Scope:get_parent_of_kind(kind)
-  local parent = self
-  repeat
-    parent = parent.parent
-  until (not parent or parent.kind == kind)
-  return parent
+  return scope
 end
 
+-- Return the first upper scope that is a function.
+function Scope:get_up_function_scope()
+  if not self.upfunctionscope then
+    self.upfunctionscope = self:get_up_scope_of_kind('is_function')
+  end
+  return self.upfunctionscope
+end
+
+-- Return the first upper scope that would process return statements.
+function Scope:get_up_return_scope()
+  if not self.upreturnscope then
+    self.upreturnscope = self:get_up_scope_of_kind('is_returnbreak')
+  end
+  return self.upreturnscope
+end
+
+-- Search for labels backtracking upper scopes.
 function Scope:find_label(name)
   local parent = self
   repeat
@@ -93,7 +90,7 @@ function Scope:find_label(name)
       return label
     end
     parent = parent.parent
-  until (not parent or parent.kind == 'function')
+  until (not parent or parent.is_returnbreak)
   return nil
 end
 
@@ -108,7 +105,7 @@ function Scope:make_checkpoint()
     resolved_rettypes = tabler.copy(self.resolved_rettypes),
     has_unknown_return = self.has_unknown_return
   }
-  if self.parent and self.parent.kind ~= 'root' then
+  if self.parent and not self.parent.is_root then
     checkpoint.parentcheck = self.parent:make_checkpoint()
   end
   return checkpoint
