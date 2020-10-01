@@ -9,6 +9,7 @@ local cdefs = require 'nelua.cdefs'
 local platform = require 'nelua.utils.platform'
 local console = require 'nelua.utils.console'
 local stringer = require 'nelua.utils.stringer'
+local version = require 'nelua.version'
 
 local configer = {}
 local config = {}
@@ -103,12 +104,24 @@ local function build_configs(conf)
   end
 end
 
-local function action_print_config(options) --luacov:disable
+--luacov:disable
+local function action_version()
+  version.detect_git_info()
+  console.info(version.NELUA_VERSION)
+  console.infof('Build number: %s', version.NELUA_GIT_BUILD)
+  console.infof('Git date: %s', version.NELUA_GIT_DATE)
+  console.infof('Git hash: %s', version.NELUA_GIT_HASH)
+  console.info('Copyright (C) 2019-2020 Eduardo Bart (https://nelua.io/)')
+  os.exit(0)
+end
+
+local function action_print_config(options)
   merge_configs(options, defconfig)
   build_configs(options)
   console.info(inspect(options))
   os.exit(0)
-end --luacov:enable
+end
+--luacov:enable
 
 local function create_parser(args)
   local argparser = argparse("nelua", "Nelua 0.1")
@@ -121,6 +134,7 @@ local function create_parser(args)
   argparser:flag('-r --release', 'Release mode build', defconfig.release)
   argparser:flag('-t --timing', 'Inform compile processing time', defconfig.timing)
   argparser:flag('-d --debug', 'Run through GDB to get crash backtraces', defconfig.debug)
+  argparser:flag('-v --version', 'Print detailed version information'):action(action_version)
   argparser:flag('--no-cache', "Don't use any cached compilation", defconfig.no_cache)
   argparser:flag('--no-color', 'Disable colorized output in the terminal.', defconfig.no_color)
   argparser:option('-o --output', 'Copy output file to desired path.', defconfig.output)

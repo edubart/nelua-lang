@@ -20,6 +20,7 @@ TMPDIR=/tmp
 # All used utilities
 RM=rm -f
 RM_R=rm -rf
+SED=sed
 MKDIR=mkdir -p
 INSTALL_X=install -Dm755
 INSTALL_F=install -Dm644
@@ -169,6 +170,19 @@ clean-nelua-lua:
 ## Clean everything.
 clean: clean-cache clean-coverage clean-nelua-lua
 
+ISGIT:=$(shell git rev-parse --is-inside-work-tree 2> /dev/null)
+ifeq ($(ISGIT),true)
+_update_install_version:
+	$(eval NELUA_GIT_HASH := $(shell git rev-parse HEAD))
+	$(eval NELUA_GIT_DATE := $(shell git log -1 --format=%ci))
+	$(eval NELUA_GIT_BUILD := $(shell git rev-list HEAD --count))
+	sed -i 's/NELUA_GIT_HASH = "unknown"/NELUA_GIT_HASH = "$(NELUA_GIT_HASH)"/' $(INSTALL_LUALIB)/nelua/version.lua
+	sed -i 's/NELUA_GIT_DATE = "unknown"/NELUA_GIT_DATE = "$(NELUA_GIT_DATE)"/' $(INSTALL_LUALIB)/nelua/version.lua
+	sed -i 's/NELUA_GIT_BUILD = 0/NELUA_GIT_BUILD = $(NELUA_GIT_BUILD)/' $(INSTALL_LUALIB)/nelua/version.lua
+else
+_update_install_version:
+endif
+
 ## Install Nelua using PREFIX into DESTDIR.
 install:
 	$(MAKE) --no-print-directory -C src
@@ -177,6 +191,7 @@ install:
 	$(INSTALL_F) nelua.lua $(INSTALL_LUALIB)/nelua.lua
 	find nelua -name '*.lua' -exec $(INSTALL_F) {} $(INSTALL_LUALIB)/{} \;
 	find lib -name '*.nelua' -exec $(INSTALL_F) {} $(INSTALL_LIB)/{} \;
+	$(MAKE) _update_install_version
 
 ## Uninstall Nelua
 uninstall:

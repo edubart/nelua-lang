@@ -83,6 +83,7 @@ build = {
     ['nelua.ppcontext'] = 'nelua/ppcontext.lua',
     ['nelua.typedefs'] = 'nelua/typedefs.lua',
     ['nelua.types'] = 'nelua/types.lua',
+    ['nelua.version'] = 'nelua/version.lua',
     ['nelua.visitorcontext'] = 'nelua/visitorcontext.lua',
     ['nelua.thirdparty.argparse'] = 'nelua/thirdparty/argparse.lua',
     ['nelua.thirdparty.bint'] = 'nelua/thirdparty/bint.lua',

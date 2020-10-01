@@ -3,8 +3,16 @@ require 'busted.runner'()
 local assert = require 'spec.tools.assert'
 local configer = require 'nelua.configer'
 local config = configer.get()
+local version = require 'nelua.version'
 
 describe("Nelua runner should", function()
+
+it("version numbers" , function()
+  version.detect_git_info()
+  assert.same(#version.NELUA_GIT_HASH, 40)
+  assert(version.NELUA_GIT_BUILD > 0)
+  assert(version.NELUA_GIT_DATE ~= 'unknown')
+end)
 
 it("compile simple programs" , function()
   assert.run('--generator lua --no-cache --compile examples/helloworld.nelua')
