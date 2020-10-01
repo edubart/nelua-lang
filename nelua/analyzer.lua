@@ -2252,6 +2252,12 @@ function visitors.FuncDef(context, node, polysymbol)
   end
 end
 
+function visitors.Function(context, node)
+  if context.generator ~= 'lua' then
+    node:raisef('anonymous functions are not implemented yet')
+  end
+end
+
 local overridable_operators = {
   ['eq'] = true,
   ['ne'] = true,

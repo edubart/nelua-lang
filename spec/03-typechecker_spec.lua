@@ -561,6 +561,13 @@ it("late deduction", function()
   ]])
 end)
 
+it("anonymous functions", function()
+  assert.analyze_error([[
+    local function foo(f: function(integer)) end
+    foo(function(x: integer) end)
+  ]], "anonymous functions are not implemented yet")
+end)
+
 it("function definition", function()
   assert.analyze_ast([[
     local f
