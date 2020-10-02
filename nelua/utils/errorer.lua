@@ -46,7 +46,7 @@ local function get_pretty_source_pos_errmsg(src, lineno, colno, errmsg, errname,
   -- extract traceback from message, to move it to the end of the message
   local tracebackpos = errmsg:find('%s*stack traceback%:')
   if tracebackpos then
-    errtraceback = errmsg:sub(tracebackpos)
+    errtraceback = '\n'..errmsg:sub(tracebackpos)
     errmsg = errmsg:sub(1, tracebackpos-1)
   end
 
@@ -54,11 +54,13 @@ local function get_pretty_source_pos_errmsg(src, lineno, colno, errmsg, errname,
   local errcolor = colreset
   if string.find(errname, 'error', 1, true) then
     errcolor = colors.error
+  elseif string.find(errname, 'warning', 1, true) then
+    errcolor = colors.warn
   end
   local errmsgcolor = colreset..colbright
 
   -- generate the error message
-  return string.format("%s:%d:%d: %s: %s\n%s\n%s\n%s",
+  return string.format("%s:%d:%d: %s: %s\n%s\n%s%s",
     srcname..colbright, lineno, colno, errcolor..errname, errmsgcolor..errmsg..colreset,
     line, linehelper, errtraceback)
 end

@@ -169,6 +169,8 @@ typedefs.function_annots = {
   cqualifier = shaper.shape{shaper.string},
   -- A C attribute to use when declaring the function, it uses '__attribute((...))' in C.
   cattribute = shaper.shape{shaper.string},
+  -- Whether the function is deprecated, generating warnings when compiling.
+  deprecated = true,
   -- Whether to inline the function.
   inline = true,
   -- Whether the function can return, it uses '__attribute__((noreturn))' in C.
@@ -211,6 +213,8 @@ typedefs.variable_annots = {
   cattribute = shaper.shape{shaper.string},
   -- Custom alignment to use with the variable.
   aligned = shaper.shape{shaper.integer},
+  -- Whether the variable is deprecated, generating warnings when compiling.
+  deprecated = true,
   -- Whether the variable is static, it uses the 'static' qualifier in C.
   -- Static variables are stored in the application static storage, not in the function stack frame.
   static = true,

@@ -6,6 +6,8 @@ local traits = require 'nelua.utils.traits'
 local except = require 'nelua.utils.except'
 local sstream = require 'nelua.utils.sstream'
 local stringer = require 'nelua.utils.stringer'
+local console = require 'nelua.utils.console'
+local config = require 'nelua.configer'.get()
 local Attr = require 'nelua.attr'
 
 local ASTNode = class()
@@ -128,6 +130,12 @@ end
 
 function ASTNode:raisef(message, ...)
   except.raise(self:format_message('error', message, ...), 2)
+end
+
+function ASTNode:warnf(message, ...)
+  if not config.no_warning then
+    console.logerr(self:format_message('warning', message, ...))
+  end
 end
 
 -------------------

@@ -168,11 +168,21 @@ function assert.run(args, expected_stdout, expected_stderr)
   end
 end
 
-function assert.run_error(args, expected_stderr)
+function assert.run_error(args, expected_stderr, expects_success)
   local status, sout, serr = run(args)
-  errorer.assertf(status ~= 0, 'expected error status in run:\n%s\n%s', serr, sout)
+  if expects_success then
+    errorer.assertf(status == 0, 'expected success status in run:\n%s\n%s', serr, sout)
+  else
+    errorer.assertf(status ~= 0, 'expected error status in run:\n%s\n%s', serr, sout)
+  end
   if expected_stderr then
-    assert.contains(expected_stderr, serr)
+    if traits.is_table(expected_stderr) then
+      for _,eerr in ipairs(expected_stderr) do
+        assert.contains(eerr, serr)
+      end
+    else
+      assert.contains(expected_stderr, serr)
+    end
   end
 end
 
@@ -216,8 +226,8 @@ function assert.run_c(nelua_code, expected_stdout, expected_stderr)
   assert.run({'--generator', 'c', '--eval', nelua_code}, expected_stdout, expected_stderr)
 end
 
-function assert.run_error_c(nelua_code, output)
-  assert.run_error({'--generator', 'c', '--eval', nelua_code}, output)
+function assert.run_error_c(nelua_code, output, expect_success)
+  assert.run_error({'--generator', 'c', '--eval', nelua_code}, output, expect_success)
 end
 
 function assert.lua_gencode_equals(code, expected_code)

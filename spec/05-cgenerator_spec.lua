@@ -2838,4 +2838,26 @@ it("generics", function()
   ]=])
 end)
 
+it("deprecated", function()
+  assert.run_error_c([=[
+    local function f() <deprecated> end
+    f()
+
+    local a: integer <deprecated>
+    a = 1
+
+    local Rec = @record{}
+    function Rec:m() <deprecated> end
+    local r: Rec
+    r:m()
+
+    Rec.m(r)
+  ]=], {
+    "use of deprecated symbol 'f'",
+    "use of deprecated symbol 'a'",
+    "use of deprecated method 'm'",
+    "use of deprecated metafield 'm'"
+  }, 0)
+end)
+
 end)

@@ -461,6 +461,9 @@ function visitors.Id(context, node)
      not symbol:is_directly_accesible_from_scope(context.scope) then
     node:raisef("attempt to access upvalue '%s', but closures are not supported", name)
   end
+  if symbol.deprecated then
+    node:warnf("use of deprecated symbol '%s'", name)
+  end
   node.done = symbol
   return symbol
 end
@@ -1154,6 +1157,9 @@ function visitors.CallMethod(context, node)
       if not calleesym then
         node:raisef("cannot index meta field '%s' in record '%s'", name, calleetype)
       end
+      if calleesym.deprecated then
+        node:warnf("use of deprecated method '%s'", name)
+      end
       calleetype = calleesym.type
     elseif calleetype.is_any then
       calleetype = primtypes.any
@@ -1232,6 +1238,9 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     end
   else
     symbol:link_node(node)
+  end
+  if symbol.deprecated then
+    node:warnf("use of deprecated metafield '%s'", name)
   end
   -- cannot uncomment this yet
   --node.checked = true
