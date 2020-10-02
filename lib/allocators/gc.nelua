@@ -491,12 +491,12 @@ function GC:alloc0_opt(size: usize, flags: usize, finalizer: FinalizerCallback):
   return self:_alloc(ptr, size, flags, finalizer)
 end
 
-function GC:alloc(size: usize): pointer
+function GC:alloc(size: usize): pointer <noinline>
   check(size > 0, 'GCAllocator.alloc: size cannot be zero')
   return self:alloc_opt(size, 0, nilptr)
 end
 
-function GC:alloc0(size: usize): pointer
+function GC:alloc0(size: usize): pointer <noinline>
   check(size > 0, 'GCAllocator.alloc0: size must be greater than 0')
   return self:alloc0_opt(size, 0, nilptr)
 end
@@ -530,19 +530,19 @@ function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer <inline>
   return nilptr
 end
 
-function GC:realloc(ptr: pointer, size: usize, oldsize: usize): pointer
+function GC:realloc(ptr: pointer, size: usize, oldsize: usize): pointer <noinline>
   local qtr: pointer = allocator:realloc(ptr, size, oldsize)
   if not qtr then return nilptr end
   return self:_realloc(qtr, ptr, size)
 end
 
-function GC:realloc0(ptr: pointer, size: usize, oldsize: usize): pointer
+function GC:realloc0(ptr: pointer, size: usize, oldsize: usize): pointer <noinline>
   local qtr: pointer = allocator:realloc0(ptr, size, oldsize)
   if not qtr then return nilptr end
   return self:_realloc(qtr, ptr, size)
 end
 
-function GC:dealloc(ptr: pointer)
+function GC:dealloc(ptr: pointer) <noinline>
   local p: *GCItem = self:_get_ptr(ptr)
   if p then
     if p.finalizer then

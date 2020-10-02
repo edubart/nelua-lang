@@ -24,8 +24,6 @@ do -- basic io.open/io.isopen/io.close
 
   file = io.open('LICENSE', 'r')
   assert(io.isopen(file) == true)
-  assert(io.flush(file) == true)
-  assert(io.flush(file) == true)
   assert(io.close(file) == true)
   assert(not io.isopen(file))
 end
@@ -163,6 +161,7 @@ do -- io.output/io.write
   assert(io.stdout ~= stdout)
   assert(io.write('test1') == true)
   assert(io.stdout:write('!!\n') == true)
+  assert(io.flush() == true)
   assert(io.output(stdout) == stdout)
   assert(io.stdout == stdout)
   assert(io.stdout:isopen())

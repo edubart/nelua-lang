@@ -60,7 +60,7 @@ local function get_pretty_source_pos_errmsg(src, lineno, colno, errmsg, errname,
   local errmsgcolor = colreset..colbright
 
   -- generate the error message
-  return string.format("%s:%d:%d: %s: %s\n%s\n%s%s",
+  return string.format("%s:%d:%d: %s: %s\n%s\n%s%s\n",
     srcname..colbright, lineno, colno, errcolor..errname, errmsgcolor..errmsg..colreset,
     line, linehelper, errtraceback)
 end

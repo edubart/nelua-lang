@@ -25,8 +25,8 @@ function io.open(filename: stringview,
   return filestream.open(filename, mode)
 end
 
-function io.flush(file: filestream): boolean
-  return file:flush()
+function io.flush(): boolean
+  return io.stdout:flush()
 end
 
 function io.close(file: #[concept(function(x)
