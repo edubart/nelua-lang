@@ -1458,6 +1458,14 @@ it("type construction", function()
   assert.analyze_error("local a = (@integer)(nil)", "no viable type conversion")
 end)
 
+it("type casting", function()
+  assert.analyze_error([[
+    local R = @record{}
+    local a = 'b'
+    local b = (@R)(a)
+  ]], "no viable type conversion")
+end)
+
 it("annotations", function()
   assert.analyze_ast("local r: record{x: integer} <aligned(8)>")
   assert.analyze_ast("local Record <aligned(8)> = @record{x: integer}")

@@ -899,7 +899,6 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
       type, #argnodes)
   end
   local argnode = argnodes[1]
-  local done = true
   if argnode then
     argnode.desiredtype = type
     context:traverse_node(argnode)
@@ -924,17 +923,19 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
           attr.comptime = true
         end
       end
+      attr.type = type
+      attr.calleetype = primtypes.type
+      attr.sideeffect = argnode.attr.sideeffect
+      attr.lvalue = argnode.attr.lvalue
+      if argnode.done then
+        node.done = true
+      end
     end
-    attr.sideeffect = argnode.attr.sideeffect
-    attr.lvalue = argnode.attr.lvalue
-    if not argnode.done then
-      done = nil
-    end
+  else -- zero initializer
+    attr.type = type
+    attr.calleetype = primtypes.type
+    node.done = true
   end
-  attr.typecast = true
-  attr.type = type
-  attr.calleetype = primtypes.type
-  node.done = done
 end
 
 local function visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)

@@ -24,6 +24,31 @@ do -- initialization, len, eq and reset
   assert('a' == 'a')
 end
 
+do -- casting
+  local sstr = (@string)("hello")
+  local scstr = (@cstring)("hello")
+  local svstr = (@stringview)("hello")
+  local dstr: string
+  local dcstr: cstring
+  local dvstr: stringview
+
+  -- implicit
+  dstr = scstr assert(dstr == "hello")   -- cstring -> string
+  dstr = svstr assert(dstr == "hello")   -- stringview -> string
+  dcstr = sstr assert(dcstr == "hello")  -- string -> cstring
+  dcstr = svstr assert(dcstr == "hello") -- stringview -> cstring
+  dvstr = scstr assert(dvstr == "hello") -- cstring -> stringview
+  dvstr = sstr assert(dvstr == "hello")  -- string -> stringview
+
+  -- explicit
+  dstr = (@string)(scstr) assert(dstr == "hello")       -- cstring -> string
+  dstr = (@string)(svstr) assert(dstr == "hello")       -- stringview -> string
+  dcstr = (@cstring)(sstr) assert(dcstr == "hello")     -- string -> cstring
+  dcstr = (@cstring)(svstr) assert(dcstr == "hello")    -- stringview -> cstring
+  dvstr = (@stringview)(scstr) assert(dvstr == "hello") -- cstring -> stringview
+  dvstr = (@stringview)(sstr) assert(dvstr == "hello")  -- string -> stringview
+end
+
 do -- len
   local a: string = 'hello'
   local e: string
