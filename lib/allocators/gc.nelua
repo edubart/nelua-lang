@@ -264,8 +264,8 @@ function GC:_mark_ptr(ptr: pointer) <noinline, cattribute'no_sanitize_memory'>
   end
 end
 
-function GC:_mark_stack() <noinline, cattribute'no_sanitize_address'>
-  local stk: pointer
+function GC:_mark_stack() <cattribute'no_sanitize_address'>
+  local stk: pointer <volatile>
   local bot: usize = (@usize)(self.bottom)
   local top: usize = (@usize)(&stk)
   if bot < top then
@@ -302,7 +302,8 @@ function GC:_mark() <noinline>
   -- dump registers into the stack
   local env: jmp_buf
   setjmp(env)
-  self:_mark_stack()
+  local mark_stack: auto <volatile> = GC._mark_stack -- to avoid inline
+  mark_stack(self)
 end
 
 function GC:_sweep() <noinline>
@@ -405,11 +406,12 @@ end
 function GC:init(stack: pointer)
   $self = {}
   self.bottom = stack
-  self.stopped = false
   self.minptr = UINTPTR_MAX
   self.loadfactor = 0.9
   self.sweepfactor = 0.5
+  self.stopped = true
   self:_mark_statics()
+  self.stopped = false
 end
 
 function GC:terminate()
@@ -558,7 +560,8 @@ local function nelua_main(argc: cint, argv: *cstring): cint <cimport,nodecl> end
 
 local function main(argc: cint, argv: *cstring): cint <entrypoint>
   gc:init(&argc)
-  local ret: cint = nelua_main(argc, argv)
+  local inner_main: auto <volatile> = nelua_main -- at avoid inlining
+  local ret: cint = inner_main(argc, argv)
   gc:terminate()
   return ret
 end

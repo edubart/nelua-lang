@@ -21,8 +21,8 @@ require 'iterators'
   local Allocator: type = #[Allocator]#
   local T: type = @#[T]#
   local sequenceimplT <nickname #[string.format('sequenceimpl(%s)', T)]#> = @record {
-    size: usize,
-    data: span(T)
+    data: span(T),
+    size: usize
   }
 
   local sequenceT <nickname #[string.format('sequence(%s)', T)]#> = @record{
@@ -39,7 +39,7 @@ require 'iterators'
   sequenceT.choose_braces_type = function(nodes) return types.ArrayType(T, #nodes) end
   ]]
 
-  function sequenceT:_grow()
+  function sequenceT:_grow() <noinline>
     local cap: usize = 2
     if likely(self.impl.data.size ~= 0) then cap = self.impl.data.size * 2 end
     self.impl.data = self.allocator:spanrealloc0(self.impl.data, cap)
@@ -48,7 +48,7 @@ require 'iterators'
 
   -- Initializes sequence internal implementation if needed.
   -- This is already implicitly called by other sequence functions when needed.
-  function sequenceT:init() <inline>
+  function sequenceT:init()
     if likely(self.impl) then return end
     self.impl = (@*sequenceimplT)(self.allocator:alloc0(#sequenceimplT))
     check(self.impl ~= nilptr, 'sequence.init: out of memory')

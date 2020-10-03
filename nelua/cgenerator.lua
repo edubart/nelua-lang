@@ -1187,31 +1187,16 @@ function visitors.Assign(context, node, emitter)
   visit_assignments(context, emitter, vars, vals)
 end
 
-function visitors.FuncDef(context, node, emitter)
-  local attr = node.attr
-  local type = attr.type
-
-  if type.is_polyfunction then
-    for _,polyeval in ipairs(type.evals) do
-      emitter:add(polyeval.node)
-    end
-    return
-  end
-
-  local varscope, varnode, argnodes, retnodes, annotnodes, blocknode = node:args()
-
+local function resolve_function_qualifier(context, attr)
   local qualifier = ''
   if not attr.entrypoint and not attr.nostatic and not attr.cexport then
     qualifier = 'static '
   end
-  local declare, define = not attr.nodecl, true
-
   if attr.cinclude then
     context:add_include(attr.cinclude)
   end
-  if attr.cimport then
+  if attr.cimport and attr.codename ~= 'nelua_main' then
     qualifier = ''
-    define = false
   end
 
   if attr.cexport then
@@ -1231,8 +1216,31 @@ function visitors.FuncDef(context, node, emitter)
   end
   if attr.cqualifier then qualifier = qualifier .. attr.cqualifier .. ' ' end
   if attr.cattribute then
-    qualifier = string.format('%s__attribute__((%s)) ', qualifier, attr.cattribute)
+    qualifier =  string.format('%s__attribute__((%s)) ', qualifier, attr.cattribute)
   end
+  return qualifier
+end
+
+function visitors.FuncDef(context, node, emitter)
+  local attr = node.attr
+  local type = attr.type
+
+  if type.is_polyfunction then
+    for _,polyeval in ipairs(type.evals) do
+      emitter:add(polyeval.node)
+    end
+    return
+  end
+
+  local varscope, varnode, argnodes, retnodes, annotnodes, blocknode = node:args()
+
+  local qualifier = resolve_function_qualifier(context, attr)
+  local hookmain = attr.cimport and attr.codename == 'nelua_main'
+  if hookmain then
+    context.maindeclared = true
+  end
+  local declare = not attr.nodecl or hookmain
+  local define = not attr.cimport
 
   local decemitter, defemitter, implemitter = CEmitter(context), CEmitter(context), CEmitter(context)
   local retctype = context:funcretctype(type)
@@ -1471,7 +1479,9 @@ local function emit_main(ast, context)
     mainemitter:add_ln("}")
     mainemitter:dec_indent()
 
-    context:add_declaration('static int nelua_main(int nelua_argc, char** nelua_argv);\n')
+    if not context.maindeclared then
+      context:add_declaration('static int nelua_main(int nelua_argc, char** nelua_argv);\n')
+    end
   else
     mainemitter:inc_indent()
     mainemitter:add_traversal(ast)

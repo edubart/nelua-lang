@@ -20,8 +20,8 @@ require 'iterators'
   local Allocator: type = #[Allocator]#
   local T: type = @#[T]#
   local vectorT <nickname #[string.format('vector(%s)', T)]#> = @record {
-    size: usize,
     data: span(T),
+    size: usize,
     allocator: Allocator
   }
 
@@ -33,7 +33,7 @@ require 'iterators'
   vectorT.choose_braces_type = function(nodes) return types.ArrayType(T, #nodes) end
   ]]
 
-  function vectorT:_grow()
+  function vectorT:_grow() <noinline>
     local cap: usize = 1
     if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
     self.data = self.allocator:spanrealloc0(self.data, cap)
