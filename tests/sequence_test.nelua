@@ -160,6 +160,16 @@ do -- ipairs/pairs/next
   seq:destroy()
 end
 
+do -- copy
+  local a: sequence(integer) = {1, 2, 3, 4}
+  local b: sequence(integer)
+  b = a:copy()
+  a[1] = 5
+  print(b[1], #b)
+  assert(a[1] == 5 and #a == 4)
+  assert(b[1] == 1 and #b == 4)
+end
+
 require 'allocators.general'
 do -- custom allocator
   local seq: sequence(integer, GeneralAllocator) = {1,2,3}

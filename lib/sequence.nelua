@@ -96,6 +96,20 @@ require 'iterators'
     self.impl.size = n
   end
 
+  -- Returns a shallow copy of the sequence, allocating new space.
+  function sequenceT:copy(): sequenceT
+    local clone: sequenceT
+    if self.impl then
+      clone:init()
+      clone.impl.data = self.allocator:spanalloc(@T, self.impl.data.size)
+      check(clone.impl.data.size == self.impl.data.size, 'sequence.copy: out of memory')
+      clone.impl.size = self.impl.size
+      memory.spancopy(clone.impl.data, self.impl.data)
+    end
+    clone.allocator = self.allocator
+    return clone
+  end
+
   -- Adds a new element at the end of the sequence.
   function sequenceT:push(v: T) <inline>
     self:init()

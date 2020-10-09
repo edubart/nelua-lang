@@ -82,6 +82,19 @@ require 'iterators'
     self.size = n
   end
 
+  -- Returns a shallow copy of the vector, allocating new space.
+  function vectorT:copy(): vectorT
+    local clone: vectorT
+    if self.size > 0 then
+      clone.data = self.allocator:spanalloc(@T, self.data.size)
+      check(clone.data.size == self.data.size, 'vector.copy: out of memory')
+      memory.spancopy(clone.data, self.data)
+      clone.size = self.size
+    end
+    clone.allocator = self.allocator
+    return clone
+  end
+
   -- Adds a element `v` at the end of the vector.
   function vectorT:push(v: T)
     local newsize: usize = self.size + 1

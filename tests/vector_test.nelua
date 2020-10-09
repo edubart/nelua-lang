@@ -172,6 +172,14 @@ do -- next/mnext
   vec:destroy()
 end
 
+do -- copy
+  local a: vector(integer) = {1, 2, 3, 4}
+  local b: vector(integer)
+  b = a:copy()
+  a[0] = 5
+  assert(a[0] == 5 and #a == 4 and b[0] == 1 and #b == 4)
+end
+
 require 'allocators.general'
 do -- custom allocator
   local vec: vector(integer, GeneralAllocator) = {1,2,3}
