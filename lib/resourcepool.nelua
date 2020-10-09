@@ -204,7 +204,7 @@ local INIT_SIZE <comptime> = 64
   -- Allocate a new resource in the pool returning its id, initializes the contents from `v`.
   function resourcepoolT:allocinit(v: T): uint64 <inline>
     local id: uint64, res: *T = self:alloc()
-    $res = memory.moveval(&v)
+    $res = v
     return id
   end
 

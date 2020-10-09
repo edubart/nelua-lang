@@ -103,14 +103,14 @@ require 'iterators'
     if unlikely(self.impl.size + 1 >= self.impl.data.size) then
       self:_grow()
     end
-    memory.swapval(&self.impl.data[self.impl.size], &v)
+    self.impl.data[self.impl.size] = v
   end
 
   -- Removes the last element in the sequence and returns its value.
   -- If the sequence is empty, then throws a runtime error.
   function sequenceT:pop(): T <inline>
     check(self.impl and self.impl.size > 0, 'sequence.pop: length is 0')
-    local ret: T = memory.moveval(&self.impl.data[self.impl.size])
+    local ret: T = self.impl.data[self.impl.size]
     self.impl.size = self.impl.size - 1
     return ret
   end
@@ -129,7 +129,7 @@ require 'iterators'
       memory.move(&self.impl.data[pos + 1], &self.impl.data[pos], (self.impl.size - pos) * #T)
       memory.zero(&self.impl.data[pos], #T)
     end
-    memory.swapval(&self.impl.data[pos], &v)
+    self.impl.data[pos] = v
   end
 
   -- Removes element at position `pos` in the sequence and returns its value.
@@ -137,7 +137,7 @@ require 'iterators'
   -- If the `pos` is out of range, then throws a runtime error.
   function sequenceT:remove(pos: usize): T
     check(self.impl and self.impl.size > 0, 'sequence.remove: position out of bounds')
-    local ret: T = memory.moveval(&self.impl.data[pos])
+    local ret: T = self.impl.data[pos]
     if self.impl.size > pos then
       memory.move(&self.impl.data[pos], &self.impl.data[pos+1], (self.impl.size - pos) * #T)
       memory.zero(&self.impl.data[self.impl.size], #T)
@@ -167,7 +167,7 @@ require 'iterators'
     local j: usize = 1
     for i:usize=1,self.impl.size do
       if not pred(self.impl.data[i]) then
-        self.impl.data[j] = memory.moveval(&self.impl.data[i])
+        self.impl.data[j] = self.impl.data[i]
         j = j + 1
       end
     end

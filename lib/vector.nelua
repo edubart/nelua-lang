@@ -88,7 +88,7 @@ require 'iterators'
     if unlikely(newsize > self.data.size) then
       self:_grow()
     end
-    memory.swapval(&self.data[self.size], &v)
+    self.data[self.size] = v
     self.size = newsize
   end
 
@@ -97,7 +97,7 @@ require 'iterators'
   function vectorT:pop(): T
     check(self.size > 0, 'vector.pop: attempt to pop an empty vector')
     self.size = self.size - 1
-    return memory.moveval(&self.data[self.size])
+    return self.data[self.size]
   end
 
   -- Inserts element `v` at position `pos` in the vector.
@@ -112,7 +112,7 @@ require 'iterators'
       memory.move(&self.data[pos + 1], &self.data[pos], (self.size - pos) * #T)
       memory.zero(&self.data[pos], #T)
     end
-    memory.swapval(&self.data[pos], &v)
+    self.data[pos] = v
     self.size = self.size + 1
   end
 
@@ -122,7 +122,7 @@ require 'iterators'
   function vectorT:remove(pos: usize): T
     check(pos < self.size, 'vector.remove: position out of bounds')
     self.size = self.size - 1
-    local ret: T = memory.moveval(&self.data[pos])
+    local ret: T = self.data[pos]
     if self.size > pos then
       memory.move(&self.data[pos], &self.data[pos+1], (self.size - pos) * #T)
       memory.zero(&self.data[self.size], #T)
@@ -149,7 +149,7 @@ require 'iterators'
     local j: usize = 0
     for i:usize=0,<self.size do
       if not pred(self.data[i]) then
-        self.data[j] = memory.moveval(&self.data[i])
+        self.data[j] = self.data[i]
         j = j + 1
       end
     end
@@ -163,7 +163,7 @@ require 'iterators'
 
   -- Returns reference to element at index `pos`.
   -- If `pos` is greater of equal to vector size, then throws a runtime error.
-  function vectorT:__atindex(i: usize): *T <inline>
+  function vectorT:__atindex(i: usize): *T <inline,nosideeffect>
     check(i < self.size, 'vector.at: position out of bounds')
     return &self.data[i]
   end

@@ -161,8 +161,6 @@ This page is under construction and very incomplete.
 | `result = memory.spanequals(a, b)`{:.language-nelua} |  |
 | `size = memory.spanfind(s, x)`{:.language-nelua} |  |
 | `result = memory.spancontains(s, x)`{:.language-nelua} |  |
-| `newa = memory.moveval(a)`{:.language-nelua} | Returns a memory copy of the dereference of pointer `a` leaving its contents zero filled. Deprecated. |
-| `memory.swapval(a, b)`{:.language-nelua} | Swaps memory of the dereference of pointer `a` and `b`. Deprecated. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## os
