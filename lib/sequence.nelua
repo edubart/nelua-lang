@@ -176,7 +176,7 @@ require 'iterators'
 
   -- Removes all elements from the sequence where `pred` function returns true.
   -- The remaining elements are shifted.
-  function sequenceT:remove_if(pred: #[concept(function(x) return x.type.is_function end)]#)
+  function sequenceT:remove_if(pred: function(v: T): boolean)
     if not self.impl then return end
     local j: usize = 1
     for i:usize=1,self.impl.size do

@@ -158,7 +158,7 @@ require 'iterators'
 
   -- Removes all elements from the vector where `pred` function returns true.
   -- The remaining elements are shifted.
-  function vectorT:remove_if(pred: #[concept(function(x) return x.type.is_function end)]#)
+  function vectorT:remove_if(pred: function(v: T): boolean)
     local j: usize = 0
     for i:usize=0,<self.size do
       if not pred(self.data[i]) then
