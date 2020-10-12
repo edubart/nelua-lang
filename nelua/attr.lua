@@ -50,6 +50,7 @@ end
 function Attr:is_on_static_storage()
   if self.vardecl and
      self.staticstorage and
+     not self.funcdecl and
      not self.comptime and
      (not self.type or self.type.size > 0)
      then

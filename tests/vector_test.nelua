@@ -87,11 +87,9 @@ end
 
 do -- remove_if
   local vec: vector(integer) = {1,2,3,4,5,7,8,9}
-  local function is_odd(x: integer) return x % 2 == 1 end
-  vec:remove_if(is_odd)
+  vec:remove_if(function(x: integer) return x % 2 == 1 end)
   assert(#vec == 3 and vec[0] == 2 and vec[1] == 4 and vec[2] == 8)
-  local function is_even(x: integer) return x % 2 == 0 end
-  vec:remove_if(is_even)
+  vec:remove_if(function(x: integer) return x % 2 == 0 end)
   assert(#vec == 0)
   vec:destroy()
 end

@@ -562,10 +562,18 @@ it("late deduction", function()
 end)
 
 it("anonymous functions", function()
-  assert.analyze_error([[
+  assert.analyze_ast([[
     local function foo(f: function(integer)) end
     foo(function(x: integer) end)
-  ]], "anonymous functions are not implemented yet")
+  ]])
+  assert.analyze_error([[
+    local function foo(f: function(x: integer)) end
+    foo(function(x: auto) end)
+  ]], "anonymous functions cannot be polymorphic")
+  assert.analyze_error([[
+    local function foo(f: function(x: integer): integer) end
+    foo(function(x: integer): integer end)
+  ]], "a return statement is missing")
 end)
 
 it("function definition", function()

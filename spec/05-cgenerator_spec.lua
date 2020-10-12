@@ -435,6 +435,16 @@ it("function definition", function()
     "int64_t f(int64_t a) {\n  return a;\n}")
 end)
 
+it("anonymous functions", function()
+  assert.run_c([[
+    local function call1(f: function()) f() end
+    local function call2(f: function(x: integer): integer) return f(1) end
+
+    call1(function() print 'hello' end)
+    assert(call2(function(x: integer) <nosideeffect> return x+1 end) == 2)
+  ]], "hello")
+end)
+
 it("poly functions", function()
   assert.run_c([[
     local function f(x: auto, y: auto)
@@ -689,8 +699,8 @@ it("call with multiple args", function()
     local function g(a: int32, b: integer, c: boolean) end
     g(1, f())
   end]], {
-    "function_%w+_ret __tmp%d+ = f__%d+%(%)",
-    "g__%d+%(1, __tmp%d+.r1, __tmp%d+.r2%);"
+    "function_%w+_ret __tmp%d+ = f%(%)",
+    "g%(1, __tmp%d+.r1, __tmp%d+.r2%);"
   }, true)
   assert.run_c([[do
     local function f(): (integer, integer) return 1, 2 end
@@ -1321,14 +1331,14 @@ it("expressions with side effects", function()
   assert.generate_c([[do
     local function f() return 1 end
     local a = f() + 1
-  end]],  "int64_t a = (f__1() + 1)")
+  end]],  "int64_t a = (f() + 1)")
   assert.generate_c([[do
     local function f() return 1 end
     local function g() return 1 end
     local a = f() + g()
   end]],  [[int64_t a = (({
-      int64_t t1_ = f__1();
-      int64_t t2_ = g__1();
+      int64_t t1_ = f();
+      int64_t t2_ = g();
       t1_ + t2_;
     }));]])
   assert.run_c([[

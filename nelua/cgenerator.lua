@@ -1244,9 +1244,6 @@ function visitors.FuncDef(context, node, emitter)
 
   local decemitter, defemitter, implemitter = CEmitter(context), CEmitter(context), CEmitter(context)
   local retctype = context:funcretctype(type)
-  if type:has_multiple_returns() then
-    node:assertraisef(declare, 'functions with multiple returns must be declared')
-  end
 
   decemitter:add_indent(qualifier, retctype, ' ')
   defemitter:add_indent(retctype, ' ')
@@ -1287,6 +1284,44 @@ function visitors.FuncDef(context, node, emitter)
     end
     context:add_definition(implemitter:generate())
   end
+end
+
+function visitors.Function(context, node, emitter)
+  local argnodes, retnodes, annotnodes, blocknode = node:args()
+  local attr = node.attr
+  local type = attr.type
+  local qualifier = resolve_function_qualifier(context, attr)
+
+  local decemitter, defemitter, implemitter = CEmitter(context), CEmitter(context), CEmitter(context)
+  local retctype = context:funcretctype(type)
+
+  decemitter:add_indent(qualifier, retctype, ' ')
+  defemitter:add_indent(retctype, ' ')
+
+  local declname = context:declname(attr)
+  decemitter:add(declname)
+  defemitter:add(declname)
+
+  local funcscope = context:push_forked_scope(node)
+  funcscope.functype = type
+  do
+    decemitter:add('(')
+    defemitter:add('(')
+    decemitter:add_ln(argnodes, ');')
+    defemitter:add_ln(argnodes, ') {')
+    implemitter:add(blocknode)
+    if not blocknode.attr.returnending then
+      implemitter:inc_indent()
+      destroy_scope_variables(context, implemitter, funcscope)
+      implemitter:dec_indent()
+    end
+  end
+  context:pop_scope()
+  implemitter:add_indent_ln('}')
+  context:add_declaration(decemitter:generate())
+  context:add_definition(defemitter:generate())
+  context:add_definition(implemitter:generate())
+  emitter:add(declname)
 end
 
 function visitors.UnaryOp(_, node, emitter)

@@ -54,17 +54,6 @@ function visitors.Pair(_, node, emitter)
   emitter:add(' = ', value)
 end
 
-function visitors.Function(_, node, emitter)
-  local args, rets, annots, block = node:args()
-  if #block[1] == 0 then
-    emitter:add('function(', args, ') end')
-  else
-    emitter:add_ln('function(', args, ')')
-    emitter:add(block)
-    emitter:add_indent('end')
-  end
-end
-
 -- TODO: Annotation
 
 function visitors.Id(_, node, emitter)
@@ -300,6 +289,19 @@ function visitors.FuncDef(context, node, emitter)
   emitter:add(block)
   context:pop_scope()
   emitter:add_indent_ln('end')
+end
+
+function visitors.Function(context, node, emitter)
+  local args, rets, annots, block = node:args()
+  if #block[1] == 0 then
+    emitter:add('function(', args, ') end')
+  else
+    emitter:add_ln('function(', args, ')')
+    context:push_forked_scope(node)
+    emitter:add(block)
+    context:pop_scope()
+    emitter:add_indent('end')
+  end
 end
 
 -- operators
