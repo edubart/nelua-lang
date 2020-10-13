@@ -615,10 +615,53 @@ static int pmain (lua_State *L) {
   return 1;
 }
 
+#ifdef LUA_USE_RPMALLOC
+
+#include "../rpmalloc/rpmalloc.h"
+
+static void *L_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
+  (void)ud;  /* not used */
+  if (nsize == 0) {
+    rpfree(ptr);
+    return NULL;
+  }
+  else
+    return rpaligned_realloc(ptr, 16, nsize, osize, 0);
+}
+
+#else /* LUA_USE_RPMALLOC */
+
+static void *L_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
+  (void)ud; (void)osize;  /* not used */
+  if (nsize == 0) {
+    free(ptr);
+    return NULL;
+  }
+  else
+    return realloc(ptr, nsize);
+}
+
+#endif /* LUA_USE_RPMALLOC */
+
+static lua_State *newstate (void) {
+  lua_State *L = lua_newstate(L_alloc, NULL);
+  if (L) {
+    int *warnstate;  /* space for warning state */
+    lua_atpanic(L, &panic);
+    warnstate = (int *)lua_newuserdatauv(L, sizeof(int), 0);
+    luaL_ref(L, LUA_REGISTRYINDEX);  /* make sure it won't be collected */
+    *warnstate = 0;  /* default is warnings off */
+    lua_setwarnf(L, warnf, warnstate);
+  }
+  return L;
+}
 
 int main (int argc, char **argv) {
   int status, result;
-  lua_State *L = luaL_newstate();  /* create state */
+#ifdef LUA_USE_RPMALLOC
+  rpmalloc_initialize();
+#endif
+  lua_State *L = newstate();  /* create state */
   if (L == NULL) {
     l_message(argv[0], "cannot create state: not enough memory");
     return EXIT_FAILURE;
