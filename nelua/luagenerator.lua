@@ -143,11 +143,12 @@ function visitors.If(_, node, emitter)
   emitter:add_indent_ln("end")
 end
 
-function visitors.Switch(_, node, emitter)
+function visitors.Switch(context, node, emitter)
   local val, caseparts, switchelseblock = node:args()
   local varname = '__switchval' .. node.pos
   emitter:add_indent_ln("local ", varname, " = ", val)
   node:assertraisef(#caseparts > 0, "switch must have case parts")
+  context:push_forked_scope(node)
   for i,casepart in ipairs(caseparts) do
     local caseval, caseblock = casepart[1], casepart[2]
     if i == 1 then
@@ -162,6 +163,7 @@ function visitors.Switch(_, node, emitter)
     emitter:add_indent_ln('else')
     emitter:add(switchelseblock)
   end
+  context:pop_scope(node)
   emitter:add_indent_ln("end")
 end
 

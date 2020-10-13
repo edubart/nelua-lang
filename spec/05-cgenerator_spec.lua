@@ -299,6 +299,38 @@ end)
 it("break and continue", function()
   assert.generate_c("while true do break end", "break;")
   assert.generate_c("while true do continue end", "continue;")
+
+  assert.run_c([[
+    local a = 0
+    for i=1,10 do
+      switch i do
+      case 1 then a = 1 continue
+      case 2 then break
+      else a = 2
+      end
+      a = 3
+    end
+    assert(a == 1)
+
+    a = 0
+    while true do
+      switch 1 do
+      case 1 then a = 1 break
+      end
+      a = 2
+      break
+    end
+    assert(a == 1)
+
+    a = 0
+    repeat
+      switch 1 do
+      case 1 then a = 1 break
+      end
+      a = 2
+    until false
+    assert(a == 1)
+  ]])
 end)
 
 it("goto", function()

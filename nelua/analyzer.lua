@@ -1453,6 +1453,8 @@ end
 function visitors.Switch(context, node)
   local valnode, caseparts, elsenode = node[1], node[2], node[3]
   context:traverse_node(valnode)
+  local scope = context:push_forked_cleaned_scope(node)
+  scope.is_switch = true
   local valtype = valnode.attr.type
   if valtype and not (valtype.is_any or valtype.is_integral) then
     valnode:raisef(
@@ -1477,6 +1479,7 @@ function visitors.Switch(context, node)
   if elsenode then
     context:traverse_node(elsenode)
   end
+  context:pop_scope()
 end
 
 function visitors.While(context, node)

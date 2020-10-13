@@ -65,6 +65,15 @@ function Scope:get_up_scope_of_kind(kind)
   return scope
 end
 
+-- Search for a up scope matching any property.
+function Scope:get_up_scope_of_any_kind(kind1, kind2)
+  local scope = self
+  while scope and not (scope[kind1] or scope[kind2]) do
+    scope = scope.parent
+  end
+  return scope
+end
+
 -- Return the first upper scope that is a function.
 function Scope:get_up_function_scope()
   if not self.upfunctionscope then

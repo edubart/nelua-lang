@@ -1003,10 +1003,11 @@ function visitors.If(_, node, emitter)
   emitter:add_indent_ln("}")
 end
 
-function visitors.Switch(_, node, emitter)
+function visitors.Switch(context, node, emitter)
   local valnode, caseparts, elsenode = node:args()
   emitter:add_indent_ln("switch(", valnode, ") {")
   emitter:inc_indent()
+  context:push_forked_scope(node)
   for _,casepart in ipairs(caseparts) do
     local caseexprs, caseblock = casepart[1], casepart[2]
 
@@ -1024,6 +1025,7 @@ function visitors.Switch(_, node, emitter)
     emitter:inc_indent() emitter:add_indent_ln('break;') emitter:dec_indent()
     emitter:add_indent_ln("}")
   end
+  context:pop_scope(node)
   emitter:dec_indent()
   emitter:add_indent_ln("}")
 end
@@ -1072,16 +1074,19 @@ function visitors.While(context, node, emitter)
   emitter:add_indent("while(")
   emitter:add_val2type(primtypes.boolean, condnode)
   emitter:add_ln(') {')
-  context:push_forked_scope(node)
+  local scope = context:push_forked_scope(node)
   emitter:add(blocknode)
   context:pop_scope()
   emitter:add_indent_ln("}")
+  if scope.breaklabel then
+    emitter:add_ln(scope.breaklabel, ':;')
+  end
 end
 
 function visitors.Repeat(context, node, emitter)
   local blocknode, condnode = node:args()
   emitter:add_indent_ln("while(true) {")
-  context:push_forked_scope(node)
+  local scope = context:push_forked_scope(node)
   emitter:add(blocknode)
   emitter:inc_indent()
   emitter:add_indent('if(')
@@ -1094,6 +1099,9 @@ function visitors.Repeat(context, node, emitter)
   context:pop_scope()
   emitter:dec_indent()
   emitter:add_indent_ln('}')
+  if scope.breaklabel then
+    emitter:add_ln(scope.breaklabel, ':;')
+  end
 end
 
 function visitors.ForNum(context, node, emitter)
@@ -1103,7 +1111,7 @@ function visitors.ForNum(context, node, emitter)
   local fixedend = node.attr.fixedend
   local itvarattr = itvarnode.attr
   local itmutate = itvarattr.mutate
-  context:push_forked_scope(node)
+  local scope = context:push_forked_scope(node)
   do
     local ccompop = cdefs.compare_ops[compop]
     local ittype = itvarattr.type
@@ -1150,6 +1158,9 @@ function visitors.ForNum(context, node, emitter)
     emitter:add_indent_ln('}')
   end
   context:pop_scope()
+  if scope.breaklabel then
+    emitter:add_ln(scope.breaklabel, ':;')
+  end
 end
 
 function visitors.ForIn() --luacov:disable
@@ -1160,7 +1171,18 @@ end --luacov:enable
 function visitors.Break(context, _, emitter)
   destroy_upscopes_variables(context, emitter, 'is_loop')
   context.scope.alreadydestroyed = true
-  emitter:add_indent_ln('break;')
+  local breakscope = context.scope:get_up_scope_of_any_kind('is_loop', 'is_switch')
+  if breakscope.is_switch then
+    breakscope = context.scope:get_up_scope_of_any_kind('is_loop')
+    local breaklabel = breakscope.breaklabel
+    if not breaklabel then
+      breaklabel = context:genuniquename('loop_break_label')
+      breakscope.breaklabel = breaklabel
+    end
+    emitter:add_indent_ln('goto ', breaklabel, ';')
+  else
+    emitter:add_indent_ln('break;')
+  end
 end
 
 function visitors.Continue(context, _, emitter)
