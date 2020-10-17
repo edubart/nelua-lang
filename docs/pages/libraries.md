@@ -87,7 +87,7 @@ This page is under construction and very incomplete.
 | `io.close([file])`{:.language-nelua} | Alias of `file:close`. Closes `io.stdout` if no file was given. |
 | `io.input(file: [stringview, filestream, niltype]): filestream`{:.language-nelua} | Sets, opens or returns the input file. |
 | `io.output(file: [stringview, filestream, niltype]): filestream`{:.language-nelua} | Sets, opens or returns the output file. |
-| `io.tmpfile(): (filestream, stringview, integer)`{:.language-nelua} | Returns a temporary file. |
+| `io.tmpfile(): (filestream, stringview, integer)`{:.language-nelua} | In case of success, returns a handle for a temporary file. This file will automatically removed when the program ends. |
 | `io.read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Alias of `io.stdin:read`. |
 | `io.write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Alias of `io.stdout:write`. |
 | `io.type(x: auto)`{:.language-nelua} | Returns a type of a file. Returns nil if not a file. |
@@ -165,22 +165,23 @@ This page is under construction and very incomplete.
 
 ## os
 
-[OS library](https://github.com/edubart/nelua-lang/blob/master/lib/os.nelua) description (TODO)
+[OS library](https://github.com/edubart/nelua-lang/blob/master/lib/os.nelua) copies Lua `os`{:.language-nelua} library. 
 
 | Variable Name | Description |
 |---------------|------|
-| `clock = os.clock()`{:.language-nelua} |  |
-| `strdate = os.date()`{:.language-nelua} |  |
-| `diff = os.difftime(time1, time2)`{:.language-nelua} |  |
-| `status, errstr, errno = os.execute(command)`{:.language-nelua} |  |
-| `os.exit(code)`{:.language-nelua} |  |
-| `envval = os.getenv(varname)`{:.language-nelua} |  |
-| `result, errstr, errno = os.remove(filename)`{:.language-nelua} |  |
-| `result, errstr, errno = os.rename(filename)`{:.language-nelua} |  |
-| `result = os.setlocale(locale, category)`{:.language-nelua} |  |
-| `os_time_desc`{:.language-nelua} |  |
-| `timestamp = os.time(desc)`{:.language-nelua} |  |
-| `name = os.tmpname()`{:.language-nelua} |  |
+| `global os`{:.language-nelua} | `os` record. |
+| `os.clock(): number`{:.language-nelua} | Returns an approximation of the amount in seconds of CPU time used by the program, as returned by the underlying ISO C function `clock`. |
+| `os.date(): string`{:.language-nelua} | Returns a human-readable date and time representation `string` using the current locale. |
+| `os.difftime(t1: integer, t2: integer): integer`{:.language-nelua} | Returns the difference, in seconds, from time `t1` to time `t2` (where the times are values returned by `os.time`{:.language-nelua}) |
+| `os.execute([command: stringview])`{:.language-nelua} |  This function is equivalent to the ISO C function `system`. It passes `command` to be executed by an operating system shell. It returns three values, the first value is a boolean indicating if the command terminated successfully; the second and third values are a `stringview` (either `"exit"`{:.language-nelua} or `"signal"`{:.language-nelua}) and a `cint` (either correspondent exit status of the command or the signal that terminated the command). When called without a `command`, `os.execute`{:.language-nelua} returns a boolean that is true if a shell is available. |
+| `os.exit(code: [integer, boolean, niltype])`{:.language-nelua} | Calls the ISO C function `exit` to terminate the host program. If code is `true`, the returned status is `EXIT_SUCCESS`; if code is `false`, the returned status is `EXIT_FAILURE`; if code is a `number`, the returned status is this number. When called without a `code`, the returned status is `EXIT_SUCCESS`. |
+| `os.getenv(varname: stringview): string`{:.language-nelua} | Returns the value of the process environment variable `varname` or an empty string if the variable is not defined. |
+| `os.remove(filename: stringview): (boolean, stringview, integer)`{:.language-nelua} | Deletes the file (or empty directory, on POSIX systems) with the given name. If this function fails, it returns `false` plus a string describing the error and the error code. Otherwise, it returns `true`, an empty string and `0`. |
+| `os.rename(oldname: stringview, newname: stringview): (boolean, stringview, integer)`{:.language-nelua} | Renames the file or directory named oldname to newname. If this function fails, it returns `false` plus a string describing the error and the error code. Otherwise, it returns `true`, an empty string and `0`. |
+| `os.setlocale(locale: stringview[, category: stringview]): string`{:.language-nelua} | Sets the current locale of the program. `locale` is a system-dependent string specifying a locale; category is an optional string describing which category to change: `"all"`, `"collate"`, `"ctype"`, `"monetary"`, `"numeric"`, or `"time"`; the default category is "all". The function returns the name of the new locale, or an empty string if the request cannot be honored. If locale is the empty string, the current locale is set to an implementation-defined native locale. If locale is the string "C", the current locale is set to the standard C locale. This function may be not thread safe because of its reliance on C function setlocale. |
+| `global os_time_desc`{:.language-nelua} | the `os_time_desc` record, contains, declared in that order, `year`, `month`, `day`, `hour`, `min` and `sec` `integer` fields and a `isdst` `boolean` field. |
+| `os.time([desc: os_time_desc]): integer`{:.language-nelua} | Returns the current time when called without arguments, or a time representing the local date and time specified by the given `desc`. |
+| `os.tmpname(): string`{:.language-nelua} |  Returns a `string` with a file name that can be used for a temporary file. The file must be explicitly opened before its use and explicitly removed when no longer needed. In POSIX systems, this function also creates a file with that name, to avoid security risks. (Someone else might create the file with wrong permissions in the time between getting the name and creating the file.) You still have to open the file to use it and to remove it (even if you do not use it). When possible, you may prefer to use `io.tmpfile`{:.language-nelua}, which automatically removes the file when the program ends. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## resourcepool
@@ -308,15 +309,15 @@ This page is under construction and very incomplete.
 
 ## traits
 
-[Traits library](https://github.com/edubart/nelua-lang/blob/master/lib/traits.nelua) description (TODO)
+[Traits library](https://github.com/edubart/nelua-lang/blob/master/lib/traits.nelua) contains useful functions to get information about types at runtime.
 
 | Variable Name | Description |
 |---------------|------|
-| `typeid`{:.language-nelua} | Typedef of `uint32`{:.language-nelua}. |
-| `valtypeid = typeid_of(val)`{:.language-nelua} | Returns `typeid`{:.language-nelua} of the given value. |
-| `str = type(val)`{:.language-nelua} | Returns a type as stringview of the given value. |
-| `typeinfo`{:.language-nelua} | Type info record. |
-| `valtypeinfo = typeinfo_of(val)`{:.language-nelua} | Return `typeinfo`{:.language-nelua} of the given val. |
+| `global typeid: type`{:.language-nelua} | Typedef of `uint32`{:.language-nelua}. |
+| `global typeid_of(val: auto): typeid`{:.language-nelua} | Returns the `typeid`{:.language-nelua} of the given `val`. |
+| `global type(x: auto): stringview`{:.language-nelua} | Returns the type of its only argument, coded as a string. |
+| `global typeinfo`{:.language-nelua} | `typeinfo` record. |
+| `global typeinfo_of(x: auto): typeinfo`{:.language-nelua} | Return the `typeinfo`{:.language-nelua} of the given `x`. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## vector
