@@ -313,7 +313,7 @@ This page is under construction and very incomplete.
 
 | Variable Name | Description |
 |---------------|------|
-| `global typeid: type`{:.language-nelua} | Typedef of `uint32`{:.language-nelua}. |
+| `global typeid: type`{:.language-nelua} | type alias of `uint32`{:.language-nelua}. |
 | `global typeid_of(val: auto): typeid`{:.language-nelua} | Returns the `typeid`{:.language-nelua} of the given `val`. |
 | `global type(x: auto): stringview`{:.language-nelua} | Returns the type of its only argument, coded as a string. |
 | `global typeinfo`{:.language-nelua} | `typeinfo` record. |
