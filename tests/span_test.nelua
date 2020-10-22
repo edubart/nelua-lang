@@ -60,6 +60,10 @@ do -- vector to span
   s[0] = 5
   assert(vec[0] == 5)
   vec:destroy()
+
+  local vec: vector(integer)
+  local s: span(integer) = &vec
+  assert(#s == 0)
 end
 
 require 'sequence'
