@@ -7,15 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        luaVersion: ["5.3", "5.4"]
+        luaVersion: ["5.4"]
         compiler: ["gcc", "clang"]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - uses: leafo/gh-actions-lua@master
+    - uses: leafo/gh-actions-lua@v7
       with:
         luaVersion: ${{matrix.luaVersion}}
-    - uses: leafo/gh-actions-luarocks@v2
+    - uses: leafo/gh-actions-luarocks@v3
     - name: Install busted
       run: luarocks install busted
     - name: Install dependencies
@@ -27,10 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - uses: leafo/gh-actions-lua@master
+    - uses: leafo/gh-actions-lua@v7
       with:
         luaVersion: 5.3
-    - uses: leafo/gh-actions-luarocks@v2
+    - uses: leafo/gh-actions-luarocks@v3
     - name: Install busted
       run: luarocks install busted
     - name: Install luacov
@@ -46,10 +46,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - uses: leafo/gh-actions-lua@master
+    - uses: leafo/gh-actions-lua@v7
       with:
         luaVersion: 5.3
-    - uses: leafo/gh-actions-luarocks@v2
+    - uses: leafo/gh-actions-luarocks@v3
     - name: Install luacheck
       run: luarocks install luacheck
     - name: Check
