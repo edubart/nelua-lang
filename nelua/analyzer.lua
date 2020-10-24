@@ -1783,8 +1783,12 @@ function visitors.VarDecl(context, node)
       end
       if varnode.attr.comptime and not (valnode.attr.comptime and valtype) then
         varnode:raisef("compile time variables can only assign to compile time expressions")
-      elseif vartype and not valtype and vartype.is_auto then
-        varnode:raisef("auto variables must be assigned to expressions where type is known ahead")
+      elseif vartype and vartype.is_auto then
+        if not valtype then
+          varnode:raisef("auto variables must be assigned to expressions where type is known ahead")
+        elseif valtype.is_nolvalue then
+          varnode:raisef("auto variables cannot be assigned to expressions of type %s", valtype)
+        end
       elseif varnode.attr.cimport and not
         (vartype == primtypes.type or (vartype == nil and valtype == primtypes.type)) then
         varnode:raisef("cannot assign imported variables, only imported types can be assigned")
@@ -1816,7 +1820,7 @@ function visitors.VarDecl(context, node)
       end
 
       if vartype and vartype.is_auto then
-        assignvaltype = vartype ~= valtype
+        assignvaltype = true
       end
 
       if assignvaltype then

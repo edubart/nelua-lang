@@ -114,10 +114,15 @@ it("auto type" , function()
   assert.ast_type_equals("local a: auto = 's'", "local a: stringview = 's'")
   assert.ast_type_equals("local a: auto = @integer", "local a: type = @integer")
   assert.analyze_error("local b; local a: auto = b", "must be assigned to expressions where type is known ahead")
+  assert.analyze_error("local a: auto = nilptr", "auto variables cannot be assigned to expressions of type")
 end)
 
 it("nil type" , function()
   assert.ast_type_equals("local a = nil", "local a: any = nil")
+end)
+
+it("nilptr type" , function()
+  assert.ast_type_equals("local a = nilptr", "local a: pointer = nilptr")
 end)
 
 it("numeric types coercion", function()

@@ -4,6 +4,7 @@ local sstream = require 'nelua.utils.sstream'
 local traits = require 'nelua.utils.traits'
 local console = require 'nelua.utils.console'
 local types = require 'nelua.types'
+local primtypes = require 'nelua.typedefs'.primtypes
 local Attr = require 'nelua.attr'
 local Symbol = class(Attr)
 local config = require 'nelua.configer'.get()
@@ -23,12 +24,20 @@ end
 
 function Symbol:clear_possible_types()
   self.possibletypes = nil
+  self.fallbacktype = nil
   self.unknownrefs = nil
 end
 
 function Symbol:add_possible_type(type, refnode)
   if self.type then return end
-  if type and type.is_nolvalue then return end
+  if type then
+    if type.is_nilptr and not self.fallbacktype then
+      self.fallbacktype = primtypes.pointer
+    elseif type.is_niltype then
+      self.fallbacktype = primtypes.any
+    end
+    if type.is_nolvalue then return end
+  end
   local unknownrefs = self.unknownrefs
   if not type then
     assert(refnode)
@@ -89,6 +98,8 @@ function Symbol:resolve_type(force)
     self:clear_possible_types()
   elseif traits.is_type(force) then
     self.type = force
+  elseif force and self.fallbacktype then
+    self.type = self.fallbacktype
   else
     return false
   end
