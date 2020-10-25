@@ -1,4 +1,13 @@
+require 'C.arg'
+require 'C.ctype'
+require 'C.errno'
+require 'C.locale'
 require 'C.math'
+require 'C.signal'
+require 'C.stdio'
+require 'C.stdlib'
+require 'C.string'
+require 'C.time'
 
 assert(C.fabs(-1.0) == 1.0)
 assert(C.fabsf(-2.0_f32) == 2.0_f32)

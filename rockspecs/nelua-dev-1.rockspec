@@ -141,6 +141,7 @@ build = {
       ['lib/traits.nelua']         = 'lib/traits.nelua',
       ['lib/os.nelua']             = 'lib/os.nelua',
       ['lib/utf8.nelua']           = 'lib/utf8.nelua',
+      ['lib/C/init.nelua']         = 'lib/C/init.nelua',
       ['lib/C/arg.nelua']          = 'lib/C/arg.nelua',
       ['lib/C/ctype.nelua']        = 'lib/C/ctype.nelua',
       ['lib/C/errno.nelua']        = 'lib/C/errno.nelua',

@@ -1,3 +1,5 @@
+require 'C'
+
 ##[[
 cinclude '<time.h>'
 

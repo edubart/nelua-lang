@@ -1,3 +1,5 @@
+require 'C'
+
 ## cinclude '<string.h>'
 
 -- Memory manipulation

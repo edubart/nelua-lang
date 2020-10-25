@@ -1,3 +1,5 @@
+require 'C'
+
 ## cinclude '<ctype.h>'
 
 -- Character classification functions

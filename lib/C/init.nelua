@@ -1,0 +1,2 @@
+-- Global record used to import C functions
+global C = @record{}

@@ -43,7 +43,6 @@ define_function('unlikely', {primtypes.boolean}, {primtypes.boolean})
 define_function('check', {primtypes.boolean, primtypes.stringview})
 define_const('panic', primtypes.any)
 define_const('nilptr', primtypes.nilptr)
-define_const('C', primtypes.type, types.RecordType({}))
 
 -- nelua primitive types
 local function define_type(name, type)

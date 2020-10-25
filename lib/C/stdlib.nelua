@@ -1,3 +1,5 @@
+require 'C'
+
 ## cinclude '<stdlib.h>'
 
 -- Memory management
