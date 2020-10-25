@@ -1264,6 +1264,10 @@ function visitors.FuncDef(context, node, emitter)
   local declare = not attr.nodecl or hookmain
   local define = not attr.cimport
 
+  if not declare and not define then -- nothing to do
+    return
+  end
+
   local decemitter, defemitter, implemitter = CEmitter(context), CEmitter(context), CEmitter(context)
   local retctype = context:funcretctype(type)
 
