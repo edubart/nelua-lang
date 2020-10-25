@@ -1,4 +1,5 @@
 require 'string'
+require 'span'
 
 local maxi: integer <comptime> = #[primtypes.isize.max]#
 local mini: integer <comptime> = #[primtypes.isize.min]#
@@ -47,6 +48,22 @@ do -- casting
   dcstr = (@cstring)(svstr) assert(dcstr == "hello")    -- stringview -> cstring
   dvstr = (@stringview)(scstr) assert(dvstr == "hello") -- cstring -> stringview
   dvstr = (@stringview)(sstr) assert(dvstr == "hello")  -- string -> stringview
+end
+
+do -- span casting
+  local str: stringview = 'hello'
+  local spn: span(int8)
+
+  spn = str
+  assert(#spn == 5)
+  spn = (@span(int8))(str)
+  assert(#spn == 5)
+
+  str = spn
+  assert(#str == 5)
+  str = (@stringview)(spn)
+  assert(#str == 5)
+  assert(str == 'hello')
 end
 
 do -- len

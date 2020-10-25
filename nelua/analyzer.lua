@@ -926,25 +926,28 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
         -- failed to convert, try to convert metamethods
         argnode, argtype = visitor_convert(context, argnodes, 1, type, argnode, argtype)
         argattr = argnode.attr
-        argtype = argnode.type
         -- test again
-        ok, err = type:is_convertible_from_attr(argattr, true)
-      end
-      if not ok then
-        argnode:raisef("in type cast: %s", err)
-      end
-      if argattr.comptime then
-        attr.value = type:wrap_value(argattr.value)
-        if attr.value or argtype == type then
-          attr.comptime = true
+        if argtype then
+          ok, err = type:is_convertible_from_attr(argattr, true)
+          if not ok then
+            argnode:raisef("in type cast: %s", err)
+          end
         end
       end
-      attr.type = type
-      attr.calleetype = primtypes.type
-      attr.sideeffect = argnode.attr.sideeffect
-      attr.lvalue = argnode.attr.lvalue
-      if argnode.done then
-        node.done = true
+      if argtype then
+        if argattr.comptime then
+          attr.value = type:wrap_value(argattr.value)
+          if attr.value or argtype == type then
+            attr.comptime = true
+          end
+        end
+        attr.type = type
+        attr.calleetype = primtypes.type
+        attr.sideeffect = argnode.attr.sideeffect
+        attr.lvalue = argnode.attr.lvalue
+        if argnode.done then
+          node.done = true
+        end
       end
     end
   else -- zero initializer
