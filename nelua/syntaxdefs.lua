@@ -492,7 +492,7 @@ local function get_parser()
     unary_typexpr_op <-
       {| {} %MUL -> 'PointerType' |} /
       {| {} %QUESTION -> 'OptionalType' |} /
-      {| {} %LBRACKET -> 'ArrayType' cnil etype_param_expr eRBRACKET {} |}
+      {| {} %LBRACKET -> 'ArrayType' cnil type_param_expr? eRBRACKET |}
 
     func_type <- (
       {} '' -> 'FuncType'
@@ -534,7 +534,7 @@ local function get_parser()
 
     array_type <- (
       {} 'array' -> 'ArrayType'
-        %LPAREN etypexpr eCOMMA etype_param_expr eRPAREN
+        %LPAREN etypexpr (%COMMA type_param_expr)? eRPAREN
       {}) -> to_astnode
 
     pointer_type <- (

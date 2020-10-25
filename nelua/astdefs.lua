@@ -119,7 +119,7 @@ astbuilder:register('EnumType', {
 })
 astbuilder:register('ArrayType', {
   ntypes.Node, -- subtype typeexpr
-  ntypes.Node, -- size expr
+  ntypes.Node:is_optional(), -- size expr
 })
 astbuilder:register('PointerType', {
   ntypes.Node:is_optional(), -- subtype typexpr

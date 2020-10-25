@@ -695,20 +695,36 @@ function visitors.ArrayType(context, node)
   local subtypenode, lengthnode = node[1], node[2]
   context:traverse_node(subtypenode)
   local subtype = subtypenode.attr.value
-  context:traverse_node(lengthnode)
-  if not lengthnode.attr.value then
-    lengthnode:raisef("unknown comptime value for expression")
+  local length
+  if lengthnode then
+    context:traverse_node(lengthnode)
+    if not lengthnode.attr.value then
+      lengthnode:raisef("unknown comptime value for expression")
+    end
+    length = bn.tointeger(lengthnode.attr.value)
+    if not lengthnode.attr.type.is_integral then
+      lengthnode:raisef("cannot have non integral type '%s' for array size",
+        lengthnode.attr.type)
+    elseif length < 0 then
+      lengthnode:raisef("cannot have negative array size %d", length)
+    end
+  else -- must infer the length
+    local iddeclnode = context:get_parent_node(1)
+    local vardeclnode = context:get_parent_node(2)
+    if not (iddeclnode.tag == 'IdDecl' and vardeclnode.tag == 'VarDecl') then
+      node:raisef("cannot infer array size, use a fixed size")
+    end
+    local varnodes, valnodes = vardeclnode[2], vardeclnode[3]
+    local varindex = tabler.ifind(varnodes, iddeclnode)
+    local valnode = valnodes and valnodes[varindex]
+    if not (valnode and valnode.tag == 'Table') then
+      node:raisef("can only infer array size for braces initialized declarations")
+    end
+    length = #valnode[1]
   end
-  local length = bn.tointeger(lengthnode.attr.value)
-  if not lengthnode.attr.type.is_integral then
-    lengthnode:raisef("cannot have non integral type '%s' for array size",
-      lengthnode.attr.type)
-  elseif length < 0 then
-    lengthnode:raisef("cannot have negative array size %d", length)
-  end
-  attr.type = primtypes.type
   local type = types.ArrayType(subtype, length)
   type.node = node
+  attr.type = primtypes.type
   attr.value = type
   node.done = true
 end

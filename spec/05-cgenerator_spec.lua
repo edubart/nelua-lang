@@ -1574,7 +1574,7 @@ it("arrays", function()
     end
 
     do
-      local a: array(integer, 4) = {1,2,3,4}
+      local a: []integer = {1,2,3,4}
       local b: array(integer, 4) = a
 
       assert(b[0] == 1 and b[1] == 2 and b[2] == 3 and b[3] == 4)

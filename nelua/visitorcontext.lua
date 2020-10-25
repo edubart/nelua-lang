@@ -86,9 +86,9 @@ function VisitorContext:pop_node()
   nodes[#nodes] = nil
 end
 
-function VisitorContext:get_parent_node()
+function VisitorContext:get_parent_node(level)
   local nodes = self.visiting_nodes
-  return nodes[#nodes - 1]
+  return nodes[#nodes - (level or 1)]
 end
 
 function VisitorContext:get_current_node()

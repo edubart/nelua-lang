@@ -1410,6 +1410,16 @@ describe("type expression", function()
               n.ArrayType{n.Type{'integer'}, n.Number{'dec', '20'}},
               n.Number{'dec', '10'}}}}
     }}})
+    assert.parse_ast(nelua_parser, "local a: []integer",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'a', n.ArrayType{n.Type{'integer'}}}}
+    }}})
+    assert.parse_ast(nelua_parser, "local a: array(integer)",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'a', n.ArrayType{n.Type{'integer'}}}}
+    }}})
   end)
   it("record type", function()
     assert.parse_ast(nelua_parser, "local r: record{a: integer}",
