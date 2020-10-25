@@ -19,6 +19,7 @@ local _IOLBF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
 local _IONBF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
 local EOF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
 local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
+local function strchr(s: cstring, c: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
 local function fopen(pathname: cstring, mode: cstring): FILEptr <cimport,cinclude'<stdio.h>',nodecl> end
 local function fclose(fp: FILEptr): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function fflush(fp: FILEptr): cint <cimport,cinclude'<stdio.h>',nodecl> end
@@ -63,11 +64,22 @@ function filestream:_get_fp(): FILEptr
   return nilptr
 end
 
+-- Check weather mode matches '[rwa]%+?b?'
+local function checkmode(mode: stringview): boolean
+  if #mode == 0 then return false end
+  if strchr('rwa', mode.data[0]) == nilptr then return false end
+  local pos: usize = 1
+  if mode.data[pos] == '+'_b then pos = pos + 1 end
+  if mode.data[pos] == 'b'_b then pos = pos + 1 end
+  return mode.data[pos] == 0
+end
+
 function filestream.open(filename: stringview, mode: facultative(stringview)) : (filestream, stringview, integer)
   ## if mode.type.is_niltype then
   local mode: stringview = "r"
+  ## else
+  if not checkmode(mode) then error('filestream.open: invalid mode') end
   ## end
-  --TODO: check modes
   local fp: FILEptr = fopen(filename, mode)
   if not fp then
     return filestream{}, strerror(errno), errno
