@@ -50,7 +50,7 @@ end
 
 local function destroy_variable(context, emitter, vartype, varname)
   if not vartype:has_destroyable() then return end
-  local destroymt = vartype:get_metafield('__destroy')
+  local destroymt = vartype.metafields.__destroy
   if destroymt then
     emitter:add_indent_ln(context:declname(destroymt), '(&', varname, ');')
   end
@@ -107,7 +107,7 @@ local function destroy_upscopes_variables(context, emitter, kind)
 end
 
 local function copy_variable(context, emitter, vartype, varname, srcvarname)
-  local copymt = vartype:get_metafield('__copy')
+  local copymt = vartype.metafields.__copy
   if copymt then
     emitter:add_indent_ln(context:declname(copymt), '(&', varname, ', &', srcvarname, ');')
   end

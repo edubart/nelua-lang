@@ -170,7 +170,7 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   if valtype.is_nilptr and vartype.is_pointer then
     return valnode, valtype
   end
-  local mtsym = objtype:get_metafield(mtname)
+  local mtsym = objtype.metafields[mtname]
   if not mtsym then
     return valnode, valtype
   end
@@ -1185,7 +1185,7 @@ function visitors.CallMethod(context, node)
     end
 
     if calleetype.is_record then
-      calleesym = calleetype:get_metafield(name)
+      calleesym = calleetype.metafields[name]
       if not calleesym then
         node:raisef("cannot index meta field '%s' in record '%s'", name, calleetype)
       end
@@ -1234,7 +1234,7 @@ end
 
 local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   local attr = node.attr
-  local symbol = objtype:get_metafield(name)
+  local symbol = objtype.metafields[name]
   local parentnode = context:get_parent_node()
   local infuncdef = context.state.infuncdef == parentnode
   local inglobaldecl = context.state.inglobaldecl == parentnode
@@ -1353,10 +1353,10 @@ end
 
 local function visitor_Record_ArrayIndex(context, node, objtype, objnode, indexnode)
   local attr = node.attr
-  local indexsym = objtype:get_metafield('__index')
+  local indexsym = objtype.metafields.__index
   local indexretype
   if not indexsym then
-    indexsym = objtype:get_metafield('__atindex')
+    indexsym = objtype.metafields.__atindex
     if indexsym and indexsym.type then
       indexretype = indexsym.type:get_return_type(1)
       if indexretype and not indexretype.is_pointer then
@@ -2441,7 +2441,7 @@ local function override_unary_op(context, node, opname, objnode, objtype)
   end
   if not objtype.is_record then return end
   local mtname = '__' .. opname
-  local mtsym = objtype:get_metafield(mtname)
+  local mtsym = objtype.metafields[mtname]
   if not mtsym then
     return
   end
@@ -2537,11 +2537,11 @@ local function override_binary_op(context, node, opname, lnode, rnode, ltype, rt
     mtname = '__' .. opname
   end
   if ltype.is_record then
-    mtsym = ltype:get_metafield(mtname)
+    mtsym = ltype.metafields[mtname]
     objtype = ltype
   end
   if not mtsym and rtype.is_record then
-    mtsym = rtype:get_metafield(mtname)
+    mtsym = rtype.metafields[mtname]
     objtype = rtype
   end
   if not mtsym then

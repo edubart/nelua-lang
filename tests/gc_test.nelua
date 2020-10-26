@@ -40,3 +40,19 @@ do -- collectgarbage
   collectgarbage("collect")
   assert(collectgarbage("count") == 0)
 end
+
+local gc_count = 0
+do -- finalizers
+  local Foo = @record {id: integer}
+
+  function Foo:__gc()
+    gc_count = gc_count + 1
+  end
+
+  local foos: span(Foo) = gc_allocator:spannew(@Foo, 2)
+  local foo: *Foo = gc_allocator:new(@Foo)
+  foos = (@span(Foo)){}
+  foo = nilptr
+  collectgarbage()
+  assert(gc_count == 3)
+end

@@ -14,7 +14,7 @@ require 'span'
   local is_span = #[concept(function(x) return x.type.is_span end)]#
   local Allocator = #[Allocator]#
 
-  ## if not Allocator.value:get_metafield('realloc') then
+  ## if not Allocator.value.metafields.realloc then
   -- naive implementation for realloc
   function Allocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
     if unlikely(p == nilptr) then
@@ -44,7 +44,7 @@ require 'span'
   end
   ## end
 
-  ## if not Allocator.value:get_metafield('alloc0') then
+  ## if not Allocator.value.metafields.alloc0 then
   -- naive implementation for alloc0
   function Allocator:alloc0(size: usize): pointer
     local p: pointer = self:alloc(size)
@@ -55,7 +55,7 @@ require 'span'
   end
   ## end
 
-  ## if not Allocator.value:get_metafield('realloc0') then
+  ## if not Allocator.value.metafields.realloc0 then
   -- naive implementation for realloc0
   function Allocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
     p = self:realloc(p, newsize, oldsize)
@@ -67,6 +67,7 @@ require 'span'
   end
   ## end
 
+  ## if not Allocator.value.metafields.spanalloc then
   function Allocator:spanalloc(T: type, size: usize)
     local s: span(T)
     if likely(size > 0) then
@@ -75,7 +76,9 @@ require 'span'
     end
     return s
   end
+  ## end
 
+  ## if not Allocator.value.metafields.spanalloc0 then
   function Allocator:spanalloc0(T: type, size: usize)
     local s: span(T)
     if likely(size > 0) then
@@ -84,7 +87,9 @@ require 'span'
     end
     return s
   end
+  ## end
 
+  ## if not Allocator.value.metafields.spanrealloc then
   function Allocator:spanrealloc(s: is_span, size: usize)
     local T: type = #[s.type.subtype]#
     local p: *[0]T = (@*[0]T)(self:realloc(s.data, size * #T, s.size))
@@ -96,7 +101,9 @@ require 'span'
     s.size = size
     return s
   end
+  ## end
 
+  ## if not Allocator.value.metafields.spanrealloc0 then
   function Allocator:spanrealloc0(s: is_span, size: usize)
     local T: type = #[s.type.subtype]#
     local p: *[0]T = (@*[0]T)(self:realloc0(s.data, size * #T, s.size * #T))
@@ -108,42 +115,50 @@ require 'span'
     s.size = size
     return s
   end
+  ## end
 
+  ## if not Allocator.value.metafields.spandealloc then
   function Allocator:spandealloc(s: is_span)
     if unlikely(s.size == 0) then return end
     self:dealloc(s.data)
   end
+  ## end
 
+  ## if not Allocator.value.metafields.spannew then
   function Allocator:spannew(what: auto, size: usize) <inline>
     ## if what.type.is_type then
-      local T = what
-      local spn: span(T) = self:spanalloc0(T, size)
-      check(spn.size > 0, 'Allocator.spannew: out of memory')
+    local T: type = what
+    local spn: span(T) = self:spanalloc0(T, size)
+    check(spn.size > 0, 'Allocator.spannew: out of memory')
     ## else
-      local T = #[what.type]#
-      local spn: span(T) = self:spanalloc(T, size)
-      check(spn.size > 0, 'Allocator.spannew: out of memory')
-      for i:usize=0,<size do
-        memcpy(&spn[i], &what, #T)
-      end
+    local T = #[what.type]#
+    local spn: span(T) = self:spanalloc(T, size)
+    check(spn.size > 0, 'Allocator.spannew: out of memory')
+    for i:usize=0,<size do
+      memcpy(&spn[i], &what, #T)
+    end
     ## end
     return spn
   end
+  ## end
 
+  ## if not Allocator.value.metafields.new then
   function Allocator:new(what: auto) <inline>
     ## if what.type.is_type then
-      local T = what
-      local ptr: *T = (@*T)(self:alloc0(#T))
-      check(ptr ~= nilptr, 'Allocator.new: out of memory')
+    local T: type = what
+    local ptr: *T = (@*T)(self:alloc0(#T))
+    check(ptr ~= nilptr, 'Allocator.new: out of memory')
     ## else
-      local T = #[what.type]#
-      local ptr: *T = (@*T)(self:alloc(#T))
-      check(ptr ~= nilptr, 'Allocator.new: out of memory')
-      memcpy(ptr, &what, #T)
+    local T: type = #[what.type]#
+    local ptr: *T = (@*T)(self:alloc(#T))
+    check(ptr ~= nilptr, 'Allocator.new: out of memory')
+    memcpy(ptr, &what, #T)
     ## end
     return ptr
   end
+  ## end
 
+  ## if not Allocator.value.metafields.delete then
   function Allocator:delete(s: #[concept(function(x)
     return x.type.is_pointer or x.type.is_span end
   )]#) <inline>
@@ -153,4 +168,6 @@ require 'span'
       self:dealloc(s)
     ## end
   end
+  ## end
+
 ## end

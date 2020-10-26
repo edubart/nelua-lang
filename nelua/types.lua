@@ -1812,8 +1812,8 @@ end
 -- Checks if this type can be represented as a contiguous array of the subtype.
 function RecordType:is_contiguous_of(subtype)
   if self.is_contiguous then
-    local mt_atindex = self:get_metafield('__atindex')
-    local mt_len = self:get_metafield('__len')
+    local mt_atindex = self.metafields.__atindex
+    local mt_len = self.metafields.__len
     if mt_atindex and mt_atindex.type:get_return_type(1):is_pointer_of(subtype) and
        mt_len and mt_len.type:get_return_type(1).is_integral then
       -- the __atindex method is a pointer to the subtype
@@ -1822,11 +1822,6 @@ function RecordType:is_contiguous_of(subtype)
     end
   end
   return false
-end
-
--- Get the symbol of a meta field for this record type.
-function RecordType:get_metafield(name)
-  return self.metafields[name]
 end
 
 -- Set a meta field for this record type to a symbol of a function or variable.

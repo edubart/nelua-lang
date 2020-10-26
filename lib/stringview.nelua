@@ -125,7 +125,7 @@ end
 global function tostringview(x: auto): stringview
   ## if x.type.is_stringview then
     return x
-  ## elseif x.type.is_record and x.type:get_metafield('__tostringview') then
+  ## elseif x.type.is_record and x.type.metafields.__tostringview then
     return x:__tostringview()
   ## else static_error("tostringview: cannot convert type '%s' to a string", x.type) end
 end
