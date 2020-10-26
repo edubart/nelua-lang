@@ -1070,7 +1070,9 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
 
         if calleetype.is_polyfunction then
           local funcargcomptime = funcarg and funcarg.comptime
-          if funcargcomptime and not funcarg.type.is_auto and (not arg or arg.value == nil) then
+          if funcargcomptime and
+            not funcarg.type.is_auto and not funcarg.type.is_overload and
+            (not arg or arg.value == nil) then
             node:raisef("in call of function '%s': expected a compile time argument at index %d",
               calleename, i)
           end

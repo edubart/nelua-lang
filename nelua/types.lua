@@ -2219,6 +2219,7 @@ function types.make_overload_concept(context, syms, ...)
     ss:addlist(errs, '\n    ')
     return nil, ss:tostring()
   end)
+  type.is_overload = true
   type.node = context:get_current_node()
   return type
 end

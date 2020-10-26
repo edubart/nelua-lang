@@ -36,6 +36,7 @@ do -- collectgarbage
   assert(collectgarbage("isrunning"))
   alloc_test()
   clear_stack()
+  collectgarbage()
   collectgarbage("collect")
   assert(collectgarbage("count") == 0)
 end
