@@ -98,9 +98,9 @@ ASTNode.clone = clone_node
 -------------------
 -- error handling
 -------------------
-function ASTNode:format_message(category, message, ...)
+function ASTNode.format_message(self, category, message, ...)
   message = stringer.pformat(message, ...)
-  if self.src and self.pos then
+  if self and self.src and self.pos then
     message = errorer.get_pretty_source_pos_errmsg(self.src, self.pos, self.endpos, message, category)
   else --luacov:disable
     message = category .. ': ' .. message .. '\n'
@@ -109,32 +109,32 @@ function ASTNode:format_message(category, message, ...)
 end
 
 --luacov:disable
-function ASTNode:errorf(message, ...)
-  error(self:format_message('error', message, ...), 2)
+function ASTNode.errorf(self, message, ...)
+  error(ASTNode.format_message(self, 'error', message, ...), 2)
 end
 
-function ASTNode:assertf(cond, message, ...)
+function ASTNode.assertf(self, cond, message, ...)
   if not cond then
-    error(self:format_message('error', message, ...), 2)
+    error(ASTNode.format_message(self, 'error', message, ...), 2)
   end
   return cond
 end
 
-function ASTNode:assertraisef(cond, message, ...)
+function ASTNode.assertraisef(self, cond, message, ...)
   if not cond then
-    except.raise(self:format_message('error', message, ...), 2)
+    except.raise(ASTNode.format_message(self, 'error', message, ...), 2)
   end
   return cond
 end
 --luacov:enable
 
-function ASTNode:raisef(message, ...)
-  except.raise(self:format_message('error', message, ...), 2)
+function ASTNode.raisef(self, message, ...)
+  except.raise(ASTNode.format_message(self, 'error', message, ...), 2)
 end
 
-function ASTNode:warnf(message, ...)
+function ASTNode.warnf(self, message, ...)
   if not config.no_warning then
-    console.logerr(self:format_message('warning', message, ...))
+    console.logerr(ASTNode.format_message(self, 'warning', message, ...))
   end
 end
 

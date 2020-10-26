@@ -17,6 +17,7 @@ local except = require 'nelua.utils.except'
 local shaper = require 'nelua.utils.shaper'
 local Attr = require 'nelua.attr'
 local config = require 'nelua.configer'.get()
+local ASTNode = require 'nelua.astnode'
 
 local types = {}
 
@@ -1337,13 +1338,21 @@ ArrayType.shape = shaper.fork_shape(Type.shape, {
   subtype = shaper.type,
 })
 
-function ArrayType:_init(subtype, length)
+function ArrayType:_init(subtype, length, node)
   local size = subtype.size * length
   self.codename = string.format('%s_arr%d', subtype.codename, length)
+  self.node = node
   Type._init(self, 'array', size)
   self.subtype = subtype
   self.length = length
   self.align = subtype.align
+
+  -- validated subtype
+  if subtype.is_comptime then
+    ASTNode.raisef(node, "in array type: subtype cannot be of compile-time type '%s'", subtype)
+  elseif subtype.forwarddecl then
+    ASTNode.raisef(node, "in array type: subtype cannot be of forward declared type '%s'", subtype)
+  end
 end
 
 -- Checks if this type equals to another type.
@@ -1471,7 +1480,8 @@ function FunctionType:_init(argattrs, rettypes, node)
 
   -- set the arguments
   self.argattrs = argattrs or {}
-  self.argtypes = types.attrs_to_types(self.argattrs)
+  local argtypes = types.attrs_to_types(self.argattrs)
+  self.argtypes = argtypes
 
   -- set the return types
   if rettypes and #rettypes == 1 and rettypes[1].is_void then
@@ -1482,16 +1492,22 @@ function FunctionType:_init(argattrs, rettypes, node)
   end
   self.rettypes = rettypes
 
+  -- validate arg types
+  for i=1,#argtypes do
+    local argtype = argtypes[i]
+    if argtype.forwarddecl then
+      ASTNode.raisef(node, "in function argument: argument #%d cannot be of forward declared type '%s'", i, argtype)
+    end
+  end
+
   -- validate return types
   if rettypes then
     for i=1,#rettypes do
       local rettype = rettypes[i]
-      if rettypes[i].is_comptime then
-        if node then
-          node:raisef("in function return type: return #%d cannot be of type '%s'", i, rettype)
-        else --luacov:disable
-          error('invalid function return type')
-        end --luacov:enable
+      if rettype.is_comptime then
+        ASTNode.raisef(node, "in function return: return #%d cannot be of compile-time type '%s'", i, rettype)
+      elseif rettype.forwarddecl then
+        ASTNode.raisef(node, "in function return: return #%d cannot be of forward declared type '%s'", i, rettype)
       end
     end
   end
@@ -1736,12 +1752,12 @@ function RecordType:update_fields()
       local fieldtype = field.type
 
       -- validate field
-      if fieldtype.is_comptime then
-        if self.node then
-          self.node:raisef("record field '%s' cannot be of compile-time type '%s'", field.name, fieldtype)
-        else --luacov:disable
-          error('invalid record field type')
-        end --luacov:enable
+      if fieldtype.forwarddecl then
+        ASTNode.raisef(self.node, "record field '%s' cannot be of forward declared type '%s'",
+          field.name, fieldtype)
+      elseif fieldtype.is_comptime then
+        ASTNode.raisef(self.node, "record field '%s' cannot be of compile-time type '%s'",
+          field.name, fieldtype)
       end
 
       local fieldsize = fieldtype.size

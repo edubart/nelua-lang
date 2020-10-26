@@ -260,6 +260,9 @@ typedefs.type_annots = {
   -- Whether the compiler should pack a record type, removing padding between fields.
   -- It uses the '__attribute__((packed))' in C.
   packed = true,
+  -- Mark a record type for forward declaration.
+  -- This allows to use pointers to a record before defining it.
+  forwarddecl = true,
 }
 
 return typedefs

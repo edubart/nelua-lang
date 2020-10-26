@@ -241,9 +241,9 @@ it("for loop variables", function()
   assert.analyze_error("for i='s','b' do end", "must be a number")
   assert.analyze_error("for i=1,2,'s' do end", "invalid operation")
   assert.analyze_error("for i=1,2,0 do end", "step cannot be zero")
-  assert.analyze_error("for i=integer,2 do end", "begin: cannot be of type")
-  assert.analyze_error("for i=1,integer do end", "end: cannot be of type")
-  assert.analyze_error("for i=1,2,integer do end", "step: cannot be of type")
+  assert.analyze_error("for i=integer,2 do end", "begin: cannot be of")
+  assert.analyze_error("for i=1,integer do end", "end: cannot be of")
+  assert.analyze_error("for i=1,2,integer do end", "step: cannot be of")
 end)
 
 it("variable assignments", function()
@@ -627,10 +627,10 @@ it("function definition", function()
   ]], "no viable type conversion")
   assert.analyze_error([[
     local f: function(): type
-  ]], "return #1 cannot be of type")
+  ]], "return #1 cannot be of")
   assert.analyze_error([[
     local function f(): type end
-  ]], "return #1 cannot be of type")
+  ]], "return #1 cannot be of")
 end)
 
 it("closures", function()
@@ -986,6 +986,7 @@ it("arrays", function()
   assert.analyze_ast([[local a: array(integer, 2) <comptime> = {1,2}]])
   assert.analyze_ast([[local a: array(integer) = {1,2}]])
   assert.analyze_error([[local X = 2; local a: array(integer, X);]], "unknown comptime value for expression")
+  assert.analyze_error([[local a: array(type, 4)]], 'subtype cannot be of compile-time type')
   assert.analyze_error([[local a: array(integer, 2) = {1}]], 'expected 2 values in array literal but got 1')
   assert.analyze_error([[local a: array(integer, 2) = {1,2,3}]], 'expected 2 values in array literal but got 3')
   assert.analyze_error([[local a: array(integer, 2) = {1.1,2.3}]], 'is fractional')
@@ -1705,6 +1706,20 @@ it("do expressions", function()
   assert.analyze_ast("local a = (do return 1 end)")
   assert.analyze_error("local a = (do end)", "a return statement is missing")
   assert.analyze_error("local a = (do return 1, 2 end)", "can only return one argument")
+end)
+
+it("forward type declaration", function()
+  assert.analyze_ast("local R <forwarddecl> = @record{}; R = @record{}; local S = @record{r: R}")
+  assert.analyze_error("local R <forwarddecl> = @record{}; local S = @record{r: R}",
+    "cannot be of forward declared type")
+  assert.analyze_error("local R <forwarddecl> = @record{}; local A = @[4]R",
+    "cannot be of forward declared type")
+  assert.analyze_error("local R <forwarddecl> = @record{}; local f: function(x: R)",
+    "cannot be of forward declared type")
+  assert.analyze_error("local R <forwarddecl> = @record{}; local function f(x: R) end",
+    "cannot be of forward declared type")
+  assert.analyze_error("local R <forwarddecl> = @record{}; local function f(): R end",
+    "cannot be of forward declared type")
 end)
 
 end)

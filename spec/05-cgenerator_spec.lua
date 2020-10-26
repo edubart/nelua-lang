@@ -2902,4 +2902,17 @@ it("deprecated", function()
   }, 0)
 end)
 
+it("forward type declaration", function()
+  assert.run_c([=[
+    local Level <forwarddecl> = @record{}
+    local Entity = @record{level: *Level}
+    Level = @record{n: integer}
+    local level: Level = {n=1}
+    local entity: Entity = {level = &level}
+    assert(entity.level.n == 1)
+    level.n = 2
+    assert(entity.level.n == 2)
+  ]=])
+end)
+
 end)

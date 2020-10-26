@@ -588,12 +588,14 @@ function visitors.FuncType(context, node)
   local argattrs = {}
   for i=1,#argnodes do
     local argnode = argnodes[i]
+    local argattr
     if argnode.tag == 'IdDecl' then
-      argattrs[i] = argnode.attr
+      argattr = argnode.attr
     else
       assert(argnode.attr.type.is_type)
-      argattrs[i] = Attr{type = argnode.attr.value}
+      argattr = Attr{type = argnode.attr.value}
     end
+    argattrs[i] = argattr
   end
   local rettypes = types.typenodes_to_types(retnodes)
   local type = types.FunctionType(argattrs, rettypes, node)
@@ -616,13 +618,21 @@ end
 
 function visitors.RecordType(context, node, symbol)
   local attr = node.attr
-  local recordtype = types.RecordType({}, node)
+  local recordtype
+  if symbol and symbol.value then
+    recordtype = symbol.value
+    assert(recordtype.forwarddecl)
+    recordtype.forwarddecl = nil -- not forward decl anymore
+    assert(recordtype.is_record)
+  else
+    recordtype = types.RecordType({}, node)
+  end
   recordtype.node = node
   attr.type = primtypes.type
   attr.value = recordtype
-  if symbol then
+  if symbol and not symbol.value then
     -- must populate this type symbol early in case its used in the records fields
-    assert((not symbol.type or symbol.type == primtypes.type) and not symbol.value)
+    assert(not symbol.type or symbol.type == primtypes.type)
     symbol.type = primtypes.type
     symbol.value = recordtype
     context:choose_type_symbol_names(symbol)
@@ -722,7 +732,7 @@ function visitors.ArrayType(context, node)
     end
     length = #valnode[1]
   end
-  local type = types.ArrayType(subtype, length)
+  local type = types.ArrayType(subtype, length, node)
   type.node = node
   attr.type = primtypes.type
   attr.value = type
@@ -1886,12 +1896,12 @@ function visitors.Assign(context, node)
     local vartype = varnode.attr.type
     local varattr = varnode.attr
     varnode.assign = true
-    if varattr.const or varattr.comptime then
+    if varattr:is_readonly() and not varattr:is_forward_declare_type() then
       varnode:raisef("cannot assign a constant variable")
     end
     if valnode then
       valnode.desiredtype = vartype
-      context:traverse_node(valnode)
+      context:traverse_node(valnode, symbol)
       valtype = valnode.attr.type
       valnode, valtype = visitor_convert(context, valnodes, i, vartype, valnode, valtype)
     end
