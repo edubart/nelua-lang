@@ -754,6 +754,16 @@ local function needs_signed_unsigned_comparision(lnode, rnode)
   return true
 end
 
+local function operators_not(_, emitter, argnode)
+  emitter:add('!')
+  if argnode.attr.type.is_boolean then
+    emitter:add(argnode)
+  else
+    emitter:add_val2boolean(argnode)
+  end
+end
+operators["not"] = operators_not
+
 function operators.lt(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
   if needs_signed_unsigned_comparision(lnode, rnode) then

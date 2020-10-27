@@ -73,11 +73,11 @@ cdefs.primitive_ctypes = {
 }
 
 cdefs.unary_ops = {
-  ['not'] = '!',
   ['unm'] = '-',
   ['bnot'] = '~',
   ['ref'] = '&',
   -- builtins
+  ['not'] = true,
   ['deref'] = true,
   ['len'] = true
 }

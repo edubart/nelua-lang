@@ -99,11 +99,19 @@ function CEmitter:add_val2boolean(val, valtype)
     self:add_builtin('nlany_to_', typedefs.primtypes.boolean)
     self:add('(', val, ')')
   elseif valtype.is_niltype or valtype.is_nilptr then
-    self:add('false')
+    if traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Id') then
+      self:add('false')
+    else -- could be a call
+      self:add('({(void)(', val, '); false;})')
+    end
   elseif valtype.is_pointer or valtype.is_function then
-    self:add(val, ' != NULL')
+    self:add('(', val, ' != NULL)')
   else
-    self:add('true')
+    if traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Id') then
+      self:add('true')
+    else -- could be a call
+      self:add('({(void)(', val, '); true;})')
+    end
   end
 end
 

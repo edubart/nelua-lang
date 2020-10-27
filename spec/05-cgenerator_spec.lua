@@ -105,6 +105,16 @@ end)
 it("boolean", function()
   assert.generate_c("local a = true", "bool a = true")
   assert.generate_c("local a = false", "bool a = false")
+
+  assert.generate_c([[
+    local function f() return nil end
+    local b1: boolean = f()
+    local b2: boolean = not f()
+  ]], {
+    "b1 = ({(void)(f()); false;});",
+    "b2 = (!({(void)(f()); false;}));",
+  })
+
 end)
 
 it("nil", function()
@@ -170,7 +180,7 @@ end)
 it("if", function()
   assert.generate_c("if nilptr then\nend","if(false) {\n")
   assert.generate_c("if nil then\nend","if(false) {\n")
-  assert.generate_c("if 1 then\nend","if(true) {\n")
+  assert.generate_c("if 1 then\nend","if(({(void)(1); true;})) {\n")
   assert.generate_c("local a; if a then\nend","if(nlany_to_nlboolean(a)) {\n")
   assert.generate_c("if true then\nend","if(true) {\n  }")
   assert.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
@@ -755,8 +765,8 @@ end)
 it("unary operator `not`", function()
   assert.generate_c("local x = not true", "x = false;")
   assert.generate_c("local x = not false", "x = true;")
-  assert.generate_c("local x = not nil", "x = true;")
-  assert.generate_c("local x = not nilptr", "x = true;")
+  assert.generate_c("local x = not nil", "x = (!false);")
+  assert.generate_c("local x = not nilptr", "x = (!false);")
   assert.generate_c("local x = not 'a'", "x = false;")
   assert.generate_c("local a = true; local x = not a", "x = (!a);")
   --assert.generate_c("local a = nil; local x = not a", "x = true;")

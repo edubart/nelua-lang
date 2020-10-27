@@ -613,7 +613,7 @@ end
 
 -- Negation operator for niltype type.
 NiltypeType.unary_operators['not'] = function()
-  return primtypes.boolean, true
+  return primtypes.boolean
 end
 
 --------------------------------------------------------------------------------
@@ -643,7 +643,7 @@ end
 
 -- Negation operator for nilptr type.
 NilptrType.unary_operators['not'] = function()
-  return primtypes.boolean, true
+  return primtypes.boolean
 end
 
 --------------------------------------------------------------------------------
