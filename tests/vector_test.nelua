@@ -176,6 +176,8 @@ do -- copy
   b = a:copy()
   a[0] = 5
   assert(a[0] == 5 and #a == 4 and b[0] == 1 and #b == 4)
+  a:destroy()
+  b:destroy()
 end
 
 require 'allocators.general'

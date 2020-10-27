@@ -1,4 +1,10 @@
 require 'io'
+
+-- must be the first
+io.stdout:write('testing gc_test... ')
+require 'tests.gc_test'
+print 'OK!'
+
 io.stdout:write('testing io_test... ')
 require 'tests.io_test'
 print 'OK!'
@@ -17,14 +23,6 @@ print 'OK!'
 
 io.stdout:write('testing allocators_test... ')
 require 'tests.allocators_test'
-print 'OK!'
-
-io.stdout:write('testing raii_test2... ')
-require 'tests.raii_test2'
-print 'OK!'
-
-io.stdout:write('testing raii_test... ')
-require 'tests.raii_test'
 print 'OK!'
 
 io.stdout:write('testing require_test_dep... ')
@@ -63,7 +61,11 @@ io.stdout:write('testing vector_test... ')
 require 'tests.vector_test'
 print 'OK!'
 
- -- must be last for now because replace some globals
+io.stdout:write('testing defer_test... ')
+require 'tests.defer_test'
+print 'OK!'
+
+-- must be last for now because replace some globals
 io.stdout:write('testing basic_test... ')
 require 'tests.basic_test'
 print 'OK!'

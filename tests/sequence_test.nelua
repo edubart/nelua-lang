@@ -165,9 +165,10 @@ do -- copy
   local b: sequence(integer)
   b = a:copy()
   a[1] = 5
-  print(b[1], #b)
   assert(a[1] == 5 and #a == 4)
   assert(b[1] == 1 and #b == 4)
+  a:destroy()
+  b:destroy()
 end
 
 require 'allocators.general'
