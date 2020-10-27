@@ -235,7 +235,7 @@ function compiler.get_run_command(binaryfile, runargs)
         '-ex', 'bt -frame-info source-and-location',
         '-ex', 'set confirm off',
         '-ex', 'quit',
-        binaryfile
+        '--args', binaryfile,
       }
       tabler.insertvalues(gdbargs, runargs)
       return config.gdb, gdbargs
