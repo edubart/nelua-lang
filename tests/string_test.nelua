@@ -442,3 +442,16 @@ do -- string format
   assert(string.format('%s', string.rep('xuxu', 500)) == string.rep('xuxu', 500))
   assert(string.format('a number here: %d !', 1337) == 'a number here: 1337 !')
 end
+
+do -- eq metamethod
+  do
+    local a, b = 1, '1'
+    assert(not (a == b))
+    assert(a ~= b)
+  end
+  do
+    local a, b: string = 1, '1'
+    assert(not (a == b))
+    assert(a ~= b)
+  end
+end
