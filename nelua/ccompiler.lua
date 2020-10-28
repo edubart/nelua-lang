@@ -231,9 +231,11 @@ function compiler.get_run_command(binaryfile, runargs)
     if gdbver then
       local gdbargs = {
         '-q',
+        '-ex', 'set confirm off',
+        '-ex', 'set breakpoint pending on',
+        '-ex', 'break abort',
         '-ex', 'run',
         '-ex', 'bt -frame-info source-and-location',
-        '-ex', 'set confirm off',
         '-ex', 'quit',
         '--args', binaryfile,
       }

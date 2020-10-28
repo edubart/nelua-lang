@@ -64,6 +64,17 @@ function builtins.nelua_noreturn(context)
     "#define nelua_noreturn __attribute__((noreturn))\n")
 end
 
+function builtins.nelua_abort(context)
+  context:add_include('<stdlib.h>')
+  if config.no_abort then
+    define_builtin(context, 'nelua_abort',
+      '#define nelua_abort() exit(-1)\n')
+  else
+    define_builtin(context, 'nelua_abort',
+      '#define nelua_abort() abort()\n')
+  end
+end
+
 -- nil
 function builtins.nlniltype(context)
   define_builtin(context, 'nlniltype', "typedef struct nlniltype {} nlniltype;\n")
@@ -76,32 +87,30 @@ end
 
 -- panic
 function builtins.nelua_panic_cstring(context)
-  context:add_include('<stdlib.h>')
   context:add_include('<stdio.h>')
   context:ensure_runtime_builtin('nelua_noreturn')
-  local abort = config.no_abort and 'exit(-1)' or 'abort()'
+  context:ensure_runtime_builtin('nelua_abort')
   define_builtin(context, 'nelua_panic_cstring',
     'static nelua_noreturn void nelua_panic_cstring(char* s);\n',
     [[void nelua_panic_cstring(char *s) {
   fprintf(stderr, "%s\n", s);
-  ]]..abort..[[;
+  nelua_abort();
 }
 ]])
 end
 
 function builtins.nelua_panic_stringview(context)
-  context:add_include('<stdlib.h>')
   context:add_include('<stdio.h>')
   context:ensure_runtime_builtin('nelua_noreturn')
+  context:ensure_runtime_builtin('nelua_abort')
   context:ctype(primtypes.stringview)
-  local abort = config.no_abort and 'exit(-1)' or 'abort()'
   define_builtin(context, 'nelua_panic_stringview',
     'static nelua_noreturn void nelua_panic_stringview(nlstringview s);\n',
     [[void nelua_panic_stringview(nlstringview s) {
   if(s.data && s.size > 0) {
     fprintf(stderr, "%s\n", (char*)s.data);
   }
-  ]]..abort..[[;
+  nelua_abort();
 }
 ]])
 end

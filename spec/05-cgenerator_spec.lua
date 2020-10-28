@@ -2468,6 +2468,8 @@ it("sizeof builtin", function()
 end)
 
 it("assert builtin", function()
+  local no_abort = config.no_abort
+  config.no_abort = false
   assert.generate_c(
     "assert(true)",
     "nelua_assert(true)")
@@ -2478,6 +2480,7 @@ it("assert builtin", function()
     assert(true)
     assert(true, 'assertion')
   ]])
+  config.no_abort = no_abort
   assert.run_error_c([[
     assert()
   ]], "invalid assert call")
