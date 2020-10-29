@@ -44,7 +44,7 @@ function visitors.Number(context, node)
       end
     end
   else
-    local type = typedefs.number_literal_types[literal]
+    local type = primtypes[typedefs.number_literal_types[literal]]
     if not type then
       node:raisef("literal suffix '%s' is undefined for numbers", literal)
     end
