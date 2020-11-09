@@ -1850,7 +1850,7 @@ function visitors.VarDecl(context, node)
         context:choose_type_symbol_names(symbol)
       end
 
-      if vartype and vartype.is_auto then
+      if vartype and (vartype.is_auto or vartype.is_type) then
         assignvaltype = true
       end
 
