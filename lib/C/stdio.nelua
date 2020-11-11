@@ -1,4 +1,5 @@
 require 'C'
+require 'C.stdarg'
 
 ## cinclude '<stdio.h>'
 
@@ -24,19 +25,19 @@ function C.scanf(format: cstring, ...: cvarargs): cint <cimport'scanf',nodecl> e
 function C.fscanf(stream: *FILE, format: cstring, ...: cvarargs): cint <cimport'fscanf',nodecl> end
 function C.sscanf(s: cstring, format: cstring, ...: cvarargs): cint <cimport'sscanf',nodecl> end
 
-function C.vscanf(format: cstring, ...: cvarargs): cint <cimport'vscanf',nodecl> end
-function C.vfscanf(stream: *FILE, format: cstring, ...: cvarargs): cint <cimport'vfscanf',nodecl> end
-function C.vsscanf(s: cstring, format: cstring, ...: cvarargs): cint <cimport'vsscanf',nodecl> end
+function C.vscanf(format: cstring, arg: va_list): cint <cimport'vscanf',nodecl> end
+function C.vfscanf(stream: *FILE, format: cstring, arg: va_list): cint <cimport'vfscanf',nodecl> end
+function C.vsscanf(s: cstring, format: cstring, arg: va_list): cint <cimport'vsscanf',nodecl> end
 
 function C.printf(format: cstring, ...: cvarargs): cint <cimport'printf',nodecl> end
 function C.fprintf(stream: *FILE, format: cstring, ...: cvarargs): cint <cimport'fprintf',nodecl> end
 function C.sprintf(s: cstring, format: cstring, ...: cvarargs): cint <cimport'sprintf',nodecl> end
 function C.snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',nodecl> end
 
-function C.vprintf(format: cstring, ...: cvarargs): cint <cimport'vprintf',nodecl> end
-function C.vfprintf(stream: *FILE, format: cstring, ...: cvarargs): cint <cimport'vfprintf',nodecl> end
-function C.vsprintf(s: cstring, format: cstring, ...: cvarargs): cint <cimport'vsprintf',nodecl> end
-function C.vsnprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'vsnprintf',nodecl> end
+function C.vprintf(format: cstring, arg: va_list): cint <cimport'vprintf',nodecl> end
+function C.vfprintf(stream: *FILE, format: cstring, arg: va_list): cint <cimport'vfprintf',nodecl> end
+function C.vsprintf(s: cstring, format: cstring, arg: va_list): cint <cimport'vsprintf',nodecl> end
+function C.vsnprintf(s: cstring, maxlen: csize, format: cstring, arg: va_list): cint <cimport'vsnprintf',nodecl> end
 
 -- Character input/output
 function C.getc(stream: *FILE): cint <cimport'getc',nodecl> end

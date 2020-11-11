@@ -4,15 +4,53 @@ require 'C.errno'
 require 'C.locale'
 require 'C.math'
 require 'C.signal'
+require 'C.stdarg'
 require 'C.stdio'
 require 'C.stdlib'
 require 'C.string'
 require 'C.time'
 
-assert(C.fabs(-1.0) == 1.0)
-assert(C.fabsf(-2.0_f32) == 2.0_f32)
-assert(C.fabsl(-3.0_clongdouble) == 3.0_clongdouble)
+do -- math
+  assert(C.fabs(-1.0) == 1.0)
+  assert(C.fabsf(-2.0_f32) == 2.0_f32)
+  assert(C.fabsl(-3.0_clongdouble) == 3.0_clongdouble)
 
-assert(C.isnan(C.NAN))
-assert(C.isinf(C.INFINITY))
-assert(C.NAN ~= C.NAN)
+  assert(C.isnan(C.NAN))
+  assert(C.isinf(C.INFINITY))
+  assert(C.NAN ~= C.NAN)
+end
+
+do -- va_list
+  local function fill_numbers(numbers: *[0]number, n: integer, ...: cvarargs)
+    local vl: va_list
+    C.va_start(vl, n)
+    for i=0,<n do
+      numbers[i] = C.va_arg(vl, @number)
+    end
+    C.va_end(vl)
+  end
+
+  local numbers: [4]number
+  fill_numbers(&numbers, 0)
+  fill_numbers(&numbers, 1, 0.5)
+  assert(numbers[0] == 0.5)
+  fill_numbers(&numbers, 2, 1.0, 0.5)
+  assert(numbers[0] == 1.0 and numbers[1] == 0.5)
+  fill_numbers(&numbers, 3, 2.0, 1.0, 0.5)
+  assert(numbers[0] == 2.0 and numbers[1] == 1.0 and numbers[2] == 0.5)
+end
+
+do -- vsscanf
+  local function get_matches(str: cstring, format: cstring, ...: cvarargs)
+    local args: va_list
+    C.va_start(args, format)
+    C.vsscanf(str, format, args)
+    C.va_end(args)
+  end
+
+  local val: cint
+  local buf: [100]cchar
+  get_matches("99 bottles of water", "%d %s", &val, &buf[0]);
+  assert(val == 99)
+  assert(&buf[0] == 'bottles')
+end

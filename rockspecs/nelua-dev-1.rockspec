@@ -148,6 +148,7 @@ build = {
       ['lib/C/locale.nelua']       = 'lib/C/locale.nelua',
       ['lib/C/math.nelua']         = 'lib/C/math.nelua',
       ['lib/C/signal.nelua']       = 'lib/C/signal.nelua',
+      ['lib/C/stdarg.nelua']       = 'lib/C/stdarg.nelua',
       ['lib/C/stdio.nelua']        = 'lib/C/stdio.nelua',
       ['lib/C/stdlib.nelua']       = 'lib/C/stdlib.nelua',
       ['lib/C/string.nelua']       = 'lib/C/string.nelua',
