@@ -1944,6 +1944,17 @@ function PointerType:get_convertible_from_attr(attr, explicit)
   return Type.get_convertible_from_attr(self, attr, explicit)
 end
 
+local function is_pointer_subtype_convertible(ltype, rtype)
+  if ltype == rtype then
+    -- same type
+    return true
+  elseif ltype.is_integral and rtype.is_integral and ltype.bitsize == rtype.bitsize then
+    -- integral with same size and (signess or 8 bitsize)
+    return ltype.is_unsigned == rtype.is_unsigned or ltype.bitsize == 8
+  end
+  return false
+end
+
 -- Get the desired type when converting this type from another type.
 function PointerType:get_convertible_from_type(type, explicit)
   if type == self then
@@ -1956,24 +1967,29 @@ function PointerType:get_convertible_from_type(type, explicit)
     elseif self.is_generic_pointer then
       -- implicit casting to a generic pointer
       return self
-    elseif type.subtype:is_array_of(self.subtype) and type.subtype.length == 0 then
+    elseif type.subtype.is_array and type.subtype.length == 0 and
+           is_pointer_subtype_convertible(type.subtype.subtype, self.subtype) then
       -- implicit casting from unbounded arrays pointers to pointers
       return self
-    elseif self.subtype:is_array_of(type.subtype) and self.subtype.length == 0 then
+    elseif self.subtype.is_array and self.subtype.length == 0 and
+           is_pointer_subtype_convertible(self.subtype.subtype, type.subtype) then
       -- implicit casting from pointers to unbounded arrays pointers
       return self
     elseif self.subtype.is_array and type.subtype.is_array and
            self.subtype.length == 0 and
-           self.subtype.subtype == type.subtype.subtype then
+           is_pointer_subtype_convertible(self.subtype.subtype, type.subtype.subtype) then
       -- implicit casting from checked arrays pointers to unbounded arrays pointers
       return self
-    elseif (self.is_cstring and type.subtype == primtypes.byte) or
-           (type.is_cstring and self.subtype == primtypes.byte) then
-      -- implicit casting between cstring and pointer to byte
+    elseif is_pointer_subtype_convertible(self.subtype, type.subtype) then
+      -- implicit casting between integral of same size and signess
+      return self
+    elseif self.subtype.is_pointer and type.subtype.is_pointer and
+           self.subtype:get_convertible_from_type(type.subtype) then
+      -- implicit casting for nested pointers
       return self
     end
-  elseif type.is_stringview and (self.is_cstring or self:is_pointer_of(primtypes.byte)) then
-    -- implicit casting a stringview to a cstring or pointer to a byte
+  elseif type.is_stringview and is_pointer_subtype_convertible(self.subtype, primtypes.byte) then
+    -- implicit casting a stringview to a cstring or an 8bit integral
     return self
   elseif type.is_nilptr then
     -- implicit casting nilptr to a pointer

@@ -1310,6 +1310,29 @@ it("pointers", function()
     local p: pointer = (@pointer)(x)
     x = (@usize)(p)
   ]])
+  assert.analyze_ast([[
+    local a: *cchar
+    local aa: *[0]cchar
+    local b: *byte
+    local bb: *[0]byte
+    a = aa
+    a = b
+    a = bb
+    aa = aa
+    aa = b
+    aa = bb
+    b = a
+    b = aa
+    b = bb
+    bb = a
+    bb = aa
+    bb = bb
+  ]])
+  assert.analyze_ast([[
+    local a: **cchar
+    local b: **byte
+    b = a
+  ]])
   assert.ast_type_equals(
     "local a = (@pointer)(nilptr) a = nilptr",
     "local a: pointer = (@pointer)(nilptr) a = nilptr")
