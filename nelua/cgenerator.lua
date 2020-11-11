@@ -600,7 +600,8 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     local callargtypes = attr.pseudoargtypes or calleetype.argtypes
     local callargattrs = attr.pseudoargattrs or calleetype.argattrs
     local ismethod = attr.ismethod
-    for i,_,argnode,_,lastcallindex in izipargnodes(callargtypes, argnodes) do
+    for i,funcargtype,argnode,_,lastcallindex in izipargnodes(callargtypes, argnodes) do
+      if funcargtype.is_cvarargs and not argnode then break end
       if (argnode and argnode.attr.sideeffect) or lastcallindex == 1 then
         -- expressions with side effects need to be evaluated in sequence
         -- and expressions with multiple returns needs to be stored in a temporary
@@ -682,6 +683,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     end
 
     for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(callargtypes, argnodes) do
+      if funcargtype.is_cvarargs and not argnode then break end
       if i > 1 or ismethod then emitter:add(', ') end
       local arg = argnode
       if sequential then

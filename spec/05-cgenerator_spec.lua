@@ -2294,6 +2294,10 @@ it("C varargs", function()
     "local function scanf(format: cstring <const>, ...: cvarargs): cint <cimport> end",
     "int scanf(const char* format, ...);")
 
+  assert.generate_c(
+    [[local function printf(format: cstring, ...: cvarargs): cint <cimport> end printf('hello')]],
+    [[printf(__strlit1);]])
+
   assert.run_c([=[
     local function snprintf(str: cstring, size: csize, format: cstring, ...: cvarargs): cint
       <cimport,nodecl,cinclude'<stdio.h>'>

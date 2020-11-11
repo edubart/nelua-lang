@@ -1020,6 +1020,9 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             arg = argnode.attr
           end
         else
+          if funcargtype.is_cvarargs then
+            break
+          end
           arg = argtype
         end
         if hasvarargs then
