@@ -1502,6 +1502,16 @@ it("annotations", function()
   assert.analyze_error("local a <codename(1)>", "arguments are invalid")
 end)
 
+it("cimport", function()
+  assert.analyze_ast([[
+    local FILE <cimport, nodecl, cinclude'<stdio.h>', forwarddecl> = @record{}
+    local a: *FILE
+    local FILE <cimport, nodecl, cinclude'<stdio.h>', forwarddecl> = @record{}
+    local b: *FILE
+    b = a
+  ]])
+end)
+
 it("builtins", function()
   assert.ast_type_equals("local x; local a = type(x)", "local x; local a: stringview = type(x)")
   assert.ast_type_equals("local a = #@integer", "local a: isize = #@integer")

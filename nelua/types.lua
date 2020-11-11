@@ -76,6 +76,8 @@ Type.shape = shaper.shape {
   nodecl = shaper.optional_boolean,
   -- Whether the code generator should import the type from C.
   cimport = shaper.optional_boolean,
+  -- Marked when declaring a type without its definition.
+  forwarddecl = shaper.optional_boolean,
   -- C header that the code generator should include when using the type.
   cinclude = shaper.string:is_optional(),
   -- The value passed in <aligned(X)> annotation, see also align.

@@ -69,7 +69,7 @@ This page is under construction and very incomplete.
 | `filestream:read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Reads the content of the file according to the given format. |
 | `filestream:write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Writes text to the file. |
 | `filestream:isopen(): boolean`{:.language-nelua} | Returns open state of the file. |
-| `filestream:__tostring(): string`{:.language-nelua} | converts the handled `FILEptr` to `string`. |
+| `filestream:__tostring(): string`{:.language-nelua} | converts the handled `*FILE` to `string`. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## io

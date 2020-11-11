@@ -3,13 +3,13 @@ require 'filestream'
 --------------------------------------------------------------------------------
 -- C imports
 
-local FILEptr = @pointer
+local FILE <cimport,nodecl,forwarddecl,cinclude'<stdio.h>'> = @record{}
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
-local stdin: FILEptr <cimport,cinclude'<stdio.h>',nodecl>
-local stdout: FILEptr <cimport,cinclude'<stdio.h>',nodecl>
-local stderr: FILEptr <cimport,cinclude'<stdio.h>',nodecl>
+local stdin: *FILE <cimport,cinclude'<stdio.h>',nodecl>
+local stdout: *FILE <cimport,cinclude'<stdio.h>',nodecl>
+local stderr: *FILE <cimport,cinclude'<stdio.h>',nodecl>
 local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
-local function tmpfile(): FILEptr <cimport,cinclude'<stdio.h>',nodecl> end
+local function tmpfile(): *FILE <cimport,cinclude'<stdio.h>',nodecl> end
 
 --------------------------------------------------------------------------------
 -- io
@@ -70,7 +70,7 @@ function io.output(file: overload(stringview,filestream,niltype)): filestream
 end
 
 function io.tmpfile(): (filestream, stringview, integer)
-  local fp: FILEptr = tmpfile()
+  local fp: *FILE = tmpfile()
   if not fp then
     return filestream{}, strerror(errno), errno
   end
