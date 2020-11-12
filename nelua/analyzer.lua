@@ -198,8 +198,8 @@ local function visitor_Array_literal(context, node, littype)
   local attr = node.attr
   local childnodes = node[1]
   local subtype = littype.subtype
-  if not (#childnodes == littype.length or #childnodes == 0) then
-    node:raisef("expected %d values in array literal but got %d", littype.length, #childnodes)
+  if not (#childnodes <= littype.length or #childnodes == 0) then
+    node:raisef("expected at most %d values in array literal but got %d", littype.length, #childnodes)
   end
   local comptime = true
   local done = true
