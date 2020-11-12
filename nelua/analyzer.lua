@@ -440,6 +440,23 @@ function visitors.Annotation(context, node, symbol)
     end
   elseif name == 'codename' then
     objattr.fixedcodename = params
+  elseif name == 'using' then
+    assert(objattr._type)
+    if not objattr.is_enum then
+      node:raisef("annotation 'using' can only be used with enums")
+    end
+    -- inject all enum fields as comptime values
+    for _,field in ipairs(objattr.fields) do
+      local fieldsymbol = Symbol{
+        name = field.name,
+        codename = objattr.codename..'_'..field.name,
+        comptime = true,
+        type = objattr,
+        value = field.value,
+        scope = symbol.scope,
+      }
+      symbol.scope:add_symbol(fieldsymbol)
+    end
   end
 
   node.done = true

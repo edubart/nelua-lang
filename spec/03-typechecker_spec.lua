@@ -1754,4 +1754,17 @@ it("forward type declaration", function()
     "cannot be of forward declared type")
 end)
 
+it("using annotation", function()
+  assert.analyze_ast([[
+    local MyEnum <using> = @enum{
+      MYENUM_NONE = 0,
+      MYENUM_ONE = 1,
+    }
+    local a: MyEnum = MYENUM_ONE
+  ]])
+  assert.analyze_error([[
+    local MyEnum <using> = @record{}
+  ]], "annotation 'using' can only")
+end)
+
 end)

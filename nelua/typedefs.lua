@@ -265,6 +265,8 @@ typedefs.type_annots = {
   -- Mark a record type for forward declaration.
   -- This allows to use pointers to a record before defining it.
   forwarddecl = true,
+  -- Whether to use enum fields in the declared scope.
+  using = true,
 }
 
 return typedefs
