@@ -257,6 +257,8 @@ typedefs.type_annots = {
   -- Whether to skip declaring the type in C.
   -- When using this, the type must be declared somewhere else, like in a C include.
   nodecl = true,
+  -- Whether to emit typedef for a C imported structs.
+  ctypedef = true,
   -- Whether the compiler should pack a record type, removing padding between fields.
   -- It uses the '__attribute__((packed))' in C.
   packed = true,

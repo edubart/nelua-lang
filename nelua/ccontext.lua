@@ -72,15 +72,28 @@ function CContext:typename(type)
   until visitor
 
   if visitor then
-    if config.check_type_shape then
-      assert(type:shape())
-    end
-    if type.cinclude then -- include headers before declaring
-      self:add_include(type.cinclude)
-    end
-    if not type.nodecl and not self:is_declared(type.codename) then
+    if not self:is_declared(type.codename) then
+      self.declarations[type.codename] = true
+      if config.check_type_shape then
+        assert(type:shape())
+      end
+      if type.cinclude then -- include headers before declaring
+        self:add_include(type.cinclude)
+      end
       -- only declare when needed
-      visitor(self, type)
+      if not type.nodecl then
+        visitor(self, type)
+      elseif type.ctypedef then
+        local kind
+        if type.is_record then kind = 'struct'
+        elseif type.is_union then kind = 'union'
+        elseif type.is_enum then kind = 'enum'
+        end
+        if kind then
+          local code = 'typedef '..kind..' '..type.codename..' '..type.codename..';\n'
+          table.insert(self.declarations, code)
+        end
+      end
     end
   end
   return type.codename

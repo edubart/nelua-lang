@@ -2,18 +2,12 @@ require 'C'
 
 ##[[
 cinclude '<time.h>'
-
-cemitdecl([==[
-typedef struct tm tm_t;
-typedef struct timespec timespec_t;
-]==])
-
 local neluatypes = require 'nelua.types'
 ]]
 
 global clock_t <cimport'clock_t',nodecl> = #[neluatypes.IntegralType('clock_t', primtypes.clong.size)]#
 global time_t <cimport'time_t',nodecl> = #[neluatypes.IntegralType('time_t', primtypes.clong.size)]#
-global tm <cimport'tm_t',nodecl> = @record{
+global tm <cimport'tm',nodecl,ctypedef> = @record{
   tm_sec: cint,
   tm_min: cint,
   tm_hour: cint,
@@ -24,7 +18,7 @@ global tm <cimport'tm_t',nodecl> = @record{
   tm_yday: cint,
   tm_isdst: cint
 }
-global timespec <cimport'timespec_t',nodecl> = @record {
+global timespec <cimport'timespec',nodecl,ctypedef> = @record {
   tv_sec: time_t,
   tv_nsec: clong
 }

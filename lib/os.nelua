@@ -3,16 +3,10 @@ require 'string'
 --------------------------------------------------------------------------------
 -- C imports
 
-##[[
-cemitdecl([==[
-typedef struct tm tm_t;
-]==])
-]]
-
 local clock_t <cimport,nodecl> = #[types.IntegralType('clock_t', primtypes.clong.size)]#
 local time_t <cimport,nodecl> = #[types.IntegralType('time_t', primtypes.clong.size)]#
 
-local tm <cimport'tm_t',nodecl> = @record {
+local tm <cimport'tm',nodecl,ctypedef> = @record {
   tm_year: cint,
   tm_mon: cint,
   tm_mday: cint,

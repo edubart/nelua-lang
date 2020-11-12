@@ -261,11 +261,10 @@ typevisitors[types.ArrayType] = function(context, type)
   decemitter:add_ln(';')
   decemitter:add_ln('nelua_static_assert(sizeof(',type.codename,') == ', type.size,
                     ', "Nelua and C disagree on type size");')
-  context:add_declaration(decemitter:generate(), type.codename)
+  table.insert(context.declarations, decemitter:generate())
 end
 
 typevisitors[types.PointerType] = function(context, type)
-  context.declarations[type.codename] = true
   local decemitter = CEmitter(context, 0)
   local index = nil
   if type.subtype.is_record and not type.subtype.nodecl and not context.declarations[type.subtype.codename] then
@@ -284,7 +283,6 @@ typevisitors[types.PointerType] = function(context, type)
 end
 
 typevisitors[types.RecordType] = function(context, type)
-  context.declarations[type.codename] = true
   local decemitter = CEmitter(context, 0)
   decemitter:add_ln('typedef struct ', type.codename, ' ', type.codename, ';')
   table.insert(context.declarations, decemitter:generate())
@@ -317,7 +315,7 @@ end
 typevisitors[types.EnumType] = function(context, type)
   local decemitter = CEmitter(context, 0)
   decemitter:add_ln('typedef ', type.subtype, ' ', type.codename, ';')
-  context:add_declaration(decemitter:generate(), type.codename)
+  table.insert(context.declarations, decemitter:generate())
 end
 
 typevisitors[types.FunctionType] = function(context, type)
@@ -330,7 +328,7 @@ typevisitors[types.FunctionType] = function(context, type)
     decemitter:add(argtype)
   end
   decemitter:add_ln(');')
-  context:add_declaration(decemitter:generate(), type.codename)
+  table.insert(context.declarations, decemitter:generate())
 end
 
 typevisitors.FunctionReturnType = function(context, functype)

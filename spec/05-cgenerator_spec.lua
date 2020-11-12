@@ -2355,6 +2355,10 @@ it("annotations", function()
   assert.generate_c(
     "local function puts(s: cstring): int32 <cimport'puts'> end",
     "int32_t puts(char* s);")
+  assert.generate_c([[
+    global timespec <cimport'timespec',nodecl,ctypedef> = @record{tv_sec: clong, tv_nsec: clong}
+    local t: timespec
+  ]], "typedef struct timespec timespec;")
   assert.generate_c(
     "local function cos(x: number): number <cimport'myfunc',cinclude'<myheader.h>',nodecl> end",
     "#include <myheader.h>")
