@@ -109,6 +109,13 @@ astbuilder:register('UnionFieldType', {
 astbuilder:register('UnionType', {
   stypes.array_of(ntypes.Node), -- union field types or typexpr
 })
+astbuilder:register('VariantFieldType', {
+  (stypes.string + ntypes.PreprocessName):is_optional(), -- field name
+  ntypes.Node, -- field typexpr
+})
+astbuilder:register('VariantType', {
+  stypes.array_of(ntypes.Node), -- variant field types or typexpr
+})
 astbuilder:register('EnumFieldType', {
   stypes.string + ntypes.PreprocessName, -- field name
   ntypes.Node:is_optional() -- field numeric value expr

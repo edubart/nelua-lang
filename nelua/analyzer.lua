@@ -660,6 +660,18 @@ function visitors.RecordType(context, node, symbol)
   node.done = true
 end
 
+function visitors.UnionType(_, node)
+  node:raisef("union type not implemented yet")
+end
+
+function visitors.VariantType(_, node)
+  node:raisef("variant type not implemented yet")
+end
+
+function visitors.OptionalType(_, node)
+  node:raisef("optional type not implemented yet")
+end
+
 function visitors.EnumFieldType(context, node)
   local name, numnode = node[1], node[2]
   local field = Attr{name = name}

@@ -1767,4 +1767,16 @@ it("using annotation", function()
   ]], "annotation 'using' can only")
 end)
 
+it("union type", function()
+  assert.analyze_error("local Variant = @union{integer,number}", "not implemented yet")
+end)
+
+it("variant type", function()
+  assert.analyze_error("local Variant = @integer|number", "not implemented yet")
+end)
+
+it("optional type", function()
+  assert.analyze_error("local Variant = @?integer", "not implemented yet")
+end)
+
 end)

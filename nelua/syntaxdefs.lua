@@ -202,6 +202,7 @@ local function get_parser()
   -- used by types
   %TRECORD      <- 'record'
   %TUNION       <- 'union'
+  %TVARIANT     <- 'variant'
   %TENUM        <- 'enum'
   ]])
 
@@ -475,12 +476,13 @@ local function get_parser()
     cfalse <- '' -> to_false
 
     typexpr <- typexpr0
-    typexpr0 <- ({} '' -> 'UnionType' {| typexpr1 (%BOR typexpr1)* |} {}) -> to_list_astnode
+    typexpr0 <- ({} '' -> 'VariantType' {| typexpr1 (%BOR typexpr1)* |} {}) -> to_list_astnode
     typexpr1 <- ({| (unary_typexpr_op)* |} simple_typexpr {}) -> to_chain_late_unary_op
 
     simple_typexpr <-
       func_type /
       record_type /
+      variant_type /
       union_type /
       enum_type /
       array_type /
@@ -518,11 +520,19 @@ local function get_parser()
 
     union_type <- ({} %TUNION -> 'UnionType' %LCURLY
         {| (
-            (unionfield %SEPARATOR unionfield / %{ExpectedUnionFieldType})
-            (%SEPARATOR unionfield)* %SEPARATOR?)?
+            (union_field %SEPARATOR union_field / %{ExpectedUnionFieldType})
+            (%SEPARATOR union_field)* %SEPARATOR?)?
         |}
       eRCURLY {}) -> to_astnode
-    unionfield <- (({} '' -> 'UnionFieldType' name %COLON etypexpr {}) -> to_astnode / typexpr)
+    union_field <- (({} '' -> 'UnionFieldType' name %COLON etypexpr {}) -> to_astnode / typexpr)
+
+    variant_type <- ({} %TVARIANT -> 'VariantType' %LCURLY
+        {| (
+            (variant_field %SEPARATOR variant_field / %{ExpectedVariantFieldType})
+            (%SEPARATOR variant_field)* %SEPARATOR?)?
+        |}
+      eRCURLY {}) -> to_astnode
+    variant_field <- (({} '' -> 'VariantFieldType' name %COLON etypexpr {}) -> to_astnode / typexpr)
 
     enum_type <- ({} %TENUM -> 'EnumType'
         ((%LPAREN eprimtype eRPAREN) / cnil) %LCURLY
@@ -674,6 +684,7 @@ local function get_parser()
     ExpectedCall = "expected call",
     ExpectedEnumFieldType = "expected at least one field in enum",
     ExpectedUnionFieldType = "expected at least two fields in union",
+    ExpectedVariantFieldType = "expected at least two fields in variant",
     ExpectedPrimitiveTypeExpression = "expected a primitive type expression",
     ExpectedCase = "expected `case` keyword"
   })

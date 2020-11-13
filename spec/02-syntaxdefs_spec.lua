@@ -1470,17 +1470,34 @@ describe("type expression", function()
             n.Type{'number'},
             n.PointerType{}}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local u: integer | niltype",
+  end)
+  it("variant type", function()
+    assert.parse_ast(nelua_parser, "local v: variant{a: integer, b: number}",
       n.Block{{
         n.VarDecl{'local',
-          { n.IdDecl{'u', n.UnionType{{
+          { n.IdDecl{'v', n.VariantType{{
+            n.VariantFieldType{'a', n.Type{'integer'}},
+            n.VariantFieldType{'b', n.Type{'number'}}}}}}
+    }}})
+    assert.parse_ast(nelua_parser, "local v: variant{integer, number, pointer}",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'v', n.VariantType{{
+            n.Type{'integer'},
+            n.Type{'number'},
+            n.PointerType{}}}}}
+    }}})
+    assert.parse_ast(nelua_parser, "local v: integer | niltype",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'v', n.VariantType{{
             n.Type{'integer'},
             n.Type{'niltype'}}}}}
     }}})
-    assert.parse_ast(nelua_parser, "local u: integer | string | niltype",
+    assert.parse_ast(nelua_parser, "local v: integer | string | niltype",
       n.Block{{
         n.VarDecl{'local',
-          { n.IdDecl{'u', n.UnionType{{
+          { n.IdDecl{'v', n.VariantType{{
             n.Type{'integer'},
             n.Type{'string'},
             n.Type{'niltype'}}}}}
