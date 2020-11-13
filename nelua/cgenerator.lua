@@ -432,31 +432,52 @@ function visitors.Table(context, node, emitter)
       emitter:add('{', childnodes, '}')
       context:pop_state()
     else
-      emitter:add_ln('({')
-      emitter:inc_indent()
-      emitter:add_indent(type, ' __rec = ')
-      emitter:add_zeroinit(type)
-      emitter:add_ln(';')
-      for _,childnode in ipairs(childnodes) do
-        local fieldname = childnode.fieldname
-        local childvalnode
-        if childnode.tag  == 'Pair' then
-          childvalnode = childnode[2]
-        else
-          childvalnode = childnode
+      local compactemit = false
+      if #childnodes == #type.fields then
+        compactemit = true
+        for _,childnode in ipairs(childnodes) do
+          local childvalnode
+          if childnode.tag  == 'Pair' then
+            childvalnode = childnode[2]
+          else
+            childvalnode = childnode
+          end
+          local childvaltype = childvalnode.attr.type
+          if childvaltype.is_array then
+            compactemit = false
+            break
+          end
         end
-        local childvaltype = childvalnode.attr.type
-        if childvaltype.is_array then
-          emitter:add_indent('(*(', childvaltype, '*)__rec.', fieldname, ') = ')
-        else
-          emitter:add_indent('__rec.', fieldname, ' = ')
-        end
-        create_variable(context, emitter, childvaltype,  childvalnode)
-        emitter:add_ln(';')
       end
-      emitter:add_indent_ln('__rec;')
-      emitter:dec_indent()
-      emitter:add_indent('})')
+      if compactemit then
+        emitter:add('(',type,'){', childnodes, '}')
+      else
+        emitter:add_ln('({')
+        emitter:inc_indent()
+        emitter:add_indent(type, ' __rec = ')
+        emitter:add_zeroinit(type)
+        emitter:add_ln(';')
+        for _,childnode in ipairs(childnodes) do
+          local fieldname = childnode.fieldname
+          local childvalnode
+          if childnode.tag  == 'Pair' then
+            childvalnode = childnode[2]
+          else
+            childvalnode = childnode
+          end
+          local childvaltype = childvalnode.attr.type
+          if childvaltype.is_array then
+            emitter:add_indent('(*(', childvaltype, '*)__rec.', fieldname, ') = ')
+          else
+            emitter:add_indent('__rec.', fieldname, ' = ')
+          end
+          create_variable(context, emitter, childvaltype,  childvalnode)
+          emitter:add_ln(';')
+        end
+        emitter:add_indent_ln('__rec;')
+        emitter:dec_indent()
+        emitter:add_indent('})')
+      end
     end
   elseif type.is_array then
     if context.state.ininitializer then
