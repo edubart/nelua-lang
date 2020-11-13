@@ -163,7 +163,6 @@ end
                c == 'u'_byte or
                c == 'x'_byte or
                c == 'X'_byte then
-              local lenmod: cstring <noinit>
               local lenmod: cstring <cimport #['PRIi' .. primtypes.integer.bitsize]#,nodecl,cinclude'<inttypes.h>'>
               addlenmod(&form, lenmod, strlen(lenmod) - 1)
               local n: integer = (@integer)(arg1)
@@ -195,7 +194,7 @@ end
             end
           ## end if arg1.type.is_stringy then
             if c == 's'_byte then
-              local s: stringview = arg1
+              local s: stringview = (@stringview)(arg1)
               maxitem = s.size + 1
               buff = (@cstring)(self:prepare(maxitem))
               if not buff then
