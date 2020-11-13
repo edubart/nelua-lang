@@ -2951,12 +2951,12 @@ it("unions", function()
     u.b = true
     assert(u.b == true and u.i ~= 0 and u.s ~= nilptr)
     u.i = 15
-    assert(u.b == true and u.i == 15 and u.s ~= nilptr)
+    assert(u.i == 15 and u.s ~= nilptr)
     local s: cstring = 'hello'_cstring
     u.s = s
-    assert(u.b == true and u.i == (@int64)(s) and u.s == s)
+    assert(u.i == (@int64)(s) and u.s == s)
     local v = u
-    assert(v.b == true and v.i == (@int64)(s) and v.s == s)
+    assert(v.b == u.b and v.i == u.i and v.s == u.s)
     assert(v == u)
   ]=])
 end)
