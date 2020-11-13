@@ -267,8 +267,8 @@ end
 typevisitors[types.PointerType] = function(context, type)
   local decemitter = CEmitter(context, 0)
   local index = nil
-  if type.subtype.is_record and not type.subtype.nodecl and not context.declarations[type.subtype.codename] then
-    -- offset declaration of pointers before records
+  if type.subtype.is_composite and not type.subtype.nodecl and not context.declarations[type.subtype.codename] then
+    -- offset declaration of pointers before records/unions
     index = #context.declarations+2
   end
   if type.subtype.is_array and type.subtype.length == 0 then
@@ -282,13 +282,14 @@ typevisitors[types.PointerType] = function(context, type)
   table.insert(context.declarations, index, decemitter:generate())
 end
 
-typevisitors[types.RecordType] = function(context, type)
+local function typevisitor_CompositeType(context, type)
   local decemitter = CEmitter(context, 0)
-  decemitter:add_ln('typedef struct ', type.codename, ' ', type.codename, ';')
+  local kindname = type.is_record and 'struct' or 'union'
+  decemitter:add_ln('typedef ',kindname,' ', type.codename, ' ', type.codename, ';')
   table.insert(context.declarations, decemitter:generate())
   local defemitter = CEmitter(context, 0)
   --if #type.fields > 0 then
-    defemitter:add('struct ', type.codename)
+    defemitter:add(kindname, ' ', type.codename)
     defemitter:add_ln(' {')
     for _,field in ipairs(type.fields) do
       local fieldctype
@@ -311,6 +312,9 @@ typevisitors[types.RecordType] = function(context, type)
                     ', "Nelua and C disagree on type size");')
   table.insert(context.declarations, defemitter:generate())
 end
+
+typevisitors[types.RecordType] = typevisitor_CompositeType
+typevisitors[types.UnionType] = typevisitor_CompositeType
 
 typevisitors[types.EnumType] = function(context, type)
   local decemitter = CEmitter(context, 0)
@@ -416,7 +420,7 @@ function visitors.Table(context, node, emitter)
   local attr = node.attr
   local childnodes, type = node[1], attr.type
   local len = #childnodes
-  if len == 0 and (type.is_record or type.is_array) then
+  if len == 0 and (type.is_composite or type.is_array) then
     if not context.state.ininitializer then
       emitter:add_ctypecast(type)
     end
@@ -473,7 +477,7 @@ end
 function visitors.Pair(context, node, emitter)
   local namenode, valuenode = node:args()
   local parenttype = node.parenttype
-  if parenttype and parenttype.is_record then
+  if parenttype and parenttype.is_composite then
     assert(traits.is_string(namenode))
     emitter:add('.', cdefs.quotename(namenode), ' = ')
     create_variable(context, emitter, valuenode.attr.type, valuenode)
@@ -789,7 +793,7 @@ function visitors.DotIndex(context, node, emitter)
   local objtype = objnode.attr.type
   local poparray = false
   if type.is_array then
-    if objtype:implict_deref_type().is_record and context.state.inarrayindex == node then
+    if objtype:implict_deref_type().is_composite and context.state.inarrayindex == node then
        context.state.recordindexed = node
     elseif not attr.globalfield then
       emitter:add('(*(', type, '*)')
@@ -801,7 +805,7 @@ function visitors.DotIndex(context, node, emitter)
     if objtype.is_enum then
       local field = objtype.fields[name]
       emitter:add_numeric_literal(field, objtype.subtype)
-    elseif objtype.is_record then
+    elseif objtype.is_composite then
       if attr.comptime then
         emitter:add_literal(attr)
       else

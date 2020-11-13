@@ -1742,6 +1742,7 @@ end)
 
 it("forward type declaration", function()
   assert.analyze_ast("local R <forwarddecl> = @record{}; R = @record{}; local S = @record{r: R}")
+  assert.analyze_ast("local U <forwarddecl> = @union{}; U = @union{i: integer, n: number}; local S = @record{u: U}")
   assert.analyze_error("local R <forwarddecl> = @record{}; local S = @record{r: R}",
     "cannot be of forward declared type")
   assert.analyze_error("local R <forwarddecl> = @record{}; local A = @[4]R",
@@ -1751,6 +1752,8 @@ it("forward type declaration", function()
   assert.analyze_error("local R <forwarddecl> = @record{}; local function f(x: R) end",
     "cannot be of forward declared type")
   assert.analyze_error("local R <forwarddecl> = @record{}; local function f(): R end",
+    "cannot be of forward declared type")
+  assert.analyze_error("local U <forwarddecl> = @union{}; local V = @union{u: U}",
     "cannot be of forward declared type")
 end)
 
@@ -1768,7 +1771,16 @@ it("using annotation", function()
 end)
 
 it("union type", function()
-  assert.analyze_error("local Variant = @union{integer,number}", "not implemented yet")
+  assert.analyze_ast([[local Union = @union{integer,number}; local a: Union]])
+  assert.analyze_ast([[local u: union {b: boolean, i: integer}; u.b = true]])
+  assert.analyze_error([[
+    local u: union{b: boolean, i: integer}
+    local v: union{b: boolean, n: number}
+    u = v
+  ]], "no viable type conversion")
+  assert.analyze_error([[
+    local U = @union{t: type, i: integer}
+  ]], "cannot be of compile-time type")
 end)
 
 it("variant type", function()
@@ -1776,7 +1788,7 @@ it("variant type", function()
 end)
 
 it("optional type", function()
-  assert.analyze_error("local Variant = @?integer", "not implemented yet")
+  assert.analyze_error("local OptionalInt = @?integer", "not implemented yet")
 end)
 
 end)

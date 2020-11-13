@@ -641,10 +641,10 @@ function visitors.RecordType(context, node, symbol)
     assert(recordtype.forwarddecl)
     recordtype.forwarddecl = nil -- not forward decl anymore
     assert(recordtype.is_record)
+    recordtype.node = node
   else
     recordtype = types.RecordType({}, node)
   end
-  recordtype.node = node
   attr.type = primtypes.type
   attr.value = recordtype
   if symbol and not symbol.value then
@@ -660,8 +660,37 @@ function visitors.RecordType(context, node, symbol)
   node.done = true
 end
 
-function visitors.UnionType(_, node)
-  node:raisef("union type not implemented yet")
+function visitors.UnionFieldType(context, node, uniontype)
+  local attr = node.attr
+  local name, typenode = node[1], node[2]
+  context:traverse_node(typenode)
+  local typeattr = typenode.attr
+  attr.type = typeattr.type
+  attr.value = typeattr.value
+  uniontype:add_field(name, typeattr.value)
+  node.done = true
+end
+
+function visitors.UnionType(context, node, symbol)
+  local attr = node.attr
+  local uniontype
+  if symbol and symbol.value then
+    uniontype = symbol.value
+    assert(uniontype.forwarddecl)
+    uniontype.forwarddecl = nil -- not forward decl anymore
+    assert(uniontype.is_union)
+    uniontype.node = node
+  else
+    uniontype = types.UnionType({}, node)
+  end
+  local fieldnodes = node[1]
+  for i=1,#fieldnodes do
+    local fnode = fieldnodes[i]
+    context:traverse_node(fnode, uniontype)
+  end
+  attr.type = primtypes.type
+  attr.value = uniontype
+  node.done = true
 end
 
 function visitors.VariantType(_, node)
@@ -1239,12 +1268,12 @@ function visitors.CallMethod(context, node)
   visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)
 end
 
-local function visitor_Record_FieldIndex(_, node, objtype, name)
+local function visitor_Composite_FieldIndex(_, node, objtype, name)
   local attr = node.attr
   local field = objtype.fields[name]
   local type = field and field.type
   if not type then
-    node:raisef("cannot index field '%s' on record '%s'", name, objtype)
+    node:raisef("cannot index field '%s' on value of type '%s'", name, objtype)
   end
   attr.type = type
   node.checked = true
@@ -1333,8 +1362,8 @@ local function visitor_FieldIndex(context, node)
   local ret
   if objtype then
     objtype = objtype:implict_deref_type()
-    if objtype.is_record then
-      ret = visitor_Record_FieldIndex(context, node, objtype, name)
+    if objtype.is_composite then
+      ret = visitor_Composite_FieldIndex(context, node, objtype, name)
     elseif objtype.is_type then
       ret = visitor_Type_FieldIndex(context, node, objattr.value, name)
     elseif objtype.is_table or objtype.is_any then

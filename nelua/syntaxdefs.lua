@@ -514,23 +514,15 @@ local function get_parser()
     record_type <- ({} %TRECORD -> 'RecordType' %LCURLY
         {| (record_field (%SEPARATOR record_field)* %SEPARATOR?)? |}
       eRCURLY {}) -> to_astnode
-    record_field <- ({} '' -> 'RecordFieldType'
-       name eCOLON etypexpr
-      {}) -> to_astnode
+    record_field <- ({} '' -> 'RecordFieldType' name eCOLON etypexpr {}) -> to_astnode
 
     union_type <- ({} %TUNION -> 'UnionType' %LCURLY
-        {| (
-            (union_field %SEPARATOR union_field / %{ExpectedUnionFieldType})
-            (%SEPARATOR union_field)* %SEPARATOR?)?
-        |}
+        {| (union_field (%SEPARATOR union_field)* %SEPARATOR?)? |}
       eRCURLY {}) -> to_astnode
     union_field <- (({} '' -> 'UnionFieldType' name %COLON etypexpr {}) -> to_astnode / typexpr)
 
     variant_type <- ({} %TVARIANT -> 'VariantType' %LCURLY
-        {| (
-            (variant_field %SEPARATOR variant_field / %{ExpectedVariantFieldType})
-            (%SEPARATOR variant_field)* %SEPARATOR?)?
-        |}
+        {| (variant_field (%SEPARATOR variant_field)* %SEPARATOR?)? |}
       eRCURLY {}) -> to_astnode
     variant_field <- (({} '' -> 'VariantFieldType' name %COLON etypexpr {}) -> to_astnode / typexpr)
 
@@ -683,8 +675,6 @@ local function get_parser()
     ExpectedTypeExpression = "expected a type expression",
     ExpectedCall = "expected call",
     ExpectedEnumFieldType = "expected at least one field in enum",
-    ExpectedUnionFieldType = "expected at least two fields in union",
-    ExpectedVariantFieldType = "expected at least two fields in variant",
     ExpectedPrimitiveTypeExpression = "expected a primitive type expression",
     ExpectedCase = "expected `case` keyword"
   })

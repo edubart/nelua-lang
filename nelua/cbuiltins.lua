@@ -450,7 +450,7 @@ end
 function builtins.nelua_eq_(context, ltype, rtype)
   if not rtype then
     local type = ltype
-    assert(type.is_record)
+    assert(type.is_composite)
     local name = string.format('nelua_eq_%s', type.codename)
     if context.usedbuiltins[name] then return name end
     local ctype = context:ctype(type)
@@ -463,7 +463,7 @@ function builtins.nelua_eq_(context, ltype, rtype)
         if i > 1 then
           defemitter:add(' && ')
         end
-        if field.type.is_record then
+        if field.type.is_composite then
           local op = context:ensure_runtime_builtin('nelua_eq_', field.type)
           defemitter:add(op, '(a.', field.name, ', b.', field.name, ')')
         elseif field.type.is_array then
@@ -823,7 +823,7 @@ function operators.eq(_, emitter, lnode, rnode, lname, rname)
     emitter:add(', ')
     emitter:add_val2type(primtypes.stringview, rname, rtype)
     emitter:add(')')
-  elseif ltype.is_record or rtype.is_record then
+  elseif ltype.is_composite or rtype.is_composite then
     if ltype == rtype then
       local op = emitter.context:ensure_runtime_builtin('nelua_eq_', ltype)
       emitter:add(op, '(', lname, ', ', rname, ')')
@@ -864,7 +864,7 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
     emitter:add(', ')
     emitter:add_val2type(primtypes.stringview, rname, rtype)
     emitter:add(')')
-  elseif ltype.is_record then
+  elseif ltype.is_composite then
     if ltype == rtype then
       local op = emitter.context:ensure_runtime_builtin('nelua_eq_', ltype)
       emitter:add('!', op, '(', lname, ', ', rname, ')')

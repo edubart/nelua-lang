@@ -110,6 +110,8 @@ Type.shape = shaper.shape {
   is_procedure = shaper.optional_boolean,
   -- Whether the type is not addressable in memory (e.g. type, concept, ...)
   is_unpointable = shaper.optional_boolean,
+  -- Weather the type is composed by fields (record or union).
+  is_composite = shaper.optional_boolean,
 
   -- Booleans for checking the underlying type (arithmetic types),
   is_float32 = shaper.optional_boolean,
@@ -140,6 +142,7 @@ Type.shape = shaper.shape {
   is_pointer = shaper.optional_boolean,
   is_polyfunction = shaper.optional_boolean,
   is_record = shaper.optional_boolean,
+  is_union = shaper.optional_boolean,
   is_stringview = shaper.optional_boolean,
   is_table = shaper.optional_boolean,
   is_type = shaper.optional_boolean,
@@ -1422,7 +1425,7 @@ EnumType.shape = shaper.fork_shape(IntegralType.shape, {
   fields = shaper.array_of(shaper.shape{
     -- Name of the field.
     name = shaper.string,
-    -- Index of the field in the enum, the first index is always 1 not 0.
+    -- Index of the field in the enum, the first index is always 1.
     index = shaper.integer,
     -- The field value.
     value = shaper.integral,
@@ -1701,13 +1704,14 @@ end
 local RecordType = types.typeclass()
 types.RecordType = RecordType
 RecordType.is_record = true
+RecordType.is_composite =  true
 
 RecordType.shape = shaper.fork_shape(Type.shape, {
   -- Field in the record.
   fields = shaper.array_of(shaper.shape{
     -- Name of the field.
     name = shaper.string,
-    -- Index of the field in the record, the first index is always 1 not 0.
+    -- Index of the field in the record, the first index is always 1.
     index = shaper.integer,
     -- Offset of the field in the record in bytes, always properly aligned.
     offset = shaper.integer,
@@ -1816,11 +1820,6 @@ function RecordType:get_field(name) --luacov:disable
   return self.fields[name]
 end --luacov:enable
 
--- Checks if this type equals to another type.
-function RecordType:is_equal(type)
-  return type.id == self.id -- they are only really equal when the typeid matches
-end
-
 -- Checks if this type can be represented as a contiguous array of the subtype.
 function RecordType:is_contiguous_of(subtype)
   if self.is_contiguous then
@@ -1885,6 +1884,98 @@ end
 -- Return description for type as a string.
 function RecordType:typedesc()
   local ss = sstream('record{')
+  for i,field in ipairs(self.fields) do
+    if i > 1 then ss:add(', ') end
+    ss:add(field.name, ': ', field.type)
+  end
+  ss:add('}')
+  return ss:tostring()
+end
+
+--------------------------------------------------------------------------------
+-- Union Type
+--
+-- Union are defined by a structure of fields using the same address,
+-- they really are unions from C.
+
+local UnionType = types.typeclass()
+types.UnionType = UnionType
+UnionType.is_union = true
+UnionType.is_composite =  true
+
+UnionType.shape = shaper.fork_shape(Type.shape, {
+  -- Field in the union.
+  fields = shaper.array_of(shaper.shape{
+    -- Name of the field.
+    name = shaper.string,
+    -- Index of the field in the union, the first index is always 1.
+    index = shaper.integer,
+    -- Type of the field.
+    type = shaper.type,
+  })
+})
+
+function UnionType:_init(fields, node)
+  if not self.codename then
+    self.codename = types.gencodename('union', node)
+  end
+  self.node = node
+  Type._init(self, self.name or 'union', 0)
+
+  -- compute this union size and align according to the fields
+  self.fields = fields or {}
+  self:update_fields()
+end
+
+-- Update the union size, alignment and field offsets.
+-- Called when changing any field at compile time.
+function UnionType:update_fields()
+  local fields = self.fields
+  local size, align = 0, 0
+  if #fields > 0 then
+    -- compute fields offset and union align
+    for i=1,#fields do
+      local field = fields[i]
+      local fieldtype = field.type
+
+      -- validate field
+      if fieldtype.forwarddecl then
+        ASTNode.raisef(self.node, "union field '%s' cannot be of forward declared type '%s'",
+          field.name, fieldtype)
+      elseif fieldtype.is_comptime then
+        ASTNode.raisef(self.node, "union field '%s' cannot be of compile-time type '%s'",
+          field.name, fieldtype)
+      end
+
+      field.index = i
+      fields[field.name] = field
+      size = math.max(size, fieldtype.size)
+      align = math.max(align, fieldtype.align)
+    end
+  end
+  self.size = size
+  self.bitsize = size * 8
+  self.align = align
+end
+
+-- Add a field to the union.
+function UnionType:add_field(name, type, index)
+  local fields = self.fields
+  local field = {name = name, type = type}
+  if not index then -- append a new field
+    index = #fields + 1
+    fields[index] = field
+  else -- insert a new field at index
+    table.insert(fields, index, field)
+  end
+  self:update_fields()
+end
+
+UnionType.has_pointer = RecordType.has_pointer
+
+-- Return description for type as a string.
+function UnionType:typedesc()
+  local ss = sstream('union{')
   for i,field in ipairs(self.fields) do
     if i > 1 then ss:add(', ') end
     ss:add(field.name, ': ', field.type)

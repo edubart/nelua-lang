@@ -186,8 +186,11 @@ it("inject fields", function()
   assert.ast_type_equals([[
     local R = @record{x: integer, z: integer}
     ## R.value:add_field('y', primtypes.integer, 2)
+    local U = @union{b: boolean, i: integer}
+    ## U.value:add_field('n', primtypes.number, 2)
   ]], [[
     local R = @record{x: integer, y: integer, z: integer}
+    local U = @union{b: boolean, y: number, i: integer}
   ]])
 end)
 

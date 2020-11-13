@@ -2933,6 +2933,31 @@ it("forward type declaration", function()
     assert(entity.level.n == 1)
     level.n = 2
     assert(entity.level.n == 2)
+
+    local Union <forwarddecl> = @union{}
+    local Union = @union{i: integer, n: number}
+  ]=])
+end)
+
+it("unions", function()
+  assert.run_c([=[
+    local Union = @union{
+      b: boolean,
+      i: int64,
+      s: cstring
+    }
+    local u: Union
+    assert(u.b == false and u.i == 0 and u.s == nilptr)
+    u.b = true
+    assert(u.b == true and u.i ~= 0 and u.s ~= nilptr)
+    u.i = 15
+    assert(u.b == true and u.i == 15 and u.s ~= nilptr)
+    local s: cstring = 'hello'_cstring
+    u.s = s
+    assert(u.b == true and u.i == (@int64)(s) and u.s == s)
+    local v = u
+    assert(v.b == true and v.i == (@int64)(s) and v.s == s)
+    assert(v == u)
   ]=])
 end)
 
