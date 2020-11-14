@@ -50,12 +50,14 @@ end
 
 local pool: resourcepool(*FILE, GeneralAllocator)
 
--- free the pool on exit
-local function free_pool() pool:destroy() end
-atexit(free_pool)
+-- destroy the pool on exit
+local function destroy_pool() pool:destroy() end
+atexit(destroy_pool)
 
 function filestream._from_fp(fp: *FILE): filestream
-  return filestream{id = pool:allocinit(fp)}
+  local id, pfp = pool:acquire()
+  $pfp = fp
+  return filestream{id = id}
 end
 
 function filestream:_get_fp(): *FILE
@@ -100,7 +102,7 @@ function filestream:close(): (boolean, stringview, integer)
     return false, 'cannot close standard file', -1
   end
   local res: cint = fclose(fp)
-  pool:free(self.id)
+  pool:release(self.id)
   return fileresult(res == 0)
 end
 
@@ -262,7 +264,7 @@ function filestream:lines(fmt: overload(integer,stringview,niltype))
 end
 
 function filestream:isopen(): boolean
-  return pool:has(self.id)
+  return pool:get(self.id) ~= nilptr
 end
 
 function filestream:__tostring(): string

@@ -63,13 +63,6 @@
   end
   ## end
 
-  -- Resets span pointer and size to zeros.
-  -- Does not deallocate or change the span data.
-  function spanT:reset() <inline,nosideeffect>
-    self.data = nilptr
-    self.size = 0
-  end
-
   ## return spanT
 ## end)
 

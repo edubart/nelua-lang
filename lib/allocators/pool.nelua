@@ -15,7 +15,7 @@
 
 require 'allocators.interface'
 
-## local make_pool_allocator = generalize(function(T, SIZE, error_on_failure)
+## local make_pool_allocator = generalize(function(T, SIZE)
   ##[[
   static_assert(traits.is_type(T), 'PoolAllocator: T must be a type')
   local CHUNK_SIZE = T.size
@@ -53,9 +53,6 @@ require 'allocators.interface'
 
   function PoolAllocatorT:alloc(size: usize): pointer
     if unlikely(size > #PoolChunk) then
-      ## if error_on_failure then
-        error('PoolAllocator.alloc: attempt to allocate a size greater than chunk size')
-      ## end
       return nilptr
     end
     -- get the latest free node
@@ -68,9 +65,6 @@ require 'allocators.interface'
         node = self.head
       else
         -- out of memory
-        ## if error_on_failure then
-          error('PoolAllocator.alloc: out of memory')
-        ## end
         return nilptr
       end
     end
@@ -98,9 +92,6 @@ require 'allocators.interface'
       self:dealloc(p)
       return nilptr
     elseif unlikely(newsize > #PoolChunk) then
-      ## if error_on_failure then
-        error('PoolAllocator.realloc: attempt to allocate a size greater than chunk size')
-      ## end
       return nilptr
     else
       return p

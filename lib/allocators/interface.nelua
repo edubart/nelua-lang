@@ -14,6 +14,17 @@ require 'span'
   local is_span = #[concept(function(x) return x.type.is_span end)]#
   local Allocator = #[Allocator]#
 
+  ## if not Allocator.value.metafields.alloc0 then
+  -- naive implementation for alloc0
+  function Allocator:alloc0(size: usize): pointer
+    local p: pointer = self:alloc(size)
+    if likely(p ~= nilptr and size ~= 0) then
+      memset(p, 0, size)
+    end
+    return p
+  end
+  ## end
+
   ## if not Allocator.value.metafields.realloc then
   -- naive implementation for realloc
   function Allocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
@@ -41,17 +52,6 @@ require 'span'
       end
       return newp
     end
-  end
-  ## end
-
-  ## if not Allocator.value.metafields.alloc0 then
-  -- naive implementation for alloc0
-  function Allocator:alloc0(size: usize): pointer
-    local p: pointer = self:alloc(size)
-    if likely(p ~= nilptr and size ~= 0) then
-      memset(p, 0, size)
-    end
-    return p
   end
   ## end
 
@@ -129,11 +129,11 @@ require 'span'
     ## if what.type.is_type then
     local T: type = what
     local spn: span(T) = self:spanalloc0(T, size)
-    check(spn.size > 0, 'Allocator.spannew: out of memory')
+    assert(spn.size == size, 'out of memory')
     ## else
     local T = #[what.type]#
     local spn: span(T) = self:spanalloc(T, size)
-    check(spn.size > 0, 'Allocator.spannew: out of memory')
+    assert(spn.size == size, 'out of memory')
     for i:usize=0,<size do
       memcpy(&spn[i], &what, #T)
     end
@@ -147,11 +147,11 @@ require 'span'
     ## if what.type.is_type then
     local T: type = what
     local ptr: *T = (@*T)(self:alloc0(#T))
-    check(ptr ~= nilptr, 'Allocator.new: out of memory')
+    assert(ptr ~= nilptr, 'out of memory')
     ## else
     local T: type = #[what.type]#
     local ptr: *T = (@*T)(self:alloc(#T))
-    check(ptr ~= nilptr, 'Allocator.new: out of memory')
+    assert(ptr ~= nilptr, 'out of memory')
     memcpy(ptr, &what, #T)
     ## end
     return ptr
@@ -170,4 +170,53 @@ require 'span'
   end
   ## end
 
+  -- Checked allocation wrappers.
+
+  function Allocator:xalloc(size: usize): pointer <inline>
+    local p: pointer = self:alloc(size)
+    assert(p ~= nilptr, 'out of memory')
+    return p
+  end
+
+  function Allocator:xalloc0(size: usize): pointer <inline>
+    local p: pointer = self:alloc0(size)
+    assert(p ~= nilptr, 'out of memory')
+    return p
+  end
+
+  function Allocator:xrealloc(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+    local p: pointer = self:realloc(p, newsize, oldsize)
+    assert(p ~= nilptr, 'out of memory')
+    return p
+  end
+
+  function Allocator:xrealloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+    local p: pointer = self:realloc0(p, newsize, oldsize)
+    assert(p ~= nilptr, 'out of memory')
+    return p
+  end
+
+  function Allocator:spanxalloc(T: type, size: usize) <inline>
+    local s: span(T) = self:spanalloc(T, size)
+    assert(s.size == size, 'out of memory')
+    return s
+  end
+
+  function Allocator:spanxalloc0(T: type, size: usize) <inline>
+    local s: span(T) = self:spanalloc0(T, size)
+    assert(s.size == size, 'out of memory')
+    return s
+  end
+
+  function Allocator:spanxrealloc(s: is_span, size: usize) <inline>
+    s = self:spanrealloc(s, size)
+    assert(s.size == size, 'out of memory')
+    return s
+  end
+
+  function Allocator:spanxrealloc0(s: is_span, size: usize) <inline>
+    s = self:spanrealloc0(s, size)
+    assert(s.size == size, 'out of memory')
+    return s
+  end
 ## end

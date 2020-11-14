@@ -11,38 +11,48 @@ assert(pool:get(1) == nilptr)
 
 pool:reserve(3)
 assert(pool.items.size == 4)
-id, p = pool:alloc()
+id, p = pool:acquire()
 assert(id == 1 and $p == 0 and pool:get(1) == p)
+assert(pool:count() == 1)
 $p = 3
 assert($p == 3)
 
-id, p = pool:alloc()
+id, p = pool:acquire()
 assert(id == 2 and $p == 0 and pool:get(2) == p)
+assert(pool:count() == 2)
 
-pool:free(1)
+pool:release(1)
 assert(pool:get(1) == nilptr)
+assert(pool:count() == 1)
 
-id, p = pool:alloc()
+id, p = pool:acquire()
 assert(id >> SLOT_SHIFT == 1 and id & SLOT_MASK == 1 and $p == 0 and pool:get(id) == p)
+assert(pool:count() == 2)
 $p = 4
 assert($p == 4)
 
-pool:free(id)
+pool:release(id)
 assert(pool:get(id) == nilptr)
+assert(pool:count() == 1)
 
-id, p = pool:alloc()
+id, p = pool:acquire()
 assert(id >> SLOT_SHIFT == 2 and id & SLOT_MASK == 1 and $p == 0 and pool:get(id) == p)
+assert(pool:count() == 2)
 
-id, p = pool:alloc()
+id, p = pool:acquire()
 assert(id == 3 and $p == 0 and pool:get(3) == p)
+assert(pool:count() == 3)
 
 pool:reserve(5)
 assert(pool.items.size == 6)
 
-id, p = pool:alloc()
+id, p = pool:acquire()
 assert(id == 4 and $p == 0 and pool:get(4) == p)
+assert(pool:count() == 4)
 
-id, p = pool:alloc()
+id, p = pool:acquire()
 assert(id == 5 and $p == 0 and pool:get(5) == p)
+assert(pool:count() == 5)
 
 pool:destroy()
+assert(pool:count() == 0)

@@ -93,7 +93,6 @@ function GC:_get_ptr(ptr: pointer): *GCItem
 end
 
 function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: pointer, rehash: boolean)
-  assert(self.nslots > 0)
   local i: usize = self:_hash(ptr) % self.nslots
   local item: GCItem = {
     ptr = ptr,
@@ -626,16 +625,15 @@ function GCAllocator:spannew(what: auto, size: usize) <inline>
 
     ## if what.type.is_type then
     spn.data = (@*[0]T)(gc:alloc0_opt(size * #T, flags, (@pointer)(finalizer)))
-    spn.size = size
-    check(spn.size > 0, 'GCAllocator.spannew: out of memory')
+    assert(spn.data ~= nilptr, 'out of memory')
     ## else
     spn.data = (@*[0]T)(gc:alloc_opt(size * #T, flags, (@pointer)(finalizer)))
-    spn.size = size
-    check(spn.size > 0, 'GCAllocator.spannew: out of memory')
+    assert(spn.data ~= nilptr, 'out of memory')
     for i:usize=0,<size do
-      memcpy(&spn[i], &what, #T)
+      memcpy(&spn.data[i], &what, #T)
     end
     ## end
+    spn.size = size
   end
   return spn
 end
@@ -658,10 +656,10 @@ function GCAllocator:new(what: auto) <inline>
   local ptr: *T <noinit>
   ## if what.type.is_type then
   ptr = (@*T)(gc:alloc0_opt(#T, flags, (@pointer)(finalizer)))
-  check(ptr ~= nilptr, 'GCAllocator.new: out of memory')
+  assert(ptr ~= nilptr, 'out of memory')
   ## else
   ptr = (@*T)(gc:alloc_opt(#T, flags, (@pointer)(finalizer)))
-  check(ptr ~= nilptr, 'GCAllocator.new: out of memory')
+  assert(ptr ~= nilptr, 'out of memory')
   memcpy(ptr, &what, #T)
   ## end
   return ptr

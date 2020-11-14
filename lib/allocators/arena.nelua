@@ -22,8 +22,6 @@
 -- on some system for example the stack is limited to 1MB.
 --
 -- By default allocations are aligned to 8 bytes unless explicit told otherwise.
--- By default when there is not enough space a nil pointer is returned on allocations,
--- this can be changed to runtime errors by setting `error_on_failure` to true.
 -- Remember to use the proper alignment for the allocated objects to have fast memory access.
 --
 -- The implementation is based on
@@ -37,7 +35,7 @@ end
 
 local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 
-## local make_arena_allocator = generalize(function(SIZE, ALIGN, error_on_failure)
+## local make_arena_allocator = generalize(function(SIZE, ALIGN)
   ## ALIGN = ALIGN or 8
   ## static_assert(SIZE % ALIGN == 0, 'ArenaAllocator: size must be multiple of align')
   ## static_assert(ALIGN & (ALIGN-1) == 0, 'ArenaAllocator: align must be a power of two')
@@ -61,9 +59,6 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
     local offset: usize = align_forward(base + self.curr_offset, ALIGN) - base
     local next_offset: usize = offset + size
     if unlikely(next_offset > SIZE) then
-      ## if error_on_failure then
-        error('ArenaAllocator.alloc: out of memory')
-      ## end
       return nilptr
     end
     local p: pointer = &self.buffer[offset]
@@ -97,9 +92,6 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
       -- we can just update the offset here to grow or shrink
       local next_offset: usize = offset + newsize
       if unlikely(next_offset > SIZE) then
-        ## if error_on_failure then
-          error('ArenaAllocator.realloc: out of memory')
-        ## end
         return nilptr
       end
       self.curr_offset = next_offset

@@ -48,8 +48,7 @@ function string._create(size: usize): string
   local self: string
   check(size > 0, 'string._create: attempt to create an empty string')
   self.size = size
-  self.data = (@*[0]byte)(string_allocator:alloc(size+1))
-  check(self.data ~= nilptr, 'string._create: out of memory')
+  self.data = (@*[0]byte)(string_allocator:xalloc(size+1))
   self.data[size] = 0
   return self
 end
@@ -66,8 +65,7 @@ function stringbuilder:promotestring(): string
     return (@string){}
   end
   local size: usize = self.size
-  local data: span(byte) = self.allocator:spanrealloc(self.data, size + 1) -- shrink
-  check(data.size == size + 1, 'stringbuilder.promotestring: out of memory')
+  local data: span(byte) = self.allocator:spanxrealloc(self.data, size + 1) -- shrink
   data[size] = 0 -- cstring line ending
   $self = {} -- destroy
   return (@string){data = data.data, size = size}
@@ -226,8 +224,6 @@ global function tostring(x: auto): string
   ## else static_error("tostring: cannot convert type '%s' to a string", x.type) end
 end
 
-local MAX_FORMAT <comptime> = 32
-
 function string.format(fmt: stringview, arg1: auto): string
   local sb: stringbuilder
   sb:write_format(fmt, arg1)
@@ -238,8 +234,10 @@ end
 local string_coercion_concept = #[concept(function(x)
   if x.type.is_stringy then
     return primtypes.stringview
-  elseif x.type.is_arithmetic then
-    return true
+  elseif x.type.is_integral then
+    return primtypes.integer
+  elseif x.type.is_float then
+    return primtypes.number
   end
 end)]#
 

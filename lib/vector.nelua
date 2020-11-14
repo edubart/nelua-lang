@@ -37,7 +37,7 @@ require 'iterators'
     local cap: usize = 1
     if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
     self.data = self.allocator:spanrealloc0(self.data, cap)
-    check(self.data.size == cap, 'vector._grow: out of memory')
+    assert(self.data.size == cap, 'vector._grow: out of memory')
   end
 
   -- Create a vector using a custom allocator instance.
@@ -68,7 +68,7 @@ require 'iterators'
   function vectorT:reserve(n: usize)
     if likely(self.data.size >= n) then return end
     self.data = self.allocator:spanrealloc0(self.data, n)
-    check(self.data.size == n, 'vector.reserve: out of memory')
+    assert(self.data.size == n, 'vector.reserve: out of memory')
   end
 
   -- Resizes the vector so that it contains `n` elements.
@@ -86,8 +86,8 @@ require 'iterators'
   function vectorT:copy(): vectorT
     local clone: vectorT
     if self.size > 0 then
-      clone.data = self.allocator:spanalloc(@T, self.data.size)
-      check(clone.data.size == self.data.size, 'vector.copy: out of memory')
+      clone.data = self.allocator:spanxalloc(@T, self.data.size)
+      assert(clone.data.size == self.data.size, 'vector.copy: out of memory')
       memory.spancopy(clone.data, self.data)
       clone.size = self.size
     end

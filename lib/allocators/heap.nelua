@@ -404,7 +404,7 @@ function Heap:realloc(p: pointer, size: usize)
   return p
 end
 
-## local make_heap_allocator = generalize(function(HEAP_SIZE, error_on_failure)
+## local make_heap_allocator = generalize(function(HEAP_SIZE)
   ## static_assert(traits.is_number(HEAP_SIZE), 'HeapAllocator: size must be a number')
 
   local HEAP_SIZE: usize <comptime> = #[HEAP_SIZE]#
@@ -426,9 +426,6 @@ end
   function HeapAllocatorT:alloc(size: usize)
     if unlikely(not self.initialized) then self:init() end
     local p: pointer = self.heap:alloc(size)
-    ## if error_on_failure then
-      assert(p ~= nilptr or size == 0, 'HeapAllocator.alloc: out of memory')
-    ## end
     return p
   end
 
@@ -442,9 +439,6 @@ end
       return p
     end
     p = self.heap:realloc(p, newsize)
-    ## if error_on_failure then
-      assert(p ~= nilptr, 'HeapAllocator.realloc: out of memory')
-    ## end
     return p
   end
 
