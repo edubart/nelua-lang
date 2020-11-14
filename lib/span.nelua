@@ -58,14 +58,14 @@
   end
 
   ## if T.is_integral and T.bitsize == 8 then
-  function spanT:__tostringview()
+  function spanT:__tostringview() <inline,nosideeffect>
     return (@stringview){data=(@*[0]byte)(self.data), size=self.size}
   end
   ## end
 
   -- Resets span pointer and size to zeros.
   -- Does not deallocate or change the span data.
-  function spanT:reset()
+  function spanT:reset() <inline,nosideeffect>
     self.data = nilptr
     self.size = 0
   end

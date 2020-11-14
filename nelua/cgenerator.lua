@@ -435,6 +435,7 @@ function visitors.Table(context, node, emitter)
       local compactemit = false
       if #childnodes == #type.fields then
         compactemit = true
+        local hascall = false
         for _,childnode in ipairs(childnodes) do
           local childvalnode
           if childnode.tag  == 'Pair' then
@@ -443,37 +444,58 @@ function visitors.Table(context, node, emitter)
             childvalnode = childnode
           end
           local childvaltype = childvalnode.attr.type
-          if childvaltype.is_array then
+          local iscall = childnode.tag:match('^Call')
+          if childvaltype.is_array or (hascall and iscall) then
             compactemit = false
             break
           end
+          if iscall then hascall = true end
         end
       end
       if compactemit then
-        emitter:add('(',type,'){', childnodes, '}')
+        emitter:add('(',type,'){')
       else
         emitter:add_ln('({')
         emitter:inc_indent()
         emitter:add_indent(type, ' __rec = ')
         emitter:add_zeroinit(type)
         emitter:add_ln(';')
-        for _,childnode in ipairs(childnodes) do
-          local fieldname = childnode.fieldname
-          local childvalnode
-          if childnode.tag  == 'Pair' then
-            childvalnode = childnode[2]
-          else
-            childvalnode = childnode
+      end
+      for i,childnode in ipairs(childnodes) do
+        local fieldname = childnode.fieldname
+        local named = false
+        local childvalnode
+        if childnode.tag == 'Pair' then
+          childvalnode = childnode[2]
+          named = true
+        else
+          childvalnode = childnode
+        end
+        local childvaltype = childvalnode.attr.type
+        if compactemit then
+          if i > 1 then
+            emitter:add(', ')
           end
-          local childvaltype = childvalnode.attr.type
+          if named then
+            emitter:add('.', fieldname, ' = ')
+          end
+        else
           if childvaltype.is_array then
             emitter:add_indent('(*(', childvaltype, '*)__rec.', fieldname, ') = ')
           else
             emitter:add_indent('__rec.', fieldname, ' = ')
           end
-          create_variable(context, emitter, childvaltype,  childvalnode)
+        end
+        local fieldtype = type.fields[fieldname].type
+        assert(fieldtype)
+        create_variable(context, emitter, fieldtype, childvalnode, childvaltype)
+        if not compactemit then
           emitter:add_ln(';')
         end
+      end
+      if compactemit then
+        emitter:add('}')
+      else
         emitter:add_indent_ln('__rec;')
         emitter:dec_indent()
         emitter:add_indent('})')
@@ -501,7 +523,8 @@ function visitors.Pair(context, node, emitter)
   if parenttype and parenttype.is_composite then
     assert(traits.is_string(namenode))
     emitter:add('.', cdefs.quotename(namenode), ' = ')
-    create_variable(context, emitter, valuenode.attr.type, valuenode)
+    local fieldtype = parenttype.fields[namenode].type
+    create_variable(context, emitter, fieldtype, valuenode, valuenode.attr.type)
   else --luacov:disable
     error('not implemented yet')
   end --luacov:enable
