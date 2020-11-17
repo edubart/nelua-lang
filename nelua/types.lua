@@ -122,11 +122,26 @@ Type.shape = shaper.shape {
   is_int32 = shaper.optional_boolean,
   is_int64 = shaper.optional_boolean,
   is_int128 = shaper.optional_boolean,
+  is_isize = shaper.optional_boolean,
   is_uint8 = shaper.optional_boolean,
   is_uint16 = shaper.optional_boolean,
   is_uint32 = shaper.optional_boolean,
   is_uint64 = shaper.optional_boolean,
   is_uint128 = shaper.optional_boolean,
+  is_usize = shaper.optional_boolean,
+  is_cschar = shaper.optional_boolean,
+  is_cshort = shaper.optional_boolean,
+  is_cint = shaper.optional_boolean,
+  is_clong = shaper.optional_boolean,
+  is_clonglong = shaper.optional_boolean,
+  is_cptrdiff = shaper.optional_boolean,
+  is_cchar = shaper.optional_boolean,
+  is_cuchar = shaper.optional_boolean,
+  is_cushort = shaper.optional_boolean,
+  is_cuint = shaper.optional_boolean,
+  is_culong = shaper.optional_boolean,
+  is_culonglong = shaper.optional_boolean,
+  is_csize = shaper.optional_boolean,
 
   -- Booleans for checking the underlying type (primitive types).
   is_any = shaper.optional_boolean,
@@ -159,6 +174,7 @@ Type.shape = shaper.shape {
   is_vector = shaper.optional_boolean,
   is_sequence = shaper.optional_boolean,
   is_filestream = shaper.optional_boolean,
+  is_time_t = shaper.optional_boolean,
 
   -- TODO: remove this, because it was deprecated
   is_copyable = shaper.optional_boolean,
@@ -875,13 +891,13 @@ function IntegralType:_init(name, size, is_unsigned)
     self.min =  bn.zero()
     self.max =  (bn.one() << self.bitsize) - 1
     self.is_unsigned = true
-    self['is_uint'..self.bitsize] = true
   else -- signed
     self.min = -(bn.one() << self.bitsize) // 2
     self.max = ((bn.one() << self.bitsize) // 2) - 1
     self.is_signed = true
-    self['is_int'..self.bitsize] = true
   end
+
+  self['is_'..self.name] = true
 end
 
 -- Return unsigned integral version of this type.

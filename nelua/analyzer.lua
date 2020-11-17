@@ -2522,7 +2522,7 @@ function visitors.UnaryOp(context, node)
   local attr = node.attr
   local opname, argnode = node[1], node[2]
 
-  if node.desiredtype == primtypes.boolean or opname == 'not' then
+  if node.desiredtype and node.desiredtype.is_boolean or opname == 'not' then
     argnode.desiredtype = primtypes.boolean
   end
   context:traverse_node(argnode)
@@ -2634,7 +2634,7 @@ function visitors.BinaryOp(context, node)
   local isbinaryconditional = isor or opname == 'and'
 
   local wantsboolean
-  if isbinaryconditional and node.desiredtype == primtypes.boolean then
+  if isbinaryconditional and node.desiredtype and node.desiredtype.is_boolean then
     lnode.desiredtype = primtypes.boolean
     rnode.desiredtype = primtypes.boolean
     wantsboolean =  true

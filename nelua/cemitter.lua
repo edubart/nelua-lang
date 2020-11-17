@@ -94,8 +94,9 @@ end
 
 function CEmitter:add_val2boolean(val, valtype)
   valtype = valtype or val.attr.type
-  assert(not valtype.is_boolean)
-  if valtype.is_any then
+  if valtype.is_boolean then
+    self:add(val)
+  elseif valtype.is_any then
     self:add_builtin('nlany_to_', typedefs.primtypes.boolean)
     self:add('(', val, ')')
   elseif valtype.is_niltype or valtype.is_nilptr then
