@@ -1,0 +1,128 @@
+require 'list'
+require 'iterators'
+
+-----------------------------------------------------------------------
+-- tests
+do
+  local l: list(integer)
+  assert(#l == 0 and l:empty())
+  l:append(1)    assert(l.head.value == 1) assert(l.tail.value == 1)
+  assert(#l == 1 and not l:empty())
+  l:append(2)    assert(l.head.value == 1) assert(l.tail.value == 2)
+  l:prepend(3)   assert(l.head.value == 3) assert(l.tail.value == 2)
+  assert(#l == 3)
+  assert(l:find(1) and l:find(2) and l:find(3))
+  assert(not l:find(0))
+  l:clear()
+  assert(not l.head and not l.tail)
+  assert(l:empty())
+end
+
+do -- erase
+  local l: list(integer)
+  l:append(1)
+  assert(l:erase(l.tail) == nilptr)
+  assert(l:empty())
+
+  l:append(1)
+  assert(l:erase(l.head) == nilptr)
+  assert(l:empty())
+
+  l:append(1) l:append(2)
+  assert(l:erase(l.head) == l.tail)
+  l:clear()
+
+  l:append(1) l:append(2)
+  assert(l:erase(l.tail) == nilptr)
+  l:clear()
+
+  l:append(1) l:append(2) l:append(3)
+  local it = l.head.next
+  assert(it.value == 2)
+  assert(l:erase(it) == l.tail)
+  assert(l:erase(l.head) == l.tail)
+  assert(l:erase(l.tail) == nilptr)
+  assert(l:empty())
+end
+
+do -- find
+  local l: list(integer)
+  l:append(1) l:append(2) l:append(3)
+  assert(l:find(1) == l.head)
+  assert(l:find(2) == l.head.next and l:find(2) == l.tail.prev)
+  assert(l:find(3) == l.tail)
+  l:clear()
+  assert(l:empty())
+end
+
+do -- remove_last
+  local l: list(integer)
+  l:append(1) l:append(2) l:append(3)
+  l:remove_last()
+  assert(l.tail.value == 2)
+  assert(l.head.value == 1)
+  assert(l.tail.next == nilptr and l.head.prev == nilptr)
+  l:remove_last()
+  assert(l.tail.value == 1)
+  assert(l.head.value == 1)
+  assert(l.tail.next == nilptr and l.head.prev == nilptr)
+  l:remove_last()
+  assert(l:empty())
+end
+
+do -- remove_first
+  local l: list(integer)
+  l:append(1) l:append(2) l:append(3)
+  l:remove_first()
+  assert(l.tail.value == 3)
+  assert(l.head.value == 2)
+  assert(l.tail.next == nilptr and l.head.prev == nilptr)
+  l:remove_first()
+  assert(l.tail.value == 3)
+  assert(l.head.value == 3)
+  assert(l.tail.next == nilptr and l.head.prev == nilptr)
+  l:remove_first()
+  assert(l:empty())
+end
+
+do -- next/mnext
+  local l: list(integer)
+  l:append(1) l:append(2) l:append(3)
+  local ok, key, value = next(l, nilptr)
+  assert(ok == true and key ~= nilptr and value == 1)
+  ok, key, value = next(l, key)
+  assert(ok == true and key ~= nilptr and value == 2)
+  ok, key, value = next(l, key)
+  assert(ok == true and key ~= nilptr and value == 3)
+  ok, key, value = next(l, key)
+  assert(ok == false and key == nilptr and value == 0)
+  l:clear()
+end
+
+do -- pairs/mpairs
+  local l: list(integer)
+  l:append(1) l:append(2) l:append(3)
+  local count = 1
+  for _,v in pairs(l) do
+    assert(v == count)
+    count = count + 1
+  end
+  count = 1
+  for _,v in mpairs(l) do
+    $v = $v + 1
+  end
+  count = 2
+  for _,v in pairs(l) do
+    assert(v == count)
+    count = count + 1
+  end
+  l:clear()
+end
+
+require 'allocators.general'
+do -- custom allocator
+  local l: list(integer, GeneralAllocator)
+  l:append(1) l:append(2) l:append(3)
+  -- assert(#l == 3 and l[0] == 1 and l[1] == 2 and l[2] == 3)
+  l:destroy()
+end

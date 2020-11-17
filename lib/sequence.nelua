@@ -33,6 +33,7 @@ require 'iterators'
   ##[[
   local sequenceT = sequenceT.value
   sequenceT.is_contiguous = true
+  sequenceT.is_container = true
   sequenceT.is_sequence = true
   sequenceT.is_oneindexing = true -- used in 'ipairs'
   sequenceT.subtype = T

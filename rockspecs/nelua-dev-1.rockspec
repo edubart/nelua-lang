@@ -127,6 +127,7 @@ build = {
       ['lib/basic.nelua']          = 'lib/basic.nelua',
       ['lib/io.nelua']             = 'lib/io.nelua',
       ['lib/iterators.nelua']      = 'lib/iterators.nelua',
+      ['lib/list.nelua']           = 'lib/list.nelua',
       ['lib/math.nelua']           = 'lib/math.nelua',
       ['lib/memory.nelua']         = 'lib/memory.nelua',
       ['lib/sequence.nelua']       = 'lib/sequence.nelua',

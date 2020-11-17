@@ -90,6 +90,8 @@ Type.shape = shaper.shape {
   is_stringy = shaper.optional_boolean,
   -- Whether the type represents a contiguous buffer (e.g. arrays, spans and vector in the lib).
   is_contiguous = shaper.optional_boolean,
+  -- Whether the type represents a container buffer (e.g. arrays, spans, vector and list in the lib).
+  is_container = shaper.optional_boolean,
   -- Weather the type uses 1-based indexing (e.g. sequence and table).
   is_oneindexing = shaper.optional_boolean,
   -- Whether the type is a compile time type (e.g concepts, generics)
@@ -1361,6 +1363,7 @@ local ArrayType = types.typeclass()
 types.ArrayType = ArrayType
 ArrayType.is_array = true
 ArrayType.is_contiguous = true
+ArrayType.is_container = true
 
 ArrayType.shape = shaper.fork_shape(Type.shape, {
   -- Fixed length for the array.

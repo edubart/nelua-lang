@@ -5,7 +5,7 @@
 -- At the moment this should not be passed as value, only as reference.
 --
 -- By default it uses the garbage collector unless explicitly told not to do so,
--- thus by default there is no need to manually reset the vector.
+-- thus by default there is no need to manually destroy the vector.
 
 require 'memory'
 require 'iterators'
@@ -28,6 +28,7 @@ require 'iterators'
   ##[[
   local vectorT = vectorT.value
   vectorT.is_contiguous = true
+  vectorT.is_container = true
   vectorT.is_vector = true
   vectorT.subtype = T
   vectorT.choose_braces_type = function(nodes) return types.ArrayType(T, #nodes) end
@@ -50,9 +51,7 @@ require 'iterators'
 
   -- Removes all elements from the vector.
   function vectorT:clear()
-    for i:usize=0,<self.size do
-      self.data[i] = (@T)()
-    end
+    memory.spanzero(self.data)
     self.size = 0
   end
 

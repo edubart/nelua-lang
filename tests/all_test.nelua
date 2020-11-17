@@ -50,6 +50,10 @@ print('testing vector_test... ')
 require 'tests.vector_test'
 print 'OK!'
 
+print('testing list_test... ')
+require 'tests.list_test'
+print 'OK!'
+
 print('testing defer_test... ')
 require 'tests.defer_test'
 print 'OK!'

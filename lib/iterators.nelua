@@ -1,21 +1,35 @@
 -- Include this file to get the globals "pairs", "ipairs" and "next",
 -- to be used with when iterating with "for in".
 
--- Concept used to pass containers by reference.
-local list_reference_concept = #[concept(function(x)
+##[[
+local function container_type_by_reference(xtype)
   local reftype
   local containertype
-  if x.type.is_pointer then
-    reftype = x.type
+  if xtype.is_pointer then
+    reftype = xtype
     containertype = reftype.subtype
-  elseif x.type.is_span or x.type.is_sequence then
-    reftype = x.type
+  elseif xtype.is_span or xtype.is_sequence then
+    reftype = xtype
     containertype = reftype
   else
-    containertype = x.type
+    containertype = xtype
     reftype = types.PointerType(containertype)
   end
+  return containertype, reftype
+end
+]]
+-- Concept used to pass contiguous containers by reference.
+local contiguous_reference_concept = #[concept(function(x)
+  local containertype, reftype = container_type_by_reference(x.type)
   if containertype.is_contiguous then
+    return reftype
+  end
+end)]#
+
+-- Concept used to pass containers by reference.
+local container_reference_concept = #[concept(function(x)
+  local containertype, reftype = container_type_by_reference(x.type)
+  if containertype.is_container then
     return reftype
   end
 end)]#
@@ -38,36 +52,60 @@ end)]#
   return true, index, &list[index]
 ## end
 
--- Use with "for in" to iterate lists.
-global function ipairs(list: list_reference_concept) <inline>
-  ## local listvaltype = list.type:implict_deref_type()
+-- Use with "for in" to iterate contiguous containers.
+global function ipairs(list: contiguous_reference_concept) <inline>
+  ## local listtype = list.type:implict_deref_type()
   local function ipairs_next(list: #[list.type]#, index: integer) <inline>
-    ## impl_ipairs_next(listvaltype)
+    ## impl_ipairs_next(listtype)
   end
-  return ipairs_next, list, #[listvaltype.is_oneindexing and 0 or -1]#
+  return ipairs_next, list, #[listtype.is_oneindexing and 0 or -1]#
 end
 
 -- Like `ipairs` but yields reference to elements so that you can modify.
-global function mipairs(list: list_reference_concept) <inline>
-  ## local listvaltype = list.type:implict_deref_type()
+global function mipairs(list: contiguous_reference_concept) <inline>
+  ## local listtype = list.type:implict_deref_type()
   local function mipairs_next(list: #[list.type]#, index: integer) <inline>
-    ## impl_mipairs_next(listvaltype)
+    ## impl_mipairs_next(listtype)
   end
-  return mipairs_next, list, #[listvaltype.is_oneindexing and 0 or -1]#
+  return mipairs_next, list, #[listtype.is_oneindexing and 0 or -1]#
 end
 
 -- Get the next element from a container.
-global function next(list: list_reference_concept,
-                     index: facultative(integer))
-  ## impl_ipairs_next(list.type:implict_deref_type())
+global function next(list: container_reference_concept, index: auto) <inline>
+  ## local listtype = list.type:implict_deref_type()
+  ## if listtype.metafields.__next then
+    return list:__next(index)
+  ## else
+    ## impl_ipairs_next(list.type:implict_deref_type())
+  ## end
 end
 
 -- Like `next` but returns reference to elements so that you can modify.
-global function mnext(list: list_reference_concept,
-                     index: facultative(integer))
+global function mnext(list: contiguous_reference_concept, index: auto) <inline>
+  ## local listtype = list.type:implict_deref_type()
+  ## if listtype.metafields.__next then
+    return list:__mnext(index)
+  ## else
   ## impl_mipairs_next(list.type:implict_deref_type())
+  ## end
 end
 
--- at the moment pairs only works like ipairs
-global pairs: auto = ipairs
-global mpairs: auto = mipairs
+-- Use with "for in" to iterate containers.
+global function pairs(list: container_reference_concept) <inline>
+  ## local listtype = list.type:implict_deref_type()
+  ## if listtype.metafields.__pairs then
+    return list:__pairs()
+  ## else
+    return ipairs(list)
+  ## end
+end
+
+-- Like `pairs` but yields reference to elements so that you can modify.
+global function mpairs(list: container_reference_concept) <inline>
+  ## local listtype = list.type:implict_deref_type()
+  ## if listtype.metafields.__mpairs then
+    return list:__mpairs()
+  ## else
+    return mipairs(list)
+  ## end
+end

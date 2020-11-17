@@ -20,6 +20,7 @@
 
   ##[[
   spanT.value.is_contiguous = true
+  spanT.value.is_container = true
   spanT.value.is_span = true
   spanT.value.subtype = T
   ]]
