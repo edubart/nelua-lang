@@ -9,12 +9,12 @@
 
 ## local make_generic_list_node = generalize(function(T)
   local T: type = @#[T]#
-  local listnodeT: type <nickname #[string.format('listnode(%s)',T)]#> = @record {
-    prev: *listnodeT,
-    next: *listnodeT,
+  local list_nodeT: type <nickname #[string.format('list_node(%s)',T)]#> = @record {
+    prev: *list_nodeT,
+    next: *list_nodeT,
     value: T
   }
-  ## return listnodeT
+  ## return list_nodeT
 ## end)
 
 global list_node: type = #[make_generic_list_node]#
@@ -28,11 +28,11 @@ global list_node: type = #[make_generic_list_node]#
 
   local Allocator: type = #[Allocator]#
   local T: type = @#[T]#
-  local listnodeT: type = @list_node(T)
+  local list_nodeT: type = @list_node(T)
 
   local listT <nickname #[string.format('list(%s)',T)]#> = @record{
-    head: *listnodeT, -- list begin
-    tail: *listnodeT, -- list end
+    head: *list_nodeT, -- list begin
+    tail: *list_nodeT, -- list end
     allocator: Allocator
   }
 
@@ -43,8 +43,8 @@ global list_node: type = #[make_generic_list_node]#
   listT.subtype = T
   ]]
 
-  function listT:_new_node(prev: *listnodeT, next: *listnodeT, value: T): *listnodeT <inline>
-    local node: *listnodeT = self.allocator:new(@listnodeT)
+  function listT:_new_node(prev: *list_nodeT, next: *list_nodeT, value: T): *list_nodeT <inline>
+    local node: *list_nodeT = self.allocator:new(@list_nodeT)
     node.prev = prev
     node.next = next
     node.value = value
@@ -62,9 +62,9 @@ global list_node: type = #[make_generic_list_node]#
   -- Remove all elements from the list.
   -- O(n) complexity.
   function listT:clear()
-    local it: *listnodeT = self.head
+    local it: *list_nodeT = self.head
     while it do
-      local next: *listnodeT = it.next
+      local next: *list_nodeT = it.next
       self.allocator:delete(it)
       it = next
     end
@@ -82,7 +82,7 @@ global list_node: type = #[make_generic_list_node]#
   -- Insert an element at beginning of the list.
   -- O(1) complexity.
   function listT:prepend(value: T)
-    local node: *listnodeT = self:_new_node(nilptr, self.head, value)
+    local node: *list_nodeT = self:_new_node(nilptr, self.head, value)
     if likely(self.head) then
       self.head.prev = node
     end
@@ -95,7 +95,7 @@ global list_node: type = #[make_generic_list_node]#
   -- Add an element at the end of the list.
   -- O(1) complexity.
   function listT:append(value: T)
-    local node: *listnodeT = self:_new_node(self.tail, nilptr, value)
+    local node: *list_nodeT = self:_new_node(self.tail, nilptr, value)
     if likely(self.tail) then
       self.tail.next = node
     end
@@ -107,8 +107,8 @@ global list_node: type = #[make_generic_list_node]#
 
   -- Find an element in the list, returning it's node reference when found.
   -- O(n) complexity.
-  function listT:find(value: T): *listnodeT
-    local it: *listnodeT = self.head
+  function listT:find(value: T): *list_nodeT
+    local it: *list_nodeT = self.head
     while it do
       if it.value == value then
         return it
@@ -120,7 +120,7 @@ global list_node: type = #[make_generic_list_node]#
 
   -- Erase an element where from the list.
   -- O(1) complexity.
-  function listT:erase(node: *listnodeT): *listnodeT
+  function listT:erase(node: *list_nodeT): *list_nodeT
     check(node ~= nilptr, 'listT.erase: attempt to erase a nilptr node')
     if node == self.head then
       self.head = node.next
@@ -134,7 +134,7 @@ global list_node: type = #[make_generic_list_node]#
     if node.next then
       node.next.prev = node.prev
     end
-    local next: *listnodeT = node.next
+    local next: *list_nodeT = node.next
     self.allocator:delete(node)
     return next
   end
@@ -143,7 +143,7 @@ global list_node: type = #[make_generic_list_node]#
   -- O(1) complexity.
   function listT:remove_first()
     check(self.head ~= nilptr, 'list.remove_first: list is empty')
-    local node: *listnodeT = self.head
+    local node: *list_nodeT = self.head
     self.head = node.next
     if likely(self.head) then
       self.head.prev = nilptr
@@ -158,7 +158,7 @@ global list_node: type = #[make_generic_list_node]#
   -- O(1) complexity.
   function listT:remove_last()
     check(self.tail ~= nilptr, 'list.remove_first: list is empty')
-    local node: *listnodeT = self.tail
+    local node: *list_nodeT = self.tail
     self.tail = node.prev
     if likely(self.tail) then
       self.tail.next = nilptr
@@ -178,7 +178,7 @@ global list_node: type = #[make_generic_list_node]#
   -- O(n) complexity.
   function listT:__len(): isize
     local count: isize = 0
-    local it: *listnodeT = self.head
+    local it: *list_nodeT = self.head
     while it do
       count = count + 1
       it = it.next
@@ -188,8 +188,8 @@ global list_node: type = #[make_generic_list_node]#
 
   -- Returns the next node of the list and its element.
   -- Used with pairs() iterator.
-  function listT:__next(node: *listnodeT): (boolean, *listnodeT, T) <inline>
-    local nextnode: *listnodeT
+  function listT:__next(node: *list_nodeT): (boolean, *list_nodeT, T) <inline>
+    local nextnode: *list_nodeT
     if unlikely(node == nilptr) then
       nextnode = self.head
     else
@@ -203,8 +203,8 @@ global list_node: type = #[make_generic_list_node]#
 
   -- Returns the next node of the list and its element by reference.
   -- Used with pairs() iterator.
-  function listT:__mnext(node: *listnodeT): (boolean, *listnodeT, *T) <inline>
-    local nextnode: *listnodeT
+  function listT:__mnext(node: *list_nodeT): (boolean, *list_nodeT, *T) <inline>
+    local nextnode: *list_nodeT
     if unlikely(node == nilptr) then
       nextnode = self.head
     else
