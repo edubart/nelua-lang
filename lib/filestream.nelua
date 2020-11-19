@@ -55,7 +55,7 @@ local function destroy_pool() pool:destroy() end
 atexit(destroy_pool)
 
 function filestream._from_fp(fp: *FILE): filestream
-  local id, pfp = pool:acquire()
+  local id: uint64, pfp: **FILE  = pool:acquire()
   $pfp = fp
   return filestream{id = id}
 end

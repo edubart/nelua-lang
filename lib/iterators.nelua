@@ -73,7 +73,7 @@ end
 -- Get the next element from a container.
 global function next(list: container_reference_concept, index: auto) <inline>
   ## local listtype = list.type:implict_deref_type()
-  ## if listtype.metafields.__next then
+  ## if listtype.is_record and listtype.metafields.__next then
     return list:__next(index)
   ## else
     ## impl_ipairs_next(list.type:implict_deref_type())
@@ -83,7 +83,7 @@ end
 -- Like `next` but returns reference to elements so that you can modify.
 global function mnext(list: contiguous_reference_concept, index: auto) <inline>
   ## local listtype = list.type:implict_deref_type()
-  ## if listtype.metafields.__next then
+  ## if listtype.is_record and listtype.metafields.__next then
     return list:__mnext(index)
   ## else
   ## impl_mipairs_next(list.type:implict_deref_type())
@@ -93,7 +93,7 @@ end
 -- Use with "for in" to iterate containers.
 global function pairs(list: container_reference_concept) <inline>
   ## local listtype = list.type:implict_deref_type()
-  ## if listtype.metafields.__pairs then
+  ## if listtype.is_record and listtype.metafields.__pairs then
     return list:__pairs()
   ## else
     return ipairs(list)
@@ -103,7 +103,7 @@ end
 -- Like `pairs` but yields reference to elements so that you can modify.
 global function mpairs(list: container_reference_concept) <inline>
   ## local listtype = list.type:implict_deref_type()
-  ## if listtype.metafields.__mpairs then
+  ## if listtype.is_record and listtype.metafields.__mpairs then
     return list:__mpairs()
   ## else
     return mipairs(list)

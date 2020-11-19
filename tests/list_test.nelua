@@ -121,7 +121,7 @@ end
 
 require 'allocators.general'
 do -- custom allocator
-  local l: list(integer, GeneralAllocator)
+  local l: list(integer, GeneralAllocator) = (@list(integer, GeneralAllocator)).make(general_allocator)
   l:append(1) l:append(2) l:append(3)
   -- assert(#l == 3 and l[0] == 1 and l[1] == 2 and l[2] == 3)
   l:destroy()

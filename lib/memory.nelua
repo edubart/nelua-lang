@@ -106,12 +106,16 @@ function memory.spanmove(dest: is_span, src: is_span) <inline>
   end
 end
 
-function memory.spanset(dest: is_span, x: auto)
+function memory.spanset(dest: is_span, x: auto) <inline>
   ## check_span_subtype_match(dest, x)
   local T: type = #[x.type]#
-  for i:usize=0,<dest.size do
-    memcpy(&dest[i], &x, #T)
-  end
+  ## if x.type.is_integral and x.bitsize == 8 then
+    memset(dest.data, (@byte)(x), dest.size)
+  ## else
+    for i:usize=0,<dest.size do
+      memcpy(&dest[i], &x, #T)
+    end
+  ## end
 end
 
 function memory.spanzero(dest: is_span) <inline>

@@ -216,12 +216,12 @@ global list_node: type = #[make_generic_list_node]#
     return true, nextnode, &nextnode.value
   end
 
-  -- Allow using pairs() iterator with the list.
+  -- Allow using pairs() to iterate the container.
   function listT:__pairs() <inline>
     return listT.__next, self, nilptr
   end
 
-  -- Allow using pairs() iterator with the list.
+  -- Allow using mpairs() to iterate the container.
   function listT:__mpairs() <inline>
     return listT.__mnext, self, nilptr
   end

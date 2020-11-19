@@ -75,9 +75,6 @@ require 'iterators'
   -- When shrinking removed elements are destroyed.
   function vectorT:resize(n: usize)
     self:reserve(n)
-    for i:usize=n,<self.size do
-      self.data[i] = (@T)()
-    end
     self.size = n
   end
 
