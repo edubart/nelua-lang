@@ -1,0 +1,68 @@
+-- Hash module
+--
+-- This module contains the hash() and hash_combine() functions,
+-- they are used by some containers such as hash map to generate hash for values.
+
+require 'span'
+
+-- This is the same simple hash function used in Lua.
+global function lhash(data: *[0]byte, len: usize, seed: usize, step: usize): usize <inline>
+  seed = seed ~ len
+  while len >= step do
+    seed = seed ~ ((seed << 5) + (seed >> 2) + data[len - 1])
+    len = len - step
+  end
+  return seed
+end
+
+-- This is the hash function taken from Lua for short strings.
+global function lhash_short(data: span(byte)): usize
+  return lhash(data.data, data.size, 0x9e3779b9_usize, 1)
+end
+
+-- This is the hash function taken from Lua for long strings.
+global function lhash_long(data: span(byte)): usize
+  -- limit up to 32 iterations evenly spaced
+  return lhash(data.data, data.size, 0x9e3779b9_usize, (data.size >> 5) + 1)
+end
+
+-- Hash combine function, algorithm taken from (C++ boost).
+global function hash_combine(seed: usize, value: usize): usize <inline,nosideeffect>
+  return seed ~ (value + 0x9e3779b9_usize + (seed<<6) + (seed>>2))
+end
+
+-- Hash function that can be used generally to hash any value.
+-- To customize a hash for a specific type you can define __hash metamethod on it.
+global function hash(x: auto): usize
+  ## if x.type.is_pointer then
+    if x == nilptr then
+      return 0
+    end
+  ## end
+
+  ## local type = x.type:implict_deref_type()
+  ## if type.is_integral or type.is_pointer then
+    return (@usize)(x)
+  ## elseif type.is_float then
+    local u: union{n: #[type]#, h: usize} <noinit>
+    u.n = x
+    return u.h
+  ## elseif type.is_boolean then
+    if x then return 1 else return 0 end
+  ## elseif type.is_stringview or type.is_string then
+    return lhash_long({data=x.data, size=x.size})
+  ## elseif type.is_span then
+    local T: type = #[type.subtype]#
+    return lhash_long({data=(@*[0]byte)(x.data), size=(@usize)(#T * #x)})
+  ## elseif type.is_record and type.metafields.__hash then
+    return x:__hash()
+  ## elseif type.is_record then
+    local h: usize = 0
+    ## for _,field in ipairs(type.fields) do -- hash all fields
+      h = hash_combine(h, hash(x.#|field.name|#))
+    ## end
+    return h
+  ## elseif type.is_nilptr or type.is_niltype then
+    return 0
+  ## else static_error("hash: cannot hash type '%s'", type) end
+end

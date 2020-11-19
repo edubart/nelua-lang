@@ -174,8 +174,9 @@ Type.shape = shaper.shape {
   is_string = shaper.optional_boolean,
   is_span = shaper.optional_boolean,
   is_vector = shaper.optional_boolean,
-  is_list = shaper.optional_boolean,
   is_sequence = shaper.optional_boolean,
+  is_list = shaper.optional_boolean,
+  is_hashmap = shaper.optional_boolean,
   is_filestream = shaper.optional_boolean,
   is_time_t = shaper.optional_boolean,
 

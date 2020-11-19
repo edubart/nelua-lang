@@ -850,12 +850,17 @@ function visitors.GenericType(context, node)
     local argnode = argnodes[i]
     context:traverse_node(argnode)
     local argattr = argnode.attr
-    if not (argattr.comptime or argattr.type.is_comptime) then
+    if not (argattr.comptime or argattr.type.is_comptime or
+            (argattr.type.is_function and argattr._symbol and argattr.staticstorage)) then
       node:raisef("in generic evaluation '%s': argument #%d isn't a compile time value", name, i)
     end
     local value = argattr.value
     if bn.isnumeric(value) then
       value = bn.tonumber(value)
+    elseif argattr.type.is_function then
+      value = argattr
+    elseif argattr.type.is_niltype then
+      value = nil
     elseif not (traits.is_type(value) or
                 traits.is_string(value) or
                 traits.is_boolean(value) or

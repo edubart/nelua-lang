@@ -1,0 +1,43 @@
+require 'hash'
+
+do -- hash primitive types
+  assert(hash(0) == 0)
+  assert(hash(1) == 1)
+  assert(hash(0.0) == 0)
+  assert(hash(1.0) ~= 1)
+  assert(hash(true) == 1)
+  assert(hash(false) == 0)
+  assert(hash(nilptr) == 0)
+  assert(hash(nil) == 0)
+end
+
+do -- hash strings
+  assert(hash('') == 0x9e3779b9_usize)
+  assert(hash('test') ~= 0)
+end
+
+do -- hash records
+  local vec2 = @record{x: integer, y: integer}
+  local a: vec2 = {0,0}
+  local b: vec2 = {1,0}
+  assert(hash(a) ~= 0 and hash(b) ~= 0)
+  assert(hash(a) ~= hash(b))
+  assert(hash(a) == hash(&a))
+  assert(hash(b) == hash(&b))
+end
+
+do -- hash records with custom hash function
+  local vec3 = @record{x: integer, y: integer, z: integer}
+  function vec3:__hash(): usize
+    return (@usize)(self.x + self.y * 0xff + self.z * 0xffff)
+  end
+
+  local v: vec3
+  assert(hash(v) == 0)
+  assert(hash(v) == hash(&v))
+  v = {1,1,1}
+  assert(hash(v) == 1 + 0xff + 0xffff)
+
+  local pv: *vec3
+  assert(hash(pv) == 0)
+end

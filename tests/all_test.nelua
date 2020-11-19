@@ -54,6 +54,14 @@ print('testing list_test... ')
 require 'tests.list_test'
 print 'OK!'
 
+print('testing hash_test... ')
+require 'tests.hash_test'
+print 'OK!'
+
+print('testing hashmap_test... ')
+require 'tests.hashmap_test'
+print 'OK!'
+
 print('testing defer_test... ')
 require 'tests.defer_test'
 print 'OK!'
