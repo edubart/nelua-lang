@@ -11,6 +11,7 @@ local config = require 'nelua.configer'.get()
 local stringer = require 'nelua.utils.stringer'
 local memoize = require 'nelua.utils.memoize'
 local bn = require 'nelua.utils.bn'
+local ccompiler = require 'nelua.ccompiler'
 
 local traverse_node = VisitorContext.traverse_node
 local function pp_default_visitor(self, node, emitter, ...)
@@ -149,6 +150,9 @@ function preprocessor.preprocess(context, ast)
     traits = traits,
     primtypes = primtypes
   }
+  if context.generator == 'c' then
+    ppenv.ccinfo = ccompiler.get_cc_info()
+  end
   local function concept(f)
     local type = types.ConceptType(f)
     type.node = context:get_current_node()

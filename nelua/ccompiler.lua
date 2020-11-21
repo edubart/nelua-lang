@@ -76,6 +76,7 @@ local function get_cc_info(cc)
   ccinfo.is_emscripten = text:match('Emscripten') ~= nil
   if ccinfo.target then
     ccinfo.is_windows = ccinfo.target:match('windows') or ccinfo.target:match('mingw')
+    ccinfo.is_linux = ccinfo.target:match('linux')
   end
   return ccinfo
 end
