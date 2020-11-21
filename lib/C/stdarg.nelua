@@ -2,13 +2,13 @@ require 'C'
 
 ## cinclude '<stdarg.h>'
 
-global va_list <cimport, nodecl> = @record{}
+global va_list <cimport, nodecl> = @record{dummy: cint}
 
 function C.va_start(ap: va_list, paramN: auto) <cimport'va_start',nodecl> end
 function C.va_end(ap: va_list) <cimport'va_end',nodecl> end
 
-function C.va_arg(ap: va_list, T: type) <inline>
+function C.va_arg(ap: *va_list, T: type) <inline>
   local arg: T <noinit>
-  ## cemit(function(emitter) emitter:add_indent_ln('arg = va_arg(ap, ', T.value, ');') end)
+  ## cemit(function(emitter) emitter:add_indent_ln('arg = va_arg(*ap, ', T.value, ');') end)
   return arg
 end

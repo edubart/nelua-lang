@@ -40,7 +40,7 @@ global function hash(x: auto): usize
     end
   ## end
 
-  ## local type = x.type:implict_deref_type()
+  ## local type = x.type
   ## if type.is_integral or type.is_pointer then
     return (@usize)(x)
   ## elseif type.is_float then

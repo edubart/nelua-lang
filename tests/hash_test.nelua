@@ -22,8 +22,6 @@ do -- hash records
   local b: vec2 = {1,0}
   assert(hash(a) ~= 0 and hash(b) ~= 0)
   assert(hash(a) ~= hash(b))
-  assert(hash(a) == hash(&a))
-  assert(hash(b) == hash(&b))
 end
 
 do -- hash records with custom hash function
@@ -34,7 +32,6 @@ do -- hash records with custom hash function
 
   local v: vec3
   assert(hash(v) == 0)
-  assert(hash(v) == hash(&v))
   v = {1,1,1}
   assert(hash(v) == 1 + 0xff + 0xffff)
 
