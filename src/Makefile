@@ -4,18 +4,14 @@ DEFS=-DNDEBUG
 CFLAGS=-Wall -O2 -fno-plt -fno-stack-protector -flto
 LDFLAGS=-s
 LIBS=-lm
-SRCS=lua/onelua.c rpmalloc/rpmalloc.c lfs.c sys.c hasher.c lpeglabel/*.c
+SRCS=lua/onelua.c lfs.c sys.c hasher.c lpeglabel/*.c
 HDRS=lua/*.h lpeglabel/*.h
 EXE=nelua-lua
 RM=rm -f
 PREFIX=/usr/local
 
 ## Tune some values for the Lua interpreter
-DEFS+=-DLUA_COMPAT_5_3 -DLUAI_MAXCSTACK=16384 -DLUA_USE_RPMALLOC
-
-## Tune rpmalloc
-DEFS+=-DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
-
+DEFS+=-DLUA_COMPAT_5_3 -DLUAI_MAXCSTACK=16384
 
 ## Host system detection.
 SYS:=$(shell uname -s)
@@ -28,6 +24,14 @@ endif
 
 ## Install path
 DEFS+=-DLUA_ROOT='"$(PREFIX)/"'
+
+ifndef NO_RPMALLOC
+	## Enable rpmalloc
+	DEFS+=-DLUA_USE_RPMALLOC
+	SRCS+=rpmalloc/rpmalloc.c
+	## Tune rpmalloc
+	DEFS+=-DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
+endif
 
 ## Setup flags for the host system.
 ifeq ($(SYS), Linux)
