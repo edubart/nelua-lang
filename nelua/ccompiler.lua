@@ -73,11 +73,21 @@ local function get_cc_info(cc)
     exe = cc,
     text = text,
   }
+  -- platform information
   ccinfo.is_emscripten = text:match('Emscripten') ~= nil
   if ccinfo.target then
     ccinfo.is_windows = ccinfo.target:match('windows') or ccinfo.target:match('mingw')
     ccinfo.is_linux = ccinfo.target:match('linux')
+  else -- probably TCC compiler, or other?
+    --luacov:disable
+    ccinfo.is_linux = text:lower():match('linux') and true or false
+    ccinfo.is_windows = text:lower():match('windows') and true or false
+     --luacov:enable
   end
+  -- C compiler information
+  ccinfo.is_tcc = ccinfo.name:lower() == 'tcc'
+  ccinfo.is_gcc = ccinfo.name:lower() == 'gcc'
+  ccinfo.is_clang = ccinfo.name:lower() == 'clang'
   return ccinfo
 end
 get_cc_info = memoize(get_cc_info)
