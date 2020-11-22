@@ -11,7 +11,7 @@ RM=rm -f
 PREFIX=/usr/local
 
 ## Tune some values for the Lua interpreter
-DEFS+=-DLUA_COMPAT_5_3 -DLUAI_MAXCSTACK=16384
+DEFS+=-DLUA_COMPAT_5_3
 
 ## Host system detection.
 SYS:=$(shell uname -s)

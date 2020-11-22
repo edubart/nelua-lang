@@ -416,14 +416,18 @@ static int handle_luainit (lua_State *L) {
 
 
 /*
-** Returns the string to be used as a prompt by the interpreter.
+** Return the string to be used as a prompt by the interpreter. Leave
+** the string (or nil, if using the default value) on the stack, to keep
+** it anchored.
 */
 static const char *get_prompt (lua_State *L, int firstline) {
-  const char *p;
-  lua_getglobal(L, firstline ? "_PROMPT" : "_PROMPT2");
-  p = lua_tostring(L, -1);
-  if (p == NULL) p = (firstline ? LUA_PROMPT : LUA_PROMPT2);
-  return p;
+  if (lua_getglobal(L, firstline ? "_PROMPT" : "_PROMPT2") == LUA_TNIL)
+    return (firstline ? LUA_PROMPT : LUA_PROMPT2);  /* use the default */
+  else {  /* apply 'tostring' over the value */
+    const char *p = luaL_tolstring(L, -1, NULL);
+    lua_remove(L, -2);  /* remove original value */
+    return p;
+  }
 }
 
 /* mark in error messages for incomplete statements */
@@ -646,12 +650,8 @@ static void *L_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
 static lua_State *newstate (void) {
   lua_State *L = lua_newstate(L_alloc, NULL);
   if (L) {
-    int *warnstate;  /* space for warning state */
     lua_atpanic(L, &panic);
-    warnstate = (int *)lua_newuserdatauv(L, sizeof(int), 0);
-    luaL_ref(L, LUA_REGISTRYINDEX);  /* make sure it won't be collected */
-    *warnstate = 0;  /* default is warnings off */
-    lua_setwarnf(L, warnf, warnstate);
+    lua_setwarnf(L, warnfoff, L);  /* default is warnings off */
   }
   return L;
 }
