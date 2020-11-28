@@ -327,14 +327,15 @@ This page is under construction and very incomplete.
 | Variable Name | Description |
 |---------------|------|
 | `vector(T)`{:.language-nelua} | Generic vector type expression. |
-| `vectorT.size: usize`{:.language-nelua} | Number of elements in the vector. |
 | `vectorT.data: span(T)`{:.language-nelua} | Elements storage of the vector. |
+| `vectorT.size: usize`{:.language-nelua} | Number of elements in the vector. |
 | `vectorT.allocator: Allocator`{:.language-nelua} | Allocator of the vector. |
 | `vectorT.make(allocator)`{:.language-nelua} | Create a vector using a custom allocator instance. |
 | `vectorT:clear()`{:.language-nelua} | Removes all elements from the vector. |
 | `vectorT:destroy()`{:.language-nelua} | Resets the vector to zeroed state, freeing all used resources. |
 | `vectorT:reserve(n: usize)`{:.language-nelua} | Reserve at least `n` elements in the vector storage. |
 | `vectorT:resize(n: usize)`{:.language-nelua} | Resizes the vector so that it contains `n` elements. |
+| `vectorT:copy(): vectorT`{:.language-nelua} | Returns a shallow copy of the vector, allocating new space. |
 | `vectorT:push(v: T)`{:.language-nelua} | Adds a element `v` at the end of the vector. |
 | `vectorT:pop(): T`{:.language-nelua} | Removes the last element in the vector and returns its value. |
 | `vectorT:insert(pos: usize, v: T)`{:.language-nelua} | Inserts element `v` at position `pos` in the vector. |
