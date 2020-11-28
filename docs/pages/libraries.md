@@ -45,11 +45,11 @@ This page is under construction and very incomplete.
 
 | Variable Name | Description |
 |---------------|------|
-| `ipairs(list: L): (Next, *L, integer)`{:.language-nelua} | Work with vector, sequence, span and array. |
+| `ipairs(list: L): (Next, *L, integer)`{:.language-nelua} | Use with "`for in`{:.language-nelua} to iterate contiguous containers. Works with vector, sequence, span and array. |
 | `mipairs(list: L): (Next, *L, integer)`{:.language-nelua} | Like `ipairs` but yields reference to elements so that you can modify. |
-| `pairs(list: L): (Next, *L, K)`{:.language-nelua} | Currently is an alias to `ipairs`. |
+| `pairs(list: L): (Next, *L, K)`{:.language-nelua} | Use with "`for in`{:.language-nelua} to iterate containers. |
 | `mpairs(list: L): (Next, *L, K)`{:.language-nelua} | Like `pairs` but yields reference to elements so that you can modify. |
-| `next(list: L, [index: K]): (boolean, K, T)`{:.language-nelua} | Works with vector, sequence, span and array. |
+| `next(list: L, [index: K]): (boolean, K, T)`{:.language-nelua} | Get the next element from a container. Works with vector, sequence, span and array. |
 | `mnext(list: L, [index: K]): (boolean, K, *T)`{:.language-nelua} | Like `next` but returns reference to elements so that you can modify. |
 {: .table.table-bordered.table-striped.table-sm}
 
