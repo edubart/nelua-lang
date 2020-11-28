@@ -61,13 +61,14 @@ This page is under construction and very incomplete.
 |---------------|------|
 | `global filestream`{:.language-nelua} | `filestream` record. |
 | `filestream.id: uint64`{:.language-nelua} | file id. |
-| `filestream.open(filename: stringview[, mode: stringview]): (filestream, stringview, integer)`{:.language-nelua} | Opens a file with given mode (default is `r`). Returns empty filesystem, error message and error code if failed. |
+| `filestream.open(filename: stringview[, mode: stringview]): (filestream, stringview, integer)`{:.language-nelua} | Opens a file with given mode (default is `"r"`). Returns empty filesystem, error message and error code if failed. |
 | `filestream:flush(): (boolean, stringview, integer)`{:.language-nelua} | Flushes the file. |
 | `filestream:close(): (boolean, stringview, integer)`{:.language-nelua} | Closes the file. |
 | `filestream:seek([whence: stringview[, offset: integer]]): (integer, stringview, integer)`{:.language-nelua} | Returns the caret position or goes to given offset or returns the size. |
 | `filestream:setvbuf(mode: stringview[, size: integer])`{:.language-nelua} | Sets buffer size. |
 | `filestream:read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Reads the content of the file according to the given format. |
 | `filestream:write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Writes text to the file. |
+| `filestream:lines(fmt: [integer,stringview,niltype]): (function(state: LinesState, prevstr: string): (boolean, string), LinesState, string)`{:.language-nelua} | Returns an iterator function that, each time it is called, reads the file according to the given formats. When no format is given, uses `"l"` as a default. |
 | `filestream:isopen(): boolean`{:.language-nelua} | Returns open state of the file. |
 | `filestream:__tostring(): string`{:.language-nelua} | converts the handled `*FILE` to `string`. |
 {: .table.table-bordered.table-striped.table-sm}
@@ -90,8 +91,9 @@ This page is under construction and very incomplete.
 | `io.tmpfile(): (filestream, stringview, integer)`{:.language-nelua} | In case of success, returns a handle for a temporary file. This file will automatically removed when the program ends. |
 | `io.read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Alias of `io.stdin:read`. |
 | `io.write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Alias of `io.stdout:write`. |
-| `io.type(x: auto)`{:.language-nelua} | Returns a type of a file. Returns nil if not a file. |
+| `io.type(x: auto)`{:.language-nelua} | Returns a type of a file as a string. Returns `nil` if not a file. |
 | `io.isopen(file: filestream): boolean`{:.language-nelua} | Alias of `file:isopen`. |
+| `io.lines([filename: stringview, fmt: [integer,stringview,niltype]])`{:.language-nelua} | When no `filename` is given, is an alias of `io.stdin:lines()`, otherwise, it opens the given `filename` and returns an iterator function of `file:lines(fmt)` over the opened file. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## math
