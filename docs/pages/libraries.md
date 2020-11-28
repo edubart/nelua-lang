@@ -145,22 +145,23 @@ This page is under construction and very incomplete.
 
 | Variable Name | Description |
 |---------------|------|
-| `memory.copy(dest, src, size)`{:.language-nelua} |  |
-| `memory.move(dest, src, size)`{:.language-nelua} |  |
-| `memory.set(dest, x, size)`{:.language-nelua} |  |
-| `memory.zero(dest, size)`{:.language-nelua} |  |
-| `diff = memory.compare(a, b, size)`{:.language-nelua} |  |
-| `result = memory.equals(a, b, size)`{:.language-nelua} |  |
-| `ptr = memory.scan(p, x, size)`{:.language-nelua} |  |
-| `ptr = memory.find(heystack, heystacksize, needle, needlesize)`{:.language-nelua} |  |
-| `memory.spancopy(dest, src)`{:.language-nelua} |  |
-| `memory.spanmove(dest, src)`{:.language-nelua} |  |
-| `memory.spanset(dest, x)`{:.language-nelua} |  |
-| `memory.spanzero(dest)`{:.language-nelua} |  |
-| `memory.spancompare(a, b)`{:.language-nelua} |  |
-| `result = memory.spanequals(a, b)`{:.language-nelua} |  |
-| `size = memory.spanfind(s, x)`{:.language-nelua} |  |
-| `result = memory.spancontains(s, x)`{:.language-nelua} |  |
+| `global memory`{:.language-nelua} | `memory` record |
+| `memory.copy(dest: pointer, src: pointer, size: usize)`{:.language-nelua} |  |
+| `memory.move(dest: pointer, src: pointer, size: usize)`{:.language-nelua} |  |
+| `memory.set(dest: pointer, x: byte, size: usize)`{:.language-nelua} |  |
+| `memory.zero(dest: pointer, size: usize) `{:.language-nelua} |  |
+| `memory.compare(a: pointer, b: pointer, size: usize): int32`{:.language-nelua} |  |
+| `memory.equals(a: pointer, b: pointer, size: usize): boolean`{:.language-nelua} |  |
+| `memory.scan(p: pointer, x: byte, size: usize): pointer`{:.language-nelua} |  |
+| `memory.find(haystack: pointer, haystacksize: usize, needle: pointer, needlesize: usize): pointer`{:.language-nelua} |  |
+| `memory.spancopy(dest: is_span, src: is_span)`{:.language-nelua} |  |
+| `emory.spanmove(dest: is_span, src: is_span)`{:.language-nelua} |  |
+| `memory.spanset(dest: is_span, x: auto)`{:.language-nelua} |  |
+| `memory.spanzero(dest: is_span)`{:.language-nelua} |  |
+| `memory.spancompare(a: is_span, b: is_span): int32`{:.language-nelua} |  |
+| `memory.spanequals(a: is_span, b: is_span): boolean`{:.language-nelua} |  |
+| `memory.spanfind(s: is_span, x: auto): isize`{:.language-nelua} |  |
+| `memory.spancontains(s: is_span, x: auto): boolean`{:.language-nelua} |  |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## os
