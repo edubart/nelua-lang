@@ -45,11 +45,11 @@ This page is under construction and very incomplete.
 
 | Variable Name | Description |
 |---------------|------|
-| `ipairs(list: L): (Next, *L, integer)`{:.language-nelua} | Use with "`for in`{:.language-nelua} to iterate contiguous containers. Works with vector, sequence, span and array. |
+| `ipairs(list: L): (Next, *L, integer)`{:.language-nelua} | Use with `for in`{:.language-nelua} to iterate contiguous containers. Works with `vector`, `sequence`, `span` and `array`. |
 | `mipairs(list: L): (Next, *L, integer)`{:.language-nelua} | Like `ipairs` but yields reference to elements so that you can modify. |
-| `pairs(list: L): (Next, *L, K)`{:.language-nelua} | Use with "`for in`{:.language-nelua} to iterate containers. |
+| `pairs(list: L): (Next, *L, K)`{:.language-nelua} | Use with `for in`{:.language-nelua} to iterate containers. |
 | `mpairs(list: L): (Next, *L, K)`{:.language-nelua} | Like `pairs` but yields reference to elements so that you can modify. |
-| `next(list: L, [index: K]): (boolean, K, T)`{:.language-nelua} | Get the next element from a container. Works with vector, sequence, span and array. |
+| `next(list: L, [index: K]): (boolean, K, T)`{:.language-nelua} | Get the next element from a container. Works with `vector`, `sequence`, `span` and `array`. |
 | `mnext(list: L, [index: K]): (boolean, K, *T)`{:.language-nelua} | Like `next` but returns reference to elements so that you can modify. |
 {: .table.table-bordered.table-striped.table-sm}
 
@@ -61,14 +61,14 @@ This page is under construction and very incomplete.
 |---------------|------|
 | `global filestream`{:.language-nelua} | `filestream` record. |
 | `filestream.id: uint64`{:.language-nelua} | file id. |
-| `filestream.open(filename: stringview[, mode: stringview]): (filestream, stringview, integer)`{:.language-nelua} | Opens a file with given mode (default is `"r"`). Returns empty filesystem, error message and error code if failed. |
+| `filestream.open(filename: stringview[, mode: stringview]): (filestream, stringview, integer)`{:.language-nelua} | Opens a file with given mode (default is `"r"`{:.language-nelua}). Returns empty filesystem, error message and error code if failed. |
 | `filestream:flush(): (boolean, stringview, integer)`{:.language-nelua} | Flushes the file. |
 | `filestream:close(): (boolean, stringview, integer)`{:.language-nelua} | Closes the file. |
 | `filestream:seek([whence: stringview[, offset: integer]]): (integer, stringview, integer)`{:.language-nelua} | Returns the caret position or goes to given offset or returns the size. |
 | `filestream:setvbuf(mode: stringview[, size: integer])`{:.language-nelua} | Sets buffer size. |
 | `filestream:read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Reads the content of the file according to the given format. |
 | `filestream:write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Writes text to the file. |
-| `filestream:lines(fmt: [integer,stringview,niltype]): (function(state: LinesState, prevstr: string): (boolean, string), LinesState, string)`{:.language-nelua} | Returns an iterator function that, each time it is called, reads the file according to the given formats. When no format is given, uses `"l"` as a default. |
+| `filestream:lines(fmt: [integer,stringview,niltype]): (function(state: LinesState, prevstr: string): (boolean, string), LinesState, string)`{:.language-nelua} | Returns an iterator function that, each time it is called, reads the file according to the given formats. When no format is given, uses `"l"`{:.language-nelua} as a default. |
 | `filestream:isopen(): boolean`{:.language-nelua} | Returns open state of the file. |
 | `filestream:__tostring(): string`{:.language-nelua} | converts the handled `*FILE` to `string`. |
 {: .table.table-bordered.table-striped.table-sm}
@@ -93,7 +93,7 @@ This page is under construction and very incomplete.
 | `io.write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Alias of `io.stdout:write`. |
 | `io.type(x: auto)`{:.language-nelua} | Returns a type of a file as a string. Returns `nil` if not a file. |
 | `io.isopen(file: filestream): boolean`{:.language-nelua} | Alias of `file:isopen`. |
-| `io.lines([filename: stringview, fmt: [integer,stringview,niltype]])`{:.language-nelua} | When no `filename` is given, is an alias of `io.stdin:lines()`, otherwise, it opens the given `filename` and returns an iterator function of `file:lines(fmt)` over the opened file. |
+| `io.lines([filename: stringview, fmt: [integer,stringview,niltype]])`{:.language-nelua} | When no `filename` is given, is an alias of `io.stdin:lines()`{:.language-nelua}, otherwise, it opens the given `filename` and returns an iterator function of `file:lines(fmt)`{:.language-nelua} over the opened file. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## math
@@ -316,11 +316,11 @@ This page is under construction and very incomplete.
 
 | Variable Name | Description |
 |---------------|------|
-| `global typeid: type`{:.language-nelua} | type alias of `uint32`{:.language-nelua}. |
-| `global typeid_of(val: auto): typeid`{:.language-nelua} | Returns the `typeid`{:.language-nelua} of the given `val`. |
+| `global typeid: type`{:.language-nelua} | type alias of `uint32`. |
+| `global typeid_of(val: auto): typeid`{:.language-nelua} | Returns the `typeid` of the given `val`. |
 | `global type(x: auto): stringview`{:.language-nelua} | Returns the type of its only argument, coded as a string. |
 | `global typeinfo`{:.language-nelua} | `typeinfo` record. |
-| `global typeinfo_of(x: auto): typeinfo`{:.language-nelua} | Return the `typeinfo`{:.language-nelua} of the given `x`. |
+| `global typeinfo_of(x: auto): typeinfo`{:.language-nelua} | Return the `typeinfo` of the given `x`. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## vector
