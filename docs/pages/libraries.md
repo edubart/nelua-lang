@@ -45,11 +45,11 @@ This page is under construction and very incomplete.
 
 | Variable Name | Description |
 |---------------|------|
-| `ipairs(list: L): (Next, *L, integer)`{:.language-nelua} | Work with vector, sequence, span and array. |
+| `ipairs(list: L): (Next, *L, integer)`{:.language-nelua} | Use with `for in`{:.language-nelua} to iterate contiguous containers. Works with `vector`, `sequence`, `span` and `array`. |
 | `mipairs(list: L): (Next, *L, integer)`{:.language-nelua} | Like `ipairs` but yields reference to elements so that you can modify. |
-| `pairs(list: L): (Next, *L, K)`{:.language-nelua} | Currently is an alias to `ipairs`. |
+| `pairs(list: L): (Next, *L, K)`{:.language-nelua} | Use with `for in`{:.language-nelua} to iterate containers. |
 | `mpairs(list: L): (Next, *L, K)`{:.language-nelua} | Like `pairs` but yields reference to elements so that you can modify. |
-| `next(list: L, [index: K]): (boolean, K, T)`{:.language-nelua} | Works with vector, sequence, span and array. |
+| `next(list: L, [index: K]): (boolean, K, T)`{:.language-nelua} | Get the next element from a container. Works with `vector`, `sequence`, `span` and `array`. |
 | `mnext(list: L, [index: K]): (boolean, K, *T)`{:.language-nelua} | Like `next` but returns reference to elements so that you can modify. |
 {: .table.table-bordered.table-striped.table-sm}
 
@@ -61,13 +61,14 @@ This page is under construction and very incomplete.
 |---------------|------|
 | `global filestream`{:.language-nelua} | `filestream` record. |
 | `filestream.id: uint64`{:.language-nelua} | file id. |
-| `filestream.open(filename: stringview[, mode: stringview]): (filestream, stringview, integer)`{:.language-nelua} | Opens a file with given mode (default is `r`). Returns empty filesystem, error message and error code if failed. |
+| `filestream.open(filename: stringview[, mode: stringview]): (filestream, stringview, integer)`{:.language-nelua} | Opens a file with given mode (default is `"r"`{:.language-nelua}). Returns empty filesystem, error message and error code if failed. |
 | `filestream:flush(): (boolean, stringview, integer)`{:.language-nelua} | Flushes the file. |
 | `filestream:close(): (boolean, stringview, integer)`{:.language-nelua} | Closes the file. |
 | `filestream:seek([whence: stringview[, offset: integer]]): (integer, stringview, integer)`{:.language-nelua} | Returns the caret position or goes to given offset or returns the size. |
 | `filestream:setvbuf(mode: stringview[, size: integer])`{:.language-nelua} | Sets buffer size. |
 | `filestream:read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Reads the content of the file according to the given format. |
 | `filestream:write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Writes text to the file. |
+| `filestream:lines(fmt: [integer,stringview,niltype]): (function(state: LinesState, prevstr: string): (boolean, string), LinesState, string)`{:.language-nelua} | Returns an iterator function that, each time it is called, reads the file according to the given formats. When no format is given, uses `"l"`{:.language-nelua} as a default. |
 | `filestream:isopen(): boolean`{:.language-nelua} | Returns open state of the file. |
 | `filestream:__tostring(): string`{:.language-nelua} | converts the handled `*FILE` to `string`. |
 {: .table.table-bordered.table-striped.table-sm}
@@ -90,8 +91,9 @@ This page is under construction and very incomplete.
 | `io.tmpfile(): (filestream, stringview, integer)`{:.language-nelua} | In case of success, returns a handle for a temporary file. This file will automatically removed when the program ends. |
 | `io.read(fmt: [integer, stringview, niltype]): (string, stringview, integer)`{:.language-nelua} | Alias of `io.stdin:read`. |
 | `io.write(s: stringview): (boolean, stringview, integer)`{:.language-nelua} | Alias of `io.stdout:write`. |
-| `io.type(x: auto)`{:.language-nelua} | Returns a type of a file. Returns nil if not a file. |
+| `io.type(x: auto)`{:.language-nelua} | Returns a type of a file as a string. Returns `nil` if not a file. |
 | `io.isopen(file: filestream): boolean`{:.language-nelua} | Alias of `file:isopen`. |
+| `io.lines([filename: stringview, fmt: [integer,stringview,niltype]])`{:.language-nelua} | When no `filename` is given, is an alias of `io.stdin:lines()`{:.language-nelua}, otherwise, it opens the given `filename` and returns an iterator function of `file:lines(fmt)`{:.language-nelua} over the opened file. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## math
@@ -145,22 +147,23 @@ This page is under construction and very incomplete.
 
 | Variable Name | Description |
 |---------------|------|
-| `memory.copy(dest, src, size)`{:.language-nelua} |  |
-| `memory.move(dest, src, size)`{:.language-nelua} |  |
-| `memory.set(dest, x, size)`{:.language-nelua} |  |
-| `memory.zero(dest, size)`{:.language-nelua} |  |
-| `diff = memory.compare(a, b, size)`{:.language-nelua} |  |
-| `result = memory.equals(a, b, size)`{:.language-nelua} |  |
-| `ptr = memory.scan(p, x, size)`{:.language-nelua} |  |
-| `ptr = memory.find(heystack, heystacksize, needle, needlesize)`{:.language-nelua} |  |
-| `memory.spancopy(dest, src)`{:.language-nelua} |  |
-| `memory.spanmove(dest, src)`{:.language-nelua} |  |
-| `memory.spanset(dest, x)`{:.language-nelua} |  |
-| `memory.spanzero(dest)`{:.language-nelua} |  |
-| `memory.spancompare(a, b)`{:.language-nelua} |  |
-| `result = memory.spanequals(a, b)`{:.language-nelua} |  |
-| `size = memory.spanfind(s, x)`{:.language-nelua} |  |
-| `result = memory.spancontains(s, x)`{:.language-nelua} |  |
+| `global memory`{:.language-nelua} | `memory` record |
+| `memory.copy(dest: pointer, src: pointer, size: usize)`{:.language-nelua} |  |
+| `memory.move(dest: pointer, src: pointer, size: usize)`{:.language-nelua} |  |
+| `memory.set(dest: pointer, x: byte, size: usize)`{:.language-nelua} |  |
+| `memory.zero(dest: pointer, size: usize) `{:.language-nelua} |  |
+| `memory.compare(a: pointer, b: pointer, size: usize): int32`{:.language-nelua} |  |
+| `memory.equals(a: pointer, b: pointer, size: usize): boolean`{:.language-nelua} |  |
+| `memory.scan(p: pointer, x: byte, size: usize): pointer`{:.language-nelua} |  |
+| `memory.find(haystack: pointer, haystacksize: usize, needle: pointer, needlesize: usize): pointer`{:.language-nelua} |  |
+| `memory.spancopy(dest: is_span, src: is_span)`{:.language-nelua} |  |
+| `emory.spanmove(dest: is_span, src: is_span)`{:.language-nelua} |  |
+| `memory.spanset(dest: is_span, x: auto)`{:.language-nelua} |  |
+| `memory.spanzero(dest: is_span)`{:.language-nelua} |  |
+| `memory.spancompare(a: is_span, b: is_span): int32`{:.language-nelua} |  |
+| `memory.spanequals(a: is_span, b: is_span): boolean`{:.language-nelua} |  |
+| `memory.spanfind(s: is_span, x: auto): isize`{:.language-nelua} |  |
+| `memory.spancontains(s: is_span, x: auto): boolean`{:.language-nelua} |  |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## os
@@ -313,11 +316,11 @@ This page is under construction and very incomplete.
 
 | Variable Name | Description |
 |---------------|------|
-| `global typeid: type`{:.language-nelua} | type alias of `uint32`{:.language-nelua}. |
-| `global typeid_of(val: auto): typeid`{:.language-nelua} | Returns the `typeid`{:.language-nelua} of the given `val`. |
+| `global typeid: type`{:.language-nelua} | type alias of `uint32`. |
+| `global typeid_of(val: auto): typeid`{:.language-nelua} | Returns the `typeid` of the given `val`. |
 | `global type(x: auto): stringview`{:.language-nelua} | Returns the type of its only argument, coded as a string. |
 | `global typeinfo`{:.language-nelua} | `typeinfo` record. |
-| `global typeinfo_of(x: auto): typeinfo`{:.language-nelua} | Return the `typeinfo`{:.language-nelua} of the given `x`. |
+| `global typeinfo_of(x: auto): typeinfo`{:.language-nelua} | Return the `typeinfo` of the given `x`. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## vector
@@ -327,14 +330,15 @@ This page is under construction and very incomplete.
 | Variable Name | Description |
 |---------------|------|
 | `vector(T)`{:.language-nelua} | Generic vector type expression. |
-| `vectorT.size: usize`{:.language-nelua} | Number of elements in the vector. |
 | `vectorT.data: span(T)`{:.language-nelua} | Elements storage of the vector. |
+| `vectorT.size: usize`{:.language-nelua} | Number of elements in the vector. |
 | `vectorT.allocator: Allocator`{:.language-nelua} | Allocator of the vector. |
 | `vectorT.make(allocator)`{:.language-nelua} | Create a vector using a custom allocator instance. |
 | `vectorT:clear()`{:.language-nelua} | Removes all elements from the vector. |
 | `vectorT:destroy()`{:.language-nelua} | Resets the vector to zeroed state, freeing all used resources. |
 | `vectorT:reserve(n: usize)`{:.language-nelua} | Reserve at least `n` elements in the vector storage. |
 | `vectorT:resize(n: usize)`{:.language-nelua} | Resizes the vector so that it contains `n` elements. |
+| `vectorT:copy(): vectorT`{:.language-nelua} | Returns a shallow copy of the vector, allocating new space. |
 | `vectorT:push(v: T)`{:.language-nelua} | Adds a element `v` at the end of the vector. |
 | `vectorT:pop(): T`{:.language-nelua} | Removes the last element in the vector and returns its value. |
 | `vectorT:insert(pos: usize, v: T)`{:.language-nelua} | Inserts element `v` at position `pos` in the vector. |
