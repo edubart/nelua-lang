@@ -10,42 +10,40 @@ order: 4
 Technical specification of the Nelua language.
 {: .lead}
 
-This page is under construction and very incomplete.
+This page is under construction and is very incomplete.
 {: .callout.callout-info}
 
 ## 1 - Introduction
 
-Nelua is a minimal, simple, efficient, statically typed, compiled, meta programmable,
-safe and extensible systems programming language with a [Lua](https://www.lua.org/about.html) flavor.
+Nelua is a minimal, simple, efficient, statically typed, compiled, metaprogrammable,
+safe, and extensible systems programming language with a [Lua](https://www.lua.org/about.html) flavor.
 
-Nelua is designed for performance sensitive applications,
+Nelua is designed for performance-sensitive applications,
 like real-time applications and game engines.
 It has syntax and semantics similar to Lua,
-but is designed to be able to work with optional garbage collection, type notations
-and free from an interpreter.
+but it is designed to work with optional garbage collection and type notations
+and is free of an interpreter.
 
-Nelua uses ahead of time compilation to compile to optimized native binaries and
-is meta programmable at compile-time using Lua, making possible to
-specialize static code at compile-time with ease to create efficient applications.
+Nelua uses ahead-of-time compilation to compile to optimized native binaries, and
+is metaprogrammable at compile-time using Lua, making it possible to
+specialize static code at compile-time with ease in order to create efficient applications.
 
-Nelua has two choices for memory management,
-it's the developer choice to use garbage collection or manual memory management
-depending on his use case.
-By default the garbage collection enabled,
+Nelua has two choices for memory management.
+It is the developer's choice whether to use garbage collection or manual memory management.
+By default garbage collection is enabled
 to make the language more familiar and easy to use for users coming from Lua.
 
-Nelua compiler is written in Lua, this makes Nelua extensible,
-thus programmers may add new extensions to the language
-at compile time using its Lua preprocessor, such as new grammars, AST definitions,
-semantics, type checkers, code generation and behaviors to the compiler.
+The Nelua compiler is written in Lua. This makes Nelua extensible.
+Programmers may add new extensions to the language
+at compile-time using the Lua preprocessor, such as new grammars, AST definitions,
+semantics, type checkers, code generation, and other behaviors.
 
-Nelua permits mixing two approaches when coding,
-a more low-level approach using specific Nelua's idioms,
-such as type notations, efficient data structures (records, static arrays), manual memory management and pointers, which makes the performance efficient as C.
-Or a more high-level approach using Lua's idioms, such as tables, metatables and untyped variables,
-which makes the compiler uses a runtime library to provide the dynamic functionality.
+Nelua permits mixing two approaches when coding:
+a more low-level approach using Nelua-specific idioms, e.g. type notations, records, static arrays, manual memory management, pointers, etc., which make the performance efficient as C,
+or a more high-level approach using Lua's idioms, such as tables, metatables and untyped variables,
+which makes the compiler use a runtime library to provide dynamic functionality.
 
-Nelua compiles to C first then to the target native binary.
+Nelua compiles to C first, then to the target native binary.
 
 Nelua stands for *Native Extensible Lua*.
 
@@ -70,23 +68,23 @@ TODO
 
 ## 3 - The Language
 
-This section describes the lexis, the syntax, and the semantics of Nelua.
+This section describes the lexis, syntax, and semantics of Nelua.
 In other words, this section describes which tokens are valid,
 how they can be combined,
 and what their combinations mean.
 
 ### 3.1 - Lexical Conventions
 
-Nelua like Lua is a free-form language. It ignores spaces and comments between lexical
+Nelua, like Lua, is a free-form language. It ignores spaces and comments between lexical
 elements (tokens), except as delimiters between two tokens.
-In source code, Nelua recognizes as spaces the standard ASCII whitespace characters space,
+In source code, Nelua recognizes as spaces the standard ASCII whitespace characters: space,
 form feed, newline, carriage return, horizontal tab and vertical tab.
 
 Names (also called *identifiers*) in Nelua can be any string of Latin letters, UTF-8 unicode character,
-digits and underscores, not beginning with a digit and not being a reserved word.
+digits and underscores, as long as they do not begin with a digit and are not a reserved word.
 Identifiers are used to name symbols, variables, types, table fields and labels.
 
-The following same *keywords* from Lua are reserved and cannot be used as names:
+The following *keywords* from Lua are reserved and cannot be used as identifiers:
 
 ```nelua
 and       break     do        else      elseif    end
@@ -101,8 +99,8 @@ Plus the following *keywords*:
 case      continue  defer     global    switch
 ```
 
-Nelua is a case-sensitive language,
-for example `and` is a reserved word, but `And` and `AND` are two different valid names.
+Nelua is a case-sensitive language.
+For example `and` is a reserved word, but `And` and `AND` are two different valid identifiers.
 As a convention, programs should avoid creating names that start with an underscore followed
 by uppercase letters (such as `_VERSION`).
 

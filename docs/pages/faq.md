@@ -10,113 +10,113 @@ order: 7
 Answers to frequently asked questions about Nelua.
 {: .lead}
 
-**Is your question not here?** Use the search bar to search in the documentation
-or ask in the [discord chat](https://discord.gg/7aaGeG7), common questions asked
-there will be moved here.
+**Is your question not here?** Use the search bar to search the documentation,
+or ask it in the [Discord server](https://discord.gg/7aaGeG7). Commonly asked questions
+from there will be moved here.
 {: .callout.callout-info}
 
 ## Why Nelua?
 
-Nelua was created with the intent to have an efficient compiled language
-with syntax and similar to Lua, it's one of the few programmable statically typed
-languages that combines a powerful compile time meta programming capabilities to
-make efficient code. Nelua is developed by a game developer to make
-games with it.
+Nelua was created with the intent to make an efficient compiled language
+with syntax similar to Lua. It is one of the few programmable statically typed
+languages that uses powerful compile-time metaprogramming capabilities to
+generate efficient code. Nelua is developed by a game developer who uses it to
+make games.
 
-## What Nelua means?
+## What does Nelua mean?
 
 Nelua stands for *Native Extensible Lua*.
 
 ## Where does Nelua come from?
 
 Nelua is designed, created and maintained by [edubart](https://github.com/edubart).
-The ideia of the language has been in the back of his mind during multiple years
-working with games with Lua and C++. Then in 2019 it born and raised on GitHub
+The idea of the language was in the back of his mind over multiple years of
+working with games in Lua and C++. Then, in 2019, it was born on GitHub
 as an open source project.
 
 ## How stable is Nelua?
 
-Nelua is in alpha state, most of its syntax are well defined,
-low level features that are found in C are implemented and
+Nelua is in alpha state. Most of its syntax is well defined,
+low level features that are found in C are implemented, and
 most of the Lua standard APIs are implemented. However
-some notable features found in Lua like exceptions, tables,
-runtime dynamic typing, closures and coroutines are not implemented yet.
+some notable features found in Lua such as exceptions, tables,
+runtime dynamic typing, closures, and coroutines are not implemented yet.
 
 ## How is Nelua licensed?
 
-The Nelua compiler, its standard library and its dependencies are MIT licensed.
+The Nelua compiler, its standard library, and its dependencies are MIT licensed.
 This means you can use any license for programs developed with Nelua.
 
-## Why Nelua follows Lua syntax and semantics?
+## Why does Nelua follow Lua syntax and semantics?
 
-* Lua is minimal and simple, this means not many features need to be replicated in Nelua,
-thus the language can remain minimal, easy to use, efficient and stable.
-* Nelua was created to be mixed with Lua programs in mind, where one
+* Lua is minimal and simple, so not many features need to be replicated in Nelua,
+thus the language can remain minimal, easy to use, efficient, and stable.
+* Nelua was created to be mixed with Lua programs, where one
 would use Nelua to make real-time efficient code and Lua for
-runtime scripting and compile-time meta programming.
-* Nelua compiler uses Lua at compile time to enable advanced meta programming,
-by using Lua makes the syntax of the Lua preprocessor and Nelua very similar.
+runtime scripting and compile-time metaprogramming.
+* The Nelua compiler uses Lua at compile time to enable advanced metaprogramming.
+Using Lua makes the syntax of the Lua preprocessor and Nelua very similar.
 * Nelua is being developed by a Lua lover who desires to have the same
 syntax and semantics between his system programming language and scripting language.
-* Nelua compiler is written in Lua with the intent to be hackable,
-making the language  with similar syntax and semantics as the compiler code base
-makes easier for users to hack the compiler or to meta program.
+* The Nelua compiler is written in Lua with the intent to be hackable.
+Designing the language to have similar syntax and semantics to the compiler codebase
+makes it easier for users to hack the compiler or to metaprogram.
 
-## Why Nelua compiles to C first?
+## Why does Nelua compile to C first?
 
-* C still one of the most efficient programming languages, thus Nelua can be efficient as C.
-* Any C compiler can be used, usually most platforms supports C, thus Nelua can run anywhere, including the web with the Emscripten compiler.
-* C code can be reused if the user someday decides to move away from Nelua, he can just get the generated C code, that is very human readable and continue on using C/C++.
-* The generated C code can be reused to make C libraries, thus a library made in Nelua could be bound in any other language because most other languages supports some form of importing C libraries.
-* Great C tools are available out there, thus C tools can be used with Nelua,
-like debuggers, profilers and static analyzers.
-* C is easy to read, thus the user can read the C generated code to get better low level
-understanding of his code.
-* Makes easy to import or use C code without costs in Nelua.
+* C still one of the most efficient programming languages, thus Nelua can be as efficient as C.
+* Any C compiler can be used. Most platforms support C, thus Nelua can run anywhere, including the web (with the Emscripten compiler).
+* The generated C code can be reused if the user someday decides to move away from Nelua. The user can just take the generated C code, since it is very human readable, and can continue using C/C++.
+* The generated C code can be reused to make C libraries, thus a library made in Nelua could be bound in any other language, because most other languages support some form of importing C libraries.
+* Great C tools are available which can be used with Nelua,
+such as debuggers, profilers, and static analyzers.
+* C is easy to read, thus the user can read the C generated code to get a better low-level
+understanding of the code.
+* It makes it easy to import or use C code without costs in Nelua.
 * C is simple to use and this makes the Nelua compiler simpler.
 
-## Why Nelua does not use LLVM?
+## Why does Nelua not use LLVM?
 
-* By using LLVM Nelua would have a huge dependency and this would go against of one of its goals of being simple to compile and use.
-* Being locked to LLVM would take out other great compilers that can perform better
-in different situations than LLVM, like GCC can be more efficient in some cases.
-* LLVM can be slow to compile huge projects, by using C the user can use for example the TCC compiler when developing to compile huge projects in a few milliseconds while LLVM would take minutes.
-* LLVM generated code is not readable by most users, by using C the user
-can read the generated code and have a low level understanding of his code.
+* By using LLVM, Nelua would have a huge dependency. This would go against one of its goals of being simple to compile and use.
+* Being locked to LLVM would remove the option of using other great compilers that can perform better
+in certain situations, such as GCC.
+* LLVM can be slow to compile huge projects. By using C the user can, for example, use the TCC compiler when developing in order to compile huge projects in just a few milliseconds. LLVM would take minutes.
+* LLVM generated code is not readable to most users. By using C the user
+can read the generated code and have a low level understanding of the code.
 
-## Why Nelua have a garbage collector?
+## Why does Nelua have a garbage collector?
 
-Because it tries to replicate Lua features and semantics which for some things requires
-a garbage collector, however Nelua has additional constructs to work
-with manual memory management and the garbage collector can be completely disabled.
-But when doing this the programming style is slightly different. Also
-the Nelua author believes that garbage collection is good for rapid prototyping
+Because it tries to replicate Lua features and semantics. Some of these things require
+a garbage collector. However, Nelua has additional constructs to work
+with manual memory management, and the garbage collector can be completely disabled if needed.
+When doing this, the programming style is slightly different.
+The Nelua author believes that garbage collection is good for rapid prototyping
 and for newcomers, and that manual memory management can be enabled later
-when seeking performance or when the user becomes more experienced to manage the
-memory on his own.
+when seeking performance, or when the user becomes experienced enough to manage the
+memory manually.
 
-## Is Nelua interpreted or uses an interpreter?
+## Does Nelua use an interpreter?
 
-No, Nelua uses ahead of time compilation to create efficient native applications,
-it doesn't do any kind of interpreting or JIT at runtime, this means it
+No. Nelua uses ahead-of-time compilation to create efficient native applications.
+It doesn't do any kind of interpreting or JIT at runtime, which means it
 can't parse or execute code generated at runtime. If you are looking
-for something that could do this then consider LuaJIT which is an outstanding
-JIT implementation for Lua or Ravi that is another JIT implementation
-for Lua that supports type notations. However Nelua uses a Lua
-interpreter at compile time for meta programming in its preprocessor.
+for something that can do this, then consider LuaJIT, which is an outstanding
+JIT implementation for Lua, or Ravi, which is another JIT implementation
+for Lua that supports type notations. However, Nelua does use a Lua
+interpreter at compile time for metaprogramming in its preprocessor.
 
-## What kind of application is Nelua good for?
+## What kinds of applications is Nelua good for?
 
-Nelua is being created with the intent to be used in real-time applications
-that requires efficiency and predictable performance such as games, game engines,
-libraries or almost anything were one would use C.
+Nelua is being developed with the intent to be used in real-time applications
+that require efficiency and predictable performance, such as games, game engines,
+libraries or almost any situation where one would normally use C.
 
 ## What have been the major influences in Nelua design?
 
-Obviously Lua and C, then modern languages that tends to be a "better C",
-like Nim, Odin, Zig.
+Lua and C, as well as some modern languages that try to be a "better C,"
+like Nim, Odin, and Zig.
 
-## How can I have syntax highlighting for Nelua code?
+## How can I have syntax highlighting for my Nelua code?
 
 Nelua has syntax highlight plugins for the following editors:
 
@@ -124,41 +124,41 @@ Nelua has syntax highlight plugins for the following editors:
 * [Visual Studio Code](https://github.com/edubart/nelua-vscode)
 * [Text Adept](https://github.com/Andre-LA/ta-nelua-mirror)
 
-If you use other editor and make a plugin for Nelua share with the community.
+If you use another editor and make a plugin for Nelua, please share it with the community.
 
 ## How can I debug my application?
 
 You can get backtraces of crashes by having GDB debugger installed
-and running in debug mode with the `--debug` command line argument,
-when doing this Nelua will run your application through GDB
-and print out readable backtraces for your code. For more advanced debugging
-you could use any C debugger manually.
+and running in debug mode with the `--debug` command line argument.
+When doing this Nelua will run your application through GDB
+and print out readable backtraces for your code. For more advanced debugging,
+you can use any C debugger manually.
 
-## How to make my code more efficient?
+## How do I make my code more efficient?
 
-Nelua compiles by default with optimizations disabled and runtime checks enabled.
+Nelua compiles with optimizations disabled and runtime checks enabled by default.
 To compile with optimization enabled and runtime checks disabled you must use the
-`--release -P nochecks` command line argument. Also Nelua uses the a conservative
-garbage collector by default, which can be heavy depending on use case,
-users seeking performance and predictable runtimes should switch to
+`--release -P nochecks` command line argument. Nelua also uses a conservative
+garbage collector by default, which can be heavy depending on use case.
+Users seeking performance and predictable runtimes should switch to
 manual memory management and disable the garbage collector with `-P nogc`.
-If wanting even more performance you could pass more aggresive
-compilation flags to your C compiler like `--cflags="-O3 -march=native -fno-plt -flto"`.
+If you want even more performance you can pass more aggresive
+compilation flags to your C compiler, for example: `--cflags="-O3 -march=native -fno-plt -flto"`.
 
-## Where can I report mistake and issues?
+## Where can I report mistakes and issues?
 
-You can report issues about Nelua and its documentation in the
-[github issues](https://github.com/edubart/nelua-lang/issues) page.
+You can report issues about Nelua and its documentation at the
+[GitHub issues](https://github.com/edubart/nelua-lang/issues) page.
 
 ## How can I support Nelua?
 
-In many ways, giving a star on github, using Nelua and sharing
+In many ways. Giving a star on GitHub, using Nelua and sharing
 your experience with others, reporting bugs, spreading it to the world,
 sharing projects made with it, making a blog post about it,
-helping improving the documentation and tutorials,
+helping to improve the documentation and tutorials,
 or through a [donation](https://patreon.com/edubart).
 
-## Where can I discuss about Nelua?
+## Where can I discuss Nelua?
 
-Nelua developers and users generally discuss in the [discord chat](https://discord.gg/7aaGeG7).
-There is also the [reddit community ](https://www.reddit.com/r/nelua/) although is inactive yet.
+Nelua developers and users generally discuss in the [Discord server](https://discord.gg/7aaGeG7).
+There is also a [Reddit community ](https://www.reddit.com/r/nelua/), although is inactive at the moment.

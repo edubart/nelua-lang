@@ -15,13 +15,13 @@ Read this page after installing the Nelua compiler.
 
 ### [Overview](/overview/)
 
-Overview features of Nelua,
-the **most interesting page** to learn more about all the features and syntax.
+Overview of Nelua's features,
+the **most interesting page** to learn about the syntax and all of the features.
 
 ### [Manual](/manual/)
 
 Technical specification of Nelua, this page is more technical
-thus can be dense to read, for a quick understanding of Nelua see the overview first.
+and thus can be dense to read. For a quick understanding of Nelua, first read the overview.
 
 ### [Libraries](/libraries/)
 
@@ -29,9 +29,9 @@ List of built-in libraries in Nelua and their contents.
 
 ### [Differences](/diffs/)
 
-Direct comparison of Lua and Nelua standard libraries.
+Direct comparison between the standard libraries of Lua and Nelua.
 
 ### [FAQ](/faq/)
 
-Answers to frequently asked questions about Nelua,
-look on this page for answers to doubts, or try the search bar.
+Answers to frequently asked questions about Nelua.
+Look on this page for answers to doubts, or try the search bar.

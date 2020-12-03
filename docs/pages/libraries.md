@@ -10,15 +10,15 @@ order: 5
 This is a list of built-in libraries in Nelua.
 {: .lead}
 
-To use a library use `require 'libraryname'`{:.language-nelua}.
+To use a library, use `require 'libraryname'`{:.language-nelua}.
 {: .callout.callout-info}
 
-This page is under construction and very incomplete.
+This page is under construction and is very incomplete.
 {: .callout.callout-info}
 
 ## arg
 
-[Arg library](https://github.com/edubart/nelua-lang/blob/master/lib/arg.nelua) allows to use command line arguments from the entry point.
+The [arg library](https://github.com/edubart/nelua-lang/blob/master/lib/arg.nelua) allows to use command line arguments from the entry point.
 
 | Variable Name | Description |
 |---------------|------|
@@ -27,7 +27,7 @@ This page is under construction and very incomplete.
 
 ## basic
 
-[Basic library](https://github.com/edubart/nelua-lang/blob/master/lib/basic.nelua) contains common functions. 
+The [basic library](https://github.com/edubart/nelua-lang/blob/master/lib/basic.nelua) contains common functions. 
 
 | Variable Name | Description |
 |---------------|------|
@@ -41,7 +41,7 @@ This page is under construction and very incomplete.
 
 ## iterators
 
-[Iterators library](https://github.com/edubart/nelua-lang/blob/master/lib/iterators.nelua) contains iterator related functions.
+The [iterators library](https://github.com/edubart/nelua-lang/blob/master/lib/iterators.nelua) contains iterator-related functions.
 
 | Variable Name | Description |
 |---------------|------|
@@ -55,7 +55,7 @@ This page is under construction and very incomplete.
 
 ## filestream
 
-[Filestream library](https://github.com/edubart/nelua-lang/blob/master/lib/filestream.nelua) contains filestream record, mainly used for [`io`](https://nelua.io/libraries/#io) library.
+The [filestream library](https://github.com/edubart/nelua-lang/blob/master/lib/filestream.nelua) contains filestream records, mainly used for the [`io`](https://nelua.io/libraries/#io) library.
 
 | Variable Name | Description |
 |---------------|------|
@@ -75,7 +75,7 @@ This page is under construction and very incomplete.
 
 ## io
 
-[IO library](https://github.com/edubart/nelua-lang/blob/master/lib/io.nelua), copies Lua `io`{:.language-nelua} library. 
+The [IO library](https://github.com/edubart/nelua-lang/blob/master/lib/io.nelua) copies Lua's `io`{:.language-nelua} library. 
 
 | Variable Name | Description |
 |---------------|------|
@@ -98,7 +98,7 @@ This page is under construction and very incomplete.
 
 ## math
 
-[Math library](https://github.com/edubart/nelua-lang/blob/master/lib/math.nelua), copies Lua `math`{:.language-nelua} library with extra functions.
+The [math library](https://github.com/edubart/nelua-lang/blob/master/lib/math.nelua) copies Lua's `math`{:.language-nelua} library with extra functions.
 
 | Variable Name | Description |
 |---------------|------|
@@ -168,7 +168,7 @@ This page is under construction and very incomplete.
 
 ## os
 
-[OS library](https://github.com/edubart/nelua-lang/blob/master/lib/os.nelua) copies Lua `os`{:.language-nelua} library. 
+The [OS library](https://github.com/edubart/nelua-lang/blob/master/lib/os.nelua) copies Lua's `os`{:.language-nelua} library. 
 
 | Variable Name | Description |
 |---------------|------|
@@ -312,7 +312,7 @@ This page is under construction and very incomplete.
 
 ## traits
 
-[Traits library](https://github.com/edubart/nelua-lang/blob/master/lib/traits.nelua) contains useful functions to get information about types at runtime.
+The [traits library](https://github.com/edubart/nelua-lang/blob/master/lib/traits.nelua) contains useful functions to get information about types at runtime.
 
 | Variable Name | Description |
 |---------------|------|
@@ -325,7 +325,7 @@ This page is under construction and very incomplete.
 
 ## vector
 
-[Vector library](https://github.com/edubart/nelua-lang/blob/master/lib/vector.nelua), typically used as an efficient vector.
+The [Vector library](https://github.com/edubart/nelua-lang/blob/master/lib/vector.nelua) is an efficient vector implementation.
 
 | Variable Name | Description |
 |---------------|------|
