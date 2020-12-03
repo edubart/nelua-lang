@@ -8,13 +8,13 @@ order: 8
 
 {% raw %}
 
-This is a draft for features that are not implemented yet. Once a feature here is completed
-its text will be moved into the overview page.
+This is a draft for features that are not implemented yet. Once a feature here is completed,
+its associated text will be moved into the overview page.
 {: .lead}
 
 Don't expect any of the examples
 here **to work or be implemented** in the future exactly as presented here,
-these are mostly ideias.
+these are mostly ideas.
 {: .callout.callout-warning}
 
 ## Iterated For

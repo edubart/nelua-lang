@@ -7,7 +7,7 @@ toc: true
 order: 6
 ---
 
-Nelua had to reimplement all Lua libraries. Due to this some functions are not implemented or can't be implemented. This page explains availability of Lua functions in Nelua.
+Nelua reimplements every Lua library. Due to this, some functions are not implemented or can't be implemented. This page shows the availability of Lua functions in Nelua.
 
 Implemented - ✔
 
