@@ -424,7 +424,10 @@ function visitors.Annotation(context, node, symbol)
       codename = symbol.name
     end
     if objattr._type then
-      objattr:set_codename(codename)
+      -- changing codename only on non primitives
+      if not objattr.is_primitive then
+        objattr:set_codename(codename)
+      end
     else
       objattr.codename = codename
     end

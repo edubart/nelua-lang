@@ -569,7 +569,6 @@ VoidType.nodecl = true
 VoidType.is_nolvalue = true
 VoidType.is_comptime = true
 VoidType.is_void = true
-VoidType.is_primitive = true
 
 function VoidType:_init(name)
   Type._init(self, name, 0)
@@ -588,7 +587,6 @@ AutoType.is_auto = true
 AutoType.nodecl = true
 AutoType.is_comptime = true
 AutoType.is_nilable = true
-AutoType.is_primitive = true
 AutoType.is_unpointable = true
 AutoType.is_polymorphic = true
 
@@ -614,7 +612,6 @@ TypeType.is_comptime = true
 TypeType.nodecl = true
 TypeType.is_unpointable = true
 TypeType.is_polymorphic = true
-TypeType.is_primitive = true
 
 function TypeType:_init(name)
   Type._init(self, name, 0)
@@ -639,7 +636,6 @@ local NiltypeType = types.typeclass()
 types.NiltypeType = NiltypeType
 NiltypeType.is_niltype = true
 NiltypeType.is_nilable = true
-NiltypeType.is_primitive = true
 NiltypeType.is_unpointable = true
 
 function NiltypeType:_init(name)
@@ -660,7 +656,6 @@ local NilptrType = types.typeclass()
 types.NilptrType = NilptrType
 NilptrType.is_nolvalue = true
 NilptrType.is_nilptr = true
-NilptrType.is_primitive = true
 NilptrType.is_unpointable = true
 
 function NilptrType:_init(name, size)
@@ -689,7 +684,6 @@ end
 local BooleanType = types.typeclass()
 types.BooleanType = BooleanType
 BooleanType.is_boolean = true
-BooleanType.is_primitive = true
 
 function BooleanType:_init(name, size)
   Type._init(self, name, size)
@@ -719,7 +713,6 @@ local AnyType = types.typeclass()
 types.AnyType = AnyType
 AnyType.is_any = true
 AnyType.is_nilable = true
-AnyType.is_primitive = true
 
 function AnyType:_init(name, size)
   Type._init(self, name, size)
@@ -745,7 +738,6 @@ types.VaranysType = VaranysType
 VaranysType.is_varanys = true
 VaranysType.is_varargs = true
 VaranysType.is_nolvalue = true
-VaranysType.is_primitive = true
 
 function VaranysType:_init(name, size)
   Type._init(self, name, size)
@@ -762,7 +754,6 @@ types.CVarargsType = CVarargsType
 CVarargsType.is_cvarargs = true
 CVarargsType.is_varargs = true
 CVarargsType.is_nolvalue = true
-CVarargsType.is_primitive = true
 
 function CVarargsType:_init(name, size)
   Type._init(self, name, size)
@@ -778,7 +769,6 @@ end
 local ArithmeticType = types.typeclass()
 types.ArithmeticType = ArithmeticType
 ArithmeticType.is_arithmetic = true
-ArithmeticType.is_primitive = true
 ArithmeticType.get_convertible_from_type = Type.get_convertible_from_type
 
 function ArithmeticType:_init(name, size)
@@ -1349,7 +1339,6 @@ end)
 
 local TableType = types.typeclass()
 types.TableType = TableType
-TableType.is_primitive = true
 TableType.is_table = true
 
 function TableType:_init(name)
@@ -1439,7 +1428,6 @@ end
 local EnumType = types.typeclass(IntegralType)
 types.EnumType = EnumType
 EnumType.is_enum = true
-EnumType.is_primitive = false -- to allow using custom nicknames
 
 EnumType.shape = shaper.fork_shape(IntegralType.shape, {
   -- Fixed length for the array.
@@ -2026,14 +2014,12 @@ function PointerType:_init(subtype)
     self.nickname = 'pointer'
     self.codename = 'nlpointer'
     self.is_generic_pointer = true
-    self.is_primitive = true
   elseif subtype.name == 'cchar' then -- cstring
     self.nodecl = true
     self.nickname = 'cstring'
     self.codename = 'nlcstring'
     self.is_cstring = true
     self.is_stringy = true
-    self.is_primitive = true
   else
     self.codename = subtype.codename .. '_ptr'
   end
@@ -2182,7 +2168,6 @@ local StringViewType = types.typeclass(RecordType)
 types.StringViewType = StringViewType
 StringViewType.is_stringview = true
 StringViewType.is_stringy = true
-StringViewType.is_primitive = true
 
 function StringViewType:_init(name)
   self.codename = 'nlstringview'
