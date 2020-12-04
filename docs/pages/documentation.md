@@ -16,7 +16,7 @@ Read this page after installing the Nelua compiler.
 ### [Overview](/overview/)
 
 Overview of Nelua's features,
-the **most use page** for learning about the syntax and features.
+the **most useful page** for learning about the syntax and features.
 
 ### [Manual](/manual/)
 
