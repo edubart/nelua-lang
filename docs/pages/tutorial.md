@@ -8,22 +8,21 @@ order: 2
 
 {% raw %}
 
-This is a basic tutorial for the Nelua Programming Language, for running
-your first application.
+This is a basic tutorial for writing your first application in the Nelua language.
 {: .lead}
 
-**Don't have Nelua installed yet?** Read the [installing tutorial](/installing/) first.
+**Don't have Nelua installed yet?** Read the [installation tutorial](/installing/) first.
 {: .callout.callout-info}
 
 ## Your first program
 
-You can code in Nelua much like you would code in Lua. For example, a hello world program is written much like in Lua:
+You can code in Nelua much like you would code in Lua. For example, a hello world program is written much the same:
 
 ```nelua
 print 'Hello world'
 ```
 
-This example is already in the repository as an example. First clone the language repository
+This example is already in the examples folder in the repository. First clone the language repository
 if you haven't yet:
 
 ```bash
@@ -48,10 +47,10 @@ hello world
 
 Note that the compiler has generated a file called `helloworld.c`.
 This is your program translated to C source code.
-If you know how to read C then I encourage you to open it and have a look.
-The compiler tries to generate efficient, compact, and readable C sources.
+If you know how to read C, I encourage you to open it and have a look.
+The compiler tries to generate efficient, compact, and readable C code.
 
-After the C source file is generated, GCC is invoked to compile the C sources,
+After the C source file is generated, GCC is invoked to compile it,
 and then the program is executed.
 
 If your machine does not have GCC, you can use another C compiler with the flag `--cc`. 

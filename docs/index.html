@@ -9,7 +9,7 @@ layout: default
         <div class="col-lg-8 mx-auto">
           <div class="nelua-brand-big">{% include logo.svg %}</div>
           <h1 class="font-weight-light"><span class="font-weight-bold">Nelua</span> Programming Language</h1>
-          <p class="lead">Minimal, simple, efficient, statically typed, compiled, meta programmable, safe and extensible systems programming language with a <strong>Lua</strong> flavor.</p>
+          <p class="lead">Minimal, simple, efficient, statically typed, compiled, metaprogrammable, safe, and extensible systems programming language with a <strong>Lua</strong> flavor.</p>
           <p>
             <a href="/overview/" class="btn btn-primary my-2">Overview</a>
             <a href="/installing/" class="btn btn-outline-light my-2">Download</a>
@@ -27,11 +27,11 @@ layout: default
           <h2>What is Nelua?</h2>
           <p>Nelua is a systems programming language
 for performance sensitive applications, like real-time applications and game engines.
-It has syntax and semantics similar to Lua,
-but is designed to be able to work with optional garbage collection, type notations
-and free from an interpreter.
-It uses ahead of time compilation to compile to optimized native binaries,
-is meta programmable at compile-time using Lua and is simple to use.</p>
+Its syntax and semantics are similar to Lua,
+but its garbage collection is optional, it provides optional type notations,
+and it is free from an interpreter.
+Nelua uses ahead-of-time compilation to generate optimized native binaries.
+It is metaprogrammable at compile-time using Lua and it is simple and easy to use.</p>
           <a href="/overview/" class="btn btn-outline-primary my-2">Read language overview</a>
         </div>
         <div class="col-md-7">
@@ -113,7 +113,7 @@ print(person.name, 'is', person.age, 'years old')
           Statically typed
         </div>
         <p>Nelua takes advantage of type notations to do type checks at compile time and
-        to generate efficient specialized code, most of the type notations are optional
+        to generate efficient specialized code. Most of the type notations are optional
         and the compiler can infer them at compile time.
       </div>
       <div class="col">
@@ -126,7 +126,7 @@ print(person.name, 'is', person.age, 'years old')
           Efficient
         </div>
         <p>
-        Nelua should be efficient as C when programming with manual memory management
+        Nelua should be as efficient as C when programming with manual memory management,
         and more efficient than Lua when using the optional garbage collector.
         </p>
       </div>
@@ -141,9 +141,9 @@ print(person.name, 'is', person.age, 'years old')
           Simple
         </div>
         <p>
-        Nelua is simple and intuitive as Lua. Just some additions like
-        type notations, efficient data structures and meta programming
-        utilities are incremented over Lua but all those are optional.
+        Nelua is as simple and intuitive as Lua. Some additions like
+        type notations, efficient data structures, and metaprogramming
+        utilities are available, unlike Lua, but all of them are optional.
         </p>
       </div>
       <div class="col">
@@ -159,7 +159,7 @@ print(person.name, 'is', person.age, 'years old')
         </div>
         <p>
         If you know how to code in Lua then you probably know
-        how to code in Nelua already because it tries to have the same syntax, semantics, features and APIs.
+        how to code in Nelua. It tries to have the same syntax, semantics, features, and APIs.
         </p>
       </div>
       <div class="col">
@@ -174,9 +174,9 @@ print(person.name, 'is', person.age, 'years old')
           Compiled
         </div>
         <p>
-        Nelua takes advantage of ahead of time compilation
-        using powerful optimized C compilers such as GCC or Clang thus generating very
-        efficient native code, it doesn't use an interpreter at runtime.
+        Nelua takes advantage of ahead-of-time compilation
+        using powerful, optimized C compilers such as GCC or Clang, and thus generates very
+        efficient native code. No interpreter is needed at runtime.
         </p>
       </div>
       <div class="col">
@@ -189,9 +189,9 @@ print(person.name, 'is', person.age, 'years old')
           Minimal
         </div>
         <p>
-        Nelua is provide mechanisms for implementing features, instead of providing a host of features directly in the language.
+        Nelua provides mechanisms for implementing features instead of providing a host of features directly in the language.
         For example, although Nelua is not an object-oriented language,
-        it does provide mechanisms for implementing classes and inheritance efficiently at compile time with meta programming.
+        it does provide mechanisms for implementing classes and inheritance efficiently at compile time via metaprogramming.
         </p>
       </div>
       <div class="col">
@@ -205,7 +205,7 @@ print(person.name, 'is', person.age, 'years old')
           Safe
         </div>
         <p>Nelua tries to be safe by default for the user by
-        minimizing undefined behavior, doing compile time checks and runtime checks.
+        minimizing undefined behavior and doing both compile-time checks and runtime checks.
         </p>
       </div>
       <div class="col">
@@ -218,7 +218,7 @@ print(person.name, 'is', person.age, 'years old')
           </span>
           Low level
         </div>
-        <p>Nelua has C like features to work at low level to allow micro optimizing parts
+        <p>Nelua has C-like low level features to allow micro-optimizing parts
         of the code when needed.
         </p>
       </div>
@@ -229,11 +229,12 @@ print(person.name, 'is', person.age, 'years old')
               <path d="M8.39 12.648a1.32 1.32 0 0 0-.015.18c0 .305.21.508.5.508.266 0 .492-.172.555-.477l.554-2.703h1.204c.421 0 .617-.234.617-.547 0-.312-.188-.53-.617-.53h-.985l.516-2.524h1.265c.43 0 .618-.227.618-.547 0-.313-.188-.524-.618-.524h-1.046l.476-2.304a1.06 1.06 0 0 0 .016-.164.51.51 0 0 0-.516-.516.54.54 0 0 0-.539.43l-.523 2.554H7.617l.477-2.304c.008-.04.015-.118.015-.164a.512.512 0 0 0-.523-.516.539.539 0 0 0-.531.43L6.53 5.484H5.414c-.43 0-.617.22-.617.532 0 .312.187.539.617.539h.906l-.515 2.523H4.609c-.421 0-.609.219-.609.531 0 .313.188.547.61.547h.976l-.516 2.492c-.008.04-.015.125-.015.18 0 .305.21.508.5.508.265 0 .492-.172.554-.477l.555-2.703h2.242l-.515 2.492zm-1-6.109h2.266l-.515 2.563H6.859l.532-2.563z"/>
             </svg>
           </span>
-          Meta programmable
+          Metaprogrammable
         </div>
         <p>
-        Nelua keeps its host features minimal and provides meta programming
-        mechanisms to bring new features, allowing the semantics to be extended in unconventional ways at compile time. For example Nelua allows to create generics, polymorphic functions and specialize code at compile time using Lua and using its concepts system.
+        Nelua keeps its host features minimal and provides metaprogramming
+		mechanisms, allowing the semantics to be extended in unconventional ways at compile time.
+		For example, Nelua allows you to create generics, polymorphic functions, and specialized code at compile time using Lua and using the concepts system.
         </p>
       </div>
       <div class="col">
@@ -248,9 +249,9 @@ print(person.name, 'is', person.age, 'years old')
         </div>
         <p>Nelua's compiler is written in Lua and is completely
         modifiable on the fly via the preprocessor,
-        thus you can make unconventional techniques on the compiler
-        at compile time, allowing for example to manipulate the AST, extend the language
-        syntax, semantics or code generator.
+        thus you can change the behavior of the compiler
+		at compile time, allowing, for example, direct manipulation of the AST,
+		or even extensions to the language syntax, semantics, or the code generator.
         </p>
       </div>
       <div class="col">
@@ -259,9 +260,9 @@ print(person.name, 'is', person.age, 'years old')
           Compiles to C
         </div>
         <p>
-        Nelua compiles to C first then to native, thus you can read and debug the generated C code,
-        mix other C code without costs, create or use C libraries, use C tools and reuse the generated C code.
-        You can think of Nelua being a "better C" heavily inspired by Lua.
+        Nelua compiles to C first then to native code, thus you can read and debug the generated C code,
+        mix in other C code without costs, create or use C libraries, use C tools, and reuse the generated C code.
+        You can think of Nelua like a "better C" heavily inspired by Lua.
         </p>
       </div>
       <div class="col">
@@ -277,8 +278,8 @@ print(person.name, 'is', person.age, 'years old')
           Run anywhere
         </div>
         <p>
-        Nelua uses minimal dependencies
-        this means you can use it for any system that C is available,
+        Nelua has minimal dependencies.
+        This means you can use it for any system where C is available,
         including the web.
         </p>
       </div>
@@ -293,10 +294,9 @@ print(person.name, 'is', person.age, 'years old')
           Optional GC
         </div>
         <p>
-        Nelua uses a garbage collector by default but it's completely optional and
-        can be replaced by manual memory management to have predictable runtime performance
-        to use in real-time applications
-        such as game engines and operational systems.
+        Nelua uses a garbage collector by default, but it is completely optional and
+        can be replaced by manual memory management for predictable runtime performance
+        and for use in real-time applications, such as game engines and operational systems.
         </p>
       </div>
       <div class="col">
@@ -308,8 +308,8 @@ print(person.name, 'is', person.age, 'years old')
           </span>
           Self contained
         </div>
-        <p>Nelua doesn't use external dependencies,
-          its standard library is written in Nelua
+        <p>Nelua does not use external dependencies.
+          Its standard library is written in Nelua
           and you only need a C compiler to use it.
         </p>
       </div>
@@ -369,7 +369,7 @@ print(person.name, 'is', person.age, 'years old')
             </tbody>
           </table>
           <p class="small text-muted font-italic">
-            Lua 5.4, LuaJIT 2.1, GCC 10.1 were used in the benchmarks.
+            Lua 5.4, LuaJIT 2.1, and GCC 10.1 were used in the benchmarks.
           </p>
         </div>
         <div class="col-md-4 order-1 order-md-2">
@@ -380,11 +380,11 @@ print(person.name, 'is', person.age, 'years old')
             Benchmarks
           </h2>
           <p>
-            Nelua is very efficient, these are some benchmarks for equivalent code run in Nelua, Lua, LuaJIT and C.
+            Nelua is very efficient. These are some benchmarks for equivalent code run in Nelua, Lua, LuaJIT and C.
             <p class="small text-muted">
-              * Nelua can match C performance when using optimized structures and doing manual memory management,
-              however to do justice with Lua in the comparisons the benchmarks were coded in the same style, i.e.
-              using the garbage collector and table like structures.
+              * Nelua can match C performance when using optimized structures and doing manual memory management.
+              However, to do justice to Lua in the comparisons, the benchmarks were coded in the same style, i.e.
+              using the garbage collector and table-like structures.
             </p>
           </p>
         </div>
@@ -403,9 +403,9 @@ print(person.name, 'is', person.age, 'years old')
             Installing
           </h2>
           <p class="lead font-weight-normal">Use your terminal to install Nelua</p>
-          <p>Requires git, build tools and a C compiler.
+          <p>Requires git, build tools, and a C compiler.
           On Windows you should use MSYS2 with mingw-w64,
-          on Linux you can use GCC and
+          on Linux you can use GCC, and
           on MacOS you can use Clang.</p>
           <a href="/installing/" class="btn btn-outline-primary my-2">Read installation docs</a>
         </div>
@@ -431,9 +431,9 @@ nelua examples/helloworld.nelua
             </svg>
             Why Nelua?
           </h2>
-          <p>Nelua is being created by a <strong>Lua</strong> lover who after years working with
-          Lua in game projects wished a Lua flavored, efficient, simple and powerful at compile time language
-          to replace C/C++ codes of game projects. If you have more questions
+          <p>Nelua is being developed by a <strong>Lua</strong> lover who, after years of using
+          Lua in game projects, wished for a Lua-flavored, efficient, simple language that was powerful at compile time
+          and could replace C/C++ code in game projects. For more information,
           read the <a href="/faq/">frequently asked questions</a>.
         </div>
         <div class="col-md-6">
@@ -444,7 +444,7 @@ nelua examples/helloworld.nelua
             </svg>
             Learn more
           </h2>
-          <p>Go to the documentation to learn more about what Nelua can do and how to use it.</p>
+          <p>Go to the documentation to learn more about Nelua's capabilites and how to use the language.</p>
           <a href="/docs" class="btn btn-outline-primary my-2">Read documentation</a>
         </div>
       </div>
@@ -461,7 +461,7 @@ nelua examples/helloworld.nelua
         </svg>
         Nelua is currently under development and in <strong>alpha</strong> status, nevertheless there are
         <a href="https://github.com/search?p=1&q=%23nelua&type=Repositories">projects already using it on GitHub</a>, including games!
-        To know which features is planned to be implemented yet check the <a href="https://github.com/edubart/nelua-lang/projects">roadmap on GitHub</a>.
+        To know which features are planned to be implemented, check the <a href="https://github.com/edubart/nelua-lang/projects">roadmap on GitHub</a>.
       </div>
     </div>
   </div>
@@ -479,7 +479,7 @@ nelua examples/helloworld.nelua
           <p>The Nelua compiler is open source and licensed under the <a class="link-light" href="https://github.com/edubart/nelua-lang/blob/master/LICENSE">MIT</a> license,
           with most development taking place on <a class="link-light" href="https://github.com/edubart/nelua-lang">GitHub</a>.
           Be sure to watch the repository to get updates on Nelua's development
-          and star it to incentive the project.</p>
+          and star it to show support for the project.</p>
           <div class="text-center">
             <a href="https://github.com/edubart/nelua-lang" class="btn btn-light">Source code</a>
           </div>
@@ -491,15 +491,15 @@ nelua examples/helloworld.nelua
             </svg>
             Support Nelua
           </h2>
-          <p>If you like Nelua please consider contributing in some way,
-          the simplest would be <strong>giving a star</strong> on <a class="link-light" href="https://github.com/edubart/nelua-lang">GitHub</a>
-          or you could also try out Nelua and share your experience,
+          <p>If you like Nelua, consider contributing in some way!
+          The simplest way would be to <strong>give a star</strong> on <a class="link-light" href="https://github.com/edubart/nelua-lang">GitHub</a>.
+          You can also try out Nelua and share your experience,
           report bugs,
-          join the <a class="link-light" href="https://discord.gg/7aaGeG7">discord chat</a>,
+          join the <a class="link-light" href="https://discord.gg/7aaGeG7">Discord server</a>,
           spread it to the world,
           share something created with it,
-          make blog post about it
-          or <a class="link-light" href="https://patreon.com/edubart">make a donation</a>.</p>
+          make blog post about it,
+          or even <a class="link-light" href="https://patreon.com/edubart">make a donation</a>.</p>
         </div>
       </div>
     </div>
