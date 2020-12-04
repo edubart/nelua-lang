@@ -69,23 +69,25 @@ require 'span'
 
   ## if not Allocator.value.metafields.spanalloc then
   function Allocator:spanalloc(T: type, size: usize)
-    local s: span(T)
     if likely(size > 0) then
-      s.data = (@*[0]T)(self:alloc(size * #T))
-      s.size = size
+      local data: *[0]T = (@*[0]T)(self:alloc(size * #T))
+      if likely(data ~= nilptr) then
+        return (@span(T)){data,size}
+      end
     end
-    return s
+    return (@span(T)){}
   end
   ## end
 
   ## if not Allocator.value.metafields.spanalloc0 then
   function Allocator:spanalloc0(T: type, size: usize)
-    local s: span(T)
     if likely(size > 0) then
-      s.data = (@*[0]T)(self:alloc0(size * #T))
-      s.size = size
+      local data: *[0]T = (@*[0]T)(self:alloc0(size * #T))
+      if likely(data ~= nilptr) then
+        return (@span(T)){data,size}
+      end
     end
-    return s
+    return (@span(T)){}
   end
   ## end
 
