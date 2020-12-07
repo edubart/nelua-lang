@@ -1052,7 +1052,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         pseudoargtypes = tabler.icopy(funcargtypes)
         pseudoargattrs = tabler.icopy(funcargattrs)
         attr.pseudoargtypes = pseudoargtypes
-        attr.pseudoargattrs = pseudoargtypes
+        attr.pseudoargattrs = pseudoargattrs
       end
       if calleeobjnode then
         attr.ismethod = true

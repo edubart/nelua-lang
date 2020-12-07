@@ -2961,4 +2961,17 @@ it("unions", function()
   ]=])
 end)
 
+it("issue #45", function()
+  assert.run_c([=[
+    local X = @record{y: integer}
+    function X:A(a: facultative(stringview) <comptime>)
+      print(a)
+    end
+    local z: X = {0}
+    X.A(z)
+    X.A(z, 'hello world')
+    z:A('hello world')
+  ]=])
+end)
+
 end)

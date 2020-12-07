@@ -316,6 +316,8 @@ function CEmitter:add_literal(valattr)
     self:add_numeric_literal(valattr)
   elseif valtype.is_stringview then
     self:add_string_literal(valattr.value, valattr.is_cstring)
+  elseif valtype.is_niltype then
+    self:add_builtin('NLNIL')
   --elseif valtype.is_record then
     --self:add(valattr)
   else --luacov:disable
