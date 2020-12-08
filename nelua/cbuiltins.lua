@@ -41,11 +41,11 @@ end
 function builtins.nelua_cexport(context)
   define_builtin(context, 'nelua_cexport',
 [[#ifdef _WIN32
-#define nelua_cexport __declspec(dllexport)
+#define nelua_cexport __declspec(dllexport) extern
 #elif defined(__GNUC__) && __GNUC__ >= 4
-#define nelua_cexport __attribute__((visibility ("default")))
+#define nelua_cexport __attribute__((visibility ("default"))) extern
 #else
-#define nelua_cexport
+#define nelua_cexport extern
 #endif
 ]])
 end
