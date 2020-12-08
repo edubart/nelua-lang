@@ -18,41 +18,41 @@ features not yet implemented see the [draft](/draft/).
 ## A note for Lua users
 
 Most of Nelua's syntax and semantics
-are similar to Lua, thus, if you know Lua, you probably know Nelua as well. However, Nelua has many
-additions, such as code with type notations, to make code more efficient and to allow metaprogramming.
-This overview will try to focus on those features.
+are similar to Lua, so if you know Lua, you probably know Nelua. However, Nelua has many
+additions, such as type notations, to make code more efficient and to allow metaprogramming.
+This overview will try to focus on those additions.
 
-There is no interpreter or VM, all of the code is converted directly into native machine code,
-so expect better efficiency than Lua. However, this means that Nelua **cannot load
-code generated at runtime**, the user is encouraged to generate code at compile-time
+There is no interpreter or VM, all of the code is converted directly into native machine code.
+This means you can expect better efficiency than Lua. However, this also means that Nelua **cannot load
+code generated at runtime**. The user is encouraged to generate code at compile-time
 using the preprocessor.
 
 Although copying Lua syntax and semantics with minor changes is a goal of Nelua, not all Lua
-features are implemented yet. Most of the dynamic parts such as tables and handling dynamic types
-at runtime are not implemented yet, so at the moment, using
-records instead of tables and type notations in function definitions are recommended.
+features are implemented yet. Most of the dynamic parts, such as tables and handling dynamic types
+at runtime, are not implemented yet. So at the moment, using
+records instead of tables and using type notations in function definitions are recommended.
 Visit [this](/diffs/) page for the full list of available features.
 {: .callout.callout-warning}
 
 ## A note for C users
 
 Nelua tries to expose most of C's features without overhead, so expect
-to get near C performance when coding in the C style; that is, using
-type notations, manual memory management, pointers and records (structs).
+to get near-C performance when coding in the C style; that is, using
+type notations, manual memory management, pointers, and records (structs).
 
 The semantics are not exactly the same as C semantics, but they are close. There are slight differences
-to minimize undefined behaviors (like initializing to zero by default) and
-others to maintain consistency with Lua semantics (like integer division rounding towards negative infinity).
+(like initializing to zero by default) to minimize undefined behaviors and
+other differences to maintain consistency with Lua semantics (like integer division rounding towards negative infinity).
 However, there are ways to use C semantics when needed.
 
-The preprocessor is much more powerful than C's preprocessor,
-because it is actually the compiler running in Lua,
-so you can interact with the compiler during parsing. The preprocessor should
-be used for making generic code, code specialization, and avoiding code duplication.
+The preprocessor is much more powerful than C's preprocessor
+because it is part of the compiler which runs in Lua.
+This means you can interact with the compiler during parsing. The preprocessor should
+be used for code specialization, making generic code, and avoiding code duplication.
 
 Nelua compiles everything into a single readable C file.
 If you know C, it is recommended that you read the generated C code
-to learn more about what exactly the compiler outputs.
+to learn more about exactly how the compiler works and what code it outputs.
 
 ## Hello world
 
@@ -72,16 +72,16 @@ Comments are just like Lua:
   multi-line comment
 ]]
 --[=[
-  multi line comment, `=` can be placed multiple times
-  in case if you have `[[` `]]` tokens inside, it will
-  always match it's corresponding token
+  multi line comment. `=` can be placed multiple times
+  in case you have `[[` `]]` tokens inside the comment.
+  it will always match its corresponding token
 ]=]
 ```
 
 ## Variables
 
-Variables are declared or defined like in Lua, but you may optionally
-specify a type when declaring:
+Variables are declared and defined like in Lua, but you may optionally
+specify a type:
 
 ```nelua
 local a = nil -- of deduced type 'any', initialized to nil
@@ -92,8 +92,8 @@ local pi: number = 3.14 --  of type 'number', initialized to 1
 print(a,b,s,one,pi) -- outputs: nil false test 1 3.1400000
 ```
 
-The compiler takes advantage of types for compile-time and runtime checks
-and to generate **efficient code** for the **specific type used**.
+The compiler takes advantage of types for compile-time and runtime checks,
+as well as to generate **efficient code** to handle the **specific type used**.
 {:.alert.alert-info}
 
 ### Type deduction
