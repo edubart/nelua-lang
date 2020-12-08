@@ -3,6 +3,7 @@ local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
 local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
+local tabler = require 'nelua.utils.tabler'
 local bn = require 'nelua.utils.bn'
 local cdefs = require 'nelua.cdefs'
 local cbuiltins = require 'nelua.cbuiltins'
@@ -579,7 +580,9 @@ function visitors.PragmaCall(context, node, emitter)
   elseif name == 'ldflags' then
     table.insert(context.compileopts.ldflags, args[1])
   elseif name == 'linklib' then
-    table.insert(context.compileopts.linklibs, args[1])
+    if not tabler.ifind(context.compileopts.linklibs, args[1]) then
+      table.insert(context.compileopts.linklibs, args[1])
+    end
   end
 end
 
