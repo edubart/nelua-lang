@@ -156,7 +156,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
   local multiretvalname
   for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
     local varattr = varnode.attr
-    local noinit = varattr.noinit or varattr.cexport
+    local noinit = varattr.noinit or varattr.cexport or varattr.cimport
     local vartype = varattr.type
     if not vartype.is_type and (not varattr.nodecl or not decl) and not varattr.comptime then
       local declared, defined = false, false
@@ -164,7 +164,9 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         -- declare main variables in the top scope
         local decemitter = CEmitter(context)
         decemitter:add_indent()
-        if not varattr.nostatic and not varattr.cexport then
+        if varattr.cimport then
+          decemitter:add('extern ')
+        elseif not varattr.nostatic and not varattr.cexport then
           decemitter:add('static ')
         end
         decemitter:add(varnode)
