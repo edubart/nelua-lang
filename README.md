@@ -16,12 +16,11 @@ inspired by Lua, which compiles to C and native code.
 
 - For basic information check the [Website](https://nelua.io/).
 - For first steps and how to use Nelua, start at the [Tutorial](https://nelua.io/tutorial/).
-- Read the [Overview](https://nelua.io/overview/) for a tour of the language's
-  syntax, features and usage.
-- Check out the [Examples](./examples) folder for small programs written in
-  Nelua.
-- Check for cool stuff made with Nelua in the
-  [Community Showcase](https://github.com/edubart/nelua-lang/wiki/Community-showcase) wiki page.
+- For a tour of the language's syntax, features and usage read the [Overview](https://nelua.io/overview/).
+- For small examples written in Nelua look the [Examples](./examples) folder .
+- For questions and discussions go to the [Discussions](https://github.com/edubart/nelua-lang/discussions).
+- For a chat with the community join the [Discord server](https://discord.gg/7aaGeG7).
+- For cool stuff made with Nelua check the [Show and tell page](https://github.com/edubart/nelua-lang/discussions/categories/show-and-tell)
 
 After installing, you might want to check out the featured example, a Snake
 game leveraging the famous [SDL2](https://www.libsdl.org) library:
@@ -29,9 +28,6 @@ game leveraging the famous [SDL2](https://www.libsdl.org) library:
 ```bash
 nelua examples/snakesdl.nelua
 ```
-
-Last, but not least, feel free to give feedback and ask questions over at the
-[Discord server](https://discord.gg/7aaGeG7).
 
 ## About
 
@@ -130,9 +126,10 @@ discussing ideas,
 spreading it to the world,
 sharing projects made with it on github,
 creating tutorials or blog posts,
-creating [wiki](https://github.com/edubart/nelua-lang/wiki/Wiki-Home) pages that could be useful for newcomers,
 improving its documentation
-or through a [donation or sponsorship](https://patreon.com/edubart),
+or through a [donation or sponsorship](https://patreon.com/edubart).
+
+Read more about contributing in the [contributing page](https://github.com/edubart/nelua-lang/blob/master/CONTRIBUTING.md).
 
 [![Become a Patron](https://c5.patreon.com/external/logo/become_a_patron_button.png)](https://www.patreon.com/edubart)
 
