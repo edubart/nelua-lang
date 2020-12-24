@@ -81,7 +81,7 @@ benchmark: nelua-lua
 ## Generate coverage report.
 coverage-genreport:
 	$(LUACOV)
-	@$(LUA) -e "require('tools.covreporter')()"
+	@$(LUA) tools/covreporter.lua
 
 ## Run the test suite analyzing code coverage.
 coverage-test: nelua-lua

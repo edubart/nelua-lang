@@ -19,7 +19,6 @@ local function colored_percent(value)
 end
 
 local function report_coverage(reportfile)
-  reportfile = reportfile or 'luacov.report.out'
   local reportdata = readfile(reportfile)
   if not reportdata then
     error('no coverage report found')
@@ -76,7 +75,11 @@ sp      <- %s+
     end
   end
 
-  return total_coverage == 100
+  local threshold = 99.50
+  if total_coverage < threshold then
+    print(colors.red..string.format('Coverage threshold is below %.2f!', threshold))
+    os.exit(-1)
+  end
 end
 
-return report_coverage
+report_coverage('luacov.report.out')
