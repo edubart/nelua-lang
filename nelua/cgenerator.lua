@@ -1029,7 +1029,7 @@ function visitors.Return(context, node, emitter)
       end
     end
   end
-  destroy_upscopes_variables(context, desemitter, 'function')
+  destroy_upscopes_variables(context, desemitter, 'is_returnbreak')
   emitter:add(desemitter:generate())
   emitter:add(defemitter:generate())
 end

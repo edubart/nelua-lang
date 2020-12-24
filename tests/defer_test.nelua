@@ -103,3 +103,26 @@ local function f()
   return s
 end
 assert(f() == 'abc')
+
+-- issue #46
+local function f()
+  local n = 0
+  defer n = n+1 end
+  local r = (do
+    assert(true)
+    return 0
+  end)
+  return n + r
+end
+assert(f() == 1)
+local function g()
+  local n = 0
+  defer n = n+1 end
+  local function x()
+    assert(true)
+    return 0
+  end
+  local r = x()
+  return n + r
+end
+assert(g() == 1)
