@@ -1564,6 +1564,12 @@ it("cstring and string", function()
       assert(#c == 5)
     end
 
+    do
+      local s: [4]byte = {'a'_byte,'b'_byte,0}
+      local c: cstring = &s
+      assert(#c == 2)
+      assert(c == 'ab')
+    end
     assert(#(@cstring)('hello') == 5)
   ]], "hello\nhello")
 end)

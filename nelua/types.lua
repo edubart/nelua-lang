@@ -2080,6 +2080,10 @@ function PointerType:get_convertible_from_type(type, explicit)
            is_pointer_subtype_convertible(self.subtype.subtype, type.subtype.subtype) then
       -- implicit casting from checked arrays pointers to unbounded arrays pointers
       return self
+    elseif self.is_cstring and type.subtype.is_array and
+           is_pointer_subtype_convertible(type.subtype.subtype, primtypes.byte) then
+      -- implicit casting from pointer to a byte array to cstring
+      return self
     elseif is_pointer_subtype_convertible(self.subtype, type.subtype) then
       -- implicit casting between integral of same size and signess
       return self
