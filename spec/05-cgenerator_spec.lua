@@ -1699,6 +1699,13 @@ it("multi dimensional arrays", function()
       assert(o.values[2][2] == 3)
       assert(o.values[3][3] == 4)
     end
+
+    do
+      local Map = @[0][0]integer
+      local a: Map
+      local b: Map
+      a = $(&b)
+    end
   ]])
 end)
 

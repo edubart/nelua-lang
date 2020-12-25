@@ -169,10 +169,15 @@ function builtins.nelua_assert_deref_(context, indextype)
   local name = 'nelua_assert_deref_' .. indextype.codename
   if context.usedbuiltins[name] then return name end
   local indexctype = context:ctype(indextype)
+  local retindexctype = indexctype
+  if indextype.subtype.is_array and indextype.subtype.length == 0 then
+    -- use pointer to the actual subtype structure, because indexctype may have been simplified
+    retindexctype = context:ctype(indextype.subtype)..'*'
+  end
   context:ensure_runtime_builtin('nelua_panic_cstring')
   context:ensure_runtime_builtin('nelua_unlikely')
   define_inline_builtin(context, name,
-    indexctype,
+    retindexctype,
     string.format('(%s p)', indexctype), [[{
   if(nelua_unlikely(p == NULL)) {
     nelua_panic_cstring("attempt to dereference a null pointer");
