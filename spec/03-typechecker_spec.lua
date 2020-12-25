@@ -442,6 +442,11 @@ it("binary conditional or", function()
   assert.ast_type_equals("local a = nilptr and false or 1", "local a: any = nilptr and false or 1")
 end)
 
+it("binary operator concat", function()
+  assert.analyze_ast("local a = 'a'..'b'")
+  assert.analyze_error("local a = 'a' local ab = a..'b'", "invalid operation between types")
+end)
+
 it("operation with parenthesis", function()
   assert.ast_type_equals("local a = -(1)", "local a: integer = -(1)")
 end)

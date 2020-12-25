@@ -2203,11 +2203,11 @@ end
 -- String view concatenation operator.
 StringViewType.binary_operators.concat = function(ltype, rtype, lattr, rattr)
   if ltype.is_stringview and rtype.is_stringview then
-    local lval, rval, reval = lattr.value, rattr.value, nil
+    local lval, rval = lattr.value, rattr.value
     if lval and rval then -- both are compile time strings
-      reval = lval .. rval
+      local reval = lval .. rval
+      return ltype, reval
     end
-    return ltype, reval
   end
 end
 
