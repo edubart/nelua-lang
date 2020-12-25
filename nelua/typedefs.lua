@@ -68,6 +68,7 @@ primtypes.cstring     = types.PointerType(primtypes.cchar)
 primtypes.cdouble     = primtypes.float64
 primtypes.cfloat      = primtypes.float32
 primtypes.cvarargs    = types.CVarargsType('cvarargs')
+primtypes.cvalist     = types.CVaList('cvalist')
 
 -- The following types are predefined aliases, but can be customized by the user.
 primtypes.integer     = primtypes.int64

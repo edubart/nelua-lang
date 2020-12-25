@@ -167,6 +167,7 @@ Type.shape = shaper.shape {
   is_void = shaper.optional_boolean,
   is_generic_pointer = shaper.optional_boolean,
   is_cstring = shaper.optional_boolean,
+  is_cvalist = shaper.optional_boolean,
 
   -- Booleans for checking the underlying type (lib types).
   is_allocator = shaper.optional_boolean,
@@ -2229,6 +2230,26 @@ StringViewType.binary_operators.le = make_string_cmp_opfunc(function(a,b) return
 StringViewType.binary_operators.ge = make_string_cmp_opfunc(function(a,b) return a>=b end)
 StringViewType.binary_operators.lt = make_string_cmp_opfunc(function(a,b) return a<b end)
 StringViewType.binary_operators.gt = make_string_cmp_opfunc(function(a,b) return a>b end)
+
+--------------------------------------------------------------------------------
+-- CVaList Type
+--
+-- The cvarargs type is used for the last argument type of C imported functions
+-- that can have variable number of arguments.
+
+local CVaList = types.typeclass(RecordType)
+types.CVaList = CVaList
+CVaList.is_cvalist = true
+CVaList.nodecl = true
+CVaList.cimport = true
+CVaList.cinclude = '<stdarg.h>'
+
+function CVaList:_init(name)
+  self.codename = 'nlcvalist'
+  RecordType._init(self, {})
+  self.name = name
+  self.nickname = name
+end
 
 --------------------------------------------------------------------------------
 -- Concept Type

@@ -22,7 +22,7 @@ end
 
 do -- va_list
   local function fill_numbers(numbers: *[0]number, n: integer, ...: cvarargs)
-    local vl: va_list
+    local vl: cvalist
     C.va_start(vl, n)
     for i=0,<n do
       numbers[i] = C.va_arg(vl, @number)
@@ -42,7 +42,7 @@ end
 
 do -- vsscanf
   local function get_matches(str: cstring, format: cstring, ...: cvarargs)
-    local args: va_list
+    local args: cvalist
     C.va_start(args, format)
     C.vsscanf(str, format, args)
     C.va_end(args)

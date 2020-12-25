@@ -55,6 +55,7 @@ cdefs.primitive_ctypes = {
   nlpointer = 'void*',
   nlnilptr  = 'void*',
   nlvoid    = 'void',
+  nlcvalist = 'va_list',
 
   nlcchar       = 'char',
   nlcschar      = 'signed char',
