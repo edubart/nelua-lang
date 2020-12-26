@@ -1951,8 +1951,8 @@ function visitors.VarDecl(context, node)
         end
       end
     end
-    if assigning then
-      symbol:add_possible_type(valtype, varnode)
+    if assigning and (valtype or valnode) then
+      symbol:add_possible_type(valtype, valnode)
     end
   end
 end
@@ -1986,7 +1986,9 @@ function visitors.Assign(context, node)
       end
     end
     if symbol then -- symbol may nil in case of array/dot index
-      symbol:add_possible_type(valtype, varnode)
+      if valtype or valnode then
+        symbol:add_possible_type(valtype, valnode)
+      end
       symbol.mutate = true
     end
     if not valnode and valtype and valtype.is_niltype then
@@ -2155,7 +2157,7 @@ function visitors.DoExpr(context, node)
     else -- transform into a symbol to force resolution on top scopes
       local symbol = Symbol.promote_attr(attr, nil, node)
       symbol.annonymous = true
-      symbol:add_possible_type(nil, node)
+      symbol:add_possible_type(nil, blocknode)
       context.scope:add_symbol(attr)
     end
   end

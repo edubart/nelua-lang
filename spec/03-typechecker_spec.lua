@@ -569,6 +569,30 @@ it("late deduction", function()
     local i: integer
     local a: *integer = nilptr or &i
   ]])
+  assert.ast_type_equals([[
+    local a = 1_integer
+    local b = 1_number
+    b = b + 1_integer
+    a = b
+  ]],[[
+    local a: number = 1_integer
+    local b: number = 1_number
+    b = b + 1_integer
+    a = b
+  ]])
+  assert.ast_type_equals([[
+    local a, b = 0, 0
+    do
+      local c = a*b
+      b = c + c
+    end
+  ]],[[
+    local a: integer, b: integer = 0, 0
+    do
+      local c: integer = a*b
+      b = c + c
+    end
+  ]])
 end)
 
 it("anonymous functions", function()

@@ -26,6 +26,7 @@ function Symbol:clear_possible_types()
   self.possibletypes = nil
   self.fallbacktype = nil
   self.unknownrefs = nil
+  self.refersitself = nil
 end
 
 function Symbol:add_possible_type(type, refnode)
@@ -62,25 +63,39 @@ function Symbol:add_possible_type(type, refnode)
   end
 end
 
-function Symbol:is_waiting_resolution(ignoresyms)
+function Symbol:has_resolve_refsym(refsym, checkedsyms)
   if self.unknownrefs then
-    -- ignoresyms is needed to cycles of references
-    if not ignoresyms then
-      ignoresyms = {[self]=true}
+    if not checkedsyms then
+      checkedsyms = {[self] = true}
     else
-      ignoresyms[self] = true
+      checkedsyms[self] = true
     end
     for refnode in pairs(self.unknownrefs) do
-      local sym = refnode.attr
-      if sym._symbol then
-        if ignoresyms[sym] then
-          return false
-        elseif sym:is_waiting_resolution(ignoresyms) then
+      for sym in refnode:walk_symbols() do
+        if sym == refsym then
+          return true
+        elseif not checkedsyms[sym] and sym:has_resolve_refsym(refsym, checkedsyms) then
           return true
         end
       end
     end
-    ignoresyms[self] = nil
+  end
+  return false
+end
+
+function Symbol:is_waiting_others_resolution()
+  if self.unknownrefs then
+    if self.refersitself == nil then
+      self.refersitself = self:has_resolve_refsym(self)
+    end
+    return not self.refersitself
+  end
+  return false
+end
+
+function Symbol:is_waiting_resolution()
+  if self:is_waiting_others_resolution() then
+    return true
   end
   if self.possibletypes and #self.possibletypes > 0 then
     return true
@@ -89,7 +104,12 @@ function Symbol:is_waiting_resolution(ignoresyms)
 end
 
 function Symbol:resolve_type(force)
-  if self.type or (not force and self.unknownrefs) then
+  if self.type then
+    -- type already resolved
+    return false
+  end
+  if not force and self:is_waiting_others_resolution() then
+    -- ignore when other symbols need to be resolved first
     return false
   end
   local resolvetype = types.find_common_type(self.possibletypes)

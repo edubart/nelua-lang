@@ -208,4 +208,23 @@ function ASTNode:__tostring()
   return ss:tostring()
 end
 
+local function walk_symbols(node)
+  if node._astnode then
+    local attr = node.attr
+    if attr and attr._symbol then
+      coroutine.yield(attr)
+    end
+  end
+  for i=1,node.nargs or #node do
+    local v = node[i]
+    if type(v) == 'table' then
+      walk_symbols(v)
+    end
+  end
+end
+
+function ASTNode:walk_symbols()
+  return coroutine.wrap(walk_symbols), self
+end
+
 return ASTNode
