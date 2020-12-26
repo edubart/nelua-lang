@@ -20,12 +20,22 @@ end)]#
 -- compile time utilities
 ##[[
 local function choose_float_type(x)
-  if x.type.is_float32 then
-    return primtypes.float32
+  if x.type.is_float32 or x.type.is_float64 then
+    return x.type
+  elseif primtypes.number.is_float32 or primtypes.number.is_float64 then
+    return primtypes.number
   else
     return primtypes.float64
   end
 end
+
+local function are_float32_types(x, y)
+  if (x.type.is_float32 and (y.type.is_float32 or y.type.is_integral or y.type.is_niltype)) or
+     (y.type.is_float32 and (x.type.is_float32 or x.type.is_integral)) then
+    return true
+  end
+end
+
 ]]
 
 -- import C math functions with 1 argument
@@ -81,6 +91,7 @@ local mathfuncs1 = {
 }
 for _,name in ipairs(mathfuncs1) do
   local namef64, namef32 = name..'_f64', name..'_f32'
+  local namef = primtypes.number.is_float32 and namef32 or namef64
 ]]
 function math.#|name|#(x: is_arithmetic) <inline,nosideeffect>
   ## if x.type.is_float32 then
@@ -93,7 +104,7 @@ function math.#|name|#(x: is_arithmetic) <inline,nosideeffect>
     ## elseif name == 'ceil' or name == 'floor' then
       return x
     ## else
-      return #|namef64|#(x)
+      return #|namef|#(x)
     ## end
   ## end
 end
@@ -107,11 +118,12 @@ local mathfuncs2 = {
 }
 for _,name in ipairs(mathfuncs2) do
   local namef64, namef32 = name..'_f64', name..'_f32'
+  local namef = primtypes.number.is_float32 and namef32 or namef64
 ]]
 function math.#|name|#(x: is_arithmetic, y: is_arithmetic) <inline,nosideeffect>
-  ## if x.type.is_float32 then
+  ## if are_float32_types(x, y) then
     return #|namef32|#(x, y)
-  ## elseif x.type.is_float then
+  ## elseif x.type.is_float or y.type.is_float then
     return #|namef64|#(x, y)
   ## else
     ## if name == 'min' then
@@ -123,7 +135,7 @@ function math.#|name|#(x: is_arithmetic, y: is_arithmetic) <inline,nosideeffect>
       ## cemit '  z = x % y;'
       return z
     ## else
-      return #|namef64|#(x, y)
+      return #|namef|#(x, y)
     ## end
   ## end
 end
@@ -131,7 +143,7 @@ end
 
 function math.atan(y: is_arithmetic, x: is_optional_arithmetic) <inline,nosideeffect>
   ## if not x.type.is_niltype then
-    ## if y.type.is_float32 and x.type.is_float32 then
+    ## if are_float32_types(x,y) then
       return atan2_f32(y, x)
     ## else
       return atan2_f64(y, x)
@@ -146,7 +158,7 @@ function math.atan(y: is_arithmetic, x: is_optional_arithmetic) <inline,nosideef
 end
 
 function math.log(x: is_arithmetic, base: is_optional_arithmetic) <inline,nosideeffect>
-  ## local suffix = x.type.is_float32 and '_f32' or '_f64'
+  ## local suffix = are_float32_types(x, base) and '_f32' or '_f64'
   ## local log2, log10, log = 'log2'..suffix, 'log10'..suffix, 'log'..suffix
   ## if not base.type.is_niltype then
     if base == 2 then
@@ -177,7 +189,7 @@ function math.modf(x: is_arithmetic) <inline,nosideeffect>
   local R: type = #[choose_float_type(x)]#
   local i: R
   local f: R <noinit>
-  ## if x.type.is_float32 then
+  ## if i.type.is_float32 then
     f = modf_f32(x, &i)
   ## else
     f = modf_f64(x, &i)
