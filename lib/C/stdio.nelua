@@ -1,5 +1,4 @@
 require 'C'
-require 'C.stdarg'
 
 ## cinclude '<stdio.h>'
 

@@ -785,6 +785,10 @@ it("unary operator `deref`", function()
   assert.generate_c("local a: *integer; local x = $a", "x = (*nelua_assert_deref_nlint64_ptr(a));")
   config.pragma.nochecks = true
   assert.generate_c("local a: *integer; local x = $a", "x = (*a);")
+  assert.generate_c([[
+    local UnchekedByteArray = @[0]byte
+    local x: UnchekedByteArray = $(@*UnchekedByteArray)(''_cstring)
+  ]], 'x = (*(UnchekedByteArray*)((UnchekedByteArray_ptr)')
   config.pragma.nochecks = nil
 end)
 

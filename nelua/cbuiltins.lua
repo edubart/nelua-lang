@@ -169,15 +169,10 @@ function builtins.nelua_assert_deref_(context, indextype)
   local name = 'nelua_assert_deref_' .. indextype.codename
   if context.usedbuiltins[name] then return name end
   local indexctype = context:ctype(indextype)
-  local retindexctype = indexctype
-  if indextype.subtype.is_array and indextype.subtype.length == 0 then
-    -- use pointer to the actual subtype structure, because indexctype may have been simplified
-    retindexctype = context:ctype(indextype.subtype)..'*'
-  end
   context:ensure_runtime_builtin('nelua_panic_cstring')
   context:ensure_runtime_builtin('nelua_unlikely')
   define_inline_builtin(context, name,
-    retindexctype,
+    indexctype,
     string.format('(%s p)', indexctype), [[{
   if(nelua_unlikely(p == NULL)) {
     nelua_panic_cstring("attempt to dereference a null pointer");
@@ -901,11 +896,17 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
 end
 
 function operators.deref(_, emitter, argnode)
+  emitter:add('*')
+  local indextype = argnode.attr.type
+  if indextype.subtype.is_array and indextype.subtype.length == 0 then
+    -- use pointer to the actual subtype structure, because its type may have been simplified
+    emitter:add('('..emitter.context:ctype(indextype.subtype)..'*)')
+  end
   if argnode.checkderef then
     local op = emitter.context:ensure_runtime_builtin('nelua_assert_deref_', argnode.attr.type)
-    emitter:add('*', op, '(', argnode, ')')
+    emitter:add(op, '(', argnode, ')')
   else
-    emitter:add('*', argnode)
+    emitter:add(argnode)
   end
 end
 
