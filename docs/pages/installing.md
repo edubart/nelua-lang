@@ -63,7 +63,7 @@ Now install all the required tools first,
 then clone, compile the dependencies, and install using make.
 
 ```bash
-pacman -S base-devel git mingw-w64-x86_64-toolchain gdb
+pacman -S base-devel git mingw-w64-x86_64-gcc gdb
 git clone https://github.com/edubart/nelua-lang.git && cd nelua-lang
 make install
 ```

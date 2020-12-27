@@ -642,7 +642,7 @@ function visitors.RecordType(context, node, symbol)
   if symbol and symbol.value then
     recordtype = symbol.value
     assert(recordtype.forwarddecl)
-    recordtype.forwarddecl = nil -- not forward decl anymore
+    recordtype.forwarddefn = true -- not forward decl anymore
     assert(recordtype.is_record)
     recordtype.node = node
   else
@@ -680,7 +680,7 @@ function visitors.UnionType(context, node, symbol)
   if symbol and symbol.value then
     uniontype = symbol.value
     assert(uniontype.forwarddecl)
-    uniontype.forwarddecl = nil -- not forward decl anymore
+    uniontype.forwarddefn = true -- not forward decl anymore
     assert(uniontype.is_union)
     uniontype.node = node
   else
@@ -1858,8 +1858,13 @@ function visitors.VarDecl(context, node)
       inscope = true
     end
     local vartype = varnode.attr.type
-    if vartype and vartype.is_nolvalue then
-      varnode:raisef("variable declaration cannot be of the type '%s'", vartype)
+    if vartype then
+      if not vartype:is_defined() then
+        varnode:raisef("cannot be of forward declared type '%s'", vartype)
+      end
+      if vartype.is_nolvalue then
+        varnode:raisef("variable declaration cannot be of the type '%s'", vartype)
+      end
     end
     assert(symbol.type == vartype)
     varnode.assign = true

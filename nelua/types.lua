@@ -80,6 +80,7 @@ Type.shape = shaper.shape {
   ctypedef = shaper.optional_boolean,
   -- Marked when declaring a type without its definition.
   forwarddecl = shaper.optional_boolean,
+  forwarddefn = shaper.optional_boolean,
   -- C header that the code generator should include when using the type.
   cinclude = shaper.string:is_optional(),
   -- The value passed in <aligned(X)> annotation, see also align.
@@ -364,6 +365,11 @@ end
 -- Give the underlying type when implicit dereferencing this type.
 function Type:implict_deref_type()
   return self
+end
+
+-- Checks if the type underlying structure is really defined (related to forwarddecl annotation).
+function Type:is_defined()
+  return not self.forwarddecl or self.forwarddefn
 end
 
 -- Checks if this type is pointing to the subtype.
@@ -1376,7 +1382,7 @@ function ArrayType:_init(subtype, length, node)
   -- validated subtype
   if subtype.is_comptime then
     ASTNode.raisef(node, "in array type: subtype cannot be of compile-time type '%s'", subtype)
-  elseif subtype.forwarddecl then
+  elseif not subtype:is_defined() then
     ASTNode.raisef(node, "in array type: subtype cannot be of forward declared type '%s'", subtype)
   end
 end
@@ -1520,7 +1526,7 @@ function FunctionType:_init(argattrs, rettypes, node)
   -- validate arg types
   for i=1,#argtypes do
     local argtype = argtypes[i]
-    if argtype.forwarddecl then
+    if not argtype:is_defined() then
       ASTNode.raisef(node, "in function argument: argument #%d cannot be of forward declared type '%s'", i, argtype)
     end
   end
@@ -1531,7 +1537,7 @@ function FunctionType:_init(argattrs, rettypes, node)
       local rettype = rettypes[i]
       if rettype.is_comptime then
         ASTNode.raisef(node, "in function return: return #%d cannot be of compile-time type '%s'", i, rettype)
-      elseif rettype.forwarddecl then
+      elseif not rettype:is_defined() then
         ASTNode.raisef(node, "in function return: return #%d cannot be of forward declared type '%s'", i, rettype)
       end
     end
@@ -1778,7 +1784,7 @@ function RecordType:update_fields()
       local fieldtype = field.type
 
       -- validate field
-      if fieldtype.forwarddecl then
+      if not fieldtype:is_defined() then
         ASTNode.raisef(self.node, "record field '%s' cannot be of forward declared type '%s'",
           field.name, fieldtype)
       elseif fieldtype.is_comptime then
@@ -1949,7 +1955,7 @@ function UnionType:update_fields()
       local fieldtype = field.type
 
       -- validate field
-      if fieldtype.forwarddecl then
+      if not fieldtype:is_defined() then
         ASTNode.raisef(self.node, "union field '%s' cannot be of forward declared type '%s'",
           field.name, fieldtype)
       elseif fieldtype.is_comptime then

@@ -1774,6 +1774,8 @@ it("forward type declaration", function()
   assert.analyze_ast("local U <forwarddecl> = @union{}; U = @union{i: integer, n: number}; local S = @record{u: U}")
   assert.analyze_error("local R <forwarddecl> = @record{}; local S = @record{r: R}",
     "cannot be of forward declared type")
+  assert.analyze_error("local R <forwarddecl> = @record{}; local r: R",
+    "cannot be of forward declared type")
   assert.analyze_error("local R <forwarddecl> = @record{}; local A = @[4]R",
     "cannot be of forward declared type")
   assert.analyze_error("local R <forwarddecl> = @record{}; local f: function(x: R)",
