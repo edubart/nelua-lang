@@ -39,7 +39,7 @@ function CEmitter:zeroinit(type)
     s = 'NULL'
   elseif type.is_boolean then
     s = 'false'
-  elseif type.size > 0 then
+  elseif not type.size or type.size > 0 then
     s = '{0}'
   else
     s = '{}'

@@ -47,11 +47,11 @@ Type.shape = shaper.shape {
   -- Unique identifier for the type, used when needed for runtime type information.
   id = shaper.integer,
   -- Size of the type at runtime in bytes.
-  size = shaper.integer,
+  size = shaper.integer:is_optional(),
   -- Size of the type at runtime in bits.
-  bitsize = shaper.integer,
+  bitsize = shaper.integer:is_optional(),
   -- Alignment for the type in bytes.
-  align = shaper.integer,
+  align = shaper.integer:is_optional(),
   -- Short name of the type, e.g. 'int64', 'record', 'enum' ...
   name = shaper.string,
   -- Nickname for the type, usually it's the first identifier name that defined it in the sources.
@@ -76,6 +76,8 @@ Type.shape = shaper.shape {
   nodecl = shaper.optional_boolean,
   -- Whether the code generator should import the type from C.
   cimport = shaper.optional_boolean,
+  -- Whether the type was marked as incomplete imported struct/union.
+  cincomplete = shaper.optional_boolean,
   -- Whether to emit typedef for a C imported structs.
   ctypedef = shaper.optional_boolean,
   -- Marked when declaring a type without its definition.
@@ -196,12 +198,18 @@ Type.binary_operators = {}
 
 function Type:_init(name, size)
   self.name = name
-  self.size = size or 0
-  self.bitsize = self.size * 8
+  if size == nil then
+    self.size = 0
+  else
+    self.size = size
+  end
+  if self.size then
+    self.bitsize = self.size * 8
+  end
 
   -- set the default alignment for this type,
   -- usually the default alignment on primitive types is the primitive size itself
-  if not self.align then
+  if not self.align and self.size then
     self.align = self.size
   end
 
@@ -628,7 +636,7 @@ end
 TypeType.unary_operators.len = function(_, attr)
   local reval
   local holdedtype = attr.value
-  if holdedtype then
+  if holdedtype and holdedtype.size then
     reval = bn.new(holdedtype.size)
   end
   return primtypes.isize, reval
@@ -1371,7 +1379,10 @@ ArrayType.shape = shaper.fork_shape(Type.shape, {
 })
 
 function ArrayType:_init(subtype, length, node)
-  local size = subtype.size * length
+  local size
+  if subtype.size then
+    size = subtype.size * length
+  end
   self.codename = string.format('%s_arr%d', subtype.codename, length)
   self.node = node
   Type._init(self, 'array', size)
@@ -1730,7 +1741,7 @@ RecordType.shape = shaper.fork_shape(Type.shape, {
     -- Index of the field in the record, the first index is always 1.
     index = shaper.integer,
     -- Offset of the field in the record in bytes, always properly aligned.
-    offset = shaper.integer,
+    offset = shaper.integer:is_optional(),
     -- Type of the field.
     type = shaper.type,
   }),
@@ -1776,6 +1787,7 @@ end
 function RecordType:update_fields()
   local fields = self.fields
   local offset, align = 0, 0
+  local unknown
   if #fields > 0 then
     local packed, aligned = self.packed, self.aligned
     -- compute fields offset and record align
@@ -1791,19 +1803,24 @@ function RecordType:update_fields()
         ASTNode.raisef(self.node, "record field '%s' cannot be of compile-time type '%s'",
           field.name, fieldtype)
       end
+      field.index = i
+      fields[field.name] = field
 
       local fieldsize = fieldtype.size
       local fieldalign = fieldtype.align
-      -- the record align is computed as the max field align
-      align = math.max(align, fieldalign)
-      if not packed then -- align the field
-        offset = align_forward(offset, fieldalign)
+      if fieldsize and fieldalign then
+        if not unknown then
+          -- the record align is computed as the max field align
+          align = math.max(align, fieldalign)
+          if not packed then -- align the field
+            offset = align_forward(offset, fieldalign)
+          end
+          field.offset = offset
+          offset = offset + fieldsize
+        end
+      else
+        unknown = true
       end
-      field.offset = offset
-      field.index = i
-      fields[field.name] = field
-      offset = offset + fieldsize
-
     end
     if not packed then -- align the record to the smallest field align
       offset = align_forward(offset, align)
@@ -1813,9 +1830,15 @@ function RecordType:update_fields()
       align = math.max(aligned, align)
     end
   end
-  self.size = offset
-  self.bitsize = offset * 8
-  self.align = align
+  if not unknown then
+    self.size = offset
+    self.bitsize = offset * 8
+    self.align = align
+  else
+    self.size = nil
+    self.bitsize = nil
+    self.align = nil
+  end
 end
 
 -- Add a field to the record.
@@ -1948,6 +1971,7 @@ end
 function UnionType:update_fields()
   local fields = self.fields
   local size, align = 0, 0
+  local unknown
   if #fields > 0 then
     -- compute fields offset and union align
     for i=1,#fields do
@@ -1965,13 +1989,23 @@ function UnionType:update_fields()
 
       field.index = i
       fields[field.name] = field
-      size = math.max(size, fieldtype.size)
-      align = math.max(align, fieldtype.align)
+      if fieldtype.size and fieldtype.align then
+        size = math.max(size, fieldtype.size)
+        align = math.max(align, fieldtype.align)
+      else
+        unknown = true
+      end
     end
   end
-  self.size = size
-  self.bitsize = size * 8
-  self.align = align
+  if not unknown then
+    self.size = size
+    self.bitsize = size * 8
+    self.align = align
+  else
+    self.size = nil
+    self.bitsize = nil
+    self.align = nil
+  end
 end
 
 -- Add a field to the union.

@@ -262,8 +262,10 @@ typevisitors[types.ArrayType] = function(context, type)
   decemitter:add('typedef struct {', type.subtype, ' data[', type.length, '];} ', type.codename)
   emit_type_attributes(decemitter, type)
   decemitter:add_ln(';')
-  decemitter:add_ln('nelua_static_assert(sizeof(',type.codename,') == ', type.size,
-                    ', "Nelua and C disagree on type size");')
+  if type.size then
+    decemitter:add_ln('nelua_static_assert(sizeof(',type.codename,') == ', type.size,
+                      ', "Nelua and C disagree on type size");')
+  end
   table.insert(context.declarations, decemitter:generate())
 end
 
@@ -311,8 +313,10 @@ local function typevisitor_CompositeType(context, type)
     emit_type_attributes(defemitter, type)
     defemitter:add_ln(';')
   --end
-  defemitter:add_ln('nelua_static_assert(sizeof(',type.codename,') == ', type.size,
-                    ', "Nelua and C disagree on type size");')
+  if type.size then
+    defemitter:add_ln('nelua_static_assert(sizeof(',type.codename,') == ', type.size,
+                      ', "Nelua and C disagree on type size");')
+  end
   table.insert(context.declarations, defemitter:generate())
 end
 

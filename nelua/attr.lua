@@ -52,7 +52,7 @@ function Attr:is_on_static_storage()
      self.staticstorage and
      not self.funcdecl and
      not self.comptime and
-     (not self.type or self.type.size > 0)
+     (not self.type or (not self.type.size or self.type.size > 0))
      then
     return true
   end

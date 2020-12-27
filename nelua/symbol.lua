@@ -104,10 +104,7 @@ function Symbol:is_waiting_resolution()
 end
 
 function Symbol:resolve_type(force)
-  if self.type then
-    -- type already resolved
-    return false
-  end
+  if self.type then return false end -- type already resolved
   if not force and self:is_waiting_others_resolution() then
     -- ignore when other symbols need to be resolved first
     return false

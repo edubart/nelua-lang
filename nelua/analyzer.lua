@@ -443,6 +443,10 @@ function visitors.Annotation(context, node, symbol)
     end
   elseif name == 'codename' then
     objattr.fixedcodename = params
+  elseif name == 'cincomplete' or name =='forwarddecl' then
+    objattr.size = nil
+    objattr.bitsize = nil
+    objattr.align = nil
   elseif name == 'using' then
     assert(objattr._type)
     if not objattr.is_enum then

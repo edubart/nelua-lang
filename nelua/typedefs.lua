@@ -264,6 +264,9 @@ typedefs.type_annots = {
   nodecl = true,
   -- Whether to emit typedef for a C imported structs.
   ctypedef = true,
+  -- Whether the type is not fully defined.
+  -- This makes size and align unknown at compile-time.
+  cincomplete = true,
   -- Whether the compiler should pack a record type, removing padding between fields.
   -- It uses the '__attribute__((packed))' in C.
   packed = true,

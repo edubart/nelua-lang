@@ -177,10 +177,3 @@ function memory.spancontains(s: is_span, x: auto): boolean
   end
   return false
 end
-
---------------------------------------------------------------------------------
--- moving values
-
-local is_value_pointer = #[concept(function(x)
-  return x.type.is_pointer and x.type.subtype.size > 0
-end)]#

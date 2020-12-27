@@ -2957,6 +2957,34 @@ it("forward type declaration", function()
   ]=])
 end)
 
+it("importing type of uknown sizes", function()
+  assert.run_c([=[
+    local FILE <cimport,nodecl,cinclude'<stdio.h>',cincomplete> = @record{}
+    local f: FILE
+    assert(#FILE > 0)
+    local FileRec = @record{f: FILE}
+    assert(#FileRec == #FILE)
+    local FileUn = @union{f: FILE, b: byte}
+    assert(#FileUn == #FILE)
+  ]=])
+end)
+
+it("importing type declaration", function()
+  assert.run_c([=[
+    local Level <forwarddecl> = @record{}
+    local Entity = @record{level: *Level}
+    Level = @record{n: integer}
+    local level: Level = {n=1}
+    local entity: Entity = {level = &level}
+    assert(entity.level.n == 1)
+    level.n = 2
+    assert(entity.level.n == 2)
+
+    local Union <forwarddecl> = @union{}
+    local Union = @union{i: integer, n: number}
+  ]=])
+end)
+
 it("unions", function()
   assert.run_c([=[
     local Union = @union{

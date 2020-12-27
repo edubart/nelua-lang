@@ -917,6 +917,8 @@ function operators.len(_, emitter, argnode)
   elseif type.is_cstring then
     emitter.context:add_include('<string.h>')
     emitter:add('((intptr_t)strlen(', argnode, '))')
+  elseif type.is_type then
+    emitter:add('sizeof(', emitter.context:ctype(argnode.attr.value), ')')
   else --luacov:disable
     argnode:errorf('not implemented')
   end --luacov:enable

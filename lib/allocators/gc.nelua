@@ -389,7 +389,7 @@ end
 
 function GC:_mark_statics()
   ## local emit_mark_static = hygienize(function(sym, symtype)
-    gc:add(&#[sym]#, #[symtype.size]#, GCFlags.ROOT, nilptr)
+    gc:add(&#[sym]#, #(#[symtype]#), GCFlags.ROOT, nilptr)
   ## end)
 
   ##[[
