@@ -2966,6 +2966,12 @@ it("importing type of uknown sizes", function()
     assert(#FileRec == #FILE)
     local FileUn = @union{f: FILE, b: byte}
     assert(#FileUn == #FILE)
+
+    local FILE <cimport,nodecl,cinclude'<stdio.h>',cincomplete,forwarddecl> = @record{}
+    FILE = @record{
+      x: byte
+    }
+    assert(#FILE ~= 1 and #FILE > 0)
   ]=])
 end)
 

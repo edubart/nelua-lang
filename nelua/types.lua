@@ -1787,7 +1787,7 @@ end
 function RecordType:update_fields()
   local fields = self.fields
   local offset, align = 0, 0
-  local unknown
+  local unknown = self.cincomplete
   if #fields > 0 then
     local packed, aligned = self.packed, self.aligned
     -- compute fields offset and record align
@@ -1971,7 +1971,7 @@ end
 function UnionType:update_fields()
   local fields = self.fields
   local size, align = 0, 0
-  local unknown
+  local unknown = self.cincomplete
   if #fields > 0 then
     -- compute fields offset and union align
     for i=1,#fields do
