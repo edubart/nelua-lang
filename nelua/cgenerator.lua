@@ -969,7 +969,7 @@ function visitors.Return(context, node, emitter)
       defemitter:add_ln(';')
     end
   elseif funcscope.is_doexpr then
-    defemitter:add_indent_ln('__expr = ', retnodes[1], ';')
+    defemitter:add_indent_ln('__expr = ', retnodes[1], '; goto ', funcscope.doexprlabel, ';')
   else
     local functype = funcscope.functype
     local numfuncrets = functype:get_return_count()
@@ -1106,11 +1106,14 @@ function visitors.DoExpr(context, node, emitter)
     emitter:inc_indent()
     emitter:add_indent_ln(node.attr.type, ' __expr;')
     emitter:dec_indent()
-    context:push_forked_scope(node)
+    local scope = context:push_forked_scope(node)
+    if not scope.doexprlabel then
+      scope.doexprlabel = context:genuniquename('do_expr_label')
+    end
     emitter:add(blocknode)
     context:pop_scope()
     emitter:inc_indent()
-    emitter:add_indent_ln('__expr;')
+    emitter:add_indent_ln(scope.doexprlabel, ': __expr;')
     emitter:dec_indent()
     emitter:add_indent("})")
   end

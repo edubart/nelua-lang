@@ -1434,6 +1434,18 @@ it("statement expressions", function()
       local y = #[f(x, 2, 3)]#
       assert(y == 131)
     end
+
+    do
+      local x = (do
+        if true then
+          return 10
+        else
+          return 20
+        end
+        return 30
+      end)
+      assert(x == 10)
+    end
   ]])
 end)
 it("c types", function()
