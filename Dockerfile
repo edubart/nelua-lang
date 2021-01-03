@@ -17,12 +17,8 @@ RUN pacman -S --noconfirm lua luarocks sdl2
 RUN pacman -S --noconfirm vim bash-completion
 
 # add docker user with sudo permission
-ARG USER_ID
-ARG GROUP_ID
 RUN pacman -S --noconfirm sudo
-RUN groupadd -g $GROUP_ID docker
-RUN useradd -m -s /bin/bash -u $USER_ID -g $GROUP_ID docker
-RUN gpasswd -a docker wheel
+RUN useradd -m -G wheel -s /bin/bash docker
 RUN echo '%wheel ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER docker
 
