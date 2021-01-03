@@ -8,7 +8,7 @@
 # RUN sudo ln -s /usr/bin/luarocks-5.3 /usr/bin/luarocks
 
 # ArchLinux alternative
-FROM archlinux/base
+FROM archlinux/archlinux
 RUN pacman -Syu --noconfirm
 RUN pacman -S --noconfirm --needed base-devel git gcc clang
 RUN pacman -S --noconfirm lua luarocks sdl2

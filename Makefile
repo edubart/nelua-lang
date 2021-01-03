@@ -118,7 +118,7 @@ upload-rocks:
 
 ## Make the docker image used to test inside docker containers.
 docker-image:
-	$(DOCKER) build -t "nelua" --build-arg USER_ID=$(UID) --build-arg GROUP_ID=$(GID) .
+	$(DOCKER) build -t "nelua" .
 
 ## Run tests inside a docker container.
 docker-test:
