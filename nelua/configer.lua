@@ -111,7 +111,7 @@ local function action_version()
   console.infof('Build number: %s', version.NELUA_GIT_BUILD)
   console.infof('Git date: %s', version.NELUA_GIT_DATE)
   console.infof('Git hash: %s', version.NELUA_GIT_HASH)
-  console.info('Copyright (C) 2019-2020 Eduardo Bart (https://nelua.io/)')
+  console.info('Copyright (C) 2019-2021 Eduardo Bart (https://nelua.io/)')
   os.exit(0)
 end
 
