@@ -1866,6 +1866,11 @@ it("record methods", function()
     local Math = @record{}
     function Math.abs(x: number): number <cimport'fabs',cinclude'<math.h>'> end
     assert(Math.abs(-1) == 1)
+
+    local Foo = @record{x: integer, f: function(*Foo): integer}
+    local foo: Foo = {1}
+    foo.f = function(foo: *Foo): integer return foo.x end
+    assert(foo:f() == 1)
   ]])
 end)
 

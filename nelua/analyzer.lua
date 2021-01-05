@@ -1258,14 +1258,19 @@ function visitors.CallMethod(context, node)
     end
 
     if calleetype.is_record then
-      calleesym = calleetype.metafields[name]
-      if not calleesym then
-        node:raisef("cannot index meta field '%s' in record '%s'", name, calleetype)
+      local field = calleetype.fields[name]
+      if field then
+        calleetype = field.type
+      else
+        calleesym = calleetype.metafields[name]
+        if not calleesym then
+          node:raisef("cannot index meta field '%s' in record '%s'", name, calleetype)
+        end
+        if calleesym.deprecated then
+          node:warnf("use of deprecated method '%s'", name)
+        end
+        calleetype = calleesym.type
       end
-      if calleesym.deprecated then
-        node:warnf("use of deprecated method '%s'", name)
-      end
-      calleetype = calleesym.type
     elseif calleetype.is_any then
       calleetype = primtypes.any
     end

@@ -720,8 +720,19 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     end
 
     if ismethod then
-      emitter:add(context:declname(attr.calleesym), '(')
-      emitter:add_val2type(calleetype.argtypes[1], calleeobjnode)
+      local selftype = calleetype.argtypes[1]
+      if attr.calleesym then
+        emitter:add(context:declname(attr.calleesym))
+      else
+        assert(traits.is_string(callee))
+        emitter:add('(')
+        emitter:add_val2type(selftype, calleeobjnode)
+        emitter:add(')')
+        emitter:add(selftype.is_pointer and '->' or '.')
+        emitter:add(callee)
+      end
+      emitter:add('(')
+      emitter:add_val2type(selftype, calleeobjnode)
     else
       if attr.pointercall then
         emitter:add('(*')
@@ -823,7 +834,7 @@ end
 function visitors.CallMethod(context, node, emitter)
   local name, argnodes, calleeobjnode = node:args()
 
-  visitor_Call(context, node, emitter, argnodes, nil, calleeobjnode)
+  visitor_Call(context, node, emitter, argnodes, name, calleeobjnode)
 
   --[[
   local name, args, callee, block_call = node:args()
