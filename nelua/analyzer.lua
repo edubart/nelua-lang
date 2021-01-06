@@ -471,6 +471,9 @@ end
 
 function visitors.Id(context, node)
   local name = node[1]
+  if context.state.intypeexpr and name == 'type' then
+    name = 'typetype'
+  end
   local symbol
   if not node.attr.forcesymbol then
     symbol = context.scope.symbols[name]
@@ -496,8 +499,15 @@ function visitors.IdDecl(context, node)
   local namenode, typenode, annotnodes = node[1], node[2], node[3]
   local attr = node.attr
   if not attr.type and typenode then
+    context:push_state().intypeexpr = true
     context:traverse_node(typenode)
-    local type = typenode.attr.value
+    context:pop_state()
+    local typeattr = typenode.attr
+    local typetype = typeattr.type
+    local type = typeattr.value
+    if not typetype or not typetype.is_type or not type then
+      typenode:raisef("type annotation is an invalid type")
+    end
     attr.type = type
     if type.is_void then
       node:raisef("variable declaration cannot be of the empty type '%s'", type)
@@ -554,31 +564,11 @@ function visitors.Paren(context, node, ...)
   return ret
 end
 
-function visitors.Type(context, node)
-  local attr = node.attr
-  if attr.type then
-    assert(traits.is_type(attr.value))
-    node.done = true
-    return
-  end
-  local tyname = node[1]
-  local value = typedefs.primtypes[tyname]
-  if not value then
-    local symbol = context.scope.symbols[tyname]
-    if not (symbol and symbol.type == primtypes.type) then
-      node:raisef("symbol '%s' is an invalid type", tyname)
-    end
-    value = symbol.value
-    assert(value)
-  end
-  attr.type = primtypes.type
-  attr.value = value
-  node.done = true
-end
-
 function visitors.TypeInstance(context, node, symbol)
   local typenode = node[1]
+  context:push_state().intypeexpr = true
   context:traverse_node(typenode, symbol)
+  context:pop_state()
   -- inherit attributes from inner node
   local attr = typenode.attr
   node.attr = attr
@@ -2203,7 +2193,9 @@ end
 
 local function visitor_FuncDef_returns(context, functype, retnodes)
   local rettypes
+  context:push_state().intypeexpr = true
   context:traverse_nodes(retnodes)
+  context:pop_state()
   if #retnodes > 0 then
     -- returns types are pre declared
     rettypes = types.typenodes_to_types(retnodes)
@@ -2255,7 +2247,9 @@ function visitors.FuncDef(context, node, polysymbol)
     funcscope.is_returnbreak = true
 
     funcscope.rettypes = rettypes
+    context:push_state().intypeexpr = true
     context:traverse_nodes(argnodes)
+    context:pop_state()
     for i=1,#argnodes do
       local argnode = argnodes[i]
       if argnode.attr.scope then

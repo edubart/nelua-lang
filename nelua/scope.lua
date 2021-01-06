@@ -5,6 +5,8 @@ local symdefs = require 'nelua.symdefs'
 local tabler = require 'nelua.utils.tabler'
 local config = require 'nelua.configer'.get()
 local console = require 'nelua.utils.console'
+local Symbol = require 'nelua.symbol'
+local primtypes = typedefs.primtypes
 
 local Scope = class()
 
@@ -46,8 +48,25 @@ function Scope:clear_symbols()
           symbol = symbol:clone()
           symbol.scope = self.context.rootscope
           symbols[key] = symbol
-          return symbol
+        else -- create a symbol for a primtype index
+          local primtype = primtypes[key]
+          if primtype then
+            symbol = Symbol{
+              name = key,
+              codename = primtype.codename,
+              type = primtypes.type,
+              value = primtype,
+              scope = self.context.rootscope,
+              staticstorage = true,
+              vardecl = true,
+              lvalue = true,
+              global = true,
+            }
+            primtype.symbol = symbol
+            symbols[key] = symbol
+          end
         end
+        return symbol
       end
     })
   end

@@ -25,6 +25,7 @@ local clongsize = math.max(cpusize, 4)
 primtypes.niltype     = types.NiltypeType('niltype') -- must be defined first, to have id 0
 primtypes.nilptr      = types.NilptrType('nilptr', cpusize)
 primtypes.type        = types.TypeType('type', 0)
+primtypes.typetype    = primtypes.type
 primtypes.void        = types.VoidType('void', 0)
 primtypes.auto        = types.AutoType('auto', 0)
 primtypes.boolean     = types.BooleanType('boolean', 1)

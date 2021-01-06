@@ -44,29 +44,6 @@ define_function('check', {primtypes.boolean, primtypes.stringview})
 define_const('panic', primtypes.any)
 define_const('nilptr', primtypes.nilptr)
 
--- nelua primitive types
-local function define_type(name, type)
-  local symbol = Symbol{
-    name = name,
-    codename = type.codename,
-    type = primtypes.type,
-    value = type,
-    staticstorage = true,
-    vardecl = true,
-    lvalue = true,
-    global = true,
-  }
-  type.symbol = symbol
-  symdefs[name] = symbol
-end
-
-local ignored_primtypes = {nilptr = true, type = true}
-for name,type in pairs(primtypes) do
-  if not ignored_primtypes[name] then
-    define_type(name, type)
-  end
-end
-
 -- lua
 define_const('assert', primtypes.any)
 define_const('error', primtypes.any)

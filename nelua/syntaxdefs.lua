@@ -549,7 +549,7 @@ local function get_parser()
         name %LPAREN {| etype_or_param_expr_list |} eRPAREN
       {}) -> to_astnode
 
-    primtype   <- ({} '' -> 'Type' name {}) -> to_astnode
+    primtype   <- id--({} '' -> 'Type' name {}) -> to_astnode
 
     ppexpr <- ({} %LPPEXPR -> 'PreprocessExpr' {expr -> 0} eRPPEXPR {}) -> to_astnode
     ppname <- ({} %LPPNAME -> 'PreprocessName' {expr -> 0} eRPPNAME {}) -> to_astnode

@@ -121,7 +121,7 @@ astbuilder:register('EnumFieldType', {
   ntypes.Node:is_optional() -- field numeric value expr
 })
 astbuilder:register('EnumType', {
-  ntypes.Type:is_optional(), -- primitive type
+  ntypes.Id:is_optional(), -- primitive type
   stypes.array_of(ntypes.EnumFieldType), -- field types
 })
 astbuilder:register('ArrayType', {

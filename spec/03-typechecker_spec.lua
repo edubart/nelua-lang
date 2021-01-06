@@ -227,7 +227,7 @@ it("type declaration", function()
     "local int = @integer; local a: int",
     "local int = @integer; local a: integer")
   assert.analyze_error("local int = 1; local a: int = 2", "is an invalid type")
-  assert.analyze_error("local a: invalid = 2", "is an invalid type")
+  assert.analyze_error("local a: invalid = 2", "undeclared symbol")
 end)
 
 it("for loop variables", function()
