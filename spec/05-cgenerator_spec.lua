@@ -3043,4 +3043,22 @@ it("issue #45", function()
   ]=])
 end)
 
+it("record as namespaces", function()
+  assert.run_c([=[
+    global Namespace = @record{}
+    global Namespace.Point = @record{x: integer, y: integer}
+    function Namespace.Point:mlen()
+      return self.x + self.y
+    end
+
+    local function f(p: Namespace.Point): Namespace.Point
+      return p
+    end
+    local p: Namespace.Point = {1,2}
+    local p2 = f(p)
+    assert(p:mlen() == 3)
+    assert(p2:mlen() == 3)
+  ]=])
+end)
+
 end)

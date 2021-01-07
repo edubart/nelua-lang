@@ -226,7 +226,7 @@ it("type declaration", function()
   assert.ast_type_equals(
     "local int = @integer; local a: int",
     "local int = @integer; local a: integer")
-  assert.analyze_error("local int = 1; local a: int = 2", "is an invalid type")
+  assert.analyze_error("local int = 1; local a: int = 2", "invalid type")
   assert.analyze_error("local a: invalid = 2", "undeclared symbol")
 end)
 

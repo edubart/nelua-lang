@@ -488,7 +488,7 @@ local function get_parser()
       array_type /
       pointer_type /
       generic_type /
-      primtype /
+      enamedtype /
       ppexpr
 
     unary_typexpr_op <-
@@ -527,7 +527,7 @@ local function get_parser()
     variant_field <- (({} '' -> 'VariantFieldType' name %COLON etypexpr {}) -> to_astnode / typexpr)
 
     enum_type <- ({} %TENUM -> 'EnumType'
-        ((%LPAREN eprimtype eRPAREN) / cnil) %LCURLY
+        ((%LPAREN eenamedtype eRPAREN) / cnil) %LCURLY
         {| eenumfield (%SEPARATOR enumfield)* %SEPARATOR? |}
       eRCURLY {}) -> to_astnode
     enumfield <- ({} '' -> 'EnumFieldType'
@@ -549,7 +549,8 @@ local function get_parser()
         name %LPAREN {| etype_or_param_expr_list |} eRPAREN
       {}) -> to_astnode
 
-    primtype   <- id--({} '' -> 'Type' name {}) -> to_astnode
+    enamedtype <-
+      (id {| dot_index* |}) -> to_chain_index_or_call
 
     ppexpr <- ({} %LPPEXPR -> 'PreprocessExpr' {expr -> 0} eRPPEXPR {}) -> to_astnode
     ppname <- ({} %LPPNAME -> 'PreprocessName' {expr -> 0} eRPPNAME {}) -> to_astnode
@@ -628,7 +629,7 @@ local function get_parser()
     etype_param_expr    <- type_param_expr    / %{ExpectedExpression}
     ecallargs           <- callargs           / %{ExpectedCall}
     eenumfield          <- enumfield          / %{ExpectedEnumFieldType}
-    eprimtype           <- primtype           / %{ExpectedPrimitiveTypeExpression}
+    eenamedtype         <- enamedtype         / %{ExpectedTypeNameExpression}
   ]])
 
   -- compile whole grammar
@@ -675,7 +676,7 @@ local function get_parser()
     ExpectedTypeExpression = "expected a type expression",
     ExpectedCall = "expected call",
     ExpectedEnumFieldType = "expected at least one field in enum",
-    ExpectedPrimitiveTypeExpression = "expected a primitive type expression",
+    ExpectedTypeNameExpression = "expected a type name expression",
     ExpectedCase = "expected `case` keyword"
   })
 

@@ -1605,6 +1605,20 @@ describe("type expression", function()
         }
     }}})
   end)
+  it("namespaced types", function()
+    assert.parse_ast(nelua_parser, "local a: Namespace.Class",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'a', n.DotIndex{"Class", n.Id{"Namespace"}}}
+        }
+    }}})
+    assert.parse_ast(nelua_parser, "local a: Namespace1.Namespace2.Class",
+      n.Block{{
+        n.VarDecl{'local',
+          { n.IdDecl{'a', n.DotIndex{"Class", n.DotIndex{"Namespace2", n.Id{"Namespace1"}}}}
+        }
+    }}})
+  end)
 end)
 
 --------------------------------------------------------------------------------

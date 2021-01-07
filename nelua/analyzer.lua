@@ -506,7 +506,7 @@ function visitors.IdDecl(context, node)
     local typetype = typeattr.type
     local type = typeattr.value
     if not typetype or not typetype.is_type or not type then
-      typenode:raisef("type annotation is an invalid type")
+      typenode:raisef("invalid type")
     end
     attr.type = type
     if type.is_void then
