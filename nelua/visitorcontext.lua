@@ -1,5 +1,4 @@
 local class = require 'nelua.utils.class'
-local tabler = require 'nelua.utils.tabler'
 
 local VisitorContext = class()
 
@@ -96,12 +95,10 @@ function VisitorContext:get_current_node()
   return nodes[#nodes]
 end
 
-function VisitorContext:push_state()
-  local statestack = self.statestack
-  statestack[#statestack+1] = self.state
-  local newstate = tabler.copy(self.state)
-  self.state = newstate
-  return newstate
+function VisitorContext:push_state(newstate)
+  local statestack, oldstate = self.statestack, self.state
+  statestack[#statestack+1] = oldstate
+  self.state = setmetatable(newstate, {__index=oldstate})
 end
 
 function VisitorContext:pop_state()

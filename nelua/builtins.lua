@@ -66,11 +66,10 @@ function builtins.require(context, node)
 
   -- analyze it
   local ast = attr.loadedast
-  local state = context:push_state()
+  context:push_state{inrequire = true}
   context:push_scope(context.rootscope)
   context:push_pragmas()
   context.pragmas.unitname = attr.unitname
-  state.inrequire = true
   if justloaded then
     preprocessor.preprocess(context, ast)
   end

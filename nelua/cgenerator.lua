@@ -175,8 +175,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
           -- initialize to const values
           decemitter:add(' = ')
           assert(not lastcallindex)
-          local state = context:push_state()
-          state.ininitializer = true
+          context:push_state{ininitializer = true}
           decemitter:add_val2type(vartype, valnode)
           context:pop_state()
           defined = true
@@ -434,8 +433,7 @@ function visitors.Table(context, node, emitter)
     emitter:add_zeroinit(type)
   elseif type.is_record then
     if context.state.ininitializer then
-      local state = context:push_state()
-      state.inrecordinitializer = true
+      context:push_state{inrecordinitializer = true}
       emitter:add('{', childnodes, '}')
       context:pop_state()
     else
@@ -923,7 +921,7 @@ function visitors.ArrayIndex(context, node, emitter)
     elseif objtype.length == 0 then
       emitter:add('((', objtype.subtype, '*)&', objnode, ')[')
     else
-      context:push_state().inarrayindex = objnode
+      context:push_state{inarrayindex = objnode}
       emitter:add(objnode)
       if context.state.recordindexed ~= objnode then
         emitter:add('.data')

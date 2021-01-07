@@ -499,7 +499,7 @@ function visitors.IdDecl(context, node)
   local namenode, typenode, annotnodes = node[1], node[2], node[3]
   local attr = node.attr
   if not attr.type and typenode then
-    context:push_state().intypeexpr = true
+    context:push_state{intypeexpr = true}
     context:traverse_node(typenode)
     context:pop_state()
     local typeattr = typenode.attr
@@ -539,8 +539,7 @@ function visitors.IdDecl(context, node)
   else
     -- global record field
     assert(namenode.tag == 'DotIndex')
-    local state = context:push_state()
-    state.inglobaldecl = node
+    context:push_state{inglobaldecl=node}
     symbol = context:traverse_node(namenode)
     context:pop_state()
     symbol.scope = context.rootscope
@@ -566,7 +565,7 @@ end
 
 function visitors.TypeInstance(context, node, symbol)
   local typenode = node[1]
-  context:push_state().intypeexpr = true
+  context:push_state{intypeexpr = true}
   context:traverse_node(typenode, symbol)
   context:pop_state()
   -- inherit attributes from inner node
@@ -2193,7 +2192,7 @@ end
 
 local function visitor_FuncDef_returns(context, functype, retnodes)
   local rettypes
-  context:push_state().intypeexpr = true
+  context:push_state{intypeexpr = true}
   context:traverse_nodes(retnodes)
   context:pop_state()
   if #retnodes > 0 then
@@ -2215,9 +2214,7 @@ function visitors.FuncDef(context, node, polysymbol)
   local varscope, varnode, argnodes, retnodes, annotnodes, blocknode =
         node[1], node[2], node[3], node[4], node[5], node[6]
 
-  local state = context:push_state()
-  state.infuncdef = node
-  state.inpolydef = polysymbol
+  context:push_state{infuncdef = node, inpolydef = polysymbol}
   local symbol, decl = visitor_FuncDef_variable(context, varscope, varnode)
   if symbol then
     symbol.scope:add_symbol(symbol)
@@ -2247,7 +2244,7 @@ function visitors.FuncDef(context, node, polysymbol)
     funcscope.is_returnbreak = true
 
     funcscope.rettypes = rettypes
-    context:push_state().intypeexpr = true
+    context:push_state{intypeexpr = true}
     context:traverse_nodes(argnodes)
     context:pop_state()
     for i=1,#argnodes do
@@ -2386,7 +2383,7 @@ function visitors.FuncDef(context, node, polysymbol)
       -- pop node and then push again to fix error message traceback
       context:pop_node()
       -- used to generate error messages
-      context:push_state().polysrcnode = polyeval.srcnode
+      context:push_state{polysrcnode = polyeval.srcnode}
       context:traverse_node(polynode, symbol)
       context:pop_state()
       context:push_node(node)
@@ -2746,8 +2743,7 @@ function analyzer.analyze(context)
 
   -- phase 3 traverse: infer unset types to 'any' type
   if context.unresolvedcount ~= 0 then
-    local state = context:push_state()
-    state.anyphase = true
+    context:push_state{anyphase=true}
     repeat
       context:traverse_node(ast)
       local resolutions_count = context.rootscope:resolve()
