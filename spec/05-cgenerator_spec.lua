@@ -2391,9 +2391,18 @@ it("annotations", function()
     "local function puts(s: cstring): int32 <cimport'puts'> end",
     "int32_t puts(char* s);")
   assert.generate_c([[
-    global timespec <cimport'timespec',nodecl,ctypedef> = @record{tv_sec: clong, tv_nsec: clong}
+    global timespec: type <cimport,cinclude'<time.h>',nodecl,ctypedef> = @record{tv_sec: clong, tv_nsec: clong}
     local t: timespec
   ]], "typedef struct timespec timespec;")
+  assert.generate_c([[
+    global sigval: type <cimport,cinclude'<signal.h>',nodecl,ctypedef> = @union{sival_int: cint, sival_ptr: pointer}
+    local s: sigval
+  ]], "typedef union sigval sigval;")
+  assert.generate_c([[
+    ## cemitdecl "enum MyEnum {MyEnumA, MyEnumB};"
+    global MyEnum: type <cimport,nodecl,ctypedef,using> = @enum(cint){MyEnumA=0,MyEnumB=1}
+    local e: MyEnum = MyEnumB
+  ]], "typedef enum MyEnum MyEnum;")
   assert.generate_c(
     "local function cos(x: number): number <cimport'myfunc',cinclude'<myheader.h>',nodecl> end",
     "#include <myheader.h>")

@@ -33,4 +33,12 @@ it("fs.findmodulepath", function()
   assert_relative_findmodule('....test', '../../../test.nelua')
 end)
 
+it("tabler.shallow_compare_nomt", function()
+  assert(tabler.shallow_compare_nomt({}, {}))
+  assert(tabler.shallow_compare_nomt({a=1}, {a=1}))
+  assert(not tabler.shallow_compare_nomt({a=1}, setmetatable({a=1}, {})))
+  assert(not tabler.shallow_compare_nomt({a=1}, {a=2}))
+  assert(not tabler.shallow_compare_nomt({a=1}, {a=1,b=2}))
+end)
+
 end)

@@ -765,11 +765,7 @@ end
 
 local function operators_not(_, emitter, argnode)
   emitter:add('!')
-  if argnode.attr.type.is_boolean then
-    emitter:add(argnode)
-  else
-    emitter:add_val2boolean(argnode)
-  end
+  emitter:add_val2boolean(argnode)
 end
 operators["not"] = operators_not
 

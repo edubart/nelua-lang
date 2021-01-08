@@ -80,6 +80,8 @@ Type.shape = shaper.shape {
   cincomplete = shaper.optional_boolean,
   -- Whether to emit typedef for a C imported structs.
   ctypedef = shaper.optional_boolean,
+  -- Weather the scope is using fields from the type. (e.g. enum fields)
+  using = shaper.optional_boolean,
   -- Marked when declaring a type without its definition.
   forwarddecl = shaper.optional_boolean,
   forwarddefn = shaper.optional_boolean,

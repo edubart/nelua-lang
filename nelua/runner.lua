@@ -22,7 +22,7 @@ local function run(argv, redirect)
   local config = configer.parse(argv)
   if config.no_color then console.set_colors_enabled(false) end
 
-  if config.script then
+  if config.script then --luacov:disable
     -- inject script directory into lua package path
     local scriptdir = fs.dirname(fs.abspath(config.input))
     package.path = package.path..platform.luapath_separator..
@@ -32,7 +32,7 @@ local function run(argv, redirect)
     -- run the script
     dofile(config.input)
     return 0
-  end
+  end --luacov:enable
 
   local generator = require('nelua.' .. config.generator .. 'generator')
   if config.timing then
