@@ -183,10 +183,6 @@ Type.shape = shaper.shape {
   is_hashmap = shaper.optional_boolean,
   is_filestream = shaper.optional_boolean,
   is_time_t = shaper.optional_boolean,
-
-  -- TODO: remove this, because it was deprecated
-  is_copyable = shaper.optional_boolean,
-  is_destroyable = shaper.optional_boolean,
 }
 
 -- This is used to check if a table is a 'bn'.
@@ -389,8 +385,6 @@ function Type.is_array_of() return false end
 -- Checks if this type has pointers, used by the garbage collector.
 function Type.has_pointer() return false end
 
-function Type.has_destroyable() return false end
-function Type.has_copyable() return false end
 function Type.has_varargs() return false end
 
 -- Checks if this type can be represented as a contiguous array of the subtype.
@@ -1567,14 +1561,6 @@ function FunctionType:has_varargs()
   return lasttype and lasttype.is_varargs
 end
 
-function FunctionType:has_destroyable_return()
-  for i=1,#self.rettypes do
-    if self.rettypes[i]:has_destroyable() then
-      return true
-    end
-  end
-end
-
 -- Get the return type in the specified index.
 -- For functions with no return the index 1 type returns 'void'.
 function FunctionType:get_return_type(index)
@@ -1876,11 +1862,6 @@ end
 
 -- Set a meta field for this record type to a symbol of a function or variable.
 function RecordType:set_metafield(name, symbol)
-  if name == '__destroy' then
-    self.is_destroyable = true
-  elseif name == '__copy' then
-    self.is_copyable = true
-  end
   self.metafields[name] = symbol
 end
 
@@ -1898,24 +1879,6 @@ function RecordType:has_pointer()
   local fields = self.fields
   for i=1,#fields do
     if fields[i].type:has_pointer() then return true end
-  end
-  return false
-end
-
-function RecordType:has_destroyable()
-  if self.is_destroyable then return true end
-  local fields = self.fields
-  for i=1,#fields do
-    if fields[i].type:has_destroyable() then return true end
-  end
-  return false
-end
-
-function RecordType:has_copyable()
-  if self.is_copyable then return true end
-  local fields = self.fields
-  for i=1,#fields do
-    if fields[i].type:has_copyable() then return true end
   end
   return false
 end
