@@ -464,6 +464,7 @@ function visitors.Annotation(context, node, symbol)
       }
       symbol.scope:add_symbol(fieldsymbol)
     end
+    return -- we want to skip node.done = true
   end
 
   node.done = true

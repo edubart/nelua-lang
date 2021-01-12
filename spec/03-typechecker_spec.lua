@@ -1796,6 +1796,11 @@ it("using annotation", function()
     }
     local a: MyEnum = MYENUM_ONE
   ]])
+  assert.analyze_ast([[
+    local MyEnum <using> = @enum{MyEnumA = 0}
+    local function f(x: auto) print(MyEnumA, x) end
+    f(1)
+  ]])
   assert.analyze_error([[
     local MyEnum <using> = @record{}
   ]], "annotation 'using' can only")
