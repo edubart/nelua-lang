@@ -1,0 +1,103 @@
+## pragmas.nogc = true
+
+require 'coroutine'
+
+local counter = 0
+local main_co = coroutine.running()
+
+do -- basic tests
+  assert(coroutine.isyieldable(main_co) == false)
+  assert(coroutine.status(main_co) == 'running')
+  counter = 0
+  local co = coroutine.create(function()
+    local co = coroutine.running()
+    assert(coroutine.status(main_co) == 'normal')
+    assert(coroutine.status(co) == 'running')
+    assert(coroutine.isyieldable(co) == true)
+    counter = counter + 1
+  end)
+  assert(counter == 0)
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resume(co) == true)
+  assert(coroutine.status(co) == 'dead')
+  assert(counter == 1)
+  assert(coroutine.resume(co) == false)
+  co:destroy()
+end
+
+do -- resume/yield
+  counter = 0
+  local co = coroutine.create(function()
+    counter = counter + 1
+    coroutine.yield()
+    counter = counter + 1
+  end)
+  assert(counter == 0)
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resume(co) == true)
+  assert(counter == 1)
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resume(co) == true)
+  assert(counter == 2)
+  assert(coroutine.status(co) == 'dead')
+  assert(coroutine.resume(co) == false)
+  co:destroy()
+end
+
+do -- resumeex/yieldex
+  local co = coroutine.create(function(a: integer): integer
+    local res: integer
+    assert(a == 1)
+    coroutine.yieldex(2, &res)
+    assert(res == 3)
+    return 4
+  end)
+  assert(coroutine.status(co) == 'suspended')
+  local res: integer
+  assert(coroutine.resumeex(co, 1, &res) == true)
+  assert(res == 2)
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resumeex(co, 3, &res) == true)
+  assert(res == 4)
+  assert(coroutine.status(co) == 'dead')
+  assert(coroutine.resume(co) == false)
+  co:destroy()
+end
+
+do -- resumeex/yieldex with multiple arguments and returns
+  local Pair = @record{first: integer, second: stringview}
+  local co = coroutine.create(function(first: integer, second: stringview): (integer, stringview)
+    local res: Pair
+    coroutine.yieldex((@Pair){2,'b'}, &res)
+    assert(res.first == 3 and res.second == 'c')
+    return 4, 'd'
+  end)
+  assert(coroutine.status(co) == 'suspended')
+  local res: Pair
+  assert(coroutine.resumeex(co, (@Pair){1,'a'}, &res) == true)
+  assert(res.first == 2 and res.second == 'b')
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resumeex(co, (@Pair){3,'c'}, &res) == true)
+  assert(res.first == 4 and res.second == 'd')
+  assert(coroutine.status(co) == 'dead')
+  assert(coroutine.resume(co) == false)
+  co:destroy()
+end
+
+do -- fibonacci example
+  local co = coroutine.create(function(max: integer): integer
+    local m: integer, n: integer = 1, 1
+    while m < max do
+      coroutine.yieldex(m)
+      m, n = n, m + n
+    end
+    return m
+  end)
+  assert(coroutine.resumeex(co, 1000000_integer) == true)
+  local m: integer = 0
+  while coroutine.status(co) == 'suspended' do
+    assert(coroutine.resumeex(co, nil, &m) == true)
+    assert(m > 0)
+  end
+  assert(m == 1346269)
+end

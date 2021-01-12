@@ -65,5 +65,8 @@ end)
 it("defer", function()
   assert.run_c_from_file('tests/defer_test.nelua')
 end)
+it("coroutine", function()
+  assert.run_c_from_file('tests/coroutine_test.nelua')
+end)
 
 end)
