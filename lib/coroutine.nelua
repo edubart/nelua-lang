@@ -105,9 +105,7 @@ local function mco_result_description(res: mco_result): cstring <cimport, nodecl
 local main_thread_coro: mco_coro
 
 -- Coroutine record.
-global coroutine = @record{
-  coro: *mco_coro
-}
+global coroutine = @*mco_coro
 
 -- Returns a new coroutine with body function f.
 function coroutine.create(f: auto): coroutine
@@ -148,7 +146,7 @@ function coroutine.create(f: auto): coroutine
   local desc: mco_desc = mco_desc_init(coroutine_main, 0)
   desc.user_data = (@pointer)(f)
   local co: coroutine
-  if mco_create(&co.coro, &desc) ~= MCO_SUCCESS then
+  if mco_create(&co, &desc) ~= MCO_SUCCESS then
     error 'coroutine.create: failed to create a coroutine'
   end
   return co
@@ -157,16 +155,16 @@ end
 -- Destroy the coroutine, freeing all resources.
 -- CAUTION: Destroying a coroutine before "dead" state will not execute its defer statements.
 function coroutine.destroy(co: *coroutine)
-  if mco_destroy(co.coro) ~= MCO_SUCCESS then
+  if mco_destroy($co) ~= MCO_SUCCESS then
     error 'coroutine.destroy: failed to destroy a coroutine'
   end
-  co.coro = nilptr
+  co = nilptr
 end
 
 -- Returns true when the coroutine co can yield.
 -- A coroutine is yieldable if it is not the main thread.
 function coroutine.isyieldable(co: coroutine): boolean
-  return co.coro ~= nilptr and co.coro ~= &main_thread_coro
+  return co ~= nilptr and co ~= &main_thread_coro
 end
 
 -- Starts or continues the execution of the coroutine.
@@ -175,7 +173,7 @@ end
 -- If the coroutine runs without any errors, resume returns true plus an empty error message.
 -- If there is any error, resume returns false plus the error message.
 function coroutine.resume(co: coroutine): (boolean, stringview)
-  local res: mco_result = mco_resume(co.coro)
+  local res: mco_result = mco_resume(co)
   if res ~= MCO_SUCCESS then
     return false, mco_result_description(res)
   end
@@ -186,9 +184,9 @@ end
 -- On error a runtime error is thrown.
 function coroutine.yield(co: facultative(coroutine))
   ## if co.type.is_niltype then
-  local co: coroutine = {mco_running()}
+  local co: coroutine = mco_running()
   ## end
-  local res: mco_result = mco_yield(co.coro)
+  local res: mco_result = mco_yield(co)
   if res ~= MCO_SUCCESS then
     error 'coroutine.yield: failed to yield'
   end
@@ -199,7 +197,7 @@ end
 -- In case of an error returns false plus the error message.
 -- NOTE: Your are responsible to always use the right types and push/pop order.
 function coroutine.push(co: coroutine, input: auto): (boolean, stringview)
-  local res: mco_result = mco_push(co.coro, &input, #(#[input.type]#))
+  local res: mco_result = mco_push(co, &input, #(#[input.type]#))
   if res ~= MCO_SUCCESS then
     return false, mco_result_description(res)
   end
@@ -212,7 +210,7 @@ end
 -- NOTE: Your are responsible to always use the right types and push/pop order.
 function coroutine.pop(co: coroutine, T: type)
   local output: T
-  local res: mco_result = mco_pop(co.coro, &output, #@T)
+  local res: mco_result = mco_pop(co, &output, #@T)
   if res ~= MCO_SUCCESS then
     return output, false, mco_result_description(res)
   end
@@ -221,11 +219,11 @@ end
 
 -- Returns the running coroutine plus a boolean, true when the running coroutine is the main one.
 function coroutine.running(): (coroutine, boolean)
-  local coro: *mco_coro = mco_running()
-  if coro == nilptr then
-    return (@coroutine){&main_thread_coro}, true
+  local co: coroutine = mco_running()
+  if co == nilptr then
+    return &main_thread_coro, true
   else
-    return (@coroutine){coro}, false
+    return co, false
   end
 end
 
@@ -235,17 +233,17 @@ end
 -- * "normal" if the coroutine is active but not running (that is, it has resumed another coroutine).
 -- * "dead" if the coroutine has finished its body function, or if it has been destroyed.
 function coroutine.status(co: coroutine): stringview
-  if co.coro == nilptr then
+  if co == nilptr then
     error 'coroutine.status: invalid coroutine'
   end
-  if co.coro == &main_thread_coro then -- Main coroutine.
+  if co == &main_thread_coro then -- Main coroutine.
     if mco_running() == nilptr then
       return 'running'
     else
       return 'normal'
     end
   end
-  local status: mco_state = mco_status(co.coro)
+  local status: mco_state = mco_status(co)
   if status == MCO_SUSPENDED then
     return 'suspended'
   elseif status == MCO_RUNNING then
