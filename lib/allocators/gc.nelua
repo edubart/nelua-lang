@@ -19,9 +19,10 @@ local allocator: auto = general_allocator
 
 global GCFlags = @enum(usize) {
   MARK = 1, -- marked for collection, used internally
-  ROOT = 2, -- should not be automatically freed
+  ROOT = 2, -- should not never be freed
   LEAF = 4, -- contains no pointers to other allocations inside
-  SIZED_FINALIZER = 8  -- finalizer will have a size parameter
+  SIZED_FINALIZER = 8,  -- finalizer will have a size parameter
+  NO_DEALLOC = 16, -- allocated by some external allocator, should not be automatically freed
 }
 local UINTPTR_MAX: usize <comptime> = (@usize)(-1)
 
@@ -246,7 +247,7 @@ function GC:_unmark_all() <noinline>
   end
 end
 
-function GC:_mark_ptr(ptr: pointer) <noinline, cattribute'no_sanitize_memory'>
+function GC:_mark_ptr(ptr: pointer) <noinline, cattribute('no_sanitize_memory,no_sanitize_address')>
   if (@usize)(ptr) < self.minptr or (@usize)(ptr) > self.maxptr then
     return
   end
@@ -277,7 +278,7 @@ function GC:_mark_ptr(ptr: pointer) <noinline, cattribute'no_sanitize_memory'>
   end
 end
 
-function GC:_mark_stack() <cattribute'no_sanitize_address'>
+function GC:_mark_stack() <cattribute('no_sanitize_memory,no_sanitize_address')>
   local stk: pointer <volatile>
   local bot: usize = (@usize)(self.bottom)
   local top: usize = (@usize)(&stk)
@@ -378,7 +379,9 @@ function GC:_sweep() <noinline>
   for j:usize=0,<self.nfrees do
     if self.frees[j].ptr then
       self.frees[j]:finalize()
-      allocator:dealloc(self.frees[j].ptr)
+      if self.frees[j].flags & GCFlags.NO_DEALLOC == 0 then
+        allocator:dealloc(self.frees[j].ptr)
+      end
     end
   end
 
@@ -455,7 +458,7 @@ function GC:collect()
   self:_sweep()
 end
 
-function GC:add(ptr: pointer, size: usize, flags: usize, finalizer: pointer): boolean
+function GC:_add(ptr: pointer, size: usize, flags: usize, finalizer: pointer): boolean
   self.nitems = self.nitems + 1
 
   local uptr: usize = (@usize)(ptr)
@@ -478,6 +481,10 @@ function GC:add(ptr: pointer, size: usize, flags: usize, finalizer: pointer): bo
   end
 end
 
+function GC:add(ptr: pointer, size: usize, flags: usize, finalizer: pointer): boolean
+  return self:_add(ptr, size, flags | GCFlags.NO_DEALLOC, finalizer)
+end
+
 function GC:remove(ptr: pointer)
   self:_remove_ptr(ptr)
   self:_resize_less()
@@ -486,7 +493,7 @@ end
 
 function GC:_alloc(ptr: pointer, size: usize, flags: usize, finalizer: pointer): pointer <inline>
   if ptr then
-    if not self:add(ptr, size, flags, finalizer) then
+    if not self:_add(ptr, size, flags, finalizer) then
       allocator:dealloc(ptr)
       ptr = nilptr
     end
@@ -511,7 +518,7 @@ function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer <inline>
   end
 
   if not ptr then
-    if not self:add(qtr, size, 0, nilptr) then
+    if not self:_add(qtr, size, 0, nilptr) then
       allocator:dealloc(qtr)
       qtr = nilptr
     end
@@ -526,7 +533,7 @@ function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer <inline>
       local flags: usize = p.flags
       local finalizer: pointer = p.finalizer
       self:remove(ptr)
-      self:add(qtr, size, flags, finalizer)
+      self:_add(qtr, size, flags, finalizer)
     end
     return qtr
   end

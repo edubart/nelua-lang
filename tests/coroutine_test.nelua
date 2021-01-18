@@ -1,4 +1,4 @@
-## pragmas.nogc = true
+-- ## pragmas.nogc = true
 
 require 'coroutine'
 
@@ -22,7 +22,7 @@ do -- basic tests
   assert(coroutine.status(co) == 'dead')
   assert(counter == 1)
   assert(coroutine.resume(co) == false)
-  coroutine.destroy(&co)
+  coroutine.destroy(co)
 end
 
 do -- resume/yield
@@ -41,7 +41,7 @@ do -- resume/yield
   assert(counter == 2)
   assert(coroutine.status(co) == 'dead')
   assert(coroutine.resume(co) == false)
-  coroutine.destroy(&co)
+  coroutine.destroy(co)
 end
 
 do -- passing 1 value between yield and resume
@@ -63,7 +63,7 @@ do -- passing 1 value between yield and resume
   assert(coroutine.pop(co, @integer) == 4)
   assert(coroutine.status(co) == 'dead')
   assert(coroutine.resume(co) == false)
-  coroutine.destroy(&co)
+  coroutine.destroy(co)
 end
 
 do -- passing 2 values between yield and resume
@@ -93,7 +93,7 @@ do -- passing 2 values between yield and resume
   assert(coroutine.pop(co, @integer) == 4)
   assert(coroutine.status(co) == 'dead')
   assert(coroutine.resume(co) == false)
-  coroutine.destroy(&co)
+  coroutine.destroy(co)
 end
 
 do -- fibonacci example
@@ -116,5 +116,7 @@ do -- fibonacci example
     m = coroutine.pop(co, @integer)
     assert(m > 0)
   end
+  assert(coroutine.status(co) == 'dead')
   assert(m == 1346269)
+  coroutine.destroy(co)
 end
