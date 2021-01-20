@@ -3036,6 +3036,23 @@ it("unions", function()
     local v = u
     assert(v.b == u.b and v.i == u.i and v.s == u.s)
     assert(v == u)
+
+    do
+      local U2 = @union{x: integer, a: [4]integer}
+      local u: U2 = {}
+      local u: U2 = {x = 1}
+      local u: U2 = {a = {1,2,3,4}}
+      local x = 1
+      local a: [4]integer = {1,2,3,4}
+      local u: U2 = {x = x} assert(u.x == x)
+      u.x = 2 assert(u.x == 2)
+      u = {x=3} assert(u.x == 3)
+      local x2 = 4.0
+      u = {x=x2} assert(u.x == 4)
+      local u: U2 = {a = a} assert(u.a[2] == 3)
+      u.a = (@[4]integer){2,3,4,5} assert(u.a[2] == 4)
+      u = {a = {3,4,5,6}} assert(u.a[2] == 5)
+    end
   ]=])
 end)
 

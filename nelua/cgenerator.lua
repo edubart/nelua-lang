@@ -347,9 +347,9 @@ function visitors.Table(context, node, emitter)
       emitter:add_ctypecast(type)
     end
     emitter:add_zeroinit(type)
-  elseif type.is_record then
+  elseif type.is_composite then
     if context.state.ininitializer then
-      context:push_state{inrecordinitializer = true}
+      context:push_state{incompositeinitializer = true}
       emitter:add('{', childnodes, '}')
       context:pop_state()
     else
@@ -378,7 +378,7 @@ function visitors.Table(context, node, emitter)
       else
         emitter:add_ln('({')
         emitter:inc_indent()
-        emitter:add_indent(type, ' __rec = ')
+        emitter:add_indent(type, ' __tmp = ')
         emitter:add_zeroinit(type)
         emitter:add_ln(';')
       end
@@ -402,9 +402,9 @@ function visitors.Table(context, node, emitter)
           end
         else
           if childvaltype.is_array then
-            emitter:add_indent('(*(', childvaltype, '*)__rec.', fieldname, ') = ')
+            emitter:add_indent('(*(', childvaltype, '*)__tmp.', fieldname, ') = ')
           else
-            emitter:add_indent('__rec.', fieldname, ' = ')
+            emitter:add_indent('__tmp.', fieldname, ' = ')
           end
         end
         local fieldtype = type.fields[fieldname].type
@@ -417,14 +417,14 @@ function visitors.Table(context, node, emitter)
       if compactemit then
         emitter:add('}')
       else
-        emitter:add_indent_ln('__rec;')
+        emitter:add_indent_ln('__tmp;')
         emitter:dec_indent()
         emitter:add_indent('})')
       end
     end
   elseif type.is_array then
     if context.state.ininitializer then
-      if context.state.inrecordinitializer then
+      if context.state.incompositeinitializer then
         emitter:add('{', childnodes, '}')
       else
         emitter:add('{{', childnodes, '}}')

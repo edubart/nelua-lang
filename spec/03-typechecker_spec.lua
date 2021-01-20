@@ -1811,6 +1811,9 @@ end)
 it("union type", function()
   assert.analyze_ast([[local Union = @union{integer,number}; local a: Union]])
   assert.analyze_ast([[local u: union {b: boolean, i: integer}; u.b = true]])
+  assert.analyze_ast([[local u: union{b: boolean, i: integer} = {}]])
+  assert.analyze_ast([[local u: union{b: boolean, i: integer} = {b=true}]])
+  assert.analyze_ast([[local u: union{b: boolean, i: integer} = {i=1}]])
   assert.analyze_error([[
     local u: union{b: boolean, i: integer}
     local v: union{b: boolean, n: number}
@@ -1819,6 +1822,21 @@ it("union type", function()
   assert.analyze_error([[
     local U = @union{t: type, i: integer}
   ]], "cannot be of compile-time type")
+  assert.analyze_error([[
+    local u: union{b: boolean, i: integer} = {b = true, i = 1}
+  ]], "unions can only be initialized with at most 1 field")
+  assert.analyze_error([[
+    local u: union{b: boolean, i: integer} = {i = true}
+  ]], "no viable type conversion from")
+  assert.analyze_error([[
+    local u: union{b: boolean, i: integer} = {true}
+  ]], "union field is missing a name")
+  assert.analyze_error([[
+    local u: union{b: boolean, i: integer} = {[1] = true}
+  ]], "only string literals are allowed")
+  assert.analyze_error([[
+    local u: union{b: boolean, i: integer} = {c = true}
+  ]], "is not present in union")
 end)
 
 it("variant type", function()

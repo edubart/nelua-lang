@@ -228,7 +228,7 @@ local function visitor_Array_literal(context, node, littype)
     if not childattr.comptime then
       comptime = nil
     end
-    if not childnode.done then
+    if not childtype or not childnode.done then
       done = nil
     end
   end
@@ -295,7 +295,60 @@ local function visitor_Record_literal(context, node, littype)
     end
     childnode.parenttype = littype
     childnode.fieldname = fieldname
-    if not fieldvalnode.done then
+    if not fieldvaltype or not fieldvalnode.done then
+      done = nil
+    end
+  end
+  attr.type = littype
+  attr.comptime = comptime
+  node.done = done
+end
+
+local function visitor_Union_literal(context, node, littype)
+  local attr = node.attr
+  local childnodes = node[1]
+  local done = true
+  local comptime = true
+  if #childnodes > 1 then
+    node:raisef("unions can only be initialized with at most 1 field, but got %d", #childnodes)
+  end
+  local childnode = childnodes[1]
+  if childnode then
+    if childnode.tag ~= 'Pair' then
+      childnode:raisef("union field is missing a name")
+    end
+    local fieldname, fieldvalnode = childnode[1], childnode[2]
+    if not traits.is_string(fieldname) then
+      childnode:raisef("only string literals are allowed in union's field names")
+    end
+    local field = littype.fields[fieldname]
+    if not field then
+      childnode:raisef("field '%s' is not present in union '%s'", fieldname, littype)
+    end
+    local fieldtype = field.type
+    fieldvalnode.desiredtype = fieldtype
+    context:traverse_node(fieldvalnode)
+    local fieldvaltype = fieldvalnode.attr.type
+    fieldvalnode, fieldvaltype = visitor_convert(context, childnode, 2, fieldtype, fieldvalnode, fieldvaltype)
+    local fieldvalattr = fieldvalnode.attr
+    if fieldvaltype then
+      if not fieldvaltype:is_initializable_from_attr(fieldvalattr) then
+        comptime = nil
+      end
+      local ok, err = fieldtype:is_convertible_from_attr(fieldvalattr)
+      if not ok then
+        childnode:raisef("in union literal field '%s': %s", fieldname, err)
+      end
+      if not context.pragmas.nochecks and fieldtype ~= fieldvaltype then
+        fieldvalnode.checkcast = true
+      end
+    end
+    if not fieldvalattr.comptime then
+      comptime = nil
+    end
+    childnode.parenttype = littype
+    childnode.fieldname = fieldname
+    if not fieldvaltype or not fieldvalnode.done then
       done = nil
     end
   end
@@ -332,6 +385,8 @@ function visitors.Table(context, node)
     visitor_Array_literal(context, node, desiredtype)
   elseif desiredtype.is_record then
     visitor_Record_literal(context, node, desiredtype)
+  elseif desiredtype.is_union then
+    visitor_Union_literal(context, node, desiredtype)
   else
     node:raisef("type '%s' cannot be initialized using a table literal", desiredtype)
   end
