@@ -12,7 +12,6 @@ local fs = require 'nelua.utils.fs'
 local except = require 'nelua.utils.except'
 local executor = require 'nelua.utils.executor'
 local configer = require 'nelua.configer'
-local syntaxdefs = require 'nelua.syntaxdefs'
 local platform = require 'nelua.utils.platform'
 
 local runner = {}
@@ -20,6 +19,7 @@ local runner = {}
 local function run(argv, redirect)
   -- parse config
   local config = configer.parse(argv)
+
   if config.no_color then console.set_colors_enabled(false) end
 
   if config.script then --luacov:disable
@@ -39,6 +39,7 @@ local function run(argv, redirect)
     console.debugf('startup         %.1f ms', timer:elapsedrestart())
   end
 
+  local syntaxdefs = require 'nelua.syntaxdefs'
   local syntax = syntaxdefs()
   if config.timing then
     console.debugf('compile grammar %.1f ms', timer:elapsedrestart())
