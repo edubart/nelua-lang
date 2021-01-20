@@ -292,7 +292,7 @@ end
 minicoro_code = minicoro_heading..[==[
 /*
 Minimal asymmetric stackful cross-platform coroutine library in pure C.
-minicoro
+minicoro - v0.1.0 - 19/Jan/2021
 Eduardo Bart - edub4rt@gmail.com
 https://github.com/edubart/minicoro
 
@@ -841,7 +841,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 typedef struct _mco_ctxbuf {
   void *rip, *rsp, *rbp, *rbx, *r12, *r13, *r14, *r15, *rdi, *rsi;
-  void* xmm[10*2]; /* xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 */
+  void* xmm[20]; /* xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 */
   void* fiber_storage;
   void* dealloc_stack;
   void* stack_limit;
@@ -1109,62 +1109,60 @@ static mco_result _mco_makectx(mco_coro* co, _mco_ctxbuf* ctx, void* stack_base,
 
 #elif defined(__i386) || defined(__i386__)
 
-#ifdef __PIC__
 typedef struct _mco_ctxbuf {
-  void* buf[4]; /* eip, esp, ebp, ebx */
+  void *eip, *esp, *ebp, *ebx, *esi, *edi;
 } _mco_ctxbuf;
-static void _mco_switch(_mco_ctxbuf* from, _mco_ctxbuf* to) {
-  __asm__ __volatile__ (
-    "call 1f\n"
-    "1:\tpopl %%eax\n\t"
-    "addl $(2f-1b),%%eax\n\t"
-    "movl %%eax, (%0)\n\t"
-    "movl %%esp, 4(%0)\n\t"
-    "movl %%ebp, 8(%0)\n\t"
-    "movl %%ebx, 12(%0)\n\t"
-    "movl 12(%1), %%ebx\n\t"
-    "movl 8(%1), %%ebp\n\t"
-    "movl 4(%1), %%esp\n\t"
-    "jmp *(%1)\n"
-    "2:\n"
-    : "+S" (from), "+D" (to) : : "eax", "ecx", "edx", "memory", "cc");
-}
-#else
-typedef struct _mco_ctxbuf {
-  void* buf[3]; /* eip, esp, ebp */
-} _mco_ctxbuf;
-static void _mco_switch(_mco_ctxbuf* from, _mco_ctxbuf* to) {
-  __asm__ __volatile__ (
-    "movl $1f, (%0)\n\t"
-    "movl %%esp, 4(%0)\n\t"
-    "movl %%ebp, 8(%0)\n\t"
-    "movl 8(%1), %%ebp\n\t"
-    "movl 4(%1), %%esp\n\t"
-    "jmp *(%1)\n"
-    "1:\n"
-    : "+S" (from), "+D" (to) : : "eax", "ebx", "ecx", "edx", "memory", "cc");
-}
-#endif /* __PIC__ */
+
+void _mco_switch(_mco_ctxbuf* from, _mco_ctxbuf* to);
+
+__asm__(
+  ".text\n"
+  ".globl _mco_switch\n"
+  ".type _mco_switch @function\n"
+  ".hidden _mco_switch\n"
+  "_mco_switch:\n"
+  "  call 1f\n"
+  "  1:\n"
+  "  popl %ecx\n"
+  "  addl $(2f-1b), %ecx\n"
+  "  movl 4(%esp), %eax\n"
+  "  movl 8(%esp), %edx\n"
+  "  movl %ecx, (%eax)\n"
+  "  movl %esp, 4(%eax)\n"
+  "  movl %ebp, 8(%eax)\n"
+  "  movl %ebx, 12(%eax)\n"
+  "  movl %esi, 16(%eax)\n"
+  "  movl %edi, 20(%eax)\n"
+  "  movl 20(%edx), %edi\n"
+  "  movl 16(%edx), %esi\n"
+  "  movl 12(%edx), %ebx\n"
+  "  movl 8(%edx), %ebp\n"
+  "  movl 4(%edx), %esp\n"
+  "  jmp *(%edx)\n"
+  "  2:\n"
+  "  ret\n"
+  ".size _mco_switch, .-_mco_switch\n"
+);
 
 static mco_result _mco_makectx(mco_coro* co, _mco_ctxbuf* ctx, void* stack_base, size_t stack_size) {
   void** stack_high_ptr = (void**)((size_t)stack_base + stack_size - 16 - 1*sizeof(size_t));
   stack_high_ptr[0] = (void*)(0xdeaddead);  /* Dummy return address. */
   stack_high_ptr[1] = (void*)(co);
-  ctx->buf[0] = (void*)(_mco_main);
-  ctx->buf[1] = (void*)(stack_high_ptr);
+  ctx->eip = (void*)(_mco_main);
+  ctx->esp = (void*)(stack_high_ptr);
   return MCO_SUCCESS;
 }
 
 #elif defined(__ARM_EABI__)
 
-#if __SOFTFP__
-#define _MCO_FLOAT_SAVE   0
-#else
-#define _MCO_FLOAT_SAVE   16
-#endif
-
 typedef struct _mco_ctxbuf {
-  void* buf[_MCO_FLOAT_SAVE + 10]; /* [d8-d15,] r4-r11, lr, sp */
+#ifndef __SOFTFP__
+  void* f[16];
+#endif
+  void *d[4]; /* d8-d15 */
+  void *r[4]; /* r4-r11 */
+  void *lr;
+  void *sp;
 } _mco_ctxbuf;
 
 void _mco_wrap_main(void);
@@ -1176,12 +1174,12 @@ __asm__(
   ".type _mco_switch #function\n"
   ".hidden _mco_switch\n"
   "_mco_switch:\n"
-#if _MCO_FLOAT_SAVE
+#ifndef __SOFTFP__
   "  vstmia r0!, {d8-d15}\n"
 #endif
   "  stmia r0, {r4-r11, lr}\n"
   "  str sp, [r0, #9*4]\n"
-#if _MCO_FLOAT_SAVE
+#ifndef __SOFTFP__
   "  vldmia r1!, {d8-d15}\n"
 #endif
   "  ldr sp, [r1, #9*4]\n"
@@ -1203,19 +1201,21 @@ __asm__(
 );
 
 static mco_result _mco_makectx(mco_coro* co, _mco_ctxbuf* ctx, void* stack_base, size_t stack_size) {
-  void** stack_high_ptr = (void**)((size_t)stack_base + stack_size);
-  ctx->buf[_MCO_FLOAT_SAVE+0] = (void*)(co);
-  ctx->buf[_MCO_FLOAT_SAVE+1] = (void*)(_mco_main);
-  ctx->buf[_MCO_FLOAT_SAVE+2] = (void*)(0xdeaddead); /* Dummy return address. */
-  ctx->buf[_MCO_FLOAT_SAVE+8] = (void*)(_mco_wrap_main);
-  ctx->buf[_MCO_FLOAT_SAVE+9] = stack_high_ptr;
+  ctx->d[0] = (void*)(co);
+  ctx->d[1] = (void*)(_mco_main);
+  ctx->d[2] = (void*)(0xdeaddead); /* Dummy return address. */
+  ctx->lr = (void*)(_mco_wrap_main);
+  ctx->sp = (void*)((size_t)stack_base + stack_size);
   return MCO_SUCCESS;
 }
 
 #elif defined(__aarch64__)
 
 typedef struct _mco_ctxbuf {
-  void* buf[22]; /* x19-x30, sp, lr, d8-d15 */
+  void *x[12]; /* x19-x30 */
+  void *sp;
+  void *lr;
+  void *d[8]; /* d8-d15 */
 } _mco_ctxbuf;
 
 void _mco_wrap_main(void);
@@ -1269,12 +1269,11 @@ __asm__(
 );
 
 static mco_result _mco_makectx(mco_coro* co, _mco_ctxbuf* ctx, void* stack_base, size_t stack_size) {
-  void** stack_high_ptr = (void**)((size_t)stack_base + stack_size);
-  ctx->buf[0] = (void*)(co);
-  ctx->buf[1] = (void*)(_mco_main);
-  ctx->buf[2] = (void*)(0xdeaddeaddeaddead); /* Dummy return address. */
-  ctx->buf[12] = (void*)((size_t)(stack_high_ptr) & ~15);
-  ctx->buf[13] = (void*)(_mco_wrap_main);
+  ctx->x[0] = (void*)(co);
+  ctx->x[1] = (void*)(_mco_main);
+  ctx->x[2] = (void*)(0xdeaddeaddeaddead); /* Dummy return address. */
+  ctx->sp = (void*)((size_t)stack_base + stack_size);
+  ctx->lr = (void*)(_mco_wrap_main);
   return MCO_SUCCESS;
 }
 

@@ -1,30 +1,8 @@
--- source taken from https://github.com/edubart/lua-bint
--- lua-bint 0.3.1
---[[
-The MIT License (MIT)
-
-Copyright (c) 2020 Eduardo Bart (https://github.com/edubart)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-]]
-
 --[[--
+lua-bint - v0.4.0 - 20/Jan/2022
+Eduardo Bart - edub4rt@gmail.com
+https://github.com/edubart/lua-bint
+
 Small portable arbitrary-precision integer arithmetic library in pure Lua for
 computing with large integers.
 
@@ -151,7 +129,7 @@ assert(bits % wordbits == 0, 'bitsize is not multiple of word bitsize')
 assert(2*wordbits <= intbits, 'word bitsize must be half of the lua integer bitsize')
 assert(bits >= 64, 'bitsize must be >= 64')
 
--- Create bint class
+-- Create bint module
 local bint = {}
 bint.__index = bint
 
@@ -1195,13 +1173,13 @@ function bint.umod(x, y)
 end
 
 --- Perform integer truncate division and modulo operation between two numbers considering bints.
--- This is effectively the same of @{bint.__tdiv} and @{bint.__tmod}.
+-- This is effectively the same of @{bint.tdiv} and @{bint.tmod}.
 -- @param x The numerator, a bint or lua number.
 -- @param y The denominator, a bint or lua number.
 -- @return The quotient following the remainder, both bint or lua number.
 -- @raise Asserts on attempt to divide by zero or on division overflow.
--- @see bint.__tdiv
--- @see bint.__tmod
+-- @see bint.tdiv
+-- @see bint.tmod
 function bint.tdivmod(x, y)
   local ax, ay = bint.abs(x), bint.abs(y)
   local ix, iy = bint.tobint(ax), bint.tobint(ay)
@@ -1212,11 +1190,11 @@ function bint.tdivmod(x, y)
   else
     quot, rema = ax // ay, ax % ay
   end
-  local xneg, yneg = bint.isneg(x), bint.isneg(y)
-  if xneg ~= yneg then
+  local isxneg, isyneg = bint.isneg(x), bint.isneg(y)
+  if isxneg ~= isyneg then
     quot = -quot
   end
-  if xneg then
+  if isxneg then
     rema = -rema
   end
   return quot, rema

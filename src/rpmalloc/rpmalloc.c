@@ -128,6 +128,7 @@
 #  include <unistd.h>
 #  include <stdio.h>
 #  include <stdlib.h>
+#  include <time.h>
 #  if defined(__APPLE__)
 #    include <TargetConditionals.h>
 #    if !TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
@@ -705,14 +706,21 @@ get_thread_id(void) {
 	uintptr_t tid;
 #  if defined(__i386__)
 	__asm__("movl %%gs:0, %0" : "=r" (tid) : : );
-#  elif defined(__MACH__) && !TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
-	__asm__("movq %%gs:0, %0" : "=r" (tid) : : );
 #  elif defined(__x86_64__)
+#    if defined(__MACH__)
+	__asm__("movq %%gs:0, %0" : "=r" (tid) : : );
+#    else
 	__asm__("movq %%fs:0, %0" : "=r" (tid) : : );
+#    endif
 #  elif defined(__arm__)
 	__asm__ volatile ("mrc p15, 0, %0, c13, c0, 3" : "=r" (tid));
 #  elif defined(__aarch64__)
+#    if defined(__MACH__)
+	// tpidr_el0 likely unused, always return 0 on iOS
+	__asm__ volatile ("mrs %0, tpidrro_el0" : "=r" (tid));
+#    else
 	__asm__ volatile ("mrs %0, tpidr_el0" : "=r" (tid));
+#    endif
 #  else
 	tid = (uintptr_t)((void*)get_thread_heap_raw());
 #  endif
@@ -741,6 +749,25 @@ rpmalloc_set_main_thread(void);
 void
 rpmalloc_set_main_thread(void) {
 	_rpmalloc_main_thread_id = get_thread_id();
+}
+
+static void
+_rpmalloc_spin(void) {
+#if defined(_MSC_VER)
+	_mm_pause();
+#elif defined(__x86_64__) || defined(__i386__)
+	__asm__ volatile("pause" ::: "memory");
+#elif defined(__aarch64__) || (defined(__arm__) && __ARM_ARCH >= 7)
+	__asm__ volatile("yield" ::: "memory");
+#elif defined(__powerpc__) || defined(__powerpc64__)
+        // No idea if ever been compiled in such archs but ... as precaution
+	__asm__ volatile("or 27,27,27");
+#elif defined(__sparc__)
+	__asm__ volatile("rd %ccr, %g0 \n\trd %ccr, %g0 \n\trd %ccr, %g0");
+#else
+	struct timespec ts = {0};
+	nanosleep(&ts, 0);
+#endif
 }
 
 #if defined(_WIN32) && (!defined(BUILD_DYNAMIC_LINK) || !BUILD_DYNAMIC_LINK)
@@ -1043,6 +1070,9 @@ _rpmalloc_span_map_aligned_count(heap_t* heap, size_t span_count) {
 			_rpmalloc_heap_cache_insert(heap, heap->span_reserve);
 		}
 		if (reserved_count > DEFAULT_SPAN_MAP_COUNT) {
+			// If huge pages, make sure only one thread maps more memory to avoid bloat
+			while (!atomic_cas32_acquire(&_memory_global_lock, 1, 0))
+				_rpmalloc_spin();
 			size_t remain_count = reserved_count - DEFAULT_SPAN_MAP_COUNT;
 			reserved_count = DEFAULT_SPAN_MAP_COUNT;
 			span_t* remain_span = (span_t*)pointer_offset(reserved_spans, reserved_count * _memory_span_size);
@@ -1051,14 +1081,12 @@ _rpmalloc_span_map_aligned_count(heap_t* heap, size_t span_count) {
 				_rpmalloc_span_unmap(_memory_global_reserve);
 			}
 			_rpmalloc_global_set_reserved_spans(span, remain_span, remain_count);
+			atomic_store32_release(&_memory_global_lock, 0);
 		}
 		_rpmalloc_heap_set_reserved_spans(heap, span, reserved_spans, reserved_count);
 	}
 	return span;
 }
-
-static span_t*
-_rpmalloc_global_get_reserved_spans(size_t span_count);
 
 //! Map in memory pages for the given number of spans (or use previously reserved pages)
 static span_t*
@@ -1068,9 +1096,8 @@ _rpmalloc_span_map(heap_t* heap, size_t span_count) {
 	span_t* span = 0;
 	if (_memory_page_size > _memory_span_size) {
 		// If huge pages, make sure only one thread maps more memory to avoid bloat
-		while (!atomic_cas32_acquire(&_memory_global_lock, 1, 0)) {
-			/* Spin */
-		}
+		while (!atomic_cas32_acquire(&_memory_global_lock, 1, 0))
+			_rpmalloc_spin();
 		if (_memory_global_reserve_count >= span_count) {
 			size_t reserve_count = (!heap->spans_reserved ? DEFAULT_SPAN_MAP_COUNT : span_count);
 			if (_memory_global_reserve_count < reserve_count)
@@ -1284,7 +1311,7 @@ _rpmalloc_span_finalize(heap_t* heap, size_t iclass, span_t* span, span_t** list
 static void
 _rpmalloc_global_cache_finalize(global_cache_t* cache) {
 	while (!atomic_cas32_acquire(&cache->lock, 1, 0))
-		/* Spin */;
+		_rpmalloc_spin();
 
 	for (size_t ispan = 0; ispan < cache->count; ++ispan)
 		_rpmalloc_span_unmap(cache->span[ispan]);
@@ -1309,7 +1336,7 @@ _rpmalloc_global_cache_insert_spans(span_t** span, size_t span_count, size_t cou
 
 	size_t insert_count = count;
 	while (!atomic_cas32_acquire(&cache->lock, 1, 0))
-		/* Spin */;
+		_rpmalloc_spin();
 
 	if ((cache->count + insert_count) > cache_limit)
 		insert_count = cache_limit - cache->count;
@@ -1340,7 +1367,7 @@ _rpmalloc_global_cache_extract_spans(span_t** span, size_t span_count, size_t co
 
 	size_t extract_count = count;
 	while (!atomic_cas32_acquire(&cache->lock, 1, 0))
-		/* Spin */;
+		_rpmalloc_spin();
 
 	if (extract_count > cache->count)
 		extract_count = cache->count;
@@ -1536,11 +1563,6 @@ _rpmalloc_heap_cache_insert(heap_t* heap, span_t* span) {
 static span_t*
 _rpmalloc_heap_thread_cache_extract(heap_t* heap, size_t span_count) {
 	span_t* span = 0;
-	if (span_count == 1) {
-		_rpmalloc_heap_cache_adopt_deferred(heap, &span);
-		if (span)
-			return span;
-	}
 #if ENABLE_THREAD_CACHE
 	span_cache_t* span_cache;
 	if (span_count == 1)
@@ -1552,6 +1574,18 @@ _rpmalloc_heap_thread_cache_extract(heap_t* heap, size_t span_count) {
 		return span_cache->span[--span_cache->count];
 	}
 #endif
+	return span;
+}
+
+static span_t*
+_rpmalloc_heap_thread_cache_deferred_extract(heap_t* heap, size_t span_count) {
+	span_t* span = 0;
+	if (span_count == 1) {
+		_rpmalloc_heap_cache_adopt_deferred(heap, &span);
+	} else {
+		_rpmalloc_heap_cache_adopt_deferred(heap, 0);
+		span = _rpmalloc_heap_thread_cache_extract(heap, span_count);
+	}
 	return span;
 }
 
@@ -1623,6 +1657,11 @@ _rpmalloc_heap_extract_new_span(heap_t* heap, size_t span_count, uint32_t class_
 	(void)sizeof(class_idx);
 #endif
 	span = _rpmalloc_heap_thread_cache_extract(heap, span_count);
+	if (EXPECTED(span != 0)) {
+		_rpmalloc_stat_inc(&heap->size_class_use[class_idx].spans_from_cache);
+		return span;
+	}
+	span = _rpmalloc_heap_thread_cache_deferred_extract(heap, span_count);
 	if (EXPECTED(span != 0)) {
 		_rpmalloc_stat_inc(&heap->size_class_use[class_idx].spans_from_cache);
 		return span;
@@ -1757,7 +1796,7 @@ static heap_t*
 _rpmalloc_heap_allocate(int first_class) {
 	heap_t* heap = 0;
 	while (!atomic_cas32_acquire(&_memory_global_lock, 1, 0))
-		/* Spin */;
+		_rpmalloc_spin();
 	if (first_class == 0)
 		heap = _rpmalloc_heap_extract_orphan(&_memory_orphan_heaps);
 #if RPMALLOC_FIRST_CLASS_HEAPS
@@ -1815,7 +1854,7 @@ _rpmalloc_heap_release(void* heapptr, int first_class) {
 	// lock atomic is unknown and it's best to just go ahead and exit
 	if (get_thread_id() != _rpmalloc_main_thread_id) {
 		while (!atomic_cas32_acquire(&_memory_global_lock, 1, 0))
-			/* Spin */;
+			_rpmalloc_spin();
 	}
 	_rpmalloc_heap_orphan(heap, first_class);
 	atomic_store32_release(&_memory_global_lock, 0);
@@ -2001,6 +2040,7 @@ _rpmalloc_allocate_large(heap_t* heap, size_t size) {
 static void*
 _rpmalloc_allocate_huge(heap_t* heap, size_t size) {
 	assert(heap);
+	_rpmalloc_heap_cache_adopt_deferred(heap, 0);
 	size += SPAN_HEADER_SIZE;
 	size_t num_pages = size >> _memory_page_size_shift;
 	if (size & (_memory_page_size - 1))
@@ -2260,9 +2300,8 @@ _rpmalloc_deallocate_large(span_t* span) {
 	size_t idx = span->span_count - 1;
 	atomic_decr32(&span->heap->span_use[idx].current);
 #endif
-	heap_t* heap = get_thread_heap();
+	heap_t* heap = span->heap;
 	assert(heap);
-	span->heap = heap;
 	if ((span->span_count > 1) && !heap->finalize && !heap->spans_reserved) {
 		heap->span_reserve = span;
 		heap->spans_reserved = span->span_count;

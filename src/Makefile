@@ -30,7 +30,7 @@ ifndef NO_RPMALLOC
 	DEFS+=-DLUA_USE_RPMALLOC
 	SRCS+=rpmalloc/rpmalloc.c
 	## Tune rpmalloc
-	DEFS+=-DENABLE_GLOBAL_CACHE=0 -DBUILD_DYNAMIC_LINK
+	DEFS+=-DENABLE_GLOBAL_CACHE=0 -DENABLE_UNLIMITED_CACHE=1 -DBUILD_DYNAMIC_LINK
 endif
 
 ## Setup flags for the host system.
