@@ -1581,6 +1581,14 @@ function visitors.Switch(context, node)
   context:pop_scope()
 end
 
+function visitors.Defer(context, node)
+  local blocknode = node[1]
+  context:traverse_node(blocknode)
+  -- mark `has_defer`, used to check mixing with `goto`
+  context.scope.has_defer = true
+  blocknode.scope.has_defer = true
+end
+
 function visitors.While(context, node)
   local condnode, blocknode = node[1], node[2]
   condnode.desiredtype = primtypes.boolean
@@ -1812,7 +1820,7 @@ end
 
 function visitors.Goto(context, node)
   local labelname = node[1]
-  local label = context.scope:find_label(labelname)
+  local label, labelscope = context.scope:find_label(labelname)
   if not label then
     local funcscope = context.scope:get_up_return_scope() or context.rootscope
     if not funcscope.resolved_once then
@@ -1821,6 +1829,15 @@ function visitors.Goto(context, node)
       return
     end
     node:raisef("no visible label '%s' found for `goto`", labelname)
+  end
+  -- `goto` changes the control flow and cannot be used with defer statement
+  for scope in context.scope:iterate_up_scopes() do
+    if scope.has_defer then
+      node:raisef("cannot mix `goto` and `defer` statements")
+    end
+    if scope == labelscope then
+      break
+    end
   end
   node.attr.label = label
   node.done = true

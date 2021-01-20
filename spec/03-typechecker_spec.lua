@@ -974,6 +974,8 @@ it("goto", function()
   assert.analyze_error("goto label", "no visible label")
   assert.analyze_error("local function f() goto label end ::label::", "no visible label")
   assert.analyze_error("::label:: local function f() goto label end", "no visible label")
+  assert.analyze_error([[defer end goto finish ::finish::]], 'cannot mix `goto` and `defer` statements')
+  assert.analyze_error([[do defer end goto finish end ::finish::]], 'cannot mix `goto` and `defer` statements')
 end)
 
 it("spans", function()

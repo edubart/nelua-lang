@@ -109,17 +109,30 @@ function Scope:get_up_return_scope()
   return self.upreturnscope
 end
 
+local function iterate_up_scopes_next(initscope, scope)
+  if scope then
+    return scope.parent
+  else
+    return initscope
+  end
+end
+
+-- Iterator to traverse all up scopes.
+function Scope:iterate_up_scopes()
+  return iterate_up_scopes_next, self, nil
+end
+
 -- Search for labels backtracking upper scopes.
 function Scope:find_label(name)
   local parent = self
   repeat
     local label = parent.labels[name]
     if label then
-      return label
+      return label, parent
     end
     parent = parent.parent
   until (not parent or parent.is_returnbreak)
-  return nil
+  return nil, nil
 end
 
 function Scope:add_label(label)
