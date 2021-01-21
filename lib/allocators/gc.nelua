@@ -8,7 +8,23 @@
 require 'span'
 require 'allocators.general'
 
-## pragmas.nochecks = true
+##[[
+pragmas.nochecks = true
+cemitdecl[=[
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_address))
+#elif __has_feature(memory_sanitizer)
+#define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_memory))
+#endif
+#elif defined(__SANITIZE_ADDRESS__)
+#define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_address))
+#endif
+#ifndef NELUA_GC_NO_SANITIZE
+#define NELUA_GC_NO_SANITIZE
+#endif
+]=]
+]]
 
 local jmp_buf <cimport,cinclude'<setjmp.h>',nodecl> = @record{dummy: usize}
 local function setjmp(env: jmp_buf) <cimport,cinclude'<setjmp.h>',nodecl> end
@@ -247,7 +263,7 @@ function GC:_unmark_all() <noinline>
   end
 end
 
-function GC:_mark_ptr(ptr: pointer) <noinline, cattribute('no_sanitize_memory,no_sanitize_address')>
+function GC:_mark_ptr(ptr: pointer) <noinline, cqualifier'NELUA_GC_NO_SANITIZE'>
   if (@usize)(ptr) < self.minptr or (@usize)(ptr) > self.maxptr then
     return
   end
@@ -278,7 +294,7 @@ function GC:_mark_ptr(ptr: pointer) <noinline, cattribute('no_sanitize_memory,no
   end
 end
 
-function GC:_mark_stack() <cattribute('no_sanitize_memory,no_sanitize_address')>
+function GC:_mark_stack() <cqualifier'NELUA_GC_NO_SANITIZE'>
   local stk: pointer <volatile>
   local bot: usize = (@usize)(self.bottom)
   local top: usize = (@usize)(&stk)

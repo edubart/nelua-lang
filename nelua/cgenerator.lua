@@ -539,11 +539,11 @@ function visitors.IdDecl(context, node, emitter)
   end
   if type.is_type then return end
   if attr.cexport then emitter:add(context:ensure_runtime_builtin('nelua_cexport'), ' ') end
+  if attr.static then emitter:add('static ') end
   if attr.register then emitter:add('register ') end
   if attr.const and attr.type.is_pointer then emitter:add('const ') end
   if attr.volatile then emitter:add('volatile ') end
   if attr.restrict then emitter:add('__restrict ') end
-  if attr.static then emitter:add('static ') end
   if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
   emitter:add(type, ' ', context:declname(attr))
   if attr.cattribute then emitter:add(' __attribute__((', attr.cattribute, '))') end

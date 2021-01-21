@@ -66,6 +66,10 @@ print('testing defer_test... ')
 require 'tests.defer_test'
 print 'OK!'
 
+print('testing coroutine_test... ')
+require 'tests.coroutine_test'
+print 'OK!'
+
 -- must be last for now because replace some globals
 print('testing basic_test... ')
 require 'tests.basic_test'
