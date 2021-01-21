@@ -62,22 +62,22 @@ end
 
   local INIT_CAPACITY <comptime> = 128
 
-  local stringbuilderA = @record {
+  local stringbuilderT = @record {
     data: span(byte),
     size: usize,
     allocator: Allocator
   }
 
-  function stringbuilderA:destroy()
+  function stringbuilderT:destroy()
     self.allocator:spandealloc(self.data)
-    $self = (@stringbuilderA)()
+    $self = (@stringbuilderT)()
   end
 
-  function stringbuilderA:clear()
+  function stringbuilderT:clear()
     self.size = 0
   end
 
-  function stringbuilderA:prepare(size: usize): *[0]byte
+  function stringbuilderT:prepare(size: usize): *[0]byte
     -- allocate 1 additional byte to allow casting to cstring
     local needed: usize = self.size + size + 1
     local cap: usize = self.data.size
@@ -98,13 +98,13 @@ end
     return (@*[0]byte)(&self.data[self.size])
   end
 
-  function stringbuilderA:commit(size: usize)
+  function stringbuilderT:commit(size: usize)
     local newsize: usize = self.size + size
     check(newsize <= self.data.size, 'stringbuilder.commit: not enough space in string buffer')
     self.size = newsize
   end
 
-  function stringbuilderA:write_byte(c: byte): boolean
+  function stringbuilderT:write_byte(c: byte): boolean
     local p: *[0]byte = self:prepare(1)
     if unlikely(p == nilptr) then return false end
     p[0] = c
@@ -112,7 +112,7 @@ end
     return true
   end
 
-  function stringbuilderA:write_string(s: stringview): boolean
+  function stringbuilderT:write_string(s: stringview): boolean
     local p: *[0]byte = self:prepare(s.size)
     if unlikely(p == nilptr) then return false end
     memory.copy(p, s.data, s.size)
@@ -120,7 +120,7 @@ end
     return true
   end
 
-  function stringbuilderA:write_format(fmt: stringview, arg1: auto): boolean
+  function stringbuilderT:write_format(fmt: stringview, arg1: auto): boolean
     -- TODO: properly handle multiple arguments
     local L_ESC: byte <comptime> = '%'_byte
     local MAX_ITEM <comptime> = 120
@@ -215,17 +215,17 @@ end
     return true
   end
 
-  function stringbuilderA:__tocstring(): cstring <inline,nosideeffect>
+  function stringbuilderT:__tocstring(): cstring <inline,nosideeffect>
     if unlikely(self.size == 0) then return (@cstring)('') end
     return (@cstring)(&self.data[0])
   end
 
-  function stringbuilderA:__tostringview() <inline,nosideeffect>
+  function stringbuilderT:__tostringview() <inline,nosideeffect>
     if unlikely(self.size == 0) then return (@stringview){} end
     return (@stringview){data = &self.data[0], size = self.size}
   end
 
-  ## return stringbuilderA
+  ## return stringbuilderT
 ## end)
 
 global stringbuilder: type = #[make_generic_stringbuilder()]#

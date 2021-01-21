@@ -1,108 +1,118 @@
 require 'string'
 
+local sb: stringbuilder
+
 -- return
-local function f()
-  local s: string = 'a'
-  defer s = s..'d' end
-  defer s = s..'c' end
-  s = s..'b'
-  return s
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write_string'a'
+  defer sb:write_string'd' end
+  defer sb:write_string'c' end
+  sb:write_string'b'
+  return tostringview(sb)
 end
-assert(f() == 'abcd')
+assert(f(&sb) == 'abcd')
 
 -- do block
-local function f()
-  local s: string = 'a'
-  defer s = s..'d' end
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write_string'a'
+  defer sb:write_string'd' end
   do
-    defer s = s..'b' end
+    defer sb:write_string'b' end
   end
-  s = s..'c'
-  return s
+  sb:write_string'c'
+  return tostringview(sb)
 end
-assert(f() == 'abcd')
+assert(f(&sb) == 'abcd')
 
 -- nested do blocks
-local function f()
-  local s: string = 'a'
-  defer s = s..'e' end
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write_string'a'
+  defer sb:write_string'e' end
   do
-    defer s = s..'c' end
+    defer sb:write_string'c' end
     do
-      defer s = s..'b' end
+      defer sb:write_string'b' end
     end
   end
-  s = s..'d'
-  return s
+  sb:write_string'd'
+  return tostringview(sb)
 end
-assert(f() == 'abcde')
+assert(f(&sb) == 'abcde')
 
 -- return in middle nested
-local function f()
-  local s: string = 'a'
-  defer s = s..'d' end
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write_string'a'
+  defer sb:write_string'd' end
   if true then
-    defer s = s..'c' end
+    defer sb:write_string'c' end
     if true then
-      defer s = s..'b' end
+      defer sb:write_string'b' end
     end
-    return s
+    return tostringview(sb)
   end
-  return s
+  return tostringview(sb)
 end
-assert(f() == 'abcd')
+assert(f(&sb) == 'abcd')
 
 -- middle return
-local function f()
-  local s: string = 'a'
-  defer s = s..'d' end
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write_string'a'
+  defer sb:write_string'd' end
   if true then
-    defer s = s..'c' end
-    return s
+    defer sb:write_string'c' end
+    return tostringview(sb)
     if true then
-      defer s = s..'b' end
+      defer sb:write_string'b' end
     end
   end
-  return s
+  return tostringview(sb)
 end
-assert(f() == 'acd')
+assert(f(&sb) == 'acd')
 
 -- while and break
-local function f()
-  local s: string = 'a'
-  defer s = s..'c' end
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write_string'a'
+  defer sb:write_string'c' end
   while true do
-    defer s = s..'b' end
+    defer sb:write_string'b' end
     break
   end
-  return s
+  return tostringview(sb)
 end
-assert(f() == 'abc')
+assert(f(&sb) == 'abc')
 
 -- for and continue
-local function f()
-  local s: string = 'a'
-  defer s = s..'c' end
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write_string'a'
+  defer sb:write_string'c' end
   for i=1,3 do
-    defer s = s..'b' end
+    defer sb:write_string'b' end
     continue
-    defer s = s..' ' end
+    defer sb:write_string' ' end
   end
-  return s
+  return tostringview(sb)
 end
-assert(f() == 'abbbc')
+assert(f(&sb) == 'abbbc')
 
 -- repeat
-local function f()
-  local s: string = 'a'
-  defer s = s..'c' end
+local function f(sb: *stringbuilder)
+  sb:clear()
+  sb:write_string'a'
+  defer sb:write_string'c' end
   repeat
-    defer s = s..'b' end
+    defer sb:write_string'b' end
     local x = true
   until x
-  return s
+  return tostringview(sb)
 end
-assert(f() == 'abc')
+assert(f(&sb) == 'abc')
 
 -- issue #46
 local function f()
@@ -126,3 +136,5 @@ local function g()
   return n + r
 end
 assert(g() == 1)
+
+sb:destroy()
