@@ -458,7 +458,10 @@ function builtins.nelua_eq_(context, ltype, rtype)
     defemitter:add_ln('{')
     defemitter:inc_indent()
     defemitter:add_indent('return ')
-    if #type.fields > 0 then
+    if type.is_union then
+      context:add_include('<string.h>')
+      defemitter:add('memcmp(&a, &b, sizeof(', type, ')) == 0')
+    elseif #type.fields > 0 then
       for i,field in ipairs(type.fields) do
         if i > 1 then
           defemitter:add(' && ')

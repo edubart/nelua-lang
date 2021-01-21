@@ -3034,7 +3034,7 @@ it("unions", function()
     u.s = s
     assert(u.i == (@int64)(s) and u.s == s)
     local v = u
-    assert(v.b == u.b and v.i == u.i and v.s == u.s)
+    assert(v.i == u.i and v.s == u.s)
     assert(v == u)
 
     do
