@@ -2247,9 +2247,6 @@ local function visitor_FuncDef_variable(context, scopekind, varnode)
     end
     varnode.attr.global = true
   end
-  if decl then
-    varnode.attr.funcdecl = true
-  end
   if scopekind == 'global' or context.scope.is_topscope or decl then
     varnode.attr.staticstorage = true
   end
@@ -2354,7 +2351,6 @@ function visitors.FuncDef(context, node, polysymbol)
   end
 
   if symbol then -- symbol may be nil in case of array/dot index
-    symbol.funcdef = true
     if decl then
       -- declaration always set the type
       symbol.type = type
@@ -2477,8 +2473,6 @@ function visitors.Function(context, node)
     symbol.scope = context.scope
     symbol.annonymous = true
     symbol.lvalue = true
-    symbol.funcdecl = true
-    symbol.funcdef = true
     symbol.staticstorage = true
     symbol.scope:add_symbol(symbol)
   end

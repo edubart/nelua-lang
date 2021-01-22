@@ -2983,6 +2983,28 @@ it("forward type declaration", function()
   ]=])
 end)
 
+it("function assignment", function()
+  assert.run_c([=[
+    local f
+    local function g(x: integer)
+      return f(x)
+    end
+    function f(x: integer): integer
+      return x+1
+    end
+    assert(f(1) == 2)
+    assert(g(1) == 2)
+
+    local r: record{
+      f: function(x: integer): integer
+    }
+    function r.f(x: integer): integer
+      return x+1
+    end
+    assert(r.f(1) == 2)
+  ]=])
+end)
+
 it("importing type of uknown sizes", function()
   assert.run_c([=[
     local FILE <cimport,nodecl,cinclude'<stdio.h>',cincomplete> = @record{}

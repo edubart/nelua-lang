@@ -138,7 +138,7 @@ end
 
 -- Checks a symbol is directly accessible from a scope, without needing closures.
 function Symbol:is_directly_accesible_from_scope(scope)
-  if self.staticstorage or self.funcdecl then
+  if self.staticstorage then
     -- symbol declared in the program static storage, thus always accessible
     return true
   end

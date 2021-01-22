@@ -531,22 +531,20 @@ function visitors.IdDecl(context, node, emitter)
   local type = attr.type
   if attr.comptime or type.is_comptime then
     emitter:add(context:ensure_runtime_builtin('nlniltype'), ' ', context:declname(attr))
-    return
-  end
-  if attr.funcdecl then
+  elseif context.state.infuncdecl then
     emitter:add(context:declname(attr))
-    return
+  else
+    if type.is_type then return end
+    if attr.cexport then emitter:add(context:ensure_runtime_builtin('nelua_cexport'), ' ') end
+    if attr.static then emitter:add('static ') end
+    if attr.register then emitter:add('register ') end
+    if attr.const and attr.type.is_pointer then emitter:add('const ') end
+    if attr.volatile then emitter:add('volatile ') end
+    if attr.restrict then emitter:add('__restrict ') end
+    if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
+    emitter:add(type, ' ', context:declname(attr))
+    if attr.cattribute then emitter:add(' __attribute__((', attr.cattribute, '))') end
   end
-  if type.is_type then return end
-  if attr.cexport then emitter:add(context:ensure_runtime_builtin('nelua_cexport'), ' ') end
-  if attr.static then emitter:add('static ') end
-  if attr.register then emitter:add('register ') end
-  if attr.const and attr.type.is_pointer then emitter:add('const ') end
-  if attr.volatile then emitter:add('volatile ') end
-  if attr.restrict then emitter:add('__restrict ') end
-  if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
-  emitter:add(type, ' ', context:declname(attr))
-  if attr.cattribute then emitter:add(' __attribute__((', attr.cattribute, '))') end
 end
 
 local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjnode)
@@ -1235,8 +1233,25 @@ function visitors.FuncDef(context, node, emitter)
   decemitter:add_indent(qualifier, retctype, ' ')
   defemitter:add_indent(retctype, ' ')
 
-  decemitter:add(varnode)
-  defemitter:add(varnode)
+  local funcid = varnode
+  if varscope == nil then -- maybe assigning a variable to a function
+    if varnode.tag == 'Id' then
+      funcid = context:genuniquename(context:declname(varnode.attr), '%s__%d')
+      emitter:add_indent_ln(varnode, ' = ', funcid, ';')
+    elseif varnode.tag == 'ColonIndex' or varnode.tag == 'DotIndex' then
+      local fieldname, objtype = varnode[1], varnode[2].attr.type
+      if objtype.is_record then
+        funcid = context:genuniquename('func_'..fieldname, '%s__%d')
+        emitter:add_indent_ln(varnode, ' = ', funcid, ';')
+      end
+    end
+  end
+
+  context:push_state{infuncdecl = true}
+  decemitter:add(funcid)
+  defemitter:add(funcid)
+  context:pop_state()
+
   local funcscope = context:push_forked_scope(node)
   funcscope.functype = type
   do
