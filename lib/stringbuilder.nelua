@@ -24,7 +24,7 @@ local function scanformat(strfmt: *[0]byte, form: *[MAX_FORMAT]byte): usize
   while strfmt[p] ~= 0 and strchr(L_FMTFLAGS, strfmt[p]) ~= nilptr do
     p = p + 1  -- skip flags
   end
-  if p >= #L_FMTFLAGS + 1 then
+  if p >= L_FMTFLAGS.size + 1 then
     error("scanformat: invalid format (repeated flags)")
   end
   if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- skip width

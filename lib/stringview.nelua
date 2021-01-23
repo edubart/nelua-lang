@@ -108,9 +108,10 @@ function stringview.find(self: stringview,
     return 0, 0
   end
   if unlikely(init < 0) then init = self.size + init + 1 end
-  if unlikely((@usize)(init) > self.size) then return 0, 0 end
   if unlikely(init <= 0) then init = 1 end
-  local found: pointer = memory.find(&self.data[init-1], self.size+1-(@usize)(init), pattern.data, pattern.size)
+  init = init - 1
+  if unlikely((@usize)(init) > self.size) then return 0, 0 end
+  local found: pointer = memory.find(&self.data[init], self.size-(@usize)(init), pattern.data, pattern.size)
   if found then
     local sbegin: isize = (@isize)((@usize)(found) - (@usize)(&self.data[0]))
     return sbegin + 1, sbegin + (@isize)(pattern.size)
