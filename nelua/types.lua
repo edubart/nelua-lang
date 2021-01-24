@@ -544,8 +544,12 @@ function types.typenodes_to_types(nodes)
   local typelist = {}
   for i=1,#nodes do
     local nodeattr = nodes[i].attr
-    assert(nodeattr.type._type)
-    typelist[i] = nodes[i].attr.value
+    assert(nodeattr.type._type and nodeattr.value)
+    typelist[i] = nodeattr.value
+  end
+  if #typelist == 1 and typelist[1].is_void then
+    -- single void type means no returns
+    typelist = {}
   end
   return typelist
 end
@@ -1522,13 +1526,7 @@ function FunctionType:_init(argattrs, rettypes, node)
   self.argtypes = argtypes
 
   -- set the return types
-  if rettypes and #rettypes == 1 and rettypes[1].is_void then
-    -- single void type means no returns
-    rettypes = {}
-  elseif not rettypes then
-    rettypes = {}
-  end
-  self.rettypes = rettypes
+  self.rettypes = rettypes or {}
 
   -- validate arg types
   for i=1,#argtypes do

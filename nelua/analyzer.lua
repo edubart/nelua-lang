@@ -2120,52 +2120,6 @@ function visitors.Return(context, node)
   end
 end
 
-local function resolve_function_argtypes(funcscope, symbol, ismethod, argnodes, scope, checkpoly)
-  local ispolyparent = false
-  local argattrs = {}
-  local argtypes = {}
-
-  -- is the function forced to be polymorphic?
-  if checkpoly and symbol and symbol.polymorphic then
-    ispolyparent = true
-  end
-
-  for i=1,#argnodes do
-    local argnode = argnodes[i]
-    local argattr = argnode.attr
-    local argtype = argattr.type
-    if not argtype then
-    -- function arguments types must be known ahead, fallbacks to any if untyped
-      argtype = primtypes.any
-      argattr.type = argtype
-    end
-    if checkpoly and (argtype.is_polymorphic or argattr.comptime) then
-      ispolyparent = true
-    end
-    argtypes[i] = argtype
-    argattrs[i] = argattr
-  end
-
-  if ismethod then
-    -- inject 'self' type as first argument
-    local selfsym = symbol.selfsym
-    if not selfsym then
-      selfsym = Symbol()
-      selfsym:init('self')
-      selfsym.codename = 'self'
-      selfsym.lvalue = true
-      selfsym.type = symbol.metafuncselftype
-      selfsym.scope = funcscope
-      symbol.selfsym = selfsym
-    end
-    table.insert(argtypes, 1, symbol.metafuncselftype)
-    table.insert(argattrs, 1, selfsym)
-    scope:add_symbol(selfsym)
-  end
-
-  return argattrs, argtypes, ispolyparent
-end
-
 local function block_endswith_return(blocknode)
   assert(blocknode.tag == 'Block')
   local statnodes = blocknode[1]
@@ -2260,130 +2214,90 @@ local function visitor_FuncDef_variable(context, scopekind, varnode)
   return symbol, decl
 end
 
-local function visitor_FuncDef_returns(context, functype, retnodes)
-  local rettypes
+local function visitor_function_arguments(context, symbol, ismethod, argnodes, checkpoly)
+  local funcscope = context.scope
+
+  local ispolyparent = false
+  local argattrs = {}
+  local argtypes = {}
+
+  -- is the function forced to be polymorphic?
+  if checkpoly and symbol and symbol.polymorphic then
+    ispolyparent = true
+  end
+
+  local off = 0
+
+  if ismethod then -- inject 'self' type as first argument
+    assert(symbol)
+    local selfsym = symbol.selfsym
+    if not selfsym then
+      selfsym = Symbol()
+      selfsym:init('self')
+      selfsym.codename = 'self'
+      selfsym.lvalue = true
+      selfsym.type = symbol.metafuncselftype
+      selfsym.scope = funcscope
+      symbol.selfsym = selfsym
+    end
+    argtypes[1] = symbol.metafuncselftype
+    argattrs[1] = selfsym
+    funcscope:add_symbol(selfsym)
+    off = 1
+  end
+
+  for i=1,#argnodes do
+    local argnode = argnodes[i]
+    context:traverse_node(argnode)
+    local argattr = argnode.attr
+    if argattr._symbol then
+      funcscope:add_symbol(argattr)
+    end
+    local argtype = argattr.type
+    if not argtype then
+    -- function arguments types must be known ahead, fallbacks to any if untyped
+      argtype = primtypes.any
+      argattr.type = argtype
+    end
+    if checkpoly and (argtype.is_polymorphic or argattr.comptime) then
+      ispolyparent = true
+    end
+    argtypes[i+off] = argtype
+    argattrs[i+off] = argattr
+  end
+
+  return argattrs, argtypes, ispolyparent
+end
+
+local function visitor_function_returns(context, node, retnodes)
+  local functype = node.attr.type
+  local funcscope = context.scope
   context:push_state{intypeexpr = true}
   context:traverse_nodes(retnodes)
   context:pop_state()
-  if #retnodes > 0 then
-    -- returns types are pre declared
-    rettypes = types.typenodes_to_types(retnodes)
-
-    if #rettypes == 1 and rettypes[1].is_void then
-      -- single void type means no returns
-      rettypes = {}
+  local rettypes = funcscope.rettypes
+  if not rettypes then
+    if #retnodes > 0 then
+      rettypes = types.typenodes_to_types(retnodes)
+    elseif functype and functype.is_procedure and not functype.rettypes.has_unknown then
+      -- use return types from previous traversal only if fully resolved
+      rettypes = functype.rettypes
+    elseif funcscope.resolved_rettypes and not funcscope.resolved_rettypes.has_unknown then
+      rettypes = funcscope.resolved_rettypes
     end
-  elseif functype and functype.is_procedure and not functype.rettypes.has_unknown then
-    -- use return types from previous traversal only if fully resolved
-    rettypes = functype.rettypes
+    if rettypes then
+      funcscope.rettypes = rettypes
+    end
   end
   return rettypes
 end
 
-function visitors.FuncDef(context, node, polysymbol)
-  local varscope, varnode, argnodes, retnodes, annotnodes, blocknode =
-        node[1], node[2], node[3], node[4], node[5], node[6]
-
-  context:push_state{infuncdef = node, inpolydef = polysymbol}
-  local symbol, decl = visitor_FuncDef_variable(context, varscope, varnode)
-  if symbol then
-    symbol.scope:add_symbol(symbol)
-  end
-  context:pop_state()
-
-  -- we must now if the symbols is going to be polymorphic
-  if symbol and annotnodes then
-    for i=1,#annotnodes do
-      if annotnodes[i][1] == 'polymorphic' then
-        symbol.polymorphic = true
-        break
-      end
-    end
-  end
-
-  local rettypes = visitor_FuncDef_returns(context, node.attr.type, retnodes)
-  local ismethod = varnode.tag == 'ColonIndex' and symbol and symbol.metafunc
-
-  -- repeat scope to resolve function variables and return types
-  local ispolyparent, argtypes, argattrs
-
-  local funcscope
-  repeat
-    funcscope = context:push_forked_cleaned_scope(node)
-    funcscope.is_function = true
-    funcscope.is_returnbreak = true
-
-    funcscope.rettypes = rettypes
-    context:push_state{intypeexpr = true}
-    context:traverse_nodes(argnodes)
-    context:pop_state()
-    for i=1,#argnodes do
-      local argnode = argnodes[i]
-      if argnode.attr.scope then
-        argnode.attr.scope:add_symbol(argnode.attr)
-      end
-    end
-    argattrs, argtypes, ispolyparent =
-      resolve_function_argtypes(funcscope, symbol, ismethod, argnodes, funcscope,not polysymbol)
-
-    if not ispolyparent then
-      -- poly functions never traverse the blocknode by itself
-      context:traverse_node(blocknode)
-    end
-
-    local resolutions_count = funcscope:resolve()
-    context:pop_scope()
-  until resolutions_count == 0
-
-  if not ispolyparent and not rettypes then
-    rettypes = funcscope.resolved_rettypes
-  end
-
-  -- set the function type
-  local type = node.attr.type
-  if ispolyparent then
-    assert(not polysymbol)
-    if not type then
-      type = types.PolyFunctionType(argattrs, rettypes, node)
-    end
-  elseif not rettypes.has_unknown then
-    type = types.FunctionType(argattrs, rettypes, node)
-  end
-
-  if symbol then -- symbol may be nil in case of array/dot index
-    if decl then
-      -- declaration always set the type
-      symbol.type = type
-    else
-      -- check if previous symbol declaration is compatible
-      local symboltype = symbol.type
-      if symboltype then
-        local ok, err = symboltype:is_convertible_from_type(type)
-        if not ok then
-          node:raisef("in function definition: %s", err)
-        end
-      else
-        symbol:add_possible_type(type, varnode)
-      end
-    end
-    symbol:link_node(node)
-  else
-    node.attr.type = type
-  end
-
-  -- once the type is know we can traverse annotation nodes
+local function visitor_function_annotations(context, node, annotnodes, blocknode, symbol, type)
   if annotnodes then
     context:traverse_nodes(annotnodes, symbol)
   end
 
-  -- type checking for returns
   local attr = node.attr
-  if type and not type.is_polyfunction and #rettypes > 0 and not(attr.nodecl or attr.cimport or attr.hookmain) then
-    local canbeempty = tabler.iallfield(rettypes, 'is_nilable')
-    if not canbeempty and not block_endswith_return(blocknode) then
-      node:raisef("a return statement is missing before function end")
-    end
-  end
 
   do -- handle attributes and annotations
     -- annotation cimport
@@ -2413,8 +2327,95 @@ function visitors.FuncDef(context, node, polysymbol)
       context.entrypoint = node
     end
 
-    if ispolyparent and attr.alwayseval then
+    if attr.polymorphic and attr.alwayseval then
       type.alwayseval = true
+    end
+  end
+end
+
+function visitors.FuncDef(context, node, polysymbol)
+  local varscope, varnode, argnodes, retnodes, annotnodes, blocknode =
+        node[1], node[2], node[3], node[4], node[5], node[6]
+
+  context:push_state{infuncdef = node, inpolydef = polysymbol}
+  local type = node.attr.ftype
+  local symbol, decl = visitor_FuncDef_variable(context, varscope, varnode)
+  if symbol then -- symbol may be nil in case of array/dot index
+    symbol.scope:add_symbol(symbol)
+    symbol:link_node(node)
+  end
+  context:pop_state()
+  local attr = node.attr
+
+  -- we must know if the symbols is going to be polymorphic
+  if annotnodes then
+    for i=1,#annotnodes do
+      if annotnodes[i][1] == 'polymorphic' then
+        attr.polymorphic = true
+        break
+      end
+    end
+  end
+
+  local ismethod = varnode.tag == 'ColonIndex' and symbol and symbol.metafunc
+
+  -- repeat scope to resolve function variables and return types
+  local funcscope, argattrs, argtypes, ispolyparent, rettypes
+  repeat
+    -- enter in the function scope
+    funcscope = context:push_forked_cleaned_scope(node)
+    funcscope.is_function = true
+    funcscope.is_returnbreak = true
+
+    -- traverse the function arguments
+    argattrs, argtypes, ispolyparent = visitor_function_arguments(context, symbol, ismethod, argnodes, not polysymbol)
+
+    -- traverse the function returns
+    rettypes = visitor_function_returns(context, node, retnodes)
+
+    -- set the function type
+    if not type and rettypes then
+      if ispolyparent then
+        assert(not polysymbol)
+        type = types.PolyFunctionType(argattrs, rettypes, node)
+      else
+        type = types.FunctionType(argattrs, rettypes, node)
+      end
+      if symbol and not decl then
+        -- check if previous symbol declaration is compatible
+        local symboltype = symbol.type
+        if symboltype then
+          local ok, err = symboltype:is_convertible_from_type(type)
+          if not ok then
+            node:raisef("in function definition: %s", err)
+          end
+        else
+          symbol:add_possible_type(type, varnode)
+        end
+      else
+        attr.type = type
+      end
+      attr.ftype = type
+    end
+
+    -- traverse annotation nodes
+    visitor_function_annotations(context, node, annotnodes, blocknode, symbol, type)
+
+    -- traverse the function block
+    if not ispolyparent then -- poly functions never traverse the blocknode by itself
+      context:traverse_node(blocknode)
+    end
+
+    local resolutions_count = funcscope:resolve()
+    context:pop_scope()
+  until resolutions_count == 0
+
+  -- type checking for returns
+  if type and type.is_procedure and not type.is_polyfunction and rettypes and #rettypes > 0 and
+     not(attr.nodecl or attr.cimport or attr.hookmain) then
+    local canbeempty = tabler.iallfield(rettypes, 'is_nilable')
+    if not canbeempty and not block_endswith_return(blocknode) then
+      node:raisef("a return statement is missing before function end")
     end
   end
 
@@ -2466,6 +2467,7 @@ function visitors.Function(context, node)
         node[1], node[2], node[3], node[4]
 
   local attr = node.attr
+  local type = attr.type
   local symbol = attr._symbol and attr or nil
   if not symbol then
     symbol = Symbol.promote_attr(attr, nil, node)
@@ -2477,62 +2479,46 @@ function visitors.Function(context, node)
     symbol.scope:add_symbol(symbol)
   end
 
-  local rettypes = visitor_FuncDef_returns(context, node.attr.type, retnodes)
-
   -- repeat scope to resolve function variables and return types
-  local argtypes, argattrs, funcscope
+  local funcscope, argattrs, argtypes, ispolyparent, rettypes
   repeat
+    -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
     funcscope.is_function = true
     funcscope.is_returnbreak = true
 
-    funcscope.rettypes = rettypes
-    context:traverse_nodes(argnodes)
-    for i=1,#argnodes do
-      local argnode = argnodes[i]
-      if argnode.attr.scope then
-        argnode.attr.scope:add_symbol(argnode.attr)
-      end
-    end
-    local ispolyparent
-    argattrs, argtypes, ispolyparent =
-      resolve_function_argtypes(funcscope, symbol, false, argnodes, funcscope, true)
+    -- traverse the function arguments
+    argattrs, argtypes, ispolyparent = visitor_function_arguments(context, symbol, false, argnodes, true)
 
-    if ispolyparent then
+    if ispolyparent then -- anonymous functions cannot be polymorphic
       node:raisef("anonymous functions cannot be polymorphic")
     end
 
+    -- traverse the function returns
+    rettypes = visitor_function_returns(context, node, retnodes)
+
+    -- set the function type
+    if not type and rettypes then
+      type = types.FunctionType(argattrs, rettypes, node)
+      attr.type = type
+    end
+
+    -- traverse annotation nodes
+    visitor_function_annotations(context, node, annotnodes, blocknode, symbol, type)
+
+    -- traverse the function block
     context:traverse_node(blocknode)
 
     local resolutions_count = funcscope:resolve()
     context:pop_scope()
   until resolutions_count == 0
 
-  if not rettypes then
-    rettypes = funcscope.resolved_rettypes
-  end
-
-  -- set the function type
-  local type = node.attr.type
-  if not rettypes.has_unknown then
-    type = types.FunctionType(argattrs, rettypes, node)
-  end
-
-  if type then
-    symbol.type = type
-  end
-
   -- type checking for returns
-  if type and #rettypes > 0 then
+  if type and rettypes and #rettypes > 0 then
     local canbeempty = tabler.iallfield(rettypes, 'is_nilable')
     if not canbeempty and not block_endswith_return(blocknode) then
       node:raisef("a return statement is missing before function end")
     end
-  end
-
-  -- once the type is know we can traverse annotation nodes
-  if annotnodes then
-    context:traverse_nodes(annotnodes, symbol)
   end
 
   do -- handle attributes and annotations

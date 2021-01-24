@@ -648,11 +648,11 @@ it("function definition", function()
   ]], "no viable type conversion")
   assert.analyze_error([[
     local function f(): (integer, stringview) return 1, '' end
-    function f(): integer end
+    function f(): integer return 1 end
   ]], "no viable type conversion")
   assert.analyze_error([[
     local f: function():(integer, stringview)
-    function f(): integer end
+    function f(): integer return 1 end
   ]], "no viable type conversion")
   assert.analyze_error([[
     local f: function(): type

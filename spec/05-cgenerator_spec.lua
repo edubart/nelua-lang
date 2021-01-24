@@ -613,6 +613,20 @@ it("poly functions with comptime arguments", function()
   ]])
 end)
 
+it("recursive functions", function()
+  assert.run_c([[
+    local function decrement(n: integer): integer
+      if n == 0 then
+        return 0
+      else
+        return decrement(n - 1)
+      end
+    end
+    local a: integer = decrement(5)
+    assert(a == 0)
+  ]])
+end)
+
 it("global function definition", function()
   assert.generate_c("local function f() end", "static void f();")
   assert.run_c([[

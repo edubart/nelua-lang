@@ -17,9 +17,11 @@ function Scope:_init(parent, node)
     self.context = parent
     self.is_root = true
     self.is_returnbreak = true
+    self.resolved_rettypes = {}
   else
     self.parent = parent
     self.context = parent.context
+    self.resolved_rettypes = {has_unknown = true}
     table.insert(parent.children, self)
   end
   self.unresolved_symbols = {}
@@ -71,7 +73,6 @@ function Scope:clear_symbols()
     })
   end
   self.possible_rettypes = {}
-  self.resolved_rettypes = {}
   self.has_unknown_return = nil
 end
 
@@ -286,20 +287,38 @@ function Scope:add_return_type(index, type)
 end
 
 function Scope:resolve_rettypes()
+  if not self.is_returnbreak then -- not on a return block
+    return 0
+  end
+  if self.rettypes then -- return types already fixed
+    return 0
+  end
+  if not next(self.possible_rettypes) then
+    if self.resolved_rettypes.has_unknown then
+      self.resolved_rettypes.has_unknown = nil
+      return 1
+    else
+      return 0
+    end
+  end
   local count = 0
-  if not next(self.possible_rettypes) then return count end
   local resolved_rettypes = self.resolved_rettypes
-  resolved_rettypes.has_unknown = self.has_unknown_return
-  for i,rettypes in pairs(self.possible_rettypes) do
-    resolved_rettypes[i] = types.find_common_type(rettypes) or typedefs.primtypes.any
+  if resolved_rettypes.has_unknown ~= self.has_unknown_return then
+    resolved_rettypes.has_unknown = self.has_unknown_return
     count = count + 1
+  end
+  for i,rettypes in pairs(self.possible_rettypes) do
+    local rettype = types.find_common_type(rettypes) or typedefs.primtypes.any
+    if rettype ~= resolved_rettypes[i] then
+      resolved_rettypes[i] = rettype
+      count = count + 1
+    end
   end
   return count
 end
 
 function Scope:resolve()
-  local count = self:resolve_symbols()
-  self:resolve_rettypes()
+  local count = self:resolve_symbols() + self:resolve_rettypes()
   if count > 0 and config.debug_scope_resolve then
     console.info(self.node:format_message('info', "scope resolved %d symbols", count))
   end
