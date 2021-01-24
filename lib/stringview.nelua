@@ -10,6 +10,7 @@
 -- that triggers allocations are implemented in the string module.
 
 require 'memory'
+require 'patternmatcher'
 
 -- C imports
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
@@ -95,28 +96,25 @@ function stringview.subview(self: stringview, i: isize, j: facultative(isize)): 
   return (@stringview){data=&self.data[i-1], size=subsize}
 end
 
--- Search for the first match of a pattern in the string.
-function stringview.find(self: stringview,
-                         pattern: stringview,
-                         init: isize,
-                         plain: boolean): (isize, isize)
-  --TODO: handle patterns and returns them
-  --TODO: return nil if not found instead of zeros
-  check(plain, 'stringview.find: patterns not supported yet')
-  if unlikely(self.size == 0) then
-    if pattern.size == 0 then return 1, 0 end
+-- Looks for the first match of pattern in the string.
+-- Returns the indices of where this occurrence starts and ends.
+-- The indices will be positive if a match is found, zero otherwise.
+-- A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+-- A value of true as a fourth, optional argument plain turns off the pattern matching facilities.
+function stringview.find(self: stringview, pattern: stringview, init: facultative(isize), plain: facultative(boolean)): (isize, isize)
+  ## if init.type.is_niltype then
+  local init: isize = 1
+  ## end
+  ## if plain.type.is_niltype then
+  local plain: boolean = false
+  ## end
+  local ms: PatternMatcher = PatternMatcher.create(self, pattern)
+  local s: isize, e: isize = ms:match(init, plain)
+  if e ~= -1 then
+    return s+1, e
+  else -- no match
     return 0, 0
   end
-  if unlikely(init < 0) then init = self.size + init + 1 end
-  if unlikely(init <= 0) then init = 1 end
-  init = init - 1
-  if unlikely((@usize)(init) > self.size) then return 0, 0 end
-  local found: pointer = memory.find(&self.data[init], self.size-(@usize)(init), pattern.data, pattern.size)
-  if found then
-    local sbegin: isize = (@isize)((@usize)(found) - (@usize)(&self.data[0]))
-    return sbegin + 1, sbegin + (@isize)(pattern.size)
-  end
-  return 0, 0
 end
 
 -- Convert a type to a string view.

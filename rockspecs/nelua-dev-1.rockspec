@@ -135,6 +135,7 @@ build = {
       ['lib/span.nelua']                    = 'lib/span.nelua',
       ['lib/vector.nelua']                  = 'lib/vector.nelua',
       ['lib/string.nelua']                  = 'lib/string.nelua',
+      ['lib/patternmatcher.nelua']          = 'lib/patternmatcher.nelua',
       ['lib/stringview.nelua']              = 'lib/stringview.nelua',
       ['lib/stringbuilder.nelua']           = 'lib/stringbuilder.nelua',
       ['lib/resourcepool.nelua']            = 'lib/resourcepool.nelua',

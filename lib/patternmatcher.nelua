@@ -1,0 +1,390 @@
+-- Pattern Matcher
+--
+-- Provides a class for Lua style pattern matching.
+-- Used by string `find`, `match`, `gsub` and `gmatch` functions.
+
+require 'memory'
+
+-- C imports
+local function strpbrk(s: cstring, accept: cstring): cstring <cimport,cinclude'<string.h>',nodecl> end
+local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
+local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isalpha(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function islower(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isupper(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isxdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function iscntrl(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isgraph(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isblank(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isprint(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function ispunct(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+
+local MAX_MATCH_CALLS <comptime> = 32
+local CAP_UNFINISHED <comptime> = -1
+local CAP_POSITION <comptime> = -2
+
+global PatternMatcherCapture = @record{
+  init: isize,
+  len: isize
+}
+
+function PatternMatcherCapture:is_unfinished(): boolean
+  return self.len == CAP_UNFINISHED
+end
+
+function PatternMatcherCapture:is_position(): boolean
+  return self.len == CAP_POSITION
+end
+
+-- Record that hold the matching state.
+global PatternMatcher = @record{
+  source: stringview,
+  pattern: stringview,
+  depth: isize, -- control for recursive depth (to avoid stack overflow)
+  numcaptures: isize, -- total number of captures (finished or unfinished)
+  capture: [32]PatternMatcherCapture -- maximum of 32 match captures
+}
+
+function PatternMatcher.create(source: stringview, pattern: stringview): PatternMatcher
+  return (@PatternMatcher) {
+    source = source,
+    pattern = pattern,
+    depth = MAX_MATCH_CALLS
+  }
+end
+
+function PatternMatcher:get_capture(i: isize): stringview
+  return (@stringview){
+    data=&self.source.data[self.capture[i].init],
+    size=self.capture[i].len
+  }
+end
+
+-- Match pattern recursive function.
+function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
+  local function match_class(c: byte, cl: byte): boolean
+    local res: boolean
+    switch tolower(cl) do
+      case 'a'_byte then res = isalpha(c) ~= 0
+      case 'c'_byte then res = iscntrl(c) ~= 0
+      case 'd'_byte then res = isdigit(c) ~= 0
+      case 'g'_byte then res = isgraph(c) ~= 0
+      case 'l'_byte then res = islower(c) ~= 0
+      case 'p'_byte then res = ispunct(c) ~= 0
+      case 's'_byte then res = isspace(c) ~= 0
+      case 'u'_byte then res = isupper(c) ~= 0
+      case 'w'_byte then res = isalnum(c) ~= 0
+      case 'x'_byte then res = isxdigit(c) ~= 0
+      case 'z'_byte then res = (c == 0) -- deprecated option
+      else return (cl == c)
+    end
+    if islower(cl) == 0 then
+      res = not res
+    end
+    return res
+  end
+
+  local function match_class_end(ms: *PatternMatcher, p: isize): isize
+    local c: byte = ms.pattern.data[p]
+    p = p + 1
+    switch c do
+    case '%'_byte then
+      assert(p ~= #ms.pattern, "malformed pattern (ends with '%')")
+      p = p + 1
+    case '['_byte then
+      if ms.pattern.data[p] == '^'_byte then
+        p = p + 1
+      end
+      repeat -- look for a ']'
+        assert(p ~= #ms.pattern, "malformed pattern (missing ']')")
+        c = ms.pattern.data[p]
+        p = p + 1
+        if c == '%'_byte and p < #ms.pattern then
+          p = p + 1 -- skip escapes (e.g. '%]')
+        end
+      until ms.pattern.data[p] == ']'_byte
+      p = p + 1
+    end
+    return p
+  end
+
+  local function match_bracket_class(ms: *PatternMatcher, c: byte, p: isize, ep: isize): boolean
+    local sig: boolean = true
+    if ms.pattern.data[p+1] == '^'_byte then
+      sig = false
+      p = p + 1 -- skip the '^'
+    end
+    p = p + 1
+    while p < ep do
+      if ms.pattern.data[p] == '%'_byte then
+        p = p + 1
+        if match_class(c, ms.pattern.data[p]) then
+          return sig
+        end
+      elseif ms.pattern.data[p+1] == '-'_byte and p+2 < ep then
+        p = p + 2
+        if ms.pattern.data[p-2] <= c and c <= ms.pattern.data[p] then
+          return sig
+        end
+      elseif ms.pattern.data[p] == c then
+        return sig
+      end
+      p = p + 1
+    end
+    return not sig
+  end
+
+  local function match_single(ms: *PatternMatcher, s: isize, p: isize, ep: isize): boolean
+    if s >= #ms.source then
+      return false
+    else
+      local c: byte = ms.source.data[s]
+      local pc: byte = ms.pattern.data[p]
+      switch pc do
+      case '.'_byte then return true -- matches any char
+      case '%'_byte then return match_class(c, ms.pattern.data[p+1])
+      case '['_byte then return match_bracket_class(ms, c, p, ep-1)
+      else return pc == c
+      end
+    end
+  end
+
+  local function match_balance(ms: *PatternMatcher, s: isize, p: isize): isize
+    assert(p < #ms.pattern - 1, "malformed pattern (missing arguments to '%b')")
+    if ms.source.data[s] ~= ms.pattern.data[p] then
+      return -1
+    else
+      local b: byte = ms.pattern.data[p]
+      local e: byte = ms.pattern.data[p+1]
+      local cont: isize = 1
+      s = s + 1
+      while s < #ms.source do
+        if ms.source.data[s] == e then
+          cont = cont - 1
+          if cont == 0 then
+            return s+1
+          end
+        elseif ms.source.data[s] == b then
+          cont = cont + 1
+        end
+        s = s + 1
+      end
+    end
+    return -1 -- string ends out of balance
+  end
+
+  local function match_max_expand(ms: *PatternMatcher, s: isize, p: isize, ep: isize): isize
+    local i: isize = 0
+    while match_single(ms, s + i, p, ep) do -- counts maximum expand for item
+      i = i + 1
+    end
+    while i >= 0 do -- keeps trying to match with the maximum repetitions
+      local res: isize = ms:_match((s+i), ep+1)
+      if res ~= -1 then
+        return res
+      else -- didn't match
+        i = i - 1 -- reduce 1 repetition to try again
+      end
+    end
+    return -1
+  end
+
+  local function match_min_expand(ms: *PatternMatcher, s: isize, p: isize, ep: isize): isize
+    while true do
+      local res: isize = ms:_match(s, ep+1)
+      if res ~= -1 then
+        return res
+      elseif match_single(ms, s, p, ep) then
+        s = s + 1 -- try with one more repetition
+      else
+        return -1
+      end
+    end
+    return -1
+  end
+
+  local function match_start_capture(ms: *PatternMatcher, s: isize, p: isize, what: isize): isize
+    local numcaptures: isize = ms.numcaptures
+    assert(numcaptures < #ms.capture, "too many captures")
+    ms.capture[numcaptures].init = s
+    ms.capture[numcaptures].len = what
+    ms.numcaptures = numcaptures+1
+    local res: isize = ms:_match(s, p)
+    if res == -1 then -- match failed?
+      ms.numcaptures = ms.numcaptures - 1 -- undo capture
+    end
+    return res
+  end
+
+  local function match_end_capture(ms: *PatternMatcher, s: isize, p: isize): isize
+    local l: isize = -1
+    for numcaptures: isize = ms.numcaptures-1,0,-1 do
+      if ms.capture[numcaptures].len == CAP_UNFINISHED then
+        l = numcaptures
+        break
+      end
+    end
+    assert(l ~= -1, "invalid pattern capture")
+    ms.capture[l].len = s - ms.capture[l].init -- close capture
+    local res: isize = ms:_match(s, p)
+    if res == -1 then -- match failed?
+      ms.capture[l].len = CAP_UNFINISHED -- undo capture
+    end
+    return res
+  end
+
+  local function match_capture(ms: *PatternMatcher, s: isize, l: byte): isize
+    l = l - '1'_byte
+    assert(l >= 0 and (@isize)(l) < ms.numcaptures and ms.capture[l].len ~= CAP_UNFINISHED, "invalid capture index")
+    -- the explicit cast here is necessary because len can be negative (CAP_UNFINISHED/CAP_POSITION)
+    local len: usize = (@usize)(ms.capture[l].len)
+    if (@usize)(#ms.source-s) >= len and memory.compare(&ms.source.data[ms.capture[l].init], &ms.source.data[s], len) == 0 then
+      return s+len
+    end
+    return -1
+  end
+
+  ms.depth = ms.depth - 1
+  assert(ms.depth > 0, 'pattern too complex')
+
+  ::init:: -- using goto's to optimize tail recursion
+  if p < #ms.pattern then -- not end of pattern?
+    switch ms.pattern.data[p] do
+    case '('_byte then -- start capture
+      if ms.pattern.data[p+1] == ')'_byte then -- position capture?
+        s = match_start_capture(ms, s, p + 2, CAP_POSITION)
+      else
+        s = match_start_capture(ms, s, p + 1, CAP_UNFINISHED)
+      end
+    case ')'_byte then -- end capture
+      s = match_end_capture(ms, s, p + 1)
+    case '$'_byte then
+      if (p + 1) ~= #ms.pattern then -- is the '$' the last char in pattern?
+        goto dflt -- no go to default
+      end
+      if s ~= #ms.source then -- check end of string
+        s = -1
+      end
+    case '%'_byte then -- escaped sequences not in the format class[*+?-]?
+      switch ms.pattern.data[p+1] do
+      case 'b'_byte then -- balanced string?
+        s = match_balance(ms, s, p + 2)
+        if s ~= -1 then
+          p = p + 4
+          goto init
+        end
+      case 'f'_byte then -- frontier?
+        p = p + 2
+        assert(ms.pattern.data[p] == '['_byte, "missing '[' after '%f' in pattern")
+        local ep: isize = match_class_end(ms, p) -- points to what is next
+        local previous: byte = (s == 0) and '\0'_byte or ms.source.data[s-1]
+        if not match_bracket_class(ms, previous, p, ep - 1) and
+           match_bracket_class(ms, ms.source.data[s], p, ep - 1) then
+          p = ep
+          goto init
+        end
+        s = -1 -- match failed
+      case '0'_b, '1'_b, '2'_b, '3'_b, '4'_b, '5'_b, '6'_b, '7'_b, '8'_b, '9'_b then -- capture results (%0-%9)?
+        s = match_capture(ms, s, ms.pattern.data[p+1])
+        if s ~= -1 then
+          p = p + 2
+          goto init
+        end
+      else
+        goto dflt
+      end
+    else
+      goto dflt
+    end
+    goto out
+    ::dflt:: do -- pattern class plus optional suffix
+      local ep: isize = match_class_end(ms, p) -- points to optional suffix
+      local epc: byte = ms.pattern.data[ep]
+      if not match_single(ms, s, p, ep) then -- does not match at least once?
+        if epc == '*'_byte or epc == '?'_byte or epc == '-'_byte then -- accept empty?
+          p = ep + 1
+          goto init
+        else -- '+' or no suffix
+          s = -1 -- fail
+        end
+      else -- matched once
+        switch epc do -- handle optional suffix
+        case '?'_byte then -- optional
+          local res: isize = ms:_match(s + 1, ep + 1)
+          if res ~= -1 then
+            s = res
+          else
+            p = ep + 1
+            goto init
+          end
+        case '+'_byte then -- 1 or more repetitions
+          s = s + 1 -- 1 match already done
+          s = match_max_expand(ms, s, p, ep)
+        case '*'_byte then -- 0 or more repetitions
+          s = match_max_expand(ms, s, p, ep)
+        case '-'_byte then -- 0 or more repetitions (minimum)
+          s = match_min_expand(ms, s, p, ep)
+        else -- no suffix
+          s = s + 1
+          p = ep
+          goto init
+        end
+      end
+    end
+  end
+  ::out::
+  ms.depth = ms.depth + 1
+  return s
+end
+
+-- Check whether pattern has no special characters.
+local function match_has_pattern_specials(pattern: stringview): boolean
+  local upto: usize = 0
+  repeat
+    if strpbrk(&pattern.data[upto], "^$*+?.([%-"_cstring) then
+      return true -- pattern has a special character
+    end
+    upto = upto + strlen(&pattern.data[upto]) + 1 -- may have more after '\0'
+  until upto > pattern.size
+  return false -- no special chars found
+end
+
+-- Match pattern auxiliary function.
+function PatternMatcher.match(ms: *PatternMatcher, init: isize, plain: boolean): (isize, isize)
+  if init < 0 then init = (@isize)(ms.source.size) + init + 1 end
+  if init <= 0 then init = 1 end
+  local s: isize = init - 1
+  if (@usize)(s) > ms.source.size then
+    return s, -1
+  elseif ms.pattern.size == 0 then
+    return s, s
+  elseif plain or not match_has_pattern_specials(ms.pattern) then
+    local found: pointer = memory.find(
+      &ms.source.data[s], ms.source.size - (@usize)(s),
+      &ms.pattern.data[0], ms.pattern.size)
+    if not found then
+      return s, -1
+    else
+      s = (@isize)((@usize)(found) - (@usize)(&ms.source.data[0]))
+      return s, s+ms.pattern.size
+    end
+  else
+    local p: isize = 0
+    local anchor: boolean = ms.pattern.data[0] == '^'_byte
+    if anchor then
+      p = 1 -- skip anchor character
+    end
+    repeat
+      ms.numcaptures = 0
+      local e: isize = ms:_match(s, p)
+      if e ~= -1 then
+        return s, e
+      end
+      s = s + 1
+    until s >= #ms.source or anchor
+    return s, -1
+  end
+end

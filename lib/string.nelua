@@ -17,6 +17,8 @@
 require 'memory'
 require 'stringview'
 require 'stringbuilder'
+require 'patternmatcher'
+require 'sequence'
 require 'allocators.default'
 
 local string_allocator: auto = default_allocator
@@ -139,6 +141,36 @@ function string.rep(self: stringview, n: isize, sep: facultative(stringview)): s
   end
   ## end
   return s
+end
+
+-- Looks for the first match of pattern in the string.
+-- If it finds one, then returns true plus a sequence with the captured values,
+-- otherwise it returns false plus an empty sequence.
+-- If pattern specifies no captures, then the whole match is captured.
+-- A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+function string.match(self: stringview, pattern: stringview, init: facultative(isize)): (boolean, sequence(string))
+  ## if init.type.is_niltype then
+  local init: isize = 1
+  ## end
+  local ms: PatternMatcher = PatternMatcher.create(self, pattern)
+  local s: isize, e: isize = ms:match(init, false)
+  local captures: sequence(string)
+  if e ~= -1 then
+    if ms.numcaptures > 0 then -- has captures
+      captures:resize(ms.numcaptures)
+      for i:isize=0,<ms.numcaptures do
+        assert(not ms.capture[i]:is_position(), 'position capture not supported yet')
+        assert(not ms.capture[i]:is_unfinished(), 'unfinished capture')
+        captures[i+1] = ms:get_capture(i)
+      end
+      return true, captures
+    else -- nothing captured, then capture whole match
+      captures[1] = ms.source:sub(s+1, e)
+      return true, captures
+    end
+  else -- no match
+    return false, captures
+  end
 end
 
 function string.reverse(self: stringview): string
