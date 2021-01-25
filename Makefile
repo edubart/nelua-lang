@@ -1,7 +1,6 @@
 # Paths in the current source directory
 PWD=$(shell pwd)
 EXAMPLES=$(wildcard examples/*.nelua)
-BENCHMARKS=$(wildcard benchmarks/*.nelua)
 EXAMPLESDIR=$(abspath examples)
 NELUALUA=src/nelua-lua
 NELUASH=nelua.sh
@@ -74,14 +73,10 @@ test-quick: nelua-lua
 check:
 	$(LUACHECK) -q .
 
-## Run nelua benchmarks.
-benchmark: nelua-lua
-	$(LUA) tools/benchmarker.lua
-
 ## Generate coverage report.
 coverage-genreport:
 	$(LUACOV)
-	@$(LUA) tools/covreporter.lua
+	@$(LUA) spec/tools/covreporter.lua
 
 ## Run the test suite analyzing code coverage.
 coverage-test: nelua-lua
@@ -89,13 +84,9 @@ coverage-test: nelua-lua
 	$(BUSTED) --lua=$(LUA) --coverage
 	@$(MAKE) coverage-genreport
 
-## Compile all examples and benchmarks.
+## Compile all examples.
 compile-examples: nelua-lua
 	@for FILE in $(EXAMPLES); do \
-		echo 'compiling ' $$FILE; \
-		$(LUA) nelua.lua -qb $$FILE || exit 1; \
-	done
-	@for FILE in $(BENCHMARKS); do \
 		echo 'compiling ' $$FILE; \
 		$(LUA) nelua.lua -qb $$FILE || exit 1; \
 	done
