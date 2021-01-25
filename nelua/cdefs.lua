@@ -98,12 +98,12 @@ cdefs.binary_ops = {
   ['or'] = '||',
   ['and'] = '&&',
   ['bor'] = '|',
-  ['bxor'] = '^',
-  ['band'] = '&',
-  ['add'] = '+',
-  ['sub'] = '-',
-  ['mul'] = '*',
   -- builtins
+  ['bxor'] = true,
+  ['band'] = true,
+  ['add'] = true,
+  ['sub'] = true,
+  ['mul'] = true,
   ['le'] = true,
   ['ge'] = true,
   ['lt'] = true,
@@ -119,7 +119,6 @@ cdefs.binary_ops = {
   ['mod'] = true,
   ['tmod'] = true,
   ['pow'] = true,
-  --TODO: concat
 }
 
 cdefs.compiler_base_flags = {

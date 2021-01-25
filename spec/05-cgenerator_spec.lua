@@ -1236,6 +1236,12 @@ it("signed and unsigned comparisons", function()
     assert(a ~= b) assert(b ~= a)
     assert(a <= b) assert(b >= a)
     assert(a < b) assert(b > a)
+
+    do
+      local a: usize, b: isize, c: isize
+      local d = a - b
+      assert(a - b >= c)
+    end
 ]])
 end)
 

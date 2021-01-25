@@ -28,7 +28,7 @@ LUACHECK=luacheck
 LUAROCKS=luarocks
 BUSTED=busted
 LUACOV=luacov
-LUAMON=luamon -w nelua,spec,tools,examples,lib,tests -e lua,nelua -q -x
+LUAMON=luamon -w nelua,spec,examples,lib,tests -e lua,nelua -q -x
 JEKYLL=bundle exec jekyll
 PREFIX=/usr/local
 

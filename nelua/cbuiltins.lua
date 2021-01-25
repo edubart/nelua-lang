@@ -613,6 +613,26 @@ end
 local operators = {}
 cbuiltins.operators = operators
 
+local function operator_binary_op(op, node, emitter, lnode, rnode, lname, rname)
+  local lattr, rattr = lnode.attr, rnode.attr
+  local ltype, rtype = lattr.type, rattr.type
+  if ltype.is_integral and rtype.is_integral and
+     ltype.is_unsigned ~= rtype.is_unsigned and
+     not lattr.comptime and not rattr.comptime then
+    emitter:add_ctypecast(node.attr.type)
+    emitter:add('(', lname, ' ', op, ' ', rname, ')')
+  else
+    emitter:add(lname, ' ', op, ' ', rname)
+  end
+end
+
+function operators.bor(...) operator_binary_op('|', ...) end
+function operators.bxor(...) operator_binary_op('^', ...) end
+function operators.band(...) operator_binary_op('&', ...) end
+function operators.add(...) operator_binary_op('+', ...) end
+function operators.sub(...) operator_binary_op('-', ...) end
+function operators.mul(...) operator_binary_op('*', ...) end
+
 function operators.div(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   if ltype.is_arithmetic and rtype.is_arithmetic then
@@ -620,7 +640,7 @@ function operators.div(node, emitter, lnode, rnode, lname, rname)
       assert(type.is_float)
       emitter:add(lname, ' / (', type, ')', rname)
     else
-      emitter:add(lname, ' / ', rname)
+      operator_binary_op('/', node, emitter, lnode, rnode, lname, rname)
     end
   else --luacov:disable
     node:errorf('not implemented')
@@ -638,7 +658,7 @@ function operators.idiv(node, emitter, lnode, rnode, lname, rname)
       local op = emitter.context:ensure_runtime_builtin('nelua_idiv_', type)
       emitter:add(op, '(', lname, ', ', rname, ')')
     else
-      emitter:add(lname, ' / ', rname)
+      operator_binary_op('/', node, emitter, lnode, rnode, lname, rname)
     end
   else --luacov:disable
     node:errorf('not implemented')
@@ -653,7 +673,7 @@ function operators.tdiv(node, emitter, lnode, rnode, lname, rname)
       emitter.context:add_include('<math.h>')
       emitter:add(truncname, '(', lname, ' / ', rname, ')')
     else
-      emitter:add(lname, ' / ', rname)
+      operator_binary_op('/', node, emitter, lnode, rnode, lname, rname)
     end
   else --luacov:disable
     node:errorf('not implemented')
@@ -670,7 +690,7 @@ function operators.mod(node, emitter, lnode, rnode, lname, rname)
       local op = emitter.context:ensure_runtime_builtin('nelua_imod_', type)
       emitter:add(op, '(', lname, ', ', rname, ')')
     else
-      emitter:add(lname, ' % ', rname)
+      operator_binary_op('%', node, emitter, lnode, rnode, lname, rname)
     end
   else --luacov:disable
     node:errorf('not implemented')
@@ -685,7 +705,7 @@ function operators.tmod(node, emitter, lnode, rnode, lname, rname)
       emitter.context:add_include('<math.h>')
       emitter:add(fmodname, '(', lname, ', ', rname, ')')
     else
-      emitter:add(lname, ' % ', rname)
+      operator_binary_op('%', node, emitter, lnode, rnode, lname, rname)
     end
   else --luacov:disable
     node:errorf('not implemented')
