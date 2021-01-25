@@ -57,6 +57,8 @@ function PatternMatcher.create(source: stringview, pattern: stringview): Pattern
 end
 
 function PatternMatcher:get_capture(i: isize): stringview
+  assert(not self.capture[i]:is_position(), 'position capture not supported yet')
+  assert(not self.capture[i]:is_unfinished(), 'unfinished capture')
   return (@stringview){
     data=&self.source.data[self.capture[i].init],
     size=self.capture[i].len

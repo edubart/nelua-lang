@@ -159,8 +159,6 @@ function string.match(self: stringview, pattern: stringview, init: facultative(i
     if ms.numcaptures > 0 then -- has captures
       captures:resize(ms.numcaptures)
       for i:isize=0,<ms.numcaptures do
-        assert(not ms.capture[i]:is_position(), 'position capture not supported yet')
-        assert(not ms.capture[i]:is_unfinished(), 'unfinished capture')
         captures[i+1] = ms:get_capture(i)
       end
       return true, captures

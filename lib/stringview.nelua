@@ -10,6 +10,7 @@
 -- that triggers allocations are implemented in the string module.
 
 require 'memory'
+require 'span'
 require 'patternmatcher'
 
 -- C imports
@@ -115,6 +116,37 @@ function stringview.find(self: stringview, pattern: stringview, init: facultativ
   else -- no match
     return 0, 0
   end
+end
+
+-- Returns an iterator function that, each time it is called, returns the whole match plus a span of captures.
+-- A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+function stringview.gmatch(s: stringview, pattern: stringview, init: facultative(isize))
+  ## if init.type.is_niltype then
+  local init: isize = 1
+  ## end
+  local MAX_CAPTURES <comptime> = 8
+  local GMatchState: type = @record{
+    ms: PatternMatcher,
+    init: isize,
+    captures: [MAX_CAPTURES]stringview
+  }
+  local function gmatch_next(state: *GMatchState, it: stringview): (boolean, stringview, span(stringview))
+    local ok: boolean, matched: stringview, captures: span(stringview)
+    local s: isize, e: isize = state.ms:match(state.init, false)
+    if e ~= -1 then -- no match
+      ok = true
+      state.init = e+1
+      matched = (@stringview){data=&state.ms.source.data[s], size=e-s}
+      assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
+      for i:isize=0,<state.ms.numcaptures do
+        state.captures[i] = state.ms:get_capture(i)
+      end
+      captures = (@span(stringview)){data=&state.captures[0], size=state.ms.numcaptures}
+    end
+    return ok, matched, captures
+  end
+  local state: GMatchState = {ms = PatternMatcher.create(s, pattern), init = init}
+  return gmatch_next, state, (@stringview){}
 end
 
 -- Convert a type to a string view.
