@@ -11,8 +11,7 @@ order: 3
 This is a quick overview of the language features that are currently implemented by the examples.
 {: .lead}
 
-All of the features and examples presented here should work with the latest Nelua version. For
-features not yet implemented see the [draft](/draft/).
+All of the features and examples presented here should work with the latest Nelua version.
 {: .callout.callout-info}
 
 ## A note for Lua users

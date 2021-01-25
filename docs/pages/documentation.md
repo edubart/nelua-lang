@@ -18,11 +18,6 @@ Read this page after installing the Nelua compiler.
 Overview of Nelua's features,
 the **most useful page** for learning about the syntax and features.
 
-### [Manual](/manual/)
-
-Technical specification of Nelua. This page is more technical
-and dense to read. For a quick understanding of Nelua, first read the overview.
-
 ### [Libraries](/libraries/)
 
 List of built-in libraries in Nelua and their contents.

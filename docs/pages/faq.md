@@ -4,7 +4,7 @@ title: FAQ
 permalink: /faq/
 categories: docs toc
 toc: true
-order: 7
+order: 6
 ---
 
 Answers to frequently asked questions about Nelua.

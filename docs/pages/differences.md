@@ -4,7 +4,7 @@ title: Differences
 permalink: /diffs/
 categories: docs toc
 toc: true
-order: 6
+order: 5
 ---
 
 Nelua reimplements every Lua library. Due to this, some functions are not implemented or can't be implemented. This page shows the availability of Lua functions in Nelua.

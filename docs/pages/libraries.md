@@ -4,7 +4,7 @@ title: Libraries
 permalink: /libraries/
 categories: docs toc
 toc: true
-order: 5
+order: 4
 ---
 
 This is a list of built-in libraries in Nelua.
