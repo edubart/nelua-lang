@@ -101,9 +101,37 @@ static int sys_isatty(lua_State *L) {
   return 1;
 }
 
+#if defined(_MSC_VER) && defined(_M_X64)
+  #include <intrin.h>
+  #define SYS_RDTSC
+#elif defined(__GNUC__) && defined(__x86_64__)
+  #if defined(__has_include)
+    #if __has_include(<x86intrin.h>)
+      #include <x86intrin.h>
+      #define SYS_RDTSC
+    #endif
+  #endif
+#endif
+
+#ifdef SYS_RDTSC
+static int sys_rdtsc(lua_State *L) {
+  lua_pushinteger(L, (lua_Integer)__rdtsc());
+  return 1;
+}
+static int sys_rdtscp(lua_State *L) {
+  unsigned int aux;
+  lua_pushinteger(L, (lua_Integer)__rdtscp(&aux));
+  return 1;
+}
+#endif
+
 static const struct luaL_Reg sys_reg[] = {
   {"nanotime", sys_nanotime},
   {"isatty", sys_isatty},
+#ifdef SYS_RDTSC
+  {"rdtsc", sys_rdtsc},
+  {"rdtscp", sys_rdtscp},
+#endif
   {NULL, NULL}
 };
 
