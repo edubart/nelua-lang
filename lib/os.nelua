@@ -27,7 +27,7 @@ local EXIT_FAILURE: cint <cimport,cinclude'<stdlib.h>',nodecl>
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
 local function clock(): clock_t <cimport,cinclude'<time.h>',nodecl> end
 local function getenv(name: cstring): cstring <cimport,cinclude'<stdlib.h>',nodecl> end
-local function exit(status: cint) <cimport,cinclude'<stdlib.h>',nodecl> end
+local function exit(status: cint): void <cimport,cinclude'<stdlib.h>',nodecl> end
 local function system(command: cstring): cint <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
 local function rename(old: cstring, new: cstring): cint <cimport,cinclude'<stdio.h>',nodecl> end
@@ -75,7 +75,7 @@ function os.execute(command: facultative(stringview))
   ## end
 end
 
-function os.exit(code: overload(integer,boolean,niltype))
+function os.exit(code: overload(integer,boolean,niltype)): void
   ## if code.type.is_arithmetic then
     exit(code)
   ## elseif code.type.is_boolean then
@@ -179,7 +179,7 @@ function os.tmpname(): string
     local function close(fd: cint): cint <cimport,cinclude'<unistd.h>',nodecl> end
 
     local TMPBUFSIZE <comptime> = 32
-    local function tmpnam(buf: cstring)
+    local function tmpnam(buf: cstring): void
       strncpy(buf, "/tmp/lua_XXXXXX", TMPBUFSIZE)
       local fd: cint = mkstemp(buf)
       if fd == -1 then

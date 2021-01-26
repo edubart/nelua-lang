@@ -2178,8 +2178,8 @@ function visitors.DoExpr(context, node)
   end
 
   if not attr.type then
-    local rettypes = exprscope.resolved_rettypes
-    if rettypes and not rettypes.has_unknown then -- known return type
+    local rettypes = exprscope.rettypes
+    if rettypes then -- known return type
       if #rettypes ~= 1 then
         node:raisef("do expression block can only return one argument")
       end
@@ -2269,27 +2269,19 @@ local function visitor_function_arguments(context, symbol, ismethod, argnodes, c
   return argattrs, argtypes, ispolyparent
 end
 
-local function visitor_function_returns(context, node, retnodes)
-  local functype = node.attr.type
+local function visitor_function_returns(context, _, retnodes, ispolyparent)
   local funcscope = context.scope
   context:push_state{intypeexpr = true}
   context:traverse_nodes(retnodes)
   context:pop_state()
-  local rettypes = funcscope.rettypes
-  if not rettypes then
-    if #retnodes > 0 then
-      rettypes = types.typenodes_to_types(retnodes)
-    elseif functype and functype.is_procedure and not functype.rettypes.has_unknown then
-      -- use return types from previous traversal only if fully resolved
-      rettypes = functype.rettypes
-    elseif funcscope.resolved_rettypes and not funcscope.resolved_rettypes.has_unknown then
-      rettypes = funcscope.resolved_rettypes
-    end
-    if rettypes then
-      funcscope.rettypes = rettypes
+  if not funcscope.rettypes then
+    if #retnodes > 0 then -- return types is fixed by the user
+      funcscope.rettypes = types.typenodes_to_types(retnodes)
+    elseif ispolyparent then
+      funcscope.rettypes = {}
     end
   end
-  return rettypes
+  return funcscope.rettypes
 end
 
 local function visitor_function_annotations(context, node, annotnodes, blocknode, symbol, type)
@@ -2371,7 +2363,7 @@ function visitors.FuncDef(context, node, polysymbol)
     argattrs, argtypes, ispolyparent = visitor_function_arguments(context, symbol, ismethod, argnodes, not polysymbol)
 
     -- traverse the function returns
-    rettypes = visitor_function_returns(context, node, retnodes)
+    rettypes = visitor_function_returns(context, node, retnodes, ispolyparent)
 
     -- set the function type
     if not type and rettypes then

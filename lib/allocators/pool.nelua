@@ -34,7 +34,7 @@ require 'allocators.interface'
   }
 
   -- Free all allocations.
-  function PoolAllocatorT:dealloc_all() <noinline>
+  function PoolAllocatorT:dealloc_all(): void <noinline>
     self.head = nilptr
     -- link all free nodes in reverse order
     for i:isize=#self.buffer-1,0,-1 do
@@ -46,7 +46,7 @@ require 'allocators.interface'
 
   -- Initialize the pool allocator.
   -- There is not need to call this if zero initialized, it's called automatically on first alloc.
-  function PoolAllocatorT:init()
+  function PoolAllocatorT:init(): void
     self.initialized = true
     self:dealloc_all()
   end
@@ -74,7 +74,7 @@ require 'allocators.interface'
     return node
   end
 
-  function PoolAllocatorT:dealloc(p: pointer)
+  function PoolAllocatorT:dealloc(p: pointer): void
     if unlikely(p == nilptr) then return end
     -- is this pointer really valid?
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])

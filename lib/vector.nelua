@@ -34,7 +34,7 @@ require 'iterators'
   vectorT.choose_braces_type = function(nodes) return types.ArrayType(T, #nodes) end
   ]]
 
-  function vectorT:_grow() <noinline>
+  function vectorT:_grow(): void <noinline>
     local cap: usize = 1
     if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
     self.data = self.allocator:spanrealloc0(self.data, cap)
@@ -50,21 +50,21 @@ require 'iterators'
   end
 
   -- Removes all elements from the vector.
-  function vectorT:clear()
+  function vectorT:clear(): void
     memory.spanzero(self.data)
     self.size = 0
   end
 
   -- Resets the vector to zeroed state, freeing all used resources.
   -- This is more useful to free resources when not using the garbage collector.
-  function vectorT:destroy()
+  function vectorT:destroy(): void
     self:clear()
     self.allocator:spandealloc(self.data)
     $self = (@vectorT)()
   end
 
   -- Reserve at least `n` elements in the vector storage.
-  function vectorT:reserve(n: usize)
+  function vectorT:reserve(n: usize): void
     if likely(self.data.size >= n) then return end
     self.data = self.allocator:spanrealloc0(self.data, n)
     assert(self.data.size == n, 'vector.reserve: out of memory')
@@ -73,7 +73,7 @@ require 'iterators'
   -- Resizes the vector so that it contains `n` elements.
   -- When expanding new elements are zero initialized.
   -- When shrinking removed elements are destroyed.
-  function vectorT:resize(n: usize)
+  function vectorT:resize(n: usize): void
     self:reserve(n)
     self.size = n
   end
@@ -92,7 +92,7 @@ require 'iterators'
   end
 
   -- Adds a element `v` at the end of the vector.
-  function vectorT:push(v: T)
+  function vectorT:push(v: T): void
     local newsize: usize = self.size + 1
     if unlikely(newsize > self.data.size) then
       self:_grow()
@@ -112,7 +112,7 @@ require 'iterators'
   -- Inserts element `v` at position `pos` in the vector.
   -- Elements with index greater or equal than `pos` are shifted up.
   -- If the `pos` is out of range, then throws a runtime error.
-  function vectorT:insert(pos: usize, v: T)
+  function vectorT:insert(pos: usize, v: T): void
     check(pos <= self.size, 'vector.insert: position out of bounds')
     if unlikely(self.size + 1 >= self.data.size) then
       self:_grow()
@@ -154,7 +154,7 @@ require 'iterators'
 
   -- Removes all elements from the vector where `pred` function returns true.
   -- The remaining elements are shifted.
-  function vectorT:remove_if(pred: function(v: T): boolean)
+  function vectorT:remove_if(pred: function(v: T): boolean): void
     local j: usize = 0
     for i:usize=0,<self.size do
       if not pred(self.data[i]) then

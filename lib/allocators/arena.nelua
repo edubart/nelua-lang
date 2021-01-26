@@ -49,7 +49,7 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
   }
 
   -- Free all allocations.
-  function ArenaAllocatorT:dealloc_all()
+  function ArenaAllocatorT:dealloc_all(): void
     self.prev_offset = 0
     self.curr_offset = 0
   end
@@ -67,7 +67,7 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
     return p
   end
 
-  function ArenaAllocatorT:dealloc(p: pointer)
+  function ArenaAllocatorT:dealloc(p: pointer): void
     if unlikely(p == nilptr) then return end
     -- get offset for this pointer
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])

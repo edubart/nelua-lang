@@ -39,7 +39,7 @@ local INIT_SIZE <comptime> = 64
   }
 
   -- Reserve space in the slot pool.
-  function SlotPoolT:reserve(size: uint32)
+  function SlotPoolT:reserve(size: uint32): void
     -- return early if there is already enough space
     if size <= self.size then return end
     -- slot 0 is reserved for the 'invalid id', so bump the pool size by 1
@@ -55,7 +55,7 @@ local INIT_SIZE <comptime> = 64
   end
 
   -- Clean the slot pool and reset its state.
-  function SlotPoolT:destroy()
+  function SlotPoolT:destroy(): void
     self.allocator:spandealloc(self.free_queue)
     self.allocator:spandealloc(self.gen_ctrs)
     self.size = 0
@@ -84,7 +84,7 @@ local INIT_SIZE <comptime> = 64
   end
 
   -- Free an index from the slot pool to be reused, bumps the generation counter.
-  function SlotPoolT:release_index(slot_index: uint32)
+  function SlotPoolT:release_index(slot_index: uint32): void
     check(self.queue_top + 1 <= self.size, 'SlotPool.release_index: slot queue overflow')
     check(slot_index > 0 and slot_index <= self.size, 'SlotPool.release_index: invalid slot index')
     check(self.gen_ctrs[slot_index] < SLOT_MASK, 'SlotPool.release_index: generation counter overflow')
@@ -144,7 +144,7 @@ local INIT_SIZE <comptime> = 64
   ]]
 
   -- Grow pool items as needed.
-  local function grow_items(self: *ResourcePoolT)
+  local function grow_items(self: *ResourcePoolT): void
     if self.items.size < self.slot_pool.gen_ctrs.size then
       -- slot pool has grown, allocate more space
       self.items = self.allocator:spanxrealloc0(self.items, self.slot_pool.gen_ctrs.size)
@@ -152,14 +152,14 @@ local INIT_SIZE <comptime> = 64
   end
 
   -- Reserve the pool to contains at least `size` resources.
-  function ResourcePoolT:reserve(size: usize)
+  function ResourcePoolT:reserve(size: usize): void
     self.slot_pool:reserve(size)
     grow_items(self)
   end
 
   -- Resets the pool to zeroed state, freeing all resources.
   -- This must be called manually to avoid memory leaks when not using a GC allocator.
-  function ResourcePoolT:destroy()
+  function ResourcePoolT:destroy(): void
     self.slot_pool:destroy()
     self.allocator:spandealloc(self.items)
     self.items = {}
@@ -191,7 +191,7 @@ local INIT_SIZE <comptime> = 64
   -- Free a resource associated with an id from the pool.
   -- In case the resource id is 0 does nothing.
   -- In case the resource id is invalid then throws a runtime error.
-  function ResourcePoolT:release(id: uint64) <inline>
+  function ResourcePoolT:release(id: uint64): void <inline>
     if id == 0 then return end
     local slot_index: uint32 = self.slot_pool:get_index(id)
     check(slot_index ~= 0, 'ResourcePool.release: invalid slot index')

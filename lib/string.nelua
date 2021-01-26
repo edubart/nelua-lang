@@ -56,7 +56,7 @@ function string._create(size: usize): string
 end
 
 -- Destroys a string freeing its resources.
-function string:destroy() <inline>
+function string:destroy(): void <inline>
   string_allocator:dealloc(self.data)
   self.data = nilptr
   self.size = 0

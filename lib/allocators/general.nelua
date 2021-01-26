@@ -34,7 +34,7 @@ function GeneralAllocator:realloc(p: pointer, newsize: usize, oldsize: usize): p
   return realloc(p, newsize)
 end
 
-function GeneralAllocator:dealloc(p: pointer) <inline>
+function GeneralAllocator:dealloc(p: pointer): void <inline>
   if unlikely(p == nilptr) then return end
   free(p)
 end

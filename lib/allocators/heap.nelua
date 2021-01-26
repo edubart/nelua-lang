@@ -59,14 +59,14 @@ local Heap = @record{
   bins: [BIN_COUNT]Bin
 }
 
-function Node:set_used() <inline>
+function Node:set_used(): void <inline>
   -- the lower bits of the pointer should be always 0 because we allocate with alignment
   -- so it's impossible to have conflicts in next/prev with these values due to alignment
   self.next = (@*Node)(1_usize)
   self.prev = (@*Node)(NODE_COOKIE)
 end
 
-function Node:is_used() <inline>
+function Node:is_used(): boolean <inline>
   return self.next == (@*Node)(1_usize) and self.prev == (@*Node)(NODE_COOKIE)
 end
 
@@ -113,7 +113,7 @@ local function align_forward(addr: usize, align: usize): usize <inline>
 end
 
 -- insert a node inside a bin linked list
-function Heap:add_node(node: *Node) <inline>
+function Heap:add_node(node: *Node): void <inline>
   local bin: *Bin = &self.bins[get_bin_index(node.size)]
   node.prev = nilptr
   if likely(bin.head ~= nilptr) then
@@ -127,7 +127,7 @@ function Heap:add_node(node: *Node) <inline>
 end
 
 -- remove a node from a bin linked list
-function Heap:remove_bin_node(bin_index: uint32, node: *Node) <inline>
+function Heap:remove_bin_node(bin_index: uint32, node: *Node): void <inline>
   local bin: *Bin = &self.bins[bin_index]
   -- update the head in case we are removing it
   if node == bin.head then
@@ -144,7 +144,7 @@ function Heap:remove_bin_node(bin_index: uint32, node: *Node) <inline>
 end
 
 -- remove a node from a bin linked list
-function Heap:remove_node(node: *Node) <inline>
+function Heap:remove_node(node: *Node): void <inline>
   self:remove_bin_node(get_bin_index(node.size), node)
 end
 
@@ -169,7 +169,7 @@ local function get_ptr_node(p: pointer): *Node <inline>
 end
 
 -- add more memory to the heap
-function Heap:add_memory_region(region: pointer, region_size: usize)
+function Heap:add_memory_region(region: pointer, region_size: usize): void
   local region_start: usize = (@usize)(region)
 
   -- we want to start the heap aligned
@@ -278,7 +278,7 @@ end
 -- heap struct pointer and the pointer provided by the
 -- heap_alloc function. the given chunk will be possibly
 -- coalesced  and then placed in the correct bin
-function Heap:dealloc(p: pointer)
+function Heap:dealloc(p: pointer): void
   -- ignore nil pointers
   if unlikely(p == nilptr) then return end
 
@@ -330,7 +330,7 @@ function Heap:dealloc(p: pointer)
   self:add_node(head)
 end
 
-function Heap:realloc(p: pointer, size: usize)
+function Heap:realloc(p: pointer, size: usize): pointer
   if unlikely(p == nilptr) then
     -- no previous allocation, just alloc
     return self:alloc(size)
@@ -417,23 +417,23 @@ end
 
   -- Initialize the heap allocator.
   -- This is called automatically when needed on first alloc/realloc.
-  function HeapAllocatorT:init()
+  function HeapAllocatorT:init(): void
     self.heap = {}
     self.heap:add_memory_region(&self.buffer[0], HEAP_SIZE)
     self.initialized = true
   end
 
-  function HeapAllocatorT:alloc(size: usize)
+  function HeapAllocatorT:alloc(size: usize): pointer
     if unlikely(not self.initialized) then self:init() end
     local p: pointer = self.heap:alloc(size)
     return p
   end
 
-  function HeapAllocatorT:dealloc(p: pointer)
+  function HeapAllocatorT:dealloc(p: pointer): void
     self.heap:dealloc(p)
   end
 
-  function HeapAllocatorT:realloc(p: pointer, newsize: usize, oldsize: usize)
+  function HeapAllocatorT:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
     if unlikely(not self.initialized) then self:init() end
     if unlikely(newsize == oldsize) then
       return p

@@ -2,8 +2,8 @@ require 'C'
 
 ## cinclude '<stdarg.h>'
 
-function C.va_start(ap: cvalist, paramN: auto) <cimport'va_start',nodecl> end
-function C.va_end(ap: cvalist) <cimport'va_end',nodecl> end
+function C.va_start(ap: cvalist, paramN: auto): void <cimport'va_start',nodecl> end
+function C.va_end(ap: cvalist): void <cimport'va_end',nodecl> end
 
 function C.va_arg(ap: *cvalist, T: type) <inline>
   local arg: T <noinit>

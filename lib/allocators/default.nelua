@@ -23,7 +23,7 @@ end
 function DefaultAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
   return allocator:realloc0(p, newsize, oldsize)
 end
-function DefaultAllocator:dealloc(p: pointer) <inline>
+function DefaultAllocator:dealloc(p: pointer): void <inline>
   allocator:dealloc(p)
 end
 ## implement_allocator_interface(DefaultAllocator)

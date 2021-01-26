@@ -59,7 +59,7 @@
   end
 
   ## if T.is_integral and T.bitsize == 8 then
-  function spanT:__tostringview() <inline,nosideeffect>
+  function spanT:__tostringview(): stringview <inline,nosideeffect>
     return (@stringview){data=(@*[0]byte)(self.data), size=self.size}
   end
   ## end

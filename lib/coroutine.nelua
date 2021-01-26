@@ -109,7 +109,7 @@ global coroutine = @*mco_coro
 -- Returns a new coroutine with body function f.
 function coroutine.create(f: auto): coroutine
   local F: type = #[f.type]#
-  local function coroutine_main(co: *mco_coro)
+  local function coroutine_main(co: *mco_coro): void
     -- Meta program to use values from last `push` as `f` arguments and to `push` returns from `f`.
     local f: F = (@F)(mco_get_user_data(co))
     ## local argnodes = {}
@@ -154,7 +154,7 @@ function coroutine.create(f: auto): coroutine
   return co
 end
 
-function coroutine._destroy(co: coroutine)
+function coroutine._destroy(co: coroutine): void
   if mco_destroy(co) ~= MCO_SUCCESS then
     error 'coroutine.destroy: failed to destroy a coroutine'
   end
@@ -162,7 +162,7 @@ end
 
 -- Destroy the coroutine, freeing all resources.
 -- CAUTION: Destroying a coroutine before "dead" state will not execute its defer statements.
-function coroutine.destroy(co: coroutine)
+function coroutine.destroy(co: coroutine): void
   ## if not pragmas.nogc then
   gc:remove(co)
   ## end
@@ -203,7 +203,7 @@ end
 
 -- Suspends the execution of the calling coroutine.
 -- On error a runtime error is thrown.
-function coroutine.yield(co: facultative(coroutine))
+function coroutine.yield(co: facultative(coroutine)): void
   ## if co.type.is_niltype then
   local co: coroutine = mco_running()
   ## end

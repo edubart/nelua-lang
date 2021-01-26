@@ -61,7 +61,7 @@ global list_node: type = #[make_generic_list_node]#
 
   -- Remove all elements from the list.
   -- O(n) complexity.
-  function listT:clear()
+  function listT:clear(): void
     local it: *list_nodeT = self.head
     while it do
       local next: *list_nodeT = it.next
@@ -74,14 +74,14 @@ global list_node: type = #[make_generic_list_node]#
 
   -- Resets the list to zeroed state, freeing all used resources.
   -- This is more useful to free resources when not using the garbage collector.
-  function listT:destroy()
+  function listT:destroy(): void
     self:clear()
     $self = (@listT)()
   end
 
   -- Insert an element at beginning of the list.
   -- O(1) complexity.
-  function listT:prepend(value: T)
+  function listT:prepend(value: T): void
     local node: *list_nodeT = self:_new_node(nilptr, self.head, value)
     if likely(self.head) then
       self.head.prev = node
@@ -94,7 +94,7 @@ global list_node: type = #[make_generic_list_node]#
 
   -- Add an element at the end of the list.
   -- O(1) complexity.
-  function listT:append(value: T)
+  function listT:append(value: T): void
     local node: *list_nodeT = self:_new_node(self.tail, nilptr, value)
     if likely(self.tail) then
       self.tail.next = node
@@ -141,7 +141,7 @@ global list_node: type = #[make_generic_list_node]#
 
   -- Remove first element from the list.
   -- O(1) complexity.
-  function listT:remove_first()
+  function listT:remove_first(): void
     check(self.head ~= nilptr, 'list.remove_first: list is empty')
     local node: *list_nodeT = self.head
     self.head = node.next
@@ -156,7 +156,7 @@ global list_node: type = #[make_generic_list_node]#
 
   -- Remove last element from the list.
   -- O(1) complexity.
-  function listT:remove_last()
+  function listT:remove_last(): void
     check(self.tail ~= nilptr, 'list.remove_first: list is empty')
     local node: *list_nodeT = self.tail
     self.tail = node.prev

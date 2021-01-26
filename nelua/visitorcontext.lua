@@ -38,7 +38,7 @@ local function traverse_node(self, node, ...)
   local nodeindex = #nodes+1
   nodes[nodeindex] = node -- push node
   local ret = visitor_func(self, node, ...)
-  nodes[nodeindex] = nil-- pop node
+  nodes[nodeindex] = nil -- pop node
   return ret
 end
 VisitorContext.traverse_node = traverse_node

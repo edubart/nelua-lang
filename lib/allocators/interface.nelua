@@ -120,7 +120,7 @@ require 'span'
   ## end
 
   ## if not Allocator.value.metafields.spandealloc then
-  function Allocator:spandealloc(s: is_span)
+  function Allocator:spandealloc(s: is_span): void
     if unlikely(s.size == 0) then return end
     self:dealloc(s.data)
   end
@@ -163,7 +163,7 @@ require 'span'
   ## if not Allocator.value.metafields.delete then
   function Allocator:delete(s: #[concept(function(x)
     return x.type.is_pointer or x.type.is_span end
-  )]#) <inline>
+  )]#): void <inline>
     ## if s.type.is_span then
       self:spandealloc(s)
     ## else -- pointer

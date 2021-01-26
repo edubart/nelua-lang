@@ -43,7 +43,7 @@ local function scanformat(strfmt: *[0]byte, form: *[MAX_FORMAT]byte): usize
   return p
 end
 
-local function addlenmod(form: *[MAX_FORMAT]byte, lenmod: cstring, lenmodsize: csize)
+local function addlenmod(form: *[MAX_FORMAT]byte, lenmod: cstring, lenmodsize: csize): void
   local l: csize = strlen(&form[0])
   local spec: byte = form[l - 1]
   strcpy(&form[l - 1], lenmod)
@@ -68,12 +68,12 @@ end
     allocator: Allocator
   }
 
-  function stringbuilderT:destroy()
+  function stringbuilderT:destroy(): void
     self.allocator:spandealloc(self.data)
     $self = (@stringbuilderT)()
   end
 
-  function stringbuilderT:clear()
+  function stringbuilderT:clear(): void
     self.size = 0
   end
 
@@ -98,7 +98,7 @@ end
     return (@*[0]byte)(&self.data[self.size])
   end
 
-  function stringbuilderT:commit(size: usize)
+  function stringbuilderT:commit(size: usize): void
     local newsize: usize = self.size + size
     check(newsize <= self.data.size, 'stringbuilder.commit: not enough space in string buffer')
     self.size = newsize
@@ -220,7 +220,7 @@ end
     return (@cstring)(&self.data[0])
   end
 
-  function stringbuilderT:__tostringview() <inline,nosideeffect>
+  function stringbuilderT:__tostringview(): stringview <inline,nosideeffect>
     if unlikely(self.size == 0) then return (@stringview){} end
     return (@stringview){data = &self.data[0], size = self.size}
   end

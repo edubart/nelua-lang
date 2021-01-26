@@ -51,11 +51,11 @@ end
 local pool: resourcepool(*FILE, GeneralAllocator)
 
 -- destroy the pool on exit
-local function destroy_pool() pool:destroy() end
+local function destroy_pool(): void pool:destroy() end
 atexit(destroy_pool)
 
 function filestream._from_fp(fp: *FILE): filestream
-  local id: uint64, pfp: **FILE  = pool:acquire()
+  local id: uint64, pfp: **FILE = pool:acquire()
   $pfp = fp
   return filestream{id = id}
 end

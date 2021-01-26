@@ -76,7 +76,7 @@ local INVALID_INDEX: usize <comptime> = #[primtypes.usize.max]#
 
   -- Resets the container to a zeroed state, freeing all used resources.
   -- Complexity: O(1).
-  function hashmapT:destroy()
+  function hashmapT:destroy(): void
     self.allocator:spandealloc(self.buckets)
     self.allocator:spandealloc(self.nodes)
     $self = (@hashmapT){}
@@ -84,7 +84,7 @@ local INVALID_INDEX: usize <comptime> = #[primtypes.usize.max]#
 
   -- Remove all elements from the container.
   -- Complexity: O(n).
-  function hashmapT:clear()
+  function hashmapT:clear(): void
     memory.spanset(self.buckets, INVALID_INDEX)
     memory.spanzero(self.nodes)
     self.size = 0
@@ -112,7 +112,7 @@ local INVALID_INDEX: usize <comptime> = #[primtypes.usize.max]#
 
   -- Sets the number of buckets to at least `count` and rehashes the container when needed.
   -- Complexity: Average case O(n).
-  function hashmapT:rehash(count: usize) <noinline>
+  function hashmapT:rehash(count: usize): void <noinline>
     -- count should be at least (size * 100) / MAX_LOAD_FACTOR
     local min_count: usize = ceil_idiv(self.size * 100, MAX_LOAD_FACTOR)
     if count < min_count then
@@ -154,7 +154,7 @@ local INVALID_INDEX: usize <comptime> = #[primtypes.usize.max]#
   -- Sets the number of buckets to the number needed to accommodate at least count elements
   -- without exceeding maximum load factor and rehashes the container when needed.
   -- Complexity: Average case O(n).
-  function hashmapT:reserve(count: usize)
+  function hashmapT:reserve(count: usize): void
     self:rehash(ceil_idiv(count * 100, MAX_LOAD_FACTOR))
   end
 
@@ -229,7 +229,7 @@ local INVALID_INDEX: usize <comptime> = #[primtypes.usize.max]#
 
   -- Inserts an element or assigns to the current element if the key already exists.
   -- Complexity: Average case O(1).
-  function hashmapT:set(key: K, value: V)
+  function hashmapT:set(key: K, value: V): void
     self.nodes[self:_find_or_make(key)].value = value
   end
 

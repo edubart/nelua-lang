@@ -76,12 +76,12 @@ for _,name in ipairs(cmathfuncs2) do
 ## end
 
 -- manually import special math functions with 2 arguments
-local function modf_f64(x: float64, y: *float64): float64 <cimport'modf',nodecl,nosideeffect> end
-local function modf_f32(x: float32, y: *float32): float32 <cimport'modff',nodecl,nosideeffect> end
-local function frexp_f64(x: float64, exp: *int32): float64 <cimport'frexp',nodecl,nosideeffect> end
-local function frexp_f32(x: float32, exp: *int32): float32 <cimport'frexpf',nodecl,nosideeffect> end
-local function ldexp_f64(x: float64, exp: int32): float64 <cimport'ldexp',nodecl,nosideeffect> end
-local function ldexp_f32(x: float32, exp: int32): float32 <cimport'ldexpf',nodecl,nosideeffect> end
+local function modf_f64(x: float64, y: *float64): float64 <cimport'modf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function modf_f32(x: float32, y: *float32): float32 <cimport'modff',cinclude'<math.h>',nodecl,nosideeffect> end
+local function frexp_f64(x: float64, exp: *int32): float64 <cimport'frexp',cinclude'<math.h>',nodecl,nosideeffect> end
+local function frexp_f32(x: float32, exp: *int32): float32 <cimport'frexpf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function ldexp_f64(x: float64, exp: int32): float64 <cimport'ldexp',cinclude'<math.h>',nodecl,nosideeffect> end
+local function ldexp_f32(x: float32, exp: int32): float32 <cimport'ldexpf',cinclude'<math.h>',nodecl,nosideeffect> end
 
 -- define common math functions with 1 argument
 ##[[
@@ -287,7 +287,7 @@ function xoshiro256:random(): number
   return (rv >> (64 - #[MANT_DIGITS]#)) / (1_u64 << #[MANT_DIGITS]#)
 end
 
-function xoshiro256:seed(a: uint64, b: uint64)
+function xoshiro256:seed(a: uint64, b: uint64): void
   self.state[0] = a
   self.state[1] = 0xff
   self.state[2] = b
@@ -302,7 +302,7 @@ local default_random: xoshiro256 = {state={
   0x65CE039BAEBE74B4, 0x4911ADA153B51EEF, 0xFB71FBB497C00950, 0xF83CCF6AC1B74755
 }}
 
-function math.randomseed(x: is_arithmetic) <inline>
+function math.randomseed(x: is_arithmetic): void <inline>
   default_random:seed((@uint64)(x), 0)
 end
 

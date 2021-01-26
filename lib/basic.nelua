@@ -19,13 +19,13 @@ local stderr: *FILE <cimport,nodecl,cinclude'<stdio.h>'>
 global function likely(x: boolean): boolean <cimport 'nelua_likely', nodecl> end
 global function unlikely(x: boolean): boolean <cimport 'nelua_unlikely', nodecl> end
 
-global function panic(msg: stringview) <noreturn>
+global function panic(msg: stringview): void <noreturn>
   fwrite(msg.data, msg.size, 1, stderr)
   fputc('\n'_cchar, stderr)
   abort()
 end
 
-global function error(msg: stringview) <noreturn>
+global function error(msg: stringview): void <noreturn>
   panic(msg)
 end
 
@@ -44,7 +44,7 @@ global function warn(msg: stringview)
 end
 ]]
 
-global function assert(cond: auto, msg: auto) <inline>
+global function assert(cond: auto, msg: auto): boolean <inline>
   if unlikely(not cond) then
     ## if msg.type.is_niltype then
       error('assertion failed!')

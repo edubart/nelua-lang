@@ -40,7 +40,7 @@ require 'iterators'
   sequenceT.choose_braces_type = function(nodes) return types.ArrayType(T, #nodes) end
   ]]
 
-  function sequenceT:_grow() <noinline>
+  function sequenceT:_grow(): void <noinline>
     local cap: usize = 2
     if likely(self.impl.data.size ~= 0) then cap = self.impl.data.size * 2 end
     self.impl.data = self.allocator:spanxrealloc0(self.impl.data, cap)
@@ -48,13 +48,13 @@ require 'iterators'
 
   -- Initializes sequence internal implementation if needed.
   -- This is already implicitly called by other sequence functions when needed.
-  function sequenceT:init()
+  function sequenceT:init(): void
     if likely(self.impl) then return end
     self.impl = (@*sequenceimplT)(self.allocator:xalloc0(#sequenceimplT))
   end
 
   -- Removes all elements from the sequence.
-  function sequenceT:clear()
+  function sequenceT:clear(): void
     if not self.impl then return end
     if self.impl.data.size ~= 0 then
       for i:usize=0,self.impl.size do
@@ -66,7 +66,7 @@ require 'iterators'
 
   -- Resets the sequence to zero state, freeing all used resources.
   -- This is more useful to free resources when not using the garbage collector.
-  function sequenceT:destroy()
+  function sequenceT:destroy(): void
     if not self.impl then return end
     self:clear()
     self.allocator:spandealloc(self.impl.data)
@@ -76,7 +76,7 @@ require 'iterators'
   end
 
   -- Reserve at least `n` elements on the sequence storage.
-  function sequenceT:reserve(n: usize)
+  function sequenceT:reserve(n: usize): void
     self:init()
     local cap: usize = n + 1
     if self.impl.data.size >= cap then return end
@@ -86,7 +86,7 @@ require 'iterators'
   -- Resizes the sequence so that it contains `n` elements.
   -- When expanding new elements are zero initialized.
   -- When shrinking removed elements are destroyed.
-  function sequenceT:resize(n: usize)
+  function sequenceT:resize(n: usize): void
     self:reserve(n)
     for i:usize=n+1,self.impl.size do
       self.impl.data[i] = (@T)()
@@ -108,7 +108,7 @@ require 'iterators'
   end
 
   -- Adds a new element at the end of the sequence.
-  function sequenceT:push(v: T) <inline>
+  function sequenceT:push(v: T): void <inline>
     self:init()
     self.impl.size = self.impl.size + 1
     if unlikely(self.impl.size + 1 >= self.impl.data.size) then
@@ -129,7 +129,7 @@ require 'iterators'
   -- Inserts element `v` at position `pos` in the sequence.
   -- Elements with index greater or equal than `pos` are shifted up.
   -- If the `pos` is out of range, then throws a runtime error.
-  function sequenceT:insert(pos: usize, v: T)
+  function sequenceT:insert(pos: usize, v: T): void
     self:init()
     check(pos > 0 and pos <= self.impl.size + 1, 'sequence.insert: position out of bounds')
     if unlikely(self.impl.size + 2 >= self.impl.data.size) then
@@ -173,7 +173,7 @@ require 'iterators'
 
   -- Removes all elements from the sequence where `pred` function returns true.
   -- The remaining elements are shifted.
-  function sequenceT:remove_if(pred: function(v: T): boolean)
+  function sequenceT:remove_if(pred: function(v: T): boolean): void
     if not self.impl then return end
     local j: usize = 1
     for i:usize=1,self.impl.size do

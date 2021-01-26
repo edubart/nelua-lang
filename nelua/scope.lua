@@ -17,13 +17,12 @@ function Scope:_init(parent, node)
     self.context = parent
     self.is_root = true
     self.is_returnbreak = true
-    self.resolved_rettypes = {}
   else
     self.parent = parent
     self.context = parent.context
-    self.resolved_rettypes = {has_unknown = true}
     table.insert(parent.children, self)
   end
+  self.resolved_rettypes = {}
   self.unresolved_symbols = {}
   self.children = {}
   self.labels = {}
@@ -287,30 +286,24 @@ function Scope:add_return_type(index, type)
 end
 
 function Scope:resolve_rettypes()
-  if not self.is_returnbreak then -- not on a return block
+  if not self.is_returnbreak or self.rettypes then -- not on a return block or already resolved
     return 0
-  end
-  if self.rettypes then -- return types already fixed
-    return 0
-  end
-  if not next(self.possible_rettypes) then
-    if self.resolved_rettypes.has_unknown then
-      self.resolved_rettypes.has_unknown = nil
-      return 1
-    else
-      return 0
-    end
   end
   local count = 0
-  local resolved_rettypes = self.resolved_rettypes
-  if resolved_rettypes.has_unknown ~= self.has_unknown_return then
-    resolved_rettypes.has_unknown = self.has_unknown_return
-    count = count + 1
+  local possible_rettypes = self.possible_rettypes
+  if next(possible_rettypes) then
+    local resolved_rettypes = self.resolved_rettypes
+    for i,rettypes in pairs(possible_rettypes) do
+      local rettype = types.find_common_type(rettypes) or typedefs.primtypes.any
+      if rettype ~= resolved_rettypes[i] then
+        resolved_rettypes[i] = rettype
+        count = count + 1
+      end
+    end
   end
-  for i,rettypes in pairs(self.possible_rettypes) do
-    local rettype = types.find_common_type(rettypes) or typedefs.primtypes.any
-    if rettype ~= resolved_rettypes[i] then
-      resolved_rettypes[i] = rettype
+  if not self.has_unknown_return and not self.rettypes then
+    self.rettypes = self.resolved_rettypes
+    if not self.is_root then -- avoid resolving again in root scope
       count = count + 1
     end
   end

@@ -1,12 +1,9 @@
 require 'C'
 
-##[[
-cinclude '<time.h>'
-local neluatypes = require 'nelua.types'
-]]
+## cinclude '<time.h>'
 
-global clock_t <cimport'clock_t',nodecl> = #[neluatypes.IntegralType('clock_t', primtypes.clong.size)]#
-global time_t <cimport'time_t',nodecl> = #[neluatypes.IntegralType('time_t', primtypes.clong.size)]#
+global clock_t <cimport'clock_t',nodecl> = #[require'nelua.types'.IntegralType('clock_t', primtypes.clong.size)]#
+global time_t <cimport'time_t',nodecl> = #[require'nelua.types'.IntegralType('time_t', primtypes.clong.size)]#
 global tm <cimport'tm',nodecl,ctypedef> = @record{
   tm_sec: cint,
   tm_min: cint,

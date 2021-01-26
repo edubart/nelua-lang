@@ -13,22 +13,22 @@ local function memchr(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'
 
 global memory = @record{}
 
-function memory.copy(dest: pointer, src: pointer, size: usize) <inline>
+function memory.copy(dest: pointer, src: pointer, size: usize): void <inline>
   check(dest and src, 'memory.copy: invalid pointer')
   memcpy(dest, src, size)
 end
 
-function memory.move(dest: pointer, src: pointer, size: usize) <inline>
+function memory.move(dest: pointer, src: pointer, size: usize): void <inline>
   check(dest and src, 'memory.move: invalid pointer')
   memmove(dest, src, size)
 end
 
-function memory.set(dest: pointer, x: byte, size: usize) <inline>
+function memory.set(dest: pointer, x: byte, size: usize): void <inline>
   check(dest, 'memory.set: invalid pointer')
   memset(dest, x, size)
 end
 
-function memory.zero(dest: pointer, size: usize) <inline>
+function memory.zero(dest: pointer, size: usize): void <inline>
   check(dest, 'memory.zero: invalid pointer')
   memset(dest, 0, size)
 end
@@ -88,7 +88,7 @@ local function check_span_subtype_match(s, x)
 end
 ]]
 
-function memory.spancopy(dest: is_span, src: is_span) <inline>
+function memory.spancopy(dest: is_span, src: is_span): void <inline>
   local T: type = #[dest.type.subtype]#
   ## check_type_match(dest, src)
   check(dest.size == src.size, 'memory.spancopy: span sizes must be equal')
@@ -97,7 +97,7 @@ function memory.spancopy(dest: is_span, src: is_span) <inline>
   end
 end
 
-function memory.spanmove(dest: is_span, src: is_span) <inline>
+function memory.spanmove(dest: is_span, src: is_span): void <inline>
   local T: type = #[dest.type.subtype]#
   ## check_type_match(dest, src)
   check(dest.size == src.size, 'memory.spanmove: span sizes must be equal')
@@ -106,7 +106,7 @@ function memory.spanmove(dest: is_span, src: is_span) <inline>
   end
 end
 
-function memory.spanset(dest: is_span, x: auto) <inline>
+function memory.spanset(dest: is_span, x: auto): void <inline>
   ## check_span_subtype_match(dest, x)
   local T: type = #[x.type]#
   ## if x.type.is_integral and x.bitsize == 8 then
@@ -118,7 +118,7 @@ function memory.spanset(dest: is_span, x: auto) <inline>
   ## end
 end
 
-function memory.spanzero(dest: is_span) <inline>
+function memory.spanzero(dest: is_span): void <inline>
   local T: type = #[dest.type.subtype]#
   if likely(dest.size > 0) then
     memset(dest.data, 0, dest.size * #T)

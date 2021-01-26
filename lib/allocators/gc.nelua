@@ -27,7 +27,7 @@ cemitdecl[=[
 ]]
 
 local jmp_buf <cimport,cinclude'<setjmp.h>',nodecl> = @record{dummy: usize}
-local function setjmp(env: jmp_buf) <cimport,cinclude'<setjmp.h>',nodecl> end
+local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>',nodecl> end
 local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 local function memset(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 
@@ -63,7 +63,7 @@ local GC = @record{
   membytes: usize,
 }
 
-function GCItem:finalize()
+function GCItem:finalize(): void
   if self.finalizer then
     if self.flags & GCFlags.SIZED_FINALIZER == 0 then
       local finalizer: FinalizerCallback = (@FinalizerCallback)(self.finalizer)
@@ -109,7 +109,7 @@ function GC:_get_ptr(ptr: pointer): *GCItem
   return nilptr
 end
 
-function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: pointer, rehash: boolean)
+function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: pointer, rehash: boolean): void
   local i: usize = self:_hash(ptr) % self.nslots
   local item: GCItem = {
     ptr = ptr,
@@ -142,7 +142,7 @@ function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: pointer
   end
 end
 
-function GC:_remove_ptr(ptr: pointer)
+function GC:_remove_ptr(ptr: pointer): void
   if self.nitems == 0 then
     return
   end
@@ -257,13 +257,13 @@ function GC:_resize_less(): boolean
   end
 end
 
-function GC:_unmark_all() <noinline>
+function GC:_unmark_all(): void <noinline>
   for i:usize=0,<self.nslots do
     self.items[i].flags = self.items[i].flags & ~GCFlags.MARK
   end
 end
 
-function GC:_mark_ptr(ptr: pointer) <noinline, cqualifier'NELUA_GC_NO_SANITIZE'>
+function GC:_mark_ptr(ptr: pointer): void <noinline, cqualifier'NELUA_GC_NO_SANITIZE'>
   if (@usize)(ptr) < self.minptr or (@usize)(ptr) > self.maxptr then
     return
   end
@@ -294,7 +294,7 @@ function GC:_mark_ptr(ptr: pointer) <noinline, cqualifier'NELUA_GC_NO_SANITIZE'>
   end
 end
 
-function GC:_mark_stack() <cqualifier'NELUA_GC_NO_SANITIZE'>
+function GC:_mark_stack(): void <cqualifier'NELUA_GC_NO_SANITIZE'>
   local stk: pointer <volatile>
   local bot: usize = (@usize)(self.bottom)
   local top: usize = (@usize)(&stk)
@@ -306,7 +306,7 @@ function GC:_mark_stack() <cqualifier'NELUA_GC_NO_SANITIZE'>
   end
 end
 
-function GC:_mark() <noinline>
+function GC:_mark(): void <noinline>
   if self.nitems == 0 then
     return
   end
@@ -336,7 +336,7 @@ function GC:_mark() <noinline>
   mark_stack(self)
 end
 
-function GC:_sweep() <noinline>
+function GC:_sweep(): void <noinline>
   if self.nitems == 0 then
     return
   end
@@ -406,7 +406,7 @@ function GC:_sweep() <noinline>
   self.nfrees = 0
 end
 
-function GC:_mark_statics()
+function GC:_mark_statics(): void
   ## local emit_mark_static = hygienize(function(sym, symtype)
     gc:add(&#[sym]#, #(#[symtype]#), GCFlags.ROOT, nilptr)
   ## end)
@@ -433,7 +433,7 @@ function GC:_mark_statics()
   ]]
 end
 
-function GC:init(stack: pointer)
+function GC:init(stack: pointer): void
   $self = {}
   self.bottom = stack
   self.minptr = UINTPTR_MAX
@@ -444,7 +444,7 @@ function GC:init(stack: pointer)
   self.stopped = false
 end
 
-function GC:terminate()
+function GC:terminate(): void
   self:_unmark_all()
   self:_sweep()
   allocator:spandealloc(self.items)
@@ -453,23 +453,23 @@ function GC:terminate()
   self.stopped = true
 end
 
-function GC:stop()
+function GC:stop(): void
   self.stopped = true
 end
 
-function GC:restart()
+function GC:restart(): void
   self.stopped = false
 end
 
-function GC:isrunning()
+function GC:isrunning(): boolean
   return not self.stopped
 end
 
-function GC:count()
+function GC:count(): number
   return self.membytes / 1024.0
 end
 
-function GC:collect()
+function GC:collect(): void
   self:_mark()
   self:_sweep()
 end
@@ -501,7 +501,7 @@ function GC:add(ptr: pointer, size: usize, flags: usize, finalizer: pointer): bo
   return self:_add(ptr, size, flags | GCFlags.NO_DEALLOC, finalizer)
 end
 
-function GC:remove(ptr: pointer)
+function GC:remove(ptr: pointer): void
   self:_remove_ptr(ptr)
   self:_resize_less()
   self.mitems = self.nitems + self.nitems // 2 + 1
@@ -568,7 +568,7 @@ function GC:realloc0(ptr: pointer, size: usize, oldsize: usize): pointer <noinli
   return self:_realloc(qtr, ptr, size)
 end
 
-function GC:dealloc(ptr: pointer) <noinline>
+function GC:dealloc(ptr: pointer): void <noinline>
   local p: *GCItem = self:_get_ptr(ptr)
   if p then
     p:finalize()
@@ -621,7 +621,7 @@ function GCAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): point
   return gc:realloc0(p, newsize, oldsize)
 end
 
-function GCAllocator:dealloc(p: pointer)
+function GCAllocator:dealloc(p: pointer): void
   gc:dealloc(p)
 end
 
