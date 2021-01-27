@@ -171,7 +171,7 @@ function profiler.report(options)
   end
   table.sort(sorted_entries, function(a, b) return a[cyclesfield] < b[cyclesfield] end)
   local fname = cyclesfield:sub(1,1):upper()..cyclesfield:sub(2)
-  print(' '..fname..' Cycles   | Usage  | Time (ms)   | Count      | Closure |'..
+  print(' '..fname..' Cycles   | Usage  | Time (ms) | Count      | Closure |'..
     ' Function                                                                         | Source')
   print(       '---------------|--------|-----------|------------|---------|'..
     '----------------------------------------------------------------------------------|-------')

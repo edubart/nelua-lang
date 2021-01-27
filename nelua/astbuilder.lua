@@ -3,7 +3,6 @@ local errorer = require 'nelua.utils.errorer'
 local tabler = require 'nelua.utils.tabler'
 local metamagic = require 'nelua.utils.metamagic'
 local iters = require 'nelua.utils.iterators'
-local Attr = require 'nelua.attr'
 local Symbol = require 'nelua.symbol'
 local ASTNode = require 'nelua.astnode'
 local config = require 'nelua.configer'.get()
@@ -108,26 +107,6 @@ function ASTBuilder:create(tag, ...)
     errorer.assertf(ok, 'invalid shape while creating AST node "%s": %s', tag, err)
   end
   return node
-end
-
-local genuid = ASTNode.genuid
-
--- Create an AST Node from tag, src, pos, endpos and arguments.
--- Used internally by the parser.
-function ASTBuilder:_create(tag, src, pos, ...)
-  local n = select('#', ...)
-  local endpos = select(n, ...)
-  local node = {
-    src = src,
-    pos = pos,
-    endpos = endpos,
-    uid = genuid(),
-    attr = setmetatable({}, Attr),
-  }
-  for i=1,n-1 do
-    node[i] = select(i, ...)
-  end
-  return setmetatable(node, self.nodes[tag])
 end
 
 function ASTBuilder:clone()

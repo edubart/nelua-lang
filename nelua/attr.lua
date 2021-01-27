@@ -26,7 +26,8 @@ end
 function Attr:clone()
   -- getmetatable should be used here because this attr could be a promoted symbol
   -- so we should copy its underlying metatable
-  return setmetatable(tabler.copy(self), getmetatable(self) or Attr)
+  local attr = setmetatable(tabler.copy(self), getmetatable(self) or Attr)
+  return attr
 end
 
 -- Merge fields from another attr into this attr.

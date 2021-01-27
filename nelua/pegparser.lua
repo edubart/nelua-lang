@@ -40,19 +40,35 @@ local function recompile_peg(selfdefs, pegdesc)
   selfdefs[pegdesc.name] = compiled_patt
 end
 
+local genuid = require 'nelua.astnode'.genuid
+local Attr = require 'nelua.attr'
+
 function PEGParser:set_astbuilder(astbuilder)
   self.astbuilder = astbuilder
+  local astnodes = astbuilder.nodes
+  local unpack = table.unpack
+  local insert = table.insert
 
   local function to_astnode(pos, tag, ...)
-    return astbuilder:_create(tag, self.src, pos, ...)
+    local n = select('#', ...)
+    local node = {
+      src = self.src,
+      pos = pos,
+      endpos = (select(n, ...)),
+      uid = genuid(),
+      attr = setmetatable({}, Attr),
+      ...
+    }
+    node[n] = nil -- remove endpos
+    setmetatable(node, astnodes[tag])
+    return node
   end
 
   local defs = self.defs
   defs.to_astnode = to_astnode
   defs.to_chain_unary_op = function(ops, expr, endpos)
     for i=#ops,1,-2 do
-      local pos, opname = ops[i-1], ops[i]
-      expr = to_astnode(pos, 'UnaryOp', opname, expr, endpos)
+      expr = to_astnode(ops[i-1], 'UnaryOp', ops[i], expr, endpos)
     end
     return expr
   end
@@ -60,48 +76,40 @@ function PEGParser:set_astbuilder(astbuilder)
   defs.to_list_astnode = function(pos, tag, exprs, endpos)
     if #exprs == 1 then
       return exprs[1]
-    else
-      return to_astnode(pos, tag, exprs, endpos)
     end
+    return to_astnode(pos, tag, exprs, endpos)
   end
 
   defs.to_chain_late_unary_op = function(opnodes, expr, endpos)
-    if opnodes then
-      for i=#opnodes,1,-1 do
-        local op = opnodes[i]
-        op[3] = expr
-        op[#op+1] = endpos
-        expr = to_astnode(table.unpack(op))
-      end
+    for i=#opnodes,1,-1 do
+      local op = opnodes[i]
+      op[3] = expr
+      op[#op+1] = endpos
+      expr = to_astnode(unpack(op))
     end
     return expr
   end
 
   defs.to_binary_op = function(pos, lhs, opname, rhs, endpos)
-    if rhs then
-      return to_astnode(pos, 'BinaryOp', opname, lhs, rhs, endpos)
+    if not rhs then
+      return lhs
     end
-    return lhs
+    return to_astnode(pos, 'BinaryOp', opname, lhs, rhs, endpos)
   end
 
   defs.to_chain_binary_op = function(pos, matches)
     local lhs = matches[1]
     for i=2,#matches,3 do
-      local opname, rhs, endpos = matches[i], matches[i+1], matches[i+2]
-      lhs = to_astnode(pos, 'BinaryOp', opname, lhs, rhs, endpos)
+      lhs = to_astnode(pos, 'BinaryOp', matches[i], lhs, matches[i+1], matches[i+2])
     end
     return lhs
   end
 
-  local unpack = table.unpack
-  defs.to_chain_index_or_call = function(primary_expr, exprs)
-    local last_expr = primary_expr
-    if exprs then
-      for i=1,#exprs do
-        local expr = exprs[i]
-        table.insert(expr, #expr, last_expr)
-        last_expr = to_astnode(unpack(expr))
-      end
+  defs.to_chain_index_or_call = function(last_expr, exprs)
+    for i=1,#exprs do
+      local expr = exprs[i]
+      insert(expr, #expr, last_expr)
+      last_expr = to_astnode(unpack(expr))
     end
     return last_expr
   end

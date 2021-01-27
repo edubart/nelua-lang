@@ -10,10 +10,10 @@ function metamagic.setmetaindex(t, __index, overwrite)
   if mt then
     assert(overwrite or mt.__index == __index, 'cannot overwrite metatable')
     mt.__index = __index
-    return t
   elseif __index then
-    return setmetatable(t, { __index = __index})
+    setmetatable(t, { __index = __index})
   end
+  return t
 end
 
 -- Set __call metamethod for a table, always creating a new metatable.
@@ -23,7 +23,8 @@ function metamagic.setmetacall(t, f)
     return f(...)
   end
   assert(not mt, 'cannot overwrite metatable')
-  return setmetatable(t, { __call = callfunc})
+  setmetatable(t, { __call = callfunc})
+  return t
 end
 
 -- Check if a value has a specific metamethod in its metatable.

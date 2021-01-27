@@ -85,6 +85,8 @@ local function get_parser()
 
   -- escape sequence conversion
   local utf8char = utf8 and utf8.char or string.char
+  local char = string.char
+
   local BACKLASHES_SPECIFIERS = {
     ["a"] = "\a", -- audible bell
     ["b"] = "\b", -- back feed
@@ -108,8 +110,8 @@ local function get_parser()
       ('u' '{' {%x^+1} '}') -> hex2unicode /
       %{MalformedEscapeSequence}
   ]], {
-    num2char = function(s) return string.char(tonumber(s)) end,
-    hex2char = function(s) return string.char(tonumber(s, 16)) end,
+    num2char = function(s) return char(tonumber(s)) end,
+    hex2char = function(s) return char(tonumber(s, 16)) end,
     hex2unicode = function(s) return utf8char(tonumber(s, 16)) end,
     specifier2char = function(s) return BACKLASHES_SPECIFIERS[s] end,
     ln2ln = function() return "\n" end,

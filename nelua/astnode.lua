@@ -50,11 +50,8 @@ local clone_attr = Attr.clone
 local clone_nodetable, clone_node
 
 clone_nodetable = function(t)
-  local n = t.n
-  local ct = {
-    n = n -- in case of packed tables
-  }
-  for i=1,n or #t do
+  local ct = {}
+  for i=1,#t do
     local v = t[i]
     if v._astnode then
       ct[i] = clone_node(v)
@@ -90,7 +87,8 @@ clone_node = function(node)
     end
     cloned[i] = arg
   end
-  return setmetatable(cloned, getmetatable(node))
+  setmetatable(cloned, getmetatable(node))
+  return cloned
 end
 
 ASTNode.clone = clone_node

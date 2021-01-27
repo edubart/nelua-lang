@@ -25,16 +25,17 @@ function Emitter:dec_indent(count)
   self.depth = self.depth - count
 end
 
-function Emitter:add_indent(what, ...)
-  self:add(string.rep(self.indent, math.max(self.depth, 0)), what, ...)
+local string_rep = string.rep
+function Emitter:add_indent(...)
+  self:add(string_rep(self.indent, self.depth), ...)
 end
 
-function Emitter:add_indent_ln(what, ...)
-  self:add_ln(string.rep(self.indent, math.max(self.depth, 0)), what, ...)
+function Emitter:add_indent_ln(...)
+  self:add_ln(string_rep(self.indent, self.depth), ...)
 end
 
-function Emitter:add_ln(what, ...)
-  self:add(what, ...)
+function Emitter:add_ln(...)
+  self:add(...)
   local codes = self.codes
   codes[#codes+1] = '\n'
 end
@@ -64,7 +65,9 @@ function Emitter:add_one(what)
     local codes = self.codes
     codes[#codes+1] = tostring(what)
   elseif ty == 'table' then
-    if what._astnode then
+    if what._type then
+      self:add_type(what)
+    elseif what._astnode then
       self:add_traversal(what)
     -- elseif what._bn then
     --   codes[#codes+1] = tostring(what)
@@ -78,17 +81,21 @@ function Emitter:add_one(what)
   end  --luacov:enable
 end
 
-function Emitter:add(what, ...)
-  if what ~= nil then
-    self:add_one(what)
+function Emitter:add(...)
+  for i=1,select('#', ...) do
+    local what = (select(i, ...))
+    if what ~= nil then
+      self:add_one(what)
+    end
   end
-  if select('#', ...) == 0 then return end
-  self:add(...)
+end
+
+function Emitter.add_type()
 end
 
 function Emitter:add_builtin(name, ...)
   name = self.context:ensure_runtime_builtin(name, ...)
-  self:add(name)
+  self:add_one(name)
 end
 
 function Emitter:add_traversal(node, ...)
@@ -99,15 +106,14 @@ end
 function Emitter:add_traversal_list(nodelist, separator, ...)
   separator = separator or ', '
   for i=1,#nodelist do
-    local node = nodelist[i]
     if i > 1 then self:add(separator) end
-    self:add_traversal(node, ...)
+    self:add_traversal(nodelist[i], ...)
   end
 end
 
 function Emitter:add_composed_number(base, int, frac, exp, value)
   if base == 'dec' then
-    self:add(int)
+    self:add_one(int)
     if frac then
       self:add('.', frac)
     end

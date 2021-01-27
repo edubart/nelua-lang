@@ -67,7 +67,7 @@ function visitors.Block(ppcontext, node, emitter)
     local statnode = statnodes[i]
     ppcontext:traverse_node(statnode, emitter)
     if statnode.tag ~= 'Preprocess' then
-      emitter:add_indent_ln('ppcontext:add_statnode(ppregistry[', statsregidx, '][', i, '],true)')
+      emitter:add_indent_ln('ppcontext:add_statnode(ppregistry[', statsregidx, '][', i, '])')
     end
   end
   emitter:add_indent_ln('ppcontext:pop_statnodes()')
@@ -254,8 +254,8 @@ function preprocessor.preprocess(context, ast)
     end
     return status
   end
-  local function inject_astnode(...)
-    return ppcontext:add_statnode(...)
+  local function inject_astnode(node, clone)
+    return ppcontext:add_statnode(node, not clone)
   end
   tabler.update(ppenv, {
     after_analyze = after_analyze,
@@ -299,7 +299,7 @@ function preprocessor.preprocess(context, ast)
         if not ok then
           raise_preprocess_error("invalid arguments for preprocess function '%s': %s", key, err)
         end
-        ppcontext:add_statnode(aster.PragmaCall{key, table.pack(...)})
+        ppcontext:add_statnode(aster.PragmaCall{key, table.pack(...)}, true)
       end
     else
       return nil

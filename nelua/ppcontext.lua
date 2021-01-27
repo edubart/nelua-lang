@@ -30,7 +30,7 @@ function PPContext:pop_statnodes()
 end
 
 function PPContext:add_statnode(node, clone)
-  if clone then
+  if not clone then
     node = node:clone()
   end
   local statnodes = self.statnodes

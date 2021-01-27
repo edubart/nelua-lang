@@ -25,7 +25,8 @@ function class.new(base)
     end
   end
   klass.__index = klass
-  return setmetatable(klass, { __index = base, __call = createobject })
+  setmetatable(klass, { __index = base, __call = createobject })
+  return klass
 end
 
 -- Check if a value is an instance of a class.

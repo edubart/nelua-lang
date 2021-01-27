@@ -19,7 +19,8 @@ end
 function Symbol.promote_attr(attr, name, node)
   attr.node = node
   attr.name = name
-  return setmetatable(attr, Symbol)
+  setmetatable(attr, Symbol)
+  return attr
 end
 
 function Symbol:clear_possible_types()

@@ -12,14 +12,6 @@ function CEmitter:_init(context, depth)
   Emitter._init(self, context, depth)
 end
 
-function CEmitter:add_one(what)
-  if traits.is_type(what) then
-    self:add_ctype(what)
-  else
-    Emitter.add_one(self, what)
-  end
-end
-
 ----------------------------------------
 -- Return string functions
 function CEmitter:zeroinit(type)
@@ -63,15 +55,13 @@ end
 function CEmitter:add_ctype(type)
   self:add(self.context:ctype(type))
 end
+CEmitter.add_type = CEmitter.add_ctype
 
 function CEmitter:add_ctypecast(type)
-  self:add('(')
-  self:add_ctype(type)
-  self:add(')')
+  self:add('(',type,')')
 end
 
 function CEmitter:add_booleanlit(value)
-  assert(type(value) == 'boolean')
   self:add(value and 'true' or 'false')
 end
 
