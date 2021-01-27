@@ -11,6 +11,8 @@ local except = require 'nelua.utils.except'
 local preprocessor = require 'nelua.preprocessor'
 local builtins = require 'nelua.builtins'
 local config = require 'nelua.configer'.get()
+local console = require 'nelua.utils.console'
+local nanotimer = require 'nelua.utils.nanotimer'
 local analyzer = {}
 
 local primtypes = typedefs.primtypes
@@ -2761,6 +2763,11 @@ function analyzer.analyze(context)
   analyzer.current_context = context
   context.analyzing = true
 
+  local timer
+  if config.verbose then
+    timer = nanotimer()
+  end
+
   if config.pragma then
     tabler.update(context.pragmas, config.pragma)
   end
@@ -2777,6 +2784,9 @@ function analyzer.analyze(context)
   repeat
     context:traverse_node(ast)
     local resolutions_count = context.rootscope:resolve()
+    if config.verbose then
+      console.debugf('analyzed (%.1f ms)', timer:elapsedrestart())
+    end
   until resolutions_count == 0
 
   for _,cb in ipairs(context.after_analyze) do
@@ -2792,6 +2802,9 @@ function analyzer.analyze(context)
     repeat
       context:traverse_node(ast)
       local resolutions_count = context.rootscope:resolve()
+      if config.verbose then --luacov:disable
+        console.debugf('last analyzed (%.1f ms)', timer:elapsedrestart())
+      end --luacov:enable
     until resolutions_count == 0
     assert(context.unresolvedcount == 0)
     context:pop_state()

@@ -12,6 +12,8 @@ local stringer = require 'nelua.utils.stringer'
 local memoize = require 'nelua.utils.memoize'
 local bn = require 'nelua.utils.bn'
 local ccompiler = require 'nelua.ccompiler'
+local console = require 'nelua.utils.console'
+local nanotimer = require 'nelua.utils.nanotimer'
 
 local traverse_node = VisitorContext.traverse_node
 local function pp_default_visitor(self, node, emitter, ...)
@@ -96,10 +98,15 @@ function marker_visitors.Block(markercontext, node)
   markercontext:traverse_nodes(node[1])
 end
 
-local preprocessor = {}
+local preprocessor = {working_time = 0}
 
 function preprocessor.preprocess(context, ast)
   assert(ast.tag == 'Block')
+
+  local timer
+  if config.verbose or config.timing then
+    timer = nanotimer()
+  end
 
   local ppcontext = context.ppcontext
   if not ppcontext then
@@ -114,6 +121,13 @@ function preprocessor.preprocess(context, ast)
 
   if not markercontext.needprocess then
     -- no preprocess directive found for this block, finished
+    if timer then --luacov:disable
+      local elapsed = timer:elapsed()
+      preprocessor.working_time = preprocessor.working_time + elapsed
+      if config.verbose then
+        console.debugf('skip preprocess %s (%.1f ms)', ast.src.name, elapsed)
+      end
+    end --luacov:enable
     return false
   end
 
@@ -302,6 +316,14 @@ function preprocessor.preprocess(context, ast)
   end
   if not ok then
     ast:raisef('error while preprocessing: %s', err)
+  end
+
+  if timer then
+    local elapsed = timer:elapsed()
+    preprocessor.working_time = preprocessor.working_time + elapsed
+    if config.verbose then
+      console.debugf('preprocessed %s (%.1f ms)', ast.src.name, timer:elapsed())
+    end
   end
 
   return true

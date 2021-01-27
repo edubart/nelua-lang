@@ -6,10 +6,14 @@ local errorer = require 'nelua.utils.errorer'
 local pegger = require 'nelua.utils.pegger'
 local metamagic = require 'nelua.utils.metamagic'
 local except = require 'nelua.utils.except'
+local nanotimer = require 'nelua.utils.nanotimer'
+local console = require 'nelua.utils.console'
+local config = require 'nelua.configer'.get()
 
 local PEGParser = class()
 
 lpeg.setmaxstack(1024)
+PEGParser.working_time = 0
 
 function PEGParser:_init()
   self.keywords = {}
@@ -190,7 +194,18 @@ function PEGParser:match(pegname, srccontent, srcname)
   local peg = self.defs[pegname]
   errorer.assertf(peg, 'cannot match an input to inexistent peg "%s"', pegname)
   self.src = {content=srccontent, name=srcname}
+  local timer
+  if config.timing or config.verbose then
+    timer = nanotimer()
+  end
   local res, errlabel, errpos = peg:match(srccontent)
+  if timer then
+    local elapsed = timer:elapsed()
+    PEGParser.working_time = PEGParser.working_time + elapsed
+    if config.verbose then
+      console.debugf('parsed %s (%.1f ms)', srcname, elapsed)
+    end
+  end
   self.src = nil
   return res, errlabel, errpos
 end

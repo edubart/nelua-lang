@@ -63,8 +63,8 @@ function PPContext:getregistryindex(what)
   local registry = self.registry
   local regindex = registry[what]
   if not regindex then
-    table.insert(registry, what)
-    regindex = #registry
+    regindex = #registry+1
+    registry[regindex] = what
     registry[what] = regindex
   end
   return regindex

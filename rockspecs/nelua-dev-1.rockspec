@@ -104,6 +104,7 @@ build = {
     ['nelua.utils.metamagic'] = 'nelua/utils/metamagic.lua',
     ['nelua.utils.pegger'] = 'nelua/utils/pegger.lua',
     ['nelua.utils.platform'] = 'nelua/utils/platform.lua',
+    ['nelua.utils.profiler'] = 'nelua/utils/profiler.lua',
     ['nelua.utils.shaper'] = 'nelua/utils/shaper.lua',
     ['nelua.utils.sstream'] = 'nelua/utils/sstream.lua',
     ['nelua.utils.stringer'] = 'nelua/utils/stringer.lua',

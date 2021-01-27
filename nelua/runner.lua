@@ -1,5 +1,4 @@
 require 'nelua.utils.luaver'.check()
--- local profiler = require 'play.tools.profiler'
 
 -- make the lua garbage collector less aggressive to speed up compilation
 collectgarbage("setpause", 800)
@@ -22,6 +21,7 @@ local function run(argv, redirect)
 
   if config.no_color then console.set_colors_enabled(false) end
 
+
   if config.script then --luacov:disable
     -- inject script directory into lua package path
     local scriptdir = fs.dirname(fs.abspath(config.input))
@@ -35,6 +35,7 @@ local function run(argv, redirect)
   end --luacov:enable
 
   local generator = require('nelua.' .. config.generator .. 'generator')
+  local preprocessor = require 'nelua.preprocessor'
   if config.timing then
     console.debugf('startup         %.1f ms', timer:elapsedrestart())
   end
@@ -44,6 +45,12 @@ local function run(argv, redirect)
   if config.timing then
     console.debugf('compile grammar %.1f ms', timer:elapsedrestart())
   end
+
+  local profiler
+  if config.profile_compiler then --luacov:disable
+    profiler = require 'nelua.utils.profiler'
+    profiler.start()
+  end --luacov:enable
 
   -- determine input
   local input, infile
@@ -61,10 +68,6 @@ local function run(argv, redirect)
   local parser = syntax.parser
   local ast = parser:parse(input, infile)
 
-  if config.timing then
-    console.debugf('parse AST       %.1f ms', timer:elapsedrestart())
-  end
-
   -- only checking syntax?
   if config.lint then
     return 0
@@ -81,18 +84,18 @@ local function run(argv, redirect)
   local AnalyzerContext = require 'nelua.analyzercontext'
 
   -- analyze the ast
-  -- profiler.start()
   local context = AnalyzerContext(analyzer.visitors, parser, ast, config.generator)
   except.try(function()
     context = analyzer.analyze(context)
   end, function(e)
     e.message = context:traceback() .. e:get_message()
   end)
-  -- profiler.stop()
-  -- profiler.report('profile.log')
 
   if config.timing then
-    console.debugf('analyze AST     %.1f ms', timer:elapsedrestart())
+    local elapsed = timer:elapsedrestart()
+    console.debugf('parse AST       %.1f ms', parser.working_time)
+    console.debugf('preprocess AST  %.1f ms', preprocessor.working_time)
+    console.debugf('analyze AST     %.1f ms', elapsed - parser.working_time - preprocessor.working_time)
   end
 
   if config.print_analyzed_ast then
@@ -144,6 +147,12 @@ local function run(argv, redirect)
       console.debugf('compile binary  %.1f ms', timer:elapsedrestart())
     end
   end
+
+  if profiler then --luacov:disable
+    profiler.stop()
+    profiler.report({self=true, threshold=0.05})
+    profiler.report({incl=true, threshold=0.05})
+  end --luacov:enable
 
   -- run
   if dorun then

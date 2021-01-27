@@ -172,6 +172,13 @@ mylib - terminate]])
   os.remove('mylib_test')
 end)
 
+it("verbose", function()
+  assert.run({'--verbose','--eval',[[
+    ## assert(true)
+    assert(true)
+  ]]})
+end)
+
 it("error tracebacks", function()
   assert.run_error({'--eval',[[
     local function f(x: auto)
