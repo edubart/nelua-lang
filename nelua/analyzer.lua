@@ -1220,10 +1220,10 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             polyeval = polycalleetype:eval_poly(polyargs, node)
             attr.polyeval = polyeval
           end
-          if polyeval and polyeval.node and polyeval.node.attr.type then
+          if polyeval and polyeval.node then
             calleesym = polyeval.node.attr
             calleetype = polyeval.node.attr.type
-          else
+          elseif context.state.inpolyeval ~= polyeval then
             -- must traverse the poly function scope again to infer types for assignment to this call
             context.rootscope:delay_resolution()
           end
@@ -2447,7 +2447,7 @@ function visitors.FuncDef(context, node, polysymbol)
       -- pop node and then push again to fix error message traceback
       context:pop_node()
       -- used to generate error messages
-      context:push_state{polysrcnode = polyeval.srcnode}
+      context:push_state{inpolyeval=polyeval}
       context:traverse_node(polynode, symbol)
       context:pop_state()
       context:push_node(node)

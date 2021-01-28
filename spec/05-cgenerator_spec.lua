@@ -624,6 +624,18 @@ it("recursive functions", function()
     end
     local a: integer = decrement(5)
     assert(a == 0)
+
+    local function fi(x: integer)
+      if x == 0 then return 0 end
+      return fi(x-1)
+    end
+    fi(3)
+
+    local function fa(x: auto)
+      if x == 0 then return 0 end
+      return fa(x-1)
+    end
+    fa(3)
   ]])
 end)
 

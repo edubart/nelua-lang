@@ -728,6 +728,7 @@ local AnyType = types.typeclass()
 types.AnyType = AnyType
 AnyType.is_any = true
 AnyType.is_nilable = true
+AnyType.sideeffect = true
 
 function AnyType:_init(name, size)
   Type._init(self, name, size)
@@ -741,6 +742,10 @@ end
 
 -- Checks if this type has pointers, used by the garbage collector.
 function AnyType.has_pointer() return true end
+
+function AnyType.get_return_type()
+  return primtypes.any
+end
 
 --------------------------------------------------------------------------------
 -- Varanys Type

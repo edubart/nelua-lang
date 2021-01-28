@@ -123,7 +123,7 @@ end
 function AnalyzerContext:traceback()
   local nodes = self.visiting_nodes
   local ss = sstream()
-  local polysrcnode = self.state.polysrcnode
+  local polysrcnode = self.state.inpolyeval and self.state.inpolyeval.srcnode
   if polysrcnode then
     ss:add(polysrcnode:format_message('from', 'polymorphic function instantiation'))
   end
