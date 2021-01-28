@@ -121,7 +121,7 @@ function AnalyzerContext:choose_type_symbol_names(symbol)
 end
 
 function AnalyzerContext:traceback()
-  local nodes = self.visiting_nodes
+  local nodes = self.nodes
   local ss = sstream()
   local polysrcnode = self.state.inpolyeval and self.state.inpolyeval.srcnode
   if polysrcnode then

@@ -8,6 +8,9 @@
 
 local traits = {}
 
+local type = _G.type
+local math_type = math.type
+
 -- Check if a value is a lua string.
 function traits.is_string(v)
   return type(v) == 'string'
@@ -55,7 +58,8 @@ end
 
 -- Check if a value is an arithmetic for the compiler, i.e., a lua number or a big number.
 function traits.is_arithmetic(v)
-  return type(v) == 'number' or (type(v) == 'table' and v._bn)
+  local ty = type(v)
+  return ty == 'number' or (ty == 'table' and v._bn)
 end
 
 -- Check if a value is a big number.
@@ -65,7 +69,7 @@ end
 
 -- Check if a value is an integral (whole number) for the compiler.
 function traits.is_integral(v)
-  return math.type(v) == 'integer' or (type(v) == 'table' and v._bn)
+  return math_type(v) == 'integer' or (type(v) == 'table' and v._bn)
 end
 
 return traits

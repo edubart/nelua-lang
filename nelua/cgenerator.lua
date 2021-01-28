@@ -41,10 +41,10 @@ local function izipargnodes(vars, argnodes)
     return function()
       local var, argnode
       i, var, argnode = iter(ts, i)
-      if not i then return end
-      -- we are sure this argument have no type, set argtype to false
-      local argtype = argnode and argnode.attr.type
-      return i, var, argnode, argtype
+      if i then
+        -- we are sure this argument have no type, set argtype to false
+        return i, var, argnode, argnode and argnode.attr.type
+      end
     end
   end
 end

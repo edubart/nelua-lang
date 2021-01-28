@@ -12,6 +12,7 @@ local except = require 'nelua.utils.except'
 local executor = require 'nelua.utils.executor'
 local configer = require 'nelua.configer'
 local platform = require 'nelua.utils.platform'
+local profiler
 
 local runner = {}
 
@@ -20,7 +21,6 @@ local function run(argv, redirect)
   local config = configer.parse(argv)
 
   if config.no_color then console.set_colors_enabled(false) end
-
 
   if config.script then --luacov:disable
     -- inject script directory into lua package path
@@ -46,12 +46,6 @@ local function run(argv, redirect)
     console.debugf('compile grammar %.1f ms', timer:elapsedrestart())
   end
 
-  local profiler
-  if config.profile_compiler then --luacov:disable
-    profiler = require 'nelua.utils.profiler'
-    profiler.start()
-  end --luacov:enable
-
   -- determine input
   local input, infile
   if config.eval then
@@ -63,6 +57,11 @@ local function run(argv, redirect)
   end
 
   if config.before_parse then config.before_parse() end
+
+  if config.profile_compiler then --luacov:disable
+    profiler = require 'nelua.utils.profiler'
+    profiler.start()
+  end --luacov:enable
 
   -- parse ast
   local parser = syntax.parser
@@ -148,12 +147,6 @@ local function run(argv, redirect)
     end
   end
 
-  if profiler then --luacov:disable
-    profiler.stop()
-    profiler.report({self=true, threshold=0.05})
-    profiler.report({incl=true, threshold=0.05})
-  end --luacov:enable
-
   -- run
   if dorun then
     local exe, exeargs = compiler.get_run_command(binaryfile, config.runargs)
@@ -175,11 +168,21 @@ function runner.run(argv, redirect)
   local status
   except.try(function()
     status = run(argv, redirect)
+
+    local config = configer.get()
+    if config.on_finish then config.on_finish() end
   end, function(e)
     console.logerr(e:get_message())
     status = 1
     return true
   end)
+
+  if profiler then --luacov:disable
+    profiler.stop()
+    profiler.report({self=true, min_usage=0.05})
+    profiler.report({incl=true, min_usage=0.05})
+  end --luacov:enable
+
   return status
 end
 

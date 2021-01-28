@@ -407,7 +407,7 @@ end
 
 -- Compare if two types are equal.
 function Type.__eq(t1, t2)
-  if type(t1) == 'table' and type(t2) == 'table' and t1._type and t2._type then
+  if getmetatable(t1) == getmetatable(t2) then
     if t1.id == t2.id then -- early check for same type (optimization)
       -- types with the same type id should always be the same
       return true
@@ -950,12 +950,16 @@ end
 
 -- Get the desired type when converting this type from another type.
 function IntegralType:get_convertible_from_type(type, explicit)
-  if type == self then -- early return for the same type
-    return self
-  elseif type.is_integral and self:is_type_inrange(type) then
-    -- implicit conversion from another integral that fits this integral
-    return self
-  elseif type.is_arithmetic then
+  if type.is_integral then
+    if type.id == self.id then
+      -- early return for the same type
+      return self
+    elseif self:is_type_inrange(type) then
+      -- implicit conversion from another integral that fits this integral
+      return self
+    end
+  end
+  if type.is_arithmetic then
     -- implicit narrowing cast
     return self
   elseif explicit and type.is_pointer and self.size >= type.size then
@@ -1562,7 +1566,8 @@ function FunctionType:is_equal(type)
 end
 
 function FunctionType:has_varargs()
-  local lasttype = self.argtypes[#self.argtypes]
+  local argtypes = self.argtypes
+  local lasttype = argtypes[#argtypes]
   return lasttype and lasttype.is_varargs
 end
 
@@ -2066,54 +2071,64 @@ end
 
 -- Get the desired type when converting this type from another type.
 function PointerType:get_convertible_from_type(type, explicit)
-  if type == self then
-    -- early check for the same type (optimization)
-    return self
-  elseif type.is_pointer then
-    if explicit then
+  if type.is_pointer then
+    if type.subtype == self.subtype then
+      -- early check for the same type (optimization)
+      return self
+    elseif explicit then
       -- explicit casting to any other pointer type
       return self
     elseif self.is_generic_pointer then
       -- implicit casting to a generic pointer
       return self
-    elseif type.subtype.is_array and type.subtype.length == 0 and
-           is_pointer_subtype_convertible(type.subtype.subtype, self.subtype) then
-      -- implicit casting from unbounded arrays pointers to pointers
-      return self
-    elseif self.subtype.is_array and self.subtype.length == 0 and
-           is_pointer_subtype_convertible(self.subtype.subtype, type.subtype) then
-      -- implicit casting from pointers to unbounded arrays pointers
-      return self
-    elseif self.subtype.is_array and type.subtype.is_array and
-           self.subtype.length == 0 and
-           is_pointer_subtype_convertible(self.subtype.subtype, type.subtype.subtype) then
-      -- implicit casting from checked arrays pointers to unbounded arrays pointers
-      return self
-    elseif self.is_cstring and type.subtype.is_array and
-           is_pointer_subtype_convertible(type.subtype.subtype, primtypes.byte) then
-      -- implicit casting from pointer to a byte array to cstring
-      return self
-    elseif is_pointer_subtype_convertible(self.subtype, type.subtype) then
-      -- implicit casting between integral of same size and signess
-      return self
-    elseif self.subtype.is_pointer and type.subtype.is_pointer and
-           self.subtype:get_convertible_from_type(type.subtype) then
-      -- implicit casting for nested pointers
+    else
+      local selfsubtype = self.subtype
+      local typesubtype = type.subtype
+      if typesubtype.is_array and typesubtype.length == 0 and
+             is_pointer_subtype_convertible(typesubtype.subtype, selfsubtype) then
+        -- implicit casting from unbounded arrays pointers to pointers
+        return self
+      elseif selfsubtype.is_array and selfsubtype.length == 0 and
+             is_pointer_subtype_convertible(selfsubtype.subtype, typesubtype) then
+        -- implicit casting from pointers to unbounded arrays pointers
+        return self
+      elseif selfsubtype.is_array and typesubtype.is_array and
+             selfsubtype.length == 0 and
+             is_pointer_subtype_convertible(selfsubtype.subtype, typesubtype.subtype) then
+        -- implicit casting from checked arrays pointers to unbounded arrays pointers
+        return self
+      elseif self.is_cstring and typesubtype.is_array and
+             is_pointer_subtype_convertible(typesubtype.subtype, primtypes.byte) then
+        -- implicit casting from pointer to a byte array to cstring
+        return self
+      elseif is_pointer_subtype_convertible(selfsubtype, typesubtype) then
+        -- implicit casting between integral of same size and signess
+        return self
+      elseif selfsubtype.is_pointer and typesubtype.is_pointer and
+             selfsubtype:get_convertible_from_type(typesubtype) then
+        -- implicit casting for nested pointers
+        return self
+      end
+    end
+  elseif type.is_stringview then
+    if is_pointer_subtype_convertible(self.subtype, primtypes.byte) then
+      -- implicit casting a stringview to a cstring or an 8bit integral
       return self
     end
-  elseif type.is_stringview and is_pointer_subtype_convertible(self.subtype, primtypes.byte) then
-    -- implicit casting a stringview to a cstring or an 8bit integral
-    return self
   elseif type.is_nilptr then
     -- implicit casting nilptr to a pointer
     return self
   elseif explicit then
-    if type.is_function and self.is_generic_pointer then
-      -- explicit casting a function to a generic pointer
-      return self
-    elseif type.is_integral and type.size >= cpusize then
-      -- explicit casting a pointer to an integral that can fit a pointer
-      return self
+    if type.is_function then
+      if self.is_generic_pointer then
+        -- explicit casting a function to a generic pointer
+        return self
+      end
+    elseif type.is_integral then
+      if type.size >= cpusize then
+        -- explicit casting a pointer to an integral that can fit a pointer
+        return self
+      end
     end
   end
   return Type.get_convertible_from_type(self, type, explicit)
@@ -2140,8 +2155,9 @@ end
 -- Give the underlying type when implicit dereferencing this type.
 function PointerType:implict_deref_type()
   -- implicit dereference is only allowed for records and arrays subtypes
-  if self.subtype and (self.subtype.is_record or self.subtype.is_array) then
-    return self.subtype
+  local subtype = self.subtype
+  if subtype and (subtype.is_record or subtype.is_array) then
+    return subtype
   end
   return self
 end

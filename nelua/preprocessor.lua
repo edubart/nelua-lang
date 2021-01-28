@@ -76,7 +76,7 @@ function visitors.Block(ppcontext, node, emitter)
 end
 
 local function mark_process_visitor(markercontext)
-  local nodes = markercontext.visiting_nodes
+  local nodes = markercontext.nodes
   -- mark nearest parent block above
   for i=#nodes-1,1,-1 do
     local pnode = nodes[i]

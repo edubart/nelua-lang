@@ -14,6 +14,7 @@ local config = require 'nelua.configer'.get()
 local console = require 'nelua.utils.console'
 local nanotimer = require 'nelua.utils.nanotimer'
 local analyzer = {}
+local luatype = type
 
 local primtypes = typedefs.primtypes
 local visitors = {}
@@ -251,7 +252,7 @@ local function visitor_Record_literal(context, node, littype)
     local fieldname, fieldvalnode, field, fieldindex
     if childnode.tag == 'Pair' then
       fieldname, fieldvalnode = childnode[1], childnode[2]
-      if not traits.is_string(fieldname) then
+      if luatype(fieldname) ~= 'string' then
         childnode:raisef("only string literals are allowed in record's field names")
       end
       field = littype.fields[fieldname]
@@ -320,7 +321,7 @@ local function visitor_Union_literal(context, node, littype)
       childnode:raisef("union field is missing a name")
     end
     local fieldname, fieldvalnode = childnode[1], childnode[2]
-    if not traits.is_string(fieldname) then
+    if luatype(fieldname) ~= 'string' then
       childnode:raisef("only string literals are allowed in union's field names")
     end
     local field = littype.fields[fieldname]
@@ -475,7 +476,7 @@ function visitors.Annotation(context, node, symbol)
   if name == 'cimport' then
     objattr.cimport = true
     local codename
-    if traits.is_string(params) then
+    if luatype(params) == 'string' then
       codename = params
     else
       codename = symbol.name
@@ -572,7 +573,7 @@ function visitors.IdDecl(context, node)
     end
   end
   local symbol
-  if traits.is_string(namenode) then
+  if luatype(namenode) == 'string' then
     if attr._symbol then
       symbol = attr
       symbol:clear_possible_types()
@@ -966,13 +967,15 @@ local function iargnodes(argnodes)
   return function()
     i = i + 1
     local argnode = argnodes[i]
-    if not argnode then return nil end
-    return i, argnode, argnode.attr.type
+    if argnode then
+      return i, argnode, argnode.attr.type
+    end
   end
 end
 
+local izip2 = iters.izip2
 local function izipargnodes(vars, argnodes)
-  local iter, ts, i = iters.izip2(vars, argnodes)
+  local iter, ts, i = izip2(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[lastargindex]
   local lastcalleetype = lastargnode and lastargnode.attr.calleetype
@@ -982,35 +985,34 @@ local function izipargnodes(vars, argnodes)
     return function()
       local var, argnode
       i, var, argnode = iter(ts, i)
-      if not i then return nil end
-      -- NOTE: the calletype may change while iterating
-      local calleetype = argnodes[lastargindex].attr.calleetype
-      if calleetype then
-        if calleetype.is_any then
-          -- calling any types makes last arguments always a varanys
-          local argtype = argnode and argnode.attr.type
-          if i == lastargindex then
-            assert(argtype and argtype.is_varanys)
-          end
-          return i, var, argnode, argtype
-        else
-          -- we know the callee type
-          if i >= lastargindex then
-            -- argnode does not exists, fill with multiple returns type
-            -- in case it doest not exists, the argtype will be nil type
-            local callretindex = i - lastargindex + 1
-            local argtype = calleetype:get_return_type(callretindex) or primtypes.niltype
-            if callretindex > 1 and not argtype.is_niltype then
-              lastargnode.attr.multirets = true
+      if i then
+        -- NOTE: the calletype may change while iterating
+        local calleetype = argnodes[lastargindex].attr.calleetype
+        if calleetype then
+          if not calleetype.is_any then
+            -- we know the callee type
+            if i < lastargindex then
+              return i, var, argnode, argnode.attr.type
+            else
+              -- argnode does not exists, fill with multiple returns type
+              -- in case it doest not exists, the argtype will be nil type
+              local callretindex = i - lastargindex + 1
+              local argtype = calleetype:get_return_type(callretindex) or primtypes.niltype
+              if callretindex > 1 and not argtype.is_niltype then
+                lastargnode.attr.multirets = true
+              end
+              return i, var, argnode, argtype, callretindex
             end
-            return i, var, argnode, argtype, callretindex
           else
-            return i, var, argnode, argnode.attr.type, nil
+            -- calling any types makes last arguments always a varanys
+            local argtype = argnode and argnode.attr.type
+            assert(i ~= lastargindex or (argtype and argtype.is_varanys))
+            return i, var, argnode, argtype
           end
+        else
+          -- call type is now known yet, argtype will be nil
+          return i, var, argnode, argnode and argnode.attr.type
         end
-      else
-        -- call type is now known yet, argtype will be nil
-        return i, var, argnode, argnode and argnode.attr.type
       end
     end
   else
@@ -1018,15 +1020,10 @@ local function izipargnodes(vars, argnodes)
     return function()
       local var, argnode
       i, var, argnode = iter(ts, i)
-      if not i then return nil end
-      -- in case this is inexistent, set argtype to nil type
-      local argtype
-      if argnode then
-        argtype = argnode.attr.type
-      else
-        argtype = primtypes.niltype
+      if i then
+        -- in case this is nonexistent, set argtype to nil type
+        return i, var, argnode, not argnode and primtypes.niltype or argnode.attr.type
       end
-      return i, var, argnode, argtype
     end
   end
 end

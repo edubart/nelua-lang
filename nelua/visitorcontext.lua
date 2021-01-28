@@ -23,22 +23,17 @@ end
 local function traverse_node(self, node, ...)
   if self.analyzing then
     local done = node.done
-    if done == true then
-      return
-    elseif done then
-      return done
+    if done then
+      return done ~= true and done or nil
     end
     -- bench_traverse(node)
   end
-  local visitor_func = self.visitors[node.tag] or self.default_visitor
-  if not visitor_func then --luacov:disable
-    node:errorf("visitor for AST node '%s' does not exist", node.tag)
-  end --luacov:enable
-  local nodes = self.visiting_nodes
-  local nodeindex = #nodes+1
-  nodes[nodeindex] = node -- push node
-  local ret = visitor_func(self, node, ...)
-  nodes[nodeindex] = nil -- pop node
+  local nodes = self.nodes
+  local index = #nodes+1
+  nodes[index] = node -- push node
+  local visit = self.visitors[node.tag]
+  local ret = visit(self, node, ...)
+  nodes[index] = nil -- pop node
   return ret
 end
 VisitorContext.traverse_node = traverse_node
@@ -65,33 +60,34 @@ end
 
 function VisitorContext:_init(visitors)
   self:set_visitors(visitors)
-  self.visiting_nodes = {}
+  self.nodes = {}
   self.state = {}
   self.statestack = {}
 end
 
 function VisitorContext:set_visitors(visitors)
   self.visitors = visitors
-  self.default_visitor = visitors.default_visitor or traverser_default_visitor
+  local default_visitor = visitors.default_visitor or traverser_default_visitor
+  setmetatable(visitors, {__index = function() return default_visitor end})
 end
 
 function VisitorContext:push_node(node)
-  local nodes = self.visiting_nodes
+  local nodes = self.nodes
   nodes[#nodes + 1] = node
 end
 
 function VisitorContext:pop_node()
-  local nodes = self.visiting_nodes
+  local nodes = self.nodes
   nodes[#nodes] = nil
 end
 
 function VisitorContext:get_parent_node(level)
-  local nodes = self.visiting_nodes
+  local nodes = self.nodes
   return nodes[#nodes - (level or 1)]
 end
 
 function VisitorContext:get_current_node()
-  local nodes = self.visiting_nodes
+  local nodes = self.nodes
   return nodes[#nodes]
 end
 

@@ -128,11 +128,12 @@ function Symbol:resolve_type(force)
 end
 
 function Symbol:link_node(node)
-  if node.attr ~= self then
-    if next(node.attr) == nil then
+  local attr = node.attr
+  if attr ~= self then
+    if next(attr) == nil then
       node.attr = self
     else
-      node.attr = self:merge(node.attr)
+      node.attr = self:merge(attr)
     end
   end
 end

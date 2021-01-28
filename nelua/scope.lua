@@ -190,17 +190,12 @@ function Scope:pop_checkpoint()
 end
 
 function Scope:add_symbol(symbol)
-  local key
-  if not symbol.annonymous then
-    key = symbol.name
-  else
-    key = symbol
-  end
+  local key = symbol.annonymous and symbol or symbol.name
   local symbols = self.symbols
   local oldsymbol = symbols[key]
   if oldsymbol then
     if oldsymbol == symbol then
-      return true
+      return
     end
     -- shadowing a symbol with the same name
     if oldsymbol == self.context.state.inpolydef then
@@ -217,11 +212,14 @@ function Scope:add_symbol(symbol)
   end
   symbols[key] = symbol -- store by key
   symbols[#symbols+1] = symbol -- store in order
-  if not symbol.type and not self.unresolved_symbols[symbol] then
-    self.unresolved_symbols[symbol] = true
-    self.context.unresolvedcount = self.context.unresolvedcount + 1
+  if not symbol.type then
+    local unresolved_symbols = self.unresolved_symbols
+    if not unresolved_symbols[symbol] then
+      unresolved_symbols[symbol] = true
+      local context = self.context
+      context.unresolvedcount = context.unresolvedcount + 1
+    end
   end
-  return true
 end
 
 function Scope:delay_resolution()
@@ -254,7 +252,7 @@ function Scope:resolve_symbols()
     --table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)
     for i=1,#unknownlist do
       local symbol = unknownlist[i]
-      local force = self.context.state.anyphase and typedefs.primtypes.any or not symbol:is_waiting_resolution()
+      local force = self.context.state.anyphase and primtypes.any or not symbol:is_waiting_resolution()
       if symbol:resolve_type(force) then
         unresolved_symbols[symbol] = nil
         self.context.unresolvedcount = self.context.unresolvedcount - 1
@@ -293,15 +291,15 @@ function Scope:resolve_rettypes()
   local possible_rettypes = self.possible_rettypes
   if next(possible_rettypes) then
     local resolved_rettypes = self.resolved_rettypes
-    for i,rettypes in pairs(possible_rettypes) do
-      local rettype = types.find_common_type(rettypes) or typedefs.primtypes.any
+    for i,candidate_rettypes in pairs(possible_rettypes) do
+      local rettype = types.find_common_type(candidate_rettypes) or primtypes.any
       if rettype ~= resolved_rettypes[i] then
         resolved_rettypes[i] = rettype
         count = count + 1
       end
     end
   end
-  if not self.has_unknown_return and not self.rettypes then
+  if not self.has_unknown_return then
     self.rettypes = self.resolved_rettypes
     if not self.is_root then -- avoid resolving again in root scope
       count = count + 1

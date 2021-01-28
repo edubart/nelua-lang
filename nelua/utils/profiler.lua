@@ -14,8 +14,8 @@ local timebeg, timeend = 0, 0
 
 -- Hook, called before and after every function call.
 local function hook(event)
+  local now = cycles()
   if event == 'return' then
-    local now = cycles()
     if depth > 0 then
       local call = calls[depth]
       local desc = call.d
@@ -27,8 +27,10 @@ local function hook(event)
         desc.incl = desc.incl + t
       end
       if depth > 0 then
+        local u = call.u
         call = calls[depth]
-        call.o = call.o + t
+        t = call.o - u
+        call.o = cycles() + t
       end
     end
   elseif event == 'call' then
@@ -57,6 +59,7 @@ local function hook(event)
     end
     call.d = desc
     call.o = 0
+    call.u = now
     call.t = cycles()
   elseif event == 'tail call' then
     local desc = descs[debug_getinfo(2).func]
@@ -107,6 +110,7 @@ end
 
 -- Start the profiler.
 function profiler.start()
+  collectgarbage'stop'
   depth = 0
   timebeg = nanotime()
   cyclesbeg = cycles()
@@ -124,10 +128,13 @@ end
 function profiler.report(options)
   options = options or {}
   local cyclesfield = options.incl and 'incl' or 'self'
-  local threshold = options.threshold or 0
+  local min_usage = options.min_usage or 0
+  local min_count = options.min_count or 0
+  local sort_by = options.sort_by or 'val'
   local sorted_entries = {}
   local entries = {}
-  local totcycles = cyclesend - cyclesbeg
+  local totinclcycles = cyclesend - cyclesbeg
+  local totselfcycles = 0
   local tottime = timeend - timebeg
   populate_globals()
   for _,desc in pairs(descs) do
@@ -155,6 +162,8 @@ function profiler.report(options)
           count = desc.cnt,
           self = desc.self,
           incl = desc.incl,
+          val = desc[cyclesfield],
+          avg = math.floor(desc[cyclesfield] / desc.cnt + 0.5),
         }
         entries[k] = entry
         sorted_entries[#sorted_entries+1] = entry
@@ -167,32 +176,34 @@ function profiler.report(options)
         end
         entry.closure = entry.closure + 1
       end
+      totselfcycles = totselfcycles + desc.self
     end
   end
-  table.sort(sorted_entries, function(a, b) return a[cyclesfield] < b[cyclesfield] end)
-  local fname = cyclesfield:sub(1,1):upper()..cyclesfield:sub(2)
-  print(' '..fname..' Cycles   | Usage  | Time (ms) | Count      | Closure |'..
+  table.sort(sorted_entries, function(a, b) return a[sort_by] < b[sort_by] end)
+  local fname = options.incl and 'Incl' or 'Self'
+  print(' '..fname..' Cycles   | Usage  | Time (ms) | Count      | Avg Cycles   | Closure |'..
     ' Function                                                                         | Source')
-  print(       '---------------|--------|-----------|------------|---------|'..
+  print(       '---------------|--------|-----------|------------|--------------|---------|'..
     '----------------------------------------------------------------------------------|-------')
-  local sum = 0
+  local totcycles = options.incl and totinclcycles or totselfcycles
   for _,e in ipairs(sorted_entries) do
-    local ecycles = e[cyclesfield]
+    local ecycles = e.val
     local usage = (ecycles/totcycles)*100
-    sum = sum + e.self
-    if usage >= threshold then
+    local count = e.count
+    if usage >= min_usage and count >= min_count then
       local time = usage * tottime * 10
       local name = e.name
       if #name > 80 then
         name = '..'..name:sub(-78)
       end
-      print(string.format('%14d | %6.2f | %9.3f | %10d | %7s | %-80s | %s:%d',
-        ecycles, usage, time, e.count, e.closure or '', name, e.src, e.line))
+      print(string.format('%14d | %6.2f | %9.3f | %10d | %12.0f | %7s | %-80s | %s:%d',
+        ecycles, usage, time, e.count, e.avg, e.closure or '', name, e.src, e.line))
     end
   end
-  local usage = (sum/totcycles)*100
+  local usage = 100
   local time = usage * tottime * 10
-  print(string.format('%14d | %6.2f | %9.3f | %10d | %7s | %-80s | %s', totcycles, usage, time, 1, '', 'TOTAL', 'N/A'))
+  print(string.format('%14d | %6.2f | %9.3f | %10d | %12.0f | %7s | %-80s | %s',
+    totcycles, usage, time, 1, totcycles, '', 'TOTAL', 'N/A'))
   print()
 end
 

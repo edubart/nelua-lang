@@ -8,10 +8,9 @@ local iterators = {}
 local function izip2_next(ts, i)
   i = i + 1
   local v1, v2 = ts[1][i], ts[2][i]
-  if v1 == nil and v2 == nil then
-    return nil
+  if v1 ~= nil or v2 ~= nil then
+    return i, v1, v2
   end
-  return i, v1, v2
 end
 
 -- Iterate multiples values for multiple arrays, returning the iterator index and values
