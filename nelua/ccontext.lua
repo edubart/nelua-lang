@@ -1,7 +1,6 @@
 local AnalyzerContext = require 'nelua.analyzercontext'
 local class = require 'nelua.utils.class'
 local cdefs = require 'nelua.cdefs'
-local traits = require 'nelua.utils.traits'
 local cbuiltins = require 'nelua.cbuiltins'
 local config = require 'nelua.configer'.get()
 
@@ -29,7 +28,7 @@ function CContext.promote_context(self, visitors, typevisitors)
 end
 
 function CContext:declname(attr)
-  assert(traits.is_attr(attr))
+  assert(attr._attr)
   if attr.declname then
     return attr.declname
   end
@@ -58,7 +57,7 @@ function CContext:genuniquename(kind, fmt)
 end
 
 function CContext:typename(type)
-  assert(traits.is_type(type))
+  assert(type._type)
   local visitor
 
   -- search visitor for any inherited type class

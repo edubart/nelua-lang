@@ -335,7 +335,7 @@ function Type:is_convertible_from(what, explicit, ...)
   elseif traits.is_type(what) then
     return self:is_convertible_from_type(what, explicit, ...)
   else --luacov:disable
-    assert(traits.is_attr(what))
+    assert(what._attr)
     return self:is_convertible_from_attr(what, explicit, ...)
   end --luacov:enable
 end

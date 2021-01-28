@@ -178,7 +178,6 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
     return valnode, valtype
   end
   objsym = objtype.symbol
-  assert(objsym)
   local n = context.parser.astbuilder.aster
   local idnode = n.Id{objsym.name, pattr={forcesymbol=objsym}}
   local newvalnode = n.Call{{valnode}, n.DotIndex{mtname, idnode}}
@@ -1297,7 +1296,6 @@ function visitors.CallMethod(context, node)
   if calleetype then
     if calleetype.is_pointer then
       calleetype = calleetype.subtype
-      assert(calleetype)
       attr.pointercall = true
     end
 
@@ -1782,8 +1780,6 @@ end
 
 function visitors.ForIn(context, node)
   local itvarnodes, inexpnodes, blocknode = node[1], node[2], node[3]
-  assert(#itvarnodes > 0)
-  assert(#inexpnodes > 0)
   if #inexpnodes > 3 then
     node:raisef("`in` statement can have at most 3 arguments")
   end
@@ -1906,7 +1902,6 @@ function visitors.VarDecl(context, node)
     #varnodes, #valnodes)
   end
   for i,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
-    assert(varnode.tag == 'IdDecl')
     varnode.attr.vardecl = true
     if varscope == 'global' then
       if not context.scope.is_topscope then
@@ -2120,7 +2115,6 @@ function visitors.Return(context, node)
 end
 
 local function block_endswith_return(blocknode)
-  assert(blocknode.tag == 'Block')
   local statnodes = blocknode[1]
   local laststat = statnodes[#statnodes]
   if not laststat then return false end
@@ -2228,7 +2222,6 @@ local function visitor_function_arguments(context, symbol, ismethod, argnodes, c
   local off = 0
 
   if ismethod then -- inject 'self' type as first argument
-    assert(symbol)
     local selfsym = symbol.selfsym
     if not selfsym then
       selfsym = Symbol()
@@ -2437,7 +2430,7 @@ function visitors.FuncDef(context, node, polysymbol)
             else
               polyargattr.type = polyarg
             end
-            assert(traits.is_type(polyargattr.type))
+            assert(polyargattr.type._type)
           end
         end
       end
@@ -2448,7 +2441,7 @@ function visitors.FuncDef(context, node, polysymbol)
       context:traverse_node(polynode, symbol)
       context:pop_state()
       context:push_node(node)
-      assert(traits.is_symbol(polynode.attr))
+      assert(polynode.attr._symbol)
     end
   end
 end
@@ -2569,7 +2562,6 @@ local function override_unary_op(context, node, opname, objnode, objtype)
   -- transform into call
   local n = context.parser.astbuilder.aster
   local objsym = objtype.symbol
-  assert(objsym)
   local idnode = n.Id{objsym.name, pattr={forcesymbol=objsym}}
   local newnode = n.Call{{objnode}, n.DotIndex{mtname, idnode}}
   node:transform(newnode)
@@ -2675,7 +2667,6 @@ local function override_binary_op(context, node, opname, lnode, rnode, ltype, rt
   -- transform into call
   local n = context.parser.astbuilder.aster
   local objsym = objtype.symbol
-  assert(objsym)
   local idnode = n.Id{objsym.name, pattr={forcesymbol=objsym}}
   local newnode = n.Call{{lnode, rnode}, n.DotIndex{mtname, idnode}}
   if neg then
