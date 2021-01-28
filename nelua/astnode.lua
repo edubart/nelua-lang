@@ -23,13 +23,14 @@ end
 
 ASTNode.genuid = genuid
 
-function ASTNode:_init(...)
-  for i=1,select('#', ...) do
-    self[i] = select(i, ...)
-  end
-  self.attr = setmetatable({}, Attr)
-  self.uid = genuid()
+function ASTNode._create(klass, ...)
+  return setmetatable({
+    attr = setmetatable({}, Attr),
+    uid = genuid(),
+    ...
+  }, klass)
 end
+getmetatable(ASTNode).__call = ASTNode._create
 
 function ASTNode:args()
   return table.unpack(self, 1, self.nargs)

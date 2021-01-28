@@ -17,15 +17,17 @@ end
 -- Create a new class derived from base.
 function class.new(base)
   local klass = {}
+  local create = createobject
   if base then
     for k, v in pairs(base) do
       if k:find("^__") == 1 then
         klass[k] = v
       end
     end
+    create = getmetatable(base).__call
   end
   klass.__index = klass
-  setmetatable(klass, { __index = base, __call = createobject })
+  setmetatable(klass, { __index = base, __call = create })
   return klass
 end
 

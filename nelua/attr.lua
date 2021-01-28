@@ -16,11 +16,11 @@ local Attr = class()
 Attr._attr = true
 
 -- Initialize an attr from a table of fields.
-function Attr:_init(attr)
-  if attr then
-    tabler.update(self, attr)
-  end
+function Attr._create(klass, attr)
+  attr = setmetatable(attr or {}, klass)
+  return attr
 end
+getmetatable(Attr).__call = Attr._create
 
 -- Clone the attr, shallow copying all fields.
 function Attr:clone()
