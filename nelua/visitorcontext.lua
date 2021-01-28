@@ -63,6 +63,7 @@ function VisitorContext:_init(visitors)
   self.nodes = {}
   self.state = {}
   self.statestack = {}
+  self.context = self
 end
 
 function VisitorContext:set_visitors(visitors)

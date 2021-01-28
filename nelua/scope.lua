@@ -10,44 +10,19 @@ local primtypes = typedefs.primtypes
 
 local Scope = class()
 
-function Scope:_init(parent, node)
-  assert(parent)
-  self.node = node
-  if parent._context then -- the parent is a context
-    self.context = parent
-    self.is_root = true
-    self.is_returnbreak = true
-  else
-    self.parent = parent
-    self.context = parent.context
-    table.insert(parent.children, self)
+local function make_symbols_mt(context, parent)
+  if parent then
+    return {__index = parent.symbols}
   end
-  self.resolved_rettypes = {}
-  self.unresolved_symbols = {}
-  self.children = {}
-  self.labels = {}
-  if parent and parent.is_root then
-    self.is_topscope = true
-  end
-  self:clear_symbols()
-end
-
-function Scope:fork(node)
-  return Scope(self, node)
-end
-
--- Clear the symbols and saved resolution data for this scope.
-function Scope:clear_symbols()
-  if self.parent then
-    self.symbols = setmetatable({}, {__index = self.parent.symbols})
-  else
-    self.symbols = setmetatable({}, {
-      __index =  function(symbols, key)
+  if not context.symbols__index then
+    local rootscope = context.rootscope
+    context.symbols__index = {
+      __index = function(symbols, key)
         -- return predefined symbol definition if nothing is found
         local symbol = symdefs[key]
         if symbol then
           symbol = symbol:clone()
-          symbol.scope = self.context.rootscope
+          symbol.scope = rootscope
           symbols[key] = symbol
         else -- create a symbol for a primtype index
           local primtype = primtypes[key]
@@ -57,7 +32,7 @@ function Scope:clear_symbols()
               codename = primtype.codename,
               type = primtypes.type,
               value = primtype,
-              scope = self.context.rootscope,
+              scope = rootscope,
               staticstorage = true,
               vardecl = true,
               lvalue = true,
@@ -69,52 +44,96 @@ function Scope:clear_symbols()
         end
         return symbol
       end
-    })
+    }
   end
+  return context.symbols__index
+end
+
+-- Create a new scope for a context.
+function Scope.create_root(context, node)
+  local scope = setmetatable({
+    node = node,
+    context = context,
+    is_root = true,
+    is_returnbreak = true,
+    children = {},
+    labels = {},
+    resolved_rettypes = {},
+    unresolved_symbols = {},
+    possible_rettypes = {},
+    symbols = setmetatable({}, make_symbols_mt(context))
+  }, Scope)
+  return scope
+end
+
+-- Create a new scope from the current one, current symbols are visible in the new scope.
+function Scope:fork(node)
+  local context = self.context
+  local scope = setmetatable({
+    node = node,
+    context = context,
+    parent = self,
+    is_topscope = self.is_root,
+    children = {},
+    labels = {},
+    resolved_rettypes = {},
+    unresolved_symbols = {},
+    possible_rettypes = {},
+    symbols = setmetatable({}, make_symbols_mt(context, self))
+  }, Scope)
+  local children = self.children
+  children[#children+1] = scope
+  return scope
+end
+
+-- Clear the symbols and saved resolution data for this scope.
+function Scope:clear_symbols()
+  self.symbols = setmetatable({}, make_symbols_mt(self.context, self.parent))
   self.possible_rettypes = {}
   self.has_unknown_return = nil
 end
 
 -- Search for a up scope matching a property.
 function Scope:get_up_scope_of_kind(kind)
-  local scope = self
-  while scope and not scope[kind] do
-    scope = scope.parent
+  while self and not self[kind] do
+    self = self.parent
   end
-  return scope
+  return self
 end
 
 -- Search for a up scope matching any property.
 function Scope:get_up_scope_of_any_kind(kind1, kind2)
-  local scope = self
-  while scope and not (scope[kind1] or scope[kind2]) do
-    scope = scope.parent
+  while self and not (self[kind1] or self[kind2]) do
+    self = self.parent
   end
-  return scope
+  return self
 end
 
 -- Return the first upper scope that is a function.
 function Scope:get_up_function_scope()
-  if not self.upfunctionscope then
-    self.upfunctionscope = self:get_up_scope_of_kind('is_function')
+  local upfunctionscope = self.upfunctionscope
+  if not upfunctionscope then
+    upfunctionscope = self:get_up_scope_of_kind('is_function')
+    self.upfunctionscope = upfunctionscope
   end
-  return self.upfunctionscope
+  return upfunctionscope
 end
 
 -- Return the first upper scope that would process return statements.
 function Scope:get_up_return_scope()
-  if not self.upreturnscope then
-    self.upreturnscope = self:get_up_scope_of_kind('is_returnbreak')
+  local upreturnscope = self.upreturnscope
+  if not upreturnscope then
+    upreturnscope = self:get_up_scope_of_kind('is_returnbreak')
+    self.upreturnscope = upreturnscope
   end
-  return self.upreturnscope
+  return upreturnscope
 end
 
 local function iterate_up_scopes_next(initscope, scope)
   if scope then
     return scope.parent
-  else
-    return initscope
   end
+  return initscope
 end
 
 -- Iterator to traverse all up scopes.
@@ -124,15 +143,13 @@ end
 
 -- Search for labels backtracking upper scopes.
 function Scope:find_label(name)
-  local parent = self
   repeat
-    local label = parent.labels[name]
+    local label = self.labels[name]
     if label then
-      return label, parent
+      return label, self
     end
-    parent = parent.parent
-  until (not parent or parent.is_returnbreak)
-  return nil, nil
+    self = self.parent
+  until (not self or self.is_returnbreak)
 end
 
 function Scope:add_label(label)
@@ -146,8 +163,9 @@ function Scope:make_checkpoint()
     resolved_rettypes = tabler.copy(self.resolved_rettypes),
     has_unknown_return = self.has_unknown_return
   }
-  if self.parent and not self.parent.is_root then
-    checkpoint.parentcheck = self.parent:make_checkpoint()
+  local parent = self.parent
+  if parent and not parent.is_root then
+    checkpoint.parentcheck = parent:make_checkpoint()
   end
   return checkpoint
 end
@@ -228,46 +246,49 @@ end
 
 function Scope:resolve_symbols()
   local unresolved_symbols = self.unresolved_symbols
-  if not next(unresolved_symbols) then return 0 end
-
   local count = 0
-  local unknownlist = {}
-  -- first resolve any symbol with known possible types
-  for symbol in next,unresolved_symbols do
-    if symbol.type == nil then
-      if symbol:resolve_type() then
-        count = count + 1
-      elseif count == 0 then
-        unknownlist[#unknownlist+1] = symbol
+  if next(unresolved_symbols) then
+    local unknownlist = {}
+    local context = self.context
+    -- first resolve any symbol with known possible types
+    for symbol in next,unresolved_symbols do
+      if symbol.type == nil then
+        if symbol:resolve_type() then
+          count = count + 1
+        elseif count == 0 then
+          unknownlist[#unknownlist+1] = symbol
+        end
       end
-    end
-    if symbol.type then
-      unresolved_symbols[symbol] = nil
-      self.context.unresolvedcount = self.context.unresolvedcount - 1
-    end
-  end
-  -- if nothing was resolved previously then try resolve symbol with unknown possible types
-  if count == 0 and #unknownlist > 0 and not self.context.rootscope.delay then
-    -- [disabled] try to infer the type only for the first unknown symbol
-    --table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)
-    for i=1,#unknownlist do
-      local symbol = unknownlist[i]
-      local force = self.context.state.anyphase and primtypes.any or not symbol:is_waiting_resolution()
-      if symbol:resolve_type(force) then
+      if symbol.type then
         unresolved_symbols[symbol] = nil
-        self.context.unresolvedcount = self.context.unresolvedcount - 1
-        count = count + 1
+        context.unresolvedcount = context.unresolvedcount - 1
       end
-      --break
+    end
+    -- if nothing was resolved previously then try resolve symbol with unknown possible types
+    if count == 0 and #unknownlist > 0 and not context.rootscope.delay then
+      -- [disabled] try to infer the type only for the first unknown symbol
+      --table.sort(unknownlist, function(a,b) return a.node.pos < b.node.pos end)
+      for i=1,#unknownlist do
+        local symbol = unknownlist[i]
+        local force = context.state.anyphase and primtypes.any or not symbol:is_waiting_resolution()
+        if symbol:resolve_type(force) then
+          unresolved_symbols[symbol] = nil
+          context.unresolvedcount = context.unresolvedcount - 1
+          count = count + 1
+        end
+        --break
+      end
     end
   end
   return count
 end
 
 function Scope:resolve_symbol(symbol)
-  if self.unresolved_symbols[symbol] and symbol:resolve_type() then
-    self.unresolved_symbols[symbol] = nil
-    self.context.unresolvedcount = self.context.unresolvedcount - 1
+  local unresolved_symbols = self.unresolved_symbols
+  if unresolved_symbols[symbol] and symbol:resolve_type() then
+    unresolved_symbols[symbol] = nil
+    local context = self.context
+    context.unresolvedcount = context.unresolvedcount - 1
   end
 end
 
@@ -275,9 +296,10 @@ function Scope:add_return_type(index, type)
   if not type then
     self.has_unknown_return = true
   end
-  local rettypes = self.possible_rettypes[index]
+  local possible_rettypes = self.possible_rettypes
+  local rettypes = possible_rettypes[index]
   if not rettypes then
-    self.possible_rettypes[index] = {[1] = type}
+    possible_rettypes[index] = {[1] = type}
   elseif type and not tabler.ifind(rettypes, type) then
     rettypes[#rettypes+1] = type
   end
@@ -289,8 +311,8 @@ function Scope:resolve_rettypes()
   end
   local count = 0
   local possible_rettypes = self.possible_rettypes
+  local resolved_rettypes = self.resolved_rettypes
   if next(possible_rettypes) then
-    local resolved_rettypes = self.resolved_rettypes
     for i,candidate_rettypes in pairs(possible_rettypes) do
       local rettype = types.find_common_type(candidate_rettypes) or primtypes.any
       if rettype ~= resolved_rettypes[i] then
@@ -300,7 +322,7 @@ function Scope:resolve_rettypes()
     end
   end
   if not self.has_unknown_return then
-    self.rettypes = self.resolved_rettypes
+    self.rettypes = resolved_rettypes
     if not self.is_root then -- avoid resolving again in root scope
       count = count + 1
     end
@@ -310,7 +332,7 @@ end
 
 function Scope:resolve()
   local count = self:resolve_symbols() + self:resolve_rettypes()
-  if count > 0 and config.debug_scope_resolve then
+  if config.debug_scope_resolve and count > 0 then
     console.info(self.node:format_message('info', "scope resolved %d symbols", count))
   end
   if self.delay then

@@ -11,7 +11,7 @@ local AnalyzerContext = class(VisitorContext)
 function AnalyzerContext:_init(visitors, parser, ast, generator)
   VisitorContext._init(self, visitors)
   self.parser = parser
-  self.rootscope = Scope(self, ast)
+  self.rootscope = Scope.create_root(self, ast)
   self.ast = ast
   self.scope = self.rootscope
   self.usedbuiltins = {}
