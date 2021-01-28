@@ -1841,13 +1841,16 @@ end
 function RecordType:add_field(name, type, index)
   local fields = self.fields
   local field = {name = name, type = type}
+  local update = index ~= false
   if not index then -- append a new field
     index = #fields + 1
     fields[index] = field
   else -- insert a new field at index
     table.insert(fields, index, field)
   end
-  self:update_fields()
+  if update then
+    self:update_fields()
+  end
 end
 
 -- Get a field from the record. (deprecated, use 'fields' directly)
@@ -1985,13 +1988,16 @@ end
 function UnionType:add_field(name, type, index)
   local fields = self.fields
   local field = {name = name, type = type}
+  local update = index ~= false
   if not index then -- append a new field
     index = #fields + 1
     fields[index] = field
   else -- insert a new field at index
     table.insert(fields, index, field)
   end
-  self:update_fields()
+  if update then
+    self:update_fields()
+  end
 end
 
 UnionType.has_pointer = RecordType.has_pointer

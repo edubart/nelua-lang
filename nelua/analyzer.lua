@@ -683,7 +683,7 @@ function visitors.RecordFieldType(context, node, recordtype)
   local typeattr = typenode.attr
   attr.type = typeattr.type
   attr.value = typeattr.value
-  recordtype:add_field(name, typeattr.value)
+  recordtype:add_field(name, typeattr.value, false)
   node.done = true
 end
 
@@ -711,6 +711,7 @@ function visitors.RecordType(context, node, symbol)
   end
   local fieldnodes = node[1]
   context:traverse_nodes(fieldnodes, recordtype)
+  recordtype:update_fields()
   node.done = true
 end
 
@@ -721,7 +722,7 @@ function visitors.UnionFieldType(context, node, uniontype)
   local typeattr = typenode.attr
   attr.type = typeattr.type
   attr.value = typeattr.value
-  uniontype:add_field(name, typeattr.value)
+  uniontype:add_field(name, typeattr.value, false)
   node.done = true
 end
 
@@ -744,6 +745,7 @@ function visitors.UnionType(context, node, symbol)
   end
   attr.type = primtypes.type
   attr.value = uniontype
+  uniontype:update_fields()
   node.done = true
 end
 
