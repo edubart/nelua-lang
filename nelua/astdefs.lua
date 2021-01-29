@@ -82,9 +82,6 @@ astbuilder:register('Paren', {
 })
 
 -- types
-astbuilder:register('Type', {
-  stypes.string + ntypes.PreprocessName, -- type name
-})
 astbuilder:register('TypeInstance', {
   ntypes.Node, -- typexpr
 })

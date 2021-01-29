@@ -31,7 +31,8 @@ local function traverse_node(self, node, ...)
   local nodes = self.nodes
   local index = #nodes+1
   nodes[index] = node -- push node
-  local visit = self.visitors[node.tag]
+  local visitors = self.visitors
+  local visit = visitors[node.tag] or visitors.default_visitor
   local ret = visit(self, node, ...)
   nodes[index] = nil -- pop node
   return ret
@@ -68,8 +69,9 @@ end
 
 function VisitorContext:set_visitors(visitors)
   self.visitors = visitors
-  local default_visitor = visitors.default_visitor or traverser_default_visitor
-  setmetatable(visitors, {__index = function() return default_visitor end})
+  if not visitors.default_visitor then
+    visitors.default_visitor = traverser_default_visitor
+  end
 end
 
 function VisitorContext:push_node(node)

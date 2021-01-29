@@ -51,16 +51,15 @@ function PEGParser:set_astbuilder(astbuilder)
 
   local function to_astnode(pos, tag, ...)
     local n = select('#', ...)
-    local node = {
+    local node = setmetatable({
       src = self.src,
       pos = pos,
       endpos = (select(n, ...)),
       uid = genuid(),
       attr = setmetatable({}, Attr),
       ...
-    }
+    }, astnodes[tag])
     node[n] = nil -- remove endpos
-    setmetatable(node, astnodes[tag])
     return node
   end
 

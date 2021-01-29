@@ -276,20 +276,19 @@ function preprocessor.preprocess(context, ast)
     staticerror = static_error,
     staticassert = static_assert,
   })
+  local contextenv = context.env
   setmetatable(ppenv, { __index = function(_, key)
-    local v = rawget(ppcontext.context.env, key)
+    local v = contextenv[key]
     if v ~= nil then
       return v
     end
-    if _G[key] ~= nil then
-      return _G[key]
-    end
     if key == 'symbols' then
-      return ppcontext.context.scope.symbols
-    elseif key == 'pragmas' then
-      return ppcontext.context.pragmas
+      return context.scope.symbols
     end
-    local symbol = ppcontext.context.scope.symbols[key]
+    if key == 'pragmas' then
+      return context.pragmas
+    end
+    local symbol = context.scope.symbols[key]
     if symbol then
       return symbol
     elseif typedefs.call_pragmas[key] then
@@ -301,11 +300,9 @@ function preprocessor.preprocess(context, ast)
         end
         ppcontext:add_statnode(aster.PragmaCall{key, table.pack(...)}, true)
       end
-    else
-      return nil
     end
   end, __newindex = function(_, key, value)
-    rawset(ppcontext.context.env, key, value)
+    contextenv[key] = value
   end})
 
   -- try to run the preprocess otherwise capture and show the error

@@ -15,7 +15,7 @@ function AnalyzerContext:_init(visitors, parser, ast, generator)
   self.ast = ast
   self.scope = self.rootscope
   self.usedbuiltins = {}
-  self.env = {}
+  self.env = setmetatable({}, {__index = _G})
   self.requires = {}
   self.scopestack = {}
   self.globalpragmas = {}
@@ -48,9 +48,8 @@ function AnalyzerContext:push_scope(scope)
 end
 
 function AnalyzerContext:push_forked_scope(node)
-  local scope
-  if node.scope then
-    scope = node.scope
+  local scope = node.scope
+  if scope then
     assert(scope.parent == self.scope and scope.node == node)
   else
     scope = self.scope:fork(node)
@@ -77,8 +76,8 @@ function AnalyzerContext:ensure_runtime_builtin(name, p1, p2)
   if not (p1 or p2) and self.usedbuiltins[name] then
     return name
   end
-  errorer.assertf(self.builtins[name], 'builtin "%s" not defined', name)
   local func = self.builtins[name]
+  errorer.assertf(func, 'builtin "%s" not defined', name)
   if func then
     local newname = func(self, p1, p2)
     if newname then
@@ -98,12 +97,13 @@ function AnalyzerContext:choose_codename(name)
       name = unitname .. name
     end
   end
-  local count = self.usedcodenames[name]
+  local usedcodenames = self.usedcodenames
+  local count = usedcodenames[name]
   if count then
-    self.usedcodenames[name] = count + 1
+    usedcodenames[name] = count + 1
     name = string.format('%s__%d', name, count)
   end
-  self.usedcodenames[name] = 1
+  usedcodenames[name] = 1
   return name
 end
 

@@ -980,6 +980,7 @@ local function izipargnodes(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[lastargindex]
   local lastcalleetype = lastargnode and lastargnode.attr.calleetype
+  local niltype = primtypes.niltype
   if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and
      (not lastcalleetype or not lastcalleetype.is_type) then
     -- last arg is a runtime call
@@ -998,7 +999,7 @@ local function izipargnodes(vars, argnodes)
               -- argnode does not exists, fill with multiple returns type
               -- in case it doest not exists, the argtype will be nil type
               local callretindex = i - lastargindex + 1
-              local argtype = calleetype:get_return_type(callretindex) or primtypes.niltype
+              local argtype = calleetype:get_return_type(callretindex) or niltype
               if callretindex > 1 and not argtype.is_niltype then
                 lastargnode.attr.multirets = true
               end
@@ -1023,7 +1024,7 @@ local function izipargnodes(vars, argnodes)
       i, var, argnode = iter(ts, i)
       if i then
         -- in case this is nonexistent, set argtype to nil type
-        return i, var, argnode, not argnode and primtypes.niltype or argnode.attr.type
+        return i, var, argnode, not argnode and niltype or argnode.attr.type
       end
     end
   end

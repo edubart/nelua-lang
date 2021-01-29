@@ -7,6 +7,7 @@ local except = require 'nelua.utils.except'
 local sstream = require 'nelua.utils.sstream'
 local stringer = require 'nelua.utils.stringer'
 local console = require 'nelua.utils.console'
+local tabler = require'nelua.utils.tabler'
 local config = require 'nelua.configer'.get()
 local Attr = require 'nelua.attr'
 
@@ -47,8 +48,8 @@ function ASTNode:transform(node)
   self.pattr = node.pattr
 end
 
-local clone_attr = Attr.clone
 local clone_nodetable, clone_node
+local tabler_copy = tabler.copy
 
 clone_nodetable = function(t)
   local ct = {}
@@ -64,19 +65,18 @@ clone_nodetable = function(t)
 end
 
 clone_node = function(node)
-  local cloned = {
+  uid = uid + 1
+  local pattr = node.pattr
+  local cloned = setmetatable({
+    attr = setmetatable(pattr and tabler_copy(pattr) or {}, Attr),
     pos = node.pos,
     endpos = node.endpos,
     src = node.src,
     preprocess = node.preprocess,
-    uid = genuid(),
-    attr = setmetatable({}, Attr)
-  }
-  local pattr = node.pattr
-  if pattr then
-    cloned.attr = clone_attr(pattr)
-    cloned.pattr = pattr
-  end
+    uid = uid,
+    pattr = pattr,
+    nil,nil,nil,nil, -- preallocate array part
+  }, getmetatable(node))
   for i=1,node.nargs do
     local arg = node[i]
     if type(arg) == 'table' then
@@ -88,7 +88,6 @@ clone_node = function(node)
     end
     cloned[i] = arg
   end
-  setmetatable(cloned, getmetatable(node))
   return cloned
 end
 
