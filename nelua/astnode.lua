@@ -17,21 +17,39 @@ ASTNode.nargs = 0
 ASTNode._astnode = true
 
 local uid = 0
-local function genuid()
-  uid = uid + 1
-  return uid
-end
-
-ASTNode.genuid = genuid
 
 function ASTNode._create(klass, ...)
+  local nuid = uid + 1
+  uid = nuid
   return setmetatable({
     attr = setmetatable({}, Attr),
-    uid = genuid(),
+    uid = nuid,
     ...
   }, klass)
 end
 getmetatable(ASTNode).__call = ASTNode._create
+
+function ASTNode.make_toastnode(parser, astnodes)
+  local function to_astnode(pos, tag, ...)
+    local nuid = uid + 1
+    uid = nuid
+    local n = select('#', ...)
+    local endpos = select(n, ...)
+    local src = parser.src
+    local attr = setmetatable({}, Attr)
+    local node = setmetatable({
+        attr = attr,
+        src = src,
+        endpos = endpos,
+        pos = pos,
+        uid = nuid,
+        ...
+      }, astnodes[tag])
+    node[n] = nil -- remove endpos
+    return node
+  end
+  return to_astnode
+end
 
 function ASTNode:args()
   return table.unpack(self, 1, self.nargs)
@@ -49,7 +67,7 @@ function ASTNode:transform(node)
 end
 
 local clone_nodetable, clone_node
-local tabler_copy = tabler.copy
+local tabler_update = tabler.update
 
 clone_nodetable = function(t)
   local ct = {}
@@ -65,18 +83,23 @@ clone_nodetable = function(t)
 end
 
 clone_node = function(node)
-  uid = uid + 1
+  local nuid = uid + 1
+  uid = nuid
   local pattr = node.pattr
+  local attr = setmetatable({}, Attr)
   local cloned = setmetatable({
-    attr = setmetatable(pattr and tabler_copy(pattr) or {}, Attr),
+    attr = attr,
     pos = node.pos,
     endpos = node.endpos,
     src = node.src,
     preprocess = node.preprocess,
-    uid = uid,
     pattr = pattr,
-    nil,nil,nil,nil, -- preallocate array part
+    uid = nuid,
+    nil,nil,nil,nil,nil,nil -- preallocate array part
   }, getmetatable(node))
+  if pattr then
+    tabler_update(attr, pattr)
+  end
   for i=1,node.nargs do
     local arg = node[i]
     if type(arg) == 'table' then

@@ -9,6 +9,7 @@ local except = require 'nelua.utils.except'
 local nanotimer = require 'nelua.utils.nanotimer'
 local console = require 'nelua.utils.console'
 local config = require 'nelua.configer'.get()
+local ASTNode = require 'nelua.astnode'
 
 local PEGParser = class()
 
@@ -40,8 +41,6 @@ local function recompile_peg(selfdefs, pegdesc)
   selfdefs[pegdesc.name] = compiled_patt
 end
 
-local genuid = require 'nelua.astnode'.genuid
-local Attr = require 'nelua.attr'
 
 function PEGParser:set_astbuilder(astbuilder)
   self.astbuilder = astbuilder
@@ -49,25 +48,15 @@ function PEGParser:set_astbuilder(astbuilder)
   local unpack = table.unpack
   local insert = table.insert
 
-  local function to_astnode(pos, tag, ...)
-    local n = select('#', ...)
-    local node = setmetatable({
-      src = self.src,
-      pos = pos,
-      endpos = (select(n, ...)),
-      uid = genuid(),
-      attr = setmetatable({}, Attr),
-      ...
-    }, astnodes[tag])
-    node[n] = nil -- remove endpos
-    return node
-  end
+  local to_astnode = ASTNode.make_toastnode(self, astnodes)
 
   local defs = self.defs
   defs.to_astnode = to_astnode
-  defs.to_chain_unary_op = function(ops, expr, endpos)
-    for i=#ops,1,-2 do
-      expr = to_astnode(ops[i-1], 'UnaryOp', ops[i], expr, endpos)
+  defs.to_chain_unary_op = function(...)
+    local expr, endpos = select(-2, ...)
+    for i=select('#',...)-3,0,-2 do
+      local pos, opname = select(i, ...)
+      expr = to_astnode(pos, 'UnaryOp', opname, expr, endpos)
     end
     return expr
   end
@@ -79,9 +68,10 @@ function PEGParser:set_astbuilder(astbuilder)
     return to_astnode(pos, tag, exprs, endpos)
   end
 
-  defs.to_chain_late_unary_op = function(opnodes, expr, endpos)
-    for i=#opnodes,1,-1 do
-      local op = opnodes[i]
+  defs.to_chain_late_unary_op = function(...)
+    local expr, endpos = select(-2, ...)
+    for i=select('#',...)-2,1,-1 do
+      local op = select(i,...)
       op[3] = expr
       op[#op+1] = endpos
       expr = to_astnode(unpack(op))
@@ -96,10 +86,12 @@ function PEGParser:set_astbuilder(astbuilder)
     return to_astnode(pos, 'BinaryOp', opname, lhs, rhs, endpos)
   end
 
-  defs.to_chain_binary_op = function(pos, matches)
-    local lhs = matches[1]
-    for i=2,#matches,3 do
-      lhs = to_astnode(pos, 'BinaryOp', matches[i], lhs, matches[i+1], matches[i+2])
+  defs.to_chain_binary_op = function(pos, lhs, ...)
+    if ... then
+      for i=1,select('#',...),3 do
+        local opname, rhs, endpos = select(i, ...)
+        lhs = to_astnode(pos, 'BinaryOp', opname, lhs, rhs, endpos)
+      end
     end
     return lhs
   end

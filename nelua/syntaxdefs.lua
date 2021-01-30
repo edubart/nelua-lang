@@ -375,18 +375,18 @@ local function get_parser()
   grammar:set_pegs([[
     expr      <- expr1
 
-    expr1  <- ({} {| expr2  (op_or       expr2  {})* |})    -> to_chain_binary_op
-    expr2  <- ({} {| expr3  (op_and      expr3  {})* |})    -> to_chain_binary_op
-    expr3  <- ({} {| expr4  (op_cmp      expr4  {})* |})    -> to_chain_binary_op
-    expr4  <- ({} {| expr5  (op_bor      expr5  {})* |})    -> to_chain_binary_op
-    expr5  <- ({} {| expr6  (op_xor      expr6  {})* |})    -> to_chain_binary_op
-    expr6  <- ({} {| expr7  (op_band     expr7  {})* |})    -> to_chain_binary_op
-    expr7  <- ({} {| expr8  (op_bshift   expr8  {})* |})    -> to_chain_binary_op
+    expr1  <- ({} expr2  (op_or       expr2  {})* )    -> to_chain_binary_op
+    expr2  <- ({} expr3  (op_and      expr3  {})* )    -> to_chain_binary_op
+    expr3  <- ({} expr4  (op_cmp      expr4  {})* )    -> to_chain_binary_op
+    expr4  <- ({} expr5  (op_bor      expr5  {})* )    -> to_chain_binary_op
+    expr5  <- ({} expr6  (op_xor      expr6  {})* )    -> to_chain_binary_op
+    expr6  <- ({} expr7  (op_band     expr7  {})* )    -> to_chain_binary_op
+    expr7  <- ({} expr8  (op_bshift   expr8  {})* )    -> to_chain_binary_op
     expr8  <- ({}    expr9  (op_concat   expr8  {})?   )    -> to_binary_op
     expr9  <- expr10 -- free op slot
-    expr10 <- ({} {| expr11 (op_add      expr11 {})* |})    -> to_chain_binary_op
-    expr11 <- ({} {| expr12 (op_mul      expr12 {})* |})    -> to_chain_binary_op
-    expr12 <- ({| ({} op_unary)* |}      expr13      {})    -> to_chain_unary_op
+    expr10 <- ({} expr11 (op_add      expr11 {})* )    -> to_chain_binary_op
+    expr11 <- ({} expr12 (op_mul      expr12 {})* )    -> to_chain_binary_op
+    expr12 <- (({} op_unary)*         expr13 {}   )    -> to_chain_unary_op
     expr13 <- ({} simple_expr (op_pow    expr12)?    {})    -> to_binary_op
 
     simple_expr <-
@@ -479,7 +479,7 @@ local function get_parser()
 
     typexpr <- typexpr0
     typexpr0 <- ({} '' -> 'VariantType' {| typexpr1 (%BOR typexpr1)* |} {}) -> to_list_astnode
-    typexpr1 <- ({| (unary_typexpr_op)* |} simple_typexpr {}) -> to_chain_late_unary_op
+    typexpr1 <- ((unary_typexpr_op)* simple_typexpr {}) -> to_chain_late_unary_op
 
     simple_typexpr <-
       func_type /

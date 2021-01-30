@@ -11,6 +11,7 @@ nelua_cache
 *.dll
 *.data
 *.old
+*.zst
 .vscode
 tempCodeRunner.*
 neluacfg.lua
