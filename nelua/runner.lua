@@ -1,8 +1,8 @@
 require 'nelua.utils.luaver'.check()
 
 -- make the lua garbage collector less aggressive to speed up compilation
-collectgarbage("setpause", 800)
-collectgarbage("setstepmul", 400)
+collectgarbage("incremental", 800, 400, 16)
+collectgarbage("stop")
 
 local timer = require 'nelua.utils.nanotimer'()
 local stringer = require 'nelua.utils.stringer'
@@ -81,6 +81,10 @@ local function run(argv, redirect)
   -- this is required here because the config may affect how they load
   local analyzer = require 'nelua.analyzer'
   local AnalyzerContext = require 'nelua.analyzercontext'
+
+  if not config.turbo then
+    collectgarbage("restart")
+  end
 
   -- analyze the ast
   local context = AnalyzerContext(analyzer.visitors, parser, ast, config.generator)
