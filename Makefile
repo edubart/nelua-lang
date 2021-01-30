@@ -61,6 +61,15 @@ default: nelua-lua
 nelua-lua:
 	@$(MAKE) --no-print-directory -C src
 
+## Compile Nelua's bundled Lua interpreter using PGO (Profile Guided optimization) and native,
+## this can usually speed up compilation speed by ~6%.
+optimized-nelua-lua:
+	rm -rf pgo
+	$(MAKE) --no-print-directory -C src MYCFLAGS="-O3 -march=native -fprofile-generate=pgo" clean default
+	$(NELUALUA) nelua.lua -qb tests/all_test.nelua
+	$(MAKE) --no-print-directory -C src MYCFLAGS="-O3 -march=native -fprofile-use=../pgo" clean default
+	rm -rf pgo
+
 ## Run test suite.
 test: nelua-lua
 	$(BUSTED) --lua=$(LUA)

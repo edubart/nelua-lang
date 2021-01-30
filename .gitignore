@@ -21,3 +21,4 @@ neluacfg.lua
 nelua-lua
 /pkg
 /mylib_test
+/pgo
