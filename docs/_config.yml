@@ -40,9 +40,12 @@ plugins:
   - jekyll-feed
   - jekyll-sitemap
 algolia:
-  application_id: 80N9D5X8WH
-  index_name: docsearch
-  search_only_api_key: c2fb3443da3264ee960c872ad6f31c5b
+  index_name: nelua
+  search_only_api_key: c8cc0350725c7374769edcdcfc48aeef
+
+  #application_id: 80N9D5X8WH
+  #index_name: docsearch
+  #search_only_api_key: c2fb3443da3264ee960c872ad6f31c5b
 
 # Exclude from processing.
 # The following items will not be processed, by default.
