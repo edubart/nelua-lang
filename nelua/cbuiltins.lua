@@ -119,6 +119,7 @@ end
 function builtins.nelua_assert(context)
   context:ensure_runtime_builtin('nelua_panic_cstring')
   context:ensure_runtime_builtin('nelua_unlikely')
+  context:add_include('<stdbool.h>')
   define_builtin(context, 'nelua_assert',
     'static void nelua_assert(bool cond);\n',
     [[inline void nelua_assert(bool cond) {
@@ -132,6 +133,7 @@ end
 function builtins.nelua_assert_stringview(context)
   context:ensure_runtime_builtin('nelua_panic_stringview')
   context:ensure_runtime_builtin('nelua_unlikely')
+  context:add_include('<stdbool.h>')
   context:ctype(primtypes.stringview)
   define_builtin(context, 'nelua_assert_stringview',
     'static void nelua_assert_stringview(bool cond, nlstringview s);\n',
@@ -171,6 +173,7 @@ function builtins.nelua_assert_deref_(context, indextype)
   local indexctype = context:ctype(indextype)
   context:ensure_runtime_builtin('nelua_panic_cstring')
   context:ensure_runtime_builtin('nelua_unlikely')
+  context:add_include('<stddef.h>')
   define_inline_builtin(context, name,
     indexctype,
     string.format('(%s p)', indexctype), [[{
@@ -196,6 +199,7 @@ end
 -- string
 function builtins.nelua_stringview_eq(context)
   context:add_include('<string.h>')
+  context:add_include('<stdbool.h>')
   context:ctype(primtypes.stringview)
   define_inline_builtin(context,'nelua_stringview_eq',
     'bool', '(nlstringview a, nlstringview b)', [[{
@@ -205,6 +209,7 @@ end
 
 function builtins.nelua_stringview_ne(context)
   context:ensure_runtime_builtin('nelua_stringview_eq')
+  context:add_include('<stdbool.h>')
   define_inline_builtin(context, 'nelua_stringview_ne',
     'bool', '(nlstringview a, nlstringview b)', [[{
   return !nelua_stringview_eq(a, b);
@@ -212,6 +217,7 @@ function builtins.nelua_stringview_ne(context)
 end
 
 function builtins.nelua_cstring2stringview(context)
+  context:add_include('<stddef.h>')
   context:add_include('<string.h>')
   context:ctype(primtypes.stringview)
   define_inline_builtin(context, 'nelua_cstring2stringview',
@@ -237,6 +243,7 @@ function builtins.nlruntype_(context, typename)
   if context.usedbuiltins[name] then return name end
   context:ctype(primtypes.stringview)
   context:ensure_runtime_builtin('nlruntype')
+  context:add_include('<stdint.h>')
   local code = string.format('static nlruntype %s ='..
     '{ {(uint8_t*)"%s", %d} };\n',
     name, typename, #typename)
@@ -248,6 +255,9 @@ end
 function builtins.nlany(context)
   context:ensure_runtime_builtin('nlniltype')
   context:ensure_runtime_builtin('nlruntype')
+  context:add_include('<stddef.h>')
+  context:add_include('<stdint.h>')
+  context:add_include('<stdbool.h>')
   define_builtin(context, 'nlany', [[typedef struct nlany {
   nlruntype *type;
   union {
@@ -291,6 +301,7 @@ function builtins.nlany_to_(context, type)
   local name = 'nlany_to_' .. typename
   if context.usedbuiltins[name] then return name end
   local ctype = context:ctype(type)
+  context:add_include('<stddef.h>')
   context:ensure_runtime_builtin('nlany')
   context:ensure_runtime_builtin('nlruntype_', typename)
   if type.is_boolean then
@@ -331,6 +342,7 @@ function builtins.nelua_stdout_write_stringview(context)
 end
 
 function builtins.nelua_stdout_write_any(context)
+  context:add_include('<stddef.h>')
   context:add_include('<stdio.h>')
   context:add_include('<inttypes.h>')
   context:ensure_runtime_builtin('nlruntype_', 'nlboolean')
@@ -430,6 +442,8 @@ function builtins.nelua_lt_(context, ltype, rtype)
   if ltype.is_signed and rtype.is_unsigned then
     local name = string.format('nelua_lt_i%du%d', ltype.bitsize, rtype.bitsize)
     if context.usedbuiltins[name] then return name end
+    context:add_include('<stdbool.h>')
+    context:add_include('<stdint.h>')
     define_inline_builtin(context, name,
       'bool',
       string.format('(int%d_t a, uint%d_t b)', ltype.bitsize, rtype.bitsize),
@@ -439,6 +453,8 @@ function builtins.nelua_lt_(context, ltype, rtype)
     assert(ltype.is_unsigned and rtype.is_signed)
     local name = string.format('nelua_lt_u%di%d', ltype.bitsize, rtype.bitsize)
     if context.usedbuiltins[name] then return name end
+    context:add_include('<stdbool.h>')
+    context:add_include('<stdint.h>')
     define_inline_builtin(context, name,
       'bool',
       string.format('(uint%d_t a, int%d_t b)', ltype.bitsize, rtype.bitsize),
@@ -482,6 +498,7 @@ function builtins.nelua_eq_(context, ltype, rtype)
     defemitter:add_ln(';')
     defemitter:dec_indent()
     defemitter:add_ln('}')
+    context:add_include('<stdbool.h>')
     define_inline_builtin(context, name,
       'bool',
       string.format('(%s a, %s b)', ctype, ctype),
@@ -492,6 +509,8 @@ function builtins.nelua_eq_(context, ltype, rtype)
     local name = string.format('nelua_eq_i%du%d', ltype.bitsize, rtype.bitsize)
     local maxbitsize = math.max(ltype.bitsize, rtype.bitsize)
     if context.usedbuiltins[name] then return name end
+    context:add_include('<stdbool.h>')
+    context:add_include('<stdint.h>')
     define_inline_builtin(context, name,
       'bool',
       string.format('(int%d_t a, uint%d_t b)', ltype.bitsize, rtype.bitsize),
@@ -504,6 +523,7 @@ end
 function builtins.nelua_idiv_(context, type)
   local name = string.format('nelua_idiv_i%d', type.bitsize)
   if context.usedbuiltins[name] then return name end
+  context:add_include('<stdint.h>')
   local ictype = string.format('int%d_t', type.bitsize)
   local uctype = string.format('uint%d_t', type.bitsize)
   context:ensure_runtime_builtin('nelua_unlikely')
@@ -523,6 +543,7 @@ end
 function builtins.nelua_imod_(context, type)
   local name = string.format('nelua_imod_i%d', type.bitsize)
   if context.usedbuiltins[name] then return name end
+  context:add_include('<stdint.h>')
   local ictype = string.format('int%d_t', type.bitsize)
   context:ensure_runtime_builtin('nelua_unlikely')
   context:ensure_runtime_builtin('nelua_panic_cstring')

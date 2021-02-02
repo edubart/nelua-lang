@@ -1346,7 +1346,7 @@ function visitors.UnaryOp(_, node, emitter)
   if surround then emitter:add(')') end
 end
 
-function visitors.BinaryOp(_, node, emitter)
+function visitors.BinaryOp(context, node, emitter)
   if node.attr.comptime then
     emitter:add_literal(node.attr)
     return
@@ -1362,6 +1362,7 @@ function visitors.BinaryOp(_, node, emitter)
     emitter:inc_indent()
     if node.attr.ternaryor then
       -- lua style "ternary" operator
+      context:add_include('<stdbool.h>')
       emitter:add_indent_ln(type, ' t_;')
       emitter:add_indent('bool cond_ = ')
       emitter:add_val2type(primtypes.boolean, lnode[2])
@@ -1388,6 +1389,7 @@ function visitors.BinaryOp(_, node, emitter)
       emitter:add_indent_ln(type, ' t2_ = {0};')
       if opname == 'and' then
         assert(not node.attr.ternaryand)
+        context:add_include('<stdbool.h>')
         emitter:add_indent('bool cond_ = ')
         emitter:add_val2type(primtypes.boolean, 't1_', type)
         emitter:add_ln(';')
@@ -1403,6 +1405,7 @@ function visitors.BinaryOp(_, node, emitter)
         emitter:add_indent_ln('}')
         emitter:add_indent_ln('cond_ ? t2_ : (', type, '){0};')
       elseif opname == 'or' then
+        context:add_include('<stdbool.h>')
         emitter:add_indent('bool cond_ = ')
         emitter:add_val2type(primtypes.boolean, 't1_', type)
         emitter:add_ln(';')
@@ -1453,7 +1456,7 @@ local function emit_features_setup(context)
   local emitter = CEmitter(context)
   do -- warnings
     emitter:add_ln('#ifdef __GNUC__')
-      -- throw error on implict declarations
+      -- throw error on implicit declarations
       emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
       emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-int"')
       -- importing C functions can cause this warn
@@ -1461,8 +1464,6 @@ local function emit_features_setup(context)
       -- C zero initialization for anything
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-braces"')
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-field-initializers"')
-      -- usage of no_sanitize_memory/no_sanitize_address cause this warning
-      emitter:add_ln('#pragma GCC diagnostic ignored "-Wattributes"')
       -- the code generator may generate unused variables, parameters, functions
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-parameter"')
       emitter:add_ln('#if defined(__clang__)')
@@ -1494,9 +1495,6 @@ end
 
 local function emit_main(ast, context)
   emit_features_setup(context)
-  context:add_include('<stddef.h>')
-  context:add_include('<stdint.h>')
-  context:add_include('<stdbool.h>')
 
   local mainemitter = CEmitter(context, -1)
   context.mainemitter = mainemitter

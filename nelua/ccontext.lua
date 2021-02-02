@@ -3,6 +3,7 @@ local class = require 'nelua.utils.class'
 local cdefs = require 'nelua.cdefs'
 local cbuiltins = require 'nelua.cbuiltins'
 local config = require 'nelua.configer'.get()
+local luatype = type
 
 local CContext = class(AnalyzerContext)
 
@@ -101,7 +102,10 @@ end
 function CContext:ctype(type)
   local codename = self:typename(type)
   local ctype = cdefs.primitive_ctypes[type.codename]
-  if ctype then
+  if luatype(ctype) == 'table' then -- has include
+    self:add_include(ctype[2])
+    return ctype[1]
+  elseif ctype then
     return ctype
   end
   return codename
@@ -139,7 +143,7 @@ end
 
 function CContext:add_include(name)
   if self.declarations[name] then return end
-  self:add_declaration(string.format('#include %s\n', name), name)
+  self:add_declaration('#include '..name..'\n', name)
 end
 
 local function eval_late_templates(templates)

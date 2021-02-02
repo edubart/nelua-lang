@@ -28,6 +28,7 @@ function CEmitter:zeroinit(type)
     self.context:ensure_runtime_builtin('NLNIL')
     s = 'NLNIL'
   elseif type.is_pointer or type.is_procedure then
+    self.context:add_include('<stddef.h>')
     s = 'NULL'
   elseif type.is_boolean then
     s = 'false'
@@ -66,6 +67,7 @@ function CEmitter:add_booleanlit(value)
 end
 
 function CEmitter:add_null()
+  self.context:add_include('<stddef.h>')
   self:add('NULL')
 end
 
@@ -96,6 +98,7 @@ function CEmitter:add_val2boolean(val, valtype)
       self:add('({(void)(', val, '); false;})')
     end
   elseif valtype.is_pointer or valtype.is_function then
+    self.context:add_include('<stddef.h>')
     self:add('(', val, ' != NULL)')
   else
     if traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Id') then
