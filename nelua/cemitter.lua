@@ -63,6 +63,7 @@ function CEmitter:add_ctypecast(type)
 end
 
 function CEmitter:add_booleanlit(value)
+  self.context:add_include('<stdbool.h>')
   self:add(value and 'true' or 'false')
 end
 
@@ -86,6 +87,7 @@ end
 
 function CEmitter:add_val2boolean(val, valtype)
   valtype = valtype or val.attr.type
+  self.context:add_include('<stdbool.h>')
   if valtype.is_boolean then
     self:add(val)
   elseif valtype.is_any then

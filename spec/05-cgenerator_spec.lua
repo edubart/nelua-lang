@@ -239,7 +239,7 @@ end)
 
 it("repeat", function()
   assert.generate_c("repeat until true", [[
-  while(true) {
+  while(1) {
     if(true) {
       break;
     }
@@ -249,7 +249,7 @@ it("repeat", function()
       local a = true
     until a
   ]], [[
-  while(true) {
+  while(1) {
     bool a = true;
     if(a) {
       break;

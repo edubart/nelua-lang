@@ -1044,7 +1044,7 @@ end
 
 function visitors.Repeat(context, node, emitter)
   local blocknode, condnode = node:args()
-  emitter:add_indent_ln("while(true) {")
+  emitter:add_indent_ln("while(1) {")
   local scope = context:push_forked_scope(node)
   emitter:add(blocknode)
   emitter:inc_indent()
