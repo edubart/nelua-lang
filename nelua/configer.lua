@@ -102,6 +102,11 @@ local function build_configs(conf)
     end
     conf.pragma = pragmas
   end
+
+  if config.maximum_performance then --luacov:disable
+    conf.pragma = conf.pragma or {}
+    conf.pragma.nochecks = true
+  end --luacov:enable
 end
 
 --luacov:disable
@@ -137,6 +142,7 @@ local function create_parser(args)
   argparser:flag('-V --verbose', 'Print more information while compiling', defconfig.verbose)
   argparser:flag('-v --version', 'Print detailed version information'):action(action_version)
   argparser:flag('-w --no-warning', "Suppress all warning messages", defconfig.no_warning)
+  argparser:flag('-M --maximum-performance', "Maximum performance build (use for benchmarking)")
   argparser:flag('-j --turbo', "Compile faster by disabling the garbage collector (uses more MEM)")
   argparser:flag('--no-cache', "Don't use any cached compilation", defconfig.no_cache)
   argparser:flag('--no-color', 'Disable colorized output in the terminal.', defconfig.no_color)
