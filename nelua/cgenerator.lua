@@ -472,12 +472,13 @@ function visitors.PragmaCall(context, node, emitter)
     if traits.is_string(code) and not stringer.endswith(code, '\n') then
       code = code .. '\n'
     end
+    -- actually add in the directives section (just above declarations section)
     if traits.is_string(code) then
-      context:add_declaration(code)
+      context:add_directive(code)
     elseif traits.is_function(code) then
       local decemitter = CEmitter(context)
       code(decemitter)
-      context:add_declaration(decemitter:generate())
+      context:add_directive(decemitter:generate())
     end
   elseif name == 'cemitdef' then
     local code = args[1]
@@ -492,7 +493,7 @@ function visitors.PragmaCall(context, node, emitter)
       context:add_definition(defemitter:generate())
     end
   elseif name == 'cdefine' then
-    context:add_declaration(string.format('#define %s\n', args[1]))
+    context:add_define(args[1])
   elseif name == 'cflags' then
     table.insert(context.compileopts.cflags, args[1])
   elseif name == 'ldflags' then
@@ -1490,7 +1491,7 @@ local function emit_features_setup(context)
     emitter:add_ln('nelua_static_assert(sizeof(void*) == ', primtypes.pointer.size,
                 ', "Nelua and C disagree on architecture size");')
   end
-  context:add_declaration(emitter:generate())
+  context:add_directive(emitter:generate())
 end
 
 local function emit_main(ast, context)
@@ -1543,6 +1544,7 @@ function generator.generate(ast, context)
 
   local code = table.concat({
     '/* ------------------------------ DECLARATIONS ------------------------------ */\n',
+    table.concat(context.directives),
     table.concat(context.declarations),
     '/* ------------------------------ DEFINITIONS ------------------------------- */\n',
     table.concat(context.definitions)

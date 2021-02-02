@@ -12,6 +12,7 @@ function CContext:init(visitors, typevisitors)
   self.typevisitors = typevisitors
   self.declarations = {}
   self.definitions = {}
+  self.directives = {}
   self.compileopts = {
     cflags = {},
     ldflags = {},
@@ -142,8 +143,19 @@ function CContext:is_declared(name)
 end
 
 function CContext:add_include(name)
-  if self.declarations[name] then return end
-  self:add_declaration('#include '..name..'\n', name)
+  if self.directives[name] then return end
+  self.directives[name] = true
+  table.insert(self.directives, '#include '..name..'\n')
+end
+
+function CContext:add_define(name)
+  if self.directives[name] then return end
+  self.directives[name] = true
+  table.insert(self.directives, '#define '..name..'\n')
+end
+
+function CContext:add_directive(code)
+  table.insert(self.directives, code)
 end
 
 local function eval_late_templates(templates)

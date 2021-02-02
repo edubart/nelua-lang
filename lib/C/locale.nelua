@@ -2,7 +2,7 @@ require 'C'
 
 ## cinclude '<locale.h>'
 
-global lconv <cimport'lconv_t',nodecl,ctypedef> = @record {
+global lconv <cimport'lconv',nodecl,ctypedef> = @record {
   decimal_point: cstring,
   thousands_sep: cstring,
   grouping: cstring,
