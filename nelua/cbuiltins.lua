@@ -331,16 +331,6 @@ function builtins.nlany_to_(context, type)
 end
 
 -- writing
-function builtins.nelua_stdout_write_stringview(context)
-  context:add_include('<stdio.h>')
-  define_inline_builtin(context, 'nelua_stdout_write_stringview',
-    'void', '(nlstringview s)', [[{
-  if(s.data && s.size > 0) {
-    fwrite((char*)s.data, s.size, 1, stdout);
-  }
-}]])
-end
-
 function builtins.nelua_stdout_write_any(context)
   context:add_include('<stddef.h>')
   context:add_include('<stdio.h>')
@@ -986,7 +976,6 @@ end
 
 function inlines.print(context, node)
   context:add_include('<stdio.h>')
-  context:add_include('<inttypes.h>')
   local argnodes = node:args()
   local funcname = context:genuniquename('nelua_print')
 
@@ -1017,37 +1006,37 @@ function inlines.print(context, node)
     local argtype = argnode.attr.type
     defemitter:add_indent()
     if i > 1 then
-      defemitter:add_ln("putchar('\\t');")
+      defemitter:add_ln("fputc('\\t', stdout);")
       defemitter:add_indent()
     end
     if argtype.is_any then
       defemitter:add_builtin('nelua_stdout_write_any')
       defemitter:add_ln('(a',i,');')
-    elseif argtype.is_stringview then
-      defemitter:add_builtin('nelua_stdout_write_stringview')
-      defemitter:add_ln('(a',i,');')
+    elseif argtype.is_stringview or argtype.is_string then
+      defemitter:add_ln('fwrite(a',i,'.data, a',i,'.size, 1, stdout);')
     elseif argtype.is_cstring then
-      defemitter:add_ln('printf("%s", a',i,');')
-    elseif argtype.is_string then
-      defemitter:add_builtin('nelua_stdout_write_stringview')
-      defemitter:add_ln('((nlstringview){(uint8_t*)a',i,'.data, a',i,'.size});')
+      defemitter:add_ln('fputs(a',i,', stdout);')
     elseif argtype.is_niltype then
-      defemitter:add_ln('printf("nil");')
+      defemitter:add_ln('fputs("nil", stdout);')
     elseif argtype.is_boolean then
-      defemitter:add_ln('printf(a',i,' ? "true" : "false");')
+      defemitter:add_ln('fputs(a',i,' ? "true" : "false", stdout);')
+    elseif argtype.is_pointer then
+      defemitter:add_ln('fprintf(stdout, "%p", a',i,');')
     elseif argtype.is_arithmetic then
+      context:add_include('<inttypes.h>')
       local ty = node:assertraisef(argtype, 'type is not defined in AST node')
       if ty.is_enum then
         ty = ty.subtype
       end
       local tyformat = cdefs.types_printf_format[ty.codename]
       node:assertraisef(tyformat, 'invalid type "%s" for printf format', ty)
-      defemitter:add_ln('printf(', tyformat,', a',i,');')
+      defemitter:add_ln('fprintf(stdout, ', tyformat,', a',i,');')
     else --luacov:disable
       node:raisef('cannot handle type "%s" in print', argtype)
     end --luacov:enable
   end
-  defemitter:add_indent_ln('printf("\\n");')
+  defemitter:add_indent_ln("fputc('\\n', stdout);")
+  defemitter:add_indent_ln('fflush(stdout);')
   defemitter:add_ln('}')
 
   context:add_definition(defemitter:generate(), funcname)
