@@ -565,9 +565,12 @@ it("late deduction", function()
   assert.ast_type_equals([[
     local i: integer
     local a: auto = nilptr or &i
+    local b: auto = &i and nilptr
+
   ]],[[
     local i: integer
     local a: *integer = nilptr or &i
+    local b: *integer = &i and nilptr
   ]])
   assert.ast_type_equals([[
     local a = 1_integer
@@ -1867,6 +1870,9 @@ it("side effects detection", function()
       return x
     end
     ## assert(f.type.sideeffect == true)
+
+    local a: [4]integer = {f(1), f(2)}
+    local u: union{x: integer, y:number} = {x=f(1)}
 
     local function f(x: integer) <nosideeffect>
       X = x
