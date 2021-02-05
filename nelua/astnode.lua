@@ -229,11 +229,14 @@ function ASTNode:__tostring()
   return ss:tostring()
 end
 
+local coroutine_yield = coroutine.yield
+local coroutine_wrap = coroutine.wrap
+
 local function walk_symbols(node)
   if node._astnode then
     local attr = node.attr
     if attr and attr._symbol then
-      coroutine.yield(attr)
+      coroutine_yield(attr)
     end
   end
   for i=1,node.nargs or #node do
@@ -245,7 +248,32 @@ local function walk_symbols(node)
 end
 
 function ASTNode:walk_symbols()
-  return coroutine.wrap(walk_symbols), self
+  return coroutine_wrap(walk_symbols), self
+end
+
+local function walk_nodes(node)
+  if node._astnode then
+    coroutine_yield(node)
+  end
+  for i=1,node.nargs or #node do
+    local v = node[i]
+    if type(v) == 'table' then
+      walk_nodes(v)
+    end
+  end
+end
+
+function ASTNode:walk_nodes()
+  return coroutine_wrap(walk_nodes), self
+end
+
+function ASTNode:has_sideffect()
+  for node in self:walk_nodes() do
+    if node.attr.sideeffect then
+      return true
+    end
+  end
+  return false
 end
 
 return ASTNode

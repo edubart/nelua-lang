@@ -3142,4 +3142,22 @@ it("record as namespaces", function()
   ]=])
 end)
 
+it("record initialize evaluation order", function()
+  assert.run_c([=[
+    local Point = @record{x: integer, y: integer}
+    local function f(x: integer): integer
+      print(x)
+      return 1
+    end
+    local a: Point = {
+      y=f(2),
+      x=f(1),
+    }
+    local b: Point = {
+      x=1+f(2),
+      y=f(1),
+    }
+  ]=], "2\n1\n2\n1")
+end)
+
 end)
