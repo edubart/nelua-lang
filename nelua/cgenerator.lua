@@ -353,25 +353,22 @@ function visitors.Table(context, node, emitter)
       emitter:add('{', childnodes, '}')
       context:pop_state()
     else
-      local compactemit = false
-      if #childnodes == #type.fields then
-        compactemit = true
-        local hascall = false
-        for _,childnode in ipairs(childnodes) do
-          local childvalnode
-          if childnode.tag  == 'Pair' then
-            childvalnode = childnode[2]
-          else
-            childvalnode = childnode
-          end
-          local childvaltype = childvalnode.attr.type
-          local iscall = childvalnode:has_sideeffect()
-          if childvaltype.is_array or (hascall and iscall) then
-            compactemit = false
-            break
-          end
-          if iscall then hascall = true end
+      local compactemit = true
+      local hassideeffect = false
+      for _,childnode in ipairs(childnodes) do
+        local childvalnode
+        if childnode.tag == 'Pair' then
+          childvalnode = childnode[2]
+        else
+          childvalnode = childnode
         end
+        local childvaltype = childvalnode.attr.type
+        local sideeffect = childvalnode:has_sideeffect()
+        if childvaltype.is_array or (hassideeffect and sideeffect) then
+          compactemit = false
+          break
+        end
+        if sideeffect then hassideeffect = true end
       end
       if compactemit then
         emitter:add('(',type,'){')
