@@ -26,7 +26,7 @@ fi
 
 # fallback to system lua in case NELUA_LUA is not found
 if [ ! -x "$NELUA_LUA" ]; then
-  NELUA_LUA=$(which lua)
+  NELUA_LUA=$(command -v lua)
 fi
 
 # check if a lua is present
