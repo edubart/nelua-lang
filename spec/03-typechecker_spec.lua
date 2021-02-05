@@ -1232,6 +1232,12 @@ it("record methods", function()
     global B.lol: function():integer
     function B.lol() return 1 end
   ]], "cannot redefine meta type field")
+  assert.analyze_error([[
+    local R = @record{}
+    function R.hello() end
+    local x: R
+    x:hello()
+  ]], "the function cannot have arguments")
 end)
 
 it("record globals", function()

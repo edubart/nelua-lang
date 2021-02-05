@@ -1120,12 +1120,16 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         attr.pseudoargtypes = pseudoargtypes
         attr.pseudoargattrs = pseudoargattrs
       end
+      local methodtype
       if calleeobjnode then
         attr.ismethod = true
-        local ok, err = funcargtypes[1]:is_convertible_from_attr(calleeobjnode.attr, nil, argattrs)
+        methodtype = funcargtypes[1]
+        if not methodtype then
+          node:raisef("in method call of function '%s' at argument 1: the function cannot have arguments", calleename)
+        end
+        local ok, err = methodtype:is_convertible_from_attr(calleeobjnode.attr, nil, argattrs)
         if not ok then
-          node:raisef("in call of function '%s' at argument %d: %s",
-            calleetype, 1, err)
+          node:raisef("in method call of function '%s' at argument %d: %s", calleename, 1, err)
         end
         table.remove(pseudoargtypes, 1)
         table.remove(pseudoargattrs, 1)
@@ -1222,8 +1226,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           pseudoargtypes[i] = argtype
         end
       end
-      if calleeobjnode then
-        tabler.insert(polyargs, 1, funcargtypes[1])
+      if methodtype then
+        table.insert(polyargs, 1, methodtype)
       end
       if calleetype.is_polyfunction then
         local polycalleetype = calleetype
