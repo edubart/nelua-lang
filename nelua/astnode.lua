@@ -267,7 +267,7 @@ function ASTNode:walk_nodes()
   return coroutine_wrap(walk_nodes), self
 end
 
-function ASTNode:has_sideffect()
+function ASTNode:has_sideeffect()
   for node in self:walk_nodes() do
     if node.attr.sideeffect then
       return true

@@ -205,6 +205,7 @@ local function visitor_Array_literal(context, node, littype)
   end
   local comptime = true
   local done = true
+  local sideeffect
   for i=1,#childnodes do
     local childnode = childnodes[i]
     if childnode.tag == 'Pair' then
@@ -227,6 +228,9 @@ local function visitor_Array_literal(context, node, littype)
         childnode.checkcast = true
       end
     end
+    if childattr.sideeffect then
+      sideeffect = true
+    end
     if not childattr.comptime then
       comptime = nil
     end
@@ -236,6 +240,7 @@ local function visitor_Array_literal(context, node, littype)
   end
   attr.type = littype
   attr.comptime = comptime
+  attr.sideeffect = sideeffect
   node.done = done
 end
 
@@ -245,6 +250,7 @@ local function visitor_Record_literal(context, node, littype)
   local comptime = true
   local lastfieldindex = 0
   local done = true
+  local sideeffect
   for i=1,#childnodes do
     local childnode = childnodes[i]
     local parent, parentindex
@@ -295,6 +301,9 @@ local function visitor_Record_literal(context, node, littype)
     if not fieldvalattr.comptime then
       comptime = nil
     end
+    if fieldvalattr.sideeffect then
+      sideeffect = true
+    end
     childnode.parenttype = littype
     childnode.fieldname = fieldname
     if not fieldvaltype or not fieldvalnode.done then
@@ -303,6 +312,7 @@ local function visitor_Record_literal(context, node, littype)
   end
   attr.type = littype
   attr.comptime = comptime
+  attr.sideeffect = sideeffect
   node.done = done
 end
 
@@ -311,6 +321,7 @@ local function visitor_Union_literal(context, node, littype)
   local childnodes = node[1]
   local done = true
   local comptime = true
+  local sideeffect
   if #childnodes > 1 then
     node:raisef("unions can only be initialized with at most 1 field, but got %d", #childnodes)
   end
@@ -348,6 +359,9 @@ local function visitor_Union_literal(context, node, littype)
     if not fieldvalattr.comptime then
       comptime = nil
     end
+    if fieldvalattr.sideeffect then
+      sideeffect = true
+    end
     childnode.parenttype = littype
     childnode.fieldname = fieldname
     if not fieldvaltype or not fieldvalnode.done then
@@ -356,6 +370,7 @@ local function visitor_Union_literal(context, node, littype)
   end
   attr.type = littype
   attr.comptime = comptime
+  attr.sideeffect = sideeffect
   node.done = done
 end
 
@@ -1051,7 +1066,7 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
       if not ok then
         -- failed to convert, try to convert metamethods
         argnode, argtype = visitor_convert(context, argnodes, 1, type, argnode, argtype)
-        argattr = argnode.attr
+        argattr = argnode.attr -- argattr may have changed to a new node
         -- test again
         if argtype then
           ok, err = type:is_convertible_from_attr(argattr, true)
@@ -1069,8 +1084,8 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
         end
         attr.type = type
         attr.calleetype = primtypes.type
-        attr.sideeffect = argnode.attr.sideeffect
-        attr.lvalue = argnode.attr.lvalue
+        attr.sideeffect = argattr.sideeffect
+        attr.lvalue = argattr.lvalue
         if argnode.done then
           node.done = true
         end
@@ -1234,17 +1249,14 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         assert(calleetype.sideeffect ~= nil)
         attr.sideeffect = calleetype.sideeffect
       end
-    elseif calleetype.is_table then
+    elseif calleetype.is_table then -- table call (allowed for tables with metamethod __index)
       context:traverse_nodes(argnodes)
-      -- table call (allowed for tables with metamethod __index)
       attr.type = primtypes.varanys
       attr.sideeffect = true
-    elseif calleetype.is_any then
+    elseif calleetype.is_any then -- call on any values
       context:traverse_nodes(argnodes)
-      -- call on any values
       attr.type = primtypes.varanys
-      -- builtins usually don't have side effects
-      attr.sideeffect = not attr.builtin
+      attr.sideeffect = true
     else
       -- call on invalid types (i.e: numbers)
       node:raisef("cannot call type '%s'", calleetype)
@@ -2510,8 +2522,8 @@ function visitors.Function(context, node)
 
   do -- handle attributes and annotations
     -- annotation sideeffect, the function has side effects unless told otherwise
-    if type then
-      type.sideeffect = not attr.nosideeffect
+    if type and attr.nosideeffect then
+      type.sideeffect = true
     end
   end
 end

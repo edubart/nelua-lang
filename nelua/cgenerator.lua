@@ -365,7 +365,7 @@ function visitors.Table(context, node, emitter)
             childvalnode = childnode
           end
           local childvaltype = childvalnode.attr.type
-          local iscall = childvalnode:has_sideffect()
+          local iscall = childvalnode:has_sideeffect()
           if childvaltype.is_array or (hascall and iscall) then
             compactemit = false
             break
