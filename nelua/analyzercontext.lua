@@ -72,6 +72,13 @@ function AnalyzerContext:pop_scope()
   scopestack[index] = nil
 end
 
+function AnalyzerContext:mark_funcscope_sideeffect()
+  local funcscope = self.state.funcscope
+  if funcscope then
+    funcscope.sideeffect = true
+  end
+end
+
 function AnalyzerContext:ensure_runtime_builtin(name, p1, p2)
   if not (p1 or p2) and self.usedbuiltins[name] then
     return name

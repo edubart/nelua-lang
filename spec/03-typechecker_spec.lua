@@ -1847,4 +1847,33 @@ it("optional type", function()
   assert.analyze_error("local OptionalInt = @?integer", "not implemented yet")
 end)
 
+it("side effects detection", function()
+  assert.analyze_ast([[
+    local X: integer
+
+    local function f(x: integer): integer
+      print(x)
+      return x
+    end
+    ## assert(f.type.sideeffect == true)
+
+    local function f(x: integer): integer
+      return x
+    end
+    ## assert(f.type.sideeffect == false)
+
+    local function f(x: integer): integer
+      X = x
+      return x
+    end
+    ## assert(f.type.sideeffect == true)
+
+    local function f(x: integer) <nosideeffect>
+      X = x
+      return x
+    end
+    ## assert(f.type.sideeffect == false)
+  ]])
+end)
+
 end)

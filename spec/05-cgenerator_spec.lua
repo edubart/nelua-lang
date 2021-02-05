@@ -1414,11 +1414,7 @@ it("expressions with side effects", function()
     local function f() return 1 end
     local function g() return 1 end
     local a = f() + g()
-  end]],  [[int64_t a = (({
-      int64_t t1_ = f();
-      int64_t t2_ = g();
-      t1_ + t2_;
-    }));]])
+  end]],  [[int64_t a = (f() + g());]])
   assert.run_c([[
     local function f() return 1 end
     local function g() return 2 end

@@ -1101,6 +1101,7 @@ end
 local function visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)
   local attr = node.attr
   if calleetype then
+    local sideeffect
     if calleetype.is_procedure then
       -- function call
       local argattrs = {}
@@ -1246,20 +1247,23 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       attr.calleesym = calleesym
       if calleetype then
         attr.type = calleetype:get_return_type(1)
-        assert(calleetype.sideeffect ~= nil)
-        attr.sideeffect = calleetype.sideeffect
+        sideeffect = calleetype.sideeffect
       end
     elseif calleetype.is_table then -- table call (allowed for tables with metamethod __index)
       context:traverse_nodes(argnodes)
+      sideeffect = true
       attr.type = primtypes.varanys
-      attr.sideeffect = true
     elseif calleetype.is_any then -- call on any values
       context:traverse_nodes(argnodes)
+      sideeffect = true
       attr.type = primtypes.varanys
-      attr.sideeffect = true
     else
       -- call on invalid types (i.e: numbers)
       node:raisef("cannot call type '%s'", calleetype)
+    end
+    if sideeffect then
+      attr.sideeffect = true
+      context:mark_funcscope_sideeffect()
     end
     attr.calleetype = calleetype
   else
@@ -2075,6 +2079,10 @@ function visitors.Assign(context, node)
         symbol:add_possible_type(valtype, valnode)
       end
       symbol.mutate = true
+
+      if symbol.staticstorage then -- assign of an external variable trigger side effects
+        context:mark_funcscope_sideeffect()
+      end
     end
     if not valnode and valtype and valtype.is_niltype then
       varnode:raisef("variable assignment at index '%d' is assigning to nothing in the expression", i)
@@ -2310,8 +2318,8 @@ local function visitor_function_annotations(context, node, annotnodes, blocknode
     end
 
     -- annotation sideeffect, the function has side effects unless told otherwise
-    if type then
-      type.sideeffect = not attr.nosideeffect
+    if type and attr.nosideeffect then -- explicitly set as nosideeffect
+      type.sideeffect = false
     end
 
     -- annotation entrypoint
@@ -2328,6 +2336,18 @@ local function visitor_function_annotations(context, node, annotnodes, blocknode
 
     if attr.polymorphic and attr.alwayseval then
       type.alwayseval = true
+    end
+  end
+end
+
+local function visitor_function_sideeffect(attr, functype, funcscope)
+  if functype and not attr.nosideeffect then
+    -- C imported function has side effects unless told otherwise,
+    -- if any side effect call or upvalue assignment is detected the function also has side effects
+    if attr.cimport or funcscope.sideeffect then
+      functype.sideeffect = true
+    else
+      functype.sideeffect = false
     end
   end
 end
@@ -2363,6 +2383,7 @@ function visitors.FuncDef(context, node, polysymbol)
   repeat
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
+    context:push_state{funcscope = funcscope}
     funcscope.is_function = true
     funcscope.is_returnbreak = true
 
@@ -2405,7 +2426,10 @@ function visitors.FuncDef(context, node, polysymbol)
       context:traverse_node(blocknode)
     end
 
+    visitor_function_sideeffect(attr, type, funcscope)
+
     local resolutions_count = funcscope:resolve()
+    context:pop_state()
     context:pop_scope()
   until resolutions_count == 0
 
@@ -2483,6 +2507,7 @@ function visitors.Function(context, node)
   repeat
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
+    context:push_state{funcscope = funcscope}
     funcscope.is_function = true
     funcscope.is_returnbreak = true
 
@@ -2508,7 +2533,10 @@ function visitors.Function(context, node)
     -- traverse the function block
     context:traverse_node(blocknode)
 
+    visitor_function_sideeffect(attr, type, funcscope)
+
     local resolutions_count = funcscope:resolve()
+    context:pop_state()
     context:pop_scope()
   until resolutions_count == 0
 
@@ -2517,13 +2545,6 @@ function visitors.Function(context, node)
     local canbeempty = tabler.iallfield(rettypes, 'is_nilable')
     if not canbeempty and not block_endswith_return(blocknode) then
       node:raisef("a return statement is missing before function end")
-    end
-  end
-
-  do -- handle attributes and annotations
-    -- annotation sideeffect, the function has side effects unless told otherwise
-    if type and attr.nosideeffect then
-      type.sideeffect = true
     end
   end
 end
