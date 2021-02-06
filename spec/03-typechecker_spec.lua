@@ -1154,6 +1154,11 @@ it("records metamethods", function()
     local r: R
     local x = r + r
   ]], "invalid operation")
+  assert.analyze_error([[
+    local R = @record{f: function(*R, x: integer): integer}
+    local r = R{}
+    function r:f(x: boolean) return x end
+  ]], "no viable type conversion")
 end)
 
 it("dependent functions resolution", function()

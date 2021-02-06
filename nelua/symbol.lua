@@ -11,14 +11,13 @@ local config = require 'nelua.configer'.get()
 
 Symbol._symbol = true
 
-function Symbol:init(name, node)
-  self.node = node
-  self.name = name
-end
-
-function Symbol.promote_attr(attr, name, node)
+function Symbol.promote_attr(attr, node, name)
   attr.node = node
-  attr.name = name
+  if name then
+    attr.name = name
+  else
+    attr.anonymous = true
+  end
   setmetatable(attr, Symbol)
   return attr
 end
@@ -156,7 +155,7 @@ function Symbol:is_directly_accesible_from_scope(scope)
 end
 
 function Symbol:__tostring()
-  local ss = sstream(self.name or '<annonymous>')
+  local ss = sstream(self.name or '<anonymous>')
   if self.type then
     ss:add(': ', self.type)
   end

@@ -592,7 +592,7 @@ function visitors.IdDecl(context, node)
       symbol = attr
       symbol:clear_possible_types()
     else
-      symbol = Symbol.promote_attr(attr, namenode, node)
+      symbol = Symbol.promote_attr(attr, node, namenode)
       local scope
       if symbol.global then
         scope = context.rootscope
@@ -1387,7 +1387,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   end
   if not symbol then
     local symname = string.format('%s.%s', objtype.nickname or objtype.name, name)
-    symbol = Symbol.promote_attr(attr, symname, node)
+    symbol = Symbol.promote_attr(attr, node, symname)
     symbol.codename = context:choose_codename(string.format('%s_%s', objtype.codename, name))
     symbol:link_node(parentnode)
     if infuncdef then
@@ -1405,7 +1405,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     if not inpolydef then
       objtype:set_metafield(name, symbol)
     end
-    symbol.annonymous = true
+    symbol.anonymous = true
     symbol.scope = context.rootscope
   elseif infuncdef or inglobaldecl then
     if symbol.node ~= node then
@@ -2205,8 +2205,7 @@ function visitors.DoExpr(context, node)
       end
       attr.type = rettypes[1]
     else -- transform into a symbol to force resolution on top scopes
-      local symbol = Symbol.promote_attr(attr, nil, node)
-      symbol.annonymous = true
+      local symbol = Symbol.promote_attr(attr, node)
       symbol:add_possible_type(nil, blocknode)
       context.scope:add_symbol(attr)
     end
@@ -2234,7 +2233,7 @@ local function visitor_FuncDef_variable(context, scopekind, varnode)
   return symbol, decl
 end
 
-local function visitor_function_arguments(context, symbol, ismethod, argnodes, checkpoly)
+local function visitor_function_arguments(context, symbol, selftype, argnodes, checkpoly)
   local funcscope = context.scope
 
   local ispolyparent = false
@@ -2248,18 +2247,19 @@ local function visitor_function_arguments(context, symbol, ismethod, argnodes, c
 
   local off = 0
 
-  if ismethod then -- inject 'self' type as first argument
+  if selftype then -- inject 'self' type as first argument
     local selfsym = symbol.selfsym
     if not selfsym then
-      selfsym = Symbol()
-      selfsym:init('self')
-      selfsym.codename = 'self'
-      selfsym.lvalue = true
-      selfsym.type = symbol.metafuncselftype
-      selfsym.scope = funcscope
+      selfsym = Symbol{
+        name = 'self',
+        codename = 'self',
+        lvalue = true,
+        type = selftype,
+        scope = funcscope,
+      }
       symbol.selfsym = selfsym
     end
-    argtypes[1] = symbol.metafuncselftype
+    argtypes[1] = selftype
     argattrs[1] = selfsym
     funcscope:add_symbol(selfsym)
     off = 1
@@ -2360,15 +2360,31 @@ function visitors.FuncDef(context, node, polysymbol)
   local varscope, varnode, argnodes, retnodes, annotnodes, blocknode =
         node[1], node[2], node[3], node[4], node[5], node[6]
 
-  context:push_state{infuncdef = node, inpolydef = polysymbol}
   local type = node.attr.ftype
-  local symbol, decl = visitor_FuncDef_variable(context, varscope, varnode)
-  if symbol then -- symbol may be nil in case of array/dot index
+  context:push_state{infuncdef = node, inpolydef = polysymbol}
+  local varsym, decl = visitor_FuncDef_variable(context, varscope, varnode)
+  local vartype = varnode.attr.type
+  local attr, symbol
+  if varsym then -- symbol may be nil in case of array/dot index
+    symbol = varsym
     symbol.scope:add_symbol(symbol)
     symbol:link_node(node)
+    attr = node.attr
+  else -- we need to create an anonymous symbol
+    attr = node.attr
+    if not attr._symbol then
+      symbol = Symbol.promote_attr(attr, node)
+      symbol.codename = context:choose_codename('anonfunc')
+      symbol.anonymous = true
+      symbol.scope = context.scope
+      symbol.lvalue = true
+      symbol.staticstorage = true
+    else
+      symbol = attr
+    end
+    symbol.scope:add_symbol(symbol)
   end
   context:pop_state()
-  local attr = node.attr
 
   -- we must know if the symbols is going to be polymorphic
   if annotnodes then
@@ -2380,7 +2396,23 @@ function visitors.FuncDef(context, node, polysymbol)
     end
   end
 
-  local ismethod = varnode.tag == 'ColonIndex' and symbol and symbol.metafunc
+  -- detect the self type
+  local selftype
+  if varnode.tag == 'ColonIndex' then
+    if varsym and varsym.metafunc then
+      selftype = varsym.metafuncselftype
+    else
+      local rectype = varnode[2].attr.type
+      if not rectype then -- we need to wait the rectype resolution
+        return
+      end
+      if rectype.is_record then
+        selftype = types.PointerType(rectype)
+      else
+        selftype = rectype
+      end
+    end
+  end
 
   -- repeat scope to resolve function variables and return types
   local funcscope, argattrs, argtypes, ispolyparent, rettypes
@@ -2392,7 +2424,7 @@ function visitors.FuncDef(context, node, polysymbol)
     funcscope.is_returnbreak = true
 
     -- traverse the function arguments
-    argattrs, argtypes, ispolyparent = visitor_function_arguments(context, symbol, ismethod, argnodes, not polysymbol)
+    argattrs, argtypes, ispolyparent = visitor_function_arguments(context, symbol, selftype, argnodes, not polysymbol)
 
     -- traverse the function returns
     rettypes = visitor_function_returns(context, node, retnodes, ispolyparent)
@@ -2405,17 +2437,14 @@ function visitors.FuncDef(context, node, polysymbol)
       else
         type = types.FunctionType(argattrs, rettypes, node)
       end
-      if symbol and not decl then
-        -- check if previous symbol declaration is compatible
-        local symboltype = symbol.type
-        if symboltype then
-          local ok, err = symboltype:is_convertible_from_type(type)
-          if not ok then
-            node:raisef("in function definition: %s", err)
-          end
-        else
-          symbol:add_possible_type(type, varnode)
+      if vartype then -- check if previous symbol declaration is compatible
+        local ok, err = vartype:is_convertible_from_type(type)
+        if not ok then
+          node:raisef("in function definition: %s", err)
         end
+      end
+      if varsym and not decl then
+        varsym:add_possible_type(type, varnode)
       else
         attr.type = type
       end
@@ -2497,10 +2526,9 @@ function visitors.Function(context, node)
   local type = attr.type
   local symbol = attr._symbol and attr or nil
   if not symbol then
-    symbol = Symbol.promote_attr(attr, nil, node)
-    symbol.codename = context:choose_codename('annonfunc')
+    symbol = Symbol.promote_attr(attr, node)
+    symbol.codename = context:choose_codename('anonfunc')
     symbol.scope = context.scope
-    symbol.annonymous = true
     symbol.lvalue = true
     symbol.staticstorage = true
     symbol.scope:add_symbol(symbol)

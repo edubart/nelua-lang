@@ -1256,8 +1256,9 @@ function visitors.FuncDef(context, node, emitter)
     decemitter:add('(')
     defemitter:add('(')
     if varnode.tag == 'ColonIndex' then
-      decemitter:add(node.attr.metafuncselftype, ' self')
-      defemitter:add(node.attr.metafuncselftype, ' self')
+      local selftype = type.argtypes[1]
+      decemitter:add(selftype, ' self')
+      defemitter:add(selftype, ' self')
       if #argnodes > 0 then
         decemitter:add(', ')
         defemitter:add(', ')

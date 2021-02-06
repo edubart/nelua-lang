@@ -1900,6 +1900,11 @@ it("record methods", function()
     local foo: Foo = {1}
     foo.f = function(foo: *Foo): integer return foo.x end
     assert(foo:f() == 1)
+
+    local R = @record{f: function(*R, x: integer): integer}
+    local r = R{}
+    function r:f(x: integer) return x end
+    assert(r:f(1) == 1)
   ]])
 end)
 

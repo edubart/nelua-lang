@@ -208,7 +208,7 @@ function Scope:pop_checkpoint()
 end
 
 function Scope:add_symbol(symbol)
-  local key = symbol.annonymous and symbol or symbol.name
+  local key = symbol.anonymous and symbol or symbol.name
   local symbols = self.symbols
   local oldsymbol = symbols[key]
   if oldsymbol then

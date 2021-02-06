@@ -139,7 +139,7 @@ function profiler.report(options)
   populate_globals()
   for _,desc in pairs(descs) do
     if desc.self > 0 or desc.incl > 0 then
-      local name = funcnames[desc.func] or desc.name or '<annonymous>'
+      local name = funcnames[desc.func] or desc.name or '<anonymous>'
       if name == 'for iterator' then
         name = '<iterator>'
       end
