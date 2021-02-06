@@ -103,7 +103,7 @@ local function build_configs(conf)
     conf.pragma = pragmas
   end
 
-  if config.maximum_performance then --luacov:disable
+  if conf.maximum_performance or conf.release then --luacov:disable
     conf.pragma = conf.pragma or {}
     conf.pragma.nochecks = true
   end --luacov:enable
@@ -136,7 +136,7 @@ local function create_parser(args)
   argparser:flag('-l --lint', 'Only check syntax errors', defconfig.lint)
   argparser:flag('-q --quiet', "Don't print any information while compiling", defconfig.quiet)
   argparser:flag('-a --analyze', 'Analyze the code only', defconfig.analyze)
-  argparser:flag('-r --release', 'Release mode build', defconfig.release)
+  argparser:flag('-r --release', 'Release build (optimize for speed and disable runtime checks)', defconfig.release)
   argparser:flag('-t --timing', 'Inform compile processing time', defconfig.timing)
   argparser:flag('-d --debug', 'Run through GDB to get crash backtraces', defconfig.debug)
   argparser:flag('-V --verbose', 'Print more information while compiling', defconfig.verbose)
