@@ -41,13 +41,13 @@ end
 define_function('likely', {primtypes.boolean}, {primtypes.boolean})
 define_function('unlikely', {primtypes.boolean}, {primtypes.boolean})
 define_function('check', {primtypes.boolean, primtypes.stringview})
-define_const('panic', primtypes.any)
+define_function('panic', {primtypes.stringview}, {})
 define_const('nilptr', primtypes.nilptr)
 
 -- lua
 define_const('assert', primtypes.any)
-define_const('error', primtypes.any)
-define_const('warn', primtypes.any)
+define_function('error', {primtypes.stringview}, {})
+define_function('warn', {primtypes.stringview}, {})
 define_const('print', primtypes.any)
 define_function('type', {primtypes.any}, {primtypes.stringview})
 define_const('require', primtypes.any)

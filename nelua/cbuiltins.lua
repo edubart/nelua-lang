@@ -1013,11 +1013,11 @@ function inlines.print(context, node)
       defemitter:add_builtin('nelua_stdout_write_any')
       defemitter:add_ln('(a',i,');')
     elseif argtype.is_stringview or argtype.is_string then
-      defemitter:add_ln('if(a',i,'.size > 0) {')
+      defemitter:add_indent_ln('if(a',i,'.size > 0) {')
       defemitter:inc_indent()
-      defemitter:add_ln('fwrite(a',i,'.data, a',i,'.size, 1, stdout);')
+      defemitter:add_indent_ln('fwrite(a',i,'.data, a',i,'.size, 1, stdout);')
       defemitter:dec_indent()
-      defemitter:add_ln('}')
+      defemitter:add_indent_ln('}')
     elseif argtype.is_cstring then
       defemitter:add_ln('fputs(a',i,', stdout);')
     elseif argtype.is_niltype then
