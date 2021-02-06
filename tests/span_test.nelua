@@ -77,3 +77,14 @@ do -- sequence to span
   assert(#s == 0 and s.data == nilptr)
   seq:destroy()
 end
+
+do
+  local Node = @record{
+    tag: stringview,
+    nodes: vector(Node)
+  }
+  local node: Node = {'foo'}
+  node.nodes:push(Node{'boo'})
+  assert(node.tag == 'foo' and node.nodes[0].tag == 'boo')
+  node.nodes:destroy()
+end

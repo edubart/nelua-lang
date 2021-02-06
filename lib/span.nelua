@@ -10,7 +10,7 @@
 ## local make_span = generalize(function(T)
   ##[[
   static_assert(traits.is_type(T), "invalid type '%s", T)
-  static_assert(T.size > 0, "spans cannot be of '%s'", T)
+  static_assert(not T.is_comptime, "spans cannot be of type '%s'", T)
   ]]
   local T = @#[T]#
   local spanT <nickname #[string.format('span(%s)', T)]#> = @record {
