@@ -1211,6 +1211,10 @@ function visitors.FuncDef(context, node, emitter)
     return
   end
 
+  if not attr:is_used(true) then
+    return
+  end
+
   local varscope, varnode, argnodes, retnodes, annotnodes, blocknode = node:args()
 
   local qualifier = resolve_function_qualifier(context, attr)

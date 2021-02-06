@@ -467,13 +467,13 @@ it("multiple assignment", function()
 end)
 
 it("function definition", function()
-  assert.generate_c("local function f() end",
+  assert.generate_c("local function f() <cexport> end",
     "void f() {\n}")
   assert.generate_c(
-    "local function f(): integer return 0 end",
+    "local function f(): integer <cexport> return 0 end",
     "int64_t f() {\n  return 0;\n")
   assert.generate_c(
-    "local function f(a: integer): integer return a end",
+    "local function f(a: integer): integer <cexport> return a end",
     "int64_t f(int64_t a) {\n  return a;\n}")
 end)
 
@@ -640,7 +640,7 @@ it("recursive functions", function()
 end)
 
 it("global function definition", function()
-  assert.generate_c("local function f() end", "static void f();")
+  assert.generate_c("local function f() end f()", "static void f();")
   assert.run_c([[
     global function f(x: integer) return x+1 end
     assert(f(1) == 2)
@@ -649,19 +649,19 @@ end)
 
 it("function return", function()
   assert.generate_c([[
-    local function f(): integer return 0 end
+    local function f(): integer <cexport> return 0 end
   ]], "int64_t f() {\n  return 0;")
   assert.generate_c([[
-    local function f(): any return end
+    local function f(): any <cexport> return end
   ]], "nlany f() {\n  return (nlany){0};")
   assert.generate_c([[
-    local function f() return end
+    local function f() <cexport> return end
   ]], "return;")
 end)
 
 it("function multiple returns", function()
   assert.generate_c([[
-    local function f(): (integer, boolean) return 1, true end
+    local function f(): (integer, boolean) <cexport> return 1, true end
   ]], {
     "function_%w+_ret f",
     "return %(function_%w+_ret%){1, true};"
@@ -2413,14 +2413,14 @@ it("annotations", function()
     {"__attribute__((aligned(16)));", "sizeof(R) == 16"})
   assert.generate_c("local R <packed> = @record{x: integer, y: byte}; local r: R",
     {"__attribute__((packed));", "sizeof(R) == 9"})
-  assert.generate_c("local function f() <inline> end", "inline void")
-  assert.generate_c("local function f() <noreturn> end", "nelua_noreturn void")
-  assert.generate_c("local function f() <noinline> end", "nelua_noinline void")
-  assert.generate_c("local function f() <volatile> end", "volatile void")
-  assert.generate_c("local function f() <nodecl> end", "")
-  assert.generate_c("local function f() <nosideeffect> end", "")
-  assert.generate_c("local function f() <cqualifier 'volatile'> end", "volatile void")
-  assert.generate_c("local function f() <cattribute 'noinline'> end", "__attribute__((noinline)) void")
+  assert.generate_c("local function f() <inline> end f()", "inline void")
+  assert.generate_c("local function f() <noreturn> end f()", "nelua_noreturn void")
+  assert.generate_c("local function f() <noinline> end f()", "nelua_noinline void")
+  assert.generate_c("local function f() <volatile> end f()", "volatile void")
+  assert.generate_c("local function f() <nodecl> end f()", "f();")
+  assert.generate_c("local function f() <nosideeffect> end f()", "f();")
+  assert.generate_c("local function f() <cqualifier 'volatile'> end f()", "volatile void")
+  assert.generate_c("local function f() <cattribute 'noinline'> end f()", "__attribute__((noinline)) void")
   assert.generate_c(
     "local function puts(s: cstring): int32 <cimport'puts'> end",
     "int32_t puts(char* s);")
@@ -2631,6 +2631,7 @@ end)
 it("type builtin", function()
   assert.run_c([[
     local function f() end
+    f()
     local R = @record{x:integer}
     local r: R
     assert(r.x == 0)
@@ -2661,9 +2662,11 @@ it("context pragmas", function()
     ## context.pragmas.nostatic = true
     local a: integer
     local function f() end
+    f()
     ## context.pragmas.nostatic = false
     local b: integer
     local function g() end
+    g()
   ]], {
     "\nint64_t a = 0;\n",
     "\nstatic int64_t b = 0;\n",
@@ -2785,7 +2788,7 @@ it("top scope variables prefix", function()
   assert.generate_c("local a = 1", "int64_t mymod_a = 1;")
   assert.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
   assert.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
-  assert.generate_c("local function f() end", "void mymod_f() {\n}")
+  assert.generate_c("local function f() end f()", "void mymod_f() {\n}")
   assert.config.srcname = nil
 end)
 
@@ -2826,6 +2829,8 @@ it("GC requirements", function()
       end)
       ]]
     end
+
+    mark()
   ]=], [[void mark() {
   markp((void*)(&gp));
   markp((void*)(&gr));

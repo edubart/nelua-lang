@@ -137,6 +137,52 @@ function Symbol:link_node(node)
   end
 end
 
+-- Mark that this symbol is used by another symbol (usually a function symbol).
+function Symbol:add_use_by(funcsym)
+  if funcsym then
+    local usedby = self.usedby
+    if not usedby then
+      usedby = {[funcsym] = true}
+      self.usedby = usedby
+    else
+      usedby[funcsym] = true
+    end
+  else -- use on root scope
+    self.used = true
+  end
+end
+
+-- Returns whether the symbol is really used in the program.
+-- Used for dead code elimination.
+function Symbol:is_used(cache, checkedsyms)
+  local used = self.used
+  if used ~= nil then return used end
+  used = false
+  if self.cexport or self.entrypoint or self.cimport then
+    used = true
+  else
+    local usedby = self.usedby
+    if usedby then
+      if not checkedsyms then
+        checkedsyms = {}
+      end
+      checkedsyms[self] = true
+      for funcsym in next,usedby do
+        if not checkedsyms[funcsym] then
+          if funcsym:is_used(false, checkedsyms) then
+            used = true
+            break
+          end
+        end
+      end
+    end
+  end
+  if cache then
+    self.used = used
+  end
+  return used
+end
+
 -- Checks a symbol is directly accessible from a scope, without needing closures.
 function Symbol:is_directly_accesible_from_scope(scope)
   if self.staticstorage then

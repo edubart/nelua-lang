@@ -16,10 +16,12 @@ local function define_function(name, argtypes, rettypes)
     name = name,
     codename = 'nelua_' .. name,
     type = type,
+    used = true,
     const = true,
     builtin = true,
     staticstorage = true
   }
+  type.symbol = symbol
   symdefs[name] = symbol
 end
 

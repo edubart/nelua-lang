@@ -290,40 +290,44 @@ function string.__concat(a: string_coercion_concept, b: string_coercion_concept)
 end
 
 -- Import methods from stringview to string.
-global string.__len: auto = stringview.__len
-global string.__eq: auto = stringview.__eq
-global string.__lt: auto = stringview.__lt
-global string.__le: auto = stringview.__le
-global string.__add: auto = stringview.__add
-global string.__sub: auto = stringview.__sub
-global string.__mul: auto = stringview.__mul
-global string.__div: auto = stringview.__div
-global string.__idiv: auto = stringview.__idiv
-global string.__tdiv: auto = stringview.__tdiv
-global string.__mod: auto = stringview.__mod
-global string.__tmod: auto = stringview.__tmod
-global string.__pow: auto = stringview.__pow
-global string.__unm: auto = stringview.__unm
-global string.__band: auto = stringview.__band
-global string.__bor: auto = stringview.__bor
-global string.__bxor: auto = stringview.__bxor
-global string.__shl: auto = stringview.__shl
-global string.__shr: auto = stringview.__shr
-global string.__asr: auto = stringview.__asr
-global string.__bnot: auto = stringview.__bnot
-global string.len: auto = stringview.len
-global string.byte: auto = stringview.byte
-global string.find: auto = stringview.find
-global string.subview: auto = stringview.subview
+##[[
+local string_metafields = symbols.string.value.metafields
+local stringview_metafields = symbols.stringview.value.metafields
+string_metafields.__len = stringview_metafields.__len
+string_metafields.__eq = stringview_metafields.__eq
+string_metafields.__lt = stringview_metafields.__lt
+string_metafields.__le = stringview_metafields.__le
+string_metafields.__add = stringview_metafields.__add
+string_metafields.__sub = stringview_metafields.__sub
+string_metafields.__mul = stringview_metafields.__mul
+string_metafields.__div = stringview_metafields.__div
+string_metafields.__idiv = stringview_metafields.__idiv
+string_metafields.__tdiv = stringview_metafields.__tdiv
+string_metafields.__mod = stringview_metafields.__mod
+string_metafields.__tmod = stringview_metafields.__tmod
+string_metafields.__pow = stringview_metafields.__pow
+string_metafields.__unm = stringview_metafields.__unm
+string_metafields.__band = stringview_metafields.__band
+string_metafields.__bor = stringview_metafields.__bor
+string_metafields.__bxor = stringview_metafields.__bxor
+string_metafields.__shl = stringview_metafields.__shl
+string_metafields.__shr = stringview_metafields.__shr
+string_metafields.__asr = stringview_metafields.__asr
+string_metafields.__bnot = stringview_metafields.__bnot
+string_metafields.len = stringview_metafields.len
+string_metafields.byte = stringview_metafields.byte
+string_metafields.find = stringview_metafields.find
+string_metafields.subview = stringview_metafields.subview
 
 -- Export string methods to stringview.
-global stringview.__concat: auto = string.__concat
-global stringview.rep: auto = string.rep
-global stringview.sub: auto = string.sub
-global stringview.reverse: auto = string.reverse
-global stringview.upper: auto = string.upper
-global stringview.lower: auto = string.lower
-global stringview.format: auto = string.format
+stringview_metafields.__concat = string_metafields.__concat
+stringview_metafields.rep = string_metafields.rep
+stringview_metafields.sub = string_metafields.sub
+stringview_metafields.reverse = string_metafields.reverse
+stringview_metafields.upper = string_metafields.upper
+stringview_metafields.lower = string_metafields.lower
+stringview_metafields.format = string_metafields.format
+]]
 
 -- TODO: implement functions bellow
 -- string:match(pattern, init)

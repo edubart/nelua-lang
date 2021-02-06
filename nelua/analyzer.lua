@@ -544,7 +544,8 @@ end
 
 function visitors.Id(context, node)
   local name = node[1]
-  if context.state.intypeexpr and name == 'type' then
+  local state = context.state
+  if state.intypeexpr and name == 'type' then
     name = 'typetype'
   end
   local symbol
@@ -564,6 +565,7 @@ function visitors.Id(context, node)
   if symbol.deprecated then
     node:warnf("use of deprecated symbol '%s'", name)
   end
+  symbol:add_use_by(state.funcsym)
   node.done = symbol
   return symbol
 end
@@ -1252,6 +1254,9 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       if calleetype then
         attr.type = calleetype:get_return_type(1)
         sideeffect = calleetype.sideeffect
+        if calleetype.symbol then
+          calleetype.symbol:add_use_by(context.state.funcsym)
+        end
       end
     elseif calleetype.is_table then -- table call (allowed for tables with metamethod __index)
       context:traverse_nodes(argnodes)
@@ -1416,6 +1421,9 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   end
   if symbol.deprecated then
     node:warnf("use of deprecated metafield '%s'", name)
+  end
+  if not infuncdef then
+    symbol:add_use_by(context.state.funcsym)
   end
   -- cannot uncomment this yet
   --node.checked = true
@@ -2376,6 +2384,7 @@ function visitors.FuncDef(context, node, polysymbol)
       symbol = Symbol.promote_attr(attr, node)
       symbol.codename = context:choose_codename('anonfunc')
       symbol.anonymous = true
+      symbol.used = true
       symbol.scope = context.scope
       symbol.lvalue = true
       symbol.staticstorage = true
@@ -2419,7 +2428,7 @@ function visitors.FuncDef(context, node, polysymbol)
   repeat
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
-    context:push_state{funcscope = funcscope}
+    context:push_state{funcscope = funcscope, funcsym = symbol}
     funcscope.is_function = true
     funcscope.is_returnbreak = true
 
@@ -2437,6 +2446,7 @@ function visitors.FuncDef(context, node, polysymbol)
       else
         type = types.FunctionType(argattrs, rettypes, node)
       end
+      type.symbol = symbol
       if vartype then -- check if previous symbol declaration is compatible
         local ok, err = vartype:is_convertible_from_type(type)
         if not ok then
@@ -2524,12 +2534,15 @@ function visitors.Function(context, node)
 
   local attr = node.attr
   local type = attr.type
-  local symbol = attr._symbol and attr or nil
-  if not symbol then
+  local symbol
+  if attr._symbol then
+    symbol = attr
+  else
     symbol = Symbol.promote_attr(attr, node)
     symbol.codename = context:choose_codename('anonfunc')
     symbol.scope = context.scope
     symbol.lvalue = true
+    symbol.used = true
     symbol.staticstorage = true
     symbol.scope:add_symbol(symbol)
   end
@@ -2539,7 +2552,7 @@ function visitors.Function(context, node)
   repeat
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
-    context:push_state{funcscope = funcscope}
+    context:push_state{funcscope = funcscope, funcsym = symbol}
     funcscope.is_function = true
     funcscope.is_returnbreak = true
 
@@ -2556,6 +2569,7 @@ function visitors.Function(context, node)
     -- set the function type
     if not type and rettypes then
       type = types.FunctionType(argattrs, rettypes, node)
+      type.symbol = symbol
       attr.type = type
     end
 
