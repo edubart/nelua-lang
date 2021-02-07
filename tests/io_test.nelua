@@ -149,7 +149,7 @@ do -- filestream:setvbuf
   os.remove('test.tmp')
 end
 
-do -- io.output/io.write
+do -- io.output/io.write/io.writef
   assert(io.output() == stdout)
   os.remove('test.tmp')
 
@@ -159,8 +159,10 @@ do -- io.output/io.write
   assert(io.output(file) == file)
   assert(io.stdout == file)
   assert(io.stdout ~= stdout)
-  assert(io.write('test1') == true)
-  assert(io.stdout:write('!!\n') == true)
+  assert(io.write('test') == true)
+  assert(io.writef('%d',1) == true)
+  assert(io.stdout:write('!') == true)
+  assert(io.stdout:writef('%s','!\n') == true)
   assert(io.flush() == true)
   assert(io.output(stdout) == stdout)
   assert(io.stdout == stdout)

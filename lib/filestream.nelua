@@ -248,6 +248,16 @@ function filestream:write(s: stringview): (boolean, stringview, integer)
   return fileresult(false)
 end
 
+function filestream:writef(fmt: stringview, arg1: auto): (boolean, stringview, integer)
+  local sb: stringbuilder
+  if not sb:write_format(fmt, arg1) then
+    return false, 'filestream.writef: not enough memory', 0
+  end
+  local ok: boolean, err: stringview, len: integer = self:write(tostringview(sb))
+  sb:destroy()
+  return ok, err, len
+end
+
 function filestream:lines(fmt: overload(integer,stringview,niltype))
   ## if fmt.type.is_niltype then
   local fmt: stringview = 'l'

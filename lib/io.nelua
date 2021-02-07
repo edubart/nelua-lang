@@ -85,6 +85,10 @@ function io.write(s: stringview): (boolean, stringview, integer)
   return io.stdout:write(s)
 end
 
+function io.writef(s: stringview, arg1: auto): (boolean, stringview, integer)
+  return io.stdout:writef(s, arg1)
+end
+
 function io.type(x: auto)
   ## if x.type.is_filestream then
     if x:isopen() then
