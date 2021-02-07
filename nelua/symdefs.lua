@@ -7,7 +7,7 @@ local primtypes = typedefs.primtypes
 
 local symdefs = {}
 
-local function define_function(name, argtypes, rettypes)
+local function define_function(name, argtypes, rettypes, attrs)
   local args = tabler.imap(argtypes, function(argtype) return Attr{type = argtype} end)
   local type = types.FunctionType(args, rettypes)
   type:suggest_nickname(name)
@@ -21,6 +21,9 @@ local function define_function(name, argtypes, rettypes)
     builtin = true,
     staticstorage = true
   }
+  if attrs then
+    tabler.update(symbol, attrs)
+  end
   type.symbol = symbol
   symdefs[name] = symbol
 end
@@ -43,12 +46,12 @@ end
 define_function('likely', {primtypes.boolean}, {primtypes.boolean})
 define_function('unlikely', {primtypes.boolean}, {primtypes.boolean})
 define_function('check', {primtypes.boolean, primtypes.stringview})
-define_function('panic', {primtypes.stringview}, {})
+define_function('panic', {primtypes.stringview}, {}, {noreturn=true})
 define_const('nilptr', primtypes.nilptr)
 
 -- lua
 define_const('assert', primtypes.any)
-define_function('error', {primtypes.stringview}, {})
+define_function('error', {primtypes.stringview}, {}, {noreturn=true})
 define_function('warn', {primtypes.stringview}, {})
 define_const('print', primtypes.any)
 define_function('type', {primtypes.any}, {primtypes.stringview})

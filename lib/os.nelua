@@ -75,7 +75,7 @@ function os.execute(command: facultative(stringview))
   ## end
 end
 
-function os.exit(code: overload(integer,boolean,niltype)): void
+function os.exit(code: overload(integer,boolean,niltype)): void <noreturn>
   ## if code.type.is_arithmetic then
     exit(code)
   ## elseif code.type.is_boolean then

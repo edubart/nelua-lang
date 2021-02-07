@@ -16,7 +16,9 @@ assert(os.setlocale('C','all') == 'C')
 assert(os.time() >= 0)
 assert(os.time(os_time_desc{year=2020,month=7,day=18,hour=12,isdst=false}) ==
      #[os.time{year=2020,month=7,day=18,hour=12,isdst=false}]#)
-os.exit(0)
-os.exit(true)
-os.exit()
+local function f(): integer
+  os.exit(true)
+  -- intentionally omit return, should not generate error because os.exit is <noreturn>
+end
+f()
 assert(false)

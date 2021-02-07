@@ -758,6 +758,10 @@ it("function return", function()
     local function f(): integer do return 1 end end
     local function f(): integer switch 1 case 1 then return 1 else return 2 end end
     local function f(): integer switch 1 case 1, 2 then return 1 else return 2 end end
+    local function f(): integer error('error!') end
+    local function f(): integer panic('panic!') end
+    local function g() <noreturn> error'error!' end
+    local function f(): integer g() end
   ]])
   assert.analyze_error([[
     local function f() end

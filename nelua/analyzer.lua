@@ -2153,20 +2153,33 @@ local function block_endswith_return(blocknode)
   local statnodes = blocknode[1]
   local laststat = statnodes[#statnodes]
   if not laststat then return false end
-  if laststat.tag == 'Return' then
+  local laststattag = laststat.tag
+  if laststattag == 'Return' then
     blocknode.attr.returnending = true
     return true
-  elseif laststat.tag == 'Do' then
+  elseif laststattag == 'Call' or laststattag == 'CallMethod' then
+    local lastattr = laststat.attr
+    local calleesym = lastattr.calleesym
+    if not calleesym and not lastattr.type then
+      -- will be rechecked in next traversal
+      return true
+    end
+    if calleesym and calleesym.noreturn then
+      return true
+    end
+    return false
+  elseif laststattag == 'Do' then
     return block_endswith_return(laststat[1])
-  elseif laststat.tag == 'Switch' or laststat.tag == 'If' then
-    local laststatpairs = laststat[laststat.nargs-1]
+  elseif laststattag == 'Switch' or laststattag == 'If' then
+    local n = laststat.nargs
+    local laststatpairs = laststat[n-1]
     for i=1,#laststatpairs do
       local pair = laststatpairs[i]
       if not block_endswith_return(pair[2]) then
         return false
       end
     end
-    local elseblock = laststat[laststat.nargs]
+    local elseblock = laststat[n]
     if elseblock then
       return block_endswith_return(elseblock)
     end
