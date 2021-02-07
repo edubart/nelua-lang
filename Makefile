@@ -193,6 +193,12 @@ install:
 	find lib -name '*.nelua' -exec $(INSTALL_F) {} $(INSTALL_LIB)/{} \;
 	$(MAKE) _update_install_version
 
+## Install Nelua using this folder in the system.
+install-as-symlink:
+	$(MAKE) --no-print-directory -C src
+	ln -fs $(realpath $(NELUALUA)) $(INSTALL_BIN)/nelua-lua
+	ln -fs $(realpath $(NELUASH)) $(INSTALL_BIN)/nelua
+
 ## Uninstall Nelua
 uninstall:
 	$(UNINSTALL) $(INSTALL_BIN)/nelua-lua
