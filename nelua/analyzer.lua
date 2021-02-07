@@ -646,8 +646,11 @@ function visitors.TypeInstance(context, node, symbol)
   -- inherit attributes from inner node
   local attr = typenode.attr
   node.attr = attr
+  local type = attr.value
+  if not traits.is_type(type) then
+    typenode:raisef("invalid type")
+  end
   if symbol then
-    local type = attr.value
     symbol.value = type
     context:choose_type_symbol_names(symbol)
   end
@@ -680,10 +683,20 @@ function visitors.FuncType(context, node)
     if argnode.tag == 'IdDecl' then
       argattr = argnode.attr
     else
-      assert(argnode.attr.type.is_type)
-      argattr = Attr{type = argnode.attr.value}
+      local argtype = argnode.attr.value
+      if not traits.is_type(argtype) then
+        argnode:raisef("invalid type")
+      end
+      argattr = Attr{type = argtype}
     end
     argattrs[i] = argattr
+  end
+  for i=1,#retnodes do
+    local retnode = retnodes[i]
+    local rettype = retnode.attr.value
+    if not traits.is_type(rettype) then
+      retnode:raisef("invalid type")
+    end
   end
   local rettypes = types.typenodes_to_types(retnodes)
   local type = types.FunctionType(argattrs, rettypes, node)
@@ -698,9 +711,13 @@ function visitors.RecordFieldType(context, node, recordtype)
   local name, typenode = node[1], node[2]
   context:traverse_node(typenode)
   local typeattr = typenode.attr
+  local type = typeattr.value
+  if not traits.is_type(type) then
+    typenode:raisef("invalid type")
+  end
   attr.type = typeattr.type
-  attr.value = typeattr.value
-  recordtype:add_field(name, typeattr.value, false)
+  attr.value = type
+  recordtype:add_field(name, type, false)
   node.done = true
 end
 
@@ -737,9 +754,13 @@ function visitors.UnionFieldType(context, node, uniontype)
   local name, typenode = node[1], node[2]
   context:traverse_node(typenode)
   local typeattr = typenode.attr
+  local type = typeattr.value
+  if not traits.is_type(type) then
+    typenode:raisef("invalid type")
+  end
   attr.type = typeattr.type
-  attr.value = typeattr.value
-  uniontype:add_field(name, typeattr.value, false)
+  attr.value = type
+  uniontype:add_field(name, type, false)
   node.done = true
 end
 
@@ -805,6 +826,9 @@ function visitors.EnumType(context, node)
   if typenode then
     context:traverse_node(typenode)
     subtype = typenode.attr.value
+    if not traits.is_type(subtype) then
+      typenode:raisef("invalid type")
+    end
   end
   local fields = {}
   for i=1,#fieldnodes do
@@ -836,6 +860,9 @@ function visitors.ArrayType(context, node)
   local subtypenode, lengthnode = node[1], node[2]
   context:traverse_node(subtypenode)
   local subtype = subtypenode.attr.value
+  if not traits.is_type(subtype) then
+    subtypenode:raisef("invalid type")
+  end
   local length
   if lengthnode then
     context:traverse_node(lengthnode)
@@ -876,6 +903,9 @@ function visitors.PointerType(context, node)
   if subtypenode then
     context:traverse_node(subtypenode)
     local subtype = subtypenode.attr.value
+    if not traits.is_type(subtype) then
+      subtypenode:raisef("invalid type")
+    end
     if not subtype.is_unpointable then
       attr.value = types.PointerType(subtype)
     else
@@ -923,23 +953,22 @@ function visitors.GenericType(context, node)
     local argnode = argnodes[i]
     context:traverse_node(argnode)
     local argattr = argnode.attr
-    if not (argattr.comptime or argattr.type.is_comptime or
-            (argattr.type.is_function and argattr._symbol and argattr.staticstorage)) then
+    local argtype = argattr.type
+    if not argtype or not (argattr:is_compile_time() or argattr:is_static_function()) then
       node:raisef("in generic evaluation '%s': argument #%d isn't a compile time value", name, i)
     end
     local value = argattr.value
     if bn.isnumeric(value) then
       value = bn.tonumber(value)
-    elseif argattr.type.is_function then
+    elseif argtype.is_function then
       value = argattr
-    elseif argattr.type.is_niltype then
+    elseif argtype.is_niltype then
       value = nil
     elseif not (traits.is_type(value) or
                 traits.is_string(value) or
                 traits.is_boolean(value) or
                 bn.isnumeric(value)) then
-      node:raisef("in generic '%s': argument #%d of type '%s' is invalid for generics",
-        name, i, argattr.type)
+      node:raisef("in generic '%s': argument #%d of type '%s' is invalid for generics", name, i, argtype)
     end
     params[i] = value
   end
@@ -1961,6 +1990,9 @@ function visitors.VarDecl(context, node)
       if vartype.is_nolvalue then
         varnode:raisef("variable declaration cannot be of the type '%s'", vartype)
       end
+      if vartype.is_type and not valnode then
+        varnode:raisef("a type declaration must assign to a type")
+      end
     end
     assert(symbol.type == vartype)
     varnode.assign = true
@@ -1993,6 +2025,8 @@ function visitors.VarDecl(context, node)
       elseif varnode.attr.cimport and not
         (vartype == primtypes.type or (vartype == nil and valtype == primtypes.type)) then
         varnode:raisef("cannot assign imported variables, only imported types can be assigned")
+      elseif vartype == primtypes.type and valtype ~= primtypes.type then
+        valnode:raisef("cannot assign a type to '%s'", valtype)
       end
     else
       if context.pragmas.noinit then

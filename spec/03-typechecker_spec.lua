@@ -1746,6 +1746,11 @@ it("generics", function()
     local x = @myarray(integer)
   ]], "expected a symbol holding a type in generic return")
   assert.analyze_error([[
+    local myarray = #[generic(function() end)]#
+    local X
+    local x = @myarray(X)
+  ]], "isn't a compile time value")
+  assert.analyze_error([[
     local x = @invalidgeneric(integer)
   ]], "is not defined")
 end)
@@ -1895,6 +1900,23 @@ it("side effects detection", function()
     end
     ## assert(f.type.sideeffect == false)
   ]])
+end)
+
+it("invalid type uses", function()
+  assert.analyze_error([[local T: type]], "a type declaration must assign to a type")
+  assert.analyze_error([[local T: type = nil]], "cannot assign a type to")
+  assert.analyze_error([[local T: type = 1]], "cannot assign a type to")
+  assert.analyze_error([[local V; local T: type = V]], "cannot assign a type to")
+  assert.analyze_error([[local V; local T = @record{x: V}]], "invalid type")
+  assert.analyze_error([[local V; local T = @union{x: V}]], "invalid type")
+  assert.analyze_error([[local V; local T = @enum(V){A=0}]], "invalid type")
+  assert.analyze_error([[local V; local T = @[4]V]], "invalid type")
+  assert.analyze_error([[local V; local T = @*V]], "invalid type")
+  assert.analyze_error([[local V; local T = @function(V): void]], "invalid type")
+  assert.analyze_error([[local V; local T = @function(): V]], "invalid type")
+  assert.analyze_error([[local V; local v = (@V)(1)]], "invalid type")
+  assert.analyze_error([[local V; local V; local generic = #[generalize()]#; local v: generic(V)]],
+    "isn't a compile time value")
 end)
 
 end)
