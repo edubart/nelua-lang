@@ -1372,6 +1372,8 @@ function visitors.CallMethod(context, node)
       end
     elseif calleetype.is_any then
       calleetype = primtypes.any
+    elseif calleetype.is_type then
+      node:raisef("cannot call method '%s' on type symbol for '%s'", name, calleeobjnode.attr.value)
     end
 
     if calleetype and calleetype.is_procedure then

@@ -10,6 +10,7 @@ ROCKSPEC_DEV=rockspecs/nelua-dev-1.rockspec
 LUAROCKS_BUILTFILES=*.so *.dll src/*.o src/lua/*.o src/lpeglabel/*.o
 
 # Install variables
+PREFIX=/usr/local
 DPREFIX=$(DESTDIR)$(PREFIX)
 INSTALL_BIN=$(DPREFIX)/bin
 INSTALL_LIB=$(DPREFIX)/lib/nelua
@@ -30,7 +31,6 @@ BUSTED=busted
 LUACOV=luacov
 LUAMON=luamon -w nelua,spec,examples,lib,tests -e lua,nelua -q -x
 JEKYLL=bundle exec jekyll
-PREFIX=/usr/local
 
 ## Variables for Docker
 UID=$(shell id -u $(USER))

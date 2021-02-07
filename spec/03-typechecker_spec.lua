@@ -1247,6 +1247,10 @@ it("record methods", function()
     local x: R
     x:hello()
   ]], "the function cannot have arguments")
+  assert.analyze_error([[
+    local R = @record{}
+    R:add()
+  ]], 'cannot call method')
 end)
 
 it("record globals", function()
