@@ -2,8 +2,7 @@ require 'stringbuilder'
 require 'allocators.arena'
 
 do
-  local allocator: ArenaAllocator(256, 1)
-  local sb = stringbuilder.make(&allocator)
+  local sb: stringbuilder
   sb:write_string('hello world')
   sb:write_byte('\n'_byte)
   sb:write_format('%d\n', 10)
@@ -12,4 +11,14 @@ do
   sb:commit(1)
   local s: stringview = sb
   assert(s == "hello world\n10\n3.14\n")
+  sb:destroy()
+end
+
+do -- using a custom allocator
+  local allocator: ArenaAllocator(256, 1)
+  local sb = stringbuilder.make(&allocator)
+  sb:write_string('hello')
+  local s: stringview = sb
+  assert(s == "hello")
+  sb:destroy()
 end

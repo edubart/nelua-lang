@@ -1,13 +1,18 @@
-## cflags '-O3 -ffast-math -march=native -fopenmp'
+##[[
+cflags '-O3 -ffast-math -march=native -fopenmp'
+cdefine 'SDL_MAIN_HANDLED'
+if ccinfo.is_tcc then
+  cdefine 'SDL_DISABLE_IMMINTRIN_H'
+end
+cinclude '<SDL2/SDL.h>'
+linklib 'SDL2'
+]]
 
 require 'math'
 require 'memory'
 
 --------------------------------------------------------------------------------
 -- SDL
-## linklib 'SDL2'
-## cdefine 'SDL_MAIN_HANDLED'
-## cinclude '<SDL2/SDL.h>'
 
 -- import SDL types
 local SDL_Keysym <cimport,nodecl> = @record {
