@@ -2356,7 +2356,7 @@ end)
 
 it("C varargs", function()
   assert.generate_c(
-    "local function scanf(format: cstring <const>, ...: cvarargs): cint <cimport> end",
+    "local function scanf(format: cstring <const>, ...: cvarargs): cint <cimport> end scanf('')",
     "int scanf(const char* format, ...);")
 
   assert.generate_c(
@@ -2419,7 +2419,7 @@ it("annotations", function()
   assert.generate_c("local function f() <cqualifier 'volatile'> end f()", "volatile void")
   assert.generate_c("local function f() <cattribute 'noinline'> end f()", "__attribute__((noinline)) void")
   assert.generate_c(
-    "local function puts(s: cstring): int32 <cimport'puts'> end",
+    "local function puts(s: cstring): int32 <cimport'puts'> end puts('')",
     "int32_t puts(char* s);")
   assert.generate_c([[
     global timespec: type <cimport,cinclude'<time.h>',nodecl,ctypedef> = @record{tv_sec: clong, tv_nsec: clong}
@@ -2435,7 +2435,7 @@ it("annotations", function()
     local e: MyEnum = MyEnumB
   ]], "typedef enum MyEnum MyEnum;")
   assert.generate_c(
-    "local function cos(x: number): number <cimport'myfunc',cinclude'<myheader.h>',nodecl> end",
+    "local function cos(x: number): number <cimport'myfunc',cinclude'<myheader.h>',nodecl> end cos(0)",
     "#include <myheader.h>")
   assert.run_c([[
     local function exit(x: int32) <cimport'exit',cinclude'<stdlib.h>',nodecl> end
