@@ -269,6 +269,7 @@ local string_coercion_concept = #[concept(function(x)
   elseif x.type.is_float then
     return primtypes.number
   end
+  return false, string.format("type '%s' is not convertible to a string", x.type)
 end)]#
 
 function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string

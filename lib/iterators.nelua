@@ -24,6 +24,7 @@ local contiguous_reference_concept = #[concept(function(x)
   if containertype.is_contiguous then
     return reftype
   end
+  return false, string.format("type '%s' is not a reference to a contiguous container", x.type)
 end)]#
 
 -- Concept used to pass containers by reference.
@@ -32,6 +33,7 @@ local container_reference_concept = #[concept(function(x)
   if containertype.is_container then
     return reftype
   end
+  return false, string.format("type '%s' is not a reference to a container", x.type)
 end)]#
 
 -- Macro that implements the next iterator for lists.

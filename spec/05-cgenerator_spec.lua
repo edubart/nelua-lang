@@ -814,7 +814,7 @@ it("unary operator `deref`", function()
   assert.generate_c([[
     local UnchekedByteArray = @[0]byte
     local x: UnchekedByteArray = $(@*UnchekedByteArray)(''_cstring)
-  ]], 'x = (*(UnchekedByteArray*)((UnchekedByteArray_ptr)')
+  ]], 'x = (*(nluint8_arr0*)((nluint8_arr0_ptr)')
   config.pragma.nochecks = nil
 end)
 

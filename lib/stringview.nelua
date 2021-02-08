@@ -248,6 +248,7 @@ local arithmetic_coercion_concept = #[concept(function(x)
   elseif x.type.is_float then
     return primtypes.number
   end
+  return false, string.format("type '%s' is not convertible to an arithmetic", x.type)
 end)]#
 
 -- Implement numeric operators for string view.

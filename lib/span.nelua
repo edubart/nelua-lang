@@ -19,10 +19,11 @@
   }
 
   ##[[
-  spanT.value.is_contiguous = true
-  spanT.value.is_container = true
-  spanT.value.is_span = true
-  spanT.value.subtype = T
+  local spanT = spanT.value
+  spanT.is_contiguous = true
+  spanT.is_container = true
+  spanT.is_span = true
+  spanT.subtype = T
   ]]
 
   -- Returns reference to element at index `i`.
@@ -44,6 +45,7 @@
     elseif x.type.is_stringview and (T.is_integral and T.bitsize == 8) then
       return true
     end
+    return false, string.format("no viable conversion from '%s' to '%s'", x.type, spanT)
   end)]#): spanT <inline,nosideeffect>
     local self: spanT
     ## if values.type.is_stringview then

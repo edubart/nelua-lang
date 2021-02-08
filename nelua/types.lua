@@ -89,8 +89,8 @@ Type.shape = shaper.shape {
   cinclude = shaper.string:is_optional(),
   -- The value passed in <aligned(X)> annotation, see also align.
   aligned = shaper.integer:is_optional(),
-  -- Whether the type is a primitive type, true for non user defined types.
-  is_primitive = shaper.optional_boolean,
+  -- Whether the type can have user defined nickname, true for user defined types.
+  is_nameable = shaper.optional_boolean,
   -- Whether the type can turn represents a string (e.g. stringview, string and cstring).
   is_stringy = shaper.optional_boolean,
   -- Whether the type represents a contiguous buffer (e.g. arrays, spans and vector in the lib).
@@ -247,14 +247,11 @@ end
 
 -- Set a nickname for this type if not set yet.
 function Type:suggest_nickname(nickname)
-  if self.nickname then -- nickname already set
-    return false
+  if not self.nickname and self.is_nameable then
+    self.nickname = nickname
+    return true
   end
-  if self.is_primitive then -- changing nicknames for primitives is not allowed
-    return false
-  end
-  self.nickname = nickname
-  return true
+  return false
 end
 
 -- Return description for type as a string.
@@ -572,6 +569,11 @@ function types.promote_type_for_attrs(lattr, rattr)
   end
 end
 
+-- Check weather the type is a primitive type.
+function types.is_primitive_type(type)
+  return primtypes[type.nickname or type.name] == type
+end
+
 --------------------------------------------------------------------------------
 -- Void type
 --
@@ -627,6 +629,7 @@ TypeType.is_comptime = true
 TypeType.nodecl = true
 TypeType.is_unpointable = true
 TypeType.is_polymorphic = true
+TypeType.is_nameable = true
 
 function TypeType:_init(name)
   Type._init(self, name, 0)
@@ -1455,6 +1458,7 @@ end
 local EnumType = types.typeclass(IntegralType)
 types.EnumType = EnumType
 EnumType.is_enum = true
+EnumType.is_nameable = true
 
 EnumType.shape = shaper.fork_shape(IntegralType.shape, {
   -- Fixed length for the array.
@@ -1508,6 +1512,7 @@ end
 
 local FunctionType = types.typeclass()
 types.FunctionType = FunctionType
+FunctionType.is_nameable = true
 FunctionType.is_function = true
 FunctionType.is_procedure = true
 
@@ -1642,6 +1647,7 @@ end
 local PolyFunctionType = types.typeclass()
 types.PolyFunctionType = PolyFunctionType
 PolyFunctionType.is_comptime = true
+PolyFunctionType.is_nameable = true
 PolyFunctionType.is_procedure = true
 PolyFunctionType.is_polyfunction = true
 PolyFunctionType.is_equal = FunctionType.is_equal
@@ -1727,6 +1733,7 @@ end
 local RecordType = types.typeclass()
 types.RecordType = RecordType
 RecordType.is_record = true
+RecordType.is_nameable = true
 RecordType.is_composite =  true
 
 RecordType.shape = shaper.fork_shape(Type.shape, {
@@ -1916,6 +1923,7 @@ end
 local UnionType = types.typeclass()
 types.UnionType = UnionType
 UnionType.is_union = true
+UnionType.is_nameable = true
 UnionType.is_composite =  true
 
 UnionType.shape = shaper.fork_shape(Type.shape, {
@@ -2201,6 +2209,7 @@ end
 
 local StringViewType = types.typeclass(RecordType)
 types.StringViewType = StringViewType
+StringViewType.is_nameable = false
 StringViewType.is_stringview = true
 StringViewType.is_stringy = true
 
@@ -2270,6 +2279,7 @@ StringViewType.binary_operators.gt = make_string_cmp_opfunc(function(a,b) return
 local CVaList = types.typeclass(RecordType)
 types.CVaList = CVaList
 CVaList.is_cvalist = true
+CVaList.is_nameable = false
 CVaList.nodecl = true
 CVaList.cimport = true
 CVaList.cinclude = '<stdarg.h>'
@@ -2289,6 +2299,7 @@ end
 local ConceptType = types.typeclass()
 types.ConceptType = ConceptType
 ConceptType.nodecl = true
+ConceptType.is_nameable = true
 ConceptType.is_nolvalue = true
 ConceptType.is_comptime = true
 ConceptType.is_unpointable = true
@@ -2407,6 +2418,7 @@ end
 local GenericType = types.typeclass()
 types.GenericType = GenericType
 GenericType.nodecl = true
+GenericType.is_nameable = true
 GenericType.is_nolvalue = true
 GenericType.is_comptime = true
 GenericType.is_unpointable = true

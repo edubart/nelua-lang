@@ -497,14 +497,14 @@ function visitors.Annotation(context, node, symbol)
     end
     if objattr._type then
       -- changing codename only on non primitives
-      if not objattr.is_primitive then
+      if not types.is_primitive_type(objattr) then
         objattr:set_codename(codename)
       end
     else
       objattr.codename = codename
     end
   elseif name == 'nickname' then
-    assert(objattr._type and not objattr.is_primitive)
+    assert(objattr._type and objattr.is_nameable)
     local type, nickname = objattr, params
     local codename = context:choose_codename(nickname)
     symbol.codename = codename

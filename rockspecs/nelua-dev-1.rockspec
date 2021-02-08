@@ -20,7 +20,7 @@ Nelua stands for Native Extensible Lua.
 }
 
 dependencies = {
-  'lua >= 5.3',
+  'lua >= 5.4',
 
   -- nelua originally depended on these, however they were bundled
   -- 'luafilesystem >= 1.8.0',

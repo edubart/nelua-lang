@@ -81,10 +81,6 @@ primtypes.stringview  = types.StringViewType('stringview')
 primtypes.any         = types.AnyType('any', 2*cpusize)
 primtypes.varanys     = types.VaranysType('varanys')
 
-for _,type in pairs(primtypes) do
-  type.is_primitive = true
-end
-
 -- Map of literal suffixes for arithmetic types.
 typedefs.number_literal_types = {
   _i          = 'integer',  _integer    = 'integer',

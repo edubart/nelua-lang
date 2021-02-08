@@ -186,6 +186,7 @@ require 'iterators'
   -- This allows to use vector initialization with braces.
   function vectorT.__convert(values: #[concept(function(x)
     if x.type:is_array_of(T) then return true end
+    return false, string.format("no viable conversion from '%s' to '%s'", x.type, vectorT)
   end)]#): vectorT <inline>
     local self: vectorT
     self:reserve(#values)

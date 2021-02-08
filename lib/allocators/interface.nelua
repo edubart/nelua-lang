@@ -162,8 +162,11 @@ require 'span'
 
   ## if not Allocator.value.metafields.delete then
   function Allocator:delete(s: #[concept(function(x)
-    return x.type.is_pointer or x.type.is_span end
-  )]#): void <inline>
+    if x.type.is_pointer or x.type.is_span then
+      return true
+    end
+    return false, string.format("type '%s' is not a span or a pointer", x.type)
+  end)]#): void <inline>
     ## if s.type.is_span then
       self:spandealloc(s)
     ## else -- pointer

@@ -1008,7 +1008,7 @@ it("spans", function()
     local a: span(float64)
     local b: span(int64)
     b = a
-  ]], 'could not match concept')
+  ]], 'no viable conversion')
   assert.analyze_error([[require 'span' local a: span(void) ]], 'spans cannot be of')
 end)
 

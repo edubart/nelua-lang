@@ -216,6 +216,7 @@ require 'iterators'
   -- This allows to use sequence initialization with braces.
   function sequenceT.__convert(values: #[concept(function(x)
     if x.type:is_array_of(T) then return true end
+    return false, string.format("no viable conversion from '%s' to '%s'", x.type, sequenceT)
   end)]#): sequenceT <inline>
     local self: sequenceT
     self:reserve(#values)

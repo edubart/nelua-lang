@@ -36,7 +36,7 @@ function io.close(file: #[concept(function(x)
   elseif x.type:is_pointer_of(filestream.value) or x.type.is_niltype then
     return true
   end
-  return nil, 'value type is not an addressable `filestream` or `niltype`'
+  return false, string.format("type '%s' is not an addressable `filestream` or `niltype`", x.type)
 end)]#)
   ## if file.type.is_niltype then
     return io.stdout:close()
