@@ -2279,6 +2279,7 @@ CVaList.cinclude = '<stdarg.h>'
 function CVaList:_init(name)
   self.codename = 'nlcvalist'
   RecordType._init(self, {})
+  self.size = nil -- the size is compiler dependent
   self.name = name
   self.nickname = name
 end

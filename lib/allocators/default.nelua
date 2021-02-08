@@ -32,13 +32,13 @@ global default_allocator: DefaultAllocator
 ## elseif not pragmas.nogc then
 
 require 'allocators.gc'
-global default_allocator: auto = &gc_allocator
+global default_allocator: auto = gc_allocator
 global DefaultAllocator: auto = GCAllocator
 
 ## else
 
 require 'allocators.general'
-global default_allocator: auto = &general_allocator
+global default_allocator: auto = general_allocator
 global DefaultAllocator: auto = GeneralAllocator
 
 ## end

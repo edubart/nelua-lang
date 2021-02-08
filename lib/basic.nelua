@@ -111,5 +111,5 @@ end
 -- TODO: move print to here
 
 -- Global variable that holds a string containing the running Nelua version.
-global _VERSION: stringview = "Nelua 0.1"
+global _VERSION: stringview <comptime> = "Nelua 0.2"
 --_G

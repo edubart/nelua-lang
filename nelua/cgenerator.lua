@@ -83,6 +83,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
     local varattr = varnode.attr
     local noinit = varattr.noinit or varattr.cexport or varattr.cimport or varattr.type.is_cvalist
     local vartype = varattr.type
+    local empty = vartype.size == 0
     if not vartype.is_type and (not varattr.nodecl or not decl) and not varattr.comptime then
       local declared, defined = false, false
       if decl and varattr.staticstorage then
@@ -115,43 +116,45 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         declared = true
       end
 
-      if lastcallindex == 1 then
-        -- last assigment value may be a multiple return call
-        multiretvalname = context:genuniquename('ret')
-        local retctype = context:funcretctype(valnode.attr.calleetype)
-        emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', valnode, ';')
-      end
-
-      local retvalname
-      if lastcallindex then
-        retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
-      elseif usetemporary then
-        retvalname = context:genuniquename('asgntmp')
-        emitter:add_indent(vartype, ' ', retvalname, ' = ')
-        emitter:add_val2type(vartype, valnode)
-        emitter:add_ln(';')
-      end
-
-      if not declared or (not defined and (valnode or lastcallindex)) then
-        -- declare or define if needed
-        defemitter:add_indent()
-        if not declared then
-          defemitter:add(varnode)
-        else
-          defemitter:add(context:declname(varattr))
+      if not empty then -- only define if the type is not empty
+        if lastcallindex == 1 then
+          -- last assigment value may be a multiple return call
+          multiretvalname = context:genuniquename('ret')
+          local retctype = context:funcretctype(valnode.attr.calleetype)
+          emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', valnode, ';')
         end
-        if not noinit or not decl then
-          -- initialize variable
-          defemitter:add(' = ')
-          if retvalname then
-            defemitter:add_val2type(vartype, retvalname, valtype, varnode.checkcast)
-          elseif valnode then
-            defemitter:add_val2type(vartype, valnode)
+
+        local retvalname
+        if lastcallindex then
+          retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
+        elseif usetemporary then
+          retvalname = context:genuniquename('asgntmp')
+          emitter:add_indent(vartype, ' ', retvalname, ' = ')
+          emitter:add_val2type(vartype, valnode)
+          emitter:add_ln(';')
+        end
+
+        if not declared or (not defined and (valnode or lastcallindex)) then
+          -- declare or define if needed
+          defemitter:add_indent()
+          if not declared then
+            defemitter:add(varnode)
           else
-            defemitter:add_zeroinit(vartype)
+            defemitter:add(context:declname(varattr))
           end
+          if not noinit or not decl then
+            -- initialize variable
+            defemitter:add(' = ')
+            if retvalname then
+              defemitter:add_val2type(vartype, retvalname, valtype, varnode.checkcast)
+            elseif valnode then
+              defemitter:add_val2type(vartype, valnode)
+            else
+              defemitter:add_zeroinit(vartype)
+            end
+          end
+          defemitter:add_ln(';')
         end
-        defemitter:add_ln(';')
       end
     elseif varattr.cinclude then
       -- not declared, might be an imported variable from C
