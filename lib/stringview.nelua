@@ -165,7 +165,7 @@ local function str2intbase(s: stringview, base: uinteger): integer
   ## if base.type.is_niltype then
   local base: uinteger <const> = 10
   ## else
-  check(base >= 2 and base <= 36, "str2intbase: base out of range")
+  assert(base >= 2 and base <= 36, "str2intbase: base out of range")
   ## end
   local SPACECHARS: cstring <const> = " \f\n\r\t\v"
   local pos: usize = strspn(s, SPACECHARS) -- skip initial spaces
@@ -177,7 +177,7 @@ local function str2intbase(s: stringview, base: uinteger): integer
     pos = pos + 1
   end
   local n: uinteger = 0
-  repeat
+  while pos < s.size do
     local digit: cint = s.data[pos]
     local x: cint
     if isdigit(digit) ~= 0 then -- is a digit [0-9]
@@ -190,9 +190,11 @@ local function str2intbase(s: stringview, base: uinteger): integer
     assert(x < (@cint)(base), "str2intbase: invalid number format")
     n = n * base + (@uinteger)(x)
     pos = pos + 1
-  until pos >= s.size
-  pos = pos + strspn(&s.data[pos], SPACECHARS) -- skip trailing spaces
-  check(pos == s.size, "str2intbase: invalid number format") -- fully parsed?
+  end
+  if pos < s.size then
+    pos = pos + strspn(&s.data[pos], SPACECHARS) -- skip trailing spaces
+  end
+  assert(pos == s.size, "str2intbase: invalid number format") -- fully parsed?
   if neg then -- negate
     n = -n
   end
@@ -212,11 +214,12 @@ global function tonumber(x: auto, base: facultative(integer))
     local n: number = x
     return n
   ## elseif x.type.is_stringy then
-    local x: cstring = x
+    local s: cstring = x
     local endptr: cstring
     errno = 0
-    local n: float64 = strtod(x, &endptr)
-    check(endptr ~= x and errno == 0, 'tonumber: failed to convert string to number')
+    local n: float64 = strtod(s, &endptr)
+    local len: usize = (@usize)(endptr) - (@usize)(s)
+    assert(len > 0 and len <= #x and errno == 0, 'tonumber: failed to convert string to number')
     return (@number)(n)
   ## else static_error("unable to convert value of type '%s' to a number", x.type) end
 end
@@ -230,11 +233,12 @@ global function tointeger(x: auto, base: facultative(integer)): integer
     local n: integer = x
     return n
   ## elseif x.type.is_stringy then
-    local x: cstring = x
+    local s: cstring = x
     local endptr: cstring
     errno = 0
-    local i: clonglong = strtoll(x, &endptr, 10)
-    check(endptr ~= x and errno == 0, 'tointeger: failed to convert string to integer')
+    local i: clonglong = strtoll(s, &endptr, 10)
+    local len: usize = (@usize)(endptr) - (@usize)(s)
+    assert(len > 0 and len <= #x and errno == 0, 'tointeger: failed to convert string to integer')
     return i
   ## else static_error("unable to convert value of type '%s' to an integer", x.type) end
 end
