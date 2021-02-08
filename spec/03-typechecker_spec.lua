@@ -1009,6 +1009,12 @@ it("spans", function()
     local b: span(int64)
     b = a
   ]], 'no viable conversion')
+  assert.analyze_error([[
+    require 'span'
+    local v1: span(integer)
+    local v2: span(*integer)
+    v1 = v2
+  ]], "no viable conversion from 'span(pointer(int64))' to 'span(int64)'")
   assert.analyze_error([[require 'span' local a: span(void) ]], 'spans cannot be of')
 end)
 

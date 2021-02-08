@@ -234,15 +234,7 @@ end
 -- Set a new codename for this type, storing it in the typeid table.
 function Type:set_codename(codename)
   self.codename = codename
-  local id = typeid_by_codename[codename]
-  if not id then
-    typeid_by_codename[codename] = self.id
-  elseif id ~= self.id then
-    -- id for the codename already exists,
-    -- this happens when changing codename after a type is declared like in
-    -- the <codename> annotation, hijack this type id so is_equal works
-    self.id = id
-  end
+  typeid_by_codename[codename] = self.id
 end
 
 -- Set a nickname for this type if not set yet.
