@@ -753,7 +753,7 @@ function visitors.DotIndex(context, node, emitter)
   local objtype = objnode.attr.type
   local poparray = false
   if type.is_array then
-    if objtype:implict_deref_type().is_composite and context.state.inarrayindex == node then
+    if objtype:implicit_deref_type().is_composite and context.state.inarrayindex == node then
       context.state.recordindexed = node
     elseif not attr.globalfield then
       emitter:add('(*(', type, '*)')

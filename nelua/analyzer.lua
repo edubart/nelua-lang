@@ -119,13 +119,13 @@ function visitors.Varargs(_, node)
   node.done = true
 end
 
-local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype, conceptargs)
+local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype, callargs)
   if not vartype or not valtype then
     -- convert possible only when types are known
     return valnode, valtype
   end
   if vartype.is_concept then
-    vartype = vartype:get_convertible_from_attr(valnode.attr, nil, conceptargs)
+    vartype = vartype:get_convertible_from_attr(valnode.attr, false, not not callargs, callargs)
     if not vartype then
       -- concept failed
       return valnode, valtype
@@ -137,8 +137,8 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   end
   local objsym
   local mtname
-  local varobjtype = vartype:implict_deref_type()
-  local valobjtype = valtype:implict_deref_type()
+  local varobjtype = vartype:implicit_deref_type()
+  local valobjtype = valtype:implicit_deref_type()
   local objtype
   if valobjtype.is_record then
     if vartype.is_cstring then
@@ -386,7 +386,7 @@ function visitors.Table(context, node)
   local desiredtype = node.desiredtype or node.attr.desiredtype
   node.attr.literal = true
   if desiredtype then
-    local objtype = desiredtype:implict_deref_type()
+    local objtype = desiredtype:implicit_deref_type()
     if objtype.is_record and objtype.choose_braces_type then
       local err
       desiredtype, err = objtype.choose_braces_type(node[1])
@@ -1158,7 +1158,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         if not methodtype then
           node:raisef("in method call of function '%s' at argument 1: the function cannot have arguments", calleename)
         end
-        local ok, err = methodtype:is_convertible_from_attr(calleeobjnode.attr, nil, argattrs)
+        local ok, err = methodtype:is_convertible_from_attr(calleeobjnode.attr, nil, true, argattrs)
         if not ok then
           node:raisef("in method call of function '%s' at argument %d: %s", calleename, 1, err)
         end
@@ -1182,7 +1182,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           argnode.desiredtype = argnode.desiredtype or funcargtype
           context:traverse_node(argnode)
           argtype = argnode.attr.type
-          argnode, argtype = visitor_convert(context, argnodes, i, funcargtype, argnode, argtype, argattrs)
+          argnode, argtype = visitor_convert(context, argnodes, i, funcargtype, argnode, argtype, argattrs, true)
           if argtype then
             arg = argnode.attr
           end
@@ -1211,7 +1211,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           if traits.is_type(arg) then
             argattr = Attr{type=arg}
           end
-          local wantedtype, err = funcargtype:get_convertible_from_attr(argattr, nil, argattrs)
+          local wantedtype, err = funcargtype:get_convertible_from_attr(argattr, false, true, argattrs)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
               calleename, i, err)
@@ -1225,7 +1225,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           funcargtype = wantedtype
 
           -- check again the new type
-          wantedtype, err = funcargtype:get_convertible_from_attr(argattr, nil, argattrs)
+          wantedtype, err = funcargtype:get_convertible_from_attr(argattr, false, true, argattrs)
           if not wantedtype then
             node:raisef("in call of function '%s' at argument %d: %s",
               calleename, i, err)
@@ -1462,7 +1462,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
 end
 
 local function visitor_Type_FieldIndex(context, node, objtype, name)
-  objtype = objtype:implict_deref_type()
+  objtype = objtype:implicit_deref_type()
   node.indextype = objtype
   if objtype.is_enum then
     return visitor_EnumType_FieldIndex(context, node, objtype, name)
@@ -1482,7 +1482,7 @@ local function visitor_FieldIndex(context, node)
   local attr = node.attr
   local ret
   if objtype then
-    objtype = objtype:implict_deref_type()
+    objtype = objtype:implicit_deref_type()
     if objtype.is_composite then
       ret = visitor_Composite_FieldIndex(context, node, objtype, name)
     elseif objtype.is_type then
@@ -1573,7 +1573,7 @@ function visitors.ArrayIndex(context, node)
   local objattr = objnode.attr
   local objtype = objattr.type
   if objtype then
-    objtype = objtype:implict_deref_type()
+    objtype = objtype:implicit_deref_type()
     if objtype.is_array then
       visitor_Array_ArrayIndex(context, node, objtype, objnode, indexnode)
     elseif objtype.is_record then
@@ -2681,7 +2681,7 @@ local function override_unary_op(context, node, opname, objnode, objtype)
   if not overridable_operators[opname] then return end
   if opname == 'len' then
     -- allow calling len on pointers for arrays/records
-    objtype = objtype:implict_deref_type()
+    objtype = objtype:implicit_deref_type()
   end
   if not objtype.is_record then return end
   local mtname = '__' .. opname

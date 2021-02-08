@@ -49,10 +49,9 @@ end
 
 function os.date(): string
   --TODO: all the other options from Lua
-  local t: time_t = time(nilptr);
-  local ts: tm = localtime(&t)
+  local t: time_t = time(nilptr)
   local buf: [250]cchar
-  local size: csize = strftime(&buf[0], 250, "%c", &ts)
+  local size: csize = strftime(&buf[0], 250, "%c", localtime(&t))
   return tostring(&buf[0])
 end
 

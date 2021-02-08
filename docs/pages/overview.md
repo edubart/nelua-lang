@@ -1240,22 +1240,40 @@ print($ap) -- outputs 3
 
 ### Automatic referencing and dereferencing
 
-The compiler can perform automatic referencing or dereferencing for records and arrays:
+The compiler can perform automatic referencing or dereferencing for records and arrays ***only on function calls**:
 
 ```nelua
 local Person = @record{name: stringview, age: integer}
+
+local function print_info_byref(p: *Person)
+  print(p.name, p.age)
+end
+local function print_info_bycopy(p: Person)
+  print(p.name, p.age)
+end
+
 local p: Person = {"John", 20}
-local p_ref: *Person = p -- the referencing with `&` is implicit here
-local p_copy: Person = p_ref -- the dereferencing with `$` is implicit here
+print_info_byref(p) -- the referencing with `&` is implicit here
+local pref: *Person = &p
+print_info_bycopy(p) -- the dereferencing with `$` is implicit here
 ```
 
 For instance, the above code is equivalent to:
 
 ```nelua
 local Person = @record{name: stringview, age: integer}
+
+local function print_info_byref(p: *Person)
+  print(p.name, p.age)
+end
+local function print_info_bycopy(p: Person)
+  print(p.name, p.age)
+end
+
 local p: Person = {"John", 20}
-local p_ref: *Person = &p
-local p_copy: Person = $p_ref
+print_info_byref(&p)
+local pref: *Person = &p
+print_info_bycopy($pref)
 ```
 
 The above example is not very useful by itself,
@@ -1275,7 +1293,7 @@ Person.print_info(p) -- equivalent, also performs auto referencing
 ```
 
 The automatic referencing and dereferencing mechanism allows the use
-of any unary operator, binary operator, function call, or method call
+of unary operators, binary operators, function calls, or method calls
 by value or by reference, for records or arrays.
 {:.alert.alert-info}
 

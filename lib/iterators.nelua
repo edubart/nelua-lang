@@ -56,7 +56,7 @@ end)]#
 
 -- Use with "for in" to iterate contiguous containers.
 global function ipairs(list: contiguous_reference_concept) <inline>
-  ## local listtype = list.type:implict_deref_type()
+  ## local listtype = list.type:implicit_deref_type()
   local function ipairs_next(list: #[list.type]#, index: integer) <inline>
     ## impl_ipairs_next(listtype)
   end
@@ -65,7 +65,7 @@ end
 
 -- Like `ipairs` but yields reference to elements so that you can modify.
 global function mipairs(list: contiguous_reference_concept) <inline>
-  ## local listtype = list.type:implict_deref_type()
+  ## local listtype = list.type:implicit_deref_type()
   local function mipairs_next(list: #[list.type]#, index: integer) <inline>
     ## impl_mipairs_next(listtype)
   end
@@ -74,27 +74,27 @@ end
 
 -- Get the next element from a container.
 global function next(list: container_reference_concept, index: auto) <inline>
-  ## local listtype = list.type:implict_deref_type()
+  ## local listtype = list.type:implicit_deref_type()
   ## if listtype.is_record and listtype.metafields.__next then
     return list:__next(index)
   ## else
-    ## impl_ipairs_next(list.type:implict_deref_type())
+    ## impl_ipairs_next(list.type:implicit_deref_type())
   ## end
 end
 
 -- Like `next` but returns reference to elements so that you can modify.
 global function mnext(list: contiguous_reference_concept, index: auto) <inline>
-  ## local listtype = list.type:implict_deref_type()
+  ## local listtype = list.type:implicit_deref_type()
   ## if listtype.is_record and listtype.metafields.__next then
     return list:__mnext(index)
   ## else
-  ## impl_mipairs_next(list.type:implict_deref_type())
+  ## impl_mipairs_next(list.type:implicit_deref_type())
   ## end
 end
 
 -- Use with "for in" to iterate containers.
 global function pairs(list: container_reference_concept) <inline>
-  ## local listtype = list.type:implict_deref_type()
+  ## local listtype = list.type:implicit_deref_type()
   ## if listtype.is_record and listtype.metafields.__pairs then
     return list:__pairs()
   ## else
@@ -104,7 +104,7 @@ end
 
 -- Like `pairs` but yields reference to elements so that you can modify.
 global function mpairs(list: container_reference_concept) <inline>
-  ## local listtype = list.type:implict_deref_type()
+  ## local listtype = list.type:implicit_deref_type()
   ## if listtype.is_record and listtype.metafields.__mpairs then
     return list:__mpairs()
   ## else

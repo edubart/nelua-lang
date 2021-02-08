@@ -2191,47 +2191,44 @@ end)
 it("automatic reference", function()
   assert.run_c([[
     local R = @record{x: integer}
-    local p: *R, q: *R
-    local a: R = R{1}
-    p = a
-    q = &a
-    assert(p.x == q.x)
-    assert(($p).x == 1)
-    local function f(p: *R) return $p end
-    assert(f(a).x == 1)
-    local function g(): (integer, *R) return 1, a end
-    local function h(): (integer, R) return 1, p end
-    local _, r: R = g()
-    assert(r.x == 1)
+    local r: R = R{1}
+    local function f(x: *R) assert(x == &r) return $x end
+    assert(f(r).x == 1)
+
+    local A = @[4]integer
+    local a: A = A{1}
+    local function f(x: *A) assert(x == &a) return $x end
+    assert(f(a)[0] == 1)
+
+    local vec2 = @record{x: number, y: number}
+    function vec2:add(a: vec2): vec2
+      return vec2{self.x + a.x, self.y + a.y}
+    end
+    local a, b = vec2{1,2}, vec2{3,4}
+    assert(a:add(b) == vec2{4,6})
   ]])
 end)
 
 it("automatic dereference", function()
   assert.run_c([[
-    local A = @[1]integer
-    local a: A = {1}
-    local p: *A = &a
-    local b: A
-    b = p
-    assert(b[0] == 1)
-    local function f(x: A) return x end
-    local function g(): A return p end
-    a[0] = 2
-    assert(f(p)[0] == 2)
-    assert(g()[0] == 2)
+    local R = @record{x: integer}
+    local r: R = R{1}
+    local pr: *R = &r
+    local function f(x: R) assert(x == r) return x end
+    assert(f(pr).x == 1)
 
-    local vec2 = @record {x: number, y: number}
-    function vec2:add(a: vec2): vec2
+    local A = @[4]integer
+    local a: A = A{1}
+    local pa: *A = &a
+    local function f(x: A) assert(x == a) return x end
+    assert(f(pa)[0] == 1)
+
+    local vec2 = @record{x: number, y: number}
+    function vec2.add(self: vec2, a: vec2): vec2
       return vec2{self.x + a.x, self.y + a.y}
     end
-
-    local a = vec2{1,2}
-    local b = vec2{1,2}
-    local c = vec2{0,0}
-    local pa = &a
-    local pb = &b
-    local pc = &c
-    $pc = pb:add(pc)
+    local a, b = vec2{1,2}, vec2{3,4}
+    assert((&a):add(&b) == vec2{4,6})
   ]])
 end)
 
