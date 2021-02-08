@@ -10,7 +10,7 @@ function luaver.getversion()
 end
 
 -- List of supported lua version.
-local supported_versions = {'5.3', '5.4'}
+local supported_versions = {'5.4'}
 
 -- Check if the running lua version is supported, throws an error if not.
 function luaver.check()
