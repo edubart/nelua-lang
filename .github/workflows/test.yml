@@ -29,7 +29,7 @@ jobs:
     - uses: actions/checkout@master
     - uses: leafo/gh-actions-lua@v8.0.0
       with:
-        luaVersion: 5.3
+        luaVersion: 5.4
     - uses: leafo/gh-actions-luarocks@v4.0.0
     - name: Install busted
       run: luarocks install busted
@@ -48,7 +48,7 @@ jobs:
     - uses: actions/checkout@master
     - uses: leafo/gh-actions-lua@v8.0.0
       with:
-        luaVersion: 5.3
+        luaVersion: 5.4
     - uses: leafo/gh-actions-luarocks@v4.0.0
     - name: Install luacheck
       run: luarocks install luacheck
