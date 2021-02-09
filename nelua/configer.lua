@@ -19,7 +19,8 @@ local defconfig = {
   generator = 'c',
   gdb = 'gdb',
   cache_dir = 'nelua_cache',
-  cpu_bits = platform.cpu_bits
+  cpu_bits = platform.cpu_bits,
+  pragmas = {}
 }
 metamagic.setmetaindex(config, defconfig)
 
@@ -100,12 +101,11 @@ local function build_configs(conf)
       end
       except.assertraisef(ok, "failed parsing pragma '%s':\n  %s", code, err)
     end
-    conf.pragma = pragmas
+    tabler.update(conf.pragmas, pragmas)
   end
 
   if conf.maximum_performance or conf.release then --luacov:disable
-    conf.pragma = conf.pragma or {}
-    conf.pragma.nochecks = true
+    conf.pragmas.nochecks = true
   end --luacov:enable
 end
 

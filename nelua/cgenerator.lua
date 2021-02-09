@@ -84,7 +84,12 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
     local noinit = varattr.noinit or varattr.cexport or varattr.cimport or varattr.type.is_cvalist
     local vartype = varattr.type
     local empty = vartype.size == 0
-    if not vartype.is_type and (not varattr.nodecl or not decl) and not varattr.comptime then
+    local used = context.pragmas.nodce or -- dead code elimination is disabled
+                 not decl or -- have a late definition, must evaluate
+                 lastcallindex ~= nil or -- multiple returns, must evaluate
+                 (valnode and not valnode.attr.comptime) or -- might have a call
+                 varattr:is_used(true) -- used by some other function
+    if not vartype.is_type and (not varattr.nodecl or not decl) and not varattr.comptime and used then
       local declared, defined = false, false
       if decl and varattr.staticstorage then
         -- declare main variables in the top scope
@@ -156,7 +161,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
           defemitter:add_ln(';')
         end
       end
-    elseif varattr.cinclude then
+    elseif used and decl and varattr.cinclude then
       -- not declared, might be an imported variable from C
       context:add_include(varattr.cinclude)
     end
@@ -1214,7 +1219,7 @@ function visitors.FuncDef(context, node, emitter)
     return
   end
 
-  if not attr:is_used(true) then
+  if not context.pragmas.nodce and not attr:is_used(true) then
     return
   end
 

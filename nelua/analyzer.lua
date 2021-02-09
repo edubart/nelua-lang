@@ -2887,9 +2887,7 @@ function analyzer.analyze(context)
     timer = nanotimer()
   end
 
-  if config.pragma then
-    tabler.update(context.pragmas, config.pragma)
-  end
+  tabler.update(context.pragmas, config.pragmas)
   context:push_pragmas()
 
   if ast.src and ast.src.name then
