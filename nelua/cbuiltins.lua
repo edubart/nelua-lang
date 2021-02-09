@@ -20,8 +20,8 @@ local function define_builtin(context, name, deccode, defcode)
 end
 
 local function define_inline_builtin(context, name, ret, args, body)
-  context:add_declaration('static ' .. ret .. ' ' .. name .. args .. ';\n')
-  context:add_definition('inline ' .. ret .. ' ' .. name .. args .. ' ' .. body .. '\n')
+  context:add_declaration('static inline ' .. ret .. ' ' .. name .. args .. ';\n')
+  context:add_definition(ret .. ' ' .. name .. args .. ' ' .. body .. '\n')
   context.usedbuiltins[name] = true
 end
 
@@ -121,8 +121,8 @@ function builtins.nelua_assert(context)
   context:ensure_runtime_builtin('nelua_unlikely')
   context:add_include('<stdbool.h>')
   define_builtin(context, 'nelua_assert',
-    'static void nelua_assert(bool cond);\n',
-    [[inline void nelua_assert(bool cond) {
+    'static inline void nelua_assert(bool cond);\n',
+    [[void nelua_assert(bool cond) {
   if(nelua_unlikely(!cond)) {
     nelua_panic_cstring("assertion failed!");
   }
@@ -136,8 +136,8 @@ function builtins.nelua_assert_stringview(context)
   context:add_include('<stdbool.h>')
   context:ctype(primtypes.stringview)
   define_builtin(context, 'nelua_assert_stringview',
-    'static void nelua_assert_stringview(bool cond, nlstringview s);\n',
-    [[inline void nelua_assert_stringview(bool cond, nlstringview s) {
+    'static inline void nelua_assert_stringview(bool cond, nlstringview s);\n',
+    [[void nelua_assert_stringview(bool cond, nlstringview s) {
   if(nelua_unlikely(!cond)) {
     nelua_panic_stringview(s);
   }
@@ -992,7 +992,7 @@ function inlines.print(context, node)
 
   --function head
   local defemitter = CEmitter(context)
-  defemitter:add_indent('inline void ', funcname, '(')
+  defemitter:add_indent('void ', funcname, '(')
   for i,argnode in ipairs(argnodes) do
     if i>1 then defemitter:add(', ') end
     defemitter:add(argnode.attr.type, ' a', i)
@@ -1089,13 +1089,14 @@ function inlines.panic(context)
 end
 
 function inlines.require(context, node, emitter)
-  if node.attr.alreadyrequired then
+  local attr = node.attr
+  if attr.alreadyrequired then
     return
   end
-  local ast = node.attr.loadedast
-  assert(not node.attr.runtime_require and ast)
+  local ast = attr.loadedast
+  assert(not attr.runtime_require and ast)
   local bracepos = emitter:get_pos()
-  emitter:add_indent_ln('{')
+  emitter:add_indent_ln("{ /* require '", attr.requirename, "' */")
   local lastpos = emitter:get_pos()
   context:push_scope(context.rootscope)
   emitter:add(ast)

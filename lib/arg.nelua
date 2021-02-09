@@ -13,13 +13,12 @@ local nelua_argv: *[0]cstring <cimport, nodecl>
 -- The arguments goes from 1 up to #arg (like in Lua).
 global arg: sequence(stringview, GeneralAllocator)
 
-do -- setup args
-  if nelua_argc > 0 then
-    local narg: usize = (@usize)(nelua_argc-1)
-    arg:reserve(narg)
-    for i:usize=0,narg do
-      arg[i] = nelua_argv[i]
-    end
+-- setup args
+if nelua_argc > 0 then
+  local narg: usize = (@usize)(nelua_argc-1)
+  arg:reserve(narg)
+  for i:usize=0,narg do
+    arg[i] = nelua_argv[i]
   end
 end
 
