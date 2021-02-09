@@ -1,6 +1,6 @@
 -- Nelua global basic functions
 
--- C imports
+do -- C imports
 ##[[cemitdecl([=[#ifdef __GNUC__
 #define nelua_likely(x) __builtin_expect(x, 1)
 #define nelua_unlikely(x) __builtin_expect(x, 0)
@@ -9,24 +9,59 @@
 #define nelua_unlikely(x) (x)
 #endif
 ]=])]]
+end
 
 local FILE <cimport,nodecl,forwarddecl,cinclude'<stdio.h>'> = @record{}
-local function fwrite(ptr: *void, size: csize, n: csize, s: *FILE): csize <cimport'fwrite',nodecl,cinclude'<stdio.h>'> end
-local function fputc(c: cint, stream: *FILE): cint <cimport,nodecl,cinclude'<stdio.h>'> end
-local function abort(): void <cimport,nodecl,cinclude'<stdlib.h>'> end
 local stderr: *FILE <cimport,nodecl,cinclude'<stdio.h>'>
+local function fwrite(ptr: *void, size: csize, n: csize, s: *FILE): csize <cimport'fwrite',nodecl,cinclude'<stdio.h>'> end
+local function fprintf(stream: *FILE, format: cstring, ...: cvarargs): cint <cimport,nodecl,cinclude'<stdlib.h>'> end
+local function fputc(c: cint, stream: *FILE): cint <cimport,nodecl,cinclude'<stdio.h>'> end
+local function fflush(stream: *FILE): cint <cimport,nodecl,cinclude'<stdio.h>'> end
+local function abort(): void <cimport,nodecl,cinclude'<stdlib.h>'> end
+local function exit(status: cint): void <cimport,cinclude'<stdlib.h>',nodecl> end
 
 global function likely(x: boolean): boolean <cimport 'nelua_likely', nodecl> end
 global function unlikely(x: boolean): boolean <cimport 'nelua_unlikely', nodecl> end
 
-global function panic(msg: stringview): void <noreturn>
+local function abort() <noreturn>
+  ## if pragmas.noabort then
+  exit(-1)
+  ## else
+  abort()
+  ## end
+end
+
+global function error(msg: auto): void <noreturn>
+  ## if msg.type.is_niltype then
+  local msg: stringview = 'error!'
+  ## elseif msg.type.is_cstring then
+  local msg: stringview = msg
+  ## elseif not msg.type.is_stringy then static_error 'error message is not a string' end
   fwrite(msg.data, msg.size, 1, stderr)
   fputc('\n'_cchar, stderr)
+  fflush(stderr)
   abort()
 end
 
-global function error(msg: stringview): void <noreturn>
-  panic(msg)
+local function assert_format(cond: boolean, fmt: cstring, msg: cstring): void
+  if unlikely(not cond) then
+    fprintf(stderr, fmt, msg)
+    fflush(stderr)
+    abort()
+  end
+end
+
+global function assert(cond: auto, msg: auto) <alwayseval>
+  ## local text = context.state.inpolyeval.srcnode:format_message('runtime error', '%s')
+  ## if cond.type.is_niltype then
+  local cond: boolean = false
+  ## end
+  ## if msg.type.is_niltype then
+  assert_format(cond, #[text]#, 'assertion failed!'_cstring)
+  ## elseif msg.type.is_stringy then
+  assert_format(cond, #[text]#, msg)
+  ## else static_error('error object is a %s', msg.type) end
+  return cond
 end
 
 --[[
@@ -43,19 +78,6 @@ global function warn(msg: stringview)
   end
 end
 ]]
-
-global function assert(cond: auto, msg: auto): boolean <inline>
-  if unlikely(not cond) then
-    ## if msg.type.is_niltype then
-      error('assertion failed!')
-    ## elseif msg.type.is_string or msg.type.is_stringview or msg.type.is_cstring then
-      error((@stringview)(msg))
-    ## else
-      ## static_error('error object is a %s', msg.type)
-    ## end
-  end
-  return cond
-end
 
 --[[
 global function load()

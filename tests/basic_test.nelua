@@ -3,7 +3,8 @@ require 'basic'
 assert(true)
 assert(true, 'test')
 assert(true, (@cstring)('test'))
-
+assert(assert(1) == 1)
+assert(assert(0) == 0)
 assert(likely(true) == true)
 assert(likely(false) == false)
 assert(unlikely(true) == true)

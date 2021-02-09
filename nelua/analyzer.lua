@@ -2441,7 +2441,7 @@ local function visitor_function_annotations(context, node, annotnodes, blocknode
       context.entrypoint = node
     end
 
-    if attr.polymorphic and attr.alwayseval then
+    if type and type.is_polyfunction and attr.alwayseval then
       type.alwayseval = true
     end
   end
