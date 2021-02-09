@@ -106,6 +106,14 @@ it("const variable" , function()
   assert.analyze_error([[local a: integer <const> = 1; a = 2]], "cannot assign a constant variable")
   assert.analyze_error("local a: integer <const>", "const variables must have an initial value")
   assert.analyze_error("local function f(x: integer <const>) x = 2 end", "cannot assign a constant variable")
+  assert.analyze_error([[
+    local v: record{x: integer} <const> = {x=1}
+    v.x = 1
+  ]], "cannot assign a constant variable")
+  assert.analyze_error([[
+    local v: [4]integer <const> = {1,2,3,4}
+    v[1] = 1
+  ]], "cannot assign a constant variable")
 end)
 
 it("auto type" , function()

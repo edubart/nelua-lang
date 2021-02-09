@@ -1499,6 +1499,9 @@ local function visitor_FieldIndex(context, node)
   if objattr.lvalue or (objtype and objtype.is_pointer) then
     attr.lvalue = true
   end
+  if objattr.const then
+    attr.const = true
+  end
   return ret
 end
 
@@ -1586,6 +1589,9 @@ function visitors.ArrayIndex(context, node)
   end
   if objattr.lvalue or (objtype and objtype.is_pointer) then
     attr.lvalue = true
+  end
+  if objattr.const then
+    attr.const = true
   end
   if attr.type then
     node.checked = true
