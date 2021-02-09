@@ -21,8 +21,6 @@ require 'patternmatcher'
 require 'sequence'
 require 'allocators.default'
 
-local string_allocator: auto = default_allocator
-
 -- C imports.
 local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
 local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
@@ -50,14 +48,14 @@ function string._create(size: usize): string
   local self: string
   check(size > 0, 'string._create: attempt to create an empty string')
   self.size = size
-  self.data = (@*[0]byte)(string_allocator:xalloc(size+1))
+  self.data = (@*[0]byte)(default_allocator:xalloc(size+1))
   self.data[size] = 0
   return self
 end
 
 -- Destroys a string freeing its resources.
 function string:destroy(): void <inline>
-  string_allocator:dealloc(self.data)
+  default_allocator:dealloc(self.data)
   self.data = nilptr
   self.size = 0
 end

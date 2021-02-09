@@ -9,6 +9,9 @@ require 'span'
 require 'allocators.general'
 
 ##[[
+if pragmas.nogc then
+  static_error 'allocators.gc was required while GC is explicitly disabled'
+end
 pragmas.nochecks = true
 cemitdecl[=[
 #if defined(__has_feature)

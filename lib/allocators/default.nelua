@@ -32,13 +32,17 @@ global default_allocator: DefaultAllocator
 ## elseif not pragmas.nogc then
 
 require 'allocators.gc'
-global default_allocator: auto = gc_allocator
-global DefaultAllocator: auto = GCAllocator
+
+-- alias
+## context.rootscope.symbols.default_allocator = gc_allocator
+## context.rootscope.symbols.DefaultAllocator = GCAllocator
 
 ## else
 
 require 'allocators.general'
-global default_allocator: auto = general_allocator
-global DefaultAllocator: auto = GeneralAllocator
+
+-- alias
+## context.rootscope.symbols.default_allocator = general_allocator
+## context.rootscope.symbols.DefaultAllocator = GeneralAllocator
 
 ## end
