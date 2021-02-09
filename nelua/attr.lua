@@ -97,4 +97,9 @@ function Attr:is_forward_declare_type()
   return self.type and self.type.is_type and self.value.forwarddecl
 end
 
+function Attr:can_copy()
+  local type = self.type
+  return not (type and type.nocopy and self.lvalue)
+end
+
 return Attr

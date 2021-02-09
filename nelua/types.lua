@@ -82,6 +82,8 @@ Type.shape = shaper.shape {
   ctypedef = shaper.optional_boolean,
   -- Weather the scope is using fields from the type. (e.g. enum fields)
   using = shaper.optional_boolean,
+  -- Weather the type can be copied, that is, passed by value.
+  nocopy = shaper.optional_boolean,
   -- Marked when declaring a type without its definition.
   forwarddecl = shaper.optional_boolean,
   forwarddefn = shaper.optional_boolean,
@@ -1419,7 +1421,7 @@ end
 
 -- Get the desired type when converting this type from another type.
 function ArrayType:get_convertible_from_type(type, explicit, autoref)
-  if not explicit and autoref and type:is_pointer_of(self) then
+  if not explicit and autoref and type:is_pointer_of(self) and not self.nocopy then
     -- implicit automatic dereference
     return self, true
   end
@@ -1879,7 +1881,7 @@ end
 
 -- Get the desired type when converting this type from another type.
 function RecordType:get_convertible_from_type(type, explicit, autoref)
-  if not explicit and autoref and type:is_pointer_of(self) then
+  if not explicit and autoref and type:is_pointer_of(self) and not self.nocopy then
     -- perform implicit automatic dereference on a pointer to this record
     return self, true
   end

@@ -1937,4 +1937,89 @@ it("invalid type uses", function()
     "isn't a compile time value")
 end)
 
+it("nocopy type annotation", function()
+  assert.analyze_ast([[
+    local R <nocopy> = @record{x: integer}
+    local x: R
+    local r: *R = &x
+    local function f(x: R) end
+    f(R{})
+
+    local function g(): R
+      local r: R
+      return r
+    end
+
+    local function g(r: R): R
+      return r
+    end
+  ]])
+  assert.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local x: R
+    local r: R = x
+  ]], "non copyable type")
+  assert.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local x: R
+    local r: R
+    r = x
+  ]], "non copyable type")
+  assert.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local x: R
+    local r = x]], "non copyable type")
+  assert.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local x: R
+    local arr: [4]R = {x}
+  ]], "non copyable type")
+  assert.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local x: R
+    local r: record{x: R} = {x=x}
+  ]], "non copyable type")
+  assert.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local x: R
+    local u: union{x: R} = {x=x}
+  ]], "non copyable type")
+  assert.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local x: R
+    local function f(x: R) end
+    f(x)
+  ]], "non copyable type")
+  assert.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local x: R
+    local function f(x: R) end
+    f((@R)(x))
+  ]], "non copyable type")
+  assert.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local x: R
+    function R.f(x: R) end
+    x:f()
+  ]], "non copyable type")
+  assert.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local x: *R
+    local r: R = $x
+  ]], "non copyable type")
+  assert.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local r: R
+    local function f(): R
+      return r
+    end
+  ]], "non copyable type")
+  assert.analyze_error([[
+    local R <nocopy> = @record{x: integer}
+    local x: *R
+    local function f(x: R) end
+    f(x)
+  ]], "no viable type conversion")
+end)
+
 end)

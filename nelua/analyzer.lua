@@ -224,6 +224,10 @@ local function visitor_Array_literal(context, node, littype)
       if not ok then
         childnode:raisef("in array literal at index %d: %s", i, err)
       end
+      if not childattr:can_copy() then
+        childnode:raisef("in array literal at index %d: cannot pass non copyable type '%s' by value",
+          i, childtype)
+      end
       if not context.pragmas.nochecks and subtype ~= childtype then
         childnode.checkcast = true
       end
@@ -294,6 +298,10 @@ local function visitor_Record_literal(context, node, littype)
       if not ok then
         childnode:raisef("in record literal field '%s': %s", fieldname, err)
       end
+      if not fieldvalattr:can_copy() then
+        childnode:raisef("in record literal field '%s': cannot pass non copyable type '%s' by value",
+          fieldname, fieldvaltype)
+      end
       if not context.pragmas.nochecks and fieldtype ~= fieldvaltype then
         fieldvalnode.checkcast = true
       end
@@ -351,6 +359,10 @@ local function visitor_Union_literal(context, node, littype)
       local ok, err = fieldtype:is_convertible_from_attr(fieldvalattr)
       if not ok then
         childnode:raisef("in union literal field '%s': %s", fieldname, err)
+      end
+      if not fieldvalattr:can_copy() then
+        childnode:raisef("in record literal field '%s': cannot pass non copyable type '%s' by value",
+          fieldname, fieldvaltype)
       end
       if not context.pragmas.nochecks and fieldtype ~= fieldvaltype then
         fieldvalnode.checkcast = true
@@ -1107,6 +1119,9 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
         end
       end
       if argtype then
+        if not argattr:can_copy() then
+          argnode:raisef("in type cast: cannot pass non copyable type '%s' by value", argtype)
+        end
         if argattr.comptime then
           attr.value = type:wrap_value(argattr.value)
           if attr.value or argtype == type then
@@ -1151,16 +1166,23 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         attr.pseudoargtypes = pseudoargtypes
         attr.pseudoargattrs = pseudoargattrs
       end
-      local methodtype
+      local selftype
       if calleeobjnode then
         attr.ismethod = true
-        methodtype = funcargtypes[1]
-        if not methodtype then
-          node:raisef("in method call of function '%s' at argument 1: the function cannot have arguments", calleename)
+        selftype = funcargtypes[1]
+        if not selftype then
+          node:raisef("in method call '%s' at argument 'self': the function cannot have arguments", calleename)
         end
-        local ok, err = methodtype:is_convertible_from_attr(calleeobjnode.attr, nil, true, argattrs)
+        local ok, err = selftype:is_convertible_from_attr(calleeobjnode.attr, nil, true, argattrs)
         if not ok then
-          node:raisef("in method call of function '%s' at argument %d: %s", calleename, 1, err)
+          node:raisef("in method call '%s' at argument 'self': %s", calleename, err)
+        end
+        if not calleeobjnode.attr:can_copy() and calleeobjnode.attr.type == selftype then
+          local selfattr = funcargattrs[1]
+          if not (selfattr and selfattr.const) then
+            calleeobjnode:raisef("in method call '%s' at argument 'self': cannot pass non copyable type '%s'",
+              calleename, selftype)
+          end
         end
         table.remove(pseudoargtypes, 1)
         table.remove(pseudoargattrs, 1)
@@ -1231,6 +1253,11 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
               calleename, i, err)
           end
 
+          if not wantedtype.is_pointer and not argattr:can_copy() then
+            argnode:raisef("in call of function '%s' at argument %d: cannot pass non copyable type '%s' by value",
+              calleename, i, argtype)
+          end
+
           if not context.pragmas.nochecks and funcargtype ~= argtype and argnode then
             argnode.checkcast = true
           end
@@ -1257,8 +1284,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           pseudoargtypes[i] = argtype
         end
       end
-      if methodtype then
-        table.insert(polyargs, 1, methodtype)
+      if selftype then
+        table.insert(polyargs, 1, selftype)
       end
       if calleetype.is_polyfunction then
         local polycalleetype = calleetype
@@ -1378,8 +1405,9 @@ function visitors.CallMethod(context, node)
 
     if calleetype and calleetype.is_procedure then
       -- convert callee object if needed
-      calleeobjnode = visitor_convert(context, node, 3,
-        calleetype.argtypes[1], calleeobjnode, calleeobjnode.attr.type)
+      local calleeobjtype = calleeobjnode.attr.type
+      local selftype = calleetype.argtypes[1]
+      calleeobjnode = visitor_convert(context, node, 3, selftype, calleeobjnode, calleeobjtype)
     end
   end
 
@@ -2084,6 +2112,9 @@ function visitors.VarDecl(context, node)
         if not ok then
           varnode:raisef("in variable '%s' declaration: %s", symbol.name, err)
         end
+        if valnode and not valnode.attr:can_copy() then
+          valnode:raisef("cannot assign non copyable type '%s'", valtype)
+        end
         if not context.pragmas.nochecks and valnode and vartype ~= valtype then
           valnode.checkcast = true
           varnode.checkcast = true
@@ -2122,6 +2153,9 @@ function visitors.Assign(context, node)
     if valtype then
       if valtype.is_void then
         varnode:raisef("cannot assign to expressions of type 'void'")
+      end
+      if valnode and not valnode.attr:can_copy() then
+        valnode:raisef("cannot assign non copyable type '%s'", valtype)
       end
       if valtype and valtype.is_varanys then
         -- varanys are always stored as any in variables
@@ -2172,6 +2206,12 @@ function visitors.Return(context, node)
             local ok, err = funcrettype:is_convertible_from(retnode or rettype)
             if not ok then
               (retnode or node):raisef("return at index %d: %s", i, err)
+            end
+            local retattr = retnode and retnode.attr
+            if retattr and not retattr:can_copy() and
+               not (retattr.scope and retattr.scope:get_up_function_scope() == funcscope) then
+              retnode:raisef("return at index %d: cannot pass non copyable type '%s' by value",
+                i, rettype)
             end
             if not context.pragmas.nochecks and retnode and funcrettype ~= rettype then
               retnode.checkcast = true
