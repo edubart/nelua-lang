@@ -64,5 +64,5 @@ global function hash(x: auto): usize
     return h
   ## elseif type.is_nilptr or type.is_niltype then
     return 0
-  ## else static_error("hash: cannot hash type '%s'", type) end
+  ## else static_error("cannot hash type '%s'", type) end
 end

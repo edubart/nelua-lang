@@ -859,8 +859,8 @@ end
 -- Inline builtins
 
 function inlines.assert(context, node)
-  local attr = node.attr
-  local argattrs = node.attr.asserttype.argattrs
+  local builtintype = node.attr.builtintype
+  local argattrs = builtintype.argattrs
   local funcname = context:genuniquename('nelua_assert_line')
   local emitter = CEmitter(context)
   context:ensure_includes('<stdio.h>')
@@ -869,7 +869,7 @@ function inlines.assert(context, node)
   local qualifier = 'static inline'
   local assertmsg = 'assertion failed!'
   local condtype = nargs > 0 and argattrs[1].type or primtypes.void
-  local rettype = not attr.checkbuiltin and condtype or primtypes.void
+  local rettype = builtintype.rettypes[1] or primtypes.void
   local wherenode = nargs > 0 and node[1][1] or node
   local where = wherenode:format_message('runtime error', assertmsg)
   emitter:add_ln('{')

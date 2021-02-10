@@ -33,10 +33,10 @@ local StackAllocHeader = @record {
 ## local make_stack_allocator = generalize(function(SIZE, ALIGN)
   ##[[
   ALIGN = ALIGN or 8
-  static_assert(ALIGN >= 4, 'StackAllocator: align must be at least 4')
-  static_assert(ALIGN & (ALIGN-1) == 0, 'StackAllocator: align must be a power of two')
-  static_assert(SIZE <= 0xffffffff, 'StackAllocator: size too large')
-  static_assert(SIZE % ALIGN == 0, 'StackAllocator: size must be multiple of align')
+  static_assert(ALIGN >= 4, 'align must be at least 4')
+  static_assert(ALIGN & (ALIGN-1) == 0, 'align must be a power of two')
+  static_assert(SIZE <= 0xffffffff, 'size too large')
+  static_assert(SIZE % ALIGN == 0, 'size must be multiple of align')
   ]]
 
   local SIZE <comptime> = #[SIZE]#
@@ -76,7 +76,7 @@ local StackAllocHeader = @record {
     if unlikely(p == nilptr) then return end
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
     -- check if is the very last allocation
-    check(offset == self.prev_offset, 'StackAllocator.dealloc: out of order or invalid dealloc')
+    check(offset == self.prev_offset, 'out of order or invalid dealloc')
     local header: *StackAllocHeader = (@*StackAllocHeader)(&self.buffer[offset - #@StackAllocHeader])
     -- pop the current state from the stack header
     self.prev_offset = header.prev_offset
@@ -91,7 +91,7 @@ local StackAllocHeader = @record {
       return nilptr
     end
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
-    check(offset < SIZE, 'StackAllocatorT.realloc: pointer not in buffer of bounds')
+    check(offset < SIZE, 'pointer not in buffer of bounds')
     if likely(offset == self.prev_offset) then -- is the very last allocation?
       -- we can just update the offset here to grow or shrink
       local next_offset: usize = offset + newsize

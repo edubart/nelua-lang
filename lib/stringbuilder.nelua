@@ -24,9 +24,7 @@ local function scanformat(strfmt: *[0]byte, form: *[MAX_FORMAT]byte): usize
   while strfmt[p] ~= 0 and strchr(L_FMTFLAGS, strfmt[p]) ~= nilptr do
     p = p + 1  -- skip flags
   end
-  if p >= L_FMTFLAGS.size + 1 then
-    error("scanformat: invalid format (repeated flags)")
-  end
+  assert(p < L_FMTFLAGS.size + 1, "invalid format (repeated flags)")
   if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- skip width
   if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- (2 digits at most)
   if strfmt[p] == '.'_byte then
@@ -34,9 +32,7 @@ local function scanformat(strfmt: *[0]byte, form: *[MAX_FORMAT]byte): usize
     if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- skip precision
     if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- (2 digits at most)
   end
-  if isdigit(strfmt[p]) ~= 0 then
-    error("scanformat: invalid format (width or precision too long)")
-  end
+  assert(isdigit(strfmt[p]) == 0, "invalid format (width or precision too long)")
   form[0] = '%'_byte
   memory.copy(&form[1], &strfmt[0], p + 1)
   form[p + 2] = 0
@@ -100,7 +96,7 @@ end
 
   function stringbuilderT:commit(size: usize): void
     local newsize: usize = self.size + size
-    check(newsize <= self.data.size, 'stringbuilder.commit: not enough space in string buffer')
+    check(newsize <= self.data.size, 'not enough space in string buffer')
     self.size = newsize
   end
 
@@ -149,7 +145,7 @@ end
           c = fmt.data[pos]
           pos = pos + 1
           argi = argi + 1
-          assert(argi == 1, 'string.format: format with multiple arguments not supported yet')
+          assert(argi == 1, 'format with multiple arguments not supported yet')
           ## if primtypes.cint:is_convertible_from(arg1.type) then
             if c == 'c'_byte then
               local n: cint = (@cint)(arg1)
@@ -204,10 +200,9 @@ end
               goto next
             end
           ## end
-          error('string.format: invalid conversion for format argument')
+          error('invalid conversion for format argument')
   ::next::
-          assert(nb >= 0 and nb < (@isize)(maxitem),
-            'string.format: unexpect number of bytes written in sprintf')
+          assert(nb >= 0 and nb < (@isize)(maxitem), 'unexpect number of bytes written in sprintf')
           self:commit((@usize)(nb))
         end
       end

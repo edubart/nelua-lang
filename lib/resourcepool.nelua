@@ -72,22 +72,22 @@ local INIT_SIZE <comptime> = 64
       if self.size == 0 then
         newsize = INIT_SIZE
       else
-        check(self.size < 0x80000000, 'SlotPool.acquire_index: slot pool exhausted')
+        check(self.size < 0x80000000, 'slot pool exhausted')
         newsize = self.size * 2
       end
       self:reserve(newsize)
     end
     self.queue_top = self.queue_top - 1
     local slot_index: uint32 = self.free_queue[self.queue_top]
-    check(slot_index > 0 and slot_index <= self.size, 'SlotPool.acquire_index: invalid slot index')
+    check(slot_index > 0 and slot_index <= self.size, 'invalid slot index')
     return slot_index
   end
 
   -- Free an index from the slot pool to be reused, bumps the generation counter.
   function SlotPoolT:release_index(slot_index: uint32): void
-    check(self.queue_top + 1 <= self.size, 'SlotPool.release_index: slot queue overflow')
-    check(slot_index > 0 and slot_index <= self.size, 'SlotPool.release_index: invalid slot index')
-    check(self.gen_ctrs[slot_index] < SLOT_MASK, 'SlotPool.release_index: generation counter overflow')
+    check(self.queue_top + 1 <= self.size, 'slot queue overflow')
+    check(slot_index > 0 and slot_index <= self.size, 'invalid slot index')
+    check(self.gen_ctrs[slot_index] < SLOT_MASK, 'generation counter overflow')
     self.free_queue[self.queue_top] = slot_index
     self.queue_top = self.queue_top + 1
     self.gen_ctrs[slot_index] = self.gen_ctrs[slot_index] + 1 -- increment generation
@@ -166,10 +166,10 @@ local INIT_SIZE <comptime> = 64
   end
 
   -- Return a pointer to a resource associated with an id.
-  -- In case the resource id is invalid then throws a runtime error.
+  -- In case the resource id is invalid then throws a runtime error on debug builds.
   function ResourcePoolT:at(id: uint64): *T
     local slot_index: uint32 = self.slot_pool:get_index(id)
-    check(slot_index ~= 0, 'ResourcePool.at: invalid pool id')
+    check(slot_index ~= 0, 'invalid pool id')
     return &self.items[slot_index]
   end
 
@@ -190,11 +190,11 @@ local INIT_SIZE <comptime> = 64
 
   -- Free a resource associated with an id from the pool.
   -- In case the resource id is 0 does nothing.
-  -- In case the resource id is invalid then throws a runtime error.
+  -- In case the resource id is invalid then throws a runtime error on debug builds.
   function ResourcePoolT:release(id: uint64): void <inline>
     if id == 0 then return end
     local slot_index: uint32 = self.slot_pool:get_index(id)
-    check(slot_index ~= 0, 'ResourcePool.release: invalid slot index')
+    check(slot_index ~= 0, 'invalid slot index')
     self.slot_pool:release_index(slot_index)
     self.items[slot_index] = (@T)() -- zero the resource
   end

@@ -118,10 +118,11 @@ global list_node: type = #[make_generic_list_node]#
     return nilptr
   end
 
-  -- Erase an element where from the list.
+  -- Erase a node from the list.
+  -- If the node not in the list, then throws a runtime error on debug builds.
   -- O(1) complexity.
   function listT:erase(node: *list_nodeT): *list_nodeT
-    check(node ~= nilptr, 'listT.erase: attempt to erase a nilptr node')
+    check(node ~= nilptr, 'attempt to erase a nilptr node')
     if node == self.head then
       self.head = node.next
     end
@@ -140,9 +141,10 @@ global list_node: type = #[make_generic_list_node]#
   end
 
   -- Remove first element from the list.
+  -- If the list is empty, then throws a runtime error on debug builds.
   -- O(1) complexity.
   function listT:remove_first(): void
-    check(self.head ~= nilptr, 'list.remove_first: list is empty')
+    check(self.head ~= nilptr, 'list is empty')
     local node: *list_nodeT = self.head
     self.head = node.next
     if likely(self.head) then
@@ -155,9 +157,10 @@ global list_node: type = #[make_generic_list_node]#
   end
 
   -- Remove last element from the list.
+  -- If the list is empty, then throws a runtime error on debug builds.
   -- O(1) complexity.
   function listT:remove_last(): void
-    check(self.tail ~= nilptr, 'list.remove_first: list is empty')
+    check(self.tail ~= nilptr, 'list is empty')
     local node: *list_nodeT = self.tail
     self.tail = node.prev
     if likely(self.tail) then

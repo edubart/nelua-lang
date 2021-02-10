@@ -80,7 +80,7 @@ function filestream.open(filename: stringview, mode: facultative(stringview)) : 
   ## if mode.type.is_niltype then
   local mode: stringview = "r"
   ## else
-  if not checkmode(mode) then error('filestream.open: invalid mode') end
+  assert(checkmode(mode), 'invalid mode')
   ## end
   local fp: *FILE = fopen(filename, mode)
   if not fp then
@@ -91,13 +91,13 @@ end
 
 function filestream:flush(): (boolean, stringview, integer)
   local fp: *FILE = self:_get_fp()
-  if not fp then error('filestream.flush: attempt to use a closed file') end
+  assert(fp ~= nilptr, 'attempt to use a closed file')
   return fileresult(fflush(fp) == 0)
 end
 
 function filestream:close(): (boolean, stringview, integer)
   local fp: *FILE = self:_get_fp()
-  if not fp then error('filestream.close: attempt to use a closed file') end
+  assert(fp ~= nilptr, 'attempt to use a closed file')
   if fp == stdout or fp == stderr or fp == stdin then
     return false, 'cannot close standard file', -1
   end
@@ -109,7 +109,7 @@ end
 function filestream:seek(whence: facultative(stringview),
                          offset: facultative(integer)): (integer, stringview, integer)
   local fp: *FILE = self:_get_fp()
-  if not fp then error('filestream.seek: attempt to use a closed file') end
+  assert(fp ~= nilptr, 'attempt to use a closed file')
   ## if whence.type.is_niltype then
     local len: integer = ftell(fp)
     return len, '', 0
@@ -121,7 +121,7 @@ function filestream:seek(whence: facultative(stringview),
     if whence == 'set' then op = SEEK_SET
     elseif whence == 'end' then op = SEEK_END
     elseif whence == 'cur' then op = SEEK_CUR
-    else error("filestream.seek: invalid whence") end
+    else error("invalid whence") end
     local len: integer, errmsg: stringview, status: integer
     if fseek(fp, (@clong)(offset), op) == 0 then
       len = ftell(fp)
@@ -139,12 +139,12 @@ function filestream:setvbuf(mode: stringview, size: facultative(integer))
   local size: csize = 1024
   ## end
   local fp: *FILE = self:_get_fp()
-  if not fp then error('filestream.setvbuf: attempt to use a closed file') end
+  assert(fp ~= nilptr, 'attempt to use a closed file')
   local op: cint
   if mode == 'no' then op = _IONBF
   elseif mode == 'full' then op = _IOFBF
   elseif mode == 'line' then op = _IOLBF
-  else error('filestream.setvbuf: invalid mode') end
+  else error('invalid mode') end
   return fileresult(setvbuf(fp, nilptr, op, size) == 0)
 end
 
@@ -193,7 +193,7 @@ end
 function filestream:read(fmt: overload(integer,stringview,niltype)): (string, stringview, integer)
   --TODO: multiple arguments
   local fp: *FILE = self:_get_fp()
-  if not fp then error('filestream.read: attempt to use a closed file') end
+  assert(fp ~= nilptr, 'attempt to use a closed file')
   local sb: stringbuilder
   local success: boolean
   clearerr(fp)
@@ -214,7 +214,7 @@ function filestream:read(fmt: overload(integer,stringview,niltype)): (string, st
     elseif c == 'a'_byte then -- entire file
       success = readall(&sb, fp)
     else
-      error('filestream.read: invalid format')
+      error('invalid format')
     end
   ## end
   local errmsg: stringview
@@ -240,7 +240,7 @@ function filestream:write(s: stringview): (boolean, stringview, integer)
   --TODO: multiple arguments
   --TODO: return file itself
   local fp: *FILE = self:_get_fp()
-  if not fp then error('filestream.write: attempt to use a closed file') end
+  assert(fp ~= nilptr, 'attempt to use a closed file')
   local len: csize = s.size
   if fwrite(s.data, 1, len, fp) == len then
     return true, '', 0
@@ -251,7 +251,7 @@ end
 function filestream:writef(fmt: stringview, arg1: auto): (boolean, stringview, integer)
   local sb: stringbuilder
   if not sb:write_format(fmt, arg1) then
-    return false, 'filestream.writef: not enough memory', 0
+    return false, 'not enough memory', 0
   end
   local ok: boolean, err: stringview, len: integer = self:write(tostringview(sb))
   sb:destroy()

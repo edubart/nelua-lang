@@ -46,7 +46,7 @@ stringtype.name = 'string'
 -- Allocate a new string to be filled. Used internally.
 function string._create(size: usize): string
   local self: string
-  check(size > 0, 'string._create: attempt to create an empty string')
+  check(size > 0, 'attempt to create an empty string')
   self.size = size
   self.data = (@*[0]byte)(default_allocator:xalloc(size+1))
   self.data[size] = 0

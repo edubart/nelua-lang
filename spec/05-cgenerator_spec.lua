@@ -2574,6 +2574,8 @@ it("assert builtin", function()
     assert(true, 'assertion')
     assert(1)
     assert(0)
+    assert(assert(true) == true)
+    assert(assert(1) == 1)
 
     local function f()
       return true, 'assertion!'

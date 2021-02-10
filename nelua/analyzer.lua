@@ -1356,12 +1356,18 @@ function visitors.Call(context, node)
     if calleeattr.builtin then
       local builtinfunc = builtins[calleeattr.name]
       if builtinfunc then
-        local functype = builtinfunc(context, node, argnodes, calleenode)
-        if functype then
-          calleetype = functype
-        elseif functype == false then
-          context:traverse_nodes(argnodes)
-          return
+        local builtintype = attr.builtintype
+        if builtintype then
+          calleetype = builtintype
+        else
+          builtintype = builtinfunc(context, node, argnodes, calleenode)
+          if builtintype then
+            attr.builtintype = builtintype
+            calleetype = builtintype
+          elseif builtintype == false then -- wait resolution
+            context:traverse_nodes(argnodes)
+            return
+          end
         end
       end
     end

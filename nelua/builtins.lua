@@ -87,8 +87,12 @@ end
 
 function builtins.assert(context, node, argnodes)
   local attr = node.attr
-  if attr.asserttype then -- already parsed
-    return attr.asserttype
+  local statement = attr.checkbuiltin or context:get_parent_node().tag == 'Block'
+  if statement then
+    local argnode = argnodes[1]
+    if argnode then
+      argnode.desiredtype = primtypes.boolean
+    end
   end
   context:traverse_nodes(argnodes)
   local argtypes = types.argtypes_from_argnodes(argnodes, 2)
@@ -101,11 +105,11 @@ function builtins.assert(context, node, argnodes)
     node:raisef('expected at most 2 arguments')
   elseif nargs > 0 then
     local condtype
-    if not attr.checkbuiltin then
+    if statement then
+      condtype = primtypes.boolean
+    else
       condtype = argtypes[1]
       rettypes = {condtype}
-    else
-      condtype = primtypes.boolean
     end
     if nargs == 2 then
       argattrs = {Attr{name='cond', type=condtype}, Attr{name='msg', type=primtypes.stringview}}
@@ -115,18 +119,12 @@ function builtins.assert(context, node, argnodes)
   end
   argattrs = argattrs or {}
   rettypes = rettypes or {}
-  local functype = types.FunctionType(argattrs, rettypes, node)
-  attr.asserttype = functype
-  return functype
+  return types.FunctionType(argattrs, rettypes, node)
 end
 
 function builtins.check(context, node, argnodes)
   local attr = node.attr
   attr.checkbuiltin = true
-  local argnode = argnodes[1]
-  if argnode then
-    argnode.desiredtype = primtypes.boolean
-  end
   if context.pragmas.nochecks then
     attr.omitcall = true
   end

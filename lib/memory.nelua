@@ -14,37 +14,37 @@ local function memchr(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'
 global memory = @record{}
 
 function memory.copy(dest: pointer, src: pointer, size: usize): void <inline>
-  check(dest and src, 'memory.copy: invalid pointer')
+  check(dest and src, 'invalid pointer')
   memcpy(dest, src, size)
 end
 
 function memory.move(dest: pointer, src: pointer, size: usize): void <inline>
-  check(dest and src, 'memory.move: invalid pointer')
+  check(dest and src, 'invalid pointer')
   memmove(dest, src, size)
 end
 
 function memory.set(dest: pointer, x: byte, size: usize): void <inline>
-  check(dest, 'memory.set: invalid pointer')
+  check(dest, 'invalid pointer')
   memset(dest, x, size)
 end
 
 function memory.zero(dest: pointer, size: usize): void <inline>
-  check(dest, 'memory.zero: invalid pointer')
+  check(dest, 'invalid pointer')
   memset(dest, 0, size)
 end
 
 function memory.compare(a: pointer, b: pointer, size: usize): int32 <inline>
-  check(a and b, 'memory.move: invalid pointer')
+  check(a and b, 'invalid pointer')
   return memcmp(a, b, size)
 end
 
 function memory.equals(a: pointer, b: pointer, size: usize): boolean <inline>
-  check(a and b, 'memory.equals: invalid pointer')
+  check(a and b, 'invalid pointer')
   return memcmp(a, b, size) == 0
 end
 
 function memory.scan(p: pointer, x: byte, size: usize): pointer <inline>
-  check(p, 'memory.scan: invalid pointer')
+  check(p, 'invalid pointer')
   return memchr(p, x, size)
 end
 
@@ -53,7 +53,7 @@ function memory.find(haystack: pointer, haystacksize: usize,
   if unlikely(needlesize == 0 or haystack == needle) then return haystack
   elseif unlikely(needlesize > haystacksize) then return nilptr
   else
-    check(haystack and needle, 'memory.find: invalid pointer')
+    check(haystack and needle, 'invalid pointer')
     if needlesize == 1 then
       return memchr(haystack, $(@*byte)(needle), haystacksize)
     end
@@ -91,7 +91,7 @@ end
 function memory.spancopy(dest: is_span, src: is_span): void <inline>
   local T: type = #[dest.type.subtype]#
   ## check_type_match(dest, src)
-  check(dest.size == src.size, 'memory.spancopy: span sizes must be equal')
+  check(dest.size == src.size, 'span sizes must be equal')
   if likely(src.size > 0) then
     memcpy(dest.data, src.data, src.size * #T)
   end
@@ -100,7 +100,7 @@ end
 function memory.spanmove(dest: is_span, src: is_span): void <inline>
   local T: type = #[dest.type.subtype]#
   ## check_type_match(dest, src)
-  check(dest.size == src.size, 'memory.spanmove: span sizes must be equal')
+  check(dest.size == src.size, 'span sizes must be equal')
   if likely(src.size > 0) then
     memmove(dest.data, src.data, src.size * #T)
   end

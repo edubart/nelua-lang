@@ -123,7 +123,7 @@ function os.setlocale(locale: stringview, category: facultative(stringview)): st
     elseif category == 'numeric' then cat = LC_NUMERIC
     elseif category == 'time' then cat = LC_TIME
     else
-      error("os.setlocale: invalid category")
+      error("invalid category")
     end
     local s: cstring = setlocale(cat, locale)
     if s then
@@ -144,9 +144,7 @@ function os.time(desc: facultative(os_time_desc)): integer
   local t: time_t
   ## if desc.type.is_niltype then
     t = time(nilptr)
-    if t == -1 then
-      error 'os.time: time result cannot be represented in this installation'
-    end
+    assert(t ~= -1, 'time result cannot be represented in this installation')
   ## else
     --TODO: change desc to table and update fields with normalize values
     --TODO: make default hour 12
@@ -181,9 +179,7 @@ function os.tmpname(): string
     local function tmpnam(buf: cstring): void
       strncpy(buf, "/tmp/lua_XXXXXX", TMPBUFSIZE)
       local fd: cint = mkstemp(buf)
-      if fd == -1 then
-        error "os.tmpname: unable to generate a unique filename"
-      end
+      assert(fd ~= -1, "unable to generate a unique filename")
       close(fd)
     end
   ## end

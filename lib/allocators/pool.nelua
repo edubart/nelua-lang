@@ -17,12 +17,12 @@ require 'allocators.interface'
 
 ## local make_pool_allocator = generalize(function(T, SIZE)
   ##[[
-  static_assert(traits.is_type(T), 'PoolAllocator: T must be a type')
+  static_assert(traits.is_type(T), 'T must be a type')
   local CHUNK_SIZE = T.size
   local CHUNK_ALIGN = math.max(T.align, primtypes.pointer.size)
-  static_assert(traits.is_number(SIZE), 'PoolAllocator: size must be a number')
-  static_assert(SIZE * CHUNK_SIZE > 0, 'PoolAllocator: size must be greater than 0')
-  static_assert(CHUNK_SIZE >= primtypes.pointer.size, 'PoolAllocator: chunk size must be at least a pointer in size')
+  static_assert(traits.is_number(SIZE), 'size must be a number')
+  static_assert(SIZE * CHUNK_SIZE > 0, 'size must be greater than 0')
+  static_assert(CHUNK_SIZE >= primtypes.pointer.size, 'chunk size must be at least a pointer in size')
   ]]
 
   local PoolFreeNode = @record{next: *PoolFreeNode}
@@ -78,7 +78,7 @@ require 'allocators.interface'
     if unlikely(p == nilptr) then return end
     -- is this pointer really valid?
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
-    check(offset // #PoolChunk < #self.buffer and offset % #PoolChunk == 0, 'PoolAllocator.dealloc: pointer not in buffer bounds')
+    check(offset // #PoolChunk < #self.buffer and offset % #PoolChunk == 0, 'pointer not in buffer bounds')
     -- push free node
     local node: *PoolFreeNode = (@*PoolFreeNode)(p)
     node.next = self.head

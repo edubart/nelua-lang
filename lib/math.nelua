@@ -254,7 +254,7 @@ function math.ult(m: is_arithmetic, n: is_arithmetic): boolean <inline>
     if likely(mi == m and ni == n) then
       return (@uinteger)(mi) < (@uinteger)(ni)
     else
-      error('math.ult: m or n has no integer representation')
+      error('m or n has no integer representation')
     end
   ## end
 end
@@ -310,14 +310,14 @@ function math.random(m: is_optional_arithmetic, n: is_optional_arithmetic) <inli
   local r: number = default_random:random()
   ## if not m.type.is_niltype and not n.type.is_niltype then
     local low: integer, up: integer = (@integer)(m), (@integer)(n)
-    check(low <= up, "math.random: interval is empty")
-    check(low >= 0 or up < math.maxinteger + low, "math.random: interval too large")
+    check(low <= up, "interval is empty")
+    check(low >= 0 or up < math.maxinteger + low, "interval too large")
     r = r * ((@number)(up - low) + 1.0)
     return (@integer)(r) + low
   ## elseif not m.type.is_niltype then
     local low: integer <comptime> = 1
     local high: integer = (@integer)(m)
-    check(high > 0, "math.random: interval is empty")
+    check(high > 0, "interval is empty")
     r = r * (@number)(high)
     return (@integer)(r) + low
   ## else

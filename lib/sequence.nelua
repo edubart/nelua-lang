@@ -118,9 +118,9 @@ require 'iterators'
   end
 
   -- Removes the last element in the sequence and returns its value.
-  -- If the sequence is empty, then throws a runtime error.
+  -- If the sequence is empty, then throws a runtime error on debug builds.
   function sequenceT:pop(): T <inline>
-    check(self.impl and self.impl.size > 0, 'sequence.pop: length is 0')
+    check(self.impl and self.impl.size > 0, 'length is 0')
     local ret: T = self.impl.data[self.impl.size]
     self.impl.size = self.impl.size - 1
     return ret
@@ -128,10 +128,10 @@ require 'iterators'
 
   -- Inserts element `v` at position `pos` in the sequence.
   -- Elements with index greater or equal than `pos` are shifted up.
-  -- If the `pos` is out of range, then throws a runtime error.
+  -- If the `pos` is out of range, then throws a runtime error on debug builds.
   function sequenceT:insert(pos: usize, v: T): void
     self:init()
-    check(pos > 0 and pos <= self.impl.size + 1, 'sequence.insert: position out of bounds')
+    check(pos > 0 and pos <= self.impl.size + 1, 'position out of bounds')
     if unlikely(self.impl.size + 2 >= self.impl.data.size) then
       self:_grow()
     end
@@ -145,9 +145,9 @@ require 'iterators'
 
   -- Removes element at position `pos` in the sequence and returns its value.
   -- Elements with index greater than `pos` are shifted down.
-  -- If the `pos` is out of range, then throws a runtime error.
+  -- If the `pos` is out of range, then throws a runtime error on debug builds.
   function sequenceT:remove(pos: usize): T
-    check(self.impl and self.impl.size > 0, 'sequence.remove: position out of bounds')
+    check(self.impl and self.impl.size > 0, 'position out of bounds')
     local ret: T = self.impl.data[pos]
     if self.impl.size > pos then
       memory.move(&self.impl.data[pos], &self.impl.data[pos+1], (self.impl.size - pos) * #T)
@@ -193,11 +193,11 @@ require 'iterators'
 
   -- Returns reference to element at index `i`.
   -- If `i` is the sequence size plus 1, then a zeroed element is added and return its reference.
-  -- If `i` is larger then the sequence size plus 1, then throws a runtime error.
+  -- If `i` is larger then the sequence size plus 1, then throws a runtime error on debug builds.
   function sequenceT:__atindex(i: usize): *T <inline>
     self:init()
     if unlikely(i > self.impl.size) then
-      check(i == self.impl.size + 1, 'sequence.__atindex: position out of bounds')
+      check(i == self.impl.size + 1, 'position out of bounds')
       self.impl.size = self.impl.size + 1
     end
     if unlikely(self.impl.size + 1 > self.impl.data.size) then

@@ -168,7 +168,7 @@ local INVALID_INDEX: usize <comptime> = #[primtypes.usize.max]#
     if node_index ~= INVALID_INDEX then -- found a node
       return node_index
     else -- add a node
-      check(self.size < self.nodes.size, 'hashmap._find_or_make: not enough space to add a node')
+      check(self.size < self.nodes.size, 'not enough space to add a node')
       local node_index: usize = self.size
       self.nodes[node_index] = {key = key, next = INVALID_INDEX}
       self.size = self.size + 1
@@ -210,20 +210,20 @@ local INVALID_INDEX: usize <comptime> = #[primtypes.usize.max]#
   end
 
   -- Returns the value that is mapped to a key.
-  -- If no such element exists, a runtime error is thrown.
+  -- If no such element exists, a runtime error is thrown on debug builds.
   -- Complexity: Average case O(1).
   function hashmapT:at(key: K): V
     local node_index: usize = self:_find(key)
-    check(node_index ~= INVALID_INDEX, 'hashmap.at: position out of bounds')
+    check(node_index ~= INVALID_INDEX, 'position out of bounds')
     return self.nodes[node_index].value
   end
 
   -- Returns a reference to the value that is mapped to a key.
-  -- If no such element exists, a runtime error is thrown.
+  -- If no such element exists, a runtime error is thrown on debug builds.
   -- Complexity: Average case O(1).
   function hashmapT:at_ptr(key: K): *V
     local node_index: usize = self:_find(key)
-    check(node_index ~= INVALID_INDEX, 'hashmap.at: position out of bounds')
+    check(node_index ~= INVALID_INDEX, 'position out of bounds')
     return &self.nodes[node_index].value
   end
 

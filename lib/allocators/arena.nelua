@@ -37,8 +37,8 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
 
 ## local make_arena_allocator = generalize(function(SIZE, ALIGN)
   ## ALIGN = ALIGN or 8
-  ## static_assert(SIZE % ALIGN == 0, 'ArenaAllocator: size must be multiple of align')
-  ## static_assert(ALIGN & (ALIGN-1) == 0, 'ArenaAllocator: align must be a power of two')
+  ## static_assert(SIZE % ALIGN == 0, 'size must be multiple of align')
+  ## static_assert(ALIGN & (ALIGN-1) == 0, 'align must be a power of two')
 
   local SIZE <comptime> = #[SIZE]#
   local ALIGN <comptime> = #[ALIGN]#
@@ -71,7 +71,7 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
     if unlikely(p == nilptr) then return end
     -- get offset for this pointer
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
-    check(offset < SIZE, 'ArenaAllocator.dealloc: pointer not in buffer of bounds')
+    check(offset < SIZE, 'pointer not in buffer of bounds')
     -- we can only dealloc the most recent allocation once
     -- any other allocation we can do nothing about
     if likely(offset == self.prev_offset) then
@@ -87,7 +87,7 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
       return nilptr
     end
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
-    check(offset < SIZE, 'ArenaAllocator.realloc: pointer not in buffer of bounds')
+    check(offset < SIZE, 'pointer not in buffer of bounds')
     if likely(offset == self.prev_offset) then -- is the very last allocation?
       -- we can just update the offset here to grow or shrink
       local next_offset: usize = offset + newsize

@@ -26,8 +26,10 @@ end
 function Emitter:add_one(what)
   local ty = type(what)
   if ty == 'string' then
-    local codes = self.codes
-    codes[#codes+1] = what
+    if what ~= '' then
+      local codes = self.codes
+      codes[#codes+1] = what
+    end
   elseif ty == 'number' or ty == 'boolean' then
     local codes = self.codes
     codes[#codes+1] = tostring(what)
