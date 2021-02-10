@@ -262,6 +262,10 @@ function CEmitter:add_numeric_literal(valattr, valtype)
   end
 end
 
+function CEmitter.cstring_literal(_, s)
+  return pegger.double_quote_c_string(s), #s
+end
+
 function CEmitter:add_string_literal(val, ascstring)
   local size = #val
   local varname = self.context.stringliterals[val]

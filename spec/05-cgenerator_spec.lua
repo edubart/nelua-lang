@@ -2561,28 +2561,50 @@ it("sizeof builtin", function()
 end)
 
 it("assert builtin", function()
-  local no_abort = config.no_abort
-  config.no_abort = false
+  local noabort = config.pragmas.noabort
+  config.pragmas.noabort = false
   assert.generate_c(
     "assert(true)",
-    "nelua_assert(true)")
+    "__nelua_assert_line1(true)")
   assert.generate_c(
     "assert(true, 'assertion')",
-    'nelua_assert_stringview(true, ')
+    '__nelua_assert_line1(true, ')
   assert.run_c([[
     assert(true)
     assert(true, 'assertion')
+    assert(1)
+    assert(0)
+
+    local function f()
+      return true, 'assertion!'
+    end
+    assert(f())
+
+    local f
+    local function g()
+      assert(f())
+    end
+    function f()
+      return true, 'asd'
+    end
+    g()
   ]])
-  config.no_abort = no_abort
+  config.pragmas.noabort = noabort
   assert.run_error_c([[
     assert()
-  ]], "invalid assert call")
-  assert.run_error_c([[
-    assert(false, 'assertion')
-  ]], "assertion")
+  ]], "assertion failed!")
   assert.run_error_c([[
     assert(false)
   ]], "assertion failed!")
+  assert.run_error_c([[
+    assert(false, 'assertion!')
+  ]], "assertion!")
+  assert.run_error_c([[
+    local function f()
+      return false, 'assertion!'
+    end
+    assert(f())
+  ]], "assertion!")
 end)
 
 it("check builtin", function()

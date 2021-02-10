@@ -1,7 +1,6 @@
 local cdefs = require 'nelua.cdefs'
 local CEmitter = require 'nelua.cemitter'
 local primtypes = require 'nelua.typedefs'.primtypes
-local config = require 'nelua.configer'.get()
 local bn = require 'nelua.utils.bn'
 
 local builtins, operators, inlines = {}, {}, {}
@@ -52,7 +51,7 @@ end
 
 function builtins.nelua_abort(context)
   context:ensure_include('<stdlib.h>')
-  if config.no_abort then
+  if context.pragmas.noabort then
     context:define_builtin('nelua_abort', '#define nelua_abort() exit(-1)')
   else
     context:define_builtin('nelua_abort', '#define nelua_abort() abort()')
@@ -91,26 +90,6 @@ function builtins.nelua_panic_stringview(context)
     fprintf(stderr, "%s\n", (char*)s.data);
   }
   nelua_abort();
-}]])
-end
-
-function builtins.nelua_assert(context)
-  context:ensure_builtins('nelua_panic_cstring', 'nelua_unlikely')
-  context:define_function_builtin('nelua_assert',
-    'static inline', primtypes.void, {{primtypes.boolean, 'cond'}}, [[{
-  if(nelua_unlikely(!cond)) {
-    nelua_panic_cstring("assertion failed!");
-  }
-}]])
-end
-
-function builtins.nelua_assert_stringview(context)
-  context:ensure_builtins('nelua_panic_stringview', 'nelua_unlikely')
-  context:define_function_builtin('nelua_assert_stringview',
-    'static inline', primtypes.void, {{primtypes.boolean, 'cond'}, {primtypes.stringview, 's'}}, [[{
-  if(nelua_unlikely(!cond)) {
-    nelua_panic_stringview(s);
-  }
 }]])
 end
 
@@ -880,20 +859,62 @@ end
 -- Inline builtins
 
 function inlines.assert(context, node)
-  local args = node:args()
-  if #args == 2 then
-    return context:ensure_builtin('nelua_assert_stringview')
-  elseif #args == 1 then
-    return context:ensure_builtin('nelua_assert')
-  else
-    node:raisef('invalid assert call')
+  local attr = node.attr
+  local argattrs = node.attr.asserttype.argattrs
+  local funcname = context:genuniquename('nelua_assert_line')
+  local emitter = CEmitter(context)
+  context:ensure_includes('<stdio.h>')
+  context:ensure_builtins('nelua_unlikely', 'nelua_abort')
+  local nargs = #argattrs
+  local qualifier = 'static inline'
+  local assertmsg = 'assertion failed!'
+  local condtype = nargs > 0 and argattrs[1].type or primtypes.void
+  local rettype = not attr.checkbuiltin and condtype or primtypes.void
+  local wherenode = nargs > 0 and node[1][1] or node
+  local where = wherenode:format_message('runtime error', assertmsg)
+  emitter:add_ln('{')
+  if nargs == 2 then
+    local pos = where:find(assertmsg)
+    local msg1, msg1len = emitter:cstring_literal(where:sub(1, pos-1))
+    local msg2, msg2len = emitter:cstring_literal(where:sub(pos + #assertmsg))
+    emitter:add([[
+  if(nelua_unlikely(!]]) emitter:add_val2boolean('cond', condtype) emitter:add([[)) {
+    fwrite(]],msg1,[[, ]],msg1len,[[, 1, stderr);
+    fwrite(msg.data, msg.size, 1, stderr);
+    fwrite(]],msg2,[[, ]],msg2len,[[, 1, stderr);
+    fflush(stderr);
+    nelua_abort();
+  }
+]])
+  elseif nargs == 1 then
+    local msg, msglen = emitter:cstring_literal(where)
+    emitter:add([[
+  if(nelua_unlikely(!]]) emitter:add_val2boolean('cond', condtype) emitter:add([[)) {
+    fwrite(]],msg,[[, ]],msglen,[[, 1, stderr);
+    fflush(stderr);
+    nelua_abort();
+  }
+]])
+  else -- nargs == 0
+    local msg, msglen = emitter:cstring_literal(where)
+    context:ensure_builtin('nelua_noreturn')
+    qualifier = 'static inline nelua_noreturn'
+    emitter:add([[
+  fwrite(]],msg,[[, ]],msglen,[[, 1, stderr);
+  fflush(stderr);
+  nelua_abort();
+]])
   end
+  if rettype ~= primtypes.void then
+    emitter:add_ln('  return cond;')
+  end
+  emitter:add('}')
+  context:define_function_builtin(funcname, qualifier, rettype, argattrs, emitter:generate())
+  return funcname
 end
 
 function inlines.check(context, node)
-  local args = node:args()
-  assert(#args == 2)
-  return context:ensure_builtin('nelua_assert_stringview')
+  return inlines.assert(context, node)
 end
 
 function inlines.print(context, node)
@@ -901,7 +922,7 @@ function inlines.print(context, node)
   local argnodes = node[1]
   local funcname = context:genuniquename('nelua_print')
 
-  -- function declarations
+  -- function declaration
   local decemitter = CEmitter(context)
   decemitter:add('void ', funcname, '(')
   for i,argnode in ipairs(argnodes) do

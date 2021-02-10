@@ -2,9 +2,13 @@ local builtins = {}
 local fs = require 'nelua.utils.fs'
 local config = require 'nelua.configer'.get()
 local preprocessor = require 'nelua.preprocessor'
+local typedefs = require 'nelua.typedefs'
+local types = require 'nelua.types'
+local Attr = require 'nelua.attr'
+local primtypes = typedefs.primtypes
 local pegger = require 'nelua.utils.pegger'
 
-function builtins.require(context, node)
+function builtins.require(context, node, argnodes)
   local attr = node.attr
   if attr.alreadyrequired or attr.runtime_require then
     -- already tried to load
@@ -14,7 +18,8 @@ function builtins.require(context, node)
   local justloaded = false
   if not attr.loadedast then
     local canloadatruntime = context.generator == 'lua'
-    local argnode = node[1][1]
+    context:traverse_nodes(argnodes)
+    local argnode = argnodes[1]
     if not (argnode and
             argnode.attr.type and argnode.attr.type.is_stringview and
             argnode.attr.comptime) or not context.scope.is_topscope then
@@ -80,10 +85,52 @@ function builtins.require(context, node)
   context:pop_pragmas()
 end
 
-function builtins.check(context, node)
-  if context.pragmas.nochecks then
-    node.attr.omitcall = true
+function builtins.assert(context, node, argnodes)
+  local attr = node.attr
+  if attr.asserttype then -- already parsed
+    return attr.asserttype
   end
+  context:traverse_nodes(argnodes)
+  local argtypes = types.argtypes_from_argnodes(argnodes, 2)
+  if not argtypes then -- wait last argument type resolution
+    return false
+  end
+  local nargs = #argtypes
+  local argattrs, rettypes
+  if nargs > 2 then
+    node:raisef('expected at most 2 arguments')
+  elseif nargs > 0 then
+    local condtype
+    if not attr.checkbuiltin then
+      condtype = argtypes[1]
+      rettypes = {condtype}
+    else
+      condtype = primtypes.boolean
+    end
+    if nargs == 2 then
+      argattrs = {Attr{name='cond', type=condtype}, Attr{name='msg', type=primtypes.stringview}}
+    elseif nargs == 1 then
+      argattrs = {Attr{name='cond', type=condtype}}
+    end
+  end
+  argattrs = argattrs or {}
+  rettypes = rettypes or {}
+  local functype = types.FunctionType(argattrs, rettypes, node)
+  attr.asserttype = functype
+  return functype
+end
+
+function builtins.check(context, node, argnodes)
+  local attr = node.attr
+  attr.checkbuiltin = true
+  local argnode = argnodes[1]
+  if argnode then
+    argnode.desiredtype = primtypes.boolean
+  end
+  if context.pragmas.nochecks then
+    attr.omitcall = true
+  end
+  return builtins.assert(context, node, argnodes)
 end
 
 return builtins

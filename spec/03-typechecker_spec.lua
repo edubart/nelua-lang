@@ -1608,6 +1608,7 @@ it("builtins", function()
   assert.ast_type_equals("local a = unlikely(true)", "local a: boolean = unlikely(true)")
   assert.analyze_ast("error 'an error'")
   assert.analyze_ast("warn 'an warn'")
+  assert.analyze_error("assert(true,'asd', 2)", 'expected at most')
 end)
 
 it("require builtin", function()

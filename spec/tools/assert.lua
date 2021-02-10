@@ -21,7 +21,7 @@ config.check_ast_shape = true
 config.check_type_shape = true
 config.quiet = true
 config.lua_version = '5.3'
-config.no_abort = true
+config.pragmas.noabort = true
 
 -- use cache subfolder while testing
 config.cache_dir = fs.join(config.cache_dir, 'spec')

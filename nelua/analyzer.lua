@@ -1148,8 +1148,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
   local attr = node.attr
   if calleetype then
     local sideeffect
-    if calleetype.is_procedure then
-      -- function call
+    if calleetype.is_procedure then -- function call
       local argattrs = {}
       for i=1,#argnodes do
         argattrs[i] = argnodes[i].attr
@@ -1344,10 +1343,7 @@ function visitors.Call(context, node)
 
   local calleeattr = calleenode.attr
   local calleetype = calleeattr.type
-  local calleesym
-  if traits.is_symbol(calleeattr) then
-    calleesym = calleeattr
-  end
+  local calleesym = calleeattr._symbol and calleeattr
   if calleetype and calleetype.is_pointer then
     calleetype = calleetype.subtype
     assert(calleetype)
@@ -1357,14 +1353,20 @@ function visitors.Call(context, node)
   if calleetype and calleetype.is_type then
     visitor_Call_type_cast(context, node, argnodes, calleeattr.value)
   else
-    visitor_Call(context, node, argnodes, calleetype, calleesym)
-
     if calleeattr.builtin then
       local builtinfunc = builtins[calleeattr.name]
       if builtinfunc then
-        builtinfunc(context, node)
+        local functype = builtinfunc(context, node, argnodes, calleenode)
+        if functype then
+          calleetype = functype
+        elseif functype == false then
+          context:traverse_nodes(argnodes)
+          return
+        end
       end
     end
+
+    visitor_Call(context, node, argnodes, calleetype, calleesym)
   end
 end
 

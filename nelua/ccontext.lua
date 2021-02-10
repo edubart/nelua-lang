@@ -205,10 +205,12 @@ function CContext:define_function_builtin(name, qualifier, ret, args, body)
     emitter:add_one('(')
     for i=1,#args do
       if i > 1 then
-        emitter:add_one(',')
+        emitter:add_one(', ')
       end
       local arg = args[i]
-      emitter:add(arg[1], ' ', arg[2])
+      local argtype = arg[1] or arg.type
+      local argname = arg[2] or arg.name
+      emitter:add(argtype, ' ', argname)
     end
     emitter:add_one(')')
     args = emitter:generate()

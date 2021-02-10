@@ -731,7 +731,7 @@ function visitors.Call(context, node, emitter)
       emitter:add_zeroed_type_literal(type)
     end
   elseif callee then
-    visitor_Call(context, node, emitter, argnodes, callee, nil)
+    visitor_Call(context, node, emitter, argnodes, callee)
   end
 end
 

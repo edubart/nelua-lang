@@ -545,6 +545,40 @@ function types.typenodes_to_types(nodes)
   return typelist
 end
 
+-- Convert a list of argument nodes into a list of argument types.
+-- This consider if last argument is a function call.
+-- Returns nil if need to wait type resolution to complete.
+function types.argtypes_from_argnodes(argnodes, wantedlen)
+  local nargs = #argnodes
+  local argtypes = {}
+  for i=1,nargs do
+    local argtype = argnodes[1].attr.type
+    if not argtype then return end -- cannot complete evaluation yet
+    argtypes[i] = argtype
+  end
+  if wantedlen and nargs > 0 and nargs < wantedlen then
+    local lastattr = argnodes[nargs].attr
+    if not lastattr.type then return end -- cannot complete evaluation yet
+    local calleetype = lastattr.calleetype
+    if calleetype then
+      if calleetype.is_any then --luacov:disable
+        for i=nargs,wantedlen do
+          argtypes[i] = primtypes.any
+        end -- luacov:enable
+      else -- is a call
+        local rettypes = calleetype.rettypes
+        for i=2,#rettypes do
+          argtypes[nargs+i-1] = calleetype.rettypes[i]
+          if #argtypes >= wantedlen then -- has enough arguments
+            break
+          end
+        end
+      end
+    end
+  end
+  return argtypes
+end
+
 -- Convert a list of attrs to a list of its types.
 function types.attrs_to_types(attrs)
   local typelist = {}

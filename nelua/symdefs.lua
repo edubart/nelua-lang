@@ -45,7 +45,7 @@ end
 -- nelua only
 define_function('likely', {primtypes.boolean}, {primtypes.boolean})
 define_function('unlikely', {primtypes.boolean}, {primtypes.boolean})
-define_function('check', {primtypes.boolean, primtypes.stringview})
+define_function('check', primtypes.any)
 define_function('panic', {primtypes.stringview}, {}, {noreturn=true})
 define_const('nilptr', primtypes.nilptr)
 
