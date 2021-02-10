@@ -456,8 +456,6 @@ function visitors.Pair(_, node, emitter)
   end --luacov:enable
 end
 
--- TODO: Function
-
 function visitors.PragmaCall(context, node, emitter)
   local name, args = node[1], node[2]
   if name == 'cinclude' then

@@ -94,7 +94,7 @@ function builtins.nelua_panic_stringview(context)
 end
 
 function builtins.nelua_assert_bounds_(context, indextype)
-  local name = 'nelua_assert_bounds_' .. indextype.name
+  local name = 'nelua_assert_bounds_' .. indextype.codename
   if context.usedbuiltins[name] then return name end
   context:ensure_include('<stdint.h>')
   context:ensure_builtins('nelua_panic_cstring', 'nelua_unlikely')
@@ -311,7 +311,7 @@ function builtins.nelua_stdout_write_any(context)
 end
 
 function builtins.nelua_narrow_cast_(context, dtype, stype)
-  local name = 'nelua_narrow_cast_'..stype.name..'_'..dtype.name
+  local name = 'nelua_narrow_cast_'..stype.codename..'_'..dtype.codename
   if context.usedbuiltins[name] then return name end
   assert(dtype.is_integral and stype.is_arithmetic)
   local cond
@@ -333,7 +333,7 @@ function builtins.nelua_narrow_cast_(context, dtype, stype)
   context:ensure_builtins('nelua_unlikely', 'nelua_panic_cstring')
   context:define_function_builtin(name, 'static inline', dtype, {{stype, 'x'}}, [[{
   if(nelua_unlikely(]]..cond..[[)) {
-    nelua_panic_cstring("narrow casting from ]]..stype.name..[[ to ]]..dtype.name..[[ failed");
+    nelua_panic_cstring("narrow casting from ]]..tostring(stype)..[[ to ]]..tostring(dtype)..[[ failed");
   }
   return x;
 }]])
@@ -341,7 +341,7 @@ function builtins.nelua_narrow_cast_(context, dtype, stype)
 end
 
 function builtins.nelua_lt_(context, ltype, rtype)
-  local name = 'nelua_lt_'..ltype.name..'_'..rtype.name
+  local name = 'nelua_lt_'..ltype.codename..'_'..rtype.codename
   if context.usedbuiltins[name] then return name end
   local code
   if ltype.is_signed and rtype.is_unsigned then
@@ -397,7 +397,7 @@ function builtins.nelua_eq_(context, ltype, rtype)
       defemitter:generate())
     return name
   else
-    local name = 'nelua_eq_'..ltype.name..'_'..rtype.name
+    local name = 'nelua_eq_'..ltype.codename..'_'..rtype.codename
     if context.usedbuiltins[name] then return name end
     assert(ltype.is_integral and ltype.is_signed and rtype.is_unsigned)
     local mtype = primtypes['uint'..math.max(ltype.bitsize, rtype.bitsize)]
@@ -410,7 +410,7 @@ function builtins.nelua_eq_(context, ltype, rtype)
 end
 
 function builtins.nelua_idiv_(context, type)
-  local name = 'nelua_idiv_'..type.name
+  local name = 'nelua_idiv_'..type.codename
   if context.usedbuiltins[name] then return name end
   assert(type.is_signed)
   local stype, utype = type:signed_type(), type:unsigned_type()
@@ -426,7 +426,7 @@ function builtins.nelua_idiv_(context, type)
 end
 
 function builtins.nelua_imod_(context, type)
-  local name = 'nelua_imod_'..type.name
+  local name = 'nelua_imod_'..type.codename
   if context.usedbuiltins[name] then return name end
   assert(type.is_signed)
   context:ensure_builtins('nelua_unlikely', 'nelua_panic_cstring')
@@ -441,7 +441,7 @@ function builtins.nelua_imod_(context, type)
 end
 
 function builtins.nelua_shl_(context, type)
-  local name = 'nelua_shl_'..type.name
+  local name = 'nelua_shl_'..type.codename
   if context.usedbuiltins[name] then return name end
   local bitsize, stype, utype = type.bitsize, type:signed_type(), type:unsigned_type()
   context:ensure_builtin('nelua_unlikely')
@@ -456,7 +456,7 @@ function builtins.nelua_shl_(context, type)
 end
 
 function builtins.nelua_shr_(context, type)
-  local name = 'nelua_shr_'..type.name
+  local name = 'nelua_shr_'..type.codename
   if context.usedbuiltins[name] then return name end
   local bitsize, stype, utype = type.bitsize, type:signed_type(), type:unsigned_type()
   context:ensure_builtin('nelua_unlikely')
@@ -471,7 +471,7 @@ function builtins.nelua_shr_(context, type)
 end
 
 function builtins.nelua_asr_(context, type)
-  local name = 'nelua_asr_'..type.name
+  local name = 'nelua_asr_'..type.codename
   if context.usedbuiltins[name] then return name end
   local bitsize = type.bitsize
   context:define_function_builtin(name,
