@@ -228,7 +228,7 @@ global function tostring(x: auto): string
       -- add a least one decimal if needed
       local onlydigits: boolean = true
       for i:usize=0,<s.size do
-        if not (isdigit(s.data[i]) or s.data[i] == '-'_byte) then
+        if not (isdigit(s.data[i]) ~= 0 or s.data[i] == '-'_byte) then
           onlydigits = false
           break
         end

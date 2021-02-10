@@ -3,64 +3,31 @@ local errorer = require 'nelua.utils.errorer'
 local bn = require 'nelua.utils.bn'
 
 local Emitter = class()
+local INDENT_SPACES <const> = '  '
 
 function Emitter:_init(context, depth)
+  depth = depth or 0
   self.codes = {}
-  self.depth = depth or 0
-  self.indent = '  '
+  self.depth = depth
+  self.indent = string.rep(INDENT_SPACES, depth)
   self.context = context
 end
 
 function Emitter:inc_indent(count)
-  if not count then
-    count = 1
-  end
-  self.depth = self.depth + count
+  self.depth = self.depth + (count or 1)
+  self.indent = string.rep(INDENT_SPACES, self.depth)
 end
 
 function Emitter:dec_indent(count)
-  if not count then
-    count = 1
-  end
-  self.depth = self.depth - count
-end
-
-local string_rep = string.rep
-function Emitter:add_indent(...)
-  self:add(string_rep(self.indent, self.depth), ...)
-end
-
-function Emitter:add_indent_ln(...)
-  self:add_ln(string_rep(self.indent, self.depth), ...)
-end
-
-function Emitter:add_ln(...)
-  self:add(...)
-  local codes = self.codes
-  codes[#codes+1] = '\n'
-end
-
-function Emitter:get_pos()
-  return #self.codes
-end
-
-function Emitter:is_empty()
-  return #self.codes == 0
-end
-
-function Emitter:remove_until_pos(pos)
-  while #self.codes > pos do
-    table.remove(self.codes)
-  end
+  self.depth = self.depth - (count or 1)
+  self.indent = string.rep(INDENT_SPACES, self.depth)
 end
 
 function Emitter:add_one(what)
   local ty = type(what)
   if ty == 'string' then
-    if what ~= '' then
-      local codes = self.codes
-      codes[#codes+1] = what
-    end
+    local codes = self.codes
+    codes[#codes+1] = what
   elseif ty == 'number' or ty == 'boolean' then
     local codes = self.codes
     codes[#codes+1] = tostring(what)
@@ -69,46 +36,56 @@ function Emitter:add_one(what)
       self:add_type(what)
     elseif what._astnode then
       self:add_traversal(what)
-    -- elseif what._bn then
-    --   codes[#codes+1] = tostring(what)
     else
       self:add_traversal_list(what)
     end
-  --elseif traits.is_function(what) then
-    --what(self)
   else --luacov:disable
-    errorer.errorf('emitter cannot add value of type "%s"', type(what))
+    errorer.errorf('emitter cannot add value of type "%s"', ty)
   end  --luacov:enable
 end
 
 function Emitter:add(...)
   for i=1,select('#', ...) do
-    local what = (select(i, ...))
-    if what ~= nil then
-      self:add_one(what)
-    end
+    self:add_one((select(i, ...)))
   end
 end
 
-function Emitter.add_type()
+function Emitter:add_ln(...)
+  local codes = self.codes
+  self:add(...)
+  codes[#codes+1] = '\n'
+end
+
+function Emitter:add_indent(...)
+  local codes = self.codes
+  codes[#codes+1] = self.indent
+  self:add(...)
+end
+
+function Emitter:add_indent_ln(...)
+  local codes = self.codes
+  codes[#codes+1] = self.indent
+  self:add(...)
+  codes[#codes+1] = '\n'
+end
+
+function Emitter:add_traversal(node)
+  self.context:traverse_node(node, self)
+end
+
+function Emitter:add_traversal_list(nodelist, separator)
+  separator = separator or ', '
+  for i=1,#nodelist do
+    if i > 1 then self:add_one(separator) end
+    self:add_traversal(nodelist[i])
+  end
 end
 
 function Emitter:add_builtin(name, ...)
-  name = self.context:ensure_runtime_builtin(name, ...)
-  self:add_one(name)
+  self:add_one(self.context:ensure_builtin(name, ...))
 end
 
-function Emitter:add_traversal(node, ...)
-  local context = self.context
-  context:traverse_node(node, self, ...)
-end
-
-function Emitter:add_traversal_list(nodelist, separator, ...)
-  separator = separator or ', '
-  for i=1,#nodelist do
-    if i > 1 then self:add(separator) end
-    self:add_traversal(nodelist[i], ...)
-  end
+function Emitter.add_type()
 end
 
 function Emitter:add_composed_number(base, int, frac, exp, value)
@@ -121,11 +98,27 @@ function Emitter:add_composed_number(base, int, frac, exp, value)
       self:add('e', exp)
     end
   elseif base == 'hex' or base == 'bin' then
-    if bn.isintegral(value) and not value.isneg(value) then
+    if bn.isintegral(value) and not bn.isneg(value) then
       self:add('0x', bn.tohex(value))
     else
-      self:add(bn.todecsci(value))
+      self:add_one(bn.todecsci(value))
     end
+  end
+end
+
+function Emitter:get_pos()
+  return #self.codes
+end
+
+function Emitter:is_empty()
+  return #self.codes == 0
+end
+
+local table_remove = table.remove
+function Emitter:remove_until_pos(pos)
+  local codes = self.codes
+  while #codes > pos do
+    table_remove(codes)
   end
 end
 

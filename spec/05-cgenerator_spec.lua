@@ -951,7 +951,7 @@ it("binary operator `idiv`", function()
   assert.generate_c("local x =  7 // -3.0",  "x = -3.0;")
   assert.generate_c("local x = -7 // -3.0",  "x = 2.0;")
   assert.generate_c("local a,b = 1_u,2_u; local x=a//b",      "x = (a / b);")
-  assert.generate_c("local a,b = 1,2; local x=a//b",      "x = (nelua_idiv_i64(a, b));")
+  assert.generate_c("local a,b = 1,2; local x=a//b",      "x = (nelua_idiv_int64(a, b));")
   assert.generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = (floor(a / b));")
   assert.run_c([[
     do
@@ -1032,7 +1032,7 @@ it("binary operator `mod`", function()
   assert.generate_c("local x =  7 % -3.0",   "x = -2.0;")
   assert.generate_c("local x = -7 % -3.0",   "x = -1.0;")
   assert.generate_c("local x = -7.0 % 3.0",  "x = 2.0;")
-  assert.generate_c("local a, b = 3, 2;     local x = a % b", "x = (nelua_imod_i64(a, b));")
+  assert.generate_c("local a, b = 3, 2;     local x = a % b", "x = (nelua_imod_int64(a, b));")
   assert.generate_c("local a, b = 3_u, 2_u; local x = a % b", "x = (a % b);")
   assert.generate_c("local a, b = 3.0, 2;   local x = a % b", "x = (nelua_fmod(a, b));")
   assert.generate_c("local a, b = 3, 2.0;   local x = a % b", "x = (nelua_fmod(a, b));")
@@ -1338,8 +1338,8 @@ it("binary conditional operators", function()
     local b: boolean = i == 0 or p
     local b2 = (@boolean)(i == 0 or p)
   ]], {
-    "b = ((i == 0) || p);",
-    "b2 = ((i == 0) || p);"
+    "b = ((i == 0) || (p != NULL));",
+    "b2 = ((i == 0) || (p != NULL));"
   })
   assert.generate_c([[
     local p: *integer
@@ -1347,8 +1347,8 @@ it("binary conditional operators", function()
     if p and a == b then end
     while p and a == b do end
   ]], {
-    "if(p && (a == b))",
-    "while(p && (a == b))"
+    "if((p != NULL) && (a == b))",
+    "while((p != NULL) && (a == b))"
   })
   assert.run_c([[
     local a = 2 or 3

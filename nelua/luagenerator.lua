@@ -313,7 +313,7 @@ function visitors.UnaryOp(context, node, emitter)
   if config.lua_version ~= '5.3' then
     local fallop = luadefs.lua51_unary_ops[opname]
     if fallop then
-      context:ensure_runtime_builtin(fallop.builtin)
+      context:ensure_builtin(fallop.builtin)
       emitter:add(fallop.func, '(', argnode, ')')
       return
     end
@@ -331,7 +331,7 @@ function visitors.BinaryOp(context, node, emitter)
     local fallop = luadefs.lua51_binary_ops[opname]
     if fallop then
       if fallop.builtin then
-        context:ensure_runtime_builtin(fallop.builtin)
+        context:ensure_builtin(fallop.builtin)
       end
       if traits.is_function(fallop.func) then
         fallop.func(context, node, emitter, lnode, rnode)

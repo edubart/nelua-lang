@@ -79,20 +79,26 @@ function AnalyzerContext:mark_funcscope_sideeffect()
   end
 end
 
-function AnalyzerContext:ensure_runtime_builtin(name, p1, p2)
-  if not (p1 or p2) and self.usedbuiltins[name] then
+function AnalyzerContext:ensure_builtin(name, ...)
+  if select('#',...) == 0 and self.usedbuiltins[name] then
     return name
   end
   local func = self.builtins[name]
   errorer.assertf(func, 'builtin "%s" not defined', name)
   if func then
-    local newname = func(self, p1, p2)
+    local newname = func(self, ...)
     if newname then
       name = newname
     end
   end
   self.usedbuiltins[name] = true
   return name
+end
+
+function AnalyzerContext:ensure_builtins(...)
+  for i=1,select('#',...) do
+    self:ensure_builtin((select(i, ...)))
+  end
 end
 
 function AnalyzerContext:choose_codename(name)

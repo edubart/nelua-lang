@@ -113,7 +113,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
           -- pre initialize to zeros
           if not noinit then
             decemitter:add(' = ')
-            decemitter:add_zeroinit(vartype)
+            decemitter:add_zeroed_type_init(vartype)
           end
         end
         decemitter:add_ln(';')
@@ -155,7 +155,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
             elseif valnode then
               defemitter:add_val2type(vartype, valnode)
             else
-              defemitter:add_zeroinit(vartype)
+              defemitter:add_zeroed_type_init(vartype)
             end
           end
           defemitter:add_ln(';')
@@ -163,7 +163,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
       end
     elseif used and decl and varattr.cinclude then
       -- not declared, might be an imported variable from C
-      context:add_include(varattr.cinclude)
+      context:ensure_include(varattr.cinclude)
     end
   end
   emitter:add(defemitter:generate())
@@ -297,9 +297,9 @@ end
 
 typevisitors[types.Type] = function(context, type)
   if type.is_any then --luacov:enable
-    context:ensure_runtime_builtin('nlany')
+    context:ensure_builtin('nlany')
   elseif type.is_niltype then
-    context:ensure_runtime_builtin('nlniltype')
+    context:ensure_builtin('nlniltype')
   else
     errorer.assertf(cdefs.primitive_ctypes[type.codename],
       'C type visitor for "%s" is not defined', type)
@@ -311,7 +311,7 @@ local visitors = {}
 function visitors.Number(context, node, emitter)
   local attr = node.attr
   if not attr.type.is_float and not attr.untyped and not context.state.ininitializer then
-    emitter:add_ctypecast(attr.type)
+    emitter:add_typecast(attr.type)
   end
   emitter:add_numeric_literal(attr)
 end
@@ -330,7 +330,7 @@ function visitors.String(_, node, emitter)
 end
 
 function visitors.Boolean(_, node, emitter)
-  emitter:add_booleanlit(node.attr.value)
+  emitter:add_boolean_literal(node.attr.value)
 end
 
 function visitors.Nil(_, _, emitter)
@@ -352,9 +352,9 @@ function visitors.Table(context, node, emitter)
   local len = #childnodes
   if len == 0 and (type.is_composite or type.is_array) then
     if not context.state.ininitializer then
-      emitter:add_ctypecast(type)
+      emitter:add_typecast(type)
     end
-    emitter:add_zeroinit(type)
+    emitter:add_zeroed_type_init(type)
   elseif type.is_composite then
     if context.state.ininitializer then
       context:push_state{incompositeinitializer = true}
@@ -384,7 +384,7 @@ function visitors.Table(context, node, emitter)
         emitter:add_ln('({')
         emitter:inc_indent()
         emitter:add_indent(type, ' __tmp = ')
-        emitter:add_zeroinit(type)
+        emitter:add_zeroed_type_init(type)
         emitter:add_ln(';')
       end
       for i,childnode in ipairs(childnodes) do
@@ -435,7 +435,7 @@ function visitors.Table(context, node, emitter)
         emitter:add('{{', childnodes, '}}')
       end
     else
-      emitter:add_ctypecast(type)
+      emitter:add_typecast(type)
       emitter:add('{{', childnodes, '}}')
     end
   else --luacov:disable
@@ -444,7 +444,7 @@ function visitors.Table(context, node, emitter)
 end
 
 function visitors.Pair(_, node, emitter)
-  local namenode, valuenode = node:args()
+  local namenode, valuenode = node[1], node[2]
   local parenttype = node.parenttype
   if parenttype and parenttype.is_composite then
     assert(traits.is_string(namenode))
@@ -459,9 +459,9 @@ end
 -- TODO: Function
 
 function visitors.PragmaCall(context, node, emitter)
-  local name, args = node:args()
+  local name, args = node[1], node[2]
   if name == 'cinclude' then
-    context:add_include(table.unpack(args))
+    context:ensure_include(table.unpack(args))
   elseif name == 'cemit' then
     local code = args[1]
     if traits.is_string(code) and not stringer.endswith(code, '\n') then
@@ -498,7 +498,7 @@ function visitors.PragmaCall(context, node, emitter)
       context:add_definition(defemitter:generate())
     end
   elseif name == 'cdefine' then
-    context:add_define(args[1])
+    context:ensure_define(args[1])
   elseif name == 'cflags' then
     table.insert(context.compileopts.cflags, args[1])
   elseif name == 'ldflags' then
@@ -523,7 +523,7 @@ function visitors.Id(context, node, emitter)
 end
 
 function visitors.Paren(_, node, emitter)
-  local innernode = node:args()
+  local innernode = node[1]
   emitter:add(innernode)
   --emitter:add('(', innernode, ')')
 end
@@ -536,12 +536,12 @@ function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
   local type = attr.type
   if attr.comptime or type.is_comptime then
-    emitter:add(context:ensure_runtime_builtin('nlniltype'), ' ', context:declname(attr))
+    emitter:add(context:ensure_builtin('nlniltype'), ' ', context:declname(attr))
   elseif context.state.infuncdecl then
     emitter:add(context:declname(attr))
   else
     if type.is_type then return end
-    if attr.cexport then emitter:add(context:ensure_runtime_builtin('nelua_cexport'), ' ') end
+    if attr.cexport then emitter:add(context:ensure_builtin('nelua_cexport'), ' ') end
     if attr.static then emitter:add('static ') end
     if attr.register then emitter:add('register ') end
     if attr.const and attr.type.is_pointer then emitter:add('const ') end
@@ -708,7 +708,7 @@ end
 
 function visitors.Call(context, node, emitter)
   if node.attr.omitcall then return end
-  local argnodes, calleenode = node:args()
+  local argnodes, calleenode = node[1], node[2]
   local calleetype = node.attr.calleetype
   local callee = calleenode
   if calleenode.attr.builtin then
@@ -728,7 +728,7 @@ function visitors.Call(context, node, emitter)
         emitter:add(argnode)
       end
     else
-      emitter:add_ctyped_zerotype(type)
+      emitter:add_zeroed_type_literal(type)
     end
   elseif callee then
     visitor_Call(context, node, emitter, argnodes, callee, nil)
@@ -736,7 +736,7 @@ function visitors.Call(context, node, emitter)
 end
 
 function visitors.CallMethod(context, node, emitter)
-  local name, argnodes, calleeobjnode = node:args()
+  local name, argnodes, calleeobjnode = node[1], node[2], node[3]
 
   visitor_Call(context, node, emitter, argnodes, name, calleeobjnode)
 
@@ -755,7 +755,7 @@ end
 
 -- indexing
 function visitors.DotIndex(context, node, emitter)
-  local name, objnode = node:args()
+  local name, objnode = node[1], node[2]
   local attr = node.attr
   local type = attr.type
   local objtype = objnode.attr.type
@@ -795,7 +795,7 @@ end
 visitors.ColonIndex = visitors.DotIndex
 
 function visitors.ArrayIndex(context, node, emitter)
-  local indexnode, objnode = node:args()
+  local indexnode, objnode = node[1], node[2]
   local objtype = objnode.attr.type
   local pointer = false
   if objtype.is_pointer and not objtype.is_generic_pointer then
@@ -839,7 +839,7 @@ function visitors.ArrayIndex(context, node, emitter)
       emitter:add(indexnode)
     else
       local indextype = indexnode.attr.type
-      emitter:add(context:ensure_runtime_builtin('nelua_assert_bounds_', indextype))
+      emitter:add(context:ensure_builtin('nelua_assert_bounds_', indextype))
       emitter:add('(', indexnode, ', ', objtype.length, ')')
     end
     emitter:add(']')
@@ -847,7 +847,7 @@ function visitors.ArrayIndex(context, node, emitter)
 end
 
 function visitors.Block(context, node, emitter)
-  local statnodes = node:args()
+  local statnodes = node[1]
   emitter:inc_indent()
   local scope = context:push_forked_scope(node)
   do
@@ -861,7 +861,7 @@ function visitors.Block(context, node, emitter)
 end
 
 function visitors.Return(context, node, emitter)
-  local retnodes = node:args()
+  local retnodes = node[1]
   local numretnodes = #retnodes
 
   -- destroy parent blocks
@@ -903,7 +903,7 @@ function visitors.Return(context, node, emitter)
           defemitter:add_ln(';')
         else
           -- no return value present, generate a zeroed one
-          defemitter:add_ctyped_zerotype(rettype)
+          defemitter:add_zeroed_type_literal(rettype)
           defemitter:add_ln(';')
         end
       end
@@ -944,7 +944,7 @@ function visitors.Return(context, node, emitter)
 end
 
 function visitors.If(_, node, emitter)
-  local ifparts, elseblock = node:args()
+  local ifparts, elseblock = node[1], node[2]
   for i,ifpart in ipairs(ifparts) do
     local condnode, blocknode = ifpart[1], ifpart[2]
     if i == 1 then
@@ -966,7 +966,7 @@ function visitors.If(_, node, emitter)
 end
 
 function visitors.Switch(context, node, emitter)
-  local valnode, caseparts, elsenode = node:args()
+  local valnode, caseparts, elsenode = node[1], node[2], node[3]
   emitter:add_indent_ln("switch(", valnode, ") {")
   emitter:inc_indent()
   context:push_forked_scope(node)
@@ -993,7 +993,7 @@ function visitors.Switch(context, node, emitter)
 end
 
 function visitors.Do(context, node, emitter)
-  local blocknode = node:args()
+  local blocknode = node[1]
   local doemitter = CEmitter(context, emitter.depth)
   doemitter:add(blocknode)
   if doemitter:is_empty() then return end
@@ -1025,7 +1025,7 @@ function visitors.DoExpr(context, node, emitter)
 end
 
 function visitors.Defer(context, node)
-  local blocknode = node:args()
+  local blocknode = node[1]
   local deferblocks = context.scope.deferblocks
   if not deferblocks then
     deferblocks = {}
@@ -1035,7 +1035,7 @@ function visitors.Defer(context, node)
 end
 
 function visitors.While(context, node, emitter)
-  local condnode, blocknode = node:args()
+  local condnode, blocknode = node[1], node[2]
   emitter:add_indent("while(")
   emitter:add_val2type(primtypes.boolean, condnode)
   emitter:add_ln(') {')
@@ -1049,7 +1049,7 @@ function visitors.While(context, node, emitter)
 end
 
 function visitors.Repeat(context, node, emitter)
-  local blocknode, condnode = node:args()
+  local blocknode, condnode = node[1], node[2]
   emitter:add_indent_ln("while(1) {")
   local scope = context:push_forked_scope(node)
   emitter:add(blocknode)
@@ -1070,15 +1070,15 @@ function visitors.Repeat(context, node, emitter)
 end
 
 function visitors.ForNum(context, node, emitter)
-  local itvarnode, begvalnode, compop, endvalnode, stepvalnode, blocknode  = node:args()
-  compop = node.attr.compop
+  local itvarnode, begvalnode, endvalnode, stepvalnode, blocknode = node[1], node[2], node[4], node[5], node[6]
+  local compop = node.attr.compop
   local fixedstep = node.attr.fixedstep
   local fixedend = node.attr.fixedend
   local itvarattr = itvarnode.attr
   local itmutate = itvarattr.mutate
   local scope = context:push_forked_scope(node)
   do
-    local ccompop = cdefs.compare_ops[compop]
+    local ccompop = cdefs.for_compare_ops[compop]
     local ittype = itvarattr.type
     local itname = context:declname(itvarattr)
     local itforname = itmutate and '__it' or itname
@@ -1165,12 +1165,12 @@ function visitors.Goto(context, node, emitter)
 end
 
 function visitors.VarDecl(context, node, emitter)
-  local varscope, varnodes, valnodes = node:args()
+  local varnodes, valnodes = node[2], node[3]
   visit_assignments(context, emitter, varnodes, valnodes, true)
 end
 
 function visitors.Assign(context, node, emitter)
-  local vars, vals = node:args()
+  local vars, vals = node[1], node[2]
   visit_assignments(context, emitter, vars, vals)
 end
 
@@ -1180,14 +1180,14 @@ local function resolve_function_qualifier(context, attr)
     qualifier = 'static '
   end
   if attr.cinclude then
-    context:add_include(attr.cinclude)
+    context:ensure_include(attr.cinclude)
   end
   if attr.cimport and attr.codename ~= 'nelua_main' then
     qualifier = ''
   end
 
   if attr.cexport then
-    qualifier = qualifier .. context:ensure_runtime_builtin('nelua_cexport') .. ' '
+    qualifier = qualifier .. context:ensure_builtin('nelua_cexport') .. ' '
   end
   if attr.volatile then
     qualifier = qualifier .. 'volatile '
@@ -1196,10 +1196,10 @@ local function resolve_function_qualifier(context, attr)
     qualifier = qualifier .. 'inline '
   end
   if attr.noinline then
-    qualifier = qualifier .. context:ensure_runtime_builtin('nelua_noinline') .. ' '
+    qualifier = qualifier .. context:ensure_builtin('nelua_noinline') .. ' '
   end
   if attr.noreturn then
-    qualifier = qualifier .. context:ensure_runtime_builtin('nelua_noreturn') .. ' '
+    qualifier = qualifier .. context:ensure_builtin('nelua_noreturn') .. ' '
   end
   if attr.cqualifier then qualifier = qualifier .. attr.cqualifier .. ' ' end
   if attr.cattribute then
@@ -1223,7 +1223,7 @@ function visitors.FuncDef(context, node, emitter)
     return
   end
 
-  local varscope, varnode, argnodes, retnodes, annotnodes, blocknode = node:args()
+  local varscope, varnode, argnodes, blocknode = node[1], node[2], node[3], node[6]
 
   local qualifier = resolve_function_qualifier(context, attr)
   local hookmain = attr.cimport and attr.codename == 'nelua_main'
@@ -1300,7 +1300,7 @@ function visitors.FuncDef(context, node, emitter)
 end
 
 function visitors.Function(context, node, emitter)
-  local argnodes, retnodes, annotnodes, blocknode = node:args()
+  local argnodes, blocknode = node[1], node[4]
   local attr = node.attr
   local type = attr.type
   local qualifier = resolve_function_qualifier(context, attr)
@@ -1343,18 +1343,12 @@ function visitors.UnaryOp(_, node, emitter)
     emitter:add_literal(attr)
     return
   end
-  local opname, argnode = node:args()
-  local op = cdefs.unary_ops[opname]
-  assert(op)
+  local opname, argnode = node[1], node[2]
+  local builtin = cbuiltins.operators[opname]
   local surround = not node.attr.inconditional
-  if surround then emitter:add('(') end
-  if traits.is_string(op) then
-    emitter:add(op, argnode)
-  else
-    local builtin = cbuiltins.operators[opname]
-    builtin(node, emitter, argnode)
-  end
-  if surround then emitter:add(')') end
+  if surround then emitter:add_one('(') end
+  builtin(node, emitter, argnode)
+  if surround then emitter:add_one(')') end
 end
 
 function visitors.BinaryOp(context, node, emitter)
@@ -1362,10 +1356,8 @@ function visitors.BinaryOp(context, node, emitter)
     emitter:add_literal(node.attr)
     return
   end
-  local opname, lnode, rnode = node:args()
+  local opname, lnode, rnode = node[1], node[2], node[3]
   local type = node.attr.type
-  local op = cdefs.binary_ops[opname]
-  assert(op)
   local surround = not node.attr.inconditional
   if surround then emitter:add('(') end
   if node.attr.dynamic_conditional then
@@ -1373,7 +1365,7 @@ function visitors.BinaryOp(context, node, emitter)
     emitter:inc_indent()
     if node.attr.ternaryor then
       -- lua style "ternary" operator
-      context:add_include('<stdbool.h>')
+      context:ensure_include('<stdbool.h>')
       emitter:add_indent_ln(type, ' t_;')
       emitter:add_indent('bool cond_ = ')
       emitter:add_val2type(primtypes.boolean, lnode[2])
@@ -1400,7 +1392,7 @@ function visitors.BinaryOp(context, node, emitter)
       emitter:add_indent_ln(type, ' t2_ = {0};')
       if opname == 'and' then
         assert(not node.attr.ternaryand)
-        context:add_include('<stdbool.h>')
+        context:ensure_include('<stdbool.h>')
         emitter:add_indent('bool cond_ = ')
         emitter:add_val2type(primtypes.boolean, 't1_', type)
         emitter:add_ln(';')
@@ -1416,7 +1408,7 @@ function visitors.BinaryOp(context, node, emitter)
         emitter:add_indent_ln('}')
         emitter:add_indent_ln('cond_ ? t2_ : (', type, '){0};')
       elseif opname == 'or' then
-        context:add_include('<stdbool.h>')
+        context:ensure_include('<stdbool.h>')
         emitter:add_indent('bool cond_ = ')
         emitter:add_val2type(primtypes.boolean, 't1_', type)
         emitter:add_ln(';')
@@ -1446,12 +1438,8 @@ function visitors.BinaryOp(context, node, emitter)
       lname = 't1_'
       rname = 't2_'
     end
-    if traits.is_string(op) then
-      emitter:add(lname, ' ', op, ' ', rname)
-    else
-      local builtin = cbuiltins.operators[opname]
-      builtin(node, emitter, lnode, rnode, lname, rname)
-    end
+    local builtin = cbuiltins.operators[opname]
+    builtin(node, emitter, lnode, rnode, lname, rname)
     if sequential then
       emitter:add_ln(';')
       emitter:dec_indent()

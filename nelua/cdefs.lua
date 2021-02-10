@@ -74,31 +74,27 @@ cdefs.primitive_ctypes = {
 }
 
 cdefs.unary_ops = {
-  ['unm'] = '-',
-  ['bnot'] = '~',
-  ['ref'] = '&',
-  -- builtins
   ['not'] = true,
+  ['ref'] = true,
   ['deref'] = true,
-  ['len'] = true
+  ['len'] = true,
+  ['unm'] = true,
+  ['bnot'] = true,
 }
 
-cdefs.compare_ops = {
-  ['or'] = '||',
-  ['and'] = '&&',
+cdefs.for_compare_ops = {
   ['le'] = '<=',
   ['ge'] = '>=',
   ['lt'] = '<',
   ['gt'] = '>',
   ['ne'] = '!=',
-  ['eq'] = '=='
+  ['eq'] = '==',
 }
 
 cdefs.binary_ops = {
-  ['or'] = '||',
-  ['and'] = '&&',
-  ['bor'] = '|',
-  -- builtins
+  ['or'] = true,
+  ['and'] = true,
+  ['bor'] = true,
   ['bxor'] = true,
   ['band'] = true,
   ['add'] = true,

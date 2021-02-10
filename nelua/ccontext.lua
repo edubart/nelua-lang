@@ -2,6 +2,8 @@ local AnalyzerContext = require 'nelua.analyzercontext'
 local class = require 'nelua.utils.class'
 local cdefs = require 'nelua.cdefs'
 local cbuiltins = require 'nelua.cbuiltins'
+local traits = require 'nelua.utils.traits'
+local CEmitter = require 'nelua.cemitter'
 local config = require 'nelua.configer'.get()
 local luatype = type
 
@@ -20,6 +22,7 @@ function CContext:init(visitors, typevisitors)
   }
   self.stringliterals = {}
   self.uniquecounters = {}
+  self.ctypes = {}
   self.builtins = cbuiltins.builtins
 end
 
@@ -79,7 +82,7 @@ function CContext:typename(type)
         assert(type:shape())
       end
       if type.cinclude then -- include headers before declaring
-        self:add_include(type.cinclude)
+        self:ensure_include(type.cinclude)
       end
       -- only declare when needed
       if not type.nodecl then
@@ -101,20 +104,26 @@ function CContext:typename(type)
 end
 
 function CContext:ctype(type)
-  local codename = self:typename(type)
-  local ctype = cdefs.primitive_ctypes[type.codename]
-  if luatype(ctype) == 'table' then -- has include
-    self:add_include(ctype[2])
-    return ctype[1]
-  elseif ctype then
+  local ctypes = self.ctypes
+  local ctype = ctypes[type]
+  if ctype then
     return ctype
   end
-  return codename
+  ctype = cdefs.primitive_ctypes[type.codename]
+  if luatype(ctype) == 'table' then -- has include
+    self:ensure_include(ctype[2])
+    ctype = ctype[1]
+  elseif not ctype then
+    local codename = self:typename(type)
+    ctype = codename
+  end
+  ctypes[type] = ctype
+  return ctype
 end
 
 function CContext:runctype(type)
   local typename = self:typename(type)
-  self:ensure_runtime_builtin('nlruntype_', typename)
+  self:ensure_builtin('nlruntype_', typename)
   return 'nlruntype_' .. typename
 end
 
@@ -142,20 +151,77 @@ function CContext:is_declared(name)
   return self.declarations[name] == true
 end
 
-function CContext:add_include(name)
-  if self.directives[name] then return end
-  self.directives[name] = true
-  table.insert(self.directives, '#include '..name..'\n')
+function CContext:ensure_include(name)
+  local directives = self.directives
+  if directives[name] then return end
+  directives[name] = true
+  directives[#directives+1] = '#include '..name..'\n'
 end
 
-function CContext:add_define(name)
-  if self.directives[name] then return end
-  self.directives[name] = true
-  table.insert(self.directives, '#define '..name..'\n')
+function CContext:ensure_includes(...)
+  for i=1,select('#',...) do
+    self:ensure_include((select(i,...)))
+  end
+end
+
+function CContext:ensure_type(type)
+  self:ctype(type)
+end
+
+function CContext:ensure_define(name)
+  local directives = self.directives
+  if directives[name] then return end
+  directives[name] = true
+  directives[#directives+1] = '#define '..name..'\n'
 end
 
 function CContext:add_directive(code)
   table.insert(self.directives, code)
+end
+
+function CContext:define_builtin(name, deccode, defcode)
+  if deccode then
+    if deccode:sub(-1) ~= '\n' then
+      deccode = deccode..'\n'
+    end
+    self:add_declaration(deccode)
+  end
+  if defcode then --luacov:disable
+    if defcode:sub(-1) ~= '\n' then
+      defcode = defcode..'\n'
+    end
+    self:add_definition(defcode)
+  end --luacov:enable
+  self.usedbuiltins[name] = true
+end
+
+function CContext:define_function_builtin(name, qualifier, ret, args, body)
+  if self.usedbuiltins[name] then return end
+  if traits.is_type(ret) then
+    ret = self:ctype(ret)
+  end
+  if type(args) == 'table' then
+    local emitter = CEmitter(self)
+    emitter:add_one('(')
+    for i=1,#args do
+      if i > 1 then
+        emitter:add_one(',')
+      end
+      local arg = args[i]
+      emitter:add(arg[1], ' ', arg[2])
+    end
+    emitter:add_one(')')
+    args = emitter:generate()
+  end
+  self:add_declaration(qualifier..' '..ret..' '..name..args..';\n')
+  self:add_definition(ret..' '..name..args..' '..body..'\n')
+  self.usedbuiltins[name] = true
+end
+
+function CContext:emitter_join(...)
+  local emitter = CEmitter(self)
+  emitter:add(...)
+  return emitter:generate()
 end
 
 local function eval_late_templates(templates)
