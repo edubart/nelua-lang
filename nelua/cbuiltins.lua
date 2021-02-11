@@ -141,6 +141,7 @@ function builtins.nelua_warn(context)
   context:define_function_builtin('nelua_warn',
     'static', primtypes.void, {{primtypes.stringview, 's'}}, [[{
   if(s.data && s.size > 0) {
+    fputs("warning: ", stderr);
     fwrite(s.data, 1, s.size, stderr);
     fputc('\n', stderr);
     fflush(stderr);

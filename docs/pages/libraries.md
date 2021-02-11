@@ -25,17 +25,20 @@ The [arg library](https://github.com/edubart/nelua-lang/blob/master/lib/arg.nelu
 | `global arg: sequence(stringview, GeneralAllocator)`{:.language-nelua} | Sequence of command line arguments. |
 {: .table.table-bordered.table-striped.table-sm}
 
-## basic
+## builtins
 
-The [basic library](https://github.com/edubart/nelua-lang/blob/master/lib/basic.nelua) contains common functions. 
+Builtins defined in the compiler. 
 
 | Variable Name | Description |
 |---------------|------|
-| `global likely(x: boolean): boolean`{:.language-nelua} | Binding for GNUC `__builtin_expect(x, 1)`. |
-| `global unlikely(x: boolean): boolean`{:.language-nelua} | Binding for GNUC `__builtin_expect(x, 0)`. |
-| `global panic(msg: stringview)`{:.language-nelua} | Returns an error message and stops execution. |
-| `global error(msg: stringview)`{:.language-nelua} | Alias of `panic`. |
-| `global assert(cond: auto, msg: auto)`{:.language-nelua} | Asserts the condition `cond`and errors if it's false. |
+| `global print(...: varargs)`{:.language-nelua} | Print values to `stdout` separated by tabs and with a new line. |
+| `global panic([msg: stringview])`{:.language-nelua} | Exit application with a fatal unrecoverable error. |
+| `global error([msg: stringview])`{:.language-nelua} | Like `panic` but prints source location. |
+| `global warn(msg: stringview)`{:.language-nelua} | Print a warning to `stderr`. |
+| `global assert([cond: T [, msg: stringview]]): T`{:.language-nelua} | Thrown a runtime error if `cond` evaluates to false, otherwise returns it. |
+| `global check([cond: boolean [, msg: stringview]])`{:.language-nelua} | Similar to `assert` but can be disabled with `-Pnochecks`. |
+| `global likely(x: boolean): boolean`{:.language-nelua} | Branching prediction utility. |
+| `global unlikely(x: boolean): boolean`{:.language-nelua} | Branching prediction utility. |
 | `global _VERSION: stringview`{:.language-nelua} | A string of Nelua version. |
 {: .table.table-bordered.table-striped.table-sm}
 

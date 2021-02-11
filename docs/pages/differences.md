@@ -21,32 +21,32 @@ Never or N/A - ✖
 
 | Function | Status | Nelua Library | Remarks |
 |----------|:------:|---------------|---------|
-| `_G`{:.language-nelua} | ❌ | | `_G` doesn't exist in Nelua due to missing dynamic in C (rephrase me please). |
-| `_VERSION`{:.language-nelua} | ✔ | `basic`{:.language-nelua} | Returns Nelua version instead of Lua version. |
-| `assert`{:.language-nelua} | ✔ | `basic`{:.language-nelua} |  |
+| `require`{:.language-nelua} | ✔ | `builtin`{:.language-nelua} | Should be declared in top scope only. |
+| `assert`{:.language-nelua} | ✔ | `builtin`{:.language-nelua} |  |
 | `collectgarbage`{:.language-nelua} | ✔ | `allocators.gc`{:.language-nelua} | Only `collect`, `stop`, `restart`, `count` and `isrunning` arguments. |
-| `dofile`{:.language-nelua} | ✖ | | Nelua can't compile at the runtime. |
-| `error`{:.language-nelua} | ✔ | `basic`{:.language-nelua} |  |
-| `getmetatable`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
-| `load`{:.language-nelua} | ✖ | |  |
-| `loadfile`{:.language-nelua} | ✖ | |  |
+| `error`{:.language-nelua} | ✔ | `builtin`{:.language-nelua} |  |
 | `next`{:.language-nelua} | ✔ | `iterators`{:.language-nelua} |  |
 | `pairs`{:.language-nelua} | ✔ | `iterators`{:.language-nelua} | Aliased to ipairs right now. |
 | `ipairs`{:.language-nelua} | ✔ | `iterators`{:.language-nelua} |  |
-| `pcall`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
-| `print`{:.language-nelua} | ✔ | inlined | Nelua generates print function for each type. |
-| `rawequal`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
-| `rawget`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
-| `rawlen`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
-| `rawset`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
-| `require`{:.language-nelua} | ✔ | Nelua compiler | Exists as compiler function. |
-| `select`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
-| `setmetatable`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
+| `print`{:.language-nelua} | ✔ | `builtin`{:.language-nelua} | Nelua generates print function for each type. |
+| `select`{:.language-nelua} | ❌ | `builtin`{:.language-nelua} |  |
 | `tonumber`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
 | `tostring`{:.language-nelua} | ✔ | `string`{:.language-nelua} | As Lua this function uses `__tostring`{:.language-nelua}, however Nelua also has `__tostringview`{:.language-nelua} which exists in `stringview`{:.language-nelua} library. |
 | `type`{:.language-nelua} | ✔ | `traits`{:.language-nelua} |  |
-| `warn`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
-| `xpcall`{:.language-nelua} | ❌ | `basic`{:.language-nelua} |  |
+| `warn`{:.language-nelua} | ✔ | `builtin`{:.language-nelua} |  |
+| `load`{:.language-nelua} | ✖ | | Nelua can't compile at the runtime. |
+| `dofile`{:.language-nelua} | ✖ | |  |
+| `loadfile`{:.language-nelua} | ✖ | |  |
+| `pcall`{:.language-nelua} | ✖ |  |  |
+| `xpcall`{:.language-nelua} | ✖ |  |  |
+| `rawequal`{:.language-nelua} | ❌ | `table`{:.language-nelua} |  |
+| `rawget`{:.language-nelua} | ❌ | `table`{:.language-nelua} |  |
+| `rawlen`{:.language-nelua} | ❌ | `table`{:.language-nelua} |  |
+| `rawset`{:.language-nelua} | ❌ | `table`{:.language-nelua} |  |
+| `getmetatable`{:.language-nelua} | ❌ | `table`{:.language-nelua} |  |
+| `setmetatable`{:.language-nelua} | ❌ | `table`{:.language-nelua} |  |
+| `_G`{:.language-nelua} | ❌ | |  |
+| `_VERSION`{:.language-nelua} | ✔ | `builtin`{:.language-nelua} | Returns Nelua version instead of Lua version. |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## Coroutine
@@ -162,21 +162,21 @@ Nelua has additional functions in this library. See [here](/libraries/#stringvie
 |----------|:------:|---------------|---------|
 | `string.byte`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} | No multiple arguments. Errors on failure. |
 | `string.char`{:.language-nelua} | ✔ | `string`{:.language-nelua} | Only for `string`{:.language-nelua}. No multiple arguments. |
-| `string.dump`{:.language-nelua} | ✖ | `string`{:.language-nelua} | No interpreted functions. |
-| `string.find`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} | Patterns are not supported. Returns `0, 0`{:.language-nelua} instead of `nil`{:.language-nelua} if nothing was found. |
 | `string.format`{:.language-nelua} | ✔ | `string`{:.language-nelua} | No multiple arguments. |
-| `string.gmatch`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
-| `string.gsub`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
 | `string.len`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.lower`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
-| `string.match`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
-| `string.pack`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
-| `string.packsize`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
 | `string.rep`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
-| `string.reverse`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
 | `string.sub`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
-| `string.unpack`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
+| `string.reverse`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.lower`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
 | `string.upper`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.find`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} | Patterns are not supported. Returns `0, 0`{:.language-nelua} instead of `nil`{:.language-nelua} if nothing was found. |
+| `string.match`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.gmatch`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.gsub`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
+| `string.pack`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
+| `string.unpack`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
+| `string.packsize`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
+| `string.dump`{:.language-nelua} | ✖ | `string`{:.language-nelua} | No interpreted functions. |
 | `string.__len`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
 | `string.__eq`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
 | `string.__lt`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
