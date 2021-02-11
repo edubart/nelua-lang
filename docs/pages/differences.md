@@ -71,7 +71,7 @@ Nelua has additional functions in this library. See [here](/libraries/#io).
 | `io.lines`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
 | `io.open`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
 | `io.output`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
-| `io.popen`{:.language-nelua} | ❌ | `io`{:.language-nelua} |  |
+| `io.popen`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
 | `io.read`{:.language-nelua} | ✔ | `io`{:.language-nelua} | Doesn't support `*n` format and multiple arguments. |
 | `io.stderr`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |
 | `io.stdin`{:.language-nelua} | ✔ | `io`{:.language-nelua} |  |

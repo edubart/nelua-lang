@@ -437,7 +437,7 @@ do -- string format
   assert(string.format('%g', 0.123) == '0.123')
   assert(string.format('%G', 0.123e-20):sub(1,6) == '1.23E-')
   assert(string.format('%p', nilptr) == '(null)')
-  assert(string.format('%p', (@pointer)(0xffffffff_usize)):lower():find('ffffffff', 1, true) == 3)
+  assert(string.format('%p', (@pointer)(0xffffffff_usize)):lower():find('ffffffff', 1, true) > 0)
   assert(string.format('%s', 'asd') == 'asd')
   assert(string.format('%s', string.rep('xuxu', 500)) == string.rep('xuxu', 500))
   assert(string.format('a number here: %d !', 1337) == 'a number here: 1337 !')

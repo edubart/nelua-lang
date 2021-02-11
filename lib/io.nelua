@@ -10,19 +10,44 @@ local stdout: *FILE <cimport,cinclude'<stdio.h>',nodecl>
 local stderr: *FILE <cimport,cinclude'<stdio.h>',nodecl>
 local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
 local function tmpfile(): *FILE <cimport,cinclude'<stdio.h>',nodecl> end
+local function fclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
+local function fflush(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 
 --------------------------------------------------------------------------------
 -- io
 
 global io = @record{}
 
-global io.stderr: filestream = filestream._from_fp(stderr)
-global io.stdout: filestream = filestream._from_fp(stdout)
-global io.stdin: filestream = filestream._from_fp(stdin)
+global io.stderr: filestream = filestream._from_fp(stderr, nilptr)
+global io.stdout: filestream = filestream._from_fp(stdout, nilptr)
+global io.stdin: filestream = filestream._from_fp(stdin, nilptr)
 
 function io.open(filename: stringview,
                  mode: facultative(stringview)) : (filestream, stringview, integer)
   return filestream.open(filename, mode)
+end
+
+function io.popen(filename: stringview,
+                  mode: facultative(stringview)) : (filestream, stringview, integer)
+  ## if mode.type.is_niltype then
+  local mode: stringview = "r"
+  ## else
+  assert(m.size == 1 and (m.data[0] == 'r' or m.data[0] == 'w') and m.data[1] == '\0', 'invalid mode')
+  ## end
+  ## local ccdefs = require'nelua.ccompiler'.get_cc_defines()
+  ## if ccdefs._WIN32 then
+    local function popen(command: cstring, type: cstring): *FILE <cimport'_popen',cinclude'<stdio.h>',nodecl> end
+    local function pclose(fp: *FILE): cint <cimport'_pclose',cinclude'<stdio.h>',nodecl> end
+  ## else
+    local function popen(command: cstring, type: cstring): *FILE <cimport,cinclude'<stdio.h>',nodecl> end
+    local function pclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
+    fflush(nilptr) -- flush all open streams
+  ## end
+  local fp: *FILE = popen(filename, mode)
+  if not fp then
+    return filestream{}, strerror(errno), errno
+  end
+  return filestream._from_fp(fp, pclose), '', 0
 end
 
 function io.flush(): boolean
@@ -74,7 +99,7 @@ function io.tmpfile(): (filestream, stringview, integer)
   if not fp then
     return filestream{}, strerror(errno), errno
   end
-  return filestream._from_fp(fp), '', 0
+  return filestream._from_fp(fp, fclose), '', 0
 end
 
 function io.read(fmt: overload(integer,stringview,niltype)): (string, stringview, integer)
@@ -115,5 +140,3 @@ function io.lines(filename: facultative(stringview), fmt: overload(integer,strin
     return file:lines(fmt)
   ## end
 end
-
--- TODO: io.popen

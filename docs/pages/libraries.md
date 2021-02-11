@@ -87,6 +87,7 @@ The [IO library](https://github.com/edubart/nelua-lang/blob/master/lib/io.nelua)
 | `global io.stdout: filestream`{:.language-nelua} | Output file used for io.write. |
 | `global io.stdin: filestream`{:.language-nelua} | Input file used for io.read. |
 | `io.open(filename: stringview[, mode: stringview]) : (filestream, stringview, integer)`{:.language-nelua} | Opens a file. Alias of `filestream.open`. |
+| `io.popen(command: stringview[, mode: stringview]) : (filestream, stringview, integer)`{:.language-nelua} | Execute a command and returns it's filestream. |
 | `io.flush(): boolean`{:.language-nelua} | Flushes stdout. |
 | `io.close([file])`{:.language-nelua} | Alias of `file:close`. Closes `io.stdout` if no file was given. |
 | `io.input(file: [stringview, filestream, niltype]): filestream`{:.language-nelua} | Sets, opens or returns the input file. |

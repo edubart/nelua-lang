@@ -146,9 +146,9 @@ do -- test pattern matching syntax
 end
 
 do -- match
-  assert(string.match('abc', '^abc$'))
-  assert(string.match('abc', '^abc$', 1))
-  assert(string.match('0abc', '^abc$', 2))
+  assert(string.match('abc', '^abc$') == true)
+  assert(string.match('abc', '^abc$', 1) == true)
+  assert(string.match('0abc', '^abc$', 2) == true)
 
   local status, captures = string.match('abc', '^(a)(bc)$')
   assert(status == true and #captures == 2 and captures[1] == 'a' and captures[2] == 'bc')

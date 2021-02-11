@@ -185,7 +185,7 @@ typevisitors[types.ArrayType] = function(context, type)
   decemitter:add('typedef struct {', type.subtype, ' data[', type.length, '];} ', type.codename)
   emit_type_attributes(decemitter, type)
   decemitter:add_ln(';')
-  if type.size then
+  if type.size and not context.pragmas.nocstaticassert then
     decemitter:add_ln('nelua_static_assert(sizeof(',type.codename,') == ', type.size,
                       ', "Nelua and C disagree on type size");')
   end
@@ -236,7 +236,7 @@ local function typevisitor_CompositeType(context, type)
     emit_type_attributes(defemitter, type)
     defemitter:add_ln(';')
   --end
-  if type.size then
+  if type.size and not context.pragmas.nocstaticassert then
     defemitter:add_ln('nelua_static_assert(sizeof(',type.codename,') == ', type.size,
                       ', "Nelua and C disagree on type size");')
   end
@@ -1451,7 +1451,7 @@ local generator = {}
 
 local function emit_features_setup(context)
   local emitter = CEmitter(context)
-  do -- warnings
+  if not context.pragmas.nocwarnpragmas then -- warnings
     emitter:add_ln('#ifdef __GNUC__')
       -- throw error on implicit declarations
       emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
@@ -1477,7 +1477,7 @@ local function emit_features_setup(context)
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wtype-limits"')
     emitter:add_ln('#endif')
   end
-  do -- static assert macro
+  if not context.pragmas.nocstaticassert then -- static assert macro
     emitter:add([[#if __STDC_VERSION__ >= 201112L
 #define nelua_static_assert _Static_assert
 #else

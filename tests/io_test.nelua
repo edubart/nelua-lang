@@ -28,6 +28,12 @@ do -- basic io.open/io.isopen/io.close
   assert(not io.isopen(file))
 end
 
+do -- io.popen
+  local f = io.popen('echo test')
+  assert(f:read('a') == 'test\n')
+  f:close()
+end
+
 do -- io.type
   file = io.open('LICENSE', 'r')
   assert(io.isopen(file))

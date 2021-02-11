@@ -36,6 +36,11 @@ local function atexit(func: function()): cint <cimport,cinclude'<stdlib.h>',node
 --------------------------------------------------------------------------------
 -- filestream
 
+local FStream = @record{
+  fp: *FILE,
+  closef: function(fp: *FILE): cint
+}
+
 global filestream = @record{
   id: uint64
 }
@@ -48,21 +53,22 @@ local function fileresult(success: boolean): (boolean, stringview, integer)
   return true, '', 0
 end
 
-local pool: resourcepool(*FILE, GeneralAllocator)
+local pool: resourcepool(FStream, GeneralAllocator)
 
 -- destroy the pool on exit
 local function destroy_pool(): void pool:destroy() end
 atexit(destroy_pool)
 
-function filestream._from_fp(fp: *FILE): filestream
-  local id: uint64, pfp: **FILE = pool:acquire()
-  $pfp = fp
+function filestream._from_fp(fp: *FILE, closef: function(fp: *FILE): cint): filestream
+  local id: uint64, p: *FStream = pool:acquire()
+  p.fp = fp
+  p.closef = closef
   return filestream{id = id}
 end
 
 function filestream:_get_fp(): *FILE
-  local p: **FILE = pool:get(self.id)
-  if p then return $p end
+  local p: *FStream = pool:get(self.id)
+  if p then return p.fp end
   return nilptr
 end
 
@@ -86,7 +92,7 @@ function filestream.open(filename: stringview, mode: facultative(stringview)) : 
   if not fp then
     return filestream{}, strerror(errno), errno
   end
-  return filestream._from_fp(fp), '', 0
+  return filestream._from_fp(fp, fclose), '', 0
 end
 
 function filestream:flush(): (boolean, stringview, integer)
@@ -96,12 +102,13 @@ function filestream:flush(): (boolean, stringview, integer)
 end
 
 function filestream:close(): (boolean, stringview, integer)
-  local fp: *FILE = self:_get_fp()
-  assert(fp ~= nilptr, 'attempt to use a closed file')
-  if fp == stdout or fp == stderr or fp == stdin then
+  local p: FStream = $pool:get(self.id)
+  assert(p.fp ~= nilptr, 'attempt to use a closed file')
+  if p.fp == stdout or p.fp == stderr or p.fp == stdin then
     return false, 'cannot close standard file', -1
   end
-  local res: cint = fclose(fp)
+  errno = 0 -- clear errno
+  local res: cint = p.closef(p.fp)
   pool:release(self.id)
   return fileresult(res == 0)
 end

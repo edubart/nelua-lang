@@ -1,3 +1,7 @@
+print('testing builtins_test... ')
+require 'tests.builtins_test'
+print 'OK!'
+
 print('testing io_test... ')
 require 'tests.io_test'
 print 'OK!'
@@ -38,8 +42,12 @@ print('testing string_test... ')
 require 'tests.string_test'
 print 'OK!'
 
-print('testing stringbuilder_test... ')
-require 'tests.stringbuilder_test'
+print('testing pattern_matching_test... ')
+require 'tests.pattern_matching_test'
+print 'OK!'
+
+print('testing string_test... ')
+require 'tests.string_test'
 print 'OK!'
 
 print('testing traits_test... ')
@@ -68,11 +76,6 @@ print 'OK!'
 
 print('testing coroutine_test... ')
 require 'tests.coroutine_test'
-print 'OK!'
-
--- must be last for now because replace some globals
-print('testing basic_test... ')
-require 'tests.basic_test'
 print 'OK!'
 
 -- must be the last test because it calls os.exit()
