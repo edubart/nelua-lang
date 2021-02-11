@@ -63,7 +63,7 @@ end
 
 local function get_compile_args(cfile, binfile, cflags)
   local env = { cfile = cfile, binfile = binfile, cflags = cflags, cc = config.cc }
-  return pegger.substitute('$(cc) $(cflags) -o "$(binfile)" "$(cfile)"', env)
+  return pegger.substitute('$(cc) "$(cfile)" -o "$(binfile)" $(cflags)', env)
 end
 
 local function get_cc_info(cc)
