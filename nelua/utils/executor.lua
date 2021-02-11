@@ -4,107 +4,12 @@
 -- such as running a C compiler or a built binary.
 
 local tabler = require 'nelua.utils.tabler'
-local stringer = require 'nelua.utils.stringer'
 local pegger = require 'nelua.utils.pegger'
 local platform = require 'nelua.utils.platform'
 local fs = require 'nelua.utils.fs'
 
-local executor = {}
-
 -- luacov:disable
-
--- This does a custom implementation of the system's exec command for POSIX platforms.
--- It's only used when luaposix is available.
--- Usually it's faster than the lua execute function because it skips shell creation,
--- by doing a fork + exec.
--- When this is available the compiler test suite runs faster.
-local hasposix, posix_pexec = pcall(function()
-  local unistd = require 'posix.unistd'
-  local wait = require 'posix.sys.wait'.wait
-  local poll = require 'posix.poll'
-  local envpath = os.getenv('PATH')
-
-  return function(exe, args, redirect)
-    args = args or {}
-
-    -- find the executable
-    local exepath = fs.abspath(exe)
-    if exe ~= exepath and not exe:find(fs.sep, 1, true) then
-      exepath = nil
-      if envpath then
-        local paths = stringer.split(envpath, ':')
-        for _, pathprefix in ipairs(paths) do
-          local trypath = fs.join(pathprefix, exe)
-          if fs.isfile(trypath) then
-            exepath = trypath
-            break
-          end
-        end
-      end
-    end
-    if not exepath then
-      return false, 127, "", string.format("%s: command not found\n", exe)
-    end
-    args[0] = exe
-
-    -- piped fork and exec
-    io.stderr:flush()
-    io.stdout:flush()
-    local outfd, outwfd, errfd, errwfd
-    if redirect then
-      outfd, outwfd = unistd.pipe()
-      errfd, errwfd = unistd.pipe()
-    end
-    local pid, errmsg = unistd.fork()
-    assert(pid, errmsg)
-    if pid == 0 then
-      if redirect then
-        unistd.close(outfd) unistd.close(errfd)
-        unistd.dup2(outwfd, unistd.STDOUT_FILENO) unistd.dup2(errwfd, unistd.STDERR_FILENO)
-      end
-      local _, err = unistd.exec(exepath, args)
-      -- this is reached only when it fails
-      io.stderr:write(err)
-      io.stderr:flush()
-      unistd._exit(127)
-    end
-    local ssout = {}
-    local sserr = {}
-    if redirect then
-      unistd.close(outwfd)
-      unistd.close(errwfd)
-      local fds = {
-         [outfd] = {events={IN=true}, ss=ssout},
-         [errfd] = {events={IN=true}, ss=sserr}
-      }
-      repeat
-        poll.poll(fds, -1)
-        for fd in pairs(fds) do
-          if fds[fd].revents.IN then
-            local r = unistd.read(fd, 8192)
-            if r and #r > 0 then
-              table.insert(fds[fd].ss, r)
-            end
-          end
-          if fds[fd].revents.HUP then
-            unistd.close(fd)
-            fds[fd] = nil
-          end
-        end
-      until not next(fds)
-    end
-    local _, reason, status = wait(pid)
-    local ok = (reason == 'exited') and status == 0
-    if redirect then
-      unistd.close(outfd) unistd.close(errfd)
-      local sout = table.concat(ssout)
-      local serr = table.concat(sserr)
-      return ok, status, sout, serr
-    else
-      return ok, status
-    end
-  end
-end)
+local executor = {}
 
 -- Execute a shell command, in a compatible and platform independent way.
 local function execute(cmd)
@@ -176,7 +81,7 @@ local function executeex(cmd, bin)
 end
 
 -- Execute a command capturing the stdour/stderr output if required.
-local function lua_pexec(exe, args, capture)
+local function pexec(exe, args, capture)
   local command = exe
   if args and #args > 0 then
     local strargs = tabler(args):imap(quote_arg):concat(' '):value()
@@ -188,8 +93,6 @@ local function lua_pexec(exe, args, capture)
     return execute(command)
   end
 end
-
-local pexec = hasposix and posix_pexec or lua_pexec
 
 -- Helper to split arguments to a table.
 local function convertargs(exe, args)
@@ -209,8 +112,6 @@ function executor.exec(exe, args)
   return pexec(exe, args)
 end
 
--- luacov:enable
-
 -- Execute a command capturing stdout/stderr.
 -- Args must be a table or nil, if args is nil then the args is extracted from exe.
 -- Returns a true when successful, the status code, stdout and stderr contents.
@@ -220,3 +121,4 @@ function executor.execex(exe, args)
 end
 
 return executor
+-- luacov:enable
