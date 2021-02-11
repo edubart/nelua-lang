@@ -58,6 +58,34 @@ end
 
 -- Build configs that depends on other configs.
 local function build_configs(conf)
+  if conf.output then --luacov:disable
+    if conf.output:match('.c$') then
+      conf.generator = 'c'
+      conf.compile_code = true
+      conf.compile_binary = false
+    elseif conf.output:match('.lua$') then
+      conf.generator = 'lua'
+      conf.compile_code = true
+      conf.compile_binary = false
+    elseif conf.output:match('.so$') or conf.output:match('.dll$') then
+      conf.generator = 'c'
+      conf.shared = true
+      conf.compile_binary = true
+      conf.compile_code = false
+    elseif conf.output:match('.a$') then
+      conf.generator = 'c'
+      conf.static = true
+      conf.compile_binary = true
+      conf.compile_code = false
+    else
+      conf.compile_binary = true
+    end
+  end --luacov:enable
+
+  if conf.static or conf.shared then
+    conf.compile_binary = true
+  end
+
   conf.lua_path = package.path
   conf.lua_cpath = package.cpath
 
@@ -130,7 +158,7 @@ end
 
 local function create_parser(args)
   local argparser = argparse("nelua", "Nelua 0.1")
-  argparser:flag('-c --compile', "Compile the generated code only", defconfig.compile)
+  argparser:flag('-c --compile-code', "Compile the generated code only", defconfig.compile)
   argparser:flag('-b --compile-binary', "Compile the generated code and binaries only", defconfig.compile_binary)
   argparser:flag('-e --eval', 'Evaluate string code from input', defconfig.eval)
   argparser:flag('-l --lint', 'Only check syntax errors', defconfig.lint)
@@ -144,10 +172,7 @@ local function create_parser(args)
   argparser:flag('-w --no-warning', "Suppress all warning messages", defconfig.no_warning)
   argparser:flag('-M --maximum-performance', "Maximum performance build (use for benchmarking)")
   argparser:flag('-j --turbo', "Compile faster by disabling the garbage collector (uses more MEM)")
-  argparser:flag('--no-cache', "Don't use any cached compilation", defconfig.no_cache)
-  argparser:flag('--no-color', 'Disable colorized output in the terminal.', defconfig.no_color)
-  argparser:flag('--profile-compiler', 'Print profiling for the compiler', defconfig.profile)
-  argparser:option('-o --output', 'Copy output file to desired path.', defconfig.output)
+  argparser:option('-o --output', 'Output file.', defconfig.output)
   argparser:option('-D --define', 'Define values in the preprocessor')
     :count("*"):convert(convert_param)
   argparser:option('-P --pragma', 'Set initial compiler pragma')
@@ -171,6 +196,9 @@ local function create_parser(args)
   argparser:flag('--print-analyzed-ast', 'Print the analyzed AST only')
   argparser:flag('--print-code', 'Print the generated code only')
   argparser:flag('--print-config', "Print config variables only"):action(action_print_config)
+  argparser:flag('--no-cache', "Don't use any cached compilation", defconfig.no_cache)
+  argparser:flag('--no-color', 'Disable colorized output in the terminal.', defconfig.no_color)
+  argparser:flag('--profile-compiler', 'Print profiling for the compiler', defconfig.profile)
   argparser:flag('--debug-resolve', "Print information about resolved types")
   argparser:flag('--debug-scope-resolve', "Print number of resolved types per scope")
   argparser:argument("input", "Input source file")

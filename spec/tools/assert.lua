@@ -11,6 +11,8 @@ local traits = require 'nelua.utils.traits'
 local lua_generator = require 'nelua.luagenerator'
 local c_generator = require 'nelua.cgenerator'
 local differ = require 'spec.tools.differ'
+local executor = require 'nelua.utils.executor'
+local ccompiler = require 'nelua.ccompiler'
 local nelua_syntax = require 'nelua.syntaxdefs'()
 local config = require 'nelua.configer'.get()
 local primtypes = require 'nelua.typedefs'.primtypes
@@ -166,6 +168,17 @@ function assert.run(args, expected_stdout, expected_stderr)
   else
     assert.same('', serr)
   end
+end
+
+function assert.execute(exe, expected_stdout)
+  if ccompiler.get_cc_info().is_windows then exe = exe .. '.exe' end
+  local ok, status, sout, serr = executor.execex(exe)
+  errorer.assertf(ok and status == 0, 'expected success status in execute:\n%s\n%s', serr, sout)
+  if expected_stdout then
+    sout = sout:gsub('\r','')
+    assert.contains(expected_stdout, sout)
+  end
+  assert.same('', serr)
 end
 
 function assert.run_error(args, expected_stderr, expects_success)

@@ -3,7 +3,7 @@ local errorer = require 'nelua.utils.errorer'
 local bn = require 'nelua.utils.bn'
 
 local Emitter = class()
-local INDENT_SPACES <const> = '  '
+local INDENT_SPACES = '  '
 
 function Emitter:_init(context, depth)
   depth = depth or 0

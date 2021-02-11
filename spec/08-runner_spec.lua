@@ -15,8 +15,8 @@ it("version numbers" , function()
 end)
 
 it("compile simple programs" , function()
-  assert.run('--generator lua --no-cache --compile examples/helloworld.nelua')
-  assert.run(' --no-cache --compile examples/helloworld.nelua')
+  assert.run(' --no-cache --compile-code examples/helloworld.nelua')
+  assert.run('--generator lua --no-cache --compile-code examples/helloworld.nelua')
   assert.run('--generator lua --compile-binary examples/helloworld.nelua')
   -- force reusing the cache:
   assert.run(' --compile-binary examples/helloworld.nelua')
@@ -149,19 +149,21 @@ end)
 
 it("shared libraries", function()
   assert.run({'--shared', '-o', 'libmylib', 'tests/libmylib.nelua'})
-  assert.run({'-o', 'mylib_test', 'tests/mylib_test.nelua'}, [[mylib - init
+  assert.run({'-o', 'mylib_test', 'tests/mylib_test.nelua'})
+  assert.execute('./mylib_test', [[mylib - init
 mylib - in top scope
 mylib - sum
 the sum is:
 3
 mylib - terminate]])
-  os.remove('libmylib.so')
-  os.remove('mylib_test')
+  os.remove('libmylib.so') os.remove('libmylib.dll')
+  os.remove('mylib_test') os.remove('mylib_test.exe')
 end)
 
 it("static libraries", function()
   assert.run({'--static', '-o', 'libmylib', 'tests/libmylib.nelua'})
-  assert.run({'-o', 'mylib_test', 'tests/mylib_test.nelua'}, [[mylib - init
+  assert.run({'-o', 'mylib_test', 'tests/mylib_test.nelua'})
+  assert.execute('./mylib_test', [[mylib - init
 mylib - in top scope
 mylib - sum
 the sum is:

@@ -11,7 +11,9 @@ local cdefs = require 'nelua.cdefs'
 local memoize = require 'nelua.utils.memoize'
 local version = require 'nelua.version'
 
-local compiler = {}
+local compiler = {
+  source_extension = '.c'
+}
 
 local function get_compiler_cflags(compileopts)
   local compiler_flags = cdefs.compilers_flags[config.cc] or cdefs.compiler_base_flags
@@ -122,11 +124,11 @@ function compiler.get_cc_defines(...)
   return get_cc_defines(config.cc, ...)
 end
 
-function compiler.compile_code(ccode, outfile, compileopts)
-  local cfile = outfile .. '.c'
+function compiler.compile_code(ccode, cfile, compileopts)
   local ccinfo = compiler.get_cc_info().text
   local cflags = get_compiler_cflags(compileopts)
-  local ccmd = get_compile_args(cfile, outfile, cflags)
+  local binfile = cfile:gsub('.c$','')
+  local ccmd = get_compile_args(cfile, binfile, cflags)
 
   -- file heading
   local hash = stringer.hash(string.format("%s%s%s", ccode, ccinfo, ccmd))
@@ -147,8 +149,6 @@ function compiler.compile_code(ccode, outfile, compileopts)
   fs.eensurefilepath(cfile)
   fs.ewritefile(cfile, sourcecode)
   if not config.quiet then console.info("generated " .. cfile) end
-
-  return cfile
 end
 
 local function detect_binary_extension(ccinfo)
@@ -228,6 +228,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
 
   if config.static then
     compiler.compile_static_library(midfile, binfile)
+    fs.deletefile(midfile)
   end
 
   return binfile, isexe

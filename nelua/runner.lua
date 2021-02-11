@@ -35,6 +35,7 @@ local function run(argv, redirect)
   end --luacov:enable
 
   local generator = require('nelua.' .. config.generator .. 'generator')
+  local compiler = generator.compiler
   local preprocessor = require 'nelua.preprocessor'
   if config.timing then
     console.debugf('startup         %.1f ms', timer:elapsedrestart())
@@ -126,21 +127,24 @@ local function run(argv, redirect)
 
   -- save the generated code
   local outcacheprefix = fs.getcachepath(infile, config.cache_dir)
-  local outfile = config.output or outcacheprefix
-  local compiler = generator.compiler
-  local sourcefile = compiler.compile_code(code, outcacheprefix, compileopts)
+  local sourcefile = config.compile_code and config.output or outcacheprefix
+  if not stringer.endswith(sourcefile, compiler.source_extension) then
+    sourcefile = sourcefile .. compiler.source_extension
+  end
+  compiler.compile_code(code, sourcefile, compileopts)
 
   if config.timing then
     console.debugf('compile code    %.1f ms', timer:elapsedrestart())
   end
 
-  local dorun = not config.compile and not config.compile_binary
+  local dorun = not config.compile_code and not config.compile_binary
   local dobinarycompile = config.compile_binary or dorun
 
   -- compile the generated code
   local binaryfile, isexe
   if dobinarycompile then
-    binaryfile, isexe = compiler.compile_binary(sourcefile, outfile, compileopts)
+    local binfile = config.compile_binary and config.output or outcacheprefix
+    binaryfile, isexe = compiler.compile_binary(sourcefile, binfile, compileopts)
 
     if not isexe then
       if not config.quiet then console.info('library compiled!') end
@@ -156,7 +160,7 @@ local function run(argv, redirect)
     local exe, exeargs = compiler.get_run_command(binaryfile, config.runargs)
     if not config.quiet then console.info(exe .. ' ' .. table.concat(exeargs, ' ')) end
     local exec = redirect and executor.execex or executor.exec
-    local _, status, sout, serr = exec(exe, exeargs, redirect)
+    local _, status, sout, serr = exec(exe, exeargs)
     if sout then io.stdout:write(sout) io.stdout:flush() end
     if serr then io.stderr:write(serr) io.stderr:flush() end
     if config.timing then
