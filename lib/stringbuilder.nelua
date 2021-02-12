@@ -174,14 +174,13 @@ end
         goto next
       end
     ## end
-    error('invalid conversion for format argument')
+    error('invalid format for argument')
   ::next::
     assert(nb >= 0 and nb < (@isize)(maxitem), 'unexpect number of bytes written in sprintf')
     return nb
   end
 
   function stringbuilderT:write_format(fmt: stringview, ...: varargs): boolean
-    -- TODO: properly handle multiple arguments
     local L_ESC: byte <comptime> = '%'_byte
     local pos: usize = 0
     local argi: int32 = 0
@@ -215,7 +214,7 @@ end
           end
           ## end
           ::next::
-          check(nb >= 0)
+          assert(nb >= 0, 'missing argument in format')
           self:commit((@usize)(nb))
         end
       end

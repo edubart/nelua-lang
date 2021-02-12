@@ -262,16 +262,19 @@ function preprocessor.preprocess(context, ast)
     if index == '#' then
       return nvarargs
     else
-      local selectnodes = {_varargs=true}
       if index < 0 then index = nvarargs + index + 1 end
       static_assert(index >= 1 and index <= nvarargs, 'select index out of range')
-      endindex = endindex or index
-      if endindex < 0 then endindex = nvarargs + endindex + 1 end
-      static_assert(endindex >= 1 and endindex <= nvarargs, 'select end index out of range')
-      for i=index,endindex,(endindex >= index) and 1 or -1 do
-        selectnodes[#selectnodes+1] = varargsnodes[i]
+      if endindex then
+        if endindex < 0 then endindex = nvarargs + endindex + 1 end
+        static_assert(endindex >= 1 and endindex <= nvarargs, 'select end index out of range')
+        local selectnodes = {_varargs=true}
+        for i=index,endindex,(endindex >= index) and 1 or -1 do
+          selectnodes[#selectnodes+1] = varargsnodes[i]
+        end
+        return selectnodes
+      else
+        return varargsnodes[index]
       end
-      return selectnodes
     end
   end
   local function inject_astnode(node, clone)

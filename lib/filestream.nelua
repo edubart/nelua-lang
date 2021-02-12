@@ -243,21 +243,25 @@ function filestream:read(fmt: overload(integer,stringview,niltype)): (string, st
   return s, errmsg, status
 end
 
-function filestream:write(s: stringview): (boolean, stringview, integer)
-  --TODO: multiple arguments
+function filestream:write(...: varargs): (boolean, stringview, integer)
   --TODO: return file itself
   local fp: *FILE = self:_get_fp()
   assert(fp ~= nilptr, 'attempt to use a closed file')
-  local len: csize = s.size
-  if fwrite(s.data, 1, len, fp) == len then
-    return true, '', 0
-  end
+  local s: stringview
+  ## for i=1,select_varargs('#') do
+    s = tostringview(#[select_varargs(i)]#)
+    if fwrite(s.data, 1, s.size, fp) ~= s.size then
+      goto errout
+    end
+  ## end
+  return true, '', 0
+::errout::
   return fileresult(false)
 end
 
-function filestream:writef(fmt: stringview, arg1: auto): (boolean, stringview, integer)
+function filestream:writef(fmt: stringview, ...: varargs): (boolean, stringview, integer)
   local sb: stringbuilder
-  if not sb:write_format(fmt, arg1) then
+  if not sb:write_format(fmt, ...) then
     return false, 'not enough memory', 0
   end
   local ok: boolean, err: stringview, len: integer = self:write(tostringview(sb))

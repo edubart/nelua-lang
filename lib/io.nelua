@@ -106,12 +106,12 @@ function io.read(fmt: overload(integer,stringview,niltype)): (string, stringview
   return io.stdin:read(fmt)
 end
 
-function io.write(s: stringview): (boolean, stringview, integer)
-  return io.stdout:write(s)
+function io.write(...: varargs): (boolean, stringview, integer)
+  return io.stdout:write(...)
 end
 
-function io.writef(s: stringview, arg1: auto): (boolean, stringview, integer)
-  return io.stdout:writef(s, arg1)
+function io.writef(s: stringview, ...: varargs): (boolean, stringview, integer)
+  return io.stdout:writef(s, ...)
 end
 
 function io.type(x: auto)

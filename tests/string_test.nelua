@@ -149,6 +149,8 @@ end
 do -- char
   local c = string.char(0x41)
   assert(c == 'A')
+  assert(string.char(0x41, 0x42) == 'AB')
+  assert(string.char(0x41, 0x42, 0x43) == 'ABC')
 end
 
 do -- byte
@@ -421,6 +423,7 @@ do -- string format
   assert(string.format('a', 0) == 'a')
   assert(string.format('%%', 1) == '%')
   assert(string.format('%c', 0x41) == 'A')
+  assert(string.format('%c%c', 0x41, 0x42) == 'AB')
   assert(string.format('%x', 0xff) == 'ff')
   assert(string.format('%04x', 0xff) == '00ff')
   assert(string.format('%u', -1) == '18446744073709551615')
@@ -439,6 +442,7 @@ do -- string format
   assert(string.format('%p', nilptr) == '(null)')
   assert(string.format('%p', (@pointer)(0xffffffff_usize)):lower():find('ffffffff', 1, true) > 0)
   assert(string.format('%s', 'asd') == 'asd')
+  assert(string.format('%s: %d', 'test', 1) == 'test: 1')
   assert(string.format('%s', string.rep('xuxu', 500)) == string.rep('xuxu', 500))
   assert(string.format('a number here: %d !', 1337) == 'a number here: 1337 !')
 end

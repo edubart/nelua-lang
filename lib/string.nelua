@@ -196,10 +196,11 @@ function string.lower(self: stringview): string
   return s
 end
 
-function string.char(c: byte): string
-  --TODO: handle more arguments
-  local s: string = string._create(1)
-  s.data[0] = c
+function string.char(...: varargs): string
+  local s: string = string._create(#[select_varargs('#')]#)
+  ## for i=1,select_varargs('#') do
+  s.data[#[i-1]#] = #[select_varargs(i)]#
+  ## end
   return s
 end
 
@@ -327,11 +328,3 @@ stringview_metafields.upper = string_metafields.upper
 stringview_metafields.lower = string_metafields.lower
 stringview_metafields.format = string_metafields.format
 ]]
-
--- TODO: implement functions bellow
--- string:match(pattern, init)
--- string:gmatch(pattern)
--- string:gsub(pattern, repl, n)
--- string.pack(fmt, v1, v2, ..)
--- string.unpack(fmt, s, pos)
--- string.packsize(fmt)

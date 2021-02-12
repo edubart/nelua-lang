@@ -112,10 +112,7 @@ end
 
 -- define common math functions with 2 arguments
 ##[[
-local mathfuncs2 = {
-  'max', 'min', 'fmod',
-  'atan2', 'pow'
-}
+local mathfuncs2 = {'fmod', 'atan2', 'pow'}
 for _,name in ipairs(mathfuncs2) do
   local namef64, namef32 = name..'_f64', name..'_f32'
   local namef = primtypes.number.is_float32 and namef32 or namef64
@@ -126,11 +123,7 @@ function math.#|name|#(x: is_arithmetic, y: is_arithmetic) <inline,nosideeffect>
   ## elseif x.type.is_float or y.type.is_float then
     return #|namef64|#(x, y)
   ## else
-    ## if name == 'min' then
-      if x < y then return x else return y end
-    ## elseif name == 'max' then
-      if x < y then return y else return x end
-    ## elseif name == 'fmod' and x.type.is_integral and y.type.is_integral then
+    ## if name == 'fmod' and x.type.is_integral and y.type.is_integral then
       local z: #[x.type]# <noinit>
       ## cemit '  z = x % y;'
       return z
@@ -140,6 +133,54 @@ function math.#|name|#(x: is_arithmetic, y: is_arithmetic) <inline,nosideeffect>
   ## end
 end
 ## end
+
+function math.min(...: varargs)
+  ## local nargs = select_varargs('#')
+  ## static_assert(nargs > 0, 'expected at least one argument')
+  ## if nargs == 1 then
+    return #[select_varargs(1)]#
+  ## elseif nargs == 2 then
+    ## local x, y = select_varargs(1), select_varargs(2)
+    if #[x]# < #[y]# then
+      return #[x]#
+    else
+      return #[y]#
+    end
+  ## else
+    local res = #[select_varargs(1)]#
+    ## for i=2,nargs do
+      ## local v = select_varargs(i)
+      if #[v]# < res then
+        res = #[v]#
+      end
+    ## end
+    return res
+  ## end
+end
+
+function math.max(...: varargs)
+  ## local nargs = select_varargs('#')
+  ## static_assert(nargs > 0, 'expected at least one argument')
+  ## if nargs == 1 then
+    return #[select_varargs(1)]#
+  ## elseif nargs == 2 then
+    ## local x, y = select_varargs(1), select_varargs(2)
+    if #[x]# > #[y]# then
+      return #[x]#
+    else
+      return #[y]#
+    end
+  ## else
+    local res = #[select_varargs(1)]#
+    ## for i=2,nargs do
+      ## local v = select_varargs(i)
+      if #[v]# > res then
+        res = #[v]#
+      end
+    ## end
+    return res
+  ## end
+end
 
 function math.atan(y: is_arithmetic, x: is_optional_arithmetic) <inline,nosideeffect>
   ## if not x.type.is_niltype then
