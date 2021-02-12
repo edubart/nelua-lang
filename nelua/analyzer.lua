@@ -115,7 +115,41 @@ function visitors.Nil(_, node)
   node.done = true
 end
 
-function visitors.Varargs(_, node)
+function visitors.Varargs(context, node)
+  local polyeval = context.state.inpolyeval
+  if polyeval and polyeval.varargsnodes then
+    -- transform function, replacing Varargs nodes with Id nodes
+    local unpacktags = {Call=true, CallMethod=true, VarDecl=true, Assign=true, Return=true, Table=true}
+    local parent2 = context:get_parent_node(1)
+    local nvarargs = #polyeval.varargsnodes
+    local n = context.parser.astbuilder.aster
+    for varargsnode, parent1, parent1i in parent2:walk_trace_nodes(1) do
+      if varargsnode == node then
+        if unpacktags[parent2.tag] then -- unpack arguments
+          if nvarargs > 0 then
+            for j=1,nvarargs do
+              parent1[parent1i+j-1] = n.Id{'__arg'..j}
+            end
+          else
+            parent1[parent1i] = nil
+            return
+          end
+        else -- replace with just the first argument
+          if nvarargs > 0 then
+            parent1[parent1i] = n.Id{'__arg1'}
+          else
+            parent1[parent1i] = n.Nil{}
+          end
+        end
+        local newnode = parent1[parent1i]
+        if newnode then
+          return context:traverse_node(newnode)
+        end
+        break
+      end
+    end --luacov:disable
+    assert(false, 'unrechable')
+  end -- luacov:enable
   node.done = true
 end
 
@@ -1208,7 +1242,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             arg = argnode.attr
           end
         else
-          if funcargtype.is_cvarargs then
+          if funcargtype.is_cvarargs or funcargtype.is_varargs then
             break
           end
           arg = argtype
@@ -1264,7 +1298,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           knownallargs = false
         end
 
-        if calleetype.is_polyfunction then
+        if knownallargs and calleetype.is_polyfunction then
           local funcargcomptime = funcarg and funcarg.comptime
           if funcargcomptime and
             not funcarg.type.is_auto and not funcarg.type.is_overload and
@@ -2472,6 +2506,72 @@ local function visitor_function_sideeffect(attr, functype, funcscope)
   end
 end
 
+local function visitor_function_polyevals(context, node, symbol, varnode, type)
+  local evals = type.evals
+  for i=1,#evals do
+    local polyeval = evals[i]
+    local polynode = polyeval.node
+    if not polynode then
+      polynode = node:clone()
+      polyeval.node = polynode
+      local polyargnodes = polynode[3]
+      local polyevalargs = polyeval.args
+      local nvarargs = 0
+      local invarargs = false
+      local n = context.parser.astbuilder.aster
+      for j=1,#polyevalargs do
+        local polyevalarg = polyevalargs[j]
+        if varnode.tag == 'ColonIndex' then
+          j = j - 1
+        end
+        local polyargnode = polyargnodes[j]
+        if polyargnode and polyargnode.tag == 'VarargsType' then
+          invarargs = true
+        end
+        if invarargs then -- replace varargs arguments with IdDecl nodes
+          nvarargs = nvarargs + 1
+          local polyevaltype = traits.is_attr(polyevalarg) and polyevalarg.value or polyevalarg
+          local polyargtypesym = Symbol{
+            type = primtypes.type,
+            value = polyevaltype,
+          }
+          polyargnode = n.IdDecl{'__arg'..nvarargs, n.Id{'auto', pattr={forcesymbol=polyargtypesym}}}
+          polyargnodes[j] = polyargnode
+        elseif polyargnode then
+          local polyargattr = polyargnode.attr
+          if traits.is_attr(polyevalarg) then
+            polyargattr.type = polyevalarg.type
+            polyargattr.value = polyevalarg.value
+            if traits.is_bn(polyargattr.value) then
+              polyargattr.value = polyargattr.value:compress()
+            end
+          else
+            polyargattr.type = polyevalarg
+          end
+          assert(polyargattr.type._type)
+        end
+      end
+      while #polyargnodes > #polyevalargs do -- remove extra unused argnodes
+        polyargnodes[#polyargnodes] = nil
+      end
+      if symbol.type:has_varargs() and not polyeval.varargsnodes then
+        local varargsnodes = {}
+        for j=1,nvarargs do
+          varargsnodes[j] = n.Id{'__arg'..j}
+        end
+        polyeval.varargsnodes = varargsnodes
+      end
+    end
+    -- pop node and then push again to fix error message traceback
+    context:pop_node()
+    context:push_state{inpolyeval=polyeval} -- used to generate error messages
+    context:traverse_node(polynode, symbol)
+    context:pop_state()
+    context:push_node(node)
+    assert(polynode.attr._symbol)
+  end
+end
+
 function visitors.FuncDef(context, node, polysymbol)
   local varscope, varnode, argnodes, retnodes, annotnodes, blocknode =
         node[1], node[2], node[3], node[4], node[5], node[6]
@@ -2595,44 +2695,7 @@ function visitors.FuncDef(context, node, polysymbol)
 
   -- traverse poly function nodes
   if ispolyparent then
-    local evals = type.evals
-    for i=1,#evals do
-      local polyeval = evals[i]
-      local polynode = polyeval.node
-      if not polynode then
-        polynode = node:clone()
-        polyeval.node = polynode
-        local polyargnodes = polynode[3]
-        local polyargs = polyeval.args
-        for j=1,#polyargs do
-          local polyarg = polyargs[j]
-          if varnode.tag == 'ColonIndex' then
-            j = j - 1
-          end
-          if polyargnodes[j] then
-            local polyargattr = polyargnodes[j].attr
-            if traits.is_attr(polyarg) then
-              polyargattr.type = polyarg.type
-              polyargattr.value = polyarg.value
-              if traits.is_bn(polyargattr.value) then
-                polyargattr.value = polyargattr.value:compress()
-              end
-            else
-              polyargattr.type = polyarg
-            end
-            assert(polyargattr.type._type)
-          end
-        end
-      end
-      -- pop node and then push again to fix error message traceback
-      context:pop_node()
-      -- used to generate error messages
-      context:push_state{inpolyeval=polyeval}
-      context:traverse_node(polynode, symbol)
-      context:pop_state()
-      context:push_node(node)
-      assert(polynode.attr._symbol)
-    end
+    visitor_function_polyevals(context, node, symbol, varnode, type)
   end
 end
 

@@ -6,11 +6,12 @@ do
   sb:write_string('hello world')
   sb:write_byte('\n'_byte)
   sb:write_format('%d\n', 10)
-  sb:write_format('%.2f', 3.14)
+  sb:write_format('%.2f\n', 3.14)
+  sb:write_format('%s %d', 'hi', 1)
   sb:prepare(1)[0] = '\n'_byte
   sb:commit(1)
   local s: stringview = sb
-  assert(s == "hello world\n10\n3.14\n")
+  assert(s == "hello world\n10\n3.14\nhi 1\n")
   sb:destroy()
 end
 

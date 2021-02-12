@@ -17,6 +17,7 @@ local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvararg
 
 -- format utilities
 local MAX_FORMAT <comptime> = 32
+local MAX_ITEM <comptime> = 120
 
 local function scanformat(strfmt: *[0]byte, form: *[MAX_FORMAT]byte): usize
   local L_FMTFLAGS <comptime> = "-+ #0"
@@ -116,12 +117,74 @@ end
     return true
   end
 
-  function stringbuilderT:write_format(fmt: stringview, arg1: auto): boolean
+  local function formatarg(self: *stringbuilderT, c: byte,
+                           buff: cstring, maxitem: usize, form: *[MAX_FORMAT]byte, arg1: auto)
+    local nb: cint = -1
+    ## if primtypes.cint:is_convertible_from(arg1.type) then
+      if c == 'c'_byte then
+        local n: cint = (@cint)(arg1)
+        nb = snprintf(buff, maxitem, &form[0], n)
+        goto next
+      end
+    ## end if primtypes.integer:is_convertible_from(arg1.type) then
+      if c == 'd'_byte or
+         c == 'i'_byte or
+         c == 'o'_byte or
+         c == 'u'_byte or
+         c == 'x'_byte or
+         c == 'X'_byte then
+        local lenmod: cstring <cimport #['PRIi' .. primtypes.integer.bitsize]#,nodecl,cinclude'<inttypes.h>'>
+        addlenmod(form, lenmod, strlen(lenmod) - 1)
+        local n: integer = (@integer)(arg1)
+        nb = snprintf(buff, maxitem, &form[0], n)
+        goto next
+      end
+    ## end if primtypes.number:is_convertible_from(arg1.type) then
+      if c == 'a'_byte or
+         c == 'A'_byte or
+         c == 'f'_byte or
+         c == 'e'_byte or
+         c == 'E'_byte or
+         c == 'g'_byte or
+         c == 'G'_byte then
+        local n: number = (@number)(arg1)
+        nb = snprintf(buff, maxitem, &form[0], n)
+        goto next
+      end
+    ## end if primtypes.pointer:is_convertible_from(arg1.type) then
+      if c == 'p'_byte then
+        local p: pointer = (@pointer)(arg1)
+        if p == nilptr then
+          strcpy(buff, "(null)")
+          nb = 6
+        else
+          nb = snprintf(buff, maxitem, &form[0], p)
+        end
+        goto next
+      end
+    ## end if arg1.type.is_stringy then
+      if c == 's'_byte then
+        local s: stringview = (@stringview)(arg1)
+        maxitem = s.size + 1
+        buff = (@cstring)(self:prepare(maxitem))
+        if not buff then
+          return false
+        end
+        nb = snprintf(buff, maxitem, &form[0], s.data)
+        goto next
+      end
+    ## end
+    error('invalid conversion for format argument')
+  ::next::
+    assert(nb >= 0 and nb < (@isize)(maxitem), 'unexpect number of bytes written in sprintf')
+    return nb
+  end
+
+  function stringbuilderT:write_format(fmt: stringview, ...: varargs): boolean
     -- TODO: properly handle multiple arguments
     local L_ESC: byte <comptime> = '%'_byte
-    local MAX_ITEM <comptime> = 120
     local pos: usize = 0
-    local argi: integer = 0
+    local argi: int32 = 0
     while pos < fmt.size do
       local c: byte = fmt.data[pos]
       pos = pos + 1
@@ -139,70 +202,20 @@ end
           if not buff then
             return false
           end
-          local nb: cint = 0 -- number of bytes in added item
           -- scan format
           pos = pos + scanformat(&fmt.data[pos], &form)
           c = fmt.data[pos]
           pos = pos + 1
           argi = argi + 1
-          assert(argi == 1, 'format with multiple arguments not supported yet')
-          ## if primtypes.cint:is_convertible_from(arg1.type) then
-            if c == 'c'_byte then
-              local n: cint = (@cint)(arg1)
-              nb = snprintf(buff, maxitem, &form[0], n)
-              goto next
-            end
-          ## end if primtypes.integer:is_convertible_from(arg1.type) then
-            if c == 'd'_byte or
-               c == 'i'_byte or
-               c == 'o'_byte or
-               c == 'u'_byte or
-               c == 'x'_byte or
-               c == 'X'_byte then
-              local lenmod: cstring <cimport #['PRIi' .. primtypes.integer.bitsize]#,nodecl,cinclude'<inttypes.h>'>
-              addlenmod(&form, lenmod, strlen(lenmod) - 1)
-              local n: integer = (@integer)(arg1)
-              nb = snprintf(buff, maxitem, &form[0], n)
-              goto next
-            end
-          ## end if primtypes.number:is_convertible_from(arg1.type) then
-            if c == 'a'_byte or
-               c == 'A'_byte or
-               c == 'f'_byte or
-               c == 'e'_byte or
-               c == 'E'_byte or
-               c == 'g'_byte or
-               c == 'G'_byte then
-              local n: number = (@number)(arg1)
-              nb = snprintf(buff, maxitem, &form[0], n)
-              goto next
-            end
-          ## end if primtypes.pointer:is_convertible_from(arg1.type) then
-            if c == 'p'_byte then
-              local p: pointer = (@pointer)(arg1)
-              if p == nilptr then
-                strcpy(buff, "(null)")
-                nb = 6
-              else
-                nb = snprintf(buff, maxitem, &form[0], p)
-              end
-              goto next
-            end
-          ## end if arg1.type.is_stringy then
-            if c == 's'_byte then
-              local s: stringview = (@stringview)(arg1)
-              maxitem = s.size + 1
-              buff = (@cstring)(self:prepare(maxitem))
-              if not buff then
-                return false
-              end
-              nb = snprintf(buff, maxitem, &form[0], s.data)
-              goto next
-            end
+          local nb: cint = -1
+          ## for i=1,select_varargs('#') do
+          if #[i]# == argi then
+            nb = formatarg(self, c, buff, maxitem, &form, #[select_varargs(i)]#)
+            goto next
+          end
           ## end
-          error('invalid conversion for format argument')
-  ::next::
-          assert(nb >= 0 and nb < (@isize)(maxitem), 'unexpect number of bytes written in sprintf')
+          ::next::
+          check(nb >= 0)
           self:commit((@usize)(nb))
         end
       end

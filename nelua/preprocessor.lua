@@ -41,8 +41,8 @@ end
 function visitors.PreprocessExpr(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
   local pindex, nindex = ppcontext:getregistryindex(parent), ppcontext:getregistryindex(node)
-  emitter:add_indent_ln('ppregistry[', pindex, '][', parentindex, ']',
-                        '=ppcontext:tovalue(', luacode, ',ppregistry[', nindex, '])')
+  emitter:add_indent_ln('ppcontext:inject_value(',luacode,
+                        ',ppregistry[', nindex, '],ppregistry[', pindex,'],',parentindex,')')
 end
 
 function visitors.Preprocess(_, node, emitter)
@@ -184,7 +184,7 @@ function preprocessor.preprocess(context, ast)
     return type
   end
   local function hygienize(f)
-    local scope = ppcontext.context.scope
+    local scope = context.scope
     local checkpoint = scope:make_checkpoint()
     local statnodes = ppcontext.statnodes
     local addindex = #statnodes+1
@@ -192,12 +192,12 @@ function preprocessor.preprocess(context, ast)
       statnodes.addindex = addindex
       ppcontext:push_statnodes(statnodes)
       scope:push_checkpoint(checkpoint)
-      ppcontext.context:push_scope(scope)
+      context:push_scope(scope)
       local rets = table.pack(f(...))
       ppcontext:pop_statnodes()
-      ppcontext.context:pop_scope()
+      context:pop_scope()
       -- must delay resolution to fully parse the new added nodes later
-      ppcontext.context.rootscope:delay_resolution()
+      context.rootscope:delay_resolution()
       scope:pop_checkpoint()
       addindex = statnodes.addindex
       statnodes.addindex = nil
@@ -231,7 +231,7 @@ function preprocessor.preprocess(context, ast)
     if not traits.is_function(f) then
       raise_preprocess_error("invalid arguments for preprocess function")
     end
-    local oldscope = ppcontext.context.scope
+    local oldscope = context.scope
     local function fproxy()
       context:push_scope(oldscope)
       f()
@@ -254,6 +254,26 @@ function preprocessor.preprocess(context, ast)
     end
     return status
   end
+  local function select_varargs(index, endindex)
+    local polyeval = context.state.inpolyeval
+    static_assert(polyeval, 'cannot used select_varargs outside a polymorphic function')
+    local varargsnodes = polyeval.varargsnodes
+    local nvarargs = #varargsnodes
+    if index == '#' then
+      return nvarargs
+    else
+      local selectnodes = {_varargs=true}
+      if index < 0 then index = nvarargs + index + 1 end
+      static_assert(index >= 1 and index <= nvarargs, 'select index out of range')
+      endindex = endindex or index
+      if endindex < 0 then endindex = nvarargs + endindex + 1 end
+      static_assert(endindex >= 1 and endindex <= nvarargs, 'select end index out of range')
+      for i=index,endindex,(endindex >= index) and 1 or -1 do
+        selectnodes[#selectnodes+1] = varargsnodes[i]
+      end
+      return selectnodes
+    end
+  end
   local function inject_astnode(node, clone)
     return ppcontext:add_statnode(node, not clone)
   end
@@ -266,6 +286,7 @@ function preprocessor.preprocess(context, ast)
     concept = concept,
     overload_concept = overload_concept,
     facultative_concept = facultative_concept,
+    select_varargs = select_varargs,
     generic = generic,
     hygienize = hygienize,
     generalize = generalize,

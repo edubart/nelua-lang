@@ -1700,6 +1700,7 @@ PolyFunctionType.is_nameable = true
 PolyFunctionType.is_procedure = true
 PolyFunctionType.is_polyfunction = true
 PolyFunctionType.is_equal = FunctionType.is_equal
+PolyFunctionType.has_multipleargs = FunctionType.has_multipleargs
 PolyFunctionType.typedesc = FunctionType.typedesc
 
 PolyFunctionType.shape = shaper.fork_shape(Type.shape, {
@@ -1769,9 +1770,16 @@ function PolyFunctionType:eval_poly(args, srcnode)
   end
   if not polyeval then
     polyeval = { args = args, srcnode = srcnode}
-    table.insert(self.evals, polyeval)
+    local evals = self.evals
+    evals[#evals+1] = polyeval
   end
   return polyeval
+end
+
+function PolyFunctionType:has_varargs()
+  local argtypes = self.argtypes
+  local lasttype = argtypes[#argtypes]
+  return lasttype and lasttype.is_varargs
 end
 
 --------------------------------------------------------------------------------

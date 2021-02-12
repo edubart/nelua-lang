@@ -2025,4 +2025,13 @@ it("nocopy type annotation", function()
   ]], "no viable type conversion")
 end)
 
+it("polymorphic varargs", function()
+  assert.analyze_error([[
+    local function f(...: varargs)
+      local a = 1 + ...
+    end
+    f()
+  ]], "invalid operation between types 'int64' and 'niltype'")
+end)
+
 end)

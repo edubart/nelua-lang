@@ -3194,4 +3194,91 @@ it("record initialize evaluation order", function()
   ]=], "2\n1\n2\n1")
 end)
 
+it("polymorphic variable arguments", function()
+  assert.run_c([=[
+    -- functions
+    local function f(...: varargs)
+      print(...)
+      print('unpack', ...)
+    end
+    f()
+    f('a')
+    f('b', 0)
+    f('c', 1, false)
+
+    -- nesting
+    local function g(...: varargs)
+      f(...)
+    end
+    g()
+    g('d')
+    f('e', true)
+
+    -- methods
+    local R = @record{x: integer}
+    function R:f(...: varargs)
+      print(self.x, ...)
+    end
+    local r: R = {2}
+    r:f('hello', 'world', 3)
+
+    -- returns
+    local function f(...: varargs)
+      return ...
+    end
+    local a, b = f(1,2)
+    assert(a == 1 and b == 2)
+
+    -- assignments
+    local function f(...: varargs)
+      local a, b = ...
+      a, b = ...
+      return a + b
+    end
+    assert(f(1,2) == 3)
+
+    -- operations
+    local function f(...: varargs)
+      local a = ... * 2
+      local b = (...) * 3
+      return a, b
+    end
+    local a, b = f(1)
+    assert(a == 2 and b == 3)
+
+    -- select
+    local function f(...: varargs)
+      ## for i=1,select_varargs('#') do
+        print(#[select_varargs(i,-1)]#)
+      ## end
+      ## for i=1,select_varargs('#') do
+        print(#[select_varargs(i)]#)
+      ## end
+      print(...)
+    end
+    f(1,2,3)
+  ]=], (([[
+unpack
+a
+unpack a
+b 0
+unpack b 0
+c 1 false
+unpack c 1 false
+
+unpack
+d
+unpack d
+e true
+unpack e true
+2 hello world 3
+1 2 3
+2 3
+3
+1
+2
+3
+1 2 3]]):gsub(' ', '\t')))
+end)
+
 end)

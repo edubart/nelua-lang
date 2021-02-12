@@ -252,9 +252,9 @@ global function tostring(x: auto): string
   ## else static_error("tostring: cannot convert type '%s' to a string", x.type) end
 end
 
-function string.format(fmt: stringview, arg1: auto): string
+function string.format(fmt: stringview, ...: varargs): string
   local sb: stringbuilder
-  sb:write_format(fmt, arg1)
+  sb:write_format(fmt, ...)
   return sb:promotestring()
 end
 

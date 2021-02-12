@@ -50,13 +50,22 @@ function PPContext.toname(_, val, orignode)
   return val
 end
 
-function PPContext:tovalue(val, orignode)
+function PPContext:inject_value(val, srcnode, dest, destpos)
   local aster = self.context.parser.astbuilder.aster
-  local node = aster.value(val, orignode)
-  if not node then
-    orignode:raisef('unable to convert preprocess value of lua type "%s" to a compile time value', type(val))
+  if type(val) == 'table' and val._varargs then
+    while #dest > destpos do -- clean old varargs
+      dest[#dest] = nil
+    end
+    for i=1,#val do
+      dest[destpos+i-1] = val[i]
+    end
+  else
+    local node = aster.value(val, srcnode)
+    if not node then
+      srcnode:raisef('unable to convert preprocess value of lua type "%s" to a compile time value', type(val))
+    end
+    dest[destpos] = node
   end
-  return node
 end
 
 function PPContext:getregistryindex(what)

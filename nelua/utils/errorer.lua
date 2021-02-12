@@ -24,17 +24,21 @@ end
 local function get_pretty_source_pos_errmsg(srcname, lineno, colno, line, errmsg, errname, len)
   local colbright, colreset = colors.bright, colors.reset
 
-  -- count number of tabs and spaces up to the text
-  local _, ntabs = line:sub(1,colno-1):gsub('\t','')
-  local nspaces = colno-1-ntabs
+  local lineloc = ''
+  if line then
+    -- count number of tabs and spaces up to the text
+    local ntabs = select(2, line:sub(1,colno-1):gsub('\t',''))
+    local nspaces = colno-1-ntabs
 
-  -- generate a line helper to assist showing the exact line column for the error
-  local linehelper = string.rep('\t', ntabs)..string.rep(' ', nspaces)..colbright..colors.green..'^'..colreset
-  if len and len > 1 then
-    -- remove comments and trailing spaces
-    local trimmedline = line:sub(1,colno+len-1):gsub('%-%-.*',''):gsub('%s+$','')
-    len = math.min(#trimmedline-colno, len)
-    linehelper = linehelper..colors.magenta..string.rep('~',len)..colreset
+    -- generate a line helper to assist showing the exact line column for the error
+    local linehelper = string.rep('\t', ntabs)..string.rep(' ', nspaces)..colbright..colors.green..'^'..colreset
+    if len and len > 1 then
+      -- remove comments and trailing spaces
+      local trimmedline = line:sub(1,colno+len-1):gsub('%-%-.*',''):gsub('%s+$','')
+      len = math.min(#trimmedline-colno, len)
+      linehelper = linehelper..colors.magenta..string.rep('~',len)..colreset
+    end
+    lineloc = '\n'..line..'\n'..linehelper
   end
   local errtraceback = ''
 
@@ -55,9 +59,8 @@ local function get_pretty_source_pos_errmsg(srcname, lineno, colno, line, errmsg
 
   -- generate the error message
   return srcname..colbright..':'..lineno..':'..colno..': '..
-         errcolor..errname..': '..colreset..colbright..errmsg..colreset..'\n'..
-         line..'\n'..
-         linehelper..errtraceback..'\n'
+         errcolor..errname..': '..colreset..colbright..errmsg..colreset..
+         lineloc..errtraceback..'\n'
 end
 
 -- Generate a pretty error message associated with a character position from a source.

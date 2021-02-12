@@ -268,6 +268,30 @@ function ASTNode:walk_nodes()
   return coroutine_wrap(walk_nodes), self
 end
 
+function ASTNode:walk_trace_nodes(depth)
+  local trace = {}
+  local unpackoff = 1-depth*2
+  local function walk_trace_nodes(node)
+    if node._astnode then
+      coroutine_yield(node, table.unpack(trace, #trace+unpackoff))
+    end
+    local p1 = #trace+1
+    local p2 = p1+1
+    for i=1,node.nargs or #node do
+      local v = node[i]
+      if type(v) == 'table' then
+        trace[p1] = node
+        trace[p2] = i
+        walk_trace_nodes(v, trace)
+        trace[p2] = nil
+        trace[p1] = nil
+      end
+    end
+  end
+  return coroutine_wrap(walk_trace_nodes), self
+end
+
+
 function ASTNode:has_sideeffect()
   for node in self:walk_nodes() do
     if node.attr.sideeffect then
