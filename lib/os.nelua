@@ -163,7 +163,9 @@ function os.time(desc: facultative(os_time_desc)): integer
   return t
 end
 
-function os.tmpname(): string
+function os.tmpname(): string <polymorphic>
+  -- marked as polymorphic so we don't always evaluate,
+  -- to skip `get_cc_defines` as it can slowdown compilation
   ## local ccdefs = require'nelua.ccompiler'.get_cc_defines()
   ## if ccdefs._WIN32 then
     local TMPBUFSIZE <comptime> = 260 -- safe max value
