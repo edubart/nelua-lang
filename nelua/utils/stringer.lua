@@ -63,21 +63,47 @@ function stringer.at(s, i)
   return string.sub(s, i, i)
 end
 
--- Extract a specific line number from a text.
-function stringer.getline(text, lineno)
-  local i = 0
-  local lineend = 0
-  local linestart
-  repeat  -- count the new lines until the desired line number is reached
-    linestart = lineend+1
-    lineend = string.find(text, '\n', linestart)
-    i = i + 1
-  until not lineend or i == lineno
-  if i ~= lineno then return nil end -- line number not found
-  if lineend then -- adjust the line ending
-    lineend = lineend - 1
+-- Extract line number, column number and line content from a position in a multi line text.
+function stringer.calcline(s, i)
+  if i == 1 then
+    local lineend = s:find("\n", 1, true)
+    lineend = lineend and lineend-1 or #s
+    local line = s:sub(1, lineend)
+    return 1, 1, line, 1, lineend
   end
-  return string.sub(text, linestart, lineend)
+  local subs = s:sub(1,i)
+  local rest, lineno = subs:gsub("[^\n]*\n", "")
+  lineno = 1 + lineno
+  local colno = #rest
+  colno = colno ~= 0 and colno or 1
+  local linestart = subs:find("\n[^\n]*$")
+  linestart = linestart and linestart+1 or 1
+  local lineend = s:find("\n", i+1, true)
+  lineend = lineend and lineend-1 or #s
+  local line = s:sub(linestart, lineend)
+  return lineno, colno, line, linestart, lineend
+end
+
+-- Extract a specific line from a text.
+function stringer.getline(text, lineno)
+  if lineno <= 0 then return nil end
+  local linestart
+  if lineno > 1 then
+    local l = 1
+    for pos in text:gmatch('\n()') do
+      l = l + 1
+      if l >= lineno then
+        linestart = pos
+        break
+      end
+    end
+    if not linestart then return nil end -- not found
+  else --luacov:disable
+    linestart = 1
+  end --luacov:enable
+  local lineend = text:find('\n', linestart, true)
+  lineend = lineend and lineend-1 or nil
+  return text:sub(linestart, lineend), linestart, lineend
 end
 
 -- Insert a text in the middle of string and return the new string.
