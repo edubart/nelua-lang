@@ -218,19 +218,22 @@ local function typevisitor_CompositeType(context, type)
   local defemitter = CEmitter(context, 0)
   --if #type.fields > 0 then
     defemitter:add(kindname, ' ', type.codename)
-    defemitter:add_ln(' {')
-    for _,field in ipairs(type.fields) do
-      local fieldctype
-      if field.type.is_array then
-        fieldctype = field.type.subtype
-      else
-        fieldctype = context:ctype(field.type)
+    defemitter:add(' {')
+    if #type.fields > 0 then
+      defemitter:add_ln()
+      for _,field in ipairs(type.fields) do
+        local fieldctype
+        if field.type.is_array then
+          fieldctype = field.type.subtype
+        else
+          fieldctype = context:ctype(field.type)
+        end
+        defemitter:add('  ', fieldctype, ' ', field.name)
+        if field.type.is_array then
+          defemitter:add('[', field.type.length, ']')
+        end
+        defemitter:add_ln(';')
       end
-      defemitter:add('  ', fieldctype, ' ', field.name)
-      if field.type.is_array then
-        defemitter:add('[', field.type.length, ']')
-      end
-      defemitter:add_ln(';')
     end
     defemitter:add('}')
     emit_type_attributes(defemitter, type)
@@ -591,9 +594,9 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     local retvalname
     local returnfirst
     local enclosed = calleetype:has_multiple_returns()
-    if not attr.multirets and enclosed then
+    if not isblockcall and not attr.multirets and enclosed then
       -- we are handling the returns
-      returnfirst = not isblockcall
+      returnfirst = true
       handlereturns = true
       serialized = true
     end

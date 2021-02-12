@@ -118,7 +118,7 @@ end
   end
 
   local function formatarg(self: *stringbuilderT, c: byte,
-                           buff: cstring, maxitem: usize, form: *[MAX_FORMAT]byte, arg1: auto)
+                           buff: cstring, maxitem: usize, form: *[MAX_FORMAT]byte, arg1: auto): (boolean, cint)
     local nb: cint = -1
     ## if primtypes.cint:is_convertible_from(arg1.type) then
       if c == 'c'_byte then
@@ -168,7 +168,7 @@ end
         maxitem = s.size + 1
         buff = (@cstring)(self:prepare(maxitem))
         if not buff then
-          return false
+          return false, 0
         end
         nb = snprintf(buff, maxitem, &form[0], s.data)
         goto next
@@ -177,7 +177,7 @@ end
     error('invalid format for argument')
   ::next::
     assert(nb >= 0 and nb < (@isize)(maxitem), 'unexpect number of bytes written in sprintf')
-    return nb
+    return true, nb
   end
 
   function stringbuilderT:write_format(fmt: stringview, ...: varargs): boolean
@@ -206,14 +206,18 @@ end
           c = fmt.data[pos]
           pos = pos + 1
           argi = argi + 1
+          local ok: boolean
           local nb: cint = -1
           ## for i=1,select_varargs('#') do
           if #[i]# == argi then
-            nb = formatarg(self, c, buff, maxitem, &form, #[select_varargs(i)]#)
+            ok, nb = formatarg(self, c, buff, maxitem, &form, #[select_varargs(i)]#)
             goto next
           end
           ## end
           ::next::
+          if not ok then
+            return false
+          end
           assert(nb >= 0, 'missing argument in format')
           self:commit((@usize)(nb))
         end

@@ -930,7 +930,20 @@ end
 function inlines.print(context, node)
   context:ensure_include('<stdio.h>')
   local argnodes = node[1]
-  local funcname = context:genuniquename('nelua_print')
+
+  -- compute args hash
+  local printhash = {}
+  for i,argnode in ipairs(argnodes) do
+    printhash[i] = argnode.attr.type.codename
+  end
+  printhash = table.concat(printhash,' ')
+
+  local funcname = context.printcache[printhash]
+  if funcname then
+    return funcname
+  end
+
+  funcname = context:genuniquename('nelua_print')
 
   -- function declaration
   local decemitter = CEmitter(context)
@@ -989,6 +1002,7 @@ function inlines.print(context, node)
   defemitter:add_indent_ln('fflush(stdout);')
   defemitter:add_ln('}')
   context:add_definition(defemitter:generate(), funcname)
+  context.printcache[printhash] = funcname
   return funcname
 end
 

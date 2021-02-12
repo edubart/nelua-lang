@@ -266,13 +266,37 @@ function CEmitter.cstring_literal(_, s)
   return pegger.double_quote_c_string(s), #s
 end
 
+function CEmitter:add_string_literal_inlined(val, ascstring)
+  local quotedliterals = self.context.quotedliterals
+  local quoted_value = quotedliterals[val]
+  if not quoted_value then
+    quoted_value = pegger.double_quote_c_string(val)
+    quotedliterals[val] = quoted_value
+  end
+  if ascstring then
+    self:add(quoted_value)
+  else
+    if not self.context.state.ininitializer then
+      self:add_one('(')
+      self:add_typecast(primtypes.stringview)
+    end
+    self:add('{(uint8_t*)', quoted_value, ', ', #val, '}')
+    if not self.context.state.ininitializer then
+      self:add_one(')')
+    end
+  end
+end
+
 function CEmitter:add_string_literal(val, ascstring)
+  if #val < 80 then
+    return self:add_string_literal_inlined(val, ascstring)
+  end
   local size = #val
   local varname = self.context.stringliterals[val]
   if varname then
-    if ascstring then
+    if ascstring then --luacov:disable
       self:add_one(varname)
-    else
+    else --luacov:enable
       if not self.context.state.ininitializer then
         self:add_one('(')
         self:add_typecast(primtypes.stringview)
@@ -290,9 +314,9 @@ function CEmitter:add_string_literal(val, ascstring)
   local quoted_value = pegger.double_quote_c_string(val)
   decemitter:add_indent_ln('static char ', varname, '[', size+1, '] = ', quoted_value, ';')
   self.context:add_declaration(decemitter:generate(), varname)
-  if ascstring then
+  if ascstring then --luacov:disable
     self:add_one(varname)
-  else
+  else --luacov:enable
     if not self.context.state.ininitializer then
       self:add_one('(')
       self:add_typecast(primtypes.stringview)

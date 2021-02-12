@@ -21,7 +21,9 @@ function CContext:init(visitors, typevisitors)
     linklibs = {}
   }
   self.stringliterals = {}
+  self.quotedliterals = {}
   self.uniquecounters = {}
+  self.printcache = {}
   self.ctypes = {}
   self.builtins = cbuiltins.builtins
 end

@@ -68,7 +68,7 @@ it("number literals", function()
   assert.generate_c("local a = ' '_cchar", "char a = ' ';")
   assert.generate_c("local a = ' '_cschar", "signed char a = 32;")
   assert.generate_c("local a = ' '_cuchar", "unsigned char a = 32U;")
-  assert.generate_c("local a = 'str'_cstring", 'char* a = __strlit')
+  assert.generate_c("local a = 'str'_cstring", 'char* a = "str"')
 end)
 
 it("type cast", function()
@@ -2371,7 +2371,7 @@ it("C varargs", function()
 
   assert.generate_c(
     [[local function printf(format: cstring, ...: cvarargs): cint <cimport> end printf('hello')]],
-    [[printf(__strlit1);]])
+    [[printf("hello");]])
 
   assert.run_c([=[
     local function snprintf(str: cstring, size: csize, format: cstring, ...: cvarargs): cint
