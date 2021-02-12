@@ -1158,8 +1158,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       local funcargattrs = calleetype.argattrs or calleetype.args
       local pseudoargtypes = funcargtypes
       local pseudoargattrs = funcargattrs
-      local hasvarargs = calleetype:has_varargs()
-      if calleeobjnode or hasvarargs then
+      local hasmultipleargs = calleetype:has_multipleargs()
+      if calleeobjnode or hasmultipleargs then
         pseudoargtypes = tabler.icopy(funcargtypes)
         pseudoargattrs = tabler.icopy(funcargattrs)
         attr.pseudoargtypes = pseudoargtypes
@@ -1186,7 +1186,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         table.remove(pseudoargtypes, 1)
         table.remove(pseudoargattrs, 1)
       end
-      if not hasvarargs and #argnodes > #pseudoargattrs then
+      if not hasmultipleargs and #argnodes > #pseudoargattrs then
         node:raisef("in call of function '%s': expected at most %d arguments but got %d",
           calleename, #pseudoargattrs, #argnodes)
       end
@@ -1213,8 +1213,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           end
           arg = argtype
         end
-        if hasvarargs then
-          if not funcargtype or funcargtype.is_varargs then
+        if hasmultipleargs then
+          if not funcargtype or funcargtype.is_multipleargs then
             funcargtype = argtype
             if funcargtype then
               pseudoargtypes[i] = funcargtype
@@ -1361,6 +1361,7 @@ function visitors.Call(context, node)
           calleetype = builtintype
         else
           builtintype = builtinfunc(context, node, argnodes, calleenode)
+          assert(builtintype ~= nil or calleetype)
           if builtintype then
             attr.builtintype = builtintype
             calleetype = builtintype
@@ -1383,8 +1384,12 @@ function visitors.CallMethod(context, node)
   context:traverse_nodes(argnodes)
   context:traverse_node(calleeobjnode)
 
-  local calleetype = calleeobjnode.attr.type
+  local calleeobjattr = calleeobjnode.attr
+  local calleetype = calleeobjattr.type
   local calleesym = nil
+  if calleeobjattr.builtin then
+    node:raisef("cannot call method '%s' on builtin '%s'", name, calleeobjattr.name)
+  end
   if calleetype then
     if calleetype.is_pointer then
       calleetype = calleetype.subtype
@@ -1408,7 +1413,7 @@ function visitors.CallMethod(context, node)
     elseif calleetype.is_any then
       calleetype = primtypes.any
     elseif calleetype.is_type then
-      node:raisef("cannot call method '%s' on type symbol for '%s'", name, calleeobjnode.attr.value)
+      node:raisef("cannot call method '%s' on type symbol for '%s'", name, calleeobjattr.value)
     end
 
     if calleetype and calleetype.is_procedure then

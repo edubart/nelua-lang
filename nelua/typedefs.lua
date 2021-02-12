@@ -80,6 +80,7 @@ primtypes.number      = primtypes.float64
 primtypes.stringview  = types.StringViewType('stringview')
 primtypes.any         = types.AnyType('any', 2*cpusize)
 primtypes.varanys     = types.VaranysType('varanys')
+primtypes.varargs     = types.VarargsType('varargs')
 
 -- Map of literal suffixes for arithmetic types.
 typedefs.number_literal_types = {

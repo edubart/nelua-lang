@@ -121,6 +121,8 @@ Type.shape = shaper.shape {
   is_unpointable = shaper.optional_boolean,
   -- Weather the type is composed by fields (record or union).
   is_composite = shaper.optional_boolean,
+  -- Weather the type hold multiple arguments.
+  is_multipleargs = shaper.optional_boolean,
 
   -- Booleans for checking the underlying type (arithmetic types),
   is_float32 = shaper.optional_boolean,
@@ -171,6 +173,8 @@ Type.shape = shaper.shape {
   is_table = shaper.optional_boolean,
   is_type = shaper.optional_boolean,
   is_varanys = shaper.optional_boolean,
+  is_varargs = shaper.optional_boolean,
+  is_cvarargs = shaper.optional_boolean,
   is_void = shaper.optional_boolean,
   is_generic_pointer = shaper.optional_boolean,
   is_cstring = shaper.optional_boolean,
@@ -378,7 +382,7 @@ function Type.is_array_of() return false end
 -- Checks if this type has pointers, used by the garbage collector.
 function Type.has_pointer() return false end
 
-function Type.has_varargs() return false end
+function Type.has_multipleargs() return false end
 
 -- Checks if this type can be represented as a contiguous array of the subtype.
 function Type.is_contiguous_of() return false end
@@ -787,10 +791,27 @@ end
 local VaranysType = types.typeclass(AnyType)
 types.VaranysType = VaranysType
 VaranysType.is_varanys = true
-VaranysType.is_varargs = true
+VaranysType.is_multipleargs = true
 VaranysType.is_nolvalue = true
 
 function VaranysType:_init(name, size)
+  Type._init(self, name, size)
+end
+
+--------------------------------------------------------------------------------
+-- Varargs Type
+--
+-- The varargs type is used for the last argument type of polymorphic functions
+-- that can have variable number of arguments.
+
+local VarargsType = types.typeclass()
+types.VarargsType = VarargsType
+VarargsType.is_varargs = true
+VarargsType.is_multipleargs = true
+VarargsType.is_nolvalue = true
+VarargsType.is_polymorphic = true
+
+function VarargsType:_init(name, size)
   Type._init(self, name, size)
 end
 
@@ -800,10 +821,10 @@ end
 -- The cvarargs type is used for the last argument type of C imported functions
 -- that can have variable number of arguments.
 
-local CVarargsType = types.typeclass(AnyType)
+local CVarargsType = types.typeclass()
 types.CVarargsType = CVarargsType
 CVarargsType.is_cvarargs = true
-CVarargsType.is_varargs = true
+CVarargsType.is_multipleargs = true
 CVarargsType.is_nolvalue = true
 
 function CVarargsType:_init(name, size)
@@ -1598,10 +1619,10 @@ function FunctionType:is_equal(type)
          tabler.icompare(type.rettypes, self.rettypes)
 end
 
-function FunctionType:has_varargs()
+function FunctionType:has_multipleargs()
   local argtypes = self.argtypes
   local lasttype = argtypes[#argtypes]
-  return lasttype and lasttype.is_varargs
+  return lasttype and lasttype.is_multipleargs
 end
 
 -- Get the return type in the specified index.

@@ -119,7 +119,9 @@ function builtins.assert(context, node, argnodes)
   end
   argattrs = argattrs or {}
   rettypes = rettypes or {}
-  return types.FunctionType(argattrs, rettypes, node)
+  local type = types.FunctionType(argattrs, rettypes, node)
+  type.sideeffect = true
+  return type
 end
 
 function builtins.check(context, node, argnodes)

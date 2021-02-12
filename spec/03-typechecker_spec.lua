@@ -1609,6 +1609,8 @@ it("builtins", function()
   assert.analyze_ast("error 'an error'")
   assert.analyze_ast("warn 'an warn'")
   assert.analyze_error("assert(true,'asd', 2)", 'expected at most')
+  assert.analyze_error("print:find()", "cannot call method")
+  assert.analyze_error("print():find()", 'cannot call type')
 end)
 
 it("require builtin", function()
