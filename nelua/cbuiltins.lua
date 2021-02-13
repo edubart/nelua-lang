@@ -929,12 +929,12 @@ end
 
 function inlines.print(context, node)
   context:ensure_include('<stdio.h>')
-  local argnodes = node[1]
+  local argtypes = node.attr.builtintype.argtypes
 
   -- compute args hash
   local printhash = {}
-  for i,argnode in ipairs(argnodes) do
-    printhash[i] = argnode.attr.type.codename
+  for i,argtype in ipairs(argtypes) do
+    printhash[i] = argtype.codename
   end
   printhash = table.concat(printhash,' ')
 
@@ -948,9 +948,9 @@ function inlines.print(context, node)
   -- function declaration
   local decemitter = CEmitter(context)
   decemitter:add('void ', funcname, '(')
-  for i,argnode in ipairs(argnodes) do
+  for i,argtype in ipairs(argtypes) do
     if i>1 then decemitter:add(', ') end
-    decemitter:add(argnode.attr.type, ' a', i)
+    decemitter:add(argtype, ' a', i)
   end
   decemitter:add(')')
   local heading = decemitter:generate()
@@ -961,8 +961,7 @@ function inlines.print(context, node)
   defemitter:add(heading)
   defemitter:add_ln(' {')
   defemitter:inc_indent()
-  for i,argnode in ipairs(argnodes) do
-    local argtype = argnode.attr.type
+  for i,argtype in ipairs(argtypes) do
     defemitter:add_indent()
     if i > 1 then
       defemitter:add_ln("fputc('\\t', stdout);")

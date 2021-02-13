@@ -485,7 +485,7 @@ function types.gencodename(name, node)
   local srcname
   if node then
     uid = node.uid
-    srcname = node.src.name or ''
+    srcname = node.src and node.src.name or ''
   else
     gencodename_uid = gencodename_uid + 1
     uid = gencodename_uid
@@ -556,24 +556,27 @@ function types.argtypes_from_argnodes(argnodes, wantedlen)
   local nargs = #argnodes
   local argtypes = {}
   for i=1,nargs do
-    local argtype = argnodes[1].attr.type
+    local argtype = argnodes[i].attr.type
     if not argtype then return end -- cannot complete evaluation yet
     argtypes[i] = argtype
   end
-  if wantedlen and nargs > 0 and nargs < wantedlen then
+  if nargs > 0 and (not wantedlen or nargs < wantedlen) then
     local lastattr = argnodes[nargs].attr
     if not lastattr.type then return end -- cannot complete evaluation yet
     local calleetype = lastattr.calleetype
     if calleetype then
       if calleetype.is_any then --luacov:disable
-        for i=nargs,wantedlen do
-          argtypes[i] = primtypes.any
-        end -- luacov:enable
-      else -- is a call
+        if wantedlen then
+          for i=nargs,wantedlen do
+            argtypes[i] = primtypes.any
+          end
+        end
+        -- luacov:enable
+      elseif calleetype.is_procedure then -- is a call
         local rettypes = calleetype.rettypes
         for i=2,#rettypes do
           argtypes[nargs+i-1] = calleetype.rettypes[i]
-          if #argtypes >= wantedlen then -- has enough arguments
+          if wantedlen and #argtypes >= wantedlen then -- has enough arguments
             break
           end
         end

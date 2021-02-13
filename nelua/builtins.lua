@@ -133,4 +133,19 @@ function builtins.check(context, node, argnodes)
   return builtins.assert(context, node, argnodes)
 end
 
+function builtins.print(context, node, argnodes)
+  context:traverse_nodes(argnodes)
+  local argtypes = types.argtypes_from_argnodes(argnodes)
+  if not argtypes then -- wait last argument type resolution
+    return false
+  end
+  local argattrs = {}
+  for i=1,#argtypes do
+    argattrs[i] = {name='a'..i, type=argtypes[i]}
+  end
+  local type = types.FunctionType(argattrs, {}, node)
+  type.sideeffect = true
+  return type
+end
+
 return builtins

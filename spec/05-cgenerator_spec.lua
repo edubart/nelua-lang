@@ -2515,9 +2515,14 @@ it("print builtin", function()
     print(1,0.2,1e2,0xf,0b01)
     local i: integer, s: stringview, n: niltype
     print(i, s, n)
+    local function f()
+      return 'a', 1
+    end
+    print(f())
   ]],
     '1\t0.2\t100\t15\t1\n' ..
-    '0\t\tnil')
+    '0\t\tnil\n'..
+    'a\t1\n')
 end)
 
 it("sizeof builtin", function()
