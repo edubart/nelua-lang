@@ -2,8 +2,8 @@ require 'busted.runner'()
 
 local assert = require 'spec.tools.assert'
 local configer = require 'nelua.configer'
-local config = configer.get()
 local version = require 'nelua.version'
+local ccompiler = require 'nelua.ccompiler'
 
 describe("Nelua runner should", function()
 
@@ -30,9 +30,8 @@ it("run simple programs", function()
   assert.run({'--lint', '--eval', ""})
   assert.run({'--generator', 'lua', '--eval', "print(_G.arg[1])", "hello"}, 'hello')
   assert.run({'--eval', ""})
-  if config.cc == 'gcc' then
-    assert.run({'--cflags="-Wall"', '--eval',
-      "## cflags '-w -g' linklib 'm' ldflags '-s'"})
+  if not ccompiler.get_cc_info().is_apple then
+    assert.run({'--cflags="-Wall"', '--eval', "## cflags '-w -g' linklib 'm' ldflags '-s'"})
   end
 end)
 
@@ -156,7 +155,7 @@ mylib - sum
 the sum is:
 3
 mylib - terminate]])
-  os.remove('libmylib.so') os.remove('libmylib.dll')
+  os.remove('libmylib.so') os.remove('libmylib.dll') os.remove('libmylib.dylib')
   os.remove('mylib_test') os.remove('mylib_test.exe')
 end)
 

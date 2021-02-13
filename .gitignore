@@ -6,6 +6,7 @@ nelua_cache
 *.gcda
 *.exe
 *.so
+*.dylib
 *.o
 *.a
 *.dll

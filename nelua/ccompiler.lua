@@ -86,10 +86,12 @@ local function get_cc_info(cc)
   if ccinfo.target then
     ccinfo.is_windows = ccinfo.target:match('windows') or ccinfo.target:match('mingw')
     ccinfo.is_linux = ccinfo.target:match('linux')
+    ccinfo.is_apple = ccinfo.target:match('apple')
   else -- probably TCC compiler, or other?
     --luacov:disable
     ccinfo.is_linux = text:lower():match('linux') and true or false
     ccinfo.is_windows = text:lower():match('windows') and true or false
+    ccinfo.is_apple = text:lower():match('apple') and true or false
      --luacov:enable
   end
   -- C compiler information
@@ -162,6 +164,14 @@ local function detect_binary_extension(ccinfo)
       return '.a'
     else
       return '.exe', true
+    end
+  elseif ccinfo.is_apple then
+    if config.shared then
+      return '.dylib'
+    elseif config.static then
+      return '.a'
+    else
+      return '', true
     end
   else
     if config.shared then

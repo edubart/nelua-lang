@@ -67,7 +67,7 @@ local function build_configs(conf)
       conf.generator = 'lua'
       conf.compile_code = true
       conf.compile_binary = false
-    elseif conf.output:match('.so$') or conf.output:match('.dll$') then
+    elseif conf.output:match('.so$') or conf.output:match('.dll$') or conf.output:match('.dylib$') then
       conf.generator = 'c'
       conf.shared = true
       conf.compile_binary = true
