@@ -22,9 +22,8 @@ RM=rm -f
 RM_R=rm -rf
 SED=sed
 MKDIR=mkdir -p
-INSTALL_X=install -Dm755
-INSTALL_F=install -Dm644
-UNINSTALL=rm -f
+INSTALL_X=install -m755
+INSTALL_F=install -m644
 LUACHECK=luacheck
 LUAROCKS=luarocks
 BUSTED=busted
@@ -186,10 +185,18 @@ endif
 ## Install Nelua using PREFIX into DESTDIR.
 install:
 	$(MAKE) --no-print-directory -C src
+
+	$(MKDIR) $(INSTALL_BIN)
 	$(INSTALL_X) $(NELUALUA) $(INSTALL_BIN)/nelua-lua
 	$(INSTALL_X) $(NELUASH) $(INSTALL_BIN)/nelua
+
+	$(MKDIR) $(INSTALL_LUALIB)
 	$(INSTALL_F) nelua.lua $(INSTALL_LUALIB)/nelua.lua
+	find nelua -type d -exec $(MKDIR) $(INSTALL_LUALIB)/{} \;
 	find nelua -name '*.lua' -exec $(INSTALL_F) {} $(INSTALL_LUALIB)/{} \;
+
+	$(MKDIR) $(INSTALL_LIB)
+	find lib -type d -exec $(MKDIR) $(INSTALL_LIB)/{} \;
 	find lib -name '*.nelua' -exec $(INSTALL_F) {} $(INSTALL_LIB)/{} \;
 	$(MAKE) _update_install_version
 
@@ -201,8 +208,8 @@ install-as-symlink:
 
 ## Uninstall Nelua
 uninstall:
-	$(UNINSTALL) $(INSTALL_BIN)/nelua-lua
-	$(UNINSTALL) $(INSTALL_BIN)/nelua
-	$(UNINSTALL) $(INSTALL_LUALIB)/nelua.lua
-	find nelua -name '*.lua' -exec $(UNINSTALL) $(INSTALL_LUALIB)/{} \;
-	find lib -name '*.nelua' -exec $(UNINSTALL) $(INSTALL_LIB)/{} \;
+	$(RM) $(INSTALL_BIN)/nelua-lua
+	$(RM) $(INSTALL_BIN)/nelua
+	$(RM) $(INSTALL_LUALIB)/nelua.lua
+	$(RM_R) $(INSTALL_LUALIB)
+	$(RM_R) $(INSTALL_LIB)
