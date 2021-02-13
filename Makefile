@@ -175,9 +175,10 @@ _update_install_version:
 	$(eval NELUA_GIT_HASH := $(shell git rev-parse HEAD))
 	$(eval NELUA_GIT_DATE := $(shell git log -1 --format=%ci))
 	$(eval NELUA_GIT_BUILD := $(shell git rev-list HEAD --count))
-	sed -i 's/NELUA_GIT_HASH = "unknown"/NELUA_GIT_HASH = "$(NELUA_GIT_HASH)"/' $(INSTALL_LUALIB)/nelua/version.lua
-	sed -i 's/NELUA_GIT_DATE = "unknown"/NELUA_GIT_DATE = "$(NELUA_GIT_DATE)"/' $(INSTALL_LUALIB)/nelua/version.lua
-	sed -i 's/NELUA_GIT_BUILD = 0/NELUA_GIT_BUILD = $(NELUA_GIT_BUILD)/' $(INSTALL_LUALIB)/nelua/version.lua
+	$(SED) -i.bak 's/NELUA_GIT_HASH = "unknown"/NELUA_GIT_HASH = "$(NELUA_GIT_HASH)"/' $(INSTALL_LUALIB)/nelua/version.lua
+	$(SED) -i.bak 's/NELUA_GIT_DATE = "unknown"/NELUA_GIT_DATE = "$(NELUA_GIT_DATE)"/' $(INSTALL_LUALIB)/nelua/version.lua
+	$(SED) -i.bak 's/NELUA_GIT_BUILD = 0/NELUA_GIT_BUILD = $(NELUA_GIT_BUILD)/' $(INSTALL_LUALIB)/nelua/version.lua
+	$(RM) $(INSTALL_LUALIB)/nelua/version.lua.bak
 else
 _update_install_version:
 endif
@@ -187,7 +188,9 @@ install:
 	$(MAKE) --no-print-directory -C src
 
 	$(MKDIR) $(INSTALL_BIN)
+	$(RM) $(INSTALL_BIN)/nelua-lua
 	$(INSTALL_X) $(NELUALUA) $(INSTALL_BIN)/nelua-lua
+	$(RM) $(INSTALL_BIN)/nelua
 	$(INSTALL_X) $(NELUASH) $(INSTALL_BIN)/nelua
 
 	$(MKDIR) $(INSTALL_LUALIB)
@@ -203,7 +206,9 @@ install:
 ## Install Nelua using this folder in the system.
 install-as-symlink:
 	$(MAKE) --no-print-directory -C src
+	$(RM) $(INSTALL_BIN)/nelua-lua
 	ln -fs $(realpath $(NELUALUA)) $(INSTALL_BIN)/nelua-lua
+	$(RM) $(INSTALL_BIN)/nelua
 	ln -fs $(realpath $(NELUASH)) $(INSTALL_BIN)/nelua
 
 ## Uninstall Nelua
