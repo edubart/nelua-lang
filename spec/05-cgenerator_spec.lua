@@ -1564,8 +1564,8 @@ it("any type", function()
     local a: any = 1
     local b: integer = a
     local p: pointer
-    print(a, b, p)
-  ]], "1\t1\t(nil)")
+    print(a, b, p, nilptr)
+  ]], "1\t1\t(null)\t(null)")
   assert.run_c([[
     local a: any = 1
     local b: boolean = a

@@ -982,8 +982,20 @@ function inlines.print(context, node)
       defemitter:add_ln('fputs("nil", stdout);')
     elseif argtype.is_boolean then
       defemitter:add_ln('fputs(a',i,' ? "true" : "false", stdout);')
+    elseif argtype.is_nilptr then
+      defemitter:add_ln('fputs("(null)", stdout);')
     elseif argtype.is_pointer then
-      defemitter:add_ln('fprintf(stdout, "%p", a',i,');')
+      context:ensure_include('<stddef.h>')
+      context:ensure_builtin('NULL')
+      defemitter:add_ln('if(a',i,' != NULL) {')
+        defemitter:inc_indent()
+        defemitter:add_indent_ln('fprintf(stdout, "0x%zx", (size_t)a',i,');')
+        defemitter:dec_indent()
+      defemitter:add_indent_ln('} else {')
+        defemitter:inc_indent()
+        defemitter:add_indent_ln('fputs("(null)", stdout);')
+        defemitter:dec_indent()
+      defemitter:add_indent_ln('}')
     elseif argtype.is_arithmetic then
       context:ensure_include('<inttypes.h>')
       local ty = node:assertraisef(argtype, 'type is not defined in AST node')
