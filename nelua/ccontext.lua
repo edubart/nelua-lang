@@ -123,12 +123,6 @@ function CContext:ctype(type)
   return ctype
 end
 
-function CContext:runctype(type)
-  local typename = self:typename(type)
-  self:ensure_builtin('nlruntype_', typename)
-  return 'nlruntype_' .. typename
-end
-
 function CContext:funcretctype(functype)
   return self.typevisitors.FunctionReturnType(self, functype)
 end

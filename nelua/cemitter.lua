@@ -68,26 +68,10 @@ function CEmitter:add_null()
   self:add_one('NULL')
 end
 
-function CEmitter:add_val2any(val, valtype)
-  valtype = valtype or val.attr.type
-  assert(not valtype.is_any)
-  self:add('((', primtypes.any, ')')
-  if valtype.is_niltype then
-    self:add_one('{0})')
-  else
-    local runctype = self.context:runctype(valtype)
-    local typename = self.context:typename(valtype)
-    self:add('{&', runctype, ', {._', typename, ' = ', val, '}})')
-  end
-end
-
 function CEmitter:add_val2boolean(val, valtype)
   valtype = valtype or val.attr.type
   if valtype.is_boolean then
     self:add_one(val)
-  elseif valtype.is_any then
-    self:add_builtin('nlany_to_', primtypes.boolean)
-    self:add('(', val, ')')
   elseif valtype.is_niltype or valtype.is_nilptr then
     self.context:ensure_include('<stdbool.h>')
     if traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Id') then
@@ -106,12 +90,6 @@ function CEmitter:add_val2boolean(val, valtype)
       self:add('({(void)(', val, '); true;})')
     end
   end
-end
-
-function CEmitter:add_any2type(type, anyval)
-  self.context:ctype(primtypes.any) -- ensure any type
-  self:add_builtin('nlany_to_', type)
-  self:add('(', anyval, ')')
 end
 
 function CEmitter:add_stringview2cstring(val)
@@ -147,12 +125,8 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
       self:add_numeric_literal(val.attr, type)
     elseif valtype.is_nilptr and type.is_pointer then
       self:add_one(val)
-    elseif type.is_any then
-      self:add_val2any(val, valtype)
     elseif type.is_boolean then
       self:add_val2boolean(val, valtype)
-    elseif valtype.is_any then
-      self:add_any2type(type, val)
     elseif valtype.is_stringview and (type.is_cstring or type:is_pointer_of(primtypes.byte)) then
       self:add_stringview2cstring(val)
     elseif type.is_stringview and valtype.is_cstring then

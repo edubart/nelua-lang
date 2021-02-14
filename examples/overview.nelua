@@ -18,12 +18,11 @@ do -- Comments
 end
 
 do -- Variables
-  local a = nil -- of deduced type 'any', initialized to nil
   local b = false -- of deduced type 'boolean', initialized to false
   local s = 'test' -- of deduced type 'string', initialized to 'test'
   local one = 1 --  of type 'integer', initialized to 1
   local pi: number = 3.14 --  of type 'number', initialized to 1
-  print(a,b,s,one,pi) -- outputs: nil false test 1 3.1400000
+  print(b,s,one,pi) -- outputs: false test 1 3.1400000
 end
 
 do -- Type deduction
@@ -34,18 +33,10 @@ do -- Type deduction
   -- end of scope, compiler deduced 'a' to be of type 'integer'
 end
 
-do -- Type collision
-  local a -- a type will be deduced
-  a = 2
-  a = false
-  print(a) -- outputs: false
-  -- a is deduced to be of type 'any', because it could hold an 'integer' or a 'boolean'
-end
-
 do -- Zero initialization
-  local a -- variable of deduced type 'any', initialized to 'nil'
+  local b: boolean -- variable of type 'boolean', initialized to 'false'
   local i: integer -- variable of type 'integer', initialized to 0
-  print(a, i) --outputs: nil 0
+  print(b, i) --outputs: false 0
 end
 
 do -- Auto variables
@@ -283,13 +274,6 @@ do -- Enum
   print(a) -- outputs: 1
 end
 
-do -- Any
-  local a: any = 2 -- variable of type 'any', holding type 'integer' at runtime
-  print(a) -- outputs: 2
-  a = false -- now holds the type 'boolean' at runtime
-  print(a) -- outputs: false
-end
-
 do -- Record
   local Person = @record {
     name: string,
@@ -333,12 +317,6 @@ do -- Operators
 end
 
 do -- Functions
-  local function get(a)
-    -- a is of type 'any'
-    return a -- return is of deduced type 'any'
-  end
-  print(get(1)) -- outputs: 1
-
   local function add(a: integer, b: integer)
     return a + b -- return is of deduced type 'integer'
   end

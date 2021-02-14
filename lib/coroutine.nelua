@@ -196,7 +196,7 @@ function coroutine.resume(co: coroutine): (boolean, stringview)
   end
   ## end
   if res ~= MCO_SUCCESS then
-    return false, mco_result_description(res)
+    return false, (@stringview)(mco_result_description(res))
   end
   return true, (@stringview){}
 end
@@ -218,7 +218,7 @@ end
 function coroutine.push(co: coroutine, input: auto): (boolean, stringview)
   local res: mco_result = mco_push(co, &input, #(#[input.type]#))
   if res ~= MCO_SUCCESS then
-    return false, mco_result_description(res)
+    return false, (@stringview)(mco_result_description(res))
   end
   return true, (@stringview){}
 end
@@ -231,7 +231,7 @@ function coroutine.pop(co: coroutine, T: type)
   local output: T
   local res: mco_result = mco_pop(co, &output, #@T)
   if res ~= MCO_SUCCESS then
-    return output, false, mco_result_description(res)
+    return output, false, (@stringview)(mco_result_description(res))
   end
   return output, true, (@stringview){}
 end

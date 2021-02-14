@@ -781,9 +781,9 @@ end
 -- Checks if this type has pointers, used by the garbage collector.
 function AnyType.has_pointer() return true end
 
-function AnyType.get_return_type()
+function AnyType.get_return_type() --luacov:disable
   return primtypes.any
-end
+end --luacov:enable
 
 --------------------------------------------------------------------------------
 -- Varanys Type

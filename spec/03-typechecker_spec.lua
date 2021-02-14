@@ -125,6 +125,10 @@ it("auto type" , function()
   assert.analyze_error("local a: auto = nilptr", "auto variables cannot be assigned to expressions of type")
 end)
 
+it("any type", function()
+  assert.analyze_ast([[local i: integer; local a: any; i = a; a = i]])
+end)
+
 it("nil type" , function()
   assert.ast_type_equals("local a = nil", "local a: any = nil")
 end)

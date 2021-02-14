@@ -29,7 +29,7 @@ using the preprocessor.
 Although copying Lua syntax and semantics with minor changes is a goal of Nelua, not all Lua
 features are implemented yet. Most of the dynamic parts, such as tables and handling dynamic types
 at runtime, are not implemented yet. So at the moment, using
-records instead of tables and using type notations in function definitions are recommended.
+records instead of tables and using type notations is required.
 Visit [this](/diffs/) page for the full list of available features.
 {: .callout.callout-warning}
 
@@ -83,12 +83,11 @@ Variables are declared and defined like in Lua, but you may optionally
 specify a type:
 
 ```nelua
-local a = nil -- of deduced type 'any', initialized to nil
 local b = false -- of deduced type 'boolean', initialized to false
 local s = 'test' -- of deduced type 'string', initialized to 'test'
 local one = 1 --  of type 'integer', initialized to 1
 local pi: number = 3.14 --  of type 'number', initialized to 1
-print(a,b,s,one,pi) -- outputs: nil false test 1 3.1400000
+print(b,s,one,pi) -- outputs: false test 1 3.1400000
 ```
 
 The compiler takes advantage of types for compile-time and runtime checks,
@@ -112,22 +111,14 @@ The compiler does the best it can to deduce the type for you. In most situations
 it should work, but in some corner cases you may want to explicitly set a type for a variable.
 {:.alert.alert-info}
 
-### Type collision
 
 In the case of different types being assigned to the same variable,
-the compiler deduces the variable type
-to be the `any` type, a type that can hold anything at runtime. This makes Nelua code compatible with Lua semantics:
-
-```nelua
-local a -- a type will be deduced
-a = 2
-a = false
-print(a) -- outputs: false
--- a is deduced to be of type 'any', because it could hold an 'integer' or a 'boolean'
-```
-
-**The any type is poorly supported** at the moment, so please **avoid this situation** for now, that is, avoid making the compiler deduce types collisions that would result in an `any` type. Usually, you don't want use any types anyway, as they are less efficient. Collision between different numeric types are fine,
-as the compiler always resolves to the largest appropriate number type.
+the compiler deduces the variable type to be the `any` type,
+a type that can hold anything at runtime.
+However support for `any` type is not fully implemented yet,
+thus you will get a compile error.
+In the future with proper support for any type usual Lua
+code with dynamic typing will be compatible with Nelua.
 {:.alert.alert-warning}
 
 ### Zero initialization
@@ -136,9 +127,9 @@ Variables declared but not defined early are always initialized to zeros by defa
 This prevents undefined behaviors:
 
 ```nelua
-local a -- variable of deduced type 'any', initialized to 'nil'
+local b: boolean -- variable of type 'boolean', initialized to 'false'
 local i: integer -- variable of type 'integer', initialized to 0
-print(a, i) --outputs: nil 0
+print(b, i) --outputs: false 0
 ```
 
 Zero initialization can be **optionally disabled** using the `<noinit>` [annotation](#annotations).
@@ -579,27 +570,6 @@ The programmer must always initialize the first enum value. This choice
 was made to makes the code more clear when reading.
 {:.alert.alert-info}
 
-### Any
-
-Any is a special type that can store any type at runtime:
-
-```nelua
-local a: any = 2 -- variable of type 'any', holding type 'integer' at runtime
-print(a) -- outputs 2
-a = false -- now holds the type 'boolean' at runtime
-print(a) -- outputs false
-```
-
-The `any` type makes Nelua semantics compatible to Lua. You can use it to make untyped code
-just like in Lua, however know that you pay the price in
-performance, as operations on `any` types generate lots of branches at runtime,
-meaning **less efficient code**.
-{:.alert.alert-info}
-
-The **any type is poorly supported** at the moment, so please **avoid using it** for now.
-Usually you don't want use any types anyway, as they require runtime branching, and are thus less efficient.
-{:.alert.alert-warning}
-
 ### Record
 
 Records store variables in a block of memory:
@@ -875,30 +845,6 @@ local function add(a: integer, b: integer)
 end
 print(add(1, 2)) -- outputs 3
 ```
-
-### Argument type inference
-
-When not specifying a type for an argument, the compiler assumes that the argument
-is of the `any` type:
-
-```nelua
-local function get(a)
-  -- a is of type 'any'
-  return a -- return is of deduced type 'any'
-end
-print(get(1)) -- outputs: 1
-```
-
-In contrast with variable declaration,
-when the type is omitted from a function argument there is no
-automatic deducing of the argument type. Instead it is assumed the argument must
-be of the `any` type. This makes Nelua semantics more compatible with Lua semantics.
-{:.alert.alert-info}
-
-Avoid doing this at the moment, and **explicitly set types for function arguments**,
-due to the poor support for `any` type. Omitting the type for the return type is fine
-because the compiler can deduce it.
-{:.alert.alert-warning}
 
 ### Recursive calls
 

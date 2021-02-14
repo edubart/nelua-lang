@@ -299,14 +299,14 @@ end
 ]]
 
 typevisitors[types.Type] = function(context, type)
-  if type.is_any then --luacov:enable
-    context:ensure_builtin('nlany')
+  if type.is_any or type.is_varanys then
+    local node = context:get_current_node()
+    node:raisef("compiler deduced the type 'any' here, but any types are not supported yet")
   elseif type.is_niltype then
     context:ensure_builtin('nlniltype')
-  else
-    errorer.assertf(cdefs.primitive_ctypes[type.codename],
-      'C type visitor for "%s" is not defined', type)
-  end
+  else --luacov:disable
+    errorer.errorf('C type visitor for "%s" is not defined', type)
+  end --luacov:enable
 end
 
 local visitors = {}
@@ -697,9 +697,6 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
         emitter:add(')')
       end
     end
-  else
-    --TODO: handle better calls on any types
-    emitter:add(callee, '(', argnodes, ')')
   end
   if isblockcall then
     emitter:add_ln(";")

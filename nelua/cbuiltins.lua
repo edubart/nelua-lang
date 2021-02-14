@@ -196,133 +196,6 @@ function builtins.nlruntype_(context, typename)
   return name
 end
 
-function builtins.nlany(context)
-  context:ensure_builtins('nlniltype', 'nlruntype')
-  context:ensure_includes('<stddef.h>', '<stdint.h>', '<stdbool.h>')
-  context:define_builtin('nlany', [[typedef struct nlany {
-  nlruntype *type;
-  union {
-    intptr_t _nlisize;
-    int8_t _nlint8;
-    int16_t _nlint16;
-    int32_t _nlint32;
-    int64_t _nlint64;
-    uintptr_t _nlusize;
-    uint8_t _nluint8;
-    uint16_t _nluint16;
-    uint32_t _nluint32;
-    uint64_t _nluint64;
-    float _nlfloat32;
-    double _nlfloat64;
-    bool _nlboolean;
-    nlstringview _nlstringview;
-    char* _nlcstring;
-    void* _nlpointer;
-    char _nlcchar;
-    signed char _nlcschar;
-    short _nlcshort;
-    int _nlcint;
-    long _nlclong;
-    long long _nlclonglong;
-    ptrdiff_t _nlcptrdiff;
-    unsigned char _nlcuchar;
-    unsigned short _nlcushort;
-    unsigned int _nlcuint;
-    unsigned long _nlculong;
-    unsigned long long _nlculonglong;
-    size_t _nlcsize;
-    nlniltype _nlniltype;
-  } value;
-} nlany;
-]])
-end
-
-function builtins.nlany_to_(context, type)
-  local typename = context:typename(type)
-  local name = 'nlany_to_' .. typename
-  if context.usedbuiltins[name] then return name end
-  context:ensure_builtins('NULL', 'nlany')
-  context:ensure_builtin('nlruntype_', typename)
-  local code
-  if type.is_boolean then
-    context:ensure_builtin('nlruntype_', 'nlpointer')
-    code = [[{
-  if(a.type == &nlruntype_nlboolean) {
-    return a.value._nlboolean;
-  } else if(a.type == &nlruntype_nlpointer) {
-    return a.value._nlpointer != NULL;
-  } else {
-    return a.type != NULL;
-  }
-}]]
-  else
-    context:ensure_builtins('nelua_unlikely', 'nelua_panic_cstring')
-    code = string.format([[{
-  if(nelua_unlikely(a.type != &nlruntype_%s)) {
-    nelua_panic_cstring("type check fail");
-  }
-  return a.value._%s;
-}]], typename, typename)
-  end
-  context:define_function_builtin(name, 'static', type, {{primtypes.any, 'a'}}, code)
-  return name
-end
-
-function builtins.nelua_stdout_write_any(context)
-  context:ensure_includes('<stddef.h>', '<stdio.h>', '<inttypes.h>')
-  context:ensure_builtin('nlruntype_', 'nlboolean')
-  context:ensure_builtin('nlruntype_', 'nlisize')
-  context:ensure_builtin('nlruntype_', 'nlusize')
-  context:ensure_builtin('nlruntype_', 'nlint8')
-  context:ensure_builtin('nlruntype_', 'nlint16')
-  context:ensure_builtin('nlruntype_', 'nlint32')
-  context:ensure_builtin('nlruntype_', 'nlint64')
-  context:ensure_builtin('nlruntype_', 'nluint8')
-  context:ensure_builtin('nlruntype_', 'nluint16')
-  context:ensure_builtin('nlruntype_', 'nluint32')
-  context:ensure_builtin('nlruntype_', 'nluint64')
-  context:ensure_builtin('nlruntype_', 'nlfloat32')
-  context:ensure_builtin('nlruntype_', 'nlfloat64')
-  context:ensure_builtin('nlruntype_', 'nlpointer')
-  context:ensure_builtin('nelua_panic_cstring', 'NULL')
-  context:define_function_builtin('nelua_stdout_write_any',
-    'static', primtypes.void, {{primtypes.any, 'a'}}, [[{
-  if(a.type == &nlruntype_nlboolean) {
-    fprintf(stdout, a.value._nlboolean ? "true" : "false");
-  } else if(a.type == &nlruntype_nlisize) {
-    fprintf(stdout, "%" PRIiPTR, a.value._nlisize);
-  } else if(a.type == &nlruntype_nlusize) {
-    fprintf(stdout, "%" PRIuPTR, a.value._nlusize);
-  } else if(a.type == &nlruntype_nlint8) {
-    fprintf(stdout, "%" PRIi8, a.value._nlint8);
-  } else if(a.type == &nlruntype_nlint16) {
-    fprintf(stdout, "%" PRIi16, a.value._nlint16);
-  } else if(a.type == &nlruntype_nlint32) {
-    fprintf(stdout, "%" PRIi32, a.value._nlint32);
-  } else if(a.type == &nlruntype_nlint64) {
-    fprintf(stdout, "%" PRIi64, a.value._nlint64);
-  } else if(a.type == &nlruntype_nluint8) {
-    fprintf(stdout, "%" PRIu8, a.value._nluint8);
-  } else if(a.type == &nlruntype_nluint16) {
-    fprintf(stdout, "%" PRIu16, a.value._nluint16);
-  } else if(a.type == &nlruntype_nluint32) {
-    fprintf(stdout, "%" PRIu32, a.value._nluint32);
-  } else if(a.type == &nlruntype_nluint64) {
-    fprintf(stdout, "%" PRIu64, a.value._nluint64);
-  } else if(a.type == &nlruntype_nlfloat32) {
-    fprintf(stdout, "%f", a.value._nlfloat32);
-  } else if(a.type == &nlruntype_nlfloat64) {
-    fprintf(stdout, "%lf", a.value._nlfloat64);
-  } else if(a.type == &nlruntype_nlpointer) {
-    fprintf(stdout, "%p", a.value._nlpointer);
-  } else if(a.type == NULL) {
-    fputs("nil", stdout);
-  } else {
-    nelua_panic_cstring("invalid type for nelua_fwrite_any");
-  }
-}]])
-end
-
 function builtins.nelua_narrow_cast_(context, dtype, stype)
   local name = 'nelua_narrow_cast_'..stype.codename..'_'..dtype.codename
   if context.usedbuiltins[name] then return name end
@@ -967,10 +840,7 @@ function inlines.print(context, node)
       defemitter:add_ln("fputc('\\t', stdout);")
       defemitter:add_indent()
     end
-    if argtype.is_any then
-      defemitter:add_builtin('nelua_stdout_write_any')
-      defemitter:add_ln('(a',i,');')
-    elseif argtype.is_stringview or argtype.is_string then
+    if argtype.is_stringview or argtype.is_string then
       defemitter:add_ln('if(a',i,'.size > 0) {')
       defemitter:inc_indent()
       defemitter:add_indent_ln('fwrite(a',i,'.data, 1, a',i,'.size, stdout);')
