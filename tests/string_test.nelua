@@ -324,6 +324,14 @@ do -- print
   local s: string = 'world'
   print(s)
   print((@cstring)('!'))
+
+  local Point = @record{x: integer, y: integer}
+  function Point:__tostring(): string
+    return 'Point{x=' .. self.x .. ', y=' .. self.y .. '}'
+  end
+
+  local p: Point = {x=1,y=2}
+  print(p)
 end
 
 do -- tostring

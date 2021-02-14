@@ -2519,10 +2519,18 @@ it("print builtin", function()
       return 'a', 1
     end
     print(f())
+
+    local Person = @record{name: stringview}
+    function Person:__tostringview(): stringview
+      return self.name
+    end
+    local p: Person = {name='John'}
+    print(p)
   ]],
     '1\t0.2\t100\t15\t1\n' ..
     '0\t\tnil\n'..
-    'a\t1\n')
+    'a\t1\n'..
+    'John\n')
 end)
 
 it("sizeof builtin", function()

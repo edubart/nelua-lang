@@ -141,7 +141,17 @@ function builtins.print(context, node, argnodes)
   end
   local argattrs = {}
   for i=1,#argtypes do
-    argattrs[i] = {name='a'..i, type=argtypes[i]}
+    local argtype = argtypes[i]
+    local objtype = argtype:implicit_deref_type()
+    if objtype.is_record then
+      local metafields = objtype.metafields
+      if metafields.__tostringview then
+        argtype = primtypes.stringview
+      elseif metafields.__tostring then
+        argtype = context.rootscope.symbols.string.value
+      end
+    end
+    argattrs[i] = {name='a'..i, type=argtype}
   end
   local type = types.FunctionType(argattrs, {}, node)
   type.sideeffect = true
