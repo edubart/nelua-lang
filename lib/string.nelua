@@ -213,6 +213,8 @@ global function tostring(x: auto): string
     local tyformat
     if x.type.is_function then
       tyformat = '"function: %p"'
+    elseif x.type.is_pointer then
+      tyformat = '"%p"'
     else
       tyformat = require'nelua.cdefs'.types_printf_format[x.type.codename]
     end
