@@ -2519,6 +2519,10 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
       local nvarargs = 0
       local invarargs = false
       local n = context.parser.astbuilder.aster
+      local varargsnodes
+      if symbol.type:has_varargs() and not polyeval.varargsnodes then
+        varargsnodes = {}
+      end
       for j=1,#polyevalargs do
         local polyevalarg = polyevalargs[j]
         if varnode.tag == 'ColonIndex' then
@@ -2535,8 +2539,12 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
             type = primtypes.type,
             value = polyevaltype,
           }
-          polyargnode = n.IdDecl{'__arg'..nvarargs, n.Id{'auto', pattr={forcesymbol=polyargtypesym}}}
+          local argname = '__arg'..nvarargs
+          polyargnode = n.IdDecl{argname, n.Id{'auto', pattr={forcesymbol=polyargtypesym}}}
           polyargnodes[j] = polyargnode
+          if varargsnodes then
+            varargsnodes[nvarargs] = n.Id{argname, attr=Attr{type=polyevaltype}}
+          end
         elseif polyargnode then
           local polyargattr = polyargnode.attr
           if traits.is_attr(polyevalarg) then
@@ -2554,11 +2562,7 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
       while #polyargnodes > #polyevalargs do -- remove extra unused argnodes
         polyargnodes[#polyargnodes] = nil
       end
-      if symbol.type:has_varargs() and not polyeval.varargsnodes then
-        local varargsnodes = {}
-        for j=1,nvarargs do
-          varargsnodes[j] = n.Id{'__arg'..j}
-        end
+      if varargsnodes then
         polyeval.varargsnodes = varargsnodes
       end
     end
