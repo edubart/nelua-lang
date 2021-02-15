@@ -172,6 +172,7 @@ end
 
 function expect.execute(exe, expected_stdout)
   if ccompiler.get_cc_info().is_windows then exe = exe .. '.exe' end
+  exe = fs.abspath(exe)
   local ok, status, sout, serr = executor.execex(exe)
   errorer.assertf(ok and status == 0, 'expected success status in execute:\n%s\n%s', serr, sout)
   if expected_stdout then

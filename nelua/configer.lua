@@ -14,7 +14,6 @@ local version = require 'nelua.version'
 local configer = {}
 local config = {}
 local defconfig = {
-  lua = 'lua',
   lua_version = _VERSION:match('%d+%.%d+'),
   generator = 'c',
   gdb = 'gdb',
@@ -274,6 +273,17 @@ local function detect_search_path(libpath)
   return path
 end
 
+local function detect_lua_bin()
+  local lua = 'lua'
+  local minargi = 0
+  for argi,v in pairs(arg) do
+    if argi < minargi then
+      minargi = argi
+      lua = v
+    end
+  end
+  return lua
+end
 
 function configer.parse(args)
   local argparser = create_parser(tabler.icopy(args))
@@ -317,6 +327,7 @@ local function init_default_configs()
     os.exit(1)
   end --luacov:enable
   defconfig.lib_path = libpath
+  defconfig.lua = detect_lua_bin()
   defconfig.path = detect_search_path(libpath)
   defconfig.cc = detect_cc()
   defconfig.cflags = os.getenv('CFLAGS') or ''

@@ -78,7 +78,7 @@ Note that these configurations can be changed via script too, check the document
 -- Returns whether the terminal supports UTF-8 characters.
 local function is_utf8term()
   local lang = os.getenv('LANG')
-  return lang:lower():match('utf%-8$') and true or false
+  return (lang and lang:lower():match('utf%-8$')) and true or false
 end
 
 -- Returns whether a system environment variable is "true".

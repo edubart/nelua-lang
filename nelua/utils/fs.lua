@@ -330,8 +330,9 @@ function fs.findmodulefile(name, pathstr, relpath)
     local paths = stringer.split(pathstr, ';')
     for i=1,#paths do
       local trypath = paths[i]:gsub('%?', name)
+      trypath = fs.abspath(trypath)
       if fs.isfile(trypath) then
-        return fs.abspath(trypath)
+        return trypath
       end
       table.insert(triedpaths, trypath)
     end
