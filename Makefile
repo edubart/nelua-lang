@@ -26,7 +26,6 @@ INSTALL_X=install -m755
 INSTALL_F=install -m644
 LUACHECK=luacheck
 LUAROCKS=luarocks
-BUSTED=busted
 LUACOV=luacov
 LUAMON=luamon -w nelua,spec,examples,lib,tests -e lua,nelua -q -x
 JEKYLL=bundle exec jekyll
@@ -71,26 +70,26 @@ optimized-nelua-lua:
 
 ## Run test suite.
 test: nelua-lua
-	$(BUSTED) --lua=$(LUA)
+	$(LUA) spec/init.lua
 
 ## Run test suite, stop on the first error.
-test-quick: nelua-lua
-	$(BUSTED) --lua=$(LUA) --no-keep-going
+test-quick:
+	@LUSTED_QUIET=true LUSTED_STOP_ON_FAIL=true $(LUA) spec/init.lua
 
 ## Run lua static analysis using lua check.
 check:
-	$(LUACHECK) -q .
+	@$(LUACHECK) -q .
 
 ## Generate coverage report.
 coverage-genreport:
-	$(LUACOV)
+	@$(LUACOV)
 	@$(LUA) spec/tools/covreporter.lua
 
 ## Run the test suite analyzing code coverage.
 coverage-test: nelua-lua
-	@$(MAKE) clean-coverage
-	$(BUSTED) --lua=$(LUA) --coverage
-	@$(MAKE) coverage-genreport
+	@$(MAKE) --no-print-directory clean-coverage
+	$(LUA) -lluacov  spec/init.lua
+	@$(MAKE) --no-print-directory coverage-genreport
 
 ## Compile all examples.
 compile-examples: nelua-lua
@@ -108,6 +107,7 @@ live-dev:
 
 _live-dev:
 	@clear
+	@$(MAKE) nelua-lua
 	@$(MAKE) test-quick
 	@$(MAKE) check
 

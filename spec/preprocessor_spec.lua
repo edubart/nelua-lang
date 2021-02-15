@@ -1,11 +1,12 @@
-require 'busted.runner'()
+local lusted = require 'nelua.thirdparty.lusted'
+local describe, it = lusted.describe, lusted.it
 
-local assert = require 'spec.tools.assert'
+local expect = require 'spec.tools.expect'
 
-describe("Nelua preprocessor should", function()
+describe("preprocessor", function()
 
 it("evaluate expressions", function()
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
     local a = #['he' .. 'llo']#
     local b = #[math.sin(-math.pi/2)]#
     local c = #[true]#
@@ -18,23 +19,23 @@ it("evaluate expressions", function()
     local d, d2, d3 = 1.5e-30, 1.5, 1e-30
     local e = 1
   ]])
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
     local a: [10]integer
     a[#[0]#] = 1
   ]=], [[
     local a: [10]integer
     a[0] = 1
   ]])
-  assert.analyze_error("local a = #[function() end]#", "unable to convert preprocess value of lua type")
+  expect.analyze_error("local a = #[function() end]#", "unable to convert preprocess value of lua type")
 end)
 
 it("evaluate names", function()
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     #|'print'|# 'hello'
   ]], [[
     print 'hello'
   ]])
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     local a <#|'codename'|# 'a'>
     local b <codename 'b'>
     local c <#|'codename'|##['c']#>
@@ -46,12 +47,12 @@ it("evaluate names", function()
 end)
 
 it("parse if", function()
-  assert.ast_type_equals("##[[ if true then ]] local a = 1 ##[[ end ]]", "local a = 1")
-  assert.ast_type_equals("##[[ if false then ]] local a = 1 ##[[ end ]]", "")
-  assert.ast_type_equals(
+  expect.ast_type_equals("##[[ if true then ]] local a = 1 ##[[ end ]]", "local a = 1")
+  expect.ast_type_equals("##[[ if false then ]] local a = 1 ##[[ end ]]", "")
+  expect.ast_type_equals(
     "local function f() ##[[ if true then ]] return 1 ##[[ end ]] end",
     "local function f() return 1 end")
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     local function f()
       ## if true then
         return 1
@@ -64,11 +65,11 @@ it("parse if", function()
       return 1
     end
   ]])
-  assert.analyze_error("##[[ if true then ]]", "'end' expected")
+  expect.analyze_error("##[[ if true then ]]", "'end' expected")
 end)
 
 it("parse loops", function()
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     local a = 2
     ## for i=1,4 do
       a = a * 2
@@ -80,7 +81,7 @@ it("parse loops", function()
     a = a * 2
     a = a * 2
   ]])
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     local a = 0
     ## for i=1,3 do
       do
@@ -99,7 +100,7 @@ it("parse loops", function()
     do a = a + 2 end
     do a = a + 3 end
   ]])
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     local a = 0
     ## for i=1,3 do
       a = a + #[i]#
@@ -117,7 +118,7 @@ it("parse loops", function()
 end)
 
 it("inject other symbol type", function()
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     local a: uint8 = 1
     local b: #[context.scope.symbols['a'].type]#
   ]], [[
@@ -127,7 +128,7 @@ it("inject other symbol type", function()
 end)
 
 it("check symbols inside functions", function()
-  assert.analyze_ast([=[
+  expect.analyze_ast([=[
     local function f(x: integer)
       ## assert(x.type == require 'nelua.typedefs'.primtypes.integer)
     end
@@ -135,7 +136,7 @@ it("check symbols inside functions", function()
 end)
 
 it("print symbol", function()
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
     local a: integer <comptime> = 1
     local b: integer <const> = 2
     print #[tostring(a)]#
@@ -146,7 +147,7 @@ it("print symbol", function()
     print 'a: int64 <comptime> = 1'
     print 'b: int64 <const>'
   ]])
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
     for i:integer=1,2 do
       print(i, #[tostring(i)]#)
     end
@@ -155,7 +156,7 @@ it("print symbol", function()
       print(i, 'i: int64')
     end
   ]])
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     ## local aval = 1
     ## if true then
       local #|'a'|#: #|'integer'|# <comptime> = #[aval]#
@@ -168,7 +169,7 @@ it("print symbol", function()
 end)
 
 it("print enums", function()
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     local Weekends = @enum { Friday=0, Saturday, Sunda }
     ## Weekends.value.fields[3].name = 'Sunday'
     ## for i,field in ipairs(Weekends.value.fields) do
@@ -183,7 +184,7 @@ it("print enums", function()
 end)
 
 it("inject fields", function()
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     local R = @record{x: integer, z: integer}
     ## R.value:add_field('y', primtypes.integer, 2)
     local U = @union{b: boolean, i: integer}
@@ -195,7 +196,7 @@ it("inject fields", function()
 end)
 
 it("print ast", function()
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     local a = #[tostring(ast)]#
   ]], [=[
     local a = [[Block {
@@ -206,7 +207,7 @@ it("print ast", function()
 end)
 
 it("print types", function()
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     local n: float64
     local s: stringview
     local b: boolean
@@ -244,7 +245,7 @@ it("print types", function()
 end)
 
 it("generate functions", function()
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
     ## local function make_pow(N)
       local function #|'pow' .. N|#(x: integer)
         local r = 1
@@ -277,7 +278,7 @@ it("generate functions", function()
 end)
 
 it("print symbol", function()
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
     ## local a = 1
     do
       do
@@ -287,7 +288,7 @@ it("print symbol", function()
   ]=], [[
     do do print(1) end end
   ]])
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
     ## local MIN, MAX = 1, 2
     for i:integer=#[MIN]#,#[MAX]# do
       print(i, #[tostring(i)]#)
@@ -300,7 +301,7 @@ it("print symbol", function()
 end)
 
 it("print config", function()
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
     ## config.test = 'test'
     local a = #[config.test]#
   ]=], [[
@@ -309,14 +310,14 @@ it("print config", function()
 end)
 
 it("global preprocessor variables", function()
-assert.ast_type_equals([=[
+expect.ast_type_equals([=[
     ## TEST = 'test'
     local a = #[TEST]#
   ]=], [[
     local a = 'test'
   ]])
 
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
     print(#[tostring(unitname)]#)
     ## unitname = 'unit'
     print(#[tostring(unitname)]#)
@@ -328,23 +329,23 @@ assert.ast_type_equals([=[
 end)
 
 it("function pragmas", function()
-  assert.analyze_ast("## cinclude '<stdio.h>'")
-  assert.analyze_error("## cinclude(false)", "invalid arguments for preprocess")
+  expect.analyze_ast("## cinclude '<stdio.h>'")
+  expect.analyze_error("## cinclude(false)", "invalid arguments for preprocess")
 end)
 
 it("call codes after inference", function()
-  assert.analyze_ast("## after_inference(function() end)")
-  assert.analyze_error("## after_inference(false)", "invalid arguments for preprocess")
+  expect.analyze_ast("## after_inference(function() end)")
+  expect.analyze_error("## after_inference(false)", "invalid arguments for preprocess")
 end)
 
 it("call codes after analyze pass", function()
-  assert.analyze_ast("## after_analyze(function() end)")
-  assert.analyze_error("## after_analyze(function() error 'errmsg' end)", "errmsg")
-  assert.analyze_error("## after_analyze(false)", "invalid arguments for preprocess")
+  expect.analyze_ast("## after_analyze(function() end)")
+  expect.analyze_error("## after_analyze(function() error 'errmsg' end)", "errmsg")
+  expect.analyze_error("## after_analyze(false)", "invalid arguments for preprocess")
 end)
 
 it("inject nodes", function()
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
     ## inject_astnode(aster.Call{{aster.String{"hello"}}, aster.Id{'print'}})
   ]=], [[
     print 'hello'
@@ -352,7 +353,7 @@ it("inject nodes", function()
 end)
 
 it("nested preprocessing", function()
-  assert.ast_type_equals([[
+  expect.ast_type_equals([[
     ## if true then
       if true then
         ## cinclude 'lala'
@@ -368,13 +369,13 @@ it("nested preprocessing", function()
 end)
 
 it("check function", function()
-  assert.analyze_ast([[ ## static_assert(true) ]])
-  assert.analyze_error([[ ## static_error() ]], 'static error!')
-  assert.analyze_error([[ ## static_error('my fail') ]], 'my fail')
-  assert.analyze_error([[ ## static_assert(false) ]], 'static assertion failed')
-  assert.analyze_error([[ ## static_assert(false, 'myfail') ]], 'myfail')
+  expect.analyze_ast([[ ## static_assert(true) ]])
+  expect.analyze_error([[ ## static_error() ]], 'static error!')
+  expect.analyze_error([[ ## static_error('my fail') ]], 'my fail')
+  expect.analyze_error([[ ## static_assert(false) ]], 'static assertion failed')
+  expect.analyze_error([[ ## static_assert(false, 'myfail') ]], 'myfail')
 
-  assert.analyze_ast([[
+  expect.analyze_ast([[
     local a = 1
     local b = 1.0
     ## after_inference(function() static_assert(a.type == primtypes.integer) end)
@@ -383,14 +384,14 @@ it("check function", function()
 end)
 
 it("auto type", function()
-  assert.analyze_ast([[
+  expect.analyze_ast([[
     local a: auto = 1
     ## assert(a.type == primtypes.integer)
   ]])
 end)
 
 it("multiple blocks", function()
-  assert.analyze_ast([[
+  expect.analyze_ast([[
     ## assert(true)
     local function f(a: auto)
       ## assert(true)
@@ -403,13 +404,13 @@ it("multiple blocks", function()
 end)
 
 it("poly function", function()
-  assert.analyze_ast([[
+  expect.analyze_ast([[
     local function f(a: auto)
       ## assert(a.type == primtypes.integer)
     end
     f(1)
   ]])
-  assert.analyze_ast([[
+  expect.analyze_ast([[
     local function f(T: type, x: usize)
        ## assert(x.type == primtypes.usize and T.value == primtypes.integer)
        return x
@@ -417,7 +418,7 @@ it("poly function", function()
 
     f(@integer, 1)
   ]])
-  assert.analyze_ast([[
+  expect.analyze_ast([[
     ## local counter = 0
     local function f() <polymorphic,alwayseval>
        ## counter = counter + 1
@@ -427,7 +428,7 @@ it("poly function", function()
     f()
     ## after_inference(function() assert(counter == 2) end)
   ]])
-  assert.analyze_ast([[
+  expect.analyze_ast([[
     local function f(x: auto)
       local r = 1.0 + x
       r = r + x
@@ -438,7 +439,7 @@ it("poly function", function()
     local x = f(1.0)
     ## after_inference(function() assert(x.type == primtypes.number) end)
   ]])
-  assert.analyze_ast([[
+  expect.analyze_ast([[
     local function f(T: type)
       return (@pointer(T))(nilptr)
     end
@@ -449,7 +450,7 @@ it("poly function", function()
       p = nilptr
     end
   ]])
-  assert.analyze_ast([=[
+  expect.analyze_ast([=[
     local function inc(x: auto)
       local y = x + 1
       return y
@@ -479,13 +480,13 @@ it("poly function", function()
 end)
 
 it("report errors", function()
-  assert.analyze_error("##[[ invalid() ]]", "attempt to call")
-  assert.analyze_error("##[[ for ]]", "expected near")
-  assert.analyze_error("##[[ ast:raisef('ast error') ]]", "ast error")
+  expect.analyze_error("##[[ invalid() ]]", "attempt to call")
+  expect.analyze_error("##[[ for ]]", "expected near")
+  expect.analyze_error("##[[ ast:raisef('ast error') ]]", "ast error")
 end)
 
 it("preprocessor replacement", function()
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
   local s = #[symbols.stringview]#
   local t = #[primtypes.table]#
   local ty = #[primtypes.type]#
@@ -496,7 +497,7 @@ it("preprocessor replacement", function()
   local ty = @type
   local n = @number
 ]=])
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
   local int = @integer
   local a: #[int]#
 ]=],[=[
@@ -506,7 +507,7 @@ it("preprocessor replacement", function()
 end)
 
 it("preprocessor functions", function()
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
     ## function f(name, tyname)
       global #|name|#: #|tyname|#
     ## end
@@ -519,7 +520,7 @@ it("preprocessor functions", function()
 end)
 
 it("macros", function()
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
   ## function increment(a, amount)
     #|a.name|# = #|a.name|# + #[amount]#
   ## end
@@ -532,7 +533,7 @@ it("macros", function()
   print(x)
 ]=])
 
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
   ##[[
   function unroll(count, block)
     for i=1,count do
@@ -558,7 +559,7 @@ it("macros", function()
   counter = counter + 1
 ]=])
 
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
   ## local function gettype(T)
     local t = @#|T|#
     ## return t
@@ -574,7 +575,7 @@ it("macros", function()
 end)
 
 it("expression macros", function()
-  assert.analyze_ast([=[
+  expect.analyze_ast([=[
     ## local f = exprmacro(function(x, a, b)
       return (#[x]# << #[a]#) >> #[b]#
     ## end)
@@ -585,7 +586,7 @@ it("expression macros", function()
 end)
 
 it("non hygienic macros", function()
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
 ## local function inc()
   a = a + 1
 ## end
@@ -598,7 +599,7 @@ a = a + 1
 end)
 
 it("hygienic macros", function()
-  assert.ast_type_equals([=[
+  expect.ast_type_equals([=[
 ## local point = hygienize(function(T)
   print('start')
   local T = #[T]#
@@ -622,7 +623,7 @@ do
   local a: PointInt = {1,2}
 end
 ]=])
-  assert.analyze_error([=[
+  expect.analyze_error([=[
 ## local inc = hygienize(function()
   a = a + 1
 ## end)
@@ -632,7 +633,7 @@ local a = 1
 end)
 
 it("generalize macro", function()
-  assert.analyze_ast([=[
+  expect.analyze_ast([=[
     ## local make_record = generalize(function(T)
       local RecordT = @record { x: #[T]# }
       ## return RecordT
@@ -641,7 +642,7 @@ it("generalize macro", function()
     local foo: Foo
     ## assert(foo.type.fields.x.type == primtypes.integer)
 ]=])
-  assert.analyze_ast([=[
+  expect.analyze_ast([=[
     ## local make_record = generalize(function(T)
       local RecordT = @record { x: #[T]# }
       ## return RecordT
@@ -650,14 +651,14 @@ it("generalize macro", function()
     local foo: Record(integer)
     ## assert(foo.type.fields.x.type == primtypes.integer)
 ]=])
-  assert.analyze_error([=[
+  expect.analyze_error([=[
     ## local make_record = generalize(function(T)
       local RecordT = @record { x: #[T]# }
     ## end)
     local Record = #[make_record]#
     local foo: Record(integer)
 ]=], "expected a type or symbol in generic return")
-  assert.analyze_error([=[
+  expect.analyze_error([=[
     ## local make_record = generalize(function(T)
       local RecordT = @record { x: #[T]# }
       ## return 1
@@ -668,7 +669,7 @@ it("generalize macro", function()
 end)
 
 it("compiler information", function()
-  assert.analyze_ast([=[##[[
+  expect.analyze_ast([=[##[[
     local compiler = require 'nelua.ccompiler'
     assert(compiler.get_cc_info())
     local defs = compiler.get_cc_defines('<stdbool.h>')
@@ -677,7 +678,7 @@ it("compiler information", function()
 end)
 
 it("run brainfuck", function()
-  assert.run('--generator c examples/brainfuck.nelua', 'Hello World!')
+  expect.run('--generator c examples/brainfuck.nelua', 'Hello World!')
 end)
 
 end)

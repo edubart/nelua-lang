@@ -1,10 +1,10 @@
-require 'busted.runner'()
+local lusted = require 'nelua.thirdparty.lusted'
+local describe, it = lusted.describe, lusted.it
 
-local assert = require 'spec.tools.assert'
 local fs = require 'nelua.utils.fs'
 local tabler = require 'nelua.utils.tabler'
 
-describe("Nelua utils should work for", function()
+describe("utils", function()
 
 it("fs.findmodulepath", function()
   local function assert_relative_findmodule(s, expected)

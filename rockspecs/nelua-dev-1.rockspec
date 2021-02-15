@@ -30,7 +30,6 @@ dependencies = {
   -- 'chronos >= 0.2',
 
   -- dev dependencies only (used only for testing)
-  --'busted >= 2.0.0',
   --'luacheck >= 0.23.0',
   --'luacov >= 0.13.0',
   --'cluacov >= 0.1.1',
@@ -88,6 +87,7 @@ build = {
     ['nelua.thirdparty.argparse'] = 'nelua/thirdparty/argparse.lua',
     ['nelua.thirdparty.bint'] = 'nelua/thirdparty/bint.lua',
     ['nelua.thirdparty.inspect'] = 'nelua/thirdparty/inspect.lua',
+    ['nelua.thirdparty.lusted'] = 'nelua/thirdparty/lusted.lua',
     ['nelua.thirdparty.relabel'] = 'nelua/thirdparty/relabel.lua',
     ['nelua.thirdparty.tableshape'] = 'nelua/thirdparty/tableshape.lua',
     ['nelua.utils.bn'] = 'nelua/utils/bn.lua',

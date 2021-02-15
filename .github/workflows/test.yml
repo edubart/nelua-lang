@@ -16,12 +16,10 @@ jobs:
       with:
         luaVersion: 5.4
     - uses: leafo/gh-actions-luarocks@v4.0.0
-    - name: Install busted
-      run: luarocks install busted
     - name: Install dependencies
       run: luarocks make rockspecs/nelua-dev-1.rockspec
     - name: Test
-      run: CC=${{matrix.compiler}} busted -o utfTerminal
+      run: CC=${{matrix.compiler}} make test
 
   coverage:
     runs-on: ubuntu-latest
@@ -31,8 +29,6 @@ jobs:
       with:
         luaVersion: 5.4
     - uses: leafo/gh-actions-luarocks@v4.0.0
-    - name: Install busted
-      run: luarocks install busted
     - name: Install luacov
       run: luarocks install luacov && luarocks install cluacov
     - name: Install dependencies

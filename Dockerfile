@@ -22,8 +22,6 @@ RUN useradd -m -G wheel -s /bin/bash docker
 RUN echo '%wheel ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER docker
 
-# busted
-RUN sudo luarocks install busted
 # luacov
 RUN sudo luarocks install luacov
 # cluacov

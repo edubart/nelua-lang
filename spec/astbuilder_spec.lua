@@ -1,27 +1,28 @@
-require 'busted.runner'()
+local lusted = require 'nelua.thirdparty.lusted'
+local describe, it = lusted.describe, lusted.it
 
 local astbuilder = require 'nelua.syntaxdefs'().astbuilder
-local assert = require 'spec.tools.assert'
+local expect = require 'spec.tools.expect'
 local Attr = require 'nelua.attr'
 local n = astbuilder.aster
 
-describe("Nelua AST should", function()
+describe("astbuilder", function()
 
 it("create a valid ASTNode", function()
   local node = n.Number{'dec', '10'}
   assert(node)
-  assert.same(node.tag, 'Number')
-  assert.same({node:args()}, {'dec', '10'})
+  expect.equal(node.tag, 'Number')
+  expect.equal({node:args()}, {'dec', '10'})
 end)
 
 
 it("error on invalid ASTNode", function()
-  assert.has_error(function() n.Invalid{} end)
-  assert.has_error(function() n.Block{1} end)
-  assert.has_error(function() n.Block{{1}} end)
-  assert.has_error(function() n.Block{{'a'}} end,
+  expect.fail(function() n.Invalid{} end)
+  expect.fail(function() n.Block{1} end)
+  expect.fail(function() n.Block{{1}} end)
+  expect.fail(function() n.Block{{'a'}} end,
     [[invalid shape while creating AST node "Block": field 1: array item 1: expected "aster.Node"]])
-  assert.has_error(function() astbuilder:create('Invalid') end)
+  expect.fail(function() astbuilder:create('Invalid') end)
 end)
 
 it("clone different ASTNode", function()
@@ -36,7 +37,7 @@ it("clone different ASTNode", function()
   assert(cloned ~= node)
   assert(cloned[1] ~= node[1])
   assert(cloned[1][1] ~= node[1][1])
-  assert.same(tostring(cloned), [[Block {
+  expect.equal(tostring(cloned), [[Block {
   {
     Return {
       {

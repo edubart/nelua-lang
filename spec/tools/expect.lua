@@ -1,4 +1,4 @@
-local assert = require 'luassert'
+local expect = require 'nelua.thirdparty.lusted'.expect
 local stringer = require 'nelua.utils.stringer'
 local except = require 'nelua.utils.except'
 local errorer = require 'nelua.utils.errorer'
@@ -28,26 +28,26 @@ config.pragmas.noabort = true
 -- use cache subfolder while testing
 config.cache_dir = fs.join(config.cache_dir, 'spec')
 
-assert.config = { srcname = nil }
+expect.config = { srcname = nil }
 
-function assert.same_string(expected, passedin)
+function expect.same_string(expected, passedin)
   if expected ~= passedin then --luacov:disable
     error('Expected strings to be the same, difference:\n' ..
       differ(expected, passedin):tostring({colored = true, context=3}))
   end --luacov:enable
 end
 
-function assert.contains(expected, passedin)
+function expect.contains(expected, passedin)
   errorer.assertf(passedin:find(expected, 1, true),
     "Expected string to contains.\nPassed in:\n%s\nExpected:\n%s",
     passedin, expected)
 end
 
-function assert.ast_equals(expected_ast, ast)
-  assert.same_string(tostring(expected_ast), tostring(ast))
+function expect.ast_equals(expected_ast, ast)
+  expect.same_string(tostring(expected_ast), tostring(ast))
 end
 
-function assert.peg_match_all(patt, subjects)
+function expect.peg_match_all(patt, subjects)
   for _,subject in ipairs(subjects) do
     local matchedpos = patt:match(subject)
     local slen = string.len(subject)
@@ -55,7 +55,7 @@ function assert.peg_match_all(patt, subjects)
   end
 end
 
-function assert.peg_capture_all(peg, subjects)
+function expect.peg_capture_all(peg, subjects)
   for subject,expected_ast in pairs(subjects) do
     if type(subject) == 'number' then
       subject = expected_ast
@@ -64,41 +64,41 @@ function assert.peg_capture_all(peg, subjects)
 
     local ast = peg:match(subject)
     if expected_ast then
-      assert.ast_equals(expected_ast, ast)
+      expect.ast_equals(expected_ast, ast)
     else
       errorer.assertf(type(ast) == 'table', 'expected capture on "%s"', subject)
     end
   end
 end
 
-function assert.peg_error_all(peg, errname, subjects)
+function expect.peg_error_all(peg, errname, subjects)
   for _,subject in ipairs(subjects) do
     local res, errlab = peg:match(subject)
-    assert.same(errlab, errname)
-    assert.same(res, nil)
+    expect.equal(errlab, errname)
+    expect.equal(res, nil)
   end
 end
 
-function assert.peg_match_none(peg, subjects)
+function expect.peg_match_none(peg, subjects)
   for _,subject in pairs(subjects) do
     local matchedpos = peg:match(subject)
     errorer.assertf(matchedpos == nil, 'expected no match on "%s"', subject)
   end
 end
 
-function assert.parse_ast(parser, input, expected_ast)
-  local ast = assert(parser:parse(input, assert.config.srcname))
+function expect.parse_ast(parser, input, expected_ast)
+  local ast = assert(parser:parse(input, expect.config.srcname))
   if expected_ast then
-    assert.ast_equals(expected_ast, ast)
+    expect.ast_equals(expected_ast, ast)
   else
     assert(ast, 'an valid ast was expected')
   end
   return ast
 end
 
-function assert.parse_ast_error(parser, input, expected_error)
+function expect.parse_ast_error(parser, input, expected_error)
   local ast,e = except.try(function()
-    parser:parse(input, assert.config.srcname)
+    parser:parse(input, expect.config.srcname)
   end)
   errorer.assertf(ast == nil and e.label == 'ParseError' and e.syntaxlabel == expected_error,
          'expected error "%s" while parsing', expected_error)
@@ -108,9 +108,9 @@ end
 local function pretty_traceback_errhandler(e)
   if type(e) == 'string' then
     local msg = debug.traceback(e, 2)
-    local i = msg:find('\n%s+[%w%s%/%\\%.%-_ ]+busted[/\\]+[a-z]+%.lua')
+    local i = msg:find('\n%s+[%w%s%/%\\%.%-_ ]+lusted.lua')
     if i then
-      msg = msg:sub(1, i) .. '        (...busted...)\n'
+      msg = msg:sub(1, i) .. '        (...lusted...)\n'
     end
     return msg
   else
@@ -157,31 +157,31 @@ local function run(args)
   return status, sout, serr
 end
 
-function assert.run(args, expected_stdout, expected_stderr)
+function expect.run(args, expected_stdout, expected_stderr)
   local status, sout, serr = run(args)
   errorer.assertf(status == 0, 'expected success status in run:\n%s\n%s', serr, sout)
   if expected_stdout then
-    assert.contains(expected_stdout, sout)
+    expect.contains(expected_stdout, sout)
   end
   if expected_stderr then
-    assert.contains(expected_stderr or '', serr)
+    expect.contains(expected_stderr or '', serr)
   else
-    assert.same('', serr)
+    expect.equal('', serr)
   end
 end
 
-function assert.execute(exe, expected_stdout)
+function expect.execute(exe, expected_stdout)
   if ccompiler.get_cc_info().is_windows then exe = exe .. '.exe' end
   local ok, status, sout, serr = executor.execex(exe)
   errorer.assertf(ok and status == 0, 'expected success status in execute:\n%s\n%s', serr, sout)
   if expected_stdout then
     sout = sout:gsub('\r','')
-    assert.contains(expected_stdout, sout)
+    expect.contains(expected_stdout, sout)
   end
-  assert.same('', serr)
+  expect.equal('', serr)
 end
 
-function assert.run_error(args, expected_stderr, expects_success)
+function expect.run_error(args, expected_stderr, expects_success)
   local status, sout, serr = run(args)
   if expects_success then
     errorer.assertf(status == 0, 'expected success status in run:\n%s\n%s', serr, sout)
@@ -191,10 +191,10 @@ function assert.run_error(args, expected_stderr, expects_success)
   if expected_stderr then
     if traits.is_table(expected_stderr) then
       for _,eerr in ipairs(expected_stderr) do
-        assert.contains(eerr, serr)
+        expect.contains(eerr, serr)
       end
     else
-      assert.contains(expected_stderr, serr)
+      expect.contains(expected_stderr, serr)
     end
   end
 end
@@ -204,18 +204,18 @@ local function pretty_input_onerror(input, f)
   errorer.assertf(ok, '%s\ninput:\n%s', err, input)
 end
 
-function assert.generate_lua(nelua_code, expected_code)
+function expect.generate_lua(nelua_code, expected_code)
   expected_code = expected_code or nelua_code
-  local ast, context = assert.analyze_ast(nelua_code, nil, 'lua')
+  local ast, context = expect.analyze_ast(nelua_code, nil, 'lua')
   local generated_code
   pretty_input_onerror(nelua_code, function()
     generated_code = assert(lua_generator.generate(ast, context))
   end)
-  assert.same_string(stringer.rtrim(expected_code), stringer.rtrim(generated_code))
+  expect.same_string(stringer.rtrim(expected_code), stringer.rtrim(generated_code))
 end
 
-function assert.generate_c(nelua_code, expected_code, ispattern)
-  local ast, context = assert.analyze_ast(nelua_code, nil, 'c')
+function expect.generate_c(nelua_code, expected_code, ispattern)
+  local ast, context = expect.analyze_ast(nelua_code, nil, 'c')
   local generated_code
   pretty_input_onerror(nelua_code, function()
     generated_code = assert(c_generator.generate(ast, context))
@@ -231,43 +231,43 @@ function assert.generate_c(nelua_code, expected_code, ispattern)
   end
 end
 
-function assert.run_c_from_file(file, expected_stdout, expected_stderr)
-  assert.run({'--generator', 'c', file}, expected_stdout, expected_stderr)
+function expect.run_c_from_file(file, expected_stdout, expected_stderr)
+  expect.run({'--generator', 'c', file}, expected_stdout, expected_stderr)
 end
 
-function assert.run_c(nelua_code, expected_stdout, expected_stderr)
-  assert.run({'--generator', 'c', '--eval', nelua_code}, expected_stdout, expected_stderr)
+function expect.run_c(nelua_code, expected_stdout, expected_stderr)
+  expect.run({'--generator', 'c', '--eval', nelua_code}, expected_stdout, expected_stderr)
 end
 
-function assert.run_error_c(nelua_code, output, expect_success)
-  assert.run_error({'--generator', 'c', '--eval', nelua_code}, output, expect_success)
+function expect.run_error_c(nelua_code, output, expect_success)
+  expect.run_error({'--generator', 'c', '--eval', nelua_code}, output, expect_success)
 end
 
-function assert.lua_gencode_equals(code, expected_code)
-  local ast, context = assert.analyze_ast(code, nil, 'lua')
-  local expected_ast, expected_context = assert.analyze_ast(expected_code)
+function expect.lua_gencode_equals(code, expected_code)
+  local ast, context = expect.analyze_ast(code, nil, 'lua')
+  local expected_ast, expected_context = expect.analyze_ast(expected_code)
   local generated_code = assert(lua_generator.generate(ast, context))
   local expected_generated_code = assert(lua_generator.generate(expected_ast, expected_context))
-  assert.same_string(expected_generated_code, generated_code)
+  expect.same_string(expected_generated_code, generated_code)
 end
 
-function assert.c_gencode_equals(code, expected_code)
-  local ast, context = assert.analyze_ast(code, nil, 'c')
-  local expected_ast, expected_context = assert.analyze_ast(expected_code, nil, 'c')
+function expect.c_gencode_equals(code, expected_code)
+  local ast, context = expect.analyze_ast(code, nil, 'c')
+  local expected_ast, expected_context = expect.analyze_ast(expected_code, nil, 'c')
   local generated_code = assert(c_generator.generate(ast, context))
   local expected_generated_code = assert(c_generator.generate(expected_ast, expected_context))
-  assert.same_string(expected_generated_code, generated_code)
+  expect.same_string(expected_generated_code, generated_code)
 end
 
-function assert.analyze_ast(code, expected_ast, generator)
-  local ast = assert.parse_ast(nelua_parser, code)
+function expect.analyze_ast(code, expected_ast, generator)
+  local ast = expect.parse_ast(nelua_parser, code)
   generator = generator or config.generator
   local context = AnalyzerContext(analyzer.visitors, nelua_parser, ast, generator)
   pretty_input_onerror(code, function()
     analyzer.analyze(context)
   end)
   if expected_ast then
-    assert.same_string(tostring(expected_ast), tostring(ast))
+    expect.same_string(tostring(expected_ast), tostring(ast))
   end
   return ast, context
 end
@@ -294,16 +294,16 @@ local function filter_ast_for_check(t)
   return t
 end
 
-function assert.ast_type_equals(code, expected_code)
-  local ast = assert.analyze_ast(code)
-  local expected_ast = assert.analyze_ast(expected_code)
+function expect.ast_type_equals(code, expected_code)
+  local ast = expect.analyze_ast(code)
+  local expected_ast = expect.analyze_ast(expected_code)
   filter_ast_for_check(ast)
   filter_ast_for_check(expected_ast)
-  assert.same_string(tostring(expected_ast), tostring(ast))
+  expect.same_string(tostring(expected_ast), tostring(ast))
 end
 
-function assert.analyze_error(code, expected_error)
-  local ast = assert.parse_ast(nelua_parser, code)
+function expect.analyze_error(code, expected_error)
+  local ast = expect.parse_ast(nelua_parser, code)
   local ok, e = except.try(function()
     local context = AnalyzerContext(analyzer.visitors, nelua_parser, ast, config.generator)
     analyzer.analyze(context)
@@ -311,11 +311,11 @@ function assert.analyze_error(code, expected_error)
   pretty_input_onerror(code, function()
     if expected_error then
       errorer.assertf(not ok, "type analysis should fail with error '%s'", expected_error)
-      assert.contains(expected_error, e:get_message())
+      expect.contains(expected_error, e:get_message())
     else
       errorer.assertf(not ok, "type analysis should fail")
     end
   end)
 end
 
-return assert
+return expect

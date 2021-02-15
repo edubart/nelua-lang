@@ -1,86 +1,87 @@
+local lusted = require 'nelua.thirdparty.lusted'
+local describe, it = lusted.describe, lusted.it
+
 local config = require 'nelua.configer'.get()
 
-require 'busted.runner'()
+local expect = require 'spec.tools.expect'
 
-local assert = require 'spec.tools.assert'
+describe("C generator", function()
 
-describe("Nelua should parse and generate C", function()
-
-setup(function()
+lusted.before(function()
   -- must disable dead code elimination to do these tests
   config.pragmas.nodce = true
 end)
 
-teardown(function()
+lusted.after(function()
   -- must disable dead code elimination to do these tests
   config.pragmas.nodce = nil
 end)
 
 it("empty file", function()
-  assert.generate_c("", [[
+  expect.generate_c("", [[
 int nelua_main(int nelua_argc, char** nelua_argv) {
   return 0;
 }]])
 end)
 
 it("return", function()
-  assert.generate_c("return", [[
+  expect.generate_c("return", [[
 int nelua_main(int nelua_argc, char** nelua_argv) {
   return 0;
 }]])
-  assert.generate_c("return 1", [[
+  expect.generate_c("return 1", [[
 int nelua_main(int nelua_argc, char** nelua_argv) {
   return 1;
 }]])
-  assert.generate_c("return 1")
+  expect.generate_c("return 1")
 end)
 
 it("local variable", function()
-  assert.generate_c("local a = 1", "int64_t a = 1;")
+  expect.generate_c("local a = 1", "int64_t a = 1;")
 end)
 
 it("global variable", function()
-  assert.generate_c("global a = 1", "static int64_t a = 1;\n")
+  expect.generate_c("global a = 1", "static int64_t a = 1;\n")
 end)
 
 it("number", function()
-  assert.generate_c("local a = 99", "99")
-  assert.generate_c("local a = 1.2", "1.2")
-  assert.generate_c("local a = 1e2", "100")
-  assert.generate_c("local a = 1.2e-30", "1.2e-30")
-  assert.generate_c("local a = 0x1f", "0x1f")
-  assert.generate_c("local a = 0b10", "0x2")
-  assert.generate_c("local a = 1e129", "1e+129;")
+  expect.generate_c("local a = 99", "99")
+  expect.generate_c("local a = 1.2", "1.2")
+  expect.generate_c("local a = 1e2", "100")
+  expect.generate_c("local a = 1.2e-30", "1.2e-30")
+  expect.generate_c("local a = 0x1f", "0x1f")
+  expect.generate_c("local a = 0b10", "0x2")
+  expect.generate_c("local a = 1e129", "1e+129;")
 end)
 
 it("number literals", function()
-  assert.generate_c("local a = 1_integer", "int64_t a = 1;")
-  assert.generate_c("local a = 1_number", "double a = 1.0;")
-  assert.generate_c("local a = 1_byte", "uint8_t a = 1U;")
-  assert.generate_c("local a = 1_isize", "intptr_t a = 1;")
-  assert.generate_c("local a = 1_usize", "uintptr_t a = 1U;")
-  assert.generate_c("local a = 1_cint", "int a = 1;")
-  assert.generate_c("local a = 1_clong", "long a = 1;")
-  assert.generate_c("local a = 1_clonglong", "long long a = 1;")
-  assert.generate_c("local a = ' '_byte", "uint8_t a = 32U;")
-  assert.generate_c("local a = ' '_int8", "int8_t a = 32;")
-  assert.generate_c("local a = ' '_uint8", "uint8_t a = 32U;")
-  assert.generate_c("local a = ' '_cchar", "char a = ' ';")
-  assert.generate_c("local a = ' '_cschar", "signed char a = 32;")
-  assert.generate_c("local a = ' '_cuchar", "unsigned char a = 32U;")
-  assert.generate_c("local a = 'str'_cstring", 'char* a = "str"')
+  expect.generate_c("local a = 1_integer", "int64_t a = 1;")
+  expect.generate_c("local a = 1_number", "double a = 1.0;")
+  expect.generate_c("local a = 1_byte", "uint8_t a = 1U;")
+  expect.generate_c("local a = 1_isize", "intptr_t a = 1;")
+  expect.generate_c("local a = 1_usize", "uintptr_t a = 1U;")
+  expect.generate_c("local a = 1_cint", "int a = 1;")
+  expect.generate_c("local a = 1_clong", "long a = 1;")
+  expect.generate_c("local a = 1_clonglong", "long long a = 1;")
+  expect.generate_c("local a = ' '_byte", "uint8_t a = 32U;")
+  expect.generate_c("local a = ' '_int8", "int8_t a = 32;")
+  expect.generate_c("local a = ' '_uint8", "uint8_t a = 32U;")
+  expect.generate_c("local a = ' '_cchar", "char a = ' ';")
+  expect.generate_c("local a = ' '_cschar", "signed char a = 32;")
+  expect.generate_c("local a = ' '_cuchar", "unsigned char a = 32U;")
+  expect.generate_c("local a = 'str'_cstring", 'char* a = "str"')
 end)
 
 it("type cast", function()
-  assert.generate_c("do local b = 1_u64; local a = (@int16)(b) end", "int16_t a = (int16_t)b")
-  assert.generate_c("do local b = 1_u8; local a = (@int64)(b) end", "int64_t a = (int64_t)b")
-  assert.generate_c([[
+  expect.generate_c("do local b = 1_u64; local a = (@int16)(b) end", "int16_t a = (int16_t)b")
+  expect.generate_c("do local b = 1_u8; local a = (@int64)(b) end", "int64_t a = (int64_t)b")
+  expect.generate_c([[
     local a: usize
     local b: number
     local x = (@usize)((a + 1) / b)
   ]], "x = (uintptr_t)((a + 1) / b);")
 
-  assert.generate_c([[
+  expect.generate_c([[
     local R = @record{x: integer}
     local a = (@[4]integer)()
     local i = (@integer)()
@@ -99,7 +100,7 @@ it("type cast", function()
   f = 0.0f;
   r = (R){0};]])
 
-  assert.generate_c([[
+  expect.generate_c([[
     local recA = @record{a: integer}
     local recB = @record{b: integer}
     local x: recA
@@ -108,15 +109,15 @@ it("type cast", function()
 end)
 
 it("string", function()
-  assert.generate_c([[local a = "hello"]], [["hello"]])
-  assert.generate_c([[local a = "\001"]], [["\001"]])
+  expect.generate_c([[local a = "hello"]], [["hello"]])
+  expect.generate_c([[local a = "\001"]], [["\001"]])
 end)
 
 it("boolean", function()
-  assert.generate_c("local a = true", "bool a = true")
-  assert.generate_c("local a = false", "bool a = false")
+  expect.generate_c("local a = true", "bool a = true")
+  expect.generate_c("local a = false", "bool a = false")
 
-  assert.generate_c([[
+  expect.generate_c([[
     local function f() return nil end
     local b1: boolean = f()
     local b2: boolean = not f()
@@ -128,34 +129,34 @@ it("boolean", function()
 end)
 
 it("nil", function()
-  assert.generate_c("local a: niltype", "nlniltype a = NLNIL;")
-  assert.generate_c("local a: niltype = nil", "nlniltype a = NLNIL;")
-  assert.generate_c("local function f(a: niltype) end f(nil)", "f(NLNIL);")
-  assert.generate_c("local function f() <nosideeffect> return nil end assert(f() == f())",
+  expect.generate_c("local a: niltype", "nlniltype a = NLNIL;")
+  expect.generate_c("local a: niltype = nil", "nlniltype a = NLNIL;")
+  expect.generate_c("local function f(a: niltype) end f(nil)", "f(NLNIL);")
+  expect.generate_c("local function f() <nosideeffect> return nil end assert(f() == f())",
     "({(void)f(); (void)f(); true;})")
-  assert.generate_c("local function f() <nosideeffect> return nil end assert(f() ~= f())",
+  expect.generate_c("local function f() <nosideeffect> return nil end assert(f() ~= f())",
     "({(void)f(); (void)f(); false;})")
 end)
 
 it("call", function()
-  assert.generate_c("local f: function(); f()", "f();")
-  assert.generate_c("local f: function(integer), g: function(): integer; f(g())", "f(g())")
-  assert.generate_c("local f: function(integer,integer), a:integer, b:integer; f(a, b)", "f(a, b)")
-  assert.generate_c("local f: function(integer): function(integer), a:integer, b:integer; f(a)(b)", "f(a)(b)")
-  assert.generate_c("local a: record{f: function()}; a.f()", "a.f()")
-  assert.generate_c("local A=@record{f: function(*A)}; local a: A; a:f()", "(&a)->f(&a)")
-  assert.generate_c("local f: function(); do f() end", "f();")
-  assert.generate_c("local f: function(function()), g:function():function(); do f(g()) end", "f(g())")
-  assert.generate_c("local f: function(integer,integer), a:integer, b:integer; do f(a, b) end", "f(a, b)")
-  assert.generate_c("local f: function(integer): function(integer), a:integer, b:integer; do f(a)(b) end", "f(a)(b)")
-  assert.generate_c("local a: record{f: function()}; do a.f() end", "a.f()")
-  assert.generate_c("local A=@record{f: function(*A)}; do local a: A; a:f() end", "(&a)->f(&a)")
+  expect.generate_c("local f: function(); f()", "f();")
+  expect.generate_c("local f: function(integer), g: function(): integer; f(g())", "f(g())")
+  expect.generate_c("local f: function(integer,integer), a:integer, b:integer; f(a, b)", "f(a, b)")
+  expect.generate_c("local f: function(integer): function(integer), a:integer, b:integer; f(a)(b)", "f(a)(b)")
+  expect.generate_c("local a: record{f: function()}; a.f()", "a.f()")
+  expect.generate_c("local A=@record{f: function(*A)}; local a: A; a:f()", "(&a)->f(&a)")
+  expect.generate_c("local f: function(); do f() end", "f();")
+  expect.generate_c("local f: function(function()), g:function():function(); do f(g()) end", "f(g())")
+  expect.generate_c("local f: function(integer,integer), a:integer, b:integer; do f(a, b) end", "f(a, b)")
+  expect.generate_c("local f: function(integer): function(integer), a:integer, b:integer; do f(a)(b) end", "f(a)(b)")
+  expect.generate_c("local a: record{f: function()}; do a.f() end", "a.f()")
+  expect.generate_c("local A=@record{f: function(*A)}; do local a: A; a:f() end", "(&a)->f(&a)")
 end)
 
 it("callbacks", function()
-  assert.generate_c("local f: function(x: integer): integer",
+  expect.generate_c("local f: function(x: integer): integer",
     "typedef int64_t %(%*function_%w+%)%(int64_t%);", true)
-  assert.run_c([[
+  expect.run_c([[
     local function call_callback(callback: function(integer, integer): integer): integer
       return callback(1, 2)
     end
@@ -186,29 +187,29 @@ it("callbacks", function()
 end)
 
 it("if", function()
-  assert.generate_c("if nilptr then\nend","if(false) {\n")
-  assert.generate_c("if nil then\nend","if(false) {\n")
-  assert.generate_c("if 1 then\nend","if(({(void)(1); true;})) {\n")
-  assert.generate_c("local a: boolean; if a then\nend","if(a) {\n")
-  assert.generate_c("if true then\nend","if(true) {\n  }")
-  assert.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
-  assert.generate_c("if true then\nelse\nend", "if(true) {\n  } else {\n  }")
-  assert.generate_c([[
+  expect.generate_c("if nilptr then\nend","if(false) {\n")
+  expect.generate_c("if nil then\nend","if(false) {\n")
+  expect.generate_c("if 1 then\nend","if(({(void)(1); true;})) {\n")
+  expect.generate_c("local a: boolean; if a then\nend","if(a) {\n")
+  expect.generate_c("if true then\nend","if(true) {\n  }")
+  expect.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
+  expect.generate_c("if true then\nelse\nend", "if(true) {\n  } else {\n  }")
+  expect.generate_c([[
   local a: boolean, b: boolean
   if a and b then end]],
   "if(a && b) {\n")
-  assert.generate_c([[
+  expect.generate_c([[
   local a: boolean, b: boolean, c: boolean
   if a and b or c then end]],
   "if((a && b) || c) {\n")
-  assert.generate_c([[
+  expect.generate_c([[
   local a: boolean, b: boolean
   if a and not b then end]],
   "if(a && (!b)) {\n")
 end)
 
 it("switch", function()
-  assert.generate_c([[local a: integer, f: function(), g: function(), h: function()
+  expect.generate_c([[local a: integer, f: function(), g: function(), h: function()
     switch a do
       case 1 then
         f()
@@ -237,11 +238,11 @@ it("switch", function()
 end)
 
 it("do", function()
-  assert.generate_c("do\n  return\nend", "return 0;\n")
+  expect.generate_c("do\n  return\nend", "return 0;\n")
 end)
 
 it("defer", function()
-  assert.generate_c("do local x: int64 = 1 defer x = 2 end x = 3 end", [[{
+  expect.generate_c("do local x: int64 = 1 defer x = 2 end x = 3 end", [[{
     int64_t x = 1;
     x = 3;
     {
@@ -251,17 +252,17 @@ it("defer", function()
 end)
 
 it("while", function()
-  assert.generate_c("while true do\nend", "while(true) {")
+  expect.generate_c("while true do\nend", "while(true) {")
 end)
 
 it("repeat", function()
-  assert.generate_c("repeat until true", [[
+  expect.generate_c("repeat until true", [[
   while(1) {
     if(true) {
       break;
     }
   }]])
-  assert.generate_c([[
+  expect.generate_c([[
     repeat
       local a = true
     until a
@@ -272,7 +273,7 @@ it("repeat", function()
       break;
     }
   }]])
-  assert.run_c([[
+  expect.run_c([[
     local x = 0
     repeat
       x = x + 1
@@ -284,21 +285,21 @@ it("repeat", function()
 end)
 
 it("for", function()
-  assert.generate_c("local a: integer, b: integer; for i=a,b do end", {
+  expect.generate_c("local a: integer, b: integer; for i=a,b do end", {
     "for(int64_t i = a, __end = b; i <= __end; i = i + 1) {"})
-  assert.generate_c("local a: integer, b: integer, c: integer; for i=a,b do i=c end", {
+  expect.generate_c("local a: integer, b: integer, c: integer; for i=a,b do i=c end", {
     "for(int64_t __it = a, __end = b; __it <= __end; __it = __it + 1) {",
     "int64_t i = __it;"})
-  assert.generate_c("local a: integer, b: integer, c: integer; for i=a,b,c do end",
+  expect.generate_c("local a: integer, b: integer, c: integer; for i=a,b,c do end",
     "for(int64_t i = a, __end = b, __step = c; " ..
     "__step >= 0 ? i <= __end : i >= __end; i = i + __step) {")
-  assert.generate_c(
+  expect.generate_c(
     "for i=1,<2 do end",
     "for(int64_t i = 1; i < 2; i = i + 1)")
-  assert.generate_c(
+  expect.generate_c(
     "for i=2,1,-1 do end",
     "for(int64_t i = 2; i >= 1; i = i + -1)")
-  assert.run_c([[
+  expect.run_c([[
     local x = 0
     for i=1,10 do x = x + 1 end
     assert(x == 10)
@@ -324,10 +325,10 @@ it("for", function()
 end)
 
 it("break and continue", function()
-  assert.generate_c("while true do break end", "break;")
-  assert.generate_c("while true do continue end", "continue;")
+  expect.generate_c("while true do break end", "break;")
+  expect.generate_c("while true do continue end", "continue;")
 
-  assert.run_c([[
+  expect.run_c([[
     local a = 0
     for i=1,10 do
       switch i do
@@ -361,43 +362,43 @@ it("break and continue", function()
 end)
 
 it("goto", function()
-  assert.generate_c("::mylabel::\ngoto mylabel", "mylabel:;\n  goto mylabel;")
+  expect.generate_c("::mylabel::\ngoto mylabel", "mylabel:;\n  goto mylabel;")
 end)
 
 it("variable declaration", function()
-  assert.generate_c("local a: integer", "int64_t a = 0;")
-  assert.generate_c("local a: integer = 0", "int64_t a = 0;")
-  assert.generate_c("local π = 3.14", "double uCF80 = 3.14;")
+  expect.generate_c("local a: integer", "int64_t a = 0;")
+  expect.generate_c("local a: integer = 0", "int64_t a = 0;")
+  expect.generate_c("local π = 3.14", "double uCF80 = 3.14;")
 end)
 
 it("operation on comptime variables", function()
-  assert.generate_c([[
+  expect.generate_c([[
     local a <comptime> = false
     local b <comptime> = not a
     local c = b
   ]], "c = true;")
-  assert.generate_c([[
+  expect.generate_c([[
     local a <comptime> = 2
     local b <comptime> = -a
     local c = b
   ]], "c = -2;")
-  assert.generate_c([[
+  expect.generate_c([[
     local a = @integer == @integer
     local b = @integer ~= @number
   ]], {"a = true;", "b = true;"})
-  assert.generate_c([[
+  expect.generate_c([[
     local a <comptime>, b <comptime> = 1, 2
     local c <const> = (@int32)(a * b)
   ]], "static int32_t c = 2;")
-  assert.generate_c([[
+  expect.generate_c([[
     local a <comptime> = 0xffffffffffffffff_u
     local c <const> = a + a
   ]], "static uint64_t c = 18446744073709551614U;")
-  assert.generate_c([[
+  expect.generate_c([[
     local a <comptime> = 0x7fffffffffffffff
     local c <const> = a + a
   ]], "static int64_t c = -2;")
-  assert.generate_c([[
+  expect.generate_c([[
     local huge1: float64 = #[math.huge]#
     local huge2: float64 = #[-math.huge]#
     local nan: float64 = #[0.0/0.0]#
@@ -413,7 +414,7 @@ it("operation on comptime variables", function()
     "nanf = (0.0f/0.0f)",
   })
 
-  assert.run_c([[
+  expect.run_c([[
     -- sum/sub/mul
     assert(3 + 4 == 7)
     assert(3 - 4 == -1)
@@ -426,7 +427,7 @@ it("operation on comptime variables", function()
     --assert(-3_i32 & 0xfffffffb_u32 == -7)
   ]])
 
-  assert.run_c([[
+  expect.run_c([[
     local function f(a: stringview <comptime>)
        ## if a.value == 'test' then
           return 1
@@ -466,17 +467,17 @@ it("operation on comptime variables", function()
 end)
 
 it("assignment", function()
-  assert.generate_c("local a,b = 1,2; a = b" ,"a = b;")
+  expect.generate_c("local a,b = 1,2; a = b" ,"a = b;")
 end)
 
 it("multiple assignment", function()
-  assert.generate_c("local a,b,x,y=1,2,3,4; a, b = x, y", {
+  expect.generate_c("local a,b,x,y=1,2,3,4; a, b = x, y", {
     "__asgntmp1 = x;", "__asgntmp2 = y;",
     "a = __asgntmp1;", "b = __asgntmp2;" })
-  --assert.generate_c("local a: table, x:integer, y:integer; a.b, a[b] = x, y", {
+  --expect.generate_c("local a: table, x:integer, y:integer; a.b, a[b] = x, y", {
   --  "__asgntmp1 = x;", "__asgntmp2 = y;",
   --  "a.b = __asgntmp1;", "a[b] = __asgntmp2;" })
-  assert.run_c([[
+  expect.run_c([[
     local a, b = 1,2
     a, b = b, a
     assert(a == 2 and b == 1)
@@ -484,18 +485,18 @@ it("multiple assignment", function()
 end)
 
 it("function definition", function()
-  assert.generate_c("local function f() end",
+  expect.generate_c("local function f() end",
     "void f() {\n}")
-  assert.generate_c(
+  expect.generate_c(
     "local function f(): integer return 0 end",
     "int64_t f() {\n  return 0;\n")
-  assert.generate_c(
+  expect.generate_c(
     "local function f(a: integer): integer return a end",
     "int64_t f(int64_t a) {\n  return a;\n}")
 end)
 
 it("anonymous functions", function()
-  assert.run_c([[
+  expect.run_c([[
     local function call1(f: function()) f() end
     local function call2(f: function(x: integer): integer) return f(1) end
 
@@ -505,7 +506,7 @@ it("anonymous functions", function()
 end)
 
 it("poly functions", function()
-  assert.run_c([[
+  expect.run_c([[
     local function f(x: auto, y: auto)
       return x
     end
@@ -551,7 +552,7 @@ it("poly functions", function()
 end)
 
 it("poly function aliases", function()
-  assert.run_c([[
+  expect.run_c([[
     local function f(x: auto) return x + 1 end
     local g = f
     assert(g(1) == 2)
@@ -567,7 +568,7 @@ it("poly function aliases", function()
 end)
 
 it("poly function for records", function()
-  assert.run_c([[
+  expect.run_c([[
     local R = @record{}
     function R.f(x: auto)
       return x
@@ -599,7 +600,7 @@ it("poly function for records", function()
 end)
 
 it("poly functions with comptime arguments", function()
-  assert.run_c([[
+  expect.run_c([[
     local function cast(T: type, value: auto)
       return (@T)(value)
     end
@@ -631,7 +632,7 @@ it("poly functions with comptime arguments", function()
 end)
 
 it("recursive functions", function()
-  assert.run_c([[
+  expect.run_c([[
     local function decrement(n: integer): integer
       if n == 0 then
         return 0
@@ -657,36 +658,36 @@ it("recursive functions", function()
 end)
 
 it("global function definition", function()
-  assert.generate_c("local function f() end", "static void f();")
-  assert.run_c([[
+  expect.generate_c("local function f() end", "static void f();")
+  expect.run_c([[
     global function f(x: integer) return x+1 end
     assert(f(1) == 2)
   ]])
 end)
 
 it("function return", function()
-  assert.generate_c([[
+  expect.generate_c([[
     local function f(): integer return 0 end
   ]], "int64_t f() {\n  return 0;")
-  assert.generate_c([[
+  expect.generate_c([[
     local function f(): niltype return end
   ]], "return (nlniltype)NLNIL;")
-  assert.generate_c([[
+  expect.generate_c([[
     local function f(): stringview return (@stringview){} end
   ]], "nlstringview f() {\n  return (nlstringview){0};")
-  assert.generate_c([[
+  expect.generate_c([[
     local function f() return end
   ]], "return;")
 end)
 
 it("function multiple returns", function()
-  assert.generate_c([[
+  expect.generate_c([[
     local function f(): (integer, boolean) return 1, true end
   ]], {
     "function_%w+_ret f",
     "return %(function_%w+_ret%){1, true};"
   }, true)
-  assert.generate_c([[do
+  expect.generate_c([[do
     local function f(): (integer, boolean) return 1, true end
     local a, b = f()
     local c = f()
@@ -695,7 +696,7 @@ it("function multiple returns", function()
     "bool b = __ret%d+%.r2;",
     "int64_t c = %({%s+function_%w+_ret __ret%d = f.*__ret%d.r1;%s+}%)",
   }, true)
-  assert.run_c([[
+  expect.run_c([[
     local function f(): (integer, boolean) return 1, true end
     local function g() return 2, true end
     local a, b = f()
@@ -768,7 +769,7 @@ it("function multiple returns", function()
     assert(f1() == 1)
   ]])
 
-  assert.run_c([[
+  expect.run_c([[
     local function getf()
       local function f(): (integer, integer)
         return 1, 2
@@ -782,7 +783,7 @@ it("function multiple returns", function()
 end)
 
 it("call with multiple args", function()
-  assert.generate_c([[do
+  expect.generate_c([[do
     local function f(): (integer, boolean) return 1, true end
     local function g(a: int32, b: integer, c: boolean) end
     g(1, f())
@@ -790,7 +791,7 @@ it("call with multiple args", function()
     "function_%w+_ret __tmp%d+ = f%(%)",
     "g%(1, __tmp%d+.r1, __tmp%d+.r2%);"
   }, true)
-  assert.run_c([[do
+  expect.run_c([[do
     local function f(): (integer, integer) return 1, 2 end
     local function g(a: integer, b: integer, c: integer) return a + b + c end
     assert(g(3, f()) == 6)
@@ -800,7 +801,7 @@ it("call with multiple args", function()
 end)
 
 it("call with side effects", function()
-  assert.run_c([[do
+  expect.run_c([[do
     local function f(x: integer) print(x) return x end
     local function g(a: integer, b: integer, c: integer) return a+b+c end
     assert(f(1) + f(2) + f(3) == 6)
@@ -809,29 +810,29 @@ it("call with side effects", function()
 end)
 
 it("unary operator `not`", function()
-  assert.generate_c("local x = not true", "x = false;")
-  assert.generate_c("local x = not false", "x = true;")
-  assert.generate_c("local x = not nil", "x = (!false);")
-  assert.generate_c("local x = not nilptr", "x = (!false);")
-  assert.generate_c("local x = not 'a'", "x = false;")
-  assert.generate_c("local a = true; local x = not a", "x = (!a);")
-  --assert.generate_c("local a = nil; local x = not a", "x = true;")
-  --assert.generate_c("local a = nilptr; local x = not a", "x = !a;")
+  expect.generate_c("local x = not true", "x = false;")
+  expect.generate_c("local x = not false", "x = true;")
+  expect.generate_c("local x = not nil", "x = (!false);")
+  expect.generate_c("local x = not nilptr", "x = (!false);")
+  expect.generate_c("local x = not 'a'", "x = false;")
+  expect.generate_c("local a = true; local x = not a", "x = (!a);")
+  --expect.generate_c("local a = nil; local x = not a", "x = true;")
+  --expect.generate_c("local a = nilptr; local x = not a", "x = !a;")
 end)
 
 it("unary operator `ref`", function()
-  assert.generate_c("local a = 1; local x = &a", "x = (&a);")
+  expect.generate_c("local a = 1; local x = &a", "x = (&a);")
 end)
 
 it("unary operator `unm`", function()
-  assert.generate_c("local a = 1; local x = -a", "(-a);")
+  expect.generate_c("local a = 1; local x = -a", "(-a);")
 end)
 
 it("unary operator `deref`", function()
-  assert.generate_c("local a: *integer; local x = $a", "x = (*nelua_assert_deref_nlint64_ptr(a));")
+  expect.generate_c("local a: *integer; local x = $a", "x = (*nelua_assert_deref_nlint64_ptr(a));")
   config.pragmas.nochecks = true
-  assert.generate_c("local a: *integer; local x = $a", "x = (*a);")
-  assert.generate_c([[
+  expect.generate_c("local a: *integer; local x = $a", "x = (*a);")
+  expect.generate_c([[
     local UnchekedByteArray = @[0]byte
     local x: UnchekedByteArray = $(@*UnchekedByteArray)(''_cstring)
   ]], 'static nluint8_arr0 x = {};')
@@ -839,131 +840,131 @@ it("unary operator `deref`", function()
 end)
 
 it("unary operator `bnot`", function()
-  assert.generate_c("local a = 1; local x = ~a", "(~a);")
-  assert.generate_c("local a = 2; local x=~a",      "x = (~a);")
-  assert.generate_c("local x = ~1", "x = -2;")
-  assert.generate_c("local x = ~-2", "x = 1;")
-  assert.generate_c("local x = ~0x2_u8", "x = 253U;")
+  expect.generate_c("local a = 1; local x = ~a", "(~a);")
+  expect.generate_c("local a = 2; local x=~a",      "x = (~a);")
+  expect.generate_c("local x = ~1", "x = -2;")
+  expect.generate_c("local x = ~-2", "x = 1;")
+  expect.generate_c("local x = ~0x2_u8", "x = 253U;")
 end)
 
 it("unary operator `len`", function()
-  assert.generate_c("local x = #@integer", "x = 8;")
-  assert.generate_c("local x = #'asd'", "x = 3;")
-  assert.generate_c("local x = #@[4]integer", "x = 32;")
-  --assert.generate_c("a = 'asd'; local x = #a", "x = 3;")
+  expect.generate_c("local x = #@integer", "x = 8;")
+  expect.generate_c("local x = #'asd'", "x = 3;")
+  expect.generate_c("local x = #@[4]integer", "x = 32;")
+  --expect.generate_c("a = 'asd'; local x = #a", "x = 3;")
 end)
 
 it("unary operator `lt`", function()
-  assert.generate_c("local a, b = 1, 2; local x = a < b", "a < b")
-  assert.generate_c("local x = 1 < 1", "x = false;")
-  assert.generate_c("local x = 1 < 2", "x = true;")
-  assert.generate_c("local x = 2 < 1", "x = false;")
-  assert.generate_c("local x = 'a' < 'a'", "x = false;")
-  assert.generate_c("local x = 'a' < 'b'", "x = true;")
-  assert.generate_c("local x = 'b' < 'a'", "x = false;")
+  expect.generate_c("local a, b = 1, 2; local x = a < b", "a < b")
+  expect.generate_c("local x = 1 < 1", "x = false;")
+  expect.generate_c("local x = 1 < 2", "x = true;")
+  expect.generate_c("local x = 2 < 1", "x = false;")
+  expect.generate_c("local x = 'a' < 'a'", "x = false;")
+  expect.generate_c("local x = 'a' < 'b'", "x = true;")
+  expect.generate_c("local x = 'b' < 'a'", "x = false;")
 end)
 
 it("unary operator `le`", function()
-  assert.generate_c("local a, b = 1, 2; local x = a <= b", "a <= b")
-  assert.generate_c("local x = 1 <= 1", "x = true;")
-  assert.generate_c("local x = 1 <= 2", "x = true;")
-  assert.generate_c("local x = 2 <= 1", "x = false;")
-  assert.generate_c("local x = 'a' <= 'a'", "x = true;")
-  assert.generate_c("local x = 'a' <= 'b'", "x = true;")
-  assert.generate_c("local x = 'b' <= 'a'", "x = false;")
+  expect.generate_c("local a, b = 1, 2; local x = a <= b", "a <= b")
+  expect.generate_c("local x = 1 <= 1", "x = true;")
+  expect.generate_c("local x = 1 <= 2", "x = true;")
+  expect.generate_c("local x = 2 <= 1", "x = false;")
+  expect.generate_c("local x = 'a' <= 'a'", "x = true;")
+  expect.generate_c("local x = 'a' <= 'b'", "x = true;")
+  expect.generate_c("local x = 'b' <= 'a'", "x = false;")
 end)
 
 it("unary operator `gt`", function()
-  assert.generate_c("local a, b = 1, 2; local x = a > b", "a > b")
-  assert.generate_c("local x = 1 > 1", "x = false;")
-  assert.generate_c("local x = 1 > 2", "x = false;")
-  assert.generate_c("local x = 2 > 1", "x = true;")
-  assert.generate_c("local x = 'a' > 'a'", "x = false;")
-  assert.generate_c("local x = 'a' > 'b'", "x = false;")
-  assert.generate_c("local x = 'b' > 'a'", "x = true;")
+  expect.generate_c("local a, b = 1, 2; local x = a > b", "a > b")
+  expect.generate_c("local x = 1 > 1", "x = false;")
+  expect.generate_c("local x = 1 > 2", "x = false;")
+  expect.generate_c("local x = 2 > 1", "x = true;")
+  expect.generate_c("local x = 'a' > 'a'", "x = false;")
+  expect.generate_c("local x = 'a' > 'b'", "x = false;")
+  expect.generate_c("local x = 'b' > 'a'", "x = true;")
 end)
 
 it("unary operator `ge`", function()
-  assert.generate_c("local a, b = 1, 2; local x = a >= b", "a >= b")
-  assert.generate_c("local x = 1 >= 1", "x = true;")
-  assert.generate_c("local x = 1 >= 2", "x = false;")
-  assert.generate_c("local x = 2 >= 1", "x = true;")
-  assert.generate_c("local x = 'a' >= 'a'", "x = true;")
-  assert.generate_c("local x = 'a' >= 'b'", "x = false;")
-  assert.generate_c("local x = 'b' >= 'a'", "x = true;")
+  expect.generate_c("local a, b = 1, 2; local x = a >= b", "a >= b")
+  expect.generate_c("local x = 1 >= 1", "x = true;")
+  expect.generate_c("local x = 1 >= 2", "x = false;")
+  expect.generate_c("local x = 2 >= 1", "x = true;")
+  expect.generate_c("local x = 'a' >= 'a'", "x = true;")
+  expect.generate_c("local x = 'a' >= 'b'", "x = false;")
+  expect.generate_c("local x = 'b' >= 'a'", "x = true;")
 end)
 
 it("binary operator `eq`", function()
-  assert.generate_c("local a, b = 1, 2; local x = a == b", "a == b")
-  assert.generate_c("local x = 1 == 1", "x = true;")
-  assert.generate_c("local x = 1 == 2", "x = false;")
-  assert.generate_c("local x = 1 == '1'", "x = false;")
-  assert.generate_c("local x = '1' == 1", "x = false;")
-  assert.generate_c("local x = '1' == '1'", "x = true;")
-  assert.generate_c("local a,b = 1,2; local x = a == b", "x = (a == b);")
-  assert.generate_c("local a: pointer, b: *boolean; local x = a == b", "x = (a == (void*)b);")
-  assert.generate_c("local x = 0e12 == 0", "x = true;")
+  expect.generate_c("local a, b = 1, 2; local x = a == b", "a == b")
+  expect.generate_c("local x = 1 == 1", "x = true;")
+  expect.generate_c("local x = 1 == 2", "x = false;")
+  expect.generate_c("local x = 1 == '1'", "x = false;")
+  expect.generate_c("local x = '1' == 1", "x = false;")
+  expect.generate_c("local x = '1' == '1'", "x = true;")
+  expect.generate_c("local a,b = 1,2; local x = a == b", "x = (a == b);")
+  expect.generate_c("local a: pointer, b: *boolean; local x = a == b", "x = (a == (void*)b);")
+  expect.generate_c("local x = 0e12 == 0", "x = true;")
 end)
 
 it("binary operator `ne`", function()
-  assert.generate_c("local a, b = 1, 2; local x = a ~= b", "a != b")
-  assert.generate_c("local x = 1 ~= 1", "x = false;")
-  assert.generate_c("local x = 1 ~= 2", "x = true;")
-  assert.generate_c("local x = 1 ~= 's'", "x = true;")
-  assert.generate_c("local x = 's' ~= 1", "x = true;")
-  assert.generate_c("local a,b = 1,2; local x = a ~= b", "x = (a != b);")
+  expect.generate_c("local a, b = 1, 2; local x = a ~= b", "a != b")
+  expect.generate_c("local x = 1 ~= 1", "x = false;")
+  expect.generate_c("local x = 1 ~= 2", "x = true;")
+  expect.generate_c("local x = 1 ~= 's'", "x = true;")
+  expect.generate_c("local x = 's' ~= 1", "x = true;")
+  expect.generate_c("local a,b = 1,2; local x = a ~= b", "x = (a != b);")
 end)
 
 it("binary operator `add`", function()
-  assert.generate_c("local a, b = 1, 2; local x = a + b",       "a + b")
-  assert.generate_c("local x = 3 + 2",       "x = 5;")
-  assert.generate_c("local x = 3.0 + 2.0",   "x = 5.0;")
+  expect.generate_c("local a, b = 1, 2; local x = a + b",       "a + b")
+  expect.generate_c("local x = 3 + 2",       "x = 5;")
+  expect.generate_c("local x = 3.0 + 2.0",   "x = 5.0;")
 end)
 
 it("binary operator `sub`", function()
-  assert.generate_c("local a, b = 1, 2; local x = a - b",       "a - b")
-  assert.generate_c("local x = 3 - 2",       "x = 1;")
-  assert.generate_c("local x = 3.0 - 2.0",   "x = 1.0;")
+  expect.generate_c("local a, b = 1, 2; local x = a - b",       "a - b")
+  expect.generate_c("local x = 3 - 2",       "x = 1;")
+  expect.generate_c("local x = 3.0 - 2.0",   "x = 1.0;")
 end)
 
 it("binary operator `mul`", function()
-  assert.generate_c("local a, b = 1, 2; local x = a * b",       "a * b")
-  assert.generate_c("local x = 3 * 2",       "x = 6;")
-  assert.generate_c("local x = 3.0 * 2.0",   "x = 6.0;")
+  expect.generate_c("local a, b = 1, 2; local x = a * b",       "a * b")
+  expect.generate_c("local x = 3 * 2",       "x = 6;")
+  expect.generate_c("local x = 3.0 * 2.0",   "x = 6.0;")
 end)
 
 it("binary operator `div`", function()
-  assert.generate_c("local x = 3 / 2",                   "x = 1.5;")
-  assert.generate_c("local x = (@float64)(3 / 2)",       "x = 1.5;")
-  assert.generate_c("local x = 3 / 2_int64",             "x = 1.5;")
-  assert.generate_c("local x = 3.0 / 2",                 "x = 1.5;")
-  assert.generate_c("local x = (@integer)(3_i / 2_i)",   "x = (int64_t)1.5;")
-  assert.generate_c("local x = (@integer)(3 / 2_int64)", "x = (int64_t)1.5;")
-  assert.generate_c("local x =  3 /  4",                 "x = 0.75;")
-  assert.generate_c("local x = -3 /  4",                 "x = -0.75;")
-  assert.generate_c("local x =  3 / -4",                 "x = -0.75;")
-  assert.generate_c("local x = -3 / -4",                 "x = 0.75;")
-  assert.generate_c("local a,b = 1,2; local x=a/b",      "x = (a / (double)b);")
-  assert.generate_c("local a,b = 1.0,2.0; local x=a/b",  "x = (a / b);")
+  expect.generate_c("local x = 3 / 2",                   "x = 1.5;")
+  expect.generate_c("local x = (@float64)(3 / 2)",       "x = 1.5;")
+  expect.generate_c("local x = 3 / 2_int64",             "x = 1.5;")
+  expect.generate_c("local x = 3.0 / 2",                 "x = 1.5;")
+  expect.generate_c("local x = (@integer)(3_i / 2_i)",   "x = (int64_t)1.5;")
+  expect.generate_c("local x = (@integer)(3 / 2_int64)", "x = (int64_t)1.5;")
+  expect.generate_c("local x =  3 /  4",                 "x = 0.75;")
+  expect.generate_c("local x = -3 /  4",                 "x = -0.75;")
+  expect.generate_c("local x =  3 / -4",                 "x = -0.75;")
+  expect.generate_c("local x = -3 / -4",                 "x = 0.75;")
+  expect.generate_c("local a,b = 1,2; local x=a/b",      "x = (a / (double)b);")
+  expect.generate_c("local a,b = 1.0,2.0; local x=a/b",  "x = (a / b);")
 end)
 
 it("binary operator `idiv`", function()
-  assert.generate_c("local x = 3 // 2",      "x = 1;")
-  assert.generate_c("local x = 3 // 2.0",    "x = 1.0;")
-  assert.generate_c("local x = 3.0 // 2.0",  "x = 1.0;")
-  assert.generate_c("local x = 3.0 // 2",    "x = 1.0;")
-  assert.generate_c("local x =  7 //  3",    "x = 2;")
-  assert.generate_c("local x = -7 //  3",    "x = -3;")
-  assert.generate_c("local x =  7 // -3",    "x = -3;")
-  assert.generate_c("local x = -7 // -3",    "x = 2;")
-  assert.generate_c("local x =  7 //  3.0",  "x = 2.0;")
-  assert.generate_c("local x = -7 //  3.0",  "x = -3.0;")
-  assert.generate_c("local x =  7 // -3.0",  "x = -3.0;")
-  assert.generate_c("local x = -7 // -3.0",  "x = 2.0;")
-  assert.generate_c("local a,b = 1_u,2_u; local x=a//b",      "x = (a / b);")
-  assert.generate_c("local a,b = 1,2; local x=a//b",      "x = (nelua_idiv_nlint64(a, b));")
-  assert.generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = (floor(a / b));")
-  assert.run_c([[
+  expect.generate_c("local x = 3 // 2",      "x = 1;")
+  expect.generate_c("local x = 3 // 2.0",    "x = 1.0;")
+  expect.generate_c("local x = 3.0 // 2.0",  "x = 1.0;")
+  expect.generate_c("local x = 3.0 // 2",    "x = 1.0;")
+  expect.generate_c("local x =  7 //  3",    "x = 2;")
+  expect.generate_c("local x = -7 //  3",    "x = -3;")
+  expect.generate_c("local x =  7 // -3",    "x = -3;")
+  expect.generate_c("local x = -7 // -3",    "x = 2;")
+  expect.generate_c("local x =  7 //  3.0",  "x = 2.0;")
+  expect.generate_c("local x = -7 //  3.0",  "x = -3.0;")
+  expect.generate_c("local x =  7 // -3.0",  "x = -3.0;")
+  expect.generate_c("local x = -7 // -3.0",  "x = 2.0;")
+  expect.generate_c("local a,b = 1_u,2_u; local x=a//b",      "x = (a / b);")
+  expect.generate_c("local a,b = 1,2; local x=a//b",      "x = (nelua_idiv_nlint64(a, b));")
+  expect.generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = (floor(a / b));")
+  expect.run_c([[
     do
       local a, b = 7, 3
       assert(a // b == 2)
@@ -989,25 +990,25 @@ it("binary operator `idiv`", function()
 end)
 
 it("binary operator `tdiv`", function()
-  assert.generate_c("local x = 3 /// 2",      "x = 1;")
-  assert.generate_c("local x = 3 /// 2.0",    "x = 1.0;")
-  assert.generate_c("local x = 3.0 /// 2.0",  "x = 1.0;")
-  assert.generate_c("local x = 3.0 /// 2",    "x = 1.0;")
-  assert.generate_c("local x =  7 ///  3",    "x = 2;")
-  assert.generate_c("local x = -7 ///  3",    "x = -2;")
-  assert.generate_c("local x =  7 /// -3",    "x = -2;")
-  assert.generate_c("local x = -7 /// -3",    "x = 2;")
-  assert.generate_c("local x =  7 ///  3.0",  "x = 2.0;")
-  assert.generate_c("local x = -7 ///  3.0",  "x = -2.0;")
-  assert.generate_c("local x =  7 /// -3.0",  "x = -2.0;")
-  assert.generate_c("local x = -7 /// -3.0",  "x = 2.0;")
-  assert.generate_c("local x =  7.0 ///  3.0",  "x = 2.0;")
-  assert.generate_c("local x = -7.0 ///  3.0",  "x = -2.0;")
-  assert.generate_c("local x =  7.0 /// -3.0",  "x = -2.0;")
-  assert.generate_c("local x = -7.0 /// -3.0",  "x = 2.0;")
-  assert.generate_c("local a,b = 1,2; local x=a///b",      "x = (a / b);")
-  assert.generate_c("local a,b = 1.0,2.0; local x=a///b",  "x = (trunc(a / b));")
-  assert.run_c([[
+  expect.generate_c("local x = 3 /// 2",      "x = 1;")
+  expect.generate_c("local x = 3 /// 2.0",    "x = 1.0;")
+  expect.generate_c("local x = 3.0 /// 2.0",  "x = 1.0;")
+  expect.generate_c("local x = 3.0 /// 2",    "x = 1.0;")
+  expect.generate_c("local x =  7 ///  3",    "x = 2;")
+  expect.generate_c("local x = -7 ///  3",    "x = -2;")
+  expect.generate_c("local x =  7 /// -3",    "x = -2;")
+  expect.generate_c("local x = -7 /// -3",    "x = 2;")
+  expect.generate_c("local x =  7 ///  3.0",  "x = 2.0;")
+  expect.generate_c("local x = -7 ///  3.0",  "x = -2.0;")
+  expect.generate_c("local x =  7 /// -3.0",  "x = -2.0;")
+  expect.generate_c("local x = -7 /// -3.0",  "x = 2.0;")
+  expect.generate_c("local x =  7.0 ///  3.0",  "x = 2.0;")
+  expect.generate_c("local x = -7.0 ///  3.0",  "x = -2.0;")
+  expect.generate_c("local x =  7.0 /// -3.0",  "x = -2.0;")
+  expect.generate_c("local x = -7.0 /// -3.0",  "x = 2.0;")
+  expect.generate_c("local a,b = 1,2; local x=a///b",      "x = (a / b);")
+  expect.generate_c("local a,b = 1.0,2.0; local x=a///b",  "x = (trunc(a / b));")
+  expect.run_c([[
     do
       local a, b = 7, 3
       assert(a /// b == 2)
@@ -1028,26 +1029,26 @@ it("binary operator `tdiv`", function()
 end)
 
 it("binary operator `mod`", function()
-  --assert.generate_c("local x = a % b")
-  assert.generate_c("local x = 3 % 2",       "x = 1;")
-  assert.generate_c("local x = 3.0 % 2.0",   "x = 1.0;")
-  assert.generate_c("local x = 3.0 % 2",     "x = 1.0;")
-  assert.generate_c("local x = 3 % 2.0",     "x = 1.0;")
-  assert.generate_c("local x =  7 %  3",     "x = 1;")
-  assert.generate_c("local x = -7 %  3",     "x = 2;")
-  assert.generate_c("local x =  7 % -3",     "x = -2;")
-  assert.generate_c("local x = -7 % -3",     "x = -1;")
-  assert.generate_c("local x =  7 %  3.0",   "x = 1.0;")
-  assert.generate_c("local x = -7 %  3.0",   "x = 2.0;")
-  assert.generate_c("local x =  7 % -3.0",   "x = -2.0;")
-  assert.generate_c("local x = -7 % -3.0",   "x = -1.0;")
-  assert.generate_c("local x = -7.0 % 3.0",  "x = 2.0;")
-  assert.generate_c("local a, b = 3, 2;     local x = a % b", "x = (nelua_imod_nlint64(a, b));")
-  assert.generate_c("local a, b = 3_u, 2_u; local x = a % b", "x = (a % b);")
-  assert.generate_c("local a, b = 3.0, 2;   local x = a % b", "x = (nelua_fmod(a, b));")
-  assert.generate_c("local a, b = 3, 2.0;   local x = a % b", "x = (nelua_fmod(a, b));")
-  assert.generate_c("local a, b = 3.0, 2.0; local x = a % b", "x = (nelua_fmod(a, b));")
-  assert.run_c([[
+  --expect.generate_c("local x = a % b")
+  expect.generate_c("local x = 3 % 2",       "x = 1;")
+  expect.generate_c("local x = 3.0 % 2.0",   "x = 1.0;")
+  expect.generate_c("local x = 3.0 % 2",     "x = 1.0;")
+  expect.generate_c("local x = 3 % 2.0",     "x = 1.0;")
+  expect.generate_c("local x =  7 %  3",     "x = 1;")
+  expect.generate_c("local x = -7 %  3",     "x = 2;")
+  expect.generate_c("local x =  7 % -3",     "x = -2;")
+  expect.generate_c("local x = -7 % -3",     "x = -1;")
+  expect.generate_c("local x =  7 %  3.0",   "x = 1.0;")
+  expect.generate_c("local x = -7 %  3.0",   "x = 2.0;")
+  expect.generate_c("local x =  7 % -3.0",   "x = -2.0;")
+  expect.generate_c("local x = -7 % -3.0",   "x = -1.0;")
+  expect.generate_c("local x = -7.0 % 3.0",  "x = 2.0;")
+  expect.generate_c("local a, b = 3, 2;     local x = a % b", "x = (nelua_imod_nlint64(a, b));")
+  expect.generate_c("local a, b = 3_u, 2_u; local x = a % b", "x = (a % b);")
+  expect.generate_c("local a, b = 3.0, 2;   local x = a % b", "x = (nelua_fmod(a, b));")
+  expect.generate_c("local a, b = 3, 2.0;   local x = a % b", "x = (nelua_fmod(a, b));")
+  expect.generate_c("local a, b = 3.0, 2.0; local x = a % b", "x = (nelua_fmod(a, b));")
+  expect.run_c([[
     do
       local a, b = 7, 3
       assert(a % b == 1)
@@ -1068,25 +1069,25 @@ it("binary operator `mod`", function()
 end)
 
 it("binary operator `tmod`", function()
-  assert.generate_c("local x = 3 %%% 2",       "x = 1;")
-  assert.generate_c("local x = 3.0 %%% 2.0",   "x = 1.0;")
-  assert.generate_c("local x = 3.0 %%% 2",     "x = 1.0;")
-  assert.generate_c("local x = 3 %%% 2.0",     "x = 1.0;")
-  assert.generate_c("local x =  7 %%%  3",     "x = 1;")
-  assert.generate_c("local x = -7 %%%  3",     "x = -1;")
-  assert.generate_c("local x =  7 %%% -3",     "x = 1;")
-  assert.generate_c("local x = -7 %%% -3",     "x = -1;")
-  assert.generate_c("local x =  7 %%%  3.0",   "x = 1.0;")
-  assert.generate_c("local x = -7 %%%  3.0",   "x = -1.0;")
-  assert.generate_c("local x =  7 %%% -3.0",   "x = 1.0;")
-  assert.generate_c("local x = -7 %%% -3.0",   "x = -1.0;")
-  assert.generate_c("local x = -7.0 %%% 3.0",  "x = -1.0;")
-  assert.generate_c("local a, b = 3, 2;     local x = a %%% b", "x = (a % b);")
-  assert.generate_c("local a, b = 3_u, 2_u; local x = a %%% b", "x = (a % b);")
-  assert.generate_c("local a, b = 3.0, 2;   local x = a %%% b", "x = (fmod(a, b));")
-  assert.generate_c("local a, b = 3, 2.0;   local x = a %%% b", "x = (fmod(a, b));")
-  assert.generate_c("local a, b = 3.0, 2.0; local x = a %%% b", "x = (fmod(a, b));")
-  assert.run_c([[
+  expect.generate_c("local x = 3 %%% 2",       "x = 1;")
+  expect.generate_c("local x = 3.0 %%% 2.0",   "x = 1.0;")
+  expect.generate_c("local x = 3.0 %%% 2",     "x = 1.0;")
+  expect.generate_c("local x = 3 %%% 2.0",     "x = 1.0;")
+  expect.generate_c("local x =  7 %%%  3",     "x = 1;")
+  expect.generate_c("local x = -7 %%%  3",     "x = -1;")
+  expect.generate_c("local x =  7 %%% -3",     "x = 1;")
+  expect.generate_c("local x = -7 %%% -3",     "x = -1;")
+  expect.generate_c("local x =  7 %%%  3.0",   "x = 1.0;")
+  expect.generate_c("local x = -7 %%%  3.0",   "x = -1.0;")
+  expect.generate_c("local x =  7 %%% -3.0",   "x = 1.0;")
+  expect.generate_c("local x = -7 %%% -3.0",   "x = -1.0;")
+  expect.generate_c("local x = -7.0 %%% 3.0",  "x = -1.0;")
+  expect.generate_c("local a, b = 3, 2;     local x = a %%% b", "x = (a % b);")
+  expect.generate_c("local a, b = 3_u, 2_u; local x = a %%% b", "x = (a % b);")
+  expect.generate_c("local a, b = 3.0, 2;   local x = a %%% b", "x = (fmod(a, b));")
+  expect.generate_c("local a, b = 3, 2.0;   local x = a %%% b", "x = (fmod(a, b));")
+  expect.generate_c("local a, b = 3.0, 2.0; local x = a %%% b", "x = (fmod(a, b));")
+  expect.run_c([[
     do
       local a, b = 7, 3
       assert(a %%% b == 1)
@@ -1108,59 +1109,59 @@ end)
 
 
 it("binary operator `pow`", function()
-  --assert.generate_c("local x = a ^ b")
-  assert.generate_c("local a,b = 2,2; local x = a ^ b", "x = (pow(a, b));")
-  assert.generate_c("local x = 2 ^ 2", "x = 4.0;")
-  assert.generate_c("local x = 2_f32 ^ 2_f32", "x = 4.0f;")
-  assert.generate_c("local a,b = 2_f32,2_f32; local x = a ^ b", "x = (powf(a, b));")
+  --expect.generate_c("local x = a ^ b")
+  expect.generate_c("local a,b = 2,2; local x = a ^ b", "x = (pow(a, b));")
+  expect.generate_c("local x = 2 ^ 2", "x = 4.0;")
+  expect.generate_c("local x = 2_f32 ^ 2_f32", "x = 4.0f;")
+  expect.generate_c("local a,b = 2_f32,2_f32; local x = a ^ b", "x = (powf(a, b));")
 end)
 
 it("binary operator `band`", function()
-  assert.generate_c("local x = 3 & 5",                   "x = 1;")
-  assert.generate_c("local x = -0xfffffffd & 5",         "x = 1;")
-  assert.generate_c("local x = -3 & -5",                 "x = -7;")
-  assert.generate_c("local x = -3_i32 & 0xfffffffb_u32", "x = -7;")
+  expect.generate_c("local x = 3 & 5",                   "x = 1;")
+  expect.generate_c("local x = -0xfffffffd & 5",         "x = 1;")
+  expect.generate_c("local x = -3 & -5",                 "x = -7;")
+  expect.generate_c("local x = -3_i32 & 0xfffffffb_u32", "x = -7;")
 end)
 
 it("binary operator `bor`", function()
-  assert.generate_c("local a,b = 1,2; local x = a | b", "(a | b);")
-  assert.generate_c("local x = 3 | 5", "x = 7;")
-  assert.generate_c("local x = 3 | -5", "x = -5;")
-  assert.generate_c("local x = -0xfffffffffffffffd | 5", "x = 7;")
-  assert.generate_c("local x = -3 | -5", "x = -1;")
+  expect.generate_c("local a,b = 1,2; local x = a | b", "(a | b);")
+  expect.generate_c("local x = 3 | 5", "x = 7;")
+  expect.generate_c("local x = 3 | -5", "x = -5;")
+  expect.generate_c("local x = -0xfffffffffffffffd | 5", "x = 7;")
+  expect.generate_c("local x = -3 | -5", "x = -1;")
 end)
 
 it("binary operator `bxor`", function()
-  assert.generate_c("local a,b = 1,2; local x = a ~ b", "(a ^ b);")
-  assert.generate_c("local x = 3 ~ 5", "x = 6;")
-  assert.generate_c("local x = 3 ~ -5", "x = -8;")
-  assert.generate_c("local x = -3 ~ -5", "x = 6;")
+  expect.generate_c("local a,b = 1,2; local x = a ~ b", "(a ^ b);")
+  expect.generate_c("local x = 3 ~ 5", "x = 6;")
+  expect.generate_c("local x = 3 ~ -5", "x = -8;")
+  expect.generate_c("local x = -3 ~ -5", "x = 6;")
 end)
 
 it("binary operator `shl`", function()
-  assert.generate_c("local a,b = 1,2; local x = a << b", "nelua_shl_nlint64(a, b)")
-  assert.generate_c("local x = 6 << 1", "x = 12;")
-  assert.generate_c("local x = 6 << 0", "x = 6;")
-  assert.generate_c("local x = 6 << -1", "x = 3;")
+  expect.generate_c("local a,b = 1,2; local x = a << b", "nelua_shl_nlint64(a, b)")
+  expect.generate_c("local x = 6 << 1", "x = 12;")
+  expect.generate_c("local x = 6 << 0", "x = 6;")
+  expect.generate_c("local x = 6 << -1", "x = 3;")
 end)
 
 it("binary operator `shr`", function()
-  assert.generate_c("local a,b = 1,2; local x = a >> b", "nelua_shr_nlint64(a, b)")
-  assert.generate_c("local x = 6 >> 1", "x = 3;")
-  assert.generate_c("local x = 6 >> 0", "x = 6;")
-  assert.generate_c("local x = 6 >> -1", "x = 12;")
+  expect.generate_c("local a,b = 1,2; local x = a >> b", "nelua_shr_nlint64(a, b)")
+  expect.generate_c("local x = 6 >> 1", "x = 3;")
+  expect.generate_c("local x = 6 >> 0", "x = 6;")
+  expect.generate_c("local x = 6 >> -1", "x = 12;")
 end)
 
 it("binary operator `asr`", function()
-  assert.generate_c("local a,b = 1,2; local x = a >>> b", "nelua_asr_nlint64(a, b)")
-  assert.generate_c("local x = 6 >>> 1", "x = 3;")
-  assert.generate_c("local x = 6 >>> 0", "x = 6;")
-  assert.generate_c("local x = 6 >>> -1", "x = 12;")
-  assert.generate_c("local x = -5 >>> 1", "x = -3;")
+  expect.generate_c("local a,b = 1,2; local x = a >>> b", "nelua_asr_nlint64(a, b)")
+  expect.generate_c("local x = 6 >>> 1", "x = 3;")
+  expect.generate_c("local x = 6 >>> 0", "x = 6;")
+  expect.generate_c("local x = 6 >>> -1", "x = 12;")
+  expect.generate_c("local x = -5 >>> 1", "x = -3;")
 end)
 
 it("binary shifting", function()
-  assert.run_c([[
+  expect.run_c([[
     local a: int64 = 6
     assert((a << 64) == 0)
     assert((a >> 64) == 0)
@@ -1219,13 +1220,13 @@ it("binary shifting", function()
   ]])
 end)
 it("binary operator `concat`", function()
-  assert.generate_c("local x = 'a' .. 'b'", [["ab"]])
+  expect.generate_c("local x = 'a' .. 'b'", [["ab"]])
 end)
 
 it("string comparisons", function()
-  assert.generate_c("local a,b = 'a','b'; local x = a == b", "nelua_stringview_eq(a, b)")
-  assert.generate_c("local a,b = 'a','b'; local x = a ~= b", "nelua_stringview_ne(a, b)")
-  assert.run_c([[
+  expect.generate_c("local a,b = 'a','b'; local x = a == b", "nelua_stringview_eq(a, b)")
+  expect.generate_c("local a,b = 'a','b'; local x = a ~= b", "nelua_stringview_ne(a, b)")
+  expect.run_c([[
     assert('a' == 'a')
     assert(not ('a' ~= 'a'))
     assert('a' ~= 'b')
@@ -1240,7 +1241,7 @@ it("string comparisons", function()
 end)
 
 it("array comparisons", function()
-  assert.run_c([[
+  expect.run_c([[
     local A = @[4]integer
     local a: A = {1,2,3,4}
     local b: A = {1,2,3,4}
@@ -1255,7 +1256,7 @@ it("array comparisons", function()
 end)
 
 it("signed and unsigned comparisons", function()
-  assert.run_c([[
+  expect.run_c([[
     local a: int32 = -1
     local b: uint32 = 0xffffffff
     assert(not (@uint32)(a) ~= b)
@@ -1278,7 +1279,7 @@ it("signed and unsigned comparisons", function()
 end)
 
 it("record comparisons", function()
-  assert.run_c([[
+  expect.run_c([[
     local R = @record{x: integer, y: integer}
     local a: R = {1,1}
     local b: R = {1,1}
@@ -1323,7 +1324,7 @@ it("record comparisons", function()
 end)
 
 it("binary conditional operators", function()
-  assert.generate_c("local a: pointer, b: pointer; do return a or b end",  [[({
+  expect.generate_c("local a: pointer, b: pointer; do return a or b end",  [[({
       void* t1_ = a;
       void* t2_ = {0};
       bool cond_ = (t1_ != NULL);
@@ -1332,7 +1333,7 @@ it("binary conditional operators", function()
       }
       cond_ ? t1_ : t2_;
     })]])
-  assert.generate_c("local a: pointer, b: pointer; return a and b",  [[({
+  expect.generate_c("local a: pointer, b: pointer; return a and b",  [[({
     void* t1_ = a;
     void* t2_ = {0};
     bool cond_ = (t1_ != NULL);
@@ -1342,7 +1343,7 @@ it("binary conditional operators", function()
     }
     cond_ ? t2_ : (void*){0};
   })]])
-  assert.generate_c([[
+  expect.generate_c([[
     local p: pointer
     local i: integer = 1
     local b: boolean = i == 0 or p
@@ -1351,7 +1352,7 @@ it("binary conditional operators", function()
     "b = ((i == 0) || (p != NULL));",
     "b2 = ((i == 0) || (p != NULL));"
   })
-  assert.generate_c([[
+  expect.generate_c([[
     local p: *integer
     local a: pointer, b: pointer
     if p and a == b then end
@@ -1360,7 +1361,7 @@ it("binary conditional operators", function()
     "if((p != NULL) && (a == b))",
     "while((p != NULL) && (a == b))"
   })
-  assert.run_c([[
+  expect.run_c([[
     local a = 2 or 3
     assert(a == 2)
     assert((2 and 3) == 3)
@@ -1426,16 +1427,16 @@ it("binary conditional operators", function()
 end)
 
 it("expressions with side effects", function()
-  assert.generate_c([[do
+  expect.generate_c([[do
     local function f() return 1 end
     local a = f() + 1
   end]],  "int64_t a = (f() + 1)")
-  assert.generate_c([[do
+  expect.generate_c([[do
     local function f() return 1 end
     local function g() return 1 end
     local a = f() + g()
   end]],  [[int64_t a = (f() + g());]])
-  assert.run_c([[
+  expect.run_c([[
     local function f() return 1 end
     local function g() return 2 end
     local a = f() + g()
@@ -1444,7 +1445,7 @@ it("expressions with side effects", function()
 end)
 
 it("statement expressions", function()
-  assert.run_c([[
+  expect.run_c([[
     do
       local x = 1
       local a = (do return x end)
@@ -1497,33 +1498,33 @@ it("statement expressions", function()
   ]])
 end)
 it("c types", function()
-  assert.generate_c("local a: integer", "int64_t a = 0;")
-  assert.generate_c("local a: number", "double a = 0.0;")
-  assert.generate_c("local a: byte", "uint8_t a = 0U;")
-  assert.generate_c("local a: float64", "double a = 0.0;")
-  assert.generate_c("local a: float32", "float a = 0.0f;")
-  assert.generate_c("local a: pointer", "void* a = NULL;")
-  assert.generate_c("local a: int64", "int64_t a = 0;")
-  assert.generate_c("local a: int32", "int32_t a = 0;")
-  assert.generate_c("local a: int16", "int16_t a = 0;")
-  assert.generate_c("local a: int8", "int8_t a = 0;")
-  assert.generate_c("local a: isize", "intptr_t a = 0;")
-  assert.generate_c("local a: uint64", "uint64_t a = 0U;")
-  assert.generate_c("local a: uint32", "uint32_t a = 0U;")
-  assert.generate_c("local a: uint16", "uint16_t a = 0U;")
-  assert.generate_c("local a: uint8", "uint8_t a = 0U;")
-  assert.generate_c("local a: usize", "uintptr_t a = 0U;")
-  assert.generate_c("local a: boolean", "bool a = false;")
+  expect.generate_c("local a: integer", "int64_t a = 0;")
+  expect.generate_c("local a: number", "double a = 0.0;")
+  expect.generate_c("local a: byte", "uint8_t a = 0U;")
+  expect.generate_c("local a: float64", "double a = 0.0;")
+  expect.generate_c("local a: float32", "float a = 0.0f;")
+  expect.generate_c("local a: pointer", "void* a = NULL;")
+  expect.generate_c("local a: int64", "int64_t a = 0;")
+  expect.generate_c("local a: int32", "int32_t a = 0;")
+  expect.generate_c("local a: int16", "int16_t a = 0;")
+  expect.generate_c("local a: int8", "int8_t a = 0;")
+  expect.generate_c("local a: isize", "intptr_t a = 0;")
+  expect.generate_c("local a: uint64", "uint64_t a = 0U;")
+  expect.generate_c("local a: uint32", "uint32_t a = 0U;")
+  expect.generate_c("local a: uint16", "uint16_t a = 0U;")
+  expect.generate_c("local a: uint8", "uint8_t a = 0U;")
+  expect.generate_c("local a: usize", "uintptr_t a = 0U;")
+  expect.generate_c("local a: boolean", "bool a = false;")
 end)
 
 it("reserved names quoting", function()
-  assert.config.srcname = 'mymod'
-  assert.generate_c("local default: integer", "int64_t mymod_default = 0;")
-  assert.generate_c("local NULL: integer = 0", "int64_t mymod_NULL = 0;")
-  assert.generate_c("do local default: integer end", "int64_t default_ = 0;")
-  assert.generate_c("do local NULL: integer = 0 end", "int64_t NULL_ = 0;")
-  assert.config.srcname = nil
-  assert.run_c([[
+  expect.config.srcname = 'mymod'
+  expect.generate_c("local default: integer", "int64_t mymod_default = 0;")
+  expect.generate_c("local NULL: integer = 0", "int64_t mymod_NULL = 0;")
+  expect.generate_c("do local default: integer end", "int64_t default_ = 0;")
+  expect.generate_c("do local NULL: integer = 0 end", "int64_t NULL_ = 0;")
+  expect.config.srcname = nil
+  expect.run_c([[
     local function struct(double: integer)
       local default: integer
       default = 1
@@ -1534,7 +1535,7 @@ it("reserved names quoting", function()
 end)
 
 it("variable shadowing", function()
-  assert.run_c([[
+  expect.run_c([[
     local a = 1
     assert(a == 1)
     local a = 2
@@ -1561,11 +1562,11 @@ it("variable shadowing", function()
 end)
 
 it("any type", function()
-  assert.run_error_c("local a: any", "any types are not supported yet")
+  expect.run_error_c("local a: any", "any types are not supported yet")
 end)
 
 it("cstring and string", function()
-  assert.run_c([[
+  expect.run_c([[
     local a = 'hello'
     print(a)
     local b: cstring = a
@@ -1596,10 +1597,10 @@ it("cstring and string", function()
 end)
 
 it("arrays", function()
-  assert.generate_c(
+  expect.generate_c(
     "local a: array(boolean, 10)",
     {"data[10];} nlboolean_arr10"})
-  assert.run_c([[
+  expect.run_c([[
     do
       local a: array(boolean, 1)
       assert(a[0] == false)
@@ -1632,12 +1633,12 @@ it("arrays", function()
 end)
 
 it("array bounds checking", function()
-  assert.run_error_c([[
+  expect.run_error_c([[
     local a: [4]integer
     local i = 4
     print(a[i])
   ]], "array index: position out of bounds")
-  assert.run_error_c([[
+  expect.run_error_c([[
     local a: [4]integer
     local i = -1
     print(a[i])
@@ -1645,7 +1646,7 @@ it("array bounds checking", function()
 end)
 
 it("arrays inside records", function()
-  assert.run_c([[
+  expect.run_c([[
     local R = @record{v: [4]integer}
     local a: R
     a.v[0]=1 a.v[1]=2 a.v[2]=3 a.v[3]=4
@@ -1685,7 +1686,7 @@ it("arrays inside records", function()
 end)
 
 it("multi dimensional arrays", function()
-  assert.run_c([[
+  expect.run_c([[
     local function f(): [2][2]integer
       local a: [2][2]integer
       a[0][0] = 1
@@ -1731,15 +1732,15 @@ it("multi dimensional arrays", function()
 end)
 
 it("records", function()
-  assert.generate_c(
+  expect.generate_c(
     "local t: record{}",
     "typedef struct record_%w+ record_%w+;", true)
-  assert.generate_c(
+  expect.generate_c(
     "local t: record{a: boolean}",
     [[struct record_%w+ {
   bool a;
 };]], true)
-  assert.run_c([[
+  expect.run_c([[
     local p: record{
       x: integer,
       y: integer
@@ -1748,7 +1749,7 @@ it("records", function()
     p.x, p.y = 1, 2
     assert(p.x == 1 and p.y == 2)
   ]])
-  assert.run_c([[
+  expect.run_c([[
     local Point = @record {x: integer, y: integer}
     local p: Point
     local pptr = &p
@@ -1767,7 +1768,7 @@ it("records", function()
     local x, y = 1, 2
     assert(Point({=x,=y}).y == 2)
   ]])
-  assert.run_c([[
+  expect.run_c([[
     local Point = @record {x: integer, y: integer}
     do
       local p = Point{x=1, y=2}
@@ -1783,7 +1784,7 @@ it("records", function()
       assert(p.x == 2 and p.y == 2)
     end
   ]])
-  assert.run_c([[
+  expect.run_c([[
     local P = @record{x: byte, y: byte}
     local p <const> = P{x=1,y=2}
     assert(p.x == 1 and p.y == 2)
@@ -1794,7 +1795,7 @@ it("records", function()
 end)
 
 it("records size", function()
-  assert.run_c([=[
+  expect.run_c([=[
     require 'span'
     do
       local R = @record { a: usize, b: span(integer) }
@@ -1837,7 +1838,7 @@ it("records size", function()
 end)
 
 it("record methods", function()
-  assert.run_c([[
+  expect.run_c([[
     local vec2 = @record{x: integer, y: integer}
     function vec2.create(x: integer, y: integer) return vec2{x,y} end
     local v = vec2.create(1,2)
@@ -1885,7 +1886,7 @@ it("record methods", function()
 end)
 
 it("record metametods", function()
-  assert.run_c([[
+  expect.run_c([[
     local intarray = @record {
       data: [100]integer
     }
@@ -1951,7 +1952,7 @@ it("record metametods", function()
     assert(r.x[0] == 1 and r.x[1] == 2)
   ]])
 
-  assert.run_c([[
+  expect.run_c([[
     local R = @record{x: integer, diff: boolean}
     function R.__eq(a: R, b: R): boolean
       if a.diff or b.diff then return false end
@@ -1980,7 +1981,7 @@ it("record metametods", function()
 end)
 
 it("record string conversions", function()
-  assert.run_c([[
+  expect.run_c([[
     local R = @record{x: integer}
     function R:__tocstring(): cstring return (@cstring)('R') end
     function R:__tostringview(): stringview return 'R' end
@@ -1994,7 +1995,7 @@ it("record string conversions", function()
 end)
 
 it("record operator overloading", function()
-  assert.run_c([[
+  expect.run_c([[
     local R = @record{x: integer}
     function R:__eq(r: R): boolean return false end
     function R:__lt(r: R): boolean return true end
@@ -2063,7 +2064,7 @@ it("record operator overloading", function()
 end)
 
 it("record globals", function()
-  assert.generate_c([[
+  expect.generate_c([[
     local Math = @record{}
     global Math.PI: number <const> = 3.14
     global Math.E <const> = 2.7
@@ -2073,7 +2074,7 @@ it("record globals", function()
     local a: MathNumber = 1
     assert(a == 1)
   ]], "double Math_PI = 3.14")
-  assert.run_c([[
+  expect.run_c([[
     local Math = @record{}
     global Math.PI = 3.14
     assert(Math.PI == 3.14)
@@ -2090,7 +2091,7 @@ it("record globals", function()
 end)
 
 it("records referencing itself", function()
-  assert.run_c([[
+  expect.run_c([[
     local NodeA = @record{next: *NodeA}
     local ap: *NodeA
     local a: NodeA
@@ -2104,16 +2105,16 @@ it("records referencing itself", function()
 end)
 
 it("enums", function()
-  assert.generate_c(
+  expect.generate_c(
     "local e: enum{A=0}",
     [[typedef int64_t enum_]])
-  assert.generate_c([[
+  expect.generate_c([[
     local E = @enum{A=1, B=2}
     local i: E = 1
     local E = @enum{A=1, B=2}
     local i: E = 1
   ]], {"typedef int64_t E", "typedef int64_t E__1"})
-  assert.run_c([[
+  expect.run_c([[
     local Enum = @enum{A=0,B=1,C}
     local e: Enum; assert(e == 0)
     e = Enum.B; assert(e == 1)
@@ -2124,10 +2125,10 @@ it("enums", function()
 end)
 
 it("pointers", function()
-  assert.generate_c("local p: pointer(float32)", "float*")
-  assert.generate_c("do local p: pointer end", "void* p")
-  assert.generate_c("local p: pointer(record{x:integer}); p.x = 0", "->x = ")
-  assert.run_c([[
+  expect.generate_c("local p: pointer(float32)", "float*")
+  expect.generate_c("do local p: pointer end", "void* p")
+  expect.generate_c("local p: pointer(record{x:integer}); p.x = 0", "->x = ")
+  expect.run_c([[
     local function f(a: pointer): pointer return a end
     local i: integer = 1
     local p: pointer(integer) = &i
@@ -2157,7 +2158,7 @@ it("pointers", function()
 end)
 
 it("function pointers", function()
-  assert.run_c([[
+  expect.run_c([[
     local function f() return 1 end
     assert((&f)() == 1)
     assert(f() == 1)
@@ -2165,7 +2166,7 @@ it("function pointers", function()
 end)
 
 it("automatic reference", function()
-  assert.run_c([[
+  expect.run_c([[
     local R = @record{x: integer}
     local r: R = R{1}
     local function f(x: *R) assert(x == &r) return $x end
@@ -2186,7 +2187,7 @@ it("automatic reference", function()
 end)
 
 it("automatic dereference", function()
-  assert.run_c([[
+  expect.run_c([[
     local R = @record{x: integer}
     local r: R = R{1}
     local pr: *R = &r
@@ -2209,11 +2210,11 @@ it("automatic dereference", function()
 end)
 
 it("automatic casting", function()
-  assert.generate_c([[
+  expect.generate_c([[
     local a = (@uint8)(-1)
     local b: uint8 = (@uint8)(-1)
   ]], {"a = 255U", "b = 255U"})
-  assert.run_c([[
+  expect.run_c([[
     do
       local i8: int8
       local u8: uint8 = 255
@@ -2242,7 +2243,7 @@ it("automatic casting", function()
 end)
 
 it("narrow casting", function()
-  assert.run_c([[
+  expect.run_c([[
     do
       local a: float64 = -15
       local b: int64 = a
@@ -2274,26 +2275,26 @@ it("narrow casting", function()
       assert(b == 3)
     end
   ]])
-  assert.run_error_c([[
+  expect.run_error_c([[
     local a: float64 = 1.5
     local b: int64 = a
   ]], "narrow casting")
-  assert.run_error_c([[
+  expect.run_error_c([[
     local a: int64 = 0xffffffff
     local b: int32 = a
   ]], "narrow casting")
-  assert.run_error_c([[
+  expect.run_error_c([[
     local a: uint32 = 0xffffffff
     local b: int32 = a
   ]], "narrow casting")
-  assert.run_error_c([[
+  expect.run_error_c([[
     local a: int32 = -10
     local b: uint32 = a
   ]], "narrow casting")
 end)
 
 it("implicit casting for unbounded arrays", function()
-  assert.run_c([[
+  expect.run_c([[
     local i: integer = 1
     local p: *integer = &i
     local a4: [4]integer
@@ -2309,15 +2310,15 @@ it("implicit casting for unbounded arrays", function()
 end)
 
 it("nilptr", function()
-  assert.generate_c("local p: pointer = nilptr", "void* p = NULL")
-  assert.run_c([[
+  expect.generate_c("local p: pointer = nilptr", "void* p = NULL")
+  expect.run_c([[
     local p: pointer = nilptr
     assert(p == nilptr)
   ]])
 end)
 
 it("manual memory managment", function()
-  assert.run_c([=[
+  expect.run_c([=[
     local function malloc(size: usize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
     local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
     local function free(ptr: pointer) <cimport'free',cinclude'<stdlib.h>',nodecl> end
@@ -2331,15 +2332,15 @@ it("manual memory managment", function()
 end)
 
 it("C varargs", function()
-  assert.generate_c(
+  expect.generate_c(
     "local function scanf(format: cstring <const>, ...: cvarargs): cint <cimport> end scanf('')",
     "int scanf(const char* format, ...);")
 
-  assert.generate_c(
+  expect.generate_c(
     [[local function printf(format: cstring, ...: cvarargs): cint <cimport> end printf('hello')]],
     [[printf("hello");]])
 
-  assert.run_c([=[
+  expect.run_c([=[
     local function snprintf(str: cstring, size: csize, format: cstring, ...: cvarargs): cint
       <cimport,nodecl,cinclude'<stdio.h>'>
     end
@@ -2353,67 +2354,67 @@ it("C varargs", function()
 end)
 
 it("call pragmas", function()
-  assert.generate_c("## cinclude '<myheader.h>'", "#include <myheader.h>")
-  assert.generate_c("## cemit '#define SOMETHING'", "#define SOMETHING")
-  assert.generate_c("## cemitdecl('#define SOMETHING')", "#define SOMETHING")
-  assert.generate_c("## cemitdef('#define SOMETHING')", "#define SOMETHING")
-  assert.generate_c("## cdefine 'SOMETHING'", "#define SOMETHING")
-  assert.generate_c([==[
+  expect.generate_c("## cinclude '<myheader.h>'", "#include <myheader.h>")
+  expect.generate_c("## cemit '#define SOMETHING'", "#define SOMETHING")
+  expect.generate_c("## cemitdecl('#define SOMETHING')", "#define SOMETHING")
+  expect.generate_c("## cemitdef('#define SOMETHING')", "#define SOMETHING")
+  expect.generate_c("## cdefine 'SOMETHING'", "#define SOMETHING")
+  expect.generate_c([==[
     do ##[[cemit(function(e) e:add_ln('#define SOMETHING') end)]] end
   ]==], "#define SOMETHING")
-  assert.generate_c([==[
+  expect.generate_c([==[
     do ##[[cemitdecl(function(e) e:add_ln('#define SOMETHING') end)]] end
   ]==], "#define SOMETHING")
-  assert.generate_c([==[
+  expect.generate_c([==[
     do ##[[cemitdef(function(e) e:add_ln('#define SOMETHING') end)]] end
   ]==], "#define SOMETHING")
 end)
 
 it("annotations", function()
-  assert.generate_c("local huge: number <cimport'HUGE_VAL',cinclude'<math.h>',nodecl>", "include <math.h>")
-  assert.generate_c("local a: int64 <volatile, codename 'a'>", "volatile int64_t a")
-  assert.generate_c("local R <nickname 'RR'> = @record{x:integer} local r: R", "struct RR {")
-  assert.generate_c("local a: int64 <register>", "register int64_t a")
-  assert.generate_c("local a: int64 <restrict>", "restrict int64_t a")
-  assert.generate_c("local a: int64 <nodecl>", "")
-  assert.generate_c("local a: cint <cimport>", "extern int a;")
-  assert.generate_c("local a: int64 <noinit>; a = 2", {"a;", "a = 2;"})
-  assert.generate_c("local a: int64 <cexport>", "nelua_cexport int64_t a;")
-  assert.generate_c("do local a <static> = 1 end", "static int64_t a = 1;", true)
-  assert.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t a __attribute__((vector_size(16)))")
-  assert.generate_c("local a: number <cqualifier 'in'> = 1", "in double a = 1.0;")
-  assert.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R",
+  expect.generate_c("local huge: number <cimport'HUGE_VAL',cinclude'<math.h>',nodecl>", "include <math.h>")
+  expect.generate_c("local a: int64 <volatile, codename 'a'>", "volatile int64_t a")
+  expect.generate_c("local R <nickname 'RR'> = @record{x:integer} local r: R", "struct RR {")
+  expect.generate_c("local a: int64 <register>", "register int64_t a")
+  expect.generate_c("local a: int64 <restrict>", "restrict int64_t a")
+  expect.generate_c("local a: int64 <nodecl>", "")
+  expect.generate_c("local a: cint <cimport>", "extern int a;")
+  expect.generate_c("local a: int64 <noinit>; a = 2", {"a;", "a = 2;"})
+  expect.generate_c("local a: int64 <cexport>", "nelua_cexport int64_t a;")
+  expect.generate_c("do local a <static> = 1 end", "static int64_t a = 1;", true)
+  expect.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t a __attribute__((vector_size(16)))")
+  expect.generate_c("local a: number <cqualifier 'in'> = 1", "in double a = 1.0;")
+  expect.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R",
     {"__attribute__((aligned(16)));", "sizeof(R) == 16"})
-  assert.generate_c("local R <packed> = @record{x: integer, y: byte}; local r: R",
+  expect.generate_c("local R <packed> = @record{x: integer, y: byte}; local r: R",
     {"__attribute__((packed));", "sizeof(R) == 9"})
-  assert.generate_c("local function f() <inline> end", "inline void")
-  assert.generate_c("local function f() <noreturn> end", "nelua_noreturn void")
-  assert.generate_c("local function f() <noinline> end", "nelua_noinline void")
-  assert.generate_c("local function f() <volatile> end", "volatile void")
-  assert.generate_c("local function f() <nodecl> end", "")
-  assert.generate_c("local function f() <nosideeffect> end", "")
-  assert.generate_c("local function f() <cqualifier 'volatile'> end", "volatile void")
-  assert.generate_c("local function f() <cattribute 'noinline'> end", "__attribute__((noinline)) void")
-  assert.generate_c(
+  expect.generate_c("local function f() <inline> end", "inline void")
+  expect.generate_c("local function f() <noreturn> end", "nelua_noreturn void")
+  expect.generate_c("local function f() <noinline> end", "nelua_noinline void")
+  expect.generate_c("local function f() <volatile> end", "volatile void")
+  expect.generate_c("local function f() <nodecl> end", "")
+  expect.generate_c("local function f() <nosideeffect> end", "")
+  expect.generate_c("local function f() <cqualifier 'volatile'> end", "volatile void")
+  expect.generate_c("local function f() <cattribute 'noinline'> end", "__attribute__((noinline)) void")
+  expect.generate_c(
     "local function puts(s: cstring): int32 <cimport'puts'> end puts('')",
     "int32_t puts(char* s);")
-  assert.generate_c([[
+  expect.generate_c([[
     global timespec: type <cimport,cinclude'<time.h>',nodecl,ctypedef> = @record{tv_sec: clong, tv_nsec: clong}
     local t: timespec
   ]], "typedef struct timespec timespec;")
-  assert.generate_c([[
+  expect.generate_c([[
     global sigval: type <cimport,cinclude'<signal.h>',nodecl,ctypedef> = @union{sival_int: cint, sival_ptr: pointer}
     local s: sigval
   ]], "typedef union sigval sigval;")
-  assert.generate_c([[
+  expect.generate_c([[
     ## cemitdecl "enum MyEnum {MyEnumA, MyEnumB};"
     global MyEnum: type <cimport,nodecl,ctypedef,using> = @enum(cint){MyEnumA=0,MyEnumB=1}
     local e: MyEnum = MyEnumB
   ]], "typedef enum MyEnum MyEnum;")
-  assert.generate_c(
+  expect.generate_c(
     "local function cos(x: number): number <cimport'myfunc',cinclude'<myheader.h>',nodecl> end cos(0)",
     "#include <myheader.h>")
-  assert.run_c([[
+  expect.run_c([[
     local function exit(x: int32) <cimport'exit',cinclude'<stdlib.h>',nodecl> end
     local function puts(s: cstring): int32 <cimport'puts',cinclude'<stdio.h>',nodecl> end
     local function perror(s: cstring): void <cimport,nodecl> end
@@ -2425,7 +2426,7 @@ it("annotations", function()
     perror('msg stderr\n')
     f()
   ]], "msg stdout", "msg stderr")
-  assert.run_c([[
+  expect.run_c([[
     ## cinclude '<stdlib.h>'
     local div_t <cimport,nodecl> = @record{quot: cint, rem: cint}
     local function div(numer: cint, denom: cint): div_t <cimport,nodecl> end
@@ -2440,7 +2441,7 @@ it("annotations", function()
 end)
 
 it("type codenames", function()
-  assert.generate_c([[
+  expect.generate_c([[
     local myrecord <codename 'myrecord'> = @record{x: integer}
     function myrecord:foo() return self.x end
     local r = myrecord{}
@@ -2453,7 +2454,7 @@ it("type codenames", function()
 end)
 
 it("entrypoint", function()
-  assert.run_c([[
+  expect.run_c([[
     print 'hello'
     local function main(): cint <entrypoint>
       print 'world'
@@ -2464,7 +2465,7 @@ it("entrypoint", function()
 end)
 
 it("hook main", function()
-  assert.run_c([[
+  expect.run_c([[
     local function nelua_main(argc: cint, nelua_argv: *cstring): cint <cimport,nodecl> end
     local function main(argc: cint, argv: *cstring): cint <entrypoint>
       print 'before'
@@ -2477,7 +2478,7 @@ it("hook main", function()
 end)
 
 it("print builtin", function()
-  assert.run_c([[
+  expect.run_c([[
     print(1,0.2,1e2,0xf,0b01,nilptr)
     local i: integer, s: stringview, n: niltype, p: pointer
     print(i, s, n, p)
@@ -2500,7 +2501,7 @@ it("print builtin", function()
 end)
 
 it("sizeof builtin", function()
-  assert.run_c([[
+  expect.run_c([[
     assert(#@int8 == 1)
     assert(#@int16 == 2)
     assert(#@int32 == 4)
@@ -2542,13 +2543,13 @@ end)
 it("assert builtin", function()
   local noabort = config.pragmas.noabort
   config.pragmas.noabort = false
-  assert.generate_c(
+  expect.generate_c(
     "assert(true)",
     "__nelua_assert_line1(true)")
-  assert.generate_c(
+  expect.generate_c(
     "assert(true, 'assertion')",
     '__nelua_assert_line1(true, ')
-  assert.run_c([[
+  expect.run_c([[
     assert(true)
     assert(true, 'assertion')
     assert(1)
@@ -2571,16 +2572,16 @@ it("assert builtin", function()
     g()
   ]])
   config.pragmas.noabort = noabort
-  assert.run_error_c([[
+  expect.run_error_c([[
     assert()
   ]], "assertion failed!")
-  assert.run_error_c([[
+  expect.run_error_c([[
     assert(false)
   ]], "assertion failed!")
-  assert.run_error_c([[
+  expect.run_error_c([[
     assert(false, 'assertion!')
   ]], "assertion!")
-  assert.run_error_c([[
+  expect.run_error_c([[
     local function f()
       return false, 'assertion!'
     end
@@ -2589,7 +2590,7 @@ it("assert builtin", function()
 end)
 
 it("check builtin", function()
-  assert.run_c([[
+  expect.run_c([[
     local count = 0
     local function f(): boolean
       count = count + 1
@@ -2602,44 +2603,44 @@ it("check builtin", function()
     check(f(), 'check3')
     assert(count == 2)
   ]])
-  assert.run_error_c([[
+  expect.run_error_c([[
     check(false, "check failed!")
   ]], "check failed!")
 end)
 
 
 it("error builtin", function()
-  assert.run_error_c([[
+  expect.run_error_c([[
     error 'got an error!'
   ]], 'got an error!')
-  assert.run_error_c([[
+  expect.run_error_c([[
     panic 'got an panic!'
   ]], 'got an panic!')
 end)
 
 it("warn builtin", function()
-  assert.run_error_c([[
+  expect.run_error_c([[
     warn 'got an warn!'
     return -1
   ]], 'got an warn!')
 end)
 
 it("likely builtin", function()
-  assert.generate_c([[do
+  expect.generate_c([[do
     local a = likely(true)
     local b = unlikely(false)
   end]], {
     "bool a = nelua_likely(true)",
     "b = nelua_unlikely(false)"
   })
-  assert.run_c([[
+  expect.run_c([[
     assert(likely(true))
     assert(not unlikely(false))
   ]])
 end)
 
 it("type builtin", function()
-  assert.run_c([[
+  expect.run_c([[
     local function f() end
     local R = @record{x:integer}
     local r: R
@@ -2657,7 +2658,7 @@ it("type builtin", function()
 end)
 
 it("context pragmas", function()
-  assert.generate_c([[
+  expect.generate_c([[
     ## context.pragmas.noinit = true
     local a: integer
     ## context.pragmas.noinit = false
@@ -2667,7 +2668,7 @@ it("context pragmas", function()
     "\nstatic int64_t b = 0;\n"
   })
 
-  assert.generate_c([[
+  expect.generate_c([[
     ## context.pragmas.nostatic = true
     local a: integer
     local function f() end
@@ -2681,14 +2682,14 @@ it("context pragmas", function()
     "\nstatic void g()",
   })
 
-  assert.generate_c([[
+  expect.generate_c([[
     ## context.pragmas.nofloatsuffix = true
     local a: float32 = 0
   ]], {
     "a = 0.0;",
   })
 
-  assert.generate_c([[
+  expect.generate_c([[
     ## context.pragmas.nostatic = true
     local a: integer
     ## context.pragmas.nostatic = false
@@ -2698,7 +2699,7 @@ it("context pragmas", function()
     "\nstatic int64_t b = 0;\n"
   })
 
-  assert.generate_c([[
+  expect.generate_c([[
     ## context.pragmas.unitname = 'mylib'
     local function foo() <cexport>
     end
@@ -2706,33 +2707,33 @@ it("context pragmas", function()
 end)
 
 it("require builtin", function()
-  assert.generate_c([[
+  expect.generate_c([[
     require 'examples.helloworld'
   ]], "hello world")
-  assert.generate_c([[
+  expect.generate_c([[
     require 'examples/helloworld'
   ]], "hello world")
-  assert.run_c([[
+  expect.run_c([[
     require 'examples.helloworld'
   ]], "hello world")
-  assert.c_gencode_equals([[
+  expect.c_gencode_equals([[
     require 'examples.helloworld'
   ]], [[
     require 'examples.helloworld'
     require 'examples/helloworld'
   ]])
-  assert.run_error_c([[
+  expect.run_error_c([[
     local a = 'mylib'
     require(a)
   ]], "runtime require unsupported")
-  assert.run_error_c([[
+  expect.run_error_c([[
     require 'invalid_file'
   ]], "module 'invalid_file' not found")
-  assert.run_c_from_file('tests/memory_test.nelua')
+  expect.run_c_from_file('tests/memory_test.nelua')
 end)
 
 it("name collision", function()
-  assert.run_c([[
+  expect.run_c([[
     local function hello() print 'a' end
     hello()
     local function hello() print 'b' end
@@ -2754,7 +2755,7 @@ it("name collision", function()
     end
     hello()
   ]], "a\nb\nb\nc\nd\nb\nb\ne\nf\nb\n")
-  assert.run_c([[
+  expect.run_c([[
     local s = 'a'
     print(s)
     local s = 'b'
@@ -2776,7 +2777,7 @@ it("name collision", function()
     end
     print(s)
   ]], "a\nb\nb\nc\nd\nb\nb\ne\nf\nb\n")
-  assert.run_c([[
+  expect.run_c([[
     do
       local function foo() print 'a' end
       foo()
@@ -2791,16 +2792,16 @@ it("name collision", function()
 end)
 
 it("top scope variables prefix", function()
-  assert.config.srcname = 'mymod'
-  assert.generate_c("local a = 1", "int64_t mymod_a = 1;")
-  assert.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
-  assert.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
-  assert.generate_c("local function f() end", "void mymod_f() {\n}")
-  assert.config.srcname = nil
+  expect.config.srcname = 'mymod'
+  expect.generate_c("local a = 1", "int64_t mymod_a = 1;")
+  expect.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
+  expect.generate_c("global a = 1", "static int64_t mymod_a = 1;\n")
+  expect.generate_c("local function f() end", "void mymod_f() {\n}")
+  expect.config.srcname = nil
 end)
 
 it("GC requirements", function()
-  assert.generate_c([=[
+  expect.generate_c([=[
     global gp: pointer
     global gr: record{x: pointer}
     global ga: [4]*integer
@@ -2851,7 +2852,7 @@ it("GC requirements", function()
 end)
 
 it("concepts", function()
-  assert.run_c([=[
+  expect.run_c([=[
     local an_array = #[concept(function(attr)
       if attr.type and attr.type.is_array then
         return true
@@ -2883,7 +2884,7 @@ it("concepts", function()
     r:__convert(2)
     assert(r.x == 2)
   ]=])
-  assert.run_c([=[
+  expect.run_c([=[
     local is_optional_integer = #[concept(function(x)
       if x.type.is_niltype then return true end
       return primtypes.integer
@@ -2904,7 +2905,7 @@ it("concepts", function()
     assert(g(f(2)) == 2)
     assert(g(f(2), 10) == 4)
   ]=])
-  assert.run_c([=[
+  expect.run_c([=[
     local R = @record {x: integer}
     function R.__convert(x: integer): R
       return R{x=x}
@@ -2922,7 +2923,7 @@ it("concepts", function()
     end
     print(f(R{x=1}))
   ]=])
-  assert.run_c([=[
+  expect.run_c([=[
     -- Concept to check whether a type is indexable.
     local indexable_concept = #[concept(function(symbol)
       local type = symbol.type
@@ -2971,7 +2972,7 @@ it("concepts", function()
 end)
 
 it("generics", function()
-  assert.run_c([=[
+  expect.run_c([=[
     local arrayproxy = #[generalize(function(T, size)
       return types.ArrayType(T, size)
     end)]#
@@ -2992,7 +2993,7 @@ it("generics", function()
 end)
 
 it("deprecated", function()
-  assert.run_error_c([=[
+  expect.run_error_c([=[
     local function f() <deprecated> end
     f()
 
@@ -3014,7 +3015,7 @@ it("deprecated", function()
 end)
 
 it("forward type declaration", function()
-  assert.run_c([=[
+  expect.run_c([=[
     local Level <forwarddecl> = @record{}
     local Entity = @record{level: *Level}
     Level = @record{n: integer}
@@ -3030,7 +3031,7 @@ it("forward type declaration", function()
 end)
 
 it("function assignment", function()
-  assert.run_c([=[
+  expect.run_c([=[
     local f
     local function g(x: integer)
       return f(x)
@@ -3052,7 +3053,7 @@ it("function assignment", function()
 end)
 
 it("importing type of uknown sizes", function()
-  assert.run_c([=[
+  expect.run_c([=[
     local FILE <cimport,nodecl,cinclude'<stdio.h>',cincomplete> = @record{}
     local f: FILE
     assert(#FILE > 0)
@@ -3070,7 +3071,7 @@ it("importing type of uknown sizes", function()
 end)
 
 it("importing type declaration", function()
-  assert.run_c([=[
+  expect.run_c([=[
     local Level <forwarddecl> = @record{}
     local Entity = @record{level: *Level}
     Level = @record{n: integer}
@@ -3086,7 +3087,7 @@ it("importing type declaration", function()
 end)
 
 it("unions", function()
-  assert.run_c([=[
+  expect.run_c([=[
     local Union = @union{
       b: boolean,
       i: int64,
@@ -3125,7 +3126,7 @@ it("unions", function()
 end)
 
 it("issue #45", function()
-  assert.run_c([=[
+  expect.run_c([=[
     local X = @record{y: integer}
     function X:A(a: facultative(stringview) <comptime>)
       print(a)
@@ -3138,7 +3139,7 @@ it("issue #45", function()
 end)
 
 it("record as namespaces", function()
-  assert.run_c([=[
+  expect.run_c([=[
     global Namespace = @record{}
     global Namespace.Point = @record{x: integer, y: integer}
     function Namespace.Point:mlen()
@@ -3156,7 +3157,7 @@ it("record as namespaces", function()
 end)
 
 it("record initialize evaluation order", function()
-  assert.run_c([=[
+  expect.run_c([=[
     local Point = @record{x: integer, y: integer}
     local function f(x: integer): integer
       print(x)
@@ -3174,7 +3175,7 @@ it("record initialize evaluation order", function()
 end)
 
 it("polymorphic variable arguments", function()
-  assert.run_c([=[
+  expect.run_c([=[
     -- functions
     local function f(...: varargs)
       print(...)

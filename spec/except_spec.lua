@@ -1,9 +1,10 @@
-require 'busted.runner'()
+local lusted = require 'nelua.thirdparty.lusted'
+local describe, it = lusted.describe, lusted.it
 
-local assert = require 'spec.tools.assert'
+local expect = require 'spec.tools.expect'
 local except = require 'nelua.utils.except'
 
-describe("Nelua exceptions should work for", function()
+describe("except", function()
 
 it("raising strings", function()
   local e
@@ -76,7 +77,7 @@ it("reraising", function()
 end)
 
 it("ignore errors", function()
-  assert.has_error(function()
+  expect.fail(function()
     except.try(function()
       error('an error')
     end, function() return true end)
@@ -84,7 +85,7 @@ it("ignore errors", function()
 end)
 
 it("ignore number errors", function()
-  assert.has_error(function()
+  expect.fail(function()
     except.try(function()
       error(1)
     end, function() return true end)
@@ -104,7 +105,7 @@ it("raising in pcall", function()
   local ok, e = pcall(function()
     except.assertraise(false, 'an error')
   end)
-  assert(tostring(e):match('an error'))
+  assert(not ok and tostring(e):match('an error'))
 end)
 
 end)
