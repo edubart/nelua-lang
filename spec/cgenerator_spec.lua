@@ -1,5 +1,5 @@
-local lusted = require 'nelua.thirdparty.lusted'
-local describe, it = lusted.describe, lusted.it
+local lester = require 'nelua.thirdparty.lester'
+local describe, it = lester.describe, lester.it
 
 local config = require 'nelua.configer'.get()
 
@@ -7,12 +7,12 @@ local expect = require 'spec.tools.expect'
 
 describe("C generator", function()
 
-lusted.before(function()
+lester.before(function()
   -- must disable dead code elimination to do these tests
   config.pragmas.nodce = true
 end)
 
-lusted.after(function()
+lester.after(function()
   -- must disable dead code elimination to do these tests
   config.pragmas.nodce = nil
 end)

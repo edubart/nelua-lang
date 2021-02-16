@@ -1,5 +1,5 @@
-local lusted = require 'nelua.thirdparty.lusted'
-local describe, it = lusted.describe, lusted.it
+local lester = require 'nelua.thirdparty.lester'
+local describe, it = lester.describe, lester.it
 
 local expect = require 'spec.tools.expect'
 local configer = require 'nelua.configer'

@@ -74,7 +74,7 @@ test: nelua-lua
 
 ## Run test suite, stop on the first error.
 test-quick:
-	@LUSTED_QUIET=true LUSTED_STOP_ON_FAIL=true $(LUA) spec/init.lua
+	@LESTER_QUIET=true LESTER_STOP_ON_FAIL=true $(LUA) spec/init.lua
 
 ## Run lua static analysis using lua check.
 check:

@@ -1,4 +1,4 @@
-local expect = require 'nelua.thirdparty.lusted'.expect
+local expect = require 'nelua.thirdparty.lester'.expect
 local stringer = require 'nelua.utils.stringer'
 local except = require 'nelua.utils.except'
 local errorer = require 'nelua.utils.errorer'
@@ -108,9 +108,9 @@ end
 local function pretty_traceback_errhandler(e)
   if type(e) == 'string' then
     local msg = debug.traceback(e, 2)
-    local i = msg:find('\n%s+[%w%s%/%\\%.%-_ ]+lusted.lua')
+    local i = msg:find('\n%s+[%w%s%/%\\%.%-_ ]+lester.lua')
     if i then
-      msg = msg:sub(1, i) .. '        (...lusted...)\n'
+      msg = msg:sub(1, i) .. '        (...lester...)\n'
     end
     return msg
   else

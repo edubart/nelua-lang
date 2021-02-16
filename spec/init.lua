@@ -1,6 +1,6 @@
-local lusted = require 'nelua.thirdparty.lusted'
+local lester = require 'nelua.thirdparty.lester'
 
-lusted.seconds = require 'nelua.utils.nanotimer'.nanotime
+lester.seconds = require 'nelua.utils.nanotimer'.nanotime
 
 require 'spec.except_spec'
 require 'spec.bn_spec'
@@ -15,5 +15,5 @@ require 'spec.preprocessor_spec'
 require 'spec.stdlib_spec'
 require 'spec.runner_spec'
 
-lusted.report()
-lusted.exit()
+lester.report()
+lester.exit()

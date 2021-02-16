@@ -1,14 +1,14 @@
 --[[
 Minimal test framework for Lua.
-lusted - v0.1.0 - 15/Feb/2021
+lester - v0.1.2 - 15/Feb/2021
 Eduardo Bart - edub4rt@gmail.com
-https://github.com/edubart/lusted
+https://github.com/edubart/lester
 Minimal Lua test framework.
 See end of file for LICENSE.
 ]]
 
 --[[--
-Lusted is a minimal unit testing framework for Lua with a focus on being simple to use.
+Lester is a minimal unit testing framework for Lua with a focus on being simple to use.
 
 ## Features
 
@@ -28,48 +28,48 @@ Lusted is a minimal unit testing framework for Lua with a focus on being simple 
 
 ## Usage
 
-Copy `lusted.lua` file to a project and require it,
+Copy `lester.lua` file to a project and require it,
 which returns a table that includes all of the functionality:
 
 ```lua
-local lusted = require 'lusted'
-local describe, it, expect = lusted.describe, lusted.it, lusted.expect
+local lester = require 'lester'
+local describe, it, expect = lester.describe, lester.it, lester.expect
 
--- Customize lusted configuration.
-lusted.show_traceback = false
+-- Customize lester configuration.
+lester.show_traceback = false
 
 describe('my project', function()
-  lusted.before(function()
-    -- This gets run before every test.
+  lester.before(function()
+    -- This function is run before every test.
   end)
 
-  describe('module1', function() -- Can be nested.
+  describe('module1', function() -- Describe blocks can be nested.
     it('feature1', function()
-      expect.equal('astring', 'astring') -- Pass.
+      expect.equal('something', 'something') -- Pass.
     end)
 
     it('feature2', function()
-      expect.exist(nil) -- Fail.
+      expect.truthy(false) -- Fail.
     end)
   end)
 end)
 
-lusted.report() -- Print overall statistic of the tests run.
-lusted.exit() -- Exit with success if all tests passed.
+lester.report() -- Print overall statistic of the tests run.
+lester.exit() -- Exit with success if all tests passed.
 ```
 
 ## Customizing output with environment variables
 
-To customize the output of lusted externally,
+To customize the output of lester externally,
 you can set the following environment variables before running a test suite:
 
-* `LUSTED_QUIET="true"`, omit print of passed tests.
-* `LUSTED_COLORED="false"`, disable colored output.
-* `LUSTED_SHOW_TRACEBACK="false"`, disable traceback on test failures.
-* `LUSTED_SHOW_ERROR="false"`, omit print of error description of failed tests.
-* `LUSTED_STOP_ON_FAIL="true"`, stop on first test failure.
-* `LUSTED_UTF8TERM="false"`, disable printing of UTF-8 characters.
-* `LUSTED_FILTER="some text"`, filter the tests that should be run.
+* `LESTER_QUIET="true"`, omit print of passed tests.
+* `LESTER_COLORED="false"`, disable colored output.
+* `LESTER_SHOW_TRACEBACK="false"`, disable traceback on test failures.
+* `LESTER_SHOW_ERROR="false"`, omit print of error description of failed tests.
+* `LESTER_STOP_ON_FAIL="true"`, stop on first test failure.
+* `LESTER_UTF8TERM="false"`, disable printing of UTF-8 characters.
+* `LESTER_FILTER="some text"`, filter the tests that should be run.
 
 Note that these configurations can be changed via script too, check the documentation.
 
@@ -92,28 +92,28 @@ local function getboolenv(varname, default)
   return default
 end
 
--- The lusted module.
-local lusted = {
+-- The lester module.
+local lester = {
   --- Weather lines of passed tests should not be printed. False by default.
-  quiet = getboolenv('LUSTED_QUIET', false),
+  quiet = getboolenv('LESTER_QUIET', false),
   --- Weather the output should  be colorized. True by default.
-  colored = getboolenv('LUSTED_COLORED', true),
+  colored = getboolenv('LESTER_COLORED', true),
   --- Weather a traceback must be shown on test failures. True by default.
-  show_traceback = getboolenv('LUSTED_SHOW_TRACEBACK', true),
+  show_traceback = getboolenv('LESTER_SHOW_TRACEBACK', true),
   --- Weather the error description of a test failure should be shown. True by default.
-  show_error = getboolenv('LUSTED_SHOW_ERROR', true),
+  show_error = getboolenv('LESTER_SHOW_ERROR', true),
   --- Weather test suite should exit on first test failure. False by default.
-  stop_on_fail = getboolenv('LUSTED_STOP_ON_FAIL', false),
+  stop_on_fail = getboolenv('LESTER_STOP_ON_FAIL', false),
   --- Weather we can print UTF-8 characters to the terminal. True by default when supported.
-  utf8term = getboolenv('LUSTED_UTF8TERM', is_utf8term()),
+  utf8term = getboolenv('LESTER_UTF8TERM', is_utf8term()),
   --- A string with a lua pattern to filter tests. Nil by default.
-  filter = os.getenv('LUSTED_FILTER'),
+  filter = os.getenv('LESTER_FILTER'),
   --- Function to retrieve time in seconds with milliseconds precision, `os.clock` by default.
   seconds = os.clock,
 }
 
--- Variables used internally for the lusted state.
-local lusted_start = nil
+-- Variables used internally for the lester state.
+local lester_start = nil
 local last_succeeded = false
 local level = 0
 local successes = 0
@@ -137,21 +137,21 @@ local color_codes = {
 
 -- Colors table, returning proper color code if colored mode is enabled.
 local colors = setmetatable({}, { __index = function(_, key)
-  return lusted.colored and color_codes[key] or ''
+  return lester.colored and color_codes[key] or ''
 end})
 
 --- Table of terminal colors codes, can be customized.
-lusted.colors = colors
+lester.colors = colors
 
 --- Describe a block of tests, which consists in a set of tests.
 -- Describes can be nested.
 -- @param name A string used to describe the block.
 -- @param func A function containing all the tests or other describes.
-function lusted.describe(name, func)
+function lester.describe(name, func)
   if level == 0 then -- Get start time for top level describe blocks.
-    start = lusted.seconds()
-    if not lusted_start then
-      lusted_start = start
+    start = lester.seconds()
+    if not lester_start then
+      lester_start = start
     end
   end
   -- Setup describe block variables.
@@ -167,7 +167,7 @@ function lusted.describe(name, func)
   names[level] = nil
   level = level - 1
   -- Pretty print statistics for top level describe block.
-  if level == 0 and not lusted.quiet and (successes > 0 or failures > 0) then
+  if level == 0 and not lester.quiet and (successes > 0 or failures > 0) then
     local io_write = io.write
     local colors_reset, colors_green = colors.reset, colors.green
     io_write(failures == 0 and colors_green or colors.red, '[====] ',
@@ -176,7 +176,7 @@ function lusted.describe(name, func)
     if failures > 0 then
       io_write(colors.red, failures, colors_reset, ' failures / ')
     end
-    io_write(colors.bright, string.format('%.6f', lusted.seconds() - start), colors_reset, ' seconds\n')
+    io_write(colors.bright, string.format('%.6f', lester.seconds() - start), colors_reset, ' seconds\n')
   end
 end
 
@@ -193,7 +193,7 @@ local function show_error_line(err)
   local short_src, currentline = info.short_src, info.currentline
   io_write(' (', colors.blue, short_src, colors_reset,
            ':', colors.bright, currentline, colors_reset)
-  if err and lusted.show_traceback then
+  if err and lester.show_traceback then
     local fnsrc = short_src..':'..currentline
     for cap1, cap2 in err:gmatch('\t[^\n:]+:(%d+): in function <([^>]+)>\n') do
       if cap2 == fnsrc then
@@ -218,11 +218,11 @@ end
 --- Declare a test, which consists of a set of assertions.
 -- @param name A name for the test.
 -- @param func The function containing all assertions.
-function lusted.it(name, func)
+function lester.it(name, func)
   -- Skip the test if it does not match the filter.
-  if lusted.filter then
+  if lester.filter then
     local fullname = table.concat(names, ' | ')..' | '..name
-    if not fullname:match(lusted.filter) then
+    if not fullname:match(lester.filter) then
       return
     end
   end
@@ -234,7 +234,7 @@ function lusted.it(name, func)
   end
   -- Run the test, capturing errors if any.
   local success, err
-  if lusted.show_traceback then
+  if lester.show_traceback then
     success, err = xpcall(func, xpcall_error_handler)
   else
     success, err = pcall(func)
@@ -253,7 +253,7 @@ function lusted.it(name, func)
   local io_write = io.write
   local colors_reset = colors.reset
   -- Print the test run.
-  if not lusted.quiet then -- Show test status and complete test name.
+  if not lester.quiet then -- Show test status and complete test name.
     if success then
       io_write(colors.green, '[PASS] ', colors_reset)
     else
@@ -266,7 +266,7 @@ function lusted.it(name, func)
     io_write('\n')
   else
     if success then -- Show just a character hinting that the test succeeded.
-      local o = (lusted.utf8term and lusted.colored) and
+      local o = (lester.utf8term and lester.colored) and
                 string.char(226, 151, 143) or 'o'
       io_write(colors.green, o, colors_reset)
     else -- Show complete test name on failure.
@@ -278,8 +278,8 @@ function lusted.it(name, func)
     end
   end
   -- Print error message, colorizing its output if possible.
-  if err and lusted.show_error then
-    if lusted.colored then
+  if err and lester.show_error then
+    if lester.colored then
       local errfile, errline, errmsg, rest = err:match('^([^:\n]+):(%d+): ([^\n]+)(.*)')
       if errfile and errline and errmsg and rest then
         io_write(colors.blue, errfile, colors_reset,
@@ -296,12 +296,12 @@ function lusted.it(name, func)
   end
   io.flush()
   -- Stop on failure.
-  if not success and lusted.stop_on_fail then
-    if lusted.quiet then
+  if not success and lester.stop_on_fail then
+    if lester.quiet then
       io_write('\n')
       io.flush()
     end
-    lusted.exit()
+    lester.exit()
   end
   -- Execute after handlers.
   for _,levelafters in ipairs(afters) do
@@ -314,7 +314,7 @@ end
 
 --- Set a function that is called before every test inside a describe block.
 -- A single string containing the name of the test about to be run will be passed to `func`.
-function lusted.before(func)
+function lester.before(func)
   local levelbefores = befores[level]
   if not levelbefores then
     levelbefores = {}
@@ -326,7 +326,7 @@ end
 --- Set a function that is called after every test inside a describe block.
 -- A single string containing the name of the test that was finished will be passed to `func`.
 -- The function is executed independently if the test passed or failed.
-function lusted.after(func)
+function lester.after(func)
   local levelafters = afters[level]
   if not levelafters then
     levelafters = {}
@@ -337,25 +337,25 @@ end
 
 --- Pretty print statistics of all test runs.
 -- With total success, total failures and run time in seconds.
-function lusted.report()
-  local now = lusted.seconds()
+function lester.report()
+  local now = lester.seconds()
   local colors_reset = colors.reset
-  io.write(lusted.quiet and '\n' or '',
+  io.write(lester.quiet and '\n' or '',
            colors.green, total_successes, colors_reset, ' successes / ',
            colors.red, total_failures, colors_reset, ' failures / ',
-           colors.bright, string.format('%.6f', now - (lusted_start or now)), colors_reset, ' seconds\n')
+           colors.bright, string.format('%.6f', now - (lester_start or now)), colors_reset, ' seconds\n')
   io.flush()
   return total_failures == 0
 end
 
 --- Exit the application with success code if all tests passed, or failure code otherwise.
-function lusted.exit()
+function lester.exit()
   os.exit(total_failures == 0)
 end
 
 local expect = {}
 --- Expect module, containing utility function for doing assertions inside a test.
-lusted.expect = expect
+lester.expect = expect
 
 --- Check if a function fails with an error.
 -- If `expected` is nil then any error is accepted.
@@ -441,7 +441,7 @@ function expect.not_equal(v1, v2)
   end
 end
 
-return lusted
+return lester
 
 --[[
 The MIT License (MIT)
