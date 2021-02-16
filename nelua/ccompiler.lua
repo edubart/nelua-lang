@@ -16,6 +16,7 @@ local compiler = {
 }
 
 local function get_compiler_cflags(compileopts)
+  local ccinfo = compiler.get_cc_info()
   local compiler_flags = cdefs.compilers_flags[config.cc] or cdefs.compiler_base_flags
   local cflags = sstream(compiler_flags.cflags_base)
   --luacov:disable
@@ -57,8 +58,9 @@ local function get_compiler_cflags(compileopts)
       cflags:add(' -l')
       cflags:addlist(compileopts.linklibs, ' -l')
     end
-    -- always link math library
-    cflags:add(' -lm')
+    if ccinfo.is_linux then -- always link math library on linux
+      cflags:add(' -lm')
+    end
   end
   return cflags:tostring()
 end

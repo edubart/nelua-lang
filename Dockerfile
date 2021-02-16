@@ -23,8 +23,6 @@ RUN echo '%wheel ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER docker
 
 # luacov
-RUN sudo luarocks install luacov
-# cluacov
 RUN sudo luarocks install cluacov
 # luacheck
 RUN sudo luarocks install luacheck

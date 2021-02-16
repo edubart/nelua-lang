@@ -2,8 +2,6 @@
 INCS=-Ilua
 DEFS=-DNDEBUG
 CFLAGS=-Wall -O2 -fno-plt -fno-stack-protector -flto
-LDFLAGS=-s
-LIBS=-lm
 SRCS=lua/onelua.c lfs.c sys.c hasher.c lpeglabel/*.c
 HDRS=lua/*.h lpeglabel/*.h
 EXE=nelua-lua
@@ -37,19 +35,22 @@ endif
 ifeq ($(SYS), Linux)
 	CC=gcc
 	LDFLAGS+=-Wl,-E
-	LIBS+=-ldl
+	LIBS+=-lm -ldl
 	DEFS+=-DLUA_USE_LINUX
 else ifeq ($(SYS), Windows)
 	CC=x86_64-w64-mingw32-gcc
 	EXE=nelua-lua.exe
+	DEFS+=-D_CRT_SECURE_NO_WARNINGS # disable some warnings on MSVC
 else ifeq ($(SYS), Darwin)
 	CC=clang
+	LIBS=-lm
 	LDFLAGS=-rdynamic
 	DEFS+=-DLUA_USE_MACOSX
 else # probably POSIX
 	CC=cc
+	LIBS=-lm
 	LDFLAGS+=-Wl,-E
-	DEFS+=LUA_USE_POSIX
+	DEFS+=-DLUA_USE_POSIX
 endif
 
 default: $(EXE)

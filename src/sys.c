@@ -6,6 +6,8 @@
 
 #ifndef _MSC_VER
   #include <unistd.h>
+#else
+  #include <io.h>
 #endif
 
 #if defined(_WIN32)

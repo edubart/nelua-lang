@@ -31,7 +31,8 @@ it("run simple programs", function()
   expect.run({'--lint', '--eval', ""})
   expect.run({'--generator', 'lua', '--eval', "print(_G.arg[1])", "hello"}, 'hello')
   expect.run({'--eval', ""})
-  if not ccompiler.get_cc_info().is_apple then
+  local ccinfo = ccompiler.get_cc_info()
+  if ccinfo.is_gcc and ccinfo.is_linux then
     expect.run({'--cflags="-Wall"', '--eval', "## cflags '-w -g' linklib 'm' ldflags '-s'"})
   end
 end)
