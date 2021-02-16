@@ -1,7 +1,6 @@
 local CEmitter = require 'nelua.cemitter'
 local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
-local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
 local tabler = require 'nelua.utils.tabler'
 local bn = require 'nelua.utils.bn'
@@ -301,12 +300,13 @@ end
 typevisitors[types.Type] = function(context, type)
   if type.is_any or type.is_varanys then
     local node = context:get_current_node()
-    node:raisef("compiler deduced the type 'any' here, but any types are not supported yet")
+    node:raisef("compiler deduced the type 'any' here, but it's not supported yet in C backend yet")
   elseif type.is_niltype then
     context:ensure_builtin('nlniltype')
-  else --luacov:disable
-    errorer.errorf('C type visitor for "%s" is not defined', type)
-  end --luacov:enable
+  else
+    local node = context:get_current_node()
+    node:raisef("type '%s' is not supported yet in the C backend", type)
+  end
 end
 
 local visitors = {}

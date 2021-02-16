@@ -1562,7 +1562,11 @@ it("variable shadowing", function()
 end)
 
 it("any type", function()
-  expect.run_error_c("local a: any", "any types are not supported yet")
+  expect.run_error_c("local a: any", "not supported yet")
+end)
+
+it("table type", function()
+  expect.run_error_c("local a = {}", "not supported yet")
 end)
 
 it("cstring and string", function()

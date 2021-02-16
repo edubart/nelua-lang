@@ -29,7 +29,7 @@ end
 
 -- Compare two string.
 function stringview.__eq(a: stringview, b: stringview): boolean <nosideeffect>
-  return a.size == b.size and (a.size == 0 or memory.equals(a.data, b.data, a.size))
+  return a.size == b.size and (a.data == b.data or a.size == 0 or memory.equals(a.data, b.data, a.size))
 end
 
 -- Compare if string `a` is less than string `b` in lexicographical order.

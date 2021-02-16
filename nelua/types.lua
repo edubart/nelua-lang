@@ -245,6 +245,9 @@ end
 
 -- Set a nickname for this type if not set yet.
 function Type:suggest_nickname(nickname)
+  if nickname == 'T' then -- T is used for many generics, let's ignore it
+    return
+  end
   if not self.nickname and self.is_nameable then
     self.nickname = nickname
     return true
