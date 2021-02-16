@@ -38,6 +38,7 @@ do -- collectgarbage
   alloc_test()
   clear_stack()
   collectgarbage()
+  collectgarbage()
   collectgarbage("collect")
   assert(collectgarbage("count") == 0)
 end
@@ -58,6 +59,7 @@ do -- finalizers
   end
   finalizer_test()
   clear_stack()
+  collectgarbage()
   collectgarbage()
   collectgarbage()
   assert(gc_count == 3)

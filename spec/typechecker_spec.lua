@@ -192,7 +192,7 @@ it("numeric ranges", function()
   ]])
 
   expect.analyze_ast([[
-    local u:usize = 18446744073709551615_us
+    local u:usize = 65535_us
     local u8:uint8, u16:uint16, u32:uint32, u64:uint64 = 255,65535,4294967295,18446744073709551615
   ]])
   expect.analyze_error([[local u: uinteger = -1_u]],   "is out of range")
@@ -207,7 +207,7 @@ it("numeric ranges", function()
   expect.analyze_error([[local u: uint64 = 18446744073709551616_u64]], 'is out of range')
 
   expect.analyze_ast([[
-    local i:isize = 9223372036854775807_is
+    local i:isize = 32767_is
     local i8:int8, i16:int16, i32:int32, i64:int64 = 127,32767,2147483647,9223372036854775807
   ]])
   expect.analyze_error([[local i: integer = -9223372036854775808_i]])

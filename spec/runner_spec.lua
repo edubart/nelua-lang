@@ -33,7 +33,7 @@ it("run simple programs", function()
   expect.run({'--eval', ""})
   local ccinfo = ccompiler.get_cc_info()
   if ccinfo.is_gcc and ccinfo.is_linux then
-    expect.run({'--cflags="-Wall"', '--eval', "## cflags '-w -g' linklib 'm' ldflags '-s'"})
+    expect.run({'--eval', "## cflags '-w -g' linklib 'm' ldflags '-s'"})
   end
 end)
 

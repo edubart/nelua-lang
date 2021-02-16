@@ -1,5 +1,5 @@
 -- Edit this file on REPL.it to try out Nelua in the browser,
--- go to https://repl.it/repls/PunctualMatureProjections#examples/replit.lua
+-- go to https://repl.it/@edubart/nelua-lang#examples/replit.lua
 -- find this file and run
 
 print 'Hello from REPL.it!'
