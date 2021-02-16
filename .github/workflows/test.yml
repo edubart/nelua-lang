@@ -36,6 +36,20 @@ jobs:
       if: ${{ matrix.os != 'windows-latest' }}
       run: nelua examples/helloworld.nelua
 
+  test-32bits:
+    runs-on: ubuntu-latest
+    env:
+      CFLAGS: -m32 -malign-double
+      NELUA_CPUBITS: 32
+    steps:
+    - uses: actions/checkout@master
+    - name: Install dependencies
+      run: sudo apt-get install gcc-multilib
+    - name: Compile
+      run: make
+    - name: Test
+      run: make test
+
   coverage:
     runs-on: ubuntu-latest
     steps:
@@ -59,3 +73,14 @@ jobs:
       run: luarocks install luacheck
     - name: Check
       run: luacheck .
+
+  sanitize:
+    runs-on: ubuntu-latest
+    env:
+      CFLAGS: -fsanitize=address -fsanitize=undefined
+    steps:
+    - uses: actions/checkout@master
+    - name: Compile
+      run: make
+    - name: Test
+      run: make test

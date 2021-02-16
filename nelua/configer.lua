@@ -18,7 +18,6 @@ local defconfig = {
   generator = 'c',
   gdb = 'gdb',
   cache_dir = 'nelua_cache',
-  cpu_bits = platform.cpu_bits,
   pragmas = {}
 }
 metamagic.setmetaindex(config, defconfig)
@@ -331,6 +330,7 @@ local function init_default_configs()
   defconfig.path = detect_search_path(libpath)
   defconfig.cc = detect_cc()
   defconfig.cflags = os.getenv('CFLAGS') or ''
+  defconfig.cpu_bits = tonumber(os.getenv('NELUA_CPUBITS')) or platform.cpu_bits
 
   -- load global user config
   load_config(fs.getuserconfpath(fs.join('nelua', 'neluacfg.lua')))

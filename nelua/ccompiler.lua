@@ -41,10 +41,10 @@ local function get_compiler_cflags(compileopts)
   elseif config.static then
     cflags:add(' -c')
   end
-  --luacov:enable
   if #config.cflags > 0 then
     cflags:add(' ', config.cflags)
   end
+  --luacov:enable
   if #compileopts.cflags > 0 then
     cflags:add(' ')
     cflags:addlist(compileopts.cflags, ' ')

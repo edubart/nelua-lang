@@ -22,7 +22,8 @@ local function run(argv, redirect)
 
   if config.no_color then console.set_colors_enabled(false) end
 
-  if config.script then --luacov:disable
+  --luacov:disable
+  if config.script then
     -- inject script directory into lua package path
     local scriptdir = fs.dirname(fs.abspath(config.input))
     package.path = package.path..platform.luapath_separator..
@@ -32,7 +33,17 @@ local function run(argv, redirect)
     -- run the script
     dofile(config.input)
     return 0
-  end --luacov:enable
+  end
+  local initeval = os.getenv('NELUA_INIT')
+  if initeval then
+    local ok = false
+    local initfunc, err = load(initeval, '@NELUA_INIT')
+    if initfunc then
+      ok, err = pcall(initfunc)
+    end
+    except.assertraisef(ok, tostring(err))
+  end
+  --luacov:enable
 
   local generator = require('nelua.' .. config.generator .. 'generator')
   local compiler = generator.compiler
