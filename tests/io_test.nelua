@@ -183,7 +183,7 @@ do -- io.output/io.write/io.writef
   assert(io.output('test2.tmp') ~= stdout)
   assert(io.stdout ~= stdout)
   assert(io.stdout:isopen())
-  assert(io.write('test2') == true)
+  assert(io.write('test', 2) == true)
   assert(io.stdout:write('!!\n') == true)
   assert(io.stdout:close())
   assert(io.output(stdout) == stdout)

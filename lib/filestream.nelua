@@ -249,7 +249,13 @@ function filestream:write(...: varargs): (boolean, stringview, integer)
   assert(fp ~= nilptr, 'attempt to use a closed file')
   local s: stringview
   ## for i=1,select_varargs('#') do
-    s = tostringview(#[select_varargs(i)]#)
+    ## local argnode = select_varargs(i)
+    ## local argtype = argnode.attr.type
+    ## if argtype.is_string or argtype.is_stringview then
+      s = #[argnode]#
+    ## else
+      s = tostring(#[argnode]#)
+    ## end
     if fwrite(s.data, 1, s.size, fp) ~= s.size then
       goto errout
     end

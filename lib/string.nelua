@@ -323,8 +323,9 @@ string_metafields.subview = stringview_metafields.subview
 
 -- Export string methods to stringview.
 stringview_metafields.__concat = string_metafields.__concat
-stringview_metafields.rep = string_metafields.rep
 stringview_metafields.sub = string_metafields.sub
+stringview_metafields.rep = string_metafields.rep
+stringview_metafields.match = string_metafields.match
 stringview_metafields.reverse = string_metafields.reverse
 stringview_metafields.upper = string_metafields.upper
 stringview_metafields.lower = string_metafields.lower
