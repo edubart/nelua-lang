@@ -1,10 +1,10 @@
 require 'string'
 
-local function assert_match(s: stringview, patt: stringview, res: overload(niltype,stringview,sequence(stringview)))
+local function assert_match(s: string, patt: string, res: overload(niltype,string,sequence(string)))
   local status, captures = string.match(s, patt, 1)
   ## if res.type.is_niltype then
   assert(status == true and #captures == 1 and captures[1] == s)
-  ## elseif res.type.is_stringview then
+  ## elseif res.type.is_string then
   assert(status == true and #captures == 1 and captures[1] == res)
   ## elseif res.type.is_sequence then
   assert(status == true)
@@ -15,7 +15,7 @@ local function assert_match(s: stringview, patt: stringview, res: overload(nilty
   ## end
 end
 
-local function assert_no_match(s: stringview, patt: stringview)
+local function assert_no_match(s: string, patt: string)
   local status, captures = string.match(s, patt)
   assert(status == false and #captures == 0)
 end
@@ -138,9 +138,9 @@ do -- test pattern matching syntax
   -- captures
   assert_match('a', '(a)', 'a')
   assert_match('aa', '(a)%1', 'a')
-  assert_match('abc', '(a)(b)(c)', (@sequence(stringview)){'a','b','c'})
-  assert_match('abc ', '(a*(.)%w(%s*))', (@sequence(stringview)){'abc ', 'b', ' '})
-  assert_match('abc {abc }{b}{ }', '(a*(.)%w(%s*)){%1}{%2}{%3}', (@sequence(stringview)){'abc ', 'b', ' '})
+  assert_match('abc', '(a)(b)(c)', (@sequence(string)){'a','b','c'})
+  assert_match('abc ', '(a*(.)%w(%s*))', (@sequence(string)){'abc ', 'b', ' '})
+  assert_match('abc {abc }{b}{ }', '(a*(.)%w(%s*)){%1}{%2}{%3}', (@sequence(string)){'abc ', 'b', ' '})
   -- assert_match('flaaap', '()aa()', 'aa')
   assert_no_match('flaaap', '()aa()%1')
 end

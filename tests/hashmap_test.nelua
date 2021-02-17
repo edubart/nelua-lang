@@ -125,7 +125,7 @@ do -- pairs and mpairs
 end
 
 do -- string map
-  local map: hashmap(stringview, stringview)
+  local map: hashmap(string, string)
   map['hello'] = 'hello'
   map['world'] = 'world'
   assert(map['hello'] == 'hello')

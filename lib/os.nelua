@@ -59,12 +59,12 @@ function os.difftime(t1: integer, t2: integer): integer
   return t2 - t1
 end
 
-function os.execute(command: facultative(stringview))
-  ## if command.type.is_stringview then
+function os.execute(command: facultative(string))
+  ## if command.type.is_string then
     errno = 0
     local status: integer = system(command)
     if status ~= 0 and errno ~= 0 then -- error with an errno?
-      return false, (@stringview)(strerror(errno)), errno
+      return false, (@string)(strerror(errno)), errno
     end
     --TODO: translate status codes for POSIX system
     return status == 0, 'exit', status
@@ -88,7 +88,7 @@ function os.exit(code: overload(integer,boolean,niltype)): void <noreturn>
   ## end
 end
 
-function os.getenv(varname: stringview): string
+function os.getenv(varname: string): string
   local s: cstring = getenv(varname)
   if s then
     return tostring(s)
@@ -97,21 +97,21 @@ function os.getenv(varname: stringview): string
   end
 end
 
-function os.remove(filename: stringview): (boolean, stringview, integer)
+function os.remove(filename: string): (boolean, string, integer)
   if remove(filename) == -1 then
     return false, strerror(errno), errno
   end
   return true, '', 0
 end
 
-function os.rename(oldname: stringview, newname: stringview): (boolean, stringview, integer)
+function os.rename(oldname: string, newname: string): (boolean, string, integer)
   if rename(oldname, newname) == -1 then
     return false, strerror(errno), errno
   end
   return true, '', 0
 end
 
-function os.setlocale(locale: stringview, category: facultative(stringview)): string
+function os.setlocale(locale: string, category: facultative(string)): string
   ## if category.type.is_niltype then
     return os.setlocale(locale, 'all')
   ## else

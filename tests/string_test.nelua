@@ -28,30 +28,20 @@ end
 do -- casting
   local sstr = (@string)("hello")
   local scstr = (@cstring)("hello")
-  local svstr = (@stringview)("hello")
   local dstr: string
   local dcstr: cstring
-  local dvstr: stringview
 
   -- implicit
   dstr = scstr assert(dstr == "hello")   -- cstring -> string
-  dstr = svstr assert(dstr == "hello")   -- stringview -> string
   dcstr = sstr assert(dcstr == "hello")  -- string -> cstring
-  dcstr = svstr assert(dcstr == "hello") -- stringview -> cstring
-  dvstr = scstr assert(dvstr == "hello") -- cstring -> stringview
-  dvstr = sstr assert(dvstr == "hello")  -- string -> stringview
 
   -- explicit
   dstr = (@string)(scstr) assert(dstr == "hello")       -- cstring -> string
-  dstr = (@string)(svstr) assert(dstr == "hello")       -- stringview -> string
   dcstr = (@cstring)(sstr) assert(dcstr == "hello")     -- string -> cstring
-  dcstr = (@cstring)(svstr) assert(dcstr == "hello")    -- stringview -> cstring
-  dvstr = (@stringview)(scstr) assert(dvstr == "hello") -- cstring -> stringview
-  dvstr = (@stringview)(sstr) assert(dvstr == "hello")  -- string -> stringview
 end
 
 do -- span casting
-  local str: stringview = 'hello'
+  local str: string = 'hello'
   local spn: span(int8)
 
   spn = str
@@ -61,7 +51,7 @@ do -- span casting
 
   str = spn
   assert(#str == 5)
-  str = (@stringview)(spn)
+  str = (@string)(spn)
   assert(#str == 5)
   assert(str == 'hello')
 end
@@ -361,25 +351,13 @@ do -- tostring
   assert(tostring((@function())(nilptr)) == 'function: (null)')
 end
 
-do -- tostringview
-  assert(tostringview('a') == 'a')
-  local s: string = 'test'
-  assert(tostringview(s) == 'test')
-end
-
 do -- string implicit conversion
-  local v: stringview
   local s: string
   local c: cstring
-  v = 'hello'
-  s = v; assert(s == 'hello')
-  c = v; assert(c == 'hello')
   s = 'world'
-  v = s; assert(v == 'world')
   c = s; assert(c == 'world')
   c = 'text'
   s = c; assert(s == 'text')
-  v = c; assert(v == 'text')
 end
 
 do -- tonumber
@@ -390,8 +368,6 @@ do -- tonumber
   assert(tonumber(3.4) == 3.4)
   assert(tonumber(1/0) == 1/0)
 
-  local v: stringview = '1337'
-  assert(tonumber(v) == 1337)
   local s: string = '1337'
   assert(tonumber(s) == 1337)
   local c: cstring = '1337'

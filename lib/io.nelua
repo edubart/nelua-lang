@@ -22,15 +22,15 @@ global io.stderr: filestream = filestream._from_fp(stderr, nilptr)
 global io.stdout: filestream = filestream._from_fp(stdout, nilptr)
 global io.stdin: filestream = filestream._from_fp(stdin, nilptr)
 
-function io.open(filename: stringview,
-                 mode: facultative(stringview)) : (filestream, stringview, integer)
+function io.open(filename: string,
+                 mode: facultative(string)) : (filestream, string, integer)
   return filestream.open(filename, mode)
 end
 
-function io.popen(filename: stringview,
-                  mode: facultative(stringview)) : (filestream, stringview, integer)
+function io.popen(filename: string,
+                  mode: facultative(string)) : (filestream, string, integer)
   ## if mode.type.is_niltype then
-  local mode: stringview = "r"
+  local mode: string = "r"
   ## else
   assert(m.size == 1 and (m.data[0] == 'r' or m.data[0] == 'w') and m.data[1] == '\0', 'invalid mode')
   ## end
@@ -50,7 +50,7 @@ function io.popen(filename: stringview,
   return filestream._from_fp(fp, pclose), '', 0
 end
 
-function io.flush(): (boolean, stringview, integer)
+function io.flush(): (boolean, string, integer)
   return io.stdout:flush()
 end
 
@@ -70,9 +70,9 @@ end)]#)
   ## end
 end
 
-function io.input(file: overload(stringview,filestream,niltype)): filestream
-  ## if file.type.is_stringview then
-    local fin: filestream, err: stringview = io.open(file, "r")
+function io.input(file: overload(string,filestream,niltype)): filestream
+  ## if file.type.is_string then
+    local fin: filestream, err: string = io.open(file, "r")
     if not fin:isopen() then error(err) end
     io.stdin = fin
   ## elseif file.type.is_filestream then
@@ -82,9 +82,9 @@ function io.input(file: overload(stringview,filestream,niltype)): filestream
   return io.stdin
 end
 
-function io.output(file: overload(stringview,filestream,niltype)): filestream
-  ## if file.type.is_stringview then
-    local fout: filestream, err: stringview = io.open(file, "w")
+function io.output(file: overload(string,filestream,niltype)): filestream
+  ## if file.type.is_string then
+    local fout: filestream, err: string = io.open(file, "w")
     if not fout:isopen() then error(err) end
     io.stdout = fout
   ## elseif file.type.is_filestream then
@@ -94,7 +94,7 @@ function io.output(file: overload(stringview,filestream,niltype)): filestream
   return io.stdout
 end
 
-function io.tmpfile(): (filestream, stringview, integer)
+function io.tmpfile(): (filestream, string, integer)
   local fp: *FILE = tmpfile()
   if not fp then
     return filestream{}, strerror(errno), errno
@@ -102,15 +102,15 @@ function io.tmpfile(): (filestream, stringview, integer)
   return filestream._from_fp(fp, fclose), '', 0
 end
 
-function io.read(fmt: overload(integer,stringview,niltype)): (string, stringview, integer)
+function io.read(fmt: overload(integer,string,niltype)): (string, string, integer)
   return io.stdin:read(fmt)
 end
 
-function io.write(...: varargs): (boolean, stringview, integer)
+function io.write(...: varargs): (boolean, string, integer)
   return io.stdout:write(...)
 end
 
-function io.writef(s: stringview, ...: varargs): (boolean, stringview, integer)
+function io.writef(s: string, ...: varargs): (boolean, string, integer)
   return io.stdout:writef(s, ...)
 end
 
@@ -130,7 +130,7 @@ function io.isopen(file: filestream): boolean
   return file:isopen()
 end
 
-function io.lines(filename: facultative(stringview), fmt: overload(integer,stringview,niltype))
+function io.lines(filename: facultative(string), fmt: overload(integer,string,niltype))
   ## if filename.type.is_niltype then
     return io.stdin:lines()
   ## else

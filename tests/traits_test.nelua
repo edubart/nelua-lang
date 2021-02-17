@@ -23,7 +23,7 @@ end
 
 do -- typeid_of
   assert(typeid_of(@niltype) == 0)
-  assert(typeid_of(@stringview) == typeid_of('a'))
+  assert(typeid_of(@string) == typeid_of('a'))
   assert(typeid_of(@integer) == typeid_of(1))
   assert(typeid_of(@integer) == typeid_of(1))
 end

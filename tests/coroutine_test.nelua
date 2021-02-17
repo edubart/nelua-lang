@@ -67,29 +67,29 @@ do -- passing 1 value between yield and resume
 end
 
 do -- passing 2 values between yield and resume
-  local Pair = @record{first: integer, second: stringview}
-  local co = coroutine.create(function(first: integer, second: stringview): (integer, stringview)
+  local Pair = @record{first: integer, second: string}
+  local co = coroutine.create(function(first: integer, second: string): (integer, string)
     local co = coroutine.running()
     assert(first == 1 and second == 'a')
     assert(coroutine.push(co, 2) == true)
     assert(coroutine.push(co, 'b') == true)
     coroutine.yield(co)
-    assert(coroutine.pop(co, @stringview) == 'c')
+    assert(coroutine.pop(co, @string) == 'c')
     assert(coroutine.pop(co, @integer) == 3)
     return 4, 'd'
   end)
   assert(coroutine.status(co) == 'suspended')
   assert(coroutine.push(co, 1) == true)
-  local s: stringview = 'a'
+  local s: string = 'a'
   assert(coroutine.push(co, s) == true)
   assert(coroutine.resume(co) == true)
-  assert(coroutine.pop(co, @stringview) == 'b')
+  assert(coroutine.pop(co, @string) == 'b')
   assert(coroutine.pop(co, @integer) == 2)
   assert(coroutine.status(co) == 'suspended')
   assert(coroutine.push(co, 3) == true)
   assert(coroutine.push(co, 'c') == true)
   assert(coroutine.resume(co) == true)
-  assert(coroutine.pop(co, @stringview) == 'd')
+  assert(coroutine.pop(co, @string) == 'd')
   assert(coroutine.pop(co, @integer) == 4)
   assert(coroutine.status(co) == 'dead')
   assert(coroutine.resume(co) == false)

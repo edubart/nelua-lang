@@ -104,11 +104,11 @@ function builtins.nelua_panic_cstring(context)
 }]])
 end
 
-function builtins.nelua_panic_stringview(context)
+function builtins.nelua_panic_string(context)
   context:ensure_include('<stdio.h>')
   context:ensure_builtins('nelua_noreturn', 'nelua_abort')
-  context:define_function_builtin('nelua_panic_stringview',
-    'static nelua_noreturn', primtypes.void, {{primtypes.stringview, 's'}}, [[{
+  context:define_function_builtin('nelua_panic_string',
+    'static nelua_noreturn', primtypes.void, {{primtypes.string, 's'}}, [[{
   if(s.data && s.size > 0) {
     fwrite(s.data, 1, s.size, stderr);
     fputc('\n', stderr);
@@ -153,7 +153,7 @@ end
 function builtins.nelua_warn(context)
   context:ensure_include('<stdio.h>')
   context:define_function_builtin('nelua_warn',
-    'static', primtypes.void, {{primtypes.stringview, 's'}}, [[{
+    'static', primtypes.void, {{primtypes.string, 's'}}, [[{
   if(s.data && s.size > 0) {
     fputs("warning: ", stderr);
     fwrite(s.data, 1, s.size, stderr);
@@ -163,39 +163,39 @@ function builtins.nelua_warn(context)
 }]])
 end
 
-function builtins.nelua_stringview_eq(context)
+function builtins.nelua_string_eq(context)
   context:ensure_include('<string.h>')
-  context:define_function_builtin('nelua_stringview_eq',
-    'static inline', primtypes.boolean, {{primtypes.stringview, 'a'}, {primtypes.stringview, 'b'}}, [[{
+  context:define_function_builtin('nelua_string_eq',
+    'static inline', primtypes.boolean, {{primtypes.string, 'a'}, {primtypes.string, 'b'}}, [[{
   return a.size == b.size && (a.data == b.data || a.size == 0 || memcmp(a.data, b.data, a.size) == 0);
 }]])
 end
 
-function builtins.nelua_stringview_ne(context)
-  context:ensure_builtin('nelua_stringview_eq')
-  context:define_function_builtin('nelua_stringview_ne',
-    'static inline', primtypes.boolean, {{primtypes.stringview, 'a'}, {primtypes.stringview, 'b'}}, [[{
-  return !nelua_stringview_eq(a, b);
+function builtins.nelua_string_ne(context)
+  context:ensure_builtin('nelua_string_eq')
+  context:define_function_builtin('nelua_string_ne',
+    'static inline', primtypes.boolean, {{primtypes.string, 'a'}, {primtypes.string, 'b'}}, [[{
+  return !nelua_string_eq(a, b);
 }]])
 end
 
-function builtins.nelua_cstring2stringview(context)
+function builtins.nelua_cstring2string(context)
   context:ensure_include('<string.h>', '<stdint.h>')
   context:ensure_builtin('NULL')
-  context:define_function_builtin('nelua_cstring2stringview',
-    'static', primtypes.stringview, {{primtypes.cstring, 's'}}, [[{
-  if(s == NULL) return (nlstringview){0};
+  context:define_function_builtin('nelua_cstring2string',
+    'static', primtypes.string, {{primtypes.cstring, 's'}}, [[{
+  if(s == NULL) return (nlstring){0};
   uintptr_t size = strlen(s);
-  if(size == 0) return (nlstringview){0};
-  return (nlstringview){(uint8_t*)s, size};
+  if(size == 0) return (nlstring){0};
+  return (nlstring){(uint8_t*)s, size};
 }]])
 end
 
 function builtins.nlruntype(context)
-  context:ensure_type(primtypes.stringview)
+  context:ensure_type(primtypes.string)
   context:define_builtin('nlruntype', [[
 typedef struct nlruntype {
-  nlstringview name;
+  nlstring name;
 } nlruntype;
 ]])
 end
@@ -621,13 +621,13 @@ end
 
 function operators.eq(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if (ltype.is_stringview and (rtype.is_stringview or rtype.is_cstring)) or
-     (ltype.is_cstring and rtype.is_stringview) then
-    emitter:add_builtin('nelua_stringview_eq')
+  if (ltype.is_string and (rtype.is_string or rtype.is_cstring)) or
+     (ltype.is_cstring and rtype.is_string) then
+    emitter:add_builtin('nelua_string_eq')
     emitter:add('(')
-    emitter:add_val2type(primtypes.stringview, lname, ltype)
+    emitter:add_val2type(primtypes.string, lname, ltype)
     emitter:add(', ')
-    emitter:add_val2type(primtypes.stringview, rname, rtype)
+    emitter:add_val2type(primtypes.string, rname, rtype)
     emitter:add(')')
   elseif ltype.is_composite or rtype.is_composite then
     if ltype == rtype then
@@ -662,13 +662,13 @@ end
 
 function operators.ne(_, emitter, lnode, rnode, lname, rname)
   local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if (ltype.is_stringview and (rtype.is_stringview or rtype.is_cstring)) or
-     (ltype.is_cstring and rtype.is_stringview) then
-    emitter:add_builtin('nelua_stringview_ne')
+  if (ltype.is_string and (rtype.is_string or rtype.is_cstring)) or
+     (ltype.is_cstring and rtype.is_string) then
+    emitter:add_builtin('nelua_string_ne')
     emitter:add('(')
-    emitter:add_val2type(primtypes.stringview, lname, ltype)
+    emitter:add_val2type(primtypes.string, lname, ltype)
     emitter:add(', ')
-    emitter:add_val2type(primtypes.stringview, rname, rtype)
+    emitter:add_val2type(primtypes.string, rname, rtype)
     emitter:add(')')
   elseif ltype.is_composite then
     if ltype == rtype then
@@ -743,7 +743,7 @@ end
 function operators.len(_, emitter, argnode)
   local argattr = argnode.attr
   local type = argattr.type
-  if type.is_stringview then
+  if type.is_string then
     emitter:add('((',primtypes.isize,')(', argnode, ').size)')
   elseif type.is_cstring then
     emitter.context:ensure_includes('<string.h>')
@@ -854,7 +854,7 @@ function inlines.print(context, node)
       defemitter:add_ln("fputc('\\t', stdout);")
       defemitter:add_indent()
     end
-    if argtype.is_stringview or argtype.is_string then
+    if argtype.is_string then
       defemitter:add_ln('if(a',i,'.size > 0) {')
       defemitter:inc_indent()
       defemitter:add_indent_ln('fwrite(a',i,'.data, 1, a',i,'.size, stdout);')
@@ -930,7 +930,7 @@ function inlines.unlikely(context)
 end
 
 function inlines.error(context)
-  return context:ensure_builtin('nelua_panic_stringview')
+  return context:ensure_builtin('nelua_panic_string')
 end
 
 function inlines.warn(context)
@@ -938,7 +938,7 @@ function inlines.warn(context)
 end
 
 function inlines.panic(context)
-  return context:ensure_builtin('nelua_panic_stringview')
+  return context:ensure_builtin('nelua_panic_string')
 end
 
 function inlines.require(context, node, emitter)

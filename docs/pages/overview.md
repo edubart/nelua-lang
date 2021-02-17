@@ -499,31 +499,21 @@ via the preprocessor when needed.
 
 ### Strings
 
-There are two types of strings, the `string` used for strings allocated at runtime,
-and `stringview` used for strings literals defined at compile-time as well as for views
-of runtime strings.
+String points to an immutable contiguous sequence of characters.
 
 ```nelua
--- to use the 'string' type we must import from the standard library
-require 'string'
-
 local mystr: string -- empty string
 local str1: string = 'my string' -- variable of type 'string'
-local str2 = "static stringview" -- variable of type 'stringview'
-local str3: stringview = 'stringview two' -- also a 'stringview'
-print(str1, str2, str3) -- outputs: "my string" "static stringview" "stringview two"
+local str2 = "static string" -- variable of type 'string'
+local str3: string = 'string two' -- also a 'string'
+print(str1, str2, str3) -- outputs: "" "string one" "string two"
 ```
 
-The major difference between `stringview` and `string` is that `stringview` doesn't
-manage the string memory, i.e. it doesn't allocate or deallocate strings.
-The `string` type is usually allocated at runtime and it frees the string memory
-once its reference count reaches 0. When the garbage collector is disabled,
-the `stringview` uses weak references, thus
-any `stringview` pointing to a `string` is invalidated once the related `string` is freed.
-Both types can be converted from one to another.
+Internally string just holds a pointer to a buffer and a size.
+It's buffer is null terminated ('\0') by default to have more compatibility with C.
 
-Like in Lua, `string` **is immutable**. This makes the semantics similar to Lua.
-If the programmer wants a mutable string, implementing a custom string class is easily achievable.
+Like in Lua, `string` **is immutable**.
+If the programmer wants a mutable string, he should use the `stringbuilder` module.
 {:.alert.alert-info}
 
 ### Array
@@ -1051,7 +1041,6 @@ Complete list of metamethods that can be defined for records:
 | `__atindex`      | `a[b]`{:.language-nelua}    | indexing | array index via reference              |
 | `__tocstring`    |                             | cast     | implicit cast to cstring               |
 | `__tostring`     |                             | cast     | implicit cast to string                |
-| `__tostringview` |                             | cast     | implicit cast to stringview            |
 | `__convert`      |                             | cast     | implicit cast from anything            |
 {: .table.table-bordered.table-striped.table-sm}
 
@@ -1062,7 +1051,7 @@ using the record as a "namespace":
 
 ```nelua
 global Globals = @record{} -- record used just for name spacing
-global Globals.AppName: stringview
+global Globals.AppName: string
 Globals.AppName = "My App"
 print(Globals.AppName) -- outputs: My App
 ```
@@ -1077,7 +1066,7 @@ You can define and later initialize complex records structures in a Lua-like sty
 
 ```nelua
 local WindowConfig = @record{
-  title: stringview,
+  title: string,
   pos: record {
     x: integer,
     y: integer
@@ -1189,7 +1178,7 @@ print($ap) -- outputs 3
 The compiler can perform automatic referencing or dereferencing for records and arrays ***only on function calls**:
 
 ```nelua
-local Person = @record{name: stringview, age: integer}
+local Person = @record{name: string, age: integer}
 
 local function print_info_byref(p: *Person)
   print(p.name, p.age)
@@ -1207,7 +1196,7 @@ print_info_bycopy(p) -- the dereferencing with `$` is implicit here
 For instance, the above code is equivalent to:
 
 ```nelua
-local Person = @record{name: stringview, age: integer}
+local Person = @record{name: string, age: integer}
 
 local function print_info_byref(p: *Person)
   print(p.name, p.age)
@@ -1226,7 +1215,7 @@ The above example is not very useful by itself,
 but permits auto referencing when doing method calls:
 
 ```nelua
-local Person = @record{name: stringview, age: integer}
+local Person = @record{name: string, age: integer}
 
 -- note that this function only accept pointers
 function Person.print_info(self: *Person)
@@ -2041,10 +2030,10 @@ Using concepts to overload functions for different incoming types
 at compile time is a common use, so there is also a shortcut for creating overload concepts:
 
 ```nelua
-local function foo(x: overload(integer,stringview,niltype))
+local function foo(x: overload(integer,string,niltype))
   ## if x.type.is_integral then
     print('got integer ', x)
-  ## elseif x.type.is_stringview then
+  ## elseif x.type.is_string then
     print('got string ', x)
   ## else
     print('got nothing')

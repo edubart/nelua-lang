@@ -11,7 +11,7 @@ end
 -- arithmetic types returns "number",
 -- types that represents a string returns "string",
 -- other types returns the underlying type name.
-global function type(x: auto): stringview <inline,nosideeffect>
+global function type(x: auto): string <inline,nosideeffect>
   ## if x.type.is_niltype then
     return 'nil'
   ## elseif x.type.is_nilptr then
@@ -27,8 +27,8 @@ end
 
 global typeinfo = @record {
   id: typeid,
-  name: stringview,
-  codename: stringview
+  name: string,
+  codename: string
 }
 
 global function typeinfo_of(x: auto): typeinfo <inline,nosideeffect>

@@ -62,7 +62,7 @@ it("print correct generated AST" , function()
     }
   }
 }]])
-  expect.run('--print-analyzed-ast examples/helloworld.nelua', [[type = "stringview"]])
+  expect.run('--print-analyzed-ast examples/helloworld.nelua', [[type = "string"]])
 end)
 
 it("print correct generated code", function()

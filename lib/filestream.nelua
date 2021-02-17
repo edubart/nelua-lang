@@ -46,7 +46,7 @@ global filestream = @record{
 }
 ## filestream.value.is_filestream = true
 
-local function fileresult(success: boolean): (boolean, stringview, integer)
+local function fileresult(success: boolean): (boolean, string, integer)
   if not success then
     return false, strerror(errno), errno
   end
@@ -73,7 +73,7 @@ function filestream:_get_fp(): *FILE
 end
 
 -- Check weather mode matches '[rwa]%+?b?'
-local function checkmode(mode: stringview): boolean
+local function checkmode(mode: string): boolean
   if #mode == 0 then return false end
   if strchr('rwa', mode.data[0]) == nilptr then return false end
   local pos: usize = 1
@@ -82,9 +82,9 @@ local function checkmode(mode: stringview): boolean
   return mode.data[pos] == 0
 end
 
-function filestream.open(filename: stringview, mode: facultative(stringview)) : (filestream, stringview, integer)
+function filestream.open(filename: string, mode: facultative(string)) : (filestream, string, integer)
   ## if mode.type.is_niltype then
-  local mode: stringview = "r"
+  local mode: string = "r"
   ## else
   assert(checkmode(mode), 'invalid mode')
   ## end
@@ -95,13 +95,13 @@ function filestream.open(filename: stringview, mode: facultative(stringview)) : 
   return filestream._from_fp(fp, fclose), '', 0
 end
 
-function filestream:flush(): (boolean, stringview, integer)
+function filestream:flush(): (boolean, string, integer)
   local fp: *FILE = self:_get_fp()
   assert(fp ~= nilptr, 'attempt to use a closed file')
   return fileresult(fflush(fp) == 0)
 end
 
-function filestream:close(): (boolean, stringview, integer)
+function filestream:close(): (boolean, string, integer)
   local p: FStream = $pool:get(self.id)
   assert(p.fp ~= nilptr, 'attempt to use a closed file')
   if p.fp == stdout or p.fp == stderr or p.fp == stdin then
@@ -113,8 +113,8 @@ function filestream:close(): (boolean, stringview, integer)
   return fileresult(res == 0)
 end
 
-function filestream:seek(whence: facultative(stringview),
-                         offset: facultative(integer)): (integer, stringview, integer)
+function filestream:seek(whence: facultative(string),
+                         offset: facultative(integer)): (integer, string, integer)
   local fp: *FILE = self:_get_fp()
   assert(fp ~= nilptr, 'attempt to use a closed file')
   ## if whence.type.is_niltype then
@@ -129,7 +129,7 @@ function filestream:seek(whence: facultative(stringview),
     elseif whence == 'end' then op = SEEK_END
     elseif whence == 'cur' then op = SEEK_CUR
     else error("invalid whence") end
-    local len: integer, errmsg: stringview, status: integer
+    local len: integer, errmsg: string, status: integer
     if fseek(fp, (@clong)(offset), op) == 0 then
       len = ftell(fp)
     else
@@ -141,7 +141,7 @@ function filestream:seek(whence: facultative(stringview),
   ## end
 end
 
-function filestream:setvbuf(mode: stringview, size: facultative(integer))
+function filestream:setvbuf(mode: string, size: facultative(integer))
   ## if size.type.is_niltype then
   local size: csize = 1024
   ## end
@@ -197,7 +197,7 @@ local function readall(sb: *stringbuilder, fp: *FILE): boolean
   return true
 end
 
-function filestream:read(fmt: overload(integer,stringview,niltype)): (string, stringview, integer)
+function filestream:read(fmt: overload(integer,string,niltype)): (string, string, integer)
   --TODO: multiple arguments
   local fp: *FILE = self:_get_fp()
   assert(fp ~= nilptr, 'attempt to use a closed file')
@@ -208,7 +208,7 @@ function filestream:read(fmt: overload(integer,stringview,niltype)): (string, st
     success = readline(&sb, fp, true)
   ## elseif fmt.type.is_arithmetic then
     success = readchars(&sb, fp, fmt)
-  ## elseif fmt.type.is_stringview then
+  ## elseif fmt.type.is_string then
     local c: byte = fmt.data[0]
     if c == '*'_byte then -- skip optional '*' (for compatibility)
       c = fmt.data[1]
@@ -224,7 +224,7 @@ function filestream:read(fmt: overload(integer,stringview,niltype)): (string, st
       error('invalid format')
     end
   ## end
-  local errmsg: stringview
+  local errmsg: string
   local status: integer = 0
   if ferror(fp) ~= 0 then
     success, errmsg, status = fileresult(false)
@@ -243,15 +243,15 @@ function filestream:read(fmt: overload(integer,stringview,niltype)): (string, st
   return s, errmsg, status
 end
 
-function filestream:write(...: varargs): (boolean, stringview, integer)
+function filestream:write(...: varargs): (boolean, string, integer)
   --TODO: return file itself
   local fp: *FILE = self:_get_fp()
   assert(fp ~= nilptr, 'attempt to use a closed file')
-  local s: stringview
+  local s: string
   ## for i=1,select_varargs('#') do
     ## local argnode = select_varargs(i)
     ## local argtype = argnode.attr.type
-    ## if argtype.is_string or argtype.is_stringview then
+    ## if argtype.is_string then
       s = #[argnode]#
     ## else
       s = tostring(#[argnode]#)
@@ -265,26 +265,26 @@ function filestream:write(...: varargs): (boolean, stringview, integer)
   return fileresult(false)
 end
 
-function filestream:writef(fmt: stringview, ...: varargs): (boolean, stringview, integer)
+function filestream:writef(fmt: string, ...: varargs): (boolean, string, integer)
   local sb: stringbuilder
   if not sb:write_format(fmt, ...) then
     return false, 'not enough memory', 0
   end
-  local ok: boolean, err: stringview, len: integer = self:write(tostringview(sb))
+  local ok: boolean, err: string, len: integer = self:write(sb)
   sb:destroy()
   return ok, err, len
 end
 
-function filestream:lines(fmt: overload(integer,stringview,niltype))
+function filestream:lines(fmt: overload(integer,string,niltype))
   ## if fmt.type.is_niltype then
-  local fmt: stringview = 'l'
+  local fmt: string = 'l'
   ## end
   local LinesState = @record {
     file: filestream,
     fmt: #[fmt.type]#
   }
   local function lines_next(state: LinesState, prevstr: string): (boolean, string)
-    local str: string, errmsg: stringview, status: integer = state.file:read(state.fmt)
+    local str: string, errmsg: string, status: integer = state.file:read(state.fmt)
     return status == 0, str
   end
   return lines_next, (@LinesState){file=$self,fmt=fmt}, (@string){}

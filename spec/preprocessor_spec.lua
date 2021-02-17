@@ -209,7 +209,7 @@ end)
 it("print types", function()
   expect.ast_type_equals([[
     local n: float64
-    local s: stringview
+    local s: string
     local b: boolean
     local a: [2]int64
     local function f(a: int64, b: int64): (int64, int64) return 0,0 end
@@ -226,7 +226,7 @@ it("print types", function()
     local tr = #[tostring(r.type)]#
   ]], [=[
     local n: float64
-    local s: stringview
+    local s: string
     local b: boolean
     local a: [2]int64
     local function f(a: int64, b: int64): (int64, int64) return 0,0 end
@@ -235,7 +235,7 @@ it("print types", function()
     global R.v: integer = 1
     local r: R
     local tn = 'float64'
-    local ts = 'stringview'
+    local ts = 'string'
     local tb = 'boolean'
     local ta = 'array(int64, 2)'
     local tf = 'function(int64, int64): (int64, int64)'
@@ -487,12 +487,12 @@ end)
 
 it("preprocessor replacement", function()
   expect.ast_type_equals([=[
-  local s = #[symbols.stringview]#
+  local s = #[symbols.string]#
   local t = #[primtypes.table]#
   local ty = #[primtypes.type]#
   local n = #[primtypes.number]#
 ]=],[=[
-  local s = @stringview
+  local s = @string
   local t = @table
   local ty = @type
   local n = @number

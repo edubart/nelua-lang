@@ -9,7 +9,7 @@ local function f(sb: *stringbuilder)
   defer sb:write_string'd' end
   defer sb:write_string'c' end
   sb:write_string'b'
-  return tostringview(sb)
+  return tostring(sb)
 end
 assert(f(&sb) == 'abcd')
 
@@ -22,7 +22,7 @@ local function f(sb: *stringbuilder)
     defer sb:write_string'b' end
   end
   sb:write_string'c'
-  return tostringview(sb)
+  return tostring(sb)
 end
 assert(f(&sb) == 'abcd')
 
@@ -38,7 +38,7 @@ local function f(sb: *stringbuilder)
     end
   end
   sb:write_string'd'
-  return tostringview(sb)
+  return tostring(sb)
 end
 assert(f(&sb) == 'abcde')
 
@@ -52,9 +52,9 @@ local function f(sb: *stringbuilder)
     if true then
       defer sb:write_string'b' end
     end
-    return tostringview(sb)
+    return tostring(sb)
   end
-  return tostringview(sb)
+  return tostring(sb)
 end
 assert(f(&sb) == 'abcd')
 
@@ -65,12 +65,12 @@ local function f(sb: *stringbuilder)
   defer sb:write_string'd' end
   if true then
     defer sb:write_string'c' end
-    return tostringview(sb)
+    return tostring(sb)
     if true then
       defer sb:write_string'b' end
     end
   end
-  return tostringview(sb)
+  return tostring(sb)
 end
 assert(f(&sb) == 'acd')
 
@@ -83,7 +83,7 @@ local function f(sb: *stringbuilder)
     defer sb:write_string'b' end
     break
   end
-  return tostringview(sb)
+  return tostring(sb)
 end
 assert(f(&sb) == 'abc')
 
@@ -97,7 +97,7 @@ local function f(sb: *stringbuilder)
     continue
     defer sb:write_string' ' end
   end
-  return tostringview(sb)
+  return tostring(sb)
 end
 assert(f(&sb) == 'abbbc')
 
@@ -110,7 +110,7 @@ local function f(sb: *stringbuilder)
     defer sb:write_string'b' end
     local x = true
   until x
-  return tostringview(sb)
+  return tostring(sb)
 end
 assert(f(&sb) == 'abc')
 

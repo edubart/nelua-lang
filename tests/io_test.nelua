@@ -2,7 +2,7 @@ require 'os'
 require 'io'
 
 local file: filestream
-local err: stringview
+local err: string
 local code: integer
 local ok: boolean
 local stdin: filestream = io.stdin

@@ -94,12 +94,12 @@ function CEmitter:add_val2boolean(val, valtype)
   end
 end
 
-function CEmitter:add_stringview2cstring(val)
+function CEmitter:add_string2cstring(val)
   self:add('((char*)(', val, '.data', '))')
 end
 
-function CEmitter:add_cstring2stringview(val)
-  self:add_builtin('nelua_cstring2stringview')
+function CEmitter:add_cstring2string(val)
+  self:add_builtin('nelua_cstring2string')
   self:add('(', val, ')')
 end
 
@@ -129,10 +129,10 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
       self:add_one(val)
     elseif type.is_boolean then
       self:add_val2boolean(val, valtype)
-    elseif valtype.is_stringview and (type.is_cstring or type:is_pointer_of(primtypes.byte)) then
-      self:add_stringview2cstring(val)
-    elseif type.is_stringview and valtype.is_cstring then
-      self:add_cstring2stringview(val)
+    elseif valtype.is_string and (type.is_cstring or type:is_pointer_of(primtypes.byte)) then
+      self:add_string2cstring(val)
+    elseif type.is_string and valtype.is_cstring then
+      self:add_cstring2string(val)
     elseif type.is_pointer and traits.is_astnode(val) and val.attr.autoref then
       -- automatic reference
       self:add('&', val)
@@ -257,7 +257,7 @@ function CEmitter:add_string_literal_inlined(val, ascstring)
   else
     if not self.context.state.ininitializer then
       self:add_one('(')
-      self:add_typecast(primtypes.stringview)
+      self:add_typecast(primtypes.string)
     end
     self:add('{(uint8_t*)', quoted_value, ', ', #val, '}')
     if not self.context.state.ininitializer then
@@ -278,7 +278,7 @@ function CEmitter:add_string_literal(val, ascstring)
     else --luacov:enable
       if not self.context.state.ininitializer then
         self:add_one('(')
-        self:add_typecast(primtypes.stringview)
+        self:add_typecast(primtypes.string)
       end
       self:add('{(uint8_t*)', varname, ', ', size, '}')
       if not self.context.state.ininitializer then
@@ -298,7 +298,7 @@ function CEmitter:add_string_literal(val, ascstring)
   else --luacov:enable
     if not self.context.state.ininitializer then
       self:add_one('(')
-      self:add_typecast(primtypes.stringview)
+      self:add_typecast(primtypes.string)
     end
     self:add('{(uint8_t*)', varname, ', ', size, '}')
     if not self.context.state.ininitializer then
@@ -313,7 +313,7 @@ function CEmitter:add_literal(valattr)
     self:add_boolean_literal(valattr.value)
   elseif valtype.is_arithmetic then
     self:add_numeric_literal(valattr)
-  elseif valtype.is_stringview then
+  elseif valtype.is_string then
     self:add_string_literal(valattr.value, valattr.is_cstring)
   elseif valtype.is_niltype then
     self:add_builtin('NLNIL')

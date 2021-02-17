@@ -120,7 +120,7 @@ end)
 it("auto type" , function()
   expect.ast_type_equals("local a: auto = 1", "local a: integer = 1")
   expect.ast_type_equals("local a: auto <comptime> = 1", "local a: integer <comptime> = 1")
-  expect.ast_type_equals("local a: auto = 's'", "local a: stringview = 's'")
+  expect.ast_type_equals("local a: auto = 's'", "local a: string = 's'")
   expect.ast_type_equals("local a: auto = @integer", "local a: type = @integer")
   expect.analyze_error("local b; local a: auto = b", "must be assigned to expressions where type is known ahead")
   expect.analyze_error("local a: auto = nilptr", "auto variables cannot be assigned to expressions of type")
@@ -642,8 +642,8 @@ it("function definition", function()
     function f(a: integer) end
   ]])
   expect.analyze_ast([[
-    local f: function(integer): stringview
-    function f(a: integer): stringview return '' end
+    local f: function(integer): string
+    function f(a: integer): string return '' end
   ]])
   expect.analyze_error([[
     do
@@ -660,14 +660,14 @@ it("function definition", function()
   ]], "no viable type conversion")
   expect.analyze_error([[
     local function f(a: integer) end
-    function f(a: stringview) end
+    function f(a: string) end
   ]], "no viable type conversion")
   expect.analyze_error([[
-    local function f(): (integer, stringview) return 1, '' end
+    local function f(): (integer, string) return 1, '' end
     function f(): integer return 1 end
   ]], "no viable type conversion")
   expect.analyze_error([[
-    local f: function():(integer, stringview)
+    local f: function():(integer, string)
     function f(): integer return 1 end
   ]], "no viable type conversion")
   expect.analyze_error([[
@@ -786,7 +786,7 @@ it("function return", function()
     a = f()
   ]], "cannot assign to expressions of type 'void'")
   expect.analyze_error([[
-    local function f(): (integer, stringview) return 1 end
+    local function f(): (integer, string) return 1 end
   ]], "missing return expression at index")
   expect.analyze_error([[
     local function f(): integer end
@@ -803,16 +803,16 @@ it("function return", function()
     local function f(): integer return 1, 2 end
   ]], "invalid return expression at index")
   expect.analyze_error([[
-    local function f(): stringview return 0 end
+    local function f(): string return 0 end
   ]], "no viable type conversion")
 end)
 
 it("function multiple return", function()
   expect.analyze_ast([[
-    local function f(): (integer, stringview) return 1,'s'  end
-    local function g(a: boolean, b: integer, c: stringview) end
+    local function f(): (integer, string) return 1,'s'  end
+    local function g(a: boolean, b: integer, c: string) end
     g(false, f())
-    local a: integer, b: stringview = f()
+    local a: integer, b: string = f()
     local a: integer = f()
   ]])
   expect.analyze_ast([[
@@ -857,8 +857,8 @@ it("function multiple return", function()
     local a, b = g()
   ]],[[
     local function f() return true,1 end
-    local function g(): (stringview,boolean,integer) return 's', f() end
-    local a: stringview, b: boolean = g()
+    local function g(): (string,boolean,integer) return 's', f() end
+    local a: string, b: boolean = g()
   ]])
   expect.analyze_error([[
     local function f(): (integer, boolean) return 1,false  end
@@ -872,7 +872,7 @@ it("function multiple return", function()
   ]], 'is assigning to nothing in the expression')
   expect.analyze_error([[
     local function f(): (integer, boolean) return 1,false  end
-    local function g(a: boolean, b: integer, c: stringview) end
+    local function g(a: boolean, b: integer, c: string) end
     g(false, f())
   ]], 'no viable type conversion')
   expect.analyze_error([[
@@ -921,7 +921,7 @@ end)
 
 it("callbacks", function()
   expect.analyze_ast([[
-    local callback_type = @function(x: integer, stringview): (number, boolean)
+    local callback_type = @function(x: integer, string): (number, boolean)
     local callback: callback_type = nilptr
   ]])
   expect.analyze_ast([[
@@ -1346,7 +1346,7 @@ it("enums", function()
   expect.analyze_error([[
     local Enum = @enum{A=0,B=3}
     local e: Enum = Enum.A
-    local i: stringview = e
+    local i: string = e
   ]], "no viable type conversion")
   expect.analyze_error([[
     local Enum = @enum{A=0,B}
@@ -1563,7 +1563,7 @@ it("type construction", function()
   expect.analyze_ast("local a = (@integer)()")
   expect.analyze_ast("local a = (@integer)(0)")
   expect.analyze_ast("local a = (@boolean)(false)")
-  expect.analyze_ast("local a = (@stringview)('')")
+  expect.analyze_ast("local a = (@string)('')")
   expect.analyze_ast("local a = (@any)(nil)")
   expect.analyze_error("local a = (@integer)(1,2)", "expected at most 1 argument")
   expect.analyze_error("local a = (@integer)(false)", "no viable type conversion")
@@ -1607,7 +1607,7 @@ it("cimport", function()
 end)
 
 it("builtins", function()
-  expect.ast_type_equals("local x; local a = type(x)", "local x; local a: stringview = type(x)")
+  expect.ast_type_equals("local x; local a = type(x)", "local x; local a: string = type(x)")
   expect.ast_type_equals("local a = #@integer", "local a: isize = #@integer")
   expect.ast_type_equals("local a = likely(true)", "local a: boolean = likely(true)")
   expect.ast_type_equals("local a = unlikely(true)", "local a: boolean = unlikely(true)")
@@ -1708,7 +1708,7 @@ it("concepts", function()
     f(io{})
   ]])
   expect.analyze_error([[
-    local function f(x: #[overload_concept({integer, stringview})]#) return x end
+    local function f(x: #[overload_concept({integer, string})]#) return x end
     f(true)
   ]], "cannot match overload concept")
   expect.analyze_error([[

@@ -121,7 +121,7 @@ end
 
 local function cleanup_nelua_state()
   -- cleanup nelua state by previous runs
-  primtypes.stringview.metafields = {}
+  primtypes.string.metafields = {}
 end
 
 local function run(args)

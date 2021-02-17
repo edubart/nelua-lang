@@ -49,7 +49,7 @@ global function hash(x: auto): usize
     return u.h
   ## elseif type.is_boolean then
     if x then return 1 else return 0 end
-  ## elseif type.is_stringview or type.is_string then
+  ## elseif type.is_string then
     return lhash_long({data=x.data, size=x.size})
   ## elseif type.is_span then
     local T: type = #[type.subtype]#

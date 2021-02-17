@@ -93,7 +93,7 @@ Type.shape = shaper.shape {
   aligned = shaper.integer:is_optional(),
   -- Whether the type can have user defined nickname, true for user defined types.
   is_nameable = shaper.optional_boolean,
-  -- Whether the type can turn represents a string (e.g. stringview, string and cstring).
+  -- Whether the type can turn represents a string (e.g. string and cstring).
   is_stringy = shaper.optional_boolean,
   -- Whether the type represents a contiguous buffer (e.g. arrays, spans and vector in the lib).
   is_contiguous = shaper.optional_boolean,
@@ -169,7 +169,7 @@ Type.shape = shaper.shape {
   is_polyfunction = shaper.optional_boolean,
   is_record = shaper.optional_boolean,
   is_union = shaper.optional_boolean,
-  is_stringview = shaper.optional_boolean,
+  is_stringview = shaper.optional_boolean, -- deprecated
   is_table = shaper.optional_boolean,
   is_type = shaper.optional_boolean,
   is_varanys = shaper.optional_boolean,
@@ -2187,9 +2187,9 @@ function PointerType:get_convertible_from_type(type, explicit, autoref)
         return self
       end
     end
-  elseif type.is_stringview then
+  elseif type.is_string then
     if is_pointer_subtype_convertible(self.subtype, primtypes.byte) then
-      -- implicit casting a stringview to a cstring or an 8bit integral
+      -- implicit casting a string to a cstring or an 8bit integral
       return self
     end
   elseif type.is_nilptr then
@@ -2263,21 +2263,22 @@ function PointerType:typedesc()
 end
 
 --------------------------------------------------------------------------------
--- String View Type
+-- String Type
 --
--- String views are used to store and process immutable strings at compile time
+-- String are used to store and process immutable strings at compile time
 -- and also to store string references at runtime. Internally it just holds a pointer
 -- to a buffer and a size. It's buffer is always null terminated ('\0') by default
 -- to have more compatibility with C.
 
-local StringViewType = types.typeclass(RecordType)
-types.StringViewType = StringViewType
-StringViewType.is_nameable = false
-StringViewType.is_stringview = true
-StringViewType.is_stringy = true
+local StringType = types.typeclass(RecordType)
+types.StringType = StringType
+StringType.is_nameable = false
+StringType.is_stringview = true -- deprecated
+StringType.is_string = true
+StringType.is_stringy = true
 
-function StringViewType:_init(name)
-  self.codename = 'nlstringview'
+function StringType:_init(name)
+  self.codename = 'nlstring'
   RecordType._init(self, {
     {name = 'data', type = types.PointerType(types.ArrayType(primtypes.byte, 0)) },
     {name = 'size', type = primtypes.usize}
@@ -2287,25 +2288,25 @@ function StringViewType:_init(name)
 end
 
 -- Get the desired type when converting this type from another type.
-function StringViewType:get_convertible_from_type(type, explicit, autoref)
-  if type.is_cstring then -- implicit cast cstring to stringview
+function StringType:get_convertible_from_type(type, explicit, autoref)
+  if type.is_cstring then -- implicit cast cstring to string
     return self
   end
-  return Type.get_convertible_from_type(self, type, explicit, autoref)
+  return RecordType.get_convertible_from_type(self, type, explicit, autoref)
 end
 
--- String view length operator.
-StringViewType.unary_operators.len = function(_, lattr)
+-- String length operator.
+StringType.unary_operators.len = function(_, lattr)
   local lval, reval = lattr.value, nil
-  if lval then -- is a compile time stringview
+  if lval then -- is a compile time string
     reval = bn.new(#lval)
   end
   return primtypes.isize, reval
 end
 
--- String view concatenation operator.
-StringViewType.binary_operators.concat = function(ltype, rtype, lattr, rattr)
-  if ltype.is_stringview and rtype.is_stringview then
+-- String concatenation operator.
+StringType.binary_operators.concat = function(ltype, rtype, lattr, rattr)
+  if ltype.is_string and rtype.is_string then
     local lval, rval = lattr.value, rattr.value
     if lval and rval then -- both are compile time strings
       local reval = lval .. rval
@@ -2314,10 +2315,10 @@ StringViewType.binary_operators.concat = function(ltype, rtype, lattr, rattr)
   end
 end
 
--- Helper to create the string view comparison operation function.
+-- Helper to create the string comparison operation function.
 local function make_string_cmp_opfunc(cmpfunc)
   return function(ltype, rtype, lattr, rattr)
-    if ltype.is_stringview and rtype.is_stringview then -- comparing string views?
+    if ltype.is_string and rtype.is_string then -- comparing strings?
       local lval, rval, reval = lattr.value, rattr.value, nil
       if lval and rval then -- both are compile time strings
         reval = cmpfunc(lval, rval)
@@ -2327,11 +2328,11 @@ local function make_string_cmp_opfunc(cmpfunc)
   end
 end
 
--- Implement all the string view comparison operations.
-StringViewType.binary_operators.le = make_string_cmp_opfunc(function(a,b) return a<=b end)
-StringViewType.binary_operators.ge = make_string_cmp_opfunc(function(a,b) return a>=b end)
-StringViewType.binary_operators.lt = make_string_cmp_opfunc(function(a,b) return a<b end)
-StringViewType.binary_operators.gt = make_string_cmp_opfunc(function(a,b) return a>b end)
+-- Implement all the string comparison operations.
+StringType.binary_operators.le = make_string_cmp_opfunc(function(a,b) return a<=b end)
+StringType.binary_operators.ge = make_string_cmp_opfunc(function(a,b) return a>=b end)
+StringType.binary_operators.lt = make_string_cmp_opfunc(function(a,b) return a<b end)
+StringType.binary_operators.gt = make_string_cmp_opfunc(function(a,b) return a>b end)
 
 --------------------------------------------------------------------------------
 -- CVaList Type

@@ -11,7 +11,7 @@ local nelua_argv: *[0]cstring <cimport, nodecl>
 -- List of command line arguments.
 -- The index 0 usually is filled with the program executable.
 -- The arguments goes from 1 up to #arg (like in Lua).
-global arg: sequence(stringview, GeneralAllocator)
+global arg: sequence(string, GeneralAllocator)
 
 -- setup args
 if nelua_argc > 0 then

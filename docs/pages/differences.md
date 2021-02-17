@@ -30,8 +30,8 @@ Never or N/A - ✖
 | `ipairs`{:.language-nelua} | ✔ | `iterators`{:.language-nelua} |  |
 | `print`{:.language-nelua} | ✔ | `builtin`{:.language-nelua} | Nelua generates print function for each type. |
 | `select`{:.language-nelua} | ❌ | `builtin`{:.language-nelua} |  |
-| `tonumber`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `tostring`{:.language-nelua} | ✔ | `string`{:.language-nelua} | As Lua this function uses `__tostring`{:.language-nelua}, however Nelua also has `__tostringview`{:.language-nelua} which exists in `stringview`{:.language-nelua} library. |
+| `tonumber`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `tostring`{:.language-nelua} | ✔ | `string`{:.language-nelua} | As Lua this function uses `__tostring`{:.language-nelua}. |
 | `type`{:.language-nelua} | ✔ | `traits`{:.language-nelua} |  |
 | `warn`{:.language-nelua} | ✔ | `builtin`{:.language-nelua} |  |
 | `load`{:.language-nelua} | ✖ | | Nelua can't compile at the runtime. |
@@ -155,21 +155,21 @@ Nelua has additional functions in this library. See [here](/libraries/#math).
 
 ## String
 
-Nelua has additional functions in this library. See [here](/libraries/#stringview) and [here](/libraries/#string).
+Nelua has additional functions in this library. See [here](/libraries/#string) and [here](/libraries/#string).
 {: .callout.callout-info}
 
 | Function | Status | Nelua Library | Remarks |
 |----------|:------:|---------------|---------|
-| `string.byte`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} | No multiple arguments. Errors on failure. |
+| `string.byte`{:.language-nelua} | ✔ | `string`{:.language-nelua} | No multiple arguments. Errors on failure. |
 | `string.char`{:.language-nelua} | ✔ | `string`{:.language-nelua} | Only for `string`{:.language-nelua}. No multiple arguments. |
 | `string.format`{:.language-nelua} | ✔ | `string`{:.language-nelua} | No multiple arguments. |
-| `string.len`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
+| `string.len`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
 | `string.rep`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
 | `string.sub`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
 | `string.reverse`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
 | `string.lower`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
 | `string.upper`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
-| `string.find`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} | Patterns are not supported. Returns `0, 0`{:.language-nelua} instead of `nil`{:.language-nelua} if nothing was found. |
+| `string.find`{:.language-nelua} | ✔ | `string`{:.language-nelua} | Patterns are not supported. Returns `0, 0`{:.language-nelua} instead of `nil`{:.language-nelua} if nothing was found. |
 | `string.match`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
 | `string.gmatch`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
 | `string.gsub`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
@@ -177,18 +177,18 @@ Nelua has additional functions in this library. See [here](/libraries/#stringvie
 | `string.unpack`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
 | `string.packsize`{:.language-nelua} | ❌ | `string`{:.language-nelua} |  |
 | `string.dump`{:.language-nelua} | ✖ | `string`{:.language-nelua} | No interpreted functions. |
-| `string.__len`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.__eq`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.__lt`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.__le`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.__sub`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.__add`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.__pow`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.__unm`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.__div`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.__idiv`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.__mul`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
-| `string.__mod`{:.language-nelua} | ✔ | `stringview`{:.language-nelua} |  |
+| `string.__len`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.__eq`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.__lt`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.__le`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.__sub`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.__add`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.__pow`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.__unm`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.__div`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.__idiv`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.__mul`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
+| `string.__mod`{:.language-nelua} | ✔ | `string`{:.language-nelua} |  |
 {: .table.table-bordered.table-striped.table-sm}
 
 ## Table

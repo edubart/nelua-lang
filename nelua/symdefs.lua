@@ -37,18 +37,18 @@ end
 -- nelua only
 define_function('likely', {Attr{name='cond', type=primtypes.boolean}}, {primtypes.boolean})
 define_function('unlikely', {Attr{name='cond', type=primtypes.boolean}}, {primtypes.boolean})
-define_function('panic', {Attr{name='message', type=primtypes.stringview}}, {}, {noreturn=true, sideeffect=true})
+define_function('panic', {Attr{name='message', type=primtypes.string}}, {}, {noreturn=true, sideeffect=true})
 define_symbol('check')
 define_symbol('nilptr', primtypes.nilptr)
 
 -- lua
-define_function('error', {Attr{name='message', type=primtypes.stringview}}, {}, {noreturn=true, sideeffect=true})
-define_function('warn', {Attr{name='message', type=primtypes.stringview}}, {}, {sideeffect=true})
-define_function('type', {Attr{name='value', type=primtypes.any}}, {primtypes.stringview})
-define_function('require', {Attr{name='modname', type=primtypes.stringview}}, {})
+define_function('error', {Attr{name='message', type=primtypes.string}}, {}, {noreturn=true, sideeffect=true})
+define_function('warn', {Attr{name='message', type=primtypes.string}}, {}, {sideeffect=true})
+define_function('type', {Attr{name='value', type=primtypes.any}}, {primtypes.string})
+define_function('require', {Attr{name='modname', type=primtypes.string}}, {})
 define_symbol('print')
 define_symbol('assert')
 define_symbol('_G', primtypes.table)
-define_symbol('_VERSION', primtypes.stringview, {comptime=true, value=version.NELUA_VERSION})
+define_symbol('_VERSION', primtypes.string, {comptime=true, value=version.NELUA_VERSION})
 
 return symdefs

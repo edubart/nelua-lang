@@ -695,7 +695,7 @@ end
 
 global gc_allocator: GCAllocator
 
-global function collectgarbage(opt: facultative(stringview) <comptime>)
+global function collectgarbage(opt: facultative(string) <comptime>)
   ## if opt.type.is_niltype or opt.value == 'collect' then
     gc:collect()
   ## elseif opt.value == 'stop' then

@@ -2,7 +2,6 @@ local lester = require 'nelua.thirdparty.lester'
 local describe, it = lester.describe, lester.it
 
 local config = require 'nelua.configer'.get()
-
 local expect = require 'spec.tools.expect'
 
 describe("C generator", function()
@@ -428,7 +427,7 @@ it("operation on comptime variables", function()
   ]])
 
   expect.run_c([[
-    local function f(a: stringview <comptime>)
+    local function f(a: string <comptime>)
        ## if a.value == 'test' then
           return 1
        ## else
@@ -673,8 +672,8 @@ it("function return", function()
     local function f(): niltype return end
   ]], "return (nlniltype)NLNIL;")
   expect.generate_c([[
-    local function f(): stringview return (@stringview){} end
-  ]], "nlstringview f() {\n  return (nlstringview){0};")
+    local function f(): string return (@string){} end
+  ]], "nlstring f() {\n  return (nlstring){0};")
   expect.generate_c([[
     local function f() return end
   ]], "return;")
@@ -1224,8 +1223,8 @@ it("binary operator `concat`", function()
 end)
 
 it("string comparisons", function()
-  expect.generate_c("local a,b = 'a','b'; local x = a == b", "nelua_stringview_eq(a, b)")
-  expect.generate_c("local a,b = 'a','b'; local x = a ~= b", "nelua_stringview_ne(a, b)")
+  expect.generate_c("local a,b = 'a','b'; local x = a == b", "nelua_string_eq(a, b)")
+  expect.generate_c("local a,b = 'a','b'; local x = a ~= b", "nelua_string_ne(a, b)")
   expect.run_c([[
     assert('a' == 'a')
     assert(not ('a' ~= 'a'))
@@ -1584,13 +1583,13 @@ it("cstring and string", function()
 
     do
       local c: cstring = 'hello'
-      local s: stringview = (@stringview)(c)
+      local s: string = (@string)(c)
       assert(#s == 5)
       assert(#c == 5)
     end
 
     do
-      local s: stringview = 'hello'
+      local s: string = 'hello'
       local c: cstring = (@cstring)(s)
       assert(#s == 5)
       assert(#c == 5)
@@ -1994,13 +1993,13 @@ it("record string conversions", function()
   expect.run_c([[
     local R = @record{x: integer}
     function R:__tocstring(): cstring return (@cstring)('R') end
-    function R:__tostringview(): stringview return 'R' end
+    function R:__tostring(): string return 'R' end
     local r: R
-    local s: stringview = r
+    local s: string = r
     assert(s == 'R')
     local cs: cstring = r
     local cs: cstring = (@cstring)(r)
-    assert((@stringview){size=1,data=(@*[0]byte)(cs)} == 'R')
+    assert((@string){size=1,data=(@*[0]byte)(cs)} == 'R')
   ]])
 end)
 
@@ -2490,15 +2489,15 @@ end)
 it("print builtin", function()
   expect.run_c([[
     print(1,0.2,1e2,0xf,0b01,nilptr)
-    local i: integer, s: stringview, n: niltype, p: pointer
+    local i: integer, s: string, n: niltype, p: pointer
     print(i, s, n, p)
     local function f()
       return 'a', 1
     end
     print(f())
 
-    local Person = @record{name: stringview}
-    function Person:__tostringview(): stringview
+    local Person = @record{name: string}
+    function Person:__tostring(): string
       return self.name
     end
     local p: Person = {name='John'}
@@ -2815,11 +2814,11 @@ it("GC requirements", function()
     global gp: pointer
     global gr: record{x: pointer}
     global ga: [4]*integer
-    global gs: stringview
+    global gs: string
     local p: pointer
     local r: record{x: pointer}
     local a: [4]*integer
-    local s: stringview
+    local s: string
 
     local function markp(what: pointer)
     end
@@ -3138,7 +3137,7 @@ end)
 it("issue #45", function()
   expect.run_c([=[
     local X = @record{y: integer}
-    function X:A(a: facultative(stringview) <comptime>)
+    function X:A(a: facultative(string) <comptime>)
       print(a)
     end
     local z: X = {0}

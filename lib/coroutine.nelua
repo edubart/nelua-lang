@@ -180,7 +180,7 @@ end
 -- If the coroutine has yielded, resume restarts it.
 -- If the coroutine runs without any errors, resume returns true plus an empty error message.
 -- If there is any error, resume returns false plus the error message.
-function coroutine.resume(co: coroutine): (boolean, stringview)
+function coroutine.resume(co: coroutine): (boolean, string)
   ## if not pragmas.nogc then
   local is_main: boolean = mco_running() == nilptr
   if is_main then
@@ -196,9 +196,9 @@ function coroutine.resume(co: coroutine): (boolean, stringview)
   end
   ## end
   if res ~= MCO_SUCCESS then
-    return false, (@stringview)(mco_result_description(res))
+    return false, (@string)(mco_result_description(res))
   end
-  return true, (@stringview){}
+  return true, (@string){}
 end
 
 -- Suspends the execution of the calling coroutine.
@@ -215,12 +215,12 @@ end
 -- The value can be received in the next `coroutine.pop` or in the body function arguments (when coroutine starts).
 -- In case of an error returns false plus the error message.
 -- NOTE: Your are responsible to always use the right types and push/pop order.
-function coroutine.push(co: coroutine, input: auto): (boolean, stringview)
+function coroutine.push(co: coroutine, input: auto): (boolean, string)
   local res: mco_result = mco_push(co, &input, #(#[input.type]#))
   if res ~= MCO_SUCCESS then
-    return false, (@stringview)(mco_result_description(res))
+    return false, (@string)(mco_result_description(res))
   end
-  return true, (@stringview){}
+  return true, (@string){}
 end
 
 -- Pops a value of type `T` from the coroutine storage.
@@ -231,9 +231,9 @@ function coroutine.pop(co: coroutine, T: type)
   local output: T
   local res: mco_result = mco_pop(co, &output, #@T)
   if res ~= MCO_SUCCESS then
-    return output, false, (@stringview)(mco_result_description(res))
+    return output, false, (@string)(mco_result_description(res))
   end
-  return output, true, (@stringview){}
+  return output, true, (@string){}
 end
 
 -- Returns the running coroutine plus a boolean, true when the running coroutine is the main one.
@@ -251,7 +251,7 @@ end
 -- * "suspended", if the coroutine is suspended in a call to yield, or if it has not started running yet.
 -- * "normal" if the coroutine is active but not running (that is, it has resumed another coroutine).
 -- * "dead" if the coroutine has finished its body function, or if it has been destroyed.
-function coroutine.status(co: coroutine): stringview
+function coroutine.status(co: coroutine): string
   check(co ~= nilptr, 'invalid coroutine')
   if co == &main_coro then -- Main coroutine.
     if mco_running() == nilptr then

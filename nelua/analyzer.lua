@@ -89,7 +89,7 @@ function visitors.String(_, node)
     if node.desiredtype and node.desiredtype.is_cstring then
       attr.type = primtypes.cstring
     else
-      attr.type = primtypes.stringview
+      attr.type = primtypes.string
     end
   end
   attr.value = value
@@ -181,16 +181,12 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
     elseif vartype.is_string then
       objtype = valobjtype
       mtname = '__tostring'
-    elseif vartype.is_stringview then
-      objtype = valobjtype
-      mtname = '__tostringview'
     end
   end
   if not objtype then
-    if vartype.is_stringview or vartype.is_cstring or
-       (vartype.is_string and not valtype.is_stringy) then
+    if vartype.is_cstring or (vartype.is_string and not valtype.is_stringy) then
       -- __convert not allowed on stringy types
-      -- because we have __tocstring, __tostring, __tostringview
+      -- because we have __tocstring, __tostring
       return valnode, valtype
     end
     objtype = varobjtype
@@ -600,6 +596,9 @@ function visitors.Id(context, node)
     if not symbol then
       node:raisef("undeclared symbol '%s'", name)
     end
+    if name == 'stringview' and symbol.value == primtypes.string then --luacov:disable
+      node:warnf('`stringview` type is deprecated, use `string` instead')
+    end --luacov:enable
   else
     symbol = node.attr.forcesymbol
   end

@@ -218,8 +218,8 @@ end
 do -- String
   local mystr: string -- empty string
   local str1: string = 'my string' -- variable of type 'string'
-  local str2 = "static stringview" -- variable of type 'stringview'
-  local str3: stringview = 'stringview two' -- also a 'stringview'
+  local str2 = "static string" -- variable of type 'string'
+  local str3: string = 'string two' -- also a 'string'
   print(str1, str2, str3) -- outputs: "" "string one" "string two"
 end
 

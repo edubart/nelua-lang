@@ -77,7 +77,8 @@ primtypes.uinteger    = primtypes.uint64
 primtypes.number      = primtypes.float64
 
 -- Complex types.
-primtypes.stringview  = types.StringViewType('stringview')
+primtypes.string      = types.StringType('string')
+primtypes.stringview  = primtypes.string -- deprecated
 primtypes.any         = types.AnyType('any', 2*cpusize)
 primtypes.varanys     = types.VaranysType('varanys')
 primtypes.varargs     = types.VarargsType('varargs')

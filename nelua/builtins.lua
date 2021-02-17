@@ -21,7 +21,7 @@ function builtins.require(context, node, argnodes)
     context:traverse_nodes(argnodes)
     local argnode = argnodes[1]
     if not (argnode and
-            argnode.attr.type and argnode.attr.type.is_stringview and
+            argnode.attr.type and argnode.attr.type.is_string and
             argnode.attr.comptime) or not context.scope.is_topscope then
       -- not a compile time require
       if canloadatruntime then
@@ -112,7 +112,7 @@ function builtins.assert(context, node, argnodes)
       rettypes = {condtype}
     end
     if nargs == 2 then
-      argattrs = {Attr{name='cond', type=condtype}, Attr{name='msg', type=primtypes.stringview}}
+      argattrs = {Attr{name='cond', type=condtype}, Attr{name='msg', type=primtypes.string}}
     elseif nargs == 1 then
       argattrs = {Attr{name='cond', type=condtype}}
     end
@@ -145,10 +145,8 @@ function builtins.print(context, node, argnodes)
     local objtype = argtype:implicit_deref_type()
     if objtype.is_record then
       local metafields = objtype.metafields
-      if metafields.__tostringview then
-        argtype = primtypes.stringview
-      elseif metafields.__tostring then
-        argtype = context.rootscope.symbols.string.value
+      if metafields.__tostring then
+        argtype = primtypes.string
       end
     end
     argattrs[i] = {name='a'..i, type=argtype}

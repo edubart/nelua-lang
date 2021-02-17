@@ -42,13 +42,13 @@
   function spanT.__convert(values: #[concept(function(x)
     if x.type.is_pointer and x.type.subtype and x.type.subtype:is_contiguous_of(T) then
       return true
-    elseif x.type.is_stringview and (T.is_integral and T.bitsize == 8) then
+    elseif x.type.is_string and (T.is_integral and T.bitsize == 8) then
       return true
     end
     return false, string.format("no viable conversion from '%s' to '%s'", x.type, spanT)
   end)]#): spanT <inline,nosideeffect>
     local self: spanT
-    ## if values.type.is_stringview then
+    ## if values.type.is_string then
       self.data = (@*[0]T)(values.data)
       self.size = values.size
     ## else
@@ -61,8 +61,8 @@
   end
 
   ## if T.is_integral and T.bitsize == 8 then
-  function spanT:__tostringview(): stringview <inline,nosideeffect>
-    return (@stringview){data=(@*[0]byte)(self.data), size=self.size}
+  function spanT:__tostring(): string <inline,nosideeffect>
+    return (@string){data=(@*[0]byte)(self.data), size=self.size}
   end
   ## end
 

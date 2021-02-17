@@ -109,7 +109,7 @@ end
     return true
   end
 
-  function stringbuilderT:write_string(s: stringview): boolean
+  function stringbuilderT:write_string(s: string): boolean
     local p: *[0]byte = self:prepare(s.size)
     if unlikely(p == nilptr) then return false end
     memory.copy(p, s.data, s.size)
@@ -164,7 +164,7 @@ end
       end
     ## end if arg1.type.is_stringy then
       if c == 's'_byte then
-        local s: stringview = (@stringview)(arg1)
+        local s: string = (@string)(arg1)
         maxitem = s.size + 1
         buff = (@cstring)(self:prepare(maxitem))
         if not buff then
@@ -180,7 +180,7 @@ end
     return true, nb
   end
 
-  function stringbuilderT:write_format(fmt: stringview, ...: varargs): boolean
+  function stringbuilderT:write_format(fmt: string, ...: varargs): boolean
     local L_ESC: byte <comptime> = '%'_byte
     local pos: usize = 0
     local argi: int32 = 0
@@ -226,14 +226,25 @@ end
     return true
   end
 
+  function stringbuilderT:promotestring(): string
+    if unlikely(self.size == 0) then
+      return (@string){}
+    end
+    local size: usize = self.size
+    local data: span(byte) = self.allocator:spanxrealloc(self.data, size + 1) -- shrink
+    data[size] = 0 -- cstring line ending
+    $self = {} -- destroy
+    return (@string){data = data.data, size = size}
+  end
+
   function stringbuilderT:__tocstring(): cstring <inline,nosideeffect>
     if unlikely(self.size == 0) then return (@cstring)('') end
     return (@cstring)(&self.data[0])
   end
 
-  function stringbuilderT:__tostringview(): stringview <inline,nosideeffect>
-    if unlikely(self.size == 0) then return (@stringview){} end
-    return (@stringview){data = &self.data[0], size = self.size}
+  function stringbuilderT:__tostring(): string <inline,nosideeffect>
+    if unlikely(self.size == 0) then return (@string){} end
+    return (@string){data = &self.data[0], size = self.size}
   end
 
   ## return stringbuilderT
