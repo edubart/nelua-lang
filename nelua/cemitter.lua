@@ -74,9 +74,10 @@ function CEmitter:add_val2boolean(val, valtype)
     self:add_one(val)
   elseif valtype.is_niltype or valtype.is_nilptr then
     self.context:ensure_include('<stdbool.h>')
-    if traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Id') then
+    if (traits.is_string(val) and val:match('^[%w_]+$')) or
+       (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Id')) then
       self:add_one('false')
-    else -- could be a call
+    else -- could have a call
       self:add('({(void)(', val, '); false;})')
     end
   elseif valtype.is_pointer or valtype.is_function then
@@ -84,7 +85,8 @@ function CEmitter:add_val2boolean(val, valtype)
     self:add('(', val, ' != NULL)')
   else
     self.context:ensure_include('<stdbool.h>')
-    if traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Id') then
+    if (traits.is_string(val) and val:match('^[%w_]+$')) or
+       (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Id')) then
       self:add_one('true')
     else -- could be a call
       self:add('({(void)(', val, '); true;})')

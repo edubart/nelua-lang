@@ -918,8 +918,6 @@ function visitors.Return(context, node, emitter)
         if i>1 then retemitter:add(', ') end
         if lastcallindex == 1 then
           -- last assignment value may be a multiple return call
-          defemitter:add_indent_ln('{')
-          defemitter:inc_indent()
           multiretvalname = context:genuniquename('ret')
           local retctype = context:funcretctype(retnode.attr.calleetype)
           defemitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', retnode, ';')
@@ -933,10 +931,6 @@ function visitors.Return(context, node, emitter)
       end
       retemitter:add_ln('};')
       defemitter:add_indent(retemitter:generate())
-      if multiretvalname then
-        defemitter:dec_indent()
-        defemitter:add_indent_ln('}')
-      end
     end
   end
   finish_upscopes_defer(context, desemitter, 'is_returnbreak')

@@ -50,7 +50,7 @@ function io.popen(filename: stringview,
   return filestream._from_fp(fp, pclose), '', 0
 end
 
-function io.flush(): boolean
+function io.flush(): (boolean, stringview, integer)
   return io.stdout:flush()
 end
 
