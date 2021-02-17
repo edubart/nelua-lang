@@ -1341,6 +1341,9 @@ function visitors.UnaryOp(_, node, emitter)
     emitter:add_literal(attr)
     return
   end
+  if attr.type.is_any then
+    node:raisef("compiler deduced the type 'any' here, but it's not supported yet in C backend yet")
+  end
   local opname, argnode = node[1], node[2]
   local builtin = cbuiltins.operators[opname]
   local surround = not node.attr.inconditional
@@ -1356,6 +1359,9 @@ function visitors.BinaryOp(context, node, emitter)
   end
   local opname, lnode, rnode = node[1], node[2], node[3]
   local type = node.attr.type
+  if type.is_any then
+    node:raisef("compiler deduced the type 'any' here, but it's not supported yet in C backend yet")
+  end
   local surround = not node.attr.inconditional
   if surround then emitter:add('(') end
   if node.attr.dynamic_conditional then

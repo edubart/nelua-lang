@@ -1562,6 +1562,12 @@ it("variable shadowing", function()
 end)
 
 it("any type", function()
+  expect.run_error_c([[
+    local row_pix: integer = (true and 1) * 2
+  ]], "not supported yet")
+  expect.run_error_c([[
+    local row_pix: integer = -(true and 1)
+  ]], "not supported yet")
   expect.run_error_c("local a: any", "not supported yet")
 end)
 
