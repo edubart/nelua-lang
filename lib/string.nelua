@@ -155,9 +155,9 @@ function string.match(self: stringview, pattern: stringview, init: facultative(i
   local captures: sequence(string)
   if e ~= -1 then
     if ms.numcaptures > 0 then -- has captures
-      captures:resize(ms.numcaptures)
+      captures:resize((@usize)(ms.numcaptures))
       for i:isize=0,<ms.numcaptures do
-        captures[i+1] = ms:get_capture(i)
+        captures[(@usize)(i+1)] = ms:get_capture(i)
       end
       return true, captures
     else -- nothing captured, then capture whole match

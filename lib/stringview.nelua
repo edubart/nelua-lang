@@ -136,12 +136,12 @@ function stringview.gmatch(s: stringview, pattern: stringview, init: facultative
     if e ~= -1 then -- no match
       ok = true
       state.init = e+1
-      matched = (@stringview){data=&state.ms.source.data[s], size=e-s}
+      matched = (@stringview){data=&state.ms.source.data[s], size=(@usize)(e-s)}
       assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
       for i:isize=0,<state.ms.numcaptures do
         state.captures[i] = state.ms:get_capture(i)
       end
-      captures = (@span(stringview)){data=&state.captures[0], size=state.ms.numcaptures}
+      captures = (@span(stringview)){data=&state.captures[0], size=(@usize)(state.ms.numcaptures)}
     end
     return ok, matched, captures
   end
