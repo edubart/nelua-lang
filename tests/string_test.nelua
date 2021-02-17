@@ -356,6 +356,9 @@ do -- tostring
   assert(tostring(f):sub(1,10) == 'function: ')
   assert(tostring(string.lower):sub(1,10) == 'function: ')
   assert(tostring(tostring) == 'polyfunction')
+  assert(tostring(nilptr) == '(null)')
+  assert(tostring((@pointer)(nilptr)) == '(null)')
+  assert(tostring((@function())(nilptr)) == 'function: (null)')
 end
 
 do -- tostringview

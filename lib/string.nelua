@@ -209,17 +209,20 @@ global function tostring(x: auto): string
     -- use implicit conversion
     return x
   ## elseif x.type.is_arithmetic or x.type.is_function or x.type.is_pointer then
-    ##[[
-    local tyformat
-    if x.type.is_function then
-      tyformat = '"function: %p"'
-    elseif x.type.is_pointer then
-      tyformat = '"%p"'
-    else
-      tyformat = require'nelua.cdefs'.types_printf_format[x.type.codename]
+    ## if x.type.is_pointer then tyformat = '"0x%" PRIxPTR'
+    local x: usize = (@usize)(x)
+    if x == 0 then
+      return '(null)'
     end
-    static_assert(tyformat)
-    ]]
+    ## elseif x.type.is_function then tyformat = '"function: 0x%" PRIxPTR'
+    local x: usize = (@usize)((@pointer)(x))
+    if x == 0 then
+      return 'function: (null)'
+    end
+    ##[[ else
+      tyformat = require'nelua.cdefs'.types_printf_format[x.type.codename]
+      static_assert(tyformat)
+    end]]
     local fmt: cstring <cimport #[tyformat]#, nodecl, cinclude '<inttypes.h>'>
     local size: cint = snprintf(nilptr, 0, fmt, x)
     if unlikely(size <= 0) then return (@string){} end
@@ -248,6 +251,8 @@ global function tostring(x: auto): string
     return 'false'
   ## elseif x.type.is_niltype then
     return 'nil'
+  ## elseif x.type.is_nilptr then
+    return '(null)'
   ## elseif x.type.is_polyfunction then
     return 'polyfunction'
   ## elseif x.type.is_record and x.type.metafields.__tostring then
