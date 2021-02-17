@@ -273,16 +273,18 @@ typevisitors.FunctionReturnType = function(context, functype)
   if not functype:has_multiple_returns() then
     return context:ctype(functype:get_return_type(1))
   end
-  local retctype = functype.codename .. '_ret'
+  local rettypes = functype.rettypes
+  local retnames = {'nlmulret'}
+  for i=1,#rettypes do
+    retnames[#retnames+1] = rettypes[i].codename
+  end
+  local retctype = table.concat(retnames, '_')
   if context:is_declared(retctype) then return retctype end
-  local numrets = functype:get_return_count()
   local retemitter = CEmitter(context)
   retemitter:add_indent_ln('typedef struct ', retctype, ' {')
   retemitter:inc_indent()
-  for i=1,numrets do
-    local rettype = functype:get_return_type(i)
-    assert(rettype)
-    retemitter:add_indent_ln(rettype, ' ', 'r', i, ';')
+  for i=1,#rettypes do
+    retemitter:add_indent_ln(rettypes[i], ' ', 'r', i, ';')
   end
   retemitter:dec_indent()
   retemitter:add_indent_ln('} ', retctype, ';')

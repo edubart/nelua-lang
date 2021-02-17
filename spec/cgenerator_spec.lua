@@ -684,8 +684,8 @@ it("function multiple returns", function()
   expect.generate_c([[
     local function f(): (integer, boolean) return 1, true end
   ]], {
-    "function_%w+_ret f",
-    "return %(function_%w+_ret%){1, true};"
+    "nlmulret_[%w_]+ f",
+    "return %(nlmulret_[%w_]+%){1, true};"
   }, true)
   expect.generate_c([[do
     local function f(): (integer, boolean) return 1, true end
@@ -694,7 +694,7 @@ it("function multiple returns", function()
   end]], {
     "int64_t a = __ret%d+%.r1;",
     "bool b = __ret%d+%.r2;",
-    "int64_t c = %({%s+function_%w+_ret __ret%d = f.*__ret%d.r1;%s+}%)",
+    "int64_t c = %({%s+nlmulret_[%w_]+ __ret%d = f.*__ret%d.r1;%s+}%)",
   }, true)
   expect.run_c([[
     local function f(): (integer, boolean) return 1, true end
@@ -788,7 +788,7 @@ it("call with multiple args", function()
     local function g(a: int32, b: integer, c: boolean) end
     g(1, f())
   end]], {
-    "function_%w+_ret __tmp%d+ = f%(%)",
+    "nlmulret_[%w_]+ __tmp%d+ = f%(%)",
     "g%(1, __tmp%d+.r1, __tmp%d+.r2%);"
   }, true)
   expect.run_c([[do
