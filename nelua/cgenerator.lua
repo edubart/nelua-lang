@@ -1152,7 +1152,10 @@ function visitors.Continue(context, _, emitter)
 end
 
 function visitors.Label(context, node, emitter)
-  emitter:add_ln(context:declname(node.attr), ':;')
+  local attr = node.attr
+  if attr.used then
+    emitter:add_ln(context:declname(attr), ':;')
+  end
 end
 
 function visitors.Goto(context, node, emitter)
@@ -1466,7 +1469,6 @@ local function emit_features_setup(context)
         emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-variable"')
         emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-function"')
         emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-but-set-variable"')
-        emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-label"')
         -- for ignoring const* on pointers
         emitter:add_ln('#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
       emitter:add_ln('#endif')

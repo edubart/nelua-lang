@@ -2032,6 +2032,7 @@ function visitors.Goto(context, node)
       break
     end
   end
+  label.used = true
   node.attr.label = label
   node.done = true
 end
