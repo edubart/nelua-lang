@@ -29,7 +29,7 @@ function builtins.nelua_cexport(context)
   context:define_builtin('nelua_cexport', [[
 #ifdef _WIN32
 #define nelua_cexport __declspec(dllexport) extern
-#elif defined(__GNUC__) && __GNUC__ >= 4
+#elif defined(__GNUC__)
 #define nelua_cexport __attribute__((visibility ("default"))) extern
 #else
 #define nelua_cexport extern
@@ -42,11 +42,25 @@ function builtins.nelua_unlikely(context)
 end
 
 function builtins.nelua_noinline(context)
-  context:define_builtin('nelua_noinline', "#define nelua_noinline __attribute__((noinline))")
+  context:define_builtin('nelua_noinline', [[
+#if defined(__GNUC__)
+#define nelua_noinline __attribute__((noinline))
+#else
+#define nelua_noinline
+#endif
+]])
 end
 
 function builtins.nelua_noreturn(context)
-  context:define_builtin('nelua_noreturn', "#define nelua_noreturn __attribute__((noreturn))")
+  context:define_builtin('nelua_noreturn', [[
+#if __STDC_VERSION__ >= 201112L
+#define nelua_noreturn _Noreturn
+#elif defined(__GNUC__)
+#define nelua_noreturn __attribute__((noreturn))
+#else
+#define nelua_noreturn
+#endif
+]])
 end
 
 function builtins.nlniltype(context)
