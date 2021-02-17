@@ -18,15 +18,13 @@ require 'allocators.interface'
 ## local make_pool_allocator = generalize(function(T, SIZE)
   ##[[
   static_assert(traits.is_type(T), 'T must be a type')
-  local CHUNK_SIZE = T.size
-  local CHUNK_ALIGN = math.max(T.align, primtypes.pointer.size)
   static_assert(traits.is_number(SIZE), 'size must be a number')
-  static_assert(SIZE * CHUNK_SIZE > 0, 'size must be greater than 0')
-  static_assert(CHUNK_SIZE >= primtypes.pointer.size, 'chunk size must be at least a pointer in size')
+  static_assert(SIZE * T.size > 0, 'size must be greater than 0')
+  static_assert(T.size >= primtypes.pointer.size, 'chunk size must be at least a pointer in size')
   ]]
 
   local PoolFreeNode = @record{next: *PoolFreeNode}
-  local PoolChunk <aligned(#[CHUNK_ALIGN]#)> = @record {data: [#[CHUNK_SIZE]#]byte}
+  local PoolChunk = @union{value: #[T]#, p: pointer}
   local PoolAllocatorT = @record{
     initialized: boolean,
     head: *PoolFreeNode,

@@ -183,11 +183,13 @@ typevisitors[types.ArrayType] = function(context, type)
   local decemitter = CEmitter(context, 0)
   decemitter:add('typedef struct {', type.subtype, ' data[', type.length, '];} ', type.codename)
   emit_type_attributes(decemitter, type)
-  decemitter:add_ln(';')
-  if type.size and not context.pragmas.nocstaticassert then
-    decemitter:add_ln('nelua_static_assert(sizeof(',type.codename,') == ', type.size,
-                      ', "Nelua and C disagree on type size");')
+  decemitter:add(';')
+  if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
+    decemitter:add('nelua_static_assert(sizeof(',type.codename,') == ', type.size, ' && ',
+                      '_Alignof(',type.codename,') == ', type.align,
+                      ', "Nelua and C disagree on type size or align");')
   end
+  decemitter:add_ln()
   table.insert(context.declarations, decemitter:generate())
 end
 
@@ -215,33 +217,33 @@ local function typevisitor_CompositeType(context, type)
   decemitter:add_ln('typedef ',kindname,' ', type.codename, ' ', type.codename, ';')
   table.insert(context.declarations, decemitter:generate())
   local defemitter = CEmitter(context, 0)
-  --if #type.fields > 0 then
-    defemitter:add(kindname, ' ', type.codename)
-    defemitter:add(' {')
-    if #type.fields > 0 then
-      defemitter:add_ln()
-      for _,field in ipairs(type.fields) do
-        local fieldctype
-        if field.type.is_array then
-          fieldctype = field.type.subtype
-        else
-          fieldctype = context:ctype(field.type)
-        end
-        defemitter:add('  ', fieldctype, ' ', field.name)
-        if field.type.is_array then
-          defemitter:add('[', field.type.length, ']')
-        end
-        defemitter:add_ln(';')
+  defemitter:add(kindname, ' ', type.codename)
+  defemitter:add(' {')
+  if #type.fields > 0 then
+    defemitter:add_ln()
+    for _,field in ipairs(type.fields) do
+      local fieldctype
+      if field.type.is_array then
+        fieldctype = field.type.subtype
+      else
+        fieldctype = context:ctype(field.type)
       end
+      defemitter:add('  ', fieldctype, ' ', field.name)
+      if field.type.is_array then
+        defemitter:add('[', field.type.length, ']')
+      end
+      defemitter:add_ln(';')
     end
-    defemitter:add('}')
-    emit_type_attributes(defemitter, type)
-    defemitter:add_ln(';')
-  --end
-  if type.size and not context.pragmas.nocstaticassert then
-    defemitter:add_ln('nelua_static_assert(sizeof(',type.codename,') == ', type.size,
-                      ', "Nelua and C disagree on type size");')
   end
+  defemitter:add('}')
+  emit_type_attributes(defemitter, type)
+  defemitter:add(';')
+  if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
+    defemitter:add(' nelua_static_assert(sizeof(',type.codename,') == ', type.size, ' && ',
+                      '_Alignof(',type.codename,') == ', type.align,
+                      ', "Nelua and C disagree on type size or align");')
+  end
+  defemitter:add_ln()
   table.insert(context.declarations, defemitter:generate())
 end
 
