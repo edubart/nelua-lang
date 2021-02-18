@@ -48,45 +48,14 @@ function string:destroy(): void <inline>
   self.size = 0
 end
 
--- Return length of a string.
-function string.__len(a: string): isize <inline,nosideeffect>
-  return (@isize)(a.size)
-end
-
--- Compare two strings.
-function string.__eq(a: string, b: string): boolean <nosideeffect>
-  return a.size == b.size and (a.data == b.data or a.size == 0 or memory.equals(a.data, b.data, a.size))
-end
-
--- Compare if string `a` is less than string `b` in lexicographical order.
-function string.__lt(a: string, b: string): boolean <nosideeffect>
-  if unlikely(a.size == 0 or b.size == 0) then
-    return a.size < b.size
-  else
-    if a.size < b.size then
-      return memory.compare(a.data, b.data, a.size) <= 0
-    else
-      return memory.compare(a.data, b.data, b.size) < 0
-    end
-  end
-end
-
--- Compare if string `a` is less or equal than string `b` in lexicographical order.
-function string.__le(a: string, b: string): boolean <nosideeffect>
-  if unlikely(a.size == 0 or b.size == 0) then
-    return a.size <= b.size
-  else
-    if a.size <= b.size then
-      return memory.compare(a.data, b.data, a.size) <= 0
-    else
-      return memory.compare(a.data, b.data, b.size) < 0
-    end
-  end
-end
-
--- Return length of a string.
-function string.len(self: string): isize <inline,nosideeffect>
-  return (@isize)(self.size)
+function string.copy(s: string): string
+  local clone: string
+  if unlikely(s.size == 0) then return clone end
+  clone.data = (@*[0]byte)(default_allocator:xalloc(s.size+1))
+  memory.copy(clone.data, s.data, s.size)
+  clone.data[s.size] = 0
+  clone.size = s.size
+  return clone
 end
 
 -- Returns the internal numeric codes of the character at position `i`.
@@ -286,6 +255,17 @@ function string.char(...: varargs): string
   return s
 end
 
+function string.format(fmt: string, ...: varargs): string
+  local sb: stringbuilder
+  sb:write_format(fmt, ...)
+  return sb:promotestring()
+end
+
+-- Return length of a string.
+function string.len(self: string): isize <inline,nosideeffect>
+  return (@isize)(self.size)
+end
+
 -- Concept to check if a value can possibly be a number.
 local arithmetic_coercion_concept = #[concept(function(x)
   if x.type.is_stringy then
@@ -298,71 +278,139 @@ local arithmetic_coercion_concept = #[concept(function(x)
   return false, string.format("type '%s' is not convertible to an arithmetic", x.type)
 end)]#
 
+-- Return length of a string.
+function string.__len(a: string): isize <inline,nosideeffect>
+  return (@isize)(a.size)
+end
+
+-- Compare two strings.
+function string.__eq(a: string, b: string): boolean <nosideeffect>
+  return a.size == b.size and (a.data == b.data or a.size == 0 or memory.equals(a.data, b.data, a.size))
+end
+
+-- Compare if string `a` is less than string `b` in lexicographical order.
+function string.__lt(a: string, b: string): boolean <nosideeffect>
+  if unlikely(a.size == 0 or b.size == 0) then
+    return a.size < b.size
+  else
+    if a.size < b.size then
+      return memory.compare(a.data, b.data, a.size) <= 0
+    else
+      return memory.compare(a.data, b.data, b.size) < 0
+    end
+  end
+end
+
+-- Compare if string `a` is less or equal than string `b` in lexicographical order.
+function string.__le(a: string, b: string): boolean <nosideeffect>
+  if unlikely(a.size == 0 or b.size == 0) then
+    return a.size <= b.size
+  else
+    if a.size <= b.size then
+      return memory.compare(a.data, b.data, a.size) <= 0
+    else
+      return memory.compare(a.data, b.data, b.size) < 0
+    end
+  end
+end
+
 -- Implement numeric operators for string.
 function string.__add(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
   return tonumber(a) + tonumber(b)
 end
+
 function string.__sub(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
   return tonumber(a) - tonumber(b)
 end
+
 function string.__mul(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
   return tonumber(a) * tonumber(b)
 end
+
 function string.__div(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
   return tonumber(a) / tonumber(b)
 end
+
 function string.__idiv(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
   return tonumber(a) // tonumber(b)
 end
+
 function string.__tdiv(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
   return tonumber(a) /// tonumber(b)
 end
+
 function string.__mod(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
   return tonumber(a) % tonumber(b)
 end
+
 function string.__tmod(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
   return tonumber(a) %%% tonumber(b)
 end
+
 function string.__pow(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
   return tonumber(a) ^ tonumber(b)
 end
+
 function string.__unm(a: arithmetic_coercion_concept): number
   return -tonumber(a)
 end
+
 function string.__band(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
   return tointeger(a) & tointeger(b)
 end
+
 function string.__bor(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
   return tointeger(a) | tointeger(b)
 end
+
 function string.__bxor(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
   return tointeger(a) ~ tointeger(b)
 end
+
 function string.__shl(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
   return tointeger(a) << tointeger(b)
 end
+
 function string.__shr(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
   return tointeger(a) >> tointeger(b)
 end
+
 function string.__asr(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
   return tointeger(a) >>> tointeger(b)
 end
+
 function string.__bnot(a: arithmetic_coercion_concept): integer
   return ~tointeger(a)
 end
 
-function string.__tocstring(s: string): cstring <inline,nosideeffect>
-  if unlikely(s.size == 0) then return (@cstring)('') end
-  return (@cstring)(&s.data[0])
-end
+-- Concept to check if a value can possibly be a string.
+local string_coercion_concept = #[concept(function(x)
+  if x.type.is_stringy then
+    return primtypes.string
+  elseif x.type.is_integral then
+    return primtypes.integer
+  elseif x.type.is_float then
+    return primtypes.number
+  end
+  return false, string.format("type '%s' is not convertible to a string", x.type)
+end)]#
 
-function string.__convert(s: cstring): string
-  if unlikely(not s) then return (@string){} end
-  local size: usize = strlen(s)
-  if unlikely(size == 0) then return (@string){} end
-  local self: string = string._create(size)
-  memory.copy(&self.data[0], s, size)
-  return self
+function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string
+  ## if not a.type.is_string then
+  local a: string = tostring(a)
+  ## end
+  ## if not b.type.is_string then
+  local b: string = tostring(b)
+  ## end
+  if a.size == 0 then
+    return b
+  elseif b.size == 0 then
+    return a
+  end
+  local s: string = string._create(a.size + b.size)
+  memory.copy(&s.data[0], a.data, a.size)
+  memory.copy(&s.data[a.size], b.data, b.size)
+  return s
 end
 
 -- Convert a string to an integer in the desired base.
@@ -488,7 +536,9 @@ global function tostring(x: auto): string
         end
       end
       if onlydigits then
-        s = s..'.0'
+        local ns = s..'.0'
+        s:destroy()
+        s = ns
       end
     ## end
     return s
@@ -504,40 +554,4 @@ global function tostring(x: auto): string
   ## elseif x.type.is_polyfunction then
     return 'polyfunction'
   ## else static_error("tostring: cannot convert type '%s' to a string", x.type) end
-end
-
-function string.format(fmt: string, ...: varargs): string
-  local sb: stringbuilder
-  sb:write_format(fmt, ...)
-  return sb:promotestring()
-end
-
--- Concept to check if a value can possibly be a string.
-local string_coercion_concept = #[concept(function(x)
-  if x.type.is_stringy then
-    return primtypes.string
-  elseif x.type.is_integral then
-    return primtypes.integer
-  elseif x.type.is_float then
-    return primtypes.number
-  end
-  return false, string.format("type '%s' is not convertible to a string", x.type)
-end)]#
-
-function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string
-  ## if not a.type.is_string then
-  local a: string = tostring(a)
-  ## end
-  ## if not b.type.is_string then
-  local b: string = tostring(b)
-  ## end
-  if a.size == 0 then
-    return b
-  elseif b.size == 0 then
-    return a
-  end
-  local s: string = string._create(a.size + b.size)
-  memory.copy(&s.data[0], a.data, a.size)
-  memory.copy(&s.data[a.size], b.data, b.size)
-  return s
 end
