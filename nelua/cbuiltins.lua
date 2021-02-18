@@ -109,7 +109,7 @@ function builtins.nelua_panic_string(context)
   context:ensure_builtins('nelua_noreturn', 'nelua_abort')
   context:define_function_builtin('nelua_panic_string',
     'static nelua_noreturn', primtypes.void, {{primtypes.string, 's'}}, [[{
-  if(s.data && s.size > 0) {
+  if(s.size > 0) {
     fwrite(s.data, 1, s.size, stderr);
     fputc('\n', stderr);
   }
@@ -154,7 +154,7 @@ function builtins.nelua_warn(context)
   context:ensure_include('<stdio.h>')
   context:define_function_builtin('nelua_warn',
     'static', primtypes.void, {{primtypes.string, 's'}}, [[{
-  if(s.data && s.size > 0) {
+  if(s.size > 0) {
     fputs("warning: ", stderr);
     fwrite(s.data, 1, s.size, stderr);
     fputc('\n', stderr);
@@ -176,6 +176,14 @@ function builtins.nelua_string_ne(context)
   context:define_function_builtin('nelua_string_ne',
     'static inline', primtypes.boolean, {{primtypes.string, 'a'}, {primtypes.string, 'b'}}, [[{
   return !nelua_string_eq(a, b);
+}]])
+end
+
+function builtins.nelua_string2cstring(context)
+  context:define_function_builtin('nelua_string2cstring',
+    'static', primtypes.cstring, {{primtypes.string, 's'}}, [[{
+  if(s.size == 0) return "";
+  return (char*)s.data;
 }]])
 end
 

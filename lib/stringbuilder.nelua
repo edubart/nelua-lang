@@ -7,6 +7,7 @@
 
 require 'span'
 require 'memory'
+require 'string'
 
 -- C imports
 local function strchr(s: cstring, c: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
@@ -226,25 +227,20 @@ end
     return true
   end
 
-  function stringbuilderT:promotestring(): string
-    if unlikely(self.size == 0) then
-      return (@string){}
-    end
-    local size: usize = self.size
-    local data: span(byte) = self.allocator:spanxrealloc(self.data, size + 1) -- shrink
-    data[size] = 0 -- cstring line ending
-    $self = {} -- destroy
-    return (@string){data = data.data, size = size}
+  function stringbuilderT:view(): string
+    if unlikely(self.size == 0) then return (@string){} end
+    return (@string){data = &self.data[0], size = self.size}
   end
 
-  function stringbuilderT:__tocstring(): cstring <inline,nosideeffect>
+  function stringbuilderT:__tocstring(): cstring
     if unlikely(self.size == 0) then return (@cstring)('') end
     return (@cstring)(&self.data[0])
   end
 
-  function stringbuilderT:__tostring(): string <inline,nosideeffect>
-    if unlikely(self.size == 0) then return (@string){} end
-    return (@string){data = &self.data[0], size = self.size}
+  function stringbuilderT:__tostring(): string
+    local s: string = string._create(self.size)
+    memory.copy(&s.data[0], &self.data[0], self.size)
+    return s
   end
 
   ## return stringbuilderT
@@ -252,8 +248,20 @@ end
 
 global stringbuilder: type = #[make_generic_stringbuilder()]#
 
--- this allows instantiating `stringbuilder` as generic too
+-- This allows instantiating `stringbuilder` as generic too.
 ## stringbuilder.value.generic = types.GenericType(make_generic_stringbuilder)
+
+-- Promote a `stringbuilder` to a `string`, forwarding its allocated memory and resetting it.
+function stringbuilder:promote(): string
+  if unlikely(self.size == 0) then
+    return (@string){}
+  end
+  local size: usize = self.size
+  local data: span(byte) = self.allocator:spanxrealloc(self.data, size + 1) -- shrink
+  data[size] = 0 -- cstring line ending
+  $self = {} -- destroy
+  return (@string){data = data.data, size = size}
+end
 
 function stringbuilder.make(allocator: auto)
   return (@stringbuilder(#[allocator.type]#)){allocator = allocator}

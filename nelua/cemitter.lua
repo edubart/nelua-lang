@@ -95,7 +95,8 @@ function CEmitter:add_val2boolean(val, valtype)
 end
 
 function CEmitter:add_string2cstring(val)
-  self:add('((char*)(', val, '.data', '))')
+  self:add_builtin('nelua_string2cstring')
+  self:add('(', val, ')')
 end
 
 function CEmitter:add_cstring2string(val)

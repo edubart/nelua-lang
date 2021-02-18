@@ -14,7 +14,6 @@
 -- Modules are used to implement string methods.
 require 'memory'
 require 'span'
-require 'stringbuilder'
 require 'patternmatcher'
 require 'sequence'
 require 'allocators.default'
@@ -41,13 +40,18 @@ function string._create(size: usize): string
   return self
 end
 
+require 'stringbuilder' -- Must be required later because it depends on `string._create`
+
 -- Destroys a string freeing its resources.
-function string:destroy(): void <inline>
-  default_allocator:dealloc(self.data)
-  self.data = nilptr
-  self.size = 0
+function string:destroy(): void
+  if self.size > 0 then
+    default_allocator:dealloc(self.data)
+    self.data = nilptr
+    self.size = 0
+  end
 end
 
+-- Clone a string, allocating new space.
 function string.copy(s: string): string
   local clone: string
   if unlikely(s.size == 0) then return clone end
@@ -212,7 +216,7 @@ function string.match(self: string, pattern: string, init: facultative(isize)): 
       end
       return true, captures
     else -- nothing captured, then capture whole match
-      captures[1] = ms.source:sub(s+1, e)
+      captures[1] = ms.source:subview(s+1, e)
       return true, captures
     end
   else -- no match
@@ -258,7 +262,7 @@ end
 function string.format(fmt: string, ...: varargs): string
   local sb: stringbuilder
   sb:write_format(fmt, ...)
-  return sb:promotestring()
+  return sb:promote()
 end
 
 -- Return length of a string.
@@ -501,19 +505,19 @@ global function tostring(x: auto): string
   ## local xobjtype = x.type:implicit_deref_type()
   ## if x.type.is_stringy then
     -- use implicit conversion
-    return x
+    return string.copy(x)
   ## elseif xobjtype.is_record and xobjtype.metafields.__tostring then
     return x:__tostring()
   ## elseif x.type.is_arithmetic or x.type.is_function or x.type.is_pointer then
     ## if x.type.is_pointer then tyformat = '"0x%" PRIxPTR'
     local x: usize = (@usize)(x)
     if x == 0 then
-      return '(null)'
+      return string.copy('(null)')
     end
     ## elseif x.type.is_function then tyformat = '"function: 0x%" PRIxPTR'
     local x: usize = (@usize)((@pointer)(x))
     if x == 0 then
-      return 'function: (null)'
+      return string.copy('function: (null)')
     end
     ##[[ else
       tyformat = require'nelua.cdefs'.types_printf_format[x.type.codename]
@@ -536,22 +540,24 @@ global function tostring(x: auto): string
         end
       end
       if onlydigits then
-        local ns = s..'.0'
-        s:destroy()
-        s = ns
+        s.data = (@*[0]byte)(default_allocator:xrealloc(s.data, s.size+3, s.size+1))
+        s.data[s.size] = '.'_byte
+        s.data[s.size+1] = '0'_byte
+        s.data[s.size+2] = 0
+        s.size = s.size + 2
       end
     ## end
     return s
   ## elseif x.type.is_boolean then
     if x == true then
-      return 'true'
+      return string.copy('true')
     end
-    return 'false'
+    return string.copy('false')
   ## elseif x.type.is_niltype then
-    return 'nil'
+    return string.copy('nil')
   ## elseif x.type.is_nilptr then
-    return '(null)'
+    return string.copy('(null)')
   ## elseif x.type.is_polyfunction then
-    return 'polyfunction'
+    return string.copy('polyfunction')
   ## else static_error("tostring: cannot convert type '%s' to a string", x.type) end
 end

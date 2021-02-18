@@ -231,7 +231,7 @@ function filestream:read(fmt: overload(integer,string,niltype)): (string, string
   end
   local s: string
   if success then
-    s = sb:promotestring()
+    s = sb:promote()
   else
     if #errmsg == 0 then
       -- should be eof
@@ -297,7 +297,7 @@ end
 function filestream:__tostring(): string
   local fp: *FILE = self:_get_fp()
   if not fp then
-    return 'file (closed)'
+    return string.copy('file (closed)')
   else
     return string.format('file (%p)', fp)
   end

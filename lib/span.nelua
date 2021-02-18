@@ -60,12 +60,6 @@
     return self
   end
 
-  ## if T.is_integral and T.bitsize == 8 then
-  function spanT:__tostring(): string <inline,nosideeffect>
-    return (@string){data=(@*[0]byte)(self.data), size=self.size}
-  end
-  ## end
-
   ## return spanT
 ## end)
 

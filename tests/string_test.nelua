@@ -48,12 +48,6 @@ do -- span casting
   assert(#spn == 5)
   spn = (@span(int8))(str)
   assert(#spn == 5)
-
-  str = spn
-  assert(#str == 5)
-  str = (@string)(spn)
-  assert(#str == 5)
-  assert(str == 'hello')
 end
 
 do -- len
