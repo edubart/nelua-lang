@@ -835,6 +835,17 @@ it("unary operator `deref`", function()
     local UnchekedByteArray = @[0]byte
     local x: UnchekedByteArray = $(@*UnchekedByteArray)(''_cstring)
   ]], 'static nluint8_arr0 x = {};')
+  expect.generate_c([[
+    local R = @record{}
+    local r = R()
+    local x = &r
+  ]], {"R r = ", "x = (&r)"})
+  expect.generate_c([[
+    local R = @record{}
+    function R:foo(alloc: auto) end
+    local r = R()
+    r:foo()
+  ]], {"r = (R){}", "(&r, NLNIL)"})
   config.pragmas.nochecks = nil
 end)
 

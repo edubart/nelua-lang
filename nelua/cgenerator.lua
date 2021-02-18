@@ -82,7 +82,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
     local varattr = varnode.attr
     local noinit = varattr.noinit or varattr.cexport or varattr.cimport or varattr.type.is_cvalist
     local vartype = varattr.type
-    local empty = vartype.size == 0
+    local empty = vartype.size == 0 and not vartype.emptyrefed
     local used = context.pragmas.nodce or -- dead code elimination is disabled
                  not decl or -- have a late definition, must evaluate
                  lastcallindex ~= nil or -- multiple returns, must evaluate

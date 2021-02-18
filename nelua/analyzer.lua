@@ -757,6 +757,7 @@ function visitors.RecordType(context, node, symbol)
     recordtype.node = node
   else
     recordtype = types.RecordType({}, node)
+    recordtype.size = nil -- size is unknown yet
   end
   attr.type = primtypes.type
   attr.value = recordtype
@@ -800,6 +801,7 @@ function visitors.UnionType(context, node, symbol)
     uniontype.node = node
   else
     uniontype = types.UnionType({}, node)
+    uniontype.size = nil -- size is unknown yet
   end
   local fieldnodes = node[1]
   for i=1,#fieldnodes do
@@ -2845,8 +2847,13 @@ function visitors.UnaryOp(context, node)
     type = primtypes.boolean
   end
   if opname == 'ref' then
-    if argnode.attr.type and not argnode.attr.lvalue then
-      node:raisef("in unary operation `%s`: cannot reference rvalues", opname)
+    if argtype then
+      if not argattr.lvalue then
+        node:raisef("in unary operation `%s`: cannot reference rvalues", opname)
+      end
+      if argtype.is_composite and argtype.size == 0 then
+        argtype.emptyrefed = true
+      end
     end
     if argnode.tag == 'Id' then
       -- for loops needs to know if an Id symbol could mutate

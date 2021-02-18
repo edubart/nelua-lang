@@ -80,6 +80,8 @@ Type.shape = shaper.shape {
   cincomplete = shaper.optional_boolean,
   -- Whether to emit typedef for a C imported structs.
   ctypedef = shaper.optional_boolean,
+  -- Whether an empty type was referenced.
+  emptyrefed = shaper.optional_boolean,
   -- Weather the scope is using fields from the type. (e.g. enum fields)
   using = shaper.optional_boolean,
   -- Weather the type can be copied, that is, passed by value.
@@ -2130,6 +2132,9 @@ function PointerType:get_convertible_from_attr(attr, explicit, autoref)
     end
     -- inform the code generation that the attr does an automatic reference
     attr.autoref = true
+    if type.size == 0 then
+      type.emptyrefed = true
+    end
     return self, true
   end
   return Type.get_convertible_from_attr(self, attr, explicit, autoref)
