@@ -251,13 +251,19 @@ function filestream:write(...: varargs): (boolean, string, integer)
   ## for i=1,select_varargs('#') do
     ## local argnode = select_varargs(i)
     ## local argtype = argnode.attr.type
-    ## if argtype.is_string then
-      s = #[argnode]#
-    ## else
+    ## if not argtype.is_string then
       s = tostring(#[argnode]#)
+    ## else
+      s = #[argnode]#
     ## end
-    if fwrite(s.data, 1, s.size, fp) ~= s.size then
-      goto errout
+    if s.size > 0 then
+      local ok: boolean = fwrite(s.data, 1, s.size, fp) == s.size
+      ## if not argtype.is_string then
+        s:destroy()
+      ## end
+      if not ok then
+        goto errout
+      end
     end
   ## end
   return true, '', 0
@@ -266,13 +272,21 @@ function filestream:write(...: varargs): (boolean, string, integer)
 end
 
 function filestream:writef(fmt: string, ...: varargs): (boolean, string, integer)
+  local fp: *FILE = self:_get_fp()
+  assert(fp ~= nilptr, 'attempt to use a closed file')
   local sb: stringbuilder
+  defer sb:destroy() end
   if not sb:write_format(fmt, ...) then
     return false, 'not enough memory', 0
   end
-  local ok: boolean, err: string, len: integer = self:write(sb)
-  sb:destroy()
-  return ok, err, len
+  local s: string = sb:view()
+  if s.size > 0 then
+    local res: csize = fwrite(s.data, 1, s.size, fp)
+    if res ~= s.size then
+      return fileresult(false)
+    end
+  end
+  return true, '', 0
 end
 
 function filestream:lines(fmt: overload(integer,string,niltype))
@@ -297,7 +311,7 @@ end
 function filestream:__tostring(): string
   local fp: *FILE = self:_get_fp()
   if not fp then
-    return string.copy('file (closed)')
+    return string._forward('file (closed)')
   else
     return string.format('file (%p)', fp)
   end

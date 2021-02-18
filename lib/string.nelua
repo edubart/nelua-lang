@@ -44,11 +44,13 @@ require 'stringbuilder' -- Must be required later because it depends on `string.
 
 -- Destroys a string freeing its resources.
 function string:destroy(): void
+  ## if pragmas.nogc then -- cannot destroy when GC is enabled because string may be shared
   if self.size > 0 then
     default_allocator:dealloc(self.data)
     self.data = nilptr
     self.size = 0
   end
+  ## end
 end
 
 -- Clone a string, allocating new space.
@@ -60,6 +62,17 @@ function string.copy(s: string): string
   clone.data[s.size] = 0
   clone.size = s.size
   return clone
+end
+
+-- Forward a string reference to be used elsewhere.
+-- When GC is enabled this just returns the string itself.
+-- When GC is disabled a string copy is returned, so it can be safely stored and destroyed.
+function string._forward(s: string): string <inline>
+  ## if pragmas.nogc then -- must return a clone so we can destroy it later
+  return string.copy(s)
+  ## else -- reuse the string reference when GC is enabled
+  return s
+  ## end
 end
 
 -- Returns the internal numeric codes of the character at position `i`.
@@ -88,7 +101,7 @@ function string.subview(self: string, i: isize, j: facultative(isize)): string
   local j: isize = -1
   ## end
   local size: isize = (@isize)(self.size)
-  if unlikely(size == 0) then return self end
+  if unlikely(size == 0) then return (@string){} end
   if unlikely(i < 0) then i = size + i + 1 end
   if unlikely(i <= 0) then i = 1 end
   if unlikely(j < 0) then j = size + j + 1 end
@@ -157,12 +170,12 @@ function string.sub(self: string, i: isize, j: facultative(isize)): string
   local j: isize = -1
   ## end
   local size: isize = (@isize)(self.size)
-  if unlikely(size == 0) then return self end
+  if unlikely(size == 0) then return (@string){} end
   if unlikely(i < 0) then i = size + i + 1 end
   if unlikely(i <= 0) then i = 1 end
   if unlikely(j < 0) then j = size + j + 1 end
   if unlikely(j > size) then j = size end
-  if unlikely(i == 1 and j == size) then return self end
+  if unlikely(i == 1 and j == size) then return string._forward(self) end
   if unlikely(i > j) then return (@string){} end
   local subsize: usize = (@usize)(j - i + 1)
   if unlikely(subsize == 0) then return (@string){} end
@@ -173,7 +186,7 @@ end
 
 function string.rep(self: string, n: isize, sep: facultative(string)): string
   if unlikely(n <= 0) then return (@string){} end
-  if unlikely(n == 1) then return self end
+  if unlikely(n == 1) then return string._forward(self) end
   local n: usize = (@usize)(n)
   ## if sep.type.is_niltype then
   if unlikely(self.size == 0) then return (@string){} end
@@ -401,15 +414,21 @@ end)]#
 
 function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string
   ## if not a.type.is_string then
-  local a: string = tostring(a)
+    local a: string = tostring(a)
+    ## if pragmas.nogc then
+      defer a:destroy() end
+    ## end
   ## end
   ## if not b.type.is_string then
-  local b: string = tostring(b)
+    local b: string = tostring(b)
+    ## if pragmas.nogc then
+      defer b:destroy() end
+    ## end
   ## end
   if a.size == 0 then
-    return b
+    return string._forward(b)
   elseif b.size == 0 then
-    return a
+    return string._forward(a)
   end
   local s: string = string._create(a.size + b.size)
   memory.copy(&s.data[0], a.data, a.size)
@@ -504,20 +523,19 @@ end
 global function tostring(x: auto): string
   ## local xobjtype = x.type:implicit_deref_type()
   ## if x.type.is_stringy then
-    -- use implicit conversion
-    return string.copy(x)
+    return string._forward(x)
   ## elseif xobjtype.is_record and xobjtype.metafields.__tostring then
     return x:__tostring()
   ## elseif x.type.is_arithmetic or x.type.is_function or x.type.is_pointer then
     ## if x.type.is_pointer then tyformat = '"0x%" PRIxPTR'
     local x: usize = (@usize)(x)
     if x == 0 then
-      return string.copy('(null)')
+      return string._forward('(null)')
     end
     ## elseif x.type.is_function then tyformat = '"function: 0x%" PRIxPTR'
     local x: usize = (@usize)((@pointer)(x))
     if x == 0 then
-      return string.copy('function: (null)')
+      return string._forward('function: (null)')
     end
     ##[[ else
       tyformat = require'nelua.cdefs'.types_printf_format[x.type.codename]
@@ -550,14 +568,14 @@ global function tostring(x: auto): string
     return s
   ## elseif x.type.is_boolean then
     if x == true then
-      return string.copy('true')
+      return string._forward('true')
     end
-    return string.copy('false')
+    return string._forward('false')
   ## elseif x.type.is_niltype then
-    return string.copy('nil')
+    return string._forward('nil')
   ## elseif x.type.is_nilptr then
-    return string.copy('(null)')
+    return string._forward('(null)')
   ## elseif x.type.is_polyfunction then
-    return string.copy('polyfunction')
+    return string._forward('polyfunction')
   ## else static_error("tostring: cannot convert type '%s' to a string", x.type) end
 end

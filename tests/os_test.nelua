@@ -1,24 +1,64 @@
 require 'os'
 
-assert(os.clock() >= 0)
-assert(os.difftime(0,0) == 0 and os.difftime(0,1) == 1)
-local path = os.getenv('PATH')
-assert(type(path) == 'string')
-local tmpname = os.tmpname()
-assert(type(tmpname) == 'string')
-local date = os.date()
-assert(type(date) == 'string')
-assert(os.execute() == true)
-assert(os.rename('my_invalid_file', 'my_invalid_file') == false)
-assert(os.remove('my_invalid_file') == false)
-assert(os.setlocale('C') == 'C')
-assert(os.setlocale('C','all') == 'C')
-assert(os.time() >= 0)
-assert(os.time(os_time_desc{year=2020,month=7,day=18,hour=12,isdst=false}) ==
-     #[os.time{year=2020,month=7,day=18,hour=12,isdst=false}]#)
-local function f(): integer
-  os.exit(true)
-  -- intentionally omit return, should not generate error because os.exit is <noreturn>
+do -- os.clock
+  assert(os.clock() >= 0)
 end
-f()
-assert(false)
+
+do -- os.difftime
+  assert(os.difftime(0,0) == 0 and os.difftime(0,1) == 1)
+end
+
+do -- os.getenv
+  local path = os.getenv('PATH')
+  assert(type(path) == 'string')
+  path:destroy()
+end
+
+do -- os.tmpname
+  local tmpname = os.tmpname()
+  assert(type(tmpname) == 'string')
+  tmpname:destroy()
+end
+
+do -- os.date
+  local date = os.date()
+  assert(type(date) == 'string')
+end
+
+do -- os.execute
+  assert(os.execute() == true)
+end
+
+do -- os.rename
+  assert(os.rename('my_invalid_file', 'my_invalid_file') == false)
+end
+
+do -- os.remove
+  assert(os.remove('my_invalid_file') == false)
+end
+
+do -- os.locale
+  local locale: string = os.setlocale('C')
+  assert(locale == 'C')
+  locale:destroy()
+
+  locale = os.setlocale('C','all')
+  assert(locale == 'C')
+  locale:destroy()
+end
+
+do -- os.time
+  assert(os.time() >= 0)
+  assert(os.time(os_time_desc{year=2020,month=7,day=18,hour=12,isdst=false}) ==
+       #[os.time{year=2020,month=7,day=18,hour=12,isdst=false}]#)
+
+end
+
+do -- os.exit
+  local function f(): integer
+    os.exit(true)
+    -- intentionally omit return, should not generate error because os.exit is <noreturn>
+  end
+  f()
+  assert(false)
+end

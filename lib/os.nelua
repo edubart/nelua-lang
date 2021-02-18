@@ -52,7 +52,7 @@ function os.date(): string
   local t: time_t = time(nilptr)
   local buf: [250]cchar
   local size: csize = strftime(&buf[0], 250, "%c", localtime(&t))
-  return tostring(&buf[0])
+  return string.copy(&buf[0])
 end
 
 function os.difftime(t1: integer, t2: integer): integer
@@ -91,7 +91,7 @@ end
 function os.getenv(varname: string): string
   local s: cstring = getenv(varname)
   if s then
-    return tostring(s)
+    return string.copy(s)
   else
     return ''
   end
@@ -127,7 +127,7 @@ function os.setlocale(locale: string, category: facultative(string)): string
     end
     local s: cstring = setlocale(cat, locale)
     if s then
-      return tostring(s)
+      return string.copy(s)
     else
       return ''
     end
@@ -188,5 +188,5 @@ function os.tmpname(): string <polymorphic>
 
   local buf: [TMPBUFSIZE]cchar
   tmpnam(&buf[0])
-  return tostring(&buf[0])
+  return string.copy(&buf[0])
 end

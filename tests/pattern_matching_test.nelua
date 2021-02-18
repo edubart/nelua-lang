@@ -12,7 +12,9 @@ local function assert_match(s: string, patt: string, res: overload(niltype,strin
   for i:isize=1,#captures do
     assert(captures[i] == res[i])
   end
+  res:destroy()
   ## end
+  captures:destroy()
 end
 
 local function assert_no_match(s: string, patt: string)
@@ -143,43 +145,4 @@ do -- test pattern matching syntax
   assert_match('abc {abc }{b}{ }', '(a*(.)%w(%s*)){%1}{%2}{%3}', (@sequence(string)){'abc ', 'b', ' '})
   -- assert_match('flaaap', '()aa()', 'aa')
   assert_no_match('flaaap', '()aa()%1')
-end
-
-do -- match
-  assert(string.match('abc', '^abc$') == true)
-  assert(string.match('abc', '^abc$', 1) == true)
-  assert(string.match('0abc', '^abc$', 2) == true)
-
-  local status, captures = string.match('abc', '^(a)(bc)$')
-  assert(status == true and #captures == 2 and captures[1] == 'a' and captures[2] == 'bc')
-end
-
-do -- find
-  local s, e
-  s, e = string.find('abc','^abc$') assert(s == 1 and e == 3)
-  s, e = string.find('abc','%l+') assert(s == 1 and e == 3)
-  s, e = string.find('abc','%l+', 2) assert(s == 2 and e == 3)
-end
-
-do -- gmatch
-  local seq: sequence(string)
-  for k in ('hello great world'):gmatch('%w+') do
-    seq[#seq+1] = k
-  end
-  assert(#seq == 3 and seq[1] == 'hello' and seq[2] == 'great' and seq[3] == 'world')
-
-  seq:clear()
-  for k, captures in ('from=hello, to = world'):gmatch('(%w+)%s*=%s*(%w+)') do
-    seq[#seq+1] = k
-    seq[#seq+1] = captures[0]
-    seq[#seq+1] = captures[1]
-  end
-  assert(seq[1] == 'from=hello' and seq[2] == 'from' and seq[3] == 'hello')
-  assert(seq[4] == 'to = world' and seq[5] == 'to' and seq[6] == 'world')
-
-  seq:destroy()
-
-  for k in ('1234 56 7'):gmatch('%l+') do
-    assert(false)
-  end
 end

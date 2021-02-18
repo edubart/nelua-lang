@@ -1,16 +1,35 @@
-require 'C'
-print('hello', 'world')
-warn('hi')
-check(true)
-check(true, 'ok')
-assert(true)
-assert(true, 'test')
-assert(true, (@cstring)('test'))
-assert(assert(1) == 1)
-assert(assert(0) == 0)
-assert(likely(true) == true)
-assert(likely(false) == false)
-assert(unlikely(true) == true)
-assert(unlikely(false) == false)
-assert(not nilptr)
-assert(_VERSION == #[require 'nelua.version'.NELUA_VERSION]#)
+do -- print
+  print('hello', 'world')
+end
+
+do -- warn
+  warn('hi')
+end
+
+do -- check
+  check(true)
+  check(true, 'ok')
+end
+
+do -- assert
+  assert(true)
+  assert(true, 'test')
+  assert(true, (@cstring)('test'))
+  assert(assert(1) == 1)
+  assert(assert(0) == 0)
+end
+
+do -- likely/unlikely
+  assert(likely(true) == true)
+  assert(likely(false) == false)
+  assert(unlikely(true) == true)
+  assert(unlikely(false) == false)
+end
+
+do -- nilptr
+  assert(not nilptr)
+end
+
+do -- _VERSION
+  assert(_VERSION == #[require 'nelua.version'.NELUA_VERSION]#)
+end
