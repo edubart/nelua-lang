@@ -462,6 +462,7 @@ do -- tonumber
   assert(tonumber(s) == 1337)
   local c: cstring = '1337'
   assert(tonumber(c) == 1337)
+  assert(tonumber(('12345'):subview(1,3)) == 123)
 
   -- tonumber with base
   assert(tonumber('0', 10) == 0)
@@ -490,4 +491,16 @@ do -- tonumber
   assert(tonumber(#[tostring(primtypes.isize.max)..'00']#, 10) == maxi * 100)
   assert(tonumber(#[tostring(primtypes.isize.min)..'00']#, 10) == mini * 100)
   assert(tonumber('thequickbrownfoxjumpsoverthelazydog', 36) == 447430708471575744)
+end
+
+do -- tointeger
+  assert(tointeger(1337) == 1337)
+  assert(tointeger('1337') == 1337)
+  assert(tointeger(0) == 0)
+  assert(tointeger('0') == 0)
+  assert(tointeger(('12345'):subview(1,3)) == 123)
+
+  assert(tonumber('1234567890', 10) == 1234567890)
+  assert(tonumber('-1234567890', 10) == -1234567890)
+  assert(tointeger(' \v\r123 \t\n', 10) == 123)
 end

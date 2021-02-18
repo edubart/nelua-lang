@@ -20,13 +20,12 @@ require 'allocators.default'
 
 -- C imports.
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
-local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
 local function strtoll(str: cstring, endptr: *cstring, base: cint): clonglong <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strtod(str: cstring, endptr: *cstring): float64 <cimport,cinclude'<stdlib.h>',nodecl> end
-local function strspn(s: cstring, accept: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
 local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 
@@ -444,8 +443,9 @@ local function str2intbase(s: string, base: uinteger): integer
   ## else
   assert(base >= 2 and base <= 36, "base out of range")
   ## end
-  local SPACECHARS: cstring <const> = " \f\n\r\t\v"
-  local pos: usize = strspn(s, SPACECHARS) -- skip initial spaces
+  local pos: usize = 0
+  while pos < s.size and isspace(s.data[pos]) ~= 0 do pos = pos + 1 end -- skip initial spaces
+  assert(pos < s.size, "invalid number format")
   local neg: boolean = false
   if s.data[pos] == '-'_byte then -- negative sign
     pos = pos + 1
@@ -468,14 +468,24 @@ local function str2intbase(s: string, base: uinteger): integer
     n = n * base + (@uinteger)(x)
     pos = pos + 1
   end
-  if pos < s.size then
-    pos = pos + strspn(&s.data[pos], SPACECHARS) -- skip trailing spaces
-  end
+  while pos < s.size and isspace(s.data[pos]) ~= 0 do pos = pos + 1 end -- skip trailing spaces
   assert(pos == s.size, "invalid number format") -- fully parsed?
   if neg then -- negate
     n = -n
   end
   return (@integer)(n)
+end
+
+
+-- Convert a string to a cstring using a temporary buffer,
+-- this is mainly used to ensure the string is null terminated ('\0').
+global function tocstring(buf: *[0]cchar, buflen: usize, s: string): boolean
+  if buflen >= s.size + 1 then
+    memory.copy(buf, &s.data[0], s.size)
+    buf[s.size] = 0
+    return true
+  end
+  return false
 end
 
 -- Convert a value to a number.
@@ -491,11 +501,12 @@ global function tonumber(x: auto, base: facultative(integer))
     local n: number = x
     return n
   ## elseif x.type.is_stringy then
-    local s: cstring = x
     local endptr: cstring
+    local tmpbuf: [65]cchar
+    assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's null terminated
     errno = 0
-    local n: float64 = strtod(s, &endptr)
-    local len: usize = (@usize)(endptr) - (@usize)(s)
+    local n: float64 = strtod(&tmpbuf, &endptr)
+    local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
     assert(len > 0 and len <= #x and errno == 0, 'failed to convert string to number')
     return (@number)(n)
   ## else static_error("unable to convert value of type '%s' to a number", x.type) end
@@ -510,11 +521,12 @@ global function tointeger(x: auto, base: facultative(integer)): integer
     local n: integer = x
     return n
   ## elseif x.type.is_stringy then
-    local s: cstring = x
     local endptr: cstring
+    local tmpbuf: [65]cchar
+    assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's null terminated
     errno = 0
-    local i: clonglong = strtoll(s, &endptr, 10)
-    local len: usize = (@usize)(endptr) - (@usize)(s)
+    local i: clonglong = strtoll(&tmpbuf, &endptr, 10)
+    local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
     assert(len > 0 and len <= #x and errno == 0, 'failed to convert string to integer')
     return i
   ## else static_error("unable to convert value of type '%s' to an integer", x.type) end

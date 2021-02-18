@@ -6,8 +6,6 @@
 require 'memory'
 
 -- C imports
-local function strpbrk(s: cstring, accept: cstring): cstring <cimport,cinclude'<string.h>',nodecl> end
-local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
 local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function isalpha(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
@@ -344,13 +342,12 @@ end
 
 -- Check whether pattern has no special characters.
 local function match_has_pattern_specials(pattern: string): boolean
-  local upto: usize = 0
-  repeat
-    if strpbrk(&pattern.data[upto], "^$*+?.([%-"_cstring) then
-      return true -- pattern has a special character
+  for i=0,<pattern.size do
+    switch pattern.data[i] do
+    case '^'_b, '$'_b, '*'_b, '+'_b, '?'_b, '.'_b, '('_b, '['_b, '%'_b, '-'_b then
+      return true
     end
-    upto = upto + strlen(&pattern.data[upto]) + 1 -- may have more after '\0'
-  until upto > pattern.size
+  end
   return false -- no special chars found
 end
 
