@@ -1989,20 +1989,6 @@ it("record metametods", function()
   ]])
 end)
 
-it("record string conversions", function()
-  expect.run_c([[
-    local R = @record{x: integer}
-    function R:__tocstring(): cstring return (@cstring)('R') end
-    function R:__tostring(): string return 'R' end
-    local r: R
-    local s: string = r
-    assert(s == 'R')
-    local cs: cstring = r
-    local cs: cstring = (@cstring)(r)
-    assert((@string){size=1,data=(@*[0]byte)(cs)} == 'R')
-  ]])
-end)
-
 it("record operator overloading", function()
   expect.run_c([[
     local R = @record{x: integer}

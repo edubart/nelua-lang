@@ -10,7 +10,7 @@ do
   sb:write_format('%s %d', 'hi', 1)
   sb:prepare(1)[0] = '\n'_byte
   sb:commit(1)
-  local s: string = sb
+  local s: string = tostring(sb)
   assert(s == "hello world\n10\n3.14\nhi 1\n")
   assert(sb:view() == s)
   s:destroy()
@@ -21,7 +21,7 @@ do -- using a custom allocator
   local allocator: ArenaAllocator(256, 1)
   local sb = stringbuilder.make(&allocator)
   sb:write_string('hello')
-  local s: string = sb
+  local s: string = tostring(sb)
   assert(s == "hello")
   s:destroy()
   sb:destroy()

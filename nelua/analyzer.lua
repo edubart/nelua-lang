@@ -170,27 +170,11 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
     return valnode, valtype
   end
   local objsym
-  local mtname
-  local varobjtype = vartype:implicit_deref_type()
-  local valobjtype = valtype:implicit_deref_type()
-  local objtype
-  if valobjtype.is_record then
-    if vartype.is_cstring then
-      objtype = valobjtype
-      mtname = '__tocstring'
-    elseif vartype.is_string then
-      objtype = valobjtype
-      mtname = '__tostring'
-    end
-  end
-  if not objtype then
-    if vartype.is_cstring or (vartype.is_string and not valtype.is_stringy) then
-      -- __convert not allowed on stringy types
-      -- because we have __tocstring, __tostring
-      return valnode, valtype
-    end
-    objtype = varobjtype
-    mtname = '__convert'
+  local objtype = vartype:implicit_deref_type()
+  if vartype.is_cstring or (vartype.is_string and not valtype.is_stringy) then
+    -- __convert not allowed on stringy types
+    -- because we have __tocstring, __tostring
+    return valnode, valtype
   end
   if not (valtype and objtype and objtype.is_record and vartype ~= valtype) then
     -- convert cannot be overridden
@@ -203,25 +187,21 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   if valtype.is_nilptr and vartype.is_pointer then
     return valnode, valtype
   end
-  local mtsym = objtype.metafields[mtname]
+  local mtsym = objtype.metafields.__convert
   if not mtsym then
     return valnode, valtype
   end
   objsym = objtype.symbol
   local n = context.parser.astbuilder.aster
   local idnode = n.Id{objsym.name, pattr={forcesymbol=objsym}}
-  local newvalnode = n.Call{{valnode}, n.DotIndex{mtname, idnode}}
+  local newvalnode = n.Call{{valnode}, n.DotIndex{'__convert', idnode}}
   newvalnode.src = valnode.src
   newvalnode.pos = valnode.pos
   newvalnode.endpos = valnode.endpos
   parent[parentindex] = newvalnode
   context:traverse_node(newvalnode)
   if newvalnode.attr.type then
-    if mtname == '__convert' then
-      assert(newvalnode.attr.type == objtype)
-    else
-      assert(vartype == newvalnode.attr.type)
-    end
+    assert(newvalnode.attr.type == objtype)
   end
   return newvalnode, newvalnode.attr.type
 end

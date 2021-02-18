@@ -539,7 +539,7 @@ global function tostring(x: auto): string
           break
         end
       end
-      if onlydigits then
+      if onlydigits then -- append '.0' to the string
         s.data = (@*[0]byte)(default_allocator:xrealloc(s.data, s.size+3, s.size+1))
         s.data[s.size] = '.'_byte
         s.data[s.size+1] = '0'_byte

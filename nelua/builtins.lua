@@ -147,6 +147,7 @@ function builtins.print(context, node, argnodes)
       local metafields = objtype.metafields
       if metafields.__tostring then
         argtype = primtypes.string
+        argnodes[i] = context.parser.astbuilder.aster.CallMethod{'__tostring', {}, argnodes[i]}
       end
     end
     argattrs[i] = {name='a'..i, type=argtype}
