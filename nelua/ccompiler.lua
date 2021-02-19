@@ -128,7 +128,7 @@ function compiler.get_cc_defines(...)
   return get_cc_defines(config.cc, ...)
 end
 
-function compiler.compile_code(ccode, cfile, compileopts)
+function compiler.generate_code(ccode, cfile, compileopts)
   local ccinfo = compiler.get_cc_info().text
   local cflags = get_compiler_cflags(compileopts)
   local binfile = cfile:gsub('.c$','')
@@ -146,13 +146,13 @@ function compiler.compile_code(ccode, cfile, compileopts)
   -- check if write is actually needed
   local current_sourcecode = fs.readfile(cfile)
   if not config.no_cache and current_sourcecode and current_sourcecode == sourcecode then
-    if not config.quiet then console.info("using cached generated " .. cfile) end
+    if config.verbose then console.info("using cached generated " .. cfile) end
     return cfile
   end
 
   fs.eensurefilepath(cfile)
   fs.ewritefile(cfile, sourcecode)
-  if not config.quiet then console.info("generated " .. cfile) end
+  if config.verbose then console.info("generated " .. cfile) end
 end
 
 local function detect_binary_extension(ccinfo)
@@ -190,7 +190,7 @@ end
 function compiler.compile_static_library(objfile, outfile)
   local ar = config.cc:gsub('[a-z]+$', 'ar')
   local arcmd = string.format('%s rcs %s %s', ar, outfile, objfile)
-  if not config.quiet then console.info(arcmd) end
+  if config.verbose then console.info(arcmd) end
 
   -- compile the file
   local success, status, stdout, stderr = executor.execex(arcmd)
@@ -214,7 +214,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
     local cfile_mtime = fs.getmodtime(cfile)
     local binfile_mtime = fs.getmodtime(binfile)
     if cfile_mtime and binfile_mtime and cfile_mtime <= binfile_mtime then
-      if not config.quiet then console.info("using cached binary " .. binfile) end
+      if config.verbose then console.info("using cached binary " .. binfile) end
       return binfile, isexe
     end
   end
@@ -227,7 +227,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   end
   -- generate compile command
   local cccmd = get_compile_args(cfile, midfile, cflags)
-  if not config.quiet then console.info(cccmd) end
+  if config.verbose then console.info(cccmd) end
 
   -- compile the file
   local success, status, stdout, stderr = executor.execex(cccmd)

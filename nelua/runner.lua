@@ -48,14 +48,11 @@ local function run(argv, redirect)
   local generator = require('nelua.' .. config.generator .. 'generator')
   local compiler = generator.compiler
   local preprocessor = require 'nelua.preprocessor'
-  if config.timing then
-    console.debugf('startup         %.1f ms', timer:elapsedrestart())
-  end
 
   local syntaxdefs = require 'nelua.syntaxdefs'
   local syntax = syntaxdefs()
   if config.timing then
-    console.debugf('compile grammar %.1f ms', timer:elapsedrestart())
+    console.debugf('startup     %.1f ms', timer:elapsedrestart())
   end
 
   -- determine input
@@ -108,9 +105,9 @@ local function run(argv, redirect)
 
   if config.timing then
     local elapsed = timer:elapsedrestart()
-    console.debugf('parse AST       %.1f ms', parser.working_time)
-    console.debugf('preprocess AST  %.1f ms', preprocessor.working_time)
-    console.debugf('analyze AST     %.1f ms', elapsed - parser.working_time - preprocessor.working_time)
+    console.debugf('parse       %.1f ms', parser.working_time)
+    console.debugf('preprocess  %.1f ms', preprocessor.working_time)
+    console.debugf('analyze     %.1f ms', elapsed - parser.working_time - preprocessor.working_time)
   end
 
   if config.print_analyzed_ast then
@@ -124,7 +121,7 @@ local function run(argv, redirect)
   local code, compileopts = generator.generate(ast, context)
 
   if config.timing then
-    console.debugf('generate code   %.1f ms', timer:elapsedrestart())
+    console.debugf('generate    %.1f ms', timer:elapsedrestart())
   end
 
   -- only printing generated code?
@@ -138,17 +135,13 @@ local function run(argv, redirect)
 
   -- save the generated code
   local outcacheprefix = fs.getcachepath(infile, config.cache_dir)
-  local sourcefile = config.compile_code and config.output or outcacheprefix
+  local sourcefile = config.generate_code and config.output or outcacheprefix
   if not stringer.endswith(sourcefile, compiler.source_extension) then
     sourcefile = sourcefile .. compiler.source_extension
   end
-  compiler.compile_code(code, sourcefile, compileopts)
+  compiler.generate_code(code, sourcefile, compileopts)
 
-  if config.timing then
-    console.debugf('compile code    %.1f ms', timer:elapsedrestart())
-  end
-
-  local dorun = not config.compile_code and not config.compile_binary
+  local dorun = not config.generate_code and not config.compile_binary
   local dobinarycompile = config.compile_binary or dorun
 
   -- compile the generated code
@@ -158,24 +151,24 @@ local function run(argv, redirect)
     binaryfile, isexe = compiler.compile_binary(sourcefile, binfile, compileopts)
 
     if not isexe then
-      if not config.quiet then console.info('library compiled!') end
+      if config.verbose then console.info('library compiled') end
       return 0
     end
     if config.timing then
-      console.debugf('compile binary  %.1f ms', timer:elapsedrestart())
+      console.debugf('compile     %.1f ms', timer:elapsedrestart())
     end
   end
 
   -- run
   if dorun then
     local exe, exeargs = compiler.get_run_command(binaryfile, config.runargs)
-    if not config.quiet then console.info(exe .. ' ' .. table.concat(exeargs, ' ')) end
+    if config.verbose then console.info(exe .. ' ' .. table.concat(exeargs, ' ')) end
     local exec = redirect and executor.execex or executor.exec
     local _, status, sout, serr = exec(exe, exeargs)
     if sout then io.stdout:write(sout) io.stdout:flush() end
     if serr then io.stderr:write(serr) io.stderr:flush() end
     if config.timing then
-      console.debugf('run             %.1f ms', timer:elapsedrestart())
+      console.debugf('run         %.1f ms', timer:elapsedrestart())
     end
     return status
   end

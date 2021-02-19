@@ -10,7 +10,7 @@ local lua_compiler = {
   source_extension = '.lua'
 }
 
-function lua_compiler.compile_code(luacode, luafile)
+function lua_compiler.generate_code(luacode, luafile)
   -- file heading
   local hash = stringer.hash(luacode)
   local heading = string.format(
@@ -23,13 +23,13 @@ function lua_compiler.compile_code(luacode, luafile)
   -- check if write is actually needed
   local current_sourcecode = fs.readfile(luafile)
   if not config.no_cache and current_sourcecode and current_sourcecode == sourcecode then
-    if not config.quiet then console.info("using cached generated " .. luafile) end
+    if config.verbose then console.info("using cached generated " .. luafile) end
     return luafile
   end
 
   fs.eensurefilepath(luafile)
   fs.ewritefile(luafile, sourcecode)
-  if not config.quiet then console.info("generated " .. luafile) end
+  if config.verbose then console.info("generated " .. luafile) end
 end
 
 function lua_compiler.compile_binary(luafile)

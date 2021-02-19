@@ -194,14 +194,14 @@ function PEGParser:match(pegname, srccontent, srcname)
   errorer.assertf(peg, 'cannot match an input to inexistent peg "%s"', pegname)
   self.src = {content=srccontent, name=srcname}
   local timer
-  if config.timing or config.verbose then
+  if config.timing or config.more_timing then
     timer = nanotimer()
   end
   local res, errlabel, errpos = peg:match(srccontent)
   if timer then
     local elapsed = timer:elapsed()
     PEGParser.working_time = PEGParser.working_time + elapsed
-    if config.verbose then
+    if config.more_timing then
       console.debugf('parsed %s (%.1f ms)', srcname, elapsed)
     end
   end

@@ -3004,7 +3004,7 @@ function analyzer.analyze(context)
   context.analyzing = true
 
   local timer
-  if config.verbose then
+  if config.more_timing then
     timer = nanotimer()
   end
 
@@ -3022,7 +3022,7 @@ function analyzer.analyze(context)
   repeat
     context:traverse_node(ast)
     local resolutions_count = context.rootscope:resolve()
-    if config.verbose then
+    if config.more_timing then
       console.debugf('analyzed (%.1f ms)', timer:elapsedrestart())
     end
   until resolutions_count == 0
@@ -3040,7 +3040,7 @@ function analyzer.analyze(context)
     repeat
       context:traverse_node(ast)
       local resolutions_count = context.rootscope:resolve()
-      if config.verbose then --luacov:disable
+      if config.more_timing then --luacov:disable
         console.debugf('last analyzed (%.1f ms)', timer:elapsedrestart())
       end --luacov:enable
     until resolutions_count == 0

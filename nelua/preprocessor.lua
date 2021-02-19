@@ -104,7 +104,7 @@ function preprocessor.preprocess(context, ast)
   assert(ast.tag == 'Block')
 
   local timer
-  if config.verbose or config.timing then
+  if config.more_timing or config.timing then
     timer = nanotimer()
   end
 
@@ -124,7 +124,7 @@ function preprocessor.preprocess(context, ast)
     if timer then --luacov:disable
       local elapsed = timer:elapsed()
       preprocessor.working_time = preprocessor.working_time + elapsed
-      if config.verbose then
+      if config.more_timing then
         console.debugf('skip preprocess %s (%.1f ms)', ast.src.name, elapsed)
       end
     end --luacov:enable
@@ -342,7 +342,7 @@ function preprocessor.preprocess(context, ast)
   if timer then
     local elapsed = timer:elapsed()
     preprocessor.working_time = preprocessor.working_time + elapsed
-    if config.verbose then
+    if config.more_timing then
       console.debugf('preprocessed %s (%.1f ms)', ast.src.name, timer:elapsed())
     end
   end

@@ -16,15 +16,15 @@ it("version numbers" , function()
 end)
 
 it("compile simple programs" , function()
-  expect.run(' --no-cache --compile-code examples/helloworld.nelua')
-  expect.run('--generator lua --no-cache --compile-code examples/helloworld.nelua')
+  expect.run(' --no-cache --generate-code examples/helloworld.nelua')
+  expect.run('--generator lua --no-cache --generate-code examples/helloworld.nelua')
   expect.run('--generator lua --compile-binary examples/helloworld.nelua')
   -- force reusing the cache:
   expect.run(' --compile-binary examples/helloworld.nelua')
 end)
 
 it("run simple programs", function()
-  expect.run({'--no-cache', '--timing', '--eval', "return 0"})
+  expect.run({'--no-cache', '--timing', '--more-timing', '--eval', "##[[assert(true)]] return 0"})
   expect.run('--generator lua examples/helloworld.nelua', 'hello world')
   expect.run(' examples/helloworld.nelua', 'hello world')
   expect.run({'--generator', 'lua', '--eval', ""}, '')

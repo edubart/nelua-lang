@@ -13,6 +13,7 @@ local version = require 'nelua.version'
 
 local configer = {}
 local config = {}
+local loadedconfigs = {}
 local defconfig = {
   lua_version = _VERSION:match('%d+%.%d+'),
   generator = 'c',
@@ -59,22 +60,22 @@ local function build_configs(conf)
   if conf.output then --luacov:disable
     if conf.output:match('.c$') then
       conf.generator = 'c'
-      conf.compile_code = true
+      conf.generate_code = true
       conf.compile_binary = false
     elseif conf.output:match('.lua$') then
       conf.generator = 'lua'
-      conf.compile_code = true
+      conf.generate_code = true
       conf.compile_binary = false
     elseif conf.output:match('.so$') or conf.output:match('.dll$') or conf.output:match('.dylib$') then
       conf.generator = 'c'
       conf.shared = true
       conf.compile_binary = true
-      conf.compile_code = false
+      conf.generate_code = false
     elseif conf.output:match('.a$') then
       conf.generator = 'c'
       conf.static = true
       conf.compile_binary = true
-      conf.compile_code = false
+      conf.generate_code = false
     else
       conf.compile_binary = true
     end
@@ -146,6 +147,12 @@ local function action_version()
   os.exit(0)
 end
 
+local function print_verbose()
+  for _,file in ipairs(loadedconfigs) do
+    print(string.format("using config file '%s'", file))
+  end
+end
+
 local function action_print_config(options)
   merge_configs(options, defconfig)
   build_configs(options)
@@ -156,16 +163,16 @@ end
 
 local function create_parser(args)
   local argparser = argparse("nelua", "Nelua 0.1")
-  argparser:flag('-c --compile-code', "Compile the generated code only", defconfig.compile)
-  argparser:flag('-b --compile-binary', "Compile the generated code and binaries only", defconfig.compile_binary)
+  argparser:flag('-c --generate-code', "Generate the code only", defconfig.compile)
+  argparser:flag('-b --compile-binary', "Compile the binaries only", defconfig.compile_binary)
   argparser:flag('-e --eval', 'Evaluate string code from input', defconfig.eval)
   argparser:flag('-l --lint', 'Only check syntax errors', defconfig.lint)
-  argparser:flag('-q --quiet', "Don't print any information while compiling", defconfig.quiet)
   argparser:flag('-a --analyze', 'Analyze the code only', defconfig.analyze)
   argparser:flag('-r --release', 'Release build (optimize for speed and disable runtime checks)', defconfig.release)
-  argparser:flag('-t --timing', 'Inform compile processing time', defconfig.timing)
   argparser:flag('-d --debug', 'Run through GDB to get crash backtraces', defconfig.debug)
-  argparser:flag('-V --verbose', 'Print more information while compiling', defconfig.verbose)
+  argparser:flag('-t --timing', 'Show compile timing information', defconfig.timing)
+  argparser:flag('-T --more-timing', 'Show detailed compile timing information', defconfig.more_timing)
+  argparser:flag('-V --verbose', 'Show compile related information')
   argparser:flag('-v --version', 'Print detailed version information'):action(action_version)
   argparser:flag('-w --no-warning', "Suppress all warning messages", defconfig.no_warning)
   argparser:flag('-M --maximum-performance', "Maximum performance build (use for benchmarking)")
@@ -199,6 +206,7 @@ local function create_parser(args)
   argparser:flag('--profile-compiler', 'Print profiling for the compiler', defconfig.profile)
   argparser:flag('--debug-resolve', "Print information about resolved types")
   argparser:flag('--debug-scope-resolve', "Print number of resolved types per scope")
+  argparser:flag('-q --quiet', "Be queit (deprecated)", defconfig.quiet):hidden(true)
   argparser:argument("input", "Input source file")
     :action(function(options, _, v)
     -- hacky way to stop handling options
@@ -291,6 +299,9 @@ function configer.parse(args)
   merge_configs(options, defconfig)
   build_configs(options)
   metamagic.setmetaindex(config, options, true)
+  if config.verbose then
+    print_verbose()
+  end
   return config
 end
 
@@ -311,8 +322,11 @@ local function load_config(configfile)
 
     -- overwrite defconfig without making a new reference
     tabler.update(defconfig, conf)
+
   end)
-  if not ok then --luacov:disable
+  if ok then
+    table.insert(loadedconfigs, configfile)
+  else --luacov:disable
     console.errorf('failed to load config "%s": %s', configfile, err)
   end --luacov:enable
 end
