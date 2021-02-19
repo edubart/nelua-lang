@@ -2356,6 +2356,9 @@ it("C varargs", function()
     assert(&buf[0] == 'hi 2 3.14')
     snprintf(&buf[0], #buf, "%d %.2f %s", 2, 3.14, 'hi'_cstring)
     assert(&buf[0] == '2 3.14 hi')
+
+    snprintf(&buf[0], #buf, "%s %s", 'hello', 'world')
+    assert(&buf[0] == 'hello world')
   ]=])
 end)
 

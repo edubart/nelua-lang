@@ -1173,8 +1173,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       local funcargattrs = calleetype.argattrs or calleetype.args
       local pseudoargtypes = funcargtypes
       local pseudoargattrs = funcargattrs
-      local hasmultipleargs = calleetype:has_multipleargs()
-      if calleeobjnode or hasmultipleargs then
+      local mulargstype = calleetype:get_multiple_argtype()
+      if calleeobjnode or mulargstype then
         pseudoargtypes = tabler.icopy(funcargtypes)
         pseudoargattrs = tabler.icopy(funcargattrs)
         attr.pseudoargtypes = pseudoargtypes
@@ -1201,7 +1201,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         table.remove(pseudoargtypes, 1)
         table.remove(pseudoargattrs, 1)
       end
-      if not hasmultipleargs and #argnodes > #pseudoargattrs then
+      if not mulargstype and #argnodes > #pseudoargattrs then
         node:raisef("in call of function '%s': expected at most %d arguments but got %d",
           calleename, #pseudoargattrs, #argnodes)
       end
@@ -1228,8 +1228,16 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           end
           arg = argtype
         end
-        if hasmultipleargs then
+        if mulargstype then
           if not funcargtype or funcargtype.is_multipleargs then
+            if mulargstype.is_cvarargs then
+              if argtype.is_string then -- we actually want a cstring
+                argtype = primtypes.cstring
+              elseif argtype.is_composite or argtype.is_array then
+                node:raisef("in call of function '%s' at argument %d: invalid type '%s' for 'cvarargs'",
+                  calleename, i, argtype)
+              end
+            end
             funcargtype = argtype
             if funcargtype then
               pseudoargtypes[i] = funcargtype

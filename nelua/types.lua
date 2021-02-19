@@ -387,8 +387,6 @@ function Type.is_array_of() return false end
 -- Checks if this type has pointers, used by the garbage collector.
 function Type.has_pointer() return false end
 
-function Type.has_multipleargs() return false end
-
 -- Checks if this type can be represented as a contiguous array of the subtype.
 function Type.is_contiguous_of() return false end
 
@@ -1627,10 +1625,10 @@ function FunctionType:is_equal(type)
          tabler.icompare(type.rettypes, self.rettypes)
 end
 
-function FunctionType:has_multipleargs()
+function FunctionType:get_multiple_argtype()
   local argtypes = self.argtypes
   local lasttype = argtypes[#argtypes]
-  return lasttype and lasttype.is_multipleargs
+  return (lasttype and lasttype.is_multipleargs) and lasttype or nil
 end
 
 -- Get the return type in the specified index.
@@ -1708,7 +1706,7 @@ PolyFunctionType.is_nameable = true
 PolyFunctionType.is_procedure = true
 PolyFunctionType.is_polyfunction = true
 PolyFunctionType.is_equal = FunctionType.is_equal
-PolyFunctionType.has_multipleargs = FunctionType.has_multipleargs
+PolyFunctionType.get_multiple_argtype = FunctionType.get_multiple_argtype
 PolyFunctionType.typedesc = FunctionType.typedesc
 
 PolyFunctionType.shape = shaper.fork_shape(Type.shape, {
