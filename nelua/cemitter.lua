@@ -94,8 +94,12 @@ function CEmitter:add_val2boolean(val, valtype)
   end
 end
 
-function CEmitter:add_string2cstring(val)
-  self:add_builtin('nelua_string2cstring')
+function CEmitter:add_string2cstring(val, checked)
+  if checked then
+    self:add_builtin('nelua_assert_string2cstring')
+  else
+    self:add_builtin('nelua_string2cstring')
+  end
   self:add('(', val, ')')
 end
 
@@ -131,7 +135,8 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
     elseif type.is_boolean then
       self:add_val2boolean(val, valtype)
     elseif valtype.is_string and (type.is_cstring or type:is_pointer_of(primtypes.byte)) then
-      self:add_string2cstring(val)
+      local comptime = traits.is_astnode(val) and val.attr.comptime
+      self:add_string2cstring(val, checkcast and not comptime)
     elseif type.is_string and valtype.is_cstring then
       self:add_cstring2string(val)
     elseif type.is_pointer and traits.is_astnode(val) and val.attr.autoref then

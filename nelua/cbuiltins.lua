@@ -182,7 +182,20 @@ end
 function builtins.nelua_string2cstring(context)
   context:define_function_builtin('nelua_string2cstring',
     'static', primtypes.cstring, {{primtypes.string, 's'}}, [[{
-  if(s.size == 0) return "";
+  return (s.size == 0) ? "" : (char*)s.data;
+}]])
+end
+
+function builtins.nelua_assert_string2cstring(context)
+  context:ensure_builtins('nelua_panic_cstring', 'nelua_unlikely')
+  context:define_function_builtin('nelua_assert_string2cstring',
+    'static', primtypes.cstring, {{primtypes.string, 's'}}, [[{
+  if(s.size == 0) {
+    return "";
+  }
+  if(nelua_unlikely(s.data[s.size]) != 0) {
+    nelua_panic_cstring("attempt to convert a non null terminated string to cstring");
+  }
   return (char*)s.data;
 }]])
 end
