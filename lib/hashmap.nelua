@@ -95,7 +95,7 @@ local INVALID_INDEX: usize <comptime> = #[primtypes.usize.max]#
     if unlikely(self.buckets.size == 0) then -- container is empty
       return INVALID_INDEX, INVALID_INDEX, INVALID_INDEX
     end
-    local hash_index: usize = (@usize)(hash_func(key) % self.buckets.size)
+    local hash_index: usize = (@usize)(hash_func(key)) % self.buckets.size
     local node_index: usize = self.buckets[hash_index]
     local prev_node_index: usize = INVALID_INDEX
     -- iterate until the key is found
