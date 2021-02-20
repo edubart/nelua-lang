@@ -51,7 +51,8 @@ end
 -- Helper to setup the default colors used for errors, warnings, etc..
 local function setup_default_colors()
   colors.debug = colors.cyan
-  colors.error = colors.red
+  colors.debug2 = colors.green .. colors.bright
+  colors.error = colors.red .. colors.bright
   colors.warn = colors.yellow .. colors.bright
   colors.info = nil
 end
@@ -100,12 +101,14 @@ local logex = console.logex
 function console.warnf(format, ...)  logex(io.stderr, colors.warn,  pformat(format, ...)) end
 function console.errorf(format, ...) logex(io.stderr, colors.error, pformat(format, ...)) end
 function console.debugf(format, ...) logex(io.stdout, colors.debug, pformat(format, ...)) end
+function console.debug2f(format, ...) logex(io.stdout, colors.debug2, pformat(format, ...)) end
 function console.infof(format, ...)  logex(io.stdout, colors.info,  pformat(format, ...)) end
 
 -- Logging functions (print style).
 function console.warn(...)  logex(io.stderr, colors.warn,  pconcat(...)) end
 function console.error(...) logex(io.stderr, colors.error, pconcat(...)) end
 function console.debug(...) logex(io.stdout, colors.debug, pconcat(...)) end
+function console.debug2(...) logex(io.stdout, colors.debug2, pconcat(...)) end
 function console.info(...)  logex(io.stdout, colors.info,  pconcat(...)) end
 
 function console.log(...)   logex(io.stdout, nil,  pconcat(...)) end

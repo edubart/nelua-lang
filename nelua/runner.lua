@@ -4,6 +4,7 @@ require 'nelua.utils.luaver'.check()
 collectgarbage("incremental", 800, 400, 16)
 collectgarbage("stop")
 
+local totaltimer = require 'nelua.utils.nanotimer'()
 local timer = require 'nelua.utils.nanotimer'()
 local stringer = require 'nelua.utils.stringer'
 local console = require 'nelua.utils.console'
@@ -52,7 +53,7 @@ local function run(argv, redirect)
   local syntaxdefs = require 'nelua.syntaxdefs'
   local syntax = syntaxdefs()
   if config.timing then
-    console.debugf('startup     %.1f ms', timer:elapsedrestart())
+    console.debugf('startup      %.1f ms', timer:elapsedrestart())
   end
 
   if not config.turbo then
@@ -105,9 +106,9 @@ local function run(argv, redirect)
 
   if config.timing then
     local elapsed = timer:elapsedrestart()
-    console.debugf('parse       %.1f ms', parser.working_time)
-    console.debugf('preprocess  %.1f ms', preprocessor.working_time)
-    console.debugf('analyze     %.1f ms', elapsed - parser.working_time - preprocessor.working_time)
+    console.debugf('parse        %.1f ms', parser.working_time)
+    console.debugf('preprocess   %.1f ms', preprocessor.working_time)
+    console.debugf('analyze      %.1f ms', elapsed - parser.working_time - preprocessor.working_time)
   end
 
   if config.print_analyzed_ast then
@@ -121,7 +122,7 @@ local function run(argv, redirect)
   local code, compileopts = generator.generate(ast, context)
 
   if config.timing then
-    console.debugf('generate    %.1f ms', timer:elapsedrestart())
+    console.debugf('generate     %.1f ms', timer:elapsedrestart())
   end
 
   -- only printing generated code?
@@ -155,8 +156,12 @@ local function run(argv, redirect)
       return 0
     end
     if config.timing then
-      console.debugf('compile     %.1f ms', timer:elapsedrestart())
+      console.debugf('compile      %.1f ms', timer:elapsedrestart())
     end
+  end
+
+  if config.timing then
+    console.debug2f('total build  %.1f ms', totaltimer:elapsedrestart())
   end
 
   -- run
@@ -168,7 +173,7 @@ local function run(argv, redirect)
     if sout then io.stdout:write(sout) io.stdout:flush() end
     if serr then io.stderr:write(serr) io.stderr:flush() end
     if config.timing then
-      console.debugf('run         %.1f ms', timer:elapsedrestart())
+      console.debugf('run          %.1f ms', timer:elapsedrestart())
     end
     return status
   end
