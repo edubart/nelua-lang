@@ -347,10 +347,6 @@ function visitors.Nil(_, _, emitter)
   emitter:add_nil_literal()
 end
 
-function visitors.Varargs() --luacov:disable
-  error('impossible')
-end --luacov:enable
-
 function visitors.VarargsType(_, _, emitter)
   emitter:add('...')
 end
@@ -1163,11 +1159,6 @@ function visitors.ForNum(context, node, emitter)
     emitter:add_ln(scope.breaklabel, ':;')
   end
 end
-
-function visitors.ForIn() --luacov:disable
-  -- this should never happen
-  error('impossible')
-end --luacov:enable
 
 function visitors.Break(context, _, emitter)
   finish_upscopes_defer(context, emitter, 'is_loop')

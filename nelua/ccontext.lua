@@ -10,6 +10,7 @@ local luatype = type
 local CContext = class(AnalyzerContext)
 
 function CContext:init(visitors, typevisitors)
+  visitors.default_visitor = false
   self:set_visitors(visitors)
   self.typevisitors = typevisitors
   self.declarations = {}

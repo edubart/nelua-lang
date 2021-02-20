@@ -193,7 +193,7 @@ function compiler.compile_static_library(objfile, outfile)
   if config.verbose then console.info(arcmd) end
 
   -- compile the file
-  local success, status, stdout, stderr = executor.execex(arcmd)
+  local success, status, _, stderr = executor.execex(arcmd)
   except.assertraisef(success and status == 0,
     "static library compilation for '%s' failed:\n%s", outfile, stderr or '')
 
@@ -230,7 +230,7 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   if config.verbose then console.info(cccmd) end
 
   -- compile the file
-  local success, status, stdout, stderr = executor.execex(cccmd)
+  local success, status, _, stderr = executor.execex(cccmd)
   except.assertraisef(success and status == 0,
     "C compilation for '%s' failed:\n%s", binfile, stderr or '')
 
@@ -247,10 +247,9 @@ function compiler.compile_binary(cfile, outfile, compileopts)
 end
 
 function compiler.get_gdb_version() --luacov:disable
-  local ok, ret, stdout, stderr = executor.execex(config.gdb .. ' -v')
+  local ok, ret, stdout = executor.execex(config.gdb .. ' -v')
   if ok and ret and stdout:match("GNU gdb") then
-    local gdbver = stdout:match('%d+%.%d+')
-    return gdbver
+    return stdout:match('%d+%.%d+')
   end
 end --luacov:enable
 

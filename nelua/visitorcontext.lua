@@ -69,7 +69,7 @@ end
 
 function VisitorContext:set_visitors(visitors)
   self.visitors = visitors
-  if not visitors.default_visitor then
+  if visitors.default_visitor == nil then
     visitors.default_visitor = traverser_default_visitor
   end
 end

@@ -1,8 +1,6 @@
 std='max'
-include_files={'nelua', 'spec', 'tools'}
+include_files={'nelua', 'spec'}
 exclude_files={'nelua/thirdparty/*', 'nelua\\thirdparty\\*'}
---self=false
-unused_secondaries=false
 globals = {
   io = {"stdout", "stderr" }
 }

@@ -280,7 +280,7 @@ function visitors.Assign(_, node, emitter)
 end
 
 function visitors.FuncDef(context, node, emitter)
-  local varscope, name, args, rets, annots, block = node:args()
+  local varscope, name, args, _, _, block = node:args()
   emitter:add_indent()
   if varscope == 'local' then
     emitter:add('local ')
@@ -294,7 +294,7 @@ function visitors.FuncDef(context, node, emitter)
 end
 
 function visitors.Function(context, node, emitter)
-  local args, rets, annots, block = node:args()
+  local args, _, _, block = node:args()
   if #block[1] == 0 then
     emitter:add('function(', args, ') end')
   else

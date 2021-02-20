@@ -10,7 +10,7 @@ it("fs.findmodulepath", function()
   local function assert_relative_findmodule(s, expected)
     expected = fs.abspath(expected)
     local neluapath = '/somedir/?.nelua;/somedir/?/init.nelua'
-    local ok, err, triedpaths = fs.findmodulefile(s, neluapath, '.')
+    local ok, _, triedpaths = fs.findmodulefile(s, neluapath, '.')
     assert(ok == expected or tabler.ifind(triedpaths, expected))
   end
 

@@ -29,8 +29,8 @@ local function execute_git_command(args)
   if fs.isdir(gitdir) then
     local executor = require 'nelua.utils.executor'
     local execargs = tabler.insertvalues({'-C', gitdir}, args)
-    local ok, status, stdout, stderr = executor.execex('git', execargs)
-    if ok and #stdout > 0 then
+    local ok, status, stdout = executor.execex('git', execargs)
+    if ok and status and stdout ~= '' then
       return stdout
     end
   end

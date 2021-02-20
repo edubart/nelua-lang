@@ -1124,13 +1124,14 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
     local argattr = argnode.attr
     local argtype = argattr.type
     if argtype then
-      local ok, err = type:is_convertible_from_attr(argattr, true)
+      local ok = type:is_convertible_from_attr(argattr, true)
       if not ok then
         -- failed to convert, try to convert metamethods
         argnode, argtype = visitor_convert(context, argnodes, 1, type, argnode, argtype)
         argattr = argnode.attr -- argattr may have changed to a new node
         -- test again
         if argtype then
+          local err
           ok, err = type:is_convertible_from_attr(argattr, true)
           if not ok then
             argnode:raisef("in type cast: %s", err)
@@ -1863,7 +1864,7 @@ function visitors.ForNum(context, node)
         if stype.is_comptime then
           stepvalnode:raisef("in `for` variable '%s' step: cannot be of type '%s'", itname, etype)
         end
-        local optype, _, err = ittype:binary_operator('add', stype, itsymbol, sattr)
+        local _, _, err = ittype:binary_operator('add', stype, itsymbol, sattr)
         if stype.is_float and ittype.is_integral then
           err = 'cannot have fractional step for an integral iterator'
         end
@@ -2382,7 +2383,6 @@ local function visitor_function_arguments(context, symbol, selftype, argnodes, c
 
   local ispolyparent = false
   local argattrs = {}
-  local argtypes = {}
 
   -- is the function forced to be polymorphic?
   if checkpoly and symbol and symbol.polymorphic then
@@ -2403,7 +2403,6 @@ local function visitor_function_arguments(context, symbol, selftype, argnodes, c
       }
       symbol.selfsym = selfsym
     end
-    argtypes[1] = selftype
     argattrs[1] = selfsym
     funcscope:add_symbol(selfsym)
     off = 1
@@ -2425,11 +2424,10 @@ local function visitor_function_arguments(context, symbol, selftype, argnodes, c
     if checkpoly and (argtype.is_polymorphic or argattr.comptime) then
       ispolyparent = true
     end
-    argtypes[i+off] = argtype
     argattrs[i+off] = argattr
   end
 
-  return argattrs, argtypes, ispolyparent
+  return argattrs, ispolyparent
 end
 
 local function visitor_function_returns(context, _, retnodes, ispolyparent)
@@ -2630,7 +2628,7 @@ function visitors.FuncDef(context, node, polysymbol)
   end
 
   -- repeat scope to resolve function variables and return types
-  local funcscope, argattrs, argtypes, ispolyparent, rettypes
+  local funcscope, argattrs, ispolyparent, rettypes
   repeat
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
@@ -2639,7 +2637,7 @@ function visitors.FuncDef(context, node, polysymbol)
     funcscope.is_returnbreak = true
 
     -- traverse the function arguments
-    argattrs, argtypes, ispolyparent = visitor_function_arguments(context, symbol, selftype, argnodes, not polysymbol)
+    argattrs, ispolyparent = visitor_function_arguments(context, symbol, selftype, argnodes, not polysymbol)
 
     -- traverse the function returns
     rettypes = visitor_function_returns(context, node, retnodes, ispolyparent)
@@ -2717,7 +2715,7 @@ function visitors.Function(context, node)
   end
 
   -- repeat scope to resolve function variables and return types
-  local funcscope, argattrs, argtypes, ispolyparent, rettypes
+  local funcscope, argattrs, ispolyparent, rettypes
   repeat
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
@@ -2726,7 +2724,7 @@ function visitors.Function(context, node)
     funcscope.is_returnbreak = true
 
     -- traverse the function arguments
-    argattrs, argtypes, ispolyparent = visitor_function_arguments(context, symbol, false, argnodes, true)
+    argattrs, ispolyparent = visitor_function_arguments(context, symbol, false, argnodes, true)
 
     if ispolyparent then -- anonymous functions cannot be polymorphic
       node:raisef("anonymous functions cannot be polymorphic")
