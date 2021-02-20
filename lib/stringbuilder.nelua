@@ -163,19 +163,27 @@ end
         end
         goto next
       end
-    ## end if arg1.type.is_stringy then
-      if c == 's'_byte then
-        local s: string = (@string)(arg1)
-        maxitem = s.size + 1
-        buff = (@cstring)(self:prepare(maxitem))
-        if not buff then
-          return false, 0
-        end
-        nb = snprintf(buff, maxitem, &form[0], s.data)
-        goto next
-      end
     ## end
-    error('invalid format for argument')
+    if c == 's'_byte then
+      ## if arg1.type.is_stringy then
+      local s: string = (@string)(arg1)
+      ## else
+      local s: string = tostring(arg1)
+      ## end
+      maxitem = s.size + 1
+      buff = (@cstring)(self:prepare(maxitem))
+      if buff then
+        nb = snprintf(buff, maxitem, &form[0], s.data)
+      end
+      ## if not arg1.type.is_stringy then
+      s:destroy()
+      ## end
+      if not buff then
+        return false, 0
+      end
+      goto next
+    end
+    assert(false, 'invalid format for argument')
   ::next::
     assert(nb >= 0 and nb < (@isize)(maxitem), 'unexpect number of bytes written in sprintf')
     return true, nb
