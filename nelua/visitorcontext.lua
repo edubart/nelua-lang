@@ -49,7 +49,7 @@ VisitorContext.traverse_nodes = traverse_nodes
 local function traverser_default_visitor(self, node, ...)
   for i=1,node.nargs or #node do
     local arg = node[i]
-    if arg and type(arg) == 'table' then
+    if type(arg) == 'table' then
       if arg._astnode then
         traverse_node(self, arg, ...)
       else

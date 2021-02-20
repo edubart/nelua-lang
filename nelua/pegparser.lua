@@ -96,13 +96,11 @@ function PEGParser:set_astbuilder(astbuilder)
   end
 
   defs.to_chain_index_or_call = function(last_expr, ...)
-    if ... then
-      for i=1,select('#',...) do
-        local expr = select(i, ...)
-        local n = #expr
-        expr[n], expr[n+1] = last_expr, expr[n]
-        last_expr = to_astnode(unpack(expr))
-      end
+    for i=1,select('#',...) do
+      local expr = select(i, ...)
+      local n = #expr
+      expr[n], expr[n+1] = last_expr, expr[n]
+      last_expr = to_astnode(unpack(expr))
     end
     return last_expr
   end

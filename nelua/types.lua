@@ -1635,7 +1635,8 @@ end
 -- For functions with no return the index 1 type returns 'void'.
 function FunctionType:get_return_type(index)
   local rettypes = self.rettypes
-  if index > #rettypes and rettypes[#rettypes] == primtypes.varanys then
+  local numrets = #rettypes
+  if index > numrets and rettypes[numrets] == primtypes.varanys then
     -- the function has runtime variable any returns
     return primtypes.any
   end
@@ -1645,16 +1646,6 @@ function FunctionType:get_return_type(index)
   elseif index == 1 then -- no returns
     return primtypes.void
   end
-end
-
--- Get the number of returns for function.
-function FunctionType:get_return_count()
-  return #self.rettypes
-end
-
--- Return this if this function has more than 1 return.
-function FunctionType:has_multiple_returns()
-  return #self.rettypes > 1
 end
 
 -- Get the desired type when converting this type from another type.

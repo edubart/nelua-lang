@@ -36,18 +36,15 @@ function CContext.promote_context(self, visitors, typevisitors)
 end
 
 function CContext:declname(attr)
-  assert(attr._attr)
   if attr.declname then
     return attr.declname
   end
   local declname = attr.codename
-  assert(attr.codename)
-  if not attr.nodecl then
-    if not attr.cimport then
-      declname = cdefs.quotename(declname)
-      if attr.shadows and not attr.staticstorage then
-        declname = self:genuniquename(declname, '%s__%d')
-      end
+  assert(attr._attr and attr.codename)
+  if not attr.nodecl and not attr.cimport then
+    declname = cdefs.quotename(declname)
+    if attr.shadows and not attr.staticstorage then
+      declname = self:genuniquename(declname, '%s__%d')
     end
   end
   attr.declname = declname

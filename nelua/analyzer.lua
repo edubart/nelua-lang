@@ -569,23 +569,21 @@ end
 function visitors.Id(context, node)
   local name = node[1]
   local state = context.state
-  if state.intypeexpr and name == 'type' then
+  if name == 'type' and state.intypeexpr  then
     name = 'typetype'
   end
   local symbol
-  if not node.attr.forcesymbol then
+  local attr = node.attr
+  if not attr.forcesymbol then
     symbol = context.scope.symbols[name]
     if not symbol then
       node:raisef("undeclared symbol '%s'", name)
     end
-    if name == 'stringview' and symbol.value == primtypes.string then --luacov:disable
-      node:warnf('`stringview` type is deprecated, use `string` instead')
-    end --luacov:enable
   else
-    symbol = node.attr.forcesymbol
+    symbol = attr.forcesymbol
   end
   symbol:link_node(node)
-  if context.generator ~= 'lua' and symbol.scope ~= context.rootscope and
+  if not symbol.staticstorage and symbol.scope ~= context.rootscope and context.generator ~= 'lua' and
      not symbol:is_directly_accesible_from_scope(context.scope) then
     node:raisef("attempt to access upvalue '%s', but closures are not supported", name)
   end

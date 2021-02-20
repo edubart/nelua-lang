@@ -273,7 +273,7 @@ typevisitors[types.FunctionType] = function(context, type)
 end
 
 typevisitors.FunctionReturnType = function(context, functype)
-  if not functype:has_multiple_returns() then
+  if #functype.rettypes <= 1 then
     return context:typename(functype:get_return_type(1))
   end
   local rettypes = functype.rettypes
@@ -598,8 +598,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     local handlereturns
     local retvalname
     local returnfirst
-    local enclosed = calleetype:has_multiple_returns()
-    if enclosed and not isblockcall and not attr.multirets then
+    if #calleetype.rettypes > 1 and not isblockcall and not attr.multirets then
       -- we are handling the returns
       returnfirst = true
       handlereturns = true
@@ -656,17 +655,17 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     else
       local ispointercall = attr.pointercall
       if ispointercall then
-        emitter:add_one('(*')
+        emitter:add_text('(*')
       end
       if luatype(callee) ~= 'string' and attr.calleesym then
-        emitter:add_one(context:declname(attr.calleesym))
+        emitter:add_text(context:declname(attr.calleesym))
       else
         emitter:add_one(callee)
       end
       if ispointercall then
-        emitter:add_one(')')
+        emitter:add_text(')')
       end
-      emitter:add_one('(')
+      emitter:add_text('(')
     end
 
     for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(callargtypes, argnodes) do
@@ -688,14 +687,14 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
         emitter:add_val2type(funcargtype, arg, argtype)
       end
     end
-    emitter:add_one(')')
+    emitter:add_text(')')
 
     if serialized then
       -- end sequential expression
       emitter:add_ln(';')
       if returnfirst then
         -- get just the first result in multiple return functions
-        assert(enclosed)
+        assert(#calleetype.rettypes > 1)
         emitter:add_indent_ln(retvalname, '.r1;')
       end
       emitter:dec_indent()
@@ -706,7 +705,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     end
   end
   if isblockcall then
-    emitter:add_ln(";")
+    emitter:add_text(";\n")
   end
 end
 
@@ -905,8 +904,8 @@ function visitors.Return(context, node, emitter)
     emitter:add_indent_ln('goto ', funcscope.doexprlabel, ';')
   else
     local functype = funcscope.functype
-    local numfuncrets = functype:get_return_count()
-    if not functype:has_multiple_returns() then
+    local numfuncrets = #functype.rettypes
+    if numfuncrets <= 1 then
       if numfuncrets == 0 then
         -- no returns
         assert(numretnodes == 0)

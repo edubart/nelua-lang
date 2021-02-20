@@ -46,6 +46,11 @@ function Emitter:add_one(what)
   end  --luacov:enable
 end
 
+function Emitter:add_text(text)
+  local codes = self.codes
+  codes[#codes+1] = text
+end
+
 function Emitter:add(...)
   for i=1,select('#', ...) do
     self:add_one((select(i, ...)))
@@ -53,7 +58,9 @@ function Emitter:add(...)
 end
 
 function Emitter:add_ln(...)
-  self:add(...)
+  if ... then
+    self:add(...)
+  end
   local codes = self.codes
   codes[#codes+1] = '\n'
 end
@@ -61,7 +68,9 @@ end
 function Emitter:add_indent(...)
   local codes = self.codes
   codes[#codes+1] = self.indent
-  self:add(...)
+  if ... then
+    self:add(...)
+  end
 end
 
 function Emitter:add_indent_ln(...)
