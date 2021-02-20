@@ -846,6 +846,11 @@ it("unary operator `deref`", function()
     local r = R()
     r:foo()
   ]], {"r = (R){}", "(&r, NLNIL)"})
+  expect.generate_c([[
+    local a: *[0]integer
+    local function f(x: [0]integer) end
+    f($a)
+  ]], {"f((*(nlint64_arr0*)a));"})
   config.pragmas.nochecks = nil
 end)
 
