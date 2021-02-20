@@ -24,7 +24,7 @@ function CContext:init(visitors, typevisitors)
   self.quotedliterals = {}
   self.uniquecounters = {}
   self.printcache = {}
-  self.ctypes = {}
+  self.typenames = {}
   self.builtins = cbuiltins.builtins
 end
 
@@ -63,7 +63,7 @@ function CContext:genuniquename(kind, fmt)
   return string.format(fmt, kind, count)
 end
 
-function CContext:typename(type)
+function CContext:typecodename(type)
   assert(type._type)
   local visitor
 
@@ -105,25 +105,24 @@ function CContext:typename(type)
   return type.codename
 end
 
-function CContext:ctype(type)
-  local ctypes = self.ctypes
-  local ctype = ctypes[type]
-  if ctype then
-    return ctype
+function CContext:typename(type)
+  local typenames = self.typenames
+  local typename = typenames[type]
+  if typename then
+    return typename
   end
-  ctype = cdefs.primitive_ctypes[type.codename]
-  if luatype(ctype) == 'table' then -- has include
-    self:ensure_include(ctype[2])
-    ctype = ctype[1]
-  elseif not ctype then
-    local codename = self:typename(type)
-    ctype = codename
+  typename = cdefs.primitive_typenames[type.codename]
+  if luatype(typename) == 'table' then -- has include
+    self:ensure_include(typename[2])
+    typename = typename[1]
+  elseif not typename then
+    typename = self:typecodename(type)
   end
-  ctypes[type] = ctype
-  return ctype
+  typenames[type] = typename
+  return typename
 end
 
-function CContext:funcretctype(functype)
+function CContext:funcrettypename(functype)
   return self.typevisitors.FunctionReturnType(self, functype)
 end
 
@@ -161,7 +160,7 @@ function CContext:ensure_includes(...)
 end
 
 function CContext:ensure_type(type)
-  self:ctype(type)
+  self:typename(type)
 end
 
 function CContext:ensure_define(name)
@@ -194,7 +193,7 @@ end
 function CContext:define_function_builtin(name, qualifier, ret, args, body)
   if self.usedbuiltins[name] then return end
   if traits.is_type(ret) then
-    ret = self:ctype(ret)
+    ret = self:typename(ret)
   end
   if type(args) == 'table' then
     local emitter = CEmitter(self)

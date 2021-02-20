@@ -30,17 +30,17 @@ function Emitter:add_one(what)
       local codes = self.codes
       codes[#codes+1] = what
     end
-  elseif ty == 'number' or ty == 'boolean' then
-    local codes = self.codes
-    codes[#codes+1] = tostring(what)
   elseif ty == 'table' then
-    if what._type then
+    if what._astnode then
+      self.context:traverse_node(what, self)
+    elseif what._type then
       self:add_type(what)
-    elseif what._astnode then
-      self:add_traversal(what)
     else
       self:add_traversal_list(what)
     end
+  elseif ty == 'number' or ty == 'boolean' then
+    local codes = self.codes
+    codes[#codes+1] = tostring(what)
   else --luacov:disable
     errorer.errorf('emitter cannot add value of type "%s"', ty)
   end  --luacov:enable
@@ -53,8 +53,8 @@ function Emitter:add(...)
 end
 
 function Emitter:add_ln(...)
-  local codes = self.codes
   self:add(...)
+  local codes = self.codes
   codes[#codes+1] = '\n'
 end
 
@@ -76,18 +76,24 @@ function Emitter:add_traversal(node)
 end
 
 function Emitter:add_traversal_list(nodelist, separator)
+  if #nodelist == 0 then return end
   separator = separator or ', '
+  local context = self.context
+  local codes = self.codes
   for i=1,#nodelist do
-    if i > 1 then self:add_one(separator) end
-    self:add_traversal(nodelist[i])
+    if i > 1 then codes[#codes+1] = separator end
+    context:traverse_node(nodelist[i], self)
   end
 end
 
 function Emitter:add_builtin(name, ...)
-  self:add_one(self.context:ensure_builtin(name, ...))
+  local codes = self.codes
+  codes[#codes+1] = self.context:ensure_builtin(name, ...)
 end
 
-function Emitter.add_type()
+function Emitter:add_type(type)
+  local codes = self.codes
+  codes[#codes+1] = self.context:typename(type)
 end
 
 function Emitter:add_composed_number(base, int, frac, exp, value)
@@ -116,8 +122,8 @@ function Emitter:is_empty()
   return #self.codes == 0
 end
 
-local table_remove = table.remove
 function Emitter:remove_until_pos(pos)
+  local table_remove = table.remove
   local codes = self.codes
   while #codes > pos do
     table_remove(codes)

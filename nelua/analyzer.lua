@@ -20,6 +20,8 @@ local primtypes = typedefs.primtypes
 local visitors = {}
 analyzer.visitors = visitors
 
+local function emptynext() end
+
 function visitors.Number(context, node)
   local attr = node.attr
   local base, int, frac, exp, literal = node[1], node[2], node[3], node[4], node[5]
@@ -1013,6 +1015,7 @@ function visitors.GenericType(context, node)
 end
 
 local function iargnodes(argnodes)
+  if #argnodes == 0 then return emptynext end
   local i = 0
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
@@ -1049,6 +1052,7 @@ end
 
 local izip2 = iters.izip2
 local function izipargnodes(vars, argnodes)
+  if #vars == 0 and #argnodes == 0 then return emptynext end
   local iter, ts, i = izip2(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[lastargindex]

@@ -294,7 +294,7 @@ local function get_parser()
     ({} '' -> 'FuncDef' %LOCAL -> 'local' %FUNCTION func_iddecl function_body {}) -> to_astnode /
     ({} %FUNCTION -> 'FuncDef' cnil func_name function_body {}) -> to_astnode
 
-    func_name <- (id {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
+    func_name <- (id (dot_index* colon_index / dot_index)*) -> to_chain_index_or_call
     func_iddecl <- ({} '' -> 'IdDecl' name {}) -> to_astnode
   ]])
 
@@ -304,7 +304,7 @@ local function get_parser()
     assignable_list <- assignable (%COMMA assignable)*
     assignable <-
       ({} ''->'UnaryOp' op_deref eexpr {}) -> to_astnode /
-      (primary_expr {| ((call_expr+ &index_expr) / index_expr)+ |}) -> to_chain_index_or_call /
+      (primary_expr ((call_expr+ &index_expr) / index_expr)+ ) -> to_chain_index_or_call /
       id
   ]])
 
@@ -313,7 +313,7 @@ local function get_parser()
     callable_suffix
 
     callable_suffix <-
-      (primary_expr {| ((index_expr+ & call_expr) / call_expr)+ |}) -> to_chain_index_or_call
+      (primary_expr ((index_expr+ & call_expr) / call_expr)+) -> to_chain_index_or_call
   ]])
 
   grammar:add_group_peg('stat', 'preprocess', [[
@@ -340,7 +340,7 @@ local function get_parser()
   eglobal_typed_idlist <-
     (global_typed_id / %{ExpectedName}) (%COMMA global_typed_id)*
   global_typed_id <- ({} '' -> 'IdDecl'
-      ((id {| dot_index+ |}) -> to_chain_index_or_call / name)
+      ((id dot_index+) -> to_chain_index_or_call / name)
       (%COLON etypexpr / cnil)
       annot_list?
     {}) -> to_astnode
@@ -353,7 +353,7 @@ local function get_parser()
     {}) -> to_astnode /
     ({} %FUNCTION -> 'FuncDef' cnil func_name function_body {}) -> to_astnode
 
-    func_name <- (id {| (dot_index* colon_index / dot_index)* |}) -> to_chain_index_or_call
+    func_name <- (id (dot_index* colon_index / dot_index)*) -> to_chain_index_or_call
     func_iddecl <- ({} '' -> 'IdDecl' name {}) -> to_astnode
   ]], nil, true)
 
@@ -401,7 +401,7 @@ local function get_parser()
       / type_instance
       / suffixed_expr
 
-    suffixed_expr <- (primary_expr {| (index_expr / call_expr)* |}) -> to_chain_index_or_call
+    suffixed_expr <- (primary_expr (index_expr / call_expr)*) -> to_chain_index_or_call
 
     primary_expr <-
       id /
@@ -552,7 +552,7 @@ local function get_parser()
       {}) -> to_astnode
 
     enamedtype <-
-      (id {| dot_index* |}) -> to_chain_index_or_call
+      (id dot_index*) -> to_chain_index_or_call
 
     ppexpr <- ({} %LPPEXPR -> 'PreprocessExpr' {expr -> 0} eRPPEXPR {}) -> to_astnode
     ppname <- ({} %LPPNAME -> 'PreprocessName' {expr -> 0} eRPPNAME {}) -> to_astnode

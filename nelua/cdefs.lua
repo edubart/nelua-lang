@@ -34,7 +34,7 @@ cdefs.types_printf_format = {
   nlclongdouble = '"%.19Lg"',
 }
 
-cdefs.primitive_ctypes = {
+cdefs.primitive_typenames = {
   nlisize   = {'intptr_t', '<stdint.h>'},
   nlint8    = {'int8_t', '<stdint.h>'},
   nlint16   = {'int16_t', '<stdint.h>'},

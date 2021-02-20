@@ -46,7 +46,6 @@ function PEGParser:set_astbuilder(astbuilder)
   self.astbuilder = astbuilder
   local astnodes = astbuilder.nodes
   local unpack = table.unpack
-  local insert = table.insert
 
   local to_astnode = ASTNode.make_toastnode(self, astnodes)
 
@@ -96,11 +95,14 @@ function PEGParser:set_astbuilder(astbuilder)
     return lhs
   end
 
-  defs.to_chain_index_or_call = function(last_expr, exprs)
-    for i=1,#exprs do
-      local expr = exprs[i]
-      insert(expr, #expr, last_expr)
-      last_expr = to_astnode(unpack(expr))
+  defs.to_chain_index_or_call = function(last_expr, ...)
+    if ... then
+      for i=1,select('#',...) do
+        local expr = select(i, ...)
+        local n = #expr
+        expr[n], expr[n+1] = last_expr, expr[n]
+        last_expr = to_astnode(unpack(expr))
+      end
     end
     return last_expr
   end

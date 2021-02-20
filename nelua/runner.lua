@@ -55,6 +55,10 @@ local function run(argv, redirect)
     console.debugf('startup     %.1f ms', timer:elapsedrestart())
   end
 
+  if not config.turbo then
+    collectgarbage("restart")
+  end
+
   -- determine input
   local input, infile
   if config.eval then
@@ -90,10 +94,6 @@ local function run(argv, redirect)
   -- this is required here because the config may affect how they load
   local analyzer = require 'nelua.analyzer'
   local AnalyzerContext = require 'nelua.analyzercontext'
-
-  if not config.turbo then
-    collectgarbage("restart")
-  end
 
   -- analyze the ast
   local context = AnalyzerContext(analyzer.visitors, parser, ast, config.generator)

@@ -39,10 +39,6 @@ function CEmitter:zeroinit(type)
   return s
 end
 
-function CEmitter:add_type(type)
-  self:add_one(self.context:ctype(type))
-end
-
 function CEmitter:add_typecast(type)
   self:add('(',type,')')
 end

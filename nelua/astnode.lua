@@ -38,13 +38,13 @@ function ASTNode.make_toastnode(parser, astnodes)
     local src = parser.src
     local attr = setmetatable({}, Attr)
     local node = setmetatable({
-        attr = attr,
-        src = src,
-        endpos = endpos,
-        pos = pos,
-        uid = nuid,
-        ...
-      }, astnodes[tag])
+      attr = attr,
+      src = src,
+      endpos = endpos,
+      pos = pos,
+      uid = nuid,
+      ...
+    }, astnodes[tag])
     node[n] = nil -- remove endpos
     return node
   end

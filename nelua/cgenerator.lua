@@ -10,9 +10,13 @@ local typedefs = require 'nelua.typedefs'
 local CContext = require 'nelua.ccontext'
 local types = require 'nelua.types'
 local primtypes = typedefs.primtypes
+local luatype = type
 
+local izip2 = iters.izip2
+local emptynext = function() end
 local function izipargnodes(vars, argnodes)
-  local iter, ts, i = iters.izip2(vars, argnodes)
+  if #vars == 0 and #argnodes == 0 then return emptynext end
+  local iter, ts, i = izip2(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
   local calleetype = lastargnode and lastargnode.attr.calleetype
@@ -41,7 +45,6 @@ local function izipargnodes(vars, argnodes)
       local var, argnode
       i, var, argnode = iter(ts, i)
       if i then
-        -- we are sure this argument have no type, set argtype to false
         return i, var, argnode, argnode and argnode.attr.type
       end
     end
@@ -124,8 +127,8 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         if lastcallindex == 1 then
           -- last assigment value may be a multiple return call
           multiretvalname = context:genuniquename('ret')
-          local retctype = context:funcretctype(valnode.attr.calleetype)
-          emitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', valnode, ';')
+          local rettypename = context:funcrettypename(valnode.attr.calleetype)
+          emitter:add_indent_ln(rettypename, ' ', multiretvalname, ' = ', valnode, ';')
         end
 
         local retvalname
@@ -226,7 +229,7 @@ local function typevisitor_CompositeType(context, type)
       if field.type.is_array then
         fieldctype = field.type.subtype
       else
-        fieldctype = context:ctype(field.type)
+        fieldctype = context:typename(field.type)
       end
       defemitter:add('  ', fieldctype, ' ', field.name)
       if field.type.is_array then
@@ -258,7 +261,7 @@ end
 
 typevisitors[types.FunctionType] = function(context, type)
   local decemitter = CEmitter(context, 0)
-  decemitter:add('typedef ', context:funcretctype(type), ' (*', type.codename, ')(')
+  decemitter:add('typedef ', context:funcrettypename(type), ' (*', type.codename, ')(')
   for i,argtype in ipairs(type.argtypes) do
     if i>1 then
       decemitter:add(', ')
@@ -271,25 +274,25 @@ end
 
 typevisitors.FunctionReturnType = function(context, functype)
   if not functype:has_multiple_returns() then
-    return context:ctype(functype:get_return_type(1))
+    return context:typename(functype:get_return_type(1))
   end
   local rettypes = functype.rettypes
   local retnames = {'nlmulret'}
   for i=1,#rettypes do
     retnames[#retnames+1] = rettypes[i].codename
   end
-  local retctype = table.concat(retnames, '_')
-  if context:is_declared(retctype) then return retctype end
+  local rettypename = table.concat(retnames, '_')
+  if context:is_declared(rettypename) then return rettypename end
   local retemitter = CEmitter(context)
-  retemitter:add_indent_ln('typedef struct ', retctype, ' {')
+  retemitter:add_indent_ln('typedef struct ', rettypename, ' {')
   retemitter:inc_indent()
   for i=1,#rettypes do
     retemitter:add_indent_ln(rettypes[i], ' ', 'r', i, ';')
   end
   retemitter:dec_indent()
-  retemitter:add_indent_ln('} ', retctype, ';')
-  context:add_declaration(retemitter:generate(), retctype)
-  return retctype
+  retemitter:add_indent_ln('} ', rettypename, ';')
+  context:add_declaration(retemitter:generate(), rettypename)
+  return rettypename
 end
 
 --[[
@@ -566,19 +569,21 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
   local calleetype = attr.calleetype
   if calleetype.is_procedure then
     -- function call
-    local tmpargs = {}
+    local tmpargs
     local tmpcount = 0
     local lastcalltmp
-    local sequential = false
-    local serialized = false
+    local sequential
+    local serialized
     local callargtypes = attr.pseudoargtypes or calleetype.argtypes
     local callargattrs = attr.pseudoargattrs or calleetype.argattrs
-    local ismethod = attr.ismethod
     for i,funcargtype,argnode,_,lastcallindex in izipargnodes(callargtypes, argnodes) do
       if not argnode and (funcargtype.is_cvarargs or funcargtype.is_varargs) then break end
       if (argnode and argnode.attr.sideeffect) or lastcallindex == 1 then
         -- expressions with side effects need to be evaluated in sequence
         -- and expressions with multiple returns needs to be stored in a temporary
+        if tmpcount == 0 then
+          tmpargs = {}
+        end
         tmpcount = tmpcount + 1
         local tmpname = '__tmp' .. tmpcount
         tmpargs[i] = tmpname
@@ -598,7 +603,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     local retvalname
     local returnfirst
     local enclosed = calleetype:has_multiple_returns()
-    if not isblockcall and not attr.multirets and enclosed then
+    if enclosed and not isblockcall and not attr.multirets then
       -- we are handling the returns
       returnfirst = true
       handlereturns = true
@@ -608,7 +613,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     if serialized then
       -- break apart the call into many statements
       if not isblockcall then
-        emitter:add('(')
+        emitter:add_one('(')
       end
       emitter:add_ln('{')
       emitter:inc_indent()
@@ -620,7 +625,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
         if tmparg then
           if lastcalletype then
             -- type for result of multiple return call
-            argtype = context:funcretctype(lastcalletype)
+            argtype = context:funcrettypename(lastcalletype)
           end
           emitter:add_indent_ln(argtype, ' ', tmparg, ' = ', argnode, ';')
         end
@@ -631,44 +636,46 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
       emitter:add_indent()
       if handlereturns then
         -- save the return type
-        local retctype = context:funcretctype(calleetype)
+        local rettypename = context:funcrettypename(calleetype)
         retvalname = context:genuniquename('ret')
-        emitter:add(retctype, ' ', retvalname, ' = ')
+        emitter:add(rettypename, ' ', retvalname, ' = ')
       end
     end
 
+    local ismethod = attr.ismethod
     if ismethod then
       local selftype = calleetype.argtypes[1]
       if attr.calleesym then
-        emitter:add(context:declname(attr.calleesym))
+        emitter:add_one(context:declname(attr.calleesym))
       else
-        assert(traits.is_string(callee))
-        emitter:add('(')
+        assert(luatype(callee) == 'string')
+        emitter:add_one('(')
         emitter:add_val2type(selftype, calleeobjnode)
-        emitter:add(')')
-        emitter:add(selftype.is_pointer and '->' or '.')
-        emitter:add(callee)
+        emitter:add_one(')')
+        emitter:add_one(selftype.is_pointer and '->' or '.')
+        emitter:add_one(callee)
       end
-      emitter:add('(')
+      emitter:add_one('(')
       emitter:add_val2type(selftype, calleeobjnode)
     else
-      if attr.pointercall then
-        emitter:add('(*')
+      local ispointercall = attr.pointercall
+      if ispointercall then
+        emitter:add_one('(*')
       end
-      if not traits.is_string(callee) and attr.calleesym then
-        emitter:add(context:declname(attr.calleesym))
+      if luatype(callee) ~= 'string' and attr.calleesym then
+        emitter:add_one(context:declname(attr.calleesym))
       else
-        emitter:add(callee)
+        emitter:add_one(callee)
       end
-      if attr.pointercall then
-        emitter:add(')')
+      if ispointercall then
+        emitter:add_one(')')
       end
-      emitter:add('(')
+      emitter:add_one('(')
     end
 
     for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(callargtypes, argnodes) do
       if not argnode and (funcargtype.is_cvarargs or funcargtype.is_varargs) then break end
-      if i > 1 or ismethod then emitter:add(', ') end
+      if i > 1 or ismethod then emitter:add_one(', ') end
       local arg = argnode
       if sequential then
         if lastcallindex then
@@ -685,7 +692,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
         emitter:add_val2type(funcargtype, arg, argtype)
       end
     end
-    emitter:add(')')
+    emitter:add_one(')')
 
     if serialized then
       -- end sequential expression
@@ -698,7 +705,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
       emitter:dec_indent()
       emitter:add_indent('}')
       if not isblockcall then
-        emitter:add(')')
+        emitter:add_one(')')
       end
     end
   end
@@ -910,17 +917,17 @@ function visitors.Return(context, node, emitter)
       end
     else
       -- multiple returns
-      local funcretctype = context:funcretctype(functype)
+      local funcrettypename = context:funcrettypename(functype)
       local retemitter = CEmitter(context, defemitter.depth)
       local multiretvalname
-      retemitter:add('return (', funcretctype, '){')
+      retemitter:add('return (', funcrettypename, '){')
       for i,funcrettype,retnode,rettype,lastcallindex in izipargnodes(functype.rettypes, retnodes) do
         if i>1 then retemitter:add(', ') end
         if lastcallindex == 1 then
           -- last assignment value may be a multiple return call
           multiretvalname = context:genuniquename('ret')
-          local retctype = context:funcretctype(retnode.attr.calleetype)
-          defemitter:add_indent_ln(retctype, ' ', multiretvalname, ' = ', retnode, ';')
+          local rettypename = context:funcrettypename(retnode.attr.calleetype)
+          defemitter:add_indent_ln(rettypename, ' ', multiretvalname, ' = ', retnode, ';')
         end
         if lastcallindex then
           local retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
@@ -1236,10 +1243,10 @@ function visitors.FuncDef(context, node, emitter)
   end
 
   local decemitter, defemitter, implemitter = CEmitter(context), CEmitter(context), CEmitter(context)
-  local retctype = context:funcretctype(type)
+  local rettypename = context:funcrettypename(type)
 
-  decemitter:add_indent(qualifier, retctype, ' ')
-  defemitter:add_indent(retctype, ' ')
+  decemitter:add_indent(qualifier, rettypename, ' ')
+  defemitter:add_indent(rettypename, ' ')
 
   local funcid = varnode
   if varscope == nil then -- maybe assigning a variable to a function
@@ -1304,10 +1311,10 @@ function visitors.Function(context, node, emitter)
   local qualifier = resolve_function_qualifier(context, attr)
 
   local decemitter, defemitter, implemitter = CEmitter(context), CEmitter(context), CEmitter(context)
-  local retctype = context:funcretctype(type)
+  local rettypename = context:funcrettypename(type)
 
-  decemitter:add_indent(qualifier, retctype, ' ')
-  defemitter:add_indent(retctype, ' ')
+  decemitter:add_indent(qualifier, rettypename, ' ')
+  defemitter:add_indent(rettypename, ' ')
 
   local declname = context:declname(attr)
   decemitter:add(declname)

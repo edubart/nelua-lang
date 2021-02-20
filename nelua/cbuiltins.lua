@@ -237,7 +237,7 @@ function builtins.nelua_narrow_cast_(context, dtype, stype)
   assert(dtype.is_integral and stype.is_arithmetic)
   local cond
   if stype.is_float then -- float -> integral
-    cond = '(('..context:ctype(dtype)..')(x)) != x'
+    cond = '(('..context:typename(dtype)..')(x)) != x'
   elseif stype.is_signed and dtype.is_unsigned then -- signed -> unsigned
     cond = 'x < 0'
     if stype.max > dtype.max then
