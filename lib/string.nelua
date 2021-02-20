@@ -414,15 +414,11 @@ end)]#
 function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string
   ## if not a.type.is_string then
     local a: string = tostring(a)
-    ## if pragmas.nogc then
-      defer a:destroy() end
-    ## end
+    defer a:destroy() end
   ## end
   ## if not b.type.is_string then
     local b: string = tostring(b)
-    ## if pragmas.nogc then
-      defer b:destroy() end
-    ## end
+    defer b:destroy() end
   ## end
   if a.size == 0 then
     return string._forward(b)

@@ -55,7 +55,7 @@ local function finish_scope_defer(context, emitter, scope)
   if scope.deferblocks then
     for i=#scope.deferblocks,1,-1 do
       local deferblock = scope.deferblocks[i]
-      emitter:add_indent_ln('{')
+      emitter:add_indent_ln('{ /* defer */')
       context:push_scope(deferblock.scope.parent)
       emitter:add(deferblock)
       context:pop_scope()
@@ -873,8 +873,9 @@ function visitors.Return(context, node, emitter)
   local numretnodes = #retnodes
 
   -- destroy parent blocks
-  local defemitter = CEmitter(context, emitter.depth)
-  local desemitter = CEmitter(context, emitter.depth)
+  local deferemitter = CEmitter(context, emitter.depth)
+  finish_upscopes_defer(context, deferemitter, 'is_returnbreak')
+  local defercode = deferemitter:generate()
   local funcscope = context.scope:get_up_return_scope() or context.rootscope
   context.scope.alreadydestroyed = true
   funcscope.has_return = true
@@ -883,16 +884,29 @@ function visitors.Return(context, node, emitter)
     node:assertraisef(numretnodes <= 1, "multiple returns in main is not supported yet")
     if numretnodes == 0 then
       -- main must always return an integer
-      defemitter:add_indent_ln('return 0;')
+      emitter:add(deferemitter:generate())
+      emitter:add_indent_ln('return 0;')
     else
       -- return one value (an integer expected)
       local retnode = retnodes[1]
-      defemitter:add_indent('return ')
-      defemitter:add_val2type(primtypes.cint, retnode)
-      defemitter:add_ln(';')
+      if defercode ~= '' and retnode.tag ~= 'Id' and not retnode.attr.comptime then
+        local retname = context:genuniquename('ret')
+        emitter:add_indent(primtypes.cint, ' ', retname, ' = ')
+        emitter:add_val2type(primtypes.cint, retnode)
+        emitter:add_ln(';')
+        emitter:add_one(defercode)
+        emitter:add_indent_ln('return ', retname, ';')
+      else
+        emitter:add_one(defercode)
+        emitter:add_indent('return ')
+        emitter:add_val2type(primtypes.cint, retnode)
+        emitter:add_ln(';')
+      end
     end
   elseif funcscope.is_doexpr then
-    defemitter:add_indent_ln('__expr = ', retnodes[1], '; goto ', funcscope.doexprlabel, ';')
+    emitter:add_indent_ln('__expr = ', retnodes[1], ';')
+    emitter:add(defercode)
+    emitter:add_indent_ln('goto ', funcscope.doexprlabel, ';')
   else
     local functype = funcscope.functype
     local numfuncrets = functype:get_return_count()
@@ -900,34 +914,53 @@ function visitors.Return(context, node, emitter)
       if numfuncrets == 0 then
         -- no returns
         assert(numretnodes == 0)
-        defemitter:add_indent_ln('return;')
+        emitter:add_one(defercode)
+        emitter:add_indent_ln('return;')
       elseif numfuncrets == 1 then
         -- one return
         local retnode, rettype = retnodes[1], functype:get_return_type(1)
-        defemitter:add_indent('return ')
         if retnode then
           -- return value is present
-          defemitter:add_val2type(rettype, retnode)
-          defemitter:add_ln(';')
+          if defercode ~= '' and retnode.tag ~= 'Id' and not retnode.attr.comptime then
+            local retname = context:genuniquename('ret')
+            emitter:add_indent(rettype, ' ', retname, ' = ')
+            emitter:add_val2type(rettype, retnode)
+            emitter:add_ln(';')
+            emitter:add_one(defercode)
+            emitter:add_indent_ln('return ', retname, ';')
+          else
+            emitter:add_one(defercode)
+            emitter:add_indent('return ')
+            emitter:add_val2type(rettype, retnode)
+            emitter:add_ln(';')
+          end
         else
           -- no return value present, generate a zeroed one
-          defemitter:add_zeroed_type_literal(rettype)
-          defemitter:add_ln(';')
+          emitter:add_one(defercode)
+          emitter:add_indent('return ')
+          emitter:add_zeroed_type_literal(rettype)
+          emitter:add_ln(';')
         end
       end
     else
       -- multiple returns
       local funcrettypename = context:funcrettypename(functype)
-      local retemitter = CEmitter(context, defemitter.depth)
+      local retemitter = CEmitter(context, emitter.depth)
       local multiretvalname
-      retemitter:add('return (', funcrettypename, '){')
+      local retname
+      if defercode == '' then
+        retemitter:add_indent('return (', funcrettypename, '){')
+      else
+        retname = context:genuniquename('ret')
+        retemitter:add_indent(funcrettypename, ' ', retname, ' = (', funcrettypename, '){')
+      end
       for i,funcrettype,retnode,rettype,lastcallindex in izipargnodes(functype.rettypes, retnodes) do
         if i>1 then retemitter:add(', ') end
         if lastcallindex == 1 then
           -- last assignment value may be a multiple return call
           multiretvalname = context:genuniquename('ret')
           local rettypename = context:funcrettypename(retnode.attr.calleetype)
-          defemitter:add_indent_ln(rettypename, ' ', multiretvalname, ' = ', retnode, ';')
+          emitter:add_indent_ln(rettypename, ' ', multiretvalname, ' = ', retnode, ';')
         end
         if lastcallindex then
           local retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
@@ -937,12 +970,13 @@ function visitors.Return(context, node, emitter)
         end
       end
       retemitter:add_ln('};')
-      defemitter:add_indent(retemitter:generate())
+      if retname then
+        retemitter:add(defercode)
+        retemitter:add_indent_ln('return ', retname, ';')
+      end
+      emitter:add(retemitter:generate())
     end
   end
-  finish_upscopes_defer(context, desemitter, 'is_returnbreak')
-  emitter:add(desemitter:generate())
-  emitter:add(defemitter:generate())
 end
 
 function visitors.If(_, node, emitter)

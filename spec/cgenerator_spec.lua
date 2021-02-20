@@ -244,10 +244,30 @@ it("defer", function()
   expect.generate_c("do local x: int64 = 1 defer x = 2 end x = 3 end", [[{
     int64_t x = 1;
     x = 3;
-    {
+    { /* defer */
       x = 2;
     }
   }]])
+  expect.run_c([[
+    local function g(x: integer): integer
+      print(x)
+      return x
+    end
+    local function f(): integer
+      defer g(4) end
+      return g(5)
+    end
+    f()
+
+    local function f(): (integer, integer)
+      defer g(1) end
+      return g(3), g(2)
+    end
+    f()
+
+    defer g(-1) end
+    return g(0)
+  ]], '5\n4\n3\n2\n1\n0\n-1')
 end)
 
 it("while", function()

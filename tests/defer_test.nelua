@@ -10,11 +10,10 @@ local function f(sb: *stringbuilder)
   defer sb:write_string'd' end
   defer sb:write_string'c' end
   sb:write_string'b'
-  return tostring(sb)
+  return
 end
-s = f(&sb)
-assert(s == 'abcd')
-s:destroy()
+f(&sb)
+assert(sb:view() == 'abcd')
 
 -- do block
 local function f(sb: *stringbuilder)
@@ -25,11 +24,9 @@ local function f(sb: *stringbuilder)
     defer sb:write_string'b' end
   end
   sb:write_string'c'
-  return tostring(sb)
 end
-s = f(&sb)
-assert(s == 'abcd')
-s:destroy()
+f(&sb)
+assert(sb:view() == 'abcd')
 
 -- nested do blocks
 local function f(sb: *stringbuilder)
@@ -43,11 +40,9 @@ local function f(sb: *stringbuilder)
     end
   end
   sb:write_string'd'
-  return tostring(sb)
 end
-s = f(&sb)
-assert(s == 'abcde')
-s:destroy()
+f(&sb)
+assert(sb:view() == 'abcde')
 
 -- return in middle nested
 local function f(sb: *stringbuilder)
@@ -59,13 +54,11 @@ local function f(sb: *stringbuilder)
     if true then
       defer sb:write_string'b' end
     end
-    return tostring(sb)
+    return
   end
-  return tostring(sb)
 end
-s = f(&sb)
-assert(s == 'abcd')
-s:destroy()
+f(&sb)
+assert(sb:view() == 'abcd')
 
 -- middle return
 local function f(sb: *stringbuilder)
@@ -74,16 +67,14 @@ local function f(sb: *stringbuilder)
   defer sb:write_string'd' end
   if true then
     defer sb:write_string'c' end
-    return tostring(sb)
+    return
     if true then
       defer sb:write_string'b' end
     end
   end
-  return tostring(sb)
 end
-s = f(&sb)
-assert(s == 'acd')
-s:destroy()
+f(&sb)
+assert(sb:view() == 'acd')
 
 -- while and break
 local function f(sb: *stringbuilder)
@@ -94,11 +85,9 @@ local function f(sb: *stringbuilder)
     defer sb:write_string'b' end
     break
   end
-  return tostring(sb)
 end
-s = f(&sb)
-assert(s == 'abc')
-s:destroy()
+f(&sb)
+assert(sb:view() == 'abc')
 
 -- for and continue
 local function f(sb: *stringbuilder)
@@ -110,11 +99,9 @@ local function f(sb: *stringbuilder)
     continue
     defer sb:write_string' ' end
   end
-  return tostring(sb)
 end
-s = f(&sb)
-assert(s == 'abbbc')
-s:destroy()
+f(&sb)
+assert(sb:view() == 'abbbc')
 
 -- repeat
 local function f(sb: *stringbuilder)
@@ -125,33 +112,30 @@ local function f(sb: *stringbuilder)
     defer sb:write_string'b' end
     local x = true
   until x
-  return tostring(sb)
 end
-s = f(&sb)
-assert(s == 'abc')
-s:destroy()
-
--- issue #46
-local function f()
-  local n = 0
-  defer n = n+1 end
-  local r = (do
-    assert(true)
-    return 0
-  end)
-  return n + r
-end
-assert(f() == 1)
-local function g()
-  local n = 0
-  defer n = n+1 end
-  local function x()
-    assert(true)
-    return 0
-  end
-  local r = x()
-  return n + r
-end
-assert(g() == 1)
+f(&sb)
+assert(sb:view() == 'abc')
 
 sb:destroy()
+
+do -- issue #46
+  local n = 0
+  do
+    defer n = n+1 end
+    local r = (do
+      return 0
+    end)
+    n = n + r
+  end
+  assert(n == 1)
+
+  n = 0
+  do
+    defer n = n+1 end
+    local function x()
+      return 0
+    end
+    local r = x()
+  end
+  assert(n == 1)
+end
