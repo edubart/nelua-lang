@@ -252,14 +252,17 @@ function ASTNode:walk_symbols()
   return coroutine_wrap(walk_symbols), self
 end
 
-local function walk_nodes(node)
-  if node._astnode then
-    coroutine_yield(node)
+local function walk_nodes(node, parent, parentindex)
+  local n = node.nargs
+  if n then -- is an astnode
+    coroutine_yield(node, parent, parentindex)
+  else
+    n = #node
   end
-  for i=1,node.nargs or #node do
+  for i=1,n do
     local v = node[i]
     if type(v) == 'table' then
-      walk_nodes(v)
+      walk_nodes(v, node, i)
     end
   end
 end
@@ -268,29 +271,31 @@ function ASTNode:walk_nodes()
   return coroutine_wrap(walk_nodes), self
 end
 
-function ASTNode:walk_trace_nodes(depth)
+function ASTNode:walk_trace_nodes(tagfilter)
   local trace = {}
-  local unpackoff = 1-depth*2
-  local function walk_trace_nodes(node)
-    if node._astnode then
-      coroutine_yield(node, table.unpack(trace, #trace+unpackoff))
-    end
-    local p1 = #trace+1
-    local p2 = p1+1
-    for i=1,node.nargs or #node do
-      local v = node[i]
-      if type(v) == 'table' then
-        trace[p1] = node
-        trace[p2] = i
-        walk_trace_nodes(v, trace)
-        trace[p2] = nil
-        trace[p1] = nil
+  local function walk_trace_nodes(node, n)
+    local parentpos = #trace+1
+    trace[parentpos] = node
+    for i=1,n do
+      local subnode = node[i]
+      if type(subnode) == 'table' then
+        local subn = subnode.nargs
+        if subn then
+          if tagfilter[subnode.tag] then -- is an accepted astnode
+            coroutine_yield(subnode, trace)
+          end
+        else
+          subn = #subnode
+        end
+        if subn > 0 then
+          walk_trace_nodes(subnode, subn)
+        end
       end
     end
+    trace[parentpos] = nil
   end
-  return coroutine_wrap(walk_trace_nodes), self
+  return coroutine_wrap(walk_trace_nodes), self, self.nargs
 end
-
 
 function ASTNode:has_sideeffect()
   for node in self:walk_nodes() do

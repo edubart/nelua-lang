@@ -125,7 +125,7 @@ function visitors.Varargs(context, node)
     local parent2 = context:get_parent_node(1)
     local nvarargs = #polyeval.varargsnodes
     local n = context.parser.astbuilder.aster
-    for varargsnode, parent1, parent1i in parent2:walk_trace_nodes(1) do
+    for varargsnode, parent1, parent1i in parent2:walk_nodes() do
       if varargsnode == node then
         if unpacktags[parent2.tag] then -- unpack arguments
           if nvarargs > 0 then
@@ -431,6 +431,14 @@ function visitors.Table(context, node)
   else
     node:raisef("type '%s' cannot be initialized using a table literal", desiredtype)
   end
+end
+
+function visitors.Pair(context, node)
+  local namenode, exprnode = node[1], node[2]
+  if luatype(namenode) == 'table' and namenode._astnode then
+    context:traverse_node(namenode)
+  end
+  context:traverse_node(exprnode)
 end
 
 function visitors.PragmaCall(_, node)
@@ -2141,7 +2149,7 @@ function visitors.VarDecl(context, node)
         local annotnode = varnode[3]
         if annotnode then
           -- must traverse again annotation node early once type is found ahead
-          context:traverse_node(annotnode, symbol)
+          context:traverse_nodes(annotnode, symbol)
         end
       end
       if vartype then
@@ -2307,6 +2315,11 @@ local function block_endswith_return(blocknode)
     end
   end
   return false
+end
+
+function visitors.Do(context, node)
+  local blocknode = node[1]
+  context:traverse_node(blocknode)
 end
 
 function visitors.DoExpr(context, node)

@@ -46,19 +46,6 @@ local function traverse_nodes(self, nodes, ...)
 end
 VisitorContext.traverse_nodes = traverse_nodes
 
-local function traverser_default_visitor(self, node, ...)
-  for i=1,node.nargs or #node do
-    local arg = node[i]
-    if type(arg) == 'table' then
-      if arg._astnode then
-        traverse_node(self, arg, ...)
-      else
-        traverser_default_visitor(self, arg, ...)
-      end
-    end
-  end
-end
-
 function VisitorContext:_init(visitors)
   self:set_visitors(visitors)
   self.nodes = {}
@@ -69,9 +56,6 @@ end
 
 function VisitorContext:set_visitors(visitors)
   self.visitors = visitors
-  if visitors.default_visitor == nil then
-    visitors.default_visitor = traverser_default_visitor
-  end
 end
 
 function VisitorContext:push_node(node)

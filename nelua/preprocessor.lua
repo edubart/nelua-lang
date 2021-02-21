@@ -75,30 +75,28 @@ function visitors.Block(ppcontext, node, emitter)
   emitter:add_indent_ln('end')
 end
 
-local function mark_process_visitor(markercontext)
-  local nodes = markercontext.nodes
-  -- mark nearest parent block above
-  for i=#nodes-1,1,-1 do
-    local pnode = nodes[i]
-    if pnode.tag == 'Block' then
-      pnode.needprocess = true
-      break
+local preprocessor = {working_time = 0}
+
+local function mark_preprocessing_nodes(ast)
+  local needprocess
+  local preprocess_tags = {
+    Preprocess = true,
+    PreprocessName = true,
+    PreprocessExpr = true
+  }
+  for _, parents in ast:walk_trace_nodes(preprocess_tags) do
+    -- mark nearest parent block above
+    needprocess = true
+    for i=#parents-1,1,-1 do
+      local pnode = parents[i]
+      if pnode.tag == 'Block' then
+        pnode.needprocess = true
+        break
+      end
     end
   end
-  markercontext.needprocess = true
+  return needprocess
 end
-
-local marker_visitors = {
-  Preprocess = mark_process_visitor,
-  PreprocessName = mark_process_visitor,
-  PreprocessExpr = mark_process_visitor
-}
-
-function marker_visitors.Block(markercontext, node)
-  markercontext:traverse_nodes(node[1])
-end
-
-local preprocessor = {working_time = 0}
 
 function preprocessor.preprocess(context, ast)
   assert(ast.tag == 'Block')
@@ -114,12 +112,7 @@ function preprocessor.preprocess(context, ast)
     context.ppcontext = ppcontext
   end
 
-  local markercontext = VisitorContext(marker_visitors)
-
-  -- first pass, mark blocks that needs preprocess
-  markercontext:traverse_node(ast)
-
-  if not markercontext.needprocess then
+  if not mark_preprocessing_nodes(ast) then
     -- no preprocess directive found for this block, finished
     if timer then --luacov:disable
       local elapsed = timer:elapsed()
