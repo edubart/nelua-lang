@@ -185,12 +185,8 @@ end
 
 -- Checks a symbol is directly accessible from a scope, without needing closures.
 function Symbol:is_directly_accesible_from_scope(scope)
-  if self.staticstorage then
-    -- symbol declared in the program static storage, thus always accessible
-    return true
-  end
-  if self.comptime or (self.type and self.type.is_comptime) then
-    -- compile time symbols are always accessible
+  if self.staticstorage or -- symbol declared in the program static storage, thus always accessible
+     self.comptime or (self.type and self.type.is_comptime) then -- compile time symbols are always accessible
     return true
   end
   if self.scope:get_up_function_scope() == scope:get_up_function_scope() then

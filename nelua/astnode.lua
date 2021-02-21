@@ -33,18 +33,20 @@ function ASTNode.make_toastnode(parser, astnodes)
   local function to_astnode(pos, tag, ...)
     local nuid = uid + 1
     uid = nuid
-    local n = select('#', ...)
-    local endpos = select(n, ...)
-    local src = parser.src
-    local attr = setmetatable({}, Attr)
     local node = setmetatable({
-      attr = attr,
-      src = src,
-      endpos = endpos,
-      pos = pos,
+      attr = setmetatable({}, Attr),
       uid = nuid,
+      src = parser.src,
+      pos = pos,
+      endpos = 0, -- we will change it bellow
       ...
     }, astnodes[tag])
+    -- NOTE: using select here would be the correct way, but we use # because it takes less cycles,
+    -- even though the table can have multiple borders and length may not bet deterministic,
+    -- however in my tests when constructing the table like above,
+    -- then `#node` is deterministic and equivalent to `select('#', ...)`
+    local n = #node -- select('#', ...)
+    node.endpos = node[n]
     node[n] = nil -- remove endpos
     return node
   end

@@ -382,7 +382,7 @@ local function get_parser()
     expr5  <- ({} expr6  (op_xor      expr6  {})* )    -> to_chain_binary_op
     expr6  <- ({} expr7  (op_band     expr7  {})* )    -> to_chain_binary_op
     expr7  <- ({} expr8  (op_bshift   expr8  {})* )    -> to_chain_binary_op
-    expr8  <- ({}    expr9  (op_concat   expr8  {})?   )    -> to_binary_op
+    expr8  <- ({} expr9  (op_concat   expr8  {})? )    -> to_binary_op
     expr9  <- expr10 -- free op slot
     expr10 <- ({} expr11 (op_add      expr11 {})* )    -> to_chain_binary_op
     expr11 <- ({} expr12 (op_mul      expr12 {})* )    -> to_chain_binary_op

@@ -55,13 +55,19 @@ end
 -- Converts a hexadecimal number composed of string parts to a big number.
 function bn.fromhex(int, frac, exp)
   if frac and exp then -- hexadecimal float with fraction and exponent
-    return tonumber(string.format('0x%s.%sp%s', int, frac, exp))
+    return tonumber('0x'..int..'.'..frac..'p'..exp)
   elseif frac then -- hexadecimal float with fraction
-    return tonumber(string.format('0x%s.%s', int, frac))
+    return tonumber('0x'..int..'.'..frac)
   elseif exp then -- hexadecimal float  with exponent
-    return tonumber(string.format('0x%sp%s', int, exp))
+    return tonumber('0x'..int..'p'..exp)
+  elseif int == 'inf' then
+    return math.huge
+  elseif int == '-inf' then
+    return -math.huge
+  elseif int == 'nan' or int == '-nan' then
+    return 0.0/0.0
   else -- hexadecimal integral
-    return from(16, 2, int)
+    return bn.frombase(int, 16)
   end
 end
 
@@ -73,13 +79,19 @@ end
 -- Converts a decimal number composed of string parts strings to a big number.
 function bn.fromdec(int, frac, exp)
   if frac and exp then -- decimal float with fraction and exponent
-    return tonumber(string.format('%s.%se%s', int, frac, exp))
+    return tonumber(int..'.'..frac..'e'..exp)
   elseif frac then -- decimal float with fraction
-    return tonumber(string.format('%s.%s', int, frac))
+    return tonumber(int..'.'..frac)
   elseif exp then -- decimal float with exponent
-    return tonumber(string.format('%se%s', int, exp))
+    return tonumber(int..'e'..exp)
+  elseif int == 'inf' then
+    return math.huge
+  elseif int == '-inf' then
+    return -math.huge
+  elseif int == 'nan' or int == '-nan' then
+    return 0.0/0.0
   else -- decimal integral
-    return from(10, 10, int)
+    return bn.frombase(int, 10)
   end
 end
 

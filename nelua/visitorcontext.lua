@@ -87,8 +87,8 @@ end
 function VisitorContext:pop_state()
   local statestack = self.statestack
   local index = #statestack
+  assert(index > 0)
   self.state = statestack[index]
-  assert(self.state)
   statestack[index] = nil
 
   --[[
