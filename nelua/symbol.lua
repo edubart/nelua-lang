@@ -198,16 +198,18 @@ end
 
 function Symbol:__tostring()
   local ss = sstream(self.name or '<anonymous>')
-  if self.type then
-    ss:add(': ', self.type)
+  local type = self.type
+  if type then
+    ss:add(': ', type)
   end
   if self.comptime then
     ss:add(' <comptime>')
   elseif self.const then
     ss:add(' <const>')
   end
-  if self.value then
-    ss:add(' = ', self.value)
+  local value = self.value
+  if value and not type.is_function then
+    ss:add(' = ', value)
   end
   return ss:tostring()
 end

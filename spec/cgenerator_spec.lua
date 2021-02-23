@@ -445,44 +445,6 @@ it("operation on comptime variables", function()
     --assert(-3 & -5 == -1)
     --assert(-3_i32 & 0xfffffffb_u32 == -7)
   ]])
-
-  expect.run_c([[
-    local function f(a: string <comptime>)
-       ## if a.value == 'test' then
-          return 1
-       ## else
-          return 2
-       ## end
-    end
-
-    local function g(a: integer <comptime>)
-       ## if a.value == 1 then
-          return 1
-       ## elseif a.value == 2 then
-          return 2
-       ## else
-          return 0
-       ## end
-    end
-
-    local function h(a: auto <comptime>)
-      ## if a.type.is_niltype then
-        return 0
-      ## else
-        return a
-      ## end
-    end
-
-    assert(f('test') == 1) assert(f('test') == 1)
-    assert(f('else') == 2) assert(f('else') == 2)
-    assert(g(1) == 1) assert(g(1) == 1)
-    assert(g(2) == 2) assert(g(2) == 2)
-    assert(g(3) == 0) assert(g(3) == 0)
-    assert(g(4) == 0) assert(g(4) == 0)
-    assert(h(1) == 1) assert(h(1) == 1)
-    assert(h(2) == 2) assert(h(2) == 2)
-    assert(h() == 0) assert(h() == 0)
-  ]])
 end)
 
 it("assignment", function()
@@ -647,6 +609,54 @@ it("poly functions with comptime arguments", function()
     assert(iszero(0) == true)
     assert(iszero(1) == false)
     assert(iszero(2) == false)
+  ]])
+
+  expect.run_c([[
+    local function f(a: string <comptime>)
+       ## if a.value == 'test' then
+          return 1
+       ## else
+          return 2
+       ## end
+    end
+
+    local function g(a: integer <comptime>)
+       ## if a.value == 1 then
+          return 1
+       ## elseif a.value == 2 then
+          return 2
+       ## else
+          return 0
+       ## end
+    end
+
+    local function h(a: auto <comptime>)
+      ## if a.type.is_niltype then
+        return 0
+      ## else
+        return a
+      ## end
+    end
+
+    assert(f('test') == 1) assert(f('test') == 1)
+    assert(f('else') == 2) assert(f('else') == 2)
+    assert(g(1) == 1) assert(g(1) == 1)
+    assert(g(2) == 2) assert(g(2) == 2)
+    assert(g(3) == 0) assert(g(3) == 0)
+    assert(g(4) == 0) assert(g(4) == 0)
+    assert(h(1) == 1) assert(h(1) == 1)
+    assert(h(2) == 2) assert(h(2) == 2)
+    assert(h() == 0) assert(h() == 0)
+
+    local function f(x: function(): integer <comptime>)
+      return x()
+    end
+    local function g1() return 1 end
+    local function g2() return 2 end
+    assert(f(g1) == 1)
+    assert(f(g2) == 2)
+    assert(f(function(): integer return 1 end) == 1)
+    assert(f(function(): integer return 2 end) == 2)
   ]])
 end)
 
@@ -2193,6 +2203,10 @@ it("function pointers", function()
     local function f() return 1 end
     assert((&f)() == 1)
     assert(f() == 1)
+    local g = &f
+    assert(g() == 1)
+    local pg = &g
+    assert(pg() == 1)
   ]])
 end)
 

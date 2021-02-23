@@ -1382,6 +1382,9 @@ function visitors.Call(context, node)
   local calleeattr = calleenode.attr
   local calleetype = calleeattr.type
   local calleesym = calleeattr._symbol and calleeattr
+  if calleesym and calleesym.comptime and calleesym.value then -- handle comptime function argument
+    calleesym = calleesym.value
+  end
   if calleetype and calleetype.is_pointer then
     calleetype = calleetype.subtype
     assert(calleetype)
@@ -2680,6 +2683,10 @@ function visitors.FuncDef(context, node, polysymbol)
         attr.type = type
       end
       attr.ftype = type
+      if decl then
+        attr.comptime = true
+        attr.value = symbol
+      end
     end
 
     -- traverse annotation nodes
@@ -2755,6 +2762,8 @@ function visitors.Function(context, node)
       type = types.FunctionType(argattrs, rettypes, node)
       type.symbol = symbol
       attr.type = type
+      attr.comptime = true
+      attr.value = symbol
     end
 
     -- traverse annotation nodes

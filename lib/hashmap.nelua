@@ -61,7 +61,7 @@ local INVALID_INDEX: usize <comptime> = #[primtypes.usize.max]#
   ]]
 
   ## if HashFunc then
-  local hash_func: auto = #[HashFunc]#
+  local hash_func: auto <comptime> = #[HashFunc]#
   ## else
   local hash_func: auto = hash
   ## end

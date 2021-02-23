@@ -538,10 +538,10 @@ visitors.PointerType = visitors.Type
 function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
   local type = attr.type
-  if attr.comptime or type.is_comptime then
-    emitter:add(context:ensure_builtin('nlniltype'), ' ', context:declname(attr))
-  elseif context.state.infuncdecl then
+  if context.state.infuncdecl then
     emitter:add(context:declname(attr))
+  elseif attr.comptime or type.is_comptime then
+    emitter:add(context:ensure_builtin('nlniltype'), ' ', context:declname(attr))
   else
     if type.is_type then return end
     if attr.cexport then emitter:add(context:ensure_builtin('nelua_cexport'), ' ') end
@@ -680,9 +680,14 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
         end
       end
 
-      if callargattrs[i].comptime then
+      local callargattr = callargattrs[i]
+      if callargattr.comptime then
         -- compile time function argument
         emitter:add_nil_literal()
+
+        if argnode and argnode.tag == 'Function' then -- force declaration of anonymous functions
+          CEmitter(context, emitter.depth):add(argnode)
+        end
       else
         emitter:add_val2type(funcargtype, arg, argtype)
       end

@@ -1666,6 +1666,10 @@ function FunctionType:get_convertible_from_type(type, explicit, autoref)
   return Type.get_convertible_from_type(self, type, explicit, autoref)
 end
 
+function FunctionType.is_initializable_from_attr()
+  return false
+end
+
 -- Return description for type as a string.
 function FunctionType:typedesc()
   local ss = sstream(self.name, '(', self.argtypes, ')')
@@ -1678,6 +1682,14 @@ function FunctionType:typedesc()
     end
   end
   return ss:tostring()
+end
+
+FunctionType.unary_operators.ref = function(ltype, lattr)
+  if lattr.comptime then
+    return ltype
+  else
+    return types.PointerType(ltype)
+  end
 end
 
 --------------------------------------------------------------------------------
