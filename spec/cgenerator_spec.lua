@@ -2384,6 +2384,11 @@ it("C varargs", function()
 
     snprintf(&buf[0], #buf, "%s %s", 'hello', 'world')
     assert(&buf[0] == 'hello world')
+
+    local a = 'hello'
+    local i = 1
+    snprintf(&buf[0], #buf, '%s %d', a, (@cint)(i))
+    assert(&buf[0] == 'hello 1')
   ]=])
 end)
 

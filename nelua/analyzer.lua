@@ -1241,7 +1241,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         end
         if mulargstype then
           if not funcargtype or funcargtype.is_multipleargs then
-            if mulargstype.is_cvarargs then
+            if mulargstype.is_cvarargs and argtype then
               if argtype.is_string then -- we actually want a cstring
                 argtype = primtypes.cstring
               elseif argtype.is_composite or argtype.is_array then
