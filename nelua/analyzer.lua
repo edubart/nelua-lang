@@ -1977,7 +1977,7 @@ function visitors.ForIn(context, node)
       }}}
     }}}
     node:transform(newnode)
-    context:traverse_node(newnode)
+    context:traverse_node(node)
   end
 end
 
