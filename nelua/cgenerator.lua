@@ -453,9 +453,9 @@ function visitors.Pair(_, node, emitter)
   local parenttype = node.parenttype
   if parenttype and parenttype.is_composite then
     assert(traits.is_string(namenode))
-    emitter:add('.', cdefs.quotename(namenode), ' = ')
-    local fieldtype = parenttype.fields[namenode].type
-    emitter:add_val2type(fieldtype, valuenode, valuenode.attr.type)
+    local field = parenttype.fields[namenode]
+    emitter:add('.', cdefs.quotename(field.name), ' = ')
+    emitter:add_val2type(field.type, valuenode, valuenode.attr.type)
   else --luacov:disable
     error('not implemented yet')
   end --luacov:enable
@@ -758,7 +758,8 @@ end
 
 -- indexing
 function visitors.DotIndex(context, node, emitter)
-  local name, objnode = node[1], node[2]
+  local name = node.dotfieldname or node[1]
+  local objnode = node[2]
   local attr = node.attr
   local type = attr.type
   local objtype = objnode.attr.type

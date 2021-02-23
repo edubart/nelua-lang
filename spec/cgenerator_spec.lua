@@ -3300,4 +3300,23 @@ unpack e true
 1 2 3]]):gsub(' ', '\t')))
 end)
 
+it("record field aliases", function()
+  expect.run_c([=[
+    local vec3 = @record{x: number, y: number, z: number}
+
+    ##[[
+    local vec3fields = vec3.value.fields
+    vec3fields.r = vec3fields.x
+    vec3fields.g = vec3fields.y
+    vec3fields.b = vec3fields.z
+    ]]
+
+    local col: vec3 = (@vec3){r=1.0,g=0.0,b=0.5}
+    assert(col.x == 1.0 and col.y == 0.0 and col.z == 0.5)
+    assert(col.r == 1.0 and col.g == 0.0 and col.b == 0.5)
+    col.r = 0.0
+    assert(col.r == 0.0 and col.x == 0.0)
+  ]=])
+end)
+
 end)

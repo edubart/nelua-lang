@@ -277,7 +277,10 @@ local function visitor_Record_literal(context, node, littype)
         childnode:raisef("only string literals are allowed in record's field names")
       end
       field = littype.fields[fieldname]
-      fieldindex = field and field.index or nil
+      if field then
+        fieldindex = field.index
+        fieldname = field.name
+      end
       parent = childnode
       parentindex = 2
     else
@@ -358,6 +361,7 @@ local function visitor_Union_literal(context, node, littype)
     if not field then
       childnode:raisef("field '%s' is not present in union '%s'", fieldname, littype)
     end
+    fieldname = field.name
     local fieldtype = field.type
     fieldvalnode.desiredtype = fieldtype
     context:traverse_node(fieldvalnode)
@@ -1468,6 +1472,7 @@ local function visitor_Composite_FieldIndex(_, node, objtype, name)
   if not type then
     node:raisef("cannot index field '%s' on value of type '%s'", name, objtype)
   end
+  node.dotfieldname = field.name
   attr.type = type
   node.checked = true
   -- return true
@@ -1479,6 +1484,7 @@ local function visitor_EnumType_FieldIndex(_, node, objtype, name)
   if not field then
     node:raisef("cannot index field '%s' on enum '%s'", name, objtype)
   end
+  node.dotfieldname = field.name
   attr.comptime = true
   attr.value = field.value
   attr.type = objtype
