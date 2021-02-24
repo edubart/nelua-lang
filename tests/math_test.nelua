@@ -85,6 +85,22 @@ do -- math.ifloor
   assert(math.ifloor(-1) == -1)
 end
 
+do -- math.trunc
+  assert(math.trunc(1.25) == 1)
+  assert(math.trunc(-1.25) == -1)
+  assert(math.trunc(1.75) == 1)
+  assert(math.trunc(-1.75) == -1)
+  assert(math.trunc(2) == 2)
+end
+
+do -- math.round
+  assert(math.round(1.25) == 1)
+  assert(math.round(-1.25) == -1)
+  assert(math.round(1.75) == 2)
+  assert(math.round(-1.75) == -2)
+  assert(math.round(2) == 2)
+end
+
 do -- math.acos
   asserteq(math.acos(-1.0), math.pi)
   asserteq(math.acos(1.0), 0)
@@ -172,6 +188,17 @@ do -- math.exp
   asserteq(math.exp(1), e)
 end
 
+do -- math.exp2
+  asserteq(math.exp2(4.0), 16.0)
+  asserteq(math.exp2(1.0), 2.0)
+
+  asserteq(math.exp2(4.0_f32), 16.0_f32)
+  asserteq(math.exp2(1.0_f32), 2.0_f32)
+
+  asserteq(math.exp2(4), 16)
+  asserteq(math.exp2(1), 2)
+end
+
 do -- math.log
   asserteq(math.log(1.0), 0.0)
   asserteq(math.log(e), 1.0)
@@ -191,6 +218,28 @@ do -- math.log
   asserteq(math.log(e), 1)
   asserteq(math.log(100000000, 10), 8)
   asserteq(math.log(1024, 2), 10)
+end
+
+do -- math.log2
+  asserteq(math.log2(16.0), 4.0)
+  asserteq(math.log2(2.0), 1.0)
+
+  asserteq(math.log2(16.0_f32), 4.0_f32)
+  asserteq(math.log2(2.0_f32), 1.0_f32)
+
+  asserteq(math.log2(16), 4)
+  asserteq(math.log2(2), 1)
+end
+
+do -- math.log10
+  asserteq(math.log10(10.0), 1.0)
+  asserteq(math.log10(1000.0), 3.0)
+
+  asserteq(math.log10(10.0_f32), 1.0_f32)
+  asserteq(math.log10(1000.0_f32), 3.0_f32)
+
+  asserteq(math.log10(10), 1)
+  asserteq(math.log10(1000), 3)
 end
 
 do -- math.fmod
@@ -253,6 +302,20 @@ do -- math.cosh / math.sinh / math.tanh
   asserteq(math.tanh(0), 0)
 end
 
+do -- math.acosh / math.asinh / math.atanh
+  asserteq(math.acosh(1.0), 0.0)
+  asserteq(math.asinh(0.0), 0.0)
+  asserteq(math.atanh(0.0), 0.0)
+
+  asserteq(math.acosh(1.0_f32), 0.0_f32)
+  asserteq(math.asinh(0.0_f32), 0.0_f32)
+  asserteq(math.atanh(0.0_f32), 0.0_f32)
+
+  asserteq(math.acosh(1), 0)
+  asserteq(math.asinh(0), 0)
+  asserteq(math.atanh(0), 0)
+end
+
 do -- math.pow
   asserteq(math.pow(2.0, 10.0), 1024.0)
   asserteq(math.pow(2.0, -10.0), 1.0/1024.0)
@@ -261,17 +324,6 @@ do -- math.pow
   asserteq(math.pow(2.0_f32, -10.0_f32), 1.0_f32/1024.0_f32)
 
   asserteq(math.pow(2, 10), 1024)
-end
-
-do -- math.log10
-  asserteq(math.log10(10.0), 1.0)
-  asserteq(math.log10(1000.0), 3.0)
-
-  asserteq(math.log10(10.0_f32), 1.0_f32)
-  asserteq(math.log10(1000.0_f32), 3.0_f32)
-
-  asserteq(math.log10(10), 1)
-  asserteq(math.log10(1000), 3)
 end
 
 do -- math.ldexp

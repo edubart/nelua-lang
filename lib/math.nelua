@@ -41,8 +41,10 @@ end
 -- import C math functions with 1 argument
 ##[[
 local cmathfuncs1 = {
-  'abs','ceil','floor','sqrt','exp','log','log2','log10','acos','asin','atan','cos','sin','tan',
-  'cosh','sinh','tanh','log10'
+  'abs','ceil','floor','trunc','round',
+  'sqrt','exp','exp2','log','log2','log10',
+  'cos','sin','tan','acos','asin','atan',
+  'cosh','sinh','tanh', 'acosh','asinh','atanh',
 }
 local cmathrenames1 = {abs='fabs'}
 for _,name in ipairs(cmathfuncs1) do
@@ -87,7 +89,9 @@ local function ldexp_f32(x: float32, exp: int32): float32 <cimport'ldexpf',cincl
 ##[[
 local mathfuncs1 = {
   'abs','ceil','floor','sqrt','exp','acos','asin','cos','sin','tan',
-  'cosh','sinh','tanh','log10'
+  'cosh','sinh','tanh','log10',
+  -- extra
+  'trunc','round', 'log2','exp2', 'acosh', 'asinh', 'atanh',
 }
 for _,name in ipairs(mathfuncs1) do
   local namef64, namef32 = name..'_f64', name..'_f32'
@@ -101,7 +105,7 @@ function math.#|name|#(x: is_arithmetic) <inline,nosideeffect>
   ## else
     ## if name == 'abs' then
       if x < 0 then return -x else return x end
-    ## elseif name == 'ceil' or name == 'floor' then
+    ## elseif name == 'ceil' or name == 'floor' or name == 'trunc' or name == 'round' then
       return x
     ## else
       return #|namef|#(x)

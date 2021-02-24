@@ -188,7 +188,7 @@ typevisitors[types.ArrayType] = function(context, type)
   emit_type_attributes(decemitter, type)
   decemitter:add(';')
   if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
-    decemitter:add('nelua_static_assert(sizeof(',type.codename,') == ', type.size, ' && ',
+    decemitter:add(' nelua_static_assert(sizeof(',type.codename,') == ', type.size, ' && ',
                       '_Alignof(',type.codename,') == ', type.align,
                       ', "Nelua and C disagree on type size or align");')
   end
