@@ -42,7 +42,7 @@ end
 ##[[
 local cmathfuncs1 = {
   'abs','ceil','floor','trunc','round',
-  'sqrt','exp','exp2','log','log2','log10',
+  'sqrt','cbrt','exp','exp2','log','log2','log10',
   'cos','sin','tan','acos','asin','atan',
   'cosh','sinh','tanh', 'acosh','asinh','atanh',
 }
@@ -91,7 +91,7 @@ local mathfuncs1 = {
   'abs','ceil','floor','sqrt','exp','acos','asin','cos','sin','tan',
   'cosh','sinh','tanh','log10',
   -- extra
-  'trunc','round', 'log2','exp2', 'acosh', 'asinh', 'atanh',
+  'trunc','round', 'log2','exp2', 'acosh', 'asinh', 'atanh', 'cbrt',
 }
 for _,name in ipairs(mathfuncs1) do
   local namef64, namef32 = name..'_f64', name..'_f32'
@@ -138,7 +138,7 @@ function math.#|name|#(x: is_arithmetic, y: is_arithmetic) <inline,nosideeffect>
 end
 ## end
 
-function math.min(...: varargs)
+function math.min(...: varargs) <inline,nosideeffect>
   ## local nargs = select_varargs('#')
   ## static_assert(nargs > 0, 'expected at least one argument')
   ## if nargs == 1 then
@@ -162,7 +162,7 @@ function math.min(...: varargs)
   ## end
 end
 
-function math.max(...: varargs)
+function math.max(...: varargs) <inline,nosideeffect>
   ## local nargs = select_varargs('#')
   ## static_assert(nargs > 0, 'expected at least one argument')
   ## if nargs == 1 then

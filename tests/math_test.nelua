@@ -177,6 +177,17 @@ do -- math.sqrt
   asserteq(math.sqrt(9), 3)
 end
 
+do -- math.cbrt
+  asserteq(math.cbrt(8.0), 2.0)
+  asserteq(math.cbrt(27.0), 3.0)
+
+  asserteq(math.cbrt(8.0_f32), 2.0_f32)
+  asserteq(math.cbrt(27.0_f32), 3.0_f32)
+
+  asserteq(math.cbrt(8), 2)
+  asserteq(math.cbrt(27), 3)
+end
+
 do -- math.exp
   asserteq(math.exp(0.0), 1.0)
   asserteq(math.exp(1.0), e)
