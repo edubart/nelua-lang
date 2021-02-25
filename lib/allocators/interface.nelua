@@ -127,7 +127,7 @@ require 'span'
   ## end
 
   ## if not Allocator.value.metafields.spannew then
-  function Allocator:spannew(what: auto, size: usize) <inline>
+  function Allocator:spannew(what: auto, size: usize)
     ## if what.type.is_type then
     local T: type = what
     local spn: span(T) = self:spanalloc0(T, size)
@@ -145,7 +145,7 @@ require 'span'
   ## end
 
   ## if not Allocator.value.metafields.new then
-  function Allocator:new(what: auto) <inline>
+  function Allocator:new(what: auto)
     ## if what.type.is_type then
     local T: type = what
     local ptr: *T = (@*T)(self:alloc0(#T))
@@ -166,7 +166,7 @@ require 'span'
       return true
     end
     return false, string.format("type '%s' is not a span or a pointer", x.type)
-  end)]#): void <inline>
+  end)]#): void
     ## if s.type.is_span then
       self:spandealloc(s)
     ## else -- pointer
@@ -177,49 +177,49 @@ require 'span'
 
   -- Checked allocation wrappers.
 
-  function Allocator:xalloc(size: usize): pointer <inline>
+  function Allocator:xalloc(size: usize): pointer
     local p: pointer = self:alloc(size)
     assert(p ~= nilptr, 'out of memory')
     return p
   end
 
-  function Allocator:xalloc0(size: usize): pointer <inline>
+  function Allocator:xalloc0(size: usize): pointer
     local p: pointer = self:alloc0(size)
     assert(p ~= nilptr, 'out of memory')
     return p
   end
 
-  function Allocator:xrealloc(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+  function Allocator:xrealloc(p: pointer, newsize: usize, oldsize: usize): pointer
     local p: pointer = self:realloc(p, newsize, oldsize)
     assert(p ~= nilptr, 'out of memory')
     return p
   end
 
-  function Allocator:xrealloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+  function Allocator:xrealloc0(p: pointer, newsize: usize, oldsize: usize): pointer
     local p: pointer = self:realloc0(p, newsize, oldsize)
     assert(p ~= nilptr, 'out of memory')
     return p
   end
 
-  function Allocator:spanxalloc(T: type, size: usize) <inline>
+  function Allocator:spanxalloc(T: type, size: usize)
     local s: span(T) = self:spanalloc(T, size)
     assert(s.size == size, 'out of memory')
     return s
   end
 
-  function Allocator:spanxalloc0(T: type, size: usize) <inline>
+  function Allocator:spanxalloc0(T: type, size: usize)
     local s: span(T) = self:spanalloc0(T, size)
     assert(s.size == size, 'out of memory')
     return s
   end
 
-  function Allocator:spanxrealloc(s: is_span, size: usize) <inline>
+  function Allocator:spanxrealloc(s: is_span, size: usize)
     s = self:spanrealloc(s, size)
     assert(s.size == size, 'out of memory')
     return s
   end
 
-  function Allocator:spanxrealloc0(s: is_span, size: usize) <inline>
+  function Allocator:spanxrealloc0(s: is_span, size: usize)
     s = self:spanrealloc0(s, size)
     assert(s.size == size, 'out of memory')
     return s

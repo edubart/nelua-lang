@@ -32,7 +32,7 @@ require 'allocators.interface'
   }
 
   -- Free all allocations.
-  function PoolAllocatorT:dealloc_all(): void <noinline>
+  function PoolAllocatorT:dealloc_all(): void
     self.head = nilptr
     -- link all free nodes in reverse order
     for i:isize=#self.buffer-1,0,-1 do

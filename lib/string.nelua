@@ -75,7 +75,7 @@ function string._forward(s: string): string <inline>
 end
 
 -- Returns the internal numeric codes of the character at position `i`.
-function string.byte(self: string, i: facultative(isize)): byte <nosideeffect>
+function string.byte(self: string, i: facultative(isize)): byte
   -- TODO: j argument and multiple returns
   ## if i.type.is_niltype then
   local i: isize = 1
@@ -278,7 +278,7 @@ function string.format(fmt: string, ...: varargs): string
 end
 
 -- Return length of a string.
-function string.len(self: string): isize <inline,nosideeffect>
+function string.len(self: string): isize <inline>
   return (@isize)(self.size)
 end
 
@@ -295,17 +295,17 @@ local arithmetic_coercion_concept = #[concept(function(x)
 end)]#
 
 -- Return length of a string.
-function string.__len(a: string): isize <inline,nosideeffect>
+function string.__len(a: string): isize <inline>
   return (@isize)(a.size)
 end
 
 -- Compare two strings.
-function string.__eq(a: string, b: string): boolean <nosideeffect>
+function string.__eq(a: string, b: string): boolean
   return a.size == b.size and (a.data == b.data or a.size == 0 or memory.equals(a.data, b.data, a.size))
 end
 
 -- Compare if string `a` is less than string `b` in lexicographical order.
-function string.__lt(a: string, b: string): boolean <nosideeffect>
+function string.__lt(a: string, b: string): boolean
   if unlikely(a.size == 0 or b.size == 0) then
     return a.size < b.size
   else
@@ -318,7 +318,7 @@ function string.__lt(a: string, b: string): boolean <nosideeffect>
 end
 
 -- Compare if string `a` is less or equal than string `b` in lexicographical order.
-function string.__le(a: string, b: string): boolean <nosideeffect>
+function string.__le(a: string, b: string): boolean
   if unlikely(a.size == 0 or b.size == 0) then
     return a.size <= b.size
   else

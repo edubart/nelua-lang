@@ -347,11 +347,11 @@ local default_random: xoshiro256 = {state={
   0x65CE039BAEBE74B4, 0x4911ADA153B51EEF, 0xFB71FBB497C00950, 0xF83CCF6AC1B74755
 }}
 
-function math.randomseed(x: is_arithmetic): void <inline>
+function math.randomseed(x: is_arithmetic): void
   default_random:seed((@uint64)(x), 0)
 end
 
-function math.random(m: is_optional_arithmetic, n: is_optional_arithmetic) <inline>
+function math.random(m: is_optional_arithmetic, n: is_optional_arithmetic)
   local r: number = default_random:random()
   ## if not m.type.is_niltype and not n.type.is_niltype then
     local low: integer, up: integer = (@integer)(m), (@integer)(n)

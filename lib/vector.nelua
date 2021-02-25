@@ -163,7 +163,7 @@ require 'iterators'
   end
 
   -- Returns the number of elements the vector can store before triggering a reallocation.
-  function vectorT:capacity(): isize <inline,nosideeffect>
+  function vectorT:capacity(): isize <inline>
     return (@isize)(self.data.size)
   end
 
@@ -175,7 +175,7 @@ require 'iterators'
   end
 
   -- Returns the number of elements in the vector.
-  function vectorT:__len(): isize <inline,nosideeffect>
+  function vectorT:__len(): isize <inline>
     return (@isize)(self.size)
   end
 

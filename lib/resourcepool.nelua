@@ -95,7 +95,7 @@ local INIT_SIZE <comptime> = 64
 
   -- Retrieve the slot index from a slot id.
   -- Invalid ids or from old generations is returned as 0.
-  function SlotPoolT:get_index(id: uint64): uint32 <inline>
+  function SlotPoolT:get_index(id: uint64): uint32
     -- the slot index is the low bits of the id
     local slot_index: uint32 = (@uint32)(id & SLOT_MASK)
     -- check invalid slot index
@@ -191,7 +191,7 @@ local INIT_SIZE <comptime> = 64
   -- Free a resource associated with an id from the pool.
   -- In case the resource id is 0 does nothing.
   -- In case the resource id is invalid then throws a runtime error on debug builds.
-  function ResourcePoolT:release(id: uint64): void <inline>
+  function ResourcePoolT:release(id: uint64): void
     if id == 0 then return end
     local slot_index: uint32 = self.slot_pool:get_index(id)
     check(slot_index ~= 0, 'invalid slot index')
@@ -200,7 +200,7 @@ local INIT_SIZE <comptime> = 64
   end
 
   -- Return number of used resources in the pool.
-  function ResourcePoolT:count(): isize <inline,nosideeffect>
+  function ResourcePoolT:count(): isize
     return (@isize)(self.slot_pool.size - self.slot_pool.queue_top)
   end
 

@@ -510,7 +510,7 @@ function GC:remove(ptr: pointer): void
   self.mitems = self.nitems + self.nitems // 2 + 1
 end
 
-function GC:_alloc(ptr: pointer, size: usize, flags: usize, finalizer: pointer): pointer <inline>
+function GC:_alloc(ptr: pointer, size: usize, flags: usize, finalizer: pointer): pointer
   if ptr then
     if not self:_add(ptr, size, flags, finalizer) then
       allocator:dealloc(ptr)
@@ -530,7 +530,7 @@ function GC:alloc0_opt(size: usize, flags: usize, finalizer: pointer): pointer
   return self:_alloc(ptr, size, flags, finalizer)
 end
 
-function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer <inline>
+function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer
   if not qtr then
     self:remove(ptr)
     return nilptr
@@ -559,19 +559,19 @@ function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer <inline>
   return nilptr
 end
 
-function GC:realloc(ptr: pointer, size: usize, oldsize: usize): pointer <noinline>
+function GC:realloc(ptr: pointer, size: usize, oldsize: usize): pointer
   local qtr: pointer = allocator:realloc(ptr, size, oldsize)
   if not qtr then return nilptr end
   return self:_realloc(qtr, ptr, size)
 end
 
-function GC:realloc0(ptr: pointer, size: usize, oldsize: usize): pointer <noinline>
+function GC:realloc0(ptr: pointer, size: usize, oldsize: usize): pointer
   local qtr: pointer = allocator:realloc0(ptr, size, oldsize)
   if not qtr then return nilptr end
   return self:_realloc(qtr, ptr, size)
 end
 
-function GC:dealloc(ptr: pointer): void <noinline>
+function GC:dealloc(ptr: pointer): void
   local p: *GCItem = self:_get_ptr(ptr)
   if p then
     p:finalize()
@@ -596,7 +596,7 @@ require 'allocators.interface'
 
 global GCAllocator = @record{}
 
-function GCAllocator:alloc(size: usize, flags: facultative(usize), finalizer: facultative(FinalizerCallback)): pointer
+function GCAllocator:alloc(size: usize, flags: facultative(usize), finalizer: facultative(FinalizerCallback)): pointer <noinline>
   ## if flags.type.is_niltype then
   local flags: usize = 0
   ## end
@@ -606,7 +606,7 @@ function GCAllocator:alloc(size: usize, flags: facultative(usize), finalizer: fa
   return gc:alloc_opt(size, flags, finalizer)
 end
 
-function GCAllocator:alloc0(size: usize, flags: facultative(usize), finalizer: facultative(FinalizerCallback)): pointer
+function GCAllocator:alloc0(size: usize, flags: facultative(usize), finalizer: facultative(FinalizerCallback)): pointer <noinline>
   ## if flags.type.is_niltype then
   local flags: usize = 0
   ## end
@@ -616,19 +616,19 @@ function GCAllocator:alloc0(size: usize, flags: facultative(usize), finalizer: f
   return gc:alloc0_opt(size, flags, finalizer)
 end
 
-function GCAllocator:realloc(p: pointer, size: usize, oldsize: usize): pointer
+function GCAllocator:realloc(p: pointer, size: usize, oldsize: usize): pointer <noinline>
   return gc:realloc(p, size, oldsize)
 end
 
-function GCAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
+function GCAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <noinline>
   return gc:realloc0(p, newsize, oldsize)
 end
 
-function GCAllocator:dealloc(p: pointer): void
+function GCAllocator:dealloc(p: pointer): void <noinline>
   gc:dealloc(p)
 end
 
-function GCAllocator:spannew(what: auto, size: usize) <inline>
+function GCAllocator:spannew(what: auto, size: usize) <noinline>
   local T: type = #[what.type.is_type and what.value or what.type]#
   local spn: span(T)
 
@@ -664,7 +664,7 @@ function GCAllocator:spannew(what: auto, size: usize) <inline>
   return spn
 end
 
-function GCAllocator:new(what: auto) <inline>
+function GCAllocator:new(what: auto) <noinline>
   local T: type = #[what.type.is_type and what.value or what.type]#
 
   ## if T.value.metafields.__gc then

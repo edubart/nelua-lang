@@ -34,7 +34,7 @@
   end
 
   -- Returns the number of elements in the span.
-  function spanT:__len(): isize <inline,nosideeffect>
+  function spanT:__len(): isize <inline>
     return (@isize)(self.size)
   end
 
@@ -46,7 +46,7 @@
       return true
     end
     return false, string.format("no viable conversion from '%s' to '%s'", x.type, spanT)
-  end)]#): spanT <inline,nosideeffect>
+  end)]#): spanT <inline>
     local self: spanT
     ## if values.type.is_string then
       self.data = (@*[0]T)(values.data)

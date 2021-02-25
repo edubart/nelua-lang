@@ -1,6 +1,6 @@
 global typeid = @uint32
 
-global function typeid_of(x: auto): typeid <inline,nosideeffect>
+global function typeid_of(x: auto): typeid <inline>
   ## local xtype = x.type.is_type and x.value or x.type
   return #[xtype.id]#
 end
@@ -11,7 +11,7 @@ end
 -- arithmetic types returns "number",
 -- types that represents a string returns "string",
 -- other types returns the underlying type name.
-global function type(x: auto): string <inline,nosideeffect>
+global function type(x: auto): string <inline>
   ## if x.type.is_niltype then
     return 'nil'
   ## elseif x.type.is_nilptr then
@@ -31,7 +31,7 @@ global typeinfo = @record {
   codename: string
 }
 
-global function typeinfo_of(x: auto): typeinfo <inline,nosideeffect>
+global function typeinfo_of(x: auto): typeinfo <inline>
   ## local xtype = x.type.is_type and x.value or x.type
   return (@typeinfo){
     id = #[xtype.id]#,

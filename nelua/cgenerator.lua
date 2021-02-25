@@ -1228,7 +1228,7 @@ local function resolve_function_qualifier(context, attr)
     qualifier = qualifier .. 'volatile '
   end
   if attr.inline then
-    qualifier = qualifier .. 'inline '
+    qualifier = qualifier .. context:ensure_builtin('nelua_inline') .. ' '
   end
   if attr.noinline then
     qualifier = qualifier .. context:ensure_builtin('nelua_noinline') .. ' '

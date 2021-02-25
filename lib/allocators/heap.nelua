@@ -59,14 +59,14 @@ local Heap = @record{
   bins: [BIN_COUNT]Bin
 }
 
-function Node:set_used(): void <inline>
+function Node:set_used(): void
   -- the lower bits of the pointer should be always 0 because we allocate with alignment
   -- so it's impossible to have conflicts in next/prev with these values due to alignment
   self.next = (@*Node)(1_usize)
   self.prev = (@*Node)(NODE_COOKIE)
 end
 
-function Node:is_used(): boolean <inline>
+function Node:is_used(): boolean
   return self.next == (@*Node)(1_usize) and self.prev == (@*Node)(NODE_COOKIE)
 end
 
@@ -76,7 +76,7 @@ end
 #ifdef __GNUC__
 #define c_clz(x) __builtin_clz(x)
 #else
-inline uint32_t c_clz(uint32_t v) {
+static inline __attribute__((always_inline)) uint32_t c_clz(uint32_t v) {
   static const int MultiplyDeBruijnBitPosition[32] = {
     0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
     8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
@@ -91,7 +91,7 @@ inline uint32_t c_clz(uint32_t v) {
 #endif
 ]])
 ]==]
-local function c_clz(x: uint32): uint32 <cimport,nodecl> end
+local function c_clz(x: uint32): uint32 <cimport,nosideeffect,nodecl> end
 local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 
 -- this function is the hashing function that converts
@@ -113,7 +113,7 @@ local function align_forward(addr: usize, align: usize): usize <inline>
 end
 
 -- insert a node inside a bin linked list
-function Heap:add_node(node: *Node): void <inline>
+function Heap:add_node(node: *Node): void
   local bin: *Bin = &self.bins[get_bin_index(node.size)]
   node.prev = nilptr
   if likely(bin.head ~= nilptr) then
@@ -127,7 +127,7 @@ function Heap:add_node(node: *Node): void <inline>
 end
 
 -- remove a node from a bin linked list
-function Heap:remove_bin_node(bin_index: uint32, node: *Node): void <inline>
+function Heap:remove_bin_node(bin_index: uint32, node: *Node): void
   local bin: *Bin = &self.bins[bin_index]
   -- update the head in case we are removing it
   if node == bin.head then
@@ -144,17 +144,17 @@ function Heap:remove_bin_node(bin_index: uint32, node: *Node): void <inline>
 end
 
 -- remove a node from a bin linked list
-function Heap:remove_node(node: *Node): void <inline>
+function Heap:remove_node(node: *Node): void
   self:remove_bin_node(get_bin_index(node.size), node)
 end
 
 -- return next adjacent node
-local function get_next_adj_node(node: *Node): *Node <inline>
+local function get_next_adj_node(node: *Node): *Node
   return (@*Node)((@usize)(node) + #@Node + node.size)
 end
 
 -- get a node given a pointer
-local function get_ptr_node(p: pointer): *Node <inline>
+local function get_ptr_node(p: pointer): *Node
   -- check for misaligned invalid pointers
   if unlikely((@usize)(p) & (ALLOC_ALIGN-1) ~= 0) then
     return nilptr

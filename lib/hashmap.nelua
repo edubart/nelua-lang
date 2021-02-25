@@ -14,7 +14,7 @@
 require 'memory'
 require 'hash'
 
-local function ceil_idiv(x: usize, y: usize): usize <inline,nosideeffect>
+local function ceil_idiv(x: usize, y: usize): usize <inline>
   return (x + y - 1) // y
 end
 
@@ -268,7 +268,7 @@ local INVALID_INDEX: usize <comptime> = #[primtypes.usize.max]#
   end
 
   -- Returns the average number of elements per bucket.
-  function hashmapT:load_factor(): number <inline,nosideeffect>
+  function hashmapT:load_factor(): number
     if unlikely(self.buckets.size == 0) then
       return 0
     else
@@ -277,28 +277,28 @@ local INVALID_INDEX: usize <comptime> = #[primtypes.usize.max]#
   end
 
   -- Returns the number of buckets in the container.
-  function hashmapT:bucket_count(): usize <inline,nosideeffect>
+  function hashmapT:bucket_count(): usize
     return self.buckets.size
   end
 
   -- Checks whether the container is empty.
-  function hashmapT:empty(): boolean <inline,nosideeffect>
+  function hashmapT:empty(): boolean
     return self.size == 0
   end
 
   -- Returns the number of elements the container can store before triggering a rehash.
-  function hashmapT:capacity(): usize <inline,nosideeffect>
+  function hashmapT:capacity(): usize
     return self.nodes.size
   end
 
   -- Returns the number of elements in the container.
-  function hashmapT:__len(): isize <inline,nosideeffect>
+  function hashmapT:__len(): isize
     return (@isize)(self.size)
   end
 
   -- Same as `get_ptr`, this allows indexing the hash map type.
   -- Complexity: Average case O(1).
-  function hashmapT:__atindex(key: K): *V <nosideeffect>
+  function hashmapT:__atindex(key: K): *V
     return self:get_ptr(key)
   end
 
@@ -339,12 +339,12 @@ local INVALID_INDEX: usize <comptime> = #[primtypes.usize.max]#
   end
 
   -- Allow using pairs() to iterate the container.
-  function hashmapT:__pairs()
+  function hashmapT:__pairs() <inline>
     return hashmap_iteratorT.next, (@hashmap_iteratorT){container=self,index=INVALID_INDEX}, (@K)()
   end
 
   -- Allow using mpairs() to iterate the container.
-  function hashmapT:__mpairs()
+  function hashmapT:__mpairs() <inline>
     return hashmap_iteratorT.mnext, (@hashmap_iteratorT){container=self,index=INVALID_INDEX}, (@K)()
   end
 

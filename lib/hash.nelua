@@ -16,18 +16,18 @@ global function lhash(data: *[0]byte, len: usize, seed: usize, step: usize): usi
 end
 
 -- This is the hash function taken from Lua for short strings.
-global function lhash_short(data: span(byte)): usize
+global function lhash_short(data: span(byte)): usize <inline>
   return lhash(data.data, data.size, 0x9e3779b9_usize, 1)
 end
 
 -- This is the hash function taken from Lua for long strings.
-global function lhash_long(data: span(byte)): usize
+global function lhash_long(data: span(byte)): usize <inline>
   -- limit up to 32 iterations evenly spaced
   return lhash(data.data, data.size, 0x9e3779b9_usize, (data.size >> 5) + 1)
 end
 
 -- Hash combine function, algorithm taken from (C++ boost).
-global function hash_combine(seed: usize, value: usize): usize <inline,nosideeffect>
+global function hash_combine(seed: usize, value: usize): usize <inline>
   return seed ~ (value + 0x9e3779b9_usize + (seed<<6) + (seed>>2))
 end
 

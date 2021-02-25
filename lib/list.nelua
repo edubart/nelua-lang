@@ -43,7 +43,7 @@ global list_node: type = #[make_generic_list_node]#
   listT.subtype = T
   ]]
 
-  function listT:_new_node(prev: *list_nodeT, next: *list_nodeT, value: T): *list_nodeT <inline>
+  function listT:_new_node(prev: *list_nodeT, next: *list_nodeT, value: T): *list_nodeT
     local node: *list_nodeT = self.allocator:new(@list_nodeT)
     node.prev = prev
     node.next = next
