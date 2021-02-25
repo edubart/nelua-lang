@@ -77,6 +77,7 @@ jobs:
   sanitize:
     runs-on: ubuntu-latest
     env:
+      CC: clang
       CFLAGS: -fsanitize=address -fsanitize=undefined
     steps:
     - uses: actions/checkout@master
