@@ -1078,7 +1078,9 @@ local function izipargnodes(vars, argnodes)
         -- NOTE: the calletype may change while iterating
         local calleetype = argnodes[lastargindex].attr.calleetype
         if calleetype then
-          if not calleetype.is_any then
+          if calleetype.is_type then
+            return i, var, argnode, niltype
+          elseif not calleetype.is_any then
             -- we know the callee type
             if i < lastargindex then
               return i, var, argnode, argnode.attr.type

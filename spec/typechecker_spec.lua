@@ -1667,6 +1667,10 @@ it("concepts", function()
     local function h(x: facultative(integer)) end
     local function g(x: #[overload_concept(integer,niltype)]#) end
     local function g(x: overload(integer,niltype)) end
+
+    local R = @record{x: integer}
+    local function f(a: R, x: facultative(integer)) end
+    f(R{1})
   ]])
   expect.analyze_error([[
     local an_integral = #[concept(function(x)
