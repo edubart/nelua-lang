@@ -2450,7 +2450,7 @@ local function visitor_function_arguments(context, symbol, selftype, argnodes, c
   return argattrs, ispolyparent
 end
 
-local function visitor_function_returns(context, _, retnodes, ispolyparent)
+local function visitor_function_returns(context, node, retnodes, ispolyparent)
   local funcscope = context.scope
   context:push_state{intypeexpr = true}
   context:traverse_nodes(retnodes)
@@ -2458,7 +2458,7 @@ local function visitor_function_returns(context, _, retnodes, ispolyparent)
   if not funcscope.rettypes then
     if #retnodes > 0 then -- return types is fixed by the user
       funcscope.rettypes = types.typenodes_to_types(retnodes)
-    elseif ispolyparent then
+    elseif ispolyparent or node.attr.cimport then
       funcscope.rettypes = {}
     end
   end
@@ -2622,9 +2622,11 @@ function visitors.FuncDef(context, node, polysymbol)
   -- we must know if the symbols is going to be polymorphic
   if annotnodes then
     for i=1,#annotnodes do
-      if annotnodes[i][1] == 'polymorphic' then
+      local annotname = annotnodes[i][1]
+      if annotname == 'polymorphic' then
         attr.polymorphic = true
-        break
+      elseif annotname == 'cimport' then
+        attr.cimport = true
       end
     end
   end
@@ -2702,6 +2704,7 @@ function visitors.FuncDef(context, node, polysymbol)
     local resolutions_count = funcscope:resolve()
     context:pop_state()
     context:pop_scope()
+
   until resolutions_count == 0
 
   -- type checking for returns
