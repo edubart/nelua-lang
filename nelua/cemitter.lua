@@ -316,7 +316,9 @@ function CEmitter:add_literal(valattr)
   elseif valtype.is_arithmetic then
     self:add_numeric_literal(valattr)
   elseif valtype.is_string then
-    self:add_string_literal(valattr.value, valattr.is_cstring)
+    self:add_string_literal(valattr.value, false)
+  elseif valtype.is_cstring then
+    self:add_string_literal(valattr.value, true)
   elseif valtype.is_procedure then
     self:add_one(self.context:declname(valattr.value))
   elseif valtype.is_niltype then

@@ -432,7 +432,11 @@ it("operation on comptime variables", function()
     "huge2f = -HUGE_VALF",
     "nanf = (0.0f/0.0f)",
   })
-
+  expect.generate_c([[
+    local s <comptime> = 'hello\n'_cstring
+    local function printf(format: cstring, ...: cvarargs): cint <cimport,nodecl,cinclude'<stdio.h>'> end
+    printf(s)
+  ]], [[printf("hello\n");]])
   expect.run_c([[
     -- sum/sub/mul
     assert(3 + 4 == 7)
