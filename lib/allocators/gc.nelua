@@ -43,7 +43,7 @@ global GCFlags = @enum(usize) {
   SIZED_FINALIZER = 8,  -- finalizer will have a size parameter
   NO_DEALLOC = 16, -- allocated by some external allocator, should not be automatically freed
 }
-local UINTPTR_MAX: usize <comptime> = (@usize)(-1)
+local UINTPTR_MAX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
 
 local FinalizerCallback = @function(p: pointer): void
 local SizedFinalizerCallback = @function(p: pointer, size: usize): void
