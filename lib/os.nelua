@@ -28,9 +28,7 @@ local errno: cint <cimport,cinclude'<errno.h>',nodecl>
 local function clock(): clock_t <cimport,cinclude'<time.h>',nodecl> end
 local function getenv(name: cstring): cstring <cimport,cinclude'<stdlib.h>',nodecl> end
 local function exit(status: cint): void <cimport,cinclude'<stdlib.h>',nodecl> end
-local function system(command: cstring): cint <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
-local function rename(old: cstring, new: cstring): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function remove(pathname: cstring): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function setlocale(category: cint, locale: cstring): cstring <cimport,cinclude'<locale.h>',nodecl> end
 local function time(tloc: pointer): time_t <cimport,cinclude'<time.h>',nodecl> end
@@ -60,17 +58,22 @@ function os.difftime(t1: integer, t2: integer): integer
 end
 
 function os.execute(command: facultative(string))
-  ## if command.type.is_string then
-    errno = 0
-    local status: integer = system(command)
-    if status ~= 0 and errno ~= 0 then -- error with an errno?
-      return false, (@string)(strerror(errno)), errno
-    end
-    --TODO: translate status codes for POSIX system
-    return status == 0, 'exit', status
+  ## if ccinfo.is_wasm then
+    return false, 'not supported on WASM', 1
   ## else
-    local status: cint = system(nilptr)
-    return status ~= 0
+    local function system(command: cstring): cint <cimport,cinclude'<stdlib.h>',nodecl> end
+    ## if command.type.is_string then
+      errno = 0
+      local status: integer = system(command)
+      if status ~= 0 and errno ~= 0 then -- error with an errno?
+        return false, (@string)(strerror(errno)), errno
+      end
+      --TODO: translate status codes for POSIX system
+      return status == 0, 'exit', status
+    ## else
+      local status: cint = system(nilptr)
+      return status ~= 0
+    ## end
   ## end
 end
 
@@ -93,22 +96,31 @@ function os.getenv(varname: string): string
   if s then
     return string.copy(s)
   else
-    return ''
+    return (@string){}
   end
 end
 
 function os.remove(filename: string): (boolean, string, integer)
-  if remove(filename) == -1 then
-    return false, strerror(errno), errno
-  end
-  return true, '', 0
+  ## if ccinfo.is_wasm then
+    return false, 'not supported on WASM', 1
+  ## else
+    if remove(filename) == -1 then
+      return false, strerror(errno), errno
+    end
+    return true, (@string){}, 0
+  ## end
 end
 
 function os.rename(oldname: string, newname: string): (boolean, string, integer)
-  if rename(oldname, newname) == -1 then
-    return false, strerror(errno), errno
-  end
-  return true, '', 0
+  ## if ccinfo.is_wasm then
+    return false, 'not supported on WASM', 1
+  ## else
+    local function rename(old: cstring, new: cstring): cint <cimport,cinclude'<stdio.h>',nodecl> end
+    if rename(oldname, newname) == -1 then
+      return false, strerror(errno), errno
+    end
+    return true, (@string){}, 0
+  ## end
 end
 
 function os.setlocale(locale: string, category: facultative(string)): string
@@ -129,7 +141,7 @@ function os.setlocale(locale: string, category: facultative(string)): string
     if s then
       return string.copy(s)
     else
-      return ''
+      return (@string){}
     end
   ## end
 end
@@ -163,12 +175,9 @@ function os.time(desc: facultative(os_time_desc)): integer
   return t
 end
 
-function os.tmpname(): string <polymorphic>
-  -- marked as polymorphic so we don't always evaluate,
-  -- to skip `get_cc_defines` as it can slowdown compilation
-  ## local ccdefs = require'nelua.ccompiler'.get_cc_defines()
-  ## if ccdefs._WIN32 then
-    local TMPBUFSIZE <comptime> = 260 -- safe max value
+function os.tmpname(): string
+  local TMPBUFSIZE <comptime> = 260 -- safe max value
+  ## if ccinfo.is_windows then
     local function tmpnam(s: cstring): cstring <cimport,cinclude'<stdio.h>',nodecl> end
   ## else
     -- is not safe to use `tmpname` on POSIX, use mkstemp
@@ -177,16 +186,21 @@ function os.tmpname(): string <polymorphic>
     local function strncpy(dest: cstring, src: cstring, n: usize): cstring <cimport,cinclude'<string.h>',nodecl> end
     local function close(fd: cint): cint <cimport,cinclude'<unistd.h>',nodecl> end
 
-    local TMPBUFSIZE <comptime> = 32
-    local function tmpnam(buf: cstring): void
+    local function tmpnam(buf: cstring): cstring
       strncpy(buf, "/tmp/lua_XXXXXX", TMPBUFSIZE)
       local fd: cint = mkstemp(buf)
-      assert(fd ~= -1, "unable to generate a unique filename")
+      if fd ~= -1 then
+        return nilptr
+      end
       close(fd)
+      return buf
     end
   ## end
 
   local buf: [TMPBUFSIZE]cchar
-  tmpnam(&buf[0])
-  return string.copy(&buf[0])
+  if tmpnam(&buf[0]) ~= nilptr then
+    return string.copy(&buf[0])
+  else
+    return (@string){}
+  end
 end

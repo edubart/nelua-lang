@@ -30,7 +30,7 @@ local function ftell(fp: *FILE): clong <cimport,cinclude'<stdio.h>',nodecl> end
 local function ferror(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function setvbuf(fp: *FILE, buf: cstring, modes: cint, n: csize): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function clearerr(fp: *FILE): void <cimport,cinclude'<stdio.h>',nodecl> end
-local function getc(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
+local function fgetc(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function atexit(func: function()): cint <cimport,cinclude'<stdlib.h>',nodecl> end
 
 --------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ local function readline(sb: *stringbuilder, fp: *FILE, chop: boolean): boolean
     local nr: uint32 = 0
     local buff: *[0]byte = sb:prepare(READ_CHUNK_SIZE) -- preallocate buffer space
     while nr < READ_CHUNK_SIZE do -- read up to buffer limit
-      c = getc(fp)
+      c = fgetc(fp)
       if c == EOF or c == NL then -- end of line
         break
       end

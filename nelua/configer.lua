@@ -55,8 +55,28 @@ local function merge_configs(conf, baseconf)
   end
 end
 
+local function detect_cpu_bits(cc)
+  local cpu_bits = tonumber(os.getenv('NELUA_CPUBITS'))
+  if not cpu_bits then
+    if cc and cc:match('emcc') then
+      return 32
+    else
+      return platform.cpu_bits
+    end
+  end
+  return cpu_bits
+end
+
 -- Build configs that depends on other configs.
 local function build_configs(conf)
+  if conf.cc and not conf.cpu_bits then
+    -- compiler changed, try to detect CPU bits again
+    conf.cpu_bits = detect_cpu_bits(conf.cc)
+  end
+
+  -- fill missing configs
+  merge_configs(conf, defconfig)
+
   if conf.output then --luacov:disable
     if conf.output:match('.c$') then
       conf.generator = 'c'
@@ -76,8 +96,6 @@ local function build_configs(conf)
       conf.static = true
       conf.compile_binary = true
       conf.generate_code = false
-    else
-      conf.compile_binary = true
     end
   end --luacov:enable
 
@@ -154,7 +172,6 @@ local function print_verbose()
 end
 
 local function action_print_config(options)
-  merge_configs(options, defconfig)
   build_configs(options)
   console.info(inspect(options))
   os.exit(0)
@@ -187,7 +204,7 @@ local function create_parser(args)
   argparser:option('-L --add-path', "Add module search path")
     :count("*"):convert(convert_add_path)
   argparser:option('--cc', "C compiler to use", defconfig.cc)
-  argparser:option('--cpu-bits', "Target CPU architecture bit size (64/32)", defconfig.cpu_bits)
+  argparser:option('--cpu-bits', "Target CPU architecture bit size (64/32)")
     :convert(function(x) return math.floor(x) end)
   argparser:option('--cflags', "Additional C flags to use on compilation", defconfig.cflags)
   argparser:option('--cache-dir', "Compilation cache directory", defconfig.cache_dir)
@@ -296,7 +313,6 @@ function configer.parse(args)
   local argparser = create_parser(tabler.icopy(args))
   local ok, options = argparser:pparse(args)
   except.assertraise(ok, options)
-  merge_configs(options, defconfig)
   build_configs(options)
   metamagic.setmetaindex(config, options, true)
   if config.verbose then
@@ -344,7 +360,6 @@ local function init_default_configs()
   defconfig.path = detect_search_path(libpath)
   defconfig.cc = detect_cc()
   defconfig.cflags = os.getenv('CFLAGS') or ''
-  defconfig.cpu_bits = tonumber(os.getenv('NELUA_CPUBITS')) or platform.cpu_bits
 
   -- load global user config
   load_config(fs.getuserconfpath(fs.join('nelua', 'neluacfg.lua')))
@@ -356,6 +371,8 @@ local function init_default_configs()
 
   -- load project config
   load_config('.neluacfg.lua')
+
+  defconfig.cpu_bits = detect_cpu_bits(defconfig.cc)
 end
 
 init_default_configs()

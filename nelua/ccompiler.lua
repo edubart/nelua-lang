@@ -84,8 +84,10 @@ local function get_cc_info(cc)
     text = text,
   }
   -- platform information
-  ccinfo.is_emscripten = text:match('Emscripten') ~= nil
-  if ccinfo.target then
+  if text:match('Emscripten') then
+    ccinfo.is_emscripten = true
+    ccinfo.is_wasm = true
+  elseif ccinfo.target then
     ccinfo.is_windows = ccinfo.target:match('windows') or ccinfo.target:match('mingw')
     ccinfo.is_linux = ccinfo.target:match('linux')
     ccinfo.is_apple = ccinfo.target:match('apple')
@@ -155,10 +157,14 @@ function compiler.generate_code(ccode, cfile, compileopts)
   if config.verbose then console.info("generated " .. cfile) end
 end
 
-local function detect_binary_extension(ccinfo)
+local function detect_binary_extension(outfile, ccinfo)
   --luacov:disable
-  if ccinfo.is_emscripten then
-    return '.html'
+  if ccinfo.is_wasm then
+    if outfile:match('.wasm$') then
+      return '.wasm', true
+    else
+      return '.html', true
+    end
   elseif ccinfo.is_windows then
     if config.shared then
       return '.dll'
@@ -205,7 +211,7 @@ end
 function compiler.compile_binary(cfile, outfile, compileopts)
   local cflags = get_compiler_cflags(compileopts)
   local ccinfo = compiler.get_cc_info()
-  local binext, isexe = detect_binary_extension(ccinfo)
+  local binext, isexe = detect_binary_extension(outfile, ccinfo)
   local binfile = outfile
   if not stringer.endswith(binfile, binext) then binfile = binfile .. binext end
 
@@ -254,6 +260,8 @@ function compiler.get_gdb_version() --luacov:disable
 end --luacov:enable
 
 function compiler.get_run_command(binaryfile, runargs)
+  binaryfile = fs.abspath(binaryfile)
+
   if config.debug then --luacov:disable
     local gdbver = compiler.get_gdb_version()
     if gdbver then
@@ -272,7 +280,18 @@ function compiler.get_run_command(binaryfile, runargs)
     end
   end --luacov:enable
 
-  return fs.abspath(binaryfile), tabler.icopy(runargs)
+  local exe, args
+  if binaryfile:match('.html$') then  --luacov:disable
+    exe = 'emrun'
+    args = tabler.insertvalues({binaryfile}, runargs)
+  elseif binaryfile:match('.wasm$') then
+    exe = 'wasmer'
+    args = tabler.insertvalues({binaryfile}, runargs)
+  else --luacov:enable
+    exe = binaryfile
+    args = tabler.icopy(runargs)
+  end
+  return exe, args
 end
 
 return compiler

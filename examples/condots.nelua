@@ -84,7 +84,7 @@ local function SDL_UpdateWindowSurface(window: *SDL_Window) <cimport,nodecl> end
 local function SDL_CreateRenderer(window: *SDL_Window, index: cint, flags: uint32): *SDL_Renderer <cimport,nodecl> end
 local function SDL_DestroyRenderer(renderer: *SDL_Renderer) <cimport,nodecl> end
 local function SDL_RenderPresent(renderer: *SDL_Renderer) <cimport,nodecl> end
-local function SDL_RenderClear(renderer: *SDL_Renderer) <cimport,nodecl> end
+local function SDL_RenderClear(renderer: *SDL_Renderer): cint <cimport,nodecl> end
 local function SDL_CreateTexture(renderer: *SDL_Renderer, format: uint32, access: cint, w: cint, h: cint): *SDL_Texture <cimport,nodecl> end
 local function SDL_DestroyTexture(texture: *SDL_Texture) <cimport,nodecl> end
 local function SDL_RenderCopy(renderer: *SDL_Renderer, texture: *SDL_Texture, srcrect: *SDL_Rect, dstrect: *SDL_Rect): cint <cimport,nodecl> end

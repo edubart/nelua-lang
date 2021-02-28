@@ -9,6 +9,7 @@ local cbuiltins = require 'nelua.cbuiltins'
 local typedefs = require 'nelua.typedefs'
 local CContext = require 'nelua.ccontext'
 local types = require 'nelua.types'
+local ccompiler = require 'nelua.ccompiler'
 local primtypes = typedefs.primtypes
 local luatype = type
 
@@ -1494,29 +1495,38 @@ local generator = {}
 
 local function emit_features_setup(context)
   local emitter = CEmitter(context)
+  local ccinfo = ccompiler.get_cc_info()
   if not context.pragmas.nocwarnpragmas then -- warnings
     emitter:add_ln('#ifdef __GNUC__')
-      -- throw error on implicit declarations
-      emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
-      emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-int"')
-      -- importing C functions can cause this warn
-      emitter:add_ln('#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
-      -- C zero initialization for anything
-      emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-braces"')
-      emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-field-initializers"')
-      -- the code generator may generate unused variables, parameters, functions
-      emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-parameter"')
+    -- throw error on implicit declarations
+    emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
+    emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-int"')
+    -- importing C functions can cause this warn
+    emitter:add_ln('#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
+    -- C zero initialization for anything
+    emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-braces"')
+    emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-field-initializers"')
+    -- the code generator may generate always true/false expressions for integers
+    emitter:add_ln('#pragma GCC diagnostic ignored "-Wtype-limits"')
+    -- the code generator may generate unused variables, parameters, functions
+    emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-parameter"')
+    do
       emitter:add_ln('#if defined(__clang__)')
-        emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused"')
+      emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused"')
       emitter:add_ln('#else')
-        emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-variable"')
-        emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-function"')
-        emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-but-set-variable"')
-        -- for ignoring const* on pointers
-        emitter:add_ln('#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
+      emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-variable"')
+      emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-function"')
+      emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-but-set-variable"')
+      -- for ignoring const* on pointers
+      emitter:add_ln('#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
       emitter:add_ln('#endif')
-      -- the code generator may generate always true/false expressions for integers
-      emitter:add_ln('#pragma GCC diagnostic ignored "-Wtype-limits"')
+    end
+    if ccinfo.is_emscripten then
+      emitter:add_ln('#ifdef __EMSCRIPTEN__')
+      -- printf format for PRIxPTR generate warnings on emscripten, report to upstream later?
+      emitter:add_ln('#pragma GCC diagnostic ignored "-Wformat"')
+      emitter:add_ln('#endif')
+    end
     emitter:add_ln('#endif')
   end
   if not context.pragmas.nocstaticassert then -- static assert macro
@@ -1591,6 +1601,6 @@ function generator.generate(ast, context)
   return code, context.compileopts
 end
 
-generator.compiler = require('nelua.ccompiler')
+generator.compiler = ccompiler
 
 return generator

@@ -34,20 +34,23 @@ function io.popen(filename: string,
   ## else
   assert(m.size == 1 and (m.data[0] == 'r' or m.data[0] == 'w') and m.data[1] == '\0', 'invalid mode')
   ## end
-  ## local ccdefs = require'nelua.ccompiler'.get_cc_defines()
-  ## if ccdefs._WIN32 then
-    local function popen(command: cstring, type: cstring): *FILE <cimport'_popen',cinclude'<stdio.h>',nodecl> end
-    local function pclose(fp: *FILE): cint <cimport'_pclose',cinclude'<stdio.h>',nodecl> end
+  ## if ccinfo.is_wasm then
+    return filestream{}, 'popen is not supported on WASM', 1
   ## else
-    local function popen(command: cstring, type: cstring): *FILE <cimport,cinclude'<stdio.h>',nodecl> end
-    local function pclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
-    fflush(nilptr) -- flush all open streams
+    ## if ccinfo.is_windows then
+      local function popen(command: cstring, type: cstring): *FILE <cimport'_popen',cinclude'<stdio.h>',nodecl> end
+      local function pclose(fp: *FILE): cint <cimport'_pclose',cinclude'<stdio.h>',nodecl> end
+    ## else
+      local function popen(command: cstring, type: cstring): *FILE <cimport,cinclude'<stdio.h>',nodecl> end
+      local function pclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
+      fflush(nilptr) -- flush all open streams
+    ## end
+    local fp: *FILE = popen(filename, mode)
+    if not fp then
+      return filestream{}, strerror(errno), errno
+    end
+    return filestream._from_fp(fp, pclose), '', 0
   ## end
-  local fp: *FILE = popen(filename, mode)
-  if not fp then
-    return filestream{}, strerror(errno), errno
-  end
-  return filestream._from_fp(fp, pclose), '', 0
 end
 
 function io.flush(): (boolean, string, integer)

@@ -1,4 +1,4 @@
--- ## pragmas.nogc = true
+## if not ccinfo.is_wasm then
 
 require 'coroutine'
 
@@ -120,3 +120,5 @@ do -- fibonacci example
   assert(m == 1346269)
   coroutine.destroy(co)
 end
+
+## end

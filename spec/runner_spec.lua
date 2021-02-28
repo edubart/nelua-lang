@@ -150,7 +150,7 @@ end)
 
 it("shared libraries", function()
   expect.run({'--shared', '-o', 'libmylib', 'tests/libmylib.nelua'})
-  expect.run({'-o', 'mylib_test', 'tests/mylib_test.nelua'})
+  expect.run({'-bo', 'mylib_test', 'tests/mylib_test.nelua'})
   expect.execute('./mylib_test', [[mylib - init
 mylib - in top scope
 mylib - sum
@@ -163,7 +163,7 @@ end)
 
 it("static libraries", function()
   expect.run({'--static', '-o', 'libmylib', 'tests/libmylib.nelua'})
-  expect.run({'-o', 'mylib_test', 'tests/mylib_test.nelua'})
+  expect.run({'-bo', 'mylib_test', 'tests/mylib_test.nelua'})
   expect.execute('./mylib_test', [[mylib - init
 mylib - in top scope
 mylib - sum

@@ -333,10 +333,12 @@ function GC:_mark(): void <noinline>
   end
 
   -- dump registers into the stack
+## if not ccinfo.is_wasm then
   local env: jmp_buf
   setjmp(env)
   local mark_stack: auto <volatile> = GC._mark_stack -- to avoid inline
   mark_stack(self)
+## end
 end
 
 function GC:_sweep(): void <noinline>
@@ -436,6 +438,16 @@ function GC:_mark_statics(): void
   ]]
 end
 
+function GC:stop(): void
+  self.stopped = true
+end
+
+function GC:restart(): void
+## if not ccinfo.is_wasm then -- cannot run automatically on emscripten
+  self.stopped = false
+## end
+end
+
 function GC:init(stack: pointer): void
   $self = {}
   self.bottom = stack
@@ -444,7 +456,7 @@ function GC:init(stack: pointer): void
   self.sweepfactor = 0.5
   self.stopped = true
   self:_mark_statics()
-  self.stopped = false
+  self:restart()
 end
 
 function GC:terminate(): void
@@ -454,14 +466,6 @@ function GC:terminate(): void
   allocator:spandealloc(self.frees)
   $self = {}
   self.stopped = true
-end
-
-function GC:stop(): void
-  self.stopped = true
-end
-
-function GC:restart(): void
-  self.stopped = false
 end
 
 function GC:isrunning(): boolean

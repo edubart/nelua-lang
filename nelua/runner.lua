@@ -148,13 +148,9 @@ local function run(argv, redirect)
   -- compile the generated code
   local binaryfile, isexe
   if dobinarycompile then
-    local binfile = config.compile_binary and config.output or outcacheprefix
+    local binfile = config.output or outcacheprefix
     binaryfile, isexe = compiler.compile_binary(sourcefile, binfile, compileopts)
 
-    if not isexe then
-      if config.verbose then console.info('library compiled') end
-      return 0
-    end
     if config.timing then
       console.debugf('compile      %.1f ms', timer:elapsedrestart())
     end
@@ -165,7 +161,7 @@ local function run(argv, redirect)
   end
 
   -- run
-  if dorun then
+  if dorun and isexe then
     local exe, exeargs = compiler.get_run_command(binaryfile, config.runargs)
     if config.verbose then console.info(exe .. ' ' .. table.concat(exeargs, ' ')) end
     local exec = redirect and executor.execex or executor.exec
