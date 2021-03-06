@@ -839,6 +839,7 @@ function visitors.EnumFieldType(context, node)
   local field = Attr{name = name}
   if numnode then
     local desiredtype = node.desiredtype
+    numnode.desiredtype = desiredtype
     context:traverse_node(numnode)
     local numattr = numnode.attr
     local numtype = numattr.type
