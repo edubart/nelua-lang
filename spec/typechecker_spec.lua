@@ -2037,6 +2037,11 @@ it("nocopy type annotation", function()
 end)
 
 it("polymorphic varargs", function()
+  expect.analyze_ast([[
+    local function g() return 1 end
+    local function f(...: varargs) return g(...) end
+    f()
+  ]])
   expect.analyze_error([[
     local function f(...: varargs)
       local a = 1 + ...

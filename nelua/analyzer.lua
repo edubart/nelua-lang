@@ -1220,8 +1220,10 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         table.remove(pseudoargattrs, 1)
       end
       if not mulargstype and #argnodes > #pseudoargattrs then
-        node:raisef("in call of function '%s': expected at most %d arguments but got %d",
-          calleename, #pseudoargattrs, #argnodes)
+        if not (#argnodes == #pseudoargattrs+1 and argnodes[#argnodes].tag == 'Varargs') then
+          node:raisef("in call of function '%s': expected at most %d arguments but got %d",
+            calleename, #pseudoargattrs, #argnodes)
+        end
       end
       local polyargs = {}
       local knownallargs = true
