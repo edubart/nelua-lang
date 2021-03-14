@@ -95,6 +95,8 @@ Type.shape = shaper.shape {
   aligned = shaper.integer:is_optional(),
   -- Whether the type can have user defined nickname, true for user defined types.
   is_nameable = shaper.optional_boolean,
+  -- Whether the type can be evaluated to false when casting to a boolean.
+  is_falseable = shaper.optional_boolean,
   -- Whether the type can turn represents a string (e.g. string and cstring).
   is_stringy = shaper.optional_boolean,
   -- Whether the type represents a contiguous buffer (e.g. arrays, spans and vector in the lib).
@@ -692,6 +694,7 @@ local NiltypeType = types.typeclass()
 types.NiltypeType = NiltypeType
 NiltypeType.is_niltype = true
 NiltypeType.is_nilable = true
+NiltypeType.is_falseable = true
 NiltypeType.is_unpointable = true
 
 function NiltypeType:_init(name)
@@ -712,6 +715,7 @@ local NilptrType = types.typeclass()
 types.NilptrType = NilptrType
 NilptrType.is_nolvalue = true
 NilptrType.is_nilptr = true
+NilptrType.is_falseable = true
 NilptrType.is_unpointable = true
 
 function NilptrType:_init(name, size)
@@ -740,6 +744,7 @@ end
 local BooleanType = types.typeclass()
 types.BooleanType = BooleanType
 BooleanType.is_boolean = true
+BooleanType.is_falseable = true
 
 function BooleanType:_init(name, size)
   Type._init(self, name, size)
@@ -769,6 +774,7 @@ local AnyType = types.typeclass()
 types.AnyType = AnyType
 AnyType.is_any = true
 AnyType.is_nilable = true
+AnyType.is_falseable = true
 AnyType.sideeffect = true
 
 function AnyType:_init(name, size)
@@ -1570,6 +1576,7 @@ types.FunctionType = FunctionType
 FunctionType.is_nameable = true
 FunctionType.is_function = true
 FunctionType.is_procedure = true
+FunctionType.is_falseable = true
 
 FunctionType.shape = shaper.fork_shape(Type.shape, {
   -- List of arguments attrs, they contain the type with annotations.
@@ -2095,6 +2102,7 @@ end
 local PointerType = types.typeclass()
 types.PointerType = PointerType
 PointerType.is_pointer = true
+PointerType.is_falseable = true
 
 PointerType.shape = shaper.fork_shape(Type.shape, {
   -- The the the pointer is pointing to.

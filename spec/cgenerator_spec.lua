@@ -1393,6 +1393,10 @@ it("binary conditional operators", function()
     cond_ ? t2_ : (void*){0};
   })]])
   expect.generate_c([[
+    local a: boolean, b: integer, c: number
+    local x = a and b or c
+  ]], "x = (a ? (double)b : c);")
+  expect.generate_c([[
     local p: pointer
     local i: integer = 1
     local b: boolean = i == 0 or p

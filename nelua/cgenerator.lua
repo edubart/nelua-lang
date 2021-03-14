@@ -1403,30 +1403,43 @@ function visitors.BinaryOp(context, node, emitter)
   local surround = not node.attr.inconditional
   if surround then emitter:add('(') end
   if node.attr.dynamic_conditional then
-    emitter:add_ln('({')
-    emitter:inc_indent()
     if node.attr.ternaryor then
       -- lua style "ternary" operator
-      context:ensure_include('<stdbool.h>')
-      emitter:add_indent_ln(type, ' t_;')
-      emitter:add_indent('bool cond_ = ')
-      emitter:add_val2type(primtypes.boolean, lnode[2])
-      emitter:add_ln(';')
-      emitter:add_indent_ln('if(cond_) {')
-      emitter:add_indent('  t_ = ')
-      emitter:add_val2type(type, lnode[3])
-      emitter:add_ln(';')
-      emitter:add_indent('  cond_ = ')
-      emitter:add_val2type(primtypes.boolean, 't_', type)
-      emitter:add_ln(';')
-      emitter:add_indent_ln('}')
-      emitter:add_indent_ln('if(!cond_) {')
-      emitter:add_indent('  t_ = ')
-      emitter:add_val2type(type, rnode)
-      emitter:add_ln(';')
-      emitter:add_indent_ln('}')
-      emitter:add_indent_ln('t_;')
+      local anode, bnode, cnode = lnode[2], lnode[3], rnode
+      if anode.attr.type.is_boolean and not bnode.attr.type.is_falseable then -- use C ternary operator
+        emitter:add_val2type(primtypes.boolean, anode)
+        emitter:add(' ? ')
+        emitter:add_val2type(type, bnode)
+        emitter:add(' : ')
+        emitter:add_val2type(type, cnode)
+      else
+        context:ensure_include('<stdbool.h>')
+        emitter:add_ln('({')
+        emitter:inc_indent()
+        emitter:add_indent_ln(type, ' t_;')
+        emitter:add_indent('bool cond_ = ')
+        emitter:add_val2type(primtypes.boolean, anode)
+        emitter:add_ln(';')
+        emitter:add_indent_ln('if(cond_) {')
+        emitter:add_indent('  t_ = ')
+        emitter:add_val2type(type, bnode)
+        emitter:add_ln(';')
+        emitter:add_indent('  cond_ = ')
+        emitter:add_val2type(primtypes.boolean, 't_', type)
+        emitter:add_ln(';')
+        emitter:add_indent_ln('}')
+        emitter:add_indent_ln('if(!cond_) {')
+        emitter:add_indent('  t_ = ')
+        emitter:add_val2type(type, cnode)
+        emitter:add_ln(';')
+        emitter:add_indent_ln('}')
+        emitter:add_indent_ln('t_;')
+        emitter:dec_indent()
+        emitter:add_indent('})')
+      end
     else
+      emitter:add_ln('({')
+      emitter:inc_indent()
       emitter:add_indent(type, ' t1_ = ')
       emitter:add_val2type(type, lnode)
       --TODO: be smart and remove this unused code
@@ -1450,6 +1463,7 @@ function visitors.BinaryOp(context, node, emitter)
         emitter:add_indent_ln('}')
         emitter:add_indent_ln('cond_ ? t2_ : (', type, '){0};')
       elseif opname == 'or' then
+        assert(not node.attr.ternaryor)
         context:ensure_include('<stdbool.h>')
         emitter:add_indent('bool cond_ = ')
         emitter:add_val2type(primtypes.boolean, 't1_', type)
@@ -1463,9 +1477,9 @@ function visitors.BinaryOp(context, node, emitter)
         emitter:add_indent_ln('}')
         emitter:add_indent_ln('cond_ ? t1_ : t2_;')
       end
+      emitter:dec_indent()
+      emitter:add_indent('})')
     end
-    emitter:dec_indent()
-    emitter:add_indent('})')
   else
     local sequential = lnode.attr.sideeffect and rnode.attr.sideeffect
     local lname = lnode
