@@ -189,10 +189,12 @@ function preprocessor.preprocess(context, ast)
       local rets = table.pack(f(...))
       ppcontext:pop_statnodes()
       context:pop_scope()
-      -- must delay resolution to fully parse the new added nodes later
-      context.rootscope:delay_resolution()
       scope:pop_checkpoint()
-      addindex = statnodes.addindex
+      if addindex ~= statnodes.addindex then -- new statement nodes were added
+        -- must delay resolution to fully parse the new added nodes later
+        context.rootscope:delay_resolution()
+        addindex = statnodes.addindex
+      end
       statnodes.addindex = nil
       return table.unpack(rets)
     end
