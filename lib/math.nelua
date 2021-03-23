@@ -147,9 +147,8 @@ function math.min(...: varargs) <inline,nosideeffect>
     ## local x, y = select_varargs(1), select_varargs(2)
     if #[x]# < #[y]# then
       return #[x]#
-    else
-      return #[y]#
     end
+    return #[y]#
   ## else
     local res = #[select_varargs(1)]#
     ## for i=2,nargs do
@@ -171,9 +170,8 @@ function math.max(...: varargs) <inline,nosideeffect>
     ## local x, y = select_varargs(1), select_varargs(2)
     if #[x]# > #[y]# then
       return #[x]#
-    else
-      return #[y]#
     end
+    return #[y]#
   ## else
     local res = #[select_varargs(1)]#
     ## for i=2,nargs do

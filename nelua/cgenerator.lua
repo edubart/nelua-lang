@@ -908,7 +908,17 @@ function visitors.Return(context, node, emitter)
   elseif funcscope.is_doexpr then
     emitter:add_indent_ln('__expr = ', retnodes[1], ';')
     emitter:add(defercode)
-    emitter:add_indent_ln('goto ', funcscope.doexprlabel, ';')
+    local needgoto = true
+    if context:get_parent_node(2).tag == 'DoExpr' then
+      local blockstats = context:get_parent_node()[1]
+      if node == blockstats[#blockstats] then -- last statement does not need goto
+        needgoto = false
+      end
+    end
+    if needgoto then
+      emitter:add_indent_ln('goto ', funcscope.doexprlabel, ';')
+      funcscope.usedexprlabel = true
+    end
   else
     local functype = funcscope.functype
     local numfuncrets = #functype.rettypes
@@ -1056,7 +1066,9 @@ function visitors.DoExpr(context, node, emitter)
     emitter:add(blocknode)
     context:pop_scope()
     emitter:inc_indent()
-    emitter:add_indent_ln(scope.doexprlabel, ': __expr;')
+    if scope.usedexprlabel then
+      emitter:add_indent_ln(scope.doexprlabel, ': __expr;')
+    end
     emitter:dec_indent()
     emitter:add_indent("})")
   end
