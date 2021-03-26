@@ -1417,8 +1417,8 @@ local function create_sequence(attr_or_type, n)
     -- aster.value convert any Lua value to the proper ASTNode
     exprs[i] = aster.value(i)
   end
-  -- create the Table ASTNode, it's used for any braces {} expression
-  return aster.Table{exprs, pattr = {
+  -- create the InitializerList ASTNode, it's used for any braces {} expression
+  return aster.InitializerList{exprs, pattr = {
     -- hint the compiler what type this braces should be evaluated
     desiredtype = types.ArrayType(type, #exprs)}
   }

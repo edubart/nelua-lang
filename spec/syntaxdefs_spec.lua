@@ -446,16 +446,16 @@ describe("expression", function()
           n.Id{'_b'},
     }}}})
   end)
-  it("table", function()
+  it("initializer list", function()
     expect.parse_ast(nelua_parser, "return {}, {a}, {a,b}, {a=b}, {[a] = b}, {=a}",
       n.Block{{
         n.Return{{
-          n.Table{{}},
-          n.Table{{ n.Id{'a'} }},
-          n.Table{{ n.Id{'a'}, n.Id{'b'} }},
-          n.Table{{ n.Pair{'a', n.Id{'b'}} }},
-          n.Table{{ n.Pair{n.Id{'a'}, n.Id{'b'}} }},
-          n.Table{{ n.Pair{'a', n.Id{'a'}} }},
+          n.InitializerList{{}},
+          n.InitializerList{{ n.Id{'a'} }},
+          n.InitializerList{{ n.Id{'a'}, n.Id{'b'} }},
+          n.InitializerList{{ n.Pair{'a', n.Id{'b'}} }},
+          n.InitializerList{{ n.Pair{n.Id{'a'}, n.Id{'b'}} }},
+          n.InitializerList{{ n.Pair{'a', n.Id{'a'}} }},
     }}}})
   end)
   it("surrounded expression", function()
@@ -563,7 +563,7 @@ describe("table", function()
     }]],
       n.Block{{
         n.Return{{
-          n.Table{{
+          n.InitializerList{{
             n.Pair{'a', n.Id{'a'}},
             n.Pair{n.Id{'a'}, n.Id{'a'}},
             n.Pair{n.Nil{}, n.Nil{}},
@@ -578,7 +578,7 @@ describe("table", function()
     expect.parse_ast(nelua_parser, "return {a,nil,true,'mystr',1.0,func(),...}",
       n.Block{{
         n.Return{{
-          n.Table{{
+          n.InitializerList{{
             n.Id{'a'},
             n.Nil{},
             n.Boolean{true},
@@ -592,7 +592,7 @@ describe("table", function()
     expect.parse_ast(nelua_parser, "return {{{}}}",
       n.Block{{
         n.Return{{
-          n.Table{{ n.Table{{ n.Table{{}}}},
+          n.InitializerList{{ n.InitializerList{{ n.InitializerList{{}}}},
     }}}}}})
   end)
 end)
@@ -1735,7 +1735,7 @@ describe("preprocessor", function()
     }})
     expect.parse_ast(nelua_parser, "return {#|a|# = b}",
       n.Block{{
-        n.Return{{n.Table{{n.Pair{n.PreprocessName{"a"}, n.Id{'b'}}}}}}
+        n.Return{{n.InitializerList{{n.Pair{n.PreprocessName{"a"}, n.Id{'b'}}}}}}
     }})
     expect.parse_ast(nelua_parser, "local #|a|#: #|b|# <#|c|#>",
       n.Block{{

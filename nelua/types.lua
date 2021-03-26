@@ -1834,7 +1834,7 @@ RecordType.shape = shaper.fork_shape(Type.shape, {
   -- This is used to allow initialization of custom vectors from braces.
   -- By default records interpret braces as fields initialization,
   -- but it can be changed to an array for example then it's handled in the __convert metamethod.
-  choose_braces_type = shaper.func:is_optional(),
+  choose_initializerlist_type = shaper.func:is_optional(),
 
   -- Whether to pack the record.
   packed = shaper.optional_boolean,

@@ -352,7 +352,7 @@ function visitors.VarargsType(_, _, emitter)
   emitter:add('...')
 end
 
-function visitors.Table(context, node, emitter)
+function visitors.InitializerList(context, node, emitter)
   local attr = node.attr
   local childnodes, type = node[1], attr.type
   local len = #childnodes

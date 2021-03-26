@@ -31,7 +31,7 @@ require 'iterators'
   vectorT.is_container = true
   vectorT.is_vector = true
   vectorT.subtype = T
-  vectorT.choose_braces_type = function(nodes) return types.ArrayType(T, #nodes) end
+  vectorT.choose_initializerlist_type = function(nodes) return types.ArrayType(T, #nodes) end
   ]]
 
   function vectorT:_grow(): void <noinline>

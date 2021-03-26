@@ -397,7 +397,7 @@ local function get_parser()
       / %cVARARGS
       / doexpr
       / function
-      / table
+      / initlist
       / type_instance
       / suffixed_expr
 
@@ -420,13 +420,13 @@ local function get_parser()
       {| {} %COLON -> 'CallMethod' ename callargs {} |} /
       {| {} '' -> 'Call' callargs {} |}
     callargs <-
-      {| (%LPAREN  expr_list eRPAREN / table / %cSTRING / ppexpr) |}
+      {| (%LPAREN  expr_list eRPAREN / initlist / %cSTRING / ppexpr) |}
 
-    table <- ({} '' -> 'Table' %LCURLY
-        {| (table_row (%SEPARATOR table_row)* %SEPARATOR?)? |}
+    initlist <- ({} '' -> 'InitializerList' %LCURLY
+        {| (initlist_row (%SEPARATOR initlist_row)* %SEPARATOR?)? |}
       eRCURLY {}) -> to_astnode
-    table_row <- table_pair / expr
-    table_pair <-
+    initlist_row <- initlist_pair / expr
+    initlist_pair <-
       ({} '' -> 'Pair' (%LBRACKET eexpr eRBRACKET / name) %ASSIGN eexpr {}) -> to_astnode /
       ({} %ASSIGN -> 'Pair' name {}) -> to_punned_pair_astnode
 

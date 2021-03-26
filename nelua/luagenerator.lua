@@ -39,7 +39,7 @@ function visitors.Varargs(_, _, emitter)
   emitter:add('...')
 end
 
-function visitors.Table(_, node, emitter)
+function visitors.InitializerList(_, node, emitter)
   local contents = node:args()
   emitter:add('{', contents, '}')
 end

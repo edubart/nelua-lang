@@ -44,7 +44,7 @@ it("local variable", function()
   expect.ast_type_equals("local a = 1", "local a: integer = 1")
   expect.analyze_error("local a: integer = 'string'", "no viable type conversion")
   expect.analyze_error("local a: byte = 1.1", "is fractional")
-  expect.analyze_error("local a: byte = {1}", "cannot be initialized using a table literal")
+  expect.analyze_error("local a: byte = {1}", "cannot be initialized using an initializer list")
   expect.analyze_error("local a, b = 1,2,3", "extra expressions in declaration")
   expect.analyze_error("local a: void", "variable declaration cannot be of the empty type")
   expect.analyze_error("local a: varanys", "variable declaration cannot be of the type")
@@ -1803,7 +1803,7 @@ it("custom braces initialization", function()
   expect.analyze_ast([==[
     local vector = @record{data: [4]integer}
     ##[[
-    vector.value.choose_braces_type = function(nodes)
+    vector.value.choose_initializerlist_type = function(nodes)
       return types.ArrayType(primtypes.integer, 4)
     end
     ]]
@@ -1818,7 +1818,7 @@ it("custom braces initialization", function()
   expect.analyze_error([==[
     local vector = @record{data: [4]integer}
     ##[[
-    vector.value.choose_braces_type = function(nodes)
+    vector.value.choose_initializerlist_type = function(nodes)
       return nil
     end
     ]]
@@ -1829,7 +1829,7 @@ it("custom braces initialization", function()
     end
     local v: vector = {1,2,3,4}
     assert(v.data[0] == 1 and v.data[1] == 2 and v.data[2] == 3 and v.data[3] == 4)
-  ]==], "choose_braces_type failed")
+  ]==], "choose_initializerlist_type failed")
 end)
 
 it("do expressions", function()

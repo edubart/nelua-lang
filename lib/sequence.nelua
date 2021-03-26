@@ -37,7 +37,7 @@ require 'iterators'
   sequenceT.is_sequence = true
   sequenceT.is_oneindexing = true -- used in 'ipairs'
   sequenceT.subtype = T
-  sequenceT.choose_braces_type = function(nodes) return types.ArrayType(T, #nodes) end
+  sequenceT.choose_initializerlist_type = function(nodes) return types.ArrayType(T, #nodes) end
   ]]
 
   function sequenceT:_grow(): void <noinline>

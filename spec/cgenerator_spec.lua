@@ -2005,7 +2005,7 @@ it("record metametods", function()
     local R = @record {
       x: [2]integer
     }
-    ## R.value.choose_braces_type = function() return types.ArrayType(primtypes.integer, 2) end
+    ## R.value.choose_initializerlist_type = function() return types.ArrayType(primtypes.integer, 2) end
     function R.__convert(x: auto): R
       local self: R
       self.x = x

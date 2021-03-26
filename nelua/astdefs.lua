@@ -47,8 +47,8 @@ astbuilder:register('ArrayIndex', {
   ntypes.Node -- expr
 })
 
--- table
-astbuilder:register('Table', {
+-- initializer list
+astbuilder:register('InitializerList', {
   stypes.array_of(ntypes.Node) -- pair or exprs
 })
 astbuilder:register('Pair', {

@@ -121,7 +121,7 @@ function visitors.Varargs(context, node)
   local polyeval = context.state.inpolyeval
   if polyeval and polyeval.varargsnodes then
     -- transform function, replacing Varargs nodes with Id nodes
-    local unpacktags = {Call=true, CallMethod=true, VarDecl=true, Assign=true, Return=true, Table=true}
+    local unpacktags = {Call=true, CallMethod=true, VarDecl=true, Assign=true, Return=true, InitializerList=true}
     local parent2 = context:get_parent_node(1)
     local nvarargs = #polyeval.varargsnodes
     local n = context.parser.astbuilder.aster
@@ -410,17 +410,17 @@ local function visitor_Table_literal(context, node)
   attr.node = node
 end
 
-function visitors.Table(context, node)
+function visitors.InitializerList(context, node)
   local desiredtype = node.desiredtype or node.attr.desiredtype
   node.attr.literal = true
   if desiredtype then
     local objtype = desiredtype:implicit_deref_type()
-    if objtype.is_record and objtype.choose_braces_type then
+    if objtype.is_record and objtype.choose_initializerlist_type then
       local err
-      desiredtype, err = objtype.choose_braces_type(node[1])
+      desiredtype, err = objtype.choose_initializerlist_type(node[1])
       if not traits.is_type(desiredtype) then
         node:raisef("failed initialize record '%s' from braces: %s",
-          objtype, err or 'choose_braces_type failed')
+          objtype, err or 'choose_initializerlist_type failed')
       end
     end
   end
@@ -433,7 +433,7 @@ function visitors.Table(context, node)
   elseif desiredtype.is_union then
     visitor_Union_literal(context, node, desiredtype)
   else
-    node:raisef("type '%s' cannot be initialized using a table literal", desiredtype)
+    node:raisef("type '%s' cannot be initialized using an initializer list", desiredtype)
   end
 end
 
@@ -925,7 +925,7 @@ function visitors.ArrayType(context, node)
     local varnodes, valnodes = vardeclnode[2], vardeclnode[3]
     local varindex = tabler.ifind(varnodes, iddeclnode)
     local valnode = valnodes and valnodes[varindex]
-    if not (valnode and valnode.tag == 'Table') then
+    if not (valnode and valnode.tag == 'InitializerList') then
       node:raisef("can only infer array size for braces initialized declarations")
     end
     length = #valnode[1]
