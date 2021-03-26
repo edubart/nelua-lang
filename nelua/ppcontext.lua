@@ -50,8 +50,16 @@ function PPContext.toname(_, val, orignode)
   return val
 end
 
-function PPContext:inject_value(val, srcnode, dest, destpos)
+function PPContext:tonode(val, orignode)
   local aster = self.context.parser.astbuilder.aster
+  local node = aster.value(val, orignode)
+  if not node then
+    orignode:raisef('unable to convert preprocess value of lua type "%s" to a compile time value', type(val))
+  end
+  return node
+end
+
+function PPContext:inject_value(val, orignode, dest, destpos)
   if type(val) == 'table' and val._varargs then
     while #dest > destpos do -- clean old varargs
       dest[#dest] = nil
@@ -60,11 +68,7 @@ function PPContext:inject_value(val, srcnode, dest, destpos)
       dest[destpos+i-1] = val[i]
     end
   else
-    local node = aster.value(val, srcnode)
-    if not node then
-      srcnode:raisef('unable to convert preprocess value of lua type "%s" to a compile time value', type(val))
-    end
-    dest[destpos] = node
+    dest[destpos] = self:tonode(val, orignode)
   end
 end
 

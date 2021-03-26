@@ -483,6 +483,10 @@ it("report errors", function()
   expect.analyze_error("##[[ invalid() ]]", "attempt to call")
   expect.analyze_error("##[[ for ]]", "expected near")
   expect.analyze_error("##[[ ast:raisef('ast error') ]]", "ast error")
+  expect.analyze_error('local function f(x: auto): #[assert(false)]# return x end f(1)',
+    "while preprocessing function return node")
+  expect.analyze_error('local function f(x: auto): #[static_assert(false)]# return x end f(1)',
+    "static assertion")
 end)
 
 it("preprocessor replacement", function()

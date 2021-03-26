@@ -2458,10 +2458,35 @@ end
 local function visitor_function_returns(context, node, retnodes, ispolyparent)
   local funcscope = context.scope
   context:push_state{intypeexpr = true}
-  context:traverse_nodes(retnodes)
+  local polyret = false
+  for i=1,#retnodes do
+    local retnode = retnodes[i]
+    if retnode.tag == 'PreprocessExpr' then -- must preprocess the return type
+      if ispolyparent then
+        -- skip parsing nodes that need preprocess in polymorphic function parent
+        retnode = nil
+        polyret = true
+      else
+        local ok, err = except.trycall(retnode.preprocess, retnodes, i)
+        if not ok then
+          if except.isexception(err) then
+            except.reraise(err)
+          else
+            retnode:raisef('error while preprocessing function return node: %s', err)
+          end
+        end
+        retnode = retnodes[i] -- the node was overwritten
+      end
+    end
+    if retnode then
+      context:traverse_node(retnode)
+    end
+  end
   context:pop_state()
   if not funcscope.rettypes then
-    if #retnodes > 0 then -- return types is fixed by the user
+    if polyret then
+      funcscope.rettypes = {}
+    elseif #retnodes > 0 then -- return types is fixed by the user
       funcscope.rettypes = types.typenodes_to_types(retnodes)
     elseif ispolyparent or node.attr.cimport then
       funcscope.rettypes = {}

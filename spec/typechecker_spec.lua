@@ -738,6 +738,18 @@ it("poly function definition", function()
     end
     local x = R.foo(2)
   ]])
+  expect.analyze_ast([[
+    local function f(x: auto): #[x.type]#
+      return x
+    end
+    local z: integer = f(1)
+  ]])
+  expect.analyze_error([[
+    local function f(x: auto): #[x.type]#
+      return false
+    end
+    f(1)
+  ]], "no viable type conversion from")
 end)
 
 it("function return", function()

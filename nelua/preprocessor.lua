@@ -35,15 +35,44 @@ function visitors.PreprocessName(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
   local pindex, nindex = ppcontext:getregistryindex(parent), ppcontext:getregistryindex(node)
   emitter:add_indent_ln('ppregistry[', pindex, '][', parentindex, ']',
-                        '=ppcontext:toname(', luacode, ',ppregistry[', nindex, '])')
+    '=ppcontext:toname(', luacode, ',ppregistry[', nindex, '])')
 end
 
 function visitors.PreprocessExpr(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
   local pindex, nindex = ppcontext:getregistryindex(parent), ppcontext:getregistryindex(node)
   emitter:add_indent_ln('ppcontext:inject_value(',luacode,
-                        ',ppregistry[', nindex, '],ppregistry[', pindex,'],',parentindex,')')
+    ',ppregistry[', nindex, '],ppregistry[', pindex,'],', parentindex,')')
 end
+
+local function make_expr_node_preprocess(ppcontext, node, emitter)
+  local luacode = node[1]
+  local nindex = ppcontext:getregistryindex(node)
+  emitter:add_indent_ln('ppregistry[', nindex, '].preprocess=function(parent, pindex)')
+  emitter:inc_indent()
+  emitter:add_indent_ln('ppcontext:inject_value(', luacode, ', ppregistry[', nindex, '], parent, pindex)')
+  emitter:dec_indent()
+  emitter:add_indent_ln('end')
+end
+
+function visitors.FuncDef(ppcontext, node, emitter)
+  local namenode, argnodes, retnodes, annotnodes, blocknode = node[2], node[3], node[4], node[5], node[6]
+  ppcontext:traverse_node(namenode, emitter, node, 2)
+  ppcontext:traverse_nodes(argnodes, emitter, node, 3)
+  for i=1,#retnodes do
+    local retnode = retnodes[i]
+    if retnode.tag == 'PreprocessExpr' then
+      make_expr_node_preprocess(ppcontext, retnode, emitter)
+    else
+      ppcontext:traverse_node(retnode, emitter, retnodes, i)
+    end
+  end
+  if annotnodes then
+    ppcontext:traverse_nodes(annotnodes, emitter, node, 5)
+  end
+  ppcontext:traverse_node(blocknode, emitter, node, 6)
+end
+
 
 function visitors.Preprocess(_, node, emitter)
   local luacode = node[1]
@@ -85,8 +114,8 @@ local function mark_preprocessing_nodes(ast)
     PreprocessExpr = true
   }
   for _, parents in ast:walk_trace_nodes(preprocess_tags) do
-    -- mark nearest parent block above
     needprocess = true
+    -- mark nearest parent block above
     for i=#parents-1,1,-1 do
       local pnode = parents[i]
       if pnode.tag == 'Block' then
