@@ -67,7 +67,10 @@ end
 
 function Emitter:add_indent(...)
   local codes = self.codes
-  codes[#codes+1] = self.indent
+  local indent = self.indent
+  if indent ~= '' then
+    codes[#codes+1] = indent
+  end
   if ... then
     self:add(...)
   end
@@ -75,8 +78,13 @@ end
 
 function Emitter:add_indent_ln(...)
   local codes = self.codes
-  codes[#codes+1] = self.indent
-  self:add(...)
+  local indent = self.indent
+  if indent ~= '' then
+    codes[#codes+1] = indent
+  end
+  if ... then
+    self:add(...)
+  end
   codes[#codes+1] = '\n'
 end
 
@@ -90,7 +98,7 @@ function Emitter:add_traversal_list(nodelist, separator)
   local context = self.context
   local codes = self.codes
   for i=1,#nodelist do
-    if i > 1 then codes[#codes+1] = separator end
+    if i > 1 and #separator > 0 then codes[#codes+1] = separator end
     context:traverse_node(nodelist[i], self)
   end
 end
