@@ -265,12 +265,11 @@ function Type:typedesc()
 end
 
 -- Helper to perform an operation returning the resulting type, compile time value and error.
-local function perform_op_from_list(self, oplist, opname, arg1, arg2, arg3)
-  local op = oplist[opname]
+local function perform_op_from_list(self, op, ...)
   local type, value, err
   if traits.is_function(op) then
     -- op is a function, get the results by running it
-    type, value, err = op(self, arg1, arg2, arg3)
+    type, value, err = op(...)
   else
     -- op must be fixed type or nil
     type, value = op, nil
@@ -284,7 +283,7 @@ end
 
 -- Perform an unary operation on attr returning the resulting type, compile time value and error.
 function Type:unary_operator(opname, attr)
-  local type, value, err = perform_op_from_list(self, self.unary_operators, opname, attr)
+  local type, value, err = perform_op_from_list(self, self.unary_operators[opname], self, attr)
   if not type and not err then -- no resulting type, but no error, thus generate one
     err = stringer.pformat("invalid operation for type '%s'", self)
   end
@@ -293,8 +292,11 @@ end
 
 -- Perform a binary operation on attrs returning the resulting type, compile time value and error.
 function Type:binary_operator(opname, rtype, lattr, rattr)
-  local type, value, err = perform_op_from_list(self, self.binary_operators, opname, rtype, lattr, rattr)
-  if not type and not err then -- no resulting type, but no error, thus generate one
+  local type, value, err = perform_op_from_list(self, self.binary_operators[opname], self, rtype, lattr, rattr)
+  if not type and not err then -- try binary operator on the right type
+    type, value, err = perform_op_from_list(rtype, rtype.binary_operators[opname], self, rtype, lattr, rattr)
+  end
+  if not type and not err then -- no error, thus generate one
     err = stringer.pformat("invalid operation between types '%s' and '%s'", self, rtype)
   end
   return type, value, err
