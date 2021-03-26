@@ -44,7 +44,7 @@ function C.strtoll(nptr: cstring, endptr: *cstring, base: cint): clonglong <cimp
 function C.strtoul(nptr: cstring, endptr: *cstring, base: cint): culong <cimport'strtoul',nodecl> end
 function C.strtoull(nptr: cstring, endptr: *cstring, base: cint): culonglong <cimport'strtoull',nodecl> end
 
--- Integer arithmetics
+-- Integer arithmetic
 function C.abs(x: cint): cint <cimport'abs',nodecl> end
 function C.labs(x: clong): clong <cimport'labs',nodecl> end
 function C.llabs(x: clonglong): clonglong <cimport'llabs',nodecl> end

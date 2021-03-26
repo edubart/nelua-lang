@@ -206,7 +206,7 @@ function filestream:read(fmt: overload(integer,string,niltype)): (string, string
   clearerr(fp)
   ## if fmt.type.is_niltype then
     success = readline(&sb, fp, true)
-  ## elseif fmt.type.is_arithmetic then
+  ## elseif fmt.type.is_scalar then
     success = readchars(&sb, fp, fmt)
   ## elseif fmt.type.is_string then
     local c: byte = fmt.data[0]

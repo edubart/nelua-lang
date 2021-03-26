@@ -709,8 +709,8 @@ print(#Vec2) -- outputs: 8
 
 ### Implicit type conversion
 
-Some types can be implicitly converted. For example, any arithmetic type can be
-converted to any other arithmetic type:
+Some types can be implicitly converted. For example, any scalar type can be
+converted to any other scalar type:
 
 ```nelua
 local i: integer = 1
@@ -1539,7 +1539,7 @@ when used in combination with the preprocessor:
 
 ```nelua
 local function pow(x: auto, n: integer)
-## static_assert(x.type.is_arithmetic, 'cannot pow variable of type "%s"', x.type)
+## static_assert(x.type.is_scalar, 'cannot pow variable of type "%s"', x.type)
 ## if x.type.is_integral then
   -- x is an integral type (any unsigned/signed integer)
   local r: #[x.type]# = 1
@@ -1796,11 +1796,11 @@ decides whether the incoming variable type matches the concept requirements.
 To create a concept, use the preprocessor function `concept`:
 
 ```nelua
-local an_arithmetic = #[concept(function(attr)
+local an_scalar = #[concept(function(attr)
   -- the first argument of the concept function is an Attr,
   -- attr are stores different attributes for the incoming symbol, variable or node,
   -- we want to check if the incoming attr type matches the concept
-  if attr.type.is_arithmetic then
+  if attr.type.is_scalar then
     -- the attr is an arithmetic type (can add, subtract, etc)
     return true
   end
@@ -1808,14 +1808,14 @@ local an_arithmetic = #[concept(function(attr)
   return false
 end)]#
 
-local function add(x: an_arithmetic, y: an_arithmetic)
+local function add(x: an_scalar, y: an_scalar)
   return x + y
 end
 
 print(add(1, 2)) -- outputs 3
 
 -- uncommenting the following will trigger the compile error:
---   type 'boolean' could not match concept 'an_arithmetic'
+--   type 'boolean' could not match concept 'an_scalar'
 -- add(1, true)
 ```
 
@@ -1826,7 +1826,7 @@ This means that the code is specialized
 for each type and is handled efficiently because the code does
 not need to do runtime type branching (the type branching is only done at compile time).
 
-The property `type.is_arithmetic` is used here to check the incoming type.
+The property `type.is_scalar` is used here to check the incoming type.
 All the properties defined by the compiler to check the incoming types can be
 [seen here](https://github.com/edubart/nelua-lang/blob/master/nelua/types.lua#L44).
 {:.alert.alert-info}
@@ -1839,19 +1839,19 @@ a polymorphic function further using a concept:
 ```nelua
 require 'string'
 
-local an_arithmetic_or_string = #[concept(function(attr)
+local an_scalar_or_string = #[concept(function(attr)
   if attr.type.is_stringy then
     -- we accept strings
     return true
-  elseif attr.type.is_arithmetic then
-    -- we accept arithmetics
+  elseif attr.type.is_scalar then
+    -- we accept scalars
     return true
   end
   return false
 end)]#
 
-local function add(x: an_arithmetic_or_string,
-                   y: an_arithmetic_or_string)
+local function add(x: an_scalar_or_string,
+                   y: an_scalar_or_string)
   ## if x.type.is_stringy and y.type.is_stringy then
     return x .. y
   ## else
@@ -1859,7 +1859,7 @@ local function add(x: an_arithmetic_or_string,
   ## end
 end
 
--- add will be specialized for arithmetic types
+-- add will be specialized for scalar types
 print(add(1, 2)) -- outputs 3
 -- add will be specialized for string types
 print(add('1', '2')) -- outputs 12
@@ -1880,13 +1880,13 @@ local Vec2 = @record{x: number, y: number}
 -- we set here is_Vec2 at compile-time to use later for checking whether a attr is a Vec2
 ## Vec2.value.is_Vec2 = true
 
-local Vec2_or_arithmetic_concept = #[concept(function(attr)
-  -- match in case of arithmetic or Vec2
-  return attr.type.is_arithmetic or attr.type.is_Vec2
+local Vec2_or_scalar_concept = #[concept(function(attr)
+  -- match in case of scalar or Vec2
+  return attr.type.is_scalar or attr.type.is_Vec2
 end)]#
 
 -- we use a concepts on the metamethod __add to allow adding Vec2 with numbers
-function Vec2.__add(a: Vec2_or_arithmetic_concept, b: Vec2_or_arithmetic_concept)
+function Vec2.__add(a: Vec2_or_scalar_concept, b: Vec2_or_scalar_concept)
   -- specialize the function at compile-time based on the argument type
   ## if a.type.is_Vec2 and b.type.is_Vec2 then
     return (@Vec2){a.x + b.x, a.y + b.y}
@@ -1899,9 +1899,9 @@ end
 
 local a: Vec2 = {1, 2}
 local v: Vec2
-v = a + 1 -- Vec2 + arithmetic
+v = a + 1 -- Vec2 + scalar
 print(v.x, v.y) -- outputs: 2 3
-v = 1 + a -- arithmetic + Vec2
+v = 1 + a -- scalar + Vec2
 print(v.x, v.y) -- outputs: 2 3
 v = a + a -- Vec2 + Vec2
 print(v.x, v.y) -- outputs: 2 4
@@ -1974,7 +1974,7 @@ print(sum_container(&b)) -- outputs: 55
 
 Sometimes is useful to infer a concept to a different type
 from the incoming `attr`. For example, suppose you want to specialize a function
-that optionally accepts any kind of arithmetic, but you really want it to be implemented
+that optionally accepts any kind of scalar, but you really want it to be implemented
 as an number:
 
 ```nelua

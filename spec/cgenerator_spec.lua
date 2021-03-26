@@ -2089,13 +2089,13 @@ it("record operator overloading", function()
     assert((-r).x == 15)
 
     local vec2 = @record{x: number, y: number}
-    local is_vec2_or_arithmetic = #[concept(function(b)
-      return b.type.nickname == 'vec2' or b.type.is_arithmetic
+    local is_vec2_or_scalar = #[concept(function(b)
+      return b.type.nickname == 'vec2' or b.type.is_scalar
     end)]#
-    function vec2.__mul(a: is_vec2_or_arithmetic, b: is_vec2_or_arithmetic): vec2
-      ## if b.type.is_arithmetic then
+    function vec2.__mul(a: is_vec2_or_scalar, b: is_vec2_or_scalar): vec2
+      ## if b.type.is_scalar then
         return vec2{a.x * b, a.y * b}
-      ## elseif a.type.is_arithmetic then
+      ## elseif a.type.is_scalar then
         return vec2{a * b.x, a * b.y}
       ## else
         return vec2{a.x * b.x, a.y * b.y}
@@ -2919,12 +2919,12 @@ it("concepts", function()
         return true
       end
     end)]#
-    local an_arithmetic = #[concept(function(attr)
-      if attr.type.is_arithmetic then
+    local an_scalar = #[concept(function(attr)
+      if attr.type.is_scalar then
         return true
       end
     end)]#
-    local function f(a: an_array, x: an_arithmetic, len: integer)
+    local function f(a: an_array, x: an_scalar, len: integer)
       ## print(a.type)
       assert(a[0] == x)
     end
@@ -2936,7 +2936,7 @@ it("concepts", function()
     local R = @record {
       x: integer
     }
-    function R:__convert(x: an_arithmetic)
+    function R:__convert(x: an_scalar)
       self.x = x
     end
     local r: R

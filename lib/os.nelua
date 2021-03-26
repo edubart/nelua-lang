@@ -78,7 +78,7 @@ function os.execute(command: facultative(string))
 end
 
 function os.exit(code: overload(integer,boolean,niltype)): void <noreturn>
-  ## if code.type.is_arithmetic then
+  ## if code.type.is_integral then
     exit(code)
   ## elseif code.type.is_boolean then
     local status: cint = EXIT_FAILURE

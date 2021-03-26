@@ -56,8 +56,8 @@ function traits.is_type(v)
   return type(v) == 'table' and v._type
 end
 
--- Check if a value is an arithmetic for the compiler, i.e., a lua number or a big number.
-function traits.is_arithmetic(v)
+-- Check if a value is a scalar for the compiler, i.e., a lua number or a big number.
+function traits.is_scalar(v)
   local ty = type(v)
   return ty == 'number' or (ty == 'table' and v._bn)
 end

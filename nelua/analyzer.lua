@@ -78,7 +78,7 @@ function visitors.String(_, node)
     if not type then
       node:raisef("literal suffix '%s' is undefined for strings", literal)
     end
-    if type.is_arithmetic then
+    if type.is_scalar then
       if #value ~= 1 then
         node:raisef("literal suffix '%s' expects a string of length 1")
       end
@@ -1853,7 +1853,7 @@ function visitors.ForNum(context, node)
       end
     end
     if ittype and not node.checked then
-      if not (ittype.is_arithmetic or (ittype.is_any and not ittype.is_varanys)) then
+      if not (ittype.is_scalar or (ittype.is_any and not ittype.is_varanys)) then
         itvarnode:raisef("`for` variable '%s' must be a number, but got type '%s'", itname, ittype)
       end
       if btype then
@@ -1904,7 +1904,7 @@ function visitors.ForNum(context, node)
 
   local fixedstep
   local stepvalue
-  if stype and stype.is_arithmetic and sattr.comptime then
+  if stype and stype.is_scalar and sattr.comptime then
     -- constant step
     fixedstep = stepvalnode
     stepvalue = sattr.value
@@ -1917,7 +1917,7 @@ function visitors.ForNum(context, node)
     fixedstep = '1'
   end
   local fixedend
-  if etype and etype.is_arithmetic and eattr.comptime then
+  if etype and etype.is_scalar and eattr.comptime then
     fixedend = true
   end
   if not compop and stepvalue then

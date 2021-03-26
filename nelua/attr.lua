@@ -73,11 +73,11 @@ function Attr:is_static_function()
   end
 end
 
--- Check if this attr could be holding a negative arithmetic value.
+-- Check if this attr could be holding a negative scalar value.
 -- Used by the C generator to optimize operations on non negatives values.
 function Attr:is_maybe_negative()
   local type = self.type
-  if type and type.is_arithmetic then -- must be an arithmetic to proper check this
+  if type and type.is_scalar then -- must be a scalar to proper check this
     if type.is_unsigned then -- unsigned is never negative
       return false
     end

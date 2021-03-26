@@ -111,6 +111,8 @@ Type.shape = shaper.shape {
   is_polymorphic = shaper.optional_boolean,
   -- Whether the type cannot be a l-value.
   is_nolvalue = shaper.optional_boolean,
+  -- Whether the type is a numeric scalar (e.g. float, integrals and enums).
+  is_scalar = shaper.optional_boolean,
   -- Whether the type can perform arithmetic operations (e.g. sum, add, mul, ...).
   is_arithmetic = shaper.optional_boolean,
   -- Whether the type is a floating point number type (fractional numbers).
@@ -128,7 +130,7 @@ Type.shape = shaper.shape {
   -- Weather the type hold multiple arguments.
   is_multipleargs = shaper.optional_boolean,
 
-  -- Booleans for checking the underlying type (arithmetic types),
+  -- Booleans for checking the underlying type (scalar types),
   is_float32 = shaper.optional_boolean,
   is_float64 = shaper.optional_boolean,
   is_float128 = shaper.optional_boolean,
@@ -846,32 +848,33 @@ function CVarargsType:_init(name, size)
 end
 
 --------------------------------------------------------------------------------
--- Arithmetic Type
+-- Scalar Type
 --
--- The arithmetic type is used as a base type for creating the Integral and Float types.
--- Arithmetic types can perform arithmetic operations
+-- The scalar type is used as a base type for creating the Integral and Float types.
+-- Scalar types can perform arithmetic operations,
 -- like addition, subtraction, multiplication, division, etc.
 
-local ArithmeticType = types.typeclass()
-types.ArithmeticType = ArithmeticType
-ArithmeticType.is_arithmetic = true
-ArithmeticType.get_convertible_from_type = Type.get_convertible_from_type
+local ScalarType = types.typeclass()
+types.ScalarType = ScalarType
+ScalarType.is_arithmetic = true
+ScalarType.is_scalar = true
+ScalarType.get_convertible_from_type = Type.get_convertible_from_type
 
-function ArithmeticType:_init(name, size)
+function ScalarType:_init(name, size)
   Type._init(self, name, size)
 end
 
 -- Checks if this type can initialize from the attr (succeeds only for compile time attrs).
-function ArithmeticType:is_initializable_from_attr(attr)
-  if attr and attr.comptime and attr.untyped and attr.type and attr.type.is_arithmetic then
-    -- initializing from an untyped compile time arithmetic is always possible
+function ScalarType:is_initializable_from_attr(attr)
+  if attr and attr.comptime and attr.untyped and attr.type and attr.type.is_scalar then
+    -- initializing from an untyped compile time scalar is always possible
     return true
   end
   return Type.is_initializable_from_attr(self, attr)
 end
 
--- Negation operator for arithmetic types.
-ArithmeticType.unary_operators.unm = function(ltype, lattr)
+-- Negation operator for scalar types.
+ScalarType.unary_operators.unm = function(ltype, lattr)
   local reval
   local retype = ltype
   local lval = lattr.value
@@ -882,15 +885,15 @@ ArithmeticType.unary_operators.unm = function(ltype, lattr)
   return retype, reval
 end
 
--- Equality operator from arithmetic types.
-ArithmeticType.binary_operators.eq = function(ltype, rtype, lattr, rattr)
+-- Equality operator from scalar types.
+ScalarType.binary_operators.eq = function(ltype, rtype, lattr, rattr)
   local reval
   if lattr == rattr and not ltype.is_float then
     -- same symbol and not a float, we can optimize away and return always true
     -- floats are ignored because x == x is false when x is NaN
     return primtypes.boolean, true
   end
-  if rtype.is_arithmetic then
+  if rtype.is_scalar then
     local lval, rval = lattr.value, rattr.value
     if lval and rval then -- both are compile time values
       reval = bn.eq(lval, rval)
@@ -902,10 +905,10 @@ ArithmeticType.binary_operators.eq = function(ltype, rtype, lattr, rattr)
   return primtypes.boolean, reval
 end
 
--- Helper to create an comparison operation functions for arithmetic type.
+-- Helper to create an comparison operation functions for scalar type.
 local function make_arith_cmpop(cmpfunc)
   return function(ltype, rtype, lattr, rattr)
-    if rtype.is_arithmetic then
+    if rtype.is_scalar then
       -- we can optimize away the operation when the attr is the same and not a float
       -- float are ignored because x <= x is false when x is NaN
       local same = lattr == rattr and not ltype.is_float
@@ -915,29 +918,29 @@ local function make_arith_cmpop(cmpfunc)
   end
 end
 
--- Implement all the arithmetic comparison operations.
-ArithmeticType.binary_operators.le = make_arith_cmpop(function(a,b,same)
+-- Implement all the scalar comparison operations.
+ScalarType.binary_operators.le = make_arith_cmpop(function(a,b,same)
   if same then
     return true
   elseif a and b then
     return a <= b
   end
 end)
-ArithmeticType.binary_operators.ge = make_arith_cmpop(function(a,b,same)
+ScalarType.binary_operators.ge = make_arith_cmpop(function(a,b,same)
   if same then
     return true
   elseif a and b then
     return a >= b
   end
 end)
-ArithmeticType.binary_operators.lt = make_arith_cmpop(function(a,b,same)
+ScalarType.binary_operators.lt = make_arith_cmpop(function(a,b,same)
   if same then
     return false
   elseif a and b then
     return a < b
   end
 end)
-ArithmeticType.binary_operators.gt = make_arith_cmpop(function(a,b,same)
+ScalarType.binary_operators.gt = make_arith_cmpop(function(a,b,same)
   if same then
     return false
   elseif a and b then
@@ -952,19 +955,19 @@ end)
 -- e.g. 'int64', 'uint64', ...
 -- They have min and max values and cannot be fractional.
 
-local IntegralType = types.typeclass(ArithmeticType)
+local IntegralType = types.typeclass(ScalarType)
 types.IntegralType = IntegralType
 IntegralType.is_integral = true
 
 IntegralType.shape = shaper.fork_shape(Type.shape, {
   -- Minimum and maximum value that the integral type can store.
-  min = shaper.arithmetic, max = shaper.arithmetic,
+  min = shaper.scalar, max = shaper.scalar,
   -- Signess of the integral type.
   is_signed = shaper.optional_boolean, is_unsigned = shaper.optional_boolean,
 })
 
 function IntegralType:_init(name, size, is_unsigned)
-  ArithmeticType._init(self, name, size)
+  ScalarType._init(self, name, size)
 
   -- compute the min and max values
   if is_unsigned then
@@ -994,8 +997,8 @@ end
 
 -- Get the desired type when converting this type from an attr.
 function IntegralType:get_convertible_from_attr(attr, explicit, autoref)
-  if not explicit and attr.comptime and attr.type.is_arithmetic then
-    -- implicit conversion between two compile time arithmetic types,
+  if not explicit and attr.comptime and attr.type.is_scalar then
+    -- implicit conversion between two compile time scalar types,
     -- we can convert only if the compiler time value does not overflow/underflow the type
     local value = attr.value
     if not traits.is_integral(value) then -- the value must be and integral
@@ -1011,7 +1014,7 @@ function IntegralType:get_convertible_from_attr(attr, explicit, autoref)
       return self
     end
   end
-  return ArithmeticType.get_convertible_from_attr(self, attr, explicit, autoref)
+  return ScalarType.get_convertible_from_attr(self, attr, explicit, autoref)
 end
 
 -- Get the desired type when converting this type from another type.
@@ -1025,17 +1028,17 @@ function IntegralType:get_convertible_from_type(type, explicit, autoref)
       return self
     end
   end
-  if type.is_arithmetic then
+  if type.is_scalar then
     -- implicit narrowing cast
     return self
   elseif explicit and type.is_pointer and self.size >= type.size then
     -- explicit cast from a pointer to an integral that can fit the pointer
     return self
   end
-  return ArithmeticType.get_convertible_from_type(self, type, explicit, autoref)
+  return ScalarType.get_convertible_from_type(self, type, explicit, autoref)
 end
 
--- Checks if this type arithmetic type can fit another arithmetic type.
+-- Checks if this type scalar type can fit another scalar type.
 -- To fit both min and max values of the other type must be in this type range.
 function IntegralType:is_type_inrange(type)
   if type.is_integral and self:is_inrange(type.min) and self:is_inrange(type.max) then
@@ -1104,7 +1107,7 @@ function IntegralType:promote_type(type)
     return self
   elseif type.is_float then -- float always wins when mixing with integers
     return type
-  elseif not type.is_integral then -- not an arithmetic
+  elseif not type.is_integral then -- not a scalar
     return nil
   end
   if self.is_unsigned == type.is_unsigned then
@@ -1124,8 +1127,8 @@ end
 
 -- Helper to determine the resulting type of an arithmetic operation on an integral.
 local function integral_arith_op_type(ltype, rtype, lattr, rattr)
-  if not rtype.is_arithmetic then
-    -- cannot do arithmetic operations for on a non arithmetic
+  if not rtype.is_scalar then
+    -- cannot do scalar operations for on a non scalar
     return nil
   end
   return types.promote_type_for_attrs(lattr, rattr) or ltype:promote_type(rtype)
@@ -1289,7 +1292,7 @@ end
 -- floats can sometimes be in NaN (not a number) or Inf (infinite) states when doing
 -- invalid math operations, either at compile time or runtime.
 
-local FloatType = types.typeclass(ArithmeticType)
+local FloatType = types.typeclass(ScalarType)
 types.FloatType = FloatType
 FloatType.is_float = true
 FloatType.is_signed = true
@@ -1304,30 +1307,30 @@ FloatType.shape = shaper.fork_shape(Type.shape, {
 })
 
 function FloatType:_init(name, size, maxdigits)
-  ArithmeticType._init(self, name, size)
+  ScalarType._init(self, name, size)
   self.maxdigits = maxdigits
   self['is_float'..self.bitsize] = true
 end
 
 -- Get the desired type when converting this type from another type.
 function FloatType:get_convertible_from_type(type, explicit, autoref)
-  if type.is_arithmetic then
-    -- any arithmetic can convert to a float
+  if type.is_scalar then
+    -- any scalar can convert to a float
     return self
   end
-  return ArithmeticType.get_convertible_from_type(self, type, explicit, autoref)
+  return ScalarType.get_convertible_from_type(self, type, explicit, autoref)
 end
 
 -- Checks if the value can fit in this type min and max range.
 function FloatType.is_inrange(_, value)
-  -- any arithmetic is in float range
-  return traits.is_arithmetic(value)
+  -- any scalar is in float range
+  return traits.is_scalar(value)
 end
 
 -- Returns the resulting type when trying to fit a compile time value into this type.
 -- Promoting to a larger type when required.
 function FloatType:promote_type_for_value(value)
-  if traits.is_arithmetic(value) then -- any arithmetic can turn into a float
+  if traits.is_scalar(value) then -- any scalar can turn into a float
     return self
   end
 end
@@ -1339,7 +1342,7 @@ function FloatType:promote_type(type)
     -- when mixing floats and integrals, floats always wins
     return self
   elseif not type.is_float then
-    -- the other type is not an arithmetic, fail
+    -- the other type is not a scalar, fail
     return nil
   end
   -- return the largest float type
@@ -1352,7 +1355,7 @@ end
 
 -- Helper to get the resulting type in a binary operation with a float.
 local function float_arith_op(ltype, rtype, lattr, rattr)
-  if not ltype.is_arithmetic or not rtype.is_arithmetic then -- both must be arithmetic
+  if not ltype.is_scalar or not rtype.is_scalar then -- both must be scalar
     return nil
   end
   -- try to preserve float32 type when operating with untyped values
@@ -1361,7 +1364,7 @@ local function float_arith_op(ltype, rtype, lattr, rattr)
   elseif ltype.is_float32 and rattr.untyped then
     return ltype
   end
-  -- return the promotion between the two arithmetic types
+  -- return the promotion between the two scalar types
   return ltype:promote_type(rtype)
 end
 

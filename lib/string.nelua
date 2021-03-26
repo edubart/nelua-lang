@@ -283,7 +283,7 @@ function string.len(self: string): isize <inline>
 end
 
 -- Concept to check if a value can possibly be a number.
-local arithmetic_coercion_concept = #[concept(function(x)
+local scalar_coercion_concept = #[concept(function(x)
   if x.type.is_stringy then
     return primtypes.string
   elseif x.type.is_integral then
@@ -291,7 +291,7 @@ local arithmetic_coercion_concept = #[concept(function(x)
   elseif x.type.is_float then
     return primtypes.number
   end
-  return false, string.format("type '%s' is not convertible to an arithmetic", x.type)
+  return false, string.format("type '%s' is not convertible to a scalar", x.type)
 end)]#
 
 -- Return length of a string.
@@ -331,71 +331,71 @@ function string.__le(a: string, b: string): boolean
 end
 
 -- Implement numeric operators for string.
-function string.__add(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+function string.__add(a: scalar_coercion_concept, b: scalar_coercion_concept): number
   return tonumber(a) + tonumber(b)
 end
 
-function string.__sub(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+function string.__sub(a: scalar_coercion_concept, b: scalar_coercion_concept): number
   return tonumber(a) - tonumber(b)
 end
 
-function string.__mul(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+function string.__mul(a: scalar_coercion_concept, b: scalar_coercion_concept): number
   return tonumber(a) * tonumber(b)
 end
 
-function string.__div(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+function string.__div(a: scalar_coercion_concept, b: scalar_coercion_concept): number
   return tonumber(a) / tonumber(b)
 end
 
-function string.__idiv(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+function string.__idiv(a: scalar_coercion_concept, b: scalar_coercion_concept): number
   return tonumber(a) // tonumber(b)
 end
 
-function string.__tdiv(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+function string.__tdiv(a: scalar_coercion_concept, b: scalar_coercion_concept): number
   return tonumber(a) /// tonumber(b)
 end
 
-function string.__mod(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+function string.__mod(a: scalar_coercion_concept, b: scalar_coercion_concept): number
   return tonumber(a) % tonumber(b)
 end
 
-function string.__tmod(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+function string.__tmod(a: scalar_coercion_concept, b: scalar_coercion_concept): number
   return tonumber(a) %%% tonumber(b)
 end
 
-function string.__pow(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): number
+function string.__pow(a: scalar_coercion_concept, b: scalar_coercion_concept): number
   return tonumber(a) ^ tonumber(b)
 end
 
-function string.__unm(a: arithmetic_coercion_concept): number
+function string.__unm(a: scalar_coercion_concept): number
   return -tonumber(a)
 end
 
-function string.__band(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
+function string.__band(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
   return tointeger(a) & tointeger(b)
 end
 
-function string.__bor(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
+function string.__bor(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
   return tointeger(a) | tointeger(b)
 end
 
-function string.__bxor(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
+function string.__bxor(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
   return tointeger(a) ~ tointeger(b)
 end
 
-function string.__shl(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
+function string.__shl(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
   return tointeger(a) << tointeger(b)
 end
 
-function string.__shr(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
+function string.__shr(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
   return tointeger(a) >> tointeger(b)
 end
 
-function string.__asr(a: arithmetic_coercion_concept, b: arithmetic_coercion_concept): integer
+function string.__asr(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
   return tointeger(a) >>> tointeger(b)
 end
 
-function string.__bnot(a: arithmetic_coercion_concept): integer
+function string.__bnot(a: scalar_coercion_concept): integer
   return ~tointeger(a)
 end
 
@@ -513,7 +513,7 @@ global function tointeger(x: auto, base: facultative(integer)): integer
   ## if not base.type.is_niltype then
     ## static_assert(x.type.is_stringy, "string expected, got something else")
     return str2intbase(x, base)
-  ## elseif x.type.is_arithmetic then
+  ## elseif x.type.is_scalar then
     local n: integer = x
     return n
   ## elseif x.type.is_stringy then
@@ -534,7 +534,7 @@ global function tostring(x: auto): string
     return string._forward(x)
   ## elseif xobjtype.is_record and xobjtype.metafields.__tostring then
     return x:__tostring()
-  ## elseif x.type.is_arithmetic or x.type.is_function or x.type.is_pointer then
+  ## elseif x.type.is_scalar or x.type.is_function or x.type.is_pointer then
     ## if x.type.is_pointer then tyformat = '"0x%" PRIxPTR'
     local x: usize = (@usize)(x)
     if x == 0 then

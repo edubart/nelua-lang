@@ -11,9 +11,9 @@ local class = require 'nelua.utils.class'
 -- Additional shape check functions.
 shaper.optional_boolean = shaper.boolean:is_optional()
 
-shaper.arithmetic = shaper.custom(function(v)
-  return traits.is_arithmetic(v), 'expected an arithmetic'
-end):describe('arithmetic')
+shaper.scalar = shaper.custom(function(v)
+  return traits.is_scalar(v), 'expected an scalar'
+end):describe('scalar')
 
 shaper.integral = shaper.custom(function(v)
   return traits.is_integral(v), 'expected an integral'

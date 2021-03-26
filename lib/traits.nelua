@@ -8,7 +8,7 @@ end
 -- Returns the type of its only argument, coded as a string.
 -- The niltype returns "nil",
 -- the nilptr type returns "pointer",
--- arithmetic types returns "number",
+-- scalar types returns "number",
 -- types that represents a string returns "string",
 -- other types returns the underlying type name.
 global function type(x: auto): string <inline>
@@ -16,7 +16,7 @@ global function type(x: auto): string <inline>
     return 'nil'
   ## elseif x.type.is_nilptr then
     return 'pointer'
-  ## elseif x.type.is_arithmetic then
+  ## elseif x.type.is_scalar then
     return 'number'
   ## elseif x.type.is_stringy then
     return 'string'

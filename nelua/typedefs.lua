@@ -32,7 +32,7 @@ primtypes.boolean     = types.BooleanType('boolean', 1)
 primtypes.table       = types.TableType('table')
 primtypes.pointer     = types.PointerType(primtypes.void)
 
--- Arithmetic types.
+-- Scalar types.
 primtypes.int8        = types.IntegralType('int8', 1)
 primtypes.int16       = types.IntegralType('int16', 2)
 primtypes.int32       = types.IntegralType('int32', 4)
@@ -83,7 +83,7 @@ primtypes.any         = types.AnyType('any', 2*cpusize)
 primtypes.varanys     = types.VaranysType('varanys')
 primtypes.varargs     = types.VarargsType('varargs')
 
--- Map of literal suffixes for arithmetic types.
+-- Map of literal suffixes.
 typedefs.number_literal_types = {
   _i          = 'integer',  _integer    = 'integer',
   _u          = 'uinteger', _uinteger   = 'uinteger',

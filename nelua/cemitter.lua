@@ -20,7 +20,7 @@ function CEmitter:zeroinit(type)
     s = '0.0'
   elseif type.is_unsigned then
     s = '0U'
-  elseif type.is_arithmetic then
+  elseif type.is_scalar then
     s = '0'
   elseif type.is_niltype or type.is_comptime then
     self.context:ensure_builtin('NLNIL')
@@ -48,7 +48,7 @@ function CEmitter:add_zeroed_type_init(type)
 end
 
 function CEmitter:add_zeroed_type_literal(type)
-  if not (type.is_boolean or type.is_arithmetic or type.is_pointer) then
+  if not (type.is_boolean or type.is_scalar or type.is_pointer) then
     self:add_typecast(type)
   end
   self:add_one(self:zeroinit(type))
@@ -122,7 +122,7 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
 
     if type == valtype then
       self:add_one(val)
-    elseif valtype.is_arithmetic and type.is_arithmetic and
+    elseif valtype.is_scalar and type.is_scalar and
            (type.is_float or valtype.is_integral) and
            traits.is_astnode(val) and val.attr.comptime then
       self:add_numeric_literal(val.attr, type)
@@ -149,7 +149,7 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
         self:add_one(val)
       end
     else
-      if checkcast and type.is_integral and valtype.is_arithmetic and
+      if checkcast and type.is_integral and valtype.is_scalar and
         not type:is_type_inrange(valtype) then
         self:add_builtin('nelua_narrow_cast_', type, valtype)
         self:add('(', val, ')')
@@ -313,7 +313,7 @@ function CEmitter:add_literal(valattr)
   local valtype = valattr.type
   if valtype.is_boolean then
     self:add_boolean_literal(valattr.value)
-  elseif valtype.is_arithmetic then
+  elseif valtype.is_scalar then
     self:add_numeric_literal(valattr)
   elseif valtype.is_string then
     self:add_string_literal(valattr.value, false)

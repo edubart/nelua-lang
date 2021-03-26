@@ -246,7 +246,7 @@ end
 function builtins.nelua_narrow_cast_(context, dtype, stype)
   local name = 'nelua_narrow_cast_'..stype.codename..'_'..dtype.codename
   if context.usedbuiltins[name] then return name end
-  assert(dtype.is_integral and stype.is_arithmetic)
+  assert(dtype.is_integral and stype.is_scalar)
   local cond
   if stype.is_float then -- float -> integral
     cond = '(('..context:typename(dtype)..')(x)) != x'
@@ -918,7 +918,7 @@ function inlines.print(context, node)
         defemitter:add_indent_ln('fputs("(null)", stdout);')
         defemitter:dec_indent()
       defemitter:add_indent_ln('}')
-    elseif argtype.is_arithmetic then
+    elseif argtype.is_scalar then
       context:ensure_include('<inttypes.h>')
       local ty = node:assertraisef(argtype, 'type is not defined in AST node')
       if ty.is_enum then
@@ -943,7 +943,7 @@ function inlines.type(context, node, emitter)
   local argnode = node[1][1]
   local type = argnode.attr.type
   local typename
-  if type.is_arithmetic then
+  if type.is_scalar then
     typename = 'number'
   elseif type.is_nilptr then
     typename = 'pointer'

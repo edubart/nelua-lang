@@ -573,7 +573,7 @@ end
 
 do -- Preprocessing poly functions
   local function pow(x: auto, n: integer)
-    ## static_assert(x.type.is_arithmetic, 'cannot pow variable of type "%s"', x.type)
+    ## static_assert(x.type.is_scalar, 'cannot pow variable of type "%s"', x.type)
     ## if x.type.is_integral then
       -- x is an integral type (any unsigned/signed integer)
       local r: #[x.type]# = 1
