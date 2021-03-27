@@ -67,6 +67,9 @@ end
 function visitors.Type() end
 function visitors.FuncType() end
 function visitors.ArrayType() end
+function visitors.VarargsType(_, _, emitter)
+  emitter:add('...')
+end
 function visitors.IdDecl(_, node, emitter)
   local name = node:args()
   emitter:add(name)

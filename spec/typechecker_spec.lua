@@ -2060,6 +2060,20 @@ it("polymorphic varargs", function()
     end
     f()
   ]], "invalid operation between types 'int64' and 'niltype'")
+  expect.analyze_error([[
+    local a = ...
+  ]], "varargs expansion cannot be used in this context")
+  expect.analyze_error([[
+    local function f()
+      return ...
+    end
+  ]], "varargs expansion cannot be used in this context")
+  expect.analyze_error([[
+    local function f(...: cvarargs)
+      return ...
+    end
+    f()
+  ]], "cvarargs cannot be expanded")
 end)
 
 end)

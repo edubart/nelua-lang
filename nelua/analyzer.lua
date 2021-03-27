@@ -150,9 +150,32 @@ function visitors.Varargs(context, node)
         break
       end
     end --luacov:disable
-    assert(false, 'unrechable')
-  end -- luacov:enable
-  node.done = true
+    assert(false, 'unreachable')
+    -- luacov:enable
+  else
+    if context.scope.is_topscope then
+      node:raisef("varargs expansion cannot be used in this context")
+    end
+    local funcsym = context.state.funcsym
+    if funcsym then
+      local funcargattrs = funcsym.argattrs
+      local lastargattr = funcargattrs[#funcargattrs]
+      local mulargtype
+      if lastargattr then
+        local lastargtype = lastargattr.type
+        if lastargtype and lastargtype.is_multipleargs then
+          mulargtype = lastargtype
+        end
+      end
+      if not mulargtype then
+        node:raisef("varargs expansion cannot be used in this context")
+      elseif mulargtype.is_cvarargs then
+        node:raisef("cvarargs cannot be expanded, use cvalist instead")
+      end
+      node.attr.type = mulargtype
+      node.done = true
+    end
+  end
 end
 
 local function visitor_convert(context, parent, parentindex, vartype, valnode, valtype, callargs)
@@ -1261,6 +1284,8 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
               pseudoargattrs[i] = Attr{type = funcargtype}
             end
           end
+        elseif not funcargtype then
+          break
         end
 
         if argtype and argtype.is_niltype and not funcargtype.is_nilable then
@@ -2699,6 +2724,7 @@ function visitors.FuncDef(context, node, polysymbol)
 
     -- traverse the function arguments
     argattrs, ispolyparent = visitor_function_arguments(context, symbol, selftype, argnodes, not polysymbol)
+    symbol.argattrs = argattrs
 
     -- traverse the function returns
     rettypes = visitor_function_returns(context, node, retnodes, ispolyparent)
@@ -2791,6 +2817,7 @@ function visitors.Function(context, node)
 
     -- traverse the function arguments
     argattrs, ispolyparent = visitor_function_arguments(context, symbol, false, argnodes, true)
+    symbol.argattrs = argattrs
 
     if ispolyparent then -- anonymous functions cannot be polymorphic
       node:raisef("anonymous functions cannot be polymorphic")

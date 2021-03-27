@@ -1622,6 +1622,12 @@ it("any type", function()
     local row_pix: integer = -(true and 1)
   ]], "not supported yet")
   expect.run_error_c("local a: any", "not supported yet")
+  expect.run_error_c([[
+    local function f(...) return ... end
+  ]], "not supported yet")
+  expect.run_error_c([[
+    local function f(...) return 1 end
+  ]], "not supported yet")
 end)
 
 it("table type", function()

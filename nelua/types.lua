@@ -781,6 +781,10 @@ AnyType.is_nilable = true
 AnyType.is_falseable = true
 AnyType.sideeffect = true
 
+AnyType.shape = shaper.fork_shape(Type.shape, {
+  sideeffect = shaper.optional_boolean,
+})
+
 function AnyType:_init(name, size)
   Type._init(self, name, size)
 end
