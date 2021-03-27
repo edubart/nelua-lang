@@ -1189,15 +1189,12 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
       local calleename = calleesym and calleesym.name or calleetype
       local funcargtypes = calleetype.argtypes
       local funcargattrs = calleetype.argattrs or calleetype.args
-      local pseudoargtypes = funcargtypes
-      local pseudoargattrs = funcargattrs
       local mulargstype = calleetype:get_multiple_argtype()
-      if calleeobjnode or mulargstype then
-        pseudoargtypes = tabler.icopy(funcargtypes)
-        pseudoargattrs = tabler.icopy(funcargattrs)
-        attr.pseudoargtypes = pseudoargtypes
-        attr.pseudoargattrs = pseudoargattrs
-      end
+      -- TODO: rethink this pseudo args thing
+      local pseudoargtypes = tabler.icopy(funcargtypes)
+      local pseudoargattrs = tabler.icopy(funcargattrs)
+      attr.pseudoargtypes = pseudoargtypes
+      attr.pseudoargattrs = pseudoargattrs
       local selftype
       if calleeobjnode then
         attr.ismethod = true
@@ -1317,8 +1314,18 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           end
           if funcargtype.is_polymorphic or funcargcomptime then
             polyargs[i] = arg
+            if arg._attr then
+              pseudoargtypes[i] = arg.type
+              pseudoargattrs[i] = arg
+            else
+              assert(arg._type)
+              pseudoargtypes[i] = arg
+              pseudoargattrs[i] = Attr{type = arg}
+            end
           else
             polyargs[i] = funcargtype
+            pseudoargtypes[i] = funcargtype
+            pseudoargattrs[i] = Attr{type = funcargtype}
           end
         end
 
@@ -2565,9 +2572,10 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
       if symbol.type:has_varargs() and not polyeval.varargsnodes then
         varargsnodes = {}
       end
+      local ismethod = varnode.tag == 'ColonIndex'
       for j=1,#polyevalargs do
         local polyevalarg = polyevalargs[j]
-        if varnode.tag == 'ColonIndex' then
+        if ismethod then
           j = j - 1
         end
         local polyargnode = polyargnodes[j]
@@ -2601,7 +2609,8 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
           assert(polyargattr.type._type)
         end
       end
-      while #polyargnodes > #polyevalargs do -- remove extra unused argnodes
+      -- remove extra unused argnodes
+      while #polyargnodes > #polyevalargs - (ismethod and 1 or 0) do
         polyargnodes[#polyargnodes] = nil
       end
       if varargsnodes then

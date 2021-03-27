@@ -3236,6 +3236,17 @@ it("record initialize evaluation order", function()
 end)
 
 it("polymorphic variable arguments", function()
+  expect.generate_c([[
+    local vec2 = @record{x: integer, y: integer}
+    function vec2:sum(...: varargs)
+      return self.x + self.y
+    end
+    local v: vec2 = {1,2}
+    v:sum()
+  ]],[[int64_t vec2_sum__1(vec2_ptr self) {
+  return (self->x + self->y);
+}]])
+
   expect.run_c([=[
     -- functions
     local function f(...: varargs)
@@ -3298,6 +3309,15 @@ it("polymorphic variable arguments", function()
       print(...)
     end
     f(1,2,3)
+
+    -- forwarding
+    local function g(x: auto, ...: varargs)
+      return x + ...
+    end
+    local function f(...: varargs)
+      return g(1, ...)
+    end
+    assert(f(2) == 3)
   ]=], (([[
 unpack
 a

@@ -208,7 +208,7 @@ function Symbol:__tostring()
     ss:add(' <const>')
   end
   local value = self.value
-  if value and not type.is_function then
+  if value and not type.is_procedure then
     ss:add(' = ', value)
   end
   return ss:tostring()
