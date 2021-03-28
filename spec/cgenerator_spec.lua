@@ -3203,16 +3203,24 @@ it("unions", function()
   ]=])
 end)
 
-it("issue #45", function()
+it("facultative", function()
   expect.run_c([=[
-    local X = @record{y: integer}
-    function X:A(a: facultative(string) <comptime>)
-      print(a)
+    do
+      local X = @record{y: integer}
+      function X:A(a: facultative(string) <comptime>)
+        print(a)
+      end
+      local z: X = {0}
+      X.A(z)
+      X.A(z, 'hello world')
+      z:A('hello world')
     end
-    local z: X = {0}
-    X.A(z)
-    X.A(z, 'hello world')
-    z:A('hello world')
+    do
+      local function f(x: facultative(cstring)) return x end
+      local function g(x: facultative(string)) return x end
+      assert(#f('abc') == #'abc'_cstring)
+      assert(g('abc'_cstring) == 'abc')
+    end
   ]=])
 end)
 

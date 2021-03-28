@@ -198,7 +198,6 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
   local objtype = vartype:implicit_deref_type()
   if vartype.is_cstring or (vartype.is_string and not valtype.is_stringy) then
     -- __convert not allowed on stringy types
-    -- because we have __tocstring, __tostring
     return valnode, valtype
   end
   if not (valtype and objtype and objtype.is_record and vartype ~= valtype) then
