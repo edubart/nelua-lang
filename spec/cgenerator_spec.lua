@@ -1698,6 +1698,17 @@ it("arrays", function()
       assert(words[i] == "world")
       assert(#words == 2)
     end
+
+    do
+      local cs: cstring = 'a'
+      local a: [4]string = {cs, 'b'_cstring, 'c'}
+      assert(a[0] == 'a' and a[1] == 'b' and a[2] == 'c' and a[3] == '')
+    end
+
+    do
+      local message: [4]string = {'hello'_cstring}
+      assert(message[0] == 'hello')
+    end
   ]])
 end)
 

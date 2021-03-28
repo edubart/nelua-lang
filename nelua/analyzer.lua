@@ -252,7 +252,7 @@ local function visitor_Array_literal(context, node, littype)
     childnode, childtype = visitor_convert(context, childnodes, i, subtype, childnode, childtype)
     local childattr = childnode.attr
     if childtype then
-      if not childtype:is_initializable_from_attr(childattr) then
+      if not subtype:is_initializable_from_attr(childattr) then
         comptime = nil
       end
       local ok, err = subtype:is_convertible_from_attr(childattr)
@@ -329,7 +329,7 @@ local function visitor_Record_literal(context, node, littype)
     local fieldvalattr = fieldvalnode.attr
     lastfieldindex = fieldindex
     if fieldvaltype then
-      if not fieldvaltype:is_initializable_from_attr(fieldvalattr) then
+      if not fieldtype:is_initializable_from_attr(fieldvalattr) then
         comptime = nil
       end
       local ok, err = fieldtype:is_convertible_from_attr(fieldvalattr)
@@ -392,7 +392,7 @@ local function visitor_Union_literal(context, node, littype)
     fieldvalnode, fieldvaltype = visitor_convert(context, childnode, 2, fieldtype, fieldvalnode, fieldvaltype)
     local fieldvalattr = fieldvalnode.attr
     if fieldvaltype then
-      if not fieldvaltype:is_initializable_from_attr(fieldvalattr) then
+      if not fieldtype:is_initializable_from_attr(fieldvalattr) then
         comptime = nil
       end
       local ok, err = fieldtype:is_convertible_from_attr(fieldvalattr)

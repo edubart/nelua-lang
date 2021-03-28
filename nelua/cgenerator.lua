@@ -355,6 +355,26 @@ function visitors.VarargsType(_, node, emitter)
   emitter:add('...')
 end
 
+-- Check if a an array of nodes can be emitted using an initialize.
+local function can_use_initializer(childnodes)
+  local hassideeffect = false
+  for _,childnode in ipairs(childnodes) do
+    local childvalnode
+    if childnode.tag == 'Pair' then
+      childvalnode = childnode[2]
+    else
+      childvalnode = childnode
+    end
+    local childvaltype = childvalnode.attr.type
+    local sideeffect = childvalnode:has_sideeffect()
+    if childvaltype.is_array or (hassideeffect and sideeffect) then
+      return false
+    end
+    if sideeffect then hassideeffect = true end
+  end
+  return true
+end
+
 function visitors.InitializerList(context, node, emitter)
   local attr = node.attr
   local childnodes, type = node[1], attr.type
@@ -370,24 +390,8 @@ function visitors.InitializerList(context, node, emitter)
       emitter:add('{', childnodes, '}')
       context:pop_state()
     else
-      local compactemit = true
-      local hassideeffect = false
-      for _,childnode in ipairs(childnodes) do
-        local childvalnode
-        if childnode.tag == 'Pair' then
-          childvalnode = childnode[2]
-        else
-          childvalnode = childnode
-        end
-        local childvaltype = childvalnode.attr.type
-        local sideeffect = childvalnode:has_sideeffect()
-        if childvaltype.is_array or (hassideeffect and sideeffect) then
-          compactemit = false
-          break
-        end
-        if sideeffect then hassideeffect = true end
-      end
-      if compactemit then
+      local useinitializer = can_use_initializer(childnodes)
+      if useinitializer then
         emitter:add('(',type,'){')
       else
         emitter:add_ln('({')
@@ -407,7 +411,7 @@ function visitors.InitializerList(context, node, emitter)
           childvalnode = childnode
         end
         local childvaltype = childvalnode.attr.type
-        if compactemit then
+        if useinitializer then
           if i > 1 then
             emitter:add(', ')
           end
@@ -424,11 +428,11 @@ function visitors.InitializerList(context, node, emitter)
         local fieldtype = type.fields[fieldname].type
         assert(fieldtype)
         emitter:add_val2type(fieldtype, childvalnode, childvaltype)
-        if not compactemit then
+        if not useinitializer then
           emitter:add_ln(';')
         end
       end
-      if compactemit then
+      if useinitializer then
         emitter:add('}')
       else
         emitter:add_indent_ln('__tmp;')
@@ -444,8 +448,38 @@ function visitors.InitializerList(context, node, emitter)
         emitter:add('{{', childnodes, '}}')
       end
     else
-      emitter:add_typecast(type)
-      emitter:add('{{', childnodes, '}}')
+      local useinitializer = can_use_initializer(childnodes)
+      if useinitializer then
+        emitter:add_typecast(type)
+        emitter:add('{{')
+      else
+        emitter:add_ln('({')
+        emitter:inc_indent()
+        emitter:add_indent(type, ' __tmp = ')
+        emitter:add_zeroed_type_init(type)
+        emitter:add_ln(';')
+      end
+      local subtype = type.subtype
+      for i,childnode in ipairs(childnodes) do
+        if useinitializer then
+          if i > 1 then
+            emitter:add(', ')
+          end
+        else
+          emitter:add_indent('__tmp.data[', i-1 ,'] = ')
+        end
+        emitter:add_val2type(subtype, childnode)
+        if not useinitializer then
+          emitter:add_ln(';')
+        end
+      end
+      if useinitializer then
+        emitter:add('}}')
+      else
+        emitter:add_indent_ln('__tmp;')
+        emitter:dec_indent()
+        emitter:add_indent('})')
+      end
     end
   else --luacov:disable
     error('not implemented yet')
