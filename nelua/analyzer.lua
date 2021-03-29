@@ -1935,11 +1935,11 @@ function visitors.ForNum(context, node)
 
   local fixedstep
   local stepvalue
-  if stype and stype.is_scalar and sattr.comptime then
+  if stype and stype.is_scalar and (sattr.comptime or sattr.const) then
     -- constant step
     fixedstep = stepvalnode
     stepvalue = sattr.value
-    if bn.iszero(stepvalue) then
+    if stepvalue and bn.iszero(stepvalue) then
       stepvalnode:raisef("`for` step cannot be zero")
     end
   elseif not stepvalnode then
@@ -1948,7 +1948,7 @@ function visitors.ForNum(context, node)
     fixedstep = '1'
   end
   local fixedend
-  if etype and etype.is_scalar and eattr.comptime then
+  if etype and etype.is_scalar and (eattr.comptime or eattr.const) then
     fixedend = true
   end
   if not compop and stepvalue then

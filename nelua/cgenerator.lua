@@ -1172,7 +1172,7 @@ function visitors.ForNum(context, node, emitter)
     emitter:add_indent('for(', ittype, ' ', itforname, ' = ')
     emitter:add_val2type(ittype, begvalnode)
     local cmpval
-    if not fixedend or not compop then
+    if (not fixedend or not compop) then
       emitter:add(', __end = ')
       emitter:add_val2type(ittype, endvalnode)
       cmpval = '__end'
