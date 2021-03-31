@@ -480,7 +480,7 @@ it("poly function", function()
 end)
 
 it("report errors", function()
-  expect.analyze_error("##[[ invalid() ]]", "attempt to call")
+  expect.analyze_error("##[[ invalid() ]]", "a nil value")
   expect.analyze_error("##[[ for ]]", "expected near")
   expect.analyze_error("##[[ ast:raisef('ast error') ]]", "ast error")
   expect.analyze_error('local function f(x: auto): #[assert(false)]# return x end f(1)',

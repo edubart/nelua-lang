@@ -45,6 +45,19 @@ LUAMOD_API int (luaopen_debug) (lua_State *L);
 LUAMOD_API int (luaopen_package) (lua_State *L);
 
 
+/* additional libs used by nelua */
+#define LUA_HASHERLIBNAME "hasher"
+LUAMOD_API int (luaopen_hasher) (lua_State *L);
+
+#define LUA_LFSLIBNAME "lfs"
+LUAMOD_API int (luaopen_lfs) (lua_State *L);
+
+#define LUA_SYSLIBNAME "sys"
+LUAMOD_API int (luaopen_sys) (lua_State *L);
+
+#define LUA_LPEGLABELLIBNAME "lpeglabel"
+LUAMOD_API int (luaopen_lpeglabel) (lua_State *L);
+
 /* open all previous libraries */
 LUALIB_API void (luaL_openlibs) (lua_State *L);
 
