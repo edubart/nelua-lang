@@ -1,6 +1,6 @@
 diff -u a/linit.c b/linit.c
 --- a/linit.c	2020-11-13 12:32:01.000000000 -0300
-+++ b/linit.c	2020-11-22 10:56:39.667422503 -0300
++++ b/linit.c	2021-03-31 18:59:20.443329639 -0300
 @@ -50,6 +50,10 @@
    {LUA_MATHLIBNAME, luaopen_math},
    {LUA_UTF8LIBNAME, luaopen_utf8},
@@ -14,7 +14,7 @@ diff -u a/linit.c b/linit.c
  
 diff -u a/lua.c b/lua.c
 --- a/lua.c	2020-11-13 12:32:02.000000000 -0300
-+++ b/lua.c	2020-11-22 10:56:39.667422503 -0300
++++ b/lua.c	2021-03-31 18:59:20.455329809 -0300
 @@ -619,10 +619,49 @@
    return 1;
  }
@@ -66,9 +66,19 @@ diff -u a/lua.c b/lua.c
    if (L == NULL) {
      l_message(argv[0], "cannot create state: not enough memory");
      return EXIT_FAILURE;
+@@ -634,6 +673,9 @@
+   result = lua_toboolean(L, -1);  /* get result */
+   report(L, status);
+   lua_close(L);
++#ifdef LUA_USE_RPMALLOC
++  rpmalloc_finalize();
++#endif
+   return (result && status == LUA_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
+ }
+ 
 diff -u a/luaconf.h b/luaconf.h
 --- a/luaconf.h	2020-11-13 12:32:02.000000000 -0300
-+++ b/luaconf.h	2020-11-22 10:56:39.667422503 -0300
++++ b/luaconf.h	2021-03-31 18:59:20.455329809 -0300
 @@ -212,7 +212,9 @@
  
  #else			/* }{ */
@@ -79,10 +89,9 @@ diff -u a/luaconf.h b/luaconf.h
  #define LUA_LDIR	LUA_ROOT "share/lua/" LUA_VDIR "/"
  #define LUA_CDIR	LUA_ROOT "lib/lua/" LUA_VDIR "/"
  
-Only in a: lua.hpp
 diff -u a/lualib.h b/lualib.h
 --- a/lualib.h	2020-11-13 12:32:02.000000000 -0300
-+++ b/lualib.h	2020-11-22 10:56:39.667422503 -0300
++++ b/lualib.h	2021-03-31 18:59:20.456329823 -0300
 @@ -45,6 +45,19 @@
  LUAMOD_API int (luaopen_package) (lua_State *L);
  
@@ -105,7 +114,7 @@ diff -u a/lualib.h b/lualib.h
  
 diff -u a/lvm.c b/lvm.c
 --- a/lvm.c	2020-11-13 12:32:02.000000000 -0300
-+++ b/lvm.c	2020-11-22 10:56:39.667422503 -0300
++++ b/lvm.c	2021-03-31 18:59:20.457329837 -0300
 @@ -1118,7 +1118,9 @@
  #define vmcase(l)	case l:
  #define vmbreak		break

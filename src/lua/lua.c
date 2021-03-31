@@ -37,6 +37,26 @@ static lua_State *globalL = NULL;
 static const char *progname = LUA_PROGNAME;
 
 
+#if defined(LUA_USE_POSIX)   /* { */
+
+/*
+** Use 'sigaction' when available.
+*/
+static void setsignal (int sig, void (*handler)(int)) {
+  struct sigaction sa;
+  sa.sa_handler = handler;
+  sa.sa_flags = 0;
+  sigemptyset(&sa.sa_mask);  /* do not mask any signal */
+  sigaction(sig, &sa, NULL);
+}
+
+#else           /* }{ */
+
+#define setsignal            signal
+
+#endif                               /* } */
+
+
 /*
 ** Hook set by signal function to stop the interpreter.
 */
@@ -55,7 +75,7 @@ static void lstop (lua_State *L, lua_Debug *ar) {
 */
 static void laction (int i) {
   int flag = LUA_MASKCALL | LUA_MASKRET | LUA_MASKLINE | LUA_MASKCOUNT;
-  signal(i, SIG_DFL); /* if another SIGINT happens, terminate process */
+  setsignal(i, SIG_DFL); /* if another SIGINT happens, terminate process */
   lua_sethook(globalL, lstop, flag, 1);
 }
 
@@ -135,9 +155,9 @@ static int docall (lua_State *L, int narg, int nres) {
   lua_pushcfunction(L, msghandler);  /* push message handler */
   lua_insert(L, base);  /* put it under function and args */
   globalL = L;  /* to be available to 'laction' */
-  signal(SIGINT, laction);  /* set C-signal handler */
+  setsignal(SIGINT, laction);  /* set C-signal handler */
   status = lua_pcall(L, narg, nres, base);
-  signal(SIGINT, SIG_DFL); /* reset C-signal handler */
+  setsignal(SIGINT, SIG_DFL); /* reset C-signal handler */
   lua_remove(L, base);  /* remove message handler from the stack */
   return status;
 }
@@ -619,49 +639,10 @@ static int pmain (lua_State *L) {
   return 1;
 }
 
-#ifdef LUA_USE_RPMALLOC
-
-#include "../rpmalloc/rpmalloc.h"
-
-static void *L_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
-  (void)ud;  /* not used */
-  if (nsize == 0) {
-    rpfree(ptr);
-    return NULL;
-  }
-  else
-    return rpaligned_realloc(ptr, 16, nsize, osize, 0);
-}
-
-#else /* LUA_USE_RPMALLOC */
-
-static void *L_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
-  (void)ud; (void)osize;  /* not used */
-  if (nsize == 0) {
-    free(ptr);
-    return NULL;
-  }
-  else
-    return realloc(ptr, nsize);
-}
-
-#endif /* LUA_USE_RPMALLOC */
-
-static lua_State *newstate (void) {
-  lua_State *L = lua_newstate(L_alloc, NULL);
-  if (L) {
-    lua_atpanic(L, &panic);
-    lua_setwarnf(L, warnfoff, L);  /* default is warnings off */
-  }
-  return L;
-}
 
 int main (int argc, char **argv) {
   int status, result;
-#ifdef LUA_USE_RPMALLOC
-  rpmalloc_initialize();
-#endif
-  lua_State *L = newstate();  /* create state */
+  lua_State *L = luaL_newstate();  /* create state */
   if (L == NULL) {
     l_message(argv[0], "cannot create state: not enough memory");
     return EXIT_FAILURE;
@@ -673,9 +654,6 @@ int main (int argc, char **argv) {
   result = lua_toboolean(L, -1);  /* get result */
   report(L, status);
   lua_close(L);
-#ifdef LUA_USE_RPMALLOC
-  rpmalloc_finalize();
-#endif
   return (result && status == LUA_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
