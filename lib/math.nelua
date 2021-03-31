@@ -264,6 +264,10 @@ function math.ifloor(x: is_scalar): integer <inline,nosideeffect>
   return math.floor(x)
 end
 
+function math.iceil(x: is_scalar): integer <inline,nosideeffect>
+  return math.ceil(x)
+end
+
 function math.tointeger(x: is_scalar) <inline,nosideeffect>
   ## if x.type.is_integral then
     return (@integer)(x)
