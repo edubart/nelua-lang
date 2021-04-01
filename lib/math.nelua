@@ -6,8 +6,9 @@ global math = @record{}
 
 global math.pi: number <comptime> = #[math.pi]#
 global math.huge: number <comptime> = #[math.huge]#
-global math.maxinteger: integer <comptime> = #[primtypes.integer.max]#
 global math.mininteger: integer <comptime> = #[primtypes.integer.min]#
+global math.maxinteger: integer <comptime> = #[primtypes.integer.max]#
+global math.maxuinteger: uinteger <comptime> = #[primtypes.uinteger.max]#
 
 -- concepts
 local is_scalar = #[concept(function(x)
