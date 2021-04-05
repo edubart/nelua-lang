@@ -305,13 +305,13 @@ end)
 
 it("for", function()
   expect.generate_c("local a: integer, b: integer; for i=a,b do end", {
-    "for(int64_t i = a, __end = b; i <= __end; i = i + 1) {"})
+    "for(int64_t i = a, _end = b; i <= _end; i = i + 1) {"})
   expect.generate_c("local a: integer, b: integer, c: integer; for i=a,b do i=c end", {
-    "for(int64_t __it = a, __end = b; __it <= __end; __it = __it + 1) {",
-    "int64_t i = __it;"})
+    "for(int64_t _it = a, _end = b; _it <= _end; _it = _it + 1) {",
+    "int64_t i = _it;"})
   expect.generate_c("local a: integer, b: integer, c: integer; for i=a,b,c do end",
-    "for(int64_t i = a, __end = b, __step = c; " ..
-    "__step >= 0 ? i <= __end : i >= __end; i = i + __step) {")
+    "for(int64_t i = a, _end = b, _step = c; " ..
+    "_step >= 0 ? i <= _end : i >= _end; i = i + _step) {")
   expect.generate_c(
     "for i=1,<2 do end",
     "for(int64_t i = 1; i < 2; i = i + 1)")
@@ -457,11 +457,11 @@ end)
 
 it("multiple assignment", function()
   expect.generate_c("local a,b,x,y=1,2,3,4; a, b = x, y", {
-    "__asgntmp1 = x;", "__asgntmp2 = y;",
-    "a = __asgntmp1;", "b = __asgntmp2;" })
+    "_asgntmp1 = x;", "_asgntmp2 = y;",
+    "a = _asgntmp1;", "b = _asgntmp2;" })
   --expect.generate_c("local a: table, x:integer, y:integer; a.b, a[b] = x, y", {
-  --  "__asgntmp1 = x;", "__asgntmp2 = y;",
-  --  "a.b = __asgntmp1;", "a[b] = __asgntmp2;" })
+  --  "_asgntmp1 = x;", "_asgntmp2 = y;",
+  --  "a.b = _asgntmp1;", "a[b] = _asgntmp2;" })
   expect.run_c([[
     local a, b = 1,2
     a, b = b, a
@@ -725,9 +725,9 @@ it("function multiple returns", function()
     local a, b = f()
     local c = f()
   end]], {
-    "int64_t a = __ret%d+%.r1;",
-    "bool b = __ret%d+%.r2;",
-    "int64_t c = %({%s+nlmulret_[%w_]+ __ret%d = f.*__ret%d.r1;%s+}%)",
+    "int64_t a = _ret%d+%.r1;",
+    "bool b = _ret%d+%.r2;",
+    "int64_t c = %({%s+nlmulret_[%w_]+ _ret%d = f.*_ret%d.r1;%s+}%)",
   }, true)
   expect.run_c([[
     local function f(): (integer, boolean) return 1, true end
@@ -821,8 +821,8 @@ it("call with multiple args", function()
     local function g(a: int32, b: integer, c: boolean) end
     g(1, f())
   end]], {
-    "nlmulret_[%w_]+ __tmp%d+ = f%(%)",
-    "g%(1, __tmp%d+.r1, __tmp%d+.r2%);"
+    "nlmulret_[%w_]+ _tmp%d+ = f%(%)",
+    "g%(1, _tmp%d+.r1, _tmp%d+.r2%);"
   }, true)
   expect.run_c([[do
     local function f(): (integer, integer) return 1, 2 end
@@ -2179,7 +2179,7 @@ it("enums", function()
     local i: E = 1
     local E = @enum{A=1, B=2}
     local i: E = 1
-  ]], {"typedef int64_t E", "typedef int64_t E__1"})
+  ]], {"typedef int64_t E", "typedef int64_t E_1"})
   expect.run_c([[
     local Enum = @enum{A=0,B=1,C}
     local e: Enum; assert(e == 0)
@@ -2623,10 +2623,10 @@ it("assert builtin", function()
   config.pragmas.noabort = false
   expect.generate_c(
     "assert(true)",
-    "__nelua_assert_line1(true)")
+    "_nelua_assert_line1(true)")
   expect.generate_c(
     "assert(true, 'assertion')",
-    '__nelua_assert_line1(true, ')
+    '_nelua_assert_line1(true, ')
   expect.run_c([[
     assert(true)
     assert(true, 'assertion')
@@ -3268,7 +3268,7 @@ it("polymorphic variable arguments", function()
     end
     local v: vec2 = {1,2}
     v:sum()
-  ]],[[int64_t vec2_sum__1(vec2_ptr self) {
+  ]],[[int64_t vec2_sum_1(vec2_ptr self) {
   return (self->x + self->y);
 }]])
 

@@ -114,7 +114,7 @@ function AnalyzerContext:choose_codename(name)
   local count = usedcodenames[name]
   if count then
     usedcodenames[name] = count + 1
-    name = string.format('%s__%d', name, count)
+    name = string.format('%s_%d', name, count)
   end
   usedcodenames[name] = 1
   return name

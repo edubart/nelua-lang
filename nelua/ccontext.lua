@@ -56,7 +56,7 @@ function CContext:genuniquename(kind, fmt)
   count = count + 1
   self.uniquecounters[kind] = count
   if not fmt then
-    fmt = '__%s%d'
+    fmt = '_%s%d'
   end
   return string.format(fmt, kind, count)
 end
@@ -208,7 +208,17 @@ function CContext:define_function_builtin(name, qualifier, ret, args, body)
     emitter:add_one(')')
     args = emitter:generate()
   end
-  self:add_declaration(qualifier..' '..ret..' '..name..args..';\n')
+  if not self.pragmas.nostatic then
+    if qualifier == '' then
+      qualifier = 'static'
+    else
+      qualifier = 'static ' .. qualifier
+    end
+  end
+  if qualifier ~= '' then
+    qualifier = qualifier..' '
+  end
+  self:add_declaration(qualifier..ret..' '..name..args..';\n')
   self:add_definition(ret..' '..name..args..' '..body..'\n')
   self.usedbuiltins[name] = true
 end

@@ -990,13 +990,15 @@ end
 -- Return unsigned integral version of this type.
 function IntegralType:unsigned_type()
   if self.is_unsigned then return self end
-  return primtypes['uint'..self.bitsize]
+  local type = primtypes[typedefs.signed2unsigned[self.name]]
+  return type or primtypes['uint'..self.bitsize]
 end
 
 -- Return signed integral version of this type.
 function IntegralType:signed_type()
   if self.is_signed then return self end
-  return primtypes['int'..self.bitsize]
+  local type = primtypes[typedefs.unsigned2signed[self.name]]
+  return type or primtypes['int'..self.bitsize]
 end
 
 -- Get the desired type when converting this type from an attr.

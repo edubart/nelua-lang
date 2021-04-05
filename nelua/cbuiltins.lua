@@ -43,7 +43,7 @@ end
 
 function builtins.nelua_noinline(context)
   context:define_builtin('nelua_noinline', [[
-#if defined(__GNUC__)
+#ifdef __GNUC__
 #define nelua_noinline __attribute__((noinline))
 #else
 #define nelua_noinline
@@ -53,10 +53,12 @@ end
 
 function builtins.nelua_inline(context)
   context:define_builtin('nelua_inline', [[
-#if defined(__GNUC__)
+#ifdef __GNUC__
 #define nelua_inline __attribute__((always_inline)) inline
-#else
+#elif __STDC_VERSION__ >= 199901L
 #define nelua_inline inline
+#else
+#define nelua_inline
 #endif
 ]])
 end
@@ -97,7 +99,7 @@ function builtins.nelua_abort(context)
   context:ensure_include('<stdio.h>')
   context:ensure_builtins('nelua_noreturn')
   context:define_function_builtin('nelua_abort',
-    'static nelua_noreturn', primtypes.void, {}, [[{
+    'nelua_noreturn', primtypes.void, {}, [[{
   fflush(stderr);
   ]]..abortcall..[[;
 }]])
@@ -107,7 +109,7 @@ function builtins.nelua_panic_cstring(context)
   context:ensure_include('<stdio.h>')
   context:ensure_builtins('nelua_noreturn', 'nelua_abort')
   context:define_function_builtin('nelua_panic_cstring',
-    'static nelua_noreturn', primtypes.void, {{primtypes.cstring, 's'}}, [[{
+    'nelua_noreturn', primtypes.void, {{primtypes.cstring, 's'}}, [[{
   fputs(s, stderr);
   fputc('\n', stderr);
   nelua_abort();
@@ -118,7 +120,7 @@ function builtins.nelua_panic_string(context)
   context:ensure_include('<stdio.h>')
   context:ensure_builtins('nelua_noreturn', 'nelua_abort')
   context:define_function_builtin('nelua_panic_string',
-    'static nelua_noreturn', primtypes.void, {{primtypes.string, 's'}}, [[{
+    'nelua_noreturn', primtypes.void, {{primtypes.string, 's'}}, [[{
   if(s.size > 0) {
     fwrite(s.data, 1, s.size, stderr);
     fputc('\n', stderr);
@@ -137,7 +139,7 @@ function builtins.nelua_assert_bounds_(context, indextype)
     cond = cond .. ' || index < 0'
   end
   context:define_function_builtin(name,
-    'static nelua_inline', indextype, {{indextype, 'index'}, {primtypes.usize, 'len'}}, [[{
+    'nelua_inline', indextype, {{indextype, 'index'}, {primtypes.usize, 'len'}}, [[{
   if(nelua_unlikely(]]..cond..[[)) {
     nelua_panic_cstring("array index: position out of bounds");
   }
@@ -151,7 +153,7 @@ function builtins.nelua_assert_deref_(context, indextype)
   if context.usedbuiltins[name] then return name end
   context:ensure_builtins('nelua_inline', 'nelua_panic_cstring', 'nelua_unlikely', 'NULL')
   context:define_function_builtin(name,
-    'static nelua_inline', indextype,  {{indextype, 'p'}}, [[{
+    'nelua_inline', indextype,  {{indextype, 'p'}}, [[{
   if(nelua_unlikely(p == NULL)) {
     nelua_panic_cstring("attempt to dereference a null pointer");
   }
@@ -163,7 +165,7 @@ end
 function builtins.nelua_warn(context)
   context:ensure_include('<stdio.h>')
   context:define_function_builtin('nelua_warn',
-    'static', primtypes.void, {{primtypes.string, 's'}}, [[{
+    '', primtypes.void, {{primtypes.string, 's'}}, [[{
   if(s.size > 0) {
     fputs("warning: ", stderr);
     fwrite(s.data, 1, s.size, stderr);
@@ -177,7 +179,7 @@ function builtins.nelua_string_eq(context)
   context:ensure_include('<string.h>')
   context:ensure_builtin('nelua_inline')
   context:define_function_builtin('nelua_string_eq',
-    'static nelua_inline', primtypes.boolean, {{primtypes.string, 'a'}, {primtypes.string, 'b'}}, [[{
+    'nelua_inline', primtypes.boolean, {{primtypes.string, 'a'}, {primtypes.string, 'b'}}, [[{
   return a.size == b.size && (a.data == b.data || a.size == 0 || memcmp(a.data, b.data, a.size) == 0);
 }]])
 end
@@ -185,7 +187,7 @@ end
 function builtins.nelua_string_ne(context)
   context:ensure_builtins('nelua_inline', 'nelua_string_eq')
   context:define_function_builtin('nelua_string_ne',
-    'static nelua_inline', primtypes.boolean, {{primtypes.string, 'a'}, {primtypes.string, 'b'}}, [[{
+    'nelua_inline', primtypes.boolean, {{primtypes.string, 'a'}, {primtypes.string, 'b'}}, [[{
   return !nelua_string_eq(a, b);
 }]])
 end
@@ -193,7 +195,7 @@ end
 function builtins.nelua_string2cstring(context)
   context:ensure_builtin('nelua_inline')
   context:define_function_builtin('nelua_string2cstring',
-    'static nelua_inline', primtypes.cstring, {{primtypes.string, 's'}}, [[{
+    'nelua_inline', primtypes.cstring, {{primtypes.string, 's'}}, [[{
   return (s.size == 0) ? "" : (char*)s.data;
 }]])
 end
@@ -201,7 +203,7 @@ end
 function builtins.nelua_assert_string2cstring(context)
   context:ensure_builtins('nelua_inline', 'nelua_panic_cstring', 'nelua_unlikely')
   context:define_function_builtin('nelua_assert_string2cstring',
-    'static nelua_inline', primtypes.cstring, {{primtypes.string, 's'}}, [[{
+    'nelua_inline', primtypes.cstring, {{primtypes.string, 's'}}, [[{
   if(s.size == 0) {
     return "";
   }
@@ -216,7 +218,7 @@ function builtins.nelua_cstring2string(context)
   context:ensure_include('<string.h>', '<stdint.h>')
   context:ensure_builtins('nelua_inline', 'NULL')
   context:define_function_builtin('nelua_cstring2string',
-    'static nelua_inline', primtypes.string, {{primtypes.cstring, 's'}}, [[{
+    'nelua_inline', primtypes.string, {{primtypes.cstring, 's'}}, [[{
   if(s == NULL) return (nlstring){0};
   uintptr_t size = strlen(s);
   if(size == 0) return (nlstring){0};
@@ -264,7 +266,7 @@ function builtins.nelua_narrow_cast_(context, dtype, stype)
     end
   end
   context:ensure_builtins('nelua_inline', 'nelua_unlikely', 'nelua_panic_cstring')
-  context:define_function_builtin(name, 'static nelua_inline', dtype, {{stype, 'x'}}, [[{
+  context:define_function_builtin(name, 'nelua_inline', dtype, {{stype, 'x'}}, [[{
   if(nelua_unlikely(]]..cond..[[)) {
     nelua_panic_cstring("narrow casting from ]]..tostring(stype)..[[ to ]]..tostring(dtype)..[[ failed");
   }
@@ -288,7 +290,7 @@ function builtins.nelua_lt_(context, ltype, rtype)
 }]])
   end
   context:ensure_builtins('nelua_inline')
-  context:define_function_builtin(name, 'static nelua_inline', primtypes.boolean, {{ltype, 'a'}, {rtype, 'b'}}, code)
+  context:define_function_builtin(name, 'nelua_inline', primtypes.boolean, {{ltype, 'a'}, {rtype, 'b'}}, code)
   return name
 end
 
@@ -328,7 +330,7 @@ function builtins.nelua_eq_(context, ltype, rtype)
     defemitter:add_ln('}')
     context:ensure_builtins('nelua_inline')
     context:define_function_builtin(name,
-      'static nelua_inline', primtypes.boolean, {{type, 'a'}, {type, 'b'}},
+      'nelua_inline', primtypes.boolean, {{type, 'a'}, {type, 'b'}},
       defemitter:generate())
     return name
   else
@@ -338,7 +340,7 @@ function builtins.nelua_eq_(context, ltype, rtype)
     local mtype = primtypes['uint'..math.max(ltype.bitsize, rtype.bitsize)]
     context:ensure_builtins('nelua_inline')
     context:define_function_builtin(name,
-      'static nelua_inline', primtypes.boolean, {{ltype, 'a'}, {rtype, 'b'}}, context:emitter_join([[{
+      'nelua_inline', primtypes.boolean, {{ltype, 'a'}, {rtype, 'b'}}, context:emitter_join([[{
   return (]],mtype,[[)a == (]],mtype,[[)b && a >= 0;
 }]]))
     return name
@@ -352,7 +354,7 @@ function builtins.nelua_idiv_(context, type)
   local stype, utype = type:signed_type(), type:unsigned_type()
   context:ensure_builtins('nelua_inline', 'nelua_unlikely', 'nelua_panic_cstring')
   context:define_function_builtin(name,
-    'static nelua_inline', type, {{type, 'a'}, {type, 'b'}}, context:emitter_join([[{
+    'nelua_inline', type, {{type, 'a'}, {type, 'b'}}, context:emitter_join([[{
   if(nelua_unlikely(b == -1)) return 0U - (]],utype,[[)a;
   if(nelua_unlikely(b == 0)) nelua_panic_cstring("division by zero");
   ]],stype,[[ q = a / b;
@@ -367,7 +369,7 @@ function builtins.nelua_imod_(context, type)
   assert(type.is_signed)
   context:ensure_builtins('nelua_inline', 'nelua_unlikely', 'nelua_panic_cstring')
   context:define_function_builtin(name,
-    'static nelua_inline', type, {{type, 'a'}, {type, 'b'}}, context:emitter_join([[{
+    'nelua_inline', type, {{type, 'a'}, {type, 'b'}}, context:emitter_join([[{
   if(nelua_unlikely(b == -1)) return 0;
   if(nelua_unlikely(b == 0)) nelua_panic_cstring("division by zero");
   ]],type,[[ r = a % b;
@@ -382,7 +384,7 @@ function builtins.nelua_shl_(context, type)
   local bitsize, stype, utype = type.bitsize, type:signed_type(), type:unsigned_type()
   context:ensure_builtins('nelua_inline', 'nelua_unlikely')
   context:define_function_builtin(name,
-    'static nelua_inline', type, {{type, 'a'}, {stype, 'b'}},
+    'nelua_inline', type, {{type, 'a'}, {stype, 'b'}},
     context:emitter_join([[{
   if(nelua_likely(b >= 0 && b < ]],bitsize,[[)) return (]],utype,[[)a << b;
   else if(nelua_unlikely(b < 0 && b > -]],bitsize,[[)) return (]],utype,[[)a >> -b;
@@ -397,7 +399,7 @@ function builtins.nelua_shr_(context, type)
   local bitsize, stype, utype = type.bitsize, type:signed_type(), type:unsigned_type()
   context:ensure_builtins('nelua_inline', 'nelua_unlikely')
   context:define_function_builtin(name,
-    'static nelua_inline', type, {{type, 'a'}, {stype, 'b'}},
+    'nelua_inline', type, {{type, 'a'}, {stype, 'b'}},
     context:emitter_join([[{
   if(nelua_likely(b >= 0 && b < ]],bitsize,[[)) return (]],utype,[[)a >> b;
   else if(nelua_unlikely(b < 0 && b > -]],bitsize,[[)) return (]],utype,[[)a << -b;
@@ -412,7 +414,7 @@ function builtins.nelua_asr_(context, type)
   local bitsize = type.bitsize
   context:ensure_builtins('nelua_inline', 'nelua_unlikely')
   context:define_function_builtin(name,
-    'static nelua_inline', type, {{type, 'a'}, {type:signed_type(), 'b'}},
+    'nelua_inline', type, {{type, 'a'}, {type:signed_type(), 'b'}},
     context:emitter_join([[{
   if(nelua_likely(b >= 0 && b < ]],bitsize,[[)) return a >> b;
   else if(nelua_unlikely(b >= ]],bitsize,[[)) return a < 0 ? -1 : 0;
@@ -429,7 +431,7 @@ function builtins.nelua_fmod_(context, type)
   context:ensure_include('<math.h>')
   context:ensure_builtins('nelua_inline', 'nelua_unlikely')
   context:define_function_builtin(name,
-    'static nelua_inline', type, {{type, 'a'}, {type, 'b'}}, context:emitter_join([[{
+    'nelua_inline', type, {{type, 'a'}, {type, 'b'}}, context:emitter_join([[{
   ]],type,[[ r = ]],cfmod,[[(a, b);
   if(nelua_unlikely((r > 0 && b < 0) || (r < 0 && b > 0)))
     r += b;
@@ -493,8 +495,7 @@ end
 function operators.div(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if not rtype.is_float and not ltype.is_float then
-    assert(type.is_float)
+  if not rtype.is_float and not ltype.is_float and type.is_float then
     emitter:add(lname, ' / (', type, ')', rname)
   else
     operator_binary_op('/', node, emitter, lnode, rnode, lname, rname)
@@ -803,7 +804,7 @@ function inlines.assert(context, node)
   context:ensure_includes('<stdio.h>')
   context:ensure_builtins('nelua_unlikely', 'nelua_abort')
   local nargs = #argattrs
-  local qualifier = 'static'
+  local qualifier = ''
   local assertmsg = 'assertion failed!'
   local condtype = nargs > 0 and argattrs[1].type or primtypes.void
   local rettype = builtintype.rettypes[1] or primtypes.void
@@ -833,7 +834,7 @@ function inlines.assert(context, node)
   else -- nargs == 0
     local msg, msglen = emitter:cstring_literal(where)
     context:ensure_builtin('nelua_noreturn')
-    qualifier = 'static nelua_noreturn'
+    qualifier = 'nelua_noreturn'
     emitter:add([[
   fwrite(]],msg,[[, 1, ]],msglen,[[, stderr);
   nelua_abort();

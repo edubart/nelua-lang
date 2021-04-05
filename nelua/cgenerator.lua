@@ -218,7 +218,9 @@ end
 local function typevisitor_CompositeType(context, type)
   local decemitter = CEmitter(context, 0)
   local kindname = type.is_record and 'struct' or 'union'
-  decemitter:add_ln('typedef ',kindname,' ', type.codename, ' ', type.codename, ';')
+  if not context.pragmas.noctypedefs then
+    decemitter:add_ln('typedef ', kindname, ' ', type.codename, ' ', type.codename, ';')
+  end
   table.insert(context.declarations, decemitter:generate())
   local defemitter = CEmitter(context, 0)
   defemitter:add(kindname, ' ', type.codename)
@@ -285,13 +287,21 @@ typevisitors.FunctionReturnType = function(context, functype)
   local rettypename = table.concat(retnames, '_')
   if context:is_declared(rettypename) then return rettypename end
   local retemitter = CEmitter(context)
-  retemitter:add_indent_ln('typedef struct ', rettypename, ' {')
+  retemitter:add_indent()
+  if not context.pragmas.noctypedefs then
+    retemitter:add('typedef ')
+  end
+  retemitter:add_ln('struct ', rettypename, ' {')
   retemitter:inc_indent()
   for i=1,#rettypes do
     retemitter:add_indent_ln(rettypes[i], ' ', 'r', i, ';')
   end
   retemitter:dec_indent()
-  retemitter:add_indent_ln('} ', rettypename, ';')
+  retemitter:add_indent('}')
+  if not context.pragmas.noctypedefs then
+    retemitter:add(' ', rettypename)
+  end
+  retemitter:add_ln(';')
   context:add_declaration(retemitter:generate(), rettypename)
   return rettypename
 end
@@ -389,6 +399,8 @@ function visitors.InitializerList(context, node, emitter)
       context:push_state{incompositeinitializer = true}
       emitter:add('{', childnodes, '}')
       context:pop_state()
+    elseif type.cconstruct then -- used to construct vector types when generating GLSL code
+      emitter:add(type,'(', childnodes, ')')
     else
       local useinitializer = can_use_initializer(childnodes)
       if useinitializer then
@@ -396,7 +408,7 @@ function visitors.InitializerList(context, node, emitter)
       else
         emitter:add_ln('({')
         emitter:inc_indent()
-        emitter:add_indent(type, ' __tmp = ')
+        emitter:add_indent(type, ' _tmp = ')
         emitter:add_zeroed_type_init(type)
         emitter:add_ln(';')
       end
@@ -420,9 +432,9 @@ function visitors.InitializerList(context, node, emitter)
           end
         else
           if childvaltype.is_array then
-            emitter:add_indent('(*(', childvaltype, '*)__tmp.', fieldname, ') = ')
+            emitter:add_indent('(*(', childvaltype, '*)_tmp.', fieldname, ') = ')
           else
-            emitter:add_indent('__tmp.', fieldname, ' = ')
+            emitter:add_indent('_tmp.', fieldname, ' = ')
           end
         end
         local fieldtype = type.fields[fieldname].type
@@ -435,7 +447,7 @@ function visitors.InitializerList(context, node, emitter)
       if useinitializer then
         emitter:add('}')
       else
-        emitter:add_indent_ln('__tmp;')
+        emitter:add_indent_ln('_tmp;')
         emitter:dec_indent()
         emitter:add_indent('})')
       end
@@ -455,7 +467,7 @@ function visitors.InitializerList(context, node, emitter)
       else
         emitter:add_ln('({')
         emitter:inc_indent()
-        emitter:add_indent(type, ' __tmp = ')
+        emitter:add_indent(type, ' _tmp = ')
         emitter:add_zeroed_type_init(type)
         emitter:add_ln(';')
       end
@@ -466,7 +478,7 @@ function visitors.InitializerList(context, node, emitter)
             emitter:add(', ')
           end
         else
-          emitter:add_indent('__tmp.data[', i-1 ,'] = ')
+          emitter:add_indent('_tmp.data[', i-1 ,'] = ')
         end
         emitter:add_val2type(subtype, childnode)
         if not useinitializer then
@@ -476,7 +488,7 @@ function visitors.InitializerList(context, node, emitter)
       if useinitializer then
         emitter:add('}}')
       else
-        emitter:add_indent_ln('__tmp;')
+        emitter:add_indent_ln('_tmp;')
         emitter:dec_indent()
         emitter:add_indent('})')
       end
@@ -619,7 +631,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
           tmpargs = {}
         end
         tmpcount = tmpcount + 1
-        local tmpname = '__tmp' .. tmpcount
+        local tmpname = '_tmp' .. tmpcount
         tmpargs[i] = tmpname
         if lastcallindex == 1 then
           lastcalltmp = tmpname
@@ -943,7 +955,7 @@ function visitors.Return(context, node, emitter)
       end
     end
   elseif funcscope.is_doexpr then
-    emitter:add_indent_ln('__expr = ', retnodes[1], ';')
+    emitter:add_indent_ln('_expr = ', retnodes[1], ';')
     emitter:add(defercode)
     local needgoto = true
     if context:get_parent_node(2).tag == 'DoExpr' then
@@ -1094,7 +1106,7 @@ function visitors.DoExpr(context, node, emitter)
   else
     emitter:add_ln("({")
     emitter:inc_indent()
-    emitter:add_indent_ln(node.attr.type, ' __expr;')
+    emitter:add_indent_ln(node.attr.type, ' _expr;')
     emitter:dec_indent()
     local scope = context:push_forked_scope(node)
     if not scope.doexprlabel then
@@ -1104,7 +1116,7 @@ function visitors.DoExpr(context, node, emitter)
     context:pop_scope()
     emitter:inc_indent()
     if scope.usedexprlabel then
-      emitter:add_indent_ln(scope.doexprlabel, ': __expr;')
+      emitter:add_indent_ln(scope.doexprlabel, ': _expr;')
     end
     emitter:dec_indent()
     emitter:add_indent("})")
@@ -1168,22 +1180,22 @@ function visitors.ForNum(context, node, emitter)
     local ccompop = cdefs.for_compare_ops[compop]
     local ittype = itvarattr.type
     local itname = context:declname(itvarattr)
-    local itforname = itmutate and '__it' or itname
+    local itforname = itmutate and '_it' or itname
     emitter:add_indent('for(', ittype, ' ', itforname, ' = ')
     emitter:add_val2type(ittype, begvalnode)
     local cmpval
     if (not fixedend or not compop) then
-      emitter:add(', __end = ')
+      emitter:add(', _end = ')
       emitter:add_val2type(ittype, endvalnode)
-      cmpval = '__end'
+      cmpval = '_end'
     else
       cmpval = endvalnode
     end
     local stepval
     if not fixedstep then
-      emitter:add(', __step = ')
+      emitter:add(', _step = ')
       emitter:add_val2type(ittype, stepvalnode)
-      stepval = '__step'
+      stepval = '_step'
     else
       stepval = fixedstep
     end
@@ -1198,12 +1210,12 @@ function visitors.ForNum(context, node, emitter)
     else
       -- step is an expression, must detect the compare operation at runtime
       assert(not fixedstep)
-      emitter:add('__step >= 0 ? ', itforname, ' <= __end : ', itforname, ' >= __end')
+      emitter:add('_step >= 0 ? ', itforname, ' <= _end : ', itforname, ' >= _end')
     end
     emitter:add_ln('; ', itforname, ' = ', itforname, ' + ', stepval, ') {')
     emitter:inc_indent()
     if itmutate then
-      emitter:add_indent_ln(itvarnode, ' = __it;')
+      emitter:add_indent_ln(itvarnode, ' = _it;')
     end
     emitter:dec_indent()
     emitter:add(blocknode)
@@ -1277,10 +1289,10 @@ local function resolve_function_qualifier(context, attr)
   if attr.volatile then
     qualifier = qualifier .. 'volatile '
   end
-  if attr.inline then
+  if attr.inline and not context.pragmas.nocinlines then
     qualifier = qualifier .. context:ensure_builtin('nelua_inline') .. ' '
   end
-  if attr.noinline then
+  if attr.noinline and not context.pragmas.nocinlines then
     qualifier = qualifier .. context:ensure_builtin('nelua_noinline') .. ' '
   end
   if attr.noreturn then
@@ -1331,12 +1343,12 @@ function visitors.FuncDef(context, node, emitter)
   local funcid = varnode
   if varscope == nil then -- maybe assigning a variable to a function
     if varnode.tag == 'Id' then
-      funcid = context:genuniquename(context:declname(varnode.attr), '%s__%d')
+      funcid = context:genuniquename(context:declname(varnode.attr), '%s_%d')
       emitter:add_indent_ln(varnode, ' = ', funcid, ';')
     elseif varnode.tag == 'ColonIndex' or varnode.tag == 'DotIndex' then
       local fieldname, objtype = varnode[1], varnode[2].attr.type
       if objtype.is_record then
-        funcid = context:genuniquename('func_'..fieldname, '%s__%d')
+        funcid = context:genuniquename('func_'..fieldname, '%s_%d')
         emitter:add_indent_ln(varnode, ' = ', funcid, ';')
       end
     end

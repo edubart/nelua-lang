@@ -121,6 +121,38 @@ typedefs.number_literal_types = {
   _clongdouble = 'clongdouble',
 }
 
+-- Map for converting signed and unsigned types.
+typedefs.signed2unsigned = {
+  int8        = 'uint8',
+  int16       = 'uint16',
+  int32       = 'uint32',
+  int64       = 'uint64',
+  int128      = 'uint128',
+  isize       = 'uisize',
+  cchar       = 'cuchar',
+  cschar      = 'cuchar',
+  cshort      = 'cushort',
+  cint        = 'cuint',
+  clong       = 'culong',
+  clonglong   = 'culonglong',
+  cptrdiff    = 'csize',
+}
+
+typedefs.unsigned2signed = {
+  uint8       = 'int8',
+  uint16      = 'int16',
+  uint32      = 'int32',
+  uint64      = 'int64',
+  uint128     = 'int128',
+  usize       = 'isize',
+  cuchar      = 'cchar',
+  cushort     = 'cshort',
+  cuint       = 'cint',
+  culong      = 'clong',
+  culonglong  = 'clonglong',
+  csize       = 'cptrdiff',
+}
+
 -- Map of literal suffixes for strings.
 typedefs.string_literals_types = {
   _b           = primtypes.byte,    _byte       = primtypes.byte,
