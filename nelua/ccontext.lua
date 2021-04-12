@@ -44,7 +44,7 @@ function CContext:declname(attr)
   if not attr.nodecl and not attr.cimport then
     declname = cdefs.quotename(declname)
     if attr.shadows and not attr.staticstorage then
-      declname = self:genuniquename(declname, '%s__%d')
+      declname = self:genuniquename(declname, '%s_%d')
     end
   end
   attr.declname = declname
@@ -118,6 +118,11 @@ function CContext:typename(type)
   end
   typenames[type] = typename
   return typename
+end
+
+function CContext:ensure_type(type)
+  -- this will emit declarations/include of the type as needed
+  self:typename(type)
 end
 
 function CContext:funcrettypename(functype)

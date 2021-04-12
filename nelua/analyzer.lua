@@ -22,7 +22,7 @@ analyzer.visitors = visitors
 
 local function emptynext() end
 
-function visitors.Number(context, node)
+function visitors.Number(_, node)
   local attr = node.attr
   local base, int, frac, exp, literal = node[1], node[2], node[3], node[4], node[5]
   local value = bn.from(base, int, frac, exp)
@@ -59,9 +59,6 @@ function visitors.Number(context, node)
         value:todec(), type, type.min:todec(), type.max:todec())
     end
     attr.type = type
-  end
-  if context.pragmas.nofloatsuffix then
-    attr.nofloatsuffix = true
   end
   attr.value = value
   attr.base = base

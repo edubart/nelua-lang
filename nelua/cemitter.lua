@@ -29,7 +29,7 @@ function CEmitter:zeroinit(type)
     self.context:ensure_builtin('NULL')
     s = 'NULL'
   elseif type.is_boolean then
-    self.context:ensure_include('<stdbool.h>')
+    self.context:ensure_type(primtypes.boolean)
     s = 'false'
   elseif type.size == 0 then
     s = '{}'
@@ -55,7 +55,7 @@ function CEmitter:add_zeroed_type_literal(type)
 end
 
 function CEmitter:add_boolean_literal(value)
-  self.context:ensure_include('<stdbool.h>')
+  self.context:ensure_type(primtypes.boolean) -- to define 'true' and 'false'
   self:add_one(value and 'true' or 'false')
 end
 
@@ -69,7 +69,7 @@ function CEmitter:add_val2boolean(val, valtype)
   if valtype.is_boolean then
     self:add_one(val)
   elseif valtype.is_niltype or valtype.is_nilptr then
-    self.context:ensure_include('<stdbool.h>')
+    self.context:ensure_type(primtypes.boolean) -- to define 'false'
     if (traits.is_string(val) and val:match('^[%w_]+$')) or
        (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Id')) then
       self:add_one('false')
@@ -80,7 +80,7 @@ function CEmitter:add_val2boolean(val, valtype)
     self.context:ensure_builtin('NULL')
     self:add('(', val, ' != NULL)')
   else
-    self.context:ensure_include('<stdbool.h>')
+    self.context:ensure_type(primtypes.boolean) -- to define 'true'
     if (traits.is_string(val) and val:match('^[%w_]+$')) or
        (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Id')) then
       self:add_one('true')
@@ -198,14 +198,13 @@ function CEmitter:add_numeric_literal(valattr, valtype)
       end
       return
     elseif bn.isinfinite(val) then
-      self.context:ensure_include('<math.h>')
       if val < 0 then
         self:add_one('-')
       end
       if valtype.is_float32 then
-        self:add_one('HUGE_VALF')
+        self:add_one('(1.0f/0.0f)')
       else
-        self:add_one('HUGE_VAL')
+        self:add_one('(1.0/0.0)')
       end
       return
     else
@@ -232,7 +231,7 @@ function CEmitter:add_numeric_literal(valattr, valtype)
   end
 
   -- suffixes
-  if valtype.is_float32 and not valattr.nofloatsuffix then
+  if valtype.is_float32 and not self.context.pragmas.nofloatsuffix then
     self:add_one('f')
   elseif valtype.is_unsigned then
     self:add_one('U')

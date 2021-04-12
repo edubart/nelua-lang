@@ -97,7 +97,7 @@ function builtins.nelua_abort(context)
   end
   context:ensure_include('<stdlib.h>')
   context:ensure_include('<stdio.h>')
-  context:ensure_builtins('nelua_noreturn')
+  context:ensure_builtin('nelua_noreturn')
   context:define_function_builtin('nelua_abort',
     'nelua_noreturn', primtypes.void, {}, [[{
   fflush(stderr);
@@ -215,7 +215,7 @@ function builtins.nelua_assert_string2cstring(context)
 end
 
 function builtins.nelua_cstring2string(context)
-  context:ensure_include('<string.h>', '<stdint.h>')
+  context:ensure_includes('<string.h>', '<stdint.h>')
   context:ensure_builtins('nelua_inline', 'NULL')
   context:define_function_builtin('nelua_cstring2string',
     'nelua_inline', primtypes.string, {{primtypes.cstring, 's'}}, [[{
@@ -328,7 +328,7 @@ function builtins.nelua_eq_(context, ltype, rtype)
     defemitter:add_ln(';')
     defemitter:dec_indent()
     defemitter:add_ln('}')
-    context:ensure_builtins('nelua_inline')
+    context:ensure_builtin('nelua_inline')
     context:define_function_builtin(name,
       'nelua_inline', primtypes.boolean, {{type, 'a'}, {type, 'b'}},
       defemitter:generate())
@@ -338,7 +338,7 @@ function builtins.nelua_eq_(context, ltype, rtype)
     if context.usedbuiltins[name] then return name end
     assert(ltype.is_integral and ltype.is_signed and rtype.is_unsigned)
     local mtype = primtypes['uint'..math.max(ltype.bitsize, rtype.bitsize)]
-    context:ensure_builtins('nelua_inline')
+    context:ensure_builtin('nelua_inline')
     context:define_function_builtin(name,
       'nelua_inline', primtypes.boolean, {{ltype, 'a'}, {rtype, 'b'}}, context:emitter_join([[{
   return (]],mtype,[[)a == (]],mtype,[[)b && a >= 0;

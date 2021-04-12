@@ -1451,7 +1451,7 @@ function visitors.UnaryOp(_, node, emitter)
   if surround then emitter:add_one(')') end
 end
 
-function visitors.BinaryOp(context, node, emitter)
+function visitors.BinaryOp(_, node, emitter)
   if node.attr.comptime then
     emitter:add_literal(node.attr)
     return
@@ -1474,11 +1474,10 @@ function visitors.BinaryOp(context, node, emitter)
         emitter:add(' : ')
         emitter:add_val2type(type, cnode)
       else
-        context:ensure_include('<stdbool.h>')
         emitter:add_ln('({')
         emitter:inc_indent()
         emitter:add_indent_ln(type, ' t_;')
-        emitter:add_indent('bool cond_ = ')
+        emitter:add_indent(primtypes.boolean, ' cond_ = ')
         emitter:add_val2type(primtypes.boolean, anode)
         emitter:add_ln(';')
         emitter:add_indent_ln('if(cond_) {')
@@ -1508,8 +1507,7 @@ function visitors.BinaryOp(context, node, emitter)
       emitter:add_indent_ln(type, ' t2_ = {0};')
       if opname == 'and' then
         assert(not node.attr.ternaryand)
-        context:ensure_include('<stdbool.h>')
-        emitter:add_indent('bool cond_ = ')
+        emitter:add_indent(primtypes.boolean, ' cond_ = ')
         emitter:add_val2type(primtypes.boolean, 't1_', type)
         emitter:add_ln(';')
         emitter:add_indent_ln('if(cond_) {')
@@ -1525,8 +1523,7 @@ function visitors.BinaryOp(context, node, emitter)
         emitter:add_indent_ln('cond_ ? t2_ : (', type, '){0};')
       elseif opname == 'or' then
         assert(not node.attr.ternaryor)
-        context:ensure_include('<stdbool.h>')
-        emitter:add_indent('bool cond_ = ')
+        emitter:add_indent(primtypes.boolean, ' cond_ = ')
         emitter:add_val2type(primtypes.boolean, 't1_', type)
         emitter:add_ln(';')
         emitter:add_indent_ln('if(!cond_) {')

@@ -425,11 +425,11 @@ it("operation on comptime variables", function()
     local huge2f: float32 = #[-math.huge]#
     local nanf: float32 = #[0.0/0.0]#
   ]], {
-    "huge1 = HUGE_VAL",
-    "huge2 = -HUGE_VAL",
+    "huge1 = (1.0/0.0)",
+    "huge2 = -(1.0/0.0)",
     "nan = (0.0/0.0)",
-    "huge1f = HUGE_VALF",
-    "huge2f = -HUGE_VALF",
+    "huge1f = (1.0f/0.0f)",
+    "huge2f = -(1.0f/0.0f)",
     "nanf = (0.0f/0.0f)",
   })
   expect.generate_c([[
@@ -2760,12 +2760,13 @@ it("context pragmas", function()
     "\nstatic void g()",
   })
 
+  config.pragmas.nofloatsuffix = true
   expect.generate_c([[
-    ## context.pragmas.nofloatsuffix = true
     local a: float32 = 0
   ]], {
     "a = 0.0;",
   })
+  config.pragmas.nofloatsuffix = false
 
   expect.generate_c([[
     ## context.pragmas.nostatic = true
