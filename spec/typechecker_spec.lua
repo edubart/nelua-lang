@@ -420,6 +420,7 @@ end)
 it("binary operator bxor", function()
   expect.ast_type_equals("local a = 1 ~ 2", "local a: integer = 1 ~ 2")
   expect.analyze_error("local a = 1 ~ 's'", "attempt to perform a bitwise operation")
+  expect.analyze_error("local a = 1; local b = (a ^ a) ~ a", 'bitwise operation with non integral')
 end)
 
 it("binary operator shl", function()

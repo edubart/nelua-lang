@@ -1133,7 +1133,7 @@ end
 
 -- Helper to determine the resulting type of an arithmetic operation on an integral.
 local function integral_arith_op_type(ltype, rtype, lattr, rattr)
-  if not rtype.is_scalar then
+  if not rtype.is_scalar or not ltype.is_scalar then
     -- cannot do scalar operations for on a non scalar
     return nil
   end
@@ -1150,8 +1150,8 @@ local function integral_arith_div_op_type(ltype, rtype, lattr, rattr)
 end
 
 -- Helper to determine the resulting type of an operation with an integral and a float.
-local function integral_float_op_type(_, rtype)
-  if rtype.is_float then --  preserve the same from other type
+local function integral_float_op_type(ltype, rtype)
+  if ltype.is_float or rtype.is_float then --  preserve the same from other type
     return rtype
   else -- fallback to the default number type
     return primtypes.number
@@ -1160,7 +1160,7 @@ end
 
 -- Helper to determine the resulting type of a bitwise operation on integrals.
 local function integral_bitwise_op_type(ltype, rtype, lattr, rattr)
-  if not rtype.is_integral then
+  if not ltype.is_integral or not rtype.is_integral then
     return nil, stringer.pformat(
       'attempt to perform a bitwise operation with non integral type %s', rtype)
   end
@@ -1178,7 +1178,7 @@ end
 
 -- Helper to determine the resulting type of a shift operation on integrals.
 local function integral_shift_op_type(ltype, rtype)
-  if not rtype.is_integral then -- cannot do bitwise operations on non integrals
+  if not ltype.is_integral or not rtype.is_integral then
     return nil, stringer.pformat(
       'attempt to perform a bitwise operation with non integral type %s', rtype)
   end
