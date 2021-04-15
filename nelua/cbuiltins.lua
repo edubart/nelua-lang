@@ -928,8 +928,10 @@ function inlines.print(context, node)
       local tyformat = cdefs.types_printf_format[ty.codename]
       node:assertraisef(tyformat, 'invalid type "%s" for printf format', ty)
       defemitter:add_ln('fprintf(stdout, ', tyformat,', a',i,');')
-    else --luacov:disable
-      node:raisef('cannot handle type "%s" in print', argtype)
+    elseif argtype.is_record then --luacov:disable
+      node:raisef('cannot handle type "%s" in print, you could implement `__tostring` metamethod for it', argtype)
+    else
+      node:raisef('cannot handle type "%s" in print')
     end --luacov:enable
   end
   defemitter:add_indent_ln([[fputc('\n', stdout);]])
