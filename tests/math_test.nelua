@@ -83,6 +83,14 @@ do -- math.ifloor
   assert(math.ifloor(0.0) == 0)
   assert(math.ifloor(1.1) == 1)
   assert(math.ifloor(-1) == -1)
+  assert(math.ifloor(-1.1) == -2)
+end
+
+do -- math.iceil
+  assert(math.iceil(0.0) == 0)
+  assert(math.iceil(1.1) == 2)
+  assert(math.iceil(-1) == -1)
+  assert(math.iceil(-1.1) == -1)
 end
 
 do -- math.trunc
@@ -411,6 +419,43 @@ do -- math.random
   end
 end
 
+do -- math.fract
+  assert(math.fract(0.5) == 0.5)
+  assert(math.fract(2.5) == 0.5)
+  assert(math.fract(2.0) == 0.0)
+end
+
+do -- math.sign
+  assert(math.sign(0.0) == 0.0)
+  assert(math.sign(2.0) == 1.0)
+  assert(math.sign(-2.0) == -1.0)
+  assert(math.sign(0) == 0)
+  assert(math.sign(2) == 1)
+  assert(math.sign(-2) == -1)
+end
+
+do -- math.mod
+  asserteq(math.mod(5.0, 2.0), 1.0)
+  asserteq(math.mod(2.3, 5.7), 2.3)
+  asserteq(math.mod(-6.0, 4.0), 2.0)
+
+  asserteq(math.mod(5.0_f32, 2.0_f32), 1.0_f32)
+  asserteq(math.mod(2.3_f32, 5.7_f32), 2.3_f32)
+  asserteq(math.mod(-6.0_f32, 4.0_f32), 2.0_f32)
+
+  asserteq(math.mod(5, 2), 1)
+  asserteq(math.mod(-6, 4), 2)
+end
+
+do -- math.clamp
+  asserteq(math.clamp(3.0, 0.0, 1.0), 1.0)
+  asserteq(math.clamp(-1.0, 0.0, 1.0), 0.0)
+  asserteq(math.clamp(0.5, 0.0, 1.0), 0.5)
+  asserteq(math.clamp(0.5, 0.0, 1.0), 0.5)
+  asserteq(math.clamp(0.0, 0.0, 1.0), 0.0)
+  asserteq(math.clamp(1.0, 0.0, 1.0), 1.0)
+end
+
 do -- NaNs
   local NaN = 0.0/0.0
   assert(NaN ~= NaN)
@@ -419,4 +464,14 @@ do -- NaNs
   assert(not (NaN <= NaN))
   assert(not (NaN > NaN))
   assert(not (NaN >= NaN))
+end
+
+do -- Inf
+  local Inf = 1.0/0.0
+  assert(Inf > 0.0) assert(0.0 < Inf)
+  assert(Inf > -Inf) assert(-Inf < Inf)
+  assert(not (Inf > Inf))
+  assert(Inf >= Inf)
+  assert(Inf == Inf) assert(-Inf == -Inf)
+  assert(Inf ~= -Inf) assert(-Inf ~= Inf)
 end

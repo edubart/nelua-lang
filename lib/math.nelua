@@ -261,14 +261,6 @@ function math.ldexp(x: is_scalar, y: is_scalar) <inline,nosideeffect>
   ## end
 end
 
-function math.ifloor(x: is_scalar): integer <inline,nosideeffect>
-  return math.floor(x)
-end
-
-function math.iceil(x: is_scalar): integer <inline,nosideeffect>
-  return math.ceil(x)
-end
-
 function math.tointeger(x: is_scalar) <inline,nosideeffect>
   ## if x.type.is_integral then
     return (@integer)(x)
@@ -371,4 +363,47 @@ function math.random(m: is_optional_scalar, n: is_optional_scalar)
   ## else
     return r
   ## end
+end
+
+-- Return floor of a number casted to an integer.
+function math.ifloor(x: is_scalar): integer <inline,nosideeffect>
+  return math.floor(x)
+end
+
+-- Return ceil of a number casted to an integer.
+function math.iceil(x: is_scalar): integer <inline,nosideeffect>
+  return math.ceil(x)
+end
+
+-- Return fractional part of `x`, computed as "x - math.floor(x)".
+function math.fract(x: is_scalar) <inline,nosideeffect>
+  return x - math.floor(x)
+end
+
+-- Returns sign of `x`, that is:
+-- -1  <=>  x < 0
+--  0  <=>  x == 0
+--  1  <=>  x > 0
+function math.sign(x: is_scalar) <inline,nosideeffect>
+  x = x > 0 and 1 or x
+  x = x < 0 and -1 or x
+  return x
+end
+
+-- Returns modulo operation rounded towards minus infinity.
+-- Computed as "a - math.floor(a / b) * b".
+-- This is equivalent to "a % b", but faster and subject to rounding errors.
+function math.mod(a: is_scalar, b: is_scalar) <inline,nosideeffect>
+  ## if a.type.is_float or b.type.is_float then
+  return a - math.floor(a / b) * b
+  ## else
+  return a % b
+  ## end
+end
+
+-- Returns value of `x` clamped between `min` and `max`.
+function math.clamp(x: is_scalar, min: is_scalar, max: is_scalar) <inline,nosideeffect>
+  x = x < min and min or x
+  x = x > max and max or x
+  return x
 end
