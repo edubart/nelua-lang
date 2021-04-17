@@ -45,26 +45,30 @@ function visitors.PreprocessExpr(ppcontext, node, emitter, parent, parentindex)
     ',ppregistry[', nindex, '],ppregistry[', pindex,'],', parentindex,')')
 end
 
-local function make_expr_node_preprocess(ppcontext, node, emitter)
-  local luacode = node[1]
-  local nindex = ppcontext:getregistryindex(node)
-  emitter:add_indent_ln('ppregistry[', nindex, '].preprocess=function(parent, pindex)')
-  emitter:inc_indent()
-  emitter:add_indent_ln('ppcontext:inject_value(', luacode, ', ppregistry[', nindex, '], parent, pindex)')
-  emitter:dec_indent()
-  emitter:add_indent_ln('end')
-end
-
 function visitors.FuncDef(ppcontext, node, emitter)
   local namenode, argnodes, retnodes, annotnodes, blocknode = node[2], node[3], node[4], node[5], node[6]
   ppcontext:traverse_node(namenode, emitter, node, 2)
   ppcontext:traverse_nodes(argnodes, emitter, node, 3)
   for i=1,#retnodes do
     local retnode = retnodes[i]
-    if retnode.tag == 'PreprocessExpr' then
-      make_expr_node_preprocess(ppcontext, retnode, emitter)
-    else
+    local needpreprocess
+    for subnode in retnode:walk_nodes() do
+      if subnode.tag:match('^Preprocess') then
+        needpreprocess = true
+        break
+      end
+    end
+    if not needpreprocess then
       ppcontext:traverse_node(retnode, emitter, retnodes, i)
+    else -- we want to preprocess later to have arguments visible in the preprocess context
+      local retindex = ppcontext:getregistryindex(retnode)
+      emitter:add_indent_ln('ppregistry[', retindex, '].preprocess=function(parent, pindex)')
+      emitter:inc_indent()
+      ppcontext:traverse_node(retnode, emitter, retnodes, i)
+      local retsindex = ppcontext:getregistryindex(retnodes)
+      emitter:add_indent_ln("parent[pindex] = ppregistry[",retsindex,"][",i,"]:clone()")
+      emitter:dec_indent()
+      emitter:add_indent_ln('end')
     end
   end
   if annotnodes then

@@ -2489,7 +2489,7 @@ local function visitor_function_returns(context, node, retnodes, ispolyparent)
   local polyret = false
   for i=1,#retnodes do
     local retnode = retnodes[i]
-    if retnode.tag == 'PreprocessExpr' then -- must preprocess the return type
+    if retnode.preprocess then -- must preprocess the return type
       if ispolyparent then
         -- skip parsing nodes that need preprocess in polymorphic function parent
         retnode = nil
@@ -2503,7 +2503,8 @@ local function visitor_function_returns(context, node, retnodes, ispolyparent)
             retnode:raisef('error while preprocessing function return node: %s', err)
           end
         end
-        retnode = retnodes[i] -- the node was overwritten
+        retnode = retnodes[i] -- the node may be overwritten
+        retnode.preprocess = nil
       end
     end
     if retnode then

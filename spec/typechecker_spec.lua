@@ -743,7 +743,11 @@ it("poly function definition", function()
     local function f(x: auto): #[x.type]#
       return x
     end
-    local z: integer = f(1)
+    local function g(x: auto): pointer(#[x.type]#)
+      return &x
+    end
+    local a: integer = f(1)
+    local b: *integer = g(1)
   ]])
   expect.analyze_error([[
     local function f(x: auto): #[x.type]#
