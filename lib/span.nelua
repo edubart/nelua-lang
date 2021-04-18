@@ -34,8 +34,13 @@
   end
 
   -- Returns the number of elements in the span.
-  function spanT:__len(): isize <inline>
+  function spanT:__len(): isize <inline,nosideeffect>
     return (@isize)(self.size)
+  end
+
+  -- Returns true if the span `data` ~= nilptr and `size` > 0.
+  function spanT:valid(): boolean <inline,nosideeffect>
+    return self.data ~= nilptr and self.size > 0
   end
 
   -- Initializes span from pointers to other arrays.

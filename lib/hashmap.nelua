@@ -227,6 +227,17 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
     return &self.nodes[node_index].value
   end
 
+  -- Returns a reference to the value that is mapped to a key.
+  -- If no such element exists, returns nilptr.
+  -- Complexity: Average case O(1).
+  function hashmapT:peek(key: K): *V
+    local node_index: usize = self:_find(key)
+    if node_index ~= INVALID_INDEX then
+      return &self.nodes[node_index].value
+    end
+    return nilptr
+  end
+
   -- Inserts an element or assigns to the current element if the key already exists.
   -- Complexity: Average case O(1).
   function hashmapT:set(key: K, value: V): void

@@ -137,12 +137,15 @@ end
 do -- spanalloc and spandealloc
   local p = allocator:spanalloc(@vec2, 2)
   assert(p.data ~= nilptr and p.size == 2)
+  assert(p:valid())
   allocator:spandealloc(p)
   p = (@span(vec2)){}
   assert(p.data == nilptr and p.size == 0)
+  assert(not p:valid())
   allocator:spandealloc(p)
   p = allocator:spanalloc(@vec2, 0)
   assert(p.data == nilptr and p.size == 0)
+  assert(not p:valid())
 end
 
 do -- spanalloc0

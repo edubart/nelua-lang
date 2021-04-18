@@ -19,6 +19,7 @@ do -- inserting
     assert(map[k] == v)
     assert(map:at(k) == v)
     assert($map:at_ptr(k) == v)
+    assert(map:at_ptr(k) == map:peek(k))
     assert(map:get(k) == v)
     assert($map:get_ptr(k) == v)
     assert(map:has(k))
