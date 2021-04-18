@@ -110,6 +110,7 @@ end)
 it("string", function()
   expect.generate_c([[local a = "hello"]], [["hello"]])
   expect.generate_c([[local a = "\001"]], [["\001"]])
+  expect.generate_c([[local a = #[string.rep('\0', 256)]# ]], [[0x00,0x00,0x00]])
 end)
 
 it("boolean", function()

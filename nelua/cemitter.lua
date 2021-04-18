@@ -291,8 +291,22 @@ function CEmitter:add_string_literal(val, ascstring)
   varname = self.context:genuniquename('strlit')
   self.context.stringliterals[val] = varname
   local decemitter = CEmitter(self.context)
-  local quoted_value = pegger.double_quote_c_string(val)
-  decemitter:add_indent_ln('static char ', varname, '[', size+1, '] = ', quoted_value, ';')
+  decemitter:add_indent('static char ', varname, '[', size+1, '] = ')
+  if val:find('\0', 1, true) then -- should be a binary string
+    decemitter:add('{')
+    for i=1,size do
+      if i % 32 == 1 then
+        decemitter:add_ln()
+        decemitter:add_indent()
+      end
+      decemitter:add(string.format('0x%02x,', string.byte(val:sub(i,i))))
+    end
+    decemitter:add('0x00')
+    decemitter:add_ln('};')
+  else -- text string
+    local quoted_value = pegger.double_quote_c_string(val)
+    decemitter:add_ln(quoted_value, ';')
+  end
   self.context:add_declaration(decemitter:generate(), varname)
   if ascstring then --luacov:disable
     self:add_one(varname)
