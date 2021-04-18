@@ -12,12 +12,18 @@ it("evaluate expressions", function()
     local c = #[true]#
     local d, d2, d3 = #[1.5e-30]#, #[1.5]#, #[1e-30]#
     local e = #[aster.Number{'dec','1'}]#
+    local a: [4]integer = #[{1,2,3,4}]#
+    local r: record{x: integer, y: integer} = #[{x=1, y=2}]#
+    local n: niltype = #[nil]#
   ]=], [[
     local a = 'hello'
     local b = -1
     local c = true
     local d, d2, d3 = 1.5e-30, 1.5, 1e-30
     local e = 1
+    local a: [4]integer = {1,2,3,4}
+    local r: record{x: integer, y: integer} = {x=1, y=2}
+    local n: niltype = nil
   ]])
   expect.ast_type_equals([=[
     local a: [10]integer

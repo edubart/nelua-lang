@@ -58,7 +58,22 @@ function ASTBuilder:create_value(val, srcnode)
     end
   elseif traits.is_boolean(val) then
     node = aster.Boolean{val}
-  --TODO: table, nil
+  elseif traits.is_table(val) then
+    local exprs = {}
+    -- hash part
+    for k,v in iters.ospairs(val) do
+      exprs[#exprs+1] = aster.Pair{
+        k,
+        self:create_value(v, srcnode)
+      }
+    end
+    -- integer part
+    for _,v in ipairs(val) do
+      exprs[#exprs+1] = self:create_value(v, srcnode)
+    end
+    node = aster.InitializerList{exprs}
+  elseif val == nil then
+    node = aster.Nil{}
   end
   if node and srcnode then
     node.src = srcnode.src
