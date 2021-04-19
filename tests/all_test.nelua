@@ -42,6 +42,10 @@ print('testing string_test... ')
 require 'tests.string_test'
 print 'OK!'
 
+print('testing utf8_test... ')
+require 'tests.utf8_test'
+print 'OK!'
+
 print('testing pattern_matching_test... ')
 require 'tests.pattern_matching_test'
 print 'OK!'

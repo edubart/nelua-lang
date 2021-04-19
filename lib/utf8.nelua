@@ -1,7 +1,257 @@
--- utf8
--- utf8.char(...)
--- utf8.charpattern
--- utf8.codepoint(s, i, j, lax)
--- utf8.codes(s, lax)
--- utf8.len(s, i, j, lax)
--- utf8.offset(s, n, i)
+--[[
+This library provides basic support for UTF-8 encoding.
+It provides all its functions inside the record utf8.
+This library does not provide any support for Unicode other than the handling of the encoding.
+Any operation that needs the meaning of a character,
+such as character classification, is outside its scope.
+
+Unless stated otherwise, all functions that expect a byte position as a parameter
+assume that the given position is either the start of a byte sequence
+or one plus the length of the subject string.
+As in the string library, negative indices count from the end of the string.
+
+Functions that create byte sequences accept all values up to 0x7FFFFFFF,
+as defined in the original UTF-8 specification,
+that implies byte sequences of up to six bytes.
+
+Functions that interpret byte sequences only accept valid sequences (well formed and not overlong)
+By default, they only accept byte sequences that result in valid Unicode code points,
+rejecting values greater than 10FFFF and surrogates.
+A boolean argument `relax`, when available, lifts these checks,
+so that all values up to 0x7FFFFFFF are accepted.
+(Not well formed and overlong sequences are still rejected.)
+]]
+
+require 'string'
+
+global utf8 = @record{}
+
+-- Pattern to match exactly one UTF-8 byte sequence,
+-- assuming that the subject is a valid UTF-8 string.
+global utf8.charpattern: string <comptime> = "[\0-\x7F\xC2-\xFD][\x80-\xBF]*"
+
+-- Helper to convert 1 indexed and relative positions to 0 indexed.
+local function utf8relpos(pos: isize, len: isize): isize <inline>
+  if pos >= 0 then
+    return pos - 1
+  elseif -pos > len then
+    return -1
+  else
+    return len + pos
+  end
+end
+-- Helper to check UTF-8 sequence continuation byte.
+local function utf8iscont(p: byte): boolean
+  return (p & 0xC0) == 0x80
+end
+
+-- Helper to convert an integer to its corresponding UTF-8 byte sequence.
+local function utf8esc(buf: *[8]byte, x: uint32): int32
+  local n: int32 = 1
+  check(x <= 0x7FFFFFFF_u)
+  if x < 0x80 then -- ASCII?
+    buf[7] = (@byte)(x)
+  else -- need continuation bytes
+    local mfb: usize = 0x3f -- maximum that fits in first byte
+    repeat -- add continuation bytes
+      buf[8 - n] = (@byte)(0x80 | (x & 0x3f))
+      n = n + 1
+      x = x >> 6 -- removed added bits
+      mfb = mfb >> 1 -- now there is one less bit available in first byte
+    until x <= mfb -- still needs continuation byte?
+    buf[8 - n] = (@byte)((~mfb << 1) | x) -- add first byte
+  end
+  return n
+end
+
+-- Decode one UTF-8 sequence, returning 0, -1 if byte sequence is invalid.
+-- The array `limits` stores the minimum value for each sequence length,
+-- to check for overlong representations.
+-- Its first entry forces an error for non-ASCII bytes with no continuation bytes (`count` == 0).
+local function utf8decode(s: string, relax: boolean): (uint32, isize) <inline, nosideeffect>
+  local MAXUNICODE: uint32 <comptime> = 0x10FFFF
+  local MAXUTF: uint32 <comptime> = 0x7FFFFFFF
+  local limits: [6]uint32 = {~0_u32, 0x80, 0x800, 0x10000, 0x200000, 0x4000000}
+  local c: uint32 = s.data[0]
+  local code: uint32 = 0 -- final result
+  local count: uint32 = 0 -- to count number of continuation bytes
+  if c < 0x80 then -- ASCII?
+    code = c
+  else
+    while (c & 0x40) ~= 0 do -- while it needs continuation bytes...
+      count = count + 1
+      local cc: uint32 = s.data[count] -- read next byte
+      if (cc & 0xC0) ~= 0x80 then -- not a continuation byte?
+        return 0, -1 -- invalid byte sequence
+      end
+      code = (code << 6) | (cc & 0x3F) -- add lower 6 bits from cont. byte
+      c = c << 1
+    end
+    code = code | ((c & 0x7F) << (count * 5)) -- add first byte
+    if count > 5 or code > MAXUTF or code < limits[count] then
+      return 0, -1 -- invalid byte sequence
+    end
+  end
+  if not relax then -- strict
+    -- check for invalid code points, too large or surrogates
+    if code > MAXUNICODE or (0xD800 <= code and code <= 0xDFFF) then
+      return 0, -1
+    end
+  end
+  return code, count + 1 -- +1 to include first byte
+end
+
+-- Receives zero or more integers, converts each one to its corresponding UTF-8 byte sequence,
+-- and returns a string with the concatenation of all these sequences.
+function utf8.char(...: varargs): string
+  local sb: stringbuilder
+  local buf: [8]byte
+  local len: int32 <noinit>
+  ## for i=1,select_varargs('#') do
+    len = utf8esc(&buf, (@uint32)(#[select_varargs(i)]#))
+    sb:write_string(string{data=&buf[8 - len], size=(@usize)(len)})
+  ## end
+  return sb:promote()
+end
+
+
+## local function make_codes_next(relaxed)
+## local fname = relaxed and 'utf8next_lax' or 'utf8next'
+local function #|fname|#(s: string, i: isize): (boolean, isize, uint32)
+  local n: isize = i - 1
+  local len: isize = #s
+  if n < 0 then -- first iteration?
+    n = 0 -- start from here
+  elseif n < len then
+    n = n + 1 -- skip current byte
+    while utf8iscont(s.data[n]) do n = n + 1 end -- and its continuations
+  end
+  if n >= len then
+    return false, 0, 0 -- no more codepoints
+  else
+    local code: uint32, advance: isize = utf8decode(string{&s.data[n], (@usize)(len - n)}, #[relaxed]#)
+    assert(advance ~= -1, 'invalid UTF-8 code')
+    return true, n + 1, code
+  end
+end
+## end
+## make_codes_next(true)
+## make_codes_next(false)
+
+-- UTF-8 iterator, use to iterate over UTF-8 codes.
+-- It returns values so that the construction
+--   for p, c in utf8.codes(s) do end
+-- will iterate over all UTF-8 characters in string s,
+-- with p being the position (in bytes) and c the code point of each character.
+-- It raises an error if it meets any invalid byte sequence.
+function utf8.codes(s: string, relax: facultative(boolean))
+  : (function(string, isize): (boolean, isize, uint32), string, isize) <inline>
+  ## if relax.type.is_niltype then
+  return utf8next, s, 0
+  ## else
+  if relax then
+    return utf8next_lax, s, 0
+  else
+    return utf8next, s, 0
+  end
+  ## end
+end
+
+-- Returns the code point (as integer) from the characters in `s` at position `i`.
+-- The default for `i` is 1.
+-- It raises an error if it meets any invalid byte sequence.
+function utf8.codepoint(s: string, i: facultative(isize), relax: facultative(boolean)): uint32
+  ## if i.type.is_niltype then
+  local i: isize = 1
+  ## end
+  ## if relax.type.is_niltype then
+  local relax: boolean = false
+  ## end
+  local len: isize = #s
+  i = utf8relpos(i, len)
+  assert(i >= 0 and i < len, 'out of bounds')
+  local p: isize = 0
+  for n: isize = 0,<len do
+    local code: uint32, advance: isize = utf8decode(string{&s.data[p], (@usize)(len - p)}, relax)
+    assert(advance ~= -1, 'invalid UTF-8 code')
+    if p == i then
+      return code
+    end
+    p = p + advance
+  end
+  assert(false, 'out of bounds')
+  return 0
+end
+
+-- Returns the position (in bytes) where the encoding of the n-th character of s starts
+-- (counting from position i).
+-- A negative n gets characters before position i.
+-- The default for i is 1 when n is non-negative and #s + 1 otherwise,
+-- so that utf8.offset(s, -n) gets the offset of the n-th character from the end of the string.
+-- If the specified character is neither in the subject nor right after its end,
+-- the function returns -1.
+function utf8.offset(s: string, n: isize, i: facultative(isize)): isize
+  local len: isize = #s
+  ## if i.type.is_niltype then
+  local i: isize = n >= 0 and 1 or len + 1
+  ## end
+  i = utf8relpos(i, len)
+  assert(i >= 0 and i <= len, "position out of bounds")
+  if n == 0 then
+    -- find beginning of current byte sequence
+    while i > 0 and utf8iscont(s.data[i]) do i = i - 1 end
+  else
+    assert(not utf8iscont(s.data[i]), "initial position is a continuation byte")
+    if n < 0 then
+       while n < 0 and i > 0 do -- move back
+         repeat -- find beginning of previous character
+           i = i - 1
+         until not (i > 0 and utf8iscont(s.data[i]))
+         n = n + 1
+       end
+     else
+       n = n - 1 -- do not move for 1st character
+       while n > 0 and i < len do
+         repeat -- find beginning of next character
+           i = i + 1
+         until not utf8iscont(s.data[i]) -- (cannot pass final '\0')
+         n = n - 1
+       end
+     end
+  end
+  if n == 0 then -- did it find given character?
+    return i + 1
+  else -- no such character
+    return -1
+  end
+end
+
+-- Returns the number of UTF-8 characters in string s that start between positions i and j (both inclusive).
+-- The default for i is 1 and for j is -1.
+-- If it finds any invalid byte sequence, returns -1 plus the position of the first invalid byte.
+function utf8.len(s: string, i: facultative(isize), j: facultative(isize), relax: facultative(boolean)): (isize, isize)
+  local len: isize = #s
+  ## if i.type.is_niltype then
+  local i: isize = 1
+  ## end
+  ## if j.type.is_niltype then
+  local j: isize = len
+  ## end
+  ## if relax.type.is_niltype then
+  local relax: boolean = false
+  ## end
+  i = utf8relpos(i, len)
+  assert(i >= 0 and i <= len, "initial position out of bounds")
+  j = utf8relpos(j, len)
+  assert(j < len, "final position out of bounds")
+  local n: isize = 0
+  while i <= j do
+    local code: uint32, advance: isize = utf8decode(string{&s.data[i], (@usize)(len - i)}, relax)
+    if advance == -1 then -- conversion error?
+      return -1, i + 1 -- return fail and current position
+    end
+    i = i + advance
+    n = n + 1
+  end
+  return n, -1
+end

@@ -342,7 +342,7 @@ end
 
 -- Check whether pattern has no special characters.
 local function match_has_pattern_specials(pattern: string): boolean
-  for i=0,<pattern.size do
+  for i: usize = 0,<pattern.size do
     switch pattern.data[i] do
     case '^'_b, '$'_b, '*'_b, '+'_b, '?'_b, '.'_b, '('_b, '['_b, '%'_b, '-'_b then
       return true
