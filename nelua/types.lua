@@ -2143,7 +2143,7 @@ end
 -- Get the desired type when converting this type from an attr.
 function PointerType:get_convertible_from_attr(attr, explicit, autoref)
   local type = attr.type
-  if not explicit and autoref and self.subtype == type and (type.is_record or type.is_array) then
+  if not explicit and autoref and self.subtype == type and (type.is_composite or type.is_array) then
     -- implicit automatic reference for records and arrays
     if not attr.lvalue then -- can only reference l-values
       return false, stringer.pformat(
@@ -2258,7 +2258,7 @@ end
 function PointerType:implicit_deref_type()
   -- implicit dereference is only allowed for records and arrays subtypes
   local subtype = self.subtype
-  if subtype and (subtype.is_record or subtype.is_array) then
+  if subtype and (subtype.is_composite or subtype.is_array) then
     return subtype
   end
   return self

@@ -2254,6 +2254,11 @@ it("automatic reference", function()
     end
     local a, b = vec2{1,2}, vec2{3,4}
     assert(a:add(b) == vec2{4,6})
+
+    local u: union{x: integer, y: number} = {y=1.0}
+    local pu = &u
+    assert(pu.x == u.x)
+    assert(pu.y == u.y)
   ]])
 end)
 
