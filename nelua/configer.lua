@@ -78,20 +78,20 @@ local function build_configs(conf)
   merge_configs(conf, defconfig)
 
   if conf.output then --luacov:disable
-    if conf.output:match('.c$') then
+    if conf.output:match('%.c$') then
       conf.generator = 'c'
       conf.generate_code = true
       conf.compile_binary = false
-    elseif conf.output:match('.lua$') then
+    elseif conf.output:match('%.lua$') then
       conf.generator = 'lua'
       conf.generate_code = true
       conf.compile_binary = false
-    elseif conf.output:match('.so$') or conf.output:match('.dll$') or conf.output:match('.dylib$') then
+    elseif conf.output:match('%.so$') or conf.output:match('%.dll$') or conf.output:match('%.dylib$') then
       conf.generator = 'c'
       conf.shared = true
       conf.compile_binary = true
       conf.generate_code = false
-    elseif conf.output:match('.a$') then
+    elseif conf.output:match('%.a$') then
       conf.generator = 'c'
       conf.static = true
       conf.compile_binary = true

@@ -160,7 +160,7 @@ end
 local function detect_binary_extension(outfile, ccinfo)
   --luacov:disable
   if ccinfo.is_wasm then
-    if outfile:match('.wasm$') then
+    if outfile:match('%.wasm$') then
       return '.wasm', true
     else
       return '.html', true
@@ -281,10 +281,10 @@ function compiler.get_run_command(binaryfile, runargs)
   end --luacov:enable
 
   local exe, args
-  if binaryfile:match('.html$') then  --luacov:disable
+  if binaryfile:match('%.html$') then  --luacov:disable
     exe = 'emrun'
     args = tabler.insertvalues({binaryfile}, runargs)
-  elseif binaryfile:match('.wasm$') then
+  elseif binaryfile:match('%.wasm$') then
     exe = 'wasmer'
     args = tabler.insertvalues({binaryfile}, runargs)
   else --luacov:enable
