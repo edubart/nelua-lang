@@ -220,49 +220,340 @@ The [OS library](https://github.com/edubart/nelua-lang/blob/master/lib/os.nelua)
 
 ## string
 
-[String library](https://github.com/edubart/nelua-lang/blob/master/lib/string.nelua) description (TODO)
+String points to an immutable contiguous sequence of characters.
+Internally it just holds a pointer to a buffer and a size.
+It's buffer is null terminated (`\0`) by default to have more compatibility with C.
 
-| Variable Name | Description |
-|---------------|------|
-| `string`{:.language-nelua} | String type. |
-| `tostring`{:.language-nelua} | Converts values to string using `__tostring`{:.language-nelua}. |
-| `tonumber`{:.language-nelua} |  |
-| `tointeger`{:.language-nelua} |  |
-| `string.sub`{:.language-nelua} |  |
-| `string.rep`{:.language-nelua} |  |
-| `string.reverse`{:.language-nelua} |  |
-| `string.upper`{:.language-nelua} |  |
-| `string.lower`{:.language-nelua} |  |
-| `string.char`{:.language-nelua} |  |
-| `string.format`{:.language-nelua} |  |
-| `string.byte`{:.language-nelua} |  |
-| `string.subview`{:.language-nelua} |  |
-| `string.find`{:.language-nelua} |  |
-| `string.len`{:.language-nelua} |  |
-| `string.__concat`{:.language-nelua} |  |
-| `string.__len`{:.language-nelua} |  |
-| `string.__eq`{:.language-nelua} |  |
-| `string.__lt`{:.language-nelua} |  |
-| `string.__le`{:.language-nelua} |  |
-| `string.__add`{:.language-nelua} |  |
-| `string.__sub`{:.language-nelua} |  |
-| `string.__mul`{:.language-nelua} |  |
-| `string.__div`{:.language-nelua} |  |
-| `string.__idiv`{:.language-nelua} |  |
-| `string.__tdiv`{:.language-nelua} |  |
-| `string.__mod`{:.language-nelua} |  |
-| `string.__tmod`{:.language-nelua} |  |
-| `string.__pow`{:.language-nelua} |  |
-| `string.__unm`{:.language-nelua} |  |
-| `string.__band`{:.language-nelua} |  |
-| `string.__bor`{:.language-nelua} |  |
-| `string.__bxor`{:.language-nelua} |  |
-| `string.__shl`{:.language-nelua} |  |
-| `string.__shr`{:.language-nelua} |  |
-| `string.__bnot`{:.language-nelua} |  |
-| `string.__tocstring`{:.language-nelua} |  |
-| `string.__convert`{:.language-nelua} |  |
-{: .table.table-bordered.table-striped.table-sm}
+The string type is defined by the compiler, however it does not have
+its methods implemented, this module implements all string methods.
+
+Some methods may allocate a new string and you should call
+`destroy` to free the string memory when the GC is disabled.
+Note that strings can point  to a buffer in the program static storage
+and such strings should never be destroyed.
+
+### string._create
+```nelua
+function string._create(size: usize): string
+```
+
+Allocate a new string to be filled. Used internally.
+
+### string.destroy
+```nelua
+function string.destroy(s: string): void
+```
+
+Must be required later because it depends on `string._create`
+Destroys a string freeing its resources.
+When GC is enabled this does nothing, because string references can be shared with GC enabled.
+
+### string.copy
+```nelua
+function string.copy(s: string): string
+```
+
+Clone a string, allocating new space.
+
+### string._forward
+```nelua
+function string._forward(s: string): string <inline>
+```
+
+Forward a string reference to be used elsewhere.
+When GC is enabled this just returns the string itself.
+When GC is disabled a string copy is returned, so it can be safely stored and destroyed.
+
+### string.byte
+```nelua
+function string.byte(s: string, i: facultative(isize)): byte
+```
+
+Returns the internal numeric codes of the character at position `i`.
+
+### string.subview
+```nelua
+function string.subview(s: string, i: isize, j: facultative(isize)): string
+```
+
+Return a view for sub string for a string.
+The main difference between this and `string.sub` is that, here we don't allocate a new string,
+instead it reuses its memory as an optimization.
+Use this only if you know what you are doing, to be safe use `string.sub` instead.
+CAUTION: When using the GC the view will not hold reference of the original string allocated at
+runtime and the data may be collected.
+The view string will may not be null terminated, thus you should never
+convert it to a cstring and use in C functions.
+
+### string.find
+```nelua
+function string.find(s: string, pattern: string, init: facultative(isize), plain: facultative(boolean)): (isize, isize)
+```
+
+Looks for the first match of pattern in the string.
+Returns the indices of where this occurrence starts and ends.
+The indices will be positive if a match is found, zero otherwise.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+A value of true as a fourth, optional argument plain turns off the pattern matching facilities.
+
+### string.gmatch
+```nelua
+function string.gmatch(s: string, pattern: string, init: facultative(isize))
+```
+
+Returns an iterator function that, each time it is called, returns the whole match plus a span of captures.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+
+### string.sub
+```nelua
+function string.sub(s: string, i: isize, j: facultative(isize)): string
+```
+
+Returns the substring of `s` that starts at `i` and continues until `j` (both inclusive).
+Both `i` and `j` can be negative.
+If `j` is absent, then it is assumed to be equal to `-1` (which is the same as the string length).
+In particular, the call `string.sub(s,1,j)` returns a prefix of `s` with length `j`,
+and `string.sub(s, -i)` (for a positive `i`) returns a suffix of `s` with length `i`.
+
+### string.rep
+```nelua
+function string.rep(s: string, n: isize, sep: facultative(string)): string
+```
+
+Returns a string that is the concatenation of `n` copies of the string `s` separated by the string `sep`.
+The default value for `sep` is the empty string (that is, no separator).
+Returns the empty string if `n` is not positive.
+
+### string.match
+```nelua
+function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+```
+
+Looks for the first match of pattern in the string.
+If it finds one, then returns true plus a sequence with the captured values,
+otherwise it returns false plus an empty sequence.
+If pattern specifies no captures, then the whole match is captured.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+
+### string.reverse
+```nelua
+function string.reverse(s: string): string
+```
+
+Returns a string that is the string `s` reversed.
+
+### string.upper
+```nelua
+function string.upper(s: string): string
+```
+
+Receives a string and returns a copy of this string with all lowercase letters changed to uppercase.
+All other characters are left unchanged.
+The definition of what a lowercase letter is depends on the current locale.
+
+### string.lower
+```nelua
+function string.lower(s: string): string
+```
+
+Receives a string and returns a copy of this string with all uppercase letters changed to lowercase.
+All other characters are left unchanged.
+The definition of what an uppercase letter is depends on the current locale.
+
+### string.char
+```nelua
+function string.char(...: varargs): string
+```
+
+Receives zero or more integers and returns a string with length equal to the number of arguments,
+in which each character has the internal numeric code equal to its corresponding argument.
+Numeric codes are not necessarily portable across platforms.
+
+### string.format
+```nelua
+function string.format(fmt: string, ...: varargs): string
+```
+
+Returns a formatted version of its variable number of arguments following the description
+given in its first argument, which must be a string.
+The format string follows the same rules as the ISO C function `sprintf`.
+The only differences are that the conversion specifiers and modifiers `*, h, L, l` are not supported.
+
+### string.len
+```nelua
+function string.len(s: string): isize <inline>
+```
+
+Receives a string and returns its length.
+The empty string "" has length 0. Embedded zeros are counted.
+
+### string.__concat
+```nelua
+function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string
+```
+
+Concatenate two strings. Used by the concatenation operator (`..`).
+
+### string.__len
+```nelua
+function string.__len(a: string): isize <inline>
+```
+
+Return length of a string. Used by the length operator (`#`).
+
+### string.__eq
+```nelua
+function string.__eq(a: string, b: string): boolean
+```
+
+Compare two strings. Used by the equality operator (`==`).
+
+### string.__lt
+```nelua
+function string.__lt(a: string, b: string): boolean
+```
+
+Compare if string `a` is less than string `b` in lexicographical order.
+Used by the less than operator (`<`).
+
+### string.__le
+```nelua
+function string.__le(a: string, b: string): boolean
+```
+
+Compare if string `a` is less or equal than string `b` in lexicographical order.
+Used by the less or equal than operator (`<=`).
+
+### string.__add
+```nelua
+function string.__add(a: scalar_coercion_concept, b: scalar_coercion_concept): number
+```
+
+
+### string.__sub
+```nelua
+function string.__sub(a: scalar_coercion_concept, b: scalar_coercion_concept): number
+```
+
+
+### string.__mul
+```nelua
+function string.__mul(a: scalar_coercion_concept, b: scalar_coercion_concept): number
+```
+
+
+### string.__div
+```nelua
+function string.__div(a: scalar_coercion_concept, b: scalar_coercion_concept): number
+```
+
+
+### string.__idiv
+```nelua
+function string.__idiv(a: scalar_coercion_concept, b: scalar_coercion_concept): number
+```
+
+
+### string.__tdiv
+```nelua
+function string.__tdiv(a: scalar_coercion_concept, b: scalar_coercion_concept): number
+```
+
+
+### string.__mod
+```nelua
+function string.__mod(a: scalar_coercion_concept, b: scalar_coercion_concept): number
+```
+
+
+### string.__tmod
+```nelua
+function string.__tmod(a: scalar_coercion_concept, b: scalar_coercion_concept): number
+```
+
+
+### string.__pow
+```nelua
+function string.__pow(a: scalar_coercion_concept, b: scalar_coercion_concept): number
+```
+
+
+### string.__unm
+```nelua
+function string.__unm(a: scalar_coercion_concept): number
+```
+
+
+### string.__band
+```nelua
+function string.__band(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
+```
+
+
+### string.__bor
+```nelua
+function string.__bor(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
+```
+
+
+### string.__bxor
+```nelua
+function string.__bxor(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
+```
+
+
+### string.__shl
+```nelua
+function string.__shl(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
+```
+
+
+### string.__shr
+```nelua
+function string.__shr(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
+```
+
+
+### string.__asr
+```nelua
+function string.__asr(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
+```
+
+
+### string.__bnot
+```nelua
+function string.__bnot(a: scalar_coercion_concept): integer
+```
+
+
+### tocstring
+```nelua
+global function tocstring(buf: *[0]cchar, buflen: usize, s: string): boolean
+```
+
+Convert a string to a `cstring` using a temporary buffer,
+this is mainly used to ensure the string is null terminated ('\0').
+
+### tostring
+```nelua
+global function tostring(x: auto): string
+```
+
+Convert a value to a string.
+
+### tonumber
+```nelua
+global function tonumber(x: auto, base: facultative(integer))
+```
+
+Convert a value to a number.
+
+### tointeger
+```nelua
+global function tointeger(x: auto, base: facultative(integer)): integer
+```
+
+Convert a value to an integer.
 
 ## stringbuilder
 
@@ -312,5 +603,93 @@ The [Vector library](https://github.com/edubart/nelua-lang/blob/master/lib/vecto
 | `vectorT:__atindex(i: usize): *T`{:.language-nelua} | Returns reference to element at index `pos`. |
 | `vectorT:__len(): isize`{:.language-nelua} | Returns the number of elements in the vector. |
 {: .table.table-bordered.table-striped.table-sm}
+
+## utf8
+
+```nelua
+global utf8: type = @record{}
+```
+
+This library provides basic support for UTF-8 encoding.
+It provides all its functions inside the record utf8.
+This library does not provide any support for Unicode other than the handling of the encoding.
+Any operation that needs the meaning of a character,
+such as character classification, is outside its scope.
+
+Unless stated otherwise, all functions that expect a byte position as a parameter
+assume that the given position is either the start of a byte sequence
+or one plus the length of the subject string.
+As in the string library, negative indices count from the end of the string.
+
+Functions that create byte sequences accept all values up to 0x7FFFFFFF,
+as defined in the original UTF-8 specification,
+that implies byte sequences of up to six bytes.
+
+Functions that interpret byte sequences only accept valid sequences (well formed and not overlong)
+By default, they only accept byte sequences that result in valid Unicode code points,
+rejecting values greater than 10FFFF and surrogates.
+A boolean argument `relax`, when available, lifts these checks,
+so that all values up to 0x7FFFFFFF are accepted.
+(Not well formed and overlong sequences are still rejected.)
+
+### utf8.charpattern
+```nelua
+global utf8.charpattern: string <comptime> = "[\0-\x7F\xC2-\xFD][\x80-\xBF]*"
+```
+
+Pattern to match exactly one UTF-8 byte sequence,
+assuming that the subject is a valid UTF-8 string.
+
+### utf8.char
+```nelua
+function utf8.char(...: varargs): string
+```
+
+Receives zero or more integers, converts each one to its corresponding UTF-8 byte sequence,
+and returns a string with the concatenation of all these sequences.
+
+### utf8.codes
+```nelua
+function utf8.codes(s: string, relax: facultative(boolean)): (function(string, isize): (boolean, isize, uint32), string, isize) <inline>
+```
+
+UTF-8 iterator, use to iterate over UTF-8 codes.
+It returns values so that the construction
+```nelua
+for p, c in utf8.codes(s) do end
+```
+will iterate over all UTF-8 characters in string `s`,
+with `p` being the position (in bytes) and `c` the code point of each character.
+It raises an error if it meets any invalid byte sequence.
+
+### utf8.codepoint
+```nelua
+function utf8.codepoint(s: string, i: facultative(isize), relax: facultative(boolean)): uint32
+```
+
+Returns the code point (as integer) from the characters in `s` at position `i`.
+The default for `i` is `1`.
+It raises an error if it meets any invalid byte sequence.
+
+### utf8.offset
+```nelua
+function utf8.offset(s: string, n: isize, i: facultative(isize)): isize
+```
+
+Returns the position (in bytes) where the encoding of the n-th character of `s` starts (counting from position `i`).
+A negative `n` gets characters before position `i`.
+The default for `i` is `1` when `n` is non-negative and `#s + 1` otherwise,
+so that `utf8.offset(s, -n)` gets the offset of the n-th character from the end of the string.
+If the specified character is neither in the subject nor right after its end,
+the function returns `-1`.
+
+### utf8.len
+```nelua
+function utf8.len(s: string, i: facultative(isize), j: facultative(isize), relax: facultative(boolean)): (isize, isize)
+```
+
+Returns the number of UTF-8 characters in string `s` that start between positions `i` and `j` (both inclusive).
+The default for `i` is `1` and for `j` is `-1`.
+If it finds any invalid byte sequence, returns `-1` plus the position of the first invalid byte.
 
 <a href="/diffs/" class="btn btn-outline-primary btn-lg float-right">Differences >></a>

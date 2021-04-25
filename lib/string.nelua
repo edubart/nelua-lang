@@ -1,15 +1,16 @@
--- String methods
---
--- String points to an immutable contiguous sequence of characters.
--- Internally it just holds a pointer to a buffer and a size.
--- It's buffer is null terminated ('\0') by default to have more compatibility with C.
---
--- The string type is defined by the compiler, however it does not have
--- its methods implemented, this file implements all string methods.
---
--- Some methods may allocate a new string and you should call
--- `destroy` to free the string memory. Note that strings can point
--- to a buffer in the program static storage and such strings should never be destroyed.
+--[[
+String points to an immutable contiguous sequence of characters.
+Internally it just holds a pointer to a buffer and a size.
+It's buffer is null terminated (`\0`) by default to have more compatibility with C.
+
+The string type is defined by the compiler, however it does not have
+its methods implemented, this module implements all string methods.
+
+Some methods may allocate a new string and you should call
+`destroy` to free the string memory when the GC is disabled.
+Note that strings can point  to a buffer in the program static storage
+and such strings should never be destroyed.
+]]
 
 -- Modules are used to implement string methods.
 require 'memory'
@@ -31,23 +32,24 @@ local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 
 -- Allocate a new string to be filled. Used internally.
 function string._create(size: usize): string
-  local self: string
+  local s: string
   check(size > 0, 'attempt to create an empty string')
-  self.size = size
-  self.data = (@*[0]byte)(default_allocator:xalloc(size+1))
-  self.data[size] = 0
-  return self
+  s.size = size
+  s.data = (@*[0]byte)(default_allocator:xalloc(size+1))
+  s.data[size] = 0
+  return s
 end
 
 require 'stringbuilder' -- Must be required later because it depends on `string._create`
 
 -- Destroys a string freeing its resources.
-function string:destroy(): void
+-- When GC is enabled this does nothing, because string references can be shared with GC enabled.
+function string.destroy(s: string): void
   ## if pragmas.nogc then -- cannot destroy when GC is enabled because string may be shared
-  if self.size > 0 then
-    default_allocator:dealloc(self.data)
-    self.data = nilptr
-    self.size = 0
+  if s.size > 0 then
+    default_allocator:dealloc(s.data)
+    s.data = nilptr
+    s.size = 0
   end
   ## end
 end
@@ -75,41 +77,41 @@ function string._forward(s: string): string <inline>
 end
 
 -- Returns the internal numeric codes of the character at position `i`.
-function string.byte(self: string, i: facultative(isize)): byte
-  -- TODO: j argument and multiple returns
+function string.byte(s: string, i: facultative(isize)): byte
   ## if i.type.is_niltype then
   local i: isize = 1
   ## end
-  if unlikely(self.size == 0) then return 0 end
-  if unlikely(i < 0) then i = self.size + i + 1 end
+  -- TODO: j argument and multiple returns
+  if unlikely(s.size == 0) then return 0 end
+  if unlikely(i < 0) then i = s.size + i + 1 end
   --TODO: return nil instead on failure
-  check(i >= 1 and (@usize)(i) <= self.size, 'index out of range')
-  return (@byte)(self.data[i-1])
+  check(i >= 1 and (@usize)(i) <= s.size, 'index out of range')
+  return (@byte)(s.data[i-1])
 end
 
 -- Return a view for sub string for a string.
 -- The main difference between this and `string.sub` is that, here we don't allocate a new string,
 -- instead it reuses its memory as an optimization.
 -- Use this only if you know what you are doing, to be safe use `string.sub` instead.
--- WARNING1: When using the GC the view will not hold reference of the original string allocated at
+-- CAUTION: When using the GC the view will not hold reference of the original string allocated at
 -- runtime and the data may be collected.
--- WARNING2: The view string will may not be null terminated, thus you should never
+-- The view string will may not be null terminated, thus you should never
 -- convert it to a cstring and use in C functions.
-function string.subview(self: string, i: isize, j: facultative(isize)): string
+function string.subview(s: string, i: isize, j: facultative(isize)): string
   ## if j.type.is_niltype then
   local j: isize = -1
   ## end
-  local size: isize = (@isize)(self.size)
+  local size: isize = (@isize)(s.size)
   if unlikely(size == 0) then return (@string){} end
   if unlikely(i < 0) then i = size + i + 1 end
   if unlikely(i <= 0) then i = 1 end
   if unlikely(j < 0) then j = size + j + 1 end
   if unlikely(j > size) then j = size end
-  if unlikely(i == 1 and j == size) then return self end
+  if unlikely(i == 1 and j == size) then return s end
   if unlikely(i > j) then return (@string){} end
   local subsize: usize = (@usize)(j - i + 1)
   if unlikely(subsize == 0) then return (@string){} end
-  return (@string){data=&self.data[i-1], size=subsize}
+  return (@string){data=&s.data[i-1], size=subsize}
 end
 
 -- Looks for the first match of pattern in the string.
@@ -117,17 +119,17 @@ end
 -- The indices will be positive if a match is found, zero otherwise.
 -- A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
 -- A value of true as a fourth, optional argument plain turns off the pattern matching facilities.
-function string.find(self: string, pattern: string, init: facultative(isize), plain: facultative(boolean)): (isize, isize)
+function string.find(s: string, pattern: string, init: facultative(isize), plain: facultative(boolean)): (isize, isize)
   ## if init.type.is_niltype then
   local init: isize = 1
   ## end
   ## if plain.type.is_niltype then
   local plain: boolean = false
   ## end
-  local ms: PatternMatcher = PatternMatcher.create(self, pattern)
-  local s: isize, e: isize = ms:match(init, plain)
-  if e ~= -1 then
-    return s+1, e
+  local ms: PatternMatcher = PatternMatcher.create(s, pattern)
+  local startpos: isize, endpos: isize = ms:match(init, plain)
+  if endpos ~= -1 then
+    return startpos+1, endpos
   else -- no match
     return 0, 0
   end
@@ -164,48 +166,56 @@ function string.gmatch(s: string, pattern: string, init: facultative(isize))
   return gmatch_next, state, (@string){}
 end
 
-function string.sub(self: string, i: isize, j: facultative(isize)): string
+-- Returns the substring of `s` that starts at `i` and continues until `j` (both inclusive).
+-- Both `i` and `j` can be negative.
+-- If `j` is absent, then it is assumed to be equal to `-1` (which is the same as the string length).
+-- In particular, the call `string.sub(s,1,j)` returns a prefix of `s` with length `j`,
+-- and `string.sub(s, -i)` (for a positive `i`) returns a suffix of `s` with length `i`.
+function string.sub(s: string, i: isize, j: facultative(isize)): string
   ## if j.type.is_niltype then
   local j: isize = -1
   ## end
-  local size: isize = (@isize)(self.size)
+  local size: isize = (@isize)(s.size)
   if unlikely(size == 0) then return (@string){} end
   if unlikely(i < 0) then i = size + i + 1 end
   if unlikely(i <= 0) then i = 1 end
   if unlikely(j < 0) then j = size + j + 1 end
   if unlikely(j > size) then j = size end
-  if unlikely(i == 1 and j == size) then return string._forward(self) end
+  if unlikely(i == 1 and j == size) then return string._forward(s) end
   if unlikely(i > j) then return (@string){} end
   local subsize: usize = (@usize)(j - i + 1)
   if unlikely(subsize == 0) then return (@string){} end
-  local s: string = string._create(subsize)
-  memory.copy(&s.data[0], &self.data[i-1], subsize)
-  return s
+  local ret: string = string._create(subsize)
+  memory.copy(&ret.data[0], &s.data[i-1], subsize)
+  return ret
 end
 
-function string.rep(self: string, n: isize, sep: facultative(string)): string
+-- Returns a string that is the concatenation of `n` copies of the string `s` separated by the string `sep`.
+-- The default value for `sep` is the empty string (that is, no separator).
+-- Returns the empty string if `n` is not positive.
+function string.rep(s: string, n: isize, sep: facultative(string)): string
   if unlikely(n <= 0) then return (@string){} end
-  if unlikely(n == 1) then return string._forward(self) end
+  if unlikely(n == 1) then return string._forward(s) end
   local n: usize = (@usize)(n)
   ## if sep.type.is_niltype then
-  if unlikely(self.size == 0) then return (@string){} end
-  local s: string = string._create(n * self.size)
+  if unlikely(s.size == 0) then return (@string){} end
+  local ret: string = string._create(n * s.size)
   for i:usize=0,<n do
-    memory.copy(&s.data[i*self.size], &self.data[0], self.size)
+    memory.copy(&ret.data[i*s.size], &s.data[0], s.size)
   end
   ## else
   local sep: string = sep
-  local partsize: usize = self.size + sep.size
+  local partsize: usize = s.size + sep.size
   if unlikely(partsize <= 0) then return (@string){} end
-  local s: string = string._create(n * partsize - sep.size)
+  local ret: string = string._create(n * partsize - sep.size)
   for i:usize=0,<n do
-    memory.copy(&s.data[i*partsize], &self.data[0], self.size)
+    memory.copy(&ret.data[i*partsize], &s.data[0], s.size)
     if i ~= n-1 then
-      memory.copy(&s.data[i*partsize + self.size], &sep.data[0], sep.size)
+      memory.copy(&ret.data[i*partsize + s.size], &sep.data[0], sep.size)
     end
   end
   ## end
-  return s
+  return ret
 end
 
 -- Looks for the first match of pattern in the string.
@@ -213,14 +223,14 @@ end
 -- otherwise it returns false plus an empty sequence.
 -- If pattern specifies no captures, then the whole match is captured.
 -- A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
-function string.match(self: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
   ## if init.type.is_niltype then
   local init: isize = 1
   ## end
-  local ms: PatternMatcher = PatternMatcher.create(self, pattern)
-  local s: isize, e: isize = ms:match(init, false)
+  local ms: PatternMatcher = PatternMatcher.create(s, pattern)
+  local startpos: isize, endpos: isize = ms:match(init, false)
   local captures: sequence(string)
-  if e ~= -1 then
+  if endpos ~= -1 then
     if ms.numcaptures > 0 then -- has captures
       captures:resize((@usize)(ms.numcaptures))
       for i:isize=0,<ms.numcaptures do
@@ -228,7 +238,7 @@ function string.match(self: string, pattern: string, init: facultative(isize)): 
       end
       return true, captures
     else -- nothing captured, then capture whole match
-      captures[1] = ms.source:subview(s+1, e)
+      captures[1] = ms.source:subview(startpos+1, endpos)
       return true, captures
     end
   else -- no match
@@ -236,33 +246,43 @@ function string.match(self: string, pattern: string, init: facultative(isize)): 
   end
 end
 
-function string.reverse(self: string): string
-  if unlikely(self.size == 0) then return self end
-  local s: string = string._create(self.size)
-  for i:usize=0,<self.size do
-    s.data[i] = self.data[self.size - i - 1]
+-- Returns a string that is the string `s` reversed.
+function string.reverse(s: string): string
+  if unlikely(s.size == 0) then return s end
+  local ret: string = string._create(s.size)
+  for i:usize=0,<s.size do
+    ret.data[i] = s.data[s.size - i - 1]
   end
-  return s
+  return ret
 end
 
-function string.upper(self: string): string
-  if unlikely(self.size == 0) then return self end
-  local s: string = string._create(self.size)
-  for i:usize=0,<self.size do
-    s.data[i] = (@byte)(toupper(self.data[i]))
+-- Receives a string and returns a copy of this string with all lowercase letters changed to uppercase.
+-- All other characters are left unchanged.
+-- The definition of what a lowercase letter is depends on the current locale.
+function string.upper(s: string): string
+  if unlikely(s.size == 0) then return s end
+  local ret: string = string._create(s.size)
+  for i:usize=0,<s.size do
+    ret.data[i] = (@byte)(toupper(s.data[i]))
   end
-  return s
+  return ret
 end
 
-function string.lower(self: string): string
-  if unlikely(self.size == 0) then return self end
-  local s: string = string._create(self.size)
-  for i:usize=0,<self.size do
-    s.data[i] = (@byte)(tolower(self.data[i]))
+-- Receives a string and returns a copy of this string with all uppercase letters changed to lowercase.
+-- All other characters are left unchanged.
+-- The definition of what an uppercase letter is depends on the current locale.
+function string.lower(s: string): string
+  if unlikely(s.size == 0) then return s end
+  local ret: string = string._create(s.size)
+  for i:usize=0,<s.size do
+    ret.data[i] = (@byte)(tolower(s.data[i]))
   end
-  return s
+  return ret
 end
 
+-- Receives zero or more integers and returns a string with length equal to the number of arguments,
+-- in which each character has the internal numeric code equal to its corresponding argument.
+-- Numeric codes are not necessarily portable across platforms.
 function string.char(...: varargs): string
   local s: string = string._create(#[select_varargs('#')]#)
   ## for i=1,select_varargs('#') do
@@ -271,15 +291,20 @@ function string.char(...: varargs): string
   return s
 end
 
+-- Returns a formatted version of its variable number of arguments following the description
+-- given in its first argument, which must be a string.
+-- The format string follows the same rules as the ISO C function `sprintf`.
+-- The only differences are that the conversion specifiers and modifiers `*, h, L, l` are not supported.
 function string.format(fmt: string, ...: varargs): string
   local sb: stringbuilder
   sb:write_format(fmt, ...)
   return sb:promote()
 end
 
--- Return length of a string.
-function string.len(self: string): isize <inline>
-  return (@isize)(self.size)
+-- Receives a string and returns its length.
+-- The empty string "" has length 0. Embedded zeros are counted.
+function string.len(s: string): isize <inline>
+  return (@isize)(s.size)
 end
 
 -- Concept to check if a value can possibly be a number.
@@ -294,17 +319,51 @@ local scalar_coercion_concept = #[concept(function(x)
   return false, string.format("type '%s' is not convertible to a scalar", x.type)
 end)]#
 
--- Return length of a string.
+-- Concept to check if a value can possibly be a string.
+local string_coercion_concept = #[concept(function(x)
+  if x.type.is_stringy then
+    return primtypes.string
+  elseif x.type.is_integral then
+    return primtypes.integer
+  elseif x.type.is_float then
+    return primtypes.number
+  end
+  return false, string.format("type '%s' is not convertible to a string", x.type)
+end)]#
+
+-- Concatenate two strings. Used by the concatenation operator (`..`).
+function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string
+  ## if not a.type.is_string then
+    local a: string = tostring(a)
+    defer a:destroy() end
+  ## end
+  ## if not b.type.is_string then
+    local b: string = tostring(b)
+    defer b:destroy() end
+  ## end
+  if a.size == 0 then
+    return string._forward(b)
+  elseif b.size == 0 then
+    return string._forward(a)
+  end
+  local s: string = string._create(a.size + b.size)
+  memory.copy(&s.data[0], a.data, a.size)
+  memory.copy(&s.data[a.size], b.data, b.size)
+  return s
+end
+
+-- Return length of a string. Used by the length operator (`#`).
 function string.__len(a: string): isize <inline>
   return (@isize)(a.size)
 end
 
--- Compare two strings.
+-- Compare two strings. Used by the equality operator (`==`).
 function string.__eq(a: string, b: string): boolean
   return a.size == b.size and (a.data == b.data or a.size == 0 or memory.equals(a.data, b.data, a.size))
 end
 
 -- Compare if string `a` is less than string `b` in lexicographical order.
+-- Used by the less than operator (`<`).
 function string.__lt(a: string, b: string): boolean
   if unlikely(a.size == 0 or b.size == 0) then
     return a.size < b.size
@@ -318,6 +377,7 @@ function string.__lt(a: string, b: string): boolean
 end
 
 -- Compare if string `a` is less or equal than string `b` in lexicographical order.
+-- Used by the less or equal than operator (`<=`).
 function string.__le(a: string, b: string): boolean
   if unlikely(a.size == 0 or b.size == 0) then
     return a.size <= b.size
@@ -331,6 +391,7 @@ function string.__le(a: string, b: string): boolean
 end
 
 -- Implement numeric operators for string.
+
 function string.__add(a: scalar_coercion_concept, b: scalar_coercion_concept): number
   return tonumber(a) + tonumber(b)
 end
@@ -399,38 +460,6 @@ function string.__bnot(a: scalar_coercion_concept): integer
   return ~tointeger(a)
 end
 
--- Concept to check if a value can possibly be a string.
-local string_coercion_concept = #[concept(function(x)
-  if x.type.is_stringy then
-    return primtypes.string
-  elseif x.type.is_integral then
-    return primtypes.integer
-  elseif x.type.is_float then
-    return primtypes.number
-  end
-  return false, string.format("type '%s' is not convertible to a string", x.type)
-end)]#
-
-function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string
-  ## if not a.type.is_string then
-    local a: string = tostring(a)
-    defer a:destroy() end
-  ## end
-  ## if not b.type.is_string then
-    local b: string = tostring(b)
-    defer b:destroy() end
-  ## end
-  if a.size == 0 then
-    return string._forward(b)
-  elseif b.size == 0 then
-    return string._forward(a)
-  end
-  local s: string = string._create(a.size + b.size)
-  memory.copy(&s.data[0], a.data, a.size)
-  memory.copy(&s.data[a.size], b.data, b.size)
-  return s
-end
-
 -- Convert a string to an integer in the desired base.
 local function str2intbase(s: string, base: uinteger): integer
   assert(s.size > 0, "invalid number format")
@@ -472,8 +501,7 @@ local function str2intbase(s: string, base: uinteger): integer
   return (@integer)(n)
 end
 
-
--- Convert a string to a cstring using a temporary buffer,
+-- Convert a string to a `cstring` using a temporary buffer,
 -- this is mainly used to ensure the string is null terminated ('\0').
 global function tocstring(buf: *[0]cchar, buflen: usize, s: string): boolean
   if buflen >= s.size + 1 then
@@ -484,50 +512,7 @@ global function tocstring(buf: *[0]cchar, buflen: usize, s: string): boolean
   return false
 end
 
--- Convert a value to a number.
-global function tonumber(x: auto, base: facultative(integer))
-  -- TODO: return nil in case of fail (like lua)
-  ## if not base.type.is_niltype then
-    ## static_assert(x.type.is_stringy, "string expected, got something else")
-    return str2intbase(x, base)
-  ## elseif x.type.is_integral then
-    local n: integer = x
-    return n
-  ## elseif x.type.is_float then
-    local n: number = x
-    return n
-  ## elseif x.type.is_stringy then
-    local endptr: cstring
-    local tmpbuf: [65]cchar
-    assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's null terminated
-    errno = 0
-    local n: float64 = strtod(&tmpbuf, &endptr)
-    local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
-    assert(len > 0 and len <= #x and errno == 0, 'failed to convert string to number')
-    return (@number)(n)
-  ## else static_error("unable to convert value of type '%s' to a number", x.type) end
-end
-
--- Convert a value to an integer.
-global function tointeger(x: auto, base: facultative(integer)): integer
-  ## if not base.type.is_niltype then
-    ## static_assert(x.type.is_stringy, "string expected, got something else")
-    return str2intbase(x, base)
-  ## elseif x.type.is_scalar then
-    local n: integer = x
-    return n
-  ## elseif x.type.is_stringy then
-    local endptr: cstring
-    local tmpbuf: [65]cchar
-    assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's null terminated
-    errno = 0
-    local i: clonglong = strtoll(&tmpbuf, &endptr, 10)
-    local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
-    assert(len > 0 and len <= #x and errno == 0, 'failed to convert string to integer')
-    return i
-  ## else static_error("unable to convert value of type '%s' to an integer", x.type) end
-end
-
+-- Convert a value to a string.
 global function tostring(x: auto): string
   ## local xobjtype = x.type:implicit_deref_type()
   ## if x.type.is_stringy then
@@ -586,4 +571,48 @@ global function tostring(x: auto): string
   ## elseif x.type.is_polyfunction then
     return string._forward('polyfunction')
   ## else static_error("tostring: cannot convert type '%s' to a string", x.type) end
+end
+
+-- Convert a value to a number.
+global function tonumber(x: auto, base: facultative(integer))
+  ## if not base.type.is_niltype then
+    ## static_assert(x.type.is_stringy, "string expected, got something else")
+    -- TODO: return nil in case of fail (like lua)
+    return str2intbase(x, base)
+  ## elseif x.type.is_integral then
+    local n: integer = x
+    return n
+  ## elseif x.type.is_float then
+    local n: number = x
+    return n
+  ## elseif x.type.is_stringy then
+    local endptr: cstring
+    local tmpbuf: [65]cchar
+    assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's null terminated
+    errno = 0
+    local n: float64 = strtod(&tmpbuf, &endptr)
+    local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
+    assert(len > 0 and len <= #x and errno == 0, 'failed to convert string to number')
+    return (@number)(n)
+  ## else static_error("unable to convert value of type '%s' to a number", x.type) end
+end
+
+-- Convert a value to an integer.
+global function tointeger(x: auto, base: facultative(integer)): integer
+  ## if not base.type.is_niltype then
+    ## static_assert(x.type.is_stringy, "string expected, got something else")
+    return str2intbase(x, base)
+  ## elseif x.type.is_scalar then
+    local n: integer = x
+    return n
+  ## elseif x.type.is_stringy then
+    local endptr: cstring
+    local tmpbuf: [65]cchar
+    assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's null terminated
+    errno = 0
+    local i: clonglong = strtoll(&tmpbuf, &endptr, 10)
+    local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
+    assert(len > 0 and len <= #x and errno == 0, 'failed to convert string to integer')
+    return i
+  ## else static_error("unable to convert value of type '%s' to an integer", x.type) end
 end

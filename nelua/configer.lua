@@ -309,18 +309,27 @@ local function detect_lua_bin()
   return lua
 end
 
+-- Build configs that depends on other configs.
+function configer.build(options)
+  options = options or {}
+  build_configs(options)
+  metamagic.setmetaindex(config, options, true)
+  return config
+end
+
+-- Parse and build config from program arguments.
 function configer.parse(args)
   local argparser = create_parser(tabler.icopy(args))
   local ok, options = argparser:pparse(args)
   except.assertraise(ok, options)
-  build_configs(options)
-  metamagic.setmetaindex(config, options, true)
+  configer.build(options)
   if config.verbose then
     print_verbose()
   end
   return config
 end
 
+-- Get config.
 function configer.get()
   return config
 end
@@ -373,6 +382,8 @@ local function init_default_configs()
   load_config('.neluacfg.lua')
 
   defconfig.cpu_bits = detect_cpu_bits(defconfig.cc)
+
+  configer.build()
 end
 
 init_default_configs()

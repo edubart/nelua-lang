@@ -24,7 +24,8 @@ so that all values up to 0x7FFFFFFF are accepted.
 
 require 'string'
 
-global utf8 = @record{}
+-- The UTF-8 module.
+global utf8: type = @record{}
 
 -- Pattern to match exactly one UTF-8 byte sequence,
 -- assuming that the subject is a valid UTF-8 string.
@@ -40,6 +41,7 @@ local function utf8relpos(pos: isize, len: isize): isize <inline>
     return len + pos
   end
 end
+
 -- Helper to check UTF-8 sequence continuation byte.
 local function utf8iscont(p: byte): boolean
   return (p & 0xC0) == 0x80
@@ -64,7 +66,7 @@ local function utf8esc(buf: *[8]byte, x: uint32): int32
   return n
 end
 
--- Decode one UTF-8 sequence, returning 0, -1 if byte sequence is invalid.
+-- Decode one UTF-8 sequence, returning `0, -1` if byte sequence is invalid.
 -- The array `limits` stores the minimum value for each sequence length,
 -- to check for overlong representations.
 -- Its first entry forces an error for non-ASCII bytes with no continuation bytes (`count` == 0).
@@ -140,9 +142,11 @@ end
 
 -- UTF-8 iterator, use to iterate over UTF-8 codes.
 -- It returns values so that the construction
---   for p, c in utf8.codes(s) do end
--- will iterate over all UTF-8 characters in string s,
--- with p being the position (in bytes) and c the code point of each character.
+-- ```nelua
+-- for p, c in utf8.codes(s) do end
+-- ```
+-- will iterate over all UTF-8 characters in string `s`,
+-- with `p` being the position (in bytes) and `c` the code point of each character.
 -- It raises an error if it meets any invalid byte sequence.
 function utf8.codes(s: string, relax: facultative(boolean))
   : (function(string, isize): (boolean, isize, uint32), string, isize) <inline>
@@ -158,7 +162,7 @@ function utf8.codes(s: string, relax: facultative(boolean))
 end
 
 -- Returns the code point (as integer) from the characters in `s` at position `i`.
--- The default for `i` is 1.
+-- The default for `i` is `1`.
 -- It raises an error if it meets any invalid byte sequence.
 function utf8.codepoint(s: string, i: facultative(isize), relax: facultative(boolean)): uint32
   ## if i.type.is_niltype then
@@ -183,13 +187,12 @@ function utf8.codepoint(s: string, i: facultative(isize), relax: facultative(boo
   return 0
 end
 
--- Returns the position (in bytes) where the encoding of the n-th character of s starts
--- (counting from position i).
--- A negative n gets characters before position i.
--- The default for i is 1 when n is non-negative and #s + 1 otherwise,
--- so that utf8.offset(s, -n) gets the offset of the n-th character from the end of the string.
+-- Returns the position (in bytes) where the encoding of the n-th character of `s` starts (counting from position `i`).
+-- A negative `n` gets characters before position `i`.
+-- The default for `i` is `1` when `n` is non-negative and `#s + 1` otherwise,
+-- so that `utf8.offset(s, -n)` gets the offset of the n-th character from the end of the string.
 -- If the specified character is neither in the subject nor right after its end,
--- the function returns -1.
+-- the function returns `-1`.
 function utf8.offset(s: string, n: isize, i: facultative(isize)): isize
   local len: isize = #s
   ## if i.type.is_niltype then
@@ -226,9 +229,9 @@ function utf8.offset(s: string, n: isize, i: facultative(isize)): isize
   end
 end
 
--- Returns the number of UTF-8 characters in string s that start between positions i and j (both inclusive).
--- The default for i is 1 and for j is -1.
--- If it finds any invalid byte sequence, returns -1 plus the position of the first invalid byte.
+-- Returns the number of UTF-8 characters in string `s` that start between positions `i` and `j` (both inclusive).
+-- The default for `i` is `1` and for `j` is `-1`.
+-- If it finds any invalid byte sequence, returns `-1` plus the position of the first invalid byte.
 function utf8.len(s: string, i: facultative(isize), j: facultative(isize), relax: facultative(boolean)): (isize, isize)
   local len: isize = #s
   ## if i.type.is_niltype then
