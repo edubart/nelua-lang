@@ -179,7 +179,7 @@ end
 --luacov:enable
 
 local function create_parser(args)
-  local argparser = argparse("nelua", "Nelua 0.1")
+  local argparser = argparse("nelua", version.NELUA_VERSION)
   argparser:flag('-c --generate-code', "Generate the code only", defconfig.compile)
   argparser:flag('-b --compile-binary', "Compile the binaries only", defconfig.compile_binary)
   argparser:flag('-e --eval', 'Evaluate string code from input', defconfig.eval)
@@ -221,9 +221,9 @@ local function create_parser(args)
   argparser:flag('--no-cache', "Don't use any cached compilation", defconfig.no_cache)
   argparser:flag('--no-color', 'Disable colorized output in the terminal.', defconfig.no_color)
   argparser:flag('--profile-compiler', 'Print profiling for the compiler', defconfig.profile)
-  argparser:flag('--debug-resolve', "Print information about resolved types")
-  argparser:flag('--debug-scope-resolve', "Print number of resolved types per scope")
-  argparser:flag('-q --quiet', "Be queit (deprecated)", defconfig.quiet):hidden(true)
+  argparser:flag('--debug-resolve', "Print information about resolved types"):hidden(true)
+  argparser:flag('--debug-scope-resolve', "Print number of resolved types per scope"):hidden(true)
+  argparser:flag('-q --quiet', "Be quiet (deprecated)", defconfig.quiet):hidden(true)
   argparser:argument("input", "Input source file")
     :action(function(options, _, v)
     -- hacky way to stop handling options
