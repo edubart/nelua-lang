@@ -1,41 +1,62 @@
-global typeid = @uint32
+--[[
+The traits library provides utilities to gather type information.
+]]
 
-global function typeid_of(x: auto): typeid <inline>
-  ## local xtype = x.type.is_type and x.value or x.type
-  return #[xtype.id]#
-end
+global traits = @record{}
 
--- Returns the type of its only argument, coded as a string.
--- The niltype returns "nil",
--- the nilptr type returns "pointer",
--- scalar types returns "number",
--- types that represents a string returns "string",
--- other types returns the underlying type name.
-global function type(x: auto): string <inline>
-  ## if x.type.is_niltype then
-    return 'nil'
-  ## elseif x.type.is_nilptr then
-    return 'pointer'
-  ## elseif x.type.is_scalar then
-    return 'number'
-  ## elseif x.type.is_stringy then
-    return 'string'
-  ## else
-    return #[x.type.name]#
-  ## end
-end
+-- Type of the identifier for types.
+global traits.typeid = @uint32
 
-global typeinfo = @record {
-  id: typeid,
+-- Record for type information.
+global traits.typeinfo = @record{
+  id: traits.typeid,
   name: string,
   codename: string
 }
 
-global function typeinfo_of(x: auto): typeinfo <inline>
-  ## local xtype = x.type.is_type and x.value or x.type
-  return (@typeinfo){
-    id = #[xtype.id]#,
-    name = #[xtype.name]#,
-    codename = #[xtype.codename]#
+--[[
+Returns the `typeid` of `v`.
+The given `v` can be either a runtime value or a compile-time type.
+]]
+function traits.typeidof(v: auto): traits.typeid <inline>
+  ## local vtype = v.type.is_type and v.value or v.type
+  return #[vtype.id]#
+end
+
+--[[
+Returns type information of `v`.
+The given `v` can be either a runtime value or a compile-time type.
+]]
+function traits.typeinfoof(v: auto): traits.typeinfo <inline>
+  ## local vtype = v.type.is_type and v.value or v.type
+  return (@traits.typeinfo){
+    id = #[vtype.id]#,
+    name = #[vtype.name]#,
+    codename = #[vtype.codename]#
   }
+end
+
+--[[
+Returns the type of `v`, coded as a string, as follows:
+* `"nil"` for `niltype`
+* `"pointer"` for pointers and `nilptr`
+* `"number"` for scalar types
+* `"string"` for types that can represent a string
+
+other types not listed here returns the underlying type name.
+
+This function behaves as describe to be compatible with Lua APIs.
+]]
+global function type(v: auto): string <inline>
+  ## if v.type.is_niltype then
+    return 'nil'
+  ## elseif v.type.is_nilptr then
+    return 'pointer'
+  ## elseif v.type.is_scalar then
+    return 'number'
+  ## elseif v.type.is_stringy then
+    return 'string'
+  ## else
+    return #[v.type.name]#
+  ## end
 end

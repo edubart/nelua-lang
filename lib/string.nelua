@@ -1,25 +1,25 @@
 --[[
+The string library provides functions to manipulate strings.
+
 String points to an immutable contiguous sequence of characters.
 Internally it just holds a pointer to a buffer and a size.
-It's buffer is null terminated (`\0`) by default to have more compatibility with C.
+It's buffer is zero terminated (`\0`) by default to have more compatibility with C.
 
 The string type is defined by the compiler, however it does not have
 its methods implemented, this module implements all string methods.
 
-Some methods may allocate a new string and you should call
-`destroy` to free the string memory when the GC is disabled.
-Note that strings can point  to a buffer in the program static storage
+When the GC is disabled, you should call `destroy` to free the string memory
+of any string returned in by this library, otherwise he memory will leak.
+Note that strings can point to a buffer in the program static storage
 and such strings should never be destroyed.
 ]]
 
--- Modules are used to implement string methods.
 require 'memory'
 require 'span'
 require 'patternmatcher'
 require 'sequence'
 require 'allocators.default'
 
--- C imports.
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
 local function strtoll(str: cstring, endptr: *cstring, base: cint): clonglong <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strtod(str: cstring, endptr: *cstring): float64 <cimport,cinclude'<stdlib.h>',nodecl> end
@@ -30,7 +30,14 @@ local function isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 
--- Allocate a new string to be filled. Used internally.
+--[[
+Allocate a new string to be filled with length `size`.
+
+The string is guaranteed to be zero terminated,
+so it can be safely be used as a `cstring`.
+
+Used internally.
+]]
 function string._create(size: usize): string
   local s: string
   check(size > 0, 'attempt to create an empty string')
@@ -40,10 +47,15 @@ function string._create(size: usize): string
   return s
 end
 
-require 'stringbuilder' -- Must be required later because it depends on `string._create`
+ -- Must be required later because it depends on `string._create`
+require 'stringbuilder'
 
--- Destroys a string freeing its resources.
--- When GC is enabled this does nothing, because string references can be shared with GC enabled.
+--[[
+Destroys a string freeing its memory.
+
+When GC is enabled this does nothing, because string references can be shared with GC enabled.
+This should never be called on string literals.
+]]
 function string.destroy(s: string): void
   ## if pragmas.nogc then -- cannot destroy when GC is enabled because string may be shared
   if s.size > 0 then
@@ -54,7 +66,12 @@ function string.destroy(s: string): void
   ## end
 end
 
--- Clone a string, allocating new space.
+--[[
+Clone a string, allocating new space.
+
+This is useful in case you want to own the string memory,
+so you can modify it or manually manage its memory when GC is disabled.
+]]
 function string.copy(s: string): string
   local clone: string
   if unlikely(s.size == 0) then return clone end
@@ -65,9 +82,12 @@ function string.copy(s: string): string
   return clone
 end
 
--- Forward a string reference to be used elsewhere.
--- When GC is enabled this just returns the string itself.
--- When GC is disabled a string copy is returned, so it can be safely stored and destroyed.
+--[[
+Forward a string reference to be used elsewhere.
+
+When GC is enabled this just returns the string itself.
+When GC is disabled a string copy is returned, so it can be safely stored and destroyed.
+]]
 function string._forward(s: string): string <inline>
   ## if pragmas.nogc then -- must return a clone so we can destroy it later
   return string.copy(s)
@@ -89,14 +109,18 @@ function string.byte(s: string, i: facultative(isize)): byte
   return (@byte)(s.data[i-1])
 end
 
--- Return a view for sub string for a string.
--- The main difference between this and `string.sub` is that, here we don't allocate a new string,
--- instead it reuses its memory as an optimization.
--- Use this only if you know what you are doing, to be safe use `string.sub` instead.
--- CAUTION: When using the GC the view will not hold reference of the original string allocated at
--- runtime and the data may be collected.
--- The view string will may not be null terminated, thus you should never
--- convert it to a cstring and use in C functions.
+--[[
+Return a view for sub string for a string.
+
+The main difference between this and `string.sub` is that, here we don't allocate a new string,
+instead it reuses its memory as an optimization.
+Use this only if you know what you are doing, to be safe use `string.sub` instead.
+
+CAUTION: When using the GC the view will not hold reference of the original string allocated at
+runtime and the data may be collected.
+The view string will may not be zero terminated, thus you should never
+use it as `cstring` for C functions.
+]]
 function string.subview(s: string, i: isize, j: facultative(isize)): string
   ## if j.type.is_niltype then
   local j: isize = -1
@@ -114,11 +138,15 @@ function string.subview(s: string, i: isize, j: facultative(isize)): string
   return (@string){data=&s.data[i-1], size=subsize}
 end
 
--- Looks for the first match of pattern in the string.
--- Returns the indices of where this occurrence starts and ends.
--- The indices will be positive if a match is found, zero otherwise.
--- A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
--- A value of true as a fourth, optional argument plain turns off the pattern matching facilities.
+--[[
+Looks for the first match of pattern in the string.
+
+Returns the indices of where this occurrence starts and ends.
+
+The indices will be positive if a match is found, zero otherwise.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+A value of true as a fourth, optional argument plain turns off the pattern matching facilities.
+]]
 function string.find(s: string, pattern: string, init: facultative(isize), plain: facultative(boolean)): (isize, isize)
   ## if init.type.is_niltype then
   local init: isize = 1
@@ -135,8 +163,10 @@ function string.find(s: string, pattern: string, init: facultative(isize), plain
   end
 end
 
--- Returns an iterator function that, each time it is called, returns the whole match plus a span of captures.
--- A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+--[[
+Returns an iterator function that, each time it is called, returns the whole match plus a span of captures.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+]]
 function string.gmatch(s: string, pattern: string, init: facultative(isize))
   ## if init.type.is_niltype then
   local init: isize = 1
@@ -166,11 +196,13 @@ function string.gmatch(s: string, pattern: string, init: facultative(isize))
   return gmatch_next, state, (@string){}
 end
 
--- Returns the substring of `s` that starts at `i` and continues until `j` (both inclusive).
--- Both `i` and `j` can be negative.
--- If `j` is absent, then it is assumed to be equal to `-1` (which is the same as the string length).
--- In particular, the call `string.sub(s,1,j)` returns a prefix of `s` with length `j`,
--- and `string.sub(s, -i)` (for a positive `i`) returns a suffix of `s` with length `i`.
+--[[
+Returns the substring of `s` that starts at `i` and continues until `j` (both inclusive).
+Both `i` and `j` can be negative.
+If `j` is absent, then it is assumed to be equal to `-1` (which is the same as the string length).
+In particular, the call `string.sub(s,1,j)` returns a prefix of `s` with length `j`,
+and `string.sub(s, -i)` (for a positive `i`) returns a suffix of `s` with length `i`.
+]]
 function string.sub(s: string, i: isize, j: facultative(isize)): string
   ## if j.type.is_niltype then
   local j: isize = -1
@@ -190,9 +222,11 @@ function string.sub(s: string, i: isize, j: facultative(isize)): string
   return ret
 end
 
--- Returns a string that is the concatenation of `n` copies of the string `s` separated by the string `sep`.
--- The default value for `sep` is the empty string (that is, no separator).
--- Returns the empty string if `n` is not positive.
+--[[
+Returns a string that is the concatenation of `n` copies of the string `s` separated by the string `sep`.
+The default value for `sep` is the empty string (that is, no separator).
+Returns the empty string if `n` is not positive.
+]]
 function string.rep(s: string, n: isize, sep: facultative(string)): string
   if unlikely(n <= 0) then return (@string){} end
   if unlikely(n == 1) then return string._forward(s) end
@@ -218,11 +252,13 @@ function string.rep(s: string, n: isize, sep: facultative(string)): string
   return ret
 end
 
--- Looks for the first match of pattern in the string.
--- If it finds one, then returns true plus a sequence with the captured values,
--- otherwise it returns false plus an empty sequence.
--- If pattern specifies no captures, then the whole match is captured.
--- A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+--[[
+Looks for the first match of pattern in the string.
+If it finds one, then returns true plus a sequence with the captured values,
+otherwise it returns false plus an empty sequence.
+If pattern specifies no captures, then the whole match is captured.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+]]
 function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
   ## if init.type.is_niltype then
   local init: isize = 1
@@ -256,9 +292,11 @@ function string.reverse(s: string): string
   return ret
 end
 
--- Receives a string and returns a copy of this string with all lowercase letters changed to uppercase.
--- All other characters are left unchanged.
--- The definition of what a lowercase letter is depends on the current locale.
+--[[
+Receives a string and returns a copy of this string with all lowercase letters changed to uppercase.
+All other characters are left unchanged.
+The definition of what a lowercase letter is depends on the current locale.
+]]
 function string.upper(s: string): string
   if unlikely(s.size == 0) then return s end
   local ret: string = string._create(s.size)
@@ -268,9 +306,11 @@ function string.upper(s: string): string
   return ret
 end
 
--- Receives a string and returns a copy of this string with all uppercase letters changed to lowercase.
--- All other characters are left unchanged.
--- The definition of what an uppercase letter is depends on the current locale.
+--[[
+Receives a string and returns a copy of this string with all uppercase letters changed to lowercase.
+All other characters are left unchanged.
+The definition of what an uppercase letter is depends on the current locale.
+]]
 function string.lower(s: string): string
   if unlikely(s.size == 0) then return s end
   local ret: string = string._create(s.size)
@@ -291,10 +331,12 @@ function string.char(...: varargs): string
   return s
 end
 
--- Returns a formatted version of its variable number of arguments following the description
--- given in its first argument, which must be a string.
--- The format string follows the same rules as the ISO C function `sprintf`.
--- The only differences are that the conversion specifiers and modifiers `*, h, L, l` are not supported.
+--[[
+Returns a formatted version of its variable number of arguments following the description
+given in its first argument, which must be a string.
+The format string follows the same rules as the ISO C function `sprintf`.
+The only differences are that the conversion specifiers and modifiers `*, h, L, l` are not supported.
+]]
 function string.format(fmt: string, ...: varargs): string
   local sb: stringbuilder
   sb:write_format(fmt, ...)
@@ -362,8 +404,10 @@ function string.__eq(a: string, b: string): boolean
   return a.size == b.size and (a.data == b.data or a.size == 0 or memory.equals(a.data, b.data, a.size))
 end
 
--- Compare if string `a` is less than string `b` in lexicographical order.
--- Used by the less than operator (`<`).
+--[[
+Compare if string `a` is less than string `b` in lexicographical order.
+Used by the less than operator (`<`).
+]]
 function string.__lt(a: string, b: string): boolean
   if unlikely(a.size == 0 or b.size == 0) then
     return a.size < b.size
@@ -376,8 +420,10 @@ function string.__lt(a: string, b: string): boolean
   end
 end
 
--- Compare if string `a` is less or equal than string `b` in lexicographical order.
--- Used by the less or equal than operator (`<=`).
+--[[
+Compare if string `a` is less or equal than string `b` in lexicographical order.
+Used by the less or equal than operator (`<=`).
+]]
 function string.__le(a: string, b: string): boolean
   if unlikely(a.size == 0 or b.size == 0) then
     return a.size <= b.size
@@ -501,10 +547,14 @@ local function str2intbase(s: string, base: uinteger): integer
   return (@integer)(n)
 end
 
--- Convert a string to a `cstring` using a temporary buffer,
--- this is mainly used to ensure the string is null terminated ('\0').
+--[[
+Convert a string to a `cstring` through a temporary buffer.
+This is mainly used to ensure the string is zero terminated.
+
+Returns `true` in case of success.
+]]
 global function tocstring(buf: *[0]cchar, buflen: usize, s: string): boolean
-  if buflen >= s.size + 1 then
+  if buf and buflen >= s.size + 1 then
     memory.copy(buf, &s.data[0], s.size)
     buf[s.size] = 0
     return true
@@ -588,7 +638,7 @@ global function tonumber(x: auto, base: facultative(integer))
   ## elseif x.type.is_stringy then
     local endptr: cstring
     local tmpbuf: [65]cchar
-    assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's null terminated
+    assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's zero terminated
     errno = 0
     local n: float64 = strtod(&tmpbuf, &endptr)
     local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
@@ -608,7 +658,7 @@ global function tointeger(x: auto, base: facultative(integer)): integer
   ## elseif x.type.is_stringy then
     local endptr: cstring
     local tmpbuf: [65]cchar
-    assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's null terminated
+    assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's zero terminated
     errno = 0
     local i: clonglong = strtoll(&tmpbuf, &endptr, 10)
     local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)

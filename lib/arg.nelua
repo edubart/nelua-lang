@@ -1,5 +1,7 @@
--- Include this file to get have the global "arg"
--- filled with your program command line arguments.
+--[[
+The arguments library provides the global sequence `arg`,
+which is filled with command line arguments on initialization.
+]]
 
 require 'sequence'
 require 'allocators.general'
@@ -8,9 +10,12 @@ require 'allocators.general'
 local nelua_argc: cint <cimport, nodecl>
 local nelua_argv: *[0]cstring <cimport, nodecl>
 
--- List of command line arguments.
--- The index 0 usually is filled with the program executable.
--- The arguments goes from 1 up to #arg (like in Lua).
+--[[
+Sequence of command line arguments.
+
+The value at index `0` is usually filled with the program executable name.
+The values starting from index `1` up to `#arg` contains each command line argument.
+]]
 global arg: sequence(string, GeneralAllocator)
 
 -- setup args
@@ -22,5 +27,4 @@ if nelua_argc > 0 then
   end
 end
 
--- NOTE: the memory of 'arg' is never freed,
--- but this is fine, is not a leak for global variables.
+-- NOTE: The memory of `arg` is never freed, but it's fine, it's not a leak for global variables.

@@ -1,10 +1,13 @@
+--[[
+The file stream library provides the `filestream` record,
+mostly used by the `io` library to manage file handles,
+but can also be used independently.
+]]
+
 require 'stringbuilder'
 require 'string'
 require 'resourcepool'
 require 'allocators.general'
-
---------------------------------------------------------------------------------
--- C imports
 
 local FILE <cimport,nodecl,forwarddecl,cinclude'<stdio.h>'> = @record{}
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
@@ -33,19 +36,31 @@ local function clearerr(fp: *FILE): void <cimport,cinclude'<stdio.h>',nodecl> en
 local function fgetc(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function atexit(func: function()): cint <cimport,cinclude'<stdlib.h>',nodecl> end
 
---------------------------------------------------------------------------------
--- filestream
-
-local FStream = @record{
-  fp: *FILE,
-  closef: function(fp: *FILE): cint
-}
-
+--[[
+File stream record, used to store file handles.
+Internally it just have an unique `id` for each file handle.
+]]
 global filestream = @record{
   id: uint64
 }
 ## filestream.value.is_filestream = true
 
+-- Record to store file handles in the file pool.
+local FStream = @record{
+  fp: *FILE,
+  closef: function(fp: *FILE): cint
+}
+
+-- Pool of files.
+local pool: resourcepool(FStream, GeneralAllocator)
+
+-- Destroy the pool on exit.
+local function destroy_pool(): void
+  pool:destroy()
+end
+atexit(destroy_pool)
+
+-- Helper to get file operation errors.
 local function fileresult(success: boolean): (boolean, string, integer)
   if not success then
     return false, strerror(errno), errno
@@ -53,12 +68,12 @@ local function fileresult(success: boolean): (boolean, string, integer)
   return true, '', 0
 end
 
-local pool: resourcepool(FStream, GeneralAllocator)
+--[[
+Initialize a new `filestream` from a given C `FILE` pointer.
+`closef` is a callback to call when closing the file handle.
 
--- destroy the pool on exit
-local function destroy_pool(): void pool:destroy() end
-atexit(destroy_pool)
-
+This function is used internally.
+]]
 function filestream._from_fp(fp: *FILE, closef: function(fp: *FILE): cint): filestream
   local id: uint64, p: *FStream = pool:acquire()
   p.fp = fp
@@ -66,6 +81,12 @@ function filestream._from_fp(fp: *FILE, closef: function(fp: *FILE): cint): file
   return filestream{id = id}
 end
 
+--[[
+Returns a C `FILE` pointer for the filestream.
+In case the file is closed, returns `nilptr`.
+
+This function is used internally.
+]]
 function filestream:_get_fp(): *FILE
   local p: *FStream = pool:get(self.id)
   if p then return p.fp end
@@ -82,6 +103,22 @@ local function checkmode(mode: string): boolean
   return mode.data[pos] == 0
 end
 
+--[[
+Opens a file, in the mode specified in the string `mode`.
+In case of success, it returns an open file.
+Otherwise, returns a closed file handle, plus an error message and a system-dependent error code.
+
+The mode string can be any of the following:
+
+* `"r"`: read mode (the default);
+* `"w"`: write mode;
+* `"a"`: append mode;
+* `"r+"`: update mode, all previous data is preserved;
+* `"w+"`: update mode, all previous data is erased;
+* `"a+"`: append update mode, previous data is preserved, writing is only allowed at the end of file.
+
+The mode string can also have a 'b' at the end, which is needed in some systems to open the file in binary mode.
+]]
 function filestream.open(filename: string, mode: facultative(string)) : (filestream, string, integer)
   ## if mode.type.is_niltype then
   local mode: string = "r"
@@ -95,12 +132,22 @@ function filestream.open(filename: string, mode: facultative(string)) : (filestr
   return filestream._from_fp(fp, fclose), '', 0
 end
 
+--[[
+Saves any written data to file.
+
+Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
+]]
 function filestream:flush(): (boolean, string, integer)
   local fp: *FILE = self:_get_fp()
   assert(fp ~= nilptr, 'attempt to use a closed file')
   return fileresult(fflush(fp) == 0)
 end
 
+--[[
+Closes the file.
+
+Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
+]]
 function filestream:close(): (boolean, string, integer)
   local p: FStream = $pool:get(self.id)
   assert(p.fp ~= nilptr, 'attempt to use a closed file')
@@ -113,8 +160,24 @@ function filestream:close(): (boolean, string, integer)
   return fileresult(res == 0)
 end
 
-function filestream:seek(whence: facultative(string),
-                         offset: facultative(integer)): (integer, string, integer)
+--[[
+Sets and gets the file position, measured from the beginning of the file,
+to the position given by `offset` plus a base specified by the string `whence`, as follows:
+
+* `"set"`: base is position 0 (beginning of the file)
+* `"cur"`: base is current position
+* `"end"`: base is end of file
+
+In case of success, returns the final file position, measured in bytes from the beginning of the file.
+If seek fails, it returns `-1`,  plus an error message and a system-dependent error code.
+
+The default value for whence is `"cur"`, and for offset is `0`.
+Therefore, the call `filestream:seek()` returns the current file position, without changing it.
+
+The call `filestream:seek("set")` sets the position to the beginning of the file (and returns `0`).
+The call `file:seek("end")` sets the position to the end of the file, and returns its size.
+]]
+function filestream:seek(whence: facultative(string), offset: facultative(integer)): (integer, string, integer)
   local fp: *FILE = self:_get_fp()
   assert(fp ~= nilptr, 'attempt to use a closed file')
   ## if whence.type.is_niltype then
@@ -141,7 +204,22 @@ function filestream:seek(whence: facultative(string),
   ## end
 end
 
-function filestream:setvbuf(mode: string, size: facultative(integer))
+--[[
+Sets the buffering mode for a file. There are three available modes:
+
+* `"no"`: no buffering.
+* `"full"`: full buffering.
+* `"line"`: line buffering.
+
+For the last two cases, size is a hint for the size of the buffer, in bytes.
+The default is an appropriate size.
+
+The specific behavior of each mode is non portable,
+check the underlying ISO C function `setvbuf` in your platform for more details.
+
+Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
+]]
+function filestream:setvbuf(mode: string, size: facultative(integer)): (boolean, string, integer)
   ## if size.type.is_niltype then
   local size: csize = 1024
   ## end
@@ -155,8 +233,10 @@ function filestream:setvbuf(mode: string, size: facultative(integer))
   return fileresult(setvbuf(fp, nilptr, op, size) == 0)
 end
 
+-- Chunk size to use in read operations
 local READ_CHUNK_SIZE <comptime> = 1024
 
+-- Read a line from file.
 local function readline(sb: *stringbuilder, fp: *FILE, chop: boolean): boolean
   -- TODO: lock file on POSIX?
   local NL: byte <comptime> = '\n'_byte
@@ -181,6 +261,7 @@ local function readline(sb: *stringbuilder, fp: *FILE, chop: boolean): boolean
   return (c == NL or sb.size > 0)
 end
 
+-- Read characters from a file.
 local function readchars(sb: *stringbuilder, fp: *FILE, n: usize): boolean
   local p: pointer = sb:prepare(n)
   local nr: csize = fread(p, 1, n, fp)
@@ -188,6 +269,7 @@ local function readchars(sb: *stringbuilder, fp: *FILE, n: usize): boolean
   return nr > 0
 end
 
+-- Read entire file contents.
 local function readall(sb: *stringbuilder, fp: *FILE): boolean
   repeat -- read in chunks
     local p: pointer = sb:prepare(READ_CHUNK_SIZE)
@@ -197,13 +279,32 @@ local function readall(sb: *stringbuilder, fp: *FILE): boolean
   return true
 end
 
+--[[
+Reads the file file, according to the given formats, which specify what to read.
+
+The function returns a string with the characters read.
+Otherwise, if it cannot read data with the specified format, it
+returns an empty string plus an error message and a system-dependent error code.
+
+The available formats are:
+
+* `"a"`: reads the whole file, starting at the current position.
+On end of file, it returns the empty string, this format never fails.
+* `"l"`: reads the next line skipping the end of line, returning fail on end of file.
+* `"L"`: reads the next line keeping the end-of-line character (if present), returning fail on end of file.
+* `integer`: reads a string with up to this number of bytes, returning fail on end of file.
+If number is zero, it reads nothing and returns an empty string, or fail on end of file.
+
+The formats `"l"` and `"L"` should be used only for text files.
+When called without arguments, it uses the default format `"l"` that reads the next line.
+]]
 function filestream:read(fmt: overload(integer,string,niltype)): (string, string, integer)
-  --TODO: multiple arguments
   local fp: *FILE = self:_get_fp()
   assert(fp ~= nilptr, 'attempt to use a closed file')
   local sb: stringbuilder
   local success: boolean
   clearerr(fp)
+  --TODO: multiple arguments
   ## if fmt.type.is_niltype then
     success = readline(&sb, fp, true)
   ## elseif fmt.type.is_scalar then
@@ -243,8 +344,13 @@ function filestream:read(fmt: overload(integer,string,niltype)): (string, string
   return s, errmsg, status
 end
 
+--[[
+Writes the value of each of its arguments to file.
+The arguments must be strings or numbers.
+
+Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
+]]
 function filestream:write(...: varargs): (boolean, string, integer)
-  --TODO: return file itself
   local fp: *FILE = self:_get_fp()
   assert(fp ~= nilptr, 'attempt to use a closed file')
   local s: string
@@ -266,11 +372,17 @@ function filestream:write(...: varargs): (boolean, string, integer)
       end
     end
   ## end
+  --TODO: return file itself
   return true, '', 0
 ::errout::
   return fileresult(false)
 end
 
+--[[
+Writes formatted values to the file, according to the given format.
+
+Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
+]]
 function filestream:writef(fmt: string, ...: varargs): (boolean, string, integer)
   local fp: *FILE = self:_get_fp()
   assert(fp ~= nilptr, 'attempt to use a closed file')
@@ -289,6 +401,14 @@ function filestream:writef(fmt: string, ...: varargs): (boolean, string, integer
   return true, '', 0
 end
 
+--[[
+Returns an iterator function that, each time it is called, reads the file according to the given format.
+When no format is given, uses `"l"` as a default. As an example, the construction
+```nelua
+for c in file:lines(1) do body end
+```
+will iterate over all characters of the file, starting at the current position.
+]]
 function filestream:lines(fmt: overload(integer,string,niltype))
   ## if fmt.type.is_niltype then
   local fmt: string = 'l'
@@ -304,10 +424,18 @@ function filestream:lines(fmt: overload(integer,string,niltype))
   return lines_next, (@LinesState){file=$self,fmt=fmt}, (@string){}
 end
 
+-- Checks whether the file is open.
 function filestream:isopen(): boolean
   return pool:get(self.id) ~= nilptr
 end
 
+--[[
+Convert the file handle to a string.
+Returns `"filed (closed)"` for invalid or closed files,
+and `"file (some address)"` for open files.
+
+This metamethod is used by `tostring`.
+]]
 function filestream:__tostring(): string
   local fp: *FILE = self:_get_fp()
   if not fp then

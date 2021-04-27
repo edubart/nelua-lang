@@ -63,7 +63,7 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
   ## if HashFunc then
   local hash_func: auto <comptime> = #[HashFunc]#
   ## else
-  local hash_func: auto = hash
+  local hash_func: auto = hash.hash
   ## end
 
   -- Create a hash map using a custom allocator instance.

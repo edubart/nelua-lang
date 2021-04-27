@@ -1,27 +1,27 @@
 require 'hash'
 
 do -- hash primitive types
-  assert(hash(0) == 0)
-  assert(hash(1) == 1)
-  assert(hash(0.0) == 0)
-  assert(hash(1.0) ~= 1)
-  assert(hash(true) == 1)
-  assert(hash(false) == 0)
-  assert(hash(nilptr) == 0)
-  assert(hash(nil) == 0)
+  assert(hash.hash(0) == 0)
+  assert(hash.hash(1) == 1)
+  assert(hash.hash(0.0) == 0)
+  assert(hash.hash(1.0) ~= 1)
+  assert(hash.hash(true) == 1)
+  assert(hash.hash(false) == 0)
+  assert(hash.hash(nilptr) == 0)
+  assert(hash.hash(nil) == 0)
 end
 
 do -- hash strings
-  assert(hash('') == 0x9e3779b9_usize)
-  assert(hash('test') ~= 0)
+  assert(hash.hash('') == 0x9e3779b9_usize)
+  assert(hash.hash('test') ~= 0)
 end
 
 do -- hash records
   local vec2 = @record{x: integer, y: integer}
   local a: vec2 = {0,0}
   local b: vec2 = {1,0}
-  assert(hash(a) ~= 0 and hash(b) ~= 0)
-  assert(hash(a) ~= hash(b))
+  assert(hash.hash(a) ~= 0 and hash.hash(b) ~= 0)
+  assert(hash.hash(a) ~= hash.hash(b))
 end
 
 do -- hash records with custom hash function
@@ -31,10 +31,10 @@ do -- hash records with custom hash function
   end
 
   local v: vec3
-  assert(hash(v) == 0)
+  assert(hash.hash(v) == 0)
   v = {1,1,1}
-  assert(hash(v) == 1 + 0xff + 0xffff)
+  assert(hash.hash(v) == 1 + 0xff + 0xffff)
 
   local pv: *vec3
-  assert(hash(pv) == 0)
+  assert(hash.hash(pv) == 0)
 end

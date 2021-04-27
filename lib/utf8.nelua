@@ -1,7 +1,7 @@
 --[[
-This library provides basic support for UTF-8 encoding.
-It provides all its functions inside the record utf8.
-This library does not provide any support for Unicode other than the handling of the encoding.
+The UTF-8 library provides basic support for UTF-8 encoding.
+
+The library does not provide any support for Unicode other than the handling of the encoding.
 Any operation that needs the meaning of a character,
 such as character classification, is outside its scope.
 
@@ -27,8 +27,7 @@ require 'string'
 -- The UTF-8 module.
 global utf8: type = @record{}
 
--- Pattern to match exactly one UTF-8 byte sequence,
--- assuming that the subject is a valid UTF-8 string.
+-- Pattern to match exactly one UTF-8 byte sequence, assuming that the subject is a valid UTF-8 string.
 global utf8.charpattern: string <comptime> = "[\0-\x7F\xC2-\xFD][\x80-\xBF]*"
 
 -- Helper to convert 1 indexed and relative positions to 0 indexed.
@@ -66,10 +65,12 @@ local function utf8esc(buf: *[8]byte, x: uint32): int32
   return n
 end
 
--- Decode one UTF-8 sequence, returning `0, -1` if byte sequence is invalid.
--- The array `limits` stores the minimum value for each sequence length,
--- to check for overlong representations.
--- Its first entry forces an error for non-ASCII bytes with no continuation bytes (`count` == 0).
+--[[
+Decode one UTF-8 sequence, returning `0, -1` if byte sequence is invalid.
+The array `limits` stores the minimum value for each sequence length,
+to check for overlong representations.
+Its first entry forces an error for non-ASCII bytes with no continuation bytes (`count` == 0).
+]]
 local function utf8decode(s: string, relax: boolean): (uint32, isize) <inline, nosideeffect>
   local MAXUNICODE: uint32 <comptime> = 0x10FFFF
   local MAXUTF: uint32 <comptime> = 0x7FFFFFFF
@@ -103,8 +104,10 @@ local function utf8decode(s: string, relax: boolean): (uint32, isize) <inline, n
   return code, count + 1 -- +1 to include first byte
 end
 
--- Receives zero or more integers, converts each one to its corresponding UTF-8 byte sequence,
--- and returns a string with the concatenation of all these sequences.
+--[[
+Receives zero or more integers, converts each one to its corresponding UTF-8 byte sequence,
+and returns a string with the concatenation of all these sequences.
+]]
 function utf8.char(...: varargs): string
   local sb: stringbuilder
   local buf: [8]byte
@@ -140,14 +143,16 @@ end
 ## make_codes_next(true)
 ## make_codes_next(false)
 
--- UTF-8 iterator, use to iterate over UTF-8 codes.
--- It returns values so that the construction
--- ```nelua
--- for p, c in utf8.codes(s) do end
--- ```
--- will iterate over all UTF-8 characters in string `s`,
--- with `p` being the position (in bytes) and `c` the code point of each character.
--- It raises an error if it meets any invalid byte sequence.
+--[[
+UTF-8 iterator, use to iterate over UTF-8 codes.
+It returns values so that the construction
+```nelua
+for p, c in utf8.codes(s) do end
+```
+will iterate over all UTF-8 characters in string `s`,
+with `p` being the position (in bytes) and `c` the code point of each character.
+It raises an error if it meets any invalid byte sequence.
+]]
 function utf8.codes(s: string, relax: facultative(boolean))
   : (function(string, isize): (boolean, isize, uint32), string, isize) <inline>
   ## if relax.type.is_niltype then
@@ -161,9 +166,11 @@ function utf8.codes(s: string, relax: facultative(boolean))
   ## end
 end
 
--- Returns the code point (as integer) from the characters in `s` at position `i`.
--- The default for `i` is `1`.
--- It raises an error if it meets any invalid byte sequence.
+--[[
+Returns the code point (as integer) from the characters in `s` at position `i`.
+The default for `i` is `1`.
+It raises an error if it meets any invalid byte sequence.
+]]
 function utf8.codepoint(s: string, i: facultative(isize), relax: facultative(boolean)): uint32
   ## if i.type.is_niltype then
   local i: isize = 1
@@ -187,12 +194,14 @@ function utf8.codepoint(s: string, i: facultative(isize), relax: facultative(boo
   return 0
 end
 
--- Returns the position (in bytes) where the encoding of the n-th character of `s` starts (counting from position `i`).
--- A negative `n` gets characters before position `i`.
--- The default for `i` is `1` when `n` is non-negative and `#s + 1` otherwise,
--- so that `utf8.offset(s, -n)` gets the offset of the n-th character from the end of the string.
--- If the specified character is neither in the subject nor right after its end,
--- the function returns `-1`.
+--[[
+Returns the position (in bytes) where the encoding of the n-th character of `s` starts (counting from position `i`).
+A negative `n` gets characters before position `i`.
+The default for `i` is `1` when `n` is non-negative and `#s + 1` otherwise,
+so that `utf8.offset(s, -n)` gets the offset of the n-th character from the end of the string.
+If the specified character is neither in the subject nor right after its end,
+the function returns `-1`.
+]]
 function utf8.offset(s: string, n: isize, i: facultative(isize)): isize
   local len: isize = #s
   ## if i.type.is_niltype then
@@ -229,9 +238,11 @@ function utf8.offset(s: string, n: isize, i: facultative(isize)): isize
   end
 end
 
--- Returns the number of UTF-8 characters in string `s` that start between positions `i` and `j` (both inclusive).
--- The default for `i` is `1` and for `j` is `-1`.
--- If it finds any invalid byte sequence, returns `-1` plus the position of the first invalid byte.
+--[[
+Returns the number of UTF-8 characters in string `s` that start between positions `i` and `j` (both inclusive).
+The default for `i` is `1` and for `j` is `-1`.
+If it finds any invalid byte sequence, returns `-1` plus the position of the first invalid byte.
+]]
 function utf8.len(s: string, i: facultative(isize), j: facultative(isize), relax: facultative(boolean)): (isize, isize)
   local len: isize = #s
   ## if i.type.is_niltype then

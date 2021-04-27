@@ -21,15 +21,15 @@ do -- type
   assert(type(x) == 'number')
 end
 
-do -- typeid_of
-  assert(typeid_of(@niltype) == 0)
-  assert(typeid_of(@string) == typeid_of('a'))
-  assert(typeid_of(@integer) == typeid_of(1))
-  assert(typeid_of(@integer) == typeid_of(1))
+do -- traits.typeidof
+  assert(traits.typeidof(@niltype) == 0)
+  assert(traits.typeidof(@string) == traits.typeidof('a'))
+  assert(traits.typeidof(@integer) == traits.typeidof(1))
+  assert(traits.typeidof(@integer) == traits.typeidof(1))
 end
 
-do -- typeinfo_of
-  local niltype_typeinfo = typeinfo_of(@niltype)
+do -- traits.typeinfoof
+  local niltype_typeinfo = traits.typeinfoof(@niltype)
   assert(niltype_typeinfo.id == 0)
   assert(niltype_typeinfo.name == 'niltype')
   assert(niltype_typeinfo.codename == 'nlniltype')

@@ -1,12 +1,19 @@
--- Hash module
---
--- This module contains the hash() and hash_combine() functions,
--- they are used by some containers such as hash map to generate hash for values.
+--[[
+The hash library provides utilities to generate hash for values.
+
+The included hash functions in this library are intended to be used containers such as `hashmap` and `table`,
+thus the hash functions are designed to be fast, and are not necessarily equal across platforms
+and may skip bytes.
+Use a better hash algorithm in case you need deterministic hash across platforms
+and with better quality.
+]]
 
 require 'span'
 
+global hash = @record{}
+
 -- This is the same simple hash function used in Lua.
-global function lhash(data: *[0]byte, len: usize, seed: usize, step: usize): usize <inline>
+local function lhash(data: *[0]byte, len: usize, seed: usize, step: usize): usize <inline>
   seed = seed ~ len
   while len >= step do
     seed = seed ~ ((seed << 5) + (seed >> 2) + data[len - 1])
@@ -15,51 +22,60 @@ global function lhash(data: *[0]byte, len: usize, seed: usize, step: usize): usi
   return seed
 end
 
--- This is the hash function taken from Lua for short strings.
-global function lhash_short(data: span(byte)): usize <inline>
+--[[
+Hashes a span of bytes, iterating over all bytes.
+This function can be slow for long spans.
+]]
+function hash.short(data: span(byte)): usize <inline>
   return lhash(data.data, data.size, 0x9e3779b9_usize, 1)
 end
 
--- This is the hash function taken from Lua for long strings.
-global function lhash_long(data: span(byte)): usize <inline>
-  -- limit up to 32 iterations evenly spaced
+--[[
+Hashes a span of bytes, iterating at most 32 bytes evenly spaced.
+This function can be fast to hash long spans, at cost of hash quality.
+]]
+function hash.long(data: span(byte)): usize <inline>
   return lhash(data.data, data.size, 0x9e3779b9_usize, (data.size >> 5) + 1)
 end
 
--- Hash combine function, algorithm taken from (C++ boost).
-global function hash_combine(seed: usize, value: usize): usize <inline>
+-- Returns the combination of the hashes `seed` and `value`.
+function hash.combine(seed: usize, value: usize): usize <inline>
   return seed ~ (value + 0x9e3779b9_usize + (seed<<6) + (seed>>2))
 end
 
--- Hash function that can be used generally to hash any value.
--- To customize a hash for a specific type you can define __hash metamethod on it.
-global function hash(x: auto): usize
-  ## if x.type.is_pointer then
-    if x == nilptr then
+--[[
+Hashes value `v`, used to hash to anything.
+
+To customize a hash for a specific record you can define `__hash` metamethod,
+and it will be used when calling this function.
+]]
+function hash.hash(v: auto): usize
+  ## if v.type.is_pointer then
+    if v == nilptr then
       return 0
     end
   ## end
 
-  ## local type = x.type
+  ## local type = v.type
   ## if type.is_integral or type.is_pointer then
-    return (@usize)(x)
+    return (@usize)(v)
   ## elseif type.is_float then
     local u: union{n: #[type]#, h: usize} <noinit>
-    u.n = x
+    u.n = v
     return u.h
   ## elseif type.is_boolean then
-    if x then return 1 else return 0 end
+    return v and 1 or 0
   ## elseif type.is_string then
-    return lhash_long({data=x.data, size=x.size})
+    return hash.long({data=v.data, size=v.size})
   ## elseif type.is_span then
     local T: type = #[type.subtype]#
-    return lhash_long({data=(@*[0]byte)(x.data), size=(@usize)(#T * #x)})
+    return hash.long({data=(@*[0]byte)(v.data), size=(@usize)(#T * #v)})
   ## elseif type.is_record and type.metafields.__hash then
-    return x:__hash()
+    return v:__hash()
   ## elseif type.is_record then
     local h: usize = 0
     ## for _,field in ipairs(type.fields) do -- hash all fields
-      h = hash_combine(h, hash(x.#|field.name|#))
+      h = hash.combine(h, hash.hash(v.#|field.name|#))
     ## end
     return h
   ## elseif type.is_nilptr or type.is_niltype then

@@ -54,7 +54,7 @@ end
 do -- os.time
   assert(os.time() >= 0)
   ## if not ccinfo.is_wasm then -- failing on WASM, why?
-  assert(os.time(os_time_desc{year=2020,month=7,day=18,hour=12,isdst=false}) ==
+  assert(os.time(os.time_desc{year=2020,month=7,day=18,hour=12,isdst=false}) ==
        #[os.time{year=2020,month=7,day=18,hour=12,isdst=false}]#)
 
   ## end

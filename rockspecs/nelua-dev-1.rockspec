@@ -136,7 +136,6 @@ build = {
       ['lib/vector.nelua']                  = 'lib/vector.nelua',
       ['lib/string.nelua']                  = 'lib/string.nelua',
       ['lib/patternmatcher.nelua']          = 'lib/patternmatcher.nelua',
-      ['lib/stringview.nelua']              = 'lib/stringview.nelua', -- deprecated
       ['lib/stringbuilder.nelua']           = 'lib/stringbuilder.nelua',
       ['lib/resourcepool.nelua']            = 'lib/resourcepool.nelua',
       ['lib/filestream.nelua']              = 'lib/filestream.nelua',
