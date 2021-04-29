@@ -688,6 +688,8 @@ function operators.eq(_, emitter, lnode, rnode, lname, rname)
     end
   elseif ltype.is_niltype or rtype.is_niltype then
     emitter:add('({(void)', lname, '; (void)', rname, '; ', ltype == rtype, ';})')
+  elseif ltype.is_scalar and rtype.is_scalar then
+    emitter:add(lname, ' == ', rname)
   else
     emitter:add(lname, ' == ')
     if ltype ~= rtype then
@@ -729,6 +731,8 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
     end
   elseif ltype.is_niltype or rtype.is_niltype then
     emitter:add('({(void)', lname, '; (void)', rname, '; ', ltype ~= rtype, ';})')
+  elseif ltype.is_scalar and rtype.is_scalar then
+    emitter:add(lname, ' != ', rname)
   else
     emitter:add(lname, ' != ')
     if ltype ~= rtype then

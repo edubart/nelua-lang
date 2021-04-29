@@ -1305,7 +1305,7 @@ it("array comparisons", function()
 ]])
 end)
 
-it("signed and unsigned comparisons", function()
+it("number comparisons", function()
   expect.run_c([[
     local a: int32 = -1
     local b: uint32 = 0xffffffff
@@ -1324,6 +1324,14 @@ it("signed and unsigned comparisons", function()
       local a: usize, b: isize, c: isize
       local d = a - b
       assert(a - b >= c)
+    end
+
+    do
+      local a: integer = 2
+      local b: number = 2.1
+      local c: number = 2.0
+      assert(a ~= b)
+      assert(a == c)
     end
 ]])
 end)
