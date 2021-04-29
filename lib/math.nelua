@@ -1,24 +1,77 @@
--- Math library
---
--- The math library tries to follow all math functions from Lua
+--[[
+The math library provides basic mathematical functions.
+]]
 
 global math = @record{}
 
-global math.pi: number <comptime> = #[math.pi]#
-global math.huge: number <comptime> = #[math.huge]#
-global math.mininteger: integer <comptime> = #[primtypes.integer.min]#
-global math.maxinteger: integer <comptime> = #[primtypes.integer.max]#
-global math.maxuinteger: uinteger <comptime> = #[primtypes.uinteger.max]#
+-- Import C math functions
+local function floor_f64(x: float64): float64 <cimport'floor',cinclude'<math.h>',nodecl,nosideeffect> end
+local function floor_f32(x: float32): float32 <cimport'floorf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function ceil_f64(x: float64): float64 <cimport'ceil',cinclude'<math.h>',nodecl,nosideeffect> end
+local function ceil_f32(x: float32): float32 <cimport'ceilf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function trunc_f64(x: float64): float64 <cimport'trunc',cinclude'<math.h>',nodecl,nosideeffect> end
+local function trunc_f32(x: float32): float32 <cimport'truncf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function round_f64(x: float64): float64 <cimport'round',cinclude'<math.h>',nodecl,nosideeffect> end
+local function round_f32(x: float32): float32 <cimport'roundf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function sqrt_f64(x: float64): float64 <cimport'sqrt',cinclude'<math.h>',nodecl,nosideeffect> end
+local function sqrt_f32(x: float32): float32 <cimport'sqrtf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function cbrt_f64(x: float64): float64 <cimport'cbrt',cinclude'<math.h>',nodecl,nosideeffect> end
+local function cbrt_f32(x: float32): float32 <cimport'cbrtf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function exp_f64(x: float64): float64 <cimport'exp',cinclude'<math.h>',nodecl,nosideeffect> end
+local function exp_f32(x: float32): float32 <cimport'expf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function exp2_f64(x: float64): float64 <cimport'exp2',cinclude'<math.h>',nodecl,nosideeffect> end
+local function exp2_f32(x: float32): float32 <cimport'exp2f',cinclude'<math.h>',nodecl,nosideeffect> end
+local function log_f64(x: float64): float64 <cimport'log',cinclude'<math.h>',nodecl,nosideeffect> end
+local function log_f32(x: float32): float32 <cimport'logf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function log2_f64(x: float64): float64 <cimport'log2',cinclude'<math.h>',nodecl,nosideeffect> end
+local function log2_f32(x: float32): float32 <cimport'log2f',cinclude'<math.h>',nodecl,nosideeffect> end
+local function log10_f64(x: float64): float64 <cimport'log10',cinclude'<math.h>',nodecl,nosideeffect> end
+local function log10_f32(x: float32): float32 <cimport'log10f',cinclude'<math.h>',nodecl,nosideeffect> end
+local function cos_f64(x: float64): float64 <cimport'cos',cinclude'<math.h>',nodecl,nosideeffect> end
+local function cos_f32(x: float32): float32 <cimport'cosf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function sin_f64(x: float64): float64 <cimport'sin',cinclude'<math.h>',nodecl,nosideeffect> end
+local function sin_f32(x: float32): float32 <cimport'sinf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function tan_f64(x: float64): float64 <cimport'tan',cinclude'<math.h>',nodecl,nosideeffect> end
+local function tan_f32(x: float32): float32 <cimport'tanf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function acos_f64(x: float64): float64 <cimport'acos',cinclude'<math.h>',nodecl,nosideeffect> end
+local function acos_f32(x: float32): float32 <cimport'acosf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function asin_f64(x: float64): float64 <cimport'asin',cinclude'<math.h>',nodecl,nosideeffect> end
+local function asin_f32(x: float32): float32 <cimport'asinf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function atan_f64(x: float64): float64 <cimport'atan',cinclude'<math.h>',nodecl,nosideeffect> end
+local function atan_f32(x: float32): float32 <cimport'atanf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function cosh_f64(x: float64): float64 <cimport'cosh',cinclude'<math.h>',nodecl,nosideeffect> end
+local function cosh_f32(x: float32): float32 <cimport'coshf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function sinh_f64(x: float64): float64 <cimport'sinh',cinclude'<math.h>',nodecl,nosideeffect> end
+local function sinh_f32(x: float32): float32 <cimport'sinhf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function tanh_f64(x: float64): float64 <cimport'tanh',cinclude'<math.h>',nodecl,nosideeffect> end
+local function tanh_f32(x: float32): float32 <cimport'tanhf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function acosh_f64(x: float64): float64 <cimport'acosh',cinclude'<math.h>',nodecl,nosideeffect> end
+local function acosh_f32(x: float32): float32 <cimport'acoshf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function asinh_f64(x: float64): float64 <cimport'asinh',cinclude'<math.h>',nodecl,nosideeffect> end
+local function asinh_f32(x: float32): float32 <cimport'asinhf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function atanh_f64(x: float64): float64 <cimport'atanh',cinclude'<math.h>',nodecl,nosideeffect> end
+local function atanh_f32(x: float32): float32 <cimport'atanhf',cinclude'<math.h>',nodecl,nosideeffect> end
 
--- concepts
-local is_scalar = #[concept(function(x)
-  return x.type.is_scalar
-end)]#
-local is_optional_scalar = #[concept(function(x)
-  return x.type.is_scalar or x.type.is_niltype
-end)]#
+local function fmod_f64(x: float64, y: float64): float64 <cimport'fmod',cinclude'<math.h>',nodecl,nosideeffect> end
+local function fmod_f32(x: float32, y: float32): float32 <cimport'fmodf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function atan2_f64(x: float64, y: float64): float64 <cimport'atan2',cinclude'<math.h>',nodecl,nosideeffect> end
+local function atan2_f32(x: float32, y: float32): float32 <cimport'atan2f',cinclude'<math.h>',nodecl,nosideeffect> end
+local function pow_f64(x: float64, y: float64): float64 <cimport'pow',cinclude'<math.h>',nodecl,nosideeffect> end
+local function pow_f32(x: float32, y: float32): float32 <cimport'powf',cinclude'<math.h>',nodecl,nosideeffect> end
 
--- compile time utilities
+local function modf_f64(x: float64, y: *float64): float64 <cimport'modf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function modf_f32(x: float32, y: *float32): float32 <cimport'modff',cinclude'<math.h>',nodecl,nosideeffect> end
+local function frexp_f64(x: float64, exp: *cint): float64 <cimport'frexp',cinclude'<math.h>',nodecl,nosideeffect> end
+local function frexp_f32(x: float32, exp: *cint): float32 <cimport'frexpf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function ldexp_f64(x: float64, exp: cint): float64 <cimport'ldexp',cinclude'<math.h>',nodecl,nosideeffect> end
+local function ldexp_f32(x: float32, exp: cint): float32 <cimport'ldexpf',cinclude'<math.h>',nodecl,nosideeffect> end
+
+-- Concepts used by math functions.
+local an_scalar = #[concept(function(x) return x.type.is_scalar end)]#
+local an_optional_scalar = #[concept(function(x) return x.type.is_scalar or x.type.is_niltype end)]#
+local an_optional_integral = #[concept(function(x) return x.type.is_integral or x.type.is_niltype end)]#
+
+-- Compile time utilities.
 ##[[
 local function choose_float_type(x)
   if x.type.is_float32 or x.type.is_float64 then
@@ -30,115 +83,311 @@ local function choose_float_type(x)
   end
 end
 
-local function are_float32_types(x, y)
-  if (x.type.is_float32 and (y.type.is_float32 or y.type.is_integral or y.type.is_niltype)) or
-     (y.type.is_float32 and (x.type.is_float32 or x.type.is_integral)) then
-    return true
+local function choose_float_types(x, y)
+  local ltype = choose_float_type(x)
+  if y then
+    local rtype = choose_float_type(y)
+    return ltype:promote_type(rtype)
+  else
+    return ltype
   end
 end
 
+local function choose_cmath_float_function(name, x, y)
+  local ftype = choose_float_types(x, y)
+  return name .. '_f' .. ftype.bitsize
+end
 ]]
 
--- import C math functions with 1 argument
-##[[
-local cmathfuncs1 = {
-  'abs','ceil','floor','trunc','round',
-  'sqrt','cbrt','exp','exp2','log','log2','log10',
-  'cos','sin','tan','acos','asin','atan',
-  'cosh','sinh','tanh', 'acosh','asinh','atanh',
-}
-local cmathrenames1 = {abs='fabs'}
-for _,name in ipairs(cmathfuncs1) do
-  local cname = cmathrenames1[name] or name
-  local cnamef64, cnamef32 = cname, cname..'f'
-  local namef64, namef32 = name..'_f64', name..'_f32'
-]]
-  local function #|namef64|#(x: float64): float64
-    <cimport#[cnamef64]#,cinclude'<math.h>',nodecl,nosideeffect>
-  end
-  local function #|namef32|#(x: float32): float32
-    <cimport#[cnamef32]#,cinclude'<math.h>',nodecl,nosideeffect>
-  end
-## end
+--[[
+Returns the absolute value of `x`, that is, the maximum value between `x` and `-x`.
 
--- import C math functions with 2 arguments
-##[[
-local cmathfuncs2 = {'max','min','fmod','atan2','pow'}
-local cmathrenames2 = {min='fmin',max='fmax'}
-for _,name in ipairs(cmathfuncs2) do
-  local cname = cmathrenames2[name] or name
-  local cnamef64, cnamef32 = cname, cname..'f'
-  local namef64, namef32 = name..'_f64', name..'_f32'
+The argument type is always preserved.
 ]]
-  local function #|namef64|#(x: float64, y: float64): float64
-    <cimport#[cnamef64]#,cinclude'<math.h>',nodecl,nosideeffect>
-  end
-  local function #|namef32|#(x: float32, y: float32): float32
-    <cimport#[cnamef32]#,cinclude'<math.h>',nodecl,nosideeffect>
-  end
-## end
+function math.abs(x: an_scalar) <inline,nosideeffect>
+  x = x < 0 and -x or x
+  return x
+end
 
--- manually import special math functions with 2 arguments
-local function modf_f64(x: float64, y: *float64): float64 <cimport'modf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function modf_f32(x: float32, y: *float32): float32 <cimport'modff',cinclude'<math.h>',nodecl,nosideeffect> end
-local function frexp_f64(x: float64, exp: *int32): float64 <cimport'frexp',cinclude'<math.h>',nodecl,nosideeffect> end
-local function frexp_f32(x: float32, exp: *int32): float32 <cimport'frexpf',cinclude'<math.h>',nodecl,nosideeffect> end
-local function ldexp_f64(x: float64, exp: int32): float64 <cimport'ldexp',cinclude'<math.h>',nodecl,nosideeffect> end
-local function ldexp_f32(x: float32, exp: int32): float32 <cimport'ldexpf',cinclude'<math.h>',nodecl,nosideeffect> end
-
--- define common math functions with 1 argument
-##[[
-local mathfuncs1 = {
-  'abs','ceil','floor','sqrt','exp','acos','asin','cos','sin','tan',
-  'cosh','sinh','tanh','log10',
-  -- extra
-  'trunc','round', 'log2','exp2', 'acosh', 'asinh', 'atanh', 'cbrt',
-}
-for _,name in ipairs(mathfuncs1) do
-  local namef64, namef32 = name..'_f64', name..'_f32'
-  local namef = primtypes.number.is_float32 and namef32 or namef64
-]]
-function math.#|name|#(x: is_scalar) <inline,nosideeffect>
-  ## if x.type.is_float32 then
-    return #|namef32|#(x)
-  ## elseif x.type.is_float then
-    return #|namef64|#(x)
+-- Returns the largest integral value less than or equal to `x`.
+function math.floor(x: an_scalar) <inline,nosideeffect>
+  ## if x.type.is_float then
+    return #|choose_cmath_float_function('floor', x)|#(x)
   ## else
-    ## if name == 'abs' then
-      if x < 0 then return -x else return x end
-    ## elseif name == 'ceil' or name == 'floor' or name == 'trunc' or name == 'round' then
-      return x
-    ## else
-      return #|namef|#(x)
-    ## end
+    return x
   ## end
 end
-## end
 
--- define common math functions with 2 arguments
-##[[
-local mathfuncs2 = {'fmod', 'atan2', 'pow'}
-for _,name in ipairs(mathfuncs2) do
-  local namef64, namef32 = name..'_f64', name..'_f32'
-  local namef = primtypes.number.is_float32 and namef32 or namef64
-]]
-function math.#|name|#(x: is_scalar, y: is_scalar) <inline,nosideeffect>
-  ## if are_float32_types(x, y) then
-    return #|namef32|#(x, y)
-  ## elseif x.type.is_float or y.type.is_float then
-    return #|namef64|#(x, y)
+-- Like `math.floor`, but the result is always converted to an integer.
+function math.ifloor(x: an_scalar): integer <inline,nosideeffect>
+  return math.floor(x)
+end
+
+-- Returns the smallest integral value greater than or equal to `x`.
+function math.ceil(x: an_scalar) <inline,nosideeffect>
+  ## if x.type.is_float then
+    return #|choose_cmath_float_function('ceil', x)|#(x)
   ## else
-    ## if name == 'fmod' and x.type.is_integral and y.type.is_integral then
-      local z: #[x.type]# <noinit>
-      ## cemit '  z = x % y;'
-      return z
-    ## else
-      return #|namef|#(x, y)
-    ## end
+    return x
   ## end
 end
-## end
 
+-- Like `math.ceil`, but the result is always converted to an integer.
+function math.iceil(x: an_scalar): integer <inline,nosideeffect>
+  return math.ceil(x)
+end
+
+--[[
+Returns the rounded value of `x` towards the nearest integer.
+Halfway cases are rounded away from zero.
+]]
+function math.round(x: an_scalar) <inline,nosideeffect>
+  ## if x.type.is_float then
+    return #|choose_cmath_float_function('round', x)|#(x)
+  ## else
+    return x
+  ## end
+end
+
+-- Returns the rounded value of `x` towards zero.
+function math.trunc(x: an_scalar) <inline,nosideeffect>
+  ## if x.type.is_float then
+    return #|choose_cmath_float_function('trunc', x)|#(x)
+  ## else
+    return x
+  ## end
+end
+
+--[[
+Returns the square root of `x`.
+You can also use the expression `x^0.5` to compute this value.
+]]
+function math.sqrt(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('sqrt', x)|#(x)
+end
+
+--[[
+Returns the cubic root of `x`.
+You can also use the expression `x^(1/3)` to compute this value.
+]]
+function math.cbrt(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('cbrt', x)|#(x)
+end
+
+-- Returns the value of `e^x` (where `e` is the base of natural logarithms).
+function math.exp(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('exp', x)|#(x)
+end
+
+--[[
+Returns the value of `2^x`.
+You can also use the expression `2^x` to compute this value.
+]]
+function math.exp2(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('exp2', x)|#(x)
+end
+
+--[[
+Returns `x^y`.
+You can also use the expression `x^y` to compute this value.
+]]
+function math.pow(x: an_scalar, y: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('pow', x, y)|#(x, y)
+end
+
+--[[
+Returns the logarithm of `x` in the given `base`.
+The default for `base` is *e*, so that the function returns the natural logarithm of `x`.
+]]
+function math.log(x: an_scalar, base: an_optional_scalar) <inline,nosideeffect>
+  ## local log = choose_cmath_float_function('log', x)
+  ## if not base.type.is_niltype then
+    if base == 2 then
+      return #|choose_cmath_float_function('log2', x)|#(x)
+    elseif base == 10 then
+      return #|choose_cmath_float_function('log10', x)|#(x)
+    else
+      return #|log|#(x) / #|log|#(base)
+    end
+  ## else
+    return #|log|#(x)
+  ## end
+end
+
+-- Returns the cosine of `x` (assumed to be in radians).
+function math.cos(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('cos', x)|#(x)
+end
+
+-- Returns the sine of `x` (assumed to be in radians).
+function math.sin(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('sin', x)|#(x)
+end
+
+-- Returns the tangent of `x` (assumed to be in radians).
+function math.tan(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('tan', x)|#(x)
+end
+
+-- Returns the arc cosine of `x` (in radians).
+function math.acos(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('acos', x)|#(x)
+end
+
+-- Returns the arc sine of `x` (in radians).
+function math.asin(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('asin', x)|#(x)
+end
+
+--[[
+Returns the arc tangent of `y/x` (in radians),
+but uses the signs of both arguments to find the quadrant of the result.
+It also handles correctly the case of `x` being zero.
+
+The default value for `x` is `1`, so that the call `math.atan(y)` returns the arc tangent of `y`.
+]]
+function math.atan(y: an_scalar, x: an_optional_scalar) <inline,nosideeffect>
+  ## if not x.type.is_niltype then
+    return #|choose_cmath_float_function('atan2', y, x)|#(y, x)
+  ## else
+    return #|choose_cmath_float_function('atan', y)|#(y)
+  ## end
+end
+
+--[[
+Returns the arc tangent of `y/x` (in radians),
+but uses the signs of both arguments to find the quadrant of the result.
+It also handles correctly the case of `x` being zero.
+]]
+function math.atan2(y: an_scalar, x: an_optional_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('atan2', y, x)|#(y, x)
+end
+
+-- Returns the hyperbolic cosine of `x`.
+function math.cosh(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('cosh', x)|#(x)
+end
+
+-- Returns the hyperbolic sine of `x`.
+function math.sinh(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('sinh', x)|#(x)
+end
+
+-- Returns the hyperbolic tangent of `x`.
+function math.tanh(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('tanh', x)|#(x)
+end
+
+-- Returns the base-10 logarithm of `x`.
+function math.log10(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('log10', x)|#(x)
+end
+
+-- Returns the base-2 logarithm of `x`.
+function math.log2(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('log2', x)|#(x)
+end
+
+-- Returns the inverse hyperbolic cosine of `x`.
+function math.acosh(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('acosh', x)|#(x)
+end
+
+-- Returns the inverse hyperbolic sine of `x`.
+function math.asinh(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('asinh', x)|#(x)
+end
+
+-- Returns the inverse hyperbolic tangent of `x`.
+function math.atanh(x: an_scalar) <inline,nosideeffect>
+  return #|choose_cmath_float_function('atanh', x)|#(x)
+end
+
+-- Converts the angle `x` from radians to degrees.
+function math.deg(x: an_scalar) <inline,nosideeffect>
+  return x * (#[choose_float_type(x)]#)(#[180.0/ math.pi]#)
+end
+
+-- Converts the angle `x` from degrees to radians.
+function math.rad(x: an_scalar) <inline,nosideeffect>
+  return x * (#[choose_float_type(x)]#)(#[math.pi / 180.0]#)
+end
+
+--[[
+Returns the sign of `x`, that is:
+* `-1` if `x < 0`
+* `0` if `x == 0`
+* `1` if `x > 0`
+]]
+function math.sign(x: an_scalar) <inline,nosideeffect>
+  x = x > 0 and 1 or x
+  x = x < 0 and -1 or x
+  return x
+end
+
+--[[
+Returns the fractional part of `x`.
+
+Computed as `x - math.floor(x)`.
+]]
+function math.fract(x: an_scalar) <inline,nosideeffect>
+  return x - math.floor(x)
+end
+
+--[[
+Returns the modulo operation of `x` by `y`, rounded towards minus infinity.
+
+This is equivalent to `x % y`, but faster and subject to rounding errors.
+It's computed as `x - math.floor(x / y) * y`.
+]]
+function math.mod(x: an_scalar, y: an_scalar) <inline,nosideeffect>
+  ## if x.type.is_float or y.type.is_float then
+  return x - math.floor(x / y) * y
+  ## else
+  return x % y
+  ## end
+end
+
+--[[
+Returns the integral part of `x` and the fractional part of `x`.
+Its second result is always a float.
+]]
+function math.modf(x: an_scalar) <inline,nosideeffect>
+  local i: #[choose_float_type(x)]#
+  local f: auto = #|choose_cmath_float_function('modf', x)|#(x, &i)
+  return i, f
+end
+
+--[[
+Returns the remainder of the division of `x` by `y` that rounds the quotient towards zero.
+The result can either be an integer or a float depending on the arguments.
+]]
+function math.fmod(x: an_scalar, y: an_scalar) <inline,nosideeffect>
+  ## if x.type.is_integral and y.type.is_integral then
+    local z: #[x.type]# <noinit>
+    ## cemit '  z = x % y;'
+    return z
+  ## else
+    return #|choose_cmath_float_function('fmod', x, y)|#(x, y)
+  ## end
+end
+
+--[[[
+Returns `m` and `e` such that `x = m*(2^e)`,
+`e` is an integer and the absolute value of `m` is in the range [0.5, 1) or zero (when `x` is zero).
+]]
+function math.frexp(x: an_scalar) <inline,nosideeffect>
+  local exp: cint
+  local n: auto = #|choose_cmath_float_function('frexp', x)|#(x, &exp)
+  return n, (@int32)(exp)
+end
+
+-- Returns `m*(2^e)`, that is, `m` multiplied by an integral power of 2.
+function math.ldexp(m: an_scalar, e: int32) <inline,nosideeffect>
+  return #|choose_cmath_float_function('ldexp', m)|#(m, (@int32)(e))
+end
+
+-- Returns the argument with the minimum value, according to the operator `<`.
 function math.min(...: varargs) <inline,nosideeffect>
   ## local nargs = select_varargs('#')
   ## static_assert(nargs > 0, 'expected at least one argument')
@@ -162,6 +411,7 @@ function math.min(...: varargs) <inline,nosideeffect>
   ## end
 end
 
+-- Returns the argument with the maximum value, according to the operator `<`.
 function math.max(...: varargs) <inline,nosideeffect>
   ## local nargs = select_varargs('#')
   ## static_assert(nargs > 0, 'expected at least one argument')
@@ -169,7 +419,7 @@ function math.max(...: varargs) <inline,nosideeffect>
     return #[select_varargs(1)]#
   ## elseif nargs == 2 then
     ## local x, y = select_varargs(1), select_varargs(2)
-    if #[x]# > #[y]# then
+    if #[y]# < #[x]# then
       return #[x]#
     end
     return #[y]#
@@ -177,7 +427,7 @@ function math.max(...: varargs) <inline,nosideeffect>
     local res = #[select_varargs(1)]#
     ## for i=2,nargs do
       ## local v = select_varargs(i)
-      if #[v]# > res then
+      if res < #[v]# then
         res = #[v]#
       end
     ## end
@@ -185,108 +435,18 @@ function math.max(...: varargs) <inline,nosideeffect>
   ## end
 end
 
-function math.atan(y: is_scalar, x: is_optional_scalar) <inline,nosideeffect>
-  ## if not x.type.is_niltype then
-    ## if are_float32_types(x,y) then
-      return atan2_f32(y, x)
-    ## else
-      return atan2_f64(y, x)
-    ## end
-  ## else
-    ## if y.type.is_float32 then
-      return atan_f32(y)
-    ## else
-      return atan_f64(y)
-    ## end
-  ## end
+-- Returns the value of `x` clamped between `min` and `max`.
+function math.clamp(x: an_scalar, min: an_scalar, max: an_scalar) <inline,nosideeffect>
+  x = x < min and min or x
+  x = x > max and max or x
+  return x
 end
 
-function math.log(x: is_scalar, base: is_optional_scalar) <inline,nosideeffect>
-  ## local suffix = are_float32_types(x, base) and '_f32' or '_f64'
-  ## local log2, log10, log = 'log2'..suffix, 'log10'..suffix, 'log'..suffix
-  ## if not base.type.is_niltype then
-    if base == 2 then
-      return #|log2|#(x)
-    elseif base == 10 then
-      return #|log10|#(x)
-    else
-      return #|log|#(x) / #|log|#(base)
-    end
-  ## else
-    return #|log|#(x)
-  ## end
-end
-
-function math.deg(x: is_scalar) <inline,nosideeffect>
-  local R: type = #[choose_float_type(x)]#
-  local factor: R <comptime> = 180.0 / math.pi
-  return x * factor
-end
-
-function math.rad(x: is_scalar) <inline,nosideeffect>
-  local R: type = #[choose_float_type(x)]#
-  local factor: R <comptime> = math.pi / 180.0
-  return x * factor
-end
-
-function math.modf(x: is_scalar) <inline,nosideeffect>
-  local R: type = #[choose_float_type(x)]#
-  local i: R
-  local f: R <noinit>
-  ## if i.type.is_float32 then
-    f = modf_f32(x, &i)
-  ## else
-    f = modf_f64(x, &i)
-  ## end
-  return i, f
-end
-
-function math.frexp(x: is_scalar) <inline,nosideeffect>
-  local R: type = #[choose_float_type(x)]#
-  local n: R
-  local exp: int32 <noinit>
-  ## if x.type.is_float32 then
-    n = frexp_f32(x, &exp)
-  ## else
-    n = frexp_f64(x, &exp)
-  ## end
-  return n, (@integer)(exp)
-end
-
-function math.ldexp(x: is_scalar, y: is_scalar) <inline,nosideeffect>
-  ## if x.type.is_float32 then
-    return ldexp_f32(x, (@int32)(y))
-  ## else
-    return ldexp_f64(x, (@int32)(y))
-  ## end
-end
-
-function math.tointeger(x: is_scalar) <inline,nosideeffect>
-  ## if x.type.is_integral then
-    return (@integer)(x)
-  ## elseif x.type.is_float then
-    local r: integer = (@integer)(x)
-    if likely(x == r) then
-      return r
-    else
-      return nil
-    end
-  ## else
-    return nil
-  ## end
-end
-
-function math.type(x: auto) <inline,nosideeffect>
-  ## if x.type.is_float then
-    return 'float'
-  ## elseif x.type.is_integral then
-    return 'integer'
-  ## else
-    return nil
-  ## end
-end
-
-function math.ult(m: is_scalar, n: is_scalar): boolean <inline>
+--[[
+Returns a boolean, `true` if and only if integer `m` is below integer `n`
+when they are compared as unsigned integers.
+]]
+function math.ult(m: an_scalar, n: an_scalar): boolean <inline>
   ## if m.type.is_integral and n.type.is_integral then
     return (@uinteger)(m) < (@uinteger)(n)
   ## elseif x.type.is_float then
@@ -299,14 +459,45 @@ function math.ult(m: is_scalar, n: is_scalar): boolean <inline>
   ## end
 end
 
--- Pseudo Random Number Generator based on xoshiro256**
-local xoshiro256 = @record{state: [4]uint64}
+-- If the value `x` is convertible to an integer, returns that integer. Otherwise, returns `nil`.
+function math.tointeger(x: an_scalar) <inline,nosideeffect>
+  ## if x.type == primtypes.integer then
+    return x
+  ## elseif x.type.is_scalar then
+    local r: integer = (@integer)(x)
+    if likely(x == r) then
+      return r
+    else
+      return nil
+    end
+  ## else
+    return nil
+  ## end
+end
 
+-- Returns `"integer"` if `x` is an integer, "float" if `x` is a float, or fail if `x` is not a number.
+function math.type(x: auto) <inline,nosideeffect>
+  ## if x.type.is_float then
+    return 'float'
+  ## elseif x.type.is_integral then
+    return 'integer'
+  ## else
+    return nil
+  ## end
+end
+
+-- Pseudo Random Number Generator based on Xoshiro256.
+local Xoshiro256 = @record{
+  state: [4]uint64
+}
+
+-- Left bit rotation utility.
 local function rotl(x: uint64, n: int32): uint64 <inline,nosideeffect>
   return (x << n) | (x >> (64 - n))
 end
 
-function xoshiro256:nextrand(): uint64
+-- Generates a random unsigned integral number.
+function Xoshiro256:nextrand(): uint64
   local state: [4]uint64 = {
     self.state[0],
     self.state[1],
@@ -321,13 +512,15 @@ function xoshiro256:nextrand(): uint64
   return res
 end
 
-function xoshiro256:random(): number
+-- Generates a random float number.
+function Xoshiro256:random(): number
   ## local MANT_DIGITS = primtypes.number.is_float32 and 24 or 53
   local rv: uint64 = self:nextrand()
   return (rv >> (64 - #[MANT_DIGITS]#)) / (1_u64 << #[MANT_DIGITS]#)
 end
 
-function xoshiro256:seed(a: uint64, b: uint64): void
+-- Reinitialize the generator seed.
+function Xoshiro256:seed(a: uint64, b: uint64): void
   self.state[0] = a
   self.state[1] = 0xff
   self.state[2] = b
@@ -337,19 +530,58 @@ function xoshiro256:seed(a: uint64, b: uint64): void
   end
 end
 
--- pre initialize default random generator
-local default_random: xoshiro256 = {state={
+-- Default initialization for the pseudo random generator
+local default_random: Xoshiro256 = {state={
   0x65CE039BAEBE74B4, 0x4911ADA153B51EEF, 0xFB71FBB497C00950, 0xF83CCF6AC1B74755
 }}
 
-function math.randomseed(x: is_scalar): void
-  default_random:seed((@uint64)(x), 0)
+
+--[[
+When called with at least one argument,
+the integer parameters `x` and `y` are joined into a 128-bit seed that is used
+to reinitialize the pseudo-random generator.
+Equal seeds produce equal sequences of numbers. The default for `y` is zero.
+
+When called with no arguments, generates a seed with a weak attempt for randomness.
+
+This function returns the two seed components that were effectively used,
+so that setting them again repeats the sequence.
+
+To ensure a required level of randomness to the initial state
+(or contrarily, to have a deterministic sequence, for instance when debugging a program),
+you should call `math.randomseed` with explicit arguments.
+]]
+function math.randomseed(x: an_optional_integral, y: an_optional_integral): (integer, integer)
+  ## if x.type.is_niltype and y.type.is_niltype then
+  local function time(tloc: pointer): clong <cimport,cinclude'<time.h>',nodecl> end
+  local x: integer = (@integer)(time(nilptr));
+  local y: integer = (@integer)(&x)
+  ## elseif y.type.is_niltype then
+  local y: integer = 0
+  ## end
+  default_random:seed((@uint64)(x), (@uint64)(y))
+  return x, y
 end
 
-function math.random(m: is_optional_scalar, n: is_optional_scalar)
+--[[
+When called without arguments, returns a pseudo-random float with uniform distribution in the range [`0`,`1`).
+When called with two integers `m ` and `n`, returns a pseudo-random integer with uniform distribution in the range [`m`, `n`].
+
+The call `math.random(n)`, for a positive `n`, is equivalent to `math.random(1,n)`.
+The call `math.random(0)` produces an integer with all bits (pseudo)random.
+
+This function uses an algorithm based on *xoshiro256* to produce pseudo-random 64-bit integers,
+which are the results of calls with argument 0.
+Other results (ranges and floats) are unbiased extracted from these integers.
+
+Its pseudo-random generator is initialized with the equivalent of a call to `math.randomseed` with no arguments,
+so that `math.random` should generate different sequences of results each time the program runs.
+]]
+function math.random(m: an_optional_scalar, n: an_optional_scalar)
   local r: number = default_random:random()
   ## if not m.type.is_niltype and not n.type.is_niltype then
     local low: integer, up: integer = (@integer)(m), (@integer)(n)
+    check(low == m and up == n, "number has no integer representation")
     check(low <= up, "interval is empty")
     check(low >= 0 or up < math.maxinteger + low, "interval too large")
     r = r * ((@number)(up - low) + 1.0)
@@ -365,45 +597,17 @@ function math.random(m: is_optional_scalar, n: is_optional_scalar)
   ## end
 end
 
--- Return floor of a number casted to an integer.
-function math.ifloor(x: is_scalar): integer <inline,nosideeffect>
-  return math.floor(x)
-end
+-- Float value of PI.
+global math.pi: number <comptime> = #[math.pi]#
 
--- Return ceil of a number casted to an integer.
-function math.iceil(x: is_scalar): integer <inline,nosideeffect>
-  return math.ceil(x)
-end
+-- Float value greater than any other numeric value (infinite).
+global math.huge: number <comptime> = #[math.huge]#
 
--- Return fractional part of `x`, computed as "x - math.floor(x)".
-function math.fract(x: is_scalar) <inline,nosideeffect>
-  return x - math.floor(x)
-end
+-- An integer with the minimum value for an integer.
+global math.mininteger: integer <comptime> = #[primtypes.integer.min]#
 
--- Returns sign of `x`, that is:
--- -1  <=>  x < 0
---  0  <=>  x == 0
---  1  <=>  x > 0
-function math.sign(x: is_scalar) <inline,nosideeffect>
-  x = x > 0 and 1 or x
-  x = x < 0 and -1 or x
-  return x
-end
+-- An integer with the maximum value for an integer.
+global math.maxinteger: integer <comptime> = #[primtypes.integer.max]#
 
--- Returns modulo operation rounded towards minus infinity.
--- Computed as "a - math.floor(a / b) * b".
--- This is equivalent to "a % b", but faster and subject to rounding errors.
-function math.mod(a: is_scalar, b: is_scalar) <inline,nosideeffect>
-  ## if a.type.is_float or b.type.is_float then
-  return a - math.floor(a / b) * b
-  ## else
-  return a % b
-  ## end
-end
-
--- Returns value of `x` clamped between `min` and `max`.
-function math.clamp(x: is_scalar, min: is_scalar, max: is_scalar) <inline,nosideeffect>
-  x = x < min and min or x
-  x = x > max and max or x
-  return x
-end
+-- An integer with the maximum value for an unsigned integer.
+global math.maxuinteger: uinteger <comptime> = #[primtypes.uinteger.max]#

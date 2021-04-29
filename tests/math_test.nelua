@@ -17,6 +17,9 @@ do -- math.min
 
   assert(math.min(1, -1) == -1)
   assert(math.min(-1, 1) == -1)
+
+  assert(math.min(-1, 1, 2) == -1)
+  assert(math.min(2, 0, -1) == -1)
 end
 
 do -- math.max
@@ -28,6 +31,9 @@ do -- math.max
 
   assert(math.max(1, -1) == 1)
   assert(math.max(-1, 1) == 1)
+
+  assert(math.max(-1, 1, 2) == 2)
+  assert(math.max(2, 0, -1) == 2)
 end
 
 do -- math.huge
@@ -405,10 +411,13 @@ do -- math.ult
 end
 
 do -- math.random
-  math.randomseed(0)
+  local a, b = math.randomseed(1)
+  assert(a == 1 and b == 0)
   assert(math.random(1) == 1)
   assert(math.random(0,0) == 0)
   assert(math.random(2,2) == 2)
+  a, b = math.randomseed(0, 0)
+  assert(a == 0 and b == 0)
   do
     for i=1,10 do
       local x,y,z = math.random(), math.random(3), math.random(-3,0)
@@ -416,6 +425,15 @@ do -- math.random
       assert(y >= 0 and y <= 3)
       assert(z >= -3 and z <= 0)
     end
+  end
+
+  do
+    local a, b = math.randomseed()
+    local r1 = math.random()
+    local r2 = math.random()
+    math.randomseed(a, b)
+    assert(r1 == math.random())
+    assert(r2 == math.random())
   end
 end
 

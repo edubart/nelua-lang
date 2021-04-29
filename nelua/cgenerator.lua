@@ -318,7 +318,7 @@ end
 typevisitors[types.Type] = function(context, type)
   if type.is_any or type.is_varanys then
     local node = context:get_current_node()
-    node:raisef("compiler deduced the type 'any' here, but it's not supported yet in C backend yet")
+    node:raisef("compiler deduced the type 'any' here, but it's not supported yet in the C backend")
   elseif type.is_niltype then
     context:ensure_builtin('nlniltype')
   else
@@ -360,7 +360,7 @@ end
 
 function visitors.VarargsType(_, node, emitter)
   if node.attr.type.is_varanys then
-    node:raisef("compiler deduced the type 'varanys' here, but it's not supported yet in C backend yet")
+    node:raisef("compiler deduced the type 'varanys' here, but it's not supported yet in the C backend")
   end
   emitter:add('...')
 end
@@ -1441,7 +1441,7 @@ function visitors.UnaryOp(_, node, emitter)
     return
   end
   if attr.type.is_any then
-    node:raisef("compiler deduced the type 'any' here, but it's not supported yet in C backend yet")
+    node:raisef("compiler deduced the type 'any' here, but it's not supported yet in the C backend")
   end
   local opname, argnode = node[1], node[2]
   local builtin = cbuiltins.operators[opname]
@@ -1459,7 +1459,7 @@ function visitors.BinaryOp(_, node, emitter)
   local opname, lnode, rnode = node[1], node[2], node[3]
   local type = node.attr.type
   if type.is_any then
-    node:raisef("compiler deduced the type 'any' here, but it's not supported yet in C backend yet")
+    node:raisef("compiler deduced the type 'any' here, but it's not supported yet in the C backend")
   end
   local surround = not node.attr.inconditional
   if surround then emitter:add('(') end

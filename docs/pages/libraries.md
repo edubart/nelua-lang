@@ -520,48 +520,457 @@ This metamethod is used by `tostring`.
 
 ## math
 
-The [math library](https://github.com/edubart/nelua-lang/blob/master/lib/math.nelua) copies Lua's `math`{:.language-nelua} library with extra functions.
+The math library provides basic mathematical functions.
 
-| Variable Name | Description |
-|---------------|------|
-| `global math`{:.language-nelua} | `math` record |
-| `global math.pi`{:.language-nelua} | The compile-time value of `#[math.pi]#`{:.language-nelua}, which is the the value of π. |
-| `global math.huge`{:.language-nelua} | The compile-time value of `#[math.huge]#`{:.language-nelua}, which is a value greater than any other numeric value. |
-| `global math.maxinteger`{:.language-nelua} | The maximum possible compile-time value of `integer`. |
-| `global math.mininteger`{:.language-nelua} | The minimum possible compile-time value of `integer`. |
-| `math.abs(x)`{:.language-nelua} | Returns the absolute value of `x`. |
-| `math.ceil(x)`{:.language-nelua} | Returns the smallest integral value greater than or equal to `x`. |
-| `math.floor(x)`{:.language-nelua} | Returns the largest integral value less than or equal to `x`. |
-| `math.ifloor(x): integer`{:.language-nelua} | Returns the result of `math.floor(x)`{:.language-nelua}, but returns an `integer`. |
-| `math.sqrt(x)`{:.language-nelua} | Returns the square root of `x`. |
-| `math.exp(x)`{:.language-nelua} | Returns the value eˣ (where e is the base of natural logarithms). |
-| `math.acos(x)`{:.language-nelua} | Returns the arc cosine of `x` (in radians). |
-| `math.asin(x)`{:.language-nelua} | Returns the arc sine of `x` (in radians). |
-| `math.cos(x)`{:.language-nelua} | Returns the cosine of `x` (assumed to be in radians). |
-| `math.sin(x)`{:.language-nelua} | Returns the sine of `x` (assumed to be in radians). |
-| `math.tan(x)`{:.language-nelua} | Returns the tangent of `x` (assumed to be in radians). |
-| `math.cosh(x)`{:.language-nelua} | Returns the hyperbolic cosine of `x`. |
-| `math.sinh(x)`{:.language-nelua} | Returns the hyperbolic sine of `x`. |
-| `math.tanh(x)`{:.language-nelua} | Returns the hyperbolic tangent of `x`. |
-| `math.log10(x)`{:.language-nelua} | Returns the base-10 logarithm of `x`. |
-| `math.max(x, y)`{:.language-nelua} | Returns the argument with the maximum value, according to the Nelua operator <. |
-| `math.min(x, y)`{:.language-nelua} | Returns the argument with the minimum value, according to the Nelua operator <. |
-| `math.fmod(x, y)`{:.language-nelua} | Returns the remainder of the division of `x` by `y` that rounds the quotient towards zero. |
-| `math.atan2(y, x)`{:.language-nelua} | Returns the arc tangent of `y`/`x` (in radians), but uses the signs of both parameters to find the quadrant of the result. (It also handles correctly the case of `x` being zero.). |
-| `math.pow(x, y)`{:.language-nelua} | Returns xʸ. (You can also use the expression `x^y`{:.language-nelua} to compute this value.). |
-| `math.atan(y[, x])`{:.language-nelua} | If `x` argument is passed, it returns the same value as `math.atan2(y, x)`{:.language-nelua}, otherwise it returns the arc tangent of `y` (in radians). |
-| `math.log(x[, base])`{:.language-nelua} | If `base` argument is passed, it returns the logarithm of `x` in the given `base`, otherwise it returns the natural logarithm of `x`). |
-| `math.deg(x)`{:.language-nelua} | Converts the angle `x` from radians to degrees. |
-| `math.rad(x)`{:.language-nelua} | Returns the angle `x` (given in degrees) in radians. |
-| `math.modf(x)`{:.language-nelua} | Returns the integral part of `x` and the fractional part of `x`. |
-| `math.frexp(x)`{:.language-nelua} | Returns `m` (multiplier) and `e` (exponent) such that _x = m2ᵉ_, `e` is an `integer` and the absolute value of `m` is in the range [0.5, 1) (or zero when `x` is zero). |
-| `math.ldexp(m, e)`{:.language-nelua} | Returns _m2ᵉ_ (`e` should be an integral). |
-| `math.tointeger(x)`{:.language-nelua} | If the value `x` is convertible to an `integer`, returns that integer. Otherwise, returns `nil`. |
-| `math.type(x)`{:.language-nelua} | Returns `"integer"`{:.language-nelua} if `x` is an integral, `"float"`{:.language-nelua} if it is a float, or `"nil"`{:.language-nelua} if `x` is not a number. |
-| `math.ult(m, n)`{:.language-nelua} | Both `m` and `n` should be convertible to an `integer`; returns `true` if and only if integer `m` is below integer `n` when they are compared as unsigned integers. |
-| `math.randomseed(x)`{:.language-nelua} | Sets `x` as the "seed" for the pseudo-random generator: equal seeds produce equal sequences of numbers. |
-| `math.random([m[, n]])`{:.language-nelua} | When called without arguments, returns a pseudo-random float with uniform distribution in the range [0,1). When called with two integers `m` and `n`, it returns a pseudo-random `integer` with uniform distribution in the range [`m`, `n`]. The call `math.random(n)`{:.language-nelua}, for a positive `n`, is equivalent to `math.random(1,n)`{:.language-nelua}. |
-{: .table.table-bordered.table-striped.table-sm}
+### math.abs
+
+```nelua
+function math.abs(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the absolute value of `x`, that is, the maximum value between `x` and `-x`.
+
+The argument type is always preserved.
+
+### math.floor
+
+```nelua
+function math.floor(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the largest integral value less than or equal to `x`.
+
+### math.ifloor
+
+```nelua
+function math.ifloor(x: an_scalar): integer <inline,nosideeffect>
+```
+
+Like `math.floor`, but the result is always converted to an integer.
+
+### math.ceil
+
+```nelua
+function math.ceil(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the smallest integral value greater than or equal to `x`.
+
+### math.iceil
+
+```nelua
+function math.iceil(x: an_scalar): integer <inline,nosideeffect>
+```
+
+Like `math.ceil`, but the result is always converted to an integer.
+
+### math.round
+
+```nelua
+function math.round(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the rounded value of `x` towards the nearest integer.
+Halfway cases are rounded away from zero.
+
+### math.trunc
+
+```nelua
+function math.trunc(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the rounded value of `x` towards zero.
+
+### math.sqrt
+
+```nelua
+function math.sqrt(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the square root of `x`.
+You can also use the expression `x^0.5` to compute this value.
+
+### math.cbrt
+
+```nelua
+function math.cbrt(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the cubic root of `x`.
+You can also use the expression `x^(1/3)` to compute this value.
+
+### math.exp
+
+```nelua
+function math.exp(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the value of `e^x` (where `e` is the base of natural logarithms).
+
+### math.exp2
+
+```nelua
+function math.exp2(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the value of `2^x`.
+You can also use the expression `2^x` to compute this value.
+
+### math.pow
+
+```nelua
+function math.pow(x: an_scalar, y: an_scalar) <inline,nosideeffect>
+```
+
+Returns `x^y`.
+You can also use the expression `x^y` to compute this value.
+
+### math.log
+
+```nelua
+function math.log(x: an_scalar, base: an_optional_scalar) <inline,nosideeffect>
+```
+
+Returns the logarithm of `x` in the given `base`.
+The default for `base` is *e*, so that the function returns the natural logarithm of `x`.
+
+### math.cos
+
+```nelua
+function math.cos(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the cosine of `x` (assumed to be in radians).
+
+### math.sin
+
+```nelua
+function math.sin(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the sine of `x` (assumed to be in radians).
+
+### math.tan
+
+```nelua
+function math.tan(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the tangent of `x` (assumed to be in radians).
+
+### math.acos
+
+```nelua
+function math.acos(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the arc cosine of `x` (in radians).
+
+### math.asin
+
+```nelua
+function math.asin(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the arc sine of `x` (in radians).
+
+### math.atan
+
+```nelua
+function math.atan(y: an_scalar, x: an_optional_scalar) <inline,nosideeffect>
+```
+
+Returns the arc tangent of `y/x` (in radians),
+but uses the signs of both arguments to find the quadrant of the result.
+It also handles correctly the case of `x` being zero.
+
+The default value for `x` is `1`, so that the call `math.atan(y)` returns the arc tangent of `y`.
+
+### math.atan2
+
+```nelua
+function math.atan2(y: an_scalar, x: an_optional_scalar) <inline,nosideeffect>
+```
+
+Returns the arc tangent of `y/x` (in radians),
+but uses the signs of both arguments to find the quadrant of the result.
+It also handles correctly the case of `x` being zero.
+
+### math.cosh
+
+```nelua
+function math.cosh(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the hyperbolic cosine of `x`.
+
+### math.sinh
+
+```nelua
+function math.sinh(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the hyperbolic sine of `x`.
+
+### math.tanh
+
+```nelua
+function math.tanh(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the hyperbolic tangent of `x`.
+
+### math.log10
+
+```nelua
+function math.log10(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the base-10 logarithm of `x`.
+
+### math.log2
+
+```nelua
+function math.log2(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the base-2 logarithm of `x`.
+
+### math.acosh
+
+```nelua
+function math.acosh(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the inverse hyperbolic cosine of `x`.
+
+### math.asinh
+
+```nelua
+function math.asinh(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the inverse hyperbolic sine of `x`.
+
+### math.atanh
+
+```nelua
+function math.atanh(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the inverse hyperbolic tangent of `x`.
+
+### math.deg
+
+```nelua
+function math.deg(x: an_scalar) <inline,nosideeffect>
+```
+
+Converts the angle `x` from radians to degrees.
+
+### math.rad
+
+```nelua
+function math.rad(x: an_scalar) <inline,nosideeffect>
+```
+
+Converts the angle `x` from degrees to radians.
+
+### math.sign
+
+```nelua
+function math.sign(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the sign of `x`, that is:
+* `-1` if `x < 0`
+* `0` if `x == 0`
+* `1` if `x > 0`
+
+### math.fract
+
+```nelua
+function math.fract(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the fractional part of `x`.
+
+Computed as `x - math.floor(x)`.
+
+### math.mod
+
+```nelua
+function math.mod(x: an_scalar, y: an_scalar) <inline,nosideeffect>
+```
+
+Returns the modulo operation of `x` by `y`, rounded towards minus infinity.
+
+This is equivalent to `x % y`, but faster and subject to rounding errors.
+It's computed as `x - math.floor(x / y) * y`.
+
+### math.modf
+
+```nelua
+function math.modf(x: an_scalar) <inline,nosideeffect>
+```
+
+Returns the integral part of `x` and the fractional part of `x`.
+Its second result is always a float.
+
+### math.fmod
+
+```nelua
+function math.fmod(x: an_scalar, y: an_scalar) <inline,nosideeffect>
+```
+
+Returns the remainder of the division of `x` by `y` that rounds the quotient towards zero.
+The result can either be an integer or a float depending on the arguments.
+
+### math.frexp
+
+```nelua
+function math.frexp(x: an_scalar) <inline,nosideeffect>
+```
+
+[
+Returns `m` and `e` such that `x = m*(2^e)`,
+`e` is an integer and the absolute value of `m` is in the range [0.5, 1) or zero (when `x` is zero).
+
+### math.ldexp
+
+```nelua
+function math.ldexp(m: an_scalar, e: int32) <inline,nosideeffect>
+```
+
+Returns `m*(2^e)`, that is, `m` multiplied by an integral power of 2.
+
+### math.min
+
+```nelua
+function math.min(...: varargs) <inline,nosideeffect>
+```
+
+Returns the argument with the minimum value, according to the operator `<`.
+
+### math.max
+
+```nelua
+function math.max(...: varargs) <inline,nosideeffect>
+```
+
+Returns the argument with the maximum value, according to the operator `<`.
+
+### math.clamp
+
+```nelua
+function math.clamp(x: an_scalar, min: an_scalar, max: an_scalar) <inline,nosideeffect>
+```
+
+Returns the value of `x` clamped between `min` and `max`.
+
+### math.ult
+
+```nelua
+function math.ult(m: an_scalar, n: an_scalar): boolean <inline>
+```
+
+Returns a boolean, `true` if and only if integer `m` is below integer `n`
+when they are compared as unsigned integers.
+
+### math.tointeger
+
+```nelua
+function math.tointeger(x: an_scalar) <inline,nosideeffect>
+```
+
+If the value `x` is convertible to an integer, returns that integer. Otherwise, returns `nil`.
+
+### math.type
+
+```nelua
+function math.type(x: auto) <inline,nosideeffect>
+```
+
+Returns `"integer"` if `x` is an integer, "float" if `x` is a float, or fail if `x` is not a number.
+
+### math.randomseed
+
+```nelua
+function math.randomseed(x: an_optional_integral, y: an_optional_integral): (integer, integer)
+```
+
+When called with at least one argument,
+the integer parameters `x` and `y` are joined into a 128-bit seed that is used
+to reinitialize the pseudo-random generator.
+Equal seeds produce equal sequences of numbers. The default for `y` is zero.
+
+When called with no arguments, generates a seed with a weak attempt for randomness.
+
+This function returns the two seed components that were effectively used,
+so that setting them again repeats the sequence.
+
+To ensure a required level of randomness to the initial state
+(or contrarily, to have a deterministic sequence, for instance when debugging a program),
+you should call `math.randomseed` with explicit arguments.
+
+### math.random
+
+```nelua
+function math.random(m: an_optional_scalar, n: an_optional_scalar)
+```
+
+When called without arguments, returns a pseudo-random float with uniform distribution in the range [`0`,`1`).
+When called with two integers `m ` and `n`, returns a pseudo-random integer with uniform distribution in the range [`m`, `n`].
+
+The call `math.random(n)`, for a positive `n`, is equivalent to `math.random(1,n)`.
+The call `math.random(0)` produces an integer with all bits (pseudo)random.
+
+This function uses an algorithm based on *xoshiro256* to produce pseudo-random 64-bit integers,
+which are the results of calls with argument 0.
+Other results (ranges and floats) are unbiased extracted from these integers.
+
+Its pseudo-random generator is initialized with the equivalent of a call to `math.randomseed` with no arguments,
+so that `math.random` should generate different sequences of results each time the program runs.
+
+### math.pi
+
+```nelua
+global math.pi: number <comptime>
+```
+
+Float value of PI.
+
+### math.huge
+
+```nelua
+global math.huge: number <comptime>
+```
+
+Float value greater than any other numeric value (infinite).
+
+### math.mininteger
+
+```nelua
+global math.mininteger: integer <comptime>
+```
+
+An integer with the minimum value for an integer.
+
+### math.maxinteger
+
+```nelua
+global math.maxinteger: integer <comptime>
+```
+
+An integer with the maximum value for an integer.
+
+### math.maxuinteger
+
+```nelua
+global math.maxuinteger: uinteger <comptime>
+```
+
+An integer with the maximum value for an unsigned integer.
 
 
 ## memory
@@ -877,25 +1286,6 @@ In POSIX systems, this function also creates a file with that name, to avoid sec
 (Someone else might create the file with wrong permissions in the time between getting the name and creating the file.)
 You still have to open the file to use it and to remove it (even if you do not use it).
 When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
-
-## sequence
-
-[Sequence library](https://github.com/edubart/nelua-lang/blob/master/lib/sequence.nelua) description (TODO)
-
-| Variable Name | Description |
-|---------------|------|
-| `sequence`{:.language-nelua} | Sequence constructor. |
-{: .table.table-bordered.table-striped.table-sm}
-
-## span
-
-[Span library](https://github.com/edubart/nelua-lang/blob/master/lib/span.nelua) description (TODO)
-
-| Variable Name | Description |
-|---------------|------|
-| `span`{:.language-nelua} | Span constructor |
-{: .table.table-bordered.table-striped.table-sm}
-
 
 ## string
 
@@ -1296,16 +1686,6 @@ global function tointeger(x: auto, base: facultative(integer)): integer
 Convert a value to an integer.
 
 
-## stringbuilder
-
-[String Builder library](https://github.com/edubart/nelua-lang/blob/master/lib/stringbuilder.nelua) description (TODO)
-
-| Variable Name | Description |
-|---------------|------|
-| `stringbuilder.make`{:.language-nelua} | Stringbuilder constructor. |
-{: .table.table-bordered.table-striped.table-sm}
-
-
 ## traits
 
 The traits library provides utilities to gather type information.
@@ -1364,33 +1744,6 @@ other types not listed here returns the underlying type name.
 
 This functions behaves as describe to be compatible with Lua APIs.
 
-
-## vector
-
-The [Vector library](https://github.com/edubart/nelua-lang/blob/master/lib/vector.nelua) is an efficient vector implementation.
-
-| Variable Name | Description |
-|---------------|------|
-| `vector(T)`{:.language-nelua} | Generic vector type expression. |
-| `vectorT.data: span(T)`{:.language-nelua} | Elements storage of the vector. |
-| `vectorT.size: usize`{:.language-nelua} | Number of elements in the vector. |
-| `vectorT.allocator: Allocator`{:.language-nelua} | Allocator of the vector. |
-| `vectorT.make(allocator)`{:.language-nelua} | Create a vector using a custom allocator instance. |
-| `vectorT:clear()`{:.language-nelua} | Removes all elements from the vector. |
-| `vectorT:destroy()`{:.language-nelua} | Resets the vector to zeroed state, freeing all used resources. |
-| `vectorT:reserve(n: usize)`{:.language-nelua} | Reserve at least `n` elements in the vector storage. |
-| `vectorT:resize(n: usize)`{:.language-nelua} | Resizes the vector so that it contains `n` elements. |
-| `vectorT:copy(): vectorT`{:.language-nelua} | Returns a shallow copy of the vector, allocating new space. |
-| `vectorT:push(v: T)`{:.language-nelua} | Adds a element `v` at the end of the vector. |
-| `vectorT:pop(): T`{:.language-nelua} | Removes the last element in the vector and returns its value. |
-| `vectorT:insert(pos: usize, v: T)`{:.language-nelua} | Inserts element `v` at position `pos` in the vector. |
-| `vectorT:remove(pos: usize): T`{:.language-nelua} | Removes element at position `pos` in the vector and returns its value. |
-| `vectorT:remove_value(v: T)`{:.language-nelua} | Removes the first item from the vector whose value is given. |
-| `vectorT:remove_if(pred)`{:.language-nelua} | Removes all elements from the vector where `pred` function returns true. |
-| `vectorT:capacity(): isize`{:.language-nelua} | Returns the number of elements the vector can store before triggering a reallocation. |
-| `vectorT:__atindex(i: usize): *T`{:.language-nelua} | Returns reference to element at index `pos`. |
-| `vectorT:__len(): isize`{:.language-nelua} | Returns the number of elements in the vector. |
-{: .table.table-bordered.table-striped.table-sm}
 
 ## utf8
 
@@ -1661,5 +2014,32 @@ Hashes value `v`, used to hash to anything.
 To customize a hash for a specific record you can define `__hash` metamethod,
 and it will be used when calling this function.
 
+
+## vector
+
+The [Vector library](https://github.com/edubart/nelua-lang/blob/master/lib/vector.nelua) is an efficient vector implementation.
+
+| Variable Name | Description |
+|---------------|------|
+| `vector(T)`{:.language-nelua} | Generic vector type expression. |
+| `vectorT.data: span(T)`{:.language-nelua} | Elements storage of the vector. |
+| `vectorT.size: usize`{:.language-nelua} | Number of elements in the vector. |
+| `vectorT.allocator: Allocator`{:.language-nelua} | Allocator of the vector. |
+| `vectorT.make(allocator)`{:.language-nelua} | Create a vector using a custom allocator instance. |
+| `vectorT:clear()`{:.language-nelua} | Removes all elements from the vector. |
+| `vectorT:destroy()`{:.language-nelua} | Resets the vector to zeroed state, freeing all used resources. |
+| `vectorT:reserve(n: usize)`{:.language-nelua} | Reserve at least `n` elements in the vector storage. |
+| `vectorT:resize(n: usize)`{:.language-nelua} | Resizes the vector so that it contains `n` elements. |
+| `vectorT:copy(): vectorT`{:.language-nelua} | Returns a shallow copy of the vector, allocating new space. |
+| `vectorT:push(v: T)`{:.language-nelua} | Adds a element `v` at the end of the vector. |
+| `vectorT:pop(): T`{:.language-nelua} | Removes the last element in the vector and returns its value. |
+| `vectorT:insert(pos: usize, v: T)`{:.language-nelua} | Inserts element `v` at position `pos` in the vector. |
+| `vectorT:remove(pos: usize): T`{:.language-nelua} | Removes element at position `pos` in the vector and returns its value. |
+| `vectorT:remove_value(v: T)`{:.language-nelua} | Removes the first item from the vector whose value is given. |
+| `vectorT:remove_if(pred)`{:.language-nelua} | Removes all elements from the vector where `pred` function returns true. |
+| `vectorT:capacity(): isize`{:.language-nelua} | Returns the number of elements the vector can store before triggering a reallocation. |
+| `vectorT:__atindex(i: usize): *T`{:.language-nelua} | Returns reference to element at index `pos`. |
+| `vectorT:__len(): isize`{:.language-nelua} | Returns the number of elements in the vector. |
+{: .table.table-bordered.table-striped.table-sm}
 
 <a href="/diffs/" class="btn btn-outline-primary btn-lg float-right">Differences >></a>
