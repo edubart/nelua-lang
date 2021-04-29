@@ -372,7 +372,7 @@ function math.fmod(x: an_scalar, y: an_scalar) <inline,nosideeffect>
   ## end
 end
 
---[[[
+--[[
 Returns `m` and `e` such that `x = m*(2^e)`,
 `e` is an integer and the absolute value of `m` is in the range [0.5, 1) or zero (when `x` is zero).
 ]]

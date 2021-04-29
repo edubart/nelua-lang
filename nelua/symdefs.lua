@@ -44,7 +44,6 @@ define_symbol('nilptr', primtypes.nilptr)
 -- lua
 define_function('error', {Attr{name='message', type=primtypes.string}}, {}, {noreturn=true, sideeffect=true})
 define_function('warn', {Attr{name='message', type=primtypes.string}}, {}, {sideeffect=true})
-define_function('type', {Attr{name='value', type=primtypes.any}}, {primtypes.string})
 define_function('require', {Attr{name='modname', type=primtypes.string}}, {})
 define_symbol('print')
 define_symbol('assert')

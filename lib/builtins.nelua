@@ -1,0 +1,66 @@
+--[[
+The following are builtin functions defined in the Nelua compiler.
+Thus this is not really a library and shouldn't be used with `require`.
+]]
+
+## static_error "library 'builtins' should never be required, it's there just for documentation purposes"
+
+--[[
+Loads the given module `modname`.
+
+The function starts by looking into loaded modules to determine whether `modname` is already loaded.
+If it is then require does nothing, otherwise it tries to load the module.
+
+If there is any error loading the module, then the compilation fails.
+If there is any error running the module, then the application terminates.
+]]
+global function require(modname: string <comptime>) <builtin> end
+
+--[[
+Receives any number of arguments and prints their values to the standard output,
+converting each argument to a string following the same rules of `tostring`.
+The values are separated by tabs and a new line is always appended.
+
+The function `print` is not intended for formatted output,
+but only as a quick way to show a value, for instance for debugging.
+For complete control over the output, use `io.write` or `io.writef`.
+]]
+global function print(...: varargs): void <builtin> end
+
+
+--[[
+Terminate the application abnormally with message `message`.
+Use to raise unrecoverable errors.
+]]
+global function panic(message: string): void <noreturn,builtin> end
+
+--[[
+Raises an error with message `message`.
+
+Currently this is an alias to `panic` and terminates the application,
+but in the future, in case the language get an exception system,
+it may be changed to an exception being thrown.
+]]
+global function error(msg: string): void <noreturn,builtin> end
+
+--[[
+Raises an error if the value `v` is evaluated to `false`, otherwise, returns `v`.
+In case of error, `message` is the error message, when absent defaults to `"assertion failed!"`.
+]]
+global function assert(v: auto, message: facultative(string)) <builtin> end
+
+--[[
+If `cond` is true it does nothing, otherwise raises an error with `message` and terminates the application.
+Similar to `assert` however it's completely omitted when compiling in release mode or with pragma `nochecks`.
+Use for assertive programming, to check if conditions are met without impacting performance of production code.
+]]
+global function check(cond: boolean, message: facultative(string)): void <builtin> end
+
+-- Returns `cond`. This is a branching prediction utility, expecting `cond` to evaluate to `true`.
+global function likely(cond: boolean): boolean <builtin,nosideffect> end
+
+-- Returns `cond`. This is a branching prediction utility, expecting `cond` to evaluate to `false`.
+global function unlikely(cond: boolean): boolean <builtin,nosideffect> end
+
+-- A string containing the running Nelua version, such as `"Nelua 0.2-dev"`.
+global _VERSION: string <comptime>

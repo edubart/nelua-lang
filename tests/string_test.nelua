@@ -442,7 +442,7 @@ do -- tostring
   assert_string_eq(tostring(1203.125), "1203.125")
   assert_string_eq(tostring(-0.5), "-0.5")
   assert_string_eq(tostring(-32767), "-32767")
-  assert(type(tostring('')) == 'string')
+  assert_string_eq(tostring(''), '')
   local function f() end
   assert_string_eq(tostring(f):subview(1,10), 'function: ')
   assert_string_eq(tostring(string.lower):subview(1,10), 'function: ')

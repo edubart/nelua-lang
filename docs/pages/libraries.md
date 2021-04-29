@@ -7,14 +7,110 @@ toc: true
 order: 4
 ---
 
-This is a list of built-in libraries in Nelua.
+This is a list of Nelua standard libraries.
 {: .lead}
 
 To use a library, use `require 'libraryname'`{:.language-nelua}.
 {: .callout.callout-info}
 
-This page is under construction and is very incomplete.
-{: .callout.callout-info}
+
+## builtins
+
+The following are builtin functions defined in the Nelua compiler.
+Thus this is not really a library and shouldn't be used with `require`.
+
+### require
+
+```nelua
+global function require(modname: string <comptime>) <builtin>
+```
+
+Loads the given module `modname`.
+
+The function starts by looking into loaded modules to determine whether `modname` is already loaded.
+If it is then require does nothing, otherwise it tries to load the module.
+
+If there is any error loading the module, then the compilation fails.
+If there is any error running the module, then the application terminates.
+
+### print
+
+```nelua
+global function print(...: varargs): void <builtin>
+```
+
+Receives any number of arguments and prints their values to the standard output,
+converting each argument to a string following the same rules of `tostring`.
+The values are separated by tabs and a new line is always appended.
+
+The function `print` is not intended for formatted output,
+but only as a quick way to show a value, for instance for debugging.
+For complete control over the output, use `io.write` or `io.writef`.
+
+### panic
+
+```nelua
+global function panic(message: string): void <noreturn,builtin>
+```
+
+Terminate the application abnormally with message `message`.
+Use to raise unrecoverable errors.
+
+### error
+
+```nelua
+global function error(msg: string): void <noreturn,builtin>
+```
+
+Raises an error with message `message`.
+
+Currently this is an alias to `panic` and terminates the application,
+but in the future, in case the language get an exception system,
+it may be changed to an exception being thrown.
+
+### assert
+
+```nelua
+global function assert(v: auto, message: facultative(string)) <builtin>
+```
+
+Raises an error if the value `v` is evaluated to `false`, otherwise, returns `v`.
+In case of error, `message` is the error message, when absent defaults to `"assertion failed!"`.
+
+### check
+
+```nelua
+global function check(cond: boolean, message: facultative(string)): void <builtin>
+```
+
+If `cond` is true it does nothing, otherwise raises an error with `message` and terminates the application.
+Similar to `assert` however it's completely omitted when compiling in release mode or with pragma `nochecks`.
+Use for assertive programming, to check if conditions are met without impacting performance of production code.
+
+### likely
+
+```nelua
+global function likely(cond: boolean): boolean <builtin,nosideffect>
+```
+
+Returns `cond`. This is a branching prediction utility, expecting `cond` to evaluate to `true`.
+
+### unlikely
+
+```nelua
+global function unlikely(cond: boolean): boolean <builtin,nosideffect>
+```
+
+Returns `cond`. This is a branching prediction utility, expecting `cond` to evaluate to `false`.
+
+### _VERSION
+
+```nelua
+global _VERSION: string <comptime>
+```
+
+A string containing the running Nelua version, such as `"Nelua 0.2-dev"`.
+
 
 ## arg
 
@@ -32,23 +128,6 @@ Sequence of command line arguments.
 The value at index `0` is usually filled with the program executable name.
 The values starting from index `1` up to `#arg` contains each command line argument.
 
-
-## builtins
-
-Builtins defined in the compiler. 
-
-| Variable Name | Description |
-|---------------|------|
-| `global print(...: varargs)`{:.language-nelua} | Print values to `stdout` separated by tabs and with a new line. |
-| `global panic([msg: string])`{:.language-nelua} | Exit application with a fatal unrecoverable error. |
-| `global error([msg: string])`{:.language-nelua} | Like `panic` but prints source location. |
-| `global warn(msg: string)`{:.language-nelua} | Print a warning to `stderr`. |
-| `global assert([cond: T [, msg: string]]): T`{:.language-nelua} | Thrown a runtime error if `cond` evaluates to false, otherwise returns it. |
-| `global check([cond: boolean [, msg: string]])`{:.language-nelua} | Similar to `assert` but can be disabled with `-Pnochecks`. |
-| `global likely(x: boolean): boolean`{:.language-nelua} | Branching prediction utility. |
-| `global unlikely(x: boolean): boolean`{:.language-nelua} | Branching prediction utility. |
-| `global _VERSION: string`{:.language-nelua} | A string of Nelua version. |
-{: .table.table-bordered.table-striped.table-sm}
 
 ## iterators
 

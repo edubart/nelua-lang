@@ -226,25 +226,6 @@ function builtins.nelua_cstring2string(context)
 }]])
 end
 
-function builtins.nlruntype(context)
-  context:ensure_type(primtypes.string)
-  context:define_builtin('nlruntype', [[
-typedef struct nlruntype {
-  nlstring name;
-} nlruntype;
-]])
-end
-
-function builtins.nlruntype_(context, typename)
-  local name = 'nlruntype_' .. typename
-  if context.usedbuiltins[name] then return name end
-  context:ensure_builtin('nlruntype')
-  context:ensure_include('<stdint.h>')
-  local code = string.format('static nlruntype %s = {{(uint8_t*)"%s", %d}};', name, typename, #typename)
-  context:define_builtin(name, code)
-  return name
-end
-
 function builtins.nelua_narrow_cast_(context, dtype, stype)
   local name = 'nelua_narrow_cast_'..stype.codename..'_'..dtype.codename
   if context.usedbuiltins[name] then return name end
@@ -944,25 +925,6 @@ function inlines.print(context, node)
   context:add_definition(defemitter:generate(), funcname)
   context.printcache[printhash] = funcname
   return funcname
-end
-
-function inlines.type(context, node, emitter)
-  local argnode = node[1][1]
-  local type = argnode.attr.type
-  local typename
-  if type.is_scalar then
-    typename = 'number'
-  elseif type.is_nilptr then
-    typename = 'pointer'
-  elseif type.is_stringy then
-    typename = 'string'
-  elseif type.is_any then --luacov:disable
-    node:raisef('type() for any values not implemented yet')
-  else --luacov:enable
-    typename = type.name
-  end
-  context:ensure_builtin('nlruntype_', typename)
-  emitter:add('nlruntype_',typename,'.name')
 end
 
 function inlines.likely(context)

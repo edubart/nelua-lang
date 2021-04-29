@@ -1626,7 +1626,6 @@ it("cimport", function()
 end)
 
 it("builtins", function()
-  expect.ast_type_equals("local x; local a = type(x)", "local x; local a: string = type(x)")
   expect.ast_type_equals("local a = #@integer", "local a: isize = #@integer")
   expect.ast_type_equals("local a = likely(true)", "local a: boolean = likely(true)")
   expect.ast_type_equals("local a = unlikely(true)", "local a: boolean = unlikely(true)")

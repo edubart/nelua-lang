@@ -592,15 +592,12 @@ it("poly functions with comptime arguments", function()
     end
 
     local a = cast(@boolean, 1)
-    assert(type(a) == 'boolean')
     assert(a == true)
 
     local b = cast(@number, 1)
-    assert(type(b) == 'number')
     assert(b == 1.0)
 
     local c = cast(@number, 2)
-    assert(type(c) == 'number')
     assert(c == 2.0)
 
     local function iszero(x: auto)
@@ -2728,24 +2725,6 @@ it("likely builtin", function()
   expect.run_c([[
     assert(likely(true))
     assert(not unlikely(false))
-  ]])
-end)
-
-it("type builtin", function()
-  expect.run_c([[
-    local function f() end
-    local R = @record{x:integer}
-    local r: R
-    assert(r.x == 0)
-    assert(type('a') == 'string')
-    assert(type(1) == 'number')
-    assert(type(false) == 'boolean')
-    assert(type(f) == 'function')
-    assert(type(R) == 'type')
-    assert(type(r) == 'record')
-    assert(type(&r) == 'pointer')
-    assert(type(nilptr) == 'pointer')
-    assert(type(nil) == 'niltype')
   ]])
 end)
 

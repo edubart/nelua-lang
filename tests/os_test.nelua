@@ -1,4 +1,5 @@
 require 'os'
+require 'traits'
 
 do -- os.clock
   assert(os.clock() >= 0)
