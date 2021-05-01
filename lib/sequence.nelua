@@ -159,7 +159,7 @@ require 'iterators'
 
   -- Removes the first item from the sequence whose value is given.
   -- The remaining elements are shifted.
-  -- Ruturns true if the an item was removed and false otherwise.
+  -- Returns true if the an item was removed and false otherwise.
   function sequenceT:remove_value(v: T): boolean
     if not self.impl then return false end
     for i:usize=1,self.impl.size do

@@ -95,7 +95,7 @@ Without a `file`, closes the default output file.
 
 Equivalent to `file:close()`.
 ]]
-function io.close(file: overload(filestream, niltype))
+function io.close(file: overload(filestream, niltype)): (boolean, string, integer)
   ## if file.type.is_niltype then
     return io.stdout:close()
   ## else

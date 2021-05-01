@@ -1,16 +1,24 @@
--- Vector type
---
--- This type is typically used as an efficient vector.
--- Its elements starts at index 0 and go up to length-1 (like C arrays).
--- At the moment this should not be passed as value, only as reference.
---
--- By default it uses the garbage collector unless explicitly told not to do so,
--- thus by default there is no need to manually destroy the vector.
+--[[
+The vector library provides the generic record `vector`,
+that can be used as an efficient dynamic sized array of any type.
+
+Vector elements starts at index 0 and go up to length-1.
+
+A vector should never be passed by value while being modified, otherwise the behavior is undefined,
+in case this is needed then try the `sequence` library.
+
+Any failure when growing a vector raises a panic error.
+When checks are enabled, invalid operations (such as out of bounds access) raises a panic error.
+When checks are disabled (on release builds or when pragma `nochecks` is active),
+invalid operations causes an undefined behavior.
+
+Vectors by default uses the default allocator unless explicitly told not to do so.
+]]
 
 require 'memory'
 require 'iterators'
 
-## local make_generic_vector = generalize(function(T, Allocator)
+## local function make_vectorT(T, Allocator)
   ## static_assert(traits.is_type(T), "invalid type '%s'", T)
   ## if not Allocator then
   require 'allocators.default'
@@ -19,7 +27,9 @@ require 'iterators'
 
   local Allocator: type = #[Allocator]#
   local T: type = @#[T]#
-  local vectorT <nickname #[string.format('vector(%s)', T)]#> = @record {
+
+  -- Vector record defined when instantiating the generic `vector` with type `T`.
+  local vectorT: type <nickname #[string.format('vector(%s)', T)]#> = @record {
     data: span(T),
     size: usize,
     allocator: Allocator
@@ -34,14 +44,18 @@ require 'iterators'
   vectorT.choose_initializerlist_type = function(nodes) return types.ArrayType(T, #nodes) end
   ]]
 
-  function vectorT:_grow(): void <noinline>
-    local cap: usize = 1
-    if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
-    self.data = self.allocator:spanxrealloc0(self.data, cap)
-  end
+  -- Concept matching fixed arrays of T.
+  local an_arrayT = #[concept(function(x)
+    if x.type:is_array_of(T) then
+      return true
+    end
+    return false, string.format("no viable conversion from '%s' to '%s'", x.type, vectorT)
+  end)]#
 
-  -- Create a vector using a custom allocator instance.
-  -- This is only to be used when not using the default allocator.
+  --[[
+  Create a vector using a custom allocator instance.
+  Useful only when using instanced allocators.
+  ]]
   function vectorT.make(allocator: Allocator): vectorT
     local v: vectorT
     v.allocator = allocator
@@ -54,12 +68,14 @@ require 'iterators'
     self.size = 0
   end
 
-  -- Resets the vector to zeroed state, freeing all used resources.
-  -- This is more useful to free resources when not using the garbage collector.
+  --[[
+  Free all vector resources and resets it to a zeroed state.
+  Useful only when not using the garbage collector.
+  ]]
   function vectorT:destroy(): void
     self:clear()
     self.allocator:spandealloc(self.data)
-    $self = (@vectorT)()
+    self.data = (@span(T))()
   end
 
   -- Reserve at least `n` elements in the vector storage.
@@ -68,15 +84,16 @@ require 'iterators'
     self.data = self.allocator:spanxrealloc0(self.data, n)
   end
 
-  -- Resizes the vector so that it contains `n` elements.
-  -- When expanding new elements are zero initialized.
-  -- When shrinking removed elements are destroyed.
+  --[[
+  Resizes the vector so that it contains `n` elements.
+  When expanding new elements are initialized to zeros.
+  ]]
   function vectorT:resize(n: usize): void
     self:reserve(n)
     self.size = n
   end
 
-  -- Returns a shallow copy of the vector, allocating new space.
+  -- Returns a shallow copy of the vector, allocating a new vector.
   function vectorT:copy(): vectorT
     local clone: vectorT
     if self.size > 0 then
@@ -88,7 +105,17 @@ require 'iterators'
     return clone
   end
 
-  -- Adds a element `v` at the end of the vector.
+  --[[
+  Grow vector storage to accommodate at least one more element.
+  Only used internally.
+  ]]
+  function vectorT:_grow(): void <noinline>
+    local cap: usize = 1
+    if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
+    self.data = self.allocator:spanxrealloc0(self.data, cap)
+  end
+
+  -- Inserts a element `v` at the end of the vector.
   function vectorT:push(v: T): void
     local newsize: usize = self.size + 1
     if unlikely(newsize > self.data.size) then
@@ -98,17 +125,21 @@ require 'iterators'
     self.size = newsize
   end
 
-  -- Removes the last element in the vector and returns its value.
-  -- If the vector is empty, then throws a runtime error on debug builds.
+  --[[
+  Removes the last element in the vector and returns its value.
+  The vector must not be empty.
+  ]]
   function vectorT:pop(): T
     check(self.size > 0, 'attempt to pop an empty vector')
     self.size = self.size - 1
     return self.data[self.size]
   end
 
-  -- Inserts element `v` at position `pos` in the vector.
-  -- Elements with index greater or equal than `pos` are shifted up.
-  -- If the `pos` is out of range, then throws a runtime error on debug builds.
+  --[[
+  Inserts element `v` at position `pos` in the vector.
+  Elements with index greater or equal than `pos` are shifted up.
+  The index `pos` must be valid (in the vector bounds).
+  ]]
   function vectorT:insert(pos: usize, v: T): void
     check(pos <= self.size, 'position out of bounds')
     if unlikely(self.size + 1 >= self.data.size) then
@@ -122,9 +153,11 @@ require 'iterators'
     self.size = self.size + 1
   end
 
-  -- Removes element at position `pos` in the vector and returns its value.
-  -- Elements with index greater than `pos` are shifted down.
-  -- If the `pos` is out of range, then throws a runtime error on debug builds.
+  --[[
+  Removes element at position `pos` in the vector and returns its value.
+  Elements with index greater than `pos` are shifted down.
+  The index `pos` must be valid (in the vector bounds).
+  ]]
   function vectorT:remove(pos: usize): T
     check(pos < self.size, 'position out of bounds')
     self.size = self.size - 1
@@ -136,9 +169,11 @@ require 'iterators'
     return ret
   end
 
-  -- Removes the first item from the vector whose value is given.
-  -- The remaining elements are shifted.
-  -- Ruturns true if the an item was removed and false otherwise.
+  --[[
+  Removes the first item from the vector whose value is `v`.
+  The remaining elements are shifted.
+  Returns `true` if an element was removed, otherwise `false`.
+  ]]
   function vectorT:remove_value(v: T): boolean
     for i:usize=0,<self.size do
       if self.data[i] == v then
@@ -149,8 +184,10 @@ require 'iterators'
     return false
   end
 
-  -- Removes all elements from the vector where `pred` function returns true.
-  -- The remaining elements are shifted.
+  --[[
+  Removes all elements from the vector where `pred` function returns `true`.
+  The remaining elements are shifted.
+  ]]
   function vectorT:remove_if(pred: function(v: T): boolean): void
     local j: usize = 0
     for i:usize=0,<self.size do
@@ -167,24 +204,28 @@ require 'iterators'
     return (@isize)(self.data.size)
   end
 
-  -- Returns reference to element at index `pos`.
-  -- If `pos` is greater of equal to vector size, then throws a runtime error on debug builds.
+  --[[
+  Returns reference to element at index `pos`, the index must be valid.
+  Used when indexing elements with square brackets (`[]`).
+  ]]
   function vectorT:__atindex(i: usize): *T <inline,nosideeffect>
     check(i < self.size, 'position out of bounds')
     return &self.data[i]
   end
 
-  -- Returns the number of elements in the vector.
+  --[[
+  Returns the number of elements in the vector.
+  Used by the length operator (`#`).
+  ]]
   function vectorT:__len(): isize <inline>
     return (@isize)(self.size)
   end
 
-  -- Initializes vector elements from a fixed array.
-  -- This allows to use vector initialization with braces.
-  function vectorT.__convert(values: #[concept(function(x)
-    if x.type:is_array_of(T) then return true end
-    return false, string.format("no viable conversion from '%s' to '%s'", x.type, vectorT)
-  end)]#): vectorT <inline>
+  --[[
+  Initializes vector elements from a fixed array.
+  Used to initialize vector elements with curly braces (`{}`).
+  ]]
+  function vectorT.__convert(values: an_arrayT): vectorT <inline>
     local self: vectorT
     self:reserve(#values)
     self.size = #values
@@ -195,6 +236,13 @@ require 'iterators'
   end
 
   ## return vectorT
-## end)
+## end
 
-global vector: type = #[make_generic_vector]#
+--[[
+Generic used to instantiate a vector type in the form of `vector(T, Allocator)`.
+
+The first argument `T` is type that the vector will store.
+The second argument `Allocator` is an allocator type for the vector storage,
+in case absent then `DefaultAllocator` is used.
+]]
+global vector: type = #[generalize(make_vectorT)]#

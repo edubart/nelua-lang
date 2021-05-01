@@ -22,7 +22,7 @@ Thus this is not really a library and shouldn't be used with `require`.
 ### require
 
 ```nelua
-global function require(modname: string <comptime>) <builtin>
+global function require(modname: string)
 ```
 
 Loads the given module `modname`.
@@ -36,7 +36,7 @@ If there is any error running the module, then the application terminates.
 ### print
 
 ```nelua
-global function print(...: varargs): void <builtin>
+global function print(...: varargs): void
 ```
 
 Receives any number of arguments and prints their values to the standard output,
@@ -50,7 +50,7 @@ For complete control over the output, use `io.write` or `io.writef`.
 ### panic
 
 ```nelua
-global function panic(message: string): void <noreturn,builtin>
+global function panic(message: string): void
 ```
 
 Terminate the application abnormally with message `message`.
@@ -59,7 +59,7 @@ Use to raise unrecoverable errors.
 ### error
 
 ```nelua
-global function error(msg: string): void <noreturn,builtin>
+global function error(msg: string): void
 ```
 
 Raises an error with message `message`.
@@ -71,7 +71,7 @@ it may be changed to an exception being thrown.
 ### assert
 
 ```nelua
-global function assert(v: auto, message: facultative(string)) <builtin>
+global function assert(v: auto, message: facultative(string))
 ```
 
 Raises an error if the value `v` is evaluated to `false`, otherwise, returns `v`.
@@ -80,7 +80,7 @@ In case of error, `message` is the error message, when absent defaults to `"asse
 ### check
 
 ```nelua
-global function check(cond: boolean, message: facultative(string)): void <builtin>
+global function check(cond: boolean, message: facultative(string)): void
 ```
 
 If `cond` is true it does nothing, otherwise raises an error with `message` and terminates the application.
@@ -90,7 +90,7 @@ Use for assertive programming, to check if conditions are met without impacting 
 ### likely
 
 ```nelua
-global function likely(cond: boolean): boolean <builtin,nosideffect>
+global function likely(cond: boolean): boolean
 ```
 
 Returns `cond`. This is a branching prediction utility, expecting `cond` to evaluate to `true`.
@@ -98,7 +98,7 @@ Returns `cond`. This is a branching prediction utility, expecting `cond` to eval
 ### unlikely
 
 ```nelua
-global function unlikely(cond: boolean): boolean <builtin,nosideffect>
+global function unlikely(cond: boolean): boolean
 ```
 
 Returns `cond`. This is a branching prediction utility, expecting `cond` to evaluate to `false`.
@@ -106,7 +106,7 @@ Returns `cond`. This is a branching prediction utility, expecting `cond` to eval
 ### _VERSION
 
 ```nelua
-global _VERSION: string <comptime>
+global _VERSION: string
 ```
 
 A string containing the running Nelua version, such as `"Nelua 0.2-dev"`.
@@ -139,7 +139,7 @@ The functions provided here can be used with the `for in` construction.
 ### ipairs
 
 ```nelua
-global function ipairs(a: contiguous_reference_concept) <inline>
+global function ipairs(a: contiguous_reference_concept)
 ```
 
 Returns values so that the construction
@@ -154,7 +154,7 @@ The container `a` must be contiguous, such as `array`, `span`, `vector` or `sequ
 ### mipairs
 
 ```nelua
-global function mipairs(a: contiguous_reference_concept) <inline>
+global function mipairs(a: contiguous_reference_concept)
 ```
 
 Like `ipairs` but yields reference to elements values so that you can modify them in-place.
@@ -162,7 +162,7 @@ Like `ipairs` but yields reference to elements values so that you can modify the
 ### next
 
 ```nelua
-global function next(a: container_reference_concept, k: auto) <inline>
+global function next(a: container_reference_concept, k: auto)
 ```
 
 Gets the next element after key `k` for the container `a`.
@@ -175,7 +175,7 @@ The container `a` must either have the metamethod `__next` or be a contiguous.
 ### mnext
 
 ```nelua
-global function mnext(a: contiguous_reference_concept, k: auto) <inline>
+global function mnext(a: contiguous_reference_concept, k: auto)
 ```
 
 Like `next` but returns reference to the next element value, so that you can modify it in-place.
@@ -183,7 +183,7 @@ Like `next` but returns reference to the next element value, so that you can mod
 ### pairs
 
 ```nelua
-global function pairs(a: container_reference_concept) <inline>
+global function pairs(a: container_reference_concept)
 ```
 
 Returns values so that the construction
@@ -199,7 +199,7 @@ Should work on any container, such as `array`, `span`, `vector`, `sequence` or `
 ### mpairs
 
 ```nelua
-global function mpairs(a: container_reference_concept) <inline>
+global function mpairs(a: container_reference_concept)
 ```
 
 Like `pairs` but yields reference to elements values so that you can modify them in-place.
@@ -281,7 +281,7 @@ This function is system dependent and is not available on all platforms.
 ### io.close
 
 ```nelua
-function io.close(file: overload(filestream, niltype))
+function io.close(file: overload(filestream, niltype)):  (boolean, string, integer)
 ```
 
 Closes a file.
@@ -604,7 +604,7 @@ The math library provides basic mathematical functions.
 ### math.abs
 
 ```nelua
-function math.abs(x: an_scalar) <inline,nosideeffect>
+function math.abs(x: an_scalar)
 ```
 
 Returns the absolute value of `x`, that is, the maximum value between `x` and `-x`.
@@ -614,7 +614,7 @@ The argument type is always preserved.
 ### math.floor
 
 ```nelua
-function math.floor(x: an_scalar) <inline,nosideeffect>
+function math.floor(x: an_scalar)
 ```
 
 Returns the largest integral value less than or equal to `x`.
@@ -622,7 +622,7 @@ Returns the largest integral value less than or equal to `x`.
 ### math.ifloor
 
 ```nelua
-function math.ifloor(x: an_scalar): integer <inline,nosideeffect>
+function math.ifloor(x: an_scalar): integer
 ```
 
 Like `math.floor`, but the result is always converted to an integer.
@@ -630,7 +630,7 @@ Like `math.floor`, but the result is always converted to an integer.
 ### math.ceil
 
 ```nelua
-function math.ceil(x: an_scalar) <inline,nosideeffect>
+function math.ceil(x: an_scalar)
 ```
 
 Returns the smallest integral value greater than or equal to `x`.
@@ -638,7 +638,7 @@ Returns the smallest integral value greater than or equal to `x`.
 ### math.iceil
 
 ```nelua
-function math.iceil(x: an_scalar): integer <inline,nosideeffect>
+function math.iceil(x: an_scalar): integer
 ```
 
 Like `math.ceil`, but the result is always converted to an integer.
@@ -646,7 +646,7 @@ Like `math.ceil`, but the result is always converted to an integer.
 ### math.round
 
 ```nelua
-function math.round(x: an_scalar) <inline,nosideeffect>
+function math.round(x: an_scalar)
 ```
 
 Returns the rounded value of `x` towards the nearest integer.
@@ -655,7 +655,7 @@ Halfway cases are rounded away from zero.
 ### math.trunc
 
 ```nelua
-function math.trunc(x: an_scalar) <inline,nosideeffect>
+function math.trunc(x: an_scalar)
 ```
 
 Returns the rounded value of `x` towards zero.
@@ -663,7 +663,7 @@ Returns the rounded value of `x` towards zero.
 ### math.sqrt
 
 ```nelua
-function math.sqrt(x: an_scalar) <inline,nosideeffect>
+function math.sqrt(x: an_scalar)
 ```
 
 Returns the square root of `x`.
@@ -672,7 +672,7 @@ You can also use the expression `x^0.5` to compute this value.
 ### math.cbrt
 
 ```nelua
-function math.cbrt(x: an_scalar) <inline,nosideeffect>
+function math.cbrt(x: an_scalar)
 ```
 
 Returns the cubic root of `x`.
@@ -681,7 +681,7 @@ You can also use the expression `x^(1/3)` to compute this value.
 ### math.exp
 
 ```nelua
-function math.exp(x: an_scalar) <inline,nosideeffect>
+function math.exp(x: an_scalar)
 ```
 
 Returns the value of `e^x` (where `e` is the base of natural logarithms).
@@ -689,7 +689,7 @@ Returns the value of `e^x` (where `e` is the base of natural logarithms).
 ### math.exp2
 
 ```nelua
-function math.exp2(x: an_scalar) <inline,nosideeffect>
+function math.exp2(x: an_scalar)
 ```
 
 Returns the value of `2^x`.
@@ -698,7 +698,7 @@ You can also use the expression `2^x` to compute this value.
 ### math.pow
 
 ```nelua
-function math.pow(x: an_scalar, y: an_scalar) <inline,nosideeffect>
+function math.pow(x: an_scalar, y: an_scalar)
 ```
 
 Returns `x^y`.
@@ -707,7 +707,7 @@ You can also use the expression `x^y` to compute this value.
 ### math.log
 
 ```nelua
-function math.log(x: an_scalar, base: an_optional_scalar) <inline,nosideeffect>
+function math.log(x: an_scalar, base: an_optional_scalar)
 ```
 
 Returns the logarithm of `x` in the given `base`.
@@ -716,7 +716,7 @@ The default for `base` is *e*, so that the function returns the natural logarith
 ### math.cos
 
 ```nelua
-function math.cos(x: an_scalar) <inline,nosideeffect>
+function math.cos(x: an_scalar)
 ```
 
 Returns the cosine of `x` (assumed to be in radians).
@@ -724,7 +724,7 @@ Returns the cosine of `x` (assumed to be in radians).
 ### math.sin
 
 ```nelua
-function math.sin(x: an_scalar) <inline,nosideeffect>
+function math.sin(x: an_scalar)
 ```
 
 Returns the sine of `x` (assumed to be in radians).
@@ -732,7 +732,7 @@ Returns the sine of `x` (assumed to be in radians).
 ### math.tan
 
 ```nelua
-function math.tan(x: an_scalar) <inline,nosideeffect>
+function math.tan(x: an_scalar)
 ```
 
 Returns the tangent of `x` (assumed to be in radians).
@@ -740,7 +740,7 @@ Returns the tangent of `x` (assumed to be in radians).
 ### math.acos
 
 ```nelua
-function math.acos(x: an_scalar) <inline,nosideeffect>
+function math.acos(x: an_scalar)
 ```
 
 Returns the arc cosine of `x` (in radians).
@@ -748,7 +748,7 @@ Returns the arc cosine of `x` (in radians).
 ### math.asin
 
 ```nelua
-function math.asin(x: an_scalar) <inline,nosideeffect>
+function math.asin(x: an_scalar)
 ```
 
 Returns the arc sine of `x` (in radians).
@@ -756,7 +756,7 @@ Returns the arc sine of `x` (in radians).
 ### math.atan
 
 ```nelua
-function math.atan(y: an_scalar, x: an_optional_scalar) <inline,nosideeffect>
+function math.atan(y: an_scalar, x: an_optional_scalar)
 ```
 
 Returns the arc tangent of `y/x` (in radians),
@@ -768,7 +768,7 @@ The default value for `x` is `1`, so that the call `math.atan(y)` returns the ar
 ### math.atan2
 
 ```nelua
-function math.atan2(y: an_scalar, x: an_optional_scalar) <inline,nosideeffect>
+function math.atan2(y: an_scalar, x: an_optional_scalar)
 ```
 
 Returns the arc tangent of `y/x` (in radians),
@@ -778,7 +778,7 @@ It also handles correctly the case of `x` being zero.
 ### math.cosh
 
 ```nelua
-function math.cosh(x: an_scalar) <inline,nosideeffect>
+function math.cosh(x: an_scalar)
 ```
 
 Returns the hyperbolic cosine of `x`.
@@ -786,7 +786,7 @@ Returns the hyperbolic cosine of `x`.
 ### math.sinh
 
 ```nelua
-function math.sinh(x: an_scalar) <inline,nosideeffect>
+function math.sinh(x: an_scalar)
 ```
 
 Returns the hyperbolic sine of `x`.
@@ -794,7 +794,7 @@ Returns the hyperbolic sine of `x`.
 ### math.tanh
 
 ```nelua
-function math.tanh(x: an_scalar) <inline,nosideeffect>
+function math.tanh(x: an_scalar)
 ```
 
 Returns the hyperbolic tangent of `x`.
@@ -802,7 +802,7 @@ Returns the hyperbolic tangent of `x`.
 ### math.log10
 
 ```nelua
-function math.log10(x: an_scalar) <inline,nosideeffect>
+function math.log10(x: an_scalar)
 ```
 
 Returns the base-10 logarithm of `x`.
@@ -810,7 +810,7 @@ Returns the base-10 logarithm of `x`.
 ### math.log2
 
 ```nelua
-function math.log2(x: an_scalar) <inline,nosideeffect>
+function math.log2(x: an_scalar)
 ```
 
 Returns the base-2 logarithm of `x`.
@@ -818,7 +818,7 @@ Returns the base-2 logarithm of `x`.
 ### math.acosh
 
 ```nelua
-function math.acosh(x: an_scalar) <inline,nosideeffect>
+function math.acosh(x: an_scalar)
 ```
 
 Returns the inverse hyperbolic cosine of `x`.
@@ -826,7 +826,7 @@ Returns the inverse hyperbolic cosine of `x`.
 ### math.asinh
 
 ```nelua
-function math.asinh(x: an_scalar) <inline,nosideeffect>
+function math.asinh(x: an_scalar)
 ```
 
 Returns the inverse hyperbolic sine of `x`.
@@ -834,7 +834,7 @@ Returns the inverse hyperbolic sine of `x`.
 ### math.atanh
 
 ```nelua
-function math.atanh(x: an_scalar) <inline,nosideeffect>
+function math.atanh(x: an_scalar)
 ```
 
 Returns the inverse hyperbolic tangent of `x`.
@@ -842,7 +842,7 @@ Returns the inverse hyperbolic tangent of `x`.
 ### math.deg
 
 ```nelua
-function math.deg(x: an_scalar) <inline,nosideeffect>
+function math.deg(x: an_scalar)
 ```
 
 Converts the angle `x` from radians to degrees.
@@ -850,7 +850,7 @@ Converts the angle `x` from radians to degrees.
 ### math.rad
 
 ```nelua
-function math.rad(x: an_scalar) <inline,nosideeffect>
+function math.rad(x: an_scalar)
 ```
 
 Converts the angle `x` from degrees to radians.
@@ -858,7 +858,7 @@ Converts the angle `x` from degrees to radians.
 ### math.sign
 
 ```nelua
-function math.sign(x: an_scalar) <inline,nosideeffect>
+function math.sign(x: an_scalar)
 ```
 
 Returns the sign of `x`, that is:
@@ -869,7 +869,7 @@ Returns the sign of `x`, that is:
 ### math.fract
 
 ```nelua
-function math.fract(x: an_scalar) <inline,nosideeffect>
+function math.fract(x: an_scalar)
 ```
 
 Returns the fractional part of `x`.
@@ -879,7 +879,7 @@ Computed as `x - math.floor(x)`.
 ### math.mod
 
 ```nelua
-function math.mod(x: an_scalar, y: an_scalar) <inline,nosideeffect>
+function math.mod(x: an_scalar, y: an_scalar)
 ```
 
 Returns the modulo operation of `x` by `y`, rounded towards minus infinity.
@@ -890,7 +890,7 @@ It's computed as `x - math.floor(x / y) * y`.
 ### math.modf
 
 ```nelua
-function math.modf(x: an_scalar) <inline,nosideeffect>
+function math.modf(x: an_scalar)
 ```
 
 Returns the integral part of `x` and the fractional part of `x`.
@@ -899,7 +899,7 @@ Its second result is always a float.
 ### math.fmod
 
 ```nelua
-function math.fmod(x: an_scalar, y: an_scalar) <inline,nosideeffect>
+function math.fmod(x: an_scalar, y: an_scalar)
 ```
 
 Returns the remainder of the division of `x` by `y` that rounds the quotient towards zero.
@@ -908,7 +908,7 @@ The result can either be an integer or a float depending on the arguments.
 ### math.frexp
 
 ```nelua
-function math.frexp(x: an_scalar) <inline,nosideeffect>
+function math.frexp(x: an_scalar)
 ```
 
 [
@@ -918,7 +918,7 @@ Returns `m` and `e` such that `x = m*(2^e)`,
 ### math.ldexp
 
 ```nelua
-function math.ldexp(m: an_scalar, e: int32) <inline,nosideeffect>
+function math.ldexp(m: an_scalar, e: int32)
 ```
 
 Returns `m*(2^e)`, that is, `m` multiplied by an integral power of 2.
@@ -926,7 +926,7 @@ Returns `m*(2^e)`, that is, `m` multiplied by an integral power of 2.
 ### math.min
 
 ```nelua
-function math.min(...: varargs) <inline,nosideeffect>
+function math.min(...: varargs)
 ```
 
 Returns the argument with the minimum value, according to the operator `<`.
@@ -934,7 +934,7 @@ Returns the argument with the minimum value, according to the operator `<`.
 ### math.max
 
 ```nelua
-function math.max(...: varargs) <inline,nosideeffect>
+function math.max(...: varargs)
 ```
 
 Returns the argument with the maximum value, according to the operator `<`.
@@ -942,7 +942,7 @@ Returns the argument with the maximum value, according to the operator `<`.
 ### math.clamp
 
 ```nelua
-function math.clamp(x: an_scalar, min: an_scalar, max: an_scalar) <inline,nosideeffect>
+function math.clamp(x: an_scalar, min: an_scalar, max: an_scalar)
 ```
 
 Returns the value of `x` clamped between `min` and `max`.
@@ -950,7 +950,7 @@ Returns the value of `x` clamped between `min` and `max`.
 ### math.ult
 
 ```nelua
-function math.ult(m: an_scalar, n: an_scalar): boolean <inline>
+function math.ult(m: an_scalar, n: an_scalar): boolean
 ```
 
 Returns a boolean, `true` if and only if integer `m` is below integer `n`
@@ -959,7 +959,7 @@ when they are compared as unsigned integers.
 ### math.tointeger
 
 ```nelua
-function math.tointeger(x: an_scalar) <inline,nosideeffect>
+function math.tointeger(x: an_scalar)
 ```
 
 If the value `x` is convertible to an integer, returns that integer. Otherwise, returns `nil`.
@@ -967,7 +967,7 @@ If the value `x` is convertible to an integer, returns that integer. Otherwise, 
 ### math.type
 
 ```nelua
-function math.type(x: auto) <inline,nosideeffect>
+function math.type(x: auto)
 ```
 
 Returns `"integer"` if `x` is an integer, "float" if `x` is a float, or fail if `x` is not a number.
@@ -1014,7 +1014,7 @@ so that `math.random` should generate different sequences of results each time t
 ### math.pi
 
 ```nelua
-global math.pi: number <comptime>
+global math.pi: number
 ```
 
 Float value of PI.
@@ -1022,7 +1022,7 @@ Float value of PI.
 ### math.huge
 
 ```nelua
-global math.huge: number <comptime>
+global math.huge: number
 ```
 
 Float value greater than any other numeric value (infinite).
@@ -1030,7 +1030,7 @@ Float value greater than any other numeric value (infinite).
 ### math.mininteger
 
 ```nelua
-global math.mininteger: integer <comptime>
+global math.mininteger: integer
 ```
 
 An integer with the minimum value for an integer.
@@ -1038,7 +1038,7 @@ An integer with the minimum value for an integer.
 ### math.maxinteger
 
 ```nelua
-global math.maxinteger: integer <comptime>
+global math.maxinteger: integer
 ```
 
 An integer with the maximum value for an integer.
@@ -1046,7 +1046,7 @@ An integer with the maximum value for an integer.
 ### math.maxuinteger
 
 ```nelua
-global math.maxuinteger: uinteger <comptime>
+global math.maxuinteger: uinteger
 ```
 
 An integer with the maximum value for an unsigned integer.
@@ -1064,7 +1064,7 @@ be disabled with the pragma `nochecks`.
 ### memory.copy
 
 ```nelua
-function memory.copy(dest: pointer, src: pointer, n: usize): void <inline>
+function memory.copy(dest: pointer, src: pointer, n: usize): void
 ```
 
 Copies `n` bytes from memory pointed by `src` into memory pointed by `dest`.
@@ -1074,7 +1074,7 @@ The memory region may not overlap, use `memory.move` in that case.
 ### memory.move
 
 ```nelua
-function memory.move(dest: pointer, src: pointer, n: usize): void <inline>
+function memory.move(dest: pointer, src: pointer, n: usize): void
 ```
 
 Copies `n` bytes from memory pointed by `src` into memory pointed by `dest`.
@@ -1085,7 +1085,7 @@ In case the memory region is guaranteed to not overlap, use `memory.copy`.
 ### memory.set
 
 ```nelua
-function memory.set(dest: pointer, x: byte, n: usize): void <inline>
+function memory.set(dest: pointer, x: byte, n: usize): void
 ```
 
 Fills first `n` bytes of the memory pointed by `dest` with the byte `x`.
@@ -1093,7 +1093,7 @@ Fills first `n` bytes of the memory pointed by `dest` with the byte `x`.
 ### memory.zero
 
 ```nelua
-function memory.zero(dest: pointer, n: usize): void <inline>
+function memory.zero(dest: pointer, n: usize): void
 ```
 
 Fills first `n` bytes of the memory pointed by `dest` with zeros.
@@ -1101,7 +1101,7 @@ Fills first `n` bytes of the memory pointed by `dest` with zeros.
 ### memory.compare
 
 ```nelua
-function memory.compare(a: pointer, b: pointer, n: usize): int32 <inline>
+function memory.compare(a: pointer, b: pointer, n: usize): int32
 ```
 
 Compares the first `n` bytes of the memory areas pointed by `a` and `b`.
@@ -1116,7 +1116,7 @@ If `n` is zero, the return value is zero.
 ### memory.equals
 
 ```nelua
-function memory.equals(a: pointer, b: pointer, size: usize): boolean <inline>
+function memory.equals(a: pointer, b: pointer, size: usize): boolean
 ```
 
 Check if the first `n` bytes of the memory areas pointed by `a` and `b` are equal.
@@ -1127,7 +1127,7 @@ If `n` is zero, the return value is `true`.
 ### memory.scan
 
 ```nelua
-function memory.scan(src: pointer, x: byte, size: usize): pointer <inline>
+function memory.scan(src: pointer, x: byte, size: usize): pointer
 ```
 
 Scan first `n` bytes from memory pointed by `src` for the first instance of byte `x`.
@@ -1148,7 +1148,7 @@ Returns a pointer to the matching chunk when found, otherwise `nilptr`.
 ### memory.spancopy
 
 ```nelua
-function memory.spancopy(dest: an_span, src: an_span): void <inline>
+function memory.spancopy(dest: an_span, src: an_span): void
 ```
 
 Like `memory.copy` but operate over spans.
@@ -1156,7 +1156,7 @@ Like `memory.copy` but operate over spans.
 ### memory.spanmove
 
 ```nelua
-function memory.spanmove(dest: an_span, src: an_span): void <inline>
+function memory.spanmove(dest: an_span, src: an_span): void
 ```
 
 Like `memory.move` but operate over spans.
@@ -1164,7 +1164,7 @@ Like `memory.move` but operate over spans.
 ### memory.spanset
 
 ```nelua
-function memory.spanset(dest: an_span, x: auto): void <inline>
+function memory.spanset(dest: an_span, x: auto): void
 ```
 
 Like `memory.set` but operate over spans.
@@ -1172,7 +1172,7 @@ Like `memory.set` but operate over spans.
 ### memory.spanzero
 
 ```nelua
-function memory.spanzero(dest: an_span): void <inline>
+function memory.spanzero(dest: an_span): void
 ```
 
 Like `memory.zero` but operate over spans.
@@ -1188,7 +1188,7 @@ Like `memory.compare` but operate over spans.
 ### memory.spanequals
 
 ```nelua
-function memory.spanequals(a: an_span, b: an_span): boolean <inline>
+function memory.spanequals(a: an_span, b: an_span): boolean
 ```
 
 Like `memory.equals` but operate over spans.
@@ -1260,7 +1260,7 @@ This function is system dependent and is not available on all platforms.
 ### os.exit
 
 ```nelua
-function os.exit(code: overload(integer,boolean,niltype)): void <noreturn>
+function os.exit(code: overload(integer,boolean,niltype)): void
 ```
 
 Calls the ISO C function `exit` to terminate the host program.
@@ -1420,7 +1420,7 @@ so you can modify it or manually manage its memory when GC is disabled.
 ### string._forward
 
 ```nelua
-function string._forward(s: string): string <inline>
+function string._forward(s: string): string
 ```
 
 Forward a string reference to be used elsewhere.
@@ -1562,7 +1562,7 @@ The only differences are that the conversion specifiers and modifiers `*, h, L, 
 ### string.len
 
 ```nelua
-function string.len(s: string): isize <inline>
+function string.len(s: string): isize
 ```
 
 Receives a string and returns its length.
@@ -1579,7 +1579,7 @@ Concatenate two strings. Used by the concatenation operator (`..`).
 ### string.__len
 
 ```nelua
-function string.__len(a: string): isize <inline>
+function string.__len(a: string): isize
 ```
 
 Return length of a string. Used by the length operator (`#`).
@@ -1792,7 +1792,7 @@ Record for type information.
 ### traits.typeidof
 
 ```nelua
-function traits.typeidof(v: auto): traits.typeid <inline>
+function traits.typeidof(v: auto): traits.typeid
 ```
 
 Returns the `typeid` of `v`.
@@ -1801,7 +1801,7 @@ The given `v` can be either a runtime value or a compile-time type.
 ### traits.typeinfoof
 
 ```nelua
-function traits.typeinfoof(v: auto): traits.typeinfo <inline>
+function traits.typeinfoof(v: auto): traits.typeinfo
 ```
 
 Returns type information of `v`.
@@ -1810,7 +1810,7 @@ The given `v` can be either a runtime value or a compile-time type.
 ### type
 
 ```nelua
-global function type(v: auto): string <inline>
+global function type(v: auto): string
 ```
 
 Returns the type of `v`, coded as a string, as follows:
@@ -1850,7 +1850,7 @@ so that all values up to 0x7FFFFFFF are accepted.
 
 ### utf8.charpattern
 ```nelua
-global utf8.charpattern: string <comptime> = "[\0-\x7F\xC2-\xFD][\x80-\xBF]*"
+global utf8.charpattern: string
 ```
 
 Pattern to match exactly one UTF-8 byte sequence,
@@ -1866,7 +1866,7 @@ and returns a string with the concatenation of all these sequences.
 
 ### utf8.codes
 ```nelua
-function utf8.codes(s: string, relax: facultative(boolean)): (function(string, isize): (boolean, isize, uint32), string, isize) <inline>
+function utf8.codes(s: string, relax: facultative(boolean)): (function(string, isize): (boolean, isize, uint32), string, isize)
 ```
 
 UTF-8 iterator, use to iterate over UTF-8 codes.
@@ -2059,7 +2059,7 @@ and with better quality.
 ### hash.short
 
 ```nelua
-function hash.short(data: span(byte)): usize <inline>
+function hash.short(data: span(byte)): usize
 ```
 
 Hashes a span of bytes, iterating over all bytes.
@@ -2068,7 +2068,7 @@ This function can be slow for long spans.
 ### hash.long
 
 ```nelua
-function hash.long(data: span(byte)): usize <inline>
+function hash.long(data: span(byte)): usize
 ```
 
 Hashes a span of bytes, iterating at most 32 bytes evenly spaced.
@@ -2077,7 +2077,7 @@ This function can be fast to hash long spans, at cost of hash quality.
 ### hash.combine
 
 ```nelua
-function hash.combine(seed: usize, value: usize): usize <inline>
+function hash.combine(seed: usize, value: usize): usize
 ```
 
 Returns the combination of the hashes `seed` and `value`.
@@ -2094,31 +2094,198 @@ To customize a hash for a specific record you can define `__hash` metamethod,
 and it will be used when calling this function.
 
 
+
 ## vector
 
-The [Vector library](https://github.com/edubart/nelua-lang/blob/master/lib/vector.nelua) is an efficient vector implementation.
+The vector library provides the generic record `vector`,
+that can be used as an efficient dynamic sized array of any type.
 
-| Variable Name | Description |
-|---------------|------|
-| `vector(T)`{:.language-nelua} | Generic vector type expression. |
-| `vectorT.data: span(T)`{:.language-nelua} | Elements storage of the vector. |
-| `vectorT.size: usize`{:.language-nelua} | Number of elements in the vector. |
-| `vectorT.allocator: Allocator`{:.language-nelua} | Allocator of the vector. |
-| `vectorT.make(allocator)`{:.language-nelua} | Create a vector using a custom allocator instance. |
-| `vectorT:clear()`{:.language-nelua} | Removes all elements from the vector. |
-| `vectorT:destroy()`{:.language-nelua} | Resets the vector to zeroed state, freeing all used resources. |
-| `vectorT:reserve(n: usize)`{:.language-nelua} | Reserve at least `n` elements in the vector storage. |
-| `vectorT:resize(n: usize)`{:.language-nelua} | Resizes the vector so that it contains `n` elements. |
-| `vectorT:copy(): vectorT`{:.language-nelua} | Returns a shallow copy of the vector, allocating new space. |
-| `vectorT:push(v: T)`{:.language-nelua} | Adds a element `v` at the end of the vector. |
-| `vectorT:pop(): T`{:.language-nelua} | Removes the last element in the vector and returns its value. |
-| `vectorT:insert(pos: usize, v: T)`{:.language-nelua} | Inserts element `v` at position `pos` in the vector. |
-| `vectorT:remove(pos: usize): T`{:.language-nelua} | Removes element at position `pos` in the vector and returns its value. |
-| `vectorT:remove_value(v: T)`{:.language-nelua} | Removes the first item from the vector whose value is given. |
-| `vectorT:remove_if(pred)`{:.language-nelua} | Removes all elements from the vector where `pred` function returns true. |
-| `vectorT:capacity(): isize`{:.language-nelua} | Returns the number of elements the vector can store before triggering a reallocation. |
-| `vectorT:__atindex(i: usize): *T`{:.language-nelua} | Returns reference to element at index `pos`. |
-| `vectorT:__len(): isize`{:.language-nelua} | Returns the number of elements in the vector. |
-{: .table.table-bordered.table-striped.table-sm}
+Vector elements starts at index 0 and go up to length-1.
+
+A vector should never be passed by value while being modified, otherwise the behavior is undefined,
+in case this is needed then try the `sequence` library.
+
+Any failure when growing a vector raises a panic error.
+When checks are enabled, invalid operations (such as out of bounds access) raises a panic error.
+When checks are disabled (on release builds or when pragma `nochecks` is active),
+invalid operations causes an undefined behavior.
+
+Vectors by default uses the default allocator unless explicitly told not to do so.
+
+### vectorT
+
+```nelua
+local vectorT: type = @record {
+  data: span(T),
+  size: usize,
+  allocator: Allocator
+}
+```
+
+Vector record defined when instantiating the generic `vector` with type `T`.
+
+### vectorT.make
+
+```nelua
+function vectorT.make(allocator: Allocator): vectorT
+```
+
+Create a vector using a custom allocator instance.
+Useful only when using instanced allocators.
+
+### vectorT:clear
+
+```nelua
+function vectorT:clear(): void
+```
+
+Removes all elements from the vector.
+
+### vectorT:destroy
+
+```nelua
+function vectorT:destroy(): void
+```
+
+Free all vector resources and resets it to a zeroed state.
+Useful only when not using the garbage collector.
+
+### vectorT:reserve
+
+```nelua
+function vectorT:reserve(n: usize): void
+```
+
+Reserve at least `n` elements in the vector storage.
+
+### vectorT:resize
+
+```nelua
+function vectorT:resize(n: usize): void
+```
+
+Resizes the vector so that it contains `n` elements.
+When expanding new elements are initialized to zeros.
+
+### vectorT:copy
+
+```nelua
+function vectorT:copy(): vectorT
+```
+
+Returns a shallow copy of the vector, allocating a new vector.
+
+### vectorT:_grow
+
+```nelua
+function vectorT:_grow(): void
+```
+
+Grow vector storage to accommodate at least one more element.
+Only used internally.
+
+### vectorT:push
+
+```nelua
+function vectorT:push(v: T): void
+```
+
+Inserts a element `v` at the end of the vector.
+
+### vectorT:pop
+
+```nelua
+function vectorT:pop(): T
+```
+
+Removes the last element in the vector and returns its value.
+The vector must not be empty.
+
+### vectorT:insert
+
+```nelua
+function vectorT:insert(pos: usize, v: T): void
+```
+
+Inserts element `v` at position `pos` in the vector.
+Elements with index greater or equal than `pos` are shifted up.
+The index `pos` must be valid (in the vector bounds).
+
+### vectorT:remove
+
+```nelua
+function vectorT:remove(pos: usize): T
+```
+
+Removes element at position `pos` in the vector and returns its value.
+Elements with index greater than `pos` are shifted down.
+The index `pos` must be valid (in the vector bounds).
+
+### vectorT:remove_value
+
+```nelua
+function vectorT:remove_value(v: T): boolean
+```
+
+Removes the first item from the vector whose value is `v`.
+The remaining elements are shifted.
+Returns `true` if an element was removed, otherwise `false`.
+
+### vectorT:remove_if
+
+```nelua
+function vectorT:remove_if(pred: function(v: T): boolean): void
+```
+
+Removes all elements from the vector where `pred` function returns `true`.
+The remaining elements are shifted.
+
+### vectorT:capacity
+
+```nelua
+function vectorT:capacity(): isize
+```
+
+Returns the number of elements the vector can store before triggering a reallocation.
+
+### vectorT:__atindex
+
+```nelua
+function vectorT:__atindex(i: usize): *T
+```
+
+Returns reference to element at index `pos`, the index must be valid.
+Used when indexing elements with square brackets (`[]`).
+
+### vectorT:__len
+
+```nelua
+function vectorT:__len(): isize
+```
+
+Returns the number of elements in the vector.
+Used by the length operator (`#`).
+
+### vectorT.__convert
+
+```nelua
+function vectorT.__convert(values: an_arrayT): vectorT
+```
+
+Initializes vector elements from a fixed array.
+Used to initialize vector elements with curly braces (`{}`).
+
+### vector
+
+```nelua
+global vector: type
+```
+
+Generic used to instantiate a vector type in the form of `vector(T, Allocator)`.
+
+The first argument `T` is type that the vector will store.
+The second argument `Allocator` is an allocator type for the vector storage,
+in case absent then `DefaultAllocator` is used.
+
 
 <a href="/diffs/" class="btn btn-outline-primary btn-lg float-right">Differences >></a>
