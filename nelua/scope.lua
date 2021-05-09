@@ -58,9 +58,6 @@ function Scope.create_root(context, node)
     is_returnbreak = true,
     children = {},
     labels = {},
-    resolved_rettypes = {},
-    unresolved_symbols = {},
-    possible_rettypes = {},
     symbols = setmetatable({}, make_symbols_mt(context))
   }, Scope)
   return scope
@@ -76,9 +73,6 @@ function Scope:fork(node)
     is_topscope = self.is_root,
     children = {},
     labels = {},
-    resolved_rettypes = {},
-    unresolved_symbols = {},
-    possible_rettypes = {},
     symbols = setmetatable({}, make_symbols_mt(context, self))
   }, Scope)
   local children = self.children
@@ -89,7 +83,7 @@ end
 -- Clear the symbols and saved resolution data for this scope.
 function Scope:clear_symbols()
   self.symbols = setmetatable({}, make_symbols_mt(self.context, self.parent))
-  self.possible_rettypes = {}
+  self.possible_rettypes = nil
   self.has_unknown_return = nil
 end
 
@@ -141,6 +135,19 @@ function Scope:iterate_up_scopes()
   return iterate_up_scopes_next, self, nil
 end
 
+-- Search for a common upper scope between two scopes.
+function Scope:find_shared_up_scope(scope)
+  local upscopes = {}
+  for upscope in scope:iterate_up_scopes() do
+    upscopes[upscope] = true
+  end
+  for upscope in self:iterate_up_scopes() do
+    if upscopes[upscope] then
+      return upscope
+    end
+  end
+end
+
 -- Search for labels backtracking upper scopes.
 function Scope:find_label(name)
   repeat
@@ -157,27 +164,21 @@ function Scope:add_label(label)
 end
 
 function Scope:make_checkpoint()
+  local parent = self.parent
+  local parentcheck
+  if parent and not parent.is_root then
+    parentcheck = parent:make_checkpoint()
+  end
   local checkpoint = {
     symbols = tabler.copy(self.symbols),
-    possible_rettypes = tabler.copy(self.possible_rettypes),
-    resolved_rettypes = tabler.copy(self.resolved_rettypes),
-    has_unknown_return = self.has_unknown_return
+    parentcheck = parentcheck
   }
-  local parent = self.parent
-  if parent and not parent.is_root then
-    checkpoint.parentcheck = parent:make_checkpoint()
-  end
   return checkpoint
 end
 
 function Scope:set_checkpoint(checkpoint)
   tabler.clear(self.symbols)
-  tabler.clear(self.possible_rettypes)
-  tabler.clear(self.resolved_rettypes)
   tabler.update(self.symbols, checkpoint.symbols)
-  tabler.update(self.possible_rettypes, checkpoint.possible_rettypes)
-  tabler.update(self.resolved_rettypes, checkpoint.resolved_rettypes)
-  self.has_unknown_return = checkpoint.has_unknown_return
   if checkpoint.parentcheck then
     self.parent:set_checkpoint(checkpoint.parentcheck)
   end
@@ -185,9 +186,6 @@ end
 
 function Scope:merge_checkpoint(checkpoint)
   tabler.update(self.symbols, checkpoint.symbols)
-  tabler.update(self.possible_rettypes, checkpoint.possible_rettypes)
-  tabler.update(self.resolved_rettypes, checkpoint.resolved_rettypes)
-  self.has_unknown_return = checkpoint.has_unknown_return
   if checkpoint.parentcheck then
     self.parent:merge_checkpoint(checkpoint.parentcheck)
   end
@@ -203,7 +201,6 @@ end
 
 function Scope:pop_checkpoint()
   local oldcheckpoint = table.remove(self.checkpointstack)
-  assert(oldcheckpoint)
   self:merge_checkpoint(oldcheckpoint)
 end
 
@@ -230,8 +227,12 @@ function Scope:add_symbol(symbol)
   end
   symbols[key] = symbol -- store by key
   symbols[#symbols+1] = symbol -- store in order
-  if not symbol.type then
+  if not symbol.type then -- the symbol is unresolved
     local unresolved_symbols = self.unresolved_symbols
+    if not unresolved_symbols then
+      unresolved_symbols = {}
+      self.unresolved_symbols = unresolved_symbols
+    end
     if not unresolved_symbols[symbol] then
       unresolved_symbols[symbol] = true
       local context = self.context
@@ -244,8 +245,22 @@ function Scope:delay_resolution()
   self.delay = true
 end
 
+function Scope:resolve_symbol(symbol)
+  if symbol:resolve_type() then
+    local unresolved_symbols = self.unresolved_symbols
+    if unresolved_symbols and unresolved_symbols[symbol] then
+      unresolved_symbols[symbol] = nil
+      local context = self.context
+      context.unresolvedcount = context.unresolvedcount - 1
+    end
+  end
+end
+
 function Scope:resolve_symbols()
   local unresolved_symbols = self.unresolved_symbols
+  if not unresolved_symbols then
+    return 0
+  end
   local count = 0
   if next(unresolved_symbols) then
     local unknownlist = {}
@@ -279,17 +294,10 @@ function Scope:resolve_symbols()
         --break
       end
     end
+  else
+    self.unresolved_symbols = nil
   end
   return count
-end
-
-function Scope:resolve_symbol(symbol)
-  local unresolved_symbols = self.unresolved_symbols
-  if unresolved_symbols[symbol] and symbol:resolve_type() then
-    unresolved_symbols[symbol] = nil
-    local context = self.context
-    context.unresolvedcount = context.unresolvedcount - 1
-  end
 end
 
 function Scope:add_return_type(index, type)
@@ -297,6 +305,10 @@ function Scope:add_return_type(index, type)
     self.has_unknown_return = true
   end
   local possible_rettypes = self.possible_rettypes
+  if not possible_rettypes then
+    possible_rettypes = {}
+    self.possible_rettypes = possible_rettypes
+  end
   local rettypes = possible_rettypes[index]
   if not rettypes then
     possible_rettypes[index] = {[1] = type}
@@ -306,28 +318,35 @@ function Scope:add_return_type(index, type)
 end
 
 function Scope:resolve_rettypes()
-  if not self.is_returnbreak or self.rettypes then -- not on a return block or already resolved
+  if self.rettypes or not self.is_returnbreak then -- not on a return block or already resolved
     return 0
   end
-  local count = 0
   local possible_rettypes = self.possible_rettypes
   local resolved_rettypes = self.resolved_rettypes
-  if next(possible_rettypes) then
-    for i,candidate_rettypes in pairs(possible_rettypes) do
-      local rettype = types.find_common_type(candidate_rettypes) or primtypes.any
-      if rettype ~= resolved_rettypes[i] then
-        resolved_rettypes[i] = rettype
-        count = count + 1
+  if possible_rettypes then
+    if not resolved_rettypes then
+      resolved_rettypes = {}
+      self.resolved_rettypes = resolved_rettypes
+    end
+    if next(possible_rettypes) then
+      for i,candidate_rettypes in pairs(possible_rettypes) do
+        local rettype = types.find_common_type(candidate_rettypes) or primtypes.any
+        if rettype ~= resolved_rettypes[i] then
+          resolved_rettypes[i] = rettype
+        end
       end
     end
   end
-  if not self.has_unknown_return then
-    self.rettypes = resolved_rettypes
+  if not self.has_unknown_return then -- resolved
+    self.rettypes = resolved_rettypes or {}
+    self.has_unknown_return = nil
+    self.resoved_rettypes = nil
+    self.possible_rettypes = nil
     if not self.is_root then -- avoid resolving again in root scope
-      count = count + 1
+      return math.max(#self.rettypes, 1)
     end
   end
-  return count
+  return 0
 end
 
 function Scope:resolve()
@@ -336,7 +355,7 @@ function Scope:resolve()
     console.info(self.node:format_message('info', "scope resolved %d symbols", count))
   end
   if self.delay then
-    self.delay = false
+    self.delay = nil
     count = count + 1
   end
   self.resolved_once = true

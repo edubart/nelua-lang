@@ -1372,7 +1372,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             calleetype = polyeval.node.attr.type
           elseif context.state.inpolyeval ~= polyeval then
             -- must traverse the poly function scope again to infer types for assignment to this call
-            context.rootscope:delay_resolution()
+            context.scope:find_shared_up_scope(polycalleetype.node.attr.scope):delay_resolution()
           end
         end
       end

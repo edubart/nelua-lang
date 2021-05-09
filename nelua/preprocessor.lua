@@ -218,6 +218,7 @@ function preprocessor.preprocess(context, ast)
       statnodes.addindex = addindex
       ppcontext:push_statnodes(statnodes)
       scope:push_checkpoint(checkpoint)
+      local oldscope = context.scope
       context:push_scope(scope)
       local rets = table.pack(f(...))
       ppcontext:pop_statnodes()
@@ -225,7 +226,7 @@ function preprocessor.preprocess(context, ast)
       scope:pop_checkpoint()
       if addindex ~= statnodes.addindex then -- new statement nodes were added
         -- must delay resolution to fully parse the new added nodes later
-        context.rootscope:delay_resolution()
+        oldscope:find_shared_up_scope(scope):delay_resolution()
         addindex = statnodes.addindex
       end
       statnodes.addindex = nil
