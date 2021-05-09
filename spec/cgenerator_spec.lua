@@ -2264,6 +2264,15 @@ it("automatic reference", function()
     local pu = &u
     assert(pu.x == u.x)
     assert(pu.y == u.y)
+
+    do
+      local R = @record{x: integer}
+      local function foo(r: *R)
+        print(r.x)
+      end
+      local r = R()
+      foo(r)
+    end
   ]])
 end)
 

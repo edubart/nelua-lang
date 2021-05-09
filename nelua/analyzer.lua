@@ -458,10 +458,14 @@ end
 
 function visitors.Pair(context, node)
   local namenode, exprnode = node[1], node[2]
+  local done = true
   if luatype(namenode) == 'table' and namenode._astnode then
     context:traverse_node(namenode)
+    done = done and namenode.done
   end
   context:traverse_node(exprnode)
+  done = done and exprnode.done and true
+  node.done = done
 end
 
 function visitors.PragmaCall(_, node)
@@ -598,6 +602,7 @@ function visitors.Annotation(context, node, symbol)
 end
 
 function visitors.Id(context, node)
+  if node.checked then return node.attr end
   local name = node[1]
   local state = context.state
   if name == 'type' and state.intypeexpr  then
@@ -622,7 +627,11 @@ function visitors.Id(context, node)
     node:warnf("use of deprecated symbol '%s'", name)
   end
   symbol:add_use_by(state.funcsym)
-  node.done = symbol
+  if symbol.type then
+    node.done = symbol
+  else
+    node.checked = true
+  end
   return symbol
 end
 
@@ -759,7 +768,7 @@ function visitors.FuncType(context, node)
   type.sideeffect = true
   attr.type = primtypes.type
   attr.value = type
-  attr.done = true
+  node.done = true
 end
 
 function visitors.RecordFieldType(context, node, recordtype)
@@ -1448,6 +1457,10 @@ function visitors.Call(context, node)
     end
 
     visitor_Call(context, node, argnodes, calleetype, calleesym)
+
+    if attr.calleetype and not attr.requirename and calleenode.done and tabler.iallfield(argnodes, 'done') then
+      node.done = true
+    end
   end
 end
 
@@ -1499,6 +1512,10 @@ function visitors.CallMethod(context, node)
   end
 
   visitor_Call(context, node, argnodes, calleetype, calleesym, calleeobjnode)
+
+  if attr.calleetype and calleeobjnode.done and tabler.iallfield(argnodes, 'done') then
+    node.done = true
+  end
 end
 
 local function visitor_Composite_FieldIndex(_, node, objtype, name)
@@ -1510,8 +1527,6 @@ local function visitor_Composite_FieldIndex(_, node, objtype, name)
   end
   node.dotfieldname = field.name
   attr.type = type
-  node.checked = true
-  -- return true
 end
 
 local function visitor_EnumType_FieldIndex(_, node, objtype, name)
@@ -1524,8 +1539,6 @@ local function visitor_EnumType_FieldIndex(_, node, objtype, name)
   attr.comptime = true
   attr.value = field.value
   attr.type = objtype
-  node.checked = true
-  -- return true
 end
 
 local function visitor_RecordType_FieldIndex(context, node, objtype, name)
@@ -1573,8 +1586,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   if not infuncdef then
     symbol:add_use_by(context.state.funcsym)
   end
-  -- cannot uncomment this yet
-  --node.checked = true
+  node.done = symbol
   return symbol
 end
 
@@ -1593,7 +1605,6 @@ end
 local function visitor_FieldIndex(context, node)
   local name, objnode = node[1], node[2]
   context:traverse_node(objnode)
-  if node.checked then return end
   local objattr = objnode.attr
   local objtype = objattr.type
   local attr = node.attr
@@ -1609,8 +1620,8 @@ local function visitor_FieldIndex(context, node)
     else
       node:raisef("cannot index field '%s' on type '%s'", name, objtype.name)
     end
-    if ret and objnode.done then
-      node.done = ret
+    if objnode.done then
+      node.done = ret or true
     end
   end
   if objattr.lvalue or (objtype and objtype.is_pointer) then
@@ -1732,7 +1743,7 @@ function visitors.Block(context, node)
       end
     end
     node.preprocess = nil
-    -- node.preprocessed = true
+    node.preprocessed = true
 
     local resolutions_count = scope:resolve()
     context:pop_scope()
@@ -1757,22 +1768,23 @@ function visitors.Block(context, node)
   -- preprocessed blocks can never be done
   -- because new statements may be injected at anytime
   -- TODO: improve this later
-  -- if not node.preprocessed then
-  --   local done = true
-  --   for i=1,#statnodes do
-  --     if not statnodes[i].done then
-  --       done = nil
-  --       break
-  --     end
-  --   end
-  --   if done then
-  --     node.done = true
-  --   end
-  -- end
+  if not node.preprocessed then
+    local done = true
+    for i=1,#statnodes do
+      if not statnodes[i].done then
+        done = nil
+        break
+      end
+    end
+    if done then
+      node.done = true
+    end
+  end
 end
 
 function visitors.If(context, node)
   local ifpairs, elsenode = node[1], node[2]
+  local done = true
   for i=1,#ifpairs do
     local ifpair = ifpairs[i]
     local ifcondnode, ifblocknode = ifpair[1], ifpair[2]
@@ -1780,10 +1792,13 @@ function visitors.If(context, node)
     ifcondnode.attr.inconditional = true
     context:traverse_node(ifcondnode)
     context:traverse_node(ifblocknode)
+    done = done and ifblocknode.done and ifcondnode.done
   end
   if elsenode then
     context:traverse_node(elsenode)
+    done = done and elsenode.done and true
   end
+  node.done = done
 end
 
 function visitors.Switch(context, node)
@@ -1797,6 +1812,7 @@ function visitors.Switch(context, node)
       "`switch` statement must be convertible to an integral type, but got type `%s` (non integral)",
       valtype)
   end
+  local done = true
   for i=1,#caseparts do
     local casepart = caseparts[i]
     local caseexprs, caseblock = casepart[1], casepart[2]
@@ -1808,14 +1824,17 @@ function visitors.Switch(context, node)
              (casenode.attr.comptime or casenode.attr.cimport)) then
         casenode:raisef("`case` statement must evaluate to a compile time integral value")
       end
+      done = done and casenode.done and true
     end
-
+    done = done and caseblock.done and true
     context:traverse_node(caseblock)
   end
   if elsenode then
     context:traverse_node(elsenode)
+    elsenode.done = done and elsenode.node and true
   end
   context:pop_scope()
+  node.done = done
 end
 
 function visitors.Defer(context, node)
@@ -1824,6 +1843,7 @@ function visitors.Defer(context, node)
   -- mark `has_defer`, used to check mixing with `goto`
   context.scope.has_defer = true
   blocknode.scope.has_defer = true
+  node.done = blocknode.done
 end
 
 function visitors.While(context, node)
@@ -1835,6 +1855,7 @@ function visitors.While(context, node)
   scope.is_loop = true
   context:traverse_node(blocknode)
   context:pop_scope()
+  node.done = blocknode.done and condnode.done and true
 end
 
 function visitors.Repeat(context, node)
@@ -1848,6 +1869,7 @@ function visitors.Repeat(context, node)
   context:traverse_node(condnode)
   context:pop_scope()
   context:pop_scope()
+  node.done = blocknode.done and condnode.done and true
 end
 
 function visitors.ForNum(context, node)
@@ -1926,6 +1948,9 @@ function visitors.ForNum(context, node)
     local resolutions_count = scope:resolve()
     context:pop_scope()
   until resolutions_count == 0
+
+  node.done = ittype and blocknode.done and begvalnode.done and endvalnode.done and
+              (not stepvalnode or stepvalnode.done) and true
 
   -- early return
   if node.checked then return end
@@ -2226,6 +2251,7 @@ function visitors.Assign(context, node)
   if #varnodes < #valnodes then
     node:raisef("extra expressions in assign, expected at most %d but got %d", #varnodes, #valnodes)
   end
+  local done = true
   for i,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
     local symbol = context:traverse_node(varnode)
     local vartype = varnode.attr.type
@@ -2275,7 +2301,9 @@ function visitors.Assign(context, node)
         varnode.checkcast = true
       end
     end
+    done = done and vartype and varnode.done and (not valnode or valnode.done) and true
   end
+  node.done = done
 end
 
 function visitors.Return(context, node)
@@ -2283,6 +2311,7 @@ function visitors.Return(context, node)
   context:traverse_nodes(retnodes)
   local funcscope = context.scope:get_up_return_scope() or context.rootscope
   if funcscope.rettypes then
+    local done = true
     for i,funcrettype,retnode,rettype in izipargnodes(funcscope.rettypes, retnodes) do
       if rettype then
         if funcrettype then
@@ -2313,7 +2342,11 @@ function visitors.Return(context, node)
           end
         end
       end
+      if retnode then
+        done = done and retnode.done and true
+      end
     end
+    node.done = done
   else
     for i,_,rettype in iargnodes(retnodes) do
       funcscope:add_return_type(i, rettype)
@@ -2362,6 +2395,7 @@ end
 function visitors.Do(context, node)
   local blocknode = node[1]
   context:traverse_node(blocknode)
+  node.done = blocknode.done
 end
 
 function visitors.DoExpr(context, node)
@@ -2407,6 +2441,8 @@ function visitors.DoExpr(context, node)
       symbol:add_possible_type(nil, blocknode)
       context.scope:add_symbol(attr)
     end
+
+    node.done = attr.type and blocknode.done and true
   end
 end
 
