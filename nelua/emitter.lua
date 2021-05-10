@@ -35,6 +35,8 @@ function Emitter:add_one(what)
       self.context:traverse_node(what, self)
     elseif what._type then
       self:add_type(what)
+    elseif what._symbol then
+      self:add_one(self.context:declname(what))
     else
       self:add_traversal_list(what)
     end
