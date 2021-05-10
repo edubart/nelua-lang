@@ -7,6 +7,8 @@
 -- This type is specially useful for making functions with arguments that
 -- are agnostic to the input container type.
 
+require 'iterators'
+
 ## local make_span = generalize(function(T)
   ##[[
   static_assert(traits.is_type(T), "invalid type '%s", T)

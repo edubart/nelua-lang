@@ -13,6 +13,7 @@
 
 require 'memory'
 require 'hash'
+require 'iterators'
 
 local function ceil_idiv(x: usize, y: usize): usize <inline>
   return (x + y - 1) // y

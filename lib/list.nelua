@@ -7,6 +7,8 @@
 -- By default it uses the garbage collector unless explicitly told not to do so,
 -- thus by default there is no need to manually destroy the list.
 
+require 'iterators'
+
 ## local make_generic_list_node = generalize(function(T)
   local T: type = @#[T]#
   local list_nodeT: type <nickname #[string.format('list_node(%s)',T)]#> = @record {

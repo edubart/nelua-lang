@@ -98,7 +98,6 @@ do -- remove
   map:destroy()
 end
 
-require 'iterators'
 do -- pairs and mpairs
   local map: hashmap(integer, integer)
   for i=1,100 do
