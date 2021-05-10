@@ -54,4 +54,6 @@ end
 -- Allow calling nanotimer to create a new timer.
 metamagic.setmetacall(nanotimer, createnanotimer)
 
+nanotimer.globaltimer = nanotimer()
+
 return nanotimer

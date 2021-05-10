@@ -4,8 +4,9 @@ require 'nelua.utils.luaver'.check()
 collectgarbage("incremental", 800, 400, 16)
 collectgarbage("stop")
 
-local totaltimer = require 'nelua.utils.nanotimer'()
-local timer = require 'nelua.utils.nanotimer'()
+local nanotimer = require 'nelua.utils.nanotimer'
+local globaltimer = nanotimer.globaltimer
+local timer = nanotimer()
 local stringer = require 'nelua.utils.stringer'
 local console = require 'nelua.utils.console'
 local fs = require 'nelua.utils.fs'
@@ -14,7 +15,6 @@ local executor = require 'nelua.utils.executor'
 local configer = require 'nelua.configer'
 local platform = require 'nelua.utils.platform'
 local profiler
-
 local runner = {}
 
 local function run(argv, redirect)
@@ -157,7 +157,7 @@ local function run(argv, redirect)
   end
 
   if config.timing then
-    console.debug2f('total build  %.1f ms', totaltimer:elapsedrestart())
+    console.debug2f('total build  %.1f ms', globaltimer:elapsedrestart())
   end
 
   -- run
