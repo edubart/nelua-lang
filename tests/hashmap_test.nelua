@@ -17,11 +17,9 @@ do -- inserting
   for i=1,100 do
     local k, v = i*3167, i*10
     assert(map[k] == v)
-    assert(map:at(k) == v)
-    assert($map:at_ptr(k) == v)
-    assert(map:at_ptr(k) == map:peek(k))
+    assert(map:at(k) == map:peek(k))
     assert(map:get(k) == v)
-    assert($map:get_ptr(k) == v)
+    assert($map:at(k) == v)
     assert(map:has(k))
   end
   map:clear()

@@ -206,26 +206,8 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
   -- Returns a reference to the value that is mapped to a key,
   -- performing an insertion if such key does not exist.
   -- Complexity: Average case O(1).
-  function hashmapT:get_ptr(key: K): *V
+  function hashmapT:at(key: K): *V
     return &self.nodes[self:_find_or_make(key)].value
-  end
-
-  -- Returns the value that is mapped to a key.
-  -- If no such element exists, a runtime error is thrown on debug builds.
-  -- Complexity: Average case O(1).
-  function hashmapT:at(key: K): V
-    local node_index: usize = self:_find(key)
-    check(node_index ~= INVALID_INDEX, 'position out of bounds')
-    return self.nodes[node_index].value
-  end
-
-  -- Returns a reference to the value that is mapped to a key.
-  -- If no such element exists, a runtime error is thrown on debug builds.
-  -- Complexity: Average case O(1).
-  function hashmapT:at_ptr(key: K): *V
-    local node_index: usize = self:_find(key)
-    check(node_index ~= INVALID_INDEX, 'position out of bounds')
-    return &self.nodes[node_index].value
   end
 
   -- Returns a reference to the value that is mapped to a key.
@@ -311,7 +293,7 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
   -- Same as `get_ptr`, this allows indexing the hash map type.
   -- Complexity: Average case O(1).
   function hashmapT:__atindex(key: K): *V
-    return self:get_ptr(key)
+    return self:at(key)
   end
 
   -- Hashmap iterator
