@@ -94,7 +94,8 @@ function CContext:typecodename(type)
         elseif type.is_enum then kind = 'enum'
         end
         if kind then
-          local code = 'typedef '..kind..' '..type.codename..' '..type.codename..';\n'
+          local ctype = traits.is_string(type.ctypedef) and type.ctypedef or type.codename
+          local code = 'typedef '..kind..' '..ctype..' '..type.codename..';\n'
           table.insert(self.declarations, code)
         end
       end

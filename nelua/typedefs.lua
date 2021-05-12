@@ -294,7 +294,7 @@ typedefs.type_annots = {
   -- When using this, the type must be declared somewhere else, like in a C include.
   nodecl = true,
   -- Whether to emit typedef for a C imported structs.
-  ctypedef = true,
+  ctypedef = shaper.shape{shaper.string:is_optional()},
   -- Whether the type is not fully defined.
   -- This makes size and align unknown at compile-time.
   cincomplete = true,
