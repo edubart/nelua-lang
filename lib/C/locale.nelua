@@ -2,7 +2,7 @@ require 'C'
 
 ## cinclude '<locale.h>'
 
-global lconv <cimport'lconv',nodecl,ctypedef> = @record {
+global C.lconv <cimport'lconv',nodecl,ctypedef> = @record {
   decimal_point: cstring,
   thousands_sep: cstring,
   grouping: cstring,
@@ -30,7 +30,7 @@ global lconv <cimport'lconv',nodecl,ctypedef> = @record {
 }
 
 function C.setlocale(category: cint, locale: cstring): cstring <cimport'setlocale',nodecl> end
-function C.localeconv(): *lconv <cimport'localeconv',nodecl> end
+function C.localeconv(): *C.lconv <cimport'localeconv',nodecl> end
 
 -- Constants
 global C.LC_ALL: cint <const,cimport'LC_ALL',nodecl>

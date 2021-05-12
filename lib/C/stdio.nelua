@@ -2,83 +2,84 @@ require 'C'
 
 ## cinclude '<stdio.h>'
 
-global FILE <cimport'FILE',nodecl,forwarddecl> = @record{}
+global C.FILE <cimport'FILE',nodecl,forwarddecl> = @record{}
 
 -- Operations on files
 function C.remove(filename: cstring): cint <cimport'remove',nodecl> end
 function C.rename(old: cstring, new: cstring): cint <cimport'rename',nodecl> end
-function C.tmpfile(): *FILE <cimport'tmpfile',nodecl> end
+function C.tmpfile(): *C.FILE <cimport'tmpfile',nodecl> end
 function C.tmpnam(s: cstring): cstring <cimport'tmpnam',nodecl> end
 
 -- File access
-function C.fclose(stream: *FILE): cint <cimport'fclose',nodecl> end
-function C.fflush(stream: *FILE): cint <cimport'fflush',nodecl> end
-function C.fopen(filename: cstring, modes: cstring): *FILE <cimport'fopen',nodecl> end
-function C.freopen(filename: cstring, modes: cstring, stream: *FILE): *FILE <cimport'freopen',nodecl> end
+function C.fclose(stream: *C.FILE): cint <cimport'fclose',nodecl> end
+function C.fflush(stream: *C.FILE): cint <cimport'fflush',nodecl> end
+function C.fopen(filename: cstring, modes: cstring): *C.FILE <cimport'fopen',nodecl> end
+function C.freopen(filename: cstring, modes: cstring, stream: *C.FILE): *C.FILE <cimport'freopen',nodecl> end
 
-function C.setbuf(stream: *FILE, buf: cstring): void <cimport'setbuf',nodecl> end
-function C.setvbuf(stream: *FILE, buf: cstring, modes: cint, n: csize): cint <cimport'setvbuf',nodecl> end
+function C.setbuf(stream: *C.FILE, buf: cstring): void <cimport'setbuf',nodecl> end
+function C.setvbuf(stream: *C.FILE, buf: cstring, modes: cint, n: csize): cint <cimport'setvbuf',nodecl> end
 
 -- Formatted input/output
 function C.scanf(format: cstring, ...: cvarargs): cint <cimport'scanf',nodecl> end
-function C.fscanf(stream: *FILE, format: cstring, ...: cvarargs): cint <cimport'fscanf',nodecl> end
+function C.fscanf(stream: *C.FILE, format: cstring, ...: cvarargs): cint <cimport'fscanf',nodecl> end
 function C.sscanf(s: cstring, format: cstring, ...: cvarargs): cint <cimport'sscanf',nodecl> end
 
 function C.vscanf(format: cstring, arg: cvalist): cint <cimport'vscanf',nodecl> end
-function C.vfscanf(stream: *FILE, format: cstring, arg: cvalist): cint <cimport'vfscanf',nodecl> end
+function C.vfscanf(stream: *C.FILE, format: cstring, arg: cvalist): cint <cimport'vfscanf',nodecl> end
 function C.vsscanf(s: cstring, format: cstring, arg: cvalist): cint <cimport'vsscanf',nodecl> end
 
 function C.printf(format: cstring, ...: cvarargs): cint <cimport'printf',nodecl> end
-function C.fprintf(stream: *FILE, format: cstring, ...: cvarargs): cint <cimport'fprintf',nodecl> end
+function C.fprintf(stream: *C.FILE, format: cstring, ...: cvarargs): cint <cimport'fprintf',nodecl> end
 function C.sprintf(s: cstring, format: cstring, ...: cvarargs): cint <cimport'sprintf',nodecl> end
 function C.snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',nodecl> end
 
 function C.vprintf(format: cstring, arg: cvalist): cint <cimport'vprintf',nodecl> end
-function C.vfprintf(stream: *FILE, format: cstring, arg: cvalist): cint <cimport'vfprintf',nodecl> end
+function C.vfprintf(stream: *C.FILE, format: cstring, arg: cvalist): cint <cimport'vfprintf',nodecl> end
 function C.vsprintf(s: cstring, format: cstring, arg: cvalist): cint <cimport'vsprintf',nodecl> end
 function C.vsnprintf(s: cstring, maxlen: csize, format: cstring, arg: cvalist): cint <cimport'vsnprintf',nodecl> end
 
 -- Character input/output
-function C.getc(stream: *FILE): cint <cimport'getc',nodecl> end
-function C.putc(c: cint, stream: *FILE): cint <cimport'putc',nodecl> end
+function C.getc(stream: *C.FILE): cint <cimport'getc',nodecl> end
+function C.putc(c: cint, stream: *C.FILE): cint <cimport'putc',nodecl> end
 
 function C.getchar(): cint <cimport'getchar',nodecl> end
 function C.putchar(c: cint): cint <cimport'putchar',nodecl> end
 
-function C.fgetc(stream: *FILE): cint <cimport'fgetc',nodecl> end
-function C.fputc(c: cint, stream: *FILE): cint <cimport'fputc',nodecl> end
+function C.fgetc(stream: *C.FILE): cint <cimport'fgetc',nodecl> end
+function C.fputc(c: cint, stream: *C.FILE): cint <cimport'fputc',nodecl> end
 
-function C.fgets(s: cstring, n: cint, stream: *FILE): cstring <cimport'fgets',nodecl> end
-function C.fputs(s: cstring, stream: *FILE): cint <cimport'fputs',nodecl> end
+function C.fgets(s: cstring, n: cint, stream: *C.FILE): cstring <cimport'fgets',nodecl> end
+function C.fputs(s: cstring, stream: *C.FILE): cint <cimport'fputs',nodecl> end
 
 function C.gets(s: cstring): cstring <cimport'gets',nodecl> end
 function C.puts(s: cstring): cint <cimport'puts',nodecl> end
 
-function C.ungetc(c: cint, stream: *FILE): cint <cimport'ungetc',nodecl> end
+function C.ungetc(c: cint, stream: *C.FILE): cint <cimport'ungetc',nodecl> end
 
 -- Direct input/output
-function C.fread(ptr: pointer, size: csize, n: csize, stream: *FILE): csize <cimport'fread',nodecl> end
+function C.fread(ptr: pointer, size: csize, n: csize, stream: *C.FILE): csize <cimport'fread',nodecl> end
 function C.fwrite(ptr: pointer, size: csize, n: csize, sream: pointer): csize <cimport'fwrite',nodecl> end
 
 -- File positioning
--- function C.fgetpos(stream: *FILE, pos: *fpos_t): cint <cimport'fgetpos',nodecl> end
--- function C.fsetpos(stream: *FILE, pos: *fpos_t): cint <cimport'fsetpos',nodecl> end
+global C.fpos_t <cimport'fpos_t',nodecl,cincomplete> = @record{}
+function C.fgetpos(stream: *C.FILE, pos: *C.fpos_t): cint <cimport'fgetpos',nodecl> end
+function C.fsetpos(stream: *C.FILE, pos: *C.fpos_t): cint <cimport'fsetpos',nodecl> end
 
-function C.fseek(stream: *FILE, off: clong, whence: cint): cint <cimport'fseek',nodecl> end
-function C.ftell(stream: *FILE): clong <cimport'ftell',nodecl> end
+function C.fseek(stream: *C.FILE, off: clong, whence: cint): cint <cimport'fseek',nodecl> end
+function C.ftell(stream: *C.FILE): clong <cimport'ftell',nodecl> end
 
-function C.rewind(stream: *FILE): void <cimport'rewind',nodecl> end
+function C.rewind(stream: *C.FILE): void <cimport'rewind',nodecl> end
 
 -- Error handling
-function C.clearerr(stream: *FILE): void <cimport'clearerr',nodecl> end
-function C.feof(stream: *FILE): cint <cimport'feof',nodecl> end
-function C.ferror(stream: *FILE): cint <cimport'ferror',nodecl> end
+function C.clearerr(stream: *C.FILE): void <cimport'clearerr',nodecl> end
+function C.feof(stream: *C.FILE): cint <cimport'feof',nodecl> end
+function C.ferror(stream: *C.FILE): cint <cimport'ferror',nodecl> end
 function C.perror(s: cstring): void <cimport'perror',nodecl> end
 
 -- Global variables
-global C.stdin: *FILE <cimport'stdin',nodecl>
-global C.stdout: *FILE <cimport'stdout',nodecl>
-global C.stderr: *FILE <cimport'stderr',nodecl>
+global C.stdin: *C.FILE <cimport'stdin',nodecl>
+global C.stdout: *C.FILE <cimport'stdout',nodecl>
+global C.stderr: *C.FILE <cimport'stderr',nodecl>
 
 -- Constants
 global C.EOF: cint <const,cimport'EOF',nodecl>
