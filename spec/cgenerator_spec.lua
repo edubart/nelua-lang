@@ -18,7 +18,7 @@ end)
 
 it("empty file", function()
   expect.generate_c("", [[
-int nelua_main(int nelua_argc, char** nelua_argv) {
+int main(int argc, char** argv) {
   return 0;
 }]])
 end)

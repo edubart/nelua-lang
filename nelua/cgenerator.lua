@@ -1615,26 +1615,31 @@ local function emit_features_setup(context)
 end
 
 local function emit_main(ast, context)
-  emit_features_setup(context)
-
   local mainemitter = CEmitter(context, -1)
   context.mainemitter = mainemitter
 
+  local emptymain = false
   if not context.entrypoint or context.hookmain then
     mainemitter:inc_indent()
-    mainemitter:add_ln("int nelua_main(int nelua_argc, char** nelua_argv) {")
+    mainemitter:add_one("int nelua_main(int nelua_argc, char** nelua_argv) {\n")
+    local startpos = mainemitter:get_pos()
     mainemitter:add_traversal(ast)
-    if not context.rootscope.has_return then
-      -- main() must always return an integer
-      mainemitter:inc_indent()
-      mainemitter:add_indent_ln("return 0;")
+    emptymain = not context.hookmain and mainemitter:get_pos() == startpos
+    if not emptymain then -- main has statements
+      if not context.rootscope.has_return then
+        -- main() must always return an integer
+        mainemitter:inc_indent()
+        mainemitter:add_indent_ln("return 0;")
+        mainemitter:dec_indent()
+      end
+      mainemitter:add_ln("}")
       mainemitter:dec_indent()
-    end
-    mainemitter:add_ln("}")
-    mainemitter:dec_indent()
 
-    if not context.maindeclared then
-      context:add_declaration('static int nelua_main(int nelua_argc, char** nelua_argv);\n')
+      if not context.maindeclared then
+        context:add_declaration('static int nelua_main(int nelua_argc, char** nelua_argv);\n')
+      end
+    else -- empty main, we can skip `nelua_main` usage
+      mainemitter.codes[startpos] = ''
     end
   else
     mainemitter:inc_indent()
@@ -1642,11 +1647,15 @@ local function emit_main(ast, context)
     mainemitter:dec_indent()
   end
 
-  if not context.entrypoint then
-    mainemitter:add_indent_ln('int main(int argc, char **argv) {')
-    mainemitter:inc_indent(2)
-    mainemitter:add_indent_ln('return nelua_main(argc, argv);')
-    mainemitter:dec_indent(2)
+  if not context.entrypoint and not context.pragmas.noentrypoint then
+    mainemitter:add_indent_ln('int main(int argc, char** argv) {')
+    mainemitter:inc_indent()
+    if not emptymain then
+      mainemitter:add_indent_ln('return nelua_main(argc, argv);')
+    else
+      mainemitter:add_indent_ln('return 0;')
+    end
+    mainemitter:dec_indent()
     mainemitter:add_indent_ln('}')
   end
 
@@ -1658,6 +1667,7 @@ end
 function generator.generate(ast, context)
   CContext.promote_context(context, visitors, typevisitors)
 
+  emit_features_setup(context)
   emit_main(ast, context)
 
   context:evaluate_templates()
