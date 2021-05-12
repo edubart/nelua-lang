@@ -891,10 +891,13 @@ function inlines.print(context, node)
       defemitter:add_ln('fputs(a',i,' ? "true" : "false", stdout);')
     elseif argtype.is_nilptr then
       defemitter:add_ln('fputs("(null)", stdout);')
-    elseif argtype.is_pointer then
+    elseif argtype.is_pointer or argtype.is_function then
       context:ensure_include('<stdint.h>')
       context:ensure_include('<inttypes.h>')
       context:ensure_builtin('NULL')
+      if argtype.is_function then
+        defemitter:add_ln('fputs("function: ", stdout);')
+      end
       defemitter:add_ln('if(a',i,' != NULL) {')
         defemitter:inc_indent()
         defemitter:add_indent_ln('fprintf(stdout, "0x%" PRIxPTR, (intptr_t)a',i,');')
@@ -916,7 +919,7 @@ function inlines.print(context, node)
     elseif argtype.is_record then --luacov:disable
       node:raisef('cannot handle type "%s" in print, you could implement `__tostring` metamethod for it', argtype)
     else
-      node:raisef('cannot handle type "%s" in print')
+      node:raisef('cannot handle type "%s" in print', argtype)
     end --luacov:enable
   end
   defemitter:add_indent_ln([[fputc('\n', stdout);]])

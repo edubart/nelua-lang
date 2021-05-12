@@ -514,6 +514,8 @@ it("poly functions", function()
         print('integral', x)
       ## elseif x.type.is_boolean then
         print('boolean', x)
+      ## elseif x.type.is_boolean then
+        print('f', x)
       ## else
         print('unknown')
       ## end
@@ -523,6 +525,7 @@ it("poly functions", function()
     assert(printtype(3.14) == 3.14)
     assert(printtype(true) == true)
     assert(printtype(false) == false)
+    assert(printtype(f) == f)
     printtype()
 
     do
