@@ -2433,6 +2433,10 @@ it("C varargs", function()
     [[local function printf(format: cstring, ...: cvarargs): cint <cimport> end printf('hello')]],
     [[printf("hello");]])
 
+  expect.generate_c(
+    [[local F = @function(cint, cvarargs); local f: F]],
+    [[typedef void (*F)(int, ...);]])
+
   expect.run_c([=[
     local function snprintf(str: cstring, size: csize, format: cstring, ...: cvarargs): cint
       <cimport,nodecl,cinclude'<stdio.h>'>

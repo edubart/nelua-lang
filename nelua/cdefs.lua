@@ -56,6 +56,7 @@ cdefs.primitive_typenames = {
   nlnilptr  = 'void*',
   nlvoid    = 'void',
   nlcvalist = {'va_list', '<stdarg.h>'},
+  nlcvarargs = '...',
 
   nlcchar       = 'char',
   nlcschar      = 'signed char',
