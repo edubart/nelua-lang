@@ -173,7 +173,21 @@ end
       maxitem = s.size + 1
       buff = (@cstring)(self:prepare(maxitem))
       if buff then
-        nb = snprintf(buff, maxitem, &form[0], s.data)
+        if form[1] == c and form[2] == 0 then -- just copy the string
+          memory.copy(buff, s.data, s.size)
+          nb = s.size
+        else
+          ## if arg1.type.is_string then
+          -- the string may not be null terminated (in case of a string view)
+          -- copy to force null termination
+          -- TODO: this may be expansive, should we implement a custom snprintf later?
+          s = string.copy(s)
+          ## end
+          nb = snprintf(buff, maxitem, &form[0], s.data)
+          ## if arg1.type.is_string then
+          s:destroy()
+          ## end
+        end
       end
       ## if not arg1.type.is_stringy then
       s:destroy()
@@ -185,7 +199,7 @@ end
     end
     assert(false, 'invalid format for argument')
   ::next::
-    assert(nb >= 0 and nb < (@isize)(maxitem), 'unexpect number of bytes written in sprintf')
+    assert(nb >= 0 and nb < (@isize)(maxitem), 'unexpected number of bytes written in sprintf')
     return true, nb
   end
 
