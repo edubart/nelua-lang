@@ -1539,7 +1539,8 @@ function visitors.BinaryOp(_, node, emitter)
       emitter:add_indent('})')
     end
   else
-    local sequential = lnode.attr.sideeffect and rnode.attr.sideeffect
+    local sequential = (lnode.attr.sideeffect and rnode.attr.sideeffect) and
+                        not (opname == 'or' or opname == 'and')
     local lname = lnode
     local rname = rnode
     if sequential then
