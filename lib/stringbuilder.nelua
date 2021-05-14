@@ -10,8 +10,8 @@ require 'memory'
 require 'string'
 
 -- C imports
+local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function strchr(s: cstring, c: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
-local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
 local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
 local function strcpy(dest: cstring, src: cstring): cstring <cimport,cinclude'<string.h>',nodecl> end
 local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end

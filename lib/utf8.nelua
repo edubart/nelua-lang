@@ -71,7 +71,7 @@ The array `limits` stores the minimum value for each sequence length,
 to check for overlong representations.
 Its first entry forces an error for non-ASCII bytes with no continuation bytes (`count` == 0).
 ]]
-local function utf8decode(s: string, relax: boolean): (uint32, isize) <inline, nosideeffect>
+local function utf8decode(s: string, relax: boolean): (uint32, isize) <inline>
   local MAXUNICODE: uint32 <comptime> = 0x10FFFF
   local MAXUTF: uint32 <comptime> = 0x7FFFFFFF
   local limits: [6]uint32 = {~0_u32, 0x80, 0x800, 0x10000, 0x200000, 0x4000000}

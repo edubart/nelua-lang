@@ -24,11 +24,11 @@ local errno: cint <cimport,cinclude'<errno.h>',nodecl>
 local function strtoll(str: cstring, endptr: *cstring, base: cint): clonglong <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strtod(str: cstring, endptr: *cstring): float64 <cimport,cinclude'<stdlib.h>',nodecl> end
 local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 
 --[[
 Allocate a new string to be filled with length `size`.

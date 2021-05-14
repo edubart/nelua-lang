@@ -6,19 +6,19 @@
 require 'memory'
 
 -- C imports
-local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function isalpha(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function islower(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function isupper(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function isxdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function iscntrl(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function isgraph(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function isblank(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function isprint(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
-local function ispunct(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl> end
+local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function isalpha(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function islower(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function isupper(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function isxdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function iscntrl(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function isgraph(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function isblank(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function isprint(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
+local function ispunct(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 
 local MAX_MATCH_CALLS <comptime> = 32
 local CAP_UNFINISHED <comptime> = -1
