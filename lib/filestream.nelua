@@ -139,7 +139,9 @@ Returns `true` on success, otherwise `false` plus an error message and a system-
 ]]
 function filestream:flush(): (boolean, string, integer)
   local fp: *FILE = self:_get_fp()
-  assert(fp ~= nilptr, 'attempt to use a closed file')
+  if not fp then
+    return false, 'attempt to use a closed file', -1
+  end
   return fileresult(fflush(fp) == 0)
 end
 
@@ -149,8 +151,10 @@ Closes the file.
 Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
 ]]
 function filestream:close(): (boolean, string, integer)
-  local p: FStream = $pool:get(self.id)
-  assert(p.fp ~= nilptr, 'attempt to use a closed file')
+  local p: *FStream = pool:get(self.id)
+  if not p or p.fp == nilptr then
+    return false, 'attempt to use a closed file', -1
+  end
   if p.fp == stdout or p.fp == stderr or p.fp == stdin then
     return false, 'cannot close standard file', -1
   end
@@ -179,7 +183,9 @@ The call `file:seek("end")` sets the position to the end of the file, and return
 ]]
 function filestream:seek(whence: facultative(string), offset: facultative(integer)): (integer, string, integer)
   local fp: *FILE = self:_get_fp()
-  assert(fp ~= nilptr, 'attempt to use a closed file')
+  if not fp then
+    return -1, 'attempt to use a closed file', -1
+  end
   ## if whence.type.is_niltype then
     local len: integer = ftell(fp)
     return len, '', 0
@@ -191,7 +197,7 @@ function filestream:seek(whence: facultative(string), offset: facultative(intege
     if whence == 'set' then op = SEEK_SET
     elseif whence == 'end' then op = SEEK_END
     elseif whence == 'cur' then op = SEEK_CUR
-    else error("invalid whence") end
+    else return -1, 'invalid whence', -1 end
     local len: integer, errmsg: string, status: integer
     if fseek(fp, (@clong)(offset), op) == 0 then
       len = ftell(fp)
@@ -224,12 +230,14 @@ function filestream:setvbuf(mode: string, size: facultative(integer)): (boolean,
   local size: csize = 1024
   ## end
   local fp: *FILE = self:_get_fp()
-  assert(fp ~= nilptr, 'attempt to use a closed file')
+  if not fp then
+    return false, 'attempt to use a closed file', -1
+  end
   local op: cint
   if mode == 'no' then op = _IONBF
   elseif mode == 'full' then op = _IOFBF
   elseif mode == 'line' then op = _IOLBF
-  else error('invalid mode') end
+  else return false, 'invalid mode', -1 end
   return fileresult(setvbuf(fp, nilptr, op, size) == 0)
 end
 
@@ -300,7 +308,9 @@ When called without arguments, it uses the default format `"l"` that reads the n
 ]]
 function filestream:read(fmt: overload(integer,string,niltype)): (string, string, integer)
   local fp: *FILE = self:_get_fp()
-  assert(fp ~= nilptr, 'attempt to use a closed file')
+  if not fp then
+    return string{}, 'attempt to use a closed file', -1
+  end
   local sb: stringbuilder
   local success: boolean
   clearerr(fp)
@@ -352,7 +362,9 @@ Returns `true` on success, otherwise `false` plus an error message and a system-
 ]]
 function filestream:write(...: varargs): (boolean, string, integer)
   local fp: *FILE = self:_get_fp()
-  assert(fp ~= nilptr, 'attempt to use a closed file')
+  if not fp then
+    return false, 'attempt to use a closed file', -1
+  end
   local s: string
   ## for i=1,select_varargs('#') do
     ## local argnode = select_varargs(i)
@@ -385,7 +397,9 @@ Returns `true` on success, otherwise `false` plus an error message and a system-
 ]]
 function filestream:writef(fmt: string, ...: varargs): (boolean, string, integer)
   local fp: *FILE = self:_get_fp()
-  assert(fp ~= nilptr, 'attempt to use a closed file')
+  if not fp then
+    return false, 'attempt to use a closed file', -1
+  end
   local sb: stringbuilder
   defer sb:destroy() end
   if not sb:write_format(fmt, ...) then
