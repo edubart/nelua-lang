@@ -2503,6 +2503,9 @@ it("annotations", function()
   expect.generate_c(
     "local function puts(s: cstring): int32 <cimport'puts'> end puts('')",
     "int32_t puts(char* s);")
+  expect.generate_c(
+    "local SIG_DFL: function(cint) <const,cimport,cinclude'<signal.h>',nodecl> SIG_DFL(0)",
+    "SIG_DFL(0);")
   expect.generate_c([[
     global timespec: type <cimport,cinclude'<time.h>',nodecl,ctypedef> = @record{tv_sec: clong, tv_nsec: clong}
     local t: timespec

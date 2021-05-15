@@ -2,12 +2,12 @@ require 'C'
 
 ## cinclude '<signal.h>'
 
-function C.signal(sig: cint, handler: pointer): pointer <cimport'signal',nodecl> end
+function C.signal(sig: cint, handler: function(cint)): function(cint) <cimport'signal',nodecl> end
 function C.raise(sig: cint): cint <cimport'raise',nodecl> end
 
-global C.SIG_DFL: pointer <const,cimport'SIG_DFL',nodecl>
-global C.SIG_IGN: pointer <const,cimport'SIG_IGN',nodecl>
-global C.SIG_ERR: pointer <const,cimport'SIG_ERR',nodecl>
+global C.SIG_DFL: function(cint) <const,cimport'SIG_DFL',nodecl>
+global C.SIG_IGN: function(cint) <const,cimport'SIG_IGN',nodecl>
+global C.SIG_ERR: function(cint) <const,cimport'SIG_ERR',nodecl>
 
 global C.SIGTERM: cint <const,cimport'SIGTERM',nodecl>
 global C.SIGSEGV: cint <const,cimport'SIGSEGV',nodecl>

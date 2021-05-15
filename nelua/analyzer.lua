@@ -479,13 +479,17 @@ function visitors.Annotation(context, node, symbol)
   assert(symbol)
   local name = node[1]
 
+  local istypedecl
   local paramshape
   local symboltype
   if name == 'comptime' then
     paramshape = true
   else
     symboltype = symbol.type
-    if not symboltype or (symboltype.is_type and not symbol.value) then
+    istypedecl = symboltype and symboltype.is_type
+    local parentnode = context:get_parent_node()
+    local isfuncdecl = parentnode and (parentnode.tag == 'Function' or parentnode.tag == 'FuncDef')
+    if not isfuncdecl and not symboltype or (istypedecl and not symbol.value) then
       if name == 'cimport' and context.state.anyphase then
         node:raisef('imported variables from C must have an explicit type')
       end
@@ -493,13 +497,13 @@ function visitors.Annotation(context, node, symbol)
       return
     end
     local annotype
-    if symboltype.is_procedure then
+    if isfuncdecl then
       paramshape = typedefs.function_annots[name]
       annotype = 'functions'
-    elseif symboltype.is_type then
+    elseif istypedecl then
       paramshape = typedefs.type_annots[name]
       annotype = 'types'
-    else
+    else -- variable declaration
       paramshape = typedefs.variable_annots[name]
       annotype = 'variables'
     end
@@ -539,7 +543,7 @@ function visitors.Annotation(context, node, symbol)
   end
 
   local objattr
-  if symboltype and symboltype.is_type then
+  if istypedecl then
     objattr = symbol.value
   else
     objattr = symbol
