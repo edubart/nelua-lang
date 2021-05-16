@@ -371,6 +371,15 @@ do -- string.gmatch
   for k in ('1234 56 7'):gmatch('%l+') do
     assert(false)
   end
+
+  local i = 0
+  for k in ('aaa;bbb;ccc'):gmatch('[^;]+') do
+    i = i + 1
+    if i == 1 then assert(k == 'aaa')
+    elseif i == 2 then assert(k == 'bbb')
+    elseif i == 3 then assert(k == 'ccc')
+    end
+  end
 end
 
 do -- string format

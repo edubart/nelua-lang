@@ -182,7 +182,7 @@ function string.gmatch(s: string, pattern: string, init: facultative(isize))
     local s: isize, e: isize = state.ms:match(state.init, false)
     if e ~= -1 then -- no match
       ok = true
-      state.init = e+1
+      state.init = e+2
       matched = (@string){data=&state.ms.source.data[s], size=(@usize)(e-s)}
       assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
       for i:isize=0,<state.ms.numcaptures do
