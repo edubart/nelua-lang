@@ -151,6 +151,9 @@ function CContext:is_declared(name)
 end
 
 function CContext:ensure_include(name)
+  if not name:match('^["<].*[>"]$') then
+    name = '"'..name..'"'
+  end
   local directives = self.directives
   if directives[name] then return end
   directives[name] = true
