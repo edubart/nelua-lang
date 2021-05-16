@@ -1436,22 +1436,34 @@ function string.byte(s: string, i: facultative(isize)): byte
 
 Returns the internal numeric codes of the character at position `i`.
 
+### string.sub
+
+```nelua
+function string.sub(s: string, i: isize, j: facultative(isize)): string
+```
+
+Returns the substring of `s` that starts at `i` and continues until `j` (both inclusive).
+Both `i` and `j` can be negative.
+If `j` is absent, then it is assumed to be equal to `-1` (which is the same as the string length).
+In particular, the call `string.sub(s,1,j)` returns a prefix of `s` with length `j`,
+and `string.sub(s, -i)` (for a positive `i`) returns a suffix of `s` with length `i`.
+
 ### string.subview
 
 ```nelua
 function string.subview(s: string, i: isize, j: facultative(isize)): string
 ```
 
-Return a view for sub string for a string.
+Return a view for a sub string in a string.
 
 The main difference between this and `string.sub` is that, here we don't allocate a new string,
 instead it reuses its memory as an optimization.
 Use this only if you know what you are doing, to be safe use `string.sub` instead.
 
-CAUTION: When using the GC the view will not hold reference of the original string allocated at
-runtime and the data may be collected.
-The view string will may not be zero terminated, thus you should never
-use it as `cstring` for C functions.
+CAUTION: When using the GC the view will not hold reference of the original string,
+thus if you don't hold the original string reference somewhere you will have a dangling reference.
+The view string may not be zero terminated, thus you should never
+cast it to a `cstring` to use in C functions.
 
 ### string.find
 
@@ -1476,17 +1488,13 @@ function string.gmatch(s: string, pattern: string, init: facultative(isize))
 Returns an iterator function that, each time it is called, returns the whole match plus a span of captures.
 A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
 
-### string.sub
+### string.gmatchview
 
 ```nelua
-function string.sub(s: string, i: isize, j: facultative(isize)): string
+function string.gmatchview(s: string, pattern: string, init: facultative(isize))
 ```
 
-Returns the substring of `s` that starts at `i` and continues until `j` (both inclusive).
-Both `i` and `j` can be negative.
-If `j` is absent, then it is assumed to be equal to `-1` (which is the same as the string length).
-In particular, the call `string.sub(s,1,j)` returns a prefix of `s` with length `j`,
-and `string.sub(s, -i)` (for a positive `i`) returns a suffix of `s` with length `i`.
+Like `string.gmatch` but uses sub string views (see also `string.subview`).
 
 ### string.rep
 
@@ -1509,6 +1517,14 @@ If it finds one, then returns true plus a sequence with the captured values,
 otherwise it returns false plus an empty sequence.
 If pattern specifies no captures, then the whole match is captured.
 A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+
+### string.matchview
+
+```nelua
+function string.matchview(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+```
+
+Like `string.match` but uses sub string views (see also `string.subview`).
 
 ### string.reverse
 

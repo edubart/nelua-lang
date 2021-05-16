@@ -110,16 +110,42 @@ function string.byte(s: string, i: facultative(isize)): byte
 end
 
 --[[
-Return a view for sub string for a string.
+Returns the substring of `s` that starts at `i` and continues until `j` (both inclusive).
+Both `i` and `j` can be negative.
+If `j` is absent, then it is assumed to be equal to `-1` (which is the same as the string length).
+In particular, the call `string.sub(s,1,j)` returns a prefix of `s` with length `j`,
+and `string.sub(s, -i)` (for a positive `i`) returns a suffix of `s` with length `i`.
+]]
+function string.sub(s: string, i: isize, j: facultative(isize)): string
+  ## if j.type.is_niltype then
+  local j: isize = -1
+  ## end
+  local size: isize = (@isize)(s.size)
+  if unlikely(size == 0) then return (@string){} end
+  if unlikely(i < 0) then i = size + i + 1 end
+  if unlikely(i <= 0) then i = 1 end
+  if unlikely(j < 0) then j = size + j + 1 end
+  if unlikely(j > size) then j = size end
+  if unlikely(i == 1 and j == size) then return string._forward(s) end
+  if unlikely(i > j) then return (@string){} end
+  local subsize: usize = (@usize)(j - i + 1)
+  if unlikely(subsize == 0) then return (@string){} end
+  local ret: string = string._create(subsize)
+  memory.copy(&ret.data[0], &s.data[i-1], subsize)
+  return ret
+end
+
+--[[
+Return a view for a sub string in a string.
 
 The main difference between this and `string.sub` is that, here we don't allocate a new string,
 instead it reuses its memory as an optimization.
 Use this only if you know what you are doing, to be safe use `string.sub` instead.
 
-CAUTION: When using the GC the view will not hold reference of the original string allocated at
-runtime and the data may be collected.
-The view string will may not be zero terminated, thus you should never
-use it as `cstring` for C functions.
+CAUTION: When using the GC the view will not hold reference of the original string,
+thus if you don't hold the original string reference somewhere you will have a dangling reference.
+The view string may not be zero terminated, thus you should never
+cast it to a `cstring` to use in C functions.
 ]]
 function string.subview(s: string, i: isize, j: facultative(isize)): string
   ## if j.type.is_niltype then
@@ -183,6 +209,36 @@ function string.gmatch(s: string, pattern: string, init: facultative(isize))
     if e ~= -1 then -- no match
       ok = true
       state.init = e+2
+      matched = string.copy((@string){data=&state.ms.source.data[s], size=(@usize)(e-s)})
+      assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
+      for i:isize=0,<state.ms.numcaptures do
+        state.captures[i] = string.copy(state.ms:get_capture(i))
+      end
+      captures = (@span(string)){data=&state.captures[0], size=(@usize)(state.ms.numcaptures)}
+    end
+    return ok, matched, captures
+  end
+  local state: GMatchState = {ms = PatternMatcher.create(s, pattern), init = init}
+  return gmatch_next, state, (@string){}
+end
+
+-- Like `string.gmatch` but uses sub string views (see also `string.subview`).
+function string.gmatchview(s: string, pattern: string, init: facultative(isize))
+  ## if init.type.is_niltype then
+  local init: isize = 1
+  ## end
+  local MAX_CAPTURES <comptime> = 8
+  local GMatchState: type = @record{
+    ms: PatternMatcher,
+    init: isize,
+    captures: [MAX_CAPTURES]string
+  }
+  local function gmatch_next(state: *GMatchState, it: string): (boolean, string, span(string))
+    local ok: boolean, matched: string, captures: span(string)
+    local s: isize, e: isize = state.ms:match(state.init, false)
+    if e ~= -1 then -- no match
+      ok = true
+      state.init = e+2
       matched = (@string){data=&state.ms.source.data[s], size=(@usize)(e-s)}
       assert(state.ms.numcaptures <= MAX_CAPTURES, 'too many captures')
       for i:isize=0,<state.ms.numcaptures do
@@ -194,32 +250,6 @@ function string.gmatch(s: string, pattern: string, init: facultative(isize))
   end
   local state: GMatchState = {ms = PatternMatcher.create(s, pattern), init = init}
   return gmatch_next, state, (@string){}
-end
-
---[[
-Returns the substring of `s` that starts at `i` and continues until `j` (both inclusive).
-Both `i` and `j` can be negative.
-If `j` is absent, then it is assumed to be equal to `-1` (which is the same as the string length).
-In particular, the call `string.sub(s,1,j)` returns a prefix of `s` with length `j`,
-and `string.sub(s, -i)` (for a positive `i`) returns a suffix of `s` with length `i`.
-]]
-function string.sub(s: string, i: isize, j: facultative(isize)): string
-  ## if j.type.is_niltype then
-  local j: isize = -1
-  ## end
-  local size: isize = (@isize)(s.size)
-  if unlikely(size == 0) then return (@string){} end
-  if unlikely(i < 0) then i = size + i + 1 end
-  if unlikely(i <= 0) then i = 1 end
-  if unlikely(j < 0) then j = size + j + 1 end
-  if unlikely(j > size) then j = size end
-  if unlikely(i == 1 and j == size) then return string._forward(s) end
-  if unlikely(i > j) then return (@string){} end
-  local subsize: usize = (@usize)(j - i + 1)
-  if unlikely(subsize == 0) then return (@string){} end
-  local ret: string = string._create(subsize)
-  memory.copy(&ret.data[0], &s.data[i-1], subsize)
-  return ret
 end
 
 --[[
@@ -252,17 +282,8 @@ function string.rep(s: string, n: isize, sep: facultative(string)): string
   return ret
 end
 
---[[
-Looks for the first match of pattern in the string.
-If it finds one, then returns true plus a sequence with the captured values,
-otherwise it returns false plus an empty sequence.
-If pattern specifies no captures, then the whole match is captured.
-A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
-]]
-function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
-  ## if init.type.is_niltype then
-  local init: isize = 1
-  ## end
+-- Helper use by `string.match` and `string.matchv`.
+local function string_match(s: string, pattern: string, init: isize): (boolean, sequence(string))
   local ms: PatternMatcher = PatternMatcher.create(s, pattern)
   local startpos: isize, endpos: isize = ms:match(init, false)
   local captures: sequence(string)
@@ -280,6 +301,32 @@ function string.match(s: string, pattern: string, init: facultative(isize)): (bo
   else -- no match
     return false, captures
   end
+end
+
+--[[
+Looks for the first match of pattern in the string.
+If it finds one, then returns true plus a sequence with the captured values,
+otherwise it returns false plus an empty sequence.
+If pattern specifies no captures, then the whole match is captured.
+A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
+]]
+function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+  ## if init.type.is_niltype then
+  local init: isize = 1
+  ## end
+  local ok: boolean, seq: sequence(string) = string_match(s, pattern, init)
+  for i: isize = 0,<#seq do
+    seq[i] = string.copy(seq[i])
+  end
+  return ok, seq
+end
+
+-- Like `string.match` but uses sub string views (see also `string.subview`).
+function string.matchview(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+  ## if init.type.is_niltype then
+  local init: isize = 1
+  ## end
+  return string_match(s, pattern, init)
 end
 
 -- Returns a string that is the string `s` reversed.

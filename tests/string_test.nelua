@@ -341,24 +341,52 @@ end
 
 do -- string.match
   local ok: boolean, seq: sequence(string)
-  ok, seq = string.match('abc', '^abc$') assert(ok) seq:destroy()
-  ok, seq = string.match('abc', '^abc$', 1) assert(ok) seq:destroy()
-  ok, seq = string.match('0abc', '^abc$', 2) assert(ok) seq:destroy()
+  ok, seq = string.match('xaaabbb', '^x(a+)(b+)$')
+  assert(ok)
+  assert(#seq == 2)
+  print(seq[1])
+  print(seq[2])
+  assert(seq[1] == 'aaa' and seq[2] == 'bbb')
+  seq[1]:destroy()
+  seq[2]:destroy()
+  seq:destroy()
+end
 
-  local status, captures = string.match('abc', '^(a)(bc)$')
+do -- string.matchview
+  local ok: boolean, seq: sequence(string)
+  ok, seq = string.matchview('abc', '^abc$') assert(ok) seq:destroy()
+  ok, seq = string.matchview('abc', '^abc$', 1) assert(ok) seq:destroy()
+  ok, seq = string.matchview('0abc', '^abc$', 2) assert(ok) seq:destroy()
+
+  local status, captures = string.matchview('abc', '^(a)(bc)$')
   assert(status == true and #captures == 2 and captures[1] == 'a' and captures[2] == 'bc')
   captures:destroy()
 end
 
 do -- string.gmatch
+  local i: integer = 0
   local seq: sequence(string)
-  for k in ('hello great world'):gmatch('%w+') do
+  for k, captures in ('from=hello, to = world'):gmatchview('(%w+)%s*=%s*(%w+)') do
     seq[#seq+1] = k
+    seq[#seq+1] = captures[0]
+    seq[#seq+1] = captures[1]
+  end
+  assert(seq[1] == 'from=hello' and seq[2] == 'from' and seq[3] == 'hello')
+  assert(seq[4] == 'to = world' and seq[5] == 'to' and seq[6] == 'world')
+  for i=1,6 do seq[i]:destroy() end
+  seq[i]:destroy()
+end
+
+do -- string.gmatchview
+  local seq: sequence(string)
+  for k in ('hello great world'):gmatchview('%w+') do
+    seq[#seq+1] = k
+    k:destroy()
   end
   assert(#seq == 3 and seq[1] == 'hello' and seq[2] == 'great' and seq[3] == 'world')
 
   seq:clear()
-  for k, captures in ('from=hello, to = world'):gmatch('(%w+)%s*=%s*(%w+)') do
+  for k, captures in ('from=hello, to = world'):gmatchview('(%w+)%s*=%s*(%w+)') do
     seq[#seq+1] = k
     seq[#seq+1] = captures[0]
     seq[#seq+1] = captures[1]
@@ -368,12 +396,12 @@ do -- string.gmatch
 
   seq:destroy()
 
-  for k in ('1234 56 7'):gmatch('%l+') do
+  for k in ('1234 56 7'):gmatchview('%l+') do
     assert(false)
   end
 
-  local i = 0
-  for k in ('aaa;bbb;ccc'):gmatch('[^;]+') do
+  local i: integer = 0
+  for k in ('aaa;bbb;ccc'):gmatchview('[^;]+') do
     i = i + 1
     if i == 1 then assert(k == 'aaa')
     elseif i == 2 then assert(k == 'bbb')
