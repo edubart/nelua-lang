@@ -187,6 +187,7 @@ typedefs.call_pragmas = {
   cemit = shaper.shape{n=shaper.number, shaper.string + shaper.func},
   cdefine = shaper.shape{n=shaper.number, shaper.string},
   cflags = shaper.shape{n=shaper.number, shaper.string},
+  cfile = shaper.shape{n=shaper.number, shaper.string},
   ldflags = shaper.shape{n=shaper.number, shaper.string},
   linklib = shaper.shape{n=shaper.number, shaper.string}
 }

@@ -515,6 +515,8 @@ function visitors.PragmaCall(context, node, emitter)
   local name, args = node[1], node[2]
   if name == 'cinclude' then
     context:ensure_include(table.unpack(args))
+  elseif name == 'cfile' then
+    context:ensure_sourcefile(table.unpack(args))
   elseif name == 'cemit' then
     local code = args[1]
     if traits.is_string(code) and not stringer.endswith(code, '\n') then

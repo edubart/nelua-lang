@@ -18,8 +18,14 @@ local compiler = {
 local function get_compiler_cflags(compileopts)
   local ccinfo = compiler.get_cc_info()
   local compiler_flags = cdefs.compilers_flags[config.cc] or cdefs.compiler_base_flags
-  local cflags = sstream(compiler_flags.cflags_base)
+  local cflags = sstream()
   --luacov:disable
+  if #compileopts.cfiles > 0 then
+    for _,cfile in ipairs(compileopts.cfiles) do
+      cflags:add(' ', cfile)
+    end
+  end
+  cflags:add(' ', compiler_flags.cflags_base)
   if config.maximum_performance then
     cflags:add(' ', compiler_flags.cflags_maximum_performance)
     if config.cflags_maximum_performance then
@@ -62,7 +68,7 @@ local function get_compiler_cflags(compileopts)
       cflags:add(' -lm')
     end
   end
-  return cflags:tostring()
+  return cflags:tostring():sub(2)
 end
 
 local function get_compile_args(cfile, binfile, cflags)

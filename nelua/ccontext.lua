@@ -15,11 +15,13 @@ function CContext:init(visitors, typevisitors)
   self.typevisitors = typevisitors
   self.declarations = {}
   self.definitions = {}
+  self.sourcefiles = {}
   self.directives = {}
   self.compileopts = {
     cflags = {},
     ldflags = {},
-    linklibs = {}
+    linklibs = {},
+    cfiles = {},
   }
   self.stringliterals = {}
   self.quotedliterals = {}
@@ -158,6 +160,14 @@ function CContext:ensure_include(name)
   if directives[name] then return end
   directives[name] = true
   directives[#directives+1] = '#include '..name..'\n'
+end
+
+function CContext:ensure_sourcefile(sourcefile)
+  local sourcefiles = self.sourcefiles
+  if sourcefiles[sourcefile] then return end
+  sourcefiles[sourcefile] = true
+  sourcefiles[#sourcefiles+1] = sourcefile
+  table.insert(self.compileopts.cfiles, sourcefile)
 end
 
 function CContext:ensure_includes(...)
