@@ -598,9 +598,10 @@ function visitors.IdDecl(context, node, emitter)
     if attr.register then emitter:add('register ') end
     if attr.const and attr.type.is_pointer then emitter:add('const ') end
     if attr.volatile then emitter:add('volatile ') end
-    if attr.restrict then emitter:add('__restrict ') end
     if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
-    emitter:add(type, ' ', context:declname(attr))
+    emitter:add(type, ' ')
+    if attr.restrict then emitter:add('__restrict ') end
+    emitter:add(context:declname(attr))
     if attr.cattribute then emitter:add(' __attribute__((', attr.cattribute, '))') end
   end
 end
