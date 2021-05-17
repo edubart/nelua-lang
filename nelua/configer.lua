@@ -44,13 +44,13 @@ end
 
 -- Combine two configs into one, merging tables as necessary.
 local function merge_configs(conf, baseconf)
-  for k,v in pairs(baseconf) do
-    local dv = conf[k]
-    if dv == nil then
-      conf[k] = v
-    elseif type(dv) == 'table' then
-      assert(type(v) == 'table')
-      tabler.insertvalues(dv, 1, v)
+  for basekey,baseval in pairs(baseconf) do
+    local newval = conf[basekey]
+    if newval == nil then
+      conf[basekey] = baseval
+    elseif type(newval) == 'table' then
+      assert(type(baseval) == 'table')
+      tabler.insertvalues(newval, baseval)
     end
   end
 end
