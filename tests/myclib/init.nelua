@@ -1,0 +1,3 @@
+## cfile 'myclib.c'
+## cinclude 'myclib.h'
+global function myprint() <cimport, nodecl> end

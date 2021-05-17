@@ -4,6 +4,7 @@ local cdefs = require 'nelua.cdefs'
 local cbuiltins = require 'nelua.cbuiltins'
 local traits = require 'nelua.utils.traits'
 local CEmitter = require 'nelua.cemitter'
+local fs = require 'nelua.utils.fs'
 local config = require 'nelua.configer'.get()
 local luatype = type
 
@@ -15,13 +16,15 @@ function CContext:init(visitors, typevisitors)
   self.typevisitors = typevisitors
   self.declarations = {}
   self.definitions = {}
-  self.sourcefiles = {}
+  self.cfiles = {}
+  self.linklibs = {}
   self.directives = {}
   self.compileopts = {
     cflags = {},
     ldflags = {},
     linklibs = {},
     cfiles = {},
+    incdirs = {},
   }
   self.stringliterals = {}
   self.quotedliterals = {}
@@ -153,21 +156,56 @@ function CContext:is_declared(name)
 end
 
 function CContext:ensure_include(name)
+  local incname = name
+  local searchinc = false
   if not name:match('^["<].*[>"]$') then
-    name = '"'..name..'"'
+    incname = '<'..name..'>'
+    searchinc = true
   end
   local directives = self.directives
-  if directives[name] then return end
-  directives[name] = true
-  directives[#directives+1] = '#include '..name..'\n'
+  if directives[incname] then return end
+  directives[incname] = true
+  directives[#directives+1] = '#include '..incname..'\n'
+
+  if searchinc and not fs.isabs(name) then
+    -- make sure to add the include directory for that file
+    local dirpath = self:get_source_directory()
+    if dirpath then
+      local filepath = fs.join(dirpath, name)
+      if fs.isfile(filepath) then
+        table.insert(self.compileopts.incdirs, dirpath)
+      end
+    end
+  end
 end
 
-function CContext:ensure_sourcefile(sourcefile)
-  local sourcefiles = self.sourcefiles
-  if sourcefiles[sourcefile] then return end
-  sourcefiles[sourcefile] = true
-  sourcefiles[#sourcefiles+1] = sourcefile
-  table.insert(self.compileopts.cfiles, sourcefile)
+function CContext:ensure_cfile(name)
+  -- search the file relative to the current source file
+  if not fs.isabs(name) then
+    local dirpath = self:get_source_directory()
+    if dirpath then
+      local filepath = fs.join(dirpath, name)
+      if fs.isfile(filepath) then
+        name = filepath
+      end
+    end
+  end
+
+  local cfiles = self.cfiles
+  if cfiles[name] then return end
+
+  cfiles[name] = true
+  cfiles[#cfiles+1] = name
+  table.insert(self.compileopts.cfiles, name)
+end
+
+function CContext:ensure_linklib(name)
+  local linklibs = self.linklibs
+  if linklibs[name] then return end
+
+  linklibs[name] = true
+  linklibs[#linklibs+1] = name
+  table.insert(self.compileopts.linklibs, name)
 end
 
 function CContext:ensure_includes(...)

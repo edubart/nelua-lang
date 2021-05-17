@@ -1,4 +1,5 @@
 local class = require 'nelua.utils.class'
+local fs = require 'nelua.utils.fs'
 
 local VisitorContext = class()
 
@@ -99,6 +100,17 @@ function VisitorContext:pop_state()
     end
   end
   ]]
+end
+
+function VisitorContext:get_source_directory()
+  local nodes = self.nodes
+  for i=#nodes,1,-1 do
+    local node = nodes[i]
+    local filename = node.src and node.src.name
+    if filename and not filename:match('^@') then
+      return fs.dirname(filename)
+    end
+  end
 end
 
 return VisitorContext

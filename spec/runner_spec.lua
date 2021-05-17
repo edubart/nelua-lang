@@ -161,6 +161,10 @@ mylib - terminate]])
   os.remove('mylib_test') os.remove('mylib_test.exe')
 end)
 
+it("bundled C libraries", function()
+  expect.run({'tests/myclib_test.nelua'}, [[hello from C]])
+end)
+
 it("static libraries", function()
   expect.run({'--static', '-o', 'libmylib', 'tests/libmylib.nelua'})
   expect.run({'-bo', 'mylib_test', 'tests/mylib_test.nelua'})

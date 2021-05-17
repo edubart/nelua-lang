@@ -2,7 +2,6 @@ local CEmitter = require 'nelua.cemitter'
 local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
 local stringer = require 'nelua.utils.stringer'
-local tabler = require 'nelua.utils.tabler'
 local bn = require 'nelua.utils.bn'
 local cdefs = require 'nelua.cdefs'
 local cbuiltins = require 'nelua.cbuiltins'
@@ -514,9 +513,9 @@ end
 function visitors.PragmaCall(context, node, emitter)
   local name, args = node[1], node[2]
   if name == 'cinclude' then
-    context:ensure_include(table.unpack(args))
+    context:ensure_include(args[1])
   elseif name == 'cfile' then
-    context:ensure_sourcefile(table.unpack(args))
+    context:ensure_cfile(args[1])
   elseif name == 'cemit' then
     local code = args[1]
     if traits.is_string(code) and not stringer.endswith(code, '\n') then
@@ -559,9 +558,7 @@ function visitors.PragmaCall(context, node, emitter)
   elseif name == 'ldflags' then
     table.insert(context.compileopts.ldflags, args[1])
   elseif name == 'linklib' then
-    if not tabler.ifind(context.compileopts.linklibs, args[1]) then
-      table.insert(context.compileopts.linklibs, args[1])
-    end
+    context:ensure_linklib(args[1])
   end
 end
 

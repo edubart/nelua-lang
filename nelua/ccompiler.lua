@@ -20,10 +20,11 @@ local function get_compiler_cflags(compileopts)
   local compiler_flags = cdefs.compilers_flags[config.cc] or cdefs.compiler_base_flags
   local cflags = sstream()
   --luacov:disable
-  if #compileopts.cfiles > 0 then
-    for _,cfile in ipairs(compileopts.cfiles) do
-      cflags:add(' ', cfile)
-    end
+  for _,cfile in ipairs(compileopts.cfiles) do
+    cflags:add(' "'..cfile..'"')
+  end
+  for _,incdir in ipairs(compileopts.incdirs) do
+    cflags:add(' -I "'..incdir..'"')
   end
   cflags:add(' ', compiler_flags.cflags_base)
   if config.maximum_performance then
