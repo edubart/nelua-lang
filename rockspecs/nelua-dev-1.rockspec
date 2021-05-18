@@ -109,6 +109,7 @@ build = {
     ['nelua.utils.sstream'] = 'nelua/utils/sstream.lua',
     ['nelua.utils.stringer'] = 'nelua/utils/stringer.lua',
     ['nelua.utils.tabler'] = 'nelua/utils/tabler.lua',
+    ['nelua.utils.tracker'] = 'nelua/utils/tracker.lua',
     ['nelua.utils.traits'] = 'nelua/utils/traits.lua',
   },
   install = {

@@ -46,15 +46,15 @@ end
 -- If there's no directory part, the first value will be empty.
 function fs.splitpath(p)
   local i = #p
-  local ch = stringer.at(p,i)
+  local ch = p:sub(i,i)
   while i > 0 and ch ~= fs.sep and ch ~= fs.othersep do
     i = i - 1
-    ch = stringer.at(p,i)
+    ch = p:sub(i,i)
   end
   if i == 0 then
     return '',p
   else
-    return string.sub(p,1,i-1), string.sub(p,i+1)
+    return p:sub(1,i-1), p:sub(i+1)
   end
 end
 
@@ -72,8 +72,8 @@ end
 
 -- Is this an absolute path?
 function fs.isabs(p)
-  if stringer.at(p,1) == '/' then return true end
-  if platform.is_windows and stringer.at(p,1)=='\\' or stringer.at(p,2)==':' then return true end
+  if p:sub(1,1) == '/' then return true end
+  if platform.is_windows and p:sub(1,1)=='\\' or p:sub(2,2)==':' then return true end
   return false
 end
 
@@ -91,7 +91,8 @@ function fs.join(p1, p2, ...)
     return p
   end
   if fs.isabs(p2) then return p2 end
-  local endc = stringer.at(p1,#p1)
+  local endpos = #p1
+  local endc = p1:sub(endpos,endpos)
   if endc ~= fs.sep and endc ~= fs.othersep and endc ~= "" then
     p1 = p1..fs.sep
   end
@@ -108,13 +109,13 @@ function fs.normpath(p)
     if p:match '^\\\\' then -- UNC
       anchor = '\\\\'
       p = p:sub(3)
-    elseif stringer.at(p, 1) == '/' or stringer.at(p, 1) == '\\' then
+    elseif p:sub(1,1) == '/' or p:sub(1,1) == '\\' then
       anchor = '\\'
       p = p:sub(2)
-    elseif stringer.at(p, 2) == ':' then
+    elseif p:sub(2,2) == ':' then
       anchor = p:sub(1, 2)
       p = p:sub(3)
-      if stringer.at(p, 1) == '/' or stringer.at(p, 1) == '\\' then
+      if p:sub(1,1) == '/' or p:sub(1,1) == '\\' then
         anchor = anchor..'\\'
         p = p:sub(2)
       end
@@ -123,10 +124,10 @@ function fs.normpath(p)
   else
     -- according to POSIX, in path start '//' and '/' are distinct,
     -- but '///+' is equivalent to '/'.
-    if p:match '^//' and stringer.at(p, 3) ~= '/' then
+    if p:match '^//' and p:sub(3,3) ~= '/' then
       anchor = '//'
       p = p:sub(3)
-    elseif stringer.at(p, 1) == '/' then
+    elseif p:sub(1,1) == '/' then
       anchor = '/'
       p = p:match '^/*(.*)$'
     end
@@ -157,7 +158,7 @@ function fs.abspath(p, pwd)
   if not fs.isabs(p) then
     p = fs.join(pwd,p)
   elseif platform.is_windows and not use_pwd and
-         stringer.at(p,2) ~= ':' and stringer.at(p,2) ~= '\\' then --luacov:disable
+         p:sub(2,2) ~= ':' and p:sub(2,2) ~= '\\' then --luacov:disable
     p = pwd:sub(1,2)..p -- attach current drive to path like '\\fred.txt'
   end --luacov:enable
   return fs.normpath(p)
@@ -177,7 +178,7 @@ function fs.relpath(p, start)
   end --luacov:enable
   local startl, pl = stringer.split(start,fs.sep), stringer.split(p,fs.sep)
   local n = math.min(#startl,#pl)
-  if platform.is_windows and n > 0 and stringer.at(pl[1],2) == ':' and pl[1] ~= startl[1] then --luacov:disable
+  if platform.is_windows and n > 0 and pl[1]:sub(2,2) == ':' and pl[1] ~= startl[1] then --luacov:disable
     return p
   end --luacov:enable
   local k = n+1 -- default value if this loop doesn't bail out!
@@ -194,13 +195,13 @@ end
 
 -- Replace a starting '~' with the user's home directory.
 function fs.expanduser(p)
-  assert(stringer.at(p,1) == '~')
+  assert(p:sub(1,1) == '~')
   local home = os.getenv('HOME')
   if not home then --luacov:disable
     -- has to be Windows
     home = os.getenv 'USERPROFILE' or (os.getenv 'HOMEDRIVE' .. os.getenv 'HOMEPATH')
   end --luacov:enable
-  return home..string.sub(p,2)
+  return home..p:sub(2)
 end
 
 -- Return a temporary file name.

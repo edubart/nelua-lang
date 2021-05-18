@@ -122,7 +122,7 @@ local function get_cc_defines(cc, ...)
   local code = {}
   for i=1,select('#', ...) do
     local header = select(i, ...)
-    table.insert(code, '#include ' .. header)
+    code[#code+1] = '#include ' .. header
   end
   fs.ewritefile(tmpname, table.concat(code))
   local cccmd = string.format('%s -x c -E -dM %s', cc, tmpname)

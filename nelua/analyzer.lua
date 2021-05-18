@@ -1063,7 +1063,7 @@ local function iargnodes(argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
   local calleetype = lastargnode and lastargnode.attr.calleetype
-  if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and calleetype and
+  if lastargnode and lastargnode.tag:find('^Call') and calleetype and
     not calleetype.is_type and not calleetype.is_any then
     -- last arg is a runtime call with known return type at compile time
     return function()
@@ -1101,7 +1101,7 @@ local function izipargnodes(vars, argnodes)
   local lastargnode = argnodes[lastargindex]
   local lastcalleetype = lastargnode and lastargnode.attr.calleetype
   local niltype = primtypes.niltype
-  if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and
+  if lastargnode and lastargnode.tag:find('^Call') and
      (not lastcalleetype or not lastcalleetype.is_type) then
     -- last arg is a runtime call
     return function()

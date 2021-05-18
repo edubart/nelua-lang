@@ -4,6 +4,7 @@ require 'nelua.utils.luaver'.check()
 collectgarbage("incremental", 800, 400, 16)
 collectgarbage("stop")
 
+local tracker = require 'nelua.utils.tracker'
 local nanotimer = require 'nelua.utils.nanotimer'
 local globaltimer = nanotimer.globaltimer
 local timer = nanotimer()
@@ -184,6 +185,7 @@ function runner.run(argv, redirect)
 
     local config = configer.get()
     if config.on_finish then config.on_finish() end
+    tracker.report()
   end, function(e)
     console.logerr(e:get_message())
     status = 1
@@ -192,8 +194,8 @@ function runner.run(argv, redirect)
 
   if profiler then --luacov:disable
     profiler.stop()
-    profiler.report({self=true, min_usage=0.05})
-    profiler.report({incl=true, min_usage=0.05})
+    profiler.report({self=true, min_usage=0.05, sort_by = 'count'})
+    profiler.report({incl=true, min_usage=0.05, sort_by = 'count'})
   end --luacov:enable
 
   return status

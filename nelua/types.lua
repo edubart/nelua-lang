@@ -252,7 +252,7 @@ end
 -- Set a nickname for this type if not set yet.
 function Type:suggest_nickname(nickname)
   if nickname == 'T' then -- T is used for many generics, let's ignore it
-    return
+    return false
   end
   if not self.nickname and self.is_nameable then
     self.nickname = nickname
@@ -357,10 +357,7 @@ function Type.promote_type_for_value() return nil end
 
 -- Returns the resulting type when mixing this type with another type.
 function Type:promote_type(type)
-  if self == type then
-    return self
-  end
-  return nil
+  return self == type and self or nil
 end
 
 -- Checks if this type can initialize from the attr (succeeds only for compile time attrs).
@@ -2485,7 +2482,7 @@ function types.make_overload_concept(context, syms, ...)
         if ok then
           return type
         else
-          table.insert(errs, err)
+          errs[#errs+1] = err
         end
       end
     end

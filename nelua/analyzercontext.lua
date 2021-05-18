@@ -30,14 +30,18 @@ function AnalyzerContext:_init(visitors, parser, ast, generator)
 end
 
 function AnalyzerContext:push_pragmas()
-  table.insert(self.pragmastack, self.pragmas)
-  local newpragmas = setmetatable(tabler.copy(self.pragmas), getmetatable(self.pragmas))
+  local pragmastack = self.pragmastack
+  local pragmas = self.pragmas
+  pragmastack[#pragmastack+1] = pragmas
+  local newpragmas = setmetatable(tabler.copy(pragmas), getmetatable(pragmas))
   self.pragmas = newpragmas
   return newpragmas
 end
 
 function AnalyzerContext:pop_pragmas()
-  self.pragmas = table.remove(self.pragmastack)
+  local pragmastack = self.pragmastack
+  self.pragmas = pragmastack[#pragmastack]
+  pragmastack[#pragmastack] = nil
   assert(self.pragmas)
 end
 

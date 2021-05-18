@@ -20,7 +20,7 @@ local function izipargnodes(vars, argnodes)
   local lastargindex = #argnodes
   local lastargnode = argnodes[#argnodes]
   local calleetype = lastargnode and lastargnode.attr.calleetype
-  if lastargnode and lastargnode.tag:sub(1,4) == 'Call' and (not calleetype or not calleetype.is_type) then
+  if lastargnode and lastargnode.tag:find('^Call') and (not calleetype or not calleetype.is_type) then
     -- last arg is a runtime call
     assert(calleetype)
     -- we know the callee type
