@@ -127,6 +127,8 @@ Type.shape = shaper.shape {
   is_unpointable = shaper.optional_boolean,
   -- Weather the type is composed by fields (record or union).
   is_composite = shaper.optional_boolean,
+  -- Weather the type aggregates other types (record, union and arrays).
+  is_aggregate = shaper.optional_boolean,
   -- Weather the type hold multiple arguments.
   is_multipleargs = shaper.optional_boolean,
 
@@ -1449,6 +1451,7 @@ end
 local ArrayType = types.typeclass()
 types.ArrayType = ArrayType
 ArrayType.is_array = true
+ArrayType.is_aggregate = true
 ArrayType.is_contiguous = true
 ArrayType.is_container = true
 
@@ -1815,7 +1818,8 @@ local RecordType = types.typeclass()
 types.RecordType = RecordType
 RecordType.is_record = true
 RecordType.is_nameable = true
-RecordType.is_composite =  true
+RecordType.is_composite = true
+RecordType.is_aggregate = true
 
 RecordType.shape = shaper.fork_shape(Type.shape, {
   -- Field in the record.
@@ -2005,7 +2009,8 @@ local UnionType = types.typeclass()
 types.UnionType = UnionType
 UnionType.is_union = true
 UnionType.is_nameable = true
-UnionType.is_composite =  true
+UnionType.is_composite = true
+UnionType.is_aggregate = true
 
 UnionType.shape = shaper.fork_shape(Type.shape, {
   -- Field in the union.
@@ -2140,7 +2145,7 @@ end
 -- Get the desired type when converting this type from an attr.
 function PointerType:get_convertible_from_attr(attr, explicit, autoref)
   local type = attr.type
-  if not explicit and autoref and self.subtype == type and (type.is_composite or type.is_array) then
+  if not explicit and autoref and self.subtype == type and type.is_aggregate then
     -- implicit automatic reference for records and arrays
     if not attr.lvalue then -- can only reference l-values
       return false, stringer.pformat(
@@ -2253,12 +2258,8 @@ end
 
 -- Give the underlying type when implicit dereferencing this type.
 function PointerType:implicit_deref_type()
-  -- implicit dereference is only allowed for records and arrays subtypes
   local subtype = self.subtype
-  if subtype and (subtype.is_composite or subtype.is_array) then
-    return subtype
-  end
-  return self
+  return subtype.is_aggregate and subtype or self
 end
 
 -- Checks if this type has pointers, used by the garbage collector.

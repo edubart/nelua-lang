@@ -155,7 +155,7 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
         self:add('(', val, ')')
       else
         local innertype = type.is_pointer and type.subtype or type
-        local surround = innertype.is_composite or innertype.is_array
+        local surround = innertype.is_aggregate
         if surround then self:add_one('(') end
         self:add_typecast(type)
         if type.is_integral and valtype.is_pointer and type.size ~= valtype.size then

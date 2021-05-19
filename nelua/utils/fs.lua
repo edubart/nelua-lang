@@ -72,8 +72,8 @@ end
 
 -- Is this an absolute path?
 function fs.isabs(p)
-  if p:sub(1,1) == '/' then return true end
-  if platform.is_windows and p:sub(1,1)=='\\' or p:sub(2,2)==':' then return true end
+  if p:find('^/') then return true end
+  if platform.is_windows and p:find('^\\:') then return true end
   return false
 end
 
@@ -106,28 +106,27 @@ function fs.normpath(p)
   local anchor = ''
    --luacov:disable
   if platform.is_windows then
-    if p:match '^\\\\' then -- UNC
+    if p:find '^\\\\' then -- UNC
       anchor = '\\\\'
       p = p:sub(3)
-    elseif p:sub(1,1) == '/' or p:sub(1,1) == '\\' then
+    elseif p:find '^[/\\]' then
       anchor = '\\'
       p = p:sub(2)
-    elseif p:sub(2,2) == ':' then
+    elseif p:find '^.:' then
       anchor = p:sub(1, 2)
       p = p:sub(3)
-      if p:sub(1,1) == '/' or p:sub(1,1) == '\\' then
+      if p:find '^[/\\]' then
         anchor = anchor..'\\'
         p = p:sub(2)
       end
     end
     p = p:gsub('/','\\')
   else
-    -- according to POSIX, in path start '//' and '/' are distinct,
-    -- but '///+' is equivalent to '/'.
-    if p:match '^//' and p:sub(3,3) ~= '/' then
+    -- according to POSIX, in path start '//' and '/' are distinct, but '///+' is equivalent to '/'
+    if p:find '^//[^/]' then
       anchor = '//'
       p = p:sub(3)
-    elseif p:sub(1,1) == '/' then
+    elseif p:find '^/' then
       anchor = '/'
       p = p:match '^/*(.*)$'
     end
@@ -136,12 +135,12 @@ function fs.normpath(p)
   for part in p:gmatch('[^'..fs.sep..']+') do
     if part == '..' then
       if #parts ~= 0 and parts[#parts] ~= '..' then
-        table.remove(parts)
+        parts[#parts] = nil
       else
-        table.insert(parts, part)
+        parts[#parts+1] = part
       end
     elseif part ~= '.' then
-      table.insert(parts, part)
+      parts[#parts+1] = part
     end
   end
   --luacov:enable
@@ -154,11 +153,12 @@ end
 function fs.abspath(p, pwd)
   local use_pwd = pwd ~= nil
   p = p:gsub('[\\/]$','')
-  pwd = pwd or lfs.currentdir()
   if not fs.isabs(p) then
+    pwd = pwd or lfs.currentdir()
     p = fs.join(pwd,p)
   elseif platform.is_windows and not use_pwd and
-         p:sub(2,2) ~= ':' and p:sub(2,2) ~= '\\' then --luacov:disable
+         p:find '^.[^:\\]' then --luacov:disable
+    pwd = pwd or lfs.currentdir()
     p = pwd:sub(1,2)..p -- attach current drive to path like '\\fred.txt'
   end --luacov:enable
   return fs.normpath(p)
@@ -166,8 +166,8 @@ end
 
 -- Return relative path from current directory or optional start point.
 function fs.relpath(p, start)
-  p = fs.abspath(p,start)
   start = start or lfs.currentdir()
+  p = fs.abspath(p,start)
   local compare
   if platform.is_windows then --luacov:disable
     p = p:gsub("/","\\")
@@ -188,14 +188,14 @@ function fs.relpath(p, start)
   local rell = {}
   for i = 1, #startl-k+1 do rell[i] = '..' end
   if k <= #pl then
-    for i = k,#pl do table.insert(rell,pl[i]) end
+    for i = k,#pl do rell[#rell+1] = pl[i] end
   end
   return table.concat(rell,fs.sep)
 end
 
 -- Replace a starting '~' with the user's home directory.
 function fs.expanduser(p)
-  assert(p:sub(1,1) == '~')
+  assert(p:find('^~'))
   local home = os.getenv('HOME')
   if not home then --luacov:disable
     -- has to be Windows
@@ -290,16 +290,39 @@ function fs.getuserconfpath(path)
   return fs.expanduser(fs.join('~', '.config', path))
 end
 
+local modcache = {}
+local function findmodulefile(name, pathstr)
+  local key = name..';;;'..pathstr
+  local cached = modcache[key]
+  if cached then
+    return table.unpack(cached)
+  end
+  name = name:gsub('%.', fs.sep)
+  local triedpaths = {}
+  local modpath
+  for trypath in pathstr:gmatch('[^;]+') do
+    trypath = trypath:gsub('%?', name)
+    trypath = fs.abspath(trypath)
+    if fs.isfile(trypath) then
+      modpath = trypath
+      break
+    end
+    triedpaths[#triedpaths+1] = trypath
+  end
+  modcache[key] = {modpath, triedpaths}
+  return modpath, triedpaths
+end
+
 -- Search for a module using a path string or relative path.
 -- The path string must be a string like './?.nelua;./?/init.nelua'.
 function fs.findmodulefile(name, pathstr, relpath)
   local fullpath
   if relpath then
-    if name:match('^/') then -- absolute path
+    if fs.isabs(name) then -- absolute path
       fullpath = fs.abspath(name)
-    elseif name:match('^%.%.?/') then -- relative with '/'
+    elseif name:find('^%.%.?[/\\]') then -- relative with '../'
       fullpath = fs.abspath(fs.join(relpath, name))
-    elseif name:match('^[.]+') then -- relative with '.'
+    elseif name:find('^%.+') then -- relative with '.'
       local dots, rest = name:match('^(%.+)(.*)')
       rest = rest:gsub('%.', fs.sep)
       if #dots == 1 then
@@ -309,10 +332,11 @@ function fs.findmodulefile(name, pathstr, relpath)
       end
     end
   end
-  local triedpaths = {}
+  local triedpaths
+  local modpath
   if fullpath then -- full path of the file is known
     local paths
-    if not fullpath:match('%.%w+$') then
+    if not fullpath:find('%.%w+$') then
       paths = {
         fullpath..'.nelua',
         fs.join(fullpath,'init.nelua')
@@ -320,25 +344,22 @@ function fs.findmodulefile(name, pathstr, relpath)
     else
       paths = {fullpath}
     end
+    triedpaths = {}
     for _,trypath in ipairs(paths) do
       if fs.isfile(trypath) then
-        return fs.abspath(trypath)
+        modpath = fs.abspath(trypath)
+        break
       end
-      table.insert(triedpaths, trypath)
+      triedpaths[#triedpaths+1] = trypath
     end
   else -- search for a file in pathstr
-    name = name:gsub('%.', fs.sep)
-    local paths = stringer.split(pathstr, ';')
-    for i=1,#paths do
-      local trypath = paths[i]:gsub('%?', name)
-      trypath = fs.abspath(trypath)
-      if fs.isfile(trypath) then
-        return trypath
-      end
-      table.insert(triedpaths, trypath)
-    end
+    modpath, triedpaths = findmodulefile(name, pathstr)
   end
-  return nil, "\tno file '" .. table.concat(triedpaths, "'\n\tno file '") .. "'", triedpaths
+  local err
+  if not modpath then
+    err = "\tno file '" .. table.concat(triedpaths, "'\n\tno file '") .. "'"
+  end
+  return modpath, err, triedpaths
 end
 
 -- Search for a file inside the system's PATH variable.

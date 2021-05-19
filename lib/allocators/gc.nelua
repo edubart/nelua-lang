@@ -412,21 +412,24 @@ function GC:_sweep(): void <noinline>
 end
 
 function GC:_mark_statics(): void
-  ## local emit_mark_static = hygienize(function(sym, symtype)
-    gc:add(&#[sym]#, #(#[symtype]#), GCFlags.ROOT, nilptr)
+  ## local emit_mark_statics = hygienize(function(staticsyms)
+    ## for i=1,#staticsyms do
+      ## local sym = staticsyms[i]
+      gc:add(&#[sym]#, # #[sym.type]#, GCFlags.ROOT, nilptr)
+    ## end
   ## end)
 
   ##[[
   after_analyze(function()
+    local symbols = {}
     local function search_scope(scope)
       for i=1,#scope.symbols do
         local sym = scope.symbols[i]
-        local symtype = sym.type or primtypes.any
         if sym:is_on_static_storage() and
-           symtype:has_pointer() and
+           sym.type:has_pointer() and
            not sym.cimport and
            sym ~= gc then
-          emit_mark_static(sym, symtype)
+          symbols[#symbols+1] = sym
         end
       end
     end
@@ -434,6 +437,7 @@ function GC:_mark_statics(): void
     for _,childscope in ipairs(context.rootscope.children) do
       search_scope(childscope)
     end
+    emit_mark_statics(symbols)
   end)
   ]]
 end

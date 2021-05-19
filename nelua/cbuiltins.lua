@@ -691,7 +691,7 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
     emitter:add(', ')
     emitter:add_val2type(primtypes.string, rname, rtype)
     emitter:add(')')
-  elseif ltype.is_composite then
+  elseif ltype.is_composite or rtype.is_composite then
     if ltype == rtype then
       local op = emitter.context:ensure_builtin('nelua_eq_', ltype)
       emitter:add('!', op, '(', lname, ', ', rname, ')')

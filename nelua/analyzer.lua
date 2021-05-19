@@ -1282,7 +1282,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             if mulargstype.is_cvarargs and argtype then
               if argtype.is_string then -- we actually want a cstring
                 argtype = primtypes.cstring
-              elseif argtype.is_composite or argtype.is_array then
+              elseif argtype.is_aggregate then
                 node:raisef("in call of function '%s' at argument %d: invalid type '%s' for 'cvarargs'",
                   calleename, i, argtype)
               end
@@ -2993,7 +2993,7 @@ function visitors.UnaryOp(context, node)
       if not argattr.lvalue then
         node:raisef("in unary operation `%s`: cannot reference rvalues", opname)
       end
-      if argtype.is_composite and argtype.size == 0 then
+      if argtype.is_aggregate and argtype.size == 0 then
         argtype.emptyrefed = true
       end
     end

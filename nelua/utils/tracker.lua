@@ -1,3 +1,6 @@
+-- Utility used internally to optimize/debug compiler code paths
+
+--luacov:disable
 local tracker = {}
 
 local nanotime = require 'sys'.rdtscp
@@ -65,3 +68,4 @@ end
 _G.tracker = tracker
 
 return tracker
+--luacov:enable

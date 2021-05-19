@@ -194,8 +194,8 @@ function runner.run(argv, redirect)
 
   if profiler then --luacov:disable
     profiler.stop()
-    profiler.report({self=true, min_usage=0.05, sort_by = 'count'})
-    profiler.report({incl=true, min_usage=0.05, sort_by = 'count'})
+    profiler.report({self=true, min_usage=0.1})
+    profiler.report({incl=true, min_usage=0.1})
   end --luacov:enable
 
   return status

@@ -388,7 +388,7 @@ function visitors.InitializerList(context, node, emitter)
   local attr = node.attr
   local childnodes, type = node[1], attr.type
   local len = #childnodes
-  if len == 0 and (type.is_composite or type.is_array) then
+  if len == 0 and type.is_aggregate then
     if not context.state.ininitializer then
       emitter:add_typecast(type)
     end
@@ -821,7 +821,7 @@ function visitors.DotIndex(context, node, emitter)
   local poparray = false
   if type.is_array then
     if objtype:implicit_deref_type().is_composite and context.state.inarrayindex == node then
-      context.state.recordindexed = node
+      context.state.fieldindexed = node
     elseif not attr.globalfield then
       emitter:add('(*(', type, '*)')
       poparray = true
@@ -888,7 +888,7 @@ function visitors.ArrayIndex(context, node, emitter)
     else
       context:push_state{inarrayindex = objnode}
       emitter:add(objnode)
-      if context.state.recordindexed ~= objnode then
+      if context.state.fieldindexed ~= objnode then
         emitter:add('.data')
       end
       emitter:add('[')
