@@ -1,7 +1,9 @@
--- Executor module
---
--- The executor module is used to execute system commands,
--- such as running a C compiler or a built binary.
+--[[
+Executor module
+
+The executor module is used to execute system commands,
+such as running a C compiler or external applications.
+]]
 
 local tabler = require 'nelua.utils.tabler'
 local pegger = require 'nelua.utils.pegger'
@@ -84,7 +86,7 @@ end
 local function pexec(exe, args, capture)
   local command = exe
   if args and #args > 0 then
-    local strargs = tabler(args):imap(quote_arg):concat(' '):value()
+    local strargs = table.concat(tabler.imap(args, quote_arg), ' ')
     command = command .. ' ' .. strargs
   end
   if capture then
@@ -104,17 +106,21 @@ local function convertargs(exe, args)
   return exe, args
 end
 
--- Execute a command.
--- Args must be a table or nil, if args is nil then the args is extracted from exe.
--- Returns a true when successful and status code.
+--[[
+Execute a command.
+Args must be a table or nil, if args is nil then the args is extracted from exe.
+Returns a true when successful and status code.
+]]
 function executor.exec(exe, args)
   exe, args = convertargs(exe, args)
   return pexec(exe, args)
 end
 
--- Execute a command capturing stdout/stderr.
--- Args must be a table or nil, if args is nil then the args is extracted from exe.
--- Returns a true when successful, the status code, stdout and stderr contents.
+--[[
+Execute a command capturing stdout/stderr.
+Args must be a table or nil, if args is nil then the args is extracted from exe.
+Returns a true when successful, the status code, stdout and stderr contents.
+]]
 function executor.execex(exe, args)
   exe, args = convertargs(exe, args)
   return pexec(exe, args, true)

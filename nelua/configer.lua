@@ -111,13 +111,13 @@ local function build_configs(conf)
     local luass = sstream()
     for _,addpath in ipairs(conf.add_path) do
       if addpath:find('?') then
-        neluass:add(addpath, ';')
-        luass:add(addpath, platform.luapath_separator)
+        neluass:addmany(addpath, ';')
+        luass:addmany(addpath, platform.luapath_separator)
       else
-        neluass:add(addpath, '/?.nelua;')
-        neluass:add(addpath, '/?/init.nelua;')
-        luass:add(addpath, '/?.lua', platform.luapath_separator)
-        luass:add(addpath, '/?/init.lua', platform.luapath_separator)
+        neluass:addmany(addpath, '/?.nelua;',
+                        addpath, '/?/init.nelua;')
+        luass:addmany(addpath, '/?.lua', platform.luapath_separator,
+                      addpath, '/?/init.lua', platform.luapath_separator)
       end
     end
     -- try to insert the lib path after the local lib path

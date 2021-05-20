@@ -197,10 +197,11 @@ function Symbol:is_directly_accesible_from_scope(scope)
 end
 
 function Symbol:__tostring()
-  local ss = sstream(self.name or '<anonymous>')
+  local ss = sstream()
+  ss:add(self.name or '<anonymous>')
   local type = self.type
   if type then
-    ss:add(': ', type)
+    ss:addmany(': ', type)
   end
   if self.comptime then
     ss:add(' <comptime>')
@@ -209,7 +210,7 @@ function Symbol:__tostring()
   end
   local value = self.value
   if value and not type.is_procedure then
-    ss:add(' = ', value)
+    ss:addmany(' = ', value)
   end
   return ss:tostring()
 end

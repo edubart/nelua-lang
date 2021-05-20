@@ -1,7 +1,9 @@
--- Shaper module
---
--- This is an interface to the tableshape module with additional
--- shape checkers to be used in the compiler.
+--[[
+Shaper module
+
+This is an interface to the `tableshape` module with additional
+shape checkers to be used in the compiler.
+]]
 
 local shaper = require 'nelua.thirdparty.tableshape'.types
 local tabler = require 'nelua.utils.tabler'

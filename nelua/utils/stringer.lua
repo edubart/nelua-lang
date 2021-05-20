@@ -1,14 +1,18 @@
--- Stringer module
---
--- Stringer module contains some utilities for working with lua strings.
+--[[
+Stringer module
+
+Stringer module contains some utilities for working with lua strings.
+]]
 
 local hasher = require 'hasher'
 
 local stringer = {}
 
--- Compute a hash with the desired length for a string.
--- The hash uses the Blake2B algorithm and is encoded in Base58.
--- This is used to generate unique names for large strings.
+--[[
+Compute a hash with the desired length for a string.
+The hash uses the Blake2B algorithm and is encoded in Base58.
+This is used to generate unique names for large strings.
+]]
 function stringer.hash(s, len, key)
   len = len or 20
   local hash = hasher.blake2b(s, len, key)
@@ -82,7 +86,7 @@ end
 -- Extract a specific line from a text.
 function stringer.getline(text, lineno)
   if lineno <= 0 then return nil end
-  local linestart
+  local linestart = 1
   if lineno > 1 then
     local l = 1
     for pos in text:gmatch('\n()') do
@@ -93,9 +97,7 @@ function stringer.getline(text, lineno)
       end
     end
     if not linestart then return nil end -- not found
-  else --luacov:disable
-    linestart = 1
-  end --luacov:enable
+  end
   local lineend = text:find('\n', linestart, true)
   lineend = lineend and lineend-1 or nil
   return text:sub(linestart, lineend), linestart, lineend

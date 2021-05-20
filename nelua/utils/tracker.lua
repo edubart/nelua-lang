@@ -1,13 +1,18 @@
--- Utility used internally to optimize/debug compiler code paths
+--[[
+Tacker module
+
+This is an utility used internally to optimize/debug compiler code paths
+]]
 
 --luacov:disable
 local tracker = {}
 
-local nanotime = require 'sys'.rdtscp
+local cpucycles = require 'nelua.utils.nanotimer'.cpucycles
 local tracing = {}
 local timings = {}
 local counts = {}
 
+-- Start tracking cycles for section `name`.
 function tracker.start(name)
   local trace = tracing[name]
   if trace then
@@ -15,19 +20,20 @@ function tracker.start(name)
     trace[2] = depth + 1
     counts[name] = counts[name] + 1
     if depth == 0 then
-      trace[1] = nanotime()
+      trace[1] = cpucycles()
     end
   else
     trace = {0, 1}
     tracing[name] = trace
     timings[name] = 0
     counts[name] = 1
-    trace[1] = nanotime()
+    trace[1] = cpucycles()
   end
 end
 
+-- Finish tracking cycles for section `name`.
 function tracker.finish(name)
-  local now = nanotime()
+  local now = cpucycles()
   local trace = tracing[name]
   local depth = trace[2]
   trace[2] = depth - 1
@@ -36,6 +42,7 @@ function tracker.finish(name)
   end
 end
 
+-- Track call count for section `name`.
 function tracker.track(name)
   if not counts[name] then
     counts[name] = 1
@@ -44,6 +51,7 @@ function tracker.track(name)
   end
 end
 
+-- Report all measured sections.
 function tracker.report()
   local list = {}
   for name,count in pairs(counts) do
@@ -61,10 +69,7 @@ function tracker.report()
   end
 end
 
-function tracker.trackers()
-  return tracker.start, tracker.finish
-end
-
+-- Make tracker module available in globally (so it's quick to use it).
 _G.tracker = tracker
 
 return tracker

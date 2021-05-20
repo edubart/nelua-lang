@@ -1,10 +1,12 @@
--- Pegger module
---
--- This module defines miscellaneous PEG (Parse Expression Grammars)
--- for parsing or transforming large strings. It uses the LPEG library.
---
--- For more information how these patterns works see
--- http://www.inf.puc-rio.br/~roberto/lpeg/re.html
+--[[
+Pegger module
+
+This module defines miscellaneous PEG (Parse Expression Grammars)
+for parsing or transforming large strings. It uses the LPEG library.
+
+For more information how these patterns works see
+http://www.inf.puc-rio.br/~roberto/lpeg/re.html
+]]
 
 local re = require 'nelua.thirdparty.relabel'
 local errorer = require 'nelua.utils.errorer'
@@ -74,17 +76,6 @@ end
 function pegger.single_quote_lua_string(str)
   return lua_single_peg:match(str)
 end
-
---[=[
-local c_single_peg = re.compile(
-  single_patt_begin ..
-  quote_patt_begin ..
-  single_quote_patt ..
-  c_quote_patt_end, quotes_defs)
-function pegger.single_quote_c_string(str)
-  return c_single_peg:match(str)
-end
-]=]
 
 local function split_cb(v) return {name = v[1], patt = v[2]} end
 local combined_grammar_peg_pat = re.compile([[
@@ -208,4 +199,3 @@ function pegger.normalize_newlines(text)
 end
 
 return pegger
-

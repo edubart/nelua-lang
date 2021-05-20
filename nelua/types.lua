@@ -289,7 +289,7 @@ end
 function Type:unary_operator(opname, attr)
   local type, value, err = perform_op_from_list(self, self.unary_operators[opname], self, attr)
   if not type and not err then -- no resulting type, but no error, thus generate one
-    err = stringer.pformat("invalid operation for type '%s'", self)
+    err = string.format("invalid operation for type '%s'", self)
   end
   return type, value, err
 end
@@ -301,7 +301,7 @@ function Type:binary_operator(opname, rtype, lattr, rattr)
     type, value, err = perform_op_from_list(rtype, rtype.binary_operators[opname], self, rtype, lattr, rattr)
   end
   if not type and not err then -- no error, thus generate one
-    err = stringer.pformat("invalid operation between types '%s' and '%s'", self, rtype)
+    err = string.format("invalid operation between types '%s' and '%s'", self, rtype)
   end
   return type, value, err
 end
@@ -315,7 +315,7 @@ function Type:get_convertible_from_type(type)
     -- anything can be converted to and from `any`
     return self
   else
-    return false, stringer.pformat("no viable type conversion from `%s` to `%s`", type, self)
+    return false, string.format("no viable type conversion from `%s` to `%s`", type, self)
   end
 end
 
@@ -434,10 +434,10 @@ Type.unary_operators.ref = function(ltype, lattr)
     if not ltype.is_unpointable then
       return types.PointerType(ltype)
     else
-      return nil, nil, stringer.pformat('cannot reference not addressable type "%s"', ltype)
+      return nil, nil, string.format('cannot reference not addressable type "%s"', ltype)
     end
   else
-    return nil, nil, stringer.pformat('cannot reference compile time value of type "%s"', ltype)
+    return nil, nil, string.format('cannot reference compile time value of type "%s"', ltype)
   end
 end
 
@@ -1007,11 +1007,11 @@ function IntegralType:get_convertible_from_attr(attr, explicit, autoref)
     -- we can convert only if the compiler time value does not overflow/underflow the type
     local value = attr.value
     if not traits.is_integral(value) then -- the value must be and integral
-      return false, stringer.pformat(
+      return false, string.format(
         "constant value `%s` is fractional which is invalid for the type '%s'",
         value, self)
     elseif not self:is_inrange(value) then -- the value must be in our range
-      return false, stringer.pformat(
+      return false, string.format(
         "constant value `%s` for type `%s` is out of range, the minimum is `%s` and maximum is `%s`",
         value, self, self.min, self.max)
     else
@@ -1160,7 +1160,7 @@ end
 -- Helper to determine the resulting type of a bitwise operation on integrals.
 local function integral_bitwise_op_type(ltype, rtype, lattr, rattr)
   if not ltype.is_integral or not rtype.is_integral then
-    return nil, stringer.pformat(
+    return nil, string.format(
       "attempt to perform a bitwise operation with non integral type '%s' or '%s'", ltype, rtype)
   end
   local retype = types.promote_type_for_attrs(lattr, rattr)
@@ -1178,7 +1178,7 @@ end
 -- Helper to determine the resulting type of a shift operation on integrals.
 local function integral_shift_op_type(ltype, rtype)
   if not ltype.is_integral or not rtype.is_integral then
-    return nil, stringer.pformat(
+    return nil, string.format(
       "attempt to perform a bitwise operation with non integral type '%s' or '%s'", ltype, rtype)
   end
   return ltype
@@ -1494,7 +1494,9 @@ end
 
 -- Return description for type as a string.
 function ArrayType:typedesc()
-  return sstream(self.name, '(', self.subtype, ', ', self.length, ')'):tostring()
+  local ss = sstream()
+  ss:addmany(self.name, '(', self.subtype, ', ', self.length, ')')
+  return ss:tostring()
 end
 
 -- Get the desired type when converting this type from another type.
@@ -1567,10 +1569,11 @@ end
 
 -- Return description for type as a string.
 function EnumType:typedesc()
-  local ss = sstream('enum(', self.subtype, '){')
+  local ss = sstream()
+  ss:addmany('enum(', self.subtype, '){')
   for i,field in ipairs(self.fields) do
     if i > 1 then ss:add(', ') end
-    ss:add(field.name, '=', field.value)
+    ss:addmany(field.name, '=', field.value)
   end
   ss:add('}')
   return ss:tostring()
@@ -1690,13 +1693,14 @@ end
 
 -- Return description for type as a string.
 function FunctionType:typedesc()
-  local ss = sstream(self.name, '(', self.argtypes, ')')
+  local ss = sstream()
+  ss:addmany(self.name, '(', self.argtypes, ')')
   if self.rettypes and #self.rettypes > 0 then
     ss:add(': ')
     if #self.rettypes > 1 then
-      ss:add('(', self.rettypes, ')')
+      ss:addmany('(', self.rettypes, ')')
     else
-      ss:add(self.rettypes)
+      ss:addlist(self.rettypes)
     end
   end
   return ss:tostring()
@@ -1990,10 +1994,11 @@ end
 
 -- Return description for type as a string.
 function RecordType:typedesc()
-  local ss = sstream('record{')
+  local ss = sstream()
+  ss:add('record{')
   for i,field in ipairs(self.fields) do
     if i > 1 then ss:add(', ') end
-    ss:add(field.name, ': ', field.type)
+    ss:addmany(field.name, ': ', field.type)
   end
   ss:add('}')
   return ss:tostring()
@@ -2098,10 +2103,11 @@ UnionType.has_pointer = RecordType.has_pointer
 
 -- Return description for type as a string.
 function UnionType:typedesc()
-  local ss = sstream('union{')
+  local ss = sstream()
+  ss:add('union{')
   for i,field in ipairs(self.fields) do
     if i > 1 then ss:add(', ') end
-    ss:add(field.name, ': ', field.type)
+    ss:addmany(field.name, ': ', field.type)
   end
   ss:add('}')
   return ss:tostring()
@@ -2148,7 +2154,7 @@ function PointerType:get_convertible_from_attr(attr, explicit, autoref)
   if not explicit and autoref and self.subtype == type and type.is_aggregate then
     -- implicit automatic reference for records and arrays
     if not attr.lvalue then -- can only reference l-values
-      return false, stringer.pformat(
+      return false, string.format(
         'cannot automatic reference rvalue of type "%s" to pointer type "%s"',
         type, self)
     end
@@ -2282,7 +2288,9 @@ end
 
 -- Return description for type as a string.
 function PointerType:typedesc()
-  return sstream(self.name, '(', self.subtype, ')'):tostring()
+  local ss = sstream()
+  ss:addmany(self.name, '(', self.subtype, ')')
+  return ss:tostring()
 end
 
 --------------------------------------------------------------------------------
@@ -2419,20 +2427,20 @@ function ConceptType:get_convertible_from_attr(attr, _, _, argattrs)
     if type.type == primtypes.type and traits.is_type(type.value) then
       type = type.value
     else -- the symbol is not holding a type
-      err = stringer.pformat("invalid return for concept '%s': cannot be non type symbol", self)
+      err = string.format("invalid return for concept '%s': cannot be non type symbol", self)
       type = nil
     end
   elseif not type and not err then -- concept returned nothing
-    err = stringer.pformat("type '%s' could not match concept '%s'", attr.type, self)
+    err = string.format("type '%s' could not match concept '%s'", attr.type, self)
     type = nil
   elseif not (type == false or type == nil or traits.is_type(type)) then
     -- concept returned an invalid value
-    err = stringer.pformat("invalid return for concept '%s': must be a boolean or a type", self)
+    err = string.format("invalid return for concept '%s': must be a boolean or a type", self)
     type = nil
   end
   if type then
     if type.is_comptime then -- concept cannot return compile time types
-      err = stringer.pformat("invalid return for concept '%s': cannot be of the type '%s'", self, type)
+      err = string.format("invalid return for concept '%s': cannot be of the type '%s'", self, type)
       type = nil
     end
   end
@@ -2532,11 +2540,11 @@ function GenericType:eval_type(params)
       ret = ret.value
     else -- invalid symbol
       ret = nil
-      err = stringer.pformat("expected a symbol holding a type in generic return, but got something else")
+      err = string.format("expected a symbol holding a type in generic return, but got something else")
     end
   elseif not traits.is_type(ret) then -- generic didn't return a type
     ret = nil
-    err = stringer.pformat("expected a type or symbol in generic return, but got '%s'", type(ret))
+    err = string.format("expected a type or symbol in generic return, but got '%s'", type(ret))
   end
   return ret, err
 end

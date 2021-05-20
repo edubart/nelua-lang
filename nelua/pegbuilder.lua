@@ -62,9 +62,9 @@ end
 
 function PEGBuilder:build()
   local pegs = self.pegs
-  local text = tabler(pegs)
-    :imap(function(name) return string.format('%s <- %s', name, pegs[name]) end)
-    :concat('\n'):value()
+  local text = table.concat(tabler.imap(pegs, function(name)
+    return string.format('%s <- %s', name, pegs[name])
+  end), '\n')
   return text, self.defs
 end
 

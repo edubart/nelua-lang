@@ -1,8 +1,10 @@
--- Memoize function
---
--- The memoize function is used to cache a function,
--- to avoid repeated function evaluations thus increase efficiency in some compiler parts.
+--[[
+Memoize function
 
+The memoize function is used to cache a function,
+to avoid repeated function evaluations thus increase efficiency in some compiler parts.
+[[
+]]
 local shallow_compare_nomt = require 'nelua.utils.tabler'.shallow_compare_nomt
 
 -- Wrap a function into another function that cache calls.

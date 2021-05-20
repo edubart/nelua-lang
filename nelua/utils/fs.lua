@@ -1,6 +1,8 @@
--- FS module
---
--- The fs (stands for filesystem) module is used to manage files and directories.
+--[[
+FS module
+
+The fs (stands for filesystem) module is used to manage files and directories.
+]]
 
 local lfs = require 'lfs'
 local platform = require 'nelua.utils.platform'
@@ -77,10 +79,12 @@ function fs.isabs(p)
   return false
 end
 
--- Return the path resulting from combining the individual paths.
--- If the second (or later) path is absolute then we return the last absolute path
--- (joined with any non-absolute paths following).
--- Empty elements (except the last) will be ignored.
+--[[
+Return the path resulting from combining the individual paths.
+If the second (or later) path is absolute then we return the last absolute path
+(joined with any non-absolute paths following).
+Empty elements (except the last) will be ignored.
+]]
 function fs.join(p1, p2, ...)
   if select('#',...) > 0 then
     local p = fs.join(p1,p2)
@@ -207,7 +211,7 @@ end
 -- Return a temporary file name.
 function fs.tmpname()
   local res = os.tmpname()
-  -- on Windows if Lua is compiled using MSVC14 os.tmpname
+  -- on Windows if Lua is compiled using MSVC14 `os.tmpname`
   -- already returns an absolute path within TEMP env variable directory,
   -- no need to prepend it
   if platform.is_windows and not res:find(':') then --luacov:disable
@@ -291,6 +295,8 @@ function fs.getuserconfpath(path)
 end
 
 local modcache = {}
+
+-- Helper for `fs.findmodulefile`, found modules are cached.
 local function findmodulefile(name, pathstr)
   local key = name..';;;'..pathstr
   local cached = modcache[key]
@@ -380,9 +386,11 @@ function fs.findbinfile(name)
   end --luacov:enable
 end
 
--- Return a suitable full path for a new temporary file name.
--- Unlike os.tmpname(), it always gives you a writeable path
--- (uses TEMP environment variable on Windows).
+--[[
+Return a suitable full path for a new temporary file name.
+Unlike `os.tmpname()`, it always gives you a writable path
+(uses TEMP environment variable on Windows).
+]]
 function fs.tmpfile()
   local name = fs.tmpname()
   local f = io.open(name, 'a+b')

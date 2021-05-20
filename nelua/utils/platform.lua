@@ -1,6 +1,8 @@
--- Platform module
---
--- Platform module defines platform specific values.
+--[[
+Platform module
+
+Platform module defines platform specific values.
+]]
 
 local platform = {}
 

@@ -1,10 +1,12 @@
--- Metamagic module
---
--- The metamagic module have a few utilities for working with metatables.
+--[[
+Metamagic module
+
+The metamagic module have a few utilities for working with metatables.
+]]
 
 local metamagic = {}
 
--- Set the __index metamethod for a table, creating a metatable if necessary.
+-- Set the `__index` metamethod for a table, creating a metatable if necessary.
 function metamagic.setmetaindex(t, __index, overwrite)
   local mt = getmetatable(t)
   if mt then
@@ -16,7 +18,7 @@ function metamagic.setmetaindex(t, __index, overwrite)
   return t
 end
 
--- Set __call metamethod for a table, always creating a new metatable.
+-- Set the `__call` metamethod for a table, always creating a new metatable.
 function metamagic.setmetacall(t, f)
   local mt = getmetatable(t)
   local callfunc = function(_, ...)
@@ -27,11 +29,10 @@ function metamagic.setmetacall(t, f)
   return t
 end
 
--- Check if a value has a specific metamethod in its metatable.
+-- Check if a value has metamethod `method` in its metatable.
 function metamagic.hasmetamethod(t, method)
   local mt = getmetatable(t)
-  if mt and mt[method] then return true end
-  return false
+  return (mt and mt[method]) and true or false
 end
 
 return metamagic

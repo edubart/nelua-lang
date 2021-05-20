@@ -1,8 +1,8 @@
--- Tabler module
---
--- Tabler module contains some utilities for working with lua tables.
+--[[
+Tabler module
 
-local metamagic = require 'nelua.utils.metamagic'
+The tabler module contains some utilities for working with lua tables.
+]]
 
 local tabler = {}
 
@@ -97,8 +97,8 @@ end
 
 -- Shallow compare two tables without metatable set.
 function tabler.shallow_compare_nomt(t1, t2)
-  if type(t1) == 'table' and not getmetatable(t1) and
-     type(t2) == 'table' and not getmetatable(t2) then
+  if not getmetatable(t1) and not getmetatable(t2) and
+     type(t1) == 'table' and type(t2) == 'table' then
     for k,v in next,t1 do
       if v ~= t2[k] then return false end
     end
@@ -117,39 +117,6 @@ function tabler.globaltable2key(t)
       return k
     end
   end
-end
-
--- Add lua table methods to allow using them in chain mode.
-tabler.concat = table.concat
-tabler.insert = table.insert
-tabler.remove = table.remove
-tabler.sort = table.sort
-
-do -- Wrapper for using tabler in chain mode.
-  local tablewrapper = {}
-  local tablewrapper_mt = { __index = tablewrapper}
-  local function createtablewrapper(v)
-    return setmetatable({_v = v}, tablewrapper_mt)
-  end
-
-  -- function for returning the wrapped table
-  function tablewrapper:value()
-    return self._v
-  end
-
-  -- inject tabler functions into the wrapper
-  for k,f in pairs(tabler) do
-    tablewrapper[k] = function(v, ...)
-      assert(getmetatable(v) == tablewrapper_mt)
-      return createtablewrapper(f(v._v, ...))
-    end
-  end
-
-  -- allow calling tabler() to begin chain on tables
-  function tabler.chain(v)
-    return createtablewrapper(v)
-  end
-  metamagic.setmetacall(tabler, tabler.chain)
 end
 
 return tabler

@@ -1,13 +1,15 @@
--- Except module
---
--- The except module implements an exception system used by the compiler.
--- In this system exceptions can be raised, cough and raised again when needed.
--- An exception always have label and traceback.
--- The label is used to differentiate exceptions when needed,
--- tracebacks are stored when an exception is created or raised again.
--- The exceptions can store user defined additional information too.
--- The compiler uses this system to differentiate compile time errors from lua errors,
--- and to raise, catch or forward compile time errors for generating pretty tracebacks.
+--[[
+Except module
+
+The except module implements an exception system used by the compiler.
+In this system exceptions can be raised, cough and raised again when needed.
+An exception always have label and traceback.
+The label is used to differentiate exceptions when needed,
+tracebacks are stored when an exception is created or raised again.
+The exceptions can store user defined additional information too.
+The compiler uses this system to differentiate compile time errors from lua errors,
+and to raise, catch or forward compile time errors for generating pretty tracebacks.
+]]
 
 local class = require 'nelua.utils.class'
 local metamagic = require 'nelua.utils.metamagic'
@@ -114,14 +116,16 @@ local function tryerrhandler(e)
   end --luacov:enable
 end
 
--- Try and catch only exceptions (never lua errors). It does a lua protected call.
--- When no handler is supplied:
---    If any exception is raised then returns nil plus the exception.
---    If no exception is raised then returns true plus the first return of `f`.
--- When a handler is supplied:
---    If the exception is not caught by the handler then it's raised again.
---    An exception is considered caught when the call to the handler returns true.
---    The handler can be a table of labeled exceptions function handlers or a function.
+--[[
+Try and catch only exceptions (never lua errors). It does a lua protected call.
+When no handler is supplied:
+   If any exception is raised then returns nil plus the exception.
+   If no exception is raised then returns true plus the first return of `f`.
+When a handler is supplied:
+   If the exception is not caught by the handler then it's raised again.
+   An exception is considered caught when the call to the handler returns true.
+   The handler can be a table of labeled exceptions function handlers or a function.
+]]
 function except.try(f, handler)
   local ok, e = xpcall(f, tryerrhandler)
   if not ok then

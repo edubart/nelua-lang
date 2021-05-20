@@ -196,19 +196,19 @@ local function stringfy_astnode(node, depth, ss, skipindent)
     ss:add(indent)
   end
   if isnode then
-    ss:add(node.tag, ' ')
+    ss:addmany(node.tag, ' ')
   end
   ss:add('{\n')
   for k,v in iters.ospairs(node) do
     if not ignored_stringfy_keys[k] then
       if isnode and k == 'attr' and traits.is_table(v) then
         if next(v) then
-          ss:add(indent, '  attr = ')
+          ss:addmany(indent, '  attr = ')
           stringfy_astnode(v, depth+1, ss, true)
           ss:add(',\n')
         end
       else
-        ss:add(indent, '  ', k, ' = ', stringfy_val2str(v), ',\n')
+        ss:addmany(indent, '  ', k, ' = ', stringfy_val2str(v), ',\n')
       end
     end
   end
@@ -219,12 +219,12 @@ local function stringfy_astnode(node, depth, ss, skipindent)
       if type(v) == 'table' then
         stringfy_astnode(v, depth+1, ss)
       else
-        ss:add(indent, '  ', stringfy_val2str(v))
+        ss:addmany(indent, '  ', stringfy_val2str(v))
       end
       ss:add(i == nargs and '\n' or ',\n')
     end
   end
-  ss:add(indent, '}')
+  ss:addmany(indent, '}')
 end
 
 function ASTNode:__tostring()

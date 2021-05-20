@@ -1,10 +1,11 @@
--- Traits module
---
--- The traits module is used over the code to check if a lua value is a specific class or lua type.
---
--- This module should be used instead of using the 'type()' lua function in the compiler sources,
--- because the 'type' keyword is overused in the compiler and can lead to confusion,
--- (except when needing performance).
+--[[
+Traits module
+
+The traits module is used over the code to check if a lua value is a specific class or lua type.
+
+This can be used instead of using the `type()` lua function in the compiler sources,
+because the `type` keyword is overused in the compiler and can sometimes lead to confusion.
+]]
 
 local traits = {}
 

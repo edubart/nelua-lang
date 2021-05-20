@@ -1,8 +1,13 @@
+--[[
+Profiler module
+
+Profiler used internally to profile compilation time.
+]]
+
+local cpucycles = require 'nelua.utils.nanotimer'.cpucycles
+local nanotime = require 'nelua.utils.nanotimer'.nanotime
 local debug_getinfo = debug.getinfo
 local debug_sethook = debug.sethook
-local sys = require'sys'
-local cycles = sys.rdtscp or sys.rdtsc or os.clock
-local nanotime = sys.nanotime
 local profiler = {}
 local descs = {}
 local calls = {}
@@ -14,7 +19,7 @@ local timebeg, timeend = 0, 0
 
 -- Hook, called before and after every function call.
 local function hook(event)
-  local now = cycles()
+  local now = cpucycles()
   if event == 'return' then
     if depth > 0 then
       local call = calls[depth]
@@ -30,7 +35,7 @@ local function hook(event)
         local u = call.u
         call = calls[depth]
         t = call.o - u
-        call.o = cycles() + t
+        call.o = cpucycles() + t
       end
     end
   elseif event == 'call' then
@@ -60,7 +65,7 @@ local function hook(event)
     call.d = desc
     call.o = 0
     call.u = now
-    call.t = cycles()
+    call.t = cpucycles()
   elseif event == 'tail call' then
     local desc = descs[debug_getinfo(2).func]
     if desc then
@@ -113,14 +118,14 @@ function profiler.start()
   collectgarbage'stop'
   depth = 0
   timebeg = nanotime()
-  cyclesbeg = cycles()
+  cyclesbeg = cpucycles()
   debug_sethook(hook, 'cr', 0)
 end
 
 -- Stop the profiler.
 function profiler.stop()
   debug_sethook()
-  cyclesend = cycles()
+  cyclesend = cpucycles()
   timeend = nanotime()
 end
 

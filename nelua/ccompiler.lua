@@ -26,21 +26,21 @@ local function get_compiler_cflags(compileopts)
   for _,incdir in ipairs(compileopts.incdirs) do
     cflags:add(' -I "'..incdir..'"')
   end
-  cflags:add(' ', compiler_flags.cflags_base)
+  cflags:add(' '..compiler_flags.cflags_base)
   if config.maximum_performance then
-    cflags:add(' ', compiler_flags.cflags_maximum_performance)
+    cflags:add(' '..compiler_flags.cflags_maximum_performance)
     if config.cflags_maximum_performance then
-      cflags:add(' ', config.cflags_maximum_performance)
+      cflags:add(' '..config.cflags_maximum_performance)
     end
   elseif config.release then
-    cflags:add(' ', compiler_flags.cflags_release)
+    cflags:add(' '..compiler_flags.cflags_release)
     if config.cflags_release then
-      cflags:add(' ', config.cflags_release)
+      cflags:add(' '..config.cflags_release)
     end
   else
-    cflags:add(' ', compiler_flags.cflags_debug)
+    cflags:add(' '..compiler_flags.cflags_debug)
     if config.cflags_debug then
-      cflags:add(' ', config.cflags_debug)
+      cflags:add(' '..config.cflags_debug)
     end
   end
   if config.shared then
@@ -49,7 +49,7 @@ local function get_compiler_cflags(compileopts)
     cflags:add(' -c')
   end
   if #config.cflags > 0 then
-    cflags:add(' ', config.cflags)
+    cflags:add(' '..config.cflags)
   end
   --luacov:enable
   if #compileopts.cflags > 0 then

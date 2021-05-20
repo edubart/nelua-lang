@@ -1,7 +1,9 @@
--- Console module
---
--- The console module is used to print colored information on the terminal
--- when compiling, such as errors, warnings and information.
+--[[
+Console module
+
+The console module is used to print colored information on the terminal
+when compiling, such as errors, warnings and information.
+]]
 
 local stringer = require 'nelua.utils.stringer'
 local pformat, pconcat = stringer.pformat, stringer.pconcat
@@ -87,7 +89,7 @@ function console.set_colors_enabled(enabled)
   setup_default_colors()
 end
 
--- Print a colored text to the a console output.
+-- Print a colored text to the console output.
 function console.logex(out, color, text)
   if color then out:write(tostring(color)) end
   out:write(text)
@@ -103,6 +105,8 @@ function console.errorf(format, ...) logex(io.stderr, colors.error, pformat(form
 function console.debugf(format, ...) logex(io.stdout, colors.debug, pformat(format, ...)) end
 function console.debug2f(format, ...) logex(io.stdout, colors.debug2, pformat(format, ...)) end
 function console.infof(format, ...)  logex(io.stdout, colors.info,  pformat(format, ...)) end
+function console.logf(format, ...)   logex(io.stdout, nil,  pformat(format, ...)) end
+function console.logerrf(format, ...)logex(io.stderr, nil,  pformat(format, ...)) end
 
 -- Logging functions (print style).
 function console.warn(...)  logex(io.stderr, colors.warn,  pconcat(...)) end
@@ -110,7 +114,6 @@ function console.error(...) logex(io.stderr, colors.error, pconcat(...)) end
 function console.debug(...) logex(io.stdout, colors.debug, pconcat(...)) end
 function console.debug2(...) logex(io.stdout, colors.debug2, pconcat(...)) end
 function console.info(...)  logex(io.stdout, colors.info,  pconcat(...)) end
-
 function console.log(...)   logex(io.stdout, nil,  pconcat(...)) end
 function console.logerr(...)logex(io.stderr, nil,  pconcat(...)) end
 

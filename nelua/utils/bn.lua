@@ -1,16 +1,18 @@
--- BN class
---
--- The BN (stands for big number) is used to represent either float or big integers.
--- It uses the lua-bint library to perform operations on large integers.
--- The compiler needs this class because Lua cannot work with integers large than 64 bits.
--- Large integers are required to work with uint64,
--- to mix operation between different integers ranges at compile time,
--- and to do error checking on invalid large integers.
+--[[
+BN class
 
--- BN is actually a bint class created with 192bits and with some extensions.
+The BN (stands for Big Number) is used to represent either float or big integers.
+It uses the lua-bint library to perform operations on large integers.
+The compiler needs this class because Lua cannot work with integers large than 64 bits.
+Large integers are required to work with `uint64`, `int128` and `uint128`,
+to mix operation between different integers ranges at compile time,
+and to do error checking on integer overflows.
+]]
+
+-- BN is actually a `bint` class created with 192bits and with some extensions.
 local bn = require 'nelua.thirdparty.bint'(192)
 
--- This is used to check if a table is a 'bn'.
+-- Used to check if a table is a 'bn'.
 bn._bn = true
 
 -- Helper to convert a number composed of strings parts in any base to a big number.
@@ -21,18 +23,16 @@ local function from(base, expbase, int, frac, exp)
     neg = true
     int = int:sub(2)
   end
-  -- handle infs and nans
+  -- handle inf and nan
   if int == 'inf' then
     return not neg and math.huge or -math.huge
   elseif int == 'nan' then
-    -- 0.0/0.0 always is a nan in lua
-    return 0.0/0.0
+    return 0.0/0.0 -- always a nan in lua
   end
   -- parse the integral part
   local n = bn.zero()
   for i=1,#int do
     local d = tonumber(int:sub(i,i), base)
-    assert(d)
     n = (n * base) + d
   end
   -- parse the fractional part
@@ -105,11 +105,9 @@ function bn.splitdecsci(s)
   local int, frac, exp = s:match('^(-?%d+)[.]?(%d+)[eE]?([+-]?%d*)$')
   if not int then
     int, exp = s:match('^(-?%d+)[eE]?([+-]?%d*)$')
+    assert(int)
   end
-  assert(int)
-  if exp == '' then
-    exp = nil
-  end
+  if exp == '' then exp = nil end
   return int, frac, exp
 end
 
@@ -119,8 +117,7 @@ function bn.from(base, int, frac, exp)
     return bn.fromdec(int, frac, exp)
   elseif base == 'hex' then
     return bn.fromhex(int, frac, exp)
-  else
-    assert(base == 'bin')
+  elseif base == 'bin' then
     return bn.frombin(int, frac, exp)
   end
 end
@@ -146,49 +143,43 @@ function bn.todec(v)
   return bn.tobase(v, 10, false)
 end
 
--- Convert to a string in decimal base considering fractional values,
--- possibly using scientific notation for float numbers, to have a shorter output.
+--[[
+Convert to a string in decimal base considering fractional values,
+possibly using scientific notation for float numbers, to have a shorter output.
+]]
 function bn.todecsci(v, maxdigits)
   if bn.isbint(v) then
     -- in case of bints we can just it as string
     return tostring(v)
   end
-
   -- force converting it to a number
   v = tonumber(v)
   local ty = math.type(v)
-
   if ty == 'integer' then
     -- in case of lua integers we can return it as string
     return tostring(v)
-  end
-
-  -- can only be a float from now on
-  assert(ty == 'float')
-
-  -- 64 bit floats can only be uniquely represented by 17 decimals digits
-  maxdigits = maxdigits or 17
-
-  -- try to use a small float representation if possible
-  if maxdigits >= 16 then
-    local s = string.format('%.15g', v)
-    if tonumber(s) == v then
-      return s
+  elseif ty == 'float' then
+    -- 64 bit floats can only be uniquely represented by 17 decimals digits
+    maxdigits = maxdigits or 17
+    -- try to use a small float representation if possible
+    if maxdigits >= 16 then
+      local s = string.format('%.15g', v)
+      if tonumber(s) == v then
+        return s
+      end
+      s = string.format('%.16g', v)
+      if tonumber(s) == v then
+        return s
+      end
     end
-    s = string.format('%.16g', v)
-    if tonumber(s) == v then
-      return s
-    end
+    -- return the float represented in a string
+    return string.format('%.'..maxdigits..'g', v)
   end
-
-  -- return the float represented in a string
-  return string.format('%.'..maxdigits..'g', v)
 end
 
 -- Check if the input is a NaN (not a number).
 function bn.isnan(x)
-  -- a nan is never equals to itself
-  return x ~= x
+  return x ~= x -- a nan is never equal to itself
 end
 
 -- Check if the input is infinite.
@@ -196,17 +187,15 @@ function bn.isinfinite(x)
   return math.type(x) == 'float' and math.abs(x) == math.huge
 end
 
--- Convert a bn number to a lua integer/number no precision is lost.
+-- Convert a bn number to a lua integer/number without loss of precision.
 function bn.compress(x)
   if bn.isbint(x) then
     if x <= math.maxinteger and x >= math.mininteger then
       return x:tointeger()
-    else
-      return x
     end
-  else
-    return tonumber(x)
+    return x
   end
+  return tonumber(x)
 end
 
 return bn

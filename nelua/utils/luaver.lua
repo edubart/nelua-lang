@@ -1,6 +1,8 @@
--- Luaver module
---
--- Module used to check if the compiler supports the running lua version.
+--[[
+Luaver module
+
+Module used to check if the compiler supports the running lua version.
+]]
 
 local luaver = {}
 
