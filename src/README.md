@@ -4,7 +4,7 @@ This is the Lua 5.4.2 interpreter used by Nelua, with the following changes:
 
 * Uses rpmalloc as the default memory allocator (usually much faster than the system's default memory allocator).
 * Libraries "hasher", "sys" and "lfs" are built-in (they are required by Nelua compiler).
-* Made LUA_ROOT in luaconf.h configurable
+* Use a distribution friendly LUA_ROOT in luaconf.h
 * Use -fno-crossjumping -fno-gcse in lua VM for a faster instruction execution.
 * C compilation flags are tuned to squeeze more performance from the Lua interpreter.
 

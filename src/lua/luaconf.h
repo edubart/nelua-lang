@@ -217,22 +217,26 @@
 
 #else			/* }{ */
 
-#ifndef LUA_ROOT
 #define LUA_ROOT	"/usr/local/"
-#endif
+#define LUA_ROOT2	"/usr/"
 #define LUA_LDIR	LUA_ROOT "share/lua/" LUA_VDIR "/"
+#define LUA_LDIR2	LUA_ROOT2 "share/lua/" LUA_VDIR "/"
 #define LUA_CDIR	LUA_ROOT "lib/lua/" LUA_VDIR "/"
+#define LUA_CDIR2	LUA_ROOT2 "lib/lua/" LUA_VDIR "/"
 
 #if !defined(LUA_PATH_DEFAULT)
 #define LUA_PATH_DEFAULT  \
 		LUA_LDIR"?.lua;"  LUA_LDIR"?/init.lua;" \
+		LUA_LDIR2"?.lua;"  LUA_LDIR2"?/init.lua;" \
 		LUA_CDIR"?.lua;"  LUA_CDIR"?/init.lua;" \
+		LUA_CDIR2"?.lua;"  LUA_CDIR2"?/init.lua;" \
 		"./?.lua;" "./?/init.lua"
 #endif
 
 #if !defined(LUA_CPATH_DEFAULT)
 #define LUA_CPATH_DEFAULT \
-		LUA_CDIR"?.so;" LUA_CDIR"loadall.so;" "./?.so"
+		LUA_CDIR"?.so;" LUA_CDIR"loadall.so;" "./?.so;" \
+		LUA_CDIR2"?.so;" LUA_CDIR2"loadall.so;" "./?.so;"
 #endif
 
 #endif			/* } */

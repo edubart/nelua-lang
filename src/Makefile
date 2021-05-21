@@ -20,9 +20,6 @@ ifneq (,$(findstring MSYS,$(SYS)))
 	SYS=Windows
 endif
 
-## Install path
-DEFS+=-DLUA_ROOT='"$(PREFIX)/"'
-
 ifndef NO_RPMALLOC
 	## Enable rpmalloc
 	DEFS+=-DLUA_USE_RPMALLOC
