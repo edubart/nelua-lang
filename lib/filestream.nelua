@@ -22,7 +22,6 @@ local _IOLBF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
 local _IONBF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
 local EOF: cint <const,cimport,cinclude'<stdio.h>',nodecl>
 local function strerror(errnum: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
-local function strchr(s: cstring, c: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
 local function fopen(pathname: cstring, mode: cstring): *FILE <cimport,cinclude'<stdio.h>',nodecl> end
 local function fclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function fflush(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
@@ -31,9 +30,9 @@ local function fwrite(ptr: pointer, size: csize, n: csize, fp: *FILE): csize <ci
 local function fseek(fp: *FILE, offset: clong, whence: cint): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function ftell(fp: *FILE): clong <cimport,cinclude'<stdio.h>',nodecl> end
 local function ferror(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
+local function fgetc(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function setvbuf(fp: *FILE, buf: cstring, modes: cint, n: csize): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function clearerr(fp: *FILE): void <cimport,cinclude'<stdio.h>',nodecl> end
-local function fgetc(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function atexit(func: function()): cint <cimport,cinclude'<stdlib.h>',nodecl> end
 
 --[[
@@ -96,7 +95,7 @@ end
 -- Check weather mode matches '[rwa]%+?b?'
 local function checkmode(mode: string): boolean
   if #mode == 0 then return false end
-  if strchr('rwa', mode.data[0]) == nilptr then return false end
+  if memory.scan('rwa'_cstring, mode.data[0], 3) == nilptr then return false end
   local pos: usize = 1
   if mode.data[pos] == '+'_b then pos = pos + 1 end
   if mode.data[pos] == 'b'_b then pos = pos + 1 end

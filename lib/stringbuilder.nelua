@@ -11,9 +11,6 @@ require 'string'
 
 -- C imports
 local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
-local function strchr(s: cstring, c: cint): cstring <cimport,cinclude'<string.h>',nodecl> end
-local function strlen(s: cstring): csize <cimport,cinclude'<string.h>',nodecl> end
-local function strcpy(dest: cstring, src: cstring): cstring <cimport,cinclude'<string.h>',nodecl> end
 local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 
 -- format utilities
@@ -21,9 +18,9 @@ local MAX_FORMAT <comptime> = 32
 local MAX_ITEM <comptime> = 120
 
 local function scanformat(strfmt: *[0]byte, form: *[MAX_FORMAT]byte): usize
-  local L_FMTFLAGS <comptime> = "-+ #0"
+  local L_FMTFLAGS: string <comptime> = "-+ #0"
   local p: usize = 0
-  while strfmt[p] ~= 0 and strchr(L_FMTFLAGS, strfmt[p]) ~= nilptr do
+  while strfmt[p] ~= 0 and memory.scan(L_FMTFLAGS.data, strfmt[p], #L_FMTFLAGS) ~= nilptr do
     p = p + 1  -- skip flags
   end
   assert(p < L_FMTFLAGS.size + 1, "invalid format (repeated flags)")
@@ -42,9 +39,9 @@ local function scanformat(strfmt: *[0]byte, form: *[MAX_FORMAT]byte): usize
 end
 
 local function addlenmod(form: *[MAX_FORMAT]byte, lenmod: cstring, lenmodsize: csize): void
-  local l: csize = strlen(&form[0])
+  local l: csize = #(@cstring)(&form[0])
   local spec: byte = form[l - 1]
-  strcpy(&form[l - 1], lenmod)
+  memory.copy(&form[l - 1], lenmod, lenmodsize)
   form[l + lenmodsize - 1] = spec
   form[l + lenmodsize] = 0
 end
@@ -135,7 +132,7 @@ end
          c == 'x'_byte or
          c == 'X'_byte then
         local lenmod: cstring <cimport #['PRIi' .. primtypes.integer.bitsize]#,nodecl,cinclude'<inttypes.h>'>
-        addlenmod(form, lenmod, strlen(lenmod) - 1)
+        addlenmod(form, lenmod, #lenmod - 1)
         local n: integer = (@integer)(arg1)
         nb = snprintf(buff, maxitem, &form[0], n)
         goto next
@@ -156,7 +153,7 @@ end
       if c == 'p'_byte then
         local p: pointer = (@pointer)(arg1)
         if p == nilptr then
-          strcpy(buff, "(null)")
+          memory.copy(buff, "(null)"_cstring, 7)
           nb = 6
         else
           nb = snprintf(buff, maxitem, &form[0], p)

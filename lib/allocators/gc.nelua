@@ -29,7 +29,7 @@ cemitdecl[=[
 ]=]
 ]]
 
-local jmp_buf <cimport,cinclude'<setjmp.h>',nodecl> = @record{dummy: usize}
+local jmp_buf <cimport,nodecl,cinclude'<setjmp.h>',cincomplete> = @record{}
 local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>',nodecl> end
 local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 local function memset(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end

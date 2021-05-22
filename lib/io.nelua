@@ -27,8 +27,8 @@ and a system-dependent error code as a third result.
 
 require 'filestream'
 
-local FILE <cimport,nodecl,forwarddecl,cinclude'<stdio.h>'> = @record{}
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
+local FILE <cimport,nodecl,forwarddecl,cinclude'<stdio.h>'> = @record{}
 local stdin: *FILE <cimport,cinclude'<stdio.h>',nodecl>
 local stdout: *FILE <cimport,cinclude'<stdio.h>',nodecl>
 local stderr: *FILE <cimport,cinclude'<stdio.h>',nodecl>
