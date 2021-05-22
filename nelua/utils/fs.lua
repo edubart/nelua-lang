@@ -75,7 +75,7 @@ end
 -- Is this an absolute path?
 function fs.isabs(p)
   if p:find('^/') then return true end
-  if platform.is_windows and p:find('^\\:') then return true end
+  if platform.is_windows and p:find('^\\') or p:find('^.:') then return true end
   return false
 end
 
@@ -171,7 +171,7 @@ end
 -- Return relative path from current directory or optional start point.
 function fs.relpath(p, start)
   start = start or lfs.currentdir()
-  p = fs.abspath(p,start)
+  p = fs.abspath(p, start)
   local compare
   if platform.is_windows then --luacov:disable
     p = p:gsub("/","\\")
@@ -375,8 +375,10 @@ function fs.findbinfile(name)
     for d in os.getenv("PATH"):gmatch(path_pattern) do
       local binpath = fs.abspath(fs.join(d, name))
       if fs.isfile(binpath) then return binpath end
-      binpath = binpath .. '.exe'
-      if fs.isfile(binpath) then return binpath end
+      if platform.is_windows then
+        binpath = binpath .. '.exe'
+        if fs.isfile(binpath) then return binpath end
+      end
     end
   else --luacov:disable
     local binpath = fs.abspath(name)
