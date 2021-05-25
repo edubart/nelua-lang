@@ -138,7 +138,7 @@ local function run(argv, redirect)
   -- save the generated code
   local outcacheprefix = fs.getcachepath(infile, config.cache_dir)
   local sourcefile = config.generate_code and config.output or outcacheprefix
-  if not stringer.endswith(sourcefile, compiler.source_extension) then
+  if not compiler.has_source_extension(sourcefile) then
     sourcefile = sourcefile .. compiler.source_extension
   end
   compiler.generate_code(code, sourcefile, compileopts)

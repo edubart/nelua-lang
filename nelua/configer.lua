@@ -78,7 +78,7 @@ local function build_configs(conf)
   merge_configs(conf, defconfig)
 
   if conf.output then --luacov:disable
-    if conf.output:match('%.c$') then
+    if conf.output:match('%.[ch]$') then
       conf.generator = 'c'
       conf.generate_code = true
       conf.compile_binary = false

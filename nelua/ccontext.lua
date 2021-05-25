@@ -229,19 +229,17 @@ function CContext:add_directive(code)
   table.insert(self.directives, code)
 end
 
-function CContext:define_builtin(name, deccode, defcode)
-  if deccode then
-    if deccode:sub(-1) ~= '\n' then
-      deccode = deccode..'\n'
-    end
-    self:add_declaration(deccode)
+function CContext:define_builtin(name, code, section)
+  if code:sub(-1) ~= '\n' then
+    code = code..'\n'
   end
-  if defcode then --luacov:disable
-    if defcode:sub(-1) ~= '\n' then
-      defcode = defcode..'\n'
-    end
-    self:add_definition(defcode)
-  end --luacov:enable
+  if not section or section == 'declarations' then
+    self:add_declaration(code)
+  elseif section == 'definitions' then
+    self:add_definition(code)
+  elseif section == 'directives' then
+    self:add_directive(code)
+  end
   self.usedbuiltins[name] = true
 end
 

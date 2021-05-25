@@ -4,6 +4,7 @@ local traits = require 'nelua.utils.traits'
 local stringer = require 'nelua.utils.stringer'
 local bn = require 'nelua.utils.bn'
 local cdefs = require 'nelua.cdefs'
+local pegger = require 'nelua.utils.pegger'
 local cbuiltins = require 'nelua.cbuiltins'
 local typedefs = require 'nelua.typedefs'
 local CContext = require 'nelua.ccontext'
@@ -1665,6 +1666,15 @@ local function emit_main(ast, context)
   end
 end
 
+generator.template = [[
+/* ------------------------------ DIRECTIVES -------------------------------- */
+$(directives)
+/* ------------------------------ DECLARATIONS ------------------------------ */
+$(declarations)
+/* ------------------------------ DEFINITIONS ------------------------------- */
+$(definitions)
+]]
+
 function generator.generate(ast, context)
   CContext.promote_context(context, visitors, typevisitors)
 
@@ -1673,12 +1683,10 @@ function generator.generate(ast, context)
 
   context:evaluate_templates()
 
-  local code = table.concat({
-    '/* ------------------------------ DECLARATIONS ------------------------------ */\n',
-    table.concat(context.directives),
-    table.concat(context.declarations),
-    '/* ------------------------------ DEFINITIONS ------------------------------- */\n',
-    table.concat(context.definitions)
+  local code = pegger.substitute(generator.template, {
+    directives = table.concat(context.directives):sub(1, -2),
+    declarations = table.concat(context.declarations):sub(1, -2),
+    definitions = table.concat(context.definitions):sub(1, -2)
   })
 
   return code, context.compileopts

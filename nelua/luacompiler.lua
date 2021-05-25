@@ -10,6 +10,10 @@ local lua_compiler = {
   source_extension = '.lua'
 }
 
+function lua_compiler.has_source_extension(filename)
+  return filename:find('%.lua$')
+end
+
 function lua_compiler.generate_code(luacode, luafile)
   -- file heading
   local hash = stringer.hash(luacode)

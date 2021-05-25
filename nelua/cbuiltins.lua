@@ -22,7 +22,7 @@ function builtins.nelua_likely(context)
 #define nelua_likely(x) (x)
 #define nelua_unlikely(x) (x)
 #endif
-]])
+]], 'directives')
 end
 
 function builtins.nelua_cexport(context)
@@ -34,7 +34,7 @@ function builtins.nelua_cexport(context)
 #else
 #define nelua_cexport extern
 #endif
-]])
+]], 'directives')
 end
 
 function builtins.nelua_unlikely(context)
@@ -48,7 +48,7 @@ function builtins.nelua_noinline(context)
 #else
 #define nelua_noinline
 #endif
-]])
+]], 'directives')
 end
 
 function builtins.nelua_inline(context)
@@ -60,7 +60,7 @@ function builtins.nelua_inline(context)
 #else
 #define nelua_inline
 #endif
-]])
+]], 'directives')
 end
 
 function builtins.nelua_noreturn(context)
@@ -72,7 +72,7 @@ function builtins.nelua_noreturn(context)
 #else
 #define nelua_noreturn
 #endif
-]])
+]], 'directives')
 end
 
 function builtins.nlniltype(context)

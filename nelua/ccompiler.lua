@@ -15,6 +15,10 @@ local compiler = {
   source_extension = '.c'
 }
 
+function compiler.has_source_extension(filename)
+  return filename:find('%.[ch]$')
+end
+
 local function get_compiler_cflags(compileopts)
   local ccinfo = compiler.get_cc_info()
   local compiler_flags = cdefs.compilers_flags[config.cc] or cdefs.compiler_base_flags
