@@ -92,7 +92,7 @@ local function get_parser()
     ["b"] = "\b", -- back feed
     ["f"] = "\f", -- form feed
     ["n"] = "\n", -- new line
-    ["r"] = "\r", -- carriege return
+    ["r"] = "\r", -- carriage return
     ["t"] = "\t", -- horizontal tab
     ["v"] = "\v", -- vertical tab
     ["\\"] = "\\", -- backslash
@@ -304,7 +304,7 @@ local function get_parser()
     assignable_list <- assignable (%COMMA assignable)*
     assignable <-
       ({} ''->'UnaryOp' op_deref eexpr {}) -> to_astnode /
-      (primary_expr ((call_expr+ &index_expr) / index_expr)+ ) -> to_chain_index_or_call /
+      (primary_expr ((call_expr+ index_expr) / index_expr)+ ) -> to_chain_index_or_call /
       id
   ]])
 
@@ -313,7 +313,7 @@ local function get_parser()
     callable_suffix
 
     callable_suffix <-
-      (primary_expr ((index_expr+ & call_expr) / call_expr)+) -> to_chain_index_or_call
+      (primary_expr (index_expr+ call_expr / call_expr)+) -> to_chain_index_or_call
   ]])
 
   grammar:add_group_peg('stat', 'preprocess', [[
@@ -382,12 +382,12 @@ local function get_parser()
     expr5  <- ({} expr6  (op_xor      expr6  {})* )    -> to_chain_binary_op
     expr6  <- ({} expr7  (op_band     expr7  {})* )    -> to_chain_binary_op
     expr7  <- ({} expr8  (op_bshift   expr8  {})* )    -> to_chain_binary_op
-    expr8  <- ({} expr9  (op_concat   expr8  {})? )    -> to_binary_op
+    expr8  <- ({} expr9  (op_concat   expr8  {})* )    -> to_chain_binary_op
     expr9  <- expr10 -- free op slot
     expr10 <- ({} expr11 (op_add      expr11 {})* )    -> to_chain_binary_op
     expr11 <- ({} expr12 (op_mul      expr12 {})* )    -> to_chain_binary_op
     expr12 <- (({} op_unary)*         expr13 {}   )    -> to_chain_unary_op
-    expr13 <- ({} simple_expr (op_pow    expr12)?    {})    -> to_binary_op
+    expr13 <- ({} simple_expr (op_pow    expr12 {})*)  -> to_chain_binary_op
 
     simple_expr <-
         %cNUMBER
