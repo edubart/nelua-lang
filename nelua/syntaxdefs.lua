@@ -647,9 +647,9 @@ local function get_parser()
     MalformedBinaryNumber = 'malformed binary number',
     MalformedHexadecimalNumber = 'malformed hexadecimal number',
     MalformedEscapeSequence = 'malformed escape sequence',
-    UnclosedLongComment = "unclosed long comment, did your forget a ']]'?",
-    UnclosedShortString = "unclosed short string, did your forget a quote?",
-    UnclosedLongString = "unclosed long string, did your forget a ']]'?",
+    UnclosedLongComment = "unclosed long comment, did you forget a ']]'?",
+    UnclosedShortString = "unclosed short string, did you forget a quote?",
+    UnclosedLongString = "unclosed long string, did you forget a ']]'?",
 
   })
 
@@ -660,7 +660,7 @@ local function get_parser()
     UnclosedBracket = "unclosed square bracket, did you forget a `]`?",
     UnclosedCurly = "unclosed curly brace, did you forget a `}`?",
     UnclosedAngleBracket = "unclosed angle bracket, did you forget a `>`?",
-    UnclosedLongPreprocessString = "unclosed long preprocess string, did your forget a ']]'?",
+    UnclosedLongPreprocessString = "unclosed long preprocess string, did you forget a ']]'?",
     UnclosedLabel = "unclosed label, did you forget `::`?",
     ExpectedParenthesis = "expected parenthesis `(`",
     ExpectedCurly = "expected curly brace `{`",

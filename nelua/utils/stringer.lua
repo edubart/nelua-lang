@@ -64,12 +64,6 @@ end
 
 -- Extract line number, column number and line content from a position in a multi line text.
 function stringer.calcline(s, i)
-  if i == 1 then
-    local lineend = s:find("\n", 1, true)
-    lineend = lineend and lineend-1 or #s
-    local line = s:sub(1, lineend)
-    return 1, 1, line, 1, lineend
-  end
   local subs = s:sub(1,i)
   local rest, lineno = subs:gsub("[^\n]*\n", "")
   lineno = 1 + lineno

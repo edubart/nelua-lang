@@ -9,7 +9,7 @@ RM=rm -f
 PREFIX=/usr/local
 
 ## Tune some values for the Lua interpreter
-DEFS+=-DLUA_COMPAT_5_3
+DEFS+=-DLUA_COMPAT_5_3 -DMAXRECLEVEL=400
 
 ## Host system detection.
 SYS:=$(shell uname -s)
