@@ -291,10 +291,13 @@ local function get_parser()
   ]])
 
   grammar:add_group_peg('stat', 'funcdef', [[
-    ({} '' -> 'FuncDef' %LOCAL -> 'local' %FUNCTION func_iddecl function_body {}) -> to_astnode /
+    ({} '' -> 'FuncDef'
+      (%LOCAL -> 'local' / %GLOBAL -> 'global')
+      %FUNCTION func_iddecl function_body
+    {}) -> to_astnode /
     ({} %FUNCTION -> 'FuncDef' cnil func_name function_body {}) -> to_astnode
 
-    func_name <- (id (dot_index* colon_index / dot_index)*) -> to_chain_index_or_call
+    func_name <- (id dot_index* colon_index?) -> to_chain_index_or_call
     func_iddecl <- ({} '' -> 'IdDecl' name {}) -> to_astnode
   ]])
 
@@ -309,23 +312,11 @@ local function get_parser()
   ]])
 
   grammar:add_group_peg('stat', 'call', [[
-    ({} ''->'UnaryOp' op_deref callable_suffix {}) -> to_astnode /
-    callable_suffix
-
-    callable_suffix <-
-      (primary_expr (index_expr+ call_expr / call_expr)+) -> to_chain_index_or_call
+    (primary_expr (index_expr+ call_expr / call_expr)+) -> to_chain_index_or_call
   ]])
 
   grammar:add_group_peg('stat', 'preprocess', [[
     ({} '' -> 'Preprocess' ppstring {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'vardecl', [[
-    ({} '' -> 'VarDecl'
-      %LOCAL -> 'local' cnil
-      {| etyped_idlist |}
-      (%ASSIGN {| eexpr_list |})?
-    {}) -> to_astnode
   ]])
 
   grammar:add_group_peg('stat', 'vardecl', [[
@@ -344,18 +335,7 @@ local function get_parser()
       (%COLON etypexpr / cnil)
       annot_list?
     {}) -> to_astnode
-  ]], nil, true)
-
-  grammar:add_group_peg('stat', 'funcdef', [[
-    ({} '' -> 'FuncDef'
-      (%LOCAL -> 'local' / %GLOBAL -> 'global')
-      %FUNCTION func_iddecl function_body
-    {}) -> to_astnode /
-    ({} %FUNCTION -> 'FuncDef' cnil func_name function_body {}) -> to_astnode
-
-    func_name <- (id (dot_index* colon_index / dot_index)*) -> to_chain_index_or_call
-    func_iddecl <- ({} '' -> 'IdDecl' name {}) -> to_astnode
-  ]], nil, true)
+  ]])
 
   grammar:add_group_peg('stat', 'switch', [[
     ({} %SWITCH -> 'Switch' eexpr %DO?
