@@ -211,7 +211,7 @@ end)
 
 it("switch", function()
   expect.generate_c([[local a: integer, f: function(), g: function(), h: function()
-    switch a do
+    switch a
       case 1 then
         f()
       case 2, 3, 4 then
@@ -352,7 +352,7 @@ it("break and continue", function()
   expect.run_c([[
     local a = 0
     for i=1,10 do
-      switch i do
+      switch i
       case 1 then a = 1 continue
       case 2 then break
       else a = 2
@@ -363,7 +363,7 @@ it("break and continue", function()
 
     a = 0
     while true do
-      switch 1 do
+      switch 1
       case 1 then a = 1 break
       end
       a = 2
@@ -373,7 +373,7 @@ it("break and continue", function()
 
     a = 0
     repeat
-      switch 1 do
+      switch 1
       case 1 then a = 1 break
       end
       a = 2

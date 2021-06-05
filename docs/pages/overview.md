@@ -87,7 +87,7 @@ local b = false -- of deduced type 'boolean', initialized to false
 local s = 'test' -- of deduced type 'string', initialized to 'test'
 local one = 1 --  of type 'integer', initialized to 1
 local pi: number = 3.14 --  of type 'number', initialized to 1
-print(b,s,one,pi) -- outputs: false test 1 3.1400000
+print(b,s,one,pi) -- outputs: false test 1 3.14
 ```
 
 The compiler takes advantage of types for compile-time and runtime checks,
@@ -218,6 +218,7 @@ Global symbols are visible in other source files. They can only be declared in t
 ```nelua
 global global_a = 1
 global function global_f()
+  return 'f'
 end
 ```
 
@@ -268,7 +269,7 @@ The switch statement is similar to C:
 
 ```nelua
 local a = 1 -- change this to 2 or 3 to trigger other ifs
-switch a do
+switch a
 case 1 then
   print 'is 1'
 case 2, 3 then
