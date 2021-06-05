@@ -466,7 +466,7 @@ do -- Preprocessor
 end
 
 do -- Emitting AST nodes
-  local a = #[aster.Number{'dec','1'}]#
+  local a = #[aster.Number{1}]#
   print(a) -- outputs: 1
 end
 
@@ -538,20 +538,20 @@ do -- Preprocessor macros emitting AST nodes
     elseif traits.is_attr(attr_or_type) then -- get a type from a symbol
       type = attr_or_type.value
     end
-    -- check if the inputs are valid, in case wrong input
+    -- check if the inputs are valid, in case of wrong input
     static_assert(traits.is_type(type), 'expected a type or a symbol to a type')
     static_assert(traits.is_number(n) and n > 0, 'expected n > 0')
-    -- create list of expression
-    local exprs = {}
+    -- create the InitList ASTNode, it's used for any braces {} expression
+    local initlist = aster.InitList{pattr = {
+      -- hint the compiler what type this braces should be evaluated
+      desiredtype = types.ArrayType(type, n)}
+    }
+    -- fill expressions
     for i=1,n do
       -- aster.value convert any Lua value to the proper ASTNode
-      exprs[i] = aster.value(i)
+      initlist[i] = aster.create_value(i)
     end
-    -- create the InitializerList ASTNode, it's used for any braces {} expression
-    return aster.InitializerList{exprs, pattr = {
-      -- hint the compiler what type this braces should be evaluated
-      desiredtype = types.ArrayType(type, #exprs)}
-    }
+    return initlist
   end
   ]]
 

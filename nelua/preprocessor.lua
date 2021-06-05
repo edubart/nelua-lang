@@ -14,10 +14,11 @@ local bn = require 'nelua.utils.bn'
 local ccompiler = require 'nelua.ccompiler'
 local console = require 'nelua.utils.console'
 local nanotimer = require 'nelua.utils.nanotimer'
+local aster = require 'nelua.aster'
 
 local traverse_node = VisitorContext.traverse_node
 local function pp_default_visitor(self, node, emitter, ...)
-  for i=1,node.nargs or #node do
+  for i=1,#node do
     local arg = node[i]
     if arg and type(arg) == 'table' then
       if arg._astnode then
@@ -49,26 +50,28 @@ function visitors.FuncDef(ppcontext, node, emitter)
   local namenode, argnodes, retnodes, annotnodes, blocknode = node[2], node[3], node[4], node[5], node[6]
   ppcontext:traverse_node(namenode, emitter, node, 2)
   ppcontext:traverse_nodes(argnodes, emitter, node, 3)
-  for i=1,#retnodes do
-    local retnode = retnodes[i]
-    local needpreprocess
-    for subnode in retnode:walk_nodes() do
-      if subnode.tag:match('^Preprocess') then
-        needpreprocess = true
-        break
+  if retnodes then
+    for i=1,#retnodes do
+      local retnode = retnodes[i]
+      local needpreprocess
+      for subnode in retnode:walk_nodes() do
+        if subnode.tag:match('^Preprocess') then
+          needpreprocess = true
+          break
+        end
       end
-    end
-    if not needpreprocess then
-      ppcontext:traverse_node(retnode, emitter, retnodes, i)
-    else -- we want to preprocess later to have arguments visible in the preprocess context
-      local retindex = ppcontext:getregistryindex(retnode)
-      emitter:add_indent_ln('ppregistry[', retindex, '].preprocess=function(parent, pindex)')
-      emitter:inc_indent()
-      ppcontext:traverse_node(retnode, emitter, retnodes, i)
-      local retsindex = ppcontext:getregistryindex(retnodes)
-      emitter:add_indent_ln("parent[pindex] = ppregistry[",retsindex,"][",i,"]:clone()")
-      emitter:dec_indent()
-      emitter:add_indent_ln('end')
+      if not needpreprocess then
+        ppcontext:traverse_node(retnode, emitter, retnodes, i)
+      else -- we want to preprocess later to have arguments visible in the preprocess context
+        local retindex = ppcontext:getregistryindex(retnode)
+        emitter:add_indent_ln('ppregistry[', retindex, '].preprocess=function(parent, pindex)')
+        emitter:inc_indent()
+        ppcontext:traverse_node(retnode, emitter, retnodes, i)
+        local retsindex = ppcontext:getregistryindex(retnodes)
+        emitter:add_indent_ln("parent[pindex] = ppregistry[",retsindex,"][",i,"]:clone()")
+        emitter:dec_indent()
+        emitter:add_indent_ln('end')
+      end
     end
   end
   if annotnodes then
@@ -84,7 +87,7 @@ function visitors.Preprocess(_, node, emitter)
 end
 
 function visitors.Block(ppcontext, node, emitter)
-  local statnodes = node[1]
+  local statnodes = node
   if not node.needprocess then
     ppcontext:traverse_nodes(statnodes, emitter)
     return
@@ -94,13 +97,15 @@ function visitors.Block(ppcontext, node, emitter)
   local blockregidx = ppcontext:getregistryindex(node)
   emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess=function(blocknode)')
   emitter:inc_indent()
-  emitter:add_indent_ln('blocknode[1]=ppcontext:push_statnodes()')
-  local statsregidx = ppcontext:getregistryindex(statnodes)
+  emitter:add_indent_ln('assert(#blocknode == 0)')
+  emitter:add_indent_ln('ppcontext:push_statnodes(blocknode)')
   for i=1,#statnodes do
     local statnode = statnodes[i]
+    local statregidx = ppcontext:getregistryindex(statnode)
     ppcontext:traverse_node(statnode, emitter)
+    statnodes[i] = nil
     if statnode.tag ~= 'Preprocess' then
-      emitter:add_indent_ln('ppcontext:add_statnode(ppregistry[', statsregidx, '][', i, '])')
+      emitter:add_indent_ln('ppcontext:add_statnode(ppregistry[', statregidx, '])')
     end
   end
   emitter:add_indent_ln('ppcontext:pop_statnodes()')
@@ -120,7 +125,7 @@ local function mark_preprocessing_nodes(ast)
   for _, parents in ast:walk_trace_nodes(preprocess_tags) do
     needprocess = true
     -- mark nearest parent block above
-    for i=#parents-1,1,-1 do
+    for i=#parents,1,-1 do
       local pnode = parents[i]
       if pnode.tag == 'Block' then
         pnode.needprocess = true
@@ -158,7 +163,6 @@ function preprocessor.preprocess(context, ast)
   end
 
   -- second pass, emit the preprocess lua code
-  local aster = context.parser.astbuilder.aster
   local emitter = Emitter(ppcontext, 0)
   if config.define then
     for _,define in ipairs(config.define) do
@@ -237,9 +241,10 @@ function preprocessor.preprocess(context, ast)
     return function(...)
       local curnode = context:get_current_node()
       local args = {...}
-      return aster.DoExpr{aster.Block{{},
+      return aster.DoExpr{aster.Block{
         preprocess = function(blocknode)
-          blocknode[1] = ppcontext:push_statnodes()
+          assert(#blocknode == 0)
+          ppcontext:push_statnodes(blocknode)
           f(table.unpack(args))
           ppcontext:pop_statnodes()
         end,

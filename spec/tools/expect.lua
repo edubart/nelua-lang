@@ -13,10 +13,9 @@ local c_generator = require 'nelua.cgenerator'
 local differ = require 'spec.tools.differ'
 local executor = require 'nelua.utils.executor'
 local ccompiler = require 'nelua.ccompiler'
-local nelua_syntax = require 'nelua.syntaxdefs'()
 local config = require 'nelua.configer'.get()
 local primtypes = require 'nelua.typedefs'.primtypes
-local nelua_parser = nelua_syntax.parser
+local aster = require 'nelua.aster'
 
 -- config setup for the test suite
 config.check_ast_shape = true
@@ -47,47 +46,8 @@ function expect.ast_equals(expected_ast, ast)
   expect.same_string(tostring(expected_ast), tostring(ast))
 end
 
-function expect.peg_match_all(patt, subjects)
-  for _,subject in ipairs(subjects) do
-    local matchedpos = patt:match(subject)
-    local slen = string.len(subject)
-    errorer.assertf(matchedpos == slen+1, 'expected full match on "%s"', subject)
-  end
-end
-
-function expect.peg_capture_all(peg, subjects)
-  for subject,expected_ast in pairs(subjects) do
-    if type(subject) == 'number' then
-      subject = expected_ast
-      expected_ast = nil
-    end
-
-    local ast = peg:match(subject)
-    if expected_ast then
-      expect.ast_equals(expected_ast, ast)
-    else
-      errorer.assertf(type(ast) == 'table', 'expected capture on "%s"', subject)
-    end
-  end
-end
-
-function expect.peg_error_all(peg, errname, subjects)
-  for _,subject in ipairs(subjects) do
-    local res, errlab = peg:match(subject)
-    expect.equal(errlab, errname)
-    expect.equal(res, nil)
-  end
-end
-
-function expect.peg_match_none(peg, subjects)
-  for _,subject in pairs(subjects) do
-    local matchedpos = peg:match(subject)
-    errorer.assertf(matchedpos == nil, 'expected no match on "%s"', subject)
-  end
-end
-
-function expect.parse_ast(parser, input, expected_ast)
-  local ast = assert(parser:parse(input, expect.config.srcname))
+function expect.parse_ast(input, expected_ast)
+  local ast = aster.parse(input, expect.config.srcname)
   if expected_ast then
     expect.ast_equals(expected_ast, ast)
   else
@@ -96,12 +56,12 @@ function expect.parse_ast(parser, input, expected_ast)
   return ast
 end
 
-function expect.parse_ast_error(parser, input, expected_error)
+function expect.parse_ast_error(input, expected_error)
   local ast,e = except.try(function()
-    parser:parse(input, expect.config.srcname)
+    aster.parse(input, expect.config.srcname)
   end)
-  errorer.assertf(ast == nil and e.label == 'ParseError' and e.syntaxlabel == expected_error,
-         'expected error "%s" while parsing', expected_error)
+  errorer.assertf(ast == nil and e.label == 'ParseError' and e.errlabel == expected_error,
+         'expected error "%s" while parsing, but got "%s"', expected_error, e and e.errlabel)
 end
 
 --luacov:disable
@@ -261,9 +221,9 @@ function expect.c_gencode_equals(code, expected_code)
 end
 
 function expect.analyze_ast(code, expected_ast, generator)
-  local ast = expect.parse_ast(nelua_parser, code)
+  local ast = expect.parse_ast(code)
   generator = generator or config.generator
-  local context = AnalyzerContext(analyzer.visitors, nelua_parser, ast, generator)
+  local context = AnalyzerContext(analyzer.visitors, ast, generator)
   pretty_input_onerror(code, function()
     analyzer.analyze(context)
   end)
@@ -277,14 +237,21 @@ local function filter_ast_for_check(t)
   for k,v in pairs(t) do
     if type(k) == 'number' then
       if traits.is_astnode(v) and v.attr.type and v.attr.type.is_type then
+        -- check type shape
         assert(v.attr.value:shape())
         -- remove type nodes because they are optional
         t[k] = nil
       elseif type(v) == 'table' then
         filter_ast_for_check(v)
+        -- set empty tables, because they may be omitted
+        if getmetatable(v) == nil and #v == 0 then
+          t[k] = nil
+        end
+      elseif v == false then
+        t[k] = nil
       end
     elseif k == 'attr' and traits.is_astnode(t) then
-      -- remove generated strings
+      -- remove some generated strings
       v.codename = nil
       v.name = nil
       v.methodsym = nil
@@ -292,7 +259,6 @@ local function filter_ast_for_check(t)
       v.pseudoargtypes = nil
     end
   end
-  return t
 end
 
 function expect.ast_type_equals(code, expected_code)
@@ -304,9 +270,9 @@ function expect.ast_type_equals(code, expected_code)
 end
 
 function expect.analyze_error(code, expected_error)
-  local ast = expect.parse_ast(nelua_parser, code)
+  local ast = expect.parse_ast(code)
   local ok, e = except.try(function()
-    local context = AnalyzerContext(analyzer.visitors, nelua_parser, ast, config.generator)
+    local context = AnalyzerContext(analyzer.visitors, ast, config.generator)
     analyzer.analyze(context)
   end)
   pretty_input_onerror(code, function()

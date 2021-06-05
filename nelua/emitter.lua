@@ -1,6 +1,5 @@
 local class = require 'nelua.utils.class'
 local errorer = require 'nelua.utils.errorer'
-local bn = require 'nelua.utils.bn'
 
 local Emitter = class()
 local INDENT_SPACES = '  '
@@ -113,24 +112,6 @@ end
 function Emitter:add_type(type)
   local codes = self.codes
   codes[#codes+1] = self.context:typename(type)
-end
-
-function Emitter:add_composed_number(base, int, frac, exp, value)
-  if base == 'dec' then
-    self:add_one(int)
-    if frac then
-      self:add('.', frac)
-    end
-    if exp then
-      self:add('e', exp)
-    end
-  elseif base == 'hex' or base == 'bin' then
-    if bn.isintegral(value) and not bn.isneg(value) then
-      self:add('0x', bn.tohex(value))
-    else
-      self:add_one(bn.todecsci(value))
-    end
-  end
 end
 
 function Emitter:get_pos()

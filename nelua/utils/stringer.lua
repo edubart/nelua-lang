@@ -62,21 +62,6 @@ function stringer.split(s, sep)
   return res
 end
 
--- Extract line number, column number and line content from a position in a multi line text.
-function stringer.calcline(s, i)
-  local subs = s:sub(1,i)
-  local rest, lineno = subs:gsub("[^\n]*\n", "")
-  lineno = 1 + lineno
-  local colno = #rest
-  colno = colno ~= 0 and colno or 1
-  local linestart = subs:find("\n[^\n]*$")
-  linestart = linestart and linestart+1 or 1
-  local lineend = s:find("\n", i+1, true)
-  lineend = lineend and lineend-1 or #s
-  local line = s:sub(linestart, lineend)
-  return lineno, colno, line, linestart, lineend
-end
-
 -- Extract a specific line from a text.
 function stringer.getline(text, lineno)
   if lineno <= 0 then return nil end

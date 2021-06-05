@@ -145,7 +145,7 @@ do
 end
 
 cdefs.reserverd_keywords = {
-  -- C syntax keywrods
+  -- C syntax keywords
   ['auto'] = true,
   ['break'] = true,
   ['case'] = true,

@@ -11,67 +11,43 @@ local tabler = require'nelua.utils.tabler'
 local config = require 'nelua.configer'.get()
 local Attr = require 'nelua.attr'
 
-local ASTNode = class()
-ASTNode.tag = 'Node'
-ASTNode.nargs = 0
-ASTNode._astnode = true
+local tabler_update = tabler.update
+local clone_node
 
+-- Unique id counter for ASTNode.
 local uid = 0
 
-function ASTNode._create(klass, ...)
+-- AST node class.
+local ASTNode = class()
+
+ASTNode.tag = 'Node' -- tag for a generic ASTNode
+ASTNode._astnode = true -- used to quickly check weather a table is an ASTNode
+
+-- Create an AST node with metatable `mt` filled with values `...`.
+-- Called when manually creating or generating AST nodes.
+function ASTNode._create(mt, ...)
   local nuid = uid + 1
   uid = nuid
   return setmetatable({
     attr = setmetatable({}, Attr),
     uid = nuid,
     ...
-  }, klass)
+  }, mt)
 end
 getmetatable(ASTNode).__call = ASTNode._create
 
-function ASTNode.make_toastnode(parser, astnodes)
-  local function to_astnode(pos, tag, ...)
-    local nuid = uid + 1
-    uid = nuid
-    local node = setmetatable({
-      attr = setmetatable({}, Attr),
-      uid = nuid,
-      src = parser.src,
-      pos = pos,
-      endpos = 0, -- we will change it bellow
-      ...
-    }, astnodes[tag])
-    -- NOTE: using select here would be the correct way, but we use # because it takes less cycles,
-    -- even though the table can have multiple borders and length may not bet deterministic,
-    -- however in my tests when constructing the table like above,
-    -- then `#node` is deterministic and equivalent to `select('#', ...)`
-    local n = #node -- select('#', ...)
-    node.endpos = node[n]
-    node[n] = nil -- remove endpos
-    return node
-  end
-  return to_astnode
+-- Create an AST node with metatable `mt` from table `node`.
+-- Called for every AST node initialization while parsing.
+function ASTNode.create_from(mt, node)
+  local nuid = uid + 1
+  uid = nuid
+  node.uid = nuid
+  node.attr = setmetatable({}, Attr)
+  return setmetatable(node, mt)
 end
 
-function ASTNode:args()
-  return table.unpack(self, 1, self.nargs)
-end
-
-function ASTNode:transform(node)
-  local nargs = self.nargs
-  setmetatable(self, getmetatable(node))
-  nargs = math.max(nargs, self.nargs)
-  for i=1,nargs do
-    self[i] = node[i]
-  end
-  self.attr = node.attr
-  self.pattr = node.pattr
-end
-
-local clone_nodetable, clone_node
-local tabler_update = tabler.update
-
-clone_nodetable = function(t)
+-- Clone a node table.
+local function clone_nodetable(t)
   local ct = {}
   for i=1,#t do
     local v = t[i]
@@ -84,7 +60,8 @@ clone_nodetable = function(t)
   return ct
 end
 
-clone_node = function(node)
+-- Clone a node, copying only necessary values.
+function ASTNode.clone(node)
   local nuid = uid + 1
   uid = nuid
   local pattr = node.pattr
@@ -102,7 +79,7 @@ clone_node = function(node)
   if pattr then
     tabler_update(attr, pattr)
   end
-  for i=1,node.nargs do
+  for i=1,#node do
     local arg = node[i]
     if type(arg) == 'table' then
       if arg._astnode then
@@ -116,7 +93,21 @@ clone_node = function(node)
   return cloned
 end
 
-ASTNode.clone = clone_node
+clone_node = ASTNode.clone
+
+--[[
+Replace current AST node values and metatable with node `node`.
+Used internally to transform a node to another node.
+]]
+function ASTNode:transform(node)
+  setmetatable(self, getmetatable(node))
+  for i=1,math.max(#self, #node) do
+    self[i] = node[i]
+  end
+  self.attr = node.attr
+  self.pattr = node.pattr
+end
+
 
 -------------------
 -- error handling
@@ -212,7 +203,7 @@ local function stringfy_astnode(node, depth, ss, skipindent)
       end
     end
   end
-  local nargs = isnode and node.nargs or #node
+  local nargs = #node
   if nargs > 0 then
     for i=1,nargs do
       local v = node[i]
@@ -243,7 +234,7 @@ local function walk_symbols(node)
       coroutine_yield(attr)
     end
   end
-  for i=1,node.nargs or #node do
+  for i=1,#node do
     local v = node[i]
     if type(v) == 'table' then
       walk_symbols(v)
@@ -256,12 +247,10 @@ function ASTNode:walk_symbols()
 end
 
 local function walk_nodes(node, parent, parentindex)
-  local n = node.nargs
-  if n then -- is an astnode
+  if node._astnode then
     coroutine_yield(node, parent, parentindex)
-  else
-    n = #node
   end
+  local n = #node
   for i=1,n do
     local v = node[i]
     if type(v) == 'table' then
@@ -282,14 +271,12 @@ function ASTNode:walk_trace_nodes(tagfilter)
     for i=1,n do
       local subnode = node[i]
       if type(subnode) == 'table' then
-        local subn = subnode.nargs
-        if subn then
+        if subnode._astnode then
           if tagfilter[subnode.tag] then -- is an accepted astnode
             coroutine_yield(subnode, trace)
           end
-        else
-          subn = #subnode
         end
+        local subn = #subnode
         if subn > 0 then
           walk_trace_nodes(subnode, subn)
         end
@@ -297,7 +284,7 @@ function ASTNode:walk_trace_nodes(tagfilter)
     end
     trace[parentpos] = nil
   end
-  return coroutine_wrap(walk_trace_nodes), self, self.nargs
+  return coroutine_wrap(walk_trace_nodes), self, #self
 end
 
 function ASTNode:has_sideeffect()

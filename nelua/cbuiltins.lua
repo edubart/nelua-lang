@@ -236,14 +236,14 @@ function builtins.nelua_narrow_cast_(context, dtype, stype)
   elseif stype.is_signed and dtype.is_unsigned then -- signed -> unsigned
     cond = 'x < 0'
     if stype.max > dtype.max then
-      cond = cond .. ' || x > 0x' .. bn.tohex(dtype.max)
+      cond = cond .. ' || x > 0x' .. bn.tohexint(dtype.max)
     end
   elseif stype.is_unsigned and dtype.is_signed then -- unsigned -> signed
-    cond = 'x > 0x' .. bn.tohex(dtype.max) .. 'U'
+    cond = 'x > 0x' .. bn.tohexint(dtype.max) .. 'U'
   else -- signed -> signed / unsigned -> unsigned
-    cond = 'x > 0x' .. bn.tohex(dtype.max) .. (stype.is_unsigned and 'U' or '')
+    cond = 'x > 0x' .. bn.tohexint(dtype.max) .. (stype.is_unsigned and 'U' or '')
     if stype.is_signed then -- signed -> signed
-      cond = cond .. ' || x < ' .. bn.todec(dtype.min)
+      cond = cond .. ' || x < ' .. bn.todecint(dtype.min)
     end
   end
   context:ensure_builtins('nelua_inline', 'nelua_unlikely', 'nelua_panic_cstring')

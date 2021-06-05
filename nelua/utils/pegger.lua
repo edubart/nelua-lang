@@ -8,9 +8,7 @@ For more information how these patterns works see
 http://www.inf.puc-rio.br/~roberto/lpeg/re.html
 ]]
 
-local re = require 'nelua.thirdparty.relabel'
-local errorer = require 'nelua.utils.errorer'
-local tabler = require 'nelua.utils.tabler'
+local re = require 'nelua.thirdparty.lpegrex'
 local metamagic = require 'nelua.utils.metamagic'
 
 local pegger = {}
@@ -75,43 +73,6 @@ end
 -- escaping special characters as necessary.
 function pegger.single_quote_lua_string(str)
   return lua_single_peg:match(str)
-end
-
-local function split_cb(v) return {name = v[1], patt = v[2]} end
-local combined_grammar_peg_pat = re.compile([[
-pegs       <- {| (comment/peg)+ |}
-peg        <- {| peg_head {peg_char*} |}
-peg_head   <- %s* {[-_%w]+} %s* '<-' %s*
-peg_char   <- !next_peg .
-next_peg   <- linebreak %s* [-_%w]+ %s* '<-' %s*
-comment    <- %s* '--' (!linebreak .)* linebreak?
-]] ..
-"linebreak <- [%nl]'\r' / '\r'[%nl] / [%nl] / '\r'"
-)
-
--- Split patterns of a grammar into a table.
-function pegger.split_grammar_patts(combined_patts)
-  local pattdescs = combined_grammar_peg_pat:match(combined_patts)
-  errorer.assertf(pattdescs, 'invalid multiple pegs patterns syntax: %s', combined_patts)
-  return tabler.imap(pattdescs, split_cb)
-end
-
-local combined_parser_peg_pat = re.compile([[
-pegs       <- {| (comment/peg)+ |}
-peg        <- {| peg_head {peg_char*} |}
-peg_head   <- %s* '%' {[-_%w]+} %s* '<-' %s*
-peg_char   <- !next_peg .
-next_peg   <- linebreak %s* '%' [-_%w]+ %s* '<-' %s*
-comment    <- %s* '--' (!linebreak .)* linebreak?
-]] ..
-"linebreak <- [%nl]'\r' / '\r'[%nl] / [%nl] / '\r'"
-)
-
--- Split patterns prefixed with '%' of a grammar into a table.
-function pegger.split_grammar_extern_patts(combined_patts)
-  local pattdescs = combined_parser_peg_pat:match(combined_patts)
-  errorer.assertf(pattdescs, 'invalid multiple pegs patterns syntax: %s', combined_patts)
-  return tabler.imap(pattdescs, split_cb)
 end
 
 local substitute_vars = {}

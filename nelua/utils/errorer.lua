@@ -6,6 +6,7 @@ The erroer module is used to format and print pretty error messages.
 
 local colors = require 'nelua.utils.console'.colors
 local stringer = require 'nelua.utils.stringer'
+local lpegrex = require 'nelua.thirdparty.lpegrex'
 
 local errorer = {}
 
@@ -62,7 +63,7 @@ end
 
 -- Generate a pretty error message associated with a character position from a source.
 function errorer.get_pretty_source_pos_errmsg(src, pos, endpos, errmsg, errname)
-  local lineno, colno, line = stringer.calcline(src.content, pos)
+  local lineno, colno, line = lpegrex.calcline(src.content, pos)
   local ncols = endpos and (endpos-pos)
   local srcname = src and src.name or ''
   return get_pretty_source_pos_errmsg(srcname, lineno, colno, line, errmsg, errname, ncols)

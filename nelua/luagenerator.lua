@@ -9,13 +9,25 @@ local bn = require 'nelua.utils.bn'
 local visitors = {}
 
 function visitors.Number(_, node, emitter)
-  local base, int, frac, exp, literal = node:args()
+  local numstr, literal = node[1], node[2]
   node:assertraisef(literal == nil, 'literals are not supported in lua')
-  emitter:add_composed_number(base, int, frac, exp, bn.abs(node.attr.value))
+  local attr = node.attr
+  local value, base = attr.value, attr.base
+  if base == 2 then
+    if bn.isintegral(value) and not bn.isneg(value) then
+      emitter:add('0x'..bn.tohexint(value))
+    else
+      emitter:add(bn.todecsci(value))
+    end
+  elseif base == 16 and not bn.isintegral(value) then
+    emitter:add(bn.todecsci(value))
+  else
+    emitter:add(numstr)
+  end
 end
 
 function visitors.String(_, node, emitter)
-  local value, literal = node:args()
+  local value, literal = node[1], node[2]
   node:assertraisef(literal == nil, 'literals are not supported in lua')
   local quoted_value
   if value:find('"') and not value:find("'") then
@@ -27,7 +39,7 @@ function visitors.String(_, node, emitter)
 end
 
 function visitors.Boolean(_, node, emitter)
-  local value = node:args()
+  local value = node[1]
   emitter:add(tostring(value))
 end
 
@@ -39,13 +51,15 @@ function visitors.Varargs(_, _, emitter)
   emitter:add('...')
 end
 
-function visitors.InitializerList(_, node, emitter)
-  local contents = node:args()
-  emitter:add('{', contents, '}')
+function visitors.InitList(_, node, emitter)
+  local childnodes = node
+  emitter:add('{')
+  emitter:add_traversal_list(childnodes, ', ')
+  emitter:add('}')
 end
 
 function visitors.Pair(_, node, emitter)
-  local field, value = node:args()
+  local field, value = node[1], node[2]
   if type(field) == 'string' then
     emitter:add(field)
   else
@@ -57,11 +71,11 @@ end
 -- TODO: Annotation
 
 function visitors.Id(_, node, emitter)
-  local name = node:args()
+  local name = node[1]
   emitter:add(name)
 end
 function visitors.Paren(_, node, emitter)
-  local what = node:args()
+  local what = node[1]
   emitter:add('(', what, ')')
 end
 function visitors.Type() end
@@ -71,27 +85,27 @@ function visitors.VarargsType(_, _, emitter)
   emitter:add('...')
 end
 function visitors.IdDecl(_, node, emitter)
-  local name = node:args()
+  local name = node[1]
   emitter:add(name)
 end
 
 function visitors.DotIndex(_, node, emitter)
-  local name, obj = node:args()
+  local name, obj = node[1], node[2]
   emitter:add(obj, '.', name)
 end
 
 function visitors.ColonIndex(_, node, emitter)
-  local name, obj = node:args()
+  local name, obj = node[1], node[2]
   emitter:add(obj, ':', name)
 end
 
-function visitors.ArrayIndex(_, node, emitter)
-  local index, obj = node:args()
+function visitors.KeyIndex(_, node, emitter)
+  local index, obj = node[1], node[2]
   emitter:add(obj, '[', index, ']')
 end
 
 function visitors.Call(context, node, emitter)
-  local args, callee = node:args()
+  local args, callee = node[1], node[2]
   local isblockcall = context:get_parent_node().tag == 'Block'
   if isblockcall then emitter:add_indent() end
   emitter:add(callee, '(', args, ')')
@@ -99,7 +113,7 @@ function visitors.Call(context, node, emitter)
 end
 
 function visitors.CallMethod(context, node, emitter)
-  local name, args, callee = node:args()
+  local name, args, callee = node[1], node[2], node[3]
   local isblockcall = context:get_parent_node().tag == 'Block'
   if isblockcall then emitter:add_indent() end
   emitter:add(callee, ':', name, '(', args, ')')
@@ -107,7 +121,7 @@ function visitors.CallMethod(context, node, emitter)
 end
 
 function visitors.Block(context, node, emitter)
-  local stats = node:args()
+  local stats = node
   emitter:inc_indent()
   context:push_forked_scope(node)
   emitter:add_traversal_list(stats, '')
@@ -116,69 +130,70 @@ function visitors.Block(context, node, emitter)
 end
 
 function visitors.Return(_, node, emitter)
-  local rets = node:args()
+  local retnodes = node
   emitter:add_indent("return")
-  if #rets > 0 then
+  if #retnodes > 0 then
     emitter:add(' ')
+    emitter:add_traversal_list(retnodes, ', ')
   end
-  emitter:add_ln(rets)
+  emitter:add_ln()
 end
 
 function visitors.If(_, node, emitter)
-  local ifparts, elseblock = node:args()
-  for i,ifpart in ipairs(ifparts) do
-    local cond, block = ifpart[1], ifpart[2]
+  local ifpairs, elsenode = node[1], node[2]
+  for i=1,#ifpairs,2 do
+    local condnode, blocknode = ifpairs[i], ifpairs[i+1]
     if i == 1 then
       emitter:add_indent("if ")
-      emitter:add(cond)
+      emitter:add(condnode)
       emitter:add_ln(" then")
     else
       emitter:add_indent("elseif ")
-      emitter:add(cond)
+      emitter:add(condnode)
       emitter:add_ln(" then")
     end
-    emitter:add(block)
+    emitter:add(blocknode)
   end
-  if elseblock then
+  if elsenode then
     emitter:add_indent_ln("else")
-    emitter:add(elseblock)
+    emitter:add(elsenode)
   end
   emitter:add_indent_ln("end")
 end
 
 function visitors.Switch(context, node, emitter)
-  local val, caseparts, switchelseblock = node:args()
+  local val, casepairs, elsenode = node[1], node[2], node[3]
   local varname = '__switchval' .. node.pos
   emitter:add_indent_ln("local ", varname, " = ", val)
-  node:assertraisef(#caseparts > 0, "switch must have case parts")
+  node:assertraisef(#casepairs > 0, "switch must have case parts")
   context:push_forked_scope(node)
-  for i,casepart in ipairs(caseparts) do
-    local caseval, caseblock = casepart[1], casepart[2]
+  for i=1,#casepairs,2 do
+    local caseexprs, caseblock = casepairs[i], casepairs[i+1]
     if i == 1 then
       emitter:add_indent('if ')
     else
       emitter:add_indent('elseif ')
     end
-    emitter:add_ln(varname, ' == ', caseval, ' then')
+    emitter:add_ln(varname, ' == ', caseexprs, ' then')
     emitter:add(caseblock)
   end
-  if switchelseblock then
+  if elsenode then
     emitter:add_indent_ln('else')
-    emitter:add(switchelseblock)
+    emitter:add(elsenode)
   end
   context:pop_scope(node)
   emitter:add_indent_ln("end")
 end
 
 function visitors.Do(_, node, emitter)
-  local block = node:args()
+  local block = node[1]
   emitter:add_indent_ln("do")
   emitter:add(block)
   emitter:add_indent_ln("end")
 end
 
 function visitors.While(context, node, emitter)
-  local cond, block = node:args()
+  local cond, block = node[1], node[2]
   emitter:add_indent_ln("while ", cond, ' do')
   context:push_forked_scope(node)
   emitter:add(block)
@@ -187,7 +202,7 @@ function visitors.While(context, node, emitter)
 end
 
 function visitors.Repeat(context, node, emitter)
-  local block, cond = node:args()
+  local block, cond = node[1], node[2]
   emitter:add_indent_ln("repeat")
   context:push_forked_cleaned_scope(node)
   emitter:add(block)
@@ -196,7 +211,8 @@ function visitors.Repeat(context, node, emitter)
 end
 
 function visitors.ForNum(context, node, emitter)
-  local itvar, begval, comp, endval, incrval, block  = node:args()
+  local itvar, begval, comp, endval, incrval, block =
+        node[1], node[2], node[3], node[4], node[5], node[6]
   if not comp then
     comp = 'le'
   end
@@ -213,7 +229,7 @@ function visitors.ForNum(context, node, emitter)
 end
 
 function visitors.ForIn(context, node, emitter)
-  local itvars, iterator, block = node:args()
+  local itvars, iterator, block = node[1], node[2], node[3]
   context:push_forked_scope(node)
   emitter:add_indent("for ", itvars)
   emitter:add_ln(' in ', iterator, ' do')
@@ -229,17 +245,17 @@ end
 -- TODO: Continue
 
 function visitors.Label(_, node, emitter)
-  local name = node:args()
+  local name = node[1]
   emitter:add_indent_ln('::', name, '::')
 end
 
 function visitors.Goto(_, node, emitter)
-  local labelname = node:args()
+  local labelname = node[1]
   emitter:add_indent_ln('goto ', labelname)
 end
 
 function visitors.VarDecl(context, node, emitter)
-  local varscope, varnodes, valnodes = node:args()
+  local varscope, varnodes, valnodes = node[1], node[2], node[3]
   local is_local = (varscope == 'local') or not context.scope.is_topscope
   emitter:add_indent()
   if is_local then
@@ -278,12 +294,12 @@ function visitors.VarDecl(context, node, emitter)
 end
 
 function visitors.Assign(_, node, emitter)
-  local varnodes, valnodes = node:args()
+  local varnodes, valnodes = node[1], node[2]
   emitter:add_indent_ln(varnodes, ' = ', valnodes)
 end
 
 function visitors.FuncDef(context, node, emitter)
-  local varscope, name, args, _, _, block = node:args()
+  local varscope, name, args, block = node[1], node[2], node[3], node[6]
   emitter:add_indent()
   if varscope == 'local' then
     emitter:add('local ')
@@ -297,8 +313,8 @@ function visitors.FuncDef(context, node, emitter)
 end
 
 function visitors.Function(context, node, emitter)
-  local args, _, _, block = node:args()
-  if #block[1] == 0 then
+  local args, block = node[1], node[4]
+  if #block == 0 then
     emitter:add('function(', args, ') end')
   else
     emitter:add_ln('function(', args, ')')
@@ -311,7 +327,7 @@ end
 
 -- operators
 function visitors.UnaryOp(context, node, emitter)
-  local opname, argnode = node:args()
+  local opname, argnode = node[1], node[2]
   local op = node:assertraisef(luadefs.unary_ops[opname], 'unary operator "%s" not found', opname)
   if config.lua_version ~= '5.3' then
     local fallop = luadefs.lua51_unary_ops[opname]
@@ -328,7 +344,7 @@ function visitors.UnaryOp(context, node, emitter)
 end
 
 function visitors.BinaryOp(context, node, emitter)
-  local opname, lnode, rnode = node:args()
+  local lnode, opname, rnode = node[1], node[2], node[3]
   local op = node:assertraisef(luadefs.binary_ops[opname], 'binary operator "%s" not found', opname)
   if config.lua_version ~= '5.3' then
     local fallop = luadefs.lua51_binary_ops[opname]

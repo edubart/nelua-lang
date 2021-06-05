@@ -1,246 +1,319 @@
-local ASTBuilder = require 'nelua.astbuilder'
+--[[
+This module defines all AST shapes.
 
-local astbuilder = ASTBuilder()
-local stypes = astbuilder.shaper
-local ntypes = astbuilder.shaper.node
+It also servers as a documentation for AST nodes schemas.
+These shapes are used for shape checking in tests
+and when manually creating AST nodes.
+]]
 
--- primitives
-astbuilder:register('Number', {
-  stypes.one_of{"dec", "bin", "hex"}, -- number base
-  stypes.string:is_optional(), -- integer part
-  stypes.string:is_optional(), -- fractional part
-  stypes.string:is_optional(), -- exponential part
-  stypes.string:is_optional() -- literal
-})
-astbuilder:register('String', {
-  stypes.string, -- value
-  stypes.string:is_optional() -- literal
-})
-astbuilder:register('Boolean', {
-  stypes.boolean, -- true or false
-})
-astbuilder:register('Nil', {})
-astbuilder:register('Varargs', {})
+local aster = require 'nelua.aster'
+local shaper = aster.shaper
 
--- preprocess
-astbuilder:register('Preprocess', {
-  stypes.string, -- code
-})
-astbuilder:register('PreprocessExpr', {
-  stypes.string, -- code
-})
-astbuilder:register('PreprocessName', {
-  stypes.string, -- code
+-- Block containing a list of statements.
+aster.register('Block', shaper.array_of(shaper.Node))
+
+-- Number literal.
+aster.register('Number', {
+  shaper.string + shaper.number, -- value
+  shaper.string + shaper.falsy, -- literal type
 })
 
--- indexing
-astbuilder:register('DotIndex', {
-  stypes.string + ntypes.PreprocessName, -- name
-  ntypes.Node -- expr
-})
-astbuilder:register('ColonIndex', {
-  stypes.string + ntypes.PreprocessName, -- name
-  ntypes.Node -- expr
-})
-astbuilder:register('ArrayIndex', {
-  ntypes.Node, -- index expr
-  ntypes.Node -- expr
+-- String literal.
+aster.register('String', {
+  shaper.string, -- value
+  shaper.string + shaper.falsy, -- literal type
 })
 
--- initializer list
-astbuilder:register('InitializerList', {
-  stypes.array_of(ntypes.Node) -- pair or exprs
-})
-astbuilder:register('Pair', {
-  ntypes.Node + stypes.string + ntypes.PreprocessName, -- field name (an expr or a string)
-  ntypes.Node -- field value expr
+-- Boolean literal, (e.g `true` and `false`).
+aster.register('Boolean', {
+  shaper.boolean -- true or false
 })
 
--- annotation
-astbuilder:register('Annotation', {
-  stypes.string + ntypes.PreprocessName, -- name
-  stypes.array_of(ntypes.String + ntypes.Number + ntypes.Boolean + ntypes.PreprocessExpr) -- args
+-- Nil literal, (e.g `nil`).
+aster.register('Nil', {})
+
+-- Variable arguments literal, (e.g `...`).
+aster.register('Varargs', {})
+
+-- List of statements that evaluates to an expression.
+aster.register('DoExpr', {
+  shaper.Block -- statements block
 })
 
--- used inerally internal
-astbuilder:register('PragmaCall', {
-  stypes.string, -- name
-  stypes.table, -- args exprs
+-- Preprocess code to be executed and removed.
+aster.register('Preprocess', {
+  shaper.string -- code
 })
 
--- identifier and types
-astbuilder:register('Id', {
-  stypes.string + ntypes.PreprocessName, -- name
-})
-astbuilder:register('IdDecl', {
-  stypes.string + ntypes.PreprocessName + ntypes.DotIndex, -- name
-  ntypes.Node:is_optional(), -- typexpr
-  stypes.array_of(ntypes.Annotation):is_optional(),
-})
-astbuilder:register('Paren', {
-  ntypes.Node -- expr
+-- Preprocess expression to be replaced by an ASTNode containing an expression.
+aster.register('PreprocessExpr', {
+  shaper.string -- code
 })
 
--- types
-astbuilder:register('TypeInstance', {
-  ntypes.Node, -- typexpr
-})
-astbuilder:register('VarargsType', {
-  (stypes.one_of{"varautos", "varanys", "cvarargs"}):is_optional()
-})
-astbuilder:register('FuncType', {
-  stypes.array_of(ntypes.Node), -- arguments types
-  stypes.array_of(ntypes.Node), -- returns types
-})
-astbuilder:register('RecordFieldType', {
-  stypes.string + ntypes.PreprocessName, -- field name
-  ntypes.Node, -- field typexpr
-})
-astbuilder:register('RecordType', {
-  stypes.array_of(ntypes.RecordFieldType), -- field types
-})
-astbuilder:register('UnionFieldType', {
-  (stypes.string + ntypes.PreprocessName):is_optional(), -- field name
-  ntypes.Node, -- field typexpr
-})
-astbuilder:register('UnionType', {
-  stypes.array_of(ntypes.Node), -- union field types or typexpr
-})
-astbuilder:register('VariantFieldType', {
-  (stypes.string + ntypes.PreprocessName):is_optional(), -- field name
-  ntypes.Node, -- field typexpr
-})
-astbuilder:register('VariantType', {
-  stypes.array_of(ntypes.Node), -- variant field types or typexpr
-})
-astbuilder:register('EnumFieldType', {
-  stypes.string + ntypes.PreprocessName, -- field name
-  ntypes.Node:is_optional() -- field numeric value expr
-})
-astbuilder:register('EnumType', {
-  ntypes.Id:is_optional(), -- primitive type
-  stypes.array_of(ntypes.EnumFieldType), -- field types
-})
-astbuilder:register('ArrayType', {
-  ntypes.Node, -- subtype typeexpr
-  ntypes.Node:is_optional(), -- size expr
-})
-astbuilder:register('PointerType', {
-  ntypes.Node:is_optional(), -- subtype typexpr
-})
-astbuilder:register('OptionalType', {
-  ntypes.Node -- subtype typexpr
-})
-astbuilder:register('GenericType', {
-  stypes.string + ntypes.PreprocessName, -- generic name
-  stypes.array_of(ntypes.Node), -- list of typexpr or param expr
+-- Preprocess expression to be replaced by a string containing a name.
+aster.register('PreprocessName', {
+  shaper.string -- code
 })
 
--- function
-astbuilder:register('Function', {
-  stypes.array_of(ntypes.IdDecl + ntypes.VarargsType), -- typed arguments
-  stypes.array_of(ntypes.Node), -- typed returns
-  stypes.array_of(ntypes.Annotation):is_optional(),
-  ntypes.Node, -- block
+local name = shaper.string + shaper.PreprocessName
+
+-- Initializer list pair field.
+aster.register('Pair', {
+  shaper.Node + name, -- field name or expr
+  shaper.Node, -- value expr
 })
 
--- calls
-astbuilder:register('Call', {
-  stypes.array_of(ntypes.Node), -- args exprs
-  ntypes.Node, -- caller expr
-})
-astbuilder:register('CallMethod', {
-  stypes.string + ntypes.PreprocessName, -- method name
-  stypes.array_of(ntypes.Node), -- args exprs
-  ntypes.Node, -- caller expr
+-- Initializer list (e.g `{}`), used for initialing tables, records and arrays.
+aster.register('InitList', shaper.array_of(shaper.Pair + shaper.Node)) -- pair or exprs
+
+-- Indexing with `.`.
+aster.register('DotIndex', {
+  name, -- name
+  shaper.Node, -- expr
 })
 
--- block
-astbuilder:register('Block', {
-  stypes.array_of(ntypes.Node) -- statements
+-- Indexing with `:`.
+aster.register('ColonIndex', {
+  name, -- name
+  shaper.Node, -- expr
 })
 
--- statements
-astbuilder:register('Return', {
-  stypes.array_of(ntypes.Node) -- returned exprs
-})
-astbuilder:register('If', {
-  stypes.array_of(stypes.shape{ntypes.Node, ntypes.Block}), -- if list {expr, block}
-  ntypes.Block:is_optional() -- else block
-})
-astbuilder:register('Do', {
-  ntypes.Block -- block
-})
-astbuilder:register('Defer', {
-  ntypes.Block -- block
-})
-astbuilder:register('While', {
-  ntypes.Node, -- expr
-  ntypes.Block -- block
-})
-astbuilder:register('Repeat', {
-  ntypes.Block, -- block
-  ntypes.Node -- expr
-})
-astbuilder:register('ForNum', {
-  ntypes.IdDecl, -- iterated var
-  ntypes.Node, -- begin expr
-  stypes.one_of{"lt", "ne", "gt", "le", "ge"}:is_optional(), -- compare operator
-  ntypes.Node, -- end expr
-  ntypes.Node:is_optional(), -- increment expr
-  ntypes.Block, -- block
-})
-astbuilder:register('ForIn', {
-  stypes.array_of(ntypes.IdDecl), -- iteration vars
-  stypes.array_of(ntypes.Node), -- in exprlist
-  ntypes.Block -- block
-})
-astbuilder:register('Break', {})
-astbuilder:register('Label', {
-  stypes.string + ntypes.PreprocessName -- label name
-})
-astbuilder:register('Goto', {
-  stypes.string + ntypes.PreprocessName -- label name
-})
-astbuilder:register('VarDecl', {
-  stypes.one_of{"local","global"}:is_optional(), -- scope
-  stypes.array_of(ntypes.IdDecl), -- var names with types
-  stypes.array_of(ntypes.Node):is_optional(), -- expr list, initial assignments values
-})
-astbuilder:register('Assign', {
-  stypes.array_of(ntypes.Node), -- expr list, assign variables
-  stypes.array_of(ntypes.Node), -- expr list, assign values
-})
-astbuilder:register('FuncDef', {
-  stypes.one_of{"local","global"}:is_optional(), -- scope
-  ntypes.IdDecl + ntypes.Id + ntypes.DotIndex + ntypes.ColonIndex, -- name
-  stypes.array_of(ntypes.IdDecl + ntypes.VarargsType), -- typed arguments
-  stypes.array_of(ntypes.Node), -- typed returns
-  stypes.array_of(ntypes.Annotation):is_optional(),
-  ntypes.Block -- block
+-- Indexing with brackets (e.g `[key]`).
+aster.register('KeyIndex', {
+  shaper.Node, -- key expr
+  shaper.Node, -- expr
 })
 
--- operations
-astbuilder:register('UnaryOp', {
-  stypes.string, -- opname
-  ntypes.Node -- right expr
-})
-astbuilder:register('BinaryOp', {
-  stypes.string, -- opname
-  ntypes.Node, --- left expr
-  ntypes.Node -- right expr
+-- Annotation used in a variable, type or function declaration.
+aster.register('Annotation', {
+  name, -- name
+  shaper.array_of(shaper.Node) + shaper.falsy, -- annotation arguments
 })
 
--- nelua extensions to lua
-astbuilder:register('Switch', {
-  ntypes.Node, -- switch expr
-  stypes.array_of(stypes.shape{ stypes.array_of(ntypes.Node), ntypes.Block}), -- case list {expr list, block}
-  ntypes.Block:is_optional() -- else block
-})
-astbuilder:register('DoExpr', {
-  ntypes.Block -- block
+-- Identifier.
+aster.register('Id', {
+  name -- name
 })
 
-astbuilder:register('Continue', {})
+-- Identifier declaration.
+aster.register('IdDecl', {
+  name + shaper.DotIndex, -- name
+  shaper.Node + shaper.falsy, -- type expr
+  shaper.array_of(shaper.Annotation) + shaper.falsy, -- annotations
+})
 
-return astbuilder
+-- Expression surround by parenthesis (e.g `(expr)`)
+aster.register('Paren', {
+  shaper.Node -- expr
+})
+
+-- Type expression (e.g `@typeexpr`).
+aster.register('Type', {
+  shaper.Node -- type expr
+})
+
+-- Variable arguments type, used in function declaration arguments only.
+aster.register('VarargsType', {
+  shaper.one_of{"varautos", "varanys", "cvarargs"} + shaper.falsy
+})
+
+-- Function type.
+aster.register('FuncType', {
+  shaper.array_of(shaper.Node), -- arguments types
+  shaper.array_of(shaper.Node) + shaper.falsy, -- returns types
+})
+
+-- Record field.
+aster.register('RecordField', {
+  name, -- name
+  shaper.Node, -- type expr
+})
+
+-- Record type.
+aster.register('RecordType', shaper.array_of(shaper.RecordField)) -- fields
+
+-- Union field.
+aster.register('UnionField', {
+  name + shaper.falsy, -- name
+  shaper.Node, -- type expr
+})
+
+-- Union type.
+aster.register('UnionType', shaper.array_of(shaper.UnionField)) -- fields
+
+-- Variant type.
+aster.register('VariantType', shaper.array_of(shaper.Node)) -- types exprs
+
+-- Enum field.
+aster.register('EnumField', {
+  name, -- name
+  shaper.Node + shaper.falsy, -- value expr
+})
+
+-- Enum type.
+aster.register('EnumType', {
+  shaper.Node + shaper.falsy, -- primitive type expr
+  shaper.array_of(shaper.EnumField), -- field types
+})
+
+-- Array type.
+aster.register('ArrayType', {
+  shaper.Node, -- subtype type expr
+  shaper.Node + shaper.falsy, -- size expr
+})
+
+-- Pointer type.
+aster.register('PointerType', {
+  shaper.Node + shaper.falsy, -- subtype type expr
+})
+
+-- Optional type.
+aster.register('OptionalType', {
+  shaper.Node -- subtype type expr
+})
+
+-- Generic type.
+aster.register('GenericType', {
+  shaper.Id + shaper.DotIndex, -- name
+  shaper.array_of(shaper.Node), -- arguments (type expr or expr)
+})
+
+-- Anonymous function (function without a name).
+aster.register('Function', {
+  shaper.array_of(shaper.IdDecl + shaper.VarargsType), -- typed arguments
+  shaper.array_of(shaper.Node) + shaper.falsy, -- typed returns
+  shaper.array_of(shaper.Annotation) + shaper.falsy,
+  shaper.Node, -- block
+})
+
+-- Call.
+aster.register('Call', {
+  shaper.array_of(shaper.Node), -- arguments exprs
+  shaper.Node, -- caller expr
+})
+
+-- Call a method.
+aster.register('CallMethod', {
+  name, -- method name
+  shaper.array_of(shaper.Node), -- arguments exprs
+  shaper.Node, -- caller expr
+})
+
+-- Unary operator.
+aster.register('UnaryOp', {
+  shaper.one_of{"not", "unm", "len", "bnot", "ref", "deref"}, -- op name
+  shaper.Node, -- right expr
+})
+
+-- Binary operator.
+aster.register('BinaryOp', {
+  shaper.Node, --- left expr
+  shaper.one_of{"or", "and",
+                "eq", "ne", "le", "lt", "ge", "gt",
+                "bor", "bxor", "band", "shl", "shr", "asr",
+                "concat",
+                "add", "sub",
+                "mul", "div", "idiv", "tdiv", "mod", "tmod",
+                "pow"}, -- op name
+  shaper.Node, -- right expr
+})
+
+-- Return statement.
+aster.register('Return', shaper.array_of(shaper.Node)) -- returned exprs
+
+-- If statement.
+aster.register('If', {
+  shaper.array_of(shaper.Node + shaper.Block), -- ifs (expr followed by block)
+  shaper.Block + shaper.falsy, -- else block
+})
+
+-- Switch statement.
+aster.register('Switch', {
+  shaper.Node, -- switch expr
+  shaper.array_of(shaper.array_of(shaper.Node) + shaper.Block), -- cases (exprs followed by block}
+  shaper.Block + shaper.falsy, -- else block
+})
+
+-- Do statement.
+aster.register('Do', {
+  shaper.Block, -- statements block
+})
+
+-- Defer statement.
+aster.register('Defer', {
+  shaper.Block -- statements block
+})
+
+-- While statement.
+aster.register('While', {
+  shaper.Node, -- expr
+  shaper.Block, -- statements block
+})
+
+-- Repeat statement.
+aster.register('Repeat', {
+  shaper.Block, -- statements block
+  shaper.Node, -- expr
+})
+
+-- Numeric for statement.
+aster.register('ForNum', {
+  shaper.IdDecl, -- iterated var
+  shaper.Node, -- begin expr
+  shaper.one_of{"eq", "ne", "le", "lt", "ge", "gt"} + shaper.falsy, -- compare operator
+  shaper.Node, -- end expr
+  shaper.Node + shaper.falsy, -- increment expr
+  shaper.Block, -- block
+})
+
+-- For in statement.
+aster.register('ForIn', {
+  shaper.array_of(shaper.IdDecl), -- iteration vars
+  shaper.array_of(shaper.Node), -- in exprs
+  shaper.Block, -- statements block
+})
+
+-- Break statement.
+aster.register('Break', {})
+
+-- Continue statement.
+aster.register('Continue', {})
+
+-- Label statement.
+aster.register('Label', {
+  name, -- label name
+})
+
+-- Goto statement.
+aster.register('Goto', {
+  name, -- label name
+})
+
+-- Variable declaration statement.
+aster.register('VarDecl', {
+  shaper.one_of{"local","global"}, -- scope
+  shaper.array_of(shaper.IdDecl), -- var names with types
+  shaper.array_of(shaper.Node) + shaper.falsy, -- exprs of initial values
+})
+
+-- Variable assignment statement.
+aster.register('Assign', {
+  shaper.array_of(shaper.Node), -- var exprs
+  shaper.array_of(shaper.Node), -- values exprs
+})
+
+-- Function definition statement.
+aster.register('FuncDef', {
+  shaper.one_of{"local","global"} + shaper.falsy, -- scope
+  shaper.IdDecl + shaper.Id + shaper.DotIndex + shaper.ColonIndex, -- name
+  shaper.array_of(shaper.IdDecl + shaper.VarargsType), -- typed arguments
+  shaper.array_of(shaper.Node) + shaper.falsy, -- typed returns
+  shaper.array_of(shaper.Annotation) + shaper.falsy,
+  shaper.Block, -- statements block
+})
+
+-- This is used only internally.
+aster.register('PragmaCall', {
+  shaper.string, -- name
+  shaper.table, -- arguments exprs
+})

@@ -52,7 +52,7 @@ build = {
     }},
 
     -- Nelua compiler sources
-    ['nelua.astbuilder'] = 'nelua/astbuilder.lua',
+    ['nelua.aster'] = 'nelua/aster.lua',
     ['nelua.astdefs'] = 'nelua/astdefs.lua',
     ['nelua.astnode'] = 'nelua/astnode.lua',
     ['nelua.builtins'] = 'nelua/builtins.lua',
@@ -69,8 +69,6 @@ build = {
     ['nelua.luacompiler'] = 'nelua/luacompiler.lua',
     ['nelua.luadefs'] = 'nelua/luadefs.lua',
     ['nelua.luagenerator'] = 'nelua/luagenerator.lua',
-    ['nelua.pegbuilder'] = 'nelua/pegbuilder.lua',
-    ['nelua.pegparser'] = 'nelua/pegparser.lua',
     ['nelua.runner'] = 'nelua/runner.lua',
     ['nelua.scope'] = 'nelua/scope.lua',
     ['nelua.symdefs'] = 'nelua/symdefs.lua',

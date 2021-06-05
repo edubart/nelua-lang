@@ -7,6 +7,7 @@ local types = require 'nelua.types'
 local Attr = require 'nelua.attr'
 local primtypes = typedefs.primtypes
 local pegger = require 'nelua.utils.pegger'
+local aster = require 'nelua.aster'
 
 function builtins.require(context, node, argnodes)
   local attr = node.attr
@@ -62,7 +63,7 @@ function builtins.require(context, node, argnodes)
     end
 
     local input = fs.ereadfile(filepath)
-    local ast = context.parser:parse(input, filepath)
+    local ast = aster.parse(input, filepath)
     attr.loadedast = ast
 
     justloaded = true
@@ -147,7 +148,7 @@ function builtins.print(context, node, argnodes)
       local metafields = objtype.metafields
       if metafields.__tostring then
         argtype = primtypes.string
-        argnodes[i] = context.parser.astbuilder.aster.CallMethod{'__tostring', {}, argnodes[i]}
+        argnodes[i] = aster.CallMethod{'__tostring', {}, argnodes[i]}
       end
     end
     argattrs[i] = {name='a'..i, type=argtype}

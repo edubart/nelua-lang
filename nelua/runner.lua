@@ -15,6 +15,8 @@ local except = require 'nelua.utils.except'
 local executor = require 'nelua.utils.executor'
 local configer = require 'nelua.configer'
 local platform = require 'nelua.utils.platform'
+local aster = require 'nelua.aster'
+require 'nelua.syntaxdefs'
 local profiler
 local runner = {}
 
@@ -51,8 +53,6 @@ local function run(argv, redirect)
   local compiler = generator.compiler
   local preprocessor = require 'nelua.preprocessor'
 
-  local syntaxdefs = require 'nelua.syntaxdefs'
-  local syntax = syntaxdefs()
   if config.timing then
     console.debugf('startup      %.1f ms', timer:elapsedrestart())
   end
@@ -79,8 +79,7 @@ local function run(argv, redirect)
   end --luacov:enable
 
   -- parse ast
-  local parser = syntax.parser
-  local ast = parser:parse(input, infile)
+  local ast = aster.parse(input, infile)
 
   -- only checking syntax?
   if config.lint then
@@ -98,7 +97,7 @@ local function run(argv, redirect)
   local AnalyzerContext = require 'nelua.analyzercontext'
 
   -- analyze the ast
-  local context = AnalyzerContext(analyzer.visitors, parser, ast, config.generator)
+  local context = AnalyzerContext(analyzer.visitors, ast, config.generator)
   except.try(function()
     context = analyzer.analyze(context)
   end, function(e)
@@ -107,9 +106,9 @@ local function run(argv, redirect)
 
   if config.timing then
     local elapsed = timer:elapsedrestart()
-    console.debugf('parse        %.1f ms', parser.working_time)
+    console.debugf('parse        %.1f ms', aster.parsing_time)
     console.debugf('preprocess   %.1f ms', preprocessor.working_time)
-    console.debugf('analyze      %.1f ms', elapsed - parser.working_time - preprocessor.working_time)
+    console.debugf('analyze      %.1f ms', elapsed - aster.parsing_time - preprocessor.working_time)
   end
 
   if config.print_analyzed_ast then

@@ -18,9 +18,9 @@ it("number", function()
   expect.generate_lua("return 1, 1.2, 1e2, 1.2e3, 0x1f, 0b10",
                       "return 1, 1.2, 1e2, 1.2e3, 0x1f, 0x2")
   expect.generate_lua("return 0x3p5, 0x3.5, 0x3.5p7, 0xfa.d7p-5, 0b11.11p2",
-                      "return 0x60, 3.3125, 0x1a8, 7.8387451171875, 0xf")
+                      "return 96.0, 3.3125, 424.0, 7.8387451171875, 15.0")
   expect.generate_lua("return 0x0, 0xffffp4",
-                      "return 0x0, 0xffff0")
+                      "return 0x0, 1048560.0")
   expect.generate_lua("return 0xffffffffffffffff.001",
                       "return 1.8446744073709552e+19")
 end)

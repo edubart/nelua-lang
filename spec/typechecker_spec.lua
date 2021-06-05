@@ -1,16 +1,15 @@
-local lester = require 'nelua.thirdparty.lester'
-local describe, it = lester.describe, lester.it
-
 local expect = require 'spec.tools.expect'
-local n = require 'nelua.syntaxdefs'().astbuilder.aster
+local n = require 'nelua.aster'
 local bn = require 'nelua.utils.bn'
 local config = require 'nelua.configer'.get()
+local lester = require 'nelua.thirdparty.lester'
+local describe, it = lester.describe, lester.it
 
 describe("type checker", function()
 
 it("analyzed ast transform", function()
   expect.analyze_ast("local a = 1;",
-    n.Block{{
+    n.Block{
       n.VarDecl{'local',
         { n.IdDecl{
           assign=true,
@@ -22,20 +21,20 @@ it("analyzed ast transform", function()
             vardecl=true,
             lvalue=true
           },
-          'a' }},
+          'a', false}},
         { n.Number{
           attr = {
             comptime=true,
             initializer=true,
             literal=true,
-            base='dec',
+            base=10,
             type='int64',
             untyped=true,
-            value=bn.fromdec('1')
-          },'dec', '1'
+            value=bn(1)
+          },'1'
         }}
       }
-  }})
+  })
 end)
 
 it("local variable", function()
@@ -1051,7 +1050,6 @@ it("spans", function()
 end)
 
 it("arrays", function()
-  --expect.analyze_ast([[local a: array(integer, (2 << 1)) ]])
   expect.analyze_ast([[local N <comptime> = 10; local a: array(integer, N) ]])
   expect.analyze_ast([[local a: array(integer, 10); a[0] = 1]])
   expect.analyze_ast([[local a: array(integer, 2) = {1,2}]])
@@ -1062,6 +1060,7 @@ it("arrays", function()
   expect.analyze_ast([[local a: array(integer, 2) <comptime> = {1,2}]])
   expect.analyze_ast([[local a: array(integer) = {1,2}]])
   expect.analyze_ast([[local a: array(integer, 2) = {1}]])
+  expect.analyze_ast([[local a: array(integer, (2 << 1))]])
   expect.analyze_error([[local X = 2; local a: array(integer, X);]], "unknown comptime value for expression")
   expect.analyze_error([[local a: array(type, 4)]], 'subtype cannot be of compile-time type')
   expect.analyze_error([[local a: array(integer, 2) = {1,2,3}]], 'expected at most 2 values in array literal but got 3')

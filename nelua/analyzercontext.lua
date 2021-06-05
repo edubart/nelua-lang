@@ -8,9 +8,8 @@ local VisitorContext = require 'nelua.visitorcontext'
 
 local AnalyzerContext = class(VisitorContext)
 
-function AnalyzerContext:_init(visitors, parser, ast, generator)
+function AnalyzerContext:_init(visitors, ast, generator)
   VisitorContext._init(self, visitors)
-  self.parser = parser
   self.rootscope = Scope.create_root(self, ast)
   self.ast = ast
   self.scope = self.rootscope

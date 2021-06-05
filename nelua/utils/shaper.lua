@@ -13,6 +13,10 @@ local class = require 'nelua.utils.class'
 -- Additional shape check functions.
 shaper.optional_boolean = shaper.boolean:is_optional()
 
+shaper.falsy = shaper.custom(function(v)
+  return not v, 'expected false or nil'
+end)
+
 shaper.scalar = shaper.custom(function(v)
   return traits.is_scalar(v), 'expected an scalar'
 end):describe('scalar')

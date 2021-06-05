@@ -1,5 +1,6 @@
 local traits = require 'nelua.utils.traits'
 local class = require 'nelua.utils.class'
+local aster = require 'nelua.aster'
 local VisitorContext = require 'nelua.visitorcontext'
 
 local PPContext = class(VisitorContext)
@@ -13,9 +14,6 @@ function PPContext:_init(visitors, context)
 end
 
 function PPContext:push_statnodes(statnodes)
-  if not statnodes then
-    statnodes = {}
-  end
   local statnodestack = self.statnodestack
   statnodestack[#statnodestack+1] = self.statnodes
   self.statnodes = statnodes
@@ -29,8 +27,8 @@ function PPContext:pop_statnodes()
   statnodestack[index] = nil
 end
 
-function PPContext:add_statnode(node, clone)
-  if not clone then
+function PPContext:add_statnode(node, noclone)
+  if not noclone then
     node = node:clone()
   end
   local statnodes = self.statnodes
@@ -50,9 +48,8 @@ function PPContext.toname(_, val, orignode)
   return val
 end
 
-function PPContext:tonode(val, orignode)
-  local aster = self.context.parser.astbuilder.aster
-  local node = aster.value(val, orignode)
+function PPContext.tonode(_, val, orignode)
+  local node = aster.create_value(val, orignode)
   if not node then
     orignode:raisef('unable to convert preprocess value of lua type "%s" to a compile time value', type(val))
   end

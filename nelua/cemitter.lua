@@ -223,10 +223,10 @@ function CEmitter:add_numeric_literal(valattr, valtype)
       val = val + 1
     end
 
-    if not base or base == 'dec' or val:isneg() then
-      self:add_one(bn.todec(val))
+    if not base or base == 10 or val:isneg() then
+      self:add_one(bn.todecint(val))
     else
-      self:add('0x', bn.tohex(val))
+      self:add('0x', bn.tohexint(val))
     end
   end
 

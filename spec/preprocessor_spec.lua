@@ -11,7 +11,7 @@ it("evaluate expressions", function()
     local b = #[math.sin(-math.pi/2)]#
     local c = #[true]#
     local d, d2, d3 = #[1.5e-30]#, #[1.5]#, #[1e-30]#
-    local e = #[aster.Number{'dec','1'}]#
+    local e = #[aster.Number{'1'}]#
     local a: [4]integer = #[{1,2,3,4}]#
     local r: record{x: integer, y: integer} = #[{x=1, y=2}]#
     local n: niltype = #[nil]#
@@ -206,8 +206,6 @@ it("print ast", function()
     local a = #[tostring(ast)]#
   ]], [=[
     local a = [[Block {
-  {
-  }
 }]]
   ]=])
 end)

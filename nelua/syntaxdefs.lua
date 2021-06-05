@@ -1,672 +1,314 @@
-local PEGParser = require 'nelua.pegparser'
-local PEGBuilder = require 'nelua.pegbuilder'
-local astbuilder = require 'nelua.astdefs'
-local memoize = require 'nelua.utils.memoize'
-
-local function get_parser()
-  --------------------------------------------------------------------------------
-  -- Lexer
-  --------------------------------------------------------------------------------
-
-  local parser = PEGParser()
-  parser:set_astbuilder(astbuilder)
-  local to_astnode = parser.defs.to_astnode
-
-  -- spaces including new lines
-  parser:set_peg("SPACE", "%s")
-
-  -- all new lines formats CR CRLF LF LFCR
-  parser:set_peg("LINEBREAK", "[%nl]'\r' / '\r'[%nl] / [%nl] / '\r'")
-
-  -- shebang, e.g. "#!/usr/bin/nelua"
-  parser:set_peg("SHEBANG", "'#!' (!%LINEBREAK .)*")
-
-  -- multi-line and single line comments
-  parser:set_pegs([[
-    %LONGCOMMENT  <- (open (contents close / %{UnclosedLongComment})) -> 0
-    contents      <- (!close .)*
-    open          <- '--[' {:eq: '='*:} '['
-    close         <- ']' =eq ']'
-
-    %SHORTCOMMENT <- '--' (!%LINEBREAK .)* %LINEBREAK?
-    %COMMENT <- %LONGCOMMENT / %SHORTCOMMENT
-  ]])
-
-  -- skip any code not relevant (spaces, new lines and comments), usually matched after any TOKEN
-  parser:set_peg('SKIP', "(%SPACE / %COMMENT)*")
-
-  -- identifier suffix, alphanumeric or _ character
-  parser:set_peg('IDSUFFIX', '[\128-\255_%w]')
-
-  -- language keywords
-  parser:add_keywords({
-    -- lua keywords
-    "and", "break", "do", "else", "elseif", "end", "for", "false",
-    "function", "goto", "if", "in", "local", "nil", "not", "or",
-    "repeat", "return", "then", "true", "until", "while",
-    -- nelua additional keywords
-    "case", "continue", "defer", "global", "switch"
-  })
-
-  -- names and identifiers (names for variables, functions, etc)
-  parser:set_token_pegs([[
-    %cNAME <- &idprefix !%KEYWORD {~ idformat ~}
-    idprefix <- ]] .. '[\128-\255_%a]' ..[[
-    idformat <- ([_%w] / escape_utf8)+
-    escape_utf8 <-
-      ]]..'[\128-\255]+'..[[ -> char2hex
-  ]], {
-    char2hex = function(s)
-      return 'u' .. s:gsub('.', function(c) return string.format('%02X', string.byte(c)) end)
-    end
-  })
-
-  -- capture numbers (hexadecimal, binary, exponential, decimal or integer)
-  parser:set_token_pegs([[
-    %cNUMBER    <- ({} '' -> 'Number' number literal? {}) -> to_astnode
-    number      <- '' -> 'hex' hexadecimal /
-                   '' -> 'bin' binary /
-                   '' -> 'dec' decimal
-    literal     <- %cNAME
-    hexadecimal <-  '0' [xX] (({hex} '.'
-      ({hex} / '' -> '0') / '' -> '0' '.' {hex} / {hex} nil)  / %{MalformedHexadecimalNumber})
-      ([pP] {exp} / nil)
-    binary      <-  '0' [bB]
-      (({bin} '.' ({bin} / '' -> '0') / '' -> '0' '.' {bin} / {bin} nil) / %{MalformedBinaryNumber})
-      ([pP] {exp} / nil)
-    decimal     <- ({dec} '.' ({dec} / '' -> '0') / '' -> '0' '.' {dec} / {dec} nil)
-                    ([eE] {exp} / nil)
-    dec         <- %d+
-    bin         <- [01]+ !%d
-    hex         <- %x+
-    exp         <- ([+-])? %d+ / %{MalformedExponentialNumber}
-    nil         <- '' -> to_nil
-  ]])
-
-  -- escape sequence conversion
-  local utf8char = utf8 and utf8.char or string.char
-  local char = string.char
-
-  local BACKLASHES_SPECIFIERS = {
-    ["a"] = "\a", -- audible bell
-    ["b"] = "\b", -- back feed
-    ["f"] = "\f", -- form feed
-    ["n"] = "\n", -- new line
-    ["r"] = "\r", -- carriage return
-    ["t"] = "\t", -- horizontal tab
-    ["v"] = "\v", -- vertical tab
-    ["\\"] = "\\", -- backslash
-    ["'"] = "'", -- single quote
-    ['"'] = '"', -- double quote
-  }
-  parser:set_pegs([[
-    %cESCAPESEQUENCE   <- {~ '\' -> '' escapings ~}
-    escapings         <-
-      [abfnrtv\'"] -> specifier2char /
-      %LINEBREAK -> ln2ln /
-      ('z' %s*) -> '' /
-      (%d %d^-1 !%d / [012] %d^2) -> num2char /
-      ('x' {%x^2}) -> hex2char /
-      ('u' '{' {%x^+1} '}') -> hex2unicode /
-      %{MalformedEscapeSequence}
-  ]], {
-    num2char = function(s) return char(tonumber(s)) end,
-    hex2char = function(s) return char(tonumber(s, 16)) end,
-    hex2unicode = function(s) return utf8char(tonumber(s, 16)) end,
-    specifier2char = function(s) return BACKLASHES_SPECIFIERS[s] end,
-    ln2ln = function() return "\n" end,
-  })
-
-  -- capture long or short strings
-  parser:set_token_pegs([[
-    %cSTRING        <- ({} '' -> 'String' (short_string / long_string) literal? {}) -> to_astnode
-    short_string    <- short_open ({~ short_content* ~} short_close / %{UnclosedShortString})
-    short_content   <- %cESCAPESEQUENCE / !(=de / %LINEBREAK) .
-    short_open      <- {:de: ['"] :}
-    short_close     <- =de
-    long_string     <- long_open ({long_content*} long_close / %{UnclosedLongString})
-    long_content    <- !long_close .
-    long_open       <- '[' {:eq: '='*:} '[' %LINEBREAK?
-    long_close      <- ']' =eq ']'
-    literal         <- %cNAME
-  ]])
-
-  -- capture boolean (true or false)
-  parser:set_token_pegs([[
-    %cBOOLEAN <- ({} '' -> 'Boolean' ((%FALSE -> to_false) / (%TRUE -> to_true)) {}) -> to_astnode
-  ]])
-
-  --- capture nil values
-  parser:set_token_pegs([[
-    %cNIL <- ({} %NIL -> 'Nil' {}) -> to_astnode
-  ]])
-
-  -- tokened symbols
-  parser:set_token_pegs([[
-  -- matching symbols
-  %LPPEXPR      <- '#['
-  %LPPNAME      <- '#|'
-  %RPPEXPR      <- ']#'
-  %RPPNAME      <- '|#'
-  %LPAREN       <- '('
-  %RPAREN       <- ')'
-  %LBRACKET     <- !('[' '='* '[') '['
-  %RBRACKET     <- !%RPPEXPR ']'
-  %LCURLY       <- '{'
-  %RCURLY       <- '}'
-  %LANGLE       <- '<'
-  %RANGLE       <- '>'
-
-  -- binary operators
-  %ADD          <- '+'
-  %SUB          <- !'--' '-'
-  %MUL          <- '*'
-  %TMOD         <- '%%%'
-  %MOD          <- !%TMOD '%'
-  %TDIV         <- '///'
-  %IDIV         <- !%TDIV '//'
-  %DIV          <- !%TDIV !%IDIV '/'
-  %POW          <- '^'
-  %BAND         <- '&'
-  %BOR          <- !%RPPNAME '|'
-  %SHL          <- '<<'
-  %ASR          <- '>>>'
-  %SHR          <- !%ASR '>>'
-  %EQ           <- '=='
-  %NE           <- '~='
-  %LE           <- '<='
-  %GE           <- '>='
-  %LT           <- !%SHL !%LE '<'
-  %GT           <- !%ASR !%SHR !%GE '>'
-  %BXOR         <- !%NE '~'
-  %ASSIGN       <- !%EQ '='
-
-  -- unary operators
-  %UNM          <- !'--' '-'
-  %LEN          <- !'##' !%LPPEXPR !%LPPNAME '#'
-  %BNOT         <- !%NE '~'
-  %DEREF        <- '$'
-  %REF          <- '&'
-
-  -- other symbols
-  %SEMICOLON    <- ';'
-  %COMMA        <- ','
-  %SEPARATOR    <- [,;]
-  %ELLIPSIS     <- '...'
-  %CONCAT       <- !%ELLIPSIS '..'
-  %DOT          <- !%ELLIPSIS !%CONCAT !('.' %d) '.'
-  %DBLCOLON     <- '::'
-  %COLON        <- !%DBLCOLON ':'
-  %AT           <- '@'
-  %DOLLAR       <- '$'
-  %QUESTION     <- '?'
-
-  -- used by types
-  %TRECORD      <- 'record'
-  %TUNION       <- 'union'
-  %TVARIANT     <- 'variant'
-  %TENUM        <- 'enum'
-  ]])
-
-  -- capture varargs values
-  parser:set_token_pegs([[
-    %cVARARGS <- ({} %ELLIPSIS -> 'Varargs' {}) -> to_astnode
-  ]])
-
-  --------------------------------------------------------------------------------
-  -- Grammar
-  --------------------------------------------------------------------------------
-
-  local grammar = PEGBuilder()
-
-  -- source code body
-  grammar:set_pegs([==[
-    sourcecode <-
-      %SHEBANG? %SKIP
-      block
-      (!. / %{UnexpectedSyntaxAtEOF})
-
-    block <-
-      ({} '' -> 'Block' {| (stat / %SEMICOLON)* |} {}) -> to_astnode
-
-  ]==])
-
-  -- statements
-  grammar:add_group_peg('stat', 'return', [[
-    ({} %RETURN -> 'Return' {| expr_list |} {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'if', [[
-    ({} %IF -> 'If'
-      {|
-        {| eexpr eTHEN block |}
-        ({| %ELSEIF eexpr eTHEN block |})*
-      |}
-      (%ELSE block)?
-    eEND {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'do', [[
-    ({} %DO -> 'Do' block eEND {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'defer', [[
-    ({} %DEFER -> 'Defer' block eEND {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'while', [[
-    ({} %WHILE -> 'While' eexpr eDO block eEND {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'repeat', [[
-    ({} %REPEAT -> 'Repeat' block eUNTIL eexpr {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'for', [[
-    %FOR (for_num / for_in / %{ExpectedForParams}) / for_in_empty
-
-    for_num <-
-      ({} '' -> 'ForNum'
-        typed_id %ASSIGN eexpr %COMMA (op_cmp / cnil) eexpr (%COMMA eexpr / cnil)
-        eDO block eEND
-      {}) -> to_astnode
-
-    for_in <-
-      ({} '' -> 'ForIn' {| etyped_idlist |} %IN {| eexpr_list |} eDO block eEND {}) -> to_astnode
-
-    for_in_empty <-
-      ({} %IN -> 'ForIn' cnil {| eexpr_list |} eDO block eEND {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'break', [[
-    ({} %BREAK -> 'Break' {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'label', [[
-    ({} %DBLCOLON -> 'Label' ename (%DBLCOLON / %{UnclosedLabel}) {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'goto', [[
-    ({} %GOTO -> 'Goto' ename {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'funcdef', [[
-    ({} '' -> 'FuncDef'
-      (%LOCAL -> 'local' / %GLOBAL -> 'global')
-      %FUNCTION func_iddecl function_body
-    {}) -> to_astnode /
-    ({} %FUNCTION -> 'FuncDef' cnil func_name function_body {}) -> to_astnode
-
-    func_name <- (id dot_index* colon_index?) -> to_chain_index_or_call
-    func_iddecl <- ({} '' -> 'IdDecl' name {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'assign', [[
-    ({} '' -> 'Assign' {| assignable_list |} %ASSIGN {| eexpr_list |} {}) -> to_astnode
-
-    assignable_list <- assignable (%COMMA assignable)*
-    assignable <-
-      ({} ''->'UnaryOp' op_deref eexpr {}) -> to_astnode /
-      (primary_expr ((call_expr+ index_expr) / index_expr)+ ) -> to_chain_index_or_call /
-      id
-  ]])
-
-  grammar:add_group_peg('stat', 'call', [[
-    (primary_expr (index_expr+ call_expr / call_expr)+) -> to_chain_index_or_call
-  ]])
-
-  grammar:add_group_peg('stat', 'preprocess', [[
-    ({} '' -> 'Preprocess' ppstring {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'vardecl', [[
-  ({} '' -> 'VarDecl'
-    ( %LOCAL -> 'local'
-      {| etyped_idlist |}
-    / (%GLOBAL ->'global')
-      {| eglobal_typed_idlist |}
-    ) (%ASSIGN {| eexpr_list |})?
-  {}) -> to_astnode
-
-  eglobal_typed_idlist <-
-    (global_typed_id / %{ExpectedName}) (%COMMA global_typed_id)*
-  global_typed_id <- ({} '' -> 'IdDecl'
-      ((id dot_index+) -> to_chain_index_or_call / name)
-      (%COLON etypexpr / cnil)
-      annot_list?
-    {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'switch', [[
-    ({} %SWITCH -> 'Switch' eexpr %DO?
-      {|(
-        ({| %CASE {| eexpr (%COMMA expr)* |} eTHEN block |})+ / %{ExpectedCase})
-      |}
-      (%ELSE block)?
-      eEND
-    {}) -> to_astnode
-  ]])
-
-  grammar:add_group_peg('stat', 'continue', [[
-    ({} %CONTINUE -> 'Continue' {}) -> to_astnode
-  ]])
-
-  -- expressions
-  grammar:set_pegs([[
-    expr      <- expr1
-
-    expr1  <- ({} expr2  (op_or       expr2  {})* )    -> to_chain_binary_op
-    expr2  <- ({} expr3  (op_and      expr3  {})* )    -> to_chain_binary_op
-    expr3  <- ({} expr4  (op_cmp      expr4  {})* )    -> to_chain_binary_op
-    expr4  <- ({} expr5  (op_bor      expr5  {})* )    -> to_chain_binary_op
-    expr5  <- ({} expr6  (op_xor      expr6  {})* )    -> to_chain_binary_op
-    expr6  <- ({} expr7  (op_band     expr7  {})* )    -> to_chain_binary_op
-    expr7  <- ({} expr8  (op_bshift   expr8  {})* )    -> to_chain_binary_op
-    expr8  <- ({} expr9  (op_concat   expr8  {})* )    -> to_chain_binary_op
-    expr9  <- expr10 -- free op slot
-    expr10 <- ({} expr11 (op_add      expr11 {})* )    -> to_chain_binary_op
-    expr11 <- ({} expr12 (op_mul      expr12 {})* )    -> to_chain_binary_op
-    expr12 <- (({} op_unary)*         expr13 {}   )    -> to_chain_unary_op
-    expr13 <- ({} simple_expr (op_pow    expr12 {})*)  -> to_chain_binary_op
-
-    simple_expr <-
-        %cNUMBER
-      / %cSTRING
-      / %cBOOLEAN
-      / %cNIL
-      / %cVARARGS
-      / doexpr
-      / function
-      / initlist
-      / type_instance
-      / suffixed_expr
-
-    suffixed_expr <- (primary_expr (index_expr / call_expr)*) -> to_chain_index_or_call
-
-    primary_expr <-
-      id /
-      ppexpr /
-      ({} %LPAREN -> 'Paren' eexpr eRPAREN {}) -> to_astnode
-
-    type_instance <-
-      ({} %AT -> 'TypeInstance' etypexpr {}) -> to_astnode
-
-    index_expr <- dot_index / array_index
-    dot_index <- {| {} %DOT -> 'DotIndex' ename {} |}
-    array_index <- {| {} %LBRACKET -> 'ArrayIndex' eexpr eRBRACKET {} |}
-    colon_index <- {| {} %COLON -> 'ColonIndex' ename {} |}
-
-    call_expr <-
-      {| {} %COLON -> 'CallMethod' ename callargs {} |} /
-      {| {} '' -> 'Call' callargs {} |}
-    callargs <-
-      {| (%LPAREN  expr_list eRPAREN / initlist / %cSTRING / ppexpr) |}
-
-    initlist <- ({} '' -> 'InitializerList' %LCURLY
-        {| (initlist_row (%SEPARATOR initlist_row)* %SEPARATOR?)? |}
-      eRCURLY {}) -> to_astnode
-    initlist_row <- initlist_pair / expr
-    initlist_pair <-
-      ({} '' -> 'Pair' (%LBRACKET eexpr eRBRACKET / name) %ASSIGN eexpr {}) -> to_astnode /
-      ({} %ASSIGN -> 'Pair' name {}) -> to_punned_pair_astnode
-
-    doexpr <-
-      ({} %LPAREN %DO -> 'DoExpr' block eEND eRPAREN {}) -> to_astnode
-
-    function <- ({} %FUNCTION -> 'Function' function_body {}) -> to_astnode
-    function_body <-
-      eLPAREN (
-        {| (typed_idlist (%COMMA varargs_type)? / varargs_type)? |}
-      ) eRPAREN
-      {| (%COLON (%LPAREN etypexpr_list eRPAREN / etypexpr))? |} (annot_list / cnil)
-        block
-      eEND
-    typed_idlist <- typed_id (%COMMA typed_id)*
-    etyped_idlist <- (typed_id / %{ExpectedName}) (%COMMA typed_id)*
-    typed_id <- ({} '' -> 'IdDecl'
-        name
-        (%COLON etypexpr / cnil)
-        annot_list?
-      {}) -> to_astnode
-
-    typexpr_list <- typexpr (%COMMA typexpr)*
-    etypexpr_list <- etypexpr (%COMMA typexpr)*
-
-    expr_list <- (expr (%COMMA expr)*)?
-    eexpr_list <- eexpr (%COMMA expr)*
-
-    type_or_param_expr <- typexpr / expr
-    etype_or_param_expr_list <- etype_or_param_expr (%COMMA type_or_param_expr)*
-
-    type_param_expr <-
-      %cNUMBER /
-      id /
-      ppexpr /
-      (%LPAREN eexpr eRPAREN)
-
-    annot_list <- %LANGLE {| (eannot_expr (%COMMA eannot_expr)*) |} eRANGLE
-
-    eannot_expr <-
-      ({} '' -> 'Annotation' ename {|(
-        (%LPAREN annot_arg (%COMMA annot_arg)* eRPAREN) /
-        %cSTRING /
-        ppexpr
-      )?|} {}) -> to_astnode
-    annot_arg <- %cNUMBER / %cSTRING / %cBOOLEAN / ppexpr
-
-    cnil <- '' -> to_nil
-    cfalse <- '' -> to_false
-
-    typexpr <- typexpr0
-    typexpr0 <- ({} '' -> 'VariantType' {| typexpr1 (%BOR typexpr1)* |} {}) -> to_list_astnode
-    typexpr1 <- ((unary_typexpr_op)* simple_typexpr {}) -> to_chain_late_unary_op
-
-    simple_typexpr <-
-      func_type /
-      record_type /
-      variant_type /
-      union_type /
-      enum_type /
-      array_type /
-      pointer_type /
-      generic_type /
-      enamedtype /
-      ppexpr
-
-    unary_typexpr_op <-
-      {| {} %MUL -> 'PointerType' |} /
-      {| {} %QUESTION -> 'OptionalType' |} /
-      {| {} %LBRACKET -> 'ArrayType' cnil type_param_expr? eRBRACKET |}
-
-    func_type <- (
-      {} '' -> 'FuncType'
-        %FUNCTION
-        eLPAREN ({|
-          (ftyped_idlist (%COMMA varargs_type)? / varargs_type)?
-        |}) eRPAREN
-        {| (%COLON (%LPAREN etypexpr_list eRPAREN / etypexpr))? |}
-      {}) -> to_astnode
-
-    ftyped_idlist <- (ftyped_id / typexpr) (%COMMA (ftyped_id / typexpr))*
-    ftyped_id <- ({} '' -> 'IdDecl' name %COLON etypexpr {}) -> to_astnode
-
-    varargs_type <-
-      ({} %ELLIPSIS -> 'VarargsType' (%COLON ename)? {}) -> to_astnode
-
-    record_type <- ({} %TRECORD -> 'RecordType' %LCURLY
-        {| (record_field (%SEPARATOR record_field)* %SEPARATOR?)? |}
-      eRCURLY {}) -> to_astnode
-    record_field <- ({} '' -> 'RecordFieldType' name eCOLON etypexpr {}) -> to_astnode
-
-    union_type <- ({} %TUNION -> 'UnionType' %LCURLY
-        {| (union_field (%SEPARATOR union_field)* %SEPARATOR?)? |}
-      eRCURLY {}) -> to_astnode
-    union_field <- (({} '' -> 'UnionFieldType' name %COLON etypexpr {}) -> to_astnode / typexpr)
-
-    variant_type <- ({} %TVARIANT -> 'VariantType' %LCURLY
-        {| (variant_field (%SEPARATOR variant_field)* %SEPARATOR?)? |}
-      eRCURLY {}) -> to_astnode
-    variant_field <- (({} '' -> 'VariantFieldType' name %COLON etypexpr {}) -> to_astnode / typexpr)
-
-    enum_type <- ({} %TENUM -> 'EnumType'
-        ((%LPAREN eenamedtype eRPAREN) / cnil) %LCURLY
-        {| eenumfield (%SEPARATOR enumfield)* %SEPARATOR? |}
-      eRCURLY {}) -> to_astnode
-    enumfield <- ({} '' -> 'EnumFieldType'
-        name (%ASSIGN eexpr)?
-      {}) -> to_astnode
-
-    array_type <- (
-      {} 'array' -> 'ArrayType'
-        %LPAREN etypexpr (%COMMA type_param_expr)? eRPAREN
-      {}) -> to_astnode
-
-    pointer_type <- (
-      {} 'pointer' -> 'PointerType'
-        ((%LPAREN etypexpr eRPAREN) / %SKIP)
-      {}) -> to_astnode
-
-    generic_type <- (
-      {} '' -> 'GenericType'
-        name %LPAREN {| etype_or_param_expr_list |} eRPAREN
-      {}) -> to_astnode
-
-    enamedtype <-
-      (id dot_index*) -> to_chain_index_or_call
-
-    ppexpr <- ({} %LPPEXPR -> 'PreprocessExpr' {expr -> 0} eRPPEXPR {}) -> to_astnode
-    ppname <- ({} %LPPNAME -> 'PreprocessName' {expr -> 0} eRPPNAME {}) -> to_astnode
-    ppstring <- (pplong_string / ppshort_string) %SKIP
-    ppshort_string    <- '##' {(!%LINEBREAK .)*} %LINEBREAK?
-    pplong_string     <- pplong_open ({pplong_content*} pplong_close / %{UnclosedLongPreprocessString})
-    pplong_content    <- !pplong_close .
-    pplong_open       <- '##[' {:eq: '='*:} '[' %SKIP
-    pplong_close      <- ']' =eq ']'
-
-    name    <- %cNAME / ppname
-    id      <- ({} '' -> 'Id' name {}) -> to_astnode
-  ]], {
-    to_punned_pair_astnode = function(pos, tag, name, endpos)
-      return to_astnode(pos, tag, name, to_astnode(pos+1, 'Id', name, endpos), endpos)
-    end
-  })
-
-  -- operators
-  grammar:set_pegs([[
-    op_or     <-  %OR -> 'or'
-    op_and    <-  %AND -> 'and'
-    op_cmp    <-  %LT -> 'lt' /
-                  %NE -> 'ne' /
-                  %GT -> 'gt' /
-                  %LE -> 'le' /
-                  %GE -> 'ge' /
-                  %EQ -> 'eq'
-    op_bor    <-  %BOR -> 'bor'
-    op_xor    <-  %BXOR -> 'bxor'
-    op_band   <-  %BAND -> 'band'
-    op_bshift <-  %SHL -> 'shl' /
-                  %SHR -> 'shr' /
-                  %ASR -> 'asr'
-    op_concat <-  %CONCAT -> 'concat'
-    op_add    <-  %ADD -> 'add' /
-                  %SUB -> 'sub'
-    op_mul    <-  %MUL -> 'mul' /
-                  %IDIV -> 'idiv' /
-                  %TDIV -> 'tdiv' /
-                  %DIV -> 'div' /
-                  %TMOD -> 'tmod' /
-                  %MOD -> 'mod'
-    op_unary  <-  %NOT -> 'not' /
-                  %LEN -> 'len' /
-                  %UNM -> 'unm' /
-                  %BNOT -> 'bnot' /
-                  %REF -> 'ref' /
-                  op_deref
-    op_deref  <-  %DEREF -> 'deref'
-    op_pow    <-  %POW -> 'pow'
-  ]])
-
-  -- syntax expected captures with errors
-  grammar:set_pegs([[
-    eRPAREN             <- %RPAREN            / %{UnclosedParenthesis}
-    eRBRACKET           <- %RBRACKET          / %{UnclosedBracket}
-    eRPPEXPR            <- %RPPEXPR           / %{UnclosedBracket}
-    eRPPNAME            <- %RPPNAME           / %{UnclosedParenthesis}
-    eRCURLY             <- %RCURLY            / %{UnclosedCurly}
-    eRANGLE             <- %RANGLE            / %{UnclosedAngle}
-    eLPAREN             <- %LPAREN            / %{ExpectedParenthesis}
-    eLCURLY             <- %LCURLY            / %{ExpectedCurly}
-    eLANGLE             <- %LANGLE            / %{ExpectedAngle}
-    eLBRACKET           <- %LBRACKET          / %{ExpectedBracket}
-    eCOLON              <- %COLON             / %{ExpectedColon}
-    eCOMMA              <- %COMMA             / %{ExpectedComma}
-    eEND                <- %END               / %{ExpectedEnd}
-    eTHEN               <- %THEN              / %{ExpectedThen}
-    eUNTIL              <- %UNTIL             / %{ExpectedUntil}
-    eDO                 <- %DO                / %{ExpectedDo}
-    ename               <- name               / %{ExpectedName}
-    eexpr               <- expr               / %{ExpectedExpression}
-    etypexpr            <- typexpr            / %{ExpectedTypeExpression}
-    etype_or_param_expr <- type_or_param_expr / %{ExpectedExpression}
-    etype_param_expr    <- type_param_expr    / %{ExpectedExpression}
-    ecallargs           <- callargs           / %{ExpectedCall}
-    eenumfield          <- enumfield          / %{ExpectedEnumFieldType}
-    eenamedtype         <- enamedtype         / %{ExpectedTypeNameExpression}
-  ]])
-
-  -- compile whole grammar
-  parser:set_peg('sourcecode', grammar:build())
-
-  --------------------------------------------------------------------------------
-  -- Syntax Errors
-  --------------------------------------------------------------------------------
-
-  -- lexer errors
-  parser:add_syntax_errors({
-    MalformedExponentialNumber = 'malformed exponential number',
-    MalformedBinaryNumber = 'malformed binary number',
-    MalformedHexadecimalNumber = 'malformed hexadecimal number',
-    MalformedEscapeSequence = 'malformed escape sequence',
-    UnclosedLongComment = "unclosed long comment, did you forget a ']]'?",
-    UnclosedShortString = "unclosed short string, did you forget a quote?",
-    UnclosedLongString = "unclosed long string, did you forget a ']]'?",
-
-  })
-
-  -- grammar errors
-  parser:add_syntax_errors({
-    UnexpectedSyntaxAtEOF  = 'unexpected syntax',
-    UnclosedParenthesis = "unclosed parenthesis, did you forget a `)`?",
-    UnclosedBracket = "unclosed square bracket, did you forget a `]`?",
-    UnclosedCurly = "unclosed curly brace, did you forget a `}`?",
-    UnclosedAngleBracket = "unclosed angle bracket, did you forget a `>`?",
-    UnclosedLongPreprocessString = "unclosed long preprocess string, did you forget a ']]'?",
-    UnclosedLabel = "unclosed label, did you forget `::`?",
-    ExpectedParenthesis = "expected parenthesis `(`",
-    ExpectedCurly = "expected curly brace `{`",
-    ExpectedAngle = "expected angle bracket `<`",
-    ExpectedBracket = "expected square bracket `[`",
-    ExpectedColon = "expected colon `:`",
-    ExpectedComma = "expected comma `,`",
-    ExpectedEnd = "expected `end` keyword",
-    ExpectedThen = "expected `then` keyword",
-    ExpectedUntil = "expected `until` keyword",
-    ExpectedDo = "expected `do` keyword",
-    ExpectedName = "expected an identifier name",
-    ExpectedNumber = "expected a number expression",
-    ExpectedExpression = "expected an expression",
-    ExpectedTypeExpression = "expected a type expression",
-    ExpectedCall = "expected call",
-    ExpectedEnumFieldType = "expected at least one field in enum",
-    ExpectedTypeNameExpression = "expected a type name expression",
-    ExpectedCase = "expected `case` keyword"
-  })
-
-  return {
-    astbuilder = astbuilder,
-    parser = parser,
-    grammar = grammar
-  }
+--[[
+Syntaxdefs module.
+
+This module define the Nelua syntax for parsing with the Aster module.
+
+The syntax is defined a single PEG rule, for instructions on how to read
+the rules please check LPegRex, LPegLabel and LPeg RE manuals:
+* https://github.com/edubart/lpegrex
+* https://github.com/sqmedeiros/lpeglabel
+* http://www.inf.puc-rio.br/~roberto/lpeg/re.html
+]]
+
+-- Complete syntax grammar of Nelua defined in a single PEG.
+local grammar = [==[
+chunk           <-- SHEBANG? SKIP Block (!.)^UnexpectedSyntax
+
+Block           <==(local / global /
+                    FuncDef / Return /
+                    Do / Defer /
+                    If / Switch /
+                    for /
+                    While / Repeat /
+                    Break / Continue /
+                    Goto / Label /
+                    Preprocess /
+                    Assign / call /
+                    `;`)*
+
+-- Statements
+Label           <== `::` @name @`::`
+Return          <== `return` (expr (`,` @expr)*)?
+Break           <== `break`
+Continue        <== `continue`
+Goto            <== `goto` @name
+Do              <== `do` Block @`end`
+Defer           <== `defer` Block @`end`
+While           <== `while` @expr @`do` Block @`end`
+Repeat          <== `repeat` Block @`until` @expr
+If              <== `if` ifs (`else` Block)? @`end`
+ifs             <-| @expr @`then` Block (`elseif` @expr @`then` Block)*
+Switch          <== `switch` @expr `do`? @cases (`else` Block)? @`end`
+cases           <-| (`case` @exprs @`then` Block)+
+for             <-- `for` (ForNum / ForIn)
+ForNum          <== IdDecl `=` @expr @`,` forcmp~? @expr (`,` @expr)~? @`do` Block @`end`
+ForIn           <== @iddecls @`in` @exprs @`do` Block @`end`
+local           <-- `local` (localfunc / localvar)
+global          <-- `global` (globalfunc / globalvar)
+localfunc  : FuncDef  <== `function` $'local' @namedecl @funcbody
+globalfunc : FuncDef  <== `function` $'global' @namedecl @funcbody
+FuncDef         <== `function` $false @funcname @funcbody
+funcbody        <-- `(` funcargs @`)` (`:` @funcrets)~? annots~? Block @`end`
+localvar   : VarDecl  <== $'local' @iddecls (`=` @exprs)?
+globalvar  : VarDecl  <== $'global' @globaldecls (`=` @exprs)?
+Assign          <== vars `=` @exprs
+Preprocess      <== PREPROCESS SKIP
+
+-- Simple expressions
+Number          <== NUMBER name? SKIP
+String          <== STRING name? SKIP
+Boolean         <== `true`->totrue / `false`->tofalse
+Nil             <== `nil`
+Varargs         <== `...`
+Id              <== name
+IdDecl          <== name (`:` @typeexpr)~? annots?
+typeddecl  : IdDecl <== name `:` @typeexpr annots?
+globaldecl : IdDecl <== (idsuffixed / name) (`:` @typeexpr)~? annots?
+namedecl   : IdDecl <== name
+Function        <== `function` @funcbody
+InitList        <== `{` (field (fieldsep field)* fieldsep?)? @`}`
+field           <-- Pair / expr
+Paren           <== `(` @expr @`)`
+DoExpr          <== `(` `do` Block @`end` @`)`
+Type            <== `@` @typeexpr
+
+Pair            <== `[` @expr @`]` @`=` @expr / name `=` @expr / `=` @Id -> pair_sugar
+Annotation      <== name callargs?
+
+-- Preprocessor replaceable nodes
+PreprocessExpr  <== `#[` {@expr->0} @`]#`
+PreprocessName  <== `#|` {@expr->0} @`|#`
+
+-- Suffixes
+Call            <== callargs
+CallMethod      <== `:` @name @callargs
+DotIndex        <== `.` @name
+ColonIndex      <== `:` @name
+KeyIndex        <== `[` @expr @`]`
+
+indexsuffix     <-- DotIndex / KeyIndex
+callsuffix      <-- Call / CallMethod
+
+var             <-- (exprprim (indexsuffix / callsuffix+ indexsuffix)+)~>rfoldright / Id / deref
+call            <-- (exprprim (callsuffix / indexsuffix+ callsuffix)+)~>rfoldright
+exprsuffixed    <-- (exprprim (indexsuffix / callsuffix)*)~>rfoldright
+idsuffixed      <-- (Id DotIndex+)~>rfoldright
+funcname        <-- (Id DotIndex* ColonIndex?)~>rfoldright
+
+-- Lists
+callargs        <-| `(` (expr (`,` @expr)*)? @`)` / InitList / String / PreprocessExpr
+iddecls         <-| IdDecl (`,` @IdDecl)*
+funcargs        <-| (IdDecl (`,` IdDecl)* (`,` VarargsType)? / VarargsType)?
+globaldecls     <-| globaldecl (`,` @globaldecl)*
+exprs           <-| expr (`,` @expr)*
+annots          <-| `<` @Annotation (`,` @Annotation)* @`>`
+funcrets        <-| `(` typeexpr (`,` @typeexpr)* @`)` / typeexpr
+vars            <-| var (`,` @var)*
+
+-- Expression operators
+opor      : BinaryOp  <== `or`->'or' @exprand
+opand     : BinaryOp  <== `and`->'and' @exprcmp
+opcmp     : BinaryOp  <== cmp @exprbor
+opbor     : BinaryOp  <== `|`->'bor' @exprbxor
+opbxor    : BinaryOp  <== `~`->'bxor' @exprband
+opband    : BinaryOp  <== `&`->'band' @exprbshift
+opbshift  : BinaryOp  <== (`<<`->'shl' / `>>>`->'asr' / `>>`->'shr') @exprconcat
+opconcat  : BinaryOp  <== `..`->'concat' @exprconcat
+oparit    : BinaryOp  <== (`+`->'add' / `-`->'sub') @exprfact
+opfact    : BinaryOp  <== (`*`->'mul' / `///`->'tdiv' / `//`->'idiv' / `/`->'div' /
+                           `%%%`->'tmod' / `%`->'mod') @exprunary
+oppow     : BinaryOp  <== `^`->'pow' @exprunary
+opunary   : UnaryOp   <== (`not`->'not' / `-`->'unm' / `#`->'len' /
+                           `~`->'bnot' / `&`->'ref' / `$`->'deref') @exprunary
+deref     : UnaryOp   <== `$`->'deref' @exprunary
+
+-- Expressions
+expr            <-- expror
+expror          <-- (exprand opor*)~>foldleft
+exprand         <-- (exprcmp opand*)~>foldleft
+exprcmp         <-- (exprbor opcmp*)~>foldleft
+exprbor         <-- (exprbxor opbor*)~>foldleft
+exprbxor        <-- (exprband opbxor*)~>foldleft
+exprband        <-- (exprbshift opband*)~>foldleft
+exprbshift      <-- (exprconcat opbshift*)~>foldleft
+exprconcat      <-- (exprarit opconcat*)~>foldleft
+exprarit        <-- (exprfact oparit*)~>foldleft
+exprfact        <-- (exprunary opfact*)~>foldleft
+exprunary       <-- opunary / exprpow
+exprpow         <-- (exprsimple oppow*)~>foldleft
+exprsimple      <-- Number / String / Type / InitList / Boolean /
+                    Function / Nil / DoExpr / Varargs / exprsuffixed
+exprprim        <-- Id / Paren / PreprocessExpr
+
+-- Types
+RecordType      <== 'record' WORDSKIP @`{` (RecordField (fieldsep RecordField)* fieldsep?)? @`}`
+UnionType       <== 'union' WORDSKIP @`{` (UnionField (fieldsep UnionField)* fieldsep?)? @`}`
+EnumType        <== 'enum' WORDSKIP (`(` @typeexpr @`)`)~? @`{` @enumfields @`}`
+FuncType        <== 'function' WORDSKIP @`(` functypeargs @`)`(`:` @funcrets)?
+ArrayType       <== 'array' WORDSKIP @`(` @typeexpr (`,` @expr)? @`)`
+PointerType     <== 'pointer' WORDSKIP (`(` @typeexpr @`)`)?
+VariantType     <== 'variant' WORDSKIP `(` @typearg (`,` @typearg)* @`)`
+VarargsType     <== `...` (`:` @name)?
+
+RecordField     <== name @`:` @typeexpr
+UnionField      <== name `:` @typeexpr / $false typeexpr
+EnumField       <== name (`=` @expr)?
+
+-- Type lists
+enumfields      <-| EnumField (fieldsep EnumField)* fieldsep?
+functypeargs    <-| (functypearg (`,` functypearg)* (`,` VarargsType)? / VarargsType)?
+typeargs        <-| typearg (`,` @typearg)*
+
+functypearg     <-- typeddecl / typeexpr
+typearg         <-- typeexpr / `(` expr @`)` / expr
+
+-- Type expression operators
+typeopptr : PointerType   <== `*`
+typeopopt : OptionalType  <== `?`
+typeoparr : ArrayType     <== `[` expr? @`]`
+typeopvar : VariantType   <== typevaris
+typeopgen : GenericType   <== `(` @typeargs @`)`
+typevaris : VariantType   <== `|` @typeexprunary (`|` @typeexprunary)*
+
+typeopunary     <-- typeopptr / typeopopt / typeoparr
+
+-- Type expressions
+typeexpr        <-- (typeexprunary typevaris?)~>foldleft
+typeexprunary   <-- (typeopunary* typexprsimple)->rfoldleft
+typexprsimple   <-- RecordType / UnionType / EnumType / FuncType / ArrayType / PointerType /
+                    VariantType / (typeexprprim typeopgen?)~>foldleft
+typeexprprim    <-- idsuffixed / Id / PreprocessExpr
+
+-- Common rules
+name            <-- NAME SKIP / PreprocessName
+cmp             <-- `==`->'eq' / forcmp
+forcmp          <-- `~=`->'ne' / `<=`->'le' / `<`->'lt' / `>=`->'ge' / `>`->'gt'
+fieldsep        <-- `,` / `;`
+
+-- String
+STRING          <-- STRING_SHRT / STRING_LONG
+STRING_LONG     <-- {:LONG_OPEN {LONG_CONTENT} @LONG_CLOSE:}
+STRING_SHRT     <-- {:QUOTE_OPEN {~QUOTE_CONTENT~} @QUOTE_CLOSE:}
+QUOTE_OPEN      <-- {:qe: ['"] :}
+QUOTE_CONTENT   <-- (ESCAPE_SEQ / !(QUOTE_CLOSE / LINEBREAK) .)*
+QUOTE_CLOSE     <-- =qe
+ESCAPE_SEQ      <-- '\'->'' @ESCAPE
+ESCAPE          <-- [\'"] /
+                    ('n' $10 / 't' $9 / 'r' $13 / 'a' $7 / 'b' $8 / 'v' $11 / 'f' $12)->tochar /
+                    ('x' {HEX_DIGIT^2} $16)->tochar /
+                    ('u' '{' {HEX_DIGIT^+1} '}' $16)->toutf8char /
+                    ('z' SPACE*)->'' /
+                    (DEC_DIGIT DEC_DIGIT^-1 !DEC_DIGIT / [012] DEC_DIGIT^2)->tochar /
+                    (LINEBREAK $10)->tochar
+
+-- Number
+NUMBER          <-- {HEX_NUMBER / BIN_NUMBER / DEC_NUMBER}
+HEX_NUMBER      <-- '0' [xX] @HEX_PREFIX ([pP] @EXP_DIGITS)?
+BIN_NUMBER      <-- '0' [bB] @BIN_PREFIX ([pP] @EXP_DIGITS)?
+DEC_NUMBER      <-- DEC_PREFIX ([eE] @EXP_DIGITS)?
+HEX_PREFIX      <-- HEX_DIGIT+ ('.' HEX_DIGIT*)? / '.' HEX_DIGIT+
+BIN_PREFIX      <-- BIN_DIGITS ('.' BIN_DIGITS?)? / '.' BIN_DIGITS
+DEC_PREFIX      <-- DEC_DIGIT+ ('.' DEC_DIGIT*)? / '.' DEC_DIGIT+
+EXP_DIGITS      <-- [+-]? DEC_DIGIT+
+
+-- Comments
+COMMENT         <-- '--' (COMMENT_LONG / COMMENT_SHRT)
+COMMENT_LONG    <-- (LONG_OPEN LONG_CONTENT @LONG_CLOSE)->0
+COMMENT_SHRT    <-- (!LINEBREAK .)*
+
+-- Preprocess
+PREPROCESS      <-- '##' (PREPROCESS_LONG / PREPROCESS_SHRT)
+PREPROCESS_LONG <-- {:LONG_OPEN {LONG_CONTENT} @LONG_CLOSE:}
+PREPROCESS_SHRT <-- {(!LINEBREAK .)*} LINEBREAK?
+
+-- Long (used by string, comment and preprocess)
+LONG_CONTENT    <-- (!LONG_CLOSE .)*
+LONG_OPEN       <-- '[' {:eq: '='*:} '[' LINEBREAK?
+LONG_CLOSE      <-- ']' =eq ']'
+
+NAME            <-- !KEYWORD {NAME_PREFIX NAME_SUFFIX?}
+NAME_PREFIX     <-- [_a-zA-Z%utf8seq]
+NAME_SUFFIX     <-- [_a-zA-Z0-9%utf8seq]+
+
+-- Miscellaneous
+SHEBANG         <-- '#!' (!LINEBREAK .)* LINEBREAK?
+SKIP            <-- (SPACE+ / COMMENT)*
+WORDSKIP        <-- !NAME_SUFFIX SKIP
+LINEBREAK       <-- %cn %cr / %cr %cn / %cn / %cr
+SPACE           <-- %sp
+HEX_DIGIT       <-- [0-9a-fA-F]
+BIN_DIGITS      <-- [01]+ !DEC_DIGIT
+DEC_DIGIT       <-- [0-9]
+EXTRA_TOKENS    <-- `[[` `[=` `--` `##` -- Force defining these tokens.
+]==]
+
+-- List of syntax errors.
+local syntax_errors = {
+["Expected_do"]             = "expected `do` keyword to begin a statement block",
+["Expected_then"]           = "expected `then` keyword to begin a statement block",
+["Expected_end"]            = "expected `end` keyword to close a statement block",
+["Expected_until"]          = "expected `until` keyword to close a `repeat` statement",
+["Expected_cases"]          = "expected `case` keyword in `switch` statement",
+["Expected_in"]             = "expected `in` keyword in `for` statement",
+["Expected_Annotation"]     = "expected an annotation expression",
+["Expected_expr"]           = "expected an expression",
+["Expected_exprand"]        = "expected an expression after operator",
+["Expected_exprcmp"]        = "expected an expression after operator",
+["Expected_exprbor"]        = "expected an expression after operator",
+["Expected_exprbxor"]       = "expected an expression after operator",
+["Expected_exprband"]       = "expected an expression after operator",
+["Expected_exprbshift"]     = "expected an expression after operator",
+["Expected_exprconcat"]     = "expected an expression after operator",
+["Expected_exprfact"]       = "expected an expression after operator",
+["Expected_exprunary"]      = "expected an expression after operator",
+["Expected_name"]           = "expected an identifier name",
+["Expected_namedecl"]       = "expected an identifier name",
+["Expected_Id"]             = "expected an identifier name",
+["Expected_IdDecl"]         = "expected an identifier declaration",
+["Expected_typearg"]        = "expected an argument in type expression",
+["Expected_typeexpr"]       = "expected a type expression",
+["Expected_typeexprunary"]  = "expected a type expression",
+["Expected_funcbody"]       = "expected function body",
+["Expected_funcrets"]       = "expected function return types",
+["Expected_funcname"]       = "expected a function name",
+["Expected_globaldecl"]     = "expected a global identifier declaration",
+["Expected_var"]            = "expected a variable",
+["Expected_enumfields"]     = "expected a field in `enum` type",
+["Expected_typeargs"]       = "expected arguments in type expression",
+["Expected_callargs"]       = "expected call arguments",
+["Expected_exprs"]          = "expected expressions",
+["Expected_globaldecls"]    = "expected global identifiers declaration",
+["Expected_iddecls"]        = "expected identifiers declaration",
+["Expected_("]              = "expected parenthesis `(`",
+["Expected_,"]              = "expected comma `,`",
+["Expected_:"]              = "expected colon `:`",
+["Expected_="]              = "expected equals `=`",
+["Expected_{"]              = "expected curly brace `{`",
+["Expected_)"]              = "unclosed parenthesis, did you forget a `)`?",
+["Expected_::"]             = "unclosed label, did you forget a `::`?",
+["Expected_>"]              = "unclosed angle bracket, did you forget a `>`?",
+["Expected_]"]              = "unclosed square bracket, did you forget a `]`?",
+["Expected_}"]              = "unclosed curly brace, did you forget a `}`?",
+["Expected_]#"]             = "unclosed preprocess expression, did you forget a `]#`?",
+["Expected_|#"]             = "unclosed preprocess name, did you forget a `|#`?",
+["Expected_LONG_CLOSE"]     = "unclosed long, did you forget a `]]`?",
+["Expected_QUOTE_CLOSE"]    = "unclosed string, did you forget a quote?",
+["Expected_ESCAPE"]         = "malformed escape sequence",
+["Expected_BIN_PREFIX"]     = "malformed binary number",
+["Expected_EXP_DIGITS"]     = "malformed exponential number",
+["Expected_HEX_PREFIX"]     = "malformed hexadecimal number",
+["UnexpectedSyntax"]        = "unexpected syntax",
+}
+
+local defs = {}
+
+-- Auxiliary function for 'Pair' syntax sugar.
+function defs.pair_sugar(idnode)
+  return idnode[1], idnode
 end
 
-return memoize(get_parser)
+-- Define AST nodes, as they are required when parsing.
+require 'nelua.astdefs'
+
+-- Set current aster syntax for parsing.
+require 'nelua.aster'.set_syntax(grammar, syntax_errors, defs)

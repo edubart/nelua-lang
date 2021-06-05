@@ -48,17 +48,14 @@ end)
 
 it("print correct generated AST" , function()
   expect.run('--print-ast examples/helloworld.nelua', [[Block {
-  {
-    Call {
-      {
-        String {
-          "hello world",
-          nil
-        }
-      },
-      Id {
-        "print"
+  Call {
+    {
+      String {
+        "hello world"
       }
+    },
+    Id {
+      "print"
     }
   }
 }]])

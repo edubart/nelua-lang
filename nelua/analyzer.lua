@@ -13,6 +13,7 @@ local builtins = require 'nelua.builtins'
 local config = require 'nelua.configer'.get()
 local console = require 'nelua.utils.console'
 local nanotimer = require 'nelua.utils.nanotimer'
+local aster = require 'nelua.aster'
 local analyzer = {}
 local luatype = type
 
@@ -24,8 +25,8 @@ local function emptynext() end
 
 function visitors.Number(_, node)
   local attr = node.attr
-  local base, int, frac, exp, literal = node[1], node[2], node[3], node[4], node[5]
-  local value = bn.from(base, int, frac, exp)
+  local num, literal = node[1], node[2]
+  local value, base = bn.from(num)
   if not literal then
     local desiredtype = node.desiredtype
     -- if the parent node needs an unsigned or float type, we want to use it
@@ -35,13 +36,13 @@ function visitors.Number(_, node)
       attr.type = desiredtype
     else
       attr.untyped = true
-      if not (frac or exp) then -- no exponents or fractional part
-        if base ~= 'dec' then
+      if bn.isintegral(value) then
+        if base ~= 10 then
           -- the value may still be out range here, but will be wrapped later
           attr.type = primtypes.integer
         elseif primtypes.integer:is_inrange(value) then
           attr.type = primtypes.integer
-        else
+        else -- value is too large to fit integer type
           attr.type = primtypes.number
         end
       else
@@ -56,7 +57,7 @@ function visitors.Number(_, node)
     if not type:is_inrange(value) then
       node:raisef("value `%s` for literal type `%s` is out of range, "..
         "the minimum is `%s` and maximum is `%s`",
-        value:todec(), type, type.min:todec(), type.max:todec())
+        value:todecint(), type, type.min:todecint(), type.max:todecint())
     end
     attr.type = type
   end
@@ -118,16 +119,15 @@ function visitors.Varargs(context, node)
   local polyeval = context.state.inpolyeval
   if polyeval and polyeval.varargsnodes then
     -- transform function, replacing Varargs nodes with Id nodes
-    local unpacktags = {Call=true, CallMethod=true, VarDecl=true, Assign=true, Return=true, InitializerList=true}
+    local unpacktags = {Call=true, CallMethod=true, VarDecl=true, Assign=true, Return=true, InitList=true}
     local parent2 = context:get_parent_node(1)
     local nvarargs = #polyeval.varargsnodes
-    local n = context.parser.astbuilder.aster
     for varargsnode, parent1, parent1i in parent2:walk_nodes() do
       if varargsnode == node then
         if unpacktags[parent2.tag] then -- unpack arguments
           if nvarargs > 0 then
             for j=1,nvarargs do
-              parent1[parent1i+j-1] = n.Id{'__arg'..j}
+              parent1[parent1i+j-1] = aster.Id{'__arg'..j}
             end
           else
             parent1[parent1i] = nil
@@ -135,9 +135,9 @@ function visitors.Varargs(context, node)
           end
         else -- replace with just the first argument
           if nvarargs > 0 then
-            parent1[parent1i] = n.Id{'__arg1'}
+            parent1[parent1i] = aster.Id{'__arg1'}
           else
-            parent1[parent1i] = n.Nil{}
+            parent1[parent1i] = aster.Nil{}
           end
         end
         local newnode = parent1[parent1i]
@@ -213,9 +213,8 @@ local function visitor_convert(context, parent, parentindex, vartype, valnode, v
     return valnode, valtype
   end
   objsym = objtype.symbol
-  local n = context.parser.astbuilder.aster
-  local idnode = n.Id{objsym.name, pattr={forcesymbol=objsym}}
-  local newvalnode = n.Call{{valnode}, n.DotIndex{'__convert', idnode}}
+  local idnode = aster.Id{objsym.name, pattr={forcesymbol=objsym}}
+  local newvalnode = aster.Call{{valnode}, aster.DotIndex{'__convert', idnode}}
   newvalnode.src = valnode.src
   newvalnode.pos = valnode.pos
   newvalnode.endpos = valnode.endpos
@@ -229,7 +228,7 @@ end
 
 local function visitor_Array_literal(context, node, littype)
   local attr = node.attr
-  local childnodes = node[1]
+  local childnodes = node
   local subtype = littype.subtype
   if not (#childnodes <= littype.length or #childnodes == 0) then
     node:raisef("expected at most %d values in array literal but got %d", littype.length, #childnodes)
@@ -281,7 +280,7 @@ end
 
 local function visitor_Record_literal(context, node, littype)
   local attr = node.attr
-  local childnodes = node[1]
+  local childnodes = node
   local comptime = true
   local lastfieldindex = 0
   local done = true
@@ -360,7 +359,7 @@ end
 
 local function visitor_Union_literal(context, node, littype)
   local attr = node.attr
-  local childnodes = node[1]
+  local childnodes = node
   local done = true
   local comptime = true
   local sideeffect
@@ -423,20 +422,20 @@ end
 
 local function visitor_Table_literal(context, node)
   local attr = node.attr
-  local childnodes = node[1]
+  local childnodes = node
   context:traverse_nodes(childnodes)
   attr.type = primtypes.table
   attr.node = node
 end
 
-function visitors.InitializerList(context, node)
+function visitors.InitList(context, node)
   local desiredtype = node.desiredtype or node.attr.desiredtype
   node.attr.literal = true
   if desiredtype then
     local objtype = desiredtype:implicit_deref_type()
     if objtype.is_record and objtype.choose_initializerlist_type then
       local err
-      desiredtype, err = objtype.choose_initializerlist_type(node[1])
+      desiredtype, err = objtype.choose_initializerlist_type(node)
       if not traits.is_type(desiredtype) then
         node:raisef("failed initialize record '%s' from braces: %s",
           objtype, err or 'choose_initializerlist_type failed')
@@ -513,19 +512,21 @@ function visitors.Annotation(context, node, symbol)
   end
 
   local argnodes = node[2]
-  context:traverse_nodes(argnodes)
 
   local params = {}
-  for i=1,#argnodes do
-    local param = argnodes[i].attr.value
-    if bn.isnumeric(param) then
-      param = param:tointeger()
+  if argnodes then
+    context:traverse_nodes(argnodes)
+    for i=1,#argnodes do
+      local param = argnodes[i].attr.value
+      if bn.isnumeric(param) then
+        param = param:tointeger()
+      end
+      params[i] = param
     end
-    params[i] = param
   end
 
   if paramshape == true then
-    if #argnodes ~= 0 then
+    if argnodes and #argnodes ~= 0 then
       node:raisef("annotation '%s' takes no arguments", name)
     end
     params = true
@@ -707,7 +708,7 @@ function visitors.Paren(context, node, ...)
   return ret
 end
 
-function visitors.TypeInstance(context, node, symbol)
+function visitors.Type(context, node, symbol)
   local typenode = node[1]
   context:push_state{intypeexpr = true}
   context:traverse_node(typenode, symbol)
@@ -744,7 +745,9 @@ function visitors.FuncType(context, node)
   local attr = node.attr
   local argnodes, retnodes = node[1], node[2]
   context:traverse_nodes(argnodes)
-  context:traverse_nodes(retnodes)
+  if retnodes then
+    context:traverse_nodes(retnodes)
+  end
   local argattrs = {}
   for i=1,#argnodes do
     local argnode = argnodes[i]
@@ -760,14 +763,19 @@ function visitors.FuncType(context, node)
     end
     argattrs[i] = argattr
   end
-  for i=1,#retnodes do
-    local retnode = retnodes[i]
-    local rettype = retnode.attr.value
-    if not traits.is_type(rettype) then
-      retnode:raisef("invalid type")
+  local rettypes
+  if retnodes then
+    for i=1,#retnodes do
+      local retnode = retnodes[i]
+      local rettype = retnode.attr.value
+      if not traits.is_type(rettype) then
+        retnode:raisef("invalid type")
+      end
     end
+    rettypes = types.typenodes_to_types(retnodes)
+  else
+    rettypes = {}
   end
-  local rettypes = types.typenodes_to_types(retnodes)
   local type = types.FunctionType(argattrs, rettypes, node)
   type.sideeffect = true
   attr.type = primtypes.type
@@ -775,7 +783,7 @@ function visitors.FuncType(context, node)
   node.done = true
 end
 
-function visitors.RecordFieldType(context, node, recordtype)
+function visitors.RecordField(context, node, recordtype)
   local attr = node.attr
   local name, typenode = node[1], node[2]
   context:traverse_node(typenode)
@@ -813,13 +821,13 @@ function visitors.RecordType(context, node, symbol)
     context:choose_type_symbol_names(symbol)
     recordtype.symbol = symbol
   end
-  local fieldnodes = node[1]
+  local fieldnodes = node
   context:traverse_nodes(fieldnodes, recordtype)
   recordtype:update_fields()
   node.done = true
 end
 
-function visitors.UnionFieldType(context, node, uniontype)
+function visitors.UnionField(context, node, uniontype)
   local attr = node.attr
   local name, typenode = node[1], node[2]
   context:traverse_node(typenode)
@@ -847,7 +855,7 @@ function visitors.UnionType(context, node, symbol)
     uniontype = types.UnionType({}, node)
     uniontype.size = nil -- size is unknown yet
   end
-  local fieldnodes = node[1]
+  local fieldnodes = node
   for i=1,#fieldnodes do
     local fnode = fieldnodes[i]
     context:traverse_node(fnode, uniontype)
@@ -866,7 +874,7 @@ function visitors.OptionalType(_, node)
   node:raisef("optional type not implemented yet")
 end
 
-function visitors.EnumFieldType(context, node)
+function visitors.EnumField(context, node)
   local name, numnode = node[1], node[2]
   local field = Attr{name = name}
   if numnode then
@@ -916,7 +924,7 @@ function visitors.EnumType(context, node)
     end
     if not subtype:is_inrange(field.value) then
       fnode:raisef("in enum field '%s': value %s is out of range for type '%s'",
-        field.name, field.value:todec(), subtype)
+        field.name, field.value:todecint(), subtype)
     end
     assert(field.name)
     fields[i] = field
@@ -957,10 +965,10 @@ function visitors.ArrayType(context, node)
     local varnodes, valnodes = vardeclnode[2], vardeclnode[3]
     local varindex = tabler.ifind(varnodes, iddeclnode)
     local valnode = valnodes and valnodes[varindex]
-    if not (valnode and valnode.tag == 'InitializerList') then
+    if not (valnode and valnode.tag == 'InitList') then
       node:raisef("can only infer array size for braces initialized declarations")
     end
-    length = #valnode[1]
+    length = #valnode
   end
   local type = types.ArrayType(subtype, length, node)
   type.node = node
@@ -993,6 +1001,8 @@ end
 function visitors.GenericType(context, node)
   local attr = node.attr
   local name, argnodes = node[1], node[2]
+  assert(name.tag == 'Id')
+  name = name[1]
   local generic_type
   local symbol = context.scope.symbols[name]
   if not symbol then
@@ -1640,7 +1650,7 @@ end
 visitors.DotIndex = visitor_FieldIndex
 visitors.ColonIndex = visitor_FieldIndex
 
-local function visitor_Array_ArrayIndex(context, node, objtype, _, indexnode)
+local function visitor_Array_KeyIndex(context, node, objtype, _, indexnode)
   local attr = node.attr
   local indexattr = indexnode.attr
   local indextype = indexattr.type
@@ -1650,11 +1660,11 @@ local function visitor_Array_ArrayIndex(context, node, objtype, _, indexnode)
       local indexvalue = indexattr.value
       if indexvalue then
         if bn.isneg(indexvalue) then
-          indexnode:raisef("cannot index negative value %s", bn.todec(indexvalue))
+          indexnode:raisef("cannot index negative value %s", indexvalue)
         end
         if objtype.is_array and objtype.length ~= 0 and not (indexvalue < bn.new(objtype.length)) then
           indexnode:raisef("index %s is out of bounds, array maximum index is %d",
-            indexvalue:todec(), objtype.length - 1)
+            indexvalue:todecint(), objtype.length - 1)
         end
         checked = true
       end
@@ -1668,7 +1678,7 @@ local function visitor_Array_ArrayIndex(context, node, objtype, _, indexnode)
   end
 end
 
-local function visitor_Record_ArrayIndex(context, node, objtype, objnode, indexnode)
+local function visitor_Record_KeyIndex(context, node, objtype, objnode, indexnode)
   local attr = node.attr
   local indexsym = objtype.metafields.__index
   local indexretype
@@ -1695,7 +1705,7 @@ local function visitor_Record_ArrayIndex(context, node, objtype, objnode, indexn
   end
 end
 
-function visitors.ArrayIndex(context, node)
+function visitors.KeyIndex(context, node)
   local indexnode, objnode = node[1], node[2]
   context:traverse_node(indexnode)
   context:traverse_node(objnode)
@@ -1710,9 +1720,9 @@ function visitors.ArrayIndex(context, node)
   if objtype then
     objtype = objtype:implicit_deref_type()
     if objtype.is_array then
-      visitor_Array_ArrayIndex(context, node, objtype, objnode, indexnode)
+      visitor_Array_KeyIndex(context, node, objtype, objnode, indexnode)
     elseif objtype.is_record then
-      visitor_Record_ArrayIndex(context, node, objtype, objnode, indexnode)
+      visitor_Record_KeyIndex(context, node, objtype, objnode, indexnode)
     elseif objtype.is_table or objtype.is_any then
       attr.type = primtypes.any
     else
@@ -1756,7 +1766,7 @@ function visitors.Block(context, node)
     end
   end
 
-  local statnodes = node[1]
+  local statnodes = node
 
   if #statnodes > 0 or not node.scope then
     local scope
@@ -1789,9 +1799,8 @@ end
 function visitors.If(context, node)
   local ifpairs, elsenode = node[1], node[2]
   local done = true
-  for i=1,#ifpairs do
-    local ifpair = ifpairs[i]
-    local ifcondnode, ifblocknode = ifpair[1], ifpair[2]
+  for i=1,#ifpairs,2 do
+    local ifcondnode, ifblocknode = ifpairs[i], ifpairs[i+1]
     ifcondnode.desiredtype = primtypes.boolean
     ifcondnode.attr.inconditional = true
     context:traverse_node(ifcondnode)
@@ -1806,7 +1815,7 @@ function visitors.If(context, node)
 end
 
 function visitors.Switch(context, node)
-  local valnode, caseparts, elsenode = node[1], node[2], node[3]
+  local valnode, casepairs, elsenode = node[1], node[2], node[3]
   context:traverse_node(valnode)
   local scope = context:push_forked_cleaned_scope(node)
   scope.is_switch = true
@@ -1817,9 +1826,8 @@ function visitors.Switch(context, node)
       valtype)
   end
   local done = true
-  for i=1,#caseparts do
-    local casepart = caseparts[i]
-    local caseexprs, caseblock = casepart[1], casepart[2]
+  for i=1,#casepairs,2 do
+    local caseexprs, caseblock = casepairs[i], casepairs[i+1]
 
     for j=1,#caseexprs do
       local casenode = caseexprs[j]
@@ -2008,45 +2016,43 @@ function visitors.ForIn(context, node)
       context:pop_scope()
     until resolutions_count == 0
   else -- on other backends must implement using while loops
-    local n = context.parser.astbuilder.aster
-
     -- build extra nodes for the extra iterating values
     local itvardeclnodes = {}
     local itvaridnodes = {}
     for i=1,#itvarnodes-1 do
       local itvarnode = itvarnodes[i+1]
       itvardeclnodes[i] = itvarnode
-      itvaridnodes[i] = n.Id{itvarnode[1], pattr={noinit=true}}
+      itvaridnodes[i] = aster.Id{itvarnode[1], pattr={noinit=true}}
     end
 
     -- replace the for in node with a while loop
-    local newnode = n.Do{n.Block{{
-      n.VarDecl{'local', {
-          n.IdDecl{'__fornext'},
-          n.IdDecl{'__forstate'},
-          n.IdDecl{'__forit'}
+    local newnode = aster.Do{aster.Block{
+      aster.VarDecl{'local', {
+          aster.IdDecl{'__fornext'},
+          aster.IdDecl{'__forstate'},
+          aster.IdDecl{'__forit'}
         },
         inexpnodes
       },
-      n.While{n.Boolean{true}, n.Block{{
-        n.VarDecl{'local', tabler.insertvalues({
-          n.IdDecl{'__forcont', pattr={noinit=true}}
+      aster.While{aster.Boolean{true}, aster.Block{
+        aster.VarDecl{'local', tabler.insertvalues({
+          aster.IdDecl{'__forcont', pattr={noinit=true}}
         }, itvardeclnodes)},
-        n.Assign{
+        aster.Assign{
           tabler.insertvalues({
-            n.Id{'__forcont'},
-            n.Id{'__forit'}
+            aster.Id{'__forcont'},
+            aster.Id{'__forit'}
           }, itvaridnodes), {
-            n.Call{{n.Id{'__forstate'}, n.Id{'__forit'}}, n.Id{'__fornext'}}
+            aster.Call{{aster.Id{'__forstate'}, aster.Id{'__forit'}}, aster.Id{'__fornext'}}
           }
         },
-        n.If{{{n.UnaryOp{'not', n.Id{'__forcont'}}, n.Block{{
-          n.Break{}
-        }}}}},
-        n.VarDecl{'local', {itvarnodes[1]}, {n.Id{'__forit'}}},
-        n.Do{blocknode}
-      }}}
-    }}}
+        aster.If{{aster.UnaryOp{'not', aster.Id{'__forcont'}}, aster.Block{
+          aster.Break{}
+        }}},
+        aster.VarDecl{'local', {itvarnodes[1]}, {aster.Id{'__forit'}}},
+        aster.Do{blocknode}
+      }}
+    }}
     node:transform(newnode)
     context:traverse_node(node)
   end
@@ -2109,7 +2115,7 @@ function visitors.Goto(context, node)
 end
 
 function visitors.VarDecl(context, node)
-  local varscope, varnodes, valnodes = node[1], node[2], node[3]
+  local declscope, varnodes, valnodes = node[1], node[2], node[3]
   local assigning = not not valnodes
   valnodes = valnodes or {}
   if #varnodes < #valnodes then
@@ -2118,13 +2124,13 @@ function visitors.VarDecl(context, node)
   end
   for i,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
     varnode.attr.vardecl = true
-    if varscope == 'global' then
+    if declscope == 'global' then
       if not context.scope.is_topscope then
         varnode:raisef("global variables can only be declared in top scope")
       end
       varnode.attr.global = true
     end
-    if varscope == 'global' or context.scope.is_topscope then
+    if declscope == 'global' or context.scope.is_topscope then
       varnode.attr.staticstorage = true
     end
     if context.pragmas.nostatic then
@@ -2133,7 +2139,7 @@ function visitors.VarDecl(context, node)
     local symbol = context:traverse_node(varnode)
     assert(symbol)
     local inscope = false
-    if valnode and valnode.tag == 'TypeInstance' then
+    if valnode and valnode.tag == 'Type' then
       symbol.scope:add_symbol(symbol)
       inscope = true
     end
@@ -2311,7 +2317,7 @@ function visitors.Assign(context, node)
 end
 
 function visitors.Return(context, node)
-  local retnodes = node[1]
+  local retnodes = node
   context:traverse_nodes(retnodes)
   local funcscope = context.scope:get_up_return_scope() or context.rootscope
   if funcscope.rettypes then
@@ -2351,7 +2357,7 @@ function visitors.Return(context, node)
       end
     end
     node.done = done
-  else
+  elseif retnodes then
     for i,_,rettype in iargnodes(retnodes) do
       funcscope:add_return_type(i, rettype)
     end
@@ -2359,7 +2365,7 @@ function visitors.Return(context, node)
 end
 
 local function block_endswith_return(blocknode)
-  local statnodes = blocknode[1]
+  local statnodes = blocknode
   local laststat = statnodes[#statnodes]
   if not laststat then return false end
   local laststattag = laststat.tag
@@ -2379,16 +2385,25 @@ local function block_endswith_return(blocknode)
     return false
   elseif laststattag == 'Do' then
     return block_endswith_return(laststat[1])
-  elseif laststattag == 'Switch' or laststattag == 'If' then
-    local n = laststat.nargs
-    local laststatpairs = laststat[n-1]
-    for i=1,#laststatpairs do
-      local pair = laststatpairs[i]
-      if not block_endswith_return(pair[2]) then
+  elseif laststattag == 'If' then
+    local pairs, elseblock = laststat[1], laststat[2]
+    for i=1,#pairs,2 do
+      local block = pairs[i+1]
+      if not block_endswith_return(block) then
         return false
       end
     end
-    local elseblock = laststat[n]
+    if elseblock then
+      return block_endswith_return(elseblock)
+    end
+  elseif laststattag == 'Switch' then
+    local pairs, elseblock = laststat[2], laststat[3]
+    for i=1,#pairs,2 do
+      local block = pairs[i+1]
+      if not block_endswith_return(block) then
+        return false
+      end
+    end
     if elseblock then
       return block_endswith_return(elseblock)
     end
@@ -2420,9 +2435,9 @@ function visitors.DoExpr(context, node)
     if not block_endswith_return(blocknode) then
       node:raisef("a return statement is missing inside do expression block")
     end
-    local firstnode = blocknode[1][1]
+    local firstnode = blocknode[1]
     if firstnode.tag == 'Return' then -- forward attr from first expression
-      local exprattr = firstnode[1][1].attr
+      local exprattr = firstnode[1].attr
       attr.sideeffect = exprattr.sideeffect
       attr.comptime = exprattr.comptime
       attr.untyped = exprattr.untyped
@@ -2450,15 +2465,15 @@ function visitors.DoExpr(context, node)
   end
 end
 
-local function visitor_FuncDef_variable(context, scopekind, varnode)
-  local decl = scopekind ~= nil
-  if scopekind == 'global' then
+local function visitor_FuncDef_variable(context, declscope, varnode)
+  local decl = not not declscope
+  if declscope == 'global' then
     if not context.scope.is_topscope then
       varnode:raisef("global function can only be declared in top scope")
     end
     varnode.attr.global = true
   end
-  if scopekind == 'global' or context.scope.is_topscope or decl then
+  if declscope == 'global' or context.scope.is_topscope or decl then
     varnode.attr.staticstorage = true
   end
   if context.pragmas.nostatic then
@@ -2527,35 +2542,37 @@ local function visitor_function_returns(context, node, retnodes, ispolyparent)
   local funcscope = context.scope
   context:push_state{intypeexpr = true}
   local polyret = false
-  for i=1,#retnodes do
-    local retnode = retnodes[i]
-    if retnode.preprocess then -- must preprocess the return type
-      if ispolyparent then
-        -- skip parsing nodes that need preprocess in polymorphic function parent
-        retnode = nil
-        polyret = true
-      else
-        local ok, err = except.trycall(retnode.preprocess, retnodes, i)
-        if not ok then
-          if except.isexception(err) then
-            except.reraise(err)
-          else
-            retnode:raisef('error while preprocessing function return node: %s', err)
+  if retnodes then
+    for i=1,#retnodes do
+      local retnode = retnodes[i]
+      if retnode.preprocess then -- must preprocess the return type
+        if ispolyparent then
+          -- skip parsing nodes that need preprocess in polymorphic function parent
+          retnode = nil
+          polyret = true
+        else
+          local ok, err = except.trycall(retnode.preprocess, retnodes, i)
+          if not ok then
+            if except.isexception(err) then
+              except.reraise(err)
+            else
+              retnode:raisef('error while preprocessing function return node: %s', err)
+            end
           end
+          retnode = retnodes[i] -- the node may be overwritten
+          retnode.preprocess = nil
         end
-        retnode = retnodes[i] -- the node may be overwritten
-        retnode.preprocess = nil
       end
-    end
-    if retnode then
-      context:traverse_node(retnode)
+      if retnode then
+        context:traverse_node(retnode)
+      end
     end
   end
   context:pop_state()
   if not funcscope.rettypes then
     if polyret then
       funcscope.rettypes = {}
-    elseif #retnodes > 0 then -- return types is fixed by the user
+    elseif retnodes and #retnodes > 0 then -- return types is fixed by the user
       funcscope.rettypes = types.typenodes_to_types(retnodes)
     elseif ispolyparent or node.attr.cimport then
       funcscope.rettypes = {}
@@ -2574,7 +2591,7 @@ local function visitor_function_annotations(context, node, annotnodes, blocknode
   do -- handle attributes and annotations
     -- annotation cimport
     if attr.cimport then
-      if #blocknode[1] ~= 0 then
+      if #blocknode ~= 0 then
         blocknode:raisef("body of an import function must be empty")
       end
       if attr.codename == 'nelua_main' then
@@ -2629,7 +2646,6 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
       local polyevalargs = polyeval.args
       local nvarargs = 0
       local invarargs = false
-      local n = context.parser.astbuilder.aster
       local varargsnodes
       if symbol.type:has_varargs() and not polyeval.varargsnodes then
         varargsnodes = {}
@@ -2652,10 +2668,10 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
             value = polyevaltype,
           }
           local argname = '__arg'..nvarargs
-          polyargnode = n.IdDecl{argname, n.Id{'auto', pattr={forcesymbol=polyargtypesym}}}
+          polyargnode = aster.IdDecl{argname, aster.Id{'auto', pattr={forcesymbol=polyargtypesym}}}
           polyargnodes[j] = polyargnode
           if varargsnodes then
-            varargsnodes[nvarargs] = n.Id{argname, attr=Attr{type=polyevaltype}}
+            varargsnodes[nvarargs] = aster.Id{argname, attr=Attr{type=polyevaltype}}
           end
         elseif polyargnode then
           local polyargattr = polyargnode.attr
@@ -2690,12 +2706,12 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
 end
 
 function visitors.FuncDef(context, node, polysymbol)
-  local varscope, varnode, argnodes, retnodes, annotnodes, blocknode =
+  local declscope, varnode, argnodes, retnodes, annotnodes, blocknode =
         node[1], node[2], node[3], node[4], node[5], node[6]
 
   local type = node.attr.ftype
   context:push_state{infuncdef = node, inpolydef = polysymbol}
-  local varsym, decl = visitor_FuncDef_variable(context, varscope, varnode)
+  local varsym, decl = visitor_FuncDef_variable(context, declscope, varnode)
   local vartype = varnode.attr.type
   local attr, symbol
   if varsym then -- symbol may be nil in case of array/dot index
@@ -2941,10 +2957,9 @@ local function override_unary_op(context, node, opname, objnode, objtype)
   end
 
   -- transform into call
-  local n = context.parser.astbuilder.aster
   local objsym = objtype.symbol
-  local idnode = n.Id{objsym.name, pattr={forcesymbol=objsym}}
-  local newnode = n.Call{{objnode}, n.DotIndex{mtname, idnode}}
+  local idnode = aster.Id{objsym.name, pattr={forcesymbol=objsym}}
+  local newnode = aster.Call{{objnode}, aster.DotIndex{mtname, idnode}}
   node:transform(newnode)
   context:traverse_node(node)
   return true
@@ -3051,12 +3066,11 @@ local function override_binary_op(context, node, opname, lnode, rnode, ltype, rt
   end
 
   -- transform into call
-  local n = context.parser.astbuilder.aster
   local objsym = objtype.symbol
-  local idnode = n.Id{objsym.name, pattr={forcesymbol=objsym}}
-  local newnode = n.Call{{lnode, rnode}, n.DotIndex{mtname, idnode}}
+  local idnode = aster.Id{objsym.name, pattr={forcesymbol=objsym}}
+  local newnode = aster.Call{{lnode, rnode}, aster.DotIndex{mtname, idnode}}
   if neg then
-    newnode = n.UnaryOp{'not', newnode}
+    newnode = aster.UnaryOp{'not', newnode}
   end
   node:transform(newnode)
   context:traverse_node(node)
@@ -3064,7 +3078,7 @@ local function override_binary_op(context, node, opname, lnode, rnode, ltype, rt
 end
 
 function visitors.BinaryOp(context, node)
-  local opname, lnode, rnode = node[1], node[2], node[3]
+  local lnode, opname, rnode = node[1], node[2], node[3]
   local attr = node.attr
   local isor = opname == 'or'
   local isbinaryconditional = isor or opname == 'and'
@@ -3074,7 +3088,7 @@ function visitors.BinaryOp(context, node)
     lnode.desiredtype = primtypes.boolean
     rnode.desiredtype = primtypes.boolean
     wantsboolean =  true
-  elseif isor and lnode[1] == 'and' and lnode.tag == 'BinaryOp' then
+  elseif isor and lnode[2] == 'and' and lnode.tag == 'BinaryOp' then
     lnode.attr.ternaryand = true
     attr.ternaryor = true
   end

@@ -385,9 +385,9 @@ local function can_use_initializer(childnodes)
   return true
 end
 
-function visitors.InitializerList(context, node, emitter)
+function visitors.InitList(context, node, emitter)
   local attr = node.attr
-  local childnodes, type = node[1], attr.type
+  local childnodes, type = node, attr.type
   local len = #childnodes
   if len == 0 and type.is_aggregate then
     if not context.state.ininitializer then
@@ -397,10 +397,15 @@ function visitors.InitializerList(context, node, emitter)
   elseif type.is_composite then
     if context.state.ininitializer then
       context:push_state{incompositeinitializer = true}
-      emitter:add('{', childnodes, '}')
+      emitter:add('{')
+      emitter:add_traversal_list(childnodes)
+      emitter:add('}')
       context:pop_state()
     elseif type.cconstruct then -- used to construct vector types when generating GLSL code
-      emitter:add(type,'(', childnodes, ')')
+      emitter:add(type,'(')
+      emitter:add('(')
+      emitter:add_traversal_list(childnodes)
+      emitter:add(')')
     else
       local useinitializer = can_use_initializer(childnodes)
       if useinitializer then
@@ -455,9 +460,13 @@ function visitors.InitializerList(context, node, emitter)
   elseif type.is_array then
     if context.state.ininitializer then
       if context.state.incompositeinitializer then
-        emitter:add('{', childnodes, '}')
+        emitter:add('{')
+        emitter:add_traversal_list(childnodes)
+        emitter:add('}')
       else
-        emitter:add('{{', childnodes, '}}')
+        emitter:add('{{')
+        emitter:add_traversal_list(childnodes)
+        emitter:add('}}')
       end
     else
       local useinitializer = can_use_initializer(childnodes)
@@ -588,10 +597,11 @@ visitors.PointerType = visitors.Type
 function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
   local type = attr.type
+  local name = context:declname(attr)
   if context.state.infuncdecl then
-    emitter:add(context:declname(attr))
+    emitter:add(name)
   elseif attr.comptime or type.is_comptime then
-    emitter:add(context:ensure_builtin('nlniltype'), ' ', context:declname(attr))
+    emitter:add(context:ensure_builtin('nlniltype'), ' ', name)
   else
     if type.is_type then return end
     if attr.cexport then emitter:add(context:ensure_builtin('nelua_cexport'), ' ') end
@@ -602,7 +612,7 @@ function visitors.IdDecl(context, node, emitter)
     if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
     emitter:add(type, ' ')
     if attr.restrict then emitter:add('__restrict ') end
-    emitter:add(context:declname(attr))
+    emitter:add(name)
     if attr.cattribute then emitter:add(' __attribute__((', attr.cattribute, '))') end
   end
 end
@@ -798,18 +808,6 @@ function visitors.CallMethod(context, node, emitter)
   local name, argnodes, calleeobjnode = node[1], node[2], node[3]
 
   visitor_Call(context, node, emitter, argnodes, name, calleeobjnode)
-
-  --[[
-  local name, args, callee, block_call = node:args()
-  if block_call then
-    emitter:add_indent()
-  end
-  local sep = #args > 0 and ', ' or ''
-  emitter:add(callee, '.', cdefs.quotename(name), '(', callee, sep, args, ')')
-  if block_call then
-    emitter:add_ln()
-  end
-  ]]
 end
 
 -- indexing
@@ -854,7 +852,7 @@ end
 
 visitors.ColonIndex = visitors.DotIndex
 
-function visitors.ArrayIndex(context, node, emitter)
+function visitors.KeyIndex(context, node, emitter)
   local indexnode, objnode = node[1], node[2]
   local objtype = objnode.attr.type
   local pointer = false
@@ -907,7 +905,7 @@ function visitors.ArrayIndex(context, node, emitter)
 end
 
 function visitors.Block(context, node, emitter)
-  local statnodes = node[1]
+  local statnodes = node
   emitter:inc_indent()
   local scope = context:push_forked_scope(node)
   do
@@ -921,8 +919,8 @@ function visitors.Block(context, node, emitter)
 end
 
 function visitors.Return(context, node, emitter)
-  local retnodes = node[1]
-  local numretnodes = #retnodes
+  local retnodes = node
+  local numretnodes = #retnodes or 0
 
   -- destroy parent blocks
   local deferemitter = CEmitter(context, emitter.depth)
@@ -1042,9 +1040,9 @@ function visitors.Return(context, node, emitter)
 end
 
 function visitors.If(_, node, emitter)
-  local ifparts, elseblock = node[1], node[2]
-  for i,ifpart in ipairs(ifparts) do
-    local condnode, blocknode = ifpart[1], ifpart[2]
+  local ifpairs, elseblock = node[1], node[2]
+  for i=1,#ifpairs,2 do
+    local condnode, blocknode = ifpairs[i], ifpairs[i+1]
     if i == 1 then
       emitter:add_indent("if(")
       emitter:add_val2type(primtypes.boolean, condnode)
@@ -1064,15 +1062,14 @@ function visitors.If(_, node, emitter)
 end
 
 function visitors.Switch(context, node, emitter)
-  local valnode, caseparts, elsenode = node[1], node[2], node[3]
+  local valnode, casepairs, elsenode = node[1], node[2], node[3]
   emitter:add_indent_ln("switch(", valnode, ") {")
   emitter:inc_indent()
   context:push_forked_scope(node)
-  for _,casepart in ipairs(caseparts) do
-    local caseexprs, caseblock = casepart[1], casepart[2]
-
-    for i=1,#caseexprs-1 do
-      emitter:add_indent_ln("case ", caseexprs[i], ":")
+  for i=1,#casepairs,2 do
+    local caseexprs, caseblock = casepairs[i], casepairs[i+1]
+    for j=1,#caseexprs-1 do
+      emitter:add_indent_ln("case ", caseexprs[j], ":")
     end
     emitter:add_indent_ln("case ", caseexprs[#caseexprs], ': {') -- last case
     emitter:add(caseblock) -- block
@@ -1102,8 +1099,8 @@ end
 
 function visitors.DoExpr(context, node, emitter)
   local blocknode = node[1]
-  if blocknode[1][1].tag == 'Return' then -- single statement
-    emitter:add(blocknode[1][1][1][1])
+  if blocknode[1].tag == 'Return' then -- single statement
+    emitter:add(blocknode[1][1])
   else
     emitter:add_ln("({")
     emitter:inc_indent()
@@ -1342,7 +1339,7 @@ function visitors.FuncDef(context, node, emitter)
   defemitter:add_indent(rettypename, ' ')
 
   local funcid = varnode
-  if varscope == nil then -- maybe assigning a variable to a function
+  if not varscope then -- maybe assigning a variable to a function
     if varnode.tag == 'Id' then
       funcid = context:genuniquename(context:declname(varnode.attr), '%s_%d')
       emitter:add_indent_ln(varnode, ' = ', funcid, ';')
@@ -1457,7 +1454,7 @@ function visitors.BinaryOp(_, node, emitter)
     emitter:add_literal(node.attr)
     return
   end
-  local opname, lnode, rnode = node[1], node[2], node[3]
+  local lnode, opname, rnode = node[1], node[2], node[3]
   local type = node.attr.type
   if type.is_any then
     node:raisef("compiler deduced the type 'any' here, but it's not supported yet in the C backend")
@@ -1467,7 +1464,7 @@ function visitors.BinaryOp(_, node, emitter)
   if node.attr.dynamic_conditional then
     if node.attr.ternaryor then
       -- lua style "ternary" operator
-      local anode, bnode, cnode = lnode[2], lnode[3], rnode
+      local anode, bnode, cnode = lnode[1], lnode[3], rnode
       if anode.attr.type.is_boolean and not bnode.attr.type.is_falseable then -- use C ternary operator
         emitter:add_val2type(primtypes.boolean, anode)
         emitter:add(' ? ')
