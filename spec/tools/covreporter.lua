@@ -1,4 +1,4 @@
-local re = require 'nelua.thirdparty.relabel'
+local re = require 'nelua.thirdparty.lpegrex'
 local colors = require 'nelua.utils.console'.colors
 
 local function readfile(filename)
