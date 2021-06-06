@@ -2590,6 +2590,7 @@ end)
 
 it("print builtin", function()
   expect.run_c([[
+    print(0, 1, 0.0, 1.0)
     print(1,0.2,1e2,0xf,0b01,nilptr)
     local i: integer, s: string, n: niltype, p: pointer
     print(i, s, n, p)
@@ -2605,7 +2606,8 @@ it("print builtin", function()
     local p: Person = {name='John'}
     print(p)
   ]],
-    '1\t0.2\t100\t15\t1\t(null)\n' ..
+    '0\t1\t0.0\t1.0\n'..
+    '1\t0.2\t100.0\t15\t1\t(null)\n' ..
     '0\t\tnil\t(null)\n'..
     'a\t1\n'..
     'John\n')

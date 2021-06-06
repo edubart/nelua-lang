@@ -487,6 +487,7 @@ do -- tostring
   assert_string_eq(tostring(nilptr), '(null)')
   assert_string_eq(tostring((@pointer)(nilptr)), '(null)')
   assert_string_eq(tostring((@function())(nilptr)), 'function: (null)')
+  assert_string_eq(tostring((@enum{A=0})()), '0')
 end
 
 do -- tonumber

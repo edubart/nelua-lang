@@ -858,9 +858,13 @@ function inlines.print(context, node)
   -- function declaration
   local decemitter = CEmitter(context)
   decemitter:add('void ', funcname, '(')
+  local hasfloat
   for i,argtype in ipairs(argtypes) do
     if i>1 then decemitter:add(', ') end
     decemitter:add(argtype, ' a', i)
+    if argtype.is_float then
+      hasfloat = true
+    end
   end
   decemitter:add(')')
   local heading = decemitter:generate()
@@ -871,6 +875,11 @@ function inlines.print(context, node)
   defemitter:add(heading)
   defemitter:add_ln(' {')
   defemitter:inc_indent()
+  if hasfloat then
+    defemitter:add_indent_ln("char buff[48];")
+    defemitter:add_indent_ln("buff[sizeof(buff)-1] = 0;")
+    defemitter:add_indent_ln("int len;")
+  end
   for i,argtype in ipairs(argtypes) do
     defemitter:add_indent()
     if i > 1 then
@@ -907,14 +916,24 @@ function inlines.print(context, node)
         defemitter:add_indent_ln('fputs("(null)", stdout);')
         defemitter:dec_indent()
       defemitter:add_indent_ln('}')
+    elseif argtype.is_float then
+      context:ensure_include('<string.h>')
+      local tyformat = cdefs.types_printf_format[argtype.codename]
+      node:assertraisef(tyformat, 'invalid type "%s" for printf format', argtype)
+      defemitter:add_ln('len = snprintf(buff, sizeof(buff)-1, ',tyformat,', a',i,');')
+      defemitter:add_indent_ln('if(buff[strspn(buff, "-0123456789")] == 0) {')
+        defemitter:inc_indent()
+        defemitter:add_indent_ln('len = snprintf(buff, sizeof(buff)-1, "%.1f", a',i,');')
+        defemitter:dec_indent()
+      defemitter:add_indent_ln('}')
+      defemitter:add_indent_ln('fwrite(buff, 1, len, stdout);')
     elseif argtype.is_scalar then
       context:ensure_include('<inttypes.h>')
-      local ty = node:assertraisef(argtype, 'type is not defined in AST node')
-      if ty.is_enum then
-        ty = ty.subtype
+      if argtype.is_enum then
+        argtype = argtype.subtype
       end
-      local tyformat = cdefs.types_printf_format[ty.codename]
-      node:assertraisef(tyformat, 'invalid type "%s" for printf format', ty)
+      local tyformat = cdefs.types_printf_format[argtype.codename]
+      node:assertraisef(tyformat, 'invalid type "%s" for printf format', argtype)
       defemitter:add_ln('fprintf(stdout, ', tyformat,', a',i,');')
     elseif argtype.is_record then --luacov:disable
       node:raisef('cannot handle type "%s" in print, you could implement `__tostring` metamethod for it', argtype)

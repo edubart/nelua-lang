@@ -457,7 +457,7 @@ You can use type suffixes to force a type for a numeric literal:
 ```nelua
 local a = 1234_u32 -- variable of type 'int32'
 local b = 1_f32 -- variable of type 'float32'
-print(a,b) --outputs: 1234 1.000000
+print(a,b) --outputs: 1234 1.0
 ```
 
 The following table shows Nelua primitive numeric types and their related types in C:
@@ -732,7 +732,7 @@ variable to another type.
 ```nelua
 local i = 1
 local f = (@number)(i) -- convert 'i' to the type 'number'
-print(i, f) -- outputs: 1 1.000000
+print(i, f) -- outputs: 1 1.0
 ```
 
 If a type is aliased to a symbol then
@@ -742,7 +742,7 @@ it is possible to convert variables by calling the symbol:
 local MyNumber = @number
 local i = 1
 local f = MyNumber(i) -- convert 'i' to the type 'number'
-print(i, f) -- outputs: 1 1.000000
+print(i, f) -- outputs: 1 1.0
 ```
 
 Unlike implicit conversion, explicit conversions skip runtime checks:
@@ -761,9 +761,9 @@ print(nu) -- outputs: 18446744073709551615
 Unary and binary operators are provided for creating expressions:
 
 ```nelua
-print(2 ^ 2) -- pow, outputs: 4.000000
+print(2 ^ 2) -- pow, outputs: 4.0
 print(5 // 2) -- integer division, outputs: 2
-print(5 / 2) -- float division, outputs: 2.500000
+print(5 / 2) -- float division, outputs: 2.5
 ```
 
 All Lua operators are provided:
@@ -924,7 +924,7 @@ local a = add(1,2)
 print(a) -- outputs: 3
 local b = add(1.0, 2.0)
 -- call to 'add' with different types, function 'add(a: number, b: number): number' is defined
-print(b) -- outputs: 3.000000
+print(b) -- outputs: 3.0
 ```
 
 In the above, the `auto` type is used as a generic placeholder to replace the function argument
@@ -1485,10 +1485,10 @@ Using macros it is possible to create generic code:
 ## Point('PointInt', 'int64')
 
 local pa: PointFloat = {x=1,y=2}
-print(pa:squaredlength()) -- outputs: 5
+print(pa:squaredlength()) -- outputs: 5.0
 
 local pb: PointInt = {x=1,y=2}
-print(pb:squaredlength()) -- outputs: 5.000000
+print(pb:squaredlength()) -- outputs: 5
 ```
 
 ### Preprocessing on the fly

@@ -23,6 +23,7 @@ require 'allocators.default'
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
 local function strtoll(str: cstring, endptr: *cstring, base: cint): clonglong <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strtod(str: cstring, endptr: *cstring): float64 <cimport,cinclude'<stdlib.h>',nodecl> end
+local function strspn(s: cstring, accept: cstring): csize <cimport'strspn',cinclude'<string.h>',nodecl> end
 local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
@@ -611,63 +612,56 @@ end
 
 -- Convert a value to a string.
 global function tostring(x: auto): string
-  ## local xobjtype = x.type:implicit_deref_type()
-  ## if x.type.is_stringy then
+  ##[[
+  local xobjtype = x.type:implicit_deref_type()
+  local xtype = x.type
+  if xtype.is_enum then
+    xtype = xtype.subtype
+  end
+  ]]
+  ## if xtype.is_stringy then
     return string._forward(x)
   ## elseif xobjtype.is_record and xobjtype.metafields.__tostring then
     return x:__tostring()
-  ## elseif x.type.is_scalar or x.type.is_function or x.type.is_pointer then
-    ## if x.type.is_pointer then tyformat = '"0x%" PRIxPTR'
+  ## elseif xtype.is_scalar or xtype.is_function or xtype.is_pointer then
+    ## if xtype.is_pointer then tyformat = '"0x%" PRIxPTR'
     local x: usize = (@usize)(x)
     if x == 0 then
       return string._forward('(null)')
     end
-    ## elseif x.type.is_function then tyformat = '"function: 0x%" PRIxPTR'
+    ## elseif xtype.is_function then tyformat = '"function: 0x%" PRIxPTR'
     local x: usize = (@usize)((@pointer)(x))
     if x == 0 then
       return string._forward('function: (null)')
     end
     ##[[ else
-      tyformat = require'nelua.cdefs'.types_printf_format[x.type.codename]
+      tyformat = require'nelua.cdefs'.types_printf_format[xtype.codename]
       static_assert(tyformat)
     end]]
+    local tmpbuf: [48]byte <noinit> -- the output should not have more than 48 characters
+    tmpbuf[47] = 0
     local fmt: cstring <cimport #[tyformat]#, nodecl, cinclude '<inttypes.h>'>
-    local size: cint = snprintf(nilptr, 0, fmt, x)
-    if unlikely(size <= 0) then return (@string){} end
-    local s: string = string._create((@usize)(size))
-    local dest: cstring = (@cstring)(&s.data[0])
-    local n: csize = (@csize)(size+1)
-    snprintf(dest, n, fmt, x)
-    ## if x.type.is_float then
+    local size: cint = snprintf(&tmpbuf, #tmpbuf-1, fmt, x)
+    ## if xtype.is_float then
       -- add a least one decimal if needed
-      local onlydigits: boolean = true
-      for i:usize=0,<s.size do
-        if not (isdigit(s.data[i]) ~= 0 or s.data[i] == '-'_byte) then
-          onlydigits = false
-          break
-        end
-      end
-      if onlydigits then -- append '.0' to the string
-        s.data = (@*[0]byte)(default_allocator:xrealloc(s.data, s.size+3, s.size+1))
-        s.data[s.size] = '.'_byte
-        s.data[s.size+1] = '0'_byte
-        s.data[s.size+2] = 0
-        s.size = s.size + 2
+      if tmpbuf[strspn(&tmpbuf[0], '-0123456789'_cstring)] == 0 then -- only digits
+        size = snprintf(&tmpbuf, #tmpbuf-1, "%.1f", x)
       end
     ## end
-    return s
-  ## elseif x.type.is_boolean then
+    assert(size >= 0 and size < #tmpbuf-1, "tostring format failed or truncated")
+    return string.copy((@string){&tmpbuf[0], size})
+  ## elseif xtype.is_boolean then
     if x == true then
       return string._forward('true')
     end
     return string._forward('false')
-  ## elseif x.type.is_niltype then
+  ## elseif xtype.is_niltype then
     return string._forward('nil')
-  ## elseif x.type.is_nilptr then
+  ## elseif xtype.is_nilptr then
     return string._forward('(null)')
-  ## elseif x.type.is_polyfunction then
+  ## elseif xtype.is_polyfunction then
     return string._forward('polyfunction')
-  ## else static_error("tostring: cannot convert type '%s' to a string", x.type) end
+  ## else static_error("tostring: cannot convert type '%s' to a string", xtype) end
 end
 
 -- Convert a value to a number.
