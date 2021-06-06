@@ -3343,11 +3343,8 @@ it("polymorphic variable arguments", function()
 
     -- select
     local function f(...: varargs)
-      ## for i=1,select_varargs('#') do
-        print(#[select_varargs(i,-1)]#)
-      ## end
-      ## for i=1,select_varargs('#') do
-        print(#[select_varargs(i)]#)
+      ## for i=1,select('#', ...) do
+        print(#[select(i, ...)]#)
       ## end
       print(...)
     end
@@ -3376,9 +3373,6 @@ unpack d
 e true
 unpack e true
 2 hello world 3
-1 2 3
-2 3
-3
 1
 2
 3

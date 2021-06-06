@@ -2,6 +2,7 @@ require 'span'
 require 'string'
 require 'math'
 require 'memory'
+require 'iterators'
 require 'allocators.gc'
 require 'allocators.general'
 
@@ -43,8 +44,8 @@ do -- Auto variables
   local a: auto = 1 -- a is deduced to be of type 'integer'
 
   -- uncommenting the following will trigger the compile error:
-  --   error: in variable assignment: no viable type conversion from `boolean` to `int64`
-  --a = false
+  --   constant value `1.0` is fractional which is invalid for the type 'int64'
+  --a = 1.0
 
   print(a) -- outputs: 1
 end
@@ -62,6 +63,13 @@ do -- Const variables
   -- uncommenting the following will trigger the compile error:
   --   error: cannot assign a constant variable
   --a = 2
+end
+
+do -- Multiple assignment
+  local a, b = 1, 2
+  print(a, b) -- outputs: 1 2
+  b, a = a, b
+  print(a, b) -- outputs: 2 1
 end
 
 do -- Local symbol
@@ -176,6 +184,13 @@ do -- Numeric For Stepped
   end
 end
 
+do -- For In
+  local a: [4]string = {"a","b","c","d"}
+  for i,v in ipairs(a) do
+    print(i,v) -- outputs: 0 a, 1 b, 2 c, 3 d
+  end
+end
+
 do -- Continue
   for i=1,10 do
     if i<=5 then
@@ -201,12 +216,13 @@ do -- Boolean
   print(a,b,c) -- outputs: false false true
 end
 
-do -- Numbers
+do -- Number
   local a = 1234 -- variable of type 'integer'
   local b = 0xff -- variable of type 'integer'
   local c = 3.14159 -- variable of type 'number'
-  local d: integer
-  print(a,b,c,d) -- outputs: 1234 255 3.141590 0
+  local d = 'A'_u8 -- variable of type 'uint8' set from an ASCII character
+  local e: integer
+  print(a,b,c,d,e) -- outputs: 1234 255 3.14159 65 0
 
   do
     local a = 1234_u32 -- variable of type 'int32'
@@ -216,11 +232,16 @@ do -- Numbers
 end
 
 do -- String
-  local mystr: string -- empty string
-  local str1: string = 'my string' -- variable of type 'string'
-  local str2 = "static string" -- variable of type 'string'
-  local str3: string = 'string two' -- also a 'string'
-  print(str1, str2, str3) -- outputs: "" "string one" "string two"
+  local str1: string -- empty string
+  local str2 = "string 2" -- variable of type 'string'
+  local str3: string = 'string 3' -- also a 'string'
+  local str4 = [[
+multi
+line
+string
+]]
+  print(str1, str2, str3) -- outputs: "" "string 2" "string 3"
+  print(str4) -- outputs the multi line string
 end
 
 do -- The "type" type
@@ -258,8 +279,17 @@ do -- Array
   print(b[0], b[1], b[2], b[3]) -- outputs: 0 0 0 0
 end
 
+do -- Multidimensional Array
+  local m: [2][2]number = {
+    {1.0, 2.0},
+    {3.0, 4.0}
+  }
+  print(m[0][0], m[0][1]) -- outputs: 1.0 2.0
+  print(m[1][0], m[1][1]) -- outputs: 3.0 4.0
+end
+
 do -- Enum
-  local Weeks = @enum {
+  local Weeks = @enum{
     Sunday = 0,
     Monday,
     Tuesday,
@@ -275,7 +305,7 @@ do -- Enum
 end
 
 do -- Record
-  local Person = @record {
+  local Person = @record{
     name: string,
     age: integer
   }
@@ -297,6 +327,18 @@ do -- Record
   d.name = "John"
   d.age  = 22
   print(d.name, d.age)
+end
+
+do -- Union
+  local IntOrFloat = @union{
+    i: int64,
+    f: float64,
+  }
+  local u: IntOrFloat = {i=1}
+  print(u.i) -- outputs: 1
+  u.f = 1
+  print(u.f) -- outputs: 1.0
+  print(u.i) -- outputs some garbage integer
 end
 
 do -- Span
@@ -354,6 +396,22 @@ do -- Multiple returns
 
   local a, b = get_multiple()
   print(a,b) -- outputs: false 1
+end
+
+do -- Variable number of arguments
+  local function f(...: varargs)
+    print(...)
+  end
+  f(1, true) -- outputs: 1 true
+
+  local function sum(...: varargs)
+    local s: integer
+    ## for i=1,select('#', ...) do -- iterate over all arguments
+      s = s + #[select(i, ...)]# -- select argument at index `i`
+    ## end
+    return s
+  end
+  print(sum(1, 2, 3)) -- outputs: 6
 end
 
 --do -- Top scope closures
@@ -434,19 +492,20 @@ do -- Dereferencing and referencing
   local a = 1
   local ap = &a -- ap is a pointer to a
   $ap = 2
-  print(a) -- outputs 2
+  print(a) -- outputs: 2
   a = 3
-  print($ap) -- outputs 3
+  print($ap) -- outputs: 3
+  print(ap) -- outputs memory address of a
 end
 
 do -- Allocating memory
   local Person = @record{name: string, age: integer}
-  local p: *Person = general_allocator:new(@Person)
+  local p: *Person = default_allocator:new(@Person)
   p.name = "John"
   p.age = 20
   print(p.name, p.age)
-  general_allocator:delete(p)
   p = nilptr
+  -- we don't need to deallocate, the GC will do this on its own when needed!
 end
 
 do -- Preprocessor
@@ -512,7 +571,7 @@ do -- Macros
 
   -- generic
   ## function Point(PointT, T)
-    local #|PointT|# = @record { x: #|T|#, y: #|T|# }
+    local #|PointT|# = @record{x: #|T|#, y: #|T|#}
     function #|PointT|#:squaredlength()
       return self.x*self.x + self.y*self.y
     end
@@ -548,7 +607,7 @@ do -- Preprocessor macros emitting AST nodes
     }
     -- fill expressions
     for i=1,n do
-      -- aster.value convert any Lua value to the proper ASTNode
+      -- convert any Lua value to the proper ASTNode
       initlist[i] = aster.create_value(i)
     end
     return initlist
@@ -560,7 +619,7 @@ do -- Preprocessor macros emitting AST nodes
 end
 
 do -- Processing on the fly
-  local Weekends = @enum { Friday=0, Saturday, Sunday }
+  local Weekends = @enum{ Friday=0, Saturday, Sunday }
   ## for i,field in ipairs(Weekends.value.fields) do
     print(#[field.name .. ' ' .. tostring(field.value)]#)
   ## end

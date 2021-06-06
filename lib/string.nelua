@@ -372,9 +372,9 @@ end
 -- in which each character has the internal numeric code equal to its corresponding argument.
 -- Numeric codes are not necessarily portable across platforms.
 function string.char(...: varargs): string
-  local s: string = string._create(#[select_varargs('#')]#)
-  ## for i=1,select_varargs('#') do
-  s.data[#[i-1]#] = #[select_varargs(i)]#
+  local s: string = string._create(#[select('#', ...)]#)
+  ## for i=1,select('#', ...) do
+  s.data[#[i-1]#] = #[select(i, ...)]#
   ## end
   return s
 end

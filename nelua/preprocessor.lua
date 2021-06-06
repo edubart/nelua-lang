@@ -95,7 +95,7 @@ function visitors.Block(ppcontext, node, emitter)
   node.needprocess = nil
 
   local blockregidx = ppcontext:getregistryindex(node)
-  emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess=function(blocknode)')
+  emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess=function(blocknode, ...)')
   emitter:inc_indent()
   emitter:add_indent_ln('assert(#blocknode == 0)')
   emitter:add_indent_ln('ppcontext:push_statnodes(blocknode)')
@@ -288,7 +288,8 @@ function preprocessor.preprocess(context, ast)
     end
     return status
   end
-  local function select_varargs(index, endindex)
+  local function select_varargs(index, endindex) -- DEPRECATED
+    --luacov:disable
     local polyeval = context.state.inpolyeval
     static_assert(polyeval, 'cannot used select_varargs outside a polymorphic function')
     local varargsnodes = polyeval.varargsnodes
@@ -310,6 +311,7 @@ function preprocessor.preprocess(context, ast)
         return varargsnodes[index]
       end
     end
+    --luacov:enable
   end
   local function inject_astnode(node, clone)
     return ppcontext:add_statnode(node, not clone)

@@ -1748,7 +1748,13 @@ function visitors.Block(context, node)
     local scope = context:push_forked_cleaned_scope(node)
     scope.is_block = true
 
-    local ok, err = except.trycall(node.preprocess, node)
+    local polyeval = context.state.inpolyeval
+    local ok, err
+    if polyeval and polyeval.varargsnodes then
+      ok, err = except.trycall(node.preprocess, node, table.unpack(polyeval.varargsnodes))
+    else
+      ok, err = except.trycall(node.preprocess, node)
+    end
     if not ok then
       if except.isexception(err) then
         except.reraise(err)

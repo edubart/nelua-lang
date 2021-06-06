@@ -389,20 +389,20 @@ end
 
 -- Returns the argument with the minimum value, according to the operator `<`.
 function math.min(...: varargs) <inline,nosideeffect>
-  ## local nargs = select_varargs('#')
+  ## local nargs = select('#', ...)
   ## static_assert(nargs > 0, 'expected at least one argument')
   ## if nargs == 1 then
-    return #[select_varargs(1)]#
+    return #[select(1, ...)]#
   ## elseif nargs == 2 then
-    ## local x, y = select_varargs(1), select_varargs(2)
+    ## local x, y = select(1, ...), select(2, ...)
     if #[x]# < #[y]# then
       return #[x]#
     end
     return #[y]#
   ## else
-    local res = #[select_varargs(1)]#
+    local res = #[select(1, ...)]#
     ## for i=2,nargs do
-      ## local v = select_varargs(i)
+      ## local v = select(i, ...)
       if #[v]# < res then
         res = #[v]#
       end
@@ -413,20 +413,20 @@ end
 
 -- Returns the argument with the maximum value, according to the operator `<`.
 function math.max(...: varargs) <inline,nosideeffect>
-  ## local nargs = select_varargs('#')
+  ## local nargs = select('#', ...)
   ## static_assert(nargs > 0, 'expected at least one argument')
   ## if nargs == 1 then
-    return #[select_varargs(1)]#
+    return #[select(1, ...)]#
   ## elseif nargs == 2 then
-    ## local x, y = select_varargs(1), select_varargs(2)
+    ## local x, y = select(1, ...), select(2, ...)
     if #[y]# < #[x]# then
       return #[x]#
     end
     return #[y]#
   ## else
-    local res = #[select_varargs(1)]#
+    local res = #[select(1, ...)]#
     ## for i=2,nargs do
-      ## local v = select_varargs(i)
+      ## local v = select(i, ...)
       if res < #[v]# then
         res = #[v]#
       end

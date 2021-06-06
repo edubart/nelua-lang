@@ -365,8 +365,8 @@ function filestream:write(...: varargs): (boolean, string, integer)
     return false, 'attempt to use a closed file', -1
   end
   local s: string
-  ## for i=1,select_varargs('#') do
-    ## local argnode = select_varargs(i)
+  ## for i=1,select('#', ...) do
+    ## local argnode = select(i, ...)
     ## local argtype = argnode.attr.type
     ## if not argtype.is_string then
       s = tostring(#[argnode]#)

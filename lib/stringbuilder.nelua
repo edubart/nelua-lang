@@ -228,9 +228,9 @@ end
           argi = argi + 1
           local ok: boolean
           local nb: cint = -1
-          ## for i=1,select_varargs('#') do
+          ## for i=1,select('#', ...) do
           if #[i]# == argi then
-            ok, nb = formatarg(self, c, buff, maxitem, &form, #[select_varargs(i)]#)
+            ok, nb = formatarg(self, c, buff, maxitem, &form, #[select(i, ...)]#)
             goto next
           end
           ## end
@@ -249,11 +249,6 @@ end
   function stringbuilderT:view(): string
     if unlikely(self.size == 0) then return (@string){} end
     return (@string){data = &self.data[0], size = self.size}
-  end
-
-  function stringbuilderT:__tocstring(): cstring
-    if unlikely(self.size == 0) then return (@cstring)('') end
-    return (@cstring)(&self.data[0])
   end
 
   function stringbuilderT:__tostring(): string

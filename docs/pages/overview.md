@@ -30,7 +30,7 @@ Although copying Lua syntax and semantics with minor changes is a goal of Nelua,
 features are implemented yet. Most of the dynamic parts, such as tables and handling dynamic types
 at runtime, are not implemented yet. So at the moment, using
 records instead of tables and using type notations is required.
-Visit [this](/diffs/) page for the full list of available features.
+Visit [this](/diffs/) page for the full list of available Lua features.
 {: .callout.callout-warning}
 
 ## A note for C users
@@ -111,7 +111,6 @@ The compiler does the best it can to deduce the type for you. In most situations
 it should work, but in some corner cases you may want to explicitly set a type for a variable.
 {:.alert.alert-info}
 
-
 In the case of different types being assigned to the same variable,
 the compiler deduces the variable type to be the `any` type,
 a type that can hold anything at runtime.
@@ -123,14 +122,18 @@ code with dynamic typing will be compatible with Nelua.
 
 ### Zero initialization
 
-Variables declared but not defined early are always initialized to zeros by default.
-This prevents undefined behaviors:
+Variables declared but not defined early are always initialized to zeros by default:
 
 ```nelua
 local b: boolean -- variable of type 'boolean', initialized to 'false'
 local i: integer -- variable of type 'integer', initialized to 0
 print(b, i) --outputs: false 0
 ```
+
+Nelua encourages the Zero Is Initialization (ZII) idiom
+and it's used in all of its standard libraries.
+The language does not have constructor or destructors (RAII)
+in favor of this idiom.
 
 Zero initialization can be **optionally disabled** using the `<noinit>` [annotation](#annotations).
 Although not advised, one could do this for micro optimization purposes.
@@ -144,8 +147,8 @@ A variable declared as `auto` has its type deduced early based only on the type 
 local a: auto = 1 -- a is deduced to be of type 'integer'
 
 -- uncommenting the following will trigger the compile error:
---   error: in variable assignment: no viable type conversion from `boolean` to `int64`
---a = false
+--   constant value `1.0` is fractional which is invalid for the type 'int64'
+--a = 1.0
 
 print(a) -- outputs: 1
 ```
@@ -190,6 +193,21 @@ The const annotation can also be used for function arguments.
 
 The use of `<const>` annotation is mostly for aesthetic
 purposes. Its usage does not affect efficiency.
+{:.alert.alert-info}
+
+### Multiple variables assignment
+
+Multiple variables can be assigned in a single statement:
+
+```nelua
+local a, b = 1, 2
+print(a, b) -- outputs: 1 2
+b, a = a, b -- swap values
+print(a, b) -- outputs: 2 1
+```
+
+Temporary variables are used on a multiple assignment, so
+the values can be safely swapped.
 {:.alert.alert-info}
 
 ## Symbols
@@ -279,8 +297,9 @@ else
 end
 ```
 
-The case expression can only contain **integral** numbers known at **compile-time**. The
-compiler can generate more optimized code when using a switch instead of using many if statements for integers.
+The case expression can only contain **integral** numbers known at **compile-time**.
+The compiler can generate more optimized code when using a switch
+instead of using many if statements for integers.
 {:.alert.alert-info}
 
 ### Do
@@ -378,6 +397,7 @@ variable type is automatically deduced using the begin and end expressions only.
 {:.alert.alert-info}
 
 #### Exclusive For
+
 The exclusive for is available to create exclusive for loops. They work using
 comparison operators `~=` `<=` `>=` `<` `>`:
 
@@ -388,6 +408,7 @@ end
 ```
 
 #### Stepped For
+
 The last parameter in for syntax is the step. Its counter is always incremented
 with `i = i + step`. By default the step is always 1. When using negative steps, a reverse for loop is possible:
 
@@ -397,7 +418,26 @@ for i=5,0,-1 do
 end
 ```
 
+### For In
+
+Like in Lua, you can iterate values using an iterator function:
+
+```nelua
+require 'iterators'
+
+local a: [4]string = {"a","b","c","d"}
+for i,v in ipairs(a) do
+  print(i,v) -- outputs: 0 a, 1 b, 2 c, 3 d
+end
+```
+
+Nelua provides some basic iterator functions that works on most containers,
+check the [iterators module documentation](https://nelua.io/libraries/#iterators)
+for more of them.
+{:.alert.alert-info}
+
 ### Continue
+
 The continue statement is used to skip to the next iteration of a loop:
 
 ```nelua
@@ -410,6 +450,7 @@ end
 ```
 
 ### Break
+
 The break statement is used to immediately exit a loop:
 
 ```nelua
@@ -436,7 +477,7 @@ print(a,b,c) -- outputs: false false true
 
 The `boolean` is defined as a `bool` in the generated C code.
 
-### Numbers
+### Number
 
 Number literals are defined like in Lua:
 
@@ -444,9 +485,9 @@ Number literals are defined like in Lua:
 local a = 1234 -- variable of type 'integer'
 local b = 0xff -- variable of type 'integer'
 local c = 3.14159 -- variable of type 'number'
-local d = 'A'_uint8 -- variable of type 'uint8' set from an ASCII character
+local d = 'A'_u8 -- variable of type 'uint8' set from an ASCII character
 local e: integer
-print(a,b,c,d,e) -- outputs: 1234 255 3.141590 65 0
+print(a,b,c,d,e) -- outputs: 1234 255 3.14159 65 0
 ```
 
 The `integer` is the default type for integral literals without suffix.
@@ -498,23 +539,28 @@ they are 64 bits for all architectures, but this can be customized by the user a
 via the preprocessor when needed.
 {:.alert.alert-info}
 
-### Strings
+### String
 
 String points to an immutable contiguous sequence of characters.
 
 ```nelua
-local mystr: string -- empty string
-local str1: string = 'my string' -- variable of type 'string'
-local str2 = "static string" -- variable of type 'string'
-local str3: string = 'string two' -- also a 'string'
-print(str1, str2, str3) -- outputs: "" "string one" "string two"
+local str1: string -- empty string
+local str2 = "string 2" -- variable of type 'string'
+local str3: string = 'string 3' -- also a 'string'
+local str4 = [[
+multi
+line
+string
+]]
+print(str1, str2, str3) -- outputs: "" "string 2" "string 3"
+print(str4) -- outputs the multi line string
 ```
 
 Internally string just holds a pointer to a buffer and a size.
 It's buffer is null terminated ('\0') by default to have more compatibility with C.
 
 Like in Lua, `string` **is immutable**.
-If the programmer wants a mutable string, he should use the `stringbuilder` module.
+If the programmer wants a mutable string, he should use the [stringbuilder module](https://nelua.io/libraries/#stringbuilder).
 {:.alert.alert-info}
 
 ### Array
@@ -537,12 +583,25 @@ Thus when calling functions, you may want to pass arrays by reference
 using the [reference operator](#dereferencing-and-referencing) when appropriate.
 {:.alert.alert-warning}
 
+#### Multidimensional Array
+
+An array can also be multidimensional:
+
+```nelua
+local m: [2][2]number = {
+  {1.0, 2.0},
+  {3.0, 4.0}
+}
+print(m[0][0], m[0][1]) -- outputs: 1.0 2.0
+print(m[1][0], m[1][1]) -- outputs: 3.0 4.0
+```
+
 ### Enum
 
 Enums are used to list constant values in sequential order:
 
 ```nelua
-local Weeks = @enum {
+local Weeks = @enum{
   Sunday = 0,
   Monday,
   Tuesday,
@@ -566,7 +625,7 @@ was made to makes the code more clear when reading.
 Records store variables in a block of memory:
 
 ```nelua
-local Person = @record {
+local Person = @record{
   name: string,
   age: integer
 }
@@ -591,6 +650,27 @@ print(d.name, d.age)
 ```
 
 Records are directly translated to C structs.
+{:.alert.alert-info}
+
+### Union
+
+Union store multiple variables in a shared memory block:
+
+```nelua
+local IntOrFloat = @union{
+  i: int64,
+  f: float64,
+}
+local u: IntOrFloat = {i=1}
+print(u.i) -- outputs: 1
+u.f = 1
+print(u.f) -- outputs: 1.0f
+print(u.i) -- outputs some garbage integer
+```
+
+You are responsible for saving the current stored type in the union somewhere
+else to know what current field is valid for reading, otherwise
+you can read garbage data. Unions are directly translated to C unions.
 {:.alert.alert-info}
 
 ### Pointer
@@ -805,13 +885,17 @@ All Lua operators are provided:
 All the operators follow Lua semantics, i.e.:
 * `/` and `^` promotes numbers to floats.
 * `//` and `%` rounds the quotient towards minus infinity.
-* `///` and `%%%` rounds the quotient towards zero.
+* `<<` and `>>` are logical shifts and you can do negative or large shifts.
+* `and`, `or`, `not`, `==`, `~=` can be used between any variable type.
 * Integer overflows wrap around.
-* Bitwise shifts are defined for negative and large shifts.
-* `and`, `or`, `not`, `==`, `~=` can be used on any variable type.
 
-The additional operators not found in Lua are `>>>`, `///`, `%%%`, `$` and `&`,
-used for low level programming.
+These additional operators are not available in Lua,
+they are used for low-level programming and follow C semantics:
+* `///` and `%%%` rounds the quotient towards zero (like C division and modulo on integers).
+* `>>>` arithmetic right shift (like C right shift on signed integers).
+* `$` dereference a pointer (like C dereference).
+* `&` reference a memory (like C reference).
+
 {:.alert.alert-info}
 
 ## Functions
@@ -880,6 +964,32 @@ print(a,b) -- outputs: false 1
 ```
 
 Multiple returns are efficient and packed into C structs in the code generator.
+{:.alert.alert-info}
+
+### Variable number of arguments
+
+A function can have variable number arguments:
+
+```nelua
+local function f(...: varargs)
+  print(...)
+end
+f(1, true) -- outputs: 1 true
+
+local function sum(...: varargs)
+  local s: integer
+  ## for i=1,select('#', ...) do -- iterate over all arguments
+    s = s + #[select(i, ...)]# -- select argument at index `i`
+  ## end
+  return s
+end
+print(sum(1, 2, 3)) -- outputs: 6
+```
+
+The preprocessor is used to specialize the function at compile time.
+One specialization occur for every different number of arguments or argument types,
+thus there are no branching or costs at runtime when making functions
+with variable number of arguments.
 {:.alert.alert-info}
 
 ### Top scope closures
@@ -1040,7 +1150,6 @@ Complete list of metamethods that can be defined for records:
 | `__len`          | `#a`{:.language-nelua}      | unary    | length                                 |
 | `__index`        | `a[b]`{:.language-nelua}    | indexing | array index                            |
 | `__atindex`      | `a[b]`{:.language-nelua}    | indexing | array index via reference              |
-| `__tocstring`    |                             | cast     | implicit cast to cstring               |
 | `__tostring`     |                             | cast     | implicit cast to string                |
 | `__convert`      |                             | cast     | implicit cast from anything            |
 {: .table.table-bordered.table-striped.table-sm}
@@ -1068,11 +1177,11 @@ You can define and later initialize complex records structures in a Lua-like sty
 ```nelua
 local WindowConfig = @record{
   title: string,
-  pos: record {
+  pos: record{
     x: integer,
     y: integer
   },
-  size: record {
+  size: record{
     x: integer,
     y: integer
   }
@@ -1114,19 +1223,20 @@ if you know how to deal with memory management and don't mind the additional cog
 when coding.
 {:.alert.alert-info}
 
-### Allocating memory with the GC
+### Allocating memory
 
 Nelua provides many allocators to assist in managing memory.
-The most important ones are the `allocators.general` and `allocators.gc`.
+The most important one is the `allocators.default`.
 
-When using the GC you should allocate using the `gc_allocator`:
 ```nelua
 require 'string'
 require 'memory'
-require 'allocators.gc'
+
+-- this will actually require 'allocators.gc' because GC is enabled
+require 'allocators.default'
 
 local Person = @record{name: string, age: integer}
-local p: *Person = gc_allocator:new(@Person)
+local p: *Person = default_allocator:new(@Person)
 p.name = "John"
 p.age = 20
 print(p.name, p.age)
@@ -1134,8 +1244,11 @@ p = nilptr
 -- we don't need to deallocate, the GC will do this on its own when needed!
 ```
 
+The `default_allocator` is an alias to `gc_allocator` or `general_allocator`
+depending if the GC is enabled or not.
+
 When the GC is enabled, you must **always allocate memory that contains pointers using**
-`gc_allocator` instead of other allocators,
+`gc_allocator` (or `default_allocator`) instead of any other allocator,
 because it marks the allocated memory region for scanning for references.
 {:.alert.alert-warning}
 
@@ -1169,9 +1282,10 @@ and the operator `$` is used to access the reference.
 local a = 1
 local ap = &a -- ap is a pointer to a
 $ap = 2
-print(a) -- outputs 2
+print(a) -- outputs: 2
 a = 3
-print($ap) -- outputs 3
+print($ap) -- outputs: 3
+print(ap) -- outputs memory address of a
 ```
 
 ### Automatic referencing and dereferencing
@@ -1299,7 +1413,7 @@ print('hello')
 
 For a complete list
 of AST shapes that can be created using the `aster` module read the [AST definitions file](https://github.com/edubart/nelua-lang/blob/master/nelua/astdefs.lua) or the
-[syntax definitions spec file](https://github.com/edubart/nelua-lang/blob/master/spec/02-syntaxdefs_spec.lua)
+[syntax definitions spec file](https://github.com/edubart/nelua-lang/blob/master/spec/syntaxdefs_spec.lua)
 for examples.
 {:.alert.alert-info}
 
@@ -1350,7 +1464,7 @@ print(myvar) -- outputs: 1
 local function foo1() print 'foo' end
 #|'foo' .. 1|#() -- outputs: foo
 
-local Weekends = @enum { Friday=0, Saturday, Sunday }
+local Weekends = @enum{ Friday=0, Saturday, Sunday }
 print(Weekends.#|'S'..string.lower('UNDAY')|#)
 ```
 
@@ -1363,7 +1477,7 @@ print(myvar)
 local function foo1() print 'foo' end
 foo1()
 
-local Weekends = @enum { Friday=0, Saturday, Sunday }
+local Weekends = @enum{ Friday=0, Saturday, Sunday }
 print(Weekends.Sunday)
 ```
 
@@ -1419,7 +1533,7 @@ local function create_sequence(attr_or_type, n)
   }
   -- fill expressions
   for i=1,n do
-    -- aster.value convert any Lua value to the proper ASTNode
+    -- convert any Lua value to the proper ASTNode
     initlist[i] = aster.create_value(i)
   end
   return initlist
@@ -1475,7 +1589,7 @@ Using macros it is possible to create generic code:
 
 ```nelua
 ## function Point(PointT, T)
-  local #|PointT|# = @record { x: #|T|#, y: #|T|# }
+  local #|PointT|# = @record{x: #|T|#, y: #|T|#}
   function #|PointT|#:squaredlength()
     return self.x*self.x + self.y*self.y
   end
@@ -1497,7 +1611,7 @@ While the compiler is processing you can view what the compiler already knows
 to generate arbitrary code:
 
 ```nelua
-local Weekends = @enum { Friday=0, Saturday, Sunda }
+local Weekends = @enum{ Friday=0, Saturday, Sunda }
 ## for i,field in ipairs(Weekends.value.fields) do
   print(#[field.name .. ' ' .. tostring(field.value)]#)
 ## end
@@ -1506,7 +1620,7 @@ local Weekends = @enum { Friday=0, Saturday, Sunda }
 The above code compiles exactly as:
 
 ```nelua
-local Weekends = @enum { Friday=0, Saturday, Sunday }
+local Weekends = @enum{ Friday=0, Saturday, Sunday }
 print 'Friday 0'
 print 'Saturday 1'
 print 'Sunday 2'
@@ -1697,7 +1811,7 @@ It is hard to explain in words, so take a look at this full example:
   local MaxSize <comptime> = #[maxsize]#
 
   -- Define a record using T and MaxSize compile-time parameters.
-  local FixedStackArrayT = @record {
+  local FixedStackArrayT = @record{
     data: [MaxSize]T,
     size: isize
   }
@@ -1951,7 +2065,7 @@ local function sum_container(container: indexable_concept)
 end
 
 -- We create our customized array type.
-local MyArray = @record {data: [10]integer}
+local MyArray = @record{data: [10]integer}
 function MyArray:__index(i: integer)
   return self.data[i]
 end
@@ -1994,14 +2108,14 @@ end)]#
 
 local function get_number(x: facultative_number_concept)
   ## if x.type.is_niltype then
-    return 0
+    return 0.0
   ## else
     return x
   ## end
 end
 
-print(get_number(nil)) -- prints 0
-print(get_number(2)) -- prints 2
+print(get_number(nil)) -- prints 0.0
+print(get_number(2)) -- prints 2.0
 ```
 
 ### Facultative concept
