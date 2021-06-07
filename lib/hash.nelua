@@ -10,7 +10,7 @@ and with better quality.
 
 require 'span'
 
-global hash = @record{}
+global hash: type = @record{}
 
 -- This is the same simple hash function used in Lua.
 local function lhash(data: *[0]byte, len: usize, seed: usize, step: usize): usize <inline>

@@ -2,13 +2,13 @@
 The traits library provides utilities to gather type information.
 ]]
 
-global traits = @record{}
+global traits: type = @record{}
 
 -- Type of the identifier for types.
-global traits.typeid = @uint32
+global traits.typeid: type = @uint32
 
 -- Record for type information.
-global traits.typeinfo = @record{
+global traits.typeinfo: type = @record{
   id: traits.typeid,
   name: string,
   codename: string

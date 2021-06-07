@@ -39,13 +39,13 @@ local function atexit(func: function()): cint <cimport,cinclude'<stdlib.h>',node
 File stream record, used to store file handles.
 Internally it just have an unique `id` for each file handle.
 ]]
-global filestream = @record{
+global filestream: type = @record{
   id: uint64
 }
 ## filestream.value.is_filestream = true
 
 -- Record to store file handles in the file pool.
-local FStream = @record{
+local FStream: type = @record{
   fp: *FILE,
   closef: function(fp: *FILE): cint
 }
@@ -426,7 +426,7 @@ function filestream:lines(fmt: overload(integer,string,niltype))
   ## if fmt.type.is_niltype then
   local fmt: string = 'l'
   ## end
-  local LinesState = @record {
+  local LinesState: type = @record {
     file: filestream,
     fmt: #[fmt.type]#
   }

@@ -25,7 +25,7 @@ end
 
 local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 
-local StackAllocHeader = @record {
+local StackAllocHeader: type = @record {
   prev_offset: uint32,
   curr_offset: uint32
 }
@@ -42,7 +42,7 @@ local StackAllocHeader = @record {
   local SIZE <comptime> = #[SIZE]#
   local ALIGN <comptime> = #[ALIGN]#
 
-  local StackAllocatorT = @record{
+  local StackAllocatorT: type = @record{
     prev_offset: usize,
     curr_offset: usize,
     buffer: [SIZE]byte

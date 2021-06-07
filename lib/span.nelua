@@ -14,8 +14,8 @@ require 'iterators'
   static_assert(traits.is_type(T), "invalid type '%s", T)
   static_assert(not T.is_comptime, "spans cannot be of type '%s'", T)
   ]]
-  local T = @#[T]#
-  local spanT <nickname #[string.format('span(%s)', T)]#> = @record {
+  local T: type = @#[T]#
+  local spanT: type <nickname #[string.format('span(%s)', T)]#> = @record {
     data: *[0]T,
     size: usize
   }
@@ -70,4 +70,4 @@ require 'iterators'
   ## return spanT
 ## end)
 
-global span = #[make_span]#
+global span: type = #[make_span]#

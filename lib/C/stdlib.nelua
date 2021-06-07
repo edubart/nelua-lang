@@ -49,9 +49,9 @@ function C.abs(x: cint): cint <cimport'abs',nodecl> end
 function C.labs(x: clong): clong <cimport'labs',nodecl> end
 function C.llabs(x: clonglong): clonglong <cimport'llabs',nodecl> end
 
-global C.div_t <cimport'div_t',nodecl> = @record{quot: cint, rem: cint}
-global C.ldiv_t <cimport'ldiv_t',nodecl> = @record{quot: cint, rem: cint}
-global C.lldiv_t <cimport'lldiv_t',nodecl> = @record{quot: cint, rem: cint}
+global C.div_t: type <cimport'div_t',nodecl> = @record{quot: cint, rem: cint}
+global C.ldiv_t: type <cimport'ldiv_t',nodecl> = @record{quot: cint, rem: cint}
+global C.lldiv_t: type <cimport'lldiv_t',nodecl> = @record{quot: cint, rem: cint}
 function C.div(numer: cint, denom: cint): C.div_t <cimport'div',nodecl> end
 function C.ldiv(numer: clong, denom: clong): C.ldiv_t <cimport'ldiv',nodecl> end
 function C.lldiv(numer: clonglong, denom: clonglong): C.lldiv_t <cimport'lldiv',nodecl> end

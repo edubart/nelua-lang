@@ -16,7 +16,6 @@ local executor = require 'nelua.utils.executor'
 local configer = require 'nelua.configer'
 local platform = require 'nelua.utils.platform'
 local aster = require 'nelua.aster'
-require 'nelua.syntaxdefs'
 local profiler
 local runner = {}
 

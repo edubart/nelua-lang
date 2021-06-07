@@ -2,7 +2,7 @@ require 'C'
 
 ## cinclude '<stdio.h>'
 
-global C.FILE <cimport'FILE',nodecl,forwarddecl> = @record{}
+global C.FILE: type <cimport'FILE',nodecl,forwarddecl> = @record{}
 
 -- Operations on files
 function C.remove(filename: cstring): cint <cimport'remove',nodecl> end
@@ -61,7 +61,7 @@ function C.fread(ptr: pointer, size: csize, n: csize, stream: *C.FILE): csize <c
 function C.fwrite(ptr: pointer, size: csize, n: csize, sream: pointer): csize <cimport'fwrite',nodecl> end
 
 -- File positioning
-global C.fpos_t <cimport'fpos_t',nodecl,cincomplete> = @record{}
+global C.fpos_t: type <cimport'fpos_t',nodecl,cincomplete> = @record{}
 function C.fgetpos(stream: *C.FILE, pos: *C.fpos_t): cint <cimport'fgetpos',nodecl> end
 function C.fsetpos(stream: *C.FILE, pos: *C.fpos_t): cint <cimport'fsetpos',nodecl> end
 

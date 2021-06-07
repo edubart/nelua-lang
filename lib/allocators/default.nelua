@@ -10,7 +10,7 @@
 
 local allocator: auto = #[pragmas.default_allocator]#
 require 'allocators.interface'
-global DefaultAllocator = @record{}
+global DefaultAllocator: type = @record{}
 function DefaultAllocator:alloc(size: usize): pointer <inline>
   return allocator:alloc(size)
 end

@@ -23,7 +23,7 @@ local function container_type_by_reference(xtype)
 end
 ]]
 -- Concept used to pass contiguous containers by reference.
-local contiguous_reference_concept = #[concept(function(x)
+local contiguous_reference_concept: type = #[concept(function(x)
   local containertype, reftype = container_type_by_reference(x.type)
   if containertype.is_contiguous then
     return reftype
@@ -32,7 +32,7 @@ local contiguous_reference_concept = #[concept(function(x)
 end)]#
 
 -- Concept used to pass containers by reference.
-local container_reference_concept = #[concept(function(x)
+local container_reference_concept: type = #[concept(function(x)
   local containertype, reftype = container_type_by_reference(x.type)
   if containertype.is_container then
     return reftype

@@ -2,7 +2,7 @@
 The math library provides basic mathematical functions.
 ]]
 
-global math = @record{}
+global math: type = @record{}
 
 -- Import C math functions
 local function floor_f64(x: float64): float64 <cimport'floor',cinclude'<math.h>',nodecl,nosideeffect> end
@@ -67,9 +67,9 @@ local function ldexp_f64(x: float64, exp: cint): float64 <cimport'ldexp',cinclud
 local function ldexp_f32(x: float32, exp: cint): float32 <cimport'ldexpf',cinclude'<math.h>',nodecl,nosideeffect> end
 
 -- Concepts used by math functions.
-local an_scalar = #[concept(function(x) return x.type.is_scalar end)]#
-local an_optional_scalar = #[concept(function(x) return x.type.is_scalar or x.type.is_niltype end)]#
-local an_optional_integral = #[concept(function(x) return x.type.is_integral or x.type.is_niltype end)]#
+local an_scalar: type = #[concept(function(x) return x.type.is_scalar end)]#
+local an_optional_scalar: type = #[concept(function(x) return x.type.is_scalar or x.type.is_niltype end)]#
+local an_optional_integral: type = #[concept(function(x) return x.type.is_integral or x.type.is_niltype end)]#
 
 -- Compile time utilities.
 ##[[
@@ -487,7 +487,7 @@ function math.type(x: auto) <inline,nosideeffect>
 end
 
 -- Pseudo Random Number Generator based on Xoshiro256.
-local Xoshiro256 = @record{
+local Xoshiro256: type = @record{
   state: [4]uint64
 }
 

@@ -187,4 +187,12 @@ function aster.set_syntax(grammar, errors, defs)
   aster.syntax_patt = lpegrex.compile(grammar, defs)
 end
 
+-- Need to set aster in `package.loaded` because astdefs depends on it.
+package.loaded['nelua.aster'] = aster
+require 'nelua.astdefs'
+
+-- Set current aster syntax for parsing.
+local syntaxdefs = require 'nelua.syntaxdefs'
+aster.set_syntax(syntaxdefs.grammar, syntaxdefs.errors, syntaxdefs.defs)
+
 return aster

@@ -398,7 +398,7 @@ function string.len(s: string): isize <inline>
 end
 
 -- Concept to check if a value can possibly be a number.
-local scalar_coercion_concept = #[concept(function(x)
+local scalar_coercion_concept: type = #[concept(function(x)
   if x.type.is_stringy then
     return primtypes.string
   elseif x.type.is_integral then
@@ -410,7 +410,7 @@ local scalar_coercion_concept = #[concept(function(x)
 end)]#
 
 -- Concept to check if a value can possibly be a string.
-local string_coercion_concept = #[concept(function(x)
+local string_coercion_concept: type = #[concept(function(x)
   if x.type.is_stringy then
     return primtypes.string
   elseif x.type.is_integral then

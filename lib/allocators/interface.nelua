@@ -11,8 +11,8 @@ require 'span'
 
   ## Allocator.value.is_allocator = true
 
-  local is_span = #[concept(function(x) return x.type.is_span end)]#
-  local Allocator = #[Allocator]#
+  local is_span: type = #[concept(function(x) return x.type.is_span end)]#
+  local Allocator: type = #[Allocator]#
 
   ## if not Allocator.value.metafields.alloc0 then
   -- naive implementation for alloc0
@@ -133,7 +133,7 @@ require 'span'
     local spn: span(T) = self:spanalloc0(T, size)
     assert(spn.size == size, 'out of memory')
     ## else
-    local T = #[what.type]#
+    local T: type = #[what.type]#
     local spn: span(T) = self:spanalloc(T, size)
     assert(spn.size == size, 'out of memory')
     for i:usize=0,<size do

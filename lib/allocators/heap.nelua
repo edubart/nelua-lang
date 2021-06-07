@@ -42,7 +42,7 @@ local NODE_COOKIE: usize <comptime> = 0xA7512BCF_usize
 -- each chunk have this node as heading before its data,
 -- this node will be 32 bytes on 64bit systems
 -- or 16 bytes on 32bit systems, perfect for the 16 byte alignment requirement
-local Node = @record{
+local Node: type = @record{
   size: usize,
   prev_adj: *Node,
   next: *Node,
@@ -50,12 +50,12 @@ local Node = @record{
 }
 
 -- the double linked list for free nodes
-local Bin = @record{
+local Bin: type = @record{
   head: *Node
 }
 
 -- the heap stores bins for different chunk sizes
-local Heap = @record{
+local Heap: type = @record{
   bins: [BIN_COUNT]Bin
 }
 
@@ -409,7 +409,7 @@ end
 
   local HEAP_SIZE: usize <comptime> = #[HEAP_SIZE]#
 
-  local HeapAllocatorT = @record{
+  local HeapAllocatorT: type = @record{
     initialized: boolean,
     heap: Heap,
     buffer: [HEAP_SIZE]byte

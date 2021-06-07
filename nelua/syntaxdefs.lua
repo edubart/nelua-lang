@@ -243,7 +243,7 @@ EXTRA_TOKENS    <-- `[[` `[=` `--` `##` -- Force defining these tokens.
 ]==]
 
 -- List of syntax errors.
-local syntax_errors = {
+local errors = {
 ["Expected_do"]             = "expected `do` keyword to begin a statement block",
 ["Expected_then"]           = "expected `then` keyword to begin a statement block",
 ["Expected_end"]            = "expected `end` keyword to close a statement block",
@@ -307,8 +307,8 @@ function defs.pair_sugar(idnode)
   return idnode[1], idnode
 end
 
--- Define AST nodes, as they are required when parsing.
-require 'nelua.astdefs'
-
--- Set current aster syntax for parsing.
-require 'nelua.aster'.set_syntax(grammar, syntax_errors, defs)
+return {
+  errors = errors,
+  grammar = grammar,
+  defs = defs
+}

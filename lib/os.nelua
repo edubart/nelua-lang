@@ -10,7 +10,7 @@ require 'string'
 local clock_t <cimport,nodecl> = #[types.IntegralType('clock_t', primtypes.clong.size)]#
 local time_t <cimport,nodecl> = #[types.IntegralType('time_t', primtypes.clong.size)]#
 
-local tm <cimport'tm',nodecl,ctypedef> = @record {
+local tm: type <cimport'tm',nodecl,ctypedef> = @record {
   tm_year: cint,
   tm_mon: cint,
   tm_mday: cint,
@@ -40,7 +40,7 @@ local function mktime(tp: *tm): time_t <cimport,cinclude'<time.h>',nodecl> end
 local function localtime(timer: *time_t): *tm <cimport,cinclude'<time.h>',nodecl> end
 local function strftime(s: cstring, maxsize: csize, format: cstring, tp: *tm): csize <cimport,cinclude'<time.h>',nodecl> end
 
-global os = @record{}
+global os: type = @record{}
 
 --[[
 Returns an approximation of the amount in seconds of CPU time used by the program,
@@ -209,7 +209,7 @@ function os.setlocale(locale: string, category: facultative(string)): string
 end
 
 -- Time description, used by function `os.time`.
-global os.time_desc = @record {
+global os.time_desc: type = @record {
   year: integer, month: integer, day: integer,
   hour: integer, min: integer, sec: integer,
   isdst: boolean

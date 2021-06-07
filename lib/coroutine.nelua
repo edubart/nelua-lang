@@ -101,7 +101,7 @@ local function mco_result_description(res: mco_result): cstring <cimport, nodecl
 local main_coro: mco_coro
 
 -- The coroutine handle.
-global coroutine = @*mco_coro
+global coroutine: type = @*mco_coro
 
 -- Called when the coroutine collected by the GC.
 local function coroutine_gc(co: coroutine): void

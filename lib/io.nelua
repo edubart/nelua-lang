@@ -28,7 +28,7 @@ and a system-dependent error code as a third result.
 require 'filestream'
 
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
-local FILE <cimport,nodecl,forwarddecl,cinclude'<stdio.h>'> = @record{}
+local FILE: type <cimport,nodecl,forwarddecl,cinclude'<stdio.h>'> = @record{}
 local stdin: *FILE <cimport,cinclude'<stdio.h>',nodecl>
 local stdout: *FILE <cimport,cinclude'<stdio.h>',nodecl>
 local stderr: *FILE <cimport,cinclude'<stdio.h>',nodecl>
@@ -37,7 +37,7 @@ local function tmpfile(): *FILE <cimport,cinclude'<stdio.h>',nodecl> end
 local function fclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function fflush(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 
-global io = @record{}
+global io: type = @record{}
 
 -- Default error output file handle.
 global io.stderr: filestream = filestream._from_fp(stderr, nilptr)

@@ -42,7 +42,7 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
 
   local SIZE <comptime> = #[SIZE]#
   local ALIGN <comptime> = #[ALIGN]#
-  local ArenaAllocatorT = @record{
+  local ArenaAllocatorT: type = @record{
     prev_offset: usize,
     curr_offset: usize,
     buffer: [SIZE]byte

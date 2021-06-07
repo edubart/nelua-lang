@@ -297,7 +297,7 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
   end
 
   -- Hashmap iterator
-  local hashmap_iteratorT = @record {
+  local hashmap_iteratorT: type = @record {
     container: *hashmapT,
     index: usize
   }

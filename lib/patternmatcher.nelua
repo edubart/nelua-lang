@@ -24,7 +24,7 @@ local MAX_MATCH_CALLS <comptime> = 32
 local CAP_UNFINISHED <comptime> = -1
 local CAP_POSITION <comptime> = -2
 
-global PatternMatcherCapture = @record{
+global PatternMatcherCapture: type = @record{
   init: isize,
   len: isize
 }
@@ -38,7 +38,7 @@ function PatternMatcherCapture:is_position(): boolean
 end
 
 -- Record that hold the matching state.
-global PatternMatcher = @record{
+global PatternMatcher: type = @record{
   source: string,
   pattern: string,
   depth: isize, -- control for recursive depth (to avoid stack overflow)

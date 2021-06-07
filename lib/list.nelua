@@ -32,7 +32,7 @@ global list_node: type = #[make_generic_list_node]#
   local T: type = @#[T]#
   local list_nodeT: type = @list_node(T)
 
-  local listT <nickname #[string.format('list(%s)',T)]#> = @record{
+  local listT: type <nickname #[string.format('list(%s)',T)]#> = @record{
     head: *list_nodeT, -- list begin
     tail: *list_nodeT, -- list end
     allocator: Allocator

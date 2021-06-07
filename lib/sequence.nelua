@@ -20,12 +20,12 @@ require 'iterators'
 
   local Allocator: type = #[Allocator]#
   local T: type = @#[T]#
-  local sequenceimplT <nickname #[string.format('sequenceimpl(%s)', T)]#> = @record {
+  local sequenceimplT: type <nickname #[string.format('sequenceimpl(%s)', T)]#> = @record {
     data: span(T),
     size: usize
   }
 
-  local sequenceT <nickname #[string.format('sequence(%s)', T)]#> = @record{
+  local sequenceT: type <nickname #[string.format('sequence(%s)', T)]#> = @record{
     impl: *sequenceimplT,
     allocator: Allocator
   }
@@ -230,4 +230,4 @@ require 'iterators'
   ## return sequenceT
 ## end)
 
-global sequence = #[make_generic_sequence]#
+global sequence: type = #[make_generic_sequence]#

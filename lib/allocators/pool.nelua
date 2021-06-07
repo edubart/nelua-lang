@@ -23,9 +23,9 @@ require 'allocators.interface'
   static_assert(T.size >= primtypes.pointer.size, 'chunk size must be at least a pointer in size')
   ]]
 
-  local PoolFreeNode = @record{next: *PoolFreeNode}
-  local PoolChunk = @union{value: #[T]#, p: pointer}
-  local PoolAllocatorT = @record{
+  local PoolFreeNode: type = @record{next: *PoolFreeNode}
+  local PoolChunk: type = @union{value: #[T]#, p: pointer}
+  local PoolAllocatorT: type = @record{
     initialized: boolean,
     head: *PoolFreeNode,
     buffer: [#[SIZE]#]PoolChunk

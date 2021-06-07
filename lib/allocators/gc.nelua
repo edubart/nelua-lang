@@ -29,14 +29,14 @@ cemitdecl[=[
 ]=]
 ]]
 
-local jmp_buf <cimport,nodecl,cinclude'<setjmp.h>',cincomplete> = @record{}
+local jmp_buf: type <cimport,nodecl,cinclude'<setjmp.h>',cincomplete> = @record{}
 local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>',nodecl> end
 local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 local function memset(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 
 local allocator: auto = general_allocator
 
-global GCFlags = @enum(usize) {
+global GCFlags: type = @enum(usize) {
   MARK = 1, -- marked for collection, used internally
   ROOT = 2, -- should not never be freed
   LEAF = 4, -- contains no pointers to other allocations inside
@@ -45,10 +45,10 @@ global GCFlags = @enum(usize) {
 }
 local UINTPTR_MAX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
 
-local FinalizerCallback = @function(p: pointer): void
-local SizedFinalizerCallback = @function(p: pointer, size: usize): void
+local FinalizerCallback: type = @function(p: pointer): void
+local SizedFinalizerCallback: type = @function(p: pointer, size: usize): void
 
-local GCItem = @record{
+local GCItem: type = @record{
   ptr: pointer,
   flags: usize,
   size: usize,
@@ -56,7 +56,7 @@ local GCItem = @record{
   finalizer: pointer,
 }
 
-local GC = @record{
+local GC: type = @record{
   bottom: pointer,
   stopped: boolean,
   minptr: usize, maxptr: usize,
