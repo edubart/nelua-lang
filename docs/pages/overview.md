@@ -127,7 +127,7 @@ Variables declared but not defined early are always initialized to zeros by defa
 ```nelua
 local b: boolean -- variable of type 'boolean', initialized to 'false'
 local i: integer -- variable of type 'integer', initialized to 0
-print(b, i) --outputs: false 0
+print(b, i) -- outputs: false 0
 ```
 
 Nelua encourages the Zero Is Initialization (ZII) idiom
@@ -166,6 +166,7 @@ Compile-time variables have their values known at compile-time:
 
 ```nelua
 local a <comptime> = 1 + 2 -- constant variable of value '3' evaluated and known at compile-time
+print(a) -- outputs: 3
 ```
 
 The compiler takes advantage of compile-time variables to generate
@@ -632,6 +633,19 @@ Thus when calling functions, you may want to pass arrays by reference
 using the [reference operator](#dereferencing-and-referencing) when appropriate.
 {:.alert.alert-warning}
 
+#### Array with inferred size
+
+When declaring and initializing an array the size on the type notation can be optionally omitted as a syntax sugar:
+
+```nelua
+local a: []integer = {1,2,3,4} -- array size will be 4
+print(#a) -- outputs: 4
+```
+
+Do not confuse this syntax with dynamic arrays,
+the array size will still be fixed and determined at compile time.
+{:.alert.alert-warning}
+
 #### Multidimensional array
 
 An array can also be multidimensional:
@@ -728,7 +742,7 @@ A pointer points to a region in memory of a specific type:
 
 ```nelua
 local n = nilptr -- a generic pointer, initialized to nilptr
-local p: pointer --a generic pointer to anything, initialized to nilptr
+local p: pointer -- a generic pointer to anything, initialized to nilptr
 local i: pointer(integer) -- pointer to an integer
 
 -- syntax sugar
@@ -746,10 +760,10 @@ An array with size 0 is an unbounded array,
 that is, an array with unknown size at compile time:
 
 ```nelua
-local a: array(integer, 4) = {1,2,3,4}
+local a: [4]integer = {1,2,3,4}
 
 -- unbounded array only makes sense when used with pointer
-local a_ptr: pointer(array(integer, 0))
+local a_ptr: *[0]integer
 a_ptr = &a -- takes the reference of 'a'
 print(a_ptr[1])
 ```
@@ -784,7 +798,8 @@ add = double_add_impl
 print(add(1,2)) -- outputs 6
 ```
 
-The function type is just a pointer, and thus can be converted to/from generic pointers.
+The function type is just a pointer, thus can be converted to/from generic pointers
+with explicit casts.
 {:.alert.alert-info}
 
 ### Span
@@ -812,6 +827,23 @@ The niltype is the type of `nil`.
 The niltype is not useful by itself, it is only useful when using with unions to create the
 optional type or for detecting `nil` arguments in [polymorphic functions](#polymorphic-functions).
 {:.alert.alert-info}
+
+### Void
+
+The void type is used internally for the generic pointer,
+that is, `pointer(void)`, `*void` and `pointer` types are all equivalent.
+
+The void type can also be used explicitly mark that a function has no return:
+
+```nelua
+local function myprint(): void
+  print 'hello'
+end
+myprint() -- outputs: hello
+```
+
+The compiler can automatic deduce function return types thus this is usually not
+needed.
 
 ### The "type" type
 
@@ -1242,8 +1274,13 @@ Complete list of metamethods that can be defined for records:
 | `__len`          | `#a`{:.language-nelua}      | unary    | length                                 |
 | `__index`        | `a[b]`{:.language-nelua}    | indexing | array index                            |
 | `__atindex`      | `a[b]`{:.language-nelua}    | indexing | array index via reference              |
-| `__tostring`     |                             | cast     | implicit cast to string                |
+| `__tostring`     | tostring(a)                 | cast     | explicit/implicit cast to string       |
 | `__convert`      |                             | cast     | implicit cast from anything            |
+| `__gc`           |                             | gc       | called when collected by the GC        |
+| `__next`         | next(a)                     | iterator | used by `next`                         |
+| `__next`         | mnext(a)                    | iterator | used by `mnext`                        |
+| `__pairs`        | pairs(a)                    | iterator | used by `pairs`                        |
+| `__mpairs`       | mpairs(a)                   | iterator | used by `mpairs`                       |
 {: .table.table-bordered.table-striped.table-sm}
 
 ### Record globals
@@ -1478,7 +1515,7 @@ a = a + 1
 print(a)
 ```
 
-Using the Lua preprocessor, you can generate complex code at compile-time.
+Using the Lua preprocessor, you can generate arbitrary code at compile-time.
 
 ### Emitting AST nodes (statements)
 

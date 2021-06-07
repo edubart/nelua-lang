@@ -3,10 +3,14 @@ require 'string'
 require 'math'
 require 'memory'
 require 'iterators'
-require 'allocators.gc'
+require 'allocators.default'
 require 'allocators.general'
 
-do -- Comments
+do print '## Hello world'
+  print 'Hello world!'
+end
+
+do print '## Comments'
   -- one line comment
   --[[
     multi-line comment
@@ -18,7 +22,7 @@ do -- Comments
   ]=]
 end
 
-do -- Variables
+do print '## Variables'
   local b = false -- of deduced type 'boolean', initialized to false
   local s = 'test' -- of deduced type 'string', initialized to 'test'
   local one = 1 --  of type 'integer', initialized to 1
@@ -26,7 +30,7 @@ do -- Variables
   print(b,s,one,pi) -- outputs: false test 1 3.14
 end
 
-do -- Type deduction
+do print '### Type deduction'
   local a -- type will be deduced and scope end
   a = 1
   a = 2
@@ -34,13 +38,13 @@ do -- Type deduction
   -- end of scope, compiler deduced 'a' to be of type 'integer'
 end
 
-do -- Zero initialization
+do print '### Zero initialization'
   local b: boolean -- variable of type 'boolean', initialized to 'false'
   local i: integer -- variable of type 'integer', initialized to 0
-  print(b, i) --outputs: false 0
+  print(b, i) -- outputs: false 0
 end
 
-do -- Auto variables
+do print '### Auto variables'
   local a: auto = 1 -- a is deduced to be of type 'integer'
 
   -- uncommenting the following will trigger the compile error:
@@ -50,12 +54,12 @@ do -- Auto variables
   print(a) -- outputs: 1
 end
 
-do -- Comptime variables
-  local a <comptime> = 1 + 2 -- constant variable evaluated and known at compile time
+do print '### Compile-time variables'
+  local a <comptime> = 1 + 2 -- constant variable of value '3' evaluated and known at compile-time
   print(a) -- outputs: 3
 end
 
-do -- Const variables
+do print '## Const variables'
   local x <const> = 1
   local a <const> = x
   print(a) -- outputs: 1
@@ -65,25 +69,25 @@ do -- Const variables
   --a = 2
 end
 
-do -- Multiple assignment
+do print '### Multiple variables assignment'
   local a, b = 1, 2
   print(a, b) -- outputs: 1 2
-  b, a = a, b
+  b, a = a, b -- swap values
   print(a, b) -- outputs: 2 1
 end
 
-do -- Local symbol
+do print '### Local symbol'
   do
     local a = 1
     do
       print(a) -- outputs: 1
     end
   end
-  -- this would trigger a compiler error because `a` is not visible:
+  -- uncommenting this would trigger a compiler error because `a` is not visible:
   -- a = 1
 end
 
---do -- Global symbols
+print '### Global symbol'
   global global_a = 1
   global function global_f()
     return 'f'
@@ -91,9 +95,13 @@ end
   -- require 'globals'
   print(global_a) -- outputs: 1
   print(global_f()) -- outputs: f
---end
 
-do -- If
+do print '### Symbols with special characters'
+  local π = 3.14
+  print(π) -- outputs 3.14
+end
+
+do print '### If'
   local a = 1 -- change this to 2 or 3 to trigger other ifs
   if a == 1 then
     print 'is one'
@@ -104,19 +112,19 @@ do -- If
   end
 end
 
-do -- Switch
+do print '### Switch'
   local a = 1 -- change this to 2 or 3 to trigger other ifs
   switch a
   case 1 then
     print 'is 1'
-  case 2 then
-    print 'is 2'
+  case 2, 3 then
+    print 'is 2 or 3'
   else
     print 'else'
   end
 end
 
-do -- Do
+do print '### Do'
   do
     local a = 0
     print(a) -- outputs: 0
@@ -127,7 +135,7 @@ do -- Do
   end
 end
 
-do -- Defer
+do print '### Defer'
   do
     defer
       print 'world'
@@ -137,7 +145,7 @@ do -- Defer
   -- outputs 'hello' then 'world'
 end
 
-do -- Goto
+do print '### Goto'
   local haserr = true
   if haserr then
     goto getout -- get out of the loop
@@ -148,7 +156,7 @@ do -- Goto
   -- outputs only 'fail'
 end
 
-do -- While
+do print '### While'
   local a = 1
   while a <= 5 do
     print(a) -- outputs 1 2 3 4 5
@@ -156,7 +164,7 @@ do -- While
   end
 end
 
-do -- Repeat
+do print '### Repeat'
   local a = 0
   repeat
     a = a + 1
@@ -165,33 +173,33 @@ do -- Repeat
   until stop
 end
 
-do -- Numeric For
+do print '### Numeric For'
   for i=0,5 do
     -- i is deduced to 'integer'
     print(i) -- outputs 0 1 2 3 4 5
   end
 end
 
-do -- Numeric For Exclusive
+do print '#### Exclusive For'
   for i=0,<5 do
     print(i) -- outputs 0 1 2 3 4
   end
 end
 
-do -- Numeric For Stepped
+do print '#### Stepped For'
   for i=5,0,-1 do
     print(i) -- outputs 5 4 3 2 1
   end
 end
 
-do -- For In
+do print '### For In'
   local a: [4]string = {"a","b","c","d"}
   for i,v in ipairs(a) do
     print(i,v) -- outputs: 0 a, 1 b, 2 c, 3 d
   end
 end
 
-do -- Continue
+do print '### Continue'
   for i=1,10 do
     if i<=5 then
       continue
@@ -200,7 +208,7 @@ do -- Continue
   end
 end
 
-do -- Break
+do print '### Break'
   for i=1,10 do
     if i>5 then
       break
@@ -209,7 +217,7 @@ do -- Break
   end
 end
 
-do -- Do expression
+do print '### Do expression'
   local i = 2
   local s = (do
     if i == 1 then
@@ -223,14 +231,14 @@ do -- Do expression
   print(s) -- outputs: two
 end
 
-do -- Boolean
+do print '### Boolean'
   local a: boolean -- variable of type 'boolean' initialized to 'false'
   local b = false
   local c = true
   print(a,b,c) -- outputs: false false true
 end
 
-do -- Number
+do print '### Number'
   local dec = 1234 -- variable of type 'integer'
   local bin = 0b1010 -- variable of type 'uint8', set from binary number
   local hex = 0xff -- variable of type 'integer', set from hexadecimal number
@@ -242,14 +250,12 @@ do -- Number
   local pi = 0x1.921FB54442D18p+2 -- hexadecimal with fractional and exponent
   print(pi) -- outputs: 3.1415926535898
 
-  do
-    local a = 1234_u32 -- variable of type 'int32'
-    local b = 1_f32 -- variable of type 'float32'
-    print(a,b) --outputs: 1234 1.0
-  end
+  local a = 1234_u32 -- variable of type 'int32'
+  local b = 1_f32 -- variable of type 'float32'
+  print(a,b) --outputs: 1234 1.0
 end
 
-do -- String
+do print '### String'
   local str1: string -- empty string
   local str2 = "string 2" -- variable of type 'string'
   local str3: string = 'string 3' -- also a 'string'
@@ -262,7 +268,7 @@ string
   print(str4) -- outputs the multi line string
 end
 
-do -- Escape Sequence
+do print '#### String escape sequence'
   local ctr = "\n\t\r\a\b\v\f" -- escape control characters
   local utf = "\u{03C0}" -- escape UTF-8 code
   local hex = "\x41" -- escape hexadecimal byte
@@ -275,34 +281,7 @@ do -- Escape Sequence
   print(multiline2) -- outputs "my" and "text2" on a new line
 end
 
-do -- The "type" type
-  local MyInt: type = @integer -- a symbol of type 'type' holding the type 'integer'
-  local a: MyInt -- variable of type 'MyInt' (actually an 'integer')
-  print(a) -- outputs: 0
-end
-
-do -- Explicit type conversion
-  local i = 1
-  local f = (@number)(i) -- convert 'i' to the type 'number'
-  print(i, f) -- outputs: 1 1.0
-
-  local MyNumber = @number
-  local i = 1
-  local f = MyNumber(i) -- convert 'i' to the type 'number'
-  print(i, f) -- outputs: 1 1.0
-end
-
-do print('Implicit type conversion')
-  local i: integer = 1
-  local u: uinteger = i
-  print(u) -- outputs: 1
-
-  local ni: integer = -1
-  local nu: uinteger = (@uinteger)(ni) -- explicit cast works, no checks are done
-  print(nu) -- outputs: 18446744073709551615
-end
-
-do -- Array
+do print '### Array'
   local a: array(integer, 4) = {1,2,3,4}
   print(a[0], a[1], a[2], a[3]) -- outputs: 1 2 3 4
 
@@ -310,7 +289,12 @@ do -- Array
   print(b[0], b[1], b[2], b[3]) -- outputs: 0 0 0 0
 end
 
-do -- Multidimensional Array
+do print '#### Array with inferred size'
+  local a: []integer = {1,2,3,4} -- array size will be 4
+  print(#a) -- outputs: 4
+end
+
+do print '#### Multidimensional Array'
   local m: [2][2]number = {
     {1.0, 2.0},
     {3.0, 4.0}
@@ -319,7 +303,7 @@ do -- Multidimensional Array
   print(m[1][0], m[1][1]) -- outputs: 3.0 4.0
 end
 
-do -- Enum
+do print '### Enum'
   local Weeks = @enum{
     Sunday = 0,
     Monday,
@@ -335,7 +319,7 @@ do -- Enum
   print(a) -- outputs: 1
 end
 
-do -- Record
+do print '### Record'
   local Person = @record{
     name: string,
     age: integer
@@ -360,7 +344,7 @@ do -- Record
   print(d.name, d.age)
 end
 
-do -- Union
+do print '### Union'
   local IntOrFloat = @union{
     i: int64,
     f: float64,
@@ -372,38 +356,114 @@ do -- Union
   print(u.i) -- outputs some garbage integer
 end
 
-do -- Span
+do print '### Pointer'
+  local n = nilptr -- a generic pointer, initialized to nilptr
+  local p: pointer --a generic pointer to anything, initialized to nilptr
+  local i: pointer(integer) -- pointer to an integer
+
+  -- syntax sugar
+  local i: *integer
+end
+
+do print '#### Unbounded Array'
+  local a: [4]integer = {1,2,3,4}
+
+  -- unbounded array only makes sense when used with pointer
+  local a_ptr: *[0]integer
+  a_ptr = &a -- takes the reference of 'a'
+  print(a_ptr[1])
+end
+
+do print '### Function type'
+  local function add_impl(x: integer, y: integer): integer
+    return x + y
+  end
+
+  local function double_add_impl(x: integer, y: integer): integer
+    return 2*(x + y)
+  end
+
+  local add: function(x: integer, y: integer): integer
+  add = add_impl
+  print(add(1,2)) -- outputs 3
+  add = double_add_impl
+  print(add(1,2)) -- outputs 6
+end
+
+do print '### Span'
   local arr = (@[4]integer) {1,2,3,4}
   local s: span(integer) = &arr
   print(s[0], s[1]) -- outputs: 1 2
   print(#s) -- outputs 4
 end
 
-do -- Void
-  local function f(): void end
+do print '### Niltype'
+  local n: niltype = nil
 end
 
-do -- Operators
+do print '### Void'
+  local function myprint(): void
+    print 'hello'
+  end
+  myprint() -- outputs: hello
+end
+
+do print '### The "type" type'
+  local MyInt: type = @integer -- a symbol of type 'type' holding the type 'integer'
+  local a: MyInt -- variable of type 'MyInt' (actually an 'integer')
+  print(a) -- outputs: 0
+end
+
+do print '#### Size of a type'
+  local Vec2 = @record{x: integer, y: integer}
+  print(#Vec2) -- outputs: 8
+end
+
+do print '### Implicit type conversion'
+  local i: integer = 1
+  local u: uinteger = i
+  print(u) -- outputs: 1
+end
+
+do print '### Explicit type conversion'
+  local i = 1
+  local f = (@number)(i) -- convert 'i' to the type 'number'
+  print(i, f) -- outputs: 1 1.0
+
+  local MyNumber = @number
+  local i = 1
+  local f = MyNumber(i) -- convert 'i' to the type 'number'
+  print(i, f) -- outputs: 1 1.0
+
+  local ni: integer = -1
+  -- the following would crash with "narrow casting from int64 to uint64 failed"
+  --local nu: uinteger = ni
+
+  local nu: uinteger = (@uinteger)(ni) -- explicit cast works, no checks are done
+  print(nu) -- outputs: 18446744073709551615
+end
+
+do print '## Operators'
   print(2 ^ 2) -- pow, outputs: 4.0
   print(5 // 2) -- integer division, outputs: 2
   print(5 / 2) -- float division, outputs: 2.5
 end
 
-do -- Functions
+do print '## Functions'
+  local function add(a: integer, b: integer): integer
+    return a + b
+  end
+  print(add(1, 2)) -- outputs 3
+end
+
+do print '## Return type inference'
   local function add(a: integer, b: integer)
     return a + b -- return is of deduced type 'integer'
   end
   print(add(1, 2)) -- outputs 3
 end
 
-do -- Return type inference
-  local function add(a: integer, b: integer): integer
-    return a + b -- return is of deduced type 'integer'
-  end
-  print(add(1, 2)) -- outputs 3
-end
-
-do -- Recursive calls
+do print '### Recursive calls'
   local function fib(n: integer): integer
     if n < 2 then return n end
     return fib(n - 2) + fib(n - 1)
@@ -411,7 +471,7 @@ do -- Recursive calls
   print(fib(10)) -- outputs: 55
 end
 
-do -- Multiple returns
+do print '### Multiple returns'
   local function get_multiple()
     return false, 1
   end
@@ -429,7 +489,41 @@ do -- Multiple returns
   print(a,b) -- outputs: false 1
 end
 
-do -- Variable number of arguments
+do print '### Anonymous functions'
+  local function g(x: integer, f: function(x: integer): integer)
+    return f(x)
+  end
+
+  local y = g(1, function(x: integer): integer
+    return 2*x
+  end)
+
+  print(y) -- outputs: 2
+end
+
+do print '### Nested functions'
+  local function f()
+    local function g()
+      return 'hello from g'
+    end
+    return g()
+  end
+
+  print(f()) -- outputs: hello from g
+end
+
+--do print '### Top scope closures'
+  local counter = 1 -- 'a' lives in the heap because it's on the top scope
+  local function increment() -- foo is a top scope closure
+    -- counter is an upvalue for this function, we can access and modify it
+    counter = counter + 1
+  end
+  print(counter) -- outputs 1
+  increment()
+  print(counter) -- outputs 2
+--end
+
+do print '### Variable number of arguments'
   local function f(...: varargs)
     print(...)
   end
@@ -445,30 +539,7 @@ do -- Variable number of arguments
   print(sum(1, 2, 3)) -- outputs: 6
 end
 
-do -- Anonymous functions
-  local function g(x: integer, f: function(x: integer): integer)
-    return f(x)
-  end
-
-  local y = g(1, function(x: integer): integer
-    return 2*x
-  end)
-
-  print(y) -- outputs: 2
-end
-
---do -- Top scope closures
-  local counter = 1 -- 'a' lives in the heap because it's on the top scope
-  local function increment() -- foo is a top scope closure
-    -- counter is an upvalue for this function, we can access and modify it
-    counter = counter + 1
-  end
-  print(counter) -- outputs 1
-  increment()
-  print(counter) -- outputs 2
---end
-
-do -- Polymorphic functions
+do print '### Polymorphic functions'
   local function add(a: auto, b: auto)
     return a + b
   end
@@ -481,7 +552,7 @@ do -- Polymorphic functions
   print(b) -- outputs: 3.0
 end
 
-do -- Record functions
+do print '### Record functions'
   local Vec2 = @record{x: number, y: number}
 
   function Vec2.create(x: integer, y: integer): Vec2
@@ -492,7 +563,7 @@ do -- Record functions
   print(v.x, v.y) -- outputs: 1 2
 end
 
-do -- Record methods
+do print '### Record methods'
   local Rect = @record{x: number, y: number, w: number, h: number}
 
   function Rect:translate(x: number, y: number)
@@ -510,7 +581,7 @@ do -- Record methods
   print(v:area()) -- outputs 6
 end
 
-do -- Record metamethods
+do print '### Record metamethods'
   local Vec2 = @record{x: number, y: number}
 
   -- Called on the binary operator '+'
@@ -531,17 +602,43 @@ do -- Record metamethods
   print(len) -- outputs: 7.2
 end
 
-do -- Dereferencing and referencing
-  local a = 1
-  local ap = &a -- ap is a pointer to a
-  $ap = 2
-  print(a) -- outputs: 2
-  a = 3
-  print($ap) -- outputs: 3
-  print(ap) -- outputs memory address of a
+print '### Record globals'
+  global Globals = @record{} -- record used just for name spacing
+  global Globals.AppName: string
+  Globals.AppName = "My App"
+  print(Globals.AppName) -- outputs: My App
+
+do print '### Calls with nested records'
+  local WindowConfig = @record{
+    title: string,
+    pos: record{
+      x: integer,
+      y: integer
+    },
+    size: record{
+      x: integer,
+      y: integer
+    }
+  }
+  local function create_window(config: WindowConfig)
+    print(config.title, config.pos.x, config.pos.y)
+  end
+
+  -- the compiler knows that the argument should be parsed as WindowConfig
+  -- notice that 'size' field is not set, so its initialized to zeros
+  create_window({title="hi", pos={x=1, y=2}})
 end
 
-do -- Allocating memory
+do print '## Memory management'
+  local str = tostring(1) -- tostring needs to allocates a new string
+  print(str) -- outputs: 1
+  ## if pragmas.nogc then -- the GC is disabled, must manually deallocate memory
+  str:destroy() -- deallocates the string
+  ## end
+  print(str) -- the string was destroyed and is now empty, outputs nothing
+end
+
+do print '### Allocating memory'
   local Person = @record{name: string, age: integer}
   local p: *Person = default_allocator:new(@Person)
   p.name = "John"
@@ -551,7 +648,71 @@ do -- Allocating memory
   -- we don't need to deallocate, the GC will do this on its own when needed!
 end
 
-do -- Preprocessor
+do print '### Allocating memory manually'
+  local Person = @record{name: string, age: integer}
+  local p: *Person = general_allocator:new(@Person) -- allocate the appropriate size for Person
+  p.name = tostring("John") -- another allocation here
+  p.age = 20
+  print(p.name, p.age)
+  p.name:destroy() -- free the string allocation
+  general_allocator:delete(p) -- free the Person allocation
+  p = nilptr
+end
+
+do print '### Dereferencing and referencing'
+  local a = 1
+  local ap = &a -- ap is a pointer to a
+  $ap = 2
+  print(a) -- outputs: 2
+  a = 3
+  print($ap) -- outputs: 3
+  print(ap) -- outputs memory address of a
+end
+
+do print '### Automatic referencing and dereferencing'
+  local Person = @record{name: string, age: integer}
+
+  local function print_info_byref(p: *Person)
+    print(p.name, p.age)
+  end
+  local function print_info_bycopy(p: Person)
+    print(p.name, p.age)
+  end
+
+  local p: Person = {"John", 20}
+  print_info_byref(p) -- the referencing with `&` is implicit here
+  local pref: *Person = &p
+  print_info_bycopy(p) -- the dereferencing with `$` is implicit here
+
+
+  local Person = @record{name: string, age: integer}
+
+  local function print_info_byref(p: *Person)
+    print(p.name, p.age)
+  end
+  local function print_info_bycopy(p: Person)
+    print(p.name, p.age)
+  end
+
+  local p: Person = {"John", 20}
+  print_info_byref(&p)
+  local pref: *Person = &p
+  print_info_bycopy($pref)
+
+
+  local Person = @record{name: string, age: integer}
+
+  -- note that this function only accept pointers
+  function Person.print_info(self: *Person)
+    print(self.name, self.age)
+  end
+
+  local p: Person = {"John", 20}
+  p:print_info() -- perform auto referencing of 'p' when calling here
+  Person.print_info(p) -- equivalent, also performs auto referencing
+end
+
+do print '### Preprocessor'
   local a = 0
   ## for i = 1,4 do
     a = a + 1 -- unroll this line 4 times
@@ -567,70 +728,54 @@ do -- Preprocessor
   ##[[ end ]]
 end
 
-do -- Emitting AST nodes
+do print '### Emitting AST nodes (statements)'
+  ##[[
+  -- create a macro that injects a custom node when called
+  local function print_macro(str)
+    local node = aster.Call{{aster.String{"hello"}}, aster.Id{"print"}}
+    -- inject the node where this macro is being called from
+    inject_astnode(node)
+  end
+  ]]
+
+  ## print_macro('hello')
+end
+
+do print '### Emitting AST nodes (expressions)'
   local a = #[aster.Number{1}]#
   print(a) -- outputs: 1
 end
 
-do -- Expression replacement
+do print '### Expression replacement'
   local deg2rad = #[math.pi/180.0]#
   local hello = #['hello' .. 'world']#
   local mybool = #[false]#
   print(deg2rad, hello, mybool) -- outputs: 0.017453 helloworld false
 end
 
-do -- Name replacement
+do print '### Name replacement'
   local #|'my' .. 'var'|# = 1
   print(myvar) -- outputs: 1
 
   local function foo1() print 'foo' end
   #|'foo' .. 1|#() -- outputs: foo
+
+  local Weekends = @enum{ Friday=0, Saturday, Sunday }
+  print(Weekends.#|'S'..string.lower('UNDAY')|#)
 end
 
-do -- Macros
+do print '### Preprocessor templated macros'
   ## function increment(a, amount)
-    -- 'a' in the preprocessor context is a symbol, we access its name here
+    -- 'a' in the preprocessor context is a symbol, we need to use its name
     -- 'amount' in the preprocessor context is a lua number
     #|a.name|# = #|a.name|# + #[amount]#
   ## end
   local x = 0
   ## increment(x, 4)
   print(x)
-
-  -- unroll
-  ##[[
-  function unroll(count, block)
-    for i=1,count do
-      block()
-    end
-  end
-  ]]
-
-  local counter = 1
-  ## unroll(4, function()
-    print(counter) -- outputs: 1 2 3 4
-    counter = counter + 1
-  ## end)
-
-  -- generic
-  ## function Point(PointT, T)
-    local #|PointT|# = @record{x: #|T|#, y: #|T|#}
-    function #|PointT|#:squaredlength()
-      return self.x*self.x + self.y*self.y
-    end
-  ## end
-
-  ## Point('PointFloat', 'float64')
-  ## Point('PointInt', 'int64')
-
-  local pa: PointFloat = {x=1,y=2}
-  print(pa:squaredlength()) -- outputs: 5.0
-
-  local pb: PointInt = {x=1,y=2}
-  print(pb:squaredlength()) -- outputs: 5
 end
 
-do -- Preprocessor macros emitting AST nodes
+do print '### Preprocessor macros emitting AST nodes'
   ##[[
   -- Create a fixed array initializing to 1,2,3,4...n
   local function create_sequence(attr_or_type, n)
@@ -658,14 +803,48 @@ do -- Preprocessor macros emitting AST nodes
   ]]
 
   local a = #[create_sequence(integer, 10)]#
-  assert(#a == 10 and a[0] == 1 and a[9] == 10)
 end
 
-do -- Processing on the fly
-  local Weekends = @enum{ Friday=0, Saturday, Sunday }
+do print '### Code blocks as arguments to preprocessor functions'
+  ##[[
+  function unroll(count, block)
+    for i=1,count do
+      block()
+    end
+  end
+  ]]
+
+  local counter = 1
+  ## unroll(4, function()
+    print(counter) -- outputs: 1 2 3 4
+    counter = counter + 1
+  ## end)
+end
+
+do print '### Generic code via the preprocessor'
+  ## function Point(PointT, T)
+    local #|PointT|# = @record{x: #|T|#, y: #|T|#}
+    function #|PointT|#:squaredlength()
+      return self.x*self.x + self.y*self.y
+    end
+  ## end
+
+  ## Point('PointFloat', 'float64')
+  ## Point('PointInt', 'int64')
+
+  local pa: PointFloat = {x=1,y=2}
+  print(pa:squaredlength()) -- outputs: 5.0
+
+  local pb: PointInt = {x=1,y=2}
+  print(pb:squaredlength()) -- outputs: 5
+end
+
+do print '### Preprocessing on the fly'
+  local Weekends = @enum{ Friday=0, Saturday, Sunda }
   ## for i,field in ipairs(Weekends.value.fields) do
     print(#[field.name .. ' ' .. tostring(field.value)]#)
   ## end
+
 
   local Person = @record{name: string}
   ## Person.value:add_field('age', primtypes.integer) -- add field 'age' to 'Person'
@@ -673,39 +852,316 @@ do -- Processing on the fly
   print(p.age) -- outputs '21'
 end
 
-do -- Preprocessing poly functions
+do print '### Preprocessing polymorphic functions'
   local function pow(x: auto, n: integer)
-    ## static_assert(x.type.is_scalar, 'cannot pow variable of type "%s"', x.type)
-    ## if x.type.is_integral then
-      -- x is an integral type (any unsigned/signed integer)
-      local r: #[x.type]# = 1
-      for i=1,n do
-        r = r * x
-      end
-      return r
-    ## elseif x.type.is_float then
-      -- x is a floating point type
-      return x ^ n
-    ## end
+  ## static_assert(x.type.is_scalar, 'cannot pow variable of type "%s"', x.type)
+  ## if x.type.is_integral then
+    -- x is an integral type (any unsigned/signed integer)
+    local r: #[x.type]# = 1
+    for i=1,n do
+      r = r * x
+    end
+    return r
+  ## elseif x.type.is_float then
+    -- x is a floating point type
+    return x ^ n
+  ## end
   end
 
   local a = pow(2, 2) -- use specialized implementation for integers
   local b = pow(2.0, 2) -- use pow implementation for floats
-  print(a,b) -- outputs: 4 4.0
+  print(a,b) -- outputs: 4 4.000000
 
   -- uncommenting the following will trigger the compile error:
   --   error: cannot pow variable of type "string"
   --pow('a', 2)
 end
 
-do -- Function annotations
+do print '## Generics'
+  -- Define a generic type for creating a specialized FixedStackArray
+  ## local make_FixedStackArrayT = generalize(function(T, maxsize)
+    -- alias compile-time parameters visible in the preprocessor to local symbols
+    local T = #[T]#
+    local MaxSize <comptime> = #[maxsize]#
+
+    -- Define a record using T and MaxSize compile-time parameters.
+    local FixedStackArrayT = @record{
+      data: [MaxSize]T,
+      size: isize
+    }
+
+    -- Push a value into the stack array.
+    function FixedStackArrayT:push(v: T)
+      if self.size >= MaxSize then error('stack overflow') end
+      self.data[self.size] = v
+      self.size = self.size + 1
+    end
+
+    -- Pop a value from the stack array.
+    function FixedStackArrayT:pop(): T
+      if self.size == 0 then error('stack underflow') end
+      self.size = self.size - 1
+      return self.data[self.size]
+    end
+
+    -- Return the length of the stack array.
+    function FixedStackArrayT:__len(): isize
+      return self.size
+    end
+
+    -- return the new defined type to the compiler
+    ## return FixedStackArrayT
+  ## end)
+
+  -- define FixedStackArray generic type in the scope
+  local FixedStackArray: type = #[make_FixedStackArrayT]#
+
+  do -- test with 'integer' type
+    local v: FixedStackArray(integer, 3)
+
+    -- push elements
+    v:push(1)
+    v:push(2)
+    v:push(3)
+    -- uncommenting would trigger a stack overflow error:
+    -- v:push(4)
+
+    -- check the stack array length
+    assert(#v == 3)
+
+    -- pop elements checking the values
+    assert(v:pop() == 3)
+    assert(v:pop() == 2)
+    assert(v:pop() == 1)
+    -- uncommenting would trigger a stack underflow error:
+    -- v:pop()
+  end
+
+  do -- test with 'number' type
+    local v: FixedStackArray(number, 3)
+
+    -- push elements
+    v:push(1.5)
+    v:push(2.5)
+    v:push(3.5)
+    -- uncommenting would trigger a stack overflow error:
+    -- v:push(4.5)
+
+    -- check the stack array length
+    assert(#v == 3)
+
+    -- pop elements checking the values
+    assert(v:pop() == 3.5)
+    assert(v:pop() == 2.5)
+    assert(v:pop() == 1.5)
+    -- uncommenting would trigger a stack underflow error:
+    -- v:pop()
+  end
+end
+
+do print '## Concepts'
+  local an_scalar = #[concept(function(attr)
+    -- the first argument of the concept function is an Attr,
+    -- attr are stores different attributes for the incoming symbol, variable or node,
+    -- we want to check if the incoming attr type matches the concept
+    if attr.type.is_scalar then
+      -- the attr is an arithmetic type (can add, subtract, etc)
+      return true
+    end
+    -- the attr type does not match this concept
+    return false
+  end)]#
+
+  local function add(x: an_scalar, y: an_scalar)
+    return x + y
+  end
+
+  print(add(1, 2)) -- outputs 3
+
+  -- uncommenting the following will trigger the compile error:
+  --   type 'boolean' could not match concept 'an_scalar'
+  -- add(1, true)
+end
+
+do print '### Specializing with concepts'
+  local an_scalar_or_string = #[concept(function(attr)
+    if attr.type.is_stringy then
+      -- we accept strings
+      return true
+    elseif attr.type.is_scalar then
+      -- we accept scalars
+      return true
+    end
+    return false
+  end)]#
+
+  local function add(x: an_scalar_or_string,
+                     y: an_scalar_or_string)
+    ## if x.type.is_stringy and y.type.is_stringy then
+      return x .. y
+    ## else
+      return x + y
+    ## end
+  end
+
+  -- add will be specialized for scalar types
+  print(add(1, 2)) -- outputs 3
+  -- add will be specialized for string types
+  print(add('1', '2')) -- outputs 12
+end
+
+do print '### Specializing concepts for records'
+  local Vec2 = @record{x: number, y: number}
+  -- Vec2 is an attr of the "type" type, Vec2.value is it's holded type
+  -- we set here is_Vec2 at compile-time to use later for checking whether a attr is a Vec2
+  ## Vec2.value.is_Vec2 = true
+
+  local Vec2_or_scalar_concept = #[concept(function(attr)
+    -- match in case of scalar or Vec2
+    return attr.type.is_scalar or attr.type.is_Vec2
+  end)]#
+
+  -- we use a concepts on the metamethod __add to allow adding Vec2 with numbers
+  function Vec2.__add(a: Vec2_or_scalar_concept, b: Vec2_or_scalar_concept)
+    -- specialize the function at compile-time based on the argument type
+    ## if a.type.is_Vec2 and b.type.is_Vec2 then
+      return (@Vec2){a.x + b.x, a.y + b.y}
+    ## elseif a.type.is_Vec2 then
+      return (@Vec2){a.x + b, a.y + b}
+    ## elseif b.type.is_Vec2  then
+      return (@Vec2){a + b.x, a + b.y}
+    ## end
+  end
+
+  local a: Vec2 = {1, 2}
+  local v: Vec2
+  v = a + 1 -- Vec2 + scalar
+  print(v.x, v.y) -- outputs: 2 3
+  v = 1 + a -- scalar + Vec2
+  print(v.x, v.y) -- outputs: 2 3
+  v = a + a -- Vec2 + Vec2
+  print(v.x, v.y) -- outputs: 2 4
+end
+
+do print '### Concepts with logic'
+  local indexable_concept = #[concept(function(attr)
+    local type = attr.type
+    if type.is_pointer then -- accept pointer to containers
+      type = type.subtype
+    end
+    -- we accept arrays
+    if type.is_array then
+      return true
+    end
+    -- we expect a record
+    if not type.is_record then
+      return false, 'the container is not a record'
+    end
+    -- the record must have a __index metamethod
+    if not type.metafields.__index then
+      return false, 'the container must have the __index metamethod'
+    end
+    -- the record must have a __len metamethod
+    if not type.metafields.__len then
+      return false, 'the container must have the __len metamethod'
+    end
+    -- concept matched all the imposed requirements
+    return true
+  end)]#
+
+  -- Sum all elements of any container with index beginning at 0.
+  local function sum_container(container: indexable_concept)
+    local v: integer = 0
+    for i=0,<#container do
+      v = v + container[i]
+    end
+    return v
+  end
+
+  -- We create our customized array type.
+  local MyArray = @record{data: [10]integer}
+  function MyArray:__index(i: integer)
+    return self.data[i]
+  end
+  function MyArray:__len()
+    return #self.data
+  end
+
+  local a: [10]integer = {1,2,3,4,5,6,7,8,9,10}
+  local b: MyArray = {data = a}
+
+  -- sum_container can be called with 'a' because it matches the concept
+  -- we pass as reference using & here to avoid an unnecessary copy
+  print(sum_container(&a)) -- outputs: 55
+
+  -- sum_container can also be called with 'b' because it matches the concept
+  -- we pass as reference using & here to avoid an unnecessary copy
+  print(sum_container(&b)) -- outputs: 55
+end
+
+do print '### Concept that infers to another type'
+  local facultative_number_concept = #[concept(function(attr)
+    if attr.type.is_niltype then
+      -- niltype is the type when the argument is missing or when we use 'nil'
+      -- we accept it because the number is facultative
+      return true
+    end
+    -- instead of returning true, we return the desired type to be implemented,
+    -- the compiler will take care to implicit cast the incoming attr to the desired type,
+    -- or throw an error if not possible,
+    -- here we want to force the function using this concept to implement as a 'number'
+    return primtypes.number
+  end)]#
+
+  local function get_number(x: facultative_number_concept)
+    ## if x.type.is_niltype then
+      return 0.0
+    ## else
+      return x
+    ## end
+  end
+
+  print(get_number(nil)) -- prints 0.0
+  print(get_number(2)) -- prints 2.0
+end
+
+do print '### Facultative concept'
+  local function get_number(x: facultative(number))
+    ## if x.type.is_niltype then
+      return 0
+    ## else
+      return x
+    ## end
+  end
+
+  print(get_number(nil)) -- prints 0
+  print(get_number(2)) -- prints 2
+end
+
+do print '### Overload concept'
+  local function foo(x: overload(integer,string,niltype))
+    ## if x.type.is_integral then
+      print('got integer ', x)
+    ## elseif x.type.is_string then
+      print('got string ', x)
+    ## else
+      print('got nothing')
+    ## end
+  end
+
+  foo(2) -- outputs: got integer 2
+  foo('hello') -- outputs: got string hello
+  foo(nil) -- outputs: got nothing
+end
+
+do print '## Function annotations'
   local function sum(a: integer, b: integer) <inline> -- C inline function
     return a + b
   end
   print(sum(1,2)) -- outputs: 3
 end
 
-do -- Variable annotations
+do print '## Variable annotations'
   local a: integer <noinit>-- don't initialize variable to zero
   a = 0 -- manually initialize to zero
   print(a) -- outputs: 0
@@ -714,19 +1170,51 @@ do -- Variable annotations
   print(b) -- outputs: 1
 end
 
-do -- Mixing C code
-  -- `cimport` informs the compiler the function name from C that should be imported
-  -- `cinclude` informs the compiler which C header its declared
-  -- `nodecl` informs the compiler that it doesn't need to declare it (C header already declares)
-  local function malloc(size: usize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
-  local function memset(s: pointer, c: int32, n: usize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
-  local function free(ptr: pointer) <cimport'free',cinclude'<stdlib.h>',nodecl> end
+do print '### Importing C functions'
+  -- import "puts" from C library
+  local function puts(s: cstring <const>): cint <cimport>
+    -- cannot have any code here, because this function is imported
+  end
 
-  local a = (@*[10]int64)(malloc(10 * 8))
-  memset(a, 0, 10*8)
-  assert(a[0] == 0)
-  a[0] = 1
-  assert(a[0] == 1)
-  free(a)
+  puts('hello') -- outputs: hello
 end
 
+-- Including C files with defines
+
+do print '### Importing C functions declared in headers'
+  -- `nodecl` is used because this function doesn't need to be declared by Nelua,
+  -- as it will be declared in <stdio.h> header
+  -- `cinclude` is used to make the compiler include the header when using the function
+  local function puts(s: cstring <const>): cint <cimport, nodecl, cinclude '<stdio.h>'>
+  end
+
+  puts('hello') -- outputs: hello
+end
+
+do print '### Importing C functions using a different name'
+  -- we pass the C function name as a parameter for `cimport`
+  local function c_puts(s: cstring): cint <cimport 'puts', nodecl, cinclude '<stdio.h>'>
+  end
+
+  c_puts('hello') -- outputs: hello
+end
+
+-- Linking a C library
+-- Passing C flags
+
+do print '### Emitting raw C code'
+  local function do_stuff()
+    -- emits in the declarations section of the generated C file
+    ## cemitdecl '#include <stdio.h>'
+
+    -- emits inside this function in the generated C file
+    ##[==[ cemit([[
+      const char *msg = "hello from C\n";
+      printf(msg);
+    ]])]==]
+  end
+
+  do_stuff()
+end
+
+-- Exporting named C functions
