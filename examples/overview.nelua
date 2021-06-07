@@ -209,6 +209,20 @@ do -- Break
   end
 end
 
+do -- Do expression
+  local i = 2
+  local s = (do
+    if i == 1 then
+      return 'one'
+    elseif i == 2 then
+      return 'two'
+    else
+      return 'other'
+    end
+  end)
+  print(s) -- outputs: two
+end
+
 do -- Boolean
   local a: boolean -- variable of type 'boolean' initialized to 'false'
   local b = false
@@ -217,12 +231,16 @@ do -- Boolean
 end
 
 do -- Number
-  local a = 1234 -- variable of type 'integer'
-  local b = 0xff -- variable of type 'integer'
-  local c = 3.14159 -- variable of type 'number'
-  local d = 'A'_u8 -- variable of type 'uint8' set from an ASCII character
-  local e: integer
-  print(a,b,c,d,e) -- outputs: 1234 255 3.14159 65 0
+  local dec = 1234 -- variable of type 'integer'
+  local bin = 0b1010 -- variable of type 'uint8', set from binary number
+  local hex = 0xff -- variable of type 'integer', set from hexadecimal number
+  local char = 'A'_u8 -- variable of type 'uint8' set from ASCII character
+  local exp = 1.2e-100 -- variable of type 'number' set using scientific notation
+  local frac = 1.41 -- variable of type 'number'
+  print(dec,bin,hex,char,exp,frac)
+
+  local pi = 0x1.921FB54442D18p+2 -- hexadecimal with fractional and exponent
+  print(pi) -- outputs: 3.1415926535898
 
   do
     local a = 1234_u32 -- variable of type 'int32'
@@ -242,6 +260,19 @@ string
 ]]
   print(str1, str2, str3) -- outputs: "" "string 2" "string 3"
   print(str4) -- outputs the multi line string
+end
+
+do -- Escape Sequence
+  local ctr = "\n\t\r\a\b\v\f" -- escape control characters
+  local utf = "\u{03C0}" -- escape UTF-8 code
+  local hex = "\x41" -- escape hexadecimal byte
+  local dec = "\65" -- escape decimal byte
+  local multiline1 = "my\z
+                      text1" -- trim spaces and newlines after '\z'
+  local multiline2 = "my\
+  text2" -- escape new lines after '\' to '\n'
+  print(utf, hex, dec, multiline1) -- outputs: π A A mytext1
+  print(multiline2) -- outputs "my" and "text2" on a new line
 end
 
 do -- The "type" type
@@ -412,6 +443,18 @@ do -- Variable number of arguments
     return s
   end
   print(sum(1, 2, 3)) -- outputs: 6
+end
+
+do -- Anonymous functions
+  local function g(x: integer, f: function(x: integer): integer)
+    return f(x)
+  end
+
+  local y = g(1, function(x: integer): integer
+    return 2*x
+  end)
+
+  print(y) -- outputs: 2
 end
 
 --do -- Top scope closures

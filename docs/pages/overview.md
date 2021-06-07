@@ -206,7 +206,7 @@ b, a = a, b -- swap values
 print(a, b) -- outputs: 2 1
 ```
 
-Temporary variables are used on a multiple assignment, so
+Temporary variables are used in a multiple assignment, so
 the values can be safely swapped.
 {:.alert.alert-info}
 
@@ -462,6 +462,33 @@ for i=1,10 do
 end
 ```
 
+### Do expression
+
+Sometimes is useful to create an expression with statements on its own
+in the middle of another expression, this is possible with the
+`(do end)` syntax:
+
+```nelua
+local i = 2
+local s = (do
+  if i == 1 then
+    return 'one'
+  elseif i == 2 then
+    return 'two'
+  else
+    return 'other'
+  end
+end)
+print(s) -- outputs: two
+```
+
+This could be used as a flexible ternary if found in other programming languages, although more verbose.
+
+This construct is used internally by the compiler to implement other features,
+thus the motivation behind this was not really the syntax (it can be verbose),
+but the meta programming possibilities that such feature offers.
+{:.alert.alert-info}
+
 ## Primitive types
 
 Primitives types are the basic types built into the compiler.
@@ -482,12 +509,16 @@ The `boolean` is defined as a `bool` in the generated C code.
 Number literals are defined like in Lua:
 
 ```nelua
-local a = 1234 -- variable of type 'integer'
-local b = 0xff -- variable of type 'integer'
-local c = 3.14159 -- variable of type 'number'
-local d = 'A'_u8 -- variable of type 'uint8' set from an ASCII character
-local e: integer
-print(a,b,c,d,e) -- outputs: 1234 255 3.14159 65 0
+local dec = 1234 -- variable of type 'integer'
+local bin = 0b1010 -- variable of type 'uint8', set from binary number
+local hex = 0xff -- variable of type 'integer', set from hexadecimal number
+local char = 'A'_u8 -- variable of type 'uint8' set from ASCII character
+local exp = 1.2e-100 -- variable of type 'number' set using scientific notation
+local frac = 1.41 -- variable of type 'number'
+print(dec,bin,hex,char,exp,frac)
+
+local pi = 0x1.921FB54442D18p+2 -- hexadecimal with fractional and exponent
+print(pi) -- outputs: 3.1415926535898
 ```
 
 The `integer` is the default type for integral literals without suffix.
@@ -563,6 +594,24 @@ Like in Lua, `string` **is immutable**.
 If the programmer wants a mutable string, he should use the [stringbuilder module](https://nelua.io/libraries/#stringbuilder).
 {:.alert.alert-info}
 
+#### String escape sequence
+
+Strings literals defined between quotes can have escape sequences
+following same rules as in Lua:
+
+```nelua
+local ctr = "\n\t\r\a\b\v\f" -- escape control characters
+local utf = "\u{03C0}" -- escape UTF-8 code
+local hex = "\x41" -- escape hexadecimal byte
+local dec = "\65" -- escape decimal byte
+local multiline1 = "my\z
+                    text1" -- trim spaces and newlines after '\z'
+local multiline2 = "my\
+text2" -- escape new lines after '\' to '\n'
+print(utf, hex, dec, multiline1) -- outputs: π A A mytext1
+print(multiline2) -- outputs "my" and "text2" on a new line
+```
+
 ### Array
 
 An array is a list with a size that is fixed and known at compile-time:
@@ -583,7 +632,7 @@ Thus when calling functions, you may want to pass arrays by reference
 using the [reference operator](#dereferencing-and-referencing) when appropriate.
 {:.alert.alert-warning}
 
-#### Multidimensional Array
+#### Multidimensional array
 
 An array can also be multidimensional:
 
@@ -896,8 +945,6 @@ they are used for low-level programming and follow C semantics:
 * `$` dereference a pointer (like C dereference).
 * `&` reference a memory (like C reference).
 
-{:.alert.alert-info}
-
 ## Functions
 
 Functions are declared as in Lua,
@@ -966,31 +1013,48 @@ print(a,b) -- outputs: false 1
 Multiple returns are efficient and packed into C structs in the code generator.
 {:.alert.alert-info}
 
-### Variable number of arguments
+### Anonymous functions
 
-A function can have variable number arguments:
+A function can be declared without a name as an expression, this
+kind of function is called anonymous function:
 
 ```nelua
-local function f(...: varargs)
-  print(...)
+local function g(x: integer, f: function(x: integer): integer)
+  return f(x)
 end
-f(1, true) -- outputs: 1 true
 
-local function sum(...: varargs)
-  local s: integer
-  ## for i=1,select('#', ...) do -- iterate over all arguments
-    s = s + #[select(i, ...)]# -- select argument at index `i`
-  ## end
-  return s
-end
-print(sum(1, 2, 3)) -- outputs: 6
+local y = g(1, function(x: integer): integer
+  return 2*x
+end)
+
+print(y) -- outputs: 2
 ```
 
-The preprocessor is used to specialize the function at compile time.
-One specialization occur for every different number of arguments or argument types,
-thus there are no branching or costs at runtime when making functions
-with variable number of arguments.
+Unlike Lua an anonymous function cannot be a closure, that is,
+it cannot use variables declared in upper scopes unless the top most scope.
+{:.alert.alert-warning}
+
+### Nested functions
+
+A function can be declared inside another function:
+
+```nelua
+local function f()
+  local function g()
+    return 'hello from g'
+  end
+  return g()
+end
+
+print(f()) -- outputs: hello from g
+```
+
+The function will be visible only in inner scopes.
 {:.alert.alert-info}
+
+Unlike Lua a nested function cannot be a closure, that is,
+it cannot use variables declared in upper scopes unless the top most scope.
+{:.alert.alert-warning}
 
 ### Top scope closures
 
@@ -1016,9 +1080,37 @@ needing to hold an upvalue reference or to use a garbage collector.
 Therefore they are very lightweight and do not incur costs like a closure nested in a function would.
 {:.alert.alert-info}
 
+### Variable number of arguments
+
+A function can have variable number arguments:
+
+```nelua
+local function f(...: varargs)
+  print(...)
+end
+f(1, true) -- outputs: 1 true
+
+local function sum(...: varargs)
+  local s: integer
+  ## for i=1,select('#', ...) do -- iterate over all arguments
+    s = s + #[select(i, ...)]# -- select argument at index `i`
+  ## end
+  return s
+end
+print(sum(1, 2, 3)) -- outputs: 6
+```
+
+Functions with variable number of arguments will be polymorphic (see below).
+
+The preprocessor is used to specialize the function at compile time.
+One specialization occur for every different number of arguments or argument types,
+thus there are no branching or costs at runtime when making functions
+with variable number of arguments.
+{:.alert.alert-info}
+
 ### Polymorphic functions
 
-Polymorphic functions, or poly functions for short in the sources,
+Polymorphic functions, or poly functions in short in the sources,
 are functions which contain arguments whose proprieties can
 only be known when calling the function at compile time.
 They are defined and processed later when calling it for the first time.
@@ -1744,7 +1836,7 @@ The previous example would be refactored as follows:
 
 1\. Create a `foo.lua` (or any name you want) file and paste your code there:
 
-```lua
+```nelua
 local function bar()
   print "bar"
 end
@@ -2406,7 +2498,7 @@ code, use the other Nelua primitive types.
 
 {% endraw %}
 
-*[closure]: Closures are functions that capture variables from their parent scopes.
+*[closure]: Closure is function that capture variables from parent scopes.
 *[upvalue]: A variable captured from inside a scope above the closure.
 *[integral]: A whole number, a number that has no fractional part.
 *[GC]: Garbage Collector
