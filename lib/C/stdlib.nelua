@@ -22,8 +22,8 @@ function C.system(command: cstring): cint <cimport'system',nodecl> end
 function C.getenv(name: cstring): cstring <cimport'getenv',nodecl> end
 
 -- Searching and sorting
-function C.bsearch(key: pointer, base: pointer, nmemb: csize, size: csize, compar: pointer): pointer <cimport'bsearch',nodecl> end
-function C.qsort(base: pointer, nmemb: csize, size: csize, compar: pointer): void <cimport'qsort',nodecl> end
+function C.bsearch(key: pointer, base: pointer, nmemb: csize, size: csize, compar: function(pointer, pointer): cint): pointer <cimport'bsearch',nodecl> end
+function C.qsort(base: pointer, nmemb: csize, size: csize, compar: function(pointer, pointer): cint): void <cimport'qsort',nodecl> end
 
 -- Pseudo-random sequence generation
 function C.rand(): cint <cimport'rand',nodecl> end
