@@ -928,7 +928,6 @@ function visitors.Return(context, node, emitter)
   local defercode = deferemitter:generate()
   local funcscope = context.scope:get_up_return_scope() or context.rootscope
   context.scope.alreadydestroyed = true
-  funcscope.has_return = true
   if funcscope == context.rootscope then
     -- in main body
     node:assertraisef(numretnodes <= 1, "multiple returns in main is not supported yet")
@@ -1614,25 +1613,24 @@ local function emit_features_setup(context)
 end
 
 local function emit_main(ast, context)
-  local mainemitter = CEmitter(context, -1)
+  local mainemitter = CEmitter(context, 0)
   context.mainemitter = mainemitter
 
   local emptymain = false
   if not context.entrypoint or context.hookmain then
-    mainemitter:inc_indent()
     mainemitter:add_one("int nelua_main(int nelua_argc, char** nelua_argv) {\n")
     local startpos = mainemitter:get_pos()
     mainemitter:add_traversal(ast)
     emptymain = not context.hookmain and mainemitter:get_pos() == startpos
     if not emptymain then -- main has statements
-      if not context.rootscope.has_return then
+      local blocknode = context.ast
+      if #blocknode == 0 or blocknode[#blocknode].tag ~= 'Return' then
         -- main() must always return an integer
         mainemitter:inc_indent()
         mainemitter:add_indent_ln("return 0;")
         mainemitter:dec_indent()
       end
       mainemitter:add_ln("}")
-      mainemitter:dec_indent()
 
       if not context.maindeclared then
         context:add_declaration('static int nelua_main(int nelua_argc, char** nelua_argv);\n')
@@ -1641,9 +1639,7 @@ local function emit_main(ast, context)
       mainemitter.codes[startpos] = ''
     end
   else
-    mainemitter:inc_indent()
     mainemitter:add_traversal(ast)
-    mainemitter:dec_indent()
   end
 
   if not context.entrypoint and not context.pragmas.noentrypoint then

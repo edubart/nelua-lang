@@ -33,6 +33,14 @@ int nelua_main(int nelua_argc, char** nelua_argv) {
   return 1;
 }]])
   expect.generate_c("return 1")
+  expect.generate_c("if false then return end", [[
+int nelua_main(int nelua_argc, char** nelua_argv) {
+  if(false) {
+    return 0;
+  }
+  return 0;
+}
+]])
 end)
 
 it("local variable", function()
