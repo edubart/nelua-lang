@@ -250,8 +250,7 @@ local function walk_nodes(node, parent, parentindex)
   if node._astnode then
     coroutine_yield(node, parent, parentindex)
   end
-  local n = #node
-  for i=1,n do
+  for i=1,#node do
     local v = node[i]
     if type(v) == 'table' then
       walk_nodes(v, node, i)

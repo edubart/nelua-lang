@@ -11,7 +11,6 @@ local errorer = require 'nelua.utils.errorer'
 local metamagic = require 'nelua.utils.metamagic'
 local console = require 'nelua.utils.console'
 local iters = require 'nelua.utils.iterators'
-local Symbol = require 'nelua.symbol'
 local ASTNode = require 'nelua.astnode'
 local config = require 'nelua.configer'.get()
 local shaper = require 'nelua.utils.shaper'
@@ -66,6 +65,7 @@ function aster.create_value(val, srcnode)
   if traits.is_astnode(val) then
     node = val
   elseif traits.is_type(val) then
+    local Symbol = require 'nelua.symbol'
     node = aster.Id{'auto', pattr={
       forcesymbol = Symbol{
         type = require'nelua.typedefs'.primtypes.type,
