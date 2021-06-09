@@ -1,15 +1,15 @@
--- Hash Map
---
--- Hash map is an associative container that contains key-value pairs with unique keys.
--- Search, insertion, and removal of elements have average constant-time complexity.
---
--- The hash map share similarities with Lua tables but should not be used like them,
--- main differences:
---  * There is no array part
---  * The length operator returns number of elements in the map
---  * Indexing automatically inserts a key-value, to avoid this use `get` or `has` methods
---  * Values cannot be nil or set to nil
---  * Can only use pairs() to iterate
+--[[
+Hash map is an associative container that contains key-value pairs with unique keys.
+Search, insertion, and removal of elements have average constant-time complexity.
+
+The hash map share similarities with Lua tables but should not be used like them,
+main differences:
+ * There is no array part.
+ * The length operator returns number of elements in the map.
+ * Indexing automatically inserts a key-value pair, to avoid this use `peek()` or `has()` methods.
+ * Values cannot be nil or set to nil.
+ * Can only use `pairs()` to iterate.
+]]
 
 require 'memory'
 require 'hash'
@@ -28,9 +28,9 @@ local GROW_RATE: usize <comptime> = 200
 -- Initial capacity to reserve when inserting an element for the first time in a container.
 local INIT_CAPACITY: usize <comptime> = 16
 -- Constant used to test invalid index.
-local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
+local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
-## local make_generic_hashmap = generalize(function(K, V, HashFunc, Allocator)
+## local make_hashmapT = generalize(function(K, V, HashFunc, Allocator)
   ## static_assert(traits.is_type(K), "invalid type '%s'", K)
   ## static_assert(traits.is_type(V), "invalid type '%s'", V)
   ## if not Allocator then
@@ -42,15 +42,16 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
   local K: type = @#[K]#
   local V: type = @#[V]#
 
-  local hashmap_nodeT: type <nickname #[string.format('hashmap_node(%s)',T)]#> = @record {
+  local hashmapnodeT: type <nickname #[string.format('hashmap_node(%s)',T)]#> = @record {
     key: K,
     value: V,
     next: usize
   }
 
+  -- Hash map record defined when instantiating the generic `hashmap`.
   local hashmapT: type <nickname #[string.format('hashmap(%s, %s)',K,V)]#> = @record{
     buckets: span(usize),
-    nodes: span(hashmap_nodeT),
+    nodes: span(hashmapnodeT),
     size: usize,
     allocator: Allocator
   }
@@ -67,24 +68,32 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
   local hash_func: auto = hash.hash
   ## end
 
-  -- Create a hash map using a custom allocator instance.
-  -- This is only to be used when not using the default allocator.
+  --[[
+  Creates a hash map using a custom allocator instance.
+  This is only to be used when not using the default allocator.
+  ]]
   function hashmapT.make(allocator: Allocator): hashmapT
     local m: hashmapT
     m.allocator = allocator
     return m
   end
 
-  -- Resets the container to a zeroed state, freeing all used resources.
-  -- Complexity: O(1).
+  --[[
+  Resets the container to a zeroed state, freeing all used resources.
+
+  *Complexity*: O(1).
+  ]]
   function hashmapT:destroy(): void
     self.allocator:spandealloc(self.buckets)
     self.allocator:spandealloc(self.nodes)
-    $self = (@hashmapT){}
+    memory.zero(self, #hashmapT)
   end
 
-  -- Remove all elements from the container.
-  -- Complexity: O(n).
+  --[[
+  Remove all elements from the container.
+
+  *Complexity*: O(n).
+  ]]
   function hashmapT:clear(): void
     memory.spanset(self.buckets, INVALID_INDEX)
     memory.spanzero(self.nodes)
@@ -101,7 +110,7 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
     local prev_node_index: usize = INVALID_INDEX
     -- iterate until the key is found
     while node_index ~= INVALID_INDEX do
-      local node: *hashmap_nodeT = &self.nodes[node_index]
+      local node: *hashmapnodeT = &self.nodes[node_index]
       if node.key == key then
         return node_index, prev_node_index, hash_index
       end
@@ -111,8 +120,11 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
     return node_index, prev_node_index, hash_index
   end
 
-  -- Sets the number of buckets to at least `count` and rehashes the container when needed.
-  -- Complexity: Average case O(n).
+  --[[
+  Sets the number of buckets to at least `count` and rehashes the container when needed.
+
+  *Complexity*: Average case O(n).
+  ]]
   function hashmapT:rehash(count: usize): void <noinline>
     -- count should be at least (size * 100) / MAX_LOAD_FACTOR
     local min_count: usize = ceil_idiv(self.size * 100, MAX_LOAD_FACTOR)
@@ -152,14 +164,17 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
     end
   end
 
-  -- Sets the number of buckets to the number needed to accommodate at least count elements
-  -- without exceeding maximum load factor and rehashes the container when needed.
-  -- Complexity: Average case O(n).
+  --[[
+  Sets the number of buckets to the number needed to accommodate at least `count` elements
+  without exceeding maximum load factor and rehashes the container when needed.
+
+  *Complexity*: Average case O(n).
+  ]]
   function hashmapT:reserve(count: usize): void
     self:rehash(ceil_idiv(count * 100, MAX_LOAD_FACTOR))
   end
 
-  -- Used internally to find or make a value at a key.
+  -- Used internally to find or make a value at a key returning it's node index.
   function hashmapT:_find_or_make(key: K): usize
     if unlikely(self.nodes.size == 0) then
       -- empty container, initialize it
@@ -190,29 +205,32 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
     end
   end
 
-  -- Checks if there is an element with a key in the container.
-  -- Complexity: Average case O(1).
+  --[[
+  Returns a reference to the value that is mapped to a key,
+  performing an insertion if such key does not exist.
+  This allows indexing the hash map with square brackets `[]`.
+
+  *Complexity*: Average case O(1).
+  ]]
+  function hashmapT:__atindex(key: K): *V
+    return &self.nodes[self:_find_or_make(key)].value
+  end
+
+  --[[
+  Checks if there is an element with a key in the container.
+
+  *Complexity*: Average case O(1).
+  ]]
   function hashmapT:has(key: K): boolean
     return self:_find(key) ~= INVALID_INDEX
   end
 
-  -- Returns the value that is mapped to a key,
-  -- performing an insertion if such key does not exist.
-  -- Complexity: Average case O(1).
-  function hashmapT:get(key: K): V
-    return self.nodes[self:_find_or_make(key)].value
-  end
+  --[[
+  Returns a reference to the value that is mapped to a key.
+  If no such element exists, returns `nilptr`.
 
-  -- Returns a reference to the value that is mapped to a key,
-  -- performing an insertion if such key does not exist.
-  -- Complexity: Average case O(1).
-  function hashmapT:at(key: K): *V
-    return &self.nodes[self:_find_or_make(key)].value
-  end
-
-  -- Returns a reference to the value that is mapped to a key.
-  -- If no such element exists, returns nilptr.
-  -- Complexity: Average case O(1).
+  *Complexity*: Average case O(1).
+  ]]
   function hashmapT:peek(key: K): *V
     local node_index: usize = self:_find(key)
     if node_index ~= INVALID_INDEX then
@@ -221,21 +239,18 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
     return nilptr
   end
 
-  -- Inserts an element or assigns to the current element if the key already exists.
-  -- Complexity: Average case O(1).
-  function hashmapT:set(key: K, value: V): void
-    self.nodes[self:_find_or_make(key)].value = value
-  end
+  --[[
+  Removes an element with a key from the container (if it exists).
+  Returns `true` if an element was actually removed.
 
-  -- Removes an element with a key from the container (if it exists).
-  -- Returns true if an element was removed.
-  -- Complexity: Average case O(1).
+  *Complexity*: Average case O(1).
+  ]]
   function hashmapT:remove(key: K): boolean
     local node_index: usize, prev_node_index: usize, hash_index: usize = self:_find(key)
     if node_index == INVALID_INDEX then return false end
 
     -- unlink the removed node
-    local node: *hashmap_nodeT = &self.nodes[node_index]
+    local node: *hashmapnodeT = &self.nodes[node_index]
     if prev_node_index == INVALID_INDEX then
       self.buckets[hash_index] = node.next
     else
@@ -244,7 +259,7 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
 
     -- move the last node into the removed node place
     local last_node_index: usize = self.size - 1
-    local last_node: *hashmap_nodeT = &self.nodes[last_node_index]
+    local last_node: *hashmapnodeT = &self.nodes[last_node_index]
     if node_index ~= last_node_index then
       $node = $last_node
       local unused_index: usize, last_prev_node_index: usize, last_hash_index: usize = self:_find(node.key)
@@ -256,7 +271,7 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
     end
 
     -- clean the last node
-    $last_node = (@hashmap_nodeT)()
+    $last_node = (@hashmapnodeT)()
     self.size = self.size - 1
     return true
   end
@@ -275,11 +290,6 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
     return self.buckets.size
   end
 
-  -- Checks whether the container is empty.
-  function hashmapT:empty(): boolean
-    return self.size == 0
-  end
-
   -- Returns the number of elements the container can store before triggering a rehash.
   function hashmapT:capacity(): usize
     return self.nodes.size
@@ -290,21 +300,18 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
     return (@isize)(self.size)
   end
 
-  -- Same as `get_ptr`, this allows indexing the hash map type.
-  -- Complexity: Average case O(1).
-  function hashmapT:__atindex(key: K): *V
-    return self:at(key)
-  end
-
-  -- Hashmap iterator
+  -- Hash map iterator.
   local hashmap_iteratorT: type = @record {
     container: *hashmapT,
     index: usize
   }
 
-  -- Advance the container iterator returning its key and value.
-  -- NOTE: The input key is actually ignored.
-  function hashmap_iteratorT:next(k: K): (boolean, K, V) <inline>
+  --[[
+  Advances the container iterator returning its key and value.
+
+  *Remarks*: The input key is actually ignored.
+  ]]
+  function hashmap_iteratorT:next(key: K): (boolean, K, V) <inline>
     if unlikely(self.index == INVALID_INDEX) then
       self.index = 0
     else
@@ -313,13 +320,16 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
     if unlikely(self.index >= self.container.size) then
       return false, (@K)(), (@V)()
     end
-    local node: *hashmap_nodeT = &self.container.nodes[self.index]
+    local node: *hashmapnodeT = &self.container.nodes[self.index]
     return true, node.key, node.value
   end
 
-  -- Advance the container iterator returning its key and value by reference.
-  -- NOTE: The input key is actually ignored.
-  function hashmap_iteratorT:mnext(k: K): (boolean, K, *V) <inline>
+  --[[
+  Advances the container iterator returning its key and value by reference.
+
+  *Remarks*: The input key is actually ignored.
+  ]]
+  function hashmap_iteratorT:mnext(key: K): (boolean, K, *V) <inline>
     if unlikely(self.index == INVALID_INDEX) then
       self.index = 0
     else
@@ -328,16 +338,16 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
     if unlikely(self.index >= self.container.size) then
       return false, (@K)(), nilptr
     end
-    local node: *hashmap_nodeT = &self.container.nodes[self.index]
+    local node: *hashmapnodeT = &self.container.nodes[self.index]
     return true, node.key, &node.value
   end
 
-  -- Allow using pairs() to iterate the container.
+  -- Allow using `pairs()` to iterate the container.
   function hashmapT:__pairs() <inline>
     return hashmap_iteratorT.next, (@hashmap_iteratorT){container=self,index=INVALID_INDEX}, (@K)()
   end
 
-  -- Allow using mpairs() to iterate the container.
+  -- Allow using `mpairs()` to iterate the container.
   function hashmapT:__mpairs() <inline>
     return hashmap_iteratorT.mnext, (@hashmap_iteratorT){container=self,index=INVALID_INDEX}, (@K)()
   end
@@ -345,4 +355,14 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
   ## return hashmapT
 ## end)
 
-global hashmap: type = #[make_generic_hashmap]#
+--[[
+Generic used to instantiate a hash map type in the form of `hashmap(K, V, HashFunc, Allocator)`.
+
+Argument `K` is type for the hash map key.
+Argument `V` is type for the hash map value.
+Argument `HashFunc` is a function to hash type K,
+in case absent then a default hash function is used.
+Argument `Allocator` is an allocator type for the vector storage,
+in case absent then then `DefaultAllocator` is used.
+]]
+global hashmap: type = #[make_hashmapT]#

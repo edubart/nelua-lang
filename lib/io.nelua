@@ -6,7 +6,7 @@ The first one uses implicit file handles,
 that is, there are operations to set a default input file and a default output file,
 and all input/output operations are done over these default files.
 The second style uses explicit file handles.
-When using implicit file handles, all operations are supplied by module io.
+When using implicit file handles, all operations are supplied by module `io`.
 
 When using explicit file handles,
 the operation `io.open` returns a file handle and
@@ -37,6 +37,7 @@ local function tmpfile(): *FILE <cimport,cinclude'<stdio.h>',nodecl> end
 local function fclose(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function fflush(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 
+-- Namespace for I/O module.
 global io: type = @record{}
 
 -- Default error output file handle.

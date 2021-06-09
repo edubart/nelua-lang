@@ -2,6 +2,7 @@
 The traits library provides utilities to gather type information.
 ]]
 
+-- Namespace for traits module.
 global traits: type = @record{}
 
 -- Type of the identifier for types.

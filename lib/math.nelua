@@ -2,6 +2,7 @@
 The math library provides basic mathematical functions.
 ]]
 
+-- Namespace for math module.
 global math: type = @record{}
 
 -- Import C math functions

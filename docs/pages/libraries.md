@@ -22,7 +22,7 @@ Thus this is not really a library and shouldn't be used with `require`.
 ### require
 
 ```nelua
-global function require(modname: string)
+global function require(modname: string <comptime>)
 ```
 
 Loads the given module `modname`.
@@ -209,12 +209,12 @@ Like `pairs` but yields reference to elements values so that you can modify them
 
 The input and output library provides functions to manipulate files.
 
-The I/O library provides two different styles for file manipulation.
+The library provides two different styles for file manipulation.
 The first one uses implicit file handles,
 that is, there are operations to set a default input file and a default output file,
 and all input/output operations are done over these default files.
 The second style uses explicit file handles.
-When using implicit file handles, all operations are supplied by module io.
+When using implicit file handles, all operations are supplied by module `io`.
 
 When using explicit file handles,
 the operation `io.open` returns a file handle and
@@ -231,6 +231,14 @@ The I/O library never closes these files.
 Unless otherwise stated, all I/O functions return a valid value on success,
 otherwise an error message as a second result
 and a system-dependent error code as a third result.
+
+### io
+
+```nelua
+global io: type = @record{}
+```
+
+Namespace for I/O module.
 
 ### io.stderr
 
@@ -281,7 +289,7 @@ This function is system dependent and is not available on all platforms.
 ### io.close
 
 ```nelua
-function io.close(file: overload(filestream, niltype)):  (boolean, string, integer)
+function io.close(file: overload(filestream, niltype)): (boolean, string, integer)
 ```
 
 Closes a file.
@@ -405,7 +413,7 @@ but can also be used independently.
 ### filestream
 
 ```nelua
-global filestream = @record{
+global filestream: type = @record{
   id: uint64
 }
 ```
@@ -600,6 +608,14 @@ This metamethod is used by `tostring`.
 ## math
 
 The math library provides basic mathematical functions.
+
+### math
+
+```nelua
+global math: type = @record{}
+```
+
+Namespace for math module.
 
 ### math.abs
 
@@ -911,7 +927,6 @@ The result can either be an integer or a float depending on the arguments.
 function math.frexp(x: an_scalar)
 ```
 
-[
 Returns `m` and `e` such that `x = m*(2^e)`,
 `e` is an integer and the absolute value of `m` is in the range [0.5, 1) or zero (when `x` is zero).
 
@@ -1060,6 +1075,14 @@ The user is responsible to use valid pointers and memory regions for the library
 otherwise the user may experience crashes or undefined behaviors at runtime.
 To assist finding such mistakes some checks are performed where applicable, which can
 be disabled with the pragma `nochecks`.
+
+### memory
+
+```nelua
+global memory: type = @record{}
+```
+
+Namespace for memory module.
 
 ### memory.copy
 
@@ -1210,6 +1233,14 @@ The operating system library provides some operating system facilities.
 Some `os` functions behavior may vary across different operating systems,
 or not be supported.
 
+### os
+
+```nelua
+global os: type = @record{}
+```
+
+Namespace for OS module.
+
 ### os.clock
 
 ```nelua
@@ -1321,7 +1352,7 @@ or an empty string if the request cannot be honored.
 ### os.time_desc
 
 ```nelua
-global os.time_desc = @record {
+global os.time_desc: type = @record {
   year: integer, month: integer, day: integer,
   hour: integer, min: integer, sec: integer,
   isdst: boolean
@@ -1365,6 +1396,7 @@ In POSIX systems, this function also creates a file with that name, to avoid sec
 (Someone else might create the file with wrong permissions in the time between getting the name and creating the file.)
 You still have to open the file to use it and to remove it (even if you do not use it).
 When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
+
 
 ## string
 
@@ -1632,6 +1664,8 @@ Used by the less or equal than operator (`<=`).
 function string.__add(a: scalar_coercion_concept, b: scalar_coercion_concept): number
 ```
 
+Converts input strings to numbers and returns the result of addition.
+Use by the add operator (`+`).
 
 ### string.__sub
 
@@ -1639,6 +1673,8 @@ function string.__add(a: scalar_coercion_concept, b: scalar_coercion_concept): n
 function string.__sub(a: scalar_coercion_concept, b: scalar_coercion_concept): number
 ```
 
+Converts input strings to numbers and returns the result of subtraction.
+Use by the subtract operator (`-`).
 
 ### string.__mul
 
@@ -1646,6 +1682,8 @@ function string.__sub(a: scalar_coercion_concept, b: scalar_coercion_concept): n
 function string.__mul(a: scalar_coercion_concept, b: scalar_coercion_concept): number
 ```
 
+Converts input strings to numbers and returns the result of multiplication.
+Use by the multiply operator (`*`).
 
 ### string.__div
 
@@ -1653,6 +1691,8 @@ function string.__mul(a: scalar_coercion_concept, b: scalar_coercion_concept): n
 function string.__div(a: scalar_coercion_concept, b: scalar_coercion_concept): number
 ```
 
+Converts input strings to numbers and returns the result of division.
+Use by the division operator (`/`).
 
 ### string.__idiv
 
@@ -1660,6 +1700,8 @@ function string.__div(a: scalar_coercion_concept, b: scalar_coercion_concept): n
 function string.__idiv(a: scalar_coercion_concept, b: scalar_coercion_concept): number
 ```
 
+Converts input strings to numbers and returns the result of floor division.
+Use by the integer division operator (`//`).
 
 ### string.__tdiv
 
@@ -1667,6 +1709,8 @@ function string.__idiv(a: scalar_coercion_concept, b: scalar_coercion_concept): 
 function string.__tdiv(a: scalar_coercion_concept, b: scalar_coercion_concept): number
 ```
 
+Converts input strings to numbers and returns the result of truncate division.
+Use by the truncate division operator (`///`).
 
 ### string.__mod
 
@@ -1674,6 +1718,8 @@ function string.__tdiv(a: scalar_coercion_concept, b: scalar_coercion_concept): 
 function string.__mod(a: scalar_coercion_concept, b: scalar_coercion_concept): number
 ```
 
+Converts input strings to numbers and returns the result of floor division remainder.
+Use by the modulo operator (`%`).
 
 ### string.__tmod
 
@@ -1681,6 +1727,8 @@ function string.__mod(a: scalar_coercion_concept, b: scalar_coercion_concept): n
 function string.__tmod(a: scalar_coercion_concept, b: scalar_coercion_concept): number
 ```
 
+Converts input strings to numbers and returns the result of truncate division remainder.
+Use by the truncate module operator (`%%%`).
 
 ### string.__pow
 
@@ -1688,6 +1736,8 @@ function string.__tmod(a: scalar_coercion_concept, b: scalar_coercion_concept): 
 function string.__pow(a: scalar_coercion_concept, b: scalar_coercion_concept): number
 ```
 
+Converts input strings to numbers and returns the result of exponentiation.
+Use by the pow operator (`^`).
 
 ### string.__unm
 
@@ -1695,6 +1745,8 @@ function string.__pow(a: scalar_coercion_concept, b: scalar_coercion_concept): n
 function string.__unm(a: scalar_coercion_concept): number
 ```
 
+Converts the input string to a number and returns its negation.
+Use by the negation operator (`-`).
 
 ### string.__band
 
@@ -1702,6 +1754,8 @@ function string.__unm(a: scalar_coercion_concept): number
 function string.__band(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
 ```
 
+Converts input strings to integers and returns the result of bitwise AND.
+Use by the bitwise AND operator (`&`).
 
 ### string.__bor
 
@@ -1709,6 +1763,8 @@ function string.__band(a: scalar_coercion_concept, b: scalar_coercion_concept): 
 function string.__bor(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
 ```
 
+Converts input strings to integers and returns the result of bitwise OR.
+Use by the bitwise OR operator (`|`).
 
 ### string.__bxor
 
@@ -1716,6 +1772,8 @@ function string.__bor(a: scalar_coercion_concept, b: scalar_coercion_concept): i
 function string.__bxor(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
 ```
 
+Converts input strings to integers and returns the result of bitwise XOR.
+Use by the bitwise XOR operator (`~`).
 
 ### string.__shl
 
@@ -1723,6 +1781,8 @@ function string.__bxor(a: scalar_coercion_concept, b: scalar_coercion_concept): 
 function string.__shl(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
 ```
 
+Converts input strings to integers and returns the result of bitwise logical left shift.
+Use by the bitwise logical left shift operator (`<<`).
 
 ### string.__shr
 
@@ -1730,6 +1790,8 @@ function string.__shl(a: scalar_coercion_concept, b: scalar_coercion_concept): i
 function string.__shr(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
 ```
 
+Converts input strings to integers and returns the result of bitwise logical right shift.
+Use by the bitwise logical right shift operator (`>>`).
 
 ### string.__asr
 
@@ -1737,6 +1799,8 @@ function string.__shr(a: scalar_coercion_concept, b: scalar_coercion_concept): i
 function string.__asr(a: scalar_coercion_concept, b: scalar_coercion_concept): integer
 ```
 
+Converts input strings to integers and returns the result of bitwise arithmetic right shift.
+Use by the bitwise arithmetic right shift operator (`>>>`).
 
 ### string.__bnot
 
@@ -1744,6 +1808,8 @@ function string.__asr(a: scalar_coercion_concept, b: scalar_coercion_concept): i
 function string.__bnot(a: scalar_coercion_concept): integer
 ```
 
+Converts the input string to an integer and returns its bitwise NOT.
+Use by the bitwise NOT operator (`~`).
 
 ### tocstring
 
@@ -1785,10 +1851,18 @@ Convert a value to an integer.
 
 The traits library provides utilities to gather type information.
 
+### traits
+
+```nelua
+global traits: type = @record{}
+```
+
+Namespace for traits module.
+
 ### traits.typeid
 
 ```nelua
-global traits.typeid = @uint32
+global traits.typeid: type = @uint32
 ```
 
 Type of the identifier for types.
@@ -1796,7 +1870,7 @@ Type of the identifier for types.
 ### traits.typeinfo
 
 ```nelua
-global traits.typeinfo = @record{
+global traits.typeinfo: type = @record{
   id: traits.typeid,
   name: string,
   codename: string
@@ -1837,7 +1911,7 @@ Returns the type of `v`, coded as a string, as follows:
 
 other types not listed here returns the underlying type name.
 
-This functions behaves as describe to be compatible with Lua APIs.
+This function behaves as describe to be compatible with Lua APIs.
 
 
 ## utf8
@@ -1853,26 +1927,35 @@ assume that the given position is either the start of a byte sequence
 or one plus the length of the subject string.
 As in the string library, negative indices count from the end of the string.
 
-Functions that create byte sequences accept all values up to 0x7FFFFFFF,
+Functions that create byte sequences accept all values up to `0x7FFFFFFF`,
 as defined in the original UTF-8 specification,
 that implies byte sequences of up to six bytes.
 
 Functions that interpret byte sequences only accept valid sequences (well formed and not overlong)
 By default, they only accept byte sequences that result in valid Unicode code points,
-rejecting values greater than 10FFFF and surrogates.
+rejecting values greater than `0x10FFFF` and surrogates.
 A boolean argument `relax`, when available, lifts these checks,
-so that all values up to 0x7FFFFFFF are accepted.
+so that all values up to `0x7FFFFFFF` are accepted.
 (Not well formed and overlong sequences are still rejected.)
 
+### utf8
+
+```nelua
+global utf8: type = @record{}
+```
+
+Namespace for UTF-8 module.
+
 ### utf8.charpattern
+
 ```nelua
 global utf8.charpattern: string
 ```
 
-Pattern to match exactly one UTF-8 byte sequence,
-assuming that the subject is a valid UTF-8 string.
+Pattern to match exactly one UTF-8 byte sequence, assuming that the subject is a valid UTF-8 string.
 
 ### utf8.char
+
 ```nelua
 function utf8.char(...: varargs): string
 ```
@@ -1881,8 +1964,10 @@ Receives zero or more integers, converts each one to its corresponding UTF-8 byt
 and returns a string with the concatenation of all these sequences.
 
 ### utf8.codes
+
 ```nelua
-function utf8.codes(s: string, relax: facultative(boolean)): (function(string, isize): (boolean, isize, uint32), string, isize)
+function utf8.codes(s: string, relax: facultative(boolean))
+  : (function(string, isize): (boolean, isize, uint32), string, isize)
 ```
 
 UTF-8 iterator, use to iterate over UTF-8 codes.
@@ -1895,6 +1980,7 @@ with `p` being the position (in bytes) and `c` the code point of each character.
 It raises an error if it meets any invalid byte sequence.
 
 ### utf8.codepoint
+
 ```nelua
 function utf8.codepoint(s: string, i: facultative(isize), relax: facultative(boolean)): uint32
 ```
@@ -1904,6 +1990,7 @@ The default for `i` is `1`.
 It raises an error if it meets any invalid byte sequence.
 
 ### utf8.offset
+
 ```nelua
 function utf8.offset(s: string, n: isize, i: facultative(isize)): isize
 ```
@@ -1916,6 +2003,7 @@ If the specified character is neither in the subject nor right after its end,
 the function returns `-1`.
 
 ### utf8.len
+
 ```nelua
 function utf8.len(s: string, i: facultative(isize), j: facultative(isize), relax: facultative(boolean)): (isize, isize)
 ```
@@ -1954,7 +2042,7 @@ with the input and output types known at compile-time.
 ### coroutine
 
 ```nelua
-global coroutine = @*mco_coro
+global coroutine: type = @*mco_coro
 ```
 
 The coroutine handle.
@@ -2072,6 +2160,14 @@ and may skip bytes.
 Use a better hash algorithm in case you need deterministic hash across platforms
 and with better quality.
 
+### hash
+
+```nelua
+global hash: type = @record{}
+```
+
+Namespace for hash module.
+
 ### hash.short
 
 ```nelua
@@ -2110,7 +2206,6 @@ To customize a hash for a specific record you can define `__hash` metamethod,
 and it will be used when calling this function.
 
 
-
 ## vector
 
 The vector library provides the generic record `vector`,
@@ -2132,10 +2227,10 @@ Vectors by default uses the default allocator unless explicitly told not to do s
 
 ```nelua
 local vectorT: type = @record {
-  data: span(T),
-  size: usize,
-  allocator: Allocator
-}
+    data: span(T),
+    size: usize,
+    allocator: Allocator
+  }
 ```
 
 Vector record defined when instantiating the generic `vector` with type `T`.
@@ -2302,6 +2397,206 @@ Generic used to instantiate a vector type in the form of `vector(T, Allocator)`.
 The first argument `T` is type that the vector will store.
 The second argument `Allocator` is an allocator type for the vector storage,
 in case absent then `DefaultAllocator` is used.
+
+
+## hashmap
+
+Hash map is an associative container that contains key-value pairs with unique keys.
+Search, insertion, and removal of elements have average constant-time complexity.
+
+The hash map share similarities with Lua tables but should not be used like them,
+main differences:
+ * There is no array part.
+ * The length operator returns number of elements in the map.
+ * Indexing automatically inserts a key-value pair, to avoid this use `peek()` or `has()` methods.
+ * Values cannot be nil or set to nil.
+ * Can only use `pairs()` to iterate.
+
+### hashmapT
+
+```nelua
+local hashmapT: type = @record{
+    buckets: span(usize),
+    nodes: span(hashmapnodeT),
+    size: usize,
+    allocator: Allocator
+  }
+```
+
+Hash map record defined when instantiating the generic `hashmap`.
+
+### hashmapT.make
+
+```nelua
+function hashmapT.make(allocator: Allocator): hashmapT
+```
+
+Creates a hash map using a custom allocator instance.
+This is only to be used when not using the default allocator.
+
+### hashmapT:destroy
+
+```nelua
+function hashmapT:destroy(): void
+```
+
+Resets the container to a zeroed state, freeing all used resources.
+
+*Complexity*: O(1).
+
+### hashmapT:clear
+
+```nelua
+function hashmapT:clear(): void
+```
+
+Remove all elements from the container.
+
+*Complexity*: O(n).
+
+### hashmapT:_find
+
+```nelua
+function hashmapT:_find(key: K): (usize, usize, usize)
+```
+
+Used internally to find a value at a key returning it's node index.
+
+### hashmapT:rehash
+
+```nelua
+function hashmapT:rehash(count: usize): void
+```
+
+Sets the number of buckets to at least `count` and rehashes the container when needed.
+
+*Complexity*: Average case O(n).
+
+### hashmapT:reserve
+
+```nelua
+function hashmapT:reserve(count: usize): void
+```
+
+Sets the number of buckets to the number needed to accommodate at least `count` elements
+without exceeding maximum load factor and rehashes the container when needed.
+
+*Complexity*: Average case O(n).
+
+### hashmapT:_find_or_make
+
+```nelua
+function hashmapT:_find_or_make(key: K): usize
+```
+
+Used internally to find or make a value at a key returning it's node index.
+
+### hashmapT:__atindex
+
+```nelua
+function hashmapT:__atindex(key: K): *V
+```
+
+Returns a reference to the value that is mapped to a key,
+performing an insertion if such key does not exist.
+This allows indexing the hash map with square brackets `[]`.
+
+*Complexity*: Average case O(1).
+
+### hashmapT:has
+
+```nelua
+function hashmapT:has(key: K): boolean
+```
+
+Checks if there is an element with a key in the container.
+
+*Complexity*: Average case O(1).
+
+### hashmapT:peek
+
+```nelua
+function hashmapT:peek(key: K): *V
+```
+
+Returns a reference to the value that is mapped to a key.
+If no such element exists, returns `nilptr`.
+
+*Complexity*: Average case O(1).
+
+### hashmapT:remove
+
+```nelua
+function hashmapT:remove(key: K): boolean
+```
+
+Removes an element with a key from the container (if it exists).
+Returns `true` if an element was actually removed.
+
+*Complexity*: Average case O(1).
+
+### hashmapT:load_factor
+
+```nelua
+function hashmapT:load_factor(): number
+```
+
+Returns the average number of elements per bucket.
+
+### hashmapT:bucket_count
+
+```nelua
+function hashmapT:bucket_count(): usize
+```
+
+Returns the number of buckets in the container.
+
+### hashmapT:capacity
+
+```nelua
+function hashmapT:capacity(): usize
+```
+
+Returns the number of elements the container can store before triggering a rehash.
+
+### hashmapT:__len
+
+```nelua
+function hashmapT:__len(): isize
+```
+
+Returns the number of elements in the container.
+
+### hashmapT:__pairs
+
+```nelua
+function hashmapT:__pairs()
+```
+
+Allow using `pairs()` to iterate the container.
+
+### hashmapT:__mpairs
+
+```nelua
+function hashmapT:__mpairs()
+```
+
+Allow using `mpairs()` to iterate the container.
+
+### hashmap
+
+```nelua
+global hashmap: type
+```
+
+Generic used to instantiate a hash map type in the form of `hashmap(K, V, HashFunc, Allocator)`.
+
+Argument `K` is type for the hash map key.
+Argument `V` is type for the hash map value.
+Argument `HashFunc` is a function to hash type K,
+in case absent then a default hash function is used.
+Argument `Allocator` is an allocator type for the vector storage,
+in case absent then then `DefaultAllocator` is used.
 
 
 <a href="/diffs/" class="btn btn-outline-primary btn-lg float-right">Differences >></a>

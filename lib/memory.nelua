@@ -13,7 +13,7 @@ local function memset(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'
 local function memcmp(a: pointer, b: pointer, n: csize): cint <cimport,cinclude'<string.h>',nodecl> end
 local function memchr(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 
--- The memory library record.
+-- Namespace for memory module.
 global memory: type = @record{}
 
 --[[

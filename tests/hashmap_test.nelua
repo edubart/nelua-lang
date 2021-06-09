@@ -2,11 +2,7 @@ require 'hashmap'
 
 do -- inserting
   local map: hashmap(integer, integer)
-  for i=1,50 do
-    local k, v = i*3167, i*10
-    map:set(k, v)
-  end
-  for i=51,100 do
+  for i=1,100 do
     local k, v = i*3167, i*10
     map[k] = v
   end
@@ -17,9 +13,8 @@ do -- inserting
   for i=1,100 do
     local k, v = i*3167, i*10
     assert(map[k] == v)
-    assert(map:at(k) == map:peek(k))
-    assert(map:get(k) == v)
-    assert($map:at(k) == v)
+    assert(&map[k] == map:peek(k))
+    assert(map[k] == v)
     assert(map:has(k))
   end
   map:clear()
@@ -27,7 +22,7 @@ do -- inserting
   assert(map:bucket_count() > 128)
   assert(map:capacity() == 128)
   assert(map:load_factor() == 0)
-  map:set(1, 10)
+  map[1] = 10
   map:destroy()
   assert(#map == 0)
   assert(map:capacity() == 0)
@@ -44,7 +39,7 @@ do -- reserve
   assert(map:load_factor() == 0)
   for i=1,100 do
     local k, v = i*3167, i*10
-    map:set(k, v)
+    map[k] = v
   end
   map:reserve(256)
   assert(map:bucket_count() == 342)
@@ -61,7 +56,7 @@ do -- rehash
   local map: hashmap(integer, integer)
   for i=1,100 do
     local k, v = i*3167, i*10
-    map:set(k, v)
+    map[k] = v
   end
   local old_factor = map:load_factor()
   map:rehash(512)
@@ -80,7 +75,7 @@ do -- remove
   local map: hashmap(integer, integer)
   for i=1,100 do
     local k, v = i*3167, i*10
-    map:set(k, v)
+    map[k] = v
   end
   for i=1,50 do
     local k = i*3167
@@ -89,7 +84,7 @@ do -- remove
   assert(#map == 50)
   for i=51,100 do
     local k, v = i*3167, i*10
-    assert(map:get(k) == v)
+    assert(map[k] == v)
     map:remove(k)
   end
   assert(#map == 0)
@@ -149,7 +144,7 @@ do -- custom allocator
   local map = (@hashmap(integer, integer, nil, GeneralAllocator)).make(general_allocator)
   for i=1,100 do
     local k, v = i*3167, i*10
-    map:set(k, v)
+    map[k] = v
   end
   for i=1,100 do
     local k, v = i*3167, i*10

@@ -40,6 +40,7 @@ local function mktime(tp: *tm): time_t <cimport,cinclude'<time.h>',nodecl> end
 local function localtime(timer: *time_t): *tm <cimport,cinclude'<time.h>',nodecl> end
 local function strftime(s: cstring, maxsize: csize, format: cstring, tp: *tm): csize <cimport,cinclude'<time.h>',nodecl> end
 
+-- Namespace for OS module.
 global os: type = @record{}
 
 --[[

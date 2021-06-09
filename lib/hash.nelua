@@ -10,6 +10,7 @@ and with better quality.
 
 require 'span'
 
+-- Namespace for hash module.
 global hash: type = @record{}
 
 -- This is the same simple hash function used in Lua.

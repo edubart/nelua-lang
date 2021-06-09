@@ -939,13 +939,13 @@ All Lua operators are provided:
 | ge     | `a >= b`{:.language-nelua}   | greater or equal than                     |
 | ne     | `a ~= b`{:.language-nelua}   | not equal                                 |
 | eq     | `a == b`{:.language-nelua}   | equal                                     |
-| bor    | `a | b`{:.language-nelua}    | bitwise or                                |
-| band   | `a & b`{:.language-nelua}    | bitwise and                               |
-| bxor   | `a ~ b`{:.language-nelua}    | bitwise xor                               |
+| bor    | `a | b`{:.language-nelua}    | bitwise OR                                |
+| band   | `a & b`{:.language-nelua}    | bitwise AND                               |
+| bxor   | `a ~ b`{:.language-nelua}    | bitwise XOR                               |
 | shl    | `a << b`{:.language-nelua}   | bitwise logical left shift                |
 | shr    | `a >> b`{:.language-nelua}   | bitwise logical right shift               |
 | asr    | `a >>> b`{:.language-nelua}  | bitwise arithmetic right shift            |
-| bnot   | `~a`{:.language-nelua}       | bitwise not                               |
+| bnot   | `~a`{:.language-nelua}       | bitwise NOT                               |
 | concat | `a .. b`{:.language-nelua}   | concatenation                             |
 | add    | `a + b`{:.language-nelua}    | arithmetic add                            |
 | sub    | `a - b`{:.language-nelua}    | arithmetic subtract                       |
