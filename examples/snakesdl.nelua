@@ -4,17 +4,17 @@ require 'math'
 ## linklib 'SDL2'
 
 -- import SDL structures
-local SDL_Event <cimport> = @record {
+local SDL_Event <cimport> = @record{
   type: uint32,
   padding: [56]byte
 }
-local SDL_Keysym <cimport> = @record {
+local SDL_Keysym <cimport> = @record{
   scancode: cint,
   sym: int32,
   mod: uint16,
   unused: uint32
 }
-local SDL_KeyboardEvent <cimport> = @record {
+local SDL_KeyboardEvent <cimport> = @record{
   type: uint32,
   timestamp: uint32,
   windowID: uint32,
@@ -23,7 +23,7 @@ local SDL_KeyboardEvent <cimport> = @record {
   padding: uint16,
   keysym: SDL_Keysym
 }
-local SDL_Rect <cimport> = @record {
+local SDL_Rect <cimport> = @record{
   x: cint, y: cint,
   w: cint, h: cint,
 }

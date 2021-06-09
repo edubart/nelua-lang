@@ -10,7 +10,7 @@ require 'string'
 local clock_t <cimport,nodecl> = #[types.IntegralType('clock_t', primtypes.clong.size)]#
 local time_t <cimport,nodecl> = #[types.IntegralType('time_t', primtypes.clong.size)]#
 
-local tm: type <cimport'tm',nodecl,ctypedef> = @record {
+local tm: type <cimport'tm',nodecl,ctypedef> = @record{
   tm_year: cint,
   tm_mon: cint,
   tm_mday: cint,
@@ -210,7 +210,7 @@ function os.setlocale(locale: string, category: facultative(string)): string
 end
 
 -- Time description, used by function `os.time`.
-global os.timedesc: type = @record {
+global os.timedesc: type = @record{
   year: integer, month: integer, day: integer,
   hour: integer, min: integer, sec: integer,
   isdst: boolean

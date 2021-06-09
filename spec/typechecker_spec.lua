@@ -1090,17 +1090,17 @@ end)
 
 it("records", function()
   expect.analyze_ast([[local R = @record{} local r: R]])
-  expect.analyze_ast([[local a: record {x: boolean}; a.x = true]])
-  expect.analyze_ast([[local a: record {x: boolean} = {}]])
-  expect.analyze_ast([[local a: record {x: boolean} = {x = true}]])
-  expect.analyze_ast([[local a: record {x: boolean}; a = {}]])
-  expect.analyze_ast([[local a: record {x: boolean}; a = {x = true}]])
-  expect.analyze_error([[local a: record {x: integer}; a.x = true]], "no viable type conversion")
-  expect.analyze_error([[local a: record {x: boolean}; local b = a.y]], "cannot index field")
-  expect.analyze_error([[local a: record {x: integer} = {x = true}]], "no viable type conversion")
-  expect.analyze_error([[local a: record {x: boolean} = {y = 1}]], "is not present in record")
-  expect.analyze_error([[local a: record {x: boolean} = {[x] = 1}]], "only string literals are allowed")
-  expect.analyze_error([[local a: record {x: boolean} = {false,false}]], "field at index 2 is invalid")
+  expect.analyze_ast([[local a: record{x: boolean}; a.x = true]])
+  expect.analyze_ast([[local a: record{x: boolean} = {}]])
+  expect.analyze_ast([[local a: record{x: boolean} = {x = true}]])
+  expect.analyze_ast([[local a: record{x: boolean}; a = {}]])
+  expect.analyze_ast([[local a: record{x: boolean}; a = {x = true}]])
+  expect.analyze_error([[local a: record{x: integer}; a.x = true]], "no viable type conversion")
+  expect.analyze_error([[local a: record{x: boolean}; local b = a.y]], "cannot index field")
+  expect.analyze_error([[local a: record{x: integer} = {x = true}]], "no viable type conversion")
+  expect.analyze_error([[local a: record{x: boolean} = {y = 1}]], "is not present in record")
+  expect.analyze_error([[local a: record{x: boolean} = {[x] = 1}]], "only string literals are allowed")
+  expect.analyze_error([[local a: record{x: boolean} = {false,false}]], "field at index 2 is invalid")
   expect.analyze_ast([[
     local Record: type = @record{x: boolean}
     local a: Record, b: Record
@@ -1130,11 +1130,11 @@ it("records", function()
     a = Record{y = 1, 2}
   ]], "field at index 3 is invalid")
   expect.analyze_error([[
-    local a: record {x: boolean}, b: record {x: boolean}
+    local a: record{x: boolean}, b: record{x: boolean}
     b = a
   ]], "no viable type conversion")
   expect.analyze_error([[
-    local A, B = @record {x: boolean}, @record {x: boolean}
+    local A, B = @record{x: boolean}, @record{x: boolean}
     local a: A, b: B
     b = a
   ]], "no viable type conversion")
@@ -1143,18 +1143,18 @@ it("records", function()
     local a <comptime> = Record{}
   ]], "can only assign to compile time expressions")
   expect.ast_type_equals(
-    "local a: record {x: boolean}; local b = a.x",
-    "local a: record {x: boolean}; local b: boolean = a.x")
+    "local a: record{x: boolean}; local b = a.x",
+    "local a: record{x: boolean}; local b: boolean = a.x")
   expect.ast_type_equals(
-    "local a: record {x: boolean}; local b; b = a.x",
-    "local a: record {x: boolean}; local b: boolean; b = a.x")
+    "local a: record{x: boolean}; local b; b = a.x",
+    "local a: record{x: boolean}; local b: boolean; b = a.x")
   expect.analyze_error([[
-    local A, B = @record {x: boolean}, @record {x: boolean}
+    local A, B = @record{x: boolean}, @record{x: boolean}
     local a: A, b: B
     b = a
   ]], "no viable type conversion")
   expect.analyze_error([[
-    local A = @record {x: type}
+    local A = @record{x: type}
   ]], "cannot be of compile-time type")
 end)
 
@@ -1274,7 +1274,7 @@ it("record methods", function()
     global A.a: integer
   ]], "cannot redefine meta type field")
   expect.analyze_error([[
-    local B = @record {a: integer}
+    local B = @record{a: integer}
     global B.lol: function():integer
     function B.lol() return 1 end
   ]], "cannot redefine meta type field")

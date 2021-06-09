@@ -22,7 +22,7 @@ require 'iterators'
   local T: type = @#[T]#
 
   -- Vector record defined when instantiating the generic `vector` with type `T`.
-  local vectorT: type <nickname #[string.format('vector(%s)', T)]#> = @record {
+  local vectorT: type <nickname #[string.format('vector(%s)', T)]#> = @record{
     data: span(T),
     size: usize,
     allocator: Allocator

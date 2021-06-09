@@ -30,7 +30,7 @@ local INIT_SIZE <comptime> = 64
   local Allocator: type = #[Allocator]#
 
   -- Auxiliary class to allocate slot ids.
-  local SlotPoolT: type = @record {
+  local SlotPoolT: type = @record{
     size: uint32, -- size of the slot pool
     queue_top: uint32, -- points to the next entry in the free queue
     gen_ctrs: span(uint32), -- generation counters indexable by pool slot index
@@ -132,7 +132,7 @@ local INIT_SIZE <comptime> = 64
   local T: type = @#[T]#
 
   -- The resource pool class specialized for type T.
-  local ResourcePoolT: type <nickname #[string.format('ResourcePool(%s)', T)]#> = @record {
+  local ResourcePoolT: type <nickname #[string.format('ResourcePool(%s)', T)]#> = @record{
     slot_pool: SlotPool, -- pool of slots id
     items: span(T), -- span holding all resources
     allocator: Allocator

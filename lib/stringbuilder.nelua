@@ -57,7 +57,7 @@ end
 
   local INIT_CAPACITY <comptime> = 128
 
-  local stringbuilderT: type = @record {
+  local stringbuilderT: type = @record{
     data: span(byte),
     size: usize,
     allocator: Allocator

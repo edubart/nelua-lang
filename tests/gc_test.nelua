@@ -42,7 +42,7 @@ end
 local gc_count = 0
 do -- finalizers
   local function finalizer_test() <noinline>
-    local Foo = @record {id: integer}
+    local Foo = @record{id: integer}
 
     function Foo:__gc()
       gc_count = gc_count + 1

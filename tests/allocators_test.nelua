@@ -63,7 +63,7 @@ do -- Stack
 end
 
 do -- Pool
-  local Object = @record {
+  local Object = @record{
     x: integer,
     y: integer
   }

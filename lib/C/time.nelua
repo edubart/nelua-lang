@@ -15,7 +15,7 @@ global C.tm: type <cimport'tm',nodecl,ctypedef> = @record{
   tm_yday: cint,
   tm_isdst: cint
 }
-global timespec: type <cimport'timespec',nodecl,ctypedef> = @record {
+global timespec: type <cimport'timespec',nodecl,ctypedef> = @record{
   tv_sec: C.time_t,
   tv_nsec: clong
 }

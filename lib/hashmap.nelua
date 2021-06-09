@@ -47,7 +47,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   local V: type = @#[V]#
 
   -- Hash map node record defined when instantiating the generic `hashmap`.
-  local hashnodeT: type <nickname #[string.format('hashmapnode(%s)',T)]#> = @record {
+  local hashnodeT: type <nickname #[string.format('hashmapnode(%s)',T)]#> = @record{
     key: K,
     value: V,
     next: usize
@@ -299,7 +299,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   end
 
   -- Hash map iterator.
-  local hashmap_iteratorT: type = @record {
+  local hashmap_iteratorT: type = @record{
     container: *hashmapT,
     index: usize
   }

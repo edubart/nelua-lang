@@ -176,13 +176,13 @@ end)
 
 it("print enums", function()
   expect.ast_type_equals([[
-    local Weekends = @enum { Friday=0, Saturday, Sunda }
+    local Weekends = @enum{Friday=0, Saturday, Sunda}
     ## Weekends.value.fields[3].name = 'Sunday'
     ## for i,field in ipairs(Weekends.value.fields) do
       print(#[field.name .. ' ' .. tostring(field.value)]#)
     ## end
   ]], [[
-    local Weekends = @enum { Friday=0, Saturday, Sunday }
+    local Weekends = @enum{Friday=0, Saturday, Sunday}
     print 'Friday 0'
     print 'Saturday 1'
     print 'Sunday 2'
@@ -611,7 +611,7 @@ it("hygienic macros", function()
 ## local point = hygienize(function(T)
   print('start')
   local T = #[T]#
-  local Point = @record {x: T, y: T}
+  local Point = @record{x: T, y: T}
   print('end')
   ## return Point
 ## end)
@@ -623,7 +623,7 @@ end
 ]=],[=[
 print('start')
 local T = @integer
-local Point = @record {x: T, y: T}
+local Point = @record{x: T, y: T}
 print('end')
 
 do
@@ -643,7 +643,7 @@ end)
 it("generalize macro", function()
   expect.analyze_ast([=[
     ## local make_record = generalize(function(T)
-      local RecordT = @record { x: #[T]# }
+      local RecordT = @record{ x: #[T]# }
       ## return RecordT
     ## end)
     local Foo = #[make_record(primtypes.integer)]#
@@ -652,7 +652,7 @@ it("generalize macro", function()
 ]=])
   expect.analyze_ast([=[
     ## local make_record = generalize(function(T)
-      local RecordT = @record { x: #[T]# }
+      local RecordT = @record{ x: #[T]# }
       ## return RecordT
     ## end)
     local Record = #[make_record]#
@@ -661,14 +661,14 @@ it("generalize macro", function()
 ]=])
   expect.analyze_error([=[
     ## local make_record = generalize(function(T)
-      local RecordT = @record { x: #[T]# }
+      local RecordT = @record{ x: #[T]# }
     ## end)
     local Record = #[make_record]#
     local foo: Record(integer)
 ]=], "expected a type or symbol in generic return")
   expect.analyze_error([=[
     ## local make_record = generalize(function(T)
-      local RecordT = @record { x: #[T]# }
+      local RecordT = @record{ x: #[T]# }
       ## return 1
     ## end)
     local Record = #[make_record]#

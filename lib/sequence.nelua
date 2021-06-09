@@ -24,7 +24,7 @@ require 'iterators'
 
   local Allocator: type = #[Allocator]#
   local T: type = @#[T]#
-  local sequenceimplT: type <nickname #[string.format('sequenceimpl(%s)', T)]#> = @record {
+  local sequenceimplT: type <nickname #[string.format('sequenceimpl(%s)', T)]#> = @record{
     data: span(T),
     size: usize
   }

@@ -15,13 +15,13 @@ require 'memory'
 -- SDL
 
 -- import SDL types
-local SDL_Keysym <cimport,nodecl> = @record {
+local SDL_Keysym <cimport,nodecl> = @record{
   scancode: cint,
   sym: int32,
   mod: uint16,
   unused: uint32
 }
-local SDL_KeyboardEvent <cimport,nodecl> = @record {
+local SDL_KeyboardEvent <cimport,nodecl> = @record{
   type: uint32,
   timestamp: uint32,
   windowID: uint32,
@@ -97,7 +97,7 @@ local function SDL_GetError(): cstring <cimport,nodecl> end
 
 --------------------------------------------------------------------------------
 local vec4b = @record{x: byte, y: byte, z: byte, w: byte}
-local vec2 = @record {x: number, y: number}
+local vec2 = @record{x: number, y: number}
 local Particle = @record{p: vec2, v: vec2}
 local window, renderer, texture
 

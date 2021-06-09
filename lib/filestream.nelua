@@ -426,7 +426,7 @@ function filestream:lines(fmt: overload(integer,string,niltype))
   ## if fmt.type.is_niltype then
   local fmt: string = 'l'
   ## end
-  local LinesState: type = @record {
+  local LinesState: type = @record{
     file: filestream,
     fmt: #[fmt.type]#
   }

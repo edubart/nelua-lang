@@ -1352,7 +1352,7 @@ or an empty string if the request cannot be honored.
 ### os.timedesc
 
 ```nelua
-global os.timedesc: type = @record {
+global os.timedesc: type = @record{
   year: integer, month: integer, day: integer,
   hour: integer, min: integer, sec: integer,
   isdst: boolean
@@ -1414,7 +1414,7 @@ Spans ares also known as "fat pointer" or "slice" in some other languages.
 ### spanT
 
 ```nelua
-local spanT: type = @record {
+local spanT: type = @record{
     data: *[0]T,
     size: usize
   }
@@ -2300,7 +2300,7 @@ otherwise the behavior is undefined, in case this is needed then try the `sequen
 ### vectorT
 
 ```nelua
-local vectorT: type = @record {
+local vectorT: type = @record{
     data: span(T),
     size: usize,
     allocator: Allocator
@@ -2669,7 +2669,7 @@ use a vector or sequence in that case.
 ### listnodeT
 
 ```nelua
-local listnodeT: type = @record {
+local listnodeT: type = @record{
     prev: *listnodeT,
     next: *listnodeT,
     value: T
@@ -2864,7 +2864,7 @@ Any failure when growing a hash map raises an error.
 ### hashnodeT
 
 ```nelua
-local hashnodeT: type = @record {
+local hashnodeT: type = @record{
     key: K,
     value: V,
     next: usize

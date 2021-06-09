@@ -1807,7 +1807,7 @@ it("multi dimensional arrays", function()
     print(g()[1][1])
 
     do
-      local Object = @record {
+      local Object = @record{
         values: *[0]*[0]integer
       }
       local b: [4]integer = {1,2,3,4}
@@ -1848,7 +1848,7 @@ it("records", function()
     assert(p.x == 1 and p.y == 2)
   ]])
   expect.run_c([[
-    local Point = @record {x: integer, y: integer}
+    local Point = @record{x: integer, y: integer}
     local p: Point
     local pptr = &p
     p.x = 1
@@ -1867,7 +1867,7 @@ it("records", function()
     assert(Point({=x,=y}).y == 2)
   ]])
   expect.run_c([[
-    local Point = @record {x: integer, y: integer}
+    local Point = @record{x: integer, y: integer}
     do
       local p = Point{x=1, y=2}
       assert(p.x == 1 and p.y == 2)
@@ -1896,39 +1896,39 @@ it("records size", function()
   expect.run_c([=[
     require 'span'
     do
-      local R = @record { a: usize, b: span(integer) }
+      local R = @record{ a: usize, b: span(integer) }
       local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
       assert(#R == s)
     end
 
     do
-      local R = @record { a: cint, b: cchar }
+      local R = @record{ a: cint, b: cchar }
       local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
       assert(#R == s)
     end
 
     do
-      local R = @record { a: cint, b: float64, c: cchar }
+      local R = @record{ a: cint, b: float64, c: cchar }
       local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
       assert(#R == s)
     end
 
     do
-      local R = @record { a: [64][64]float64, c: cchar }
+      local R = @record{ a: [64][64]float64, c: cchar }
       local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
       assert(#R == s)
     end
 
     do
-      local R1 = @record { a: int32 }
-      local R2 = @record { a: number, b: number }
-      local R = @record { s: R1, a: R2 }
+      local R1 = @record{ a: int32 }
+      local R2 = @record{ a: number, b: number }
+      local R = @record{ s: R1, a: R2 }
       local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
       assert(#R == s)
     end
 
     do
-      local R = @record {a: int32, b: boolean, c: pointer, d: pointer}
+      local R = @record{a: int32, b: boolean, c: pointer, d: pointer}
       local r: R, s: integer ##[[cemit('s = sizeof(r);')]]
       assert(#R == s)
     end
@@ -1985,7 +1985,7 @@ end)
 
 it("record metametods", function()
   expect.run_c([[
-    local intarray = @record {
+    local intarray = @record{
       data: [100]integer
     }
     function intarray:__atindex(i: usize): *integer <inline>
@@ -2008,7 +2008,7 @@ it("record metametods", function()
     assert(#$pa == 100)
     assert(#pa == 100)
 
-    local R = @record {
+    local R = @record{
       x: integer
     }
     function R.__convert(x: integer): R
@@ -2037,7 +2037,7 @@ it("record metametods", function()
     assert(g(r) == 3)
     assert(g(4) == 4)
 
-    local R = @record {
+    local R = @record{
       x: [2]integer
     }
     ## R.value.choose_initializerlist_type = function() return types.ArrayType(primtypes.integer, 2) end
@@ -2976,7 +2976,7 @@ it("concepts", function()
     f(a, a[0], #a)
     f(b, b[0], #b)
 
-    local R = @record {
+    local R = @record{
       x: integer
     }
     function R:__convert(x: an_scalar)
@@ -3003,14 +3003,14 @@ it("concepts", function()
     local function f(a: integer): integer
       return a
     end
-    local R = @record {
+    local R = @record{
       x: integer
     }
     assert(g(f(2)) == 2)
     assert(g(f(2), 10) == 4)
   ]=])
   expect.run_c([=[
-    local R = @record {x: integer}
+    local R = @record{x: integer}
     function R.__convert(x: integer): R
       return R{x=x}
     end
@@ -3057,7 +3057,7 @@ it("concepts", function()
       return v
     end
 
-    local MyArray = @record {data: [10]integer}
+    local MyArray = @record{data: [10]integer}
 
     function MyArray:__index(i: integer)
       return self.data[i]
