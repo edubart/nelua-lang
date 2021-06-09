@@ -283,7 +283,7 @@ function string.rep(s: string, n: isize, sep: facultative(string)): string
   return ret
 end
 
--- Helper use by `string.match` and `string.matchv`.
+-- Helper used by `string.match` and `string.matchview`.
 local function string_match(s: string, pattern: string, init: isize): (boolean, sequence(string))
   local ms: PatternMatcher = PatternMatcher.create(s, pattern)
   local startpos: isize, endpos: isize = ms:match(init, false)
@@ -316,7 +316,7 @@ function string.match(s: string, pattern: string, init: facultative(isize)): (bo
   local init: isize = 1
   ## end
   local ok: boolean, seq: sequence(string) = string_match(s, pattern, init)
-  for i: isize = 0,<#seq do
+  for i: isize = 1, #seq do
     seq[i] = string.copy(seq[i])
   end
   return ok, seq

@@ -2,8 +2,8 @@ require 'utf8'
 
 do -- utf8.charpattern
   local b: boolean, s: sequence(string)
-  b, s = string.match('A', utf8.charpattern); assert(not not b and #s == 1); s:destroy()
-  b, s = string.match('\u{ff}', utf8.charpattern); assert(not not b and #s == 1); s:destroy()
+  b, s = string.matchview('A', utf8.charpattern); assert(not not b and #s == 1); s:destroy()
+  b, s = string.matchview('\u{ff}', utf8.charpattern); assert(not not b and #s == 1); s:destroy()
 end
 
 do -- utf8.char

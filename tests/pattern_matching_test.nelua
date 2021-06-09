@@ -1,7 +1,7 @@
 require 'string'
 
 local function assert_match(s: string, patt: string, res: overload(niltype,string,sequence(string)))
-  local status, captures = string.match(s, patt, 1)
+  local status, captures = string.matchview(s, patt, 1)
   ## if res.type.is_niltype then
   assert(status == true and #captures == 1 and captures[1] == s)
   ## elseif res.type.is_string then
@@ -18,7 +18,7 @@ local function assert_match(s: string, patt: string, res: overload(niltype,strin
 end
 
 local function assert_no_match(s: string, patt: string)
-  local status, captures = string.match(s, patt)
+  local status, captures = string.matchview(s, patt)
   assert(status == false and #captures == 0)
 end
 
