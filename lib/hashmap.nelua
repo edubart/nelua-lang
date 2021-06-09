@@ -1,14 +1,18 @@
 --[[
-Hash map is an associative container that contains key-value pairs with unique keys.
+The hashmap library provides a hash table with fixed types.
+
+A hash map is an associative container that contains key-value pairs with unique keys.
 Search, insertion, and removal of elements have average constant-time complexity.
 
 The hash map share similarities with Lua tables but should not be used like them,
-main differences:
+the main differences are:
  * There is no array part.
  * The length operator returns number of elements in the map.
  * Indexing automatically inserts a key-value pair, to avoid this use `peek()` or `has()` methods.
- * Values cannot be nil or set to nil.
+ * Values cannot be `nil` or set to `nil`.
  * Can only use `pairs()` to iterate.
+
+Any failure when growing a hash map raises an error.
 ]]
 
 require 'memory'
@@ -43,7 +47,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   local V: type = @#[V]#
 
   -- Hash map node record defined when instantiating the generic `hashmap`.
-  local hashmapnodeT: type <nickname #[string.format('hashmapnode(%s)',T)]#> = @record {
+  local hashnodeT: type <nickname #[string.format('hashmapnode(%s)',T)]#> = @record {
     key: K,
     value: V,
     next: usize
@@ -52,7 +56,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   -- Hash map record defined when instantiating the generic `hashmap`.
   local hashmapT: type <nickname #[string.format('hashmap(%s, %s)',K,V)]#> = @record{
     buckets: span(usize),
-    nodes: span(hashmapnodeT),
+    nodes: span(hashnodeT),
     size: usize,
     allocator: Allocator
   }
@@ -71,7 +75,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
   --[[
   Creates a hash map using a custom allocator instance.
-  This is only to be used when not using the default allocator.
+  Useful only when using instanced allocators.
   ]]
   function hashmapT.make(allocator: Allocator): hashmapT
     local m: hashmapT
@@ -87,7 +91,9 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   function hashmapT:destroy(): void
     self.allocator:spandealloc(self.buckets)
     self.allocator:spandealloc(self.nodes)
-    memory.zero(self, #hashmapT)
+    self.buckets = (@span(usize))()
+    self.nodes = (@span(hashnodeT))()
+    self.size = 0
   end
 
   --[[
@@ -111,7 +117,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     local prev_node_index: usize = INVALID_INDEX
     -- iterate until the key is found
     while node_index ~= INVALID_INDEX do
-      local node: *hashmapnodeT = &self.nodes[node_index]
+      local node: *hashnodeT = &self.nodes[node_index]
       if node.key == key then
         return node_index, prev_node_index, hash_index
       end
@@ -251,7 +257,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     if node_index == INVALID_INDEX then return false end
 
     -- unlink the removed node
-    local node: *hashmapnodeT = &self.nodes[node_index]
+    local node: *hashnodeT = &self.nodes[node_index]
     if prev_node_index == INVALID_INDEX then
       self.buckets[hash_index] = node.next
     else
@@ -260,7 +266,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
     -- move the last node into the removed node place
     local last_node_index: usize = self.size - 1
-    local last_node: *hashmapnodeT = &self.nodes[last_node_index]
+    local last_node: *hashnodeT = &self.nodes[last_node_index]
     if node_index ~= last_node_index then
       $node = $last_node
       local unused_index: usize, last_prev_node_index: usize, last_hash_index: usize = self:_find(node.key)
@@ -272,7 +278,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     end
 
     -- clean the last node
-    $last_node = (@hashmapnodeT)()
+    $last_node = (@hashnodeT)()
     self.size = self.size - 1
     return true
   end
@@ -321,7 +327,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     if unlikely(self.index >= self.container.size) then
       return false, (@K)(), (@V)()
     end
-    local node: *hashmapnodeT = &self.container.nodes[self.index]
+    local node: *hashnodeT = &self.container.nodes[self.index]
     return true, node.key, node.value
   end
 
@@ -339,7 +345,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     if unlikely(self.index >= self.container.size) then
       return false, (@K)(), nilptr
     end
-    local node: *hashmapnodeT = &self.container.nodes[self.index]
+    local node: *hashnodeT = &self.container.nodes[self.index]
     return true, node.key, &node.value
   end
 

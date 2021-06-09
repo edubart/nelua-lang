@@ -2467,8 +2467,7 @@ local function do_stuff()
 
   -- emits inside this function in the generated C file
   ##[==[ cemit([[
-    const char *msg = "hello from C\n";
-    printf(msg);
+    printf("hello from C\n");
   ]])]==]
 end
 

@@ -1,8 +1,8 @@
 --[[
-The operating system library provides some operating system facilities.
+The os library provides some operating system facilities.
 
 Some `os` functions behavior may vary across different operating systems,
-or not be supported.
+or may not be supported.
 ]]
 
 require 'string'

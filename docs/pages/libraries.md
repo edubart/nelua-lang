@@ -1228,10 +1228,10 @@ In case `x` is not found -1 is returned.
 
 ## os
 
-The operating system library provides some operating system facilities.
+The os library provides some operating system facilities.
 
 Some `os` functions behavior may vary across different operating systems,
-or not be supported.
+or may not be supported.
 
 ### os
 
@@ -1410,7 +1410,7 @@ The string type is defined by the compiler, however it does not have
 its methods implemented, this module implements all string methods.
 
 When the GC is disabled, you should call `destroy` to free the string memory
-of any string returned in by this library, otherwise he memory will leak.
+of any string returned in by this library, otherwise the memory will leak.
 Note that strings can point to a buffer in the program static storage
 and such strings should never be destroyed.
 
@@ -2208,19 +2208,13 @@ and it will be used when calling this function.
 
 ## vector
 
-The vector library provides an efficient dynamic sized array or values.
+The vector library provides an efficient dynamic sized array of values.
 
-Vector elements starts at index 0 and go up to length-1.
-
-A vector should never be passed by value while being modified, otherwise the behavior is undefined,
-in case this is needed then try the `sequence` library.
-
-Any failure when growing a vector raises a panic error.
-When checks are enabled, invalid operations (such as out of bounds access) raises a panic error.
-When checks are disabled (on release builds or when pragma `nochecks` is active),
-invalid operations causes an undefined behavior.
-
-Vectors by default uses the default allocator unless explicitly told not to do so.
+A vector has the following semantics:
+* Its elements starts at index 0 and go up to its length minus 1.
+* It should never be passed by value while being modified,
+otherwise the behavior is undefined, in case this is needed then try the `sequence` library.
+* Any failure when growing a vector raises an error.
 
 ### vectorT
 
@@ -2240,7 +2234,7 @@ Vector record defined when instantiating the generic `vector` with type `T`.
 function vectorT.make(allocator: Allocator): vectorT
 ```
 
-Create a vector using a custom allocator instance.
+Creates a vector using a custom allocator instance.
 Useful only when using instanced allocators.
 
 ### vectorT:clear
@@ -2257,7 +2251,7 @@ Removes all elements from the vector.
 function vectorT:destroy(): void
 ```
 
-Free all vector resources and resets it to a zeroed state.
+Free vector resources and resets it to a zeroed state.
 Useful only when not using the garbage collector.
 
 ### vectorT:reserve
@@ -2355,7 +2349,8 @@ Returns the number of elements the vector can store before triggering a realloca
 function vectorT:__atindex(i: usize): *T
 ```
 
-Returns reference to element at index `pos`, the index must be valid.
+Returns reference to element at index `pos`.
+The index must be valid.
 Used when indexing elements with square brackets (`[]`).
 
 ### vectorT:__len
@@ -2389,14 +2384,205 @@ Argument `Allocator` is an allocator type for the container storage,
 in case absent then `DefaultAllocator` is used.
 
 
+## sequence
+
+The sequence library provides a dynamic sized array of values,
+like vector, but with the following semantics:
+
+* Its elements starts at index 1 and go up to its length (like lua tables).
+* Internally it just contains a pointer,
+thus the list itself is passed by reference by default (like lua tables again).
+* Indexing the next elements after the end makes the sequence grow automatically.
+* Any failure when growing a sequence raises an error.
+
+A sequence is typically used as a more efficient table that
+can hold only sequences of a fixed value type.
+
+### sequenceT
+
+```nelua
+local sequenceT: type = @record{
+    impl: *sequenceimplT,
+    allocator: Allocator
+  }
+```
+
+
+
+### sequenceT:_init
+
+```nelua
+function sequenceT:_init(): void
+```
+
+Initializes sequence internal implementation if not initialized yet.
+This is already implicitly called by other sequence functions when needed.
+
+### sequenceT.make
+
+```nelua
+function sequenceT.make(allocator: Allocator): sequenceT
+```
+
+Create a sequence using a custom allocator instance.
+Useful only when using instanced allocators.
+
+### sequenceT:clear
+
+```nelua
+function sequenceT:clear(): void
+```
+
+Removes all elements from the sequence.
+
+### sequenceT:destroy
+
+```nelua
+function sequenceT:destroy(): void
+```
+
+Free sequence resources and resets it to a zeroed state.
+Useful only when not using the garbage collector.
+
+### sequenceT:reserve
+
+```nelua
+function sequenceT:reserve(n: usize): void
+```
+
+Reserve at least `n` elements in the sequence storage.
+
+### sequenceT:resize
+
+```nelua
+function sequenceT:resize(n: usize): void
+```
+
+Resizes the sequence so that it contains `n` elements.
+When expanding new elements are zero initialized.
+
+### sequenceT:copy
+
+```nelua
+function sequenceT:copy(): sequenceT
+```
+
+Returns a shallow copy of the sequence, allocating a new sequence.
+
+### sequenceT:push
+
+```nelua
+function sequenceT:push(v: T): void
+```
+
+Inserts elements `v` at the end of the sequence.
+
+### sequenceT:pop
+
+```nelua
+function sequenceT:pop(): T
+```
+
+Removes the last element in the sequence and returns its value.
+The sequence must not be empty.
+
+### sequenceT:insert
+
+```nelua
+function sequenceT:insert(pos: usize, v: T): void
+```
+
+Inserts element `v` at position `pos` in the sequence.
+Elements with index greater or equal than `pos` are shifted up.
+The `pos` must be valid (in the sequence bounds).
+
+### sequenceT:remove
+
+```nelua
+function sequenceT:remove(pos: usize): T
+```
+
+Removes element at position `pos` in the sequence and returns its value.
+Elements with index greater than `pos` are shifted down.
+The `pos` must be valid (in the sequence bounds).
+
+### sequenceT:removevalue
+
+```nelua
+function sequenceT:removevalue(v: T): boolean
+```
+
+Removes the first item from the sequence whose value is `v`.
+The remaining elements are shifted.
+Returns `true` if the an item was removed, otherwise `false`.
+
+### sequenceT:removeif
+
+```nelua
+function sequenceT:removeif(pred: function(v: T): boolean): void
+```
+
+Removes all elements from the sequence where `pred` function returns `true`.
+The remaining elements are shifted.
+
+### sequenceT:capacity
+
+```nelua
+function sequenceT:capacity(): isize
+```
+
+Returns the number of elements the sequence can store before triggering a reallocation.
+
+### sequenceT:__atindex
+
+```nelua
+function sequenceT:__atindex(i: usize): *T
+```
+
+Returns reference to element at index `i`.
+If `i` is the sequence size plus 1, then a zeroed element is added and return its reference.
+Argument `i` must be at most the sequence size plus 1.
+Used when indexing elements with square brackets (`[]`).
+
+### sequenceT:__len
+
+```nelua
+function sequenceT:__len(): isize
+```
+
+Returns the number of elements in the sequence.
+It never counts the element at 0.
+Used by the length operator (`#`).
+
+### sequenceT.__convert
+
+```nelua
+function sequenceT.__convert(values: an_arrayT): sequenceT
+```
+
+Initializes sequence elements from a fixed array.
+Used to initialize sequence elements with curly braces (`{}`).
+
+### sequence
+
+```nelua
+global sequence: type
+```
+
+Generic used to instantiate a sequence type in the form of `sequence(T, Allocator)`.
+
+Argument `T` is the value type that the sequence will store.
+Argument `Allocator` is an allocator type for the container storage,
+in case absent then `DefaultAllocator` is used.
+
+
 ## list
 
 The list library provides a double linked list container.
 
 A double linked list is a dynamic sized container that supports
 constant time insertion and removal from anywhere in the container.
-
-However doubled linked lists don't support fast random access,
+Doubled linked lists don't support fast random access,
 use a vector or sequence in that case.
 
 ### listnodeT
@@ -2579,21 +2765,25 @@ in case absent then then `DefaultAllocator` is used.
 
 ## hashmap
 
-Hash map is an associative container that contains key-value pairs with unique keys.
+The hashmap library provides a hash table with fixed types.
+
+A hash map is an associative container that contains key-value pairs with unique keys.
 Search, insertion, and removal of elements have average constant-time complexity.
 
 The hash map share similarities with Lua tables but should not be used like them,
-main differences:
+the main differences are:
  * There is no array part.
  * The length operator returns number of elements in the map.
  * Indexing automatically inserts a key-value pair, to avoid this use `peek()` or `has()` methods.
- * Values cannot be nil or set to nil.
+ * Values cannot be `nil` or set to `nil`.
  * Can only use `pairs()` to iterate.
 
-### hashmapnodeT
+Any failure when growing a hash map raises an error.
+
+### hashnodeT
 
 ```nelua
-local hashmapnodeT: type = @record {
+local hashnodeT: type = @record {
     key: K,
     value: V,
     next: usize
@@ -2607,7 +2797,7 @@ Hash map node record defined when instantiating the generic `hashmap`.
 ```nelua
 local hashmapT: type = @record{
     buckets: span(usize),
-    nodes: span(hashmapnodeT),
+    nodes: span(hashnodeT),
     size: usize,
     allocator: Allocator
   }
@@ -2622,7 +2812,7 @@ function hashmapT.make(allocator: Allocator): hashmapT
 ```
 
 Creates a hash map using a custom allocator instance.
-This is only to be used when not using the default allocator.
+Useful only when using instanced allocators.
 
 ### hashmapT:destroy
 

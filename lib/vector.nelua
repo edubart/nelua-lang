@@ -1,17 +1,12 @@
 --[[
-The vector library provides an efficient dynamic sized array or values.
+The vector library provides an efficient dynamic sized array of values.
 
-Vector elements starts at index 0 and go up to length-1.
+A vector has the following semantics:
+* Its elements starts at index 0 and go up to its length minus 1.
+* It should never be passed by value while being modified,
+otherwise the behavior is undefined, in case this is needed then try the `sequence` library.
+* Any failure when growing a vector raises an error.
 
-A vector should never be passed by value while being modified, otherwise the behavior is undefined,
-in case this is needed then try the `sequence` library.
-
-Any failure when growing a vector raises a panic error.
-When checks are enabled, invalid operations (such as out of bounds access) raises a panic error.
-When checks are disabled (on release builds or when pragma `nochecks` is active),
-invalid operations causes an undefined behavior.
-
-Vectors by default uses the default allocator unless explicitly told not to do so.
 ]]
 
 require 'memory'
@@ -52,7 +47,7 @@ require 'iterators'
   end)]#
 
   --[[
-  Create a vector using a custom allocator instance.
+  Creates a vector using a custom allocator instance.
   Useful only when using instanced allocators.
   ]]
   function vectorT.make(allocator: Allocator): vectorT
@@ -63,24 +58,23 @@ require 'iterators'
 
   -- Removes all elements from the vector.
   function vectorT:clear(): void
-    memory.spanzero(self.data)
     self.size = 0
   end
 
   --[[
-  Free all vector resources and resets it to a zeroed state.
+  Free vector resources and resets it to a zeroed state.
   Useful only when not using the garbage collector.
   ]]
   function vectorT:destroy(): void
-    self:clear()
     self.allocator:spandealloc(self.data)
     self.data = (@span(T))()
+    self.size = 0
   end
 
   -- Reserve at least `n` elements in the vector storage.
   function vectorT:reserve(n: usize): void
     if likely(self.data.size >= n) then return end
-    self.data = self.allocator:spanxrealloc0(self.data, n)
+    self.data = self.allocator:spanxrealloc(self.data, n)
   end
 
   --[[
@@ -89,6 +83,9 @@ require 'iterators'
   ]]
   function vectorT:resize(n: usize): void
     self:reserve(n)
+    if n > self.size then
+      memory.zero(&self.data[self.size], (n - self.size) * #T)
+    end
     self.size = n
   end
 
@@ -108,7 +105,7 @@ require 'iterators'
   local function vectorT_grow(self: *vectorT): void <noinline>
     local cap: usize = 1
     if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
-    self.data = self.allocator:spanxrealloc0(self.data, cap)
+    self.data = self.allocator:spanxrealloc(self.data, cap)
   end
 
   -- Inserts a element `v` at the end of the vector.
@@ -143,7 +140,6 @@ require 'iterators'
     end
     if self.size > pos then
       memory.move(&self.data[pos + 1], &self.data[pos], (self.size - pos) * #T)
-      memory.zero(&self.data[pos], #T)
     end
     self.data[pos] = v
     self.size = self.size + 1
@@ -160,7 +156,6 @@ require 'iterators'
     local ret: T = self.data[pos]
     if self.size > pos then
       memory.move(&self.data[pos], &self.data[pos+1], (self.size - pos) * #T)
-      memory.zero(&self.data[self.size], #T)
     end
     return ret
   end
@@ -201,7 +196,8 @@ require 'iterators'
   end
 
   --[[
-  Returns reference to element at index `pos`, the index must be valid.
+  Returns reference to element at index `pos`.
+  The index must be valid.
   Used when indexing elements with square brackets (`[]`).
   ]]
   function vectorT:__atindex(i: usize): *T <inline,nosideeffect>

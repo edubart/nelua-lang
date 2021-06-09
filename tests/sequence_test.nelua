@@ -3,7 +3,7 @@ require 'sequence'
 do -- manual init and reset
   local seq: sequence(integer)
   assert(#seq == 0 and seq.impl == nilptr)
-  seq:init()
+  seq:_init()
   assert(seq.impl ~= nilptr)
   seq:destroy()
   assert(seq.impl == nilptr)

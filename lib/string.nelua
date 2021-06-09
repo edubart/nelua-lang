@@ -9,7 +9,7 @@ The string type is defined by the compiler, however it does not have
 its methods implemented, this module implements all string methods.
 
 When the GC is disabled, you should call `destroy` to free the string memory
-of any string returned in by this library, otherwise he memory will leak.
+of any string returned in by this library, otherwise the memory will leak.
 Note that strings can point to a buffer in the program static storage
 and such strings should never be destroyed.
 ]]

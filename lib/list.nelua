@@ -3,8 +3,7 @@ The list library provides a double linked list container.
 
 A double linked list is a dynamic sized container that supports
 constant time insertion and removal from anywhere in the container.
-
-However doubled linked lists don't support fast random access,
+Doubled linked lists don't support fast random access,
 use a vector or sequence in that case.
 ]]
 
