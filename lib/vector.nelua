@@ -6,7 +6,6 @@ A vector has the following semantics:
 * It should never be passed by value while being modified,
 otherwise the behavior is undefined, in case this is needed then try the `sequence` library.
 * Any failure when growing a vector raises an error.
-
 ]]
 
 require 'memory'

@@ -1398,6 +1398,87 @@ You still have to open the file to use it and to remove it (even if you do not u
 When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
 
 
+## span
+
+The span library provides the span generic.
+
+A span is used as a view to elements of a contiguous memory block.
+Contiguous containers like vector, sequence and array can be viewed as a span.
+Span elements starts at index 0 and go up to length-1 (like fixed arrays).
+
+Span are specially useful for making functions with arguments that
+are agnostic to the input container type.
+
+Spans ares also known as "fat pointer" or "slice" in some other languages.
+
+### spanT
+
+```nelua
+local spanT: type = @record {
+    data: *[0]T,
+    size: usize
+  }
+```
+
+Span record defined when instantiating the generic `span` with type `T`.
+
+### spanT:valid
+
+```nelua
+function spanT:valid(): boolean
+```
+
+Returns `true` if the span is not empty and has a valid data pointer.
+
+### spanT:sub
+
+```nelua
+function spanT:sub(i: usize, j: usize): spanT
+```
+
+Returns the sub span that starts at `i` (inclusive) and continues until `j` (exclusive).
+Both `i` and `j` must be in the span bounds and the expression `i <= j` must be true.
+
+*Remarks*: When using the GC the sub span will not hold reference of the original span data,
+thus if you don't hold the original reference somewhere you will have a dangling reference.
+
+### spanT:__atindex
+
+```nelua
+function spanT:__atindex(i: usize): *T
+```
+
+Returns the reference of element at index `i`.
+Argument `i` must be less than span size.
+Used when indexing elements with square brackets (`[]`).
+
+### spanT:__len
+
+```nelua
+function spanT:__len(): isize
+```
+
+Returns the number of elements in the span.
+
+### spanT.__convert
+
+```nelua
+function spanT.__convert(values: spanT_convertible_concept): spanT
+```
+
+Initializes a span from a pointer to contiguous containers.
+
+### span
+
+```nelua
+global span: type
+```
+
+Generic used to instantiate a span type in the form of `span(T)`.
+
+Argument `T` is the value type that the span will store.
+
+
 ## string
 
 The string library provides functions to manipulate strings.
@@ -1492,7 +1573,7 @@ The main difference between this and `string.sub` is that, here we don't allocat
 instead it reuses its memory as an optimization.
 Use this only if you know what you are doing, to be safe use `string.sub` instead.
 
-CAUTION: When using the GC the view will not hold reference of the original string,
+*Remarks*: When using the GC the view will not hold reference of the original string,
 thus if you don't hold the original string reference somewhere you will have a dangling reference.
 The view string may not be zero terminated, thus you should never
 cast it to a `cstring` to use in C functions.

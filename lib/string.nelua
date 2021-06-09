@@ -143,7 +143,7 @@ The main difference between this and `string.sub` is that, here we don't allocat
 instead it reuses its memory as an optimization.
 Use this only if you know what you are doing, to be safe use `string.sub` instead.
 
-CAUTION: When using the GC the view will not hold reference of the original string,
+*Remarks*: When using the GC the view will not hold reference of the original string,
 thus if you don't hold the original string reference somewhere you will have a dangling reference.
 The view string may not be zero terminated, thus you should never
 cast it to a `cstring` to use in C functions.

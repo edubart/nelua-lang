@@ -24,6 +24,17 @@ do -- array to span
   assert(arr[0] == 5)
 end
 
+do -- sub
+  local arr: array(integer, 4) = {1,2,3,4}
+  local s: span(integer) = &arr
+  s = s:sub(2,#s)
+  assert(#s == 2 and s[0] == 3 and s[1] == 4)
+  s = s:sub(0,1)
+  assert(#s == 1 and s[0] == 3)
+  s = s:sub(0,0)
+  assert(#s == 0 and s.data == &arr[2])
+end
+
 do -- iterators
   local arr: array(integer, 4) = {1,2,3,4}
   local s: span(integer) = &arr

@@ -1,20 +1,26 @@
--- Span type
---
--- This type is used as view to elements of a contiguous memory block.
--- Contiguous containers like vector, sequence and array can be viewed as a span.
--- Its elements starts at index 0 and go up to length-1 (like C arrays).
---
--- This type is specially useful for making functions with arguments that
--- are agnostic to the input container type.
+--[[
+The span library provides the span generic.
+
+A span is used as a view to elements of a contiguous memory block.
+Contiguous containers like vector, sequence and array can be viewed as a span.
+Span elements starts at index 0 and go up to length-1 (like fixed arrays).
+
+Span are specially useful for making functions with arguments that
+are agnostic to the input container type.
+
+Spans ares also known as "fat pointer" or "slice" in some other languages.
+]]
 
 require 'iterators'
 
-## local make_span = generalize(function(T)
+## local make_spanT = generalize(function(T)
   ##[[
   static_assert(traits.is_type(T), "invalid type '%s", T)
   static_assert(not T.is_comptime, "spans cannot be of type '%s'", T)
   ]]
   local T: type = @#[T]#
+
+  -- Span record defined when instantiating the generic `span` with type `T`.
   local spanT: type <nickname #[string.format('span(%s)', T)]#> = @record {
     data: *[0]T,
     size: usize
@@ -28,8 +34,41 @@ require 'iterators'
   spanT.subtype = T
   ]]
 
-  -- Returns reference to element at index `i`.
-  -- If `i` is greater of equal to span size, then throws a runtime error on debug builds.
+  -- Concept matching contiguous containers of T.
+  local spanT_convertible_concept = #[concept(function(x)
+    if x.type.is_pointer and x.type.subtype and x.type.subtype:is_contiguous_of(T) then
+      return true
+    elseif x.type.is_string and (T.is_integral and T.bitsize == 8) then
+      return true
+    end
+    return false, string.format("no viable conversion from '%s' to '%s'", x.type, spanT)
+  end)]#
+
+  -- Returns `true` if the span is not empty and has a valid data pointer.
+  function spanT:valid(): boolean <inline,nosideeffect>
+    return self.data ~= nilptr and self.size > 0
+  end
+
+  --[[
+  Returns the sub span that starts at `i` (inclusive) and continues until `j` (exclusive).
+  Both `i` and `j` must be in the span bounds and the expression `i <= j` must be true.
+
+  *Remarks*: When using the GC the sub span will not hold reference of the original span data,
+  thus if you don't hold the original reference somewhere you will have a dangling reference.
+  ]]
+  function spanT:sub(i: usize, j: usize): spanT <inline,nosideeffect>
+    check(i < self.size and j <= self.size and i <= j, 'index out of range')
+    if likely(j >= i) then
+      return (@spanT){data=&self.data[i], size=j-i}
+    end
+    return (@spanT){data=&self.data[i], size=0}
+  end
+
+  --[[
+  Returns the reference of element at index `i`.
+  Argument `i` must be less than span size.
+  Used when indexing elements with square brackets (`[]`).
+  ]]
   function spanT:__atindex(i: usize): *T <inline,nosideeffect>
     check(i < self.size, 'index out of range')
     return &self.data[i]
@@ -40,20 +79,8 @@ require 'iterators'
     return (@isize)(self.size)
   end
 
-  -- Returns true if the span `data` ~= nilptr and `size` > 0.
-  function spanT:valid(): boolean <inline,nosideeffect>
-    return self.data ~= nilptr and self.size > 0
-  end
-
-  -- Initializes span from pointers to other arrays.
-  function spanT.__convert(values: #[concept(function(x)
-    if x.type.is_pointer and x.type.subtype and x.type.subtype:is_contiguous_of(T) then
-      return true
-    elseif x.type.is_string and (T.is_integral and T.bitsize == 8) then
-      return true
-    end
-    return false, string.format("no viable conversion from '%s' to '%s'", x.type, spanT)
-  end)]#): spanT <inline>
+  -- Initializes a span from a pointer to contiguous containers.
+  function spanT.__convert(values: spanT_convertible_concept): spanT <inline>
     local self: spanT
     ## if values.type.is_string then
       self.data = (@*[0]T)(values.data)
@@ -70,4 +97,9 @@ require 'iterators'
   ## return spanT
 ## end)
 
-global span: type = #[make_span]#
+--[[
+Generic used to instantiate a span type in the form of `span(T)`.
+
+Argument `T` is the value type that the span will store.
+]]
+global span: type = #[make_spanT]#
