@@ -2208,8 +2208,7 @@ and it will be used when calling this function.
 
 ## vector
 
-The vector library provides the generic record `vector`,
-that can be used as an efficient dynamic sized array of any type.
+The vector library provides an efficient dynamic sized array or values.
 
 Vector elements starts at index 0 and go up to length-1.
 
@@ -2394,9 +2393,197 @@ global vector: type
 
 Generic used to instantiate a vector type in the form of `vector(T, Allocator)`.
 
-The first argument `T` is type that the vector will store.
-The second argument `Allocator` is an allocator type for the vector storage,
+Argument `T` is the value type that the vector will store.
+Argument `Allocator` is an allocator type for the container storage,
 in case absent then `DefaultAllocator` is used.
+
+
+## list
+
+The list library provides a double linked list container.
+
+A double linked list is a dynamic sized container that supports
+constant time insertion and removal from anywhere in the container.
+
+However doubled linked lists don't support fast random access,
+use a vector or sequence in that case.
+
+### listnodeT
+
+```nelua
+local listnodeT: type = @record {
+    prev: *listnodeT,
+    next: *listnodeT,
+    value: T
+  }
+```
+
+List node record defined when instantiating the generic `list`.
+
+### listT
+
+```nelua
+local listT: type = @record{
+    front: *listnodeT,
+```
+
+List record defined when instantiating the generic `list`.
+
+### listT.make
+
+```nelua
+function listT.make(allocator: Allocator): listT
+```
+
+Creates a list using a custom allocator instance.
+This is only to be used when not using the default allocator.
+
+### listT:clear
+
+```nelua
+function listT:clear(): void
+```
+
+Remove all elements from the list.
+
+*Complexity*: O(n).
+
+### listT:destroy
+
+```nelua
+function listT:destroy(): void
+```
+
+Resets the list to zeroed state, freeing all used resources.
+
+This is more useful to free resources when not using the garbage collector.
+
+### listT:prepend
+
+```nelua
+function listT:prepend(value: T): void
+```
+
+Inserts an element at beginning of the list.
+
+*Complexity*: O(1).
+
+### listT:append
+
+```nelua
+function listT:append(value: T): void
+```
+
+Adds an element at the end of the list.
+
+*Complexity*: O(1).
+
+### listT:find
+
+```nelua
+function listT:find(value: T): *listnodeT
+```
+
+Find an element in the list, returning it's node reference when found.
+
+*Complexity*: O(1).
+
+### listT:erase
+
+```nelua
+function listT:erase(node: *listnodeT): *listnodeT
+```
+
+Erases a node from the list.
+If the node not in the list, then throws a runtime error on debug builds.
+
+*Complexity*: O(1).
+
+### listT:popfront
+
+```nelua
+function listT:popfront(): T
+```
+
+Removes the first element and returns it.
+If the list is empty, then throws a runtime error on debug builds.
+
+*Complexity*: O(1).
+
+### listT:popback
+
+```nelua
+function listT:popback(): T
+```
+
+Removes the first element and returns it.
+If the list is empty, then throws a runtime error on debug builds.
+
+*Complexity*: O(1).
+
+### listT:empty
+
+```nelua
+function listT:empty(): boolean
+```
+
+Returns whether the list is empty.
+
+### listT:__len
+
+```nelua
+function listT:__len(): isize
+```
+
+Returns the number of elements in the list.
+
+*Complexity*: O(n).
+
+### listT:__next
+
+```nelua
+function listT:__next(node: *listnodeT): (boolean, *listnodeT, T)
+```
+
+Returns the next node of the list and its element.
+Used with `pairs()` iterator.
+
+### listT:__mnext
+
+```nelua
+function listT:__mnext(node: *listnodeT): (boolean, *listnodeT, *T)
+```
+
+Returns the next node of the list and its element by reference.
+Used with `pairs()` iterator.
+
+### listT:__pairs
+
+```nelua
+function listT:__pairs()
+```
+
+Allow using `pairs()` to iterate the container.
+
+### listT:__mpairs
+
+```nelua
+function listT:__mpairs()
+```
+
+Allow using `mpairs()` to iterate the container.
+
+### list
+
+```nelua
+global list: type
+```
+
+Generic used to instantiate a list type in the form of `list(T, Allocator)`.
+
+Argument `T` is the value type that the list will store.
+Argument `Allocator` is an allocator type for the container storage,
+in case absent then then `DefaultAllocator` is used.
 
 
 ## hashmap
@@ -2591,11 +2778,11 @@ global hashmap: type
 
 Generic used to instantiate a hash map type in the form of `hashmap(K, V, HashFunc, Allocator)`.
 
-Argument `K` is type for the hash map key.
-Argument `V` is type for the hash map value.
-Argument `HashFunc` is a function to hash type K,
+Argument `K` is the key type for the hash map.
+Argument `V` is the value type for the hash map.
+Argument `HashFunc` is a function to hash a key,
 in case absent then a default hash function is used.
-Argument `Allocator` is an allocator type for the vector storage,
+Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
 
 

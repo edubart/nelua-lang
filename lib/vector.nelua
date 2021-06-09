@@ -1,6 +1,5 @@
 --[[
-The vector library provides the generic record `vector`,
-that can be used as an efficient dynamic sized array of any type.
+The vector library provides an efficient dynamic sized array or values.
 
 Vector elements starts at index 0 and go up to length-1.
 
@@ -241,8 +240,8 @@ require 'iterators'
 --[[
 Generic used to instantiate a vector type in the form of `vector(T, Allocator)`.
 
-The first argument `T` is type that the vector will store.
-The second argument `Allocator` is an allocator type for the vector storage,
+Argument `T` is the value type that the vector will store.
+Argument `Allocator` is an allocator type for the container storage,
 in case absent then `DefaultAllocator` is used.
 ]]
 global vector: type = #[generalize(make_vectorT)]#

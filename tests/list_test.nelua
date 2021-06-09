@@ -5,82 +5,82 @@ require 'list'
 do
   local l: list(integer)
   assert(#l == 0 and l:empty())
-  l:append(1)    assert(l.head.value == 1) assert(l.tail.value == 1)
+  l:append(1)    assert(l.front.value == 1) assert(l.back.value == 1)
   assert(#l == 1 and not l:empty())
-  l:append(2)    assert(l.head.value == 1) assert(l.tail.value == 2)
-  l:prepend(3)   assert(l.head.value == 3) assert(l.tail.value == 2)
+  l:append(2)    assert(l.front.value == 1) assert(l.back.value == 2)
+  l:prepend(3)   assert(l.front.value == 3) assert(l.back.value == 2)
   assert(#l == 3)
   assert(l:find(1) and l:find(2) and l:find(3))
   assert(not l:find(0))
   l:clear()
-  assert(not l.head and not l.tail)
+  assert(not l.front and not l.back)
   assert(l:empty())
 end
 
 do -- erase
   local l: list(integer)
   l:append(1)
-  assert(l:erase(l.tail) == nilptr)
+  assert(l:erase(l.back) == nilptr)
   assert(l:empty())
 
   l:append(1)
-  assert(l:erase(l.head) == nilptr)
+  assert(l:erase(l.front) == nilptr)
   assert(l:empty())
 
   l:append(1) l:append(2)
-  assert(l:erase(l.head) == l.tail)
+  assert(l:erase(l.front) == l.back)
   l:clear()
 
   l:append(1) l:append(2)
-  assert(l:erase(l.tail) == nilptr)
+  assert(l:erase(l.back) == nilptr)
   l:clear()
 
   l:append(1) l:append(2) l:append(3)
-  local it = l.head.next
+  local it = l.front.next
   assert(it.value == 2)
-  assert(l:erase(it) == l.tail)
-  assert(l:erase(l.head) == l.tail)
-  assert(l:erase(l.tail) == nilptr)
+  assert(l:erase(it) == l.back)
+  assert(l:erase(l.front) == l.back)
+  assert(l:erase(l.back) == nilptr)
   assert(l:empty())
 end
 
 do -- find
   local l: list(integer)
   l:append(1) l:append(2) l:append(3)
-  assert(l:find(1) == l.head)
-  assert(l:find(2) == l.head.next and l:find(2) == l.tail.prev)
-  assert(l:find(3) == l.tail)
+  assert(l:find(1) == l.front)
+  assert(l:find(2) == l.front.next and l:find(2) == l.back.prev)
+  assert(l:find(3) == l.back)
   l:clear()
   assert(l:empty())
 end
 
-do -- remove_last
+do -- popback
   local l: list(integer)
   l:append(1) l:append(2) l:append(3)
-  l:remove_last()
-  assert(l.tail.value == 2)
-  assert(l.head.value == 1)
-  assert(l.tail.next == nilptr and l.head.prev == nilptr)
-  l:remove_last()
-  assert(l.tail.value == 1)
-  assert(l.head.value == 1)
-  assert(l.tail.next == nilptr and l.head.prev == nilptr)
-  l:remove_last()
+  assert(l:popback() == 3)
+  assert(l.back.value == 2)
+  assert(l.front.value == 1)
+  assert(l.back.next == nilptr and l.front.prev == nilptr)
+  assert(l:popback() == 2)
+  assert(l.back.value == 1)
+  assert(l.front.value == 1)
+  assert(l.back.next == nilptr and l.front.prev == nilptr)
+  assert(l:popback() == 1)
   assert(l:empty())
 end
 
-do -- remove_first
+do -- popfront
   local l: list(integer)
   l:append(1) l:append(2) l:append(3)
-  l:remove_first()
-  assert(l.tail.value == 3)
-  assert(l.head.value == 2)
-  assert(l.tail.next == nilptr and l.head.prev == nilptr)
-  l:remove_first()
-  assert(l.tail.value == 3)
-  assert(l.head.value == 3)
-  assert(l.tail.next == nilptr and l.head.prev == nilptr)
-  l:remove_first()
+  assert(l:popfront() == 1)
+  assert(l.back.value == 3)
+  assert(l.front.value == 2)
+  assert(l.back.next == nilptr and l.front.prev == nilptr)
+  assert(l:popfront() == 2)
+  assert(l.back.value == 3)
+  assert(l.front.value == 3)
+  assert(l.back.next == nilptr and l.front.prev == nilptr)
+  assert(l:popfront() == 3)
   assert(l:empty())
 end
 

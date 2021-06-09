@@ -42,7 +42,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   local K: type = @#[K]#
   local V: type = @#[V]#
 
-  local hashmapnodeT: type <nickname #[string.format('hashmap_node(%s)',T)]#> = @record {
+  local hashmapnodeT: type <nickname #[string.format('hashmapnode(%s)',T)]#> = @record {
     key: K,
     value: V,
     next: usize
@@ -358,11 +358,11 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 --[[
 Generic used to instantiate a hash map type in the form of `hashmap(K, V, HashFunc, Allocator)`.
 
-Argument `K` is type for the hash map key.
-Argument `V` is type for the hash map value.
-Argument `HashFunc` is a function to hash type K,
+Argument `K` is the key type for the hash map.
+Argument `V` is the value type for the hash map.
+Argument `HashFunc` is a function to hash a key,
 in case absent then a default hash function is used.
-Argument `Allocator` is an allocator type for the vector storage,
+Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
 ]]
 global hashmap: type = #[make_hashmapT]#

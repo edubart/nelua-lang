@@ -1,27 +1,17 @@
--- List type
---
--- This type implements a double linked list.
--- Supports constant time insertion and removal of elements from anywhere in the container.
--- Fast random access is not supported.
---
--- By default it uses the garbage collector unless explicitly told not to do so,
--- thus by default there is no need to manually destroy the list.
+--[[
+The list library provides a double linked list container.
 
+A double linked list is a dynamic sized container that supports
+constant time insertion and removal from anywhere in the container.
+
+However doubled linked lists don't support fast random access,
+use a vector or sequence in that case.
+]]
+
+require 'memory'
 require 'iterators'
 
-## local make_generic_list_node = generalize(function(T)
-  local T: type = @#[T]#
-  local list_nodeT: type <nickname #[string.format('list_node(%s)',T)]#> = @record {
-    prev: *list_nodeT,
-    next: *list_nodeT,
-    value: T
-  }
-  ## return list_nodeT
-## end)
-
-global list_node: type = #[make_generic_list_node]#
-
-## local make_generic_list = generalize(function(T, Allocator)
+## local make_listT = generalize(function(T, Allocator)
   ## static_assert(traits.is_type(T), "invalid type '%s'", T)
   ## if not Allocator then
   require 'allocators.default'
@@ -30,11 +20,18 @@ global list_node: type = #[make_generic_list_node]#
 
   local Allocator: type = #[Allocator]#
   local T: type = @#[T]#
-  local list_nodeT: type = @list_node(T)
 
+  -- List node record defined when instantiating the generic `list`.
+  local listnodeT: type <nickname #[string.format('listnode(%s)',T)]#> = @record {
+    prev: *listnodeT,
+    next: *listnodeT,
+    value: T
+  }
+
+  -- List record defined when instantiating the generic `list`.
   local listT: type <nickname #[string.format('list(%s)',T)]#> = @record{
-    head: *list_nodeT, -- list begin
-    tail: *list_nodeT, -- list end
+    front: *listnodeT, -- list begin
+    back: *listnodeT, -- list end
     allocator: Allocator
   }
 
@@ -45,72 +42,87 @@ global list_node: type = #[make_generic_list_node]#
   listT.subtype = T
   ]]
 
-  function listT:_new_node(prev: *list_nodeT, next: *list_nodeT, value: T): *list_nodeT
-    local node: *list_nodeT = self.allocator:new(@list_nodeT)
-    node.prev = prev
-    node.next = next
-    node.value = value
-    return node
-  end
-
-  -- Create a list using a custom allocator instance.
-  -- This is only to be used when not using the default allocator.
+  --[[
+  Creates a list using a custom allocator instance.
+  This is only to be used when not using the default allocator.
+  ]]
   function listT.make(allocator: Allocator): listT
     local l: listT
     l.allocator = allocator
     return l
   end
 
-  -- Remove all elements from the list.
-  -- O(n) complexity.
+  --[[
+  Remove all elements from the list.
+
+  *Complexity*: O(n).
+  ]]
   function listT:clear(): void
-    local it: *list_nodeT = self.head
+    local it: *listnodeT = self.front
     while it do
-      local next: *list_nodeT = it.next
+      local next: *listnodeT = it.next
       self.allocator:delete(it)
       it = next
     end
-    self.head = nilptr
-    self.tail = nilptr
+    self.front = nilptr
+    self.back = nilptr
   end
 
-  -- Resets the list to zeroed state, freeing all used resources.
-  -- This is more useful to free resources when not using the garbage collector.
+  --[[
+  Resets the list to zeroed state, freeing all used resources.
+
+  This is more useful to free resources when not using the garbage collector.
+  ]]
   function listT:destroy(): void
     self:clear()
-    $self = (@listT)()
+    memory.zero(self, #listT)
   end
 
-  -- Insert an element at beginning of the list.
-  -- O(1) complexity.
+  --[[
+  Inserts an element at beginning of the list.
+
+  *Complexity*: O(1).
+  ]]
   function listT:prepend(value: T): void
-    local node: *list_nodeT = self:_new_node(nilptr, self.head, value)
-    if likely(self.head) then
-      self.head.prev = node
+    local node: *listnodeT = self.allocator:new(@listnodeT)
+    node.prev = nilptr
+    node.next = self.front
+    node.value = value
+    if likely(self.front) then
+      self.front.prev = node
     end
-    if unlikely(not self.tail) then
-      self.tail = node
+    if unlikely(not self.back) then
+      self.back = node
     end
-    self.head = node
+    self.front = node
   end
 
-  -- Add an element at the end of the list.
-  -- O(1) complexity.
+  --[[
+  Adds an element at the end of the list.
+
+  *Complexity*: O(1).
+  ]]
   function listT:append(value: T): void
-    local node: *list_nodeT = self:_new_node(self.tail, nilptr, value)
-    if likely(self.tail) then
-      self.tail.next = node
+    local node: *listnodeT = self.allocator:new(@listnodeT)
+    node.prev = self.back
+    node.next = nilptr
+    node.value = value
+    if likely(self.back) then
+      self.back.next = node
     end
-    if unlikely(not self.head) then
-      self.head = node
+    if unlikely(not self.front) then
+      self.front = node
     end
-    self.tail = node
+    self.back = node
   end
 
-  -- Find an element in the list, returning it's node reference when found.
-  -- O(n) complexity.
-  function listT:find(value: T): *list_nodeT
-    local it: *list_nodeT = self.head
+  --[[
+  Find an element in the list, returning it's node reference when found.
+
+  *Complexity*: O(1).
+  ]]
+  function listT:find(value: T): *listnodeT
+    local it: *listnodeT = self.front
     while it do
       if it.value == value then
         return it
@@ -120,16 +132,19 @@ global list_node: type = #[make_generic_list_node]#
     return nilptr
   end
 
-  -- Erase a node from the list.
-  -- If the node not in the list, then throws a runtime error on debug builds.
-  -- O(1) complexity.
-  function listT:erase(node: *list_nodeT): *list_nodeT
+  --[[
+  Erases a node from the list.
+  If the node not in the list, then throws a runtime error on debug builds.
+
+  *Complexity*: O(1).
+  ]]
+  function listT:erase(node: *listnodeT): *listnodeT
     check(node ~= nilptr, 'attempt to erase a nilptr node')
-    if node == self.head then
-      self.head = node.next
+    if node == self.front then
+      self.front = node.next
     end
-    if node == self.tail then
-      self.tail = node.prev
+    if node == self.back then
+      self.back = node.prev
     end
     if node.prev then
       node.prev.next = node.next
@@ -137,53 +152,66 @@ global list_node: type = #[make_generic_list_node]#
     if node.next then
       node.next.prev = node.prev
     end
-    local next: *list_nodeT = node.next
+    local next: *listnodeT = node.next
     self.allocator:delete(node)
     return next
   end
 
-  -- Remove first element from the list.
-  -- If the list is empty, then throws a runtime error on debug builds.
-  -- O(1) complexity.
-  function listT:remove_first(): void
-    check(self.head ~= nilptr, 'list is empty')
-    local node: *list_nodeT = self.head
-    self.head = node.next
-    if likely(self.head) then
-      self.head.prev = nilptr
+  --[[
+  Removes the first element and returns it.
+  If the list is empty, then throws a runtime error on debug builds.
+
+  *Complexity*: O(1).
+  ]]
+  function listT:popfront(): T
+    check(self.front ~= nilptr, 'list is empty')
+    local node: *listnodeT = self.front
+    local ret: T = node.value
+    self.front = node.next
+    if likely(self.front) then
+      self.front.prev = nilptr
     end
-    if unlikely(self.tail == node) then
-      self.tail = nilptr
+    if unlikely(self.back == node) then
+      self.back = nilptr
     end
     self.allocator:delete(node)
+    return ret
   end
 
-  -- Remove last element from the list.
-  -- If the list is empty, then throws a runtime error on debug builds.
-  -- O(1) complexity.
-  function listT:remove_last(): void
-    check(self.tail ~= nilptr, 'list is empty')
-    local node: *list_nodeT = self.tail
-    self.tail = node.prev
-    if likely(self.tail) then
-      self.tail.next = nilptr
+  --[[
+  Removes the first element and returns it.
+  If the list is empty, then throws a runtime error on debug builds.
+
+  *Complexity*: O(1).
+  ]]
+  function listT:popback(): T
+    check(self.back ~= nilptr, 'list is empty')
+    local node: *listnodeT = self.back
+    local ret: T = node.value
+    self.back = node.prev
+    if likely(self.back) then
+      self.back.next = nilptr
     end
-    if unlikely(self.head == node) then
-      self.head = nilptr
+    if unlikely(self.front == node) then
+      self.front = nilptr
     end
     self.allocator:delete(node)
+    return ret
   end
 
-  -- Test whether the list is empty.
+  -- Returns whether the list is empty.
   function listT:empty(): boolean
-    return self.head == nilptr
+    return self.front == nilptr
   end
 
-  -- Returns the number of elements in the list.
-  -- O(n) complexity.
+  --[[
+  Returns the number of elements in the list.
+
+  *Complexity*: O(n).
+  ]]
   function listT:__len(): isize
     local count: isize = 0
-    local it: *list_nodeT = self.head
+    local it: *listnodeT = self.front
     while it do
       count = count + 1
       it = it.next
@@ -191,12 +219,14 @@ global list_node: type = #[make_generic_list_node]#
     return count
   end
 
-  -- Returns the next node of the list and its element.
-  -- Used with pairs() iterator.
-  function listT:__next(node: *list_nodeT): (boolean, *list_nodeT, T) <inline>
-    local nextnode: *list_nodeT
+  --[[
+  Returns the next node of the list and its element.
+  Used with `pairs()` iterator.
+  ]]
+  function listT:__next(node: *listnodeT): (boolean, *listnodeT, T) <inline>
+    local nextnode: *listnodeT
     if unlikely(node == nilptr) then
-      nextnode = self.head
+      nextnode = self.front
     else
       nextnode = node.next
     end
@@ -206,12 +236,14 @@ global list_node: type = #[make_generic_list_node]#
     return true, nextnode, nextnode.value
   end
 
-  -- Returns the next node of the list and its element by reference.
-  -- Used with pairs() iterator.
-  function listT:__mnext(node: *list_nodeT): (boolean, *list_nodeT, *T) <inline>
-    local nextnode: *list_nodeT
+  --[[
+  Returns the next node of the list and its element by reference.
+  Used with `pairs()` iterator.
+  ]]
+  function listT:__mnext(node: *listnodeT): (boolean, *listnodeT, *T) <inline>
+    local nextnode: *listnodeT
     if unlikely(node == nilptr) then
-      nextnode = self.head
+      nextnode = self.front
     else
       nextnode = node.next
     end
@@ -221,12 +253,12 @@ global list_node: type = #[make_generic_list_node]#
     return true, nextnode, &nextnode.value
   end
 
-  -- Allow using pairs() to iterate the container.
+  -- Allow using `pairs()` to iterate the container.
   function listT:__pairs() <inline>
     return listT.__next, self, nilptr
   end
 
-  -- Allow using mpairs() to iterate the container.
+  -- Allow using `mpairs()` to iterate the container.
   function listT:__mpairs() <inline>
     return listT.__mnext, self, nilptr
   end
@@ -234,4 +266,11 @@ global list_node: type = #[make_generic_list_node]#
   ## return listT
 ## end)
 
-global list: type = #[make_generic_list]#
+--[[
+Generic used to instantiate a list type in the form of `list(T, Allocator)`.
+
+Argument `T` is the value type that the list will store.
+Argument `Allocator` is an allocator type for the container storage,
+in case absent then then `DefaultAllocator` is used.
+]]
+global list: type = #[make_listT]#
