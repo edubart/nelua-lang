@@ -5,10 +5,10 @@ require 'list'
 do
   local l: list(integer)
   assert(#l == 0 and l:empty())
-  l:append(1)    assert(l.front.value == 1) assert(l.back.value == 1)
+  l:pushback(1)    assert(l.front.value == 1) assert(l.back.value == 1)
   assert(#l == 1 and not l:empty())
-  l:append(2)    assert(l.front.value == 1) assert(l.back.value == 2)
-  l:prepend(3)   assert(l.front.value == 3) assert(l.back.value == 2)
+  l:pushback(2)    assert(l.front.value == 1) assert(l.back.value == 2)
+  l:pushfront(3)   assert(l.front.value == 3) assert(l.back.value == 2)
   assert(#l == 3)
   assert(l:find(1) and l:find(2) and l:find(3))
   assert(not l:find(0))
@@ -19,23 +19,23 @@ end
 
 do -- erase
   local l: list(integer)
-  l:append(1)
+  l:pushback(1)
   assert(l:erase(l.back) == nilptr)
   assert(l:empty())
 
-  l:append(1)
+  l:pushback(1)
   assert(l:erase(l.front) == nilptr)
   assert(l:empty())
 
-  l:append(1) l:append(2)
+  l:pushback(1) l:pushback(2)
   assert(l:erase(l.front) == l.back)
   l:clear()
 
-  l:append(1) l:append(2)
+  l:pushback(1) l:pushback(2)
   assert(l:erase(l.back) == nilptr)
   l:clear()
 
-  l:append(1) l:append(2) l:append(3)
+  l:pushback(1) l:pushback(2) l:pushback(3)
   local it = l.front.next
   assert(it.value == 2)
   assert(l:erase(it) == l.back)
@@ -46,7 +46,7 @@ end
 
 do -- find
   local l: list(integer)
-  l:append(1) l:append(2) l:append(3)
+  l:pushback(1) l:pushback(2) l:pushback(3)
   assert(l:find(1) == l.front)
   assert(l:find(2) == l.front.next and l:find(2) == l.back.prev)
   assert(l:find(3) == l.back)
@@ -56,7 +56,7 @@ end
 
 do -- popback
   local l: list(integer)
-  l:append(1) l:append(2) l:append(3)
+  l:pushback(1) l:pushback(2) l:pushback(3)
   assert(l:popback() == 3)
   assert(l.back.value == 2)
   assert(l.front.value == 1)
@@ -71,7 +71,7 @@ end
 
 do -- popfront
   local l: list(integer)
-  l:append(1) l:append(2) l:append(3)
+  l:pushback(1) l:pushback(2) l:pushback(3)
   assert(l:popfront() == 1)
   assert(l.back.value == 3)
   assert(l.front.value == 2)
@@ -86,7 +86,7 @@ end
 
 do -- next/mnext
   local l: list(integer)
-  l:append(1) l:append(2) l:append(3)
+  l:pushback(1) l:pushback(2) l:pushback(3)
   local ok, key, value = next(l, nilptr)
   assert(ok == true and key ~= nilptr and value == 1)
   ok, key, value = next(l, key)
@@ -100,7 +100,7 @@ end
 
 do -- pairs/mpairs
   local l: list(integer)
-  l:append(1) l:append(2) l:append(3)
+  l:pushback(1) l:pushback(2) l:pushback(3)
   local count = 1
   for _,v in pairs(l) do
     assert(v == count)
@@ -121,7 +121,7 @@ end
 require 'allocators.general'
 do -- custom allocator
   local l: list(integer, GeneralAllocator) = (@list(integer, GeneralAllocator)).make(general_allocator)
-  l:append(1) l:append(2) l:append(3)
+  l:pushback(1) l:pushback(2) l:pushback(3)
   -- assert(#l == 3 and l[0] == 1 and l[1] == 2 and l[2] == 3)
   l:destroy()
 end

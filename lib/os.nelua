@@ -210,7 +210,7 @@ function os.setlocale(locale: string, category: facultative(string)): string
 end
 
 -- Time description, used by function `os.time`.
-global os.time_desc: type = @record {
+global os.timedesc: type = @record {
   year: integer, month: integer, day: integer,
   hour: integer, min: integer, sec: integer,
   isdst: boolean
@@ -230,10 +230,10 @@ this number counts the number of seconds since some given start time (the "epoch
 In other systems, the meaning is not specified,
 and the number returned by time can be used only as an argument to `os.date` and `os.difftime`.
 
-When called with a record `os.time_desc`, `os.time` also normalizes all the fields,
+When called with a record `os.timedesc`, `os.time` also normalizes all the fields,
 so that they represent the same time as before the call but with values inside their valid ranges.
 ]]
-function os.time(desc: facultative(os.time_desc)): integer
+function os.time(desc: facultative(os.timedesc)): integer
   local t: time_t
   ## if desc.type.is_niltype then
     t = time(nilptr)

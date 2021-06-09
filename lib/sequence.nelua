@@ -11,7 +11,7 @@
 require 'memory'
 require 'iterators'
 
-## local make_generic_sequence = generalize(function(T, Allocator)
+## local make_sequenceT = generalize(function(T, Allocator)
   ## static_assert(traits.is_type(T), "invalid type '%s'", T)
   ## if not Allocator then
   require 'allocators.default'
@@ -160,7 +160,7 @@ require 'iterators'
   -- Removes the first item from the sequence whose value is given.
   -- The remaining elements are shifted.
   -- Returns true if the an item was removed and false otherwise.
-  function sequenceT:remove_value(v: T): boolean
+  function sequenceT:removevalue(v: T): boolean
     if not self.impl then return false end
     for i:usize=1,self.impl.size do
       if self.impl.data[i] == v then
@@ -173,7 +173,7 @@ require 'iterators'
 
   -- Removes all elements from the sequence where `pred` function returns true.
   -- The remaining elements are shifted.
-  function sequenceT:remove_if(pred: function(v: T): boolean): void
+  function sequenceT:removeif(pred: function(v: T): boolean): void
     if not self.impl then return end
     local j: usize = 1
     for i:usize=1,self.impl.size do
@@ -230,4 +230,4 @@ require 'iterators'
   ## return sequenceT
 ## end)
 
-global sequence: type = #[make_generic_sequence]#
+global sequence: type = #[make_sequenceT]#

@@ -83,7 +83,7 @@ require 'iterators'
 
   *Complexity*: O(1).
   ]]
-  function listT:prepend(value: T): void
+  function listT:pushfront(value: T): void
     local node: *listnodeT = self.allocator:new(@listnodeT)
     node.prev = nilptr
     node.next = self.front
@@ -102,7 +102,7 @@ require 'iterators'
 
   *Complexity*: O(1).
   ]]
-  function listT:append(value: T): void
+  function listT:pushback(value: T): void
     local node: *listnodeT = self.allocator:new(@listnodeT)
     node.prev = self.back
     node.next = nilptr
@@ -114,47 +114,6 @@ require 'iterators'
       self.front = node
     end
     self.back = node
-  end
-
-  --[[
-  Find an element in the list, returning it's node reference when found.
-
-  *Complexity*: O(1).
-  ]]
-  function listT:find(value: T): *listnodeT
-    local it: *listnodeT = self.front
-    while it do
-      if it.value == value then
-        return it
-      end
-      it = it.next
-    end
-    return nilptr
-  end
-
-  --[[
-  Erases a node from the list.
-  If the node not in the list, then throws a runtime error on debug builds.
-
-  *Complexity*: O(1).
-  ]]
-  function listT:erase(node: *listnodeT): *listnodeT
-    check(node ~= nilptr, 'attempt to erase a nilptr node')
-    if node == self.front then
-      self.front = node.next
-    end
-    if node == self.back then
-      self.back = node.prev
-    end
-    if node.prev then
-      node.prev.next = node.next
-    end
-    if node.next then
-      node.next.prev = node.prev
-    end
-    local next: *listnodeT = node.next
-    self.allocator:delete(node)
-    return next
   end
 
   --[[
@@ -197,6 +156,47 @@ require 'iterators'
     end
     self.allocator:delete(node)
     return ret
+  end
+
+  --[[
+  Find an element in the list, returning it's node reference when found.
+
+  *Complexity*: O(1).
+  ]]
+  function listT:find(value: T): *listnodeT
+    local it: *listnodeT = self.front
+    while it do
+      if it.value == value then
+        return it
+      end
+      it = it.next
+    end
+    return nilptr
+  end
+
+  --[[
+  Erases a node from the list.
+  If the node not in the list, then throws a runtime error on debug builds.
+
+  *Complexity*: O(1).
+  ]]
+  function listT:erase(node: *listnodeT): *listnodeT
+    check(node ~= nilptr, 'attempt to erase a nilptr node')
+    if node == self.front then
+      self.front = node.next
+    end
+    if node == self.back then
+      self.back = node.prev
+    end
+    if node.prev then
+      node.prev.next = node.next
+    end
+    if node.next then
+      node.next.prev = node.prev
+    end
+    local next: *listnodeT = node.next
+    self.allocator:delete(node)
+    return next
   end
 
   -- Returns whether the list is empty.

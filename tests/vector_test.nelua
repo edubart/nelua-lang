@@ -67,29 +67,29 @@ do -- remove
   vec:destroy()
 end
 
-do -- remove_value
+do -- removevalue
   local vec: vector(integer)
-  assert(vec:remove_value(0) == false)
+  assert(vec:removevalue(0) == false)
   vec = {1,2,3,4}
   assert(#vec == 4)
-  assert(vec:remove_value(3) == true)
+  assert(vec:removevalue(3) == true)
   assert(#vec == 3 and vec[2] == 4)
-  assert(vec:remove_value(3) == false)
-  assert(vec:remove_value(1) == true)
+  assert(vec:removevalue(3) == false)
+  assert(vec:removevalue(1) == true)
   assert(#vec == 2 and vec[0] == 2)
-  assert(vec:remove_value(2) == true)
+  assert(vec:removevalue(2) == true)
   assert(#vec == 1 and vec[0] == 4)
-  assert(vec:remove_value(4) == true)
+  assert(vec:removevalue(4) == true)
   assert(#vec == 0)
-  assert(vec:remove_value(4) == false)
+  assert(vec:removevalue(4) == false)
   vec:destroy()
 end
 
-do -- remove_if
+do -- removeif
   local vec: vector(integer) = {1,2,3,4,5,7,8,9}
-  vec:remove_if(function(x: integer) return x % 2 == 1 end)
+  vec:removeif(function(x: integer) return x % 2 == 1 end)
   assert(#vec == 3 and vec[0] == 2 and vec[1] == 4 and vec[2] == 8)
-  vec:remove_if(function(x: integer) return x % 2 == 0 end)
+  vec:removeif(function(x: integer) return x % 2 == 0 end)
   assert(#vec == 0)
   vec:destroy()
 end

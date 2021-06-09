@@ -104,11 +104,8 @@ require 'iterators'
     return clone
   end
 
-  --[[
-  Grow vector storage to accommodate at least one more element.
-  Only used internally.
-  ]]
-  function vectorT:_grow(): void <noinline>
+  -- Grow vector storage to accommodate at least one more element, used internally.
+  local function vectorT_grow(self: *vectorT): void <noinline>
     local cap: usize = 1
     if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
     self.data = self.allocator:spanxrealloc0(self.data, cap)
@@ -118,7 +115,7 @@ require 'iterators'
   function vectorT:push(v: T): void
     local newsize: usize = self.size + 1
     if unlikely(newsize > self.data.size) then
-      self:_grow()
+      vectorT_grow(self)
     end
     self.data[self.size] = v
     self.size = newsize
@@ -142,7 +139,7 @@ require 'iterators'
   function vectorT:insert(pos: usize, v: T): void
     check(pos <= self.size, 'position out of bounds')
     if unlikely(self.size + 1 >= self.data.size) then
-      self:_grow()
+      vectorT_grow(self)
     end
     if self.size > pos then
       memory.move(&self.data[pos + 1], &self.data[pos], (self.size - pos) * #T)
@@ -173,7 +170,7 @@ require 'iterators'
   The remaining elements are shifted.
   Returns `true` if an element was removed, otherwise `false`.
   ]]
-  function vectorT:remove_value(v: T): boolean
+  function vectorT:removevalue(v: T): boolean
     for i:usize=0,<self.size do
       if self.data[i] == v then
         self:remove(i)
@@ -187,7 +184,7 @@ require 'iterators'
   Removes all elements from the vector where `pred` function returns `true`.
   The remaining elements are shifted.
   ]]
-  function vectorT:remove_if(pred: function(v: T): boolean): void
+  function vectorT:removeif(pred: function(v: T): boolean): void
     local j: usize = 0
     for i:usize=0,<self.size do
       if not pred(self.data[i]) then

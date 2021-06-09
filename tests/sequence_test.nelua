@@ -79,32 +79,32 @@ do -- remove
   seq:destroy()
 end
 
-do -- remove_value
+do -- removevalue
   local seq: sequence(integer)
-  assert(seq:remove_value(0) == false)
+  assert(seq:removevalue(0) == false)
   seq = {1,2,3,4}
   seq[0] = 10
   assert(#seq == 4)
-  assert(seq:remove_value(3) == true)
+  assert(seq:removevalue(3) == true)
   assert(#seq == 3 and seq[3] == 4)
-  assert(seq:remove_value(3) == false)
-  assert(seq:remove_value(1) == true)
+  assert(seq:removevalue(3) == false)
+  assert(seq:removevalue(1) == true)
   assert(#seq == 2 and seq[1] == 2)
-  assert(seq:remove_value(2) == true)
+  assert(seq:removevalue(2) == true)
   assert(#seq == 1 and seq[1] == 4)
-  assert(seq:remove_value(4) == true)
+  assert(seq:removevalue(4) == true)
   assert(#seq == 0)
-  assert(seq:remove_value(4) == false)
+  assert(seq:removevalue(4) == false)
   seq:destroy()
 end
 
-do -- remove_if
+do -- removeif
   local seq: sequence(integer) = {1,2,3,4,5,7,8,9}
   local function is_odd(x: integer) return x % 2 == 1 end
-  seq:remove_if(is_odd)
+  seq:removeif(is_odd)
   assert(#seq == 3 and seq[1] == 2 and seq[2] == 4 and seq[3] == 8)
   local function is_even(x: integer) return x % 2 == 0 end
-  seq:remove_if(is_even)
+  seq:removeif(is_even)
   assert(#seq == 0)
   seq:destroy()
 end

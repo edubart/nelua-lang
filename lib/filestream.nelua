@@ -73,7 +73,7 @@ Initialize a new `filestream` from a given C `FILE` pointer.
 
 This function is used internally.
 ]]
-function filestream._from_fp(fp: *FILE, closef: function(fp: *FILE): cint): filestream
+function filestream._fromfp(fp: *FILE, closef: function(fp: *FILE): cint): filestream
   local id: uint64, p: *FStream = pool:acquire()
   p.fp = fp
   p.closef = closef
@@ -86,7 +86,7 @@ In case the file is closed, returns `nilptr`.
 
 This function is used internally.
 ]]
-function filestream:_get_fp(): *FILE
+function filestream:_getfp(): *FILE
   local p: *FStream = pool:get(self.id)
   if p then return p.fp end
   return nilptr
@@ -128,7 +128,7 @@ function filestream.open(filename: string, mode: facultative(string)) : (filestr
   if not fp then
     return filestream{}, strerror(errno), errno
   end
-  return filestream._from_fp(fp, fclose), '', 0
+  return filestream._fromfp(fp, fclose), '', 0
 end
 
 --[[
@@ -137,7 +137,7 @@ Saves any written data to file.
 Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
 ]]
 function filestream:flush(): (boolean, string, integer)
-  local fp: *FILE = self:_get_fp()
+  local fp: *FILE = self:_getfp()
   if not fp then
     return false, 'attempt to use a closed file', -1
   end
@@ -181,7 +181,7 @@ The call `filestream:seek("set")` sets the position to the beginning of the file
 The call `file:seek("end")` sets the position to the end of the file, and returns its size.
 ]]
 function filestream:seek(whence: facultative(string), offset: facultative(integer)): (integer, string, integer)
-  local fp: *FILE = self:_get_fp()
+  local fp: *FILE = self:_getfp()
   if not fp then
     return -1, 'attempt to use a closed file', -1
   end
@@ -228,7 +228,7 @@ function filestream:setvbuf(mode: string, size: facultative(integer)): (boolean,
   ## if size.type.is_niltype then
   local size: csize = 1024
   ## end
-  local fp: *FILE = self:_get_fp()
+  local fp: *FILE = self:_getfp()
   if not fp then
     return false, 'attempt to use a closed file', -1
   end
@@ -306,7 +306,7 @@ The formats `"l"` and `"L"` should be used only for text files.
 When called without arguments, it uses the default format `"l"` that reads the next line.
 ]]
 function filestream:read(fmt: overload(integer,string,niltype)): (string, string, integer)
-  local fp: *FILE = self:_get_fp()
+  local fp: *FILE = self:_getfp()
   if not fp then
     return string{}, 'attempt to use a closed file', -1
   end
@@ -360,7 +360,7 @@ The arguments must be strings or numbers.
 Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
 ]]
 function filestream:write(...: varargs): (boolean, string, integer)
-  local fp: *FILE = self:_get_fp()
+  local fp: *FILE = self:_getfp()
   if not fp then
     return false, 'attempt to use a closed file', -1
   end
@@ -395,7 +395,7 @@ Writes formatted values to the file, according to the given format.
 Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
 ]]
 function filestream:writef(fmt: string, ...: varargs): (boolean, string, integer)
-  local fp: *FILE = self:_get_fp()
+  local fp: *FILE = self:_getfp()
   if not fp then
     return false, 'attempt to use a closed file', -1
   end
@@ -450,7 +450,7 @@ and `"file (some address)"` for open files.
 This metamethod is used by `tostring`.
 ]]
 function filestream:__tostring(): string
-  local fp: *FILE = self:_get_fp()
+  local fp: *FILE = self:_getfp()
   if not fp then
     return string._forward('file (closed)')
   else

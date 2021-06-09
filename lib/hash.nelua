@@ -45,7 +45,7 @@ function hash.combine(seed: usize, value: usize): usize <inline>
 end
 
 --[[
-Hashes value `v`, used to hash to anything.
+Hashes value `v`, used to hash anything.
 
 To customize a hash for a specific record you can define `__hash` metamethod,
 and it will be used when calling this function.

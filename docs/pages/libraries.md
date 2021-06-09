@@ -421,10 +421,10 @@ global filestream: type = @record{
 File stream record, used to store file handles.
 Internally it just have an unique `id` for each file handle.
 
-### filestream._from_fp
+### filestream._fromfp
 
 ```nelua
-function filestream._from_fp(fp: *FILE, closef: function(fp: *FILE): cint): filestream
+function filestream._fromfp(fp: *FILE, closef: function(fp: *FILE): cint): filestream
 ```
 
 Initialize a new `filestream` from a given C `FILE` pointer.
@@ -432,10 +432,10 @@ Initialize a new `filestream` from a given C `FILE` pointer.
 
 This function is used internally.
 
-### filestream:_get_fp
+### filestream:_getfp
 
 ```nelua
-function filestream:_get_fp(): *FILE
+function filestream:_getfp(): *FILE
 ```
 
 Returns a C `FILE` pointer for the filestream.
@@ -1349,10 +1349,10 @@ If locale is the string `"C"`, the current locale is set to the standard C local
 The function returns the name of the new locale on success,
 or an empty string if the request cannot be honored.
 
-### os.time_desc
+### os.timedesc
 
 ```nelua
-global os.time_desc: type = @record {
+global os.timedesc: type = @record {
   year: integer, month: integer, day: integer,
   hour: integer, min: integer, sec: integer,
   isdst: boolean
@@ -1364,7 +1364,7 @@ Time description, used by function `os.time`.
 ### os.time
 
 ```nelua
-function os.time(desc: facultative(os.time_desc)): integer
+function os.time(desc: facultative(os.timedesc)): integer
 ```
 
 Returns the current time when called without arguments,
@@ -1380,7 +1380,7 @@ this number counts the number of seconds since some given start time (the "epoch
 In other systems, the meaning is not specified,
 and the number returned by time can be used only as an argument to `os.date` and `os.difftime`.
 
-When called with a record `os.time_desc`, `os.time` also normalizes all the fields,
+When called with a record `os.timedesc`, `os.time` also normalizes all the fields,
 so that they represent the same time as before the call but with values inside their valid ranges.
 
 ### os.tmpname
@@ -2200,7 +2200,7 @@ Returns the combination of the hashes `seed` and `value`.
 function hash.hash(v: auto): usize
 ```
 
-Hashes value `v`, used to hash to anything.
+Hashes value `v`, used to hash anything.
 
 To customize a hash for a specific record you can define `__hash` metamethod,
 and it will be used when calling this function.
@@ -2285,15 +2285,6 @@ function vectorT:copy(): vectorT
 
 Returns a shallow copy of the vector, allocating a new vector.
 
-### vectorT:_grow
-
-```nelua
-function vectorT:_grow(): void
-```
-
-Grow vector storage to accommodate at least one more element.
-Only used internally.
-
 ### vectorT:push
 
 ```nelua
@@ -2331,20 +2322,20 @@ Removes element at position `pos` in the vector and returns its value.
 Elements with index greater than `pos` are shifted down.
 The index `pos` must be valid (in the vector bounds).
 
-### vectorT:remove_value
+### vectorT:removevalue
 
 ```nelua
-function vectorT:remove_value(v: T): boolean
+function vectorT:removevalue(v: T): boolean
 ```
 
 Removes the first item from the vector whose value is `v`.
 The remaining elements are shifted.
 Returns `true` if an element was removed, otherwise `false`.
 
-### vectorT:remove_if
+### vectorT:removeif
 
 ```nelua
-function vectorT:remove_if(pred: function(v: T): boolean): void
+function vectorT:removeif(pred: function(v: T): boolean): void
 ```
 
 Removes all elements from the vector where `pred` function returns `true`.
@@ -2458,44 +2449,23 @@ Resets the list to zeroed state, freeing all used resources.
 
 This is more useful to free resources when not using the garbage collector.
 
-### listT:prepend
+### listT:pushfront
 
 ```nelua
-function listT:prepend(value: T): void
+function listT:pushfront(value: T): void
 ```
 
 Inserts an element at beginning of the list.
 
 *Complexity*: O(1).
 
-### listT:append
+### listT:pushback
 
 ```nelua
-function listT:append(value: T): void
+function listT:pushback(value: T): void
 ```
 
 Adds an element at the end of the list.
-
-*Complexity*: O(1).
-
-### listT:find
-
-```nelua
-function listT:find(value: T): *listnodeT
-```
-
-Find an element in the list, returning it's node reference when found.
-
-*Complexity*: O(1).
-
-### listT:erase
-
-```nelua
-function listT:erase(node: *listnodeT): *listnodeT
-```
-
-Erases a node from the list.
-If the node not in the list, then throws a runtime error on debug builds.
 
 *Complexity*: O(1).
 
@@ -2518,6 +2488,27 @@ function listT:popback(): T
 
 Removes the first element and returns it.
 If the list is empty, then throws a runtime error on debug builds.
+
+*Complexity*: O(1).
+
+### listT:find
+
+```nelua
+function listT:find(value: T): *listnodeT
+```
+
+Find an element in the list, returning it's node reference when found.
+
+*Complexity*: O(1).
+
+### listT:erase
+
+```nelua
+function listT:erase(node: *listnodeT): *listnodeT
+```
+
+Erases a node from the list.
+If the node not in the list, then throws a runtime error on debug builds.
 
 *Complexity*: O(1).
 
@@ -2599,6 +2590,18 @@ main differences:
  * Values cannot be nil or set to nil.
  * Can only use `pairs()` to iterate.
 
+### hashmapnodeT
+
+```nelua
+local hashmapnodeT: type = @record {
+    key: K,
+    value: V,
+    next: usize
+  }
+```
+
+Hash map node record defined when instantiating the generic `hashmap`.
+
 ### hashmapT
 
 ```nelua
@@ -2670,10 +2673,10 @@ without exceeding maximum load factor and rehashes the container when needed.
 
 *Complexity*: Average case O(n).
 
-### hashmapT:_find_or_make
+### hashmapT:_at
 
 ```nelua
-function hashmapT:_find_or_make(key: K): usize
+function hashmapT:_at(key: K): usize
 ```
 
 Used internally to find or make a value at a key returning it's node index.
@@ -2722,18 +2725,18 @@ Returns `true` if an element was actually removed.
 
 *Complexity*: Average case O(1).
 
-### hashmapT:load_factor
+### hashmapT:loadfactor
 
 ```nelua
-function hashmapT:load_factor(): number
+function hashmapT:loadfactor(): number
 ```
 
 Returns the average number of elements per bucket.
 
-### hashmapT:bucket_count
+### hashmapT:bucketcount
 
 ```nelua
-function hashmapT:bucket_count(): usize
+function hashmapT:bucketcount(): usize
 ```
 
 Returns the number of buckets in the container.

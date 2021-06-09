@@ -42,6 +42,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   local K: type = @#[K]#
   local V: type = @#[V]#
 
+  -- Hash map node record defined when instantiating the generic `hashmap`.
   local hashmapnodeT: type <nickname #[string.format('hashmapnode(%s)',T)]#> = @record {
     key: K,
     value: V,
@@ -175,7 +176,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   end
 
   -- Used internally to find or make a value at a key returning it's node index.
-  function hashmapT:_find_or_make(key: K): usize
+  function hashmapT:_at(key: K): usize
     if unlikely(self.nodes.size == 0) then
       -- empty container, initialize it
       self:reserve(INIT_CAPACITY)
@@ -213,7 +214,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   *Complexity*: Average case O(1).
   ]]
   function hashmapT:__atindex(key: K): *V
-    return &self.nodes[self:_find_or_make(key)].value
+    return &self.nodes[self:_at(key)].value
   end
 
   --[[
@@ -277,7 +278,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   end
 
   -- Returns the average number of elements per bucket.
-  function hashmapT:load_factor(): number
+  function hashmapT:loadfactor(): number
     if unlikely(self.buckets.size == 0) then
       return 0
     else
@@ -286,7 +287,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   end
 
   -- Returns the number of buckets in the container.
-  function hashmapT:bucket_count(): usize
+  function hashmapT:bucketcount(): usize
     return self.buckets.size
   end
 

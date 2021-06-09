@@ -8,8 +8,8 @@ do -- inserting
   end
   assert(#map == 100)
   assert(map:capacity() == 128)
-  assert(map:bucket_count() > 128)
-  assert(map:load_factor() <= 0.75)
+  assert(map:bucketcount() > 128)
+  assert(map:loadfactor() <= 0.75)
   for i=1,100 do
     local k, v = i*3167, i*10
     assert(map[k] == v)
@@ -19,32 +19,32 @@ do -- inserting
   end
   map:clear()
   assert(#map == 0)
-  assert(map:bucket_count() > 128)
+  assert(map:bucketcount() > 128)
   assert(map:capacity() == 128)
-  assert(map:load_factor() == 0)
+  assert(map:loadfactor() == 0)
   map[1] = 10
   map:destroy()
   assert(#map == 0)
   assert(map:capacity() == 0)
-  assert(map:bucket_count() == 0)
-  assert(map:load_factor() == 0)
+  assert(map:bucketcount() == 0)
+  assert(map:loadfactor() == 0)
 end
 
 do -- reserve
   local map: hashmap(integer, integer)
   map:reserve(64)
   assert(#map == 0)
-  assert(map:bucket_count() == 86)
+  assert(map:bucketcount() == 86)
   assert(map:capacity() == 64)
-  assert(map:load_factor() == 0)
+  assert(map:loadfactor() == 0)
   for i=1,100 do
     local k, v = i*3167, i*10
     map[k] = v
   end
   map:reserve(256)
-  assert(map:bucket_count() == 342)
+  assert(map:bucketcount() == 342)
   assert(map:capacity() == 256)
-  assert(map:load_factor() < 0.75)
+  assert(map:loadfactor() < 0.75)
   for i=1,100 do
     local k, v = i*3167, i*10
     assert(map[k] == v)
@@ -58,12 +58,12 @@ do -- rehash
     local k, v = i*3167, i*10
     map[k] = v
   end
-  local old_factor = map:load_factor()
+  local old_factor = map:loadfactor()
   map:rehash(512)
   assert(#map == 100)
-  assert(map:load_factor() < old_factor)
+  assert(map:loadfactor() < old_factor)
   assert(map:capacity() == 384)
-  assert(map:bucket_count() == 512)
+  assert(map:bucketcount() == 512)
   for i=1,100 do
     local k, v = i*3167, i*10
     assert(map[k] == v)
