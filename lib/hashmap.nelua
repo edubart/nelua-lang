@@ -224,15 +224,6 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   end
 
   --[[
-  Checks if there is an element with a key in the container.
-
-  *Complexity*: Average case O(1).
-  ]]
-  function hashmapT:has(key: K): boolean
-    return self:_find(key) ~= INVALID_INDEX
-  end
-
-  --[[
   Returns a reference to the value that is mapped to a key.
   If no such element exists, returns `nilptr`.
 

@@ -2964,16 +2964,6 @@ This allows indexing the hash map with square brackets `[]`.
 
 *Complexity*: Average case O(1).
 
-### hashmapT:has
-
-```nelua
-function hashmapT:has(key: K): boolean
-```
-
-Checks if there is an element with a key in the container.
-
-*Complexity*: Average case O(1).
-
 ### hashmapT:peek
 
 ```nelua

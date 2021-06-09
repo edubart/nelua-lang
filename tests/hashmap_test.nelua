@@ -15,7 +15,7 @@ do -- inserting
     assert(map[k] == v)
     assert(&map[k] == map:peek(k))
     assert(map[k] == v)
-    assert(map:has(k))
+    assert(map:peek(k))
   end
   map:clear()
   assert(#map == 0)
