@@ -237,7 +237,7 @@ require 'iterators'
 
   --[[
   Returns the next node of the list and its element by reference.
-  Used with `pairs()` iterator.
+  Used with `mpairs()` iterator.
   ]]
   function listT:__mnext(node: *listnodeT): (boolean, *listnodeT, *T) <inline>
     local nextnode: *listnodeT

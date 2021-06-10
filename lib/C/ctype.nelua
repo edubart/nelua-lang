@@ -1,21 +1,28 @@
+--[[
+Library importing symbols from `<ctype.h>` header according to C11 spec.
+
+For a complete documentation about the functions,
+see [C ctype documentation](https://www.cplusplus.com/reference/cctype/).
+]]
+
 require 'C'
 
-## cinclude '<ctype.h>'
-
 -- Character classification functions
-function C.isalnum(x: cint): cint <cimport'isalnum',nodecl> end
-function C.isalpha(x: cint): cint <cimport'isalpha',nodecl> end
-function C.islower(x: cint): cint <cimport'islower',nodecl> end
-function C.isupper(x: cint): cint <cimport'isupper',nodecl> end
-function C.isdigit(x: cint): cint <cimport'isdigit',nodecl> end
-function C.isxdigit(x: cint): cint <cimport'isxdigit',nodecl> end
-function C.iscntrl(x: cint): cint <cimport'iscntrl',nodecl> end
-function C.isgraph(x: cint): cint <cimport'isgraph',nodecl> end
-function C.isspace(x: cint): cint <cimport'isspace',nodecl> end
-function C.isblank(x: cint): cint <cimport'isblank',nodecl> end
-function C.isprint(x: cint): cint <cimport'isprint',nodecl> end
-function C.ispunct(x: cint): cint <cimport'ispunct',nodecl> end
+
+function C.isalnum(x: cint): cint <cimport'isalnum',cinclude'<ctype.h>',nodecl> end
+function C.isalpha(x: cint): cint <cimport'isalpha',cinclude'<ctype.h>',nodecl> end
+function C.islower(x: cint): cint <cimport'islower',cinclude'<ctype.h>',nodecl> end
+function C.isupper(x: cint): cint <cimport'isupper',cinclude'<ctype.h>',nodecl> end
+function C.isdigit(x: cint): cint <cimport'isdigit',cinclude'<ctype.h>',nodecl> end
+function C.isxdigit(x: cint): cint <cimport'isxdigit',cinclude'<ctype.h>',nodecl> end
+function C.iscntrl(x: cint): cint <cimport'iscntrl',cinclude'<ctype.h>',nodecl> end
+function C.isgraph(x: cint): cint <cimport'isgraph',cinclude'<ctype.h>',nodecl> end
+function C.isspace(x: cint): cint <cimport'isspace',cinclude'<ctype.h>',nodecl> end
+function C.isblank(x: cint): cint <cimport'isblank',cinclude'<ctype.h>',nodecl> end
+function C.isprint(x: cint): cint <cimport'isprint',cinclude'<ctype.h>',nodecl> end
+function C.ispunct(x: cint): cint <cimport'ispunct',cinclude'<ctype.h>',nodecl> end
 
 -- Character conversion functions
-function C.tolower(c: cint): cint <cimport'tolower',nodecl> end
-function C.toupper(c: cint): cint <cimport'toupper',nodecl> end
+
+function C.tolower(c: cint): cint <cimport'tolower',cinclude'<ctype.h>',nodecl> end
+function C.toupper(c: cint): cint <cimport'toupper',cinclude'<ctype.h>',nodecl> end

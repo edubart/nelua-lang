@@ -22,9 +22,9 @@ the **most useful page** for learning about the syntax and features.
 
 List of built-in libraries in Nelua and their contents.
 
-### [Differences](/diffs/)
+### [C libraries](/clibraries/)
 
-Direct comparison between the standard libraries of Lua and Nelua.
+List of built-in C libraries bindings in Nelua and their contents.
 
 ### [FAQ](/faq/)
 

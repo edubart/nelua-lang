@@ -192,7 +192,7 @@ require 'iterators'
   --[[
   Removes the first item from the sequence whose value is `v`.
   The remaining elements are shifted.
-  Returns `true` if the an item was removed, otherwise `false`.
+  Returns `true` if the item was removed, otherwise `false`.
   ]]
   function sequenceT:removevalue(v: T): boolean
     if not self.impl then return false end

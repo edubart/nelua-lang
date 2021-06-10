@@ -1,64 +1,80 @@
+--[[
+Library that imports symbols from the `<stdlib.h>` header according to C11 specifications.
+
+For a complete documentation about the functions,
+see [C stdlib documentation](https://www.cplusplus.com/reference/cstdlib/).
+]]
+
 require 'C'
 
-## cinclude '<stdlib.h>'
+-- Types
+
+global C.div_t: type <cimport'div_t',cinclude'<stdlib.h>',nodecl> = @record{quot: cint, rem: cint}
+global C.ldiv_t: type <cimport'ldiv_t',cinclude'<stdlib.h>',nodecl> = @record{quot: cint, rem: cint}
+global C.lldiv_t: type <cimport'lldiv_t',cinclude'<stdlib.h>',nodecl> = @record{quot: cint, rem: cint}
 
 -- Memory management
-function C.malloc(size: csize): pointer <cimport'malloc',nodecl> end
-function C.calloc(nmemb: csize, size: csize): pointer <cimport'calloc',nodecl> end
-function C.realloc(ptr: pointer, size: csize): pointer <cimport'realloc',nodecl> end
-function C.free(ptr: pointer): void <cimport'free',nodecl> end
-function C.aligned_alloc(alignment: csize, size: csize): pointer <cimport'aligned_alloc',nodecl> end
+
+function C.malloc(size: csize): pointer <cimport'malloc',cinclude'<stdlib.h>',nodecl> end
+function C.calloc(nmemb: csize, size: csize): pointer <cimport'calloc',cinclude'<stdlib.h>',nodecl> end
+function C.realloc(ptr: pointer, size: csize): pointer <cimport'realloc',cinclude'<stdlib.h>',nodecl> end
+function C.free(ptr: pointer): void <cimport'free',cinclude'<stdlib.h>',nodecl> end
+function C.aligned_alloc(alignment: csize, size: csize): pointer <cimport'aligned_alloc',cinclude'<stdlib.h>',nodecl> end
 
 -- Program termination
-function C.abort(): void <cimport'abort',nodecl> end
-function C.exit(status: cint): void <cimport'exit',nodecl> end
-function C.quick_exit(status: cint): void <cimport'quick_exit',nodecl> end
-function C._Exit(status: cint): void <cimport'_Exit',nodecl> end
-function C.atexit(func: pointer): cint <cimport'atexit',nodecl> end
-function C.at_quick_exit(func: pointer): cint <cimport'at_quick_exit',nodecl> end
+
+function C.abort(): void <cimport'abort',cinclude'<stdlib.h>',nodecl> end
+function C.exit(status: cint): void <cimport'exit',cinclude'<stdlib.h>',nodecl> end
+function C.quick_exit(status: cint): void <cimport'quick_exit',cinclude'<stdlib.h>',nodecl> end
+function C._Exit(status: cint): void <cimport'_Exit',cinclude'<stdlib.h>',nodecl> end
+function C.atexit(func: pointer): cint <cimport'atexit',cinclude'<stdlib.h>',nodecl> end
+function C.at_quick_exit(func: pointer): cint <cimport'at_quick_exit',cinclude'<stdlib.h>',nodecl> end
 
 -- Communicating with the environment
-function C.system(command: cstring): cint <cimport'system',nodecl> end
-function C.getenv(name: cstring): cstring <cimport'getenv',nodecl> end
+
+function C.system(command: cstring): cint <cimport'system',cinclude'<stdlib.h>',nodecl> end
+function C.getenv(name: cstring): cstring <cimport'getenv',cinclude'<stdlib.h>',nodecl> end
 
 -- Searching and sorting
-function C.bsearch(key: pointer, base: pointer, nmemb: csize, size: csize, compar: function(pointer, pointer): cint): pointer <cimport'bsearch',nodecl> end
-function C.qsort(base: pointer, nmemb: csize, size: csize, compar: function(pointer, pointer): cint): void <cimport'qsort',nodecl> end
+
+function C.bsearch(key: pointer, base: pointer, nmemb: csize, size: csize, compar: function(pointer, pointer): cint): pointer <cimport'bsearch',cinclude'<stdlib.h>',nodecl> end
+function C.qsort(base: pointer, nmemb: csize, size: csize, compar: function(pointer, pointer): cint): void <cimport'qsort',cinclude'<stdlib.h>',nodecl> end
 
 -- Pseudo-random sequence generation
-function C.rand(): cint <cimport'rand',nodecl> end
-function C.srand(seed: cuint): void <cimport'srand',nodecl> end
+
+function C.rand(): cint <cimport'rand',cinclude'<stdlib.h>',nodecl> end
+function C.srand(seed: cuint): void <cimport'srand',cinclude'<stdlib.h>',nodecl> end
 
 -- Conversions to numeric formats
-function C.atof(nptr: cstring): float64 <cimport'atof',nodecl> end
-function C.atoi(nptr: cstring): cint <cimport'atoi',nodecl> end
-function C.atol(nptr: cstring): clong <cimport'atol',nodecl> end
-function C.atoll(nptr: cstring): clonglong <cimport'atoll',nodecl> end
 
-function C.strtof(nptr: cstring, endptr: *cstring): float32 <cimport'strtof',nodecl> end
-function C.strtod(nptr: cstring, endptr: *cstring): float64 <cimport'strtod',nodecl> end
-function C.strtold(nptr: cstring, endptr: *cstring): clongdouble <cimport'strtold',nodecl> end
+function C.atof(nptr: cstring): float64 <cimport'atof',cinclude'<stdlib.h>',nodecl> end
+function C.atoi(nptr: cstring): cint <cimport'atoi',cinclude'<stdlib.h>',nodecl> end
+function C.atol(nptr: cstring): clong <cimport'atol',cinclude'<stdlib.h>',nodecl> end
+function C.atoll(nptr: cstring): clonglong <cimport'atoll',cinclude'<stdlib.h>',nodecl> end
 
-function C.strtol(nptr: cstring, endptr: *cstring, base: cint): clong <cimport'strtol',nodecl> end
-function C.strtoll(nptr: cstring, endptr: *cstring, base: cint): clonglong <cimport'strtoll',nodecl> end
-function C.strtoul(nptr: cstring, endptr: *cstring, base: cint): culong <cimport'strtoul',nodecl> end
-function C.strtoull(nptr: cstring, endptr: *cstring, base: cint): culonglong <cimport'strtoull',nodecl> end
+function C.strtof(nptr: cstring, endptr: *cstring): float32 <cimport'strtof',cinclude'<stdlib.h>',nodecl> end
+function C.strtod(nptr: cstring, endptr: *cstring): float64 <cimport'strtod',cinclude'<stdlib.h>',nodecl> end
+function C.strtold(nptr: cstring, endptr: *cstring): clongdouble <cimport'strtold',cinclude'<stdlib.h>',nodecl> end
+
+function C.strtol(nptr: cstring, endptr: *cstring, base: cint): clong <cimport'strtol',cinclude'<stdlib.h>',nodecl> end
+function C.strtoll(nptr: cstring, endptr: *cstring, base: cint): clonglong <cimport'strtoll',cinclude'<stdlib.h>',nodecl> end
+function C.strtoul(nptr: cstring, endptr: *cstring, base: cint): culong <cimport'strtoul',cinclude'<stdlib.h>',nodecl> end
+function C.strtoull(nptr: cstring, endptr: *cstring, base: cint): culonglong <cimport'strtoull',cinclude'<stdlib.h>',nodecl> end
 
 -- Integer arithmetic
-function C.abs(x: cint): cint <cimport'abs',nodecl> end
-function C.labs(x: clong): clong <cimport'labs',nodecl> end
-function C.llabs(x: clonglong): clonglong <cimport'llabs',nodecl> end
 
-global C.div_t: type <cimport'div_t',nodecl> = @record{quot: cint, rem: cint}
-global C.ldiv_t: type <cimport'ldiv_t',nodecl> = @record{quot: cint, rem: cint}
-global C.lldiv_t: type <cimport'lldiv_t',nodecl> = @record{quot: cint, rem: cint}
-function C.div(numer: cint, denom: cint): C.div_t <cimport'div',nodecl> end
-function C.ldiv(numer: clong, denom: clong): C.ldiv_t <cimport'ldiv',nodecl> end
-function C.lldiv(numer: clonglong, denom: clonglong): C.lldiv_t <cimport'lldiv',nodecl> end
+function C.abs(x: cint): cint <cimport'abs',cinclude'<stdlib.h>',nodecl> end
+function C.labs(x: clong): clong <cimport'labs',cinclude'<stdlib.h>',nodecl> end
+function C.llabs(x: clonglong): clonglong <cimport'llabs',cinclude'<stdlib.h>',nodecl> end
+
+function C.div(numer: cint, denom: cint): C.div_t <cimport'div',cinclude'<stdlib.h>',nodecl> end
+function C.ldiv(numer: clong, denom: clong): C.ldiv_t <cimport'ldiv',cinclude'<stdlib.h>',nodecl> end
+function C.lldiv(numer: clonglong, denom: clonglong): C.lldiv_t <cimport'lldiv',cinclude'<stdlib.h>',nodecl> end
 
 -- Constants
-global C.EXIT_SUCCESS: cint <const,cimport'EXIT_SUCCESS',nodecl>
-global C.EXIT_FAILURE: cint <const,cimport'EXIT_FAILURE',nodecl>
 
-global C.RAND_MAX: cint <const,cimport'RAND_MAX',nodecl>
---global C.NULL <comptime,nodecl> = nilptr
+global C.EXIT_SUCCESS: cint <const,cimport'EXIT_SUCCESS',cinclude'<stdlib.h>',nodecl>
+global C.EXIT_FAILURE: cint <const,cimport'EXIT_FAILURE',cinclude'<stdlib.h>',nodecl>
+
+global C.RAND_MAX: cint <const,cimport'RAND_MAX',cinclude'<stdlib.h>',nodecl>
+--global C.NULL <comptime,cinclude'<stdlib.h>',nodecl> = nilptr

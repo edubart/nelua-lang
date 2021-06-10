@@ -1,11 +1,15 @@
+--[[
+Library that imports symbols from the `<stdarg.h>` header according to C11 specifications.
+
+For a complete documentation about the functions,
+see [C stdarg documentation](https://www.cplusplus.com/reference/cstdarg/).
+]]
+
 require 'C'
 
-## cinclude '<stdarg.h>'
-
-function C.va_start(ap: cvalist, paramN: auto): void <cimport'va_start',nodecl> end
-function C.va_end(ap: cvalist): void <cimport'va_end',nodecl> end
-
-function C.va_arg(ap: *cvalist, T: type) <inline>
+function C.va_start(ap: cvalist, paramN: auto): void <cimport'va_start',cinclude'<stdarg.h>',nodecl> end
+function C.va_end(ap: cvalist): void <cimport'va_end',cinclude'<stdarg.h>',nodecl> end
+function C.va_arg(ap: *cvalist, T: type) <inline,cinclude'<stdarg.h>'>
   local va: T <noinit>
   ## cemit(function(emitter) emitter:add_indent_ln(va, ' = va_arg(*', ap, ', ', T.value, ');') end)
   return va

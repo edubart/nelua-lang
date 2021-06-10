@@ -1,29 +1,36 @@
+--[[
+Library that imports symbols from the `<string.h>` header according to C11 specifications.
+
+For a complete documentation about the functions,
+see [C string documentation](https://www.cplusplus.com/reference/cstring/).
+]]
+
 require 'C'
 
-## cinclude '<string.h>'
-
 -- Memory manipulation
-function C.memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport'memcpy',nodecl> end
-function C.memmove(dest: pointer, src: pointer, n: csize): pointer <cimport'memmove',nodecl> end
-function C.memccpy(dest: pointer, src: pointer, c: cint, n: csize): pointer <cimport'memccpy',nodecl> end
-function C.memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',nodecl> end
-function C.memcmp(s1: pointer, s2: pointer, n: csize): cint <cimport'memcmp',nodecl> end
-function C.memchr(s: pointer, c: cint, n: csize): pointer <cimport'memchr',nodecl> end
+
+function C.memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport'memcpy',cinclude'<string.h>',nodecl> end
+function C.memmove(dest: pointer, src: pointer, n: csize): pointer <cimport'memmove',cinclude'<string.h>',nodecl> end
+function C.memccpy(dest: pointer, src: pointer, c: cint, n: csize): pointer <cimport'memccpy',cinclude'<string.h>',nodecl> end
+function C.memset(s: pointer, c: cint, n: csize): pointer <cimport'memset',cinclude'<string.h>',nodecl> end
+function C.memcmp(s1: pointer, s2: pointer, n: csize): cint <cimport'memcmp',cinclude'<string.h>',nodecl> end
+function C.memchr(s: pointer, c: cint, n: csize): pointer <cimport'memchr',cinclude'<string.h>',nodecl> end
 
 -- String examination
-function C.strcpy(dest: cstring, src: cstring): cstring <cimport'strcpy',nodecl> end
-function C.strncpy(dest: cstring, src: cstring, n: csize): cstring <cimport'strncpy',nodecl> end
-function C.strcat(dest: cstring, src: cstring): cstring <cimport'strcat',nodecl> end
-function C.strncat(dest: cstring, src: cstring, n: csize): cstring <cimport'strncat',nodecl> end
-function C.strcmp(s1: cstring, s2: cstring): cint <cimport'strcmp',nodecl> end
-function C.strncmp(s1: cstring, s2: cstring, n: csize): cint <cimport'strncmp',nodecl> end
-function C.strcoll(s1: cstring, s2: cstring): cint <cimport'strcoll',nodecl> end
-function C.strxfrm(dest: cstring, src: cstring, n: csize): csize <cimport'strxfrm',nodecl> end
-function C.strchr(s: cstring, c: cint): cstring <cimport'strchr',nodecl> end
-function C.strrchr(s: cstring, c: cint): cstring <cimport'strrchr',nodecl> end
-function C.strcspn(s: cstring, reject: cstring): csize <cimport'strcspn',nodecl> end
-function C.strspn(s: cstring, accept: cstring): csize <cimport'strspn',nodecl> end
-function C.strpbrk(s: cstring, accept: cstring): cstring <cimport'strpbrk',nodecl> end
-function C.strstr(haystack: cstring, needle: cstring): cstring <cimport'strstr',nodecl> end
-function C.strlen(s: cstring): csize <cimport'strlen',nodecl> end
-function C.strerror(errnum: cint): cstring <cimport'strerror',nodecl> end
+
+function C.strcpy(dest: cstring, src: cstring): cstring <cimport'strcpy',cinclude'<string.h>',nodecl> end
+function C.strncpy(dest: cstring, src: cstring, n: csize): cstring <cimport'strncpy',cinclude'<string.h>',nodecl> end
+function C.strcat(dest: cstring, src: cstring): cstring <cimport'strcat',cinclude'<string.h>',nodecl> end
+function C.strncat(dest: cstring, src: cstring, n: csize): cstring <cimport'strncat',cinclude'<string.h>',nodecl> end
+function C.strcmp(s1: cstring, s2: cstring): cint <cimport'strcmp',cinclude'<string.h>',nodecl> end
+function C.strncmp(s1: cstring, s2: cstring, n: csize): cint <cimport'strncmp',cinclude'<string.h>',nodecl> end
+function C.strcoll(s1: cstring, s2: cstring): cint <cimport'strcoll',cinclude'<string.h>',nodecl> end
+function C.strxfrm(dest: cstring, src: cstring, n: csize): csize <cimport'strxfrm',cinclude'<string.h>',nodecl> end
+function C.strchr(s: cstring, c: cint): cstring <cimport'strchr',cinclude'<string.h>',nodecl> end
+function C.strrchr(s: cstring, c: cint): cstring <cimport'strrchr',cinclude'<string.h>',nodecl> end
+function C.strcspn(s: cstring, reject: cstring): csize <cimport'strcspn',cinclude'<string.h>',nodecl> end
+function C.strspn(s: cstring, accept: cstring): csize <cimport'strspn',cinclude'<string.h>',nodecl> end
+function C.strpbrk(s: cstring, accept: cstring): cstring <cimport'strpbrk',cinclude'<string.h>',nodecl> end
+function C.strstr(haystack: cstring, needle: cstring): cstring <cimport'strstr',cinclude'<string.h>',nodecl> end
+function C.strlen(s: cstring): csize <cimport'strlen',cinclude'<string.h>',nodecl> end
+function C.strerror(errnum: cint): cstring <cimport'strerror',cinclude'<string.h>',nodecl> end

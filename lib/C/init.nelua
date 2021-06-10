@@ -1,2 +1,4 @@
--- Global record used to import C functions
+-- Library used only to define the C namespace.
+
+-- Namespace used to import C functions.
 global C: type = @record{}

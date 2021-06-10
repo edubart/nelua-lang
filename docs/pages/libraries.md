@@ -2767,7 +2767,7 @@ function sequenceT:removevalue(v: T): boolean
 
 Removes the first item from the sequence whose value is `v`.
 The remaining elements are shifted.
-Returns `true` if the an item was removed, otherwise `false`.
+Returns `true` if the item was removed, otherwise `false`.
 
 ### sequenceT:removeif
 
@@ -2985,7 +2985,7 @@ function listT:__mnext(node: *listnodeT): (boolean, *listnodeT, *T)
 ```
 
 Returns the next node of the list and its element by reference.
-Used with `pairs()` iterator.
+Used with `mpairs()` iterator.
 
 ### listT:__pairs
 
@@ -3224,4 +3224,4 @@ in case absent then then `DefaultAllocator` is used.
 
 ---
 
-<a href="/diffs/" class="btn btn-outline-primary btn-lg float-right">Differences >></a>
+<a href="/clibraries/" class="btn btn-outline-primary btn-lg float-right">C Libraries >></a>

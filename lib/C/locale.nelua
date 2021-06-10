@@ -1,8 +1,13 @@
+--[[
+Library that imports symbols from the `<locale.h>` header according to C11 specifications.
+
+For a complete documentation about the functions,
+see [C locale documentation](https://www.cplusplus.com/reference/clocale/).
+]]
+
 require 'C'
 
-## cinclude '<locale.h>'
-
-global C.lconv: type <cimport'lconv',nodecl,ctypedef> = @record{
+global C.lconv: type <cimport'lconv',cinclude'<locale.h>',nodecl,ctypedef> = @record{
   decimal_point: cstring,
   thousands_sep: cstring,
   grouping: cstring,
@@ -29,13 +34,14 @@ global C.lconv: type <cimport'lconv',nodecl,ctypedef> = @record{
   int_n_sign_posn: cchar
 }
 
-function C.setlocale(category: cint, locale: cstring): cstring <cimport'setlocale',nodecl> end
-function C.localeconv(): *C.lconv <cimport'localeconv',nodecl> end
+function C.setlocale(category: cint, locale: cstring): cstring <cimport'setlocale',cinclude'<locale.h>',nodecl> end
+function C.localeconv(): *C.lconv <cimport'localeconv',cinclude'<locale.h>',nodecl> end
 
 -- Constants
-global C.LC_ALL: cint <const,cimport'LC_ALL',nodecl>
-global C.LC_COLLATE: cint <const,cimport'LC_COLLATE',nodecl>
-global C.LC_CTYPE: cint <const,cimport'LC_CTYPE',nodecl>
-global C.LC_MONETARY: cint <const,cimport'LC_MONETARY',nodecl>
-global C.LC_NUMERIC: cint <const,cimport'LC_NUMERIC',nodecl>
-global C.LC_TIME: cint <const,cimport'LC_TIME',nodecl>
+
+global C.LC_ALL: cint <const,cimport'LC_ALL',cinclude'<locale.h>',nodecl>
+global C.LC_COLLATE: cint <const,cimport'LC_COLLATE',cinclude'<locale.h>',nodecl>
+global C.LC_CTYPE: cint <const,cimport'LC_CTYPE',cinclude'<locale.h>',nodecl>
+global C.LC_MONETARY: cint <const,cimport'LC_MONETARY',cinclude'<locale.h>',nodecl>
+global C.LC_NUMERIC: cint <const,cimport'LC_NUMERIC',cinclude'<locale.h>',nodecl>
+global C.LC_TIME: cint <const,cimport'LC_TIME',cinclude'<locale.h>',nodecl>
