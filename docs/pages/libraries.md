@@ -1403,12 +1403,12 @@ The span library provides the span generic.
 
 A span is used as a view to elements of a contiguous memory block.
 Contiguous containers like vector, sequence and array can be viewed as a span.
-Span elements starts at index 0 and go up to length-1 (like fixed arrays).
+Span elements start at index 0 and go up to length-1 (like fixed arrays).
 
-Span are specially useful for making functions with arguments that
+Spans are especially useful for making functions with arguments that
 are agnostic to the input container type.
 
-Spans ares also known as "fat pointer" or "slice" in some other languages.
+Spans are also known as "fat pointer" or "slice" in some other languages.
 
 ### spanT
 
@@ -1420,6 +1420,14 @@ local spanT: type = @record{
 ```
 
 Span record defined when instantiating the generic `span` with type `T`.
+
+### spanT:empty
+
+```nelua
+function spanT:empty(): boolean
+```
+
+Returns `true` if the span is empty, that is, its length is `0`.
 
 ### spanT:valid
 
@@ -1438,7 +1446,7 @@ function spanT:sub(i: usize, j: usize): spanT
 Returns the sub span that starts at `i` (inclusive) and continues until `j` (exclusive).
 Both `i` and `j` must be in the span bounds and the expression `i <= j` must be true.
 
-*Remarks*: When using the GC the sub span will not hold reference of the original span data,
+*Remarks*: When using the GC the sub span will not hold reference to the original span data,
 thus if you don't hold the original reference somewhere you will have a dangling reference.
 
 ### spanT:__atindex
@@ -1507,9 +1515,9 @@ global string = @record{
 
 The string record defined in the compiler sources.
 
-New strings always have the `data` buffer null terminate by default
+New strings always have the `data` buffer null terminated by default
 to have more comparability with C APIs.
-The `data` buffer is 0-indexed unlikely the string APIs.
+The `data` buffer is 0-indexed (unlike string APIs).
 ### string.create
 
 ```nelua
@@ -1519,7 +1527,7 @@ function string.create(size: usize): string
 Allocate a new string to be filled with length `size`.
 
 The string is guaranteed to be zero terminated,
-so it can be safely be used as a `cstring`.
+so it can safely be used as a `cstring`.
 
 Used internally.
 
@@ -1584,11 +1592,11 @@ function string.subview(s: string, i: isize, j: facultative(isize)): string
 
 Return a view for a sub string in a string.
 
-The main difference between this and `string.sub` is that, here we don't allocate a new string,
+The main difference between this and `string.sub` is that here we don't allocate a new string,
 instead it reuses its memory as an optimization.
 Use this only if you know what you are doing, to be safe use `string.sub` instead.
 
-*Remarks*: When using the GC the view will not hold reference of the original string,
+*Remarks*: When using the GC the view will not hold reference to the original string,
 thus if you don't hold the original string reference somewhere you will have a dangling reference.
 The view string may not be zero terminated, thus you should never
 cast it to a `cstring` to use in C functions.
@@ -1599,7 +1607,7 @@ cast it to a `cstring` to use in C functions.
 function string.find(s: string, pattern: string, init: facultative(isize), plain: facultative(boolean)): (isize, isize)
 ```
 
-Looks for the first match of pattern in the string.
+Look for the first match of pattern in the string.
 
 Returns the indices of where this occurrence starts and ends.
 
@@ -1640,7 +1648,7 @@ Returns the empty string if `n` is not positive.
 function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
 ```
 
-Looks for the first match of pattern in the string.
+Look for the first match of pattern in the string.
 If it finds one, then returns true plus a sequence with the captured values,
 otherwise it returns false plus an empty sequence.
 If pattern specifies no captures, then the whole match is captured.
@@ -1941,6 +1949,153 @@ global function tointeger(x: auto, base: facultative(integer)): integer
 ```
 
 Convert a value to an integer.
+
+---
+## stringbuilder
+
+The string builder library allows high-performance composition of string-like data.
+
+Unlike strings, which are immutable, string builders are mutable sequences of bytes.
+The convenient string builder API simplifies common string composing tasks
+that would otherwise require creating many intermediate strings.
+
+String builders improve performance by eliminating redundant memory copies,
+object creation, and garbage collection overhead.
+
+### stringbuilderT
+
+```nelua
+local stringbuilderT: type = @record{
+    data: span(byte),
+    size: usize,
+    allocator: Allocator
+  }
+```
+
+String builder record defined when instantiating the generic `stringbuilder`.
+
+### stringbuilderT.make
+
+```nelua
+function stringbuilderT.make(allocator: Allocator): stringbuilderT
+```
+
+Creates a string builder using a custom allocator instance.
+Useful only when using instanced allocators.
+
+### stringbuilderT:destroy
+
+```nelua
+function stringbuilderT:destroy(): void
+```
+
+Free string builder resources and resets it to a zeroed state.
+Useful only when not using the garbage collector.
+
+### stringbuilderT:clear
+
+```nelua
+function stringbuilderT:clear(): void
+```
+
+Clears the internal written buffer of the string builder, leaving it empty.
+The internal buffer is not freed, and it may be reused.
+
+### stringbuilderT:prepare
+
+```nelua
+function stringbuilderT:prepare(n: usize): span(byte)
+```
+
+Prepares to append at least `n` bytes into the internal writing buffer.
+Returns a span that can be used to write bytes to.
+Typically the returned span length will have at least `n` bytes,
+but may have more to facilitate efficient buffer growth.
+If there is not enough space to allocate then the span length will be 0.
+
+After calling `prepare` and writing bytes to its returned span,
+the `commit` function must be called subsequently to advance the internal writing buffer.
+
+### stringbuilderT:commit
+
+```nelua
+function stringbuilderT:commit(n: usize): void
+```
+
+Commits `n` previously written bytes effectively advancing the internal writing buffer.
+A call to `prepare` must be preceded before calling this function, and its
+returned span length must have at least `n` bytes.
+
+### stringbuilderT:writebyte
+
+```nelua
+function stringbuilderT:writebyte(c: byte): boolean
+```
+
+Appends a byte to the internal writing buffer.
+Returns `true` in case of success, otherwise `false` when out of buffer memory space.
+
+### stringbuilderT:write
+
+```nelua
+function stringbuilderT:write(s: string): boolean
+```
+
+Appends a string to the internal writing buffer.
+Returns `true` in case of success, otherwise `false` when out of buffer memory space.
+
+### stringbuilderT:writef
+
+```nelua
+function stringbuilderT:writef(fmt: string, ...: varargs): boolean
+```
+
+Appends a formatted string to the internal writing buffer.
+Returns `true` in case of success, otherwise `false` when out of buffer memory space.
+The `fmt` string is expected to be a valid format, it should follow `string.format` rules.
+
+### stringbuilderT:view
+
+```nelua
+function stringbuilderT:view(): string
+```
+
+Returns a string view of the current written bytes so far.
+No allocation is done.
+
+### stringbuilderT:promote
+
+```nelua
+function stringbuilderT:promote(): string
+```
+
+Promote a `stringbuilder` to a `string`.
+The allocated internal buffer memory is forwarded to the string,
+and then the string builder is destroyed.
+
+This is typically used as an optimization to skip an extra allocating
+when finishing building a string.
+This method is only available for the default string builder.
+
+### stringbuilderT:__tostring
+
+```nelua
+function stringbuilderT:__tostring(): string
+```
+
+Converts the string builder to a new `string`.
+The operation allocates new space for the returned string.
+
+### stringbuilder
+
+```nelua
+global stringbuilder: type
+```
+
+The default string builder using `DefaultAllocator`.
+
+This type can also be used as a generic in the form of `stringbuilder(Allocator)`,
+where `Allocator` is an allocator type for the string builder buffer.
 
 ---
 ## traits
@@ -2340,6 +2495,7 @@ function vectorT:clear(): void
 ```
 
 Removes all elements from the vector.
+The internal storage buffer is not freed, and it may be reused.
 
 ### vectorT:destroy
 
@@ -2530,6 +2686,7 @@ function sequenceT:clear(): void
 ```
 
 Removes all elements from the sequence.
+The internal storage buffer is not freed, and it may be reused.
 
 ### sequenceT:destroy
 
@@ -2927,6 +3084,7 @@ function hashmapT:clear(): void
 ```
 
 Remove all elements from the container.
+The internal storage buffers are not freed, and they may be reused.
 
 *Complexity*: O(n).
 

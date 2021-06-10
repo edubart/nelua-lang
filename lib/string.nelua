@@ -37,7 +37,7 @@ local function toupper(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl,noside
 Allocate a new string to be filled with length `size`.
 
 The string is guaranteed to be zero terminated,
-so it can be safely be used as a `cstring`.
+so it can safely be used as a `cstring`.
 
 Used internally.
 ]]
@@ -141,11 +141,11 @@ end
 --[[
 Return a view for a sub string in a string.
 
-The main difference between this and `string.sub` is that, here we don't allocate a new string,
+The main difference between this and `string.sub` is that here we don't allocate a new string,
 instead it reuses its memory as an optimization.
 Use this only if you know what you are doing, to be safe use `string.sub` instead.
 
-*Remarks*: When using the GC the view will not hold reference of the original string,
+*Remarks*: When using the GC the view will not hold reference to the original string,
 thus if you don't hold the original string reference somewhere you will have a dangling reference.
 The view string may not be zero terminated, thus you should never
 cast it to a `cstring` to use in C functions.
@@ -168,7 +168,7 @@ function string.subview(s: string, i: isize, j: facultative(isize)): string
 end
 
 --[[
-Looks for the first match of pattern in the string.
+Look for the first match of pattern in the string.
 
 Returns the indices of where this occurrence starts and ends.
 
@@ -307,7 +307,7 @@ local function string_match(s: string, pattern: string, init: isize): (boolean, 
 end
 
 --[[
-Looks for the first match of pattern in the string.
+Look for the first match of pattern in the string.
 If it finds one, then returns true plus a sequence with the captured values,
 otherwise it returns false plus an empty sequence.
 If pattern specifies no captures, then the whole match is captured.
@@ -391,7 +391,7 @@ The only differences are that the conversion specifiers and modifiers `*, h, L, 
 ]]
 function string.format(fmt: string, ...: varargs): string
   local sb: stringbuilder
-  sb:write_format(fmt, ...)
+  sb:writef(fmt, ...)
   return sb:promote()
 end
 

@@ -3,12 +3,13 @@ require 'allocators.arena'
 
 do
   local sb: stringbuilder
-  sb:write_string('hello world')
-  sb:write_byte('\n'_byte)
-  sb:write_format('%d\n', 10)
-  sb:write_format('%.2f\n', 3.14)
-  sb:write_format('%s %d', 'hi', 1)
-  sb:prepare(1)[0] = '\n'_byte
+  sb:write('hello world')
+  sb:writebyte('\n'_byte)
+  sb:writef('%d\n', 10)
+  sb:writef('%.2f\n', 3.14)
+  sb:writef('%s %d', 'hi', 1)
+  local s = sb:prepare(1)
+  s[0] = '\n'_byte
   sb:commit(1)
   local s: string = tostring(sb)
   assert(s == "hello world\n10\n3.14\nhi 1\n")
@@ -17,12 +18,16 @@ do
   sb:destroy()
 end
 
+do
+
+end
+
 do -- using a custom allocator
   local allocator: ArenaAllocator(256, 1)
-  local sb = stringbuilder.make(&allocator)
-  sb:write_string('hello')
+  local sb = (@stringbuilder(*ArenaAllocator(256, 1))).make(&allocator)
+  sb:write('hello')
   local s: string = tostring(sb)
   assert(s == "hello")
   s:destroy()
-  sb:destroy()
+  -- sb does not need to be destroyed because we are using an arena allocator
 end

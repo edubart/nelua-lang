@@ -55,7 +55,10 @@ require 'iterators'
     return v
   end
 
-  -- Removes all elements from the vector.
+  --[[
+  Removes all elements from the vector.
+  The internal storage buffer is not freed, and it may be reused.
+  ]]
   function vectorT:clear(): void
     self.size = 0
   end

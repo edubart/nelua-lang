@@ -244,13 +244,14 @@ end
 local READ_CHUNK_SIZE <comptime> = 1024
 
 -- Read a line from file.
-local function readline(sb: *stringbuilder, fp: *FILE, chop: boolean): boolean
+local function readline(sb: *stringbuilder, fp: *FILE, chop: boolean): (boolean, string)
   -- TODO: lock file on POSIX?
   local NL: byte <comptime> = '\n'_byte
   local c: cint
   repeat
     local nr: uint32 = 0
-    local buff: *[0]byte = sb:prepare(READ_CHUNK_SIZE) -- preallocate buffer space
+    local buff: span(byte) = sb:prepare(READ_CHUNK_SIZE) -- preallocate buffer space
+    if buff:empty() then return false, 'out of buffer memory' end
     while nr < READ_CHUNK_SIZE do -- read up to buffer limit
       c = fgetc(fp)
       if c == EOF or c == NL then -- end of line
@@ -262,28 +263,31 @@ local function readline(sb: *stringbuilder, fp: *FILE, chop: boolean): boolean
     sb:commit(nr)
   until c == EOF or c == NL -- until end of line
   if not chop and c == NL then -- want a newline and have one?
-    sb:write_byte((@byte)(c)) -- add ending newline to result
+    -- add ending newline to result
+    if not sb:writebyte((@byte)(c)) then return false, 'out of buffer memory' end
   end
   -- return ok if read something (either a newline or something else)
-  return (c == NL or sb.size > 0)
+  return c == NL or sb.size > 0, (@string){}
 end
 
 -- Read characters from a file.
-local function readchars(sb: *stringbuilder, fp: *FILE, n: usize): boolean
-  local p: pointer = sb:prepare(n)
-  local nr: csize = fread(p, 1, n, fp)
+local function readchars(sb: *stringbuilder, fp: *FILE, n: usize): (boolean, string)
+  local p: span(byte) = sb:prepare(n)
+  if p:empty() then return false, 'out of buffer memory' end
+  local nr: csize = fread(p.data, 1, n, fp)
   sb:commit(nr)
-  return nr > 0
+  return nr > 0, (@string){}
 end
 
 -- Read entire file contents.
-local function readall(sb: *stringbuilder, fp: *FILE): boolean
+local function readall(sb: *stringbuilder, fp: *FILE): (boolean, string)
   repeat -- read in chunks
-    local p: pointer = sb:prepare(READ_CHUNK_SIZE)
-    local nr: csize = fread(p, 1, READ_CHUNK_SIZE, fp)
+    local p: span(byte) = sb:prepare(READ_CHUNK_SIZE)
+    if p:empty() then return false, 'out of buffer memory' end
+    local nr: csize = fread(p.data, 1, READ_CHUNK_SIZE, fp)
     sb:commit(nr)
   until nr < READ_CHUNK_SIZE
-  return true
+  return true, (@string){}
 end
 
 --[[
@@ -312,12 +316,13 @@ function filestream:read(fmt: overload(integer,string,niltype)): (string, string
   end
   local sb: stringbuilder
   local success: boolean
+  local errmsg: string
   clearerr(fp)
   --TODO: multiple arguments
   ## if fmt.type.is_niltype then
-    success = readline(&sb, fp, true)
+    success, errmsg = readline(&sb, fp, true)
   ## elseif fmt.type.is_scalar then
-    success = readchars(&sb, fp, fmt)
+    success, errmsg = readchars(&sb, fp, fmt)
   ## elseif fmt.type.is_string then
     local c: byte = fmt.data[0]
     if c == '*'_byte then -- skip optional '*' (for compatibility)
@@ -325,16 +330,15 @@ function filestream:read(fmt: overload(integer,string,niltype)): (string, string
     end
     -- TODO: handle 'n' to read number
     if c == 'l'_byte then -- line
-      success = readline(&sb, fp, true)
+      success, errmsg = readline(&sb, fp, true)
     elseif c == 'L'_byte then -- line with end-of-line
-      success = readline(&sb, fp, false)
+      success, errmsg = readline(&sb, fp, false)
     elseif c == 'a'_byte then -- entire file
-      success = readall(&sb, fp)
+      success, errmsg = readall(&sb, fp)
     else
       error('invalid format')
     end
   ## end
-  local errmsg: string
   local status: integer = 0
   if ferror(fp) ~= 0 then
     success, errmsg, status = fileresult(false)
@@ -347,6 +351,8 @@ function filestream:read(fmt: overload(integer,string,niltype)): (string, string
       -- should be eof
       errmsg = 'eof'
       status = EOF
+    elseif status == 0 then
+      status = -1
     end
     sb:destroy()
   end
@@ -401,7 +407,7 @@ function filestream:writef(fmt: string, ...: varargs): (boolean, string, integer
   end
   local sb: stringbuilder
   defer sb:destroy() end
-  if not sb:write_format(fmt, ...) then
+  if not sb:writef(fmt, ...) then
     return false, 'not enough memory', 0
   end
   local s: string = sb:view()

@@ -1,22 +1,25 @@
--- String Builder
---
--- This class is used to build dynamic sized strings, configurable with custom allocators.
--- Use it when you don't want to use the GC and want to manage your strings memory.
---
--- It is used by string class to compose formatted strings.
+--[[
+The string builder library allows high-performance composition of string-like data.
+
+Unlike strings, which are immutable, string builders are mutable sequences of bytes.
+The convenient string builder API simplifies common string composing tasks
+that would otherwise require creating many intermediate strings.
+
+String builders improve performance by eliminating redundant memory copies,
+object creation, and garbage collection overhead.
+]]
 
 require 'span'
 require 'memory'
 require 'string'
 
--- C imports
 local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 
--- format utilities
 local MAX_FORMAT <comptime> = 32
 local MAX_ITEM <comptime> = 120
 
+-- Helper to scan format string.
 local function scanformat(strfmt: *[0]byte, form: *[MAX_FORMAT]byte): usize
   local L_FMTFLAGS: string <comptime> = "-+ #0"
   local p: usize = 0
@@ -38,6 +41,7 @@ local function scanformat(strfmt: *[0]byte, form: *[MAX_FORMAT]byte): usize
   return p
 end
 
+-- Helper to add length modifiers to format strings.
 local function addlenmod(form: *[MAX_FORMAT]byte, lenmod: cstring, lenmodsize: csize): void
   local l: csize = #(@cstring)(&form[0])
   local spec: byte = form[l - 1]
@@ -46,75 +50,116 @@ local function addlenmod(form: *[MAX_FORMAT]byte, lenmod: cstring, lenmodsize: c
   form[l + lenmodsize] = 0
 end
 
--- the string builder with custom allocators
-## local make_generic_stringbuilder = generalize(function(Allocator)
+## local make_stringbuilderT = generalize(function(Allocator)
   ## if not Allocator then
   require 'allocators.default'
   ## Allocator = DefaultAllocator
   ## end
 
   local Allocator: type = #[Allocator]#
-
   local INIT_CAPACITY <comptime> = 128
 
+  -- String builder record defined when instantiating the generic `stringbuilder`.
   local stringbuilderT: type = @record{
     data: span(byte),
     size: usize,
     allocator: Allocator
   }
 
-  function stringbuilderT:destroy(): void
-    self.allocator:spandealloc(self.data)
-    $self = (@stringbuilderT)()
+  --[[
+  Creates a string builder using a custom allocator instance.
+  Useful only when using instanced allocators.
+  ]]
+  function stringbuilderT.make(allocator: Allocator): stringbuilderT
+    return (@stringbuilderT){allocator=allocator}
   end
 
+  --[[
+  Free string builder resources and resets it to a zeroed state.
+  Useful only when not using the garbage collector.
+  ]]
+  function stringbuilderT:destroy(): void
+    self.allocator:spandealloc(self.data)
+    self.data = (@span(byte))()
+    self.size = 0
+  end
+
+  --[[
+  Clears the internal written buffer of the string builder, leaving it empty.
+  The internal buffer is not freed, and it may be reused.
+  ]]
   function stringbuilderT:clear(): void
     self.size = 0
   end
 
-  function stringbuilderT:prepare(size: usize): *[0]byte
+  --[[
+  Prepares to append at least `n` bytes into the internal writing buffer.
+  Returns a span that can be used to write bytes to.
+  Typically the returned span length will have at least `n` bytes,
+  but may have more to facilitate efficient buffer growth.
+  If there is not enough space to allocate then the span length will be 0.
+
+  After calling `prepare` and writing bytes to its returned span,
+  the `commit` function must be called subsequently to advance the internal writing buffer.
+  ]]
+  function stringbuilderT:prepare(n: usize): span(byte)
     -- allocate 1 additional byte to allow casting to cstring
-    local needed: usize = self.size + size + 1
+    local needed: usize = self.size + n + 1
     local cap: usize = self.data.size
     if unlikely(needed > cap) then
-      if unlikely(cap == 0) then
+      if cap == 0 then
         cap = INIT_CAPACITY
       end
       repeat cap = cap * 2 until cap >= needed
       self.data = self.allocator:spanrealloc0(self.data, cap)
-      if unlikely(self.data.size ~= cap) then
+      if self.data.size ~= cap then
         -- reallocation failed, try to allocate the minimum
         self.data = self.allocator:spanrealloc0(self.data, needed)
-        if self.data.size ~= needed then
-          return nilptr
-        end
+      end
+      cap = self.data.size
+      if needed > cap then
+        return (@span(byte)){}
       end
     end
-    return (@*[0]byte)(&self.data[self.size])
+    return (@span(byte)){data=&self.data[self.size], size=cap-self.size-1}
   end
 
-  function stringbuilderT:commit(size: usize): void
-    local newsize: usize = self.size + size
+  --[[
+  Commits `n` previously written bytes effectively advancing the internal writing buffer.
+  A call to `prepare` must be preceded before calling this function, and its
+  returned span length must have at least `n` bytes.
+  ]]
+  function stringbuilderT:commit(n: usize): void
+    local newsize: usize = self.size + n
     check(newsize <= self.data.size, 'not enough space in string buffer')
     self.size = newsize
   end
 
-  function stringbuilderT:write_byte(c: byte): boolean
-    local p: *[0]byte = self:prepare(1)
-    if unlikely(p == nilptr) then return false end
+  --[[
+  Appends a byte to the internal writing buffer.
+  Returns `true` in case of success, otherwise `false` when out of buffer memory space.
+  ]]
+  function stringbuilderT:writebyte(c: byte): boolean
+    local p: span(byte) = self:prepare(1)
+    if unlikely(p:empty()) then return false end
     p[0] = c
     self.size = self.size + 1
     return true
   end
 
-  function stringbuilderT:write_string(s: string): boolean
-    local p: *[0]byte = self:prepare(s.size)
-    if unlikely(p == nilptr) then return false end
-    memory.copy(p, s.data, s.size)
+  --[[
+  Appends a string to the internal writing buffer.
+  Returns `true` in case of success, otherwise `false` when out of buffer memory space.
+  ]]
+  function stringbuilderT:write(s: string): boolean
+    local p: span(byte) = self:prepare(s.size)
+    if unlikely(p:empty()) then return false end
+    memory.copy(p.data, s.data, s.size)
     self.size = self.size + s.size
     return true
   end
 
+  -- Helper to format an argument.
   local function formatarg(self: *stringbuilderT, c: byte,
                            buff: cstring, maxitem: usize, form: *[MAX_FORMAT]byte, arg1: auto): (boolean, cint)
     local nb: cint = -1
@@ -168,7 +213,7 @@ end
       local s: string = tostring(arg1)
       ## end
       maxitem = s.size + 1
-      buff = (@cstring)(self:prepare(maxitem))
+      buff = (@cstring)(self:prepare(maxitem).data)
       if buff then
         if form[1] == c and form[2] == 0 then -- just copy the string
           memory.copy(buff, s.data, s.size)
@@ -200,7 +245,12 @@ end
     return true, nb
   end
 
-  function stringbuilderT:write_format(fmt: string, ...: varargs): boolean
+  --[[
+  Appends a formatted string to the internal writing buffer.
+  Returns `true` in case of success, otherwise `false` when out of buffer memory space.
+  The `fmt` string is expected to be a valid format, it should follow `string.format` rules.
+  ]]
+  function stringbuilderT:writef(fmt: string, ...: varargs): boolean
     local L_ESC: byte <comptime> = '%'_byte
     local pos: usize = 0
     local argi: int32 = 0
@@ -208,16 +258,16 @@ end
       local c: byte = fmt.data[pos]
       pos = pos + 1
       if c ~= L_ESC then
-        if not self:write_byte(c) then return false end
+        if not self:writebyte(c) then return false end
       else
         c = fmt.data[pos]
         if c == L_ESC then -- %%
-          if not self:write_byte(L_ESC) then return false end
+          if not self:writebyte(L_ESC) then return false end
           pos = pos + 1
         else -- format item
           local form: [MAX_FORMAT]byte -- to store the format ('%...')
           local maxitem: usize = MAX_ITEM
-          local buff: cstring = (@cstring)(self:prepare(MAX_ITEM)) -- to put formatted item
+          local buff: cstring = (@cstring)(self:prepare(MAX_ITEM).data) -- to put formatted item
           if not buff then
             return false
           end
@@ -246,11 +296,40 @@ end
     return true
   end
 
+  --[[
+  Returns a string view of the current written bytes so far.
+  No allocation is done.
+  ]]
   function stringbuilderT:view(): string
     if unlikely(self.size == 0) then return (@string){} end
     return (@string){data = &self.data[0], size = self.size}
   end
 
+  ## if Allocator == DefaultAllocator then
+  --[[
+  Promote a `stringbuilder` to a `string`.
+  The allocated internal buffer memory is forwarded to the string,
+  and then the string builder is destroyed.
+
+  This is typically used as an optimization to skip an extra allocating
+  when finishing building a string.
+  This method is only available for the default string builder.
+  ]]
+  function stringbuilderT:promote(): string
+    if unlikely(self.size == 0) then return (@string){} end
+    local size: usize = self.size
+    local data: span(byte) = self.allocator:spanxrealloc(self.data, size + 1) -- shrink
+    data[size] = 0 -- zero termination
+    self.data = {}
+    self.size = 0
+    return (@string){data = data.data, size = size}
+  end
+  ## end
+
+  --[[
+  Converts the string builder to a new `string`.
+  The operation allocates new space for the returned string.
+  ]]
   function stringbuilderT:__tostring(): string
     local s: string = string.create(self.size)
     memory.copy(&s.data[0], &self.data[0], self.size)
@@ -260,23 +339,13 @@ end
   ## return stringbuilderT
 ## end)
 
-global stringbuilder: type = #[make_generic_stringbuilder()]#
+--[[
+The default string builder using `DefaultAllocator`.
+
+This type can also be used as a generic in the form of `stringbuilder(Allocator)`,
+where `Allocator` is an allocator type for the string builder buffer.
+]]
+global stringbuilder: type = #[make_stringbuilderT()]#
 
 -- This allows instantiating `stringbuilder` as generic too.
-## stringbuilder.value.generic = types.GenericType(make_generic_stringbuilder)
-
--- Promote a `stringbuilder` to a `string`, forwarding its allocated memory and resetting it.
-function stringbuilder:promote(): string
-  if unlikely(self.size == 0) then
-    return (@string){}
-  end
-  local size: usize = self.size
-  local data: span(byte) = self.allocator:spanxrealloc(self.data, size + 1) -- shrink
-  data[size] = 0 -- cstring line ending
-  $self = {} -- destroy
-  return (@string){data = data.data, size = size}
-end
-
-function stringbuilder.make(allocator: auto)
-  return (@stringbuilder(#[allocator.type]#)){allocator = allocator}
-end
+## stringbuilder.value.generic = types.GenericType(make_stringbuilderT)

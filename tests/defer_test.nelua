@@ -6,10 +6,10 @@ local s: string
 -- return
 local function f(sb: *stringbuilder)
   sb:clear()
-  sb:write_string'a'
-  defer sb:write_string'd' end
-  defer sb:write_string'c' end
-  sb:write_string'b'
+  sb:write'a'
+  defer sb:write'd' end
+  defer sb:write'c' end
+  sb:write'b'
   return
 end
 f(&sb)
@@ -18,12 +18,12 @@ assert(sb:view() == 'abcd')
 -- do block
 local function f(sb: *stringbuilder)
   sb:clear()
-  sb:write_string'a'
-  defer sb:write_string'd' end
+  sb:write'a'
+  defer sb:write'd' end
   do
-    defer sb:write_string'b' end
+    defer sb:write'b' end
   end
-  sb:write_string'c'
+  sb:write'c'
 end
 f(&sb)
 assert(sb:view() == 'abcd')
@@ -31,15 +31,15 @@ assert(sb:view() == 'abcd')
 -- nested do blocks
 local function f(sb: *stringbuilder)
   sb:clear()
-  sb:write_string'a'
-  defer sb:write_string'e' end
+  sb:write'a'
+  defer sb:write'e' end
   do
-    defer sb:write_string'c' end
+    defer sb:write'c' end
     do
-      defer sb:write_string'b' end
+      defer sb:write'b' end
     end
   end
-  sb:write_string'd'
+  sb:write'd'
 end
 f(&sb)
 assert(sb:view() == 'abcde')
@@ -47,12 +47,12 @@ assert(sb:view() == 'abcde')
 -- return in middle nested
 local function f(sb: *stringbuilder)
   sb:clear()
-  sb:write_string'a'
-  defer sb:write_string'd' end
+  sb:write'a'
+  defer sb:write'd' end
   if true then
-    defer sb:write_string'c' end
+    defer sb:write'c' end
     if true then
-      defer sb:write_string'b' end
+      defer sb:write'b' end
     end
     return
   end
@@ -63,13 +63,13 @@ assert(sb:view() == 'abcd')
 -- middle return
 local function f(sb: *stringbuilder)
   sb:clear()
-  sb:write_string'a'
-  defer sb:write_string'd' end
+  sb:write'a'
+  defer sb:write'd' end
   if true then
-    defer sb:write_string'c' end
+    defer sb:write'c' end
     return
     if true then
-      defer sb:write_string'b' end
+      defer sb:write'b' end
     end
   end
 end
@@ -79,10 +79,10 @@ assert(sb:view() == 'acd')
 -- while and break
 local function f(sb: *stringbuilder)
   sb:clear()
-  sb:write_string'a'
-  defer sb:write_string'c' end
+  sb:write'a'
+  defer sb:write'c' end
   while true do
-    defer sb:write_string'b' end
+    defer sb:write'b' end
     break
   end
 end
@@ -92,12 +92,12 @@ assert(sb:view() == 'abc')
 -- for and continue
 local function f(sb: *stringbuilder)
   sb:clear()
-  sb:write_string'a'
-  defer sb:write_string'c' end
+  sb:write'a'
+  defer sb:write'c' end
   for i=1,3 do
-    defer sb:write_string'b' end
+    defer sb:write'b' end
     continue
-    defer sb:write_string' ' end
+    defer sb:write' ' end
   end
 end
 f(&sb)
@@ -106,10 +106,10 @@ assert(sb:view() == 'abbbc')
 -- repeat
 local function f(sb: *stringbuilder)
   sb:clear()
-  sb:write_string'a'
-  defer sb:write_string'c' end
+  sb:write'a'
+  defer sb:write'c' end
   repeat
-    defer sb:write_string'b' end
+    defer sb:write'b' end
     local x = true
   until x
 end

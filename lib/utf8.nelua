@@ -114,7 +114,7 @@ function utf8.char(...: varargs): string
   local len: int32 <noinit>
   ## for i=1,select('#', ...) do
     len = utf8esc(&buf, (@uint32)(#[select(i, ...)]#))
-    sb:write_string(string{data=&buf[8 - len], size=(@usize)(len)})
+    sb:write(string{data=&buf[8 - len], size=(@usize)(len)})
   ## end
   return sb:promote()
 end

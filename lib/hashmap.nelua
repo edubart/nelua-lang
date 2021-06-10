@@ -98,6 +98,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
   --[[
   Remove all elements from the container.
+  The internal storage buffers are not freed, and they may be reused.
 
   *Complexity*: O(n).
   ]]

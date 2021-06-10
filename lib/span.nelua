@@ -3,12 +3,12 @@ The span library provides the span generic.
 
 A span is used as a view to elements of a contiguous memory block.
 Contiguous containers like vector, sequence and array can be viewed as a span.
-Span elements starts at index 0 and go up to length-1 (like fixed arrays).
+Span elements start at index 0 and go up to length-1 (like fixed arrays).
 
-Span are specially useful for making functions with arguments that
+Spans are especially useful for making functions with arguments that
 are agnostic to the input container type.
 
-Spans ares also known as "fat pointer" or "slice" in some other languages.
+Spans are also known as "fat pointer" or "slice" in some other languages.
 ]]
 
 require 'iterators'
@@ -44,16 +44,21 @@ require 'iterators'
     return false, string.format("no viable conversion from '%s' to '%s'", x.type, spanT)
   end)]#
 
+  -- Returns `true` if the span is empty, that is, its length is `0`.
+  function spanT:empty(): boolean <inline,nosideeffect>
+    return self.size == 0
+  end
+
   -- Returns `true` if the span is not empty and has a valid data pointer.
   function spanT:valid(): boolean <inline,nosideeffect>
-    return self.data ~= nilptr and self.size > 0
+    return self.size > 0 and self.data ~= nilptr
   end
 
   --[[
   Returns the sub span that starts at `i` (inclusive) and continues until `j` (exclusive).
   Both `i` and `j` must be in the span bounds and the expression `i <= j` must be true.
 
-  *Remarks*: When using the GC the sub span will not hold reference of the original span data,
+  *Remarks*: When using the GC the sub span will not hold reference to the original span data,
   thus if you don't hold the original reference somewhere you will have a dangling reference.
   ]]
   function spanT:sub(i: usize, j: usize): spanT <inline,nosideeffect>

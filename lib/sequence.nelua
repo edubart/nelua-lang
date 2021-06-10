@@ -71,7 +71,10 @@ require 'iterators'
     return seq
   end
 
-  -- Removes all elements from the sequence.
+  --[[
+  Removes all elements from the sequence.
+  The internal storage buffer is not freed, and it may be reused.
+  ]]
   function sequenceT:clear(): void
     if not self.impl then return end
     self.impl.size = 0
