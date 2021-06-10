@@ -518,7 +518,7 @@ local exp = 1.2e-100 -- variable of type 'number' set using scientific notation
 local frac = 1.41 -- variable of type 'number'
 print(dec,bin,hex,char,exp,frac)
 
-local pi = 0x1.921FB54442D18p+2 -- hexadecimal with fractional and exponent
+local pi = 0x1.921FB54442D18p+1 -- hexadecimal with fractional and exponent
 print(pi) -- outputs: 3.1415926535898
 ```
 

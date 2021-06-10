@@ -359,7 +359,7 @@ Generic used to instantiate a hash map type in the form of `hashmap(K, V, HashFu
 Argument `K` is the key type for the hash map.
 Argument `V` is the value type for the hash map.
 Argument `HashFunc` is a function to hash a key,
-in case absent then a default hash function is used.
+in case absent then `hash.hash` is used.
 Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
 ]]

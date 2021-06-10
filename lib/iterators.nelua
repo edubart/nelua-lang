@@ -103,7 +103,7 @@ global function next(a: container_reference_concept, k: auto) <inline>
 end
 
 -- Like `next` but returns reference to the next element value, so that you can modify it in-place.
-global function mnext(a: contiguous_reference_concept, k: auto) <inline>
+global function mnext(a: container_reference_concept, k: auto) <inline>
   ## local atype = a.type:implicit_deref_type()
   ## if atype.is_record and atype.metafields.__next then
     return a:__mnext(k)

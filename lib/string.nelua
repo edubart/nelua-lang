@@ -3,15 +3,17 @@ The string library provides functions to manipulate strings.
 
 String points to an immutable contiguous sequence of characters.
 Internally it just holds a pointer to a buffer and a size.
-It's buffer is zero terminated (`\0`) by default to have more compatibility with C.
+It's buffer is zero terminated by default to have more compatibility with C.
 
 The string type is defined by the compiler, however it does not have
 its methods implemented, this module implements all string methods.
 
-When the GC is disabled, you should call `destroy` to free the string memory
-of any string returned in by this library, otherwise the memory will leak.
-Note that strings can point to a buffer in the program static storage
+When the GC is disabled, you should call `string.destroy` to free the string memory
+of non views strings returned by this library, otherwise the memory will leak.
+Note that string literals points to a buffer in the program static storage
 and such strings should never be destroyed.
+
+Note that all string methods are 1-indexed (like Lua).
 ]]
 
 require 'memory'
@@ -39,7 +41,7 @@ so it can be safely be used as a `cstring`.
 
 Used internally.
 ]]
-function string._create(size: usize): string
+function string.create(size: usize): string
   local s: string
   check(size > 0, 'attempt to create an empty string')
   s.size = size
@@ -47,9 +49,6 @@ function string._create(size: usize): string
   s.data[size] = 0
   return s
 end
-
- -- Must be required later because it depends on `string._create`
-require 'stringbuilder'
 
 --[[
 Destroys a string freeing its memory.
@@ -89,13 +88,16 @@ Forward a string reference to be used elsewhere.
 When GC is enabled this just returns the string itself.
 When GC is disabled a string copy is returned, so it can be safely stored and destroyed.
 ]]
-function string._forward(s: string): string <inline>
+function string.forward(s: string): string <inline>
   ## if pragmas.nogc then -- must return a clone so we can destroy it later
   return string.copy(s)
   ## else -- reuse the string reference when GC is enabled
   return s
   ## end
 end
+
+ -- Must be required later because it depends on `string.create`
+require 'stringbuilder'
 
 -- Returns the internal numeric codes of the character at position `i`.
 function string.byte(s: string, i: facultative(isize)): byte
@@ -127,11 +129,11 @@ function string.sub(s: string, i: isize, j: facultative(isize)): string
   if unlikely(i <= 0) then i = 1 end
   if unlikely(j < 0) then j = size + j + 1 end
   if unlikely(j > size) then j = size end
-  if unlikely(i == 1 and j == size) then return string._forward(s) end
+  if unlikely(i == 1 and j == size) then return string.forward(s) end
   if unlikely(i > j) then return (@string){} end
   local subsize: usize = (@usize)(j - i + 1)
   if unlikely(subsize == 0) then return (@string){} end
-  local ret: string = string._create(subsize)
+  local ret: string = string.create(subsize)
   memory.copy(&ret.data[0], &s.data[i-1], subsize)
   return ret
 end
@@ -260,11 +262,11 @@ Returns the empty string if `n` is not positive.
 ]]
 function string.rep(s: string, n: isize, sep: facultative(string)): string
   if unlikely(n <= 0) then return (@string){} end
-  if unlikely(n == 1) then return string._forward(s) end
+  if unlikely(n == 1) then return string.forward(s) end
   local n: usize = (@usize)(n)
   ## if sep.type.is_niltype then
   if unlikely(s.size == 0) then return (@string){} end
-  local ret: string = string._create(n * s.size)
+  local ret: string = string.create(n * s.size)
   for i:usize=0,<n do
     memory.copy(&ret.data[i*s.size], &s.data[0], s.size)
   end
@@ -272,7 +274,7 @@ function string.rep(s: string, n: isize, sep: facultative(string)): string
   local sep: string = sep
   local partsize: usize = s.size + sep.size
   if unlikely(partsize <= 0) then return (@string){} end
-  local ret: string = string._create(n * partsize - sep.size)
+  local ret: string = string.create(n * partsize - sep.size)
   for i:usize=0,<n do
     memory.copy(&ret.data[i*partsize], &s.data[0], s.size)
     if i ~= n-1 then
@@ -333,7 +335,7 @@ end
 -- Returns a string that is the string `s` reversed.
 function string.reverse(s: string): string
   if unlikely(s.size == 0) then return s end
-  local ret: string = string._create(s.size)
+  local ret: string = string.create(s.size)
   for i:usize=0,<s.size do
     ret.data[i] = s.data[s.size - i - 1]
   end
@@ -347,7 +349,7 @@ The definition of what a lowercase letter is depends on the current locale.
 ]]
 function string.upper(s: string): string
   if unlikely(s.size == 0) then return s end
-  local ret: string = string._create(s.size)
+  local ret: string = string.create(s.size)
   for i:usize=0,<s.size do
     ret.data[i] = (@byte)(toupper(s.data[i]))
   end
@@ -361,18 +363,20 @@ The definition of what an uppercase letter is depends on the current locale.
 ]]
 function string.lower(s: string): string
   if unlikely(s.size == 0) then return s end
-  local ret: string = string._create(s.size)
+  local ret: string = string.create(s.size)
   for i:usize=0,<s.size do
     ret.data[i] = (@byte)(tolower(s.data[i]))
   end
   return ret
 end
 
--- Receives zero or more integers and returns a string with length equal to the number of arguments,
--- in which each character has the internal numeric code equal to its corresponding argument.
--- Numeric codes are not necessarily portable across platforms.
+--[[
+Receives zero or more integers and returns a string with length equal to the number of arguments,
+in which each character has the internal numeric code equal to its corresponding argument.
+Numeric codes are not necessarily portable across platforms.
+]]
 function string.char(...: varargs): string
-  local s: string = string._create(#[select('#', ...)]#)
+  local s: string = string.create(#[select('#', ...)]#)
   ## for i=1,select('#', ...) do
   s.data[#[i-1]#] = #[select(i, ...)]#
   ## end
@@ -391,8 +395,10 @@ function string.format(fmt: string, ...: varargs): string
   return sb:promote()
 end
 
--- Receives a string and returns its length.
--- The empty string "" has length 0. Embedded zeros are counted.
+--[[
+Receives a string and returns its length.
+The empty string "" has length 0. Embedded zeros are counted.
+]]
 function string.len(s: string): isize <inline>
   return (@isize)(s.size)
 end
@@ -432,11 +438,11 @@ function string.__concat(a: string_coercion_concept, b: string_coercion_concept)
     defer b:destroy() end
   ## end
   if a.size == 0 then
-    return string._forward(b)
+    return string.forward(b)
   elseif b.size == 0 then
-    return string._forward(a)
+    return string.forward(a)
   end
-  local s: string = string._create(a.size + b.size)
+  local s: string = string.create(a.size + b.size)
   memory.copy(&s.data[0], a.data, a.size)
   memory.copy(&s.data[a.size], b.data, b.size)
   return s
@@ -686,19 +692,19 @@ global function tostring(x: auto): string
   end
   ]]
   ## if xtype.is_stringy then
-    return string._forward(x)
+    return string.forward(x)
   ## elseif xobjtype.is_record and xobjtype.metafields.__tostring then
     return x:__tostring()
   ## elseif xtype.is_scalar or xtype.is_function or xtype.is_pointer then
     ## if xtype.is_pointer then tyformat = '"0x%" PRIxPTR'
     local x: usize = (@usize)(x)
     if x == 0 then
-      return string._forward('(null)')
+      return string.forward('(null)')
     end
     ## elseif xtype.is_function then tyformat = '"function: 0x%" PRIxPTR'
     local x: usize = (@usize)((@pointer)(x))
     if x == 0 then
-      return string._forward('function: (null)')
+      return string.forward('function: (null)')
     end
     ##[[ else
       tyformat = require'nelua.cdefs'.types_printf_format[xtype.codename]
@@ -718,15 +724,15 @@ global function tostring(x: auto): string
     return string.copy((@string){&tmpbuf[0], size})
   ## elseif xtype.is_boolean then
     if x == true then
-      return string._forward('true')
+      return string.forward('true')
     end
-    return string._forward('false')
+    return string.forward('false')
   ## elseif xtype.is_niltype then
-    return string._forward('nil')
+    return string.forward('nil')
   ## elseif xtype.is_nilptr then
-    return string._forward('(null)')
+    return string.forward('(null)')
   ## elseif xtype.is_polyfunction then
-    return string._forward('polyfunction')
+    return string.forward('polyfunction')
   ## else static_error("tostring: cannot convert type '%s' to a string", xtype) end
 end
 

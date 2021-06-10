@@ -13,7 +13,6 @@ This is a list of Nelua standard libraries.
 To use a library, use `require 'libraryname'`{:.language-nelua}.
 {: .callout.callout-info}
 
-
 ## builtins
 
 The following are builtin functions defined in the Nelua compiler.
@@ -111,7 +110,7 @@ global _VERSION: string
 
 A string containing the running Nelua version, such as `"Nelua 0.2-dev"`.
 
-
+---
 ## arg
 
 The arguments library provides the global sequence `arg`,
@@ -128,7 +127,7 @@ Sequence of command line arguments.
 The value at index `0` is usually filled with the program executable name.
 The values starting from index `1` up to `#arg` contains each command line argument.
 
-
+---
 ## iterators
 
 The iterators library provides iterators functions such as
@@ -175,7 +174,7 @@ The container `a` must either have the metamethod `__next` or be a contiguous.
 ### mnext
 
 ```nelua
-global function mnext(a: contiguous_reference_concept, k: auto)
+global function mnext(a: container_reference_concept, k: auto)
 ```
 
 Like `next` but returns reference to the next element value, so that you can modify it in-place.
@@ -204,7 +203,7 @@ global function mpairs(a: container_reference_concept)
 
 Like `pairs` but yields reference to elements values so that you can modify them in-place.
 
-
+---
 ## io
 
 The input and output library provides functions to manipulate files.
@@ -403,7 +402,7 @@ that is, it iterates over the lines of the default input file.
 It currently never closes the file when the iteration finishes.
 In case of errors opening the file, this function raises the error, instead of returning an error code.
 
-
+---
 ## filestream
 
 The file stream library provides the `filestream` record,
@@ -604,7 +603,7 @@ and `"file (some address)"` for open files.
 
 This metamethod is used by `tostring`.
 
-
+---
 ## math
 
 The math library provides basic mathematical functions.
@@ -1066,7 +1065,7 @@ global math.maxuinteger: uinteger
 
 An integer with the maximum value for an unsigned integer.
 
-
+---
 ## memory
 
 The memory library provides low level memory management utilities.
@@ -1225,7 +1224,7 @@ function memory.spanfind(s: an_span, x: auto): isize
 Scan span `s` for value `x` and returns its respective index.
 In case `x` is not found -1 is returned.
 
-
+---
 ## os
 
 The os library provides some operating system facilities.
@@ -1397,7 +1396,7 @@ In POSIX systems, this function also creates a file with that name, to avoid sec
 You still have to open the file to use it and to remove it (even if you do not use it).
 When possible, you may prefer to use `io.tmpfile`, which automatically removes the file when the program ends.
 
-
+---
 ## span
 
 The span library provides the span generic.
@@ -1478,27 +1477,43 @@ Generic used to instantiate a span type in the form of `span(T)`.
 
 Argument `T` is the value type that the span will store.
 
-
+---
 ## string
 
 The string library provides functions to manipulate strings.
 
 String points to an immutable contiguous sequence of characters.
 Internally it just holds a pointer to a buffer and a size.
-It's buffer is zero terminated (`\0`) by default to have more compatibility with C.
+It's buffer is zero terminated by default to have more compatibility with C.
 
 The string type is defined by the compiler, however it does not have
 its methods implemented, this module implements all string methods.
 
-When the GC is disabled, you should call `destroy` to free the string memory
-of any string returned in by this library, otherwise the memory will leak.
-Note that strings can point to a buffer in the program static storage
+When the GC is disabled, you should call `string.destroy` to free the string memory
+of non views strings returned by this library, otherwise the memory will leak.
+Note that string literals points to a buffer in the program static storage
 and such strings should never be destroyed.
 
-### string._create
+Note that all string methods are 1-indexed (like Lua).
+
+### string
 
 ```nelua
-function string._create(size: usize): string
+global string = @record{
+  data: *[0]byte,
+  size: usize,
+}
+```
+
+The string record defined in the compiler sources.
+
+New strings always have the `data` buffer null terminate by default
+to have more comparability with C APIs.
+The `data` buffer is 0-indexed unlikely the string APIs.
+### string.create
+
+```nelua
+function string.create(size: usize): string
 ```
 
 Allocate a new string to be filled with length `size`.
@@ -1530,10 +1545,10 @@ Clone a string, allocating new space.
 This is useful in case you want to own the string memory,
 so you can modify it or manually manage its memory when GC is disabled.
 
-### string._forward
+### string.forward
 
 ```nelua
-function string._forward(s: string): string
+function string.forward(s: string): string
 ```
 
 Forward a string reference to be used elsewhere.
@@ -1927,7 +1942,7 @@ global function tointeger(x: auto, base: facultative(integer)): integer
 
 Convert a value to an integer.
 
-
+---
 ## traits
 
 The traits library provides utilities to gather type information.
@@ -1994,7 +2009,7 @@ other types not listed here returns the underlying type name.
 
 This function behaves as describe to be compatible with Lua APIs.
 
-
+---
 ## utf8
 
 The UTF-8 library provides basic support for UTF-8 encoding.
@@ -2093,7 +2108,7 @@ Returns the number of UTF-8 characters in string `s` that start between position
 The default for `i` is `1` and for `j` is `-1`.
 If it finds any invalid byte sequence, returns `-1` plus the position of the first invalid byte.
 
-
+---
 ## coroutine
 
 The coroutine library provides functions to manipulate coroutines.
@@ -2148,7 +2163,7 @@ Destroy the coroutine `co`, freeing its stack memory and resources.
 
 Note that this is only needed to be called when the GC is disabled.
 
-CAUTION: Destroying a coroutine before `"dead"` state will not execute its defer statements.
+*Remarks*: Destroying a coroutine before `"dead"` state will not execute its defer statements.
 
 ### coroutine.isyieldable
 
@@ -2230,7 +2245,7 @@ The status string can be any of the following:
 * `"normal"` if the coroutine is active but not running (that is, it has resumed another coroutine).
 * `"dead"` if the coroutine has finished its body function, or if it has been destroyed.
 
-
+---
 ## hash
 
 The hash library provides utilities to generate hash for values.
@@ -2286,7 +2301,7 @@ Hashes value `v`, used to hash anything.
 To customize a hash for a specific record you can define `__hash` metamethod,
 and it will be used when calling this function.
 
-
+---
 ## vector
 
 The vector library provides an efficient dynamic sized array of values.
@@ -2464,7 +2479,7 @@ Argument `T` is the value type that the vector will store.
 Argument `Allocator` is an allocator type for the container storage,
 in case absent then `DefaultAllocator` is used.
 
-
+---
 ## sequence
 
 The sequence library provides a dynamic sized array of values,
@@ -2656,7 +2671,7 @@ Argument `T` is the value type that the sequence will store.
 Argument `Allocator` is an allocator type for the container storage,
 in case absent then `DefaultAllocator` is used.
 
-
+---
 ## list
 
 The list library provides a double linked list container.
@@ -2843,7 +2858,7 @@ Argument `T` is the value type that the list will store.
 Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
 
-
+---
 ## hashmap
 
 The hashmap library provides a hash table with fixed types.
@@ -3045,9 +3060,10 @@ Generic used to instantiate a hash map type in the form of `hashmap(K, V, HashFu
 Argument `K` is the key type for the hash map.
 Argument `V` is the value type for the hash map.
 Argument `HashFunc` is a function to hash a key,
-in case absent then a default hash function is used.
+in case absent then `hash.hash` is used.
 Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
 
+---
 
 <a href="/diffs/" class="btn btn-outline-primary btn-lg float-right">Differences >></a>

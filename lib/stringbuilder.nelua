@@ -252,7 +252,7 @@ end
   end
 
   function stringbuilderT:__tostring(): string
-    local s: string = string._create(self.size)
+    local s: string = string.create(self.size)
     memory.copy(&s.data[0], &self.data[0], self.size)
     return s
   end

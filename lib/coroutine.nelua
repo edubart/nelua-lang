@@ -168,7 +168,7 @@ Destroy the coroutine `co`, freeing its stack memory and resources.
 
 Note that this is only needed to be called when the GC is disabled.
 
-CAUTION: Destroying a coroutine before `"dead"` state will not execute its defer statements.
+*Remarks*: Destroying a coroutine before `"dead"` state will not execute its defer statements.
 ]]
 function coroutine.destroy(co: coroutine): void
   ## if not pragmas.nogc then
