@@ -1800,6 +1800,12 @@ it("generics", function()
   expect.analyze_error([[
     local x = @invalidgeneric(integer)
   ]], "is not defined")
+  expect.analyze_error([[
+    global Foo: type = #[generalize(function() end)()]#
+  ]], "expected a type or symbol in generic return")
+  expect.analyze_error([[
+    global Foo: type = #[generalize(function() error 'generic fail' end)()]#
+  ]], "generic fail")
 end)
 
 it("custom braces initialization", function()

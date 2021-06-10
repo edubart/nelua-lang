@@ -2551,7 +2551,15 @@ end
 
 -- Permits evaluating generics by directly calling it's symbol in the preprocessor.
 function GenericType:__call(...)
-  return self:eval_type({...})
+  local ret, err = self:eval_type({...})
+  if err then
+    if except.isexception(err) then
+      except.reraise(err)
+    else
+      error(err)
+    end
+  end
+  return ret
 end
 
 return types
