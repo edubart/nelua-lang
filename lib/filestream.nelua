@@ -6,8 +6,8 @@ but can also be used independently.
 
 require 'stringbuilder'
 require 'string'
-require 'resourcepool'
 require 'allocators.general'
+require 'detail.resourcepool'
 
 local FILE <cimport,nodecl,forwarddecl,cinclude'<stdio.h>'> = @record{}
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>

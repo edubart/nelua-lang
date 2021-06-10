@@ -135,9 +135,7 @@ build = {
       ['lib/span.nelua']                    = 'lib/span.nelua',
       ['lib/vector.nelua']                  = 'lib/vector.nelua',
       ['lib/string.nelua']                  = 'lib/string.nelua',
-      ['lib/patternmatcher.nelua']          = 'lib/patternmatcher.nelua',
       ['lib/stringbuilder.nelua']           = 'lib/stringbuilder.nelua',
-      ['lib/resourcepool.nelua']            = 'lib/resourcepool.nelua',
       ['lib/filestream.nelua']              = 'lib/filestream.nelua',
       ['lib/hash.nelua']                    = 'lib/hash.nelua',
       ['lib/hashmap.nelua']                 = 'lib/hashmap.nelua',
@@ -157,6 +155,9 @@ build = {
       ['lib/C/stdlib.nelua']                = 'lib/C/stdlib.nelua',
       ['lib/C/string.nelua']                = 'lib/C/string.nelua',
       ['lib/C/time.nelua']                  = 'lib/C/time.nelua',
+      ['lib/detail/patternmatcher.nelua']   = 'lib/detail/patternmatcher.nelua',
+      ['lib/detail/resourcepool.nelua']     = 'lib/detail/resourcepool.nelua',
+      ['lib/detail/xorshiro256.nelua']      = 'lib/detail/xorshiro256.nelua',
     }
   }
 }

@@ -1,4 +1,4 @@
-require 'resourcepool'
+require 'detail.resourcepool'
 
 local SLOT_SHIFT <comptime> = 32
 local SLOT_MASK <comptime> = (1 << SLOT_SHIFT) - 1

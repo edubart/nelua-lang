@@ -1,32 +1,34 @@
--- Resource Pool
---
--- This is an utility class that provides a mechanism for allocating
--- resources from a pool associated with an unique 'id'.
--- It is used internally by the 'io' module to properly handle dangling files.
---
--- The resource pool returns a new unique id for every new allocated object.
--- This id is composed by an index in the lower bits and a generation counter
--- in the higher bits. The generation counter is incremented every new allocation
--- for the same index.
---
--- It's main use is to give the possibility to detect dangling accesses,
--- that is, trying to access an object which no longer exists or that
--- has been reused. It's not possible to detect these situations when using
--- just raw pointers.
---
--- CAUTION: When using this class don't store pointers for resources allocated
--- with it because every new resource allocation may trigger a global reallocation
--- in the pool and possibly invalidating all pointers.
+--[[
+Resource pool library.
+
+Used internally by the 'io' module to properly handle dangling files.
+
+This is an utility class that provides a mechanism for allocating
+resources from a pool associated with an unique id.
+
+The resource pool returns a new unique id for every new allocated object.
+This id is composed by an index in the lower bits and a generation counter
+in the higher bits. The generation counter is incremented every new allocation
+for the same index.
+
+It's main use is to give the possibility to detect dangling accesses,
+that is, trying to access an object which no longer exists or that
+has been reused. It's not possible to detect these situations when using
+just raw pointers.
+
+*Remarks*: When using this class don't store pointers for resources allocated
+with it because every new resource allocation may trigger a global reallocation
+in the pool and possibly invalidating all pointers.
+]]
 
 require 'memory'
 require 'allocators.general'
 
--- Constants used in the slot pool.
 local SLOT_SHIFT <comptime> = 32
 local SLOT_MASK <comptime> = (1 << SLOT_SHIFT) - 1
 local INIT_SIZE <comptime> = 64
 
-## local make_SlotPool = generalize(function(Allocator)
+## local make_SlotPoolT = generalize(function(Allocator)
   local Allocator: type = #[Allocator]#
 
   -- Auxiliary class to allocate slot ids.
@@ -42,7 +44,7 @@ local INIT_SIZE <comptime> = 64
   function SlotPoolT:reserve(size: uint32): void
     -- return early if there is already enough space
     if size <= self.size then return end
-    -- slot 0 is reserved for the 'invalid id', so bump the pool size by 1
+    -- slot 0 is reserved for the invalid id, so bump the pool size by 1
     self.gen_ctrs = self.allocator:spanxrealloc0(self.gen_ctrs, size+1)
     -- can only reserve 'size' here
     self.free_queue = self.allocator:spanxrealloc0(self.free_queue, size)
@@ -54,7 +56,7 @@ local INIT_SIZE <comptime> = 64
     self.size = size
   end
 
-  -- Clean the slot pool and reset its state.
+  -- Clears the slot pool and resets its state.
   function SlotPoolT:destroy(): void
     self.allocator:spandealloc(self.free_queue)
     self.allocator:spandealloc(self.gen_ctrs)
@@ -64,7 +66,7 @@ local INIT_SIZE <comptime> = 64
     self.free_queue = {}
   end
 
-  -- Allocate a slot index in the slot pool, growing the pool as needed.
+  -- Allocates a slot index into the slot pool, increasing the pool as needed.
   function SlotPoolT:acquire_index(): uint32
     if unlikely(self.queue_top == 0) then
       -- free list is empty, allocate more space
@@ -93,8 +95,10 @@ local INIT_SIZE <comptime> = 64
     self.gen_ctrs[slot_index] = self.gen_ctrs[slot_index] + 1 -- increment generation
   end
 
-  -- Retrieve the slot index from a slot id.
-  -- Invalid ids or from old generations is returned as 0.
+  --[[
+  Retrieves the slot index of a slot id.
+  Invalid or older-generation ids are returned as 0.
+  ]]
   function SlotPoolT:get_index(id: uint64): uint32
     -- the slot index is the low bits of the id
     local slot_index: uint32 = (@uint32)(id & SLOT_MASK)
@@ -107,8 +111,10 @@ local INIT_SIZE <comptime> = 64
     return slot_index
   end
 
-  -- Allocate a slot in the slot pool, growing the pool as needed.
-  -- Returning it's generational id.
+  --[[
+  Allocates a slot in the slot pool, growing the pool as needed.
+  Returns its generational id.
+  ]]
   function SlotPoolT:acquire_slot(): (uint64, uint32)
     local slot_index: uint32 = self:acquire_index()
     local slot_genid: uint32 = self.gen_ctrs[slot_index]
@@ -119,15 +125,14 @@ local INIT_SIZE <comptime> = 64
   ## return SlotPoolT
 ## end)
 
--- Macro to create a resource pool using the specified allocator.
-## local make_ResourcePool = generalize(function(T, Allocator, SlotAllocator)
+## local make_ResourcePoolT = generalize(function(T, Allocator, SlotAllocator)
   ## static_assert(traits.is_type(T), "invalid type '%s'", T)
   ## if not Allocator then
   require 'allocators.default'
   ## Allocator = DefaultAllocator
   ## end
 
-  local SlotPool: type = #[make_SlotPool(SlotAllocator or Allocator)]#
+  local SlotPool: type = #[make_SlotPoolT(SlotAllocator or Allocator)]#
   local Allocator: type = #[Allocator]#
   local T: type = @#[T]#
 
@@ -143,7 +148,7 @@ local INIT_SIZE <comptime> = 64
   ResourcePoolT.value.subtype = T
   ]]
 
-  -- Grow pool items as needed.
+  -- Grows pool items as needed.
   local function grow_items(self: *ResourcePoolT): void
     if self.items.size < self.slot_pool.gen_ctrs.size then
       -- slot pool has grown, allocate more space
@@ -151,46 +156,54 @@ local INIT_SIZE <comptime> = 64
     end
   end
 
-  -- Reserve the pool to contains at least `size` resources.
+  -- Reserves the pool to contains at least `size` resources.
   function ResourcePoolT:reserve(size: usize): void
     self.slot_pool:reserve(size)
     grow_items(self)
   end
 
-  -- Resets the pool to zeroed state, freeing all resources.
-  -- This must be called manually to avoid memory leaks when not using a GC allocator.
+  --[[
+  Resets the pool to zeroed state, freeing all resources.
+  This must be called manually to avoid memory leaks when not using a GC allocator.
+  ]]
   function ResourcePoolT:destroy(): void
     self.slot_pool:destroy()
     self.allocator:spandealloc(self.items)
     self.items = {}
   end
 
-  -- Return a pointer to a resource associated with an id.
-  -- In case the resource id is invalid then throws a runtime error on debug builds.
+  --[[
+  Returns a pointer to a resource associated with an id.
+  The resource id must be valid.
+  ]]
   function ResourcePoolT:at(id: uint64): *T
     local slot_index: uint32 = self.slot_pool:get_index(id)
     check(slot_index ~= 0, 'invalid pool id')
     return &self.items[slot_index]
   end
 
-  -- Return a pointer to a resource associated with an id.
-  -- In case the resource id is invalid then returns nilptr.
+  --[[
+  Returns a pointer to a resource associated with an id.
+  In case the resource id is invalid then returns `nilptr`.
+  ]]
   function ResourcePoolT:get(id: uint64): *T
     local slot_index: uint32 = self.slot_pool:get_index(id)
     if unlikely(slot_index == 0) then return nilptr end
     return &self.items[slot_index]
   end
 
-  -- Allocate a new resource in the pool returning its id fallowed by its pointer.
+  -- Allocates a new resource in the pool returning its id fallowed by its pointer.
   function ResourcePoolT:acquire(): (uint64, *T)
     local slot_id: uint64, slot_index: uint32 = self.slot_pool:acquire_slot()
     grow_items(self)
     return slot_id, &self.items[slot_index]
   end
 
-  -- Free a resource associated with an id from the pool.
-  -- In case the resource id is 0 does nothing.
-  -- In case the resource id is invalid then throws a runtime error on debug builds.
+  --[[
+  Frees the resource associated with an id from the pool.
+  In case the resource id is 0, then does nothing.
+  The resource id must be valid.
+  ]]
   function ResourcePoolT:release(id: uint64): void
     if id == 0 then return end
     local slot_index: uint32 = self.slot_pool:get_index(id)
@@ -208,4 +221,4 @@ local INIT_SIZE <comptime> = 64
 ## end)
 
 -- The resource pool generic type.
-global resourcepool: type = #[make_ResourcePool]#
+global resourcepool: type = #[make_ResourcePoolT]#

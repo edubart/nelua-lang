@@ -18,9 +18,9 @@ Note that all string methods are 1-indexed (like Lua).
 
 require 'memory'
 require 'span'
-require 'patternmatcher'
 require 'sequence'
 require 'allocators.default'
+require 'detail.patternmatcher'
 
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
 local function strtoll(str: cstring, endptr: *cstring, base: cint): clonglong <cimport,cinclude'<stdlib.h>',nodecl> end

@@ -1,0 +1,48 @@
+--[[
+Pseudo Random Number Generator based on Xoshiro256.
+
+Used internally by the math library.
+]]
+
+global Xoshiro256: type = @record{
+  state: [4]uint64
+}
+
+-- Left bit rotation utility.
+local function rotl(x: uint64, n: int32): uint64 <inline,nosideeffect>
+  return (x << n) | (x >> (64 - n))
+end
+
+-- Generates a random unsigned integral number.
+function Xoshiro256:nextrand(): uint64
+  local state: [4]uint64 = {
+    self.state[0],
+    self.state[1],
+    self.state[2] ~ self.state[0],
+    self.state[3] ~ self.state[1]
+  }
+  local res: uint64 = rotl(state[1] * 5, 7) * 9
+  self.state[0] = state[0] ~ state[3]
+  self.state[1] = state[1] ~ state[2]
+  self.state[2] = state[2] ~ (state[1] << 17)
+  self.state[3] = rotl(state[3], 45)
+  return res
+end
+
+-- Generates a random float number.
+function Xoshiro256:random(): number
+  ## local MANT_DIGITS = primtypes.number.is_float32 and 24 or 53
+  local rv: uint64 = self:nextrand()
+  return (rv >> (64 - #[MANT_DIGITS]#)) / (1_u64 << #[MANT_DIGITS]#)
+end
+
+-- Reinitialize the generator seed.
+function Xoshiro256:seed(a: uint64, b: uint64): void
+  self.state[0] = a
+  self.state[1] = 0xff
+  self.state[2] = b
+  self.state[3] = 0
+  for i:integer=0,<16 do
+    self:nextrand()
+  end
+end
