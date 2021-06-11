@@ -1,48 +1,56 @@
--- Default Allocator
---
--- The default allocator by default is the garbage collector, however it can be changed
--- to the general allocator when using the pragma `nogc`. When using that pragma the user
--- is responsible for managing the memory, as the GC is removed and nothing will be free
--- automatically, in this case the user is encouraged to try to use other allocators
--- to have more efficiency and to assist managing the memory.
+--[[
+The default allocator is the default allocator used by the standard libraries.
+By default is the `GCAllocator` when GC is enabled, otherwise
+the `GeneralAllocator` when GC is disabled (using the pragma `nogc`).
 
-## if pragmas.default_allocator then
+When disabling the GC the user is responsible for manually deallocating
+unused memory from the default allocator.
+]]
 
-local allocator: auto = #[pragmas.default_allocator]#
-require 'allocators.interface'
-global DefaultAllocator: type = @record{}
-function DefaultAllocator:alloc(size: usize): pointer <inline>
-  return allocator:alloc(size)
-end
-function DefaultAllocator:alloc0(size: usize): pointer <inline>
-  return allocator:alloc0(size)
-end
-function DefaultAllocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
-  return allocator:realloc(p, newsize, oldsize)
-end
-function DefaultAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
-  return allocator:realloc0(p, newsize, oldsize)
-end
-function DefaultAllocator:dealloc(p: pointer): void <inline>
-  allocator:dealloc(p)
-end
-## implement_allocator_interface(DefaultAllocator)
-global default_allocator: DefaultAllocator
+## if embed_default_allocator then -- embedded default allocator
+  require 'allocators.allocator'
+  global DefaultAllocator: type = @record{}
+  global default_allocator: DefaultAllocator
 
-## elseif not pragmas.nogc then
+  function DefaultAllocator:alloc(size: usize): pointer <inline>
+    return embed_default_allocator:alloc(size)
+  end
 
-require 'allocators.gc'
+  function DefaultAllocator:alloc0(size: usize): pointer <inline>
+    return embed_default_allocator:alloc0(size)
+  end
 
--- alias
-## context.rootscope.symbols.default_allocator = gc_allocator
-## context.rootscope.symbols.DefaultAllocator = GCAllocator
+  function DefaultAllocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+    return embed_default_allocator:realloc(p, newsize, oldsize)
+  end
 
-## else
+  function DefaultAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+    return embed_default_allocator:realloc0(p, newsize, oldsize)
+  end
 
-require 'allocators.general'
+  function DefaultAllocator:dealloc(p: pointer): void <inline>
+    embed_default_allocator:dealloc(p)
+  end
 
--- alias
-## context.rootscope.symbols.default_allocator = general_allocator
-## context.rootscope.symbols.DefaultAllocator = GeneralAllocator
+  function DefaultAllocator:new(what: auto) <inline>
+    return embed_default_allocator:new(p)
+  end
 
+  function DefaultAllocator:spannew(what: auto, size: usize) <inline>
+    return embed_default_allocator:spannew(what, size)
+  end
+
+  function DefaultAllocator:delete(v: auto) <inline>
+    embed_default_allocator:delete(v)
+  end
+
+  ## implement_allocator_interface(DefaultAllocator)
+## elseif not pragmas.nogc then -- GC enabled
+  require 'allocators.gc'
+  ## context.rootscope.symbols.default_allocator = gc_allocator
+  ## context.rootscope.symbols.DefaultAllocator = GCAllocator
+## else -- GC disabled
+  require 'allocators.general'
+  ## context.rootscope.symbols.default_allocator = general_allocator
+  ## context.rootscope.symbols.DefaultAllocator = GeneralAllocator
 ## end

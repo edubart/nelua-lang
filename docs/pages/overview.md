@@ -530,7 +530,8 @@ You can use type suffixes to force a type for a numeric literal:
 ```nelua
 local a = 1234_u32 -- variable of type 'int32'
 local b = 1_f32 -- variable of type 'float32'
-print(a,b) --outputs: 1234 1.0
+local c = -1_isize -- variable of type `isize`
+print(a,b,c) --outputs: 1234 1.0 -1
 ```
 
 The following table shows Nelua primitive numeric types and their related types in C:

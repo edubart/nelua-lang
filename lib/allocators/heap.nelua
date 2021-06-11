@@ -1,29 +1,29 @@
--- Heap Allocator
---
--- This is a minimal general purpose allocator, that could serve as replacement to
--- the system's general allocator. It requires a pre allocated memory region in advance.
--- It's purpose is to have predictable allocation and deallocation time
--- when you can allocate the maximum memory usage in advance.
---
--- It uses linked lists to search the best free node. It tries to have a fast alloc/dealloc.
--- However it may fragment more than other allocators.
---
--- In some cases it can be faster than the general purpose allocator.
--- However usually your are better off with the system's general purposes allocator.
--- This may be more useful to have reliable alloc/dealloc time on realtime applications,
--- or if you want to avoid the system's default allocator for some reason,
--- or if the system does not have an allocator.
---
--- Its memory cannot grow automatically, use the system's general purpose allocator for that.
--- The allocator is not thread safe, it was designed to be used in single thread applications.
--- Allocations are always 16 byte aligned.
---
--- NOTE: This is experimental, a bunch tests were done but is not really battle tested.
---
--- The implementation was originally based on
--- https://github.com/CCareaga/heap_allocator
--- however it has heavy customized to have more performance, constant time allocations
--- and alignment.
+--[[
+This is a minimal general purpose heap allocator, that could serve as replacement to
+the system's general allocator. It requires a pre allocated memory region in advance.
+It's purpose is to have predictable allocation and deallocation time
+when you can allocate the maximum memory usage in advance.
+
+It uses linked lists to search for the best free node. It tries to have a fast alloc/dealloc.
+However it may fragment more than other allocators.
+
+In some cases it can be faster than the general purpose allocator.
+However usually you are better off with the system's general purpose allocator.
+This may be more useful to have reliable alloc/dealloc time on real time applications,
+or if you want to avoid the system's default allocator for some reason,
+or if the system does not have an allocator.
+
+Its memory cannot grow automatically, use the system's general purpose allocator for that.
+The allocator is not thread safe, it was designed to be used in single thread applications.
+Allocations are always 16 byte aligned.
+
+NOTE: This is experimental, a bunch of tests were done but is not really battle tested.
+
+The implementation is based on
+[this project](https://github.com/CCareaga/heap_allocator),
+however it has heavy customized to have more performance, constant time allocations
+and alignment.
+]]
 
 -- do not change this alignment, the code have this in mind
 local ALLOC_ALIGN: usize <comptime> = 16
@@ -177,6 +177,7 @@ function Heap:add_memory_region(region: pointer, region_size: usize): void
 
   -- calculate the offset for the heap
   local region_offset: usize = heap_start - region_start
+  check(region_size >= region_offset + #@Node, 'heap region size is too small')
 
   -- the heap size is the region size minus alignment offset and ending node space
   local heap_size: usize = region_size - region_offset - #@Node
@@ -404,7 +405,7 @@ function Heap:realloc(p: pointer, size: usize): pointer
   return p
 end
 
-## local make_heap_allocator = generalize(function(HEAP_SIZE)
+## local make_HeadAllocatorT = generalize(function(HEAP_SIZE)
   ## static_assert(traits.is_number(HEAP_SIZE), 'size must be a number')
 
   local HEAP_SIZE: usize <comptime> = #[HEAP_SIZE]#
@@ -442,11 +443,11 @@ end
     return p
   end
 
-  require 'allocators.interface'
+  require 'allocators.allocator'
 
   ## implement_allocator_interface(HeapAllocatorT)
 
   ## return HeapAllocatorT
 ## end)
 
-global HeapAllocator: type = #[make_heap_allocator]#
+global HeapAllocator: type = #[make_HeadAllocatorT]#

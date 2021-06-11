@@ -76,7 +76,7 @@ require 'iterators'
   -- Reserve at least `n` elements in the vector storage.
   function vectorT:reserve(n: usize): void
     if likely(self.data.size >= n) then return end
-    self.data = self.allocator:spanxrealloc(self.data, n)
+    self.data = self.allocator:xspanrealloc(self.data, n)
   end
 
   --[[
@@ -95,7 +95,7 @@ require 'iterators'
   function vectorT:copy(): vectorT
     local clone: vectorT
     if self.size > 0 then
-      clone.data = self.allocator:spanxalloc(@T, self.data.size)
+      clone.data = self.allocator:xspanalloc(@T, self.data.size)
       memory.spancopy(clone.data, self.data)
       clone.size = self.size
     end
@@ -107,7 +107,7 @@ require 'iterators'
   local function vectorT_grow(self: *vectorT): void <noinline>
     local cap: usize = 1
     if likely(self.data.size ~= 0) then cap = self.data.size * 2 end
-    self.data = self.allocator:spanxrealloc(self.data, cap)
+    self.data = self.allocator:xspanrealloc(self.data, cap)
   end
 
   -- Inserts a element `v` at the end of the vector.

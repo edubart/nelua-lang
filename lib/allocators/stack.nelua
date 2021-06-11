@@ -1,36 +1,35 @@
--- Stack Allocator
---
--- The stack allocator, allocates everything from fixed size contiguous buffer
--- by incrementing an offset every new allocation and decrementing on every
--- deallocation that follows the LIFO (last-in, first-out) principle.
--- This allocator is an evolution of the Arena allocator,
--- thus understand the arena allocator first before using this.
---
--- The purpose of this allocator is to have very fast allocations with almost
--- no runtime cost when the maximum used space is known ahead.
---
--- Deallocations out of order will cause a runtime error.
--- By default alignment should be at least 4 because this allocator stores
--- a header for allocation metadata with this requirement.
--- By default allocations are aligned to 8 bytes unless explicit told otherwise.
---
--- The implementation is based on
--- https://www.gingerbill.org/article/2019/02/15/memory-allocation-strategies-003/
+--[[
+The stack allocator, allocates everything from a fixed size contiguous buffer
+by incrementing an offset every new allocation and decrementing on every
+deallocation that follows the LIFO (last-in, first-out) principle.
+This allocator is an evolution of the Arena allocator,
+thus understand the arena allocator first before using this.
 
-require 'allocators.interface'
+The purpose of this allocator is to have very fast allocations with almost
+no runtime cost when the maximum used space is known ahead.
+
+Deallocations out of order will cause a runtime error only on checked builds.
+By default alignment should be at least 4 because this allocator stores
+a header for allocation metadata with this requirement.
+By default allocations are aligned to 8 bytes unless explicitly told otherwise.
+
+The implementation is based on
+[this article](https://www.gingerbill.org/article/2019/02/15/memory-allocation-strategies-003/).
+]]
+
+require 'allocators.allocator'
 
 local function align_forward(addr: usize, align: usize): usize <inline>
   return (addr + (align-1)) & ~(align-1)
 end
 
-local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
-
+-- Header used on every allocation.
 local StackAllocHeader: type = @record{
   prev_offset: uint32,
   curr_offset: uint32
 }
 
-## local make_stack_allocator = generalize(function(SIZE, ALIGN)
+## local make_StackAllocatorT = generalize(function(SIZE, ALIGN)
   ##[[
   ALIGN = ALIGN or 8
   static_assert(ALIGN >= 4, 'align must be at least 4')
@@ -42,19 +41,22 @@ local StackAllocHeader: type = @record{
   local SIZE <comptime> = #[SIZE]#
   local ALIGN <comptime> = #[ALIGN]#
 
+  -- Stack allocator record defined when instantiating the generic `StackAllocator`.
   local StackAllocatorT: type = @record{
     prev_offset: usize,
     curr_offset: usize,
     buffer: [SIZE]byte
   }
 
-  -- Free all allocations.
-  function StackAllocatorT:dealloc_all(): void
-    self.prev_offset = 0
-    self.curr_offset = 0
-  end
+  --[[
+  Allocates `size` bytes and returns a pointer to the allocated memory block,
+  advancing the internal stack offset.
 
+  The allocated memory is not initialized.
+  If `size` is zero or the operation fails, then returns `nilptr`.
+  ]]
   function StackAllocatorT:alloc(size: usize): pointer
+    if unlikely(size == 0) then return nilptr end
     local base: usize = (@usize)(&self.buffer[0])
     local offset: usize = align_forward(base + self.curr_offset + #@StackAllocHeader, ALIGN) - base
     local next_offset: usize = offset + size
@@ -72,6 +74,12 @@ local StackAllocHeader: type = @record{
     return p
   end
 
+  --[[
+  Deallocates the allocated memory block pointed by `p`,
+  rewinding the internal stack offset by one allocation.
+
+  Unless `p` is `nilptr`, it must be the very last allocation.
+  ]]
   function StackAllocatorT:dealloc(p: pointer): void
     if unlikely(p == nilptr) then return end
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
@@ -83,6 +91,24 @@ local StackAllocHeader: type = @record{
     self.curr_offset = header.curr_offset
   end
 
+  --[[
+  Deallocate all allocations,
+  rewinding the entire internal stack offset.
+
+  This operation is fast.
+  ]]
+  function StackAllocatorT:deallocall(): void
+    self.prev_offset = 0
+    self.curr_offset = 0
+  end
+
+  --[[
+  Changes the size of the memory block pointer by `p` from size `oldsize` bytes to `newsize` bytes,
+  rewinding or advancing the internal stack offset as necessary.
+
+  Unless `p` is `nilptr`, it must be the very last allocation.
+  For more `realloc` details see also `Allocator:realloc`.
+  ]]
   function StackAllocatorT:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
     if unlikely(p == nilptr) then
       return self:alloc(newsize)
@@ -114,4 +140,11 @@ local StackAllocHeader: type = @record{
   ## return StackAllocatorT
 ## end)
 
-global StackAllocator: type = #[make_stack_allocator]#
+--[[
+Generic used to instantiate a stack allocator type in the form of `StackAllocator(SIZE, ALIGN)`.
+
+Argument `SIZE` is the fixed stack buffer size, must be multiple of `ALIGN`.
+Argument `ALIGN` is the default alignment for new allocations,
+must be at least 4 and in power of two, in case absent then `8` is used.
+]]
+global StackAllocator: type = #[make_StackAllocatorT]#

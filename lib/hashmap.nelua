@@ -143,7 +143,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     -- reserve number of elements
     local nodes_count: usize = (count * MAX_LOAD_FACTOR) // 100
     if nodes_count > self.nodes.size then
-      self.nodes = self.allocator:spanxrealloc0(self.nodes, nodes_count)
+      self.nodes = self.allocator:xspanrealloc0(self.nodes, nodes_count)
     end
 
     -- only rehash when needed
@@ -152,7 +152,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     end
 
     -- reallocate new buckets
-    self.buckets = self.allocator:spanxrealloc(self.buckets, count)
+    self.buckets = self.allocator:xspanrealloc(self.buckets, count)
 
     -- reset buckets
     memory.spanset(self.buckets, INVALID_INDEX)

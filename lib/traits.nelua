@@ -12,6 +12,7 @@ global traits.typeid: type = @uint32
 global traits.typeinfo: type = @record{
   id: traits.typeid,
   name: string,
+  nickname: string,
   codename: string
 }
 
@@ -33,6 +34,7 @@ function traits.typeinfoof(v: auto): traits.typeinfo <inline>
   return (@traits.typeinfo){
     id = #[vtype.id]#,
     name = #[vtype.name]#,
+    nickname = #[vtype.nickname or '']#,
     codename = #[vtype.codename]#
   }
 end
@@ -41,10 +43,13 @@ end
 Returns the type of `v`, coded as a string, as follows:
 * `"nil"` for `niltype`
 * `"pointer"` for pointers and `nilptr`
-* `"number"` for scalar types
+* `"number"` for scalar types (including enums)
 * `"string"` for types that can represent a string
-
-other types not listed here returns the underlying type name.
+* `"record"` for records
+* `"union"` for unions
+* `"type"` for compile-time types
+* `"function"` for functions
+* `"polyfunction"` for polymorphic functions
 
 This function behaves as describe to be compatible with Lua APIs.
 ]]

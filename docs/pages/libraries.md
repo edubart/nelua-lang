@@ -2124,6 +2124,7 @@ Type of the identifier for types.
 global traits.typeinfo: type = @record{
   id: traits.typeid,
   name: string,
+  nickname: string,
   codename: string
 }
 ```
@@ -2157,10 +2158,13 @@ global function type(v: auto): string
 Returns the type of `v`, coded as a string, as follows:
 * `"nil"` for `niltype`
 * `"pointer"` for pointers and `nilptr`
-* `"number"` for scalar types
+* `"number"` for scalar types (including enums)
 * `"string"` for types that can represent a string
-
-other types not listed here returns the underlying type name.
+* `"record"` for records
+* `"union"` for unions
+* `"type"` for compile-time types
+* `"function"` for functions
+* `"polyfunction"` for polymorphic functions
 
 This function behaves as describe to be compatible with Lua APIs.
 
@@ -3221,6 +3225,578 @@ Argument `HashFunc` is a function to hash a key,
 in case absent then `hash.hash` is used.
 Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
+
+---
+## allocators.interface
+
+Allocator interface library providing common functions implemented on every allocator.
+
+This library is not an allocator by itself, but it's used by other
+allocators such as `DefaultAllocator`, `GeneralAllocator` and `GCAllocator`.
+
+A method with '0' suffix initializes the memory with zeros.
+A method with 'x' prefix raises an error in case of an allocation failure.
+A method with 'span' prefix returns a span, instead of a pointer.
+Allocation failures usually happen when running out of memory.
+
+### Allocator
+
+```nelua
+local Allocator: type
+```
+
+The allocator type which the allocator interface will implements the methods.
+
+### Allocator:alloc
+
+```nelua
+function Allocator:alloc(size: usize): pointer
+```
+
+Allocates `size` bytes and returns a pointer of the allocated memory block.
+
+The allocated memory is not initialized.
+If `size` is zero or the operation fails, then returns `nilptr`.
+
+### Allocator:xalloc
+
+```nelua
+function Allocator:xalloc(size: usize): pointer
+```
+
+Like `alloc`, but raises an error in case the allocation fails.
+
+### Allocator:alloc0
+
+```nelua
+function Allocator:alloc0(size: usize): pointer
+```
+
+Like `alloc`, but the allocated memory is initialized with zeros.
+
+### Allocator:xalloc0
+
+```nelua
+function Allocator:xalloc0(size: usize): pointer
+```
+
+Like `alloc0`, but raises an error in case the allocation fails.
+
+### Allocator:dealloc
+
+```nelua
+function Allocator:dealloc(p: pointer): void
+```
+
+Deallocates the allocated memory block pointed by `p`.
+
+If `p` is `nilptr`, then no operation is performed.
+The `dealloc(p)` has been already been called before, then undefined behavior occurs.
+Unless `p` is `nilptr`,
+it must have been returned by an earlier allocation call from this allocator.
+
+### Allocator:realloc
+
+```nelua
+function Allocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
+```
+
+Changes the size of the memory block pointer by `p` from size `oldsize` bytes to `newsize` bytes.
+
+- The allocated memory contents will be unchanged from the start of the region
+up to the minimum of the `oldsize` and `newsize`.
+- When `newsize` is larger than the `oldsize`, the added memory is not initialized.
+- If `p` is `nilptr`, the call is equivalent to `alloc(newsize)`.
+- If `newsize` is zero, the call is equivalent to `dealloc(p)`.
+- If the operation fails, then the original `p` is left untouched, it's not deallocated or moved,
+and `nilptr` is returned.
+- The returned pointer may be the same as `p` if the allocation was not moved,
+or different from `p` if the allocation was moved to a new address.
+- Unless `p` is `nilptr`,
+it must have been returned by an earlier allocation call from this allocator.
+
+### Allocator:xrealloc
+
+```nelua
+function Allocator:xrealloc(p: pointer, newsize: usize, oldsize: usize): pointer
+```
+
+Like `realloc`, but raises an error in case the allocation fails.
+
+### Allocator:realloc0
+
+```nelua
+function Allocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer
+```
+
+Like `realloc`, but initializes added memory with zeros.
+
+### Allocator:xrealloc0
+
+```nelua
+function Allocator:xrealloc0(p: pointer, newsize: usize, oldsize: usize): pointer
+```
+
+Like `realloc0`, but raises an error in case the allocation fails.
+
+### Allocator:spanalloc
+
+```nelua
+function Allocator:spanalloc(T: type, size: usize)
+```
+
+Like `alloc`, but returns a span of `T` with `size` elements.
+
+The allocated memory region will have `size * #T` bytes.
+If the operation fails, then an empty span is returned.
+
+### Allocator:xspanalloc
+
+```nelua
+function Allocator:xspanalloc(T: type, size: usize)
+```
+
+Like `spanalloc`, but raises an error in case the allocation fails.
+
+### Allocator:spanalloc0
+
+```nelua
+function Allocator:spanalloc0(T: type, size: usize)
+```
+
+Like `spanalloc0`, but initializes added memory with zeros.
+
+### Allocator:xspanalloc0
+
+```nelua
+function Allocator:xspanalloc0(T: type, size: usize)
+```
+
+Like `spanalloc0`, but raises an error in case the allocation fails.
+
+### Allocator:spandealloc
+
+```nelua
+function Allocator:spandealloc(s: span_concept): void
+```
+
+Like `dealloc`, but operates over a span.
+
+### Allocator:spanrealloc
+
+```nelua
+function Allocator:spanrealloc(s: span_concept, size: usize)
+```
+
+Like `realloc`, but operate over a span.
+
+If the operation fails and `size > 0`,
+then the memory region is left untouched and span `s` is returned,
+thus to check for an allocation failure you have to compare
+if the returned span size is different than `size`.
+
+### Allocator:xspanrealloc
+
+```nelua
+function Allocator:xspanrealloc(s: span_concept, size: usize)
+```
+
+Like `spanrealloc`, but raises an error in case the allocation fails.
+
+### Allocator:spanrealloc0
+
+```nelua
+function Allocator:spanrealloc0(s: span_concept, size: usize)
+```
+
+Like `spanrealloc`, but initializes added memory with zeros.
+
+### Allocator:xspanrealloc0
+
+```nelua
+function Allocator:xspanrealloc0(s: span_concept, size: usize)
+```
+
+Like `spanrealloc0`, but raises an error in case the allocation fails.
+
+### Allocator:new
+
+```nelua
+function Allocator:new(what: auto)
+```
+
+Allocates a new value.
+In case the value has a finalizer, and the allocator supports finalizers,
+such as GCAllocator, the value is marked to be finalized when deallocated.
+
+Argument `what` must be either a compile-time type or a runtime initialized value.
+If `what` is a runtime value, the return value will have the same type,
+and it's contents are copied into the new allocated value.
+If `what` is a compile-time type, the returned value will be of `what` type,
+and its contents are zero initialized.
+If the operation fails, then an error is raised.
+
+### Allocator:spannew
+
+```nelua
+function Allocator:spannew(what: auto, size: usize)
+```
+
+Like `new`, but returns a span of `what` with `size` elements.
+
+### Allocator:delete
+
+```nelua
+function Allocator:delete(v: deleteable_concept): void
+```
+
+Deletes value `v`, which must be either a pointer or a span.
+
+Argument `v` must have been returned by an earlier call to `new` or `spannew` from this allocator.
+Currently this effectively the same as calling `dealloc` or `spandealloc`.
+
+---
+## allocators.general
+
+The general allocator uses the system's general purpose allocator to allocate dynamic memory,
+usually this an efficient allocator for the general use case.
+It uses the allocation functions provided by the system.
+
+### GeneralAllocator
+
+```nelua
+global GeneralAllocator = @record{}
+```
+
+General allocator record.
+
+### general_allocator
+
+```nelua
+global general_allocator: GeneralAllocator
+```
+
+General allocator instance, that must be used to perform operations.
+
+### GeneralAllocator:alloc
+
+```nelua
+function GeneralAllocator:alloc(size: usize): pointer
+```
+
+Allocates `size` bytes and returns a pointer of the allocated memory block.
+
+The allocated memory is not initialized.
+For more details see `Allocator.alloc`.
+
+This function calls system's `malloc()`.
+
+### GeneralAllocator:alloc0
+
+```nelua
+function GeneralAllocator:alloc0(size: usize): pointer
+```
+
+Like `alloc`, but the allocated memory is initialized with zeros.
+
+This function calls system's `calloc()`.
+
+### GeneralAllocator:realloc
+
+```nelua
+function GeneralAllocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
+```
+
+Changes the size of the memory block pointer by `p` from size `oldsize` bytes to `newsize` bytes.
+
+For more details see `Allocator.realloc`.
+This function calls system's `realloc()`.
+
+### GeneralAllocator:dealloc
+
+```nelua
+function GeneralAllocator:dealloc(p: pointer): void
+```
+
+Deallocates the allocated memory block pointed by `p`.
+
+For more details see `Allocator.dealloc`.
+This function calls system's `free()`.
+
+---
+## allocators.arena
+
+The arena allocator, sometimes also known as linear, monotonic or region allocator,
+allocates everything from a fixed size contiguous buffer by incrementing
+an offset every new allocation.
+
+The purpose of this allocator is to have very fast allocations with almost
+no runtime cost when the maximum used space is known ahead
+and to quickly deallocate many allocated objects at once with almost no runtime cost too.
+
+Reallocations and deallocations do not free space unless once for the last recent allocation.
+To free space `deallocall` should be called when all operations on its allocations are finished.
+
+The allocator buffer will reside on the stack when declared inside a function,
+or on the static memory storage when declared in a top scope,
+or on the heap if allocated by the general allocator.
+
+When declaring on the stack there is no need to perform deallocations at the end of the scope,
+just leave the scope ends to have a quick cleanup.
+Also take care to not use a large buffer on the stack,
+or the program may crash with not enough stack space,
+on some system for example the stack is limited to 1MB.
+
+By default allocations are aligned to 8 bytes unless explicitly told otherwise.
+Remember to use the proper alignment for the allocated objects to have fast memory access.
+
+The implementation is based on
+[this article](https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/)
+
+### ArenaAllocatorT
+
+```nelua
+local ArenaAllocatorT: type = @record{
+    prev_offset: usize,
+    curr_offset: usize,
+    buffer: [SIZE]byte
+  }
+```
+
+Arena allocator record defined when instantiating the generic `ArenaAllocator`.
+
+### ArenaAllocatorT:alloc
+
+```nelua
+function ArenaAllocatorT:alloc(size: usize): pointer
+```
+
+Allocates `size` bytes and returns a pointer to the allocated memory block,
+advancing the internal arena offset.
+
+The allocated memory is not initialized.
+If `size` is zero or the operation fails, then returns `nilptr`.
+
+### ArenaAllocatorT:dealloc
+
+```nelua
+function ArenaAllocatorT:dealloc(p: pointer): void
+```
+
+Deallocates the allocated memory block pointed by `p`.
+
+If `p` is the very last allocation,
+then the internal arena offset is rewind by one allocation.
+
+### ArenaAllocatorT:deallocall
+
+```nelua
+function ArenaAllocatorT:deallocall(): void
+```
+
+Deallocate all allocations.
+rewinding the entire internal arena offset.
+
+This operation is fast.
+
+### ArenaAllocatorT:realloc
+
+```nelua
+function ArenaAllocatorT:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
+```
+
+Changes the size of the memory block pointer by `p` from size `oldsize` bytes to `newsize` bytes.
+
+If `p` is not the very last allocation,
+then its contents are copied to a new memory block.
+For more `realloc` details see also `Allocator:realloc`.
+
+### ArenaAllocator
+
+```nelua
+global ArenaAllocator: type
+```
+
+Generic used to instantiate a arena allocator type in the form of `ArenaAllocator(SIZE, ALIGN)`.
+
+Argument `SIZE` is the arena fixed buffer size, must be multiple of `ALIGN`.
+Argument `ALIGN` is the default alignment for new allocations,
+must be at least 4 and in power of two, in case absent then `8` is used.
+
+---
+## allocators.stack
+
+The stack allocator, allocates everything from a fixed size contiguous buffer
+by incrementing an offset every new allocation and decrementing on every
+deallocation that follows the LIFO (last-in, first-out) principle.
+This allocator is an evolution of the Arena allocator,
+thus understand the arena allocator first before using this.
+
+The purpose of this allocator is to have very fast allocations with almost
+no runtime cost when the maximum used space is known ahead.
+
+Deallocations out of order will cause a runtime error only on checked builds.
+By default alignment should be at least 4 because this allocator stores
+a header for allocation metadata with this requirement.
+By default allocations are aligned to 8 bytes unless explicitly told otherwise.
+
+The implementation is based on
+[this article](https://www.gingerbill.org/article/2019/02/15/memory-allocation-strategies-003/).
+
+### StackAllocatorT
+
+```nelua
+local StackAllocatorT: type = @record{
+    prev_offset: usize,
+    curr_offset: usize,
+    buffer: [SIZE]byte
+  }
+```
+
+Stack allocator record defined when instantiating the generic `StackAllocator`.
+
+### StackAllocatorT:alloc
+
+```nelua
+function StackAllocatorT:alloc(size: usize): pointer
+```
+
+Allocates `size` bytes and returns a pointer to the allocated memory block,
+advancing the internal stack offset.
+
+The allocated memory is not initialized.
+If `size` is zero or the operation fails, then returns `nilptr`.
+
+### StackAllocatorT:dealloc
+
+```nelua
+function StackAllocatorT:dealloc(p: pointer): void
+```
+
+Deallocates the allocated memory block pointed by `p`,
+rewinding the internal stack offset by one allocation.
+
+Unless `p` is `nilptr`, it must be the very last allocation.
+
+### StackAllocatorT:deallocall
+
+```nelua
+function StackAllocatorT:deallocall(): void
+```
+
+Deallocate all allocations,
+rewinding the entire internal stack offset.
+
+This operation is fast.
+
+### StackAllocatorT:realloc
+
+```nelua
+function StackAllocatorT:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
+```
+
+Changes the size of the memory block pointer by `p` from size `oldsize` bytes to `newsize` bytes,
+rewinding or advancing the internal stack offset as necessary.
+
+Unless `p` is `nilptr`, it must be the very last allocation.
+For more `realloc` details see also `Allocator:realloc`.
+
+### StackAllocator
+
+```nelua
+global StackAllocator: type
+```
+
+Generic used to instantiate a stack allocator type in the form of `StackAllocator(SIZE, ALIGN)`.
+
+Argument `SIZE` is the fixed stack buffer size, must be multiple of `ALIGN`.
+Argument `ALIGN` is the default alignment for new allocations,
+must be at least 4 and in power of two, in case absent then `8` is used.
+
+---
+## allocators.pool
+
+The pool allocator allocates chunks from a fixed contiguous buffer of many chunks,
+allocations pop a free chunk from the pool and deallocations push a chunk back.
+It works by using a single linked list of free chunks.
+
+The purpose of this allocator is to have very fast allocations of objects with almost
+no runtime cost when the maximum used space is known ahead.
+
+Reallocations and deallocations free space (unlikely the Arena allocator).
+Allocations greater than the chunk size will always fail.
+
+The implementation is based on
+[this article](https://www.gingerbill.org/article/2019/02/16/memory-allocation-strategies-004/)
+
+### PoolAllocatorT
+
+```nelua
+local PoolAllocatorT: type = @record{
+    initialized: boolean,
+    head: *PoolFreeNode,
+    buffer: [SIZE]PoolChunkT
+  }
+```
+
+Pool allocator record defined when instantiating the generic `PoolAllocator`.
+
+### PoolAllocatorT:alloc
+
+```nelua
+function PoolAllocatorT:alloc(size: usize): pointer
+```
+
+Allocates `size` bytes and returns a pointer to the allocated memory block,
+using a free chunk from the pool.
+
+The allocated memory is not initialized.
+If `size` is greater than the size of T, then the operation fails.
+If `size` is zero, then the operation fails.
+If the operation fails, then returns `nilptr`.
+
+### PoolAllocatorT:dealloc
+
+```nelua
+function PoolAllocatorT:dealloc(p: pointer): void
+```
+
+Deallocates the allocated memory block pointed by `p`,
+leaving the pool chunk of `p` free to be reused in a subsequent allocation.
+
+### PoolAllocatorT:deallocall
+
+```nelua
+function PoolAllocatorT:deallocall(): void
+```
+
+Deallocate all allocations,
+leaving all pool chunks free to be reused in new allocations.
+
+### PoolAllocatorT:realloc
+
+```nelua
+function PoolAllocatorT:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
+```
+
+This function is provided just for compatibility.
+
+Any attempt to grow the memory block will fail, returning `nilptr`.
+Any attempt to shrink the memory block will be ignored, returning the same `p`.
+New allocations and deallocation through this function will work normally.
+
+### PoolAllocator
+
+```nelua
+global PoolAllocator: type
+```
+
+Generic used to instantiate a arena allocator type in the form of `PoolAllocator(T, SIZE)`.
+
+Argument `T` is the object type in the pool.
+Argument `SIZE` is the maximum number of elements in the pool.
+
+The pool will effectively have an internal buffer with `#T * SIZE` bytes.
 
 ---
 

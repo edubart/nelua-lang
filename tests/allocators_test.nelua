@@ -30,7 +30,7 @@ do -- Arena
   assert(a ~= nilptr)
   assert(allocator.prev_offset == 0 and allocator.curr_offset == 1024)
   assert(allocator:alloc0(1) == nilptr)
-  allocator:dealloc_all()
+  allocator:deallocall()
   assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
   for i=0,<1024 do
     assert(allocator.buffer[i] == 0)
@@ -58,7 +58,7 @@ do -- Stack
   assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
   a = allocator:alloc0(3)
   b = allocator:alloc0(7)
-  allocator:dealloc_all()
+  allocator:deallocall()
   assert(allocator.prev_offset == 0 and allocator.curr_offset == 0)
 end
 
@@ -82,7 +82,7 @@ do -- Pool
   -- should be out of memory
   assert(allocator:alloc0(#Object) == nilptr)
   -- free all
-  allocator:dealloc_all()
+  allocator:deallocall()
   -- realloc
   local i: *integer = (@*integer)(allocator:realloc0(nilptr, #integer, 0))
   local ri: *integer = (@*integer)(allocator:realloc0(i, 2*#integer, #integer))

@@ -45,9 +45,9 @@ local INIT_SIZE <comptime> = 64
     -- return early if there is already enough space
     if size <= self.size then return end
     -- slot 0 is reserved for the invalid id, so bump the pool size by 1
-    self.gen_ctrs = self.allocator:spanxrealloc0(self.gen_ctrs, size+1)
+    self.gen_ctrs = self.allocator:xspanrealloc0(self.gen_ctrs, size+1)
     -- can only reserve 'size' here
-    self.free_queue = self.allocator:spanxrealloc0(self.free_queue, size)
+    self.free_queue = self.allocator:xspanrealloc0(self.free_queue, size)
     -- never allocate the zero-th pool item since the invalid id is 0
     for i:uint32=size,self.size+1,-1 do
       self.free_queue[self.queue_top] = i
@@ -152,7 +152,7 @@ local INIT_SIZE <comptime> = 64
   local function grow_items(self: *ResourcePoolT): void
     if self.items.size < self.slot_pool.gen_ctrs.size then
       -- slot pool has grown, allocate more space
-      self.items = self.allocator:spanxrealloc0(self.items, self.slot_pool.gen_ctrs.size)
+      self.items = self.allocator:xspanrealloc0(self.items, self.slot_pool.gen_ctrs.size)
     end
   end
 

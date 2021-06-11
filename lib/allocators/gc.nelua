@@ -1,9 +1,12 @@
--- GC Allocator
--- This is an allocator that uses a tiny and simple mark and sweep garbage collector.
--- It is a conservative garbage collector, that is, it scan the stack/heap memory
--- marking pointers without references to be freed once the memory grow too much.
---
--- The implementation is based on https://github.com/orangeduck/tgc
+--[[
+GC Allocator
+
+This is an allocator that uses a tiny and simple mark and sweep garbage collector.
+It is a conservative garbage collector, that is, it scans the stack/heap memory
+marking pointers without references to be freed once the memory grows too much.
+
+The implementation is based on https://github.com/orangeduck/tgc
+]]
 
 require 'span'
 require 'allocators.general'
@@ -600,7 +603,7 @@ local function main(argc: cint, argv: *cstring): cint <entrypoint>
 end
 ## end
 
-require 'allocators.interface'
+require 'allocators.allocator'
 
 global GCAllocator = @record{}
 
