@@ -277,8 +277,8 @@ do -- new with initialization
   allocator:delete(v)
 end
 
-do -- spannew
-  local v = allocator:spannew(@vec2, 2)
+do -- span new
+  local v = allocator:new(@vec2, 2)
   assert(#v == 2)
   assert(v[0].x == 0 and v[0].y == 0)
   assert(v[1].x == 0 and v[1].y == 0)
@@ -289,8 +289,8 @@ do -- spannew
   allocator:delete(v)
 end
 
-do -- spannew with initialization
-  local v = allocator:spannew((@vec2){1,2}, 2)
+do -- span new with initialization
+  local v = allocator:new((@vec2){1,2}, 2)
   assert(#v == 2)
   assert(v[0].x == 1 and v[0].y == 2)
   assert(v[1].x == 1 and v[1].y == 2)

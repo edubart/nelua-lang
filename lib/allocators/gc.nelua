@@ -5,7 +5,7 @@ This is an allocator that uses a tiny and simple mark and sweep garbage collecto
 It is a conservative garbage collector, that is, it scans the stack/heap memory
 marking pointers without references to be freed once the memory grows too much.
 
-The implementation is based on https://github.com/orangeduck/tgc
+The implementation is based on [this project](https://github.com/orangeduck/tgc).
 ]]
 
 require 'span'
@@ -639,67 +639,61 @@ function GCAllocator:dealloc(p: pointer): void <noinline>
   gc:dealloc(p)
 end
 
-function GCAllocator:spannew(what: auto, size: usize) <noinline>
+function GCAllocator:new(what: auto, size: facultative(usize)) <noinline>
   local T: type = #[what.type.is_type and what.value or what.type]#
-  local spn: span(T)
-
-  if likely(size > 0) then
+  ## if size.type.is_niltype then -- new pointer
     ## if T.value.metafields.__gc then
-    local function finalizer(data: *[0]T, size: usize)
-      for i:usize=0,<size//#T do
-        data[i]:__gc()
-      end
-    end
-    local flags: usize = GCFlags.SIZED_FINALIZER
+    local finalizer: FinalizerCallback = (@FinalizerCallback)(T.__gc)
     ## else
-    local finalizer: pointer = nilptr
+    local finalizer: FinalizerCallback = nilptr
+    ## end
+    ## if T.value:has_pointer() then
     local flags: usize = 0
-    ## end
-
-    ## if not T.value:has_pointer() then
-    flags = flags | GCFlags.LEAF -- skip GC scanning the allocated memory
-    ## end
-
-    ## if what.type.is_type then
-    spn.data = (@*[0]T)(gc:alloc0_opt(size * #T, flags, (@pointer)(finalizer)))
-    assert(spn.data ~= nilptr, 'out of memory')
     ## else
-    spn.data = (@*[0]T)(gc:alloc_opt(size * #T, flags, (@pointer)(finalizer)))
-    assert(spn.data ~= nilptr, 'out of memory')
-    for i:usize=0,<size do
-      memcpy(&spn.data[i], &what, #T)
-    end
+    local flags: usize = GCFlags.LEAF -- skip GC scanning the allocated memory
     ## end
-    spn.size = size
-  end
-  return spn
-end
-
-function GCAllocator:new(what: auto) <noinline>
-  local T: type = #[what.type.is_type and what.value or what.type]#
-
-  ## if T.value.metafields.__gc then
-  local finalizer: FinalizerCallback = (@FinalizerCallback)(T.__gc)
-  ## else
-  local finalizer: FinalizerCallback = nilptr
+    local ptr: *T <noinit>
+    ## if what.type.is_type then
+    ptr = (@*T)(gc:alloc0_opt(#T, flags, (@pointer)(finalizer)))
+    assert(ptr ~= nilptr, 'out of memory')
+    ## else
+    ptr = (@*T)(gc:alloc_opt(#T, flags, (@pointer)(finalizer)))
+    assert(ptr ~= nilptr, 'out of memory')
+    memcpy(ptr, &what, #T)
+    ## end
+    return ptr
+  ## else -- new span
+    local T: type = #[what.type.is_type and what.value or what.type]#
+    local spn: span(T)
+    if likely(size > 0) then
+      ## if T.value.metafields.__gc then
+      local function finalizer(data: *[0]T, size: usize)
+        for i:usize=0,<size//#T do
+          data[i]:__gc()
+        end
+      end
+      local flags: usize = GCFlags.SIZED_FINALIZER
+      ## else
+      local finalizer: pointer = nilptr
+      local flags: usize = 0
+      ## end
+      ## if not T.value:has_pointer() then
+      flags = flags | GCFlags.LEAF -- skip GC scanning the allocated memory
+      ## end
+      ## if what.type.is_type then
+      spn.data = (@*[0]T)(gc:alloc0_opt(size * #T, flags, (@pointer)(finalizer)))
+      assert(spn.data ~= nilptr, 'out of memory')
+      ## else
+      spn.data = (@*[0]T)(gc:alloc_opt(size * #T, flags, (@pointer)(finalizer)))
+      assert(spn.data ~= nilptr, 'out of memory')
+      for i:usize=0,<size do
+        memcpy(&spn.data[i], &what, #T)
+      end
+      ## end
+      spn.size = size
+    end
+    return spn
   ## end
-
-  ## if T.value:has_pointer() then
-  local flags: usize = 0
-  ## else
-  local flags: usize = GCFlags.LEAF -- skip GC scanning the allocated memory
-  ## end
-
-  local ptr: *T <noinit>
-  ## if what.type.is_type then
-  ptr = (@*T)(gc:alloc0_opt(#T, flags, (@pointer)(finalizer)))
-  assert(ptr ~= nilptr, 'out of memory')
-  ## else
-  ptr = (@*T)(gc:alloc_opt(#T, flags, (@pointer)(finalizer)))
-  assert(ptr ~= nilptr, 'out of memory')
-  memcpy(ptr, &what, #T)
-  ## end
-  return ptr
 end
 
 ## implement_allocator_interface(GCAllocator)

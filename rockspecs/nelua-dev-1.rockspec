@@ -116,7 +116,7 @@ build = {
     },
     conf = {
       ['lib/allocators/default.nelua']      = 'lib/allocators/default.nelua',
-      ['lib/allocators/interface.nelua']    = 'lib/allocators/interface.nelua',
+      ['lib/allocators/allocator.nelua']    = 'lib/allocators/allocator.nelua',
       ['lib/allocators/general.nelua']      = 'lib/allocators/general.nelua',
       ['lib/allocators/gc.nelua']           = 'lib/allocators/gc.nelua',
       ['lib/allocators/arena.nelua']        = 'lib/allocators/arena.nelua',

@@ -1,12 +1,13 @@
 --[[
-Allocator interface library providing common functions implemented on every allocator.
+Allocator interface library provides common functions implemented on every allocator.
 
 This library is not an allocator by itself, but it's used by other
-allocators such as `DefaultAllocator`, `GeneralAllocator` and `GCAllocator`.
+allocators.
 
-A method with '0' suffix initializes the memory with zeros.
-A method with 'x' prefix raises an error in case of an allocation failure.
-A method with 'span' prefix returns a span, instead of a pointer.
+* A method with '0' suffix initializes the memory with zeros.
+* A method with 'x' prefix raises an error in case of an allocation failure.
+* A method with 'span' prefix returns a span, instead of a pointer.
+
 Allocation failures usually happen when running out of memory.
 ]]
 
@@ -38,8 +39,8 @@ require 'span'
   --[[
   Allocates `size` bytes and returns a pointer of the allocated memory block.
 
-  The allocated memory is not initialized.
-  If `size` is zero or the operation fails, then returns `nilptr`.
+  - The allocated memory is not initialized.
+  - If `size` is zero or the operation fails, then returns `nilptr`.
   ]]
   function Allocator:alloc(size: usize): pointer
     -- this method will actually be overridden
@@ -76,9 +77,9 @@ require 'span'
   --[[
   Deallocates the allocated memory block pointed by `p`.
 
-  If `p` is `nilptr`, then no operation is performed.
-  The `dealloc(p)` has been already been called before, then undefined behavior occurs.
-  Unless `p` is `nilptr`,
+  - If `p` is `nilptr`, then no operation is performed.
+  - The `dealloc(p)` has been already been called before, then undefined behavior occurs.
+  - Unless `p` is `nilptr`,
   it must have been returned by an earlier allocation call from this allocator.
   ]]
   function Allocator:dealloc(p: pointer): void
@@ -92,8 +93,9 @@ require 'span'
 
   - The allocated memory contents will be unchanged from the start of the region
   up to the minimum of the `oldsize` and `newsize`.
-  - When `newsize` is larger than the `oldsize`, the added memory is not initialized.
+  - If `newsize` is larger than the `oldsize`, the added memory is not initialized.
   - If `p` is `nilptr`, the call is equivalent to `alloc(newsize)`.
+  - If `newsize` is equal to `oldsize`, then no operation is performed.
   - If `newsize` is zero, the call is equivalent to `dealloc(p)`.
   - If the operation fails, then the original `p` is left untouched, it's not deallocated or moved,
   and `nilptr` is returned.
@@ -159,8 +161,8 @@ require 'span'
   --[[
   Like `alloc`, but returns a span of `T` with `size` elements.
 
-  The allocated memory region will have `size * #T` bytes.
-  If the operation fails, then an empty span is returned.
+  - The allocated memory region will have `size * #T` bytes.
+  - If the operation fails, then an empty span is returned.
   ]]
   function Allocator:spanalloc(T: type, size: usize)
     if likely(size > 0) then
@@ -262,43 +264,38 @@ require 'span'
   ## if not Allocator.value.metafields.new then
   --[[
   Allocates a new value.
-  In case the value has a finalizer, and the allocator supports finalizers,
-  such as GCAllocator, the value is marked to be finalized when deallocated.
 
-  Argument `what` must be either a compile-time type or a runtime initialized value.
-  If `what` is a runtime value, the return value will have the same type,
+  - Argument `what` must be either a compile-time type or a runtime initialized value.
+  - If `what` is a runtime value, the return value will have the same type,
   and it's contents are copied into the new allocated value.
-  If `what` is a compile-time type, the returned value will be of `what` type,
+  - If `what` is a compile-time type, the returned value will be of `what` type,
   and its contents are zero initialized.
-  If the operation fails, then an error is raised.
+  - If the operation fails, then an error is raised.
+  - If `size` is present, then returns a span with `size` elements of `what`, instead of a pointer.
+  - In case the value has a finalizer, and the allocator supports finalizers,
+  such as `GCAllocator`, the value is marked to be finalized when deallocated.
   ]]
-  function Allocator:new(what: auto)
-    ## if what.type.is_type then
-    local T: type = what
-    local ptr: *T = (@*T)(self:xalloc0(#T))
+  function Allocator:new(what: auto, size: facultative(usize))
+    local T: type = #[what.type.is_type and what.value or what.type]#
+    ## if size.type.is_niltype then -- new pointer
+      ## if what.type.is_type then
+      local ptr: *T = (@*T)(self:xalloc0(#T))
+      ## else
+      local ptr: *T = (@*T)(self:xalloc(#T))
+      memcpy(ptr, &what, #T)
+      ## end
+      return ptr
     ## else
-    local T: type = #[what.type]#
-    local ptr: *T = (@*T)(self:xalloc(#T))
-    memcpy(ptr, &what, #T)
+      ## if what.type.is_type then
+      local spn: span(T) = self:xspanalloc0(T, size)
+      ## else
+      local spn: span(T) = self:xspanalloc(T, size)
+      for i:usize=0,<size do
+        memcpy(&spn[i], &what, #T)
+      end
+      ## end
+      return spn
     ## end
-    return ptr
-  end
-  ## end
-
-  ## if not Allocator.value.metafields.spannew then
-  -- Like `new`, but returns a span of `what` with `size` elements.
-  function Allocator:spannew(what: auto, size: usize)
-    ## if what.type.is_type then
-    local T: type = what
-    local spn: span(T) = self:xspanalloc0(T, size)
-    ## else
-    local T: type = #[what.type]#
-    local spn: span(T) = self:xspanalloc(T, size)
-    for i:usize=0,<size do
-      memcpy(&spn[i], &what, #T)
-    end
-    ## end
-    return spn
   end
   ## end
 
@@ -306,8 +303,8 @@ require 'span'
   --[[
   Deletes value `v`, which must be either a pointer or a span.
 
-  Argument `v` must have been returned by an earlier call to `new` or `spannew` from this allocator.
-  Currently this effectively the same as calling `dealloc` or `spandealloc`.
+  This is effectively the same as calling `dealloc` or `spandealloc`,
+  but `delete` should only be used when `new` is used for the same allocation.
   ]]
   function Allocator:delete(v: deleteable_concept): void
     ## if v.type.is_span then

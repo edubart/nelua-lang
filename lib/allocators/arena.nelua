@@ -24,7 +24,7 @@ By default allocations are aligned to 8 bytes unless explicitly told otherwise.
 Remember to use the proper alignment for the allocated objects to have fast memory access.
 
 The implementation is based on
-[this article](https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/)
+[this article](https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/).
 ]]
 
 require 'allocators.allocator'
@@ -80,7 +80,7 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
     if unlikely(p == nilptr) then return end
     -- get offset for this pointer
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
-    check(offset < SIZE, 'pointer not in buffer of bounds')
+    check(offset < SIZE and (@usize)(p) & (ALIGN-1) == 0,  'invalid pointer')
     -- we can only dealloc the most recent allocation once
     -- any other allocation we can do nothing about
     if likely(offset == self.prev_offset) then
@@ -114,7 +114,7 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
       return nilptr
     end
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
-    check(offset < SIZE, 'pointer not in buffer of bounds')
+    check(offset < SIZE and (@usize)(p) & (ALIGN-1) == 0,  'invalid pointer')
     if likely(offset == self.prev_offset) then -- is the very last allocation?
       -- we can just update the offset here to grow or shrink
       local next_offset: usize = offset + newsize
@@ -146,7 +146,7 @@ local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,c
 --[[
 Generic used to instantiate a arena allocator type in the form of `ArenaAllocator(SIZE, ALIGN)`.
 
-Argument `SIZE` is the arena fixed buffer size, must be multiple of `ALIGN`.
+Argument `SIZE` is the arena fixed buffer size in bytes, must be multiple of `ALIGN`.
 Argument `ALIGN` is the default alignment for new allocations,
 must be at least 4 and in power of two, in case absent then `8` is used.
 ]]

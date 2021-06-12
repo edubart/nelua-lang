@@ -10,7 +10,7 @@ Reallocations and deallocations free space (unlikely the Arena allocator).
 Allocations greater than the chunk size will always fail.
 
 The implementation is based on
-[this article](https://www.gingerbill.org/article/2019/02/16/memory-allocation-strategies-004/)
+[this article](https://www.gingerbill.org/article/2019/02/16/memory-allocation-strategies-004/).
 ]]
 
 require 'allocators.allocator'
@@ -89,7 +89,7 @@ require 'allocators.allocator'
     if unlikely(p == nilptr) then return end
     -- is this pointer really valid?
     local offset: usize = (@usize)(p) - (@usize)(&self.buffer[0])
-    check(offset // #PoolChunkT < #self.buffer and offset % #PoolChunkT == 0, 'pointer not in buffer bounds')
+    check(offset // #PoolChunkT < #self.buffer and offset % #PoolChunkT == 0, 'invalid pointer')
     -- push free node
     local node: *PoolFreeNode = (@*PoolFreeNode)(p)
     node.next = self.head

@@ -48,7 +48,7 @@ do -- finalizers
       gc_count = gc_count + 1
     end
 
-    local foos: span(Foo) = gc_allocator:spannew(@Foo, 2)
+    local foos: span(Foo) = gc_allocator:new(@Foo, 2)
     local foo: *Foo = gc_allocator:new(@Foo)
     foos = (@span(Foo)){}
     foo = nilptr

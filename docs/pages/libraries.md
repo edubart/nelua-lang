@@ -2663,7 +2663,7 @@ local sequenceT: type = @record{
   }
 ```
 
-
+Sequence record defined when instantiating the generic `sequence` with type `T`.
 
 ### sequenceT:_init
 
@@ -3227,16 +3227,31 @@ Argument `Allocator` is an allocator type for the container storage,
 in case absent then then `DefaultAllocator` is used.
 
 ---
-## allocators.interface
+## allocators.default
 
-Allocator interface library providing common functions implemented on every allocator.
+The default allocator  library provides the default allocator used by the standard libraries.
+
+The default allocator is `GCAllocator` when GC is enabled,
+otherwise `GeneralAllocator` (when using the pragma `nogc`).
+
+When disabling the GC the user is responsible for manually deallocating
+unused memory from the default allocator.
+
+The default allocator can also be overridden by an allocator instance in case
+the global `embed_default_allocator` is declared before this library is required.
+
+---
+## allocators.allocator
+
+Allocator interface library provides common functions implemented on every allocator.
 
 This library is not an allocator by itself, but it's used by other
-allocators such as `DefaultAllocator`, `GeneralAllocator` and `GCAllocator`.
+allocators.
 
-A method with '0' suffix initializes the memory with zeros.
-A method with 'x' prefix raises an error in case of an allocation failure.
-A method with 'span' prefix returns a span, instead of a pointer.
+* A method with '0' suffix initializes the memory with zeros.
+* A method with 'x' prefix raises an error in case of an allocation failure.
+* A method with 'span' prefix returns a span, instead of a pointer.
+
 Allocation failures usually happen when running out of memory.
 
 ### Allocator
@@ -3255,8 +3270,8 @@ function Allocator:alloc(size: usize): pointer
 
 Allocates `size` bytes and returns a pointer of the allocated memory block.
 
-The allocated memory is not initialized.
-If `size` is zero or the operation fails, then returns `nilptr`.
+- The allocated memory is not initialized.
+- If `size` is zero or the operation fails, then returns `nilptr`.
 
 ### Allocator:xalloc
 
@@ -3290,9 +3305,9 @@ function Allocator:dealloc(p: pointer): void
 
 Deallocates the allocated memory block pointed by `p`.
 
-If `p` is `nilptr`, then no operation is performed.
-The `dealloc(p)` has been already been called before, then undefined behavior occurs.
-Unless `p` is `nilptr`,
+- If `p` is `nilptr`, then no operation is performed.
+- The `dealloc(p)` has been already been called before, then undefined behavior occurs.
+- Unless `p` is `nilptr`,
 it must have been returned by an earlier allocation call from this allocator.
 
 ### Allocator:realloc
@@ -3305,8 +3320,9 @@ Changes the size of the memory block pointer by `p` from size `oldsize` bytes to
 
 - The allocated memory contents will be unchanged from the start of the region
 up to the minimum of the `oldsize` and `newsize`.
-- When `newsize` is larger than the `oldsize`, the added memory is not initialized.
+- If `newsize` is larger than the `oldsize`, the added memory is not initialized.
 - If `p` is `nilptr`, the call is equivalent to `alloc(newsize)`.
+- If `newsize` is equal to `oldsize`, then no operation is performed.
 - If `newsize` is zero, the call is equivalent to `dealloc(p)`.
 - If the operation fails, then the original `p` is left untouched, it's not deallocated or moved,
 and `nilptr` is returned.
@@ -3347,8 +3363,8 @@ function Allocator:spanalloc(T: type, size: usize)
 
 Like `alloc`, but returns a span of `T` with `size` elements.
 
-The allocated memory region will have `size * #T` bytes.
-If the operation fails, then an empty span is returned.
+- The allocated memory region will have `size * #T` bytes.
+- If the operation fails, then an empty span is returned.
 
 ### Allocator:xspanalloc
 
@@ -3422,27 +3438,20 @@ Like `spanrealloc0`, but raises an error in case the allocation fails.
 ### Allocator:new
 
 ```nelua
-function Allocator:new(what: auto)
+function Allocator:new(what: auto, size: facultative(usize))
 ```
 
 Allocates a new value.
-In case the value has a finalizer, and the allocator supports finalizers,
-such as GCAllocator, the value is marked to be finalized when deallocated.
 
-Argument `what` must be either a compile-time type or a runtime initialized value.
-If `what` is a runtime value, the return value will have the same type,
+- Argument `what` must be either a compile-time type or a runtime initialized value.
+- If `what` is a runtime value, the return value will have the same type,
 and it's contents are copied into the new allocated value.
-If `what` is a compile-time type, the returned value will be of `what` type,
+- If `what` is a compile-time type, the returned value will be of `what` type,
 and its contents are zero initialized.
-If the operation fails, then an error is raised.
-
-### Allocator:spannew
-
-```nelua
-function Allocator:spannew(what: auto, size: usize)
-```
-
-Like `new`, but returns a span of `what` with `size` elements.
+- If the operation fails, then an error is raised.
+- If `size` is present, then returns a span with `size` elements of `what`, instead of a pointer.
+- In case the value has a finalizer, and the allocator supports finalizers,
+such as `GCAllocator`, the value is marked to be finalized when deallocated.
 
 ### Allocator:delete
 
@@ -3452,8 +3461,8 @@ function Allocator:delete(v: deleteable_concept): void
 
 Deletes value `v`, which must be either a pointer or a span.
 
-Argument `v` must have been returned by an earlier call to `new` or `spannew` from this allocator.
-Currently this effectively the same as calling `dealloc` or `spandealloc`.
+This is effectively the same as calling `dealloc` or `spandealloc`,
+but `delete` should only be used when `new` is used for the same allocation.
 
 ---
 ## allocators.general
@@ -3487,7 +3496,7 @@ function GeneralAllocator:alloc(size: usize): pointer
 Allocates `size` bytes and returns a pointer of the allocated memory block.
 
 The allocated memory is not initialized.
-For more details see `Allocator.alloc`.
+For more details see `Allocator:alloc`.
 
 This function calls system's `malloc()`.
 
@@ -3501,17 +3510,6 @@ Like `alloc`, but the allocated memory is initialized with zeros.
 
 This function calls system's `calloc()`.
 
-### GeneralAllocator:realloc
-
-```nelua
-function GeneralAllocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
-```
-
-Changes the size of the memory block pointer by `p` from size `oldsize` bytes to `newsize` bytes.
-
-For more details see `Allocator.realloc`.
-This function calls system's `realloc()`.
-
 ### GeneralAllocator:dealloc
 
 ```nelua
@@ -3520,8 +3518,19 @@ function GeneralAllocator:dealloc(p: pointer): void
 
 Deallocates the allocated memory block pointed by `p`.
 
-For more details see `Allocator.dealloc`.
+For more details see `Allocator:dealloc`.
 This function calls system's `free()`.
+
+### GeneralAllocator:realloc
+
+```nelua
+function GeneralAllocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
+```
+
+Changes the size of the memory block pointer by `p` from size `oldsize` bytes to `newsize` bytes.
+
+For more details see `Allocator:realloc`.
+This function calls system's `realloc()`.
 
 ---
 ## allocators.arena
@@ -3551,7 +3560,7 @@ By default allocations are aligned to 8 bytes unless explicitly told otherwise.
 Remember to use the proper alignment for the allocated objects to have fast memory access.
 
 The implementation is based on
-[this article](https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/)
+[this article](https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/).
 
 ### ArenaAllocatorT
 
@@ -3619,7 +3628,7 @@ global ArenaAllocator: type
 
 Generic used to instantiate a arena allocator type in the form of `ArenaAllocator(SIZE, ALIGN)`.
 
-Argument `SIZE` is the arena fixed buffer size, must be multiple of `ALIGN`.
+Argument `SIZE` is the arena fixed buffer size in bytes, must be multiple of `ALIGN`.
 Argument `ALIGN` is the default alignment for new allocations,
 must be at least 4 and in power of two, in case absent then `8` is used.
 
@@ -3709,7 +3718,7 @@ global StackAllocator: type
 
 Generic used to instantiate a stack allocator type in the form of `StackAllocator(SIZE, ALIGN)`.
 
-Argument `SIZE` is the fixed stack buffer size, must be multiple of `ALIGN`.
+Argument `SIZE` is the fixed stack buffer size in bytes, must be multiple of `ALIGN`.
 Argument `ALIGN` is the default alignment for new allocations,
 must be at least 4 and in power of two, in case absent then `8` is used.
 
@@ -3727,7 +3736,7 @@ Reallocations and deallocations free space (unlikely the Arena allocator).
 Allocations greater than the chunk size will always fail.
 
 The implementation is based on
-[this article](https://www.gingerbill.org/article/2019/02/16/memory-allocation-strategies-004/)
+[this article](https://www.gingerbill.org/article/2019/02/16/memory-allocation-strategies-004/).
 
 ### PoolAllocatorT
 
@@ -3797,6 +3806,107 @@ Argument `T` is the object type in the pool.
 Argument `SIZE` is the maximum number of elements in the pool.
 
 The pool will effectively have an internal buffer with `#T * SIZE` bytes.
+
+---
+## allocators.heap
+
+This is a minimal general purpose heap allocator, that could serve as replacement to
+the system's general allocator. It requires a pre allocated memory region in advance.
+It's purpose is to have predictable allocation and deallocation time
+when you can allocate the maximum memory usage in advance.
+
+It uses linked lists to search for the best free node.
+It tries to have a fast alloc/dealloc.
+However it may fragment more than other allocators.
+
+In some cases it can be faster than the general purpose allocator.
+However usually you are better off with the system's general purpose allocator.
+This may be more useful to have reliable alloc/dealloc time on real time applications,
+or if you want to avoid the system's default allocator for some reason,
+or if the system does not have an allocator.
+
+Its memory cannot grow automatically, use the system's general purpose allocator for that.
+The allocator is not thread safe, it was designed to be used in single thread applications.
+Allocations are always 16 byte aligned.
+
+*NOTE*: This is experimental, a bunch of tests were done but is not really battle tested.
+
+The implementation is based on
+[this project](https://github.com/CCareaga/heap_allocator),
+however it has heavy customized to have more performance, constant time allocations
+and alignment.
+
+### HeapAllocatorT
+
+```nelua
+local HeapAllocatorT: type = @record{
+    initialized: boolean,
+    heap: Heap,
+    buffer: [SIZE]byte
+  }
+```
+
+Heap allocator record defined when instantiating the generic `HeapAllocator`.
+
+### HeapAllocatorT:init
+
+```nelua
+function HeapAllocatorT:init(): void
+```
+
+Initializes the heap allocator, called automatically on first `alloc`/`realloc`.
+
+### HeapAllocatorT:alloc
+
+```nelua
+function HeapAllocatorT:alloc(size: usize): pointer
+```
+
+Allocates `size` bytes and returns a pointer to the allocated memory block.
+
+The allocated memory is not initialized.
+If `size` is zero or the operation fails, then returns `nilptr`.
+
+### HeapAllocatorT:dealloc
+
+```nelua
+function HeapAllocatorT:dealloc(p: pointer): void
+```
+
+Deallocates the allocated memory block pointed by `p`.
+
+If `p` is `nilptr`, then no operation is performed.
+The `dealloc(p)` has been already been called before, then undefined behavior occurs.
+Unless `p` is `nilptr`,
+it must have been returned by an earlier allocation call from this allocator.
+
+### HeapAllocatorT:deallocall
+
+```nelua
+function HeapAllocatorT:deallocall()
+```
+
+Deallocate all allocations from the heap.
+
+### HeapAllocatorT:realloc
+
+```nelua
+function HeapAllocatorT:realloc(p: pointer, newsize: usize, oldsize: usize): pointer
+```
+
+Changes the size of the memory block pointer by `p` from size `oldsize` bytes to `newsize` bytes.
+
+For more details see `Allocator:realloc`.
+
+### HeapAllocator
+
+```nelua
+global HeapAllocator: type
+```
+
+Generic used to instantiate a heap allocator type in the form of `HeapAllocator(SIZE)`.
+
+Argument `SIZE` is the size of the heap in bytes.
 
 ---
 

@@ -1,50 +1,53 @@
 --[[
-The default allocator is the default allocator used by the standard libraries.
-By default is the `GCAllocator` when GC is enabled, otherwise
-the `GeneralAllocator` when GC is disabled (using the pragma `nogc`).
+The default allocator  library provides the default allocator used by the standard libraries.
+
+The default allocator is `GCAllocator` when GC is enabled,
+otherwise `GeneralAllocator` (when using the pragma `nogc`).
 
 When disabling the GC the user is responsible for manually deallocating
 unused memory from the default allocator.
+
+The default allocator can also be overridden by an allocator instance in case
+the global `embed_default_allocator` is declared before this library is required.
 ]]
 
 ## if embed_default_allocator then -- embedded default allocator
   require 'allocators.allocator'
-  global DefaultAllocator: type = @record{}
-  global default_allocator: DefaultAllocator
+  local EmbeddedAllocator: type = @record{}
+  local embedded_allocator: EmbeddedAllocator
 
-  function DefaultAllocator:alloc(size: usize): pointer <inline>
+  function EmbeddedAllocator:alloc(size: usize): pointer <inline>
     return embed_default_allocator:alloc(size)
   end
 
-  function DefaultAllocator:alloc0(size: usize): pointer <inline>
+  function EmbeddedAllocator:alloc0(size: usize): pointer <inline>
     return embed_default_allocator:alloc0(size)
   end
 
-  function DefaultAllocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+  function EmbeddedAllocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
     return embed_default_allocator:realloc(p, newsize, oldsize)
   end
 
-  function DefaultAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
+  function EmbeddedAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
     return embed_default_allocator:realloc0(p, newsize, oldsize)
   end
 
-  function DefaultAllocator:dealloc(p: pointer): void <inline>
+  function EmbeddedAllocator:dealloc(p: pointer): void <inline>
     embed_default_allocator:dealloc(p)
   end
 
-  function DefaultAllocator:new(what: auto) <inline>
-    return embed_default_allocator:new(p)
+  function EmbeddedAllocator:new(what: auto, size: facultative(usize)) <inline>
+    return embed_default_allocator:new(p, size)
   end
 
-  function DefaultAllocator:spannew(what: auto, size: usize) <inline>
-    return embed_default_allocator:spannew(what, size)
-  end
-
-  function DefaultAllocator:delete(v: auto) <inline>
+  function EmbeddedAllocator:delete(v: auto): void <inline>
     embed_default_allocator:delete(v)
   end
 
-  ## implement_allocator_interface(DefaultAllocator)
+  ## implement_allocator_interface(EmbeddedAllocator)
+
+  ## context.rootscope.symbols.default_allocator = embedded_allocator
+  ## context.rootscope.symbols.DefaultAllocator = EmbeddedAllocator
 ## elseif not pragmas.nogc then -- GC enabled
   require 'allocators.gc'
   ## context.rootscope.symbols.default_allocator = gc_allocator

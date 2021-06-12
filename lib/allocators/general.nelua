@@ -19,7 +19,7 @@ global general_allocator: GeneralAllocator
 Allocates `size` bytes and returns a pointer of the allocated memory block.
 
 The allocated memory is not initialized.
-For more details see `Allocator.alloc`.
+For more details see `Allocator:alloc`.
 
 This function calls system's `malloc()`.
 ]]
@@ -39,9 +39,20 @@ function GeneralAllocator:alloc0(size: usize): pointer <inline>
 end
 
 --[[
+Deallocates the allocated memory block pointed by `p`.
+
+For more details see `Allocator:dealloc`.
+This function calls system's `free()`.
+]]
+function GeneralAllocator:dealloc(p: pointer): void <inline>
+  if unlikely(p == nilptr) then return end
+  free(p)
+end
+
+--[[
 Changes the size of the memory block pointer by `p` from size `oldsize` bytes to `newsize` bytes.
 
-For more details see `Allocator.realloc`.
+For more details see `Allocator:realloc`.
 This function calls system's `realloc()`.
 ]]
 function GeneralAllocator:realloc(p: pointer, newsize: usize, oldsize: usize): pointer <inline>
@@ -54,17 +65,6 @@ function GeneralAllocator:realloc(p: pointer, newsize: usize, oldsize: usize): p
     return p
   end
   return realloc(p, newsize)
-end
-
---[[
-Deallocates the allocated memory block pointed by `p`.
-
-For more details see `Allocator.dealloc`.
-This function calls system's `free()`.
-]]
-function GeneralAllocator:dealloc(p: pointer): void <inline>
-  if unlikely(p == nilptr) then return end
-  free(p)
 end
 
 require 'allocators.allocator'
