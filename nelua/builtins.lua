@@ -34,29 +34,30 @@ function builtins.require(context, node, argnodes)
     end
 
     -- load it and parse
-    local unitpath = argnode.attr.value
+    local reqname = argnode.attr.value
     local reldir = argnode.src.name and fs.dirname(argnode.src.name) or nil
-    local filepath, err = fs.findmodulefile(unitpath, config.path, reldir)
+    local filepath, err = fs.findmodulefile(reqname, config.path, reldir)
     if not filepath then
       if canloadatruntime then
         -- maybe it would succeed at runtime
         attr.runtime_require = true
         return
       else
-        node:raisef("in require: module '%s' not found:\n%s", unitpath, err)
+        node:raisef("in require: module '%s' not found:\n%s", reqname, err)
       end
     end
 
-    -- nelua internal libs have unit name of just 'nelua'
-    local unitname = pegger.filename_to_unitname(unitpath)
+    local unitname = pegger.filename_to_unitname(reqname..'.nelua')
     if context.pragmas.unitname == unitname then
-      node:raisef("in require: module '%s' cannot require itself", unitpath)
+      node:raisef("in require: module '%s' cannot require itself", reqname)
     end
 
-    attr.requirename = unitpath
+    -- nelua internal libs have unit name of just 'nelua'
     if filepath:find(config.lib_path, 1, true) then
       unitname = 'nelua'
     end
+
+    attr.requirename = reqname
     attr.unitname = unitname
 
     local reqnode = context.requires[filepath]

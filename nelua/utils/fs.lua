@@ -211,6 +211,7 @@ end
 -- Return a temporary file name.
 function fs.tmpname()
   local ok, res = pcall(os.tmpname)
+  --luacov:disable
   if not ok then -- failed to create the temporary file on Linux
     -- probably on lights and /tmp does not exist,
     -- try to use mktemp on $TMPDIR (cross platform way)
@@ -222,9 +223,10 @@ function fs.tmpname()
   -- on Windows if Lua is compiled using MSVC14 `os.tmpname`
   -- already returns an absolute path within TEMP env variable directory,
   -- no need to prepend it
-  if platform.is_windows and not res:find(':') then --luacov:disable
+  if platform.is_windows and not res:find(':') then
     res = os.getenv('TEMP')..res
-  end --luacov:enable
+  end
+  --luacov:enable
   return res
 end
 
