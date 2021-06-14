@@ -273,13 +273,20 @@ function os.tmpname(): string
     -- is not safe to use `tmpname` on POSIX, use mkstemp
 
     local function mkstemp(s: cstring): cint <cimport,cinclude'<stdlib.h>',nodecl> end
+    local function strncat(dest: cstring, src: cstring, n: csize): cstring <cimport'strncat',cinclude'<string.h>',nodecl> end
     local function strncpy(dest: cstring, src: cstring, n: usize): cstring <cimport,cinclude'<string.h>',nodecl> end
     local function close(fd: cint): cint <cimport,cinclude'<unistd.h>',nodecl> end
 
     local function tmpnam(buf: cstring): cstring
-      strncpy(buf, "/tmp/lua_XXXXXX", TMPBUFSIZE)
+      local tmpdir = getenv('TMPDIR')
+      if tmpdir then
+        strncpy(buf, tmpdir, TMPBUFSIZE)
+        strncat(buf, "/nelua_XXXXXX", TMPBUFSIZE - (#tmpdir + 1))
+      else
+        strncpy(buf, "/tmp/nelua_XXXXXX", TMPBUFSIZE)
+      end
       local fd: cint = mkstemp(buf)
-      if fd ~= -1 then
+      if fd == -1 then
         return nilptr
       end
       close(fd)

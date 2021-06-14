@@ -157,7 +157,7 @@ build = {
       ['lib/C/time.nelua']                  = 'lib/C/time.nelua',
       ['lib/detail/patternmatcher.nelua']   = 'lib/detail/patternmatcher.nelua',
       ['lib/detail/resourcepool.nelua']     = 'lib/detail/resourcepool.nelua',
-      ['lib/detail/xorshiro256.nelua']      = 'lib/detail/xorshiro256.nelua',
+      ['lib/detail/xoshiro256.nelua']      = 'lib/detail/xoshiro256.nelua',
     }
   }
 }

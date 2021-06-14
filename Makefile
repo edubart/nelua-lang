@@ -15,7 +15,6 @@ DPREFIX=$(DESTDIR)$(PREFIX)
 INSTALL_BIN=$(DPREFIX)/bin
 INSTALL_LIB=$(DPREFIX)/lib/nelua
 INSTALL_LUALIB=$(DPREFIX)/lib/nelua/lualib
-TMPDIR=/tmp
 
 # All used utilities
 RM=rm -f

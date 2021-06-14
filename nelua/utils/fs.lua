@@ -210,7 +210,15 @@ end
 
 -- Return a temporary file name.
 function fs.tmpname()
-  local res = os.tmpname()
+  local ok, res = pcall(os.tmpname)
+  if not ok then -- failed to create the temporary file on Linux
+    -- probably on lights and /tmp does not exist,
+    -- try to use mktemp on $TMPDIR (cross platform way)
+    local file = assert(io.popen('mktemp "${TMPDIR:-/tmp}/lua_XXXXXX"'))
+    res = file:read('l')
+    file:close()
+    return res
+  end
   -- on Windows if Lua is compiled using MSVC14 `os.tmpname`
   -- already returns an absolute path within TEMP env variable directory,
   -- no need to prepend it

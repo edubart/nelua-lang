@@ -32,6 +32,7 @@ do -- os.tmpname
   local tmpname = os.tmpname()
   assert(type(tmpname) == 'string')
   tmpname:destroy()
+  os.remove(tmpname)
 end
 
 do -- os.rename

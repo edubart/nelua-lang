@@ -24,8 +24,6 @@ do -- basic io.open/io.isopen/io.close
 
   file = io.open('LICENSE', 'r')
   assert(file:isopen())
-  assert(file:flush() == true)
-  assert(file:flush() == true)
   assert(file:close() == true)
   assert(file:close() == false)
   assert(not file:isopen())
