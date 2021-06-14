@@ -49,6 +49,10 @@ function builtins.require(context, node, argnodes)
 
     -- nelua internal libs have unit name of just 'nelua'
     local unitname = pegger.filename_to_unitname(unitpath)
+    if context.pragmas.unitname == unitname then
+      node:raisef("in require: module '%s' cannot require itself", unitpath)
+    end
+
     attr.requirename = unitpath
     if filepath:find(config.lib_path, 1, true) then
       unitname = 'nelua'

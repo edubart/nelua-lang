@@ -7,6 +7,7 @@ describe("standard library", function()
 
 it("require", function()
   expect.run_c_from_file('tests/require_test.nelua')
+  expect.run_error_c('tests/require_itself.nelua')
 end)
 it("builtins", function()
   expect.run_c_from_file('tests/builtins_test.nelua', nil, 'warning: hi')

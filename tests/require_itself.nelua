@@ -1,0 +1,2 @@
+-- this will trigger a compile error
+require 'tests.require_itself'
