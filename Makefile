@@ -6,7 +6,7 @@ NELUALUA=src/nelua-lua
 NELUASH=nelua.sh
 
 # Install variables
-PREFIX=/usr/local
+PREFIX?=/usr/local
 DPREFIX=$(DESTDIR)$(PREFIX)
 INSTALL_BIN=$(DPREFIX)/bin
 INSTALL_LIB=$(DPREFIX)/lib/nelua
