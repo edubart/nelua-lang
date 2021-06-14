@@ -70,26 +70,6 @@ make install
 
 Proceed to the [testing section](#testing).
 
-## Installing with LuaRocks
-
-If you already have a [LuaRocks](https://luarocks.org/)
-installation, you can install Nelua with it.
-However, this is not recommended,
-because it will not use the Lua interpreter bundled with Nelua,
-so you will have worse compile speeds, and if your system does not have Lua 5.3+
-it will not work. Also, trying this on Windows is not recommend
-because getting LuaRocks to work there is troublesome.
-
-With a proper LuaRocks setup do:
-
-```bash
-luarocks install https://raw.githubusercontent.com/edubart/nelua-lang/master/rockspecs/nelua-dev-1.rockspec
-```
-
-After installing, Nelua should be available in the LuaRocks binary path, ready to be run.
-
-Proceed to the [testing section](#testing).
-
 ## Testing
 
 Nelua should be installed. Run `nelua -h` in your terminal to check if it is working.

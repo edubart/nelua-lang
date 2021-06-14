@@ -5,10 +5,6 @@ EXAMPLESDIR=$(abspath examples)
 NELUALUA=src/nelua-lua
 NELUASH=nelua.sh
 
-# LuaRocks related
-ROCKSPEC_DEV=rockspecs/nelua-dev-1.rockspec
-LUAROCKS_BUILTFILES=*.so *.dll src/*.o src/lua/*.o src/lpeglabel/*.o
-
 # Install variables
 PREFIX=/usr/local
 DPREFIX=$(DESTDIR)$(PREFIX)
@@ -24,7 +20,6 @@ MKDIR=mkdir -p
 INSTALL_X=install -m755
 INSTALL_F=install -m644
 LUACHECK=luacheck
-LUAROCKS=luarocks
 LUACOV=luacov
 LUAMON=luamon -w nelua,spec,examples,lib,tests -e lua,nelua -q -x
 JEKYLL=bundle exec jekyll
@@ -110,10 +105,6 @@ _live-dev:
 	@$(MAKE) test-quick
 	@$(MAKE) check
 
-## Upload luarocks package.
-upload-rocks:
-	$(LUAROCKS) upload --api-key=$(LUAROCKS_APIKEY) --force rockspecs/nelua-dev-1.rockspec
-
 ## Make the docker image used to test inside docker containers.
 docker-image:
 	$(DOCKER) build -t "nelua" .
@@ -122,19 +113,11 @@ docker-image:
 docker-test:
 	$(DOCKER_RUN) make -s PREFIX=/usr test
 
-_docker-test-rocks:
-	$(LUAROCKS) make --local $(ROCKSPEC_DEV)
-	# luarocks can leave built C files in the folder, remove them
-	$(RM) $(LUAROCKS_BUILTFILES)
-	# run a example anywhere in the system to test if works
-	cd $(TMPDIR) && ~/.luarocks/bin/nelua -g lua $(EXAMPLESDIR)/helloworld.nelua
-	cd $(TMPDIR) && ~/.luarocks/bin/nelua -g c $(EXAMPLESDIR)/helloworld.nelua
-
 ## Run the test suite, code coverage, lua checker and compile all examples and install.
 docker-test-full:
 	@$(MAKE) -C src clean
 	@$(MAKE) clean
-	$(DOCKER_RUN) make PREFIX=/usr coverage-test check compile-examples _docker-test-rocks
+	$(DOCKER_RUN) make PREFIX=/usr coverage-test check compile-examples
 
 ## Get a shell inside a new docker container.
 docker-term:

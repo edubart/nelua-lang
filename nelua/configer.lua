@@ -257,8 +257,7 @@ local function detect_cc()
 end
 
 -- Detect where is the Nelua's lib directory.
--- First it detects if this is a Nelua repository clone,
--- a system wide install or a luarocks install.
+-- First it detects if this is a Nelua repository clone or a system wide install.
 -- Then returns the appropriate path for the Nelua's lib directory.
 local function detect_nelua_lib_path()
   local thispath = fs.scriptname()
@@ -272,10 +271,6 @@ local function detect_nelua_lib_path()
     -- in a system install
     -- this file should be in a path like "/usr/lib/nelua/lualib/nelua/configer.lua"
     libpath = fs.join(fs.dirname(dirpath), "lib")
-  else
-    -- we should be in a luarocks install,
-    -- arg 0 is probably in "bin/" thus we should go to "../conf/lib"
-    libpath = fs.join(fs.dirname(fs.dirname(_G.arg[0])), 'conf', 'lib')
   end
   libpath = fs.abspath(libpath)
   if fs.isfile(fs.join(libpath, 'math.nelua')) then
