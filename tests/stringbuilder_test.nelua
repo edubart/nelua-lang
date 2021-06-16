@@ -18,8 +18,11 @@ do
   sb:destroy()
 end
 
-do
-
+do -- write
+  local sb: stringbuilder
+  sb:write('a', 'b', 2, true)
+  assert(sb:view() == 'ab2true')
+  sb:destroy()
 end
 
 do -- using a custom allocator

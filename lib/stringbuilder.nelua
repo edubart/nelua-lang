@@ -148,14 +148,29 @@ end
   end
 
   --[[
-  Appends a string to the internal writing buffer.
+  Appends values to the internal writing buffer.
+  The arguments must be strings or convertible to string.
   Returns `true` in case of success, otherwise `false` when out of buffer memory space.
   ]]
-  function stringbuilderT:write(s: string): boolean
-    local p: span(byte) = self:prepare(s.size)
-    if unlikely(p:empty()) then return false end
-    memory.copy(p.data, s.data, s.size)
-    self.size = self.size + s.size
+  function stringbuilderT:write(...: varargs): boolean
+    ## for i=1,select('#', ...) do
+      local s: string
+      ## local argnode = select(i, ...)
+      ## local argtype = argnode.attr.type
+      ## if not argtype.is_stringy then
+        -- TODO: avoid extra string allocation here
+        s = tostring(#[argnode]#)
+        defer s:destroy() end
+      ## else
+        s = #[argnode]#
+      ## end
+      if s.size > 0 then
+        local p: span(byte) = self:prepare(s.size)
+        if unlikely(p:empty()) then return false end
+        memory.copy(p.data, s.data, s.size)
+        self.size = self.size + s.size
+      end
+    ## end
     return true
   end
 
@@ -331,6 +346,7 @@ end
   The operation allocates new space for the returned string.
   ]]
   function stringbuilderT:__tostring(): string
+    if unlikely(self.size == 0) then return (@string){} end
     local s: string = string.create(self.size)
     memory.copy(&s.data[0], &self.data[0], self.size)
     return s

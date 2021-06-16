@@ -360,8 +360,8 @@ function filestream:read(fmt: overload(integer,string,niltype)): (string, string
 end
 
 --[[
-Writes the value of each of its arguments to file.
-The arguments must be strings or numbers.
+Writes values to the file.
+The arguments must be strings or convertible to string.
 
 Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
 ]]
@@ -374,25 +374,22 @@ function filestream:write(...: varargs): (boolean, string, integer)
   ## for i=1,select('#', ...) do
     ## local argnode = select(i, ...)
     ## local argtype = argnode.attr.type
-    ## if not argtype.is_string then
+    ## if not argtype.is_stringy then
+      -- TODO: avoid extra string allocation here
       s = tostring(#[argnode]#)
+      defer s:destroy() end
     ## else
       s = #[argnode]#
     ## end
     if s.size > 0 then
       local ok: boolean = fwrite(s.data, 1, s.size, fp) == s.size
-      ## if not argtype.is_string then
-        s:destroy()
-      ## end
       if not ok then
-        goto errout
+        return fileresult(false)
       end
     end
   ## end
   --TODO: return file itself
   return true, '', 0
-::errout::
-  return fileresult(false)
 end
 
 --[[

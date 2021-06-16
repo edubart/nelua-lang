@@ -555,8 +555,8 @@ When called without arguments, it uses the default format `"l"` that reads the n
 function filestream:write(...: varargs): (boolean, string, integer)
 ```
 
-Writes the value of each of its arguments to file.
-The arguments must be strings or numbers.
+Writes values to the file.
+The arguments must be strings or convertible to string.
 
 Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
 
@@ -2038,10 +2038,11 @@ Returns `true` in case of success, otherwise `false` when out of buffer memory s
 ### stringbuilderT:write
 
 ```nelua
-function stringbuilderT:write(s: string): boolean
+function stringbuilderT:write(...: varargs): boolean
 ```
 
-Appends a string to the internal writing buffer.
+Appends values to the internal writing buffer.
+The arguments must be strings or convertible to string.
 Returns `true` in case of success, otherwise `false` when out of buffer memory space.
 
 ### stringbuilderT:writef
