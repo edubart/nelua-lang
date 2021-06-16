@@ -172,78 +172,11 @@ Note that this is only needed to be called when the GC is disabled.
 ]]
 function coroutine.destroy(co: coroutine): void
   ## if not pragmas.nogc then
-    gc:remove(co)
+  gc:remove(co)
   ## end
   if mco_destroy(co) ~= MCO_SUCCESS then
     error 'failed to destroy a coroutine'
   end
-end
-
---[[
-Checks weather the coroutine `co` can yield.
-
-A coroutine is yieldable if it isn't the main thread.
-]]
-function coroutine.isyieldable(co: coroutine): boolean
-  return co ~= nilptr and co ~= &main_coro
-end
-
---[[
-Starts or continues the execution of the coroutine `co`.
-
-The first time you resume a coroutine, it starts running its body function.
-If the coroutine has yielded, resume continues it.
-If the coroutine runs without any errors, resume returns `true` plus an empty error message.
-If there is any error, resume returns `false` plus the error message.
-]]
-function coroutine.resume(co: coroutine): (boolean, string)
-  ## if not pragmas.nogc then
-  local is_main: boolean = mco_running() == nilptr
-  if is_main then
-    -- Must stop the garbage collector when inside a coroutine
-    gc:stop()
-  end
-  ## end
-  local res: mco_result = mco_resume(co)
-  ## if not pragmas.nogc then
-  if is_main then
-    -- Restart the garbage collector when stopped
-    gc:restart()
-  end
-  ## end
-  if res ~= MCO_SUCCESS then
-    return false, (@string)(mco_result_description(res))
-  end
-  return true, (@string){}
-end
-
---[[
-Creates and immediately starts a new coroutine with body function `f`.
-
-Extra arguments are passed to the function `f` arguments.
-This is effectively the same as calling `coroutine.create` and then `coroutine.resume`.
-]]
-function coroutine.spawn(f: auto, ...: varargs): coroutine
-  local co: coroutine = coroutine.create(f)
-  ## for i=1,select('#', ...) do
-    coroutine.push(co, #[(select(i, ...))]#)
-  ## end
-  local ok: boolean, err: string = coroutine.resume(co)
-  assert(ok, err)
-  return co
-end
-
---[[
-Suspends the execution of the coroutine `co`.
-
-On failure raises an error.
-]]
-function coroutine.yield(co: facultative(coroutine)): void
-  ## if co.type.is_niltype then
-  local co: coroutine = mco_running()
-  ## end
-  local res: mco_result = mco_yield(co)
-  assert(res == MCO_SUCCESS, 'failed to yield coroutine')
 end
 
 --[[
@@ -292,6 +225,80 @@ function coroutine.pop(co: coroutine, ...: varargs): (boolean, string)
     end
   ## end
   return true, (@string){}
+end
+
+--[[
+Checks weather the coroutine `co` can yield.
+
+A coroutine is yieldable if it isn't the main thread.
+]]
+function coroutine.isyieldable(co: coroutine): boolean
+  return co ~= nilptr and co ~= &main_coro
+end
+
+--[[
+Starts or continues the execution of the coroutine `co`.
+
+- The first time you resume a coroutine, it starts running its body function.
+- Extra arguments `...` are pushed before resuming.
+- If the coroutine has yielded, resume continues it.
+- If the coroutine runs without any errors, resume returns `true` plus an empty error message.
+- If there is any error, resume returns `false` plus the error message.
+- Values passed to the last yield should be retrieved with `coroutine.pop`.
+]]
+function coroutine.resume(co: coroutine, ...: varargs): (boolean, string)
+  ## if not pragmas.nogc then
+  local is_main: boolean = mco_running() == nilptr
+  if is_main then
+    -- Must stop the garbage collector when inside a coroutine
+    gc:stop()
+  end
+  ## end
+  ## if select('#', ...) > 0 then
+  local ok: boolean, err: string = coroutine.push(co, ...)
+  assert(ok, err)
+  ## end
+  local res: mco_result = mco_resume(co)
+  ## if not pragmas.nogc then
+  if is_main then
+    -- Restart the garbage collector when stopped
+    gc:restart()
+  end
+  ## end
+  if res ~= MCO_SUCCESS then
+    return false, (@string)(mco_result_description(res))
+  end
+  return true, (@string){}
+end
+
+--[[
+Creates and immediately starts a new coroutine with body function `f`.
+
+Extra arguments are passed to the function `f` arguments.
+This is effectively the same as calling `coroutine.create` and then `coroutine.resume`.
+]]
+function coroutine.spawn(f: auto, ...: varargs): coroutine
+  local co: coroutine = coroutine.create(f)
+  local ok: boolean, err: string = coroutine.resume(co, ...)
+  assert(ok, err)
+  return co
+end
+
+--[[
+Suspends the execution of the running coroutine.
+
+- On failure raises an error.
+- Extra arguments `...` are pushed before yielding.
+- Values passed to last resume should be retrieved with `coroutine.pop`.
+]]
+function coroutine.yield(...: varargs): void
+  local co: coroutine = mco_running()
+  ## if select('#', ...) > 0 then
+  local ok: boolean, err: string = coroutine.push(co, ...)
+  assert(ok, err)
+  ## end
+  local res: mco_result = mco_yield(co)
+  assert(res == MCO_SUCCESS, 'failed to yield coroutine')
 end
 
 -- Returns the running coroutine plus a boolean that is true when the running coroutine is the main one.

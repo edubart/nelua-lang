@@ -65,8 +65,7 @@ do -- passing 1 value between yield and resume
   local co = coroutine.create(function(a: integer): integer
     assert(a == 1)
     local co = coroutine.running()
-    assert(coroutine.push(co, 2) == true)
-    coroutine.yield(co)
+    coroutine.yield(2)
     local i: integer
     assert(coroutine.pop(co, &i) == true)
     assert(i == 3)
@@ -74,15 +73,14 @@ do -- passing 1 value between yield and resume
   end)
   local i: integer
   assert(coroutine.status(co) == 'suspended')
-  assert(coroutine.push(co, 1) == true)
-  assert(coroutine.resume(co) == true)
+  assert(coroutine.resume(co, 1) == true)
   assert(coroutine.pop(co, &i) == true and i == 2)
   assert(coroutine.status(co) == 'suspended')
-  assert(coroutine.push(co, 3) == true)
-  assert(coroutine.resume(co) == true)
+  assert(coroutine.resume(co, 3) == true)
   assert(coroutine.pop(co, &i) == true and i == 4)
   assert(coroutine.status(co) == 'dead')
   assert(coroutine.resume(co) == false)
+  assert(coroutine.pop(co, &i) == false)
   coroutine.destroy(co)
 end
 
@@ -91,8 +89,7 @@ do -- passing 2 values between yield and resume
   local co = coroutine.create(function(first: integer, second: string): (integer, string)
     local co = coroutine.running()
     assert(first == 1 and second == 'a')
-    assert(coroutine.push(co, 2, 'b') == true)
-    coroutine.yield(co)
+    coroutine.yield(2, 'b')
     local s: string, i: integer
     assert(coroutine.pop(co, &i, &s) == true and s == 'c' and i == 3)
     return 4, 'd'
@@ -100,40 +97,39 @@ do -- passing 2 values between yield and resume
   local s: string, i: integer
   assert(coroutine.status(co) == 'suspended')
   s = 'a'
-  assert(coroutine.push(co, 1, s) == true)
-  assert(coroutine.resume(co) == true)
+  assert(coroutine.resume(co, 1, s) == true)
   assert(coroutine.pop(co, &i, &s) == true and s == 'b' and i == 2)
   assert(coroutine.status(co) == 'suspended')
-  assert(coroutine.push(co, 3, 'c') == true)
-  assert(coroutine.resume(co) == true)
+  assert(coroutine.resume(co, 3, 'c') == true)
   assert(coroutine.pop(co, &i, &s) == true and s == 'd' and i == 4)
   assert(coroutine.status(co) == 'dead')
   assert(coroutine.resume(co) == false)
+  assert(coroutine.pop(co, &i) == false)
   coroutine.destroy(co)
 end
 
 do -- fibonacci example
-  local co = coroutine.create(function(max: integer): integer
+  local co = coroutine.spawn(function(max: integer): integer
     local co = coroutine.running()
     local m: integer, n: integer = 1, 1
     while m < max do
-      coroutine.push(co, m)
-      coroutine.yield(co)
+      -- print('y', m)
+      coroutine.yield(m)
       m, n = n, m + n
     end
-    coroutine.push(co, m)
+    -- print('ret', m)
     return m
-  end)
-  assert(coroutine.push(co, 1000000) == true)
-  assert(coroutine.resume(co) == true)
+  end, 1000000)
   local m: integer = 0
   while coroutine.status(co) == 'suspended' do
-    assert(coroutine.resume(co) == true)
     assert(coroutine.pop(co, &m) == true)
     assert(m > 0)
+    assert(coroutine.resume(co) == true)
+    -- print('got', m)
   end
+  assert(coroutine.pop(co, &m) == true and m == 1346269)
   assert(coroutine.status(co) == 'dead')
-  assert(m == 1346269)
+  assert(coroutine.pop(co, &m) == false)
   coroutine.destroy(co)
 end
 

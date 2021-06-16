@@ -2325,6 +2325,32 @@ Note that this is only needed to be called when the GC is disabled.
 
 *Remarks*: Destroying a coroutine before `"dead"` state will not execute its defer statements.
 
+### coroutine.push
+
+```nelua
+function coroutine.push(co: coroutine, ...: varargs): (boolean, string)
+```
+
+Pushes multiple values into the coroutine `co` storage, returning `true` on success.
+
+- The values can be received in the next `coroutine.pop` or in the body function arguments (when coroutine starts).
+- In case of an error returns `false` plus the error message.
+- The user is responsible to always use the right types and push/pop order and count.
+
+### coroutine.pop
+
+```nelua
+function coroutine.pop(co: coroutine, ...: varargs): (boolean, string)
+```
+
+Pops multiple values from the coroutine `co` storage, returning `true` on success.
+
+- Only pointers to values are expected in extra arguments,
+and they should follow the same order of the last `coroutine.push`.
+- The retrieved values was either set by the last `coroutine.pop` or returned by its body function (when coroutine finishes).
+- In case of an error, return `false` plus the error message, and the values may not be set.
+- The user is responsible to always use the right types and push/pop order and count.
+
 ### coroutine.isyieldable
 
 ```nelua
@@ -2338,15 +2364,17 @@ A coroutine is yieldable if it isn't the main thread.
 ### coroutine.resume
 
 ```nelua
-function coroutine.resume(co: coroutine): (boolean, string)
+function coroutine.resume(co: coroutine, ...: varargs): (boolean, string)
 ```
 
 Starts or continues the execution of the coroutine `co`.
 
-The first time you resume a coroutine, it starts running its body function.
-If the coroutine has yielded, resume continues it.
-If the coroutine runs without any errors, resume returns `true` plus an empty error message.
-If there is any error, resume returns `false` plus the error message.
+- The first time you resume a coroutine, it starts running its body function.
+- Extra arguments `...` are pushed before resuming.
+- If the coroutine has yielded, resume continues it.
+- If the coroutine runs without any errors, resume returns `true` plus an empty error message.
+- If there is any error, resume returns `false` plus the error message.
+- Any value passed to yield can be retrieved with `coroutine.pop`.
 
 ### coroutine.spawn
 
@@ -2362,36 +2390,14 @@ This is effectively the same as calling `coroutine.create` and then `coroutine.r
 ### coroutine.yield
 
 ```nelua
-function coroutine.yield(co: facultative(coroutine)): void
+function coroutine.yield(...: varargs): void
 ```
 
-Suspends the execution of the coroutine `co`.
+Suspends the execution of the running coroutine.
 
-On failure raises an error.
-
-### coroutine.push
-
-```nelua
-function coroutine.push(co: coroutine, input: auto): (boolean, string)
-```
-
-Pushes a value into the coroutine storage.
-
-The value can be received in the next `coroutine.pop` or in the body function arguments (when coroutine starts).
-In case of an error returns `false` plus the error message.
-The user is responsible to always use the right types and push/pop order and count.
-
-### coroutine.pop
-
-```nelua
-function coroutine.pop(co: coroutine, T: type)
-```
-
-Pops a value of type `T` from the coroutine `co` storage.
-
-The returned value was send by the last `coroutine.pop` or returned by its body function (when coroutine finishes).
-In case of an error returns a zeroed `T`, `false` plus the error message.
-The user is responsible to always use the right types and push/pop order and count.
+- On failure raises an error.
+- Extra arguments `...` are pushed before yielding.
+- Any value passed to resume can be retrieved with`coroutine.pop`.
 
 ### coroutine.running
 

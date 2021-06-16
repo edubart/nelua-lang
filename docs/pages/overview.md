@@ -2346,9 +2346,6 @@ int nelua_main(int nelua_argc, char** nelua_argv) {
   puts("hello");
   return 0;
 }
-int main(int argc, char** argv) {
-  return nelua_main(argc, argv);
-}
 ```
 
 Notice that the `puts` function is **declared automatically**,
@@ -2373,16 +2370,13 @@ puts('hello') -- outputs: hello
 The above code generates exactly this C code:
 
 ```c
+#include <stdio.h>
 /* ------------------------------ DECLARATIONS ------------------------------ */
-int puts(const char* s);
 static int nelua_main(int nelua_argc, char** nelua_argv);
 /* ------------------------------ DEFINITIONS ------------------------------- */
 int nelua_main(int nelua_argc, char** nelua_argv) {
   puts("hello");
   return 0;
-}
-int main(int argc, char** argv) {
-  return nelua_main(argc, argv);
 }
 ```
 
