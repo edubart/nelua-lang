@@ -3385,6 +3385,21 @@ unpack e true
 2
 3
 1 2 3]]):gsub(' ', '\t')))
+
+  expect.run_c([[
+    local function push(...: varargs): void
+      print(...)
+    end
+
+    local function resume(...: varargs): (boolean, string)
+      push(...)
+      return true, (@string){}
+    end
+
+    resume()
+    resume(1)
+    resume(1, 'test')
+  ]], "1\ttest")
 end)
 
 it("record field aliases", function()

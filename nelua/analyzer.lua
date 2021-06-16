@@ -126,25 +126,37 @@ function visitors.Varargs(context, node)
       if varargsnode == node then
         if unpacktags[parent2.tag] then -- unpack arguments
           if nvarargs > 0 then
+            local ret
             for j=1,nvarargs do
-              parent1[parent1i+j-1] = aster.Id{'__arg'..j}
+              local argnode = aster.Id{'__arg'..j}
+              if j == 1 then
+                local orignode = parent1[parent1i+j-1]
+                assert(orignode == node)
+                orignode:transform(argnode)
+                ret = context:traverse_node(orignode)
+              else
+                parent1[parent1i+j-1] = argnode
+                context:traverse_node(argnode)
+              end
             end
+            return ret
           else
+            node:transform(aster.Nil{}) -- replace just in case its used lated
+            context:traverse_node(node)
             parent1[parent1i] = nil
             return
           end
         else -- replace with just the first argument
+          local argnode
           if nvarargs > 0 then
-            parent1[parent1i] = aster.Id{'__arg1'}
+            argnode = aster.Id{'__arg1'}
           else
-            parent1[parent1i] = aster.Nil{}
+            argnode = aster.Nil{}
           end
+          local orignode = parent1[parent1i]
+          orignode:transform(argnode)
+          return context:traverse_node(orignode)
         end
-        local newnode = parent1[parent1i]
-        if newnode then
-          return context:traverse_node(newnode)
-        end
-        break
       end
     end --luacov:disable
     assert(false, 'unreachable')
@@ -1276,6 +1288,9 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         if argnode then
           argnode.desiredtype = argnode.desiredtype or funcargtype
           context:traverse_node(argnode)
+          if not argnodes[i] and (not funcargtype or funcargtype.is_varargs) then
+            break -- varargs unpacked 0 arguments
+          end
           argtype = argnode.attr.type
           argnode, argtype = visitor_convert(context, argnodes, i, funcargtype, argnode, argtype, argattrs, true)
           if argtype then
