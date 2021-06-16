@@ -247,34 +247,51 @@ function coroutine.yield(co: facultative(coroutine)): void
 end
 
 --[[
-Pushes a value into the coroutine storage.
+Pushes multiple values into the coroutine `co` storage, returning `true` on success.
 
-The value can be received in the next `coroutine.pop` or in the body function arguments (when coroutine starts).
-In case of an error returns `false` plus the error message.
-The user is responsible to always use the right types and push/pop order and count.
+- The values can be received in the next `coroutine.pop` or in the body function arguments (when coroutine starts).
+- In case of an error returns `false` plus the error message.
+- The user is responsible to always use the right types and push/pop order and count.
 ]]
-function coroutine.push(co: coroutine, input: auto): (boolean, string)
-  local res: mco_result = mco_push(co, &input, #(#[input.type]#))
-  if res ~= MCO_SUCCESS then
-    return false, (@string)(mco_result_description(res))
-  end
+function coroutine.push(co: coroutine, ...: varargs): (boolean, string)
+  local bytes_pushed: csize = 0
+  ## for i=1,select('#', ...) do
+    ## local argnode = select(i, ...)
+    ## local argtype = argnode.attr.type
+    local res: mco_result = mco_push(co, &#[argnode]#, #(#[argtype]#))
+    if res ~= MCO_SUCCESS then
+      mco_pop(co, nilptr, bytes_pushed)
+      return false, (@string)(mco_result_description(res))
+    end
+    bytes_pushed = bytes_pushed + #(#[argtype]#)
+  ## end
   return true, (@string){}
 end
 
 --[[
-Pops a value of type `T` from the coroutine `co` storage.
+Pops multiple values from the coroutine `co` storage, returning `true` on success.
 
-The returned value was send by the last `coroutine.pop` or returned by its body function (when coroutine finishes).
-In case of an error returns a zeroed `T`, `false` plus the error message.
-The user is responsible to always use the right types and push/pop order and count.
+- Only pointers to values are expected in extra arguments,
+and they should follow the same order of the last `coroutine.push`.
+- The retrieved values was either set by the last `coroutine.pop` or returned by its body function (when coroutine finishes).
+- In case of an error, return `false` plus the error message, and the values may not be set.
+- The user is responsible to always use the right types and push/pop order and count.
 ]]
-function coroutine.pop(co: coroutine, T: type)
-  local output: T
-  local res: mco_result = mco_pop(co, &output, #@T)
-  if res ~= MCO_SUCCESS then
-    return output, false, (@string)(mco_result_description(res))
-  end
-  return output, true, (@string){}
+function coroutine.pop(co: coroutine, ...: varargs): (boolean, string)
+  ## for i=select('#', ...),1,-1 do
+    ##[[
+    local argnode = select(i, ...)
+    local argtype = argnode.attr.type
+    static_assert(argtype.is_pointer and not argtype.is_generic_pointer,
+      "expected only pointers in extra arguments but got type '%s'", argtype)
+    local argsubtype = argtype.subtype
+    ]]
+    local res: mco_result = mco_pop(co, #[argnode]#, #(#[argsubtype]#))
+    if res ~= MCO_SUCCESS then
+      return false, (@string)(mco_result_description(res))
+    end
+  ## end
+  return true, (@string){}
 end
 
 -- Returns the running coroutine plus a boolean that is true when the running coroutine is the main one.
