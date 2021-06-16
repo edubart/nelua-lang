@@ -3241,6 +3241,24 @@ unused memory from the default allocator.
 The default allocator can also be overridden by an allocator instance in case
 the global `embed_default_allocator` is declared before this library is required.
 
+### new
+
+```nelua
+global function new(what: auto, size: facultative(usize))
+```
+
+Shorthand for `default_allocator:new`.
+For details see also `Allocator:new`.
+
+### delete
+
+```nelua
+global function delete(v: auto): void
+```
+
+Shorthand for `default_allocator:delete`.
+For details see also `Allocator:delete`.
+
 ---
 ## allocators.allocator
 
@@ -3462,8 +3480,10 @@ function Allocator:delete(v: deleteable_concept): void
 
 Deletes value `v`, which must be either a pointer or a span.
 
-This is effectively the same as calling `dealloc` or `spandealloc`,
+It's similar to `dealloc` or `spandealloc`,
 but `delete` should only be used when `new` is used for the same allocation.
+If the deleted values has `__delete` metamethod, the it's called
+before deletion.
 
 ---
 ## allocators.general

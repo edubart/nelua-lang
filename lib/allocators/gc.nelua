@@ -642,7 +642,7 @@ end
 function GCAllocator:new(what: auto, size: facultative(usize)) <noinline>
   local T: type = #[what.type.is_type and what.value or what.type]#
   ## if size.type.is_niltype then -- new pointer
-    ## if T.value.metafields.__gc then
+    ## if T.value.is_record and T.value.metafields.__gc then
     local finalizer: FinalizerCallback = (@FinalizerCallback)(T.__gc)
     ## else
     local finalizer: FinalizerCallback = nilptr

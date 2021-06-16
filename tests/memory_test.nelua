@@ -300,3 +300,46 @@ do -- span new with initialization
   assert(v[1].x == 3 and v[1].y == 4)
   allocator:delete(v)
 end
+
+--------------------------------------------------------------------------------
+-- global new and delete
+
+require 'allocators.default'
+
+do -- new
+  local v = new(@vec2)
+  assert(v.x == 0 and v.y == 0)
+  v.x = 1 v.y = 2
+  assert(v.x == 1 and v.y == 2)
+  delete(v)
+end
+
+do -- new with initialization
+  local v = new((@integer)(2))
+  assert($v == 2)
+  delete(v)
+end
+
+do -- span new
+  local v = new(@vec2, 2)
+  assert(#v == 2)
+  assert(v[0].x == 0 and v[0].y == 0)
+  assert(v[1].x == 0 and v[1].y == 0)
+  v[0].x = 1 v[0].y = 2
+  v[1].x = 3 v[1].y = 4
+  assert(v[0].x == 1 and v[0].y == 2)
+  assert(v[1].x == 3 and v[1].y == 4)
+  delete(v)
+end
+
+do -- span new with initialization
+  local v = new((@vec2){1,2}, 2)
+  assert(#v == 2)
+  assert(v[0].x == 1 and v[0].y == 2)
+  assert(v[1].x == 1 and v[1].y == 2)
+  v[0].x = 1 v[0].y = 2
+  v[1].x = 3 v[1].y = 4
+  assert(v[0].x == 1 and v[0].y == 2)
+  assert(v[1].x == 3 and v[1].y == 4)
+  delete(v)
+end

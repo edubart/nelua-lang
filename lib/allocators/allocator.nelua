@@ -303,13 +303,25 @@ require 'span'
   --[[
   Deletes value `v`, which must be either a pointer or a span.
 
-  This is effectively the same as calling `dealloc` or `spandealloc`,
+  It's similar to `dealloc` or `spandealloc`,
   but `delete` should only be used when `new` is used for the same allocation.
+  If the deleted values has `__delete` metamethod, the it's called
+  before deletion.
   ]]
   function Allocator:delete(v: deleteable_concept): void
+    ## local T = v.type.subtype
+    ## local calldelete = T.is_record and T.metafields.__delete
     ## if v.type.is_span then
+      ## if calldelete then
+        for i:usize=0,<v.size do
+          v[i]:__delete()
+        end
+      ## end
       self:spandealloc(v)
     ## else -- pointer
+      ## if calldelete then
+        v:__delete()
+      ## end
       self:dealloc(v)
     ## end
   end

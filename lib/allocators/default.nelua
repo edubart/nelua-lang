@@ -57,3 +57,19 @@ the global `embed_default_allocator` is declared before this library is required
   ## context.rootscope.symbols.default_allocator = general_allocator
   ## context.rootscope.symbols.DefaultAllocator = GeneralAllocator
 ## end
+
+--[[
+Shorthand for `default_allocator:new`.
+For details see also `Allocator:new`.
+]]
+global function new(what: auto, size: facultative(usize))
+  return default_allocator:new(what, size)
+end
+
+--[[
+Shorthand for `default_allocator:delete`.
+For details see also `Allocator:delete`.
+]]
+global function delete(v: auto): void
+  default_allocator:delete(v)
+end
