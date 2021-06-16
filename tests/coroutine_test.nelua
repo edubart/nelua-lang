@@ -44,6 +44,23 @@ do -- resume/yield
   coroutine.destroy(co)
 end
 
+do -- spawn
+  counter = -1
+  local co = coroutine.spawn(function(x: integer)
+    counter = x
+    counter = counter + 1
+    coroutine.yield()
+    counter = counter + 1
+  end, 0)
+  assert(counter == 1)
+  assert(coroutine.status(co) == 'suspended')
+  assert(coroutine.resume(co) == true)
+  assert(counter == 2)
+  assert(coroutine.status(co) == 'dead')
+  assert(coroutine.resume(co) == false)
+  coroutine.destroy(co)
+end
+
 do -- passing 1 value between yield and resume
   local co = coroutine.create(function(a: integer): integer
     assert(a == 1)

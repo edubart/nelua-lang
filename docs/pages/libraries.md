@@ -2348,6 +2348,17 @@ If the coroutine has yielded, resume continues it.
 If the coroutine runs without any errors, resume returns `true` plus an empty error message.
 If there is any error, resume returns `false` plus the error message.
 
+### coroutine.spawn
+
+```nelua
+function coroutine.spawn(f: auto, ...: varargs): coroutine
+```
+
+Creates and immediately starts a new coroutine with body function `f`.
+
+Extra arguments are passed to the function `f` arguments.
+This is effectively the same as calling `coroutine.create` and then `coroutine.resume`.
+
 ### coroutine.yield
 
 ```nelua

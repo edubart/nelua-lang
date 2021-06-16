@@ -218,6 +218,22 @@ function coroutine.resume(co: coroutine): (boolean, string)
 end
 
 --[[
+Creates and immediately starts a new coroutine with body function `f`.
+
+Extra arguments are passed to the function `f` arguments.
+This is effectively the same as calling `coroutine.create` and then `coroutine.resume`.
+]]
+function coroutine.spawn(f: auto, ...: varargs): coroutine
+  local co: coroutine = coroutine.create(f)
+  ## for i=1,select('#', ...) do
+    coroutine.push(co, #[(select(i, ...))]#)
+  ## end
+  local ok: boolean, err: string = coroutine.resume(co)
+  assert(ok, err)
+  return co
+end
+
+--[[
 Suspends the execution of the coroutine `co`.
 
 On failure raises an error.
