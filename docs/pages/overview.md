@@ -2338,13 +2338,16 @@ puts('hello') -- outputs: hello
 The above code generates exactly this C code:
 
 ```c
-/* DECLARATIONS */
+/* ------------------------------ DECLARATIONS ------------------------------ */
 int puts(const char* s);
-static char __strlit1[6] = "hello";
-/* DEFINITIONS */
-int nelua_main() {
-  puts(__strlit1);
+static int nelua_main(int nelua_argc, char** nelua_argv);
+/* ------------------------------ DEFINITIONS ------------------------------- */
+int nelua_main(int nelua_argc, char** nelua_argv) {
+  puts("hello");
   return 0;
+}
+int main(int argc, char** argv) {
+  return nelua_main(argc, argv);
 }
 ```
 
@@ -2370,13 +2373,16 @@ puts('hello') -- outputs: hello
 The above code generates exactly this C code:
 
 ```c
-/* DECLARATIONS */
-#include <stdio.h>
-static char __strlit1[6] = "hello";
-/* DEFINITIONS */
-int nelua_main() {
-  puts(__strlit1);
+/* ------------------------------ DECLARATIONS ------------------------------ */
+int puts(const char* s);
+static int nelua_main(int nelua_argc, char** nelua_argv);
+/* ------------------------------ DEFINITIONS ------------------------------- */
+int nelua_main(int nelua_argc, char** nelua_argv) {
+  puts("hello");
   return 0;
+}
+int main(int argc, char** argv) {
+  return nelua_main(argc, argv);
 }
 ```
 
@@ -2498,9 +2504,9 @@ end
 The above code generates exactly this C code:
 
 ```c
-/* DECLARATIONS */
+/* ------------------------------ DECLARATIONS ------------------------------ */
 extern int64_t mylib_foo();
-/* DEFINITIONS */
+/* ------------------------------ DEFINITIONS ------------------------------- */
 int64_t mylib_foo() {
   return 1;
 }
