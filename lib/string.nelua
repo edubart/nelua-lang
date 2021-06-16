@@ -38,8 +38,7 @@ Allocate a new string to be filled with length `size`.
 
 The string is guaranteed to be zero terminated,
 so it can safely be used as a `cstring`.
-
-Used internally.
+The string data is not initialized.
 ]]
 function string.create(size: usize): string
   local s: string
@@ -53,17 +52,14 @@ end
 --[[
 Destroys a string freeing its memory.
 
-When GC is enabled this does nothing, because string references can be shared with GC enabled.
-This should never be called on string literals.
+This must never be called on string literals.
 ]]
 function string.destroy(s: string): void
-  ## if pragmas.nogc then -- cannot destroy when GC is enabled because string may be shared
   if s.size > 0 then
     default_allocator:dealloc(s.data)
     s.data = nilptr
     s.size = 0
   end
-  ## end
 end
 
 --[[
@@ -81,23 +77,6 @@ function string.copy(s: string): string
   clone.size = s.size
   return clone
 end
-
---[[
-Forward a string reference to be used elsewhere.
-
-When GC is enabled this just returns the string itself.
-When GC is disabled a string copy is returned, so it can be safely stored and destroyed.
-]]
-function string.forward(s: string): string <inline>
-  ## if pragmas.nogc then -- must return a clone so we can destroy it later
-  return string.copy(s)
-  ## else -- reuse the string reference when GC is enabled
-  return s
-  ## end
-end
-
- -- Must be required later because it depends on `string.create`
-require 'stringbuilder'
 
 -- Returns the internal numeric codes of the character at position `i`.
 function string.byte(s: string, i: facultative(isize)): byte
@@ -129,7 +108,7 @@ function string.sub(s: string, i: isize, j: facultative(isize)): string
   if unlikely(i <= 0) then i = 1 end
   if unlikely(j < 0) then j = size + j + 1 end
   if unlikely(j > size) then j = size end
-  if unlikely(i == 1 and j == size) then return string.forward(s) end
+  if unlikely(i == 1 and j == size) then return string.copy(s) end
   if unlikely(i > j) then return (@string){} end
   local subsize: usize = (@usize)(j - i + 1)
   if unlikely(subsize == 0) then return (@string){} end
@@ -262,7 +241,7 @@ Returns the empty string if `n` is not positive.
 ]]
 function string.rep(s: string, n: isize, sep: facultative(string)): string
   if unlikely(n <= 0) then return (@string){} end
-  if unlikely(n == 1) then return string.forward(s) end
+  if unlikely(n == 1) then return string.copy(s) end
   local n: usize = (@usize)(n)
   ## if sep.type.is_niltype then
   if unlikely(s.size == 0) then return (@string){} end
@@ -383,6 +362,9 @@ function string.char(...: varargs): string
   return s
 end
 
+-- Must be required later because it depends on `string.create`
+require 'stringbuilder'
+
 --[[
 Returns a formatted version of its variable number of arguments following the description
 given in its first argument, which must be a string.
@@ -438,9 +420,9 @@ function string.__concat(a: string_coercion_concept, b: string_coercion_concept)
     defer b:destroy() end
   ## end
   if a.size == 0 then
-    return string.forward(b)
+    return string.copy(b)
   elseif b.size == 0 then
-    return string.forward(a)
+    return string.copy(a)
   end
   local s: string = string.create(a.size + b.size)
   memory.copy(&s.data[0], a.data, a.size)
@@ -692,19 +674,19 @@ global function tostring(x: auto): string
   end
   ]]
   ## if xtype.is_stringy then
-    return string.forward(x)
+    return string.copy(x)
   ## elseif xobjtype.is_record and xobjtype.metafields.__tostring then
     return x:__tostring()
   ## elseif xtype.is_scalar or xtype.is_function or xtype.is_pointer then
     ## if xtype.is_pointer then tyformat = '"0x%" PRIxPTR'
     local x: usize = (@usize)(x)
     if x == 0 then
-      return string.forward('(null)')
+      return string.copy('(null)')
     end
     ## elseif xtype.is_function then tyformat = '"function: 0x%" PRIxPTR'
     local x: usize = (@usize)((@pointer)(x))
     if x == 0 then
-      return string.forward('function: (null)')
+      return string.copy('function: (null)')
     end
     ##[[ else
       tyformat = require'nelua.cdefs'.types_printf_format[xtype.codename]
@@ -724,15 +706,15 @@ global function tostring(x: auto): string
     return string.copy((@string){&tmpbuf[0], size})
   ## elseif xtype.is_boolean then
     if x == true then
-      return string.forward('true')
+      return string.copy('true')
     end
-    return string.forward('false')
+    return string.copy('false')
   ## elseif xtype.is_niltype then
-    return string.forward('nil')
+    return string.copy('nil')
   ## elseif xtype.is_nilptr then
-    return string.forward('(null)')
+    return string.copy('(null)')
   ## elseif xtype.is_polyfunction then
-    return string.forward('polyfunction')
+    return string.copy('polyfunction')
   ## else static_error("tostring: cannot convert type '%s' to a string", xtype) end
 end
 

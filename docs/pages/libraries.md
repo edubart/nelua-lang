@@ -1528,8 +1528,7 @@ Allocate a new string to be filled with length `size`.
 
 The string is guaranteed to be zero terminated,
 so it can safely be used as a `cstring`.
-
-Used internally.
+The string data is not initialized.
 
 ### string.destroy
 
@@ -1539,8 +1538,7 @@ function string.destroy(s: string): void
 
 Destroys a string freeing its memory.
 
-When GC is enabled this does nothing, because string references can be shared with GC enabled.
-This should never be called on string literals.
+This must never be called on string literals.
 
 ### string.copy
 
@@ -1552,17 +1550,6 @@ Clone a string, allocating new space.
 
 This is useful in case you want to own the string memory,
 so you can modify it or manually manage its memory when GC is disabled.
-
-### string.forward
-
-```nelua
-function string.forward(s: string): string
-```
-
-Forward a string reference to be used elsewhere.
-
-When GC is enabled this just returns the string itself.
-When GC is disabled a string copy is returned, so it can be safely stored and destroyed.
 
 ### string.byte
 
@@ -2374,7 +2361,7 @@ Starts or continues the execution of the coroutine `co`.
 - If the coroutine has yielded, resume continues it.
 - If the coroutine runs without any errors, resume returns `true` plus an empty error message.
 - If there is any error, resume returns `false` plus the error message.
-- Any value passed to yield can be retrieved with `coroutine.pop`.
+- Values passed to the last yield should be retrieved with `coroutine.pop`.
 
 ### coroutine.spawn
 
@@ -2397,7 +2384,7 @@ Suspends the execution of the running coroutine.
 
 - On failure raises an error.
 - Extra arguments `...` are pushed before yielding.
-- Any value passed to resume can be retrieved with`coroutine.pop`.
+- Values passed to last resume should be retrieved with `coroutine.pop`.
 
 ### coroutine.running
 

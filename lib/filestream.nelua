@@ -455,7 +455,7 @@ This metamethod is used by `tostring`.
 function filestream:__tostring(): string
   local fp: *FILE = self:_getfp()
   if not fp then
-    return string.forward('file (closed)')
+    return string.copy('file (closed)')
   else
     return string.format('file (%p)', fp)
   end
