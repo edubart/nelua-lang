@@ -5,6 +5,7 @@ local cbuiltins = require 'nelua.cbuiltins'
 local traits = require 'nelua.utils.traits'
 local CEmitter = require 'nelua.cemitter'
 local fs = require 'nelua.utils.fs'
+local tabler = require 'nelua.utils.tabler'
 local config = require 'nelua.configer'.get()
 local luatype = type
 
@@ -172,8 +173,9 @@ function CContext:ensure_include(name)
     local dirpath = self:get_source_directory()
     if dirpath then
       local filepath = fs.join(dirpath, name)
-      if fs.isfile(filepath) then
-        table.insert(self.compileopts.incdirs, dirpath)
+      local incdirs = self.compileopts.incdirs
+      if fs.isfile(filepath) and not tabler.ifind(incdirs, dirpath) then
+        table.insert(incdirs, dirpath)
       end
     end
   end
