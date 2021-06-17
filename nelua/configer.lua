@@ -236,7 +236,8 @@ local function create_parser(args)
       options.input = v
     end
   end)
-  argparser:argument("runargs"):args("*")
+  argparser:argument("runargs", "Arguments after '--' are passed to the running application")
+    :args("*")
   return argparser
 end
 
@@ -315,6 +316,10 @@ end
 -- Parse and build config from program arguments.
 function configer.parse(args)
   local argparser = create_parser(tabler.icopy(args))
+  if not args[1] then --luacov:disable
+    print(argparser:get_help())
+    os.exit(0)
+  end --luacov:enable
   local ok, options = argparser:pparse(args)
   except.assertraise(ok, options)
   configer.build(options)

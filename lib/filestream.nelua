@@ -72,7 +72,7 @@ In case the file is closed, returns `nilptr`.
 
 This function is used internally.
 ]]
-function filestream:_getfp(): *FILE
+function filestream:_getfp(): *FILE <inline>
   if not self.fs then return nilptr end
   return self.fs.fp
 end

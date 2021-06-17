@@ -266,7 +266,10 @@ function string.rep(s: string, n: isize, sep: facultative(string)): string
 end
 
 -- Helper used by `string.match` and `string.matchview`.
-local function string_match(s: string, pattern: string, init: isize): (boolean, sequence(string))
+local function string_match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
+  ## if init.type.is_niltype then
+  local init: isize = 1
+  ## end
   local ms: PatternMatcher = PatternMatcher.create(s, pattern)
   local startpos: isize, endpos: isize = ms:match(init, false)
   local captures: sequence(string)
@@ -294,9 +297,6 @@ If pattern specifies no captures, then the whole match is captured.
 A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
 ]]
 function string.match(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
-  ## if init.type.is_niltype then
-  local init: isize = 1
-  ## end
   local ok: boolean, seq: sequence(string) = string_match(s, pattern, init)
   for i: isize = 1, #seq do
     seq[i] = string.copy(seq[i])
@@ -306,9 +306,6 @@ end
 
 -- Like `string.match` but uses sub string views (see also `string.subview`).
 function string.matchview(s: string, pattern: string, init: facultative(isize)): (boolean, sequence(string))
-  ## if init.type.is_niltype then
-  local init: isize = 1
-  ## end
   return string_match(s, pattern, init)
 end
 
