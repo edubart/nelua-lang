@@ -53,6 +53,7 @@ end
 Destroys a string freeing its memory.
 
 This must never be called on string literals.
+This function is only needed to be called when not using the GC.
 ]]
 function string.destroy(s: string): void
   if s.size > 0 then

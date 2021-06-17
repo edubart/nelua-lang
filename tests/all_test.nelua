@@ -26,10 +26,6 @@ print('testing require_test... ')
 require 'tests.require_test'
 print 'OK!'
 
-print('testing resourcepool_test... ')
-require 'tests.resourcepool_test'
-print 'OK!'
-
 print('testing sequence_test... ')
 require 'tests.sequence_test'
 print 'OK!'

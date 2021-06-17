@@ -190,7 +190,6 @@ Type.shape = shaper.shape {
 
   -- Booleans for checking the underlying type (lib types).
   is_allocator = shaper.optional_boolean,
-  is_resourcepool = shaper.optional_boolean,
   is_string = shaper.optional_boolean,
   is_span = shaper.optional_boolean,
   is_vector = shaper.optional_boolean,

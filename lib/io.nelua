@@ -40,14 +40,19 @@ local function fflush(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 -- Namespace for I/O module.
 global io: type = @record{}
 
+local FStream: type = #[filestream.value.fields.fs.type.subtype]#
+local stderrfs: FStream = {fp = stderr}
+local stdoutfs: FStream = {fp = stdout}
+local stdinfs: FStream = {fp = stdin}
+
 -- Default error output file handle.
-global io.stderr: filestream = filestream._fromfp(stderr, nilptr)
+global io.stderr: filestream = {fs = &stderrfs}
 
 -- Default output file handle.
-global io.stdout: filestream = filestream._fromfp(stdout, nilptr)
+global io.stdout: filestream = {fs = &stdoutfs}
 
 -- Default input file handle.
-global io.stdin: filestream = filestream._fromfp(stdin, nilptr)
+global io.stdin: filestream = {fs = &stdinfs}
 
 --[[
 Opens a file, in the mode specified in the string `mode`.
@@ -219,9 +224,24 @@ function io.lines(filename: facultative(string), fmt: overload(integer,string,ni
   ## if filename.type.is_niltype then
     return io.stdin:lines()
   ## else
-    -- TODO: close file when finishing
     local file: filestream = io.open(filename)
     assert(file:isopen(), 'cannot open file')
-    return file:lines(fmt)
+    ## if fmt.type.is_niltype then
+    local fmt: string = 'l'
+    ## end
+    local LinesState: type = @record{
+      file: filestream,
+      fmt: #[fmt.type]#
+    }
+    local function lines_next(state: LinesState, prevstr: string): (boolean, string)
+      local str: string, errmsg: string, status: integer = state.file:read(state.fmt)
+      local ok: boolean = status == 0
+      if not ok then -- must close the file
+        state.file:close()
+        state.file:destroy()
+      end
+      return ok, str
+    end
+    return lines_next, (@LinesState){file=file,fmt=fmt}, (@string){}
   ## end
 end

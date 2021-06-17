@@ -405,12 +405,11 @@ but can also be used independently.
 
 ```nelua
 global filestream: type = @record{
-  id: uint64
+  fs: *FStream
 }
 ```
 
 File stream record, used to store file handles.
-Internally it just have an unique `id` for each file handle.
 
 ### filestream._fromfp
 
@@ -474,6 +473,17 @@ function filestream:close(): (boolean, string, integer)
 Closes the file.
 
 Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
+
+### filestream:destroy
+
+```nelua
+function filestream:destroy()
+```
+
+Destroys a file stream freeing its memory.
+If the file still open, it's silently closed.
+
+This function is only needed to be called when not using the GC.
 
 ### filestream:seek
 
@@ -1531,6 +1541,7 @@ function string.destroy(s: string): void
 Destroys a string freeing its memory.
 
 This must never be called on string literals.
+This function is only needed to be called when not using the GC.
 
 ### string.copy
 

@@ -6,8 +6,7 @@ but can also be used independently.
 
 require 'stringbuilder'
 require 'string'
-require 'allocators.general'
-require 'detail.resourcepool'
+require 'allocators.default'
 
 local FILE <cimport,nodecl,forwarddecl,cinclude'<stdio.h>'> = @record{}
 local errno: cint <cimport,cinclude'<errno.h>',nodecl>
@@ -33,31 +32,18 @@ local function ferror(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function fgetc(fp: *FILE): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function setvbuf(fp: *FILE, buf: cstring, modes: cint, n: csize): cint <cimport,cinclude'<stdio.h>',nodecl> end
 local function clearerr(fp: *FILE): void <cimport,cinclude'<stdio.h>',nodecl> end
-local function atexit(func: function()): cint <cimport,cinclude'<stdlib.h>',nodecl> end
 
---[[
-File stream record, used to store file handles.
-Internally it just have an unique `id` for each file handle.
-]]
-global filestream: type = @record{
-  id: uint64
-}
-## filestream.value.is_filestream = true
-
--- Record to store file handles in the file pool.
+-- File stream implementation record.
 local FStream: type = @record{
   fp: *FILE,
   closef: function(fp: *FILE): cint
 }
 
--- Pool of files.
-local pool: resourcepool(FStream, GeneralAllocator)
-
--- Destroy the pool on exit.
-local function destroy_pool(): void
-  pool:destroy()
-end
-atexit(destroy_pool)
+-- File stream record, used to store file handles.
+global filestream: type = @record{
+  fs: *FStream
+}
+## filestream.value.is_filestream = true
 
 -- Helper to get file operation errors.
 local function fileresult(success: boolean): (boolean, string, integer)
@@ -74,10 +60,10 @@ Initialize a new `filestream` from a given C `FILE` pointer.
 This function is used internally.
 ]]
 function filestream._fromfp(fp: *FILE, closef: function(fp: *FILE): cint): filestream
-  local id: uint64, p: *FStream = pool:acquire()
-  p.fp = fp
-  p.closef = closef
-  return filestream{id = id}
+  return (@filestream){fs = default_allocator:new((@FStream){
+    fp = fp,
+    closef = closef
+  })}
 end
 
 --[[
@@ -87,9 +73,8 @@ In case the file is closed, returns `nilptr`.
 This function is used internally.
 ]]
 function filestream:_getfp(): *FILE
-  local p: *FStream = pool:get(self.id)
-  if p then return p.fp end
-  return nilptr
+  if not self.fs then return nilptr end
+  return self.fs.fp
 end
 
 -- Check weather mode matches '[rwa]%+?b?'
@@ -150,17 +135,38 @@ Closes the file.
 Returns `true` on success, otherwise `false` plus an error message and a system-dependent error code.
 ]]
 function filestream:close(): (boolean, string, integer)
-  local p: *FStream = pool:get(self.id)
-  if not p or p.fp == nilptr then
+  local fs: *FStream = self.fs
+  if not fs or not fs.fp then
     return false, 'attempt to use a closed file', -1
   end
-  if p.fp == stdout or p.fp == stderr or p.fp == stdin then
+  if fs.fp == stdout or fs.fp == stderr or fs.fp == stdin then
     return false, 'cannot close standard file', -1
   end
   errno = 0 -- clear errno
-  local res: cint = p.closef(p.fp)
-  pool:release(self.id)
+  local res: cint = 0
+  if fs.closef then
+    res = fs.closef(fs.fp)
+  end
+  self.fs.fp = nilptr
+  self.fs.closef = nilptr
   return fileresult(res == 0)
+end
+
+--[[
+Destroys a file stream freeing its memory.
+If the file still open, it's silently closed.
+
+This function is only needed to be called when not using the GC.
+]]
+function filestream:destroy()
+  local fs: *FStream = self.fs
+  if fs then
+    if fs.fp and fs.closef then
+      self:close()
+    end
+    default_allocator:delete(self.fs)
+  end
+  self.fs = nilptr
 end
 
 --[[
@@ -442,7 +448,7 @@ end
 
 -- Checks whether the file is open.
 function filestream:isopen(): boolean
-  return pool:get(self.id) ~= nilptr
+  return self.fs ~= nilptr and self.fs.fp ~= nilptr
 end
 
 --[[

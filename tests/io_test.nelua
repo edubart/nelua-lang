@@ -27,25 +27,29 @@ do -- basic io.open/io.isopen/io.close
   assert(file:close() == true)
   assert(file:close() == false)
   assert(not file:isopen())
+  file:destroy()
 
   file = io.open('LICENSE', 'r')
   assert(file:isopen() == true)
   assert(io.close(file) == true)
   assert(not file:isopen())
+  file:destroy()
 end
 
 do -- io.popen
-  local f = io.popen('echo test')
-  local s = f:read('a')
+  local file = io.popen('echo test')
+  local s = file:read('a')
   assert(s == 'test\n')
   s:destroy()
-  f:close()
+  file:close()
+  file:destroy()
 end
 
 do -- io.type
   file = io.open('LICENSE', 'r')
   assert(io.type(file) == 'file')
   file:close()
+  file:destroy()
   assert(io.type(file) == 'closed file')
   assert(io.type(nil) == nil)
   assert(io.type(0) == nil)
@@ -71,6 +75,7 @@ do -- io.tmpfile
   file = io.tmpfile()
   assert(file:isopen())
   assert(file:close())
+  file:destroy()
   assert(not file:isopen())
 end
 ## end
@@ -83,6 +88,7 @@ do -- filestream:read, filestream:write and filestream:seek
   assert(file:write('line1\n') == true)
   assert(file:write('line2\n', 'line3\n', 'line4\n') == true)
   assert(file:close())
+  file:destroy()
 
   file = io.open('test.tmp', 'r')
   assert(file:isopen())
@@ -104,6 +110,7 @@ do -- filestream:read, filestream:write and filestream:seek
   assert_string_eq(file:read('a'), text)
   assert(file:close())
   assert(not file:isopen())
+  file:destroy()
 end
 
 do -- filestream:lines
@@ -138,6 +145,7 @@ do -- filestream:lines
   end
 
   file:close()
+  file:destroy()
 end
 
 do -- io.lines
@@ -179,6 +187,7 @@ do -- filestream:setvbuf
   assert(file:setvbuf("full") == true)
   assert(file:setvbuf("line") == true)
   assert(file:close())
+  file:destroy()
   os.remove('test.tmp')
 end
 
@@ -203,6 +212,7 @@ do -- io.output/io.write/io.writef
   assert(io.stdout == stdout)
   assert(io.stdout:isopen())
   assert(file:close())
+  file:destroy()
 
   -- writing to an output filename
   assert(io.output('test2.tmp') ~= stdout)
@@ -211,6 +221,7 @@ do -- io.output/io.write/io.writef
   assert(io.write('test', 2) == true)
   assert(io.stdout:write('!!\n') == true)
   assert(io.stdout:close())
+  assert(io.stdout:destroy())
   assert(io.output(stdout) == stdout)
   assert(io.stdout == stdout)
   assert(io.stdout:isopen())
@@ -229,12 +240,14 @@ do -- io.input/io.read
   assert(io.stdin == stdin)
   assert(io.stdin:isopen())
   assert(file:close())
+  file:destroy()
 
   -- reading from an input filename
   assert(io.input('test2.tmp') ~= stdin)
   assert(io.stdin:isopen())
   assert_string_eq(io.read(), 'test2!!')
   assert(io.stdin:close())
+  assert(io.stdin:destroy())
   assert(io.input(stdin) == stdin)
   assert(io.stdin:isopen())
 end
@@ -260,6 +273,7 @@ do -- tostring
   assert(not file2:isopen())
   assert_string_eq(tostring(file), 'file (closed)')
   assert_string_eq(tostring(file2), 'file (closed)')
+  file:destroy()
 end
 
 ## end
