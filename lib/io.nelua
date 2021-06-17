@@ -96,7 +96,7 @@ Without a `file`, closes the default output file.
 
 Equivalent to `file:close()`.
 ]]
-function io.close(file: overload(filestream, niltype)): (boolean, string, integer)
+function io.close(file: facultative(filestream)): (boolean, string, integer)
   ## if file.type.is_niltype then
     return io.stdout:close()
   ## else
@@ -203,13 +203,6 @@ function io.type(obj: auto)
   ## else
     return nil
   ## end
-end
-
---[[
-Checks weather `file` is open.
-]]
-function io.isopen(file: filestream): boolean
-  return file:isopen()
 end
 
 --[[

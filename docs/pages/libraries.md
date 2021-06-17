@@ -288,7 +288,7 @@ This function is system dependent and is not available on all platforms.
 ### io.close
 
 ```nelua
-function io.close(file: overload(filestream, niltype)): (boolean, string, integer)
+function io.close(file: facultative(filestream)): (boolean, string, integer)
 ```
 
 Closes a file.
@@ -378,14 +378,6 @@ Checks whether `obj` is a valid file handle.
 Returns the string `"file"` if `obj` is an open file handle,
 `"closed file"` if `obj` is a closed file handle,
 or `nil` if `obj` is not a file handle.
-
-### io.isopen
-
-```nelua
-function io.isopen(file: filestream): boolean
-```
-
-Checks weather `file` is open.
 
 ### io.lines
 

@@ -29,9 +29,9 @@ do -- basic io.open/io.isopen/io.close
   assert(not file:isopen())
 
   file = io.open('LICENSE', 'r')
-  assert(io.isopen(file) == true)
+  assert(file:isopen() == true)
   assert(io.close(file) == true)
-  assert(not io.isopen(file))
+  assert(not file:isopen())
 end
 
 do -- io.popen
@@ -44,7 +44,6 @@ end
 
 do -- io.type
   file = io.open('LICENSE', 'r')
-  assert(io.isopen(file))
   assert(io.type(file) == 'file')
   file:close()
   assert(io.type(file) == 'closed file')
