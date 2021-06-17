@@ -96,6 +96,10 @@ The container `a` must either have the metamethod `__next` or be a contiguous.
 global function next(a: container_reference_concept, k: auto) <inline>
   ## local atype = a.type:implicit_deref_type()
   ## if atype.is_record and atype.metafields.__next then
+    ## local ktype = atype.metafields.__next.type.argtypes[2]
+    ## if ktype.is_pointer and k.type.is_niltype then
+    local k: #[ktype]# = nilptr
+    ## end
     return a:__next(k)
   ## else
     ## impl_ipairs_next(a.type:implicit_deref_type())
@@ -105,7 +109,11 @@ end
 -- Like `next` but returns reference to the next element value, so that you can modify it in-place.
 global function mnext(a: container_reference_concept, k: auto) <inline>
   ## local atype = a.type:implicit_deref_type()
-  ## if atype.is_record and atype.metafields.__next then
+  ## if atype.is_record and atype.metafields.__mnext then
+    ## local ktype = atype.metafields.__mnext.type.argtypes[2]
+    ## if atype.metafields.__next.type.argtypes[1].is_pointer and k.type.is_niltype then
+    local k: #[ktype]# = nilptr
+    ## end
     return a:__mnext(k)
   ## else
   ## impl_mipairs_next(a.type:implicit_deref_type())

@@ -39,7 +39,16 @@ require 'iterators'
   listT.is_list = true
   listT.is_container = true
   listT.subtype = T
+  listT.choose_initializerlist_type = function(nodes) return types.ArrayType(T, #nodes) end
   ]]
+
+  -- Concept matching fixed arrays of T.
+  local an_arrayT: type = #[concept(function(x)
+    if x.type:is_array_of(T) then
+      return true
+    end
+    return false, string.format("no viable conversion from '%s' to '%s'", x.type, vectorT)
+  end)]#
 
   --[[
   Creates a list using a custom allocator instance.
@@ -74,7 +83,6 @@ require 'iterators'
   ]]
   function listT:destroy(): void
     self:clear()
-    memory.zero(self, #listT)
   end
 
   --[[
@@ -97,7 +105,7 @@ require 'iterators'
   end
 
   --[[
-  Adds an element at the end of the list.
+  Inserts an element at the end of the list.
 
   *Complexity*: O(1).
   ]]
@@ -113,6 +121,36 @@ require 'iterators'
       self.front = node
     end
     self.back = node
+  end
+
+  --[[
+  Inserts an element before element node `pos`.
+  Returns the inserted element node reference.
+  If `pos` is not set, then the element is added at the end of the list.
+
+  *Complexity*: O(1).
+  ]]
+  function listT:insert(value: T, pos: facultative(*listnodeT)): *listnodeT
+    ## if pos.type.is_niltype then
+    self:pushback(value)
+    return self.back
+    ## else
+    if not pos then
+      self:pushback(value)
+      return self.back
+    elseif pos == self.front then
+      self:pushfront(value)
+      return self.front
+    else -- in the middle
+      local node: *listnodeT = self.allocator:new(@listnodeT)
+      node.prev = pos.prev
+      node.prev.next = node
+      node.next = pos
+      node.next.prev = node
+      node.value = value
+      return node
+    end
+    ## end
   end
 
   --[[
@@ -175,6 +213,7 @@ require 'iterators'
 
   --[[
   Erases a node from the list.
+  Returns the node reference of the next element.
   If the node not in the list, then throws a runtime error on debug builds.
 
   *Complexity*: O(1).
@@ -260,6 +299,18 @@ require 'iterators'
   -- Allow using `mpairs()` to iterate the container.
   function listT:__mpairs() <inline>
     return listT.__mnext, self, nilptr
+  end
+
+  --[[
+  Initializes list elements from a fixed array.
+  Used to initialize list elements with curly braces (`{}`).
+  ]]
+  function listT.__convert(values: an_arrayT): listT <inline>
+    local self: listT
+    for i:usize=0,<#values do
+      self:pushback(values[i])
+    end
+    return self
   end
 
   ## return listT

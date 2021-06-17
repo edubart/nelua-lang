@@ -2913,7 +2913,19 @@ Inserts an element at beginning of the list.
 function listT:pushback(value: T): void
 ```
 
-Adds an element at the end of the list.
+Inserts an element at the end of the list.
+
+*Complexity*: O(1).
+
+### listT:insert
+
+```nelua
+function listT:insert(value: T, pos: facultative(*listnodeT)): *listnodeT
+```
+
+Inserts an element before element node `pos`.
+Returns the inserted element node reference.
+If `pos` is not set, then the element is added at the end of the list.
 
 *Complexity*: O(1).
 
@@ -2956,6 +2968,7 @@ function listT:erase(node: *listnodeT): *listnodeT
 ```
 
 Erases a node from the list.
+Returns the node reference of the next element.
 If the node not in the list, then throws a runtime error on debug builds.
 
 *Complexity*: O(1).
@@ -3011,6 +3024,15 @@ function listT:__mpairs()
 ```
 
 Allow using `mpairs()` to iterate the container.
+
+### listT.__convert
+
+```nelua
+function listT.__convert(values: an_arrayT): listT
+```
+
+Initializes list elements from a fixed array.
+Used to initialize list elements with curly braces (`{}`).
 
 ### list
 
