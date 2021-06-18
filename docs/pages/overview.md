@@ -1279,7 +1279,7 @@ Complete list of metamethods that can be defined for records:
 | `__convert`      |                             | cast     | implicit cast from anything            |
 | `__gc`           |                             | gc       | called when collected by the GC        |
 | `__next`         | next(a)                     | iterator | used by `next`                         |
-| `__next`         | mnext(a)                    | iterator | used by `mnext`                        |
+| `__mnext`        | mnext(a)                    | iterator | used by `mnext`                        |
 | `__pairs`        | pairs(a)                    | iterator | used by `pairs`                        |
 | `__mpairs`       | mpairs(a)                   | iterator | used by `mpairs`                       |
 {: .table.table-bordered.table-striped.table-sm}
