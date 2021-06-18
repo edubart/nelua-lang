@@ -107,7 +107,9 @@ function VisitorContext:get_source_directory()
     local node = nodes[i]
     local filename = node.src and node.src.name
     if filename and not filename:match('^@') then
-      return fs.dirname(filename)
+      local dirname = fs.dirname(filename)
+      if dirname == '' then dirname = '.' end
+      return dirname
     end
   end
 end

@@ -1307,6 +1307,7 @@ it("array comparisons", function()
     local c: A = {1,2,3,5}
     assert(a == a)
     assert(a == (@[4]integer){1,2,3,4})
+    assert(a ~= (@[4]integer){1,2,3,5})
     assert(a == b)
     assert(not (a ~= b))
     assert(not (a == c))

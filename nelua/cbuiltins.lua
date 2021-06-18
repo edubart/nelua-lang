@@ -109,7 +109,7 @@ function builtins.nelua_panic_cstring(context)
   context:ensure_include('<stdio.h>')
   context:ensure_builtins('nelua_noreturn', 'nelua_abort')
   context:define_function_builtin('nelua_panic_cstring',
-    'nelua_noreturn', primtypes.void, {{primtypes.cstring, 's'}}, [[{
+    'nelua_noreturn', primtypes.void, {{'const char*', 's'}}, [[{
   fputs(s, stderr);
   fputc('\n', stderr);
   nelua_abort();
@@ -196,7 +196,7 @@ function builtins.nelua_string2cstring(context)
   context:ensure_builtin('nelua_inline')
   context:define_function_builtin('nelua_string2cstring',
     'nelua_inline', primtypes.cstring, {{primtypes.string, 's'}}, [[{
-  return (s.size == 0) ? "" : (char*)s.data;
+  return (s.size == 0) ? (char*)"" : (char*)s.data;
 }]])
 end
 
@@ -205,7 +205,7 @@ function builtins.nelua_assert_string2cstring(context)
   context:define_function_builtin('nelua_assert_string2cstring',
     'nelua_inline', primtypes.cstring, {{primtypes.string, 's'}}, [[{
   if(s.size == 0) {
-    return "";
+    return (char*)"";
   }
   if(nelua_unlikely(s.data[s.size]) != 0) {
     nelua_panic_cstring("attempt to convert a non null terminated string to cstring");
@@ -218,7 +218,7 @@ function builtins.nelua_cstring2string(context)
   context:ensure_includes('<string.h>', '<stdint.h>')
   context:ensure_builtins('nelua_inline', 'NULL')
   context:define_function_builtin('nelua_cstring2string',
-    'nelua_inline', primtypes.string, {{primtypes.cstring, 's'}}, [[{
+    'nelua_inline', primtypes.string, {{'const char*', 's'}}, [[{
   if(s == NULL) return (nlstring){0};
   uintptr_t size = strlen(s);
   if(size == 0) return (nlstring){0};
@@ -658,7 +658,13 @@ function operators.eq(_, emitter, lnode, rnode, lname, rname)
   elseif ltype.is_array then
     assert(ltype == rtype)
     emitter.context:ensure_include('<string.h>')
-    emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) == 0')
+    if lnode.attr.lvalue and rnode.attr.lvalue then
+      emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) == 0')
+    else
+      emitter:add('({', ltype, ' a = ', lname, '; ',
+                        rtype, ' b = ', rname, '; ',
+                        'memcmp(&a, &b, sizeof(', ltype, ')) == 0; })')
+    end
   elseif needs_signed_unsigned_comparision(lnode, rnode) then
     if not ltype.is_unsigned then
       local op = emitter.context:ensure_builtin('nelua_eq_', ltype, rtype)
@@ -701,7 +707,13 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
   elseif ltype.is_array then
     assert(ltype == rtype)
     emitter.context:ensure_include('<string.h>')
-    emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) != 0')
+    if lnode.attr.lvalue and rnode.attr.lvalue then
+      emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) != 0')
+    else
+      emitter:add('({', ltype, ' a = ', lname, '; ',
+                        rtype, ' b = ', rname, '; ',
+                        'memcmp(&a, &b, sizeof(', ltype, ')) != 0; })')
+    end
   elseif needs_signed_unsigned_comparision(lnode, rnode) then
     if not ltype.is_unsigned then
       local op = emitter.context:ensure_builtin('nelua_eq_', ltype, rtype)
@@ -757,7 +769,11 @@ function operators.deref(_, emitter, argnode)
   end
   if argnode.checkderef then
     local op = emitter.context:ensure_builtin('nelua_assert_deref_', argnode.attr.type)
-    emitter:add(op, '(', argnode, ')')
+    if argnode.attr.type.subtype.length == 0 then
+      emitter:add(op, '((', argnode.attr.type, ')', argnode, ')')
+    else
+      emitter:add(op, '(', argnode, ')')
+    end
   else
     emitter:add(argnode)
   end

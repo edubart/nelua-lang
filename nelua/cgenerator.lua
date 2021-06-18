@@ -1569,10 +1569,16 @@ local function emit_features_setup(context)
   if not context.pragmas.nocwarnpragmas then -- warnings
     emitter:add_ln('#ifdef __GNUC__')
     -- throw error on implicit declarations
-    emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
-    emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-int"')
-    -- importing C functions can cause this warn
-    emitter:add_ln('#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
+    do
+      emitter:add_ln('#ifndef __cplusplus')
+        emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
+        emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-int"')
+      -- importing C functions can cause this warn
+        emitter:add_ln('#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
+      emitter:add_ln('#else')
+        emitter:add_ln('#pragma GCC diagnostic ignored "-Wwrite-strings"')
+      emitter:add_ln('#endif')
+    end
     -- C zero initialization for anything
     emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-braces"')
     emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-field-initializers"')
@@ -1588,7 +1594,9 @@ local function emit_features_setup(context)
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-function"')
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-but-set-variable"')
       -- for ignoring const* on pointers
-      emitter:add_ln('#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
+      emitter:add_ln('#ifndef __cplusplus')
+        emitter:add_ln('#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
+      emitter:add_ln('#endif')
       emitter:add_ln('#endif')
     end
     if ccinfo.is_emscripten then

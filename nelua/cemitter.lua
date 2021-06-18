@@ -127,6 +127,9 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
            traits.is_astnode(val) and val.attr.comptime then
       self:add_numeric_literal(val.attr, type)
     elseif valtype.is_nilptr and type.is_pointer then
+      if not type.is_generic_pointer then
+        self:add('(', type, ')')
+      end
       self:add_one(val)
     elseif type.is_boolean then
       self:add_val2boolean(val, valtype)
