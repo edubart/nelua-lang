@@ -242,13 +242,19 @@ local function visitor_Array_literal(context, node, littype)
   local attr = node.attr
   local childnodes = node
   local subtype = littype.subtype
-  if not (#childnodes <= littype.length or #childnodes == 0) then
-    node:raisef("expected at most %d values in array literal but got %d", littype.length, #childnodes)
+  local nchildnodes = #childnodes
+  local lastchildnode = nchildnodes > 0 and childnodes[nchildnodes]
+  if lastchildnode and lastchildnode.tag == 'Varargs' then
+    context:traverse_node(lastchildnode)
+    nchildnodes = #childnodes
+  end
+  if not (nchildnodes <= littype.length or nchildnodes == 0) then
+    node:raisef("expected at most %d values in array literal but got %d", littype.length, nchildnodes)
   end
   local comptime = true
   local done = true
   local sideeffect
-  for i=1,#childnodes do
+  for i=1,nchildnodes do
     local childnode = childnodes[i]
     if childnode.tag == 'Pair' then
       childnode:raisef("fields are disallowed for array literals")
@@ -981,6 +987,12 @@ function visitors.ArrayType(context, node)
       node:raisef("can only infer array size for braces initialized declarations")
     end
     length = #valnode
+    if length > 0 and valnode[length].tag == 'Varargs' then
+      local polyeval = context.state.inpolyeval
+      if polyeval then
+        length = length - 1 + #polyeval.varargsnodes
+      end
+    end
   end
   local type = types.ArrayType(subtype, length, node)
   type.node = node

@@ -3400,6 +3400,15 @@ unpack e true
     resume()
     resume(1)
     resume(1, 'test')
+
+    local function f(...: varargs)
+      local a: []integer = {...}
+      return #a
+    end
+
+    assert(f() == 0)
+    assert(f(1) == 1)
+    assert(f(1, 2) == 2)
   ]], "1\ttest")
 end)
 
