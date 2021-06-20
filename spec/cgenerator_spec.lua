@@ -1495,6 +1495,13 @@ it("binary conditional operators", function()
       assert(not (p or b) == false)
       assert(not (b and p) == true)
     end
+
+    do
+      assert(not (true == 1))
+      assert(not (false == 1))
+      assert(true ~= 1)
+      assert(false ~= 1)
+    end
   ]])
 end)
 
