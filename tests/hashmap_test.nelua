@@ -117,6 +117,21 @@ do -- pairs and mpairs
   map:destroy()
 end
 
+do -- remove while iterating
+  local map: hashmap(integer, integer)
+  for i=1,100 do
+    local k, v = i*3167, i*10
+    map[k] = v
+  end
+  local i = 1
+  for k,v in pairs(map) do
+    local ek, ev = i*3167, i*10
+    map:remove(k)
+    i = i + 1
+  end
+  assert(#map == 0)
+end
+
 do -- string map
   local map: hashmap(string, string)
   map['hello'] = 'hello'

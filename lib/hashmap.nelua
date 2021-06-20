@@ -313,15 +313,27 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   *Remarks*: The input key is actually ignored.
   ]]
   function hashmap_iteratorT:next(key: K): (boolean, K, V) <inline>
+    local node: *hashnodeT <noinit>
     if unlikely(self.index == INVALID_INDEX) then
       self.index = 0
+      if unlikely(self.index >= self.container.size) then
+        return false, (@K)(), (@V)()
+      end
+      node = &self.container.nodes[0]
     else
-      self.index = self.index + 1
+      if unlikely(self.index >= self.container.size) then
+        return false, (@K)(), (@V)()
+      end
+      node = &self.container.nodes[self.index]
+      if likely(node.key == key) then
+        -- key unchanged, a key can change when removing while iterating
+        self.index = self.index + 1
+        if unlikely(self.index >= self.container.size) then
+          return false, (@K)(), (@V)()
+        end
+        node = &self.container.nodes[self.index]
+      end
     end
-    if unlikely(self.index >= self.container.size) then
-      return false, (@K)(), (@V)()
-    end
-    local node: *hashnodeT = &self.container.nodes[self.index]
     return true, node.key, node.value
   end
 
@@ -331,15 +343,27 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   *Remarks*: The input key is actually ignored.
   ]]
   function hashmap_iteratorT:mnext(key: K): (boolean, K, *V) <inline>
+    local node: *hashnodeT <noinit>
     if unlikely(self.index == INVALID_INDEX) then
       self.index = 0
+      if unlikely(self.index >= self.container.size) then
+        return false, (@K)(), nilptr
+      end
+      node = &self.container.nodes[0]
     else
-      self.index = self.index + 1
+      if unlikely(self.index >= self.container.size) then
+        return false, (@K)(), nilptr
+      end
+      node = &self.container.nodes[self.index]
+      if likely(node.key == key) then
+        -- key unchanged, a key can change when removing while iterating
+        self.index = self.index + 1
+        if unlikely(self.index >= self.container.size) then
+          return false, (@K)(), nilptr
+        end
+        node = &self.container.nodes[self.index]
+      end
     end
-    if unlikely(self.index >= self.container.size) then
-      return false, (@K)(), nilptr
-    end
-    local node: *hashnodeT = &self.container.nodes[self.index]
     return true, node.key, &node.value
   end
 
