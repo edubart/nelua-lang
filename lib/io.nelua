@@ -192,6 +192,12 @@ function io.writef(fmt: string, ...: varargs): (boolean, string, integer)
   return io.stdout:writef(fmt, ...)
 end
 
+-- Like `io.writef` but also flushes the standard output.
+function io.printf(...: varargs): void
+  io.writef(...)
+  io.flush()
+end
+
 --[[
 Checks whether `obj` is a valid file handle.
 Returns the string `"file"` if `obj` is an open file handle,

@@ -79,13 +79,13 @@ do -- remove
   end
   for i=1,50 do
     local k = i*3167
-    map:remove(k)
+    assert(map:remove(k) == i * 10)
   end
   assert(#map == 50)
   for i=51,100 do
     local k, v = i*3167, i*10
     assert(map[k] == v)
-    map:remove(k)
+    assert(map:remove(k) == v)
   end
   assert(#map == 0)
   map:destroy()

@@ -240,16 +240,18 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
 
   --[[
   Removes an element with a key from the container (if it exists).
-  Returns `true` if an element was actually removed.
+  Returns the removed value that was was actually removed.
+  If the key does not exist, then returns a zeroed value.
 
   *Complexity*: Average case O(1).
   ]]
-  function hashmapT:remove(key: K): boolean
+  function hashmapT:remove(key: K): V
     local node_index: usize, prev_node_index: usize, hash_index: usize = self:_find(key)
-    if node_index == INVALID_INDEX then return false end
+    if node_index == INVALID_INDEX then return V() end
 
     -- unlink the removed node
     local node: *hashnodeT = &self.nodes[node_index]
+    local value: V = node.value
     if prev_node_index == INVALID_INDEX then
       self.buckets[hash_index] = node.next
     else
@@ -272,7 +274,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     -- clean the last node
     $last_node = (@hashnodeT)()
     self.size = self.size - 1
-    return true
+    return value
   end
 
   -- Returns the average number of elements per bucket.

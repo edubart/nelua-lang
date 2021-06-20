@@ -368,6 +368,14 @@ In case of success, this function returns `true`.
 
 Equivalent to `io.output():writef(fmt, ...)`.
 
+### io.printf
+
+```nelua
+function io.printf(...: varargs): void
+```
+
+Like `io.writef` but also flushes the standard output.
+
 ### io.type
 
 ```nelua
@@ -3185,11 +3193,12 @@ If no such element exists, returns `nilptr`.
 ### hashmapT:remove
 
 ```nelua
-function hashmapT:remove(key: K): boolean
+function hashmapT:remove(key: K): V
 ```
 
 Removes an element with a key from the container (if it exists).
-Returns `true` if an element was actually removed.
+Returns the removed value that was was actually removed.
+If the key does not exist, then returns a zeroed value.
 
 *Complexity*: Average case O(1).
 
