@@ -52,8 +52,8 @@ local MAX_LOAD_FACTOR: usize <comptime> = 75
 -- Grow rate in percent.
 -- When the maximum load factor is reached the container capacity grows by this factor.
 local GROW_RATE: usize <comptime> = 200
--- Initial capacity to reserve when inserting an element for the first time in a container.
-local INIT_CAPACITY: usize <comptime> = 4
+-- Initial bucket capacity to reserve when inserting an element for the first time in a container.
+local INIT_CAPACITY: usize <comptime> = 16
 -- Constant used to test invalid index.
 local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
 
@@ -70,7 +70,7 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
   local V: type = @#[V]#
 
   -- Hash map node record defined when instantiating the generic `hashmap`.
-  local hashnodeT: type <nickname #[string.format('hashmapnode(%s)',T)]#> = @record{
+  local hashnodeT: type <nickname #[string.format('hashmapnode(%s, %s)',K,V)]#> = @record{
     key: K,
     value: V,
     filled: boolean,
@@ -235,9 +235,8 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
 
   -- Used internally to find or make a value at a key returning it's node index.
   function hashmapT:_at(key: K): usize
-    if unlikely(self.buckets.size == 0) then
-      -- empty buckets, initialize it
-      self:reserve(INIT_CAPACITY)
+    if unlikely(self.buckets.size == 0) then -- no buckets, initialize it
+      self:rehash(INIT_CAPACITY)
     end
     local node_index: usize, prev_node_index: usize, hash_index: usize = self:_find(key)
     if node_index ~= INVALID_INDEX then -- found a node
@@ -256,9 +255,9 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
         self.nodes[prev_node_index].next = node_index
       end
       self.size = self.size + 1
-      -- allocate more space if the container is full
-      if unlikely(self.size >= (MAX_LOAD_FACTOR * self.buckets.size) // 100) then
-        self:reserve(ceilidiv(self.size * GROW_RATE, 100))
+      -- allocate more space when hitting the max load factor
+      if unlikely(self.size * 100 >= self.buckets.size * MAX_LOAD_FACTOR) then
+        self:rehash(ceilidiv(self.size * GROW_RATE, MAX_LOAD_FACTOR))
       end
       return node_index
     end

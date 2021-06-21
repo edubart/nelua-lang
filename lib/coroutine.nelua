@@ -173,7 +173,7 @@ Note that this is only needed to be called when the GC is disabled.
 ]]
 function coroutine.destroy(co: coroutine): void
   ## if not pragmas.nogc then
-  gc:unregister(co, false)
+  gc:unregister(co)
   ## end
   if mco_destroy(co) ~= MCO_SUCCESS then
     error 'failed to destroy a coroutine'
