@@ -104,7 +104,8 @@ local main_coro: mco_coro
 global coroutine: type = @*mco_coro
 
 -- Called when the coroutine collected by the GC.
-local function coroutine_gc(co: coroutine): void
+local function coroutine_gc(co: pointer, userdata: pointer): void
+  local co: coroutine = (@coroutine)(co)
   if mco_destroy(co) ~= MCO_SUCCESS then
     error 'failed to destroy a coroutine'
   end
@@ -158,7 +159,7 @@ function coroutine.create(f: auto): coroutine
   end
   -- Mark the coroutine stack memory to scan in the garbage collector
   ## if not pragmas.nogc then
-    gc:add(co, desc.coro_size, 0, (@pointer)(coroutine_gc))
+    gc:register(co, desc.coro_size, GCFlags.EXTERN, coroutine_gc, nilptr)
   ## end
   return co
 end
@@ -172,7 +173,7 @@ Note that this is only needed to be called when the GC is disabled.
 ]]
 function coroutine.destroy(co: coroutine): void
   ## if not pragmas.nogc then
-  gc:remove(co)
+  gc:unregister(co, false)
   ## end
   if mco_destroy(co) ~= MCO_SUCCESS then
     error 'failed to destroy a coroutine'

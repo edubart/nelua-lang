@@ -1,21 +1,20 @@
 --[[
 GC Allocator
 
-This is an allocator that uses a tiny and simple mark and sweep garbage collector.
+This is an allocator that uses a simple mark and sweep garbage collector.
 It is a conservative garbage collector, that is, it scans the stack/heap memory
 marking pointers without references to be freed once the memory grows too much.
-
-The implementation is based on [this project](https://github.com/orangeduck/tgc).
 ]]
 
 require 'span'
 require 'allocators.general'
+require 'hashmap'
+require 'vector'
 
 ##[[
 if pragmas.nogc then
   static_error 'allocators.gc was required while GC is explicitly disabled'
 end
-pragmas.nochecks = true
 cemitdecl[=[
 #if defined(__has_feature)
 #if __has_feature(address_sanitizer)
@@ -34,391 +33,183 @@ cemitdecl[=[
 
 local jmp_buf: type <cimport,nodecl,cinclude'<setjmp.h>',cincomplete> = @record{}
 local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>',nodecl> end
-local function memcpy(dest: pointer, src: pointer, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
-local function memset(s: pointer, c: cint, n: csize): pointer <cimport,cinclude'<string.h>',nodecl> end
 
-local allocator: auto = general_allocator
+-- Utilities
+
+local function hasflag(flags: usize, flag: usize): boolean <inline>
+  return flags & flag ~= 0
+end
+
+local function align_forward(addr: usize, align: usize): usize <inline>
+  return (addr + (align-1)) & ~(align-1)
+end
+
+local UINTPTR_MAX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
+local DEFAULT_PAUSE: usize <comptime> = 200
+
+-- GCFlags
 
 global GCFlags: type = @enum(usize) {
   MARK = 1, -- marked for collection, used internally
   ROOT = 2, -- should not never be freed
   LEAF = 4, -- contains no pointers to other allocations inside
-  SIZED_FINALIZER = 8,  -- finalizer will have a size parameter
-  NO_DEALLOC = 16, -- allocated by some external allocator, should not be automatically freed
+  EXTERN = 8, -- should not deallocate when collected
 }
-local UINTPTR_MAX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
 
-local FinalizerCallback: type = @function(p: pointer): void
-local SizedFinalizerCallback: type = @function(p: pointer, size: usize): void
+-- GCItem
 
-local GCItem: type = @record{
-  ptr: pointer,
+global GCFinalizerCallback: type = @function(pointer, pointer): void
+
+global GCItem: type = @record{
   flags: usize,
   size: usize,
-  hash: usize,
-  finalizer: pointer,
+  ptr: pointer,
+  finalizer: GCFinalizerCallback,
+  userdata: pointer,
 }
 
-local GC: type = @record{
-  bottom: pointer,
-  stopped: boolean,
-  minptr: usize, maxptr: usize,
-  items: span(GCItem), frees: span(GCItem),
-  loadfactor: number, sweepfactor: number,
-  nitems: usize, nslots: usize, mitems: usize, nfrees: usize,
-  membytes: usize,
-}
-
-function GCItem:finalize(): void
-  if self.finalizer then
-    if self.flags & GCFlags.SIZED_FINALIZER == 0 then
-      local finalizer: FinalizerCallback = (@FinalizerCallback)(self.finalizer)
-      finalizer(self.ptr)
-    else
-      local finalizer: SizedFinalizerCallback = (@SizedFinalizerCallback)(self.finalizer)
-      finalizer(self.ptr, self.size)
-    end
-  end
+function GCItem:mark(): void <inline>
+  self.flags = self.flags | GCFlags.MARK
 end
+
+function GCItem:unmark(): void <inline>
+  self.flags = self.flags & ~GCFlags.MARK
+end
+
+function GCItem:ismarked(): boolean <inline>
+  -- root items are always marked
+  return hasflag(self.flags, GCFlags.MARK | GCFlags.ROOT)
+end
+
+function GCItem:isleaf(): boolean <inline>
+  return hasflag(self.flags, GCFlags.LEAF)
+end
+
+function GCItem:isroot(): boolean <inline>
+  return hasflag(self.flags, GCFlags.ROOT)
+end
+
+function GCItem:isdealloc(): boolean <inline>
+  return not hasflag(self.flags, GCFlags.EXTERN)
+end
+
+-- GC
+
+global GC: type = @record{
+  running: boolean,
+  collecting: boolean,
+  pause: usize,
+  membytes: usize,
+  lastmembytes: usize,
+  minaddr: usize,
+  maxaddr: usize,
+  bottom: pointer,
+  frees: vector(pointer, GeneralAllocator),
+  items: hashmap(pointer, GCItem, nil, GeneralAllocator),
+}
 
 global gc: GC
 
-function GC:_hash(ptr: pointer): usize
-  return (@usize)(ptr) >> 3
-end
-
-function GC:_probe(i: usize, h: usize): usize
-  local v: isize = (@isize)(i) - ((@isize)(h) - 1_isize)
-  if v < 0 then
-    v = (@isize)(self.nslots) + v
-  end
-  return (@usize)(v)
-end
-
-function GC:_get_ptr(ptr: pointer): *GCItem
-  if self.nslots == 0 then
-    return nilptr
-  end
-  local i: usize = self:_hash(ptr) % self.nslots
-  local j: usize = 0
-  while true do
-    local h: usize = self.items[i].hash
-    if h == 0 or j > self:_probe(i, h) then
-      return nilptr
+function GC:unregister(ptr: pointer, finalize: boolean): boolean
+  local item: GCItem = self.items:remove(ptr)
+  if unlikely(item.ptr ~= ptr) then return false end
+  self.membytes = self.membytes - item.size
+  if finalize then
+    if item.finalizer then -- finalize
+      item.finalizer(ptr, item.userdata)
     end
-    if self.items[i].ptr == ptr then
-      return &self.items[i]
-    end
-    i = (i + 1) % self.nslots
-    j = j + 1
-  end
-  return nilptr
-end
-
-function GC:_add_ptr(ptr: pointer, size: usize, flags: usize, finalizer: pointer, rehash: boolean): void
-  local i: usize = self:_hash(ptr) % self.nslots
-  local item: GCItem = {
-    ptr = ptr,
-    flags = flags,
-    size = size,
-    hash = i+1,
-    finalizer = finalizer
-  }
-
-  local j: usize = 0
-  while true do
-    local h: usize = self.items[i].hash
-    if h == 0 then
-      self.items[i] = item
-      if not rehash and flags & GCFlags.ROOT == 0 then
-        self.membytes = self.membytes + size
-      end
-      return
-    end
-    if self.items[i].ptr == item.ptr then
-      return
-    end
-    local p: usize = self:_probe(i, h)
-    if j >= p then
-      self.items[i], item = item, self.items[i]
-      j = p
-    end
-    i = (i+1) % self.nslots
-    j = j + 1
-  end
-end
-
-function GC:_remove_ptr(ptr: pointer): void
-  if self.nitems == 0 then
-    return
-  end
-
-  for i:usize=0,<self.nfrees do
-    if self.frees[i].ptr == ptr then
-      self.frees[i].ptr = nilptr
+    if item:isdealloc() then -- deallocate
+      general_allocator:dealloc(ptr)
     end
   end
-
-  local i: usize = self:_hash(ptr) % self.nslots
-  local j: usize = 0
-  while true do
-    local item: *GCItem = &self.items[i]
-    local h: usize = item.hash
-    if h == 0 or j > self:_probe(i, h) then
-      return
-    end
-    if item.ptr == ptr then
-      if item.flags & GCFlags.ROOT == 0 then
-        self.membytes = self.membytes - item.size
-      end
-      memset(item, 0, #GCItem)
-      j = i
-      while true do
-        local nj: usize = (j+1) % self.nslots
-        local nh: usize = self.items[nj].hash
-        if nh ~= 0 and self:_probe(nj, nh) > 0 then
-          memcpy(&self.items[j], &self.items[nj], #GCItem)
-          memset(&self.items[nj], 0, #GCItem)
-          j = nj
-        else
-          break
-        end
-      end
-      self.nitems = self.nitems - 1
-      return
-    end
-    i = (i+1) % self.nslots
-    j = j + 1
-  end
-end
-
-local GC_PRIMES_COUNT <comptime> = 24
-local GC_primes: [GC_PRIMES_COUNT]usize <const> = {
-  0,       1,       5,       11,
-  23,      53,      101,     197,
-  389,     683,     1259,    2417,
-  4733,    9371,    18617,   37097,
-  74093,   148073,  296099,  592019,
-  1100009, 2200013, 4400021, 8800019
-}
-
-function GC:_ideal_size(size: usize): usize
-  size = (@usize)((size+1) / self.loadfactor)
-  for i:usize=0,<GC_PRIMES_COUNT do
-    if GC_primes[i] >= size then
-      return GC_primes[i]
-    end
-  end
-  local last: usize = GC_primes[GC_PRIMES_COUNT-1]
-  local i: usize = 0
-  while true do
-    if last * i >= size then
-      return last * i
-    end
-    i = i + 1
-  end
-  return 0
-end
-
-function GC:_rehash(newsize: usize): boolean
-  local olditems: span(GCItem) = self.items
-  local oldsize: usize = self.nslots
-
-  self.nslots = newsize
-  self.items = allocator:spanalloc0(@GCItem, self.nslots)
-
-  if self.items.size == 0 then
-    self.nslots = oldsize
-    self.items = olditems
-    return false
-  end
-
-  for i:usize=0,<oldsize do
-    local olditem: *GCItem = &olditems[i]
-    if olditem.hash ~= 0 then
-      self:_add_ptr(olditem.ptr, olditem.size, olditem.flags, olditem.finalizer, true)
-    end
-  end
-  allocator:spandealloc(olditems)
   return true
 end
 
-function GC:_resize_more(): boolean
-  local newsize: usize = self:_ideal_size(self.nitems)
-  local oldsize: usize = self.nslots
-  if newsize > oldsize then
-    return self:_rehash(newsize)
-  else
-    return true
-  end
-end
-
-function GC:_resize_less(): boolean
-  local newsize: usize = self:_ideal_size(self.nitems)
-  local oldsize: usize = self.nslots
-  if newsize < oldsize then
-    return self:_rehash(newsize)
-  else
-    return true
-  end
-end
-
-function GC:_unmark_all(): void <noinline>
-  for i:usize=0,<self.nslots do
-    self.items[i].flags = self.items[i].flags & ~GCFlags.MARK
-  end
-end
-
-function GC:_mark_ptr(ptr: pointer): void <noinline, cqualifier'NELUA_GC_NO_SANITIZE'>
-  if (@usize)(ptr) < self.minptr or (@usize)(ptr) > self.maxptr then
-    return
-  end
-
-  local i: usize = self:_hash(ptr) % self.nslots
-  local j: usize = 0
-
-  while true do
-    local h: usize = self.items[i].hash
-    if h == 0 or j > self:_probe(i, h) then
-      return
+function GC:_markptrs(low: usize, high: usize): void <cqualifier'NELUA_GC_NO_SANITIZE'>
+  local minaddr: usize, maxaddr: usize = self.minaddr, self.maxaddr
+  local items: auto = &self.items
+  for memaddr: usize=low,<high,#@pointer do
+    local addr: usize = $(@*usize)(memaddr)
+    if addr >= minaddr and addr <= maxaddr then
+      local item: *GCItem = items:peek((@pointer)(addr))
+      if item and not item:ismarked() then -- reference found
+        item:mark()
+        if not item:isleaf() then -- we don't need to scan leafs
+          self:_markptrs(addr, addr + item.size)
+        end
+      end
     end
-    if ptr == self.items[i].ptr then
-      if self.items[i].flags & GCFlags.MARK ~= 0 then
-        return
-      end
-      self.items[i].flags = self.items[i].flags | GCFlags.MARK
-      if self.items[i].flags & GCFlags.LEAF ~= 0 then
-        return
-      end
-      for k:usize=0,<(self.items[i].size // #@pointer) do
-        self:_mark_ptr(((@*[0]pointer)(self.items[i].ptr))[k])
-      end
-      return
-    end
-    i = (i+1) % self.nslots
-    j = j + 1
   end
 end
 
-function GC:_mark_stack(): void <cqualifier'NELUA_GC_NO_SANITIZE'>
+function GC:_unmarkall(): void
+  for ptr: pointer, item: *GCItem in mpairs(self.items) do
+    item:unmark()
+  end
+end
+
+function GC:_markroot(): void
+  -- TODO: optimize to traverse only root items
+  for ptr: pointer, item: *GCItem in mpairs(self.items) do
+    if item:isroot() then
+      local addr: usize = (@usize)(ptr)
+      self:_markptrs(addr, addr + item.size)
+    end
+  end
+end
+
+local function gc_markstackinner(self: *GC): void
   local stk: pointer <volatile>
-  local bot: usize = (@usize)(self.bottom)
-  local top: usize = (@usize)(&stk)
-  if bot < top then
-    bot, top = top, bot
-  end
-  for pi:usize=top,<=bot,#@pointer do
-    self:_mark_ptr($(@*pointer)(pi))
-  end
+  local low: usize = (@usize)(self.bottom)
+  local high: usize = (@usize)(&stk)
+  if high < low then low, high = high, low end
+  self:_markptrs(low, high)
 end
 
-function GC:_mark(): void <noinline>
-  if self.nitems == 0 then
-    return
-  end
-
-  self:_unmark_all()
-
-  for i:usize=0,<self.nslots do
-    if self.items[i].hash == 0 or
-       self.items[i].flags & GCFlags.MARK ~= 0 then
-      continue
-    end
-    if self.items[i].flags & GCFlags.ROOT ~= 0 then
-      self.items[i].flags = self.items[i].flags | GCFlags.MARK
-      if self.items[i].flags & GCFlags.LEAF ~= 0 then
-        continue
-      end
-      for k:usize=0,<self.items[i].size//(@usize)(#@pointer) do
-        self:_mark_ptr(((@*[0]pointer)(self.items[i].ptr))[k])
-      end
-    end
-  end
-
-  -- dump registers into the stack
+function GC:_markstack(): void <noinline>
 ## if not ccinfo.is_wasm then
   local env: jmp_buf
   setjmp(env)
-  local mark_stack: auto <volatile> = GC._mark_stack -- to avoid inline
-  mark_stack(self)
+  local markstackinner: auto <volatile> = gc_markstackinner -- to avoid inline
+  markstackinner(self)
 ## end
 end
 
 function GC:_sweep(): void <noinline>
-  if self.nitems == 0 then
-    return
-  end
-
-  self.nfrees = 0
-  for j:usize=0,<self.nslots do
-    if not (self.items[j].hash == 0 or
-            self.items[j].flags & GCFlags.MARK ~= 0 or
-            self.items[j].flags & GCFlags.ROOT ~= 0) then
-      self.nfrees = self.nfrees + 1
+  -- find free nodes
+  for ptr: pointer, item: *GCItem in mpairs(self.items) do
+    if not item:ismarked() then
+      self.frees:push(ptr)
     end
   end
-
-  self.frees = allocator:spanrealloc(self.frees, self.nfrees)
-  if self.frees.size ~= self.nfrees then
-    return
+  -- remove free allocations
+  for i: integer, ptr: pointer in ipairs(self.frees) do
+    gc:unregister(ptr, true)
   end
-
-  local i: usize = 0
-  local k: usize = 0
-  while i < self.nslots do
-    if self.items[i].hash == 0 or
-       self.items[i].flags & GCFlags.MARK ~= 0 or
-       self.items[i].flags & GCFlags.ROOT ~= 0 then
-      i = i + 1
-      continue
-    end
-
-    local item: *GCItem = &self.items[i]
-    self.frees[k] = $item
-    k = k + 1
-    if item.flags & GCFlags.ROOT == 0 then
-      self.membytes = self.membytes - item.size
-    end
-    memset(item, 0, #GCItem)
-
-    local j: usize = i
-    while true do
-      local nj: usize = (j+1) % self.nslots
-      local nh: usize = self.items[nj].hash
-      if nh ~= 0 and self:_probe(nj, nh) > 0 then
-        memcpy(&self.items[j], &self.items[nj], #GCItem)
-        memset(&self.items[nj], 0, #GCItem)
-        j = nj
-      else
-        break
-      end
-    end
-    self.nitems = self.nitems - 1
+  self.frees:clear()
+  -- shrink the items hash map when the load factor is too low
+  if self.items:loadfactor() < 0.25 then
+    self.items:rehash(0)
   end
-
-  self:_resize_less()
-
-  self.mitems = self.nitems + (@usize)(self.nitems * self.sweepfactor) + 1
-
-  for j:usize=0,<self.nfrees do
-    if self.frees[j].ptr then
-      self.frees[j]:finalize()
-      if self.frees[j].flags & GCFlags.NO_DEALLOC == 0 then
-        allocator:dealloc(self.frees[j].ptr)
-      end
-    end
-  end
-
-  allocator:spandealloc(self.frees)
-  self.frees = {}
-  self.nfrees = 0
 end
 
-function GC:_mark_statics(): void
+function GC:collect(): void
+  -- avoid collecting when already collecting, can happen while calling finalizers
+  if self.collecting then return end
+  self.collecting = true
+  self:_unmarkall()
+  self:_markroot()
+  self:_markstack()
+  self:_sweep()
+  self.lastmembytes = self.membytes
+  self.collecting = false
+end
+
+function GC:_registerstatics(): void
   ## local emit_mark_statics = hygienize(function(staticsyms)
     ## for i=1,#staticsyms do
       ## local sym = staticsyms[i]
-      gc:add(&#[sym]#, # #[sym.type]#, GCFlags.ROOT, nilptr)
+      gc:register(&#[sym]#, # #[sym.type]#, GCFlags.ROOT, nilptr, nilptr)
     ## end
   ## end)
 
@@ -431,7 +222,7 @@ function GC:_mark_statics(): void
         if sym:is_on_static_storage() and
            sym.type:has_pointer() and
            not sym.cimport and
-           sym ~= gc then
+           sym.type.nickname ~= 'GC' then
           symbols[#symbols+1] = sym
         end
       end
@@ -445,151 +236,114 @@ function GC:_mark_statics(): void
   ]]
 end
 
+function GC:_maybecollect(): void
+  if not self.running or self.collecting then return end
+  if self.membytes == 0 then return end
+  if #self.items == 0 then return end
+  if self.membytes < (self.lastmembytes * self.pause) // 100 then return end
+  self:collect()
+end
+
+function GC:register(ptr: pointer, size: usize, flags: usize, finalizer: GCFinalizerCallback, userdata: pointer): void
+  if unlikely(not ptr) then return end
+  -- small allocations that can't store pointers are always leafs
+  if size < #@usize then
+    flags = flags | GCFlags.LEAF
+  end
+  -- make item for the pointer
+  local item: *GCItem = &self.items[ptr]
+  check(item.ptr == nilptr, 'cannot register pointer twice')
+  $item = GCItem{
+    flags = flags,
+    size = size,
+    ptr = ptr,
+    finalizer = finalizer,
+    userdata = userdata,
+  }
+  -- update collector address bounds
+  if not item:isroot() then -- skip root items, because they are always scanned
+    local addr: usize = (@usize)(ptr)
+    local addrhigh: usize = addr + size
+    if addrhigh > self.maxaddr then self.maxaddr = addrhigh end
+    if addr < self.minaddr then self.minaddr = addr end
+  end
+  -- add memory
+  self.membytes = self.membytes + size
+  self:_maybecollect()
+end
+
+function GC:reregister(ptr: pointer, newptr: pointer, newsize: usize): boolean
+  check(ptr and newptr and newsize > 0, 'invalid pointer reregister arguments')
+  local oldsize: usize
+  if newptr == ptr then
+    local item: *GCItem = self.items:peek(ptr)
+    if unlikely(not item) then return false end -- not found
+    oldsize = item.size
+    item.size = newsize
+  else -- moved
+    -- remove and insert item again
+    local item: GCItem = self.items:remove(ptr)
+    if unlikely(item.ptr ~= ptr) then return false end -- not found
+    self:register(newptr, newsize, item.flags, item.finalizer, item.userdata)
+    return true
+  end
+  if newsize > oldsize then -- growing
+    self.membytes = self.membytes + (newsize - oldsize)
+    self:_maybecollect()
+  elseif newsize < oldsize then -- shrinking
+    self.membytes = self.membytes - (oldsize - newsize)
+  end
+  return true
+end
+
+function GC:init(stack: pointer): void
+  self.bottom = stack
+  self.minaddr = UINTPTR_MAX
+  self:_registerstatics()
+  self.pause = DEFAULT_PAUSE
+  self.running = true
+end
+
+function GC:destroy(): void
+  self:_unmarkall()
+  self:_sweep()
+  self.items:destroy()
+  self.frees:destroy()
+  $self = {}
+end
+
+function GC:count(): number
+  local bytes: usize = 0
+  for ptr: pointer, item: *GCItem in mpairs(self.items) do
+    if not item:isroot() then
+      bytes = bytes + item.size
+    end
+  end
+  return bytes / 1024.0
+end
+
 function GC:stop(): void
-  self.stopped = true
+  self.running = false
 end
 
 function GC:restart(): void
 ## if not ccinfo.is_wasm then -- cannot run automatically on emscripten
-  self.stopped = false
+  self.running = true
 ## end
 end
 
-function GC:init(stack: pointer): void
-  $self = {}
-  self.bottom = stack
-  self.minptr = UINTPTR_MAX
-  self.loadfactor = 0.9
-  self.sweepfactor = 0.5
-  self.stopped = true
-  self:_mark_statics()
-  self:restart()
-end
-
-function GC:terminate(): void
-  self:_unmark_all()
-  self:_sweep()
-  allocator:spandealloc(self.items)
-  allocator:spandealloc(self.frees)
-  $self = {}
-  self.stopped = true
+function GC:setpause(pause: integer): integer
+  local oldpause: integer = self.pause
+  if pause < 100 then pause = 100 end
+  self.pause = pause
+  return oldpause
 end
 
 function GC:isrunning(): boolean
-  return not self.stopped
+  return self.running
 end
 
-function GC:count(): number
-  return self.membytes / 1024.0
-end
-
-function GC:collect(): void
-  self:_mark()
-  self:_sweep()
-end
-
-function GC:_add(ptr: pointer, size: usize, flags: usize, finalizer: pointer): boolean
-  self.nitems = self.nitems + 1
-
-  local uptr: usize = (@usize)(ptr)
-  if uptr + size > self.maxptr then
-    self.maxptr = uptr + size
-  end
-  if uptr < self.minptr then
-    self.minptr = uptr
-  end
-
-  if self:_resize_more() then
-    self:_add_ptr(ptr, size, flags, finalizer, false)
-    if not self.stopped and self.nitems > self.mitems then
-      self:collect()
-    end
-    return true
-  else
-    self.nitems = self.nitems - 1
-    return false
-  end
-end
-
-function GC:add(ptr: pointer, size: usize, flags: usize, finalizer: pointer): boolean
-  return self:_add(ptr, size, flags | GCFlags.NO_DEALLOC, finalizer)
-end
-
-function GC:remove(ptr: pointer): void
-  self:_remove_ptr(ptr)
-  self:_resize_less()
-  self.mitems = self.nitems + self.nitems // 2 + 1
-end
-
-function GC:_alloc(ptr: pointer, size: usize, flags: usize, finalizer: pointer): pointer
-  if ptr then
-    if not self:_add(ptr, size, flags, finalizer) then
-      allocator:dealloc(ptr)
-      ptr = nilptr
-    end
-  end
-  return ptr
-end
-
-function GC:alloc_opt(size: usize, flags: usize, finalizer: pointer): pointer
-  local ptr: pointer = allocator:alloc(size)
-  return self:_alloc(ptr, size, flags, finalizer)
-end
-
-function GC:alloc0_opt(size: usize, flags: usize, finalizer: pointer): pointer
-  local ptr: pointer = allocator:alloc0(size)
-  return self:_alloc(ptr, size, flags, finalizer)
-end
-
-function GC:_realloc(qtr: pointer, ptr: pointer, size: usize): pointer
-  if not qtr then
-    self:remove(ptr)
-    return nilptr
-  end
-
-  if not ptr then
-    if not self:_add(qtr, size, 0, nilptr) then
-      allocator:dealloc(qtr)
-      qtr = nilptr
-    end
-    return qtr
-  end
-
-  local p: *GCItem = self:_get_ptr(ptr)
-  if p then
-    if qtr == ptr then
-      p.size = size
-    else
-      local flags: usize = p.flags
-      local finalizer: pointer = p.finalizer
-      self:remove(ptr)
-      self:_add(qtr, size, flags, finalizer)
-    end
-    return qtr
-  end
-  return nilptr
-end
-
-function GC:realloc(ptr: pointer, size: usize, oldsize: usize): pointer
-  local qtr: pointer = allocator:realloc(ptr, size, oldsize)
-  if not qtr then return nilptr end
-  return self:_realloc(qtr, ptr, size)
-end
-
-function GC:realloc0(ptr: pointer, size: usize, oldsize: usize): pointer
-  local qtr: pointer = allocator:realloc0(ptr, size, oldsize)
-  if not qtr then return nilptr end
-  return self:_realloc(qtr, ptr, size)
-end
-
-function GC:dealloc(ptr: pointer): void
-  local p: *GCItem = self:_get_ptr(ptr)
-  if p then
-    p:finalize()
-    allocator:dealloc(ptr)
-    self:remove(ptr)
-  end
-end
+----------------------------------------------------
 
 ## if not pragmas.nogcentry then
 local function nelua_main(argc: cint, argv: *cstring): cint <cimport,nodecl> end
@@ -598,7 +352,7 @@ local function main(argc: cint, argv: *cstring): cint <entrypoint>
   gc:init(&argc)
   local inner_main: auto <volatile> = nelua_main -- at avoid inlining
   local ret: cint = inner_main(argc, argv)
-  gc:terminate()
+  gc:destroy()
   return ret
 end
 ## end
@@ -607,59 +361,86 @@ require 'allocators.allocator'
 
 global GCAllocator = @record{}
 
-function GCAllocator:alloc(size: usize, flags: facultative(usize), finalizer: facultative(FinalizerCallback)): pointer <noinline>
+function GCAllocator:alloc(size: usize,
+                           flags: facultative(usize),
+                           finalizer: facultative(GCFinalizerCallback),
+                           userdata: facultative(pointer)): pointer <noinline>
   ## if flags.type.is_niltype then
   local flags: usize = 0
   ## end
   ## if finalizer.type.is_niltype then
-  local finalizer: pointer = nilptr
+  local finalizer: GCFinalizerCallback = nilptr
   ## end
-  return gc:alloc_opt(size, flags, finalizer)
+  ## if userdata.type.is_niltype then
+  local userdata: pointer = nilptr
+  ## end
+  local ptr: pointer = general_allocator:alloc(size)
+  gc:register(ptr, size, flags, finalizer, userdata)
+  return ptr
 end
 
-function GCAllocator:alloc0(size: usize, flags: facultative(usize), finalizer: facultative(FinalizerCallback)): pointer <noinline>
+function GCAllocator:alloc0(size: usize,
+                           flags: facultative(usize),
+                           finalizer: facultative(GCFinalizerCallback),
+                           userdata: facultative(pointer)): pointer <noinline>
   ## if flags.type.is_niltype then
   local flags: usize = 0
   ## end
   ## if finalizer.type.is_niltype then
-  local finalizer: pointer = nilptr
+  local finalizer: GCFinalizerCallback = nilptr
   ## end
-  return gc:alloc0_opt(size, flags, finalizer)
+  ## if userdata.type.is_niltype then
+  local userdata: pointer = nilptr
+  ## end
+  local ptr: pointer = general_allocator:alloc0(size)
+  gc:register(ptr, size, flags, finalizer, userdata)
+  return ptr
 end
 
-function GCAllocator:realloc(p: pointer, size: usize, oldsize: usize): pointer <noinline>
-  return gc:realloc(p, size, oldsize)
+function GCAllocator:dealloc(ptr: pointer): void <noinline>
+  gc:unregister(ptr, true)
 end
 
-function GCAllocator:realloc0(p: pointer, newsize: usize, oldsize: usize): pointer <noinline>
-  return gc:realloc0(p, newsize, oldsize)
-end
-
-function GCAllocator:dealloc(p: pointer): void <noinline>
-  gc:dealloc(p)
+function GCAllocator:realloc(ptr: pointer, newsize: usize, oldsize: usize): pointer <noinline>
+  if unlikely(ptr == nilptr) then
+    return self:alloc(newsize)
+  elseif unlikely(newsize == 0) then
+    self:dealloc(ptr)
+    return nilptr
+  elseif unlikely(newsize == oldsize) then
+    return ptr
+  else -- shrinking or growing
+    local newptr: pointer = general_allocator:realloc(ptr, newsize, oldsize)
+    if newptr then
+      gc:reregister(ptr, newptr, newsize)
+    end
+    return newptr
+  end
 end
 
 function GCAllocator:new(what: auto, size: facultative(usize)) <noinline>
   local T: type = #[what.type.is_type and what.value or what.type]#
   ## if size.type.is_niltype then -- new pointer
     ## if T.value.is_record and T.value.metafields.__gc then
-    local finalizer: FinalizerCallback = (@FinalizerCallback)(T.__gc)
+    local function finalizer(ptr: pointer, userdata: pointer): void
+      local obj: *T = (@*T)(ptr)
+      obj:__gc()
+    end
     ## else
-    local finalizer: FinalizerCallback = nilptr
+    local finalizer: GCFinalizerCallback = nilptr
     ## end
-    ## if T.value:has_pointer() then
     local flags: usize = 0
-    ## else
-    local flags: usize = GCFlags.LEAF -- skip GC scanning the allocated memory
+    ## if not T.value:has_pointer() then
+    local flags: usize = GCFlags.LEAF -- skip scanning the allocated memory
     ## end
     local ptr: *T <noinit>
     ## if what.type.is_type then
-    ptr = (@*T)(gc:alloc0_opt(#T, flags, (@pointer)(finalizer)))
+    ptr = (@*T)(gc_allocator:alloc0(#T, flags, finalizer, nilptr))
     assert(ptr ~= nilptr, 'out of memory')
     ## else
-    ptr = (@*T)(gc:alloc_opt(#T, flags, (@pointer)(finalizer)))
+    ptr = (@*T)(gc_allocator:alloc(#T, flags, finalizer, nilptr))
     assert(ptr ~= nilptr, 'out of memory')
-    memcpy(ptr, &what, #T)
+    memory.copy(ptr, &what, #T)
     ## end
     return ptr
   ## else -- new span
@@ -667,30 +448,31 @@ function GCAllocator:new(what: auto, size: facultative(usize)) <noinline>
     local spn: span(T)
     if likely(size > 0) then
       ## if T.value.metafields.__gc then
-      local function finalizer(data: *[0]T, size: usize)
-        for i:usize=0,<size//#T do
+      local function finalizer(ptr: pointer, userdata: pointer): void
+        local size: usize = (@usize)(userdata)
+        local data: *[0]T = (@*[0]T)(ptr)
+        for i:usize=0,<size do
           data[i]:__gc()
         end
       end
-      local flags: usize = GCFlags.SIZED_FINALIZER
+      local userdata: pointer = (@pointer)(size)
       ## else
-      local finalizer: pointer = nilptr
+      local finalizer: GCFinalizerCallback = nilptr
+      local userdata: pointer = nilptr
+      ## end
       local flags: usize = 0
-      ## end
       ## if not T.value:has_pointer() then
-      flags = flags | GCFlags.LEAF -- skip GC scanning the allocated memory
-      ## end
-      ## if what.type.is_type then
-      spn.data = (@*[0]T)(gc:alloc0_opt(size * #T, flags, (@pointer)(finalizer)))
-      assert(spn.data ~= nilptr, 'out of memory')
-      ## else
-      spn.data = (@*[0]T)(gc:alloc_opt(size * #T, flags, (@pointer)(finalizer)))
-      assert(spn.data ~= nilptr, 'out of memory')
-      for i:usize=0,<size do
-        memcpy(&spn.data[i], &what, #T)
-      end
+      local flags: usize = GCFlags.LEAF -- skip scanning the allocated memory
       ## end
       spn.size = size
+      ## if what.type.is_type then
+      spn.data = (@*[0]T)(gc_allocator:alloc0(size * #T, flags, finalizer, userdata))
+      assert(spn.data ~= nilptr, 'out of memory')
+      ## else
+      spn.data = (@*[0]T)(gc_allocator:alloc(size * #T, flags, finalizer, userdata))
+      assert(spn.data ~= nilptr, 'out of memory')
+      memory.spanset(spn, what)
+      ## end
     end
     return spn
   ## end
@@ -700,13 +482,15 @@ end
 
 global gc_allocator: GCAllocator
 
-global function collectgarbage(opt: facultative(string) <comptime>)
+global function collectgarbage(opt: overload(string,number,niltype) <comptime>)
   ## if opt.type.is_niltype or opt.value == 'collect' then
     gc:collect()
   ## elseif opt.value == 'stop' then
     gc:stop()
   ## elseif opt.value == 'restart' then
     gc:restart()
+  ## elseif opt.value == 'setpause' then
+    return gc:setpause(tointeger(opt))
   ## elseif opt.value == 'count' then
     return gc:count()
   ## elseif opt.value == 'isrunning' then
