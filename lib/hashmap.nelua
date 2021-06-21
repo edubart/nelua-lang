@@ -19,8 +19,31 @@ require 'memory'
 require 'hash'
 require 'iterators'
 
-local function ceil_idiv(x: usize, y: usize): usize <inline>
+-- Ceil integer division.
+local function ceilidiv(x: usize, y: usize): usize <inline>
   return (x + y - 1) // y
+end
+
+-- Hash modulo operation, `n` must always be a power of 2.
+local function hashmod(h: usize, n: usize): usize <inline>
+  -- the following would be faster but expects good hash of `h`
+  -- return h & (n - 1)
+  return h % ((n - 1) | 1)
+end
+
+-- Compute the smallest power of 2 not smaller than `n`.
+local function roundpow2(n: usize): usize <inline>
+  if n & (n - 1) == 0 then return n end
+  n = n | (n >> 1)
+  n = n | (n >> 2)
+  n = n | (n >> 4)
+  n = n | (n >> 8)
+  n = n | (n >> 16)
+  if #@usize > 4 then -- usize has more than 32 bits
+    n = n | (n >> 32)
+  end
+  n = n + 1
+  return n
 end
 
 -- Maximum load factor (number of elements per bucket) in percent.
@@ -30,9 +53,9 @@ local MAX_LOAD_FACTOR: usize <comptime> = 75
 -- When the maximum load factor is reached the container capacity grows by this factor.
 local GROW_RATE: usize <comptime> = 200
 -- Initial capacity to reserve when inserting an element for the first time in a container.
-local INIT_CAPACITY: usize <comptime> = 16
+local INIT_CAPACITY: usize <comptime> = 4
 -- Constant used to test invalid index.
-local INVALID_INDEX: usize <comptime> = (@usize)(-1)
+local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
 
 ## local make_hashmapT = generalize(function(K, V, HashFunc, Allocator)
   ## static_assert(traits.is_type(K), "invalid type '%s'", K)
@@ -50,7 +73,8 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   local hashnodeT: type <nickname #[string.format('hashmapnode(%s)',T)]#> = @record{
     key: K,
     value: V,
-    next: usize
+    filled: boolean,
+    next: usize,
   }
 
   -- Hash map record defined when instantiating the generic `hashmap`.
@@ -58,6 +82,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     buckets: span(usize),
     nodes: span(hashnodeT),
     size: usize,
+    free_index: usize,
     allocator: Allocator
   }
 
@@ -94,6 +119,7 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     self.buckets = (@span(usize))()
     self.nodes = (@span(hashnodeT))()
     self.size = 0
+    self.free_index = 0
   end
 
   --[[
@@ -106,16 +132,17 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     memory.spanset(self.buckets, INVALID_INDEX)
     memory.spanzero(self.nodes)
     self.size = 0
+    self.free_index = 0
   end
 
   -- Used internally to find a value at a key returning it's node index.
-  function hashmapT:_find(key: K): (usize, usize, usize)
-    if unlikely(self.buckets.size == 0) then -- container is empty
-      return INVALID_INDEX, INVALID_INDEX, INVALID_INDEX
-    end
-    local hash_index: usize = (@usize)(hash_func(key)) % self.buckets.size
-    local node_index: usize = self.buckets[hash_index]
+  function hashmapT:_find(key: K): (usize, usize, usize) <inline>
+    local hash_index: usize = hashmod((@usize)(hash_func(key)), self.buckets.size)
     local prev_node_index: usize = INVALID_INDEX
+    if unlikely(self.buckets.size == 0) then -- container is empty
+      return INVALID_INDEX, prev_node_index, hash_index
+    end
+    local node_index: usize = self.buckets[hash_index]
     -- iterate until the key is found
     while node_index ~= INVALID_INDEX do
       local node: *hashnodeT = &self.nodes[node_index]
@@ -129,46 +156,67 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   end
 
   --[[
-  Sets the number of buckets to at least `count` and rehashes the container when needed.
+  Sets the number of buckets to at least `bucket_count` and rehashes the container when needed.
+  The number of new buckets will always be least
+  the smallest appropriate value to not exceed the maximum load factor,
+  thus rehashing with 0 `bucket_count` can be used to shrink the hash map.
 
   *Complexity*: Average case O(n).
   ]]
-  function hashmapT:rehash(count: usize): void <noinline>
-    -- count should be at least (size * 100) / MAX_LOAD_FACTOR
-    local min_count: usize = ceil_idiv(self.size * 100, MAX_LOAD_FACTOR)
-    if count < min_count then
-      count = min_count
+  function hashmapT:rehash(bucket_count: usize): void <noinline>
+    -- buckets count should be at least (size * 100) / MAX_LOAD_FACTOR
+    local min_buckets_count: usize = ceilidiv(self.size * 100, MAX_LOAD_FACTOR)
+    if bucket_count < min_buckets_count then
+      bucket_count = min_buckets_count
     end
-
-    -- reserve number of elements
-    local nodes_count: usize = (count * MAX_LOAD_FACTOR) // 100
-    if nodes_count > self.nodes.size then
-      self.nodes = self.allocator:xspanrealloc0(self.nodes, nodes_count)
+    bucket_count = roundpow2(bucket_count)
+    -- node count must have at least one extra free node
+    local node_count: usize = ceilidiv(bucket_count * MAX_LOAD_FACTOR, 100)
+    if bucket_count > 0 and node_count <= self.size then
+      node_count = self.size + 1
     end
-
-    -- only rehash when needed
-    if count <= self.buckets.size then
-      return
-    end
-
-    -- reallocate new buckets
-    self.buckets = self.allocator:xspanrealloc(self.buckets, count)
-
-    -- reset buckets
-    memory.spanset(self.buckets, INVALID_INDEX)
-    for i:usize=0,<self.size do
-      self.nodes[i].next = INVALID_INDEX
-    end
-
-    -- fill buckets again
-    for i:usize=0,<self.size do
-      local node_index: usize, prev_node_index: usize, hash_index: usize  = self:_find(self.nodes[i].key)
-      if prev_node_index == INVALID_INDEX then
-        self.buckets[hash_index] = i
-      else
-        self.nodes[prev_node_index].next = i
+    -- shift filled nodes when shrinking
+    if node_count < self.nodes.size and self.nodes.size > 0 and node_count > 0 then
+      local j: usize = 0
+      while j < self.nodes.size and self.nodes[j].filled do j = j + 1 end
+      for i:usize=j,<self.nodes.size do
+        if self.nodes[i].filled then
+          self.nodes[j] = self.nodes[i]
+          j = j + 1
+        end
       end
-      self.nodes[i].next = node_index
+      for i:usize=j,<self.nodes.size do
+        self.nodes[i] = (@hashnodeT)()
+      end
+      check(j == self.size)
+    end
+    -- reallocate nodes and buckets
+    self.nodes = self.allocator:xspanrealloc0(self.nodes, node_count)
+    self.buckets = self.allocator:xspanrealloc(self.buckets, bucket_count)
+    memory.spanset(self.buckets, INVALID_INDEX)
+    -- unlink used nodes while linking free nodes
+    local free_index: usize = INVALID_INDEX
+    for i:isize=(@isize)(self.nodes.size-1),0,-1 do
+      local node: *hashnodeT = &self.nodes[(@usize)(i)]
+      if node.filled then
+        node.next = INVALID_INDEX
+      else
+        node.next = free_index
+        free_index = (@usize)(i)
+      end
+    end
+    self.free_index = free_index
+    -- fill buckets and link used nodes
+    for i:usize=0,<self.nodes.size do
+      if self.nodes[i].filled then
+        local node_index: usize, prev_node_index: usize, hash_index: usize = self:_find(self.nodes[i].key)
+        if prev_node_index == INVALID_INDEX then
+          self.buckets[hash_index] = i
+        else
+          self.nodes[prev_node_index].next = i
+        end
+        self.nodes[i].next = node_index
+      end
     end
   end
 
@@ -179,36 +227,39 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   *Complexity*: Average case O(n).
   ]]
   function hashmapT:reserve(count: usize): void
-    self:rehash(ceil_idiv(count * 100, MAX_LOAD_FACTOR))
+    local bucket_count: usize = ceilidiv(count * 100, MAX_LOAD_FACTOR)
+    if bucket_count > self.buckets.size then
+      self:rehash(bucket_count)
+    end
   end
 
   -- Used internally to find or make a value at a key returning it's node index.
   function hashmapT:_at(key: K): usize
-    if unlikely(self.nodes.size == 0) then
-      -- empty container, initialize it
+    if unlikely(self.buckets.size == 0) then
+      -- empty buckets, initialize it
       self:reserve(INIT_CAPACITY)
     end
-    local node_index: usize, prev_node_index: usize, hash_index: usize  = self:_find(key)
+    local node_index: usize, prev_node_index: usize, hash_index: usize = self:_find(key)
     if node_index ~= INVALID_INDEX then -- found a node
       return node_index
     else -- add a node
-      check(self.size < self.nodes.size, 'not enough space to add a node')
-      local node_index: usize = self.size
-      self.nodes[node_index] = {key = key, next = INVALID_INDEX}
-      self.size = self.size + 1
-
+      -- used a free node
+      local node_index: usize = self.free_index
+      check(node_index < self.nodes.size, 'not enough space to add a node')
+      local node: *hashnodeT = &self.nodes[node_index]
+      self.free_index = node.next
       -- link the new node
+      $node = {key = key, next = INVALID_INDEX, filled = true}
       if prev_node_index == INVALID_INDEX then
         self.buckets[hash_index] = node_index
       else
         self.nodes[prev_node_index].next = node_index
       end
-
+      self.size = self.size + 1
       -- allocate more space if the container is full
       if unlikely(self.size >= (MAX_LOAD_FACTOR * self.buckets.size) // 100) then
-        self:reserve((self.size * GROW_RATE) // 100)
+        self:reserve(ceilidiv(self.size * GROW_RATE, 100))
       end
-
       return node_index
     end
   end
@@ -248,7 +299,6 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   function hashmapT:remove(key: K): V
     local node_index: usize, prev_node_index: usize, hash_index: usize = self:_find(key)
     if node_index == INVALID_INDEX then return V() end
-
     -- unlink the removed node
     local node: *hashnodeT = &self.nodes[node_index]
     local value: V = node.value
@@ -257,23 +307,10 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
     else
       self.nodes[prev_node_index].next = node.next
     end
-
-    -- move the last node into the removed node place
-    local last_node_index: usize = self.size - 1
-    local last_node: *hashnodeT = &self.nodes[last_node_index]
-    if node_index ~= last_node_index then
-      $node = $last_node
-      local unused_index: usize, last_prev_node_index: usize, last_hash_index: usize = self:_find(node.key)
-      if last_prev_node_index == INVALID_INDEX then
-        self.buckets[last_hash_index] = node_index
-      else
-        self.nodes[last_prev_node_index].next = node_index
-      end
-    end
-
-    -- clean the last node
-    $last_node = (@hashnodeT)()
     self.size = self.size - 1
+    -- link free node
+    $node = (@hashnodeT){next = self.free_index}
+    self.free_index = node_index
     return value
   end
 
@@ -313,28 +350,19 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   *Remarks*: The input key is actually ignored.
   ]]
   function hashmap_iteratorT:next(key: K): (boolean, K, V) <inline>
-    local node: *hashnodeT <noinit>
     if unlikely(self.index == INVALID_INDEX) then
       self.index = 0
-      if unlikely(self.index >= self.container.size) then
-        return false, (@K)(), (@V)()
-      end
-      node = &self.container.nodes[0]
     else
-      if unlikely(self.index >= self.container.size) then
-        return false, (@K)(), (@V)()
-      end
-      node = &self.container.nodes[self.index]
-      if likely(node.key == key) then
-        -- key unchanged, a key can change when removing while iterating
-        self.index = self.index + 1
-        if unlikely(self.index >= self.container.size) then
-          return false, (@K)(), (@V)()
-        end
-        node = &self.container.nodes[self.index]
-      end
+      self.index = self.index + 1
     end
-    return true, node.key, node.value
+    while self.index < self.container.nodes.size do
+      local node: *hashnodeT = &self.container.nodes[self.index]
+      if node.filled then
+        return true, node.key, node.value
+      end
+      self.index = self.index + 1
+    end
+    return false, (@K)(), (@V)()
   end
 
   --[[
@@ -343,28 +371,19 @@ local INVALID_INDEX: usize <comptime> = (@usize)(-1)
   *Remarks*: The input key is actually ignored.
   ]]
   function hashmap_iteratorT:mnext(key: K): (boolean, K, *V) <inline>
-    local node: *hashnodeT <noinit>
     if unlikely(self.index == INVALID_INDEX) then
       self.index = 0
-      if unlikely(self.index >= self.container.size) then
-        return false, (@K)(), nilptr
-      end
-      node = &self.container.nodes[0]
     else
-      if unlikely(self.index >= self.container.size) then
-        return false, (@K)(), nilptr
-      end
-      node = &self.container.nodes[self.index]
-      if likely(node.key == key) then
-        -- key unchanged, a key can change when removing while iterating
-        self.index = self.index + 1
-        if unlikely(self.index >= self.container.size) then
-          return false, (@K)(), nilptr
-        end
-        node = &self.container.nodes[self.index]
-      end
+      self.index = self.index + 1
     end
-    return true, node.key, &node.value
+    while self.index < self.container.nodes.size do
+      local node: *hashnodeT = &self.container.nodes[self.index]
+      if node.filled then
+        return true, node.key, &node.value
+      end
+      self.index = self.index + 1
+    end
+    return false, (@K)(), nilptr
   end
 
   -- Allow using `pairs()` to iterate the container.

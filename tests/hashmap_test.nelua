@@ -7,7 +7,7 @@ do -- inserting
     map[k] = v
   end
   assert(#map == 100)
-  assert(map:capacity() == 128)
+  assert(map:capacity() == 192)
   assert(map:bucketcount() > 128)
   assert(map:loadfactor() <= 0.75)
   for i=1,100 do
@@ -20,7 +20,7 @@ do -- inserting
   map:clear()
   assert(#map == 0)
   assert(map:bucketcount() > 128)
-  assert(map:capacity() == 128)
+  assert(map:capacity() == 192)
   assert(map:loadfactor() == 0)
   map[1] = 10
   map:destroy()
@@ -34,16 +34,16 @@ do -- reserve
   local map: hashmap(integer, integer)
   map:reserve(64)
   assert(#map == 0)
-  assert(map:bucketcount() == 86)
-  assert(map:capacity() == 64)
+  assert(map:capacity() == 96)
+  assert(map:bucketcount() == 128)
   assert(map:loadfactor() == 0)
   for i=1,100 do
     local k, v = i*3167, i*10
     map[k] = v
   end
   map:reserve(256)
-  assert(map:bucketcount() == 342)
-  assert(map:capacity() == 256)
+  assert(map:capacity() == 384)
+  assert(map:bucketcount() == 512)
   assert(map:loadfactor() < 0.75)
   for i=1,100 do
     local k, v = i*3167, i*10
@@ -119,17 +119,32 @@ end
 
 do -- remove while iterating
   local map: hashmap(integer, integer)
-  for i=1,100 do
+  for i=1,8 do
     local k, v = i*3167, i*10
     map[k] = v
   end
   local i = 1
   for k,v in pairs(map) do
     local ek, ev = i*3167, i*10
-    map:remove(k)
+    assert(map:remove(k) == ev)
     i = i + 1
   end
   assert(#map == 0)
+  -- shrink
+  map[1] = 1
+  map[2] = 2
+  map:remove(1)
+  map:rehash(0)
+  map:remove(2)
+  map:rehash(0)
+  assert(map:loadfactor() == 0)
+  -- populate again with grow
+  for i=1,16 do
+    local k, v = i*3167, i*10
+    map[k] = v
+  end
+  assert(#map == 16)
+  map:destroy()
 end
 
 do -- string map

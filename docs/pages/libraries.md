@@ -3081,7 +3081,8 @@ Any failure when growing a hash map raises an error.
 local hashnodeT: type = @record{
     key: K,
     value: V,
-    next: usize
+    filled: boolean,
+    next: usize,
   }
 ```
 
@@ -3094,6 +3095,7 @@ local hashmapT: type = @record{
     buckets: span(usize),
     nodes: span(hashnodeT),
     size: usize,
+    free_index: usize,
     allocator: Allocator
   }
 ```
@@ -3141,10 +3143,13 @@ Used internally to find a value at a key returning it's node index.
 ### hashmapT:rehash
 
 ```nelua
-function hashmapT:rehash(count: usize): void
+function hashmapT:rehash(bucket_count: usize): void
 ```
 
-Sets the number of buckets to at least `count` and rehashes the container when needed.
+Sets the number of buckets to at least `bucket_count` and rehashes the container when needed.
+The number of new buckets will always be least
+the smallest appropriate value to not exceed the maximum load factor,
+thus rehashing with 0 `bucket_count` can be used to shrink the hash map.
 
 *Complexity*: Average case O(n).
 

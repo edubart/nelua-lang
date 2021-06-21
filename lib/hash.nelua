@@ -13,6 +13,9 @@ require 'span'
 -- Namespace for hash module.
 global hash: type = @record{}
 
+local function frexp_f32(x: float32, exp: *cint): float32 <cimport'frexpf',cinclude'<math.h>',nodecl,nosideeffect> end
+local function frexp_f64(x: float64, exp: *cint): float64 <cimport'frexp',cinclude'<math.h>',nodecl,nosideeffect> end
+
 -- This is the same simple hash function used in Lua.
 local function lhash(data: *[0]byte, len: usize, seed: usize, step: usize): usize <inline>
   seed = seed ~ len
@@ -52,34 +55,38 @@ and it will be used when calling this function.
 ]]
 function hash.hash(v: auto): usize
   ## if v.type.is_pointer then
-    if v == nilptr then
+    -- usually pointers are multiple of 8, thus we can discard the last 3 bits
+    return (@usize)(v) >> 3
+  ## elseif v.type.is_integral then
+    return (@usize)(v)
+  ## elseif v.type.is_float then
+    local ne: cint
+    ## if v.type.is_float32 then
+    v = frexp_f32(v, &ne) * -(@float32)(#[primtypes.isize.min]#)
+    ## else
+    v = frexp_f64(v, &ne) * -(@float64)(#[primtypes.isize.min]#)
+    ## end
+    if v ~= v or v == #[math.huge]# or v == -#[math.huge]# then -- non finite
       return 0
     end
-  ## end
-
-  ## local type = v.type
-  ## if type.is_integral or type.is_pointer then
-    return (@usize)(v)
-  ## elseif type.is_float then
-    local u: union{n: #[type]#, h: usize} <noinit>
-    u.n = v
-    return u.h
-  ## elseif type.is_boolean then
+    local u: usize = (@usize)(v) + (@usize)(ne)
+    return u < (@usize)(#[primtypes.isize.max]#) and u or ~u
+  ## elseif v.type.is_boolean then
     return v and 1 or 0
-  ## elseif type.is_string then
+  ## elseif v.type.is_string then
     return hash.long({data=v.data, size=v.size})
-  ## elseif type.is_span then
-    local T: type = #[type.subtype]#
+  ## elseif v.type.is_span then
+    local T: v.type = #[v.type.subtype]#
     return hash.long({data=(@*[0]byte)(v.data), size=(@usize)(#T * #v)})
-  ## elseif type.is_record and type.metafields.__hash then
+  ## elseif v.type.is_record and v.type.metafields.__hash then
     return v:__hash()
-  ## elseif type.is_record then
+  ## elseif v.type.is_record then
     local h: usize = 0
-    ## for _,field in ipairs(type.fields) do -- hash all fields
+    ## for _,field in ipairs(v.type.fields) do -- hash all fields
       h = hash.combine(h, hash.hash(v.#|field.name|#))
     ## end
     return h
-  ## elseif type.is_nilptr or type.is_niltype then
+  ## elseif v.type.is_nilptr or v.type.is_niltype then
     return 0
   ## else static_error("cannot hash type '%s'", type) end
 end
