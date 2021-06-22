@@ -221,6 +221,10 @@ require 'span'
   ]]
   function Allocator:spanrealloc(s: span_concept, size: usize)
     local T: type = #[s.type.subtype]#
+    if unlikely(s.size == 0 and size > 0) then -- always use alloc on new allocation
+      s = self:spanalloc(@T, size)
+      return s
+    end
     local p: *[0]T = (@*[0]T)(self:realloc(s.data, size * #T, s.size))
     if unlikely(size > 0 and p == nilptr) then
       -- reallocation failed, return the original span
@@ -243,6 +247,10 @@ require 'span'
   -- Like `spanrealloc`, but initializes added memory with zeros.
   function Allocator:spanrealloc0(s: span_concept, size: usize)
     local T: type = #[s.type.subtype]#
+    if unlikely(s.size == 0 and size > 0) then -- always use alloc on new allocation
+      s = self:spanalloc0(@T, size)
+      return s
+    end
     local p: *[0]T = (@*[0]T)(self:realloc0(s.data, size * #T, s.size * #T))
     if unlikely(size > 0 and p == nilptr) then
       -- reallocation failed, return the original span
