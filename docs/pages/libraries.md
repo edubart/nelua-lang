@@ -2874,7 +2874,10 @@ List node record defined when instantiating the generic `list`.
 
 ```nelua
 local listT: type = @record{
-    front: *listnodeT,
+    front: *listnodeT, -- list begin
+    back: *listnodeT, -- list end
+    allocator: Allocator
+  }
 ```
 
 List record defined when instantiating the generic `list`.
@@ -3442,7 +3445,7 @@ Like `spanalloc`, but raises an error in case the allocation fails.
 function Allocator:spanalloc0(T: type, size: usize)
 ```
 
-Like `spanalloc0`, but initializes added memory with zeros.
+Like `spanalloc`, but initializes added memory with zeros.
 
 ### Allocator:xspanalloc0
 
@@ -3549,7 +3552,7 @@ General allocator record.
 global general_allocator: GeneralAllocator
 ```
 
-General allocator instance, that must be used to perform operations.
+General allocator instance, that must be used to perform allocations.
 
 ### GeneralAllocator:alloc
 
@@ -3595,6 +3598,310 @@ Changes the size of the memory block pointer by `p` from size `oldsize` bytes to
 
 For more details see `Allocator:realloc`.
 This function calls system's `realloc()`.
+
+---
+## allocators.gc
+
+The garbage collector allocator provides automatic memory management.
+
+With this allocator you don't have to worry about deallocating
+objects that are no longer needed.
+It manages memory automatically by running a garbage collector
+from time to time to collect all dead pointers
+(that is, pointers that are no longer accessible in the heap or stack).
+
+Only memory allocated by this allocator is subject to automatic management.
+
+The collector implements a simple mark-and-sweep garbage collector.
+It's a stop-the-world garbage collector, that is,
+it may halt execution of the program to run a collection cycle.
+It is a conservative garbage collector, that is,
+it scans the heap and stack memory assuming any bit pattern could be a pointer.
+
+The collector has one number to control its garbage-collection cycle,
+the garbage collector pause,
+it controls how long the collector waits before starting a new cycle.
+Larger values make the collector less aggressive.
+The default value of 200 means that the collector
+waits for the total memory in use to double before starting a new cycle.
+Values smaller than 100 mean the collector will not wait to start a new cycle.
+
+### GCFlags
+
+```nelua
+global GCFlags: type = @enum(usize) {
+  MARK = 1, -- Marked for collection (used only internally).
+  ROOT = 2, -- Allocation always scanned and it is never collected.
+  LEAF = 4, -- Allocation never scanned, that is, contains no pointers.
+  EXTERN = 8, -- External allocation, used to scan external allocations.
+}
+```
+
+Possible flags to set when registering a new pointer in the allocator.
+
+### GC
+
+```nelua
+global GC: type = @record{
+  running: boolean,  -- GC is running.
+  collecting: boolean, -- GC is inside a collect cycle.
+  pause: usize, -- GC pause (default 200).
+  membytes: usize, -- Total memory currently being tracked by the GC (in bytes).
+  lastmembytes: usize, -- Total GC memory tracked just after the last collection cycle.
+  minaddr: usize, -- Minimum pointer address tracked by the GC.
+  maxaddr: usize, -- Maximum pointer address tracked by the GC.
+  stackbottom: pointer, -- Stack bottom address.
+  frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
+  items: hashmap(pointer, GCItem, nil, GeneralAllocator), -- Map of all tracked allocation.
+}
+```
+
+The garbage collector record.
+
+### gc
+
+```nelua
+global gc: GC
+```
+
+The global GC instance.
+
+### GC:unregister
+
+```nelua
+function GC:unregister(ptr: pointer, finalize: facultative(boolean)): boolean
+```
+
+Unregister pointer `ptr` from the GC.
+If `finalize` is `true` and the pointer has a finalizer, then it's called.
+
+### GC:collect
+
+```nelua
+function GC:collect(): void
+```
+
+Performs a full garbage collection cycle.
+This halts the application until a the collection is finished.
+All collected items are finalized and deallocated.
+The finalization or deallocation order is random
+
+### GC:register
+
+```nelua
+function GC:register(ptr: pointer, size: usize, flags: usize,
+                     finalizer: function(pointer, pointer): void, userdata: pointer): void
+```
+
+Register pointer `ptr` with `size` bytes into the GC.
+If `finalizer` is present, then it will be called when the pointer is collected.
+
+### GC:reregister
+
+```nelua
+function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): boolean
+```
+
+Register pointer that moved from `oldptr` to `newptr` with new size `newsize`.
+Called when reallocating a pointers.
+
+### GC:count
+
+```nelua
+function GC:count(): number
+```
+
+Returns the total memory size tracked by the collector (in Kbytes).
+The value has a fractional part, so that it multiplied by 1024 gives the exact number of bytes.
+
+### GC:stop
+
+```nelua
+function GC:stop(): void
+```
+
+Stops automatic execution of the garbage collector.
+The collector will run only when explicitly invoked, until a call to restart it.
+
+### GC:restart
+
+```nelua
+function GC:restart(): void
+```
+
+Restarts the garbage collector.
+
+### GC:setpause
+
+```nelua
+function GC:setpause(pause: integer): integer
+```
+
+Set `pause` as the new pause for the collector.
+Returns previous pause value.
+
+### GC:isrunning
+
+```nelua
+function GC:isrunning(): boolean
+```
+
+Returns a boolean that tells whether the collector is running (i.e., not stopped).
+
+### GC:init
+
+```nelua
+function GC:init(stack: pointer): void
+```
+
+Initializes the garbage collector.
+This is called automatically when the starting the application.
+
+### GC:destroy
+
+```nelua
+function GC:destroy(): void
+```
+
+Destroys the garbage collector.
+All allocations are finalized and deallocated.
+This is called automatically when the application finishes with success.
+The GC is not expected to be used after calling this.
+
+### collectgarbage
+
+```nelua
+global function collectgarbage(opt: overload(string,number,niltype) <comptime>,
+                               arg: facultative(integer))
+```
+
+This function is a generic interface to the garbage collector.
+It performs different functions according to its first argument, `opt`:
+
+- `"collect"`: Performs a full garbage-collection cycle.
+This is the default option.
+- `"stop"`: Stops automatic execution of the garbage collector.
+The collector will run only when explicitly invoked, until a call to restart it.
+- `"restart"`: Restarts automatic execution of the garbage collector.
+- `"count"`: Returns the total memory being tracked by the collector in Kbytes.
+The value has a fractional part, so that it multiplied by 1024 gives the exact number of bytes.
+- `"setpause"`: Sets `arg` as the new value for the pause of the collector.
+Returns the previous value for pause.
+- `"isrunning"`: Returns a boolean that tells whether the collector is running (i.e., not stopped).
+
+### GCAllocator
+
+```nelua
+global GCAllocator = @record{}
+```
+
+GC allocator record.
+
+### gc_allocator
+
+```nelua
+global gc_allocator: GCAllocator
+```
+
+GC allocator instance, that must be used to perform allocations.
+
+### GCAllocator:alloc
+
+```nelua
+function GCAllocator:alloc(size: usize,
+                           flags: facultative(usize),
+                           finalizer: facultative(function(pointer, pointer): void),
+                           userdata: facultative(pointer)): pointer
+```
+
+Allocates `size` bytes and returns a pointer of the allocated memory block.
+The allocated memory is not initialized.
+
+If `flags` is present, then it's passed to `GC:register`, see `GCFlags` for possible values.
+If `finalizer` is present, then it will be called before the allocation is deallocated.
+If `userdata` is present, then it's passed as a parameters to the finalizer.
+
+For more details see `Allocator:alloc`.
+
+### GCAllocator:alloc0
+
+```nelua
+function GCAllocator:alloc0(size: usize,
+                            flags: facultative(usize),
+                            finalizer: facultative(function(pointer, pointer): void),
+                            userdata: facultative(pointer)): pointer
+```
+
+Like `alloc`, but the allocated memory is initialized with zeros.
+
+### GCAllocator:dealloc
+
+```nelua
+function GCAllocator:dealloc(ptr: pointer): void
+```
+
+Deallocates the allocated memory block pointed by `ptr`.
+
+If `ptr` has a finalizer, then it's called before deallocating.
+
+For more details see `Allocator:dealloc`.
+This function calls system's `free()`.
+
+### GCAllocator:realloc
+
+```nelua
+function GCAllocator:realloc(ptr: pointer, newsize: usize, oldsize: usize): pointer
+```
+
+Changes the size of the memory block pointer by `ptr` from size `oldsize` bytes to `newsize` bytes.
+
+Flags and finalizer of `ptr` are preserved.
+
+For more details see `Allocator:realloc`.
+
+### GCAllocator:spanalloc
+
+```nelua
+function GCAllocator:spanalloc(T: type, size: usize,
+                               flags: facultative(usize),
+                               finalizer: facultative(function(pointer, pointer): void),
+                               userdata: facultative(pointer))
+```
+
+Like `alloc`, but returns a span of `T` with `size` elements.
+
+This function automatically sets `GCFlags.LEAF` in case `T` has no pointers,
+by doing so, it can skip unnecessary memory scans, thus the GC can collect faster.
+
+For more details see `Allocator:spanalloc`.
+
+### GCAllocator:spanalloc0
+
+```nelua
+function GCAllocator:spanalloc0(T: type, size: usize,
+                                flags: facultative(usize),
+                                finalizer: facultative(function(pointer, pointer): void),
+                                userdata: facultative(pointer))
+```
+
+Like `spanalloc0`, but initializes added memory with zeros.
+
+### GCAllocator:new
+
+```nelua
+function GCAllocator:new(what: auto, size: facultative(usize))
+```
+
+Allocates a new value.
+
+- Argument `what` must be either a compile-time type or a runtime initialized value.
+- If `what` is a runtime value, the return value will have the same type,
+and it's contents are copied into the new allocated value.
+- If `what` is a compile-time type, the returned value will be of `what` type,
+and its contents are zero initialized.
+- If the operation fails, then an error is raised.
+- If `size` is present, then returns a span with `size` elements of `what`, instead of a pointer.
+- In case the value has the `__gc` metamethod, it will be called once the value is collected.
 
 ---
 ## allocators.arena

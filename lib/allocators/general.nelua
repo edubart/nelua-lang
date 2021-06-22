@@ -12,7 +12,7 @@ local function free(ptr: pointer): void <cimport,cinclude'<stdlib.h>',nodecl> en
 -- General allocator record.
 global GeneralAllocator = @record{}
 
--- General allocator instance, that must be used to perform operations.
+-- General allocator instance, that must be used to perform allocations.
 global general_allocator: GeneralAllocator
 
 --[[

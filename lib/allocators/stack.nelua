@@ -19,6 +19,7 @@ The implementation is based on
 
 require 'allocators.allocator'
 
+-- Aligns an address.
 local function align_forward(addr: usize, align: usize): usize <inline>
   return (addr + (align-1)) & ~(align-1)
 end

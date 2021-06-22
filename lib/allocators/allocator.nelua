@@ -183,7 +183,7 @@ require 'span'
   end
 
   ## if not Allocator.value.metafields.spanalloc0 then
-  -- Like `spanalloc0`, but initializes added memory with zeros.
+  -- Like `spanalloc`, but initializes added memory with zeros.
   function Allocator:spanalloc0(T: type, size: usize)
     if likely(size > 0) then
       local data: *[0]T = (@*[0]T)(self:alloc0(size * #T))

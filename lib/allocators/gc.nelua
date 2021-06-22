@@ -1,20 +1,45 @@
 --[[
-GC Allocator
+The garbage collector allocator provides automatic memory management.
 
-This is an allocator that uses a simple mark and sweep garbage collector.
-It is a conservative garbage collector, that is, it scans the stack/heap memory
-marking pointers without references to be freed once the memory grows too much.
+With this allocator you don't have to worry about deallocating
+objects that are no longer needed.
+It manages memory automatically by running a garbage collector
+from time to time to collect all dead pointers
+(that is, pointers that are no longer accessible in the heap or stack).
+
+Only memory allocated by this allocator is subject to automatic management.
+
+The collector implements a simple mark-and-sweep garbage collector.
+It's a stop-the-world garbage collector, that is,
+it may halt execution of the program to run a collection cycle.
+It is a conservative garbage collector, that is,
+it scans the heap and stack memory assuming any bit pattern could be a pointer.
+
+The collector has one number to control its garbage-collection cycle,
+the garbage collector pause,
+it controls how long the collector waits before starting a new cycle.
+Larger values make the collector less aggressive.
+The default value of 200 means that the collector
+waits for the total memory in use to double before starting a new cycle.
+Values smaller than 100 mean the collector will not wait to start a new cycle.
 ]]
 
 require 'span'
 require 'allocators.general'
+require 'allocators.allocator'
 require 'hashmap'
 require 'vector'
 
 ##[[
+-- We expect that the GC to be always enabled when requiring this file.
 if pragmas.nogc then
   static_error 'allocators.gc was required while GC is explicitly disabled'
 end
+
+--[=[
+The GC may scan uninitialized values generating warnings when some sanitizers are active,
+The following is to disable these warnings.
+]=]
 cemitdecl[=[
 #if defined(__has_feature)
 #if __has_feature(address_sanitizer)
@@ -31,90 +56,67 @@ cemitdecl[=[
 ]=]
 ]]
 
-local jmp_buf: type <cimport,nodecl,cinclude'<setjmp.h>',cincomplete> = @record{}
-local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>',nodecl> end
-
--- Utilities
-
+-- Checks weather `flags` has bits `flag` set.
 local function hasflag(flags: usize, flag: usize): boolean <inline>
   return flags & flag ~= 0
 end
 
+-- Aligns an address.
 local function align_forward(addr: usize, align: usize): usize <inline>
   return (addr + (align-1)) & ~(align-1)
 end
 
-local UINTPTR_MAX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
-local DEFAULT_PAUSE: usize <comptime> = 200
-
--- GCFlags
-
+-- Possible flags to set when registering a new pointer in the allocator.
 global GCFlags: type = @enum(usize) {
-  MARK = 1, -- marked for collection, used internally
-  ROOT = 2, -- should not never deallocate
-  LEAF = 4, -- contains no pointers to other allocations inside
-  EXTERN = 8, -- external allocation, thus we should to deallocate when collecting
+  MARK = 1, -- Marked for collection (used only internally).
+  ROOT = 2, -- Allocation always scanned and it is never collected.
+  LEAF = 4, -- Allocation never scanned, that is, contains no pointers.
+  EXTERN = 8, -- External allocation, used to scan external allocations.
 }
 
--- GCItem
+-- GC finalizer callback.
+local GCFinalizerCallback: type = @function(pointer, pointer): void
 
-global GCFinalizerCallback: type = @function(pointer, pointer): void
-
-global GCItem: type = @record{
-  flags: usize,
-  size: usize,
-  ptr: pointer,
-  finalizer: GCFinalizerCallback,
-  userdata: pointer,
+-- GC allocation entry.
+local GCItem: type = @record{
+  flags: usize, -- Allocation flags.
+  size: usize, -- Allocation size.
+  ptr: pointer, -- Allocated pointer.
+  finalizer: GCFinalizerCallback, -- Finalizer callback.
+  userdata: pointer, -- Finalizer user data.
 }
 
-function GCItem:mark(): void <inline>
-  self.flags = self.flags | GCFlags.MARK
-end
-
-function GCItem:unmark(): void <inline>
-  self.flags = self.flags & ~GCFlags.MARK
-end
-
+-- Checks weather the GC item has been marked.
 function GCItem:ismarked(): boolean <inline>
-  -- root items are always marked
-  return hasflag(self.flags, GCFlags.MARK | GCFlags.ROOT)
+  return hasflag(self.flags, GCFlags.MARK | GCFlags.ROOT) -- root items are always marked
 end
 
-function GCItem:isleaf(): boolean <inline>
-  return hasflag(self.flags, GCFlags.LEAF)
-end
-
-function GCItem:isroot(): boolean <inline>
-  return hasflag(self.flags, GCFlags.ROOT)
-end
-
-function GCItem:isdealloc(): boolean <inline>
-  return not hasflag(self.flags, GCFlags.EXTERN)
-end
-
--- GC
-
+-- The garbage collector record.
 global GC: type = @record{
-  running: boolean,
-  collecting: boolean,
-  pause: usize,
-  membytes: usize,
-  lastmembytes: usize,
-  minaddr: usize,
-  maxaddr: usize,
-  bottom: pointer,
-  frees: vector(pointer, GeneralAllocator),
-  items: hashmap(pointer, GCItem, nil, GeneralAllocator),
+  running: boolean,  -- Weather the collector is running.
+  collecting: boolean, -- Weather a collecting cycle is actively running.
+  pause: usize, -- The collector pause (default 200).
+  membytes: usize, -- Total memory currently being tracked by the GC (in bytes).
+  lastmembytes: usize, -- Total GC memory tracked just after the last collection cycle.
+  minaddr: usize, -- Minimum pointer address tracked by the GC.
+  maxaddr: usize, -- Maximum pointer address tracked by the GC.
+  stackbottom: pointer, -- Stack bottom address.
+  frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
+  items: hashmap(pointer, GCItem, nil, GeneralAllocator), -- Map of all tracked allocation.
 }
 
+-- The global GC instance.
 global gc: GC
 
+--[[
+Unregister pointer `ptr` from the GC.
+If `finalize` is `true` and the pointer has a finalizer, then it's called.
+]]
 function GC:unregister(ptr: pointer, finalize: facultative(boolean)): boolean
   if unlikely(not ptr) then return false end
   local item: GCItem = self.items:remove(ptr)
   if unlikely(item.ptr ~= ptr) then return false end -- not found
-  self.membytes = self.membytes - item.size -- update mem
+  self.membytes = self.membytes - item.size -- update memory
   -- remove from to be free items
   for i:usize=0,<self.frees.size do
     if self.frees[i] == ptr then
@@ -133,7 +135,8 @@ function GC:unregister(ptr: pointer, finalize: facultative(boolean)): boolean
   return true
 end
 
-function GC:_markptrs(low: usize, high: usize): void <cqualifier'NELUA_GC_NO_SANITIZE'>
+-- Scan and mark pointers between `low` and `high` addresses.
+local function GC_markptrs(self: *GC, low: usize, high: usize): void <cqualifier'NELUA_GC_NO_SANITIZE'>
   local minaddr: usize, maxaddr: usize = self.minaddr, self.maxaddr
   local items: auto = &self.items
   for memaddr: usize=low,<high,#@pointer do
@@ -141,51 +144,64 @@ function GC:_markptrs(low: usize, high: usize): void <cqualifier'NELUA_GC_NO_SAN
     if addr >= minaddr and addr <= maxaddr then
       local item: *GCItem = items:peek((@pointer)(addr))
       if item and not item:ismarked() then -- unmarked reference found
-        item:mark()
-        if not item:isleaf() then -- don't scan leafs
-          self:_markptrs(addr, addr + item.size)
+        item.flags = item.flags | GCFlags.MARK -- mark
+        if not hasflag(item.flags, GCFlags.LEAF) then -- don't scan leafs
+          GC_markptrs(self, addr, addr + item.size)
         end
       end
     end
   end
 end
 
-function GC:_unmarkall(): void <noinline>
+-- Unmark all items.
+local function GC_unmarkall(self:* GC): void <noinline>
   for ptr: pointer, item: *GCItem in mpairs(self.items) do
-    item:unmark()
+    item.flags = item.flags & ~GCFlags.MARK -- unmark
   end
 end
 
-function GC:_markroot(): void <noinline>
+-- Mark all root items.
+local function GC_markroot(self: *GC): void <noinline>
   -- TODO: optimize to traverse only root items?
   for ptr: pointer, item: *GCItem in mpairs(self.items) do
-    if item:isroot() then
+    if hasflag(item.flags, GCFlags.ROOT) then
       local addr: usize = (@usize)(ptr)
-      self:_markptrs(addr, addr + item.size)
+      GC_markptrs(self, addr, addr + item.size)
     end
   end
 end
 
-local function gc_markstackinner(self: *GC): void
-  local stk: pointer <volatile> -- don't optimize away
-  local low: usize = (@usize)(self.bottom)
-  local high: usize = (@usize)(&stk)
+-- Get the stack top address and mark pointers in the stack.
+local function GC_markstackinner(self: *GC): void <noinline>
+  local stacktop: pointer <volatile> -- don't optimize away
+  local low: usize, high: usize = (@usize)(self.stackbottom), (@usize)(&stacktop)
   if high < low then low, high = high, low end
-  self:_markptrs(low, high)
+  GC_markptrs(self, low, high)
 end
 
-function GC:_markstack(): void <noinline>
+-- Mark pointers in the stack.
+local function GC_markstack(self: *GC): void <noinline>
 ## if not ccinfo.is_wasm then
   -- dump CPU registers into the stack, to scan them
+  local jmp_buf: type <cimport,nodecl,cinclude'<setjmp.h>',cincomplete> = @record{}
+  local function setjmp(env: jmp_buf): void <cimport,cinclude'<setjmp.h>',nodecl> end
   local regs: jmp_buf
   setjmp(regs)
   -- scan stack
-  local markstackinner: auto <volatile> = gc_markstackinner -- avoid inline
+  local markstackinner: auto <volatile> = GC_markstackinner -- avoid inline
   markstackinner(self)
 ## end
 end
 
-function GC:_sweep(): void <noinline>
+-- Mark phase, mark all reachable pointers.
+local function GC_mark(self: *GC)
+  GC_unmarkall(self)
+  GC_markroot(self)
+  GC_markstack(self)
+end
+
+-- Sweep phase, collect unmarked items.
+local function GC_sweep(self: *GC): void <noinline>
   -- collect all unmarked items
   local finalize: boolean = false
   for ptr: pointer, item: *GCItem in mpairs(self.items) do
@@ -215,8 +231,8 @@ function GC:_sweep(): void <noinline>
     if ptr then -- it's possible that the item was removed by a finalizer
       local item: GCItem = self.items:remove(ptr)
       check(item.ptr == ptr, 'gc item not found to deallocate')
-      self.membytes = self.membytes - item.size -- update mem
-      if item:isdealloc() then -- deallocate
+      self.membytes = self.membytes - item.size -- update memory
+      if not hasflag(item.flags, GCFlags.EXTERN) then -- deallocate
         general_allocator:dealloc(ptr)
       end
     end
@@ -224,33 +240,41 @@ function GC:_sweep(): void <noinline>
   self.frees:clear()
 end
 
+--[[
+Performs a full garbage collection cycle.
+This halts the application until a the collection is finished.
+All collected items are finalized and deallocated.
+The finalization or deallocation order is random
+]]
 function GC:collect(): void
   -- avoid collecting when already collecting, can happen while calling finalizers
-  if self.collecting then return end
-  self.collecting = true
-  -- mark items
-  self:_unmarkall()
-  self:_markroot()
-  self:_markstack()
-  -- sweep items
-  self:_sweep()
-  -- shrink items
+  if self.collecting or self.membytes == 0 then return end
+  self.collecting = true -- begin collect cycle
+  -- mark and sweep
+  GC_mark(self)
+  GC_sweep(self)
+  -- update last collection memory bytes
+  self.lastmembytes = self.membytes
+  -- shrink items hash map when its load factor is too low
   if self.items:loadfactor() < 0.25 then
     self.items:rehash(0)
   end
-  -- update last collection memory bytes
-  self.lastmembytes = self.membytes
-  -- collect finished
-  self.collecting = false
+  self.collecting = false -- collect cycle finished
 end
 
-function GC:_registerstatics(): void
-  ## local emit_mark_statics = hygienize(function(staticsyms)
-    ## for i=1,#staticsyms do
-      ## local sym = staticsyms[i]
-      gc:register(&#[sym]#, # #[sym.type]#, GCFlags.ROOT, nilptr, nilptr)
-    ## end
-  ## end)
+--[[
+Registers all roots in the GC, called once when starting the application.
+All variables in the top scope of file that contains pointers is considered a root.
+]]
+local function GC_registerroots(self: *GC): void
+  ##[[
+  local emit_mark_statics = hygienize(function(staticsyms)
+    for i=1,#staticsyms do
+      local sym = staticsyms[i] ]]
+      gc:register(&#[sym]#, # #[sym.type]#, GCFlags.ROOT, nilptr, nilptr) ##[[
+    end
+  end)
+  ]]
 
   ##[[
   after_analyze(function()
@@ -275,15 +299,20 @@ function GC:_registerstatics(): void
   ]]
 end
 
-function GC:_maybecollect(): void
-  if not self.running or self.collecting then return end
-  if self.membytes == 0 then return end
-  if #self.items == 0 then return end
-  if self.membytes < (self.lastmembytes * self.pause) // 100 then return end
-  self:collect()
+-- Trigger a collection cycle when the memory has grown above pause threshold.
+local function GC_maybecollect(self: *GC): void
+  if self.running and not self.collecting and
+     self.membytes >= (self.lastmembytes * self.pause) // 100 then
+    self:collect()
+  end
 end
 
-function GC:register(ptr: pointer, size: usize, flags: usize, finalizer: GCFinalizerCallback, userdata: pointer): void
+--[[
+Register pointer `ptr` with `size` bytes into the GC.
+If `finalizer` is present, then it will be called when the pointer is collected.
+]]
+function GC:register(ptr: pointer, size: usize, flags: usize,
+                     finalizer: function(pointer, pointer): void, userdata: pointer): void
   if unlikely(not ptr) then return end
   -- small allocations that can't store pointers are always leafs
   if size < #@usize then
@@ -300,7 +329,7 @@ function GC:register(ptr: pointer, size: usize, flags: usize, finalizer: GCFinal
     userdata = userdata,
   }
   -- update collector address bounds
-  if not item:isroot() then -- skip root items, because they are always marked
+  if not hasflag(item.flags, GCFlags.ROOT) then -- skip root items, because they are always marked
     local addr: usize = (@usize)(ptr)
     local addrhigh: usize = addr + size
     if addrhigh > self.maxaddr then self.maxaddr = addrhigh end
@@ -308,30 +337,34 @@ function GC:register(ptr: pointer, size: usize, flags: usize, finalizer: GCFinal
   end
   -- add memory
   self.membytes = self.membytes + size
-  self:_maybecollect()
+  GC_maybecollect(self)
 end
 
-function GC:reregister(ptr: pointer, newptr: pointer, newsize: usize): boolean
-  check(ptr and newptr and newsize > 0, 'invalid pointer reregister arguments')
+--[[
+Register pointer that moved from `oldptr` to `newptr` with new size `newsize`.
+Called when reallocating a pointers.
+]]
+function GC:reregister(oldptr: pointer, newptr: pointer, newsize: usize): boolean
+  check(oldptr and newptr and newsize > 0, 'invalid pointer reregister arguments')
   local oldsize: usize
-  if newptr == ptr then
-    local item: *GCItem = self.items:peek(ptr)
+  if newptr == oldptr then
+    local item: *GCItem = self.items:peek(oldptr)
     if unlikely(not item) then return false end -- not found
     oldsize = item.size
-    item.size = newsize
+    item.size = newsize -- just update the size
     if newsize > oldsize then -- memory growing
       self.membytes = self.membytes + (newsize - oldsize)
-      self:_maybecollect()
     elseif newsize < oldsize then -- memory shrinking
       self.membytes = self.membytes - (oldsize - newsize)
     end
   else -- moved, remove and insert item again
-    local item: GCItem = self.items:remove(ptr)
-    if unlikely(item.ptr ~= ptr) then return false end -- not found
-    self.membytes = self.membytes - item.size -- update mem
+    local item: GCItem = self.items:remove(oldptr)
+    if unlikely(item.ptr ~= oldptr) then return false end -- not found
+    oldsize = item.size
+    self.membytes = self.membytes - oldsize -- update memory
     -- update to be free items
     for i:usize=0,<self.frees.size do
-      if self.frees[i] == ptr then -- this is very unlikely (realloc on a finalized item)
+      if self.frees[i] == oldptr then -- this is very unlikely (realloc on a finalized item)
         self.frees[i] = newptr
         break
       end
@@ -339,71 +372,140 @@ function GC:reregister(ptr: pointer, newptr: pointer, newsize: usize): boolean
     -- register again
     self:register(newptr, newsize, item.flags, item.finalizer, item.userdata)
   end
+  if newsize > oldsize then
+    GC_maybecollect(self)
+  end
   return true
 end
 
+--[[
+Returns the total memory size tracked by the collector (in Kbytes).
+The value has a fractional part, so that it multiplied by 1024 gives the exact number of bytes.
+]]
 function GC:count(): number
   return self.membytes / 1024.0
 end
 
+--[[
+Stops automatic execution of the garbage collector.
+The collector will run only when explicitly invoked, until a call to restart it.
+]]
 function GC:stop(): void
   self.running = false
 end
 
+-- Restarts the garbage collector.
 function GC:restart(): void
 ## if not ccinfo.is_wasm then -- cannot run automatically on emscripten
   self.running = true
 ## end
 end
 
+--[[
+Set `pause` as the new pause for the collector.
+Returns previous pause value.
+]]
 function GC:setpause(pause: integer): integer
   local oldpause: integer = self.pause
-  if pause < 100 then pause = 100 end
   self.pause = pause
   return oldpause
 end
 
+-- Returns a boolean that tells whether the collector is running (i.e., not stopped).
 function GC:isrunning(): boolean
   return self.running
 end
 
+--[[
+Initializes the garbage collector.
+This is called automatically when the starting the application.
+]]
 function GC:init(stack: pointer): void
-  self.bottom = stack
+  local UINTPTR_MAX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
+  self.stackbottom = stack
   self.minaddr = UINTPTR_MAX
-  self.pause = DEFAULT_PAUSE
-  self:_registerstatics()
+  self.pause = 200
+  GC_registerroots(self)
   self:restart()
 end
 
+--[[
+Destroys the garbage collector.
+All allocations are finalized and deallocated.
+This is called automatically when the application finishes with success.
+The GC is not expected to be used after calling this.
+]]
 function GC:destroy(): void
-  self:_unmarkall()
-  self:_sweep()
+  GC_unmarkall(self)
+  GC_sweep(self)
   self.items:destroy()
   self.frees:destroy()
   $self = {}
 end
 
-----------------------------------------------------
+--[[
+This function is a generic interface to the garbage collector.
+It performs different functions according to its first argument, `opt`:
+
+- `"collect"`: Performs a full garbage-collection cycle.
+This is the default option.
+- `"stop"`: Stops automatic execution of the garbage collector.
+The collector will run only when explicitly invoked, until a call to restart it.
+- `"restart"`: Restarts automatic execution of the garbage collector.
+- `"count"`: Returns the total memory being tracked by the collector in Kbytes.
+The value has a fractional part, so that it multiplied by 1024 gives the exact number of bytes.
+- `"setpause"`: Sets `arg` as the new value for the pause of the collector.
+Returns the previous value for pause.
+- `"isrunning"`: Returns a boolean that tells whether the collector is running (i.e., not stopped).
+]]
+global function collectgarbage(opt: overload(string,number,niltype) <comptime>,
+                               arg: facultative(integer))
+  ## if opt.type.is_niltype or opt.value == 'collect' then
+    gc:collect()
+  ## elseif opt.value == 'stop' then
+    gc:stop()
+  ## elseif opt.value == 'restart' then
+    gc:restart()
+  ## elseif opt.value == 'setpause' then
+    return gc:setpause(tointeger(arg))
+  ## elseif opt.value == 'count' then
+    return gc:count()
+  ## elseif opt.value == 'isrunning' then
+    return gc:isrunning()
+  ## else static_error('invalid collect garbage argument %s', opt.value) end
+end
 
 ## if not pragmas.nogcentry then
-local function nelua_main(argc: cint, argv: *cstring): cint <cimport,nodecl> end
-
-local function main(argc: cint, argv: *cstring): cint <entrypoint>
-  gc:init(&argc)
-  local inner_main: auto <volatile> = nelua_main -- avoid inline
-  local ret: cint = inner_main(argc, argv)
-  gc:destroy()
-  return ret
-end
+  -- Application main hook, needed to call `GC:init` and `GC:destroy`.
+  local function main(argc: cint, argv: *cstring): cint <entrypoint>
+    local function nelua_main(argc: cint, argv: *cstring): cint <cimport,nodecl> end
+    gc:init(&argc)
+    local inner_main: auto <volatile> = nelua_main -- avoid inline
+    local ret: cint = inner_main(argc, argv)
+    gc:destroy()
+    return ret
+  end
 ## end
 
-require 'allocators.allocator'
-
+-- GC allocator record.
 global GCAllocator = @record{}
 
+-- GC allocator instance, that must be used to perform allocations.
+global gc_allocator: GCAllocator
+
+--[[
+Allocates `size` bytes and returns a pointer of the allocated memory block.
+The allocated memory is not initialized.
+
+If `flags` is present, then it's passed to `GC:register`, see `GCFlags` for possible values.
+If `finalizer` is present, then it will be called before the allocation is deallocated.
+If `userdata` is present, then it's passed as a parameters to the finalizer.
+
+For more details see `Allocator:alloc`.
+]]
 function GCAllocator:alloc(size: usize,
                            flags: facultative(usize),
-                           finalizer: facultative(GCFinalizerCallback),
+                           finalizer: facultative(function(pointer, pointer): void),
                            userdata: facultative(pointer)): pointer <noinline>
   ## if flags.type.is_niltype then
   local flags: usize = 0
@@ -419,9 +521,10 @@ function GCAllocator:alloc(size: usize,
   return ptr
 end
 
+-- Like `alloc`, but the allocated memory is initialized with zeros.
 function GCAllocator:alloc0(size: usize,
                             flags: facultative(usize),
-                            finalizer: facultative(GCFinalizerCallback),
+                            finalizer: facultative(function(pointer, pointer): void),
                             userdata: facultative(pointer)): pointer <noinline>
   ## if flags.type.is_niltype then
   local flags: usize = 0
@@ -437,11 +540,26 @@ function GCAllocator:alloc0(size: usize,
   return ptr
 end
 
+--[[
+Deallocates the allocated memory block pointed by `ptr`.
+
+If `ptr` has a finalizer, then it's called before deallocating.
+
+For more details see `Allocator:dealloc`.
+This function calls system's `free()`.
+]]
 function GCAllocator:dealloc(ptr: pointer): void <noinline>
   gc:unregister(ptr, true)
   general_allocator:dealloc(ptr)
 end
 
+--[[
+Changes the size of the memory block pointer by `ptr` from size `oldsize` bytes to `newsize` bytes.
+
+Flags and finalizer of `ptr` are preserved.
+
+For more details see `Allocator:realloc`.
+]]
 function GCAllocator:realloc(ptr: pointer, newsize: usize, oldsize: usize): pointer <noinline>
   if unlikely(ptr == nilptr) then
     return self:alloc(newsize)
@@ -459,9 +577,17 @@ function GCAllocator:realloc(ptr: pointer, newsize: usize, oldsize: usize): poin
   end
 end
 
+--[[
+Like `alloc`, but returns a span of `T` with `size` elements.
+
+This function automatically sets `GCFlags.LEAF` in case `T` has no pointers,
+by doing so, it can skip unnecessary memory scans, thus the GC can collect faster.
+
+For more details see `Allocator:spanalloc`.
+]]
 function GCAllocator:spanalloc(T: type, size: usize,
                                flags: facultative(usize),
-                               finalizer: facultative(GCFinalizerCallback),
+                               finalizer: facultative(function(pointer, pointer): void),
                                userdata: facultative(pointer))
   ## if flags.type.is_niltype then
   local flags: usize = 0
@@ -484,9 +610,10 @@ function GCAllocator:spanalloc(T: type, size: usize,
   return (@span(T)){}
 end
 
+-- Like `spanalloc0`, but initializes added memory with zeros.
 function GCAllocator:spanalloc0(T: type, size: usize,
                                 flags: facultative(usize),
-                                finalizer: facultative(GCFinalizerCallback),
+                                finalizer: facultative(function(pointer, pointer): void),
                                 userdata: facultative(pointer))
   ## if flags.type.is_niltype then
   local flags: usize = 0
@@ -509,6 +636,18 @@ function GCAllocator:spanalloc0(T: type, size: usize,
   return (@span(T)){}
 end
 
+--[[
+Allocates a new value.
+
+- Argument `what` must be either a compile-time type or a runtime initialized value.
+- If `what` is a runtime value, the return value will have the same type,
+and it's contents are copied into the new allocated value.
+- If `what` is a compile-time type, the returned value will be of `what` type,
+and its contents are zero initialized.
+- If the operation fails, then an error is raised.
+- If `size` is present, then returns a span with `size` elements of `what`, instead of a pointer.
+- In case the value has the `__gc` metamethod, it will be called once the value is collected.
+]]
 function GCAllocator:new(what: auto, size: facultative(usize)) <noinline>
   local T: type = #[what.type.is_type and what.value or what.type]#
   ## if size.type.is_niltype then -- new pointer
@@ -569,21 +708,3 @@ function GCAllocator:new(what: auto, size: facultative(usize)) <noinline>
 end
 
 ## implement_allocator_interface(GCAllocator)
-
-global gc_allocator: GCAllocator
-
-global function collectgarbage(opt: overload(string,number,niltype) <comptime>)
-  ## if opt.type.is_niltype or opt.value == 'collect' then
-    gc:collect()
-  ## elseif opt.value == 'stop' then
-    gc:stop()
-  ## elseif opt.value == 'restart' then
-    gc:restart()
-  ## elseif opt.value == 'setpause' then
-    return gc:setpause(tointeger(opt))
-  ## elseif opt.value == 'count' then
-    return gc:count()
-  ## elseif opt.value == 'isrunning' then
-    return gc:isrunning()
-  ## else static_error('invalid collect garbage argument %s', opt.value) end
-end
