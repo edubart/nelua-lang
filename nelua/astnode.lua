@@ -21,7 +21,7 @@ local uid = 0
 local ASTNode = class()
 
 ASTNode.tag = 'Node' -- tag for a generic ASTNode
-ASTNode._astnode = true -- used to quickly check weather a table is an ASTNode
+ASTNode._astnode = true -- used to quickly check whether a table is an ASTNode
 
 -- Create an AST node with metatable `mt` filled with values `...`.
 -- Called when manually creating or generating AST nodes.

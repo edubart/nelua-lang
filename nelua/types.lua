@@ -82,9 +82,9 @@ Type.shape = shaper.shape {
   ctypedef = shaper.optional_boolean,
   -- Whether an empty type was referenced.
   emptyrefed = shaper.optional_boolean,
-  -- Weather the scope is using fields from the type. (e.g. enum fields)
+  -- Whether the scope is using fields from the type. (e.g. enum fields)
   using = shaper.optional_boolean,
-  -- Weather the type can be copied, that is, passed by value.
+  -- Whether the type can be copied, that is, passed by value.
   nocopy = shaper.optional_boolean,
   -- Marked when declaring a type without its definition.
   forwarddecl = shaper.optional_boolean,
@@ -103,7 +103,7 @@ Type.shape = shaper.shape {
   is_contiguous = shaper.optional_boolean,
   -- Whether the type represents a container buffer (e.g. arrays, spans, vector and list in the lib).
   is_container = shaper.optional_boolean,
-  -- Weather the type uses 1-based indexing (e.g. sequence and table).
+  -- Whether the type uses 1-based indexing (e.g. sequence and table).
   is_oneindexing = shaper.optional_boolean,
   -- Whether the type is a compile time type (e.g concepts, generics)
   is_comptime = shaper.optional_boolean,
@@ -125,11 +125,11 @@ Type.shape = shaper.shape {
   is_procedure = shaper.optional_boolean,
   -- Whether the type is not addressable in memory (e.g. type, concept, ...)
   is_unpointable = shaper.optional_boolean,
-  -- Weather the type is composed by fields (record or union).
+  -- Whether the type is composed by fields (record or union).
   is_composite = shaper.optional_boolean,
-  -- Weather the type aggregates other types (record, union and arrays).
+  -- Whether the type aggregates other types (record, union and arrays).
   is_aggregate = shaper.optional_boolean,
-  -- Weather the type hold multiple arguments.
+  -- Whether the type hold multiple arguments.
   is_multipleargs = shaper.optional_boolean,
 
   -- Booleans for checking the underlying type (scalar types),
@@ -611,7 +611,7 @@ function types.promote_type_for_attrs(lattr, rattr)
   end
 end
 
--- Check weather the type is a primitive type.
+-- Check whether the type is a primitive type.
 function types.is_primitive_type(type)
   return primtypes[type.nickname or type.name] == type
 end
@@ -1750,7 +1750,7 @@ PolyFunctionType.shape = shaper.fork_shape(Type.shape, {
   -- Whether this functions trigger side effects.
   -- A function trigger side effects when it throw errors or operate on global variables.
   sideeffect = shaper.optional_boolean,
-  -- Weather to always evaluate the polymorphic function.
+  -- Whether to always evaluate the polymorphic function.
   alwayseval = shaper.optional_boolean,
 })
 

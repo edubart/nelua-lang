@@ -2355,7 +2355,7 @@ and they should follow the same order of the last `coroutine.push`.
 function coroutine.isyieldable(co: coroutine): boolean
 ```
 
-Checks weather the coroutine `co` can yield.
+Checks whether the coroutine `co` can yield.
 
 A coroutine is yieldable if it isn't the main thread.
 
@@ -3643,8 +3643,8 @@ Possible flags to set when registering a new pointer in the allocator.
 
 ```nelua
 global GC: type = @record{
-  running: boolean,  -- Weather the collector is running.
-  collecting: boolean, -- Weather a collecting cycle is actively running.
+  running: boolean,  -- Whether the collector is running.
+  collecting: boolean, -- Whether a collecting cycle is actively running.
   pause: usize, -- The collector pause (default 200).
   membytes: usize, -- Total memory currently being tracked by the GC (in bytes).
   lastmembytes: usize, -- Total GC memory tracked just after the last collection cycle.

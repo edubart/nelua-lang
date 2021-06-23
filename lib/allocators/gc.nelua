@@ -56,7 +56,7 @@ cemitdecl[=[
 ]=]
 ]]
 
--- Checks weather `flags` has bits `flag` set.
+-- Checks whether `flags` has bits `flag` set.
 local function hasflag(flags: usize, flag: usize): boolean <inline>
   return flags & flag ~= 0
 end
@@ -86,15 +86,15 @@ local GCItem: type = @record{
   userdata: pointer, -- Finalizer user data.
 }
 
--- Checks weather the GC item has been marked.
+-- Checks whether the GC item has been marked.
 function GCItem:ismarked(): boolean <inline>
   return hasflag(self.flags, GCFlags.MARK | GCFlags.ROOT) -- root items are always marked
 end
 
 -- The garbage collector record.
 global GC: type = @record{
-  running: boolean,  -- Weather the collector is running.
-  collecting: boolean, -- Weather a collecting cycle is actively running.
+  running: boolean,  -- Whether the collector is running.
+  collecting: boolean, -- Whether a collecting cycle is actively running.
   pause: usize, -- The collector pause (default 200).
   membytes: usize, -- Total memory currently being tracked by the GC (in bytes).
   lastmembytes: usize, -- Total GC memory tracked just after the last collection cycle.

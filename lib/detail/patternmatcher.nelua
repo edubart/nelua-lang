@@ -30,12 +30,12 @@ global PatternMatcherCapture: type = @record{
   len: isize
 }
 
--- Checks weather the capture is unfinished..
+-- Checks whether the capture is unfinished.
 function PatternMatcherCapture:is_unfinished(): boolean
   return self.len == CAP_UNFINISHED
 end
 
--- Checks weather the capture is a position.
+-- Checks whether the capture is a position.
 function PatternMatcherCapture:is_position(): boolean
   return self.len == CAP_POSITION
 end

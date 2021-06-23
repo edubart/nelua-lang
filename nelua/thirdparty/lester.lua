@@ -94,17 +94,17 @@ end
 
 -- The lester module.
 local lester = {
-  --- Weather lines of passed tests should not be printed. False by default.
+  --- Whether lines of passed tests should not be printed. False by default.
   quiet = getboolenv('LESTER_QUIET', false),
-  --- Weather the output should  be colorized. True by default.
+  --- Whether the output should  be colorized. True by default.
   colored = getboolenv('LESTER_COLORED', true),
-  --- Weather a traceback must be shown on test failures. True by default.
+  --- Whether a traceback must be shown on test failures. True by default.
   show_traceback = getboolenv('LESTER_SHOW_TRACEBACK', true),
-  --- Weather the error description of a test failure should be shown. True by default.
+  --- Whether the error description of a test failure should be shown. True by default.
   show_error = getboolenv('LESTER_SHOW_ERROR', true),
-  --- Weather test suite should exit on first test failure. False by default.
+  --- Whether test suite should exit on first test failure. False by default.
   stop_on_fail = getboolenv('LESTER_STOP_ON_FAIL', false),
-  --- Weather we can print UTF-8 characters to the terminal. True by default when supported.
+  --- Whether we can print UTF-8 characters to the terminal. True by default when supported.
   utf8term = getboolenv('LESTER_UTF8TERM', is_utf8term()),
   --- A string with a lua pattern to filter tests. Nil by default.
   filter = os.getenv('LESTER_FILTER'),

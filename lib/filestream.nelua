@@ -77,7 +77,7 @@ function filestream:_getfp(): *FILE <inline>
   return self.fs.fp
 end
 
--- Check weather mode matches '[rwa]%+?b?'
+-- Check whether mode matches '[rwa]%+?b?'
 local function checkmode(mode: string): boolean
   if #mode == 0 then return false end
   if memory.scan('rwa'_cstring, mode.data[0], 3) == nilptr then return false end

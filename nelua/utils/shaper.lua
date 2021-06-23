@@ -41,7 +41,7 @@ shaper.type = shaper.custom(function(v)
   return traits.is_type(v), 'expected a type'
 end):describe('Type')
 
--- Utility to create a type check to check weather a shape is an ASTNode.
+-- Utility to create a type check to check whether a shape is an ASTNode.
 function shaper.ast_node_of(nodeklass)
   return shaper.custom(function(val)
     if class.is(val, nodeklass) then return true end

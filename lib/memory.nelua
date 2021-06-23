@@ -112,7 +112,7 @@ end
 
 require 'span'
 
--- Concept to checking weather an input type is a span.
+-- Concept to checking whether an input type is a span.
 local an_span: type = #[concept(function(x) return x.type.is_span end)]#
 
 ##[[

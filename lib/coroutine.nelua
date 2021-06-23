@@ -229,7 +229,7 @@ function coroutine.pop(co: coroutine, ...: varargs): (boolean, string)
 end
 
 --[[
-Checks weather the coroutine `co` can yield.
+Checks whether the coroutine `co` can yield.
 
 A coroutine is yieldable if it isn't the main thread.
 ]]

@@ -307,7 +307,7 @@ typedefs.type_annots = {
   forwarddecl = true,
   -- Whether to use enum fields in the declared scope.
   using = true,
-  -- Weather the type can be copied, that is, passed by value.
+  -- Whether the type can be copied, that is, passed by value.
   nocopy = true,
 }
 
