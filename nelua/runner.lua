@@ -32,7 +32,11 @@ local function run(argv, redirect)
     package.path = package.path..platform.luapath_separator..
                    fs.join(scriptdir,'?.lua')..platform.luapath_separator..
                    fs.join(scriptdir,'?','init.lua')
-
+    -- replace arguments
+    local arg = _G.arg
+    for i=1,math.max(#arg,#config.runargs) do
+      arg[i] = config.runargs[i]
+    end
     -- run the script
     dofile(config.input)
     return 0

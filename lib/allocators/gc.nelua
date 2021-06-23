@@ -102,7 +102,7 @@ global GC: type = @record{
   maxaddr: usize, -- Maximum pointer address tracked by the GC.
   stackbottom: pointer, -- Stack bottom address.
   frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
-  items: hashmap(pointer, GCItem, nil, GeneralAllocator), -- Map of all tracked allocation.
+  items: hashmap(pointer, GCItem, nil, GeneralAllocator), -- Map of all tracked allocations.
 }
 
 -- The global GC instance.

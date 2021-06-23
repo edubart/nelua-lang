@@ -3643,16 +3643,16 @@ Possible flags to set when registering a new pointer in the allocator.
 
 ```nelua
 global GC: type = @record{
-  running: boolean,  -- GC is running.
-  collecting: boolean, -- GC is inside a collect cycle.
-  pause: usize, -- GC pause (default 200).
+  running: boolean,  -- Weather the collector is running.
+  collecting: boolean, -- Weather a collecting cycle is actively running.
+  pause: usize, -- The collector pause (default 200).
   membytes: usize, -- Total memory currently being tracked by the GC (in bytes).
   lastmembytes: usize, -- Total GC memory tracked just after the last collection cycle.
   minaddr: usize, -- Minimum pointer address tracked by the GC.
   maxaddr: usize, -- Maximum pointer address tracked by the GC.
   stackbottom: pointer, -- Stack bottom address.
   frees: vector(pointer, GeneralAllocator), -- List of pointers to be freed.
-  items: hashmap(pointer, GCItem, nil, GeneralAllocator), -- Map of all tracked allocation.
+  items: hashmap(pointer, GCItem, nil, GeneralAllocator), -- Map of all tracked allocations.
 }
 ```
 

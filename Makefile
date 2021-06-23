@@ -136,6 +136,10 @@ docs-serve:
 docs-clean:
 	cd docs && $(JEKYLL) clean
 
+## Generate documentation (requires `nldoc` cloned and nelua installed).
+docs-gen:
+	cd ../nldoc && nelua --script nelua-docs.lua ../nelua-lang
+
 ## Clean the nelua cache directory.
 clean-cache:
 	$(RM_R) nelua_cache
