@@ -2770,6 +2770,7 @@ function visitors.FuncDef(context, node, polysymbol)
     end
     symbol.scope:add_symbol(symbol)
   end
+  symbol.defnode = node
   context:pop_state()
 
   -- we must know if the symbols is going to be polymorphic

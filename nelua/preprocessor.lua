@@ -302,7 +302,7 @@ function preprocessor.preprocess(context, ast)
       if endindex then
         if endindex < 0 then endindex = nvarargs + endindex + 1 end
         static_assert(endindex >= 1 and endindex <= nvarargs, 'select end index out of range')
-        local selectnodes = {_varargs=true}
+        local selectnodes = {_astunpack=true}
         for i=index,endindex,(endindex >= index) and 1 or -1 do
           selectnodes[#selectnodes+1] = varargsnodes[i]
         end

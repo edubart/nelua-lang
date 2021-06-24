@@ -356,6 +356,50 @@ it("inject nodes", function()
   ]])
 end)
 
+it("unpack ast nodes", function()
+  expect.ast_type_equals([=[
+    print(#[aster.unpack{}]#)
+    print(#[aster.unpack{aster.Number{'1'}}]#)
+    print(#[aster.unpack{aster.Number{'1'}, aster.Number{'2'}}]#)
+  ]=], [[
+    print()
+    print(1)
+    print(1, 2)
+  ]])
+
+  expect.ast_type_equals([=[
+    local #[aster.unpack{aster.IdDecl{'a'}, aster.IdDecl{'b'}}]#
+    global #[aster.unpack{aster.IdDecl{'a'}, aster.IdDecl{'b'}}]#
+  ]=], [[
+    local a, b
+    global a, b
+  ]])
+
+  expect.ast_type_equals([=[
+    local next
+    for #[aster.unpack{aster.IdDecl{'i'}, aster.IdDecl{'v'}}]# in next do
+    end
+  ]=], [[
+    local next
+    for i,v in next do
+    end
+  ]])
+
+  expect.ast_type_equals([=[
+    local function f(#[aster.unpack{aster.IdDecl{'x', aster.Id{'integer'}},
+                                    aster.IdDecl{'y', aster.Id{'integer'}}}]#)
+      print(x, y)
+    end
+    f(1, 2)
+  ]=], [[
+    local function f(x: integer,
+                     y: integer)
+      print(x, y)
+    end
+    f(1, 2)
+  ]])
+end)
+
 it("nested preprocessing", function()
   expect.ast_type_equals([[
     ## if true then

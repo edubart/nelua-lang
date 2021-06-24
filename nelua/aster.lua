@@ -114,6 +114,11 @@ function aster.create_value(val, srcnode)
   return node
 end
 
+function aster.unpack(t)
+  t._astunpack = true
+  return t
+end
+
 -- Register a new AST node with name `tag` described by shape `shape`.
 function aster.register(tag, shape)
   if not getmetatable(shape) then -- not a shape yet

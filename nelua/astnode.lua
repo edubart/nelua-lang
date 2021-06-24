@@ -170,6 +170,7 @@ local ignored_stringfy_keys = {
   checked = true,
   usedby = true,
   argattrs = true,
+  defnode = true,
 }
 local function stringfy_val2str(val)
   local vstr = tostring(val)

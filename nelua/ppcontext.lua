@@ -13,6 +13,12 @@ function PPContext:_init(visitors, context)
   self.statnodestack = {}
 end
 
+function PPContext:traverse_nodes(nodes, emitter)
+  for i=1,#nodes do
+    self:traverse_node(nodes[i], emitter, nodes, i)
+  end
+end
+
 function PPContext:push_statnodes(statnodes)
   local statnodestack = self.statnodestack
   statnodestack[#statnodestack+1] = self.statnodes
@@ -57,8 +63,8 @@ function PPContext.tonode(_, val, orignode)
 end
 
 function PPContext:inject_value(val, orignode, dest, destpos)
-  if type(val) == 'table' and val._varargs then
-    while #dest > destpos do -- clean old varargs
+  if type(val) == 'table' and val._astunpack then
+    while #dest >= destpos do -- clean old varargs
       dest[#dest] = nil
     end
     for i=1,#val do

@@ -257,6 +257,8 @@ local function filter_ast_for_check(t)
       v.methodsym = nil
       v.pseudoargattrs = nil
       v.pseudoargtypes = nil
+    elseif k == 'pattr' then
+      t[k] = nil
     end
   end
 end

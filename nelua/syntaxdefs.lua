@@ -62,8 +62,10 @@ Nil             <== `nil`
 Varargs         <== `...`
 Id              <== name
 IdDecl          <== name (`:` @typeexpr)~? annots?
+iddeclexpr      <-- IdDecl / PreprocessExpr
 typeddecl  : IdDecl <== name `:` @typeexpr annots?
 globaldecl : IdDecl <== (idsuffixed / name) (`:` @typeexpr)~? annots?
+globaldeclexpr  <-- globaldecl / PreprocessExpr
 namedecl   : IdDecl <== name
 Function        <== `function` @funcbody
 InitList        <== `{` (field (fieldsep field)* fieldsep?)? @`}`
@@ -97,9 +99,9 @@ funcname        <-- (Id DotIndex* ColonIndex?)~>rfoldright
 
 -- Lists
 callargs        <-| `(` (expr (`,` @expr)*)? @`)` / InitList / String / PreprocessExpr
-iddecls         <-| IdDecl (`,` @IdDecl)*
-funcargs        <-| (IdDecl (`,` IdDecl)* (`,` VarargsType)? / VarargsType)?
-globaldecls     <-| globaldecl (`,` @globaldecl)*
+iddecls         <-| iddeclexpr (`,` @iddeclexpr)*
+funcargs        <-| (iddeclexpr (`,` iddeclexpr)* (`,` VarargsType)? / VarargsType)?
+globaldecls     <-| globaldeclexpr (`,` @globaldeclexpr)*
 exprs           <-| expr (`,` @expr)*
 annots          <-| `<` @Annotation (`,` @Annotation)* @`>`
 funcrets        <-| `(` typeexpr (`,` @typeexpr)* @`)` / typeexpr
