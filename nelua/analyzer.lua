@@ -1268,6 +1268,9 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         if not selftype then
           node:raisef("in method call '%s' at argument 'self': the function cannot have arguments", calleename)
         end
+        if selftype.is_auto or selftype.is_concept then -- self argument is a concept
+          selftype = calleeobjnode.attr.type
+        end
         local ok, err = selftype:is_convertible_from_attr(calleeobjnode.attr, nil, true, argattrs)
         if not ok then
           node:raisef("in method call '%s' at argument 'self': %s", calleename, err)

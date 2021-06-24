@@ -3081,6 +3081,20 @@ it("concepts", function()
     assert(sum_container(&a) == 55)
     assert(sum_container(&b) == 55)
   ]=])
+  expect.run_c([=[
+    local Foo = @record{x: integer}
+    function Foo.f(self: auto)
+      return self.x
+    end
+    function Foo.g(self: #[concept(function(x) return true end)]#)
+      return self.x
+    end
+    local foo = Foo{1}
+    assert(Foo.f(foo) == 1)
+    assert(Foo.g(foo) == 1)
+    assert(foo:f() == 1)
+    assert(foo:g() == 1)
+  ]=])
 end)
 
 it("generics", function()
