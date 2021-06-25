@@ -754,6 +754,16 @@ it("poly function definition", function()
     end
     f(1)
   ]], "no viable type conversion from")
+  expect.ast_type_equals([[
+    ## for i=1,2 do
+      local function #|'f'..i|#(): #[i == 1 and primtypes.integer or primtypes.number]#
+        return 1
+      end
+    ## end
+  ]],[[
+    local function f1(): integer return 1 end
+    local function f2(): number return 1 end
+  ]])
 end)
 
 it("function return", function()
