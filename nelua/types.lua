@@ -1690,17 +1690,34 @@ function FunctionType.is_initializable_from_attr()
   return false
 end
 
+-- Helper to emit a list of typed fields.
+local function typedesc_addfields(ss, fields)
+  for i=1,#fields do
+    local field = fields[i]
+    if i > 1 then ss:add(', ') end
+    if field.name then
+      ss:addmany(field.name, ': ', field.type)
+    else
+      ss:add(field.type)
+    end
+  end
+end
+
 -- Return description for type as a string.
 function FunctionType:typedesc()
   local ss = sstream()
-  ss:addmany(self.name, '(', self.argtypes, ')')
-  if self.rettypes and #self.rettypes > 0 then
-    ss:add(': ')
-    if #self.rettypes > 1 then
-      ss:addmany('(', self.rettypes, ')')
-    else
-      ss:addlist(self.rettypes)
-    end
+  ss:addmany(self.name, '(')
+  typedesc_addfields(ss, self.argattrs)
+  ss:add(')')
+  local rettypes = self.rettypes
+  local numrets = rettypes and #rettypes or 0
+  ss:add(': ')
+  if numrets > 1 then
+    ss:addmany('(', rettypes, ')')
+  elseif numrets == 1 then
+    ss:add(rettypes[1])
+  else
+    ss:add('void')
   end
   return ss:tostring()
 end
@@ -1995,11 +2012,7 @@ end
 function RecordType:typedesc()
   local ss = sstream()
   ss:add('record{')
-  for i,field in ipairs(self.fields) do
-    if i > 1 then ss:add(', ') end
-    ss:addmany(field.name, ': ', field.type)
-  end
-  ss:add('}')
+  typedesc_addfields(ss, self.fields)
   return ss:tostring()
 end
 
@@ -2104,11 +2117,7 @@ UnionType.has_pointer = RecordType.has_pointer
 function UnionType:typedesc()
   local ss = sstream()
   ss:add('union{')
-  for i,field in ipairs(self.fields) do
-    if i > 1 then ss:add(', ') end
-    ss:addmany(field.name, ': ', field.type)
-  end
-  ss:add('}')
+  typedesc_addfields(ss, self.fields)
   return ss:tostring()
 end
 

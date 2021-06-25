@@ -1664,7 +1664,7 @@ local function create_sequence(attr_or_type, n)
   -- fill expressions
   for i=1,n do
     -- convert any Lua value to the proper ASTNode
-    initlist[i] = aster.create_value(i)
+    initlist[i] = aster.value(i)
   end
   return initlist
 end

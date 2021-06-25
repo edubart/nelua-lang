@@ -203,11 +203,6 @@ function Symbol:__tostring()
   if type then
     ss:addmany(': ', type)
   end
-  if self.comptime then
-    ss:add(' <comptime>')
-  elseif self.const then
-    ss:add(' <const>')
-  end
   local value = self.value
   if value and not type.is_procedure then
     ss:addmany(' = ', value)

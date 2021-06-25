@@ -55,7 +55,7 @@ function PPContext.toname(_, val, orignode)
 end
 
 function PPContext.tonode(_, val, orignode)
-  local node = aster.create_value(val, orignode)
+  local node = aster.value(val, orignode)
   if not node then
     orignode:raisef('unable to convert preprocess value of lua type "%s" to a compile time value', type(val))
   end

@@ -45,4 +45,21 @@ it("clone different ASTNode", function()
 }]])
 end)
 
+it("pretty", function()
+  local node =
+    n.Block{attr=Attr{someattr = true},
+      n.Return{
+        n.Nil{attr=Attr{someattr = true},
+  }}}
+  expect.equal(aster.pretty(node), [[
+Block
+| Return
+| | Nil]])
+end)
+
+it("clone", function()
+  expect.equal(aster.pretty(aster.clone(n.Id{'x'})), aster.pretty(n.Id{'x'}))
+  expect.equal(aster.pretty(aster.clone{n.Id{'x'},n.Number{1}}), aster.pretty{n.Id{'x'},n.Number{1}})
+end)
+
 end)

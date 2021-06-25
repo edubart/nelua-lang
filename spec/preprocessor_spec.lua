@@ -150,8 +150,8 @@ it("print symbol", function()
   ]=], [[
     local a <comptime> = 1
     local b <const> = 2
-    print 'a: int64 <comptime> = 1'
-    print 'b: int64 <const>'
+    print 'a: int64 = 1'
+    print 'b: int64'
   ]])
   expect.ast_type_equals([=[
     for i:integer=1,2 do
@@ -170,7 +170,7 @@ it("print symbol", function()
     ## end
   ]], [[
     local a <comptime> = 1
-    print 'a: int64 <comptime> = 1'
+    print 'a: int64 = 1'
   ]])
 end)
 
@@ -242,7 +242,7 @@ it("print types", function()
     local ts = 'string'
     local tb = 'boolean'
     local ta = 'array(int64, 2)'
-    local tf = 'function(int64, int64): (int64, int64)'
+    local tf = 'function(a: int64, b: int64): (int64, int64)'
     local tR = 'type'
     local tr = 'R'
   ]=])

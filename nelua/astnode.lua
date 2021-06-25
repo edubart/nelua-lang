@@ -12,6 +12,7 @@ local config = require 'nelua.configer'.get()
 local Attr = require 'nelua.attr'
 
 local tabler_update = tabler.update
+local clone_nodetable
 local clone_node
 
 -- Unique id counter for ASTNode.
@@ -47,7 +48,7 @@ function ASTNode.create_from(mt, node)
 end
 
 -- Clone a node table.
-local function clone_nodetable(t)
+function ASTNode.clone_nodetable(t)
   local ct = {}
   for i=1,#t do
     local v = t[i]
@@ -59,6 +60,7 @@ local function clone_nodetable(t)
   end
   return ct
 end
+clone_nodetable = ASTNode.clone_nodetable
 
 -- Clone a node, copying only necessary values.
 function ASTNode.clone(node)
@@ -92,8 +94,40 @@ function ASTNode.clone(node)
   end
   return cloned
 end
-
 clone_node = ASTNode.clone
+
+-- Helper for `ASTNode.pretty`.
+local function astnode_pretty(node, indent, ss)
+  if node.tag then
+    ss[#ss+1] = indent..node.tag
+  else
+    ss[#ss+1] = indent..'-'
+  end
+  indent = indent..'| '
+  for i=1,#node do
+    local child = node[i]
+    local ty = type(child)
+    if ty == 'table' then
+      astnode_pretty(child, indent, ss)
+    elseif ty == 'string' then
+      local escaped = child
+        :gsub([[\]], [[\\]])
+        :gsub([[(['"])]], [[\%1]])
+        :gsub('\n', '\\n'):gsub('\t', '\\t')
+        :gsub('[^ %w%p]', function(s) return string.format('\\x%02x', string.byte(s)) end)
+      ss[#ss+1] = indent..'"'..escaped..'"'
+    else
+      ss[#ss+1] = indent..tostring(child)
+    end
+  end
+end
+
+-- Convert an AST into pretty human readable string.
+function ASTNode.pretty(node)
+  local ss = {}
+  astnode_pretty(node, '', ss)
+  return table.concat(ss, '\n')
+end
 
 --[[
 Replace current AST node values and metatable with node `node`.

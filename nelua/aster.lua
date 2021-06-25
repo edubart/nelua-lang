@@ -60,7 +60,7 @@ function aster.create_from(tag, node)
 end
 
 -- Create an AST node from a Lua value, converting it as necessary.
-function aster.create_value(val, srcnode)
+function aster.value(val, srcnode)
   local node
   if traits.is_astnode(val) then
     node = val
@@ -96,12 +96,12 @@ function aster.create_value(val, srcnode)
     for k,v in iters.ospairs(val) do
       node[#node+1] = aster.Pair{
         k,
-        aster.create_value(v, srcnode)
+        aster.value(v, srcnode)
       }
     end
     -- integer part
     for _,v in ipairs(val) do
-      node[#node+1] = aster.create_value(v, srcnode)
+      node[#node+1] = aster.value(v, srcnode)
     end
   elseif val == nil then
     node = aster.Nil{}
@@ -190,6 +190,19 @@ function aster.set_syntax(grammar, errors, defs)
   aster.syntax_errors = errors
   aster.defs = defs
   aster.syntax_patt = lpegrex.compile(grammar, defs)
+end
+
+-- Clones an AST or a list of ASTs.
+function aster.clone(node)
+  if node._astnode then
+    return node:clone()
+  end
+  return ASTNode.clone_nodetable(node)
+end
+
+-- Converts an AST or a list of ASTs into pretty human readable string.
+function aster.pretty(node)
+  return ASTNode.pretty(node)
 end
 
 -- Need to set aster in `package.loaded` because astdefs depends on it.
