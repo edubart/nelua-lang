@@ -27,11 +27,11 @@ local function run(argv, redirect)
 
   --luacov:disable
   if config.script then
-    -- inject script directory into lua package path
+    -- inject script and thirdparty directory into lua package path
     local scriptdir = fs.dirname(fs.abspath(config.input))
-    package.path = package.path..platform.luapath_separator..
-                   fs.join(scriptdir,'?.lua')..platform.luapath_separator..
-                   fs.join(scriptdir,'?','init.lua')
+    package.path = fs.join(scriptdir,'?.lua')..platform.luapath_separator..
+                   fs.join(scriptdir,'?','init.lua')..platform.luapath_separator..
+                   package.path
     -- replace arguments
     local arg = _G.arg
     for i=1,math.max(#arg,#config.runargs) do

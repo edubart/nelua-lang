@@ -103,6 +103,12 @@ local function build_configs(conf)
     conf.compile_binary = true
   end
 
+  -- inject third party directory into lua search path
+  local thirdpartydir = fs.join(config.lualib_path,'nelua','thirdparty')
+  package.path = package.path..platform.luapath_separator..
+                 fs.join(thirdpartydir,'?.lua')..platform.luapath_separator..
+                 fs.join(thirdpartydir,'/?/init.lua')
+
   conf.lua_path = package.path
   conf.lua_cpath = package.cpath
 
@@ -264,18 +270,21 @@ local function detect_nelua_lib_path()
   local thispath = fs.scriptname()
   local dirpath = fs.dirname(fs.dirname(thispath))
   local libpath
+  local lualibpath
   --luacov:disable
   if fs.isfile(fs.join(dirpath, 'lib', 'math.nelua')) then
     -- in a repository clone
     libpath = fs.join(dirpath, 'lib')
+    lualibpath = dirpath
   elseif fs.basename(dirpath) == 'lualib' then
     -- in a system install
     -- this file should be in a path like "/usr/lib/nelua/lualib/nelua/configer.lua"
+    lualibpath = dirpath
     libpath = fs.join(fs.dirname(dirpath), "lib")
   end
   libpath = fs.abspath(libpath)
   if fs.isfile(fs.join(libpath, 'math.nelua')) then
-    return libpath
+    return libpath, lualibpath
   end
   --luacov:enable
 end
@@ -359,12 +368,13 @@ end
 -- Initializes default config by detecting system variables,
 -- and reading user and project configurations files.
 local function init_default_configs()
-  local libpath = detect_nelua_lib_path()
+  local libpath, lualibpath = detect_nelua_lib_path()
   if not libpath then --luacov:disable
     console.error('Nelua installation is broken, lib path was not found!')
     os.exit(1)
   end --luacov:enable
   defconfig.lib_path = libpath
+  defconfig.lualib_path = lualibpath
   defconfig.lua = detect_lua_bin()
   defconfig.path = detect_search_path(libpath)
   defconfig.cc = detect_cc()
