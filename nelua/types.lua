@@ -1707,7 +1707,7 @@ end
 function FunctionType:typedesc()
   local ss = sstream()
   ss:addmany(self.name, '(')
-  typedesc_addfields(ss, self.argattrs)
+  typedesc_addfields(ss, self.argattrs or self.args)
   ss:add(')')
   local rettypes = self.rettypes
   local numrets = rettypes and #rettypes or 0

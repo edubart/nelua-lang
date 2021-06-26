@@ -1420,7 +1420,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             polyeval = polycalleetype:eval_poly(polyargs, node)
             attr.polyeval = polyeval
           end
-          if polyeval and polyeval.node then
+          if polyeval and polyeval.node and polyeval.node.attr.type then
             calleesym = polyeval.node.attr
             calleetype = polyeval.node.attr.type
           elseif context.state.inpolyeval ~= polyeval then
@@ -2131,7 +2131,7 @@ function visitors.Goto(context, node)
     local funcscope = context.scope:get_up_return_scope() or context.rootscope
     if not funcscope.resolved_once then
       -- we should find it in the next traversal
-      funcscope:delay_resolution()
+      funcscope:delay_resolution(true)
       return
     end
     node:raisef("no visible label '%s' found for `goto`", labelname)

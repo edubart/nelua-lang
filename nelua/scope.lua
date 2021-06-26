@@ -241,7 +241,15 @@ function Scope:add_symbol(symbol)
   end
 end
 
-function Scope:delay_resolution()
+function Scope:delay_resolution(force)
+  if not force then
+    -- ignore if an upper scope is already delaying the resolution
+    for upscope in self:iterate_up_scopes() do
+      if upscope.delay then
+        return
+      end
+    end
+  end
   self.delay = true
 end
 
