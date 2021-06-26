@@ -676,7 +676,7 @@ function GCAllocator:new(what: auto, size: facultative(usize)) <noinline>
     local T: type = #[what.type.is_type and what.value or what.type]#
     local spn: span(T)
     if likely(size > 0) then
-      ## if T.value.metafields.__gc then
+      ## if T.value.is_record and T.value.metafields.__gc then
       local function finalizer(ptr: pointer, userdata: pointer): void
         local size: usize = (@usize)(userdata)
         local data: *[0]T = (@*[0]T)(ptr)
