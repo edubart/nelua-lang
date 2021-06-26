@@ -1879,7 +1879,7 @@ function visitors.Switch(context, node)
   end
   if elsenode then
     context:traverse_node(elsenode)
-    elsenode.done = done and elsenode.node and true
+    done = done and elsenode.node and true
   end
   context:pop_scope()
   node.done = done
