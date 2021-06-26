@@ -132,7 +132,7 @@ end
 function memory.spancopy(dest: an_span, src: an_span): void <inline>
   local T: type = #[dest.type.subtype]#
   ## check_type_match(dest, src)
-  check(dest.size == src.size, 'span sizes must be equal')
+  check(dest.size >= src.size, 'span sizes must be equal')
   if likely(src.size > 0) then
     memcpy(dest.data, src.data, src.size * #T)
   end
@@ -142,7 +142,7 @@ end
 function memory.spanmove(dest: an_span, src: an_span): void <inline>
   local T: type = #[dest.type.subtype]#
   ## check_type_match(dest, src)
-  check(dest.size == src.size, 'span sizes must be equal')
+  check(dest.size >= src.size, 'span sizes must be equal')
   if likely(src.size > 0) then
     memmove(dest.data, src.data, src.size * #T)
   end
