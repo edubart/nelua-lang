@@ -866,7 +866,7 @@ This token signals to the compiler that a type expression comes after it.
 You can use the operator `#` to get the size of any type in bytes:
 
 ```nelua
-local Vec2 = @record{x: integer, y: integer}
+local Vec2 = @record{x: int32, y: int32}
 print(#Vec2) -- outputs: 8
 ```
 
@@ -1096,7 +1096,7 @@ They have access to all local variables declared beforehand:
 
 ```nelua
 local counter = 1 -- 'a' lives in the heap because it's on the top scope
-local function increment() -- foo is a top scope closure
+local function increment() -- a top scope closure
   -- counter is an upvalue for this function, we can access and modify it
   counter = counter + 1
 end
@@ -1242,9 +1242,9 @@ end
 local a: Vec2 = {1, 2}
 local b: Vec2 = {3, 4}
 local c = a + b -- calls the __add metamethod
-print(c.x, c.y) -- outputs: 4 6
+print(c.x, c.y) -- outputs: 4.0 6.0
 local len = #c -- calls the __len metamethod
-print(len) -- outputs: 7.2
+print(len) -- outputs: 7.211102550928
 ```
 
 Complete list of metamethods that can be defined for records:

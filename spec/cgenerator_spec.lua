@@ -1343,6 +1343,11 @@ it("number comparisons", function()
       assert(a ~= b)
       assert(a == c)
     end
+
+    do
+      local i: int8 = -1
+      assert(i < '0'_byte)
+    end
 ]])
 end)
 
