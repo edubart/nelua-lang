@@ -369,6 +369,14 @@ function fs.findmodulefile(name, pathstr, relpath)
       triedpaths[#triedpaths+1] = trypath
     end
   else -- search for a file in pathstr
+    if name:find('^~') then -- revert the path search order
+      name = name:sub(2)
+      local rpath = {}
+      for trypath in pathstr:gmatch('[^;]+') do
+        table.insert(rpath, 1, trypath)
+      end
+      pathstr = table.concat(rpath,';')
+    end
     modpath, triedpaths = findmodulefile(name, pathstr)
   end
   local err

@@ -2825,6 +2825,9 @@ end)
 
 it("require builtin", function()
   expect.generate_c([[
+    require '~examples.helloworld'
+  ]], "hello world")
+  expect.generate_c([[
     require 'examples.helloworld'
   ]], "hello world")
   expect.generate_c([[
