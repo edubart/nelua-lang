@@ -27,7 +27,6 @@ local function strtoll(str: cstring, endptr: *cstring, base: cint): clonglong <c
 local function strtod(str: cstring, endptr: *cstring): float64 <cimport,cinclude'<stdlib.h>',nodecl> end
 local function strspn(s: cstring, accept: cstring): csize <cimport'strspn',cinclude'<string.h>',nodecl> end
 local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
-local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function isalnum(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function isspace(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function tolower(c: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
@@ -626,9 +625,9 @@ local function str2intbase(s: string, base: uinteger): integer
   end
   local n: uinteger = 0
   while pos < s.size do
-    local digit: cint = s.data[pos]
+    local digit: byte = s.data[pos]
     local x: cint
-    if isdigit(digit) ~= 0 then -- is a digit [0-9]
+    if digit >= '0'_byte and digit <= '9'_byte then -- is a digit [0-9]
       x = digit - '0'_byte
     elseif isalnum(digit) ~= 0 then -- is a alphanumeric [a-zA-Z]
       x = toupper(digit) - 'A'_byte + 10

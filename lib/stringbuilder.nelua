@@ -13,11 +13,15 @@ require 'span'
 require 'memory'
 require 'string'
 
-local function isdigit(x: cint): cint <cimport,cinclude'<ctype.h>',nodecl,nosideeffect> end
 local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 
 local MAX_FORMAT <comptime> = 32
 local MAX_ITEM <comptime> = 120
+
+-- Helper to check a byte is a digit.
+local function isdigit(x: byte): boolean <inline>
+  return x >= '0'_byte and x <= '9'_byte
+end
 
 -- Helper to scan format string.
 local function scanformat(strfmt: *[0]byte, form: *[MAX_FORMAT]byte): usize
@@ -27,14 +31,14 @@ local function scanformat(strfmt: *[0]byte, form: *[MAX_FORMAT]byte): usize
     p = p + 1  -- skip flags
   end
   assert(p < L_FMTFLAGS.size + 1, "invalid format (repeated flags)")
-  if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- skip width
-  if isdigit(strfmt[p]) ~= 0 then p = p + 1 end  -- (2 digits at most)
+  if isdigit(strfmt[p]) then p = p + 1 end  -- skip width
+  if isdigit(strfmt[p]) then p = p + 1 end  -- (2 digits at most)
   if strfmt[p] == '.'_byte then
     p = p + 1
-    if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- skip precision
-    if isdigit(strfmt[p]) ~= 0 then p = p + 1 end -- (2 digits at most)
+    if isdigit(strfmt[p]) then p = p + 1 end -- skip precision
+    if isdigit(strfmt[p]) then p = p + 1 end -- (2 digits at most)
   end
-  assert(isdigit(strfmt[p]) == 0, "invalid format (width or precision too long)")
+  assert(not isdigit(strfmt[p]), "invalid format (width or precision too long)")
   form[0] = '%'_byte
   memory.copy(&form[1], &strfmt[0], p + 1)
   form[p + 2] = 0
@@ -149,29 +153,33 @@ end
 
   --[[
   Appends values to the internal writing buffer.
-  The arguments must be strings or convertible to string.
-  Returns `true` in case of success, otherwise `false` when out of buffer memory space.
+  The arguments must be a string, convertible to string, or a span o bytes.
+  Returns `true` in case of success plus the number of bytes written,
+  otherwise `false` when out of buffer memory space.
   ]]
-  function stringbuilderT:write(...: varargs): boolean
+  function stringbuilderT:write(...: varargs): (boolean, usize)
+    local written: usize = 0
     ## for i=1,select('#', ...) do
-      local s: string
       ## local argnode = select(i, ...)
       ## local argtype = argnode.attr.type
-      ## if not argtype.is_stringy then
+      ## if argtype.is_span and argtype.subtype == primtypes.byte then
+        local s: span(byte) = #[argnode]#
+      ## elseif not argtype.is_stringy then
         -- TODO: avoid extra string allocation here
-        s = tostring(#[argnode]#)
+        local s: string = tostring(#[argnode]#)
         defer s:destroy() end
       ## else
-        s = #[argnode]#
+        local s: string = #[argnode]#
       ## end
       if s.size > 0 then
         local p: span(byte) = self:prepare(s.size)
-        if unlikely(p:empty()) then return false end
+        if unlikely(p:empty()) then return false, written end
         memory.copy(p.data, s.data, s.size)
+        written = written + s.size
         self.size = self.size + s.size
       end
     ## end
-    return true
+    return true, written
   end
 
   -- Helper to format an argument.
@@ -262,37 +270,38 @@ end
 
   --[[
   Appends a formatted string to the internal writing buffer.
-  Returns `true` in case of success, otherwise `false` when out of buffer memory space.
+  Returns `true` in case of success plus the number of bytes written,
+  otherwise `false` when out of buffer memory space.
   The `fmt` string is expected to be a valid format, it should follow `string.format` rules.
   ]]
-  function stringbuilderT:writef(fmt: string, ...: varargs): boolean
+  function stringbuilderT:writef(fmt: string, ...: varargs): (boolean, usize)
     local L_ESC: byte <comptime> = '%'_byte
-    local pos: usize = 0
-    local argi: int32 = 0
+    local pos: usize, written: usize, argi: int32 = 0, 0, 0
     while pos < fmt.size do
       local c: byte = fmt.data[pos]
       pos = pos + 1
       if c ~= L_ESC then
-        if not self:writebyte(c) then return false end
+        if not self:writebyte(c) then return false, written end
+        written = written + 1
       else
         c = fmt.data[pos]
         if c == L_ESC then -- %%
-          if not self:writebyte(L_ESC) then return false end
+          if not self:writebyte(L_ESC) then return false, written end
+          written = written + 1
           pos = pos + 1
         else -- format item
           local form: [MAX_FORMAT]byte -- to store the format ('%...')
           local maxitem: usize = MAX_ITEM
           local buff: cstring = (@cstring)(self:prepare(MAX_ITEM).data) -- to put formatted item
           if not buff then
-            return false
+            return false, written
           end
           -- scan format
           pos = pos + scanformat(&fmt.data[pos], &form)
           c = fmt.data[pos]
           pos = pos + 1
           argi = argi + 1
-          local ok: boolean
-          local nb: cint = -1
+          local ok: boolean, nb: cint = false, -1
           ## for i=1,select('#', ...) do
           if #[i]# == argi then
             ok, nb = formatarg(self, c, buff, maxitem, &form, #[select(i, ...)]#)
@@ -301,14 +310,15 @@ end
           ## end
           ::next::
           if not ok then
-            return false
+            return false, written
           end
           assert(nb >= 0, 'missing argument in format')
           self:commit((@usize)(nb))
+          written = written + (@usize)(nb)
         end
       end
     end
-    return true
+    return true, written
   end
 
   --[[

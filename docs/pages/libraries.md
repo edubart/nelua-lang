@@ -2036,21 +2036,23 @@ Returns `true` in case of success, otherwise `false` when out of buffer memory s
 ### stringbuilderT:write
 
 ```nelua
-function stringbuilderT:write(...: varargs): boolean
+function stringbuilderT:write(...: varargs): (boolean, usize)
 ```
 
 Appends values to the internal writing buffer.
-The arguments must be strings or convertible to string.
-Returns `true` in case of success, otherwise `false` when out of buffer memory space.
+The arguments must be a string, convertible to string, or a span o bytes.
+Returns `true` in case of success plus the number of bytes written,
+otherwise `false` when out of buffer memory space.
 
 ### stringbuilderT:writef
 
 ```nelua
-function stringbuilderT:writef(fmt: string, ...: varargs): boolean
+function stringbuilderT:writef(fmt: string, ...: varargs): (boolean, usize)
 ```
 
 Appends a formatted string to the internal writing buffer.
-Returns `true` in case of success, otherwise `false` when out of buffer memory space.
+Returns `true` in case of success plus the number of bytes written,
+otherwise `false` when out of buffer memory space.
 The `fmt` string is expected to be a valid format, it should follow `string.format` rules.
 
 ### stringbuilderT:view

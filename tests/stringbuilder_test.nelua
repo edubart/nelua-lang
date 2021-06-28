@@ -3,11 +3,12 @@ require 'allocators.arena'
 
 do
   local sb: stringbuilder
-  sb:write('hello world')
-  sb:writebyte('\n'_byte)
-  sb:writef('%d\n', 10)
-  sb:writef('%.2f\n', 3.14)
-  sb:writef('%s %d', 'hi', 1)
+  local ok: boolean, n: usize
+  ok, n = sb:write('hello world') assert(ok == true and n == 11)
+  ok = sb:writebyte('\n'_byte) assert(ok == true)
+  ok, n = sb:writef('%d\n', 10) assert(ok == true and n == 3)
+  ok, n = sb:writef('%.2f\n', 3.14) assert(ok == true and n == 5)
+  ok, n = sb:writef('%s %d', 'hi', 1) assert(ok == true and n == 4)
   local s = sb:prepare(1)
   s[0] = '\n'_byte
   sb:commit(1)
@@ -20,7 +21,8 @@ end
 
 do -- write
   local sb: stringbuilder
-  sb:write('a', 'b', 2, true)
+  local ok: boolean, n: usize = sb:write('a', 'b', 2, true)
+  assert(ok == true and n == 7)
   assert(sb:view() == 'ab2true')
   sb:destroy()
 end

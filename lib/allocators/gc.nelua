@@ -194,7 +194,7 @@ local function GC_markstack(self: *GC): void <noinline>
 end
 
 -- Mark phase, mark all reachable pointers.
-local function GC_mark(self: *GC)
+local function GC_mark(self: *GC): void
   GC_unmarkall(self)
   GC_markroot(self)
   GC_markstack(self)
