@@ -672,6 +672,8 @@ global function tostring(x: auto): string
   ]]
   ## if xtype.is_stringy then
     return string.copy(x)
+  ## elseif x.type.is_span and x.type.subtype == primtypes.byte then
+    return string.copy((@string){data=x.data, size=x.size})
   ## elseif xobjtype.is_record and xobjtype.metafields.__tostring then
     return x:__tostring()
   ## elseif xtype.is_scalar or xtype.is_function or xtype.is_pointer then
@@ -722,19 +724,16 @@ global function tonumber(x: auto, base: facultative(integer))
     -- TODO: return nil in case of fail (like lua)
     return str2intbase(x, base)
   ## elseif x.type.is_integral then
-    local n: integer = x
-    return n
+    return (@integer)(x)
   ## elseif x.type.is_float then
-    local n: number = x
-    return n
+    return (@number)(x)
   ## elseif x.type.is_stringy then
-    local endptr: cstring
-    local tmpbuf: [65]cchar
+    local endptr: cstring, tmpbuf: [65]cchar
     assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's zero terminated
     errno = 0
     local n: float64 = strtod(&tmpbuf, &endptr)
     local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
-    assert(len > 0 and len <= #x and errno == 0, 'failed to convert string to number')
+    assert(len > 0 and len <= (@usize)(#x) and errno == 0, 'failed to convert string to number')
     return (@number)(n)
   ## else static_error("unable to convert value of type '%s' to a number", x.type) end
 end
@@ -745,16 +744,14 @@ global function tointeger(x: auto, base: facultative(integer)): integer
     ## static_assert(x.type.is_stringy, "string expected, got something else")
     return str2intbase(x, base)
   ## elseif x.type.is_scalar then
-    local n: integer = x
-    return n
+    return (@integer)(x)
   ## elseif x.type.is_stringy then
-    local endptr: cstring
-    local tmpbuf: [65]cchar
+    local endptr: cstring, tmpbuf: [65]cchar
     assert(tocstring(&tmpbuf, #tmpbuf, x)) -- ensure it's zero terminated
     errno = 0
     local i: clonglong = strtoll(&tmpbuf, &endptr, 10)
     local len: usize = (@usize)(endptr) - (@usize)(&tmpbuf)
-    assert(len > 0 and len <= #x and errno == 0, 'failed to convert string to integer')
+    assert(len > 0 and len <= (@usize)(#x) and errno == 0, 'failed to convert string to integer')
     return i
   ## else static_error("unable to convert value of type '%s' to an integer", x.type) end
 end

@@ -140,14 +140,20 @@ end
   end
 
   --[[
-  Appends a byte to the internal writing buffer.
+  Appends byte `c` to the internal writing buffer.
+  In case `n` is present, then that amount of bytes is added, otherwise one byte is added.
   Returns `true` in case of success, otherwise `false` when out of buffer memory space.
   ]]
-  function stringbuilderT:writebyte(c: byte): boolean
-    local p: span(byte) = self:prepare(1)
+  function stringbuilderT:writebyte(c: byte, n: facultative(usize)): boolean
+    ## if n.type.is_niltype then
+    local n: usize = 1
+    ## else
+    if unlikely(n <= 0) then return true end
+    ## end
+    local p: span(byte) = self:prepare(n)
     if unlikely(p:empty()) then return false end
-    p[0] = c
-    self.size = self.size + 1
+    memory.set(p.data, c, n)
+    self.size = self.size + n
     return true
   end
 

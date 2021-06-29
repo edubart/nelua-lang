@@ -588,8 +588,8 @@ local function needs_signed_unsigned_comparision(lnode, rnode)
   local ltype, rtype = lattr.type, rattr.type
   if not ltype.is_integral or not rtype.is_integral or
      ltype.is_unsigned == rtype.is_unsigned or
-     (lattr.comptime and not ltype.is_unsigned) or
-     (rattr.comptime and not rtype.is_unsigned) then
+     (lattr.comptime and not ltype.is_unsigned and lattr.value >= 0) or
+     (rattr.comptime and not rtype.is_unsigned and rattr.value >= 0) then
     return false
   end
   return true

@@ -1184,7 +1184,7 @@ function Vec2.create(x: integer, y: integer): Vec2
 end
 
 local v = Vec2.create(1,2)
-print(v.x, v.y) -- outputs: 1 2
+print(v.x, v.y) -- outputs: 1.0 2.0
 ```
 
 ### Record methods
@@ -1209,8 +1209,8 @@ end
 
 local v = Rect{0,0,2,3}
 v:translate(2,2)
-print(v.x, v.y) -- outputs 2 2
-print(v:area()) -- outputs 6
+print(v.x, v.y) -- outputs: 2.0 2.0
+print(v:area()) -- outputs: 6.0
 ```
 
 When calling methods on records, the compiler automatically takes care
@@ -1435,7 +1435,7 @@ end
 local p: Person = {"John", 20}
 print_info_byref(p) -- the referencing with `&` is implicit here
 local pref: *Person = &p
-print_info_bycopy(p) -- the dereferencing with `$` is implicit here
+print_info_bycopy(pref) -- the dereferencing with `$` is implicit here
 ```
 
 For instance, the above code is equivalent to:

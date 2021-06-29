@@ -561,25 +561,27 @@ do print '### Record functions'
   end
 
   local v = Vec2.create(1,2)
-  print(v.x, v.y) -- outputs: 1 2
+  print(v.x, v.y) -- outputs: 1.0 2.0
 end
 
 do print '### Record methods'
   local Rect = @record{x: number, y: number, w: number, h: number}
 
   function Rect:translate(x: number, y: number)
+    -- 'self' here is of the type '*Rect'
     self.x = self.x + x
     self.y = self.y + y
   end
 
   function Rect:area()
+    -- 'self' here is of the type '*Rect'
     return self.w * self.h
   end
 
   local v = Rect{0,0,2,3}
   v:translate(2,2)
-  print(v.x, v.y) -- outputs 2 2
-  print(v:area()) -- outputs 6
+  print(v.x, v.y) -- outputs: 2.0 2.0
+  print(v:area()) -- outputs: 6.0
 end
 
 do print '### Record metamethods'
@@ -683,7 +685,7 @@ do print '### Automatic referencing and dereferencing'
   local p: Person = {"John", 20}
   print_info_byref(p) -- the referencing with `&` is implicit here
   local pref: *Person = &p
-  print_info_bycopy(p) -- the dereferencing with `$` is implicit here
+  print_info_bycopy(pref) -- the dereferencing with `$` is implicit here
 
 
   local Person = @record{name: string, age: integer}

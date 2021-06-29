@@ -1348,6 +1348,13 @@ it("number comparisons", function()
       local i: int8 = -1
       assert(i < '0'_byte)
     end
+
+    do
+      local a: uinteger = 2
+      assert(not (a < -1))
+      assert(not (a <= -1))
+      assert(not (a == -1))
+    end
 ]])
 end)
 

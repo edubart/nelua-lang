@@ -2027,10 +2027,11 @@ returned span length must have at least `n` bytes.
 ### stringbuilderT:writebyte
 
 ```nelua
-function stringbuilderT:writebyte(c: byte): boolean
+function stringbuilderT:writebyte(c: byte, n: facultative(usize)): boolean
 ```
 
-Appends a byte to the internal writing buffer.
+Appends byte `c` to the internal writing buffer.
+In case `n` is present, then that amount of bytes is added, otherwise one byte is added.
 Returns `true` in case of success, otherwise `false` when out of buffer memory space.
 
 ### stringbuilderT:write
