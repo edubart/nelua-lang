@@ -46,6 +46,10 @@ print('testing pattern_matching_test... ')
 require 'tests.pattern_matching_test'
 print 'OK!'
 
+print('testing pack_test... ')
+require 'tests.pack_test'
+print 'OK!'
+
 print('testing traits_test... ')
 require 'tests.traits_test'
 print 'OK!'

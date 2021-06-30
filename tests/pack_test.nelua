@@ -1,0 +1,266 @@
+require 'string'
+
+local islittle: boolean = (do
+  local s: string = string.pack('i2',1)
+  defer s:destroy() end
+  return s == '\1\0'
+end)
+
+local function assert_check_pack_unpack(s: string, fmt: string <comptime>, ...: varargs): void
+  local packed: string = string.pack(fmt, ...)
+  assert(packed == s)
+  packed:destroy()
+  ## if ... then
+    local unpacked: #[(...).attr.type]# = string.unpack(fmt, s)
+    assert(unpacked == ...)
+    ## if unpacked.type.is_string then
+      unpacked:destroy()
+    ## end
+  ## end
+end
+
+local function assert_pack_unpack(fmt: string <comptime>, a: auto): void
+  local packed: string = string.pack(fmt, a)
+  local unpacked: #[a.type]# = string.unpack(fmt, packed)
+  packed:destroy()
+  assert(unpacked == a)
+  ## if unpacked.is_string then
+    unpacked:destroy()
+  ## end
+end
+
+local function assert_pack_string(s: string, fmt: string <comptime>, ...: varargs): void
+  local packed: string = string.pack(fmt, ...)
+  assert(packed == s)
+  packed:destroy()
+end
+
+local function assert_pack_string(s: string, fmt: string <comptime>, ...: varargs): void
+  local packed: string = string.pack(fmt, ...)
+  assert(packed == s)
+  packed:destroy()
+end
+
+do -- pack/unpack
+  assert(string.pack('', '') == '')
+  assert(string.unpack('', '') == 1)
+  assert(string.unpack('!<>= ', '') == 1)
+
+  do -- pack with multiple arguments
+    assert_pack_string('\x00\xffP', 'bbb',0,-1,0x50)
+    assert_check_pack_unpack('\x00P', 'BB', 0, 0x50)
+  end
+  do -- unpack with multiple returns
+    local packed: string = string.pack('BB', 1, 2)
+    defer packed:destroy() end
+    local a: byte, b: byte, c: isize = string.unpack('BB', packed)
+    assert(a == 1 and b == 2 and c == 3)
+  end
+  do -- byte
+    -- unsigned
+    assert_check_pack_unpack('\x00', 'B', 0x00)
+    assert_check_pack_unpack('\x80', 'B', 0x80)
+    assert_check_pack_unpack('\xff', 'B', 0xff)
+    -- signed
+    assert_check_pack_unpack('\x00', 'b', 0x00)
+    assert_check_pack_unpack(   'P', 'b', 0x50)
+    assert_check_pack_unpack('\x7f', 'b', 0x7f)
+    assert_check_pack_unpack('\x80', 'b', -0x80)
+    assert_check_pack_unpack('\xff', 'b', -1)
+    assert_pack_string('\x00', 'b','0')
+  end
+  if #@cshort == 2 then -- short
+    assert_check_pack_unpack('\x00\x00\xff\xffPP', 'hhh', 0, -1, 0x5050)
+    assert_check_pack_unpack('\x00\x00PP', 'HH', 0, 0x5050)
+
+    assert_pack_unpack('H', 0xffff)
+    assert_pack_unpack('h', 0x7fff)
+    assert_pack_unpack('h', -0x8000)
+  end
+  if #@cint == 4 then -- int
+    assert_check_pack_unpack('\x00\x00\x00\x00', 'i', 0)
+    assert_check_pack_unpack('\xff\xff\xff\xff', 'i',-1)
+    assert_check_pack_unpack('PPPP', 'i', 0x50505050)
+    assert_check_pack_unpack('\x00\x00\x00\x00', 'I', 0)
+    assert_check_pack_unpack('PPPP', 'I', 0x50505050)
+
+    assert_pack_unpack('I', 0xffffffff)
+    assert_pack_unpack('i', 0x7fffffff)
+    assert_pack_unpack('i', -0x80000000)
+  end
+  if #@clong == 8 then -- long
+    assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'l', 0)
+    assert_check_pack_unpack('\xff\xff\xff\xff\xff\xff\xff\xff', 'l',-1)
+    assert_check_pack_unpack('PPPPPPPP', 'l', 0x5050505050505050)
+    assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'L', 0)
+    assert_check_pack_unpack('PPPPPPPP', 'L', 0x5050505050505050)
+
+    assert_pack_unpack('L', 0xffffffffffffffff_u)
+    assert_pack_unpack('l', 0x7fffffffffffffff)
+    assert_pack_unpack('l',-0x8000000000000000)
+  end
+  if #@usize == 8 then -- size
+    assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 't', 0)
+    assert_check_pack_unpack('\xff\xff\xff\xff\xff\xff\xff\xff', 't',-1)
+    assert_check_pack_unpack('PPPPPPPP', 't', 0x5050505050505050)
+    assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'T', 0)
+    assert_check_pack_unpack('PPPPPPPP', 'T', 0x5050505050505050)
+
+    assert_pack_unpack('T', 0xffffffffffffffff_u)
+    assert_pack_unpack('t', 0x7fffffffffffffff)
+    assert_pack_unpack('t',-0x8000000000000000)
+  end
+  if #@integer == 8 then -- integer
+    assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'j', 0)
+    assert_check_pack_unpack('\xff\xff\xff\xff\xff\xff\xff\xff', 'j',-1)
+    assert_check_pack_unpack('PPPPPPPP', 'j', 0x5050505050505050)
+    assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'J', 0)
+    assert_check_pack_unpack('PPPPPPPP', 'J', 0x5050505050505050)
+
+    assert_pack_unpack(">j", #[math.maxinteger]#)
+    assert_pack_unpack("<j", #[math.mininteger]#)
+    assert_pack_unpack("<j", -1)
+    assert_pack_unpack('J', 0xffffffffffffffff_u)
+    assert_pack_unpack('j', 0x7fffffffffffffff)
+    assert_pack_unpack('j',-0x8000000000000000)
+  end
+  do -- sized integer
+    assert_check_pack_unpack('\x01\x02\x02\x03\x03\x03', 'i1i2i3', 0x01, 0x0202, 0x030303)
+    assert_check_pack_unpack('\x01\x02\x02\x03\x03\x03', 'I1I2I3', 0x01, 0x0202, 0x030303)
+    assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', 'i10', 0)
+    assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', 'I10', 0)
+    assert_check_pack_unpack('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff', 'i10',-1)
+    if islittle then
+      assert_check_pack_unpack('\xff\xfe\xff\xfd\xff\xff', 'i1i2i3', -1, -2, -3)
+      assert_check_pack_unpack('PPPPPPPP\x00\x00', 'i10', 0x5050505050505050)
+      assert_check_pack_unpack('\xfe\xff\xff\xff\xff\xff\xff\xff\xff\xff', 'i10',-2)
+      assert_check_pack_unpack('\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00', 'i10', 1)
+      assert_check_pack_unpack('\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00', 'I10', 1)
+    end
+    -- signed
+    assert_pack_unpack('i1', 0)
+    assert_pack_unpack('i1', 0x7f)
+    assert_pack_unpack('i1',-0x80)
+    assert_pack_unpack('i2', 0)
+    assert_pack_unpack('i2', 0x7fff)
+    assert_pack_unpack('i2',-0x8000)
+    assert_pack_unpack('i4', 0)
+    assert_pack_unpack('i4', 0x7fffffff)
+    assert_pack_unpack('i4',-0x80000000)
+    assert_pack_unpack('i8', 0)
+    assert_pack_unpack('i8', 0x7fffffffffffffff)
+    assert_pack_unpack('i8',-0x8000000000000000)
+    assert_pack_unpack('i16', 0)
+    assert_pack_unpack('i16', 0x7fffffffffffffff)
+    assert_pack_unpack('i16',-0x8000000000000000)
+    -- unsigned
+    assert_pack_unpack('I1', 0)
+    assert_pack_unpack('I1', 0xff)
+    assert_pack_unpack('I2', 0)
+    assert_pack_unpack('I2', 0xffff)
+    assert_pack_unpack('I4', 0)
+    assert_pack_unpack('I4', 0xffffffff)
+    assert_pack_unpack('I8', 0)
+    assert_pack_unpack('I8', 0xffffffffffffffff_u)
+    assert_pack_unpack('I16', 0)
+    assert_pack_unpack('I16', 0xffffffffffffffff_u)
+  end
+  do -- float32
+    assert_check_pack_unpack('\x00\x00\x00\x00', 'f', 0.0)
+    assert_check_pack_unpack('PPPP', 'f', 0x1.a0a0ap+33)
+    assert_pack_string('\x00\x00\x00\x00', 'f', '0.0')
+    assert_pack_unpack('f', 0.0)
+    assert_pack_unpack('f', 1.0)
+    assert_pack_unpack('f', #[math.huge]#)
+  end
+  do -- float64
+    assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'd', 0.0)
+    assert_check_pack_unpack('PPPPPPPP', 'd', 0x1.050505050505p+262)
+    assert_pack_unpack('d', 0.0)
+    assert_pack_unpack('d', 1.0)
+    assert_pack_unpack('d', #[math.huge]#)
+  end
+  if #@number == 8 then -- number
+    assert_check_pack_unpack('\x00\x00\x00\x00\x00\x00\x00\x00', 'n', 0.0)
+    assert_check_pack_unpack('PPPPPPPP', 'n', 0x1.050505050505p+262)
+    assert_pack_unpack('n', 0.0)
+    assert_pack_unpack('n', 1.0)
+    assert_pack_unpack('n', #[math.huge]#)
+  end
+  do -- zero terminated string
+    assert_pack_string('1\x00', 'z', 1)
+    assert_check_pack_unpack('\x00', 'z', '')
+    assert_check_pack_unpack('A\x00', 'z', 'A')
+    assert_check_pack_unpack('test\x00', 'z', 'test')
+  end
+  do -- fixed size string
+    assert_check_pack_unpack('', 'c0', '')
+    assert_check_pack_unpack('A', 'c1', 'A')
+    assert_check_pack_unpack('AB', 'c2', 'AB')
+    assert_pack_string('AB\0\0', 'c4', 'AB')
+  end
+  do -- string preceded by its length
+    assert_check_pack_unpack('\1A', 's1', 'A')
+    assert_check_pack_unpack('\2\0AB', '<s2', 'AB')
+  end
+  do -- set endian
+    assert_check_pack_unpack('\1\2\0\3\0\0', '<i1i2i3',1,2,3)
+    assert_check_pack_unpack('\1\0\2\0\0\3', '>i1i2i3',1,2,3)
+    if islittle then
+      assert_check_pack_unpack('\1\2\0\3\0\0', '=i1i2i3',1,2,3)
+    end
+  end
+  do -- padding
+    assert_pack_string('\0\0\0\0', 'xxxx')
+    assert_check_pack_unpack('\1\0', '!<bXi2',1)
+    assert_check_pack_unpack('\1\0\0\0\0\0\0\0', '!<bXi8',1)
+    assert_check_pack_unpack('\1\0\0\0\2\0\0\0', '!<bXi4 bXi8',1,2)
+  end
+end
+
+do -- packsize
+  assert(string.packsize('') == 0)
+  assert(string.packsize('!<>= ') == 0)
+  assert(string.packsize('x') == #@byte)
+  assert(string.packsize('b') == #@int8)
+  assert(string.packsize('B') == #@uint8)
+  assert(string.packsize('h') == #@cshort)
+  assert(string.packsize('H') == #@cushort)
+  assert(string.packsize('i') == #@cint)
+  assert(string.packsize('I') == #@cuint)
+  assert(string.packsize('l') == #@clong)
+  assert(string.packsize('L') == #@culong)
+  assert(string.packsize('t') == #@isize)
+  assert(string.packsize('T') == #@usize)
+  assert(string.packsize('j') == #@integer)
+  assert(string.packsize('J') == #@uinteger)
+  assert(string.packsize('i4') == 4)
+  assert(string.packsize('I4') == 4)
+  assert(string.packsize('f') == #@float32)
+  assert(string.packsize('d') == #@float64)
+  assert(string.packsize('n') == #@number)
+  assert(string.packsize('c0') == 0)
+  assert(string.packsize('c10') == 10)
+
+  assert(string.packsize('Xi4') == 0)
+  assert(string.packsize('b Xi4') == 1)
+  assert(string.packsize('!8 b Xb') == 1)
+  assert(string.packsize('!8 b XB') == 1)
+  assert(string.packsize('!8 b Xx') == 1)
+  assert(string.packsize('!8 b Xh') == #@cshort)
+  assert(string.packsize('!8 b XH') == #@cushort)
+  assert(string.packsize('!8 b Xl') == #@clong)
+  assert(string.packsize('!8 b XL') == #@culong)
+  assert(string.packsize('!8 b Xi') == #@cint)
+  assert(string.packsize('!8 b XI') == #@cuint)
+  assert(string.packsize('!8 b Xt') == #@isize)
+  assert(string.packsize('!8 b XT') == #@usize)
+  assert(string.packsize('!8 b Xj') == #@integer)
+  assert(string.packsize('!8 b XJ') == #@uinteger)
+  assert(string.packsize('!8 b Xf') == #@float32)
+  assert(string.packsize('!8 b Xd') == #@float64)
+  assert(string.packsize('!8 b Xn') == #@number)
+  assert(string.packsize('!8 b Xs') == #@usize)
+  assert(string.packsize('!8 b Xi4') == 4)
+  assert(string.packsize('!8 b Xs4') == 4)
+end

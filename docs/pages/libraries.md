@@ -1948,6 +1948,45 @@ global function tointeger(x: auto, base: facultative(integer)): integer
 
 Convert a value to an integer.
 
+### string.pack
+
+```nelua
+function string.pack(fmt: string, ...: varargs): string
+```
+
+Returns a binary string containing the values in `...`,
+serialized in binary form (packed) according to the format string `fmt`.
+
+For description of the format options,
+see [Lua's format strings for pack](https://www.lua.org/manual/5.4/manual.html#6.4.2).
+
+### string.unpack
+
+```nelua
+function string.unpack(fmt: string <comptime>, s: string, init: facultative(isize))
+```
+
+Returns the values packed in string `s` (see `string.pack`) according to the format string `fmt`.
+An optional `init` marks where to start reading in `s` (default is `1`).
+After the read values, this function also returns the index of the first unread byte in `s`.
+
+For description of the format options,
+see [Lua's format strings for pack](https://www.lua.org/manual/5.4/manual.html#6.4.2).
+
+Remarks: `fmt` must be a compile-time string.
+
+### string.packsize
+
+```nelua
+function string.packsize(fmt: string): isize
+```
+
+Returns the size of a string resulting from string.pack with the given format.
+The format string cannot have the variable-length options 's' or 'z'.
+
+For description of the format options,
+see [Lua's format strings for pack](https://www.lua.org/manual/5.4/manual.html#6.4.2).
+
 ---
 ## stringbuilder
 

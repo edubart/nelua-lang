@@ -11,7 +11,6 @@ object creation, and garbage collection overhead.
 
 require 'span'
 require 'memory'
-require 'string'
 
 local function snprintf(s: cstring, maxlen: csize, format: cstring, ...: cvarargs): cint <cimport'snprintf',cinclude'<stdio.h>',nodecl> end
 
@@ -361,7 +360,7 @@ end
   Converts the string builder to a new `string`.
   The operation allocates new space for the returned string.
   ]]
-  function stringbuilderT:__tostring(): string
+  function stringbuilderT:__tostring(): string <polymorphic>
     if unlikely(self.size == 0) then return (@string){} end
     local s: string = string.create(self.size)
     memory.copy(&s.data[0], &self.data[0], self.size)
@@ -381,3 +380,6 @@ global stringbuilder: type = #[make_stringbuilderT()]#
 
 -- This allows instantiating `stringbuilder` as generic too.
 ## stringbuilder.value.generic = types.GenericType(make_stringbuilderT)
+
+-- Some string methods are used in polymorphic functions, like `tostring`.
+require 'string'
