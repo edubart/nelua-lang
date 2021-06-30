@@ -81,46 +81,6 @@ local function get_compile_args(cfile, binfile, cflags)
   return pegger.substitute('$(cc) "$(cfile)" -o "$(binfile)" $(cflags)', env)
 end
 
-local function get_cc_info(cc)
-  local cccmd = string.format('%s -v', cc)
-  local ok, ret, stdout, stderr = executor.execex(cccmd)
-  except.assertraisef(ok and ret == 0, "failed to retrieve compiler information: %s", stderr)
-  local text = stderr and stderr ~= '' and stderr or stdout
-  local ccinfo = {
-    target = text:match('Target: ([-_%w]+)'),
-    thread_model = text:match('Thread model: ([-_%w]+)'),
-    version = text:match('version ([.%d]+)'),
-    name = text:match('([-_%w]+) version') or cc,
-    exe = cc,
-    text = text,
-  }
-  -- platform information
-  if text:match('Emscripten') then
-    ccinfo.is_emscripten = true
-    ccinfo.is_wasm = true
-  elseif ccinfo.target then
-    ccinfo.is_windows = ccinfo.target:match('windows') or ccinfo.target:match('mingw')
-    ccinfo.is_linux = ccinfo.target:match('linux')
-    ccinfo.is_apple = ccinfo.target:match('apple')
-  else -- probably TCC compiler, or other?
-    --luacov:disable
-    ccinfo.is_linux = text:lower():match('linux') and true or false
-    ccinfo.is_windows = text:lower():match('windows') and true or false
-    ccinfo.is_apple = text:lower():match('apple') and true or false
-     --luacov:enable
-  end
-  -- C compiler information
-  ccinfo.is_tcc = ccinfo.name:lower() == 'tcc'
-  ccinfo.is_gcc = ccinfo.name:lower() == 'gcc'
-  ccinfo.is_clang = ccinfo.name:lower() == 'clang'
-  return ccinfo
-end
-get_cc_info = memoize(get_cc_info)
-
-function compiler.get_cc_info()
-  return get_cc_info(config.cc)
-end
-
 local function get_cc_defines(cc, ...)
   local tmpname = fs.tmpname()
   local code = {}
@@ -138,7 +98,54 @@ end
 get_cc_defines = memoize(get_cc_defines)
 
 function compiler.get_cc_defines(...)
-  return get_cc_defines(config.cc, ...)
+  local cc = config.cc
+  if config.cflags and #config.cflags > 0 then
+    cc = cc..' '..config.cflags
+  end
+  return get_cc_defines(cc, ...)
+end
+
+local function get_cc_info(cc, cflags)
+  local cccmd = string.format('%s -v', cc)
+  local ok, ret, stdout, stderr = executor.execex(cccmd)
+  except.assertraisef(ok and ret == 0, "failed to retrieve compiler information: %s", stderr)
+  local text = stderr and stderr ~= '' and stderr or stdout
+  local ccinfo = {
+    target = text:match('Target: ([-_%w]+)'),
+    thread_model = text:match('Thread model: ([-_%w]+)'),
+    version = text:match('version ([.%d]+)'),
+    name = text:match('([-_%w]+) version') or cc,
+    exe = cc,
+    text = text,
+  }
+  -- parse compiler defines to detect target features
+  if cflags and #cflags > 0 then
+    cc = cc..' '..config.cflags
+  end
+  local ccdefs = get_cc_defines(cc)
+  ccinfo.defines = ccdefs
+  ccinfo.is_windows = not not (ccdefs.__WIN32__ or ccdefs.__WIN32 or ccdefs.WIN32)
+  ccinfo.is_linux = not not (ccdefs.__linux__ or ccdefs.__linux or ccdefs.linux)
+  ccinfo.is_unix = not not (ccdefs.__unix__ or ccdefs.__unix or ccdefs.unix)
+  ccinfo.is_apple = not not (ccdefs.__APPLE__)
+  ccinfo.is_mach = not not (ccdefs.__MACH__)
+  ccinfo.is_gnu_linux = not not (ccdefs.__gnu_linux__)
+  ccinfo.is_clang = not not (ccdefs.__clang__)
+  ccinfo.is_gcc = not not (ccdefs.__GNUC__)
+  ccinfo.is_tcc = not not (ccdefs.__TINYC__)
+  ccinfo.is_emscripten = not not (ccdefs.__EMSCRIPTEN__)
+  ccinfo.is_wasm = not not (ccdefs.__wasm__ or ccdefs.__wasm)
+  ccinfo.is_x86_64 = not not (ccdefs.__x86_64__ or ccdefs.__x86_64 or ccdefs._M_X64)
+  ccinfo.is_x86_32 = not not (ccdefs.__i386__ or ccdefs.__i386 or ccdefs._M_X86)
+  ccinfo.is_arm = not not (ccdefs.__ARM_EABI__ or ccdefs.__aarch64__)
+  ccinfo.is_arm64 = not not (ccdefs.__aarch64__)
+  ccinfo.is_riscv = not not (ccdefs.__riscv)
+  return ccinfo
+end
+get_cc_info = memoize(get_cc_info)
+
+function compiler.get_cc_info()
+  return get_cc_info(config.cc, config.cflags)
 end
 
 function compiler.generate_code(ccode, cfile, compileopts)

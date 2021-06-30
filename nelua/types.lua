@@ -16,13 +16,9 @@ local bn = require 'nelua.utils.bn'
 local except = require 'nelua.utils.except'
 local shaper = require 'nelua.utils.shaper'
 local Attr = require 'nelua.attr'
-local config = require 'nelua.configer'.get()
 local ASTNode = require 'nelua.astnode'
 
 local types = {}
-
--- Size of CPU word in bits.
-local cpusize = config.cpu_bits // 8
 
 -- Counter that increment on every new defined type that are fundamentally different.
 local typeid_counter = 0
@@ -1439,7 +1435,7 @@ types.TableType = TableType
 TableType.is_table = true
 
 function TableType:_init(name)
-  Type._init(self, name, cpusize)
+  Type._init(self, name, typedefs.ptrsize)
 end
 
 --------------------------------------------------------------------------------
@@ -1607,7 +1603,7 @@ FunctionType.shape = shaper.fork_shape(Type.shape, {
 function FunctionType:_init(argattrs, rettypes, node)
   self.codename = types.gencodename('function', node)
   self.node = node
-  Type._init(self, 'function', cpusize)
+  Type._init(self, 'function', typedefs.ptrsize)
 
   -- set the arguments
   self.argattrs = argattrs or {}
@@ -2152,7 +2148,7 @@ function PointerType:_init(subtype)
   else
     self.codename = subtype.codename .. '_ptr'
   end
-  Type._init(self, 'pointer', cpusize)
+  Type._init(self, 'pointer', typedefs.ptrsize)
   self.unary_operators['deref'] = subtype
 end
 
@@ -2243,7 +2239,7 @@ function PointerType:get_convertible_from_type(type, explicit, autoref)
         return self
       end
     elseif type.is_integral then
-      if type.size >= cpusize then
+      if type.size >= typedefs.ptrsize then
         -- explicit casting a pointer to an integral that can fit a pointer
         return self
       end

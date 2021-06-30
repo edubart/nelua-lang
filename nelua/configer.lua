@@ -55,25 +55,8 @@ local function merge_configs(conf, baseconf)
   end
 end
 
-local function detect_cpu_bits(cc)
-  local cpu_bits = tonumber(os.getenv('NELUA_CPUBITS'))
-  if not cpu_bits then
-    if cc and cc:match('emcc') then
-      return 32
-    else
-      return platform.cpu_bits
-    end
-  end
-  return cpu_bits
-end
-
 -- Build configs that depends on other configs.
 local function build_configs(conf)
-  if conf.cc and not conf.cpu_bits then
-    -- compiler changed, try to detect CPU bits again
-    conf.cpu_bits = detect_cpu_bits(conf.cc)
-  end
-
   -- fill missing configs
   merge_configs(conf, defconfig)
 
@@ -210,8 +193,7 @@ local function create_parser(args)
   argparser:option('-L --add-path', "Add module search path")
     :count("*"):convert(convert_add_path)
   argparser:option('--cc', "C compiler to use", defconfig.cc)
-  argparser:option('--cpu-bits', "Target CPU architecture bit size (64/32)")
-    :convert(function(x) return math.floor(x) end)
+  argparser:option('--cpu-bits', "Target CPU architecture bit size (64/32)"):hidden(true) -- deprecated
   argparser:option('--cflags', "Additional C flags to use on compilation", defconfig.cflags)
   argparser:option('--cache-dir', "Compilation cache directory", defconfig.cache_dir)
   -- argparser:option('--lua', "Lua interpreter to use when runnning", defconfig.lua)
@@ -390,8 +372,6 @@ local function init_default_configs()
 
   -- load project config
   load_config('.neluacfg.lua')
-
-  defconfig.cpu_bits = detect_cpu_bits(defconfig.cc)
 
   configer.build()
 end

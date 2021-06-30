@@ -6,7 +6,8 @@
 
 local types = require 'nelua.types'
 local shaper = require 'nelua.utils.shaper'
-local config = require 'nelua.configer'.get()
+local platform = require 'nelua.utils.platform'
+local ccompiler = require 'nelua.ccompiler'
 
 -- Map containing all primitive types.
 local primtypes = {}
@@ -15,15 +16,19 @@ local typedefs = {primtypes=primtypes}
 types.set_typedefs(typedefs)
 
 -- CPU word size in bytes (size of size_t)
-local cpusize = config.cpu_bits // 8
+local ccdefs = ccompiler.get_cc_info().defines
+local ptrsize = ccdefs.__SIZEOF_POINTER__ or platform.cpu_bits // 8
+typedefs.ptrsize = ptrsize
 -- C int is at least 2 bytes and max 4 bytes
-local cintsize = math.max(math.min(cpusize, 4), 2)
+local cintsize = ccdefs.__SIZEOF_INT__ or math.max(math.min(ptrsize, 4), 2)
 -- C long is at least 4 bytes
-local clongsize = math.max(cpusize, 4)
+local clongsize = ccdefs.__SIZEOF_LONG__ or math.max(ptrsize, 4)
+-- C long long is at least 8 bytes
+local clonglongsize = ccdefs.__SIZEOF_LONG_LONG__ or 8
 
 -- Basic types.
 primtypes.niltype     = types.NiltypeType('niltype') -- must be defined first, to have id 0
-primtypes.nilptr      = types.NilptrType('nilptr', cpusize)
+primtypes.nilptr      = types.NilptrType('nilptr', ptrsize)
 primtypes.type        = types.TypeType('type', 0)
 primtypes.typetype    = primtypes.type
 primtypes.void        = types.VoidType('void', 0)
@@ -38,13 +43,13 @@ primtypes.int16       = types.IntegralType('int16', 2)
 primtypes.int32       = types.IntegralType('int32', 4)
 primtypes.int64       = types.IntegralType('int64', 8)
 primtypes.int128      = types.IntegralType('int128', 16)
-primtypes.isize       = types.IntegralType('isize', cpusize)
+primtypes.isize       = types.IntegralType('isize', ptrsize)
 primtypes.uint8       = types.IntegralType('uint8', 1, true)
 primtypes.uint16      = types.IntegralType('uint16', 2, true)
 primtypes.uint32      = types.IntegralType('uint32', 4, true)
 primtypes.uint64      = types.IntegralType('uint64', 8, true)
 primtypes.uint128     = types.IntegralType('uint128', 16, true)
-primtypes.usize       = types.IntegralType('usize', cpusize, true)
+primtypes.usize       = types.IntegralType('usize', ptrsize, true)
 primtypes.float32     = types.FloatType('float32', 4, 9)
 primtypes.float64     = types.FloatType('float64', 8, 17)
 primtypes.float128    = types.FloatType('float128', 16, 36)
@@ -55,15 +60,15 @@ primtypes.cschar      = types.IntegralType('cschar', 1)
 primtypes.cshort      = types.IntegralType('cshort', 2)
 primtypes.cint        = types.IntegralType('cint', cintsize)
 primtypes.clong       = types.IntegralType('clong', clongsize)
-primtypes.clonglong   = types.IntegralType('clonglong', 8)
-primtypes.cptrdiff    = types.IntegralType('cptrdiff', cpusize)
+primtypes.clonglong   = types.IntegralType('clonglong', clonglongsize)
+primtypes.cptrdiff    = types.IntegralType('cptrdiff', ptrsize)
 primtypes.cchar       = types.IntegralType('cchar', 1)
 primtypes.cuchar      = types.IntegralType('cuchar', 1, true)
 primtypes.cushort     = types.IntegralType('cushort', 2, true)
 primtypes.cuint       = types.IntegralType('cuint', cintsize, true)
 primtypes.culong      = types.IntegralType('culong', clongsize, true)
-primtypes.culonglong  = types.IntegralType('culonglong', 8, true)
-primtypes.csize       = types.IntegralType('csize', cpusize, true)
+primtypes.culonglong  = types.IntegralType('culonglong', clonglongsize, true)
+primtypes.csize       = types.IntegralType('csize', ptrsize, true)
 primtypes.clongdouble = types.FloatType('clongdouble', 16, 36)
 primtypes.cstring     = types.PointerType(primtypes.cchar)
 primtypes.cdouble     = primtypes.float64
@@ -79,7 +84,7 @@ primtypes.number      = primtypes.float64
 -- Complex types.
 primtypes.string      = types.StringType('string')
 primtypes.stringview  = primtypes.string -- deprecated
-primtypes.any         = types.AnyType('any', 2*cpusize)
+primtypes.any         = types.AnyType('any', 2*ptrsize)
 primtypes.varanys     = types.VaranysType('varanys')
 primtypes.varargs     = types.VarargsType('varargs')
 
