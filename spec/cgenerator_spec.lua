@@ -822,6 +822,12 @@ it("function multiple returns", function()
     local f = getf()
     local a,b = f()
     assert(a == 1 and b == 2)
+
+    do
+      local function f() return (@[0]int64){}, 1 end
+      local a, b = f()
+      assert(b == 1)
+    end
   ]])
 end)
 

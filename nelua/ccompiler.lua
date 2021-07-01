@@ -124,7 +124,10 @@ local function get_cc_info(cc, cflags)
   end
   local ccdefs = get_cc_defines(cc)
   ccinfo.defines = ccdefs
-  ccinfo.is_windows = not not (ccdefs.__WIN32__ or ccdefs.__WIN32 or ccdefs.WIN32)
+  ccinfo.is_win32 = not not (ccdefs.__WIN32__ or ccdefs.__WIN32 or ccdefs.WIN32)
+  ccinfo.is_win64 = not not (ccdefs.__WIN64__ or ccdefs.__WIN64 or ccdefs.WIN64)
+  ccinfo.is_windows = ccinfo.is_win32
+  ccinfo.is_mingw = not not (ccdefs.__MINGW64__ or ccdefs.__MINGW32__)
   ccinfo.is_linux = not not (ccdefs.__linux__ or ccdefs.__linux or ccdefs.linux)
   ccinfo.is_unix = not not (ccdefs.__unix__ or ccdefs.__unix or ccdefs.unix)
   ccinfo.is_apple = not not (ccdefs.__APPLE__)

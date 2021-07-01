@@ -124,16 +124,17 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         declared = true
       end
 
-      if not empty then -- only define if the type is not empty
-        if lastcallindex == 1 then
-          -- last assigment value may be a multiple return call
-          multiretvalname = context:genuniquename('ret')
-          local rettypename = context:funcrettypename(valnode.attr.calleetype)
-          emitter:add_indent_ln(rettypename, ' ', multiretvalname, ' = ', valnode, ';')
-        end
+      if lastcallindex == 1 then
+        -- last assigment value may be a multiple return call
+        multiretvalname = context:genuniquename('ret')
+        local rettypename = context:funcrettypename(valnode.attr.calleetype)
+        emitter:add_indent_ln(rettypename, ' ', multiretvalname, ' = ', valnode, ';')
+      end
 
+      if not empty then -- only define if the type is not empty
         local retvalname
         if lastcallindex then
+          assert(multiretvalname)
           retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
         elseif usetemporary then
           retvalname = context:genuniquename('asgntmp')
