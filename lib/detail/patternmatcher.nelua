@@ -255,8 +255,7 @@ function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
   ms.depth = ms.depth - 1
   assert(ms.depth > 0, 'pattern too complex')
 
-  ::init:: -- using goto's to optimize tail recursion
-  if p < #ms.pattern then -- not end of pattern?
+  while p < #ms.pattern do -- while not end of pattern?
     switch ms.pattern.data[p]
     case '('_byte then -- start capture
       if ms.pattern.data[p+1] == ')'_byte then -- position capture?
@@ -264,14 +263,16 @@ function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
       else
         s = match_start_capture(ms, s, p + 1, CAP_UNFINISHED)
       end
+      break
     case ')'_byte then -- end capture
       s = match_end_capture(ms, s, p + 1)
+      break
     case '$'_byte then
-      if (p + 1) ~= #ms.pattern then -- is the '$' the last char in pattern?
-        goto dflt -- no go to default
-      end
-      if s ~= #ms.source then -- check end of string
-        s = -1
+      if (p + 1) == #ms.pattern then -- is the '$' the last char in pattern?
+        if s ~= #ms.source then -- check end of string
+          s = -1
+        end
+        break
       end
     case '%'_byte then -- escaped sequences not in the format class[*+?-]?
       switch ms.pattern.data[p+1]
@@ -279,8 +280,9 @@ function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
         s = match_balance(ms, s, p + 2)
         if s ~= -1 then
           p = p + 4
-          goto init
+          continue
         end
+        break
       case 'f'_byte then -- frontier?
         p = p + 2
         assert(ms.pattern.data[p] == '['_byte, "missing '[' after '%f' in pattern")
@@ -289,29 +291,26 @@ function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
         if not match_bracket_class(ms, previous, p, ep - 1) and
            match_bracket_class(ms, ms.source.data[s], p, ep - 1) then
           p = ep
-          goto init
+          continue
         end
         s = -1 -- match failed
+        break
       case '0'_b, '1'_b, '2'_b, '3'_b, '4'_b, '5'_b, '6'_b, '7'_b, '8'_b, '9'_b then -- capture results (%0-%9)?
         s = match_capture(ms, s, ms.pattern.data[p+1])
         if s ~= -1 then
           p = p + 2
-          goto init
+          continue
         end
-      else
-        goto dflt
+        break
       end
-    else
-      goto dflt
     end
-    goto out
-    ::dflt:: do -- pattern class plus optional suffix
+    do -- pattern class plus optional suffix
       local ep: isize = match_class_end(ms, p) -- points to optional suffix
       local epc: byte = ms.pattern.data[ep]
       if not match_single(ms, s, p, ep) then -- does not match at least once?
         if epc == '*'_byte or epc == '?'_byte or epc == '-'_byte then -- accept empty?
           p = ep + 1
-          goto init
+          continue
         else -- '+' or no suffix
           s = -1 -- fail
         end
@@ -323,7 +322,7 @@ function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
             s = res
           else
             p = ep + 1
-            goto init
+            continue
           end
         case '+'_byte then -- 1 or more repetitions
           s = s + 1 -- 1 match already done
@@ -335,12 +334,12 @@ function PatternMatcher._match(ms: *PatternMatcher, s: isize, p: isize): isize
         else -- no suffix
           s = s + 1
           p = ep
-          goto init
+          continue
         end
       end
+      break
     end
   end
-  ::out::
   ms.depth = ms.depth + 1
   return s
 end

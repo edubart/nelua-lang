@@ -714,7 +714,10 @@ function visitors.IdDecl(context, node)
     symbol.globalfield = true
   end
   if annotnodes then
-    context:traverse_nodes(annotnodes, symbol)
+    local type = attr.type
+    if not (type and type.is_type and not attr.value) then -- skip unresolved types
+      context:traverse_nodes(annotnodes, symbol)
+    end
   end
   return symbol
 end
