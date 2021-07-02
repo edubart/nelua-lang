@@ -158,7 +158,7 @@ If the file still open, it's silently closed.
 
 This function is only needed to be called when not using the GC.
 ]]
-function filestream:destroy()
+function filestream:destroy(): void
   local fs: *FStream = self.fs
   if fs then
     if fs.fp and fs.closef then
@@ -167,6 +167,11 @@ function filestream:destroy()
     default_allocator:delete(self.fs)
   end
   self.fs = nilptr
+end
+
+-- Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
+function filestream:__close(): void
+  self:destroy()
 end
 
 --[[

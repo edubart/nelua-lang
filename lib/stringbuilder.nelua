@@ -87,6 +87,11 @@ end
     self.size = 0
   end
 
+  -- Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
+  function stringbuilderT:__close(): void
+    self:destroy()
+  end
+
   --[[
   Clears the internal written buffer of the string builder, leaving it empty.
   The internal buffer is not freed, and it may be reused.

@@ -1634,6 +1634,20 @@ it("cimport", function()
   ]])
 end)
 
+it("close", function()
+  expect.analyze_ast([[
+    local R = @record{x: integer}
+    function R:__close() end
+    local r: R <close>
+
+    global G = @record{}
+    global G.r: R <close>
+  ]])
+  expect.analyze_error("local function f(a: integer <close>) end", "only allowed in variable declarations")
+  expect.analyze_error("local a <close> = 1", "cannot close")
+  expect.analyze_error("local r: record{x: integer} <close>", "cannot close")
+end)
+
 it("builtins", function()
   expect.ast_type_equals("local a = #@integer", "local a: isize = #@integer")
   expect.ast_type_equals("local a = likely(true)", "local a: boolean = likely(true)")

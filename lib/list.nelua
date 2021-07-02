@@ -85,6 +85,11 @@ require 'iterators'
     self:clear()
   end
 
+  -- Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
+  function listT:__close(): void
+    self:destroy()
+  end
+
   --[[
   Inserts an element at beginning of the list.
 

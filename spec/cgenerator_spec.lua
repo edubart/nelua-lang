@@ -280,6 +280,21 @@ it("defer", function()
   ]], '5\n4\n3\n2\n1\n0\n-1')
 end)
 
+it("close", function()
+  expect.run_c([[
+    local R = @record{x: integer}
+    function R:__close() print(self.x) end
+    do
+      local a: R <close> = {1}
+      local b: R <close> = {2}
+    end
+    do
+      local a: R <close>, b: R <close> = {3}, {4}
+    end
+    print('end')
+  ]], '2\n1\n4\n3\nend')
+end)
+
 it("while", function()
   expect.generate_c("while true do\nend", "while(true) {")
 end)

@@ -276,6 +276,8 @@ typedefs.variable_annots = {
   cexport = true,
   -- Whether the variable should be only available and used at compile time.
   comptime = true,
+  -- Whether the variable should be closed by calling '__close' metamethod on scope termination.
+  close = true,
   -- Whether the variable is immutable.
   const = true,
 }

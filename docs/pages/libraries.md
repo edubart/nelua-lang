@@ -485,13 +485,21 @@ Returns `true` on success, otherwise `false` plus an error message and a system-
 ### filestream:destroy
 
 ```nelua
-function filestream:destroy()
+function filestream:destroy(): void
 ```
 
 Destroys a file stream freeing its memory.
 If the file still open, it's silently closed.
 
 This function is only needed to be called when not using the GC.
+
+### filestream:__close
+
+```nelua
+function filestream:__close(): void
+```
+
+Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
 
 ### filestream:seek
 
@@ -1540,16 +1548,24 @@ The string is guaranteed to be zero terminated,
 so it can safely be used as a `cstring`.
 The string data is not initialized.
 
-### string.destroy
+### string:destroy
 
 ```nelua
-function string.destroy(s: string): void
+function string:destroy(): void
 ```
 
 Destroys a string freeing its memory.
 
 This must never be called on string literals.
 This function is only needed to be called when not using the GC.
+
+### string:__close
+
+```nelua
+function string:__close(): void
+```
+
+Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
 
 ### string.copy
 
@@ -1718,13 +1734,15 @@ function string.len(s: string): isize
 Receives a string and returns its length.
 The empty string "" has length 0. Embedded zeros are counted.
 
-### string.__concat
+### string.span
 
 ```nelua
-function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string
+function string.span(s: string): span(byte)
 ```
 
-Concatenate two strings. Used by the concatenation operator (`..`).
+Converts a string to a span of bytes.
+
+Remarks: Similar to `subview` a reference of the current string data is returned.
 
 ### string.__len
 
@@ -1733,6 +1751,14 @@ function string.__len(a: string): isize
 ```
 
 Return length of a string. Used by the length operator (`#`).
+
+### string.__concat
+
+```nelua
+function string.__concat(a: string_coercion_concept, b: string_coercion_concept): string
+```
+
+Concatenate two strings. Used by the concatenation operator (`..`).
 
 ### string.__eq
 
@@ -2028,6 +2054,14 @@ function stringbuilderT:destroy(): void
 
 Free string builder resources and resets it to a zeroed state.
 Useful only when not using the garbage collector.
+
+### stringbuilderT:__close
+
+```nelua
+function stringbuilderT:__close(): void
+```
+
+Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
 
 ### stringbuilderT:clear
 
@@ -2568,6 +2602,14 @@ function vectorT:destroy(): void
 Free vector resources and resets it to a zeroed state.
 Useful only when not using the garbage collector.
 
+### vectorT:__close
+
+```nelua
+function vectorT:__close(): void
+```
+
+Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
+
 ### vectorT:reserve
 
 ```nelua
@@ -2758,6 +2800,14 @@ function sequenceT:destroy(): void
 
 Free sequence resources and resets it to a zeroed state.
 Useful only when not using the garbage collector.
+
+### sequenceT:__close
+
+```nelua
+function sequenceT:__close(): void
+```
+
+Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
 
 ### sequenceT:reserve
 
@@ -2952,6 +3002,14 @@ function listT:destroy(): void
 Resets the list to zeroed state, freeing all used resources.
 
 This is more useful to free resources when not using the garbage collector.
+
+### listT:__close
+
+```nelua
+function listT:__close(): void
+```
+
+Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
 
 ### listT:pushfront
 
@@ -3165,6 +3223,14 @@ function hashmapT:destroy(): void
 Resets the container to a zeroed state, freeing all used resources.
 
 *Complexity*: O(1).
+
+### hashmapT:__close
+
+```nelua
+function hashmapT:__close(): void
+```
+
+Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
 
 ### hashmapT:clear
 

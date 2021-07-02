@@ -1278,6 +1278,7 @@ Complete list of metamethods that can be defined for records:
 | `__tostring`     | tostring(a)                 | cast     | explicit/implicit cast to string       |
 | `__convert`      |                             | cast     | implicit cast from anything            |
 | `__gc`           |                             | gc       | called when collected by the GC        |
+| `__close`        |                             | close    | called when `<close>` variables goes out of scope |
 | `__next`         | next(a)                     | iterator | used by `next`                         |
 | `__mnext`        | mnext(a)                    | iterator | used by `mnext`                        |
 | `__pairs`        | pairs(a)                    | iterator | used by `pairs`                        |

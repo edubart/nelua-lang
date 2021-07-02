@@ -619,6 +619,10 @@ function visitors.Annotation(context, node, symbol)
       symbol.scope:add_symbol(fieldsymbol)
     end
     return -- we want to skip node.done = true
+  elseif name == 'close' then
+    if context:get_parent_node(2).tag ~= 'VarDecl' then
+      node:raisef("annotation 'close' is only allowed in variable declarations")
+    end
   end
 
   node.done = true
@@ -2150,6 +2154,35 @@ function visitors.Goto(context, node)
   node.done = true
 end
 
+local function visit_close(context, declnode, varnode, symbol)
+  local vartype = varnode.attr.type
+  if not vartype.is_record or not vartype.metafields.__close then
+    varnode:raisef(
+      "in variable '%s' declaration: cannot close because type '%s' does not have '__close' metamethod",
+      symbol.name, vartype)
+  end
+  if symbol.closed then return end
+  -- create a defer call to __close method
+  local idnode
+  if traits.is_string(varnode[1]) then
+    idnode = aster.Id{varnode[1]}
+  else
+    idnode = varnode[1]:clone()
+  end
+  local callnode = aster.Defer{aster.Block{aster.CallMethod{'__close', {}, idnode}}}
+  -- inject defer call after variable declaration
+  local blocknode = context:get_parent_node() -- get parent block node
+  assert(blocknode.tag == 'Block')
+  local statindex = tabler.ifind(blocknode, declnode) -- find this node index
+  assert(statindex)
+  local declattr = declnode.attr
+  local closeindex = (declattr.closeindex or statindex) + 1
+  table.insert(blocknode, closeindex, callnode) -- insert the new statement
+  declattr.closeindex = closeindex
+  blocknode.scope:delay_resolution() -- must delay resolution
+  symbol.closed = true
+end
+
 function visitors.VarDecl(context, node)
   local declscope, varnodes, valnodes = node[1], node[2], node[3]
   local assigning = not not valnodes
@@ -2288,6 +2321,9 @@ function visitors.VarDecl(context, node)
     end
     if assigning and (valtype or valnode) then
       symbol:add_possible_type(valtype, valnode)
+    end
+    if symbol.close then -- process close annotation
+      visit_close(context, node, varnode, symbol)
     end
   end
 end

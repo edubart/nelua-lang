@@ -122,6 +122,11 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
     self.free_index = 0
   end
 
+  -- Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
+  function hashmapT:__close(): void
+    self:destroy()
+  end
+
   --[[
   Remove all elements from the container.
   The internal storage buffers are not freed, and they may be reused.

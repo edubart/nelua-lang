@@ -56,12 +56,16 @@ Destroys a string freeing its memory.
 This must never be called on string literals.
 This function is only needed to be called when not using the GC.
 ]]
-function string.destroy(s: string): void
-  if s.size > 0 then
-    default_allocator:dealloc(s.data)
-    s.data = nilptr
-    s.size = 0
-  end
+function string:destroy(): void
+  if unlikely(self.size == 0) then return end
+  default_allocator:dealloc(self.data)
+  self.data = nilptr
+  self.size = 0
+end
+
+-- Effectively the same as `destroy`, called when a to-be-closed variable goes out of scope.
+function string:__close(): void
+  self:destroy()
 end
 
 --[[
@@ -381,6 +385,20 @@ function string.len(s: string): isize <inline>
   return (@isize)(s.size)
 end
 
+--[[
+Converts a string to a span of bytes.
+
+Remarks: Similar to `subview` a reference of the current string data is returned.
+]]
+function string.span(s: string): span(byte) <inline>
+  return (@span(byte)){data=s.data, size=s.size}
+end
+
+-- Return length of a string. Used by the length operator (`#`).
+function string.__len(a: string): isize <inline>
+  return (@isize)(a.size)
+end
+
 -- Concept to check if a value can possibly be a number.
 local scalar_coercion_concept: type = #[concept(function(x)
   if x.type.is_stringy then
@@ -424,11 +442,6 @@ function string.__concat(a: string_coercion_concept, b: string_coercion_concept)
   memory.copy(&s.data[0], a.data, a.size)
   memory.copy(&s.data[a.size], b.data, b.size)
   return s
-end
-
--- Return length of a string. Used by the length operator (`#`).
-function string.__len(a: string): isize <inline>
-  return (@isize)(a.size)
 end
 
 -- Compare two strings. Used by the equality operator (`==`).
