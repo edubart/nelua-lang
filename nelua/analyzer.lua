@@ -2155,11 +2155,13 @@ function visitors.Goto(context, node)
 end
 
 local function visit_close(context, declnode, varnode, symbol)
-  local vartype = varnode.attr.type
-  if not vartype.is_record or not vartype.metafields.__close then
+  local objtype = varnode.attr.type
+  if not objtype then return end
+  objtype = objtype:implicit_deref_type()
+  if not objtype.is_record or not objtype.metafields.__close then
     varnode:raisef(
       "in variable '%s' declaration: cannot close because type '%s' does not have '__close' metamethod",
-      symbol.name, vartype)
+      symbol.name, objtype)
   end
   if symbol.closed then return end
   -- create a defer call to __close method

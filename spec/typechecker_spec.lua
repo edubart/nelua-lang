@@ -1639,6 +1639,7 @@ it("close", function()
     local R = @record{x: integer}
     function R:__close() end
     local r: R <close>
+    local r: *R <close>
 
     global G = @record{}
     global G.r: R <close>
