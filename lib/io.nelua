@@ -204,7 +204,7 @@ Returns the string `"file"` if `obj` is an open file handle,
 `"closed file"` if `obj` is a closed file handle,
 or `nil` if `obj` is not a file handle.
 ]]
-function io.type(obj: auto)
+function io.type(obj: auto): auto
   ## if obj.type.is_filestream then
     if obj:isopen() then
       return "file"
@@ -226,7 +226,7 @@ that is, it iterates over the lines of the default input file.
 It currently never closes the file when the iteration finishes.
 In case of errors opening the file, this function raises the error, instead of returning an error code.
 ]]
-function io.lines(filename: facultative(string), fmt: overload(integer,string,niltype))
+function io.lines(filename: facultative(string), fmt: overload(integer,string,niltype)): (auto, auto, string)
   ## if filename.type.is_niltype then
     return io.stdin:lines()
   ## else

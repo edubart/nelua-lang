@@ -2394,36 +2394,39 @@ function visitors.Return(context, node)
   local retnodes = node
   context:traverse_nodes(retnodes)
   local funcscope = context.scope:get_up_return_scope() or context.rootscope
+  funcscope.hasreturn = true
   if funcscope.rettypes then
     local done = true
     for i,funcrettype,retnode,rettype in izipargnodes(funcscope.rettypes, retnodes) do
       if rettype then
         if funcrettype then
-          if rettype.is_niltype and not funcrettype.is_nilable then
-            node:raisef("missing return expression at index %d of type '%s'", i, funcrettype)
-          end
-          if retnode and rettype then
-            retnode, rettype = visitor_convert(context, retnodes, i, funcrettype, retnode, rettype)
-          end
-          if rettype then
-            local ok, err = funcrettype:is_convertible_from(retnode or rettype)
-            if not ok then
-              (retnode or node):raisef("return at index %d: %s", i, err)
+          if funcrettype.is_auto then
+            funcscope.rettypes[i] = rettype
+          else
+            if rettype.is_niltype and not funcrettype.is_nilable then
+              node:raisef("missing return expression at index %d of type '%s'", i, funcrettype)
             end
-            local retattr = retnode and retnode.attr
-            if retattr and not retattr:can_copy() and
-               not (retattr.scope and retattr.scope:get_up_function_scope() == funcscope) then
-              retnode:raisef("return at index %d: cannot pass non copyable type '%s' by value",
-                i, rettype)
+            if retnode and rettype then
+              retnode, rettype = visitor_convert(context, retnodes, i, funcrettype, retnode, rettype)
             end
-            if not context.pragmas.nochecks and retnode and funcrettype ~= rettype then
-              retnode.checkcast = true
+            if rettype then
+              local ok, err = funcrettype:is_convertible_from(retnode or rettype)
+              if not ok then
+                (retnode or node):raisef("return at index %d: %s", i, err)
+              end
+              local retattr = retnode and retnode.attr
+              if retattr and not retattr:can_copy() and
+                 not (retattr.scope and retattr.scope:get_up_function_scope() == funcscope) then
+                retnode:raisef("return at index %d: cannot pass non copyable type '%s' by value",
+                  i, rettype)
+              end
+              if not context.pragmas.nochecks and retnode and funcrettype ~= rettype then
+                retnode.checkcast = true
+              end
             end
           end
-        else
-          if #retnodes ~= 0 then
-            node:raisef("invalid return expression at index %d", i)
-          end
+        elseif #retnodes ~= 0 then
+          node:raisef("invalid return expression at index %d", i)
         end
       end
       if retnode then
@@ -2614,9 +2617,14 @@ end
 
 local function visitor_function_returns(context, node, retnodes, ispolyparent)
   local funcscope = context.scope
-  context:push_state{intypeexpr = true}
+  local rettypes = funcscope.rettypes
+  if rettypes then
+    return rettypes, not types.are_types_resolved(rettypes)
+  end
+  local hasauto = false
   local polyret = false
   if retnodes then
+    context:push_state{intypeexpr = true}
     for i=1,#retnodes do
       local retnode = retnodes[i]
       if retnode.preprocess then -- must preprocess the return type
@@ -2639,20 +2647,22 @@ local function visitor_function_returns(context, node, retnodes, ispolyparent)
       end
       if retnode then
         context:traverse_node(retnode)
+        if retnode.attr.value.is_auto then
+          hasauto = true
+        end
       end
     end
+    context:pop_state()
   end
-  context:pop_state()
-  if not funcscope.rettypes then
-    if polyret then
-      funcscope.rettypes = {}
-    elseif retnodes and #retnodes > 0 then -- return types is fixed by the user
-      funcscope.rettypes = types.typenodes_to_types(retnodes)
-    elseif ispolyparent or node.attr.cimport then
-      funcscope.rettypes = {}
-    end
+  if polyret then
+    rettypes = {}
+  elseif retnodes and #retnodes > 0 then -- return types is fixed by the user
+    rettypes = types.typenodes_to_types(retnodes)
+  elseif ispolyparent or node.attr.cimport then
+    rettypes = {}
   end
-  return funcscope.rettypes
+  funcscope.rettypes = rettypes
+  return rettypes, hasauto
 end
 
 local function visitor_function_annotations(context, node, annotnodes, blocknode, symbol, type)
@@ -2779,6 +2789,36 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
   end
 end
 
+local function resolve_function_type(node, symbol, varnode, varsym, decl, argattrs, rettypes, ispolyparent, polysymbol)
+  local type
+  local attr = node.attr
+  if ispolyparent then
+    assert(not polysymbol)
+    type = types.PolyFunctionType(argattrs, rettypes, node)
+  else
+    type = types.FunctionType(argattrs, rettypes, node)
+  end
+  type.symbol = symbol
+  local vartype = varnode.attr.type
+  if varnode.attr.type then -- check if previous symbol declaration is compatible
+    local ok, err = vartype:is_convertible_from_type(type)
+    if not ok then
+      node:raisef("in function definition: %s", err)
+    end
+  end
+  if varsym and not decl then
+    varsym:add_possible_type(type, varnode)
+  else
+    attr.type = type
+  end
+  attr.ftype = type
+  if decl then
+    attr.comptime = true
+    attr.value = symbol
+  end
+  return type
+end
+
 function visitors.FuncDef(context, node, polysymbol)
   local declscope, varnode, argnodes, retnodes, annotnodes, blocknode =
         node[1], node[2], node[3], node[4], node[5], node[6]
@@ -2786,7 +2826,6 @@ function visitors.FuncDef(context, node, polysymbol)
   local type = node.attr.ftype
   context:push_state{infuncdef = node, inpolydef = polysymbol}
   local varsym, decl = visitor_FuncDef_variable(context, declscope, varnode)
-  local vartype = varnode.attr.type
   local attr, symbol
   if varsym then -- symbol may be nil in case of array/dot index
     symbol = varsym
@@ -2842,7 +2881,7 @@ function visitors.FuncDef(context, node, polysymbol)
   end
 
   -- repeat scope to resolve function variables and return types
-  local funcscope, argattrs, ispolyparent, rettypes
+  local funcscope, argattrs, ispolyparent, rettypes, hasautoret
   repeat
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
@@ -2855,33 +2894,12 @@ function visitors.FuncDef(context, node, polysymbol)
     symbol.argattrs = argattrs
 
     -- traverse the function returns
-    rettypes = visitor_function_returns(context, node, retnodes, ispolyparent)
+    rettypes, hasautoret = visitor_function_returns(context, node, retnodes, ispolyparent)
 
     -- set the function type
-    if not type and rettypes then
-      if ispolyparent then
-        assert(not polysymbol)
-        type = types.PolyFunctionType(argattrs, rettypes, node)
-      else
-        type = types.FunctionType(argattrs, rettypes, node)
-      end
-      type.symbol = symbol
-      if vartype then -- check if previous symbol declaration is compatible
-        local ok, err = vartype:is_convertible_from_type(type)
-        if not ok then
-          node:raisef("in function definition: %s", err)
-        end
-      end
-      if varsym and not decl then
-        varsym:add_possible_type(type, varnode)
-      else
-        attr.type = type
-      end
-      attr.ftype = type
-      if decl then
-        attr.comptime = true
-        attr.value = symbol
-      end
+    if not type and rettypes and (ispolyparent or not hasautoret) then
+      type = resolve_function_type(node, symbol, varnode, varsym, decl,
+        argattrs, rettypes, ispolyparent, polysymbol)
     end
 
     -- traverse annotation nodes
@@ -2890,6 +2908,16 @@ function visitors.FuncDef(context, node, polysymbol)
     -- traverse the function block
     if not ispolyparent then -- poly functions never traverse the blocknode by itself
       context:traverse_node(blocknode)
+
+      -- after traversing we should know auto types
+      if hasautoret then
+        if not type and rettypes and types.are_types_resolved(rettypes) then
+          type = resolve_function_type(node, symbol, varnode, varsym, decl,
+            argattrs, rettypes, ispolyparent, polysymbol)
+        elseif not funcscope.hasreturn then
+          node:raisef("a function return is set to 'auto', but the function never returns")
+        end
+      end
     end
 
     visitor_function_sideeffect(attr, type, funcscope)
@@ -2897,7 +2925,6 @@ function visitors.FuncDef(context, node, polysymbol)
     local resolutions_count = funcscope:resolve()
     context:pop_state()
     context:pop_scope()
-
   until resolutions_count == 0
 
   -- type checking for returns
@@ -2935,7 +2962,7 @@ function visitors.Function(context, node)
   end
 
   -- repeat scope to resolve function variables and return types
-  local funcscope, argattrs, ispolyparent, rettypes
+  local funcscope, argattrs, ispolyparent, rettypes, hasauto
   repeat
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
@@ -2952,7 +2979,11 @@ function visitors.Function(context, node)
     end
 
     -- traverse the function returns
-    rettypes = visitor_function_returns(context, node, retnodes)
+    rettypes, hasauto = visitor_function_returns(context, node, retnodes)
+
+    if hasauto then
+      node:raisef("anonymous functions cannot have 'auto' returns")
+    end
 
     -- set the function type
     if not type and rettypes then

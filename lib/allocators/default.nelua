@@ -36,7 +36,7 @@ the global `embed_default_allocator` is declared before this library is required
     embed_default_allocator:dealloc(p)
   end
 
-  function EmbeddedAllocator:new(what: auto, size: facultative(usize)) <inline>
+  function EmbeddedAllocator:new(what: auto, size: facultative(usize)): auto <inline>
     return embed_default_allocator:new(p, size)
   end
 
@@ -62,7 +62,7 @@ the global `embed_default_allocator` is declared before this library is required
 Shorthand for `default_allocator:new`.
 For details see also `Allocator:new`.
 ]]
-global function new(what: auto, size: facultative(usize))
+global function new(what: auto, size: facultative(usize)): auto
   return default_allocator:new(what, size)
 end
 

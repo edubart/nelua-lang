@@ -588,7 +588,7 @@ For more details see `Allocator:spanalloc`.
 function GCAllocator:spanalloc(T: type, size: usize,
                                flags: facultative(usize),
                                finalizer: facultative(function(pointer, pointer): void),
-                               userdata: facultative(pointer))
+                               userdata: facultative(pointer)): auto
   ## if flags.type.is_niltype then
   local flags: usize = 0
   ## end
@@ -614,7 +614,7 @@ end
 function GCAllocator:spanalloc0(T: type, size: usize,
                                 flags: facultative(usize),
                                 finalizer: facultative(function(pointer, pointer): void),
-                                userdata: facultative(pointer))
+                                userdata: facultative(pointer)): auto
   ## if flags.type.is_niltype then
   local flags: usize = 0
   ## end
@@ -648,7 +648,7 @@ and its contents are zero initialized.
 - If `size` is present, then returns a span with `size` elements of `what`, instead of a pointer.
 - In case the value has the `__gc` metamethod, it will be called once the value is collected.
 ]]
-function GCAllocator:new(what: auto, size: facultative(usize)) <noinline>
+function GCAllocator:new(what: auto, size: facultative(usize)): auto <noinline>
   local T: type = #[what.type.is_type and what.value or what.type]#
   ## if size.type.is_niltype then -- new pointer
     ## if T.value.is_record and T.value.metafields.__gc then

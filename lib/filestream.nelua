@@ -436,7 +436,7 @@ for c in file:lines(1) do body end
 ```
 will iterate over all characters of the file, starting at the current position.
 ]]
-function filestream:lines(fmt: overload(integer,string,niltype))
+function filestream:lines(fmt: overload(integer,string,niltype)): (auto, auto, string)
   ## if fmt.type.is_niltype then
   local fmt: string = 'l'
   ## end

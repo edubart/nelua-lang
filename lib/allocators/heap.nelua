@@ -461,7 +461,7 @@ end
   end
 
   -- Deallocate all allocations from the heap.
-  function HeapAllocatorT:deallocall()
+  function HeapAllocatorT:deallocall(): void
     self.heap = {}
     self.initialized = false
   end

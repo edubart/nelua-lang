@@ -105,13 +105,13 @@ Returns the absolute value of `x`, that is, the maximum value between `x` and `-
 
 The argument type is always preserved.
 ]]
-function math.abs(x: an_scalar) <inline,nosideeffect>
+function math.abs(x: an_scalar): auto <inline,nosideeffect>
   x = x < 0 and -x or x
   return x
 end
 
 -- Returns the largest integral value less than or equal to `x`.
-function math.floor(x: an_scalar) <inline,nosideeffect>
+function math.floor(x: an_scalar): auto <inline,nosideeffect>
   ## if x.type.is_float then
     return #|choose_cmath_float_function('floor', x)|#(x)
   ## else
@@ -125,7 +125,7 @@ function math.ifloor(x: an_scalar): integer <inline,nosideeffect>
 end
 
 -- Returns the smallest integral value greater than or equal to `x`.
-function math.ceil(x: an_scalar) <inline,nosideeffect>
+function math.ceil(x: an_scalar): auto <inline,nosideeffect>
   ## if x.type.is_float then
     return #|choose_cmath_float_function('ceil', x)|#(x)
   ## else
@@ -142,7 +142,7 @@ end
 Returns the rounded value of `x` towards the nearest integer.
 Halfway cases are rounded away from zero.
 ]]
-function math.round(x: an_scalar) <inline,nosideeffect>
+function math.round(x: an_scalar): auto <inline,nosideeffect>
   ## if x.type.is_float then
     return #|choose_cmath_float_function('round', x)|#(x)
   ## else
@@ -151,7 +151,7 @@ function math.round(x: an_scalar) <inline,nosideeffect>
 end
 
 -- Returns the rounded value of `x` towards zero.
-function math.trunc(x: an_scalar) <inline,nosideeffect>
+function math.trunc(x: an_scalar): auto <inline,nosideeffect>
   ## if x.type.is_float then
     return #|choose_cmath_float_function('trunc', x)|#(x)
   ## else
@@ -163,7 +163,7 @@ end
 Returns the square root of `x`.
 You can also use the expression `x^0.5` to compute this value.
 ]]
-function math.sqrt(x: an_scalar) <inline,nosideeffect>
+function math.sqrt(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('sqrt', x)|#(x)
 end
 
@@ -171,12 +171,12 @@ end
 Returns the cubic root of `x`.
 You can also use the expression `x^(1/3)` to compute this value.
 ]]
-function math.cbrt(x: an_scalar) <inline,nosideeffect>
+function math.cbrt(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('cbrt', x)|#(x)
 end
 
 -- Returns the value of `e^x` (where `e` is the base of natural logarithms).
-function math.exp(x: an_scalar) <inline,nosideeffect>
+function math.exp(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('exp', x)|#(x)
 end
 
@@ -184,7 +184,7 @@ end
 Returns the value of `2^x`.
 You can also use the expression `2^x` to compute this value.
 ]]
-function math.exp2(x: an_scalar) <inline,nosideeffect>
+function math.exp2(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('exp2', x)|#(x)
 end
 
@@ -192,7 +192,7 @@ end
 Returns `x^y`.
 You can also use the expression `x^y` to compute this value.
 ]]
-function math.pow(x: an_scalar, y: an_scalar) <inline,nosideeffect>
+function math.pow(x: an_scalar, y: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('pow', x, y)|#(x, y)
 end
 
@@ -200,43 +200,45 @@ end
 Returns the logarithm of `x` in the given `base`.
 The default for `base` is *e*, so that the function returns the natural logarithm of `x`.
 ]]
-function math.log(x: an_scalar, base: an_optional_scalar) <inline,nosideeffect>
+function math.log(x: an_scalar, base: an_optional_scalar): auto <inline,nosideeffect>
   ## local log = choose_cmath_float_function('log', x)
   ## if not base.type.is_niltype then
+    local r: #[choose_float_type(x)]#
     if base == 2 then
-      return #|choose_cmath_float_function('log2', x)|#(x)
+      r = #|choose_cmath_float_function('log2', x)|#(x)
     elseif base == 10 then
-      return #|choose_cmath_float_function('log10', x)|#(x)
+      r = #|choose_cmath_float_function('log10', x)|#(x)
     else
-      return #|log|#(x) / #|log|#(base)
+      r = #|log|#(x) / #|log|#(base)
     end
+    return r
   ## else
     return #|log|#(x)
   ## end
 end
 
 -- Returns the cosine of `x` (assumed to be in radians).
-function math.cos(x: an_scalar) <inline,nosideeffect>
+function math.cos(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('cos', x)|#(x)
 end
 
 -- Returns the sine of `x` (assumed to be in radians).
-function math.sin(x: an_scalar) <inline,nosideeffect>
+function math.sin(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('sin', x)|#(x)
 end
 
 -- Returns the tangent of `x` (assumed to be in radians).
-function math.tan(x: an_scalar) <inline,nosideeffect>
+function math.tan(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('tan', x)|#(x)
 end
 
 -- Returns the arc cosine of `x` (in radians).
-function math.acos(x: an_scalar) <inline,nosideeffect>
+function math.acos(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('acos', x)|#(x)
 end
 
 -- Returns the arc sine of `x` (in radians).
-function math.asin(x: an_scalar) <inline,nosideeffect>
+function math.asin(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('asin', x)|#(x)
 end
 
@@ -247,7 +249,7 @@ It also handles correctly the case of `x` being zero.
 
 The default value for `x` is `1`, so that the call `math.atan(y)` returns the arc tangent of `y`.
 ]]
-function math.atan(y: an_scalar, x: an_optional_scalar) <inline,nosideeffect>
+function math.atan(y: an_scalar, x: an_optional_scalar): auto <inline,nosideeffect>
   ## if not x.type.is_niltype then
     return #|choose_cmath_float_function('atan2', y, x)|#(y, x)
   ## else
@@ -260,57 +262,57 @@ Returns the arc tangent of `y/x` (in radians),
 but uses the signs of both arguments to find the quadrant of the result.
 It also handles correctly the case of `x` being zero.
 ]]
-function math.atan2(y: an_scalar, x: an_optional_scalar) <inline,nosideeffect>
+function math.atan2(y: an_scalar, x: an_optional_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('atan2', y, x)|#(y, x)
 end
 
 -- Returns the hyperbolic cosine of `x`.
-function math.cosh(x: an_scalar) <inline,nosideeffect>
+function math.cosh(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('cosh', x)|#(x)
 end
 
 -- Returns the hyperbolic sine of `x`.
-function math.sinh(x: an_scalar) <inline,nosideeffect>
+function math.sinh(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('sinh', x)|#(x)
 end
 
 -- Returns the hyperbolic tangent of `x`.
-function math.tanh(x: an_scalar) <inline,nosideeffect>
+function math.tanh(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('tanh', x)|#(x)
 end
 
 -- Returns the base-10 logarithm of `x`.
-function math.log10(x: an_scalar) <inline,nosideeffect>
+function math.log10(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('log10', x)|#(x)
 end
 
 -- Returns the base-2 logarithm of `x`.
-function math.log2(x: an_scalar) <inline,nosideeffect>
+function math.log2(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('log2', x)|#(x)
 end
 
 -- Returns the inverse hyperbolic cosine of `x`.
-function math.acosh(x: an_scalar) <inline,nosideeffect>
+function math.acosh(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('acosh', x)|#(x)
 end
 
 -- Returns the inverse hyperbolic sine of `x`.
-function math.asinh(x: an_scalar) <inline,nosideeffect>
+function math.asinh(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('asinh', x)|#(x)
 end
 
 -- Returns the inverse hyperbolic tangent of `x`.
-function math.atanh(x: an_scalar) <inline,nosideeffect>
+function math.atanh(x: an_scalar): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('atanh', x)|#(x)
 end
 
 -- Converts the angle `x` from radians to degrees.
-function math.deg(x: an_scalar) <inline,nosideeffect>
+function math.deg(x: an_scalar): auto <inline,nosideeffect>
   return x * (#[choose_float_type(x)]#)(#[180.0/ math.pi]#)
 end
 
 -- Converts the angle `x` from degrees to radians.
-function math.rad(x: an_scalar) <inline,nosideeffect>
+function math.rad(x: an_scalar): auto <inline,nosideeffect>
   return x * (#[choose_float_type(x)]#)(#[math.pi / 180.0]#)
 end
 
@@ -320,7 +322,7 @@ Returns the sign of `x`, that is:
 * `0` if `x == 0`
 * `1` if `x > 0`
 ]]
-function math.sign(x: an_scalar) <inline,nosideeffect>
+function math.sign(x: an_scalar): auto <inline,nosideeffect>
   x = x > 0 and 1 or x
   x = x < 0 and -1 or x
   return x
@@ -331,7 +333,7 @@ Returns the fractional part of `x`.
 
 Computed as `x - math.floor(x)`.
 ]]
-function math.fract(x: an_scalar) <inline,nosideeffect>
+function math.fract(x: an_scalar): auto <inline,nosideeffect>
   return x - math.floor(x)
 end
 
@@ -341,7 +343,7 @@ Returns the modulo operation of `x` by `y`, rounded towards minus infinity.
 This is equivalent to `x % y`, but faster and subject to rounding errors.
 It's computed as `x - math.floor(x / y) * y`.
 ]]
-function math.mod(x: an_scalar, y: an_scalar) <inline,nosideeffect>
+function math.mod(x: an_scalar, y: an_scalar): auto <inline,nosideeffect>
   ## if x.type.is_float or y.type.is_float then
   return x - math.floor(x / y) * y
   ## else
@@ -353,7 +355,7 @@ end
 Returns the integral part of `x` and the fractional part of `x`.
 Its second result is always a float.
 ]]
-function math.modf(x: an_scalar) <inline,nosideeffect>
+function math.modf(x: an_scalar): (auto, auto) <inline,nosideeffect>
   local i: #[choose_float_type(x)]#
   local f: auto = #|choose_cmath_float_function('modf', x)|#(x, &i)
   return i, f
@@ -363,7 +365,7 @@ end
 Returns the remainder of the division of `x` by `y` that rounds the quotient towards zero.
 The result can either be an integer or a float depending on the arguments.
 ]]
-function math.fmod(x: an_scalar, y: an_scalar) <inline,nosideeffect>
+function math.fmod(x: an_scalar, y: an_scalar): auto <inline,nosideeffect>
   ## if x.type.is_integral and y.type.is_integral then
     local z: #[x.type]# <noinit>
     ## cemit '  z = x % y;'
@@ -377,29 +379,26 @@ end
 Returns `m` and `e` such that `x = m*(2^e)`,
 `e` is an integer and the absolute value of `m` is in the range [0.5, 1) or zero (when `x` is zero).
 ]]
-function math.frexp(x: an_scalar) <inline,nosideeffect>
+function math.frexp(x: an_scalar): (auto, int32) <inline,nosideeffect>
   local exp: cint
   local n: auto = #|choose_cmath_float_function('frexp', x)|#(x, &exp)
   return n, (@int32)(exp)
 end
 
 -- Returns `m*(2^e)`, that is, `m` multiplied by an integral power of 2.
-function math.ldexp(m: an_scalar, e: int32) <inline,nosideeffect>
+function math.ldexp(m: an_scalar, e: int32): auto <inline,nosideeffect>
   return #|choose_cmath_float_function('ldexp', m)|#(m, (@int32)(e))
 end
 
 -- Returns the argument with the minimum value, according to the operator `<`.
-function math.min(...: varargs) <inline,nosideeffect>
+function math.min(...: varargs): auto <inline,nosideeffect>
   ## local nargs = select('#', ...)
   ## static_assert(nargs > 0, 'expected at least one argument')
   ## if nargs == 1 then
     return #[select(1, ...)]#
   ## elseif nargs == 2 then
     ## local x, y = select(1, ...), select(2, ...)
-    if #[x]# < #[y]# then
-      return #[x]#
-    end
-    return #[y]#
+    return #[x]# < #[y]# and #[x]# or #[y]#
   ## else
     local res = #[select(1, ...)]#
     ## for i=2,nargs do
@@ -413,17 +412,14 @@ function math.min(...: varargs) <inline,nosideeffect>
 end
 
 -- Returns the argument with the maximum value, according to the operator `<`.
-function math.max(...: varargs) <inline,nosideeffect>
+function math.max(...: varargs): auto <inline,nosideeffect>
   ## local nargs = select('#', ...)
   ## static_assert(nargs > 0, 'expected at least one argument')
   ## if nargs == 1 then
     return #[select(1, ...)]#
   ## elseif nargs == 2 then
     ## local x, y = select(1, ...), select(2, ...)
-    if #[y]# < #[x]# then
-      return #[x]#
-    end
-    return #[y]#
+    return #[y]# < #[x]# and #[x]# or #[y]#
   ## else
     local res = #[select(1, ...)]#
     ## for i=2,nargs do
@@ -437,7 +433,7 @@ function math.max(...: varargs) <inline,nosideeffect>
 end
 
 -- Returns the value of `x` clamped between `min` and `max`.
-function math.clamp(x: an_scalar, min: an_scalar, max: an_scalar) <inline,nosideeffect>
+function math.clamp(x: an_scalar, min: an_scalar, max: an_scalar): auto <inline,nosideeffect>
   x = x < min and min or x
   x = x > max and max or x
   return x
@@ -461,7 +457,7 @@ function math.ult(m: an_scalar, n: an_scalar): boolean <inline>
 end
 
 -- If the value `x` is convertible to an integer, returns that integer. Otherwise, returns `nil`.
-function math.tointeger(x: an_scalar) <inline,nosideeffect>
+function math.tointeger(x: an_scalar): auto <inline,nosideeffect>
   ## if x.type == primtypes.integer then
     return x
   ## elseif x.type.is_scalar then
@@ -477,7 +473,7 @@ function math.tointeger(x: an_scalar) <inline,nosideeffect>
 end
 
 -- Returns `"integer"` if `x` is an integer, "float" if `x` is a float, or fail if `x` is not a number.
-function math.type(x: auto) <inline,nosideeffect>
+function math.type(x: auto): auto <inline,nosideeffect>
   ## if x.type.is_float then
     return 'float'
   ## elseif x.type.is_integral then
@@ -536,7 +532,7 @@ Other results (ranges and floats) are unbiased extracted from these integers.
 Its pseudo-random generator is initialized with the equivalent of a call to `math.randomseed` with no arguments,
 so that `math.random` should generate different sequences of results each time the program runs.
 ]]
-function math.random(m: an_optional_scalar, n: an_optional_scalar)
+function math.random(m: an_optional_scalar, n: an_optional_scalar): auto
   local r: number = default_random:random()
   ## if not m.type.is_niltype and not n.type.is_niltype then
     local low: integer, up: integer = (@integer)(m), (@integer)(n)

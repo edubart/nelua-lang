@@ -53,7 +53,7 @@ end)]#
 ## local function impl_mipairs_next(atype)
   k = k + 1
   if k >= (#a + #[atype.is_oneindexing and 1 or 0]#) then
-    return false, 0, nilptr
+    return false, 0, (@*#[atype.subtype]#)(nilptr)
   end
   return true, k, &a[k]
 ## end
@@ -68,18 +68,18 @@ Where `i` is an integer determining the index of the element, and `v` its respec
 
 The container `a` must be contiguous, such as `array`, `span`, `vector` or `sequence`.
 ]]
-global function ipairs(a: contiguous_reference_concept) <inline>
+global function ipairs(a: contiguous_reference_concept): (auto, auto, integer) <inline>
   ## local atype = a.type:implicit_deref_type()
-  local function ipairs_next(a: #[a.type]#, k: integer) <inline>
+  local function ipairs_next(a: #[a.type]#, k: integer): (boolean, integer, auto) <inline>
     ## impl_ipairs_next(atype)
   end
   return ipairs_next, a, #[atype.is_oneindexing and 0 or -1]#
 end
 
 -- Like `ipairs` but yields reference to elements values so that you can modify them in-place.
-global function mipairs(a: contiguous_reference_concept) <inline>
+global function mipairs(a: contiguous_reference_concept): (auto, auto, integer) <inline>
   ## local atype = a.type:implicit_deref_type()
-  local function mipairs_next(a: #[a.type]#, k: integer) <inline>
+  local function mipairs_next(a: #[a.type]#, k: integer): (boolean, integer, auto) <inline>
     ## impl_mipairs_next(atype)
   end
   return mipairs_next, a, #[atype.is_oneindexing and 0 or -1]#
@@ -93,7 +93,7 @@ Otherwise returns `false` plus a zeroed key and value.
 
 The container `a` must either have the metamethod `__next` or be a contiguous.
 ]]
-global function next(a: container_reference_concept, k: auto) <inline>
+global function next(a: container_reference_concept, k: auto): (auto, auto, auto) <inline>
   ## local atype = a.type:implicit_deref_type()
   ## if atype.is_record and atype.metafields.__next then
     ## local ktype = atype.metafields.__next.type.argtypes[2]
@@ -107,7 +107,7 @@ global function next(a: container_reference_concept, k: auto) <inline>
 end
 
 -- Like `next` but returns reference to the next element value, so that you can modify it in-place.
-global function mnext(a: container_reference_concept, k: auto) <inline>
+global function mnext(a: container_reference_concept, k: auto): (auto, auto, auto) <inline>
   ## local atype = a.type:implicit_deref_type()
   ## if atype.is_record and atype.metafields.__mnext then
     ## local ktype = atype.metafields.__mnext.type.argtypes[2]
@@ -131,7 +131,7 @@ Where `k` is a key determining the location of the element, and `v` its respecti
 The container `a` must either have the metamethod `__pairs` or be a contiguous.
 Should work on any container, such as `array`, `span`, `vector`, `sequence` or `hashmap`.
 ]]
-global function pairs(a: container_reference_concept) <inline>
+global function pairs(a: container_reference_concept): (auto, auto, auto) <inline>
   ## local atype = a.type:implicit_deref_type()
   ## if atype.is_record and atype.metafields.__pairs then
     return a:__pairs()
@@ -141,7 +141,7 @@ global function pairs(a: container_reference_concept) <inline>
 end
 
 -- Like `pairs` but yields reference to elements values so that you can modify them in-place.
-global function mpairs(a: container_reference_concept) <inline>
+global function mpairs(a: container_reference_concept): (auto, auto, auto) <inline>
   ## local atype = a.type:implicit_deref_type()
   ## if atype.is_record and atype.metafields.__mpairs then
     return a:__mpairs()

@@ -164,7 +164,7 @@ require 'span'
   - The allocated memory region will have `size * #T` bytes.
   - If the operation fails, then an empty span is returned.
   ]]
-  function Allocator:spanalloc(T: type, size: usize)
+  function Allocator:spanalloc(T: type, size: usize): auto
     if likely(size > 0) then
       local data: *[0]T = (@*[0]T)(self:alloc(size * #T))
       if likely(data ~= nilptr) then
@@ -176,7 +176,7 @@ require 'span'
   ## end
 
   -- Like `spanalloc`, but raises an error in case the allocation fails.
-  function Allocator:xspanalloc(T: type, size: usize)
+  function Allocator:xspanalloc(T: type, size: usize): auto
     local s: span(T) = self:spanalloc(T, size)
     assert(s.size == size, 'out of memory')
     return s
@@ -184,7 +184,7 @@ require 'span'
 
   ## if not Allocator.value.metafields.spanalloc0 then
   -- Like `spanalloc`, but initializes added memory with zeros.
-  function Allocator:spanalloc0(T: type, size: usize)
+  function Allocator:spanalloc0(T: type, size: usize): auto
     if likely(size > 0) then
       local data: *[0]T = (@*[0]T)(self:alloc0(size * #T))
       if likely(data ~= nilptr) then
@@ -196,7 +196,7 @@ require 'span'
   ## end
 
   -- Like `spanalloc0`, but raises an error in case the allocation fails.
-  function Allocator:xspanalloc0(T: type, size: usize)
+  function Allocator:xspanalloc0(T: type, size: usize): auto
     local s: span(T) = self:spanalloc0(T, size)
     assert(s.size == size, 'out of memory')
     return s
@@ -219,7 +219,7 @@ require 'span'
   thus to check for an allocation failure you have to compare
   if the returned span size is different than `size`.
   ]]
-  function Allocator:spanrealloc(s: span_concept, size: usize)
+  function Allocator:spanrealloc(s: span_concept, size: usize): auto
     local T: type = #[s.type.subtype]#
     if unlikely(s.size == 0 and size > 0) then -- always use alloc on new allocation
       s = self:spanalloc(@T, size)
@@ -237,7 +237,7 @@ require 'span'
   ## end
 
   -- Like `spanrealloc`, but raises an error in case the allocation fails.
-  function Allocator:xspanrealloc(s: span_concept, size: usize)
+  function Allocator:xspanrealloc(s: span_concept, size: usize): auto
     s = self:spanrealloc(s, size)
     assert(s.size == size, 'out of memory')
     return s
@@ -245,7 +245,7 @@ require 'span'
 
   ## if not Allocator.value.metafields.spanrealloc0 then
   -- Like `spanrealloc`, but initializes added memory with zeros.
-  function Allocator:spanrealloc0(s: span_concept, size: usize)
+  function Allocator:spanrealloc0(s: span_concept, size: usize): auto
     local T: type = #[s.type.subtype]#
     if unlikely(s.size == 0 and size > 0) then -- always use alloc on new allocation
       s = self:spanalloc0(@T, size)
@@ -263,7 +263,7 @@ require 'span'
   ## end
 
   -- Like `spanrealloc0`, but raises an error in case the allocation fails.
-  function Allocator:xspanrealloc0(s: span_concept, size: usize)
+  function Allocator:xspanrealloc0(s: span_concept, size: usize): auto
     s = self:spanrealloc0(s, size)
     assert(s.size == size, 'out of memory')
     return s
@@ -283,7 +283,7 @@ require 'span'
   - In case the value has a finalizer, and the allocator supports finalizers,
   such as `GCAllocator`, the value is marked to be finalized when deallocated.
   ]]
-  function Allocator:new(what: auto, size: facultative(usize))
+  function Allocator:new(what: auto, size: facultative(usize)): auto
     local T: type = #[what.type.is_type and what.value or what.type]#
     ## if size.type.is_niltype then -- new pointer
       ## if what.type.is_type then

@@ -297,12 +297,12 @@ require 'iterators'
   end
 
   -- Allow using `pairs()` to iterate the container.
-  function listT:__pairs() <inline>
+  function listT:__pairs(): (auto, *listT, *listnodeT) <inline>
     return listT.__next, self, nilptr
   end
 
   -- Allow using `mpairs()` to iterate the container.
-  function listT:__mpairs() <inline>
+  function listT:__mpairs(): (auto, *listT, *listnodeT) <inline>
     return listT.__mnext, self, nilptr
   end
 

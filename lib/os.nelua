@@ -278,7 +278,7 @@ function os.tmpname(): string
     local function close(fd: cint): cint <cimport,cinclude'<unistd.h>',nodecl> end
 
     local function tmpnam(buf: cstring): cstring
-      local tmpdir = getenv('TMPDIR')
+      local tmpdir: cstring = getenv('TMPDIR')
       if tmpdir then
         strncpy(buf, tmpdir, TMPBUFSIZE)
         strncat(buf, "/nelua_XXXXXX", TMPBUFSIZE - (#tmpdir + 1))

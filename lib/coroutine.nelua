@@ -56,11 +56,11 @@ local mco_result: type <cimport, nodecl, using> = @enum(cint){
 local mco_coro: type <cimport, nodecl> = @record{
   context: pointer,
   state: mco_state,
-  func: function(*mco_coro),
+  func: function(*mco_coro): void,
   prev_co: *mco_coro,
   user_data: pointer,
   allocator_data: pointer,
-  free_cb: function(pointer, pointer),
+  free_cb: function(pointer, pointer): void,
   stack_base: pointer,
   stack_size: csize,
   storage: *cuchar,
@@ -71,10 +71,10 @@ local mco_coro: type <cimport, nodecl> = @record{
   tsan_fiber: pointer
 }
 local mco_desc: type <cimport, nodecl> = @record{
-  func: function(*mco_coro),
+  func: function(*mco_coro): void,
   user_data: pointer,
   malloc_cb: function(csize, pointer): pointer,
-  free_cb: function(pointer, pointer),
+  free_cb: function(pointer, pointer): void,
   allocator_data: pointer,
   storage_size: csize,
   coro_size: csize,

@@ -45,7 +45,7 @@ require 'allocators.allocator'
   }
 
   -- Link all free nodes in reverse order.
-  local function pool_link_free_nodes(self: *PoolAllocatorT)
+  local function pool_link_free_nodes(self: *PoolAllocatorT): void
     local head: *PoolFreeNode
     for i:isize=#self.buffer-1,0,-1 do
       local node: *PoolFreeNode = (@*PoolFreeNode)(&self.buffer[i])

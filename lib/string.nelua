@@ -181,7 +181,7 @@ end
 Returns an iterator function that, each time it is called, returns the whole match plus a span of captures.
 A third, optional argument specifies where to start the search, its default value is 1 and can be negative.
 ]]
-function string.gmatch(s: string, pattern: string, init: facultative(isize))
+function string.gmatch(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
   ## if init.type.is_niltype then
   local init: isize = 1
   ## end
@@ -211,7 +211,7 @@ function string.gmatch(s: string, pattern: string, init: facultative(isize))
 end
 
 -- Like `string.gmatch` but uses sub string views (see also `string.subview`).
-function string.gmatchview(s: string, pattern: string, init: facultative(isize))
+function string.gmatchview(s: string, pattern: string, init: facultative(isize)): (auto, auto, string)
   ## if init.type.is_niltype then
   local init: isize = 1
   ## end
@@ -730,7 +730,7 @@ global function tostring(x: auto): string
 end
 
 -- Convert a value to a number.
-global function tonumber(x: auto, base: facultative(integer))
+global function tonumber(x: auto, base: facultative(integer)): auto
   ## if not base.type.is_niltype then
     ## static_assert(x.type.is_stringy, "string expected, got something else")
     -- TODO: return nil in case of fail (like lua)
@@ -852,7 +852,7 @@ local function unpackint(s: string, pos: *usize, size: usize, maxalign: usize, i
 end
 
 -- Copy `size` bytes from `src` into `dest`, respecting system endiness.
-local function packcopy(dest: pointer, src: *[0]byte, size: usize, islittle: boolean) <inline>
+local function packcopy(dest: pointer, src: *[0]byte, size: usize, islittle: boolean): void <inline>
   if likely(islittle == isnativelittle()) then -- same endianess
     memory.copy(dest, src, size)
   else -- different endianess, copy bytes in reverse order

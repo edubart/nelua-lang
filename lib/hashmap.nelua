@@ -391,12 +391,12 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
   end
 
   -- Allow using `pairs()` to iterate the container.
-  function hashmapT:__pairs() <inline>
+  function hashmapT:__pairs(): (auto, hashmap_iteratorT, K) <inline>
     return hashmap_iteratorT.next, (@hashmap_iteratorT){container=self,index=INVALID_INDEX}, (@K)()
   end
 
   -- Allow using `mpairs()` to iterate the container.
-  function hashmapT:__mpairs() <inline>
+  function hashmapT:__mpairs(): (auto, hashmap_iteratorT, K) <inline>
     return hashmap_iteratorT.mnext, (@hashmap_iteratorT){container=self,index=INVALID_INDEX}, (@K)()
   end
 

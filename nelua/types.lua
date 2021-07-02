@@ -598,6 +598,15 @@ function types.attrs_to_types(attrs)
   return typelist
 end
 
+function types.are_types_resolved(typelist)
+  for i=1,#typelist do
+    if typelist[i].is_auto then
+      return false
+    end
+  end
+  return true
+end
+
 -- Promote compile time attrs to a common type.
 function types.promote_type_for_attrs(lattr, rattr)
   if not lattr.untyped and rattr.comptime and rattr.untyped then
