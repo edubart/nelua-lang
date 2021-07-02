@@ -16,6 +16,13 @@ do -- hash strings
   assert(hash.hash('test') ~= 0)
 end
 
+do -- hash spans
+  local s: span(byte)
+  assert(hash.hash(s) == 0x9e3779b9_usize)
+  s.data = 'test'_cstring s.size = 4
+  assert(hash.hash(s) ~= 0)
+end
+
 do -- hash records
   local vec2 = @record{x: integer, y: integer}
   local a: vec2 = {0,0}

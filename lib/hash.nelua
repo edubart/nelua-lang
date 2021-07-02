@@ -76,7 +76,7 @@ function hash.hash(v: auto): usize
   ## elseif v.type.is_string then
     return hash.long({data=v.data, size=v.size})
   ## elseif v.type.is_span then
-    local T: v.type = #[v.type.subtype]#
+    local T: type = #[v.type.subtype]#
     return hash.long({data=(@*[0]byte)(v.data), size=(@usize)(#T * #v)})
   ## elseif v.type.is_record and v.type.metafields.__hash then
     return v:__hash()
