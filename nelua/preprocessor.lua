@@ -219,16 +219,19 @@ function preprocessor.preprocess(context, ast)
     local checkpoint = scope:make_checkpoint()
     local statnodes = ppcontext.statnodes
     local addindex = #statnodes+1
+    local pragmas = context.pragmas
     return function(...)
       statnodes.addindex = addindex
       ppcontext:push_statnodes(statnodes)
       scope:push_checkpoint(checkpoint)
       local oldscope = context.scope
       context:push_scope(scope)
+      context:push_pragmas(pragmas)
       local rets = table.pack(f(...))
-      ppcontext:pop_statnodes()
+      context:pop_pragmas()
       context:pop_scope()
       scope:pop_checkpoint()
+      ppcontext:pop_statnodes()
       if addindex ~= statnodes.addindex then -- new statement nodes were added
         -- must delay resolution to fully parse the new added nodes later
         oldscope:find_shared_up_scope(scope):delay_resolution()
@@ -352,14 +355,9 @@ function preprocessor.preprocess(context, ast)
     local symbol = context.scope.symbols[key]
     if symbol then
       return symbol
-    elseif typedefs.call_pragmas[key] then
+    elseif typedefs.directives[key] then
       return function(...)
-        local args = table.pack(...)
-        local ok, err = typedefs.call_pragmas[key](args)
-        if not ok then
-          raise_preprocess_error("invalid arguments for preprocess function '%s': %s", key, err)
-        end
-        ppcontext:add_statnode(aster.PragmaCall{key, table.pack(...)}, true)
+        ppcontext:add_statnode(aster.Directive{key, table.pack(...)}, true)
       end
     end
   end, __newindex = function(_, key, value)

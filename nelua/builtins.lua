@@ -78,17 +78,17 @@ function builtins.require(context, node, argnodes)
 
   -- analyze it
   local ast = attr.loadedast
+  attr.pragmas = attr.pragmas or {unitname = attr.unitname}
   context:push_state{inrequire = true}
   context:push_scope(context.rootscope)
-  context:push_pragmas()
-  context.pragmas.unitname = attr.unitname
+  context:push_forked_pragmas(attr.pragmas)
   if justloaded then
     preprocessor.preprocess(context, ast)
   end
   context:traverse_node(ast)
+  context:pop_pragmas()
   context:pop_scope()
   context:pop_state()
-  context:pop_pragmas()
 end
 
 function builtins.assert(context, node, argnodes)
@@ -137,9 +137,6 @@ end
 function builtins.check(context, node, argnodes)
   local attr = node.attr
   attr.checkbuiltin = true
-  if context.pragmas.nochecks then
-    attr.omitcall = true
-  end
   return builtins.assert(context, node, argnodes)
 end
 

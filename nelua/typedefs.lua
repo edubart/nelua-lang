@@ -185,7 +185,7 @@ typedefs.promote_unsigned_types = {
   primtypes.uint64
 }
 
-typedefs.call_pragmas = {
+typedefs.directives = {
   cinclude = shaper.shape{n=shaper.number, shaper.string},
   cemitdecl = shaper.shape{n=shaper.number, shaper.string + shaper.func},
   cemitdef = shaper.shape{n=shaper.number, shaper.string + shaper.func},
@@ -194,7 +194,9 @@ typedefs.call_pragmas = {
   cflags = shaper.shape{n=shaper.number, shaper.string},
   cfile = shaper.shape{n=shaper.number, shaper.string},
   ldflags = shaper.shape{n=shaper.number, shaper.string},
-  linklib = shaper.shape{n=shaper.number, shaper.string}
+  linklib = shaper.shape{n=shaper.number, shaper.string},
+  pragmapush = shaper.shape{n=shaper.number, shaper.table},
+  pragmapop = shaper.shape{n=shaper.number},
 }
 
 -- List of possible annotations for function types.

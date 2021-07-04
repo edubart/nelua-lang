@@ -258,9 +258,6 @@ local function visitor_Array_literal(context, node, littype)
         childnode:raisef("in array literal at index %d: cannot pass non copyable type '%s' by value",
           i, childtype)
       end
-      if not context.pragmas.nochecks and subtype ~= childtype then
-        childnode.checkcast = true
-      end
     end
     sideeffect = sideeffect or childattr.sideeffect
     comptime = comptime and childattr.comptime
@@ -328,9 +325,6 @@ local function visitor_Record_literal(context, node, littype)
         childnode:raisef("in record literal field '%s': cannot pass non copyable type '%s' by value",
           fieldname, fieldvaltype)
       end
-      if not context.pragmas.nochecks and fieldtype ~= fieldvaltype then
-        fieldvalnode.checkcast = true
-      end
     end
     if not fieldvalattr.comptime then
       comptime = nil
@@ -389,9 +383,6 @@ local function visitor_Union_literal(context, node, littype)
       if not fieldvalattr:can_copy() then
         childnode:raisef("in record literal field '%s': cannot pass non copyable type '%s' by value",
           fieldname, fieldvaltype)
-      end
-      if not context.pragmas.nochecks and fieldtype ~= fieldvaltype then
-        fieldvalnode.checkcast = true
       end
     end
     if not fieldvalattr.comptime then
@@ -466,11 +457,27 @@ function visitors.Pair(context, node)
   node.done = namedone and exprnode.done and true
 end
 
-function visitors.PragmaCall(_, node)
-  local name = node[1]
-  local pragmashape = typedefs.call_pragmas[name]
-  node:assertraisef(pragmashape, "pragma '%s' is undefined", name)
-  node.done = true
+function visitors.Directive(context, node)
+  local name, params = node[1], node[2]
+
+  if not node.checked then -- check pragma shape
+    local paramshape = typedefs.directives[name]
+    node:assertraisef(paramshape, "pragma '%s' is undefined", name)
+    local ok, err = paramshape(params)
+    if not ok then
+      node:raisef("invalid arguments for directive '%s': %s", name, err)
+    end
+    node.checked = true
+  end
+
+  if name == 'pragmapush' then
+    local pragmas = params[1]
+    context:push_forked_pragmas(pragmas)
+  elseif name == 'pragmapop' then
+    context:pop_pragmas()
+  else
+    node.done = true
+  end
 end
 
 function visitors.Annotation(context, node, opts)
@@ -1372,10 +1379,6 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
             argnode:raisef("in call of function '%s' at argument %d: cannot pass non copyable type '%s' by value",
               calleename, i, argtype)
           end
-
-          if not context.pragmas.nochecks and funcargtype ~= argtype and argnode then
-            argnode.checkcast = true
-          end
         else
           knownallargs = false
         end
@@ -1682,11 +1685,10 @@ end
 visitors.DotIndex = visitor_FieldIndex
 visitors.ColonIndex = visitor_FieldIndex
 
-local function visitor_Array_KeyIndex(context, node, objtype, _, indexnode)
+local function visitor_Array_KeyIndex(_, node, objtype, _, indexnode)
   local attr = node.attr
   local indexattr = indexnode.attr
   local indextype = indexattr.type
-  local checked = false
   if indextype then
     if indextype.is_integral then
       local indexvalue = indexattr.value
@@ -1698,15 +1700,11 @@ local function visitor_Array_KeyIndex(context, node, objtype, _, indexnode)
           indexnode:raisef("index %s is out of bounds, array maximum index is %d",
             indexvalue:todecint(), objtype.length - 1)
         end
-        checked = true
       end
       attr.type = objtype.subtype
     else
       indexnode:raisef("cannot index with value of type '%s'", indextype)
     end
-  end
-  if not context.pragmas.nochecks and not checked and objtype.length > 0 then
-    attr.checkbounds = true
   end
 end
 
@@ -1823,7 +1821,8 @@ function visitors.Block(context, node)
   if not node.preprocessed then
     local done = true
     for i=1,#statnodes do
-      if not statnodes[i].done then
+      local statnode = statnodes[i]
+      if not (statnode.done or statnode.tag == 'Directive') then
         done = nil
         break
       end
@@ -1961,9 +1960,6 @@ function visitors.ForNum(context, node)
         if not ok then
           begvalnode:raisef("in `for` variable '%s' begin: %s", itname, err)
         end
-        if not context.pragmas.nochecks and ittype ~= btype then
-          begvalnode.checkcast = true
-        end
       end
       if etype then
         if etype.is_comptime then
@@ -1972,9 +1968,6 @@ function visitors.ForNum(context, node)
         local ok, err = ittype:is_convertible_from_attr(eattr)
         if not ok then
           endvalnode:raisef("in `for` variable '%s' end: %s", itname, err)
-        end
-        if not context.pragmas.nochecks and ittype ~= etype then
-          endvalnode.checkcast = true
         end
       end
       if stype then
@@ -2203,9 +2196,6 @@ function visitors.VarDecl(context, node)
     if declscope == 'global' or context.scope.is_topscope then
       varnode.attr.staticstorage = true
     end
-    if context.pragmas.nostatic then
-      varnode.attr.nostatic = true
-    end
     local symbol = context:traverse_node(varnode)
     assert(symbol)
     local inscope = false
@@ -2258,10 +2248,6 @@ function visitors.VarDecl(context, node)
       elseif vartype == primtypes.type and valtype ~= primtypes.type then
         valnode:raisef("cannot assign a type to '%s'", valtype)
       end
-    else
-      if context.pragmas.noinit then
-        varnode.attr.noinit = true
-      end
     end
     if not inscope then
       symbol.scope:add_symbol(symbol)
@@ -2308,10 +2294,6 @@ function visitors.VarDecl(context, node)
         end
         if valnode and not valnode.attr:can_copy() then
           valnode:raisef("cannot assign non copyable type '%s'", valtype)
-        end
-        if not context.pragmas.nochecks and valnode and vartype ~= valtype then
-          valnode.checkcast = true
-          varnode.checkcast = true
         end
         if vartype.is_polyfunction then
           -- skip declaration for poly function aliases
@@ -2382,10 +2364,6 @@ function visitors.Assign(context, node)
       if not ok then
         varnode:raisef("in variable assignment: %s", err)
       end
-      if not context.pragmas.nochecks and valnode and vartype ~= valtype then
-        valnode.checkcast = true
-        varnode.checkcast = true
-      end
     end
     done = done and vartype and varnode.done and (not valnode or valnode.done) and true
   end
@@ -2421,9 +2399,6 @@ function visitors.Return(context, node)
                  not (retattr.scope and retattr.scope:get_up_function_scope() == funcscope) then
                 retnode:raisef("return at index %d: cannot pass non copyable type '%s' by value",
                   i, rettype)
-              end
-              if not context.pragmas.nochecks and retnode and funcrettype ~= rettype then
-                retnode.checkcast = true
               end
             end
           end
@@ -2554,9 +2529,6 @@ local function visitor_FuncDef_variable(context, declscope, varnode)
   end
   if declscope == 'global' or context.scope.is_topscope or decl then
     varnode.attr.staticstorage = true
-  end
-  if context.pragmas.nostatic then
-    varnode.attr.nostatic = true
   end
   local symbol = context:traverse_node(varnode)
   if symbol and symbol.metafunc then
@@ -3129,9 +3101,6 @@ function visitors.UnaryOp(context, node, opts)
     end
   elseif opname == 'deref' then
     attr.lvalue = true
-    if not context.pragmas.nochecks then
-      argnode.checkderef = true
-    end
   end
   if type then
     attr.type = type
@@ -3268,7 +3237,6 @@ function analyzer.analyze(context)
   end
 
   tabler.update(context.pragmas, config.pragmas)
-  context:push_pragmas()
 
   if ast.src and ast.src.name then
     context.pragmas.unitname = pegger.filename_to_unitname(ast.src.name)
@@ -3307,12 +3275,10 @@ function analyzer.analyze(context)
     context:pop_state()
   end
 
-  -- execute after inferance callbacks
+  -- execute after inference callbacks
   for _,f in ipairs(context.after_inferences) do
     f()
   end
-
-  context:pop_pragmas()
 
   context.analyzing = nil
   return context

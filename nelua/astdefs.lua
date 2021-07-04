@@ -313,7 +313,7 @@ aster.register('FuncDef', {
 })
 
 -- This is used only internally.
-aster.register('PragmaCall', {
+aster.register('Directive', {
   shaper.string, -- name
   shaper.table, -- arguments exprs
 })

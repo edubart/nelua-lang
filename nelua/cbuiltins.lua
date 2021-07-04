@@ -772,7 +772,7 @@ function operators.deref(_, emitter, argnode)
     -- use pointer to the actual subtype structure, because its type may have been simplified
     emitter:add('(',indextype.subtype,'*)')
   end
-  if argnode.checkderef then
+  if not emitter.context.pragmas.nochecks then
     local op = emitter.context:ensure_builtin('nelua_assert_deref_', argnode.attr.type)
     if argnode.attr.type.subtype.length == 0 then
       emitter:add(op, '((', argnode.attr.type, ')', argnode, ')')
@@ -855,6 +855,7 @@ function inlines.assert(context, node)
 end
 
 function inlines.check(context, node)
+  if context.pragmas.nochecks then return end -- omit call
   return inlines.assert(context, node)
 end
 
@@ -1000,9 +1001,13 @@ function inlines.require(context, node, emitter)
   local bracepos = emitter:get_pos()
   emitter:add_indent_ln("{ /* require '", attr.requirename, "' */")
   local lastpos = emitter:get_pos()
+  context:push_state{inrequire = true}
   context:push_scope(context.rootscope)
+  context:push_forked_pragmas(attr.pragmas)
   emitter:add(ast)
+  context:pop_pragmas()
   context:pop_scope()
+  context:pop_state()
   if emitter:get_pos() == lastpos then
     emitter:remove_until_pos(bracepos)
   else

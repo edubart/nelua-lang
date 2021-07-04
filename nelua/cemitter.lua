@@ -90,8 +90,8 @@ function CEmitter:add_val2boolean(val, valtype)
   end
 end
 
-function CEmitter:add_string2cstring(val, checked)
-  if checked then
+function CEmitter:add_string2cstring(val)
+  if not self.context.pragmas.nochecks and traits.is_astnode(val) and val.attr.comptime then
     self:add_builtin('nelua_assert_string2cstring')
   else
     self:add_builtin('nelua_string2cstring')
@@ -104,7 +104,35 @@ function CEmitter:add_cstring2string(val)
   self:add('(', val, ')')
 end
 
-function CEmitter:add_val2type(type, val, valtype, checkcast)
+function CEmitter:add_deref(val, valtype)
+  self:add_one('*')
+  if not self.context.pragmas.nochecks then
+    self:add_builtin('nelua_assert_deref_', valtype)
+    self:add('(', val, ')')
+  else
+    self:add_one(val)
+  end
+end
+
+function CEmitter:add_typedval(type, val, valtype, forcedcast)
+  if not forcedcast and not self.context.pragmas.nochecks and type.is_integral and valtype.is_scalar and
+    not type:is_type_inrange(valtype) then
+    self:add_builtin('nelua_narrow_cast_', type, valtype)
+    self:add('(', val, ')')
+  else
+    local innertype = type.is_pointer and type.subtype or type
+    local surround = innertype.is_aggregate
+    if surround then self:add_one('(') end
+    self:add_typecast(type)
+    if type.is_integral and valtype.is_pointer and type.size ~= valtype.size then
+      self:add('(', primtypes.usize, ')')
+    end
+    self:add_one(val)
+    if surround then self:add_one(')') end
+  end
+end
+
+function CEmitter:add_val2type(type, val, valtype, forcedcast)
   if type.is_comptime then
     self:add_builtin('NLNIL')
     return
@@ -114,7 +142,6 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
     if not valtype then
       valtype = val.attr.type
     end
-    checkcast = val.checkcast
   end
 
   if val then
@@ -134,8 +161,7 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
     elseif type.is_boolean then
       self:add_val2boolean(val, valtype)
     elseif valtype.is_string and (type.is_cstring or type:is_pointer_of(primtypes.byte)) then
-      local comptime = traits.is_astnode(val) and val.attr.comptime
-      self:add_string2cstring(val, checkcast and not comptime)
+      self:add_string2cstring(val)
     elseif type.is_string and valtype.is_cstring then
       self:add_cstring2string(val)
     elseif type.is_pointer and traits.is_astnode(val) and val.attr.autoref then
@@ -144,29 +170,9 @@ function CEmitter:add_val2type(type, val, valtype, checkcast)
     elseif valtype.is_pointer and valtype.subtype == type and
            (type.is_record or type.is_array) then
       -- automatic dereference
-      self:add_one('*')
-      if checkcast then
-        self:add_builtin('nelua_assert_deref_', valtype)
-        self:add('(', val, ')')
-      else
-        self:add_one(val)
-      end
+      self:add_deref(val, valtype)
     else
-      if checkcast and type.is_integral and valtype.is_scalar and
-        not type:is_type_inrange(valtype) then
-        self:add_builtin('nelua_narrow_cast_', type, valtype)
-        self:add('(', val, ')')
-      else
-        local innertype = type.is_pointer and type.subtype or type
-        local surround = innertype.is_aggregate
-        if surround then self:add_one('(') end
-        self:add_typecast(type)
-        if type.is_integral and valtype.is_pointer and type.size ~= valtype.size then
-          self:add('(', primtypes.usize, ')')
-        end
-        self:add_one(val)
-        if surround then self:add_one(')') end
-      end
+      self:add_typedval(type, val, valtype, forcedcast)
     end
   else
     self:add_zeroed_type_init(type)

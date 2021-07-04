@@ -85,6 +85,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
   for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
     local varattr = varnode.attr
     local noinit = varattr.noinit or varattr.cexport or varattr.cimport or varattr.type.is_cvalist
+                   or context.pragmas.noinit
     local vartype = varattr.type
     local empty = vartype.size == 0 and not vartype.emptyrefed
     local used = context.pragmas.nodce or -- dead code elimination is disabled
@@ -100,7 +101,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         decemitter:add_indent()
         if varattr.cimport then
           decemitter:add('extern ')
-        elseif not varattr.nostatic and not varattr.cexport then
+        elseif not varattr.nostatic and not varattr.cexport and not context.pragmas.nostatic then
           decemitter:add('static ')
         end
         decemitter:add(varnode)
@@ -155,7 +156,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
             -- initialize variable
             defemitter:add(' = ')
             if retvalname then
-              defemitter:add_val2type(vartype, retvalname, valtype, varnode.checkcast)
+              defemitter:add_val2type(vartype, retvalname, valtype)
             elseif valnode then
               defemitter:add_val2type(vartype, valnode)
             else
@@ -521,7 +522,7 @@ function visitors.Pair(_, node, emitter)
   end --luacov:enable
 end
 
-function visitors.PragmaCall(context, node, emitter)
+function visitors.Directive(context, node, emitter)
   local name, args = node[1], node[2]
   if name == 'cinclude' then
     context:ensure_include(args[1])
@@ -570,6 +571,10 @@ function visitors.PragmaCall(context, node, emitter)
     table.insert(context.compileopts.ldflags, args[1])
   elseif name == 'linklib' then
     context:ensure_linklib(args[1])
+  elseif name == 'pragmapush' then
+    context:push_forked_pragmas(args[1])
+  elseif name == 'pragmapop' then
+    context:pop_pragmas()
   end
 end
 
@@ -792,7 +797,7 @@ function visitors.Call(context, node, emitter)
       local argnode = argnodes[1]
       if argnode.attr.type ~= type then
         -- type really differs, cast it
-        emitter:add_val2type(type, argnode, argnode.attr.type)
+        emitter:add_val2type(type, argnode, argnode.attr.type, true)
       else
         -- same type, no need to cast
         emitter:add(argnode)
@@ -894,12 +899,12 @@ function visitors.KeyIndex(context, node, emitter)
       emitter:add('[')
       context:pop_state()
     end
-    if not node.attr.checkbounds then
-      emitter:add(indexnode)
-    else
+    if not context.pragmas.nochecks and objtype.length > 0 and not indexnode.attr.comptime then
       local indextype = indexnode.attr.type
       emitter:add(context:ensure_builtin('nelua_assert_bounds_', indextype))
       emitter:add('(', indexnode, ', ', objtype.length, ')')
+    else
+      emitter:add(indexnode)
     end
     emitter:add(']')
   end
@@ -1271,7 +1276,7 @@ end
 
 local function resolve_function_qualifier(context, attr)
   local qualifier = ''
-  if not attr.entrypoint and not attr.nostatic and not attr.cexport then
+  if not attr.entrypoint and not attr.nostatic and not attr.cexport and not context.pragmas.nostatic then
     qualifier = 'static '
   end
   if attr.cinclude then

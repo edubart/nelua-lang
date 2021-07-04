@@ -1,5 +1,4 @@
 local class = require 'nelua.utils.class'
-local tabler = require 'nelua.utils.tabler'
 local Scope = require 'nelua.scope'
 local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
@@ -16,10 +15,10 @@ function AnalyzerContext:_init(visitors, ast, generator)
   self.usedbuiltins = {}
   self.env = setmetatable({}, {__index = _G})
   self.requires = {}
-  self.scopestack = {}
-  self.globalpragmas = {}
-  self.pragmas = setmetatable({}, {__index = self.globalpragmas})
   self.pragmastack = {}
+  self.rootpragmas = {}
+  self.pragmas = self.rootpragmas
+  self.scopestack = {}
   self.usedcodenames = {}
   self.after_analyze = {}
   self.after_inferences = {}
@@ -28,20 +27,32 @@ function AnalyzerContext:_init(visitors, ast, generator)
   self.generator = generator
 end
 
-function AnalyzerContext:push_pragmas()
+function AnalyzerContext:push_pragmas(pragmas)
   local pragmastack = self.pragmastack
-  local pragmas = self.pragmas
-  pragmastack[#pragmastack+1] = pragmas
-  local newpragmas = setmetatable(tabler.copy(pragmas), getmetatable(pragmas))
-  self.pragmas = newpragmas
-  return newpragmas
+  local oldpragmas = self.pragmas
+  pragmastack[#pragmastack+1] = oldpragmas
+  self.pragmas = pragmas
+end
+
+function AnalyzerContext:push_forked_pragmas(pragmas)
+  pragmas = pragmas or {}
+  local oldpragmas = self.pragmas
+  local mt = getmetatable(pragmas)
+  if mt then -- reuse the forked pragmas
+    assert(mt.__index == oldpragmas,
+      'cannot mix different pragmas parents, is a pragma pop missing?')
+  else -- forking a new pragmas
+    setmetatable(pragmas, {__index = oldpragmas})
+  end
+  self:push_pragmas(pragmas)
+  return pragmas
 end
 
 function AnalyzerContext:pop_pragmas()
   local pragmastack = self.pragmastack
-  self.pragmas = pragmastack[#pragmastack]
-  pragmastack[#pragmastack] = nil
-  assert(self.pragmas)
+  local index = #pragmastack
+  self.pragmas = self.pragmastack[index]
+  self.pragmastack[index] = nil
 end
 
 function AnalyzerContext:push_scope(scope)

@@ -2766,9 +2766,9 @@ it("check builtin", function()
       return true
     end
     check(f(), 'check1')
-    ## context.pragmas.nochecks = true
+    ## pragmapush{nochecks=true}
     check(false, 'check2')
-    ## context.pragmas.nochecks = nil
+    ## pragmapop()
     check(f(), 'check3')
     assert(count == 2)
   ]])
@@ -2810,9 +2810,9 @@ end)
 
 it("context pragmas", function()
   expect.generate_c([[
-    ## context.pragmas.noinit = true
+    ## pragmapush{noinit = true}
     local a: integer
-    ## context.pragmas.noinit = false
+    ## pragmapop()
     local b: integer
   ]], {
     "\nstatic int64_t a;\n",
@@ -2820,10 +2820,10 @@ it("context pragmas", function()
   })
 
   expect.generate_c([[
-    ## context.pragmas.nostatic = true
+    ## pragmapush{nostatic = true}
     local a: integer
     local function f() end
-    ## context.pragmas.nostatic = false
+    ## pragmapop()
     local b: integer
     local function g() end
   ]], {
@@ -2839,17 +2839,7 @@ it("context pragmas", function()
   ]], {
     "a = 0.0;",
   })
-  config.pragmas.nofloatsuffix = false
-
-  expect.generate_c([[
-    ## context.pragmas.nostatic = true
-    local a: integer
-    ## context.pragmas.nostatic = false
-    local b: integer
-  ]], {
-    "\nint64_t a = 0;\n",
-    "\nstatic int64_t b = 0;\n"
-  })
+  config.pragmas.nofloatsuffix = nil
 
   expect.generate_c([[
     ## context.pragmas.unitname = 'mylib'

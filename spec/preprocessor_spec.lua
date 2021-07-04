@@ -332,9 +332,9 @@ expect.ast_type_equals([=[
   ]])
 end)
 
-it("function pragmas", function()
+it("directives", function()
   expect.analyze_ast("## cinclude '<stdio.h>'")
-  expect.analyze_error("## cinclude(false)", "invalid arguments for preprocess")
+  expect.analyze_error("## cinclude(false)", "invalid arguments for directive")
 end)
 
 it("call codes after inference", function()
