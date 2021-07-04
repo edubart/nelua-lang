@@ -24,7 +24,7 @@ analyzer.visitors = visitors
 local function emptynext() end
 
 -- Number literal.
-function visitors.Number(_, node)
+function visitors.Number(_, node, opts)
   local attr = node.attr
   local value, base = bn.from(node[1])
   local literal = node[2]
@@ -40,7 +40,7 @@ function visitors.Number(_, node)
     end
     attr.type = type
   else -- no literal suffix is set
-    local desiredtype = node.desiredtype
+    local desiredtype = opts and opts.desiredtype
     if desiredtype and
        (desiredtype.is_unsigned or desiredtype.is_float) and
        desiredtype:is_inrange(value) then
@@ -69,7 +69,7 @@ function visitors.Number(_, node)
 end
 
 -- String literal.
-function visitors.String(_, node)
+function visitors.String(_, node, opts)
   local attr = node.attr
   local value, literal = node[1], node[2]
   local type
@@ -87,7 +87,7 @@ function visitors.String(_, node)
       value = bn.new(string.byte(value))
     end
   else -- no literal suffix is set
-    local desiredtype = node.desiredtype
+    local desiredtype = opts and opts.desiredtype
     if desiredtype and desiredtype.is_cstring then -- parent desires a C string
       type = primtypes.cstring
     else
@@ -240,8 +240,7 @@ local function visitor_Array_literal(context, node, littype)
     if childnode.tag == 'Pair' then
       childnode:raisef("fields are disallowed for array literals")
     end
-    childnode.desiredtype = subtype
-    context:traverse_node(childnode)
+    context:traverse_node(childnode, {desiredtype=subtype})
     local childtype = childnode.attr.type
     childnode, childtype = visitor_convert(context, childnodes, i, subtype, childnode, childtype)
     local childattr = childnode.attr
@@ -316,8 +315,7 @@ local function visitor_Record_literal(context, node, littype)
       childnode:raisef("field '%s' is not present in record '%s'", fieldname, littype)
     end
     local fieldtype = field.type
-    fieldvalnode.desiredtype = fieldtype
-    context:traverse_node(fieldvalnode)
+    context:traverse_node(fieldvalnode, {desiredtype=fieldtype})
     local fieldvaltype = fieldvalnode.attr.type
     fieldvalnode, fieldvaltype = visitor_convert(context, parent, parentindex, fieldtype, fieldvalnode, fieldvaltype)
     local fieldvalattr = fieldvalnode.attr
@@ -380,8 +378,7 @@ local function visitor_Union_literal(context, node, littype)
     end
     fieldname = field.name
     local fieldtype = field.type
-    fieldvalnode.desiredtype = fieldtype
-    context:traverse_node(fieldvalnode)
+    context:traverse_node(fieldvalnode, {desiredtype=fieldtype})
     local fieldvaltype = fieldvalnode.attr.type
     fieldvalnode, fieldvaltype = visitor_convert(context, childnode, 2, fieldtype, fieldvalnode, fieldvaltype)
     local fieldvalattr = fieldvalnode.attr
@@ -427,16 +424,17 @@ local function visitor_Table_literal(context, node)
   attr.node = node
 end
 
-function visitors.InitList(context, node)
-  local desiredtype = node.desiredtype or node.attr.desiredtype
+function visitors.InitList(context, node, opts)
+  local desiredtype = (opts and opts.desiredtype) or node.attr.desiredtype
   if desiredtype then
     local objtype = desiredtype:implicit_deref_type()
-    if objtype.is_record and objtype.choose_initializerlist_type then
-      local err
-      desiredtype, err = objtype.choose_initializerlist_type(node)
-      if not traits.is_type(desiredtype) then
-        node:raisef("failed initialize record '%s' from braces: %s",
-          objtype, err or 'choose_initializerlist_type failed')
+    if objtype.is_record and objtype.metafields.__convert then
+      local argtype = objtype.metafields.__convert.type.argtypes[1]
+      if argtype.is_concept then
+        local listtype = argtype:get_desired_type_from_node(node)
+        if listtype then
+          desiredtype = listtype
+        end
       end
     end
   end
@@ -472,8 +470,8 @@ function visitors.PragmaCall(_, node)
   node.done = true
 end
 
-function visitors.Annotation(context, node, symbol)
-  assert(symbol)
+function visitors.Annotation(context, node, opts)
+  local symbol = opts.symbol
   local name = node[1]
 
   local istypedecl
@@ -696,7 +694,7 @@ function visitors.IdDecl(context, node)
   if annotnodes then
     local type = attr.type
     if not (type and type.is_type and not attr.value) then -- skip unresolved types
-      context:traverse_nodes(annotnodes, symbol)
+      context:traverse_nodes(annotnodes, {symbol=symbol})
     end
   end
   return symbol
@@ -704,7 +702,6 @@ end
 
 function visitors.Paren(context, node, ...)
   local innernode = node[1]
-  innernode.desiredtype = node.desiredtype
   local ret = context:traverse_node(innernode, ...)
   -- inherit attributes from inner node
   node.attr = innernode.attr
@@ -713,10 +710,11 @@ function visitors.Paren(context, node, ...)
   return ret
 end
 
-function visitors.Type(context, node, symbol)
+function visitors.Type(context, node, opts)
+  local symbol = opts and opts.symbol
   local typenode = node[1]
   context:push_state{intypeexpr = true}
-  context:traverse_node(typenode, symbol)
+  context:traverse_node(typenode, {symbol=symbol})
   context:pop_state()
   -- inherit attributes from inner node
   local attr = typenode.attr
@@ -803,7 +801,8 @@ function visitors.RecordField(context, node, recordtype)
   node.done = true
 end
 
-function visitors.RecordType(context, node, symbol)
+function visitors.RecordType(context, node, opts)
+  local symbol = opts and opts.symbol
   local attr = node.attr
   local recordtype
   if symbol and symbol.value then
@@ -847,7 +846,8 @@ function visitors.UnionField(context, node, uniontype)
   node.done = true
 end
 
-function visitors.UnionType(context, node, symbol)
+function visitors.UnionType(context, node, opts)
+  local symbol = opts and opts.symbol
   local attr = node.attr
   local uniontype
   if symbol and symbol.value then
@@ -879,13 +879,11 @@ function visitors.OptionalType(_, node)
   node:raisef("optional type not implemented yet")
 end
 
-function visitors.EnumField(context, node)
+function visitors.EnumField(context, node, desiredtype)
   local name, numnode = node[1], node[2]
   local field = Attr{name = name}
   if numnode then
-    local desiredtype = node.desiredtype
-    numnode.desiredtype = desiredtype
-    context:traverse_node(numnode)
+    context:traverse_node(numnode, {desiredtype=desiredtype})
     local numattr = numnode.attr
     local numtype = numattr.type
     if not numattr.comptime then
@@ -918,8 +916,7 @@ function visitors.EnumType(context, node)
   local fields = {}
   for i=1,#fieldnodes do
     local fnode = fieldnodes[i]
-    fnode.desiredtype = subtype
-    local field = context:traverse_node(fnode)
+    local field = context:traverse_node(fnode, subtype)
     if not field.value then
       if i == 1 then
         fnode:raisef("first enum field requires an initial value", field.name)
@@ -1185,8 +1182,7 @@ local function visitor_Call_type_cast(context, node, argnodes, type)
   end
   local argnode = argnodes[1]
   if argnode then
-    argnode.desiredtype = type
-    context:traverse_node(argnode)
+    context:traverse_node(argnode, {desiredtype=type})
     local argattr = argnode.attr
     local argtype = argattr.type
     if argtype then
@@ -1288,8 +1284,15 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
           funcargtype = funcarg.type
         end
         if argnode then
-          argnode.desiredtype = argnode.desiredtype or funcargtype
-          context:traverse_node(argnode)
+          local desiredtype = funcargtype
+          if desiredtype then
+            if desiredtype.is_concept then
+              desiredtype = desiredtype:get_desired_type_from_node(argnode)
+            elseif desiredtype.is_auto then
+              desiredtype = nil
+            end
+          end
+          context:traverse_node(argnode, {desiredtype=desiredtype})
           if not argnodes[i] and (not funcargtype or funcargtype.is_varargs) then
             break -- varargs unpacked 0 arguments
           end
@@ -1341,8 +1344,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
 
           if funcargtype ~= wantedtype and argnode then
             -- new type suggested, need to traverse again
-            argnode.desiredtype = wantedtype
-            context:traverse_node(argnode)
+            context:traverse_node(argnode, {desiredtype=wantedtype})
           end
           funcargtype = wantedtype
 
@@ -1824,9 +1826,8 @@ function visitors.If(context, node)
   local done = true
   for i=1,#ifpairs,2 do
     local ifcondnode, ifblocknode = ifpairs[i], ifpairs[i+1]
-    ifcondnode.desiredtype = primtypes.boolean
     ifcondnode.attr.inconditional = true
-    context:traverse_node(ifcondnode)
+    context:traverse_node(ifcondnode, {desiredtype=primtypes.boolean})
     context:traverse_node(ifblocknode)
     done = done and ifblocknode.done and ifcondnode.done
   end
@@ -1883,9 +1884,8 @@ end
 
 function visitors.While(context, node)
   local condnode, blocknode = node[1], node[2]
-  condnode.desiredtype = primtypes.boolean
   condnode.attr.inconditional = true
-  context:traverse_node(condnode)
+  context:traverse_node(condnode, {desiredtype=primtypes.boolean})
   local scope = context:push_forked_cleaned_scope(node)
   scope.is_loop = true
   context:traverse_node(blocknode)
@@ -1895,13 +1895,12 @@ end
 
 function visitors.Repeat(context, node)
   local blocknode, condnode = node[1], node[2]
-  condnode.desiredtype = primtypes.boolean
   condnode.attr.inconditional = true
   local scope = context:push_forked_cleaned_scope(node)
   scope.is_loop = true
   context:traverse_node(blocknode)
   context:push_scope(blocknode.scope)
-  context:traverse_node(condnode)
+  context:traverse_node(condnode, {desiredtype=primtypes.boolean})
   context:pop_scope()
   context:pop_scope()
   node.done = blocknode.done and condnode.done and true
@@ -2219,8 +2218,7 @@ function visitors.VarDecl(context, node)
       varnode:raisef("const variables must have an initial value")
     end
     if valnode then
-      valnode.desiredtype = valnode.desiredtype or vartype
-      context:traverse_node(valnode, symbol)
+      context:traverse_node(valnode, {symbol=symbol, desiredtype=vartype})
       valtype = valnode.attr.type
       valnode, valtype = visitor_convert(context, valnodes, i, vartype, valnode, valtype)
 
@@ -2284,7 +2282,7 @@ function visitors.VarDecl(context, node)
         local annotnode = varnode[3]
         if annotnode then
           -- must traverse again annotation node early once type is found ahead
-          context:traverse_nodes(annotnode, symbol)
+          context:traverse_nodes(annotnode, {symbol=symbol})
         end
       end
       if vartype then
@@ -2337,8 +2335,7 @@ function visitors.Assign(context, node)
       varnode:raisef("cannot assign a constant variable")
     end
     if valnode then
-      valnode.desiredtype = vartype
-      context:traverse_node(valnode, symbol)
+      context:traverse_node(valnode, {symbol=symbol, desiredtype=vartype})
       valtype = valnode.attr.type
       valnode, valtype = visitor_convert(context, valnodes, i, vartype, valnode, valtype)
     end
@@ -2659,7 +2656,7 @@ end
 
 local function visitor_function_annotations(context, node, annotnodes, blocknode, symbol, type)
   if annotnodes then
-    context:traverse_nodes(annotnodes, symbol)
+    context:traverse_nodes(annotnodes, {symbol=symbol})
   end
 
   local attr = node.attr
@@ -2774,7 +2771,7 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
     -- pop node and then push again to fix error message traceback
     context:pop_node()
     context:push_state{inpolyeval=polyeval} -- used to generate error messages
-    context:traverse_node(polynode, symbol)
+    context:traverse_node(polynode, {polysymbol=symbol})
     context:pop_state()
     context:push_node(node)
     assert(polynode.attr._symbol)
@@ -2811,7 +2808,8 @@ local function resolve_function_type(node, symbol, varnode, varsym, decl, argatt
   return type
 end
 
-function visitors.FuncDef(context, node, polysymbol)
+function visitors.FuncDef(context, node, opts)
+  local polysymbol = opts and opts.polysymbol
   local declscope, varnode, argnodes, retnodes, annotnodes, blocknode =
         node[1], node[2], node[3], node[4], node[5], node[6]
 
@@ -3063,14 +3061,16 @@ local function override_unary_op(context, node, opname, objnode, objtype)
   return true
 end
 
-function visitors.UnaryOp(context, node)
+function visitors.UnaryOp(context, node, opts)
   local attr = node.attr
   local opname, argnode = node[1], node[2]
+  local desiredtype = opts and opts.desiredtype
+  local argopts
 
-  if node.desiredtype and node.desiredtype.is_boolean or opname == 'not' then
-    argnode.desiredtype = primtypes.boolean
+  if desiredtype and desiredtype.is_boolean or opname == 'not' then
+    argopts = {desiredtype=primtypes.boolean}
   end
-  context:traverse_node(argnode)
+  context:traverse_node(argnode, argopts)
 
   -- quick return for already resolved type
   if attr.type then
@@ -3174,24 +3174,25 @@ local function override_binary_op(context, node, opname, lnode, rnode, ltype, rt
   return true
 end
 
-function visitors.BinaryOp(context, node)
+function visitors.BinaryOp(context, node, opts)
   local lnode, opname, rnode = node[1], node[2], node[3]
   local attr = node.attr
   local isor = opname == 'or'
   local isbinaryconditional = isor or opname == 'and'
+  local desiredtype = opts and opts.desiredtype
+  local argopts
 
   local wantsboolean
-  if isbinaryconditional and node.desiredtype and node.desiredtype.is_boolean then
-    lnode.desiredtype = primtypes.boolean
-    rnode.desiredtype = primtypes.boolean
-    wantsboolean =  true
+  if isbinaryconditional and desiredtype and desiredtype.is_boolean then
+    argopts = {desiredtype=primtypes.boolean}
+    wantsboolean = true
   elseif isor and lnode[2] == 'and' and lnode.tag == 'BinaryOp' then
     lnode.attr.ternaryand = true
     attr.ternaryor = true
   end
 
-  context:traverse_node(lnode)
-  context:traverse_node(rnode)
+  context:traverse_node(lnode, argopts)
+  context:traverse_node(rnode, argopts)
 
   -- quick return for already resolved type
   if attr.type then

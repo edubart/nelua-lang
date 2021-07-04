@@ -1838,12 +1838,12 @@ end)
 it("custom braces initialization", function()
   expect.analyze_ast([==[
     local vector = @record{data: [4]integer}
-    ##[[
-    vector.value.choose_initializerlist_type = function(nodes)
-      return types.ArrayType(primtypes.integer, 4)
-    end
-    ]]
-    function vector.__convert(data: [4]integer): vector
+    local an_arrayT: type = #[concept(function(x)
+      return x.type:is_array_of(primtypes.integer)
+    end, function(node)
+      return node.tag == 'InitList' and types.ArrayType(primtypes.integer, #node)
+    end)]#
+    function vector.__convert(data: an_arrayT): vector
       local v: vector
       v.data = data
       return v
@@ -1853,19 +1853,17 @@ it("custom braces initialization", function()
   ]==])
   expect.analyze_error([==[
     local vector = @record{data: [4]integer}
-    ##[[
-    vector.value.choose_initializerlist_type = function(nodes)
-      return nil
-    end
-    ]]
-    function vector.__convert(data: [4]integer): vector
+    local an_arrayT: type = #[concept(function(x)
+      return x.type:is_array_of(primtypes.integer)
+    end)]#
+    function vector.__convert(data: an_arrayT): vector
       local v: vector
       v.data = data
       return v
     end
     local v: vector = {1,2,3,4}
     assert(v.data[0] == 1 and v.data[1] == 2 and v.data[2] == 3 and v.data[3] == 4)
-  ]==], "choose_initializerlist_type failed")
+  ]==], "no viable type conversion from")
 end)
 
 it("do expressions", function()

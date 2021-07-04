@@ -34,7 +34,6 @@ require 'iterators'
   vectorT.is_container = true
   vectorT.is_vector = true
   vectorT.subtype = T
-  vectorT.choose_initializerlist_type = function(nodes) return types.ArrayType(T, #nodes) end
   ]]
 
   -- Concept matching fixed arrays of T.
@@ -43,6 +42,8 @@ require 'iterators'
       return true
     end
     return false, string.format("no viable conversion from '%s' to '%s'", x.type, vectorT)
+  end, function(node)
+    return node.tag == 'InitList' and types.ArrayType(T, #node)
   end)]#
 
   --[[

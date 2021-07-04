@@ -95,12 +95,16 @@ function builtins.assert(context, node, argnodes)
   local attr = node.attr
   local statement = attr.checkbuiltin or context:get_parent_node().tag == 'Block'
   if statement then
-    local argnode = argnodes[1]
-    if argnode then
-      argnode.desiredtype = primtypes.boolean
+    local firstargnode = argnodes[1]
+    if firstargnode then
+      context:traverse_node(firstargnode, {desiredtype=primtypes.boolean})
     end
+    for i=2,#argnodes do
+      context:traverse_node(argnodes[i])
+    end
+  else
+    context:traverse_nodes(argnodes)
   end
-  context:traverse_nodes(argnodes)
   local argtypes = types.argtypes_from_argnodes(argnodes, 2)
   if not argtypes then -- wait last argument type resolution
     return false

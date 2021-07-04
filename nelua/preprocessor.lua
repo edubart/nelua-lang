@@ -198,8 +198,8 @@ function preprocessor.preprocess(context, ast)
   if context.generator == 'c' then
     ppenv.ccinfo = ccompiler.get_cc_info()
   end
-  local function concept(f)
-    local type = types.ConceptType(f)
+  local function concept(f, desiredf)
+    local type = types.ConceptType(f, desiredf)
     type.node = context:get_current_node()
     return type
   end

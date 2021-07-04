@@ -1874,12 +1874,6 @@ RecordType.shape = shaper.fork_shape(Type.shape, {
   -- Meta fields in the record (methods and global variables declared for it).
   metafields = shaper.map_of(shaper.string, shaper.symbol),
 
-  -- Function to determine which type to interpret when initializing the record from braces '{}'.
-  -- This is used to allow initialization of custom vectors from braces.
-  -- By default records interpret braces as fields initialization,
-  -- but it can be changed to an array for example then it's handled in the __convert metamethod.
-  choose_initializerlist_type = shaper.func:is_optional(),
-
   -- Whether to pack the record.
   packed = shaper.optional_boolean,
 
@@ -2429,10 +2423,11 @@ ConceptType.is_nilable = true
 ConceptType.is_concept = true
 
 -- Create a concept from a lua function defined in the preprocessor.
-function ConceptType:_init(func)
+function ConceptType:_init(func, desiredfunc)
   self.codename = types.gencodename('concept')
   Type._init(self, 'concept', 0)
   self.func = func
+  self.desiredfunc = desiredfunc
 end
 
 -- Checks if this type is convertible from another type.
@@ -2470,6 +2465,12 @@ function ConceptType:get_convertible_from_attr(attr, _, _, argattrs)
     end
   end
   return type, err
+end
+
+function ConceptType:get_desired_type_from_node(node)
+  if self.desiredfunc then
+    return self.desiredfunc(node)
+  end
 end
 
 function types.make_overload_concept(context, syms, ...)
