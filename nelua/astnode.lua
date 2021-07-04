@@ -333,9 +333,9 @@ function ASTNode:recursive_find_child(node)
   end
 end
 
-function ASTNode:has_sideeffect()
+function ASTNode:recursive_has_attr(attrname)
   for node in self:walk_nodes() do
-    if node.attr.sideeffect then
+    if node.attr[attrname] then
       return true
     end
   end

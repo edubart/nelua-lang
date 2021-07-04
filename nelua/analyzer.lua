@@ -157,7 +157,7 @@ function visitors.Varargs(context, node)
     if context.scope.is_topscope then
       node:raisef("cannot unpack varargs in this context")
     end
-    local mulargtype = types.attrs_get_multiple_argtype(context.state.funcsym.argattrs)
+    local mulargtype = types.get_multiple_argtype_from_attrs(context.state.funcsym.argattrs)
     if not mulargtype then
       node:raisef("cannot unpack varargs in this context")
     elseif mulargtype.is_cvarargs then
@@ -224,10 +224,12 @@ local function visitor_Array_literal(context, node, littype)
   local childnodes = node
   local subtype = littype.subtype
   local nchildnodes = #childnodes
-  local lastchildnode = nchildnodes > 0 and childnodes[nchildnodes]
-  if lastchildnode and lastchildnode.tag == 'Varargs' then
-    context:traverse_node(lastchildnode)
-    nchildnodes = #childnodes
+  do -- need to unpack last varargs first
+    local lastchildnode = nchildnodes > 0 and childnodes[nchildnodes]
+    if lastchildnode and lastchildnode.tag == 'Varargs' then
+      context:traverse_node(lastchildnode)
+      nchildnodes = #childnodes
+    end
   end
   if not (nchildnodes <= littype.length or nchildnodes == 0) then
     node:raisef("expected at most %d values in array literal but got %d", littype.length, nchildnodes)
@@ -260,15 +262,9 @@ local function visitor_Array_literal(context, node, littype)
         childnode.checkcast = true
       end
     end
-    if childattr.sideeffect then
-      sideeffect = true
-    end
-    if not childattr.comptime then
-      comptime = nil
-    end
-    if not childtype or not childnode.done then
-      done = nil
-    end
+    sideeffect = sideeffect or childattr.sideeffect
+    comptime = comptime and childattr.comptime
+    done = done and childtype and childnode.done and true
   end
   attr.type = littype
   attr.comptime = comptime
@@ -419,9 +415,16 @@ end
 local function visitor_Table_literal(context, node)
   local attr = node.attr
   local childnodes = node
-  context:traverse_nodes(childnodes)
+  local done = true
+  for i=1,#childnodes do
+    local childnode = childnodes[i]
+    context:traverse_node(childnode)
+    done = done and childnode.done and true
+  end
+  -- TODO: check side effects?
   attr.type = primtypes.table
   attr.node = node
+  attr.done = done
 end
 
 function visitors.InitList(context, node, opts)
@@ -653,10 +656,10 @@ function visitors.IdDecl(context, node)
     if not typetype or not typetype.is_type or not type then
       typenode:raisef("invalid type")
     end
-    attr.type = type
     if type.is_void then
       node:raisef("variable declaration cannot be of the empty type '%s'", type)
     end
+    attr.type = type
   end
   local symbol
   if luatype(namenode) == 'string' then

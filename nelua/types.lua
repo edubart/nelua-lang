@@ -359,7 +359,7 @@ end
 
 -- Checks if this type can initialize from the attr (succeeds only for compile time attrs).
 function Type:is_initializable_from_attr(attr)
-  return attr and self == attr.type and attr.comptime
+  return self == attr.type and attr.comptime
 end
 
 -- Checks if this type equals to another type.
@@ -599,7 +599,7 @@ function types.attrs_to_types(attrs)
 end
 
 -- Check and get last multiple arguments type from a list of attrs.
-function types.attrs_get_multiple_argtype(attrs)
+function types.get_multiple_argtype_from_attrs(attrs)
   local lastargattr = attrs[#attrs]
   if lastargattr then
     local lastargtype = lastargattr.type
@@ -885,7 +885,7 @@ end
 
 -- Checks if this type can initialize from the attr (succeeds only for compile time attrs).
 function ScalarType:is_initializable_from_attr(attr)
-  if attr and attr.comptime and attr.untyped and attr.type and attr.type.is_scalar then
+  if attr.comptime and attr.untyped and attr.type and attr.type.is_scalar then
     -- initializing from an untyped compile time scalar is always possible
     return true
   end
@@ -1701,10 +1701,6 @@ function FunctionType:get_convertible_from_type(type, explicit, autoref)
     end
   end
   return Type.get_convertible_from_type(self, type, explicit, autoref)
-end
-
-function FunctionType.is_initializable_from_attr()
-  return false
 end
 
 -- Helper to emit a list of typed fields.

@@ -377,7 +377,7 @@ local function can_use_initializer(childnodes)
       childvalnode = childnode
     end
     local childvaltype = childvalnode.attr.type
-    local sideeffect = childvalnode:has_sideeffect()
+    local sideeffect = childvalnode:recursive_has_attr('sideeffect')
     if childvaltype.is_array or (hassideeffect and sideeffect) then
       return false
     end
