@@ -321,6 +321,18 @@ function ASTNode:walk_trace_nodes(tagfilter)
   return coroutine_wrap(walk_trace_nodes), self, #self
 end
 
+--[[
+Recursively search for a child node.
+When found, returns its parent table or node and its index.
+]]
+function ASTNode:recursive_find_child(node)
+  for child, parent1, parent1i in self:walk_nodes() do
+    if child == node then
+      return parent1, parent1i
+    end
+  end
+end
+
 function ASTNode:has_sideeffect()
   for node in self:walk_nodes() do
     if node.attr.sideeffect then

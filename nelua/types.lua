@@ -598,6 +598,18 @@ function types.attrs_to_types(attrs)
   return typelist
 end
 
+-- Check and get last multiple arguments type from a list of attrs.
+function types.attrs_get_multiple_argtype(attrs)
+  local lastargattr = attrs[#attrs]
+  if lastargattr then
+    local lastargtype = lastargattr.type
+    if lastargtype and lastargtype.is_multipleargs then
+      return lastargtype
+    end
+  end
+end
+
+-- Checks if a list of types has no `auto` type.
 function types.are_types_resolved(typelist)
   for i=1,#typelist do
     if typelist[i].is_auto then

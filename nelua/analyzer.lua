@@ -23,167 +23,148 @@ analyzer.visitors = visitors
 
 local function emptynext() end
 
+-- Number literal.
 function visitors.Number(_, node)
   local attr = node.attr
-  local num, literal = node[1], node[2]
-  local value, base = bn.from(num)
-  if not literal then
-    local desiredtype = node.desiredtype
-    -- if the parent node needs an unsigned or float type, we want to use it
-    if desiredtype and
-       (desiredtype.is_unsigned or desiredtype.is_float) and
-       desiredtype:is_inrange(value) then
-      attr.type = desiredtype
-    else
-      attr.untyped = true
-      if bn.isintegral(value) then
-        if base ~= 10 then
-          -- the value may still be out range here, but will be wrapped later
-          attr.type = primtypes.integer
-        elseif primtypes.integer:is_inrange(value) then
-          attr.type = primtypes.integer
-        else -- value is too large to fit integer type
-          attr.type = primtypes.number
-        end
-      else
-        attr.type = primtypes.number
-      end
-    end
-  else
+  local value, base = bn.from(node[1])
+  local literal = node[2]
+  if literal then -- a literal suffix is set
     local type = primtypes[typedefs.number_literal_types[literal]]
     if not type then
       node:raisef("literal suffix '%s' is undefined for numbers", literal)
     end
     if not type:is_inrange(value) then
-      node:raisef("value `%s` for literal type `%s` is out of range, "..
-        "the minimum is `%s` and maximum is `%s`",
-        value:todecint(), type, type.min:todecint(), type.max:todecint())
+      node:raisef("value `%s` for literal type `%s` is out of range, \z
+        the minimum is `%s` and maximum is `%s`",
+        value, type, type.min, type.max)
     end
     attr.type = type
+  else -- no literal suffix is set
+    local desiredtype = node.desiredtype
+    if desiredtype and
+       (desiredtype.is_unsigned or desiredtype.is_float) and
+       desiredtype:is_inrange(value) then
+      -- parent desires unsigned or float type
+      attr.type = desiredtype
+    else -- the number has unfixed type
+      attr.untyped = true
+      if bn.isintegral(value) then -- try to use the default integer type
+        if base ~= 10 then -- wrap overflows when not in base 10
+          -- the value may still be out range here, but it's fine, it will be wrapped later
+          attr.type = primtypes.integer
+        elseif primtypes.integer:is_inrange(value) then -- the value can fit an integer
+          attr.type = primtypes.integer
+        else -- value is too large to fit an integer
+          attr.type = primtypes.number
+        end
+      else -- can only use the default float number type
+        attr.type = primtypes.number
+      end
+    end
   end
   attr.value = value
   attr.base = base
-  attr.literal = true
   attr.comptime = true
   node.done = true
 end
 
+-- String literal.
 function visitors.String(_, node)
   local attr = node.attr
   local value, literal = node[1], node[2]
-  if literal then
-    local type = typedefs.string_literals_types[literal]
+  local type
+  if literal then -- has literal suffix
+    type = typedefs.string_literals_types[literal]
     if not type then
       node:raisef("literal suffix '%s' is undefined for strings", literal)
     end
-    if type.is_scalar then
+    if type.is_cstring then -- C string
+      type = primtypes.cstring
+    else -- is a byte/char literal
       if #value ~= 1 then
-        node:raisef("literal suffix '%s' expects a string of length 1")
+        node:raisef("literal suffix '%s' expects a string of length 1", literal)
       end
-      attr.type = type
       value = bn.new(string.byte(value))
-    elseif type.is_cstring then
-      attr.type = primtypes.cstring
     end
-  else
-    if node.desiredtype and node.desiredtype.is_cstring then
-      attr.type = primtypes.cstring
+  else -- no literal suffix is set
+    local desiredtype = node.desiredtype
+    if desiredtype and desiredtype.is_cstring then -- parent desires a C string
+      type = primtypes.cstring
     else
-      attr.type = primtypes.string
+      type = primtypes.string
     end
   end
   attr.value = value
+  attr.type = type
   attr.comptime = true
-  attr.literal = true
   node.done = true
 end
 
+-- Boolean literal.
 function visitors.Boolean(_, node)
   local attr = node.attr
-  attr.value = node[1]
+  attr.value = node[1] == true
   attr.type = primtypes.boolean
   attr.comptime = true
-  attr.literal = true
   node.done = true
 end
 
+-- Nil literal.
 function visitors.Nil(_, node)
   local attr = node.attr
   attr.type = primtypes.niltype
   attr.comptime = true
-  attr.literal = true
   node.done = true
 end
 
+local varargs_unpack_tags = {Call=true, CallMethod=true, VarDecl=true, Assign=true, Return=true, InitList=true}
+
+-- Varargs (`...`).
 function visitors.Varargs(context, node)
   local polyeval = context.state.inpolyeval
-  if polyeval and polyeval.varargsnodes then
-    -- transform function, replacing Varargs nodes with Id nodes
-    local unpacktags = {Call=true, CallMethod=true, VarDecl=true, Assign=true, Return=true, InitList=true}
-    local parent2 = context:get_parent_node(1)
+  if polyeval and polyeval.varargsnodes then -- unpack arguments of a polymorphic function
+    local parentnode = context:get_parent_node()
     local nvarargs = #polyeval.varargsnodes
-    for varargsnode, parent1, parent1i in parent2:walk_nodes() do
-      if varargsnode == node then
-        if unpacktags[parent2.tag] then -- unpack arguments
-          if nvarargs > 0 then
-            local ret
-            for j=1,nvarargs do
-              local argnode = aster.Id{'__arg'..j}
-              if j == 1 then
-                local orignode = parent1[parent1i+j-1]
-                assert(orignode == node)
-                orignode:transform(argnode)
-                ret = context:traverse_node(orignode)
-              else
-                parent1[parent1i+j-1] = argnode
-                context:traverse_node(argnode)
-              end
-            end
-            return ret
-          else
-            node:transform(aster.Nil{}) -- replace just in case its used lated
-            context:traverse_node(node)
-            parent1[parent1i] = nil
-            return
+    if varargs_unpack_tags[parentnode.tag] then -- can unpack all arguments
+      local parent, pindex = parentnode:recursive_find_child(node)
+      if nvarargs > 0 then -- unpack many arguments
+        local ret
+        for j=1,nvarargs do
+          local argnode = aster.Id{'__arg'..j}
+          if j == 1 then -- first argument
+            ret = context:transform_and_traverse_node(node, argnode) -- transform to reuse ref
+          else -- next arguments
+            parent[pindex+j-1] = argnode
+            context:traverse_node(argnode)
           end
-        else -- replace with just the first argument
-          local argnode
-          if nvarargs > 0 then
-            argnode = aster.Id{'__arg1'}
-          else
-            argnode = aster.Nil{}
-          end
-          local orignode = parent1[parent1i]
-          orignode:transform(argnode)
-          return context:traverse_node(orignode)
         end
+        return ret
+      else -- unpack 0 arguments
+        context:transform_and_traverse_node(node, aster.Nil{}) -- transform just in case
+        parent[pindex] = nil -- remove the node
+        return
       end
-    end --luacov:disable
-    assert(false, 'unreachable')
-    -- luacov:enable
-  else
+    else -- unpack just the first argument
+      local argnode
+      if nvarargs > 0 then -- unpack just the first argument
+        argnode = aster.Id{'__arg1'}
+      else -- no arguments
+        argnode = aster.Nil{}
+      end
+      return context:transform_and_traverse_node(node, argnode)
+    end
+  else -- runtime varargs
     if context.scope.is_topscope then
-      node:raisef("varargs expansion cannot be used in this context")
+      node:raisef("cannot unpack varargs in this context")
     end
-    local funcsym = context.state.funcsym
-    if funcsym then
-      local funcargattrs = funcsym.argattrs
-      local lastargattr = funcargattrs[#funcargattrs]
-      local mulargtype
-      if lastargattr then
-        local lastargtype = lastargattr.type
-        if lastargtype and lastargtype.is_multipleargs then
-          mulargtype = lastargtype
-        end
-      end
-      if not mulargtype then
-        node:raisef("varargs expansion cannot be used in this context")
-      elseif mulargtype.is_cvarargs then
-        node:raisef("cvarargs cannot be expanded, use cvalist instead")
-      end
-      node.attr.type = mulargtype
-      node.done = true
+    local mulargtype = types.attrs_get_multiple_argtype(context.state.funcsym.argattrs)
+    if not mulargtype then
+      node:raisef("cannot unpack varargs in this context")
+    elseif mulargtype.is_cvarargs then
+      node:raisef("cannot unpack 'cvarargs', use 'cvalist' instead")
     end
+    node.attr.type = mulargtype
+    node.done = true
   end
 end
 
@@ -448,7 +429,6 @@ end
 
 function visitors.InitList(context, node)
   local desiredtype = node.desiredtype or node.attr.desiredtype
-  node.attr.literal = true
   if desiredtype then
     local objtype = desiredtype:implicit_deref_type()
     if objtype.is_record and objtype.choose_initializerlist_type then
@@ -473,16 +453,16 @@ function visitors.InitList(context, node)
   end
 end
 
+-- Pair inside an init list.
 function visitors.Pair(context, node)
   local namenode, exprnode = node[1], node[2]
-  local done = true
-  if luatype(namenode) == 'table' and namenode._astnode then
+  local namedone = true
+  if luatype(namenode) ~= 'string' then -- name is a node
     context:traverse_node(namenode)
-    done = done and namenode.done
+    namedone = namenode.done
   end
   context:traverse_node(exprnode)
-  done = done and exprnode.done and true
-  node.done = done
+  node.done = namedone and exprnode.done and true
 end
 
 function visitors.PragmaCall(_, node)
@@ -2065,7 +2045,11 @@ function visitors.ForIn(context, node)
     for i=1,#itvarnodes-1 do
       local itvarnode = itvarnodes[i+1]
       itvardeclnodes[i] = itvarnode
-      itvaridnodes[i] = aster.Id{itvarnode[1], pattr={noinit=true}}
+      itvaridnodes[i] = aster.Id{itvarnode[1],
+        pattr={noinit=true},
+        src=itvarnode.src,
+        pos=itvarnode.pos, endpos=itvarnode.endpos
+      }
     end
 
     -- replace the for in node with a while loop
@@ -2096,8 +2080,7 @@ function visitors.ForIn(context, node)
         aster.Do{blocknode}
       }}
     }}
-    node:transform(newnode)
-    context:traverse_node(node)
+    context:transform_and_traverse_node(node, newnode)
   end
 end
 
@@ -2196,6 +2179,7 @@ function visitors.VarDecl(context, node)
     node:raisef("extra expressions in declaration, expected at most %d but got %d",
     #varnodes, #valnodes)
   end
+  local done = true
   for i,varnode,valnode,valtype in izipargnodes(varnodes, valnodes) do
     varnode.attr.vardecl = true
     if declscope == 'global' then
@@ -2330,7 +2314,12 @@ function visitors.VarDecl(context, node)
     if symbol.close then -- process close annotation
       visit_close(context, node, varnode, symbol)
     end
+    done = done and varnode.done
+    if valnode then
+      done = done and valnode.done
+    end
   end
+  node.done = done
 end
 
 function visitors.Assign(context, node)
@@ -3067,10 +3056,10 @@ local function override_unary_op(context, node, opname, objnode, objtype)
 
   -- transform into call
   local objsym = objtype.symbol
-  local idnode = aster.Id{objsym.name, pattr={forcesymbol=objsym}}
-  local newnode = aster.Call{{objnode}, aster.DotIndex{mtname, idnode}}
-  node:transform(newnode)
-  context:traverse_node(node)
+  context:transform_and_traverse_node(node, aster.Call{
+    {objnode},
+    aster.DotIndex{mtname, aster.Id{objsym.name, pattr={forcesymbol=objsym}}}
+  })
   return true
 end
 
@@ -3181,8 +3170,7 @@ local function override_binary_op(context, node, opname, lnode, rnode, ltype, rt
   if neg then
     newnode = aster.UnaryOp{'not', newnode}
   end
-  node:transform(newnode)
-  context:traverse_node(node)
+  context:transform_and_traverse_node(node, newnode)
   return true
 end
 

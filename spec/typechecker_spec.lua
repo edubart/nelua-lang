@@ -26,7 +26,6 @@ it("analyzed ast transform", function()
           attr = {
             comptime=true,
             initializer=true,
-            literal=true,
             base=10,
             type='int64',
             untyped=true,
@@ -48,7 +47,7 @@ it("local variable", function()
   expect.analyze_error("local a: void", "variable declaration cannot be of the empty type")
   expect.analyze_error("local a: varanys", "variable declaration cannot be of the type")
   expect.analyze_error("local a: integer = 'string'_s", "literal suffix '_s' is undefined for strings")
-  expect.analyze_error("local a: byte = 'aa'_byte", "literal suffix '%s' expects a string of length 1")
+  expect.analyze_error("local a: byte = 'aa'_byte", "literal suffix '_byte' expects a string of length 1")
 end)
 
 it("global variable", function()
@@ -2099,18 +2098,18 @@ it("polymorphic varargs", function()
   ]], "invalid operation between types 'int64' and 'niltype'")
   expect.analyze_error([[
     local a = ...
-  ]], "varargs expansion cannot be used in this context")
+  ]], "cannot unpack varargs in this context")
   expect.analyze_error([[
     local function f()
       return ...
     end
-  ]], "varargs expansion cannot be used in this context")
+  ]], "cannot unpack varargs in this context")
   expect.analyze_error([[
     local function f(...: cvarargs)
       return ...
     end
     f()
-  ]], "cvarargs cannot be expanded")
+  ]], "cannot unpack 'cvarargs'")
 end)
 
 end)

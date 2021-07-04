@@ -21,7 +21,7 @@ local function bench_traverse(node)
 end
 ]]
 
-local function traverse_node(self, node, ...)
+function VisitorContext:traverse_node(node, ...)
   if self.analyzing then
     local done = node.done
     if done then
@@ -38,14 +38,17 @@ local function traverse_node(self, node, ...)
   nodes[index] = nil -- pop node
   return ret
 end
-VisitorContext.traverse_node = traverse_node
 
-local function traverse_nodes(self, nodes, ...)
+function VisitorContext:traverse_nodes(nodes, ...)
   for i=1,#nodes do
-    traverse_node(self, nodes[i], ...)
+    self:traverse_node(nodes[i], ...)
   end
 end
-VisitorContext.traverse_nodes = traverse_nodes
+
+function VisitorContext:transform_and_traverse_node(orignode, newnode, ...)
+  orignode:transform(newnode)
+  return self:traverse_node(orignode, ...)
+end
 
 function VisitorContext:_init(visitors)
   self:set_visitors(visitors)
@@ -94,7 +97,7 @@ function VisitorContext:pop_state()
   --[[
   if #self.statestack == 0 then
     print '============================report'
-    for k,v in pairs(numretravs) do
+    for k,v in require'nelua.utils.iterators'.ospairs(numretravs) do
       print(v,k, string.format('%.2f', v*100/numtravs[k]))
     end
   end
