@@ -1714,6 +1714,20 @@ it("concepts", function()
     local function f(a: R, x: facultative(integer)) end
     f(R{1})
   ]])
+  expect.analyze_ast([[
+    local R = @record{a: integer, b: number}
+
+    local function hello(r: facultative(R))
+      ## if r.type.is_niltype then
+        return false
+      ## else
+        return true
+      ## end
+    end
+
+    assert(hello() == false)
+    assert(hello({10, 20}) == true)
+  ]])
   expect.analyze_error([[
     local an_integral = #[concept(function(x)
       return x.type.is_integral

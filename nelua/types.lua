@@ -2477,8 +2477,10 @@ function types.make_overload_concept(context, syms, ...)
   if traits.is_symbol(syms) or traits.is_type(syms) then
     syms = table.pack(syms, ...)
   end
-  local type = types.ConceptType(function(x)
-    local accepttypes = {}
+  local acceptedtypescache
+  local function get_accepted_types()
+    if acceptedtypescache then return acceptedtypescache end
+    local acceptedtypes = {}
     for i,sym in ipairs(syms) do
       local type
       if traits.is_type(sym) then
@@ -2497,23 +2499,27 @@ function types.make_overload_concept(context, syms, ...)
       if not type then
         context:get_current_node():raisef("in overload concept definition argument #%d: invalid type", i)
       end
-      accepttypes[i] = type
+      acceptedtypes[i] = type
     end
-
+    acceptedtypescache = acceptedtypes
+    return acceptedtypes
+  end
+  local type = types.ConceptType(function(x)
+    local xtype = x.type
+    local acceptedtypes = get_accepted_types()
     -- try to match exact type first
-    for i=1,#accepttypes do
-      local type = accepttypes[i]
-      if type == x.type then
+    for i=1,#acceptedtypes do
+      local type = acceptedtypes[i]
+      if type == xtype then
         return type
       end
     end
-
     -- else try to convert one
     local errs = {}
     if not syms.noconvert then
-      for i=1,#accepttypes do
-        local type = accepttypes[i]
-        local ok, err = type:is_convertible_from(x.type)
+      for i=1,#acceptedtypes do
+        local type = acceptedtypes[i]
+        local ok, err = type:is_convertible_from(xtype)
         if ok then
           return type
         else
@@ -2521,11 +2527,22 @@ function types.make_overload_concept(context, syms, ...)
         end
       end
     end
-
+    -- no math, return an error
     local ss = sstream()
     ss:add('cannot match overload concept:\n    ')
     ss:addlist(errs, '\n    ')
     return nil, ss:tostring()
+  end, function(node)
+    if node.tag == 'InitList' then
+      local acceptedtypes = get_accepted_types()
+      -- try to infer to the first accepted table or record type
+      for i=1,#acceptedtypes do
+        local type = acceptedtypes[i]
+        if type.is_table or type.is_record then
+          return type
+        end
+      end
+    end
   end)
   type.is_overload = true
   type.node = context:get_current_node()
