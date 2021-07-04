@@ -1742,9 +1742,11 @@ it("arrays", function()
     do
       local a: []integer = {1,2,3,4}
       local b: array(integer, 4) = a
+      local c: auto = (@[]integer){1,2,3,4}
 
       assert(b[0] == 1 and b[1] == 2 and b[2] == 3 and b[3] == 4)
       assert(#b == 4)
+      assert(#c == 4)
     end
 
     do

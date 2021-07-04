@@ -959,16 +959,26 @@ function visitors.ArrayType(context, node)
       lengthnode:raisef("cannot have negative array size %d", length)
     end
   else -- must infer the length
-    local iddeclnode = context:get_parent_node(1)
-    local vardeclnode = context:get_parent_node(2)
-    if not (iddeclnode.tag == 'IdDecl' and vardeclnode.tag == 'VarDecl') then
+    local pnode1 = context:get_parent_node(1)
+    local pnode2 = context:get_parent_node(2)
+    local pnode3 = context:get_parent_node(3)
+    local valnode
+    if pnode1.tag == 'IdDecl' and
+       pnode2 and pnode2.tag == 'VarDecl' then -- typed declaration
+      local varnodes, valnodes = pnode2[2], pnode2[3]
+      if valnodes then
+        local varindex = tabler.ifind(varnodes, pnode1)
+        valnode = valnodes[varindex]
+      end
+    elseif pnode1.tag == 'Type' and
+           pnode2 and pnode2.tag == 'Paren' and
+           pnode3 and pnode3.tag == 'Call' then -- inline type initialization
+      valnode = pnode3[1][1]
+    else
       node:raisef("cannot infer array size, use a fixed size")
     end
-    local varnodes, valnodes = vardeclnode[2], vardeclnode[3]
-    local varindex = tabler.ifind(varnodes, iddeclnode)
-    local valnode = valnodes and valnodes[varindex]
     if not (valnode and valnode.tag == 'InitList') then
-      node:raisef("can only infer array size for braces initialized declarations")
+      node:raisef("cannot infer array size in this context")
     end
     length = #valnode
     if length > 0 and valnode[length].tag == 'Varargs' then
