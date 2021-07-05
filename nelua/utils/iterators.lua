@@ -15,8 +15,10 @@ local function izip2_next(ts, i)
   end
 end
 
--- Iterate multiples values for multiple arrays, returning the iterator index and values
--- Stops only when all values in the arrays are nil.
+--[[
+Iterate multiples values for multiple arrays, returning the iterator index and values
+Stops only when all values in the arrays are nil.
+]]
 function iterators.izip2(t1, t2)
   return izip2_next, {t1,t2}, 0
 end

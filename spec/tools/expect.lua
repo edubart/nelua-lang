@@ -234,6 +234,9 @@ function expect.analyze_ast(code, expected_ast, generator)
 end
 
 local function filter_ast_for_check(t)
+  if t._astnode then
+    assert(t.shape(t))
+  end
   for k,v in pairs(t) do
     if type(k) == 'number' then
       if traits.is_astnode(v) and v.attr.type and v.attr.type.is_type then

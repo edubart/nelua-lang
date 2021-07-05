@@ -1,9 +1,11 @@
--- Types module
---
--- The types module define classes for all the primitive types in Nelua.
--- Also defines some utilities functions for working with types.
---
--- This module is always available in the preprocessor in the `types` variable.
+--[[
+Types module
+
+The types module define classes for all the primitive types in Nelua.
+Also defines some utilities functions for working with types.
+
+This module is always available in the preprocessor in the `types` variable.
+]]
 
 local class = require 'nelua.utils.class'
 local tabler = require 'nelua.utils.tabler'
@@ -2493,7 +2495,7 @@ function types.make_overload_concept(context, syms, ...)
         end
       end
       if not type then
-        context:get_current_node():raisef("in overload concept definition argument #%d: invalid type", i)
+        context:get_visiting_node():raisef("in overload concept definition argument #%d: invalid type", i)
       end
       acceptedtypes[i] = type
     end
@@ -2541,7 +2543,7 @@ function types.make_overload_concept(context, syms, ...)
     end
   end)
   type.is_overload = true
-  type.node = context:get_current_node()
+  type.node = context:get_visiting_node()
   return type
 end
 

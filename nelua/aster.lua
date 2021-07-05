@@ -12,39 +12,40 @@ local metamagic = require 'nelua.utils.metamagic'
 local console = require 'nelua.utils.console'
 local iters = require 'nelua.utils.iterators'
 local ASTNode = require 'nelua.astnode'
-local config = require 'nelua.configer'.get()
 local shaper = require 'nelua.utils.shaper'
 local traits = require 'nelua.utils.traits'
 local nanotimer = require 'nelua.utils.nanotimer'
 local except = require 'nelua.utils.except'
 local bn = require 'nelua.utils.bn'
+local tabler = require 'nelua.utils.tabler'
+local config = require 'nelua.configer'.get()
 
--- Map of ASTNode classes
-local node_klasses = {Node = ASTNode}
--- Map of ASTNode shapes.
-local node_shapes = {Node = shaper.shape{}}
+-- Map of ASTNode classes.
+local astklasses = {Node = ASTNode}
 -- Map of ASTNode shape checkers.
-local ast_shaper = metamagic.setmetaindex({Node = shaper.ast_node_of(ASTNode)}, shaper)
-
+local astshaper = metamagic.setmetaindex({Node = shaper.ast_node_of(ASTNode)}, shaper)
+-- Current parsing source code.
+local src
+-- Localize some functions used in hot code paths (optimization).
 local ASTNode_create_from = ASTNode.create_from
-local src -- current parsing source
 
 -- Aster module.
 local aster = {
-  shaper = ast_shaper, --
-  parsing_time = 0 -- cumulative parsing time
+  -- Shaper with AST nodes shapes.
+  shaper = astshaper,
+  -- Cumulative parsing time.
+  parsing_time = 0,
 }
 
 -- Create a new AST node with name `tag` from arguments `...`.
 function aster.create(tag, ...)
-  local klass = node_klasses[tag]
+  local klass = astklasses[tag]
   if not klass then
     errorer.errorf("AST with name '%s' is not registered", tag)
   end
   local node = klass(...)
   if config.check_ast_shape then
-    local shape = node_shapes[tag]
-    local ok, err = shape(node)
+    local ok, err = node.shape(node)
     errorer.assertf(ok, 'invalid shape while creating AST node "%s": %s', tag, err)
   end
   return node
@@ -56,29 +57,31 @@ Every time a new AST node is created while parsing this function is called.
 ]]
 function aster.create_from(tag, node)
   node.src = src
-  return ASTNode_create_from(node_klasses[tag], node)
+  return ASTNode_create_from(astklasses[tag], node)
 end
 
 -- Create an AST node from a Lua value, converting it as necessary.
-function aster.value(val, srcnode)
+function aster.value(value, srcnode)
   local node
-  if traits.is_astnode(val) then
-    node = val
-  elseif traits.is_type(val) then
-    local Symbol = require 'nelua.symbol'
-    node = aster.Id{'auto', pattr={
-      forcesymbol = Symbol{
-        type = require'nelua.typedefs'.primtypes.type,
-        value = val,
-    }}}
-  elseif traits.is_string(val) then
-    node = aster.String{val}
-  elseif traits.is_symbol(val) then
-    node = aster.Id{val.name, pattr={
-      forcesymbol = val
-    }}
-  elseif bn.isnumeric(val) then
-    local num = bn.parse(val)
+  if traits.is_astnode(value) then -- already a node
+    node = value
+  elseif traits.is_type(value) then -- a type
+    local symbol = value.symbol
+    if symbol and symbol.value == value and symbol.type.is_type then -- try to reuse symbol
+      return aster.Id{'auto', pattr={forcesymbol = symbol}}
+    else -- create and use a new symbol for the type
+      node = aster.Id{'auto', pattr={
+        forcesymbol = require 'nelua.symbol'{
+          type = require'nelua.typedefs'.primtypes.type,
+          value = value,
+      }}}
+    end
+  elseif traits.is_string(value) then -- a string
+    node = aster.String{value}
+  elseif traits.is_symbol(value) then -- a symbol
+    node = aster.Id{value.name, pattr={forcesymbol = value}}
+  elseif traits.is_scalar(value) then -- a number
+    local num = bn.parse(value)
     local neg = false
     if bn.isneg(num) then
       num = bn.abs(num)
@@ -88,25 +91,22 @@ function aster.value(val, srcnode)
     if neg then
       node = aster.UnaryOp{'unm', node}
     end
-  elseif traits.is_boolean(val) then
-    node = aster.Boolean{val}
-  elseif traits.is_table(val) then
+  elseif traits.is_boolean(value) then -- a boolean
+    node = aster.Boolean{value}
+  elseif traits.is_table(value) then -- a table
     node = aster.InitList{}
-    -- hash part
-    for k,v in iters.ospairs(val) do
-      node[#node+1] = aster.Pair{
-        k,
-        aster.value(v, srcnode)
-      }
+    for k,v in iters.ospairs(value) do -- copy hash part
+      node[#node+1] = aster.Pair{k, aster.value(v, srcnode)}
     end
-    -- integer part
-    for _,v in ipairs(val) do
+    for _,v in ipairs(value) do -- copy array part
       node[#node+1] = aster.value(v, srcnode)
     end
-  elseif val == nil then
+  elseif value == nil then -- nil
     node = aster.Nil{}
+  else
+    return nil
   end
-  if node and srcnode then
+  if srcnode then -- preserve source position
     node.src = srcnode.src
     node.pos = srcnode.pos
     node.endpos = srcnode.endpos
@@ -114,6 +114,7 @@ function aster.value(val, srcnode)
   return node
 end
 
+-- Marks a list of nodes to be unpacked.
 function aster.unpack(t)
   t._astunpack = true
   return t
@@ -122,17 +123,15 @@ end
 -- Register a new AST node with name `tag` described by shape `shape`.
 function aster.register(tag, shape)
   if not getmetatable(shape) then -- not a shape yet
-    shape.attr = shaper.table:is_optional()
-    shape.src = shaper.table:is_optional()
-    shape.uid = shaper.number:is_optional()
+    tabler.update(shape, ASTNode.baseshape.shape)
     shape = shaper.shape(shape)
   end
   -- create a new class for the AST Node
   local klass = class(ASTNode)
   klass.tag = tag
-  node_klasses[tag] = klass
-  ast_shaper[tag] = shaper.ast_node_of(klass) -- shape checker used in astdefs
-  node_shapes[tag] = shape -- shape checker used with 'check_ast_shape'
+  klass.shape = shape
+  astklasses[tag] = klass
+  astshaper[tag] = shaper.ast_node_of(klass) -- shape checker used in astdefs
   -- allow calling the aster for creating any AST node.
   aster[tag] = function(params)
     local node = aster.create(tag, table.unpack(params))
@@ -144,7 +143,6 @@ function aster.register(tag, shape)
     end
     return node
   end
-  aster[tag] = aster[tag]
   return klass
 end
 
@@ -162,12 +160,7 @@ function aster.parse(content, name)
   if not ast then
     local errmsg = aster.syntax_errors[errlabel] or errlabel
     local message = errorer.get_pretty_source_pos_errmsg(src, errpos, nil, errmsg, 'syntax error')
-    except.raise({
-      label = 'ParseError',
-      message = message,
-      errlabel = errlabel,
-      errpos = errpos,
-    })
+    except.raise({label = 'ParseError', message = message, errlabel = errlabel, errpos = errpos})
   end
   src = nil
   if timer then
@@ -197,7 +190,7 @@ function aster.clone(node)
   if node._astnode then
     return node:clone()
   end
-  return ASTNode.clone_nodetable(node)
+  return ASTNode.clone_nodes(node)
 end
 
 -- Converts an AST or a list of ASTs into pretty human readable string.

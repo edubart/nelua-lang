@@ -59,6 +59,7 @@ function Attr:is_on_static_storage()
   return false
 end
 
+
 function Attr:is_compile_time()
   local type = self.type
   if type and (type.is_comptime or self.comptime) then

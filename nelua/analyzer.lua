@@ -123,7 +123,7 @@ local varargs_unpack_tags = {Call=true, CallMethod=true, VarDecl=true, Assign=tr
 function visitors.Varargs(context, node)
   local polyeval = context.state.inpolyeval
   if polyeval and polyeval.varargsnodes then -- unpack arguments of a polymorphic function
-    local parentnode = context:get_parent_node()
+    local parentnode = context:get_visiting_node(1)
     local nvarargs = #polyeval.varargsnodes
     if varargs_unpack_tags[parentnode.tag] then -- can unpack all arguments
       local parent, pindex = parentnode:recursive_find_child(node)
@@ -292,6 +292,7 @@ local function visitor_Record_literal(context, node, littype)
       end
       parent = childnode
       parentindex = 2
+      childnode.attr.parenttype = littype
     else
       fieldindex = lastfieldindex + 1
       field = littype.fields[fieldindex]
@@ -332,8 +333,6 @@ local function visitor_Record_literal(context, node, littype)
     if fieldvalattr.sideeffect then
       sideeffect = true
     end
-    childnode.parenttype = littype
-    childnode.fieldname = fieldname
     if not fieldvaltype or not fieldvalnode.done then
       done = nil
     end
@@ -391,8 +390,7 @@ local function visitor_Union_literal(context, node, littype)
     if fieldvalattr.sideeffect then
       sideeffect = true
     end
-    childnode.parenttype = littype
-    childnode.fieldname = fieldname
+    childnode.attr.parenttype = littype
     if not fieldvaltype or not fieldvalnode.done then
       done = nil
     end
@@ -492,7 +490,7 @@ function visitors.Annotation(context, node, opts)
   else
     symboltype = symbol.type
     istypedecl = symboltype and symboltype.is_type
-    local parentnode = context:get_parent_node()
+    local parentnode = context:get_visiting_node(1)
     local isfuncdecl = parentnode and (parentnode.tag == 'Function' or parentnode.tag == 'FuncDef')
     if not isfuncdecl and not symboltype or (istypedecl and not symbol.value) then
       if name == 'cimport' and context.state.anyphase then
@@ -608,7 +606,7 @@ function visitors.Annotation(context, node, opts)
     end
     return -- we want to skip node.done = true
   elseif name == 'close' then
-    if context:get_parent_node(2).tag ~= 'VarDecl' then
+    if context:get_visiting_node(2).tag ~= 'VarDecl' then
       node:raisef("annotation 'close' is only allowed in variable declarations")
     end
   end
@@ -654,7 +652,7 @@ function visitors.IdDecl(context, node)
   local namenode, typenode, annotnodes = node[1], node[2], node[3]
   local attr = node.attr
   if not attr.type and typenode then
-    context:push_state{intypeexpr = true}
+    context:push_forked_state{intypeexpr = true}
     context:traverse_node(typenode)
     context:pop_state()
     local typeattr = typenode.attr
@@ -694,7 +692,7 @@ function visitors.IdDecl(context, node)
   else
     -- global record field
     assert(namenode.tag == 'DotIndex')
-    context:push_state{inglobaldecl=node}
+    context:push_forked_state{inglobaldecl=node}
     symbol = context:traverse_node(namenode)
     context:pop_state()
     symbol.scope = context.rootscope
@@ -723,7 +721,7 @@ end
 function visitors.Type(context, node, opts)
   local symbol = opts and opts.symbol
   local typenode = node[1]
-  context:push_state{intypeexpr = true}
+  context:push_forked_state{intypeexpr = true}
   context:traverse_node(typenode, {symbol=symbol})
   context:pop_state()
   -- inherit attributes from inner node
@@ -969,9 +967,9 @@ function visitors.ArrayType(context, node)
       lengthnode:raisef("cannot have negative array size %d", length)
     end
   else -- must infer the length
-    local pnode1 = context:get_parent_node(1)
-    local pnode2 = context:get_parent_node(2)
-    local pnode3 = context:get_parent_node(3)
+    local pnode1 = context:get_visiting_node(1)
+    local pnode2 = context:get_visiting_node(2)
+    local pnode3 = context:get_visiting_node(3)
     local valnode
     if pnode1.tag == 'IdDecl' and
        pnode2 and pnode2.tag == 'VarDecl' then -- typed declaration
@@ -1574,7 +1572,7 @@ local function visitor_Composite_FieldIndex(_, node, objtype, name)
   if not type then
     node:raisef("cannot index field '%s' on value of type '%s'", name, objtype)
   end
-  node.dotfieldname = field.name
+  attr.dotfieldname = field.name
   attr.type = type
 end
 
@@ -1584,7 +1582,7 @@ local function visitor_EnumType_FieldIndex(_, node, objtype, name)
   if not field then
     node:raisef("cannot index field '%s' on enum '%s'", name, objtype)
   end
-  node.dotfieldname = field.name
+  attr.dotfieldname = field.name
   attr.comptime = true
   attr.value = field.value
   attr.type = objtype
@@ -1593,7 +1591,7 @@ end
 local function visitor_RecordType_FieldIndex(context, node, objtype, name)
   local attr = node.attr
   local symbol = objtype.metafields[name]
-  local parentnode = context:get_parent_node()
+  local parentnode = context:get_visiting_node(1)
   local infuncdef = context.state.infuncdef == parentnode
   local inglobaldecl = context.state.inglobaldecl == parentnode
   local inpolydef = context.state.inpolydef and symbol == context.state.inpolydef
@@ -1641,7 +1639,7 @@ end
 
 local function visitor_Type_FieldIndex(context, node, objtype, name)
   objtype = objtype:implicit_deref_type()
-  node.indextype = objtype
+  node.attr.indextype = objtype
   if objtype.is_enum then
     return visitor_EnumType_FieldIndex(context, node, objtype, name)
   elseif objtype.is_record then
@@ -2164,7 +2162,7 @@ local function visit_close(context, declnode, varnode, symbol)
   end
   local callnode = aster.Defer{aster.Block{aster.CallMethod{'__close', {}, idnode}}}
   -- inject defer call after variable declaration
-  local blocknode = context:get_parent_node() -- get parent block node
+  local blocknode = context:get_visiting_node(1) -- get parent block node
   assert(blocknode.tag == 'Block')
   local statindex = tabler.ifind(blocknode, declnode) -- find this node index
   assert(statindex)
@@ -2216,7 +2214,6 @@ function visitors.VarDecl(context, node)
       end
     end
     assert(symbol.type == vartype)
-    varnode.assign = true
     if (varnode.attr.comptime or varnode.attr.const) and not varnode.attr.nodecl and not valnode then
       varnode:raisef("const variables must have an initial value")
     end
@@ -2325,7 +2322,6 @@ function visitors.Assign(context, node)
     local symbol = context:traverse_node(varnode)
     local vartype = varnode.attr.type
     local varattr = varnode.attr
-    varnode.assign = true
     if varattr:is_readonly() and not varattr:is_forward_declare_type() then
       varnode:raisef("cannot assign a constant variable")
     end
@@ -2598,7 +2594,7 @@ local function visitor_function_returns(context, node, retnodes, ispolyparent)
   local hasauto = false
   local polyret = false
   if retnodes then
-    context:push_state{intypeexpr = true}
+    context:push_forked_state{intypeexpr = true}
     for i=1,#retnodes do
       local retnode = retnodes[i]
       if retnode.preprocess then -- must preprocess the return type
@@ -2755,7 +2751,7 @@ local function visitor_function_polyevals(context, node, symbol, varnode, type)
     end
     -- pop node and then push again to fix error message traceback
     context:pop_node()
-    context:push_state{inpolyeval=polyeval} -- used to generate error messages
+    context:push_forked_state{inpolyeval=polyeval} -- used to generate error messages
     context:traverse_node(polynode, {polysymbol=symbol})
     context:pop_state()
     context:push_node(node)
@@ -2799,7 +2795,7 @@ function visitors.FuncDef(context, node, opts)
         node[1], node[2], node[3], node[4], node[5], node[6]
 
   local type = node.attr.ftype
-  context:push_state{infuncdef = node, inpolydef = polysymbol}
+  context:push_forked_state{infuncdef = node, inpolydef = polysymbol}
   local varsym, decl = visitor_FuncDef_variable(context, declscope, varnode)
   local attr, symbol
   if varsym then -- symbol may be nil in case of array/dot index
@@ -2860,7 +2856,7 @@ function visitors.FuncDef(context, node, opts)
   repeat
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
-    context:push_state{funcscope = funcscope, funcsym = symbol}
+    context:push_forked_state{funcscope = funcscope, funcsym = symbol}
     funcscope.is_function = true
     funcscope.is_returnbreak = true
 
@@ -2941,7 +2937,7 @@ function visitors.Function(context, node)
   repeat
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
-    context:push_state{funcscope = funcscope, funcsym = symbol}
+    context:push_forked_state{funcscope = funcscope, funcsym = symbol}
     funcscope.is_function = true
     funcscope.is_returnbreak = true
 
@@ -3254,7 +3250,7 @@ function analyzer.analyze(context)
     end
   until resolutions_count == 0
 
-  for _,cb in ipairs(context.after_analyze) do
+  for _,cb in ipairs(context.afteranalyzes) do
     local ok, err = except.trycall(cb.f)
     if not ok then
       cb.node:raisef('error while executing after analyze: %s', err)
@@ -3263,7 +3259,7 @@ function analyzer.analyze(context)
 
   -- phase 3 traverse: infer unset types to 'any' type
   if context.unresolvedcount ~= 0 then
-    context:push_state{anyphase=true}
+    context:push_forked_state{anyphase=true}
     repeat
       context:traverse_node(ast)
       local resolutions_count = context.rootscope:resolve()
@@ -3276,7 +3272,7 @@ function analyzer.analyze(context)
   end
 
   -- execute after inference callbacks
-  for _,f in ipairs(context.after_inferences) do
+  for _,f in ipairs(context.afterinfers) do
     f()
   end
 

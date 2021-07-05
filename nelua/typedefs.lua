@@ -1,30 +1,36 @@
--- Typedefs module
---
--- The typedefs module defines all the primitive types,
--- literal suffixes, annotations and some type lists.
--- It uses the types module to create them.
+--[[
+Typedefs module
+
+The typedefs module defines all the primitive types,
+literal suffixes, annotations and some type lists.
+It uses the types module to create them.
+]]
 
 local types = require 'nelua.types'
 local shaper = require 'nelua.utils.shaper'
 local platform = require 'nelua.utils.platform'
 local ccompiler = require 'nelua.ccompiler'
 
+-- Get C compiler defines.
+local ccdefs = ccompiler.get_cc_info().defines
+
+-- CPU word size in bytes (size of a pointer).
+local ptrsize = ccdefs.__SIZEOF_POINTER__ or platform.cpu_bits // 8
+-- C int is at least 2 bytes and max 4 bytes.
+local cintsize = ccdefs.__SIZEOF_INT__ or math.max(math.min(ptrsize, 4), 2)
+-- C long is at least 4 bytes.
+local clongsize = ccdefs.__SIZEOF_LONG__ or math.max(ptrsize, 4)
+-- C long long is at least 8 bytes.
+local clonglongsize = ccdefs.__SIZEOF_LONG_LONG__ or 8
+
 -- Map containing all primitive types.
 local primtypes = {}
 
-local typedefs = {primtypes=primtypes}
+local typedefs = {
+  primtypes = primtypes,
+  ptrsize = ptrsize,
+}
 types.set_typedefs(typedefs)
-
--- CPU word size in bytes (size of size_t)
-local ccdefs = ccompiler.get_cc_info().defines
-local ptrsize = ccdefs.__SIZEOF_POINTER__ or platform.cpu_bits // 8
-typedefs.ptrsize = ptrsize
--- C int is at least 2 bytes and max 4 bytes
-local cintsize = ccdefs.__SIZEOF_INT__ or math.max(math.min(ptrsize, 4), 2)
--- C long is at least 4 bytes
-local clongsize = ccdefs.__SIZEOF_LONG__ or math.max(ptrsize, 4)
--- C long long is at least 8 bytes
-local clonglongsize = ccdefs.__SIZEOF_LONG_LONG__ or 8
 
 -- Basic types.
 primtypes.niltype     = types.NiltypeType('niltype') -- must be defined first, to have id 0
@@ -143,6 +149,7 @@ typedefs.signed2unsigned = {
   cptrdiff    = 'csize',
 }
 
+-- Map for converting unsigned and signed types.
 typedefs.unsigned2signed = {
   uint8       = 'int8',
   uint16      = 'int16',
@@ -185,6 +192,10 @@ typedefs.promote_unsigned_types = {
   primtypes.uint64
 }
 
+--[[
+List of preprocessor directives.
+They inject the AST node 'Directive' when called from the preprocessor.
+]]
 typedefs.directives = {
   cinclude = shaper.shape{n=shaper.number, shaper.string},
   cemitdecl = shaper.shape{n=shaper.number, shaper.string + shaper.func},
@@ -316,7 +327,7 @@ typedefs.type_annots = {
   forwarddecl = true,
   -- Whether to use enum fields in the declared scope.
   using = true,
-  -- Whether the type can be copied, that is, passed by value.
+  -- Whether the type can be copied, that is, passed by value (experimental).
   nocopy = true,
 }
 

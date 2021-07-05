@@ -10,6 +10,8 @@ local primtypes = typedefs.primtypes
 
 local Scope = class()
 
+Scope._scope = true
+
 local function make_symbols_mt(context, parent)
   if parent then
     return {__index = parent.symbols}

@@ -10,33 +10,45 @@ local tabler = require 'nelua.utils.tabler'
 local traits = require 'nelua.utils.traits'
 local class = require 'nelua.utils.class'
 
--- Additional shape check functions.
+-- Shape for an optional boolean.
 shaper.optional_boolean = shaper.boolean:is_optional()
 
+-- Shape for a value that can be either `false` or `nil`.
 shaper.falsy = shaper.custom(function(v)
   return not v, 'expected false or nil'
 end)
 
+-- Shape for a scalar value (a lua number or a big number).
 shaper.scalar = shaper.custom(function(v)
   return traits.is_scalar(v), 'expected an scalar'
 end):describe('scalar')
 
+-- Shape for an integral number.
 shaper.integral = shaper.custom(function(v)
   return traits.is_integral(v), 'expected an integral'
 end):describe('integral')
 
-shaper.symbol = shaper.custom(function(v)
-  return traits.is_symbol(v), 'expected a symbol'
-end):describe('Symbol')
-
+-- Shape for an AST Node.
 shaper.astnode = shaper.custom(function(v)
   return traits.is_astnode(v), 'expected a node'
 end):describe('ASTNode')
 
+-- Shape for an Attr.
 shaper.attr = shaper.custom(function(v)
   return traits.is_attr(v), 'expected an attr'
 end):describe('Attr')
 
+-- Shape for a symbol.
+shaper.symbol = shaper.custom(function(v)
+  return traits.is_symbol(v), 'expected a symbol'
+end):describe('Symbol')
+
+-- Shape for a Scope.
+shaper.scope = shaper.custom(function(v)
+  return traits.is_scope(v), 'expected a scope'
+end):describe('Scope')
+
+-- Shape for a Type.
 shaper.type = shaper.custom(function(v)
   return traits.is_type(v), 'expected a type'
 end):describe('Type')

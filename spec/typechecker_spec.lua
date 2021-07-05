@@ -12,7 +12,6 @@ it("analyzed ast transform", function()
     n.Block{
       n.VarDecl{'local',
         { n.IdDecl{
-          assign=true,
           attr = {
             codename='a',
             name='a',

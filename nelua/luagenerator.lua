@@ -1,3 +1,5 @@
+local VisitorContext = require 'nelua.visitorcontext'
+local class = require 'nelua.utils.class'
 local pegger = require 'nelua.utils.pegger'
 local traits = require 'nelua.utils.traits'
 local luadefs = require 'nelua.luadefs'
@@ -5,6 +7,16 @@ local luabuiltins = require 'nelua.luabuiltins'
 local config = require 'nelua.configer'.get()
 local Emitter = require 'nelua.emitter'
 local bn = require 'nelua.utils.bn'
+
+local LuaContext = class(VisitorContext)
+
+function LuaContext:_init(visitors, rootscope)
+  if not self.context then
+    VisitorContext._init(self, rootscope)
+  end
+  visitors.default_visitor = false
+  self.visitors = visitors
+end
 
 local visitors = {}
 
@@ -106,7 +118,7 @@ end
 
 function visitors.Call(context, node, emitter)
   local args, callee = node[1], node[2]
-  local isblockcall = context:get_parent_node().tag == 'Block'
+  local isblockcall = context:get_visiting_node(1).tag == 'Block'
   if isblockcall then emitter:add_indent() end
   emitter:add(callee, '(', args, ')')
   if isblockcall then emitter:add_ln() end
@@ -114,7 +126,7 @@ end
 
 function visitors.CallMethod(context, node, emitter)
   local name, args, callee = node[1], node[2], node[3]
-  local isblockcall = context:get_parent_node().tag == 'Block'
+  local isblockcall = context:get_visiting_node(1).tag == 'Block'
   if isblockcall then emitter:add_indent() end
   emitter:add(callee, ':', name, '(', args, ')')
   if isblockcall then emitter:add_ln() end
@@ -204,7 +216,7 @@ end
 function visitors.Repeat(context, node, emitter)
   local block, cond = node[1], node[2]
   emitter:add_indent_ln("repeat")
-  context:push_forked_cleaned_scope(node)
+  context:push_forked_scope(node)
   emitter:add(block)
   emitter:add_indent_ln('until ', cond)
   context:pop_scope()
@@ -326,13 +338,13 @@ function visitors.Function(context, node, emitter)
 end
 
 -- operators
-function visitors.UnaryOp(context, node, emitter)
+function visitors.UnaryOp(_, node, emitter)
   local opname, argnode = node[1], node[2]
   local op = node:assertraisef(luadefs.unary_ops[opname], 'unary operator "%s" not found', opname)
   if config.lua_version ~= '5.3' then
     local fallop = luadefs.lua51_unary_ops[opname]
     if fallop then
-      context:ensure_builtin(fallop.builtin)
+      -- context:ensure_builtin(fallop.builtin)
       emitter:add(fallop.func, '(', argnode, ')')
       return
     end
@@ -349,9 +361,9 @@ function visitors.BinaryOp(context, node, emitter)
   if config.lua_version ~= '5.3' then
     local fallop = luadefs.lua51_binary_ops[opname]
     if fallop then
-      if fallop.builtin then
-        context:ensure_builtin(fallop.builtin)
-      end
+      -- if fallop.builtin then
+      --   context:ensure_builtin(fallop.builtin)
+      -- end
       if traits.is_function(fallop.func) then
         fallop.func(context, node, emitter, lnode, rnode)
       else
@@ -369,7 +381,7 @@ end
 local generator = {}
 
 function generator.generate(ast, context)
-  context:set_visitors(visitors)
+  context:promote(LuaContext, visitors)
   context.builtins = luabuiltins.builtins
   local emitter = Emitter(context, -1)
   context.emitter = emitter

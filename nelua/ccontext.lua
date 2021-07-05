@@ -1,19 +1,23 @@
-local AnalyzerContext = require 'nelua.analyzercontext'
+local VisitorContext = require 'nelua.visitorcontext'
 local class = require 'nelua.utils.class'
 local cdefs = require 'nelua.cdefs'
 local cbuiltins = require 'nelua.cbuiltins'
 local traits = require 'nelua.utils.traits'
 local CEmitter = require 'nelua.cemitter'
+local errorer = require 'nelua.utils.errorer'
 local fs = require 'nelua.utils.fs'
 local tabler = require 'nelua.utils.tabler'
 local config = require 'nelua.configer'.get()
 local luatype = type
 
-local CContext = class(AnalyzerContext)
+local CContext = class(VisitorContext)
 
-function CContext:init(visitors, typevisitors)
+function CContext:_init(visitors, typevisitors, rootscope)
+  if not self.context then
+    VisitorContext._init(self, visitors, rootscope)
+  end
   visitors.default_visitor = false
-  self:set_visitors(visitors)
+  self.visitors = visitors
   self.typevisitors = typevisitors
   self.declarations = {}
   self.definitions = {}
@@ -32,13 +36,8 @@ function CContext:init(visitors, typevisitors)
   self.uniquecounters = {}
   self.printcache = {}
   self.typenames = {}
+  self.usedbuiltins = {}
   self.builtins = cbuiltins.builtins
-end
-
-function CContext.promote_context(self, visitors, typevisitors)
-  setmetatable(self, CContext)
-  self:init(visitors, typevisitors)
-  return self
 end
 
 function CContext:declname(attr)
@@ -229,6 +228,28 @@ end
 
 function CContext:add_directive(code)
   table.insert(self.directives, code)
+end
+
+function CContext:ensure_builtin(name, ...)
+  if select('#',...) == 0 and self.usedbuiltins[name] then
+    return name
+  end
+  local func = self.builtins[name]
+  errorer.assertf(func, 'builtin "%s" not defined', name)
+  if func then
+    local newname = func(self, ...)
+    if newname then
+      name = newname
+    end
+  end
+  self.usedbuiltins[name] = true
+  return name
+end
+
+function CContext:ensure_builtins(...)
+  for i=1,select('#',...) do
+    self:ensure_builtin((select(i, ...)))
+  end
 end
 
 function CContext:define_builtin(name, code, section)

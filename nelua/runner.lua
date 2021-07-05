@@ -104,7 +104,7 @@ local function run(argv, redirect)
   except.try(function()
     context = analyzer.analyze(context)
   end, function(e)
-    e.message = context:traceback() .. e:get_message()
+    e.message = context:get_visiting_traceback(1) .. e:get_message()
   end)
 
   if config.timing then

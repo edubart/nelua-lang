@@ -1,3 +1,10 @@
+--[[
+ASTNode class
+
+The ASTNode class is used to form the AST (abstract syntax tree)
+while compiling.
+]]
+
 local pegger = require 'nelua.utils.pegger'
 local class = require 'nelua.utils.class'
 local errorer = require 'nelua.utils.errorer'
@@ -8,24 +15,71 @@ local sstream = require 'nelua.utils.sstream'
 local stringer = require 'nelua.utils.stringer'
 local console = require 'nelua.utils.console'
 local tabler = require'nelua.utils.tabler'
-local config = require 'nelua.configer'.get()
+local shaper = require 'nelua.utils.shaper'
 local Attr = require 'nelua.attr'
-
-local tabler_update = tabler.update
-local clone_nodetable
-local clone_node
-
--- Unique id counter for ASTNode.
-local uid = 0
+local config = require 'nelua.configer'.get()
 
 -- AST node class.
 local ASTNode = class()
 
-ASTNode.tag = 'Node' -- tag for a generic ASTNode
-ASTNode._astnode = true -- used to quickly check whether a table is an ASTNode
+-- Base shape of an ASTNode.
+ASTNode.baseshape = shaper.shape{
+  -- Tag of the node.
+  tag = shaper.string,
+  -- Unique identifier of the node.
+  uid = shaper.number:is_optional(),
+  -- Position in a source file where the text chunk of the node begins.
+  pos = shaper.number:is_optional(),
+  -- Position in a source file where the text chunk of the node ends.
+  endpos = shaper.number:is_optional(),
+  -- Source where the node was parsed.
+  src = shaper.shape{
+    -- Source file name.
+    name = shaper.string:is_optional(),
+    -- Source file contents.
+    content = shaper.string:is_optional(),
+  }:is_optional(),
+  --[[
+  Attributes of the node.
+  This can be shared across different nodes.
+  If the node is reference to a symbol, then it will be promoted to a symbol.
+  ]]
+  attr = shaper.attr + shaper.symbol,
+  --[[
+  Table of persistent attributes.
+  When a node is cloned all attributes are discarded,
+  but values from `pattr` are copied into `attr` of the new cloned node.
+  ]]
+  pattr = shaper.table:is_optional(),
+  -- Preprocess function to executed before analyzing, set to nil after preprocess is finished.
+  preprocess = shaper["function"]:is_optional(),
+  -- Whether the node was preprocessed (set to `true` after executing `preprocess`).
+  preprocessed = shaper.boolean:is_optional(),
+  -- Whether the node is completely analyzed (this is not set by all nodes).
+  done = shaper.any,
+  -- Whether the node is completely type checked (this is not set by all nodes).
+  checked = shaper.boolean:is_optional(),
+  -- Scope where the node is defined.
+  scope = shaper.scope:is_optional(),
+}
 
--- Create an AST node with metatable `mt` filled with values `...`.
--- Called when manually creating or generating AST nodes.
+-- Tag for a generic ASTNode.
+ASTNode.tag = 'Node'
+-- Used to quickly check whether a table is an ASTNode.
+ASTNode._astnode = true
+
+-- Localize some functions used in hot code paths (optimization).
+local tabler_update = tabler.update
+local coroutine_yield, coroutine_wrap = coroutine.yield, coroutine.wrap
+local clone_nodes, clone_node
+
+-- Unique id counter for AST nodes.
+local uid = 0
+
+--[[
+Creates an AST node with metatable `mt` filled with values `...`.
+Called internally when creating or generating AST nodes.
+]]
 function ASTNode._create(mt, ...)
   local nuid = uid + 1
   uid = nuid
@@ -35,10 +89,14 @@ function ASTNode._create(mt, ...)
     ...
   }, mt)
 end
+
+-- Allows calling ASTNode to create a new node.
 getmetatable(ASTNode).__call = ASTNode._create
 
--- Create an AST node with metatable `mt` from table `node`.
--- Called for every AST node initialization while parsing.
+--[[
+Creates an AST node with metatable `mt` from table `node`.
+Called for every AST node initialization while parsing.
+]]
 function ASTNode.create_from(mt, node)
   local nuid = uid + 1
   uid = nuid
@@ -47,22 +105,22 @@ function ASTNode.create_from(mt, node)
   return setmetatable(node, mt)
 end
 
--- Clone a node table.
-function ASTNode.clone_nodetable(t)
+-- Clones a list of nodes.
+function ASTNode.clone_nodes(t)
   local ct = {}
   for i=1,#t do
     local v = t[i]
-    if v._astnode then
+    if v._astnode then -- node
       ct[i] = clone_node(v)
-    else
-      ct[i] = clone_nodetable(v)
+    else -- list of nodes
+      ct[i] = clone_nodes(v)
     end
   end
   return ct
 end
-clone_nodetable = ASTNode.clone_nodetable
+clone_nodes = ASTNode.clone_nodes
 
--- Clone a node, copying only necessary values.
+-- Clones a node, copying only necessary values.
 function ASTNode.clone(node)
   local nuid = uid + 1
   uid = nuid
@@ -76,18 +134,18 @@ function ASTNode.clone(node)
     preprocess = node.preprocess,
     pattr = pattr,
     uid = nuid,
-    nil,nil,nil,nil,nil,nil -- preallocate array part
+    nil,nil,nil,nil,nil,nil -- preallocate array part (optimization)
   }, getmetatable(node))
-  if pattr then
+  if pattr then -- copy persistent attributes
     tabler_update(attr, pattr)
   end
   for i=1,#node do
     local arg = node[i]
     if type(arg) == 'table' then
-      if arg._astnode then
+      if arg._astnode then -- node
         arg = clone_node(arg)
-      else
-        arg = clone_nodetable(arg)
+      else -- list of nodes
+        arg = clone_nodes(arg)
       end
     end
     cloned[i] = arg
@@ -99,9 +157,9 @@ clone_node = ASTNode.clone
 -- Helper for `ASTNode.pretty`.
 local function astnode_pretty(node, indent, ss)
   if node.tag then
-    ss[#ss+1] = indent..node.tag
+    ss:addmany(indent, node.tag, '\n')
   else
-    ss[#ss+1] = indent..'-'
+    ss:addmany(indent, '-', '\n')
   end
   indent = indent..'| '
   for i=1,#node do
@@ -110,28 +168,24 @@ local function astnode_pretty(node, indent, ss)
     if ty == 'table' then
       astnode_pretty(child, indent, ss)
     elseif ty == 'string' then
-      local escaped = child
-        :gsub([[\]], [[\\]])
-        :gsub([[(['"])]], [[\%1]])
-        :gsub('\n', '\\n'):gsub('\t', '\\t')
-        :gsub('[^ %w%p]', function(s) return string.format('\\x%02x', string.byte(s)) end)
-      ss[#ss+1] = indent..'"'..escaped..'"'
+      ss:addmany(indent, pegger.double_quote_lua_string(child), '\n')
     else
-      ss[#ss+1] = indent..tostring(child)
+      ss:addmany(indent, tostring(child), '\n')
     end
   end
 end
 
--- Convert an AST into pretty human readable string.
+-- Converts a node into a pretty human readable string.
 function ASTNode.pretty(node)
-  local ss = {}
+  local ss = sstream()
   astnode_pretty(node, '', ss)
-  return table.concat(ss, '\n')
+  ss[#ss] = nil -- remove last new line
+  return ss:tostring()
 end
 
 --[[
-Replace current AST node values and metatable with node `node`.
-Used internally to transform a node to another node.
+Replaces current node values and metatable with the ones from node `node`.
+Used to replace a node with a different node while reusing the original node reference.
 ]]
 function ASTNode:transform(node)
   setmetatable(self, getmetatable(node))
@@ -142,60 +196,45 @@ function ASTNode:transform(node)
   self.pattr = node.pattr
 end
 
-
--------------------
--- error handling
--------------------
-function ASTNode.format_message(self, category, message, ...)
+--[[
+Formats a message with node source information.
+Where `category` is the category name to prefix the message (e.g 'warning', 'error' or 'info'),
+`message` is the message to be formatted, `...` are arguments to format the message.
+]]
+function ASTNode:format_message(category, message, ...)
   message = stringer.pformat(message, ...)
   if self and self.src and self.pos then
-    message = errorer.get_pretty_source_pos_errmsg(self.src, self.pos, self.endpos, message, category)
-  else --luacov:disable
-    message = category .. ': ' .. message .. '\n'
-  end --luacov:enable
-  return message
-end
-
---luacov:disable
-function ASTNode.errorf(self, message, ...)
-  error(ASTNode.format_message(self, 'error', message, ...), 2)
-end
-
-function ASTNode.assertf(self, cond, message, ...)
-  if not cond then
-    error(ASTNode.format_message(self, 'error', message, ...), 2)
+    return errorer.get_pretty_source_pos_errmsg(self.src, self.pos, self.endpos, message, category)
   end
-  return cond
+  return category .. ': ' .. message .. '\n'
 end
 
-function ASTNode.assertraisef(self, cond, message, ...)
+-- Raises an error related to this node using a formatted message.
+function ASTNode:raisef(message, ...)
+  except.raise(ASTNode.format_message(self, 'error', message, ...), 2)
+end
+
+-- Raises an error related to this node using a formatted message if `cond` is false.
+function ASTNode:assertraisef(cond, message, ...)
   if not cond then
     except.raise(ASTNode.format_message(self, 'error', message, ...), 2)
   end
   return cond
 end
---luacov:enable
 
-function ASTNode.raisef(self, message, ...)
-  except.raise(ASTNode.format_message(self, 'error', message, ...), 2)
-end
-
-function ASTNode.warnf(self, message, ...)
+-- Shows a warning related to this node using a formatted message.
+function ASTNode:warnf(message, ...)
   if not config.no_warning then
     console.logerr(ASTNode.format_message(self, 'warning', message, ...))
   end
 end
 
--------------------
--- pretty print ast
--------------------
 local ignored_stringfy_keys = {
   src = true,
   pos = true, endpos = true,
   uid = true,
   desiredtype = true,
-  preprocess = true,
-  preprocessed = true,
+  preprocess = true, preprocessed = true,
   loadedast = true,
   node = true,
   scope = true,
@@ -206,15 +245,17 @@ local ignored_stringfy_keys = {
   argattrs = true,
   defnode = true,
 }
+
+-- Helper to convert a node value to a string.
 local function stringfy_val2str(val)
   local vstr = tostring(val)
   if traits.is_number(val) or traits.is_boolean(val) or val == nil then
     return vstr
-  else
-    return pegger.double_quote_lua_string(vstr)
   end
+  return pegger.double_quote_lua_string(vstr)
 end
 
+-- Helper for `ASTNode:__tostring`.
 local function stringfy_astnode(node, depth, ss, skipindent)
   local indent = string.rep('  ', depth)
   local isnode = node._astnode
@@ -225,7 +266,7 @@ local function stringfy_astnode(node, depth, ss, skipindent)
     ss:addmany(node.tag, ' ')
   end
   ss:add('{\n')
-  for k,v in iters.ospairs(node) do
+  for k,v in iters.ospairs(node) do -- use ospairs to enforce order
     if not ignored_stringfy_keys[k] then
       if isnode and k == 'attr' and traits.is_table(v) then
         if next(v) then
@@ -253,15 +294,17 @@ local function stringfy_astnode(node, depth, ss, skipindent)
   ss:addmany(indent, '}')
 end
 
-function ASTNode:__tostring()
+-- Serializes a node to a string suitable to be used in Lua code.
+function ASTNode:tostring()
   local ss = sstream()
   stringfy_astnode(self, 0, ss)
   return ss:tostring()
 end
 
-local coroutine_yield = coroutine.yield
-local coroutine_wrap = coroutine.wrap
+-- Allows to serialize an AST node to a string with `tostring`.
+ASTNode.__tostring = ASTNode.tostring
 
+-- Helper for `ASTNode:walk_symbols`.
 local function walk_symbols(node)
   if node._astnode then
     local attr = node.attr
@@ -277,10 +320,15 @@ local function walk_symbols(node)
   end
 end
 
+--[[
+Recursively iterates all symbols found in all children nodes (including itself).
+Use with `for in` to iterate all children symbols.
+]]
 function ASTNode:walk_symbols()
   return coroutine_wrap(walk_symbols), self
 end
 
+-- Helper for `ASTNode:walk_nodes`.
 local function walk_nodes(node, parent, parentindex)
   if node._astnode then
     coroutine_yield(node, parent, parentindex)
@@ -293,10 +341,25 @@ local function walk_nodes(node, parent, parentindex)
   end
 end
 
+--[[
+Recursively iterates all child nodes (including itself).
+Use with `for in` to iterate all children.
+
+Each iteration return three values, the node followed by its parent and parent index.
+The parent can be either another node or a list of nodes.
+]]
 function ASTNode:walk_nodes()
   return coroutine_wrap(walk_nodes), self
 end
 
+--[[
+Recursively iterates child nodes (excluding itself)
+where each node tag is present in `tagfilter` table, parents are also traced.
+Use with `for in` to iterate children while filtering nodes and tracing parents.
+
+Each iteration return two values, the node followed by a list of its parents.
+Each parent can be either another node or a list of nodes.
+]]
 function ASTNode:walk_trace_nodes(tagfilter)
   local trace = {}
   local function walk_trace_nodes(node, n)
@@ -333,6 +396,7 @@ function ASTNode:recursive_find_child(node)
   end
 end
 
+-- Recursively checks if any child contains an attribute with name `attrname`.
 function ASTNode:recursive_has_attr(attrname)
   for node in self:walk_nodes() do
     if node.attr[attrname] then

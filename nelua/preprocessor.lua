@@ -200,7 +200,7 @@ function preprocessor.preprocess(context, ast)
   end
   local function concept(f, desiredf)
     local type = types.ConceptType(f, desiredf)
-    type.node = context:get_current_node()
+    type.node = context:get_visiting_node()
     return type
   end
   local function overload_concept(syms, ...)
@@ -211,7 +211,7 @@ function preprocessor.preprocess(context, ast)
   end
   local function generic(f)
     local type = types.GenericType(f)
-    type.node = context:get_current_node()
+    type.node = context:get_visiting_node()
     return type
   end
   local function hygienize(f)
@@ -243,7 +243,7 @@ function preprocessor.preprocess(context, ast)
   end
   local function exprmacro(f)
     return function(...)
-      local curnode = context:get_current_node()
+      local curnode = context:get_visiting_node()
       local args = {...}
       return aster.DoExpr{aster.Block{
         preprocess = function(blocknode)
@@ -263,7 +263,7 @@ function preprocessor.preprocess(context, ast)
     if not traits.is_function(f) then
       raise_preprocess_error("invalid arguments for preprocess function")
     end
-    table.insert(context.after_analyze, { f=f, node = context:get_current_node() })
+    table.insert(context.afteranalyzes, { f=f, node = context:get_visiting_node() })
   end
   local function after_inference(f)
     if not traits.is_function(f) then
@@ -275,7 +275,7 @@ function preprocessor.preprocess(context, ast)
       f()
       context:pop_scope()
     end
-    table.insert(context.after_inferences, fproxy)
+    table.insert(context.afterinfers, fproxy)
   end
   local function static_error(msg, ...)
     if not msg then

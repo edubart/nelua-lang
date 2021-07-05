@@ -44,8 +44,10 @@ function fs.writefile(filename, str, is_bin)
   return true
 end
 
--- Given a path, return the directory part and a file part.
--- If there's no directory part, the first value will be empty.
+--[[
+Given a path, return the directory part and a file part.
+If there's no directory part, the first value will be empty.
+]]
 function fs.splitpath(p)
   local i = #p
   local ch = p:sub(i,i)
@@ -103,8 +105,10 @@ function fs.join(p1, p2, ...)
   return p1..p2
 end
 
--- Normalize a path name.
--- E.g. `A//B`, `A/./B`, and `A/foo/../B` all become `A/B`
+--[[
+Normalize a path name.
+E.g. `A//B`, `A/./B`, and `A/foo/../B` all become `A/B`
+]]
 function fs.normpath(p)
   -- split path into anchor and relative path.
   local anchor = ''
@@ -267,23 +271,29 @@ function fs.makepath(path)
   end
 end
 
--- Ensure directory exists for a file.
--- Raises an exception in case of an error.
+--[[
+Ensure directory exists for a file.
+Raises an exception in case of an error.
+]]
 function fs.eensurefilepath(file)
   local outdir = fs.dirname(file)
   local ok, err = fs.makepath(outdir)
   except.assertraisef(ok, 'failed to create path for file "%s": %s', file, err)
 end
 
--- Return the contents of a file as a string.
--- Raises an exception in case of an error.
+--[[
+Return the contents of a file as a string.
+Raises an exception in case of an error.
+]]
 function fs.ereadfile(file)
   local content, err = fs.readfile(file)
   return except.assertraisef(content, 'failed to read file "%s": %s', file, err)
 end
 
--- Write a string to a file.
--- Raises an exception in case of an error.
+--[[
+Write a string to a file.
+Raises an exception in case of an error.
+]]
 function fs.ewritefile(file, content)
   local ok, err = fs.writefile(file, content)
   except.assertraisef(ok, 'failed to create file "%s": %s', file, err)
@@ -329,8 +339,10 @@ local function findmodulefile(name, pathstr)
   return modpath, triedpaths
 end
 
--- Search for a module using a path string or relative path.
--- The path string must be a string like './?.nelua;./?/init.nelua'.
+--[[
+Search for a module using a path string or relative path.
+The path string must be a string like './?.nelua;./?/init.nelua'.
+]]
 function fs.findmodulefile(name, pathstr, relpath)
   local fullpath
   if relpath then

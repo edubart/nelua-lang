@@ -101,9 +101,9 @@ local function class(recordsym, basesym)
 
 ##[[
 local function overrideable()
-  local fundefnode = context:get_parent_node()[2]
+  local fundefnode = context:get_visiting_node(1)[2]
   local rectype, name = fundefnode[2].attr.value
-  local name = context:get_parent_node()[2][1]
+  local name = context:get_visiting_node(1)[2][1]
   -- hygienize saves the current traversing scope for a callback
   rectype.methods[name] = hygienize(function(f) f() end)
 end
@@ -111,7 +111,7 @@ end
 
 ##[[
 local function override()
-  local fundefnode = context:get_parent_node()[2]
+  local fundefnode = context:get_visiting_node(1)[2]
   local rectype, name = fundefnode[2].attr.value, fundefnode[1]
   local method = rectype.base.methods[name]
   method(function()]]

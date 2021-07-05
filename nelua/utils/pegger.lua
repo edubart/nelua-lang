@@ -57,20 +57,26 @@ local lua_single_peg = re.compile(
   single_quote_patt ..
   lua_quote_patt_end, quotes_defs)
 
--- Quote a string using double quotes to be used in C code,
--- escaping special characters as necessary.
+--[[
+Quote a string using double quotes to be used in C code,
+escaping special characters as necessary.
+]]
 function pegger.double_quote_c_string(str)
   return c_double_peg:match(str)
 end
 
--- Quote a string using double quotes to be used in Lua code,
--- escaping special characters as necessary.
+--[[
+Quote a string using double quotes to be used in Lua code,
+escaping special characters as necessary.
+]]
 function pegger.double_quote_lua_string(str)
   return lua_double_peg:match(str)
 end
 
--- Quote a string using single quotes to be used in Lua code,
--- escaping special characters as necessary.
+--[[
+Quote a string using single quotes to be used in Lua code,
+escaping special characters as necessary.
+]]
 function pegger.single_quote_lua_string(str)
   return lua_single_peg:match(str)
 end
@@ -82,8 +88,10 @@ local substitute_patt = re.compile([[
   var <- ('$(' {[_%a]+} ')') -> to_var
 ]], substitute_defs)
 
--- Substitute keywords between '$()' from a text using values from table.
--- E.g. substitute('$(cc) $(cflags)', {cc='gcc', cflags='-w'}) -> 'gcc -w'.
+--[[
+Substitute keywords between '$()' from a text using values from table.
+E.g. substitute('$(cc) $(cflags)', {cc='gcc', cflags='-w'}) -> 'gcc -w'.
+]]
 function pegger.substitute(format, vars)
   metamagic.setmetaindex(substitute_vars, vars, true)
   return substitute_patt:match(format)
@@ -97,8 +105,10 @@ local split_execargs_patt = re.compile[[
   dquoted_arg <- '"'->'' (!'"' .)+ '"'->''
 ]]
 
--- Split arguments from a command line into a table, removing quotes as necessary.
--- E.g. split_execargs('./a.out -a "b"') -> {'./a.out', '-a', 'b'}
+--[[
+Split arguments from a command line into a table, removing quotes as necessary.
+E.g. split_execargs('./a.out -a "b"') -> {'./a.out', '-a', 'b'}
+]]
 function pegger.split_execargs(s)
   if not s then return {} end
   return split_execargs_patt:match(s)
@@ -111,8 +121,10 @@ local filename_to_unitname_patt = re.compile[[
   extend <- '.' [_%w]+ !.
 ]]
 
--- Convert a file name to an unit name. Used for prefixing functions in C generated code.
--- E.g. filename_to_unitname('app/utils/tools.nelua') -> 'app_utils_tools'
+--[[
+Convert a file name to an unit name. Used for prefixing functions in C generated code.
+E.g. filename_to_unitname('app/utils/tools.nelua') -> 'app_utils_tools'
+]]
 function pegger.filename_to_unitname(s)
   return filename_to_unitname_patt:match(s)
 end
@@ -153,8 +165,10 @@ local crlf_to_lf_peg = re.compile([[
 "linebreak <- ([%nl]'\r' / '\r'[%nl] / [%nl] / '\r') -> ln",
 {ln = function() return '\n' end})
 
--- Normalize new lines for different platforms.
--- Converting LF-CR / CR-LF / CR -> LF.
+--[[
+Normalize new lines for different platforms.
+Converting LF-CR / CR-LF / CR -> LF.
+]]
 function pegger.normalize_newlines(text)
   return crlf_to_lf_peg:match(text)
 end

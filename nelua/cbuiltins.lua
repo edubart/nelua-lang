@@ -795,7 +795,7 @@ function operators.len(_, emitter, argnode)
   elseif type.is_type then
     emitter:add('sizeof(', argattr.value, ')')
   else --luacov:disable
-    argnode:errorf('not implemented')
+    argnode:raisef('not implemented')
   end --luacov:enable
 end
 
@@ -1001,7 +1001,7 @@ function inlines.require(context, node, emitter)
   local bracepos = emitter:get_pos()
   emitter:add_indent_ln("{ /* require '", attr.requirename, "' */")
   local lastpos = emitter:get_pos()
-  context:push_state{inrequire = true}
+  context:push_forked_state{inrequire = true}
   context:push_scope(context.rootscope)
   context:push_forked_pragmas(attr.pragmas)
   emitter:add(ast)

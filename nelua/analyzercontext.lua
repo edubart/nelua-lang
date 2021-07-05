@@ -1,76 +1,32 @@
+--[[
+Analyzer context.
+
+This is the context used while analyzing an AST.
+It extends the visitor context and adds some methods to assist analyzing.
+]]
+
 local class = require 'nelua.utils.class'
-local Scope = require 'nelua.scope'
-local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
-local sstream = require 'nelua.utils.sstream'
+local Scope = require 'nelua.scope'
 local VisitorContext = require 'nelua.visitorcontext'
 
+-- The analyzer context class.
 local AnalyzerContext = class(VisitorContext)
 
 function AnalyzerContext:_init(visitors, ast, generator)
-  VisitorContext._init(self, visitors)
-  self.rootscope = Scope.create_root(self, ast)
+  assert(visitors and ast and generator)
+  local rootscope = Scope.create_root(self, ast)
+  VisitorContext._init(self, visitors, rootscope)
   self.ast = ast
   self.scope = self.rootscope
   self.usedbuiltins = {}
   self.env = setmetatable({}, {__index = _G})
   self.requires = {}
-  self.pragmastack = {}
-  self.rootpragmas = {}
-  self.pragmas = self.rootpragmas
-  self.scopestack = {}
   self.usedcodenames = {}
-  self.after_analyze = {}
-  self.after_inferences = {}
+  self.afteranalyzes = {}
+  self.afterinfers = {}
   self.unresolvedcount = 0
-  assert(generator)
   self.generator = generator
-end
-
-function AnalyzerContext:push_pragmas(pragmas)
-  local pragmastack = self.pragmastack
-  local oldpragmas = self.pragmas
-  pragmastack[#pragmastack+1] = oldpragmas
-  self.pragmas = pragmas
-end
-
-function AnalyzerContext:push_forked_pragmas(pragmas)
-  pragmas = pragmas or {}
-  local oldpragmas = self.pragmas
-  local mt = getmetatable(pragmas)
-  if mt then -- reuse the forked pragmas
-    assert(mt.__index == oldpragmas,
-      'cannot mix different pragmas parents, is a pragma pop missing?')
-  else -- forking a new pragmas
-    setmetatable(pragmas, {__index = oldpragmas})
-  end
-  self:push_pragmas(pragmas)
-  return pragmas
-end
-
-function AnalyzerContext:pop_pragmas()
-  local pragmastack = self.pragmastack
-  local index = #pragmastack
-  self.pragmas = self.pragmastack[index]
-  self.pragmastack[index] = nil
-end
-
-function AnalyzerContext:push_scope(scope)
-  local scopestack = self.scopestack
-  scopestack[#scopestack+1] = self.scope
-  self.scope = scope
-end
-
-function AnalyzerContext:push_forked_scope(node)
-  local scope = node.scope
-  if scope then
-    assert(scope.parent == self.scope and scope.node == node)
-  else
-    scope = self.scope:fork(node)
-    node.scope = scope
-  end
-  self:push_scope(scope)
-  return scope
 end
 
 function AnalyzerContext:push_forked_cleaned_scope(node)
@@ -79,39 +35,10 @@ function AnalyzerContext:push_forked_cleaned_scope(node)
   return scope
 end
 
-function AnalyzerContext:pop_scope()
-  local scopestack = self.scopestack
-  local index = #scopestack
-  self.scope = scopestack[index]
-  scopestack[index] = nil
-end
-
 function AnalyzerContext:mark_funcscope_sideeffect()
   local funcscope = self.state.funcscope
   if funcscope then
     funcscope.sideeffect = true
-  end
-end
-
-function AnalyzerContext:ensure_builtin(name, ...)
-  if select('#',...) == 0 and self.usedbuiltins[name] then
-    return name
-  end
-  local func = self.builtins[name]
-  errorer.assertf(func, 'builtin "%s" not defined', name)
-  if func then
-    local newname = func(self, ...)
-    if newname then
-      name = newname
-    end
-  end
-  self.usedbuiltins[name] = true
-  return name
-end
-
-function AnalyzerContext:ensure_builtins(...)
-  for i=1,select('#',...) do
-    self:ensure_builtin((select(i, ...)))
   end
 end
 
@@ -147,20 +74,39 @@ function AnalyzerContext:choose_type_symbol_names(symbol)
   end
 end
 
-function AnalyzerContext:traceback()
-  local nodes = self.nodes
-  local ss = sstream()
-  local polysrcnode = self.state.inpolyeval and self.state.inpolyeval.srcnode
-  if polysrcnode then
-    ss:add(polysrcnode:format_message('from', 'polymorphic function instantiation'))
+--[[
+local nodetravs, numretravs, numtravs = {}, {}, {}
+local function bench_traverse(self, node)
+  if node._astnode then
+    local tag = node.tag
+    numtravs[tag] = (numtravs[tag] or 0) + 1
+    if nodetravs[node] then
+      numretravs[tag] = (numretravs[tag] or 0) + 1
+    end
+    nodetravs[node] = true
   end
-  for i=1,#nodes-1 do
-    local node = nodes[i]
-    if node._astnode and node.tag ~= 'Block' then
-      ss:add(node:format_message('from', 'AST node %s', node.tag))
+  if #self.nodestack == 0 then
+    print '============================report'
+    for k,v in require'nelua.utils.iterators'.ospairs(numretravs) do
+      print(v,k, string.format('%.2f', v*100/numtravs[k]))
     end
   end
-  return ss:tostring()
+end
+]]
+
+-- Like `VisitorContext:traverse_node`, but optimized for analyzer context.
+function AnalyzerContext:traverse_node(node, ...)
+  local done = node.done
+  if done then
+    return done ~= true and done or nil
+  end
+  -- bench_traverse(self, node)
+  local nodestack = self.nodestack
+  local index = #nodestack+1
+  nodestack[index] = node -- push node
+  local ret = self.visitors[node.tag](self, node, ...)
+  nodestack[index] = nil -- pop node
+  return ret
 end
 
 return AnalyzerContext

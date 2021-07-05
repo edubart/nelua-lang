@@ -109,7 +109,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
           -- initialize to const values
           decemitter:add(' = ')
           assert(not lastcallindex)
-          context:push_state{ininitializer = true}
+          context:push_forked_state{ininitializer = true}
           decemitter:add_val2type(vartype, valnode)
           context:pop_state()
           defined = true
@@ -319,12 +319,12 @@ end
 
 typevisitors[types.Type] = function(context, type)
   if type.is_any or type.is_varanys then
-    local node = context:get_current_node()
+    local node = context:get_visiting_node()
     node:raisef("compiler deduced the type 'any' here, but it's not supported yet in the C backend")
   elseif type.is_niltype then
     context:ensure_builtin('nlniltype')
   else
-    local node = context:get_current_node()
+    local node = context:get_visiting_node()
     node:raisef("type '%s' is not supported yet in the C backend", type)
   end
 end
@@ -398,7 +398,7 @@ function visitors.InitList(context, node, emitter)
     emitter:add_zeroed_type_init(type)
   elseif type.is_composite then
     if context.state.ininitializer then
-      context:push_state{incompositeinitializer = true}
+      context:push_forked_state{incompositeinitializer = true}
       emitter:add('{')
       emitter:add_traversal_list(childnodes)
       emitter:add('}')
@@ -419,32 +419,37 @@ function visitors.InitList(context, node, emitter)
         emitter:add_zeroed_type_init(type)
         emitter:add_ln(';')
       end
+      local lastfieldindex = 0
       for i,childnode in ipairs(childnodes) do
-        local fieldname = childnode.fieldname
         local named = false
         local childvalnode
+        local field
         if childnode.tag == 'Pair' then
           childvalnode = childnode[2]
+          field = type.fields[childnode[1]]
           named = true
         else
           childvalnode = childnode
+          field = type.fields[lastfieldindex + 1]
         end
+        lastfieldindex = field.index
+        assert(field)
         local childvaltype = childvalnode.attr.type
         if useinitializer then
           if i > 1 then
             emitter:add(', ')
           end
           if named then
-            emitter:add('.', fieldname, ' = ')
+            emitter:add('.', field.name, ' = ')
           end
         else
           if childvaltype.is_array then
-            emitter:add_indent('(*(', childvaltype, '*)_tmp.', fieldname, ') = ')
+            emitter:add_indent('(*(', childvaltype, '*)_tmp.', field.name, ') = ')
           else
-            emitter:add_indent('_tmp.', fieldname, ' = ')
+            emitter:add_indent('_tmp.', field.name, ' = ')
           end
         end
-        local fieldtype = type.fields[fieldname].type
+        local fieldtype = type.fields[field.name].type
         assert(fieldtype)
         emitter:add_val2type(fieldtype, childvalnode, childvaltype)
         if not useinitializer then
@@ -511,7 +516,7 @@ end
 
 function visitors.Pair(_, node, emitter)
   local namenode, valuenode = node[1], node[2]
-  local parenttype = node.parenttype
+  local parenttype = node.attr.parenttype
   if parenttype and parenttype.is_composite then
     assert(traits.is_string(namenode))
     local field = parenttype.fields[namenode]
@@ -624,7 +629,7 @@ function visitors.IdDecl(context, node, emitter)
 end
 
 local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjnode)
-  local isblockcall = context:get_parent_node().tag == 'Block'
+  local isblockcall = context:get_visiting_node(1).tag == 'Block'
   if isblockcall then
     emitter:add_indent()
   end
@@ -818,9 +823,9 @@ end
 
 -- indexing
 function visitors.DotIndex(context, node, emitter)
-  local name = node.dotfieldname or node[1]
-  local objnode = node[2]
   local attr = node.attr
+  local name = attr.dotfieldname or node[1]
+  local objnode = node[2]
   local type = attr.type
   local objtype = objnode.attr.type
   local poparray = false
@@ -833,7 +838,7 @@ function visitors.DotIndex(context, node, emitter)
     end
   end
   if objtype.is_type then
-    objtype = node.indextype
+    objtype = attr.indextype
     if objtype.is_enum then
       local field = objtype.fields[name]
       emitter:add_numeric_literal(field, objtype.subtype)
@@ -891,7 +896,7 @@ function visitors.KeyIndex(context, node, emitter)
     elseif objtype.length == 0 then
       emitter:add('((', objtype.subtype, '*)&', objnode, ')[')
     else
-      context:push_state{inarrayindex = objnode}
+      context:push_forked_state{inarrayindex = objnode}
       emitter:add(objnode)
       if context.state.fieldindexed ~= objnode then
         emitter:add('.data')
@@ -962,8 +967,8 @@ function visitors.Return(context, node, emitter)
     emitter:add_indent_ln('_expr = ', retnodes[1], ';')
     emitter:add(defercode)
     local needgoto = true
-    if context:get_parent_node(2).tag == 'DoExpr' then
-      local blockstats = context:get_parent_node()[1]
+    if context:get_visiting_node(2).tag == 'DoExpr' then
+      local blockstats = context:get_visiting_node(1)[1]
       if node == blockstats[#blockstats] then -- last statement does not need goto
         needgoto = false
       end
@@ -1357,7 +1362,7 @@ function visitors.FuncDef(context, node, emitter)
     end
   end
 
-  context:push_state{infuncdecl = true}
+  context:push_forked_state{infuncdecl = true}
   decemitter:add(funcid)
   defemitter:add(funcid)
   context:pop_state()
@@ -1683,7 +1688,7 @@ $(definitions)
 ]]
 
 function generator.generate(ast, context)
-  CContext.promote_context(context, visitors, typevisitors)
+  context:promote(CContext, visitors, typevisitors)
 
   emit_features_setup(context)
   emit_main(ast, context)

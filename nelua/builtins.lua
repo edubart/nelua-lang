@@ -79,7 +79,7 @@ function builtins.require(context, node, argnodes)
   -- analyze it
   local ast = attr.loadedast
   attr.pragmas = attr.pragmas or {unitname = attr.unitname}
-  context:push_state{inrequire = true}
+  context:push_forked_state{inrequire = true}
   context:push_scope(context.rootscope)
   context:push_forked_pragmas(attr.pragmas)
   if justloaded then
@@ -93,7 +93,7 @@ end
 
 function builtins.assert(context, node, argnodes)
   local attr = node.attr
-  local statement = attr.checkbuiltin or context:get_parent_node().tag == 'Block'
+  local statement = attr.checkbuiltin or context:get_visiting_node(1).tag == 'Block'
   if statement then
     local firstargnode = argnodes[1]
     if firstargnode then
