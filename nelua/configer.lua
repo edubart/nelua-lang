@@ -145,7 +145,6 @@ end
 
 --luacov:disable
 local function action_version()
-  version.detect_git_info()
   console.info(version.NELUA_VERSION)
   console.infof('Build number: %s', version.NELUA_GIT_BUILD)
   console.infof('Git date: %s', version.NELUA_GIT_DATE)

@@ -161,9 +161,9 @@ _update_install_version:
 	$(eval NELUA_GIT_HASH := $(shell git rev-parse HEAD))
 	$(eval NELUA_GIT_DATE := $(shell git log -1 --format=%ci))
 	$(eval NELUA_GIT_BUILD := $(shell git rev-list HEAD --count))
-	$(SED) -i.bak 's/NELUA_GIT_HASH = "unknown"/NELUA_GIT_HASH = "$(NELUA_GIT_HASH)"/' $(INSTALL_LUALIB)/nelua/version.lua
-	$(SED) -i.bak 's/NELUA_GIT_DATE = "unknown"/NELUA_GIT_DATE = "$(NELUA_GIT_DATE)"/' $(INSTALL_LUALIB)/nelua/version.lua
-	$(SED) -i.bak 's/NELUA_GIT_BUILD = 0/NELUA_GIT_BUILD = $(NELUA_GIT_BUILD)/' $(INSTALL_LUALIB)/nelua/version.lua
+	$(SED) -i.bak 's/NELUA_GIT_HASH = nil/NELUA_GIT_HASH = "$(NELUA_GIT_HASH)"/' $(INSTALL_LUALIB)/nelua/version.lua
+	$(SED) -i.bak 's/NELUA_GIT_DATE = nil/NELUA_GIT_DATE = "$(NELUA_GIT_DATE)"/' $(INSTALL_LUALIB)/nelua/version.lua
+	$(SED) -i.bak 's/NELUA_GIT_BUILD = nil/NELUA_GIT_BUILD = $(NELUA_GIT_BUILD)/' $(INSTALL_LUALIB)/nelua/version.lua
 	$(RM) $(INSTALL_LUALIB)/nelua/version.lua.bak
 else
 _update_install_version:

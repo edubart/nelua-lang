@@ -9,7 +9,6 @@ local ccompiler = require 'nelua.ccompiler'
 describe("runner", function()
 
 it("version numbers" , function()
-  version.detect_git_info()
   expect.equal(#version.NELUA_GIT_HASH, 40)
   assert(version.NELUA_GIT_BUILD > 0)
   assert(version.NELUA_GIT_DATE ~= 'unknown')
