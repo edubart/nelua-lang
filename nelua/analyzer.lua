@@ -2,6 +2,7 @@ local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
 local tabler = require 'nelua.utils.tabler'
 local pegger = require 'nelua.utils.pegger'
+local fs = require 'nelua.utils.fs'
 local typedefs = require 'nelua.typedefs'
 local Attr = require 'nelua.attr'
 local Symbol = require 'nelua.symbol'
@@ -459,7 +460,7 @@ function visitors.Directive(context, node)
   local name, params = node[1], node[2]
 
   if not node.checked then -- check pragma shape
-    local paramshape = typedefs.directives[name]
+    local paramshape = typedefs.pp_directives[name]
     node:assertraisef(paramshape, "pragma '%s' is undefined", name)
     local ok, err = paramshape(params)
     if not ok then
@@ -3236,6 +3237,7 @@ function analyzer.analyze(context)
 
   if ast.src and ast.src.name then
     context.pragmas.unitname = pegger.filename_to_unitname(ast.src.name)
+    ast.attr.filename = fs.abspath(ast.src.name)
   end
 
   -- phase 1 traverse: preprocess

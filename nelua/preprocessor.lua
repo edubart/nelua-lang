@@ -1,51 +1,104 @@
-local traits = require 'nelua.utils.traits'
-local tabler = require 'nelua.utils.tabler'
-local types = require 'nelua.types'
-local typedefs = require 'nelua.typedefs'
-local VisitorContext = require 'nelua.visitorcontext'
+--[[
+Preprocessor module.
+
+The preprocessor works the following way for each source file:
+
+1. Traverse a source file generating preprocessing code for all nodes in the source file.
+2. The generated preprocessed code is run, creating a 'preprocess' function for all nodes.
+3. The first time a node is visited, its respective 'preprocess' function is called just once.
+4. The preprocess function may inject new ast nodes and analyze it right away.
+
+Note that the preprocessing is done gradually, that is,
+preprocessing is done per node, at the first time a node is visited.
+Thus the compiler will preprocess and then analyze nodes gradually.
+]]
+
 local PPContext = require 'nelua.ppcontext'
 local Emitter = require 'nelua.emitter'
 local except = require 'nelua.utils.except'
-local errorer = require 'nelua.utils.errorer'
-local config = require 'nelua.configer'.get()
-local stringer = require 'nelua.utils.stringer'
-local memoize = require 'nelua.utils.memoize'
-local bn = require 'nelua.utils.bn'
-local ccompiler = require 'nelua.ccompiler'
 local console = require 'nelua.utils.console'
 local nanotimer = require 'nelua.utils.nanotimer'
-local aster = require 'nelua.aster'
+local config = require 'nelua.configer'.get()
 
-local traverse_node = VisitorContext.traverse_node
-local function pp_default_visitor(self, node, emitter, ...)
+-- List tags of nodes that will be preprocessed.
+local preprocess_tags = {
+  Preprocess = true,
+  PreprocessName = true,
+  PreprocessExpr = true
+}
+
+-- Default preprocessing node visitor.
+local function default_visitor(self, node, emitter, ...)
   for i=1,#node do
     local arg = node[i]
-    if arg and type(arg) == 'table' then
+    if type(arg) == 'table' then
       if arg._astnode then
-        traverse_node(self, arg, emitter, node, i, ...)
+        self:traverse_node(arg, emitter, node, i, ...)
       else
-        pp_default_visitor(self, arg, emitter, ...)
+        default_visitor(self, arg, emitter, ...)
       end
     end
   end
 end
 
-local visitors = { default_visitor = pp_default_visitor }
+-- Visitors table, invalid indexes will fall back to the default visitor.
+local visitors = setmetatable({}, {__index = function(self, tag)
+  self[tag] = default_visitor -- set the first time tag is visited (optimization)
+  return default_visitor
+end})
 
+-- Visit a node that should be converted to a name (a string).
 function visitors.PreprocessName(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
-  local pindex, nindex = ppcontext:getregistryindex(parent), ppcontext:getregistryindex(node)
-  emitter:add_indent_ln('ppregistry[', pindex, '][', parentindex, ']',
-    '=ppcontext:toname(', luacode, ',ppregistry[', nindex, '])')
+  local pregidx, nregidx = ppcontext:get_registry_index(parent), ppcontext:get_registry_index(node)
+  emitter:add_indent_ln('ppcontext:inject_name(',luacode,
+    ',ppregistry[',pregidx,'],',parentindex,',ppregistry[',nregidx,'])')
 end
 
+-- Visit a node that should be converted to another node.
 function visitors.PreprocessExpr(ppcontext, node, emitter, parent, parentindex)
   local luacode = node[1]
-  local pindex, nindex = ppcontext:getregistryindex(parent), ppcontext:getregistryindex(node)
+  local pregidx, nregidx = ppcontext:get_registry_index(parent), ppcontext:get_registry_index(node)
   emitter:add_indent_ln('ppcontext:inject_value(',luacode,
-    ',ppregistry[', nindex, '],ppregistry[', pindex,'],', parentindex,')')
+    ',ppregistry[',pregidx,'],',parentindex,',ppregistry[',nregidx,'])')
 end
 
+-- Visit a node that should execute a code.
+function visitors.Preprocess(_, node, emitter)
+  local luacode = node[1]
+  emitter:add_ln(luacode)
+end
+
+-- Visit a block node.
+function visitors.Block(ppcontext, node, emitter)
+  local statnodes = node
+  if not node.needprocess then
+    ppcontext:traverse_nodes(statnodes, emitter)
+    return
+  end
+  node.needprocess = nil
+  local blockregidx = ppcontext:get_registry_index(node)
+  emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess=function(blocknode, ...)')
+  emitter:inc_indent()
+  emitter:add_indent_ln('ppcontext:push_statnodes(blocknode)')
+  for i=1,#statnodes do
+    local statnode = statnodes[i]
+    local statregidx = ppcontext:get_registry_index(statnode)
+    ppcontext:traverse_node(statnode, emitter)
+    statnodes[i] = nil
+    if statnode.tag ~= 'Preprocess' then
+      emitter:add_indent_ln('ppcontext:inject_statement(ppregistry[', statregidx, '])')
+    end
+  end
+  emitter:add_indent_ln('ppcontext:pop_statnodes()')
+  emitter:dec_indent()
+  emitter:add_indent_ln('end')
+end
+
+--[[
+Visit function definition node.
+This is a special case because preprocessing of returns is delayed after arguments are traversed.
+]]
 function visitors.FuncDef(ppcontext, node, emitter)
   local namenode, argnodes, retnodes, annotnodes, blocknode = node[2], node[3], node[4], node[5], node[6]
   ppcontext:traverse_node(namenode, emitter, node, 2)
@@ -55,20 +108,20 @@ function visitors.FuncDef(ppcontext, node, emitter)
       local retnode = retnodes[i]
       local needpreprocess
       for subnode in retnode:walk_nodes() do
-        if subnode.tag:match('^Preprocess') then
+        if preprocess_tags[subnode.tag] then
           needpreprocess = true
           break
         end
       end
       if not needpreprocess then
         ppcontext:traverse_node(retnode, emitter, retnodes, i)
-      else -- we want to preprocess later to have arguments visible in the preprocess context
-        local retindex = ppcontext:getregistryindex(retnode)
-        emitter:add_indent_ln('ppregistry[', retindex, '].preprocess=function(parent, pindex)')
+      else -- preprocess later to have arguments visible in the preprocess context
+        local retindex = ppcontext:get_registry_index(retnode)
+        emitter:add_indent_ln('ppregistry[',retindex,'].preprocess=function(parent,pregidx)')
         emitter:inc_indent()
         ppcontext:traverse_node(retnode, emitter, retnodes, i)
-        local retsindex = ppcontext:getregistryindex(retnodes)
-        emitter:add_indent_ln("parent[pindex]=ppregistry[",retsindex,"][",i,"]:clone()")
+        local retsindex = ppcontext:get_registry_index(retnodes)
+        emitter:add_indent_ln("parent[pregidx]=ppregistry[",retsindex,"][",i,"]:clone()")
         emitter:add_indent_ln("ppregistry[",retsindex,"][",i,"]=ppregistry[",retindex,"]")
         emitter:dec_indent()
         emitter:add_indent_ln('end')
@@ -81,48 +134,11 @@ function visitors.FuncDef(ppcontext, node, emitter)
   ppcontext:traverse_node(blocknode, emitter, node, 6)
 end
 
-
-function visitors.Preprocess(_, node, emitter)
-  local luacode = node[1]
-  emitter:add_ln(luacode)
-end
-
-function visitors.Block(ppcontext, node, emitter)
-  local statnodes = node
-  if not node.needprocess then
-    ppcontext:traverse_nodes(statnodes, emitter)
-    return
-  end
-  node.needprocess = nil
-
-  local blockregidx = ppcontext:getregistryindex(node)
-  emitter:add_indent_ln('ppregistry[', blockregidx, '].preprocess=function(blocknode, ...)')
-  emitter:inc_indent()
-  emitter:add_indent_ln('assert(#blocknode == 0)')
-  emitter:add_indent_ln('ppcontext:push_statnodes(blocknode)')
-  for i=1,#statnodes do
-    local statnode = statnodes[i]
-    local statregidx = ppcontext:getregistryindex(statnode)
-    ppcontext:traverse_node(statnode, emitter)
-    statnodes[i] = nil
-    if statnode.tag ~= 'Preprocess' then
-      emitter:add_indent_ln('ppcontext:add_statnode(ppregistry[', statregidx, '])')
-    end
-  end
-  emitter:add_indent_ln('ppcontext:pop_statnodes()')
-  emitter:dec_indent()
-  emitter:add_indent_ln('end')
-end
-
+-- The preprocessor module.
 local preprocessor = {working_time = 0}
 
 local function mark_preprocessing_nodes(ast)
   local needprocess
-  local preprocess_tags = {
-    Preprocess = true,
-    PreprocessName = true,
-    PreprocessExpr = true
-  }
   for _, parents in ast:walk_trace_nodes(preprocess_tags) do
     needprocess = true
     -- mark nearest parent block above
@@ -137,243 +153,51 @@ local function mark_preprocessing_nodes(ast)
   return needprocess
 end
 
+-- Preprocess AST `ast` using analyzer context `context`.
 function preprocessor.preprocess(context, ast)
   assert(ast.tag == 'Block')
-
+  -- begin tracking time
   local timer
   if config.more_timing or config.timing then
     timer = nanotimer()
   end
-
+  -- creates ppcontext if the node doesn't have one yet
   local ppcontext = context.ppcontext
   if not ppcontext then
     ppcontext = PPContext(visitors, context)
     context.ppcontext = ppcontext
   end
-
-  if not mark_preprocessing_nodes(ast) then
-    -- no preprocess directive found for this block, finished
-    if timer then --luacov:disable
-      local elapsed = timer:elapsed()
-      preprocessor.working_time = preprocessor.working_time + elapsed
-      if config.more_timing then
-        console.debugf('skip preprocess %s (%.1f ms)', ast.src.name, elapsed)
+  -- generate preprocess code only when a preprocessing directive is found
+  local preprocessed = false
+  if mark_preprocessing_nodes(ast) then -- we really need to preprocess the ast
+    -- second pass, emit the preprocess lua code
+    local emitter = Emitter(ppcontext, 0)
+    if config.define and not ppcontext.defined then -- TODO: move code
+      for _,define in ipairs(config.define) do
+        emitter:add_ln(define)
       end
-    end --luacov:enable
-    return false
-  end
-
-  -- second pass, emit the preprocess lua code
-  local emitter = Emitter(ppcontext, 0)
-  if config.define then
-    for _,define in ipairs(config.define) do
-      emitter:add_ln(define)
+      ppcontext.defined = true
     end
-  end
-  ppcontext:traverse_node(ast, emitter)
-
-  -- generate the preprocess function`
-  local ppcode = emitter:generate()
-
-  local function raise_preprocess_error(msg, ...)
-    msg = stringer.pformat(msg, ...)
-    local lineno = debug.getinfo(3).currentline
-    msg = errorer.get_pretty_source_line_errmsg({content=ppcode, name='preprocessor'}, lineno, msg, 'error')
-    except.raise(msg, 2)
-  end
-
-  local primtypes = typedefs.primtypes
-  local ppenv = {
-    context = context,
-    ppcontext = ppcontext,
-    ppregistry = ppcontext.registry,
-    ast = ast,
-    bn = bn,
-    aster = aster,
-    config = config,
-    types = types,
-    traits = traits,
-    primtypes = primtypes
-  }
-  if context.generator == 'c' then
-    ppenv.ccinfo = ccompiler.get_cc_info()
-  end
-  local function concept(f, desiredf)
-    local type = types.ConceptType(f, desiredf)
-    type.node = context:get_visiting_node()
-    return type
-  end
-  local function overload_concept(syms, ...)
-    return types.make_overload_concept(context, syms, ...)
-  end
-  local function facultative_concept(sym, noconvert)
-    return overload_concept({sym, primtypes.niltype, noconvert=noconvert})
-  end
-  local function generic(f)
-    local type = types.GenericType(f)
-    type.node = context:get_visiting_node()
-    return type
-  end
-  local function hygienize(f)
-    local scope = context.scope
-    local checkpoint = scope:make_checkpoint()
-    local statnodes = ppcontext.statnodes
-    local addindex = #statnodes+1
-    local pragmas = context.pragmas
-    return function(...)
-      statnodes.addindex = addindex
-      ppcontext:push_statnodes(statnodes)
-      scope:push_checkpoint(checkpoint)
-      local oldscope = context.scope
-      context:push_scope(scope)
-      context:push_pragmas(pragmas)
-      local rets = table.pack(f(...))
-      context:pop_pragmas()
-      context:pop_scope()
-      scope:pop_checkpoint()
-      ppcontext:pop_statnodes()
-      if addindex ~= statnodes.addindex then -- new statement nodes were added
-        -- must delay resolution to fully parse the new added nodes later
-        oldscope:find_shared_up_scope(scope):delay_resolution()
-        addindex = statnodes.addindex
-      end
-      statnodes.addindex = nil
-      return table.unpack(rets)
+    ppcontext:traverse_node(ast, emitter)
+    -- generate the preprocess function`
+    local ppcode = emitter:generate()
+    local chukname = '@ppcode'
+    if ast.attr.filename then
+      chukname = chukname..':'..ast.attr.filename
     end
-  end
-  local function exprmacro(f)
-    return function(...)
-      local curnode = context:get_visiting_node()
-      local args = {...}
-      return aster.DoExpr{aster.Block{
-        preprocess = function(blocknode)
-          assert(#blocknode == 0)
-          ppcontext:push_statnodes(blocknode)
-          f(table.unpack(args))
-          ppcontext:pop_statnodes()
-        end,
-        pos = curnode.pos, src = curnode.src
-      }, pos = curnode.pos, src = curnode.src}
+    ppcontext:register_code(chukname, ppcode)
+    -- try to run the preprocess otherwise capture and show the error
+    local ppfunc, err = load(ppcode, chukname, "t", ppcontext.env)
+    local ok = not err
+    if ppfunc then
+      ok, err = except.trycall(ppfunc)
     end
-  end
-  local function generalize(f)
-    return generic(memoize(hygienize(f)))
-  end
-  local function after_analyze(f)
-    if not traits.is_function(f) then
-      raise_preprocess_error("invalid arguments for preprocess function")
+    if not ok then
+      ast:raisef('error while preprocessing: %s', err)
     end
-    table.insert(context.afteranalyzes, { f=f, node = context:get_visiting_node() })
+    preprocessed = true
   end
-  local function after_inference(f)
-    if not traits.is_function(f) then
-      raise_preprocess_error("invalid arguments for preprocess function")
-    end
-    local oldscope = context.scope
-    local function fproxy()
-      context:push_scope(oldscope)
-      f()
-      context:pop_scope()
-    end
-    table.insert(context.afterinfers, fproxy)
-  end
-  local function static_error(msg, ...)
-    if not msg then
-      msg = 'static error!'
-    end
-    raise_preprocess_error(msg, ...)
-  end
-  local function static_assert(status, msg, ...)
-    if not status then
-      if not msg then
-        msg = 'static assertion failed!'
-      end
-      raise_preprocess_error(msg, ...)
-    end
-    return status
-  end
-  local function select_varargs(index, endindex) -- DEPRECATED
-    --luacov:disable
-    local polyeval = context.state.inpolyeval
-    static_assert(polyeval, 'cannot used select_varargs outside a polymorphic function')
-    local varargsnodes = polyeval.varargsnodes
-    local nvarargs = #varargsnodes
-    if index == '#' then
-      return nvarargs
-    else
-      if index < 0 then index = nvarargs + index + 1 end
-      static_assert(index >= 1 and index <= nvarargs, 'select index out of range')
-      if endindex then
-        if endindex < 0 then endindex = nvarargs + endindex + 1 end
-        static_assert(endindex >= 1 and endindex <= nvarargs, 'select end index out of range')
-        local selectnodes = {_astunpack=true}
-        for i=index,endindex,(endindex >= index) and 1 or -1 do
-          selectnodes[#selectnodes+1] = varargsnodes[i]
-        end
-        return selectnodes
-      else
-        return varargsnodes[index]
-      end
-    end
-    --luacov:enable
-  end
-  local function inject_astnode(node, clone)
-    return ppcontext:add_statnode(node, not clone)
-  end
-  tabler.update(ppenv, {
-    after_analyze = after_analyze,
-    after_inference = after_inference,
-    static_error = static_error,
-    static_assert = static_assert,
-    inject_astnode = inject_astnode,
-    concept = concept,
-    overload_concept = overload_concept,
-    facultative_concept = facultative_concept,
-    select_varargs = select_varargs,
-    generic = generic,
-    hygienize = hygienize,
-    generalize = generalize,
-    memoize = memoize,
-    exprmacro = exprmacro,
-    -- deprecated aliases
-    optional_concept = facultative_concept,
-    staticerror = static_error,
-    staticassert = static_assert,
-  })
-  local contextenv = context.env
-  setmetatable(ppenv, { __index = function(_, key)
-    local v = contextenv[key]
-    if v ~= nil then
-      return v
-    end
-    if key == 'symbols' then
-      return context.scope.symbols
-    end
-    if key == 'pragmas' then
-      return context.pragmas
-    end
-    local symbol = context.scope.symbols[key]
-    if symbol then
-      return symbol
-    elseif typedefs.directives[key] then
-      return function(...)
-        ppcontext:add_statnode(aster.Directive{key, table.pack(...)}, true)
-      end
-    end
-  end, __newindex = function(_, key, value)
-    contextenv[key] = value
-  end})
-
-  -- try to run the preprocess otherwise capture and show the error
-  local ppfunc, err = load(ppcode, '@preprocessor', "t", ppenv)
-  local ok = not err
-  if ppfunc then
-    ok, err = except.trycall(ppfunc)
-  end
-  if not ok then
-    ast:raisef('error while preprocessing: %s', err)
-  end
-
+  -- finish time tracking
   if timer then
     local elapsed = timer:elapsed()
     preprocessor.working_time = preprocessor.working_time + elapsed
@@ -381,8 +205,7 @@ function preprocessor.preprocess(context, ast)
       console.debugf('preprocessed %s (%.1f ms)', ast.src.name, timer:elapsed())
     end
   end
-
-  return true
+  return preprocessed
 end
 
 return preprocessor

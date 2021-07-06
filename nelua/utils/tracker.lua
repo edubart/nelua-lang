@@ -1,7 +1,7 @@
 --[[
 Tacker module
 
-This is an utility used internally to optimize/debug compiler code paths
+This is an utility used internally to optimize/debug compiler code paths.
 ]]
 
 --luacov:disable

@@ -1712,9 +1712,7 @@ it("concepts", function()
     g((@[2]integer){1,2})
     g((@[3]integer){1,2,3})
 
-    local function h(x: #[facultative_concept(integer)]#) end
     local function h(x: facultative(integer)) end
-    local function g(x: #[overload_concept(integer,niltype)]#) end
     local function g(x: overload(integer,niltype)) end
 
     local R = @record{x: integer}
@@ -1773,19 +1771,19 @@ it("concepts", function()
   ]], "invalid return for concept")
   expect.analyze_ast([[
     local io = @record{x: integer}
-    local function f(x: #[overload_concept({io})]#): integer return x.x end
+    local function f(x: overload(io)): integer return x.x end
     f(io{})
   ]])
   expect.analyze_error([[
-    local function f(x: #[overload_concept({integer, string})]#) return x end
+    local function f(x: overload(integer, string)) return x end
     f(true)
   ]], "cannot match overload concept")
   expect.analyze_error([[
-    local function f(x: #[overload_concept({integer, 1})]#) return x end
+    local function f(x: overload(integer, 1)) return x end
     f(true)
   ]], "in overload concept definition")
   expect.analyze_error([[
-    local function f(x: #[overload_concept(integer)]#) return x end
+    local function f(x: overload(integer)) return x end
     f(true)
   ]], "cannot match overload concept")
 end)

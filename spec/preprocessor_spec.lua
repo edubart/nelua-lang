@@ -32,7 +32,7 @@ it("evaluate expressions", function()
     local a: [10]integer
     a[0] = 1
   ]])
-  expect.analyze_error("local a = #[function() end]#", "unable to convert preprocess value of lua type")
+  expect.analyze_error("local a = #[function() end]#", "cannot convert preprocess value of type")
 end)
 
 it("evaluate names", function()

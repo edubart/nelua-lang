@@ -70,6 +70,7 @@ function builtins.require(context, node, argnodes)
     local input = fs.ereadfile(filepath)
     local ast = aster.parse(input, filepath)
     attr.loadedast = ast
+    ast.attr.filename = filepath
 
     justloaded = true
 

@@ -13,6 +13,9 @@ local VisitorContext = require 'nelua.visitorcontext'
 -- The analyzer context class.
 local AnalyzerContext = class(VisitorContext)
 
+-- Used to quickly check whether a table is an analyzer context.
+AnalyzerContext._analyzercontext = true
+
 function AnalyzerContext:_init(visitors, ast, generator)
   assert(visitors and ast and generator)
   local rootscope = Scope.create_root(self, ast)
@@ -20,7 +23,6 @@ function AnalyzerContext:_init(visitors, ast, generator)
   self.ast = ast
   self.scope = self.rootscope
   self.usedbuiltins = {}
-  self.env = setmetatable({}, {__index = _G})
   self.requires = {}
   self.usedcodenames = {}
   self.afteranalyzes = {}
@@ -94,7 +96,10 @@ local function bench_traverse(self, node)
 end
 ]]
 
--- Like `VisitorContext:traverse_node`, but optimized for analyzer context.
+--[[
+Like `VisitorContext:traverse_node`, but optimized for analyzer context.
+When analyzing in case the node is marked as `done` its traversal will be skipped.
+]]
 function AnalyzerContext:traverse_node(node, ...)
   local done = node.done
   if done then

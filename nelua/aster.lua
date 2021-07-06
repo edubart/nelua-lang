@@ -106,10 +106,8 @@ function aster.value(value, srcnode)
   else
     return nil
   end
-  if srcnode then -- preserve source position
-    node.src = srcnode.src
-    node.pos = srcnode.pos
-    node.endpos = srcnode.endpos
+  if srcnode and srcnode.src and srcnode.pos then -- preserve source position
+    node:recursive_update_location(srcnode.src, srcnode.pos, srcnode.endpos)
   end
   return node
 end

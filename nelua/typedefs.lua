@@ -12,7 +12,8 @@ local platform = require 'nelua.utils.platform'
 local ccompiler = require 'nelua.ccompiler'
 
 -- Get C compiler defines.
-local ccdefs = ccompiler.get_cc_info().defines
+local ccinfo = ccompiler.get_cc_info()
+local ccdefs = ccinfo.defines
 
 -- CPU word size in bytes (size of a pointer).
 local ptrsize = ccdefs.__SIZEOF_POINTER__ or platform.cpu_bits // 8
@@ -26,6 +27,7 @@ local clonglongsize = ccdefs.__SIZEOF_LONG_LONG__ or 8
 -- Map containing all primitive types.
 local primtypes = {}
 
+-- The typedefs module.
 local typedefs = {
   primtypes = primtypes,
   ptrsize = ptrsize,
@@ -192,24 +194,6 @@ typedefs.promote_unsigned_types = {
   primtypes.uint64
 }
 
---[[
-List of preprocessor directives.
-They inject the AST node 'Directive' when called from the preprocessor.
-]]
-typedefs.directives = {
-  cinclude = shaper.shape{n=shaper.number, shaper.string},
-  cemitdecl = shaper.shape{n=shaper.number, shaper.string + shaper.func},
-  cemitdef = shaper.shape{n=shaper.number, shaper.string + shaper.func},
-  cemit = shaper.shape{n=shaper.number, shaper.string + shaper.func},
-  cdefine = shaper.shape{n=shaper.number, shaper.string},
-  cflags = shaper.shape{n=shaper.number, shaper.string},
-  cfile = shaper.shape{n=shaper.number, shaper.string},
-  ldflags = shaper.shape{n=shaper.number, shaper.string},
-  linklib = shaper.shape{n=shaper.number, shaper.string},
-  pragmapush = shaper.shape{n=shaper.number, shaper.table},
-  pragmapop = shaper.shape{n=shaper.number},
-}
-
 -- List of possible annotations for function types.
 typedefs.function_annots = {
   -- Whether to import the function from C.
@@ -329,6 +313,87 @@ typedefs.type_annots = {
   using = true,
   -- Whether the type can be copied, that is, passed by value (experimental).
   nocopy = true,
+}
+
+--[[
+List of preprocessor directives.
+They inject the AST node 'Directive' when called from the preprocessor.
+]]
+typedefs.pp_directives = {
+  cinclude = shaper.shape{n=shaper.number, shaper.string},
+  cemitdecl = shaper.shape{n=shaper.number, shaper.string + shaper.func},
+  cemitdef = shaper.shape{n=shaper.number, shaper.string + shaper.func},
+  cemit = shaper.shape{n=shaper.number, shaper.string + shaper.func},
+  cdefine = shaper.shape{n=shaper.number, shaper.string},
+  cflags = shaper.shape{n=shaper.number, shaper.string},
+  cfile = shaper.shape{n=shaper.number, shaper.string},
+  ldflags = shaper.shape{n=shaper.number, shaper.string},
+  linklib = shaper.shape{n=shaper.number, shaper.string},
+  pragmapush = shaper.shape{n=shaper.number, shaper.table},
+  pragmapop = shaper.shape{n=shaper.number},
+}
+
+--[[
+List of exported preprocessor methods to use while meta programming.
+These functions are documented in `PPContext`.
+]]
+typedefs.pp_methods = {
+  inject_statement = true,
+  generic = true,
+  concept = true,
+  hygienize = true,
+  memoize = true,
+  generalize = true,
+  static_error = true,
+  static_assert = true,
+  after_analyze = true,
+  after_inference = true,
+  expr_macro = true,
+  -- DEPRECATED aliases
+  inject_astnode = 'inject_statement',
+  staticerror = 'static_error',
+  staticassert = 'static_assert',
+  exprmacro = 'expr_macro'
+}
+
+-- List of exported preprocessor variables that can change while preprocessing.
+typedefs.pp_variables = {
+  -- Visible symbols in the current scope.
+  symbols = function(ppcontext) return ppcontext.context.scope.symbols end,
+  -- Current scope.
+  scope = function(ppcontext) return ppcontext.context.scope end,
+  -- Current pragmas.
+  pragmas = function(ppcontext) return ppcontext.context.pragmas end,
+}
+
+-- List of exported preprocessor constants that cannot change while preprocessing.
+typedefs.pp_constants = {
+  -- BN module.
+  bn = function() return require 'nelua.utils.bn' end,
+  -- Traits module.
+  traits = function() return require 'nelua.utils.traits' end,
+  -- Aster module.
+  aster = function() return require 'nelua.aster' end,
+  -- Version module.
+  version = function() return require 'nelua.version' end,
+  -- Types module.
+  types = function() return types end,
+  -- Global configuration.
+  config = function() return require 'nelua.configer'.get() end,
+  -- List of primitive types.
+  primtypes = function() return primtypes end,
+  -- Table with some C compiler information.
+  ccinfo = function() return ccinfo end,
+  -- Table with C compiler defines.
+  ccdefs = function() return ccdefs end,
+  -- Current analyzer context.
+  context = function(ppcontext) return ppcontext.context end,
+  -- AST of the file being compiled (the very first file parsed).
+  ast = function(ppcontext) return ppcontext.context.ast end,
+  -- Current preprocessing context.
+  ppcontext = function(ppcontext) return ppcontext end,
+  -- Current preprocessing registry (used internally).
+  ppregistry = function(ppcontext) return ppcontext.registry end,
 }
 
 return typedefs

@@ -12,6 +12,8 @@ local luatype = type
 
 local CContext = class(VisitorContext)
 
+CContext._ccontext = true
+
 function CContext:_init(visitors, typevisitors, rootscope)
   if not self.context then
     VisitorContext._init(self, visitors, rootscope)
@@ -169,7 +171,7 @@ function CContext:ensure_include(name)
 
   if searchinc and not fs.isabs(name) then
     -- make sure to add the include directory for that file
-    local dirpath = self:get_source_directory()
+    local dirpath = self:get_visiting_directory()
     if dirpath then
       local filepath = fs.join(dirpath, name)
       local incdirs = self.compileopts.incdirs
@@ -183,7 +185,7 @@ end
 function CContext:ensure_cfile(name)
   -- search the file relative to the current source file
   if not fs.isabs(name) then
-    local dirpath = self:get_source_directory()
+    local dirpath = self:get_visiting_directory()
     if dirpath then
       local filepath = fs.join(dirpath, name)
       if fs.isfile(filepath) then

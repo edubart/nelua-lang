@@ -1,7 +1,7 @@
 --[[
 Visitor context.
 
-The visitor context is used to process an AST while traverse its nodes,
+The visitor context is used to process an AST while traversing its nodes,
 it visits a specialized function for each node tag.
 
 It contains many utilities to push/pop nodes, states, pragmas and scopes
@@ -18,19 +18,23 @@ local VisitorContext = class()
 -- Used to quickly check whether a table is a context.
 VisitorContext._context = true
 
--- Initializes a visitor context using `visitors` table to visit different nodes when traversing.
+-- Initializes a visitor context using `visitors` table to visit nodes while traversing.
 function VisitorContext:_init(visitors, rootscope)
   self.context = self
   self.visitors = visitors
+  -- scope
   self.rootscope = rootscope
   self.scope = rootscope
   self.scopestack = {}
   self.rootpragmas = {}
+  -- pragmas
   self.pragmas = self.rootpragmas
   self.pragmastack = {}
+  -- state
   self.rootstate = {}
   self.statestack = {}
   self.state = self.rootstate
+  -- visiting nodes
   self.nodestack = {}
 end
 
@@ -140,10 +144,7 @@ function VisitorContext:pop_scope()
   scopestack[index] = nil
 end
 
---[[
-Traverses the node `node`, arguments `...` are forwarded to its visitor.
-When analyzing in case the node is marked as `done` its traversal will be skipped.
-]]
+-- Traverses the node `node`, arguments `...` are forwarded to its visitor.
 function VisitorContext:traverse_node(node, ...)
   local nodestack = self.nodestack
   local index = #nodestack+1
@@ -165,7 +166,7 @@ function VisitorContext:transform_and_traverse_node(orignode, newnode, ...)
   return self:traverse_node(orignode, ...)
 end
 
--- Traverse list of `nodes`, arguments `...` are forwarded for each node visitor.
+-- Traverses list of nodes `nodes`, arguments `...` are forwarded for each node visitor.
 function VisitorContext:traverse_nodes(nodes, ...)
   for i=1,#nodes do
     self:traverse_node(nodes[i], ...)
@@ -181,13 +182,8 @@ function VisitorContext:get_visiting_node(level)
   return nodestack[#nodestack - (level or 0)]
 end
 
--- DEPRECATED, use `get_visiting_node` instead.
-function VisitorContext:get_parent_node(level)
-  return self:get_visiting_node(level or 1)
-end
-
--- Gets current source directory for the current node visiting stack.
-function VisitorContext:get_source_directory()
+-- Gets source directory for the current nodes being visited.
+function VisitorContext:get_visiting_directory()
   local nodestack = self.nodestack
   for i=#nodestack,1,-1 do
     local node = nodestack[i]
@@ -221,5 +217,10 @@ function VisitorContext:get_visiting_traceback(level)
   end
   return ss:tostring()
 end
+
+-- DEPRECATED, use `get_visiting_node` instead.
+function VisitorContext:get_parent_node(level) --luacov:disable
+  return self:get_visiting_node(level or 1)
+end --luacov:enable
 
 return VisitorContext

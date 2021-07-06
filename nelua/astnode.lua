@@ -406,4 +406,19 @@ function ASTNode:recursive_has_attr(attrname)
   return false
 end
 
+--[[
+Recursively updates `src`, `pos` and `endpos` in child nodes that are unset.
+Used set a source location of generated nodes through metaprogramming.
+]]
+function ASTNode:recursive_update_location(src, pos, endpos)
+  for node in self:walk_nodes() do
+    if not node.src then
+      node.src = src
+      node.pos = pos
+      node.endpos = endpos
+    end
+  end
+  return false
+end
+
 return ASTNode
