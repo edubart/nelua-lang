@@ -166,6 +166,8 @@ Type.shape = shaper.shape {
   is_auto = shaper.optional_boolean,
   is_boolean = shaper.optional_boolean,
   is_concept = shaper.optional_boolean,
+  is_overload = shaper.optional_boolean,
+  is_facultative = shaper.optional_boolean,
   is_enum = shaper.optional_boolean,
   is_function = shaper.optional_boolean,
   is_generic = shaper.optional_boolean,
@@ -2469,68 +2471,49 @@ function ConceptType:get_desired_type_from_node(node)
   end
 end
 
-function types.make_overload_concept(context, syms, ...)
-  if traits.is_symbol(syms) or traits.is_type(syms) then
-    syms = table.pack(syms, ...)
-  end
-  local acceptedtypescache
-  local function get_accepted_types()
-    if acceptedtypescache then return acceptedtypescache end
-    local acceptedtypes = {}
-    for i,sym in ipairs(syms) do
-      local type
-      if traits.is_type(sym) then
-        type = sym
-      elseif traits.is_symbol(sym) then
-        assert(sym.type == primtypes.type)
-        type = sym.value
-      elseif traits.is_table(sym) then
-        local symname = tabler.globaltable2key(sym)
-        if symname then
-          sym = context.scope.symbols[symname]
-          assert(sym.type == primtypes.type)
-          type = sym.value
-        end
-      end
-      if not type then
-        context:get_visiting_node():raisef("in overload concept definition argument #%d: invalid type", i)
-      end
-      acceptedtypes[i] = type
+--[[
+Creates a overload concept that matches passed types.
+The arguments can be either a type or a symbol to a type.
+They concept may try to convert types if no trivial match is found.
+]]
+function types.overload_concept(...)
+  local acceptedtypes = {}
+  for i=1,select('#', ...) do
+    local sym = select(i, ...)
+    local type
+    if traits.is_type(sym) then
+      type = sym
+    elseif traits.is_symbol(sym) then
+      assert(sym.type == primtypes.type)
+      type = sym.value
+    else
+      return nil, string.format("in overload concept definition argument #%d: invalid type", i)
     end
-    acceptedtypescache = acceptedtypes
-    return acceptedtypes
+    acceptedtypes[i] = type
   end
   local type = types.ConceptType(function(x)
     local xtype = x.type
-    local acceptedtypes = get_accepted_types()
-    -- try to match exact type first
-    for i=1,#acceptedtypes do
-      local type = acceptedtypes[i]
-      if type == xtype then
-        return type
-      end
+    -- try to match an exact type first
+    if tabler.ifind(acceptedtypes, xtype) then
+      return xtype
     end
     -- else try to convert one
     local errs = {}
-    if not syms.noconvert then
-      for i=1,#acceptedtypes do
-        local type = acceptedtypes[i]
-        local ok, err = type:is_convertible_from(xtype)
-        if ok then
-          return type
-        else
-          errs[#errs+1] = err
-        end
+    for i=1,#acceptedtypes do
+      local type = acceptedtypes[i]
+      local ok, err = type:is_convertible_from(xtype)
+      if ok then
+        return type
       end
+      errs[#errs+1] = err
     end
-    -- no math, return an error
+    -- no match, return an error
     local ss = sstream()
     ss:add('cannot match overload concept:\n    ')
     ss:addlist(errs, '\n    ')
     return nil, ss:tostring()
   end, function(node)
     if node.tag == 'InitList' then
-      local acceptedtypes = get_accepted_types()
       -- try to infer to the first accepted table or record type
       for i=1,#acceptedtypes do
         local type = acceptedtypes[i]
@@ -2541,7 +2524,35 @@ function types.make_overload_concept(context, syms, ...)
     end
   end)
   type.is_overload = true
-  type.node = context:get_visiting_node()
+  return type
+end
+
+-- Like `overload_concept`, but just for `x` and `niltype`.
+function types.facultative_concept(x)
+  local type, err = types.overload_concept(x, primtypes.niltype)
+  if not type then
+    return nil, err
+  end
+  type.is_facultative = true
+  return type, err
+end
+
+--[[
+Returns the type of `x`.
+Where `x` can be an Attr, an ASTNode or a Type.
+]]
+function types.decltype(x)
+  if not traits.is_table(x) then
+    return nil, string.format("in decltype: invalid argument of lua type '%s'", type(x))
+  end
+  local type
+  if x._astnode then -- node
+    type = x.attr.type
+  elseif x._attr then -- attr
+    type = x.type
+  elseif x._type then -- type
+    type = primtypes.type
+  end
   return type
 end
 
@@ -2568,24 +2579,23 @@ end
 -- Evaluate a generic to a type by calling it's function defined in the preprocessor.
 function GenericType:eval_type(params)
   local generic_eval_func = self.func -- alias to have better error messages
-  local ok, ret = except.trycall(generic_eval_func, table.unpack(params))
+  local ok, ret, err = except.trycall(generic_eval_func, table.unpack(params))
   if not ok then
     -- the generic creation failed due to a lua error in preprocessor function
     return nil, ret
   end
-  local err
   if traits.is_symbol(ret) then -- generic returned a symbol
     if ret.type == primtypes.type then -- the symbol is holding a type
-      ret = ret.value
+      return ret.value
     else -- invalid symbol
-      ret = nil
-      err = string.format("expected a symbol holding a type in generic return, but got something else")
+      return nil, string.format("expected a symbol holding a type in generic return, but got something else")
     end
-  elseif not traits.is_type(ret) then -- generic didn't return a type
-    ret = nil
-    err = string.format("expected a type or symbol in generic return, but got '%s'", type(ret))
+  elseif traits.is_type(ret) then -- generic returned a type
+    return ret
+  elseif not ret and type(err) == 'string' then -- generic returned an error
+    return nil, err
   end
-  return ret, err
+  return nil, string.format("expected a type or symbol in generic return, but got '%s'", type(ret))
 end
 
 -- Permits evaluating generics by directly calling it's symbol in the preprocessor.

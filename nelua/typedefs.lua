@@ -96,6 +96,11 @@ primtypes.any         = types.AnyType('any', 2*ptrsize)
 primtypes.varanys     = types.VaranysType('varanys')
 primtypes.varargs     = types.VarargsType('varargs')
 
+-- Generic types.
+primtypes.facultative = types.GenericType(types.facultative_concept)
+primtypes.overload    = types.GenericType(types.overload_concept)
+primtypes.decltype    = types.GenericType(types.decltype)
+
 -- Map of literal suffixes.
 typedefs.number_literal_types = {
   _i          = 'integer',  _integer    = 'integer',

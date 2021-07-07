@@ -1027,35 +1027,19 @@ end
 
 function visitors.GenericType(context, node)
   local attr = node.attr
-  local name, argnodes = node[1], node[2]
-  assert(name.tag == 'Id')
-  name = name[1]
+  local namenode, argnodes = node[1], node[2]
+  assert(namenode.tag == 'Id')
+  local name = namenode[1]
+  local symbol = context:traverse_node(namenode)
+  if not symbol.type or not symbol.type.is_type then
+    node:raisef("in generic evaluation: symbol '%s' is not a type", name)
+  end
   local generic_type
-  local symbol = context.scope.symbols[name]
-  if not symbol then
-    if name == 'overload' then
-      generic_type = types.GenericType(function(...)
-        return types.make_overload_concept(context, ...)
-      end)
-      generic_type.node = node
-    elseif name == 'facultative' then
-      generic_type = types.GenericType(function(sym, noconvert)
-        return types.make_overload_concept(context, {sym, primtypes.niltype, noconvert=noconvert})
-      end)
-      generic_type.node = node
-    else
-      node:raisef("in generic evaluation: symbol '%s' is not defined", name)
-    end
-  else
-    if not symbol or not symbol.type or not symbol.type.is_type then
-      node:raisef("in generic evaluation: symbol '%s' is not a type", name)
-    end
-    if symbol.value then
-      generic_type = symbol.value.is_generic and symbol.value or symbol.value.generic
-    end
-    if not generic_type or not traits.is_type(generic_type) or not generic_type.is_generic then
-      node:raisef("in generic evaluation: symbol '%s' of type '%s' cannot generalize", name, symbol.type)
-    end
+  if symbol.value then
+    generic_type = symbol.value.is_generic and symbol.value or symbol.value.generic
+  end
+  if not generic_type or not traits.is_type(generic_type) or not generic_type.is_generic then
+    node:raisef("in generic evaluation: symbol '%s' of type '%s' cannot generalize", name, symbol.type)
   end
   local params = {}
   for i=1,#argnodes do
@@ -1063,21 +1047,28 @@ function visitors.GenericType(context, node)
     context:traverse_node(argnode)
     local argattr = argnode.attr
     local argtype = argattr.type
-    if not argtype or not (argattr:is_compile_time() or argattr:is_static_function()) then
-      node:raisef("in generic evaluation '%s': argument #%d isn't a compile time value", name, i)
+    if not argtype then
+      node:raisef("in generic evaluation '%s': \z
+        argument #%d type is not resolved yet (generics can only be used with typed arguments)", name, i)
     end
-    local value = argattr.value
-    if bn.isnumeric(value) then
-      value = bn.tonumber(value)
-    elseif argtype.is_function then
+    local argvalue = argattr.value
+    local argcomptime = argattr.comptime
+    local value
+    if argtype.is_scalar and argcomptime then -- number
+      value = bn.compress(argvalue)
+    elseif argtype.is_boolean and argcomptime then -- boolean
+      value = argvalue
+    elseif argtype.is_string and argcomptime then -- string
+      value = argvalue
+    elseif argtype.is_niltype then -- nil
+      value = argvalue
+    elseif argtype.is_type then -- type
+      assert(argvalue)
+      value = argvalue
+    elseif argattr._symbol then -- symbol
       value = argattr
-    elseif argtype.is_niltype then
-      value = nil
-    elseif not (traits.is_type(value) or
-                traits.is_string(value) or
-                traits.is_boolean(value) or
-                bn.isnumeric(value)) then
-      node:raisef("in generic '%s': argument #%d of type '%s' is invalid for generics", name, i, argtype)
+    else -- give up, pass the argument node itself (the user knows what he is doing?)
+      value = argnode
     end
     params[i] = value
   end
@@ -3063,7 +3054,6 @@ function visitors.UnaryOp(context, node, opts)
   end
 
   local argattr = argnode.attr
-  argattr.inoperator = true
   local argtype = argattr.type
   local type
   if argtype then
@@ -3216,8 +3206,6 @@ function visitors.BinaryOp(context, node, opts)
       node.done = true
     end
   end
-  lattr.inoperator = true
-  rattr.inoperator = true
   if lattr.sideeffect or rattr.sideeffect then
     attr.sideeffect = true
   end

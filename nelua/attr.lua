@@ -59,21 +59,6 @@ function Attr:is_on_static_storage()
   return false
 end
 
-
-function Attr:is_compile_time()
-  local type = self.type
-  if type and (type.is_comptime or self.comptime) then
-    return true
-  end
-end
-
-function Attr:is_static_function()
-  local type = self.type
-  if type and type.is_function and self._symbol and self.staticstorage then
-    return true
-  end
-end
-
 -- Check if this attr could be holding a negative scalar value.
 -- Used by the C generator to optimize operations on non negatives values.
 function Attr:is_maybe_negative()

@@ -349,6 +349,7 @@ function visitors.UnaryOp(_, node, emitter)
       return
     end
   end
+  argnode.inoperator = true
   local surround = node.attr.inoperator
   if surround then emitter:add('(') end
   emitter:add(op, argnode)
@@ -372,7 +373,9 @@ function visitors.BinaryOp(context, node, emitter)
       return
     end
   end
-  local surround = node.attr.inoperator
+  lnode.inoperator = true
+  rnode.inoperator = true
+  local surround = node.inoperator
   if surround then emitter:add('(') end
   emitter:add(lnode, ' ', op, ' ', rnode)
   if surround then emitter:add(')') end

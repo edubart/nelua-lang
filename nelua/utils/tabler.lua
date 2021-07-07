@@ -110,13 +110,4 @@ function tabler.shallow_compare_nomt(t1, t2)
   return false
 end
 
--- Get the key for a table in _G.
-function tabler.globaltable2key(t)
-  for k,v in pairs(_G) do
-    if v == t then
-      return k
-    end
-  end
-end
-
 return tabler

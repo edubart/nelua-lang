@@ -1692,7 +1692,6 @@ it("strict mode", function()
   expect.analyze_error("function f() return 0 end", "undeclared symbol")
   expect.analyze_error("a = 1", "undeclared symbol")
 end)
-
 it("concepts", function()
   expect.analyze_ast([[
     local an_integral = #[concept(function(x)
@@ -1711,27 +1710,6 @@ it("concepts", function()
     f(4)
     g((@[2]integer){1,2})
     g((@[3]integer){1,2,3})
-
-    local function h(x: facultative(integer)) end
-    local function g(x: overload(integer,niltype)) end
-
-    local R = @record{x: integer}
-    local function f(a: R, x: facultative(integer)) end
-    f(R{1})
-  ]])
-  expect.analyze_ast([[
-    local R = @record{a: integer, b: number}
-
-    local function hello(r: facultative(R))
-      ## if r.type.is_niltype then
-        return false
-      ## else
-        return true
-      ## end
-    end
-
-    assert(hello() == false)
-    assert(hello({10, 20}) == true)
   ]])
   expect.analyze_error([[
     local an_integral = #[concept(function(x)
@@ -1769,6 +1747,31 @@ it("concepts", function()
     local function f(x: an_integral) return x end
     f(true)
   ]], "invalid return for concept")
+end)
+
+it("overload and facultative concepts", function()
+  expect.analyze_ast([[
+    local function h(x: facultative(integer)) end
+    local function g(x: overload(integer,niltype)) end
+
+    local R = @record{x: integer}
+    local function f(a: R, x: facultative(integer)) end
+    f(R{1})
+  ]])
+  expect.analyze_ast([[
+    local R = @record{a: integer, b: number}
+
+    local function hello(r: facultative(R))
+      ## if r.type.is_niltype then
+        return false
+      ## else
+        return true
+      ## end
+    end
+
+    assert(hello() == false)
+    assert(hello({10, 20}) == true)
+  ]])
   expect.analyze_ast([[
     local io = @record{x: integer}
     local function f(x: overload(io)): integer return x.x end
@@ -1788,6 +1791,47 @@ it("concepts", function()
   ]], "cannot match overload concept")
 end)
 
+it("decltype concept", function()
+  expect.ast_type_equals([[
+    local x: auto = 1
+    local y: decltype(x) = x
+  ]], [[
+    local x: integer = 1
+    local y: integer = x
+  ]])
+  expect.ast_type_equals([[
+    local Boolean: decltype(boolean) = @boolean
+  ]], [[
+    local Boolean: type = @boolean
+  ]])
+  expect.ast_type_equals([[
+    local Boolean: decltype(boolean) = @boolean
+  ]], [[
+    local Boolean: type = @boolean
+  ]])
+  expect.analyze_ast([[
+    local x: integer = 1
+    ## assert(types.decltype(scope.node[1][2][1]) == primtypes.integer)
+  ]])
+  expect.ast_type_equals([[
+    local x: integer
+    x = 0
+    local y: decltype((x + 1.0))
+  ]], [[
+    local x: integer
+    x = 0
+    local y: number
+  ]])
+  expect.analyze_error([[
+    local x = 1
+    local y: decltype(x) = x
+  ]], "type is not resolved yet")
+  expect.analyze_error([[
+    local x = 1
+    local y: decltype(1) = x
+  ]], "invalid argument of lua type")
+end)
+
 it("generics", function()
   expect.analyze_ast([[
     local myarray = #[generic(function(T, N) return types.ArrayType(T, N) end)]#
@@ -1799,6 +1843,10 @@ it("generics", function()
     local proxy = #[generic(function(T) return int end)]#
     local x = @proxy(integer)
   ]])
+  expect.analyze_ast([[
+    local gen = #[generic(function(S) return primtypes.string end)]#
+    local x = @gen('asd')
+  ]])
   expect.analyze_error([[
     local proxy = #[generic(function(T) static_error('my fail') end)]#
     local x = @proxy(integer)
@@ -1807,16 +1855,6 @@ it("generics", function()
     local proxy = 1
     local x = @proxy(integer)
   ]], 'is not a type')
-  expect.analyze_error([[
-    local myarray = #[generic(function(T, N) return types.ArrayType(T, N) end)]#
-    local M: integer = 4
-    local x = @myarray(integer, (M))
-  ]], "isn't a compile time value")
-  expect.analyze_error([[
-    local myarray = #[generic(function(T, N) return types.ArrayType(T, N) end)]#
-    local M: record{x: integer} <comptime> = {}
-    local x = @myarray(integer, (M))
-  ]], "is invalid for generics")
   expect.analyze_error([[
     local x = @integer(integer)
   ]], "cannot generalize")
@@ -1842,10 +1880,10 @@ it("generics", function()
     local myarray = #[generic(function() end)]#
     local X
     local x = @myarray(X)
-  ]], "isn't a compile time value")
+  ]], "type is not resolved yet")
   expect.analyze_error([[
     local x = @invalidgeneric(integer)
-  ]], "is not defined")
+  ]], "undeclared symbol")
   expect.analyze_error([[
     global Foo: type = #[generalize(function() end)()]#
   ]], "expected a type or symbol in generic return")
@@ -2013,7 +2051,7 @@ it("invalid type uses", function()
   expect.analyze_error([[local V; local T = @function(): V]], "invalid type")
   expect.analyze_error([[local V; local v = (@V)(1)]], "invalid type")
   expect.analyze_error([[local V; local V; local generic = #[generalize()]#; local v: generic(V)]],
-    "isn't a compile time value")
+    "type is not resolved yet")
 end)
 
 it("nocopy type annotation", function()
