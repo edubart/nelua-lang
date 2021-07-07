@@ -7,7 +7,11 @@ to avoid repeated function evaluations thus increase efficiency in some compiler
 
 local shallow_compare_nomt = require 'nelua.utils.tabler'.shallow_compare_nomt
 
--- Wrap a function into another function that cache calls.
+--[[
+Wraps a function `f` into a memoized function.
+A memoized function is evaluated only once for different arguments,
+second evaluations returns a cached result.
+]]
 local function memoize(f)
   local cache = {}
   return function(...)

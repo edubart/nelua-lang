@@ -183,7 +183,7 @@ function preprocessor.preprocess(context, ast)
     local ppcode = emitter:generate()
     local chukname = '@ppcode'
     if ast.attr.filename then
-      chukname = chukname..':'..ast.attr.filename
+      chukname = '@'..ast.attr.filename..':'..chukname
     end
     ppcontext:register_code(chukname, ppcode)
     -- try to run the preprocess otherwise capture and show the error

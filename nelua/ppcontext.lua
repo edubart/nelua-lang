@@ -249,20 +249,11 @@ function PPContext:hygienize(func)
 end
 
 --[[
-Wraps a function `func` into a memoized function.
-A memoized function are evaluated only once for different arguments,
-second evaluations returns a cached result.
-]]
-function PPContext.memoize(_, func)
-  return memoize(func)
-end
-
---[[
 Like `generic` but `func` is memoized and hygienized.
 Effectively the same as `generic(memoize(hygienize(func)))`.
 ]]
 function PPContext:generalize(func)
-  return self:generic(self:memoize(self:hygienize(func)))
+  return self:generic(memoize(self:hygienize(func)))
 end
 
 --[[

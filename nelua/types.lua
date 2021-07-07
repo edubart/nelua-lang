@@ -311,9 +311,8 @@ function Type:get_convertible_from_type(type)
   elseif type.is_any then
     -- anything can be converted to and from `any`
     return self
-  else
-    return false, string.format("no viable type conversion from `%s` to `%s`", type, self)
   end
+  return false, string.format("no viable type conversion from `%s` to `%s`", type, self)
 end
 
 -- Get the desired type when converting this type from an attr.
@@ -1032,10 +1031,9 @@ function IntegralType:get_convertible_from_attr(attr, explicit, autoref)
       return false, string.format(
         "constant value `%s` for type `%s` is out of range, the minimum is `%s` and maximum is `%s`",
         value, self, self.min, self.max)
-    else
-      -- in range and integral, thus a valid conversion
-      return self
     end
+    -- in range and integral, thus a valid conversion
+    return self
   end
   return ScalarType.get_convertible_from_attr(self, attr, explicit, autoref)
 end
@@ -2435,9 +2433,9 @@ function ConceptType:get_convertible_from_type(type, explicit, autoref)
 end
 
 -- Checks if an attr can match a concept.
-function ConceptType:get_convertible_from_attr(attr, _, _, argattrs)
+function ConceptType:get_convertible_from_attr(attr, explicit, autoref, argattrs)
   local concept_eval_func = self.func -- alias to have better error messages
-  local type, err = concept_eval_func(attr, argattrs)
+  local type, err = concept_eval_func(attr, explicit, autoref, argattrs)
   if type == true then -- concept returned true, use the incoming type
     assert(attr.type)
     type = attr.type

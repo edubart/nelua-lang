@@ -128,27 +128,27 @@ function ASTNode.clone(node)
   local attr = setmetatable({}, Attr)
   local cloned = setmetatable({
     attr = attr,
+    pattr = pattr,
+    uid = nuid,
     pos = node.pos,
     endpos = node.endpos,
     src = node.src,
     preprocess = node.preprocess,
-    pattr = pattr,
-    uid = nuid,
     nil,nil,nil,nil,nil,nil -- preallocate array part (optimization)
   }, getmetatable(node))
   if pattr then -- copy persistent attributes
     tabler_update(attr, pattr)
   end
   for i=1,#node do
-    local arg = node[i]
-    if type(arg) == 'table' then
-      if arg._astnode then -- node
-        arg = clone_node(arg)
+    local v = node[i]
+    if type(v) == 'table' then
+      if v._astnode then -- node
+        v = clone_node(v)
       else -- list of nodes
-        arg = clone_nodes(arg)
+        v = clone_nodes(v)
       end
     end
-    cloned[i] = arg
+    cloned[i] = v
   end
   return cloned
 end
