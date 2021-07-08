@@ -261,6 +261,13 @@ describe("expression", function()
           n.Nil{},
     }})
   end)
+  it("nilptr", function()
+    expect_ast("return nilptr",
+      n.Block{
+        n.Return{
+          n.Nilptr{},
+    }})
+  end)
   it("varargs", function()
     expect_ast("return ...",
       n.Block{

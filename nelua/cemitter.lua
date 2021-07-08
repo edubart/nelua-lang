@@ -71,7 +71,7 @@ function CEmitter:add_val2boolean(val, valtype)
   elseif valtype.is_niltype or valtype.is_nilptr then
     self.context:ensure_type(primtypes.boolean) -- to define 'false'
     if (traits.is_string(val) and val:match('^[%w_]+$')) or
-       (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Id')) then
+       (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Nilptr' or val.tag == 'Id')) then
       self:add_one('false')
     else -- could have a call
       self:add('({(void)(', val, '); false;})')
@@ -82,7 +82,7 @@ function CEmitter:add_val2boolean(val, valtype)
   else
     self.context:ensure_type(primtypes.boolean) -- to define 'true'
     if (traits.is_string(val) and val:match('^[%w_]+$')) or
-       (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Id')) then
+       (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Nilptr' or val.tag == 'Id')) then
       self:add_one('true')
     else -- could be a call
       self:add('({(void)(', val, '); true;})')

@@ -58,6 +58,7 @@ Preprocess      <== PREPROCESS SKIP
 Number          <== NUMBER name? SKIP
 String          <== STRING name? SKIP
 Boolean         <== `true`->totrue / `false`->tofalse
+Nilptr          <== `nilptr`
 Nil             <== `nil`
 Varargs         <== `...`
 Id              <== name
@@ -139,7 +140,7 @@ exprfact        <-- (exprunary opfact*)~>foldleft
 exprunary       <-- opunary / exprpow
 exprpow         <-- (exprsimple oppow*)~>foldleft
 exprsimple      <-- Number / String / Type / InitList / Boolean /
-                    Function / Nil / DoExpr / Varargs / exprsuffixed
+                    Function / Nilptr / Nil / DoExpr / Varargs / exprsuffixed
 exprprim        <-- Id / Paren / PreprocessExpr
 
 -- Types

@@ -49,7 +49,6 @@ define_function_symbol('require', {Attr{name='modname', type=primtypes.string}},
 define_symbol('print')
 define_symbol('check')
 define_symbol('assert')
-define_symbol('nilptr', primtypes.nilptr)
 define_symbol('_G', primtypes.table)
 define_symbol('_VERSION', primtypes.string, {comptime=true, value=version.NELUA_VERSION})
 

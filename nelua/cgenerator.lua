@@ -360,6 +360,10 @@ function visitors.Nil(_, _, emitter)
   emitter:add_nil_literal()
 end
 
+function visitors.Nilptr(_, _, emitter)
+  emitter:add_null()
+end
+
 function visitors.VarargsType(_, node, emitter)
   if node.attr.type.is_varanys then
     node:raisef("compiler deduced the type 'varanys' here, but it's not supported yet in the C backend")

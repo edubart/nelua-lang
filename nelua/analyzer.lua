@@ -118,6 +118,14 @@ function visitors.Nil(_, node)
   node.done = true
 end
 
+-- Nilptr literal.
+function visitors.Nilptr(_, node)
+  local attr = node.attr
+  attr.type = primtypes.nilptr
+  attr.comptime = true
+  node.done = true
+end
+
 local varargs_unpack_tags = {Call=true, CallMethod=true, VarDecl=true, Assign=true, Return=true, InitList=true}
 
 -- Varargs (`...`).

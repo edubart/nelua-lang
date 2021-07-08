@@ -29,6 +29,9 @@ aster.register('Boolean', {
   shaper.boolean -- true or false
 })
 
+-- Nilptr literal, (e.g `nilptr`).
+aster.register('Nilptr', {})
+
 -- Nil literal, (e.g `nil`).
 aster.register('Nil', {})
 
