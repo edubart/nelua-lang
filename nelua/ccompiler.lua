@@ -106,43 +106,33 @@ function compiler.get_cc_defines(...)
 end
 
 local function get_cc_info(cc, cflags)
-  local cccmd = string.format('%s -v', cc)
-  local ok, ret, stdout, stderr = executor.execex(cccmd)
-  except.assertraisef(ok and ret == 0, "failed to retrieve compiler information: %s", stderr)
-  local text = stderr and stderr ~= '' and stderr or stdout
-  local ccinfo = {
-    target = text:match('Target: ([-_%w]+)'),
-    thread_model = text:match('Thread model: ([-_%w]+)'),
-    version = text:match('version ([.%d]+)'),
-    name = text:match('([-_%w]+) version') or cc,
-    exe = cc,
-    text = text,
-  }
   -- parse compiler defines to detect target features
   if cflags and #cflags > 0 then
     cc = cc..' '..config.cflags
   end
   local ccdefs = get_cc_defines(cc)
-  ccinfo.defines = ccdefs
-  ccinfo.is_win32 = not not (ccdefs.__WIN32__ or ccdefs.__WIN32 or ccdefs.WIN32)
-  ccinfo.is_win64 = not not (ccdefs.__WIN64__ or ccdefs.__WIN64 or ccdefs.WIN64)
+  local ccinfo = {
+    defines = ccdefs,
+    is_win32 = not not (ccdefs.__WIN32__ or ccdefs.__WIN32 or ccdefs.WIN32),
+    is_win64 = not not (ccdefs.__WIN64__ or ccdefs.__WIN64 or ccdefs.WIN64),
+    is_mingw = not not (ccdefs.__MINGW64__ or ccdefs.__MINGW32__),
+    is_linux = not not (ccdefs.__linux__ or ccdefs.__linux or ccdefs.linux),
+    is_unix = not not (ccdefs.__unix__ or ccdefs.__unix or ccdefs.unix),
+    is_apple = not not (ccdefs.__APPLE__),
+    is_mach = not not (ccdefs.__MACH__),
+    is_gnu_linux = not not (ccdefs.__gnu_linux__),
+    is_clang = not not (ccdefs.__clang__),
+    is_gcc = not not (ccdefs.__GNUC__),
+    is_tcc = not not (ccdefs.__TINYC__),
+    is_emscripten = not not (ccdefs.__EMSCRIPTEN__),
+    is_wasm = not not (ccdefs.__wasm__ or ccdefs.__wasm),
+    is_x86_64 = not not (ccdefs.__x86_64__ or ccdefs.__x86_64 or ccdefs._M_X64),
+    is_x86_32 = not not (ccdefs.__i386__ or ccdefs.__i386 or ccdefs._M_X86),
+    is_arm = not not (ccdefs.__ARM_EABI__ or ccdefs.__aarch64__),
+    is_arm64 = not not (ccdefs.__aarch64__),
+    is_riscv = not not (ccdefs.__riscv),
+  }
   ccinfo.is_windows = ccinfo.is_win32
-  ccinfo.is_mingw = not not (ccdefs.__MINGW64__ or ccdefs.__MINGW32__)
-  ccinfo.is_linux = not not (ccdefs.__linux__ or ccdefs.__linux or ccdefs.linux)
-  ccinfo.is_unix = not not (ccdefs.__unix__ or ccdefs.__unix or ccdefs.unix)
-  ccinfo.is_apple = not not (ccdefs.__APPLE__)
-  ccinfo.is_mach = not not (ccdefs.__MACH__)
-  ccinfo.is_gnu_linux = not not (ccdefs.__gnu_linux__)
-  ccinfo.is_clang = not not (ccdefs.__clang__)
-  ccinfo.is_gcc = not not (ccdefs.__GNUC__)
-  ccinfo.is_tcc = not not (ccdefs.__TINYC__)
-  ccinfo.is_emscripten = not not (ccdefs.__EMSCRIPTEN__)
-  ccinfo.is_wasm = not not (ccdefs.__wasm__ or ccdefs.__wasm)
-  ccinfo.is_x86_64 = not not (ccdefs.__x86_64__ or ccdefs.__x86_64 or ccdefs._M_X64)
-  ccinfo.is_x86_32 = not not (ccdefs.__i386__ or ccdefs.__i386 or ccdefs._M_X86)
-  ccinfo.is_arm = not not (ccdefs.__ARM_EABI__ or ccdefs.__aarch64__)
-  ccinfo.is_arm64 = not not (ccdefs.__aarch64__)
-  ccinfo.is_riscv = not not (ccdefs.__riscv)
   return ccinfo
 end
 get_cc_info = memoize(get_cc_info)

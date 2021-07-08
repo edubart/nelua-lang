@@ -11,6 +11,8 @@ then information will be retrieved from it.
 local fs = require 'nelua.utils.fs'
 local tabler = require 'nelua.utils.tabler'
 local executor = require 'nelua.utils.executor'
+
+-- The version module.
 local version = {}
 
 -- Major release number.
@@ -19,18 +21,14 @@ version.NELUA_VERSION_MAJOR = 0
 version.NELUA_VERSION_MINOR = 2
 -- Patch release number.
 version.NELUA_VERSION_PATCH = 0
--- Suffix for version (like 'dev', 'alpha' and beta')
-version.NELUA_VERSION_SUFFIX = 'dev'
-
+-- Suffix for version (like '-dev', '-alpha' and '-beta')
+version.NELUA_VERSION_SUFFIX = '-dev'
 -- Nelua version in a string (like "Nelua 0.2.0-dev").
-version.NELUA_VERSION = string.format("Nelua %d.%d.%d",
+version.NELUA_VERSION = string.format("Nelua %d.%d.%d%s",
                                       version.NELUA_VERSION_MAJOR,
                                       version.NELUA_VERSION_MINOR,
-                                      version.NELUA_VERSION_PATCH)
-if #version.NELUA_VERSION_SUFFIX > 0 then
-  version.NELUA_VERSION = version.NELUA_VERSION..'-'..version.NELUA_VERSION_SUFFIX
-end
-
+                                      version.NELUA_VERSION_PATCH,
+                                      version.NELUA_VERSION_SUFFIX)
 -- Git build number (the number of commits in git history).
 version.NELUA_GIT_BUILD = nil
 -- Latest git commit hash.

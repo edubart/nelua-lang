@@ -303,6 +303,7 @@ local errors = {
 ["UnexpectedSyntax"]        = "unexpected syntax",
 }
 
+-- Table with definitions used while parsing.
 local defs = {}
 
 -- Auxiliary function for 'Pair' syntax sugar.
@@ -310,8 +311,11 @@ function defs.pair_sugar(idnode)
   return idnode[1], idnode
 end
 
-return {
+-- The syntaxdefs module.
+local syntaxdefs = {
   errors = errors,
   grammar = grammar,
   defs = defs
 }
+
+return syntaxdefs

@@ -3222,7 +3222,6 @@ end
 function analyzer.analyze(context)
   local ast = context.ast
   analyzer.current_context = context
-  context.analyzing = true
 
   local timer
   if config.more_timing then
@@ -3274,7 +3273,6 @@ function analyzer.analyze(context)
     f()
   end
 
-  context.analyzing = nil
   return context
 end
 
