@@ -1,7 +1,6 @@
 local class = require 'nelua.utils.class'
 local types = require 'nelua.types'
 local typedefs = require 'nelua.typedefs'
-local symdefs = require 'nelua.symdefs'
 local tabler = require 'nelua.utils.tabler'
 local config = require 'nelua.configer'.get()
 local console = require 'nelua.utils.console'
@@ -12,57 +11,74 @@ local Scope = class()
 
 Scope._scope = true
 
-local function make_symbols_mt(context, parent)
-  if parent then
-    return {__index = parent.symbols}
+-- Defines a new builtin symbol.
+local function make_builtin_symbol(name, attr)
+  local type = attr.type
+  local symbol = Symbol(attr)
+  symbol.name = symbol.name or name
+  symbol.codename = 'nelua_' .. name
+  symbol.used = true
+  symbol.const = true
+  symbol.builtin = true
+  symbol.staticstorage = true
+  if type.is_function then
+    type.sideeffect = not not symbol.sideeffect
+    type:suggest_nickname(name)
   end
-  if not context.symbols__index then
-    local rootscope = context.rootscope
-    context.symbols__index = {
-      __index = function(symbols, key)
-        -- return predefined symbol definition if nothing is found
-        local symbol = symdefs[key]
-        if symbol then
-          symbol = symbol:clone()
-          symbol.scope = rootscope
-          symbols[key] = symbol
-        else -- create a symbol for a primtype index
-          local primtype = primtypes[key]
-          if primtype then
-            symbol = Symbol{
-              name = key,
-              codename = primtype.codename,
-              type = primtypes.type,
-              value = primtype,
-              scope = rootscope,
-              staticstorage = true,
-              vardecl = true,
-              lvalue = true,
-              global = true,
-            }
-            primtype.symbol = symbol
-            symbols[key] = symbol
-          end
-        end
-        return symbol
-      end
-    }
+  return symbol
+end
+
+-- Defines a new primitive type symbol.
+local function make_primtype_symbol(name, primtype)
+  local symbol = Symbol{
+    name = name,
+    codename = primtype.codename,
+    type = primtypes.type,
+    value = primtype,
+    staticstorage = true,
+    vardecl = true,
+    lvalue = true,
+    global = true,
+  }
+  primtype.symbol = symbol
+  return symbol
+end
+
+-- Called when indexing an undefined symbol in root scope.
+local function rootscope_symbols__index(symbols, key)
+  local symbol
+  local builtin_attr = typedefs.builtin_attrs[key]
+  if builtin_attr then -- getting a builtin symbol for the first time
+    symbol = make_builtin_symbol(key, builtin_attr)
+  else
+    local primtype = primtypes[key]
+    if primtype then -- getting a primitive symbol for the first time
+      symbol = make_primtype_symbol(key, primtype)
+    end
   end
-  return context.symbols__index
+  if symbol then -- found symbol
+    symbol.scope = getmetatable(symbols).rootscope
+    symbols[key] = symbol -- cached it
+    return symbol
+  end
 end
 
 -- Create a new scope for a context.
 function Scope.create_root(context, node)
-  local scope = setmetatable({
+  local rootscope = setmetatable({
     node = node,
     context = context,
-    is_root = true,
-    is_returnbreak = true,
     children = {},
     labels = {},
-    symbols = setmetatable({}, make_symbols_mt(context))
+    symbols = {},
+    is_root = true,
+    is_returnbreak = true,
   }, Scope)
-  return scope
+  setmetatable(rootscope.symbols, {
+    __index = rootscope_symbols__index,
+    rootscope = rootscope,
+  })
+  return rootscope
 end
 
 -- Create a new scope from the current one, current symbols are visible in the new scope.
@@ -75,7 +91,7 @@ function Scope:fork(node)
     is_topscope = self.is_root,
     children = {},
     labels = {},
-    symbols = setmetatable({}, make_symbols_mt(context, self))
+    symbols = setmetatable({}, {__index = self.symbols})
   }, Scope)
   local children = self.children
   children[#children+1] = scope
@@ -84,7 +100,7 @@ end
 
 -- Clear the symbols and saved resolution data for this scope.
 function Scope:clear_symbols()
-  self.symbols = setmetatable({}, make_symbols_mt(self.context, self.parent))
+  self.symbols = setmetatable({}, {__index = self.parent.symbols})
   self.possible_rettypes = nil
   self.has_unknown_return = nil
 end

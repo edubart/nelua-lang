@@ -10,6 +10,7 @@ local types = require 'nelua.types'
 local shaper = require 'nelua.utils.shaper'
 local platform = require 'nelua.utils.platform'
 local ccompiler = require 'nelua.ccompiler'
+local version = require 'nelua.version'
 
 -- Get C compiler defines.
 local ccinfo = ccompiler.get_cc_info()
@@ -382,7 +383,7 @@ typedefs.pp_constants = {
   -- Aster module.
   aster = function() return require 'nelua.aster' end,
   -- Version module.
-  version = function() return require 'nelua.version' end,
+  version = function() return version end,
   -- Types module.
   types = function() return types end,
   -- Global configuration.
@@ -401,6 +402,30 @@ typedefs.pp_constants = {
   ppcontext = function(ppcontext) return ppcontext end,
   -- Current preprocessing registry (used internally).
   ppregistry = function(ppcontext) return ppcontext.registry end,
+}
+
+-- List of builtins (converted to a symbol on first usage).
+typedefs.builtin_attrs = {
+  likely = {
+    type = types.FunctionType({{name='cond', type=primtypes.boolean}}, primtypes.boolean)},
+  unlikely = {
+    type = types.FunctionType({{name='cond', type=primtypes.boolean}}, primtypes.boolean)},
+  panic = {
+    type = types.FunctionType({{name='message', type=primtypes.string}}),
+    noreturn = true, sideeffect = true},
+  error = {
+    type = types.FunctionType({{name='message', type=primtypes.string}}),
+    noreturn = true, sideeffect = true},
+  warn = {
+    type = types.FunctionType({{name='message', type=primtypes.string}}),
+    sideeffect = true},
+  require = {
+    type = types.FunctionType({{name='modname', type=primtypes.string}})},
+  print = {type = primtypes.any},
+  check = {type = primtypes.any},
+  assert = {type = primtypes.any},
+  _G = {type = primtypes.table},
+  _VERSION = {type = primtypes.string, value = version.NELUA_VERSION, comptime = true},
 }
 
 return typedefs

@@ -1628,12 +1628,28 @@ function FunctionType:_init(argattrs, rettypes, node)
   self.node = node
   Type._init(self, 'function', typedefs.ptrsize)
 
-  -- set the arguments
-  self.argattrs = argattrs or {}
-  local argtypes = types.attrs_to_types(self.argattrs)
+  if argattrs then -- set the arguments
+    -- make sure each arg attr is really an Attr class
+    for i=1,#argattrs do
+      local argattr = argattrs[i]
+      if not argattr._attr then
+        setmetatable(argattr, Attr)
+      end
+    end
+  end
+  argattrs = argattrs or {}
+  self.argattrs = argattrs
+
+  -- generate argtypes list
+  local argtypes = types.attrs_to_types(argattrs)
   self.argtypes = argtypes
 
   -- set the return types
+  if rettypes then
+    if rettypes._type then
+      rettypes = {rettypes}
+    end
+  end
   self.rettypes = rettypes or {}
 
   -- validate arg types

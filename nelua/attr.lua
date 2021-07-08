@@ -1,14 +1,15 @@
--- Attr
---
--- The Attr class and in short 'attr' is used by the compiler to store many
--- attributes associated to a symbol or a AST node during compilation.
--- Usually the AST nodes are liked to an attr, multiple nodes can be linked
--- to the same attr, this happens for example with variable identifiers.
--- The compiler can promote an attr to a symbol in case it have a named
--- identifier or in case it needs to perform type resolution.
+--[[
+Attr module.
+
+The Attr class and in short 'attr' is used by the compiler to store many
+attributes associated to a symbol or a AST node during compilation.
+Usually the AST nodes are liked to an attr, multiple nodes can be linked
+to the same attr, this happens for example with variable identifiers.
+The compiler can promote an attr to a symbol in case it have a named
+identifier or in case it needs to perform type resolution.
+]]
 
 local class = require 'nelua.utils.class'
-local tabler = require 'nelua.utils.tabler'
 
 local Attr = class()
 
@@ -22,6 +23,8 @@ function Attr._create(klass, attr)
 end
 getmetatable(Attr).__call = Attr._create
 
+--[[
+local tabler = require 'nelua.utils.tabler'
 -- Clone the attr, shallow copying all fields.
 function Attr:clone()
   -- getmetatable should be used here because this attr could be a promoted symbol
@@ -29,25 +32,32 @@ function Attr:clone()
   local attr = setmetatable(tabler.copy(self), getmetatable(self) or Attr)
   return attr
 end
+]]
 
--- Merge fields from another attr into this attr.
--- Mostly used when linking new nodes to the same attr.
+--[[
+Merge fields from another attr into this attr.
+Mostly used when linking new nodes to the same attr.
+]]
 function Attr:merge(attr)
   for k,v in pairs(attr) do
     if self[k] == nil then -- no collision
       self[k] = v
     else
-      -- when the field is already set
-      -- the merge is not permitted to overwrite to a new value otherwise
-      -- cause bugs on what already have been processed by the compiler
+      --[[
+      when the field is already set,
+      the merge is not permitted to overwrite to a new value,
+      otherwise cause bugs on what already have been processed by the compiler
+      ]]
       assert(self[k] == v, 'cannot combine different attrs')
     end
   end
   return self
 end
 
--- Check if this attr is stored in the program static storage.
--- Used for example by the GC to know if a variable should be scanned.
+--[[
+Checks if this attr is stored in the program static storage.
+Used for example by the GC to know if a variable should be scanned.
+]]
 function Attr:is_on_static_storage()
   if self.vardecl and
      self.staticstorage and
@@ -59,8 +69,10 @@ function Attr:is_on_static_storage()
   return false
 end
 
--- Check if this attr could be holding a negative scalar value.
--- Used by the C generator to optimize operations on non negatives values.
+--[[
+Checks if this attr could be holding a negative scalar value.
+Used by the C generator to optimize operations on non negatives values.
+]]
 function Attr:is_maybe_negative()
   local type = self.type
   if type and type.is_scalar then -- must be a scalar to proper check this

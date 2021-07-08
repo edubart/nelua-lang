@@ -126,14 +126,14 @@ function visitors.Nilptr(_, node)
   node.done = true
 end
 
-local varargs_unpack_tags = {Call=true, CallMethod=true, VarDecl=true, Assign=true, Return=true, InitList=true}
-
 -- Varargs (`...`).
 function visitors.Varargs(context, node)
   local polyeval = context.state.inpolyeval
   if polyeval and polyeval.varargsnodes then -- unpack arguments of a polymorphic function
     local parentnode = context:get_visiting_node(1)
     local nvarargs = #polyeval.varargsnodes
+    local varargs_unpack_tags = {Call=true, CallMethod=true, VarDecl=true,
+                                 Assign=true, Return=true, InitList=true}
     if varargs_unpack_tags[parentnode.tag] then -- can unpack all arguments
       local parent, pindex = parentnode:recursive_find_child(node)
       if nvarargs > 0 then -- unpack many arguments
