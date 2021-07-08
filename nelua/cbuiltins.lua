@@ -13,6 +13,12 @@ local cbuiltins = {
 --------------------------------------------------------------------------------
 -- Builtins
 
+for name, header in pairs(cdefs.builtins_headers) do
+  builtins[name] = function(context)
+    context:ensure_include(header)
+  end
+end
+
 function builtins.nelua_likely(context)
   context:define_builtin('nelua_likely', [[
 #ifdef __GNUC__
@@ -84,20 +90,16 @@ function builtins.NLNIL(context)
   context:define_builtin('NLNIL', "#define NLNIL (nlniltype){}")
 end
 
-function builtins.NULL(context)
-  context:ensure_include('<stddef.h>')
-end
-
 function builtins.nelua_abort(context)
   local abortcall
   if context.pragmas.noabort then
+    context:ensure_builtins('exit')
     abortcall = 'exit(-1)'
   else
+    context:ensure_builtins('abort')
     abortcall = 'abort()'
   end
-  context:ensure_include('<stdlib.h>')
-  context:ensure_include('<stdio.h>')
-  context:ensure_builtin('nelua_noreturn')
+  context:ensure_builtins('fflush', 'stderr', 'nelua_noreturn')
   context:define_function_builtin('nelua_abort',
     'nelua_noreturn', primtypes.void, {}, [[{
   fflush(stderr);
@@ -106,8 +108,7 @@ function builtins.nelua_abort(context)
 end
 
 function builtins.nelua_panic_cstring(context)
-  context:ensure_include('<stdio.h>')
-  context:ensure_builtins('nelua_noreturn', 'nelua_abort')
+  context:ensure_builtins('fputs', 'fputc', 'nelua_noreturn', 'nelua_abort')
   context:define_function_builtin('nelua_panic_cstring',
     'nelua_noreturn', primtypes.void, {{'const char*', 's'}}, [[{
   fputs(s, stderr);
@@ -117,8 +118,7 @@ function builtins.nelua_panic_cstring(context)
 end
 
 function builtins.nelua_panic_string(context)
-  context:ensure_include('<stdio.h>')
-  context:ensure_builtins('nelua_noreturn', 'nelua_abort')
+  context:ensure_builtins('fwrite', 'fputc', 'nelua_noreturn', 'nelua_abort')
   context:define_function_builtin('nelua_panic_string',
     'nelua_noreturn', primtypes.void, {{primtypes.string, 's'}}, [[{
   if(s.size > 0) {
@@ -132,8 +132,7 @@ end
 function builtins.nelua_assert_bounds_(context, indextype)
   local name = 'nelua_assert_bounds_' .. indextype.codename
   if context.usedbuiltins[name] then return name end
-  context:ensure_include('<stdint.h>')
-  context:ensure_builtins('nelua_inline', 'nelua_panic_cstring', 'nelua_unlikely')
+  context:ensure_builtins('uintptr_t', 'nelua_inline', 'nelua_panic_cstring', 'nelua_unlikely')
   local cond = '(uintptr_t)index >= len'
   if not indextype.is_unsigned then
     cond = cond .. ' || index < 0'
@@ -163,7 +162,7 @@ function builtins.nelua_assert_deref_(context, indextype)
 end
 
 function builtins.nelua_warn(context)
-  context:ensure_include('<stdio.h>')
+  context:ensure_builtins('fputs', 'fwrite', 'fputc', 'fflush')
   context:define_function_builtin('nelua_warn',
     '', primtypes.void, {{primtypes.string, 's'}}, [[{
   if(s.size > 0) {
@@ -176,8 +175,7 @@ function builtins.nelua_warn(context)
 end
 
 function builtins.nelua_string_eq(context)
-  context:ensure_include('<string.h>')
-  context:ensure_builtin('nelua_inline')
+  context:ensure_builtins('memcmp', 'nelua_inline')
   context:define_function_builtin('nelua_string_eq',
     'nelua_inline', primtypes.boolean, {{primtypes.string, 'a'}, {primtypes.string, 'b'}}, [[{
   return a.size == b.size && (a.data == b.data || a.size == 0 || memcmp(a.data, b.data, a.size) == 0);
@@ -215,8 +213,7 @@ function builtins.nelua_assert_string2cstring(context)
 end
 
 function builtins.nelua_cstring2string(context)
-  context:ensure_includes('<string.h>', '<stdint.h>')
-  context:ensure_builtins('nelua_inline', 'NULL')
+  context:ensure_builtins('strlen', 'uintptr_t', 'nelua_inline', 'NULL')
   context:define_function_builtin('nelua_cstring2string',
     'nelua_inline', primtypes.string, {{'const char*', 's'}}, [[{
   if(s == NULL) return (nlstring){0};
@@ -286,7 +283,7 @@ function builtins.nelua_eq_(context, ltype, rtype)
     defemitter:inc_indent()
     defemitter:add_indent('return ')
     if type.is_union then
-      context:ensure_include('<string.h>')
+      context:ensure_builtin('memcmp')
       defemitter:add('memcmp(&a, &b, sizeof(', type, ')) == 0')
     elseif #type.fields > 0 then
       for i,field in ipairs(type.fields) do
@@ -297,7 +294,7 @@ function builtins.nelua_eq_(context, ltype, rtype)
           local op = context:ensure_builtin('nelua_eq_', field.type)
           defemitter:add(op, '(a.', field.name, ', b.', field.name, ')')
         elseif field.type.is_array then
-          context:ensure_include('<string.h>')
+          context:ensure_builtin('memcmp')
           defemitter:add('memcmp(a.', field.name, ', ', 'b.', field.name, ', sizeof(', type, ')) == 0')
         else
           defemitter:add('a.', field.name, ' == ', 'b.', field.name)
@@ -409,8 +406,7 @@ function builtins.nelua_fmod_(context, type)
   local cfmod = type.is_float32 and 'fmodf' or 'fmod'
   local name = 'nelua_'..cfmod
   if context.usedbuiltins[name] then return name end
-  context:ensure_include('<math.h>')
-  context:ensure_builtins('nelua_inline', 'nelua_unlikely')
+  context:ensure_builtins(cfmod, 'nelua_inline', 'nelua_unlikely')
   context:define_function_builtin(name,
     'nelua_inline', type, {{type, 'a'}, {type, 'b'}}, context:emitter_join([[{
   ]],type,[[ r = ]],cfmod,[[(a, b);
@@ -488,7 +484,7 @@ function operators.idiv(node, emitter, lnode, rnode, lname, rname)
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   if ltype.is_float or rtype.is_float then
     local floorname = type.is_float32 and 'floorf' or 'floor'
-    emitter.context:ensure_include('<math.h>')
+    emitter.context:ensure_builtin(floorname)
     emitter:add(floorname, '(', lname, ' / ', rname, ')')
   elseif type.is_integral and (lnode.attr:is_maybe_negative() or rnode.attr:is_maybe_negative()) then
     local op = emitter.context:ensure_builtin('nelua_idiv_', type)
@@ -503,7 +499,7 @@ function operators.tdiv(node, emitter, lnode, rnode, lname, rname)
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   if ltype.is_float or rtype.is_float then
     local truncname = type.is_float32 and 'truncf' or 'trunc'
-    emitter.context:ensure_include('<math.h>')
+    emitter.context:ensure_builtin(truncname)
     emitter:add(truncname, '(', lname, ' / ', rname, ')')
   else
     operator_binary_op('/', node, emitter, lnode, rnode, lname, rname)
@@ -528,8 +524,8 @@ function operators.tmod(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   if ltype.is_float or rtype.is_float then
-    emitter.context:ensure_include('<math.h>')
     local fmodname = type.is_float32 and 'fmodf' or 'fmod'
+    emitter.context:ensure_builtin(fmodname)
     emitter:add(fmodname, '(', lname, ', ', rname, ')')
   else
     operator_binary_op('%', node, emitter, lnode, rnode, lname, rname)
@@ -579,7 +575,7 @@ function operators.pow(node, emitter, lnode, rnode, lname, rname)
   local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   local powname = type.is_float32 and 'powf' or 'pow'
-  emitter.context:ensure_include('<math.h>')
+  emitter.context:ensure_builtin(powname)
   emitter:add(powname, '(', lname, ', ', rname, ')')
 end
 
@@ -658,7 +654,7 @@ function operators.eq(_, emitter, lnode, rnode, lname, rname)
     end
   elseif ltype.is_array then
     assert(ltype == rtype)
-    emitter.context:ensure_include('<string.h>')
+    emitter.context:ensure_builtin('memcmp')
     if lnode.attr.lvalue and rnode.attr.lvalue then
       emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) == 0')
     else
@@ -675,11 +671,11 @@ function operators.eq(_, emitter, lnode, rnode, lname, rname)
       emitter:add(op, '(', rname, ', ', lname, ')')
     end
   elseif ltype.is_niltype or rtype.is_niltype then
-    emitter:add('({(void)', lname, '; (void)', rname, '; ', ltype == rtype, ';})')
+    emitter:add('((void)', lname, ', (void)', rname, ', ', ltype == rtype, ')')
   elseif ltype.is_scalar and rtype.is_scalar then
     emitter:add(lname, ' == ', rname)
   elseif (ltype.is_boolean or rtype.is_boolean) and ltype ~= rtype then
-    emitter:add('({(void)', lname, '; (void)', rname, '; false;})')
+    emitter:add('((void)', lname, ', (void)', rname, ', false)')
   else
     emitter:add(lname, ' == ')
     if ltype ~= rtype then
@@ -709,7 +705,7 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
     end
   elseif ltype.is_array then
     assert(ltype == rtype)
-    emitter.context:ensure_include('<string.h>')
+    emitter.context:ensure_builtin('memcmp')
     if lnode.attr.lvalue and rnode.attr.lvalue then
       emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) != 0')
     else
@@ -726,11 +722,11 @@ function operators.ne(_, emitter, lnode, rnode, lname, rname)
       emitter:add('!', op, '(', rname, ', ', lname, ')')
     end
   elseif ltype.is_niltype or rtype.is_niltype then
-    emitter:add('({(void)', lname, '; (void)', rname, '; ', ltype ~= rtype, ';})')
+    emitter:add('((void)', lname, ', (void)', rname, ', ', ltype ~= rtype, ')')
   elseif ltype.is_scalar and rtype.is_scalar then
     emitter:add(lname, ' != ', rname)
   elseif (ltype.is_boolean or rtype.is_boolean) and ltype ~= rtype then
-    emitter:add('({(void)', lname, '; (void)', rname, '; true;})')
+    emitter:add('((void)', lname, ', (void)', rname, ', true)')
   else
     emitter:add(lname, ' != ')
     if ltype ~= rtype then
@@ -790,7 +786,7 @@ function operators.len(_, emitter, argnode)
   if type.is_string then
     emitter:add('((',primtypes.isize,')(', argnode, ').size)')
   elseif type.is_cstring then
-    emitter.context:ensure_includes('<string.h>')
+    emitter.context:ensure_builtin('strlen')
     emitter:add('((',primtypes.isize,')strlen(', argnode, '))')
   elseif type.is_type then
     emitter:add('sizeof(', argattr.value, ')')
@@ -807,8 +803,7 @@ function inlines.assert(context, node)
   local argattrs = builtintype.argattrs
   local funcname = context:genuniquename('nelua_assert_line')
   local emitter = CEmitter(context)
-  context:ensure_includes('<stdio.h>')
-  context:ensure_builtins('nelua_unlikely', 'nelua_abort')
+  context:ensure_builtins('fwrite', 'stderr', 'nelua_unlikely', 'nelua_abort')
   local nargs = #argattrs
   local qualifier = ''
   local assertmsg = 'assertion failed!'
@@ -860,7 +855,6 @@ function inlines.check(context, node)
 end
 
 function inlines.print(context, node)
-  context:ensure_include('<stdio.h>')
   local argtypes = node.attr.builtintype.argtypes
 
   -- compute args hash
@@ -905,27 +899,31 @@ function inlines.print(context, node)
   for i,argtype in ipairs(argtypes) do
     defemitter:add_indent()
     if i > 1 then
+      context:ensure_builtins('fwrite', 'stdout')
       defemitter:add_ln("fputc('\\t', stdout);")
       defemitter:add_indent()
     end
     if argtype.is_string then
+      context:ensure_builtins('fwrite', 'stdout')
       defemitter:add_ln('if(a',i,'.size > 0) {')
       defemitter:inc_indent()
       defemitter:add_indent_ln('fwrite(a',i,'.data, 1, a',i,'.size, stdout);')
       defemitter:dec_indent()
       defemitter:add_indent_ln('}')
     elseif argtype.is_cstring then
+      context:ensure_builtins('fputs', 'stdout')
       defemitter:add_ln('fputs(a',i,', stdout);')
     elseif argtype.is_niltype then
+      context:ensure_builtins('fputs', 'stdout')
       defemitter:add_ln('fputs("nil", stdout);')
     elseif argtype.is_boolean then
+      context:ensure_builtins('fputs', 'stdout')
       defemitter:add_ln('fputs(a',i,' ? "true" : "false", stdout);')
     elseif argtype.is_nilptr then
+      context:ensure_builtins('fputs', 'stdout')
       defemitter:add_ln('fputs("(null)", stdout);')
     elseif argtype.is_pointer or argtype.is_function then
-      context:ensure_include('<stdint.h>')
-      context:ensure_include('<inttypes.h>')
-      context:ensure_builtin('NULL')
+      context:ensure_builtins('fputs', 'fprintf', 'stdout', 'PRIxPTR', 'intptr_t', 'NULL')
       if argtype.is_function then
         defemitter:add_ln('fputs("function: ", stdout);')
       end
@@ -939,7 +937,7 @@ function inlines.print(context, node)
         defemitter:dec_indent()
       defemitter:add_indent_ln('}')
     elseif argtype.is_float then
-      context:ensure_include('<string.h>')
+      context:ensure_builtins('snprintf', 'strspn', 'fwrite', 'stdout')
       local tyformat = cdefs.types_printf_format[argtype.codename]
       node:assertraisef(tyformat, 'invalid type "%s" for printf format', argtype)
       defemitter:add_ln('len = snprintf(buff, sizeof(buff)-1, ',tyformat,', a',i,');')
@@ -950,11 +948,15 @@ function inlines.print(context, node)
       defemitter:add_indent_ln('}')
       defemitter:add_indent_ln('fwrite(buff, 1, len, stdout);')
     elseif argtype.is_scalar then
-      context:ensure_include('<inttypes.h>')
+      context:ensure_builtins('fprintf', 'stdout')
       if argtype.is_enum then
         argtype = argtype.subtype
       end
       local tyformat = cdefs.types_printf_format[argtype.codename]
+      local priformat = tyformat:match('PRI[%w]+')
+      if priformat then
+        context:ensure_builtin(priformat)
+      end
       node:assertraisef(tyformat, 'invalid type "%s" for printf format', argtype)
       defemitter:add_ln('fprintf(stdout, ', tyformat,', a',i,');')
     elseif argtype.is_record then --luacov:disable
@@ -963,6 +965,7 @@ function inlines.print(context, node)
       node:raisef('cannot handle type "%s" in print', argtype)
     end --luacov:enable
   end
+  context:ensure_builtins('fputc', 'fflush', 'stdout')
   defemitter:add_indent_ln([[fputc('\n', stdout);]])
   defemitter:add_indent_ln('fflush(stdout);')
   defemitter:add_ln('}')

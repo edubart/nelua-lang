@@ -74,6 +74,37 @@ cdefs.primitive_typenames = {
   nlclongdouble = 'long double',
 }
 
+cdefs.builtins_headers = {
+  -- stddef.h
+  NULL = '<stddef.h>',
+  -- stdint.h
+  uintptr_t = '<stdint.h>', intptr_t = '<stdint.h>',
+  -- stdio.h
+  fwrite = '<stdio.h>',
+  fputc = '<stdio.h>', fputs = '<stdio.h>',
+  fprintf = '<stdio.h>', snprintf = '<stdio.h>',
+  fflush = '<stdio.h>',
+  stderr = '<stdio.h>', stdout = '<stdio.h>',
+  -- stdlib.h
+  abort = '<stdlib.h>',
+  exit = '<stdlib.h>',
+  -- string.h
+  strlen = '<string.h>',
+  strspn = '<string.h>',
+  memcmp = '<string.h>',
+  -- math.h
+  fmodf = '<math.h>', fmod = '<math.h>',
+  floorf = '<math.h>', floor = '<math.h>',
+  truncf = '<math.h>', trunc = '<math.h>',
+  powf = '<math.h>', pow = '<math.h>',
+  -- inttypes.h
+  PRIiPTR = '<inttypes.h>', PRIuPTR = '<inttypes.h>', PRIxPTR = '<inttypes.h>',
+  PRIi8 = '<inttypes.h>', PRIu8 = '<inttypes.h>',
+  PRIi16 = '<inttypes.h>', PRIu16 = '<inttypes.h>',
+  PRIi32 = '<inttypes.h>', PRIu32 = '<inttypes.h>',
+  PRIi64 = '<inttypes.h>', PRIu64 = '<inttypes.h>',
+}
+
 cdefs.unary_ops = {
   ['not'] = true,
   ['ref'] = true,

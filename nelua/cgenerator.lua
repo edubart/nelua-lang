@@ -334,7 +334,7 @@ local visitors = {}
 function visitors.Number(context, node, emitter)
   local attr = node.attr
   if not attr.type.is_float and not attr.untyped and not context.state.ininitializer then
-    emitter:add_typecast(attr.type)
+    emitter:add('(', attr.type, ')')
   end
   emitter:add_numeric_literal(attr)
 end
@@ -397,7 +397,7 @@ function visitors.InitList(context, node, emitter)
   local len = #childnodes
   if len == 0 and type.is_aggregate then
     if not context.state.ininitializer then
-      emitter:add_typecast(type)
+      emitter:add('(', type, ')')
     end
     emitter:add_zeroed_type_init(type)
   elseif type.is_composite then
@@ -482,8 +482,7 @@ function visitors.InitList(context, node, emitter)
     else
       local useinitializer = can_use_initializer(childnodes)
       if useinitializer then
-        emitter:add_typecast(type)
-        emitter:add('{{')
+        emitter:add('(', type, '){{')
       else
         emitter:add_ln('({')
         emitter:inc_indent()
@@ -972,7 +971,7 @@ function visitors.Return(context, node, emitter)
     emitter:add(defercode)
     local needgoto = true
     if context:get_visiting_node(2).tag == 'DoExpr' then
-      local blockstats = context:get_visiting_node(1)[1]
+      local blockstats = context:get_visiting_node(1)
       if node == blockstats[#blockstats] then -- last statement does not need goto
         needgoto = false
       end
@@ -1129,6 +1128,8 @@ function visitors.DoExpr(context, node, emitter)
     emitter:inc_indent()
     if scope.usedexprlabel then
       emitter:add_indent_ln(scope.doexprlabel, ': _expr;')
+    else
+      emitter:add_indent_ln('_expr;')
     end
     emitter:dec_indent()
     emitter:add_indent("})")

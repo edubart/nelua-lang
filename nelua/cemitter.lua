@@ -39,17 +39,13 @@ function CEmitter:zeroinit(type)
   return s
 end
 
-function CEmitter:add_typecast(type)
-  self:add('(',type,')')
-end
-
 function CEmitter:add_zeroed_type_init(type)
   self:add_one(self:zeroinit(type))
 end
 
 function CEmitter:add_zeroed_type_literal(type)
   if not (type.is_boolean or type.is_scalar or type.is_pointer) then
-    self:add_typecast(type)
+    self:add('(', type, ')')
   end
   self:add_one(self:zeroinit(type))
 end
@@ -74,7 +70,7 @@ function CEmitter:add_val2boolean(val, valtype)
        (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Nilptr' or val.tag == 'Id')) then
       self:add_one('false')
     else -- could have a call
-      self:add('({(void)(', val, '); false;})')
+      self:add('((void)(', val, '), false)')
     end
   elseif valtype.is_pointer or valtype.is_function then
     self.context:ensure_builtin('NULL')
@@ -85,7 +81,7 @@ function CEmitter:add_val2boolean(val, valtype)
        (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Nilptr' or val.tag == 'Id')) then
       self:add_one('true')
     else -- could be a call
-      self:add('({(void)(', val, '); true;})')
+      self:add('((void)(', val, '), true)')
     end
   end
 end
@@ -123,7 +119,7 @@ function CEmitter:add_typedval(type, val, valtype, forcedcast)
     local innertype = type.is_pointer and type.subtype or type
     local surround = innertype.is_aggregate
     if surround then self:add_one('(') end
-    self:add_typecast(type)
+    self:add('(', type, ')')
     if type.is_integral and valtype.is_pointer and type.size ~= valtype.size then
       self:add('(', primtypes.usize, ')')
     end
@@ -267,7 +263,7 @@ function CEmitter:add_string_literal_inlined(val, ascstring)
   else
     if not self.context.state.ininitializer then
       self:add_one('(')
-      self:add_typecast(primtypes.string)
+      self:add('(', primtypes.string, ')')
     end
     self:add('{(uint8_t*)', quoted_value, ', ', #val, '}')
     if not self.context.state.ininitializer then
@@ -288,7 +284,7 @@ function CEmitter:add_string_literal(val, ascstring)
     else --luacov:enable
       if not self.context.state.ininitializer then
         self:add_one('(')
-        self:add_typecast(primtypes.string)
+        self:add('(', primtypes.string, ')')
       end
       self:add('{(uint8_t*)', varname, ', ', size, '}')
       if not self.context.state.ininitializer then
@@ -322,7 +318,7 @@ function CEmitter:add_string_literal(val, ascstring)
   else --luacov:enable
     if not self.context.state.ininitializer then
       self:add_one('(')
-      self:add_typecast(primtypes.string)
+      self:add('(', primtypes.string, ')')
     end
     self:add('{(uint8_t*)', varname, ', ', size, '}')
     if not self.context.state.ininitializer then

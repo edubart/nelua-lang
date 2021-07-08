@@ -131,8 +131,8 @@ it("boolean", function()
     local b1: boolean = f()
     local b2: boolean = not f()
   ]], {
-    "b1 = ({(void)(f()); false;});",
-    "b2 = (!({(void)(f()); false;}));",
+    "b1 = ((void)(f()), false);",
+    "b2 = (!((void)(f()), false));",
   })
 
 end)
@@ -142,9 +142,9 @@ it("nil", function()
   expect.generate_c("local a: niltype = nil", "nlniltype a = NLNIL;")
   expect.generate_c("local function f(a: niltype) end f(nil)", "f(NLNIL);")
   expect.generate_c("local function f() <nosideeffect> return nil end assert(f() == f())",
-    "({(void)f(); (void)f(); true;})")
+    "((void)f(), (void)f(), true)")
   expect.generate_c("local function f() <nosideeffect> return nil end assert(f() ~= f())",
-    "({(void)f(); (void)f(); false;})")
+    "((void)f(), (void)f(), false)")
 end)
 
 it("call", function()
@@ -198,7 +198,7 @@ end)
 it("if", function()
   expect.generate_c("if nilptr then\nend","if(false) {\n")
   expect.generate_c("if nil then\nend","if(false) {\n")
-  expect.generate_c("if 1 then\nend","if(({(void)(1); true;})) {\n")
+  expect.generate_c("if 1 then\nend","if(((void)(1), true)) {\n")
   expect.generate_c("local a: boolean; if a then\nend","if(a) {\n")
   expect.generate_c("if true then\nend","if(true) {\n  }")
   expect.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
@@ -904,7 +904,9 @@ it("unary operator `deref`", function()
     local R = @record{}
     local r = R()
     local x = &r
-  ]], {"R r = ", "x = (&r)"})
+    local function f(a: R): void end
+    f(x)
+  ]], {"R r = ", "x = (&r)", "f(*x)"})
   expect.generate_c([[
     local R = @record{}
     function R:foo(alloc: auto) end
@@ -1534,6 +1536,16 @@ it("binary conditional operators", function()
       assert(not (false == 1))
       assert(true ~= 1)
       assert(false ~= 1)
+    end
+
+    do
+      local btrue: boolean = true
+      local bfalse: boolean = false
+      local one: integer = 1
+      assert(not (btrue == one))
+      assert(not (bfalse == one))
+      assert(btrue ~= one)
+      assert(bfalse ~= one)
     end
   ]])
 end)
@@ -2654,6 +2666,8 @@ it("print builtin", function()
       return 'a', 1
     end
     print(f())
+    local g: function()
+    print(g)
 
     local Person = @record{name: string}
     function Person:__tostring(): string
@@ -2666,6 +2680,7 @@ it("print builtin", function()
     '1\t0.2\t100.0\t15\t1\t(null)\n' ..
     '0\t\tnil\t(null)\n'..
     'a\t1\n'..
+    'function: (null)\n'..
     'John\n')
 end)
 

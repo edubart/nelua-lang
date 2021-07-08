@@ -4,13 +4,14 @@ Tacker module
 This is an utility used internally to optimize/debug compiler code paths.
 ]]
 
---luacov:disable
 local tracker = {}
 
 local cpucycles = require 'nelua.utils.nanotimer'.cpucycles
 local tracing = {}
 local timings = {}
 local counts = {}
+
+--luacov:disable
 
 -- Start tracking cycles for section `name`.
 function tracker.start(name)
@@ -69,8 +70,9 @@ function tracker.report()
   end
 end
 
+--luacov:enable
+
 -- Make tracker module available in globally (so it's quick to use it).
 _G.tracker = tracker
 
 return tracker
---luacov:enable

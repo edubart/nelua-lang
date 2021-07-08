@@ -52,40 +52,43 @@ end
 -- Detects git commit hash for a cloned Nelua installation.
 local function detect_git_hash()
   local stdout = execute_git_command({'rev-parse', 'HEAD'})
+  local res = "unknown"
   if stdout then
     local hash = stdout:match('%w+')
     if hash then
-      version.NELUA_GIT_HASH = hash
-      return hash
+      res = hash
     end
   end
-  return "unknown"
+  version.NELUA_GIT_HASH = res
+  return res
 end
 
 -- Detects git commit date for a cloned Nelua installation.
 local function detect_git_date()
   local stdout = execute_git_command({'log', '-1', '--format=%ci'})
+  local res = "unknown"
   if stdout then
     local date = stdout:match('[^\r\n]+')
     if date then
-      version.NELUA_GIT_DATE = date
-      return date
+      res = date
     end
   end
-  return "unknown"
+  version.NELUA_GIT_DATE = res
+  return res
 end
 
 -- Detects git build number for a cloned Nelua installation.
 local function detect_git_build()
   local stdout = execute_git_command({'rev-list', 'HEAD', '--count'})
+  local res = 0
   if stdout then
     local build = tonumber(stdout)
     if build then
-      version.NELUA_GIT_BUILD = build
-      return build
+      res = build
     end
   end
-  return 0
+  version.NELUA_GIT_BUILD = res
+  return res
 end
 
 -- Allow gathering git information only when requested.

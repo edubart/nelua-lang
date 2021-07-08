@@ -211,12 +211,6 @@ function CContext:ensure_linklib(name)
   table.insert(self.compileopts.linklibs, name)
 end
 
-function CContext:ensure_includes(...)
-  for i=1,select('#',...) do
-    self:ensure_include((select(i,...)))
-  end
-end
-
 function CContext:ensure_type(type)
   self:typename(type)
 end
