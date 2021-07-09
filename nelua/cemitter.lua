@@ -51,13 +51,11 @@ function CEmitter:add_zeroed_type_literal(type)
 end
 
 function CEmitter:add_boolean_literal(value)
-  self.context:ensure_type(primtypes.boolean) -- to define 'true' and 'false'
-  self:add_one(value and 'true' or 'false')
+  self:add_one(not not value)
 end
 
 function CEmitter:add_null()
-  self.context:ensure_builtin('NULL')
-  self:add_one('NULL')
+  self:add_builtin('NULL')
 end
 
 function CEmitter:add_val2boolean(val, valtype)
@@ -65,33 +63,30 @@ function CEmitter:add_val2boolean(val, valtype)
   if valtype.is_boolean then
     self:add_one(val)
   elseif valtype.is_niltype or valtype.is_nilptr then
-    self.context:ensure_type(primtypes.boolean) -- to define 'false'
     if (traits.is_string(val) and val:match('^[%w_]+$')) or
        (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Nilptr' or val.tag == 'Id')) then
-      self:add_one('false')
+      self:add_one(false)
     else -- could have a call
-      self:add('((void)(', val, '), false)')
+      self:add('((void)(', val, '), ',false,')')
     end
   elseif valtype.is_pointer or valtype.is_function then
-    self.context:ensure_builtin('NULL')
-    self:add('(', val, ' != NULL)')
+    self:add('(', val, ' != ')
+    self:add_builtin('NULL')
+    self:add(')')
   else
-    self.context:ensure_type(primtypes.boolean) -- to define 'true'
     if (traits.is_string(val) and val:match('^[%w_]+$')) or
        (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Nilptr' or val.tag == 'Id')) then
-      self:add_one('true')
+      self:add_one(true)
     else -- could be a call
-      self:add('((void)(', val, '), true)')
+      self:add('((void)(', val, '), ', true, ')')
     end
   end
 end
 
 function CEmitter:add_string2cstring(val)
-  if not self.context.pragmas.nochecks and traits.is_astnode(val) and val.attr.comptime then
-    self:add_builtin('nelua_assert_string2cstring')
-  else
-    self:add_builtin('nelua_string2cstring')
-  end
+  local checked = not self.context.pragmas.nochecks and
+                  not (traits.is_astnode(val) and val.attr.comptime)
+  self:add_builtin('nelua_string2cstring_', checked)
   self:add('(', val, ')')
 end
 
@@ -101,19 +96,29 @@ function CEmitter:add_cstring2string(val)
 end
 
 function CEmitter:add_deref(val, valtype)
-  self:add_one('*')
+  valtype = valtype or val.attr.type
+  local valsubtype = valtype.subtype
+  self:add('*')
+  if valsubtype.is_array and valsubtype.length == 0 then
+    -- use pointer to the actual subtype structure, because its type may have been simplified
+    self:add('(',valsubtype,'*)')
+  end
   if not self.context.pragmas.nochecks then
     self:add_builtin('nelua_assert_deref_', valtype)
-    self:add('(', val, ')')
+    self:add('(')
+    if valtype.subtype.length == 0 then
+      self:add('(', valtype, ')')
+    end
+    self:add(val, ')')
   else
-    self:add_one(val)
+    self:add(val)
   end
 end
 
 function CEmitter:add_typedval(type, val, valtype, forcedcast)
   if not forcedcast and not self.context.pragmas.nochecks and type.is_integral and valtype.is_scalar and
     not type:is_type_inrange(valtype) then
-    self:add_builtin('nelua_narrow_cast_', type, valtype)
+    self:add_builtin('nelua_assert_narrow_', type, valtype)
     self:add('(', val, ')')
   else
     local innertype = type.is_pointer and type.subtype or type
@@ -252,7 +257,8 @@ function CEmitter.cstring_literal(_, s)
 end
 
 function CEmitter:add_string_literal_inlined(val, ascstring)
-  local quotedliterals = self.context.quotedliterals
+  local context = self.context
+  local quotedliterals = context.quotedliterals
   local quoted_value = quotedliterals[val]
   if not quoted_value then
     quoted_value = pegger.double_quote_c_string(val)
@@ -261,12 +267,13 @@ function CEmitter:add_string_literal_inlined(val, ascstring)
   if ascstring then
     self:add(quoted_value)
   else
-    if not self.context.state.ininitializer then
+    local ininitializer = context.state.ininitializer
+    if not ininitializer then
       self:add_one('(')
       self:add('(', primtypes.string, ')')
     end
     self:add('{(uint8_t*)', quoted_value, ', ', #val, '}')
-    if not self.context.state.ininitializer then
+    if not ininitializer then
       self:add_one(')')
     end
   end
@@ -276,26 +283,29 @@ function CEmitter:add_string_literal(val, ascstring)
   if #val < 80 then
     return self:add_string_literal_inlined(val, ascstring)
   end
+  local context = self.context
+  local ininitializer = context.state.ininitializer
+  local stringliterals = context.stringliterals
+  local varname = stringliterals[val]
   local size = #val
-  local varname = self.context.stringliterals[val]
   if varname then
     if ascstring then --luacov:disable
       self:add_one(varname)
     else --luacov:enable
-      if not self.context.state.ininitializer then
+      if not ininitializer then
         self:add_one('(')
         self:add('(', primtypes.string, ')')
       end
       self:add('{(uint8_t*)', varname, ', ', size, '}')
-      if not self.context.state.ininitializer then
+      if not ininitializer then
         self:add_one(')')
       end
     end
     return
   end
-  varname = self.context:genuniquename('strlit')
-  self.context.stringliterals[val] = varname
-  local decemitter = CEmitter(self.context)
+  varname = context:genuniquename('strlit')
+  stringliterals[val] = varname
+  local decemitter = CEmitter(context)
   decemitter:add_indent('static char ', varname, '[', size+1, '] = ')
   if val:find('\0', 1, true) then -- should be a binary string
     decemitter:add('{')
@@ -312,16 +322,16 @@ function CEmitter:add_string_literal(val, ascstring)
     local quoted_value = pegger.double_quote_c_string(val)
     decemitter:add_ln(quoted_value, ';')
   end
-  self.context:add_declaration(decemitter:generate(), varname)
+  context:add_declaration(decemitter:generate(), varname)
   if ascstring then --luacov:disable
     self:add_one(varname)
   else --luacov:enable
-    if not self.context.state.ininitializer then
+    if not ininitializer then
       self:add_one('(')
       self:add('(', primtypes.string, ')')
     end
     self:add('{(uint8_t*)', varname, ', ', size, '}')
-    if not self.context.state.ininitializer then
+    if not ininitializer then
       self:add_one(')')
     end
   end

@@ -5,6 +5,7 @@ local cbuiltins = require 'nelua.cbuiltins'
 local traits = require 'nelua.utils.traits'
 local CEmitter = require 'nelua.cemitter'
 local errorer = require 'nelua.utils.errorer'
+local stringer = require 'nelua.utils.stringer'
 local fs = require 'nelua.utils.fs'
 local tabler = require 'nelua.utils.tabler'
 local config = require 'nelua.configer'.get()
@@ -39,7 +40,7 @@ function CContext:_init(visitors, typevisitors, rootscope)
   self.printcache = {}
   self.typenames = {}
   self.usedbuiltins = {}
-  self.builtins = cbuiltins.builtins
+  self.builtins = cbuiltins
 end
 
 function CContext:declname(attr)
@@ -211,10 +212,6 @@ function CContext:ensure_linklib(name)
   table.insert(self.compileopts.linklibs, name)
 end
 
-function CContext:ensure_type(type)
-  self:typename(type)
-end
-
 function CContext:ensure_define(name)
   local directives = self.directives
   if directives[name] then return end
@@ -249,15 +246,12 @@ function CContext:ensure_builtins(...)
 end
 
 function CContext:define_builtin(name, code, section)
-  if code:sub(-1) ~= '\n' then
+  if not stringer.endswith(code, '\n') then
     code = code..'\n'
   end
-  if not section or section == 'declarations' then
-    self:add_declaration(code)
-  elseif section == 'definitions' then
-    self:add_definition(code)
-  elseif section == 'directives' then
-    self:add_directive(code)
+  if not section or section == 'declarations' then self:add_declaration(code)
+  elseif section == 'definitions' then self:add_definition(code)
+  elseif section == 'directives' then self:add_directive(code)
   end
   self.usedbuiltins[name] = true
 end
@@ -292,8 +286,9 @@ function CContext:define_function_builtin(name, qualifier, ret, args, body)
   if qualifier ~= '' then
     qualifier = qualifier..' '
   end
-  self:add_declaration(qualifier..ret..' '..name..args..';\n')
-  self:add_definition(ret..' '..name..args..' '..body..'\n')
+  local head = ret..' '..name..args
+  self:add_declaration(qualifier..head..';\n')
+  self:add_definition(head..' '..body..'\n')
   self.usedbuiltins[name] = true
 end
 

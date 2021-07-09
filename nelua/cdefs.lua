@@ -3,20 +3,20 @@ local metamagic = require 'nelua.utils.metamagic'
 local cdefs = {}
 
 cdefs.types_printf_format = {
-  nlfloat32 = '"%.7g"',
-  nlfloat64 = '"%.14g"',
-  nlpointer = '"%p"',
-  nlisize   = '"%" PRIiPTR',
-  nlint8    = '"%" PRIi8',
-  nlint16   = '"%" PRIi16',
-  nlint32   = '"%" PRIi32',
-  nlint64   = '"%" PRIi64',
-  nlusize   = '"%" PRIuPTR',
-  nluint8   = '"%" PRIu8',
-  nluint16  = '"%" PRIu16',
-  nluint32  = '"%" PRIu32',
-  nluint64  = '"%" PRIu64',
-
+  nlfloat32     = '"%.7g"',
+  nlfloat64     = '"%.14g"',
+  nlpointer     = '"%p"',
+  nlisize       = '"%" PRIiPTR',
+  nlint8        = '"%" PRIi8',
+  nlint16       = '"%" PRIi16',
+  nlint32       = '"%" PRIi32',
+  nlint64       = '"%" PRIi64',
+  nlusize       = '"%" PRIuPTR',
+  nluint8       = '"%" PRIu8',
+  nluint16      = '"%" PRIu16',
+  nluint32      = '"%" PRIu32',
+  nluint64      = '"%" PRIu64',
+  -- C types
   nlcstring     = '"%s"',
   nlcchar       = '"%c"',
   nlcschar      = '"%c"',
@@ -35,29 +35,29 @@ cdefs.types_printf_format = {
 }
 
 cdefs.primitive_typenames = {
-  nlisize   = {'intptr_t', '<stdint.h>'},
-  nlint8    = {'int8_t', '<stdint.h>'},
-  nlint16   = {'int16_t', '<stdint.h>'},
-  nlint32   = {'int32_t', '<stdint.h>'},
-  nlint64   = {'int64_t', '<stdint.h>'},
-  nlint128  = '__int128',
-  nlusize   = {'uintptr_t', '<stdint.h>'},
-  nluint8   = {'uint8_t', '<stdint.h>'},
-  nluint16  = {'uint16_t', '<stdint.h>'},
-  nluint32  = {'uint32_t', '<stdint.h>'},
-  nluint64  = {'uint64_t', '<stdint.h>'},
-  nluint128 = 'unsigned __int128',
-  nlfloat32 = 'float',
-  nlfloat64 = 'double',
-  nlfloat128 = '_Float128',
-  nlboolean = {'bool', '<stdbool.h>'},
-  nlcstring = 'char*',
-  nlpointer = 'void*',
-  nlnilptr  = 'void*',
-  nlvoid    = 'void',
-  nlcvalist = {'va_list', '<stdarg.h>'},
-  nlcvarargs = '...',
-
+  nlisize       = {'intptr_t', '<stdint.h>'},
+  nlint8        = {'int8_t', '<stdint.h>'},
+  nlint16       = {'int16_t', '<stdint.h>'},
+  nlint32       = {'int32_t', '<stdint.h>'},
+  nlint64       = {'int64_t', '<stdint.h>'},
+  nlint128      = '__int128',
+  nlusize       = {'uintptr_t', '<stdint.h>'},
+  nluint8       = {'uint8_t', '<stdint.h>'},
+  nluint16      = {'uint16_t', '<stdint.h>'},
+  nluint32      = {'uint32_t', '<stdint.h>'},
+  nluint64      = {'uint64_t', '<stdint.h>'},
+  nluint128     = 'unsigned __int128',
+  nlfloat32     = 'float',
+  nlfloat64     = 'double',
+  nlfloat128    = '_Float128',
+  nlboolean     = {'bool', '<stdbool.h>'},
+  nlcstring     = 'char*',
+  nlpointer     = 'void*',
+  nlnilptr      = 'void*',
+  nlvoid        = 'void',
+  -- C types
+  nlcvalist     = {'va_list', '<stdarg.h>'},
+  nlcvarargs    = '...',
   nlcchar       = 'char',
   nlcschar      = 'signed char',
   nlcshort      = 'short',
@@ -77,8 +77,6 @@ cdefs.primitive_typenames = {
 cdefs.builtins_headers = {
   -- stddef.h
   NULL = '<stddef.h>',
-  -- stdint.h
-  uintptr_t = '<stdint.h>', intptr_t = '<stdint.h>',
   -- stdio.h
   fwrite = '<stdio.h>',
   fputc = '<stdio.h>', fputs = '<stdio.h>',
@@ -105,48 +103,13 @@ cdefs.builtins_headers = {
   PRIi64 = '<inttypes.h>', PRIu64 = '<inttypes.h>',
 }
 
-cdefs.unary_ops = {
-  ['not'] = true,
-  ['ref'] = true,
-  ['deref'] = true,
-  ['len'] = true,
-  ['unm'] = true,
-  ['bnot'] = true,
-}
-
 cdefs.for_compare_ops = {
-  ['le'] = '<=',
-  ['ge'] = '>=',
-  ['lt'] = '<',
-  ['gt'] = '>',
-  ['ne'] = '!=',
-  ['eq'] = '==',
-}
-
-cdefs.binary_ops = {
-  ['or'] = true,
-  ['and'] = true,
-  ['bor'] = true,
-  ['bxor'] = true,
-  ['band'] = true,
-  ['add'] = true,
-  ['sub'] = true,
-  ['mul'] = true,
-  ['le'] = true,
-  ['ge'] = true,
-  ['lt'] = true,
-  ['gt'] = true,
-  ['shl'] = true,
-  ['shr'] = true,
-  ['asr'] = true,
-  ['ne'] = true,
-  ['eq'] = true,
-  ['div'] = true,
-  ['idiv'] = true,
-  ['tdiv'] = true,
-  ['mod'] = true,
-  ['tmod'] = true,
-  ['pow'] = true,
+  le = '<=',
+  ge = '>=',
+  lt = '<',
+  gt = '>',
+  ne = '!=',
+  eq = '==',
 }
 
 cdefs.compiler_base_flags = {

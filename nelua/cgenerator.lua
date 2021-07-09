@@ -277,6 +277,10 @@ typevisitors[types.FunctionType] = function(context, type)
   table.insert(context.declarations, decemitter:generate())
 end
 
+typevisitors[types.NiltypeType] = function(context)
+  context:ensure_builtin('nlniltype')
+end
+
 typevisitors.FunctionReturnType = function(context, functype)
   if #functype.rettypes <= 1 then
     return context:typename(functype:get_return_type(1))
@@ -318,13 +322,10 @@ end
 ]]
 
 typevisitors[types.Type] = function(context, type)
+  local node = context:get_visiting_node()
   if type.is_any or type.is_varanys then
-    local node = context:get_visiting_node()
     node:raisef("compiler deduced the type 'any' here, but it's not supported yet in the C backend")
-  elseif type.is_niltype then
-    context:ensure_builtin('nlniltype')
   else
-    local node = context:get_visiting_node()
     node:raisef("type '%s' is not supported yet in the C backend", type)
   end
 end
@@ -790,16 +791,9 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
 end
 
 function visitors.Call(context, node, emitter)
-  if node.attr.omitcall then return end
   local argnodes, calleenode = node[1], node[2]
   local calleetype = node.attr.calleetype
-  local callee = calleenode
-  if calleenode.attr.builtin then
-    local builtin = cbuiltins.inlines[calleenode.attr.name]
-    callee = builtin(context, node, emitter)
-  end
-  if calleetype.is_type then
-    -- type cast
+  if calleetype.is_type then -- type cast
     local type = node.attr.type
     if #argnodes == 1 then
       local argnode = argnodes[1]
@@ -813,8 +807,15 @@ function visitors.Call(context, node, emitter)
     else
       emitter:add_zeroed_type_literal(type)
     end
-  elseif callee then
-    visitor_Call(context, node, emitter, argnodes, callee)
+  else -- call
+    local callee = calleenode
+    if calleenode.attr.builtin then
+      local builtin = cbuiltins.calls[calleenode.attr.name]
+      callee = builtin(context, node, emitter)
+    end
+    if callee then
+      visitor_Call(context, node, emitter, argnodes, callee)
+    end
   end
 end
 
@@ -1447,7 +1448,7 @@ function visitors.Function(context, node, emitter)
   emitter:add(declname)
 end
 
-function visitors.UnaryOp(_, node, emitter)
+function visitors.UnaryOp(context, node, emitter)
   local attr = node.attr
   if attr.comptime then
     emitter:add_literal(attr)
@@ -1460,11 +1461,11 @@ function visitors.UnaryOp(_, node, emitter)
   local builtin = cbuiltins.operators[opname]
   local surround = not node.attr.inconditional
   if surround then emitter:add_one('(') end
-  builtin(node, emitter, argnode)
+  builtin(context, node, emitter, argnode)
   if surround then emitter:add_one(')') end
 end
 
-function visitors.BinaryOp(_, node, emitter)
+function visitors.BinaryOp(context, node, emitter)
   if node.attr.comptime then
     emitter:add_literal(node.attr)
     return
@@ -1567,7 +1568,7 @@ function visitors.BinaryOp(_, node, emitter)
       rname = 't2_'
     end
     local builtin = cbuiltins.operators[opname]
-    builtin(node, emitter, lnode, rnode, lname, rname)
+    builtin(context, node, emitter, lnode, rnode, lname, rname)
     if sequential then
       emitter:add_ln(';')
       emitter:dec_indent()
@@ -1631,7 +1632,7 @@ local function emit_features_setup(context)
 #endif
 ]])
     emitter:add_ln('nelua_static_assert(sizeof(void*) == ', primtypes.pointer.size,
-                ', "Nelua and C disagree on architecture size");')
+                ', "Nelua and C disagree on pointer size");')
   end
   context:add_directive(emitter:generate())
 end

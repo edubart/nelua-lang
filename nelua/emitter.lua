@@ -4,22 +4,34 @@ local errorer = require 'nelua.utils.errorer'
 local Emitter = class()
 local INDENT_SPACES = '  '
 
+local indents_mt = {}
+local indents = setmetatable({}, indents_mt)
+
+-- Auto generate indent string on demand.
+function indents_mt.__index(self, depth)
+  local indent = string.rep(INDENT_SPACES, depth)
+  self[depth] = indent
+  return indent
+end
+
 function Emitter:_init(context, depth)
   depth = depth or 0
   self.codes = {}
   self.depth = depth
-  self.indent = string.rep(INDENT_SPACES, depth)
+  self.indent = indents[depth]
   self.context = context
 end
 
-function Emitter:inc_indent(count)
-  self.depth = self.depth + (count or 1)
-  self.indent = string.rep(INDENT_SPACES, self.depth)
+function Emitter:inc_indent()
+  local depth = self.depth + 1
+  self.depth = depth
+  self.indent = indents[depth]
 end
 
-function Emitter:dec_indent(count)
-  self.depth = self.depth - (count or 1)
-  self.indent = string.rep(INDENT_SPACES, self.depth)
+function Emitter:dec_indent()
+  local depth = self.depth - 1
+  self.depth = depth
+  self.indent = indents[depth]
 end
 
 function Emitter:add_one(what)

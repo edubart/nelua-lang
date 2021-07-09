@@ -419,11 +419,11 @@ typedefs.builtin_attrs = {
   warn = {
     type = types.FunctionType({{name='message', type=primtypes.string}}),
     sideeffect = true},
+  check = {type = primtypes.any},
+  assert = {type = primtypes.any},
   require = {
     type = types.FunctionType({{name='modname', type=primtypes.string}})},
   print = {type = primtypes.any},
-  check = {type = primtypes.any},
-  assert = {type = primtypes.any},
   _G = {type = primtypes.table},
   _VERSION = {type = primtypes.string, value = version.NELUA_VERSION, comptime = true},
 }

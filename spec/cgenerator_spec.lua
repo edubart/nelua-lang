@@ -1044,7 +1044,7 @@ it("binary operator `idiv`", function()
   expect.generate_c("local x =  7 // -3.0",  "x = -3.0;")
   expect.generate_c("local x = -7 // -3.0",  "x = 2.0;")
   expect.generate_c("local a,b = 1_u,2_u; local x=a//b",      "x = (a / b);")
-  expect.generate_c("local a,b = 1,2; local x=a//b",      "x = (nelua_idiv_nlint64(a, b));")
+  expect.generate_c("local a,b = 1,2; local x=a//b",      "x = (nelua_assert_idiv_nlint64(a, b));")
   expect.generate_c("local a,b = 1.0,2.0; local x=a//b",  "x = (floor(a / b));")
   expect.run_c([[
     do
@@ -1069,6 +1069,9 @@ it("binary operator `idiv`", function()
       assert(a % b == 0)
     end
   ]])
+  config.pragmas.nochecks = true
+  expect.generate_c("local a,b = 1,2; local x=a//b",      "x = (nelua_idiv_nlint64(a, b));")
+  config.pragmas.nochecks = nil
 end)
 
 it("binary operator `tdiv`", function()
@@ -1125,7 +1128,7 @@ it("binary operator `mod`", function()
   expect.generate_c("local x =  7 % -3.0",   "x = -2.0;")
   expect.generate_c("local x = -7 % -3.0",   "x = -1.0;")
   expect.generate_c("local x = -7.0 % 3.0",  "x = 2.0;")
-  expect.generate_c("local a, b = 3, 2;     local x = a % b", "x = (nelua_imod_nlint64(a, b));")
+  expect.generate_c("local a, b = 3, 2;     local x = a % b", "x = (nelua_assert_imod_nlint64(a, b));")
   expect.generate_c("local a, b = 3_u, 2_u; local x = a % b", "x = (a % b);")
   expect.generate_c("local a, b = 3.0, 2;   local x = a % b", "x = (nelua_fmod(a, b));")
   expect.generate_c("local a, b = 3, 2.0;   local x = a % b", "x = (nelua_fmod(a, b));")
@@ -1148,6 +1151,9 @@ it("binary operator `mod`", function()
       assert(a % a == 0.0)
     end
   ]])
+  config.pragmas.nochecks = true
+  expect.generate_c("local a, b = 3, 2;     local x = a % b", "x = (nelua_imod_nlint64(a, b));")
+  config.pragmas.nochecks = nil
 end)
 
 it("binary operator `tmod`", function()
@@ -1306,8 +1312,8 @@ it("binary operator `concat`", function()
 end)
 
 it("string comparisons", function()
-  expect.generate_c("local a,b = 'a','b'; local x = a == b", "nelua_string_eq(a, b)")
-  expect.generate_c("local a,b = 'a','b'; local x = a ~= b", "nelua_string_ne(a, b)")
+  expect.generate_c("local a,b = 'a','b'; local x = a == b", "nelua_eq_string(a, b)")
+  expect.generate_c("local a,b = 'a','b'; local x = a ~= b", "!nelua_eq_string(a, b)")
   expect.run_c([[
     assert('a' == 'a')
     assert(not ('a' ~= 'a'))
@@ -1420,7 +1426,7 @@ it("record comparisons", function()
     local r: record{}
     assert(r == r)
 
-    local pq: *Q = nilptr
+    local pq: *Q = &a
     assert(($pq == 0) == false)
     assert(($pq ~= 0) == true)
 ]])

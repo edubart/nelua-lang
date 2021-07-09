@@ -1,25 +1,27 @@
+--[[
+C builtins.
+
+This module defines implementations for many builtin C functions used by the C code generator.
+]]
+
 local cdefs = require 'nelua.cdefs'
 local CEmitter = require 'nelua.cemitter'
 local primtypes = require 'nelua.typedefs'.primtypes
 local bn = require 'nelua.utils.bn'
 
-local builtins, operators, inlines = {}, {}, {}
-local cbuiltins = {
-  operators = operators,
-  builtins = builtins,
-  inlines = inlines,
-}
+-- The cbuiltins table.
+local cbuiltins = {}
 
---------------------------------------------------------------------------------
--- Builtins
-
-for name, header in pairs(cdefs.builtins_headers) do
-  builtins[name] = function(context)
-    context:ensure_include(header)
+do -- Define builtins from C headers.
+  for name, header in pairs(cdefs.builtins_headers) do
+    cbuiltins[name] = function(context)
+      context:ensure_include(header)
+    end
   end
 end
 
-function builtins.nelua_likely(context)
+-- Used by `likely` builtin.
+function cbuiltins.nelua_likely(context)
   context:define_builtin('nelua_likely', [[
 #ifdef __GNUC__
 #define nelua_likely(x) __builtin_expect(x, 1)
@@ -31,7 +33,13 @@ function builtins.nelua_likely(context)
 ]], 'directives')
 end
 
-function builtins.nelua_cexport(context)
+-- Used by `unlikely` builtin.
+function cbuiltins.nelua_unlikely(context)
+  context:ensure_builtin('nelua_likely')
+end
+
+-- Used by `<cexport>`.
+function cbuiltins.nelua_cexport(context)
   context:define_builtin('nelua_cexport', [[
 #ifdef _WIN32
 #define nelua_cexport __declspec(dllexport) extern
@@ -43,11 +51,8 @@ function builtins.nelua_cexport(context)
 ]], 'directives')
 end
 
-function builtins.nelua_unlikely(context)
-  context:ensure_builtin('nelua_likely')
-end
-
-function builtins.nelua_noinline(context)
+-- Used by `<noinline>`.
+function cbuiltins.nelua_noinline(context)
   context:define_builtin('nelua_noinline', [[
 #ifdef __GNUC__
 #define nelua_noinline __attribute__((noinline))
@@ -57,7 +62,8 @@ function builtins.nelua_noinline(context)
 ]], 'directives')
 end
 
-function builtins.nelua_inline(context)
+-- Used by `<inline>`.
+function cbuiltins.nelua_inline(context)
   context:define_builtin('nelua_inline', [[
 #ifdef __GNUC__
 #define nelua_inline __attribute__((always_inline)) inline
@@ -69,7 +75,8 @@ function builtins.nelua_inline(context)
 ]], 'directives')
 end
 
-function builtins.nelua_noreturn(context)
+-- Used by `<noreturn>`.
+function cbuiltins.nelua_noreturn(context)
   context:define_builtin('nelua_noreturn', [[
 #if __STDC_VERSION__ >= 201112L
 #define nelua_noreturn _Noreturn
@@ -81,33 +88,37 @@ function builtins.nelua_noreturn(context)
 ]], 'directives')
 end
 
-function builtins.nlniltype(context)
+-- Used by `nil` type at runtime.
+function cbuiltins.nlniltype(context)
   context:define_builtin('nlniltype', "typedef struct nlniltype {} nlniltype;")
 end
 
-function builtins.NLNIL(context)
+-- Used by `nil` at runtime.
+function cbuiltins.NLNIL(context)
   context:ensure_builtin('nlniltype')
   context:define_builtin('NLNIL', "#define NLNIL (nlniltype){}")
 end
 
-function builtins.nelua_abort(context)
+-- Used to abort the application.
+function cbuiltins.nelua_abort(context)
   local abortcall
   if context.pragmas.noabort then
-    context:ensure_builtins('exit')
+    context:ensure_builtin('exit')
     abortcall = 'exit(-1)'
   else
-    context:ensure_builtins('abort')
+    context:ensure_builtin('abort')
     abortcall = 'abort()'
   end
   context:ensure_builtins('fflush', 'stderr', 'nelua_noreturn')
   context:define_function_builtin('nelua_abort',
-    'nelua_noreturn', primtypes.void, {}, [[{
+    'nelua_noreturn', primtypes.void, {}, context:emitter_join([[{
   fflush(stderr);
-  ]]..abortcall..[[;
-}]])
+  ]],abortcall,[[;
+}]]))
 end
 
-function builtins.nelua_panic_cstring(context)
+-- Used with check functions.
+function cbuiltins.nelua_panic_cstring(context)
   context:ensure_builtins('fputs', 'fputc', 'nelua_noreturn', 'nelua_abort')
   context:define_function_builtin('nelua_panic_cstring',
     'nelua_noreturn', primtypes.void, {{'const char*', 's'}}, [[{
@@ -117,7 +128,8 @@ function builtins.nelua_panic_cstring(context)
 }]])
 end
 
-function builtins.nelua_panic_string(context)
+-- Used by `panic` builtin.
+function cbuiltins.nelua_panic_string(context)
   context:ensure_builtins('fwrite', 'fputc', 'nelua_noreturn', 'nelua_abort')
   context:define_function_builtin('nelua_panic_string',
     'nelua_noreturn', primtypes.void, {{primtypes.string, 's'}}, [[{
@@ -129,39 +141,8 @@ function builtins.nelua_panic_string(context)
 }]])
 end
 
-function builtins.nelua_assert_bounds_(context, indextype)
-  local name = 'nelua_assert_bounds_' .. indextype.codename
-  if context.usedbuiltins[name] then return name end
-  context:ensure_builtins('uintptr_t', 'nelua_inline', 'nelua_panic_cstring', 'nelua_unlikely')
-  local cond = '(uintptr_t)index >= len'
-  if not indextype.is_unsigned then
-    cond = cond .. ' || index < 0'
-  end
-  context:define_function_builtin(name,
-    'nelua_inline', indextype, {{indextype, 'index'}, {primtypes.usize, 'len'}}, [[{
-  if(nelua_unlikely(]]..cond..[[)) {
-    nelua_panic_cstring("array index: position out of bounds");
-  }
-  return index;
-}]])
-  return name
-end
-
-function builtins.nelua_assert_deref_(context, indextype)
-  local name = 'nelua_assert_deref_' .. indextype.codename
-  if context.usedbuiltins[name] then return name end
-  context:ensure_builtins('nelua_inline', 'nelua_panic_cstring', 'nelua_unlikely', 'NULL')
-  context:define_function_builtin(name,
-    'nelua_inline', indextype,  {{indextype, 'p'}}, [[{
-  if(nelua_unlikely(p == NULL)) {
-    nelua_panic_cstring("attempt to dereference a null pointer");
-  }
-  return p;
-}]])
-  return name
-end
-
-function builtins.nelua_warn(context)
+-- Used by `warn` builtin.
+function cbuiltins.nelua_warn(context)
   context:ensure_builtins('fputs', 'fwrite', 'fputc', 'fflush')
   context:define_function_builtin('nelua_warn',
     '', primtypes.void, {{primtypes.string, 's'}}, [[{
@@ -174,144 +155,173 @@ function builtins.nelua_warn(context)
 }]])
 end
 
-function builtins.nelua_string_eq(context)
-  context:ensure_builtins('memcmp', 'nelua_inline')
-  context:define_function_builtin('nelua_string_eq',
-    'nelua_inline', primtypes.boolean, {{primtypes.string, 'a'}, {primtypes.string, 'b'}}, [[{
-  return a.size == b.size && (a.data == b.data || a.size == 0 || memcmp(a.data, b.data, a.size) == 0);
-}]])
-end
-
-function builtins.nelua_string_ne(context)
-  context:ensure_builtins('nelua_inline', 'nelua_string_eq')
-  context:define_function_builtin('nelua_string_ne',
-    'nelua_inline', primtypes.boolean, {{primtypes.string, 'a'}, {primtypes.string, 'b'}}, [[{
-  return !nelua_string_eq(a, b);
-}]])
-end
-
-function builtins.nelua_string2cstring(context)
-  context:ensure_builtin('nelua_inline')
-  context:define_function_builtin('nelua_string2cstring',
-    'nelua_inline', primtypes.cstring, {{primtypes.string, 's'}}, [[{
-  return (s.size == 0) ? (char*)"" : (char*)s.data;
-}]])
-end
-
-function builtins.nelua_assert_string2cstring(context)
-  context:ensure_builtins('nelua_inline', 'nelua_panic_cstring', 'nelua_unlikely')
-  context:define_function_builtin('nelua_assert_string2cstring',
-    'nelua_inline', primtypes.cstring, {{primtypes.string, 's'}}, [[{
-  if(s.size == 0) {
-    return (char*)"";
-  }
-  if(nelua_unlikely(s.data[s.size]) != 0) {
-    nelua_panic_cstring("attempt to convert a non null terminated string to cstring");
-  }
-  return (char*)s.data;
-}]])
-end
-
-function builtins.nelua_cstring2string(context)
-  context:ensure_builtins('strlen', 'uintptr_t', 'nelua_inline', 'NULL')
-  context:define_function_builtin('nelua_cstring2string',
-    'nelua_inline', primtypes.string, {{'const char*', 's'}}, [[{
-  if(s == NULL) return (nlstring){0};
-  uintptr_t size = strlen(s);
-  if(size == 0) return (nlstring){0};
-  return (nlstring){(uint8_t*)s, size};
-}]])
-end
-
-function builtins.nelua_narrow_cast_(context, dtype, stype)
-  local name = 'nelua_narrow_cast_'..stype.codename..'_'..dtype.codename
+--[[
+Used to check conversion of a scalar to a narrow scalar.
+On underflow/overflow the application will panic.
+]]
+function cbuiltins.nelua_assert_narrow_(context, dtype, stype)
+  local name = 'nelua_assert_narrow_'..stype.codename..'_'..dtype.codename
   if context.usedbuiltins[name] then return name end
   assert(dtype.is_integral and stype.is_scalar)
-  local cond
+  context:ensure_builtins('nelua_inline', 'nelua_unlikely', 'nelua_panic_cstring')
+  local emitter = CEmitter(context)
+  emitter:add_ln('{') emitter:inc_indent()
+  emitter:add_indent('if(nelua_unlikely(')
   if stype.is_float then -- float -> integral
-    cond = '(('..context:typename(dtype)..')(x)) != x'
+    emitter:add('(',dtype,')(x) != x')
   elseif stype.is_signed and dtype.is_unsigned then -- signed -> unsigned
-    cond = 'x < 0'
+    emitter:add('x < 0')
     if stype.max > dtype.max then
-      cond = cond .. ' || x > 0x' .. bn.tohexint(dtype.max)
+      emitter:add(' || x > 0x', bn.tohexint(dtype.max))
     end
   elseif stype.is_unsigned and dtype.is_signed then -- unsigned -> signed
-    cond = 'x > 0x' .. bn.tohexint(dtype.max) .. 'U'
+    emitter:add('x > 0x', bn.tohexint(dtype.max), 'U')
   else -- signed -> signed / unsigned -> unsigned
-    cond = 'x > 0x' .. bn.tohexint(dtype.max) .. (stype.is_unsigned and 'U' or '')
+    emitter:add('x > 0x', bn.tohexint(dtype.max), (stype.is_unsigned and 'U' or ''))
     if stype.is_signed then -- signed -> signed
-      cond = cond .. ' || x < ' .. bn.todecint(dtype.min)
+      emitter:add(' || x < ', bn.todecint(dtype.min))
     end
   end
-  context:ensure_builtins('nelua_inline', 'nelua_unlikely', 'nelua_panic_cstring')
-  context:define_function_builtin(name, 'nelua_inline', dtype, {{stype, 'x'}}, [[{
-  if(nelua_unlikely(]]..cond..[[)) {
-    nelua_panic_cstring("narrow casting from ]]..tostring(stype)..[[ to ]]..tostring(dtype)..[[ failed");
+  emitter:add_ln(')) {') emitter:inc_indent()
+  emitter:add_indent_ln('nelua_panic_cstring("narrow casting from ',
+      tostring(stype),' to ',tostring(dtype),' failed");')
+  emitter:dec_indent() emitter:add_indent_ln('}')
+  emitter:add_indent_ln('return x;')
+  emitter:dec_indent() emitter:add('}')
+  context:define_function_builtin(name, 'nelua_inline', dtype, {{stype, 'x'}}, emitter:generate())
+  return name
+end
+
+-- Used to check array bounds when indexing.
+function cbuiltins.nelua_assert_bounds_(context, indextype)
+  local name = 'nelua_assert_bounds_'..indextype.codename
+  if context.usedbuiltins[name] then return name end
+  context:ensure_builtins('nelua_inline', 'nelua_panic_cstring', 'nelua_unlikely')
+  context:define_function_builtin(name,
+    'nelua_inline', indextype, {{indextype, 'index'}, {primtypes.usize, 'len'}}, context:emitter_join([[{
+  if(nelua_unlikely((]],primtypes.usize,')index >= len',indextype.is_signed and ' || index < 0' or '',[[)) {
+    nelua_panic_cstring("array index: position out of bounds");
   }
-  return x;
+  return index;
+}]]))
+  return name
+end
+
+-- Used to check dereference of pointers.
+function cbuiltins.nelua_assert_deref_(context, pointertype)
+  local name = 'nelua_assert_deref_'..pointertype.codename
+  if context.usedbuiltins[name] then return name end
+  context:ensure_builtins('nelua_inline', 'nelua_panic_cstring', 'nelua_unlikely', 'NULL')
+  context:define_function_builtin(name,
+    'nelua_inline', pointertype,  {{pointertype, 'p'}}, [[{
+  if(nelua_unlikely(p == NULL)) {
+    nelua_panic_cstring("attempt to dereference a null pointer");
+  }
+  return p;
 }]])
   return name
 end
 
-function builtins.nelua_lt_(context, ltype, rtype)
-  local name = 'nelua_lt_'..ltype.codename..'_'..rtype.codename
+-- Used to convert a string to a C string.
+function cbuiltins.nelua_string2cstring_(context, checked)
+  local name = checked and 'nelua_assert_string2cstring' or 'nelua_string2cstring'
   if context.usedbuiltins[name] then return name end
   local code
+  context:ensure_builtin('nelua_inline')
+  if checked then
+    context:ensure_builtins('nelua_panic_cstring', 'nelua_unlikely')
+    code = [[{
+    if(s.size == 0) {
+      return (char*)"";
+    }
+    if(nelua_unlikely(s.data[s.size]) != 0) {
+      nelua_panic_cstring("attempt to convert a non null terminated string to cstring");
+    }
+    return (char*)s.data;
+  }]]
+  else
+    code = [[{
+  return (s.size == 0) ? (char*)"" : (char*)s.data;
+}]]
+  end
+  context:define_function_builtin(name,
+    'nelua_inline', primtypes.cstring, {{primtypes.string, 's'}}, code)
+  return name
+end
+
+-- Used to convert a C string to a string.
+function cbuiltins.nelua_cstring2string(context)
+  context:ensure_builtins('strlen', 'nelua_inline', 'NULL')
+  context:define_function_builtin('nelua_cstring2string',
+    'nelua_inline', primtypes.string, {{'const char*', 's'}}, context:emitter_join([[{
+  if(s == NULL) return (]],primtypes.string,[[){0};
+  ]], primtypes.usize, [[ size = strlen(s);
+  if(size == 0) return (]],primtypes.string,[[){0};
+  return (]],primtypes.string,[[){(]],primtypes.byte,[[*)s, size};
+}]]))
+end
+
+-- Used by integer less than operator (`<`).
+function cbuiltins.nelua_lt_(context, ltype, rtype)
+  local name = 'nelua_lt_'..ltype.codename..'_'..rtype.codename
+  if context.usedbuiltins[name] then return name end
+  local emitter = CEmitter(context)
   if ltype.is_signed and rtype.is_unsigned then
-    code = context:emitter_join([[{
+    emitter:add([[{
   return a < 0 || (]],ltype:unsigned_type(),[[)a < b;
 }]])
   else
     assert(ltype.is_unsigned and rtype.is_signed)
-    code = context:emitter_join([[{
+    emitter:add([[{
   return b > 0 && a < (]],rtype:unsigned_type(),[[)b;
 }]])
   end
   context:ensure_builtins('nelua_inline')
-  context:define_function_builtin(name, 'nelua_inline', primtypes.boolean, {{ltype, 'a'}, {rtype, 'b'}}, code)
+  context:define_function_builtin(name,
+    'nelua_inline', primtypes.boolean, {{ltype, 'a'}, {rtype, 'b'}}, emitter:generate())
   return name
 end
 
-function builtins.nelua_eq_(context, ltype, rtype)
-  if not rtype then
+-- Used by equality operator (`==`).
+function cbuiltins.nelua_eq_(context, ltype, rtype)
+  if not rtype then -- comparing same type
     local type = ltype
     local name = 'nelua_eq_'..type.codename
     if context.usedbuiltins[name] then return name end
     assert(type.is_composite)
     local defemitter = CEmitter(context)
-    defemitter:add_ln('{')
-    defemitter:inc_indent()
+    defemitter:add_ln('{') defemitter:inc_indent()
     defemitter:add_indent('return ')
     if type.is_union then
-      context:ensure_builtin('memcmp')
-      defemitter:add('memcmp(&a, &b, sizeof(', type, ')) == 0')
+      defemitter:add_builtin('memcmp')
+      defemitter:add('(&a, &b, sizeof(', type, ')) == 0')
     elseif #type.fields > 0 then
       for i,field in ipairs(type.fields) do
         if i > 1 then
           defemitter:add(' && ')
         end
-        if field.type.is_composite then
-          local op = context:ensure_builtin('nelua_eq_', field.type)
-          defemitter:add(op, '(a.', field.name, ', b.', field.name, ')')
-        elseif field.type.is_array then
-          context:ensure_builtin('memcmp')
-          defemitter:add('memcmp(a.', field.name, ', ', 'b.', field.name, ', sizeof(', type, ')) == 0')
+        local fieldname, fieldtype = field.name, field.type
+        if fieldtype.is_composite then
+          defemitter:add_builtin('nelua_eq_', fieldtype)
+          defemitter:add('(a.', fieldname, ', b.', fieldname, ')')
+        elseif fieldtype.is_array then
+          defemitter:add_builtin('memcmp')
+          defemitter:add('(a.', fieldname, ', ', 'b.', fieldname, ', sizeof(', type, ')) == 0')
         else
-          defemitter:add('a.', field.name, ' == ', 'b.', field.name)
+          defemitter:add('a.', fieldname, ' == ', 'b.', fieldname)
         end
       end
     else
       defemitter:add(true)
     end
     defemitter:add_ln(';')
-    defemitter:dec_indent()
-    defemitter:add_ln('}')
+    defemitter:dec_indent() defemitter:add_ln('}')
     context:ensure_builtin('nelua_inline')
     context:define_function_builtin(name,
       'nelua_inline', primtypes.boolean, {{type, 'a'}, {type, 'b'}},
       defemitter:generate())
     return name
-  else
+  else -- comparing different types
     local name = 'nelua_eq_'..ltype.codename..'_'..rtype.codename
     if context.usedbuiltins[name] then return name end
     assert(ltype.is_integral and ltype.is_signed and rtype.is_unsigned)
@@ -325,38 +335,74 @@ function builtins.nelua_eq_(context, ltype, rtype)
   end
 end
 
-function builtins.nelua_idiv_(context, type)
-  local name = 'nelua_idiv_'..type.codename
+-- Used by string equality operator (`==`).
+function cbuiltins.nelua_eq_string(context)
+  context:ensure_builtins('memcmp', 'nelua_inline')
+  context:define_function_builtin('nelua_eq_string',
+    'nelua_inline', primtypes.boolean, {{primtypes.string, 'a'}, {primtypes.string, 'b'}}, [[{
+  return a.size == b.size && (a.data == b.data || a.size == 0 || memcmp(a.data, b.data, a.size) == 0);
+}]])
+end
+
+-- Used by integer division operator (`//`).
+function cbuiltins.nelua_idiv_(context, type, checked)
+  local name = (checked and 'nelua_assert_idiv_' or 'nelua_idiv_')..type.codename
   if context.usedbuiltins[name] then return name end
   assert(type.is_signed)
   local stype, utype = type:signed_type(), type:unsigned_type()
   context:ensure_builtins('nelua_inline', 'nelua_unlikely', 'nelua_panic_cstring')
+  local emitter = CEmitter(context)
+  emitter:add_ln('{') emitter:inc_indent()
+  emitter:add_indent_ln('if(nelua_unlikely(b == -1)) return 0U - (', utype ,')a;')
+  if not checked then
+    emitter:add_indent_ln('if(nelua_unlikely(b == 0)) nelua_panic_cstring("division by zero");')
+  end
+  emitter:add_indent_ln(stype,' q = a / b;')
+  emitter:add_indent_ln('return q * b == a ? q : q - ((a < 0) ^ (b < 0));')
+  emitter:dec_indent() emitter:add_ln('}')
   context:define_function_builtin(name,
-    'nelua_inline', type, {{type, 'a'}, {type, 'b'}}, context:emitter_join([[{
-  if(nelua_unlikely(b == -1)) return 0U - (]],utype,[[)a;
-  if(nelua_unlikely(b == 0)) nelua_panic_cstring("division by zero");
-  ]],stype,[[ q = a / b;
-  return q * b == a ? q : q - ((a < 0) ^ (b < 0));
-}]]))
+    'nelua_inline', type, {{type, 'a'}, {type, 'b'}}, emitter:generate())
   return name
 end
 
-function builtins.nelua_imod_(context, type)
-  local name = 'nelua_imod_'..type.codename
+-- Used by integer modulo operator (`%`).
+function cbuiltins.nelua_imod_(context, type, checked)
+  local name = (checked and  'nelua_assert_imod_' or 'nelua_imod_')..type.codename
   if context.usedbuiltins[name] then return name end
   assert(type.is_signed)
   context:ensure_builtins('nelua_inline', 'nelua_unlikely', 'nelua_panic_cstring')
+  local emitter = CEmitter(context)
+  emitter:add_ln('{') emitter:inc_indent()
+  emitter:add_indent_ln('if(nelua_unlikely(b == -1)) return 0;')
+  if checked then
+    emitter:add_indent_ln('if(nelua_unlikely(b == 0)) nelua_panic_cstring("division by zero");')
+  end
+  emitter:add_indent_ln(type,' r = a % b;')
+  emitter:add_indent_ln('return (r != 0 && (a ^ b) < 0) ? r + b : r;')
+  emitter:dec_indent() emitter:add_ln('}')
+  context:define_function_builtin(name,
+    'nelua_inline', type, {{type, 'a'}, {type, 'b'}}, emitter:generate())
+  return name
+end
+
+-- Used by float modulo operator (`%`).
+function cbuiltins.nelua_fmod_(context, type)
+  local cfmod = type.is_float32 and 'fmodf' or 'fmod'
+  local name = 'nelua_'..cfmod
+  if context.usedbuiltins[name] then return name end
+  context:ensure_builtins(cfmod, 'nelua_inline', 'nelua_unlikely')
   context:define_function_builtin(name,
     'nelua_inline', type, {{type, 'a'}, {type, 'b'}}, context:emitter_join([[{
-  if(nelua_unlikely(b == -1)) return 0;
-  if(nelua_unlikely(b == 0)) nelua_panic_cstring("division by zero");
-  ]],type,[[ r = a % b;
-  return (r != 0 && (a ^ b) < 0) ? r + b : r;
+  ]],type,[[ r = ]],cfmod,[[(a, b);
+  if(nelua_unlikely((r > 0 && b < 0) || (r < 0 && b > 0)))
+    r += b;
+  return r;
 }]]))
   return name
 end
 
-function builtins.nelua_shl_(context, type)
+-- Used by integer logical shift left operator (`<<`).
+function cbuiltins.nelua_shl_(context, type)
   local name = 'nelua_shl_'..type.codename
   if context.usedbuiltins[name] then return name end
   local bitsize, stype, utype = type.bitsize, type:signed_type(), type:unsigned_type()
@@ -371,7 +417,8 @@ function builtins.nelua_shl_(context, type)
   return name
 end
 
-function builtins.nelua_shr_(context, type)
+-- Used by integer logical shift right operator (`>>`).
+function cbuiltins.nelua_shr_(context, type)
   local name = 'nelua_shr_'..type.codename
   if context.usedbuiltins[name] then return name end
   local bitsize, stype, utype = type.bitsize, type:signed_type(), type:unsigned_type()
@@ -386,7 +433,8 @@ function builtins.nelua_shr_(context, type)
   return name
 end
 
-function builtins.nelua_asr_(context, type)
+-- Used by integer arithmetic shift right operator (`>>>`).
+function cbuiltins.nelua_asr_(context, type)
   local name = 'nelua_asr_'..type.codename
   if context.usedbuiltins[name] then return name end
   local bitsize = type.bitsize
@@ -402,403 +450,40 @@ function builtins.nelua_asr_(context, type)
   return name
 end
 
-function builtins.nelua_fmod_(context, type)
-  local cfmod = type.is_float32 and 'fmodf' or 'fmod'
-  local name = 'nelua_'..cfmod
-  if context.usedbuiltins[name] then return name end
-  context:ensure_builtins(cfmod, 'nelua_inline', 'nelua_unlikely')
-  context:define_function_builtin(name,
-    'nelua_inline', type, {{type, 'a'}, {type, 'b'}}, context:emitter_join([[{
-  ]],type,[[ r = ]],cfmod,[[(a, b);
-  if(nelua_unlikely((r > 0 && b < 0) || (r < 0 && b > 0)))
-    r += b;
-  return r;
-}]]))
-  return name
-end
-
 --------------------------------------------------------------------------------
--- Binary operator builtins
+--[[
+Call builtins.
+These builtins may overrides the callee when not returning a name.
+]]
+cbuiltins.calls = {}
 
-operators["or"] = function(_, emitter, lnode, rnode, lname, rname)
-  emitter:add_val2boolean(lname, lnode.attr.type)
-  emitter:add_one(' || ')
-  emitter:add_val2boolean(rname, rnode.attr.type)
+-- Implementation of `likely` builtin.
+function cbuiltins.calls.likely(context)
+  return context:ensure_builtin('nelua_likely')
 end
 
-operators["and"] = function(_, emitter, lnode, rnode, lname, rname)
-  emitter:add_val2boolean(lname, lnode.attr.type)
-  emitter:add_one(' && ')
-  emitter:add_val2boolean(rname, rnode.attr.type)
+-- Implementation of `unlikely` builtin.
+function cbuiltins.calls.unlikely(context)
+  return context:ensure_builtin('nelua_unlikely')
 end
 
-local function operator_binary_op(op, node, emitter, lnode, rnode, lname, rname)
-  local lattr, rattr = lnode.attr, rnode.attr
-  local ltype, rtype = lattr.type, rattr.type
-  if ltype.is_integral and rtype.is_integral and
-     ltype.is_unsigned ~= rtype.is_unsigned and
-     not lattr.comptime and not rattr.comptime then
-    emitter:add('(',node.attr.type,')(', lname, ' ', op, ' ', rname, ')')
-  else
-    assert(ltype.is_arithmetic and rtype.is_arithmetic)
-    emitter:add(lname, ' ', op, ' ', rname)
-  end
+-- Implementation of `panic` builtin.
+function cbuiltins.calls.panic(context)
+  return context:ensure_builtin('nelua_panic_string')
 end
 
-function operators.bor(...)
-  operator_binary_op('|', ...)
+-- Implementation of `error` builtin.
+function cbuiltins.calls.error(context)
+  return context:ensure_builtin('nelua_panic_string')
 end
 
-function operators.bxor(...)
-  operator_binary_op('^', ...)
+-- Implementation of `warn` builtin.
+function cbuiltins.calls.warn(context)
+  return context:ensure_builtin('nelua_warn')
 end
 
-function operators.band(...)
-  operator_binary_op('&', ...)
-end
-
-function operators.add(...)
-  operator_binary_op('+', ...)
-end
-
-function operators.sub(...)
-  operator_binary_op('-', ...)
-end
-
-function operators.mul(...)
-  operator_binary_op('*', ...)
-end
-
-function operators.div(node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if not rtype.is_float and not ltype.is_float and type.is_float then
-    emitter:add(lname, ' / (', type, ')', rname)
-  else
-    operator_binary_op('/', node, emitter, lnode, rnode, lname, rname)
-  end
-end
-
-function operators.idiv(node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if ltype.is_float or rtype.is_float then
-    local floorname = type.is_float32 and 'floorf' or 'floor'
-    emitter.context:ensure_builtin(floorname)
-    emitter:add(floorname, '(', lname, ' / ', rname, ')')
-  elseif type.is_integral and (lnode.attr:is_maybe_negative() or rnode.attr:is_maybe_negative()) then
-    local op = emitter.context:ensure_builtin('nelua_idiv_', type)
-    emitter:add(op, '(', lname, ', ', rname, ')')
-  else
-    operator_binary_op('/', node, emitter, lnode, rnode, lname, rname)
-  end
-end
-
-function operators.tdiv(node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if ltype.is_float or rtype.is_float then
-    local truncname = type.is_float32 and 'truncf' or 'trunc'
-    emitter.context:ensure_builtin(truncname)
-    emitter:add(truncname, '(', lname, ' / ', rname, ')')
-  else
-    operator_binary_op('/', node, emitter, lnode, rnode, lname, rname)
-  end
-end
-
-function operators.mod(node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if ltype.is_float or rtype.is_float then
-    local op = emitter.context:ensure_builtin('nelua_fmod_', type)
-    emitter:add(op, '(', lname, ', ', rname, ')')
-  elseif type.is_integral and (lnode.attr:is_maybe_negative() or rnode.attr:is_maybe_negative()) then
-    local op = emitter.context:ensure_builtin('nelua_imod_', type)
-    emitter:add(op, '(', lname, ', ', rname, ')')
-  else
-    operator_binary_op('%', node, emitter, lnode, rnode, lname, rname)
-  end
-end
-
-function operators.tmod(node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if ltype.is_float or rtype.is_float then
-    local fmodname = type.is_float32 and 'fmodf' or 'fmod'
-    emitter.context:ensure_builtin(fmodname)
-    emitter:add(fmodname, '(', lname, ', ', rname, ')')
-  else
-    operator_binary_op('%', node, emitter, lnode, rnode, lname, rname)
-  end
-end
-
-function operators.shl(node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  assert(ltype.is_integral and rtype.is_integral)
-  if rnode.attr.comptime and rnode.attr.value >= 0 and rnode.attr.value < ltype.bitsize then
-    -- no overflow possible, can use plain C shift
-    emitter:add(lname, ' << ', rname)
-  else
-    local op = emitter.context:ensure_builtin('nelua_shl_', type)
-    emitter:add(op, '(', lname, ', ', rname, ')')
-  end
-end
-
-function operators.shr(node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  assert(ltype.is_integral and rtype.is_integral)
-  if ltype.is_unsigned and rnode.attr.comptime and rnode.attr.value >= 0 and rnode.attr.value < ltype.bitsize then
-    -- no overflow possible, can use plain C shift
-    emitter:add(lname, ' >> ', rname)
-  else
-    local op = emitter.context:ensure_builtin('nelua_shr_', type)
-    emitter:add(op, '(', lname, ', ', rname, ')')
-  end
-end
-
-function operators.asr(node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  assert(ltype.is_integral and rtype.is_integral)
-  if rnode.attr.comptime and rnode.attr.value >= 0 and rnode.attr.value < ltype.bitsize then
-    -- no overflow possible, can use plain C shift
-    emitter:add(lname, ' >> ', rname)
-  else
-    local op = emitter.context:ensure_builtin('nelua_asr_', type)
-    emitter:add(op, '(', lname, ', ', rname, ')')
-  end
-end
-
-function operators.pow(node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  local powname = type.is_float32 and 'powf' or 'pow'
-  emitter.context:ensure_builtin(powname)
-  emitter:add(powname, '(', lname, ', ', rname, ')')
-end
-
-local function needs_signed_unsigned_comparision(lnode, rnode)
-  local lattr, rattr = lnode.attr, rnode.attr
-  local ltype, rtype = lattr.type, rattr.type
-  if not ltype.is_integral or not rtype.is_integral or
-     ltype.is_unsigned == rtype.is_unsigned or
-     (lattr.comptime and not ltype.is_unsigned and lattr.value >= 0) or
-     (rattr.comptime and not rtype.is_unsigned and rattr.value >= 0) then
-    return false
-  end
-  return true
-end
-
-function operators.lt(_, emitter, lnode, rnode, lname, rname)
-  local ltype, rtype = lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if needs_signed_unsigned_comparision(lnode, rnode) then
-    local op = emitter.context:ensure_builtin('nelua_lt_', ltype, rtype)
-    emitter:add(op, '(', lname, ', ', rname, ')')
-  else
-    emitter:add(lname, ' < ', rname)
-  end
-end
-
-function operators.gt(_, emitter, lnode, rnode, lname, rname)
-  local ltype, rtype = lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if needs_signed_unsigned_comparision(lnode, rnode) then
-    local op = emitter.context:ensure_builtin('nelua_lt_', rtype, ltype)
-    emitter:add(op, '(', rname, ', ', lname, ')')
-  else
-    emitter:add(lname, ' > ', rname)
-  end
-end
-
-function operators.le(_, emitter, lnode, rnode, lname, rname)
-  local ltype, rtype = lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if needs_signed_unsigned_comparision(lnode, rnode) then
-    local op = emitter.context:ensure_builtin('nelua_lt_', rtype, ltype)
-    emitter:add('!', op, '(', rname, ', ', lname, ')')
-  else
-    emitter:add(lname, ' <= ', rname)
-  end
-end
-
-function operators.ge(_, emitter, lnode, rnode, lname, rname)
-  local ltype, rtype = lnode.attr.type, rnode.attr.type
-  assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if needs_signed_unsigned_comparision(lnode, rnode) then
-    local op = emitter.context:ensure_builtin('nelua_lt_', ltype, rtype)
-    emitter:add('!', op, '(', lname, ', ', rname, ')')
-  else
-    emitter:add(lname, ' >= ', rname)
-  end
-end
-
-function operators.eq(_, emitter, lnode, rnode, lname, rname)
-  local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if (ltype.is_string and (rtype.is_string or rtype.is_cstring)) or
-     (ltype.is_cstring and rtype.is_string) then
-    emitter:add_builtin('nelua_string_eq')
-    emitter:add('(')
-    emitter:add_val2type(primtypes.string, lname, ltype)
-    emitter:add(', ')
-    emitter:add_val2type(primtypes.string, rname, rtype)
-    emitter:add(')')
-  elseif ltype.is_composite or rtype.is_composite then
-    if ltype == rtype then
-      local op = emitter.context:ensure_builtin('nelua_eq_', ltype)
-      emitter:add(op, '(', lname, ', ', rname, ')')
-    else
-      emitter:add(false)
-    end
-  elseif ltype.is_array then
-    assert(ltype == rtype)
-    emitter.context:ensure_builtin('memcmp')
-    if lnode.attr.lvalue and rnode.attr.lvalue then
-      emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) == 0')
-    else
-      emitter:add('({', ltype, ' a = ', lname, '; ',
-                        rtype, ' b = ', rname, '; ',
-                        'memcmp(&a, &b, sizeof(', ltype, ')) == 0; })')
-    end
-  elseif needs_signed_unsigned_comparision(lnode, rnode) then
-    if not ltype.is_unsigned then
-      local op = emitter.context:ensure_builtin('nelua_eq_', ltype, rtype)
-      emitter:add(op, '(', lname, ', ', rname, ')')
-    else
-      local op = emitter.context:ensure_builtin('nelua_eq_', rtype, ltype)
-      emitter:add(op, '(', rname, ', ', lname, ')')
-    end
-  elseif ltype.is_niltype or rtype.is_niltype then
-    emitter:add('((void)', lname, ', (void)', rname, ', ', ltype == rtype, ')')
-  elseif ltype.is_scalar and rtype.is_scalar then
-    emitter:add(lname, ' == ', rname)
-  elseif (ltype.is_boolean or rtype.is_boolean) and ltype ~= rtype then
-    emitter:add('((void)', lname, ', (void)', rname, ', false)')
-  else
-    emitter:add(lname, ' == ')
-    if ltype ~= rtype then
-      emitter:add_val2type(ltype, rname, rtype)
-    else
-      emitter:add(rname)
-    end
-  end
-end
-
-function operators.ne(_, emitter, lnode, rnode, lname, rname)
-  local ltype, rtype = lnode.attr.type, rnode.attr.type
-  if (ltype.is_string and (rtype.is_string or rtype.is_cstring)) or
-     (ltype.is_cstring and rtype.is_string) then
-    emitter:add_builtin('nelua_string_ne')
-    emitter:add('(')
-    emitter:add_val2type(primtypes.string, lname, ltype)
-    emitter:add(', ')
-    emitter:add_val2type(primtypes.string, rname, rtype)
-    emitter:add(')')
-  elseif ltype.is_composite or rtype.is_composite then
-    if ltype == rtype then
-      local op = emitter.context:ensure_builtin('nelua_eq_', ltype)
-      emitter:add('!', op, '(', lname, ', ', rname, ')')
-    else
-      emitter:add(true)
-    end
-  elseif ltype.is_array then
-    assert(ltype == rtype)
-    emitter.context:ensure_builtin('memcmp')
-    if lnode.attr.lvalue and rnode.attr.lvalue then
-      emitter:add('memcmp(&', lname, ', &', rname, ', sizeof(', ltype, ')) != 0')
-    else
-      emitter:add('({', ltype, ' a = ', lname, '; ',
-                        rtype, ' b = ', rname, '; ',
-                        'memcmp(&a, &b, sizeof(', ltype, ')) != 0; })')
-    end
-  elseif needs_signed_unsigned_comparision(lnode, rnode) then
-    if not ltype.is_unsigned then
-      local op = emitter.context:ensure_builtin('nelua_eq_', ltype, rtype)
-      emitter:add('!', op, '(', lname, ', ', rname, ')')
-    else
-      local op = emitter.context:ensure_builtin('nelua_eq_', rtype, ltype)
-      emitter:add('!', op, '(', rname, ', ', lname, ')')
-    end
-  elseif ltype.is_niltype or rtype.is_niltype then
-    emitter:add('((void)', lname, ', (void)', rname, ', ', ltype ~= rtype, ')')
-  elseif ltype.is_scalar and rtype.is_scalar then
-    emitter:add(lname, ' != ', rname)
-  elseif (ltype.is_boolean or rtype.is_boolean) and ltype ~= rtype then
-    emitter:add('((void)', lname, ', (void)', rname, ', true)')
-  else
-    emitter:add(lname, ' != ')
-    if ltype ~= rtype then
-      emitter:add_val2type(ltype, rname, rtype)
-    else
-      emitter:add(rname)
-    end
-  end
-end
-
---------------------------------------------------------------------------------
--- Unary operator builtins
-
-operators["not"] = function(_, emitter, argnode)
-  emitter:add('!')
-  emitter:add_val2boolean(argnode)
-end
-
-function operators.unm(_, emitter, argnode)
-  assert(argnode.attr.type.is_arithmetic)
-  emitter:add('-', argnode)
-end
-
-function operators.bnot(_, emitter, argnode)
-  assert(argnode.attr.type.is_integral)
-  emitter:add('~', argnode)
-end
-
-function operators.ref(_, emitter, argnode)
-  assert(argnode.attr.lvalue)
-  emitter:add('&', argnode)
-end
-
-function operators.deref(_, emitter, argnode)
-  assert(argnode.attr.type.is_pointer)
-  emitter:add('*')
-  local indextype = argnode.attr.type
-  if indextype.subtype.is_array and indextype.subtype.length == 0 then
-    -- use pointer to the actual subtype structure, because its type may have been simplified
-    emitter:add('(',indextype.subtype,'*)')
-  end
-  if not emitter.context.pragmas.nochecks then
-    local op = emitter.context:ensure_builtin('nelua_assert_deref_', argnode.attr.type)
-    if argnode.attr.type.subtype.length == 0 then
-      emitter:add(op, '((', argnode.attr.type, ')', argnode, ')')
-    else
-      emitter:add(op, '(', argnode, ')')
-    end
-  else
-    emitter:add(argnode)
-  end
-end
-
-function operators.len(_, emitter, argnode)
-  local argattr = argnode.attr
-  local type = argattr.type
-  if type.is_string then
-    emitter:add('((',primtypes.isize,')(', argnode, ').size)')
-  elseif type.is_cstring then
-    emitter.context:ensure_builtin('strlen')
-    emitter:add('((',primtypes.isize,')strlen(', argnode, '))')
-  elseif type.is_type then
-    emitter:add('sizeof(', argattr.value, ')')
-  else --luacov:disable
-    argnode:raisef('not implemented')
-  end --luacov:enable
-end
-
---------------------------------------------------------------------------------
--- Inline builtins
-
-function inlines.assert(context, node)
+-- Implementation of `assert` builtin.
+function cbuiltins.calls.assert(context, node)
   local builtintype = node.attr.builtintype
   local argattrs = builtintype.argattrs
   local funcname = context:genuniquename('nelua_assert_line')
@@ -849,28 +534,52 @@ function inlines.assert(context, node)
   return funcname
 end
 
-function inlines.check(context, node)
+-- Implementation of `check` builtin.
+function cbuiltins.calls.check(context, node)
   if context.pragmas.nochecks then return end -- omit call
-  return inlines.assert(context, node)
+  return cbuiltins.calls.assert(context, node)
 end
 
-function inlines.print(context, node)
-  local argtypes = node.attr.builtintype.argtypes
+-- Implementation of `require` builtin.
+function cbuiltins.calls.require(context, node, emitter)
+  local attr = node.attr
+  if attr.alreadyrequired then
+    return
+  end
+  local ast = attr.loadedast
+  assert(not attr.runtime_require and ast)
+  local bracepos = emitter:get_pos()
+  emitter:add_indent_ln("{ /* require '", attr.requirename, "' */")
+  local lastpos = emitter:get_pos()
+  context:push_forked_state{inrequire = true}
+  context:push_scope(context.rootscope)
+  context:push_forked_pragmas(attr.pragmas)
+  emitter:add(ast)
+  context:pop_pragmas()
+  context:pop_scope()
+  context:pop_state()
+  if emitter:get_pos() == lastpos then
+    emitter:remove_until_pos(bracepos)
+  else
+    emitter:add_indent_ln('}')
+  end
+end
 
+-- Implementation of `print` builtin.
+function cbuiltins.calls.print(context, node)
+  local argtypes = node.attr.builtintype.argtypes
   -- compute args hash
   local printhash = {}
   for i,argtype in ipairs(argtypes) do
     printhash[i] = argtype.codename
   end
   printhash = table.concat(printhash,' ')
-
+  -- generate function name
   local funcname = context.printcache[printhash]
   if funcname then
     return funcname
   end
-
   funcname = context:genuniquename('nelua_print')
-
   -- function declaration
   local decemitter = CEmitter(context)
   decemitter:add('void ', funcname, '(')
@@ -885,7 +594,6 @@ function inlines.print(context, node)
   decemitter:add(')')
   local heading = decemitter:generate()
   context:add_declaration('static '..heading..';\n', funcname)
-
   -- function body
   local defemitter = CEmitter(context)
   defemitter:add(heading)
@@ -923,13 +631,13 @@ function inlines.print(context, node)
       context:ensure_builtins('fputs', 'stdout')
       defemitter:add_ln('fputs("(null)", stdout);')
     elseif argtype.is_pointer or argtype.is_function then
-      context:ensure_builtins('fputs', 'fprintf', 'stdout', 'PRIxPTR', 'intptr_t', 'NULL')
+      context:ensure_builtins('fputs', 'fprintf', 'stdout', 'PRIxPTR', 'NULL')
       if argtype.is_function then
         defemitter:add_ln('fputs("function: ", stdout);')
       end
       defemitter:add_ln('if(a',i,' != NULL) {')
         defemitter:inc_indent()
-        defemitter:add_indent_ln('fprintf(stdout, "0x%" PRIxPTR, (intptr_t)a',i,');')
+        defemitter:add_indent_ln('fprintf(stdout, "0x%" PRIxPTR, (',primtypes.isize,')a',i,');')
         defemitter:dec_indent()
       defemitter:add_indent_ln('} else {')
         defemitter:inc_indent()
@@ -974,48 +682,404 @@ function inlines.print(context, node)
   return funcname
 end
 
-function inlines.likely(context)
-  return context:ensure_builtin('nelua_likely')
-end
+--------------------------------------------------------------------------------
+--[[
+Binary operators.
+These builtins overrides binary operations.
+]]
+cbuiltins.operators = {}
 
-function inlines.unlikely(context)
-  return context:ensure_builtin('nelua_unlikely')
-end
-
-function inlines.error(context)
-  return context:ensure_builtin('nelua_panic_string')
-end
-
-function inlines.warn(context)
-  return context:ensure_builtin('nelua_warn')
-end
-
-function inlines.panic(context)
-  return context:ensure_builtin('nelua_panic_string')
-end
-
-function inlines.require(context, node, emitter)
-  local attr = node.attr
-  if attr.alreadyrequired then
-    return
+-- Helper to check if two nodes are comparing a signed integral with an unsigned integral.
+local function needs_signed_unsigned_comparision(lnode, rnode)
+  local lattr, rattr = lnode.attr, rnode.attr
+  local ltype, rtype = lattr.type, rattr.type
+  if not ltype.is_integral or not rtype.is_integral or
+     ltype.is_unsigned == rtype.is_unsigned or
+     (lattr.comptime and not ltype.is_unsigned and lattr.value >= 0) or
+     (rattr.comptime and not rtype.is_unsigned and rattr.value >= 0) then
+    return false
   end
-  local ast = attr.loadedast
-  assert(not attr.runtime_require and ast)
-  local bracepos = emitter:get_pos()
-  emitter:add_indent_ln("{ /* require '", attr.requirename, "' */")
-  local lastpos = emitter:get_pos()
-  context:push_forked_state{inrequire = true}
-  context:push_scope(context.rootscope)
-  context:push_forked_pragmas(attr.pragmas)
-  emitter:add(ast)
-  context:pop_pragmas()
-  context:pop_scope()
-  context:pop_state()
-  if emitter:get_pos() == lastpos then
-    emitter:remove_until_pos(bracepos)
+  return true
+end
+
+-- Helper to implement some binary operators.
+local function operator_binary_op(op, _, node, emitter, lnode, rnode, lname, rname)
+  local lattr, rattr = lnode.attr, rnode.attr
+  local ltype, rtype = lattr.type, rattr.type
+  if ltype.is_integral and rtype.is_integral and
+     ltype.is_unsigned ~= rtype.is_unsigned and
+     not lattr.comptime and not rattr.comptime then
+    emitter:add('(',node.attr.type,')(', lname, ' ', op, ' ', rname, ')')
   else
-    emitter:add_indent_ln('}')
+    assert(ltype.is_arithmetic and rtype.is_arithmetic)
+    emitter:add(lname, ' ', op, ' ', rname)
   end
+end
+
+-- Implementation of bitwise OR operator (`|`).
+function cbuiltins.operators.bor(...)
+  operator_binary_op('|', ...)
+end
+
+-- Implementation of bitwise XOR operator (`~`).
+function cbuiltins.operators.bxor(...)
+  operator_binary_op('^', ...)
+end
+
+-- Implementation of bitwise AND operator (`&`).
+function cbuiltins.operators.band(...)
+  operator_binary_op('&', ...)
+end
+
+-- Implementation of add operator (`*`).
+function cbuiltins.operators.add(...)
+  operator_binary_op('+', ...)
+end
+
+-- Implementation of subtract operator (`*`).
+function cbuiltins.operators.sub(...)
+  operator_binary_op('-', ...)
+end
+
+-- Implementation of multiply operator (`*`).
+function cbuiltins.operators.mul(...)
+  operator_binary_op('*', ...)
+end
+
+-- Implementation of division operator (`/`).
+function cbuiltins.operators.div(context, node, emitter, lnode, rnode, lname, rname)
+  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  if not rtype.is_float and not ltype.is_float and type.is_float then
+    emitter:add(lname, ' / (', type, ')', rname)
+  else
+    operator_binary_op('/', context, node, emitter, lnode, rnode, lname, rname)
+  end
+end
+
+-- Implementation of floor division operator (`//`).
+function cbuiltins.operators.idiv(context, node, emitter, lnode, rnode, lname, rname)
+  local lattr, rattr = lnode.attr, rnode.attr
+  local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  if ltype.is_float or rtype.is_float then
+    emitter:add_builtin(type.is_float32 and 'floorf' or 'floor')
+    emitter:add('(', lname, ' / ', rname, ')')
+  elseif type.is_integral and (lattr:is_maybe_negative() or rattr:is_maybe_negative()) then
+    emitter:add_builtin('nelua_idiv_', type, not context.pragmas.nochecks)
+    emitter:add('(', lname, ', ', rname, ')')
+  else
+    operator_binary_op('/', context, node, emitter, lnode, rnode, lname, rname)
+  end
+end
+
+-- Implementation of truncate division operator (`///`).
+function cbuiltins.operators.tdiv(context, node, emitter, lnode, rnode, lname, rname)
+  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  if ltype.is_float or rtype.is_float then
+    emitter:add_builtin(type.is_float32 and 'truncf' or 'trunc')
+    emitter:add('(', lname, ' / ', rname, ')')
+  else
+    operator_binary_op('/', context, node, emitter, lnode, rnode, lname, rname)
+  end
+end
+
+-- Implementation of floor division remainder operator (`%`).
+function cbuiltins.operators.mod(context, node, emitter, lnode, rnode, lname, rname)
+  local lattr, rattr = lnode.attr, rnode.attr
+  local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  if ltype.is_float or rtype.is_float then
+    emitter:add_builtin('nelua_fmod_', type)
+    emitter:add('(', lname, ', ', rname, ')')
+  elseif type.is_integral and (lattr:is_maybe_negative() or rattr:is_maybe_negative()) then
+    emitter:add_builtin('nelua_imod_', type, not context.pragmas.nochecks)
+    emitter:add('(', lname, ', ', rname, ')')
+  else
+    operator_binary_op('%', context, node, emitter, lnode, rnode, lname, rname)
+  end
+end
+
+-- Implementation of truncate division remainder operator (`%%%`).
+function cbuiltins.operators.tmod(context, node, emitter, lnode, rnode, lname, rname)
+  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  if ltype.is_float or rtype.is_float then
+    emitter:add_builtin(type.is_float32 and 'fmodf' or 'fmod')
+    emitter:add('(', lname, ', ', rname, ')')
+  else
+    operator_binary_op('%', context, node, emitter, lnode, rnode, lname, rname)
+  end
+end
+
+-- Implementation of logical shift left operator (`<<`).
+function cbuiltins.operators.shl(_, node, emitter, lnode, rnode, lname, rname)
+  local lattr, rattr = lnode.attr, rnode.attr
+  local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  assert(ltype.is_integral and rtype.is_integral)
+  if rattr.comptime and rattr.value >= 0 and rattr.value < ltype.bitsize then
+    -- no overflow possible, can use plain C shift
+    emitter:add(lname, ' << ', rname)
+  else
+    emitter:add_builtin('nelua_shl_', type)
+    emitter:add('(', lname, ', ', rname, ')')
+  end
+end
+
+-- Implementation of logical shift right operator (`>>`).
+function cbuiltins.operators.shr(_, node, emitter, lnode, rnode, lname, rname)
+  local lattr, rattr = lnode.attr, rnode.attr
+  local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  assert(ltype.is_integral and rtype.is_integral)
+  if ltype.is_unsigned and rattr.comptime and rattr.value >= 0 and rattr.value < ltype.bitsize then
+    -- no overflow possible, can use plain C shift
+    emitter:add(lname, ' >> ', rname)
+  else
+    emitter:add_builtin('nelua_shr_', type)
+    emitter:add('(', lname, ', ', rname, ')')
+  end
+end
+
+-- Implementation of arithmetic shift right operator (`>>>`).
+function cbuiltins.operators.asr(_, node, emitter, lnode, rnode, lname, rname)
+  local lattr, rattr = lnode.attr, rnode.attr
+  local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  assert(ltype.is_integral and rtype.is_integral)
+  if rattr.comptime and rattr.value >= 0 and rattr.value < ltype.bitsize then
+    -- no overflow possible, can use plain C shift
+    emitter:add(lname, ' >> ', rname)
+  else
+    emitter:add_builtin('nelua_asr_', type)
+    emitter:add('(', lname, ', ', rname, ')')
+  end
+end
+
+-- Implementation of pow operator (`^`).
+function cbuiltins.operators.pow(_, node, emitter, lnode, rnode, lname, rname)
+  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  emitter:add_builtin(type.is_float32 and 'powf' or 'pow')
+  emitter:add('(', lname, ', ', rname, ')')
+end
+
+-- Implementation of less than operator (`<`).
+function cbuiltins.operators.lt(_, _, emitter, lnode, rnode, lname, rname)
+  local ltype, rtype = lnode.attr.type, rnode.attr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  if needs_signed_unsigned_comparision(lnode, rnode) then
+    emitter:add_builtin('nelua_lt_', ltype, rtype)
+    emitter:add('(', lname, ', ', rname, ')')
+  else
+    emitter:add(lname, ' < ', rname)
+  end
+end
+
+-- Implementation of greater than operator (`>`).
+function cbuiltins.operators.gt(_, _, emitter, lnode, rnode, lname, rname)
+  local ltype, rtype = lnode.attr.type, rnode.attr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  if needs_signed_unsigned_comparision(lnode, rnode) then
+    emitter:add_builtin('nelua_lt_', rtype, ltype)
+    emitter:add('(', rname, ', ', lname, ')')
+  else
+    emitter:add(lname, ' > ', rname)
+  end
+end
+
+-- Implementation of less or equal than operator (`<=`).
+function cbuiltins.operators.le(_, _, emitter, lnode, rnode, lname, rname)
+  local ltype, rtype = lnode.attr.type, rnode.attr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  if needs_signed_unsigned_comparision(lnode, rnode) then
+    emitter:add('!')
+    emitter:add_builtin('nelua_lt_', rtype, ltype)
+    emitter:add('(', rname, ', ', lname, ')')
+  else
+    emitter:add(lname, ' <= ', rname)
+  end
+end
+
+-- Implementation of greater or equal than operator (`>=`).
+function cbuiltins.operators.ge(_, _, emitter, lnode, rnode, lname, rname)
+  local ltype, rtype = lnode.attr.type, rnode.attr.type
+  assert(ltype.is_arithmetic and rtype.is_arithmetic)
+  if needs_signed_unsigned_comparision(lnode, rnode) then
+    emitter:add('!')
+    emitter:add_builtin('nelua_lt_', ltype, rtype)
+    emitter:add('(', lname, ', ', rname, ')')
+  else
+    emitter:add(lname, ' >= ', rname)
+  end
+end
+
+-- Implementation of equal operator (`==`).
+function cbuiltins.operators.eq(_, _, emitter, lnode, rnode, lname, rname)
+  local lattr, rattr = lnode.attr, rnode.attr
+  local ltype, rtype = lattr.type, rattr.type
+  if (ltype.is_string and (rtype.is_string or rtype.is_cstring)) or
+     (ltype.is_cstring and rtype.is_string) then
+    emitter:add_builtin('nelua_eq_string')
+    emitter:add('(')
+    emitter:add_val2type(primtypes.string, lname, ltype)
+    emitter:add(', ')
+    emitter:add_val2type(primtypes.string, rname, rtype)
+    emitter:add(')')
+  elseif ltype.is_composite or rtype.is_composite then
+    if ltype == rtype then
+      emitter:add_builtin('nelua_eq_', ltype)
+      emitter:add('(', lname, ', ', rname, ')')
+    else
+      emitter:add('((void)', lname, ', (void)', rname, ', ', false, ')')
+    end
+  elseif ltype.is_array then
+    assert(ltype == rtype)
+    if lattr.lvalue and rattr.lvalue then
+      emitter:add_builtin('memcmp')
+      emitter:add('(&', lname, ', &', rname, ', sizeof(', ltype, ')) == 0')
+    else
+      emitter:add('({', ltype, ' a = ', lname, '; ',
+                        rtype, ' b = ', rname, '; ')
+      emitter:add_builtin('memcmp')
+      emitter:add('(&a, &b, sizeof(', ltype, ')) == 0; })')
+    end
+  elseif needs_signed_unsigned_comparision(lnode, rnode) then
+    if ltype.is_unsigned then
+      ltype, rtype, lname, rname = rtype, ltype, rname, lname -- swap
+    end
+    emitter:add_builtin('nelua_eq_', ltype, rtype)
+    emitter:add('(', lname, ', ', rname, ')')
+  elseif ltype.is_scalar and rtype.is_scalar then
+    emitter:add(lname, ' == ', rname)
+  elseif ltype.is_niltype or rtype.is_niltype or
+         ((ltype.is_boolean or rtype.is_boolean) and ltype ~= rtype) then
+    emitter:add('((void)', lname, ', (void)', rname, ', ', ltype == rtype, ')')
+  else
+    emitter:add(lname, ' == ')
+    if ltype ~= rtype then
+      emitter:add_val2type(ltype, rname, rtype)
+    else
+      emitter:add(rname)
+    end
+  end
+end
+
+-- Implementation of not equal operator (`~=`).
+function cbuiltins.operators.ne(_, _, emitter, lnode, rnode, lname, rname)
+  local lattr, rattr = lnode.attr, rnode.attr
+  local ltype, rtype = lattr.type, rattr.type
+  if (ltype.is_string and (rtype.is_string or rtype.is_cstring)) or
+     (ltype.is_cstring and rtype.is_string) then
+    emitter:add('!')
+    emitter:add_builtin('nelua_eq_string')
+    emitter:add('(')
+    emitter:add_val2type(primtypes.string, lname, ltype)
+    emitter:add(', ')
+    emitter:add_val2type(primtypes.string, rname, rtype)
+    emitter:add(')')
+  elseif ltype.is_composite or rtype.is_composite then
+    if ltype == rtype then
+      emitter:add('!')
+      emitter:add_builtin('nelua_eq_', ltype)
+      emitter:add('(', lname, ', ', rname, ')')
+    else
+      emitter:add('((void)', lname, ', (void)', rname, ', ', true, ')')
+    end
+  elseif ltype.is_array then
+    assert(ltype == rtype)
+    if lattr.lvalue and rattr.lvalue then
+      emitter:add_builtin('memcmp')
+      emitter:add('(&', lname, ', &', rname, ', sizeof(', ltype, ')) != 0')
+    else
+      emitter:add('({', ltype, ' a = ', lname, '; ',
+                        rtype, ' b = ', rname, '; ')
+      emitter:add_builtin('memcmp')
+      emitter:add('(&a, &b, sizeof(', ltype, ')) != 0; })')
+    end
+  elseif needs_signed_unsigned_comparision(lnode, rnode) then
+    if ltype.is_unsigned then
+      ltype, rtype, lname, rname = rtype, ltype, rname, lname -- swap
+    end
+    emitter:add('!')
+    emitter:add_builtin('nelua_eq_', ltype, rtype)
+    emitter:add('(', lname, ', ', rname, ')')
+  elseif ltype.is_scalar and rtype.is_scalar then
+    emitter:add(lname, ' != ', rname)
+  elseif ltype.is_niltype or rtype.is_niltype or
+         ((ltype.is_boolean or rtype.is_boolean) and ltype ~= rtype) then
+    emitter:add('((void)', lname, ', (void)', rname, ', ', ltype ~= rtype, ')')
+  else
+    emitter:add(lname, ' != ')
+    if ltype ~= rtype then
+      emitter:add_val2type(ltype, rname, rtype)
+    else
+      emitter:add(rname)
+    end
+  end
+end
+
+-- Implementation of conditional OR operator (`or`).
+cbuiltins.operators["or"] = function(_, _, emitter, lnode, rnode, lname, rname)
+  emitter:add_val2boolean(lname, lnode.attr.type)
+  emitter:add(' || ')
+  emitter:add_val2boolean(rname, rnode.attr.type)
+end
+
+-- Implementation of conditional AND operator (`and`).
+cbuiltins.operators["and"] = function(_, _, emitter, lnode, rnode, lname, rname)
+  emitter:add_val2boolean(lname, lnode.attr.type)
+  emitter:add(' && ')
+  emitter:add_val2boolean(rname, rnode.attr.type)
+end
+
+-- Implementation of not operator (`not`).
+cbuiltins.operators["not"] = function(_, _, emitter, argnode)
+  emitter:add('!')
+  emitter:add_val2boolean(argnode)
+end
+
+-- Implementation of unary minus operator (`-`).
+function cbuiltins.operators.unm(_, _, emitter, argnode)
+  assert(argnode.attr.type.is_arithmetic)
+  emitter:add('-', argnode)
+end
+
+-- Implementation of bitwise not operator (`~`).
+function cbuiltins.operators.bnot(_, _, emitter, argnode)
+  assert(argnode.attr.type.is_integral)
+  emitter:add('~', argnode)
+end
+
+-- Implementation of reference operator (`&`).
+function cbuiltins.operators.ref(_, _, emitter, argnode)
+  assert(argnode.attr.lvalue)
+  emitter:add('&', argnode)
+end
+
+-- Implementation of dereference operator (`$`).
+function cbuiltins.operators.deref(_, _, emitter, argnode)
+  assert(argnode.attr.type.is_pointer)
+  emitter:add_deref(argnode)
+end
+
+-- Implementation of length operator (`#`).
+function cbuiltins.operators.len(_, _, emitter, argnode)
+  local argattr = argnode.attr
+  local type = argattr.type
+  if type.is_string then
+    emitter:add('((',primtypes.isize,')(', argnode, ').size)')
+  elseif type.is_cstring then
+    emitter:add('((',primtypes.isize,')')
+    emitter:add_builtin('strlen')
+    emitter:add('(', argnode, '))')
+  elseif type.is_type then
+    emitter:add('sizeof(', argattr.value, ')')
+  else --luacov:disable
+    argnode:raisef('not implemented')
+  end --luacov:enable
 end
 
 return cbuiltins

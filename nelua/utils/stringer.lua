@@ -43,7 +43,8 @@ end
 
 -- Checks if a string ends with a prefix.
 function stringer.endswith(s, suffix)
-  return #s >= #suffix and s:find(suffix, #s-#suffix+1, true) and true or false
+  local init = #s - #suffix + 1
+  return init >= 1 and s:find(suffix, init, true) ~= nil
 end
 
 -- Returns a string with right white spaces trimmed.
