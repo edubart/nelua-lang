@@ -1,18 +1,45 @@
+--[[
+C emitter class.
+
+This class extends the emitter class with utilities to generating C code.
+]]
+
 local class = require 'nelua.utils.class'
-local Emitter = require 'nelua.emitter'
 local traits = require 'nelua.utils.traits'
-local typedefs = require 'nelua.typedefs'
 local errorer = require 'nelua.utils.errorer'
 local pegger = require 'nelua.utils.pegger'
 local bn = require 'nelua.utils.bn'
-local CEmitter = class(Emitter)
+local Emitter = require 'nelua.emitter'
+local typedefs = require 'nelua.typedefs'
 local primtypes = typedefs.primtypes
 
-function CEmitter:_init(context, depth)
-  Emitter._init(self, context, depth)
+-- The C emitter class.
+local CEmitter = class(Emitter)
+-- Used to quickly check whether a table is an C emitter.
+CEmitter._cemitter = true
+
+-- Helper to check if value `val` should be evaluated at runtime.
+local function needs_evaluation(val)
+  if traits.is_string(val) then
+    if val:match('^[%w_]+$') then
+      return false
+    end
+  elseif traits.is_astnode(val) then
+    if val.tag == 'Nil' or val.tag == 'Nilptr' or val.tag == 'Id' then
+      return false
+    end
+  end
+  return true -- lets evaluate it, it could be a call
 end
 
-function CEmitter:zeroinit(type)
+--[[
+Adds literal for type `type` initialized to zeros.
+If `typed` is `true` then a type cast will precede its literal.
+]]
+function CEmitter:add_zeroed_type_literal(type, typed)
+  if typed and not (type.is_boolean or type.is_scalar or type.is_pointer) then
+    self:add('(', type, ')')
+  end
   local s
   if type.is_float32 and not self.context.pragmas.nofloatsuffix then
     s = '0.0f'
@@ -23,240 +50,159 @@ function CEmitter:zeroinit(type)
   elseif type.is_scalar then
     s = '0'
   elseif type.is_niltype or type.is_comptime then
-    self.context:ensure_builtin('NLNIL')
-    s = 'NLNIL'
+    s = self.context:ensure_builtin('NLNIL')
   elseif type.is_pointer or type.is_procedure then
-    self.context:ensure_builtin('NULL')
-    s = 'NULL'
+    s = self.context:ensure_builtin('NULL')
   elseif type.is_boolean then
-    self.context:ensure_type(primtypes.boolean)
-    s = 'false'
+    s = self.context:ensure_builtin('false')
   elseif type.size == 0 then
     s = '{}'
   else -- should initialize almost anything in C
     s = '{0}'
   end
-  return s
+  self:add_text(s)
 end
 
-function CEmitter:add_zeroed_type_init(type)
-  self:add_one(self:zeroinit(type))
-end
-
-function CEmitter:add_zeroed_type_literal(type)
-  if not (type.is_boolean or type.is_scalar or type.is_pointer) then
-    self:add('(', type, ')')
-  end
-  self:add_one(self:zeroinit(type))
-end
-
-function CEmitter:add_boolean_literal(value)
-  self:add_one(not not value)
-end
-
-function CEmitter:add_null()
-  self:add_builtin('NULL')
-end
-
+--[[
+Adds `val` of type `valtype` converted to a boolean.
+If `valtype` is unset then the type automatically detected from `val`.
+All types can be converted to a boolean.
+]]
 function CEmitter:add_val2boolean(val, valtype)
   valtype = valtype or val.attr.type
   if valtype.is_boolean then
-    self:add_one(val)
-  elseif valtype.is_niltype or valtype.is_nilptr then
-    if (traits.is_string(val) and val:match('^[%w_]+$')) or
-       (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Nilptr' or val.tag == 'Id')) then
-      self:add_one(false)
-    else -- could have a call
-      self:add('((void)(', val, '), ',false,')')
-    end
+    self:add_value(val)
   elseif valtype.is_pointer or valtype.is_function then
-    self:add('(', val, ' != ')
-    self:add_builtin('NULL')
-    self:add(')')
+    self:add('(', val, ' != ') self:add_null() self:add_text(')')
   else
-    if (traits.is_string(val) and val:match('^[%w_]+$')) or
-       (traits.is_astnode(val) and (val.tag == 'Nil' or val.tag == 'Nilptr' or val.tag == 'Id')) then
-      self:add_one(true)
-    else -- could be a call
-      self:add('((void)(', val, '), ', true, ')')
+    local status = not (valtype.is_niltype or valtype.is_nilptr)
+    if needs_evaluation(val) then -- we need to evaluate
+      self:add('((void)(',val,'), ',status,')')
+    else
+      self:add_value(status)
     end
   end
 end
 
-function CEmitter:add_string2cstring(val)
-  local checked = not self.context.pragmas.nochecks and
-                  not (traits.is_astnode(val) and val.attr.comptime)
-  self:add_builtin('nelua_string2cstring_', checked)
-  self:add('(', val, ')')
+--[[
+Adds a value of type `string` converted to a `cstring`.
+The conversion may be check.
+]]
+function CEmitter:add_text2cstring(val)
+  local check = not self.context.pragmas.nochecks and
+                not (traits.is_astnode(val) and val.attr.comptime)
+  self:add_builtin('nelua_string2cstring_', check) self:add('(', val, ')')
 end
 
+-- Adds a value of type `cstring` converted to a `string`.
 function CEmitter:add_cstring2string(val)
-  self:add_builtin('nelua_cstring2string')
-  self:add('(', val, ')')
+  self:add_builtin('nelua_cstring2string') self:add('(', val, ')')
 end
 
+--[[
+Adds dereference of `val` of type `valtype` (which must be a pointer type).
+If `valtype` is unset then the type automatically detected from `val`.
+The dereference may be check.
+]]
 function CEmitter:add_deref(val, valtype)
   valtype = valtype or val.attr.type
+  assert(valtype.is_pointer)
   local valsubtype = valtype.subtype
-  self:add('*')
+  self:add_text('*')
   if valsubtype.is_array and valsubtype.length == 0 then
     -- use pointer to the actual subtype structure, because its type may have been simplified
     self:add('(',valsubtype,'*)')
   end
-  if not self.context.pragmas.nochecks then
-    self:add_builtin('nelua_assert_deref_', valtype)
-    self:add('(')
+  if not self.context.pragmas.nochecks then -- check
+    self:add_builtin('nelua_assert_deref_', valtype) self:add_text('(')
     if valtype.subtype.length == 0 then
       self:add('(', valtype, ')')
     end
     self:add(val, ')')
   else
-    self:add(val)
+    self:add_value(val)
   end
 end
 
-function CEmitter:add_typedval(type, val, valtype, forcedcast)
-  if not forcedcast and not self.context.pragmas.nochecks and type.is_integral and valtype.is_scalar and
+--[[
+Adds `val` of type `valtype` casted to `type` (via explicit C casting).
+If `valtype` is unset then the type automatically detected from `val`.
+In case `check` is true then checks for underflow/overflow is performed.
+]]
+function CEmitter:add_typed_val(type, val, valtype, check)
+  if check and not self.context.pragmas.nochecks and type.is_integral and valtype.is_scalar and
     not type:is_type_inrange(valtype) then
-    self:add_builtin('nelua_assert_narrow_', type, valtype)
-    self:add('(', val, ')')
+    self:add_builtin('nelua_assert_narrow_', type, valtype) self:add('(', val, ')')
   else
     local innertype = type.is_pointer and type.subtype or type
     local surround = innertype.is_aggregate
-    if surround then self:add_one('(') end
+    if surround then self:add_text('(') end
     self:add('(', type, ')')
     if type.is_integral and valtype.is_pointer and type.size ~= valtype.size then
       self:add('(', primtypes.usize, ')')
     end
-    self:add_one(val)
-    if surround then self:add_one(')') end
+    self:add_value(val)
+    if surround then self:add_text(')') end
   end
 end
 
-function CEmitter:add_val2type(type, val, valtype, forcedcast)
+--[[
+Adds  `val` of type `valtype` converted to `type`.
+If `valtype` is unset then the type automatically detected from `val`.
+In case `explicit` is true then checks for underflow/overflow is skipped.
+]]
+function CEmitter:add_converted_val(type, val, valtype, explicit)
   if type.is_comptime then
-    self:add_builtin('NLNIL')
+    self:add_nil_literal()
     return
   end
-
-  if traits.is_astnode(val) then
-    if not valtype then
-      valtype = val.attr.type
-    end
-  end
-
   if val then
+    local valattr = traits.is_astnode(val) and val.attr or {}
+    valtype = valtype or valattr.type
     assert(valtype)
-
-    if type == valtype then
-      self:add_one(val)
-    elseif valtype.is_scalar and type.is_scalar and
-           (type.is_float or valtype.is_integral) and
-           traits.is_astnode(val) and val.attr.comptime then
-      self:add_numeric_literal(val.attr, type)
-    elseif valtype.is_nilptr and type.is_pointer then
-      if not type.is_generic_pointer then
-        self:add('(', type, ')')
-      end
-      self:add_one(val)
-    elseif type.is_boolean then
+    if type == valtype then -- no conversion needed
+      self:add_value(val)
+    elseif type.is_boolean then -- ? -> boolean
       self:add_val2boolean(val, valtype)
-    elseif valtype.is_string and (type.is_cstring or type:is_pointer_of(primtypes.byte)) then
-      self:add_string2cstring(val)
-    elseif type.is_string and valtype.is_cstring then
+    elseif type.is_pointer and valtype.is_string and type.subtype.size == 1 then -- cstring -> string
+      self:add_text2cstring(val)
+    elseif type.is_string and valtype.is_cstring then -- string -> cstring
       self:add_cstring2string(val)
-    elseif type.is_pointer and traits.is_astnode(val) and val.attr.autoref then
-      -- automatic reference
+    elseif valattr.comptime and type.is_scalar and valtype.is_scalar and
+           (type.is_float or valtype.is_integral) then -- comptime scalar -> scalar
+      self:add_scalar_literal(valattr, type)
+    elseif type.is_pointer and valtype.is_aggregate and valtype == type.subtype then -- auto ref
       self:add('&', val)
-    elseif valtype.is_pointer and valtype.subtype == type and
-           (type.is_record or type.is_array) then
-      -- automatic dereference
+    elseif type.is_aggregate and valtype.is_pointer and valtype.subtype == type then -- auto deref
       self:add_deref(val, valtype)
-    else
-      self:add_typedval(type, val, valtype, forcedcast)
+    else -- cast
+      self:add_typed_val(type, val, valtype, not explicit)
     end
   else
-    self:add_zeroed_type_init(type)
+    self:add_zeroed_type_literal(type)
   end
 end
 
+-- Adds boolean literal `value`.
+function CEmitter:add_boolean(value)
+  self:add_builtin(tostring(not not value))
+end
+
+-- Adds the NULL literal (used for `nilptr`).
+function CEmitter:add_null()
+  self:add_builtin('NULL')
+end
+
+-- Adds the `nil` literal.
 function CEmitter:add_nil_literal()
   self:add_builtin('NLNIL')
 end
 
-function CEmitter:add_numeric_literal(valattr, valtype)
-  assert(bn.isnumeric(valattr.value))
-
-  valtype = valtype or valattr.type
-  local val, base = valattr.value, valattr.base
-
-  if valtype.is_integral then
-    if bn.isneg(val) and valtype.is_unsigned then
-      val = valtype:wrap_value(val)
-    elseif not valtype:is_inrange(val) then
-      val = valtype:wrap_value(val)
-    end
-  end
-
-  local minusone = false
-  if valtype.is_float then
-    if bn.isnan(val) then
-      if valtype.is_float32 then
-        self:add_one('(0.0f/0.0f)')
-      else
-        self:add_one('(0.0/0.0)')
-      end
-      return
-    elseif bn.isinfinite(val) then
-      if val < 0 then
-        self:add_one('-')
-      end
-      if valtype.is_float32 then
-        self:add_one('(1.0f/0.0f)')
-      else
-        self:add_one('(1.0/0.0)')
-      end
-      return
-    else
-      local valstr = bn.todecsci(val, valtype.maxdigits)
-      self:add_one(valstr)
-
-      -- make sure it has decimals
-      if valstr:match('^-?[0-9]+$') then
-        self:add_one('.0')
-      end
-    end
-  else
-    if valtype.is_integral and valtype.is_signed and val == valtype.min then
-      -- workaround C warning `integer constant is so large that it is unsigned`
-      minusone = true
-      val = val + 1
-    end
-
-    if not base or base == 10 or val:isneg() then
-      self:add_one(bn.todecint(val))
-    else
-      self:add('0x', bn.tohexint(val))
-    end
-  end
-
-  -- suffixes
-  if valtype.is_float32 and not self.context.pragmas.nofloatsuffix then
-    self:add_one('f')
-  elseif valtype.is_unsigned then
-    self:add_one('U')
-  end
-
-  if minusone then
-    self:add_one('-1')
-  end
-end
-
-function CEmitter.cstring_literal(_, s)
-  return pegger.double_quote_c_string(s), #s
-end
-
-function CEmitter:add_string_literal_inlined(val, ascstring)
+--[[
+Adds a `string` literal, or a `cstring` literal if `ascstring` is true.
+Intended for short strings, because it uses just one line.
+]]
+function CEmitter:add_short_string_literal(val, ascstring)
   local context = self.context
   local quotedliterals = context.quotedliterals
   local quoted_value = quotedliterals[val]
@@ -269,36 +215,38 @@ function CEmitter:add_string_literal_inlined(val, ascstring)
   else
     local ininitializer = context.state.ininitializer
     if not ininitializer then
-      self:add_one('(')
+      self:add_text('(')
       self:add('(', primtypes.string, ')')
     end
+    self.context:ensure_type(primtypes.uint8)
     self:add('{(uint8_t*)', quoted_value, ', ', #val, '}')
     if not ininitializer then
-      self:add_one(')')
+      self:add_text(')')
     end
   end
 end
 
-function CEmitter:add_string_literal(val, ascstring)
-  if #val < 80 then
-    return self:add_string_literal_inlined(val, ascstring)
-  end
+--[[
+Adds a `string` literal, or a `cstring` literal if `ascstring` is true.
+Intended for long strings, because it may use multiple lines.
+]]
+function CEmitter:add_long_string_literal(val, ascstring)
   local context = self.context
   local ininitializer = context.state.ininitializer
   local stringliterals = context.stringliterals
   local varname = stringliterals[val]
   local size = #val
   if varname then
-    if ascstring then --luacov:disable
-      self:add_one(varname)
-    else --luacov:enable
+    if ascstring then
+      self:add_text(varname)
+    else
       if not ininitializer then
-        self:add_one('(')
-        self:add('(', primtypes.string, ')')
+        self:add('((', primtypes.string, ')')
       end
+      self.context:ensure_type(primtypes.uint8)
       self:add('{(uint8_t*)', varname, ', ', size, '}')
       if not ininitializer then
-        self:add_one(')')
+        self:add_text(')')
       end
     end
     return
@@ -307,7 +255,7 @@ function CEmitter:add_string_literal(val, ascstring)
   stringliterals[val] = varname
   local decemitter = CEmitter(context)
   decemitter:add_indent('static char ', varname, '[', size+1, '] = ')
-  if val:find('\0', 1, true) then -- should be a binary string
+  if val:find("[^%g%s\a\b]") then -- binary string
     decemitter:add('{')
     for i=1,size do
       if i % 32 == 1 then
@@ -319,38 +267,109 @@ function CEmitter:add_string_literal(val, ascstring)
     decemitter:add('0x00')
     decemitter:add_ln('};')
   else -- text string
-    local quoted_value = pegger.double_quote_c_string(val)
-    decemitter:add_ln(quoted_value, ';')
+    decemitter:add_ln(pegger.double_quote_c_string(val), ';')
   end
   context:add_declaration(decemitter:generate(), varname)
-  if ascstring then --luacov:disable
-    self:add_one(varname)
-  else --luacov:enable
+  if ascstring then
+    self:add_text(varname)
+  else
     if not ininitializer then
-      self:add_one('(')
+      self:add_text('(')
       self:add('(', primtypes.string, ')')
     end
+    self.context:ensure_type(primtypes.uint8)
     self:add('{(uint8_t*)', varname, ', ', size, '}')
     if not ininitializer then
-      self:add_one(')')
+      self:add_text(')')
     end
   end
 end
 
+-- Adds a `string` literal, or a `cstring` literal if `ascstring` is true.
+function CEmitter:add_string_literal(val, ascstring)
+  if #val < 80 then
+    return self:add_short_string_literal(val, ascstring)
+  end
+  return self:add_long_string_literal(val, ascstring)
+end
+
+-- Adds a scalar literal from attr `valattr`, with appropriate suffix for `valtype`.
+function CEmitter:add_scalar_literal(valattr, valtype)
+  assert(bn.isnumeric(valattr.value))
+  valtype = valtype or valattr.type
+  local val, base = valattr.value, valattr.base
+  if valtype.is_integral then
+    if bn.isneg(val) and valtype.is_unsigned then
+      val = valtype:wrap_value(val)
+    elseif not valtype:is_inrange(val) then
+      val = valtype:wrap_value(val)
+    end
+  end
+  local minusone = false
+  if valtype.is_float then
+    if bn.isnan(val) then
+      if valtype.is_float32 then
+        self:add_text('(0.0f/0.0f)')
+      else
+        self:add_text('(0.0/0.0)')
+      end
+      return
+    elseif bn.isinfinite(val) then
+      if val < 0 then
+        self:add_text('-')
+      end
+      if valtype.is_float32 then
+        self:add_text('(1.0f/0.0f)')
+      else
+        self:add_text('(1.0/0.0)')
+      end
+      return
+    else
+      local valstr = bn.todecsci(val, valtype.maxdigits)
+      self:add_text(valstr)
+      if valstr:match('^-?[0-9]+$') then -- make sure it has decimals
+        self:add_text('.0')
+      end
+    end
+  else
+    if valtype.is_integral and valtype.is_signed and val == valtype.min then
+      -- workaround C warning `integer constant is so large that it is unsigned`
+      minusone = true
+      val = val + 1
+    end
+    if not base or base == 10 or val:isneg() then
+      self:add_text(bn.todecint(val))
+    else
+      self:add('0x', bn.tohexint(val))
+    end
+  end
+  -- suffixes
+  if valtype.is_float32 and not self.context.pragmas.nofloatsuffix then
+    self:add_text('f')
+  elseif valtype.is_unsigned then
+    self:add_text('U')
+  end
+  if minusone then
+    self:add_text('-1')
+  end
+end
+
+-- Adds a literal from attr `valattr`.
 function CEmitter:add_literal(valattr)
   local valtype = valattr.type
+  assert(valattr.comptime or valtype.is_comptime)
   if valtype.is_boolean then
-    self:add_boolean_literal(valattr.value)
+    self:add_boolean(valattr.value)
   elseif valtype.is_scalar then
-    self:add_numeric_literal(valattr)
+    self:add_scalar_literal(valattr)
   elseif valtype.is_string then
     self:add_string_literal(valattr.value, false)
   elseif valtype.is_cstring then
     self:add_string_literal(valattr.value, true)
   elseif valtype.is_procedure then
-    self:add_one(self.context:declname(valattr.value))
+    self:add_text(self.context:declname(valattr.value))
   elseif valtype.is_niltype then
-    self:add_builtin('NLNIL')
+    self:add_nil_literal()
   else --luacov:disable
     errorer.errorf('not implemented: `CEmitter:add_literal` for valtype `%s`', valtype)
   end --luacov:enable

@@ -120,6 +120,17 @@ it("string", function()
   expect.generate_c([[local a = "hello"]], [["hello"]])
   expect.generate_c([[local a = "\001"]], [["\001"]])
   expect.generate_c([[local a = #[string.rep('\0', 256)]# ]], [[0x00,0x00,0x00]])
+  expect.generate_c([==[
+    local function f(s: cstring)
+      print(s)
+    end
+    local STR: cstring <comptime> = "\z
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\z
+      AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\z
+    "
+    f(STR)
+    f(STR)
+  ]==], [[static char _strlit1[161] = "AAAA]])
 end)
 
 it("boolean", function()
@@ -1307,6 +1318,7 @@ it("binary shifting", function()
     end
   ]])
 end)
+
 it("binary operator `concat`", function()
   expect.generate_c("local x = 'a' .. 'b'", [["ab"]])
 end)

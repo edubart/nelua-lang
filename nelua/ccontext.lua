@@ -19,7 +19,6 @@ function CContext:_init(visitors, typevisitors, rootscope)
   if not self.context then
     VisitorContext._init(self, visitors, rootscope)
   end
-  visitors.default_visitor = false
   self.visitors = visitors
   self.typevisitors = typevisitors
   self.declarations = {}
@@ -112,7 +111,7 @@ function CContext:typecodename(type)
   return type.codename
 end
 
-function CContext:typename(type)
+function CContext:ensure_type(type)
   local typenames = self.typenames
   local typename = typenames[type]
   if typename then
@@ -127,11 +126,6 @@ function CContext:typename(type)
   end
   typenames[type] = typename
   return typename
-end
-
-function CContext:ensure_type(type)
-  -- this will emit declarations/include of the type as needed
-  self:typename(type)
 end
 
 function CContext:funcrettypename(functype)
@@ -259,21 +253,21 @@ end
 function CContext:define_function_builtin(name, qualifier, ret, args, body)
   if self.usedbuiltins[name] then return end
   if traits.is_type(ret) then
-    ret = self:typename(ret)
+    ret = self:ensure_type(ret)
   end
   if type(args) == 'table' then
     local emitter = CEmitter(self)
-    emitter:add_one('(')
+    emitter:add_value('(')
     for i=1,#args do
       if i > 1 then
-        emitter:add_one(', ')
+        emitter:add_value(', ')
       end
       local arg = args[i]
       local argtype = arg[1] or arg.type
       local argname = arg[2] or arg.name
       emitter:add(argtype, ' ', argname)
     end
-    emitter:add_one(')')
+    emitter:add_value(')')
     args = emitter:generate()
   end
   if not self.pragmas.nostatic then

@@ -4,10 +4,11 @@ C builtins.
 This module defines implementations for many builtin C functions used by the C code generator.
 ]]
 
+local pegger = require 'nelua.utils.pegger'
+local bn = require 'nelua.utils.bn'
 local cdefs = require 'nelua.cdefs'
 local CEmitter = require 'nelua.cemitter'
 local primtypes = require 'nelua.typedefs'.primtypes
-local bn = require 'nelua.utils.bn'
 
 -- The cbuiltins table.
 local cbuiltins = {}
@@ -499,30 +500,30 @@ function cbuiltins.calls.assert(context, node)
   emitter:add_ln('{')
   if nargs == 2 then
     local pos = where:find(assertmsg)
-    local msg1, msg1len = emitter:cstring_literal(where:sub(1, pos-1))
-    local msg2, msg2len = emitter:cstring_literal(where:sub(pos + #assertmsg))
+    local msg1, msg2 = where:sub(1, pos-1), where:sub(pos + #assertmsg)
+    local emsg1, emsg2 = pegger.double_quote_c_string(msg1), pegger.double_quote_c_string(msg2)
     emitter:add([[
   if(nelua_unlikely(!]]) emitter:add_val2boolean('cond', condtype) emitter:add([[)) {
-    fwrite(]],msg1,[[, 1, ]],msg1len,[[, stderr);
+    fwrite(]],emsg1,[[, 1, ]],#msg1,[[, stderr);
     fwrite(msg.data, msg.size, 1, stderr);
-    fwrite(]],msg2,[[, 1, ]],msg2len,[[, stderr);
+    fwrite(]],emsg2,[[, 1, ]],#msg2,[[, stderr);
     nelua_abort();
   }
 ]])
   elseif nargs == 1 then
-    local msg, msglen = emitter:cstring_literal(where)
+    local msg = pegger.double_quote_c_string(where)
     emitter:add([[
   if(nelua_unlikely(!]]) emitter:add_val2boolean('cond', condtype) emitter:add([[)) {
-    fwrite(]],msg,[[, 1, ]],msglen,[[, stderr);
+    fwrite(]],msg,[[, 1, ]],#where,[[, stderr);
     nelua_abort();
   }
 ]])
   else -- nargs == 0
-    local msg, msglen = emitter:cstring_literal(where)
+    local msg = pegger.double_quote_c_string(where)
     context:ensure_builtin('nelua_noreturn')
     qualifier = 'nelua_noreturn'
     emitter:add([[
-  fwrite(]],msg,[[, 1, ]],msglen,[[, stderr);
+  fwrite(]],msg,[[, 1, ]],#where,[[, stderr);
   nelua_abort();
 ]])
   end
@@ -559,7 +560,7 @@ function cbuiltins.calls.require(context, node, emitter)
   context:pop_scope()
   context:pop_state()
   if emitter:get_pos() == lastpos then
-    emitter:remove_until_pos(bracepos)
+    emitter:trim(bracepos)
   else
     emitter:add_indent_ln('}')
   end
@@ -924,9 +925,9 @@ function cbuiltins.operators.eq(_, _, emitter, lnode, rnode, lname, rname)
      (ltype.is_cstring and rtype.is_string) then
     emitter:add_builtin('nelua_eq_string')
     emitter:add('(')
-    emitter:add_val2type(primtypes.string, lname, ltype)
+    emitter:add_converted_val(primtypes.string, lname, ltype)
     emitter:add(', ')
-    emitter:add_val2type(primtypes.string, rname, rtype)
+    emitter:add_converted_val(primtypes.string, rname, rtype)
     emitter:add(')')
   elseif ltype.is_composite or rtype.is_composite then
     if ltype == rtype then
@@ -960,7 +961,7 @@ function cbuiltins.operators.eq(_, _, emitter, lnode, rnode, lname, rname)
   else
     emitter:add(lname, ' == ')
     if ltype ~= rtype then
-      emitter:add_val2type(ltype, rname, rtype)
+      emitter:add_converted_val(ltype, rname, rtype)
     else
       emitter:add(rname)
     end
@@ -976,9 +977,9 @@ function cbuiltins.operators.ne(_, _, emitter, lnode, rnode, lname, rname)
     emitter:add('!')
     emitter:add_builtin('nelua_eq_string')
     emitter:add('(')
-    emitter:add_val2type(primtypes.string, lname, ltype)
+    emitter:add_converted_val(primtypes.string, lname, ltype)
     emitter:add(', ')
-    emitter:add_val2type(primtypes.string, rname, rtype)
+    emitter:add_converted_val(primtypes.string, rname, rtype)
     emitter:add(')')
   elseif ltype.is_composite or rtype.is_composite then
     if ltype == rtype then
@@ -1014,7 +1015,7 @@ function cbuiltins.operators.ne(_, _, emitter, lnode, rnode, lname, rname)
   else
     emitter:add(lname, ' != ')
     if ltype ~= rtype then
-      emitter:add_val2type(ltype, rname, rtype)
+      emitter:add_converted_val(ltype, rname, rtype)
     else
       emitter:add(rname)
     end

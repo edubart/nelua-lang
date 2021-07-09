@@ -77,6 +77,9 @@ cdefs.primitive_typenames = {
 cdefs.builtins_headers = {
   -- stddef.h
   NULL = '<stddef.h>',
+  -- stdbool.h
+  ["false"] = '<stdbool.h>',
+  ["true"] = '<stdbool.h>',
   -- stdio.h
   fwrite = '<stdio.h>',
   fputc = '<stdio.h>', fputs = '<stdio.h>',

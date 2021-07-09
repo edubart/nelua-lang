@@ -150,7 +150,7 @@ function VisitorContext:traverse_node(node, ...)
   local index = #nodestack+1
   nodestack[index] = node -- push node
   local visitors = self.visitors
-  local visit = visitors[node.tag] or visitors.default_visitor
+  local visit = visitors[node.tag]
   local ret = visit(self, node, ...)
   nodestack[index] = nil -- pop node
   return ret

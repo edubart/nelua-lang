@@ -14,7 +14,6 @@ function LuaContext:_init(visitors, rootscope)
   if not self.context then
     VisitorContext._init(self, rootscope)
   end
-  visitors.default_visitor = false
   self.visitors = visitors
 end
 
@@ -66,7 +65,7 @@ end
 function visitors.InitList(_, node, emitter)
   local childnodes = node
   emitter:add('{')
-  emitter:add_traversal_list(childnodes, ', ')
+  emitter:add_list(childnodes, ', ')
   emitter:add('}')
 end
 
@@ -136,7 +135,7 @@ function visitors.Block(context, node, emitter)
   local stats = node
   emitter:inc_indent()
   context:push_forked_scope(node)
-  emitter:add_traversal_list(stats, '')
+  emitter:add_list(stats, '')
   context:pop_scope()
   emitter:dec_indent()
 end
@@ -146,7 +145,7 @@ function visitors.Return(_, node, emitter)
   emitter:add_indent("return")
   if #retnodes > 0 then
     emitter:add(' ')
-    emitter:add_traversal_list(retnodes, ', ')
+    emitter:add_list(retnodes, ', ')
   end
   emitter:add_ln()
 end
@@ -388,7 +387,7 @@ function generator.generate(ast, context)
   context.builtins = luabuiltins.builtins
   local emitter = Emitter(context, -1)
   context.emitter = emitter
-  emitter:add_traversal(ast)
+  context:traverse_node(ast, emitter)
   return emitter:generate()
 end
 

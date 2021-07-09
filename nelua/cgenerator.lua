@@ -110,14 +110,14 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
           decemitter:add(' = ')
           assert(not lastcallindex)
           context:push_forked_state{ininitializer = true}
-          decemitter:add_val2type(vartype, valnode)
+          decemitter:add_converted_val(vartype, valnode)
           context:pop_state()
           defined = true
         else
           -- pre initialize to zeros
           if not noinit then
             decemitter:add(' = ')
-            decemitter:add_zeroed_type_init(vartype)
+            decemitter:add_zeroed_type_literal(vartype)
           end
         end
         decemitter:add_ln(';')
@@ -140,7 +140,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         elseif usetemporary then
           retvalname = context:genuniquename('asgntmp')
           emitter:add_indent(vartype, ' ', retvalname, ' = ')
-          emitter:add_val2type(vartype, valnode)
+          emitter:add_converted_val(vartype, valnode)
           emitter:add_ln(';')
         end
 
@@ -156,11 +156,11 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
             -- initialize variable
             defemitter:add(' = ')
             if retvalname then
-              defemitter:add_val2type(vartype, retvalname, valtype)
+              defemitter:add_converted_val(vartype, retvalname, valtype)
             elseif valnode then
-              defemitter:add_val2type(vartype, valnode)
+              defemitter:add_converted_val(vartype, valnode)
             else
-              defemitter:add_zeroed_type_init(vartype)
+              defemitter:add_zeroed_type_literal(vartype)
             end
           end
           defemitter:add_ln(';')
@@ -234,7 +234,7 @@ local function typevisitor_CompositeType(context, type)
       if field.type.is_array then
         fieldctype = field.type.subtype
       else
-        fieldctype = context:typename(field.type)
+        fieldctype = context:ensure_type(field.type)
       end
       defemitter:add('  ', fieldctype, ' ', field.name)
       if field.type.is_array then
@@ -283,7 +283,7 @@ end
 
 typevisitors.FunctionReturnType = function(context, functype)
   if #functype.rettypes <= 1 then
-    return context:typename(functype:get_return_type(1))
+    return context:ensure_type(functype:get_return_type(1))
   end
   local rettypes = functype.rettypes
   local retnames = {'nlmulret'}
@@ -337,7 +337,7 @@ function visitors.Number(context, node, emitter)
   if not attr.type.is_float and not attr.untyped and not context.state.ininitializer then
     emitter:add('(', attr.type, ')')
   end
-  emitter:add_numeric_literal(attr)
+  emitter:add_scalar_literal(attr)
 end
 
 function visitors.String(_, node, emitter)
@@ -348,13 +348,13 @@ function visitors.String(_, node, emitter)
     if attr.type == primtypes.cchar then
       emitter:add("'", string.char(bn.tointeger(attr.value)), "'")
     else
-      emitter:add_numeric_literal(attr)
+      emitter:add_scalar_literal(attr)
     end
   end
 end
 
 function visitors.Boolean(_, node, emitter)
-  emitter:add_boolean_literal(node.attr.value)
+  emitter:add_boolean(node.attr.value)
 end
 
 function visitors.Nil(_, _, emitter)
@@ -400,18 +400,18 @@ function visitors.InitList(context, node, emitter)
     if not context.state.ininitializer then
       emitter:add('(', type, ')')
     end
-    emitter:add_zeroed_type_init(type)
+    emitter:add_zeroed_type_literal(type)
   elseif type.is_composite then
     if context.state.ininitializer then
       context:push_forked_state{incompositeinitializer = true}
       emitter:add('{')
-      emitter:add_traversal_list(childnodes)
+      emitter:add_list(childnodes)
       emitter:add('}')
       context:pop_state()
     elseif type.cconstruct then -- used to construct vector types when generating GLSL code
       emitter:add(type,'(')
       emitter:add('(')
-      emitter:add_traversal_list(childnodes)
+      emitter:add_list(childnodes)
       emitter:add(')')
     else
       local useinitializer = can_use_initializer(childnodes)
@@ -421,7 +421,7 @@ function visitors.InitList(context, node, emitter)
         emitter:add_ln('({')
         emitter:inc_indent()
         emitter:add_indent(type, ' _tmp = ')
-        emitter:add_zeroed_type_init(type)
+        emitter:add_zeroed_type_literal(type)
         emitter:add_ln(';')
       end
       local lastfieldindex = 0
@@ -439,7 +439,6 @@ function visitors.InitList(context, node, emitter)
         end
         lastfieldindex = field.index
         assert(field)
-        local childvaltype = childvalnode.attr.type
         if useinitializer then
           if i > 1 then
             emitter:add(', ')
@@ -448,6 +447,7 @@ function visitors.InitList(context, node, emitter)
             emitter:add('.', field.name, ' = ')
           end
         else
+          local childvaltype = childvalnode.attr.type
           if childvaltype.is_array then
             emitter:add_indent('(*(', childvaltype, '*)_tmp.', field.name, ') = ')
           else
@@ -456,7 +456,7 @@ function visitors.InitList(context, node, emitter)
         end
         local fieldtype = type.fields[field.name].type
         assert(fieldtype)
-        emitter:add_val2type(fieldtype, childvalnode, childvaltype)
+        emitter:add_converted_val(fieldtype, childvalnode)
         if not useinitializer then
           emitter:add_ln(';')
         end
@@ -473,11 +473,11 @@ function visitors.InitList(context, node, emitter)
     if context.state.ininitializer then
       if context.state.incompositeinitializer then
         emitter:add('{')
-        emitter:add_traversal_list(childnodes)
+        emitter:add_list(childnodes)
         emitter:add('}')
       else
         emitter:add('{{')
-        emitter:add_traversal_list(childnodes)
+        emitter:add_list(childnodes)
         emitter:add('}}')
       end
     else
@@ -488,7 +488,7 @@ function visitors.InitList(context, node, emitter)
         emitter:add_ln('({')
         emitter:inc_indent()
         emitter:add_indent(type, ' _tmp = ')
-        emitter:add_zeroed_type_init(type)
+        emitter:add_zeroed_type_literal(type)
         emitter:add_ln(';')
       end
       local subtype = type.subtype
@@ -500,7 +500,7 @@ function visitors.InitList(context, node, emitter)
         else
           emitter:add_indent('_tmp.data[', i-1 ,'] = ')
         end
-        emitter:add_val2type(subtype, childnode)
+        emitter:add_converted_val(subtype, childnode)
         if not useinitializer then
           emitter:add_ln(';')
         end
@@ -525,7 +525,7 @@ function visitors.Pair(_, node, emitter)
     assert(traits.is_string(namenode))
     local field = parenttype.fields[namenode]
     emitter:add('.', cdefs.quotename(field.name), ' = ')
-    emitter:add_val2type(field.type, valuenode, valuenode.attr.type)
+    emitter:add_converted_val(field.type, valuenode)
   else --luacov:disable
     error('not implemented yet')
   end --luacov:enable
@@ -684,7 +684,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     if serialized then
       -- break apart the call into many statements
       if not isblockcall then
-        emitter:add_one('(')
+        emitter:add_value('(')
       end
       emitter:add_ln('{')
       emitter:inc_indent()
@@ -717,17 +717,17 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
     if ismethod then
       local selftype = calleetype.argtypes[1]
       if attr.calleesym then
-        emitter:add_one(context:declname(attr.calleesym))
+        emitter:add_value(context:declname(attr.calleesym))
       else
         assert(luatype(callee) == 'string')
-        emitter:add_one('(')
-        emitter:add_val2type(selftype, calleeobjnode)
-        emitter:add_one(')')
-        emitter:add_one(selftype.is_pointer and '->' or '.')
-        emitter:add_one(callee)
+        emitter:add_value('(')
+        emitter:add_converted_val(selftype, calleeobjnode)
+        emitter:add_value(')')
+        emitter:add_value(selftype.is_pointer and '->' or '.')
+        emitter:add_value(callee)
       end
-      emitter:add_one('(')
-      emitter:add_val2type(selftype, calleeobjnode)
+      emitter:add_value('(')
+      emitter:add_converted_val(selftype, calleeobjnode)
     else
       local ispointercall = attr.pointercall
       if ispointercall then
@@ -736,7 +736,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
       if luatype(callee) ~= 'string' and attr.calleesym then
         emitter:add_text(context:declname(attr.calleesym))
       else
-        emitter:add_one(callee)
+        emitter:add_value(callee)
       end
       if ispointercall then
         emitter:add_text(')')
@@ -746,7 +746,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
 
     for i,funcargtype,argnode,argtype,lastcallindex in izipargnodes(callargtypes, argnodes) do
       if not argnode and (funcargtype.is_cvarargs or funcargtype.is_varargs) then break end
-      if i > 1 or ismethod then emitter:add_one(', ') end
+      if i > 1 or ismethod then emitter:add_value(', ') end
       local arg = argnode
       if sequential then
         if lastcallindex then
@@ -765,7 +765,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
           CEmitter(context, emitter.depth):add(argnode)
         end
       else
-        emitter:add_val2type(funcargtype, arg, argtype)
+        emitter:add_converted_val(funcargtype, arg, argtype)
       end
     end
     emitter:add_text(')')
@@ -781,7 +781,7 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
       emitter:dec_indent()
       emitter:add_indent('}')
       if not isblockcall then
-        emitter:add_one(')')
+        emitter:add_value(')')
       end
     end
   end
@@ -797,15 +797,16 @@ function visitors.Call(context, node, emitter)
     local type = node.attr.type
     if #argnodes == 1 then
       local argnode = argnodes[1]
-      if argnode.attr.type ~= type then
+      local argtype = argnode.attr.type
+      if argtype ~= type then
         -- type really differs, cast it
-        emitter:add_val2type(type, argnode, argnode.attr.type, true)
+        emitter:add_converted_val(type, argnode, argtype, true)
       else
         -- same type, no need to cast
         emitter:add(argnode)
       end
     else
-      emitter:add_zeroed_type_literal(type)
+      emitter:add_zeroed_type_literal(type, true)
     end
   else -- call
     local callee = calleenode
@@ -845,7 +846,7 @@ function visitors.DotIndex(context, node, emitter)
     objtype = attr.indextype
     if objtype.is_enum then
       local field = objtype.fields[name]
-      emitter:add_numeric_literal(field, objtype.subtype)
+      emitter:add_scalar_literal(field, objtype.subtype)
     elseif objtype.is_composite then
       if attr.comptime then
         emitter:add_literal(attr)
@@ -924,7 +925,7 @@ function visitors.Block(context, node, emitter)
   emitter:inc_indent()
   local scope = context:push_forked_scope(node)
   do
-    emitter:add_traversal_list(statnodes, '')
+    emitter:add_list(statnodes, '')
   end
   if not node.attr.returnending and not scope.alreadydestroyed then
     finish_scope_defer(context, emitter, scope)
@@ -956,14 +957,14 @@ function visitors.Return(context, node, emitter)
       if defercode ~= '' and retnode.tag ~= 'Id' and not retnode.attr.comptime then
         local retname = context:genuniquename('ret')
         emitter:add_indent(primtypes.cint, ' ', retname, ' = ')
-        emitter:add_val2type(primtypes.cint, retnode)
+        emitter:add_converted_val(primtypes.cint, retnode)
         emitter:add_ln(';')
-        emitter:add_one(defercode)
+        emitter:add_value(defercode)
         emitter:add_indent_ln('return ', retname, ';')
       else
-        emitter:add_one(defercode)
+        emitter:add_value(defercode)
         emitter:add_indent('return ')
-        emitter:add_val2type(primtypes.cint, retnode)
+        emitter:add_converted_val(primtypes.cint, retnode)
         emitter:add_ln(';')
       end
     end
@@ -988,7 +989,7 @@ function visitors.Return(context, node, emitter)
       if numfuncrets == 0 then
         -- no returns
         assert(numretnodes == 0)
-        emitter:add_one(defercode)
+        emitter:add_value(defercode)
         emitter:add_indent_ln('return;')
       elseif numfuncrets == 1 then
         -- one return
@@ -998,21 +999,21 @@ function visitors.Return(context, node, emitter)
           if defercode ~= '' and retnode.tag ~= 'Id' and not retnode.attr.comptime then
             local retname = context:genuniquename('ret')
             emitter:add_indent(rettype, ' ', retname, ' = ')
-            emitter:add_val2type(rettype, retnode)
+            emitter:add_converted_val(rettype, retnode)
             emitter:add_ln(';')
-            emitter:add_one(defercode)
+            emitter:add_value(defercode)
             emitter:add_indent_ln('return ', retname, ';')
           else
-            emitter:add_one(defercode)
+            emitter:add_value(defercode)
             emitter:add_indent('return ')
-            emitter:add_val2type(rettype, retnode)
+            emitter:add_converted_val(rettype, retnode)
             emitter:add_ln(';')
           end
         else
           -- no return value present, generate a zeroed one
-          emitter:add_one(defercode)
+          emitter:add_value(defercode)
           emitter:add_indent('return ')
-          emitter:add_zeroed_type_literal(rettype)
+          emitter:add_zeroed_type_literal(rettype, true)
           emitter:add_ln(';')
         end
       end
@@ -1038,9 +1039,9 @@ function visitors.Return(context, node, emitter)
         end
         if lastcallindex then
           local retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
-          retemitter:add_val2type(funcrettype, retvalname, rettype)
+          retemitter:add_converted_val(funcrettype, retvalname, rettype)
         else
-          retemitter:add_val2type(funcrettype, retnode)
+          retemitter:add_converted_val(funcrettype, retnode)
         end
       end
       retemitter:add_ln('};')
@@ -1059,11 +1060,11 @@ function visitors.If(_, node, emitter)
     local condnode, blocknode = ifpairs[i], ifpairs[i+1]
     if i == 1 then
       emitter:add_indent("if(")
-      emitter:add_val2type(primtypes.boolean, condnode)
+      emitter:add_converted_val(primtypes.boolean, condnode)
       emitter:add_ln(") {")
     else
       emitter:add_indent("} else if(")
-      emitter:add_val2type(primtypes.boolean, condnode)
+      emitter:add_converted_val(primtypes.boolean, condnode)
       emitter:add_ln(") {")
     end
     emitter:add(blocknode)
@@ -1150,7 +1151,7 @@ end
 function visitors.While(context, node, emitter)
   local condnode, blocknode = node[1], node[2]
   emitter:add_indent("while(")
-  emitter:add_val2type(primtypes.boolean, condnode)
+  emitter:add_converted_val(primtypes.boolean, condnode)
   emitter:add_ln(') {')
   local scope = context:push_forked_scope(node)
   emitter:add(blocknode)
@@ -1168,7 +1169,7 @@ function visitors.Repeat(context, node, emitter)
   emitter:add(blocknode)
   emitter:inc_indent()
   emitter:add_indent('if(')
-  emitter:add_val2type(primtypes.boolean, condnode)
+  emitter:add_converted_val(primtypes.boolean, condnode)
   emitter:add_ln(') {')
   emitter:inc_indent()
   emitter:add_indent_ln('break;')
@@ -1196,11 +1197,11 @@ function visitors.ForNum(context, node, emitter)
     local itname = context:declname(itvarattr)
     local itforname = itmutate and '_it' or itname
     emitter:add_indent('for(', ittype, ' ', itforname, ' = ')
-    emitter:add_val2type(ittype, begvalnode)
+    emitter:add_converted_val(ittype, begvalnode)
     local cmpval
     if (not fixedend or not compop) then
       emitter:add(', _end = ')
-      emitter:add_val2type(ittype, endvalnode)
+      emitter:add_converted_val(ittype, endvalnode)
       cmpval = '_end'
     else
       cmpval = endvalnode
@@ -1208,7 +1209,7 @@ function visitors.ForNum(context, node, emitter)
     local stepval
     if not fixedstep then
       emitter:add(', _step = ')
-      emitter:add_val2type(ittype, stepvalnode)
+      emitter:add_converted_val(ittype, stepvalnode)
       stepval = '_step'
     else
       stepval = fixedstep
@@ -1219,7 +1220,7 @@ function visitors.ForNum(context, node, emitter)
       if traits.is_string(cmpval) then
         emitter:add(cmpval)
       else
-        emitter:add_val2type(ittype, cmpval)
+        emitter:add_converted_val(ittype, cmpval)
       end
     else
       -- step is an expression, must detect the compare operation at runtime
@@ -1460,9 +1461,9 @@ function visitors.UnaryOp(context, node, emitter)
   local opname, argnode = node[1], node[2]
   local builtin = cbuiltins.operators[opname]
   local surround = not node.attr.inconditional
-  if surround then emitter:add_one('(') end
+  if surround then emitter:add_value('(') end
   builtin(context, node, emitter, argnode)
-  if surround then emitter:add_one(')') end
+  if surround then emitter:add_value(')') end
 end
 
 function visitors.BinaryOp(context, node, emitter)
@@ -1482,29 +1483,29 @@ function visitors.BinaryOp(context, node, emitter)
       -- lua style "ternary" operator
       local anode, bnode, cnode = lnode[1], lnode[3], rnode
       if anode.attr.type.is_boolean and not bnode.attr.type.is_falseable then -- use C ternary operator
-        emitter:add_val2type(primtypes.boolean, anode)
+        emitter:add_converted_val(primtypes.boolean, anode)
         emitter:add(' ? ')
-        emitter:add_val2type(type, bnode)
+        emitter:add_converted_val(type, bnode)
         emitter:add(' : ')
-        emitter:add_val2type(type, cnode)
+        emitter:add_converted_val(type, cnode)
       else
         emitter:add_ln('({')
         emitter:inc_indent()
         emitter:add_indent_ln(type, ' t_;')
         emitter:add_indent(primtypes.boolean, ' cond_ = ')
-        emitter:add_val2type(primtypes.boolean, anode)
+        emitter:add_converted_val(primtypes.boolean, anode)
         emitter:add_ln(';')
         emitter:add_indent_ln('if(cond_) {')
         emitter:add_indent('  t_ = ')
-        emitter:add_val2type(type, bnode)
+        emitter:add_converted_val(type, bnode)
         emitter:add_ln(';')
         emitter:add_indent('  cond_ = ')
-        emitter:add_val2type(primtypes.boolean, 't_', type)
+        emitter:add_converted_val(primtypes.boolean, 't_', type)
         emitter:add_ln(';')
         emitter:add_indent_ln('}')
         emitter:add_indent_ln('if(!cond_) {')
         emitter:add_indent('  t_ = ')
-        emitter:add_val2type(type, cnode)
+        emitter:add_converted_val(type, cnode)
         emitter:add_ln(';')
         emitter:add_indent_ln('}')
         emitter:add_indent_ln('t_;')
@@ -1515,22 +1516,22 @@ function visitors.BinaryOp(context, node, emitter)
       emitter:add_ln('({')
       emitter:inc_indent()
       emitter:add_indent(type, ' t1_ = ')
-      emitter:add_val2type(type, lnode)
+      emitter:add_converted_val(type, lnode)
       --TODO: be smart and remove this unused code
       emitter:add_ln(';')
       emitter:add_indent_ln(type, ' t2_ = {0};')
       if opname == 'and' then
         assert(not node.attr.ternaryand)
         emitter:add_indent(primtypes.boolean, ' cond_ = ')
-        emitter:add_val2type(primtypes.boolean, 't1_', type)
+        emitter:add_converted_val(primtypes.boolean, 't1_', type)
         emitter:add_ln(';')
         emitter:add_indent_ln('if(cond_) {')
         emitter:inc_indent()
         emitter:add_indent('t2_ = ')
-        emitter:add_val2type(type, rnode)
+        emitter:add_converted_val(type, rnode)
         emitter:add_ln(';')
         emitter:add_indent('cond_ = ')
-        emitter:add_val2type(primtypes.boolean, 't2_', type)
+        emitter:add_converted_val(primtypes.boolean, 't2_', type)
         emitter:add_ln(';')
         emitter:dec_indent()
         emitter:add_indent_ln('}')
@@ -1538,12 +1539,12 @@ function visitors.BinaryOp(context, node, emitter)
       elseif opname == 'or' then
         assert(not node.attr.ternaryor)
         emitter:add_indent(primtypes.boolean, ' cond_ = ')
-        emitter:add_val2type(primtypes.boolean, 't1_', type)
+        emitter:add_converted_val(primtypes.boolean, 't1_', type)
         emitter:add_ln(';')
         emitter:add_indent_ln('if(!cond_) {')
         emitter:inc_indent()
         emitter:add_indent('t2_ = ')
-        emitter:add_val2type(type, rnode)
+        emitter:add_converted_val(type, rnode)
         emitter:add_ln(';')
         emitter:dec_indent()
         emitter:add_indent_ln('}')
@@ -1643,9 +1644,9 @@ local function emit_main(ast, context)
 
   local emptymain = false
   if not context.entrypoint or context.hookmain then
-    mainemitter:add_one("int nelua_main(int nelua_argc, char** nelua_argv) {\n")
+    mainemitter:add_value("int nelua_main(int nelua_argc, char** nelua_argv) {\n")
     local startpos = mainemitter:get_pos()
-    mainemitter:add_traversal(ast)
+    context:traverse_node(ast, mainemitter)
     emptymain = not context.hookmain and mainemitter:get_pos() == startpos
     if not emptymain then -- main has statements
       local blocknode = context.ast
@@ -1661,10 +1662,10 @@ local function emit_main(ast, context)
         context:add_declaration('static int nelua_main(int nelua_argc, char** nelua_argv);\n')
       end
     else -- empty main, we can skip `nelua_main` usage
-      mainemitter.codes[startpos] = ''
+      mainemitter.chunks[startpos] = ''
     end
   else
-    mainemitter:add_traversal(ast)
+    context:traverse_node(ast, mainemitter)
   end
 
   if not context.entrypoint and not context.pragmas.noentrypoint then
