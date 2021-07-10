@@ -1479,6 +1479,10 @@ describe("preprocessor", function()
       n.Block{
         n.Call{{}, n.PreprocessExpr{"a"}}
     })
+    expect_ast("#[a]# = 1",
+      n.Block{
+        n.Assign{{n.PreprocessExpr{"a"}}, {n.Number{"1"}}}
+    })
   end)
   it("eval name", function()
     expect_ast("::#|a|#::",

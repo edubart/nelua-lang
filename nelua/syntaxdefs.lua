@@ -41,7 +41,7 @@ ifs             <-| @expr @`then` Block (`elseif` @expr @`then` Block)*
 Switch          <== `switch` @expr `do`? @cases (`else` Block)? @`end`
 cases           <-| (`case` @exprs @`then` Block)+
 for             <-- `for` (ForNum / ForIn)
-ForNum          <== IdDecl `=` @expr @`,` forcmp~? @expr (`,` @expr)~? @`do` Block @`end`
+ForNum          <== iddecl `=` @expr @`,` forcmp~? @expr (`,` @expr)~? @`do` Block @`end`
 ForIn           <== @iddecls @`in` @exprs @`do` Block @`end`
 local           <-- `local` (localfunc / localvar)
 global          <-- `global` (globalfunc / globalvar)
@@ -63,7 +63,6 @@ Nil             <== `nil`
 Varargs         <== `...`
 Id              <== name
 IdDecl          <== name (`:` @typeexpr)~? annots?
-iddeclexpr      <-- IdDecl / PreprocessExpr
 typeddecl  : IdDecl <== name `:` @typeexpr annots?
 globaldecl : IdDecl <== (idsuffixed / name) (`:` @typeexpr)~? annots?
 globaldeclexpr  <-- globaldecl / PreprocessExpr
@@ -75,7 +74,7 @@ Paren           <== `(` @expr @`)`
 DoExpr          <== `(` `do` Block @`end` @`)`
 Type            <== `@` @typeexpr
 
-Pair            <== `[` @expr @`]` @`=` @expr / name `=` @expr / `=` @Id -> pair_sugar
+Pair            <== `[` @expr @`]` @`=` @expr / name `=` @expr / `=` @id -> pair_sugar
 Annotation      <== name annotargs?
 
 -- Preprocessor replaceable nodes
@@ -92,17 +91,18 @@ KeyIndex        <== `[` @expr @`]`
 indexsuffix     <-- DotIndex / KeyIndex
 callsuffix      <-- Call / CallMethod
 
-var             <-- (exprprim (indexsuffix / callsuffix+ indexsuffix)+)~>rfoldright / Id / deref
+var             <-- (exprprim (indexsuffix / callsuffix+ indexsuffix)+)~>rfoldright /
+                    id / deref
 call            <-- (exprprim (callsuffix / indexsuffix+ callsuffix)+)~>rfoldright
 exprsuffixed    <-- (exprprim (indexsuffix / callsuffix)*)~>rfoldright
-idsuffixed      <-- (Id DotIndex+)~>rfoldright
-funcname        <-- (Id DotIndex* ColonIndex?)~>rfoldright
+idsuffixed      <-- (id DotIndex+)~>rfoldright
+funcname        <-- (id DotIndex* ColonIndex?)~>rfoldright
 
 -- Lists
 callargs        <-| `(` (expr (`,` @expr)*)? @`)` / InitList / String
 annotargs       <-| `(` (expr (`,` @expr)*)? @`)` / InitList / String / PreprocessExpr
-iddecls         <-| iddeclexpr (`,` @iddeclexpr)*
-funcargs        <-| (iddeclexpr (`,` iddeclexpr)* (`,` VarargsType)? / VarargsType)?
+iddecls         <-| iddecl (`,` @iddecl)*
+funcargs        <-| (iddecl (`,` iddecl)* (`,` VarargsType)? / VarargsType)?
 globaldecls     <-| globaldeclexpr (`,` @globaldeclexpr)*
 exprs           <-| expr (`,` @expr)*
 annots          <-| `<` @Annotation (`,` @Annotation)* @`>`
@@ -142,7 +142,7 @@ exprunary       <-- opunary / exprpow
 exprpow         <-- (exprsimple oppow*)~>foldleft
 exprsimple      <-- Number / String / Type / InitList / Boolean /
                     Function / Nilptr / Nil / DoExpr / Varargs / exprsuffixed
-exprprim        <-- Id / Paren / PreprocessExpr
+exprprim        <-- id / Paren
 
 -- Types
 RecordType      <== 'record' WORDSKIP @`{` (RecordField (fieldsep RecordField)* fieldsep?)? @`}`
@@ -181,10 +181,12 @@ typeexpr        <-- (typeexprunary typevaris?)~>foldleft
 typeexprunary   <-- (typeopunary* typexprsimple)->rfoldleft
 typexprsimple   <-- RecordType / UnionType / EnumType / FuncType / ArrayType / PointerType /
                     VariantType / (typeexprprim typeopgen?)~>foldleft
-typeexprprim    <-- idsuffixed / Id / PreprocessExpr
+typeexprprim    <-- idsuffixed / id
 
 -- Common rules
 name            <-- NAME SKIP / PreprocessName
+id              <-- Id / PreprocessExpr
+iddecl          <-- IdDecl / PreprocessExpr
 cmp             <-- `==`->'eq' / forcmp
 forcmp          <-- `~=`->'ne' / `<=`->'le' / `<`->'lt' / `>=`->'ge' / `>`->'gt'
 fieldsep        <-- `,` / `;`
