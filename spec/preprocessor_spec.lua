@@ -32,7 +32,6 @@ it("evaluate expressions", function()
     local a: [10]integer
     a[0] = 1
   ]])
-  expect.analyze_error("local a = #[function() end]#", "cannot convert preprocess value of type")
 end)
 
 it("evaluate names", function()
@@ -628,13 +627,30 @@ end)
 
 it("expression macros", function()
   expect.analyze_ast([=[
-    ## local f = exprmacro(function(x, a, b)
+    ## local f = expr_macro(function(x, a, b)
       return (#[x]# << #[a]#) >> #[b]#
     ## end)
 
     local y <comptime> = #[f(0xff, 2, 3)]#
     ## assert(y.value:tonumber() == 127)
   ]=])
+
+  expect.ast_type_equals([=[
+  ## local f = expr_macro(function(x, a, b)
+    #[x]# = #[b]#
+    return #[a]#
+  ## end)
+  local a = 0
+  local b = #[f]#(a, 0, a + 1)
+]=],[=[
+  local a = 0
+  local b = (do
+    a = a + 1
+    return 0
+  end)
+]=])
+
+  expect.analyze_error("local a = #[function() end]#", "cannot convert preprocess value of type")
 end)
 
 it("non hygienic macros", function()

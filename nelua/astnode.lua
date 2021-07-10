@@ -421,4 +421,25 @@ function ASTNode:recursive_update_location(src, pos, endpos)
   return false
 end
 
+--[[
+Returns a simplified value for this ASTNode, that is:
+- If the node holds a compile-time value, then returns it.
+- If the node is associated with a symbol, then returns it.
+- Otherwise, the node itself.
+]]
+function ASTNode:get_simplified_value()
+  local attr = self.attr
+  local value = attr:get_comptime_value()
+  if value then
+    if traits.is_bn(value) then
+      value = value:compress()
+    end
+    return value
+  end
+  if attr._symbol then
+    return attr
+  end
+  return self
+end
+
 return ASTNode

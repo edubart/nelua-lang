@@ -1615,7 +1615,7 @@ it("statement expressions", function()
     end
 
     do
-      ## local f = exprmacro(function(x, a, b)
+      ## local f = expr_macro(function(x, a, b)
         local r = (#[x]# << #[a]#) >> #[b]#
         r = r + 4
         return r
@@ -1639,6 +1639,31 @@ it("statement expressions", function()
     end
   ]])
 end)
+
+it("replacement macros" ,function()
+  expect.run_c([[
+    do -- statements
+      ## local function statmul(res, a, b)
+        #[res]# = #[a]# * #[b]#
+      ## end
+
+      local a, b = 2, 3
+      local res
+      #[statmul]#(res, a, b)
+      assert(res == 6)
+    end
+
+    do -- expressions
+      ## local mul = expr_macro(function(a, b)
+        return #[a]# * #[b]#
+      ## end)
+      local a, b = 2, 3
+      assert(#[mul]#(a, b) == 6)
+      #[mul]#(a, b)
+    end
+  ]])
+end)
+
 it("c types", function()
   expect.generate_c("local a: integer", "int64_t a = 0;")
   expect.generate_c("local a: number", "double a = 0.0;")

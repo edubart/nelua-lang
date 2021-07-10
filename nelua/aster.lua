@@ -104,7 +104,7 @@ function aster.value(value, srcnode)
   elseif value == nil then -- nil
     node = aster.Nil{}
   else
-    return nil
+    ASTNode.raisef(srcnode, 'cannot convert preprocess value of type "%s" to an AST node', type(value))
   end
   if srcnode and srcnode.src and srcnode.pos then -- preserve source position
     node:recursive_update_location(srcnode.src, srcnode.pos, srcnode.endpos)

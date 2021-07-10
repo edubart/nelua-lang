@@ -145,24 +145,35 @@ Converts value `val` to an AST node (if not one yet), and injects at `dest[destp
 possibly unpacking many values in case of varargs.
 The node `orignode` is used as reference for source location.
 ]]
-function PPContext.inject_value(_, value, dest, destpos, orignode)
-  if type(value) == 'table' and value._astunpack then -- multiple values (unpack varargs)
+function PPContext.inject_value(self, value, dest, destpos, orignode)
+  local valueluatype = type(value)
+  if valueluatype == 'table' and value._astunpack then -- multiple values (unpack varargs)
     while #dest >= destpos do -- clean dest positions before injecting
       dest[#dest] = nil
     end
     for i=1,#value do -- unpack all values
-      local node = aster.value(value[i], orignode)
-      if not node then
-        orignode:raisef('cannot convert preprocess value of type "%s" to an AST node', type(value))
-      end
-      dest[destpos+i-1] = node
+      dest[destpos+i-1] = aster.value(value[i], orignode)
     end
   else -- a single value
-    local node = aster.value(value, orignode)
-    if not node then
-      orignode:raisef('cannot convert preprocess value of type "%s" to an AST node', type(value))
+    if valueluatype == 'function' and dest.tag == 'Call' then
+      -- parse arguments to compile-time values where possible
+      local argnodes = dest[1]
+      self.context:traverse_nodes(argnodes)
+      local args = {}
+      for i=1,#argnodes do
+        args[i] = argnodes[i]:get_simplified_value()
+      end
+      -- evaluate replacement macro
+      local ret = value(table.unpack(args))
+      if ret == nil then -- no returns, probably a statement replacement
+        local noop = aster.DoExpr{aster.Block{aster.Return{aster.Nil{}}}, pattr={noop=true}}
+        dest:transform(noop)
+      else -- expression replacement
+        dest:transform(aster.value(ret, orignode))
+      end
+    else
+      dest[destpos] = aster.value(value, orignode)
     end
-    dest[destpos] = node
   end
 end
 

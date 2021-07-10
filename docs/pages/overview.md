@@ -1636,6 +1636,57 @@ x = x + 4
 print(x)
 ```
 
+### Statement replacement macros
+
+A preprocessor function can be called as if it were a runtime function
+in the middle of a block,
+it will serve as replacement macro for statements:
+
+```nelua
+## local function mul(res, a, b)
+  #[res]# = #[a]# * #[b]#
+## end
+
+local a, b = 2, 3
+local res = 0
+#[mul]#(res, a, b)
+print(res) -- outputs: 6
+```
+
+The above code compiles exactly as:
+
+```nelua
+local a, b = 2, 3
+local res = 0
+res = a * b
+print(res) -- outputs: 6
+```
+
+### Expression replacement macros
+
+A preprocessor function created with `expr_macro`
+can be called as if it were a runtime function
+in the middle of a statement,
+it will serve as replacement macro for an expression:
+
+```nelua
+## local mul = expr_macro(function(a, b)
+  return #[a]# * #[b]#
+## end)
+
+local a, b = 2, 3
+local res = #[mul]#(a, b)
+print(res) -- outputs: 6
+```
+
+The above code compiles exactly as:
+
+```nelua
+local a, b = 2, 3
+local res = a * b
+print(res) -- outputs: 6
+```
+
 ### Preprocessor macros emitting AST nodes
 
 Creating macros using the template rendering mechanism

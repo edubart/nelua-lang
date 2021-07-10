@@ -100,4 +100,12 @@ function Attr:can_copy()
   return not (type and type.nocopy and self.lvalue)
 end
 
+-- Returns compile-time value associated with this attr.
+function Attr:get_comptime_value()
+  local type = self.type
+  if type and (type.comptime or self.comptime) then
+    return self.value
+  end
+end
+
 return Attr

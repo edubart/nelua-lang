@@ -1113,6 +1113,13 @@ function visitors.Do(context, node, emitter)
 end
 
 function visitors.DoExpr(context, node, emitter)
+  local isstatement = context:get_visiting_node(1).tag == 'Block'
+  if isstatement then -- a macros could have replaced a statement with do exprs
+    if isstatement and node.attr.noop then -- skip macros without operations
+      return true
+    end
+    emitter:add_indent('(void)')
+  end
   local blocknode = node[1]
   if blocknode[1].tag == 'Return' then -- single statement
     emitter:add(blocknode[1][1])
@@ -1135,6 +1142,9 @@ function visitors.DoExpr(context, node, emitter)
     end
     emitter:dec_indent()
     emitter:add_indent("})")
+  end
+  if isstatement then
+    emitter:add_ln(';')
   end
 end
 

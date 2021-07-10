@@ -778,6 +778,27 @@ do print '### Preprocessor templated macros'
   print(x)
 end
 
+do print '### Statement replacement macros'
+  ## local function mul(res, a, b)
+    #[res]# = #[a]# * #[b]#
+  ## end
+
+  local a, b = 2, 3
+  local res = 0
+  #[mul]#(res, a, b)
+  print(res) -- outputs: 6
+end
+
+do print '### Expression replacement macros'
+  ## local mul = expr_macro(function(a, b)
+    return #[a]# * #[b]#
+  ## end)
+
+  local a, b = 2, 3
+  local res = #[mul]#(a, b)
+  print(res) -- outputs: 6
+end
+
 do print '### Preprocessor macros emitting AST nodes'
   ##[[
   -- Create a fixed array initializing to 1,2,3,4...n
