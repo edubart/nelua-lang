@@ -308,21 +308,13 @@ function CEmitter:add_scalar_literal(valattr, valtype)
   local minusone = false
   if valtype.is_float then
     if bn.isnan(val) then
-      if valtype.is_float32 then
-        self:add_text('(0.0f/0.0f)')
-      else
-        self:add_text('(0.0/0.0)')
-      end
+      self:add_builtin('NLNAN_', valtype)
       return
     elseif bn.isinfinite(val) then
       if val < 0 then
         self:add_text('-')
       end
-      if valtype.is_float32 then
-        self:add_text('(1.0f/0.0f)')
-      else
-        self:add_text('(1.0/0.0)')
-      end
+      self:add_builtin('NLINF_', valtype)
       return
     else
       local valstr = bn.todecsci(val, valtype.maxdigits)

@@ -100,6 +100,30 @@ function cbuiltins.NLNIL(context)
   context:define_builtin('NLNIL', "#define NLNIL (nlniltype){}")
 end
 
+-- Used by infinite float number literal.
+function cbuiltins.NLINF_(context, type)
+  local name = type.is_float32 and 'NLINFF' or 'NLINF'
+  if context.usedbuiltins[name] then return name end
+  if type.is_float32 then
+    context:define_builtin(name, "#define "..name.." (1.0f/0.0f)")
+  else
+    context:define_builtin(name, "#define "..name.." (1.0/0.0)")
+  end
+  return name
+end
+
+-- Used by NaN (not a number) float number literal.
+function cbuiltins.NLNAN_(context, type)
+  local name = type.is_float32 and 'NLNANF' or 'NLNAN'
+  if context.usedbuiltins[name] then return name end
+  if type.is_float32 then
+    context:define_builtin(name, "#define "..name.." (0.0f/0.0f)")
+  else
+    context:define_builtin(name, "#define "..name.." (0.0/0.0)")
+  end
+  return name
+end
+
 -- Used to abort the application.
 function cbuiltins.nelua_abort(context)
   local abortcall

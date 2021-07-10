@@ -461,12 +461,12 @@ it("operation on comptime variables", function()
     local huge2f: float32 = #[-math.huge]#
     local nanf: float32 = #[0.0/0.0]#
   ]], {
-    "huge1 = (1.0/0.0)",
-    "huge2 = -(1.0/0.0)",
-    "nan = (0.0/0.0)",
-    "huge1f = (1.0f/0.0f)",
-    "huge2f = -(1.0f/0.0f)",
-    "nanf = (0.0f/0.0f)",
+    "huge1 = NLINF",
+    "huge2 = -NLINF",
+    "nan = NLNAN",
+    "huge1f = NLINFF",
+    "huge2f = -NLINFF",
+    "nanf = NLNANF",
   })
   expect.generate_c([[
     local s <comptime> = 'hello\n'_cstring

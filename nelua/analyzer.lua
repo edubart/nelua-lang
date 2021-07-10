@@ -3225,24 +3225,24 @@ function visitors.BinaryOp(context, node, opts)
 end
 
 function analyzer.analyze(context)
-  local ast = context.ast
+  -- save current analyzing context
+  local old_current_context = analyzer.current_context
   analyzer.current_context = context
-
+  -- begin tracking analyze time
   local timer
   if config.more_timing then
     timer = nanotimer()
   end
-
+  -- inherit config pragmas
   tabler.update(context.pragmas, config.pragmas)
-
+  -- setup ast filename
+  local ast = context.ast
   if ast.src and ast.src.name then
     context.pragmas.unitname = pegger.filename_to_unitname(ast.src.name)
     ast.attr.filename = fs.abspath(ast.src.name)
   end
-
   -- phase 1 traverse: preprocess
   preprocessor.preprocess(context, ast)
-
   -- phase 2 traverse: infer and check types
   repeat
     context:traverse_node(ast)
@@ -3251,14 +3251,13 @@ function analyzer.analyze(context)
       console.debugf('analyzed (%.1f ms)', timer:elapsedrestart())
     end
   until resolutions_count == 0
-
-  for _,cb in ipairs(context.afteranalyzes) do
-    local ok, err = except.trycall(cb.f)
+  -- execute after analyze callbacks
+  for _,callback in ipairs(context.afteranalyzes) do
+    local ok, err = except.trycall(callback.f)
     if not ok then
-      cb.node:raisef('error while executing after analyze: %s', err)
+      callback.node:raisef('error while executing after analyze: %s', err)
     end
   end
-
   -- phase 3 traverse: infer unset types to 'any' type
   if context.unresolvedcount ~= 0 then
     context:push_forked_state{anyphase=true}
@@ -3272,12 +3271,12 @@ function analyzer.analyze(context)
     assert(context.unresolvedcount == 0)
     context:pop_state()
   end
-
   -- execute after inference callbacks
-  for _,f in ipairs(context.afterinfers) do
-    f()
+  for _,callback in ipairs(context.afterinfers) do
+    callback()
   end
-
+  -- restore old analyzing context
+  analyzer.current_context = old_current_context
   return context
 end
 
