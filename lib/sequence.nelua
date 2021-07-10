@@ -26,13 +26,13 @@ require 'iterators'
   local T: type = @#[T]#
 
   -- Sequence implementation record.
-  local sequenceimplT: type <nickname #[string.format('sequenceimpl(%s)', T)]#> = @record{
+  local sequenceimplT: type <nickname(#[string.format('sequenceimpl(%s)', T)]#)> = @record{
     data: span(T),
     size: usize
   }
 
   -- Sequence record defined when instantiating the generic `sequence` with type `T`.
-  local sequenceT: type <nickname #[string.format('sequence(%s)', T)]#> = @record{
+  local sequenceT: type <nickname(#[string.format('sequence(%s)', T)]#)> = @record{
     impl: *sequenceimplT,
     allocator: Allocator
   }

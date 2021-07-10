@@ -21,7 +21,7 @@ require 'iterators'
   local T: type = @#[T]#
 
   -- Span record defined when instantiating the generic `span` with type `T`.
-  local spanT: type <nickname #[string.format('span(%s)', T)]#> = @record{
+  local spanT: type <nickname(#[string.format('span(%s)', T)]#)> = @record{
     data: *[0]T,
     size: usize
   }

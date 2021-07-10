@@ -70,7 +70,7 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
   local V: type = @#[V]#
 
   -- Hash map node record defined when instantiating the generic `hashmap`.
-  local hashnodeT: type <nickname #[string.format('hashmapnode(%s, %s)',K,V)]#> = @record{
+  local hashnodeT: type <nickname(#[string.format('hashmapnode(%s, %s)',K,V)]#)> = @record{
     key: K,
     value: V,
     filled: boolean,
@@ -78,7 +78,7 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
   }
 
   -- Hash map record defined when instantiating the generic `hashmap`.
-  local hashmapT: type <nickname #[string.format('hashmap(%s, %s)',K,V)]#> = @record{
+  local hashmapT: type <nickname(#[string.format('hashmap(%s, %s)',K,V)]#)> = @record{
     buckets: span(usize),
     nodes: span(hashnodeT),
     size: usize,

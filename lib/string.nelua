@@ -705,7 +705,7 @@ global function tostring(x: auto): string
     end]]
     local tmpbuf: [48]byte <noinit> -- the output should not have more than 48 characters
     tmpbuf[47] = 0
-    local fmt: cstring <cimport #[tyformat]#, nodecl, cinclude '<inttypes.h>'>
+    local fmt: cstring <cimport(#[tyformat]#), nodecl, cinclude '<inttypes.h>'>
     local size: cint = snprintf(&tmpbuf, #tmpbuf-1, fmt, x)
     ## if xtype.is_float then
       -- add a least one decimal if needed

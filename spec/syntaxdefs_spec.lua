@@ -1467,15 +1467,11 @@ describe("preprocessor", function()
     })
   end)
   it("eval expression", function()
-    expect_ast("print #['hello ' .. 'world']#",
-      n.Block{
-        n.Call{{n.PreprocessExpr{"'hello ' .. 'world'"}}, n.Id{"print"}}
-    })
     expect_ast("print(#['hello ' .. 'world']#)",
       n.Block{
         n.Call{{n.PreprocessExpr{"'hello ' .. 'world'"}}, n.Id{"print"}}
     })
-    expect_ast("print #[a[1]]#",
+    expect_ast("print(#[a[1]]#)",
       n.Block{
         n.Call{{n.PreprocessExpr{"a[1]"}}, n.Id{"print"}}
     })

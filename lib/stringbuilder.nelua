@@ -209,7 +209,7 @@ end
          c == 'u'_byte or
          c == 'x'_byte or
          c == 'X'_byte then
-        local lenmod: cstring <cimport #['PRIi' .. primtypes.integer.bitsize]#,nodecl,cinclude'<inttypes.h>'>
+        local lenmod: cstring <cimport(#['PRIi' .. primtypes.integer.bitsize]#),nodecl,cinclude'<inttypes.h>'>
         addlenmod(form, lenmod, #lenmod - 1)
         local n: integer = (@integer)(arg1)
         nb = snprintf(buff, maxitem, &form[0], n)

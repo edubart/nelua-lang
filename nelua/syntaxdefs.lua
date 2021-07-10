@@ -76,7 +76,7 @@ DoExpr          <== `(` `do` Block @`end` @`)`
 Type            <== `@` @typeexpr
 
 Pair            <== `[` @expr @`]` @`=` @expr / name `=` @expr / `=` @Id -> pair_sugar
-Annotation      <== name callargs?
+Annotation      <== name annotargs?
 
 -- Preprocessor replaceable nodes
 PreprocessExpr  <== `#[` {@expr->0} @`]#`
@@ -99,7 +99,8 @@ idsuffixed      <-- (Id DotIndex+)~>rfoldright
 funcname        <-- (Id DotIndex* ColonIndex?)~>rfoldright
 
 -- Lists
-callargs        <-| `(` (expr (`,` @expr)*)? @`)` / InitList / String / PreprocessExpr
+callargs        <-| `(` (expr (`,` @expr)*)? @`)` / InitList / String
+annotargs       <-| `(` (expr (`,` @expr)*)? @`)` / InitList / String / PreprocessExpr
 iddecls         <-| iddeclexpr (`,` @iddeclexpr)*
 funcargs        <-| (iddeclexpr (`,` iddeclexpr)* (`,` VarargsType)? / VarargsType)?
 globaldecls     <-| globaldeclexpr (`,` @globaldeclexpr)*

@@ -44,7 +44,7 @@ it("evaluate names", function()
   expect.ast_type_equals([[
     local a <#|'codename'|# 'a'>
     local b <codename 'b'>
-    local c <#|'codename'|##['c']#>
+    local c <#|'codename'|#(#['c']#)>
   ]], [[
     local a <codename 'a'>
     local b <codename 'b'>
@@ -145,8 +145,8 @@ it("print symbol", function()
   expect.ast_type_equals([=[
     local a: integer <comptime> = 1
     local b: integer <const> = 2
-    print #[tostring(a)]#
-    print #[tostring(b)]#
+    print(#[tostring(a)]#)
+    print(#[tostring(b)]#)
   ]=], [[
     local a <comptime> = 1
     local b <const> = 2
@@ -166,7 +166,7 @@ it("print symbol", function()
     ## local aval = 1
     ## if true then
       local #|'a'|#: #|'integer'|# <comptime> = #[aval]#
-      print #[tostring(context.scope.symbols['a'])]#
+      print(#[tostring(context.scope.symbols['a'])]#)
     ## end
   ]], [[
     local a <comptime> = 1
@@ -286,7 +286,7 @@ it("print symbol", function()
     ## local a = 1
     do
       do
-        print #[a]#
+        print(#[a]#)
       end
     end
   ]=], [[

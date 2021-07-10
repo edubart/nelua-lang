@@ -21,14 +21,14 @@ require 'iterators'
   local T: type = @#[T]#
 
   -- List node record defined when instantiating the generic `list`.
-  local listnodeT: type <nickname #[string.format('listnode(%s)',T)]#> = @record{
+  local listnodeT: type <nickname(#[string.format('listnode(%s)',T)]#)> = @record{
     prev: *listnodeT,
     next: *listnodeT,
     value: T
   }
 
   -- List record defined when instantiating the generic `list`.
-  local listT: type <nickname #[string.format('list(%s)',T)]#> = @record{
+  local listT: type <nickname(#[string.format('list(%s)',T)]#)> = @record{
     front: *listnodeT, -- list begin
     back: *listnodeT, -- list end
     allocator: Allocator
