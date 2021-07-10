@@ -2368,12 +2368,16 @@ end
 
 function visitors.Return(context, node)
   local retnodes = node
-  context:traverse_nodes(retnodes)
   local funcscope = context.scope:get_up_return_scope() or context.rootscope
   funcscope.hasreturn = true
   if funcscope.rettypes then
     local done = true
     for i,funcrettype,retnode,rettype in izipargnodes(funcscope.rettypes, retnodes) do
+      if retnode then
+        local desiredtype = funcrettype and not funcrettype.is_auto and funcrettype
+        context:traverse_node(retnode, {desiredtype=desiredtype})
+        rettype = retnode.attr.type
+      end
       if rettype then
         if funcrettype then
           if funcrettype.is_auto then
@@ -2407,7 +2411,8 @@ function visitors.Return(context, node)
       end
     end
     node.done = done
-  elseif retnodes then
+  else
+    context:traverse_nodes(retnodes)
     for i,_,rettype in iargnodes(retnodes) do
       funcscope:add_return_type(i, rettype)
     end

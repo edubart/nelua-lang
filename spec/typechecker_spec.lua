@@ -793,6 +793,12 @@ it("function return", function()
     local x: any = f()
   ]])
   expect.analyze_ast([[
+    local function f(): record{x: integer, y: integer}
+      return {x=1, y=2}
+    end
+    local a: auto = f()
+  ]])
+  expect.analyze_ast([[
     local function f(): integer return 1 end
     local function f(): integer if true then return 1 else return 2 end end
     local function f(): integer do return 1 end end
