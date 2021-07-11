@@ -216,9 +216,9 @@ end
 
 -- Raises an error related to this node using a formatted message if `cond` is false.
 function ASTNode:assertraisef(cond, message, ...)
-  if not cond then
+  if not cond then --luacov:disable
     except.raise(ASTNode.format_message(self, 'error', message, ...), 2)
-  end
+  end --luacov:enable
   return cond
 end
 

@@ -414,6 +414,7 @@ end)
 it("binary operator band", function()
   expect.ast_type_equals("local a = 1 & 2", "local a: integer = 1 & 2")
   expect.ast_type_equals("local a = 1_i32 & 1", "local a: int32 = 1_i32 & 1")
+  expect.ast_type_equals("local a: auto = 1_u32 & 2_u64", "local a: uint64 = 1_u32 & 2_u64")
   expect.analyze_error("local a = 1 & 's'", "attempt to perform a bitwise operation")
 end)
 
@@ -826,6 +827,9 @@ it("function return", function()
   ]], "return statement is missing")
   expect.analyze_error([[
     local function f(): integer if false then return 1 end end
+  ]], "return statement is missing")
+  expect.analyze_error([[
+    local function f(): integer switch 1 case 1 then end end
   ]], "return statement is missing")
   expect.analyze_error([[
     local function f(x: boolean): integer

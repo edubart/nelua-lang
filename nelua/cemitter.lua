@@ -295,47 +295,41 @@ end
 
 -- Adds a scalar literal from attr `valattr`, with appropriate suffix for `valtype`.
 function CEmitter:add_scalar_literal(valattr, valtype)
-  assert(bn.isnumeric(valattr.value))
   valtype = valtype or valattr.type
-  local val, base = valattr.value, valattr.base
-  if valtype.is_integral then
-    if bn.isneg(val) and valtype.is_unsigned then
-      val = valtype:wrap_value(val)
-    elseif not valtype:is_inrange(val) then
-      val = valtype:wrap_value(val)
-    end
+  local num, base = valattr.value, valattr.base
+  -- wrap values out of range
+  if valtype.is_integral and ((valtype.is_unsigned and bn.isneg(num)) or
+                              not valtype:is_inrange(num)) then
+    num = valtype:wrap_value(num)
   end
   local minusone = false
-  if valtype.is_float then
-    if bn.isnan(val) then
+  -- add number literal
+  if valtype.is_float then -- float
+    if bn.isnan(num) then -- not a number
       self:add_builtin('NLNAN_', valtype)
       return
-    elseif bn.isinfinite(val) then
-      if val < 0 then
+    elseif bn.isinfinite(num) then -- infinite
+      if num < 0 then
         self:add_text('-')
       end
       self:add_builtin('NLINF_', valtype)
       return
-    else
-      local valstr = bn.todecsci(val, valtype.maxdigits)
-      self:add_text(valstr)
-      if valstr:match('^-?[0-9]+$') then -- make sure it has decimals
-        self:add_text('.0')
-      end
+    else -- a number
+      self:add_text(bn.todecsci(num, valtype.maxdigits, true))
     end
-  else
-    if valtype.is_integral and valtype.is_signed and val == valtype.min then
+  else -- integral
+    if valtype.is_integral and valtype.is_signed and num == valtype.min then
       -- workaround C warning `integer constant is so large that it is unsigned`
       minusone = true
-      val = val + 1
+      num = num + 1
     end
-    if not base or base == 10 or val:isneg() then
-      self:add_text(bn.todecint(val))
-    else
-      self:add('0x', bn.tohexint(val))
+    if not base or base == 10 or num:isneg() then -- use decimal base
+      self:add_text(bn.todecint(num))
+    else -- use hexadeciaml base
+      self:add('0x', bn.tohexint(num))
     end
   end
-  -- suffixes
+  -- add suffixes
   if valtype.is_float32 and not self.context.pragmas.nofloatsuffix then
     self:add_text('f')
   elseif valtype.is_unsigned then

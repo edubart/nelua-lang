@@ -466,17 +466,19 @@ end
 
 function visitors.Directive(context, node)
   local name, params = node[1], node[2]
-
-  if not node.checked then -- check pragma shape
+  -- check directive shape
+  if not node.checked then
     local paramshape = typedefs.pp_directives[name]
-    node:assertraisef(paramshape, "pragma '%s' is undefined", name)
+    if not paramshape then
+      node:raisef("directive '%s' is undefined", name)
+    end
     local ok, err = paramshape(params)
     if not ok then
       node:raisef("invalid arguments for directive '%s': %s", name, err)
     end
     node.checked = true
   end
-
+  -- handle directive
   if name == 'pragmapush' then
     local pragmas = params[1]
     context:push_forked_pragmas(pragmas)

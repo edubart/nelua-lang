@@ -5,7 +5,7 @@ This file will be patched when Nelua is installed via `make install` from a git 
 according to the current repository commit.
 
 When Nelua is not installed and is running from a cloned git repository,
-then information will be retrieved from it.
+then the git variables will be retrieved from it.
 ]]
 
 local fs = require 'nelua.utils.fs'

@@ -77,13 +77,18 @@ function except.raise(e, level)
   raise(e, level)
 end
 
--- Throw an exception if a condition is not met.
+-- Raises an exception with a formatted message.
+function except.raisef(message, ...)
+  raise(stringer.pformat(message, ...), 2)
+end
+
+-- Raises an exception if a condition is not met.
 function except.assertraise(cond, e)
   if not cond then raise(e, 2) end
   return cond
 end
 
--- Throw an exception from a formatted message if a condition is not met.
+-- Raises an exception from a formatted message if a condition is not met.
 function except.assertraisef(cond, message, ...)
   if not cond then raise(stringer.pformat(message, ...), 2) end
   return cond

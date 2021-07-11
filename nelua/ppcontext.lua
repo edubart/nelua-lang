@@ -135,8 +135,10 @@ Injects string `name` at `dest[destpos]`.
 The node `orignode` is used as reference for source location.
 ]]
 function PPContext.inject_name(_, name, dest, destpos, orignode)
-  orignode:assertraisef(traits.is_string(name),
-    'cannot convert preprocess value of type "%s" to a name', type(name))
+  local ty = type(name)
+  if ty ~= 'string' then
+    orignode:raisef('cannot convert preprocess value of lua type "%s" to a name', ty)
+  end
   dest[destpos] = name
 end
 

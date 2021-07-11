@@ -10,10 +10,8 @@ local bn = require 'nelua.utils.bn'
 
 local LuaContext = class(VisitorContext)
 
-function LuaContext:_init(visitors, rootscope)
-  if not self.context then
-    VisitorContext._init(self, rootscope)
-  end
+function LuaContext:_init(visitors)
+  assert(self.context, 'initialization from a promotion expected')
   self.visitors = visitors
 end
 
@@ -51,7 +49,7 @@ end
 
 function visitors.Boolean(_, node, emitter)
   local value = node[1]
-  emitter:add(tostring(value))
+  emitter:add(value)
 end
 
 function visitors.Nil(_, _, emitter)

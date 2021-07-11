@@ -409,10 +409,12 @@ function visitors.InitList(context, node, emitter)
       emitter:add('}')
       context:pop_state()
     elseif type.cconstruct then -- used to construct vector types when generating GLSL code
+      --luacov:disable
       emitter:add(type,'(')
       emitter:add('(')
       emitter:add_list(childnodes)
       emitter:add(')')
+      --luacov:enable
     else
       local useinitializer = can_use_initializer(childnodes)
       if useinitializer then
@@ -937,7 +939,6 @@ end
 function visitors.Return(context, node, emitter)
   local retnodes = node
   local numretnodes = #retnodes or 0
-
   -- destroy parent blocks
   local deferemitter = CEmitter(context, emitter.depth)
   finish_upscopes_defer(context, deferemitter, 'is_returnbreak')
@@ -946,7 +947,9 @@ function visitors.Return(context, node, emitter)
   context.scope.alreadydestroyed = true
   if funcscope == context.rootscope then
     -- in main body
-    node:assertraisef(numretnodes <= 1, "multiple returns in main is not supported yet")
+    if numretnodes > 1 then
+      node:raisef("multiple returns in main is not supported")
+    end
     if numretnodes == 0 then
       -- main must always return an integer
       emitter:add(deferemitter:generate())
@@ -1627,12 +1630,12 @@ local function emit_features_setup(context)
       emitter:add_ln('#endif')
       emitter:add_ln('#endif')
     end
-    if ccinfo.is_emscripten then
+    if ccinfo.is_emscripten then --luacov:disable
       emitter:add_ln('#ifdef __EMSCRIPTEN__')
-      -- printf format for PRIxPTR generate warnings on emscripten, report to upstream later?
+      -- will be fixed in future upstream release
       emitter:add_ln('#pragma GCC diagnostic ignored "-Wformat"')
       emitter:add_ln('#endif')
-    end
+    end --luacov:enable
     emitter:add_ln('#endif')
   end
   if not context.pragmas.nocstaticassert then -- static assert macro

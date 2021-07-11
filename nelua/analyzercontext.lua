@@ -46,7 +46,7 @@ end
 
 function AnalyzerContext:choose_codename(name)
   local unitname = self.pragmas.unitname or self.state.unitname
-  name = name:gsub('%(','_'):gsub('[^%w_]','')
+  name = name:gsub('[^%w_]','_')
   if unitname and unitname ~= '' then
     unitname = unitname .. '_'
     if not stringer.startswith(name, unitname) then

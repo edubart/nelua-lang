@@ -48,7 +48,9 @@ local function run(argv, redirect)
     if initfunc then
       ok, err = pcall(initfunc)
     end
-    except.assertraisef(ok, tostring(err))
+    if not ok then
+      except.raisef('error while evaluation NELUA_INIT: %s', tostring(err))
+    end
   end
   --luacov:enable
 
@@ -196,8 +198,8 @@ function runner.run(argv, redirect)
 
   if profiler then --luacov:disable
     profiler.stop()
-    profiler.report({self=true, min_usage=0.1})
     profiler.report({incl=true, min_usage=0.1})
+    profiler.report({self=true, min_usage=0.1})
   end --luacov:enable
 
   return status

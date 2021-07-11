@@ -15,10 +15,8 @@ local CContext = class(VisitorContext)
 
 CContext._ccontext = true
 
-function CContext:_init(visitors, typevisitors, rootscope)
-  if not self.context then
-    VisitorContext._init(self, visitors, rootscope)
-  end
+function CContext:_init(visitors, typevisitors)
+  assert(self.context, 'initialization from a promotion expected')
   self.visitors = visitors
   self.typevisitors = typevisitors
   self.declarations = {}

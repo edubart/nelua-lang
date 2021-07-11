@@ -25,17 +25,10 @@ function tabler.ifind(t, val, idx)
 end
 
 -- Insert values into an array table.
-function tabler.insertvalues(t, pos, st)
-  if not st then
-    st = pos
-    pos = #t + 1
-  else
-    for i=#t,pos,-1 do
-      t[i+#st] = t[i]
-    end
-  end
+function tabler.insertvalues(t, st)
+  local pos = #t
   for i=1,#st do
-    t[pos + i - 1] = st[i]
+    t[pos + i] = st[i]
   end
   return t
 end

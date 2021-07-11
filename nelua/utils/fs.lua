@@ -112,7 +112,7 @@ E.g. `A//B`, `A/./B`, and `A/foo/../B` all become `A/B`
 function fs.normpath(p)
   -- split path into anchor and relative path.
   local anchor = ''
-   --luacov:disable
+  --luacov:disable
   if platform.is_windows then
     if p:find '^\\\\' then -- UNC
       anchor = '\\\\'
@@ -405,10 +405,10 @@ function fs.findbinfile(name)
     for d in os.getenv("PATH"):gmatch(path_pattern) do
       local binpath = fs.abspath(fs.join(d, name))
       if fs.isfile(binpath) then return binpath end
-      if platform.is_windows then
+      if platform.is_windows then --luacov:disable
         binpath = binpath .. '.exe'
         if fs.isfile(binpath) then return binpath end
-      end
+      end --luacov:enable
     end
   else --luacov:disable
     local binpath = fs.abspath(name)

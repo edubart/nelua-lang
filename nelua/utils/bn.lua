@@ -9,8 +9,8 @@ to mix operation between different integers ranges at compile time,
 and to do error checking on integer overflows.
 ]]
 
--- BN is actually a `bint` class created with 192bits and with some extensions.
-local bn = require 'nelua.thirdparty.bint'(192)
+-- BN is actually a `bint` class created with 160bits with some extensions.
+local bn = require 'nelua.thirdparty.bint'(160)
 
 local rex = require 'nelua.thirdparty.lpegrex'
 
@@ -118,39 +118,41 @@ end
 Convert to a string in decimal base considering fractional values,
 possibly using scientific notation for float numbers.
 ]]
-function bn.todecsci(v, maxdigits)
+function bn.todecsci(v, maxdigits, forcefract)
+  local s
   if bn.isbint(v) then
     -- in case of bints we can just convert to a string
-    return tostring(v)
-  end
-  -- force converting it to a number
-  v = tonumber(v)
-  local ty = math.type(v)
-  if ty == 'integer' then
-    -- in case of lua integers we can return it as string
-    return tostring(v)
-  elseif ty == 'float' then
-    local s
-    -- 64 bit floats can only be uniquely represented by 17 decimals digits
-    maxdigits = maxdigits or 17
-    -- try to use a small float representation if possible
-    if maxdigits >= 16 then
-      s = string.format('%.15g', v)
-      if tonumber(s) ~= v then
-        s = string.format('%.16g', v)
+    s = tostring(v)
+  else
+    -- force converting it to a number
+    v = tonumber(v)
+    local ty = math.type(v)
+    if ty == 'integer' then
+      -- in case of lua integers we can return it as string
+      s = tostring(v)
+    elseif ty == 'float' then
+      -- 64 bit floats can only be uniquely represented by 17 decimals digits
+      maxdigits = maxdigits or 17
+      -- try to use a small float representation if possible
+      if maxdigits >= 16 then
+        s = string.format('%.15g', v)
         if tonumber(s) ~= v then
-          s = string.format('%.'..maxdigits..'g', v)
+          s = string.format('%.16g', v)
+          if tonumber(s) ~= v then
+            s = string.format('%.'..maxdigits..'g', v)
+          end
         end
+      else
+        s = string.format('%.'..maxdigits..'g', v)
       end
-    else
-      s = string.format('%.'..maxdigits..'g', v)
+      forcefract = true
     end
-    -- make sure it has decimals
-    if s:find('^-?[0-9]+$') then
-      s = s..'.0'
-    end
-    return s
   end
+  -- make sure it has decimals
+  if forcefract and s:find('^-?[0-9]+$') then
+    s = s..'.0'
+  end
+  return s
 end
 
 -- Convert a number to a string in decimal base, it may have fraction or exponent.

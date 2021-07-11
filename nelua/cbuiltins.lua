@@ -672,7 +672,7 @@ function cbuiltins.calls.print(context, node)
     elseif argtype.is_float then
       context:ensure_builtins('snprintf', 'strspn', 'fwrite', 'stdout')
       local tyformat = cdefs.types_printf_format[argtype.codename]
-      node:assertraisef(tyformat, 'invalid type "%s" for printf format', argtype)
+      assert(tyformat, 'invalid type for printf format')
       defemitter:add_ln('len = snprintf(buff, sizeof(buff)-1, ',tyformat,', a',i,');')
       defemitter:add_indent_ln('if(buff[strspn(buff, "-0123456789")] == 0) {')
         defemitter:inc_indent()
@@ -690,11 +690,11 @@ function cbuiltins.calls.print(context, node)
       if priformat then
         context:ensure_builtin(priformat)
       end
-      node:assertraisef(tyformat, 'invalid type "%s" for printf format', argtype)
+      assert(tyformat, 'invalid type for printf format')
       defemitter:add_ln('fprintf(stdout, ', tyformat,', a',i,');')
-    elseif argtype.is_record then --luacov:disable
+    elseif argtype.is_record then
       node:raisef('cannot handle type "%s" in print, you could implement `__tostring` metamethod for it', argtype)
-    else
+    else --luacov:disable
       node:raisef('cannot handle type "%s" in print', argtype)
     end --luacov:enable
   end

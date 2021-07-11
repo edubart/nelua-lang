@@ -99,9 +99,15 @@ function Emitter:add_list(list, sep)
   if #list == 0 then return end
   sep = sep or ', '
   local chunks = self.chunks
-  for i=1,#list do
-    if i > 1 and #sep > 0 then chunks[#chunks+1] = sep end
-    self:add_value(list[i])
+  if #sep > 0 then
+    for i=1,#list do
+      if i > 1 then chunks[#chunks+1] = sep end
+      self:add_value(list[i])
+    end
+  else
+    for i=1,#list do
+      self:add_value(list[i])
+    end
   end
 end
 

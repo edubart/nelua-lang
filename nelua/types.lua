@@ -1183,8 +1183,7 @@ local function integral_bitwise_op_type(ltype, rtype, lattr, rattr)
   end
   local retype = types.promote_type_for_attrs(lattr, rattr)
   if not retype then
-    -- the largest type always wins
-    if rtype.size > ltype.size then
+    if rtype.size > ltype.size then -- the largest type always wins
       retype = rtype
     else
       retype = ltype
@@ -1990,7 +1989,7 @@ function RecordType:add_field(name, type, index)
   end
 end
 
--- Get a field from the record. (deprecated, use 'fields' directly)
+-- DEPRECATED, use 'fields' directly.
 function RecordType:get_field(name) --luacov:disable
   return self.fields[name]
 end --luacov:enable
@@ -2493,14 +2492,8 @@ They concept may try to convert types if no trivial match is found.
 function types.overload_concept(...)
   local acceptedtypes = {}
   for i=1,select('#', ...) do
-    local sym = select(i, ...)
-    local type
-    if traits.is_type(sym) then
-      type = sym
-    elseif traits.is_symbol(sym) then
-      assert(sym.type == primtypes.type)
-      type = sym.value
-    else
+    local type = select(i, ...)
+    if not traits.is_type(type) then
       return nil, string.format("in overload concept definition argument #%d: invalid type", i)
     end
     acceptedtypes[i] = type
@@ -2544,9 +2537,7 @@ end
 -- Like `overload_concept`, but just for `x` and `niltype`.
 function types.facultative_concept(x)
   local type, err = types.overload_concept(x, primtypes.niltype)
-  if not type then
-    return nil, err
-  end
+  if not type then return nil, err end
   type.is_facultative = true
   return type, err
 end
@@ -2616,11 +2607,7 @@ end
 function GenericType:__call(...)
   local ret, err = self:eval_type({...})
   if err then
-    if except.isexception(err) then
-      except.reraise(err)
-    else
-      error(err)
-    end
+    except.reraise(err)
   end
   return ret
 end

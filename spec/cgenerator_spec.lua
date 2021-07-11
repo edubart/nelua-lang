@@ -41,6 +41,9 @@ int nelua_main(int nelua_argc, char** nelua_argv) {
   return 0;
 }
 ]])
+  expect.run_error_c([[
+    return 1, 2
+  ]], "multiple returns in main is not supported")
 end)
 
 it("local variable", function()
@@ -2725,6 +2728,8 @@ it("print builtin", function()
     'a\t1\n'..
     'function: (null)\n'..
     'John\n')
+
+  expect.run_error_c([[local r: record{x: integer} print(r)]], "in print, you could implement")
 end)
 
 it("sizeof builtin", function()

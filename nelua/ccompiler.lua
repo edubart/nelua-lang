@@ -90,9 +90,11 @@ local function get_cc_defines(cc, ...)
   end
   fs.ewritefile(tmpname, table.concat(code))
   local cccmd = string.format('%s -x c -E -dM %s', cc, tmpname)
-  local ok, ret, stdout, ccinfo = executor.execex(cccmd)
+  local ok, ret, stdout, stderr = executor.execex(cccmd)
   fs.deletefile(tmpname)
-  except.assertraisef(ok and ret == 0, "failed to retrieve compiler information: %s", ccinfo or '')
+  if not ok or ret ~= 0 then
+    except.raisef("failed to retrieve compiler information: %s", stderr or '')
+  end
   return pegger.parse_c_defines(stdout)
 end
 get_cc_defines = memoize(get_cc_defines)
@@ -146,7 +148,6 @@ function compiler.generate_code(ccode, cfile, compileopts)
   local cflags = get_compiler_cflags(compileopts)
   local binfile = cfile:gsub('.c$','')
   local ccmd = get_compile_args(cfile, binfile, cflags)
-
   -- file heading
   local hash = stringer.hash(string.format("%s%s%s", ccode, ccinfo, ccmd))
   local heading = string.format(
@@ -155,14 +156,13 @@ function compiler.generate_code(ccode, cfile, compileopts)
 /* Compile hash: %s */
 ]], version.NELUA_VERSION, ccmd, hash)
   local sourcecode = heading .. ccode
-
   -- check if write is actually needed
   local current_sourcecode = fs.readfile(cfile)
   if not config.no_cache and current_sourcecode and current_sourcecode == sourcecode then
     if config.verbose then console.info("using cached generated " .. cfile) end
     return cfile
   end
-
+  -- create file
   fs.eensurefilepath(cfile)
   fs.ewritefile(cfile, sourcecode)
   if config.verbose then console.info("generated " .. cfile) end
@@ -208,12 +208,11 @@ function compiler.compile_static_library(objfile, outfile)
   local ar = config.cc:gsub('[a-z+]+$', 'ar')
   local arcmd = string.format('%s rcs %s %s', ar, outfile, objfile)
   if config.verbose then console.info(arcmd) end
-
   -- compile the file
   local success, status, _, stderr = executor.execex(arcmd)
-  except.assertraisef(success and status == 0,
-    "static library compilation for '%s' failed:\n%s", outfile, stderr or '')
-
+  if not success or status ~= 0 then --luacov:disable
+    except.raisef("static library compilation for '%s' failed:\n%s", outfile, stderr or '')
+  end --luacov:enable
   if stderr then
     io.stderr:write(stderr)
   end
@@ -225,7 +224,6 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   local binext, isexe = detect_binary_extension(outfile, ccinfo)
   local binfile = outfile
   if not stringer.endswith(binfile, binext) then binfile = binfile .. binext end
-
   -- if the file with that hash already exists skip recompiling it
   if not config.no_cache then
     local cfile_mtime = fs.getmodtime(cfile)
@@ -235,9 +233,9 @@ function compiler.compile_binary(cfile, outfile, compileopts)
       return binfile, isexe
     end
   end
-
+  -- ensure the directory exists for the binary file
   fs.eensurefilepath(binfile)
-
+  -- we may use an intermediary file
   local midfile = binfile
   if config.static then -- compile to an object first for static libraries
     midfile = binfile:gsub('.[a-z]+$', '.o')
@@ -245,21 +243,19 @@ function compiler.compile_binary(cfile, outfile, compileopts)
   -- generate compile command
   local cccmd = get_compile_args(cfile, midfile, cflags)
   if config.verbose then console.info(cccmd) end
-
   -- compile the file
   local success, status, _, stderr = executor.execex(cccmd)
-  except.assertraisef(success and status == 0,
-    "C compilation for '%s' failed:\n%s", binfile, stderr or '')
-
+  if not success or status ~= 0 then --luacov:disable
+    except.raisef("C compilation for '%s' failed:\n%s", binfile, stderr or '')
+  end --luacov:enable
   if stderr then
     io.stderr:write(stderr)
   end
-
+  -- compile static library
   if config.static then
     compiler.compile_static_library(midfile, binfile)
     fs.deletefile(midfile)
   end
-
   return binfile, isexe
 end
 
@@ -272,7 +268,7 @@ end --luacov:enable
 
 function compiler.get_run_command(binaryfile, runargs)
   binaryfile = fs.abspath(binaryfile)
-
+  -- run with a gdb?
   if config.debug then --luacov:disable
     local gdbver = compiler.get_gdb_version()
     if gdbver then
@@ -290,7 +286,7 @@ function compiler.get_run_command(binaryfile, runargs)
       return config.gdb, gdbargs
     end
   end --luacov:enable
-
+  -- choose the runner
   local exe, args
   if binaryfile:match('%.html$') then  --luacov:disable
     exe = 'emrun'

@@ -49,6 +49,8 @@ it("evaluate names", function()
     local b <codename 'b'>
     local c <codename 'c'>
   ]])
+
+  expect.analyze_error("local #|{}|#", "cannot convert preprocess value of lua type")
 end)
 
 it("parse if", function()
@@ -334,6 +336,8 @@ end)
 it("directives", function()
   expect.analyze_ast("## cinclude '<stdio.h>'")
   expect.analyze_error("## cinclude(false)", "invalid arguments for directive")
+  expect.analyze_error("## inject_statement(aster.Directive{'invalid', {}})",
+    "directive 'invalid' is undefined")
 end)
 
 it("call codes after inference", function()
