@@ -12,3 +12,9 @@ assert(d == 4)
 assert(lc == 3)
 ## def_ld()
 ## assert(ld == nil)
+
+## local metadep = require 'tests.require_test_metadep'
+local a = 0
+## metadep.inject_num_assign('a', 5)
+assert(a == 5)
+

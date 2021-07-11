@@ -355,6 +355,7 @@ typedefs.pp_methods = {
   after_analyze = true,
   after_inference = true,
   expr_macro = true,
+  require = true,
   -- DEPRECATED aliases
   inject_astnode = 'inject_statement',
   staticerror = 'static_error',

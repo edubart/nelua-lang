@@ -356,4 +356,35 @@ function PPContext:raisef(msg, ...)
   except.raise(msg, 2)
 end
 
+--[[
+This is just like Lua's require but it will use the preprocessor
+context environment to load the module, so all preprocessor
+methods are available in the required filed.
+]]
+function PPContext:require(modname)
+  local mod = package.loaded[modname] -- lookup for a loaded module
+  if mod then return mod end -- module already loaded? return it
+  local loader, loaderdata
+  local loaderrs = {}
+  local found = false
+  for _,searcher in ipairs(package.searchers) do
+    loader, loaderdata = searcher(modname)
+    local ty = type(loader)
+    if ty == 'function' then -- module found
+      found = true
+      break
+    elseif ty == 'string' then -- append search error
+      loaderrs[#loaderrs+1] = loader
+    end
+  end
+  if not found then -- module not found
+    error("module '"..modname.."' not found:\n\t"..table.concat(loaderrs, '\n\t'), 2)
+  end
+  debug.setupvalue(loader, 1, self.env) -- patch _ENV
+  mod = loader(modname, loaderdata) -- load the module
+  if mod == nil then mod = true end -- module set no value? use true as result
+  package.loaded[modname] = mod -- cache module
+  return mod, loaderdata
+end
+
 return PPContext

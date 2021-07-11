@@ -749,6 +749,16 @@ it("compiler information", function()
   ]]]=])
 end)
 
+it("require override", function()
+  expect.analyze_ast([=[##[[
+    local console = require 'nelua.utils.console'
+    assert(console)
+  ]]]=])
+  expect.analyze_error([=[##[[
+    require 'nelua.utils.invalid'
+  ]]]=], 'not found:')
+end)
+
 it("run brainfuck", function()
   expect.run('--generator c examples/brainfuck.nelua', 'Hello World!')
 end)
