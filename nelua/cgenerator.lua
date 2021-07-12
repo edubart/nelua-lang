@@ -4,7 +4,6 @@ local traits = require 'nelua.utils.traits'
 local stringer = require 'nelua.utils.stringer'
 local bn = require 'nelua.utils.bn'
 local cdefs = require 'nelua.cdefs'
-local pegger = require 'nelua.utils.pegger'
 local cbuiltins = require 'nelua.cbuiltins'
 local typedefs = require 'nelua.typedefs'
 local CContext = require 'nelua.ccontext'
@@ -12,9 +11,12 @@ local types = require 'nelua.types'
 local ccompiler = require 'nelua.ccompiler'
 local primtypes = typedefs.primtypes
 local luatype = type
-
 local izip2 = iters.izip2
 local emptynext = function() end
+
+local cgenerator = {}
+cgenerator.compiler = ccompiler
+
 local function izipargnodes(vars, argnodes)
   if #vars == 0 and #argnodes == 0 then return emptynext end
   local iter, ts, i = izip2(vars, argnodes)
@@ -175,6 +177,7 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
 end
 
 local typevisitors = {}
+cgenerator.typevisitors = typevisitors
 
 local function emit_type_attributes(decemitter, type)
   if type.aligned then
@@ -331,6 +334,7 @@ typevisitors[types.Type] = function(context, type)
 end
 
 local visitors = {}
+cgenerator.visitors = visitors
 
 function visitors.Number(context, node, emitter)
   local attr = node.attr
@@ -541,39 +545,33 @@ function visitors.Directive(context, node, emitter)
     context:ensure_cfile(args[1])
   elseif name == 'cemit' then
     local code = args[1]
-    if traits.is_string(code) and not stringer.endswith(code, '\n') then
-      code = code .. '\n'
-    end
     if traits.is_string(code) then
-      emitter:add(code)
+      emitter:add(stringer.ensurenewline(code))
     elseif traits.is_function(code) then
       code(emitter)
     end
   elseif name == 'cemitdecl' then
     local code = args[1]
-    if traits.is_string(code) and not stringer.endswith(code, '\n') then
-      code = code .. '\n'
-    end
-    -- actually add in the directives section (just above declarations section)
     if traits.is_string(code) then
-      context:add_directive(code)
+      code = stringer.ensurenewline(code)
     elseif traits.is_function(code) then
       local decemitter = CEmitter(context)
       code(decemitter)
-      context:add_directive(decemitter:generate())
+      code = decemitter:generate()
     end
+    assert(type(code) == 'string')
+    -- actually add in the directives section (just above declarations section)
+    context:add_directive(code)
   elseif name == 'cemitdef' then
     local code = args[1]
-    if traits.is_string(code) and not stringer.endswith(code, '\n') then
-      code = code .. '\n'
-    end
     if traits.is_string(code) then
-      context:add_definition(code)
+      code = stringer.ensurenewline(code)
     elseif traits.is_function(code) then
       local defemitter = CEmitter(context)
       code(defemitter)
-      context:add_definition(defemitter:generate())
+      code = defemitter:generate()
     end
+    context:add_definition(code)
   elseif name == 'cdefine' then
     context:ensure_define(args[1])
   elseif name == 'cflags' then
@@ -1109,7 +1107,7 @@ function visitors.Do(context, node, emitter)
   local blocknode = node[1]
   local doemitter = CEmitter(context, emitter.depth)
   doemitter:add(blocknode)
-  if doemitter:is_empty() then return end
+  if doemitter:empty() then return end
   emitter:add_indent_ln("{")
   emitter:add(doemitter:generate())
   emitter:add_indent_ln("}")
@@ -1351,14 +1349,17 @@ function visitors.FuncDef(context, node, emitter)
   local varscope, varnode, argnodes, blocknode = node[1], node[2], node[3], node[6]
 
   local qualifier = resolve_function_qualifier(context, attr)
-  local hookmain = attr.cimport and attr.codename == 'nelua_main'
-  if hookmain then
-    context.maindeclared = true
-  end
-  local declare = not attr.nodecl or hookmain
-  local define = not attr.cimport
+  local cimport = attr.cimport
+  local codename = attr.codename
+  local declare = not attr.nodecl
+  local define = not cimport
 
   if not declare and not define then -- nothing to do
+    return
+  end
+
+  if cimport and cdefs.builtins_headers[codename] then
+    context:ensure_builtin(codename)
     return
   end
 
@@ -1389,6 +1390,7 @@ function visitors.FuncDef(context, node, emitter)
 
   local funcscope = context:push_forked_scope(node)
   funcscope.functype = type
+  funcscope.funcsym = node.attr
   do
     decemitter:add('(')
     defemitter:add('(')
@@ -1413,14 +1415,19 @@ function visitors.FuncDef(context, node, emitter)
   context:pop_scope()
   implemitter:add_indent_ln('}')
   if declare then
-    context:add_declaration(decemitter:generate())
+    context:add_declaration(decemitter:generate(), attr.codename)
   end
   if define then
-    context:add_definition(defemitter:generate())
     if attr.entrypoint and not context.hookmain then
-      context:add_definition(function() return context.mainemitter:generate() end)
+      context.emitentrypoint = function(mainemitter)
+        context:add_definition(defemitter:generate())
+        context:add_definition(mainemitter:generate())
+        context:add_definition(implemitter:generate())
+      end
+    else
+      context:add_definition(defemitter:generate())
+      context:add_definition(implemitter:generate())
     end
-    context:add_definition(implemitter:generate())
   end
 end
 
@@ -1442,6 +1449,7 @@ function visitors.Function(context, node, emitter)
 
   local funcscope = context:push_forked_scope(node)
   funcscope.functype = type
+  funcscope.funcsym = node.attr
   do
     decemitter:add('(')
     defemitter:add('(')
@@ -1592,138 +1600,111 @@ function visitors.BinaryOp(context, node, emitter)
   if surround then emitter:add(')') end
 end
 
-local generator = {}
-
-local function emit_features_setup(context)
+-- Emits C pragmas to disable harmless C warnings that the generated code may trigger.
+function cgenerator.emit_warning_pragmas(context)
+  if context.pragmas.nocwarnpragas then return end
   local emitter = CEmitter(context)
-  local ccinfo = ccompiler.get_cc_info()
-  if not context.pragmas.nocwarnpragmas then -- warnings
-    emitter:add_ln('#ifdef __GNUC__')
-    -- throw error on implicit declarations
-    do
-      emitter:add_ln('#ifndef __cplusplus')
-        emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
-        emitter:add_ln('#pragma GCC diagnostic error   "-Wimplicit-int"')
-      -- importing C functions can cause this warn
-        emitter:add_ln('#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
-      emitter:add_ln('#else')
-        emitter:add_ln('#pragma GCC diagnostic ignored "-Wwrite-strings"')
-      emitter:add_ln('#endif')
-    end
-    -- C zero initialization for anything
-    emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-braces"')
-    emitter:add_ln('#pragma GCC diagnostic ignored "-Wmissing-field-initializers"')
-    -- the code generator may generate always true/false expressions for integers
-    emitter:add_ln('#pragma GCC diagnostic ignored "-Wtype-limits"')
-    -- the code generator may generate unused variables, parameters, functions
-    emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-parameter"')
-    do
-      emitter:add_ln('#if defined(__clang__)')
-      emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused"')
-      emitter:add_ln('#else')
-      emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-variable"')
-      emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-function"')
-      emitter:add_ln('#pragma GCC diagnostic ignored "-Wunused-but-set-variable"')
-      -- for ignoring const* on pointers
-      emitter:add_ln('#ifndef __cplusplus')
-        emitter:add_ln('#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
-      emitter:add_ln('#endif')
-      emitter:add_ln('#endif')
-    end
-    if ccinfo.is_emscripten then --luacov:disable
-      emitter:add_ln('#ifdef __EMSCRIPTEN__')
-      -- will be fixed in future upstream release
-      emitter:add_ln('#pragma GCC diagnostic ignored "-Wformat"')
-      emitter:add_ln('#endif')
-    end --luacov:enable
+  emitter:add_ln('#ifdef __GNUC__')
+  emitter:add_ln('  #ifndef __cplusplus')
+  -- disallow implicit declarations
+  emitter:add_ln('    #pragma GCC diagnostic error   "-Wimplicit-function-declaration"')
+  emitter:add_ln('    #pragma GCC diagnostic error   "-Wimplicit-int"')
+  -- importing C functions can cause this warn
+  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
+  emitter:add_ln('  #else')
+  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wwrite-strings"')
+  emitter:add_ln('  #endif')
+  -- C zero initialization for anything
+  emitter:add_ln('  #pragma GCC diagnostic ignored "-Wmissing-braces"')
+  emitter:add_ln('  #pragma GCC diagnostic ignored "-Wmissing-field-initializers"')
+  -- may generate always true/false expressions for integers
+  emitter:add_ln('  #pragma GCC diagnostic ignored "-Wtype-limits"')
+  -- may generate unused variables, parameters, functions
+  emitter:add_ln('  #pragma GCC diagnostic ignored "-Wunused-parameter"')
+  emitter:add_ln('  #ifdef __clang__')
+  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused"')
+  emitter:add_ln('  #else')
+  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused-variable"')
+  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused-function"')
+  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused-but-set-variable"')
+  emitter:add_ln('    #ifndef __cplusplus')
+  -- for ignoring const* on pointers
+  emitter:add_ln('      #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"')
+  emitter:add_ln('    #endif')
+  emitter:add_ln('  #endif')
+  emitter:add_ln('#endif')
+  if ccompiler.get_cc_info().is_emscripten then --luacov:disable
+    emitter:add_ln('#ifdef __EMSCRIPTEN__')
+    -- will be fixed in future upstream release
+    emitter:add_ln('  #pragma GCC diagnostic ignored "-Wformat"')
     emitter:add_ln('#endif')
+  end --luacov:enable
+  if not context.pragmas.nocstaticassert then -- check pointer size
+    context:ensure_builtin('nelua_static_assert')
   end
-  if not context.pragmas.nocstaticassert then -- static assert macro
-    emitter:add([[#if __STDC_VERSION__ >= 201112L
-#define nelua_static_assert _Static_assert
-#else
-#define nelua_static_assert(x, y)
-#endif
-]])
-    emitter:add_ln('nelua_static_assert(sizeof(void*) == ', primtypes.pointer.size,
-                ', "Nelua and C disagree on pointer size");')
-  end
-  context:add_directive(emitter:generate())
+  context:add_directive(emitter:generate(), 'warnings_pragmas') -- defines all the above pragmas
 end
 
-local function emit_main(ast, context)
-  local mainemitter = CEmitter(context, 0)
-  context.mainemitter = mainemitter
+-- Emits C features checks, to make sure the Nelua compiler and the C compiler agrees on features.
+function cgenerator.emit_feature_checks(context)
+  if context.pragmas.nocstaticassert then return end
+  local emitter = CEmitter(context)
+  context:ensure_builtin('nelua_static_assert')
+  -- it's important that pointer size is on agreement, otherwise primitives sizes will wrong
+  emitter:add_ln('nelua_static_assert(sizeof(void*) == ',primtypes.pointer.size,
+              ', "Nelua and C disagree on pointer size");')
+  context:add_directive(emitter:generate(), 'features_checks')
+end
 
-  local emptymain = false
-  if not context.entrypoint or context.hookmain then
-    mainemitter:add_value("int nelua_main(int nelua_argc, char** nelua_argv) {\n")
-    local startpos = mainemitter:get_pos()
-    context:traverse_node(ast, mainemitter)
-    emptymain = not context.hookmain and mainemitter:get_pos() == startpos
-    if not emptymain then -- main has statements
-      local blocknode = context.ast
-      if #blocknode == 0 or blocknode[#blocknode].tag ~= 'Return' then
-        -- main() must always return an integer
-        mainemitter:inc_indent()
-        mainemitter:add_indent_ln("return 0;")
-        mainemitter:dec_indent()
-      end
-      mainemitter:add_ln("}")
-
-      if not context.maindeclared then
-        context:add_declaration('static int nelua_main(int nelua_argc, char** nelua_argv);\n')
-      end
-    else -- empty main, we can skip `nelua_main` usage
-      mainemitter.chunks[startpos] = ''
+-- Emits `nelua_main`.
+function cgenerator.emit_nelua_main(context, ast, emitter)
+  assert(ast.tag == 'Block') -- ast is expected to be a Block
+  emitter:add_text("int nelua_main(int nelua_argc, char** nelua_argv) {\n") -- begin block
+  local startpos = emitter:get_pos() -- save current emitter position
+  context:traverse_node(ast, emitter) -- emit ast statements
+  if context.hookmain or emitter:get_pos() ~= startpos then -- main is used or statements were added
+    if #ast == 0 or ast[#ast].tag ~= 'Return' then -- last statement is not a return
+      emitter:add_indent_ln("  return 0;") -- ensures that an int is always returned
     end
-  else
-    context:traverse_node(ast, mainemitter)
+    emitter:add_ln("}") -- end bock
+    context:add_declaration('static int nelua_main(int nelua_argc, char** nelua_argv);\n', 'nelua_main')
+  else -- empty main, we can skip `nelua_main` usage
+    emitter:trim(startpos-1) -- revert text added for begin block
   end
+end
 
+-- Emits C `main`.
+function cgenerator.emit_entrypoint(context, ast)
+  local emitter = CEmitter(context)
+  -- if custom entry point is set while `nelua_main` is not hooked,
+  -- then we can skip `nelua_main` and `main` declarations
+  if context.entrypoint and not context.hookmain then
+    context:traverse_node(ast, emitter) -- emit ast statements
+    context.emitentrypoint(emitter) -- inject ast statements into the custom entry point
+    return
+  end
+  -- need to define `nelua_main`, it will be called from the entry point
+  cgenerator.emit_nelua_main(context, ast, emitter)
+  -- if no custom entry point is set, then use `main` as the default entry point
   if not context.entrypoint and not context.pragmas.noentrypoint then
-    mainemitter:add_indent_ln('int main(int argc, char** argv) {')
-    mainemitter:inc_indent()
-    if not emptymain then
-      mainemitter:add_indent_ln('return nelua_main(argc, argv);')
-    else
-      mainemitter:add_indent_ln('return 0;')
+    emitter:add_indent_ln('int main(int argc, char** argv) {') emitter:inc_indent() -- begin block
+    if context:is_declared('nelua_main') then -- `nelua_main` is declared
+      emitter:add_indent_ln('return nelua_main(argc, argv);') -- return `nelua_main` results
+    else -- `nelua_main` is not be declared, probably it was empty
+      emitter:add_indent_ln('return 0;') -- ensures that an int is always returned
     end
-    mainemitter:dec_indent()
-    mainemitter:add_indent_ln('}')
+    emitter:dec_indent() emitter:add_indent_ln('}') -- end block
   end
-
-  if not context.entrypoint or context.hookmain then
-    context:add_definition(mainemitter:generate())
-  end
+  context:add_definition(emitter:generate()) -- defines `nelua_main` and/or `main`
 end
 
-generator.template = [[
-/* ------------------------------ DIRECTIVES -------------------------------- */
-$(directives)
-/* ------------------------------ DECLARATIONS ------------------------------ */
-$(declarations)
-/* ------------------------------ DEFINITIONS ------------------------------- */
-$(definitions)
-]]
-
-function generator.generate(ast, context)
-  context:promote(CContext, visitors, typevisitors)
-
-  emit_features_setup(context)
-  emit_main(ast, context)
-
-  context:evaluate_templates()
-
-  local code = pegger.substitute(generator.template, {
-    directives = table.concat(context.directives):sub(1, -2),
-    declarations = table.concat(context.declarations):sub(1, -2),
-    definitions = table.concat(context.definitions):sub(1, -2)
-  })
-
-  return code, context.compileopts
+-- Generates C code for the analyzed context `context`.
+function cgenerator.generate(context)
+  context:promote(CContext, visitors, typevisitors) -- promote AnalyzerContext to CContext
+  cgenerator.emit_warning_pragmas(context) -- silent some C warnings
+  cgenerator.emit_feature_checks(context) -- check C primitive sizes
+  cgenerator.emit_entrypoint(context, context.ast) -- emit `main` and `nelua_main`
+  return context:concat_chunks(cdefs.template) -- concatenate emitted chunks
 end
 
-generator.compiler = ccompiler
-
-return generator
+return cgenerator

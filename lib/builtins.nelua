@@ -30,12 +30,15 @@ global function print(...: varargs): void <builtin> end
 
 --[[
 Terminate the application abnormally with message `message`.
+This function never returns.
+
 Use to raise unrecoverable errors.
 ]]
 global function panic(message: string): void <noreturn,builtin> end
 
 --[[
 Raises an error with message `message`.
+This function never returns.
 
 Currently this is an alias to `panic` and terminates the application,
 but in the future, in case the language get an exception system,

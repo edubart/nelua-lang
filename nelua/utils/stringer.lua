@@ -96,4 +96,12 @@ function stringer.insertafter(s, matchtext, text)
   end
 end
 
+-- Ensures string `s` ends with a new line.
+function stringer.ensurenewline(s)
+  if not stringer.endswith(s, '\n') then
+    return s..'\n'
+  end
+  return s
+end
+
 return stringer

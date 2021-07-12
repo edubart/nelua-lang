@@ -167,19 +167,19 @@ end
 
 function expect.generate_lua(nelua_code, expected_code)
   expected_code = expected_code or nelua_code
-  local ast, context = expect.analyze_ast(nelua_code, nil, 'lua')
+  local _, context = expect.analyze_ast(nelua_code, nil, 'lua')
   local generated_code
   pretty_input_onerror(nelua_code, function()
-    generated_code = assert(lua_generator.generate(ast, context))
+    generated_code = assert(lua_generator.generate(context))
   end)
   expect.same_string(stringer.rtrim(expected_code), stringer.rtrim(generated_code))
 end
 
 function expect.generate_c(nelua_code, expected_code, ispattern)
-  local ast, context = expect.analyze_ast(nelua_code, nil, 'c')
+  local _, context = expect.analyze_ast(nelua_code, nil, 'c')
   local generated_code
   pretty_input_onerror(nelua_code, function()
-    generated_code = assert(c_generator.generate(ast, context))
+    generated_code = assert(c_generator.generate(context))
   end)
   if not expected_code then expected_code = nelua_code end
   if traits.is_string(expected_code) then
@@ -205,18 +205,18 @@ function expect.run_error_c(nelua_code, output, expect_success)
 end
 
 function expect.lua_gencode_equals(code, expected_code)
-  local ast, context = expect.analyze_ast(code, nil, 'lua')
-  local expected_ast, expected_context = expect.analyze_ast(expected_code)
-  local generated_code = assert(lua_generator.generate(ast, context))
-  local expected_generated_code = assert(lua_generator.generate(expected_ast, expected_context))
+  local _, context = expect.analyze_ast(code, nil, 'lua')
+  local _, expected_context = expect.analyze_ast(expected_code)
+  local generated_code = assert(lua_generator.generate(context))
+  local expected_generated_code = assert(lua_generator.generate(expected_context))
   expect.same_string(expected_generated_code, generated_code)
 end
 
 function expect.c_gencode_equals(code, expected_code)
-  local ast, context = expect.analyze_ast(code, nil, 'c')
-  local expected_ast, expected_context = expect.analyze_ast(expected_code, nil, 'c')
-  local generated_code = assert(c_generator.generate(ast, context))
-  local expected_generated_code = assert(c_generator.generate(expected_ast, expected_context))
+  local _, context = expect.analyze_ast(code, nil, 'c')
+  local _, expected_context = expect.analyze_ast(expected_code, nil, 'c')
+  local generated_code = assert(c_generator.generate(context))
+  local expected_generated_code = assert(c_generator.generate(expected_context))
   expect.same_string(expected_generated_code, generated_code)
 end
 

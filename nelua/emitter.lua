@@ -175,7 +175,7 @@ function Emitter:get_pos()
 end
 
 -- Checks if the chunk list is empty.
-function Emitter:is_empty()
+function Emitter:empty()
   return #self.chunks == 0
 end
 

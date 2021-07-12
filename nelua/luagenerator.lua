@@ -380,12 +380,12 @@ end
 
 local generator = {}
 
-function generator.generate(ast, context)
+function generator.generate(context)
   context:promote(LuaContext, visitors)
   context.builtins = luabuiltins.builtins
   local emitter = Emitter(context, -1)
   context.emitter = emitter
-  context:traverse_node(ast, emitter)
+  context:traverse_node(context.ast, emitter)
   return emitter:generate()
 end
 

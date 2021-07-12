@@ -124,7 +124,7 @@ local function run(argv, redirect)
   if config.analyze then return 0 end
 
   -- generate the code
-  local code, compileopts = generator.generate(ast, context)
+  local code = generator.generate(context)
 
   if config.timing then
     console.debugf('generate     %.1f ms', timer:elapsedrestart())
@@ -145,7 +145,7 @@ local function run(argv, redirect)
   if not compiler.has_source_extension(sourcefile) then
     sourcefile = sourcefile .. compiler.source_extension
   end
-  compiler.generate_code(code, sourcefile, compileopts)
+  compiler.generate_code(code, sourcefile, context.compileopts)
 
   local dorun = not config.generate_code and not config.compile_binary
   local dobinarycompile = config.compile_binary or dorun
@@ -154,7 +154,7 @@ local function run(argv, redirect)
   local binaryfile, isexe
   if dobinarycompile then
     local binfile = config.output or outcacheprefix
-    binaryfile, isexe = compiler.compile_binary(sourcefile, binfile, compileopts)
+    binaryfile, isexe = compiler.compile_binary(sourcefile, binfile, context.compileopts)
 
     if config.timing then
       console.debugf('compile      %.1f ms', timer:elapsedrestart())

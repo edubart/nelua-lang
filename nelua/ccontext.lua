@@ -1,20 +1,35 @@
+--[[
+C Context.
+
+The C context is used to traverse an AST while generating C code,
+it works similar to the analyzer context, visiting a specialized function for each node tag.
+
+It contains many functions to assist generating C code.
+]]
+
 local VisitorContext = require 'nelua.visitorcontext'
 local class = require 'nelua.utils.class'
 local cdefs = require 'nelua.cdefs'
 local cbuiltins = require 'nelua.cbuiltins'
 local traits = require 'nelua.utils.traits'
 local CEmitter = require 'nelua.cemitter'
-local errorer = require 'nelua.utils.errorer'
 local stringer = require 'nelua.utils.stringer'
 local fs = require 'nelua.utils.fs'
 local tabler = require 'nelua.utils.tabler'
+local pegger = require 'nelua.utils.pegger'
 local config = require 'nelua.configer'.get()
 local luatype = type
 
+-- The C context class.
 local CContext = class(VisitorContext)
 
+-- Used to quickly check whether a table is a C context.
 CContext._ccontext = true
 
+--[[
+Initializes a C context context using `visitors` table to visit AST nodes,
+and `typevisitors` table to visit types classes.
+]]
 function CContext:_init(visitors, typevisitors)
   assert(self.context, 'initialization from a promotion expected')
   self.visitors = visitors
@@ -35,7 +50,6 @@ function CContext:_init(visitors, typevisitors)
   self.quotedliterals = {}
   self.uniquecounters = {}
   self.printcache = {}
-  self.typenames = {}
   self.usedbuiltins = {}
   self.builtins = cbuiltins
 end
@@ -66,104 +80,113 @@ function CContext:genuniquename(kind, fmt)
   return string.format(fmt, kind, count)
 end
 
-function CContext:typecodename(type)
-  assert(type._type)
-  local visitor
-
-  -- search visitor for any inherited type class
-  local mt = getmetatable(type)
-  repeat
-    local mtindex = rawget(mt, '__index')
-    if not mtindex then break end
-    visitor = self.typevisitors[mtindex]
-    mt = getmetatable(mtindex)
-    if not mt then break end
-  until visitor
-
-  if visitor then
-    if not self:is_declared(type.codename) then
-      self.declarations[type.codename] = true
-      if config.check_type_shape then
-        assert(type:shape())
-      end
-      if type.cinclude then -- include headers before declaring
-        self:ensure_include(type.cinclude)
-      end
-      -- only declare when needed
-      if not type.nodecl then
-        visitor(self, type)
-      elseif type.ctypedef then
-        local kind
-        if type.is_record then kind = 'struct'
-        elseif type.is_union then kind = 'union'
-        elseif type.is_enum then kind = 'enum'
-        end
-        if kind then
-          local ctype = traits.is_string(type.ctypedef) and type.ctypedef or type.codename
-          local code = 'typedef '..kind..' '..ctype..' '..type.codename..';\n'
-          table.insert(self.declarations, code)
-        end
-      end
-    end
-  end
-  return type.codename
-end
-
-function CContext:ensure_type(type)
-  local typenames = self.typenames
-  local typename = typenames[type]
-  if typename then
-    return typename
-  end
-  typename = cdefs.primitive_typenames[type.codename]
-  if luatype(typename) == 'table' then -- has include
-    self:ensure_include(typename[2])
-    typename = typename[1]
-  elseif not typename then
-    typename = self:typecodename(type)
-  end
-  typenames[type] = typename
-  return typename
-end
-
 function CContext:funcrettypename(functype)
   return self.typevisitors.FunctionReturnType(self, functype)
 end
 
+function CContext:add_directive(code)
+  local directives = self.directives
+  directives[#directives+1] = code
+end
+
 function CContext:add_declaration(code, name)
+  local declarations = self.declarations
   if name then
-    assert(not self.declarations[name])
+    assert(not declarations[name], name)
     self.declarations[name] = true
   end
-  table.insert(self.declarations, code)
+  declarations[#declarations+1] = code
 end
 
 function CContext:add_definition(code, name)
+  local definitions = self.definitions
   if name then
-    assert(not self.definitions[name])
-    self.definitions[name] = true
+    assert(not definitions[name])
+    definitions[name] = true
   end
-  table.insert(self.definitions, code)
+  definitions[#definitions+1] = code
 end
 
 function CContext:is_declared(name)
   return self.declarations[name] == true
 end
 
+-- Ensures type `type` is declared and returns its C typedef name.
+function CContext:ensure_type(type)
+  local codename = type.codename
+  local declarations = self.declarations
+  local typename = declarations[codename]
+  if typename then -- already declared
+    return typename
+  end
+  -- translate codename for primitive types
+  typename = cdefs.primitive_typenames[codename]
+  if typename then
+    if luatype(typename) == 'table' then -- has include
+      self:ensure_include(typename[2])
+      typename = typename[1]
+    end
+    declarations[codename] = typename -- mark as declared
+    return typename
+  end
+  declarations[codename] = codename -- mark as declared
+  -- search visitor for any inherited type class
+  local typevisitors = self.typevisitors
+  local mt, visitor = getmetatable(type)
+  repeat
+    local mtindex = rawget(mt, '__index')
+    if not mtindex then break end
+    visitor = typevisitors[mtindex]
+    mt = getmetatable(mtindex)
+    if not mt then break end
+  until visitor
+  -- visit the declaration function
+  if visitor then
+    if config.check_type_shape then
+      assert(type:shape())
+    end
+    local cinclude = type.cinclude
+    if cinclude then -- include headers before declaring
+      self:ensure_include(cinclude)
+    end
+    if not type.nodecl then -- only declare when needed
+      visitor(self, type)
+    elseif type.ctypedef then
+      local kind
+      if type.is_record then kind = 'struct'
+      elseif type.is_union then kind = 'union'
+      elseif type.is_enum then kind = 'enum'
+      end
+      if kind then
+        local ctype = luatype(type.ctypedef) == 'string' and type.ctypedef or codename
+        local code = 'typedef '..kind..' '..ctype..' '..codename..';\n'
+        declarations[#declarations+1] = code
+      end
+    end
+  end
+  return codename
+end
+
+--[[
+Ensures C header file `filename` is included when compiling.
+If the file name is not an absolute path and not between `<>` or `""`,
+then looks for files in the current source file directory.
+]]
 function CContext:ensure_include(name)
+  -- normalize include name
   local incname = name
   local searchinc = false
   if not name:match('^["<].*[>"]$') then
     incname = '<'..name..'>'
     searchinc = true
   end
+  -- add include directive
   local directives = self.directives
   if directives[incname] then return end
   directives[incname] = true
   directives[#directives+1] = '#include '..incname..'\n'
-
+  -- make sure to add the include directory for that file
   if searchinc and not fs.isabs(name) then
-    -- make sure to add the include directory for that file
     local dirpath = self:get_visiting_directory()
     if dirpath then
       local filepath = fs.join(dirpath, name)
@@ -175,84 +198,92 @@ function CContext:ensure_include(name)
   end
 end
 
-function CContext:ensure_cfile(name)
+--[[
+Ensures C source file `filename` is compiled and linked when compiling the application binary.
+If the file name is not an absolute path, then looks for files in the current source file directory.
+]]
+function CContext:ensure_cfile(filename)
   -- search the file relative to the current source file
-  if not fs.isabs(name) then
+  if not fs.isabs(filename) then
     local dirpath = self:get_visiting_directory()
     if dirpath then
-      local filepath = fs.join(dirpath, name)
+      local filepath = fs.join(dirpath, filename)
       if fs.isfile(filepath) then
-        name = filepath
+        filename = filepath
       end
     end
   end
-
+  -- add cfile to compile options
   local cfiles = self.cfiles
-  if cfiles[name] then return end
-
-  cfiles[name] = true
-  cfiles[#cfiles+1] = name
-  table.insert(self.compileopts.cfiles, name)
+  if cfiles[filename] then return end
+  cfiles[filename] = true
+  cfiles[#cfiles+1] = filename
+  table.insert(self.compileopts.cfiles, filename)
 end
 
-function CContext:ensure_linklib(name)
+-- Ensures library `libname` is marked be linked when compiling the application binary.
+function CContext:ensure_linklib(libname)
   local linklibs = self.linklibs
-  if linklibs[name] then return end
-
-  linklibs[name] = true
-  linklibs[#linklibs+1] = name
-  table.insert(self.compileopts.linklibs, name)
+  if linklibs[libname] then return end
+  linklibs[libname] = true
+  linklibs[#linklibs+1] = libname
+  table.insert(self.compileopts.linklibs, libname)
 end
 
-function CContext:ensure_define(name)
+-- Ensures `defname` is defined in the C preprocessor.
+function CContext:ensure_define(defname)
   local directives = self.directives
-  if directives[name] then return end
-  directives[name] = true
-  directives[#directives+1] = '#define '..name..'\n'
+  if directives[defname] then return end
+  directives[defname] = true
+  directives[#directives+1] = '#define '..defname..'\n'
 end
 
-function CContext:add_directive(code)
-  table.insert(self.directives, code)
-end
-
+--[[
+Ensures builtin `name` is declared and defined and returns the defined builtin name.
+Arguments `...` are forwarded to the function that defines the builtin.
+The returned name is the `name` with a suffix depending on the extra arguments.
+]]
 function CContext:ensure_builtin(name, ...)
   if select('#',...) == 0 and self.usedbuiltins[name] then
     return name
   end
   local func = self.builtins[name]
-  errorer.assertf(func, 'builtin "%s" not defined', name)
-  if func then
-    local newname = func(self, ...)
-    if newname then
-      name = newname
-    end
-  end
+  assert(func, 'builtin not defined')
+  local newname = func(self, ...)
+  name = newname or name
   self.usedbuiltins[name] = true
   return name
 end
 
+-- Like `ensure_builtin`, but accept many builtins (it's a shortcut).
 function CContext:ensure_builtins(...)
   for i=1,select('#',...) do
     self:ensure_builtin((select(i, ...)))
   end
 end
 
-function CContext:define_builtin(name, code, section)
-  if not stringer.endswith(code, '\n') then
-    code = code..'\n'
-  end
-  if not section or section == 'declarations' then self:add_declaration(code)
-  elseif section == 'definitions' then self:add_definition(code)
-  elseif section == 'directives' then self:add_directive(code)
-  end
+-- Defines C builtin macro `name` with source code `code`.
+function CContext:define_builtin_macro(name, code)
+  assert(not self.usedbuiltins[name])
+  self:add_directive(stringer.ensurenewline(code))
   self.usedbuiltins[name] = true
 end
 
+-- Defines C builtin declaration `name` with source code `code`.
+function CContext:define_builtin_decl(name, code)
+  assert(not self.usedbuiltins[name])
+  self:add_declaration(stringer.ensurenewline(code))
+  self.usedbuiltins[name] = true
+end
+
+-- Defines C builtin function `name` with source code `code`.
 function CContext:define_function_builtin(name, qualifier, ret, args, body)
   if self.usedbuiltins[name] then return end
+  -- build return part
   if traits.is_type(ret) then
     ret = self:ensure_type(ret)
   end
+  -- build arguments part
   if type(args) == 'table' then
     local emitter = CEmitter(self)
     emitter:add_value('(')
@@ -268,6 +299,10 @@ function CContext:define_function_builtin(name, qualifier, ret, args, body)
     emitter:add_value(')')
     args = emitter:generate()
   end
+  -- build qualifier part
+  if qualifier and qualifier ~= '' then
+    self:ensure_builtin(qualifier)
+  end
   if not self.pragmas.nostatic then
     if qualifier == '' then
       qualifier = 'static'
@@ -278,29 +313,30 @@ function CContext:define_function_builtin(name, qualifier, ret, args, body)
   if qualifier ~= '' then
     qualifier = qualifier..' '
   end
+  -- build head part
   local head = ret..' '..name..args
+  -- build body part
+  if type(body) == 'table' then
+    local emitter = CEmitter(self)
+    emitter:add(table.unpack(body))
+    body = emitter:generate()
+  end
+  -- add function declaration and definition
   self:add_declaration(qualifier..head..';\n')
   self:add_definition(head..' '..body..'\n')
   self.usedbuiltins[name] = true
 end
 
-function CContext:emitter_join(...)
-  local emitter = CEmitter(self)
-  emitter:add(...)
-  return emitter:generate()
-end
-
-local function eval_late_templates(templates)
-  for i,v in ipairs(templates) do
-    if type(v) == 'function' then
-      templates[i] = v()
-    end
-  end
-end
-
-function CContext:evaluate_templates()
-  eval_late_templates(self.declarations)
-  eval_late_templates(self.definitions)
+--[[
+Concatenate all generated code chunks into the final generated C source code.
+Called when finalizing the code generation.
+]]
+function CContext:concat_chunks(template)
+  return pegger.substitute(template, {
+    directives = table.concat(self.directives):sub(1, -2),
+    declarations = table.concat(self.declarations):sub(1, -2),
+    definitions = table.concat(self.definitions):sub(1, -2)
+  })
 end
 
 return CContext

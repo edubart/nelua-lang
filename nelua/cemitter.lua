@@ -1,7 +1,7 @@
 --[[
 C emitter class.
 
-This class extends the emitter class with utilities to generating C code.
+This class extends the emitter class with utilities to assist generating C code.
 ]]
 
 local class = require 'nelua.utils.class'
@@ -255,7 +255,7 @@ function CEmitter:add_long_string_literal(val, ascstring)
   stringliterals[val] = varname
   local decemitter = CEmitter(context)
   decemitter:add_indent('static char ', varname, '[', size+1, '] = ')
-  if val:find("[^%g%s\a\b]") then -- binary string
+  if val:find("[^%g%s\a\b\x1b]") then -- binary string
     decemitter:add('{')
     for i=1,size do
       if i % 32 == 1 then

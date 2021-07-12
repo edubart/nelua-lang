@@ -221,7 +221,7 @@ do -- io.output/io.write/io.writef
   assert(io.write('test', 2) == true)
   assert(io.stdout:write('!!\n') == true)
   assert(io.stdout:close())
-  assert(io.stdout:destroy())
+  io.stdout:destroy()
   assert(io.output(stdout) == stdout)
   assert(io.stdout == stdout)
   assert(io.stdout:isopen())
@@ -247,7 +247,7 @@ do -- io.input/io.read
   assert(io.stdin:isopen())
   assert_string_eq(io.read(), 'test2!!')
   assert(io.stdin:close())
-  assert(io.stdin:destroy())
+  io.stdin:destroy()
   assert(io.input(stdin) == stdin)
   assert(io.stdin:isopen())
 end

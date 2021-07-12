@@ -226,6 +226,16 @@ cdefs.reserverd_keywords = {
   ['unix'] = true,
 }
 
+cdefs.template = [[
+/* ------------------------------ DIRECTIVES -------------------------------- */
+$(directives)
+/* ------------------------------ DECLARATIONS ------------------------------ */
+$(declarations)
+/* ------------------------------ DEFINITIONS ------------------------------- */
+$(definitions)
+]]
+
+
 function cdefs.quotename(name)
   if cdefs.reserverd_keywords[name] then
     return name .. '_'
