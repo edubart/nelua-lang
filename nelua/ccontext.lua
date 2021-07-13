@@ -54,6 +54,13 @@ function CContext:_init(visitors, typevisitors)
   self.builtins = cbuiltins
 end
 
+function CContext:genuniquename(kind)
+  local count = self.uniquecounters[kind] or 0
+  count = count + 1
+  self.uniquecounters[kind] = count
+  return string.format('%s_%d', kind, count)
+end
+
 function CContext:declname(attr)
   if attr.declname then
     return attr.declname
@@ -63,21 +70,11 @@ function CContext:declname(attr)
   if not attr.nodecl and not attr.cimport then
     declname = cdefs.quotename(declname)
     if attr.shadows and not attr.staticstorage then
-      declname = self:genuniquename(declname, '%s_%d')
+      declname = self:genuniquename(declname)
     end
   end
   attr.declname = declname
   return declname
-end
-
-function CContext:genuniquename(kind, fmt)
-  local count = self.uniquecounters[kind] or 0
-  count = count + 1
-  self.uniquecounters[kind] = count
-  if not fmt then
-    fmt = '_%s%d'
-  end
-  return string.format(fmt, kind, count)
 end
 
 function CContext:funcrettypename(functype)

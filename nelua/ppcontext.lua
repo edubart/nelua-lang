@@ -232,6 +232,7 @@ See also [higienic macros](https://en.wikipedia.org/wiki/Hygienic_macro).
 function PPContext:hygienize(func)
   local context = self.context
   local scope = context.scope
+  local funcscope = context.state.funcscope
   local checkpoint = scope:make_checkpoint()
   local statnodes = self.statnodes
   local addindex = #statnodes+1
@@ -243,11 +244,13 @@ function PPContext:hygienize(func)
     scope:push_checkpoint(checkpoint)
     local oldscope = context.scope
     context:push_scope(scope)
+    context:push_forked_state{funcscope=funcscope}
     context:push_pragmas(pragmas)
     -- evaluate func
     local rets = table.pack(func(...))
     -- restore current state
     context:pop_pragmas()
+    context:pop_state()
     context:pop_scope()
     scope:pop_checkpoint()
     self:pop_statnodes()

@@ -39,6 +39,11 @@ function Emitter:_init(context, depth)
   self.context = context -- current context
 end
 
+-- Creates an empty emitter using same context and depth.
+function Emitter:fork()
+  return getmetatable(self)(self.context, self.depth)
+end
+
 -- Increments indentation by 1.
 function Emitter:inc_indent()
   local depth = self.depth + 1
@@ -157,6 +162,8 @@ function Emitter:add_value(value)
       self:add_type(value)
     elseif value._symbol then -- a symbol
       self:add_text(self.context:declname(value))
+    elseif value._emitter then -- another emitter
+      self:merge(value)
     else -- a list
       self:add_list(value)
     end
@@ -180,10 +187,20 @@ function Emitter:empty()
 end
 
 -- Remove all chunks from `pos+1` up to the last chunk.
-function Emitter:trim(pos)
+function Emitter:rollback(pos)
   local chunks = self.chunks
   while #chunks > pos do
     chunks[#chunks] = nil
+  end
+end
+
+-- Adds all chunks from emitter `src`.
+function Emitter:merge(src)
+  local srcchunks = src.chunks
+  local chunks = self.chunks
+  local init = #chunks
+  for i=1,#srcchunks do
+    chunks[init+i] = srcchunks[i]
   end
 end
 

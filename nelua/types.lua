@@ -1981,6 +1981,7 @@ function RecordType:update_fields()
     self.size = nil
     self.bitsize = nil
     self.align = nil
+    self.is_empty = nil
   end
 end
 
@@ -2134,6 +2135,7 @@ function UnionType:update_fields()
     self.size = nil
     self.bitsize = nil
     self.align = nil
+    self.is_empty = nil
   end
 end
 

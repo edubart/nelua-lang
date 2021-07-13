@@ -251,7 +251,7 @@ function CEmitter:add_long_string_literal(val, ascstring)
     end
     return
   end
-  varname = context:genuniquename('strlit')
+  varname = context.rootscope:generate_name('nelua_strlit')
   stringliterals[val] = varname
   local decemitter = CEmitter(context)
   decemitter:add_indent('static char ', varname, '[', size+1, '] = ')
@@ -359,6 +359,59 @@ function CEmitter:add_literal(valattr)
   else --luacov:disable
     errorer.errorf('not implemented: `CEmitter:add_literal` for valtype `%s`', valtype)
   end --luacov:enable
+end
+
+function CEmitter:add_qualified_declaration(attr, type, name)
+  local context = self.context
+  local pragmas = context.pragmas
+  if attr.cinclude then
+    context:ensure_include(attr.cinclude)
+  end
+  -- storage specifiers
+  if attr.cimport and attr.codename ~= 'nelua_main' then
+    self:add(context:ensure_builtin('nelua_cimport'), ' ')
+  elseif attr.cexport then
+    self:add(context:ensure_builtin('nelua_cexport'), ' ')
+  elseif attr.static or
+    (attr.staticstorage and not attr.entrypoint and not attr.nostatic and not pragmas.nostatic) then
+    self:add('static ')
+  elseif attr.register then
+    self:add('register ')
+  end
+  -- function specifiers
+  if attr.inline and not pragmas.nocinlines then
+    self:add(context:ensure_builtin('nelua_inline'), ' ')
+  elseif attr.noinline and not pragmas.nocinlines then
+    self:add(context:ensure_builtin('nelua_noinline'), ' ')
+  end
+  if attr.noreturn then
+    self:add(context:ensure_builtin('nelua_noreturn'), ' ')
+  end
+  -- type qualifiers
+  if attr.const then
+    if traits.is_type(type) and (type.is_pointer or type.is_scalar or type.is_boolean) then
+       -- only allow const on some basic types
+      self:add('const ')
+    end
+  end
+  if attr.volatile then
+    --TODO: __volatile__?
+    self:add('volatile ')
+  end
+  if attr.cqualifier then
+    self:add(attr.cqualifier, ' ')
+  end
+  self:add(type, ' ')
+  -- late type qualifiers
+  if attr.restrict then
+    --TODO: use restrict/__restrict or __restrict__ ?
+    self:add('__restrict ')
+  end
+  -- TODO: _Atomic, __asm, _Alignas?
+  if attr.cattribute then
+    self:add(string.format('__attribute__((%s)) ', attr.cattribute))
+  end
+  self:add(name)
 end
 
 return CEmitter

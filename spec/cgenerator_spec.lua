@@ -134,7 +134,7 @@ it("string", function()
     "
     f(STR)
     f(STR)
-  ]==], [[static char _strlit1[161] = "AAAA]])
+  ]==], [[static char nelua_strlit_1[161] = "AAAA]])
 end)
 
 it("boolean", function()
@@ -448,15 +448,15 @@ it("operation on comptime variables", function()
   expect.generate_c([[
     local a <comptime>, b <comptime> = 1, 2
     local c <const> = (@int32)(a * b)
-  ]], "static int32_t c = 2;")
+  ]], "static const int32_t c = 2;")
   expect.generate_c([[
     local a <comptime> = 0xffffffffffffffff_u
     local c <const> = a + a
-  ]], "static uint64_t c = 18446744073709551614U;")
+  ]], "static const uint64_t c = 18446744073709551614U;")
   expect.generate_c([[
     local a <comptime> = 0x7fffffffffffffff
     local c <const> = a + a
-  ]], "static int64_t c = -2;")
+  ]], "static const int64_t c = -2;")
   expect.generate_c([[
     local huge1: float64 = #[math.huge]#
     local huge2: float64 = #[-math.huge]#
@@ -497,11 +497,11 @@ end)
 
 it("multiple assignment", function()
   expect.generate_c("local a,b,x,y=1,2,3,4; a, b = x, y", {
-    "_asgntmp1 = x;", "_asgntmp2 = y;",
-    "a = _asgntmp1;", "b = _asgntmp2;" })
+    "_asgntmp_1 = x;", "_asgntmp_2 = y;",
+    "a = _asgntmp_1;", "b = _asgntmp_2;" })
   --expect.generate_c("local a: table, x:integer, y:integer; a.b, a[b] = x, y", {
-  --  "_asgntmp1 = x;", "_asgntmp2 = y;",
-  --  "a.b = _asgntmp1;", "a[b] = _asgntmp2;" })
+  --  "_asgntmp_1 = x;", "_asgntmp_2 = y;",
+  --  "a.b = _asgntmp_1;", "a[b] = _asgntmp_2;" })
   expect.run_c([[
     local a, b = 1,2
     a, b = b, a
@@ -765,9 +765,9 @@ it("function multiple returns", function()
     local a, b = f()
     local c = f()
   end]], {
-    "int64_t a = _ret%d+%.r1;",
-    "bool b = _ret%d+%.r2;",
-    "int64_t c = %({%s+nlmulret_[%w_]+ _ret%d = f.*_ret%d.r1;%s+}%)",
+    "int64_t a = _asgnret_%d+%.r1;",
+    "bool b = _asgnret_%d+%.r2;",
+    "int64_t c = %({%s+nlmulret_[%w_]+ _callret_%d = f.*_callret_%d.r1;%s+}%)",
   }, true)
   expect.run_c([[
     local function f(): (integer, boolean) return 1, true end
@@ -1451,7 +1451,7 @@ end)
 it("binary conditional operators", function()
   expect.generate_c("local a: pointer, b: pointer; do return a or b end",  [[({
       void* t1_ = a;
-      void* t2_ = {0};
+      void* t2_ = NULL;
       bool cond_ = (t1_ != NULL);
       if(!cond_) {
         t2_ = b;
@@ -1460,13 +1460,13 @@ it("binary conditional operators", function()
     })]])
   expect.generate_c("local a: pointer, b: pointer; return a and b",  [[({
     void* t1_ = a;
-    void* t2_ = {0};
+    void* t2_ = NULL;
     bool cond_ = (t1_ != NULL);
     if(cond_) {
       t2_ = b;
       cond_ = (t2_ != NULL);
     }
-    cond_ ? t2_ : (void*){0};
+    cond_ ? t2_ : NULL;
   })]])
   expect.generate_c([[
     local a: boolean, b: integer, c: number
@@ -2597,7 +2597,7 @@ it("annotations", function()
   expect.generate_c("local huge: number <cimport'HUGE_VAL',cinclude'<math.h>',nodecl>", "include <math.h>")
   expect.generate_c("local a: int64 <volatile, codename 'a'>", "volatile int64_t a")
   expect.generate_c("local R <nickname 'RR'> = @record{x:integer} local r: R", "struct RR {")
-  expect.generate_c("local a: int64 <register>",
+  expect.generate_c("do local a: int64 <register> end",
     (ccompiler.get_cc_info().is_cpp and "" or "register ").."int64_t a")
   expect.generate_c("local a: pointer <restrict>", "void* __restrict a")
   expect.generate_c("local a: int64 <nodecl>", "")
@@ -2605,7 +2605,7 @@ it("annotations", function()
   expect.generate_c("local a: int64 <noinit>; a = 2", {"a;", "a = 2;"})
   expect.generate_c("local a: int64 <cexport>", "nelua_cexport int64_t a;")
   expect.generate_c("do local a <static> = 1 end", "static int64_t a = 1;", true)
-  expect.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t a __attribute__((vector_size(16)))")
+  expect.generate_c("local a: int64 <cattribute 'vector_size(16)'>", "int64_t __attribute__((vector_size(16))) a")
   expect.generate_c("local a: number <cqualifier 'in'> = 1", "in double a = 1.0;")
   expect.generate_c("local R <aligned(16)> = @record{x: integer}; local r: R",
     {"__attribute__((aligned(16)));", "sizeof(R) == 16"})
@@ -2618,7 +2618,7 @@ it("annotations", function()
   expect.generate_c("local function f() <nodecl> end", "")
   expect.generate_c("local function f() <nosideeffect> end", "")
   expect.generate_c("local function f() <cqualifier 'volatile'> end", "volatile void")
-  expect.generate_c("local function f() <cattribute 'noinline'> end", "__attribute__((noinline)) void")
+  expect.generate_c("local function f() <cattribute 'noinline'> end", "void __attribute__((noinline))")
   expect.generate_c(
     "local function puts(s: cstring): int32 <cimport'puts'> end puts('')",
     "int32_t puts(char* s);")
@@ -2779,10 +2779,10 @@ it("assert builtin", function()
   config.pragmas.noabort = false
   expect.generate_c(
     "assert(true)",
-    "_nelua_assert_line1(true)")
+    "nelua_assert_line_1(true)")
   expect.generate_c(
     "assert(true, 'assertion')",
-    '_nelua_assert_line1(true, ')
+    'nelua_assert_line_1(true, ')
   expect.run_c([[
     assert(true)
     assert(true, 'assertion')

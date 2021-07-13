@@ -166,7 +166,7 @@ function visitors.Varargs(context, node)
     if context.scope.is_topscope then
       node:raisef("cannot unpack varargs in this context")
     end
-    local mulargtype = types.get_multiple_argtype_from_attrs(context.state.funcsym.argattrs)
+    local mulargtype = types.get_multiple_argtype_from_attrs(context.state.funcscope.funcsym.argattrs)
     if not mulargtype then
       node:raisef("cannot unpack varargs in this context")
     elseif mulargtype.is_cvarargs then
@@ -598,6 +598,7 @@ function visitors.Annotation(context, node, opts)
     objattr.size = nil
     objattr.bitsize = nil
     objattr.align = nil
+    objattr.is_empty = nil
   elseif name == 'using' then
     assert(objattr._type)
     if not objattr.is_enum then
@@ -650,7 +651,7 @@ function visitors.Id(context, node)
   if symbol.deprecated then
     node:warnf("use of deprecated symbol '%s'", name)
   end
-  symbol:add_use_by(state.funcsym)
+  symbol:add_use_by(state.funcscope.funcsym)
   if symbol.type then
     node.done = symbol
   else
@@ -1439,7 +1440,7 @@ local function visitor_Call(context, node, argnodes, calleetype, calleesym, call
         attr.type = calleetype:get_return_type(1)
         sideeffect = calleetype.sideeffect
         if calleetype.symbol then
-          calleetype.symbol:add_use_by(context.state.funcsym)
+          calleetype.symbol:add_use_by(context.state.funcscope.funcsym)
         end
       end
     elseif calleetype.is_table then -- table call (allowed for tables with metamethod __index)
@@ -1633,7 +1634,7 @@ local function visitor_RecordType_FieldIndex(context, node, objtype, name)
     node:warnf("use of deprecated metafield '%s'", name)
   end
   if not infuncdef then
-    symbol:add_use_by(context.state.funcsym)
+    symbol:add_use_by(context.state.funcscope.funcsym)
   end
   node.done = symbol
   return symbol
@@ -1838,7 +1839,6 @@ function visitors.If(context, node)
   local done = true
   for i=1,#ifpairs,2 do
     local ifcondnode, ifblocknode = ifpairs[i], ifpairs[i+1]
-    ifcondnode.attr.inconditional = true
     context:traverse_node(ifcondnode, {desiredtype=primtypes.boolean})
     context:traverse_node(ifblocknode)
     done = done and ifblocknode.done and ifcondnode.done
@@ -1896,7 +1896,6 @@ end
 
 function visitors.While(context, node)
   local condnode, blocknode = node[1], node[2]
-  condnode.attr.inconditional = true
   context:traverse_node(condnode, {desiredtype=primtypes.boolean})
   local scope = context:push_forked_cleaned_scope(node)
   scope.is_loop = true
@@ -1907,7 +1906,6 @@ end
 
 function visitors.Repeat(context, node)
   local blocknode, condnode = node[1], node[2]
-  condnode.attr.inconditional = true
   local scope = context:push_forked_cleaned_scope(node)
   scope.is_loop = true
   context:traverse_node(blocknode)
@@ -2863,9 +2861,10 @@ function visitors.FuncDef(context, node, opts)
   repeat
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
-    context:push_forked_state{funcscope = funcscope, funcsym = symbol}
+    funcscope.funcsym = symbol
     funcscope.is_function = true
     funcscope.is_returnbreak = true
+    context:push_forked_state{funcscope = funcscope}
 
     -- traverse the function arguments
     argattrs, ispolyparent = visitor_function_arguments(context, symbol, selftype, argnodes, not polysymbol)
@@ -2944,9 +2943,10 @@ function visitors.Function(context, node)
   repeat
     -- enter in the function scope
     funcscope = context:push_forked_cleaned_scope(node)
-    context:push_forked_state{funcscope = funcscope, funcsym = symbol}
+    funcscope.funcsym = symbol
     funcscope.is_function = true
     funcscope.is_returnbreak = true
+    context:push_forked_state{funcscope = funcscope}
 
     -- traverse the function arguments
     argattrs, ispolyparent = visitor_function_arguments(context, symbol, false, argnodes, true)
@@ -3243,6 +3243,7 @@ function analyzer.analyze(context)
     context.pragmas.unitname = pegger.filename_to_unitname(ast.src.name)
     ast.attr.filename = fs.abspath(ast.src.name)
   end
+  context:push_forked_state{funcscope=context.rootscope}
   -- phase 1 traverse: preprocess
   preprocessor.preprocess(context, ast)
   -- phase 2 traverse: infer and check types
@@ -3277,6 +3278,7 @@ function analyzer.analyze(context)
   for _,callback in ipairs(context.afterinfers) do
     callback()
   end
+  context:pop_state()
   -- restore old analyzing context
   analyzer.current_context = old_current_context
   return context

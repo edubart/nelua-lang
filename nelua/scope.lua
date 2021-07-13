@@ -71,7 +71,9 @@ function Scope.create_root(context, node)
     children = {},
     labels = {},
     symbols = {},
+    usednames = {},
     is_root = true,
+    is_function = true,
     is_returnbreak = true,
   }, Scope)
   setmetatable(rootscope.symbols, {
@@ -91,6 +93,7 @@ function Scope:fork(node)
     is_topscope = self.is_root,
     children = {},
     labels = {},
+    usednames = {},
     symbols = setmetatable({}, {__index = self.symbols})
   }, Scope)
   local children = self.children
@@ -141,6 +144,16 @@ function Scope:get_up_return_scope()
   return upreturnscope
 end
 
+-- Return the first upper scope that would process loop statements.
+function Scope:get_up_loop_scope()
+  local uploopscope = self.uploopscope
+  if not uploopscope then
+    uploopscope = self:get_up_scope_of_kind('is_loop')
+    self.uploopscope = uploopscope
+  end
+  return uploopscope
+end
+
 local function iterate_up_scopes_next(initscope, scope)
   if scope then
     return scope.parent
@@ -179,6 +192,26 @@ end
 
 function Scope:add_label(label)
   self.labels[label.name] = label
+end
+
+function Scope:add_defer_block(blocknode)
+  local deferblocks = self.deferblocks
+  if not deferblocks then
+    deferblocks = {}
+    self.deferblocks = deferblocks
+  end
+  deferblocks[#deferblocks+1] = blocknode
+end
+
+--[[
+Generates a unique identifier name prefixed with `name` in the current scope.
+Returns "name_N" where N is an integral number that starts for 1,
+and increments every generate call.
+]]
+function Scope:generate_name(name)
+  local count = (self.usednames[name] or 0) + 1
+  self.usednames[name] = count
+  return name..'_'..count
 end
 
 function Scope:make_checkpoint()

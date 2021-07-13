@@ -553,7 +553,7 @@ end
 function cbuiltins.calls.assert(context, node)
   local builtintype = node.attr.builtintype
   local argattrs = builtintype.argattrs
-  local funcname = context:genuniquename('nelua_assert_line')
+  local funcname = context.rootscope:generate_name('nelua_assert_line')
   local emitter = CEmitter(context)
   context:ensure_builtins('fwrite', 'stderr', 'nelua_unlikely', 'nelua_abort')
   local nargs = #argattrs
@@ -625,7 +625,7 @@ function cbuiltins.calls.require(context, node, emitter)
   context:pop_scope()
   context:pop_state()
   if emitter:get_pos() == lastpos then
-    emitter:trim(bracepos)
+    emitter:rollback(bracepos)
   else
     emitter:add_indent_ln('}')
   end
@@ -645,7 +645,7 @@ function cbuiltins.calls.print(context, node)
   if funcname then
     return funcname
   end
-  funcname = context:genuniquename('nelua_print')
+  funcname = context.rootscope:generate_name('nelua_print')
   -- function declaration
   local decemitter = CEmitter(context)
   decemitter:add('void ', funcname, '(')
@@ -756,8 +756,7 @@ These builtins overrides binary operations.
 cbuiltins.operators = {}
 
 -- Helper to check if two nodes are comparing a signed integral with an unsigned integral.
-local function needs_signed_unsigned_comparision(lnode, rnode)
-  local lattr, rattr = lnode.attr, rnode.attr
+local function needs_signed_unsigned_comparision(lattr, rattr)
   local ltype, rtype = lattr.type, rattr.type
   if not ltype.is_integral or not rtype.is_integral or
      ltype.is_unsigned == rtype.is_unsigned or
@@ -769,8 +768,7 @@ local function needs_signed_unsigned_comparision(lnode, rnode)
 end
 
 -- Helper to implement some binary operators.
-local function operator_binary_op(op, _, node, emitter, lnode, rnode, lname, rname)
-  local lattr, rattr = lnode.attr, rnode.attr
+local function operator_binary_op(op, _, node, emitter, lattr, rattr, lname, rname)
   local ltype, rtype = lattr.type, rattr.type
   if ltype.is_integral and rtype.is_integral and
      ltype.is_unsigned ~= rtype.is_unsigned and
@@ -813,19 +811,18 @@ function cbuiltins.operators.mul(...)
 end
 
 -- Implementation of division operator (`/`).
-function cbuiltins.operators.div(context, node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
+function cbuiltins.operators.div(context, node, emitter, lattr, rattr, lname, rname)
+  local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   if not rtype.is_float and not ltype.is_float and type.is_float then
     emitter:add(lname, ' / (', type, ')', rname)
   else
-    operator_binary_op('/', context, node, emitter, lnode, rnode, lname, rname)
+    operator_binary_op('/', context, node, emitter, lattr, rattr, lname, rname)
   end
 end
 
 -- Implementation of floor division operator (`//`).
-function cbuiltins.operators.idiv(context, node, emitter, lnode, rnode, lname, rname)
-  local lattr, rattr = lnode.attr, rnode.attr
+function cbuiltins.operators.idiv(context, node, emitter, lattr, rattr, lname, rname)
   local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   if ltype.is_float or rtype.is_float then
@@ -835,25 +832,24 @@ function cbuiltins.operators.idiv(context, node, emitter, lnode, rnode, lname, r
     emitter:add_builtin('nelua_idiv_', type, not context.pragmas.nochecks)
     emitter:add('(', lname, ', ', rname, ')')
   else
-    operator_binary_op('/', context, node, emitter, lnode, rnode, lname, rname)
+    operator_binary_op('/', context, node, emitter, lattr, rattr, lname, rname)
   end
 end
 
 -- Implementation of truncate division operator (`///`).
-function cbuiltins.operators.tdiv(context, node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
+function cbuiltins.operators.tdiv(context, node, emitter, lattr, rattr, lname, rname)
+  local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   if ltype.is_float or rtype.is_float then
     emitter:add_builtin(type.is_float32 and 'truncf' or 'trunc')
     emitter:add('(', lname, ' / ', rname, ')')
   else
-    operator_binary_op('/', context, node, emitter, lnode, rnode, lname, rname)
+    operator_binary_op('/', context, node, emitter, lattr, rattr, lname, rname)
   end
 end
 
 -- Implementation of floor division remainder operator (`%`).
-function cbuiltins.operators.mod(context, node, emitter, lnode, rnode, lname, rname)
-  local lattr, rattr = lnode.attr, rnode.attr
+function cbuiltins.operators.mod(context, node, emitter, lattr, rattr, lname, rname)
   local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   if ltype.is_float or rtype.is_float then
@@ -863,25 +859,24 @@ function cbuiltins.operators.mod(context, node, emitter, lnode, rnode, lname, rn
     emitter:add_builtin('nelua_imod_', type, not context.pragmas.nochecks)
     emitter:add('(', lname, ', ', rname, ')')
   else
-    operator_binary_op('%', context, node, emitter, lnode, rnode, lname, rname)
+    operator_binary_op('%', context, node, emitter, lattr, rattr, lname, rname)
   end
 end
 
 -- Implementation of truncate division remainder operator (`%%%`).
-function cbuiltins.operators.tmod(context, node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
+function cbuiltins.operators.tmod(context, node, emitter, lattr, rattr, lname, rname)
+  local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   if ltype.is_float or rtype.is_float then
     emitter:add_builtin(type.is_float32 and 'fmodf' or 'fmod')
     emitter:add('(', lname, ', ', rname, ')')
   else
-    operator_binary_op('%', context, node, emitter, lnode, rnode, lname, rname)
+    operator_binary_op('%', context, node, emitter, lattr, rattr, lname, rname)
   end
 end
 
 -- Implementation of logical shift left operator (`<<`).
-function cbuiltins.operators.shl(_, node, emitter, lnode, rnode, lname, rname)
-  local lattr, rattr = lnode.attr, rnode.attr
+function cbuiltins.operators.shl(_, node, emitter, lattr, rattr, lname, rname)
   local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   assert(ltype.is_integral and rtype.is_integral)
@@ -895,8 +890,7 @@ function cbuiltins.operators.shl(_, node, emitter, lnode, rnode, lname, rname)
 end
 
 -- Implementation of logical shift right operator (`>>`).
-function cbuiltins.operators.shr(_, node, emitter, lnode, rnode, lname, rname)
-  local lattr, rattr = lnode.attr, rnode.attr
+function cbuiltins.operators.shr(_, node, emitter, lattr, rattr, lname, rname)
   local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   assert(ltype.is_integral and rtype.is_integral)
@@ -910,8 +904,7 @@ function cbuiltins.operators.shr(_, node, emitter, lnode, rnode, lname, rname)
 end
 
 -- Implementation of arithmetic shift right operator (`>>>`).
-function cbuiltins.operators.asr(_, node, emitter, lnode, rnode, lname, rname)
-  local lattr, rattr = lnode.attr, rnode.attr
+function cbuiltins.operators.asr(_, node, emitter, lattr, rattr, lname, rname)
   local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   assert(ltype.is_integral and rtype.is_integral)
@@ -925,18 +918,18 @@ function cbuiltins.operators.asr(_, node, emitter, lnode, rnode, lname, rname)
 end
 
 -- Implementation of pow operator (`^`).
-function cbuiltins.operators.pow(_, node, emitter, lnode, rnode, lname, rname)
-  local type, ltype, rtype = node.attr.type, lnode.attr.type, rnode.attr.type
+function cbuiltins.operators.pow(_, node, emitter, lattr, rattr, lname, rname)
+  local type, ltype, rtype = node.attr.type, lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
   emitter:add_builtin(type.is_float32 and 'powf' or 'pow')
   emitter:add('(', lname, ', ', rname, ')')
 end
 
 -- Implementation of less than operator (`<`).
-function cbuiltins.operators.lt(_, _, emitter, lnode, rnode, lname, rname)
-  local ltype, rtype = lnode.attr.type, rnode.attr.type
+function cbuiltins.operators.lt(_, _, emitter, lattr, rattr, lname, rname)
+  local ltype, rtype = lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if needs_signed_unsigned_comparision(lnode, rnode) then
+  if needs_signed_unsigned_comparision(lattr, rattr) then
     emitter:add_builtin('nelua_lt_', ltype, rtype)
     emitter:add('(', lname, ', ', rname, ')')
   else
@@ -945,10 +938,10 @@ function cbuiltins.operators.lt(_, _, emitter, lnode, rnode, lname, rname)
 end
 
 -- Implementation of greater than operator (`>`).
-function cbuiltins.operators.gt(_, _, emitter, lnode, rnode, lname, rname)
-  local ltype, rtype = lnode.attr.type, rnode.attr.type
+function cbuiltins.operators.gt(_, _, emitter, lattr, rattr, lname, rname)
+  local ltype, rtype = lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if needs_signed_unsigned_comparision(lnode, rnode) then
+  if needs_signed_unsigned_comparision(lattr, rattr) then
     emitter:add_builtin('nelua_lt_', rtype, ltype)
     emitter:add('(', rname, ', ', lname, ')')
   else
@@ -957,10 +950,10 @@ function cbuiltins.operators.gt(_, _, emitter, lnode, rnode, lname, rname)
 end
 
 -- Implementation of less or equal than operator (`<=`).
-function cbuiltins.operators.le(_, _, emitter, lnode, rnode, lname, rname)
-  local ltype, rtype = lnode.attr.type, rnode.attr.type
+function cbuiltins.operators.le(_, _, emitter, lattr, rattr, lname, rname)
+  local ltype, rtype = lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if needs_signed_unsigned_comparision(lnode, rnode) then
+  if needs_signed_unsigned_comparision(lattr, rattr) then
     emitter:add('!')
     emitter:add_builtin('nelua_lt_', rtype, ltype)
     emitter:add('(', rname, ', ', lname, ')')
@@ -970,10 +963,10 @@ function cbuiltins.operators.le(_, _, emitter, lnode, rnode, lname, rname)
 end
 
 -- Implementation of greater or equal than operator (`>=`).
-function cbuiltins.operators.ge(_, _, emitter, lnode, rnode, lname, rname)
-  local ltype, rtype = lnode.attr.type, rnode.attr.type
+function cbuiltins.operators.ge(_, _, emitter, lattr, rattr, lname, rname)
+  local ltype, rtype = lattr.type, rattr.type
   assert(ltype.is_arithmetic and rtype.is_arithmetic)
-  if needs_signed_unsigned_comparision(lnode, rnode) then
+  if needs_signed_unsigned_comparision(lattr, rattr) then
     emitter:add('!')
     emitter:add_builtin('nelua_lt_', ltype, rtype)
     emitter:add('(', lname, ', ', rname, ')')
@@ -983,8 +976,7 @@ function cbuiltins.operators.ge(_, _, emitter, lnode, rnode, lname, rname)
 end
 
 -- Implementation of equal operator (`==`).
-function cbuiltins.operators.eq(_, _, emitter, lnode, rnode, lname, rname)
-  local lattr, rattr = lnode.attr, rnode.attr
+function cbuiltins.operators.eq(_, _, emitter, lattr, rattr, lname, rname)
   local ltype, rtype = lattr.type, rattr.type
   if (ltype.is_string and (rtype.is_string or rtype.is_cstring)) or
      (ltype.is_cstring and rtype.is_string) then
@@ -1012,7 +1004,7 @@ function cbuiltins.operators.eq(_, _, emitter, lnode, rnode, lname, rname)
       emitter:add_builtin('memcmp')
       emitter:add('(&a, &b, sizeof(', ltype, ')) == 0; })')
     end
-  elseif needs_signed_unsigned_comparision(lnode, rnode) then
+  elseif needs_signed_unsigned_comparision(lattr, rattr) then
     if ltype.is_unsigned then
       ltype, rtype, lname, rname = rtype, ltype, rname, lname -- swap
     end
@@ -1034,8 +1026,7 @@ function cbuiltins.operators.eq(_, _, emitter, lnode, rnode, lname, rname)
 end
 
 -- Implementation of not equal operator (`~=`).
-function cbuiltins.operators.ne(_, _, emitter, lnode, rnode, lname, rname)
-  local lattr, rattr = lnode.attr, rnode.attr
+function cbuiltins.operators.ne(_, _, emitter, lattr, rattr, lname, rname)
   local ltype, rtype = lattr.type, rattr.type
   if (ltype.is_string and (rtype.is_string or rtype.is_cstring)) or
      (ltype.is_cstring and rtype.is_string) then
@@ -1065,7 +1056,7 @@ function cbuiltins.operators.ne(_, _, emitter, lnode, rnode, lname, rname)
       emitter:add_builtin('memcmp')
       emitter:add('(&a, &b, sizeof(', ltype, ')) != 0; })')
     end
-  elseif needs_signed_unsigned_comparision(lnode, rnode) then
+  elseif needs_signed_unsigned_comparision(lattr, rattr) then
     if ltype.is_unsigned then
       ltype, rtype, lname, rname = rtype, ltype, rname, lname -- swap
     end
@@ -1088,63 +1079,63 @@ function cbuiltins.operators.ne(_, _, emitter, lnode, rnode, lname, rname)
 end
 
 -- Implementation of conditional OR operator (`or`).
-cbuiltins.operators["or"] = function(_, _, emitter, lnode, rnode, lname, rname)
-  emitter:add_val2boolean(lname, lnode.attr.type)
+cbuiltins.operators["or"] = function(_, _, emitter, lattr, rattr, lname, rname)
+  emitter:add_val2boolean(lname, lattr.type)
   emitter:add(' || ')
-  emitter:add_val2boolean(rname, rnode.attr.type)
+  emitter:add_val2boolean(rname, rattr.type)
 end
 
 -- Implementation of conditional AND operator (`and`).
-cbuiltins.operators["and"] = function(_, _, emitter, lnode, rnode, lname, rname)
-  emitter:add_val2boolean(lname, lnode.attr.type)
+cbuiltins.operators["and"] = function(_, _, emitter, lattr, rattr, lname, rname)
+  emitter:add_val2boolean(lname, lattr.type)
   emitter:add(' && ')
-  emitter:add_val2boolean(rname, rnode.attr.type)
+  emitter:add_val2boolean(rname, rattr.type)
 end
 
 -- Implementation of not operator (`not`).
-cbuiltins.operators["not"] = function(_, _, emitter, argnode)
+cbuiltins.operators["not"] = function(_, _, emitter, argattr, argname)
   emitter:add('!')
-  emitter:add_val2boolean(argnode)
+  emitter:add_val2boolean(argname, argattr.type)
 end
 
 -- Implementation of unary minus operator (`-`).
-function cbuiltins.operators.unm(_, _, emitter, argnode)
-  assert(argnode.attr.type.is_arithmetic)
-  emitter:add('-', argnode)
+function cbuiltins.operators.unm(_, _, emitter, argattr, argname)
+  assert(argattr.type.is_arithmetic)
+  emitter:add('-', argname)
 end
 
 -- Implementation of bitwise not operator (`~`).
-function cbuiltins.operators.bnot(_, _, emitter, argnode)
-  assert(argnode.attr.type.is_integral)
-  emitter:add('~', argnode)
+function cbuiltins.operators.bnot(_, _, emitter, argattr, argname)
+  assert(argattr.type.is_integral)
+  emitter:add('~', argname)
 end
 
 -- Implementation of reference operator (`&`).
-function cbuiltins.operators.ref(_, _, emitter, argnode)
-  assert(argnode.attr.lvalue)
-  emitter:add('&', argnode)
+function cbuiltins.operators.ref(_, _, emitter, argattr, argname)
+  assert(argattr.lvalue)
+  emitter:add('&', argname)
 end
 
 -- Implementation of dereference operator (`$`).
-function cbuiltins.operators.deref(_, _, emitter, argnode)
-  assert(argnode.attr.type.is_pointer)
-  emitter:add_deref(argnode)
+function cbuiltins.operators.deref(_, _, emitter, argattr, argname)
+  local type = argattr.type
+  assert(type.is_pointer)
+  emitter:add_deref(argname, type)
 end
 
 -- Implementation of length operator (`#`).
-function cbuiltins.operators.len(_, _, emitter, argnode)
-  local argattr = argnode.attr
+function cbuiltins.operators.len(_, node, emitter, argattr, argname)
   local type = argattr.type
   if type.is_string then
-    emitter:add('((',primtypes.isize,')(', argnode, ').size)')
+    emitter:add('((',primtypes.isize,')(', argname, ').size)')
   elseif type.is_cstring then
     emitter:add('((',primtypes.isize,')')
     emitter:add_builtin('strlen')
-    emitter:add('(', argnode, '))')
+    emitter:add('(', argname, '))')
   elseif type.is_type then
     emitter:add('sizeof(', argattr.value, ')')
   else --luacov:disable
-    argnode:raisef('not implemented')
+    node:raisef('not implemented')
   end --luacov:enable
 end
 

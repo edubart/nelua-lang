@@ -51,7 +51,7 @@ end
 function VisitorContext:push_state(state)
   local statestack, oldstate = self.statestack, self.state
   statestack[#statestack+1] = oldstate
-  self.state = setmetatable(state, {__index = oldstate})
+  self.state = state
 end
 
 --[[
