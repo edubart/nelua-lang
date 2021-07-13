@@ -743,9 +743,11 @@ end)
 it("compiler information", function()
   expect.analyze_ast([=[##[[
     local compiler = require 'nelua.ccompiler'
-    assert(compiler.get_cc_info())
-    local defs = compiler.get_cc_defines('<stdbool.h>')
-    assert(defs.bool == '_Bool')
+    local ccinfo = compiler.get_cc_info()
+    local ccdefs = compiler.get_cc_defines('<stdbool.h>')
+    if not ccinfo.is_cpp then
+      assert(ccdefs.bool == '_Bool')
+    end
   ]]]=])
 end)
 

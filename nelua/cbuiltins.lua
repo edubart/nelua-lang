@@ -94,8 +94,23 @@ function cbuiltins.nelua_static_assert(context)
   context:define_builtin_macro('nelua_static_assert', [[
 #if __STDC_VERSION__ >= 201112L
 #define nelua_static_assert _Static_assert
+#elif defined(__cplusplus) && __cplusplus >= 201103L
+#define nelua_static_assert static_assert
 #else
 #define nelua_static_assert(x, y)
+#endif
+]], 'directives')
+end
+
+-- Used to assure some C compiler requirements.
+function cbuiltins.nelua_alignof(context)
+  context:define_builtin_macro('nelua_alignof', [[
+#if __STDC_VERSION__ >= 201112L
+#define nelua_alignof _Alignof
+#elif defined(__cplusplus) && __cplusplus >= 201103L
+#define nelua_alignof alignof
+#else
+#define nelua_alignof(x)
 #endif
 ]], 'directives')
 end

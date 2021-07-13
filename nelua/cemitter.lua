@@ -55,7 +55,7 @@ function CEmitter:add_zeroed_type_literal(type, typed)
     s = self.context:ensure_builtin('NULL')
   elseif type.is_boolean then
     s = self.context:ensure_builtin('false')
-  elseif type.size == 0 then
+  elseif type.is_empty then
     s = '{}'
   else -- should initialize almost anything in C
     s = '{0}'

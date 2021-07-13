@@ -32,6 +32,7 @@ local primtypes = {}
 local typedefs = {
   primtypes = primtypes,
   ptrsize = ptrsize,
+  emptysize = ccdefs.__cplusplus and 1 or 0,
 }
 types.set_typedefs(typedefs)
 

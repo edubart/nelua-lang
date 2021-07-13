@@ -127,6 +127,8 @@ Type.shape = shaper.shape {
   is_composite = shaper.optional_boolean,
   -- Whether the type aggregates other types (record, union and arrays).
   is_aggregate = shaper.optional_boolean,
+  -- Weather the runtype type does not store anything (empty records, union and arrays).
+  is_empty = shaper.optional_boolean,
   -- Whether the type hold multiple arguments.
   is_multipleargs = shaper.optional_boolean,
 
@@ -1490,7 +1492,9 @@ function ArrayType:_init(subtype, length, node)
   self.subtype = subtype
   self.length = length
   self.align = subtype.align
-
+  if length == 0 then
+    self.is_empty = length == 0
+  end
   -- validated subtype
   if subtype.is_comptime then
     ASTNode.raisef(node, "in array type: subtype cannot be of compile-time type '%s'", subtype)
@@ -1963,6 +1967,15 @@ function RecordType:update_fields()
     end
   end
   if not unknown then
+    if offset == 0 then
+      self.is_empty = true
+      if typedefs.emptysize > 0 then
+        offset = typedefs.emptysize
+        align = typedefs.emptysize
+      end
+    else
+      self.is_empty = nil
+    end
     self.size = offset
     self.bitsize = offset * 8
     self.align = align
@@ -2109,6 +2122,15 @@ function UnionType:update_fields()
     end
   end
   if not unknown then
+    if size == 0 then
+      self.is_empty = true
+      if typedefs.emptysize > 0 then
+        size = typedefs.emptysize
+        align = typedefs.emptysize
+      end
+    else
+      self.is_empty = nil
+    end
     self.size = size
     self.bitsize = size * 8
     self.align = align

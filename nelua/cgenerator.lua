@@ -194,8 +194,9 @@ typevisitors[types.ArrayType] = function(context, type)
   emit_type_attributes(decemitter, type)
   decemitter:add(';')
   if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
+    context:ensure_builtins('nelua_static_assert', 'nelua_alignof')
     decemitter:add(' nelua_static_assert(sizeof(',type.codename,') == ', type.size, ' && ',
-                      '_Alignof(',type.codename,') == ', type.align,
+                      'nelua_alignof(',type.codename,') == ', type.align,
                       ', "Nelua and C disagree on type size or align");')
   end
   decemitter:add_ln()
@@ -250,8 +251,9 @@ local function typevisitor_CompositeType(context, type)
   emit_type_attributes(defemitter, type)
   defemitter:add(';')
   if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
+    context:ensure_builtins('nelua_static_assert', 'nelua_alignof')
     defemitter:add(' nelua_static_assert(sizeof(',type.codename,') == ', type.size, ' && ',
-                      '_Alignof(',type.codename,') == ', type.align,
+                      'nelua_alignof(',type.codename,') == ', type.align,
                       ', "Nelua and C disagree on type size or align");')
   end
   defemitter:add_ln()
@@ -1639,9 +1641,6 @@ function cgenerator.emit_warning_pragmas(context)
     emitter:add_ln('  #pragma GCC diagnostic ignored "-Wformat"')
     emitter:add_ln('#endif')
   end --luacov:enable
-  if not context.pragmas.nocstaticassert then -- check pointer size
-    context:ensure_builtin('nelua_static_assert')
-  end
   context:add_directive(emitter:generate(), 'warnings_pragmas') -- defines all the above pragmas
 end
 

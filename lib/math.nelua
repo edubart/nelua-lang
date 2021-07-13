@@ -508,7 +508,8 @@ you should call `math.randomseed` with explicit arguments.
 ]]
 function math.randomseed(x: an_optional_integral, y: an_optional_integral): (integer, integer)
   ## if x.type.is_niltype and y.type.is_niltype then
-  local function time(tloc: pointer): clong <cimport,cinclude'<time.h>',nodecl> end
+  local time_t <cimport,nodecl> = #[types.IntegralType('time_t', primtypes.clong.size)]#
+  local function time(tloc: *time_t): time_t <cimport,cinclude'<time.h>',nodecl> end
   local x: integer = (@integer)(time(nilptr));
   local y: integer = (@integer)(&x)
   ## elseif y.type.is_niltype then

@@ -89,7 +89,8 @@ local function get_cc_defines(cc, ...)
     code[#code+1] = '#include ' .. header
   end
   fs.ewritefile(tmpname, table.concat(code))
-  local cccmd = string.format('%s -x c -E -dM %s', cc, tmpname)
+  local ext = cc:find('%+%+') and 'c++' or 'c'
+  local cccmd = string.format('%s -x %s -E -dM %s', cc, ext, tmpname)
   local ok, ret, stdout, stderr = executor.execex(cccmd)
   fs.deletefile(tmpname)
   if not ok or ret ~= 0 then
@@ -133,6 +134,7 @@ local function get_cc_info(cc, cflags)
     is_arm = not not (ccdefs.__ARM_EABI__ or ccdefs.__aarch64__),
     is_arm64 = not not (ccdefs.__aarch64__),
     is_riscv = not not (ccdefs.__riscv),
+    is_cpp = not not (ccdefs.__cplusplus),
   }
   ccinfo.is_windows = ccinfo.is_win32
   return ccinfo

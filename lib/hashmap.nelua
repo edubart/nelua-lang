@@ -253,7 +253,7 @@ local INVALID_INDEX: usize <cimport'UINTPTR_MAX',cinclude'<stdint.h>',nodecl>
       local node: *hashnodeT = &self.nodes[node_index]
       self.free_index = node.next
       -- link the new node
-      $node = {key = key, next = INVALID_INDEX, filled = true}
+      $node = {key = key, filled = true, next = INVALID_INDEX}
       if prev_node_index == INVALID_INDEX then
         self.buckets[hash_index] = node_index
       else
