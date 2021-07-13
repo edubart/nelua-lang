@@ -42,16 +42,16 @@ The following is to disable these warnings.
 ]=]
 cemitdecl[=[
 #if defined(__has_feature)
-#if __has_feature(address_sanitizer)
-#define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_address))
-#elif __has_feature(memory_sanitizer)
-#define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_memory))
-#endif
+  #if __has_feature(address_sanitizer)
+    #define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_address))
+  #elif __has_feature(memory_sanitizer)
+    #define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_memory))
+  #endif
 #elif defined(__SANITIZE_ADDRESS__)
-#define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_address))
+  #define NELUA_GC_NO_SANITIZE __attribute__((no_sanitize_address))
 #endif
 #ifndef NELUA_GC_NO_SANITIZE
-#define NELUA_GC_NO_SANITIZE
+  #define NELUA_GC_NO_SANITIZE
 #endif
 ]=]
 ]]

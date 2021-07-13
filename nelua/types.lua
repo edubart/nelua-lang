@@ -1969,10 +1969,8 @@ function RecordType:update_fields()
   if not unknown then
     if offset == 0 then
       self.is_empty = true
-      if typedefs.emptysize > 0 then
-        offset = typedefs.emptysize
-        align = typedefs.emptysize
-      end
+      offset = typedefs.emptysize
+      align = offset
     else
       self.is_empty = nil
     end
@@ -2124,10 +2122,8 @@ function UnionType:update_fields()
   if not unknown then
     if size == 0 then
       self.is_empty = true
-      if typedefs.emptysize > 0 then
-        size = typedefs.emptysize
-        align = typedefs.emptysize
-      end
+      size = typedefs.emptysize
+      align = size
     else
       self.is_empty = nil
     end

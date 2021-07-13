@@ -102,7 +102,8 @@ local function visit_assignments(context, emitter, varnodes, valnodes, decl)
         local decemitter = CEmitter(context)
         decemitter:add_indent()
         if varattr.cimport then
-          decemitter:add('extern ')
+          decemitter:add_builtin('nelua_cimport')
+          decemitter:add(' ')
         elseif not varattr.nostatic and not varattr.cexport and not context.pragmas.nostatic then
           decemitter:add('static ')
         end
@@ -623,7 +624,7 @@ function visitors.IdDecl(context, node, emitter)
     if type.is_type then return end
     if attr.cexport then emitter:add(context:ensure_builtin('nelua_cexport'), ' ') end
     if attr.static then emitter:add('static ') end
-    if attr.register then emitter:add('register ') end
+    if attr.register and not ccompiler.get_cc_info().is_cpp then emitter:add('register ') end
     if attr.const and attr.type.is_pointer then emitter:add('const ') end
     if attr.volatile then emitter:add('volatile ') end
     if attr.cqualifier then emitter:add(attr.cqualifier, ' ') end
@@ -1308,7 +1309,7 @@ local function resolve_function_qualifier(context, attr)
     context:ensure_include(attr.cinclude)
   end
   if attr.cimport and attr.codename ~= 'nelua_main' then
-    qualifier = ''
+    qualifier = context:ensure_builtin('nelua_cimport')..' '
   end
 
   if attr.cexport then

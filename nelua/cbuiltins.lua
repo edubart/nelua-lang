@@ -25,11 +25,11 @@ end
 function cbuiltins.nelua_likely(context)
   context:define_builtin_macro('nelua_likely', [[
 #ifdef __GNUC__
-#define nelua_likely(x) __builtin_expect(x, 1)
-#define nelua_unlikely(x) __builtin_expect(x, 0)
+  #define nelua_likely(x) __builtin_expect(x, 1)
+  #define nelua_unlikely(x) __builtin_expect(x, 0)
 #else
-#define nelua_likely(x) (x)
-#define nelua_unlikely(x) (x)
+  #define nelua_likely(x) (x)
+  #define nelua_unlikely(x) (x)
 #endif
 ]], 'directives')
 end
@@ -39,16 +39,36 @@ function cbuiltins.nelua_unlikely(context)
   context:ensure_builtin('nelua_likely')
 end
 
+-- Used by import and export builtins.
+function cbuiltins.nelua_extern(context)
+  context:define_builtin_macro('nelua_extern', [[
+#ifdef __cplusplus
+  #define nelua_extern extern "C"
+#else
+  #define nelua_extern extern
+#endif
+]], 'directives')
+end
+
 -- Used by `<cexport>`.
 function cbuiltins.nelua_cexport(context)
+  context:ensure_builtin('nelua_extern')
   context:define_builtin_macro('nelua_cexport', [[
 #ifdef _WIN32
-#define nelua_cexport __declspec(dllexport) extern
+  #define nelua_cexport nelua_extern __declspec(dllexport)
 #elif defined(__GNUC__)
-#define nelua_cexport __attribute__((visibility ("default"))) extern
+  #define nelua_cexport nelua_extern __attribute__((visibility("default")))
 #else
-#define nelua_cexport extern
+  #define nelua_cexport nelua_extern
 #endif
+]], 'directives')
+end
+
+-- Used by `<cimport>` without `<nodecl>`.
+function cbuiltins.nelua_cimport(context)
+  context:ensure_builtin('nelua_extern')
+  context:define_builtin_macro('nelua_cimport', [[
+#define nelua_cimport nelua_extern
 ]], 'directives')
 end
 
@@ -56,9 +76,9 @@ end
 function cbuiltins.nelua_noinline(context)
   context:define_builtin_macro('nelua_noinline', [[
 #ifdef __GNUC__
-#define nelua_noinline __attribute__((noinline))
+  #define nelua_noinline __attribute__((noinline))
 #else
-#define nelua_noinline
+  #define nelua_noinline
 #endif
 ]], 'directives')
 end
@@ -67,11 +87,11 @@ end
 function cbuiltins.nelua_inline(context)
   context:define_builtin_macro('nelua_inline', [[
 #ifdef __GNUC__
-#define nelua_inline __attribute__((always_inline)) inline
+  #define nelua_inline __attribute__((always_inline)) inline
 #elif __STDC_VERSION__ >= 199901L
-#define nelua_inline inline
+  #define nelua_inline inline
 #else
-#define nelua_inline
+  #define nelua_inline
 #endif
 ]], 'directives')
 end
@@ -80,11 +100,11 @@ end
 function cbuiltins.nelua_noreturn(context)
   context:define_builtin_macro('nelua_noreturn', [[
 #if __STDC_VERSION__ >= 201112L
-#define nelua_noreturn _Noreturn
+  #define nelua_noreturn _Noreturn
 #elif defined(__GNUC__)
-#define nelua_noreturn __attribute__((noreturn))
+  #define nelua_noreturn __attribute__((noreturn))
 #else
-#define nelua_noreturn
+  #define nelua_noreturn
 #endif
 ]], 'directives')
 end
@@ -93,11 +113,11 @@ end
 function cbuiltins.nelua_static_assert(context)
   context:define_builtin_macro('nelua_static_assert', [[
 #if __STDC_VERSION__ >= 201112L
-#define nelua_static_assert _Static_assert
+  #define nelua_static_assert _Static_assert
 #elif defined(__cplusplus) && __cplusplus >= 201103L
-#define nelua_static_assert static_assert
+  #define nelua_static_assert static_assert
 #else
-#define nelua_static_assert(x, y)
+  #define nelua_static_assert(x, y)
 #endif
 ]], 'directives')
 end
@@ -106,11 +126,11 @@ end
 function cbuiltins.nelua_alignof(context)
   context:define_builtin_macro('nelua_alignof', [[
 #if __STDC_VERSION__ >= 201112L
-#define nelua_alignof _Alignof
+  #define nelua_alignof _Alignof
 #elif defined(__cplusplus) && __cplusplus >= 201103L
-#define nelua_alignof alignof
+  #define nelua_alignof alignof
 #else
-#define nelua_alignof(x)
+  #define nelua_alignof(x)
 #endif
 ]], 'directives')
 end
