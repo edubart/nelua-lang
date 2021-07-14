@@ -3093,13 +3093,7 @@ function visitors.UnaryOp(context, node, opts)
       if not argattr.lvalue then
         node:raisef("in unary operation `%s`: cannot reference rvalues", opname)
       end
-      if argtype.is_aggregate and argtype.size == 0 then
-        argtype.emptyrefed = true
-      end
-    end
-    if argnode.tag == 'Id' then
-      -- for loops needs to know if an Id symbol could mutate
-      argattr.mutate = true
+      argattr.refed = true
     end
   elseif opname == 'deref' then
     attr.lvalue = true

@@ -3,6 +3,7 @@ local iters = require 'nelua.utils.iterators'
 local traits = require 'nelua.utils.traits'
 local stringer = require 'nelua.utils.stringer'
 local bn = require 'nelua.utils.bn'
+local pegger = require 'nelua.utils.pegger'
 local cdefs = require 'nelua.cdefs'
 local cbuiltins = require 'nelua.cbuiltins'
 local typedefs = require 'nelua.typedefs'
@@ -54,101 +55,6 @@ local function izipargnodes(vars, argnodes)
   end
 end
 
-local function visit_assignments(context, emitter, varnodes, valnodes, decl)
-  local usetemporary = false
-  if not decl and #valnodes > 1 then
-    -- multiple assignments must assign to a temporary first (in case of a swap)
-    usetemporary = true
-  end
-  local defemitter = emitter:fork()
-  local multiretvalname
-  local upfuncscope = context.scope:get_up_function_scope()
-  for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
-    local varattr = varnode.attr
-    local noinit = varattr.noinit or varattr.cexport or varattr.cimport or varattr.type.is_cvalist
-                   or context.pragmas.noinit
-    local vartype = varattr.type
-    local empty = vartype.size == 0 and not vartype.emptyrefed
-    local used = context.pragmas.nodce or -- dead code elimination is disabled
-                 not decl or -- have a late definition, must evaluate
-                 lastcallindex ~= nil or -- multiple returns, must evaluate
-                 (valnode and not valnode.attr.comptime) or -- might have a call
-                 varattr:is_used(true) -- used by some other function
-    if not vartype.is_type and (not varattr.nodecl or not decl) and not varattr.comptime and used then
-      local declared, defined = false, false
-      if decl and varattr.staticstorage then
-        -- declare main variables in the top scope
-        local decemitter = CEmitter(context)
-        decemitter:add_indent()
-        decemitter:add(varnode)
-        if valnode and valnode.attr.initializer then
-          -- initialize to const values
-          decemitter:add(' = ')
-          assert(not lastcallindex)
-          context:push_forked_state{ininitializer = true}
-          decemitter:add_converted_val(vartype, valnode)
-          context:pop_state()
-          defined = true
-        else
-          -- pre initialize to zeros
-          if not noinit then
-            decemitter:add(' = ')
-            decemitter:add_zeroed_type_literal(vartype)
-          end
-        end
-        decemitter:add_ln(';')
-        context:add_declaration(decemitter:generate())
-        declared = true
-      end
-
-      if lastcallindex == 1 then
-        -- last assigment value may be a multiple return call
-        multiretvalname = upfuncscope:generate_name('_asgnret')
-        local rettypename = context:funcrettypename(valnode.attr.calleetype)
-        emitter:add_indent_ln(rettypename, ' ', multiretvalname, ' = ', valnode, ';')
-      end
-
-      if not empty then -- only define if the type is not empty
-        local retvalname
-        if lastcallindex then
-          assert(multiretvalname)
-          retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
-        elseif usetemporary then
-          retvalname = upfuncscope:generate_name('_asgntmp')
-          emitter:add_indent(vartype, ' ', retvalname, ' = ')
-          emitter:add_converted_val(vartype, valnode)
-          emitter:add_ln(';')
-        end
-
-        if not declared or (not defined and (valnode or lastcallindex)) then
-          -- declare or define if needed
-          defemitter:add_indent()
-          if not declared then
-            defemitter:add(varnode)
-          else
-            defemitter:add(context:declname(varattr))
-          end
-          if not noinit or not decl then
-            -- initialize variable
-            defemitter:add(' = ')
-            if retvalname then
-              defemitter:add_converted_val(vartype, retvalname, valtype)
-            elseif valnode then
-              defemitter:add_converted_val(vartype, valnode)
-            else
-              defemitter:add_zeroed_type_literal(vartype)
-            end
-          end
-          defemitter:add_ln(';')
-        end
-      end
-    elseif used and decl and varattr.cinclude then
-      -- not declared, might be an imported variable from C
-      context:ensure_include(varattr.cinclude)
-    end
-  end
-  emitter:add(defemitter:generate())
-end
 
 local typevisitors = {}
 cgenerator.typevisitors = typevisitors
@@ -312,41 +218,50 @@ cgenerator.visitors = visitors
 
 function visitors.Number(context, node, emitter)
   local attr = node.attr
-  if not attr.type.is_float and not attr.untyped and not context.state.ininitializer then
-    emitter:add('(', attr.type, ')')
+  local type = attr.type
+  if not type.is_float and not attr.untyped and not context.state.ininitializer then
+    emitter:add('(', type, ')')
   end
-  emitter:add_scalar_literal(attr)
+  emitter:add_scalar_literal(attr.value, attr.type, attr.base)
 end
 
+-- Emits a string literal.
 function visitors.String(_, node, emitter)
   local attr = node.attr
-  if attr.type.is_stringy then
-    emitter:add_string_literal(attr.value, attr.type.is_cstring)
-  else
-    if attr.type == primtypes.cchar then
-      emitter:add("'", string.char(bn.tointeger(attr.value)), "'")
-    else
-      emitter:add_scalar_literal(attr)
+  local type = attr.type
+  if type.is_stringy then
+    emitter:add_string_literal(attr.value, type.is_cstring)
+  else -- an integral
+    if type == primtypes.cchar then -- C character literal
+      emitter:add(pegger.single_quote_c_string(string.char(bn.tointeger(attr.value))))
+    else -- number
+      emitter:add_scalar_literal(attr.value, type, attr.base)
     end
   end
 end
 
+-- Emits a boolean literal.
 function visitors.Boolean(_, node, emitter)
   emitter:add_boolean(node.attr.value)
 end
 
+-- Emits a `nil` literal.
 function visitors.Nil(_, _, emitter)
   emitter:add_nil_literal()
 end
 
+-- Emits a `nilptr` literal.
 function visitors.Nilptr(_, _, emitter)
   emitter:add_null()
 end
 
+-- Emits C varargs `...` in function arguments.
 function visitors.VarargsType(_, node, emitter)
-  if node.attr.type.is_varanys then
+  local type = node.attr.type
+  if type.is_varanys then
     node:raisef("compiler deduced the type 'varanys' here, but it's not supported yet in the C backend")
   end
+  assert(type.is_cvarargs)
   emitter:add('...')
 end
 
@@ -507,6 +422,7 @@ function visitors.Pair(_, node, emitter)
   end --luacov:enable
 end
 
+-- Process directives, they may effect code generation.
 function visitors.Directive(context, node, emitter)
   local name, args = node[1], node[2]
   if name == 'cinclude' then
@@ -529,7 +445,6 @@ function visitors.Directive(context, node, emitter)
       code(decemitter)
       code = decemitter:generate()
     end
-    assert(type(code) == 'string')
     -- actually add in the directives section (just above declarations section)
     context:add_directive(code)
   elseif name == 'cemitdef' then
@@ -557,10 +472,12 @@ function visitors.Directive(context, node, emitter)
   end
 end
 
+-- Emits a identifier.
 function visitors.Id(context, node, emitter)
   local attr = node.attr
-  assert(not attr.type.is_comptime)
-  if attr.type.is_nilptr then
+  local type = attr.type
+  assert(not type.is_comptime)
+  if type.is_nilptr then
     emitter:add_null()
   elseif attr.comptime then
     emitter:add_literal(attr)
@@ -569,26 +486,23 @@ function visitors.Id(context, node, emitter)
   end
 end
 
+-- Emits a expression between parenthesis.
 function visitors.Paren(_, node, emitter)
-  local innernode = node[1]
-  emitter:add(innernode)
-  --emitter:add('(', innernode, ')')
+  -- adding parenthesis is not needed, because other expressions already adds them
+  emitter:add(node[1])
 end
 
-visitors.FuncType = visitors.Type
-visitors.ArrayType = visitors.Type
-visitors.PointerType = visitors.Type
-
+-- Emits declaration of identifiers.
 function visitors.IdDecl(context, node, emitter)
   local attr = node.attr
   local type = attr.type
   local name = context:declname(attr)
-  if context.state.infuncdecl then
+  if context.state.infuncdecl then -- function name
     emitter:add(name)
-  elseif attr.comptime or type.is_comptime then
-    emitter:add(context:ensure_builtin('nlniltype'), ' ', name)
-  else
-    if type.is_type then return end
+  elseif type.is_comptime or attr.comptime then -- pass compile-time identifiers as `nil`
+    emitter:add_builtin('nlniltype')
+    emitter:add(' ', name)
+  else -- runtime declaration
     emitter:add_qualified_declaration(attr, type, name)
   end
 end
@@ -750,39 +664,33 @@ local function visitor_Call(context, node, emitter, argnodes, callee, calleeobjn
   end
 end
 
+-- Emits a call.
 function visitors.Call(context, node, emitter)
   local argnodes, calleenode = node[1], node[2]
-  local calleetype = node.attr.calleetype
-  if calleetype.is_type then -- type cast
-    local type = node.attr.type
-    if #argnodes == 1 then
-      local argnode = argnodes[1]
-      local argtype = argnode.attr.type
-      if argtype ~= type then
-        -- type really differs, cast it
-        emitter:add_converted_val(type, argnode, argtype, true)
-      else
-        -- same type, no need to cast
-        emitter:add(argnode)
-      end
-    else
+  local attr = node.attr
+  if attr.calleetype.is_type then -- is a type cast?
+    local type = attr.type
+    if #argnodes == 0 then -- no arguments? then it's a zeroed type initialization
       emitter:add_zeroed_type_literal(type, true)
+    else -- explicit type cast
+      emitter:add_converted_val(type, argnodes[1], nil, true)
     end
-  else -- call
+  else -- usual function call
     local callee = calleenode
-    if calleenode.attr.builtin then
-      local builtin = cbuiltins.calls[calleenode.attr.name]
+    local calleeattr = calleenode.attr
+    if calleeattr.builtin then -- is a builtin call?
+      local builtin = cbuiltins.calls[calleeattr.name]
       callee = builtin(context, node, emitter)
     end
-    if callee then
+    if callee then -- call not omitted?
       visitor_Call(context, node, emitter, argnodes, callee)
     end
   end
 end
 
+-- Emits a method call.
 function visitors.CallMethod(context, node, emitter)
   local name, argnodes, calleeobjnode = node[1], node[2], node[3]
-
   visitor_Call(context, node, emitter, argnodes, name, calleeobjnode)
 end
 
@@ -806,7 +714,7 @@ function visitors.DotIndex(context, node, emitter)
     objtype = attr.indextype
     if objtype.is_enum then
       local field = objtype.fields[name]
-      emitter:add_scalar_literal(field, objtype.subtype)
+      emitter:add_scalar_literal(field.value, objtype.subtype)
     elseif objtype.is_composite then
       if attr.comptime then
         emitter:add_literal(attr)
@@ -871,7 +779,7 @@ function visitors.KeyIndex(context, node, emitter)
     end
     if not context.pragmas.nochecks and objtype.length > 0 and not indexnode.attr.comptime then
       local indextype = indexnode.attr.type
-      emitter:add(context:ensure_builtin('nelua_assert_bounds_', indextype))
+      emitter:add_builtin('nelua_assert_bounds_', indextype)
       emitter:add('(', indexnode, ', ', objtype.length, ')')
     else
       emitter:add(indexnode)
@@ -882,10 +790,9 @@ end
 
 -- Emits all statements from a block.
 function visitors.Block(context, node, emitter)
-  local statnodes = node
   local scope = context:push_forked_scope(node)
   emitter:inc_indent()
-  emitter:add_list(statnodes, '')
+  emitter:add_list(node, '')
   cgenerator.emit_close_scope(context, emitter, scope)
   emitter:dec_indent()
   context:pop_scope()
@@ -893,41 +800,13 @@ end
 
 -- Emits `return` statement.
 function visitors.Return(context, node, emitter)
-  local retnodes = node
-  local numretnodes = #retnodes or 0
-  -- destroy parent blocks
   local deferemitter = emitter:fork()
+  -- close parent blocks before returning
   local scope = context.scope
   local retscope = scope:get_up_return_scope()
   cgenerator.emit_close_upscopes(context, deferemitter, scope, retscope)
-  if retscope.is_root then
-    -- in main body
-    if numretnodes > 1 then
-      node:raisef("multiple returns in main is not supported")
-    end
-    if numretnodes == 0 then
-      -- main must always return an integer
-      emitter:add(deferemitter)
-      emitter:add_indent_ln('return 0;')
-    else
-      -- return one value (an integer expected)
-      local retnode = retnodes[1]
-      if not deferemitter:empty() and retnode.tag ~= 'Id' and not retnode.attr.comptime then
-        local retname = context.rootscope:generate_name('_mainret')
-        emitter:add_indent(primtypes.cint, ' ', retname, ' = ')
-        emitter:add_converted_val(primtypes.cint, retnode)
-        emitter:add_ln(';')
-        emitter:add_value(deferemitter)
-        emitter:add_indent_ln('return ', retname, ';')
-      else
-        emitter:add_value(deferemitter)
-        emitter:add_indent('return ')
-        emitter:add_converted_val(primtypes.cint, retnode)
-        emitter:add_ln(';')
-      end
-    end
-  elseif retscope.is_doexpr then
-    emitter:add_indent_ln('_expr = ', retnodes[1], ';')
+  if retscope.is_doexpr then -- inside a do expression
+    emitter:add_indent_ln('_expr = ', node[1], ';')
     emitter:add(deferemitter)
     local needgoto = true
     if context:get_visiting_node(2).tag == 'DoExpr' then
@@ -939,81 +818,81 @@ function visitors.Return(context, node, emitter)
     if needgoto then
       local doexprlabel = retscope.doexprlabel
       if not doexprlabel then
-        doexprlabel = retscope:generate_name('_doexprlabel')
+        doexprlabel = context.scope:get_up_function_scope():generate_name('_doexprlabel')
         retscope.doexprlabel = doexprlabel
       end
       emitter:add_indent_ln('goto ', doexprlabel, ';')
     end
-  else
+  else -- returning from a function
     local funcscope = context.state.funcscope
     assert(funcscope == retscope)
-    local functype = funcscope.funcsym.type
-    local numfuncrets = #functype.rettypes
-    if numfuncrets <= 1 then
-      if numfuncrets == 0 then
-        -- no returns
-        assert(numretnodes == 0)
-        emitter:add_value(deferemitter)
-        emitter:add_indent_ln('return;')
-      elseif numfuncrets == 1 then
-        -- one return
-        local retnode, rettype = retnodes[1], functype:get_return_type(1)
-        if retnode then
-          -- return value is present
-          if not deferemitter:empty() and retnode.tag ~= 'Id' and not retnode.attr.comptime then
-            local retname = funcscope:generate_name('_ret')
-            emitter:add_indent(rettype, ' ', retname, ' = ')
-            emitter:add_converted_val(rettype, retnode)
-            emitter:add_ln(';')
-            emitter:add_value(deferemitter)
-            emitter:add_indent_ln('return ', retname, ';')
-          else
-            emitter:add_value(deferemitter)
-            emitter:add_indent('return ')
-            emitter:add_converted_val(rettype, retnode)
-            emitter:add_ln(';')
-          end
-        else
-          -- no return value present, generate a zeroed one
-          emitter:add_value(deferemitter)
-          emitter:add_indent('return ')
-          emitter:add_zeroed_type_literal(rettype, true)
-          emitter:add_ln(';')
-        end
-      end
-    else
-      -- multiple returns
-      local funcrettypename = context:funcrettypename(functype)
-      local retemitter = emitter:fork()
-      local multiretvalname
-      local retname
-      if deferemitter:empty() then
-        retemitter:add_indent('return (', funcrettypename, '){')
+    local functype = funcscope.funcsym and funcscope.funcsym.type
+    local numrets = functype and #functype.rettypes or #node
+    if numrets == 0 then -- no returns
+      emitter:add_value(deferemitter)
+      if retscope.is_root then -- main must always return an integer
+        emitter:add_indent_ln('return 0;')
       else
-        retname = funcscope:generate_name('_mulret')
-        retemitter:add_indent(funcrettypename, ' ', retname, ' = (', funcrettypename, '){')
+        emitter:add_indent_ln('return;')
       end
-      for i,funcrettype,retnode,rettype,lastcallindex in izipargnodes(functype.rettypes, retnodes) do
-        if i>1 then retemitter:add(', ') end
-        if lastcallindex == 1 then
-          -- last assignment value may be a multiple return call
-          multiretvalname = funcscope:generate_name('_mulret')
+    elseif numrets == 1 then -- one return
+      local retnode = node[1]
+      local rettype = retscope.is_root and primtypes.cint or functype:get_return_type(1)
+      if not deferemitter:empty() and retnode and retnode.tag ~= 'Id' and not retnode.attr.comptime then
+        local retname = funcscope:generate_name('_ret')
+        emitter:add_indent(rettype, ' ', retname, ' = ')
+        emitter:add_converted_val(rettype, retnode)
+        emitter:add_ln(';')
+        emitter:add_value(deferemitter)
+        emitter:add_indent_ln('return ', retname, ';')
+      else
+        emitter:add_value(deferemitter)
+        emitter:add_indent('return ')
+        emitter:add_converted_val(rettype, retnode, nil, true)
+        emitter:add_ln(';')
+      end
+    else -- multiple returns
+      if retscope.is_root then
+        node:raisef("multiple returns in main is not supported")
+      end
+      local funcrettypename = context:funcrettypename(functype)
+      local multiretvalname, retname, retemitter
+      local sideeffects = not deferemitter:empty() or node:recursive_has_attr('sideeffect')
+      if sideeffects then
+        retname = funcscope:generate_name('_mulret')
+        emitter:add_indent_ln(funcrettypename, ' ', retname, ';')
+      else -- no side effects
+        retemitter = emitter:fork()
+        retemitter:add_indent('return (', funcrettypename, '){')
+      end
+      for i,funcrettype,retnode,rettype,lastcallindex in izipargnodes(functype.rettypes, node) do
+        if not sideeffects and i > 1 then
+          retemitter:add(', ')
+        end
+        if lastcallindex == 1 then -- last assignment value may be a multiple return call
+          multiretvalname = funcscope:generate_name('_ret')
           local rettypename = context:funcrettypename(retnode.attr.calleetype)
           emitter:add_indent_ln(rettypename, ' ', multiretvalname, ' = ', retnode, ';')
         end
+        local retvalname = retnode
         if lastcallindex then
-          local retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
-          retemitter:add_converted_val(funcrettype, retvalname, rettype)
+          retvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
+        end
+        if sideeffects then
+          emitter:add_indent(string.format('%s.r%d', retname, i), ' = ')
+          emitter:add_converted_val(funcrettype, retvalname, rettype)
+          emitter:add_ln(';')
         else
-          retemitter:add_converted_val(funcrettype, retnode)
+          retemitter:add_converted_val(funcrettype, retvalname, rettype)
         end
       end
-      retemitter:add_ln('};')
-      if retname then
-        retemitter:add(deferemitter)
-        retemitter:add_indent_ln('return ', retname, ';')
+      if sideeffects then
+        emitter:add(deferemitter)
+        emitter:add_indent_ln('return ', retname, ';')
+      else -- no side effects
+        retemitter:add_ln('};')
+        emitter:add(retemitter)
       end
-      emitter:add(retemitter:generate())
     end
   end
 end
@@ -1155,73 +1034,62 @@ function visitors.Repeat(context, node, emitter)
   end
 end
 
+-- Emits numeric `for` statement.
 function visitors.ForNum(context, node, emitter)
-  local itvarnode, begvalnode, endvalnode, stepvalnode, blocknode = node[1], node[2], node[4], node[5], node[6]
-  local compop = node.attr.compop
-  local fixedstep = node.attr.fixedstep
-  local fixedend = node.attr.fixedend
-  local itvarattr = itvarnode.attr
-  local itmutate = itvarattr.mutate
+  local itnode, begvalnode, endvalnode, stepvalnode, blocknode = node[1], node[2], node[4], node[5], node[6]
+  local attr = node.attr
+  local compop, fixedstep, fixedend = attr.compop, attr.fixedstep, attr.fixedend
+  local itattr = itnode.attr
+  local ittype, itmutate = itattr.type, itattr.mutate or itattr.refed
+  local itforname = itmutate and '_it' or context:declname(itattr)
   local scope = context:push_forked_scope(node)
-  do
-    local ccompop = cdefs.for_compare_ops[compop]
-    local ittype = itvarattr.type
-    local itname = context:declname(itvarattr)
-    local itforname = itmutate and '_it' or itname
-    emitter:add_indent('for(', ittype, ' ', itforname, ' = ')
-    emitter:add_converted_val(ittype, begvalnode)
-    local cmpval
-    if (not fixedend or not compop) then
-      emitter:add(', _end = ')
-      emitter:add_converted_val(ittype, endvalnode)
-      cmpval = '_end'
-    else
-      cmpval = endvalnode
-    end
-    local stepval
-    if not fixedstep then
-      emitter:add(', _step = ')
-      emitter:add_converted_val(ittype, stepvalnode)
-      stepval = '_step'
-    else
-      stepval = fixedstep
-    end
-    emitter:add('; ')
-    if compop then
-      emitter:add(itforname, ' ', ccompop, ' ')
-      if traits.is_string(cmpval) then
-        emitter:add(cmpval)
-      else
-        emitter:add_converted_val(ittype, cmpval)
-      end
-    else
-      -- step is an expression, must detect the compare operation at runtime
-      assert(not fixedstep)
-      emitter:add('_step >= 0 ? ', itforname, ' <= _end : ', itforname, ' >= _end')
-    end
-    emitter:add_ln('; ', itforname, ' = ', itforname, ' + ', stepval, ') {')
-    emitter:inc_indent()
-    if itmutate then
-      emitter:add_indent_ln(itvarnode, ' = _it;')
-    end
-    emitter:dec_indent()
-    emitter:add(blocknode)
-    emitter:add_indent_ln('}')
+  emitter:add_indent('for(', ittype, ' ', itforname, ' = ')
+  emitter:add_converted_val(ittype, begvalnode)
+  local cmpval, stepval = endvalnode, fixedstep
+  if not fixedend or not compop then -- end expression
+    emitter:add(', _end = ')
+    emitter:add_converted_val(ittype, endvalnode)
+    cmpval = '_end'
   end
+  if not fixedstep then -- step expression
+    emitter:add(', _step = ')
+    emitter:add_converted_val(ittype, stepvalnode)
+    stepval = '_step'
+  end
+  emitter:add('; ')
+  if compop then -- fixed compare operator
+    emitter:add(itforname, ' ', cdefs.for_compare_ops[compop], ' ')
+    if traits.is_string(cmpval) then
+      emitter:add(cmpval)
+    else
+      emitter:add_converted_val(ittype, cmpval)
+    end
+  else -- step is an expression, must detect the compare operation at runtime
+    emitter:add('_step >= 0 ? ', itforname, ' <= _end : ', itforname, ' >= _end')
+  end
+  emitter:add_ln('; ', itforname, ' = ', itforname, ' + ', stepval, ') {')
+  if itmutate then -- block mutates the iterator, copy it
+    emitter:inc_indent()
+    emitter:add_indent_ln(itnode, ' = _it;')
+    emitter:dec_indent()
+  end
+  emitter:add(blocknode)
+  emitter:add_indent_ln('}')
   context:pop_scope()
   if scope.breaklabel then
     emitter:add_indent_ln(scope.breaklabel, ':;')
   end
 end
 
+-- Emits `break` statement.
 function visitors.Break(context, _, emitter)
   local scope = context.scope
   cgenerator.emit_close_upscopes(context, emitter, scope, scope:get_up_loop_scope())
   local breakscope = context.scope:get_up_scope_of_any_kind('is_loop', 'is_switch')
-  if breakscope.is_switch then
-    breakscope = context.scope:get_up_scope_of_any_kind('is_loop')
+  if breakscope.is_switch then -- use goto when inside a switch to not break it
+    breakscope = context.scope:get_up_loop_scope()
     local breaklabel = breakscope.breaklabel
-    if not breaklabel then
+    if not breaklabel then -- generate a break label
       breaklabel = context.scope:get_up_function_scope():generate_name('_breaklabel')
       breakscope.breaklabel = breaklabel
     end
@@ -1247,116 +1115,217 @@ end
 
 -- Emits `goto` statement.
 function visitors.Goto(context, node, emitter)
-  emitter:add_indent_ln('goto ', context:declname(node.attr.label), ';')
+  local label = node.attr.label
+  emitter:add_indent_ln('goto ', context:declname(label), ';')
 end
 
+-- Emits variable declaration statement.
 function visitors.VarDecl(context, node, emitter)
   local varnodes, valnodes = node[2], node[3]
-  visit_assignments(context, emitter, varnodes, valnodes, true)
+  local defemitter = emitter:fork()
+  local multiretvalname
+  local upfuncscope = context.scope:get_up_function_scope()
+  for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
+    local varattr = varnode.attr
+    local vartype = varattr.type
+    if lastcallindex == 1 then -- last assignment may be a multiple return call
+      multiretvalname = upfuncscope:generate_name('_asgnret')
+      local rettypename = context:funcrettypename(valnode.attr.calleetype)
+      emitter:add_indent_ln(rettypename, ' ', multiretvalname, ' = ', valnode, ';')
+    end
+    if varattr:must_declare_at_runtime() and (context.pragmas.nodce or varattr:is_used(true)) then
+      local zeroinit = not context.pragmas.noinit and varattr:must_zero_initialize()
+      local declared, defined
+      if varattr.staticstorage then -- declare variables in the top scope
+        local decemitter = CEmitter(context)
+        decemitter:add_indent(varnode)
+        if valnode and valnode.attr.initializer then -- initialize to const values
+          assert(not lastcallindex)
+          decemitter:add(' = ')
+          context:push_forked_state{ininitializer = true}
+          decemitter:add_converted_val(vartype, valnode)
+          context:pop_state()
+          defined = true
+        elseif zeroinit then -- pre initialize with zeros
+          decemitter:add(' = ')
+          decemitter:add_zeroed_type_literal(vartype)
+          defined = not valnode and not lastcallindex
+        end
+        decemitter:add_ln(';')
+        context:add_declaration(decemitter:generate())
+        declared = true
+      end
+      if varattr:must_define_at_runtime() then
+        local asgnvalname, asgnvaltype = valnode, valtype
+        if lastcallindex then
+          asgnvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
+        end
+        local mustdefine = not defined and (zeroinit or asgnvalname)
+        if not declared or mustdefine then -- declare or define if needed
+          if not declared then
+            defemitter:add_indent(varnode)
+          else
+            defemitter:add_indent(context:declname(varattr))
+          end
+          if mustdefine then -- initialize variable
+            defemitter:add(' = ')
+            defemitter:add_converted_val(vartype, asgnvalname, asgnvaltype)
+          end
+          defemitter:add_ln(';')
+        end
+      elseif not defined and not vartype.is_comptime and valnode and not valnode.attr.comptime then
+        -- could be a call
+        emitter:add_indent_ln('(void)', valnode, ';')
+      end
+    elseif not vartype.is_comptime and valnode and not valnode.attr.comptime then  -- could be a call
+      emitter:add_indent_ln('(void)', valnode, ';')
+    end
+    if varattr.cinclude then
+      context:ensure_include(varattr.cinclude)
+    end
+  end
+  emitter:add(defemitter)
 end
 
+-- Emits assignment statement.
 function visitors.Assign(context, node, emitter)
-  local vars, vals = node[1], node[2]
-  visit_assignments(context, emitter, vars, vals)
+  local varnodes, valnodes = node[1], node[2]
+  local defemitter = emitter:fork()
+  local multiretvalname
+  local upfuncscope = context.scope:get_up_function_scope()
+  for _,varnode,valnode,valtype,lastcallindex in izipargnodes(varnodes, valnodes or {}) do
+    local varattr = varnode.attr
+    local vartype = varattr.type
+    if lastcallindex == 1 then -- last assignment may be a multiple return call
+      multiretvalname = upfuncscope:generate_name('_asgnret')
+      local rettypename = context:funcrettypename(valnode.attr.calleetype)
+      emitter:add_indent_ln(rettypename, ' ', multiretvalname, ' = ', valnode, ';')
+    end
+    if varattr:must_define_at_runtime() then
+      local asgnvalname, asgnvaltype = valnode, valtype
+      if lastcallindex then
+        asgnvalname = string.format('%s.r%d', multiretvalname, lastcallindex)
+      elseif #valnodes > 1 then -- multiple assignments, assign to a temporary first
+        asgnvalname, asgnvaltype = upfuncscope:generate_name('_asgntmp'), valtype
+        emitter:add_indent(vartype, ' ', asgnvalname, ' = ')
+        emitter:add_converted_val(vartype, valnode, valtype)
+        emitter:add_ln(';')
+      end
+      defemitter:add_indent(varnode, ' = ')
+      defemitter:add_converted_val(vartype, asgnvalname, asgnvaltype)
+      defemitter:add_ln(';')
+    elseif not vartype.is_comptime and valnode and not valnode.attr.comptime then -- could be a call
+      emitter:add_indent_ln('(void)', valnode, ';')
+    end
+  end
+  emitter:add(defemitter)
 end
 
+-- Emits function definition statement.
 function visitors.FuncDef(context, node, emitter)
   local attr = node.attr
   local type = attr.type
-
-  if type.is_polyfunction then
-    for _,polyeval in ipairs(type.evals) do
+  if type.is_polyfunction then -- is a polymorphic function?
+    local polyevals = type.evals
+    for i=1,#polyevals do -- emit all evaluations
+      local polyeval = polyevals[i]
       emitter:add(polyeval.node)
     end
-    return
+    return -- nothing more to do
   end
-
   if not context.pragmas.nodce and not attr:is_used(true) then
-    return
+    return -- didn't pass dead code elimination, omit it
   end
-
+  if attr.cinclude then -- requires a including a C file?
+    context:ensure_include(attr.cinclude)
+  end
+  if attr.cimport and cdefs.builtins_headers[attr.codename] then -- importing a builtin?
+    context:ensure_builtin(attr.codename) -- ensure the builtin is declared and defined
+    return -- nothing more to do
+  end
+  local mustdecl, mustdefn = not attr.nodecl, not attr.cimport
+  if not (mustdecl or mustdefn) then -- do we need to declare or define?
+    return -- nothing to do
+  end
+  -- lets declare or define the function
   local varscope, varnode, argnodes, blocknode = node[1], node[2], node[3], node[6]
-
-  local cimport = attr.cimport
-  local cinclude = attr.cinclude
-  local codename = attr.codename
-  local declare = not attr.nodecl
-  local define = not cimport
-
-  if cinclude then
-    context:ensure_include(cinclude)
-  end
-  if not declare and not define then -- nothing to do
-    return
-  end
-
-  if cimport and cdefs.builtins_headers[codename] then
-    context:ensure_builtin(codename)
-    return
-  end
-
-  local funcid = varnode
-  if not varscope then -- maybe assigning a variable to a function
-    if varnode.tag == 'Id' then
-      funcid = context.rootscope:generate_name(context:declname(varnode.attr))
-      emitter:add_indent_ln(varnode, ' = ', funcid, ';')
-    elseif varnode.tag == 'ColonIndex' or varnode.tag == 'DotIndex' then
+  local funcname = varnode
+  -- handle function variable assignment
+  if not varscope then
+    local vartag = varnode.tag
+    if vartag == 'Id' then
+      funcname = context.rootscope:generate_name(context:declname(varnode.attr))
+      emitter:add_indent_ln(varnode, ' = ', funcname, ';')
+    elseif vartag == 'ColonIndex' or vartag == 'DotIndex' then
       local fieldname, objtype = varnode[1], varnode[2].attr.type
       if objtype.is_record then
-        funcid = context.rootscope:generate_name('func_'..fieldname)
-        emitter:add_indent_ln(varnode, ' = ', funcid, ';')
+        funcname = context.rootscope:generate_name(objtype.codename..'_funcdef_'..fieldname)
+        emitter:add_indent_ln(varnode, ' = ', funcname, ';')
+      else
+        assert(objtype.is_type)
       end
     end
   end
-
-  local decemitter, defemitter, implemitter = CEmitter(context), CEmitter(context), CEmitter(context)
-  local rettypename = context:funcrettypename(type)
-
-  context:push_forked_state{infuncdecl = true}
-  decemitter:add_indent()
-  decemitter:add_qualified_declaration(attr, rettypename, funcid)
-  defemitter:add_indent(rettypename, ' ', funcid)
-  context:pop_state()
-
+  -- push function state
   local funcscope = context:push_forked_scope(node)
   context:push_forked_state{funcscope = funcscope}
-  do
-    decemitter:add('(') defemitter:add('(')
-    if varnode.tag == 'ColonIndex' then
-      local selftype = type.argtypes[1]
-      decemitter:add(selftype, ' self') defemitter:add(selftype, ' self')
-      if #argnodes > 0 then
-        decemitter:add(', ') defemitter:add(', ')
-      end
-    end
-    decemitter:add_ln(argnodes, ');') defemitter:add_ln(argnodes, ') {')
-    implemitter:add(blocknode)
+  -- add function return type and name
+  context:push_forked_state{infuncdecl = true}
+  local rettypename = context:funcrettypename(type)
+  local decemitter, defemitter
+  if mustdecl then
+    decemitter = CEmitter(context)
+    decemitter:add_indent()
+    decemitter:add_qualified_declaration(attr, rettypename, funcname)
+  end
+  if mustdefn then
+    defemitter = CEmitter(context)
+    defemitter:add_indent(rettypename, ' ', funcname)
   end
   context:pop_state()
-  context:pop_scope()
-  implemitter:add_indent_ln('}')
-  if declare then
-    context:add_declaration(decemitter:generate(), attr.codename)
-  end
-  if define then
-    if attr.entrypoint and not context.hookmain then
-      context.emitentrypoint = function(mainemitter)
-        context:add_definition(defemitter:generate())
-        context:add_definition(mainemitter:generate())
-        context:add_definition(implemitter:generate())
-      end
-    else
-      context:add_definition(defemitter:generate())
-      context:add_definition(implemitter:generate())
+  -- add function arguments
+  local argsemitter = CEmitter(context)
+  argsemitter:add('(')
+  if varnode.tag == 'ColonIndex' then -- need to inject first argument `self`
+    local selftype = type.argtypes[1]
+    argsemitter:add(selftype, ' self')
+    if #argnodes > 0 then -- extra arguments?
+      argsemitter:add(', ')
     end
   end
+  argsemitter:add(argnodes, ')')
+  -- add function declaration
+  if mustdecl then
+    decemitter:add_ln(argsemitter, ';')
+    context:add_declaration(decemitter:generate(), attr.codename)
+  end
+  -- add function definition
+  if mustdefn then
+    defemitter:add_ln(argsemitter, ' {')
+    local implemitter = CEmitter(context)
+    implemitter:add(blocknode)
+    implemitter:add_indent_ln('}')
+    if attr.entrypoint and not context.hookmain then -- this function is the main hook
+      context.emitentrypoint = function(mainemitter)
+        defemitter:add(mainemitter) -- emit top scope statements
+        defemitter:add(implemitter) -- emit this function statements
+        context:add_definition(defemitter:generate())
+      end
+    else
+      defemitter:add(implemitter)
+      context:add_definition(defemitter:generate())
+    end
+  end
+  -- restore state
+  context:pop_state()
+  context:pop_scope()
 end
 
 -- Emits anonymous functions.
 function visitors.Function(context, node, emitter)
   local argnodes, blocknode = node[1], node[4]
   local attr = node.attr
-  local decemitter, defemitter = CEmitter(context), CEmitter(context)
+  local argsemitter, decemitter, defemitter = CEmitter(context), CEmitter(context), CEmitter(context)
   -- add function qualifiers and name
   local declname = context:declname(attr)
   local rettypename = context:funcrettypename(attr.type)
@@ -1366,9 +1335,9 @@ function visitors.Function(context, node, emitter)
   local funcscope = context:push_forked_scope(node)
   context:push_forked_state{funcscope = funcscope}
   -- add function arguments
-  decemitter:add('(') defemitter:add('(')
-  decemitter:add_ln(argnodes, ');')
-  defemitter:add_ln(argnodes, ') {')
+  argsemitter:add('(', argnodes, ')')
+  decemitter:add_ln(argsemitter, ';')
+  defemitter:add_ln(argsemitter, ' {')
   -- add function block
   defemitter:add(blocknode)
   defemitter:add_ln('}')
@@ -1385,7 +1354,7 @@ function visitors.UnaryOp(context, node, emitter)
   if attr.type.is_any then
     node:raisef("compiler deduced the type 'any' here, but it's not supported yet in the C backend")
   end
-  if attr.comptime then
+  if attr.comptime then -- compile time constant
     emitter:add_literal(attr)
     return
   end
@@ -1404,7 +1373,7 @@ function visitors.BinaryOp(context, node, emitter)
   if type.is_any then
     node:raisef("compiler deduced the type 'any' here, but it's not supported yet in the C backend")
   end
-  if attr.comptime then
+  if attr.comptime then -- compile time constant
     emitter:add_literal(attr)
     return
   end
@@ -1468,7 +1437,6 @@ function visitors.BinaryOp(context, node, emitter)
         emitter:add_zeroed_type_literal(type, true)
         emitter:add_ln(';')
       elseif opname == 'or' then
-        assert(not attr.ternaryor)
         emitter:add_indent(primtypes.boolean, ' cond_ = ')
         emitter:add_val2boolean('t1_', type)
         emitter:add_ln(';')
@@ -1505,14 +1473,15 @@ function visitors.BinaryOp(context, node, emitter)
 end
 
 -- Emits defers before exiting scope `scope`.
-function cgenerator.emit_close_scope(context, emitter, scope, upscope)
+function cgenerator.emit_close_scope(context, emitter, scope, isupscope)
   if scope.closed then return end -- already closed
-  if not upscope then -- mark as closed
+  if not isupscope then -- mark as closed
     scope.closed = true
   end
-  if scope.deferblocks then
-    for i=#scope.deferblocks,1,-1 do
-      local deferblock = scope.deferblocks[i]
+  local deferblocks = scope.deferblocks
+  if deferblocks then
+    for i=#deferblocks,1,-1 do
+      local deferblock = deferblocks[i]
       emitter:add_indent_ln('{ /* defer */')
       context:push_scope(deferblock.scope.parent)
       emitter:add(deferblock)

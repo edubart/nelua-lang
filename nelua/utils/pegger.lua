@@ -46,6 +46,11 @@ local c_double_peg = re.compile(
   quote_patt_begin ..
   double_quote_patt ..
   c_quote_patt_end, quotes_defs)
+local c_single_peg = re.compile(
+  single_patt_begin ..
+  quote_patt_begin ..
+  single_quote_patt ..
+  c_quote_patt_end, quotes_defs)
 local lua_double_peg = re.compile(
   double_patt_begin ..
   quote_patt_begin ..
@@ -63,6 +68,14 @@ escaping special characters as necessary.
 ]]
 function pegger.double_quote_c_string(str)
   return c_double_peg:match(str)
+end
+
+--[[
+Quote a string using single quotes to be used in C code,
+escaping special characters as necessary.
+]]
+function pegger.single_quote_c_string(str)
+  return c_single_peg:match(str)
 end
 
 --[[

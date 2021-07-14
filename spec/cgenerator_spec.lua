@@ -914,6 +914,7 @@ it("unary operator `deref`", function()
   expect.generate_c([[
     local UnchekedByteArray = @[0]byte
     local x: UnchekedByteArray = $(@*UnchekedByteArray)(''_cstring)
+    local y = &x
   ]], 'static nluint8_arr0 x = {};')
   expect.generate_c([[
     local R = @record{}

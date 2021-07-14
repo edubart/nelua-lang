@@ -170,7 +170,7 @@ function CEmitter:add_converted_val(type, val, valtype, explicit)
       self:add_cstring2string(val)
     elseif valattr.comptime and type.is_scalar and valtype.is_scalar and
            (type.is_float or valtype.is_integral) then -- comptime scalar -> scalar
-      self:add_scalar_literal(valattr, type)
+      self:add_scalar_literal(valattr.value, type, valattr.base)
     elseif type.is_pointer and valtype.is_aggregate and valtype == type.subtype then -- auto ref
       self:add('&', val)
     elseif type.is_aggregate and valtype.is_pointer and valtype.subtype == type then -- auto deref
@@ -179,7 +179,7 @@ function CEmitter:add_converted_val(type, val, valtype, explicit)
       self:add_typed_val(type, val, valtype, not explicit)
     end
   else
-    self:add_zeroed_type_literal(type)
+    self:add_zeroed_type_literal(type, explicit)
   end
 end
 
@@ -293,32 +293,30 @@ function CEmitter:add_string_literal(val, ascstring)
   return self:add_long_string_literal(val, ascstring)
 end
 
--- Adds a scalar literal from attr `valattr`, with appropriate suffix for `valtype`.
-function CEmitter:add_scalar_literal(valattr, valtype)
-  valtype = valtype or valattr.type
-  local num, base = valattr.value, valattr.base
+-- Adds a scalar literal `num`, with appropriate suffix for type `numtype`.
+function CEmitter:add_scalar_literal(num, numtype, base)
   -- wrap values out of range
-  if valtype.is_integral and ((valtype.is_unsigned and bn.isneg(num)) or
-                              not valtype:is_inrange(num)) then
-    num = valtype:wrap_value(num)
+  if numtype.is_integral and ((numtype.is_unsigned and bn.isneg(num)) or
+                              not numtype:is_inrange(num)) then
+    num = numtype:wrap_value(num)
   end
   local minusone = false
   -- add number literal
-  if valtype.is_float then -- float
+  if numtype.is_float then -- float
     if bn.isnan(num) then -- not a number
-      self:add_builtin('NLNAN_', valtype)
+      self:add_builtin('NLNAN_', numtype)
       return
     elseif bn.isinfinite(num) then -- infinite
       if num < 0 then
         self:add_text('-')
       end
-      self:add_builtin('NLINF_', valtype)
+      self:add_builtin('NLINF_', numtype)
       return
     else -- a number
-      self:add_text(bn.todecsci(num, valtype.maxdigits, true))
+      self:add_text(bn.todecsci(num, numtype.maxdigits, true))
     end
   else -- integral
-    if valtype.is_integral and valtype.is_signed and num == valtype.min then
+    if numtype.is_integral and numtype.is_signed and num == numtype.min then
       -- workaround C warning `integer constant is so large that it is unsigned`
       minusone = true
       num = num + 1
@@ -330,9 +328,9 @@ function CEmitter:add_scalar_literal(valattr, valtype)
     end
   end
   -- add suffixes
-  if valtype.is_float32 and not self.context.pragmas.nofloatsuffix then
+  if numtype.is_float32 and not self.context.pragmas.nofloatsuffix then
     self:add_text('f')
-  elseif valtype.is_unsigned then
+  elseif numtype.is_unsigned then
     self:add_text('U')
   end
   if minusone then
@@ -344,16 +342,17 @@ end
 function CEmitter:add_literal(valattr)
   local valtype = valattr.type
   assert(valattr.comptime or valtype.is_comptime)
+  local value = valattr.value
   if valtype.is_boolean then
-    self:add_boolean(valattr.value)
+    self:add_boolean(value)
   elseif valtype.is_scalar then
-    self:add_scalar_literal(valattr)
+    self:add_scalar_literal(value, valtype, valattr.base)
   elseif valtype.is_string then
-    self:add_string_literal(valattr.value, false)
+    self:add_string_literal(value, false)
   elseif valtype.is_cstring then
-    self:add_string_literal(valattr.value, true)
+    self:add_string_literal(value, true)
   elseif valtype.is_procedure then
-    self:add_text(self.context:declname(valattr.value))
+    self:add_text(self.context:declname(value))
   elseif valtype.is_niltype then
     self:add_nil_literal()
   else --luacov:disable
@@ -395,7 +394,6 @@ function CEmitter:add_qualified_declaration(attr, type, name)
     end
   end
   if attr.volatile then
-    --TODO: __volatile__?
     self:add('volatile ')
   end
   if attr.cqualifier then
@@ -404,7 +402,6 @@ function CEmitter:add_qualified_declaration(attr, type, name)
   self:add(type, ' ')
   -- late type qualifiers
   if attr.restrict then
-    --TODO: use restrict/__restrict or __restrict__ ?
     self:add('__restrict ')
   end
   -- TODO: _Atomic, __asm, _Alignas?

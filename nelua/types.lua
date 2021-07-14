@@ -2210,9 +2210,7 @@ function PointerType:get_convertible_from_attr(attr, explicit, autoref)
         'cannot automatic reference rvalue of type "%s" to pointer type "%s"',
         type, self)
     end
-    if type.size == 0 then
-      type.emptyrefed = true
-    end
+    attr.refed = true
     return self, true
   end
   return Type.get_convertible_from_attr(self, attr, explicit, autoref)

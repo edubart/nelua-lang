@@ -100,6 +100,20 @@ function Attr:can_copy()
   return not (type and type.nocopy and self.lvalue)
 end
 
+function Attr:must_declare_at_runtime()
+  local type = self.type
+  return not (type.is_comptime or self.comptime or self.nodecl)
+end
+
+function Attr:must_define_at_runtime()
+  local type = self.type
+  return not (type.is_comptime or self.comptime or (type.size == 0 and not self.refed))
+end
+
+function Attr:must_zero_initialize()
+  return not (self.noinit or self.cexport or self.cimport or self.type.is_cvalist)
+end
+
 -- Returns compile-time value associated with this attr.
 function Attr:get_comptime_value()
   local type = self.type

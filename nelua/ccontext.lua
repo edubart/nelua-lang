@@ -276,51 +276,48 @@ end
 -- Defines C builtin function `name` with source code `code`.
 function CContext:define_function_builtin(name, qualifier, ret, args, body)
   if self.usedbuiltins[name] then return end
+  local heademitter, declemitter, defnemitter = CEmitter(self), CEmitter(self), CEmitter(self)
   -- build return part
   if traits.is_type(ret) then
     ret = self:ensure_type(ret)
   end
+  heademitter:add(ret, ' ', name)
   -- build arguments part
   if type(args) == 'table' then
-    local emitter = CEmitter(self)
-    emitter:add_value('(')
+    heademitter:add_text('(')
     for i=1,#args do
       if i > 1 then
-        emitter:add_value(', ')
+        heademitter:add_text(', ')
       end
       local arg = args[i]
       local argtype = arg[1] or arg.type
       local argname = arg[2] or arg.name
-      emitter:add(argtype, ' ', argname)
+      heademitter:add(argtype, ' ', argname)
     end
-    emitter:add_value(')')
-    args = emitter:generate()
+    heademitter:add_text(')')
   end
   -- build qualifier part
-  if qualifier and qualifier ~= '' then
-    self:ensure_builtin(qualifier)
-  end
   if not self.pragmas.nostatic then
-    if qualifier == '' then
-      qualifier = 'static'
-    else
-      qualifier = 'static ' .. qualifier
-    end
+    declemitter:add_text('static ')
   end
-  if qualifier ~= '' then
-    qualifier = qualifier..' '
+  if qualifier and qualifier ~= '' then
+    declemitter:add_builtin(qualifier)
+    declemitter:add_text(' ')
   end
   -- build head part
-  local head = ret..' '..name..args
+  defnemitter:add(heademitter)
+  declemitter:add(heademitter)
+  declemitter:add_ln(';')
   -- build body part
   if type(body) == 'table' then
-    local emitter = CEmitter(self)
-    emitter:add(table.unpack(body))
-    body = emitter:generate()
+    defnemitter:add(table.unpack(body))
+  else
+    defnemitter:add(body)
   end
+  defnemitter:add_ln()
   -- add function declaration and definition
-  self:add_declaration(qualifier..head..';\n')
-  self:add_definition(head..' '..body..'\n')
+  self:add_declaration(declemitter:generate())
+  self:add_definition(defnemitter:generate())
   self.usedbuiltins[name] = true
 end
 
