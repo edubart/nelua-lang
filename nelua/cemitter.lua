@@ -110,15 +110,11 @@ function CEmitter:add_deref(val, valtype)
   local valsubtype = valtype.subtype
   self:add_text('*')
   if valsubtype.is_array and valsubtype.length == 0 then
-    -- use pointer to the actual subtype structure, because its type may have been simplified
-    self:add('(',valsubtype,'*)')
+    self:add('(', valsubtype, '*)')
   end
   if not self.context.pragmas.nochecks then -- check
-    self:add_builtin('nelua_assert_deref_', valtype) self:add_text('(')
-    if valtype.subtype.length == 0 then
-      self:add('(', valtype, ')')
-    end
-    self:add(val, ')')
+    self:add_builtin('nelua_assert_deref_', valtype)
+    self:add('(', val, ')')
   else
     self:add_value(val)
   end

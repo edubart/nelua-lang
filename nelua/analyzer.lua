@@ -709,7 +709,6 @@ function visitors.IdDecl(context, node)
     context:pop_state()
     symbol.scope = context.rootscope
     symbol.lvalue = true
-    symbol.globalfield = true
   end
   if annotnodes then
     local type = attr.type

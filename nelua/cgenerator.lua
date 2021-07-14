@@ -70,7 +70,7 @@ end
 
 typevisitors[types.ArrayType] = function(context, type)
   local decemitter = CEmitter(context)
-  decemitter:add('typedef struct {', type.subtype, ' data[', type.length, '];} ', type.codename)
+  decemitter:add('typedef struct {', type.subtype, ' v[', type.length, '];} ', type.codename)
   emit_type_attributes(decemitter, type)
   decemitter:add(';')
   if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
@@ -390,7 +390,7 @@ function visitors.InitList(context, node, emitter)
             emitter:add(', ')
           end
         else
-          emitter:add_indent('_tmp.data[', i-1 ,'] = ')
+          emitter:add_indent('_tmp.v[', i-1 ,'] = ')
         end
         emitter:add_converted_val(subtype, childnode)
         if not useinitializer then
@@ -694,60 +694,50 @@ function visitors.CallMethod(context, node, emitter)
   visitor_Call(context, node, emitter, argnodes, name, calleeobjnode)
 end
 
--- indexing
+-- Emits field indexing.
 function visitors.DotIndex(context, node, emitter)
   local attr = node.attr
-  local name = attr.dotfieldname or node[1]
   local objnode = node[2]
-  local type = attr.type
   local objtype = objnode.attr.type
-  local poparray = false
-  if type.is_array then
-    if objtype:implicit_deref_type().is_composite and context.state.inarrayindex == node then
-      context.state.fieldindexed = node
-    elseif not attr.globalfield then
+  if attr.comptime then -- compile-time constant
+    emitter:add_literal(attr)
+  elseif objtype.is_type then -- global field
+    emitter:add(context:declname(attr))
+  else -- record/union field
+    local type = attr.type
+    local castarray = type.is_array and not attr.arrayindex
+    if castarray then
       emitter:add('(*(', type, '*)')
-      poparray = true
     end
-  end
-  if objtype.is_type then
-    objtype = attr.indextype
-    if objtype.is_enum then
-      local field = objtype.fields[name]
-      emitter:add_scalar_literal(field.value, objtype.subtype)
-    elseif objtype.is_composite then
-      if attr.comptime then
-        emitter:add_literal(attr)
-      else
-        emitter:add(context:declname(attr))
-      end
-    else --luacov:disable
-      error('not implemented yet')
-    end --luacov:enable
-  elseif objtype.is_pointer then
-    emitter:add(objnode, '->', cdefs.quotename(name))
-  else
-    emitter:add(objnode, '.', cdefs.quotename(name))
-  end
-  if poparray then
-    emitter:add(')')
+    local name = attr.dotfieldname or node[1]
+    if objtype.is_pointer then
+      emitter:add(objnode, '->', cdefs.quotename(name))
+    else
+      emitter:add(objnode, '.', cdefs.quotename(name))
+    end
+    if castarray then
+      emitter:add(')')
+    end
   end
 end
 
-visitors.ColonIndex = visitors.DotIndex
+-- Emits method field indexing.
+function visitors.ColonIndex(context, node, emitter)
+  visitors.DotIndex(context, node, emitter)
+end
 
+-- Emits key indexing.
 function visitors.KeyIndex(context, node, emitter)
   local indexnode, objnode = node[1], node[2]
-  local objtype = objnode.attr.type
+  local objattr = objnode.attr
+  local objtype = objattr.type
   local pointer = false
-  if objtype.is_pointer and not objtype.is_generic_pointer then
-    -- indexing a pointer to an array
+  if objtype.is_pointer and objtype.subtype then -- indexing a pointer to an array
     objtype = objtype.subtype
     pointer = true
   end
-
-  if objtype.is_record then
-    local atindex = node.attr.calleesym and node.attr.calleesym.name:match('.__atindex')
+  if objtype.is_record then -- record indexing
+    local atindex = node.attr.calleesym and node.attr.calleesym.name:match('%.__atindex$')
     if atindex then
       emitter:add('(*')
     end
@@ -755,37 +745,25 @@ function visitors.KeyIndex(context, node, emitter)
     if atindex then
       emitter:add(')')
     end
-  else
-    if not objtype.is_array then --luacov:disable
-      error('not implemented yet')
-    end --luacov:enable
-
-    if pointer then
-      if objtype.length == 0 then
-        emitter:add('(',objnode, ')[')
-      else
-        emitter:add('((', objtype.subtype, '*)', objnode, ')[')
-      end
-    elseif objtype.length == 0 then
-      emitter:add('((', objtype.subtype, '*)&', objnode, ')[')
-    else
-      context:push_forked_state{inarrayindex = objnode}
-      emitter:add(objnode)
-      if context.state.fieldindexed ~= objnode then
-        emitter:add('.data')
-      end
-      emitter:add('[')
-      context:pop_state()
+  elseif objtype.is_array then -- array indexing
+    if (pointer and objtype.length == 0) or -- unbounded array
+       (objnode.tag == 'DotIndex' and objnode[2].attr.type.is_composite) then -- record/union array field
+      objattr.arrayindex = true
+      emitter:add(objnode, '[')
+    elseif pointer then -- pointer to bounded array
+      emitter:add(objnode, '->v[')
+    else -- bounded array
+      emitter:add(objnode, '.v[')
     end
     if not context.pragmas.nochecks and objtype.length > 0 and not indexnode.attr.comptime then
-      local indextype = indexnode.attr.type
-      emitter:add_builtin('nelua_assert_bounds_', indextype)
-      emitter:add('(', indexnode, ', ', objtype.length, ')')
+      emitter:add_builtin('nelua_assert_bounds_', indexnode.attr.type)
+      emitter:add('(', indexnode, ', ', objtype.length, ')]')
     else
-      emitter:add(indexnode)
+      emitter:add(indexnode, ']')
     end
-    emitter:add(']')
-  end
+  else --luacov:disable
+    error('not implemented yet')
+  end --luacov:enable
 end
 
 -- Emits all statements from a block.
@@ -1503,7 +1481,7 @@ end
 
 -- Emits C pragmas to disable harmless C warnings that the generated code may trigger.
 function cgenerator.emit_warning_pragmas(context)
-  if context.pragmas.nocwarnpragas then return end
+  if context.pragmas.nocwarnpragmas then return end
   local emitter = CEmitter(context)
   emitter:add_ln('#ifdef __GNUC__')
   emitter:add_ln('  #ifndef __cplusplus')

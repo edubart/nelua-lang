@@ -1787,7 +1787,7 @@ end)
 it("arrays", function()
   expect.generate_c(
     "local a: array(boolean, 10)",
-    {"data[10];} nlboolean_arr10"})
+    {"v[10];} nlboolean_arr10"})
   expect.run_c([[
     do
       local a: array(boolean, 1)
