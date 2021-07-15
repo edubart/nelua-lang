@@ -1202,13 +1202,13 @@ it("records metamethods", function()
     function R:__atindex(x: integer): integer return 0 end
     local r: R
     r[0] = 1
-  ]], "must return a pointer")
+  ]], "in unary operation `deref`")
   expect.analyze_error([[
     local R = @record{}
     function R:__atindex(x: integer) return 0 end
     local r: R
     r[0] = 1
-  ]], "must return a pointer")
+  ]], "in unary operation `deref`")
   expect.analyze_error([[
     local R = @record{}
     local r: R

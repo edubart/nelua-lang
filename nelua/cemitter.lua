@@ -356,6 +356,15 @@ function CEmitter:add_literal(valattr)
   end --luacov:enable
 end
 
+function CEmitter:add_type_qualifiers(type)
+  if type.aligned then
+    self:add(' __attribute__((aligned(', type.aligned, ')))')
+  end
+  if type.packed then
+    self:add(' __attribute__((packed))')
+  end
+end
+
 function CEmitter:add_qualified_declaration(attr, type, name)
   local context = self.context
   local pragmas = context.pragmas

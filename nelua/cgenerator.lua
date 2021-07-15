@@ -59,19 +59,10 @@ end
 local typevisitors = {}
 cgenerator.typevisitors = typevisitors
 
-local function emit_type_attributes(decemitter, type)
-  if type.aligned then
-    decemitter:add(' __attribute__((aligned(', type.aligned, ')))')
-  end
-  if type.packed then
-    decemitter:add(' __attribute__((packed))')
-  end
-end
-
 typevisitors[types.ArrayType] = function(context, type)
   local decemitter = CEmitter(context)
   decemitter:add('typedef struct {', type.subtype, ' v[', type.length, '];} ', type.codename)
-  emit_type_attributes(decemitter, type)
+  decemitter:add_type_qualifiers(type)
   decemitter:add(';')
   if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
     context:ensure_builtins('nelua_static_assert', 'nelua_alignof')
@@ -128,7 +119,7 @@ local function typevisitor_CompositeType(context, type)
     end
   end
   defemitter:add('}')
-  emit_type_attributes(defemitter, type)
+  defemitter:add_type_qualifiers(type)
   defemitter:add(';')
   if type.size and type.size > 0 and not context.pragmas.nocstaticassert then
     context:ensure_builtins('nelua_static_assert', 'nelua_alignof')
@@ -736,16 +727,7 @@ function visitors.KeyIndex(context, node, emitter)
     objtype = objtype.subtype
     pointer = true
   end
-  if objtype.is_record then -- record indexing
-    local atindex = node.attr.calleesym and node.attr.calleesym.name:match('%.__atindex$')
-    if atindex then
-      emitter:add('(*')
-    end
-    visitor_Call(context, node, emitter, {indexnode}, nil, objnode)
-    if atindex then
-      emitter:add(')')
-    end
-  elseif objtype.is_array then -- array indexing
+  if objtype.is_array then -- array indexing
     if (pointer and objtype.length == 0) or -- unbounded array
        (objnode.tag == 'DotIndex' and objnode[2].attr.type.is_composite) then -- record/union array field
       objattr.arrayindex = true

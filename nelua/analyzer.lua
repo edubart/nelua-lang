@@ -1709,30 +1709,16 @@ local function visitor_Array_KeyIndex(_, node, objtype, _, indexnode)
 end
 
 local function visitor_Record_KeyIndex(context, node, objtype, objnode, indexnode)
-  local attr = node.attr
-  local indexsym = objtype.metafields.__index
-  local indexretype
-  if not indexsym then
-    indexsym = objtype.metafields.__atindex
-    if indexsym and indexsym.type then
-      indexretype = indexsym.type:get_return_type(1)
-      if indexretype and not indexretype.is_pointer then
-        indexsym.node:raisef("metamethod `__atindex` must return a pointer, but got type '%s'",
-          indexretype)
-      else
-        indexretype = indexretype.subtype
-        attr.lvalue = true
-      end
-    end
-  else
-    indexretype = indexsym.type:get_return_type(1)
-  end
-  if indexsym then
-    visitor_Call(context, node, {indexnode}, indexsym.type, indexsym, objnode)
-    node.attr.type = indexretype
+  local newnode
+  local metafields = objtype.metafields
+  if metafields.__index then
+    newnode = aster.CallMethod{'__index', {indexnode}, objnode}
+  elseif metafields.__atindex then
+    newnode = aster.UnaryOp{'deref', aster.CallMethod{'__atindex', {indexnode}, objnode}}
   else
     node:raisef("cannot index record of type '%s': no `__index` or `__atindex` metamethod found", objtype)
   end
+  context:transform_and_traverse_node(node, newnode)
 end
 
 function visitors.KeyIndex(context, node)
