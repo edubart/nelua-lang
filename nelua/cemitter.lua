@@ -77,7 +77,7 @@ function CEmitter:add_val2boolean(val, valtype)
   else
     local status = not (valtype.is_niltype or valtype.is_nilptr)
     if needs_evaluation(val) then -- we need to evaluate
-      self:add('((void)',val,', ',status,')')
+      self:add('(',val,', ',status,')')
     else
       self:add_value(status)
     end

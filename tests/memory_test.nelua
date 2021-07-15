@@ -356,3 +356,5 @@ do -- span new with initialization
   assert(v[1].x == 3 and v[1].y == 4)
   delete(v)
 end
+
+print 'memory OK!'

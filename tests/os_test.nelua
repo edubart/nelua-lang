@@ -62,6 +62,8 @@ do -- os.time
   ## end
 end
 
+print 'os OK!'
+
 do -- os.exit
   local function f(): integer
     os.exit(true)

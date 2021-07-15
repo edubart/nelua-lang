@@ -106,3 +106,5 @@ do -- Heap
   vb:destroy()
   va:destroy()
 end
+
+print 'allocators OK!'

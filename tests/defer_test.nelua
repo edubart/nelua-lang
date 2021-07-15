@@ -139,3 +139,5 @@ do -- issue #46
   end
   assert(n == 1)
 end
+
+print 'defer OK!'

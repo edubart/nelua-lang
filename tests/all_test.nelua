@@ -1,83 +1,23 @@
-print('testing builtins_test... ')
 require 'tests.builtins_test'
-print 'OK!'
-
-print('testing io_test... ')
 require 'tests.io_test'
-print 'OK!'
-
-print('testing libc_test... ')
 require 'tests.libc_test'
-print 'OK!'
-
-print('testing math_test... ')
 require 'tests.math_test'
-print 'OK!'
-
-print('testing memory_test... ')
 require 'tests.memory_test'
-print 'OK!'
-
-print('testing allocators_test... ')
 require 'tests.allocators_test'
-print 'OK!'
-
-print('testing require_test... ')
 require 'tests.require_test'
-print 'OK!'
-
-print('testing sequence_test... ')
 require 'tests.sequence_test'
-print 'OK!'
-
-print('testing span_test... ')
 require 'tests.span_test'
-print 'OK!'
-
-print('testing string_test... ')
 require 'tests.string_test'
-print 'OK!'
-
-print('testing utf8_test... ')
 require 'tests.utf8_test'
-print 'OK!'
-
-print('testing pattern_matching_test... ')
 require 'tests.pattern_matching_test'
-print 'OK!'
-
-print('testing pack_test... ')
 require 'tests.pack_test'
-print 'OK!'
-
-print('testing traits_test... ')
 require 'tests.traits_test'
-print 'OK!'
-
-print('testing vector_test... ')
 require 'tests.vector_test'
-print 'OK!'
-
-print('testing list_test... ')
 require 'tests.list_test'
-print 'OK!'
-
-print('testing hash_test... ')
 require 'tests.hash_test'
-print 'OK!'
-
-print('testing hashmap_test... ')
 require 'tests.hashmap_test'
-print 'OK!'
-
-print('testing defer_test... ')
 require 'tests.defer_test'
-print 'OK!'
-
-print('testing coroutine_test... ')
 require 'tests.coroutine_test'
-print 'OK!'
 
 -- must be the last test because it calls os.exit()
-print('testing os_test...')
 require 'tests.os_test'

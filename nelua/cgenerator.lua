@@ -895,7 +895,6 @@ function visitors.DoExpr(context, node, emitter)
     if attr.noop then -- skip macros without operations
       return true
     end
-    emitter:add_indent('(void)')
   end
   local blocknode = node[1]
   if blocknode[1].is_Return then -- single statement
@@ -1075,8 +1074,7 @@ function visitors.VarDecl(context, node, emitter)
           context:pop_state()
           defined = true
         elseif zeroinit then -- pre initialize with zeros
-          decemitter:add(' = ')
-          decemitter:add_zeroed_type_literal(vartype)
+          -- C static storage variables are always initialized to zeros already
           defined = not valnode and not lastcallindex
         end
         decemitter:add_ln(';')
@@ -1103,10 +1101,10 @@ function visitors.VarDecl(context, node, emitter)
         end
       elseif not defined and not vartype.is_comptime and valnode and not valnode.attr.comptime then
         -- could be a call
-        emitter:add_indent_ln('(void)', valnode, ';')
+        emitter:add_indent_ln(valnode, ';')
       end
     elseif not vartype.is_comptime and valnode and not valnode.attr.comptime then  -- could be a call
-      emitter:add_indent_ln('(void)', valnode, ';')
+      emitter:add_indent_ln(valnode, ';')
     end
     if varattr.cinclude then
       context:ensure_include(varattr.cinclude)
@@ -1143,7 +1141,7 @@ function visitors.Assign(context, node, emitter)
       defemitter:add_converted_val(vartype, asgnvalname, asgnvaltype)
       defemitter:add_ln(';')
     elseif not vartype.is_comptime and valnode and not valnode.attr.comptime then -- could be a call
-      emitter:add_indent_ln('(void)', valnode, ';')
+      emitter:add_indent_ln(valnode, ';')
     end
   end
   emitter:add(defemitter)
@@ -1447,7 +1445,9 @@ function cgenerator.emit_warning_pragmas(context)
   emitter:add_ln('  #pragma GCC diagnostic ignored "-Wunused-parameter"')
   emitter:add_ln('  #ifdef __clang__')
   emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused"')
+  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wparentheses-equality"')
   emitter:add_ln('  #else')
+  emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused-value"')
   emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused-variable"')
   emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused-function"')
   emitter:add_ln('    #pragma GCC diagnostic ignored "-Wunused-but-set-variable"')

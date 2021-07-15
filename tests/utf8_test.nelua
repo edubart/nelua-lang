@@ -122,3 +122,5 @@ do -- check invalid UTF-8 sequences
   assert(utf8.len("\xFE") == -1)  -- invalid byte
   assert(utf8.len("\xFF") == -1)  -- invalid byte
 end
+
+print 'utf8 OK!'

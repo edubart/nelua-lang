@@ -33,3 +33,5 @@ end
 do -- _VERSION
   assert(_VERSION == #[require 'nelua.version'.NELUA_VERSION]#)
 end
+
+print 'builtins OK!'

@@ -18,3 +18,4 @@ local a = 0
 ## metadep.inject_num_assign('a', 5)
 assert(a == 5)
 
+print 'require OK!'

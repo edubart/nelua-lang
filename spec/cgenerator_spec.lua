@@ -146,20 +146,20 @@ it("boolean", function()
     local b1: boolean = f()
     local b2: boolean = not f()
   ]], {
-    "b1 = ((void)f(), false);",
-    "b2 = (!((void)f(), false));",
+    "b1 = (f(), false);",
+    "b2 = (!(f(), false));",
   })
 
 end)
 
 it("nil", function()
-  expect.generate_c("local a: niltype", "nlniltype a = NLNIL;")
+  expect.generate_c("local a: niltype", "nlniltype a;")
   expect.generate_c("local a: niltype = nil", "nlniltype a = NLNIL;")
   expect.generate_c("local function f(a: niltype) end f(nil)", "f(NLNIL);")
   expect.generate_c("local function f() <nosideeffect> return nil end assert(f() == f())",
-    "((void)f(), (void)f(), true)")
+    "(f(), f(), true)")
   expect.generate_c("local function f() <nosideeffect> return nil end assert(f() ~= f())",
-    "((void)f(), (void)f(), false)")
+    "(f(), f(), false)")
 end)
 
 it("call", function()
@@ -213,7 +213,7 @@ end)
 it("if", function()
   expect.generate_c("if nilptr then\nend","if(false) {\n")
   expect.generate_c("if nil then\nend","if(false) {\n")
-  expect.generate_c("if 1 then\nend","if(((void)1, true)) {\n")
+  expect.generate_c("if 1 then\nend","if((1, true)) {\n")
   expect.generate_c("local a: boolean; if a then\nend","if(a) {\n")
   expect.generate_c("if true then\nend","if(true) {\n  }")
   expect.generate_c("if true then\nelseif true then\nend", "if(true) {\n  } else if(true) {\n  }")
@@ -425,7 +425,7 @@ it("goto", function()
 end)
 
 it("variable declaration", function()
-  expect.generate_c("local a: integer", "int64_t a = 0;")
+  expect.generate_c("local a: integer", "int64_t a;")
   expect.generate_c("local a: integer = 0", "int64_t a = 0;")
   -- expect.generate_c("local π = 3.14", "double uCF80 = 3.14;")
 end)
@@ -915,14 +915,14 @@ it("unary operator `deref`", function()
     local UnchekedByteArray = @[0]byte
     local x: UnchekedByteArray = $(@*UnchekedByteArray)(''_cstring)
     local y = &x
-  ]], 'static nluint8_arr0 x = {};')
+  ]], 'static nluint8_arr0 x;')
   expect.generate_c([[
     local R = @record{}
     local r = R()
     local x = &r
     local function f(a: R): void end
     f(x)
-  ]], {"R r = ", "x = (&r)", "f((*x))"})
+  ]], {"R r;", "x = (&r)", "f((*x))"})
   expect.generate_c([[
     local R = @record{}
     function R:foo(alloc: auto) end
@@ -1669,28 +1669,28 @@ it("replacement macros" ,function()
 end)
 
 it("c types", function()
-  expect.generate_c("local a: integer", "int64_t a = 0;")
-  expect.generate_c("local a: number", "double a = 0.0;")
-  expect.generate_c("local a: byte", "uint8_t a = 0U;")
-  expect.generate_c("local a: float64", "double a = 0.0;")
-  expect.generate_c("local a: float32", "float a = 0.0f;")
-  expect.generate_c("local a: pointer", "void* a = NULL;")
-  expect.generate_c("local a: int64", "int64_t a = 0;")
-  expect.generate_c("local a: int32", "int32_t a = 0;")
-  expect.generate_c("local a: int16", "int16_t a = 0;")
-  expect.generate_c("local a: int8", "int8_t a = 0;")
-  expect.generate_c("local a: isize", "intptr_t a = 0;")
-  expect.generate_c("local a: uint64", "uint64_t a = 0U;")
-  expect.generate_c("local a: uint32", "uint32_t a = 0U;")
-  expect.generate_c("local a: uint16", "uint16_t a = 0U;")
-  expect.generate_c("local a: uint8", "uint8_t a = 0U;")
-  expect.generate_c("local a: usize", "uintptr_t a = 0U;")
-  expect.generate_c("local a: boolean", "bool a = false;")
+  expect.generate_c("local a: integer", "int64_t a;")
+  expect.generate_c("local a: number", "double a;")
+  expect.generate_c("local a: byte", "uint8_t a;")
+  expect.generate_c("local a: float64", "double a;")
+  expect.generate_c("local a: float32", "float a;")
+  expect.generate_c("local a: pointer", "void* a;")
+  expect.generate_c("local a: int64", "int64_t a;")
+  expect.generate_c("local a: int32", "int32_t a;")
+  expect.generate_c("local a: int16", "int16_t a;")
+  expect.generate_c("local a: int8", "int8_t a;")
+  expect.generate_c("local a: isize", "intptr_t a;")
+  expect.generate_c("local a: uint64", "uint64_t a;")
+  expect.generate_c("local a: uint32", "uint32_t a;")
+  expect.generate_c("local a: uint16", "uint16_t a;")
+  expect.generate_c("local a: uint8", "uint8_t a;")
+  expect.generate_c("local a: usize", "uintptr_t a;")
+  expect.generate_c("local a: boolean", "bool a;")
 end)
 
 it("reserved names quoting", function()
   expect.config.srcname = 'mymod'
-  expect.generate_c("local default: integer", "int64_t mymod_default = 0;")
+  expect.generate_c("local default: integer", "int64_t mymod_default;")
   expect.generate_c("local NULL: integer = 0", "int64_t mymod_NULL = 0;")
   expect.generate_c("do local default: integer end", "int64_t default_ = 0;")
   expect.generate_c("do local NULL: integer = 0 end", "int64_t NULL_ = 0;")
@@ -2519,7 +2519,8 @@ it("implicit casting for unbounded arrays", function()
 end)
 
 it("nilptr", function()
-  expect.generate_c("local p: pointer = nilptr", "void* p = NULL")
+  expect.generate_c("local p: pointer = nilptr", "void* p;")
+  expect.generate_c("do local p: pointer = nilptr end", "void* p = (void*)NULL;")
   expect.run_c([[
     local p: pointer = nilptr
     assert(p == nilptr)
@@ -2875,13 +2876,15 @@ end)
 
 it("context pragmas", function()
   expect.generate_c([[
-    ## pragmapush{noinit = true}
-    local a: integer
-    ## pragmapop()
-    local b: integer
+    do
+      ## pragmapush{noinit = true}
+      local a: integer
+      ## pragmapop()
+      local b: integer
+    end
   ]], {
-    "\nstatic int64_t a;\n",
-    "\nstatic int64_t b = 0;\n"
+    "int64_t a;\n",
+    "int64_t b = 0;\n"
   })
 
   expect.generate_c([[
@@ -2892,8 +2895,8 @@ it("context pragmas", function()
     local b: integer
     local function g() end
   ]], {
-    "\nint64_t a = 0;\n",
-    "\nstatic int64_t b = 0;\n",
+    "\nint64_t a;\n",
+    "\nstatic int64_t b;\n",
     "\nvoid f()",
     "\nstatic void g()",
   })

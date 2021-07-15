@@ -45,3 +45,5 @@ do -- hash records with custom hash function
   local pv: *vec3
   assert(hash.hash(pv) == 0)
 end
+
+print 'hash OK!'

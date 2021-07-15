@@ -991,7 +991,7 @@ function cbuiltins.operators.eq(_, _, emitter, lattr, rattr, lname, rname)
       emitter:add_builtin('nelua_eq_', ltype)
       emitter:add('(', lname, ', ', rname, ')')
     else
-      emitter:add('((void)', lname, ', (void)', rname, ', ', false, ')')
+      emitter:add('(', lname, ', ', rname, ', ', false, ')')
     end
   elseif ltype.is_array then
     assert(ltype == rtype)
@@ -1015,7 +1015,7 @@ function cbuiltins.operators.eq(_, _, emitter, lattr, rattr, lname, rname)
     emitter:add('(', lname, ' == ', rname, ')')
   elseif ltype.is_niltype or rtype.is_niltype or
          ((ltype.is_boolean or rtype.is_boolean) and ltype ~= rtype) then
-    emitter:add('((void)', lname, ', (void)', rname, ', ', ltype == rtype, ')')
+    emitter:add('(', lname, ', ', rname, ', ', ltype == rtype, ')')
   else
     emitter:add('(', lname, ' == ')
     if ltype ~= rtype then
@@ -1045,7 +1045,7 @@ function cbuiltins.operators.ne(_, _, emitter, lattr, rattr, lname, rname)
       emitter:add_builtin('nelua_eq_', ltype)
       emitter:add('(', lname, ', ', rname, '))')
     else
-      emitter:add('((void)', lname, ', (void)', rname, ', ', true, ')')
+      emitter:add('(', lname, ', ', rname, ', ', true, ')')
     end
   elseif ltype.is_array then
     assert(ltype == rtype)
@@ -1070,7 +1070,7 @@ function cbuiltins.operators.ne(_, _, emitter, lattr, rattr, lname, rname)
     emitter:add('(', lname, ' != ', rname, ')')
   elseif ltype.is_niltype or rtype.is_niltype or
          ((ltype.is_boolean or rtype.is_boolean) and ltype ~= rtype) then
-    emitter:add('((void)', lname, ', (void)', rname, ', ', ltype ~= rtype, ')')
+    emitter:add('(', lname, ', ', rname, ', ', ltype ~= rtype, ')')
   else
     emitter:add('(', lname, ' != ')
     if ltype ~= rtype then

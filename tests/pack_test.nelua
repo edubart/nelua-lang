@@ -265,3 +265,5 @@ do -- packsize
   assert(string.packsize('!8 b Xi4') == 4)
   assert(string.packsize('!8 b Xs4') == 4)
 end
+
+print 'pack OK!'

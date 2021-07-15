@@ -54,3 +54,5 @@ do -- vsscanf
   assert(val == 99)
   assert(&buf[0] == 'bottles')
 end
+
+print 'libc OK!'

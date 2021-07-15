@@ -147,3 +147,5 @@ do -- test pattern matching syntax
   -- assert_match('flaaap', '()aa()', 'aa')
   assert_no_match('flaaap', '()aa()%1')
 end
+
+print 'pattern OK!'

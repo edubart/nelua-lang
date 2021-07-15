@@ -34,3 +34,5 @@ do -- traits.typeinfoof
   assert(niltype_typeinfo.name == 'niltype')
   assert(niltype_typeinfo.codename == 'nlniltype')
 end
+
+print 'traits OK!'

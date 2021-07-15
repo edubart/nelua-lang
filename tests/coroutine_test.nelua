@@ -133,4 +133,6 @@ do -- fibonacci example
   coroutine.destroy(co)
 end
 
+print 'coroutine OK!'
+
 ## end

@@ -98,3 +98,5 @@ do
   assert(node.tag == 'foo' and node.nodes[0].tag == 'boo')
   node.nodes:destroy()
 end
+
+print 'span OK!'

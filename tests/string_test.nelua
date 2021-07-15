@@ -544,3 +544,5 @@ do -- tointeger
   assert(tonumber('-1234567890', 10) == -1234567890)
   assert(tointeger(' \v\r123 \t\n', 10) == 123)
 end
+
+print 'string OK!'

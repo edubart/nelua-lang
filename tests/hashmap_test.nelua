@@ -182,3 +182,5 @@ do -- custom allocator
   end
   map:destroy()
 end
+
+print 'hashmap OK!'
